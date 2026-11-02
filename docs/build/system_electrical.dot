@@ -2,7 +2,7 @@
 // Bold lines = battery power, plain = low-voltage power and USB, dashed = signal, dotted = radio.
 // GPIO numbers come from firmware/base/grappstar_base/pins.h (fw-base owns them).
 digraph G {
-  graph [rankdir=LR, fontname="Liberation Sans", fontsize=11, nodesep=0.25, ranksep=0.55, splines=true, newrank=true];
+  graph [rankdir=TB, fontname="Liberation Sans", fontsize=11, nodesep=0.25, ranksep=0.55, splines=true, newrank=true];
   node  [shape=box, fontname="Liberation Sans", fontsize=10, color=black, fontcolor=black];
   edge  [fontname="Liberation Sans", fontsize=8, color=black, fontcolor=black, arrowsize=0.6];
 

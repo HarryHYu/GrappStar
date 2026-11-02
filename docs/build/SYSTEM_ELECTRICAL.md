@@ -85,8 +85,8 @@ Battery unplugged for steps 1 to 4. Have the multimeter ready.
 7. Plug the battery in. Fit the 10 A fuse. The Jetson boots (green LED). The RC832 screen or LED lights.
 8. Plug the ESP32 USB cable into the Jetson. The ESP32 power LED lights. Nothing moves (DRV8833 SLP has a pull-down
    and stays off until the firmware enables it).
-9. On the Jetson: `python3 -m grappstar.cli ping` (see jetson/README.md) or a serial terminal: `{"id":1,"cmd":"status"}`.
-   Check `vbat` in telemetry matches the meter within 0.3 V.
+9. On the Jetson, in `~/GrappStar/jetson`: `python3 -m grappstar base ping` (expect `"ok": true`), then
+   `python3 -m grappstar base monitor`. Check `vbat` in telemetry matches the meter within 0.3 V.
 
 Unplug order (every time): stop the motors (`estop`), pull the battery, then anything else.
 

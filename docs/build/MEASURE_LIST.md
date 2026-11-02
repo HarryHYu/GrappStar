@@ -22,12 +22,12 @@ photos in `originals/measure_2026-11/` so the numbers can be checked later.
 ## B. Launch springs (params.py `SPRING`, set `measured=True` when done)
 
 The two springs are extension springs with initial tension: they need a small force before they stretch at all, so
-one weight is not enough. Use two loads.
+one weight is not enough. Use three loads. Every range number scales with the energy the springs store, so this is the most important measurement.
 
 | # | What | How | Changes | Reprint after |
 |---|---|---|---|---|
 | B1 | Free length L0 | Caliper the spring hook to hook (inside of the hooks), no load | `SPRING.free_len` | Nothing |
-| B2 | Rate k and initial tension F0 | Weigh a full 1 L bottle (W1, kg) and a full 2 L bottle or two 1 L bottles in a bag (W2). Hang W1 from one spring, measure L1 hook to hook; then W2, measure L2. k (N/mm) = (W2 - W1) x 9.81 / (L2 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). If L1 equals L0 (the spring did not move), use W2 and a 4 L load instead. Do both springs | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
+| B2 | Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load. Do both springs. Never stretch a spring longer than L0 + 250 mm | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
 | B3 | Wire and outside diameter | Caliper | `SPRING.wire`, `SPRING.od` | Spring anchors only if OD differs by more than 0.5 mm |
 
 ## C. Parts box: confirm you have these (no new purchases)
@@ -83,10 +83,11 @@ one weight is not enough. Use two loads.
 | G1 | BTS7960 current sense scale | firmware/base/CALIBRATION.md (meter in series at low duty, compare with `amps`) | firmware `set` key (stored on the ESP32) |
 | G2 | Battery voltage reading | Meter on the LiPo vs `vbat` telemetry | firmware `set` key |
 | G3 | AS5600 zero and drum positions | firmware/base/CALIBRATION.md | stored on the ESP32 |
-| G4 | Storage reel payout drag | Pull the line off the reel slowly with the luggage scale in LAUNCH mode: 0.5 to 1 N (50 to 100 g). Above 1 N costs range, 3 N ruins the flight | slip clutch preload (reel parts) |
+| G4 | Storage reel payout drag | Pull the line off the reel slowly with the luggage scale in LAUNCH mode: set 0.5 to 0.75 N (50 to 75 g). Above 1 N costs range, 3 N ruins the flight | slip clutch preload (reel parts) |
 | G5 | Muzzle speed | Phone slow-motion video side-on with a tape measure in view: speed = distance moved / time between frames | physics model, ballistics table |
 | G6 | Range at three pitches | Tape measure from the base to the dart at 3 pitches, no tether brake changes | ballistics table check (jetson uses it) |
 | G7 | Soil holding force | Dart anchored, luggage scale on the tether, pull slowly up to 50 N, note where it moves | reel tension limit |
+| G8 | Rail friction | Before the rail is mounted: lay the rail part on a flat board, dart in the cradle, lift one end of the board slowly until the dart slides; phone level app on the board. Friction = tan(angle) | physics (launch efficiency) |
 
 ## After you measure
 

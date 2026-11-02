@@ -6,7 +6,7 @@ First move for any problem: send `estop` (or pull the battery plug), then read t
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| No reply from the base on the Jetson | Charge-only USB cable; cable in the UART port; wrong serial device | Data cable in the port marked USB. On the Jetson, `ls /dev/ttyACM*` must show a device (jetson/README.md) |
+| No reply from the base on the Jetson | Charge-only USB cable; cable in the UART port; wrong serial device | Data cable in the port marked USB. On the Jetson, `ls -l /dev/grappstar-base` must show a link to ttyACM0 (jetson/README.md section 4) |
 | ESP32 resets when the wiper starts | Ground or USB power dip | Check the ESP32 GND wire to the BTS7960 GND; short USB cable; report BROWNOUT faults |
 | Wiper does nothing, no fault | R_EN / L_EN not wired, 20 A fuse blown | Battery unplugged, check the fuse and the two enable wires |
 | Wiper turns one way only | RPWM or LPWM loose | Re-seat the Dupont jumper |

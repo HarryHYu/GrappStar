@@ -3,10 +3,11 @@
 Do the stages in order. Do not skip ahead when a stage fails: fix it, then repeat the stage. Write the date and the
 result of each stage in a notebook (or `docs/build/test_log.md`).
 
-How to send base commands: the operator page on the Jetson (jetson/README.md) has buttons for each of these. From a
-terminal the same commands go over the serial link as JSON lines (firmware/base/PROTOCOL.md), for example
-`{"id":1,"cmd":"jog","motor":"wiper","dir":1,"ms":300}`. `{"id":2,"cmd":"estop"}` stops everything and is always
-safe to send.
+How to send base commands: the operator page on the Jetson (jetson/README.md) has buttons for most of these. From a
+terminal on the Jetson, in `~/GrappStar/jetson`, send any command (firmware/base/PROTOCOL.md) with
+`python3 -m grappstar base cmd '{"cmd": "jog", "motor": "wiper", "dir": 1, "ms": 300}'` and watch telemetry with
+`python3 -m grappstar base monitor` in a second terminal. `'{"cmd": "estop"}'` stops everything and is always safe
+to send.
 
 Safety for every stage:
 - Battery unplugged before you touch any wire.
@@ -91,8 +92,9 @@ electronics go in), taped shut with M8 nuts or sand inside to 280 g. Paint the n
 2. Film it side-on with the phone in slow motion, tape measure on the ground in view (muzzle speed, G5).
 3. Measure the range. Repeat at 30 and 45 degrees (G6).
 
-Pass: clean exit (no rubbing marks on the dummy), it flies nose first, range within 30 percent of the ballistics
-table at the same pitch.
+Pass: clean exit (no rubbing marks on the dummy), it flies nose first, range within 30 percent of the physics
+model's no-tether range (`base/physics/SUMMARY.md`, "Same shot, no tether": 5.2 m at 35 degrees before the springs
+were measured).
 If it fails: tumbles: check the nose ballast is in the dummy too (it must match the real dart). Short range:
 measure the spring (B2) and the muzzle speed, then re-run the physics. Rubbing marks: check the cradle and the
 barrel against the dart.
@@ -100,14 +102,15 @@ barrel against the dart.
 ## Stage 6. Tether on
 
 Tie the line through the dummy's tail cap holes. Line routed as in the base assembly steps (it bypasses the
-capstan for launch). Storage reel brake set: pull the line by hand with the luggage scale, 50 to 100 g (G4).
+capstan for launch). Storage reel brake set: pull the line by hand with the luggage scale, 50 to 75 g (G4).
 
 1. Fire at 30 degrees.
 2. Check the line paid out with no loops or overrun on the reel.
 3. `mode` REEL, `wrap`, then `reel` until `SW_SEATED` or the dummy is back near the base.
 4. `unwrap`, `mode` LAUNCH. Check the line runs on the launch path again.
 
-Pass: payout is clean, the range drop against stage 5 is under 20 percent, the wrap lays on the capstan, reel-in
+Pass: payout is clean, the range is at least 65 percent of stage 5 at the same pitch (the physics model expects
+about 72 percent: 3.8 m against 5.2 m at 35 degrees), the wrap lays on the capstan, reel-in
 works, unwrap returns the line to the launch path. Repeat 5 times.
 If it fails: backlash loops on the reel: raise the payout drag a little (do not exceed 1 N). Big range loss: the
 drag is too high or the line catches; watch the slow-motion video. Wrap misses the capstan: check the wrap arm
@@ -134,7 +137,8 @@ calibration (G1).
 From the operator page on the Jetson (jetson/README.md): preflight, pick a target on the Kiyo view, aim, confirm
 the fire prompt, flight video from the dart, landing verdict, anchor, tow, release, reel home.
 
-1. First run: short range (5 to 8 m), soft soil, open ground.
+1. First run: a short target well inside the range the operator page offers (the physics model gives about 4 m at
+   35 degrees with the current springs), soft soil, open ground.
 2. Watch every prompt: the software stops and asks before each dangerous step.
 
 Pass: the whole sequence runs with only the expected operator confirmations, the dart lands within 2 m of the target,

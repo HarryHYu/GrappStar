@@ -24,6 +24,6 @@ run "dart firmware (host)"   firmware/dart/test   bash run_tests.sh
 [ -f firmware/base/test/run_tests.sh ] && run "base firmware (host)" firmware/base/test bash run_tests.sh
 run "jetson software"        jetson               "$JPY" -m pytest -q
 run "cad library and tools"  base                 "$PY" -m pytest -q tools/tests
-[ -d base/physics/tests ] && run "physics models" base/physics "$PY" -m pytest -q tests
+ls base/physics/test_*.py base/physics/tests/*.py >/dev/null 2>&1 && run "physics models" base/physics "$PY" -m pytest -q
 [ -f base/run_all.sh ] && [ "$1" = "--full" ] && run "base pipeline (assembly, audit, pack, sim, guide)" base bash run_all.sh
 exit $fail

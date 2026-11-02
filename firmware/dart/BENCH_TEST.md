@@ -1,0 +1,128 @@
+# KEDGE dart bench test (before closing the hull)
+
+Goal: every motor turns the right way and stops on its own, both sensors work, the current thresholds are real
+numbers, and one full anchor + release runs on soil. About 1 hour.
+
+You need: charged 18350 cells (XTAR MC2), multimeter, phone or laptop on WiFi `KEDGE`, a stopwatch, a tray or bucket
+of damp soil at least 10 cm deep, a folded towel, and this sheet to write numbers on.
+
+Directions used below (firmware convention, +1 in `/status` `motors`):
+
+| Key | Motor | Must do |
+|---|---|---|
+| `1` | deploy | pods swing **down** |
+| `2` | kick | leg swings **out**, over the nose |
+| `3` | drills | augers turn to **screw in** (left clockwise, right anticlockwise, looking from motor end to tip) |
+| `4` | foot | foot auger turns to **screw in** (look at its thread: a right-hand thread screws in clockwise, looking from motor end to tip) |
+
+If a motor turns the wrong way: **battery unplugged**, swap that motor's two thin input wires at its driver
+(deploy: DRV#1 AIN1/AIN2, kick: DRV#1 BIN1/BIN2, drills: DRV#2 AIN1/AIN2, foot: DRV#2 BIN1/BIN2). Then check again.
+
+## Step 0. Set up
+
+1. **Battery unplugged.** Wiring done and meter-checked (WIRING.md step A7 or B10). Firmware flashed (README.md).
+2. Motors and legs outside the hull or with the hull open, legs free to swing, nothing near the augers. Fingers clear.
+3. Insert the power loop plug. Nothing moves, nothing gets warm in 30 s. If anything heats: pull the plug.
+4. Join `KEDGE`, open `http://192.168.4.1`. The status line must show `IDLE`, `INA219 ok`, `BNO085 ok`.
+
+## Step 1. Power and current sensor
+
+1. Meter the battery at the power loop socket. Compare with `rail` on the page: within 0.15 V. Write both down.
+2. With nothing running, `current` reads 0 to 5 mA (the INA219 sees the motor rail only).
+3. Press `i` on the page: it prints rail, current, and the peak since the last `i`.
+
+Pass: INA219 ok, rail agrees with the meter. If `INA219 MISSING`: battery unplugged, check D4/D5 and 3V3/GND to the
+INA219; Serial `z` must list 0x40.
+
+## Step 2. BNO085 and attitude
+
+1. Press `b`: roll, pitch and |a| about 1.00 g with the dart still.
+2. Tilt the dart nose up: pitch changes by about 90. Roll it on its side: roll changes by about 90.
+3. If `BNO085 MISSING`: battery unplugged, check wires; Serial `z` must list 0x4a. (If Serial stays blank, check
+   USB CDC On Boot is Enabled.)
+
+## Step 3. Deploy (DRV#1 A)
+
+1. Hold `deploy down` (key `1`) for 1 s. Pods swing **down**. Wrong way: fix as above.
+2. Hold it until the pods reach the end. They stop by themselves (event `stalled: deploy at ... mA, stopped`).
+   Write down that mA: **deploy stall = ____ mA**. While moving freely, `current` reads **deploy free = ____ mA**.
+3. Hold `deploy up` (`!`) until they stow and stop by themselves.
+
+## Step 4. Drills (DRV#2 A, both motors)
+
+1. Pods down first (step 3). Hold `drills in` (`3`) for 2 s. Check the directions in the table (left clockwise,
+   right anticlockwise, from motor end to tip). If both turn the same way: WIRING.md "Drill direction check".
+2. **Drill pair free = ____ mA** (expect 60 to 70). Grip one auger lightly with a cloth: current rises.
+   Do not stall both by hand for long. Stalling both reads **drill pair stall = ____ mA** (expect about 700 at 8 V).
+3. Hold `drills out` (`#`): they reverse.
+
+## Step 5. Kick (DRV#1 B)
+
+1. Hold `kick out` (`2`): the leg swings **out over the nose**. Wrong way: fix as above.
+2. Time a full swing from stowed to the ground with the stopwatch: **kick swing = ____ s**. It must be well under 15 s
+   (the auto limit). Hold `kick back` (`@`) until it stows and stops by itself: **kick stall = ____ mA**.
+3. **Kick free = ____ mA** while swinging.
+4. Note: a hold is capped at 8 s. A swing longer than that needs two holds (release, press again).
+
+## Step 6. Foot (DRV#2 B)
+
+1. Hold `foot in` (`4`): the foot auger turns the way that screws in. Wrong way: fix as above.
+2. **Foot free = ____ mA** (expect about 40). Brake it with a cloth: **foot stall = ____ mA** (expect 500 to 600).
+3. Hold `foot out` (`$`): it reverses.
+
+## Step 7. BNO085 axes (for the Jetson flight analysis)
+
+1. Lay the dart flat, belly down. Open `http://192.168.4.1/flightlog` and look at the last sample: `ax, ay, az`.
+   The axis reading about +9.8 points **up**.
+2. Stand the dart on its tail, nose up: the axis reading about +9.8 points to the **nose**.
+3. Lay it on its right side (kick side up): the axis reading +9.8 points **left**.
+4. Write: **nose = ___ (e.g. +x), left = ___, up = ___**. Put this in `REPORT.md` / tell the Jetson worker.
+
+## Step 8. Flight log (safe, log only)
+
+1. Open `http://192.168.4.1/arm?on=1&auto=0` (arm, log only: no motors will run). Status shows `ARMED`.
+2. Hold the dart over the towel on the floor. Jerk it sharply upwards and let go about 40 cm above the towel.
+3. Status should go `FLIGHT` then `LANDED` (or stay `ARMED` if the jerk was under 4 g: jerk harder).
+4. Wait 4 s. Open `http://192.168.4.1/flightlog`: `frozen: true`, `t_launch_ms` and `t_land_ms` set, a few hundred
+   samples. Save it. The towel drop usually reads `landing: "timeout"` or `"still"` (soft), which is correct.
+5. Send `/stop` to disarm.
+
+## Step 9. Write the real thresholds
+
+In `kedge_logic.h`, `struct Tuning`, set (all at full speed 255, battery fully charged):
+
+| Setting | Rule | Default |
+|---|---|---|
+| `stallMa[DEPLOY]` | 80 % of deploy stall | 150 |
+| `stallMa[KICK]` | 80 % of kick stall | 150 |
+| `stallMa[DRILLS]` | 85 % of drill pair stall | 600 |
+| `stallMa[FOOT]` | 80 % of foot stall | 450 |
+| `kickContactMa` | about 2 x kick free, below kick stall / 2 | 60 |
+| `loadMa[...]` | typical working current in soil (step 10) | 40, 70, 420, 130 |
+| `kickMaxMs` | 2 x kick swing time, at least 8000 | 15000 |
+
+Re-run `test/run_tests.sh`, upload, repeat steps 3, 5 and 6 once to see the stops still work.
+
+## Step 10. Anchor and release on soil
+
+1. Legs stowed. Lay the dart on the damp soil, belly down, nose clear of the tray wall.
+2. Page: press `AUTO anchor`. Watch the status: kick swing, foot touches, kick + foot planting, foot finishing,
+   deploy + drills, drills finishing, `ANCHORED`. Write the time of each event (Serial Monitor shows them with USB,
+   or watch the page). Note the working currents for `loadMa`.
+3. Pull the tether gently by hand: the dart should hold.
+4. Press `RELEASE`: drills out, pods up, foot out, kick back, `released`. The legs end stowed.
+5. If it stops with `FAULT`: write down the fault and the last event, press STOP, and fix the threshold (step 9).
+
+## Step 11. Jetson link
+
+From the Jetson on `KEDGE`: `python3 kedge_client.py status` (or the new jetson client). Phase `IDLE`, fields present.
+
+## Step 12. Close the hull
+
+1. **Battery unplugged.**
+2. Route the wires: drill wires with a 30 mm loop at each flank hole for the pod swing; the foot pair with a 60 mm
+   loop round the kick hub; nothing crossing a hinge; nothing pinched by the hull halves. The DRV#3 pocket stays empty.
+3. Close the hull, insert the plug, and repeat steps 3, 5 and 6 (one swing each way) to make sure no wire catches.
+4. Camera: switch on the RC832 and check the picture.
+
+Bring back: the numbers from steps 1 to 7 and 10. They go into `Tuning` and the REPORT.

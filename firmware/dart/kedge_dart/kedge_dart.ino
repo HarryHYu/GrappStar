@@ -155,7 +155,8 @@ void help() {
 const char* handleKey(char c, uint32_t runMs) {
   uint32_t now = millis(); const char* why = nullptr;
   switch (c) {
-    case 'i': say("rail " + String(railCache, 2) + " V  " + String(K.lastMa, 0) + " mA  peak " + String(K.peakMa, 0) + " mA"); return nullptr;
+    case 'i': say("rail " + String(railCache, 2) + " V  " + String(K.lastMa, 0) + " mA  peak " + String(K.peakMa, 0) + " mA since the last i");
+              xSemaphoreTake(mtx, portMAX_DELAY); K.peakMa = 0; xSemaphoreGive(mtx); return nullptr;
     case 'b': say(K.imuOk ? "roll " + String(roll, 1) + "  pitch " + String(pitch, 1) + "  |a| " + String(K.accG, 2) + " g" : String("BNO085 not found or silent")); return nullptr;
     case 'z': xSemaphoreTake(mtx, portMAX_DELAY); K.stop(now); xSemaphoreGive(mtx); scanI2C(); return nullptr;   // motors stopped first
     case 'p': { char b[1024]; xSemaphoreTake(mtx, portMAX_DELAY); K.status(b, sizeof b, roll, pitch, now, railCache, resetName); xSemaphoreGive(mtx); say(b); return nullptr; }

@@ -427,7 +427,7 @@ struct Kedge {
         char b[64]; int n = snprintf(b, sizeof b, "stalled:");
         for (int m = 0; m < NMOT; m++) if (dir[m]) n += snprintf(b + n, sizeof b - n, " %s", motorName(m));
         for (int m = 0; m < NMOT; m++) if (dir[m]) stallLock[m] = dir[m];
-        stopAll(now); snprintf(b + n, sizeof b - n, ", stopped"); ev(b);
+        stopAll(now); snprintf(b + n, sizeof b - n, " at %.0f mA, stopped", ma); ev(b);
       }
     } else manOn = false;
 

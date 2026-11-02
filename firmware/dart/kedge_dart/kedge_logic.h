@@ -268,17 +268,22 @@ struct Kedge {
   }
 
   // returns nullptr when accepted, else the reason
-  const char* stop(uint32_t now) {
+  // disarm=false (GET /stop?disarm=0) stops the motors but keeps the landing detector armed and flight tracking going
+  const char* stop(uint32_t now, bool disarm = true) {
     bool wasSeq = seqRunning();
     stopAll(now);
     if (wasSeq) seq = ABORTED;
-    if (flight.flying()) { flight.land(now, "stop"); landed = true; log.scheduleFreeze(now + 3000); }
-    armed = false; fault = F_NONE;
+    if (disarm) {
+      if (flight.flying()) { flight.land(now, "stop"); landed = true; log.scheduleFreeze(now + 3000); }
+      armed = false;
+    }
+    fault = F_NONE;
     ev(wasSeq ? "stop: sequence aborted" : "stop");
     return nullptr;
   }
   const char* startAuto(uint32_t now) {
     if (flight.flying()) return "in flight";
+    if (anchoring()) return nullptr;                  // already running: a repeated request is not an error
     if (seqRunning()) return "busy";
     if (seq == DONE) return "already anchored, release first";
     if (!inaOk) return "no current sensor";
@@ -288,6 +293,7 @@ struct Kedge {
   }
   const char* startRelease(uint32_t now) {
     if (flight.flying()) return "in flight";
+    if (releasing()) return nullptr;                  // already running
     if (seqRunning()) return "busy";
     if (!inaOk) return "no current sensor";
     stopAll(now); pulseReset(now); fault = F_NONE; armed = false;
@@ -417,12 +423,14 @@ struct Kedge {
         if (dir[FOOT] && t > tu.surgeIgnoreMs && held(ma > tu.stallMa[FOOT], tu.stallHoldMs, now)) { drive(FOOT, 0, 0, now); ev("auto: foot stalled (full depth or stone)"); }
         if (!dir[FOOT]) { drive(DRILLS, +1, tu.deployMaxMs + tu.drillAfterMs, now); drive(DEPLOY, +1, tu.deployMaxMs, now); seq = D_DEPLOY; seqT0 = now; pulseReset(now); ev("auto: deploy with drills spinning"); }
         break;
-      case D_DEPLOY:  // pods swing down while the augers cut; drills pause briefly to read the deploy worm alone
-        if (bool st = pulse(DRILLS, tu.stallMa[DEPLOY], now); st || !dir[DEPLOY]) {
+      case D_DEPLOY: {  // pods swing down while the augers cut; drills pause briefly to read the deploy worm alone
+        bool st = pulse(DRILLS, tu.stallMa[DEPLOY], now);
+        if (st || !dir[DEPLOY]) {
           drive(DEPLOY, 0, 0, now); drive(DRILLS, +1, tu.drillAfterMs, now); seq = D_AFTER; seqT0 = now; condT = 0; paused = false;
           ev(st ? "auto: pods down, drills finishing" : "auto: deploy time limit, drills finishing");
         }
         break;
+      }
       case D_AFTER:
         if (dir[DRILLS] && t > tu.surgeIgnoreMs && held(ma > tu.stallMa[DRILLS], tu.stallHoldMs, now)) { drive(DRILLS, 0, 0, now); ev("auto: drills stalled (full depth or stone)"); }
         if (!dir[DRILLS]) { seq = DONE; ev("auto: anchored, holding (worms self-lock)"); }
@@ -433,12 +441,14 @@ struct Kedge {
         if (dir[DRILLS] && t > tu.surgeIgnoreMs && held(ma > tu.stallMa[DRILLS], tu.stallHoldMs, now)) { setFault(F_DRILL_JAM, "release: drills jammed", now); return; }
         if (!dir[DRILLS]) { drive(DRILLS, -1, tu.deployMaxMs, now); drive(DEPLOY, -1, tu.deployMaxMs, now); seq = R_PODS; seqT0 = now; pulseReset(now); ev("release: pods up, drills still out"); }
         break;
-      case R_PODS:
-        if (bool st = pulse(DRILLS, tu.stallMa[DEPLOY], now); st || !dir[DEPLOY]) {
+      case R_PODS: {
+        bool st = pulse(DRILLS, tu.stallMa[DEPLOY], now);
+        if (st || !dir[DEPLOY]) {
           drive(DEPLOY, 0, 0, now); drive(DRILLS, 0, 0, now); drive(FOOT, -1, tu.footLeadMs, now); seq = R_FOOT; seqT0 = now; condT = 0; paused = false;
           ev(st ? "release: pods up, foot out" : "release: pods time limit, foot out");
         }
         break;
+      }
       case R_FOOT:
         if (dir[FOOT] && t > tu.surgeIgnoreMs && held(ma > tu.stallMa[FOOT], tu.stallHoldMs, now)) { setFault(F_FOOT_JAM, "release: foot jammed", now); return; }
         if (!dir[FOOT]) { drive(FOOT, -1, tu.footOutMs, now); drive(KICK, -1, tu.kickMaxMs, now); seq = R_KICK; seqT0 = now; pulseReset(now); ev("release: kick back, foot still out"); }

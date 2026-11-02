@@ -293,7 +293,11 @@ void setup() {
     if (!c.length()) { web.send(400, "text/plain", "missing c\n"); return; }
     sendResult(handleKey(c[0], (uint32_t)ms));
   });
-  web.on("/stop", []() { reply = ""; sendResult(handleKey(' ', 0)); });
+  web.on("/stop", []() {
+    reply = "";
+    if (web.hasArg("disarm") && web.arg("disarm") == "0") { xSemaphoreTake(mtx, portMAX_DELAY); K.stop(millis(), false); xSemaphoreGive(mtx); drainLog(); sendResult(nullptr); }
+    else sendResult(handleKey(' ', 0));
+  });
   web.on("/auto", []() { reply = ""; sendResult(handleKey('a', 0)); });
   web.on("/release", []() { reply = ""; sendResult(handleKey('r', 0)); });
   web.on("/arm", []() {

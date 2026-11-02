@@ -198,7 +198,7 @@ def board_models():
 
 # ------------------------------------------------------------------------------------------------ AS5600 bracket
 def as5600_parts(P, C, info):
-    """Magnet holder on the main shaft end and the board bracket on the far (non-motor) cheek. Returns
+    """AS5600 board and its bracket on the far (non-motor) cheek, chip on the main axis facing the drum's magnet. Returns
     (list of (name, solid_world or local, kwargs)), info."""
     lay = C["layout"]
     if C["main"] not in lay:
@@ -208,22 +208,17 @@ def as5600_parts(P, C, info):
     sup = [sp for sp in info["supports"] if sp["shaft"] == C["main"] and sp["side"] == s]
     mo = np.asarray(lay[C["main"]]["origin"], float)
     yb = C["y_out"][s] + s * (sup[0]["block"]["tb"] if sup else 0.0)        # outer face of the main block
-    d = lay[C["main"]]["d"]
-    # magnet holder: a cap pressed on the shaft end (bore d + 0.1 interference-free, M3 grub into an insert), the
-    # shaft end is assumed to stand 8 mm proud of the block face (main shaft owner: please confirm)
-    cap_r = d / 2 + 4.0
-    y0 = yb + s * 1.0
-    cap_len = 12.0
-    # in a local frame: +Z = outward (s * Y), z from 0 (inner end) to cap_len; magnet pocket at the outer end
-    cap = prim.cyl(cap_r, cap_len)
-    cap = cap - prim.cyl((d + 0.2) / 2, 8.0 + 0.01, z=-0.01)
-    cap = cap - prim.cyl((MAGNET["d"] + 0.15) / 2, MAGNET["h"] + 0.01, z=cap_len - MAGNET["h"])
-    grub = prim.place(U.insert_hole(0, 0, 0.0), tf.T(cap_r, 0, 4.0) @ tf.Ry(-90))
-    cap = cap - grub
-    Mcap = tf.T(mo[0], y0, mo[2]) @ (tf.Rx(-90) if s > 0 else tf.Rx(90))
-    magnet = prim.cyl(MAGNET["d"] / 2, MAGNET["h"], z=cap_len - MAGNET["h"])
-    # board: chip face MAGNET gap beyond the cap end; PCB parallel to the cheek
-    y_chip = y0 + s * (cap_len + MAGNET["gap"])
+    # The magnet holder on the shaft end belongs to cad-drum (BASE_SPEC section 3). Its magnet face y comes from
+    # params (DRUM["magnet_face_y"] or FRAMEWORK["as5600_magnet_face_y"], world); until then assume the drum's cap ends
+    # 21 mm beyond the main block face (8 mm shaft end + 13 mm cap).
+    yf = None
+    for src in (getattr(P, "DRUM", None) or {}, C["fw"].get("_raw", {}) or {}):
+        for k in ("magnet_face_y", "as5600_magnet_face_y"):
+            if isinstance(src, dict) and src.get(k) is not None:
+                yf = float(src[k])
+    if yf is None:
+        yf = yb + s * 21.0
+    y_chip = yf + s * MAGNET["gap"]
     a = BOARD["as5600"]
     bw, bh, bt = a["pcb"]
     pcb = prim.box(-a["chip"][0], bw - a["chip"][0], -a["chip"][1], bh - a["chip"][1], 1.0, 1.0 + bt)   # chip 1 mm tall
@@ -252,10 +247,6 @@ def as5600_parts(P, C, info):
     # chip clearance: hole in the plate is not needed (PCB sits on the pegs' shoulders = plate face)
     Mbr = Mpcb
     parts = [
-        ("frame_as5600_magnet_cap", prim.place(cap, Mcap), dict(material="PLA", joint=True,
-            notes="magnet holder: pressed on the main shaft end, M3 grub into an insert, 6 x 2.5 diametric magnet glued in")),
-        ("frame_as5600_magnet", prim.place(magnet, Mcap), dict(material="bought", joint=True,
-            bought_ref="NdFeB disc 6 x 2.5 mm DIAMETRIC (not included with the Adafruit board)", notes="AS5600 magnet")),
         ("frame_pcb_as5600", prim.place(pcb, Mpcb), dict(material="bought", bought_ref="Adafruit AS5600 STEMMA QT (PID 6357)",
             notes="angle sensor, chip on the main axis, 1 mm air gap to the magnet")),
         ("frame_as5600_bracket", prim.place(br, Mbr), dict(material="PLA",
@@ -310,7 +301,8 @@ def build(P, C, info, parts_so_far):
     fw = C["fw"]
     out = []
     asp, ainfo = as5600_parts(P, C, info)
-    Mbay = place_bay(C, parts_so_far, fw.get("ebay"))
+    extra = [Part(nm, sol, "bought") for nm, sol, kw in asp]
+    Mbay = place_bay(C, list(parts_so_far) + extra, fw.get("ebay"))
     box, tabs = bay_box()
     deck_holes = [tuple(tf.apply(Mbay, [(x, y, 0)])[0][:2]) for x, y in tabs]
     out.append(Part("frame_ebay", box, "PLA", place=Mbay, print_tf=U.print_flat(box), color="#9aa4ae",
@@ -347,7 +339,6 @@ def allowed(P):
         Allow("frame_fuse_20a", "frame_ebay", "fuse holder in its cradle", max_vol=2.0),
         Allow("frame_ebay*", "frame_ebay*", "lid lip, clamp on its posts", max_vol=1.0),
         Allow("frame_ebay", "frame_deck*", "bay stands on the deck", max_vol=1.0),
-        Allow("frame_as5600_magnet", "frame_as5600_magnet_cap", "magnet glued in its pocket", max_vol=0.5),
         Allow("frame_pcb_as5600", "frame_as5600_bracket", "pegs through the board holes", max_vol=2.0),
         Allow("frame_as5600_bracket", "frame_cheek_*", "bracket legs bolted to the cheek", max_vol=1.0),
     ]

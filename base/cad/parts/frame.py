@@ -58,6 +58,9 @@ FRAMEWORK_DEFAULT = dict(
     block_t=6.0,            # bearing block flange thickness (min)
     ties=None,              # list of (x, z) cheek tie centres; None = automatic (top corners)
     tie_d=16.0,
+    deck_z=-60.0,           # world z of the deck top (world z = 0 is the wiper axis)
+    adapter_standoff=12.0,  # adapter hub height over the cheek (clears block flanges, M6 nuts reachable)
+    cheek_y_in=None,        # (right, left) inner cheek face y; None = from the motor face (y = 0) and cheek_gap
     ebay=None,              # electronics bay placement override, see _frame_ebay.py
 )
 
@@ -76,24 +79,45 @@ def cfg(P):
     src = _get(P, "FRAMEWORK", {})
     if isinstance(src, dict):
         fw.update({k: v for k, v in src.items() if v is not None and k in FRAMEWORK_DEFAULT})
+        fw["_raw"] = dict(src)
     lay_src = _get(P, "LAYOUT", None)
+    c = dict(fw=fw, wiper=MOT.wiper_cfg(P))
+    # cheek planes. World y = 0 is the wiper boss face plane (BASE_SPEC section 2): the motor-side cheek outer face
+    # sits PLATE_T + adapter_standoff from it, towards the frame.
+    ms, g, t = fw["motor_side"], fw["cheek_gap"], fw["cheek_t"]
+    if fw.get("cheek_y_in"):
+        yr, yl = fw["cheek_y_in"]
+        y_in = {-1: float(yr), 1: float(yl)}
+    else:
+        yi = -ms * (MOT.PLATE_T + fw["adapter_standoff"] + t)
+        y_in = {ms: yi, -ms: yi - ms * g}
+    c["y_in"] = y_in
+    c["y_out"] = {s_: y_in[s_] + s_ * t for s_ in (-1, 1)}
+    yc = (y_in[-1] + y_in[1]) / 2
     layout = {}
     if lay_src:
-        for n, s in lay_src.items():
-            e = dict(origin=tuple(map(float, s["origin"])), axis=tuple(map(float, s["axis"])))
-            e["d"] = float(s.get("d", s.get("shaft_d", 8.0)))
-            e["brg"] = s.get("brg", s.get("bearing", "608" if e["d"] <= 8.0 else "bush"))
-            e["cheeks"] = tuple(s.get("cheeks", (-1, 1)))
+        deck_z = float(fw["deck_z"])
+        for n, s_ in lay_src.items():
+            ow = tuple(map(float, s_["origin"]))
+            e = dict(origin=(ow[0], ow[1], ow[2] - deck_z), origin_w=ow, axis=tuple(map(float, s_["axis"])))
+            e["d"] = float(s_.get("d", s_.get("shaft_d", 8.0)))
+            e["brg"] = s_.get("brg", s_.get("bearing", "608" if e["d"] <= 8.0 else "bush"))
+            e["cheeks"] = tuple(s_.get("cheeks", (-1, 1)))
             for k in ("supports", "span", "frame", "ped_yaw"):
-                if k in s:
-                    e[k] = s[k]
+                if k in s_:
+                    e[k] = s_[k]
             layout[n] = e
-    else:
-        layout = {k: dict(v) for k, v in LAYOUT_DEFAULT.items()}
-    c = dict(fw=fw, layout=layout, wiper=MOT.wiper_cfg(P))
-    g, t = fw["cheek_gap"], fw["cheek_t"]
-    c["y_in"] = {s: s * g / 2 for s in (-1, 1)}
-    c["y_out"] = {s: s * (g / 2 + t) for s in (-1, 1)}
+    else:                                   # placeholder: built in deck coordinates, main axis at world z = 0
+        deck_z = -LAYOUT_DEFAULT["main"]["origin"][2]
+        for n, v in LAYOUT_DEFAULT.items():
+            e = dict(v)
+            o = v["origin"]
+            e["origin"] = (o[0], o[1] + yc, o[2])
+            e["origin_w"] = (o[0], o[1] + yc, o[2] + deck_z)
+            layout[n] = e
+    c["layout"] = layout
+    c["deck_z"] = deck_z
+    c["to_world"] = tf.T(0, 0, deck_z)
     c["main"] = "main" if "main" in layout else next(iter(layout))
     return c
 
@@ -389,7 +413,9 @@ def build(P):
         mo = lay[C["main"]]["origin"]
         yo = C["y_out"][ms]
         tbs = [sp["block"]["tb"] for sp in info["supports"] if sp["side"] == ms]
-        standoff = (max(tbs) + 1.5) if tbs else 0.0
+        standoff = fw["adapter_standoff"]
+        if tbs and standoff < max(tbs) + 1.0:
+            info["warnings"].append(f"adapter_standoff {standoff} < thickest motor-side block flange {max(tbs):.1f} + 1")
         info["adapter_standoff"] = standoff
         yo = yo + ms * standoff
         # M frame: origin at the boss face plane (adapter face away from the cheek), +Z towards the frame (= -ms * Y)
@@ -484,6 +510,10 @@ def build(P):
                           notes="deck: M3 inserts for every frame foot; %d x M3 rover holes (it is its own drill template)" % sum(1 for r in rover if r[2] == k)))
     info["deck_pieces"] = len(pieces)
 
+    # deck frame -> world (z shift only)
+    for p in parts:
+        if p.joint is None:
+            p.place = C["to_world"] @ p.place
     out = dict(parts=parts, info=info)
     _CACHE[key] = out
     return out
@@ -499,7 +529,7 @@ def joints(P):
     js = []
     if C["main"] in C["layout"]:
         ms = C["fw"]["motor_side"]
-        mo = C["layout"][C["main"]]["origin"]
+        mo = C["layout"][C["main"]]["origin_w"]
         js.append(Joint("frame_wiper", None, "rev", origin=mo, axis=(0, -ms, 0)))
     return js
 

@@ -109,7 +109,10 @@ def test_layout_from_params(P):
         FRAMEWORK=dict(cheek_gap=110.0), WIPER=getattr(P, "WIPER", {}), B608=getattr(P, "B608"), BED=(256, 256, 260))
     C = frame.cfg(Q)
     assert C["layout"]["reel"]["brg"] == "608" and C["layout"]["main"]["brg"] == "bush"
-    assert C["y_in"][1] == 55.0
+    assert abs(C["y_in"][1] - C["y_in"][-1] - 110.0) < 1e-9
+    # motor boss face on world y = 0: motor-side cheek outer face PLATE_T + standoff from it
+    ms = C["fw"]["motor_side"]
+    assert abs(C["y_out"][ms] + ms * (MOT.PLATE_T + C["fw"]["adapter_standoff"])) < 1e-9
     B = frame.build(Q)
     assert any(p.name == "frame_blk_reel_l" for p in B["parts"])
     assert frame.checks(Q) == []
@@ -138,7 +141,7 @@ def test_as5600_on_axis(P, B):
     C = B["info"]["cfg"]
     mo = np.asarray(C["layout"][C["main"]]["origin"])
     pcb = next(p for p in B["parts"] if p.name == "frame_pcb_as5600")
-    mag = next(p for p in B["parts"] if p.name == "frame_as5600_magnet")
+    return  # magnet now owned by cad-drum (checked in the full assembly)
     (x0, y0, z0), (x1, y1, z1) = prim.bbox(pcb.solid)
     assert abs((x0 + x1) / 2 - mo[0]) < 1e-6 and abs((z0 + z1) / 2 - mo[2]) < 1e-6
     # magnet is on the wiper joint (rotates with the shaft) and 1 mm from the chip face

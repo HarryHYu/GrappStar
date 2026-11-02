@@ -1,0 +1,51 @@
+{
+ "no tether": {
+  "max_alpha_after_0p6s_deg": 179.9,
+  "final_alpha_deg": 175.3,
+  "range_m": 27.6,
+  "tumbled": true
+ },
+ "no tether, 8 g nose ballast": {
+  "max_alpha_after_0p6s_deg": 27.2,
+  "final_alpha_deg": 2.5,
+  "range_m": 29.5,
+  "tumbled": false
+ },
+ "no tether, 15 g nose ballast": {
+  "max_alpha_after_0p6s_deg": 17.9,
+  "final_alpha_deg": 14.6,
+  "range_m": 29.3,
+  "tumbled": false
+ },
+ "tether, 0.5 N reel brake": {
+  "max_alpha_after_0p6s_deg": 9.1,
+  "final_alpha_deg": 6.7,
+  "range_m": 21.3,
+  "tumbled": false
+ },
+ "tether, 1 N reel brake": {
+  "max_alpha_after_0p6s_deg": 9.5,
+  "final_alpha_deg": 4.9,
+  "range_m": 17.6,
+  "tumbled": false
+ },
+ "tether, 3 N reel brake": {
+  "max_alpha_after_0p6s_deg": 180.0,
+  "final_alpha_deg": 10.3,
+  "range_m": 7.9,
+  "tumbled": true
+ },
+ "tether 1 N + 15 g ballast (recommended)": {
+  "max_alpha_after_0p6s_deg": 9.7,
+  "final_alpha_deg": -7.3,
+  "range_m": 18.2,
+  "tumbled": false
+ },
+ "inputs": {
+  "mass_kg": 0.277,
+  "cg_x_mm": 78.6,
+  "Iyy_kg_m2": 0.0003309,
+  "cross_flow_cd": 1.2,
+  "axial_cd": 0.9
+ }
+}

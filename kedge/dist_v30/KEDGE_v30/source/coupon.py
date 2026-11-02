@@ -1,0 +1,26 @@
+from build123d import *
+import sys, math
+PK = sys.argv[1]
+CLR = 0.2
+def bx(x0,x1,y0,y1,z0,z1): return Pos((x0+x1)/2,(y0+y1)/2,(z0+z1)/2)*Box(x1-x0,y1-y0,z1-z0)
+H = 4.0
+plate = bx(0, 98, 0, 18, 0, H)
+cuts = [bx(3, 3+12.4, 3, 3+12.4, -1, H+1),                       # worm N20 square pocket (either face)
+        bx(19, 19+12.4, 3, 3+10.4, -1, H+1),                       # drill motor pocket 12.4 x 10.4
+        Pos(40, 9, 0)*Cylinder(8.15/2, 2*H+2), Pos(40, 9, H-0.65)*Cylinder(9.8/2, 1.4, align=(Align.CENTER,Align.CENTER,Align.MIN)),   # F693ZZ seat + flange recess
+        Pos(53, 9, 0)*Cylinder(7.4/2, 2*H+2),                      # coupler bore in the hull boss (plain)
+        Pos(62, 9, 0)*(Cylinder(3.25/2, 2*H+2) - bx(-3, 3, 3.25/2-0.5, 3, -H-2, H+2)),   # D bore for the N20 shaft (hub)
+        Pos(70, 9, 0)*Cylinder(2.5/2, 2*H+2), Pos(76, 9, 0)*Cylinder(3.3/2, 2*H+2),     # M3 pilot (self-tap) and clearance
+        Pos(84, 9, 0)*(Cylinder(7.25/2, 2*H+2) - bx(-4, 4, 7.25/2-0.6, 4, -H-2, H+2)),   # pod head D bore for the coupler
+        Pos(93, 9, 0)*Cylinder(3.8/2, 2*H+2)]                     # drill shaft clearance 3.8
+for c in cuts: plate = plate - c
+peg = Cylinder(3.5, 14, align=(Align.CENTER,Align.CENTER,Align.MIN)) - bx(-4,4,3.5-0.6,4,-1,15)
+peg = peg - (Cylinder(3.2/2, 9.4, align=(Align.CENTER,Align.CENTER,Align.MIN)) - bx(-2,2,1.6-0.5,2,-1,10))
+peg = peg - Pos(0,0,14-7)*Cylinder(1.25, 7.1, align=(Align.CENTER,Align.CENTER,Align.MIN))
+peg = Pos(30, 35, 0)*peg
+bore = Pos(70, 50, 0)*(Cylinder(21, 4, align=(Align.CENTER,Align.CENTER,Align.MIN)) - Cylinder(19.5, 7, align=(Align.CENTER,Align.CENTER,Align.MIN)).moved(Location((0,0,-1))))
+spig = Pos(70, 50, 0)*(Cylinder(19.3, 4, align=(Align.CENTER,Align.CENTER,Align.MIN)) - Cylinder(17.8, 7, align=(Align.CENTER,Align.CENTER,Align.MIN)).moved(Location((0,0,-1))))
+spig = spig.moved(Location((-48, 0, 0)))
+c = Compound(children=[plate, peg, bore, spig])
+export_stl(c, f"{PK}/fit_coupon.stl", tolerance=0.02, angular_tolerance=0.15); export_step(c, f"{PK}/fit_coupon.step")
+print("coupon", c.volume/1000, "cm3")

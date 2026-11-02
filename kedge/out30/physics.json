@@ -1,0 +1,299 @@
+{
+ "mass_g": 264.3,
+ "cg_mm": [
+  83.0,
+  1.7,
+  6.6
+ ],
+ "printed_g": 113.9,
+ "bought_g": 150.4,
+ "heaviest": [
+  [
+   "cell_1",
+   22.0,
+   [
+    86.5,
+    -9.6,
+    0.0
+   ]
+  ],
+  [
+   "cell_2",
+   22.0,
+   [
+    86.5,
+    9.6,
+    0.0
+   ]
+  ],
+  [
+   "hull_top",
+   21.6,
+   [
+    65.1,
+    5.0,
+    14.2
+   ]
+  ],
+  [
+   "tray",
+   19.8,
+   [
+    83.0,
+    0.1,
+    -4.0
+   ]
+  ],
+  [
+   "hull_bottom",
+   14.3,
+   [
+    79.9,
+    0.0,
+    -13.0
+   ]
+  ],
+  [
+   "wiring + solder",
+   12.0,
+   [
+    85,
+    0,
+    0
+   ]
+  ],
+  [
+   "drill_leg_L_motor",
+   11.0,
+   [
+    72.5,
+    31.0,
+    10.0
+   ]
+  ],
+  [
+   "drill_leg_R_motor",
+   11.0,
+   [
+    72.5,
+    -31.0,
+    10.0
+   ]
+  ]
+ ],
+ "flight": {
+  "direction": "nose first (toward -x)",
+  "cg_x": 83.0,
+  "cp_side_x": 82.5,
+  "cp_top_x": 85.3,
+  "static_margin_calibers_side": -0.01,
+  "static_margin_calibers_top": 0.05,
+  "note": "positive = CP behind CG = stable nose first. Cardboard-cutout CP; real CP sits further aft because the folded legs, augers and the trailing tether all sit aft."
+ },
+ "launch": {
+  "v_needed_m_s": [
+   15.8,
+   18.2
+  ],
+  "stroke_m": 0.2,
+  "accel_g": [
+   63,
+   84
+  ],
+  "launch_force_N": 219.0,
+  "spring_energy_J": 43.8,
+  "impact_speed_m_s": 13.3,
+  "impact_stop_m": 0.03,
+  "impact_g": 301
+ },
+ "loads": [
+  [
+   "cells pushed aft at launch (each)",
+   18.2,
+   "N",
+   "rear contacts are RIGID plates on the back disc of the cell bay and the springs sit on the front disc, so launch presses the cells onto the plates and contact never breaks"
+  ],
+  [
+   "cells forward at landing (both onto the front cell-bay disc)",
+   130.0,
+   "N",
+   "that disc is 3 mm thick and carries the load through the spine to the 4 disc-1 screws"
+  ],
+  [
+   "coupler bending at landing (pod 25 g, 300 g)",
+   19.5,
+   "MPa",
+   "PLA ~45 MPa: margin 2.3"
+  ],
+  [
+   "kick leg along its axis at landing (25 g)",
+   74.0,
+   "N",
+   "taken by the \u00d83 steel shaft in shear + ear bearing; worm sees almost no torque because the line of action runs through the pivot"
+  ],
+  [
+   "tray + contents on 4 disc-1 screws at landing (95 g)",
+   70.0,
+   "N per screw",
+   "M3 self-tapped into PLA shear ~250-400 N each"
+  ],
+  [
+   "launcher push through the tail cap",
+   219.0,
+   "N",
+   "4 radial M3 into the spigot ring + the hull wall in compression"
+  ]
+ ],
+ "anchoring": {
+  "depth_mm": {
+   "drill": 44.8,
+   "foot": 35.5
+  },
+  "embedded_length_mm": {
+   "drill": 66.6,
+   "foot": 35.5
+  },
+  "by_soil": {
+   "dry sand": {
+    "drill_auger_each_N": 2.9,
+    "foot_auger_N": 0.6,
+    "friction_N": 1.3,
+    "total_N": 7.7
+   },
+   "moist loam": {
+    "drill_auger_each_N": 22.7,
+    "foot_auger_N": 1.8,
+    "friction_N": 1.3,
+    "total_N": 48.5
+   },
+   "firm clay": {
+    "drill_auger_each_N": 59.7,
+    "foot_auger_N": 3.8,
+    "friction_N": 1.3,
+    "total_N": 124.4
+   }
+  },
+  "note": "Short rigid piles (Broms). Holding scales with embedded length: about L^2 in sand. A reel that pulls harder than this drags the dart: the reel side should limit tether tension."
+ },
+ "tip_over_foot_uplift_capacity_loam_N": 15.8,
+ "tip_over": {
+  "tether_height_mm": 21,
+  "pull_N": 48.5,
+  "moment_Nm": 1.018,
+  "foot_lever_mm": 154,
+  "foot_hold_down_needed_N": 6.63,
+  "dart_weight_N": 2.59,
+  "note": "the kick foot ahead of the nose holds the nose down; weight alone resists 0.15 N"
+ },
+ "kick": {
+  "leg_mass_g": 25.1,
+  "cg_radius_mm": 77.2,
+  "max_gravity_torque_kgcm": 0.194,
+  "profile_kgcm": [
+   [
+    0,
+    0.194
+   ],
+   [
+    10,
+    0.189
+   ],
+   [
+    20,
+    0.179
+   ],
+   [
+    30,
+    0.163
+   ],
+   [
+    40,
+    0.142
+   ],
+   [
+    50,
+    0.117
+   ],
+   [
+    60,
+    0.089
+   ],
+   [
+    70,
+    0.058
+   ],
+   [
+    80,
+    0.025
+   ],
+   [
+    90,
+    0.009
+   ],
+   [
+    100,
+    0.043
+   ],
+   [
+    110,
+    0.075
+   ],
+   [
+    120,
+    0.105
+   ],
+   [
+    130,
+    0.131
+   ],
+   [
+    140,
+    0.154
+   ],
+   [
+    150,
+    0.172
+   ],
+   [
+    160,
+    0.185
+   ],
+   [
+    170,
+    0.192
+   ],
+   [
+    180,
+    0.194
+   ],
+   [
+    190,
+    0.189
+   ],
+   [
+    200,
+    0.179
+   ]
+  ],
+  "note": "worm N20s of this size are typically rated 1-4 kg.cm; the swing is light. Planting the foot is done by spinning the foot auger WHILE the kick drives 180 -> stop"
+ },
+ "deploy": {
+  "pod_mass_g": 24.7,
+  "gravity_torque_both_kgcm": 0.173,
+  "soil_cut_note": "the augers are radial on the pods, so depth comes only from the swing: they cut sideways through the soil. Spin the drills WHILE deploying; the deploy worm stalls first in firm soil."
+ },
+ "battery": {
+  "capacity_Wh": 5.18,
+  "idle_W_video_on": 2.22,
+  "hours_video_on": 2.3,
+  "anchor_sequence_mAh": 6.6,
+  "worst_current_A": 2.0
+ },
+ "strength": {
+  "kick_pole_section_mm3": 94.3,
+  "kick_pole_stress_MPa_at_20N_side_load": 15.3,
+  "kick_pole_side_load_limit_N": 29.5,
+  "coupler_torque_capacity_Nm": 1.01,
+  "note": "coupler capacity derated 0.6 for the D flat and layer lines; deploy worm output is far below it"
+ }
+}

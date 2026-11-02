@@ -25,13 +25,13 @@ static inline const char* motorName(int m) {
 // Pin map. GPIO numbers of the Seeed XIAO ESP32S3 (Dn labels in the strings). The sketch checks these numbers against
 // the Arduino Dn macros at compile time, the PC test checks the layout.
 struct PinMap { int gpioA, gpioB; const char* labelA; const char* labelB; int drv; char ch; };
-static const PinMap PINS[NMOT] = {
+static constexpr PinMap PINS[NMOT] = {
   {1, 2, "D0", "D1", 1, 'A'},     // deploy N20: DRV#1 AIN1 / AIN2
   {3, 4, "D2", "D3", 1, 'B'},     // kick N20:   DRV#1 BIN1 / BIN2
   {7, 8, "D8", "D9", 2, 'A'},     // drills:     DRV#2 AIN1 / AIN2, BOTH drill motors in parallel on AOUT1 / AOUT2
   {43, 44, "D6", "D7", 2, 'B'},   // foot N20:   DRV#2 BIN1 / BIN2 (GPIO43/44 twitch at reset: harmless on a slow worm)
 };
-static const int PIN_SDA_GPIO = 5, PIN_SCL_GPIO = 6;   // D4 / D5: INA219 0x40 + BNO085 0x4A
+static constexpr int PIN_SDA_GPIO = 5, PIN_SCL_GPIO = 6;   // D4 / D5: INA219 0x40 + BNO085 0x4A
 static const int N_DRIVERS = 2;                        // DRV#3 is no longer on the dart
 static const float DRV_CHANNEL_MAX_MA = 1200;          // DRV8833 continuous per channel (2 A peak, internal OCP)
 

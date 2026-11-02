@@ -1,0 +1,157 @@
+"""Frame helpers: fastener cutters, bearing seats, flat-plate splitting with keyed joints, print transforms.
+
+Private module of the frame subsystem (leading underscore: the assembly does not load it as a subsystem).
+All lengths mm. Fasteners: M3 everywhere (M3 x 4 x 5 heat-set inserts), M8 axles for 608s.
+"""
+from __future__ import annotations
+
+import math
+
+import numpy as np
+from manifold3d import Manifold
+
+from cad.lib import prim, tf, fits
+
+# ------------------------------------------------------------------------------------------------ fasteners
+INS_D = fits.M3_INSERT_D          # 4.0 hole for an M3 x 4 x 5 insert
+INS_L = fits.M3_INSERT_L + 1.0    # 6.0 deep: insert 5 + 1 for melt and screw tip
+CLR_D = fits.M3_CLEAR_D           # 3.4
+HEAD_D = fits.M3_HEAD_D           # 6.1 counterbore
+HEAD_H = fits.M3_HEAD_H + 0.2     # 3.2
+NUT_AF = fits.M3_NUT_AF           # 5.8
+NUT_H = fits.M3_NUT_H             # 2.7
+INS_WALL = 3.0                    # minimum plastic round an insert (radial)
+
+
+def insert_hole(x, y, z_top, depth=INS_L):
+    """Blind hole for an M3 heat-set insert entering at z_top going -Z, with a 0.3 mm lead-in chamfer.
+    Rotate the result for other directions."""
+    h = prim.cyl(INS_D / 2, depth + 0.01, x, y, z_top - depth, seg=24)
+    lead = prim.cyl(INS_D / 2, 0.61, x, y, z_top - 0.6, r2=INS_D / 2 + 0.3, seg=24)
+    return h.__add__(lead).__add__(prim.cyl(INS_D / 2 + 0.3, 0.5, x, y, z_top - 0.001, seg=24))
+
+
+def clear_hole(x, y, z0, z1, head_top=None, head_h=HEAD_H):
+    """M3 clearance hole along Z from z0 to z1, optional counterbore for an SHCS head ending at head_top."""
+    c = prim.cyl(CLR_D / 2, z1 - z0 + 0.02, x, y, z0 - 0.01, seg=24)
+    if head_top is not None:
+        c = c.__add__(prim.cyl(HEAD_D / 2, head_h + 0.01, x, y, head_top - head_h, seg=32))
+    return c
+
+
+def nut_trap(x, y, z0, h=NUT_H, rot=0.0):
+    """Hex pocket for an M3 nut, from z0 up h (flats across NUT_AF)."""
+    r = NUT_AF / 2 / math.cos(math.pi / 6)
+    return Manifold.cylinder(h, r, r, 6).rotate((0, 0, 30 + rot)).translate((x, y, z0))
+
+
+def slot_cs(x0, y0, x1, y1, w):
+    """Stadium (slot) cross-section from (x0, y0) to (x1, y1), width w."""
+    from shapely.geometry import LineString
+    return prim.shapely_cs(LineString([(x0, y0), (x1, y1)]).buffer(w / 2, 24))
+
+
+# ------------------------------------------------------------------------------------------------ bearing seats
+def brg_dims(P, kind):
+    """(od, w, bore) for a bearing kind: '608', 'sprag' or a dict(od, w, bore)."""
+    if isinstance(kind, dict):
+        return kind["od"], kind["w"], kind.get("bore", 8.0)
+    if kind == "608":
+        b = getattr(P, "B608", dict(bore=8.0, od=22.0, w=7.0))
+        return b["od"], b["w"], b["bore"]
+    if kind == "sprag":
+        s = getattr(P, "SPRAG", dict(od=47.0, w=14.0, bore=20.0))
+        return s["od"], s["w"], s["bore"]
+    if kind == "693":
+        b = getattr(P, "F693ZZ", dict(bore=3.0, od=8.0, w=4.0))
+        return b["od"], b["w"], b["bore"]
+    raise ValueError(f"unknown bearing kind {kind!r}")
+
+
+def bearing_seat_cutter(od, w, z0, ribs=6, lip_id=None, depth_extra=0.0):
+    """Cutter for a bearing pocket along +Z from z0, depth w + depth_extra, with crush ribs (the ribs are left as
+    material: the cutter is the pocket minus the ribs). lip_id: through hole beyond the pocket (shoulder)."""
+    try:                                        # prefer the shared library seat when cad-infra ships it
+        from cad.lib import bearings as _b
+        if hasattr(_b, "seat_cutter"):
+            return _b.seat_cutter(od=od, w=w, z0=z0, depth=w + depth_extra, ribs=ribs, lip_id=lip_id)
+    except Exception:
+        pass
+    r_bore = (od + fits.BRG_RIB_BORE) / 2
+    r_rib = od / 2 - fits.BRG_RIB_INTERF
+    h = w + depth_extra
+    pocket = prim.cyl(r_bore, h + 0.02, z=z0 - 0.01)
+    rib_w = 1.6
+    rib = prim.box(r_rib, r_bore + 0.5, -rib_w / 2, rib_w / 2, z0 - 0.02, z0 + h + 0.04)
+    pocket = pocket - prim.polar(rib, ribs)
+    # lead-in chamfer at the entry so the bearing starts square
+    pocket = pocket.__add__(prim.cyl(r_bore + 0.6, 0.6, z=z0 - 0.01, r2=r_bore))
+    if lip_id:
+        pocket = pocket.__add__(prim.cyl(lip_id / 2, 200.0, z=z0 + h - 100.0))
+    return pocket
+
+
+# ------------------------------------------------------------------------------------------------ keyed plate split
+def dovetail_seam_cs(axis, c, lo, hi, n, depth=8.0, w_root=10.0, w_tip=14.0, gap=0.0, avoid=()):
+    """2D region (CrossSection) on the '+' side of a seam at axis value c (axis 'x' or 'y'), running from lo to hi
+    along the other axis, with n dovetail tails sticking from the '+' side into the '-' side. gap shrinks the region
+    (fit clearance, applied by the caller as an offset)."""
+    from shapely.geometry import Polygon, box as sbox
+    from shapely.ops import unary_union
+    big = 1e4
+    if axis == "x":
+        base = sbox(c, lo - big, c + big, hi + big)
+    else:
+        base = sbox(lo - big, c, hi + big, c + big)
+    tails = []
+    for i in range(n):
+        s = lo + (i + 0.5) * (hi - lo) / n
+        for a in avoid:                    # keep tails 20 mm clear of crossing seams
+            if abs(s - a) < 20.0:
+                s = a + (20.0 if s >= a else -20.0)
+        pts = [(c + 0.01, s - w_root / 2), (c - depth, s - w_tip / 2), (c - depth, s + w_tip / 2), (c + 0.01, s + w_root / 2)]
+        if axis == "y":
+            pts = [(q, p) for p, q in pts]
+        tails.append(Polygon(pts))
+    return unary_union([base] + tails)
+
+
+def split_plate(outline, t, seams, tol=0.15):
+    """Split a flat plate (shapely polygon outline in XY, thickness t from z = 0 to t) at seams.
+    seams: list of dict(axis='x'|'y', c=value, n=tails). Returns list of shapely polygons (pieces) whose union
+    (plus the fit gaps) is the outline. Each seam gets dovetail tails (keyed in-plane, slides in from above)."""
+    from shapely.geometry import box as sbox
+    pieces = [outline]
+    for sm in seams:
+        minx, miny, maxx, maxy = outline.bounds
+        lo, hi = (miny, maxy) if sm["axis"] == "x" else (minx, maxx)
+        avoid = [o["c"] for o in seams if o["axis"] != sm["axis"]]
+        plus = dovetail_seam_cs(sm["axis"], sm["c"], lo + 15, hi - 15, sm.get("n", 2), avoid=avoid)
+        new = []
+        for pc in pieces:
+            a = pc.intersection(plus).buffer(-tol / 2, join_style=2)
+            b = pc.difference(plus).buffer(-tol / 2, join_style=2)
+            for g in (a, b):
+                if g.is_empty:
+                    continue
+                if g.geom_type == "MultiPolygon":
+                    new += [q for q in g.geoms if q.area > 50.0]
+                elif g.area > 50.0:
+                    new.append(g)
+        pieces = new
+    return pieces
+
+
+# ------------------------------------------------------------------------------------------------ print transforms
+def print_flat(solid, M_rot=None):
+    """print_tf that rotates by M_rot (default identity) then drops the part onto the bed at z = 0 and centres it."""
+    M = np.eye(4) if M_rot is None else np.asarray(M_rot, float)
+    s = prim.place(solid, M)
+    (x0, y0, z0), (x1, y1, z1) = prim.bbox(s)
+    return tf.T(-(x0 + x1) / 2 + 128.0, -(y0 + y1) / 2 + 128.0, -z0) @ M
+
+
+def bbox_size(solid, M=None):
+    s = solid if M is None else prim.place(solid, M)
+    lo, hi = prim.bbox(s)
+    return tuple(h - l for l, h in zip(lo, hi))

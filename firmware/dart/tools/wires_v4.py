@@ -175,14 +175,14 @@ for n in ["Cell"] + NODES:
     lab = LABEL.get(n, n).replace("\n", "\\n")
     fill = "#ffe9c7" if n == "DRV#2" else "#f2f2f2"
     lines.append(f'"{n}" [label="{lab}", fillcolor="{fill}"];')
-lines.append('{rank=same; "Cell"; "Charge socket"; "Power loop socket";} {rank=same; "DRV#1"; "DRV#2"; "BNO085";} '
+lines.append('{rank=same; "Cell"; "Charge socket"; "Power loop socket";} '
              '{rank=same; "Deploy N20"; "Kick N20"; "Drill motor LEFT"; "Drill motor RIGHT"; "Foot N20"; "Camera";}')
 for r in W:
     a, b = node(r[1]), node(r[2])
     if a == b:
         continue
     lab = f"{r[0]}: {pad(r[1])} - {pad(r[2])}"
-    lines.append(f'"{a}" -> "{b}" [color="{COL.get(r[3], "#444")}", label="{lab}"];')
+    lines.append(f'"{a}" -> "{b}" [minlen={2 if {a, b} == {"DRV#1", "DRV#2"} else 1}, color="{COL.get(r[3], "#444")}", label="{lab}"];')
 lines.append("}")
 dot = os.path.join(PK, "wiring.dot")
 open(dot, "w").write("\n".join(lines))

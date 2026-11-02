@@ -8,7 +8,10 @@ Functions (selector drum position in brackets):
 
 Driver limits: BTS7960 module 43 A peak (datasheet current limit) but heat limited; 15 A continuous without a heatsink
 is used as the conservative number. Fuse: 20 A blade on lead #2. A 20 A blade carries 18 A for minutes, so a wiper
-stall (about 17 A at 12.6 V with sag) will NOT blow it: the firmware current trip is the only stall protection.
+stall (about 17 A at 12.6 V with sag) will NOT blow it; it holds a 17 A stall indefinitely. The firmware current trip
+(capstan.fw_trip: 50 ms blanking, 5 A hard trip for 30 ms in all modes, tow trip at free + tow current over 200 ms)
+is the only stall protection, and a mechanical slip clutch of about 3 N m on the REEL output gear is recommended.
+Shaft verdicts at stall: over the agreed 12 N m is a fail, over the Kt 2 value (9.4 N m) a warning.
 
 Times use 11.1 V nominal with sag (slow case); stall currents use 12.6 V full (worst case).
 Geometry not yet in the spec is keyword arguments with defaults below (marked ASSUMED).
@@ -46,7 +49,7 @@ COCK_DEFAULTS = dict(
     eta=0.90,             # mesh + drum bearings
     gear=dict(module=2.0, face=12.0, z_driver=20),
 )
-CAP_GEAR = dict(module=2.0, face=12.0, z_driver=20)
+CAP_GEAR = capstan.CAP_GEAR
 
 
 def stall(p: Params, v_oc: float):
@@ -87,7 +90,7 @@ def aim(p: Params, **kw) -> dict:
     wiper_turns = screw_turns * a["ratio"]
     return dict(params=a, mass=m, screw_eff=eta_s, self_locking=tl < mu_e, t_screw_peak=max(t_raise),
                 t_screw_lower_peak=max(t_lower), t_peak=w_peak, t_mean=w_mean, wiper_turns=wiper_turns,
-                shaft_torque=max(t_raise), gear=a["gear"], gear_ratio=a["ratio"], train_k=k,
+                shaft_torque=max(t_raise), shaft_k=a["ratio"] * a["eta_gear"], gear=a["gear"], gear_ratio=a["ratio"], train_k=k,
                 sprag_torque=None)
 
 
@@ -111,7 +114,7 @@ def cock(p: Params, **kw) -> dict:
     lim = p.spring.limits()
     return dict(params=c, ext_full_mm=ext1 * 1000, f_spring_full=p.n_springs * p.spring.force(ext1),
                 f_peak=max(fs), f_mean=sum(fs) / len(fs), t_peak=max(fs) * k, t_mean=sum(fs) / len(fs) * k,
-                wiper_turns=drum_turns * c["ratio"], shaft_torque=max(fs) * c["drum_r"],
+                wiper_turns=drum_turns * c["ratio"], shaft_torque=max(fs) * c["drum_r"], shaft_k=c["ratio"] * c["eta"],
                 sprag_torque=max(fs) * c["drum_r"], gear=c["gear"], gear_ratio=c["ratio"], train_k=k,
                 spring_safe_ext_mm=lim["ext_safe_mm"], spring_ok=ext1 * 1000 <= lim["ext_safe_mm"],
                 profile=fs)
@@ -123,9 +126,9 @@ def cap_fn(p: Params, f_line: float, length: float, overspeed: float = 1.2) -> d
     t_w = capstan.wiper_torque_for(f_line, p, overspeed)
     r = c["d"] / 2
     drum_turns = length / (2 * math.pi * r)
-    t_drum = max(f_line - c["takeup_n"], 0.0) * r
+    t_drum = capstan.drum_shaft_torque(t_w, p)     # same treatment as capstan.py (take-up branch included)
     return dict(f_line=f_line, length=length, t_peak=t_w, t_mean=t_w, wiper_turns=drum_turns * c["ratio"],
-                shaft_torque=t_drum, sprag_torque=t_drum, gear=CAP_GEAR, gear_ratio=c["ratio"],
+                shaft_torque=t_drum, sprag_torque=t_drum, shaft_k=c["ratio"] * c["eta"], gear=CAP_GEAR, gear_ratio=c["ratio"],
                 train_k=r / (c["ratio"] * c["eta"]))
 
 
@@ -142,8 +145,12 @@ def evaluate(p: Params, name: str, fn: dict, v_oc: float) -> dict:
     mesh_pk = gears.mesh(fn["t_peak"], fn["gear_ratio"], g["module"], g["z_driver"], g["face"], PPA_CF, pk["rpm"])
     mesh_st = gears.mesh(t_s_full, fn["gear_ratio"], g["module"], g["z_driver"], g["face"], PPA_CF, 0.0)
     shaft_pk = gears.shaft_torsion(fn["shaft_torque"], p.shaft)
-    # shaft torque at wiper stall, scaled through the same train
-    shaft_st = fn["shaft_torque"] * t_s_full / fn["t_peak"] if fn["t_peak"] > 0 else 0.0
+    # shaft torque at wiper stall and at the hard trip, through the same train
+    shaft_st = fn["shaft_k"] * t_s_full
+    st_chk = gears.shaft_torsion(shaft_st, p.shaft)
+    t_trip = p.wiper.kt * (capstan.TRIP_HARD_A - p.wiper.i_free)
+    mesh_tr = gears.mesh(t_trip, fn["gear_ratio"], g["module"], g["z_driver"], g["face"], PPA_CF, 0.0)
+    shaft_tr = fn["shaft_k"] * t_trip
     sp = None
     if fn.get("sprag_torque") is not None:
         rpm_out = pk["rpm"] / fn["gear_ratio"]
@@ -162,14 +169,19 @@ def evaluate(p: Params, name: str, fn: dict, v_oc: float) -> dict:
         flags.append("sprag over rating")
     if pk["current"] > BTS_CONT_A:
         flags.append(f"peak current {pk['current']:.1f} A > BTS7960 {BTS_CONT_A} A continuous")
+    if not mesh_tr["pass"]:
+        flags.append(f"gear (Lewis) fails at the {capstan.TRIP_HARD_A} A hard trip, sf {mesh_tr['sf']:.2f}")
+    if not st_chk["pass"]:
+        flags.append(f"(at stall) keyed shaft {shaft_st:.1f} N m > {p.shaft.t_allow} N m")
+    elif not st_chk["strict_pass"]:
+        stall_warn.append(f"keyed shaft {shaft_st:.1f} N m over the Kt 2 limit {st_chk['t_allow_kt']:.1f} N m")
     if not mesh_st["pass"]:
-        stall_warn.append(f"gear fails at wiper stall (sf {mesh_st['sf']:.2f})")
-    if shaft_st > p.shaft.t_allow:
-        stall_warn.append(f"keyed shaft {shaft_st:.1f} N m at wiper stall > {p.shaft.t_allow}")
+        stall_warn.append(f"gear fails at wiper stall (sf {mesh_st['sf']:.2f}); relies on the trip / slip clutch")
     return dict(name=name, t_peak=fn["t_peak"], t_mean=fn["t_mean"], rpm_peak=pk["rpm"], rpm_mean=rpm_mean,
                 i_peak=pk["current"], i_mean=mn["current"], v_batt_peak=pk["v_batt"], frac_stall=frac,
                 stall_torque=t_s, time_s=time, energy_wh=energy_wh, shaft_torque=fn["shaft_torque"],
-                shaft_torque_at_stall=shaft_st, gear_sf_peak=mesh_pk["sf"], gear_sf_stall=mesh_st["sf"],
+                shaft_torque_at_stall=shaft_st, shaft_stall=st_chk, t_trip=t_trip,
+                gear_sf_trip=mesh_tr["sf"], shaft_torque_at_trip=shaft_tr, gear_sf_peak=mesh_pk["sf"], gear_sf_stall=mesh_st["sf"],
                 sprag=sp, flags=flags, stall_warnings=stall_warn)
 
 
@@ -187,8 +199,8 @@ def run(p: Params | None = None, aim_kw=None, cock_kw=None, light_n=3.0, reel_le
                 free_rpm_full=p.wiper.operate(0.0, b, b.v_full)["rpm"],
                 bts_peak_a=BTS_PEAK_A, bts_cont_a=BTS_CONT_A, fuse_a=b.fuse_a,
                 fuse_blows_on_stall=i_s_full > b.fuse_a,
-                note=("20 A blade survives 18 A for minutes: a stall at %.1f A will not blow it; firmware current "
-                      "trip must cut a stall within about 1 s (motor and BTS heating)" % i_s_full))
+                note=("20 A blade survives 18 A for minutes and holds a %.1f A stall indefinitely: the firmware "
+                      "current trip is the only stall protection (motor and BTS heating)" % i_s_full))
     general = []
     if not elec["fuse_blows_on_stall"]:
         general.append(elec["note"])
@@ -202,6 +214,7 @@ def run(p: Params | None = None, aim_kw=None, cock_kw=None, light_n=3.0, reel_le
     return dict(source=p.source, aim=dict({k: v for k, v in a.items()}), cock={k: v for k, v in c.items()
                 if k != "profile"}, cock_profile=c["profile"], functions=rows, electrical=elec,
                 general_flags=general, capstan_warnings=cap["warnings"], capstan_current_limit=cap["current_limit"],
+                fw_trip=cap["fw_trip"], takeup=cap["takeup"],
                 total_energy_wh=sum(r["energy_wh"] for r in rows.values()))
 
 
@@ -224,6 +237,13 @@ def main():
     print(f"cock: spring ext {c['ext_full_mm']:.0f} mm (safe {c['spring_safe_ext_mm']:.0f}), "
           f"springs {c['f_spring_full']:.1f} N, carriage peak {c['f_peak']:.1f} N")
     print(f"total energy {r['total_energy_wh']:.3f} Wh")
+    ft = r["fw_trip"]
+    print(f"\nFIRMWARE TRIP: {ft['notes'][0]}; tow trip = {ft['tow_trip_rule']}")
+    print("  gear sf at the hard trip: " + ", ".join(f"{k} {f['gear_sf_trip']:.2f}" for k, f in r["functions"].items())
+          + "; shaft at trip: " + ", ".join(f"{k} {f['shaft_torque_at_trip']:.2f}" for k, f in r["functions"].items())
+          + " N m")
+    for n in ft["notes"][1:]:
+        print("  note:", n)
     print("\nFLAGS:")
     for k, f in r["functions"].items():
         for x in f["flags"]:

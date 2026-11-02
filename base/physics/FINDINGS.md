@@ -59,7 +59,9 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 
 - Stall 14.1 N m / 17 A at 12.6 V (with sag). Nothing mechanical limits it:
   - 20 mm keyed PPA-CF shaft allowable 12 N m < stall (and only ~6 N m if the keyseat is a sharp end-milled slot,
-    Kt ~3: round the keyway corners). Every printed gear (as assumed: m 2, 20 T, 12 mm) fails Lewis
+    Kt ~3: round the keyway corners). With a steel 6 mm key 14 mm long, the plastic shearing behind the shaft keyway
+    governs at about 7 N m. So the "12 N m keyed shaft" figure in the plan is optimistic: either a longer key engagement
+    (30 mm gives ~15 N m) or keep every keyed joint under ~5 N m with the trip below. Every printed gear (as assumed: m 2, 20 T, 12 mm) fails Lewis
     at stall (SF 0.27). On the capstan, stall pulls ~600 N on the line (break 667 N; dart holds 7 to 112 N).
   - The 20 A fuse holds a 17 A stall indefinitely. Firmware current trip (request to fw-base and the spec):
     ignore current for 50 ms after a start (inrush is near stall); hard trip at 5 A for 30 ms in every mode (about

@@ -269,6 +269,14 @@ class BaseClient:
                 self.on_line("rx", obj)
             except Exception:
                 pass
+        if "id" in obj and ("ok" in obj or "err" in obj):
+            # a reply (a status reply may also carry a tel object: it is a reply, not the telemetry stream)
+            with self._cv:
+                i = obj.get("id")
+                if i in self._pending and self._pending[i] is None:
+                    self._pending[i] = obj
+                    self._cv.notify_all()
+            return
         if "tel" in obj and isinstance(obj["tel"], dict):
             with self._cv:
                 self.tel = obj["tel"]

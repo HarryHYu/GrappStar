@@ -3,9 +3,11 @@
 Owner: worker `cad-infra` (`base/cad/lib/`, `base/tools/`, this file). Subsystem workers own
 `base/cad/parts/<subsystem>.py` (launch, reel, drum, frame). API v1 is frozen: only additive changes from here on.
 
-Units: mm, degrees, kg, N. World frame: x forward (launch direction), y left, z up, origin on the base plate top
-surface at the wiper output shaft axis projection (the frame worker may move the origin, everyone else is relative
-to joints). All solids are `manifold3d.Manifold`.
+Units: mm, degrees, kg, N. World frame (binding, `base/spec/BASE_SPEC.md` section 2): right-handed, origin ON the
+wiper output / main shaft axis (x = 0, z = 0 on the axis), y = 0 at the motor adapter plate face. +X forward (launch
+azimuth), +Y left looking forward, +Z up. The main shaft axis is the Y axis. The deck top sits at
+z = -(axis height) from `P.LAYOUT` (v1.0). Rail pitch is measured up from +X, drum 0 = LAUNCH, wiper + = FORWARD
+(cock direction). All solids are `manifold3d.Manifold`.
 
 ## 1. Imports
 
@@ -78,6 +80,8 @@ def clearances(P) -> list[Clearance]: ...     # named pairs that must keep a gap
 def audit_states(P) -> list[dict]: ...        # extra states S to audit (joint sweeps, fault states)
 def checks(P, asm) -> list[str]: ...          # own extra checks, return failure strings (empty = pass)
 def steps(P) -> list[dict]: ...               # assembly steps: {"title", "text", "parts": [names]}
+def grounded(P) -> list[str]: ...             # parts (fnmatch patterns) that rest on the rover; every other part must
+                                              # connect to one through contacts in the rest state
 ```
 
 `Allow(a, b, why, max_vol=None)`: pair (part names, order free, `fnmatch` wildcards allowed, e.g.

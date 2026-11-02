@@ -48,7 +48,7 @@ def parts(P):
         out.append(Part(f"demo_brg_{i}", bearings.bearing_608(), "bought", joint=None, place=tf.T(x, 0, PLATE_T),
                         color="#8a8f96", bought_ref="608ZZ 8x22x7", notes="608 bearing"))
         out.append(Part(f"demo_shaft_{i}", _shaft(), "PPA-CF", joint=f"demo_g{i}", place=tf.T(0, 0, PLATE_T),
-                        print_tf=tf.T(0, 0, BRG_W), color="#3a3f45",
+                        print_tf=tf.T(0, 0, GEAR_Z0 + FACE + 2.0) @ tf.Rx(180), color="#3a3f45",
                         notes="Keyed shaft, 8 mm journal in the 608"))
         out.append(Part(f"demo_gear_{i}", _gear(z), "PPA-CF", joint=f"demo_g{i}", place=tf.T(0, 0, PLATE_T + GEAR_Z0),
                         print_tf=tf.I4, color="#d97a00" if i == 1 else "#3d7cc9", notes=f"Spur gear m{M:g} z{z}"))

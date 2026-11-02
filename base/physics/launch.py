@@ -31,7 +31,7 @@ def reel_line_load(p: Params):
     try:
         from payout import reel_props
         rp = reel_props(p)
-        m_eff = rp["inertia_full"] / rp["r_full"] ** 2
+        m_eff = rp["inertia_full"] / rp["r_full"] ** 2 * p.flight["eye_gain"]   # the eye amplifies the inertial pull too
     except Exception:
         m_eff = 0.010
     f = p.flight["brake_n"] * p.flight["eye_gain"]
@@ -97,6 +97,8 @@ def launch(p: Params | None = None, pitch_deg: float | None = None, model: str =
         # u_i = displacement of node i toward the anchor from the full-draw position (positive = shortening).
         N = n_el
         m_node = sp.mass / N
+        m_masses = np.full(N + 1, m_node)
+        m_masses[N] = m_node / 2                   # end node carries half a segment (consistent 1/3 mass factor)
         k_el = sp.k * N                            # each segment
         f0 = sp.f_init
         L_el_full = e_full / N                     # extension carried by each segment at full draw
@@ -141,7 +143,7 @@ def launch(p: Params | None = None, pitch_deg: float | None = None, model: str =
             if stopped:
                 cord_pk_after_stop = max(cord_pk_after_stop, cord_t)
             fn[N] -= cord_t
-            acc = fn / m_node
+            acc = fn / m_masses
             acc[0] = 0.0
             w += acc * dt
             u += w * dt
@@ -172,9 +174,10 @@ def launch(p: Params | None = None, pitch_deg: float | None = None, model: str =
                     stopped = True
                     stop_t = t
                     ke_c_stop = 0.5 * m_c * vc ** 2
-                    ke_s_stop = float(0.5 * m_node * (w[1:] ** 2).sum()) * ns
+                    ke_s_stop = float(0.5 * (m_masses[1:] * w[1:] ** 2).sum()) * ns
                     # stop pad: carriage KE absorbed over the pad crush, roughly linear pad -> peak = 2 KE / travel
-                    f_stop_pk = 2 * ke_c_stop / pad if pad > 0 else float("inf")
+                    # pad absorbs the carriage KE plus the spring KE that arrives through the cord (upper bound)
+                    f_stop_pk = 2 * (ke_c_stop + ke_s_stop) / pad if pad > 0 else float("inf")
                     if md_attached:
                         v_muz = vc
                         md_attached = False
@@ -206,7 +209,7 @@ def launch(p: Params | None = None, pitch_deg: float | None = None, model: str =
     res["efficiency"] = res["ke_dart_j"] / res["energy_stored_j"]
     res["line_load"] = dict(force_n=f_line, mass_eff_kg=m_line)
     if model == "lumped":
-        res["f_stop_peak_n"] = 2 * res["ke_carriage_j"] / L["stop_pad_travel"]
+        res["f_stop_peak_n"] = 2 * (res["ke_carriage_j"] + res["ke_spring_j"]) / L["stop_pad_travel"]
     if record:
         res["trace"] = trace
     return res
@@ -259,7 +262,7 @@ def main(argv=None):
           f"Sut {lim['sut_mpa']:.0f} MPa")
     for k in ("pitch_deg", "stroke_m", "pulley_ratio", "ext_full_mm", "over_safe", "f_carriage_full_n", "energy_stored_j",
               "v_muzzle", "t_stroke_ms", "a_peak_g", "ke_dart_j", "efficiency", "ke_carriage_j", "f_stop_peak_n",
-              "ke_spring_j", "coil_clash_v", "fail"):
+              "ke_spring_j", "f_cord_peak_after_stop_n", "coil_clash_v", "fail"):
         if k in res:
             v = res[k]
             print(f"  {k:20s} {v:.3f}" if isinstance(v, float) else f"  {k:20s} {v}")

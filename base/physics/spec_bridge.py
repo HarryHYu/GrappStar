@@ -102,6 +102,9 @@ def apply(p, path=None):
         if b.get(sk) is not None:
             setattr(p.battery, pk, float(b[sk]))
     _overlay(p, getattr(mod, "LAUNCH", None), LAUNCH_MAP, used)
+    if "ext_cap" in p.launch and not any(k in used for k in ("stroke", "STROKE")):
+        # no stroke in the spec yet: use the springs up to the spec cap
+        p.launch["stroke"] = (p.launch["ext_cap"] - p.launch["preload_ext"]) * p.launch["pulley_ratio"]
     _overlay(p, getattr(mod, "AIM", None), AIM_MAP, used)
     _overlay(p, getattr(mod, "REEL", None), REEL_MAP, used)
     pending = [n for n in ("LAUNCH", "AIM", "REEL", "LAYOUT") if getattr(mod, n, None) is None]

@@ -1,0 +1,40 @@
+# GrappStar Jetson software: Python packages.
+# Target: Jetson Orin Nano, JetPack 6.2 (Ubuntu 22.04, Python 3.10).
+#
+# On the Jetson, run setup/install.sh instead of using this file directly.
+# It installs numpy, OpenCV and pyserial from apt first, then runs
+#   python3 -m pip install --user -r requirements.txt
+# which then only fills in what apt did not provide.
+#
+# On a PC (for tests and the simulator):
+#   python3 -m pip install -r requirements.txt opencv-python-headless
+
+# numpy: MUST stay below 2. In August pip pulled in numpy 2.x and it broke the
+# system packages built against numpy 1 (matplotlib, OpenCV bindings).
+# Ubuntu 22.04 apt ships numpy 1.21.5, which satisfies this.
+numpy>=1.21,<2
+
+# Serial link to the base (ESP32-S3, JSON lines over USB CDC).
+pyserial>=3.5
+
+# Tests (python3 -m pytest from the jetson folder).
+pytest>=6.2
+
+# OpenCV: NOT installed by pip on the Jetson, on purpose.
+#   JetPack already ships OpenCV for Python (built with GStreamer and V4L2), and
+#   Ubuntu's apt package python3-opencv is the fallback if it is missing.
+#   Do not "pip install opencv-python" on the Jetson:
+#     - the pip wheels bundle their own video and JPEG libraries and have no
+#       GStreamer, so the camera pipelines that work with apt OpenCV can fail;
+#     - two copies of cv2 fight over which one Python imports;
+#     - pip can upgrade numpy to 2.x along the way (the August breakage).
+#   On a PC, opencv-python-headless from pip is fine.
+
+# Optional: onnxruntime-gpu, for running an ONNX terrain model on the Jetson GPU.
+# The software works without it (the terrain step falls back to a simple model).
+# Use the Jetson wheel, not the PyPI one. The Jetson AI Lab index for JetPack 6
+# (CUDA 12.6) was at the URL below when written; it has moved before, so check
+# https://www.jetson-ai-lab.com if it fails. NOT VERIFIED on this Jetson yet.
+#   python3 -m pip install --user "numpy>=1.21,<2" onnxruntime-gpu \
+#       --extra-index-url https://pypi.jetson-ai-lab.io/jp6/cu126
+# After installing, re-check numpy is still below 2:  python3 setup/check_env.py

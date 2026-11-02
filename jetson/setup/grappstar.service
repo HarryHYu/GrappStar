@@ -1,0 +1,33 @@
+# GrappStar operator page as a system service (starts at boot).
+#
+# setup/install.sh --service fills in @USER@ and @JETSON_DIR@ and installs this
+# file as /etc/systemd/system/grappstar.service. To do it by hand, replace them
+# (for example harry and /home/harry/GrappStar/jetson), then:
+#   sudo cp grappstar.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now grappstar
+# Useful:
+#   systemctl status grappstar        (is it running?)
+#   journalctl -u grappstar -f        (live log, Ctrl+C to leave)
+#   sudo systemctl restart grappstar  (after a git pull)
+#   sudo systemctl disable --now grappstar   (stop it starting at boot)
+# Do not run "python3 -m grappstar serve" by hand while the service is running:
+# both want port 8080 and the same devices.
+
+[Unit]
+Description=GrappStar rover software (operator page on port 8080)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=@USER@
+SupplementaryGroups=dialout video
+WorkingDirectory=@JETSON_DIR@
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m grappstar serve --port 8080
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

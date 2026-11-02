@@ -36,18 +36,34 @@ def _ease(u):
     return u * u * (3 - 2 * u)
 
 
+def _phases(P):
+    """P.TIMELINE (list of (name, duration s, text)) when the spec defines it, else the placeholder PHASES."""
+    tl = _p(P, "TIMELINE", None)
+    if isinstance(tl, (list, tuple)) and tl and len(tl[0]) >= 2:
+        return [(x[0], float(x[1]), x[2] if len(x) > 2 else "") for x in tl]
+    return PHASES
+
+
+def _drum(P):
+    d = _p(P, "DRUM", None)
+    if isinstance(d, dict) and isinstance(d.get("angles"), dict):
+        return d["angles"]
+    return _p(P, "DRUM_POS", {"LAUNCH": 0.0, "NEUTRAL": 60.0, "REEL": 120.0, "WRAPPED": 300.0})
+
+
 def state_at(P, t: float) -> dict:
-    """Master state at mission time t (s). Placeholder kinematics; the subsystem kin() turns these into joints."""
-    drum = _p(P, "DRUM_POS", {"LAUNCH": 0.0, "NEUTRAL": 60.0, "REEL": 120.0, "WRAPPED": 300.0})
+    """Master state at mission time t (s). Placeholder kinematics; the subsystem kin() turns these into joints.
+    World frame: BASE_SPEC.md section 2 (origin on the wiper / main shaft axis)."""
+    drum = _drum(P)
     aim_deg = _p(P, "AIM_DEMO_DEG", 30.0)
     aim_low = _p(P, "AIM_LOW_DEG", 5.0)
     wiper_rpm = _p(P, "WIPER_RPM", 45.0)
     line_total = _p(P, "LAUNCH_LINE_M", 10.0)
     t0 = 0.0
     S = dict(t=t, wiper_deg=0.0, drum_deg=drum["LAUNCH"], line_out_m=0.0, mode="LAUNCH", aim_deg=aim_low, cock=0.0,
-             fired=False, wraps=0.0, phase=PHASES[-1][0])
+             fired=False, wraps=0.0, phase=_phases(P)[-1][0])
     wiper = 0.0
-    for name, dur, _ in PHASES:
+    for name, dur, _ in _phases(P):
         u = (t - t0) / dur if dur else 1.0
         if u < 0:
             break
@@ -98,12 +114,12 @@ def state_at(P, t: float) -> dict:
 
 
 def duration(P=None) -> float:
-    return sum(d for _, d, _ in PHASES)
+    return sum(d for _, d, _ in _phases(P))
 
 
 def phases(P=None) -> list[dict]:
     out, t0 = [], 0.0
-    for n, d, txt in PHASES:
+    for n, d, txt in _phases(P):
         out.append(dict(name=n, t0=t0, t1=t0 + d, text=txt))
         t0 += d
     return out

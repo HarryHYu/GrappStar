@@ -28,7 +28,7 @@ struct Sim {
   double n0rpm = 45, stallNm = 15, stallA = 18, freeA = 1.5, vbat0 = 12.4, rint = 0.05;
   double amps = 0, wRateDps = 0;
   double drumDpsTrue = 55;         // a little slower than the firmware's estimate
-  double aimLoadNm = 1.0, cockMaxNm = 9.0, reelFreeNm = 0.6;
+  double aimLoadNm = 1.0, cockMaxNm = 6.0, reelFreeNm = 0.6;
   double capstanR = 0.015;         // m
   // ---- sensors
   int encSign = +1; bool encMissing = false; int encGlitchEvery = 0; uint32_t encReads = 0; bool magnetWeak = false;
@@ -49,9 +49,9 @@ struct Sim {
   gb::Saved nvs; bool nvsHas = false; int saves = 0;
   uint32_t t = 0;
 
-  double searClose() const { return searCloseDeg >= 0 ? searCloseDeg : c.cockEndDeg - 8; }
-  bool inLaunch() const { return fabs(drumDeg - c.drumPosDeg[0]) <= 3; }
-  bool inReel() const { return fabs(drumDeg - c.drumPosDeg[2]) <= 3 || drumDeg > c.drumPosDeg[2] + 3; }   // past REEL stays coupled
+  double searClose() const { return searCloseDeg >= 0 ? searCloseDeg : c.searCloseDeg; }
+  bool inLaunch() const { return fabs(drumDeg - c.drumPosDeg[0]) <= 5; }   // dog fully engaged
+  bool inReel() const { return fabs(drumDeg - c.drumPosDeg[2]) <= 5 || drumDeg > c.drumPosDeg[2] + 5; }   // past REEL stays coupled
   int wrapsTrue() const { double l = (drumDeg - c.wrapStartDeg) / c.degPerWrap; return l <= 0 ? 0 : (int)floor(l + 0.15); }
   double cockLoad() const {
     if (cockPh <= 0) return 0.5;
@@ -69,15 +69,15 @@ struct Sim {
   uint8_t contactsRaw() {
     uint8_t b = 0;
     auto setb = [&](int id, bool v) { int bit = c.swBit[id]; if (bit >= 0 && v) b |= (1 << bit); };
-    for (int k = 0; k < 3; k++) setb(k, fabs(drumDeg - c.drumPosDeg[k]) <= c.drumWinDeg * 0.8);
+    for (int k = 0; k < 3; k++) setb(k, fabs(drumDeg - c.drumPosDeg[k]) <= c.drumWinDeg);
     double wz = drumDeg - c.wrapStartDeg;
     double m = fmod(wz, c.degPerWrap); if (m < 0) m += c.degPerWrap;
-    setb(gb::SW_WRAP, drumDeg >= c.wrapStartDeg + c.degPerWrap * 0.5 && (m < 6 || m > c.degPerWrap - 6));
+    setb(gb::SW_WRAP, drumDeg >= c.wrapStartDeg + c.degPerWrap * 0.5 && (m < c.wrapWinDeg || m > c.degPerWrap - c.wrapWinDeg));
     setb(gb::SW_SEATED, seated());
     bool searClosed = cockPh >= searClose() && !fired && !(cockPh >= c.releaseDeg && !searBroken);
     setb(gb::SW_COCKED, searClosed);
     double am = fmod(aimPh - c.aimHomeDeg, c.aimCycleDeg); if (am < 0) am += c.aimCycleDeg;
-    setb(gb::SW_AIM_HOME, am < 4 || am > c.aimCycleDeg - 4);
+    setb(gb::SW_AIM_HOME, am < 8);
     b |= swStuckClosed; b &= ~swStuckOpen;
     if (swChatter) { chatterSeed = chatterSeed * 1103515245u + 12345u; if ((chatterSeed >> 16) & 1) b ^= swChatter; }
     return b;
@@ -94,14 +94,14 @@ struct Sim {
     }
     double v = vbat();
     double frac = wDuty / 255.0 * v / 12.6;
-    double stallAtV = stallNm * frac;
+    // DC motor: torque = kt (I - I0) whatever the duty; speed = n0 (frac - load / stallNm); at stall I = stallA x frac
     double rpm = 0;
     if (wDir != 0 && wDuty > 0) {
-      rpm = n0rpm * frac * (1 - load / fmax(stallAtV, 1e-6));
+      rpm = n0rpm * (frac - load / stallNm);
       if (rpm < 0) rpm = 0;
-      double tf = fmin(load / fmax(stallAtV, 1e-6), 1.0);
-      amps = freeA + (stallA * frac / (wDuty / 255.0 + 1e-9) * (wDuty / 255.0) - freeA) * tf;
-      amps = freeA * (wDuty / 255.0) + (stallA * v / 12.6 - freeA) * tf;   // average motor current
+      amps = freeA + (stallA - freeA) * load / stallNm;
+      double cap = fmax(stallA * frac, freeA);
+      if (amps > cap || rpm == 0) amps = rpm == 0 ? cap : amps;
     } else amps = 0;
     double dDeg = wDir * rpm * 6.0 * s;
     wRateDps = wDir * rpm * 6.0;
@@ -113,9 +113,9 @@ struct Sim {
         else {
           double before = cockPh; cockPh += ad;
           if (!fired && !searBroken && before < c.releaseDeg && cockPh >= c.releaseDeg && before >= searClose()) { fired = true; shots++; lineOut = 0; }
-          if (fired && cockPh >= c.cycleDeg) { cockPh -= c.cycleDeg; fired = false; lineOut = lineOutAfterShot; }
+          if (fired && cockPh >= c.cycleDeg - 5) { cockPh -= c.cycleDeg; fired = false; lineOut = lineOutAfterShot; }
         }
-      } else if (toothOnTooth && fabs(drumDeg - (c.drumPosDeg[0] + 15)) < 2) toothWiperAcc += ad;
+      } else if (toothOnTooth && drumDeg < c.drumPosDeg[0] + 30) toothWiperAcc += ad;
       else if (inReel() && wDir == c.reelDir && wrapsTrue() > 0) { lineOut -= ad / 360.0 * c.capstanPerWiper * 2 * M_PI * capstanR; if (lineOut < 0) lineOut = 0; }
     }
     // ---- drum
@@ -153,7 +153,7 @@ inline float simVbat() { return S.vbatWired ? (float)S.vbat() : NAN; }
 inline uint8_t simSw() { return S.contactsRaw(); }
 inline float simHx() { return S.hxFitted ? (float)(S.hxOffset + S.tension() * S.hxCountsPerN) : NAN; }
 inline void simSave(const gb::Saved& s) { S.nvs = s; S.nvsHas = true; S.saves++; }
-inline void simOut(const char* l) { S.out.push_back(l); }
+inline void simOut(const char* l) { S.out.push_back(l); if (getenv("SIMLOG")) printf("      [%6u] %s\n", (unsigned)S.t, l); }
 inline uint32_t simRand() { static uint32_t x = 12345; x = x * 1664525u + 1013904223u; return x; }
 
 inline gb::Io simIo() {

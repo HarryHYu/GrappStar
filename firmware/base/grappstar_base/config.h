@@ -59,13 +59,14 @@ struct Cfg {
   float aimCycleDeg = 360.0f;
   float aimTolDeg = 0.75f;          // AIMED if within this
   float pitchMin = 15.0f, pitchMax = 60.0f;
-  float aimHomeDeg = 0.0f;          // aim phase where SW_AIM_HOME closes
+  float aimHomeDeg = 0.0f;          // aim phase where SW_AIM_HOME closes (moving in aimDir)
   float aimMaxDeg = 760.0f;         // longest aim run (two cycles) before STALL / BAD_STATE
 
   // ---- shot cycle (wiper deg in the cock direction from rest)
   float cycleDeg = 720.0f;          // one full shot cycle: rest -> cocked -> release -> reset -> rest
   float cockEndDeg = 540.0f;        // stop here: carriage on the sear (SW_COCKED closes just before)
   float cockSlowFrom = 500.0f;      // slow from here so the stop is precise
+  float searCloseDeg = 532.0f;      // SW_COCKED closes here while cocking (carriage drops onto the sear)
   float searWinDeg = 25.0f;         // SW_COCKED must close within this before cockEndDeg
   float releaseDeg = 570.0f;        // sear trips (SW_COCKED opens) about here while firing
   float releaseWinDeg = 25.0f;
@@ -79,8 +80,9 @@ struct Cfg {
   int maxWraps = 6;
   float drumDps = 60.0f;            // drum speed estimate (deg/s); re-learned at every contact-to-contact move
   int drumSign = +1;                // DRV8833 direction that moves LAUNCH -> REEL
-  float drumWinDeg = 12.0f;         // a detent contact is closed within +-this of its position
-  uint32_t drumSettleMs = 60;       // keep driving this long after the contact closes (centres the detent)
+  float drumWinDeg = 10.0f;         // a detent contact is closed within +-this of its centre; after it closes the drum
+                                    // drives on by this much (dead reckoning) to sit centred
+  float wrapWinDeg = 6.0f;          // the wrap index contact is closed within +-this of each whole wrap
   float drumTimeFactor = 2.0f; uint32_t drumTimeMarginMs = 1500;   // timeout = expected x factor + margin
   float drumEarlyFrac = 0.25f;      // arriving faster than this fraction of the expected time = suspicious contact
   int drumRetries = 1;              // dog tooth-on-tooth: back off, nudge the wiper, try again this many times

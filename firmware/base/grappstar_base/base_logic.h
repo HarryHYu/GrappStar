@@ -71,7 +71,7 @@ struct Base {
   int drumTarget = -1; int drumDir = 0; uint32_t opT = 0, legT = 0; float opFrom = 0, opGoal = 0, opTravel = 0;
   float expectMs = 0; bool settling = false; uint32_t settleT = 0; int tries = 0; int sub = 0; bool estopMove = false;
   bool leftStart = false; int startContact = -1; int wrapGoal = 0;
-  int jogMotor = 0, jogDir = 0; uint32_t jogUntil = 0;
+  int calK = 0, wrapIdxK = -1; int jogMotor = 0, jogDir = 0; uint32_t jogUntil = 0;
   int until = U_STOP; float maxN = 20; int reelDutyCmd = 220; bool holdLimit = false;
   bool searSeen = false, releaseSeen = false; float relPeakA = 0; int aimTries = 0; bool homing = false;
   // arm token
@@ -111,6 +111,8 @@ struct Base {
   bool closed(int id) const { return fitted(id) && sw.closed(c.swBit[id]); }
   bool rose(int id) const { return fitted(id) && sw.rose(c.swBit[id]); }
   bool fell(int id) const { return fitted(id) && sw.fell(c.swBit[id]); }
+  // wiper travel (deg, along dir) since the raw edge of a contact: undoes the debounce delay
+  float sinceEdge(int id, int dir) const { return fitted(id) ? (enc.deg() - sw.edgeAux(c.swBit[id])) * dir : 0; }
   bool chat(int id) const { return fitted(id) && sw.chattering(c.swBit[id]); }
   int drumContacts() const { return (closed(SW_LAUNCH) ? 1 : 0) + (closed(SW_NEUTRAL) ? 1 : 0) + (closed(SW_REEL) ? 1 : 0); }
   int detentClosed() const {          // -1 none, 0..2 the one closed, 9 several
@@ -254,9 +256,9 @@ struct Base {
 
   // ================================================================== sensors
   void readSensors(uint32_t dt) {
-    sw.update(io.switches ? io.switches() : 0, now);
     uint8_t st = 0; int raw = io.angle ? io.angle(&st) : -1;
     enc.feed(raw, st, dt);
+    sw.update(io.switches ? io.switches() : 0, now, enc.deg());
     float isv = io.wiperIsVolts ? io.wiperIsVolts() : 0;
     w.tick(now, dt, isv, enc.ok ? enc.rateDps : NAN, io.wiper);   // ramp, gap, current, stall latches
     amps = w.amps;
@@ -304,8 +306,9 @@ struct Base {
           float ms = (float)(now - lastSnapT);
           if (ms > 50) { float v = fabsf(c.drumPosDeg[k] - c.drumPosDeg[lastSnap]) / (ms / 1000.f); if (v > 0.3f * c.drumDps && v < 3 * c.drumDps) c.drumDps = 0.5f * c.drumDps + 0.5f * v; }
         }
-        drumDeg = c.drumPosDeg[k]; drumKnown = true; lastSnap = k; lastSnapT = now; snapClean = d.running();
-        if (k != DP_REEL || dir <= 0) {}       // passing a detent on the launch side means no wraps
+        // a detent contact closes drumWinDeg before its centre: snap to that edge (plus the travel since the raw edge)
+        float late = dir ? dir * c.drumDps * (now - sw.edgeTime(c.swBit[id])) / 1000.f : 0;
+        drumDeg = c.drumPosDeg[k] - dir * c.drumWinDeg + late; drumKnown = true; lastSnap = k; lastSnapT = now; snapClean = d.running();
         if (k <= DP_REEL) { wraps = 0; wrapsKnown = true; }
       }
     }
@@ -313,8 +316,8 @@ struct Base {
     // wraps from the drum angle; the wrap index contact snaps to whole wraps
     if (drumKnown) {
       if (fitted(SW_WRAP) && rose(SW_WRAP) && dir != 0) {
-        float k = roundf((drumDeg - c.wrapStartDeg) / c.degPerWrap);
-        if (k >= 0) drumDeg = c.wrapStartDeg + k * c.degPerWrap;
+        float k = roundf((drumDeg - c.wrapStartDeg + dir * c.wrapWinDeg) / c.degPerWrap);
+        if (k >= 1) { drumDeg = c.wrapStartDeg + k * c.degPerWrap - dir * c.wrapWinDeg + dir * c.drumDps * (now - sw.edgeTime(c.swBit[SW_WRAP])) / 1000.f; wrapIdxK = (int)k; }
       }
       float laid = (drumDeg - c.wrapStartDeg) / c.degPerWrap;
       int n = laid <= 0 ? 0 : (int)floorf(laid + 0.15f);  // a wrap counts once the arm is 85% round
@@ -379,7 +382,7 @@ struct Base {
       return 0;
     }
     if (settling) {
-      if (now - settleT >= c.drumSettleMs) {
+      if (centred(c.drumPosDeg[drumTarget], drumDir)) {
         d.halt(now, io.drum);
         if (!closed(tgtId)) { failDrum(safing, F_DRUM_SENSOR, "target contact opened after arriving"); return -1; }
         drumDeg = c.drumPosDeg[drumTarget]; drumKnown = true;
@@ -409,6 +412,11 @@ struct Base {
     return 0;
   }
   float nudgeFrom = 0;
+  // after a contact closed: keep driving until the estimate reaches the detent centre (bounded in time)
+  bool centred(float pos, int dir) const {
+    uint32_t maxMs = (uint32_t)(2.f * c.drumWinDeg / c.drumDps * 1000.f) + 100;
+    return dir * (drumDeg - pos) >= 0 || now - settleT >= maxMs;
+  }
   int retryOrFail(bool safing, const char* why) {
     if (tries < c.drumRetries && !safing) {
       tries++; d.want(-drumDir * c.drumSign); sub = 1; legT = now; return 0;
@@ -528,7 +536,7 @@ struct Base {
     wrapGoal = c.wrapsTarget; if (wrapGoal > c.maxWraps) wrapGoal = c.maxWraps;
     opGoal = c.wrapStartDeg + wrapGoal * c.degPerWrap;
     drumDeg = c.drumPosDeg[DP_REEL]; drumKnown = true;
-    expectMs = drumExpectMs(drumDeg, opGoal); opT = legT = now; settling = false;
+    expectMs = drumExpectMs(drumDeg, opGoal); opT = legT = now; settling = false; wrapIdxK = -1;
     d.want(c.drumSign); markMoving(MV_DRUM); state = S_WRAP; stT = now;
     return nullptr;
   }
@@ -620,7 +628,7 @@ struct Base {
       if (wrapsKnown && wraps > 0) return "WRAPS_ON";
       if (detentClosed() >= 0 && detentClosed() <= 2) { drumKnown = true; drumDeg = c.drumPosDeg[detentClosed()]; evMode(true); return nullptr; }
       expectMs = drumExpectMs(c.drumPosDeg[DP_LAUNCH], c.wrapStartDeg + c.maxWraps * c.degPerWrap); opT = legT = now;
-      d.want(-c.drumSign); markMoving(MV_DRUM); state = S_CALDRUM; stT = now; return nullptr;
+      settling = false; d.want(-c.drumSign); markMoving(MV_DRUM); state = S_CALDRUM; stT = now; return nullptr;
     }
     return "BAD_ARG";
   }
@@ -759,20 +767,31 @@ struct Base {
   }
 
   // ================================================================== telemetry
+  // C1 limits a line to 256 bytes. Normal lines are about 200. If a line would be longer (only in absurd states), it is
+  // rebuilt with fewer decimals, and if still too long a short form with "trunc": true is sent.
   void telemetry(char* buf, int cap) {
+    if (cap > 257) cap = 257;
+    if (telBuild(buf, cap, false)) return;
+    if (telBuild(buf, cap, true)) return;
+    JOut o(buf, cap); o.open(); o.obj("tel"); o.str("state", STATE_NAME[state]); o.str("mode", modeName());
+    o.str("drum_pos", DRUM_POS_NAME[drumPos()]); if (fault) o.str("fault", FAULT_NAME[fault]); else o.null("fault");
+    o.boolean("trunc", true); o.close(); o.close();
+  }
+  bool telBuild(char* buf, int cap, bool lean) {
+    int d1 = lean ? 0 : 1, d2 = lean ? 1 : 2;
     JOut o(buf, cap); o.open(); o.obj("tel");
     o.str("state", STATE_NAME[state]); o.str("mode", modeName());
-    if (drumKnown) o.num("drum_deg", drumDeg, 1); else o.null("drum_deg");
+    if (drumKnown) o.num("drum_deg", drumDeg, d1); else o.null("drum_deg");
     o.str("drum_pos", DRUM_POS_NAME[drumPos()]);
-    if (enc.ok || wiperInit) o.num("wiper_deg", enc.deg(), 1); else o.null("wiper_deg");
-    o.num("rpm", enc.ok ? enc.rpm() : NAN, 1); o.num("amps", amps, 1);
-    float p = pitch(); if (isnan(p)) o.null("pitch_deg"); else o.num("pitch_deg", p, 2);
+    if (enc.ok || wiperInit) o.num("wiper_deg", enc.deg(), d1); else o.null("wiper_deg");
+    o.num("rpm", enc.ok ? enc.rpm() : NAN, d1); o.num("amps", amps, d1);
+    float p = pitch(); if (isnan(p)) o.null("pitch_deg"); else o.num("pitch_deg", p, d2);
     float ck = phase == PH_REST ? 0 : phase == PH_COCKED || phase == PH_FIRING ? 1 : phase == PH_COCKING ? fminf(1, fmaxf(0, cockPhase / c.cockEndDeg)) :
                phase == PH_RESETTING ? fmaxf(0, 1 - (cockPhase - c.releaseDeg) / fmaxf(1, c.cycleDeg - c.releaseDeg)) : NAN;
     if (isnan(ck)) o.null("cock"); else o.num("cock", ck, 2);
     if (wrapsKnown) o.integer("wraps", wraps); else o.null("wraps");
-    if (lineKnown) o.num("line_m", lineM, 2); else o.null("line_m");
-    if (hxLive()) o.num("tension_n", hxN, 1); else o.null("tension_n");
+    if (lineKnown) o.num("line_m", lineM, d2); else o.null("line_m");
+    if (hxLive()) o.num("tension_n", hxN, d1); else o.null("tension_n");
     o.obj("sw");                                     // closed contacts only (absent = open), one-letter keys: PROTOCOL.md
     static const char* const L[SW_COUNT] = {"L", "N", "R", "W", "S", "C", "A"};
     for (int i = 0; i < SW_COUNT; i++) if (closed(i)) o.integer(L[i], 1);
@@ -780,7 +799,7 @@ struct Base {
     if (fault) o.str("fault", FAULT_NAME[fault]); else o.null("fault");
     if (isnan(vbat)) o.null("vbat"); else o.num("vbat", vbat, 1);
     o.close(); o.close();
-    if (o.bad) snprintf(buf, cap, "{\"tel\":{\"state\":\"%s\",\"fault\":%s%s%s,\"trunc\":true}}", STATE_NAME[state], fault ? "\"" : "", fault ? FAULT_NAME[fault] : "null", fault ? "\"" : "");
+    return !o.bad;
   }
   // the sketch calls this from its loop: true when a telemetry line is due (10 Hz idle, 20 Hz moving)
   bool telDue(uint32_t t) {
@@ -835,7 +854,7 @@ struct Base {
     float trav = (enc.deg() - opFrom) * c.aimDir;
     if (homing) {
       if (rose(SW_AIM_HOME)) {
-        w.halt(now, io.wiper); aimPhase = c.aimHomeDeg; aimKnown = true; homing = false; sub = 3; legT = now; return;
+        w.halt(now, io.wiper); aimPhase = wrapCyc(c.aimHomeDeg + sinceEdge(SW_AIM_HOME, c.aimDir), c.aimCycleDeg); aimKnown = true; homing = false; sub = 3; legT = now; return;
       }
       if (trav > c.aimCycleDeg * 1.25f) { raise(F_BAD_STATE, "aim home contact never closed"); return; }
       return;
@@ -866,7 +885,7 @@ struct Base {
   void tickCock() {
     if (phase == PH_UNKNOWN) {                       // recovery run: until the sear contact closes
       float trav = (enc.deg() - opFrom) * cockDir();
-      if (rose(SW_COCKED)) { cockPhase = c.cockEndDeg - c.searWinDeg * 0.5f; phase = PH_COCKING; searSeen = true; w.want(cockDir(), c.cockSlowDuty); return; }
+      if (rose(SW_COCKED)) { cockPhase = c.searCloseDeg + sinceEdge(SW_COCKED, cockDir()); phase = PH_COCKING; searSeen = true; w.want(cockDir(), c.cockSlowDuty); return; }
       if (trav > c.cycleDeg * 1.1f) { raise(F_BAD_STATE, "sear contact never closed in a full cycle"); return; }
       if (now - opT > c.cockMaxMs * 2) { raise(F_BAD_STATE, "cock recovery took too long"); return; }
       return;
@@ -906,25 +925,24 @@ struct Base {
     if (now - opT > c.fireMaxMs) raise(F_BAD_STATE, "fire cycle took too long");
   }
   void tickWrap() {
-    if (drumDeg >= opGoal - 0.5f && !settling) {
-      if (fitted(SW_WRAP)) {
-        // index contact: stop only on the target wrap's index edge (or a little past the estimate)
-        if (rose(SW_WRAP) || drumDeg > opGoal + c.degPerWrap * 0.15f) { settling = true; settleT = now; }
-      } else { settling = true; settleT = now; }
-    }
-    if (settling && now - settleT >= c.drumSettleMs) {
-      d.halt(now, io.drum);
-      if (fitted(SW_WRAP) && !closed(SW_WRAP) && drumDeg > opGoal + c.degPerWrap * 0.15f) { raise(F_DRUM_SENSOR, "wrap index contact not seen"); return; }
-      wraps = wrapGoal; wrapsKnown = true; drumDeg = opGoal;
-      state = S_IDLE; stT = now;
-      JOut o(evBuf, sizeof evBuf); evBegin(o, "WRAPPED"); o.boolean("ok", true); o.integer("wraps", wraps); evEnd(o); dirty = true; return;
+    // stop when the estimate reaches the target wrap centre. With the index contact fitted, the target wrap's index
+    // edge must have been seen (it snaps the estimate), else the count is not trusted
+    if (drumDeg >= opGoal) {
+      bool idxOk = !fitted(SW_WRAP) || wrapIdxK == wrapGoal;
+      if (idxOk) {
+        d.halt(now, io.drum);
+        wraps = wrapGoal; wrapsKnown = true;
+        state = S_IDLE; stT = now;
+        JOut o(evBuf, sizeof evBuf); evBegin(o, "WRAPPED"); o.boolean("ok", true); o.integer("wraps", wraps); evEnd(o); dirty = true; return;
+      }
+      if (drumDeg > opGoal + c.degPerWrap * 0.25f) { raise(F_DRUM_SENSOR, "wrap index contact not seen"); return; }
     }
     if (rose(SW_REEL) || rose(SW_NEUTRAL) || rose(SW_LAUNCH)) { raise(F_DRUM_SENSOR, "detent contact closed while wrapping"); return; }
     if (now - legT > (uint32_t)(expectMs * c.drumTimeFactor) + c.drumTimeMarginMs) { raise(F_DRUM_TIMEOUT, "wrap took too long"); return; }
   }
   void tickUnwrap() {
     if (rose(SW_REEL) && !settling) { settling = true; settleT = now; }
-    if (settling && now - settleT >= c.drumSettleMs) {
+    if (settling && centred(c.drumPosDeg[DP_REEL], -1)) {
       d.halt(now, io.drum);
       if (!closed(SW_REEL)) { raise(F_DRUM_SENSOR, "REEL contact opened after unwrapping"); return; }
       wraps = 0; wrapsKnown = true; drumDeg = c.drumPosDeg[DP_REEL]; state = S_IDLE; stT = now;
@@ -962,8 +980,9 @@ struct Base {
   }
   void tickCalDrum() {
     int k = detentClosed();
-    if (k >= 0 && k <= 2) {
-      d.halt(now, io.drum); drumKnown = true; drumDeg = c.drumPosDeg[k]; wraps = 0; wrapsKnown = true;
+    if (k >= 0 && k <= 2 && !settling) { settling = true; settleT = now; calK = k; }
+    if (settling && centred(c.drumPosDeg[calK], -1)) {
+      d.halt(now, io.drum); drumKnown = true; drumDeg = c.drumPosDeg[calK]; wraps = 0; wrapsKnown = true;
       state = S_IDLE; stT = now; evMode(true); dirty = true; return;
     }
     if (now - opT > (uint32_t)(expectMs * c.drumTimeFactor) + c.drumTimeMarginMs) { raise(F_DRUM_TIMEOUT, "drum home search found no detent"); return; }

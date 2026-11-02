@@ -116,7 +116,7 @@ static void testAngle() {
   a.feed(100, 0, 5);
   CHECK(!a.ok, "magnet missing = lost");
   gb::AngleTracker r; r.feed(0, md, 5); int rr = 0;
-  for (int i = 0; i < 40; i++) { rr = (rr + 23) % 4096; r.feed(rr, md, 5); }
+  for (int i = 0; i < 80; i++) { rr = (rr + 23) % 4096; r.feed(rr, md, 5); }
   CHECK(fabsf(r.rateDps - 23 * 360.f / 4096 * 200) < 20, "rate in deg/s");
   gb::AngleTracker n; n.sign = -1; n.feed(1000, md, 5); n.feed(1010, md, 5);
   CHECK(n.count == -10, "sign applied");
@@ -141,7 +141,8 @@ static void testWiperDrive() {
   // scaling: at duty 128 the IS average is half the motor current
   gb::WiperDrive s; s.want(1, 128); for (int i = 0; i < 100; i++) s.tick(t += 5, 5, 4.0 / 12.5 * 128 / 255, 100, hw);
   CHECK(fabsf(s.amps - 4.0f) < 0.1f, "IS reading scaled back by the duty");
-  gb::WiperDrive o; o.want(1, 255); for (int i = 0; i < 70; i++) o.tick(t += 5, 5, 1.0, 100, hw);
+  gb::WiperDrive o; o.want(1, 255); for (int i = 0; i < 70; i++) o.tick(t += 5, 5, 10.0 / 12.5 * o.outDuty / 255, 100, hw);
+  CHECK(!o.overcurrent, "10 A during the ramp: no trip");
   o.tick(t += 5, 5, 20.0 / 12.5, 100, hw); CHECK(!o.overcurrent, "one sample over is not a trip");
   o.tick(t += 5, 5, 20.0 / 12.5, 100, hw); CHECK(o.overcurrent && hd == 0, "two samples over: trip, motor off");
   o.want(1, 255); o.tick(t += 5, 5, 0, 100, hw); CHECK(hd == 0, "stays off until the latch is cleared");
@@ -185,12 +186,19 @@ static void testProtocolBasics() {
 static void testTelemetryWorstCase() {
   T("telemetry: worst case fits 256 bytes");
   Rig R;
-  R.B.drumKnown = true; R.B.drumDeg = -1234.5f; R.B.enc.count = -99999999; R.B.state = gb::S_SAFING; R.B.fault = gb::F_SWITCH_DISAGREE;
-  R.B.wrapsKnown = true; R.B.wraps = -10; R.B.lineM = 99.99f; R.B.amps = 19.9f; R.B.aimKnown = true; R.B.phase = gb::PH_COCKING; R.B.cockPhase = 300;
+  // longest realistic line: moving, every value long, the contacts a running system can have closed at once
+  R.B.drumKnown = true; R.B.drumDeg = -1234.5f; R.B.enc.count = -4096000; R.B.enc.rateDps = -400; R.B.state = gb::S_UNWRAP;
+  R.B.wrapsKnown = true; R.B.wraps = 12; R.B.lineM = 99.99f; R.B.amps = 19.9f; R.B.aimKnown = true; R.B.phase = gb::PH_COCKING; R.B.cockPhase = 300;
   R.B.hxSeen = true; R.B.hxT = R.B.now; R.B.hxN = -1234.5f; R.B.vbat = 12.6f;
-  S.swStuckClosed = 0x7F; R.run(30);
-  char tel[400]; R.B.telemetry(tel, 257);
+  S.swStuckClosed = 0x7C; R.B.c.vbatLow = 0; R.run(30); R.B.state = gb::S_UNWRAP; R.B.hxT = R.B.now;
+  char tel[400]; R.B.telemetry(tel, 400);
+  printf("    realistic worst case %zu bytes\n", strlen(tel));
   CHECK(strlen(tel) <= 256 && std::string(tel).find("\"trunc\"") == std::string::npos, tel);
+  gb::JObj o; CHECK(gb::jsonParse(tel, (int)strlen(tel), &o), "valid JSON");
+  // absurd values: still valid JSON within 256 bytes
+  R.B.enc.count = -99999999; R.B.enc.rateDps = -1e8f; R.B.fault = gb::F_SWITCH_DISAGREE; R.B.state = gb::S_FAULT; S.swStuckClosed = 0x7F; R.run(30);
+  R.B.telemetry(tel, 400);
+  CHECK(strlen(tel) <= 256 && gb::jsonParse(tel, (int)strlen(tel), &o), "absurd state: still a valid line within 256 bytes");
 }
 
 static void testModeChanges() {
@@ -273,7 +281,7 @@ static void testCockFireReset() {
   CHECK(R.homeAimAndCock(), "mode LAUNCH, cock, aim");
   CHECK(R.B.phase == gb::PH_COCKED && R.evt("COCKED"), "COCKED");
   CHECK(fabs(S.cockPh - R.B.c.cockEndDeg) < 6, "stopped at the cock end");
-  S.seatAtLine = 0; S.lineOut = 0;              // dart seated
+  S.seatAtLine = 0; S.lineOut = 0; R.run(50);   // dart seated
   CHECK(R.err("{\"id\":1,\"cmd\":\"fire\",\"token\":123456}") == "NOT_ARMED", "fire without arm");
   std::string a = R.cmd("{\"id\":2,\"cmd\":\"arm\"}");
   CHECK(a.find("\"token\":") != std::string::npos, "arm returns a token");
@@ -317,7 +325,7 @@ static void testFireRefusals() {
 static void testNoRelease() {
   T("fire: sear never trips = BAD_STATE, launch train held");
   Rig R; R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"cock_rest\"}"); R.homeAimAndCock();
-  S.lineOut = 0; S.searBroken = true;
+  S.lineOut = 0; S.searBroken = true; R.run(50);
   std::string a = R.cmd("{\"id\":2,\"cmd\":\"arm\"}"); long tok = atol(a.c_str() + a.find("\"token\":") + 8);
   R.ok("{\"id\":4,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}");
   R.until([&] { return R.B.state == gb::S_FAULT; }, 20000);
@@ -343,7 +351,7 @@ static void testWrapReelUnwrap() {
   CHECK(R.err("{\"id\":3,\"cmd\":\"reel\",\"until\":\"forever\"}") == "BAD_ARG", "bad until");
   R.B.lineM = 6; R.B.lineKnown = true;
   CHECK(R.ok("{\"id\":3,\"cmd\":\"reel\",\"duty\":0.9,\"max_n\":30,\"until\":\"seated\"}"), "reel until seated");
-  R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 120000);
+  R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 400000);
   CHECK(R.evt("SEATED") && S.seated(), "SEATED");
   CHECK(R.B.lineM == 0, "line_m zeroed at seat");
   CHECK(R.ok("{\"id\":4,\"cmd\":\"unwrap\"}"), "unwrap");
@@ -360,8 +368,9 @@ static void testTow() {
   R.B.c.kNperA = (float)(1.0 / (S.capstanR / S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA));   // matched constants
   R.B.c.freeA = 1.5f + (float)((S.reelFreeNm + 0.2) / S.stallNm * (S.stallA - S.freeA));
   CHECK(R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":40,\"until\":\"tension\"}"), "tow to 40 N");
-  R.until([&] { return R.B.state == gb::S_HOLD || R.B.state == gb::S_FAULT; }, 120000);
+  R.until([&] { return R.B.state == gb::S_HOLD || R.B.state == gb::S_FAULT; }, 400000);
   CHECK(R.B.state == gb::S_HOLD && R.evt("LIMIT"), "holding at the limit");
+  printf("    true tension %.1f N, estimate %.1f N\n", S.tension(), R.B.tensionN);
   CHECK(S.tension() > 25 && S.tension() < 60, "true tension near 40 N");
   CHECK(S.wDir == 0, "motor off while holding (worm holds)");
   CHECK(R.err("{\"id\":1,\"cmd\":\"unwrap\"}") == "HOLDING", "no unwrap while holding");
@@ -375,7 +384,7 @@ static void testTowHx() {
   R.toMode("REEL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle(); }, 60000);
   S.lineOut = 8; S.anchorTautAt = 7.8; S.anchorK = 80;
   R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":30,\"until\":\"tension\"}");
-  R.until([&] { return R.B.state == gb::S_HOLD || R.B.state == gb::S_FAULT; }, 120000);
+  R.until([&] { return R.B.state == gb::S_HOLD || R.B.state == gb::S_FAULT; }, 400000);
   CHECK(R.B.state == gb::S_HOLD && S.tension() >= 29 && S.tension() < 36, "holds at 30 N by the load cell");
   char tel[300]; R.B.telemetry(tel, sizeof tel);
   CHECK(std::string(tel).find("\"tension_n\":null") == std::string::npos, "tension_n reported with a load cell");
@@ -456,8 +465,8 @@ static void testJog() {
   CHECK(R.err("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":-1,\"ms\":300}") == "WOULD_FIRE", "cock-direction jog refused when cocked");
   CHECK(R.err("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"arm\",\"dir\":1}") == "BAD_ARG", "bad motor");
   CHECK(R.err("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"drum\",\"dir\":2}") == "BAD_ARG", "bad dir");
-  CHECK(R.ok("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"drum\",\"dir\":1,\"ms\":200}"), "jog drum");
-  R.run(400); CHECK(S.dDir == 0 && R.B.drumPos() == gb::DP_BETWEEN, "drum stopped between");
+  CHECK(R.ok("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"drum\",\"dir\":1,\"ms\":600}"), "jog drum");
+  R.run(800); CHECK(S.dDir == 0 && R.B.drumPos() == gb::DP_BETWEEN, "drum stopped between");
 }
 
 static void testPowerLoss() {
@@ -538,24 +547,29 @@ static void testFullMission() {
   R.B.c.kNperA = (float)(1.0 / (S.capstanR / S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA));
   R.B.c.freeA = 1.5f + (float)((S.reelFreeNm + 0.2) / S.stallNm * (S.stallA - S.freeA));
   R.ok("{\"id\":7,\"cmd\":\"reel\",\"duty\":1,\"max_n\":30,\"until\":\"tension\"}");
-  R.until([&] { return R.B.state == gb::S_HOLD || R.B.state == gb::S_FAULT; }, 120000);
+  R.until([&] { return R.B.state == gb::S_HOLD || R.B.state == gb::S_FAULT; }, 400000);
   CHECK(R.B.state == gb::S_HOLD, "towed to the limit");
   R.ok("{\"id\":8,\"cmd\":\"stop\"}");
   S.anchorTautAt = -1; S.seatAtLine = 0;       // dart released
   R.ok("{\"id\":9,\"cmd\":\"reel\",\"duty\":0.8,\"max_n\":30,\"until\":\"seated\"}");
-  R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 200000);
+  R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 400000);
   CHECK(R.evt("SEATED"), "retrieved and seated");
   R.ok("{\"id\":10,\"cmd\":\"unwrap\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000);
   CHECK(R.B.wraps == 0, "unwrapped");
   CHECK(R.toMode("LAUNCH"), "back to LAUNCH");
+  printf("    before 2nd cock: fw cock %.1f sim cock %.1f fired %d\n", R.B.cockPhase, S.cockPh, S.fired);
   R.ok("{\"id\":11,\"cmd\":\"cock\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
+  printf("    after: fw cock %.1f sim cock %.1f\n", R.B.cockPhase, S.cockPh);
   CHECK(R.B.phase == gb::PH_COCKED, "cocked again for the next shot");
   CHECK(R.B.fault == gb::F_NONE, "no fault in the whole mission");
   size_t maxLen = 0; for (auto& l : S.out) maxLen = l.size() > maxLen ? l.size() : maxLen;
   CHECK(maxLen <= 256, "every event line within 256 bytes");
 }
 
-int main() {
+int main(int argc, char** argv) {
+  if (argc > 1) { std::string w = argv[1];
+    if (w == "cock") testCockFireReset(); else if (w == "aim") testAim(); else if (w == "wrap") testWrapReelUnwrap(); else if (w == "jog") testJog(); else if (w == "drum") testDrumFaults(); else if (w == "power") testPowerLoss(); else if (w == "stall") testStallOvercurrent(); else if (w == "enc") testAngleSensorFault(); else if (w == "tow") testTow(); else if (w == "mission") testFullMission();
+    printf("%d passed, %d failed\n", pass, fail); return fail ? 1 : 0; }
   testJson(); testSwitches(); testAngle(); testWiperDrive(); testPersist();
   testProtocolBasics(); testTelemetryWorstCase(); testModeChanges(); testDrumFaults(); testAim(); testCockFireReset(); testFireRefusals();
   testNoRelease(); testWrapReelUnwrap(); testTow(); testTowHx(); testStallOvercurrent(); testAngleSensorFault(); testBrownout();

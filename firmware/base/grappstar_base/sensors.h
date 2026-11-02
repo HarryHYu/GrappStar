@@ -17,17 +17,20 @@ struct Switches {
   uint32_t debounceMs = 15, chatterWinMs = 250, chatterQuietMs = 1000; int chatterEdges = 10;
   uint8_t stable = 0, prev = 0, cand = 0, raw = 0, chatter = 0;
   uint32_t candT[MAX_SW] = {0}, edgeT[MAX_SW][16] = {{0}}, lastEdge[MAX_SW] = {0};
+  float candAux[MAX_SW] = {0};      // caller's position value (wiper deg) when the raw level last changed
   uint8_t edgeHead[MAX_SW] = {0}; uint16_t edgeCount[MAX_SW] = {0};
   bool inited = false;
 
-  void update(uint8_t r, uint32_t now) {
+  // aux: a position (the wiper angle) recorded at each raw change, so an edge can be placed where it really happened
+  // instead of debounceMs later (4 deg of wiper at 45 rpm)
+  void update(uint8_t r, uint32_t now, float aux = 0) {
     if (!inited) { stable = prev = cand = raw = r; inited = true; for (int i = 0; i < MAX_SW; i++) candT[i] = now; return; }
     prev = stable;
     uint8_t changed = r ^ raw; raw = r;
     for (int i = 0; i < MAX_SW; i++) {
       uint8_t m = 1u << i;
       if (changed & m) {
-        candT[i] = now; lastEdge[i] = now;
+        candT[i] = now; lastEdge[i] = now; candAux[i] = aux;
         edgeT[i][edgeHead[i]] = now; edgeHead[i] = (edgeHead[i] + 1) & 15; if (edgeCount[i] < 16) edgeCount[i]++;
         int n = 0;                                           // edges inside the window
         for (int k = 0; k < edgeCount[i]; k++) if (now - edgeT[i][k] <= chatterWinMs) n++;
@@ -41,6 +44,8 @@ struct Switches {
   bool closed(int i) const { return i >= 0 && i < MAX_SW && (stable >> i) & 1; }
   bool rose(int i) const { return i >= 0 && i < MAX_SW && ((stable & ~prev) >> i) & 1; }     // just closed
   bool fell(int i) const { return i >= 0 && i < MAX_SW && ((~stable & prev) >> i) & 1; }     // just opened
+  float edgeAux(int i) const { return i >= 0 && i < MAX_SW ? candAux[i] : 0; }
+  uint32_t edgeTime(int i) const { return i >= 0 && i < MAX_SW ? candT[i] : 0; }
   bool chattering(int i) const { return i >= 0 && i < MAX_SW && (chatter >> i) & 1; }
 };
 

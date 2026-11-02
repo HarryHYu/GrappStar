@@ -135,9 +135,27 @@ Command line: `python -m tools.<tool> OUT [--only demo]` from `base/`.
 
 ## 7. Library summary (`cad/lib/`)
 
-See the docstrings; each function returns a `Manifold` in a documented local frame (axis = +Z unless stated), plus
-`*_info` dicts with the derived numbers where useful. Fit allowances live in `cad/lib/fits.py` (one place to tune
-after Harry prints the fit coupon).
+Each function returns a `Manifold` in a documented local frame (axis +Z unless stated), or an info dict. Conventions:
+cutters (seats, holes, bores) have the mouth at z = 0 and cut into -Z (with 1 mm overshoot above); bought-part models
+(bearings, nuts) sit with the top face at z = 0 so the identity places them in their seat; screws have the head
+underside at z = 0. Fit allowances live in `cad/lib/fits.py` (one place to tune after Harry prints the fit coupon).
+Placeholder (unmeasured) numbers carry an `_ASSUMED` suffix or sit in `motors.WIPER_DEFAULTS`.
+
+| module | public functions |
+|---|---|
+| `gears` | `bore_cs`, `center_distance`, `contact_ratio`, `cut_bore`, `internal_center_distance`, `internal_gear`, `internal_info`, `inv`, `inv_inverse`, `lewis_max_torque`, `lewis_stress`, `lewis_y`, `rack`, `rack_center_distance`, `rack_profile`, `spur_gear`, `spur_info`, `spur_profile`, `tip_chamfer`, `working_pressure_angle` |
+| `worm` | `worm`, `worm_center_distance`, `worm_info`, `worm_pitch_d`, `worm_pose`, `worm_wheel` |
+| `screw` | `helix_extrude`, `iso_crest_clearance`, `nut`, `nut_hole`, `screw`, `screw_info`, `thread_cs` |
+| `cams` | `barrel_cam`, `barrel_info`, `follower_pin`, `groove_cutter`, `track_fn`, `track_z` |
+| `bearings` | `bearing_608`, `bearing_608_inner_race`, `bearing_693`, `bearing_csk20`, `bearing_csk20_inner_race`, `bearing_f693`, `boss_608`, `boss_693`, `boss_csk20`, `ribbed_seat`, `seat_608`, `seat_693`, `seat_boss`, `seat_csk20`, `seat_f693` |
+| `shafts` | `d_bore`, `d_shaft`, `hex_bore`, `hex_shaft`, `journal`, `journal_608`, `key_torque_capacity`, `keyed_bore`, `keyed_shaft`, `shaft_torque_capacity`, `stepped_shaft` |
+| `fasteners` | `m3_clear`, `m3_close`, `m3_counterbore`, `m3_countersunk`, `m3_insert`, `m3_insert_model`, `m3_nut`, `m3_nut_trap`, `m3_nyloc_trap`, `m3_shcs`, `m3_tap`, `m8_bolt`, `m8_clear`, `m8_nut`, `m8_nut_trap`, `nut_trap`, `round_hole` |
+| `clutch` | `dog_clutch`, `dog_mate`, `flexure_force`, `flexure_ring`, `flexure_stress`, `slip_clutch`, `slip_torque` |
+| `clips` | `c_clip`, `clip_groove_cutter`, `clip_info`, `clip_pin`, `clip_pin_clip_z`, `groove_dims`, `pin_hole_cutter`, `snap_pin`, `snap_pin_info` |
+| `switch` | `contact_switch`, `lever_pose` |
+| `motors` | `n20_mount`, `n20_straight`, `n20_worm`, `n20_worm_mount`, `wiper_coupler`, `wiper_coupler_info`, `wiper_coupler_z`, `wiper_motor_envelope`, `wiper_plate` |
+| `line` | `eye_boss`, `eye_cutter`, `eye_info`, `fairlead`, `fairlead_cutter`, `line_hits`, `line_length`, `line_tube` |
+| `springs` | `anchor_post`, `anchor_post_info`, `extension_spring_model`, `spring_force`, `spring_info` |
 
 ## 8. Demo
 

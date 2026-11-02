@@ -51,7 +51,8 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 - Slip-clutch torque set for 0.75 N at the full reel (r 27.6 mm) gives 1.0 N at the core (r 20 mm): the brake gets
   37 % harder as line pays out. Fine for 5 m shots (little line leaves).
 - Reel at ~3,000 rpm at 8.6 m/s: 608s are fine. Overrun after landing ~0.24 m (reel stops in ~0.1 s): bird's nest risk
-  low, centrifugal shoes not needed at these speeds. Reel inertia adds ~5 g of effective mass during the stroke.
+  low, centrifugal shoes not needed at these speeds. Reel inertia (19 kg mm2 full, two thirds of it the 64 mm flanges) adds ~26 g of
+  effective mass to the dart during the stroke (line pull ~4 N in the stroke). Spoked or thinner flanges help.
 - Range falls ~0.45 m per +0.25 N of brake. Set the light brake as low as reliably repeatable (0.5 N).
 
 ## F6. Wiper stall is the dangerous case (drivetrain.py, capstan.py)

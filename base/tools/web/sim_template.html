@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>__TITLE__</title>
+<style>
+:root{--gl:max(16px, env(safe-area-inset-left, 0px));--gr:max(16px, env(safe-area-inset-right, 0px));--bg:#eef1f4;--panel:#ffffffeb;--ink:#15181c;--mute:#5b6470;--line:#d5dae0;--acc:#c46d00;--chip:#f4f6f8}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#16191d;--panel:#1e2228eb;--ink:#e9edf1;--mute:#9aa4ae;--line:#343b44;--acc:#ffb020;--chip:#262b32}}
+:root[data-theme="dark"]{--bg:#16191d;--panel:#1e2228eb;--ink:#e9edf1;--mute:#9aa4ae;--line:#343b44;--acc:#ffb020;--chip:#262b32}
+html,body{margin:0;height:100%;
+  background:var(--bg);color:var(--ink);font:13px/1.4 Arial,Helvetica,sans-serif;overflow:hidden}
+#view{position:fixed;inset:0}
+.panel{position:fixed;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;box-sizing:border-box}
+#info{left:var(--gl);top:12px;width:330px;max-width:calc(100vw - var(--gl) - var(--gr))}
+#info h1{font-size:15px;margin:0 0 2px}
+.sub{color:var(--mute);font-size:12px}
+#ptitle{font-weight:bold;font-size:14px;color:var(--acc);margin-top:8px}
+#ptext{margin:2px 0 6px}
+#ro{font:12px/1.5 Menlo,Consolas,monospace;border-top:1px solid var(--line);padding-top:6px;display:grid;grid-template-columns:auto 1fr;column-gap:10px}
+#ro span:nth-child(odd){color:var(--mute)}
+#tools{right:var(--gr);top:12px;width:280px;max-height:calc(100vh - 170px);overflow:auto}
+#tools h2{font-size:11px;margin:10px 0 4px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
+#tools h2:first-child{margin-top:0}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+input[type=range]{flex:1;min-width:80px}
+#bottom{left:var(--gl);right:var(--gr);bottom:max(12px, env(safe-area-inset-bottom, 0px))}
+#bar{position:relative;height:18px;background:var(--line);border-radius:9px;cursor:pointer;margin:8px 0 6px;touch-action:none}
+#bar .seg{position:absolute;top:0;bottom:0;border-right:2px solid var(--panel);box-sizing:border-box}
+#bar .seg.on{background:color-mix(in srgb,var(--acc) 30%,transparent)}
+#bar .cur{position:absolute;top:-4px;bottom:-4px;width:4px;margin-left:-2px;background:var(--acc);border-radius:2px;pointer-events:none}
+#phases{display:flex;flex-wrap:wrap;gap:4px}
+button,select{font:12px Arial,Helvetica,sans-serif;padding:4px 8px;border:1px solid var(--line);border-radius:5px;background:var(--chip);color:var(--ink);cursor:pointer}
+button.on{border-color:var(--acc);color:var(--acc);font-weight:bold}
+#time{font:12px Menlo,Consolas,monospace;color:var(--mute);min-width:110px}
+.pi{display:flex;gap:6px;align-items:flex-start;padding:3px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.pi .sw{width:10px;height:10px;border-radius:2px;margin-top:3px;flex:none;border:1px solid #0003}
+.pi .n{font-weight:bold;word-break:break-all}.pi .d{color:var(--mute);font-size:11px}.pi.off{opacity:.4}
+#tip{position:fixed;pointer-events:none;background:var(--panel);border:1px solid var(--line);padding:6px 8px;border-radius:5px;max-width:280px;display:none;font-size:12px;z-index:5}
+#toggles{position:fixed;right:var(--gr);bottom:118px;display:none;gap:6px}
+@media (max-width:760px){
+  #info{width:auto;right:var(--gr);padding:8px 10px}#info .sub,#ro{display:none}#info.more #ro{display:grid}
+  #tools{display:none;left:var(--gl);right:var(--gr);width:auto;top:auto;bottom:150px;max-height:45vh}#tools.open{display:block}
+  #toggles{display:flex;bottom:150px}#toggles.up{bottom:calc(45vh + 160px)}
+  #phases{display:none}
+}
+</style></head><body>
+<div id="view"></div>
+<div class="panel" id="info">
+  <h1 id="ttl"></h1>
+  <div class="sub" id="sub"></div>
+  <div id="ptitle"></div><div id="ptext"></div>
+  <div id="ro"></div>
+</div>
+<div class="panel" id="tools">
+  <h2>View</h2>
+  <div class="row"><button data-v="iso">iso</button><button data-v="front">front</button><button data-v="side">side</button><button data-v="top">top</button><button id="theme">theme</button></div>
+  <div class="row" style="margin-top:6px">explode <input type="range" id="explode" min="0" max="100" value="0"></div>
+  <h2>Section cut</h2>
+  <div class="row"><select id="cax"><option value="none">no cut</option><option value="x">x (along)</option><option value="y">y (across)</option><option value="z">z (level)</option></select>
+  <label><input type="checkbox" id="cflip"> flip</label><span id="cval" class="sub"></span></div>
+  <div class="row"><input type="range" id="cut" min="0" max="1000" value="500"></div>
+  <h2>Parts <span class="sub" style="text-transform:none;letter-spacing:0">(hover to highlight, click to hide)</span></h2>
+  <div id="plist"></div>
+</div>
+<div id="toggles"><button id="tInfo">info</button><button id="tTools">tools</button></div>
+<div class="panel" id="bottom">
+  <div class="row"><button id="play">pause</button>
+    <select id="speed"><option value="0.25">0.25x</option><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option><option value="4">4x</option></select>
+    <label><input type="checkbox" id="loop" checked> loop</label>
+    <span id="time"></span></div>
+  <div id="bar"></div>
+  <div id="phases"></div>
+</div>
+<div id="tip"></div>
+<!--LIBS-->
+</body></html>

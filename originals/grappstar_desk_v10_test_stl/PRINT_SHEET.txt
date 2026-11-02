@@ -1,0 +1,35 @@
+GrappStar launcher, desk size (0.3 of the design model), TEST BUILD: snap together, all printed. 14 part files, 21 printed pieces.
+All sizes mm. Everything fits a 256 bed.
+
+PARTS
+01_gear.stl            59 x   63 x   17 mm    31 cm3   print: flat on the teeth, 100% infill
+02_drive_gear.stl      42 x   42 x   17 mm    10 cm3   print: flat on the teeth, 100% infill
+03_axle.stl            20 x   20 x  117 mm    16 cm3   print: standing on the head, 100% infill
+04_carriage.stl       182 x   52 x   78 mm    45 cm3   print: standing on the rack end, supports on, 100% infill
+05_dart.stl            20 x   20 x   69 mm     7 cm3   print: nose up
+06_rail_body.stl      230 x  131 x   79 mm   209 cm3   print: on its side (barrel axis along the bed), supports on
+07_frame.stl          147 x  118 x  159 mm   238 cm3   print: standing on the base plate
+08_pinion.stl          43 x   43 x   14 mm    12 cm3   print: flat, 100% infill
+09_crank_gear.stl      82 x   82 x   38 mm    65 cm3   print: flat on the gear face, stub up; 100% infill
+14_crank_pin.stl       18 x   18 x   27 mm     3 cm3   print: standing on the head, 100% infill
+10_conrod.stl          22 x  100 x    7 mm     9 cm3   print: flat, 100% infill
+11_gear_pin.stl        18 x   18 x   49 mm     6 cm3   print: standing on the head, 100% infill
+12_clip.stl            16 x   15 x    2 mm     0 cm3   print: flat, 100% infill
+13_bushing.stl         18 x   18 x   16 mm     2 cm3   print: flat, 100% infill
+16_motor.stl           37 x   37 x  106 mm    76 cm3   print: not printed
+
+TEST BUILD: everything printed, nothing bought except the motor. No one way bearings yet: three printed bushings sit where they go, the gears spin free on the axle.
+Every pin is printed with a head on one end and a groove on the other; a printed C clip snaps into the groove. 6 clips, 3 bushings.
+
+ASSEMBLY
+  1 Push a bushing into the drive gear, one into the pinion, one into the pedestal pocket from the inside face.
+  2 Rail body: big gear between the two bracket bosses, gear pin in from the minus side, clip on the end.
+  3 Crank gear: crank pin in from the back of the gear (head on the back), rod eye over it, clip. Stub into the pedestal bushing from the inside, clip on the outside. Other rod eye over the lug pin under the rail bracket, clip.
+  4 Axle: in from the plus side, head out. It goes through the plus leg, drive gear, both bracket pivot bosses, pinion, minus leg. Clip on the minus end. Drive gear must mesh the big gear, pinion must mesh the crank gear.
+  5 Motor on the plus leg plate, shaft into the D socket, 6 x M3.
+  6 Carriage into the barrel from the breech, V ridges in the rail grooves, arm through the slit. Springs from the muzzle posts to the carriage pegs. Dart in at the muzzle.
+
+CLIPS: the opening is 0.9 mm narrower than the groove core, push straight on, it snaps. Pull off with a flat blade. If one is too tight, scale it 102% in the slicer.
+LATER: swap the three bushings for HF1216 one way bearings (same 18 x 12 x 16 size) and it becomes the working launcher.
+
+PRINT: 0.2 mm layers. Gears, pins, clips, rod, bushings 100% infill. Rail body and frame 4 walls 30%. Supports where noted.

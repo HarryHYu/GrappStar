@@ -1,108 +1,43 @@
 # GrappStar
 
-Ground-Retaining Anchor, Projectile-Placed, Self-Tensioning Auger Rig.
+A rover fires an anchor dart (KEDGE) on a Dyneema tether. The dart films its flight and landing from a nose camera,
+screws itself into the ground, and the rover winches itself out against it. One wiper motor runs the whole base
+(launch, aim and reel), swapping between systems.
 
-A rover launches a dart-shaped anchor (KEDGE, codename Taproot) trailing a Dyneema braid tether. The dart films its landing zone from a nose camera, self-rights on landing, deploys three legs that screw-drill into the soil, and the rover winches itself along the taut line.
+## Start here
 
-Backyard test rig and portfolio piece.
+1. `knowledge/SYSTEM_PLAN_2026-11-03.md`: the current agreed system plan, decisions, parts and electronics. Read first.
+2. `kedge/CLAUDE.md`: the full engineering handover (every caliper measurement, dart geometry v29/v30, electrical,
+   firmware, files, reviews). Section 10 covers the 3 Nov overnight ground-station design, now superseded by item 1.
+3. `knowledge/HARRY_MESSAGES_AND_PASTES.md`: every message and paste from the 2-3 Nov sessions, including the S-KAS
+   brainstorm and the August log.
+4. `originals/`: everything Harry supplied: launcher v10 and reel handovers, reel v7, mini reel v9, desk launcher v8/v9/v10
+   STLs, piston, reel and payout HTML sims, the caliper PDF with photos (`measurements.pdf`, Git LFS), the cloud handover
+   zip (`KEDGE_handover.zip`, Git LFS), v26 dart, POC print, Lean Canvas, first print files.
 
-## Subsystems
+## Layout
 
-| Dir | What | Status |
-| --- | --- | --- |
-| `reel/` | Winch stack on the rover | Current focus. Plan before printing more parts. |
-| `dart/` | KEDGE anchor dart | Design done (v20 STL family). Built in parallel with the reel. |
-| `launcher/` | Spring launcher | External design, frozen. Electrical interface only lives here. |
-| `vision/` | Jetson vision and ballistics | Pipeline established. |
-| `sim/` | Geometry solver and anchor physics | Active. Sim fixes feed STL revisions directly. |
-| `cad/` `docs/` | STLs, drawings, notes | As they accumulate. |
+| Path | What |
+|---|---|
+| `knowledge/` | system plan, Harry's messages, Claude memory notes, screenshots Harry sent |
+| `kedge/` | the working project: dart generator (`kedge_v27.py`), pipelines, firmware (`fw/`), ground station v1 (`gs/`) |
+| `kedge/out29`, `kedge/out30` | dart v29 and v30 model data (STL, STEP, npz, audit, physics) |
+| `kedge/pack_v29`, `kedge/pack_v30`, `kedge/dist_v29`, `kedge/dist_v30` | dart print packs, PDFs, zips (assembly STEPs via Git LFS) |
+| `kedge/pack_gs`, `kedge/site` | ground station v1 print pack, HD mission sim, assembly steps, guide PDF (superseded design) |
+| `kedge/fw` | dart firmware (`kedge_dart`), ground station firmware (`gs/grappstar_gs`), PC tests, Jetson scripts |
+| `originals/` | Harry's source files, untouched |
+| `docs/README_sep2026.md` | the September project README (hardware inventory, earlier reel concept) |
 
-## Conventions
+## Not in the repo
 
-- Terse and technically precise.
-- No em dashes anywhere: code comments, docs, commit messages.
-- Geometry and physics errors get fixed with full rebuilds, not patches.
-- Simulation and physical design run in parallel.
-- Print doctrine: burner PLA until design freeze, then PAHT-CF and PVA.
-- This README is the source of truth. Update it when a decision changes.
+- `kedge/.venv` and `node_modules`: rebuild with `kedge/setup_mac.sh` and `npm install`.
+- `kedge/work/meas/*.png`: 600 MB of page renders of `originals/measurements.pdf`, regenerate from the PDF.
 
-## Hardware (Sep 2026)
+## Rules
 
-Nothing physically built yet. Only the Jetson has been exercised.
+- No em dashes in any deliverable. Plain black Arial PDFs, no name on documents.
+- Every geometry change goes through the exact-mesh collision audit before it is shown.
+- Only parts Harry already has, plus 608 bearings. Everything else printed (Bambu X2D, PLA; PPA-CF for loaded gears).
 
-**Compute**
-
-- Jetson Orin Nano Super dev kit: main controller, rover vision and ballistics. JetPack 6.2, MAXN Super mode, 128 GB SD boot, jtop installed. Hostname `GrappStar`, LAN 192.168.0.249.
-- XIAO ESP32-S3 Sense: dart brain, onboard camera, WiFi, u.FL antenna.
-- ESP32-S3 DevKitC-1-N8: winch real-time MCU, USB to the Jetson.
-
-**Motors**
-
-- 12 V universal wiper motor: capstan drive. Wires red/black/green; green is the park switch, tape it off.
-- Biax worm N20, 12 V 27 RPM, x4: dart deploy through-axle (1 used).
-- Self-locking N20, 17 to 68 RPM, x4: dart kick sector gear (1 used).
-- Bringsmart M3-shaft 100 RPM 12 V, x6: dart drills (3 used).
-- No windlass motor yet. A Bringsmart on a D25 windlass gives about 0.26 m/s line speed with the 2x take-up, roughly 45 s to snub 12 m of slack. Open decision.
-
-**Drivers and power**
-
-- DRV8833 dual H-bridge x3: dart motors.
-- BTS7960: winch driver.
-- Dart: 2x 18350 button-top cells, 2S BMS, MP1584 5 V buck. Target cell spec 18 mm dia, ~35 mm long, 4.5 A continuous, unprotected. Confirm what arrived.
-- Rover: 3S 5200 mAh 50C XT60 LiPo, B6AC charger, XT60 leads, inline fuses, barrel-to-XT60 pigtail for the Jetson.
-
-**Sensors**
-
-- BNO085 IMU and INA219 current sensor (dart), AS5600 magnetic encoder (reel payout count), 100 kg load cell + HX711 (tether tension).
-
-**Mechanical and print**
-
-- Bambu X2D, PLA only for now.
-- F693ZZ flanged bearings, 693ZZ bearings, M3x4x5 heat-set inserts, DIN7991 M3 screws, shaft collars, JST-XH, Dupont, SMA cable + adapters.
-- Tether: 150 lb Dyneema braid. Still to confirm: 300 m spool, 80 kg+ swivels, crimp sleeves, cheap spinning reel for the staging spool, rod-guide eyelets.
-
-**Deferred**
-
-- NVMe SSD, final filament and dryer box (after design freeze), launcher electronics, Arducam IMX477 (Kiyo X footage decides).
-
-## Dart (KEDGE)
-
-- Envelope D30 x 250 mm, ~245 g. Launched tail-first, tether pre-fed through the eye.
-- v20 STL family: dogleg kick_v11 + slotted-yoke body_v19, 14-step collision sweep passed.
-- 55% scale proof-of-concept print set generated (snap-rivet pins). Not printed yet.
-- Five motors: 1 deploy (biax worm N20 as through-axle, legs keyed on D-flat stubs, flanged bearings in hull bosses take radial load, hard stops take anchor force), 1 kick (sector gear on a self-locking N20), 3 drills (Bringsmart, steel spine).
-- Geometry laws, do not violate:
-  - 21 mm dogleg in the kick leg. drop = pivot height - hull radius + pole radius (verified numerically).
-  - Any dogleg in the kick leg requires a channel cut through the bridge arm (slotted yoke). Hard constraint.
-  - Pin lengths must span the full joint stack: 10.6 mm drill joints, 14.0 mm clevis.
-- Sim: Python geometry solver plus anchor physics (support-polygon gravity, parallel-axis inertia for roll, righting basin thresholds, hull bedding during clamp, tip-gated pin-depth measurement).
-
-## Reel (winch)
-
-Stack, upstream to downstream:
-
-staging spool (storage, end-feed launch payout) -> tangential-hole windlass with its own small motor (slack snub, passive eyelet otherwise) -> capstan drum on the wiper worm through a one-way sprag bearing (carries the tow load) -> pinch brake + AS5600 pulley + load cell -> exit eyelet.
-
-Mission phases: staged, launch (all passive, capstan freewheels on the sprag), range gate (AS5600 count trips the pinch brake), anchor (dart sets, line goes slack), snub (windlass takes up both strands at 2x), tow (sprag locks, worm hauls, windlass pays its wraps back out).
-
-Numbers: 400 N tow target, 670 N line limit, ~13 N.m drum peak.
-
-Status: reel v1 STL set (capstan drums, windlass hand rig, count pulley) rejected. Plan the reel before printing more parts. Windlass motor choice open.
-
-## Launcher
-
-External design, frozen. Die-spring launcher, ~12 m for v1, spring cartridge swappable for range. Rail sized for the D30 x 250 envelope. Release electrically triggered, cocking manual for v1. This repo covers the electrical interface only; electronics deferred.
-
-## Vision / code
-
-- Jetson: rover camera (Kiyo X webcam for now), landing-zone and ballistics, vision pipeline established.
-- Dart: XIAO streams nose-camera images over WiFi; control link planned over ESP-NOW.
-- Winch MCU: ESP32-S3 DevKitC real-time loop (brake, AS5600 count, load cell, BTS7960), USB to the Jetson.
-- Dart bench bring-up order: XIAO headers + antenna, IDE + camera stream, motor spin tests, sensors, full power integration once cells arrive.
-
-## Open items
-
-- Windlass motor: buy a fast one or accept a slow snub.
-- Dart cells: confirm what arrived.
-- Tether hardware: confirm bought.
-- Dart bench bring-up: not started.
+Online: ground station v1 site https://claude.ai/artifact/Uof3qNiqzPXed57HCM79jK, dart viewer
+https://claude.ai/artifact/Sqt8tF67veTYfxQjUFTZ5f

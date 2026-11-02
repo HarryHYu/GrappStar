@@ -1,0 +1,49 @@
+GrappStar launcher, desk size (0.3 of the design model). One motor, three one way bearings, piston pitch. 10 printed pieces.
+All sizes mm. Everything fits a 256 bed.
+
+PARTS
+01_gear.stl            59 x   63 x   17 mm    31 cm3   print: flat on the teeth, solid
+02_drive_gear.stl      42 x   42 x   17 mm    10 cm3   print: flat on the teeth, solid
+03_axle_head.stl       20 x   20 x   12 mm     3 cm3   print: flat, socket up, 100% infill
+19_axle_rod.stl        12 x   12 x   98 mm    11 cm3   print: not printed
+04_carriage.stl       182 x   52 x   78 mm    45 cm3   print: standing on the rack end, supports on
+05_dart.stl            20 x   20 x   69 mm     7 cm3   print: nose up
+06_rail_body.stl      230 x  131 x   79 mm   208 cm3   print: on its side (barrel axis along the bed), supports on
+07_frame.stl          147 x  118 x  159 mm   238 cm3   print: standing on the base plate
+08_pinion.stl          43 x   43 x   14 mm    12 cm3   print: flat
+09_crank_gear.stl      82 x   82 x   14 mm    61 cm3   print: flat, pin up
+10_conrod.stl          22 x  100 x    7 mm     9 cm3   print: flat
+11_gear_stub.stl       12 x   12 x   40 mm     4 cm3   print: not printed
+12_crank_stub.stl      12 x   12 x   28 mm     3 cm3   print: not printed
+17_crank_pin.stl       12 x   12 x   24 mm     3 cm3   print: not printed
+18_lug_pin.stl         12 x   12 x   12 mm     1 cm3   print: not printed
+13_bearing_A.stl       18 x   18 x   16 mm     2 cm3   print: not printed
+14_bearing_B.stl       18 x   18 x   16 mm     2 cm3   print: not printed
+15_bearing_C.stl       18 x   18 x   16 mm     2 cm3   print: not printed
+16_motor.stl           37 x   37 x  106 mm    76 cm3   print: not printed
+
+BOUGHT PARTS
+  1 x 37 mm 12 V gearmotor, 6 mm D shaft, ~100 rpm (JGB37-520 type), 6 x M3 screws for its face
+  3 x HF1216 one way needle bearing (12 x 18 x 16 mm): A in the drive gear, B in the pinion, C in the pedestal. Press fit, bores are 18.3 mm
+  12 mm steel rod, cut to: axle (through both legs, D socket head bonded on the plus end) 98 mm, big gear stub (pressed in the two bracket bosses) 40 mm, crank gear stub (bonded in the crank gear, sits in bearing C) 28 mm, crank pin (pressed through the crank gear) 24 mm, lug pin (pressed in the rail lug boss) 12 mm
+  2 x extension spring about 10 mm OD, 40 mm free length, hooks each end (stretch 150 mm). Loop over the muzzle posts and the carriage pegs
+  A little cyanoacrylate for the D socket head and the crank gear stub
+
+ONE WAY BEARING DIRECTIONS (check before pressing, they only go one way)
+  A (drive gear): must lock when the axle turns in the cocking direction and run free the other way
+  B (pinion): the opposite of A: locks on the backward turn, free on the cocking turn
+  C (pedestal): the crank gear turns freely clockwise (seen from the minus side, the direction backward motor turns drive it) and locks the other way
+
+ASSEMBLY
+  1 Press bearing A into the drive gear hub, B into the pinion, C into the pedestal pocket (from the inside face).
+  2 Rail body: press the big gear stub through the two bracket bosses with the big gear on it between them (gear bore is a running fit). Press the lug pin into the lug boss, pointing down toward the gears.
+  3 Crank gear: bond the crank stub into the hub and press the crank pin through its bore. Slip the rod eye over the crank pin, then push the stub into bearing C in the pedestal. Swing the rod up and drop its other eye over the lug pin.
+  4 Axle: slide it in from the minus side through the minus leg, pinion (bearing B), the rail bracket pivot bosses, the drive gear (bearing A) and the plus leg, head outside the plus leg. The drive gear must mesh the big gear, the pinion must mesh the crank gear.
+  5 Motor on the outside of the plus leg plate, shaft into the D socket, 6 x M3.
+  6 Carriage: slide it into the barrel from the breech with the V ridges in the rail grooves and the arm through the slit. Springs from the muzzle posts to the carriage pegs. Dart in at the muzzle.
+
+RUNNING
+  Motor forward: cocks and fires, about 1.6 motor turns per shot. Motor backward: raises the pitch (about one backward turn covers 6 to 47 degrees); past the top it rolls over and drops back to 6 degrees. The pitch holds by itself.
+
+PRINT
+  Gears, rack/carriage, rod: 100% infill, 0.2 mm layers, flat as noted. Rail body and frame: 4 walls, 30% infill. Supports where noted. PLA is fine; PETG for the gears if you have it.

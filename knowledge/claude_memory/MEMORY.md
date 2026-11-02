@@ -1,0 +1,1 @@
+- [GrappStar ground station](grappstar-ground-station.md) — one-wiper launcher+reel design in gs/, online build pack URL, decisions made overnight 3 Nov 2026

@@ -1,0 +1,14 @@
+GrappStar launcher v8, desk size: 6 pieces, scale 0.3 of the design model, all PLA, bands are the only non-printed parts
+mm. Everything fits a 256 bed; nothing to glue.
+
+01_gear.stl            61 x   63 x   16 mm    16 cm3   print: flat on the teeth, solid
+02_axle_crank.stl      41 x   18 x  111 mm     8 cm3   print: on its side, arm up, supports; 100% infill
+03_carriage.stl       141 x   52 x   67 mm    22 cm3   print: standing on the rack end, supports on
+04_dart.stl            20 x   20 x   69 mm     7 cm3   print: nose up
+05_rail_body.stl      249 x   95 x   52 mm   115 cm3   print: on its side (barrel axis along the bed), supports on
+06_frame.stl           75 x   67 x   77 mm    39 cm3   print: standing on the base plate
+
+ASSEMBLY: the axle is hex below the top leg. Drop the axle down through the top leg, upper bracket boss, gear (hex bore, slides on from the hex end), lower boss and bottom leg; crank on top. Rail body swings freely on the axle: hold the pitch by hand.
+Slide the carriage cup in through the open back of the barrel, V ridges into the rail grooves, arm through the slit. Two small band loops from the muzzle posts to the carriage pegs.
+CYCLE: dart in at the muzzle, tail first. Hold the pitch. Turn the crank: the gear teeth drag the rack back 150 mm, then the gap lets go and the bands fire the carriage. One turn per shot.
+Print: gear, rack and carriage solid; axle 100% infill; rail body and frame 4 walls, 20% infill.

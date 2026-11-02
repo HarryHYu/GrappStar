@@ -1,0 +1,261 @@
+<title>GrappStar Build Pack</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* layout: one reading column with a wide hero image and a spec strip; tables scroll inside their own boxes */
+:root{
+  --paper:#eef1f3; --sheet:#ffffff; --ink:#1b2127; --mute:#5a6670; --rule:#cfd6dc; --tether:#d9800a; --ok:#2f7d4f; --warn:#a8641a;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif; --f-body:"Source Sans 3",Arial,sans-serif; --f-mono:"JetBrains Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#14181c;--sheet:#1c2228;--ink:#e6eaee;--mute:#9aa6b0;--rule:#323b44;--tether:#f0a030;--ok:#5cbf86;--warn:#e0a050;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#14181c;--sheet:#1c2228;--ink:#e6eaee;--mute:#9aa6b0;--rule:#323b44;--tether:#f0a030;--ok:#5cbf86;--warn:#e0a050;color-scheme:dark}
+body{background:var(--paper);color:var(--ink);font:16px/1.55 var(--f-body)}
+.wrap{max-width:980px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:40px}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;letter-spacing:.01em;text-wrap:balance;margin:0}
+h1{font-size:clamp(40px,7vw,64px);line-height:.95}
+h2{font-size:30px;line-height:1.05}
+h3{font-size:20px}
+p{margin:0;max-width:66ch}
+.label{font:600 12px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+section{display:grid;gap:14px}
+.head{display:grid;gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:600 12px/1 var(--f-mono);padding:6px 9px;border:1px solid var(--rule);border-radius:4px;background:var(--sheet)}
+.chip b{color:var(--ok)}
+.hero{display:grid;gap:0;background:var(--sheet);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.hero img{display:block;width:100%;height:auto}
+.spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));border-top:1px solid var(--rule)}
+.spec div{padding:12px 14px;border-right:1px solid var(--rule);display:grid;gap:2px}
+.spec div:last-child{border-right:0}
+.spec .v{font:600 26px/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.spec .v small{font-size:15px;color:var(--mute);margin-left:2px}
+.spec .k{font-size:13px;color:var(--mute)}
+.cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{font:600 15px/1 var(--f-body);padding:12px 16px;border-radius:5px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);text-decoration:none;cursor:pointer}
+.btn.alt{background:transparent;color:var(--ink)}
+.btn:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--tether);outline-offset:2px}
+.tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--sheet)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:600 12px/1.2 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+tr:last-child td{border-bottom:0}
+td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dir{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.dir > div{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:14px;display:grid;gap:6px}
+.dir .t{font:600 18px/1.1 var(--f-display)}
+.dir .t span{color:var(--tether)}
+ol.cycle{margin:0;padding-left:22px;display:grid;gap:6px;max-width:72ch}
+.gal{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+figure{margin:0;background:var(--sheet);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+figure img{display:block;width:100%;height:auto}
+figcaption{font-size:13px;color:var(--mute);padding:8px 10px}
+.dl{display:grid;gap:8px}
+.dl .row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:10px 12px}
+.dl .row div{min-width:0}
+.dl .nm{font-weight:600}
+.dl .ds{font-size:13.5px;color:var(--mute)}
+.dl button{font:600 13px/1 var(--f-mono);padding:9px 12px;border-radius:4px;border:1px solid var(--tether);background:transparent;color:var(--ink);cursor:pointer;white-space:nowrap}
+.dl button[disabled]{opacity:.5;cursor:default}
+#dlnote{font-size:13.5px;color:var(--mute)}
+.risk li{margin-bottom:4px}
+code{font-family:var(--f-mono);font-size:13.5px}
+pre{font:13px/1.5 var(--f-mono);background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:12px;overflow-x:auto;margin:0}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start}
+.two > *{min-width:0}
+@media (prefers-reduced-motion:no-preference){.btn{transition:transform .12s}.btn:hover{transform:translateY(-1px)}}
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <div class="label">GrappStar · rover self recovery · prototype scale</div>
+    <h1>One wiper motor fires the dart, reels it in and tows the rover.</h1>
+    <p>Ground station (launcher + reel) designed around the KEDGE v30 dart and the parts in hand. Every part is modelled, every motion is computed from the geometry and physics, and the whole cycle runs without a hand on it.</p>
+    <div class="chips">
+      <span class="chip">collision audit <b>CLEAN</b> · 360 states</span>
+      <span class="chip">firmware tests <b>ALL PASS</b> · 105 + mission</span>
+      <span class="chip">KEDGE v30 audit <b>CLEAN</b></span>
+      <span class="chip">47 printed parts · 8 plates</span>
+    </div>
+  </header>
+
+  <div class="hero">
+    <img src="01_overview.jpg" alt="Ground station render: rail at 4 degrees, carriage cocked, KEDGE dart seated, reel on the left, wiper motor on the right">
+    <div class="spec">
+      <div><span class="v">1</span><span class="k">motor for everything</span></div>
+      <div><span class="v">10.7<small>m/s</small></span><span class="k">muzzle speed (fires at 33°)</span></div>
+      <div><span class="v">8.4<small>m</small></span><span class="k">range with drag and tether</span></div>
+      <div><span class="v">208<small>mm</small></span><span class="k">carriage stroke, 42 to 192 N</span></div>
+      <div><span class="v">5.9<small>N·m</small></span><span class="k">peak load at the wiper shaft</span></div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Watch the full mission</h2>
+    <p>Fire, flight, landing, the dart anchoring itself, the tow, release, re-cocking and the retrieve back onto the cradle, played on the real meshes. The launch is shown in slow motion; long phases are sped up and labelled.</p>
+    <div class="cta"><a class="btn" href="sim.html">Open the mission sim</a><a class="btn alt" href="assembly.html">Assembly, step by step</a><span class="label">each about 7 MB · three.js · HD</span></div>
+  </section>
+
+  <section>
+    <h2>How one motor does three jobs</h2>
+    <div class="dir">
+      <div><div class="t"><span>Forward</span> · reel</div><p>The reel rotor is geared straight to the main shaft. One-way bearing A lets the launcher pinion freewheel and backstop C holds the launcher still. The rotor's drag disc pushes the pickup pin out and every rotor turn lays one turn of line on the still spool.</p></div>
+      <div><div class="t"><span>Backward</span> · launcher</div><p>Bearing A locks and the program gear turns. One program turn is one shot: teeth draw the carriage back, the spring-loaded sear snaps in front of the carriage, the cam lifts the rail toward 35°, a cord tied to the base goes taut and pulls the sear down, the rail drops back. The reel rotor runs backward too, which pulls the pin in and frees the line.</p></div>
+      <div><div class="t"><span>Stopped</span> · hold</div><p>The wiper's worm is self locking, so a cocked carriage, a raised rail and a loaded tow line all hold with the power off.</p></div>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>program gear</th><th>what happens</th><th>rail</th></tr></thead>
+      <tbody>
+        <tr><td class="n">340°</td><td>first tooth meets the rack</td><td class="n">4°</td></tr>
+        <tr><td class="n">340° → 246.5°</td><td>carriage drawn back 208 mm, keel rides over the sear hook</td><td class="n">4°</td></tr>
+        <tr><td class="n">246.5° → 252.5°</td><td>last tooth lets go, carriage runs about 1.4 mm onto the sear hook (a gentle catch); the controller stops at 249.5° (cocked)</td><td class="n">4°</td></tr>
+        <tr><td class="n">252.5° → 302.5°</td><td>lift cam raises the rail on the frame roller, slowly (the rail carries the program gear round the pinion)</td><td class="n">4° → 35°</td></tr>
+        <tr><td class="n">284.5° → 294.5°</td><td>trip cord goes taut and pulls the sear down: the shot</td><td class="n">25.3° → 33°</td></tr>
+        <tr><td class="n">304.5° → 332.5°</td><td>rail drops back onto rubber feet; the fire run stops at 338°</td><td class="n">35° → 4°</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>Mission cycle</h2>
+    <ol class="cycle">
+      <li>Ready: cocked, dart seated against the pusher, rail down.</li>
+      <li>Fire: motor backward. Line pays out by end pull: the spool never turns, about 0.8 N over rounded edges and a ceramic eye, no overrun.</li>
+      <li>The dart lands and anchors itself: kick leg over the nose, foot screwed in, pods down, augers in.</li>
+      <li>Tow: motor forward, tension held at the limit (20 N default, set from the Jetson).</li>
+      <li>Release: the dart unscrews and folds.</li>
+      <li>Cock: motor backward from 338° to 249.5°.</li>
+      <li>Retrieve: motor forward until the dart is back on the cradle and presses the seated switch.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Parts</h2>
+    <div class="gal">
+      <figure><img src="02_fire_pose.jpg" alt="Rail at 35 degrees, the firing pose"><figcaption>Firing pose: the cam has lifted the rail to 35°.</figcaption></figure>
+      <figure><img src="04_reel_left.jpg" alt="Left side: reel gears, spool cover, sear"><figcaption>Left side: reel drive (58:39), spincast reel on the dart axis, sear and trip tower.</figcaption></figure>
+      <figure><img src="05_sear.jpg" alt="Sear close up"><figcaption>Clevis sear in double shear: the arc catch face keeps the hook locked until the trip cord pulls it down. The switch reads the arm.</figcaption></figure>
+      <figure><img src="03_right_side_cam.jpg" alt="Right side: lift cam and roller"><figcaption>Right side: lift cam (envelope of the roller) and the wiper coupler.</figcaption></figure>
+      <figure><img src="07_xsec_xray.jpg" alt="Mechanism with the rail and left plate hidden"><figcaption>Rail and left plate hidden mid cock: program gear, rack, keel, sear.</figcaption></figure>
+      <figure><img src="plates.jpg" alt="Eight print plates"><figcaption>Eight plates for the Bambu (gears, sear, carriage, cheeks and posts in PPA-CF).</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>Wiring</h2>
+    <p>Pull the XT60 every time a wire moves; battery in last. The ESP32 takes 5 V from a buck set to 5.0 V (or the rover's 5 V rail).</p>
+    <figure><img src="wiring_gs.png" alt="Ground station wiring: LiPo, 20 A fuse, BTS7960, wiper, ESP32-S3, AS5600, three switches, optional HX711"></figure>
+  </section>
+
+  <section>
+    <h2>Download everything</h2>
+    <p id="dlnote">Each button offers the file to save. The same files are on the Mac in <code>~/Downloads/kedge</code>.</p>
+    <div class="dl" id="dl">
+      <div class="row"><div><div class="nm">Ground station print pack</div><div class="ds">47 STLs already oriented, 8 3MF plates, print report, build guide, wiring</div></div><button id="d1" data-f="GrappStar_GS_print_pack.zip">Save zip</button></div>
+      <div class="row"><div><div class="nm">System overview</div><div class="ds">two pages for the write-up: the idea, the dart, one motor three jobs, results, how it was checked · PDF</div></div><button id="d0" data-f="GrappStar_system_overview.pdf">Save PDF</button></div>
+      <div class="row"><div><div class="nm">Ground station build guide</div><div class="ds">principle, numbers, bought parts, print list, assembly steps, wiring, open risks · PDF</div></div><button id="d2" data-f="GrappStar_ground_station_build_guide.pdf">Save PDF</button></div>
+      <div class="row"><div><div class="nm">Firmware</div><div class="ds">dart (XIAO ESP32S3), ground station (ESP32-S3 + BTS7960), Jetson mission client, PC tests</div></div><button id="d3" data-f="GrappStar_firmware.zip">Save zip</button></div>
+      <div class="row"><div><div class="nm">Ground station source</div><div class="ds">generator, kinematics, cam envelope, collision audit, physics, mission timeline, print pack, sim · Python + JS</div></div><button id="d4" data-f="GrappStar_GS_source.zip">Save zip</button></div>
+      <div class="row"><div><div class="nm">KEDGE v30 dart STLs</div><div class="ds">13 printed parts + fit coupon, Ø17 x 72 augers, opposite hands · 3.9 MB</div></div><button id="d5" data-f="KEDGE_v30_STL.zip">Save zip</button></div>
+      <div class="row"><div><div class="nm">KEDGE v30 run sheet</div><div class="ds">build day, step by step for the dart · PDF</div></div><button id="d6" data-f="KEDGE_v30_run_sheet.pdf">Save PDF</button></div>
+      <div class="row"><div><div class="nm">KEDGE v30 engineering report</div><div class="ds">holding, flight, loads, battery · PDF</div></div><button id="d7" data-f="KEDGE_v30_engineering_report.pdf">Save PDF</button></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>KEDGE v30 dart</h2>
+    <div class="two">
+      <figure><img src="kedge_v30_audit.jpg" alt="KEDGE v30 audit sheet, 24 views"><figcaption>24 view audit sheet: folded, deployed and mid motion.</figcaption></figure>
+      <div style="display:grid;gap:10px">
+        <p>v30 takes the best variant from the v29 study: Ø17 x 72 augers with the pods at y 31, about 8% more holding than v29. Kick and drill sweeps are clean at 1° steps, every STEP reimports valid.</p>
+        <div class="tbl"><table><tbody>
+          <tr><td>drill depth</td><td class="n">44.8 mm</td></tr>
+          <tr><td>foot depth</td><td class="n">35.5 mm</td></tr>
+          <tr><td>holding, moist loam</td><td class="n">48.5 N</td></tr>
+          <tr><td>holding, firm clay</td><td class="n">124 N</td></tr>
+          <tr><td>folded length</td><td class="n">168.7 mm</td></tr>
+          <tr><td>mass with ballast</td><td class="n">≈ 280 g</td></tr>
+        </tbody></table></div>
+        <p><a href="https://claude.ai/artifact/Sqt8tF67veTYfxQjUFTZ5f">Interactive dart viewer</a> (shows v29; v30 changes only the augers, Ø16 x 70 to Ø17 x 72, and the pod spacing, y 30.5 to 31).</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Independent review, fixed</h2>
+    <p>A separate review attacked the design for anything that would bind, break or fire at the wrong time. What changed because of it:</p>
+    <ul class="risk">
+      <li>Sear rebuilt as a clevis on a pin in double shear (now a 5 x 25 shoulder screw), lifted by a small spring, with a sloped lead-in and overtravel so it always catches (now a 1.4 mm run). The cocked switch now reads the sear itself.</li>
+      <li>Springs re-specified (1.6 mm wire, 134 coils): the first spec would have been overstressed.</li>
+      <li>One-way clutches doubled and pressed into steel sleeves; peak program gear torque 11.6 N·m including the trip.</li>
+      <li>Carriage in PPA-CF with a 12 x 16 stem, urethane end stops (later 40 mm 90A pads, round 8), cords knotted through the shoes.</li>
+      <li>Reel bracket bolted to a cheek pad, cheeks extended and bolted to the rail, every shaft stack clamped end to end, cam roller on a pin supported both sides (now a 608 bearing on an 8 mm pin).</li>
+      <li>Seated switch moved next to the pusher; firmware refuses the risky jogs and slows the last part of cocking.</li>
+    </ul>
+    <p>A second review then found that the first trip design could never fire (the finger missed the pin) and that the audit had been allowed to ignore the sear. So:</p>
+    <ul class="risk">
+      <li>The trip is now a cord from the sear arm to an eye bolt on a short post: slack until the rail passes about 25°, it pulls the hook clear at 33°. The height nut on the eye bolt sets it (later rounds moved the cord outside the cheek).</li>
+      <li>The sear angle is now solved from contact between the real meshes (hook against keel, cord length), and the collision check no longer exempts the sear. The arc-shaped catch face slides on itself, so the hook catches reliably.</li>
+      <li>The cocked switch moved outside the cheek where the arm only lifts off it, D-shaped bores carry the gear torque, the cheeks bolt to the rail through tabs into inserts, and the spring anchor is a thick bar with steel hook pins.</li>
+      <li>A third pass on the firmware fixed 18 bugs, including one where a held jog key could fire the launcher. 105 automatic checks now pass.</li>
+    </ul>
+    <p>Rounds 3 to 13. Round 3 had two reviewers, one on the trip and catch, one on printing and assembly order. Fixed:</p>
+    <ul class="risk">
+      <li>The last gear tooth lets the carriage go all at once, and the old 5 mm run onto the hook would have broken the keel on the first cock. Now: about 1.4 mm run, keel 18 mm long with root fillets, and the carriage prints on its side so the keel bends along its layers.</li>
+      <li>The trip cord ran through the cheek and the trip post. It now ties to a grooved steel pin (e-clip) that sticks out through an arc slot, so the whole cord runs in one plane outside the cheek. The generator checks that line against every part at each rail angle.</li>
+      <li>Trip post rebuilt: the eye bolt drops through a shelf. A nut sets the height (a threaded adjustment that cannot creep) and a preloaded spring underneath gives if the cord is ever overdriven. The sear has a hard down-stop.</li>
+      <li>5 x 25 M4 shoulder screw into a captive nut, stronger sear spring, and the shot timing taken from the real cam: phi 294.5, rail 33°.</li>
+      <li>Assembly fixes: the sear bolt and pulley axles were blind and could not be fitted. Every frame part now has holes into heat-set inserts in the tiles. The spring anchor nut traps are open, D flats only at shaft ends (round bores and spot flats mid shaft), the cheeks split so each prints flat, and the build order is rewritten so every part can actually go in.</li>
+      <li>Round 4 caught and fixed: the sear spring pins ran through solid plastic (slots cut for the hook loops), a urethane pad on the catch would have been cut up (removed), the shoulder screw nut hit a gusset (captive nut in a thicker lug), the eye bolt hit the post base (M4 x 35), deck screws hidden under frame feet (moved, counterbored, tiles go down first), and two impossible assembly steps (sear now goes in before the rail, rail C after the carriage).</li>
+      <li>Round 5 (reel, line, retrieve): the seated switch could never close (lever raised so the dart presses it about 2 mm), the drag disc O-ring had no squeeze (0.4 mm now, plus a shoulder and steel peg), square edges and a carbon-fibre eye in the line path (rounded rotor edges, ceramic eye ring, chamfered pusher hole). With honest wrap friction the range drops to about 8.4 m and the tension estimate is corrected. Tow now stops if the rail lifts. The muzzle zone is opened up so a rolled dart can come back in, and a swivel stops line twist rolling it.</li>
+      <li>Round 6 (drive train): the rail is a planet carrier, since the program gear rides on it round the drive pinion, so a steep lift multiplied the motor torque up to 4 times. The lift is now slow and even (50° of the program gear, lift to 35°, shot at 33°, same range), and the physics, the mission sim and the firmware's angle tracking all carry that term. The program gear and cam now hang on steel flange hubs instead of grub screws in plastic, the cam roller is a 608 bearing, and the clutches sit in machined 3 mm sleeves. The firmware scales the BTS7960 current sense by the duty and caps the tow at 50 N. The wiper must be measured before it is connected.</li>
+      <li>Round 8 (launch): the carriage end stop was about 10 times too small (now 40 mm 90A pads sunk in solid blocks), the dart's exit kicks the rail muzzle-up every shot (a check strap to a second sprung post now takes that (set at 37.5° in round 9), so the trip cord does not), and the springs surge at about 35 Hz (screw-in ends, foam dampers inside, flanged and grooved pulleys so slack cord cannot jump off). The pusher hole is 14 mm so the bridle knot sits inside the tail cap.</li>
+      <li>Round 9 (the newest parts): the keel and stem slots now run 16 mm past rest so the end-stop pads can actually compress; the check strap gets a long die spring (about 1.5 J) and is set at 37.5°; the drop is really a free fall, so bigger bumpers take it and the firmware re-zeroes phi as the rail lands (bearing A is a roller clutch and relocks at once); a power cut mid-run can no longer restore a stale "cocked"; fire eases off over the top of the lift; the flange hubs are now a standard 12 mm coupling size; a floating switch bracket was joined to the rail.</li>
+      <li>Round 10 (final check): two firmware paths could drive the program gear past the first rack tooth ("finish" started with the rail already up, and a stuck rail-down switch). Both now stop safely, a b jog also marks phi unknown in flash, and the drop edge only counts near the top of the lift. The bumper posts got M6 inserts and wider tops, and the eye bolts are specified fully threaded.</li>
+      <li>Round 11 (firmware with a real 0.2 s free fall modelled): the "switch never closed" check now runs on a timer, not the shaft count, the motor slows after the top so the fall has margin before the rack, phi is re-zeroed at the debounced edge, a rail that lands after a stop is caught, and a finish after the trip window no longer faults a healthy machine. Measure the real drop time on the bench and set dropMaxMs.</li>
+      <li>Round 12 and 13: the build guide got a safety block, a glossary and the missing steps (rack to carriage, inserts, springs hooked only after first power-up); the electrics got defined cable routes (never at the pivot, one loop from the cheek tie), the buck fed from the BTS7960 terminals so motor current cannot run through the ESP32 ground, a measured IS calibration formula, and a re-laid electronics box (motor leads by their own window, USB slot, sensor window).</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Not proven yet</h2>
+    <ul class="risk">
+      <li>Spring rate and the wiper's real speed and torque are catalogue values. Measure both and rerun the physics.</li>
+      <li>Retrieve onto the cradle is the weakest link. The horn curls 115° so a hanging dart meets a curve, the muzzle is opened up, and a stepped funnel (the folded dart's envelope rolled ±47° narrowing to ±8°) turns a rolled dart upright. It is geometry, not contact physics, and the horn end is still about 300 mm above the ground. Fallback: if the motor stops on current before the seated switch, seat the dart by hand.</li>
+      <li>The spool has no level wind. Turns pile at the front and slide back under tension. Wind slowly the first time.</li>
+      <li>The M5 set screws in the two steel flange hubs carry up to 11.6 N·m. Check them after the first 20 shots.</li>
+      <li>The catch is still a short impact (1.4 mm run, no pad). Check the keel and hook after 50 shots.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Rebuild it</h2>
+    <pre>cd ~/Downloads/kedge/gs
+./run_gs.sh out          # geometry, tables, physics, timeline, audit, print pack, sim (about 45 s)
+cd ../fw/test && g++ -std=c++17 -O1 -I../gs/grappstar_gs -o test_gs test_gs.cpp && ./test_gs</pre>
+  </section>
+</div>
+
+<script>
+(async () => {
+  const btns = [...document.querySelectorAll('#dl button')];
+  let dl = null;
+  try { dl = await (window.claude && window.claude.use ? window.claude.use('downloads') : null); } catch (e) { dl = null; }
+  if (!dl) { btns.forEach(b => b.disabled = true); document.getElementById('dlnote').textContent = 'Saving files needs the Claude viewer. The same files are on the Mac in ~/Downloads/kedge.'; return; }
+  btns.forEach(b => b.addEventListener('click', async () => {
+    const f = b.dataset.f, old = b.textContent; b.disabled = true; b.textContent = 'Preparing';
+    try {
+      let blob;
+      if (f.endsWith('.zip')) {
+        const r = await fetch(f + '.b64.txt'); if (!r.ok) throw new Error('not found');
+        const b64 = (await r.text()).replace(/\s+/g, ''); const bin = atob(b64); const u = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+        blob = new Blob([u]);
+      } else { const r = await fetch(f); if (!r.ok) throw new Error('not found'); blob = await r.blob(); }
+      await dl.save({ filename: f, data: blob });
+      b.textContent = 'Saved';
+    } catch (e) {
+      b.textContent = (e && e.code === 'declined') ? old : 'Try again';
+    } finally { b.disabled = false; setTimeout(() => { if (b.textContent === 'Saved') b.textContent = old; }, 4000); }
+  }));
+})();
+</script>

@@ -1,0 +1,97 @@
+[
+ {
+  "file": "plate_01_PLA.3mf",
+  "material": "PLA",
+  "parts": [
+   "base_3",
+   "base_5"
+  ]
+ },
+ {
+  "file": "plate_02_PLA.3mf",
+  "material": "PLA",
+  "parts": [
+   "base_4",
+   "rail_beam_C",
+   "frame_plate_R",
+   "bumper_posts",
+   "as5600_bracket"
+  ]
+ },
+ {
+  "file": "plate_03_PLA.3mf",
+  "material": "PLA",
+  "parts": [
+   "base_1",
+   "reel_bracket",
+   "rail_beam_A",
+   "motor_saddle",
+   "strap_anchor",
+   "shaft_spacer_R",
+   "pg_spacer_R",
+   "shaft_spacer_M",
+   "pinion_spacer_R",
+   "pinion_spacer_L",
+   "pg_spacer_L"
+  ]
+ },
+ {
+  "file": "plate_04_PLA.3mf",
+  "material": "PLA",
+  "parts": [
+   "base_2",
+   "rail_beam_B",
+   "frame_plate_L",
+   "spool",
+   "drag_disc",
+   "cheek_tie",
+   "shaft_spacer_L"
+  ]
+ },
+ {
+  "file": "plate_05_PLA.3mf",
+  "material": "PLA",
+  "parts": [
+   "motor_plate",
+   "ebox",
+   "ebox_lid",
+   "pulley_R",
+   "pulley_L"
+  ]
+ },
+ {
+  "file": "plate_06_PPA-CF.3mf",
+  "material": "PPA-CF",
+  "parts": [
+   "cheek_L",
+   "cheek_R",
+   "rack",
+   "sear_spring_post"
+  ]
+ },
+ {
+  "file": "plate_07_PPA-CF.3mf",
+  "material": "PPA-CF",
+  "parts": [
+   "reel_main_gear",
+   "program_gear",
+   "spring_anchor",
+   "reel_stub_gear",
+   "rotor",
+   "lift_cam",
+   "sear",
+   "trip_anchor"
+  ]
+ },
+ {
+  "file": "plate_08_PPA-CF.3mf",
+  "material": "PPA-CF",
+  "parts": [
+   "reel_cover",
+   "wiper_coupler",
+   "sled",
+   "drive_pinion",
+   "pickup_pin"
+  ]
+ }
+]

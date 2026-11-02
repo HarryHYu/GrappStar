@@ -1,0 +1,50 @@
+digraph G { rankdir=LR; bgcolor=white; node [shape=box, fontname="Arial", fontsize=11, style=rounded]; edge [fontname="Arial", fontsize=9];
+BTSnote [label="on the BTS7960:
+10 k R_EN-GND, 10 k L_EN-GND
+1000 uF 25 V across B+ / B-"];
+LiPo3S [label="3S LiPo
+(rover battery)"];
+Fuse20A [label="XT60 lead #2
+20 A fuse"];
+BTS7960 [label="BTS7960
+43 A H-bridge"];
+Wiper [label="wiper motor
+(main shaft)"];
+ESP32 [label="ESP32-S3
+DevKitC-1"];
+Divider [label="1 k series, 680 R + 1 uF
+to BTS GND"];
+AS5600 [label="AS5600
+on the shaft end"];
+SW_LOW [label="SW_LOW
+(rail down)"];
+SW_COCKED [label="SW_COCKED
+(sear, left cheek)"];
+SW_SEATED [label="SW_SEATED
+(dart in cradle)"];
+HX711 [label="HX711 + load cell
+(calibration, optional)"];
+Jetson [label="Jetson
+(rover brain)"];
+Buck5V [label="MP1584 buck
+5.0 V (or rover 5 V)"];
+LiPo3S -> Fuse20A [label="+", color="red", fontcolor="red", dir=none, penwidth=1.6];
+Fuse20A -> BTS7960 [label="B+", color="red", fontcolor="red", dir=none, penwidth=1.6];
+LiPo3S -> BTS7960 [label="- / B-", color="black", fontcolor="black", dir=none, penwidth=1.6];
+BTS7960 -> Wiper [label="M+ / M-", color="red", fontcolor="red", dir=none, penwidth=1.6];
+ESP32 -> BTS7960 [label="GPIO4 RPWM (F reel)", color="purple", fontcolor="purple", dir=none, penwidth=1.6];
+ESP32 -> BTS7960 [label="GPIO5 LPWM (B launcher)", color="grey40", fontcolor="grey40", dir=none, penwidth=1.6];
+ESP32 -> BTS7960 [label="GPIO6 R_EN, GPIO7 L_EN", color="purple", fontcolor="purple", dir=none, penwidth=1.6];
+ESP32 -> BTS7960 [label="3V3 VCC, GND", color="orange", fontcolor="orange", dir=none, penwidth=1.6];
+BTS7960 -> Divider [label="R_IS + L_IS", color="brown", fontcolor="brown", dir=none, penwidth=1.6];
+Divider -> ESP32 [label="GPIO1 (current)", color="brown", fontcolor="brown", dir=none, penwidth=1.6];
+ESP32 -> AS5600 [label="3V3 GND, SDA GPIO8, SCL GPIO9, DIR to GND", color="blue", fontcolor="blue", dir=none, penwidth=1.6];
+ESP32 -> SW_LOW [label="GPIO10 / GND", color="darkgreen", fontcolor="darkgreen", dir=none, penwidth=1.6];
+ESP32 -> SW_COCKED [label="GPIO11 / GND", color="darkgreen", fontcolor="darkgreen", dir=none, penwidth=1.6];
+ESP32 -> SW_SEATED [label="GPIO12 / GND", color="darkgreen", fontcolor="darkgreen", dir=none, penwidth=1.6];
+ESP32 -> HX711 [label="3V3 / GND, GPIO13 DT, GPIO14 SCK (optional)", color="teal", fontcolor="teal", dir=none, penwidth=1.6];
+Jetson -> ESP32 [label="WiFi 192.168.5.1 (GRAPPSTAR-GS)", color="grey60", fontcolor="grey60", dir=none, penwidth=1.6];
+BTS7960 -> Buck5V [label="IN+ / IN- from the B+ / B- screws", color="red", fontcolor="red", dir=none, penwidth=1.6];
+Buck5V -> ESP32 [label="5V via Schottky (stripe to ESP32) + GND, set 5.0 V first", color="orange", fontcolor="orange", dir=none, penwidth=1.6];
+BTSnote -> BTS7960 [label="", color="grey40", fontcolor="grey40", dir=none, penwidth=1.6];
+}

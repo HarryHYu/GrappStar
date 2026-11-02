@@ -1,0 +1,895 @@
+[
+ {
+  "name": "rail_beam_C",
+  "dims": [
+   108.0,
+   78.5,
+   224.0
+  ],
+  "volume_cm3": 346.7,
+  "mass_g": 236.4,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 7552,
+  "bodies": 1,
+  "watertight": true,
+  "note": "front piece: muzzle, pulley forks, carriage stop blocks.",
+  "qty": 1
+ },
+ {
+  "name": "rail_beam_B",
+  "dims": [
+   108.0,
+   68.0,
+   225.0
+  ],
+  "volume_cm3": 242.6,
+  "mass_g": 165.4,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 452,
+  "bodies": 1,
+  "watertight": true,
+  "note": "middle piece: cradle, shelves, sear window side, SW_SEATED hole, bolts to C with 7 x M4 at the flange, screws onto the front tie.",
+  "qty": 1
+ },
+ {
+  "name": "base_4",
+  "dims": [
+   242.5,
+   127.5,
+   8.0
+  ],
+  "volume_cm3": 177.5,
+  "mass_g": 121.1,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "base tile: 4 x M4 to the rover deck; heat-set M4 inserts take the frame parts",
+  "qty": 1
+ },
+ {
+  "name": "base_3",
+  "dims": [
+   242.5,
+   131.5,
+   8.0
+  ],
+  "volume_cm3": 173.7,
+  "mass_g": 118.5,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "base tile: 4 x M4 to the rover deck; heat-set M4 inserts take the frame parts",
+  "qty": 1
+ },
+ {
+  "name": "base_2",
+  "dims": [
+   231.5,
+   127.5,
+   8.0
+  ],
+  "volume_cm3": 157.3,
+  "mass_g": 107.3,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "base tile: 4 x M4 to the rover deck; heat-set M4 inserts take the frame parts",
+  "qty": 1
+ },
+ {
+  "name": "base_1",
+  "dims": [
+   231.5,
+   131.5,
+   8.0
+  ],
+  "volume_cm3": 149.4,
+  "mass_g": 101.9,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "base tile: 4 x M4 to the rover deck; heat-set M4 inserts take the frame parts",
+  "qty": 1
+ },
+ {
+  "name": "motor_saddle",
+  "dims": [
+   60.0,
+   50.0,
+   60.0
+  ],
+  "volume_cm3": 133.9,
+  "mass_g": 91.3,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 1199,
+  "bodies": 1,
+  "watertight": true,
+  "note": "cradles the wiper motor can (lower half), a hose clamp or strap through the slot holds it down; 4 x M4 into the tile",
+  "qty": 1
+ },
+ {
+  "name": "frame_plate_R",
+  "dims": [
+   140.0,
+   57.2,
+   104.0
+  ],
+  "volume_cm3": 130.9,
+  "mass_g": 89.2,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 755,
+  "bodies": 1,
+  "watertight": true,
+  "note": "+y side: main shaft bearing, motor side; carries the cam roller post",
+  "qty": 1
+ },
+ {
+  "name": "base_5",
+  "dims": [
+   231.5,
+   85.5,
+   8.0
+  ],
+  "volume_cm3": 119.4,
+  "mass_g": 81.4,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "base tile: 4 x M4 to the rover deck; heat-set M4 inserts take the frame parts",
+  "qty": 1
+ },
+ {
+  "name": "motor_plate",
+  "dims": [
+   140.0,
+   140.0,
+   31.0
+  ],
+  "volume_cm3": 118.6,
+  "mass_g": 80.9,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 111,
+  "bodies": 1,
+  "watertight": true,
+  "note": "wiper adapter: 3 radial slots fit most wiper bolt circles (r 30-55)",
+  "qty": 1
+ },
+ {
+  "name": "ebox",
+  "dims": [
+   152.0,
+   84.0,
+   52.0
+  ],
+  "volume_cm3": 99.1,
+  "mass_g": 67.6,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 432,
+  "bodies": 1,
+  "watertight": true,
+  "note": "electronics box: ESP32-S3 DevKitC-1, BTS7960, fuse, XT60",
+  "qty": 1
+ },
+ {
+  "name": "frame_plate_L",
+  "dims": [
+   140.0,
+   32.0,
+   104.0
+  ],
+  "volume_cm3": 89.4,
+  "mass_g": 61.0,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 495,
+  "bodies": 1,
+  "watertight": true,
+  "note": "-y side: main shaft bearing",
+  "qty": 1
+ },
+ {
+  "name": "bumper_posts",
+  "dims": [
+   114.0,
+   44.0,
+   108.5
+  ],
+  "volume_cm3": 60.5,
+  "mass_g": 41.2,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 303,
+  "bodies": 2,
+  "watertight": true,
+  "note": "rail rests here at 4 deg on 2 bumpers 16 x 15 (M6 stud into an M6 heat-set insert)",
+  "qty": 1
+ },
+ {
+  "name": "reel_bracket",
+  "dims": [
+   115.0,
+   80.8,
+   14.0
+  ],
+  "volume_cm3": 52.0,
+  "mass_g": 35.5,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "holds spool, cover, stub shaft; bolts to the -y cheek",
+  "qty": 1
+ },
+ {
+  "name": "rail_beam_A",
+  "dims": [
+   96.0,
+   58.0,
+   190.0
+  ],
+  "volume_cm3": 50.1,
+  "mass_g": 34.2,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 179,
+  "bodies": 1,
+  "watertight": true,
+  "note": "rear piece: rack channel. Screws onto the spring anchor post (2 x M3 csk).",
+  "qty": 1
+ },
+ {
+  "name": "spool",
+  "dims": [
+   62.0,
+   62.0,
+   38.5
+  ],
+  "volume_cm3": 45.6,
+  "mass_g": 31.1,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 1563,
+  "bodies": 1,
+  "watertight": true,
+  "note": "stationary spool, 20 m of 1 mm Dyneema",
+  "qty": 1
+ },
+ {
+  "name": "ebox_lid",
+  "dims": [
+   152.0,
+   84.0,
+   3.0
+  ],
+  "volume_cm3": 37.5,
+  "mass_g": 25.6,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "lid, snaps on",
+  "qty": 1
+ },
+ {
+  "name": "cheek_tie",
+  "dims": [
+   75.8,
+   22.0,
+   28.0
+  ],
+  "volume_cm3": 28.8,
+  "mass_g": 19.7,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 131,
+  "bodies": 1,
+  "watertight": true,
+  "note": "tie between the cheeks under the springs; rail piece B screws onto its post",
+  "qty": 1
+ },
+ {
+  "name": "as5600_bracket",
+  "dims": [
+   36.0,
+   36.0,
+   22.0
+  ],
+  "volume_cm3": 20.7,
+  "mass_g": 14.1,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 175,
+  "bodies": 1,
+  "watertight": true,
+  "note": "screws to the left plate, holds the AS5600 over the shaft end",
+  "qty": 1
+ },
+ {
+  "name": "pulley_R",
+  "dims": [
+   61.0,
+   8.0,
+   61.0
+  ],
+  "volume_cm3": 19.8,
+  "mass_g": 13.5,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 377,
+  "bodies": 1,
+  "watertight": true,
+  "note": "flanged, grooved cord pulley (slack cord cannot jump off) on 2x F693ZZ, M3 x 35 axle from outside the side wall, nyloc inside",
+  "qty": 1
+ },
+ {
+  "name": "pulley_L",
+  "dims": [
+   61.0,
+   8.0,
+   61.0
+  ],
+  "volume_cm3": 19.8,
+  "mass_g": 13.5,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 377,
+  "bodies": 1,
+  "watertight": true,
+  "note": "flanged, grooved cord pulley (slack cord cannot jump off) on 2x F693ZZ, M3 x 35 axle from outside the side wall, nyloc inside",
+  "qty": 1
+ },
+ {
+  "name": "strap_anchor",
+  "dims": [
+   34.0,
+   30.0,
+   63.0
+  ],
+  "volume_cm3": 16.4,
+  "mass_g": 11.2,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 139,
+  "bodies": 1,
+  "watertight": true,
+  "note": "rail check strap anchor (PPA-CF): M4 x 60 eye bolt, height nut, long preloaded die spring: takes the recoil kick",
+  "qty": 1
+ },
+ {
+  "name": "drag_disc",
+  "dims": [
+   60.0,
+   60.0,
+   2.7
+  ],
+  "volume_cm3": 6.3,
+  "mass_g": 7.8,
+  "material": "PLA",
+  "infill": "100%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "friction disc on the O-ring, spiral slot moves the pin",
+  "qty": 1
+ },
+ {
+  "name": "shaft_spacer_R",
+  "dims": [
+   17.2,
+   17.2,
+   49.4
+  ],
+  "volume_cm3": 5.6,
+  "mass_g": 3.8,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "right pivot bearing to right frame bearing",
+  "qty": 1
+ },
+ {
+  "name": "pg_spacer_R",
+  "dims": [
+   17.2,
+   17.2,
+   30.4
+  ],
+  "volume_cm3": 3.4,
+  "mass_g": 2.4,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "program gear to right cheek bearing inner ring",
+  "qty": 1
+ },
+ {
+  "name": "shaft_spacer_M",
+  "dims": [
+   17.2,
+   17.2,
+   22.4
+  ],
+  "volume_cm3": 2.5,
+  "mass_g": 1.7,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "left pivot bearing to the reel gear hub",
+  "qty": 1
+ },
+ {
+  "name": "pinion_spacer_R",
+  "dims": [
+   17.2,
+   17.2,
+   21.4
+  ],
+  "volume_cm3": 2.4,
+  "mass_g": 1.7,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "keeps the drive pinion centred: pinion to right pivot bearing inner ring",
+  "qty": 1
+ },
+ {
+  "name": "pinion_spacer_L",
+  "dims": [
+   17.2,
+   17.2,
+   21.4
+  ],
+  "volume_cm3": 2.4,
+  "mass_g": 1.7,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "pinion to left pivot bearing inner ring",
+  "qty": 1
+ },
+ {
+  "name": "pg_spacer_L",
+  "dims": [
+   17.2,
+   17.2,
+   12.4
+  ],
+  "volume_cm3": 1.4,
+  "mass_g": 1.0,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "flange hub to left cheek bearing inner ring",
+  "qty": 1
+ },
+ {
+  "name": "shaft_spacer_L",
+  "dims": [
+   17.2,
+   17.2,
+   10.3
+  ],
+  "volume_cm3": 1.2,
+  "mass_g": 0.8,
+  "material": "PLA",
+  "infill": "40%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "reel main gear to left frame bearing inner ring",
+  "qty": 1
+ },
+ {
+  "name": "cheek_L",
+  "dims": [
+   205.0,
+   118.0,
+   24.0
+  ],
+  "volume_cm3": 131.7,
+  "mass_g": 118.5,
+  "material": "PPA-CF",
+  "infill": "60%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 4641,
+  "bodies": 1,
+  "watertight": true,
+  "note": "left cheek, inner face down: tree support only inside the 2.9 mm sear pocket. Pivot + PG bearings, backstop boss, cord arc slot, reel pad inserts.",
+  "qty": 1
+ },
+ {
+  "name": "cheek_R",
+  "dims": [
+   205.0,
+   118.0,
+   24.0
+  ],
+  "volume_cm3": 122.5,
+  "mass_g": 110.3,
+  "material": "PPA-CF",
+  "infill": "60%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 769,
+  "bodies": 1,
+  "watertight": true,
+  "note": "right cheek, inner face down. Pivot + PG bearings, backstop boss.",
+  "qty": 1
+ },
+ {
+  "name": "program_gear",
+  "dims": [
+   95.2,
+   89.1,
+   14.0
+  ],
+  "volume_cm3": 73.6,
+  "mass_g": 88.3,
+  "material": "PPA-CF",
+  "infill": "100%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "m3 z30, 18 teeth present, bolted to a steel flange hub (4 x M4 into inserts); the hub grips the stub with 2 x M5 set screws on flats at 90 deg",
+  "qty": 1
+ },
+ {
+  "name": "reel_main_gear",
+  "dims": [
+   120.0,
+   119.9,
+   16.0
+  ],
+  "volume_cm3": 65.4,
+  "mass_g": 78.5,
+  "material": "PPA-CF",
+  "infill": "100%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 83,
+  "bodies": 1,
+  "watertight": true,
+  "note": "m2 z58, round bore, 2 x M3 grub + nut at 90 deg onto spot flats on the main shaft",
+  "qty": 1
+ },
+ {
+  "name": "spring_anchor",
+  "dims": [
+   111.0,
+   75.6,
+   23.0
+  ],
+  "volume_cm3": 62.7,
+  "mass_g": 56.5,
+  "material": "PPA-CF",
+  "infill": "60%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 219,
+  "bodies": 1,
+  "watertight": true,
+  "note": "spring anchor bar (PPA-CF, printed flat) behind the pivot, 2 x M4 x 20 through each cheek into nuts in open traps",
+  "qty": 1
+ },
+ {
+  "name": "wiper_coupler",
+  "dims": [
+   76.0,
+   76.0,
+   33.5
+  ],
+  "volume_cm3": 32.1,
+  "mass_g": 38.5,
+  "material": "PPA-CF",
+  "infill": "100%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 31,
+  "bodies": 1,
+  "watertight": true,
+  "note": "clamps the D flat at the main shaft right end (2 x M4 grubs), bolts to the wiper's own crank arm through two slots",
+  "qty": 1
+ },
+ {
+  "name": "reel_cover",
+  "dims": [
+   80.2,
+   76.5,
+   49.0
+  ],
+  "volume_cm3": 28.3,
+  "mass_g": 25.4,
+  "material": "PPA-CF",
+  "infill": "60%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 61,
+  "bodies": 1,
+  "watertight": true,
+  "note": "front cone, ceramic eye ring on the axis",
+  "qty": 1
+ },
+ {
+  "name": "rack",
+  "dims": [
+   189.7,
+   14.0,
+   18.8
+  ],
+  "volume_cm3": 28.0,
+  "mass_g": 33.7,
+  "material": "PPA-CF",
+  "infill": "100%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 1426,
+  "bodies": 1,
+  "watertight": true,
+  "note": "m3 rack, y up: support only under the side face of the teeth (block it off the flanks).",
+  "qty": 1
+ },
+ {
+  "name": "sled",
+  "dims": [
+   59.0,
+   51.0,
+   81.0
+  ],
+  "volume_cm3": 27.5,
+  "mass_g": 33.0,
+  "material": "PPA-CF",
+  "infill": "100%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 1514,
+  "bodies": 1,
+  "watertight": true,
+  "note": "carriage on its side (y up): keel, shoes and stem all bend along their layers. Tree supports under the pusher disc.",
+  "qty": 1
+ },
+ {
+  "name": "reel_stub_gear",
+  "dims": [
+   82.0,
+   81.9,
+   11.0
+  ],
+  "volume_cm3": 26.5,
+  "mass_g": 31.8,
+  "material": "PPA-CF",
+  "infill": "100%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 10,
+  "bodies": 1,
+  "watertight": true,
+  "note": "m2 z39 on the 8 mm stub (M3 grub)",
+  "qty": 1
+ },
+ {
+  "name": "rotor",
+  "dims": [
+   66.0,
+   66.0,
+   20.0
+  ],
+  "volume_cm3": 18.5,
+  "mass_g": 22.2,
+  "material": "PPA-CF",
+  "infill": "100%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 16,
+  "bodies": 1,
+  "watertight": true,
+  "note": "spincast rotor (PPA-CF, solid): M3 grub on the D flat + a 2 mm steel cross pin through hub and stub",
+  "qty": 1
+ },
+ {
+  "name": "lift_cam",
+  "dims": [
+   63.5,
+   51.0,
+   11.5
+  ],
+  "volume_cm3": 17.9,
+  "mass_g": 21.5,
+  "material": "PPA-CF",
+  "infill": "100%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 89,
+  "bodies": 1,
+  "watertight": true,
+  "note": "lift cam (PPA-CF), envelope of the roller, bolted to a steel flange hub on the stub (4 x M4)",
+  "qty": 1
+ },
+ {
+  "name": "drive_pinion",
+  "dims": [
+   48.0,
+   47.2,
+   32.0
+  ],
+  "volume_cm3": 16.8,
+  "mass_g": 20.1,
+  "material": "PPA-CF",
+  "infill": "100%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 397,
+  "bodies": 1,
+  "watertight": true,
+  "note": "m3 z14, HF1216 (A) pressed in",
+  "qty": 1
+ },
+ {
+  "name": "trip_anchor",
+  "dims": [
+   34.0,
+   30.0,
+   37.0
+  ],
+  "volume_cm3": 12.2,
+  "mass_g": 11.0,
+  "material": "PPA-CF",
+  "infill": "60%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 139,
+  "bodies": 1,
+  "watertight": true,
+  "note": "trip cord anchor (PPA-CF): M4 x 35 eye bolt through the shelf, height nut above, preloaded spring below",
+  "qty": 1
+ },
+ {
+  "name": "sear",
+  "dims": [
+   66.0,
+   22.5,
+   15.6
+  ],
+  "volume_cm3": 5.6,
+  "mass_g": 6.7,
+  "material": "PPA-CF",
+  "infill": "100%",
+  "walls": 4,
+  "supports": "yes (tree, build plate only)",
+  "overhang_mm2": 214,
+  "bodies": 1,
+  "watertight": true,
+  "note": "clevis sear (PPA-CF): arc catch face, spring lifts it onto its stop, a cord trips it",
+  "qty": 1
+ },
+ {
+  "name": "sear_spring_post",
+  "dims": [
+   14.5,
+   12.0,
+   16.4
+  ],
+  "volume_cm3": 1.1,
+  "mass_g": 1.3,
+  "material": "PPA-CF",
+  "infill": "100%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 9,
+  "bodies": 1,
+  "watertight": true,
+  "note": "sear spring post (PPA-CF): 2 x M3 x 10 from outside the left cheek, 2 mm pin for the spring",
+  "qty": 1
+ },
+ {
+  "name": "pickup_pin",
+  "dims": [
+   7.6,
+   4.9,
+   9.0
+  ],
+  "volume_cm3": 0.2,
+  "mass_g": 0.2,
+  "material": "PPA-CF",
+  "infill": "100%",
+  "walls": 4,
+  "supports": "no",
+  "overhang_mm2": 0,
+  "bodies": 1,
+  "watertight": true,
+  "note": "pickup slider (PPA-CF, solid): out on F, in on B; its line post is a smooth 3 mm steel dowel, its peg a 2 mm steel dowel",
+  "qty": 1
+ }
+]

@@ -15,10 +15,11 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 | 280 mm + 30 g + 2:1 pulley (540 mm stroke) | 280 | 13.6 | 8.0 | 5.2 / 4.6 / 4.2 |
 
 - Same 8.6 m/s shot with no tether: 7.6 m; in vacuum 7.8 m. The tether (brake + line weight and drag) costs ~30 %.
-- 10 m needs 12 m/s at the muzzle (20 J in the dart, ~32 J stored at 64 % efficiency). 15 m and 20 m need far more:
-  numbers in REPORT.md. Two of these springs store at most ~16 J at their wire limit.
+- Muzzle speed needed (best pitch, 0.75 N brake): 10 m needs 12.0 m/s (20 J in the dart, ~32 J stored at 64 %),
+  15 m needs 15.0 m/s (31 J, ~49 J stored), 20 m needs 17.6 m/s (43 J, ~67 J stored). Two of these springs store at
+  most ~16 J at their wire limit.
 - Ask: (a) set the mission range to 4 to 5 m with these springs, or (b) Harry finds more/stronger springs (energy scales
-  with spring count: 4 springs at 280 mm ~ 27 J, about 9 m). Spec should say which.
+  with spring count: 4 of these springs at 280 mm store ~27 J, roughly 8 to 9 m). Spec should say which.
 - Pulley ratio does NOT add energy (it trades force for stroke). 1:1 is best on a short rail; 2:1 only helps the stop
   and spring surge, and loses to the extra friction of the doubled stroke.
 

@@ -3,7 +3,7 @@ An example of the module contract (base/cad/README.md) and the test case of the 
 Not part of the base: the tools skip it unless asked (--only demo)."""
 import math
 
-from cad.lib import Part, Joint, Allow, Clearance, prim, tf
+from cad.lib import Part, Joint, Allow, Clearance, prim, tf, fits, gears, bearings, shafts
 
 M = 2.0            # module
 Z1, Z2 = 20, 30
@@ -12,46 +12,32 @@ PLATE_T = 8.0
 BRG_W = 7.0
 
 
-def _g():
-    try:
-        from cad.lib import gears
-        return gears
-    except ImportError:
-        return None
+SHAFT_D = 12.0
+KEY_W = 4.0        # DIN 6885 key for a 12 mm shaft
+KEY_HUB = 1.8
+GEAR_Z0 = 2.0      # gear bottom above the plate top
 
 
 def centre_distance():
-    g = _g()
-    if g is not None and hasattr(g, "center_distance"):
-        return g.center_distance(M, Z1, Z2)
-    return M * (Z1 + Z2) / 2 + 0.1
+    return gears.center_distance(M, Z1, Z2)
 
 
 def _gear(z):
-    g = _g()
-    if g is not None:
-        return g.spur_gear(M, z, FACE, bore=12.0, bore_kind="key")
-    r = M * z / 2 - M * 1.25                     # placeholder disc at the root circle
-    return prim.cyl(r, FACE) - prim.cyl(6.15, FACE + 2, z=-1)
+    return gears.spur_gear(M, z, FACE, bore=SHAFT_D + fits.SHAFT_IN_BORE, bore_kind="key",
+                           bore_opts=dict(key_w=KEY_W, key_depth=KEY_HUB))
 
 
 def _plate(cd):
-    pl = prim.rbox(cd + 60, 60, PLATE_T, 6)
+    pl = prim.rbox(cd + 60, 60, PLATE_T, 6).translate((cd / 2, 0, 0))
     for x in (0.0, cd):
-        pl = pl - prim.cyl(11.15, BRG_W + 1, x=x - cd / 2, z=PLATE_T - BRG_W)     # 608 seat (lib seat later)
-        pl = pl - prim.cyl(7.0, 20, x=x - cd / 2, z=-5)
-    return pl.translate((cd / 2, 0, 0))
-
-
-def _bearing():
-    return prim.tube(11.0, 4.0, BRG_W)
+        pl = pl - prim.place(bearings.seat_608(depth=BRG_W), tf.T(x, 0, PLATE_T))
+    return pl
 
 
 def _shaft():
-    s = prim.cyl(4.0, BRG_W, z=-BRG_W)                       # 8 mm journal in the 608
-    s = s + prim.cyl(5.5, 2.0)                               # shoulder on the inner race
-    s = s + prim.cyl(6.0, FACE + 4, z=2.0)                   # 12 mm gear seat
-    return s
+    """Body d12 from z = 0 (sits on the 608 inner race) up through the gear, 8 mm journal below."""
+    return shafts.keyed_shaft(GEAR_Z0 + FACE + 2.0, d=SHAFT_D, key_w=KEY_W, key_h=KEY_HUB - 0.2,
+                              key_z=(GEAR_Z0, GEAR_Z0 + FACE + 1.5), end_lo=(8.0, BRG_W), chamfer=0.6)
 
 
 def parts(P):
@@ -59,11 +45,12 @@ def parts(P):
     out = [Part("demo_plate", _plate(cd), "PLA", joint=None, place=tf.I4, print_tf=tf.I4, color="#9aa7b4",
                 notes="Base plate with two 608 seats")]
     for i, (x, z) in enumerate(((0.0, Z1), (cd, Z2)), 1):
-        out.append(Part(f"demo_brg_{i}", _bearing(), "bought", joint=None, place=tf.T(x, 0, PLATE_T - BRG_W),
+        out.append(Part(f"demo_brg_{i}", bearings.bearing_608(), "bought", joint=None, place=tf.T(x, 0, PLATE_T),
                         color="#8a8f96", bought_ref="608ZZ 8x22x7", notes="608 bearing"))
         out.append(Part(f"demo_shaft_{i}", _shaft(), "PPA-CF", joint=f"demo_g{i}", place=tf.T(0, 0, PLATE_T),
-                        print_tf=tf.T(0, 0, BRG_W), color="#3a3f45", notes="Keyed shaft"))
-        out.append(Part(f"demo_gear_{i}", _gear(z), "PPA-CF", joint=f"demo_g{i}", place=tf.T(0, 0, PLATE_T + 4.0),
+                        print_tf=tf.T(0, 0, BRG_W), color="#3a3f45",
+                        notes="Keyed shaft, 8 mm journal in the 608"))
+        out.append(Part(f"demo_gear_{i}", _gear(z), "PPA-CF", joint=f"demo_g{i}", place=tf.T(0, 0, PLATE_T + GEAR_Z0),
                         print_tf=tf.I4, color="#d97a00" if i == 1 else "#3d7cc9", notes=f"Spur gear m{M:g} z{z}"))
     return out
 

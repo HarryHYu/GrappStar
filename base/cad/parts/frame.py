@@ -154,6 +154,46 @@ def block_screws(b):
     return [(b["rs"] * math.cos(math.radians(45 + 90 * i)), b["rs"] * math.sin(math.radians(45 + 90 * i))) for i in range(4)]
 
 
+def split_cheek(sol, outline, sups, P, fw, info, limit=246.0, tol=0.15):
+    """Split a cheek solid that does not fit the bed into pieces with dovetail seams in the cheek plane (x, z).
+    Seams go where no bearing block or motor ring is. Returns a list of solids (one if it fits)."""
+    from shapely.geometry import box as sb
+    x0, z0, x1, z1 = outline.bounds
+    seams = []
+    for axis, lo, hi in (("x", x0, x1), ("y", z0, z1)):        # 2D axes: x = world x, y = world z
+        n = int(math.ceil((hi - lo) / limit))
+        for i in range(1, n):
+            c0 = lo + i * (hi - lo) / n
+            best = None
+            for c in np.arange(c0 - 80, c0 + 80.1, 2.0):
+                if not (hi - c <= limit and c - lo <= limit * (n - i)) and n == 2:
+                    continue
+                ok = True
+                for nme, sh in sups:
+                    b = block_geom(P, sh, fw)
+                    q = sh["origin"][0] if axis == "x" else sh["origin"][2]
+                    if abs(q - c) < b["half"] + 14:
+                        ok = False
+                        break
+                if ok and (best is None or abs(c - c0) < abs(best - c0)):
+                    best = c
+            if best is None:
+                info["warnings"].append(f"cheek split: no free seam near {axis} = {c0:.0f}")
+                best = c0
+            seams.append(dict(axis=axis, c=float(best), n=2))
+    if not seams:
+        return [sol]
+    pieces2d = U.split_plate(outline.buffer(40.0), 0, seams, tol=tol)     # oversize: the foot and gussets are outside
+    out = []
+    for pc in pieces2d:
+        prism = prim.place(prim.extrude(prim.shapely_cs(pc), 400.0, z=-200.0), tf.Rx(90))   # 2D (x, z) -> world, along y
+        piece = sol ^ prism
+        if not piece.is_empty() and piece.volume() > 100.0:
+            out += sorted(piece.decompose(), key=lambda m: -m.volume())[:1]
+    info.setdefault("cheek_seams", []).append(seams)
+    return out
+
+
 # ------------------------------------------------------------------------------------------------ build
 _CACHE = {}
 
@@ -308,12 +348,14 @@ def build(P):
 
     for s in (-1, 1):
         nm = "frame_cheek_r" if s < 0 else "frame_cheek_l"
-        sol = cheek_world[s]
-        # print flat: the cheek's outer face down
-        M = tf.Rx(-90) if s < 0 else tf.Rx(90)
-        parts.append(Part(nm, sol, "PLA", print_tf=U.print_flat(sol, M), color="#aab4be",
-                          notes=("right" if s < 0 else "left") + " cheek (looking forward): carries the bearing blocks"
-                          + (" and the wiper motor adapter" if s == ms else "") + "; foot flange bolts to deck inserts"))
+        M = tf.Rx(-90) if s < 0 else tf.Rx(90)          # print flat: the cheek's outer face down
+        note = (("right" if s < 0 else "left") + " cheek (looking forward): carries the bearing blocks"
+                + (" and the wiper motor adapter" if s == ms else "") + "; foot flange bolts to deck inserts")
+        pieces = split_cheek(cheek_world[s], outlines[s], supports[s], P, fw, info)
+        for k, sol in enumerate(pieces):
+            nmk = nm if len(pieces) == 1 else f"{nm}_{k + 1}"
+            parts.append(Part(nmk, sol, "PLA", print_tf=U.print_flat(sol, M), color="#aab4be",
+                              notes=note + ("" if len(pieces) == 1 else "; piece %d of %d, dovetail seam" % (k + 1, len(pieces)))))
 
     # ---- bearing blocks
     for sp in info["supports"]:
@@ -385,7 +427,7 @@ def build(P):
             s5 = a5["side"]
             nm5 = "frame_cheek_r" if s5 < 0 else "frame_cheek_l"
             for p in parts:
-                if p.name == nm5:
+                if p.name.startswith(nm5):
                     for (hx, hz) in a5["cheek_inserts"]:
                         p.solid = p.solid - yfeat(U.insert_hole(0, 0, 0.0), hx, hz, C["y_out"][s5], -s5)
 
@@ -501,6 +543,7 @@ def allowed(P):
         Allow("frame_motor_saddle", "frame_wiper_motor", "can rests in the saddle", max_vol=5.0),
         Allow("frame_motor_saddle", "frame_deck*", "saddle stands on the deck", max_vol=1.0),
         Allow("frame_deck*", "frame_deck*", "dovetail seam", max_vol=1.0),
+        Allow("frame_cheek_*", "frame_cheek_*", "cheek dovetail seam", max_vol=1.0),
     ]
     from . import _frame_ebay as EB
     a += EB.allowed(P)

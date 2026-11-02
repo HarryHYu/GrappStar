@@ -1,0 +1,52 @@
+# GrappStar udev rules: stable device names for the base and the two cameras.
+#
+# Install (setup/install.sh does this for you):
+#   sudo cp setup/99-grappstar.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+# Then unplug and replug the USB devices and check:
+#   ls -l /dev/grappstar-*
+#
+# Find the IDs of what you plugged in with:  lsusb
+#   Each line looks like "ID 303a:1001 Espressif USB JTAG/serial debug unit".
+#   The part before the colon is the vendor ID (VID), after it the product ID (PID).
+# If your device shows different numbers, edit the matching line below and reinstall.
+#
+# Access: serial ports go to group dialout, cameras to group video, mode 0660.
+# install.sh adds your user to both groups (log out and back in once after that).
+#
+# ID_MM_DEVICE_IGNORE stops ModemManager from poking the serial ports with modem
+# commands for a few seconds every time they appear.
+
+# ---------------------------------------------------------------------------
+# Base station: ESP32-S3 DevKitC-1, native USB port (the port labelled "USB").
+# Espressif USB JTAG/serial: 303a:1001. Firmware must use the hardware USB CDC
+# (Arduino IDE: "USB CDC On Boot: Enabled", "USB Mode: Hardware CDC and JTAG").
+# Note: the dart's XIAO ESP32S3 has the same IDs. Do not plug the dart into the
+# Jetson by USB while the base is plugged in, or the name can point at the wrong board.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", SYMLINK+="grappstar-base", MODE="0660", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
+
+# Base station, the other DevKitC port (labelled "UART" or "COM"): a USB to UART
+# bridge chip. Which chip depends on the board batch, so all three are listed.
+# These get a different name so the software never confuses the two ports.
+#   CP210x (Silicon Labs)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="grappstar-base-uart", MODE="0660", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
+#   CH343 (WCH)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="55d3", SYMLINK+="grappstar-base-uart", MODE="0660", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
+#   CH340 (WCH). On Ubuntu 22.04 the brltty package can grab CH340 ports: see README troubleshooting.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", SYMLINK+="grappstar-base-uart", MODE="0660", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
+
+# ---------------------------------------------------------------------------
+# Cameras. A UVC camera usually makes two /dev/video nodes: index 0 is the picture,
+# the other is metadata. ATTR{index}=="0" picks the picture node only.
+
+# Rover camera: Razer Kiyo X. Razer VID is 1532.
+# PID 0e4f is NOT VERIFIED: check with lsusb and edit this line if it differs.
+SUBSYSTEM=="video4linux", ATTRS{idVendor}=="1532", ATTRS{idProduct}=="0e4f", ATTR{index}=="0", SYMLINK+="grappstar-rovercam", MODE="0660", GROUP="video"
+# Fallback: any Razer camera. Uncomment this line if the PID above is wrong and you
+# have only one Razer camera plugged in.
+#SUBSYSTEM=="video4linux", ATTRS{idVendor}=="1532", ATTR{index}=="0", SYMLINK+="grappstar-rovercam", MODE="0660", GROUP="video"
+
+# Dart video: DIGITNOW style USB capture dongle fed by the RC832 receiver.
+# MacroSilicon MS2109 (534d:2109) is the usual chip in these dongles.
+# NOT VERIFIED for your dongle: check with lsusb and edit if it differs.
+SUBSYSTEM=="video4linux", ATTRS{idVendor}=="534d", ATTRS{idProduct}=="2109", ATTR{index}=="0", SYMLINK+="grappstar-dartcam", MODE="0660", GROUP="video"

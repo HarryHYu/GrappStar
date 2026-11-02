@@ -9,6 +9,7 @@ Outputs: docs/build/GrappStar_Build_Guide.md, docs/build/GrappStar_Build_Guide.p
 The section texts live in docs/build/src/NN_*.md. Lines in them that start with '@' are directives:
   @include <repo path> [optional]   insert that file (headings pushed down under the current section)
   @image <repo path> <caption>      insert a picture (PNG or JPG)
+  @csv <repo path>                  insert a CSV file as a table
   @printlist base | dart            print tables from base/pack and kedge/pack_v30
   @assumed                          numbers still assumed in base/spec/params.py
   @status                           which source files exist right now
@@ -192,6 +193,15 @@ def printlist_base():
     return s or placeholder("base/pack (print list)", "cad-infra (print pack)")
 
 
+def d_csv(args, level):
+    path = args[0]
+    full = os.path.join(ROOT, path)
+    if not os.path.exists(full):
+        return placeholder(path, who_writes(path))
+    rows = [r for r in csv.reader(open(full, encoding="utf-8")) if r]
+    return f"\n*From `{path}`:*\n\n" + _table(rows[1:], rows[0])
+
+
 def d_printlist(args, level):
     return printlist_base() if args[0] == "base" else printlist_dart()
 
@@ -229,7 +239,7 @@ def d_date(args, level):
     return f"\nBuilt {now.strftime('%Y-%m-%d %H:%M')} Sydney time from commit `{commit}`.\n"
 
 
-DIRECTIVES = {"include": d_include, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
+DIRECTIVES = {"include": d_include, "csv": d_csv, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
               "status": d_status, "date": d_date}
 
 
@@ -417,7 +427,7 @@ def build_pdf(md):
             while j < len(lines) and not lines[j].strip().startswith("```"):
                 buf.append(lines[j])
                 j += 1
-            story.append(Preformatted("\n".join(buf), code))
+            story.append(Preformatted("\n".join(buf), code, maxLineLength=104, newLineChars="  "))
             i = j + 1
             continue
         m = re.match(r"^(#+)\s+(.*)$", line)

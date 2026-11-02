@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 10:55 Sydney time from commit `acb5b4c`.
+Built 2026-11-03 10:59 Sydney time from commit `4403cab`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -233,6 +233,16 @@ polarity, the battery contacts, the assembly order and the function test.
 > NOT IN THE REPO YET: `firmware/dart/WIRING.md` (written by fw-dart). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
 
 
+
+> NOT IN THE REPO YET: `firmware/dart/wiring/wiring.png` (written by another worker). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
+
+
+### New dart wire cut list (replaces run sheet section 9)
+
+
+> NOT IN THE REPO YET: `firmware/dart/wiring/wire_cut_list.csv` (written by another worker). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
+
+
 ## Dart bench tests
 
 
@@ -338,8 +348,8 @@ Battery unplugged for steps 1 to 4. Have the multimeter ready.
 7. Plug the battery in. Fit the 10 A fuse. The Jetson boots (green LED). The RC832 screen or LED lights.
 8. Plug the ESP32 USB cable into the Jetson. The ESP32 power LED lights. Nothing moves (DRV8833 SLP has a pull-down
    and stays off until the firmware enables it).
-9. On the Jetson: `python3 -m grappstar.cli ping` (see jetson/README.md) or a serial terminal: `{"id":1,"cmd":"status"}`.
-   Check `vbat` in telemetry matches the meter within 0.3 V.
+9. On the Jetson, in `~/GrappStar/jetson`: `python3 -m grappstar base ping` (expect `"ok": true`), then
+   `python3 -m grappstar base monitor`. Check `vbat` in telemetry matches the meter within 0.3 V.
 
 Unplug order (every time): stop the motors (`estop`), pull the battery, then anything else.
 
@@ -428,10 +438,11 @@ foot is on DRV#2 channel B: key 4 must still turn the foot shaft clockwise seen 
 Do the stages in order. Do not skip ahead when a stage fails: fix it, then repeat the stage. Write the date and the
 result of each stage in a notebook (or `docs/build/test_log.md`).
 
-How to send base commands: the operator page on the Jetson (jetson/README.md) has buttons for each of these. From a
-terminal the same commands go over the serial link as JSON lines (firmware/base/PROTOCOL.md), for example
-`{"id":1,"cmd":"jog","motor":"wiper","dir":1,"ms":300}`. `{"id":2,"cmd":"estop"}` stops everything and is always
-safe to send.
+How to send base commands: the operator page on the Jetson (jetson/README.md) has buttons for most of these. From a
+terminal on the Jetson, in `~/GrappStar/jetson`, send any command (firmware/base/PROTOCOL.md) with
+`python3 -m grappstar base cmd '{"cmd": "jog", "motor": "wiper", "dir": 1, "ms": 300}'` and watch telemetry with
+`python3 -m grappstar base monitor` in a second terminal. `'{"cmd": "estop"}'` stops everything and is always safe
+to send.
 
 Safety for every stage:
 - Battery unplugged before you touch any wire.
@@ -516,8 +527,9 @@ electronics go in), taped shut with M8 nuts or sand inside to 280 g. Paint the n
 2. Film it side-on with the phone in slow motion, tape measure on the ground in view (muzzle speed, G5).
 3. Measure the range. Repeat at 30 and 45 degrees (G6).
 
-Pass: clean exit (no rubbing marks on the dummy), it flies nose first, range within 30 percent of the ballistics
-table at the same pitch.
+Pass: clean exit (no rubbing marks on the dummy), it flies nose first, range within 30 percent of the physics
+model's no-tether range (`base/physics/SUMMARY.md`, "Same shot, no tether": 5.2 m at 35 degrees before the springs
+were measured).
 If it fails: tumbles: check the nose ballast is in the dummy too (it must match the real dart). Short range:
 measure the spring (B2) and the muzzle speed, then re-run the physics. Rubbing marks: check the cradle and the
 barrel against the dart.
@@ -525,14 +537,15 @@ barrel against the dart.
 ### Stage 6. Tether on
 
 Tie the line through the dummy's tail cap holes. Line routed as in the base assembly steps (it bypasses the
-capstan for launch). Storage reel brake set: pull the line by hand with the luggage scale, 50 to 100 g (G4).
+capstan for launch). Storage reel brake set: pull the line by hand with the luggage scale, 50 to 75 g (G4).
 
 1. Fire at 30 degrees.
 2. Check the line paid out with no loops or overrun on the reel.
 3. `mode` REEL, `wrap`, then `reel` until `SW_SEATED` or the dummy is back near the base.
 4. `unwrap`, `mode` LAUNCH. Check the line runs on the launch path again.
 
-Pass: payout is clean, the range drop against stage 5 is under 20 percent, the wrap lays on the capstan, reel-in
+Pass: payout is clean, the range is at least 65 percent of stage 5 at the same pitch (the physics model expects
+about 72 percent: 3.8 m against 5.2 m at 35 degrees), the wrap lays on the capstan, reel-in
 works, unwrap returns the line to the launch path. Repeat 5 times.
 If it fails: backlash loops on the reel: raise the payout drag a little (do not exceed 1 N). Big range loss: the
 drag is too high or the line catches; watch the slow-motion video. Wrap misses the capstan: check the wrap arm
@@ -559,7 +572,8 @@ calibration (G1).
 From the operator page on the Jetson (jetson/README.md): preflight, pick a target on the Kiyo view, aim, confirm
 the fire prompt, flight video from the dart, landing verdict, anchor, tow, release, reel home.
 
-1. First run: short range (5 to 8 m), soft soil, open ground.
+1. First run: a short target well inside the range the operator page offers (the physics model gives about 4 m at
+   35 degrees with the current springs), soft soil, open ground.
 2. Watch every prompt: the software stops and asks before each dangerous step.
 
 Pass: the whole sequence runs with only the expected operator confirmations, the dart lands within 2 m of the target,
@@ -576,7 +590,7 @@ First move for any problem: send `estop` (or pull the battery plug), then read t
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| No reply from the base on the Jetson | Charge-only USB cable; cable in the UART port; wrong serial device | Data cable in the port marked USB. On the Jetson, `ls /dev/ttyACM*` must show a device (jetson/README.md) |
+| No reply from the base on the Jetson | Charge-only USB cable; cable in the UART port; wrong serial device | Data cable in the port marked USB. On the Jetson, `ls -l /dev/grappstar-base` must show a link to ttyACM0 (jetson/README.md section 4) |
 | ESP32 resets when the wiper starts | Ground or USB power dip | Check the ESP32 GND wire to the BTS7960 GND; short USB cable; report BROWNOUT faults |
 | Wiper does nothing, no fault | R_EN / L_EN not wired, 20 A fuse blown | Battery unplugged, check the fuse and the two enable wires |
 | Wiper turns one way only | RPWM or LPWM loose | Re-seat the Dupont jumper |
@@ -637,12 +651,12 @@ photos in `originals/measure_2026-11/` so the numbers can be checked later.
 ### B. Launch springs (params.py `SPRING`, set `measured=True` when done)
 
 The two springs are extension springs with initial tension: they need a small force before they stretch at all, so
-one weight is not enough. Use two loads.
+one weight is not enough. Use three loads. Every range number scales with the energy the springs store, so this is the most important measurement.
 
 | # | What | How | Changes | Reprint after |
 |---|---|---|---|---|
 | B1 | Free length L0 | Caliper the spring hook to hook (inside of the hooks), no load | `SPRING.free_len` | Nothing |
-| B2 | Rate k and initial tension F0 | Weigh a full 1 L bottle (W1, kg) and a full 2 L bottle or two 1 L bottles in a bag (W2). Hang W1 from one spring, measure L1 hook to hook; then W2, measure L2. k (N/mm) = (W2 - W1) x 9.81 / (L2 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). If L1 equals L0 (the spring did not move), use W2 and a 4 L load instead. Do both springs | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
+| B2 | Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load. Do both springs. Never stretch a spring longer than L0 + 250 mm | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
 | B3 | Wire and outside diameter | Caliper | `SPRING.wire`, `SPRING.od` | Spring anchors only if OD differs by more than 0.5 mm |
 
 ### C. Parts box: confirm you have these (no new purchases)
@@ -698,10 +712,11 @@ one weight is not enough. Use two loads.
 | G1 | BTS7960 current sense scale | firmware/base/CALIBRATION.md (meter in series at low duty, compare with `amps`) | firmware `set` key (stored on the ESP32) |
 | G2 | Battery voltage reading | Meter on the LiPo vs `vbat` telemetry | firmware `set` key |
 | G3 | AS5600 zero and drum positions | firmware/base/CALIBRATION.md | stored on the ESP32 |
-| G4 | Storage reel payout drag | Pull the line off the reel slowly with the luggage scale in LAUNCH mode: 0.5 to 1 N (50 to 100 g). Above 1 N costs range, 3 N ruins the flight | slip clutch preload (reel parts) |
+| G4 | Storage reel payout drag | Pull the line off the reel slowly with the luggage scale in LAUNCH mode: set 0.5 to 0.75 N (50 to 75 g). Above 1 N costs range, 3 N ruins the flight | slip clutch preload (reel parts) |
 | G5 | Muzzle speed | Phone slow-motion video side-on with a tape measure in view: speed = distance moved / time between frames | physics model, ballistics table |
 | G6 | Range at three pitches | Tape measure from the base to the dart at 3 pitches, no tether brake changes | ballistics table check (jetson uses it) |
 | G7 | Soil holding force | Dart anchored, luggage scale on the tether, pull slowly up to 50 N, note where it moves | reel tension limit |
+| G8 | Rail friction | Before the rail is mounted: lay the rail part on a flat board, dart in the cradle, lift one end of the board slowly until the dart slides; phone level app on the board. Friction = tan(angle) | physics (launch efficiency) |
 
 ### After you measure
 

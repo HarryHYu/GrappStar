@@ -24,6 +24,12 @@ polarity, the battery contacts, the assembly order and the function test.
 
 @include firmware/dart/WIRING.md
 
+@image firmware/dart/wiring/wiring.png Dart wiring v4 (numbers match the new cut list)
+
+### New dart wire cut list (replaces run sheet section 9)
+
+@csv firmware/dart/wiring/wire_cut_list.csv
+
 ## Dart bench tests
 
 @include firmware/dart/BENCH_TEST.md optional

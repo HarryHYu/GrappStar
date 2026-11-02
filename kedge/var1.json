@@ -1,0 +1,4 @@
+{"v29a_base": {},
+ "v29b_long_auger": {"AUGER_L": 66.0},
+ "v29c_cells_fwd": {"LAYOUT": "cells_fwd"},
+ "v29d_low_pivot": {"DRILL_PIV_Z": 5.0, "AUGER_L": 62.0}}

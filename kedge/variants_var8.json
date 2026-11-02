@@ -1,0 +1,74 @@
+[
+ {
+  "name": "v29v_d17",
+  "overrides": {
+   "AUGER_D": 17.0,
+   "DRILL_PIV_Y": 31.0
+  },
+  "clean": true,
+  "collisions": [],
+  "warn": [],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 42.25,
+  "drill_depth": 43.4,
+  "foot_depth": 35.5,
+  "folded_len": 166.7,
+  "belly": {},
+  "mass_g": 264.4,
+  "cg_x": 82.8,
+  "margin_cal": -0.03,
+  "hold_loam_N": 45.2,
+  "hold_sand_N": 7.3,
+  "hold_clay_N": 115.8,
+  "minutes": 1.3
+ },
+ {
+  "name": "v29w_d17_l72",
+  "overrides": {
+   "AUGER_D": 17.0,
+   "DRILL_PIV_Y": 31.0,
+   "AUGER_L": 72.0
+  },
+  "clean": true,
+  "collisions": [],
+  "warn": [],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 42.25,
+  "drill_depth": 44.8,
+  "foot_depth": 35.5,
+  "folded_len": 168.7,
+  "belly": {},
+  "mass_g": 264.9,
+  "cg_x": 83.0,
+  "margin_cal": -0.02,
+  "hold_loam_N": 48.5,
+  "hold_sand_N": 7.7,
+  "hold_clay_N": 124.4,
+  "minutes": 1.3
+ },
+ {
+  "name": "v29x_pitch9",
+  "overrides": {
+   "AUGER_PITCH": 9.0
+  },
+  "clean": true,
+  "collisions": [],
+  "warn": [],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 42.25,
+  "drill_depth": 43.4,
+  "foot_depth": 35.5,
+  "folded_len": 166.7,
+  "belly": {},
+  "mass_g": 264.4,
+  "cg_x": 82.9,
+  "margin_cal": -0.03,
+  "hold_loam_N": 45.0,
+  "hold_sand_N": 7.0,
+  "hold_clay_N": 112.5,
+  "minutes": 1.5
+ }
+]

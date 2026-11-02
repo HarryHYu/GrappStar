@@ -1,0 +1,72 @@
+{
+ "dart_body_hull": {
+  "pivot": null,
+  "nverts": 20705
+ },
+ "dart_kick": {
+  "pivot": [
+   31.3,
+   14.9,
+   27.5
+  ],
+  "nverts": 7165
+ },
+ "dart_kick_aug": {
+  "pivot": [
+   31.3,
+   14.9,
+   27.5
+  ],
+  "nverts": 3314
+ },
+ "dart_drillL": {
+  "pivot": [
+   56.0,
+   31.0,
+   10.0
+  ],
+  "nverts": 4118
+ },
+ "dart_drillL_aug": {
+  "pivot": [
+   56.0,
+   31.0,
+   10.0
+  ],
+  "nverts": 5878
+ },
+ "dart_drillR": {
+  "pivot": [
+   56.0,
+   -31.0,
+   10.0
+  ],
+  "nverts": 4118
+ },
+ "dart_drillR_aug": {
+  "pivot": [
+   56.0,
+   -31.0,
+   10.0
+  ],
+  "nverts": 5879
+ },
+ "dart_cpl": {
+  "pivot": [
+   56.0,
+   0.0,
+   10.0
+  ],
+  "nverts": 11606
+ },
+ "dart_body_elec": {
+  "pivot": null,
+  "nverts": 8797
+ },
+ "_P": {
+  "KICK_DEG": 201.75,
+  "DEPLOY_DEG": 42.25,
+  "L": 151.97,
+  "ground": -21.0
+ }
+}

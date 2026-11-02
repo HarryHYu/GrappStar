@@ -1,0 +1,91 @@
+[
+ {
+  "name": "v29i_piv10",
+  "overrides": {
+   "LAYOUT": "cells_fwd",
+   "AUGER_L": 66.0,
+   "AUGER_D": 16.0,
+   "DRILL_PIV_Z": 10.0
+  },
+  "clean": true,
+  "collisions": [],
+  "warn": [],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 42.25,
+  "drill_depth": 40.7,
+  "foot_depth": 35.5,
+  "folded_len": 162.7,
+  "belly": {},
+  "mass_g": 254.7,
+  "cg_x": 81.5,
+  "margin_cal": -0.01,
+  "hold_loam_N": 81.6,
+  "hold_sand_N": 7.2,
+  "hold_clay_N": 228.9,
+  "minutes": 1.3
+ },
+ {
+  "name": "v29j_piv12",
+  "overrides": {
+   "LAYOUT": "cells_fwd",
+   "AUGER_L": 66.0,
+   "AUGER_D": 16.0,
+   "DRILL_PIV_Z": 12.0
+  },
+  "clean": true,
+  "collisions": [],
+  "warn": [],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 45.0,
+  "drill_depth": 42.4,
+  "foot_depth": 35.5,
+  "folded_len": 162.7,
+  "belly": {},
+  "mass_g": 255.1,
+  "cg_x": 81.4,
+  "margin_cal": -0.01,
+  "hold_loam_N": 85.7,
+  "hold_sand_N": 7.3,
+  "hold_clay_N": 240.7,
+  "minutes": 1.1
+ },
+ {
+  "name": "v29k_piv14",
+  "error": "Traceback (most recent call last):\n  File \"/home/claude/kedge/kedge_v27.py\", line 45, in <module>\n    P[\"DEPLOY_Y\"] = -round(math.sqrt((RB - 0.3) ** 2 - (P[\"DRILL_PIV_Z\"] + 6.0) ** 2) - 6.0, 2)\n                           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: math domain error\n"
+ },
+ {
+  "name": "v29l_piv12_d18",
+  "overrides": {
+   "LAYOUT": "cells_fwd",
+   "AUGER_L": 66.0,
+   "AUGER_D": 18.0,
+   "DRILL_PIV_Z": 12.0
+  },
+  "clean": false,
+  "collisions": [
+   "drill_leg_L_auger | hull_top",
+   "drill_leg_L_auger | tail_cap",
+   "drill_leg_R_auger | hull_top",
+   "drill_leg_R_auger | tail_cap",
+   "drill_leg_L_auger | hull_bottom",
+   "drill_leg_R_auger | hull_bottom"
+  ],
+  "warn": [],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 45.0,
+  "drill_depth": 42.4,
+  "foot_depth": 35.5,
+  "folded_len": 162.7,
+  "belly": {},
+  "mass_g": 257.8,
+  "cg_x": 81.9,
+  "margin_cal": -0.01,
+  "hold_loam_N": 88.6,
+  "hold_sand_N": 8.7,
+  "hold_clay_N": 246.3,
+  "minutes": 1.2
+ }
+]

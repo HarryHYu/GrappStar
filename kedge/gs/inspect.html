@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8"><title>GS inspect</title>
+<style>html,body{margin:0;height:100%;font:13px Arial}#v{position:absolute;inset:0}#hud{position:absolute;left:8px;top:8px;background:#fffc;padding:6px}</style>
+<script src="../vendor/package/build/three.min.js"></script><script src="../vendor/package/examples/js/controls/OrbitControls.js"></script>
+<script src="out/gs_data.js"></script><script src="viewer_core.js"></script></head><body><div id="v"></div><div id="hud"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const V = GSV.build(document.getElementById('v'), { hd: q.has('hd') });
+const phi = +(q.get('phi') || 0), fired = q.get('fired') === '1';
+const P = GS.P;
+const s = GSV.sledPos(phi, fired || phi >= P.PH_TRIP);
+const th0 = q.has('theta') ? +q.get('theta') : GSV.thetaOf(phi);
+const alpha = th0 - phi * P.Z_PG / P.Z_PIN;
+const st = { theta: th0, phi, alpha, s, rot: P.STUB_PHASE - (alpha - th0) * P.Z_MAIN / P.Z_STUB, drag: 0, pin: +(q.get('pin') || 0), sear: GSV.searAngle(th0, s) };
+V.pose(st);
+const hide = (q.get('hide') || '').split(',').concat(['spring_env', 'cord_env']);
+for (const k in V.meshes) if (hide.some(h => h && k.startsWith(h))) V.meshes[k].visible = false;
+if (q.has('cam')) { const c = q.get('cam').split(',').map(Number); V.cam.position.set(c[0], c[1], c[2]); V.ctl.target.set(c[3], c[4], c[5]); V.ctl.update(); }
+document.getElementById('hud').textContent = `phi ${phi} theta ${st.theta.toFixed(1)} s ${s.toFixed(1)}`; if (q.has('hd')) document.getElementById('hud').style.display = 'none';
+function loop() { V.render(); requestAnimationFrame(loop); } loop();
+window.READY = true;
+</script></body></html>

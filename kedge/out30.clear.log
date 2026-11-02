@@ -1,0 +1,16 @@
+ 0.00  kick_hub_screw -> brg_ear
+ 0.00  deploy_shaft -> n20_deploy
+ 0.00  kick_shaft -> n20_kick
+ 0.20  coupler_R -> hull_top
+ 0.20  coupler_L -> hull_top
+ 0.30  coupler_L -> n20_deploy
+ 0.30  coupler_R -> n20_deploy
+ 0.30  drill_leg_L -> hull_top
+ 0.30  drill_leg_R -> hull_top
+ 0.38  kick_washer -> brg_ear
+ 0.40  kick_leg -> hull_top
+ 0.60  kick_shaft -> hull_top
+ 0.60  coupler_R -> tray
+ 0.60  coupler_L -> tray
+ 0.80  kick_leg -> brg_ear
+ 0.93  kick_leg -> tail_cap

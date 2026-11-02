@@ -1,0 +1,27 @@
+drill_leg_L_auger    bbox [17.0, 17.0, 72.8]  bed    11.1 mm2  overhang>45   148.7 mm2
+drill_leg_R_auger    bbox [17.0, 17.0, 72.8]  bed    11.1 mm2  overhang>45   148.7 mm2
+foot_auger           bbox [17.0, 17.0, 40.0]  bed    92.0 mm2  overhang>45    13.6 mm2
+coupler_L            bbox [7.0, 6.4, 36.4]  bed    18.9 mm2  overhang>45     7.2 mm2
+coupler_R            bbox [7.0, 6.4, 27.2]  bed    18.9 mm2  overhang>45     7.2 mm2
+coupon 7.129744346109785 cm3
+Warning: Could not load "/opt/homebrew/Cellar/graphviz/16.1.0/lib/graphviz/libgvplugin_pango.8.dylib" - It was found, so perhaps one of its dependents was not.  Try ldd.
+Warning: Could not load "/opt/homebrew/Cellar/graphviz/16.1.0/lib/graphviz/libgvplugin_pango.8.dylib" - It was found, so perhaps one of its dependents was not.  Try ldd.
+Warning: Could not load "/opt/homebrew/Cellar/graphviz/16.1.0/lib/graphviz/libgvplugin_pango.8.dylib" - It was found, so perhaps one of its dependents was not.  Try ldd.
+ok
+Traceback (most recent call last):
+  File "/Users/xiangyu/Downloads/kedge/barrel.py", line 49, in <module>
+    import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
+    ^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'matplotlib'
+assembly parts: 59 131783 kB
+Traceback (most recent call last):
+  File "/Users/xiangyu/Downloads/kedge/report.py", line 15, in <module>
+    A = json.load(open(OUT + "/audit.json")); Ph = json.load(open(OUT + "/physics.json")); Bj = json.load(open(PK + "/barrel.json"))
+                                                                                                          ~~~~^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'pack_v30/barrel.json'
+REPORT 1
+pdf ok
+RUNSHEET 0
+cp: pack_v30/barrel_profile.*: No such file or directory
+cp: pack_v30/barrel.json: No such file or directory
+DIST 1

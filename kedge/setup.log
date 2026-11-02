@@ -1,0 +1,777 @@
+==> Auto-updating Homebrew...
+Adjust how often this is run with `$HOMEBREW_AUTO_UPDATE_SECS` or disable with
+`$HOMEBREW_NO_AUTO_UPDATE=1`. Hide these hints with `$HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).
+==> Auto-updated Homebrew!
+Updated 2 taps (homebrew/core and homebrew/cask).
+==> New Formulae
+arm-optimized-routines: Optimized implementations of various library functions for Arm processors
+beszel-agent: Agent for the Beszel lightweight server monitoring platform
+cx: CLI for querying and managing Coralogix observability data
+gridcraft-cli: Headless GridCraft CLI and MCP server to inspect, convert and script workbooks
+hoppr: Collects, processes and bundles components listed in CycloneDX SBOMs
+sbomqs: SBOM quality scorer and compliance checker
+svt-jpegxs: JPEG XS codec
+toit: High-level programming language and SDK
+zmij: Fast floating-point-to-string conversion library for C and C++
+==> New Casks
+anydrag: Move any window by holding a modifier key and dragging anywhere on it
+bambu-studio@beta: 3D model slicing software for 3D printers, maintained by Bambu Lab
+codeburn-app: Track AI coding token usage and cost
+font-geist-serif
+font-madhuban
+herdr-app: Desktop app for terminals and coding agents
+notational-velocity: Store and retrieve notes
+rencal: Desktop calendar
+
+You have 21 outdated formulae and 1 outdated cask installed.
+
+node 24.2.0 is already installed but outdated (so it will be upgraded).
+==> Downloading bottle manifests
+✔︎ Bottle Manifest arduino-cli (1.5.1)
+✔︎ Bottle Manifest node (26.13.0_2)
+✔︎ Bottle Manifest graphviz (16.1.0)
+==> Would install 2 formulae:
+graphviz     16.1.0
+arduino-cli  1.5.1
+==> Would upgrade 1 formula:
+node 24.2.0 -> 26.13.0_2
+==> Would install 14 dependencies for node:
+abseil          20260817.0
+fmt             12.2.0
+icu4c@79        79.1
+simdutf         9.3.3
+ada-url         4.0.0_1
+hdrhistogram_c  0.12.1
+libffi          3.8.0
+llhttp          9.4.3
+merve           1.2.2_4
+nbytes          0.1.4
+simdjson        5.1.1
+uvwasi          0.0.23
+zstd            1.5.7_1
+highway         1.4.0
+==> Would upgrade 6 dependencies for node:
+brotli      1.1.0  -> 1.2.1
+c-ares      1.34.5 -> 1.34.9
+libnghttp2  1.65.0 -> 1.70.0
+libuv       1.51.0 -> 1.53.0
+readline    8.2.13 -> 8.3.6
+sqlite      3.50.1 -> 3.54.1
+==> Would install 40 dependencies for graphviz:
+libpng        1.6.59
+freetype      2.15.0
+json-c        0.19
+libunistring  1.5
+gettext       1.0
+fontconfig    2.18.3
+pcre2         10.49
+glib          2.90.1
+xorgproto     2026.1
+libxau        1.0.12
+libxdmcp      1.1.5
+libxcb        1.17.0
+libx11        1.8.14
+libxext       1.3.7
+libxrender    0.9.13
+lzo           2.10
+pixman        0.46.4
+cairo         1.18.6
+jpeg-turbo    3.2.1
+aom           3.15.3
+libavif       1.4.2
+giflib        6.1.3
+webp          1.6.0
+zstd          1.5.7_1
+libtiff       4.7.2
+gd            2.3.3_6
+jasper        4.2.9
+netpbm        10.86.51
+gts           0.7.6_4
+gdk-pixbuf    2.44.8
+graphite2     1.3.15
+icu4c@79      79.1
+harfbuzz      15.0.0_1
+fribidi       1.0.18
+libdatrie     0.2.14
+libthai       0.1.30
+pango         1.58.2
+librsvg       2.63.4
+m4            1.4.21
+libtool       2.6.2
+==> Would upgrade 1 dependency for graphviz:
+brotli 1.1.0 -> 1.2.1
+==> Fetching downloads for: node, graphviz and arduino-cli
+✔︎ Bottle Manifest simdutf (9.3.3)
+✔︎ Bottle Manifest ada-url (4.0.0_1)
+✔︎ Bottle Manifest brotli (1.2.1)
+✔︎ Bottle Manifest c-ares (1.34.9)
+✔︎ Bottle Manifest abseil (20260817.0)
+✔︎ Bottle Manifest icu4c@79 (79.1)
+✔︎ Bottle Manifest fmt (12.2.0)
+✔︎ Bottle Manifest hdrhistogram_c (0.12.1)
+✔︎ Bottle Manifest libffi (3.8.0)
+✔︎ Bottle Manifest libnghttp2 (1.70.0)
+✔︎ Bottle Manifest libuv (1.53.0)
+✔︎ Bottle Manifest merve (1.2.2_4)
+✔︎ Bottle Manifest llhttp (9.4.3)
+✔︎ Bottle Manifest nbytes (0.1.4)
+✔︎ Bottle Manifest simdjson (5.1.1)
+✔︎ Bottle Manifest readline (8.3.6)
+✔︎ Bottle Manifest sqlite (3.54.1)
+✔︎ Bottle Manifest uvwasi (0.0.23)
+✔︎ Bottle Manifest zstd (1.5.7_1)
+✔︎ Bottle Manifest highway (1.4.0)
+✔︎ Bottle ada-url (4.0.0_1)
+✔︎ Bottle Manifest libpng (1.6.59)
+✔︎ Bottle Manifest freetype (2.15.0)
+✔︎ Bottle Manifest json-c (0.19)
+✔︎ Bottle Manifest libunistring (1.5)
+✔︎ Bottle fmt (12.2.0)
+✔︎ Bottle c-ares (1.34.9)
+✔︎ Bottle hdrhistogram_c (0.12.1)
+✔︎ Bottle llhttp (9.4.3)
+✔︎ Bottle simdutf (9.3.3)
+✔︎ Bottle Manifest gettext (1.0)
+✔︎ Bottle Manifest fontconfig (2.18.3)
+✔︎ Bottle libnghttp2 (1.70.0)
+✔︎ Bottle abseil (20260817.0)
+✔︎ Bottle Manifest pcre2 (10.49)
+✔︎ Bottle libuv (1.53.0)
+✔︎ Bottle merve (1.2.2_4)
+✔︎ Bottle Manifest glib (2.90.1)
+✔︎ Bottle Manifest xorgproto (2026.1)
+✔︎ Bottle Manifest libxau (1.0.12)
+✔︎ Bottle Manifest libxdmcp (1.1.5)
+✔︎ Bottle Manifest libxcb (1.17.0)
+✔︎ Bottle libffi (3.8.0)
+✔︎ Bottle Manifest libx11 (1.8.14)
+✔︎ Bottle Manifest libxext (1.3.7)
+✔︎ Bottle nbytes (0.1.4)
+✔︎ Bottle brotli (1.2.1)
+✔︎ Bottle Manifest libxrender (0.9.13)
+✔︎ Bottle Manifest pixman (0.46.4)
+✔︎ Bottle uvwasi (0.0.23)
+✔︎ Bottle graphviz (16.1.0)
+✔︎ Bottle readline (8.3.6)
+✔︎ Bottle json-c (0.19)
+✔︎ Bottle Manifest lzo (2.10)
+✔︎ Bottle libxau (1.0.12)
+✔︎ Bottle simdjson (5.1.1)
+✔︎ Bottle libunistring (1.5)
+✔︎ Bottle highway (1.4.0)
+✔︎ Bottle Manifest jpeg-turbo (3.2.1)
+✔︎ Bottle freetype (2.15.0)
+✔︎ Bottle Manifest aom (3.15.3)
+✔︎ Bottle zstd (1.5.7_1)
+✔︎ Bottle Manifest cairo (1.18.6)
+✔︎ Bottle Manifest libavif (1.4.2)
+✔︎ Bottle Manifest giflib (6.1.3)
+✔︎ Bottle Manifest webp (1.6.0)
+✔︎ Bottle Manifest libtiff (4.7.2)
+✔︎ Bottle libpng (1.6.59)
+✔︎ Bottle fontconfig (2.18.3)
+✔︎ Bottle Manifest jasper (4.2.9)
+✔︎ Bottle node (26.13.0_2)
+✔︎ Bottle Manifest gd (2.3.3_6)
+✔︎ Bottle libxdmcp (1.1.5)
+✔︎ Bottle sqlite (3.54.1)
+✔︎ Bottle Manifest netpbm (10.86.51)
+✔︎ Bottle Manifest gts (0.7.6_4)
+✔︎ Bottle xorgproto (2026.1)
+✔︎ Bottle Manifest graphite2 (1.3.15)
+✔︎ Bottle arduino-cli (1.5.1)
+✔︎ Bottle pcre2 (10.49)
+✔︎ Bottle Manifest harfbuzz (15.0.0_1)
+✔︎ Bottle libxext (1.3.7)
+✔︎ Bottle Manifest gdk-pixbuf (2.44.8)
+✔︎ Bottle Manifest fribidi (1.0.18)
+✔︎ Bottle Manifest libdatrie (0.2.14)
+✔︎ Bottle Manifest libthai (0.1.30)
+✔︎ Bottle libxrender (0.9.13)
+✔︎ Bottle pixman (0.46.4)
+✔︎ Bottle lzo (2.10)
+✔︎ Bottle giflib (6.1.3)
+✔︎ Bottle Manifest m4 (1.4.21)
+✔︎ Bottle libavif (1.4.2)
+✔︎ Bottle jpeg-turbo (3.2.1)
+✔︎ Bottle Manifest libtool (2.6.2)
+✔︎ Bottle libx11 (1.8.14)
+✔︎ Bottle Manifest pango (1.58.2)
+✔︎ Bottle Manifest librsvg (2.63.4)
+✔︎ Bottle gettext (1.0)
+✔︎ Bottle libxcb (1.17.0)
+✔︎ Bottle cairo (1.18.6)
+✔︎ Bottle gd (2.3.3_6)
+✔︎ Bottle aom (3.15.3)
+✔︎ Bottle webp (1.6.0)
+✔︎ Bottle jasper (4.2.9)
+✔︎ Bottle gts (0.7.6_4)
+✔︎ Bottle graphite2 (1.3.15)
+✔︎ Bottle gdk-pixbuf (2.44.8)
+✔︎ Bottle fribidi (1.0.18)
+✔︎ Bottle netpbm (10.86.51)
+✔︎ Bottle libdatrie (0.2.14)
+✔︎ Bottle libthai (0.1.30)
+✔︎ Bottle libtiff (4.7.2)
+✔︎ Bottle harfbuzz (15.0.0_1)
+✔︎ Bottle m4 (1.4.21)
+✔︎ Bottle pango (1.58.2)
+✔︎ Bottle libtool (2.6.2)
+✔︎ Bottle librsvg (2.63.4)
+✔︎ Bottle glib (2.90.1)
+✔︎ Bottle icu4c@79 (79.1)
+==> Upgrading node
+  24.2.0 -> 26.13.0_2 
+==> Installing dependencies for node: abseil, fmt, icu4c@79, simdutf, ada-url, brotli, c-ares, hdrhistogram_c, libffi, libnghttp2, libuv, llhttp, merve, nbytes, simdjson, readline, sqlite, uvwasi, zstd and highway
+==> Installing node dependency: abseil (20260817.0)
+==> Pouring abseil--20260817.0.arm64_sequoia.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/abseil/20260817.0: 832 files, 11.8MB
+==> Installing node dependency: fmt (12.2.0)
+==> Pouring fmt--12.2.0.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/fmt/12.2.0: 31 files, 1.1MB
+==> Installing node dependency: icu4c@79 (79.1)
+==> Pouring icu4c@79--79.1.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/icu4c@79/79.1: 279 files, 88.6MB
+==> Installing node dependency: simdutf (9.3.3)
+==> Pouring simdutf--9.3.3.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/simdutf/9.3.3: 66 files, 2.1MB
+==> Installing node dependency: ada-url (4.0.0_1)
+==> Pouring ada-url--4.0.0_1.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/ada-url/4.0.0_1: 56 files, 1.1MB
+==> Upgrading node dependency: brotli (1.1.0 -> 1.2.1)
+==> Pouring brotli--1.2.1.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/brotli/1.2.1: 33 files, 1.9MB
+==> Upgrading node dependency: c-ares (1.34.5 -> 1.34.9)
+==> Pouring c-ares--1.34.9.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/c-ares/1.34.9: 176 files, 1.1MB
+==> Installing node dependency: hdrhistogram_c (0.12.1)
+==> Pouring hdrhistogram_c--0.12.1.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/hdrhistogram_c/0.12.1: 23 files, 182.8KB
+==> Installing node dependency: libffi (3.8.0)
+==> Pouring libffi--3.8.0.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libffi/3.8.0: 18 files, 951.7KB
+==> Upgrading node dependency: libnghttp2 (1.65.0 -> 1.70.0)
+==> Pouring libnghttp2--1.70.0.arm64_sequoia.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/libnghttp2/1.70.0: 14 files, 858.7KB
+==> Upgrading node dependency: libuv (1.51.0 -> 1.53.0)
+==> Pouring libuv--1.53.0.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libuv/1.53.0: 35 files, 1.3MB
+==> Installing node dependency: llhttp (9.4.3)
+==> Pouring llhttp--9.4.3.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/llhttp/9.4.3: 15 files, 147.8KB
+==> Installing node dependency: merve (1.2.2_4)
+==> Pouring merve--1.2.2_4.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/merve/1.2.2_4: 19 files, 137.5KB
+==> Installing node dependency: nbytes (0.1.4)
+==> Pouring nbytes--0.1.4.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/nbytes/0.1.4: 9 files, 71.2KB
+==> Installing node dependency: simdjson (5.1.1)
+==> Pouring simdjson--5.1.1.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/simdjson/5.1.1: 19 files, 10.5MB
+==> Upgrading node dependency: readline (8.2.13 -> 8.3.6)
+==> Pouring readline--8.3.6.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/readline/8.3.6: 56 files, 2.6MB
+==> Upgrading node dependency: sqlite (3.50.1 -> 3.54.1)
+==> Pouring sqlite--3.54.1.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/sqlite/3.54.1: 13 files, 5.4MB
+==> Installing node dependency: uvwasi (0.0.23)
+==> Pouring uvwasi--0.0.23.arm64_sequoia.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/uvwasi/0.0.23: 15 files, 269.3KB
+==> Installing node dependency: zstd (1.5.7_1)
+==> Pouring zstd--1.5.7_1.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/zstd/1.5.7_1: 32 files, 2.3MB
+==> Installing node dependency: highway (1.4.0)
+==> Pouring highway--1.4.0.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/highway/1.4.0: 87 files, 5.7MB
+==> Installing node
+==> Pouring node--26.13.0_2.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/node/26.13.0_2: 2,077 files, 75.3MB
+==> Installing dependencies for graphviz: libpng, freetype, json-c, libunistring, gettext, fontconfig, pcre2, glib, xorgproto, libxau, libxdmcp, libxcb, libx11, libxext, libxrender, lzo, pixman, cairo, jpeg-turbo, aom, libavif, giflib, webp, libtiff, gd, jasper, netpbm, gts, gdk-pixbuf, graphite2, harfbuzz, fribidi, libdatrie, libthai, pango, librsvg, m4 and libtool
+==> Installing graphviz dependency: libpng (1.6.59)
+==> Pouring libpng--1.6.59.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libpng/1.6.59: 28 files, 1.4MB
+==> Installing graphviz dependency: freetype (2.15.0)
+==> Pouring freetype--2.15.0.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/freetype/2.15.0: 68 files, 2.9MB
+==> Installing graphviz dependency: json-c (0.19)
+==> Pouring json-c--0.19.arm64_sequoia.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/json-c/0.19: 34 files, 362.3KB
+==> Installing graphviz dependency: libunistring (1.5)
+==> Pouring libunistring--1.5.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libunistring/1.5: 59 files, 5.8MB
+==> Installing graphviz dependency: gettext (1.0)
+==> Pouring gettext--1.0.arm64_sequoia.bottle.2.tar.gz
+🍺  /opt/homebrew/Cellar/gettext/1.0: 2,499 files, 34.9MB
+==> Installing graphviz dependency: fontconfig (2.18.3)
+==> Pouring fontconfig--2.18.3.arm64_sequoia.bottle.tar.gz
+dyld[40943]: Library not loaded: /usr/lib/libhvf.dylib
+  Referenced from: <15A54305-09C3-33F9-BB7F-5B42FD775C8E> /opt/homebrew/Cellar/freetype/2.15.0/lib/libfreetype.6.dylib
+  Reason: tried: '/usr/lib/libhvf.dylib' (no such file), '/System/Volumes/Preboot/Cryptexes/OS/usr/lib/libhvf.dylib' (no such file), '/usr/lib/libhvf.dylib' (no such file, not in dyld cache)
+Warning: The post-install step did not complete successfully
+You can try again using:
+  brew postinstall fontconfig
+==> Summary
+🍺  /opt/homebrew/Cellar/fontconfig/2.18.3: 102 files, 1.9MB
+==> Installing graphviz dependency: pcre2 (10.49)
+==> Pouring pcre2--10.49.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/pcre2/10.49: 245 files, 7.3MB
+==> Installing graphviz dependency: glib (2.90.1)
+==> Pouring glib--2.90.1.arm64_sequoia.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/glib/2.90.1: 502 files, 40.2MB
+==> Installing graphviz dependency: xorgproto (2026.1)
+==> Pouring xorgproto--2026.1.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/xorgproto/2026.1: 268 files, 4.1MB
+==> Installing graphviz dependency: libxau (1.0.12)
+==> Pouring libxau--1.0.12.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libxau/1.0.12: 21 files, 117.2KB
+==> Installing graphviz dependency: libxdmcp (1.1.5)
+==> Pouring libxdmcp--1.1.5.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libxdmcp/1.1.5: 12 files, 123KB
+==> Installing graphviz dependency: libxcb (1.17.0)
+==> Pouring libxcb--1.17.0.arm64_sequoia.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/libxcb/1.17.0: 2,498 files, 7.4MB
+==> Installing graphviz dependency: libx11 (1.8.14)
+==> Pouring libx11--1.8.14.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libx11/1.8.14: 1,028 files, 7MB
+==> Installing graphviz dependency: libxext (1.3.7)
+==> Pouring libxext--1.3.7.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libxext/1.3.7: 88 files, 449KB
+==> Installing graphviz dependency: libxrender (0.9.13)
+==> Pouring libxrender--0.9.13.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libxrender/0.9.13: 13 files, 215.9KB
+==> Installing graphviz dependency: lzo (2.10)
+==> Pouring lzo--2.10.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/lzo/2.10: 32 files, 562.2KB
+==> Installing graphviz dependency: pixman (0.46.4)
+==> Pouring pixman--0.46.4.arm64_sequoia.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/pixman/0.46.4: 11 files, 1.4MB
+==> Installing graphviz dependency: cairo (1.18.6)
+==> Pouring cairo--1.18.6.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/cairo/1.18.6: 58 files, 4.6MB
+==> Installing graphviz dependency: jpeg-turbo (3.2.1)
+==> Pouring jpeg-turbo--3.2.1.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/jpeg-turbo/3.2.1: 47 files, 4.2MB
+==> Installing graphviz dependency: aom (3.15.3)
+==> Pouring aom--3.15.3.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/aom/3.15.3: 30 files, 11.3MB
+==> Installing graphviz dependency: libavif (1.4.2)
+==> Pouring libavif--1.4.2.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libavif/1.4.2: 22 files, 1.1MB
+==> Installing graphviz dependency: giflib (6.1.3)
+==> Pouring giflib--6.1.3.arm64_sequoia.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/giflib/6.1.3: 19 files, 496.4KB
+==> Installing graphviz dependency: webp (1.6.0)
+==> Pouring webp--1.6.0.arm64_sequoia.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/webp/1.6.0: 64 files, 2.5MB
+==> Installing graphviz dependency: libtiff (4.7.2)
+==> Pouring libtiff--4.7.2.arm64_sequoia.bottle.2.tar.gz
+🍺  /opt/homebrew/Cellar/libtiff/4.7.2: 493 files, 9MB
+==> Installing graphviz dependency: gd (2.3.3_6)
+==> Pouring gd--2.3.3_6.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/gd/2.3.3_6: 34 files, 1.4MB
+==> Installing graphviz dependency: jasper (4.2.9)
+==> Pouring jasper--4.2.9.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/jasper/4.2.9: 45 files, 1.6MB
+==> Installing graphviz dependency: netpbm (10.86.51)
+==> Pouring netpbm--10.86.51.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/netpbm/10.86.51: 410 files, 13.4MB
+==> Installing graphviz dependency: gts (0.7.6_4)
+==> Pouring gts--0.7.6_4.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/gts/0.7.6_4: 27 files, 1.6MB
+==> Installing graphviz dependency: gdk-pixbuf (2.44.8)
+==> Pouring gdk-pixbuf--2.44.8.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/gdk-pixbuf/2.44.8: 152 files, 4MB
+==> Installing graphviz dependency: graphite2 (1.3.15)
+==> Pouring graphite2--1.3.15.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/graphite2/1.3.15: 19 files, 257KB
+==> Installing graphviz dependency: harfbuzz (15.0.0_1)
+==> Pouring harfbuzz--15.0.0_1.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/harfbuzz/15.0.0_1: 96 files, 16.4MB
+==> Installing graphviz dependency: fribidi (1.0.18)
+==> Pouring fribidi--1.0.18.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/fribidi/1.0.18: 69 files, 763.6KB
+==> Installing graphviz dependency: libdatrie (0.2.14)
+==> Pouring libdatrie--0.2.14.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libdatrie/0.2.14: 20 files, 276.1KB
+==> Installing graphviz dependency: libthai (0.1.30)
+==> Pouring libthai--0.1.30.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libthai/0.1.30: 30 files, 955KB
+==> Installing graphviz dependency: pango (1.58.2)
+==> Pouring pango--1.58.2.arm64_sequoia.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/pango/1.58.2: 69 files, 3.7MB
+==> Installing graphviz dependency: librsvg (2.63.4)
+==> Pouring librsvg--2.63.4.arm64_sequoia.bottle.tar.gz
+g_module_open() failed for /opt/homebrew/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader_svg.so: dlopen(/opt/homebrew/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader_svg.so, 0x000A): Library not loaded: /usr/lib/libhvf.dylib
+  Referenced from: <15A54305-09C3-33F9-BB7F-5B42FD775C8E> /opt/homebrew/Cellar/freetype/2.15.0/lib/libfreetype.6.dylib
+  Reason: tried: '/usr/lib/libhvf.dylib' (no such file), '/System/Volumes/Preboot/Cryptexes/OS/usr/lib/libhvf.dylib' (no such file), '/usr/lib/libhvf.dylib' (no such file, not in dyld cache)
+🍺  /opt/homebrew/Cellar/librsvg/2.63.4: 21 files, 13.3MB
+==> Installing graphviz dependency: m4 (1.4.21)
+==> Pouring m4--1.4.21.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/m4/1.4.21: 14 files, 816.2KB
+==> Installing graphviz dependency: libtool (2.6.2)
+==> Pouring libtool--2.6.2.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libtool/2.6.2: 78 files, 4.2MB
+==> Installing graphviz
+==> Pouring graphviz--16.1.0.arm64_sequoia.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/graphviz/16.1.0: 281 files, 7.8MB
+==> Pouring arduino-cli--1.5.1.arm64_sequoia.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/arduino-cli/1.5.1: 10 files, 24.9MB
+==> Cleanup
+Removing: /opt/homebrew/Cellar/node/24.2.0... (2,460 files, 103.3MB)
+Disable this behaviour by setting `HOMEBREW_NO_INSTALL_CLEANUP=1`.
+Hide these hints with `HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).
+==> `brew cleanup` has not been run in the last 30 days, running now...
+Disable this behaviour by setting `HOMEBREW_NO_INSTALL_CLEANUP=1`.
+Hide these hints with `HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).
+Removing: /opt/homebrew/Cellar/brotli/1.1.0... (28 files, 1.8MB)
+Removing: /opt/homebrew/Cellar/c-ares/1.34.5... (176 files, 1.1MB)
+Removing: /opt/homebrew/Cellar/ca-certificates/2025-02-25... (4 files, 241.5KB)
+Removing: /opt/homebrew/Cellar/ca-certificates/2025-05-20... (4 files, 231.2KB)
+Removing: /opt/homebrew/Cellar/libnghttp2/1.65.0... (14 files, 785.5KB)
+Removing: /opt/homebrew/Cellar/libuv/1.51.0... (20 files, 1.2MB)
+Removing: /opt/homebrew/Cellar/readline/8.2.13... (51 files, 1.8MB)
+Removing: /opt/homebrew/Cellar/sqlite/3.49.1... (13 files, 5MB)
+Removing: /opt/homebrew/Cellar/sqlite/3.50.1... (13 files, 5.1MB)
+Removing: /opt/homebrew/Cellar/xz/5.8.1... (96 files, 2.6MB)
+Removing: /Users/xiangyu/Library/Caches/Homebrew/Cask/robloxstudio--0.741.19.7411056,5f7ed526d8884288.zip... (572.6MB)
+Removing: /Users/xiangyu/Library/Caches/Homebrew/portable-ruby-4.0.7.arm64_big_sur.bottle.tar.gz... (12.7MB)
+Removing: /Users/xiangyu/Library/Caches/Homebrew/bootsnap/46e257d0a8e72096b45f5d8e4670a346f960fdf8c166aa1bba27bb2c2a72052e... (1,130 files, 11.4MB)
+Removing: /Users/xiangyu/Library/Caches/Homebrew/bootsnap/a209b610b2cbd8d0fd2b4c65d15e3a103ac552cf26545c5bf094dd74895b899f... (1,116 files, 10.5MB)
+Pruned 1 symbolic links and 2 directories from /opt/homebrew
+==> Caveats
+zsh completions have been installed to:
+  /opt/homebrew/share/zsh/site-functions
+==> node
+Single Executable Application is disabled as it doesn't work with shared libnode.
+Collecting build123d==0.13.0 (from -r requirements.txt (line 1))
+  Downloading build123d-0.13.0-py3-none-any.whl.metadata (14 kB)
+Collecting trimesh==5.2.0 (from -r requirements.txt (line 2))
+  Downloading trimesh-5.2.0-py3-none-any.whl.metadata (13 kB)
+Collecting manifold3d==3.5.4 (from -r requirements.txt (line 3))
+  Downloading manifold3d-3.5.4-cp313-cp313-macosx_11_0_arm64.whl.metadata (20 kB)
+Collecting numpy (from -r requirements.txt (line 4))
+  Using cached numpy-2.5.4-cp313-cp313-macosx_14_0_arm64.whl.metadata (6.6 kB)
+Collecting scipy (from -r requirements.txt (line 5))
+  Downloading scipy-1.18.1-cp313-cp313-macosx_14_0_arm64.whl.metadata (62 kB)
+Collecting shapely>=2.2 (from -r requirements.txt (line 6))
+  Downloading shapely-2.2.0-cp313-cp313-macosx_11_0_arm64.whl.metadata (6.7 kB)
+Collecting reportlab>=5.0 (from -r requirements.txt (line 7))
+  Downloading reportlab-5.1.0-py3-none-any.whl.metadata (1.6 kB)
+Collecting ezdxf>=1.4 (from -r requirements.txt (line 8))
+  Downloading ezdxf-1.4.5-cp313-cp313-macosx_11_0_arm64.whl.metadata (10 kB)
+Collecting lib3mf>=2.5 (from -r requirements.txt (line 9))
+  Downloading lib3mf-2.5.0-py3-none-macosx_10_9_universal2.whl.metadata (6.1 kB)
+Collecting networkx (from -r requirements.txt (line 10))
+  Downloading networkx-3.7-py3-none-any.whl.metadata (6.7 kB)
+Collecting rtree (from -r requirements.txt (line 11))
+  Downloading rtree-1.4.1-py3-none-macosx_11_0_arm64.whl.metadata (2.1 kB)
+Collecting playwright>=1.63 (from -r requirements.txt (line 12))
+  Downloading playwright-1.64.1-py3-none-macosx_11_0_arm64.whl.metadata (3.3 kB)
+Collecting graphviz (from -r requirements.txt (line 13))
+  Downloading graphviz-0.21-py3-none-any.whl.metadata (12 kB)
+Collecting cadquery-ocp-novtk<8.1,>=8.0 (from build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading cadquery_ocp_novtk-8.0.1.1.0-cp313-cp313-macosx_11_0_arm64.whl.metadata (886 bytes)
+Collecting typing_extensions<5,>=4.16.0 (from build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting svgpathtools<2,>=1.5.1 (from build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading svgpathtools-1.8.0-py2.py3-none-any.whl.metadata (22 kB)
+Collecting anytree<3,>=2.8.0 (from build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading anytree-2.13.0-py3-none-any.whl.metadata (8.0 kB)
+Collecting fonttools<5,>=4.39.0 (from build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading fonttools-4.68.0-cp313-cp313-macosx_10_13_universal2.whl.metadata (139 kB)
+Collecting ipython<10,>=8.0.0 (from build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading ipython-9.18.1-py3-none-any.whl.metadata (4.6 kB)
+Collecting ocpsvg<0.8,>=0.7 (from build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading ocpsvg-0.7.0-py3-none-any.whl.metadata (918 bytes)
+Collecting ocp_gordon<0.4,>=0.3.1 (from build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading ocp_gordon-0.3.1-py3-none-any.whl.metadata (5.2 kB)
+Collecting trianglesolver (from build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading trianglesolver-1.2-py3-none-any.whl.metadata (1.7 kB)
+Collecting sympy (from build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading sympy-1.14.0-py3-none-any.whl.metadata (12 kB)
+Collecting scikit-learn<2,>=1.5 (from build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading scikit_learn-1.9.1-cp313-cp313-macosx_12_0_arm64.whl.metadata (9.3 kB)
+Collecting webcolors~=24.8.0 (from build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading webcolors-24.8.0-py3-none-any.whl.metadata (2.6 kB)
+Collecting requests<3,>=2.32 (from build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading requests-2.34.2-py3-none-any.whl.metadata (4.8 kB)
+Collecting bd_materials<0.3.0,>=0.2.0 (from build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading bd_materials-0.2.5-py3-none-any.whl.metadata (32 kB)
+Collecting threejs-materials<1.3.0,>=1.2.1 (from build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading threejs_materials-1.2.5-py3-none-any.whl.metadata (56 kB)
+Collecting pyparsing>=3.0.0 (from ezdxf>=1.4->-r requirements.txt (line 8))
+  Downloading pyparsing-3.3.3-py3-none-any.whl.metadata (5.9 kB)
+Collecting cadquery-ocp-proxy==8.0.1.1.0 (from cadquery-ocp-novtk<8.1,>=8.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading cadquery_ocp_proxy-8.0.1.1.0-py3-none-any.whl.metadata (4.7 kB)
+Collecting ipython-pygments-lexers>=1.0.0 (from ipython<10,>=8.0.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading ipython_pygments_lexers-1.1.1-py3-none-any.whl.metadata (1.1 kB)
+Collecting jedi>=0.18.2 (from ipython<10,>=8.0.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading jedi-0.20.1-py2.py3-none-any.whl.metadata (23 kB)
+Collecting matplotlib-inline>=0.1.6 (from ipython<10,>=8.0.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading matplotlib_inline-0.2.2-py3-none-any.whl.metadata (2.4 kB)
+Collecting pexpect>4.6 (from ipython<10,>=8.0.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading pexpect-4.9.0-py2.py3-none-any.whl.metadata (2.5 kB)
+Collecting prompt_toolkit<3.1.0,>=3.0.41 (from ipython<10,>=8.0.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading prompt_toolkit-3.0.53-py3-none-any.whl.metadata (6.4 kB)
+Collecting psutil>=7 (from ipython<10,>=8.0.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading psutil-7.2.2-cp36-abi3-macosx_11_0_arm64.whl.metadata (22 kB)
+Collecting pygments>=2.14.0 (from ipython<10,>=8.0.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Using cached pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
+Collecting stack_data>=0.6.0 (from ipython<10,>=8.0.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading stack_data-0.6.3-py3-none-any.whl.metadata (18 kB)
+Collecting traitlets>=5.13.0 (from ipython<10,>=8.0.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading traitlets-5.16.1-py3-none-any.whl.metadata (10 kB)
+Collecting svgelements<2,>=1.9.1 (from ocpsvg<0.8,>=0.7->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading svgelements-1.9.6-py2.py3-none-any.whl.metadata (44 kB)
+Collecting wcwidth>=0.1.4 (from prompt_toolkit<3.1.0,>=3.0.41->ipython<10,>=8.0.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading wcwidth-0.9.4-cp310-abi3-macosx_11_0_arm64.whl.metadata (23 kB)
+Collecting charset_normalizer<4,>=2 (from requests<3,>=2.32->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading charset_normalizer-3.5.2-cp313-cp313-macosx_10_13_universal2.whl.metadata (46 kB)
+Collecting idna<4,>=2.5 (from requests<3,>=2.32->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading idna-3.20-py3-none-any.whl.metadata (7.2 kB)
+Collecting urllib3<3,>=1.26 (from requests<3,>=2.32->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading urllib3-2.8.0-py3-none-any.whl.metadata (7.4 kB)
+Collecting certifi>=2023.5.7 (from requests<3,>=2.32->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading certifi-2026.10.23-py3-none-any.whl.metadata (2.5 kB)
+Collecting joblib>=1.4.0 (from scikit-learn<2,>=1.5->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading joblib-1.6.0-py3-none-any.whl.metadata (6.5 kB)
+Collecting narwhals>=2.0.1 (from scikit-learn<2,>=1.5->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading narwhals-2.28.0-py3-none-any.whl.metadata (15 kB)
+Collecting threadpoolctl>=3.5.0 (from scikit-learn<2,>=1.5->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading threadpoolctl-3.7.0-py3-none-any.whl.metadata (24 kB)
+Collecting svgwrite (from svgpathtools<2,>=1.5.1->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading svgwrite-1.4.3-py3-none-any.whl.metadata (8.8 kB)
+Collecting pillow<14.0.0,>=12.2.0 (from threejs-materials<1.3.0,>=1.2.1->build123d==0.13.0->-r requirements.txt (line 1))
+  Using cached pillow-13.0.0-cp313-cp313-macosx_11_0_arm64.whl.metadata (9.1 kB)
+Collecting pygltflib<2.0,>=1.16 (from threejs-materials<1.3.0,>=1.2.1->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading pygltflib-1.16.5-py3-none-any.whl.metadata (33 kB)
+Collecting platformdirs<5.0.0,>=4.9.6 (from threejs-materials<1.3.0,>=1.2.1->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading platformdirs-4.14.3-py3-none-any.whl.metadata (5.4 kB)
+Collecting dataclasses-json>=0.0.25 (from pygltflib<2.0,>=1.16->threejs-materials<1.3.0,>=1.2.1->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading dataclasses_json-0.6.7-py3-none-any.whl.metadata (25 kB)
+Collecting deprecated (from pygltflib<2.0,>=1.16->threejs-materials<1.3.0,>=1.2.1->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading deprecated-3.0.1-py3-none-any.whl.metadata (6.5 kB)
+Collecting pyee<15,>=13 (from playwright>=1.63->-r requirements.txt (line 12))
+  Downloading pyee-14.0.0-py3-none-any.whl.metadata (1.8 kB)
+Collecting greenlet<4.0.0,>=3.1.1 (from playwright>=1.63->-r requirements.txt (line 12))
+  Downloading greenlet-3.5.6-cp313-cp313-macosx_11_0_universal2.whl.metadata (3.8 kB)
+Collecting marshmallow<4.0.0,>=3.18.0 (from dataclasses-json>=0.0.25->pygltflib<2.0,>=1.16->threejs-materials<1.3.0,>=1.2.1->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading marshmallow-3.26.2-py3-none-any.whl.metadata (7.3 kB)
+Collecting typing-inspect<1,>=0.4.0 (from dataclasses-json>=0.0.25->pygltflib<2.0,>=1.16->threejs-materials<1.3.0,>=1.2.1->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading typing_inspect-0.9.0-py3-none-any.whl.metadata (1.5 kB)
+Collecting packaging>=17.0 (from marshmallow<4.0.0,>=3.18.0->dataclasses-json>=0.0.25->pygltflib<2.0,>=1.16->threejs-materials<1.3.0,>=1.2.1->build123d==0.13.0->-r requirements.txt (line 1))
+  Using cached packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+Collecting mypy-extensions>=0.3.0 (from typing-inspect<1,>=0.4.0->dataclasses-json>=0.0.25->pygltflib<2.0,>=1.16->threejs-materials<1.3.0,>=1.2.1->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading mypy_extensions-1.1.0-py3-none-any.whl.metadata (1.1 kB)
+Collecting parso<0.9.0,>=0.8.7 (from jedi>=0.18.2->ipython<10,>=8.0.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading parso-0.8.7-py2.py3-none-any.whl.metadata (8.2 kB)
+Collecting cloudpickle>=3.0 (from joblib>=1.4.0->scikit-learn<2,>=1.5->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading cloudpickle-3.1.2-py3-none-any.whl.metadata (7.1 kB)
+Collecting ptyprocess>=0.5 (from pexpect>4.6->ipython<10,>=8.0.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading ptyprocess-0.7.0-py2.py3-none-any.whl.metadata (1.3 kB)
+Collecting executing>=1.2.0 (from stack_data>=0.6.0->ipython<10,>=8.0.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading executing-2.3.0-py3-none-any.whl.metadata (9.1 kB)
+Collecting asttokens>=2.1.0 (from stack_data>=0.6.0->ipython<10,>=8.0.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading asttokens-3.0.2-py3-none-any.whl.metadata (5.7 kB)
+Collecting pure-eval (from stack_data>=0.6.0->ipython<10,>=8.0.0->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading pure_eval-0.2.4-py3-none-any.whl.metadata (6.4 kB)
+Collecting wrapt<3,>=1.16 (from deprecated->pygltflib<2.0,>=1.16->threejs-materials<1.3.0,>=1.2.1->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading wrapt-2.5.2-cp313-cp313-macosx_11_0_arm64.whl.metadata (7.6 kB)
+Collecting mpmath<1.4,>=1.1.0 (from sympy->build123d==0.13.0->-r requirements.txt (line 1))
+  Downloading mpmath-1.3.0-py3-none-any.whl.metadata (8.6 kB)
+Downloading build123d-0.13.0-py3-none-any.whl (387 kB)
+Downloading trimesh-5.2.0-py3-none-any.whl (751 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 751.5/751.5 kB 12.1 MB/s eta 0:00:00
+Downloading manifold3d-3.5.4-cp313-cp313-macosx_11_0_arm64.whl (884 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 884.7/884.7 kB 11.9 MB/s eta 0:00:00
+Using cached numpy-2.5.4-cp313-cp313-macosx_14_0_arm64.whl (5.4 MB)
+Downloading ezdxf-1.4.5-cp313-cp313-macosx_11_0_arm64.whl (3.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.1/3.1 MB 12.2 MB/s eta 0:00:00
+Downloading anytree-2.13.0-py3-none-any.whl (45 kB)
+Downloading bd_materials-0.2.5-py3-none-any.whl (79 kB)
+Downloading cadquery_ocp_novtk-8.0.1.1.0-cp313-cp313-macosx_11_0_arm64.whl (63.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 63.1/63.1 MB 6.1 MB/s eta 0:00:00
+Downloading cadquery_ocp_proxy-8.0.1.1.0-py3-none-any.whl (3.2 kB)
+Downloading fonttools-4.68.0-cp313-cp313-macosx_10_13_universal2.whl (3.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.1/3.1 MB 13.1 MB/s eta 0:00:00
+Downloading ipython-9.18.1-py3-none-any.whl (649 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 649.8/649.8 kB 10.0 MB/s eta 0:00:00
+Downloading ocp_gordon-0.3.1-py3-none-any.whl (52 kB)
+Downloading ocpsvg-0.7.0-py3-none-any.whl (20 kB)
+Downloading prompt_toolkit-3.0.53-py3-none-any.whl (392 kB)
+Downloading requests-2.34.2-py3-none-any.whl (73 kB)
+Downloading charset_normalizer-3.5.2-cp313-cp313-macosx_10_13_universal2.whl (366 kB)
+Downloading idna-3.20-py3-none-any.whl (69 kB)
+Downloading scikit_learn-1.9.1-cp313-cp313-macosx_12_0_arm64.whl (8.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.3/8.3 MB 12.9 MB/s eta 0:00:00
+Downloading svgelements-1.9.6-py2.py3-none-any.whl (137 kB)
+Downloading svgpathtools-1.8.0-py2.py3-none-any.whl (70 kB)
+Downloading threejs_materials-1.2.5-py3-none-any.whl (89.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 89.8/89.8 MB 13.2 MB/s eta 0:00:00
+Using cached pillow-13.0.0-cp313-cp313-macosx_11_0_arm64.whl (4.9 MB)
+Downloading platformdirs-4.14.3-py3-none-any.whl (35 kB)
+Downloading pygltflib-1.16.5-py3-none-any.whl (27 kB)
+Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+Downloading urllib3-2.8.0-py3-none-any.whl (135 kB)
+Downloading webcolors-24.8.0-py3-none-any.whl (15 kB)
+Downloading scipy-1.18.1-cp313-cp313-macosx_14_0_arm64.whl (20.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 20.5/20.5 MB 13.2 MB/s eta 0:00:00
+Downloading shapely-2.2.0-cp313-cp313-macosx_11_0_arm64.whl (1.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.6/1.6 MB 12.6 MB/s eta 0:00:00
+Downloading reportlab-5.1.0-py3-none-any.whl (2.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 12.6 MB/s eta 0:00:00
+Downloading lib3mf-2.5.0-py3-none-macosx_10_9_universal2.whl (2.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.2/2.2 MB 12.4 MB/s eta 0:00:00
+Downloading networkx-3.7-py3-none-any.whl (2.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 13.0 MB/s eta 0:00:00
+Downloading rtree-1.4.1-py3-none-macosx_11_0_arm64.whl (436 kB)
+Downloading playwright-1.64.1-py3-none-macosx_11_0_arm64.whl (43.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 43.2/43.2 MB 13.2 MB/s eta 0:00:00
+Downloading greenlet-3.5.6-cp313-cp313-macosx_11_0_universal2.whl (294 kB)
+Downloading pyee-14.0.0-py3-none-any.whl (15 kB)
+Downloading graphviz-0.21-py3-none-any.whl (47 kB)
+Downloading certifi-2026.10.23-py3-none-any.whl (135 kB)
+Downloading dataclasses_json-0.6.7-py3-none-any.whl (28 kB)
+Downloading marshmallow-3.26.2-py3-none-any.whl (50 kB)
+Downloading typing_inspect-0.9.0-py3-none-any.whl (8.8 kB)
+Downloading ipython_pygments_lexers-1.1.1-py3-none-any.whl (8.1 kB)
+Downloading jedi-0.20.1-py2.py3-none-any.whl (4.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.9/4.9 MB 13.0 MB/s eta 0:00:00
+Downloading parso-0.8.7-py2.py3-none-any.whl (107 kB)
+Downloading joblib-1.6.0-py3-none-any.whl (306 kB)
+Downloading cloudpickle-3.1.2-py3-none-any.whl (22 kB)
+Downloading matplotlib_inline-0.2.2-py3-none-any.whl (9.5 kB)
+Downloading mypy_extensions-1.1.0-py3-none-any.whl (5.0 kB)
+Downloading narwhals-2.28.0-py3-none-any.whl (490 kB)
+Using cached packaging-26.3-py3-none-any.whl (129 kB)
+Downloading pexpect-4.9.0-py2.py3-none-any.whl (63 kB)
+Downloading psutil-7.2.2-cp36-abi3-macosx_11_0_arm64.whl (129 kB)
+Downloading ptyprocess-0.7.0-py2.py3-none-any.whl (13 kB)
+Using cached pygments-2.21.0-py3-none-any.whl (1.3 MB)
+Downloading pyparsing-3.3.3-py3-none-any.whl (126 kB)
+Downloading stack_data-0.6.3-py3-none-any.whl (24 kB)
+Downloading asttokens-3.0.2-py3-none-any.whl (28 kB)
+Downloading executing-2.3.0-py3-none-any.whl (29 kB)
+Downloading threadpoolctl-3.7.0-py3-none-any.whl (26 kB)
+Downloading traitlets-5.16.1-py3-none-any.whl (86 kB)
+Downloading wcwidth-0.9.4-cp310-abi3-macosx_11_0_arm64.whl (618 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 618.9/618.9 kB 10.8 MB/s eta 0:00:00
+Downloading deprecated-3.0.1-py3-none-any.whl (22 kB)
+Downloading wrapt-2.5.2-cp313-cp313-macosx_11_0_arm64.whl (106 kB)
+Downloading pure_eval-0.2.4-py3-none-any.whl (11 kB)
+Downloading svgwrite-1.4.3-py3-none-any.whl (67 kB)
+Downloading sympy-1.14.0-py3-none-any.whl (6.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.3/6.3 MB 13.2 MB/s eta 0:00:00
+Downloading mpmath-1.3.0-py3-none-any.whl (536 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 536.2/536.2 kB 10.6 MB/s eta 0:00:00
+Downloading trianglesolver-1.2-py3-none-any.whl (5.4 kB)
+Installing collected packages: trianglesolver, svgelements, pure-eval, ptyprocess, mpmath, lib3mf, wrapt, webcolors, wcwidth, urllib3, typing_extensions, traitlets, threadpoolctl, sympy, svgwrite, rtree, pyparsing, pygments, psutil, platformdirs, pillow, pexpect, parso, packaging, numpy, networkx, narwhals, mypy-extensions, idna, greenlet, graphviz, fonttools, executing, cloudpickle, charset_normalizer, certifi, cadquery-ocp-proxy, asttokens, anytree, typing-inspect, trimesh, stack_data, shapely, scipy, requests, reportlab, pyee, prompt_toolkit, ocpsvg, matplotlib-inline, marshmallow, manifold3d, joblib, jedi, ipython-pygments-lexers, ezdxf, deprecated, cadquery-ocp-novtk, svgpathtools, scikit-learn, playwright, ocp_gordon, ipython, dataclasses-json, pygltflib, threejs-materials, bd_materials, build123d
+
+Successfully installed anytree-2.13.0 asttokens-3.0.2 bd_materials-0.2.5 build123d-0.13.0 cadquery-ocp-novtk-8.0.1.1.0 cadquery-ocp-proxy-8.0.1.1.0 certifi-2026.10.23 charset_normalizer-3.5.2 cloudpickle-3.1.2 dataclasses-json-0.6.7 deprecated-3.0.1 executing-2.3.0 ezdxf-1.4.5 fonttools-4.68.0 graphviz-0.21 greenlet-3.5.6 idna-3.20 ipython-9.18.1 ipython-pygments-lexers-1.1.1 jedi-0.20.1 joblib-1.6.0 lib3mf-2.5.0 manifold3d-3.5.4 marshmallow-3.26.2 matplotlib-inline-0.2.2 mpmath-1.3.0 mypy-extensions-1.1.0 narwhals-2.28.0 networkx-3.7 numpy-2.5.4 ocp_gordon-0.3.1 ocpsvg-0.7.0 packaging-26.3 parso-0.8.7 pexpect-4.9.0 pillow-13.0.0 platformdirs-4.14.3 playwright-1.64.1 prompt_toolkit-3.0.53 psutil-7.2.2 ptyprocess-0.7.0 pure-eval-0.2.4 pyee-14.0.0 pygltflib-1.16.5 pygments-2.21.0 pyparsing-3.3.3 reportlab-5.1.0 requests-2.34.2 rtree-1.4.1 scikit-learn-1.9.1 scipy-1.18.1 shapely-2.2.0 stack_data-0.6.3 svgelements-1.9.6 svgpathtools-1.8.0 svgwrite-1.4.3 sympy-1.14.0 threadpoolctl-3.7.0 threejs-materials-1.2.5 traitlets-5.16.1 trianglesolver-1.2 trimesh-5.2.0 typing-inspect-0.9.0 typing_extensions-4.16.0 urllib3-2.8.0 wcwidth-0.9.4 webcolors-24.8.0 wrapt-2.5.2
+
+[notice] A new release of pip is available: 25.1.1 -> 26.2.2
+[notice] To update, run: pip install --upgrade pip
+Downloading Chrome for Testing 156.0.8078.4 (playwright chromium v1248) from https://cdn.playwright.dev/builds/cft/156.0.8078.4/mac-arm64/chrome-mac-arm64.zip
+|                                                                                |   0% of 185.8 MiB
+|■■■■■■■■                                                                        |  10% of 185.8 MiB
+|■■■■■■■■■■■■■■■■                                                                |  20% of 185.8 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 185.8 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 185.8 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 185.8 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 185.8 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 185.8 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 185.8 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 185.8 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 185.8 MiB
+Chrome for Testing 156.0.8078.4 (playwright chromium v1248) downloaded to /Users/xiangyu/Library/Caches/ms-playwright/chromium-1248
+Downloading FFmpeg (playwright ffmpeg v1013) from https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/1013/ffmpeg-mac-arm64.zip
+|                                                                                |   1% of 1.4 MiB
+|■■■■■■■■                                                                        |  10% of 1.4 MiB
+|■■■■■■■■■■■■■■■■                                                                |  20% of 1.4 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 1.4 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 1.4 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 1.4 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 1.4 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 1.4 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 1.4 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 1.4 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 1.4 MiB
+FFmpeg (playwright ffmpeg v1013) downloaded to /Users/xiangyu/Library/Caches/ms-playwright/ffmpeg-1013
+Downloading Chrome Headless Shell 156.0.8078.4 (playwright chromium-headless-shell v1248) from https://cdn.playwright.dev/builds/cft/156.0.8078.4/mac-arm64/chrome-headless-shell-mac-arm64.zip
+|                                                                                |   0% of 99 MiB
+|■■■■■■■■                                                                        |  10% of 99 MiB
+|■■■■■■■■■■■■■■■■                                                                |  20% of 99 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 99 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 99 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 99 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 99 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 99 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 99 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 99 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 99 MiB
+Chrome Headless Shell 156.0.8078.4 (playwright chromium-headless-shell v1248) downloaded to /Users/xiangyu/Library/Caches/ms-playwright/chromium_headless_shell-1248
+
+added 2 packages in 1s
+npm notice
+npm notice New major version of npm available! 11.20.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
+Downloading Chrome for Testing 153.0.8010.12 (playwright chromium v1243) from https://cdn.playwright.dev/builds/cft/153.0.8010.12/mac-arm64/chrome-mac-arm64.zip
+|                                                                                |   0% of 182.1 MiB
+|■■■■■■■■                                                                        |  10% of 182.1 MiB
+|■■■■■■■■■■■■■■■■                                                                |  20% of 182.1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 182.1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 182.1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 182.1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 182.1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 182.1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 182.1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 182.1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 182.1 MiB
+Chrome for Testing 153.0.8010.12 (playwright chromium v1243) downloaded to /Users/xiangyu/Library/Caches/ms-playwright/chromium-1243
+Downloading FFmpeg (playwright ffmpeg v1011) from https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/1011/ffmpeg-mac-arm64.zip
+|                                                                                |   1% of 1 MiB
+|■■■■■■■■                                                                        |  10% of 1 MiB
+|■■■■■■■■■■■■■■■■                                                                |  20% of 1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 1 MiB
+FFmpeg (playwright ffmpeg v1011) downloaded to /Users/xiangyu/Library/Caches/ms-playwright/ffmpeg-1011
+Downloading Chrome Headless Shell 153.0.8010.12 (playwright chromium-headless-shell v1243) from https://cdn.playwright.dev/builds/cft/153.0.8010.12/mac-arm64/chrome-headless-shell-mac-arm64.zip
+|                                                                                |   0% of 94.3 MiB
+|■■■■■■■■                                                                        |  10% of 94.3 MiB
+|■■■■■■■■■■■■■■■■                                                                |  20% of 94.3 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 94.3 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 94.3 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 94.3 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 94.3 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 94.3 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 94.3 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 94.3 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 94.3 MiB
+Chrome Headless Shell 153.0.8010.12 (playwright chromium-headless-shell v1243) downloaded to /Users/xiangyu/Library/Caches/ms-playwright/chromium_headless_shell-1243
+Downloading index: package_index.tar.bz2 0 B / 111.61 KiB    0.00%Downloading index: package_index.tar.bz2 downloaded
+Downloading index: package_esp32_index.json 0 B / 636.15 KiB    0.00%Downloading index: package_esp32_index.json downloaded
+Downloading index: package_index.tar.bz2 0 B / 111.61 KiB    0.00%Downloading index: package_index.tar.bz2 downloaded
+Downloading index: package_esp32_index.json 0 B / 636.15 KiB    0.00%Downloading index: package_esp32_index.json downloaded
+Platform esp32:esp32@3.3.12 already installed
+Already installed Adafruit NeoPixel@1.15.5
+Already installed Adafruit GFX Library@1.12.6
+Already installed Adafruit SSD1306@2.5.17
+Already installed Adafruit BusIO@1.17.4
+Already installed Adafruit INA219@1.2.3
+Already installed Adafruit Unified Sensor@1.1.15
+Already installed Adafruit BusIO@1.17.4
+Already installed Adafruit BNO08x@1.2.7
+Downloading HX711@0.6.5...
+HX711@0.6.5 0 B / 39.56 KiB    0.00%HX711@0.6.5 downloaded
+Installing HX711@0.6.5...
+Installed HX711@0.6.5
+test: cd fw/test && g++ -std=c++17 -O1 -o test_logic test_logic.cpp && ./test_logic
+pipeline: source .venv/bin/activate && ./run_all.sh out29 v29

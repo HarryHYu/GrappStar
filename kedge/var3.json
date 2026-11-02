@@ -1,0 +1,4 @@
+{"v29i_piv10": {"LAYOUT": "cells_fwd", "AUGER_L": 66.0, "AUGER_D": 16.0, "DRILL_PIV_Z": 10.0},
+ "v29j_piv12": {"LAYOUT": "cells_fwd", "AUGER_L": 66.0, "AUGER_D": 16.0, "DRILL_PIV_Z": 12.0},
+ "v29k_piv14": {"LAYOUT": "cells_fwd", "AUGER_L": 66.0, "AUGER_D": 16.0, "DRILL_PIV_Z": 14.0},
+ "v29l_piv12_d18": {"LAYOUT": "cells_fwd", "AUGER_L": 66.0, "AUGER_D": 18.0, "DRILL_PIV_Z": 12.0}}

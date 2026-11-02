@@ -1,0 +1,67 @@
+hull ...
+hull_top             [121.  50.  35.] vol  17.41 cm3 wt=True solids=1 t=2s
+hull_bottom          [121.  42.  21.] vol  11.50 cm3 wt=True solids=1 t=2s
+nose ...
+nose                 [27. 42. 42.] vol   8.25 cm3 wt=True solids=1 t=2s
+tail ...
+tail_cap             [15.4 42.  42. ] vol   7.13 cm3 wt=True solids=1 t=2s
+tray ...
+tray                 [109.1  38.6  36.5] vol  15.98 cm3 wt=True solids=1 t=3s
+kick ...
+kick_leg             [119.2  15.   15. ] vol   8.70 cm3 wt=True solids=1 t=3s
+foot_auger           [17. 17. 40.] vol   3.06 cm3 wt=True bodies=1 (mesh) t=5s
+drills ...
+drill_leg_L          [45.7 14.8 12.8] vol   3.37 cm3 wt=True solids=1 t=5s
+drill_leg_L_auger    [72.8 17.  17. ] vol   5.50 cm3 wt=True bodies=1 (mesh) t=9s
+drill_leg_L_motor    [24.3 12.  10. ] vol   2.91 cm3 wt=True solids=1 t=9s
+drill_leg_L_shaft    [56.   2.8  2.8] vol   0.35 cm3 wt=True solids=1 t=9s
+drill_leg_L_brg1     [4.  9.5 9.5] vol   0.19 cm3 wt=True solids=1 t=9s
+drill_leg_L_brg2     [4.  9.5 9.5] vol   0.19 cm3 wt=True solids=1 t=9s
+drill_leg_L_nut      [2.4 6.4 5.5] vol   0.05 cm3 wt=True solids=1 t=9s
+drill_leg_L_nyloc    [4.  5.5 6.4] vol   0.08 cm3 wt=True bodies=1 (mesh) t=9s
+drill_leg_R          [45.7 14.8 12.8] vol   3.37 cm3 wt=True solids=1 t=9s
+drill_leg_R_auger    [72.8 17.  17. ] vol   5.50 cm3 wt=True bodies=1 (mesh) t=13s
+drill_leg_R_motor    [24.3 12.  10. ] vol   2.91 cm3 wt=True solids=1 t=13s
+drill_leg_R_shaft    [56.   2.8  2.8] vol   0.35 cm3 wt=True solids=1 t=13s
+drill_leg_R_brg1     [4.  9.5 9.5] vol   0.19 cm3 wt=True solids=1 t=13s
+drill_leg_R_brg2     [4.  9.5 9.5] vol   0.19 cm3 wt=True solids=1 t=13s
+drill_leg_R_nut      [2.4 6.4 5.5] vol   0.05 cm3 wt=True solids=1 t=13s
+drill_leg_R_nyloc    [4.  5.5 6.4] vol   0.08 cm3 wt=True bodies=1 (mesh) t=13s
+  fillet skipped: cpl Failed creating a fillet with radius of 0.4, try a smaller v
+coupler_L            [ 7.  36.4  6.4] vol   1.24 cm3 wt=True solids=1 t=13s
+coupler_R            [ 7.  27.2  6.4] vol   0.90 cm3 wt=True solids=1 t=13s
+cell_1               [36.9 18.7 18.7] vol   9.91 cm3 wt=True solids=1 t=13s
+cell_2               [36.9 18.7 18.7] vol   9.91 cm3 wt=True solids=1 t=13s
+n20_kick             [33. 12. 12.] vol   4.25 cm3 wt=True solids=1 t=13s
+kick_shaft           [ 3.  30.   2.5] vol   0.19 cm3 wt=True solids=1 t=13s
+n20_deploy           [33. 12. 12.] vol   4.04 cm3 wt=True solids=1 t=13s
+deploy_shaft         [ 3.  30.   2.5] vol   0.19 cm3 wt=True solids=1 t=13s
+xiao                 [21.4 17.7  4.5] vol   1.71 cm3 wt=True solids=1 t=13s
+drv8833_1            [20.3 12.7  3.5] vol   0.90 cm3 wt=True solids=1 t=13s
+drv8833_2            [20.3 12.7  3.5] vol   0.90 cm3 wt=True solids=1 t=13s
+drv8833_3            [20.3 12.7  3.5] vol   0.90 cm3 wt=True solids=1 t=13s
+ina219               [25.7 20.3  4.7] vol   2.45 cm3 wt=True solids=1 t=13s
+bno085               [25.7 22.8  4.8] vol   2.79 cm3 wt=True solids=1 t=13s
+mp1584               [22.3 17.   4. ] vol   1.50 cm3 wt=True solids=1 t=13s
+vtx                  [42.2 19.9  6. ] vol   5.06 cm3 wt=True solids=1 t=13s
+bms_2s               [40.8  8.   2.1] vol   0.69 cm3 wt=True solids=1 t=13s
+camera               [18.3 14.  14.6] vol   3.33 cm3 wt=True solids=1 t=13s
+n20_foot             [33. 12. 12.] vol   3.83 cm3 wt=True solids=1 t=13s
+foot_shaft           [2.5 3.  9. ] vol   0.06 cm3 wt=True solids=1 t=13s
+screws_radial        [115.8  40.   12. ] vol   0.44 cm3 wt=True solids=7 t=13s
+screw_ear_root       [ 5.5 13.8  5.5] vol   0.12 cm3 wt=True solids=1 t=13s
+brg_ear              [9.5 4.  9.5] vol   0.19 cm3 wt=True solids=1 t=13s
+kick_hub_screw       [ 5.5 12.3  5.5] vol   0.11 cm3 wt=True solids=1 t=13s
+kick_washer          [6.  0.4 6. ] vol   0.01 cm3 wt=True solids=1 t=13s
+coupler_L_screw      [5.5 8.9 5.5] vol   0.09 cm3 wt=True solids=1 t=13s
+coupler_L_washer     [7.  0.6 7. ] vol   0.02 cm3 wt=True solids=1 t=13s
+coupler_R_screw      [5.5 8.9 5.5] vol   0.09 cm3 wt=True solids=1 t=13s
+coupler_R_washer     [7.  0.6 7. ] vol   0.02 cm3 wt=True solids=1 t=13s
+contacts_front_springs [ 3.  28.2  9. ] vol   0.39 cm3 wt=True solids=1 t=13s
+contacts_rear_plates [ 0.8 30.2 11. ] vol   0.19 cm3 wt=True solids=2 t=13s
+jst_charge           [5.8 9.9 5.8] vol   0.33 cm3 wt=True solids=1 t=13s
+jst_loop             [5.8 7.4 5.8] vol   0.25 cm3 wt=True solids=1 t=13s
+antenna              [22.  4.  4.] vol   0.28 cm3 wt=True solids=1 t=13s
+capacitor            [11.   6.3  6.3] vol   0.34 cm3 wt=True solids=1 t=13s
+ballast              [13.7 32.3 32.3] vol   3.00 cm3 wt=True solids=2 t=14s
+parts: 59 L = 151.97 t = 14 s

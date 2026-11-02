@@ -1,0 +1,25 @@
+[
+ {
+  "name": "v29y_l72",
+  "overrides": {
+   "AUGER_L": 72.0
+  },
+  "clean": true,
+  "collisions": [],
+  "warn": [],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 42.25,
+  "drill_depth": 44.8,
+  "foot_depth": 35.5,
+  "folded_len": 168.7,
+  "belly": {},
+  "mass_g": 262.5,
+  "cg_x": 82.6,
+  "margin_cal": -0.02,
+  "hold_loam_N": 45.1,
+  "hold_sand_N": 7.3,
+  "hold_clay_N": 112.5,
+  "minutes": 1.3
+ }
+]

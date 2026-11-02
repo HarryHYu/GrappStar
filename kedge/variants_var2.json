@@ -1,0 +1,101 @@
+[
+ {
+  "name": "v29e_fwd_long",
+  "overrides": {
+   "LAYOUT": "cells_fwd",
+   "AUGER_L": 66.0
+  },
+  "clean": true,
+  "collisions": [],
+  "warn": [],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 35.5,
+  "drill_depth": 33.9,
+  "foot_depth": 35.5,
+  "folded_len": 162.7,
+  "belly": {},
+  "mass_g": 252.1,
+  "cg_x": 81.1,
+  "margin_cal": -0.01,
+  "hold_loam_N": 64.2,
+  "hold_sand_N": 5.3,
+  "hold_clay_N": 180.9,
+  "minutes": 1.1
+ },
+ {
+  "name": "v29f_fwd_long_fat",
+  "overrides": {
+   "LAYOUT": "cells_fwd",
+   "AUGER_L": 66.0,
+   "AUGER_D": 16.0,
+   "DRILL_PIV_Z": 8.0
+  },
+  "clean": true,
+  "collisions": [],
+  "warn": [],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 37.75,
+  "drill_depth": 36.3,
+  "foot_depth": 35.5,
+  "folded_len": 162.7,
+  "belly": {},
+  "mass_g": 254.5,
+  "cg_x": 81.5,
+  "margin_cal": -0.01,
+  "hold_loam_N": 72.4,
+  "hold_sand_N": 6.7,
+  "hold_clay_N": 202.3,
+  "minutes": 1.1
+ },
+ {
+  "name": "v29g_fwd_xlong",
+  "overrides": {
+   "LAYOUT": "cells_fwd",
+   "AUGER_L": 72.0
+  },
+  "clean": true,
+  "collisions": [],
+  "warn": [],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 35.5,
+  "drill_depth": 37.4,
+  "foot_depth": 35.5,
+  "folded_len": 168.7,
+  "belly": {},
+  "mass_g": 252.8,
+  "cg_x": 81.3,
+  "margin_cal": -0.0,
+  "hold_loam_N": 69.7,
+  "hold_sand_N": 5.8,
+  "hold_clay_N": 196.2,
+  "minutes": 1.2
+ },
+ {
+  "name": "v29h_fwd_long_foot50",
+  "overrides": {
+   "LAYOUT": "cells_fwd",
+   "AUGER_L": 66.0,
+   "FOOT_AUGER_L": 50.0
+  },
+  "clean": true,
+  "collisions": [],
+  "warn": [],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 35.5,
+  "drill_depth": 33.9,
+  "foot_depth": 44.8,
+  "folded_len": 162.7,
+  "belly": {},
+  "mass_g": 252.7,
+  "cg_x": 81.3,
+  "margin_cal": 0.0,
+  "hold_loam_N": 76.2,
+  "hold_sand_N": 5.6,
+  "hold_clay_N": 216.0,
+  "minutes": 1.2
+ }
+]

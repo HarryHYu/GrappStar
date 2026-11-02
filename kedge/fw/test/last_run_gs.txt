@@ -1,0 +1,127 @@
+ok:   spool: empty layer D37, full (20 m) layer D49 (7 layers of 24 turns)
+   line per main-shaft F turn: 0.229 m full, 0.173 m empty
+ok:   boot at rest: IDLE, phi unknown until a switch is seen
+        50 ms  cocking
+      2775 ms  sear hook down (keel riding over)
+      3065 ms  sear hook up behind the keel
+      3290 ms  cocked: READY
+ok:   cock: B until the sear switch, stop at COCKED -> READY
+ok:   cock: stops at phi 249.5 in the dwell (plant within 2 deg, tracking within 1.5 deg)
+   peak main-shaft torque while cocking 5.79 N m at PG 224.5 (CAD 5.90)
+ok:   plant: peak cocking torque matches the CAD (about 5.9 N m)
+ok:   cock: SW_COCKED opens (keel on the hook) then closes (re-zero at 238.8)
+ok:   phi saved for the next power up after the stop
+   plant PG 249.4 deg, logic phi 249.5, theta_est 4.0
+   f jog: turnsF 0.93, phi 249.55 -> 249.55, plant 249.42 -> 249.42, state ready
+ok:   phi ignores F rotation (2 s of reel wind, phi unchanged)
+ok:   after the f jog: still READY (switches say cocked)
+ok:   dart seated again: READY
+ok:   jog b refused in READY (would lift and fire)
+ok:   fire refused when the dart is not seated
+      6490 ms  firing
+      6885 ms  shot: sear tripped (SW_COCKED open)
+      7420 ms  fired: PAYOUT
+ok:   fire: B from COCKED, shot detected, stop -> PAYOUT
+ok:   fire: stops at phi 338 with the rail down, before the first tooth (340)
+ok:   fire: shot evidence logged
+ok:   payout: line estimate grows with time, capped
+   phi after fire 338.4 (plant 338.5), line est 12.0 m (plant 11.5 m)
+ok:   re-cock after a shot: 338 through 360 to 249.5, READY
+ok:   cock refused when phi is in the lift/drop zone (252.5..338)
+ok:   SW_LOW stuck: shot from SW_COCKED opening in 270..292 -> PAYOUT
+ok:   sear stuck (SW_COCKED never opens 270..292): FAULT at 338, before the first tooth
+   broken sear switch: stopped at PG 252.6, rail 4.00 deg
+ok:   sear switch never closes: FAULT before the rail lifts
+      6720 ms  tow, limit 20.0 N
+     19215 ms  holding at limit 20.0 N
+   plant tension at hold 20.3 N (max 20.3), estimate 20.0 N, duty when tension passed 88%: 161 of 230
+ok:   tow: stops and holds at the limit (worm self-locks)
+ok:   tow: plant line tension 15..25 N for a 20 N limit
+ok:   tow: speed tapers over the last 30% of the limit
+ok:   tow: dart (45 N holding) never pulled out
+ok:   re-tow at a lower limit from a taut line: holds at once (blind start window < 6 N)
+ok:   limit outside 2..150 N refused
+   HX711: hold at plant 20.3 N (max 20.3)
+ok:   HX711 present: used for tension
+ok:   HX711 tow: holds 17..24.5 N for a 20 N limit
+ok:   HX711: line slackens below 60% -> winds again
+ok:   HX711: holds again at the limit
+   tow 2 m: plant wound 1.999 m
+ok:   tow distance 2 m: stops within 0.1 m (spool fill model)
+ok:   cock with the dart out (line free on B)
+     10530 ms  retrieve
+    116905 ms  dart seated: READY
+ok:   retrieve: F until SW_SEATED -> READY
+   retrieve stopped with the tail 2.7 mm from the pusher
+ok:   retrieve: stops within 4 mm of the pusher (switch 4 mm ahead), no load on the tail
+ok:   plant flight: 11.5 m of line out
+   broken seated switch: stop at 82.3 N line tension, overwind 4.0 mm
+ok:   retrieve: seated switch broken -> stops on the current spike (150 ms)
+   stopped part-way at phi 100.0 (plant 100.0)
+ok:   carriage partly drawn: tow, retrieve and jog f refused
+ok:   force: the next F is allowed
+ok:   force is used up after one F command
+ok:   cock from part-way: READY
+ok:   jog b refused at phi 249.5 (238..338)
+ok:   finish (asked for): runs B to 338 without a dart, ends IDLE
+   cocking duty 255 mid-draw, 130 from 230 to the stop
+ok:   cocking slows from phi 230 to 249.5
+ok:   cocking: 12 A trip (a 13 A load trips, 18 A elsewhere)
+   cocking stall fault after 285 ms
+ok:   cocking: stall fault after 300 ms (600 ms elsewhere)
+ok:   power up with the saved phi: READY at once
+ok:   power up cocked, nothing saved: IDLE, phi unknown (the switch cannot tell)
+ok:   phi unknown and probably cocked: jog b refused
+   unknown-phi cock on a cocked launcher: stopped at PG 258.4, rail 5.57 deg, fired 0
+ok:   cock with phi unknown on a cocked launcher: stops as the rail starts to lift, no shot, phi now known
+ok:   then finish fires it and stops at 338
+   stall fault after 600 ms
+ok:   stall: no AS5600 motion for 600 ms at > 30% PWM -> stop + FAULT
+ok:   FAULT: jog refused until cleared
+ok:   FAULT: commands refused until cleared
+ok:   clear: FAULT -> IDLE
+   full-duty stall: over current
+ok:   full-duty stall (wiper stall current = 18 A) -> FAULT (trip or stall), motor off
+ok:   over current 18 A (2 samples) -> trip within 10 ms
+ok:   AS5600 missing at boot: reported
+ok:   AS5600 missing: motion command -> FAULT, motor never starts
+ok:   AS5600 lost while driving -> FAULT
+   F -> B: B started 200 ms after the stop, min gap seen 200 ms
+ok:   never reverses without 200 ms stopped
+   soft start: duty 85 at 100 ms, 160 at 350 ms (target 160)
+ok:   soft start: PWM ramps 0 -> full over 300 ms
+ok:   WiFi hold: repeats keep the jog running
+ok:   WiFi hold: released -> stops within the 350 ms deadman
+ok:   serial key runs 1.5 s
+ok:   serial key stops after 1.5 s
+ok:   cycle: starts by firing
+ok:   cycle: waits for the anchored flag with the motor off
+ok:   cycle: manual commands refused while it runs
+ok:   cycle: tows to the limit and holds
+      3290 ms  firing
+      3290 ms  cycle: fire
+      3685 ms  shot: sear tripped (SW_COCKED open)
+      4220 ms  fired: PAYOUT
+      4220 ms  cycle: waiting for anchored
+      6720 ms  cycle running: stop first
+      6720 ms  anchored flag set
+      6725 ms  tow, limit 20.0 N
+     19215 ms  holding at limit 20.0 N
+     19215 ms  cycle: waiting for released
+     20215 ms  released flag set
+     20220 ms  cocking
+     22940 ms  sear hook down (keel riding over)
+     23715 ms  sear hook up behind the keel
+     24025 ms  cocked: READY
+     24025 ms  retrieve
+    116420 ms  dart seated: READY
+    116420 ms  cycle complete: READY
+ok:   cycle: cocks, retrieves the dart, ends READY
+ok:   cycle: phi tracking still within 1.5 deg of the plant
+ok:   stop aborts a running cycle
+   status: {"t_ms":117430,"state":"idle","cycle":"off","phi":322.9,"phi_known":true,"theta_est":10.0,"turns":50.252,"turns_f":54.45,"turns_b":4.20,"line_m":0.00,"current_A":1.11,"peak_A":5.47,"tension_N":0.0,"tension_src":"current","limit_N":20.0,"holding":false,"dir":0,"duty":0,"switches":{"low":true,"cocked":true,"seated":false},"enc_ok":true,"anchored":false,"released":false,"shot":true,"fault":"","event":"cycle aborted, stopped"}
+ok:   status JSON
+   global: 0 reversal-gap violations, 0 soft-start violations
+ok:   all tests: no reversal under 200 ms, no PWM step over the ramp
+
+ALL PASS

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GrappStar Assembly Steps</title>
+<style>
+:root{--bg:#eef1f4;--panel:#ffffffee;--ink:#15181c;--mute:#5b6470;--line:#d5dae0;--acc:#c46d00}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15181c;--panel:#1d2127ee;--ink:#e9edf1;--mute:#9aa4ae;--line:#333a42;--acc:#ffb020}}
+:root[data-theme="dark"]{--bg:#15181c;--panel:#1d2127ee;--ink:#e9edf1;--mute:#9aa4ae;--line:#333a42;--acc:#ffb020}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1.45 Arial,Helvetica,sans-serif;overflow:hidden}
+#view{position:absolute;inset:0}
+.panel{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+#card{left:12px;top:12px;width:360px;max-width:calc(100vw - 24px)}
+#st{font-weight:bold;font-size:15px;color:var(--acc)}#sd{margin:6px 0}#plist{color:var(--mute);font-size:12px}
+#nav{left:12px;right:12px;bottom:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#steps{display:flex;flex-wrap:wrap;gap:4px}
+button{font:12px Arial;padding:5px 9px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--ink);cursor:pointer}
+button.on{border-color:var(--acc);color:var(--acc);font-weight:bold}
+a{color:var(--acc)}
+</style></head><body>
+<div id="view"></div>
+<div class="panel" id="card"><a href="index.html">back to the build pack</a><div id="st"></div><div id="sd"></div><div id="plist"></div></div>
+<div class="panel" id="nav"><button id="prev">previous</button><button id="next">next</button><button id="recam">reset camera</button><div id="steps"></div></div>
+<!--LIBS-->
+</body></html>

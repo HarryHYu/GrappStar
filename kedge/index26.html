@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KEDGE v26 Viewer</title>
+<style>
+  :root{--bg:#15171a;--panel:#1e2126;--ink:#e8eaed;--mute:#9aa3ad;--line:#2c3036;--acc:#e07b39}
+  :root[data-theme="light"]{--bg:#f3f4f6;--panel:#fff;--ink:#15171a;--mute:#5b6470;--line:#d7dae0}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1.4 -apple-system,Segoe UI,Helvetica,Arial,sans-serif}
+  #c{position:fixed;inset:0;display:block}
+  #ui{position:fixed;top:0;left:0;bottom:0;width:300px;background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:12px 14px;box-sizing:border-box}
+  h1{font-size:15px;margin:0 0 4px}h2{font-size:12px;margin:14px 0 6px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+  .row{display:flex;align-items:center;gap:8px;margin:3px 0}
+  .row label{flex:1}button{background:var(--line);color:var(--ink);border:0;padding:5px 8px;border-radius:4px;cursor:pointer;font-size:12px}input[type=range]{width:100%}
+  .part{display:flex;gap:6px;align-items:flex-start;padding:3px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .part .sw{width:10px;height:10px;border-radius:2px;margin-top:4px;flex:none}
+  .part .n{font-weight:600}.part .d{color:var(--mute);font-size:11px}
+  .part.off{opacity:.45}
+  .rev li{margin:4px 0;color:var(--mute)} .rev b{color:var(--ink)}
+  #hint{position:fixed;right:12px;bottom:10px;color:var(--mute);font-size:11px;text-align:right}
+  #toggle{position:fixed;left:306px;top:10px;background:var(--panel);border:1px solid var(--line);color:var(--ink);padding:4px 8px;border-radius:4px;cursor:pointer;display:none}
+  @media (max-width:700px){#ui{width:86vw;transform:translateX(-100%);transition:.2s}#ui.open{transform:none}#toggle{display:block;left:10px}}
+  .v{font-variant-numeric:tabular-nums;color:var(--ink)}
+</style>
+</head>
+<body>
+<canvas id="c" tabindex="0"></canvas>
+<button id="toggle">parts</button>
+<div id="ui">
+  <h1>KEDGE v26 <span style="color:var(--mute);font-weight:400">dart, part for part</span></h1>
+  <div class="d" style="color:var(--mute)">Ø42 hull, Ø39 bay, <span id="L"></span> mm. Every mesh here is the STL that prints.</div>
+
+  <h2>Pose</h2>
+  <div class="row"><label>Kick leg <span class="v" id="kv">0°</span></label></div><input type="range" id="kick" min="0" max="200" value="0">
+  <div class="row"><label>Drill pair <span class="v" id="dv">0°</span></label></div><input type="range" id="dep" min="0" max="38" value="0">
+  <div class="row"><label>Explode</label></div><input type="range" id="exp" min="0" max="100" value="0">
+  <div class="row"><label>Section cut (Y)</label></div><input type="range" id="cut" min="-40" max="40" value="40">
+  <div class="row"><input type="checkbox" id="ground" checked><label for="ground">Ground plane (dart lying flat)</label></div>
+  <div class="row"><input type="checkbox" id="elec" checked><label for="elec">Electronics envelopes</label></div>
+  <div class="row"><input type="checkbox" id="hull" checked><label for="hull">Hull parts</label></div>
+
+  <h2>Jump to</h2>
+  <div class="row"><button id="vKick">Kick drive</button><button id="vDeploy">Deploy drive</button><button id="vDrill">Drill leg</button><button id="vStack">Stack</button><button id="vAll">Whole dart</button></div>
+  <h2>How the legs move</h2>
+  <div class="d" style="color:var(--mute)">Camera: Caddx Ant on the centreline in the nose, looking out a Ø9.8 hole in the Ø22 flat tip. The nose is otherwise solid: no slot, nothing passes through it.<br>Kick leg, fully OUTSIDE the hull: the self-locking worm N20 lies in a saddle printed on the hull top at x 24–60, worm box at the nose end. Its D output shaft points sideways (+y) and IS the pivot: the leg hub sits on it directly, 1:1, no gears, and a printed stub on the hub's other side runs in an ear fin on the skin. Ø8 tube pole 85 long, foot housing on the end. Folded the pole lies along the hull top at y=12 (beside the saddle). The worm swings it 0–200° over the nose, outboard of the lens; at 180° the foot auger tip touches the ground, by 200° the housing is on the ground and the auger is 38 mm in. Self-locking: holds unpowered.<br>Foot drill, fixed: a right-angle worm N20 in line with the pole inside the housing, output shaft across the pole, Ø14 × 40 auger on it. Up when folded, down when deployed.<br>Drill pair: Ø3 through-axle at x=56, z=+5, right behind the nose. Biax worm N20 off-centre on it (y −16..−6), body forward. Legs keyed on the axle D ends, swing 0–38°: pod nose stops 1 mm above the ground, Ø14 × 54 auger 38 mm in, raked tailward (toward the tether pull).<br>Drills: the measured 12 × 10 × 24.3 motor drops into the rounded pod; its own M3 × 56 shaft runs out through a tapered nose with two 693ZZ and the full-length printed auger threads on; nyloc in the tip hub clamps it.<br>Inside, nose to tail: camera, then the deploy N20 body with a 3-shelf rack beside it (MP1584 on the floor, MP1584, INA219), the axle, the 4-deck tray (DRV + XIAO, DRV + DRV, VTX + BMS stick, BNO085), the two cells side by side, tail cap. Nothing inside moves.<br>Hull bottom half is a plain Ø42 cylinder end to end.</div></div>
+  <h2>Parts</h2>
+  <div id="list"></div>
+
+  <h2>Layout along the hull (mm, nose = 0)</h2>
+  <div id="layout" class="d" style="color:var(--mute);white-space:pre"></div>
+
+  <h2>Review items</h2>
+  <ol class="rev" id="rev"></ol>
+</div>
+<div id="tip" style="position:fixed;pointer-events:none;background:var(--panel);border:1px solid var(--line);padding:6px 8px;border-radius:4px;max-width:260px;display:none;font-size:12px"></div>
+<div id="hint">hover a part = what is it · hover a list name = light it up · drag = look · WASD = move · wheel = forward/back · space / shift = up/down · right-drag = pan · click a part to hide it</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const canvas=$('#c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.localClippingEnabled=true;
+const scene=new THREE.Scene();
+const dark=!document.documentElement.matches('[data-theme="light"]');
+scene.background=new THREE.Color(dark?0x15171a:0xf3f4f6);
+const cam=new THREE.PerspectiveCamera(45,1,1,5000);
+cam.up.set(0,0,1);
+scene.add(new THREE.HemisphereLight(0xffffff,0x444455,0.9));
+const dl=new THREE.DirectionalLight(0xffffff,0.7);dl.position.set(100,-200,300);scene.add(dl);
+const dl2=new THREE.DirectionalLight(0xffffff,0.3);dl2.position.set(-100,200,-100);scene.add(dl2);
+
+// ---------- binary STL -> geometry
+function parseSTL(buf){
+  const dv=new DataView(buf);const n=dv.getUint32(80,true);
+  const pos=new Float32Array(n*9),nor=new Float32Array(n*9);let o=84;
+  for(let i=0;i<n;i++){const nx=dv.getFloat32(o,true),ny=dv.getFloat32(o+4,true),nz=dv.getFloat32(o+8,true);o+=12;
+    for(let v=0;v<3;v++){const k=i*9+v*3;pos[k]=dv.getFloat32(o,true);pos[k+1]=dv.getFloat32(o+4,true);pos[k+2]=dv.getFloat32(o+8,true);nor[k]=nx;nor[k+1]=ny;nor[k+2]=nz;o+=12;}o+=2;}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.computeVertexNormals();return g;
+}
+
+// ---------- state
+const clip=new THREE.Plane(new THREE.Vector3(0,1,0),32);
+const parts=[];let P,ground;
+// fly camera: position + yaw/pitch. WASD moves, mouse-drag looks, wheel dollies, space/shift up/down
+const fly={pos:new THREE.Vector3(-60,-330,150),yaw:1.05,pitch:-0.38};
+function fwd(){return new THREE.Vector3(Math.cos(fly.yaw)*Math.cos(fly.pitch),Math.sin(fly.yaw)*Math.cos(fly.pitch),Math.sin(fly.pitch));}
+function placeCam(){cam.position.copy(fly.pos);cam.lookAt(fly.pos.clone().add(fwd()));}
+fetch('parts.json').then(r=>r.json()).then(async J=>{
+  P=J.P;$('#L').textContent=P.L;
+  const gp=new THREE.GridHelper(600,30,0x3a3f46,0x2a2e34);gp.rotation.x=Math.PI/2;gp.position.set(P.L/2,0,J.ground);
+  const gs=new THREE.Mesh(new THREE.PlaneGeometry(600,400),new THREE.MeshStandardMaterial({color:dark?0x1b1e22:0xe6e8ec,side:THREE.DoubleSide}));
+  gs.position.set(P.L/2,0,J.ground-0.2);ground=new THREE.Group();ground.add(gp,gs);scene.add(ground);
+  const list=$('#list');
+  const M=await (await fetch('meshes.json')).json();
+  J.parts.forEach((p,i)=>{
+    const g=new THREE.BufferGeometry();const md=M[p.name];g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(md.v),3));g.setAttribute('normal',new THREE.BufferAttribute(new Float32Array(md.n),3));g.setIndex(md.f);
+    const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:p.color,metalness:0.05,roughness:0.65,clippingPlanes:[clip],clipShadows:true,side:THREE.DoubleSide}));
+    const piv=new THREE.Group();piv.position.set(...p.pos);piv.add(m);m.userData.q=null;
+    if(p.parent){const par=parts.find(x=>x.p.name===p.parent);par.piv.add(piv);}else scene.add(piv);
+    const e=document.createElement('div');e.className='part';
+    e.innerHTML=`<div class="sw" style="background:${p.color}"></div><div><div class="n">${p.name}${p.printable?'':' <span style="color:var(--mute);font-weight:400">(envelope, not printed)</span>'}</div><div class="d">${p.dims.join(' × ')} mm · ${p.volume_cm3} cm³<br>${p.note}</div></div>`;
+    list.appendChild(e);
+    const q={p,piv,m,ui:e,base:new THREE.Vector3(...p.pos),hidden:false};m.userData.q=q;parts.push(q);e.onmouseenter=()=>{m.material.emissive.set(0xffffff);m.material.emissiveIntensity=0.6};e.onmouseleave=()=>{m.material.emissiveIntensity=0};e.onclick=()=>{q.hidden=!q.hidden;pose()};
+  });
+  layout(J);review(J);pose();
+});
+
+function pose(){
+  const k=+$('#kick').value,d=+$('#dep').value,ex=+$('#exp').value/100;
+  $('#kv').textContent=k+'°';$('#dv').textContent=d+'°';
+  clip.constant=+$('#cut').value;
+  ground.visible=$('#ground').checked;
+  for(const q of parts){
+    const {p,piv}=q;const n=p.name;
+    const gok=!(p.group==='electronics'&&!$('#elec').checked)&&!(p.group==='hull'&&!$('#hull').checked);
+    piv.visible=gok&&!q.hidden&&!(q.p.name.startsWith('sabot')&&(+$('#kick').value>0||+$('#dep').value>0));q.ui.classList.toggle('off',!piv.visible);
+    let off=new THREE.Vector3();
+    if(n==='hull_top')off.set(0,0,45);else if(n==='hull_bottom')off.set(0,0,-45);
+    else if(n==='nose')off.set(-40,0,0);else if(n==='tail_cap')off.set(40,0,0);else if(n==='tray')off.set(70,0,0);
+    else if(n==='kick_leg')off.set(0,0,30);else if(n==='axle')off.set(0,0,-15);
+    else if(n.startsWith('drill_leg'))off.set(0,Math.sign(p.pos[1])*40,-20);
+    if(!p.parent)piv.position.copy(q.base).addScaledVector(off,ex);
+    if(p.parent)continue;
+    if(n==='kick_leg')piv.rotation.y=-THREE.MathUtils.degToRad(k);
+    else if(n.startsWith('drill_leg')||n==='axle')piv.rotation.y=THREE.MathUtils.degToRad(d);
+  }
+}
+function view(hideHull,cut,pos,yaw,pitch,glow){
+  $('#hull').checked=!hideHull;$('#cut').value=cut;fly.pos.set(...pos);fly.yaw=yaw;fly.pitch=pitch;pose();
+  for(const q of parts)q.m.material.emissiveIntensity=0;
+  for(const n of glow){const q=parts.find(x=>x.p.name===n);if(q){q.m.material.emissive.set(0xffffff);q.m.material.emissiveIntensity=0.5;}}
+}
+$('#vKick').onclick=()=>view(false,40,[30,70,45],-1.57,-0.45,['n20_kick','kick_shaft']);
+$('#vDeploy').onclick=()=>view(true,40,[50,-95,30],1.57,-0.35,['n20_deploy','axle']);
+$('#vDrill').onclick=()=>{$('#ground').checked=false;view(true,40,[100,130,-20],-1.57,-0.25,['drill_leg_L_auger','drill_leg_L_shaft','drill_leg_L_brg1','drill_leg_L_brg2','drill_leg_L_nyloc','drill_leg_L_motor']);$('#dep').value=45;pose();};
+$('#vStack').onclick=()=>view(true,40,[90,-110,40],1.57,-0.35,['tray']);
+$('#vAll').onclick=()=>{$('#ground').checked=true;view(false,40,[-60,-330,150],1.05,-0.38,[]);};
+['kick','dep','exp','cut','ground','elec','hull'].forEach(id=>$('#'+id).addEventListener('input',pose));
+
+function layout(J){
+  const P=J.P;const rows=[
+    ['blunt nose (Ø22 flat) + camera on axis',0,P.NOSE_L],['kick saddle on top (N20 inside it), pivot at x='+P.KICK_X,P.SADDLE_X0,P.SADDLE_X0+P.N20_L+5],
+    ['deploy N20 body (y −16..−6) + rack beside it',P.DRILL_X-27,P.DRILL_X-6],['drill through-axle',P.DRILL_X,P.DRILL_X],
+    ['electronics tray (4 decks) incl. end discs',P.STACK_X0-P.DISC_T,P.STACK_X0+P.STACK_L+P.DISC_T],['2 × 18350 side by side',P.CELL_X0,P.CELL_X0+P.CELL_L],
+    ['tail cap',P.L-P.TAIL_L,P.L],['folded kick pole + foot on top',P.KICK_X,P.KICK_X+5+P.KICK_POLE_L+36],['folded drill pods + augers on the flanks',P.DRILL_X-6,P.DRILL_X+36+P.AUGER_L]];
+  $('#layout').textContent=rows.map(r=>`${String(r[1]).padStart(4)} – ${String(r[2]).padEnd(4)}  ${r[0]}`).join('\n');
+}
+function review(J){
+  const P=J.P,R=P.R_OUT;
+  const fold=P.KICK_Z+P.DOGLEG, dep=P.KICK_Z-P.DOGLEG;
+  const items=[
+    `<b>${P.L} long, Ø${2*R} hull.</b> Electronics moved forward: the bay is camera → deploy drive + rack → tray → cells. What sticks out in flight: the kick saddle and pole on top to r 37, the foot auger up to 73 above the axis at x 140–155, the drill pods on the flanks to r 38 (x 50–146, above the centreline).`,
+    `<b>Belly is smooth:</b> below the centreline the hull is a plain Ø42 cylinder nose to tail. Cradle it on that; the barrel is cut around the top and the two flanks.`,
+    `<b>Kick drive is now 1:1 on the N20 shaft</b> (the 3.75:1 gear is gone). Load on the motor is only the leg's own weight (~50 g at 100 mm = 0.5 kg·cm); the pressing force comes from the foot auger pulling itself in, with the worm locked. Check your worm N20's rated torque is above ~1 kg·cm.`,
+    `<b>The Ø3 D-shaft carries the leg in flight.</b> The ear fin takes the other end; still, consider a bearing in the ear and a steel M3 stub instead of the printed one.`,
+    `<b>Ground check:</b> drill pods end 1 mm above the surface at 38°, augers 38 mm in; at 200° the foot housing is on the surface, auger 38 mm in.`,
+    `<b>Buy:</b> one more right-angle worm N20 for the foot (the kick and deploy use the two you have). Spare straight drill motor is spare.`,
+    `<b>Clamshell:</b> the tray's two 4 mm end discs each take 4 radial M3s through the hull at z=±3. Nose and tail spigots hold the ends; the rack is zip-tied.`,
+    `<b>Weight:</b> printed ${(J.parts.filter(p=>p.printable).reduce((a,p)=>a+p.volume_cm3,0)).toFixed(0)} cm³ ≈ ${(J.parts.filter(p=>p.printable).reduce((a,p)=>a+p.volume_cm3,0)*1.24).toFixed(0)} g solid, plus ~200 g of electronics and cells.`,
+    `<b>Collision sweep:</b> kick 0–200°, pair 0–45°, exact meshes, every sub-part on its own. Only contact left is the D-shaft envelope vs the rotating hub bore, a sweep artefact (≤5 mm³).`,
+  ];
+  $('#rev').innerHTML=items.map(i=>`<li>${i}</li>`).join('');
+}
+
+// ---------- controls
+let drag=null;const keys={};
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,b:e.button};canvas.setPointerCapture(e.pointerId);canvas.focus()});
+canvas.addEventListener('pointerup',()=>drag=null);
+const ray=new THREE.Raycaster(),tip=$('#tip');
+canvas.addEventListener('pointermove',e=>{if(!drag){const r=canvas.getBoundingClientRect();ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-((e.clientY-r.top)/r.height*2-1)},cam);
+    const hit=ray.intersectObjects(parts.filter(q=>q.piv.visible).map(q=>q.m),false).find(h=>h.object.visible);
+    if(hit){const q=hit.object.userData.q;tip.style.display='block';tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY+14)+'px';tip.innerHTML=`<b>${q.p.name}</b> · ${q.p.dims.join('×')} mm<br>${q.p.note}`;}else tip.style.display='none';return;}const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
+  if(drag.b===2){const f=fwd(),r=new THREE.Vector3(f.y,-f.x,0).normalize();fly.pos.addScaledVector(r,-dx*0.4);fly.pos.z+=dy*0.4;}   // right-drag: pan
+  else{fly.yaw-=dx*0.004;fly.pitch=Math.max(-1.5,Math.min(1.5,fly.pitch-dy*0.004));}});                                           // drag: look (drag right = look right)
+canvas.addEventListener('wheel',e=>{fly.pos.addScaledVector(fwd(),-e.deltaY*0.25)},{passive:true});                                 // wheel: dolly along the view
+addEventListener('keydown',e=>{if(e.target.tagName!=='INPUT'){keys[e.code]=true;if(e.code==='Space')e.preventDefault()}});addEventListener('keyup',e=>keys[e.code]=false);
+$('#toggle').onclick=()=>$('#ui').classList.toggle('open');
+
+function resize(){const w=innerWidth,h=innerHeight;if(canvas.width!==w*renderer.getPixelRatio()){renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}}
+function loop(){resize();
+  const f=fwd(),r=new THREE.Vector3(f.y,-f.x,0).normalize(),s=3;
+  if(keys.KeyW)fly.pos.addScaledVector(f,s);if(keys.KeyS)fly.pos.addScaledVector(f,-s);if(keys.KeyD)fly.pos.addScaledVector(r,s);if(keys.KeyA)fly.pos.addScaledVector(r,-s);
+  if(keys.Space)fly.pos.z+=s;if(keys.ShiftLeft||keys.ShiftRight)fly.pos.z-=s;
+  placeCam();renderer.render(scene,cam);requestAnimationFrame(loop);}
+loop();
+</script>
+</body>
+</html>

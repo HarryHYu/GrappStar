@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GrappStar Mission Sim</title>
+<style>
+:root{--bg:#eef1f4;--panel:#ffffffee;--ink:#15181c;--mute:#5b6470;--line:#d5dae0;--acc:#d97a00}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15181c;--panel:#1d2127ee;--ink:#e9edf1;--mute:#9aa4ae;--line:#333a42;--acc:#ffb020}}
+:root[data-theme="dark"]{--bg:#15181c;--panel:#1d2127ee;--ink:#e9edf1;--mute:#9aa4ae;--line:#333a42;--acc:#ffb020}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1.4 Arial,Helvetica,sans-serif;overflow:hidden}
+#view{position:absolute;inset:0}
+.panel{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;backdrop-filter:blur(6px)}
+#left{left:12px;top:12px;width:340px;max-width:calc(100vw - 24px)}
+#left h1{font-size:15px;margin:0 0 4px}#left .sub{color:var(--mute);margin-bottom:8px}
+#ptitle{font-weight:bold;font-size:14px;color:var(--acc);margin-top:4px}#ptext{margin:2px 0 8px}
+#ro{font:12px/1.5 Menlo,Consolas,monospace;border-top:1px solid var(--line);padding-top:6px}
+#bottom{left:12px;right:12px;bottom:12px}
+#bar{position:relative;height:16px;background:var(--line);border-radius:8px;cursor:pointer;margin:6px 0}
+#bar .mk{position:absolute;top:0;bottom:0;width:2px;background:var(--mute)}#bar .cur{position:absolute;top:-3px;bottom:-3px;width:4px;background:var(--acc);border-radius:2px}
+#phases{display:flex;flex-wrap:wrap;gap:4px}
+button,select{font:12px Arial;padding:4px 8px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--ink);cursor:pointer}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#right{right:12px;top:12px;width:300px;max-height:calc(100vh - 150px);overflow:auto;display:none}
+#right.on{display:block}.pi{padding:4px 0;border-bottom:1px solid var(--line)}.pi span{color:var(--mute)}.pi .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+.tag{position:absolute;pointer-events:none;font:11px Arial;color:#fff;background:#0008;padding:1px 5px;border-radius:3px;transform:translate(-50%,-100%)}
+@media (max-width:700px){#left{width:auto;right:12px}#ro{display:none}#right{display:none!important}}
+</style></head><body>
+<div id="view"></div>
+<div class="panel" id="left">
+  <h1>GrappStar: one wiper motor runs the launcher and the reel</h1><a href="index.html" style="color:var(--acc);font-size:12px">back to the build pack</a>
+  <div class="sub">Every motion here is computed from the real part geometry, the cam envelope, the rack push, spring and drag physics. KEDGE v30 dart.</div>
+  <div id="ptitle"></div><div id="ptext"></div><div id="ro"></div>
+</div>
+<div class="panel" id="right"><b>Parts</b> (hover to highlight)<div id="plist"></div></div>
+<div class="panel" id="bottom">
+  <div class="row"><button id="play">pause</button>
+  speed <input id="speed" type="range" min="-3" max="2" step="1" value="0"><span id="spv">1.00x</span>
+  camera <select id="cam"><option value="auto">auto (follows the action)</option><option value="mech">mechanism</option><option value="sear">sear and rack</option><option value="reel">reel</option><option value="over">overview</option><option value="field">field</option><option value="free">free orbit</option></select>
+  <label><input type="checkbox" id="tX"> x-ray frame</label><label><input type="checkbox" id="tLine" checked> line</label>
+  <button onclick="document.getElementById('right').classList.toggle('on')">parts</button></div>
+  <div id="bar"></div><div id="phases"></div>
+</div>
+<script src="../vendor/package/build/three.min.js"></script><script src="../vendor/package/examples/js/controls/OrbitControls.js"></script><script src="out/gs_data.js"></script><script src="out/timeline.js"></script><script src="viewer_core.js"></script><script src="sim_app.js"></script>
+</body></html>

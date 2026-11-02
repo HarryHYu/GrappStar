@@ -1,0 +1,26 @@
+[
+ {
+  "name": "v29p_foot30",
+  "overrides": {
+   "FOOT_AUGER_L": 30.0,
+   "FOOT_TIP": 8.0
+  },
+  "clean": true,
+  "collisions": [],
+  "warn": [],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 44.5,
+  "drill_depth": 42.8,
+  "foot_depth": 26.3,
+  "folded_len": 162.7,
+  "belly": {},
+  "mass_g": 254.8,
+  "cg_x": 81.2,
+  "margin_cal": -0.03,
+  "hold_loam_N": 72.7,
+  "hold_sand_N": 7.2,
+  "hold_clay_N": 202.3,
+  "minutes": 1.1
+ }
+]

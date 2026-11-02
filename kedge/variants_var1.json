@@ -1,0 +1,101 @@
+[
+ {
+  "name": "v29a_base",
+  "overrides": {},
+  "clean": true,
+  "collisions": [],
+  "warn": [],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 35.5,
+  "drill_depth": 29.5,
+  "foot_depth": 35.5,
+  "folded_len": 154.7,
+  "belly": {},
+  "mass_g": 251.2,
+  "cg_x": 84.0,
+  "margin_cal": -0.1,
+  "hold_loam_N": 57.3,
+  "hold_sand_N": 4.8,
+  "hold_clay_N": 161.4,
+  "minutes": 1.2
+ },
+ {
+  "name": "v29b_long_auger",
+  "overrides": {
+   "AUGER_L": 66.0
+  },
+  "clean": true,
+  "collisions": [],
+  "warn": [],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 35.5,
+  "drill_depth": 33.9,
+  "foot_depth": 35.5,
+  "folded_len": 162.7,
+  "belly": {},
+  "mass_g": 252.1,
+  "cg_x": 84.2,
+  "margin_cal": -0.09,
+  "hold_loam_N": 64.2,
+  "hold_sand_N": 5.3,
+  "hold_clay_N": 180.9,
+  "minutes": 1.1
+ },
+ {
+  "name": "v29c_cells_fwd",
+  "overrides": {
+   "LAYOUT": "cells_fwd"
+  },
+  "clean": true,
+  "collisions": [],
+  "warn": [],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 35.5,
+  "drill_depth": 29.5,
+  "foot_depth": 35.5,
+  "folded_len": 154.7,
+  "belly": {},
+  "mass_g": 251.2,
+  "cg_x": 80.9,
+  "margin_cal": -0.02,
+  "hold_loam_N": 57.3,
+  "hold_sand_N": 4.8,
+  "hold_clay_N": 161.4,
+  "minutes": 1.1
+ },
+ {
+  "name": "v29d_low_pivot",
+  "overrides": {
+   "DRILL_PIV_Z": 5.0,
+   "AUGER_L": 62.0
+  },
+  "clean": false,
+  "collisions": [],
+  "warn": [
+   "hull_bottom          [121.   42.6  21. ] vol  11.61 cm3 wt=False solids=1 t=3s"
+  ],
+  "L": 148.97,
+  "kick_deg": 201.75,
+  "deploy_deg": 31.5,
+  "drill_depth": 27.9,
+  "foot_depth": 35.5,
+  "folded_len": 158.7,
+  "belly": {
+   "drill_leg_L": 36.43,
+   "drill_leg_L_auger": 33.83,
+   "drill_leg_R": 36.43,
+   "drill_leg_R_auger": 33.83,
+   "hull_bottom": 21.31
+  },
+  "mass_g": 251.5,
+  "cg_x": 84.2,
+  "margin_cal": -0.09,
+  "hold_loam_N": 54.9,
+  "hold_sand_N": 4.7,
+  "hold_clay_N": 154.4,
+  "minutes": 1.2
+ }
+]

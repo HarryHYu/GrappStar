@@ -1,0 +1,39 @@
+        0 ms  auto: kick swing
+     3150 ms  auto: foot touches, foot auger on
+     5310 ms  auto: kick down, foot finishing
+     6810 ms  auto: deploy with drills spinning
+     8970 ms  auto: pods down, drills finishing
+    11970 ms  auto: anchored, holding (worms self-lock)
+ok:   auto sequence reaches 'anchored'
+ok:   foot auger starts when the foot meets the ground (kick current rise)
+ok:   kick stops after the housing lands (stall read with the foot paused)
+ok:   deploy starts only after the foot is planted
+ok:   deploy stops on its own stall even though the drills draw more current
+ok:   drills finish after the pods stop
+ok:   everything off at the end
+ok:   manual keys are ignored while auto runs
+ok:   space aborts the auto sequence and stops everything
+ok:   over-current trip stops the motors
+ok:   WiFi hold: repeats keep the kick running
+ok:   WiFi hold: key released -> stops within the 350 ms deadman
+ok:   serial key runs 1.5 s
+ok:   serial key stops after 1.5 s
+ok:   kick never meets the ground -> aborts at the time limit, nothing left running
+ok:   landing detector: launch spike, flight, impact, stillness -> landed
+ok:   landing detector: bench handling alone never triggers
+ok:   landing detector: soft landing with the impact spike missed still triggers
+ok:   landing detector: reset re-arms it (A pressed again)
+   status: {"t_ms":1234,"rail_V":7.60,"current_mA":0,"peak_mA":0,"speed":255,"motors":{"deploy":0,"kick":0,"drills":0,"foot":0},"seq":"idle","armed":false,"landed":false,"roll":1.5,"pitch":-3.2,"event":"boot"}
+ok:   status JSON
+
+ALL PASS
+ok: status
+ok: hold sends 7 repeats, max gap 152 ms (< 350 ms deadman), then stop
+   0.0s  kick swing                120 mA  auto: kick swing
+   1.0s  kick + foot planting      120 mA  auto: kick + foot planting
+   1.6s  foot finishing            120 mA  auto: foot finishing
+   2.0s  deploy + drills           120 mA  auto: deploy + drills
+   2.9s  drills finishing          120 mA  auto: drills finishing
+   3.5s  anchored                  120 mA  auto: anchored
+ok: auto followed to anchored
+ALL PASS

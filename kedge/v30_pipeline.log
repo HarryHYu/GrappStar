@@ -1,0 +1,40 @@
+deploy_deg 42.25 pod clear 0.52 auger depth 44.8
+kick_deg 201.75 housing clear 0.02 foot auger depth 35.5
+written
+ground_below {}
+auger_depth_mm {'foot_auger': 35.5, 'foot_shaft': 5.2, 'drill_leg_L_auger': 44.8, 'drill_leg_L_shaft': 27.0, 'drill_leg_L_nyloc': 29.3, 'drill_leg_R_auger': 44.8, 'drill_leg_R_shaft': 27.0, 'drill_leg_R_nyloc': 29.3}
+foot_housing_clear_mm 0.02
+pod_clear_mm {'drill_leg_L': 0.52, 'drill_leg_R': 0.52}
+belly_outside_r21 {}
+folded_bbox [-0.0, -40.8, -21.0, 168.7, 40.8, 75.8]
+printed_cm3 91.91
+L 151.97
+CLEAN
+ 0.00  kick_hub_screw -> brg_ear
+ 0.00  deploy_shaft -> n20_deploy
+ 0.00  kick_shaft -> n20_kick
+ 0.20  coupler_R -> hull_top
+ 0.20  coupler_L -> hull_top
+ 0.30  coupler_L -> n20_deploy
+ 0.30  coupler_R -> n20_deploy
+ 0.30  drill_leg_L -> hull_top
+ 0.30  drill_leg_R -> hull_top
+ 0.38  kick_washer -> brg_ear
+ 0.40  kick_leg -> hull_top
+ 0.60  kick_shaft -> hull_top
+meshes.json 6.0 MB
+audit_sheet.png (3840, 1714)
+sections.png (2560, 1294)
+./run_all.sh out30 v30  207.70s user 41.22s system 351% cpu 1:10.90 total
+assembly parts: 59 131783 kB
+Traceback (most recent call last):
+  File "/Users/xiangyu/Downloads/kedge/report.py", line 15, in <module>
+    A = json.load(open(OUT + "/audit.json")); Ph = json.load(open(OUT + "/physics.json")); Bj = json.load(open(PK + "/barrel.json"))
+                                                             ~~~~^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'out30/physics.json'
+Traceback (most recent call last):
+  File "/Users/xiangyu/Downloads/kedge/runsheet.py", line 14, in <module>
+    PR = json.load(open(PK + "/print_report.json")); WJ = json.load(open(PK + "/wires.json"))
+                   ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'pack_v30/print_report.json'
+cp: pack_v30/*.3mf: No such file or directory

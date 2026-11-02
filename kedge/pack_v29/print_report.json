@@ -1,0 +1,178 @@
+{
+ "parts": {
+  "hull_top": {
+   "print_bbox": [
+    121.0,
+    49.5,
+    35.0
+   ],
+   "bed_contact_mm2": 503.6,
+   "overhang_mm2_gt45": 3771.3,
+   "orient": "split face down (on the bed), saddle up",
+   "volume_cm3": 17.3
+  },
+  "hull_bottom": {
+   "print_bbox": [
+    121.0,
+    42.0,
+    21.0
+   ],
+   "bed_contact_mm2": 355.1,
+   "overhang_mm2_gt45": 3631.9,
+   "orient": "split face down, belly up",
+   "volume_cm3": 11.5
+  },
+  "nose": {
+   "print_bbox": [
+    42.0,
+    42.0,
+    27.0
+   ],
+   "bed_contact_mm2": 257.8,
+   "overhang_mm2_gt45": 382.1,
+   "orient": "tip down on the bed (flat \u00d822), spigot up",
+   "volume_cm3": 8.25
+  },
+  "tail_cap": {
+   "print_bbox": [
+    42.0,
+    42.0,
+    15.4
+   ],
+   "bed_contact_mm2": 1090.4,
+   "overhang_mm2_gt45": 351.0,
+   "orient": "end face down, spigot up (no supports)",
+   "volume_cm3": 7.13
+  },
+  "tray": {
+   "print_bbox": [
+    109.1,
+    38.6,
+    36.5
+   ],
+   "bed_contact_mm2": 1401.0,
+   "overhang_mm2_gt45": 4317.7,
+   "orient": "keel down on the bed; discs stand up, decks bridge 26 mm between discs",
+   "volume_cm3": 15.98
+  },
+  "kick_leg": {
+   "print_bbox": [
+    119.2,
+    15.0,
+    15.0
+   ],
+   "bed_contact_mm2": 1053.1,
+   "overhang_mm2_gt45": 293.2,
+   "orient": "on its side (pole axis horizontal, hub face down)",
+   "volume_cm3": 8.7
+  },
+  "drill_leg_L": {
+   "print_bbox": [
+    45.7,
+    14.8,
+    12.8
+   ],
+   "bed_contact_mm2": 464.6,
+   "overhang_mm2_gt45": 209.3,
+   "orient": "upright, motor pocket open to the top (as installed folded)",
+   "volume_cm3": 3.37
+  },
+  "drill_leg_R": {
+   "print_bbox": [
+    45.7,
+    14.8,
+    12.8
+   ],
+   "bed_contact_mm2": 464.6,
+   "overhang_mm2_gt45": 209.3,
+   "orient": "upright, motor pocket open to the top (as installed folded)",
+   "volume_cm3": 3.37
+  },
+  "drill_leg_L_auger": {
+   "print_bbox": [
+    16.0,
+    16.0,
+    70.8
+   ],
+   "bed_contact_mm2": 11.1,
+   "overhang_mm2_gt45": 138.4,
+   "orient": "base down, nut slot sideways",
+   "volume_cm3": 4.63
+  },
+  "drill_leg_R_auger": {
+   "print_bbox": [
+    16.0,
+    16.0,
+    70.8
+   ],
+   "bed_contact_mm2": 11.1,
+   "overhang_mm2_gt45": 138.4,
+   "orient": "base down, nut slot sideways",
+   "volume_cm3": 4.63
+  },
+  "foot_auger": {
+   "print_bbox": [
+    16.0,
+    16.0,
+    40.0
+   ],
+   "bed_contact_mm2": 83.8,
+   "overhang_mm2_gt45": 13.6,
+   "orient": "base down",
+   "volume_cm3": 2.71
+  },
+  "coupler_L": {
+   "print_bbox": [
+    7.0,
+    6.4,
+    35.9
+   ],
+   "bed_contact_mm2": 18.9,
+   "overhang_mm2_gt45": 7.2,
+   "orient": "standing on its socket end",
+   "volume_cm3": 1.22
+  },
+  "coupler_R": {
+   "print_bbox": [
+    7.0,
+    6.4,
+    26.7
+   ],
+   "bed_contact_mm2": 18.9,
+   "overhang_mm2_gt45": 7.2,
+   "orient": "standing on its socket end",
+   "volume_cm3": 0.88
+  }
+ },
+ "plates": {
+  "plate_A_hull": {
+   "parts": [
+    "hull_top",
+    "hull_bottom",
+    "nose",
+    "tail_cap",
+    "coupler_L",
+    "coupler_R"
+   ],
+   "extent_mm": [
+    230,
+    113.9
+   ]
+  },
+  "plate_B_legs_tray": {
+   "parts": [
+    "tray",
+    "drill_leg_L_auger",
+    "drill_leg_R_auger",
+    "foot_auger",
+    "kick_leg",
+    "drill_leg_L",
+    "drill_leg_R"
+   ],
+   "extent_mm": [
+    230,
+    61.6
+   ]
+  }
+ }
+}

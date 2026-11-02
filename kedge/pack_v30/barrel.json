@@ -1,0 +1,15 @@
+{
+ "channel_bounds_yz": [
+  -40.5,
+  -22.0,
+  40.5,
+  76.8
+ ],
+ "clearance_mm": 1.0,
+ "silhouette_area_mm2": 2931,
+ "hull_area_mm2": 1385,
+ "below_centreline_outside_hull": 0.8,
+ "cradle": "the belly (z < 0) is the plain \u00d842 cylinder over x 20..141: cradle it there; the barrel's lower half can be a plain \u00d844 half-pipe",
+ "pusher": "push on the tail cap end face (flat ring \u00d842, tether holes in the middle): keep the pusher face a ring so the tether exits through its centre",
+ "length_folded": 168.7
+}

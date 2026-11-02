@@ -38,6 +38,8 @@ LAYOUT_DEFAULT = {
     "aim":     dict(origin=(10.0, 0.0, 140.0), axis=(0, 1, 0), d=8.0, brg="608", cheeks=(-1, 1)),
     "capstan": dict(origin=(-55.0, 0.0, 105.0), axis=(0, 1, 0), d=20.0, brg="bush", cheeks=(-1, 1)),
     "reel":    dict(origin=(-100.0, 0.0, 55.0), axis=(0, 1, 0), d=8.0, brg="608", cheeks=(-1, 1)),
+    "aim_worm": dict(origin=(40.0, 135.0, 40.0), axis=(0, 0, 1), d=8.0, brg="608", supports=(-15.0, 25.0)),
+    "aim_wheel": dict(origin=(135.0, 0.0, 50.0), axis=(1, 0, 0), d=8.0, brg="608", span=40.0),
 }
 
 FRAMEWORK_DEFAULT = dict(
@@ -82,6 +84,9 @@ def cfg(P):
             e["d"] = float(s.get("d", s.get("shaft_d", 8.0)))
             e["brg"] = s.get("brg", s.get("bearing", "608" if e["d"] <= 8.0 else "bush"))
             e["cheeks"] = tuple(s.get("cheeks", (-1, 1)))
+            for k in ("supports", "span", "frame", "ped_yaw"):
+                if k in s:
+                    e[k] = s[k]
             layout[n] = e
     else:
         layout = {k: dict(v) for k, v in LAYOUT_DEFAULT.items()}
@@ -168,8 +173,7 @@ def build(P):
     supports = {-1: [], 1: []}
     for n, sh in lay.items():
         if not is_y(sh["axis"]):
-            info["warnings"].append(f"shaft {n}: axis {sh['axis']} not along Y, no cheek support (needs a pedestal)")
-            continue
+            continue                           # pedestals, built below
         for s in sh["cheeks"]:
             if n == C["main"] and s == ms:
                 continue                       # the motor adapter takes this end
@@ -326,6 +330,17 @@ def build(P):
         p = parts[-1]
         p.print_tf = U.print_flat(p.solid, tf.Rx(90) if s > 0 else tf.Rx(-90))  # flange face down
         sp["part"] = nm
+
+    # ---- pedestals for shafts not along Y
+    from . import _frame_ped as PED
+    for n, sh in lay.items():
+        if is_y(sh["axis"]) or not sh.get("frame", True):
+            continue
+        pp, hh, ww = PED.pedestals(P, n, sh, fw)
+        parts += pp
+        info["deck_holes"] += hh
+        info["warnings"] += ww
+        info.setdefault("pedestals", []).append(dict(shaft=n, parts=[p.name for p in pp]))
 
     # ---- wiper motor, shaft, adapter
     if C["main"] in lay:
@@ -518,7 +533,7 @@ def checks(P, asm=None):
             d = max(abs(a["origin"][0] - b["origin"][0]), abs(a["origin"][2] - b["origin"][2]))
             if d < a["block"]["half"] + b["block"]["half"] + 0.5:
                 fails.append(f"bearing blocks {a['shaft']} and {b['shaft']} overlap on cheek {a['side']:+d}")
-    fails += [f"warning: {w}" for w in info["warnings"] if False]
+    fails += [f"layout: {w}" for w in info["warnings"]]
     return fails
 
 

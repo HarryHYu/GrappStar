@@ -1,0 +1,450 @@
+{
+ "inputs": {
+  "tow": 50.0,
+  "mu": 0.15,
+  "mu_range": [
+   0.15,
+   0.25
+  ],
+  "takeup_n": 2.0,
+  "wraps": 5,
+  "drum_d": 0.04,
+  "ratio": 1.0,
+  "eta": 0.85,
+  "overspeed": 1.2,
+  "light_n": 3.0,
+  "source": "base/spec/params.py v0.1-stub (still defaults for LAUNCH, AIM, REEL, LAYOUT)"
+ },
+ "wraps_needed": {
+  "raw": 3.4153333248451743,
+  "margin": 1.5,
+  "design": 6
+ },
+ "capstan_ratio": 111.31777848985621,
+ "max_hold_n": {
+  "mu_low": 222.63555697971242,
+  "mu_high": 5151.9409931951395
+ },
+ "takeup_needed_n": 0.44916455105647146,
+ "slips_at_tow": false,
+ "tow_table": {
+  "full": [
+   {
+    "f_line": 5,
+    "t_wiper": 0.12705882352941178,
+    "t_drum": 0.10800000000000001,
+    "rpm_wiper": 46.56355122994652,
+    "rpm_drum": 46.56355122994652,
+    "v_line": 0.09752247364603464,
+    "current": 1.639764705882353,
+    "i_batt": 1.639764705882353,
+    "v_batt": 12.47537788235294,
+    "power_in": 20.456684344027682,
+    "stalled": false
+   },
+   {
+    "f_line": 10,
+    "t_wiper": 0.24470588235294122,
+    "t_drum": 0.20800000000000002,
+    "rpm_wiper": 46.17037475935829,
+    "rpm_drum": 46.17037475935829,
+    "v_line": 0.09669900677165841,
+    "current": 1.7691764705882354,
+    "i_batt": 1.7691764705882354,
+    "v_batt": 12.465542588235294,
+    "power_in": 22.053744640221453,
+    "stalled": false
+   },
+   {
+    "f_line": 20,
+    "t_wiper": 0.48,
+    "t_drum": 0.408,
+    "rpm_wiper": 45.384021818181814,
+    "rpm_drum": 45.384021818181814,
+    "v_line": 0.09505207302290591,
+    "current": 2.028,
+    "i_batt": 2.028,
+    "v_batt": 12.445872,
+    "power_in": 25.240228416,
+    "stalled": false
+   },
+   {
+    "f_line": 30,
+    "t_wiper": 0.7152941176470589,
+    "t_drum": 0.608,
+    "rpm_wiper": 44.59766887700534,
+    "rpm_drum": 44.59766887700534,
+    "v_line": 0.09340513927415342,
+    "current": 2.2868235294117647,
+    "i_batt": 2.2868235294117647,
+    "v_batt": 12.426201411764705,
+    "power_in": 28.416529769633215,
+    "stalled": false
+   },
+   {
+    "f_line": 45,
+    "t_wiper": 1.0682352941176472,
+    "t_drum": 0.908,
+    "rpm_wiper": 43.41813946524063,
+    "rpm_drum": 43.41813946524063,
+    "v_line": 0.0909347386510247,
+    "current": 2.6750588235294117,
+    "i_batt": 2.6750588235294117,
+    "v_batt": 12.396695529411764,
+    "power_in": 33.16188975856055,
+    "stalled": false
+   },
+   {
+    "f_line": 50,
+    "t_wiper": 1.1858823529411766,
+    "t_drum": 1.008,
+    "rpm_wiper": 43.024962994652405,
+    "rpm_drum": 43.024962994652405,
+    "v_line": 0.09011127177664846,
+    "current": 2.8044705882352945,
+    "i_batt": 2.8044705882352945,
+    "v_batt": 12.386860235294117,
+    "power_in": 34.73858521046367,
+    "stalled": false
+   },
+   {
+    "f_line": 75,
+    "t_wiper": 1.7741176470588238,
+    "t_drum": 1.5080000000000002,
+    "rpm_wiper": 41.05908064171122,
+    "rpm_drum": 41.05908064171122,
+    "v_line": 0.08599393740476724,
+    "current": 3.451529411764706,
+    "i_batt": 3.451529411764706,
+    "v_batt": 12.337683764705883,
+    "power_in": 42.58387838693426,
+    "stalled": false
+   },
+   {
+    "f_line": 100,
+    "t_wiper": 2.3623529411764705,
+    "t_drum": 2.008,
+    "rpm_wiper": 39.09319828877005,
+    "rpm_drum": 39.09319828877005,
+    "v_line": 0.08187660303288605,
+    "current": 4.098588235294118,
+    "i_batt": 4.098588235294118,
+    "v_batt": 12.288507294117647,
+    "power_in": 50.36553142499654,
+    "stalled": false
+   },
+   {
+    "f_line": 112,
+    "t_wiper": 2.6447058823529415,
+    "t_drum": 2.248,
+    "rpm_wiper": 38.14957475935829,
+    "rpm_drum": 38.14957475935829,
+    "v_line": 0.07990028253438307,
+    "current": 4.4091764705882355,
+    "i_batt": 4.4091764705882355,
+    "v_batt": 12.264902588235294,
+    "power_in": 54.07811990610381,
+    "stalled": false
+   }
+  ],
+  "nom": [
+   {
+    "f_line": 5,
+    "t_wiper": 0.12705882352941178,
+    "t_drum": 0.10800000000000001,
+    "rpm_wiper": 40.42718759358288,
+    "rpm_drum": 40.42718759358288,
+    "v_line": 0.08467050369953094,
+    "current": 1.639764705882353,
+    "i_batt": 1.639764705882353,
+    "v_batt": 10.97537788235294,
+    "power_in": 17.997037285204154,
+    "stalled": false
+   },
+   {
+    "f_line": 10,
+    "t_wiper": 0.24470588235294122,
+    "t_drum": 0.20800000000000002,
+    "rpm_wiper": 40.03401112299465,
+    "rpm_drum": 40.03401112299465,
+    "v_line": 0.0838470368251547,
+    "current": 1.7691764705882354,
+    "i_batt": 1.7691764705882354,
+    "v_batt": 10.965542588235294,
+    "power_in": 19.3999799343391,
+    "stalled": false
+   },
+   {
+    "f_line": 20,
+    "t_wiper": 0.48,
+    "t_drum": 0.408,
+    "rpm_wiper": 39.247658181818174,
+    "rpm_drum": 39.247658181818174,
+    "v_line": 0.08220010307640221,
+    "current": 2.028,
+    "i_batt": 2.028,
+    "v_batt": 10.945872,
+    "power_in": 22.198228416,
+    "stalled": false
+   },
+   {
+    "f_line": 30,
+    "t_wiper": 0.7152941176470589,
+    "t_drum": 0.608,
+    "rpm_wiper": 38.46130524064171,
+    "rpm_drum": 38.46130524064171,
+    "v_line": 0.08055316932764972,
+    "current": 2.2868235294117647,
+    "i_batt": 2.2868235294117647,
+    "v_batt": 10.926201411764705,
+    "power_in": 24.986294475515567,
+    "stalled": false
+   },
+   {
+    "f_line": 45,
+    "t_wiper": 1.0682352941176472,
+    "t_drum": 0.908,
+    "rpm_wiper": 37.281775828876995,
+    "rpm_drum": 37.281775828876995,
+    "v_line": 0.078082768704521,
+    "current": 2.6750588235294117,
+    "i_batt": 2.6750588235294117,
+    "v_batt": 10.896695529411764,
+    "power_in": 29.149301523266434,
+    "stalled": false
+   },
+   {
+    "f_line": 50,
+    "t_wiper": 1.1858823529411766,
+    "t_drum": 1.008,
+    "rpm_wiper": 36.888599358288765,
+    "rpm_drum": 36.888599358288765,
+    "v_line": 0.07725930183014476,
+    "current": 2.8044705882352945,
+    "i_batt": 2.8044705882352945,
+    "v_batt": 10.886860235294117,
+    "power_in": 30.53187932811073,
+    "stalled": false
+   },
+   {
+    "f_line": 75,
+    "t_wiper": 1.7741176470588238,
+    "t_drum": 1.5080000000000002,
+    "rpm_wiper": 34.92271700534759,
+    "rpm_drum": 34.92271700534759,
+    "v_line": 0.07314196745826355,
+    "current": 3.451529411764706,
+    "i_batt": 3.451529411764706,
+    "v_batt": 10.837683764705883,
+    "power_in": 37.4065842692872,
+    "stalled": false
+   },
+   {
+    "f_line": 100,
+    "t_wiper": 2.3623529411764705,
+    "t_drum": 2.008,
+    "rpm_wiper": 32.95683465240642,
+    "rpm_drum": 32.95683465240642,
+    "v_line": 0.06902463308638235,
+    "current": 4.098588235294118,
+    "i_batt": 4.098588235294118,
+    "v_batt": 10.788507294117647,
+    "power_in": 44.217649072055366,
+    "stalled": false
+   },
+   {
+    "f_line": 112,
+    "t_wiper": 2.6447058823529415,
+    "t_drum": 2.248,
+    "rpm_wiper": 32.013211122994655,
+    "rpm_drum": 32.013211122994655,
+    "v_line": 0.06704831258787937,
+    "current": 4.4091764705882355,
+    "i_batt": 4.4091764705882355,
+    "v_batt": 10.764902588235294,
+    "power_in": 47.464355200221455,
+    "stalled": false
+   }
+  ]
+ },
+ "at_tow_nom": {
+  "f_line": 50.0,
+  "t_wiper": 1.1858823529411766,
+  "t_drum": 1.008,
+  "rpm_wiper": 36.888599358288765,
+  "rpm_drum": 36.888599358288765,
+  "v_line": 0.07725930183014476,
+  "current": 2.8044705882352945,
+  "i_batt": 2.8044705882352945,
+  "v_batt": 10.886860235294117,
+  "power_in": 30.53187932811073,
+  "stalled": false
+ },
+ "current_limit": {
+  "f_limit": 50.0,
+  "t_wiper": 1.1858823529411766,
+  "current": 2.8044705882352945,
+  "i_free": 1.5,
+  "delta_over_free": 1.3044705882352945
+ },
+ "current_limit_dart": {
+  "sand": 1.691529411764706,
+  "loam": 2.6750588235294117,
+  "clay": 4.4091764705882355
+ },
+ "stall": {
+  "full": {
+   "v_oc": 12.6,
+   "t_wiper": 14.05989880855231,
+   "current": 16.965888689407542,
+   "f_line": 597.1456993634731,
+   "exceeds_dart": {
+    "sand": true,
+    "loam": true,
+    "clay": true
+   },
+   "exceeds_break": false,
+   "line_breaking": 667.0,
+   "wraps_slip_first": false,
+   "holds_max": 5151.9409931951395
+  },
+  "nom": {
+   "v_oc": 11.1,
+   "t_wiper": 12.22376366900604,
+   "current": 14.946140035906645,
+   "f_line": 519.1099559327566,
+   "exceeds_dart": {
+    "sand": true,
+    "loam": true,
+    "clay": true
+   },
+   "exceeds_break": false,
+   "line_breaking": 667.0,
+   "wraps_slip_first": false,
+   "holds_max": 5151.9409931951395
+  }
+ },
+ "reel": {
+  "length": 20.0,
+  "light": {
+   "f_line": 3.0,
+   "t_wiper": 0.08,
+   "t_drum": 0.068,
+   "rpm_wiper": 40.58445818181818,
+   "rpm_drum": 40.58445818181818,
+   "v_line": 0.08499989044928144,
+   "current": 1.588,
+   "i_batt": 1.588,
+   "v_batt": 10.979312,
+   "power_in": 17.435147456000003,
+   "stalled": false
+  },
+  "time_s": 235.29442090203392
+ },
+ "parts_at_tow": {
+  "t_drum": 0.96,
+  "shaft": {
+   "torque_nm": 0.96,
+   "tau_nom_mpa": 0.6111549814728781,
+   "tau_peak_mpa": 1.2223099629457561,
+   "kt": 2.0,
+   "t_allow": 12.0,
+   "t_allow_kt": 9.424777960769381,
+   "sf": 12.5,
+   "strict_pass": true,
+   "pass": true
+  },
+  "key": {
+   "torque_nm": 0.96,
+   "length_mm": 14.0,
+   "force_n": 96.0,
+   "tau_mpa": 1.1428571428571428,
+   "bearing_mpa": 2.2857142857142856,
+   "tau_allow_mpa": 12.0,
+   "bearing_allow_mpa": 25.0,
+   "sf_shear": 10.500000000000002,
+   "sf_bearing": 10.937500000000002,
+   "pass": true
+  },
+  "sprag": {
+   "torque_nm": 0.96,
+   "rpm": 36.888599358288765,
+   "t_rated": 50.0,
+   "n_max_rpm": 6000.0,
+   "sf": 52.083333333333336,
+   "pass": true
+  },
+  "line_pressure_mpa": 2.5,
+  "hoop_mpa": 4.761904761904762,
+  "p_allow_mpa": 12.0,
+  "drum_pass": true,
+  "radial_n": 52.0,
+  "bearing608": {
+   "radial_n": 26.0,
+   "rpm": 36.888599358288765,
+   "s0": 52.69230769230769,
+   "n_max_rpm": 30000.0,
+   "l10_rev": 2044663177059.6267,
+   "l10_h": 923800854.7484543,
+   "pass": true
+  },
+  "wraps": 5
+ },
+ "parts_at_stall": {
+  "t_drum": 11.902913987269462,
+  "shaft": {
+   "torque_nm": 11.902913987269462,
+   "tau_nom_mpa": 7.577630393086384,
+   "tau_peak_mpa": 15.155260786172768,
+   "kt": 2.0,
+   "t_allow": 12.0,
+   "t_allow_kt": 9.424777960769381,
+   "sf": 1.0081564911612715,
+   "strict_pass": false,
+   "pass": true
+  },
+  "key": {
+   "torque_nm": 11.902913987269462,
+   "length_mm": 14.0,
+   "force_n": 1190.2913987269462,
+   "tau_mpa": 14.170135699130311,
+   "bearing_mpa": 28.340271398260622,
+   "tau_allow_mpa": 12.0,
+   "bearing_allow_mpa": 25.0,
+   "sf_shear": 0.846851452575468,
+   "sf_bearing": 0.8821369297661126,
+   "pass": false
+  },
+  "sprag": {
+   "torque_nm": 11.902913987269462,
+   "rpm": 0.0,
+   "t_rated": 50.0,
+   "n_max_rpm": 6000.0,
+   "sf": 4.200652046505297,
+   "pass": true
+  },
+  "line_pressure_mpa": 29.85728496817365,
+  "hoop_mpa": 56.87101898699744,
+  "p_allow_mpa": 12.0,
+  "drum_pass": false,
+  "radial_n": 599.1456993634731,
+  "bearing608": {
+   "radial_n": 299.57284968173656,
+   "rpm": 0.0,
+   "s0": 4.5731781149575985,
+   "n_max_rpm": 30000.0,
+   "l10_rev": 1336701599.291025,
+   "l10_h": Infinity,
+   "pass": true
+  },
+  "wraps": 5
+ },
+ "warnings": [
+  "wiper stall pulls 597 N on the line: above dart holding in sand, loam, clay",
+  "wraps hold 5152 N at mu high: the capstan is no torque limiter, firmware current limit (or a slip clutch) must protect the dart and line",
+  "wraps 5 < design 6 (1.5x margin)",
+  "tow limit is only 1.30 A above free current: current sensing of tension is coarse, calibrate on the bench or use the load cell",
+  "parts_at_stall: key fails",
+  "parts_at_stall: drum line pressure 29.9 / hoop 56.9 MPa over 12 MPa"
+ ]
+}

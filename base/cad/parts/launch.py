@@ -117,6 +117,14 @@ def L(P):
     return n
 
 
+SEAT_TIP = (15.0, 86.0)       # SW_SEATED tip (y, w) on the pusher face
+
+
+def arm_top(P):
+    n = L(P)
+    return n["lip_w1"] + 14.0
+
+
 def switch_frames(P):
     """Printed contact switches: name -> dict(M = switch local -> carrier joint frame, carrier joint, z_s, screw)."""
     n = L(P)
@@ -128,9 +136,10 @@ def switch_frames(P):
     out["home"] = dict(M=tf.T(u_tip - SW.LEAF_T + 6.0, n["y_shoe0"] - 0.5 - 4.0, w_base),
                        joint="launch_rail", z_s=zs, screw=6.0, x0=-3.0, width=8.0, top=3.5,
                        where="rail mid piece, left of the big gear, pressed by the carriage stop tab at HOME")
-    # SW_SEATED on the carriage shelf behind the pusher, tip flush with the pusher face, pressed by the dart tail
-    zs2 = 70.0 - n["w_deck1"]
-    M2 = tf.mul(tf.T(n["u_c_home"] - 2.8 + 0.0, 0, n["w_deck1"]), tf.Rz(180))
+    # SW_SEATED on a shelf behind the left spring arm, tip flush with the pusher face at (y 15, w 86), pressed by the
+    # dart tail cap (clear of the tether, which leaves the pusher on the axis)
+    zs2 = SEAT_TIP[1] - arm_top(P)
+    M2 = tf.mul(tf.T(n["u_c_home"] - 2.8 + 0.0, SEAT_TIP[0], arm_top(P)), tf.Rz(180))
     out["seated"] = dict(M=M2, joint="launch_carriage", z_s=zs2, screw=12.0, x0=-2.8, width=None, top=5.0,
                          where="carriage shelf behind the pusher, pressed by the dart tail cap")
     return out
@@ -293,12 +302,12 @@ def carriage_solid(P):
         # web from deck up to the arm at the rear (clears the lip: |y| < y_lip0)
         s.append(B(0, n["pusher_t"], 12.0 if sg > 0 else -n["y_lip0"] + 0.5, n["y_lip0"] - 0.5 if sg > 0 else -12.0,
                    n["w_deck0"], n["lip_w1"] + 14.0))
-    # SW_SEATED shelf behind the pusher, shank hole through the pusher (below the tether hole), pilots
-    s.append(B(-30.0, 0.5, -6.0, 6.0, n["w_deck0"], n["w_deck1"]))
+    # SW_SEATED shelf behind the left spring arm (top flush with the arm top)
+    s.append(B(-30.0, 0.5, SEAT_TIP[0] - 5.0, SEAT_TIP[0] + 5.0, arm_top(P) - 7.0, arm_top(P)))
     # stop tab under the rear (hits the rail stop pads at HOME)
     s.append(Bs(0, 8, n["stop_y0"], n["y_shoe0"] - 0.7, n["tab_w0"], n["w_deck0"] + 0.1))
     c = prim.union(s)
-    c = c - cyl_u(1.8, -1.0, n["pusher_t"] + 1.0, 0.0, 70.0)
+    c = c - cyl_u(1.8, -1.0, n["pusher_t"] + 1.0, SEAT_TIP[0], SEAT_TIP[1])
     f = switch_frames(P)["seated"]
     Mloc = tf.mul(tf.T(-n["u_c_home"], 0, 0), f["M"])
     for hx in SW.mount_holes(f["x0"], f["z_s"]):

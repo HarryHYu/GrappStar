@@ -2,8 +2,10 @@
  "params_source": "base/spec/params.py v1.0",
  "dart_mass_kg": 0.279,
  "dart_cda_m2": 0.0026,
- "muzzle_height_m": 0.35,
- "reel_height_m": 0.25,
+ "pivot_height_m": 0.315,
+ "release_u_m": 0.149,
+ "dart_w_m": 0.085,
+ "range_origin": "ground point under the rail pivot (main axis)",
  "stroke_m": 0.245,
- "notes": "(also written to base/out/ballistics_meta.json, which the Jetson may ignore):\n- drag_n: slip-clutch setting, expressed as the line pull at the reel exit with the reel FULL (20 m on). The coupled\n  reel model (inertia, clutch torque, guide eye, line weight and drag) is used, so the real pull on the dart differs.\n- range_m: level ground, from the muzzle's ground point to the dart's first ground contact.\n- v_muzzle: from launcher.py at that pitch (gravity and friction along the rail change it slightly).\n- t_flight_s: muzzle to ground contact. apex_m: highest point of the dart above the ground."
+ "notes": "(also written to base/out/ballistics_meta.json, which the Jetson may ignore):\n- drag_n: slip-clutch setting, expressed as the line pull at the reel exit with the reel FULL (20 m on). The coupled\n  reel model (inertia, clutch torque, guide eye, line weight and drag) is used, so the real pull on the dart differs.\n- range_m: level ground, from the ground point under the rail pivot (main axis) to the dart's first ground contact\n  (the pivot is fixed on the rover; the muzzle moves with pitch). Pivot height = deck height (ASSUMED 0.15 m) + 0.165 m.\n- v_muzzle: from launcher.py at that pitch (gravity and friction along the rail change it slightly).\n- t_flight_s: muzzle to ground contact. apex_m: highest point of the dart above the ground."
 }

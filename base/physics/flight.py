@@ -6,7 +6,8 @@ guide eye, beads are inserted at the eye as line pays out, every segment has cro
 weight, beads that touch the ground stop there. Line tension at the eye comes from either
   reel_model=False   an ideal brake: the eye lets line go at exactly brake_n x eye_gain (no reel inertia)
   reel_model=True    the real storage reel (payout.Reel): inertia, slip-clutch torque, optional centrifugal shoes
-Range is measured on level ground from the muzzle's ground point.
+Range is measured on level ground from the rail pivot's ground point with the spec geometry (from the muzzle's ground
+point when muzzle_xz is given or there is no spec geometry).
 
 python flight.py [--v 8.7] [--pitch 40] [--brake 0.75] [--sweep] [--reel]
 """

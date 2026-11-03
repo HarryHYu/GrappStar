@@ -118,7 +118,9 @@ def test_steps_name_real_parts(parts):
 def test_line_path_world_contract():
     pts = reel.line_path(P, dict(wraps=0.0, line_out_m=4.6))
     assert len(pts) > 5 and all(len(p) == 3 for p in pts)
-    assert pts[-1][1] == pytest.approx(reel.HANDOFF_Y)
+    assert pts[-1][1] == pytest.approx(reel.P2_WORLD_Y, abs=0.5)
+    gaps = [np.linalg.norm(np.subtract(a, b)) for a, b in zip(pts[:-1], pts[1:])]
+    assert max(gaps) < 400.0 and len(pts) < 250
     pts7 = reel.line_path(P, dict(wraps=7.0))
     assert len(pts7) > len(pts)
 

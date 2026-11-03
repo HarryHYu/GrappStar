@@ -489,6 +489,22 @@ P1_DX = 14.0                  # pulley 1 centre this far past the exit eye along
 P1_T = 6.0                    # pulley rim width (along R Y)
 
 
+P2_R = P1_R
+P2_WORLD_Y = 119.0            # cad-launch's pivot pulley plane (D34): the line leaves pulley 2 in it, heading -X
+P2_WORLD_Z = -60.0            # feed height (coordinator: exit about (10, 119, -60))
+P2_POST_X = 132.7             # R X of pulley 2's post (world x 114: clear of the drum, r 44 about world x 60)
+
+
+def p2_centre():
+    """Pulley 2 centre (R frame), axis R +Y (world Z): the +Y run arrives on its +X side, leaves along world -X in
+    the y 119 plane."""
+    pc1 = p1_centre()
+    x = pc1[0] + P1_R - P2_R
+    y = P2_WORLD_Z - SP["origin"][2]
+    z = SP["origin"][1] - (P2_WORLD_Y - P2_R)
+    return np.array((x, y, z))
+
+
 def p1_centre():
     """Pulley 1 (693ZZ) centre: turns the line from +X (out of the exit eye) to R -Z (world +Y), axis R +Y."""
     return np.array((EXIT[0] + P1_DX, EXIT[1], EXIT[2] - P1_R))
@@ -523,6 +539,26 @@ def _exit_post():
     cut = [_eye_cut(EXIT, exit_axis(), 6.0), prim.cylY(fits.M3_CLEAR_D / 2, py - 10, py + 10, x=px, z=pz)]
     for (x, z) in exit_post_screws():
         cut.append(prim.cylY(fits.M3_CLEAR_D / 2, y0 - 1, y0 + FOOT_T + 1, x=x, z=z))
+    return body - prim.union(cut)
+
+
+def _p2_post():
+    """Pulley 2 post (PPA-CF), R frame: foot on the deck (4 x M3), 16 x 16 column at P2_POST_X beside the drum, an
+    arm with a deep web above the pulley (the drum sits below) and two cheeks round the pulley on an M3 axle."""
+    px, py, pz = p2_centre()
+    gap = P1_T / 2 + 0.4
+    xc = P2_POST_X
+    foot = prim.box(xc - 16, xc + 16, Y_DECK, Y_DECK + FOOT_T, pz - 14, pz + 14)
+    col = prim.box(xc - 8, xc + 8, Y_DECK, py + gap + 22.0, pz - 8, pz + 8)
+    upper = prim.box(px - 8.0, xc, py + gap, py + gap + 3.5, pz - 6, pz + 6)
+    web = prim.box(px - 8.0, xc, py + gap + 3.49, py + gap + 22.0, pz - 4, pz + 4)
+    lower = prim.box(px - 8.0, xc, py - gap - 3.5, py - gap, pz - 6, pz + 6)
+    gus = [_gusset(xc - 4, xc + 4, pz + s_ * 7.5, pz + s_ * 14.0, Y_DECK + FOOT_T - 1.0, 40.0) for s_ in (-1, 1)]
+    body = prim.union([foot, col, upper, web, lower] + gus)
+    cut = [prim.cylY(fits.M3_CLEAR_D / 2, py - 15, py + 15, x=px, z=pz)]
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            cut.append(prim.cylY(fits.M3_CLEAR_D / 2, Y_DECK - 1, Y_DECK + FOOT_T + 1, x=xc + sx * 11.5, z=pz + sz * 9.5))
     return body - prim.union(cut)
 
 
@@ -709,6 +745,17 @@ def parts(P):
     add("reel_p1_brg", bearings.bearing_693(), "bought", joint="reel_base",
         place=tf.T(*pc) @ tf.Rx(-90) @ tf.T(0, 0, 2.0), color=COL["brg"], bought_ref="693ZZ 3x8x4", step=13,
         notes="Bearing in pulley 1")
+    p2 = p2_centre()
+    add("reel_p2_post", _p2_post(), "PPA-CF", tf.Rx(90), joint="reel_base", color=COL["post"], step=15,
+        notes="Pulley 2 post: stands on the deck beside the drum, turns the line into the rail pivot pulley's plane")
+    add("reel_pulley2", _pulley(), "PLA", joint="reel_base", place=tf.T(*p2) @ tf.Rx(-90) @ tf.T(0, 0, -P1_T / 2),
+        color=COL["clip"], step=15, notes="Pulley 2: feeds the line to cad-launch's rail pivot pulley (D34)")
+    add("reel_p2_brg", bearings.bearing_693(), "bought", joint="reel_base",
+        place=tf.T(*p2) @ tf.Rx(-90) @ tf.T(0, 0, 2.0), color=COL["brg"], bought_ref="693ZZ 3x8x4", step=15,
+        notes="Bearing in pulley 2")
+    add("reel_p2_axle", fasteners_m3(16.0), "bought", joint="reel_base",
+        place=tf.T(p2[0], p2[1] + P1_T / 2 + 0.4 + 3.5 + 3.0, p2[2]) @ tf.Rx(90), color=COL["brg"],
+        bought_ref="M3x16 SHCS + nyloc nut", step=15, notes="Pulley 2 axle")
     add("reel_p1_axle", fasteners_m3(16.0), "bought", joint="reel_base",
         place=tf.T(pc[0], pc[1] + P1_T / 2 + 0.4 + 3.5 + 3.0, pc[2]) @ tf.Rx(90), color=COL["brg"],
         bought_ref="M3x16 SHCS + nyloc nut", step=13, notes="Pulley 1 axle")
@@ -787,8 +834,8 @@ def kin(P, S):
     if "capstan_deg" in S:
         cap = float(S["capstan_deg"])
     else:
-        z = _zone(P, float(S.get("drum_deg", 0.0)))
-        cap = (Z_MAIN / Z_CAPG) * wiper if (z is not None and z.get("collar") == "REEL") else 0.0
+        # params 1.2.3: reel_deg = REEL output gear angle (changes only with the collar in REEL), wind-in sense
+        cap = (Z_MAIN / Z_CAPG) * float(S.get("reel_deg", 0.0))
     swing = 0.0 if float(S.get("wiper_dir", 1.0)) >= 0 else -SWING_OUT_DEG
     _, th_i, th_r = gear_angles(bus, swing)
     wraps = float(S.get("wraps", 0.0))
@@ -833,6 +880,9 @@ def allowed(P):
         Allow("reel_sw_lever", "reel_gk", "the bump presses the lever at home (contact closes)", max_vol=60.0),
         Allow("reel_p1_axle", "reel_p1_brg", "axle through the inner race"),
         Allow("reel_p1_axle", "reel_exit_post", "axle through the fork cheeks"),
+        Allow("reel_p2_brg", "reel_pulley2", "693ZZ pressed in the pulley"),
+        Allow("reel_p2_axle", "reel_p2_brg", "axle through the inner race"),
+        Allow("reel_p2_axle", "reel_p2_post", "axle through the cheeks"),
         Allow("reel_trim_screws", "reel_t", "screw tips on the thrust ring (preload)", max_vol=0.5),
         Allow("reel_pushrod", "reel_rocker", "the push rod bends the flexible rocker 4 mm at FIRM (elastic)",
               max_vol=160.0),
@@ -852,7 +902,7 @@ def clearances(P):
 
 
 def grounded(P):
-    return ["reel_wall"]
+    return ["reel_wall", "reel_p2_post"]
 
 
 def audit_states(P):
@@ -934,19 +984,23 @@ def _line_points(P, wraps=0.0, pack_r=None, z_spool=None):
     arc = np.array([(pc[0] + P1_R * math.sin(t), pc[1], pc[2] + P1_R * math.cos(t))
                     for t in np.linspace(0.0, math.pi / 2, 7)])
     spans.append((arc, {"reel_pulley1"}))
-    spans.append((np.array([arc[-1], arc[-1] + (0.0, 0.0, -RUN_CHECK)]), {"reel_pulley1"}))
+    p2 = p2_centre()
+    in2 = np.array((p2[0] + P2_R, p2[1], p2[2]))
+    spans.append((np.array([arc[-1], in2]), {"reel_pulley1", "reel_pulley2"}))
+    arc2 = np.array([(p2[0] + P2_R * math.cos(t), p2[1], p2[2] - P2_R * math.sin(t))
+                     for t in np.linspace(0.0, math.pi / 2, 7)])
+    spans.append((arc2, {"reel_pulley2"}))
+    spans.append((np.array([arc2[-1], arc2[-1] + (-RUN_CHECK, 0.0, 0.0)]), {"reel_pulley2"}))
     return spans
 
 
-RUN_CHECK = 60.0              # length of the +world-Y run checked inside my own parts
-HANDOFF_Y = 118.0             # world y where the +Y run ends at pulley 2 (placeholder until cad-launch gives the
-                              # rail pivot pulley: the line then turns toward it)
+RUN_CHECK = 30.0              # length of the stub after pulley 2 checked against my own parts
 
 
 def line_path(P, S):
     """Tether polyline in WORLD mm for state S (cad-infra contract): storage reel pack -> guide eye -> capstan turns
-    and cup groove (S["wraps"]) -> ring -> exit eye -> pulley 1 -> along world +Y to HANDOFF_Y. cad-launch continues
-    from the last point to the dart tail."""
+    and cup groove (S["wraps"]) -> ring -> exit eye -> pulley 1 -> along world +Y -> pulley 2 -> into the y 119 plane
+    -> round the bottom of cad-launch's pivot pulley to launch.line_entry(P, S). cad-launch continues from there."""
     d = _d(P)
     stored = max(0.0, d["line_len_m"] - float(S.get("line_out_m", 0.0)))
     rp = reel_calc.pack_r(d, stored)
@@ -962,11 +1016,50 @@ def line_path(P, S):
     M = np.eye(4)
     M[:3, 0], M[:3, 1], M[:3, 2] = [np.asarray(a, float) for a in sp["axes"]]
     M[:3, 3] = sp["origin"]
-    W = [tuple((M @ np.r_[p, 1.0])[:3]) for p in pts]
-    end = W[-1]
-    if HANDOFF_Y > end[1]:
-        W.append((end[0], HANDOFF_Y, end[2]))
-    return W
+    pts = pts[:-1]                                           # drop the checking stub after pulley 2
+    W = [np.asarray((M @ np.r_[p, 1.0])[:3]) for p in pts]
+    W += _to_pivot(P, S, W[-1])
+    return [tuple(float(v) for v in p) for p in W]
+
+
+PIV_R = 6.5                   # cad-launch's pivot pulley line radius
+
+
+def _pivot(P, S):
+    """(entry point, pulley centre, rail direction u) of cad-launch's pivot pulley, world. Uses launch.line_entry
+    when the launch module is present, else the coordinator's numbers (centre (44 sin p, 119, -44 cos p))."""
+    p = math.radians(float(S.get("aim_deg", 6.0)))
+    u = np.array((math.cos(p), 0.0, math.sin(p)))
+    try:
+        from cad.parts import launch as _L
+        e = np.asarray(_L.line_entry(P, S), float)
+        return e, e + PIV_R * u, u
+    except Exception:
+        c = np.array((44.0 * math.sin(p), P2_WORLD_Y, -44.0 * math.cos(p)))
+        return c - PIV_R * u, c, u
+
+
+def _to_pivot(P, S, f):
+    """From pulley 2's exit f: tangent onto the bottom of the pivot pulley, then round its bottom to the entry point
+    (its rear side), all in the y 119 plane."""
+    e, c, u = _pivot(P, S)
+    fx, fz = f[0] - c[0], f[2] - c[2]
+    d = math.hypot(fx, fz)
+    if d <= PIV_R + 1e-6:
+        return [e]
+    a0 = math.atan2(fz, fx)
+    b = math.acos(PIV_R / d)
+    cands = [a0 + b, a0 - b]
+    tz = [c[2] + PIV_R * math.sin(a) for a in cands]
+    at = cands[int(np.argmin(tz))]                           # tangent on the lower side
+    ae = math.atan2(e[2] - c[2], e[0] - c[0])
+    # go from the tangent point round the bottom (decreasing angle through -90 deg) to the entry
+    while ae > at:
+        ae -= 2 * math.pi
+    out = []
+    for a in np.linspace(at, ae, 9):
+        out.append(np.array((c[0] + PIV_R * math.cos(a), c[1], c[2] + PIV_R * math.sin(a))))
+    return out
 
 
 def _trim(pts, a, b):

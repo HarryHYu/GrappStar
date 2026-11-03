@@ -34,6 +34,35 @@ def subsystems():
     return out
 
 
+def origin_check():
+    """Markdown lines: per subsystem, the lowest part z in the rest state and the root joint origins, against
+    LAYOUT.deck_top_z (BASE_SPEC section 2: origin on the main axis)."""
+    import numpy as np
+    from tools.params import load_params
+    from tools.assembly import Assembly
+    from cad.lib import prim
+    P = load_params()
+    deck = (getattr(P, "LAYOUT", {}) or {}).get("deck_top_z", -165.0)
+    names = [n for n, e in subsystems() if e is None]
+    L = ["## Frame-origin check", "", f"Spec: main axis z = 0, deck top z = {deck}. Lowest part bottom per subsystem (rest state):", "",
+         "| subsystem | lowest part z | root joints (parent None) | verdict |", "|---|---|---|---|"]
+    try:
+        asm = Assembly.load(P, names)
+    except Exception as e:
+        return L + [f"| (all) | load failed: {type(e).__name__}: {e} | | |", ""]
+    W = asm.world({})
+    for sub in names:
+        zs = [prim.bbox(prim.place(p.solid, W[n]))[0][2] for n, p in asm.parts.items() if p.subsystem == sub]
+        zs = [z for z in zs if np.isfinite(z)]
+        roots = [f"{j.name} {tuple(round(v, 1) for v in j.origin)}" for j in asm.joints.values()
+                 if j.parent is None and j.name.startswith(sub)][:3]
+        zmin = min(zs) if zs else float("nan")
+        ok = abs(zmin - deck) < 2.0 or zmin > deck
+        verdict = "ok" if ok and zmin < 50 else ("parts below the deck" if zmin < deck - 2 else "check: lowest part far above the deck (deck at z 0?)")
+        L.append(f"| {sub} | {zmin:.1f} | {'; '.join(roots)} | {verdict} |")
+    return L + [""]
+
+
 def owner(part, parts_info):
     return parts_info.get(part, {}).get("subsystem", "?")
 
@@ -44,11 +73,15 @@ def write_md(rep, subs, args, git_rev, secs):
     L.append("# Whole-base integration audit (cad-frame)")
     L.append("")
     L.append(f"Run {time.strftime('%Y-%m-%d %H:%M')} Sydney on `{git_rev}` (base-v1 merged into w/cad-frame), "
-             f"`tools.audit --dt {args.dt} --jobs {args.jobs}`, {rep.get('n_parts')} parts, {rep.get('n_states')} states, "
+             f"`tools.audit --dt {args.dt} --jobs {args.jobs}{'' if args.refine else ' --no-refine'}`, {rep.get('n_parts')} parts, {rep.get('n_states')} states, "
              f"{secs:.0f} s. Verdict: **{'CLEAN' if rep.get('clean') else 'NOT CLEAN'}**.")
     L.append("")
     L.append("Subsystems: " + ", ".join(n + ("" if e is None else f" ({e})") for n, e in subs))
     L.append("")
+    try:
+        L += origin_check()
+    except Exception as e:
+        L += [f"origin check failed: {e}", ""]
     if rep.get("errors"):
         L.append("## Assembly errors")
         L += [f"- {e}" for e in rep["errors"]]
@@ -97,12 +130,14 @@ def main():
     ap.add_argument("--dt", type=float, default=1.0)
     ap.add_argument("--jobs", type=int, default=2)
     ap.add_argument("--out", default="/tmp/claude-0/integ")
+    ap.add_argument("--refine", action="store_true", help="let the audit refine the timeline (slow: 10k+ states)")
     a = ap.parse_args()
     subs = subsystems()
     names = [n for n, e in subs if e is None]
     t = time.time()
     r = subprocess.run([sys.executable, "-W", "ignore", "-m", "tools.audit", a.out, "--only", ",".join(names),
-                        "--dt", str(a.dt), "--jobs", str(a.jobs)], cwd=BASE, capture_output=True, text=True)
+                        "--dt", str(a.dt), "--jobs", str(a.jobs)] + ([] if a.refine else ["--no-refine"]),
+                       cwd=BASE, capture_output=True, text=True)
     secs = time.time() - t
     path = os.path.join(a.out, "audit.json")
     if not os.path.exists(path):

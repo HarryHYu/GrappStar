@@ -352,7 +352,7 @@ class Rig:
                 if ph != last_phase:
                     self.dart_phases.append(ph)
                     self.note("dart", phase=ph, seq=ds.get("seq"), ev=ds.get("event"))
-                    if ph == "ANCHORED" and self.sc.anchor_holds:
+                    if ph == "ANCHORED" and (self.sc.anchor_holds or getattr(self, "anchor_ok", False)):
                         lo = float(self.base.get().get("lineOut") or 0)
                         self.base.set(anchorTautAt=round(max(0.0, lo - 0.3), 3))
                         anchored = True
@@ -816,16 +816,25 @@ sc(Scenario("power_unwrap_fasthello", "power loss mid-unwrap with HELLO sent as 
                            lambda r, res: (not any("in 60 s" in p["text"] for p in res["prompts"]),
                                            [p["text"][:70] for p in res["prompts"] if "failed" in p["text"]]))]))
 
-sc(Scenario("dart_never_anchors", "the dart's drill motor is jammed: anchor fails, operator releases and reshoots",
-            dart_setup=["drill_jam=1"],
+def unjam_dart_retry(rig, text, choices):
+    """Operator frees the dart drills by hand (manual keys / clears the stone), then Retry."""
+    rig.dart.get("/sim/set?drill_jam=0")
+    rig.anchor_ok = True
+    rig.note("info", msg="operator: dart drills freed")
+    return "Retry"
+
+
+sc(Scenario("dart_never_anchors", "the dart's drills are jammed: /auto still says ANCHORED (stall = stone), the dart does not hold; "
+            "the check pull must catch it, release (jammed: operator frees it) and reshoot",
+            dart_setup=["drill_jam=1"], anchor_holds=False, timeout_s=700,
             policy={"did not anchor": "Release and reshoot", "refused auto": "Release and reshoot",
-                    "release did not finish": "Abort"},
-            checks=[("mission ends (DONE or ABORTED, not hung)", lambda r, res: (not res["hung"] and res["mission_state"] in ("DONE", "ABORTED"),
-                                                                              f"{res['mission_state']} {res['error']}")),
-                    ("anchor failure reported", lambda r, res: (any("anchor" in p["text"].lower() for p in res["prompts"]),
-                                                                [p["text"][:80] for p in res["prompts"]][-4:])),
-                    ("no tow on an unanchored dart", lambda r, res: ("TOW" not in res["steps"], res["steps"])),
-                    ("no dry fire", c_no_dry)]))
+                    "dragging": "Release and reshoot", "did not hold": "Release and reshoot", "slipping": "Release and reshoot",
+                    "release did not finish": unjam_dart_retry},
+            checks=[("mission DONE (dart retrieved after the failed check)", c_done),
+                    ("check pull caught the non-holding anchor", lambda r, res: (any(("dragging" in p["text"] or "did not hold" in p["text"] or "home during the check" in p["text"])
+                                                                                 for p in res["prompts"]), [p["text"][:80] for p in res["prompts"] if "failed" in p["text"]])),
+                    ("no TOW on the dragging dart", lambda r, res: ("TOW" not in res["steps"], res["steps"])),
+                    ("seated", c_seated), ("back to LAUNCH", c_launch), ("no dry fire", c_no_dry)]))
 
 sc(Scenario("snag_retrieve", "line snags while reeling in: LIMIT, operator frees it, Retry",
             triggers=[("snag", lambda r: r.step() == "RETRIEVE" and float(r.plant_last.get("lineOut") or 0) < 3.0

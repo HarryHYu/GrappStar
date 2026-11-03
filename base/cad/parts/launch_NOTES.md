@@ -1,6 +1,6 @@
 # Launcher + aim train: notes for the spec (worker cad-launch)
 
-Status: Phase 0 (before BASE_SPEC). Numbers come from `launch_kin.py` (run it: `python launch_kin.py`). All are
+Status: Phase 0/1. Coordinator's binding stack decision (11:00) applied: sleeve flange at world y 96, main axis 165 above the deck, rail plane y 140. Update 11:50: real tooth-contact release (see section 3). Numbers come from `launch_kin.py` (run it: `python launch_kin.py`). All are
 proposals for `params.py` LAUNCH / AIM; the code reads them from P when the spec lands.
 
 ## 1. Concept (Harry's v10, sized to KEDGE v30)
@@ -32,10 +32,10 @@ proposals for `params.py` LAUNCH / AIM; the code reads them from P when the spec
 | springs | 2 x Century 16 x 165.1 x 1.4, k 0.125 N/mm, F0 7 N each (P.SPRING) |
 | preload at HOME | 5 mm extension (15.3 N total holds the carriage on the stop) |
 | full cock | extension = SPRING.max_ext = 250 mm |
-| stroke | 245 mm |
-| peak force | 76.5 N total (38.3 N each) |
-| stored energy released | 11.2 J |
-| spring length | 170 at HOME, 415 cocked (hook to hook) |
+| stroke | 241.2 mm (carriage travel at release, from the 2D tooth sweep) |
+| peak force | 75.5 N total at release (spring extension 246.2 mm, under the 250 limit) |
+| stored energy released | 10.9 J |
+| spring length | 170.1 at HOME, 411.3 cocked (hook pin to hook pin) |
 
 Why 1:1: energy is capped by the spring extension (11.2 J at 250 mm) whatever the ratio. A pulley only trades force
 for stroke, and the moving spring mass grows with the ratio squared (each spring about 56 g, about 19 g effective at the
@@ -50,15 +50,22 @@ the real carriage mass from my CAD (I will put it in `launch_REPORT.md`). If the
 | gear | value |
 |---|---|
 | rack / big gear module | 2.5 |
-| big gear | 40T full (pitch d 100), 33 teeth present, gap 7 teeth (63 deg) |
+| big gear | 40T full (pitch d 100), 27 teeth present, gap 13 teeth (117 deg) |
 | drive gear (main axis) | 26T (pitch d 65, root d 58.75: holds the 47 OD sprag with a 5.9 wall), keyway 6 |
 | centre distance | 82.6 (big gear pin is 82.6 from the main axis, on the rail) |
 | wiper turns per shot | 40/26 = 1.538 (553.8 wiper deg) |
 | torque: big gear / wiper and sprag #1 | 3.8 / 2.5 N m at full cock (sprag rated 50) |
 | shot time | about 2.1 s at 45 rpm free speed, plus the stop |
 
-During the shot (about 60 ms) the wiper keeps turning about 16 deg; the 63 deg gap covers it (release check is done on the
-real 2D tooth geometry in the CAD, see REPORT).
+Tooth timing (found with a 2D contact sweep, `launch.release_table`): with the carriage held on its stop, a turning gear
+cannot enter the rack at the mesh centre (teeth within about 25 deg of it would cut the stationary rack). So at rest tooth 0
+sits 3 pitches (27 deg) before the mesh centre and is the FIRST tooth to touch rack tooth 0; contact starts about 2.5 deg
+after rest. Carriage travel per big gear degree is 0.873 mm through the stroke. Release (last tooth lets go and the rack
+can run home clear of every tooth) at big gear -281.25 deg = 432.7 forward wiper deg from HOME, travel 241.2 mm.
+Reset: the gear turns on through the 117 deg gap back to rest (553.8 wiper deg per shot in total). During the shot (about
+60 ms) the wiper keeps turning (about 10 deg of big gear): audited with the gear lagging up to 12 deg, clean.
+Firmware: forward run from HOME, release at about 433 wiper deg (cock telemetry = travel/241.2), stop at the SW_HOME
+closing edge after about 554 deg (reset), or by angle.
 
 ## 4. Rail frame and envelope
 
@@ -71,12 +78,12 @@ x = u cos p - w sin p, z = u sin p + w cos p, p = pitch.
 | big gear pin | (82.6, 0), y 0 plane |
 | rack pitch line | w = 50 |
 | dart axis | w = 85 (belly w 64), dart nose forward |
-| carriage pusher face at HOME / cocked | u 75.6 / u -169.4 |
-| dart tail at HOME, nose at HOME | u 75.6, u 227.6 (augers reach back to u 59 at |y| about 31, w above 86) |
-| rail bars (carriage shoes) | u -185 to 115 |
-| spring anchors (muzzle bar) | u about 240, y +-34, w about 60 |
-| springs | y +-34, w about 60, under the dart flanks (the flank legs are all above w 85) |
-| rail length | u -190 to 250 (about 440 mm, printed in 2 pieces, bolted M3) |
+| carriage pusher face at HOME / cocked | u 78.6 / u -162.6 (carriage rear face u 70.6 at HOME) |
+| dart tail at HOME, nose at HOME | u 78.6, u 230.6 (augers reach back to u 62 at |y| 22.7..39.5, w 88..103) |
+| shoe track (rail walls) | u -182.4 to 190 |
+| spring anchor pins (d6, front posts) | u 246.7, y +-38, spring axis w 60 |
+| springs | y +-38, w 60, under the dart flanks (the flank legs are all above w 85) |
+| rail length | u -182.4 to 256.7 (439 mm, printed in 3 pieces split at u -30 and 112, bolted M3) |
 | aim lug on the rail | (115.2, 0) at y about +55 (outboard of the rail) |
 | crank (worm wheel) centre | world (58.0, -100.5) relative to the pivot, y about +55 |
 | crank radius / conrod | 30 / 156 |
@@ -91,7 +98,10 @@ envelope about 260 forward of the axis at 6 deg; rear about 190 behind. Width y 
 2. Launch input: preferred = coaxial. The dog clutch's launch-side driven member continues as a "launch sleeve",
    20 mm OD with a 6 mm key for 14 mm (sprag #1 inner race) plus a keyed seat for the splitter sun gear (about 12 mm) and
    two plain journal sections (d 30, 10 long each) for the rail cheek bushings. Axial span needed on the main axis:
-   y -20 to +40 (drive gear at y -8..+8, rail cheeks y +-9..+19, sun gear y +24..+36). Who owns the sleeve: I propose I
+   (as built, world y): flange 96..100, rail cheeks on plain d20 journals 123..131 and 149..157, drive gear + sprag #1
+   132..148, sun keyway 173..183, outboard end 192 (journal d20 in the aim housing bushing, which I own). The sleeve bore
+   takes the d12 main shaft spigot for 24 mm only (12.4 bore, inboard end); beyond that it is solid so the 6 mm keyways
+   keep their wall. Who owns the sleeve: I propose I
    do (`launch_sleeve`, PPA-CF), with the drum worker's dog face on its end, dog geometry from the drum worker. If the
    spec instead puts the launch drive on a gear (drum worker's "launch output gear"), I need its module, tooth count,
    face width and position: then my drive gear sits on its own launch shaft, and the rail still pivots on the main axis.

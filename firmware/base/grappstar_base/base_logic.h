@@ -44,6 +44,7 @@ struct Io {
   uint8_t (*switches)() = nullptr;                // bit i = contact on PIN_SW_(A+i) closed
   float (*hxRaw)() = nullptr;                     // HX711 counts, NAN if absent or no new sample
   void (*save)(const Saved& s) = nullptr;         // persist (the sketch writes NVS outside the tick)
+  void (*saveTun)(const Tun& t) = nullptr;        // bench settings (set / cal)
   void (*out)(const char* line) = nullptr;        // event line to the host (queued by the sketch)
   uint32_t (*rand32)() = nullptr;                 // token source (esp_random on the ESP32)
 };
@@ -85,7 +86,7 @@ struct Base {
 
   // ================================================================== setup
   void begin(uint32_t t) {
-    now = bootT = stT = t;
+    now = bootT = stT = t; telT = t;
     enc.sign = c.wiperSign; sw.debounceMs = c.debounceMs;
     w.c.tripA = c.tripA;
     loadAimTable();
@@ -104,6 +105,20 @@ struct Base {
     }
 #endif
   }
+  Tun tunNow() const {
+    Tun t; t.encSign = enc.sign > 0 ? 1 : 0; t.requireSeated = c.requireSeated;
+    t.ampsPerVolt = w.c.ampsPerVolt; t.offsetA = w.c.offsetA; t.freeA = c.freeA; t.kNperA = c.kNperA; t.hxNPerCount = c.hxNPerCount;
+    t.hxOff = hxOff; t.limitN = c.limitN; t.drumDps = c.drumDps; t.aimOffset = aimOffset; t.aimTol = c.aimTolDeg; t.tripA = c.tripA;
+    t.cockTripA = c.cockTripA; t.vbatLow = c.vbatLow; t.aimHomeDeg = c.aimHomeDeg; sealTun(&t); return t;
+  }
+  // the sketch calls this before begin() with what saveTun() stored (or nullptr)
+  void restoreTun(const Tun* t) {
+    if (!t || !validTun(t)) return;
+    enc.sign = c.wiperSign = t->encSign ? 1 : -1; c.requireSeated = t->requireSeated; w.c.ampsPerVolt = t->ampsPerVolt; w.c.offsetA = t->offsetA;
+    c.freeA = t->freeA; c.kNperA = t->kNperA; c.hxNPerCount = t->hxNPerCount; hxOff = t->hxOff; c.limitN = t->limitN; c.drumDps = t->drumDps;
+    aimOffset = t->aimOffset; c.aimTolDeg = t->aimTol; c.tripA = t->tripA; c.cockTripA = t->cockTripA; c.vbatLow = t->vbatLow; c.aimHomeDeg = t->aimHomeDeg;
+  }
+  bool tunDirty = false;
   // the sketch calls this before the first tick with what save() stored (or nullptr)
   void restore(const Saved* s) { if (s && validSaved(s)) { boot = *s; bootValid = true; } else bootValid = false; }
 
@@ -672,6 +687,7 @@ struct Base {
     out[n++] = {"trip_a", &c.tripA, 3, 19};
     out[n++] = {"cock_trip_a", &c.cockTripA, 3, 19};
     out[n++] = {"vbat_low", &c.vbatLow, 6, 12};
+    out[n++] = {"aim_home_deg", &c.aimHomeDeg, -720, 720};
     return n;
   }
   const char* cmdSet(const char* k, double v) {
@@ -725,8 +741,8 @@ struct Base {
       err = cmdReel(a, m, s2);
     }
     else if (!strcmp(cmd, "jog")) { if (!o.num("ms", &b)) b = 300; err = (o.str("motor", &s) && o.num("dir", &a)) ? cmdJog(s, a, b) : "BAD_ARG"; }
-    else if (!strcmp(cmd, "cal")) err = o.str("what", &s) ? cmdCal(s, o) : "BAD_ARG";
-    else if (!strcmp(cmd, "set")) { bool bv; if (o.str("key", &s) && (o.num("val", &a) || (o.boolean("val", &bv) && ((a = bv ? 1 : 0), true)))) err = cmdSet(s, a); else err = "BAD_ARG"; }
+    else if (!strcmp(cmd, "cal")) { err = o.str("what", &s) ? cmdCal(s, o) : "BAD_ARG"; if (!err) tunDirty = true; }
+    else if (!strcmp(cmd, "set")) { bool bv; if (o.str("key", &s) && (o.num("val", &a) || (o.boolean("val", &bv) && ((a = bv ? 1 : 0), true)))) err = cmdSet(s, a); else err = "BAD_ARG"; if (!err) tunDirty = true; }
     else if (!strcmp(cmd, "get")) {
       if (!o.str("key", &s)) err = "BAD_ARG";
       else if (!getKey(s, r)) err = "BAD_KEY";
@@ -863,6 +879,7 @@ struct Base {
     bool still = !w.running() && !d.running() && (state == S_IDLE || state == S_HOLD || state == S_FAULT);
     if (!still) quietT = now;
     if (still && now - quietT >= 300 && (movingBits || dirty)) { movingBits = 0; dirty = false; persist(0); }
+    if (still && tunDirty) { tunDirty = false; if (io.saveTun) io.saveTun(tunNow()); }
   }
 
   void tickDrumState() {

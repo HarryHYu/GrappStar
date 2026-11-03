@@ -1,6 +1,6 @@
 # fw-base report (firmware/base)
 
-Worker `fw-base`, 3 Nov 2026, branch `w/fw-base`. Firmware string `base-1.2.1`, params `1.2.6`.
+Worker `fw-base`, 3 Nov 2026, branch `w/fw-base`. Firmware string `base-1.2.1`, params `1.3.x` (params_gen.h regenerated from base-v1).
 Nothing here has run on hardware: every claim below is from the PC simulation and the arduino-cli compile.
 
 ## Done
@@ -34,16 +34,19 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
    `decock` with `force` if SW_HOME lies). Safer than trusting a contact.
 4. A drum code change with the drum still near the wrap window makes the wrap count doubtful: only `unwrap` (with
    the take-up) until NEUTRAL.
-5. Tow (D33 / D34 / D39): limit at most 70 N; trip = (max_n + 10.4) / 17 + I_free + 1 A (at least 5 A, at most 17 A);
-   the tow holds on the 200 ms average OR on the raw estimate held 60 ms at the limit (stiff lines); a re-sent tow at
-   the limit stays in HOLD; constants cannot change while moving or holding.
+5. Tow (D33 / D34 / D39 / D43): the limit is the dart-side tension, at most 60 N; estimate 14.8 x (I - I_free) - 2.6;
+   trip = (max_n + 2.6) / 14.8 + I_free + 1 A (at least 5 A); the tow starts at the minimum duty and speeds up only
+   while the line is slack; it holds on the 200 ms average OR on the raw estimate held 30 ms at the limit; a re-sent
+   tow at the limit stays in HOLD (stop + reel to wind again); constants cannot change while moving or holding.
 6. Fly-in at 25 percent duty (asked about 20) so the 3 A trip reads real current (IS scaling needs duty 60 or more).
 7. Final approach time limit: max(20 s, 10 s + 1.5 x line_m / slowest take-up speed at the duty), 30 s with line_m
    unknown, `max_s` 5..600. The coordinator asked 5..180; physics shows 20 m at duty 0.3 needs about 500 s.
 8. Reel-in trip stays 5 A (D33) although physics suggested 6 A; one config line if Harry agrees.
 9. `retrieve` is also accepted at the WRAPPED park below 318 with the collar free (BASE_SPEC says NEUTRAL only);
    refused with the collar in REEL (D35).
-10. Index mode (D12): cock stops a bump early, a missed bump faults within 1.5 bump periods, every aim re-homes on
+10. Backward runs in LAUNCH trip at 3 A (D40); after an aim or decock a slow forward gap run closes SW_GAP (big gear
+    drag, cad-launch); SW_HOME ignored 0.5 s after the release (D45).
+11. Index mode (D12): cock stops a bump early, a missed bump faults within 1.5 bump periods, every aim re-homes on
     SW_RAIL_LOW, aim tolerance at least 2 deg.
 
 ## Verified
@@ -55,8 +58,8 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
 - Known gap: SW_HOME stuck closed AND the saved angle lost AND the train about 300 deg into a cock: a recovery
   `cock` can still reach the release (its reset allowance of 157 deg overlaps). Every other combination is refused.
   The test starts this case at 270 deg.
-- Tow on a very stiff short line (about 3000 N/m) at full duty can overshoot a 40 N limit by about 50 percent before
-  the current catches up (worm holds; 5 N m shear pin above). Lower duty for low limits.
+- Tow on a very stiff line: the slow start keeps the simulated overshoot under about 10 percent (systest's 5.6 kN/m
+  Dyneema plant: limit respected); measure on the bench (CALIBRATION f).
 - `cal cock_rest` with `force:true` trusts the operator: on a drawn spring the next forward jog or cock can fire.
 - Two contacts failing together (a drum code bit AND SW_ARM, or SW_HOME AND SW_GAP with the record lost) defeat the
   cross-checks; single contact failures are caught (fuzzed with faults injected during motion).
@@ -149,8 +152,8 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
 1. Wiper direction: which way RPWM turns the shaft, and that FORWARD cocks (CALIBRATION g); AS5600 `enc_sign`.
 2. Wiper current: IS scale `amps_per_volt` at low duty with a meter in series, `offset_a` with the motor off, free current
    `free_a` while reeling slack (`cal free`).
-3. Tension: `k_n_per_a` and `tension_offset_n` with a luggage scale at 3 loads (defaults 17 and -10.4 are physics
-   estimates). Hard prerequisite of the first tow.
+3. Tension: `k_n_per_a` and `tension_offset_n` with a luggage scale at the line end (dart side, D43) at 3 loads
+   (defaults 14.8 and -2.6 are physics estimates). Hard prerequisite of the first tow.
 4. Drum speed (`drum_dps`, learned automatically between code edges; default 8.1 deg/s) and the end stops.
 5. Aim: `aim_home_deg` (SW_RAIL_LOW position) and `aim_offset` against a phone inclinometer on the rail.
 6. Launch train angles: SW_HOME opening (first tooth, about 4 deg), release (432.7), SW_GAP closing (about 520):

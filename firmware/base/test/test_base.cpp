@@ -462,7 +462,7 @@ static void testStallOvercurrent() {
   { Rig R; R.toMode("NEUTRAL"); R.wrapToReel();
     S.lineOut = 5; R.run(50); S.extraLoadNm = 14.5;
     CHECK(R.err("{\"id\":1,\"cmd\":\"reel\",\"until\":\"seated\"}") == "WRAPS_ON" && R.err("{\"id\":1,\"cmd\":\"retrieve\"}") == "WRAPS_ON", "no seating on the capstan (D35): WRAPS_ON");
-    R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":70,\"until\":\"stop\"}");
+    R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":60,\"until\":\"stop\"}");
     R.until([&] { return R.B.state == gb::S_FAULT || R.B.state == gb::S_IDLE; }, 10000);
     CHECK(R.B.state == gb::S_FAULT, "stalled reel-in: fault");
     R.run(2000);
@@ -779,7 +779,7 @@ static void testReview3() {
     gb::Tun t = R.B.tunNow(); gb::Base B2; B2.restoreTun(&t);
     CHECK(B2.c.hostTimeoutS == 0 && B2.c.tensOffsetN == -3 && B2.c.towTripA == 7, "tension_offset_n, tow_trip_a saved; host_timeout_s back to 0 at boot (review r3_M)");
     gb::Tun old = t; old.ver = 1; gb::sealTun(&old); gb::Base B3; B3.restoreTun(&old);
-    CHECK(B3.c.kNperA == 17.0f && B3.c.tensOffsetN == -3.0f, "a base-1.0 record is ignored: physics constants 17 and -3.0 (D42)"); }
+    CHECK(B3.c.kNperA == P_REEL_TOW_TENSION_MODEL_N_PER_A && B3.c.tensOffsetN == P_REEL_TOW_TENSION_MODEL_OFFSET_N, "an old record is ignored: params tension constants (D43 dart side 14.8 / -2.6)"); }
   { S = Sim(); gb::Base B; B.io = simIo(); B.begin(S.t); B.restore(nullptr); S.step(5); B.tick(S.t += 0);
     char rep[300]; const char* l = "{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":30}";
     B.handleLine(l, (int)strlen(l), rep, sizeof rep);
@@ -789,7 +789,7 @@ static void testReview3() {
   { Rig R; R.B.evDrops = 3; std::string r = R.cmd("{\"id\":1,\"cmd\":\"status\"}");
     CHECK(r.find("\"ev_drops\":3") != std::string::npos && r.size() <= 256, "status reports dropped events, within 256 bytes"); }
   { Rig R; R.B.c.freeA = 1.5f; R.B.w.amps = 5.0f;
-    CHECK(fabsf((R.B.w.amps - R.B.c.freeA) * R.B.c.kNperA + R.B.c.tensOffsetN - 56.5f) < 0.1f, "tension model 17 x (I - I_free) - 3.0 (D42): 5 A gives 56.5 N"); }
+    CHECK(fabsf((R.B.w.amps - R.B.c.freeA) * R.B.c.kNperA + R.B.c.tensOffsetN - 49.2f) < 0.1f, "dart-side tension model 14.8 x (I - I_free) - 2.6 (D43): 5 A gives 49.2 N"); }
 }
 
 static void testReview4() {
@@ -815,10 +815,10 @@ static void testReview4() {
     Rig R2(false); R2.run(100);
     CHECK(R2.err("{\"id\":1,\"cmd\":\"cock\"}") == "LOADED_UNKNOWN" && S.shots == 0, "cut mid-cock + SW_HOME stuck closed: no recovery creep, no shot"); }
   { Rig R; R.toMode("NEUTRAL"); R.wrapToReel(); S.lineOut = 8; S.anchorTautAt = 7.6; S.anchorK = 60; R.run(50);
-    CHECK(R.err("{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":71}") == "OUT_OF_RANGE" && R.err("{\"id\":2,\"cmd\":\"reel\",\"max_n\":71,\"until\":\"tension\"}") == "BAD_ARG", "D39: tow limit above 70 N refused");
-    R.B.c.freeA = 3.0f; R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":70}");
-    R.ok("{\"id\":2,\"cmd\":\"reel\",\"duty\":1,\"max_n\":70,\"until\":\"tension\"}");
-    CHECK(R.B.w.c.tripA > 8.0f && R.B.w.c.tripA <= R.B.c.hardTripA, "D34: tow trip follows the limit ((70 + 10.4) / 17 + I_free + 1 A)");
+    CHECK(R.err("{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":61}") == "OUT_OF_RANGE" && R.err("{\"id\":2,\"cmd\":\"reel\",\"max_n\":61,\"until\":\"tension\"}") == "BAD_ARG", "D39/D43: tow limit above 60 N refused");
+    R.B.c.freeA = 3.0f; R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":60}");
+    R.ok("{\"id\":2,\"cmd\":\"reel\",\"duty\":1,\"max_n\":60,\"until\":\"tension\"}");
+    CHECK(R.B.w.c.tripA > 8.0f && R.B.w.c.tripA <= R.B.c.hardTripA, "D34: tow trip follows the limit ((60 + 2.6) / 14.8 + I_free + 1 A)");
     R.ok("{\"id\":3,\"cmd\":\"stop\"}"); }
   { Rig R; R.toMode("NEUTRAL"); R.wrapToReel(); R.ok("{\"id\":1,\"cmd\":\"unwrap\"}");
     R.until([&] { return S.drumDeg < 180; }, 120000); R.ok("{\"id\":2,\"cmd\":\"stop\"}"); R.run(500);
@@ -844,6 +844,20 @@ static void testReview4() {
     R.ok("{\"id\":2,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 40000);
     char m[90]; snprintf(m, sizeof m, "mode NEUTRAL re-references and parks at 41 (true %.1f)", S.drumDeg);
     CHECK(R.idle() && fabs(S.drumDeg - 41) < 5, m); }
+  { Rig R; S.aimDragDeg = 127; R.toMode("LAUNCH");   // cad-launch: the aim drags the big gear back and opens SW_GAP
+    R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000);
+    CHECK(R.B.aimed && R.B.closed(gb::SW_GAP) && S.cockPh > -34.5 && S.cockPh < 0, "aim then the forward gap run: AIMED with SW_GAP closed, train still in its gap");
+    std::string a = R.cmd("{\"id\":2,\"cmd\":\"arm\"}"); long tok = atol(a.c_str() + a.find("\"token\":") + 8);
+    CHECK(R.ok("{\"id\":3,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}"), "arm and fire after the gap run");
+    R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
+    CHECK(S.shots == 1 && R.B.phase == gb::PH_REST && R.B.fault == gb::F_NONE, "shot and reset"); }
+  { Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}"); R.until([&] { return R.idle(); }, 60000);
+    S.cockPh = -100; R.run(100);               // the gap opened after the aim (sprag drag)
+    std::string a = R.cmd("{\"id\":2,\"cmd\":\"arm\"}"); long tok = atol(a.c_str() + a.find("\"token\":") + 8);
+    CHECK(a.find("\"ok\":true") != std::string::npos, "arm with a fixable open gap: ok (the gap run starts)");
+    CHECK(R.ok("{\"id\":3,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}"), "fire during the gap run is queued");
+    R.until([&] { return (R.idle() && S.shots) || R.B.state == gb::S_FAULT; }, 30000);
+    CHECK(S.shots == 1 && R.B.fault == gb::F_NONE, "queued fire runs after the gap closed"); }
   for (int every : {200, 100, 40}) {             // bursts of 3 failed I2C reads during a cock (review: travel was lost)
     Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":2,\"cmd\":\"aim\",\"deg\":30}"); R.until([&] { return R.idle(); }, 60000);
     S.encDropEvery = every; R.ok("{\"id\":3,\"cmd\":\"cock\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
@@ -940,7 +954,7 @@ static void testIndexFailures() {
 
 static void testReview6() {
   T("review round 6 (adversarial) regressions");
-  for (double K : {1000.0, 3000.0}) for (int lim : {40, 70}) {     // stiff anchored line: the tow must stop near the limit
+  for (double K : {1000.0, 3000.0}) for (int lim : {40, 60}) {     // stiff anchored line: the tow must stop near the limit
     Rig R; R.toMode("NEUTRAL"); R.wrapToReel(); S.lineOut = 8; S.anchorTautAt = 7.95; S.anchorK = K; R.run(50);
     char c1[96]; snprintf(c1, sizeof c1, "{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":%d,\"until\":\"tension\"}", lim); R.ok(c1);
     double mx = 0; R.until([&] { if (S.tension() > mx) mx = S.tension(); return R.B.state == gb::S_HOLD || R.B.state == gb::S_FAULT; }, 120000);

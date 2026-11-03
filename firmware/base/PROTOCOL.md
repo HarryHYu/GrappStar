@@ -106,15 +106,19 @@ In REEL (capstan, wiper FORWARD):
   draws about 4.6 A), `max_n` 70 (the maximum, D39) gives 6.8 A, `max_n` 20 gives 5 A (the floor). `tow_trip_a` is still a saved setting
   but no longer used in this formula. The constants cannot be changed during a tow (`set` replies `BUSY`). Any other
   `until`: `trip_a` (5 A).
-- Tension = the estimate `k_n_per_a x (amps - free_a) + tension_offset_n` (defaults 17.0 and -3.0, D42; never below 0, averaged over about 200 ms, D33; the first 150 ms of a run are ignored). With
+- Tension = the estimate `k_n_per_a x (amps - free_a) + tension_offset_n` (defaults 17.0 and -3.0, D42; never below 0, averaged over about 200 ms, D33; the first 80 ms of a run are ignored). With
   a live load cell the tension used is the larger of the load cell and the current estimate (a frozen load cell cannot
   hide the current). The speed tapers over the last 30 % of `max_n`, using the larger of the averaged and the
   unaveraged estimate.
+- Tow speed (`until:"tension"`): it starts at the minimum duty (0.27) and ramps up to the commanded `duty` (about
+  0.5 s) only while the tension estimate is under 25 % of `max_n`; above that it stays at the minimum duty. A tidied
+  Dyneema line gains about 4.5 N per wiper degree once taut, so the current must see the rise before the limit.
 - The tow stops at `max_n` when the 200 ms average reaches it OR the unaveraged estimate stays at or above it for
-  60 ms (config `rawHoldMs`; a stiff line rises faster than the average). It sends `LIMIT` (`why:"tension limit"`,
+  30 ms (config `rawHoldMs`; a stiff line rises faster than the average). It sends `LIMIT` (`why:"tension limit"`,
   `tension_n` the higher of the two estimates). With `until:"tension"` the base then HOLDS (state `HOLD`,
-  `holding:true`, the worm and sprag #2 hold the line); with a load cell it winds again by itself when the tension
-  falls under 60 % of `max_n`. With any other `until` it goes to `IDLE` (`holding:false`).
+  `holding:true`, the worm and sprag #2 hold the line); it winds again by itself (after at least 1 s) when the load
+  cell reads under 60 % of `max_n`, but only when the load cell itself caused the hold: a hold from the current
+  estimate (for example a jam that reads as tension) never restarts by itself. With any other `until` it goes to `IDLE` (`holding:false`).
 - A `reel` with `until:"tension"` sent while holding at 95 % or more of the new `max_n` stays in HOLD (`LIMIT`
   `why:"already at the limit"`): re-pulling a held line would ratchet it up.
 - A tow that stalls at 80 % or more of `max_n` holds (`LIMIT` `why:"stalled at the limit"`) instead of a `STALL`
@@ -390,7 +394,7 @@ drum, see below).
 | `ANGLE_SENSOR` | `AS5600 lost while the wiper runs` (10 bad reads in a row = 50 ms, or no magnet); `AS5600 counts against the drive (enc_sign?)`; `AS5600 glitching (over 20 bad samples a second)`; `AS5600 angle jumped while turning (travel lost)` (a lasting jump taken without counting it, while the wiper turns or during aim, cock, fire or decock); in index mode `SW_INDEX bump overdue (index cam or contact)` |
 | `SWITCH_DISAGREE` | `SW_DOG_L and SW_DOG_R both closed` (200 ms, or at the end of a move); `collar contact disagrees with the drum code` (during a drum move or a drum jog); `drum code contact chattering` (during a drum move, only when the chatter lasts over 1 s); `collar still engaged at NEUTRAL` (also at the WRAPPED park); `SW_HOME opened at the wrong angle`; `SW_HOME still closed past the first tooth`; `SW_HOME chattering during decock` |
 | `BROWNOUT` | `battery sagged under load`: the low-passed battery reading under `vbat_low` for 300 ms while a motor runs |
-| `BAD_STATE` | the mechanism did not do what the angle says: `collar left LAUNCH during a launch action` (also during a wiper jog that started in LAUNCH; at once when the drum code says L_TO_N or beyond or `SW_DOG_R` closes; a dropout or chatter of `SW_DOG_L` or a code contact stops the wiper at once and faults only if it lasts 100 ms), `drum code away from LAUNCH but the spring is drawn`, `LAUNCH collar not confirmed with the spring possibly drawn`, `SW_RAIL_LOW never closed in an aim cycle`, `aim ran too far`, `carriage not drawn (SW_HOME still closed): rack or dog not engaged`, `carriage slipped home while cocking`, `SW_HOME closed at the end of cocking`, `SW_HOME never opened (stuck closed?)`, `release at the wrong angle` (after `FIRED`), `no release seen (SW_HOME did not close)`, `SW_HOME opened while resetting` (open for 80 ms: a carriage rebound is allowed), `reset ended with the carriage off its stop`, `reset ended with the big gear out of its gap`, `decock: SW_HOME never closed`, `decock: SW_GAP never closed`, and the time limits (`cocking took too long`, `cock recovery took too long`, `fire cycle took too long`, `decock by travel took too long`) |
+| `BAD_STATE` | the mechanism did not do what the angle says: `collar left LAUNCH during a launch action` (also during a wiper jog that started in LAUNCH; at once when the drum code says L_TO_N or beyond or `SW_DOG_R` closes; a dropout or chatter of `SW_DOG_L` or a code contact stops the wiper at once and faults only if it lasts 100 ms), `drum code away from LAUNCH but the spring is drawn`, `LAUNCH collar not confirmed with the spring possibly drawn`, `SW_RAIL_LOW never closed in an aim cycle`, `aim ran too far`, `carriage not drawn (SW_HOME still closed): rack or dog not engaged` (SW_HOME still closed 15 deg past the first-tooth window), `carriage slipped home while cocking`, `SW_HOME closed at the end of cocking`, `SW_HOME never opened (stuck closed?)`, `release at the wrong angle` (after `FIRED`), `no release seen (SW_HOME did not close)` (20 deg past the release window), `SW_HOME opened while resetting` (open for 80 ms: a carriage rebound is allowed), `reset ended with the carriage off its stop`, `reset ended with the big gear out of its gap`, `decock: SW_HOME never closed`, `decock: SW_GAP never closed`, and the time limits (`cocking took too long`, `cock recovery took too long`, `fire cycle took too long`, `decock by travel took too long`) |
 | `DART_STUCK` | `final approach: no SW_SEATED in N s` (N = the time limit in force, section 2 `reel`) |
 
 A fault during any launch-train motion makes the shot phase `UNKNOWN` (the last angle is kept as the phase hint,
@@ -706,3 +710,6 @@ What the Jetson worker must change (against the base-1.0 version of this file):
     the new code for 300 ms; "drum code contact chattering" needs over 1 s; wider "carriage not drawn" and "no release
     seen" margins; "SW_HOME opened while resetting" needs 80 ms; brownout uses a low-passed reading; leaving REEL with
     the line taut (over 5 N) skips the centering jog.
+56. Tow: starts at the minimum duty and speeds up (about 0.5 s) only while the estimate is under 25 % of `max_n`;
+    the raw-estimate hold is 30 ms and the start blanking 80 ms (were 60 and 150); a hold resumes on a slackening
+    load cell only when the load cell caused it.

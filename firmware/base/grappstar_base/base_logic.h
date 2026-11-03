@@ -869,10 +869,17 @@ struct Base {
     return nullptr;
   }
   const char* cmdArm(uint32_t* tok) {
-    if (const char* e = fireCheck()) return e;
+    const char* e = fireCheck();
+    bool gapFix = false;
+    if (e && !strcmp(e, "NOT_COCKED") && gapFixable()) {   // a gap opened by the aim's sprag drag: fix it, then the token runs
+      bool ok = aimKnown && aimed && !isnan(aimTarget) && fabsf(pitch() - aimTarget) <= c.aimTolDeg && (!c.requireSeated || closed(SW_SEATED));
+      if (ok) { gapFix = true; e = nullptr; }
+    }
+    if (e) return e;
     uint32_t r = io.rand32 ? io.rand32() : (now * 2654435761u) ^ 0x5bd1e995u;
     token = (r % 900000u) + 100000u;              // six digits, never 0
     tokenT = now; tokenLive = true; tokenExpired = false; *tok = token;
+    if (gapFix) { gapThenArm = true; firePending = false; sub = 5; state = S_AIM; stT = now; startGapRun(); }
     return nullptr;
   }
   const char* cmdFire(double tok) {
@@ -881,11 +888,15 @@ struct Base {
     tokenExpired = false;
     if (tok != (double)token) { tokenLive = false; return "BAD_TOKEN"; }   // a wrong token burns the arm
     tokenLive = false;
+    if (state == S_AIM && sub == 5 && gapThenArm) { firePending = true; return nullptr; }   // fires when the gap is closed
     if (const char* e = fireCheck()) return e;
+    startFire();
+    return nullptr;
+  }
+  void startFire() {
     releaseSeen = false; relPeakA = 0; homeSeen = phase == PH_COCKED; phase = PH_FIRING; opFrom = cockPhase;
     w.c.tripA = c.cockTripA;                         // the spring load peaks at the release (D8: 6.5 A while cocking)
     w.want(cockDir(), c.fireDuty); markMoving(MV_WIPER); state = S_FIRE; stT = opT = now;
-    return nullptr;
   }
   // wrap (D22): from LAUNCH or NEUTRAL through the WRAP sector (the cup lays the wraps, collar NEUTRAL) to the WRAPPED park
   // (314, collar still NEUTRAL). "mode REEL" then flies the collar into REEL.
@@ -902,6 +913,7 @@ struct Base {
     if (loadedKnown()) return "LAUNCH_BUSY";
     if (w.running()) return "BUSY";
     if (!enc.ok && sec == SEC_LAUNCH) return "ANGLE_SENSOR";   // the centering jog needs the wiper angle
+    wrapFromBelow = sec < SEC_WRAP;
     if (!startDrumMove(DP_WRAPPED, false)) return "POSITION_UNKNOWN";   // park at WRAPPED (314): collar NEUTRAL, cup locked
     aimed = false; tokenLive = false;
     state = S_WRAP; stT = now;
@@ -1360,7 +1372,30 @@ struct Base {
       state = S_IDLE; stT = now; evMode(true); dirty = true;
     }
   }
+  // cad-launch review round 3: after a backward (aim / decock) run the big gear can follow the freewheeling sprag drag up
+  // to about 127 deg back and open SW_GAP (carriage still home, no tooth reached). A slow FORWARD run inside the
+  // toothless gap closes it again; then the gear sits at the gap-close angle (gapCloseDeg - cycleDeg before the first tooth)
+  bool gapFixable() const { return fitted(SW_GAP) && !closed(SW_GAP) && fitted(SW_HOME) && closed(SW_HOME) && phase == PH_REST && launchCentred(); }
+  bool wrapFromBelow = false; uint32_t releaseT = 0; bool gapRun = false; float gapFrom = 0; uint32_t gapT = 0; bool gapThenArm = false, firePending = false;
+  void startGapRun() {   // the gear is somewhere back in its gap until SW_GAP closes
+    gapRun = true; gapFrom = enc.deg(); gapT = now; cockPhase = c.gapCloseDeg - c.cycleDeg - c.gapRunMaxDeg;
+    w.c.tripA = c.jogTripA; w.want(cockDir(), c.nudgeDuty); markMoving(MV_WIPER); }
+  int tickGapRun() {                                 // 0 running, 1 gap closed, -1 fault raised
+    if (!closed(SW_HOME)) { raise(F_BAD_STATE, "carriage left home while closing the gear gap"); return -1; }
+    if (closed(SW_GAP)) { w.halt(now, io.wiper); gapRun = false; cockPhase = c.gapCloseDeg - c.cycleDeg + sinceEdge(SW_GAP, cockDir()); dirty = true; return 1; }
+    if ((enc.deg() - gapFrom) * cockDir() > c.gapRunMaxDeg || now - gapT > 8000) { raise(F_BAD_STATE, "SW_GAP did not close in the forward gap run"); return -1; }
+    w.want(cockDir(), c.nudgeDuty);
+    return 0;
+  }
   void tickAim() {
+    if (sub == 5) {                                  // the gap run after the aim (or for arm)
+      int r = tickGapRun(); if (r < 0) return; if (r == 0) return;
+      state = S_IDLE; stT = now;
+      if (gapThenArm) { gapThenArm = false; tokenT = now;   // the token runs from here
+        if (firePending) { firePending = false; if (const char* e = fireCheck()) { JOut o(evBuf, sizeof evBuf); evBegin(o, "FIRED"); o.boolean("ok", false); o.str("err", e); evEnd(o); } else startFire(); }
+        return; }
+      aimed = true; evAimed(true, nullptr); return;
+    }
     float trav = (enc.deg() - opFrom) * c.aimDir;
     if (homing) {
       if (rose(SW_RAIL_LOW)) {
@@ -1377,7 +1412,9 @@ struct Base {
     if (sub == 4) {                                  // stopped: settle then check
       if (now - legT < 150) return;
       float err = pitch() - aimTarget;
-      if (fabsf(err) <= c.aimTolDeg) { aimed = true; state = S_IDLE; stT = now; evAimed(true, nullptr); dirty = true; return; }
+      if (fabsf(err) <= c.aimTolDeg) {
+        if (gapFixable()) { sub = 5; startGapRun(); return; }   // close the gear gap before reporting AIMED
+        aimed = true; state = S_IDLE; stT = now; evAimed(true, nullptr); dirty = true; return; }
       if (++aimTries >= 3) { state = S_IDLE; evAimed(false, "AIM_MISS"); dirty = true; return; }
       sub = 0; if (!planAim()) { state = S_IDLE; evAimed(false, "OUT_OF_RANGE"); return; }
       return;
@@ -1432,7 +1469,7 @@ struct Base {
       }
       if (rose(SW_HOME)) {                           // the relieved tooth let the rack go: carriage home = shot
         float at = cockPhase - sinceEdge(SW_HOME, cockDir());
-        releaseSeen = true; phase = PH_RESETTING; aimed = false; lineKnown = false;
+        releaseSeen = true; releaseT = now; phase = PH_RESETTING; aimed = false; lineKnown = false;
         JOut o(evBuf, sizeof evBuf); evBegin(o, "FIRED"); float p = pitch(); if (isnan(p)) o.null("pitch_deg"); else o.num("pitch_deg", p, 2);
         o.num("cock_deg", at, 1); evEnd(o);
         if (fabsf(at - c.releaseDeg) > c.releaseWinDeg * 2 + (indexMode ? 60 : 0)) { raise(F_BAD_STATE, "release at the wrong angle"); return; }
@@ -1444,11 +1481,14 @@ struct Base {
       if (cockPhase > c.releaseDeg + c.releaseWinDeg + c.noReleaseExtraDeg + (indexMode ? 60 : 0)) { raise(F_BAD_STATE, "no release seen (SW_HOME did not close)"); return; }
     } else if (phase == PH_RESETTING) {
       if (rose(SW_GAP) && cockPhase > c.releaseDeg) cockPhase = c.gapCloseDeg + sinceEdge(SW_GAP, cockDir());   // re-zero entering the gap
-      if (!closed(SW_HOME) && cockPhase < c.cycleDeg + c.homeOpenDeg - c.homeWinDeg) {   // the carriage may rebound off its stop
+      if (!closed(SW_HOME) && now - releaseT >= c.reboundIgnoreMs && cockPhase < c.cycleDeg + c.homeOpenDeg - c.homeWinDeg) {   // D45: rebound ignored 0.5 s
         if (!homeReopenT) homeReopenT = now; else if (now - homeReopenT >= 80) { raise(F_BAD_STATE, "SW_HOME opened while resetting"); return; }
       } else homeReopenT = 0;
       if (cockPhase >= c.cycleDeg - c.aimCoastDeg) {
-        if (fitted(SW_HOME) && !closed(SW_HOME)) { raise(F_BAD_STATE, "reset ended with the carriage off its stop"); return; }
+        if (fitted(SW_HOME) && !closed(SW_HOME)) {     // D45: the carriage may still be settling after its rebound: wait
+          w.halt(now, io.wiper);
+          if (now - releaseT < c.reboundIgnoreMs + 1000) return;
+          raise(F_BAD_STATE, "reset ended with the carriage off its stop"); return; }
         if (fitted(SW_GAP) && !closed(SW_GAP)) { raise(F_BAD_STATE, "reset ended with the big gear out of its gap"); return; }
         w.halt(now, io.wiper); cockPhase -= c.cycleDeg; if (cockPhase < 0) cockPhase = 0;
         phase = PH_REST; state = S_IDLE; stT = now;
@@ -1459,6 +1499,8 @@ struct Base {
   }
   void tickWrap() {
     int r = tickDrumMove();
+    if (r > 0 && wrapFromBelow && lineKnown) {         // systest F23: the cup's turns draw line from the dart side
+      lineM -= c.wrapsFull * (float)M_PI * c.capstanDmm / 1000.f; if (lineM < 0) lineM = 0; }
     if (r > 0) { state = S_IDLE; stT = now; JOut o(evBuf, sizeof evBuf); evBegin(o, "WRAPPED"); o.boolean("ok", true); o.integer("wraps", wraps); evEnd(o); dirty = true; }
   }
   void tickUnwrap() {
@@ -1543,6 +1585,12 @@ struct Base {
     // SW_HOME must stay closed over the whole run-on: a bounce is not "home"
     if (closed(SW_HOME)) { if (!homeSeen) { homeSeen = true; homeFrom = enc.deg(); } }
     else homeSeen = false;
+    if (gapRun) { int r = tickGapRun(); if (r < 0) return; if (r == 0) return;
+      phase = PH_REST; phaseHint = -1; state = S_IDLE; stT = now; dirty = true;
+      JOut o(evBuf, sizeof evBuf); evBegin(o, "RESET"); o.boolean("ok", true); o.str("how", "decock"); evEnd(o); return; }
+    if (homeSeen && (enc.deg() - homeFrom) * c.aimDir >= c.decockExtraDeg && fitted(SW_GAP) && !closed(SW_GAP) && (enc.deg() - homeFrom) * c.aimDir >= c.decockExtraDeg + 20) {
+      w.halt(now, io.wiper); phase = PH_REST; startGapRun(); return;   // the gear dragged back past its gap: close it going forward
+    }
     if (homeSeen && (enc.deg() - homeFrom) * c.aimDir >= c.decockExtraDeg && (!fitted(SW_GAP) || closed(SW_GAP))) {   // BASE_SPEC 10: SW_HOME and SW_GAP
       // the carriage stopped at its front stop as SW_HOME closed; after that sprag #1 freewheels, so the big gear sits
       // just short of the first-tooth angle

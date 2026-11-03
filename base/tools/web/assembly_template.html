@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>__TITLE__</title>
+<style>
+:root{--gl:max(16px, env(safe-area-inset-left, 0px));--gr:max(16px, env(safe-area-inset-right, 0px));--bg:#eef1f4;--panel:#ffffffeb;--ink:#15181c;--mute:#5b6470;--line:#d5dae0;--acc:#c46d00;--chip:#f4f6f8}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#16191d;--panel:#1e2228eb;--ink:#e9edf1;--mute:#9aa4ae;--line:#343b44;--acc:#ffb020;--chip:#262b32}}
+:root[data-theme="dark"]{--bg:#16191d;--panel:#1e2228eb;--ink:#e9edf1;--mute:#9aa4ae;--line:#343b44;--acc:#ffb020;--chip:#262b32}
+html,body{margin:0;height:100%;
+  background:var(--bg);color:var(--ink);font:13px/1.45 Arial,Helvetica,sans-serif;overflow:hidden}
+#view{position:fixed;inset:0}
+.panel{position:fixed;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;box-sizing:border-box}
+#card{left:var(--gl);top:12px;width:370px;max-width:calc(100vw - var(--gl) - var(--gr));max-height:calc(100vh - 150px);overflow:auto}
+#card h1{font-size:13px;margin:0 0 6px;color:var(--mute);font-weight:normal}
+#st{font-weight:bold;font-size:16px;color:var(--acc)}
+#sd{margin:6px 0 8px}
+#count{color:var(--mute);font-size:12px;margin-bottom:4px}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th{text-align:left;color:var(--mute);font-weight:normal;border-bottom:1px solid var(--line);padding:2px 4px 2px 0}
+td{border-bottom:1px solid var(--line);padding:3px 4px 3px 0;vertical-align:top}
+td .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;border:1px solid #0003}
+td .d{color:var(--mute);font-size:11px;font-weight:normal}
+tr.new td:first-child{font-weight:bold}
+#nav{left:var(--gl);right:var(--gr);bottom:max(12px, env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:6px}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#steps{display:flex;flex-wrap:wrap;gap:4px}
+button{font:12px Arial,Helvetica,sans-serif;padding:5px 9px;border:1px solid var(--line);border-radius:5px;background:var(--chip);color:var(--ink);cursor:pointer}
+button.on{border-color:var(--acc);color:var(--acc);font-weight:bold}
+button.done{color:var(--mute)}
+#tip{position:fixed;pointer-events:none;background:var(--panel);border:1px solid var(--line);padding:6px 8px;border-radius:5px;max-width:280px;display:none;font-size:12px;z-index:5}
+@media (max-width:760px){
+  #card{width:auto;right:var(--gr);max-height:42vh;padding:8px 10px}
+  #card table{display:none}#card.more table{display:table}#count::after{content:" (tap for the parts)"}
+  #steps{display:none}
+}
+</style></head><body>
+<div id="view"></div>
+<div class="panel" id="card">
+  <h1 id="ttl"></h1>
+  <div id="st"></div>
+  <div id="sd"></div>
+  <div id="count"></div>
+  <table><thead><tr><th>part</th><th>qty</th><th>material</th></tr></thead><tbody id="bill"></tbody></table>
+</div>
+<div class="panel" id="nav">
+  <div class="row"><button id="prev">previous</button><button id="next">next</button><button id="replay">replay</button><button id="recam">reset camera</button>
+    <label><input type="checkbox" id="ghost"> ghost earlier parts</label></div>
+  <div id="steps"></div>
+</div>
+<div id="tip"></div>
+<!--LIBS-->
+</body></html>

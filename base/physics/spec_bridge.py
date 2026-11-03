@@ -1,0 +1,113 @@
+"""Overlay base/spec/params.py onto the physics defaults.
+
+Only this file knows the spec names. Spec lengths are mm and masses kg; the physics is SI, so lengths are converted here.
+Blocks that are still None in the spec leave the defaults alone (and the run says so in p.source).
+"""
+from __future__ import annotations
+
+import importlib.util
+import os
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SPEC = os.path.join(HERE, "..", "spec", "params.py")
+
+# spec key -> (physics dict, physics key, scale). Filled in as the spec v1.0 names appear; unknown keys are ignored.
+LAUNCH_MAP = {
+    "stroke": ("launch", "stroke", 1e-3),
+    "STROKE": ("launch", "stroke", 1e-3),
+    "pulley_ratio": ("launch", "pulley_ratio", 1.0),
+    "preload_ext": ("launch", "preload_ext", 1e-3),
+    "carriage_mass_kg": ("launch", "carriage_mass", 1.0),
+    "carriage_mass": ("launch", "carriage_mass", 1.0),
+    "mu_rail": ("launch", "mu_rail", 1.0),
+    "stop_pad_travel": ("launch", "stop_pad_travel", 1e-3),
+    "muzzle_height": ("launch", "muzzle_height", 1e-3),
+}
+AIM_MAP = {
+    "pitch_min": ("flight", "pitch_min", 1.0),
+    "pitch_max": ("flight", "pitch_max", 1.0),
+}
+REEL_MAP = {
+    "core_d": ("reel", "core_d", 1e-3),
+    "flange_d": ("reel", "flange_d", 1e-3),
+    "width": ("reel", "width", 1e-3),
+    "wall": ("reel", "wall", 1e-3),
+    "flange_t": ("reel", "flange_t", 1e-3),
+    "hub_mass": ("reel", "hub_mass", 1.0),
+    "capstan_d": ("capstan", "d", 1e-3),
+    "capstan_ratio": ("capstan", "ratio", 1.0),
+    "wraps": ("capstan", "wraps", 1.0),
+    "takeup_n": ("capstan", "takeup_n", 1.0),
+    "tow_limit_n": ("capstan", "tow_limit_n", 1.0),
+    "brake_n": ("flight", "brake_n", 1.0),
+    "reel_height": ("flight", "reel_height", 1e-3),
+}
+
+
+def load_spec_module(path=None):
+    path = path or SPEC
+    if not os.path.exists(path):
+        return None
+    spec = importlib.util.spec_from_file_location("base_spec_params", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _overlay(p, block, mapping, used):
+    if not isinstance(block, dict):
+        return
+    for k, v in block.items():
+        if k in mapping and isinstance(v, (int, float)) and not isinstance(v, bool):
+            dname, key, scale = mapping[k]
+            getattr(p, dname)[key] = v * scale
+            used.append(k)
+
+
+def apply(p, path=None):
+    mod = load_spec_module(path)
+    if mod is None:
+        return p
+    used = []
+    w = getattr(mod, "WIPER", None) or {}
+    for sk, pk in (("n0_rpm", "n0_rpm"), ("stall_nm", "t_stall"), ("stall_a", "i_stall"), ("free_a", "i_free")):
+        if w.get(sk) is not None:
+            setattr(p.wiper, pk, float(w[sk]))
+            used.append("WIPER." + sk)
+    s = getattr(mod, "SPRING", None) or {}
+    for sk, pk in (("od", "od_mm"), ("free_len", "length_mm"), ("wire", "wire_mm"), ("k_n_per_mm", "rate_n_mm"),
+                   ("F0_n", "f_init")):
+        if s.get(sk) is not None:
+            setattr(p.spring, pk, float(s[sk]))
+            used.append("SPRING." + sk)
+    if s.get("qty"):
+        p.n_springs = int(s["qty"])
+    if s.get("max_ext") is not None:
+        p.launch["ext_cap"] = float(s["max_ext"]) * 1e-3
+        used.append("SPRING.max_ext")
+    ln = getattr(mod, "LINE", None) or {}
+    if ln.get("d") is not None:
+        p.line.d = float(ln["d"]) * 1e-3
+    if ln.get("length_m") is not None:
+        p.line.length = float(ln["length_m"])
+        p.reel["line_stored"] = float(ln["length_m"])
+    if ln.get("break_n") is not None:
+        p.line.breaking = float(ln["break_n"])
+    d = getattr(mod, "DART", None) or {}
+    if d.get("mass_kg") is not None:
+        p.dart.mass = float(d["mass_kg"])
+        used.append("DART.mass_kg")
+    b = getattr(mod, "BATTERY", None) or {}
+    for sk, pk in (("v_full", "v_full"), ("v_nom", "v_nom"), ("fuse_a", "fuse_a")):
+        if b.get(sk) is not None:
+            setattr(p.battery, pk, float(b[sk]))
+    _overlay(p, getattr(mod, "LAUNCH", None), LAUNCH_MAP, used)
+    if "ext_cap" in p.launch and not any(k in used for k in ("stroke", "STROKE")):
+        # no stroke in the spec yet: use the springs up to the spec cap
+        p.launch["stroke"] = (p.launch["ext_cap"] - p.launch["preload_ext"]) * p.launch["pulley_ratio"]
+    _overlay(p, getattr(mod, "AIM", None), AIM_MAP, used)
+    _overlay(p, getattr(mod, "REEL", None), REEL_MAP, used)
+    pending = [n for n in ("LAUNCH", "AIM", "REEL", "LAYOUT") if getattr(mod, n, None) is None]
+    p.source = f"base/spec/params.py v{getattr(mod, 'VERSION', '?')}" + (f" (still defaults for {', '.join(pending)})" if pending else "")
+    p.spec_used = used
+    return p

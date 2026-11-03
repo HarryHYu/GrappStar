@@ -275,7 +275,7 @@ def coupler_hub(g, P):
     h0, h1 = g["hub_s"]
     body = cyl(g["hub_od"] / 2, h0, h1)
     f0 = g["wiper_face_s"] + 2.5                                        # round shaft below, flats above
-    f1 = g["wiper_face_s"] + L - 0.2                                    # flats end, M8 thread beyond
+    f1 = L - 0.2                     # flats end at WIPER.shaft_len from the motor frame origin (y 0), M8 thread beyond
     dd = prim.extrude(prim.shapely_cs(Point(0, 0).buffer((d + fits.HOLE_SLIDE) / 2, 64)
                                       .intersection(Polygon([(-20, -(fl + 0.2) / 2), (20, -(fl + 0.2) / 2),
                                                              (20, (fl + 0.2) / 2), (-20, (fl + 0.2) / 2)]))),

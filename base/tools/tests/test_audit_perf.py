@@ -138,3 +138,23 @@ def test_speed_many_states():
     rep = audit.run(asm, states, jobs=2, **Q)
     assert time.time() - t < 40, rep["timing"]
     assert rep["n_states"] == 1200
+
+
+def test_pair_refinement_finds_collision_between_samples():
+    """A slider jumps 20 mm between two timeline states through a wall: only per-pair sub-states see it, and only the
+    moving pairs get sub-states (each step moves no point more than max_mm)."""
+    plate = Part("plate", prim.cbox(80, 30, 4, z=-4), "steel")
+    wall = Part("wall", prim.cbox(2, 30, 10, x=10, z=0), "steel")
+    slider = Part("slider", prim.cbox(4, 4, 4, z=0), "PLA", joint="s", print_tf=tf.I4)
+    far = Part("far", prim.cbox(4, 4, 4, x=-30, z=0), "PLA", joint="r", print_tf=tf.I4)
+    js = [Joint("s", None, "slide", (-10, 0, 0), (1, 0, 0)), Joint("r", None, "rev", (-30, 0, 0), (0, 0, 1))]
+    mod = types.SimpleNamespace(parts=lambda P: [plate, wall, slider, far], joints=lambda P: js,
+                                kin=lambda P, S: {"s": S["d"], "r": S["d"]}, grounded=lambda P: ["plate"])
+    asm = Assembly(load_params(), {"t": mod})
+    states = [dict(d=0.0, t=0.0, phase="a"), dict(d=40.0, t=1.0, phase="b")]
+    assert not any(c["b"] == "wall" or c["a"] == "wall" for c in audit.run(asm, states, jobs=1, **Q)["collisions"])
+    rep = audit.run(asm, states, jobs=1, pair_refine=2, **Q)
+    hit = [c for c in rep["collisions"] if {c["a"], c["b"]} == {"slider", "wall"}]
+    assert hit and 0.0 < hit[0]["t"] < 1.0 and hit[0]["n_states"] >= 10
+    assert 79 <= rep["stats"]["substates"] <= 200          # 40 mm in 0.5 mm steps (the slider / plate pair)
+    assert rep["n_states"] == 2 + rep["stats"]["substates"]

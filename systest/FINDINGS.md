@@ -324,3 +324,34 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   defined slack after the tidy (tidy by length). The harness check stays: fly-in on a taut 5.6 kN/m line.
 - Note: the stiffness assumption (EA 20 kN) is mine from the line spec (667 N break, about 3.5 % at break); real
   braid has some bedding-in stretch, which makes it softer at first. Even at EA 5 kN (1.4 kN/m) 6 mm is about 8 N.
+
+## F21 (fw-base) on a stiff line the tow overshoots the limit by about 25 % at duty 1
+
+- Preview (fw-base c28396c, D41 in), scenario `ref_nominal` (BASE_SPEC 10.1, 1 mm Dyneema EA 20 kN, anchored at
+  3.6 m: about 5.6 kN/m): after the fly-in (14.6 N), `reel duty 1 max_n 40 until tension` -> `LIMIT` after 245 ms with
+  `tension_n` 48.9 (the firmware saw it was over), plant line 50.3 N held by the worm. Same pull in `ref_tow_duty08`
+  at duty 0.8 for comparison in the batch log.
+- Why: once taut the line tension rises at capstan speed x stiffness, several hundred N/s; the taper "over the last
+  30 % of max_n" (PROTOCOL.md `reel`) never gets a sample in that window, and the 60 ms raw-estimate hold adds
+  ~10 N. The worm then holds the overshoot (no back-off).
+- Suggest: when a tow starts from HOLD or right after the fly-in (line known taut), start at low duty and raise it
+  only while the estimate stays under about 50 % of max_n; or predict from the tension rate (stop when
+  `tension + rate x 60 ms >= max_n`). Acceptance: `ref_nominal` / `ref_tow_stiff` plant peak under max_n + 15 %.
+
+## F22 (fw-base) without a load cell, a held tow never pulls again: `reel` from HOLD answers "already at the limit" on a slack line
+
+- Same run: after round 1 the rover drives 0.6 m toward the dart (plant line goes slack: 0.5 N). Round 2 and 3:
+  `reel ... until tension` -> `LIMIT {"tension_n":48.9,"why":"already at the limit","holding":true}` within 5 ms,
+  nothing turns. The held estimate (48.9 N from round 1) is kept although the line went slack, so the tow can never
+  take up the slack the rover gives. PROTOCOL.md `reel`: "also accepted while holding (state HOLD): winds again".
+- Suggest: without a load cell, a `reel` from HOLD (or after `stop`) re-measures: start winding at low duty and take
+  the estimate from the new current after the start blanking, not the held value; refuse only with a load cell that
+  shows the line still at the limit.
+
+## F23 (fw-base or jetson) `line_m` ignores the 0.9 m the wrap draws from the dart side: the reel-in leaves 0.6 m, not 1.5 m
+
+- Same run: `set line_m 4.48` after the landing; the wrap (7 turns on d 40 + line) draws 0.9 m from the dart side
+  (D22: the landing slack), plant line out 3.58 m after the wrap. The capstan reel-in stopped when telemetry
+  `line_m` reached 1.5 (10.1 step 15): plant line out was 0.58 m. The dart then seated during the unwrap.
+- Fix: the firmware subtracts `wrapsFull x pi x (d + line d)` from `line_m` when it lays the wraps (it knows the
+  count), or the Jetson re-sends `set line_m` after WRAPPED. Without it, "stop at about 1.5 m" means 0.6 m.

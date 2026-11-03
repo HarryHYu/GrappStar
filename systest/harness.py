@@ -975,9 +975,14 @@ def c_reel_engaged(rig, res):
 
 
 def c_tow_limit(rig, res):
+    """Peak plant line tension over the whole pull (check, fly-in, tow, release: the 50 ms poll can attribute a peak
+    to the next step), against the tow limit + 15 %."""
     lim = rig.app.cfg.mission.tow_limit_n
-    mx = max(rig.plant_max.get("TOW:tension", 0), rig.plant_max.get("CHECK:tension", 0))
-    return mx <= lim * 1.15, f"max plant tension {mx:.1f} N, limit {lim} N (+15 %)"
+    keys = [k for k in rig.plant_max if k.endswith(":tension") and k.split(":")[0] in
+            ("CHECK", "TOW", "FLY_IN", "REEL_FLYIN", "RELEASE", "TIDY", "ANCHOR")]
+    mx = max([rig.plant_max[k] for k in keys] or [0.0])
+    worst = max(keys, key=lambda k: rig.plant_max[k]) if keys else "-"
+    return mx <= lim * 1.15, f"max plant tension {mx:.1f} N ({worst}), limit {lim} N (+15 %)"
 
 
 def c_released(rig, res):

@@ -68,7 +68,8 @@ Z_FOOT = (-40.0, 42.0)
 WIDTH = SP["width"]           # storage reel line zone
 CORE_R = SP["core_d"] / 2
 Z_SPOOL = 12.0                # reel rear face (rear 608 mouth); room for the rocker to bend 4 mm in front of it
-FL_T = 2.0                    # flange thickness
+FL_T = 1.2                    # rear flange thickness (thin: the flanges carry most of the reel's inertia)
+FL_F = 1.6                    # front flange disc thickness (it takes the clutch squeeze)
 Z_GUIDE = Z_SPOOL + FL_T + WIDTH / 2          # guide eye plane = middle of the line zone (19)
 Z_DRUM = Z_GUIDE + 1.0        # drum flange back face (v7: guide 1 mm behind it)
 Z_BLOCK_GAP = 1.0             # collar flat between the sprag inner race and the drum
@@ -78,7 +79,7 @@ GUIDE = np.array((-45.0, v7.CUP_OUT + 2.0, Z_GUIDE))            # guide eye cent
 EXIT = np.array((70.0, v7.ER, Z_CUP + v7.EZP + 31.5))           # exit eye centre, 31.5 past the ring (v7)
 
 X_REEL = -88.0                # storage reel axis (Y 0)
-SPOOL_LEN = FL_T + WIDTH + FL_T                 # rear face .. front flange disc face
+SPOOL_LEN = FL_T + WIDTH + FL_F                 # rear face .. front flange disc face
 ANNULUS = (20.0, 30.0, 0.3)   # clutch friction annulus on the front flange disc: r_in, r_out, raised (r_eff 25)
 Z_D = Z_SPOOL + SPOOL_LEN + ANNULUS[2]          # clutch disk D (head of S) rear face
 D_T, D_R = 3.0, 31.0
@@ -368,24 +369,25 @@ def _spool_body(rf):
     to the front flange disc, 608 seats at both ends, 3 drive lugs for the disc, two d 2 tie holes."""
     rc = CORE_R
     L = FL_T + WIDTH
-    prof = [(4.6, 0), (rf - 0.6, 0), (rf, 0.6), (rf, FL_T), (rc + 1.0, FL_T), (rc, FL_T + 1.0), (rc, L), (4.6, L)]
+    prof = [(4.6, 0), (rf - 0.6, 0), (rf, 0.6), (rf, FL_T), (rc + 1.5, FL_T), (rc, FL_T + 1.5), (rc, L), (4.6, L)]
     body = prim.revolve_pts(prof, seg=180)
     lugs = [prim.place(prim.box(rc - 4.0, rc - 1.0, -3.0, 3.0, L - 0.01, L + 1.5), tf.Rz(a))
             for a in (0.0, 120.0, 240.0)]
     body = prim.union([body] + lugs)
     s_rear = prim.place(bearings.seat_608(bottom="lip", lip_d=14.0, below=0.0), tf.Rx(180))
     s_front = prim.place(bearings.seat_608(bottom="lip", lip_d=14.0, below=0.0), tf.T(0, 0, L))
-    zt, rt = FL_T + 4.0, 16.0                                # line in radially, out axially at the rear face
-    holes = [prim.cylY(1.0, rt - 1.0, rc + 1.0, z=zt), prim.cyl(1.0, zt + 1.0, y=rt, z=-1.0),
-             prim.cyl(3.0, 3.5, y=rt, z=-1.0)]                 # knot pocket at the rear face
+    # open pocket under the front disc (lighter reel, prints with no support); the line end goes in through a radial
+    # hole near the rear flange and is knotted inside the pocket before the disc goes on
+    pocket = prim.tube(21.0, 13.0, L - 3.0 + 1.0, z=3.0)
+    holes = [pocket, prim.cylY(1.0, 20.0, rc + 1.0, z=FL_T + 3.5)]
     return body - prim.union([s_rear, s_front] + holes)
 
 
 def _spool_flange(rf):
     """Front flange disc (PLA), local frame z 0 = rear face: flat disc r 9.5 .. rf, slots for the body's lugs, the
     raised friction annulus on its front face. It keeps the front 608 in and takes the clutch squeeze."""
-    disc = prim.tube(rf, 9.5, FL_T)
-    ann = prim.tube(ANNULUS[1], ANNULUS[0], ANNULUS[2] + 0.01, z=FL_T - 0.01)
+    disc = prim.tube(rf, 9.5, FL_F)
+    ann = prim.tube(ANNULUS[1], ANNULUS[0], ANNULUS[2] + 0.01, z=FL_F - 0.01)
     body = prim.union([disc, ann])
     slots = [prim.place(prim.box(CORE_R - 4.3, CORE_R - 0.7, -3.3, 3.3, -1.0, 1.6), tf.Rz(a))
              for a in (0.0, 120.0, 240.0)]
@@ -1189,8 +1191,8 @@ def steps(P):
                   "forward, and snap its C-clip on. The cup must turn freely both ways.",
              parts=["reel_gk", "reel_k_clip"]),
         dict(title="Storage reel",
-             text="Press one 608 bearing into each end of the reel body. Tie the Dyneema end through the two small "
-                  "holes in the core and pull the knot tight. Lay the flat flange disc on the front, its slots on "
+             text="Press one 608 bearing into each end of the reel body. Push the Dyneema end through the small hole in the "
+                  "core near the back flange into the open pocket, tie a stopper knot (figure eight) and pull it tight. Lay the flat flange disc on the front, its slots on "
                   "the three lugs, raised ring outward. Slide the reel onto the reel shaft from the shaft's thin end "
                   "until the disc meets the shaft's round head. Slide the thrust ring onto the shaft behind the "
                   "reel, small boss toward the bearing.",

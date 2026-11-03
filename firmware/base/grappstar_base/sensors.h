@@ -78,6 +78,7 @@ struct AngleTracker {
       return;
     }
     miss = 0;
+    if (!have) count = sign > 0 ? (raw & 4095) : (4096 - (raw & 4095)) % 4096;   // first reading: count lined up with the absolute angle
     if (!have || !ok) {                                      // first reading or back after a loss: take it as is
       lastRaw = raw & 4095; have = true; ok = true; glitchRun = 0; rateRef = count; rateAcc = 0; sinceMs = 0; return;
     }

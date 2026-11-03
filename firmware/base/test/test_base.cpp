@@ -115,6 +115,8 @@ static void testAngle() {
   T("as5600: unwrap, glitch, loss");
   gb::AngleTracker a; uint8_t md = gb::AS_MD;
   int raw = 4000; a.feed(raw, md, 5);
+  CHECK(a.count == 4000, "first reading lines the count up with the absolute angle (boot alignment)");
+  a.count -= 4000;                                 // the checks below count from 0
   for (int i = 0; i < 100; i++) { raw = (raw + 30) % 4096; a.feed(raw, md, 5); }
   CHECK(a.count == 3000, "counts across the 4095 -> 0 wrap");
   a.feed(2000, md, 5);
@@ -132,8 +134,8 @@ static void testAngle() {
   gb::AngleTracker r; r.feed(0, md, 5); int rr = 0;
   for (int i = 0; i < 80; i++) { rr = (rr + 23) % 4096; r.feed(rr, md, 5); }
   CHECK(fabsf(r.rateDps - 23 * 360.f / 4096 * 200) < 20, "rate in deg/s");
-  gb::AngleTracker n; n.sign = -1; n.feed(1000, md, 5); n.feed(1010, md, 5);
-  CHECK(n.count == -10, "sign applied");
+  gb::AngleTracker n; n.sign = -1; n.feed(1000, md, 5); int32_t n0 = n.count; n.feed(1010, md, 5);
+  CHECK(n.count - n0 == -10 && n0 == 3096, "sign applied (and in the first alignment)");
 }
 
 static void testWiperDrive() {
@@ -435,6 +437,8 @@ static void testTowHx() {
   R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"tare\"}");
   R.toMode("NEUTRAL"); R.wrapToReel();
   S.lineOut = 8; S.anchorTautAt = 7.8; S.anchorK = 80;
+  R.B.c.kNperA = (float)(1.0 / (S.capstanR * S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA)); R.B.c.tensOffsetN = 0;   // matched constants
+  R.B.c.freeA = 1.5f + (float)((S.reelFreeNm + 0.3) / S.stallNm * (S.stallA - S.freeA));
   R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":30,\"until\":\"tension\"}");
   R.until([&] { return R.B.state == gb::S_HOLD || R.B.state == gb::S_FAULT; }, 400000);
   CHECK(R.B.state == gb::S_HOLD && S.tension() >= 29 && S.tension() < 36, "holds at 30 N by the load cell");
@@ -753,7 +757,7 @@ static void testReview3() {
     CHECK(R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"decock\"}") && R.lastEvt("RESET").find("\"ok\":false") != std::string::npos && R.B.phase == gb::PH_UNKNOWN,
           "without SW_GAP closed: RESET ok:false (never silent), phase stays unknown"); }
   { Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}"); R.run(200);
-    CHECK(fabsf(R.B.w.c.tripA - R.B.c.tripA) < 1e-3, "aim runs on its own 5 A trip"); R.ok("{\"id\":2,\"cmd\":\"stop\"}"); }
+    CHECK(fabsf(R.B.w.c.tripA - R.B.c.aimTripA) < 1e-3 && fabsf(R.B.c.aimTripA - 3.0f) < 1e-3, "aim runs on its own 3 A trip (D40)"); R.ok("{\"id\":2,\"cmd\":\"stop\"}"); }
   { Rig R; R.toMode("NEUTRAL"); R.wrapToReel(); S.lineOut = 8; S.anchorTautAt = 7.5; R.run(50);
     R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"until\":\"tension\"}"); R.run(200);
     CHECK(fabsf(R.B.w.c.tripA - R.B.towTrip()) < 1e-3 && R.B.w.c.tripA > 5.5f && R.B.w.c.tripA < 6.6f, "tow trip from D34 at the 50 N default (about 6 A)");
@@ -772,9 +776,9 @@ static void testReview3() {
   { Rig R; R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"host_timeout_s\",\"val\":7}"); R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"tension_offset_n\",\"val\":-3}");
     R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"tow_trip_a\",\"val\":7}");
     gb::Tun t = R.B.tunNow(); gb::Base B2; B2.restoreTun(&t);
-    CHECK(B2.c.hostTimeoutS == 7 && B2.c.tensOffsetN == -3 && B2.c.towTripA == 7, "host_timeout_s, tension_offset_n, tow_trip_a saved");
+    CHECK(B2.c.hostTimeoutS == 0 && B2.c.tensOffsetN == -3 && B2.c.towTripA == 7, "tension_offset_n, tow_trip_a saved; host_timeout_s back to 0 at boot (review r3_M)");
     gb::Tun old = t; old.ver = 1; gb::sealTun(&old); gb::Base B3; B3.restoreTun(&old);
-    CHECK(B3.c.kNperA == 17.0f && B3.c.tensOffsetN == -10.4f, "a base-1.0 record is ignored: physics v1.2 constants 17 and -10.4"); }
+    CHECK(B3.c.kNperA == 17.0f && B3.c.tensOffsetN == -3.0f, "a base-1.0 record is ignored: physics constants 17 and -3.0 (D42)"); }
   { S = Sim(); gb::Base B; B.io = simIo(); B.begin(S.t); B.restore(nullptr); S.step(5); B.tick(S.t += 0);
     char rep[300]; const char* l = "{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":30}";
     B.handleLine(l, (int)strlen(l), rep, sizeof rep);
@@ -784,7 +788,7 @@ static void testReview3() {
   { Rig R; R.B.evDrops = 3; std::string r = R.cmd("{\"id\":1,\"cmd\":\"status\"}");
     CHECK(r.find("\"ev_drops\":3") != std::string::npos && r.size() <= 256, "status reports dropped events, within 256 bytes"); }
   { Rig R; R.B.c.freeA = 1.5f; R.B.w.amps = 5.0f;
-    CHECK(fabsf((R.B.w.amps - R.B.c.freeA) * R.B.c.kNperA + R.B.c.tensOffsetN - 49.1f) < 0.1f, "tension model 17 x (I - I_free) - 10.4: 5 A gives 49 N"); }
+    CHECK(fabsf((R.B.w.amps - R.B.c.freeA) * R.B.c.kNperA + R.B.c.tensOffsetN - 56.5f) < 0.1f, "tension model 17 x (I - I_free) - 3.0 (D42): 5 A gives 56.5 N"); }
 }
 
 static void testReview4() {
@@ -819,6 +823,10 @@ static void testReview4() {
     R.until([&] { return S.drumDeg < 180; }, 120000); R.ok("{\"id\":2,\"cmd\":\"stop\"}"); R.run(500);
     R.ok("{\"id\":3,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 120000);
     CHECK(R.idle() && R.B.drumPos() == gb::DP_WRAPPED, "unwrap stopped inside the window, then wrap: no SW_ARM miscount"); }
+  { Rig R0; S = Sim(); S.wiperDeg = 1234.5;      // the shaft is not at raw 0 when the board first boots
+    Rig R(false); R.cmd("{\"id\":0,\"cmd\":\"cal\",\"what\":\"cock_rest\"}"); R.homeAimAndCock(); R.run(500);
+    Rig R2(false);
+    CHECK(R2.B.aimKnown && R2.B.phase == gb::PH_COCKED, "idle reboot with the shaft anywhere: aim and cocked phase kept (AS5600 count lined up, review D2 #9)"); }
   for (int every : {200, 100, 40}) {             // bursts of 3 failed I2C reads during a cock (review: travel was lost)
     Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":2,\"cmd\":\"aim\",\"deg\":30}"); R.until([&] { return R.idle(); }, 60000);
     S.encDropEvery = every; R.ok("{\"id\":3,\"cmd\":\"cock\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
@@ -937,6 +945,13 @@ static void testReview6() {
     char m[90]; snprintf(m, sizeof m, "SW_DRUM_A stuck: unwrap keeps the take-up running (max slack %.3f m)", mx);
     CHECK(mx < 0.1, m);
     CHECK(R.err("{\"id\":3,\"cmd\":\"jog\",\"motor\":\"drum\",\"dir\":-1}") != "", "no drum jog down from N_TO_R"); }
+  for (double K : {1000.0, 5600.0}) {           // D41: fly-in on a straight (tidied) stiff line
+    Rig R; R.toMode("NEUTRAL"); S.lineOut = 3.6; S.anchorTautAt = 3.6; S.anchorK = K;
+    R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 120000);
+    double mx = 0; R.ok("{\"id\":2,\"cmd\":\"mode\",\"to\":\"REEL\"}");
+    R.until([&] { if (S.tension() > mx) mx = S.tension(); return R.idle() || R.B.state == gb::S_FAULT; }, 40000);
+    char m[110]; snprintf(m, sizeof m, "fly-in on a taut line K %.0f: REEL without a fault, line under 20 N (peak %.1f N)", K, mx);
+    CHECK(R.idle() && R.B.collarReel() && mx < 20, m); }
   for (int f = 0; f < 3; f++) {                // manual cock jog with a contact failing: the release guard and the collar check hold
     Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":1,\"ms\":400}"); bool set = false;
     for (int i = 0; i < 80 && (R.B.state == gb::S_JOG); i++) {

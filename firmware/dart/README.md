@@ -11,7 +11,7 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
 | `API.md` | the HTTP API for the Jetson (contract C2) |
 | `WIRING.md`, `wiring/` | wire cut list, change list from v29, diagram |
 | `BENCH_TEST.md` | how to check every motor and sensor before closing the hull |
-| `tools/wires_v4.py` | regenerates `wiring/` |
+| `tools/wires_v4.py` | regenerates `wiring/` (run from the repo root; needs python3 with numpy, graphviz `dot`, and `kedge/out30`. Another graphviz version gives harmless image differences) |
 | `sim/` | host simulator: the real sketch compiled on Linux with stub Arduino headers, serving the real HTTP API (`make && python3 test_sim.py`) |
 | `REPORT.md` | build-day report |
 
@@ -32,11 +32,12 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
 
 | esp32 core | Result | Flash | RAM |
 |---|---|---|---|
-| 3.3.12 (latest) | OK, no warnings from the sketch | 1,011,135 B (30 %) | 70,316 B (21 %) |
-| 3.3.2 | OK, no warnings from the sketch | 1,015,763 B (30 %) | 68,344 B (20 %) |
-| 2.0.17 | OK, no warnings from the sketch | 801,985 B (23 %) | 66,784 B (20 %) |
+| 3.3.12 (latest) | OK, no warnings from the sketch | 1,013,947 B (30 %) | 70,484 B (21 %) |
+| 3.3.2 | OK, no warnings from the sketch | about 1,016 kB (30 %), measured on an earlier build | about 68 kB (20 %) |
+| 2.0.17 | OK, no warnings from the sketch | about 802 kB (23 %), measured on an earlier build | about 67 kB (20 %) |
 
-Libraries: Adafruit BNO08x 1.2.7, Adafruit BusIO 1.17.4 (installed with it). arduino-cli 1.5.2.
+Libraries: Adafruit BNO08x 1.2.7, plus Adafruit BusIO 1.17.4 and Adafruit Unified Sensor 1.1.15 (installed with it).
+arduino-cli 1.5.2-rc.1.
 Note for arduino-cli users: on this board the menu value for "USB CDC On Boot: Enabled" is `CDCOnBoot=default` and
 `CDCOnBoot=cdc` means Disabled (the sketch then refuses to compile, on purpose).
 
@@ -50,7 +51,7 @@ Note for arduino-cli users: on this board the menu value for "USB CDC On Boot: E
 
 1. **Battery unplugged** (power loop plug out). Never have the battery plug and USB in together while you work.
 2. Plug the XIAO into the Mac with a USB-C data cable.
-3. Tools > Port: pick the one that appears (`/dev/cu.usbmodem...`).
+3. Tools > Port: pick the one that appears (Mac `/dev/cu.usbmodem...`, Linux `/dev/ttyACM0`, Windows `COM3` or similar).
 4. Click Upload (arrow). Wait for "Hard resetting via RTS pin" / "Done uploading".
    If the port does not appear or the upload fails: hold the XIAO's **B** (boot) button, tap **R** (reset), release
    B, then upload again. After such an upload, tap R once.
@@ -83,7 +84,7 @@ aborted and the dart disarms when the upload starts.
 - All safety runs in its own task every 5 ms with a 2 s watchdog; a stuck web client or Serial port cannot block it.
 - After a brownout or watchdog reset the dart boots with motors off and reports `FAULT` until `/stop`, `/auto`, `/release` or `/arm`.
 - INA219 missing: manual keys only (on timers), auto and release refused. BNO085 missing: no arming, no flight log.
-- A stuck I2C bus is recovered (9 clocks and a Wire restart). If the web loop hangs for 10 s while nothing moves, the
+- A stuck I2C bus is recovered (9 clocks and a Wire restart). If the web loop hangs for 30 s while nothing moves, the
   dart is not armed or in flight, and no OTA upload runs, it restarts itself.
 - **Power on with the legs stowed.** The firmware keeps track of the kick's travel from power-on to tell a jammed kick
   from one that is already down or stowed.
@@ -99,14 +100,23 @@ ones with BENCH_TEST.md steps 3 to 6 and write them in at step 10. Then run the 
 cd firmware/dart/test && ./run_tests.sh
 ```
 
-Needs g++ and python3 (Mac: run `xcode-select --install` once for g++). Prints every check and `ALL PASS`, then checks the JSON files the tests wrote.
+Needs g++ and python3 (Mac: run `xcode-select --install` once for g++). Prints every check and `ALL PASS`, runs the
+fuzz test, then checks the JSON files the tests wrote (into `test/out/`).
+
+If `make` is found it also runs the whole simulator suite below (about 2 minutes). That part needs Linux, make,
+node 18 or newer and Playwright with Chromium (`npm i playwright && npx playwright install chromium`). Without node the
+browser check is skipped; node without Playwright makes the run fail. `./run_tests.sh --quick` runs only the logic
+and fuzz checks (seconds, any OS).
 
 ## Simulator (Linux, optional)
 
+Needs Linux, g++, make, pthread, python3, and for the page check node 18+ with Playwright and Chromium
+(`npm i playwright && npx playwright install chromium`).
+
 ```
 cd firmware/dart/sim && make && python3 test_sim.py      # 11 HTTP tests against the real sketch
-python3 test_jetson_client.py                            # the Jetson's own dart client against the real sketch (C2)
-node test_page.js                                        # the web page in headless Chromium
+python3 test_jetson_client.py                            # 9 tests: the Jetson's own dart client against the real sketch (C2)
+node test_page.js                                        # 11 checks of the web page in headless Chromium (one logged 409 is expected)
 ./kedge_sim --port 8790                                  # then open http://localhost:8790 (the real web page)
 ```
 
@@ -114,8 +124,10 @@ node test_page.js                                        # the web page in headl
 
 ## Compile check without the IDE (optional)
 
+Run from the repo root:
+
 ```
 arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
 arduino-cli lib install "Adafruit BNO08x"
-arduino-cli compile -b esp32:esp32:XIAO_ESP32S3 firmware/dart/kedge_dart
+arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32S3 --warnings all firmware/dart/kedge_dart
 ```

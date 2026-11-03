@@ -141,20 +141,16 @@
      "3.23 N m, 0.143 m/s, 5.06 A"
     ],
     [
-     "Line pull at limiter (5 N m) (12.6 V)",
-     "80 N (break 667 N)"
+     "Wiper at limiter (5 N m), 12.6 V: torque, current, line pull",
+     "5.0 N m, 7.0 A, 80 N (break 667 N)"
     ],
     [
-     "Line pull, motor stall (no limiter, 12.6 V)",
-     "227 N"
+     "Wiper motor stall (no limiter), 12.6 V: torque, current, line pull",
+     "14.1 N m, 17.0 A, 227 N"
     ],
     [
      "Tow sensing at the dart: N per wiper amp above free",
-     "14.8 N/A (dart = 14.8 x (I - I_free) - 2.6 N)"
-    ],
-    [
-     "Tow sensing at the capstan (x1.15): N per wiper amp above free",
-     "17.0 N/A (capstan = 17.0 x (I - I_free) - 3.0 N)"
+     "dart = 14.8 x (I - I_free) - 2.6 N (capstan side x1.15)"
     ]
    ]
   ],
@@ -176,24 +172,15 @@
     [
      "tow: peak torque, current, time",
      "3.23 N m, 5.1 A, 35 s"
-    ],
-    [
-     "Wiper at limiter (5 N m), 12.6 V (with sag)",
-     "5.0 N m, 7.0 A"
-    ],
-    [
-     "Wiper motor stall (no limiter), 12.6 V (with sag)",
-     "14.1 N m, 17.0 A"
     ]
    ]
   ]
  ],
  "measure": [
-  "Spring hang test: hang 1, 2, 3 kg from one spring, measure the length each time. Slope = rate, intercept = initial tension. Every range number scales with the stored energy.",
-  "Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall current. Edit common.Wiper or spec WIPER.",
-  "Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg).",
-  "Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 5 N.",
-  "After the first shots: python calib.py range pitch:brake:range ... then python ballistics.py --v-scale <factor>.",
-  "Rail friction: tilt the rail with the dart on it until it slides (mu = tan angle)."
+  "Spring hang test: hang 1, 2, 3 kg from one spring and measure the length each time (hooks included). python calib.py spring FREE_MM 1:MM 2:MM 3:MM, then SPRING k_n_per_mm and F0_n. Every range number scales with the stored energy.",
+  "Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall current. python calib.py wiper --v 12 --rpm .. --i-free .. --stall-kg .. --arm-mm .. --i-stall .., then WIPER n0_rpm, stall_nm, stall_a, free_a.",
+  "Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg), then DART mass_kg.",
+  "Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 5 N (REEL clutch).",
+  "First shots on level ground: python calib.py range pitch:brake:range ..., then LAUNCH v_scale = FACTOR."
  ]
 }

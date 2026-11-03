@@ -1064,6 +1064,8 @@ def main(argv=None):
     ap.add_argument("--dt", type=float, default=0.1)
     ap.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
     ap.add_argument("--no-refine", action="store_true", help="audit the raw timeline samples only")
+    ap.add_argument("--max-mm", type=float, default=MAX_STEP_MM,
+                    help="per-pair refinement: largest point motion between audited states (mm)")
     ap.add_argument("--global-refine", action="store_true",
                     help="refine the whole timeline (no joint more than 1 deg / 0.5 mm a step) instead of per pair")
     a = ap.parse_args(argv)
@@ -1076,7 +1078,9 @@ def main(argv=None):
     elif not a.no_refine:
         n_tl = len(states)          # each pair refines the timeline for itself (sub-states only where it moves)
     states += asm.extra_states
-    rep = run(asm, states, a.jobs, pair_refine=n_tl)
+    rep = run(asm, states, a.jobs, pair_refine=n_tl, max_mm=a.max_mm)
+    rep["settings"] = dict(dt=a.dt, max_mm=a.max_mm, jobs=a.jobs, refine="global" if a.global_refine else
+                           "none" if a.no_refine else "pair")
     os.makedirs(a.out, exist_ok=True)
     with open(os.path.join(a.out, "audit.json"), "w") as fh:
         json.dump(rep, fh, indent=1, default=str)

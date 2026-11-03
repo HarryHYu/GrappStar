@@ -9,12 +9,12 @@ Run everything: `cd base/physics && ./run_all.sh` (pytest, every model, ballisti
 |---|---|
 | common.py | every assumption in one place: battery sag, wiper (linear, one block), A228 extension spring (rate, hook and body limits, mass, surge), line, dart, 608, sprag, shaft |
 | spec_bridge.py | overlays base/spec/params.py onto the defaults (only file that knows spec names) |
-| launch.py | spring launcher: chain (surge) and lumped spring models, pulley ratio, friction, reel inertia, stop impact, coil clash |
+| launcher.py | spring launcher: chain (surge) and lumped spring models, pulley ratio, friction, reel inertia, stop impact, coil clash |
 | flight.py | dart point mass with drag + bead-chain tether (line weight, cross-flow and skin drag, ground contact), ideal brake or coupled reel |
 | payout.py | storage reel geometry and inertia, slip clutch (constant torque), centrifugal shoes, spin-up, overrun, bird's nest risk |
 | capstan.py | Euler-Eytelwein wraps, constant-torque take-up, tow force/speed/current, firmware trip, part stresses |
 | drivetrain.py | wiper torque/current/time/energy per function (aim, cock, reel, tow) vs stall, BTS7960, fuse |
-| gears.py | Lewis (printed allowables), key (steel key in printed shaft), shaft torsion (Kt 1.6 / 2 / 3), 608, sprag |
+| printed_gears.py | Lewis (printed allowables), key (steel key in printed shaft), shaft torsion (Kt 1.6 / 2 / 3), 608, sprag |
 | ballistics.py | base/out/ballistics.json exactly per contract C3, with validate() |
 | sensitivity.py | range swing for each uncertain input |
 | calib.py | hang test fit (rate, initial tension) and wiper block from bench numbers |

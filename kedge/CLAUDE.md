@@ -108,6 +108,9 @@ Measured currents at 8 V (bench, INA219)
 
 ## 4. ELECTRICAL (v29 final, supersedes the v26 handover pin map)
 
+> SUPERSEDED for wiring by firmware/dart/WIRING.md (dart firmware v4, 3 Nov 2026: DRV8833 #3 is off the dart, no
+> bridge across the DRV#2 channels). Do not wire from the pin map below.
+
 Power tree (dart):
 - 2 x 18350 series (2S, 6.0-8.4 V). Springs on the FRONT cell-bay disc, rigid plates on the REAR disc (launch pushes
   cells aft onto the plates so contact never breaks). Series link wire between the two front springs.

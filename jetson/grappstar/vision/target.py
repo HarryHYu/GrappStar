@@ -43,6 +43,8 @@ from typing import List, Optional, Sequence, Tuple
 import cv2
 import numpy as np
 
+from grappstar.video.frame import ensure_bgr
+
 
 @dataclass
 class CameraModel:
@@ -244,6 +246,7 @@ def detect_orange(img: np.ndarray, min_area: int = 25, hue=ORANGE_HUE, s_min: in
     """
     if img is None or img.size == 0:
         return None
+    img = ensure_bgr(img)
     m = orange_mask(img, hue, s_min, v_min)
     n, lab, stats, _ = cv2.connectedComponentsWithStats(m, 8)
     if n <= 1:

@@ -119,15 +119,32 @@ class SimWorld:
         self._ready = threading.Event()
         self.landing_class = landing_class
         self.dart_size = dart_size
+        self.rendered_pitch = None
+        self._rendering = False
         threading.Thread(target=self._prerender, name="sim-render", daemon=True).start()
         self._stop = threading.Event()
         threading.Thread(target=self._sync, name="sim-sync", daemon=True).start()
 
-    def _prerender(self) -> None:
+    def _v0_for(self, pitch: float) -> float:
+        try:
+            from ..ballistics import Ballistics
+            return float(Ballistics.load().at_pitch(pitch).get("v_muzzle") or 7.1)
+        except Exception:
+            return 7.1
+
+    def _prerender(self, pitch: float = 35.0) -> None:
+        """Render the dart flight for a launch pitch (re-run when the base aims somewhere else)."""
         from .flight_video import render_flight
-        frames, truth = render_flight(seed=self.seed, fps=self.fps, landing_class=self.landing_class,
-                                      size=self.dart_size, dropouts=True, landed_s=3.0,
-                                      pitch_deg=35.0, v0=7.1)
+        self._rendering = True
+        try:
+            frames, truth = render_flight(seed=self.seed, fps=self.fps, landing_class=self.landing_class,
+                                          size=self.dart_size, dropouts=True, landed_s=3.0,
+                                          pitch_deg=pitch, v0=self._v0_for(pitch))
+        finally:
+            self._rendering = False
+        if self.t_fire is not None and self._ready.is_set():
+            return                      # a shot is playing: never swap the video under it
+        self.rendered_pitch = pitch
         self.flight, self.truth = frames, truth
         tl = truth["t_launch"]
         self._rail = [f for f in frames if f.t < tl - 0.05] or frames[:1]
@@ -167,6 +184,10 @@ class SimWorld:
         self.mock_dart.land()
         self.world.dart = "free"
 
+    def _rearm_video(self) -> None:
+        """After the dart is home again, show the rail view for the next shot."""
+        self.t_fire = None
+
     def _sync(self) -> None:
         """Keep the base world in step with the dart (anchored, released)."""
         last = None
@@ -179,6 +200,18 @@ class SimWorld:
                 elif ph in ("RELEASING", "IDLE", "FAULT") and self.world.dart == "anchored":
                     self.world.dart = "free"
                 last = ph
+            # re-render when the base has aimed at a new pitch (cocking takes long enough for the 2 s render)
+            mb = self.mock_base
+            tgt = getattr(mb, "pitch_target", None)
+            if tgt is None:
+                tgt = getattr(mb, "pitch", 35.0)
+                tgt = tgt() if callable(tgt) else tgt
+            if (self._ready.is_set() and not self._rendering and self.t_fire is None and self.rendered_pitch is not None
+                    and abs(tgt - self.rendered_pitch) > 1.0):
+                self._rendering = True
+                threading.Thread(target=self._prerender, args=(float(tgt),), name="sim-render", daemon=True).start()
+            if self.t_fire is not None and self.world.dart == "seated" and time.time() - self.t_fire > 5.0:
+                self._rearm_video()
             self._stop.wait(0.05)
 
     def rover_advance(self, m: float) -> None:

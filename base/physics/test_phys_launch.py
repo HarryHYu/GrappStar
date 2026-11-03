@@ -3,7 +3,7 @@ import math
 import pytest
 
 from common import ExtSpring, Params
-from launch import launch
+from launcher import launch
 
 
 def bare():

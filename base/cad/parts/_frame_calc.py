@@ -123,6 +123,31 @@ def tip_margin(total_g, cg, deck_rect, deck_z, impulse_ns=2.0, F_side=100.0, h_s
     return dict(edge_mm=d, cg_height_mm=h, F_tip_n=F_tip, tips_unbolted=F_side > F_tip)
 
 
+def shot_tip(m_total_kg, h_cg_mm, h_rail_mm, p_dart=0.279 * 7.13, pitch_deg=35.0):
+    """Rover + base as one rigid body on its wheels at the moment of the shot. The dart leaves with momentum p_dart
+    along the rail; the base gets -p_dart through the rail pivot at h_rail above the ground. Returns the smallest
+    wheel base half-length (rear wheel to CG, horizontal) that keeps both front wheels down, from energy:
+    rotation about the rear wheel contact must not lift the CG over it. Conservative (ignores wheel compliance)."""
+    g = 9.81
+    m = m_total_kg
+    px = p_dart * math.cos(math.radians(pitch_deg))
+    pz = p_dart * math.sin(math.radians(pitch_deg))
+    # angular impulse about a rear contact point at distance a behind the CG, ground level
+    best = None
+    for a_mm in range(20, 400):
+        a = a_mm / 1000.0
+        h = h_rail_mm / 1000.0
+        L = px * h - pz * a                       # backward push high up tips nose up; downward share helps
+        hc = h_cg_mm / 1000.0
+        I = m * (a * a + hc * hc)                 # point mass about the contact
+        E = max(L, 0.0) ** 2 / (2 * I)
+        dh = math.hypot(a, hc) - hc               # CG rise to tip over the rear contact
+        if E < m * g * dh:
+            best = a_mm
+            break
+    return dict(angular_impulse_nms=round(px * h_rail_mm / 1000.0, 3), min_cg_to_rear_wheel_mm=best)
+
+
 if __name__ == "__main__":
     from tools.params import load_params
     from cad.parts import frame
@@ -136,3 +161,5 @@ if __name__ == "__main__":
     tot, cg, sub = mass_cg(asm)
     print(f"frame mass {tot:.0f} g, CG {cg.round(1)}")
     print(tip_margin(tot, cg, B["info"]["deck_rect"], B["info"]["cfg"]["deck_z"]))
+    for m_r in (3.0, 5.0):
+        print(f"rover {m_r} kg + base {tot / 1000:.1f} kg:", shot_tip(m_r + tot / 1000.0, 150.0, 120.0 + 165.0 + 8.0))

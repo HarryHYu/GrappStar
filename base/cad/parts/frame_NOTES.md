@@ -108,6 +108,16 @@ under the foot) to the bay. Bay exits: 14 AWG wiper pair and XT60 battery lead o
 route a wire across a moving part; wires to parts on the rail (SW_SEATED, SW_HOME) leave the frame at the main
 axis (the rail pivot: least travel) with a loop of 150 mm, as the old station did.
 
+## 5c. Other subsystems' feet on the deck (automatic)
+
+The frame loads the other subsystem modules (any `cad/parts/<name>.py` with parts/joints/kin), poses them in the rest
+state and slices every part that reaches the deck top 0.5 mm above it: the deck grows to cover every foot, and every
+round 2.9 to 4.1 mm hole in a foot gets an M3 heat-set insert under it. Nothing to send me: put M3 clearance holes
+(3.4) in your feet, sitting on the deck top (world z = deck_z). Optional: `deck_holes(P) -> [(x, y), ...]` (world) in
+your module adds holes explicitly. The same load gives the swept volumes (one hull per part per 6 timeline states,
+grown 4 mm): the guard band is cut open there and the electronics bay stays out of anything that sweeps lower than
+80 mm above the deck.
+
 ## 6. What I need from the other subsystems
 
 - Coordinator / BASE_SPEC: `LAYOUT` (every shaft: origin, axis, and please add `d`, `brg` ('608' | 'sprag' | 'bush' |
@@ -118,6 +128,8 @@ axis (the rail pivot: least travel) with a loop of 150 mm, as the old station di
   Send the bolt pattern or let me own the pedestal.
 - Everyone: the axial position of each bearing on its shaft (I seat bearings inside the cheek thickness; blocks
   slide on over bearings already on the shaft). Tell me if a bearing must sit elsewhere.
+- Deck height: coordinator decision 11:00 (from cad-launch notes): main axis 165 above the deck, so the frame default
+  is `deck_z = -165`. Put it in `FRAMEWORK["deck_z"]` in params.
 - cad-drum: magnet face y (`DRUM["magnet_face_y"]`) and the main shaft end; the wiper coupler length (it lives in the
   44 mm cheek hole and the adapter hub).
 - cad-reel: sprag #2 backstop hub "bolts to a frame block": give me its bolt pattern (or I give a block face with

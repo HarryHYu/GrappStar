@@ -1136,8 +1136,11 @@ def c_reeled(rig, res):
     if lo is None:
         return False, "no UNWRAP snapshot"
     started_short = r.get("tel_line_m") is not None and float(r["tel_line_m"]) <= a + 0.3
-    ok = (started_short or (tl is not None and float(tl) <= a + 0.3)) and not p.get("seated")
-    return ok, (f"base line_m {r.get('tel_line_m')} -> {tl} (stop at {a}), plant line out {r.get('lineOut')} -> {lo} m, "
+    # base line_m lost (a reset during the tow): the mission skips the capstan reel-in by design and the take-up
+    # does all of it, so the capstan never seats the dart (mission.retrieve, D16)
+    lost = r.get("tel_line_m") is None and tl is None
+    ok = (started_short or lost or (tl is not None and float(tl) <= a + 0.3)) and not p.get("seated")
+    return ok, (f"base line_m {r.get('tel_line_m')} -> {tl} (stop at {a}){' (line_m lost: capstan reel-in skipped by design)' if lost else ''}, plant line out {r.get('lineOut')} -> {lo} m, "
                 f"seated {p.get('seated')}")
 
 

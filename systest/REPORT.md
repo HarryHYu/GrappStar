@@ -19,9 +19,9 @@ scenarios that do not reach their own trigger or check (listed there).
   anchored line in the old order (F4), the REEL fly-in tripping on a taut real line (F20, fixed as D41), the tow
   overshooting the limit on a stiff line (F21), settings lost at a power cycle (F16), power cuts leaving the
   launcher in a state nothing could clear (F15, F17), a calibration procedure that towed 10 N over the limit (F14).
-- Open now: F21 (the stiff 3 m tow overshoots the +15 % bound at duty 1), F32 (new: an index-mode build cannot tow)
-  and low-severity items. F22, F24, F25, F28 and F31 were fixed after the final batch and are green in the final
-  cross-check run.
+- Open now: F21 (the stiff 3 m tow overshoots the +15 % bound at duty 1) and low-severity items. F32 (an index-mode
+  build could not tow) is fixed and `no_magnet_index` passes. F22, F24, F25, F28 and F31 were fixed after the final
+  batch and are green in the final cross-check run.
 
 ## What it is
 
@@ -93,6 +93,19 @@ collar leaving LAUNCH with the spring drawn), wraps laid without jamming, free d
 ## Results
 
 ### Final cross-check run (3 Nov, base-1.3.1, this tree)
+
+Coordinator rerun after merging every fix (F32 fix in `indexTick`, the mission skips the capstan reel-in when the
+base lost `line_m` after a tow, and `c_reeled` accepts that skip): 49 of the 55 scenarios pass, `nominal` included.
+Still failing: `tow_stiff` and `ref_tow_stiff` (F21); `power_retrieve`, `snag_retrieve` and `usb_glitch_reel` (their
+fault is armed for RETRIEVE, but the tow leaves less than 1.8 m of line, so the mission skips the capstan reel-in and
+the fault never fires; the mission ends DONE, and `ref_power_retrieve` and `ref_usb_glitch_reel` cover those phases
+and pass); `ref_snag_retrieve` (the soft 40 N/m line never reaches the 30 N snag trigger). Under heavy CPU load (two
+shards beside the CAD audit) five scenarios timed out (`ref_refusals`, `hand_lever`, `encoder_glitch`, `land_short`,
+`dart_wifi_drop`); each passes when run alone. `harness.py --shard 1/2` and `2/2` never run scenario 0 (`nominal`):
+run it on its own.
+
+Earlier run by the fixer (before the rerun above):
+
 
 All 55 scenarios, `harness.py --scenario all --shard i/2` (the two halves of `systest/run_mission.sh all`, base at 2x),
 on firmware base-1.3.1 (the CAD contact windows in sim.h: SW_GAP closed within 22.9 wiper deg of rest, SW_RAIL_LOW

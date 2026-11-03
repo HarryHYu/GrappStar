@@ -95,7 +95,7 @@ def test_lame_hoop():
 def test_fw_trip():
     p = Params()
     ft = capstan.fw_trip(p)
-    assert ft["hard_torque"] == pytest.approx(15 / 16.5 * 3.5)    # 3.18 N m
+    assert ft["hard_torque"] == pytest.approx(15 / 16.5 * (capstan.TRIP_REEL_A - 1.5))    # REEL hard trip torque
     g = capstan.CAP_GEAR
     m = gears.mesh(ft["hard_torque"], p.capstan["ratio"], g["module"], g["z_driver"], g["face"], PPA_CF, 0.0)
     assert ft["hard_gear_pass"] and ft["hard_gear_sf"] == pytest.approx(m["sf"])

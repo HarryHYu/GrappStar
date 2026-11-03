@@ -181,7 +181,7 @@ def evaluate(p: Params, name: str, fn: dict, v_oc: float) -> dict:
     # shaft torque at wiper stall and at the hard trip, through the same train
     shaft_st = fn["shaft_k"] * t_s_full
     st_chk = gears.shaft_torsion(shaft_st, p.shaft)
-    trip_a = capstan.TRIP_COCK_A if name == "cock" else capstan.TRIP_HARD_A
+    trip_a = {"cock": capstan.TRIP_COCK_A, "reel": capstan.TRIP_REEL_A, "tow": capstan.TRIP_REEL_A}.get(name, capstan.TRIP_HARD_A)
     t_trip = p.wiper.kt * (trip_a - p.wiper.i_free)
     mesh_tr = gears.mesh(t_trip, fn["gear_ratio"], g["module"], g["z_driver"], g["face"], PPA_CF, 0.0)
     shaft_tr = fn["shaft_k"] * t_trip

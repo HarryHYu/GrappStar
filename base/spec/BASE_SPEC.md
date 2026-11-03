@@ -183,7 +183,7 @@ Jetson sends, what ends the wait. Everything else in C1 stays as PROTOCOL.md doc
 | 11 | `tidy` {ms, duty} | `TIDIED` | take-up only, by time (default 3000 ms, duty 0.3). `reel` until `slip` stays as an alternative |
 | 12 | `mode` REEL | `MODE` ok (REEL) | the REEL fly-in from the park |
 | 13 | `reel` {duty 1, max_n, until `tension`} | `LIMIT` holding | the tow |
-| 14 | dart `/release`, then `stop` | `ABORTED` | |
+| 14 | `stop`, then dart `/release` | `ABORTED`, then dart phase RELEASING and out of ANCHORED | the worm holds the line while the dart lets go |
 | 15 | `reel` {until `stop`}, then `stop` at line_m about 1.5 | `ABORTED` | capstan reel-in |
 | 16 | `unwrap` | `UNWRAPPED`, then `MODE` NEUTRAL | skipped when never wrapped |
 | 17 | `retrieve` {duty 0.3} | `SEATED` | take-up final approach in NEUTRAL only (FAULT `DART_STUCK` after 20 s). Never seat on the capstan |

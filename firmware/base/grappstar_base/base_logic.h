@@ -369,7 +369,10 @@ struct Base {
       if (!lowRun) { lowRun = true; lowT = now; } else if (now - lowT >= c.vbatLowMs) { raise(F_BROWNOUT, "battery sagged under load"); return; }
     } else lowRun = false;
     if (tokenLive && now - tokenT > c.armMs) tokenLive = false;
+    // optional host watchdog: no line from the Jetson for host_timeout_s while a motor runs = stop (0 = off)
+    if (c.hostTimeoutS > 0 && running && now - hostT > (uint32_t)(c.hostTimeoutS * 1000)) { cmdStop(false); evAborted("HOST", "host silent"); hostT = now; }
   }
+  uint32_t hostT = 0;
   uint32_t lastMultiOk = 0;
   void onOvercurrent(const char* why) {
     if (state == S_REEL && until == U_TENSION) { w.halt(now, io.wiper); enterHold("over current at the limit"); return; }
@@ -688,6 +691,7 @@ struct Base {
     out[n++] = {"cock_trip_a", &c.cockTripA, 3, 19};
     out[n++] = {"vbat_low", &c.vbatLow, 6, 12};
     out[n++] = {"aim_home_deg", &c.aimHomeDeg, -720, 720};
+    out[n++] = {"host_timeout_s", &c.hostTimeoutS, 0, 600};
     return n;
   }
   const char* cmdSet(const char* k, double v) {
@@ -709,6 +713,7 @@ struct Base {
   // one line in, exactly one reply out (into rep). Long actions reply when accepted; completion is an event.
   void handleLine(const char* line, int len, char* rep, int cap) {
     if (cap > JSON_MAX_LINE + 1) cap = JSON_MAX_LINE + 1;   // C1: a reply is at most 256 bytes too
+    hostT = now;
     JOut r(rep, cap);
     JObj o;
     if (len > JSON_MAX_LINE) { snprintf(rep, cap, "{\"id\":null,\"ok\":false,\"err\":\"TOO_LONG\"}"); return; }

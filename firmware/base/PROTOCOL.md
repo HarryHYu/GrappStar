@@ -144,6 +144,7 @@ If a line would exceed 256 bytes (only with absurd values) it is sent with fewer
 | `cock_trip_a` | 15 | 3..19 | trip while cocking |
 | `vbat_low` | 9.9 | 6..12 | BROWNOUT threshold under load |
 | `require_seated` | true | true/false | fire needs `SW_SEATED` |
+| `host_timeout_s` | 0 (off) | 0..600 | host watchdog: no line from the Jetson for this long while a motor runs = `stop` (`ABORTED` with `what:"HOST"`, `why:"host silent"`). Send `ping` to keep long reels alive |
 | `enc_sign` | 1 | 1 / -1 | AS5600 count direction (set while stopped) |
 | `fw`, `params`, `pitch_range` | | get only | firmware version, params.py version, `min` / `max` pitch |
 

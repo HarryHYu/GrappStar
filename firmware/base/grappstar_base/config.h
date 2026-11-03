@@ -120,6 +120,7 @@ struct Cfg {
   // ---- protocol
   uint32_t armMs = 3000;            // arm token lifetime
   uint32_t jogMaxMs = 1500;
+  float hostTimeoutS = 0;           // 0 = off. Else: no line from the Jetson for this long while a motor runs = stop
   uint32_t telSlowMs = 100, telFastMs = 50;     // 10 Hz idle, 20 Hz while anything moves
   bool requireSeated = true;        // fire needs SW_SEATED closed
   bool aimNeedsRest = true;         // aim only with the carriage home: backward drive would let the drawn spring unwind

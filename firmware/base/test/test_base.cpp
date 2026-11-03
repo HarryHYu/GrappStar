@@ -540,6 +540,16 @@ static void testPersistWear() {
   R.toMode("REEL"); CHECK(S.saves - s0 <= 3, "one move: at most 3 writes");
 }
 
+static void testHostTimeout() {
+  T("host watchdog (opt in)");
+  Rig R; R.toMode("REEL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle(); }, 60000);
+  R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"host_timeout_s\",\"val\":2}");
+  S.lineOut = 10; R.ok("{\"id\":2,\"cmd\":\"reel\",\"until\":\"stop\"}");
+  R.run(1500); CHECK(S.wDir == 1, "running while the host is quiet for 1.5 s");
+  R.ok("{\"id\":3,\"cmd\":\"ping\"}"); R.run(1500); CHECK(S.wDir == 1, "a ping keeps it going");
+  R.run(1000); CHECK(S.wDir == 0 && R.idle() && R.lastEvt("ABORTED").find("host silent") != std::string::npos, "stops 2 s after the last line");
+}
+
 static void testTelemetryRate() {
   T("telemetry rate");
   Rig R; int n = 0; for (uint32_t t = 0; t < 1000; t += 5) { R.tick(); if (R.B.telDue(S.t)) n++; }
@@ -592,7 +602,7 @@ int main(int argc, char** argv) {
   testJson(); testSwitches(); testAngle(); testWiperDrive(); testPersist();
   testProtocolBasics(); testTelemetryWorstCase(); testModeChanges(); testDrumFaults(); testAim(); testCockFireReset(); testFireRefusals();
   testNoRelease(); testWrapReelUnwrap(); testTow(); testTowHx(); testStallOvercurrent(); testAngleSensorFault(); testBrownout();
-  testStopEstop(); testJog(); testPowerLoss(); testPersistWear(); testTelemetryRate(); testFullMission();
+  testStopEstop(); testJog(); testPowerLoss(); testPersistWear(); testTelemetryRate(); testHostTimeout(); testFullMission();
   printf("\n%d checks, %d passed, %d failed: %s\n", pass + fail, pass, fail, fail ? "FAILURES" : "ALL PASS");
   return fail ? 1 : 0;
 }

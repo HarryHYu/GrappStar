@@ -15,6 +15,9 @@ the findings (their numbers come from earlier parameter sets). Every number is r
   the train can put on the dart is about 48 N. Sense law at the dart: line = 11.3 x (I - I_free) - 2.0 N
   (= the spec D42 law 17.0 / -3.0 at the capstan divided by the path gain). With 693 pulleys (gain 1.15): 50 N =
   3.2 N m, 5.1 A, max about 62 N, law 14.8 / -2.6.
+- Capstan drum (capstan-side tension = dart pull x 1.5): wraps 2.9 raw / 5 design (7 fitted). Hoop stress 9.5 MPa at
+  the 50 N tow and 11.6 MPa when the shear pin slips, against 12 MPa allowed for PLA: print the drum in PPA-CF or
+  thicken the wall. Most loaded 608: 40 to 49 N (fine).
 - Cock 2.9 N m, 4.7 A. Aim 0.33 N m, 1.9 A (D40 aim trip 3 A: splitter sf 1.44 in PPA-CF).
 - Final approach on FIRM 5 N with the real seating path (gain 1.75): margin 1.1 to 1.4.
 - Wrap on LIGHT: N20 46 to 56 N mm (23 to 28 % of 0.20 N m), about 30 s.

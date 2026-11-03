@@ -465,6 +465,7 @@ def main(argv=None):
           f"take-up {i['takeup_n']} N, mu {i['mu']}, tow {i['tow']} N  [{i['source']}]")
     wn = r["wraps_needed"]
     tc = r["at_tow_cap"]
+    p = load_params()
     print(f"tow at the cap {tc['f_line']:.0f} N: {tc['t_wiper']:.2f} N m, {tc['current']:.2f} A, {tc['v_line']:.3f} m/s "
           f"(tow hard trip {trip_a(p, 'tow')} A, shear pin {limiter_nm(p)} N m)")
     print(f"wraps needed: raw {wn['raw']:.2f}, design {wn['design']} (x{wn['margin']})   "

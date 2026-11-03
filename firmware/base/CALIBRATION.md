@@ -316,7 +316,8 @@ carriage or the rail.
      (a) step 4 (`enc_sign`) and this step.
    - `H` must disappear almost at once: the first tooth takes the rack a few degrees after rest. If it opens too far
      from there you get `FAULT` `SWITCH_DISAGREE` "SW_HOME opened at the wrong angle": the contact sits in the wrong
-     place, or the number in `config.h` needs changing (tell the firmware author).
+     place, the dog window is much wider than 16 deg (measure it), or the number in `config.h` needs changing (tell
+     the firmware author).
    - `cock` rises to 1 and a `COCKED` event comes. `H` stays open.
 7. Look: the carriage is drawn back and the last tooth still holds it, with clear margin before the relieved tooth. If
    it stops too early or too late, write down how many degrees and tell the firmware author (`cockEndDeg` in

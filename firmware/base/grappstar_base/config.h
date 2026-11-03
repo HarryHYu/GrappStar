@@ -169,6 +169,8 @@ struct Cfg {
   // fly-in (lens B 7.2 steps 8, 15): the wiper creeps forward while the collar drops into REEL; into LAUNCH the collar
   // dropping in is checked with SW_DOG_L and, if needed, the wiper is turned BACKWARD (never forward: that would cock)
   int flyDuty = 64;                 // 25 percent (about 20 percent asked; at least minScaleDuty 60 so the 3 A trip sees the real current)
+  float notDrawnExtraDeg = 15;      // "carriage not drawn": debounce travel and a looser dog window beyond the SW_HOME window
+  float noReleaseExtraDeg = 20;     // "no release seen": slam bounce and the debounce at near free speed
   float flyBiteA = 0.8f;            // D41: fly-in creep stops when the current rises this much over its running level
   float flyMaxN = 20;               // D41: after the bite any wind-in is limited by the tension estimate at this (N)
   float flyLegDeg = 5;              // D41: wind-in legs of at most this many wiper degrees, SW_DOG_R read between legs

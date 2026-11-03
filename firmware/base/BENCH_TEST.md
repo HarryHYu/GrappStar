@@ -115,6 +115,11 @@ at once): check the jumpers and send `clear` again.
 - If a contact never shows: check its wire goes to the right GPIO and the other side to GND.
 - If it shows when open: the two sides touch, or the GPIO wire touches GND somewhere.
 - If it flickers on and off while held closed: the screw and nut do not touch firmly. Clean or tighten them.
+- Printed contacts that rattle can still trip faults in the base later: `SWITCH_DISAGREE` "drum code contact
+  chattering" if a code contact keeps fuzzing for more than about 1 s during a drum move, and "SW_HOME opened at the
+  wrong angle" if the real dog window (the free play of the collar dogs) is much wider than the 16 deg the firmware
+  assumes. Measure the dog window when the base is built (turn the collar by hand between its two flanks, read
+  `wiper_deg`) and tell the firmware author if it is far from 16 deg.
 
 ## Step 3: battery in, current zero
 

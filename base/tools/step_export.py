@@ -6,8 +6,10 @@ Each part mesh becomes planar faces (OCP): small coplanar groups of triangles ar
 rest stay triangles; vertices and edges are shared, so the shell is closed without sewing (sewing like
 kedge/meshstep.py is the fallback). Writes OUT/step/<name>.step, OUT/step/assembly_rest.step (state = first
 timeline state, the rest state, unless --state is given) and OUT/step/step_report.json. Every file is read back
-with build123d and checked (valid shape, solid count, volume against the mesh). An invalid file is reported, never
-fatal: the exit code is 0 unless an export crashed.
+with build123d and checked: each part file for a valid shape and its volume against the part; the assembly file for
+one named child per part, each child's volume against its own part (not only the total). An invalid file does not
+stop the run (every other file is still written), but the exit code is 2 when any part or the assembly reimports
+invalid, 1 when an export crashed, else 0.
 """
 from __future__ import annotations
 
@@ -207,7 +209,47 @@ def check_step(fn, ref_volume, n_solids=None, full=True):
         if n_solids is not None and len(solids) != n_solids:
             r["ok"] = False
             r["error"] = f"{len(solids)} solids, expected {n_solids}"
+        elif not r["ok"]:
+            r["error"] = ("invalid shape" if r["valid"] is False else "no solid" if not solids
+                          else f"volume {vol:.1f} vs {ref_volume:.1f} mm3")
     except Exception as e:                       # noqa: BLE001  report, never fail the pipeline
+        r["error"] = f"{type(e).__name__}: {e}"
+    return r
+
+
+def check_assembly_step(fn, ref_volumes: dict) -> dict:
+    """Reimport an assembly STEP whose children are labelled by part name and check every child against its own part
+    volume (a swapped, missing or empty solid fails even when the total happens to match). Returns dict(ok, n_solids,
+    volume, rel_err (of the total), bad: [part: why], error)."""
+    from build123d import import_step
+    r = dict(file=os.path.basename(fn), ok=False, bad=[])
+    try:
+        shp = import_step(fn)
+        r["n_solids"] = len(shp.solids())
+        kids = {}
+        for ch in getattr(shp, "children", ()) or ():
+            kids.setdefault(ch.label, []).append(ch)
+        tot = 0.0
+        for name, ref in ref_volumes.items():
+            got = kids.pop(name, [])
+            if len(got) != 1:
+                r["bad"].append(f"{name}: {len(got)} children with this name, expected 1")
+                continue
+            sol = got[0].solids()
+            vol = float(sum(abs(s.volume) for s in sol))
+            tot += vol
+            err = abs(vol - ref) / max(ref, 1e-9)
+            if not sol or err >= VOL_TOL:
+                r["bad"].append(f"{name}: {len(sol)} solids, volume {vol:.1f} vs {ref:.1f} mm3")
+        for name in kids:
+            r["bad"].append(f"{name}: unexpected child")
+        ref_tot = sum(ref_volumes.values())
+        r["volume"] = round(tot, 2)
+        r["rel_err"] = round(abs(tot - ref_tot) / max(ref_tot, 1e-9), 5)
+        r["ok"] = not r["bad"]
+        if r["bad"]:
+            r["error"] = f"{len(r['bad'])} of {len(ref_volumes)} parts wrong: " + "; ".join(r["bad"][:5])
+    except Exception as e:                       # noqa: BLE001
         r["error"] = f"{type(e).__name__}: {e}"
     return r
 
@@ -251,7 +293,7 @@ def _assembly_job(names):
         comp = Compound(children=placed)
         comp.label = "assembly_rest"
         export_step(comp, fn)
-        r = check_step(fn, sum(asm.parts[n].solid.volume() for n in names), n_solids=len(names), full=False)
+        r = check_assembly_step(fn, {n: asm.parts[n].solid.volume() for n in names})
     except Exception as e:                       # noqa: BLE001
         r["error"] = f"{type(e).__name__}: {e}"
         r["crashed"] = True
@@ -303,11 +345,12 @@ def run(out, only=None, state=None, part_names=None, jobs=None, assembly=True, l
     a = rep["assembly"] or dict(n_parts=0, seconds=0, ok=True, error="")
     if rep["assembly"]:
         log(f"  assembly_rest.step: {a['n_parts']} parts, {a['seconds']} s, {'ok' if a['ok'] else 'INVALID ' + a.get('error', '')}")
+    bad = [r["part"] for r in rep["parts"] if not r["ok"]]
+    rep["invalid"] = bad + ([] if a["ok"] else ["assembly_rest"])
     with open(os.path.join(sdir, "step_report.json"), "w") as fh:
         json.dump(rep, fh, indent=1)
-    bad = [r["part"] for r in rep["parts"] if not r["ok"]]
     log(f"step: {len(rep['parts'])} parts, {len(bad)} invalid{': ' + ', '.join(bad) if bad else ''}, "
-        f"{rep['seconds']} s -> {sdir}")
+        f"assembly {'ok' if a['ok'] else 'INVALID'}, {rep['seconds']} s -> {sdir}")
     return rep
 
 
@@ -321,7 +364,9 @@ def main(argv=None):
     ap.add_argument("--no-assembly", action="store_true", help="skip the assembly STEP")
     a = ap.parse_args(argv)
     rep = run(a.out, a.only, json.loads(a.state) if a.state else None, only_list(a.parts), a.jobs, not a.no_assembly)
-    return 1 if rep["crashed"] else 0
+    if rep["crashed"]:
+        return 1
+    return 2 if rep["invalid"] else 0
 
 
 if __name__ == "__main__":

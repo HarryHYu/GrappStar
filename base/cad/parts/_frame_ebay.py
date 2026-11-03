@@ -44,22 +44,25 @@ BOARD = dict(
 MAGNET = dict(d=6.0, h=2.5, gap=1.0)          # diametric NdFeB, air gap to the chip face (datasheet 0.5 to 3)
 
 # bay box
-L, W, H = 182.0, 92.0, 58.0
+L, W, H = 124.0, 124.0, 58.0       # fits the params region (130 x 130) with the deck screws inside
 WALL, FLOOR = 2.4, 3.0
-TAB_W, TAB_T = 12.0, 6.0
+TAB_W, TAB_T = 0.0, 6.0             # no outside tabs: 4 floor pads inside take the deck screws
+PADS = [(110.0, 20.0), (110.0, 50.0), (8.0, 82.0), (53.0, 116.0)]
 ESP_Z = FLOOR + 27.0            # ESP32 PCB underside: room for DuPont housings on the downward pins
 BTS_Z = FLOOR + 24.0            # BTS7960 PCB underside (heatsink below it)
 ESP_CLAMP_Z = ESP_Z + 1.6 + 3.1  # top of the WROOM module = clamp underside
 USB_OPEN = (12.5, 9.5)          # native USB opening (fits a Micro-USB or USB-C plug overmold)
+EXIT_MOTOR = (33.0, 45.0)       # x range of the 14 AWG wiper pair window in the y = W wall
+EXIT_SENS = (14.0, 30.0)        # x range of the sensor window in the y = W wall
 
 # component placement (bay frame, board corner, rotation of the board about z in deg)
 PLACE = dict(
-    esp32=(14.0, WALL + 0.6, 0.0),        # USB edge against the y = 0 wall
-    mp1584=(46.0, 10.0, 0.0),
-    drv8833=(46.0, 36.0, 0.0),
-    hx711=(76.0, 10.0, 0.0),
-    bts7960=(124.0, 22.0, 0.0),          # terminal edge (+x) towards the x = L wall
-    fuse=(62.0, 60.0, 0.0),
+    esp32=(13.0, WALL + 0.6, 0.0),        # USB edge against the y = 0 wall
+    mp1584=(46.0, 40.0, 0.0),
+    drv8833=(74.0, 40.0, 0.0),
+    hx711=(16.0, 86.0, 0.0),
+    bts7960=(60.0, 62.0, 0.0),           # terminal edge (+x) towards the x = L wall, heatsink beside two walls
+    fuse=(46.0, 6.0, 0.0),
 )
 
 
@@ -91,13 +94,12 @@ def bay_box():
     for (x, y) in ((WALL, WALL), (L - WALL - 9, WALL), (WALL, W - WALL - 9), (L - WALL - 9, W - WALL - 9)):
         adds.append(prim.box(x, x + 9, y, y + 9, FLOOR - 0.01, H))
         cuts.append(U.insert_hole(x + 4.5, y + 4.5, H))
-    # floor tabs (outside the long walls) with M3 holes down into deck inserts
+    # floor pads inside: M3 x 10 down into the deck inserts, head on the 6 mm pad
     tabs = []
-    for xt in (16.0, L - 16.0):
-        for (y0, y1, yh) in ((-TAB_W, 0.01, -TAB_W / 2), (W - 0.01, W + TAB_W, W + TAB_W / 2)):
-            adds.append(prim.box(xt - 9, xt + 9, y0, y1, 0, TAB_T))
-            cuts.append(U.clear_hole(xt, yh, -1, TAB_T + 1))          # head on the tab top (6 mm under it)
-            tabs.append((xt, yh))
+    for (px_, py_) in PADS:
+        adds.append(prim.box(px_ - 6, px_ + 6, py_ - 6, py_ + 6, FLOOR - 0.01, TAB_T))
+        cuts.append(U.clear_hole(px_, py_, -1, TAB_T + 1))
+        tabs.append((px_, py_))
     # ESP32 cradle: pillar under the USB end between the two connectors, pillar + stop under the module overhang,
     # two insert posts for the hold-down clamp
     ex, ey, _ = PLACE["esp32"]
@@ -120,9 +122,8 @@ def bay_box():
         cuts.append(U.insert_hole(bx + hx, by + hy, BTS_Z))
     # heatsink vents: slots in both long walls beside the heatsink, plus the lid grille
     for i in range(6):
-        xv = bx + 4 + i * 7.5
-        for (y0, y1) in ((-1, WALL + 1), (W - WALL - 1, W + 1)):
-            cuts.append(prim.box(xv, xv + 4.0, y0, y1, FLOOR + 4.0, BTS_Z - 1.0))
+        cuts.append(prim.box(bx + 4 + i * 7.5, bx + 8 + i * 7.5, W - WALL - 1, W + 1, FLOOR + 4.0, BTS_Z - 1.0))
+        cuts.append(prim.box(L - WALL - 1, L + 1, by + 4 + i * 7.5, by + 8 + i * 7.5, FLOOR + 4.0, BTS_Z - 1.0))
     # small board pockets
     for nm in ("mp1584", "drv8833", "hx711"):
         x, y, _ = PLACE[nm]
@@ -137,11 +138,14 @@ def bay_box():
         adds.append(prim.box(xx, xx + 4, fy - 2, fy + fw_ + 2, FLOOR - 0.01, FLOOR + 6) - prim.box(xx - 1, xx + 5, fy, fy + fw_, FLOOR + 2, FLOOR + 7))
     cuts += _tie_pair(fx + fl / 2, fy - 4.5, fy + fw_ + 4.5)
     # wire exits: 14 AWG motor pair and XT60 (x = L wall), sensor bundle (x = 0 wall), each with a tie anchor inside
-    cuts.append(prim.box(L - WALL - 1, L + 1, 22.0, 36.0, FLOOR + 2.0, FLOOR + 10.0))       # wiper motor 14 AWG pair
+    # wire exits on the y = W wall (towards the motor and the sensors): 14 AWG wiper pair and the sensor bundle;
+    # XT60 battery lead on the x = L wall; each with a cable-tie anchor inside
+    cuts.append(prim.box(EXIT_MOTOR[0], EXIT_MOTOR[1], W - WALL - 1, W + 1, FLOOR + 2.0, FLOOR + 10.0))
+    cuts.append(prim.box(EXIT_SENS[0], EXIT_SENS[1], W - WALL - 1, W + 1, FLOOR + 2.0, FLOOR + 12.0))
     xc = BOARD["xt60"]["cut"]
-    cuts.append(prim.box(L - WALL - 1, L + 1, 70.0 - xc[0] / 2, 70.0 + xc[0] / 2, FLOOR + 6.0, FLOOR + 6.0 + xc[1]))  # XT60
-    cuts.append(prim.box(-1, WALL + 1, 70.0, 86.0, FLOOR + 2.0, FLOOR + 12.0))              # sensors, N20, AS5600 cable
-    anchors = [(L - WALL - 5.0, 29.0 - 12.0), (L - WALL - 5.0, 84.0), (WALL + 10.0, 78.0), (ex + bw / 2, ey + 14.0)]
+    cuts.append(prim.box(L - WALL - 1, L + 1, 38.0 - xc[0] / 2, 38.0 + xc[0] / 2, FLOOR + 6.0, FLOOR + 6.0 + xc[1]))
+    anchors = [((EXIT_MOTOR[0] + EXIT_MOTOR[1]) / 2, W - WALL - 7.0), ((EXIT_SENS[0] + EXIT_SENS[1]) / 2, W - WALL - 7.0),
+               (L - WALL - 6.0, 26.0), (ex + bw / 2, ey + 14.0)]
     for (ax_, ay_) in anchors:
         a = prim.box(ax_ - 3, ax_ + 3, ay_ - 5, ay_ + 5, FLOOR - 0.01, FLOOR + 6.0)
         a = a - prim.box(ax_ - 4, ax_ + 4, ay_ - 2.0, ay_ + 2.0, FLOOR - 0.5, FLOOR + 3.0)   # tie tunnel
@@ -165,7 +169,7 @@ def bay_lid():
         cuts.append(U.clear_hole(x, y, H - 1, H + t + 1, head_top=H + t + 0.01, head_h=2.0))
     bx, by, _ = PLACE["bts7960"]
     for i in range(8):
-        cuts.append(prim.box(bx + 2, bx + 48, by + 2 + i * 6.0, by + 5.0 + i * 6.0, H - 1, H + t + 1))
+        cuts.append(prim.box(bx + 4, bx + 46, by + 2 + i * 6.0, by + 5.0 + i * 6.0, H - 1, H + t + 1))
     return prim.diff(lid, cuts)
 
 
@@ -286,6 +290,17 @@ def place_bay(C, parts, override=None, info=None):
     """Choose the bay pose on the deck. Hard rules: clear of every footprint; 45 mm free in front of the native USB
     opening (the Jetson plug and its bend). Score: deck rectangle area + 3 x (motor lead + sensor lead lengths).
     Returns 4x4 bay -> deck frame."""
+    if override and isinstance(override.get("x"), (tuple, list)):
+        # params give a region (x0, x1), (y0, y1): centre the bay in it, long side along the longer edge
+        (rx0, rx1), (ry0, ry1) = override["x"], override["y"]
+        yaw = float(override.get("yaw", 90.0))     # 90: the USB wall (local -y) faces world +x, the exits face -x
+        M0 = tf.Rz(yaw)
+        cs = tf.apply(M0, [(0, -TAB_W, 0), (L, -TAB_W, 0), (L, W + TAB_W, 0), (0, W + TAB_W, 0)])
+        cx, cy = (cs[:, 0].min() + cs[:, 0].max()) / 2, (cs[:, 1].min() + cs[:, 1].max()) / 2
+        if info is not None and (np.ptp(cs[:, 0]) > rx1 - rx0 + 0.5 or np.ptp(cs[:, 1]) > ry1 - ry0 + 0.5):
+            info["warnings"].append(f"bay {np.ptp(cs[:, 0]):.0f} x {np.ptp(cs[:, 1]):.0f} does not fit the params region "
+                                    f"{rx1 - rx0:.0f} x {ry1 - ry0:.0f}")
+        return tf.T((rx0 + rx1) / 2 - cx, (ry0 + ry1) / 2 - cy, 0) @ M0
     if override:
         return tf.T(override["x"], override["y"], 0) @ tf.Rz(override.get("yaw", 0.0))
     fp = _footprints(parts)
@@ -320,8 +335,8 @@ def place_bay(C, parts, override=None, info=None):
                 ux0, uy0 = min(x0, gx), min(y0, gy)
                 ux1, uy1 = max(x1, gx + sx), max(y1, gy + sy)
                 area = (ux1 - ux0) * (uy1 - uy0)
-                mot_exit = tf.apply(M, [(L, 29.0, 0)])[0][:2]
-                sen_exit = tf.apply(M, [(0.0, 78.0, 0)])[0][:2]
+                mot_exit = tf.apply(M, [(sum(EXIT_MOTOR) / 2, W, 0)])[0][:2]
+                sen_exit = tf.apply(M, [(sum(EXIT_SENS) / 2, W, 0)])[0][:2]
                 lead = np.abs(sen_exit - sensor_xy).sum()
                 if motor_xy is not None:
                     lead += np.abs(mot_exit - motor_xy).sum()
@@ -334,7 +349,7 @@ def place_bay(C, parts, override=None, info=None):
 def build(P, C, info, parts_so_far):
     fw = C["fw"]
     out = []
-    asp, ainfo = as5600_parts(P, C, info)
+    asp, ainfo = as5600_parts(P, C, info) if C.get("as5600_frame", True) else ([], {})
     extra = [Part(nm, sol, "bought") for nm, sol, kw in asp]
     Mbay = place_bay(C, list(parts_so_far) + extra, fw.get("ebay"), info)
     box, tabs = bay_box()

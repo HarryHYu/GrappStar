@@ -53,7 +53,9 @@ class Part:
     color: str = "#c8ccd2"
     subsystem: str = ""             # filled in by the assembly from the module name
     notes: str = ""                 # one line: what it is and why (shows in BOM, guide, sim tooltips)
-    bought_ref: str = ""            # for bought parts: "608ZZ 8x22x7", "M3x10 SHCS ISO 4762"
+    bought_ref: str = ""            # bought items, ";" separated, optional count "<n> x <item>" (multiplied by qty):
+                                    # "608ZZ 8x22x7", "4 x M3x10 SHCS; 4 x M3 heat-set insert", "2xM3x8 BHCS".
+                                    # A plain number after the x is a size ("8 x 120 mm rod" = 1 rod).
     infill: float = 0.4             # for the mass estimate
     step: int | None = None         # assembly step number (assembly page and guide), None = auto by subsystem
 ```
@@ -84,6 +86,8 @@ def clearances(P) -> list[Clearance]: ...     # named pairs that must keep a gap
 def audit_states(P) -> list[dict]: ...        # extra states S to audit (joint sweeps, fault states)
 def checks(P, asm) -> list[str]: ...          # own extra checks, return failure strings (empty = pass)
 def steps(P) -> list[dict]: ...               # assembly steps: {"title", "text", "parts": [names]}
+def line_path(P, S) -> list[tuple]: ...       # tether polyline in WORLD mm for state S (exit eye, pulleys, dart
+                                              # tail); the sim draws it; the reel module starts it, launch continues
 def grounded(P) -> list[str]: ...             # parts (fnmatch patterns) that rest on the rover; every other part must
                                               # connect to one through contacts in the rest state
 ```

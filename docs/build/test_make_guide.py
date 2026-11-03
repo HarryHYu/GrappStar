@@ -10,7 +10,7 @@ spec.loader.exec_module(mg)
 
 
 def test_clean_removes_em_dashes():
-    assert "—" not in mg.clean("a — b—c – d")
+    assert "\u2014" not in mg.clean("a \u2014 b\u2014c \u2013 d")
 
 
 def test_demote_pushes_headings_down_and_keeps_code():
@@ -32,8 +32,26 @@ def test_dart_printlist_lists_plates():
 
 def test_full_build_has_every_section_and_no_em_dash():
     md = mg.build_markdown()
-    assert "—" not in md
+    assert "\u2014" not in md
     heads = re.findall(r"^# (\d+)\.", md, re.M)
-    assert heads == [str(i) for i in range(1, 16)], heads
+    assert heads == [str(i) for i in range(1, 17)], heads
     for must in ("battery unplugged", "608", "20 A fuse", "9.0 V"):
         assert must.lower() in md.lower(), must
+
+
+def test_base_pack_formats(tmp_path, monkeypatch):
+    """The guide must pick up a base pack whatever form it lands in (csv, json, md) plus the coupon sheet."""
+    monkeypatch.setattr(mg, "ROOT", str(tmp_path))
+    pack = tmp_path / "base" / "pack"
+    (pack / "coupon").mkdir(parents=True)
+    assert "NOT IN THE REPO YET" in mg.printlist_base()
+    (pack / "print_list.csv").write_text("part,material,plate\ndrum_drum,PPA-CF,1\n")
+    (pack / "plate_1.3mf").write_text("x")
+    out = mg.printlist_base()
+    assert "drum_drum" in out and "plate_1.3mf" in out
+    (pack / "coupon" / "COUPON.md").write_text("# Coupons\n\n## Tile A\nCheck the 608 seat.\n")
+    inc = mg.d_includeglob(["base/**/coupon/COUPON.md", "first"], 2)
+    assert "Tile A" in inc and "#### Tile A" in inc
+    (pack / "print_report.json").write_text('{"parts": {"frame_deck": {"material": "PLA", "plate": 2}}}')
+    (pack / "print_list.csv").unlink()
+    assert "frame_deck" in mg.printlist_base()

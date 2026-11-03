@@ -151,6 +151,12 @@ def chamfer_ring(r_out, h, c, z=0.0, top=True):
     return revolve_pts(pts)
 
 
+def clean(solid, tol=1e-4):
+    """Merge vertices closer than tol (mm) so the mesh stays watertight after an STL loader merges coincident
+    vertices (booleans can leave near-duplicate vertices 1e-6 apart). Changes the volume by far less than 0.001 mm3."""
+    return solid.simplify(tol)
+
+
 def mesh_of(solid):
     """Manifold -> (vertices (N, 3) float64, faces (M, 3) int64)."""
     m = solid.to_mesh()

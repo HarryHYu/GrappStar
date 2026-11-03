@@ -224,7 +224,7 @@ Timing:
 
 | load | peak N m | basis |
 |---|---|---|
-| fork | 0.86 | yoke block force 4.3 N plus 3 N friction, x 2.07 racking: (1 + 2 mu 63.2/66) / (1 - 2 mu 36.5/66), mu 0.25 greased rail; groove 44 deg |
+| fork | 0.86 | yoke block force 4.3 N plus 3 N friction, x 2.04 racking: (1 + 2 mu 63.2/66) / (1 - 2 mu 36.5/66), mu 0.25 greased rail; groove 44 deg |
 | clutch ramps | 0.78 | 15 N pushrod at FIRM 5 N (cad-reel: 10.8 N at 4 mm, design 15) |
 | wrap | 0.78 | 0.06 N m at the cup x 10.5 / 0.81 |
 

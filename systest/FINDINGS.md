@@ -234,3 +234,33 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
 - Consequence: every power cycle silently changes the tow limit by 10 N (F14) and switches the host watchdog off.
 - Fix: add both to `Tun` (bump `ver` to 2 and accept a v1 record with defaults), add a host test that sets every key,
   power cycles and reads them back.
+
+- F15 also for a cut during AIM (scenario `power_aim`, batch 2): aim runs the wiper BACKWARD with the carriage home
+  (sprag #1 freewheels, the cock train cannot move), yet after the restart `BOOT "phase":"UNKNOWN"` and every `aim`
+  is refused `PHASE_UNKNOWN`. PROTOCOL.md section 7 lists only "cocking, firing or resetting" as making the phase
+  UNKNOWN. A backward run should keep the shot phase (REST), and only forget the aim.
+
+## F17 (fw-base) `decock` with the carriage home and the phase UNKNOWN answers ok but does nothing and sends no RESET
+
+- Scenario `power_aim` follow-up: phase UNKNOWN, `sw.H` closed. PROTOCOL.md section 5: "`RESET` event with
+  `how:"decock"` (immediately if the carriage is already home)". Firmware `base_logic.h:886`:
+  `if (phase == PH_UNKNOWN && !(phaseHint ...)) return nullptr;` replies `ok:true`, starts nothing, emits no event
+  and leaves the phase UNKNOWN. A host that waits for RESET (the Jetson's Decock button, the D35 recovery "decock,
+  wait RESET, then aim") hangs until its own timeout, and `aim` is still refused PHASE_UNKNOWN afterwards.
+- Suggest: with the carriage home and no evidence of a drawn spring, `decock` sets the phase REST and sends
+  `RESET {"how":"decock"}` (or refuses with a code that says "use cock to re-zero"), and PROTOCOL.md says which.
+
+## F18 (jetson, on w/jetson 16a4c6c, not yet in base-v1) TOW waits 60 s per round: a stale telemetry `state` makes it think the base winds by itself
+
+- Preview run (`systest/preview.sh`: base-v1 ba121b9 + w/fw-base 7b7c367 + w/fw-dart e47da79 + w/jetson 16a4c6c),
+  scenario `nominal`, no load cell. Round 1: `reel ... until tension` -> `LIMIT 40 holding` (plant 40.2 N, good). The
+  rover hook returns "slack". Round 2: the mission logs "base is already winding (slack taken up by itself)", sends
+  nothing, and `wait_evt(LIMIT)` times out after 60 s ("TOW failed: no ('LIMIT', 'SEATED') event from the base in 60 s").
+  Retry sends `reel` again and that round works; the same happens every round. The mission still ends DONE, 2 min late.
+- Cause: `jetson/grappstar/mission.py:1013` (w/jetson) checks `self.tel().get("state") == "REEL"` right after the
+  LIMIT event; the latest telemetry line was written just before the LIMIT and still says REEL (the HOLD telemetry
+  arrives up to 50 ms later). Also, without a load cell (`tension_n` null) the firmware never winds again by itself
+  (PROTOCOL.md: only "with a load cell"), so that branch can only be right when `tension_n` is a number.
+- Fix: take the "already winding" branch only with a load cell and only on telemetry newer than the LIMIT event
+  (`self.base.tel_t > e["_t"]`), or simply send `reel` and treat a `BUSY` reply as "already winding" (the code already
+  handles BUSY).

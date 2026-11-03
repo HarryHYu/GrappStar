@@ -28,6 +28,36 @@ standalone, runs the whole App (vision, analysis, recording) with the real dart 
 with NVS persistence, USB unplug / replug, raw serial injection and per-scenario fault triggers, which basesim does
 not have. Nothing under jetson/ or firmware/ was changed.
 
+## How to run
+
+```
+systest/run_mission.sh --list            all scenarios
+systest/run_mission.sh                   nominal mission (about 2 min)
+systest/run_mission.sh all               everything (about 1.5 h)
+systest/run_mission.sh power_wrap,ref_power_wrap
+systest/preview.sh [scenario|all]        same, on base-v1 + w/fw-base + w/fw-dart + w/jetson (before a merge)
+python3 systest/c1_order.py              the C1 command order each recorded run used, against BASE_SPEC 10.1
+```
+Each run leaves `systest/runs/<scenario>/`: `timeline.jsonl` (steps, prompts and answers, events, dart phases, plant
+snapshots, injections, checks), `summary.json`, `base.log` (every serial line both ways with sim time), `dart.log`,
+`jetson/<run>/mission.jsonl` (the App's own log) and recorded videos.
+
+## Scenarios
+
+Two drivers: `mission` (the real `jetson/grappstar/mission.py` through the App, with a scripted operator) and `ref`
+(BASE_SPEC 10.1 step by step with the Jetson's own `BaseClient` / `Dart` clients, plus operator-style recovery). The
+`ref_*` scenarios test the firmware and dart against the binding sequence even while the mission lags behind it.
+
+Plant: sim.h plus the D22 additions in the shim: every laid turn draws a capstan circumference from the dart side
+(a free dart is tugged, an anchored one jams the cup), and tidy pulls an anchored line taut. Strict for `nominal`,
+`land_short` and all `ref_*`; lenient for the mission fault scenarios until F4/F12 land (`SYSTEST_D22_ALL=1` for strict).
+
+Checks per scenario (plant truth where possible): mission DONE, aim reached, fired, landed, anchored, tidy ran,
+wrapped (plant wraps), REEL engaged and pulling, tow limit respected (peak plant tension per 5 ms tick, limit +15 %),
+dart released, reeled in, unwrapped, seated (plant and SW_SEATED), back to LAUNCH, no dry fire (the plant counts the
+collar leaving LAUNCH with the spring drawn), wraps laid without jamming, free dart tugged under 1 m, C1 command order
+= BASE_SPEC 10.1, every injected fault actually fired, plus scenario specific ones.
+
 ## Results
 
 (pasted from the last run below)

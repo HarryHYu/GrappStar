@@ -177,6 +177,7 @@ Jetson sends, what ends the wait. Everything else in C1 stays as PROTOCOL.md doc
 | 5 | `fire` token | `FIRED`, then `RESET` | |
 | 6 | dart LANDED: `set` line_m | reply | from the landing distance |
 | 7 | (Jetson landing-zone verdict) | | NO_GO before the wrap: `mode` NEUTRAL (step 8), then straight to step 17 (take-up retrieve). NO_GO after a wrap: steps 12 and 15 to 17 (fly-in, capstan reel-in, unwrap, retrieve) |
+| 7b | `aim` pitch_min (6 deg) | `AIMED` | D45: rail down before the wrap when the pitch is above 15 deg, so tow tension over the lip roller cannot push the carriage back (the line stays slack meanwhile) |
 | 8 | `mode` NEUTRAL | `MODE` ok | may be skipped: `wrap` also starts from LAUNCH |
 | 9 | `wrap` | `WRAPPED` | the drum parks at WRAPPED 314: cup locked, collar NEUTRAL, clutch FIRM. No `MODE` REEL here. Allow 90 s (about 42 s from LAUNCH at 8.1 deg/s) |
 | 10 | dart `/auto` | dart phase ANCHORED | |

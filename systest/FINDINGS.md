@@ -417,7 +417,7 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   `status`, set by `set k_n_per_a` / `tension_offset_n`, saved in Tun), and key the warning on that, not on a copy of
   the default value.
 
-## F29 (jetson vision) the fused landing range is 27 % short on a consistent rendered flight
+## F29 (jetson vision) the fused landing range is 27 % short on a consistent rendered flight [speed part fixed on w/jetson-vision 6fc97c8; the remaining ~11 % is the sim renderer vs the C3 table, by design]
 
 - Batch 5 (jetson 086749a), scenario `nominal`: the dart video and the dart's IMU log come from ONE rendered flight
   (jetson/grappstar/sim/flight_video.py: pitch 26.5 deg, v0 6.43 m/s, true range 4.08 m; the C3 table says 3.98 m at
@@ -433,3 +433,9 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   becomes 2.6 m and the take-up then carries 2.6 m. Caveat: the renderer's drag model is not the physics table's (it
   flies about 15 % long at 47 deg for the table speed; the harness scales its v0 to land at the table range), so
   part of the gap may be the renderer, but the speed going DOWN for a longer flight is inside the fusion.
+
+  - jetson-vision 15:00: the low speed came from the clock offset averaging the launch and a late video impact; fixed
+    in 6fc97c8 (offset from the launch match only): v0 6.45..6.56 on the same flight. The remaining -11 % is by
+    design: the estimator is calibrated to the C3 table, and the table's range is a constant 0.873 of the
+    render_flight physics. The harness now judges step 15 on the base's own line_m and reports the estimate error
+    as information.

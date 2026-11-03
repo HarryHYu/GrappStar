@@ -1054,7 +1054,7 @@ def kin(P, S):
     }
     for i in range(3):
         v[f"drum_sw{i}"] = lever_deg(th, g, c, i)
-    if _launch_gear() is not None and S.get("sleeve_deg") is None:
+    if _launch_gear() is not None and S.get("sleeve_deg") is None and md != "LAUNCH":
         v.pop("drum_out_launch")              # no sleeve_deg in S: follow launch_sleeve through Joint.gear
     return v
 

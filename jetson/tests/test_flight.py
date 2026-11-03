@@ -302,3 +302,14 @@ def test_run_post_flight_passes_aim_and_table(tmp_path):
     # auto: the repo table (real launcher) is loaded and used as the prior
     res = analysis.run_post_flight(frames, None, None, do_mosaic=False, aim_pitch_deg=20)
     assert any("table" in n for n in res["flight"]["notes"])
+
+
+def test_fuse_speed_matches_analyze_flight_model():
+    """The speed model starts the free flight where the dart leaves the rail, like tf() and the range model:
+    flight times from that model give back the true speed (IMU-timed, the saturated-push path)."""
+    from grappstar.sim.flight_video import RAIL_H, STROKE_S
+    for v_true, p in ((7.0, 10.0), (7.0, 20.0), (8.0, 40.0)):
+        sl = v_true * STROKE_S / 2.0
+        T = float(FL.ballistic(v_true, p, RAIL_H + sl * math.sin(math.radians(p)))[0][-1])
+        v, _ = FL.fuse_speed(p, RAIL_H, T_obs=T, T_sigma=0.02)
+        assert v == pytest.approx(v_true, abs=0.08), (v_true, p, v)

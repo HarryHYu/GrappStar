@@ -356,8 +356,11 @@ PRIOR_SIGMA = 0.20       # table muzzle speed prior: 20 percent (spring, clutch 
 
 
 def _gamma_track(v0: float, pitch: float, h0: float):
-    """(t, x, z, gamma_deg) of the model flight from the rail end (t = 0 at the end of the stroke)."""
-    ts, xs, zs = ballistic(v0, pitch, h0, dt=0.005)
+    """(t, x, z, gamma_deg) of the model flight from the rail end (t = 0 at the end of the stroke).
+
+    h0 is the camera height at the stroke START; the free flight starts where the dart leaves the rail, half a
+    stroke further along the rail (the same start as analyze_flight's tf() and the range model)."""
+    ts, xs, zs = ballistic(v0, pitch, h0 + v0 * STROKE_S / 2.0 * math.sin(math.radians(pitch)), dt=0.005)
     if len(ts) < 3:
         return ts, xs, zs, np.full(len(ts), pitch)
     gam = np.degrees(np.arctan2(np.gradient(zs, ts), np.gradient(xs, ts)))

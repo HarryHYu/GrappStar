@@ -136,7 +136,7 @@ class ScriptRover(RoverDrive):
         self.calls += 1
         if self.calls >= self.rounds:
             return "done"
-        self.rig.world.slack_m += 0.3       # rover drove 0.3 m toward the dart
-        self.rig.mb.tension = 1.0
-        self.rig.mb.state = "IDLE"          # hold released by the slack
+        with self.rig.mb.lock:
+            self.rig.world.slack_m += 0.3   # rover drove 0.3 m toward the dart: the held line goes slack
+            self.rig.mb.tension = 1.0       # (with a load cell the base winds again by itself, like the firmware)
         return "slack"

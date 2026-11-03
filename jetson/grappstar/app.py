@@ -185,7 +185,8 @@ class App:
         return {
             "t": time.time(),
             "sim": bool(self.sim),
-            "base": dict(tel, link=self.base.link()),
+            "base": dict(tel, link=self.base.link(),
+                         seated=bool((tel.get("sw") or {}).get("S")) if tel else None),   # PROTOCOL: sw letter S
             "dart": dict(ds, link=self.dart.link()),
             "mission": m,
             "cams": {k: v.status() for k, v in self.cams.items()},

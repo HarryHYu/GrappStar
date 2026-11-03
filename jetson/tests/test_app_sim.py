@@ -54,7 +54,7 @@ def test_full_mission_via_actions_then_replay(app):
     assert r["ok"], r
     assert not app.action("start", {})["ok"]          # already running
     seen, t0 = set(), time.time()
-    while time.time() - t0 < 150:
+    while time.time() - t0 < 420:
         m = app.status()["mission"]
         p = m["prompt"]
         if p and p["id"] not in seen:

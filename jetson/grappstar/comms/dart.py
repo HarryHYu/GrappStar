@@ -5,7 +5,8 @@ The dart is a WiFi access point "KEDGE" at 192.168.4.1. Endpoints:
   GET /key?c=<key>&ms=<run>   run a motor key for ms (hold-to-run: repeat every 150 ms, each repeat 350 ms)
   GET /stop                   all motors off
   GET /auto                   auto-anchor sequence
-  GET /release                release sequence (drills out, foot out, kick back, deploy up)   (C2, new)
+  GET /release                release sequence: drills out, pods up, foot out, kick back (reverse of /auto)
+  GET /arm?on=1&auto=0        arm the landing detector (auto=0: log only)
   GET /flightlog              {"hz", "t_launch_ms", "t_land_ms", "samples": [[t_ms, qw, qx, qy, qz, ax, ay, az], ...]}
 
 Keys: 1/! deploy down/up, 2/@ kick out/back, 3/# drills in/out, 4/$ foot in/out, A arm auto-anchor on landing.
@@ -198,8 +199,22 @@ class Dart:
         """Arm the landing detector (auto=True: anchor by itself on landing)."""
         return bool(self.arm(True, auto).get("armed"))
 
-    def flightlog(self, timeout: float = 4.0, tries: int = 3) -> dict:
-        """GET /flightlog. 503 (no memory on the dart) is retried."""
+    def flightlog(self, timeout: float = 4.0, tries: int = 3, busy_wait_s: float = 45.0) -> dict:
+        """GET /flightlog. 503 (no memory on the dart) is retried. 409 "busy" (motors running: auto-anchor right
+        after landing) is retried with backoff for up to busy_wait_s; other refusals (armed, in flight) raise."""
+        last: Optional[Exception] = None
+        t_end = time.time() + busy_wait_s
+        delay = 0.5
+        while True:
+            try:
+                return self._flightlog_once(timeout, tries)
+            except DartRefused as e:
+                if not e.reason.startswith("busy") or time.time() + delay > t_end:
+                    raise
+                time.sleep(delay)
+                delay = min(delay * 1.5, 3.0)
+
+    def _flightlog_once(self, timeout: float, tries: int) -> dict:
         last: Optional[Exception] = None
         for _ in range(tries):
             try:
@@ -242,7 +257,11 @@ class Dart:
                     self.key(k, ms)
                 time.sleep(period)
         finally:
-            self.safe_stop()
+            # stop the motors but keep the landing detector armed (a full /stop disarms, v4)
+            try:
+                self.stop(disarm=False)
+            except Exception:
+                self.safe_stop()
 
     def wait_phase(self, phases, timeout: float, poll: float = 0.2, fail: tuple = ("FAULT",),
                    cancel: Optional[threading.Event] = None, log: Optional[Callable[[str], None]] = None,

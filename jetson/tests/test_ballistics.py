@@ -19,14 +19,14 @@ def test_solve_round_trip(b):
     for drag in (0.5, 0.75, 1.0):
         for p in (17.0, 22.5, 30.0, 33.0):
             r = b.at_pitch(p, drag)["range_m"]
-            s = b.solve(r, drag)
+            s = b.solve(r, drag, lob=False)
             assert s.reachable and abs(s.pitch_deg - p) < 0.6, (drag, p, s)
             assert s.t_flight_s > 0 and s.line_out_m >= r
 
 
-def test_low_branch_default_lob_optional(b):
-    s = b.solve(8.0, 0.75)
-    l = b.solve(8.0, 0.75, lob=True)
+def test_high_branch_default_low_optional(b):
+    l = b.solve(8.0, 0.75)                   # D29: prefer the higher pitch
+    s = b.solve(8.0, 0.75, lob=False)
     assert s.pitch_deg < 40 < l.pitch_deg
     assert l.t_flight_s > s.t_flight_s
 

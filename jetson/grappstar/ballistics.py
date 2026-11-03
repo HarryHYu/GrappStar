@@ -8,8 +8,9 @@ simple point-mass model: NOT the real launcher, marked "placeholder": true).
 
 Rules:
 - Interpolate linearly in pitch and in drag (drag outside the table is clamped).
-- Range rises with pitch up to a peak (about 40 deg) and then falls. Use the rising branch: the lower pitch flies
-  flatter and shorter in time (less wind drift, less line out). Optionally the high branch (lob) for obstacles.
+- Range rises with pitch up to a peak (about 36 deg) and then falls. When two pitches reach the range, prefer the
+  higher one (coordinator decision D29); lob=False gives the flatter, faster low branch.
+- range_m is measured from the ground point under the rail pivot (D29): callers add the camera's offset.
 - Line payout = path length of the flight approximated by the straight distance plus sag, times a margin.
 """
 from __future__ import annotations
@@ -20,6 +21,7 @@ import os
 from dataclasses import asdict, dataclass, field
 from typing import List, Optional
 
+PREFER_HIGH = True   # D29 (3 Nov): prefer the higher pitch when two solutions exist
 HERE = os.path.dirname(os.path.abspath(__file__))
 PLACEHOLDER = os.path.join(HERE, "data", "ballistics_placeholder.json")
 REPO_TABLE = os.path.normpath(os.path.join(HERE, "..", "..", "base", "out", "ballistics.json"))
@@ -101,7 +103,13 @@ class Ballistics:
                 out["v_muzzle"] = _lerp(vs[i], vs[i + 1], (p - ps[i]) / (ps[i + 1] - ps[i]))
         return out
 
-    def solve(self, range_m: float, drag_n: float = 0.75, lob: bool = False, line_margin: float = 1.10) -> Solution:
+    def solve(self, range_m: float, drag_n: float = 0.75, lob: Optional[bool] = None,
+              line_margin: float = 1.10) -> Solution:
+        """Pitch for a range. lob=None uses PREFER_HIGH (coordinator D29: prefer the higher pitch when two solutions
+        exist; the steeper shot lands nose-down for the augers and clears low obstacles). Ranges are from the ground
+        point under the rail pivot (D29)."""
+        if lob is None:
+            lob = PREFER_HIGH
         ps = [r["pitch_deg"] for r in self.rows]
         rng = self._col("range_m", drag_n)
         tf = self._col("t_flight_s", drag_n)
@@ -130,7 +138,7 @@ class Ballistics:
         p, t, apex, v = cands[-1] if lob else cands[0]
         sag = 8.0 * (apex * 0.25) ** 2 / (3.0 * max(range_m, 0.1))   # small extra for the line's arc
         line = (math.hypot(range_m, 0.0) + sag) * line_margin
-        note = "lob (high branch)" if lob and len(cands) > 1 else ""
+        note = ("high branch" if lob else "low branch") if len(cands) > 1 else ""
         if self.placeholder:
             note = (note + "; " if note else "") + "PLACEHOLDER table: not the real launcher"
         return Solution(True, round(p, 2), round(t, 3), round(line, 2), round(apex, 2), round(v, 2), note=note, **base)

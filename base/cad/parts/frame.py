@@ -668,6 +668,10 @@ def build(P):
         M = tf.Rx(-90) if s < 0 else tf.Rx(90)          # print flat: the cheek's outer face down
         note = (("right" if s < 0 else "left") + " cheek (looking forward): carries the bearing blocks"
                 + (" and the wiper motor adapter" if s == ms else "") + "; foot flange bolts to deck inserts")
+        if C["v1"] and s == ms:
+            note = ("motor plate (y -10..0, front face = the spec's y 0): window for the puck adapter, 8 rim holes "
+                    "(M3 x 12 from the front into the puck lip), bridge to the motor leg (2 x M3 x 12), can stay and "
+                    "hood inserts; carved round the other subsystems")
         pieces = split_cheek(cheek_world[s], outlines[s], supports[s], P, fw, info)
         for k, sol in enumerate(pieces):
             nmk = nm if len(pieces) == 1 else f"{nm}_{k + 1}"
@@ -768,7 +772,10 @@ def build(P):
                     ad_rot = U.carve_healed(ad_rot, cut_local)
         parts.append(Part("frame_motor_adapter", ad_rot, "PPA-CF", place=Mad, print_tf=U.print_flat(ad_rot),
                           color="#c9b27a",
-                          notes="wiper adapter plate: slotted M6 holes (+-%.0f mm) for the motor bosses, 6 x M3 to the cheek ring; reprint when the motor is measured" % w["slot"]))
+                          notes=("puck adapter: slotted M6 holes (+-%.0f mm) for the motor bosses, rear lip with 8 M3 inserts "
+                                 "for the rim screws, 2 inserts for cad-drum's SW_INDEX block; reprint when the motor is measured"
+                                 if C["v1"] else
+                                 "wiper adapter plate: slotted M6 holes (+-%.0f mm) for the motor bosses, 6 x M3 to the cheek ring; reprint when the motor is measured") % w["slot"]))
         info["M_adapter"] = Mad
         if C["v1"]:
             sp_ = fw["motor_support"]

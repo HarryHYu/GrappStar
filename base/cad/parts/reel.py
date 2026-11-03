@@ -250,7 +250,7 @@ def _wall():
     # rocker pivot ears (M3 pin along X) and the S bushing boss through the rocker's hole
     px, py, pz = ROCKER_PIVOT
     ears = [prim.box(px + s * 5.4, px + s * 9.4, py - 6, py + 6, -0.01, 5.7) for s in (-1, 1)]
-    sboss = prim.cyl(5.5, ROCKER_Z[1] + 2.0, x=X_REEL, z=-0.01)
+    sboss = prim.cyl(5.5, Z_T - 0.3, x=X_REEL, z=-0.01)        # S bushing 12.7 long (through the rocker's hole)
     # arm and pad on the deck carrying the exit eye post (the tow load stays inside the reel frame)
     ex, _, ez = EXIT
     arm = prim.union([prim.box(8.0, 36.0, Y_DECK, Y_DECK + FOOT_T, Z_FOOT[1] - 1.0, ez - 9.0),

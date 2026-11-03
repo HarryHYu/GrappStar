@@ -222,7 +222,7 @@ int main(int argc, char** argv) {
   { char rep[300]; const char* c = "{\"id\":0,\"cmd\":\"cal\",\"what\":\"cock_rest\"}"; B.handleLine(c, (int)strlen(c), rep, sizeof rep); }
   flushEvents();                                      // BOOT
 
-  LineIn L;
+  LineIn L, Lstd;                                     // pty lines, stdin lines (stdin is also read in pty mode)
   bool stdinOpen = true;
   double w0 = wallMs(); uint32_t t0 = S.t;
   while (!quit) {
@@ -248,7 +248,7 @@ int main(int argc, char** argv) {
     }
     if (idxStd >= 0 && (p[idxStd].revents & (POLLIN | POLLHUP | POLLERR))) {
       ssize_t k = read(0, buf, sizeof buf);
-      if (k > 0) feed(L, buf, k);
+      if (k > 0) feed(Lstd, buf, k);
       else if (k == 0 || (k < 0 && errno != EINTR && errno != EAGAIN)) {
         stdinOpen = false;
         if (!ptyMode) break;                          // stdio mode: the client closed our stdin

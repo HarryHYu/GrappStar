@@ -25,6 +25,7 @@ buffer(since=t) so frames before t are never decoded.
 release_hold() ends it (a hold also ends by itself after hold_max_s).
 """
 import collections
+import logging
 import threading
 import time
 import traceback
@@ -120,6 +121,7 @@ class Camera:
         self._hold_set_at = None        # receive time of the first frame after hold() (expiry clock)
         self._n_packed = 0              # packed (JPEG) entries at the front of the ring
         self._packed_bytes = 0
+        self._hold_expired = 0          # holds that ended by timeout (never released)
         self._dropped_held = 0          # held frames lost anyway (HELD_MAX_MB reached)
         self._stats = collections.deque()  # (receive time, bad) over STATS_WINDOW_S
         self._last_rx = 0.0             # time.time() of the newest frame
@@ -310,7 +312,12 @@ class Camera:
         if self._hold_t is not None and self._hold_set_at is None:
             self._hold_set_at = now                     # measured on the frame clock from the first frame after hold()
         if self._hold_t is not None and now - self._hold_set_at > self.hold_max_s:
-            self._hold_t = None                         # forgotten hold: end it
+            self._hold_t = None                         # forgotten hold: end it, loudly
+            self._hold_expired += 1
+            self._errors += 1
+            self._last_error = ("hold expired after %.0f s without release_hold(): the flight frames are no longer "
+                                "pinned" % self.hold_max_s)
+            logging.getLogger("grappstar.camera").warning("%s: %s", self.name, self._last_error)
         cap = self._cap_locked(frame_bytes)
         ring = self._ring
         # 1. age, count and RAM limits for frames that are not held (the oldest come first)
@@ -476,6 +483,7 @@ class Camera:
                 "hold": self._hold_t,
                 "packed_frames": self._n_packed,
                 "dropped_held": self._dropped_held,
+                "hold_expired": self._hold_expired,
                 "errors": self._errors,
                 "last_error": self._last_error,
                 "reconnects": self._reconnects,

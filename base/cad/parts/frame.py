@@ -962,6 +962,13 @@ def joints(P):
 def kin(P, S):
     # wiper_deg: + = motor forward. The motor shaft points into the frame along -motor_side * Y.
     out = {"frame_wiper": float(S.get("wiper_deg", 0.0))}
+    try:                       # the wiper output IS cad-drum's main shaft: follow its value in every state it derives
+        from . import drum
+        v = (drum.kin(P, S) or {}).get("drum_main")
+        if v is not None:
+            out["frame_wiper"] = float(v)
+    except Exception:
+        pass
 
     return out
 

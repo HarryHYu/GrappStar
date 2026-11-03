@@ -233,7 +233,7 @@ def _water_void(h: int, w: int, rng: np.random.Generator) -> np.ndarray:
             img += (rim * 35.0)[..., None]
         return img
     # Water: dark, smooth, sky reflection gradient, gentle ripples, specular glints.
-    base = _jitter_colour(rng, (62, 50, 36), 8)
+    base = _jitter_colour(rng, (70, 52, 34), 4)
     img = _colour_img(h, w, base)
     grad = (ys / h - 0.5) * float(rng.uniform(-30, 30))
     phi = float(rng.uniform(0, np.pi))

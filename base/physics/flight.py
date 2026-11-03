@@ -26,7 +26,7 @@ OUT_DIR = os.path.join(HERE, "..", "out", "physics")
 
 
 def simulate(p: Params, v0: float, pitch_deg: float, brake_n: float | None = None, tether: bool = True,
-             reel_model: bool = False, seg: float = 0.40, ea_sim: float = 3000.0, dt: float = 1e-4,
+             reel_model: bool = False, seg: float = 0.60, ea_sim: float = 3000.0, dt: float = 2e-4,
              cda: float | None = None, wind: float = 0.0, record: bool = False, shoes: bool = False,
              shoe_k: float = 0.0, shoe_on: float = 0.0, tmax: float = 6.0, muzzle_xz: tuple | None = None):
     """One flight. wind: horizontal air speed in +x (a tailwind is positive)."""

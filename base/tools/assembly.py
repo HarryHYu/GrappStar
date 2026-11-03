@@ -33,7 +33,9 @@ SKIP_DEFAULT = {"demo"}
 
 def subsystem_names():
     import cad.parts as pk
-    return sorted(m.name for m in pkgutil.iter_modules(pk.__path__) if not m.name.startswith("_"))
+    # subsystem modules are the names without an underscore (launch, reel, drum, frame, demo); helper modules
+    # <subsystem>_*.py and packages are skipped. pkgutil lists only importable .py modules, never NOTES.md etc.
+    return sorted(m.name for m in pkgutil.iter_modules(pk.__path__) if "_" not in m.name and not m.ispkg)
 
 
 class Assembly:

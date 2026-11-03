@@ -1,9 +1,7 @@
 # Physics findings for the spec (worker `physics`)
 
-Status: updated through the day; the Current numbers block is the latest (older sections are history) (LAUNCH, AIM, REEL still None, so
-launcher/reel geometry below is my placeholder: stroke along the rail, 60 g carriage, 1:1 springs to carriage, reel
-core 40 / flange 64 / width 20 mm, capstan 40 mm). Dart mass 0.279 kg (spec DART.mass_kg; the brief said 0.292 kg:
-coordinator please confirm which). Models: base/physics/*.py, every number reproducible with the CLIs.
+Status: updated through the day; the Current numbers block is the latest. Sections F1 onward are the history of
+the findings (their numbers come from earlier parameter sets). Every number is reproducible with the CLIs.
 
 ## Current numbers (spec 1.2.7: D36 rear line guide, carriage 70 g; model with the review fixes)
 

@@ -105,6 +105,7 @@ TEST_OUTPUT_PLACEHOLDER
 | r2_B2 #6 reversing gets round the hold cap | fixed in b9cf242: hold cap per motor |
 | r2_B2 #7 fuzz checks only flight log syntax | fixed: invariant 8 also requires a frozen flight log to hold the launch |
 | r3_N #5 WIRING A2 wire [15] vs [16] | fixed; every wire number re-checked against both lists, missing v29 numbers added, A7 checks DRV#2 GND and VM |
+| OPEN_ITEMS fw-dart (4, checked at 863d58d) | r2_B2 #5 #6 #7 fixed since (see above); r1_G #21 WIRING B2: starts "Battery unplugged", now also beep-checks IN+ to IN- before the LiPo goes in |
 | docs worker learner round (7 items) | fixed: hull closed for assembled steps, struct and array order named, test-model warning, one capacitor location, B10 open circuit, full paths |
 
 ## Requests to other workers

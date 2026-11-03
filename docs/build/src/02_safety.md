@@ -30,7 +30,7 @@ Read this before any hands-on step.
 
 - The wiper motor is strong (about 15 N m) and self-locking. Hands out of the gears, drum and rail while the battery
   is plugged in.
-- **Stopping (the same everywhere):** 1. send `estop` (or the STOP button on the operator page). 2. If anything
+- **Stopping (the same everywhere):** 1. send `estop` (the operator page STOP button sends a plain `stop`: wiper off, drum stays). 2. If anything
   still moves, pull lead #2's XT60: both motors lose power, the Jetson stays up. Keep that plug within arm's reach
   whenever the base is powered; it is the physical kill switch. 3. Only then the main battery plug.
 - **Cutting power freezes stored energy, it does not release it.** Both worms self-lock, so a drawn spring and a

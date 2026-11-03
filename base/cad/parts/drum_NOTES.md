@@ -1,6 +1,6 @@
 # Drum subsystem notes (worker cad-drum): main shaft, dog clutch, N20 selector drum
 
-Status: v6, 3 Nov 2026 13:00 Sydney. Conforms to params.py v1.2.3. Deviations are in section 0.
+Status: v6, 3 Nov 2026 13:05 Sydney. Conforms to params.py v1.2.6. Deviations are in section 0.
 
 Every number lives in code:
 - `_drum_kin.py` DEFAULTS: angles, groove and clutch profiles, Gray code, stop plan, timing, loads. It has no CAD
@@ -190,13 +190,15 @@ Timing:
    - in REEL: creep forward only (sprag #2 blocks backward).
 
    Leaving LAUNCH or REEL under load: unload jog 8 deg first. SWITCH_DISAGREE after 3 tries.
-4. Fault in LAUNCH or L_TO_N: HOLD the drum unless SW_HOME is closed (spring not drawn), then NEUTRAL (D27). Fault
-   from REEL or N_TO_R: WRAPPED (314) by time from edge 342, never back through the wrap window.
+4. Faults (D27, params 1.2.6):
+   - In LAUNCH or L_TO_N: HOLD the drum unless SW_HOME is closed (spring not drawn), then NEUTRAL.
+   - With the wraps on (WRAP, N_TO_R, REEL): HOLD where it is (DRUM_HELD), never NEUTRAL; the operator unwraps when
+     safe.
+   - REEL to WRAPPED (on operator command): by time from edge 342, never back into the wrap window.
 5. Boot:
    - LAUNCH or L_TO_N: hold until SW_HOME, then NEUTRAL;
    - NEUTRAL or WRAP_PREP: go to NEUTRAL;
-   - WRAP: stop and report;
-   - N_TO_R or REEL: go to WRAPPED.
+   - WRAP, N_TO_R or REEL: hold and report.
 6. SW_N20 open means the hand fallback is active: no drum moves.
 7. SW_INDEX: 6 pulses per wiper turn (degraded mode without the AS5600 magnet).
 8. Positive drum = N20 forward (DRV8833 #3 AIN1 high) = wrap direction.

@@ -3,9 +3,11 @@
 Owner: worker `cad-infra` (`base/cad/lib/`, `base/tools/`, this file). Subsystem workers own
 `base/cad/parts/<subsystem>.py` (launch, reel, drum, frame). API v1 is frozen: only additive changes from here on.
 
-Units: mm, degrees, kg, N. World frame: x forward (launch direction), y left, z up, origin on the base plate top
-surface at the wiper output shaft axis projection (the frame worker may move the origin, everyone else is relative
-to joints). All solids are `manifold3d.Manifold`.
+Units: mm, degrees, kg, N. World frame (binding, `base/spec/BASE_SPEC.md` section 2): right-handed, origin ON the
+wiper output / main shaft axis (x = 0, z = 0 on the axis), y = 0 at the motor adapter plate face. +X forward (launch
+azimuth), +Y left looking forward, +Z up. The main shaft axis is the Y axis. The deck top sits at
+z = -(axis height) from `P.LAYOUT` (v1.0). Rail pitch is measured up from +X, drum 0 = LAUNCH, wiper + = FORWARD
+(cock direction). All solids are `manifold3d.Manifold`.
 
 ## 1. Imports
 
@@ -60,6 +62,10 @@ World pose of a part in state `S`: `M_world(joint) @ part.place`, where
 `M_world(j) = M_world(parent) @ T(origin) @ base @ motion(value)`.
 
 ## 3. Subsystem module contract (`base/cad/parts/<name>.py`)
+
+Only modules whose name has no underscore are subsystems (`launch.py`, `reel.py`, `drum.py`, `frame.py`, `demo.py`).
+Put helpers in `<subsystem>_*.py` (for example `launch_kin.py`): the assembly never imports them directly. Other
+files in `cad/parts/` (NOTES.md, json, npz) are ignored.
 
 Required:
 

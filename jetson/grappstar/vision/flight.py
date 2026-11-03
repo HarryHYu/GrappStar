@@ -1,0 +1,630 @@
+"""Dart flight analysis from the nose camera video, fused with the dart IMU flightlog when there is one.
+
+analyze_flight(frames, flightlog=None, clock_offset_s=None, ...) -> FlightResult
+landing_frames(frames, result, n=15) -> list[Frame]
+
+Phases: ON_RAIL, LAUNCH, FLIGHT, IMPACT, LANDED, each as (name, t0, t1) in video (wall) time.
+
+How it works
+------------
+1. Frame quality. Frames with bad=True or quality < 0.4 are skipped. Frames with quality=None get a quick own
+   check (uniform blue or black "no signal" frame, snow speckle, torn rows), so raw captures work too.
+2. Video motion energy. Each good frame is shrunk to 160 px wide grey and blurred; the energy of a pair of
+   consecutive good frames is the mean absolute difference divided by the frame gap. The static floor (rail and
+   landed parts) is a low percentile; "moving" is energy above a threshold derived from it. Launch = first
+   sustained motion, landed = after the last motion, impact = the peak of motion just before landed (the nose
+   hitting the ground is the most violent change in the picture).
+3. IMU (C2 flightlog: t_ms dart millis, quaternion world from body, specific force in body frame m/s^2).
+   Launch = first sample with |a| over 4 g, impact = first sample over 6 g at least 0.3 s later, landed = first
+   time after impact the reading stays at its final resting vector (1 g) for 0.3 s. Clock alignment: video_t = t_ms / 1000 +
+   offset. The offset is either given (clock_offset_s) or estimated by matching the IMU launch spike to the
+   video launch onset (and the IMU impact to the video impact when both exist; the median is used). With a
+   flightlog, phase times come from the IMU (precise) shifted by the offset.
+4. Attitude: from quaternions (roll, pitch, yaw deg, convention below) when there is a flightlog, else roll and
+   pitch from the horizon (yaw unknown, None).
+5. Horizon per frame: sky = bright, blue (or very bright) and smooth pixels; largest sky region; the boundary
+   between sky and ground is fitted with a robust line. angle_deg is the horizon rotation (counter clockwise
+   positive, which equals the camera roll for a pinhole camera); pitch = atan(d / f), d = signed distance of the
+   image centre from the horizon (positive when the centre is in the sky). sky_ratio = sky fraction.
+6. Trajectory: launch pitch (IMU rail attitude, else horizon on the rail, else solved from the flight time),
+   muzzle speed (IMU launch impulse, else solved from pitch and flight time, else 10 m/s), integrated with a
+   ballistic model with simple drag. x downrange along the launch heading, y left, z up, origin on the ground
+   under the camera at the start of the spring stroke (camera height h0 = 0.5 m there), so range_m is the
+   horizontal distance from the dart's rest position on the rail to the landing point.
+
+Conventions (shared with sim.flight_video): body x forward along the dart nose, y left, z up when the dart sits
+level. Quaternion = world from body. World: X downrange, Y left, Z up. yaw about Z (positive = nose left),
+pitch = nose elevation (positive up), roll about the nose (positive = right side down);
+R = Rz(yaw) Ry(-pitch) Rx(roll).
+
+Camera model: pinhole with horizontal FOV hfov_deg (default 100 deg, the simulator's value). For the real
+Caddx Ant (about 150 deg diagonal, fisheye) pass its effective FOV; horizon angles stay valid, pitch from the
+horizon is approximate.
+"""
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Sequence, Tuple
+
+import cv2
+import numpy as np
+
+G = 9.81
+BAD_BELOW = 0.4
+SMALL_W = 160
+DEFAULT_V0 = 10.0
+DEFAULT_PITCH = 35.0
+RAIL_H = 0.5
+STROKE_S = 0.06
+DRAG_K = 0.01
+DRAG_C = 1.0
+PHASES = ("ON_RAIL", "LAUNCH", "FLIGHT", "IMPACT", "LANDED")
+
+
+# ------------------------------------------------------------------ result
+
+def _clean(v):
+    if isinstance(v, float):
+        return None if not math.isfinite(v) else round(v, 4)
+    if isinstance(v, (np.floating,)):
+        return _clean(float(v))
+    if isinstance(v, (np.integer,)):
+        return int(v)
+    if isinstance(v, (list, tuple)):
+        return [_clean(x) for x in v]
+    if isinstance(v, dict):
+        return {str(k): _clean(x) for k, x in v.items()}
+    return v
+
+
+@dataclass
+class FlightResult:
+    phases: List[Tuple[str, float, float]] = field(default_factory=list)
+    t_launch: Optional[float] = None
+    t_impact: Optional[float] = None
+    t_landed: Optional[float] = None
+    attitude: List[Tuple[float, Optional[float], Optional[float], Optional[float]]] = field(default_factory=list)
+    horizon: List[Tuple[float, Optional[float], Optional[float]]] = field(default_factory=list)
+    trajectory: List[Tuple[float, float, float, float]] = field(default_factory=list)
+    range_m: Optional[float] = None
+    launch_pitch_deg: Optional[float] = None
+    launch_yaw_deg: Optional[float] = None
+    v0: Optional[float] = None
+    flight_time_s: Optional[float] = None
+    clock_offset_s: Optional[float] = None
+    source: str = "none"                  # "video", "imu", "video+imu", "none"
+    motion: List[Tuple[float, float]] = field(default_factory=list)   # (t, energy) per good frame pair
+    good: List[int] = field(default_factory=list)                     # idx of frames judged usable
+    notes: List[str] = field(default_factory=list)
+    video_times: Dict[str, Optional[float]] = field(default_factory=dict)
+    imu_times: Dict[str, Optional[float]] = field(default_factory=dict)
+
+    def phase_at(self, t: float) -> Optional[str]:
+        for name, t0, t1 in self.phases:
+            if t0 <= t < t1:
+                return name
+        if self.phases and t >= self.phases[-1][2]:
+            return self.phases[-1][0]
+        return None
+
+    def to_dict(self) -> dict:
+        return _clean({
+            "phases": [list(p) for p in self.phases],
+            "t_launch": self.t_launch, "t_impact": self.t_impact, "t_landed": self.t_landed,
+            "attitude": [list(a) for a in self.attitude],
+            "horizon": [list(h) for h in self.horizon],
+            "trajectory": [list(p) for p in self.trajectory],
+            "range_m": self.range_m, "launch_pitch_deg": self.launch_pitch_deg,
+            "launch_yaw_deg": self.launch_yaw_deg, "v0": self.v0, "flight_time_s": self.flight_time_s,
+            "clock_offset_s": self.clock_offset_s, "source": self.source,
+            "n_good": len(self.good), "notes": list(self.notes),
+            "video_times": dict(self.video_times), "imu_times": dict(self.imu_times),
+        })
+
+
+# ------------------------------------------------------------------ attitude maths
+
+def quat_to_rpy(qw: float, qx: float, qy: float, qz: float) -> Tuple[float, float, float]:
+    """(roll, pitch, yaw) in degrees from a world-from-body quaternion (see module doc)."""
+    n = math.sqrt(qw * qw + qx * qx + qy * qy + qz * qz) or 1.0
+    qw, qx, qy, qz = qw / n, qx / n, qy / n, qz / n
+    r20 = 2 * (qx * qz - qw * qy)
+    r21 = 2 * (qy * qz + qw * qx)
+    r22 = 1 - 2 * (qx * qx + qy * qy)
+    r10 = 2 * (qx * qy + qw * qz)
+    r00 = 1 - 2 * (qy * qy + qz * qz)
+    # R = Rz(yaw) Ry(-pitch) Rx(roll): R20 = sin(pitch), R21 = cos p sin r, R22 = cos p cos r
+    pitch = math.degrees(math.asin(max(-1.0, min(1.0, r20))))
+    roll = math.degrees(math.atan2(r21, r22))
+    yaw = math.degrees(math.atan2(r10, r00))
+    return roll, pitch, yaw
+
+
+def quat_rotate_to_world(q, v):
+    """Rotate body vector v into the world frame with quaternion q = (qw, qx, qy, qz)."""
+    qw, qx, qy, qz = q
+    R = np.array([
+        [1 - 2 * (qy * qy + qz * qz), 2 * (qx * qy - qw * qz), 2 * (qx * qz + qw * qy)],
+        [2 * (qx * qy + qw * qz), 1 - 2 * (qx * qx + qz * qz), 2 * (qy * qz - qw * qx)],
+        [2 * (qx * qz - qw * qy), 2 * (qy * qz + qw * qx), 1 - 2 * (qx * qx + qy * qy)]])
+    return R @ np.asarray(v, float)
+
+
+# ------------------------------------------------------------------ frame quality
+
+def _small(img: np.ndarray, width: int = SMALL_W) -> np.ndarray:
+    h, w = img.shape[:2]
+    if w <= width:
+        return img
+    return cv2.resize(img, (width, max(1, int(round(h * width / w)))), interpolation=cv2.INTER_AREA)
+
+
+def quick_quality(img: np.ndarray) -> float:
+    """0..1 quality of a raw analog frame (1 = clean). Cheap own check used when frame.quality is None.
+
+    Catches the receiver's blue / black screen (uniform frame), snow (speckle that a 3x3 median removes) and
+    torn frames (bands of rows shifted sideways)."""
+    if img is None or img.ndim != 3 or img.size == 0:
+        return 0.0
+    step = max(1, img.shape[1] // SMALL_W)
+    sub = np.ascontiguousarray(img[::step, ::step])
+    g = cv2.cvtColor(sub, cv2.COLOR_BGR2GRAY)
+    gi = g.astype(np.int16)
+    std = float(gi.std())
+    mean_bgr = sub.reshape(-1, 3).mean(0)
+    chan_std = sub.reshape(-1, 3).std(0).max()
+    score = 1.0
+    if chan_std < 7.0:                         # uniform: no signal screen (a real sky still has a gradient)
+        score = 0.0
+    elif float(mean_bgr.max()) < 18:           # black
+        score = 0.0
+    med = cv2.medianBlur(g, 3).astype(np.int16)
+    noise_frac = float((np.abs(gi - med) > 30).mean())
+    if noise_frac > 0.08:
+        score *= max(0.0, 1.0 - (noise_frac - 0.08) / 0.07)
+    rows = gi.astype(np.float32)
+    pix = np.abs(rows[1:] - rows[:-1]).mean(axis=1)
+    mean_d = np.abs(rows[1:].mean(axis=1) - rows[:-1].mean(axis=1))
+    tear = pix - mean_d
+    base = float(np.median(tear)) + 1.0
+    tear_rows = int((tear > 2.5 * base + 8.0).sum())
+    if tear_rows >= 2:
+        score *= 0.2
+    # flat black bands on the side of a torn band
+    side = np.minimum(sub[:, :3].reshape(sub.shape[0], -1).max(1), sub[:, -3:].reshape(sub.shape[0], -1).max(1))
+    if std > 8 and float((side < 16).mean()) > 0.08:
+        score *= 0.3
+    return float(max(0.0, min(1.0, score)))
+
+
+def frame_ok(frame) -> bool:
+    if frame is None or getattr(frame, "img", None) is None:
+        return False
+    if getattr(frame, "bad", False):
+        return False
+    q = getattr(frame, "quality", None)
+    if q is None:
+        q = quick_quality(frame.img)
+    return q >= BAD_BELOW
+
+
+# ------------------------------------------------------------------ horizon
+
+def sky_mask(img: np.ndarray) -> np.ndarray:
+    """uint8 mask (255 = sky) of a (small) BGR image: bright, blue or very bright, smooth pixels.
+
+    Only the largest sky region touching the image border is kept."""
+    b, g, r = [c.astype(np.int16) for c in cv2.split(img)]
+    v = np.maximum(np.maximum(b, g), r)
+    grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    tex = cv2.blur(np.abs(cv2.Laplacian(cv2.GaussianBlur(grey, (3, 3), 0), cv2.CV_16S)).astype(np.float32),
+                   (5, 5))
+    m = (tex < 9.0) & (((v > 140) & (b >= r + 12)) | (v > 215))
+    m = m.astype(np.uint8) * 255
+    k = np.ones((3, 3), np.uint8)
+    m = cv2.morphologyEx(m, cv2.MORPH_OPEN, k)
+    m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, k)
+    n, lab, stats, _ = cv2.connectedComponentsWithStats(m, connectivity=4)
+    if n <= 1:
+        return np.zeros_like(m)
+    h, w = m.shape
+    best, best_area = 0, 0
+    for i in range(1, n):
+        x, y, ww, hh, area = stats[i]
+        touches = x == 0 or y == 0 or x + ww == w or y + hh == h
+        if touches and area > best_area and area > 0.01 * h * w:
+            best, best_area = i, area
+    if best == 0:
+        return np.zeros_like(m)
+    out = (lab == best).astype(np.uint8) * 255
+    # fill holes (clouds, noise) inside the sky
+    inv = cv2.bitwise_not(out)
+    n2, lab2, stats2, _ = cv2.connectedComponentsWithStats(inv, connectivity=4)
+    for i in range(1, n2):
+        x, y, ww, hh, area = stats2[i]
+        if not (x == 0 or y == 0 or x + ww == w or y + hh == h) and area < 0.05 * h * w:
+            out[lab2 == i] = 255
+    return out
+
+
+def detect_horizon(img: np.ndarray, hfov_deg: float = 100.0) -> dict:
+    """Horizon of one BGR frame: dict(angle_deg, pitch_deg, sky_ratio, line=(x0, y0, dx, dy) in full res px).
+
+    angle_deg / pitch_deg are None when no horizon line is visible (all sky, all ground or a messy boundary)."""
+    H0, W0 = img.shape[:2]
+    small = _small(img)
+    s = W0 / small.shape[1]
+    m = sky_mask(small)
+    h, w = m.shape
+    sky_ratio = float((m > 0).mean())
+    out = {"angle_deg": None, "pitch_deg": None, "sky_ratio": sky_ratio, "line": None}
+    if sky_ratio < 0.01 or sky_ratio > 0.98:
+        return out
+    edge = cv2.morphologyEx(m, cv2.MORPH_GRADIENT, np.ones((3, 3), np.uint8))
+    edge[:2, :] = 0
+    edge[-2:, :] = 0
+    edge[:, :2] = 0
+    edge[:, -2:] = 0
+    ys, xs = np.nonzero(edge)
+    if len(xs) < 12:
+        return out
+    pts = np.column_stack([xs, ys]).astype(np.float32)
+    dx, dy, x0, y0 = [float(v) for v in cv2.fitLine(pts, cv2.DIST_HUBER, 0, 0.01, 0.01).ravel()]
+    resid = np.abs((pts[:, 0] - x0) * dy - (pts[:, 1] - y0) * dx)
+    if float((resid < 3.0).mean()) < 0.6:
+        return out
+    # orient the line so the sky is on its left (y up display coordinates)
+    sy, sx = np.nonzero(m)
+    cxs, cys = float(sx.mean()), float(sy.mean())
+    # left normal of (dx, -dy) in y-up coords is (dy, dx) -> in image coords (dy, -dx)
+    if (cxs - x0) * dy + (cys - y0) * (-dx) < 0:
+        dx, dy = -dx, -dy
+    angle = math.degrees(math.atan2(-dy, dx))
+    # signed distance of the image centre from the line, positive on the sky side
+    cxi, cyi = (w - 1) / 2.0, (h - 1) / 2.0
+    d = ((cxi - x0) * dy + (cyi - y0) * (-dx)) * s
+    f = (W0 / 2.0) / math.tan(math.radians(hfov_deg) / 2.0)
+    out.update(angle_deg=angle, pitch_deg=math.degrees(math.atan2(d, f)),
+               line=(x0 * s, y0 * s, dx, dy))
+    return out
+
+
+# ------------------------------------------------------------------ ballistics
+
+def ballistic(v0: float, pitch_deg: float, h0: float = RAIL_H, dt: float = 0.005,
+              drag_k: float = DRAG_K, drag_c: float = DRAG_C):
+    """Flight from the rail end with simple drag until z = 0. Returns (t, x, z) arrays."""
+    p = math.radians(pitch_deg)
+    vx, vz = v0 * math.cos(p), v0 * math.sin(p)
+    x, z, t = 0.0, h0, 0.0
+    ts, xs, zs = [0.0], [x], [z]
+    while t < 10.0:
+        sp = math.hypot(vx, vz) or 1e-6
+        dec = drag_k * sp * sp + drag_c
+        ax, az = -dec * vx / sp, -G - dec * vz / sp
+        xn, zn = x + vx * dt + 0.5 * ax * dt * dt, z + vz * dt + 0.5 * az * dt * dt
+        vx, vz = vx + ax * dt, vz + az * dt
+        if zn <= 0 and t > 0:
+            frac = z / max(z - zn, 1e-9)
+            ts.append(t + frac * dt)
+            xs.append(x + (xn - x) * frac)
+            zs.append(0.0)
+            break
+        x, z, t = xn, zn, t + dt
+        ts.append(t)
+        xs.append(x)
+        zs.append(z)
+    return np.array(ts), np.array(xs), np.array(zs)
+
+
+def _bisect(fn, lo, hi, target, n=40):
+    flo = fn(lo) - target
+    fhi = fn(hi) - target
+    if flo * fhi > 0:
+        return None
+    for _ in range(n):
+        mid = 0.5 * (lo + hi)
+        fm = fn(mid) - target
+        if fm * flo <= 0:
+            hi = mid
+        else:
+            lo, flo = mid, fm
+    return 0.5 * (lo + hi)
+
+
+# ------------------------------------------------------------------ IMU
+
+def _parse_flightlog(fl) -> Optional[np.ndarray]:
+    if not fl or not isinstance(fl, dict):
+        return None
+    s = fl.get("samples") or []
+    rows = [r for r in s if isinstance(r, (list, tuple)) and len(r) >= 8]
+    if len(rows) < 5:
+        return None
+    a = np.array([r[:8] for r in rows], float)
+    a = a[np.argsort(a[:, 0])]
+    return a
+
+
+def imu_events(fl: dict) -> dict:
+    """IMU phase times in dart seconds: launch, launch_end, impact, landed; plus rail attitude and v0."""
+    a = _parse_flightlog(fl)
+    out = {"launch": None, "launch_end": None, "impact": None, "landed": None, "v0": None,
+           "rail_rpy": None}
+    if a is None:
+        if fl and fl.get("t_launch_ms") is not None:
+            out["launch"] = fl["t_launch_ms"] / 1000.0 - 0.02
+        if fl and fl.get("t_land_ms") is not None:
+            out["impact"] = fl["t_land_ms"] / 1000.0
+        return out
+    t = a[:, 0] / 1000.0
+    acc = np.linalg.norm(a[:, 5:8], axis=1)
+    hi4 = np.nonzero(acc > 4 * G)[0]
+    if len(hi4):
+        i0 = int(hi4[0])
+        # the spike started between the previous sample and this one
+        out["launch"] = float(t[i0] - 0.5 * (t[i0] - t[i0 - 1])) if i0 > 0 else float(t[i0])
+        j = i0
+        while j + 1 < len(acc) and acc[j + 1] > 2 * G:
+            j += 1
+        out["launch_end"] = float(t[j] + 0.5 * (t[min(j + 1, len(t) - 1)] - t[j]))
+        # muzzle speed: integrate the axial specific force minus the gravity component along the rail
+        if i0 > 0:
+            q = a[i0 - 1, 1:5]
+            _, pitch, _ = quat_to_rpy(*q)
+            dts = np.diff(t)
+            dt = float(np.median(dts)) if len(dts) else 0.02
+            v0 = float(np.sum(a[i0:j + 1, 5] - G * math.sin(math.radians(pitch))) * dt)
+            if 3.0 < v0 < 30.0:
+                out["v0"] = v0
+            out["rail_rpy"] = quat_to_rpy(*q)
+        hi6 = np.nonzero((acc > 6 * G) & (t > t[i0] + 0.3))[0]
+        if len(hi6):
+            k = int(hi6[0])
+            out["impact"] = float(t[k] - 0.5 * (t[k] - t[k - 1])) if k > 0 else float(t[k])
+            # still: the accelerometer vector stays at its final resting value (within 0.6 m/s^2) and |a| within
+            # 0.05 g of 1 g, for 0.3 s (the vector test also catches sideways shake that hardly changes |a|)
+            rest = np.median(a[-10:, 5:8], axis=0)
+            still = (np.linalg.norm(a[:, 5:8] - rest, axis=1) < 0.6) & (np.abs(acc - G) < 0.05 * G)
+            n_need = max(3, int(round(0.3 / max(1e-3, float(np.median(np.diff(t)))))))
+            for m in range(k + 1, len(acc) - n_need + 1):
+                if still[m:m + n_need].all():
+                    out["landed"] = float(t[m])
+                    break
+    else:
+        if fl.get("t_launch_ms") is not None:
+            out["launch"] = fl["t_launch_ms"] / 1000.0 - 0.02
+        if fl.get("t_land_ms") is not None:
+            out["impact"] = fl["t_land_ms"] / 1000.0
+    return out
+
+
+# ------------------------------------------------------------------ video phases
+
+def _video_phases(times: np.ndarray, energy: np.ndarray, fps: float) -> dict:
+    """Video-only launch / impact / landed times from motion energy of good frame pairs.
+
+    times[i] is the time of the later frame of pair i, energy[i] the per-frame motion energy.
+    - floor: 20th percentile of the energy (the static rail and landed parts dominate any flight video);
+      threshold = floor + max(0.1, 6 * MAD of the quiet pairs) so even a mostly sky view on the rail shows the
+      launch.
+    - launch: first pair above threshold that is part of a sustained run (2 of 3), placed between the two frames.
+    - landed: the later frame of the last moving pair.
+    - impact: the nose hitting the ground ends the large flight motion abruptly (only a decaying shake follows),
+      so impact = the last pair still above half of the peak energy of the final second before landed."""
+    out = {"launch": None, "impact": None, "landed": None, "threshold": None, "floor": None}
+    if len(energy) < 6:
+        return out
+    floor = float(np.percentile(energy, 20))
+    quiet = energy[energy <= 2.0 * floor + 1e-6]
+    mad = float(np.median(np.abs(quiet - np.median(quiet)))) if len(quiet) else 0.0
+    thr = floor + max(0.1, 6.0 * mad, 0.15 * floor)
+    out["threshold"], out["floor"] = thr, floor
+    moving = energy > thr
+    sm = moving.copy()
+    for i in range(len(moving)):
+        lo, hi = max(0, i - 1), min(len(moving), i + 2)
+        sm[i] = moving[i] and moving[lo:hi].sum() >= 2
+    idx = np.nonzero(sm)[0]
+    if len(idx) == 0:
+        return out
+    i0 = int(idx[0])
+    prev_t = times[i0 - 1] if i0 > 0 else times[i0] - 1.0 / fps
+    out["launch"] = float(0.5 * (prev_t + times[i0]) - 0.25 / fps)
+    i1 = int(idx[-1])
+    out["landed"] = float(times[i1])
+    win = np.nonzero((times >= times[i1] - 1.0) & (times <= times[i1]) & (np.arange(len(times)) >= i0))[0]
+    if len(win):
+        peak = float(energy[win].max())
+        hi_idx = [k for k in win if energy[k] >= 0.5 * peak]
+        k = int(hi_idx[-1])
+        nxt = times[k + 1] if k + 1 < len(times) else times[k] + 1.0 / fps
+        out["impact"] = float(times[k] + 0.25 * (nxt - times[k]))
+    return out
+
+
+# ------------------------------------------------------------------ main
+
+def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_offset_s: Optional[float] = None,
+                   hfov_deg: float = 100.0, v0_default: float = DEFAULT_V0, h0: float = RAIL_H) -> FlightResult:
+    """Analyse a dart flight video (list of Frame) with an optional C2 flightlog. Never raises on bad input."""
+    res = FlightResult()
+    frames = [f for f in (frames or []) if f is not None and getattr(f, "img", None) is not None]
+    frames.sort(key=lambda f: f.t)
+    fps = 30.0
+    if len(frames) >= 2:
+        dts = np.diff([f.t for f in frames])
+        dts = dts[dts > 0]
+        if len(dts):
+            fps = 1.0 / float(np.median(dts))
+
+    # --- per frame quality, horizon, motion energy
+    prev_small, prev_i = None, None
+    m_t, m_e = [], []
+    hor_by_idx = {}
+    for i, f in enumerate(frames):
+        ok = frame_ok(f)
+        if not ok:
+            res.horizon.append((f.t, None, None))
+            continue
+        res.good.append(f.idx)
+        hz = detect_horizon(f.img, hfov_deg)
+        hor_by_idx[i] = hz
+        res.horizon.append((f.t, hz["angle_deg"], hz["sky_ratio"]))
+        g = cv2.cvtColor(_small(f.img), cv2.COLOR_BGR2GRAY)
+        g = cv2.GaussianBlur(g, (5, 5), 0).astype(np.int16)
+        if prev_small is not None and prev_small.shape == g.shape:
+            gap = max(1.0, (f.t - frames[prev_i].t) * fps)
+            m_t.append(f.t)
+            m_e.append(float(np.abs(g - prev_small).mean()) / gap)
+        prev_small, prev_i = g, i
+    res.motion = list(zip(m_t, m_e))
+    if not frames:
+        res.notes.append("no frames")
+    elif len(res.good) < 3:
+        res.notes.append("too few good frames (%d of %d)" % (len(res.good), len(frames)))
+    vid = _video_phases(np.array(m_t), np.array(m_e), fps) if m_e else \
+        {"launch": None, "impact": None, "landed": None}
+    res.video_times = {k: vid.get(k) for k in ("launch", "impact", "landed")}
+
+    # --- IMU
+    imu = imu_events(flightlog) if flightlog else None
+    samples = _parse_flightlog(flightlog) if flightlog else None
+    offset = clock_offset_s
+    if imu is not None:
+        res.imu_times = {k: imu.get(k) for k in ("launch", "launch_end", "impact", "landed")}
+        if offset is None:
+            cands = []
+            if imu["launch"] is not None and vid.get("launch") is not None:
+                cands.append(vid["launch"] - imu["launch"])
+            if imu["impact"] is not None and vid.get("impact") is not None:
+                d = vid["impact"] - imu["impact"]
+                # only trust the impact match when it agrees with the launch match
+                if not cands or abs(d - cands[0]) < 0.25:
+                    cands.append(d)
+            if cands:
+                offset = float(np.median(cands))
+                res.notes.append("clock offset from %d video/IMU event match(es)" % len(cands))
+            else:
+                res.notes.append("cannot align flightlog to video (no launch seen in video)")
+        res.clock_offset_s = offset
+
+    use_imu = imu is not None and offset is not None and imu.get("launch") is not None
+    t_first = frames[0].t if frames else None
+    t_last = frames[-1].t if frames else None
+    if use_imu:
+        res.source = "video+imu" if vid.get("launch") is not None or clock_offset_s is not None else "imu"
+        if clock_offset_s is not None:
+            res.source = "imu" if not m_e else "video+imu"
+        sh = lambda v: None if v is None else v + offset  # noqa: E731
+        t_launch, t_launch_end = sh(imu["launch"]), sh(imu.get("launch_end"))
+        t_impact, t_landed = sh(imu.get("impact")), sh(imu.get("landed"))
+        if t_impact is None:
+            t_impact = vid.get("impact")
+        if t_landed is None:
+            t_landed = vid.get("landed")
+        if imu.get("v0"):
+            res.v0 = imu["v0"]
+        if imu.get("rail_rpy"):
+            res.launch_pitch_deg = imu["rail_rpy"][1]
+            res.launch_yaw_deg = imu["rail_rpy"][2]
+    else:
+        res.source = "video" if vid.get("launch") is not None else "none"
+        t_launch, t_impact, t_landed = vid.get("launch"), vid.get("impact"), vid.get("landed")
+        t_launch_end = None if t_launch is None else t_launch + STROKE_S
+    if t_launch_end is None and t_launch is not None:
+        t_launch_end = t_launch + STROKE_S
+    if t_landed is not None and t_impact is not None and t_landed < t_impact:
+        t_landed = t_impact + 0.2
+    res.t_launch, res.t_impact, res.t_landed = t_launch, t_impact, t_landed
+
+    # --- phases
+    if t_first is not None:
+        t_end = max(t_last, t_landed or t_last)
+        bounds = [("ON_RAIL", t_first), ("LAUNCH", t_launch), ("FLIGHT", t_launch_end), ("IMPACT", t_impact),
+                  ("LANDED", t_landed)]
+        known = [(n, t) for n, t in bounds if t is not None]
+        for k, (n, t0) in enumerate(known):
+            t1 = known[k + 1][1] if k + 1 < len(known) else t_end
+            if t1 > t0 or k + 1 == len(known):
+                res.phases.append((n, float(t0), float(max(t0, t1))))
+        if t_launch is None:
+            res.notes.append("no launch found")
+
+    # --- attitude
+    if samples is not None and offset is not None:
+        for r in samples:
+            roll, pitch, yaw = quat_to_rpy(*r[1:5])
+            res.attitude.append((float(r[0] / 1000.0 + offset), roll, pitch, yaw))
+    else:
+        for i, hz in sorted(hor_by_idx.items()):
+            if hz["angle_deg"] is not None:
+                res.attitude.append((frames[i].t, hz["angle_deg"], hz["pitch_deg"], None))
+
+    # --- launch pitch from the rail horizon when there is no IMU
+    if res.launch_pitch_deg is None and t_launch is not None:
+        pts = [hz["pitch_deg"] for i, hz in hor_by_idx.items()
+               if frames[i].t < t_launch - 0.05 and hz["pitch_deg"] is not None]
+        if len(pts) >= 3:
+            res.launch_pitch_deg = float(np.median(pts))
+            res.notes.append("launch pitch from the horizon on the rail")
+
+    # --- trajectory
+    if t_launch is not None and t_impact is not None and t_impact > t_launch + 0.2:
+        T = t_impact - t_launch - STROKE_S
+        res.flight_time_s = float(t_impact - t_launch)
+        pitch, v0 = res.launch_pitch_deg, res.v0
+        def tf(v, p):
+            sl_ = v * STROKE_S / 2.0
+            return float(ballistic(v, p, h0 + sl_ * math.sin(math.radians(p)))[0][-1])
+        if pitch is not None and v0 is None:
+            v0 = _bisect(lambda v: tf(v, pitch), 2.0, 30.0, T)
+            if v0 is None:
+                v0 = v0_default
+                res.notes.append("speed default %.1f m/s" % v0)
+            else:
+                res.notes.append("speed solved from flight time")
+        elif pitch is None:
+            v0 = v0 or v0_default
+            pitch = _bisect(lambda p: tf(v0, p), 2.0, 80.0, T)
+            if pitch is None:
+                pitch = DEFAULT_PITCH
+                res.notes.append("pitch default %.0f deg" % pitch)
+            else:
+                res.notes.append("pitch solved from flight time with v0 %.1f m/s" % v0)
+        res.launch_pitch_deg, res.v0 = float(pitch), float(v0)
+        # the camera starts at h0 at the stroke start and leaves the rail after about v0 * STROKE_S / 2
+        sl = v0 * STROKE_S / 2.0
+        x_off = sl * math.cos(math.radians(pitch))
+        ts, xs, zs = ballistic(v0, pitch, h0 + sl * math.sin(math.radians(pitch)))
+        xs = xs + x_off
+        tt = np.arange(0.0, ts[-1], 1.0 / max(fps, 1.0))
+        tt = np.append(tt, ts[-1])
+        xi, zi = np.interp(tt, ts, xs), np.interp(tt, ts, zs)
+        t_start = t_launch + STROKE_S
+        res.trajectory = [(float(t_start + a), float(b), 0.0, float(c)) for a, b, c in zip(tt, xi, zi)]
+        res.range_m = float(xs[-1])
+    elif t_launch is not None:
+        res.notes.append("no impact found, no trajectory")
+    return res
+
+
+def sharpness(img: np.ndarray) -> float:
+    g = cv2.cvtColor(_small(img, 320), cv2.COLOR_BGR2GRAY)
+    return float(cv2.Laplacian(g, cv2.CV_32F).var())
+
+
+def landing_frames(frames: Sequence, result: Optional[FlightResult], n: int = 15) -> list:
+    """Up to n good frames after landing, sharpest first. Without a landed time, the last 2 s of video."""
+    frames = [f for f in (frames or []) if f is not None and getattr(f, "img", None) is not None]
+    if not frames or n <= 0:
+        return []
+    t_land = None
+    if result is not None:
+        t_land = result.t_landed if result.t_landed is not None else result.t_impact
+    if t_land is None:
+        t_land = max(f.t for f in frames) - 2.0
+    cand = [f for f in frames if f.t >= t_land + 0.05 and frame_ok(f)]
+    cand.sort(key=lambda f: sharpness(f.img), reverse=True)
+    return cand[:n]

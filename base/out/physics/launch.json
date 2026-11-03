@@ -1,0 +1,116 @@
+{
+ "params_source": "base/spec/params.py v0.1-stub (still defaults for LAUNCH, AIM, REEL, LAYOUT)",
+ "spring": {
+  "k_n_mm": 0.125,
+  "rate_formula_n_mm": 0.12799878104058143,
+  "f_init": 7.0,
+  "n_body": 98.07142857142857,
+  "mass_kg": 0.05518907003434784,
+  "limits": {
+   "sut_mpa": 2105.717844078279,
+   "f_body_n": 51.614348099663836,
+   "f_hook_bend_n": 44.11270381498546,
+   "f_hook_tors_n": 43.62510058841271,
+   "f_safe_n": 43.62510058841271,
+   "governed_by": "hook torsion",
+   "ext_safe_mm": 293.00080470730165,
+   "safety": 1.2,
+   "tau_init_mpa": 94.84335384251723,
+   "tau_init_pref_mpa": [
+    57.57279476200676,
+    96.97279476200676
+   ]
+  },
+  "surge": {
+   "f_fixed_fixed_hz": 24.211619868177753,
+   "f_fixed_free_hz": 12.105809934088876,
+   "t_wave_one_way_ms": 20.651241128115053
+  }
+ },
+ "shot": {
+  "pitch_deg": 35.0,
+  "stroke_m": 0.3,
+  "pulley_ratio": 1.0,
+  "preload_ext_mm": 10.0,
+  "ext_full_mm": 310.0,
+  "ext_safe_mm": 293.00080470730165,
+  "over_safe": true,
+  "f_spring_full_n": 45.75,
+  "f_spring_rest_n": 8.25,
+  "f_carriage_full_n": 91.5,
+  "energy_stored_j": 16.2,
+  "model": "chain",
+  "v_muzzle": 8.618665589022278,
+  "t_stroke_ms": 57.29000000000687,
+  "a_peak_g": 24.56598184926919,
+  "f_carriage_peak_n": 91.5,
+  "ke_dart_j": 10.362254816687846,
+  "ke_carriage_j": 2.228441896061902,
+  "ke_spring_j": 1.4740882875576469,
+  "coil_clash_v": 13.256948876915441,
+  "f_stop_peak_n": 1114.2209480309511,
+  "f_cord_peak_after_stop_n": 457.9972975552683,
+  "v_spring_end_max": 1.0260495014618616,
+  "efficiency": 0.6396453590548054,
+  "line_load": {
+   "force_n": 0.8624999999999999,
+   "mass_eff_kg": 0.025794963875015085
+  }
+ },
+ "ratio_sweep": [
+  {
+   "ratio": 0.5,
+   "stroke_used_m": 0.14150040235365083,
+   "ext_full_mm": 293.00080470730165,
+   "v_muzzle": 6.790562356852149,
+   "energy_j": 14.680695210793015,
+   "efficiency": 0.4381663971765692,
+   "f_carriage_full_n": 174.50040235365083
+  },
+  {
+   "ratio": 0.75,
+   "stroke_used_m": 0.21225060353047626,
+   "ext_full_mm": 293.00080470730165,
+   "v_muzzle": 8.051688678975784,
+   "energy_j": 14.680695210793015,
+   "efficiency": 0.6160295344664717,
+   "f_carriage_full_n": 116.33360156910055
+  },
+  {
+   "ratio": 1.0,
+   "stroke_used_m": 0.28300080470730166,
+   "ext_full_mm": 293.00080470730165,
+   "v_muzzle": 8.196112033659665,
+   "energy_j": 14.680695210793015,
+   "efficiency": 0.6383272103107543,
+   "f_carriage_full_n": 87.25020117682541
+  },
+  {
+   "ratio": 1.5,
+   "stroke_used_m": 0.3,
+   "ext_full_mm": 210.0,
+   "v_muzzle": 6.132284519211853,
+   "energy_j": 8.299999999999999,
+   "efficiency": 0.6320343882803455,
+   "f_carriage_full_n": 44.333333333333336
+  },
+  {
+   "ratio": 2.0,
+   "stroke_used_m": 0.3,
+   "ext_full_mm": 160.0,
+   "v_muzzle": 4.73651219586375,
+   "energy_j": 5.2875000000000005,
+   "efficiency": 0.5918901967902531,
+   "f_carriage_full_n": 27.0
+  },
+  {
+   "ratio": 3.0,
+   "stroke_used_m": 0.3,
+   "ext_full_mm": 109.99999999999999,
+   "v_muzzle": 3.141254750862299,
+   "energy_j": 2.8999999999999995,
+   "efficiency": 0.4746598816100648,
+   "f_carriage_full_n": 13.833333333333334
+  }
+ ]
+}

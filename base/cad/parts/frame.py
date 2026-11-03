@@ -786,7 +786,7 @@ def build(P):
             dmin = min([abs((h[0] if k == "x" else h[1]) - c) for h in info["deck_holes"]] or [1e9])
             if dmin > bestd + 1e-9 or (abs(dmin - bestd) < 1e-9 and abs(d) < abs(best - c0)):
                 best, bestd = c, dmin
-        if bestd < 12.0:
+        if bestd < 11.0:                       # dovetail tails 8 deep + 3 mm round the insert
             info["warnings"].append(f"deck seam {k} = {best:.1f} only {bestd:.1f} mm from a deck hole")
         return float(best)
     for i in range(1, nx):
@@ -997,12 +997,13 @@ def steps(P):
                        parts=["frame_motor_adapter", "frame_wiper_motor", "frame_wiper_shaft"]))
         st.append(dict(title="Motor onto the cheek",
                        text="Before any shaft goes in: offer the motor and adapter to the motor-side cheek, spigot into "
-                            "the plate counterbore. From the frame side of the plate, M3 x 10 through the plate into every "
+                            "the plate counterbore (stand the motor leg on the deck first: 2 x M3 x 10 down into the deck, "
+                            "2 x M3 x 16 along y through the leg into the plate bridge). From the frame side of the plate, M3 x 10 through the plate into every "
                             "insert in the adapter hub (%d of the 12 holes line up with inserts; the others stay empty)."
                             % len(MOT.ring_used(info["cfg"]["wiper"]))
                             + (" Strap the can into the saddle (cable tie or hose clamp), saddle 4 x M3 x 10 into the deck."
                                if has("frame_motor_saddle") else ""),
-                       parts=["frame_motor_adapter"] + has("frame_motor_saddle")))
+                       parts=["frame_motor_adapter"] + has("frame_motor_saddle") + has("frame_motor_leg")))
     st += [
         dict(title="Shafts and trains (other subsystems)",
              text="Now the drum, launch and reel subsystems put their shaft assemblies in (bearings already pressed on "

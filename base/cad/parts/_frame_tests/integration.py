@@ -72,7 +72,9 @@ def write_md(rep, subs, args, git_rev, secs):
     L = []
     L.append("# Whole-base integration audit (cad-frame)")
     L.append("")
-    L.append(f"Run {time.strftime('%Y-%m-%d %H:%M')} Sydney on `{git_rev}` (base-v1 merged into w/cad-frame), "
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    L.append(f"Run {datetime.now(ZoneInfo('Australia/Sydney')).strftime('%Y-%m-%d %H:%M')} Sydney on `{git_rev}` (base-v1 merged into w/cad-frame), "
              f"`tools.audit --dt {args.dt} --jobs {args.jobs}{'' if args.refine else ' --no-refine'}`, {rep.get('n_parts')} parts, {rep.get('n_states')} states, "
              f"{secs:.0f} s. Verdict: **{'CLEAN' if rep.get('clean') else 'NOT CLEAN'}**.")
     L.append("")

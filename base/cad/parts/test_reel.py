@@ -11,7 +11,7 @@ if BASE not in sys.path:
     sys.path.insert(0, BASE)
 
 from tools.params import load_params  # noqa: E402
-from cad.lib import prim, line  # noqa: E402
+from cad.lib import prim, line, fits  # noqa: E402
 from cad.parts import reel, reel_v7  # noqa: E402
 
 P = load_params()
@@ -104,7 +104,7 @@ def test_v7_rules():
 def test_text_has_no_em_dash(parts):
     txt = [p.notes for p in parts.values()] + [s["title"] + s["text"] for s in reel.steps(P)]
     src = open(reel.__file__).read() + open(reel_v7.__file__).read()
-    assert "—" not in "".join(txt) + src
+    assert "\u2014" not in "".join(txt) + src
 
 
 def test_steps_name_real_parts(parts):
@@ -197,3 +197,156 @@ def test_pulley2_swivel_keeps_the_line_in_its_groove():
         d = pts[k[1]] - pts[k[0]]
         d = d / np.linalg.norm(d)
         assert abs(math.degrees(math.asin(abs(float(np.dot(d, axis_w)))))) < 2.0, aim
+
+
+# ---------------------------------------------------------------------------------------------- cross-check fixes
+def _to_world():
+    sp = reel._spec(P)
+    M = np.eye(4)
+    M[:3, 0], M[:3, 1], M[:3, 2] = [np.asarray(a, float) for a in sp["axes"]]
+    M[:3, 3] = sp["origin"]
+    return M
+
+
+def _foot_slice(parts, name):
+    """cad-frame's view of a reel foot (_frame_others.classify_slice 0.5 above the deck): (outline, hole centres)."""
+    from shapely.ops import unary_union
+    from cad.parts import _frame_others as OTH
+    s = prim.place(parts[name].solid, _to_world())
+    polys, holes = OTH.classify_slice(s, P.LAYOUT["deck_top_z"] + 0.5)
+    return unary_union(polys), holes
+
+
+def test_p2_post_foot_holes_are_real_holes(parts):
+    """cad_support-5: the pulley 2 post's four M3 foot holes are round holes inside its foot (they broke out of the
+    old 17.7 mm foot), with at least 2.5 mm of solid round each, so cad-frame finds them and cuts the inserts."""
+    from shapely.geometry import Point
+    foot, holes = _foot_slice(parts, "reel_p2_post")
+    assert len(holes) == 4
+    for x, y in holes:
+        assert foot.exterior.distance(Point(x, y)) - fits.M3_CLEAR_D / 2 >= 2.5, (x, y)
+
+
+def test_p2_post_gussets_brace_the_column(parts):
+    """The gussets are fused to the column (they stood 0.15 mm off its faces): one section above the foot."""
+    from cad.parts import _frame_others as OTH
+    s = prim.place(parts["reel_p2_post"].solid, _to_world())
+    for h in (8.0, 20.0):
+        polys, _ = OTH.classify_slice(s, P.LAYOUT["deck_top_z"] + h)
+        assert len(polys) == 1, h
+
+
+def test_deck_holes_are_the_foot_holes(parts):
+    """deck_holes(P) (read by _frame_others.deck_contacts) lists exactly the M3 holes of the three reel feet."""
+    sliced = []
+    for n in ("reel_wall", "reel_exit_post", "reel_p2_post"):
+        sliced += _foot_slice(parts, n)[1]
+    dh = reel.deck_holes(P)
+    assert len(dh) == len(sliced) == 15
+    for x, y in dh:
+        assert min(math.hypot(x - a, y - b) for a, b in sliced) < 0.05, (x, y)
+
+
+def test_sw_bracket_has_pilots_under_the_switch_base_holes(parts):
+    """cad_support-11: a d2.6 self tap pilot through the bracket plate under each of the switch base's four holes,
+    solid round it."""
+    tm = prim.to_trimesh(parts["reel_sw_bracket"].solid)
+    M = reel.sw_frame()
+    for x, y in reel.sw_base_holes():
+        for z in (-0.5, -2.0, -3.5):                                  # through the 4 mm plate (switch frame)
+            c = (M @ np.array((x, y, z, 1.0)))[:3]
+            assert not tm.contains([c])[0], (x, y, z)
+            ring = [(M @ np.array((x + 2.2 * math.cos(a), y + 2.2 * math.sin(a), z, 1.0)))[:3]
+                    for a in np.linspace(0, 2 * math.pi, 8, endpoint=False)]
+            assert tm.contains(ring).all(), (x, y, z)
+
+
+def test_sw_arm_texts_follow_the_polarity(parts):
+    """cad_support-7 / docs-3: SW_ARM is CLOSED on the cup gear's track and OPEN in its home notch (params SWITCHES,
+    config.h armHomeOpen); the step and the notes must not describe a bump that closes it at home."""
+    st = [s for s in reel.steps(P) if s["title"] == "SW_ARM contact"][0]["text"]
+    assert "closed while the cup is away from home and opens at home" in st
+    assert "notch" in st and "bump" not in st
+    for n in ("reel_gk", "reel_sw_lever"):
+        assert "bump" not in parts[n].notes and "notch" in parts[n].notes, n
+    assert "opens" in str(P.SWITCHES["SW_ARM"]["closes"]).lower()
+
+
+def test_pivot_pulley_centre_on_the_rail_normal():
+    """cad_support-10: the pivot pulley centre is PIV_R up the rail normal from launch.line_entry (its bottom), at the
+    rail pitch launch.kin poses: the same centre cad-launch builds the pulley on."""
+    L = pytest.importorskip("cad.parts.launch")
+    from cad.lib import tf
+    for aim in (6.0, 21.0, 36.0):
+        S = dict(aim_deg=aim)
+        e, c, u = reel._pivot(P, S)
+        pitch = L.kin(P, S)["launch_rail"]
+        want = tf.apply(L._rail_to_world(P, pitch), np.array([L.LN.geom(L.L(P))["piv"]]))[0]
+        assert np.allclose(c, want, atol=1e-6), aim
+        assert np.linalg.norm(c - e) == pytest.approx(reel.PIV_R)
+        assert abs(float(np.dot(c - e, u))) < 1e-9
+
+
+def test_feed_to_the_pivot_pulley_clears_the_drum_shift_rail():
+    """cad_support-10: the real run from pulley 2 to the tangent on the pivot pulley clears cad-drum's d10 shift rail
+    by 0.5 mm or more over the low aims (the 6 deg tow pitch, D45, is the closest)."""
+    D = pytest.importorskip("cad.parts.drum")
+    g = D.G(P)
+    jb = [j for j in D.joints(P) if j.name == "drum_base"][0]
+    rod = prim.place(D.rail(g), jb.local(0.0))
+    for aim in (6.0, 10.0, 15.0):
+        sp = {lab: pts for pts, _, lab in reel.line_spans(P, dict(aim_deg=aim, wraps=0.0))}
+        gap = line.line_tube(sp["pulley 2 -> pivot pulley"]).min_gap(rod, 5.0)
+        assert gap >= 0.5, (aim, gap)
+
+
+def test_line_follows_the_posed_cup():
+    """The line's cup ring is where kin poses the cup (cad-drum's wrap idler), not at S["wraps"] (up to half a turn
+    apart mid-wrap), so the line meets the posed parts. (In the first quarter turn the line is drawn on its launch
+    path, ring at home: the turn model starts there.)"""
+    from tools.timeline import phases, state_at
+    ph = {p["name"]: p for p in phases(P)}["wrap"]
+    cp = reel_v7.cup_line_points()
+    M = _to_world()
+    apart = 0.0
+    for f in (0.3, 0.5, 0.8):
+        S = state_at(P, ph["t0"] + f * (ph["t1"] - ph["t0"]))
+        cup = reel.kin(P, S)["reel_cup"]
+        assert -cup / 360.0 >= 0.25, f
+        apart = max(apart, abs(-cup / 360.0 - S["wraps"]))
+        want = (M @ np.r_[reel._rz(cp["ring_front"], cup) + np.array((0, 0, reel.Z_CUP)), 1.0])[:3]
+        sp = {lab: pts for pts, _, lab in reel.line_spans(P, S)}
+        assert np.allclose(sp["cup ring"][-1], want, atol=1e-6), f
+    assert apart > 0.1                    # the samples include a state where S["wraps"] would put the ring elsewhere
+
+
+def test_line_path_is_the_spans():
+    """line_path (the cad-infra contract) is the line_spans points in order, every span names its contacts, and the
+    reel's part ends at launch.line_entry."""
+    for S in (dict(wraps=0.0, aim_deg=6.0), dict(wraps=7.0, aim_deg=6.0), dict(wraps=3.3, aim_deg=36.0)):
+        spans = reel.line_spans(P, S)
+        pts = np.asarray(reel.line_path(P, S), float)
+        flat = [spans[0][0][0]]
+        for sp_, allow, label in spans:
+            assert allow and label
+            for p in sp_:
+                if np.linalg.norm(p - flat[-1]) > 1e-6:
+                    flat.append(p)
+        assert np.allclose(np.asarray(flat), pts)
+        assert np.allclose(pts[-1], reel._pivot(P, S)[0], atol=1e-6)
+
+
+def test_tether_check_reports_a_part_across_the_line():
+    """The whole-assembly tether check flags a part of another subsystem lying across a free span, and nothing on the
+    reel by itself (its own parts touch the line only where each span allows)."""
+    from cad.lib import Part
+    from tools.assembly import Assembly
+    asm = Assembly(P, {"reel": reel})
+    S = [dict(phase="t", t=0.0, wraps=0.0, aim_deg=6.0), dict(phase="t", t=1.0, wraps=7.0, aim_deg=6.0)]
+    assert reel.tether_check(P, asm, S) == []
+    sp = {lab: pts for pts, _, lab in reel.line_spans(P, S[0])}
+    c = sp["pulley 1 -> pulley 2"].mean(axis=0)
+    asm.parts["frame_test_block"] = Part("frame_test_block", prim.box(c[0] - 4, c[0] + 4, c[1] - 2, c[1] + 2,
+                                                                      c[2] - 4, c[2] + 4), "PLA")
+    fails = reel.tether_check(P, asm, S)
+    assert len(fails) == 1 and "pulley 1 -> pulley 2 hits frame_test_block" in fails[0] and "in 2 of 2" in fails[0]

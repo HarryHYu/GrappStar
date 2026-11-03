@@ -649,7 +649,8 @@ P1_T = 6.0                    # pulley rim width (along R Y)
 
 P2_R = P1_R
 P2_WORLD_Y = 119.0            # cad-launch's pivot pulley plane (D34): the line leaves pulley 2 in it, heading -X
-P2_WORLD_Z = -56.0            # feed height (coordinator: exit about (10, 119, -60)); swivel block 3.5 above the drum
+P2_WORLD_Z = -54.0            # feed height: the run to the pivot pulley clears cad-drum's shift rail (d10 at x 25,
+                              # z -58) by 0.88 mm at the 6 deg tow pitch (0.13 at -56); swivel block 5.5 above the drum
 P2_POST_X = 156.7             # R X of pulley 2's post (world x 138: clear of the drum and its switch block)
 
 
@@ -751,28 +752,51 @@ def _p2_fork():
     return body - prim.union([groove, bore, mouth, axle])
 
 
+P2_GUSSET_Z = 14.0            # pulley 2 post gussets reach this far from the column centre on the foot (R Z)
+P2_FOOT_HW = 14.5             # foot half width along R Z: 0.5 past the gussets' ends, solid round the screw holes
+                              # (3.3 mm along Z, 2.8 along X; it was 8.85 and the holes broke out of its edges)
+P2_SCREW_DX, P2_SCREW_DZ = 11.5, 9.5          # foot screws about the column centre (outside its 16 x 13.7 section)
+
+
+def p2_post_screws():
+    """R (x, z) of the pulley 2 post's four foot screws (M3 into deck inserts, see deck_holes)."""
+    pz = p2_centre()[2]
+    zc = pz + (SW_BLOCK[0] + SW_BLOCK[1]) / 2
+    return [(P2_POST_X + sx * P2_SCREW_DX, zc + sz * P2_SCREW_DZ) for sx in (-1, 1) for sz in (-1, 1)]
+
+
 def _p2_post():
-    """Pulley 2 post (PPA-CF), R frame: foot on the deck (4 x M3), 16 x 16 column at P2_POST_X beside the drum, an
+    """Pulley 2 post (PPA-CF), R frame: foot on the deck (4 x M3), 16 x 13.7 column at P2_POST_X beside the drum, an
     arm to a block whose bore carries the swivel fork's tube (D43 review: the line leaves pulley 2 between 5 and 53
     deg out of a fixed groove plane as the rail aims; the swivel turns the pulley into the line)."""
     px, py, pz = p2_centre()
     ax, ay = swivel_axis()
     xc = P2_POST_X
     b0, b1 = pz + SW_BLOCK[0], pz + SW_BLOCK[1]
+    zc, hc = (b0 + b1) / 2, (b1 - b0) / 2
     yt = ay + 14.0
-    foot = prim.box(xc - 16, xc + 16, Y_DECK, Y_DECK + FOOT_T, b0 - 2, b1 + 2)
+    foot = prim.box(xc - 16, xc + 16, Y_DECK, Y_DECK + FOOT_T, zc - P2_FOOT_HW, zc + P2_FOOT_HW)
     col = prim.box(xc - 8, xc + 8, Y_DECK, yt, b0, b1)
     arm = prim.box(ax + 6.0, xc, ay - 4.0, yt, b0, b1)
     block = prim.box(ax - 9.0, ax + 9.0, ay - 8.65, ay + 9.0, b0, b1)
-    gus = [_gusset(xc - 4, xc + 4, (b0 + b1) / 2 + s_ * 7.0, (b0 + b1) / 2 + s_ * 14.0, Y_DECK + FOOT_T - 1.0,
+    # gussets fused 0.5 into the column faces (as on the exit post; they used to stand 0.15 off them)
+    gus = [_gusset(xc - 4, xc + 4, zc + s_ * (hc - 0.5), zc + s_ * P2_GUSSET_Z, Y_DECK + FOOT_T - 1.0,
                    min(40.0, yt - Y_DECK - FOOT_T - 2.0)) for s_ in (-1, 1)]
     body = prim.union([foot, col, arm, block] + gus)
     cut = [prim.cyl(SW_TUBE_R + 0.15, b1 - b0 + 2, x=ax, y=ay, z=b0 - 1)]
-    for sx in (-1, 1):
-        for sz in (-1, 1):
-            cut.append(prim.cylY(fits.M3_CLEAR_D / 2, Y_DECK - 1, Y_DECK + FOOT_T + 1, x=xc + sx * 11.5,
-                                 z=(b0 + b1) / 2 + sz * 9.5))
+    for (x, z) in p2_post_screws():
+        cut.append(prim.cylY(fits.M3_CLEAR_D / 2, Y_DECK - 1, Y_DECK + FOOT_T + 1, x=x, z=z))
     return body - prim.union(cut)
+
+
+def deck_holes(P):
+    """World (x, y) of every reel foot screw on the deck (cad-frame puts a heat-set insert under each,
+    _frame_others.deck_contacts): the wall's seven, the pulley 1 post's four and the pulley 2 post's four."""
+    sp = _spec(P)
+    o = np.asarray(sp["origin"], float)
+    ax, _, az = [np.asarray(a, float) for a in sp["axes"]]
+    rz = list(MOUNT_HOLES) + list(exit_post_screws()) + p2_post_screws()
+    return [(float(w[0]), float(w[1])) for w in (o + x * ax + z * az for x, z in rz)]
 
 
 def swivel_deg(P, S):
@@ -781,6 +805,7 @@ def swivel_deg(P, S):
     ax, ay = swivel_axis()
     o = np.asarray(SP["origin"], float)
     c2 = p2_centre()
+    e, c, u = _pivot(P, S)
     phi = 0.0
     for _ in range(3):
         # pulley 2 exit (bottom of its 90 deg arc) after the swivel, world
@@ -790,7 +815,6 @@ def swivel_deg(P, S):
         cy = ay + rel[0] * sp_ + rel[1] * cp
         fx, fy, fz = cx, cy, c2[2] - P2_R                        # R (exit is straight below the centre in Z)
         f = np.array((o[0] + fx, o[1] - fz, o[2] + fy))           # world
-        e, c, u = _pivot(P, S)
         dx, dz = c[0] - f[0], c[2] - f[2]
         d = math.hypot(dx, dz)
         a0 = math.atan2(dz, dx)
@@ -830,10 +854,12 @@ def _cap_clip():
     return prim.tube(7.0, 2.3, 2.0) - prim.box(-1.9, 1.9, -8, 0, -1, 3)
 
 
-# ---- SW_ARM: printed contact behind the cup gear (BASE_SPEC section 4, GPIO 42)
-SW_BUMP_R = 16.5              # bump radius on the cup gear's rear face (screw boss stays outside the gear tips)
+# ---- SW_ARM: printed contact behind the cup gear (BASE_SPEC section 4, GPIO 42). Polarity (params SWITCHES.SW_ARM):
+# CLOSED while the lever rides the raised track on the cup gear's rear face, OPEN in the track's notch at home.
+SW_BUMP_R = 16.5              # lever tip radius on the cup gear's rear face (screw boss stays outside the gear tips)
 SW_BUMP_H = 2.1               # track height (gap 0.4 + pretravel 1.3 + 0.4 overtravel)
-SW_BUMP_DEG = 12.0            # contact closed +- this about home
+SW_BUMP_DEG = 12.0            # notch half width at the gear face: contact OPEN about home (the wide lever tip rides the
+                              # ramps: open from about -6 to +8 deg of cup turn at the 1.28 mm pretravel)
 SW_LEVER = 28.0
 
 
@@ -881,17 +907,33 @@ def _cup_gear_track():
     return out
 
 
+SW_PLATE_T = 4.0              # bracket plate under the switch base
+
+
+def sw_base_holes():
+    """Switch-frame (x, y) of the switch base's four mounting holes (cad.lib.switch: x = -root_len / 2 and x_flex / 2,
+    y = +-(base_w / 2 - 3.5)), read off the base itself as sensors._mount_pilots does."""
+    sw = _sw()
+    lo, hi = prim.bbox(sw["base"])
+    bw, rl = hi[1] - lo[1], -lo[0] - 2.0
+    return [(x, s * (bw / 2 - 3.5)) for x in (-rl / 2, sw["info"]["x_flex"] / 2) for s in (-1, 1)]
+
+
 def _sw_bracket():
     """SW_ARM bracket (PLA), R frame: flange screwed to the wall rear face below the gears, an arm back under the
-    gears, a plate the switch base screws onto."""
+    gears, a plate the switch base screws onto (4 x M3x8 self tap into d2.6 pilots through the plate)."""
     M = sw_frame()
     (x0, y0, z0), (x1, y1, z1) = prim.bbox(prim.place(_sw()["base"], M))
     zb = z0
-    plate = prim.box(x0 - 3.0, x1 + 1.5, y0 - 9.0, y1, zb - 4.0, zb)      # +X edge 2 mm off the wrap idler
-    arm = prim.box(-11.5, 8.5, y0 - 9.0, y0 - 1.0, zb - 4.0, -WALL_T)        # below the switch base, clear of the wrap idler
+    plate = prim.box(x0 - 3.0, x1 + 1.5, y0 - 9.0, y1, zb - SW_PLATE_T, zb)      # +X edge 2 mm off the wrap idler
+    arm = prim.box(-11.5, 8.5, y0 - 9.0, y0 - 1.0, zb - SW_PLATE_T, -WALL_T)   # below the switch base, clear of the wrap idler
     flange = prim.box(-16.0, 16.0, y0 - 17.0, y0 - 1.0, -WALL_T - 4.0, -WALL_T)
     body = prim.union([plate, arm, flange])
     cut = [prim.cyl(fits.M3_CLEAR_D / 2, 10, x=sx, y=y0 - 13.0, z=-WALL_T - 6.0) for sx in (-12.0, 12.0)]
+    # self tap pilots under the base holes, through the plate (an M3x8 through the 3 mm base ends 1 mm behind it,
+    # where nothing lies within 5 mm)
+    cut += [prim.place(prim.cyl(fits.M3_TAP_D / 2, SW_PLATE_T + 1.0, x=x, y=y, z=-SW_PLATE_T - 0.5), M)
+            for x, y in sw_base_holes()]
     return body - prim.union(cut), y0
 
 
@@ -963,7 +1005,8 @@ def parts(P):
                                      hub=(16.0, C_Z0 - CUPGEAR_Z[1] - 0.3), phase=GK_PHASE), _cup_gear_track()]),
         "PPA-CF",
         joint="reel_cup", place=tf.T(0, 0, CUPGEAR_Z[0]), color=COL["gear"], step=8,
-        notes=f"Cup gear m{M_CUPG:g} z{Z_CUPG}: driven by the drum's wrap idler; the bump on its back trips SW_ARM")
+        notes=f"Cup gear m{M_CUPG:g} z{Z_CUPG}: driven by the drum's wrap idler; the raised track on its back holds "
+              "SW_ARM closed, the notch at home lets it open")
     add("reel_k_clip", clips.c_clip(K_D), "PLA", joint="reel_cup", place=tf.T(0, 0, _clip_z(K_D, CUPGEAR_Z[0])),
         color=COL["clip"], step=8, notes="C-clip holding the cup gear on the cup shaft")
     add("reel_s", _s_shaft(), "PPA-CF", tf.Rx(180), joint="reel_shaft", color=COL["ppa"], step=9,
@@ -1023,11 +1066,14 @@ def parts(P):
     Msw = sw_frame()
     brk, _ = _sw_bracket()
     add("reel_sw_bracket", brk, "PLA", joint="reel_base", color=COL["wall"], step=14,
-        notes="SW_ARM bracket: screwed to the wall below the gears. Print flat")
+        bought_ref="2 x M3x8 SHCS", notes="SW_ARM bracket: screwed to the wall below the gears. Print flat")
     add("reel_sw_base", sw["base"], "PLA", joint="reel_base", place=Msw, color=COL["clip"], step=14,
+        bought_ref="4 x M3x8 self tap (base to bracket)",
         notes="SW_ARM contact base (printed switch, M3 head on M3 nut)")
     add("reel_sw_lever", sw["lever"], "PLA", tf.Rx(90), joint="reel_base", place=Msw, color=COL["rocker"], step=14,
-        notes="SW_ARM lever: the cup gear's bump presses its tip at home. Print on its side")
+        bought_ref=f"2 x M3x{sw['info']['clamp_screw_len']} self tap (lever clamp)",
+        notes="SW_ARM lever: rides the cup gear's raised track (contact closed) and drops into its home notch (open). "
+              "Print on its side")
     add("reel_sw_hw", prim.union([sw["screw"], sw["nut"], sw["jam_nut"]]), "bought", joint="reel_base", place=Msw,
         color=COL["brg"], bought_ref="M3x10 SHCS + 2 M3 nuts", step=14, notes="SW_ARM contact screw and nuts")
     add("reel_shroud", _shroud(), "PLA", joint="reel_base", color=COL["wall"], step=12,
@@ -1325,8 +1371,8 @@ def _rz(p, deg):
 
 
 def _line_points(P, wraps=0.0, pack_r=None, z_spool=None, swivel=None):
-    """Line centre polyline in the R frame as a list of (points (N x 3), allowed part names) spans:
-    storage reel -> guide eye -> (capstan turns -> groove) -> ring -> exit eye -> 20 mm toward the dart.
+    """Line centre polyline in the R frame as a list of (points (N x 3), allowed part names, label) spans:
+    storage reel -> guide eye -> (capstan turns -> groove) -> ring -> pulley 1 -> pulley 2 -> a RUN_CHECK stub.
     wraps = cup turns from home (cup angle -360 wraps). Spans with allowed parts may touch those parts only."""
     d = _d(P)
     rp = reel_calc.pack_r(d, 3.0) if pack_r is None else pack_r
@@ -1336,14 +1382,14 @@ def _line_points(P, wraps=0.0, pack_r=None, z_spool=None, swivel=None):
     gl = np.array((g[0] - X_REEL, g[1]))
     th = _tangent_angle(gl, rp, upper=False)
     sp = np.array((X_REEL + rp * math.cos(math.radians(th)), rp * math.sin(math.radians(th)), zs))
-    spans = [(np.array([sp, g]), {"reel_spool", "reel_wall"})]
+    spans = [(np.array([sp, g]), {"reel_spool", "reel_wall"}, "storage reel -> guide eye")]
     psi = -360.0 * wraps
     cp = v7.cup_line_points()
     off = np.array((0, 0, Z_CUP))
     ring_r = _rz(cp["ring_rear"], psi) + off
     ring_f = _rz(cp["ring_front"], psi) + off
     if wraps <= 1e-9:
-        spans.append((np.array([g, ring_r]), {"reel_wall", "reel_cup"}))
+        spans.append((np.array([g, ring_r]), {"reel_wall", "reel_cup"}, "guide eye -> cup ring"))
     else:
         th0 = _tangent_angle(g[:2], LINE_R_CAP, upper=True)
         th_end = v7.TH_RIM + psi
@@ -1357,25 +1403,25 @@ def _line_points(P, wraps=0.0, pack_r=None, z_spool=None, swivel=None):
             t = math.radians(th0 - A * k / n)
             turns.append((LINE_R_CAP * math.cos(t), LINE_R_CAP * math.sin(t), z0 + (z1 - z0) * k / n))
         turns = np.array(turns)
-        spans.append((np.array([g, turns[0]]), {"reel_wall", "reel_drum"}))
-        spans.append((turns, {"reel_drum"}))
+        spans.append((np.array([g, turns[0]]), {"reel_wall", "reel_drum"}, "guide eye -> capstan"))
+        spans.append((turns, {"reel_drum"}, "capstan turns"))
         grv = []
         for k in range(9):
             tdeg = v7.TH_RIM - (v7.TH_RIM - v7.TH_TOP) * k / 8 + psi
             z = Z_CUP + v7.CUP_D * k / 8
             grv.append((v7.ER * math.cos(math.radians(tdeg)), v7.ER * math.sin(math.radians(tdeg)), z))
         grv = np.array(grv)
-        spans.append((np.vstack([turns[-1:], grv, [ring_r]]), {"reel_drum", "reel_cup"}))
-    spans.append((np.array([ring_r, ring_f]), {"reel_cup"}))
+        spans.append((np.vstack([turns[-1:], grv, [ring_r]]), {"reel_drum", "reel_cup"}, "capstan -> cup groove -> ring"))
+    spans.append((np.array([ring_r, ring_f]), {"reel_cup"}, "cup ring"))
     pc = p1_centre()
-    spans.append((np.array([ring_f, EXIT]), {"reel_cup", "reel_pulley1"}))
+    spans.append((np.array([ring_f, EXIT]), {"reel_cup", "reel_pulley1"}, "cup ring -> pulley 1"))
     a0 = math.atan2(EXIT[2] - pc[2], EXIT[0] - pc[0])          # tangent point = old eye centre
     arc = np.array([(pc[0] + P1_R * math.cos(t), pc[1], pc[2] + P1_R * math.sin(t))
                     for t in np.linspace(a0, 0.0, 13)])
-    spans.append((arc, {"reel_pulley1"}))
+    spans.append((arc, {"reel_pulley1"}, "pulley 1"))
     p2 = p2_centre()
     in2 = np.array((p2[0] + P2_R, p2[1], p2[2]))
-    spans.append((np.array([arc[-1], in2]), {"reel_pulley1", "reel_pulley2"}))
+    spans.append((np.array([arc[-1], in2]), {"reel_pulley1", "reel_pulley2"}, "pulley 1 -> pulley 2"))
     sax, say = swivel_axis()
     ph = math.radians(swivel if swivel is not None else 0.0)
     def rot(q):
@@ -1383,55 +1429,79 @@ def _line_points(P, wraps=0.0, pack_r=None, z_spool=None, swivel=None):
         return np.array((sax + x * math.cos(ph) - y * math.sin(ph), say + x * math.sin(ph) + y * math.cos(ph), q[2]))
     arc2 = np.array([rot((p2[0] + P2_R * math.cos(t), p2[1], p2[2] - P2_R * math.sin(t)))
                      for t in np.linspace(0.0, math.pi / 2, 7)])
-    spans.append((arc2, {"reel_pulley2"}))
+    spans.append((arc2, {"reel_pulley2"}, "pulley 2"))
     out = np.array((-math.cos(ph), -math.sin(ph), 0.0))
-    spans.append((np.array([arc2[-1], arc2[-1] + RUN_CHECK * out]), {"reel_pulley2"}))
+    spans.append((np.array([arc2[-1], arc2[-1] + RUN_CHECK * out]), {"reel_pulley2"}, "pulley 2 stub"))
     return spans
 
 
 RUN_CHECK = 30.0              # length of the stub after pulley 2 checked against my own parts
 
 
-def line_path(P, S):
-    """Tether polyline in WORLD mm for state S (cad-infra contract): storage reel pack -> guide eye -> capstan turns
-    and cup groove (S["wraps"]) -> ring -> exit eye -> pulley 1 -> along world +Y -> pulley 2 -> into the y 119 plane
-    -> round the bottom of cad-launch's pivot pulley to launch.line_entry(P, S). cad-launch continues from there."""
+def line_spans(P, S):
+    """The reel's part of the tether for state S as WORLD spans [(points N x 3, allowed part names, label)]:
+    storage reel -> ... -> pulley 2 as _line_points (without the checking stub), then pulley 2 -> the tangent on
+    cad-launch's pivot pulley and round its bottom to launch.line_entry(P, S). The cup turns and pulley 2's swivel are
+    the ones kin(P, S) poses (cad-drum's wrap idler turns the cup, not S["wraps"]), so the line meets the posed
+    parts; in the first quarter turn the line is drawn on its launch path (ring at home: the turn model needs 0.19
+    turns, and a straight run to the turned ring would cut the cup). Each span names the parts it is meant to touch
+    (tether_check tests it against every other part)."""
     d = _d(P)
     stored = max(0.0, d["line_len_m"] - _num(S, "line_out_m"))
     rp = reel_calc.pack_r(d, stored)
-    w = _num(S, "wraps")
+    k = kin(P, S)
+    w = -k["reel_cup"] / 360.0
     if 0.0 < w < 0.25:              # the turn model starts after the first quarter turn; show the launch path before
         w = 0.0
-    pts = []
-    for span, _ in _line_points(P, w, pack_r=rp, swivel=swivel_deg(P, S)):
-        for p in span:
-            if not pts or np.linalg.norm(np.asarray(p) - pts[-1]) > 1e-6:
-                pts.append(np.asarray(p, float))
     sp = _spec(P)
     M = np.eye(4)
     M[:3, 0], M[:3, 1], M[:3, 2] = [np.asarray(a, float) for a in sp["axes"]]
     M[:3, 3] = sp["origin"]
-    pts = pts[:-1]                                           # drop the checking stub after pulley 2
-    W = [np.asarray((M @ np.r_[p, 1.0])[:3]) for p in pts]
-    W += _to_pivot(P, S, W[-1])
-    return [tuple(float(v) for v in p) for p in W]
+    out = []
+    for pts, allow, label in _line_points(P, w, pack_r=rp, swivel=k["reel_swivel"])[:-1]:   # no checking stub
+        out.append((np.asarray([(M @ np.r_[p, 1.0])[:3] for p in pts]), set(allow), label))
+    f = out[-1][0][-1]                                       # pulley 2 exit (world)
+    piv = [f] + _to_pivot(P, S, f)
+    out.append((np.asarray(piv[:2]), {"reel_pulley2", PIVOT_PULLEY}, "pulley 2 -> pivot pulley"))
+    if len(piv) > 2:
+        out.append((np.asarray(piv[1:]), {PIVOT_PULLEY}, "pivot pulley (reel feed)"))
+    return out
+
+
+def line_path(P, S):
+    """Tether polyline in WORLD mm for state S (cad-infra contract): storage reel pack -> guide eye -> capstan turns
+    and cup groove (the cup as kin poses it) -> ring -> pulley 1 -> along world +Y -> pulley 2 -> into the y 119 plane
+    -> round the bottom of cad-launch's pivot pulley to launch.line_entry(P, S). cad-launch continues from there."""
+    pts = []
+    for span, _, _ in line_spans(P, S):
+        for p in span:
+            if not pts or np.linalg.norm(np.asarray(p) - pts[-1]) > 1e-6:
+                pts.append(np.asarray(p, float))
+    return [tuple(float(v) for v in p) for p in pts]
 
 
 PIV_R = 6.5                   # cad-launch's pivot pulley line radius
+PIVOT_PULLEY = "launch_pulley_piv"            # cad-launch's pivot pulley part (the reel feed wraps under it)
 
 
 def _pivot(P, S):
     """(entry point, pulley centre, rail direction u) of cad-launch's pivot pulley, world. Uses launch.line_entry
-    when the launch module is present, else the coordinator's numbers (centre (44 sin p, 119, -44 cos p))."""
-    p = math.radians(_num(S, "aim_deg", 6.0))
-    u = np.array((math.cos(p), 0.0, math.sin(p)))
+    (the BOTTOM of the pulley) and the rail pitch launch.kin poses when the launch module is present, else the
+    coordinator's numbers (centre (44 sin p, 119, -44 cos p)). The centre is PIV_R up the rail normal w from the
+    entry point (it used to be taken along the rail, 9.2 mm off)."""
+    e = None
     try:
         from cad.parts import launch as _L
-        e = np.asarray(_L.line_entry(P, S), float)
-        return e, e + PIV_R * u, u
+        p = math.radians(float(_L.kin(P, S)["launch_rail"]))     # the rail as posed (not S aim_deg: it lowers by
+        e = np.asarray(_L.line_entry(P, S), float)               # the crank-rocker and is clipped to its range)
     except Exception:
-        c = np.array((44.0 * math.sin(p), P2_WORLD_Y, -44.0 * math.cos(p)))
-        return c - PIV_R * u, c, u
+        p = math.radians(_num(S, "aim_deg", 6.0))
+    u = np.array((math.cos(p), 0.0, math.sin(p)))
+    w = np.array((-math.sin(p), 0.0, math.cos(p)))
+    if e is not None:
+        return e, e + PIV_R * w, u
+    c = np.array((44.0 * math.sin(p), P2_WORLD_Y, -44.0 * math.cos(p)))
+    return c - PIV_R * w, c, u
 
 
 def _to_pivot(P, S, f):
@@ -1477,7 +1547,7 @@ def line_check(P, wraps_list=None, local=None):
     for w in wraps_list:
         S = dict(wraps=w, mode="REEL")
         sol = local(S) if callable(local) else _local_posed(P, S)
-        for pts, allow in _line_points(P, w, swivel=swivel_deg(P, S)):
+        for pts, allow, _ in _line_points(P, w, swivel=swivel_deg(P, S)):
             if len(pts) == 2 and np.linalg.norm(pts[-1] - EXIT) < 1e-6:
                 # dart line: rides round the outside of the ring for half of each turn (v7 README) and lands on
                 # pulley 1 at the old exit eye centre; it must clear the cup face and everything else
@@ -1541,12 +1611,119 @@ def _local_posed(P, S):
     return out
 
 
+# ---- whole-assembly tether check: the posed line against every posed part of every subsystem
+TETHER_DT = 1.0               # s: timeline sample spacing (each phase gets its start, its end and at least one between)
+TETHER_HIT = 1e-3             # mm3: below this the tube only touches (tools.audit HIT_VOL)
+TETHER_ALWAYS = ("launch_line_*",)            # cad-launch's model of the line itself (bought segments along the rail)
+TETHER_EXTRA = {"cup ring -> pulley 1": ("reel_exit_post",)}   # mid-wrap the dart line comes in steeply and may
+# brush pulley 1's lower cheek near the landing (slack line, D22); line_check bounds that to 10 mm of the landing
+
+
+def tether_states(P):
+    """States of the tether check: every TIMELINE phase at its start, its end and at least every TETHER_DT seconds
+    between, plus the line at 0 wraps and at full wraps on their own."""
+    from tools.timeline import phases, state_at
+    out, seen = [], set()
+    for ph in phases(P):
+        n = max(2, int(math.ceil((ph["t1"] - ph["t0"]) / TETHER_DT - 1e-9)))
+        for k in range(n + 1):
+            t = round(ph["t0"] + (ph["t1"] - ph["t0"]) * k / n, 6)
+            if t not in seen:
+                seen.add(t)
+                out.append(state_at(P, t))
+    out += [dict(phase="tether_wraps_0", t=0.0, wraps=0.0),
+            dict(phase="tether_wraps_full", t=0.0, wraps=float(WRAPS))]
+    return out
+
+
+def _module_spans(obj, sub):
+    """Another subsystem's line_path result as spans [(points, allowed, label)]: (points, allowed parts) pairs keep
+    their parts (cad-launch's contract); plain points are one span that may touch nothing."""
+    items = list(obj or [])
+    if items and all(isinstance(x, (tuple, list)) and len(x) == 2 and isinstance(x[1], (set, frozenset, list, tuple))
+                     and np.asarray(x[0], float).ndim == 2 for x in items):
+        return [(np.asarray(p, float), set(a), f"{sub} span {k + 1} ({', '.join(sorted(a))})")
+                for k, (p, a) in enumerate(items)]
+    return [(np.asarray(items, float).reshape(-1, 3) if items else np.zeros((0, 3)), set(), f"{sub} line")]
+
+
+def tether_check(P, asm, states=None):
+    """Whole-assembly tether check. Every span of the posed line (line_spans, then the line_path spans of the other
+    subsystems: cad-launch's along the rail) at every state (tether_states by default), as the d 1.0 line tube,
+    against every posed part of every subsystem in asm except the parts that span is meant to touch: its own list
+    (guide eye in the wall, capstan, cup ring, pulleys, exit post, storage reel, the pivot pulley, the rail pulleys,
+    carriage and dart), TETHER_ALWAYS and TETHER_EXTRA. Exact manifold volumes after a box cull, cached per (part
+    pose, span) so the static stretches are computed once. Returns one failure string per (span, part); an allowed
+    name of a loaded subsystem that matches no part fails too (a renamed part must not allow nothing silently)."""
+    import inspect
+    from fnmatch import fnmatchcase
+    states = tether_states(P) if states is None else states
+    names = list(asm.parts)
+    box = {}
+    for n, p in asm.parts.items():
+        lo, hi = prim.bbox(p.solid)
+        box[n] = np.array([[x, y, z, 1.0] for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])])
+    others = [(sub, m) for sub, m in asm.modules.items() if sub != "reel" and callable(getattr(m, "line_path", None))
+              and list(inspect.signature(m.line_path).parameters)[:2] == ["P", "S"]]     # the asm.line hook rule
+    pad = line.LINE_D / 2 + 0.01
+    vols, hits, named, tubes = {}, {}, {}, {}
+    for S in states:
+        W = asm.world(S)
+        spans = line_spans(P, S)
+        for sub, m in others:
+            spans += _module_spans(m.line_path(P, S), sub)
+        prev, tubes = tubes, {}
+        for pts, allow, label in spans:
+            if len(pts) < 2:
+                continue
+            ok = set(allow) | set(TETHER_ALWAYS) | set(TETHER_EXTRA.get(label, ()))
+            for a in ok:
+                named.setdefault(a, label)
+            lo, hi = pts.min(axis=0) - pad, pts.max(axis=0) + pad
+            kp = (label, np.round(pts, 4).tobytes())
+            for n in names:
+                if any(fnmatchcase(n, a) for a in ok):
+                    continue
+                cw = (box[n] @ W[n].T)[:, :3]
+                if np.any(cw.max(axis=0) < lo) or np.any(cw.min(axis=0) > hi):
+                    continue
+                key = (n, np.round(W[n], 4).tobytes(), kp)
+                if key not in vols:
+                    if kp not in tubes:
+                        tubes[kp] = prev[kp] if kp in prev else line.line_tube(pts)
+                    x = tubes[kp] ^ prim.place(asm.parts[n].solid, W[n])
+                    v = x.volume()
+                    at = np.asarray(x.bounding_box(), float).reshape(2, 3).mean(axis=0) if v > TETHER_HIT else None
+                    vols[key] = (v, at)
+                v, at = vols[key]
+                if v > TETHER_HIT:
+                    h = hits.setdefault((label, n), dict(v=0.0, n=0))
+                    h["n"] += 1
+                    if v > h["v"]:
+                        h.update(v=v, at=at, phase=S.get("phase", ""), t=float(S.get("t", 0.0)))
+    out = []
+    for (label, n), h in sorted(hits.items()):
+        x, y, z = (round(float(c), 1) for c in h["at"])
+        out.append(f"tether: {label} hits {n} ({h['v']:.2f} mm3) in {h['n']} of {len(states)} states, worst "
+                   f"{h['phase']} t {h['t']:.1f} near world ({x}, {y}, {z})")
+    for a, label in sorted(named.items()):
+        if a.split("_")[0] in asm.modules and not any(fnmatchcase(n, a) for n in names):
+            out.append(f"tether: allowed contact {a} ({label}) names no part")
+    return out
+
+
 def checks(P, asm=None):
-    return line_check(P) + main_axis_check(P)
+    """Reel-only line check and main-axis keep-outs; with the assembly (tools.audit passes it) also the
+    whole-assembly tether check."""
+    out = line_check(P) + main_axis_check(P)
+    if asm is not None:
+        out += tether_check(P, asm)
+    return out
 
 
 def steps(P):
     """Assembly steps, in order, plain language, hardware named per step."""
+    si = _sw()["info"]
     return [
         dict(title="Screw the reel wall to the deck",
              text="Stand the reel wall on the deck at its marked place. Put seven M3 screws down through the "
@@ -1624,18 +1801,25 @@ def steps(P):
              parts=["reel_gr", "reel_s_clip"]),
         dict(title="SW_ARM contact",
              text="Battery unplugged. Build the printed contact (see the contact switch page): nut pressed in the base "
-                  "trap, lever screwed on, M3 x 10 contact screw with its jam nut in the lever. Screw the switch base to "
-                  "the bracket, and the bracket to the back of the wall below the gears with two M3 x 8. Turn the cup "
-                  "to home (ring at the top): the bump on the cup gear presses the lever; set the contact screw so it "
-                  "just closes there and opens 12 degrees either side. Lock the jam nut.",
+                  f"trap, lever screwed onto the pad with 2 x M3 x {si['clamp_screw_len']} self tapping screws, "
+                  f"M3 x {si['screw_len']} contact screw with its jam nut in the lever. Screw the switch base to the "
+                  "bracket with 4 x M3 x 8 self tapping screws (into the pilot holes in the plate), and the bracket to "
+                  "the back of the wall below the gears with two M3 x 8. SW_ARM is closed while the cup is away from "
+                  "home and opens at home: the lever rides a raised track on the back of the cup gear and drops into "
+                  "a notch in it at home. Turn the cup to home (ring at the top): the lever tip sits free in the notch. "
+                  "Turn the contact screw until its head just touches the nut, then back it off "
+                  f"{si['gap'] * 2:.1f} turns (gap about {si['gap']:.1f} mm, 0.5 mm per turn) and lock the jam nut. "
+                  "Check with the meter: turn the cup about 15 degrees either way, the lever rides up onto the track "
+                  "and the contact closes; back at home it must open, for about 7 degrees either side.",
              parts=["reel_sw_bracket", "reel_sw_base", "reel_sw_lever", "reel_sw_hw"]),
         dict(title="Pulley 2 swivel",
              text="Press a 693ZZ into pulley 2, set it between the swivel fork's two cheeks and push the M3 x 20 "
                   "axle through (nyloc nut on the far side, snug: the pulley must spin). Grease the fork's tube and "
-                  "push it up through the bore of the pulley 2 post's block from below; snap the C-clip into the "
-                  "groove above the block. The fork must turn freely. Screw the post to the deck beside the drum with "
-                  "four M3 screws. The line from pulley 1 goes down through the tube, round the pulley and out toward "
-                  "the rail pivot pulley; the fork turns itself to follow the line as the rail aims.",
+                  "push it through the bore of the pulley 2 post's block from the pulley side (the tube is level and "
+                  "points toward pulley 1); snap the C-clip into the groove where the tube comes out of the block. "
+                  "The fork must turn freely. Screw the post to the deck beside the drum with four M3 screws into the "
+                  "deck inserts. The line from pulley 1 goes through the tube, round the pulley and out toward the "
+                  "rail pivot pulley; the fork turns itself to follow the line as the rail aims.",
              parts=["reel_p2_post", "reel_p2_fork", "reel_p2_clip", "reel_pulley2", "reel_p2_brg", "reel_p2_axle"]),
         dict(title="Shroud",
              text="Put the shroud round the reel, its flange on the wall, opening at the top right, and screw it on "

@@ -23,7 +23,7 @@ audit_states, checks, grounded, steps, line_path, line_entry), `launch_kin.py` (
 - Carriage: body prints on its side (shoe faces), light V cradle (5 rings + 2 strips), pusher with tether hole,
   lip roller and retrieval funnel at the front; one bolted YOKE across the rear carries both spring arms (keys in the
   body webs, cross bar: each arm's stop moment balances across the carriage).
-- Carriage stop: printed PLA flexure units (D26, no TPU), preloaded, with a hard stop; overshoot checked by
+- Carriage stop: printed PLA flexure units (D26, no TPU), preloaded; the loop stack goes solid at full travel (23.8 mm); overshoot checked by
   `launch.checks` against the moving yoke and body.
 - Contacts (printed, M3 screw head on M3 nut): SW_HOME (right rail lip lever, rigid ramped foot under the yoke),
   SW_SEATED (left rail lip lever, captive plunger pushed down by a 45 deg wedge pushrod that the dart tail presses: no

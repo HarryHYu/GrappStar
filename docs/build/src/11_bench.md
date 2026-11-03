@@ -6,8 +6,5 @@
 
 ## 11.2 Dart
 
-@include firmware/dart/BENCH_TEST.md optional
-
-The dart bench checks are in the run sheet (appendix): section 7.5 (power-up readings), 7.6 (motor directions),
-8d step 6 (battery power-up) and section 10 (function test and calibration in damp soil). With the new pin map the
-foot is on DRV#2 channel B: key 4 must still turn the foot shaft clockwise seen from the shaft end.
+The dart bench tests are in section 6 (`firmware/dart/BENCH_TEST.md` and the dart build order, steps 6, 7 and 11).
+Foot check: key 4 turns the foot auger clockwise seen from the motor end, looking toward the tip.

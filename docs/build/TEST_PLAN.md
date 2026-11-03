@@ -128,7 +128,8 @@ The real dart, built and tested to the dart run sheet section 10. Use real soil 
 2. When the dart reports ANCHORED: pull the tether by hand with the luggage scale, slowly, up to 50 N or until
    it moves (G7).
 3. Re-anchor. Base in REEL with wraps on: `reel` with `until` tension at a limit 10 N under the hand result.
-4. Send `/release`: drills out, foot out, kick back, deploy up. Then reel the dart home.
+4. Send release (operator page, or `python3 -m grappstar dart release`): drills out, pods up, foot out, kick back.
+   Then reel the dart home.
 
 Pass: the dart anchors on its own, holds at least 20 N in loam, the base stops at its tension limit, the release
 sequence frees the dart, it reels home.

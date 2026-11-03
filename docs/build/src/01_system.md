@@ -15,7 +15,7 @@ Three parts:
   - LAUNCH, wiper backward: tilts the rail up and down to aim. A self-locking worm holds the angle.
   - REEL, wiper forward: the capstan winds in; the storage reel takes up the slack through a slip clutch.
   - Payout at launch: the line skips the capstan and pulls off the free-spinning storage reel against a light
-    brake (0.5 to 1 N).
+    payout brake (set 0.5 to 0.75 N; over 1 N costs range).
   - Any fault: wiper off, drum to NEUTRAL. There is a hand lever on the drum shaft end.
   - Brain: an ESP32-S3 DevKitC on USB from the Jetson, with an AS5600 angle sensor on the main shaft and printed
     contact switches (an M3 screw head touching an M3 nut).
@@ -32,12 +32,17 @@ base wraps the capstan and tows, the dart releases, the base reels it home.
 
 ## Order of work
 
-1. Measure the wiper motor and the springs (section 14, groups A and B). Put the numbers in `base/spec/params.py`
-   and re-run the base pipeline. The base parts that touch the motor depend on them.
+1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5) and the springs (group B). Put the
+   numbers in `base/spec/params.py` and re-run the base pipeline. The base parts that touch the motor depend on
+   them. A6 and A7 (speed, current, torque) need the base electronics: do them at test stage 1. They change no
+   printed part.
 2. Confirm the parts box (section 14, group C). The only purchase is 608 bearings.
 3. Print the dart fit coupon, then the dart plates (section 4). The dart does not depend on the measurements.
 4. Flash the dart and build it (sections 6 and 8, and the dart run sheet in the appendix).
 5. Print the base (section 4) and assemble it (section 5).
-6. Wire the base and the rover (section 7). Flash the base ESP32 (section 8). Set up the Jetson (section 9).
-7. Calibrate (section 10) and bench test (section 11).
-8. Run the staged tests, bench to field (section 12).
+6. Set up the Jetson on its own wall supply (section 9). Flash the base ESP32 from the Mac or the Jetson, with
+   nothing else connected to it (section 8.1).
+7. Wire the base and the rover (section 7) and do the first power-on sequence (7.1, section 4). While the Jetson
+   is still on its wall supply, leave the barrel plug out in step 7 and plug the ESP32 into the Jetson in step 8.
+8. Calibrate (section 10) and bench test (section 11).
+9. Run the staged tests, bench to field (section 12).

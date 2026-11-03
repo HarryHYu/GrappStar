@@ -10,7 +10,7 @@ cable. Flash the dart XIAO before it goes into the hull (run sheet section 5).
 ## 8.2 Dart: XIAO ESP32S3
 
 Arduino IDE: board XIAO_ESP32S3, Tools > USB CDC On Boot: Enabled (the sketch refuses to compile otherwise).
-Libraries: Adafruit INA219, Adafruit BNO08x. Open `firmware/dart/kedge_dart/kedge_dart.ino`. After the first USB
+Library: Adafruit BNO08x (the INA219 library is no longer needed). Open `firmware/dart/kedge_dart/kedge_dart.ino`. After the first USB
 upload you can upload over WiFi (port "kedge").
 
 @include firmware/dart/README.md

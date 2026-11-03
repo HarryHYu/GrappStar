@@ -80,7 +80,8 @@ Gauges assume runs under 0.5 m. 14 AWG carries the 18 A wiper stall; 18 AWG is f
 
 Before you start: the pull-down and divider resistors are fitted as in firmware/base/WIRING.md (10 k from R_EN to
 GND, 10 k from L_EN to GND, 10 k from DRV8833 SLP to GND, the IS divider, the battery divider). Both motors are
-disconnected from their drivers for this first power-on. Multimeter ready.
+disconnected from their drivers for this first power-on, and the DRV8833 VM wire (P5) is soldered to the DRV8833
+but NOT yet to MP1584 #2 OUT (tape its free end). Multimeter ready.
 
 1. Battery unplugged. Jetson barrel plug and ESP32 USB cable unplugged. Pull both fuses (20 A and 10 A) and both
    small inline fuses.
@@ -90,7 +91,11 @@ disconnected from their drivers for this first power-on. Multimeter ready.
    before going on.
 3. Battery unplugged. Meter on resistance (not beep): DRV8833 SLP pad to VM must read open (OL or over 1 M). Some
    DRV8833 boards pull SLP up to the motor supply through a resistor; that would put 9 V into the ESP32. If it reads
-   any value, cut that board's pull-up jumper or use the other pad (ask before going on).
+   any value, the board has a pull-up from SLP (or EEP) to VM: look for a small solder jumper or a resistor
+   between the SLP / EEP pad and VM on the board (often marked J2). Cut the trace between the jumper pads with a
+   craft knife, or lift that resistor with the iron, then measure again until it reads open. If you cannot make it
+   read open, do not connect SLP to the ESP32 and leave the drum disconnected: the board cannot be used as is.
+   Write it in the test log; the base then needs a different driver board.
 4. Battery unplugged. Meter on DC volts on the LiPo balance lead: each cell 3.7 to 4.2 V.
 5. Battery unplugged. Fit the 20 A fuse and the 2 A inline fuse. Plug the battery in. Meter on DC volts:
    - BTS7960 B+ (red probe) to B- (black probe): battery voltage, positive. Negative means reversed: unplug at once.

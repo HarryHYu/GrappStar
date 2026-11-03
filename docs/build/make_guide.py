@@ -10,6 +10,7 @@ The section texts live in docs/build/src/NN_*.md. Lines in them that start with 
   @include <repo path> [optional]   insert that file (headings pushed down under the current section)
   @image <repo path> <caption>      insert a picture (PNG or JPG)
   @csv <repo path>                  insert a CSV file as a table
+  @wiremap                          dart run sheet wire numbers -> new cut list numbers
   @printlist base | dart            print tables from base/pack and kedge/pack_v30
   @assumed                          numbers still assumed in base/spec/params.py
   @status                           which source files exist right now
@@ -202,6 +203,25 @@ def d_csv(args, level):
     return f"\n*From `{path}`:*\n\n" + _table(rows[1:], rows[0])
 
 
+def d_wiremap(args, level):
+    """Run sheet (v29) wire number -> new dart wire number, from the new cut list's 'v29 #' column."""
+    new_p = os.path.join(ROOT, "firmware/dart/wiring/wire_cut_list.csv")
+    old_p = os.path.join(ROOT, "kedge/pack_v30/wire_cut_list.csv")
+    if not (os.path.exists(new_p) and os.path.exists(old_p)):
+        return placeholder("firmware/dart/wiring/wire_cut_list.csv", "fw-dart")
+    new = list(csv.DictReader(open(new_p, encoding="utf-8")))
+    old = list(csv.DictReader(open(old_p, encoding="utf-8")))
+    by_old = {}
+    for r in new:
+        for o in re.findall(r"\d+", r.get("v29 #", "") or ""):
+            by_old[o] = r["#"]
+    rows = []
+    for r in old:
+        n = by_old.get(r["#"], "REMOVED (no DRV#3)")
+        rows.append((r["#"], n, f"{r['from']} to {r['to']}"))
+    return _table(rows, ["Run sheet wire", "New wire", "Run sheet says"])
+
+
 def d_printlist(args, level):
     return printlist_base() if args[0] == "base" else printlist_dart()
 
@@ -239,7 +259,7 @@ def d_date(args, level):
     return f"\nBuilt {now.strftime('%Y-%m-%d %H:%M')} Sydney time from commit `{commit}`.\n"
 
 
-DIRECTIVES = {"include": d_include, "csv": d_csv, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
+DIRECTIVES = {"include": d_include, "csv": d_csv, "wiremap": d_wiremap, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
               "status": d_status, "date": d_date}
 
 

@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 11:01 Sydney time from commit `869902f`.
+Built 2026-11-03 11:06 Sydney time from commit `9f0aff1`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -29,7 +29,7 @@ Three parts:
   - LAUNCH, wiper backward: tilts the rail up and down to aim. A self-locking worm holds the angle.
   - REEL, wiper forward: the capstan winds in; the storage reel takes up the slack through a slip clutch.
   - Payout at launch: the line skips the capstan and pulls off the free-spinning storage reel against a light
-    brake (0.5 to 1 N).
+    payout brake (set 0.5 to 0.75 N; over 1 N costs range).
   - Any fault: wiper off, drum to NEUTRAL. There is a hand lever on the drum shaft end.
   - Brain: an ESP32-S3 DevKitC on USB from the Jetson, with an AS5600 angle sensor on the main shaft and printed
     contact switches (an M3 screw head touching an M3 nut).
@@ -46,15 +46,20 @@ base wraps the capstan and tows, the dart releases, the base reels it home.
 
 ## Order of work
 
-1. Measure the wiper motor and the springs (section 14, groups A and B). Put the numbers in `base/spec/params.py`
-   and re-run the base pipeline. The base parts that touch the motor depend on them.
+1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5) and the springs (group B). Put the
+   numbers in `base/spec/params.py` and re-run the base pipeline. The base parts that touch the motor depend on
+   them. A6 and A7 (speed, current, torque) need the base electronics: do them at test stage 1. They change no
+   printed part.
 2. Confirm the parts box (section 14, group C). The only purchase is 608 bearings.
 3. Print the dart fit coupon, then the dart plates (section 4). The dart does not depend on the measurements.
 4. Flash the dart and build it (sections 6 and 8, and the dart run sheet in the appendix).
 5. Print the base (section 4) and assemble it (section 5).
-6. Wire the base and the rover (section 7). Flash the base ESP32 (section 8). Set up the Jetson (section 9).
-7. Calibrate (section 10) and bench test (section 11).
-8. Run the staged tests, bench to field (section 12).
+6. Set up the Jetson on its own wall supply (section 9). Flash the base ESP32 from the Mac or the Jetson, with
+   nothing else connected to it (section 8.1).
+7. Wire the base and the rover (section 7) and do the first power-on sequence (7.1, section 4). While the Jetson
+   is still on its wall supply, leave the barrel plug out in step 7 and plug the ESP32 into the Jetson in step 8.
+8. Calibrate (section 10) and bench test (section 11).
+9. Run the staged tests, bench to field (section 12).
 
 # 2. Safety
 
@@ -207,25 +212,53 @@ General rules for the base:
 
 # 6. Dart build
 
-Build the dart with the KEDGE v30 run sheet (appendix at the end of this guide, also
-`kedge/pack_v30/KEDGE_v30_run_sheet.pdf`). It is a complete, step by step, timed build day: fit coupon, plates,
-board prep, harness, power-up tests, motor directions, mechanical assembly, function test.
+The dart is built from three documents. This section says which to use for what, and in what order.
 
-**One change from the run sheet: the dart pin map.** The run sheet uses three DRV8833 boards. The dart now uses two,
-so the third can drive the base selector drum:
+- **KEDGE v30 run sheet** (appendix at the end, also `kedge/pack_v30/KEDGE_v30_run_sheet.pdf`): printing, board
+  prep, mechanical assembly, function test. Its own section numbers are used below.
+- **`firmware/dart/WIRING.md`** (below): the new wiring. It replaces the run sheet's wiring (its sections 7 and 9 and
+  its wiring picture).
+- **`firmware/dart/BENCH_TEST.md`** (below): the bench checks for the new firmware.
 
-- DRV#1: deploy and kick (unchanged).
-- DRV#2 channel A: BOTH drill motors (0.7 A stall together, fine on one 1.2 A channel), right drill motor leads
-  swapped as before so the pair counter-rotates.
-- DRV#2 channel B: the foot N20.
-- No DRV#3 in the dart: skip every run sheet wire that goes to DRV#3, and do not bridge AIN1 to BIN1 on DRV#2.
+## What changed from the run sheet
 
-Where the run sheet wiring (its sections 7 and 9 and its wiring picture) differs from `firmware/dart/WIRING.md`
-below, follow WIRING.md. Use the firmware in `firmware/dart/`, not the copy inside the v30 pack. Ignore the run
-sheet's `firmware/reel` sketch: the base firmware in `firmware/base/` replaces it.
+- The dart now uses two DRV8833 boards. DRV#3 goes to the base selector drum; its pocket on the keel stays empty.
+- DRV#2 channel A drives BOTH drill motors (right drill leads still swapped), channel B drives the foot.
+- No pin bridge on DRV#2.
+- **Wire numbers changed.** The tape flags carry the NEW numbers from the new cut list. Wherever the run sheet names
+  a wire number (sections 7.6, 8b, 8d, 8e, 8f and 10), look it up in the table "Run sheet wire numbers" below.
+- Use the firmware in `firmware/dart/`, not the copy inside the v30 pack. Ignore the run sheet's `firmware/reel`
+  sketch: `firmware/base/` replaces it. The Adafruit INA219 library is no longer needed (BNO08x still is).
+- Run sheet section 10, "Put them in kedge_logic.h (kickContactMa, kickStallMa, deployStallMa)": those names are
+  gone. Enter the measured currents as BENCH_TEST.md says.
+- Foot direction: the foot auger is right-hand thread, so it screws in when it turns **clockwise seen from the motor
+  end, looking toward the auger tip**. The run sheet's "clockwise, seen from the shaft end" in 7.6 means the same
+  only if you stand behind the motor; use the motor-end wording.
 
-The rest of the run sheet stands: the fit coupon, both plates, the 5.04 V buck, the Schottky diode, the capacitor
-polarity, the battery contacts, the assembly order and the function test.
+## Dart build order (follow this; it merges the three documents)
+
+1. Run sheet section 4: print and check the fit coupon.
+2. Run sheet section 5: start plate A, flash the firmware from `firmware/dart/` (section 8.2 of this guide).
+3. Run sheet section 6 steps 1 to 3: clip headers, set the buck. Set MP1584 #1 to 5.04 V and MP1584 #2 to 8.0 V
+   from the 3S LiPo on XT60 lead #1 (run sheet 6.2), before either buck is soldered to anything. (This replaces
+   WIRING.md step B2.) MP1584 #2 later becomes the base drum supply at 9.0 V.
+4. Run sheet section 6 step 4: find the SLP pad on DRV#1 and DRV#2 (WIRING.md step B6). Meter on resistance: SLP to
+   VM must read open.
+5. Battery unplugged. Solder the bench harness with WIRING.md Path B, steps B1 and B3 to B10, on the bench, outside
+   the hull, motor leads left free at their far ends. Leave the BMS end of the battery wires for step 9.
+6. Battery unplugged. **Click the u.FL antenna onto the VTX** (never power the VTX without it). Bench power-up: the
+   8.0 V MP1584 #2 on the LiPo feeds the INA219 VIN+ pad and main ground, exactly as run sheet 7.5. Check the
+   readings there (about 4.7 V at the XIAO 5V pad, VTX LED on, `z` finds 0x40 and 0x4a).
+7. Motor directions on the bench (BENCH_TEST.md, the steps that need only a loose motor; run sheet 7.6 with the
+   new wire numbers). Mark each motor lead. Disconnect the bench supply.
+8. Start plate B. Run sheet 8a: nose ballast.
+9. Battery unplugged. Run sheet 8b: battery contacts and BMS, using the new wire numbers.
+10. Run sheet 8c, 8d, 8e, 8f in order (pods, tray, close the hull, kick leg and foot). The run sheet closes the hull
+    with the kick and drill leads threaded out through their holes, then solders those motors outside: that is
+    intended. Antenna still on before every loop-plug-in.
+11. BENCH_TEST.md for everything that needs the legs fitted, then run sheet section 10 (function test in damp soil).
+    Steps that use the Jetson (`kedge_client.py`, the RC832) wait until sections 7 and 9 are done: from the Jetson
+    use `python3 -m grappstar dart status`.
 
 ## Dart wiring (new pin map)
 
@@ -235,6 +268,67 @@ polarity, the battery contacts, the assembly order and the function test.
 
 
 ![Dart wiring v4 (numbers match the new cut list)](firmware/dart/wiring/wiring.png)
+
+
+### Run sheet wire numbers
+
+When the run sheet names a wire number, use the new number from this table.
+
+| Run sheet wire | New wire | Run sheet says |
+|---|---|---|
+| 1 | 1 | Rear plate, cell 1 (-) to BMS B- |
+| 2 | 2 | Front spring, cell 1 (+) to Front spring, cell 2 (-) |
+| 3 | 3 | Front spring pair (cell 1 + / cell 2 -) to BMS BM |
+| 4 | 4 | Rear plate, cell 2 (+) to BMS B+ |
+| 5 | 5 | BMS B- to Charge socket pin 1 (tail window) |
+| 6 | 6 | BMS BM to Charge socket pin 2 |
+| 7 | 7 | BMS B+ to Charge socket pin 3 |
+| 8 | 8 | BMS P+ to Power loop socket pin 1 (tail window) |
+| 9 | 9 | Power loop socket pin 2 to INA219 VIN+ |
+| 10 | 10 | INA219 VIN+ (same pad) to MP1584 IN+ |
+| 11 | 11 | INA219 VIN- to DRV#1 VM |
+| 12 | 12 | DRV#1 VM to DRV#2 VM |
+| 13 | REMOVED (no DRV#3) | DRV#2 VM to DRV#3 VM |
+| 14 | 13 | BMS P- to MP1584 IN- |
+| 15 | 14 | MP1584 IN- (same pad) to DRV#1 GND |
+| 16 | 15 | DRV#1 GND to DRV#2 GND |
+| 17 | REMOVED (no DRV#3) | DRV#2 GND to DRV#3 GND |
+| 18 | 16 | MP1584 OUT+ (5.04 V) to XIAO 5V via a Schottky diode (stripe toward the XIAO) |
+| 19 | 17 | MP1584 OUT- to XIAO GND |
+| 20 | 18 | MP1584 OUT+ to VTX 5V in |
+| 21 | 19 | MP1584 OUT- to VTX GND |
+| 22 | 20 | VTX 5V in (same pad) to Camera + (red) |
+| 23 | 21 | VTX GND (same pad) to Camera - (black) |
+| 24 | 22 | Camera video (yellow) to VTX video in |
+| 25 | 23 | XIAO 3V3 to DRV#1 SLP / nSLEEP / EEP pad (NOT VCC or VIN) |
+| 26 | 24 | DRV#1 SLP to DRV#2 SLP |
+| 27 | REMOVED (no DRV#3) | DRV#2 SLP to DRV#3 SLP |
+| 28 | 25 | XIAO 3V3 to INA219 VCC |
+| 29 | 26 | INA219 VCC to BNO085 VIN |
+| 30 | 27 | XIAO GND to INA219 GND |
+| 31 | 28 | INA219 GND to BNO085 GND |
+| 32 | 29 | XIAO D4 to INA219 SDA |
+| 33 | 30 | INA219 SDA to BNO085 SDA |
+| 34 | 31 | XIAO D5 to INA219 SCL |
+| 35 | 32 | INA219 SCL to BNO085 SCL |
+| 36 | 33 | XIAO D0 to DRV#1 AIN1 |
+| 37 | 34 | XIAO D1 to DRV#1 AIN2 |
+| 38 | 35 | XIAO D2 to DRV#1 BIN1 |
+| 39 | 36 | XIAO D3 to DRV#1 BIN2 |
+| 40 | 37 | XIAO D8 to DRV#2 AIN1 + BIN1 (bridge the two pads) |
+| 41 | 38 | XIAO D9 to DRV#2 AIN2 + BIN2 (bridge the two pads) |
+| 42 | 39 | XIAO D6 to DRV#3 AIN1 |
+| 43 | 40 | XIAO D7 to DRV#3 AIN2 |
+| 44 | 41 | DRV#1 AOUT1 to Deploy N20 + (red) |
+| 45 | 42 | DRV#1 AOUT2 to Deploy N20 - (black) |
+| 46 | 43 | DRV#1 BOUT1 to Kick N20 + (red) |
+| 47 | 44 | DRV#1 BOUT2 to Kick N20 - (black) |
+| 48 | 45 | DRV#2 AOUT1 to Drill motor LEFT + (red) |
+| 49 | 46 | DRV#2 AOUT2 to Drill motor LEFT - (black) |
+| 50 | 47 | DRV#2 BOUT1 to Drill motor RIGHT - (black)  SWAPPED |
+| 51 | 48 | DRV#2 BOUT2 to Drill motor RIGHT + (red)  SWAPPED |
+| 52 | 49 | DRV#3 AOUT1 to Foot N20 + (red) |
+| 53 | 50 | DRV#3 AOUT2 to Foot N20 - (black) |
 
 
 ### New dart wire cut list (replaces run sheet section 9)
@@ -299,9 +393,8 @@ polarity, the battery contacts, the assembly order and the function test.
 ## Dart bench tests
 
 
+> NOT IN THE REPO YET: `firmware/dart/BENCH_TEST.md` (written by fw-dart). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
 
-The run sheet sections 7.5, 7.6, 8d step 6 and 10 are the dart bench checks: power-up readings, motor directions,
-battery power-up, then the function test in damp soil.
 
 # 7. Electronics and wiring (base and rover)
 
@@ -396,7 +489,8 @@ Gauges assume runs under 0.5 m. 14 AWG carries the 18 A wiper stall; 18 AWG is f
 
 Before you start: the pull-down and divider resistors are fitted as in firmware/base/WIRING.md (10 k from R_EN to
 GND, 10 k from L_EN to GND, 10 k from DRV8833 SLP to GND, the IS divider, the battery divider). Both motors are
-disconnected from their drivers for this first power-on. Multimeter ready.
+disconnected from their drivers for this first power-on, and the DRV8833 VM wire (P5) is soldered to the DRV8833
+but NOT yet to MP1584 #2 OUT (tape its free end). Multimeter ready.
 
 1. Battery unplugged. Jetson barrel plug and ESP32 USB cable unplugged. Pull both fuses (20 A and 10 A) and both
    small inline fuses.
@@ -406,7 +500,11 @@ disconnected from their drivers for this first power-on. Multimeter ready.
    before going on.
 3. Battery unplugged. Meter on resistance (not beep): DRV8833 SLP pad to VM must read open (OL or over 1 M). Some
    DRV8833 boards pull SLP up to the motor supply through a resistor; that would put 9 V into the ESP32. If it reads
-   any value, cut that board's pull-up jumper or use the other pad (ask before going on).
+   any value, the board has a pull-up from SLP (or EEP) to VM: look for a small solder jumper or a resistor
+   between the SLP / EEP pad and VM on the board (often marked J2). Cut the trace between the jumper pads with a
+   craft knife, or lift that resistor with the iron, then measure again until it reads open. If you cannot make it
+   read open, do not connect SLP to the ESP32 and leave the drum disconnected: the board cannot be used as is.
+   Write it in the test log; the base then needs a different driver board.
 4. Battery unplugged. Meter on DC volts on the LiPo balance lead: each cell 3.7 to 4.2 V.
 5. Battery unplugged. Fit the 20 A fuse and the 2 A inline fuse. Plug the battery in. Meter on DC volts:
    - BTS7960 B+ (red probe) to B- (black probe): battery voltage, positive. Negative means reversed: unplug at once.
@@ -465,7 +563,7 @@ cable. Flash the dart XIAO before it goes into the hull (run sheet section 5).
 ## 8.2 Dart: XIAO ESP32S3
 
 Arduino IDE: board XIAO_ESP32S3, Tools > USB CDC On Boot: Enabled (the sketch refuses to compile otherwise).
-Libraries: Adafruit INA219, Adafruit BNO08x. Open `firmware/dart/kedge_dart/kedge_dart.ino`. After the first USB
+Library: Adafruit BNO08x (the INA219 library is no longer needed). Open `firmware/dart/kedge_dart/kedge_dart.ino`. After the first USB
 upload you can upload over WiFi (port "kedge").
 
 
@@ -968,11 +1066,8 @@ Do it after the base is assembled and wired, springs off, before test stage 3. T
 
 ## 11.2 Dart
 
-
-
-The dart bench checks are in the run sheet (appendix): section 7.5 (power-up readings), 7.6 (motor directions),
-8d step 6 (battery power-up) and section 10 (function test and calibration in damp soil). With the new pin map the
-foot is on DRV#2 channel B: key 4 must still turn the foot shaft clockwise seen from the shaft end.
+The dart bench tests are in section 6 (`firmware/dart/BENCH_TEST.md` and the dart build order, steps 6, 7 and 11).
+Foot check: key 4 turns the foot auger clockwise seen from the motor end, looking toward the tip.
 
 # 12. First tests, bench to field
 
@@ -1109,7 +1204,8 @@ The real dart, built and tested to the dart run sheet section 10. Use real soil 
 2. When the dart reports ANCHORED: pull the tether by hand with the luggage scale, slowly, up to 50 N or until
    it moves (G7).
 3. Re-anchor. Base in REEL with wraps on: `reel` with `until` tension at a limit 10 N under the hand result.
-4. Send `/release`: drills out, foot out, kick back, deploy up. Then reel the dart home.
+4. Send release (operator page, or `python3 -m grappstar dart release`): drills out, pods up, foot out, kick back.
+   Then reel the dart home.
 
 Pass: the dart anchors on its own, holds at least 20 N in loam, the base stops at its tension limit, the release
 sequence frees the dart, it reels home.
@@ -1291,7 +1387,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | # | What | How | Changes | Reprint after |
 |---|---|---|---|---|
 | B1 | Free length L0 | Caliper the spring hook to hook (inside of the hooks), no load | `SPRING.free_len` | Nothing |
-| B2 | Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load, but only if L3 - L0 is under 180 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm. Or let the computer fit it: `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` (kg:mm pairs) prints the rate and initial tension | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
+| B2 | Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load, but only if L3 - L0 is under 160 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm. Or let the computer fit it: `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` (kg:mm pairs) prints the rate and initial tension | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
 | B3 | Wire and outside diameter | Caliper | `SPRING.wire`, `SPRING.od` | Spring anchors only if OD differs by more than 0.5 mm |
 
 ### C. Parts box: confirm you have these (no new purchases)

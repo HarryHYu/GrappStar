@@ -102,8 +102,9 @@ command): in step 5 only check the buck reads 9.0 V (do not turn the screw), and
 6. Unplug the battery. Connect the DRV8833 VM wire (P5) to MP1584 #2 OUT.
 7. Battery unplugged. Fit the 10 A fuse and the 1 A inline fuse. Plug the battery in. Meter on the barrel plug
    (not in the Jetson yet): centre pin positive, battery voltage. Unplug the battery. Push the barrel into the
-   Jetson. Plug the battery in: the Jetson boots (green LED), the RC832 lights.
-8. Plug the ESP32 USB cable into the Jetson (USB is 5 V and safe to plug live). The ESP32 power LED lights.
+   Jetson and plug the ESP32 USB cable into the Jetson (USB cables in first, battery last).
+8. Plug the battery in: the Jetson boots (green LED), the RC832 lights, and the ESP32 power LED lights once the
+   Jetson is up.
 9. On the Jetson, in `~/GrappStar/jetson`: `python3 -m grappstar base ping` (expect `"ok": true`), then
    `python3 -m grappstar base monitor`. Check `vbat` in telemetry matches the meter within 0.3 V.
 10. Unplug the battery. Connect the motors (wiper to BTS7960 M+ / M-, drum N20 to AOUT1 / AOUT2). Check the B-

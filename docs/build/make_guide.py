@@ -156,7 +156,8 @@ def printlist_dart():
 
 
 def printlist_base():
-    pack = os.path.join(ROOT, "base/pack")
+    pack = next((os.path.join(ROOT, c) for c in ("base/pack", "base/out/base/pack") if os.path.isdir(os.path.join(ROOT, c))),
+                os.path.join(ROOT, "base/pack"))
     if not os.path.isdir(pack):
         return placeholder("base/pack", "cad-infra (print pack)")
     s = ""
@@ -657,6 +658,28 @@ D2 / D3). One drill wrong only: swap that drill's motor leads. VTX antenna on be
     return sheets
 
 
+def build_results_sheet():
+    """MEASURE_RESULTS.md / .pdf: every MEASURE_LIST item with an empty Result column, to print and fill in."""
+    src = os.path.join(HERE, "MEASURE_LIST.md")
+    out_md = os.path.join(HERE, "MEASURE_RESULTS.md")
+    lines = ["# Measure results (fill in)", "",
+             "Write each number with its unit. Photo: the file name of the caliper photo in "
+             "`originals/measure_2026-11/`. Items are explained in MEASURE_LIST.md.", ""]
+    for l in open(src, encoding="utf-8").read().splitlines():
+        if l.startswith("## ") and l[3:4] in "ABCDEFGH":
+            lines += ["", l, "", "| Item | Result (with unit) .................... | Photo file or note ................ |", "|---|---|---|"]
+        m = re.match(r"^\| ([A-H]\d+ [^|]*)\|", l)
+        if m:
+            item = m.group(1).strip()
+            item = item if len(item) < 70 else item[:67].rsplit(" ", 1)[0] + " ..."
+            lines.append(f"| {item} |  |  |")
+    md = "\n".join(lines) + "\n"
+    with open(out_md, "w", encoding="utf-8") as f:
+        f.write(md)
+    build_pdf(clean(md), out=os.path.join(HERE, "MEASURE_RESULTS.pdf"), doc_title="Measure results")
+    return rel(out_md)
+
+
 def lint(md):
     bad = [n for n, line in enumerate(md.splitlines(), 1) if "\u2014" in line]
     if bad:
@@ -667,6 +690,7 @@ def lint(md):
 
 def main():
     render_diagram()
+    print(f"wrote {build_results_sheet()}")
     md = build_markdown()
     ok = lint(md)
     with open(OUT_MD, "w", encoding="utf-8") as f:

@@ -119,8 +119,20 @@ one weight is not enough. Use three loads. Every range number scales with the en
 
 ## After you measure
 
-1. Write the numbers into `base/spec/params.py` (set `measured=True` in `WIPER` and `SPRING`) or send them to the
-   coordinator. Put photos in `originals/measure_2026-11/`.
-2. Re-run the base pipeline (assembly, audit must say CLEAN, physics, ballistics table, print pack) and
-   `firmware/base/tools/gen_params.py`, then re-flash the base ESP32.
-3. Reprint only the parts named in the "Reprint after" column. If you have not printed them yet, print after step 2.
+1. Fill in `docs/build/MEASURE_RESULTS.md` and put the photos in `originals/measure_2026-11/` (create the folder).
+2. Easy way: open Claude Code in the repo and ask it to enter MEASURE_RESULTS.md into `base/spec/params.py`
+   (`measured=True` in `WIPER` and `SPRING`), re-run the base pipeline and regenerate the firmware numbers.
+3. By hand, in Terminal on the Mac:
+
+   ```
+   cd ~/GrappStar
+   bash kedge/setup_mac.sh                      # once: builds kedge/.venv (Python and the CAD libraries)
+   # edit base/spec/params.py: the WIPER and SPRING blocks, measured=True
+   bash base/run_all.sh base                    # assembly, audit (must end CLEAN), print pack in base/out/base/pack
+   kedge/.venv/bin/python firmware/base/tools/gen_params.py   # firmware numbers, then re-flash the base ESP32
+   python3 docs/build/make_guide.py             # rebuild this guide
+   ```
+
+   Fields params.py does not have yet (wiper boss and hub, N20 shaft, keyway depths, BTS7960 heatsink) go to the
+   CAD owners through MEASURE_RESULTS.md; the Claude session maps them.
+4. Reprint only the parts named in the "Reprint" column. If you have not printed them yet, print after step 3.

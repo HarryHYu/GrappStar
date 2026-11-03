@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 12:10 Sydney time from commit `d2356eb`.
+Built 2026-11-03 12:12 Sydney time from commit `a92fdef`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -26,18 +26,22 @@ Everything else waits until these are done. About one afternoon.
 
 ### 2. Measure (1 to 2 hours; caliper, kitchen scale, water bottles, phone camera)
 
-Take a photo of every caliper reading and put them in `originals/measure_2026-11/`.
+Take a photo of every caliper reading and put them in a new folder `originals/measure_2026-11/` (create it).
+Write each number into `docs/build/MEASURE_RESULTS.md` (a fill-in sheet; print it).
 
 1. Wiper motor (MEASURE_LIST A1 to A5, A8): output shaft diameter and flats, end thread and length, the mount hole
    pattern (press the motor face onto paper), the housing size, the boss and hub.
-2. Launch springs (B1 to B3): free length, then hang about 1, 2 and 3 kg of water bottles from ONE spring and
-   measure hook to hook each time. Both springs. `python3 base/physics/calib.py spring L0 1.0:L1 2.0:L2 3.0:L3`
-   gives the rate and initial tension.
+2. Launch springs (B1 to B3), safety glasses on while a loaded spring hangs: free length with a steel rule or
+   tape (the spring is longer than a caliper), then hang about 1, 2 and 3 kg of water bottles (weigh each load:
+   W1, W2, W3 in kg) from ONE spring and measure hook to hook each time (L1, L2, L3 in mm). Both springs.
+   `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` gives the rate and initial tension. Enter the
+   weaker spring's numbers.
 3. Small parts (H1, H3, H4): drum N20 shaft, CSK20PP keyway depths, BTS7960 heatsink height and hole spacing.
 4. Count the parts box (group C): worm N20s (4 needed), the spare MP1584, 8 mm rod or M8 bolts, 693ZZ / F693ZZ left
    after the dart, resistors (2 x 10 k, 1 k, 680 R, 100 k, 22 k), a small magnet for the AS5600, spare XT60s.
-5. Send the numbers to the coordinator, or write them into `base/spec/params.py` and set `measured=True` in
-   `WIPER` and `SPRING`. Then re-run the base pipeline.
+5. Update the design with the numbers (build guide section 14, "After you measure"): the easy way is to open
+   Claude Code in the repo, give it MEASURE_RESULTS.md and ask it to enter the numbers in params.py and re-run the
+   base pipeline. By hand: the commands are in that section.
 
 ### 3. Buy
 
@@ -48,8 +52,10 @@ Take a photo of every caliper reading and put them in `originals/measure_2026-11
 ### 4. Print first (test pieces only)
 
 1. The dart fit coupon (`kedge/pack_v30/fit_coupon.stl`, 20 minutes). Check it against run sheet section 4.
-2. The base day-one risk coupon plate from `base/pack` and its test sheet (test stage 0). Every check must pass.
-3. Then the dart plates A and B. The dart does not depend on the measurements.
+2. The base day-one risk coupon plate from the base print pack and its test sheet (test stage 0). Every check
+   must pass before the big base parts.
+3. The dart plates A and B do not wait for the base coupon or the measurements: start them once the dart fit
+   coupon passes.
 
 ### 5. Do NOT do yet
 
@@ -102,6 +108,8 @@ the cradle, unwraps and returns to LAUNCH.
 
 ## Order of work
 
+0. Get the repo onto the Mac (Terminal): `cd ~ && GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/HarryHYu/GrappStar.git`
+   (skips the 145 MB photo PDF). `cd ~/GrappStar && git pull` updates it later.
 1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5 and A8), the springs (group B), and the
    parts in H1, H3, H4. Put the
    numbers in `base/spec/params.py` and re-run the base pipeline. The base parts that touch the motor depend on
@@ -109,14 +117,15 @@ the cradle, unwraps and returns to LAUNCH.
    printed part.
 2. Confirm the parts box (section 14, group C). The only purchase is 608 bearings (and an AS5600 magnet if none
    is in the box).
-3. Print the dart fit coupon and the base risk coupon plate, and test them (section 4, test stage 0). Then the
-   dart plates (section 4). The dart does not depend on the measurements.
+3. Print the dart fit coupon and the base risk coupon plate, and test them (section 4, test stage 0). The dart
+   plates (section 4) do not wait for the base coupons or the measurements: start them any time after the dart
+   fit coupon passes.
 4. Flash the dart and build it (sections 6 and 8, and the dart run sheet in the appendix).
 5. Print the base (section 4) and assemble it (section 5).
-6. Set up the Jetson on its own wall supply (section 9). Flash the base ESP32 from the Mac or the Jetson, with
-   nothing else connected to it (section 8.1).
-7. Wire the base and the rover (section 7) and do the first power-on sequence (7.1, section 4). While the Jetson
-   is still on its wall supply, leave the barrel plug out in step 7 and plug the ESP32 into the Jetson in step 8.
+6. Set up the Jetson on its own wall supply (section 9). Flash the base ESP32 from the Mac, with nothing else
+   connected to it (section 8.1).
+7. Wire the base and the rover (section 7) and do the first power-on sequence (7.1, its part 4). While the Jetson
+   is still on its wall supply, leave the barrel plug out in step 7.
 8. Calibrate (section 10) and bench test (section 11).
 9. Run the staged tests, bench to field (section 12).
 
@@ -128,7 +137,9 @@ Read this before any hands-on step.
 
 - **Battery unplugged before you touch, add or move any wire.** On the dart that means the power loop plug out. The
   first XIAO died from wiring with the battery live.
-- Battery unplugged before you plug any board into the Mac by USB.
+- Order for every power-up: USB cables in first, battery last. Power-down: battery out first. A board may stay on
+  the Mac's USB while the battery goes in (firmware/base/WIRING.md Part D does this), but never plug the USB in
+  while the battery is in.
 - Check for shorts with the meter on beep before the first power-on of anything you wired: red to black must not beep.
 - The 3S LiPo can deliver over 100 A into a short. Keep the 20 A and 10 A fuses in their leads. Never bypass them.
 - LiPo care: charge on the iMax B6 in balance mode at 1C (5.2 A) or less, on a non-flammable surface (tile,
@@ -223,6 +234,10 @@ heat shrink and heat gun, caliper, hex keys, tweezers, kitchen scale, luggage sc
 
 Printer: Bambu X2D (bed 256 x 256 x 260 mm). PLA for everything except loaded gears and keyed shafts, which are
 PPA-CF (the print list says which).
+
+Hole compensation (used by both coupons): in Bambu Studio it is a process setting, "X-Y hole compensation"
+(Process, Quality tab; the name may move between versions). Set it before slicing each plate; it is saved with the
+project, so set it on both dart plates and every base plate.
 
 Order: dart fit coupon first (20 minutes, checks your printer's hole sizes), then the base day-one risk coupon
 plate (below, test stage 0), then the dart plates, then the base once the coupons pass and the wiper and spring
@@ -336,8 +351,9 @@ The dart is built from three documents. This section says which to use for what,
   a wire number (sections 7.6, 8b, 8d, 8e, 8f and 10), look it up in the table "Run sheet wire numbers" below.
 - Use the firmware in `firmware/dart/`, not the copy inside the v30 pack. Ignore the run sheet's `firmware/reel`
   sketch: `firmware/base/` replaces it. The Adafruit INA219 library is no longer needed (BNO08x still is).
-- Run sheet section 10, "Put them in kedge_logic.h (kickContactMa, kickStallMa, deployStallMa)": those names are
-  gone. Enter the measured currents as BENCH_TEST.md says.
+- Run sheet section 10, "Put them in kedge_logic.h (kickContactMa, kickStallMa, deployStallMa)": kickContactMa is
+  still there, but kickStallMa and deployStallMa are gone (now `stallMa[]`). Enter the measured currents as
+  BENCH_TEST.md says.
 - Foot direction: the foot auger is right-hand thread, so it screws in when it turns **clockwise seen from the motor
   end, looking toward the auger tip**. The run sheet's "clockwise, seen from the shaft end" in 7.6 means the same
   only if you stand behind the motor; use the motor-end wording.
@@ -351,11 +367,15 @@ The dart is built from three documents. This section says which to use for what,
    WIRING.md step B2.) MP1584 #2 later becomes the base drum supply at 9.0 V.
 4. Run sheet section 6 step 4: find the SLP pad on DRV#1 and DRV#2 (WIRING.md step B6). Meter on beep: SLP to VM
    must NOT beep (a Pololu pull-up of tens of kilohms is fine; a beep means the pad is the motor supply).
-5. Battery unplugged. Solder the bench harness with WIRING.md Path B, steps B1 and B3 to B10, on the bench, outside
-   the hull, motor leads left free at their far ends. Leave the BMS end of the battery wires for step 9.
+5. Battery unplugged. Solder the bench harness with WIRING.md Path B, steps B3 to B10 (B2 is replaced by step 3
+   above), on the bench, outside the hull, motor leads left free at their far ends. B1 (cells and BMS) and every
+   wire end that goes to the BMS (P+, P-) wait for step 9.
 6. Battery unplugged. **Click the u.FL antenna onto the VTX** (never power the VTX without it). Bench power-up: the
    8.0 V MP1584 #2 on the LiPo feeds the INA219 VIN+ pad and main ground, exactly as run sheet 7.5. Check the
-   readings there (about 4.7 V at the XIAO 5V pad, VTX LED on, `z` finds 0x40 and 0x4a).
+   readings there (about 4.7 V at the XIAO 5V pad, VTX LED on, `z` finds 0x40 and 0x4a). USB unplugged whenever the
+   bench supply is connected. Where BENCH_TEST.md says "insert the power loop plug" or "meter the battery", on the
+   bench read: connect the 8.0 V bench supply (clip leads or soldered, onto INA219 VIN+ and main ground) and meter
+   it.
 7. Motor directions on the bench (BENCH_TEST.md, the steps that need only a loose motor; run sheet 7.6 with the
    new wire numbers). Mark each motor lead. Disconnect the bench supply.
 8. Start plate B. Run sheet 8a: nose ballast.
@@ -832,6 +852,9 @@ Battery unplugged for every step in this section. Two documents, used in this or
 One-page printable pin sheets for the bench: `docs/build/Wiring_Cheat_Sheet_Base.pdf` (base ESP32-S3) and
 `docs/build/Wiring_Cheat_Sheet_Dart.pdf` (dart XIAO).
 
+When you reach WIRING.md Part B step 12 (buck input), put a 2 A inline fuse in the IN+ wire right at the B+ screw
+(system page, run P4).
+
 Where the two differ, the system page adds the rover parts (Y harness, 2 A and 1 A tap fuses, Jetson, RC832); the
 ESP32 pins always come from WIRING.md.
 
@@ -944,8 +967,9 @@ command): in step 5 only check the buck reads 9.0 V (do not turn the screw), and
 6. Unplug the battery. Connect the DRV8833 VM wire (P5) to MP1584 #2 OUT.
 7. Battery unplugged. Fit the 10 A fuse and the 1 A inline fuse. Plug the battery in. Meter on the barrel plug
    (not in the Jetson yet): centre pin positive, battery voltage. Unplug the battery. Push the barrel into the
-   Jetson. Plug the battery in: the Jetson boots (green LED), the RC832 lights.
-8. Plug the ESP32 USB cable into the Jetson (USB is 5 V and safe to plug live). The ESP32 power LED lights.
+   Jetson and plug the ESP32 USB cable into the Jetson (USB cables in first, battery last).
+8. Plug the battery in: the Jetson boots (green LED), the RC832 lights, and the ESP32 power LED lights once the
+   Jetson is up.
 9. On the Jetson, in `~/GrappStar/jetson`: `python3 -m grappstar base ping` (expect `"ok": true`), then
    `python3 -m grappstar base monitor`. Check `vbat` in telemetry matches the meter within 0.3 V.
 10. Unplug the battery. Connect the motors (wiper to BTS7960 M+ / M-, drum N20 to AOUT1 / AOUT2). Check the B-
@@ -2824,11 +2848,23 @@ one weight is not enough. Use three loads. Every range number scales with the en
 
 ### After you measure
 
-1. Write the numbers into `base/spec/params.py` (set `measured=True` in `WIPER` and `SPRING`) or send them to the
-   coordinator. Put photos in `originals/measure_2026-11/`.
-2. Re-run the base pipeline (assembly, audit must say CLEAN, physics, ballistics table, print pack) and
-   `firmware/base/tools/gen_params.py`, then re-flash the base ESP32.
-3. Reprint only the parts named in the "Reprint after" column. If you have not printed them yet, print after step 2.
+1. Fill in `docs/build/MEASURE_RESULTS.md` and put the photos in `originals/measure_2026-11/` (create the folder).
+2. Easy way: open Claude Code in the repo and ask it to enter MEASURE_RESULTS.md into `base/spec/params.py`
+   (`measured=True` in `WIPER` and `SPRING`), re-run the base pipeline and regenerate the firmware numbers.
+3. By hand, in Terminal on the Mac:
+
+   ```
+   cd ~/GrappStar
+   bash kedge/setup_mac.sh                      # once: builds kedge/.venv (Python and the CAD libraries)
+   # edit base/spec/params.py: the WIPER and SPRING blocks, measured=True
+   bash base/run_all.sh base                    # assembly, audit (must end CLEAN), print pack in base/out/base/pack
+   kedge/.venv/bin/python firmware/base/tools/gen_params.py   # firmware numbers, then re-flash the base ESP32
+   python3 docs/build/make_guide.py             # rebuild this guide
+   ```
+
+   Fields params.py does not have yet (wiper boss and hub, N20 shaft, keyway depths, BTS7960 heatsink) go to the
+   CAD owners through MEASURE_RESULTS.md; the Claude session maps them.
+4. Reprint only the parts named in the "Reprint" column. If you have not printed them yet, print after step 3.
 
 
 ## Numbers still assumed in params.py right now

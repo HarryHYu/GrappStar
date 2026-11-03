@@ -3,6 +3,10 @@
 Printer: Bambu X2D (bed 256 x 256 x 260 mm). PLA for everything except loaded gears and keyed shafts, which are
 PPA-CF (the print list says which).
 
+Hole compensation (used by both coupons): in Bambu Studio it is a process setting, "X-Y hole compensation"
+(Process, Quality tab; the name may move between versions). Set it before slicing each plate; it is saved with the
+project, so set it on both dart plates and every base plate.
+
 Order: dart fit coupon first (20 minutes, checks your printer's hole sizes), then the base day-one risk coupon
 plate (below, test stage 0), then the dart plates, then the base once the coupons pass and the wiper and spring
 numbers are in (section 1, order of work).

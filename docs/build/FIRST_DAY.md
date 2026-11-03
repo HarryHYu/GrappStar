@@ -9,18 +9,22 @@ Everything else waits until these are done. About one afternoon.
 
 ## 2. Measure (1 to 2 hours; caliper, kitchen scale, water bottles, phone camera)
 
-Take a photo of every caliper reading and put them in `originals/measure_2026-11/`.
+Take a photo of every caliper reading and put them in a new folder `originals/measure_2026-11/` (create it).
+Write each number into `docs/build/MEASURE_RESULTS.md` (a fill-in sheet; print it).
 
 1. Wiper motor (MEASURE_LIST A1 to A5, A8): output shaft diameter and flats, end thread and length, the mount hole
    pattern (press the motor face onto paper), the housing size, the boss and hub.
-2. Launch springs (B1 to B3): free length, then hang about 1, 2 and 3 kg of water bottles from ONE spring and
-   measure hook to hook each time. Both springs. `python3 base/physics/calib.py spring L0 1.0:L1 2.0:L2 3.0:L3`
-   gives the rate and initial tension.
+2. Launch springs (B1 to B3), safety glasses on while a loaded spring hangs: free length with a steel rule or
+   tape (the spring is longer than a caliper), then hang about 1, 2 and 3 kg of water bottles (weigh each load:
+   W1, W2, W3 in kg) from ONE spring and measure hook to hook each time (L1, L2, L3 in mm). Both springs.
+   `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` gives the rate and initial tension. Enter the
+   weaker spring's numbers.
 3. Small parts (H1, H3, H4): drum N20 shaft, CSK20PP keyway depths, BTS7960 heatsink height and hole spacing.
 4. Count the parts box (group C): worm N20s (4 needed), the spare MP1584, 8 mm rod or M8 bolts, 693ZZ / F693ZZ left
    after the dart, resistors (2 x 10 k, 1 k, 680 R, 100 k, 22 k), a small magnet for the AS5600, spare XT60s.
-5. Send the numbers to the coordinator, or write them into `base/spec/params.py` and set `measured=True` in
-   `WIPER` and `SPRING`. Then re-run the base pipeline.
+5. Update the design with the numbers (build guide section 14, "After you measure"): the easy way is to open
+   Claude Code in the repo, give it MEASURE_RESULTS.md and ask it to enter the numbers in params.py and re-run the
+   base pipeline. By hand: the commands are in that section.
 
 ## 3. Buy
 
@@ -31,8 +35,10 @@ Take a photo of every caliper reading and put them in `originals/measure_2026-11
 ## 4. Print first (test pieces only)
 
 1. The dart fit coupon (`kedge/pack_v30/fit_coupon.stl`, 20 minutes). Check it against run sheet section 4.
-2. The base day-one risk coupon plate from `base/pack` and its test sheet (test stage 0). Every check must pass.
-3. Then the dart plates A and B. The dart does not depend on the measurements.
+2. The base day-one risk coupon plate from the base print pack and its test sheet (test stage 0). Every check
+   must pass before the big base parts.
+3. The dart plates A and B do not wait for the base coupon or the measurements: start them once the dart fit
+   coupon passes.
 
 ## 5. Do NOT do yet
 

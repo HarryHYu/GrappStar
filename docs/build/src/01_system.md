@@ -39,6 +39,8 @@ the cradle, unwraps and returns to LAUNCH.
 
 ## Order of work
 
+0. Get the repo onto the Mac (Terminal): `cd ~ && GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/HarryHYu/GrappStar.git`
+   (skips the 145 MB photo PDF). `cd ~/GrappStar && git pull` updates it later.
 1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5 and A8), the springs (group B), and the
    parts in H1, H3, H4. Put the
    numbers in `base/spec/params.py` and re-run the base pipeline. The base parts that touch the motor depend on
@@ -46,13 +48,14 @@ the cradle, unwraps and returns to LAUNCH.
    printed part.
 2. Confirm the parts box (section 14, group C). The only purchase is 608 bearings (and an AS5600 magnet if none
    is in the box).
-3. Print the dart fit coupon and the base risk coupon plate, and test them (section 4, test stage 0). Then the
-   dart plates (section 4). The dart does not depend on the measurements.
+3. Print the dart fit coupon and the base risk coupon plate, and test them (section 4, test stage 0). The dart
+   plates (section 4) do not wait for the base coupons or the measurements: start them any time after the dart
+   fit coupon passes.
 4. Flash the dart and build it (sections 6 and 8, and the dart run sheet in the appendix).
 5. Print the base (section 4) and assemble it (section 5).
-6. Set up the Jetson on its own wall supply (section 9). Flash the base ESP32 from the Mac or the Jetson, with
-   nothing else connected to it (section 8.1).
-7. Wire the base and the rover (section 7) and do the first power-on sequence (7.1, section 4). While the Jetson
-   is still on its wall supply, leave the barrel plug out in step 7 and plug the ESP32 into the Jetson in step 8.
+6. Set up the Jetson on its own wall supply (section 9). Flash the base ESP32 from the Mac, with nothing else
+   connected to it (section 8.1).
+7. Wire the base and the rover (section 7) and do the first power-on sequence (7.1, its part 4). While the Jetson
+   is still on its wall supply, leave the barrel plug out in step 7.
 8. Calibrate (section 10) and bench test (section 11).
 9. Run the staged tests, bench to field (section 12).

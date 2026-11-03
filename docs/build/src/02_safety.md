@@ -6,7 +6,9 @@ Read this before any hands-on step.
 
 - **Battery unplugged before you touch, add or move any wire.** On the dart that means the power loop plug out. The
   first XIAO died from wiring with the battery live.
-- Battery unplugged before you plug any board into the Mac by USB.
+- Order for every power-up: USB cables in first, battery last. Power-down: battery out first. A board may stay on
+  the Mac's USB while the battery goes in (firmware/base/WIRING.md Part D does this), but never plug the USB in
+  while the battery is in.
 - Check for shorts with the meter on beep before the first power-on of anything you wired: red to black must not beep.
 - The 3S LiPo can deliver over 100 A into a short. Keep the 20 A and 10 A fuses in their leads. Never bypass them.
 - LiPo care: charge on the iMax B6 in balance mode at 1C (5.2 A) or less, on a non-flammable surface (tile,

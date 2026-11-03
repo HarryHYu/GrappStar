@@ -1711,6 +1711,9 @@ def connected_pair(time_scale: float = 1.0, **kw):
     mb = MockBase(a, time_scale=time_scale, **kw).start()
     c = BaseClient(b, reconnect_s=0.1).start()
     c.wait_connected(2.0)
+    t_end = time.monotonic() + 2.0
+    while not mb.booted and time.monotonic() < t_end:   # BOOT comes 60 ms (simulated) after HELLO
+        time.sleep(0.005)
     return mb, c
 
 

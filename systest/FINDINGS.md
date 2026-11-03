@@ -112,6 +112,9 @@ harness re-runs green.
 - Suggest: treat a link drop as a session break: in `_run`'s `finally`, append a synthetic `{"evt":"HELLO","_lost":
   true}` (or bump a session counter that `wait_event` / `wait_tel` / `cmd` check) so every pending wait raises
   `BASE_RESET` at once; optionally confirm with `ping` (`t` smaller than before = reset).
+- Same in `usb_unplug_tow` (USB out 3 s while the base held the tow at 40 N): "TOW failed: no ('LIMIT', 'SEATED')
+  event from the base in 60 s", then Retry towed again and the mission finished. The line held at 40 N throughout
+  (sprag #2 + worm), so it is safe, but the operator waits a minute with no explanation.
 - The harness now models the sketch's 2.1 s setup delay by default (`power_unwrap`) and keeps the immediate-HELLO
   race as `power_unwrap_fasthello`.
 

@@ -139,15 +139,16 @@ spinning, drills finishing, `anchored`.
   unscrewing from the start of the pods lift (the augers may still be in soil).
 - Kick travel bookkeeping: the firmware adds up how long the kick has been driven out and back (at full duty) and
   assumes it was **stowed at power-on**. A kick that stalls near stowed at the start of `/auto` is a jam or wired
-  backwards (`KICK_JAM`), not "already down"; a kick that stalls before it has come back half way in `/release` is
-  `KICK_JAM`, not "stowed". Travel is not counted while the kick is stalled or planting. After any reset other than a
+  backwards (`KICK_JAM`), not "already down"; in `/release` a kick that stalls before its real travel back covers
+  60 % of the estimated travel out is `KICK_JAM`, not "stowed" (a jam in the last part of the return looks like the
+  stowed stop). Travel is not counted while the kick is stalled (either way) or planting. After any reset other than a
   power-on (brownout, crash, OTA) the position is unknown and these checks wait until the next completed release.
   `kickSwingMs` (4.3 s) is the bench swing time (BENCH_TEST step 5).
 - Stall handling inside the sequence: while two motors run (kick + foot, pods + drills), the worm (kick or deploy)
   pauses 150 ms every 550 ms. It self-locks and holds position while the auger keeps turning and is read alone; the
   worm's current is (both) - (auger alone). A worm stall must also show as a rise of the total current over the
   phase's lowest reading, so an auger whose current changes during the pause cannot fake one. A stalled auger is
-  stopped (anchor) or faults (release). An end-stop stall is only believed after a minimum travel time (pods 0.7 s,
+  stopped (anchor; it is not driven again in the next step) or faults (release). An end-stop stall is only believed after a minimum travel time (pods 0.7 s,
   kick back 1.5 s). If the kick's housing stall is never seen, planting carries on after 6 s (`kick plant time limit`).
   A worm already at its end stop when such a step starts shows no rise; it is still stopped
   over the line in 3 of the last 4 readings (about 1.6 to 2.2 s). An auger current change of up to about 100 mA during
@@ -192,6 +193,7 @@ of `/auto` (pods up before the kick comes back), because the kick goes down firs
 
 The BNO085 log, streamed as JSON (chunked, up to about 40 kB). The server is busy for about 0.3 s while it sends,
 so it is refused (409 `busy (motors running, armed or in flight)`) while any motor runs, while armed and in FLIGHT.
+A client that stops reading is cut off after 8 s.
 Fetch it after landing (phase `LANDED` or `ANCHORED`).
 
 ```json
@@ -233,7 +235,7 @@ Worked out in this priority order (the first that applies):
 
 | Phase | When |
 |---|---|
-| `FAULT` | a fault code is set (latched until `/stop`, `/auto`, `/release` or `/arm`) |
+| `FAULT` | a fault code is set (latched until `/stop`, `/auto`, `/release` or `/arm`). A fault also disarms, so a landing can never clear it and start motors by itself |
 | `RELEASING` | release sequence running |
 | `ANCHORING` | anchor sequence running |
 | `FLIGHT` | launch detected, landing not yet decided |
@@ -257,7 +259,7 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 | `DRILL_JAM`, `FOOT_JAM` | stalled while unscrewing in release | all off |
 | `CURRENT_SENSOR` | 3 failed INA219 reads in a row during a sequence | all off; manual keys still work on timers |
 | `LOW_RAIL` | rail under 5.6 V (including a dead 0 V rail) for 0.5 s while a motor runs | all off |
-| `KICK_JAM` | kick stalled near stowed at the start of `/auto`, or before it came back half way in `/release` | all off |
+| `KICK_JAM` | kick stalled near stowed at the start of `/auto`, or in `/release` before its travel back covered 60 % of its travel out | all off |
 | `BROWNOUT` | the dart rebooted from a brownout | booted with motors off |
 | `WATCHDOG` | the dart rebooted from a crash or the 2 s safety-task watchdog | booted with motors off |
 

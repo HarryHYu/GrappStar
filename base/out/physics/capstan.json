@@ -318,7 +318,7 @@
   "tow_trip_avg_ms": 200,
   "tow_trip_rule": "measured free current + 1.30 A, averaged over 200 ms",
   "notes": [
-   "ignore current for 50 ms after start; hard trip at 5.0 A for 30 ms in all modes (3.18 N m at the wiper)",
+   "ignore current for 50 ms after start; hard trip at 5.0 A for 30 ms in aim, reel and tow (3.18 N m at the wiper), 6.5 A while cocking (4.55 N m)",
    "sprag #2 (capstan backstop) plus the self-locking worm lock in the stall tension after a trip: add a mechanical slip clutch of about 3 N m on the REEL output gear",
    "the 20 A fuse holds a 17 A stall indefinitely: it is wiring protection only",
    "BTS7960 IS reads the high side only (zero in the PWM off-time): sample in the on-time or scale by duty"

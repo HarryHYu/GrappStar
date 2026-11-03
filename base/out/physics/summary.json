@@ -35,11 +35,11 @@
    [
     [
      "Stroke, ratio, pitch",
-     "240 mm, 1.0:1, 35 deg"
+     "245 mm, 1.0:1, 35 deg"
     ],
     [
      "Spring extension full / rest",
-     "250 / 10 mm"
+     "250 / 5 mm"
     ],
     [
      "Stored energy (2 springs)",
@@ -51,23 +51,23 @@
     ],
     [
      "Muzzle speed",
-     "7.12 m/s"
+     "6.92 m/s"
     ],
     [
      "Peak acceleration, stroke time",
-     "20 g, 56 ms"
+     "19 g, 58 ms"
     ],
     [
      "Efficiency (dart KE / stored)",
-     "63 %"
+     "59 %"
     ],
     [
      "Carriage KE at stop, pad peak",
-     "1.52 J, 1213 N (4 mm pad)"
+     "1.92 J, 1426 N (4 mm pad)"
     ],
     [
      "Spring KE at stop, coil clash",
-     "0.90 J, 10.3 m/s"
+     "0.93 J, 9.7 m/s"
     ]
    ]
   ],
@@ -76,23 +76,23 @@
    [
     [
      "Range at 0.5 / 0.75 / 1.0 N brake",
-     "4.19 / 3.77 / 3.40 m (pitch 35)"
+     "3.98 / 3.58 / 3.22 m (pitch 35)"
     ],
     [
      "Same shot, no tether",
-     "5.21 m"
+     "4.95 m"
     ],
     [
      "Flight time, apex (0.75 N)",
-     "0.81 s, 1.07 m"
+     "0.79 s, 1.03 m"
     ],
     [
      "Impact speed, angle (0.75 N)",
-     "5.7 m/s, 54 deg down"
+     "5.6 m/s, 54 deg down"
     ],
     [
      "Ballistics table",
-     "15 to 55 deg, best 37.5 deg: 3.94 m"
+     "6 to 47 deg, best 36.0 deg: 3.74 m"
     ]
    ]
   ],
@@ -109,15 +109,15 @@
     ],
     [
      "Line pull in the stroke (spin-up)",
-     "4.00 N"
+     "3.76 N"
     ],
     [
      "Reel rpm max",
-     "2482 rpm"
+     "2412 rpm"
     ],
     [
      "Overrun after landing",
-     "0.23 m in 0.12 s"
+     "0.22 m in 0.12 s"
     ]
    ]
   ],
@@ -151,7 +151,7 @@
     ],
     [
      "cock: peak torque, current, time",
-     "1.29 N m, 2.9 A, 4 s"
+     "2.80 N m, 4.6 A, 2 s"
     ],
     [
      "reel: peak torque, current, time",

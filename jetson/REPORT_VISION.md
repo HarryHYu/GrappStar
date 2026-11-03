@@ -30,7 +30,17 @@ My files (vision, video, analysis, campose, ballistics tests), at 95b6dec plus t
       tests/test_textures.py tests/test_video_*.py
     ======================= 205 passed in 139.65s (0:02:19) ========================
 
-Whole jetson suite (same tree):
+Whole jetson suite at bc19732 (round 3 fixes, base-v1 merged at 03:46 UTC):
+
+    $ python -m pytest -c pytest.ini --rootdir . -rf tests
+    FAILED tests/test_comms_base.py::test_fault_in_reel_parks_at_wrapped - BaseTimeout
+    FAILED tests/test_comms_base.py::test_estop_parks_by_fault_rules - BaseError: base refused MODE: DRUM_HELD
+    FAILED tests/test_comms_base.py::test_d35_sequence_mock_matches_basesim - 'base-1.3' == 'base-1.2'
+    3 failed, 392 passed, 29 deselected in 1110.30s (0:18:30)
+
+All three are the mock base against the newer base firmware (jetson comms / fw-base), not my files.
+
+Earlier whole-suite run (95b6dec):
 
     $ python -m pytest -c pytest.ini --rootdir . -rf tests
     FAILED tests/test_comms_base.py::test_d35_sequence_mock_matches_basesim - AssertionError: assert 'base-1.2.1' == 'base-1.2'

@@ -9,7 +9,7 @@ and never poll `/status` faster than 5 Hz (held-key repeats every 150 ms are the
 | HTTP code | Meaning | Body |
 |---|---|---|
 | 200 | accepted | `text/plain` event lines (often empty), or JSON for `/status` and `/flightlog` |
-| 409 | refused, nothing changed | `refused: <reason>` on the first line |
+| 409 | refused, nothing changed (one exception: `both directions held` also stops that motor) | `refused: <reason>` on the first line |
 | 400 | missing parameter | text |
 | 404 | unknown path | text |
 | 503 | `/flightlog` could not get memory, try again | text |

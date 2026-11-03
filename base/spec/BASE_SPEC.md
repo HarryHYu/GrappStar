@@ -191,8 +191,8 @@ Jetson sends, what ends the wait. Everything else in C1 stays as PROTOCOL.md doc
 
 Recovery: a fault or stop while cocking leaves the phase UNKNOWN: `decock` (same as `cal decock`), wait `RESET`, then
 `aim` again (the decock turns the aim train). A fault in the tow or the check pull offers "Release the dart" (step 14
-on), and a retry never restarts a pull that is already over the limit. A fault in REEL or N_TO_R parks the drum at
-WRAPPED 314 (fault_rules): the Jetson reads the `MODE` event (`DRUM_HELD` means the drum holds where it is).
+on), and a retry never restarts a pull that is already over the limit. A fault with the wraps on (REEL, N_TO_R, the
+WRAP sector or the park) HOLDS the drum where it is (D27): the Jetson reads the `MODE` event (`DRUM_HELD` with the reason) and offers unwrap or retry.
 
 ## 11. Physics summary (owner: physics; base/physics/FINDINGS.md)
 

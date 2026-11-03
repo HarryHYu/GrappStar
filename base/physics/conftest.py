@@ -7,7 +7,7 @@ import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-MINE = ("common", "launch", "flight", "payout", "capstan", "drivetrain", "gears", "ballistics", "sensitivity",
+MINE = ("common", "launcher", "flight", "payout", "capstan", "drivetrain", "printed_gears", "ballistics", "sensitivity",
         "summary", "calib", "attitude", "recoil", "retrieve", "spec_bridge")
 
 if HERE in sys.path:

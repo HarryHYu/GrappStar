@@ -29,7 +29,7 @@ import math
 import os
 
 from common import load_params, Params, PLA, PPA_CF
-import gears
+import printed_gears as gears
 import payout
 
 HERE = os.path.dirname(os.path.abspath(__file__))

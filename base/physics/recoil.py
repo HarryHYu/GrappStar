@@ -19,7 +19,7 @@ import os
 
 from common import G, load_params
 from flight import simulate
-from launch import launch
+from launcher import launch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(HERE, "..", "out", "physics")

@@ -28,7 +28,7 @@ OUT = os.path.join(HERE, "..", "out", "ballistics.json")
 DRAG_N = [0.5, 0.75, 1.0]
 
 
-def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = None):
+def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = None, with_wind: bool = True):
     p = p or load_params()
     lo, hi = float(p.flight["pitch_min"]), float(p.flight["pitch_max"])
     pitches = []
@@ -49,10 +49,20 @@ def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = N
                           t_flight_s=[round(r["t_flight_s"], 3) for r in rows],
                           apex_m=[round(r["apex_m"], 3) for r in rows]))
     doc = dict(version=1, pitch_min=lo, pitch_max=hi, drag_n=list(drag_n), table=table)
+    # wind sensitivity for the solver (meta only): range change per m/s of tailwind at the middle drag setting
+    wind = []
+    if with_wind:
+        for th in (10.0, 20.0, 36.0, 45.0):
+            if lo <= th <= hi:
+                v = launch(p, th, **(launch_over or {}))["v_muzzle"]
+                r = [simulate(p, v, th, brake_n=drag_n[1], reel_model=True, wind=w)["range_m"] for w in (-3.0, 0.0, 3.0)]
+                wind.append(dict(pitch_deg=th, range_headwind3=r[0], range_calm=r[1], range_tailwind3=r[2],
+                                 dr_per_mps=(r[2] - r[0]) / 6.0))
     meta = dict(params_source=p.source, dart_mass_kg=p.dart.mass, dart_cda_m2=p.dart.cda,
                 pivot_height_m=p.launch.get("pivot_h"), release_u_m=p.launch.get("release_u"), dart_w_m=p.launch.get("dart_w"),
                 range_origin="ground point under the rail pivot (main axis)" if p.launch.get("pivot_h") else "muzzle ground point",
                 stroke_m=launch_over.get("stroke", p.launch["stroke"]) if launch_over else p.launch["stroke"],
+                wind_sensitivity=wind,
                 notes=__doc__.split("Meaning of the numbers")[1].split("python ballistics.py")[0].strip())
     return doc, meta
 

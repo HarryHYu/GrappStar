@@ -63,7 +63,7 @@ def approach_max_s(line_m: float, duty: float) -> float:
 # Earlier firmware defaults of k_n_per_a (base-1.0 8, physics v1.2 capstan law 17, D43 dart-side law 14.8): a unit
 # flashed with an older build keeps them. The current default is read from base/spec/params.py (REEL
 # tow_tension_model n_per_a), never written here (systest F28: the literal match silently stopped warning).
-LEGACY_K_N_PER_A = (8.0, 17.0, 14.8)
+LEGACY_K_N_PER_A = (8.0, 17.0, 14.8, 13.1)   # 13.1: params 1.3.2, also when params.py is not on the Jetson
 _PARAMS_PY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "base", "spec", "params.py")
 
 
@@ -831,21 +831,26 @@ class Mission:
             try:
                 s = self.dart.arm(True, auto=self.cfg.auto_anchor_on_landing)
             except DartRefused as e:
-                if not e.reason.startswith("anchored"):
+                if not (e.reason.startswith("anchored") or e.reason.startswith("legs out")):
                     raise
                 # API v4: /arm is refused while ANCHORED (legs out). Never fire a dart with its legs out:
                 # release it (legs and kick stowed), then arm again.
                 self.ask(f"The dart is ANCHORED ({e.reason}): its legs are out and it must not be fired like that. "
                          "Release it (stows the legs), then arm?", ["Release the dart", "Abort"], danger=True)
                 self.dart_anchored = True
-                self.release_dart()
-                s = self.dart.arm(True, auto=self.cfg.auto_anchor_on_landing)
+                try:
+                    self.release_dart()
+                    s = self.dart.arm(True, auto=self.cfg.auto_anchor_on_landing)
+                except DartRefused as e2:
+                    # never reach the generic "Continue without" below with the legs out (review 6 #4)
+                    raise StepFailed(f"dart still anchored or refused after the release ({e2.reason}): use the "
+                                     "manual dart keys, then Retry")
             self.shot["dart_phase_at_arm"] = s["phase"]
             self.shot["dart_t_ms_at_arm"] = s.get("t_ms")
             if not s.get("armed"):
                 raise StepFailed("dart did not arm")
         except DartRefused as e:
-            if e.reason.startswith("anchored"):
+            if e.reason.startswith("anchored") or e.reason.startswith("legs out"):
                 raise StepFailed(f"dart still anchored after the release ({e.reason}): use the manual dart keys")
             c = self.ask(f"Dart refused to arm ({e.reason}). Without it there is no flight log and landing comes "
                          "from the line and video only. Continue?", ["Continue without", "Retry", "Abort"])
@@ -1027,15 +1032,28 @@ class Mission:
         try:
             # /flightlog is refused (409) while armed, in FLIGHT or with motors running: let the dart decide first
             ph = None
-            done = ("LANDED", "ANCHORED", "IDLE", "FAULT", "ARMED")
+            done = ("LANDED", "ANCHORED", "IDLE", "FAULT", "ARMED", "ANCHORING", "RELEASING")
+            still = None
             try:
                 ph = self.dart.wait_phase(done, 3.0, poll=0.3, fail=(), cancel=self.cancel)["phase"]
             except DartError as e:
                 if "cancelled" in str(e):
                     raise Aborted("operator STOP")
-                # the mission already decided the dart is down (line, video or the operator) but the dart still
-                # says FLIGHT: a full /stop ends flight tracking (landing "stop", the log freezes 3 s later; API v4;
-                # /stop?disarm=0 would keep tracking), instead of waiting up to 40 s for the dart's own timeout
+                try:
+                    still = self.dart.status().get("phase")
+                except DartError:
+                    still = None                       # link gap: never stop blind, wait for the dart instead
+                if still != "FLIGHT":               # a link gap or a running sequence: wait as before, never stop
+                    try:
+                        ph = self.dart.wait_phase(done, 37.0, poll=0.3, fail=(), cancel=self.cancel)["phase"]
+                    except DartError as e3:
+                        if "cancelled" in str(e3):
+                            raise Aborted("operator STOP")
+            # the mission already decided the dart is down (line, video or the operator) and the dart CONFIRMS it
+            # is still in FLIGHT: a full /stop ends flight tracking (landing "stop", the log freezes 3 s later;
+            # API v4; /stop?disarm=0 would keep tracking) instead of waiting up to 40 s for the dart's own timeout.
+            # Never while ANCHORING or RELEASING (review 6 #1: that would abort the sequence half way).
+            if ph is None and still == "FLIGHT":
                 self.log.warn("dart still in FLIGHT after the landing decision: ending its flight tracking")
                 try:
                     self.dart.stop()
@@ -1255,7 +1273,7 @@ class Mission:
             try:
                 k = self.base.get("k_n_per_a").get("val")
             except (BaseError, BaseTimeout, BaseDisconnected):
-                return False
+                return True                        # cannot tell: fail closed (review 6 #3)
         return k_is_factory(k, params_k=params_default_k())
 
     def tow(self) -> None:
@@ -1269,6 +1287,10 @@ class Mission:
                                  "cannot be trusted (a test reached 61 N against 40 N). Calibrate free_a and k_n_per_a "
                                  "(firmware/base/CALIBRATION.md (d) and (f)), then Retry; or release the dart.",
                                  choices=["Retry", "Release the dart"])
+        try:
+            lc = bool(self.base.status().get("hx"))      # a load cell fitted: its tension_n is a real reading
+        except (BaseError, BaseTimeout, BaseDisconnected):
+            lc = False                                    # unknown: treat tension_n as the held current estimate
         rounds = 0
         while rounds < self.cfg.tow_max_rounds + getattr(self, "_extra_tow_rounds", 0):
             rounds += 1
@@ -1277,7 +1299,8 @@ class Mission:
             m = self.base.event_mark()
             fresh = self.fresh_after(getattr(self, "_last_limit_t", 0.0))   # F18: the state right after LIMIT is stale
             tn_now = fresh.get("tension_n")
-            if tn_now is not None and tn_now >= 0.95 * self.cfg.tow_limit_n:
+            if lc and tn_now is not None and tn_now >= 0.95 * self.cfg.tow_limit_n:
+                # a load cell reading is real: the line is still at the limit, do not pull again
                 self.log.info(f"line already at {tn_now} N: not pulling again")
                 r = self.rover.tow_assist(self, tn_now)
                 if r == "done":
@@ -1285,13 +1308,15 @@ class Mission:
                 if r == "abort":
                     raise Aborted("operator chose Abort")
                 continue
-            if fresh.get("state") == "REEL" and fresh.get("tension_n") is not None:
+            if lc and fresh.get("state") == "REEL":
                 # load cell: the firmware already winds again by itself when the held line slackens; just wait
                 self.log.info("base is already winding (slack taken up by itself)")
             else:
-                if fresh.get("state") == "HOLD":
-                    # F22 (by design): without a load cell the HOLD at the limit never sees slack; stop, then a new
-                    # reel (the firmware restarts at minimum duty and cuts in about 110 ms if still at the limit)
+                if fresh.get("state") in ("HOLD", "REEL"):
+                    # F22 (by design): without a load cell the HOLD keeps its held estimate at the limit, so a tow
+                    # re-sent from HOLD answers LIMIT "already at the limit" and never takes up the rover's slack.
+                    # stop first (wait for ABORTED), then a new reel: the firmware restarts at minimum duty and
+                    # cuts in about 110 ms if the line really is still at the limit.
                     self.stop_settle()
                     m = self.base.event_mark()
                 try:

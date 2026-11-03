@@ -100,6 +100,16 @@ carriage only adds margin. PLA returns most of the energy: the carriage rebounds
 springs and friction settle it; the gear is in its gap then (audited). Firmware: wait 0.5 s after the release before
 reading SW_HOME. Dry fire (no dart, 12 J into the stop) exceeds it: firmware refuses fire without SW_SEATED.
 
+## 6b. Strength notes
+
+- Cock train: drive gear 26T and full 40T layer face 11 in PPA-CF: physics SF 1.55 / 1.74 at the 5 N m shear pin; the
+  sector layer on the 9 mm rack 1.42 at 5 N m.
+- Aim train: splitter face 12 (SF 1.57 to 1.83 at 5 A), worm wheel face 16 (1.42), bevel pair z15 / z30 face 8: SF 0.44
+  to 0.70 at the shear pin / 5 A, about 1.65 at the D40 3 A trip for backward runs. Only that 3 A trip protects the
+  bevels: keep it in firmware (fine for v1; a jam strips the printed bevel first).
+- Print notes: the drive gear and the aim bevel z30 rims print over air in their print orientation; use tree supports
+  under the rims (listed in the print sheet overhang warnings).
+
 ## 7. Aim table for fw-base
 
 P.AIM.table holds the full cycle (backward wiper deg from the LOW dead point vs pitch). Rising stroke 0..1596 wiper deg

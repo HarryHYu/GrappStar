@@ -222,3 +222,15 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   rebuild the phase as REST (the carriage cannot be drawn with SW_HOME closed unless SW_HOME lies, which
   `SWITCH_DISAGREE` covers). Also let `decock` run with the drum out of LAUNCH when the carriage is home (it would
   only need to report RESET).
+
+## F16 (fw-base) `tension_offset_n` and `host_timeout_s` are not saved: lost at every power cycle
+
+- Scenario `ref_power_wrap`: bench set `k_n_per_a`, `free_a` and `tension_offset_n 0` (two-point calibration), then a
+  power loss and restart. After the restart the tow stopped at `LIMIT 40` with the plant line at 50.4 N: the offset was
+  back at the -10.4 N default while `k_n_per_a` / `free_a` survived.
+- Where: `firmware/base/grappstar_base/persist.h:53-58` (`struct Tun` has no field for `tensOffsetN` or
+  `hostTimeoutS`), `base_logic.h:110-124` (`tunNow` / `restoreTun`). The `set` table (`base_logic.h` `keys()`) lists
+  both, and PROTOCOL.md section 5 says "all saved in flash, kept over a power cycle".
+- Consequence: every power cycle silently changes the tow limit by 10 N (F14) and switches the host watchdog off.
+- Fix: add both to `Tun` (bump `ver` to 2 and accept a v1 record with defaults), add a host test that sets every key,
+  power cycles and reads them back.

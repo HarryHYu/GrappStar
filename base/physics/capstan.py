@@ -37,7 +37,7 @@ OUT_DIR = os.path.join(HERE, "..", "out", "physics")
 
 WRAP_MARGIN = 1.5
 DART_HOLD = dict(sand=7.0, loam=45.0, clay=112.0)   # N, Broms short pile (kedge CLAUDE.md)
-CAP_GEAR = dict(module=2.0, face=12.0, z_driver=40)  # REEL gear 40 T on the wiper drives the capstan 24 T (ratio 0.6);
+CAP_GEAR = dict(module=2.0, face=12.0, z_driver=50)  # REEL gear 40 T on the wiper drives the capstan 24 T (ratio 0.6);
                                                      # module and face ASSUMED, PPA-CF
 
 # recommended firmware current trip (all modes)
@@ -79,24 +79,35 @@ def _core_r(p: Params) -> float:
     return p.reel["core_d"] / 2
 
 
+def _os(p: Params, overspeed):
+    return p.capstan.get("overspeed", TAKEUP_OVERSPEED) if overspeed is None else overspeed
+
+
+def _clutch_r(p: Params) -> float:
+    # LIGHT and FIRM are both specified as line tension with the reel FULL (same convention as payout.Reel)
+    return payout.line_radius(p, p.reel["line_stored"])
+
+
 def clutch_torque(p: Params, clutch_r: float | None = None) -> float:
-    return p.capstan["takeup_n"] * (_core_r(p) if clutch_r is None else clutch_r)
+    return p.capstan["takeup_n"] * (_clutch_r(p) if clutch_r is None else clutch_r)
 
 
 def takeup_tension(p: Params, line_left: float, clutch_r: float | None = None) -> float:
     return clutch_torque(p, clutch_r) / payout.line_radius(p, line_left)
 
 
-def takeup_drive_force(p: Params, overspeed: float = TAKEUP_OVERSPEED, clutch_r: float | None = None) -> float:
+def takeup_drive_force(p: Params, overspeed: float | None = None, clutch_r: float | None = None) -> float:
+    overspeed = _os(p, overspeed)
     """Line pull equivalent at the drum spent driving the slipping take-up."""
     return clutch_torque(p, clutch_r) * overspeed / _core_r(p)
 
 
-def takeup_range(p: Params, overspeed: float = TAKEUP_OVERSPEED, clutch_r: float | None = None, l_max: float | None = None) -> dict:
+def takeup_range(p: Params, overspeed: float | None = None, clutch_r: float | None = None, l_max: float | None = None) -> dict:
+    overspeed = _os(p, overspeed)
     l_max = p.reel["line_stored"] if l_max is None else l_max
     r0, r1 = payout.line_radius(p, 0.0), payout.line_radius(p, l_max)
     tc = clutch_torque(p, clutch_r)
-    return dict(clutch_torque=tc, clutch_r=_core_r(p) if clutch_r is None else clutch_r, r_empty=r0, r_full=r1,
+    return dict(clutch_torque=tc, clutch_r=_clutch_r(p) if clutch_r is None else clutch_r, r_empty=r0, r_full=r1,
                 l_max=l_max, t_hold_max=tc / r0, t_hold_min=tc / r1,
                 overspeed_min=overspeed * r0 / _core_r(p), overspeed_max=overspeed * r1 / _core_r(p))
 
@@ -111,8 +122,9 @@ def _full(p: Params) -> float:
     return p.reel["line_stored"]
 
 
-def wiper_torque_for(f_line: float, p: Params, overspeed: float = TAKEUP_OVERSPEED, line_left: float | None = None,
+def wiper_torque_for(f_line: float, p: Params, overspeed: float | None = None, line_left: float | None = None,
                      clutch_r: float | None = None) -> float:
+    overspeed = _os(p, overspeed)
     """Wiper output torque to pull the dart side at f_line. Default line_left = full reel (lowest hold tension, so
     the most torque for a given f_line)."""
     r, k, eta = _cap(p)
@@ -121,8 +133,9 @@ def wiper_torque_for(f_line: float, p: Params, overspeed: float = TAKEUP_OVERSPE
     return r * (max(f_line - th, 0.0) + takeup_drive_force(p, overspeed, clutch_r)) / (k * eta)
 
 
-def line_from_wiper(t_wiper: float, p: Params, overspeed: float = TAKEUP_OVERSPEED, line_left: float = 0.0,
+def line_from_wiper(t_wiper: float, p: Params, overspeed: float | None = None, line_left: float = 0.0,
                     clutch_r: float | None = None) -> float:
+    overspeed = _os(p, overspeed)
     """Dart side tension for a wiper torque. Default line_left = 0 (empty reel, highest hold tension, so the most
     line tension for a given torque)."""
     r, k, eta = _cap(p)
@@ -167,7 +180,8 @@ def stall_label(p: Params, v_oc: float | None = None) -> str:
     return "motor stall (no limiter)"
 
 
-def tow_point(f_line: float, p: Params, v_oc: float, overspeed: float = TAKEUP_OVERSPEED, line_left: float | None = None) -> dict:
+def tow_point(f_line: float, p: Params, v_oc: float, overspeed: float | None = None, line_left: float | None = None) -> dict:
+    overspeed = _os(p, overspeed)
     """Steady tow at dart side tension f_line, battery at v_oc with sag."""
     r, k, eta = _cap(p)
     t_w = wiper_torque_for(f_line, p, overspeed, line_left)
@@ -178,7 +192,8 @@ def tow_point(f_line: float, p: Params, v_oc: float, overspeed: float = TAKEUP_O
                 v_batt=op["v_batt"], power_in=op["power_in"], stalled=op["stalled"])
 
 
-def current_limit_for(f_limit: float, p: Params, overspeed: float = TAKEUP_OVERSPEED) -> dict:
+def current_limit_for(f_limit: float, p: Params, overspeed: float | None = None) -> dict:
+    overspeed = _os(p, overspeed)
     """Motor current at the tow limit. Taken at the empty reel (highest hold tension, so the least torque reaches
     f_limit): a trip at this current keeps the line under f_limit at any line left.
     BTS7960 IS pin: it senses the HIGH side only, so it reads zero in the PWM off-time. Sample during the on-time,
@@ -190,7 +205,8 @@ def current_limit_for(f_limit: float, p: Params, overspeed: float = TAKEUP_OVERS
                 delta_over_free=i - p.wiper.i_free)
 
 
-def fw_trip(p: Params, tow_limit: float | None = None, overspeed: float = TAKEUP_OVERSPEED, gear: dict | None = None) -> dict:
+def fw_trip(p: Params, tow_limit: float | None = None, overspeed: float | None = None, gear: dict | None = None) -> dict:
+    overspeed = _os(p, overspeed)
     """Recommended firmware current trip and what the hard trip means mechanically."""
     tow_limit = p.capstan["tow_limit_n"] if tow_limit is None else tow_limit
     g = CAP_GEAR if gear is None else gear
@@ -259,8 +275,9 @@ def part_stresses(f_line: float, t_wiper: float, p: Params, wraps: int, rpm_drum
 
 # ------------------------------------------------------------------ full run
 def run(p: Params | None = None, tow: float | None = None, mu: float | None = None, light_n: float = 3.0,
-        reel_len: float = 20.0, overspeed: float = TAKEUP_OVERSPEED, clutch_r: float | None = None) -> dict:
+        reel_len: float = 20.0, overspeed: float | None = None, clutch_r: float | None = None) -> dict:
     p = p or load_params()
+    overspeed = _os(p, overspeed)
     c = p.capstan
     tow = c["tow_limit_n"] if tow is None else tow
     mu_lo, mu_hi = PLA.mu_dyneema

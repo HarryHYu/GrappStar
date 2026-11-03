@@ -13,12 +13,14 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
   4 springs (provision): 10.6 m/s, 9.0 / 8.2 / 7.5 m; stop KE 7.8 J.
 - Stop: 2.8 J (carriage 1.8 + springs 1.0): 15 mm linear pad 370 N; for 300 N use about 19 mm or a constant-force stop.
 - Storage reel 50/66/22: 43 g, 27.6 kg mm2 full; the spin-up adds 5.0 N of line pull in the stroke (the bigger reel
-  costs about 0.1 m/s vs the 40 mm core); overrun after landing 0.30 m at 0.5 N.
-- Capstan 50:22 (2.27x faster), 7 wraps: tow 50 N = 2.9 N m, 4.7 A, 0.15 m/s; 20 m reel-in 107 s; limiter slipping
-  pulls 89 N (current 7 A). 7 wraps hold far more than any limit: the trips protect the dart, not the capstan.
+  costs 0.36 m/s vs no reel inertia, about the same for a 40 mm core); overrun after landing 0.30 m at 0.5 N.
+- Capstan 50:22 (2.27x faster), 7 wraps: tow 50 N = 3.0 N m, 4.8 A, 0.15 m/s; 20 m reel-in 107 s; limiter slipping
+  pulls 88 N (current 7 A). 7 wraps hold far more than any limit: the trips protect the dart, not the capstan.
 - Cock 3.1 N m, 4.9 A, 2.7 s per shot. Aim 0.32 N m, 6.6 s for 6 to 47 deg.
 - Recoil rock (ASSUMED 4 kg rover): 5.8 deg at 6 deg pitch braked (1.2 rolling), 0.7 deg at 36. No tip.
-- Final approach on FIRM 3 N (set at the core): 1.9 N at the dart vs 2.1 to 2.6 N needed: still short (F11).
+- Clutch convention (both LIGHT and FIRM): line tension with the reel FULL; it rises as the reel empties
+  (x1.23 at the core). Final approach on FIRM 3 N: 2.3 N at the dart vs 2.1 to 2.6 N needed (margin 0.9 to 1.1):
+  marginal. FIRM 5 N gives a 1.5 margin, or seat on the capstan.
 - Wrap: drum 0.49 to 0.60 N m, N20 61 to 74 N mm.
 - Sections F1 to F11 below are the history (numbers from earlier parameter sets).
 

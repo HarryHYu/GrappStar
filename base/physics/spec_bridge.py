@@ -37,7 +37,6 @@ REEL_MAP = {
     "flange_t": ("reel", "flange_t", 1e-3),
     "hub_mass": ("reel", "hub_mass", 1.0),
     "capstan_d": ("capstan", "d", 1e-3),
-    "wraps": ("capstan", "wraps", 1.0),
     "takeup_n": ("capstan", "takeup_n", 1.0),
     "tow_limit_n": ("capstan", "tow_limit_n", 1.0),
     "brake_n": ("flight", "brake_n", 1.0),
@@ -122,6 +121,7 @@ def apply(p, path=None):
         cp = rl.get("capstan") or {}
         if cp.get("d") is not None:
             p.capstan["d"] = float(cp["d"]) * 1e-3
+            used.append("REEL.capstan.d")
         if rl.get("capstan_ratio"):
             p.capstan["ratio"] = 1.0 / float(rl["capstan_ratio"])      # spec: capstan turns per main shaft turn
             used.append("REEL.capstan_ratio")
@@ -130,11 +130,16 @@ def apply(p, path=None):
         cl = rl.get("clutch") or {}
         if cl.get("LIGHT_line_n") is not None:
             p.flight["brake_n"] = float(cl["LIGHT_line_n"])
+            used.append("REEL.clutch.LIGHT_line_n")
         if cl.get("FIRM_line_n") is not None:
             p.capstan["takeup_n"] = float(cl["FIRM_line_n"])
+            used.append("REEL.clutch.FIRM_line_n")
         if rl.get("tow_limit_n") is not None:
             p.capstan["tow_limit_n"] = float(rl["tow_limit_n"])
     dr = getattr(mod, "DRUM", None) or {}
+    if isinstance(dr, dict) and isinstance(dr.get("bus"), dict) and dr["bus"].get("overdrive_total") is not None:
+        p.capstan["overspeed"] = float(dr["bus"]["overdrive_total"])
+        used.append("DRUM.bus.overdrive_total")
     if isinstance(dr, dict) and dr.get("torque_limiter_nm") is not None:
         p.wiper.limiter_nm = float(dr["torque_limiter_nm"])
         used.append("DRUM.torque_limiter_nm")

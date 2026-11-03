@@ -63,7 +63,8 @@ def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = N
                 range_origin="ground point under the rail pivot (main axis)" if p.launch.get("pivot_h") else "muzzle ground point",
                 stroke_m=launch_over.get("stroke", p.launch["stroke"]) if launch_over else p.launch["stroke"],
                 wind_sensitivity=wind,
-                notes=__doc__.split("Meaning of the numbers")[1].split("python ballistics.py")[0].strip())
+                notes=__doc__.split("Meaning of the numbers")[1].split("python ballistics.py")[0].split(":", 1)[1].strip(),
+                launch_pitch_range_spec=(getattr(p, "aim_launch_range", None)))
     return doc, meta
 
 

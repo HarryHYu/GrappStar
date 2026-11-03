@@ -223,7 +223,9 @@ def plot(path):
     plt.close(fig)
 
 
-def main():
+def main(argv=None):
+    import argparse
+    argparse.ArgumentParser(description=__doc__.splitlines()[0]).parse_args(argv)
     os.makedirs(OUT_DIR, exist_ok=True)
     r = run_matrix()
     rows = rows_of(r)

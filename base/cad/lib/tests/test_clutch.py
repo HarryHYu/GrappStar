@@ -168,3 +168,11 @@ def test_dog_ramp_axial_free():
     j = C.dog_clutch(od=50, id=30, n_teeth=8, ramp_deg=35, ramp_gap=0.3)["info"]
     assert j["axial_free"] < j["tip_gap"]
     assert C.dog_clutch()["info"]["axial_free"] == C.dog_clutch()["info"]["tip_gap"]
+
+
+def test_flexure_ring_watertight_as_stl():
+    from cad.lib import prim, clutch
+    r, _ = clutch.flexure_ring(16.5, 25)
+    t = prim.to_trimesh(r)
+    t.merge_vertices()
+    assert t.is_watertight

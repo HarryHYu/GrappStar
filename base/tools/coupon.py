@@ -4,7 +4,8 @@ python -m tools.coupon OUT
 
 Writes
   OUT/coupon/<part>.stl          one per coupon part, in print orientation, min corner at (0, 0, 0)
-  OUT/coupon/coupon_plate_<n>.3mf  the coupon parts packed on the 256 bed (tools.pack helpers)
+  OUT/coupon/coupon_plate_<n>.3mf  the coupon parts packed on the 256 bed (tools.pack helpers; unique object
+                                   names, build items counted on reread)
   OUT/coupon/coupon_plate_<n>.png  top-down preview of that plate
   OUT/coupon/COUPON.md           what to check on each tile and how to update fits.py
 
@@ -412,28 +413,29 @@ def write(out_dir: str, log=print) -> dict:
         rep["parts"].append(dict(name=p.name, dims=[round(x, 1) for x in dims], qty=p.qty))
     with open(os.path.join(d, "COUPON.md"), "w") as fh:
         fh.write(coupon_md(parts))
-    plates, errs = pack.pack_plates(items, pack.BED, 5.0, 5.0)
+    rep["warnings"] = []
+    plates, errs = pack.pack_plates(items, pack.BED, 5.0, 5.0, rep["warnings"])
     rep["errors"] += errs
     qty = {p.name: p.qty for p in parts}
     for i, pl in enumerate(plates, 1):
-        objs = []
-        for it in pl["items"]:
-            on = it["name"] if qty[it["name"]] == 1 else f"{it['name']}_c{it['copy']}"
-            objs.append((on, pack.place_on_plate(meshes[it["name"]], it)))
+        names = pack.object_names(pl["items"], qty)          # unique: <part>__c<copy> for qty > 1
+        objs = [(on, pack.place_on_plate(meshes[it["name"]], it)) for on, it in zip(names, pl["items"])]
         fn = os.path.join(d, f"coupon_plate_{i}.3mf")
         pack.write_3mf(fn, objs)
-        n = pack.count_3mf_objects(fn)
+        n = pack.count_3mf_items(fn)
         if n != len(objs):
-            rep["errors"].append(f"coupon_plate_{i}.3mf reopens with {n} objects, expected {len(objs)}")
+            rep["errors"].append(f"coupon_plate_{i}.3mf reopens with {n} build items, expected {len(objs)}")
         pack.plate_png(os.path.join(d, f"coupon_plate_{i}.png"), f"fit coupon plate {i} ({len(objs)} objects)",
                        objs, pack.BED)
-        rep["plates"].append(dict(file=os.path.basename(fn), objects=len(objs)))
+        rep["plates"].append(dict(file=os.path.basename(fn), objects=len(objs), build_items=n, names=names))
     log(f"coupon: {len(parts)} parts, {len(rep['plates'])} plate(s) -> {d}")
     for r in rep["parts"]:
         q = f"  qty {r['qty']}" if r["qty"] > 1 else ""
         log(f"  {r['name']:26s} {' x '.join(f'{x:.1f}' for x in r['dims'])}{q}")
     for pl in rep["plates"]:
         log(f"  {pl['file']}: {pl['objects']} objects")
+    for w in rep["warnings"]:
+        log(f"  WARN {w}")
     for e in rep["errors"]:
         log(f"  ERROR {e}")
     return rep

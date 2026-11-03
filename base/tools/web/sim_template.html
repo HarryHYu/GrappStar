@@ -51,7 +51,8 @@ button.on{border-color:var(--acc);color:var(--acc);font-weight:bold}
 </div>
 <div class="panel" id="tools">
   <h2>View</h2>
-  <div class="row"><button data-v="iso">iso</button><button data-v="front">front</button><button data-v="side">side</button><button data-v="top">top</button><button id="theme">theme</button></div>
+  <div class="row"><button data-v="iso">iso</button><button data-v="front">front</button><button data-v="side">side</button><button data-v="top">top</button><button data-v="mission" title="frame every pose of the mission">mission</button><button id="theme">theme</button></div>
+  <div class="row" style="margin-top:6px"><label for="follow">follow</label> <select id="follow"><option value="">nothing</option></select></div>
   <div class="row" style="margin-top:6px">explode <input type="range" id="explode" min="0" max="100" value="0"></div>
   <h2>Section cut</h2>
   <div class="row"><select id="cax"><option value="none">no cut</option><option value="x">x (along)</option><option value="y">y (across)</option><option value="z">z (level)</option></select>

@@ -243,3 +243,23 @@ def test_custom_timeline_targets_and_unknown_names():
         state_at(P2, 0.0)
     P3 = _t.SimpleNamespace(DRUM={"angles": {"LAUNCH": 0, "NEUTRAL": 40, "REEL": 80}})
     assert state_at(P3, 0.0)["drum_deg"] == 0
+
+
+def test_line_path_joined_in_order():
+    a = mod([], [], lambda P, S: {}, line_path=lambda P, S: [(0, 0, 0), (1, 0, 0)])
+    b = mod([], [], lambda P, S: {}, line_path=lambda P, S: [(1, 0, 0), (5, 0, S["k"])])
+    asm = Assembly(None, {"launch": b, "reel": a})
+    assert asm.line({"k": 2.0}) == [[0, 0, 0], [1, 0, 0], [5, 0, 2.0]]
+
+
+def test_custom_timeline_int_flags_step():
+    import types as _t
+    from tools.timeline import state_at
+    P = _t.SimpleNamespace(TIMELINE=[("a", 1.0, "", {"fired": 0, "x": 0.0}), ("b", 2.0, "", {"fired": 1, "x": 10.0})])
+    assert state_at(P, 1.5)["fired"] == 0 and state_at(P, 2.5)["fired"] == 1
+    assert 0 < state_at(P, 1.5)["x"] < 10
+
+
+def test_line_path_ignores_other_signatures():
+    a = mod([], [], lambda P, S: {}, line_path=lambda P, wraps=0.0: [(9, 9, 9)])
+    assert Assembly(None, {"reel": a}).line({}) == []

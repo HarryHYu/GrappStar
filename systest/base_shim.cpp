@@ -48,6 +48,7 @@ static std::deque<std::string> evq;                  // the sketch's event ring
 static uint64_t evDrops = 0, telDrops = 0, linesIn = 0, linesOut = 0;
 static bool nvsPending = false; static gb::Saved nvsBuf; static uint32_t nvsT = 0;
 static uint32_t bootCount = 0;
+static int dryTotal = 0; static double peakTension = 0, peakAmps = 0; static bool plantGeomSet = false;
 static FILE* lgf = stdout;
 
 // ------------------------------------------------------------------------------------------------ files
@@ -67,11 +68,14 @@ struct Plant {
   uint32_t magic = 0x504c4e54;
   double wiperDeg, aimPh, cockPh, drumDeg, lineOut, anchorTautAt, anchorK, seatAtLine, win, slack, toothWiperAcc, lineOutAfterShot;
   int fired, shots, dogTip;
+  int drumJam, encMissing, searBroken, toothOnTooth, dryFires; double extraLoadNm, vbatOverride, maxSlack, drumJamAbove;
 };
 static void savePlant() {
   Plant p; p.wiperDeg = S.wiperDeg; p.aimPh = S.aimPh; p.cockPh = S.cockPh; p.drumDeg = S.drumDeg; p.lineOut = S.lineOut;
   p.anchorTautAt = S.anchorTautAt; p.anchorK = S.anchorK; p.seatAtLine = S.seatAtLine; p.win = S.win; p.slack = S.slack;
   p.toothWiperAcc = S.toothWiperAcc; p.lineOutAfterShot = S.lineOutAfterShot; p.fired = S.fired; p.shots = S.shots; p.dogTip = S.dogTip;
+  p.drumJam = S.drumJam; p.encMissing = S.encMissing; p.searBroken = S.searBroken; p.toothOnTooth = S.toothOnTooth; p.dryFires = dryTotal;
+  p.extraLoadNm = S.extraLoadNm; p.vbatOverride = S.vbatOverride; p.maxSlack = S.maxSlack; p.drumJamAbove = S.drumJamAbove;
   writeFile(sp("plant.bin"), &p, sizeof p);
 }
 static bool loadPlant() {
@@ -79,6 +83,8 @@ static bool loadPlant() {
   S.wiperDeg = p.wiperDeg; S.aimPh = p.aimPh; S.cockPh = p.cockPh; S.drumDeg = p.drumDeg; S.lineOut = p.lineOut;
   S.anchorTautAt = p.anchorTautAt; S.anchorK = p.anchorK; S.seatAtLine = p.seatAtLine; S.win = p.win; S.slack = p.slack;
   S.toothWiperAcc = p.toothWiperAcc; S.lineOutAfterShot = p.lineOutAfterShot; S.fired = p.fired; S.shots = p.shots; S.dogTip = p.dogTip;
+  S.drumJam = p.drumJam; S.encMissing = p.encMissing; S.searBroken = p.searBroken; S.toothOnTooth = p.toothOnTooth; dryTotal = p.dryFires;
+  S.extraLoadNm = p.extraLoadNm; S.vbatOverride = p.vbatOverride; S.maxSlack = p.maxSlack; S.drumJamAbove = p.drumJamAbove;
   return true;
 }
 
@@ -116,7 +122,7 @@ static bool writeLine(const char* s) {
 }
 
 // ------------------------------------------------------------------------------------------------ firmware glue
-static void shimSave(const gb::Saved& s) { nvsBuf = s; nvsPending = true; nvsT = S.t; S.saves++; S.saveSeq = s.seq; S.saveT = S.t; }
+static void shimSave(const gb::Saved& s) { if (!nvsPending) nvsT = S.t; nvsBuf = s; nvsPending = true; S.saves++; S.saveSeq = s.seq; S.saveT = S.t; }
 static void shimSaveTun(const gb::Tun& t) { writeFile(sp("tun.bin"), &t, sizeof t); }
 static void shimOut(const char* l) {
   if (evq.size() >= 24) { evDrops++; return; }      // the sketch's ring (RING 24): drop the newest
@@ -127,21 +133,30 @@ static void drainEvents() {
   while (!evq.empty()) { if (!writeLine(evq.front().c_str())) break; evq.pop_front(); }
 }
 
+static bool running = false; static uint32_t setupEnd = 0; static uint32_t helloDelayMs = 2100;
+// power on: the USB port enumerates at once, setup() runs (1.5 s waiting for the host, 0.6 s probing the HX711), then
+// HELLO and the tick task. Lines the host sends meanwhile wait in the CDC buffer (not read until loop() runs).
 static void powerOn() {
-  delete B; B = new gb::Base();
+  delete B; B = nullptr;
   evq.clear(); nvsPending = false;
+  powered = true; running = false; bootCount++;
+  setupEnd = S.t + helloDelayMs;
+  openPty();
+  fprintf(lgf, "[%8u] POWER ON #%u (setup until %u)\n", (unsigned)S.t, bootCount, (unsigned)setupEnd);
+}
+static void finishSetup() {
+  B = new gb::Base();
   gb::Io io = simIo(); io.save = shimSave; io.saveTun = shimSaveTun; io.out = shimOut;
   B->io = io;
   B->saveAck = true;
   B->w.c.ampsPerVolt = (float)S.isAmpsPerVolt;
   gb::Tun tun; bool haveTun = readFile(sp("tun.bin"), &tun, sizeof tun);
   B->restoreTun(haveTun ? &tun : nullptr);
-  S.c = B->c;
+  if (!plantGeomSet) { S.c = B->c; plantGeomSet = true; }   // the plant's geometry is physical: fixed at the first boot
   B->begin(S.t);
   gb::Saved rec; bool haveRec = readFile(sp("nvs.bin"), &rec, sizeof rec);
   B->restore(haveRec ? &rec : nullptr);
-  powered = true; bootCount++;
-  openPty();
+  running = true;
   char hello[200];
   snprintf(hello, sizeof hello, "{\"evt\":\"HELLO\",\"fw\":\"%s\",\"reset\":\"POWERON\",\"hx711\":%s,\"as5600\":%s,\"pwm\":true}",
            GB_FW_VERSION, S.hxFitted ? "true" : "false", S.encMissing ? "false" : "true");
@@ -150,7 +165,7 @@ static void powerOn() {
 }
 static void powerOff() {
   if (!powered) return;
-  powered = false;
+  powered = false; running = false;
   S.wDir = 0; S.wDuty = 0; S.dDir = 0; S.dDuty = 0; S.drumAwake = false;   // bridges lose their inputs (pull-downs)
   nvsPending = false;                                                      // an NVS write in flight is lost
   closePty();
@@ -187,7 +202,10 @@ static void serviceSerial() {
 static uint32_t lastPlantSave = 0;
 static void tickOnce() {
   S.step(5);
-  if (!powered) return;
+  if (powered && !running && (int32_t)(S.t - setupEnd) >= 0) finishSetup();
+  if (S.dryFires) { dryTotal += S.dryFires; S.dryFires = 0; }
+  peakTension = fmax(peakTension, S.tension()); peakAmps = fmax(peakAmps, S.amps);
+  if (!running) return;
   B->tick(S.t);
   if (nvsPending && (int32_t)(S.t - nvsT) >= 20) {   // NVS write done
     writeFile(sp("nvs.bin"), &nvsBuf, sizeof nvsBuf);
@@ -226,18 +244,19 @@ static bool setKnob(const std::string& k, const char* v) {
 static std::string getJson() {
   char b[1400];
   const char* st = "OFF"; static const char* SN[] = {"IDLE", "MODE", "AIM", "COCK", "FIRE", "WRAP", "UNWRAP", "REEL", "HOLD", "JOG", "DECOCK", "SAFING", "FAULT"};
-  if (powered) st = (B->state >= 0 && B->state < 13) ? SN[B->state] : "?";
+  if (running) st = (B->state >= 0 && B->state < 13) ? SN[B->state] : "?";
   snprintf(b, sizeof b,
            "{\"t\":%u,\"powered\":%s,\"boots\":%u,\"state\":\"%s\",\"fault\":%d,\"shots\":%d,\"fired\":%s,\"lineOut\":%.3f,"
            "\"tension\":%.2f,\"seated\":%s,\"drumDeg\":%.2f,\"wiperDeg\":%.1f,\"aimPh\":%.1f,\"cockPh\":%.1f,\"wraps\":%.2f,"
            "\"inLaunch\":%s,\"inReel\":%s,\"dogTip\":%s,\"anchorTautAt\":%.3f,\"slack\":%.3f,\"maxSlack\":%.3f,\"amps\":%.2f,"
            "\"wDir\":%d,\"wDuty\":%d,\"dDir\":%d,\"dryFires\":%d,\"evDrops\":%llu,\"linesIn\":%llu,\"linesOut\":%llu,\"evq\":%zu,"
-           "\"pty\":%s,\"saves\":%d}",
-           (unsigned)S.t, powered ? "true" : "false", bootCount, st, powered ? B->fault : -1, S.shots, S.fired ? "true" : "false",
+           "\"pty\":%s,\"saves\":%d,\"kNperA_cal\":%.4f,\"freeA_cal\":%.4f,\"peakTension\":%.2f,\"peakAmps\":%.2f}",
+           (unsigned)S.t, powered ? "true" : "false", bootCount, st, running ? B->fault : -1, S.shots, S.fired ? "true" : "false",
            S.lineOut, S.tension(), S.seated() ? "true" : "false", S.drumDeg, S.wiperDeg, S.aimPh, S.cockPh, S.wrapsExact(),
            S.inLaunch() ? "true" : "false", S.inReel() ? "true" : "false", S.dogTip ? "true" : "false", S.anchorTautAt, S.slack,
-           S.maxSlack, S.amps, S.wDir, S.wDuty, S.dDir, S.dryFires, (unsigned long long)evDrops, (unsigned long long)linesIn,
-           (unsigned long long)linesOut, evq.size(), masterFd >= 0 ? "true" : "false", S.saves);
+           S.maxSlack, S.amps, S.wDir, S.wDuty, S.dDir, dryTotal, (unsigned long long)evDrops, (unsigned long long)linesIn,
+           (unsigned long long)linesOut, evq.size(), masterFd >= 0 ? "true" : "false", S.saves,
+           1.0 / (S.capstanR * S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA), S.freeA + (S.reelFreeNm + 0.3) / S.stallNm * (S.stallA - S.freeA), peakTension, peakAmps);
   return b;
 }
 static bool quitReq = false;
@@ -245,6 +264,7 @@ static std::string ctlCommand(const std::string& line) {
   char w[64] = ""; sscanf(line.c_str(), "%63s", w);
   std::string c = w;
   if (c == "get") return getJson();
+  if (c == "peakreset") { std::string r = getJson(); peakTension = S.tension(); peakAmps = S.amps; return r; }   // returns the peaks since the last reset
   if (c == "set") {
     const char* p = line.c_str() + 3; char k[64], v[64]; int n;
     while (sscanf(p, "%63s %63s%n", k, v, &n) == 2) { if (!setKnob(k, v)) return std::string("{\"ok\":false,\"err\":\"bad key ") + k + "\"}"; p += n; }
@@ -252,7 +272,7 @@ static std::string ctlCommand(const std::string& line) {
     return "{\"ok\":true}";
   }
   if (c == "cmd") {
-    if (!powered) return "{\"ok\":false,\"err\":\"powered off\"}";
+    if (!running) return "{\"ok\":false,\"err\":\"powered off\"}";
     std::string j = line.substr(4); char rep[300];
     B->handleLine(j.c_str(), (int)j.size(), rep, sizeof rep);
     fprintf(lgf, "[%8u] CTL-RX %s\n[%8u] CTL-TX %s\n", (unsigned)S.t, j.c_str(), (unsigned)S.t, rep);
@@ -261,6 +281,17 @@ static std::string ctlCommand(const std::string& line) {
   if (line == "power off" || c == "unplug") { powerOff(); return "{\"ok\":true}"; }
   if (line == "power on" || c == "replug") { if (!powered) powerOn(); return "{\"ok\":true}"; }
   if (c == "glitch") { if (powered) { closePty(); usleep(300000); openPty(); } fprintf(lgf, "[%8u] USB GLITCH\n", (unsigned)S.t); return "{\"ok\":true}"; }
+  if (c == "inject") {                               // raw bytes onto the serial line (escapes: \n \xHH), for wrong / malformed replies
+    std::string raw, a = line.size() > 7 ? line.substr(7) : "";
+    for (size_t i = 0; i < a.size(); i++) {
+      if (a[i] == '\\' && i + 1 < a.size() && a[i + 1] == 'n') { raw += '\n'; i++; }
+      else if (a[i] == '\\' && i + 3 < a.size() && a[i + 1] == 'x') { raw += (char)strtol(a.substr(i + 2, 2).c_str(), nullptr, 16); i += 3; }
+      else raw += a[i];
+    }
+    if (masterFd >= 0 && write(masterFd, raw.data(), raw.size()) < 0) {}
+    fprintf(lgf, "[%8u] INJECT %s\n", (unsigned)S.t, a.c_str());
+    return "{\"ok\":true}";
+  }
   if (c == "quit") { quitReq = true; return "{\"ok\":true}"; }
   return "{\"ok\":false,\"err\":\"unknown\"}";
 }
@@ -294,13 +325,14 @@ int main(int argc, char** argv) {
     else if (a == "--state" && i + 1 < argc) stateDir = argv[++i];
     else if (a == "--speed" && i + 1 < argc) speed = atof(argv[++i]);
     else if (a == "--fresh") fresh = true;
+    else if (a == "--hello-delay" && i + 1 < argc) helloDelayMs = (uint32_t)atoi(argv[++i]);
     else { fprintf(stderr, "usage: base_shim --link PATH --ctl PORT --state DIR [--speed X] [--fresh]\n"); return 2; }
   }
   if (linkPath.empty() || !ctlPort || stateDir.empty()) { fprintf(stderr, "need --link, --ctl, --state\n"); return 2; }
   setvbuf(stdout, nullptr, _IOLBF, 0);
   mkdir(stateDir.c_str(), 0755);
   S = Sim();
-  { gb::Base tmp; S.c = tmp.c; }
+  { gb::Base tmp; tmp.begin(0); S.c = tmp.c; plantGeomSet = true; }   // factory geometry (begin loads the aim table)
   S.lineOut = 0; S.seatAtLine = 0;                     // a new build: dart seated on the launcher
   if (fresh) { unlink(sp("nvs.bin").c_str()); unlink(sp("tun.bin").c_str()); unlink(sp("plant.bin").c_str()); }
   else if (loadPlant()) fprintf(lgf, "[shim] plant state restored (process restart = power loss)\n");
@@ -318,14 +350,14 @@ int main(int argc, char** argv) {
     int n = 0;
     while (S.t + 5 <= target && n < 400) {
       tickOnce(); n++;
-      if (powered) {
+      if (running) {
         serviceSerial();                                 // lines are handled between ticks, like loop() on core 0
         drainEvents();
         if (B->telDue(S.t)) { char tb[300]; B->telemetry(tb, sizeof tb); if (!writeLine(tb)) telDrops++; }
       }
       if (S.t - lastPlantSave >= 100) { savePlant(); lastPlantSave = S.t; }
     }
-    if (powered) serviceSerial();
+    if (running) serviceSerial();
     serviceCtl();
     usleep(1000);
   }

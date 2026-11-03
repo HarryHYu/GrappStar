@@ -13,6 +13,8 @@
 #include <Preferences.h>
 #include <HX711.h>
 #include <esp_system.h>
+#include <esp_task_wdt.h>
+#include <esp_idf_version.h>
 #if __has_include(<esp_random.h>)
 #include <esp_random.h>
 #endif
@@ -38,10 +40,10 @@ char ring[RING][260]; volatile int ringHead = 0, ringTail = 0; volatile uint32_t
 volatile bool saveDue = false, tunDue = false; gb::Saved saveBuf; gb::Tun tunBuf;
 
 #if ESP_ARDUINO_VERSION_MAJOR >= 3
-void pwmAttach(int pin, int ch) { (void)ch; ledcAttach(pin, PWM_HZ, PWM_BITS); }
+bool pwmAttach(int pin, int ch) { (void)ch; return ledcAttach(pin, PWM_HZ, PWM_BITS); }
 void pwmWrite(int pin, int ch, int duty) { (void)ch; ledcWrite(pin, duty); }
 #else
-void pwmAttach(int pin, int ch) { ledcSetup(ch, PWM_HZ, PWM_BITS); ledcAttachPin(pin, ch); }
+bool pwmAttach(int pin, int ch) { if (ledcSetup(ch, PWM_HZ, PWM_BITS) == 0) return false; ledcAttachPin(pin, ch); return true; }
 void pwmWrite(int pin, int ch, int duty) { (void)pin; ledcWrite(ch, duty); }
 #endif
 
@@ -64,19 +66,24 @@ int as5600Read(uint8_t reg, int n) {                   // big-endian register re
   return v;
 }
 int hwAngle(uint8_t* st) {
-  static uint32_t lastSt = 0; static uint8_t status = 0;
+  static uint32_t lastSt = 0, lastTry = 0; static uint8_t status = 0x20; static int fails = 0;
+  // after repeated failures poll only every 100 ms, so a stuck bus cannot eat the 5 ms tick (logic calls it lost)
+  if (fails >= 4 && millis() - lastTry < 100) { *st = status; return -1; }
+  lastTry = millis();
   if (millis() - lastSt >= 50) {                       // STATUS: MD 0x20 magnet detected, ML 0x10 too weak, MH 0x08 too strong
-    lastSt = millis(); int s = as5600Read(0x0B, 1); status = s < 0 ? 0 : (uint8_t)s;
+    int s = as5600Read(0x0B, 1);
+    if (s >= 0) { status = (uint8_t)s; lastSt = millis(); }   // a failed read keeps the last status (retried next tick)
   }
   *st = status;
-  int r = as5600Read(0x0E, 2);                         // ANGLE (filtered, 12 bit)
-  return r < 0 ? -1 : (r & 0x0FFF);
+  int r = as5600Read(0x0C, 2);                         // RAW ANGLE (12 bit): not affected by a programmed range
+  if (r < 0) { fails++; return -1; }
+  fails = 0;
+  return r & 0x0FFF;
 }
 float hwWiperIs() { uint32_t mv = 0; for (int i = 0; i < 8; i++) mv += analogReadMilliVolts(PIN_WIPER_IS); return mv / 8000.0f; }
 float hwVbat() {
   uint32_t mv = analogReadMilliVolts(PIN_VBAT);
-  float v = mv / 1000.0f * B.c.vbatScale;
-  return v < 0.5f ? NAN : v;                           // nothing on the pin (divider not fitted) reads about 0: no battery check
+  return mv / 1000.0f * B.c.vbatScale;                 // 0 with the battery unplugged; the logic ignores it if vbat_wired is off
 }
 uint8_t hwSwitches() { uint8_t b = 0; for (int i = 0; i < 8; i++) if (digitalRead(SW_PINS[i]) == LOW) b |= 1 << i; return b; }
 float hwHx() { return hxOk && hx.is_ready() ? (float)hx.read() : NAN; }
@@ -85,17 +92,23 @@ void hwSaveTun(const gb::Tun& t) { tunBuf = t; tunDue = true; }
 void hwOut(const char* line) {
   int next = (ringHead + 1) % RING;
   if (next == ringTail) { ringDrops = ringDrops + 1; return; }       // host not reading: drop the newest, never block the tick
+  if (strlen(line) > 256) { ringDrops = ringDrops + 1; return; }   // never happens (events are built under 256 bytes)
   strncpy(ring[ringHead], line, 259); ring[ringHead][259] = 0; ringHead = next;
 }
 uint32_t hwRand() { return esp_random(); }
 
 // ---------------------------------------------------------------- tick task
+volatile uint32_t tickOverruns = 0;
 void tickTask(void*) {
+  esp_task_wdt_add(NULL);                              // a hung tick resets the board; the EN / SLP pull-downs then stop both motors
   TickType_t last = xTaskGetTickCount();
   for (;;) {
+    uint32_t t0 = micros();
     xSemaphoreTake(mtx, portMAX_DELAY);
     B.tick(millis());
     xSemaphoreGive(mtx);
+    esp_task_wdt_reset();
+    if (micros() - t0 > 4000) tickOverruns = tickOverruns + 1;
     vTaskDelayUntil(&last, pdMS_TO_TICKS(5));
   }
 }
@@ -104,21 +117,27 @@ const char* resetName() {
   switch (esp_reset_reason()) {
     case ESP_RST_POWERON: return "POWERON"; case ESP_RST_BROWNOUT: return "BROWNOUT"; case ESP_RST_PANIC: return "PANIC";
     case ESP_RST_INT_WDT: case ESP_RST_TASK_WDT: case ESP_RST_WDT: return "WATCHDOG"; case ESP_RST_SW: return "SOFTWARE";
-    case ESP_RST_USB: return "USB"; default: return "OTHER";
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+    case ESP_RST_USB: return "USB";
+#endif
+    case ESP_RST_EXT: return "EXTERNAL"; case ESP_RST_DEEPSLEEP: return "DEEPSLEEP"; default: return "OTHER";
   }
 }
 
+bool pwmOk = true;
 void setup() {
   // motors safe before anything else: PWM low, enables low (10 k pull-downs hold them low during reset), drum asleep
-  pwmAttach(PIN_RPWM, 0); pwmAttach(PIN_LPWM, 1); hwWiper(0, 0);
+  pwmOk &= pwmAttach(PIN_RPWM, 0); pwmOk &= pwmAttach(PIN_LPWM, 1); hwWiper(0, 0);
   pinMode(PIN_REN, OUTPUT); pinMode(PIN_LEN, OUTPUT); digitalWrite(PIN_REN, LOW); digitalWrite(PIN_LEN, LOW);
   pinMode(PIN_DRUM_SLP, OUTPUT); digitalWrite(PIN_DRUM_SLP, LOW);
-  pwmAttach(PIN_DRUM_IN1, 2); pwmAttach(PIN_DRUM_IN2, 3); hwDrum(0, 0);
+  pwmOk &= pwmAttach(PIN_DRUM_IN1, 2); pwmOk &= pwmAttach(PIN_DRUM_IN2, 3); hwDrum(0, 0);
   pinMode(PIN_DRUM_FLT, INPUT_PULLUP);
   for (int i = 0; i < 8; i++) pinMode(SW_PINS[i], INPUT_PULLUP);
   analogSetPinAttenuation(PIN_WIPER_IS, ADC_11db);
   analogSetPinAttenuation(PIN_VBAT, ADC_11db);
 
+  Serial.setTxBufferSize(2048);                        // room for a burst of events; the default 256 cannot hold a full line + newline
+  Serial.setRxBufferSize(1024);
   Serial.begin(115200);                                // USB CDC: the baud rate is ignored
 #if ARDUINO_USB_MODE
   Serial.setTxTimeoutMs(0);                            // never block on a host that is not reading
@@ -127,8 +146,8 @@ void setup() {
 
   Wire.begin(PIN_SDA, PIN_SCL);
   Wire.setClock(100000);                               // 100 kHz: the AS5600 lead runs next to the wiper leads
-  Wire.setTimeOut(5);
-  hx.begin(PIN_HX_DT, PIN_HX_SCK, true);
+  Wire.setTimeOut(2);                                  // ms: a stuck bus costs at most 2 ms per read
+  hx.begin(PIN_HX_DT, PIN_HX_SCK, true, false);        // no reset (it busy-waits 0.5 s without a chip)
   hxOk = hx.wait_ready_timeout(600);                   // no data line toggling = no HX711 fitted
 
   mtx = xSemaphoreCreateMutex();
@@ -137,6 +156,7 @@ void setup() {
   io.vbat = hwVbat; io.switches = hwSwitches; io.hxRaw = hwHx; io.save = hwSave; io.saveTun = hwSaveTun; io.out = hwOut;
   io.rand32 = hwRand;
   B.io = io;
+  B.saveAck = true;                                    // motors start only after the "moving" record is in flash
   prefs.begin("gsbase", false);
   gb::Tun tun; bool haveTun = prefs.getBytes("tun", &tun, sizeof tun) == sizeof tun;
   B.restoreTun(haveTun ? &tun : nullptr);
@@ -144,10 +164,16 @@ void setup() {
   gb::Saved rec; bool haveRec = prefs.getBytes("rec", &rec, sizeof rec) == sizeof rec;
   B.restore(haveRec ? &rec : nullptr);
 
-  digitalWrite(PIN_REN, HIGH); digitalWrite(PIN_LEN, HIGH);   // bridge enabled; PWM is still 0
+  if (pwmOk) { digitalWrite(PIN_REN, HIGH); digitalWrite(PIN_LEN, HIGH); }   // bridge enabled (PWM still 0); never with a failed PWM pin
   char hello[160];
-  snprintf(hello, sizeof hello, "{\"evt\":\"HELLO\",\"fw\":\"%s\",\"reset\":\"%s\",\"hx711\":%s,\"as5600\":%s}", GB_FW_VERSION, resetName(),
-           hxOk ? "true" : "false", as5600Read(0x0B, 1) >= 0 ? "true" : "false");
+  snprintf(hello, sizeof hello, "{\"evt\":\"HELLO\",\"fw\":\"%s\",\"reset\":\"%s\",\"hx711\":%s,\"as5600\":%s,\"pwm\":%s}", GB_FW_VERSION, resetName(),
+           hxOk ? "true" : "false", as5600Read(0x0B, 1) >= 0 ? "true" : "false", pwmOk ? "true" : "false");
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+  esp_task_wdt_config_t wdt = {.timeout_ms = 300, .idle_core_mask = 0, .trigger_panic = true};
+  esp_task_wdt_reconfigure(&wdt);
+#else
+  esp_task_wdt_init(1, true);                          // IDF 4: whole seconds only
+#endif
   writeLine(hello, 100);
   xTaskCreatePinnedToCore(tickTask, "base_tick", 8192, nullptr, 3, nullptr, 1);
 }
@@ -183,7 +209,7 @@ void handleLine() {
   if (lineOver) snprintf(rep, sizeof rep, "{\"id\":null,\"ok\":false,\"err\":\"TOO_LONG\"}");
   else B.handleLine(line, lineLen, rep, sizeof rep);
   xSemaphoreGive(mtx);
-  writeLine(rep, 200);                                 // the reply first, then any event the command raised
+  writeLine(rep, 1000);                                // the reply first, then any event the command raised
   drainEvents();
 }
 
@@ -207,7 +233,16 @@ void loop() {
   xSemaphoreGive(mtx);
   if (due) writeLine(outBuf, 0);                       // telemetry is dropped when there is no room, never queued
   // flash writes outside the lock (a write stalls both cores for a few ms)
-  if (saveDue) { gb::Saved s; xSemaphoreTake(mtx, portMAX_DELAY); s = saveBuf; saveDue = false; xSemaphoreGive(mtx); prefs.putBytes("rec", &s, sizeof s); }
+  if (saveDue) {
+    gb::Saved s; xSemaphoreTake(mtx, portMAX_DELAY); s = saveBuf; saveDue = false; xSemaphoreGive(mtx);
+    prefs.putBytes("rec", &s, sizeof s);
+    B.saveDoneSeq = s.seq;                             // lets a waiting motor start
+  }
+  static uint32_t fltT = 0;                            // DRV8833 nFAULT low for 50 ms: over-current / over-temperature
+  if (digitalRead(PIN_DRUM_FLT) == LOW) {              // (internal pull-up keeps it high when the pad is not wired)
+    if (!fltT) fltT = now ? now : 1;
+    if (now - fltT > 50) { xSemaphoreTake(mtx, portMAX_DELAY); B.extFault(gb::F_DRUM_SENSOR, "DRV8833 nFAULT"); xSemaphoreGive(mtx); fltT = 0; }
+  } else fltT = 0;
   if (tunDue) { gb::Tun t; xSemaphoreTake(mtx, portMAX_DELAY); t = tunBuf; tunDue = false; xSemaphoreGive(mtx); prefs.putBytes("tun", &t, sizeof t); }
   delay(1);
 }

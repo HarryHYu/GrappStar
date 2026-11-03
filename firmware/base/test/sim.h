@@ -27,7 +27,7 @@ struct Sim {
   // ---- motor model
   double n0rpm = 45, stallNm = 15, stallA = 18, freeA = 1.5, vbat0 = 12.4, rint = 0.05;
   double amps = 0, wRateDps = 0;
-  double drumDpsTrue = 55;         // a little slower than the firmware's estimate
+  double drumDpsTrue = 10.0;       // a little slower than the firmware's 10.8 estimate
   double aimLoadNm = 1.0, cockMaxNm = 6.0, reelFreeNm = 0.6;
   double capstanR = 0.015;         // m
   // ---- sensors
@@ -48,9 +48,14 @@ struct Sim {
   gb::Saved nvs; bool nvsHas = false; int saves = 0;
   uint32_t t = 0;
 
-  bool inLaunch() const { return fabs(drumDeg - c.drumPosDeg[0]) <= 5; }   // dog fully engaged
-  bool inReel() const { return fabs(drumDeg - c.drumPosDeg[2]) <= 5 || drumDeg > c.drumPosDeg[2] + 5; }   // past REEL stays coupled
-  int wrapsTrue() const { double l = (drumDeg - c.wrapStartDeg) / c.degPerWrap; return l <= 0 ? 0 : (int)floor(l + 0.15); }
+  // collar dwells (drum_NOTES.md section 6): LAUNCH engaged -10..6, REEL engaged 74..346; a tip to tip landing
+  // blocks the train until the wiper turned toothNeedWiper
+  bool inLaunch() const { return drumDeg <= 6 && !dogTip; }
+  bool inReel() const { return drumDeg >= 74 && !dogTip; }
+  double wrapsExact() const { if (drumDeg <= c.wrapFromDeg) return 0; if (drumDeg >= c.wrapToDeg) return c.wrapsFull; return c.wrapsFull * (drumDeg - c.wrapFromDeg) / (c.wrapToDeg - c.wrapFromDeg); }
+  int wrapsTrue() const { return (int)floor(wrapsExact() + 0.15); }
+  int sectorTrue() const { int k = 0; while (k < gb::SEC_COUNT - 1 && drumDeg >= c.edgeDeg[k]) k++; return k; }
+  bool dogTip = false;
   double cockLoad() const {        // the rack is engaged from homeOpenDeg to the release tooth
     if (fired || cockPh < c.homeOpenDeg) return 0.5;
     double f = (cockPh - c.homeOpenDeg) / (c.releaseDeg - c.homeOpenDeg); if (f > 1) f = 1;
@@ -65,12 +70,11 @@ struct Sim {
   uint8_t contactsRaw() {
     uint8_t b = 0;
     auto setb = [&](int id, bool v) { int bit = c.swBit[id]; if (bit >= 0 && v) b |= (1 << bit); };
-    int code = 0;
-    for (int k = 0; k < 3; k++) if (fabs(drumDeg - c.drumPosDeg[k]) <= c.drumWinDeg) code = c.posCode[k];
+    int code = c.secCode[sectorTrue()];
     setb(gb::SW_DRUM_A, code & 1); setb(gb::SW_DRUM_B, code & 2); setb(gb::SW_DRUM_C, code & 4);
-    double wz = drumDeg - c.wrapStartDeg;
-    double m = fmod(wz, c.degPerWrap); if (m < 0) m += c.degPerWrap;
-    setb(gb::SW_WRAP_HOME, drumDeg >= c.wrapStartDeg + c.degPerWrap * 0.5 && (m < c.wrapWinDeg || m > c.degPerWrap - c.wrapWinDeg));
+    setb(gb::SW_DOG, dogTip);
+    double wf = wrapsExact() - floor(wrapsExact());
+    setb(gb::SW_WRAP_HOME, wf < 0.03 || wf > 0.97);
     setb(gb::SW_SEATED, seated());
     setb(gb::SW_HOME, fired || cockPh < c.homeOpenDeg);
     double am = fmod(aimPh - c.aimHomeDeg, c.aimCycleDeg); if (am < 0) am += c.aimCycleDeg;
@@ -115,14 +119,17 @@ struct Sim {
           if (!fired && !searBroken && before < c.releaseDeg && cockPh >= c.releaseDeg) { fired = true; shots++; lineOut = lineOutAfterShot; }
           if (fired && cockPh >= c.cycleDeg - 5) { cockPh -= c.cycleDeg; fired = false; }
         }
-      } else if (toothOnTooth && drumDeg < c.drumPosDeg[0] + 30) toothWiperAcc += ad;
+      } else if (dogTip) { toothWiperAcc += ad; if (toothWiperAcc >= toothNeedWiper) { dogTip = false; toothWiperAcc = 0; } }
       else if (inReel() && wDir == c.reelDir && wrapsTrue() > 0) { lineOut -= ad / 360.0 * c.capstanPerWiper * 2 * M_PI * capstanR; if (lineOut < 0) lineOut = 0; }
     }
     // ---- drum
     if (dDir != 0 && drumAwake && !drumJam) {
       double nd = drumDeg + dDir * c.drumSign * drumDpsTrue * (dDuty / 255.0) * s;
       if (nd > drumJamAbove) nd = drumJamAbove;
-      if (toothOnTooth && dDir * c.drumSign < 0 && nd < c.drumPosDeg[0] + 15 && toothWiperAcc < toothNeedWiper) nd = fmax(nd, c.drumPosDeg[0] + 15);
+      if (nd < c.secLoDeg) nd = c.secLoDeg; if (nd > c.secHiDeg) nd = c.secHiDeg;   // groove ends
+      // the collar lands tip to tip on the way into a dwell (when toothOnTooth is set): once per entry
+      if (toothOnTooth && ((drumDeg > 6 && nd <= 6) || (drumDeg < 74 && nd >= 74))) { dogTip = true; toothWiperAcc = 0; }
+      if (nd > 6 && nd < 74) dogTip = false;
       drumDeg = nd;
     }
     t += dt;

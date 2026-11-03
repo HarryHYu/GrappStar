@@ -6,7 +6,8 @@ CADV.boot(function () {
   const T = D.tracks.t, N = T.length, T0 = T[0], T_END = T[N - 1];
   const PH = (D.phases && D.phases.length) ? D.phases : [{ name: 'run', t0: T0, t1: T_END, text: '' }];
   const css = () => getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#eef1f4';
-  const V = CADV.build($('#view'), D, { hd: true, bg: css() });
+  const isDark = () => { const a = document.documentElement.dataset.theme; return a ? a === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; };
+  const V = CADV.build($('#view'), D, { hd: true, bg: css(), dark: isDark() });
   CADV.installAUD(V);
   $('#ttl').textContent = D.title + ' mission sim';
   $('#sub').textContent = `${V.list.length} parts, ${N} samples over ${(T_END - T0).toFixed(1)} s. Every pose comes from the assembly kinematics.`;
@@ -73,16 +74,47 @@ CADV.boot(function () {
     if (e.buttons) { tip.style.display = 'none'; return; }
     const r = V.pick(e.clientX, e.clientY);
     if (!r) { tip.style.display = 'none'; return; }
-    tip.innerHTML = partText(r.p); tip.style.display = 'block';
-    tip.style.left = Math.min(innerWidth - 290, e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 14) + 'px';
+    tip.innerHTML = partText(r.p); tip.style.display = 'block'; placeTip(e);
   });
+  function placeTip(e) {          // keep the tooltip inside the window
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = e.clientX + 14, y = e.clientY + 14;
+    if (x + w > innerWidth - 8) x = e.clientX - 14 - w;
+    if (y + h > innerHeight - 8) y = e.clientY - 14 - h;
+    tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, x)) + 'px'; tip.style.top = Math.max(8, Math.min(innerHeight - h - 8, y)) + 'px';
+  }
   cv.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
 
   // ------------------------------------------------------------------ view tools
-  const VIEWS = { iso: [-55, 28], front: [0, 8], side: [-90, 8], top: [-90, 89] };
-  document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { const v = VIEWS[b.dataset.v]; V.view(v[0], v[1], 0.9); });
+  const VIEWS = { iso: [-55, 28], front: [0, 8], side: [-90, 8], top: [-90, 89], mission: [-62, 22] };
+  function setView(name) {
+    const v = VIEWS[name] || VIEWS.iso;
+    if (name === 'mission') V.view(v[0], v[1], 0.95, V.boxTrack);      // the whole track: every pose over the mission
+    else V.view(v[0], v[1], 0.9);
+    followC = null; V.render();
+  }
+  document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
+  // follow a moving joint group (for example the dart in flight): the camera target moves with its parts
+  const fsel = $('#follow'); let follow = null, followC = null;
+  for (const m of V.movers) { const o = document.createElement('option'); o.value = m.name; o.textContent = m.name.replace(/_/g, ' ') + ' (' + m.parts.length + ')'; fsel.appendChild(o); }
+  if (!V.movers.length) fsel.disabled = true;
+  function setFollow(name) {
+    // exact joint name, else the first moving group whose joint or part names contain the text (e.g. 'dart')
+    follow = !name ? null : V.movers.find(m => m.name === name) || V.movers.find(m => m.name.includes(name) || m.parts.some(n => n.includes(name))) || null;
+    fsel.value = follow ? follow.name : '';
+    followC = null; followCam(); V.render();
+  }
+  fsel.onchange = () => setFollow(fsel.value);
+  function followCam() {
+    if (!follow) return;
+    const bx = V.bbox(follow.parts), c = bx.getCenter(new THREE.Vector3());
+    const g = V.camGet();
+    if (!followC) V.cam(c.toArray(), Math.max(V.fitDist(bx, 1) * 3, V.radius * 1.5), g.az, g.el);   // close enough to see it
+    else V.cam([g.t[0] + c.x - followC.x, g.t[1] + c.y - followC.y, g.t[2] + c.z - followC.z], g.r, g.az, g.el);
+    followC = c;
+  }
   $('#explode').oninput = e => V.explode(+e.target.value / 100);
-  const B = V.box0;
+  const B = V.boxTrack;           // cut range over the whole track, not just sample 0
   function applyCut() {
     const ax = $('#cax').value;
     if (ax === 'none') { V.cut(null); $('#cval').textContent = ''; return; }
@@ -93,16 +125,17 @@ CADV.boot(function () {
   const themes = ['auto', 'light', 'dark']; let th = 0;
   $('#theme').onclick = () => {
     th = (th + 1) % 3; if (th === 0) document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = themes[th];
-    $('#theme').textContent = 'theme: ' + themes[th]; V.scene.background = new THREE.Color(css());
+    $('#theme').textContent = 'theme: ' + themes[th]; applyTheme();
   };
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { V.scene.background = new THREE.Color(css()); });
+  function applyTheme() { V.setTheme(isDark(), css()); V.render(); }
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
   $('#tInfo').onclick = () => $('#info').classList.toggle('more');
   $('#tTools').onclick = () => { $('#tools').classList.toggle('open'); $('#toggles').classList.toggle('up'); };
 
   // ------------------------------------------------------------------ frame loop
   let lastPhase = -1, lastS = -1;
   function update() {
-    const s = sampleOf(t); if (s === lastS) return; V.sample(s); lastS = s;
+    const s = sampleOf(t); if (s === lastS) return; V.sample(s); lastS = s; followCam();
     let pi = PH.findIndex(p => t >= p.t0 && t < p.t1); if (pi < 0) pi = t >= T_END ? PH.length - 1 : 0;
     if (pi !== lastPhase) {
       lastPhase = pi; const p = PH[pi];
@@ -119,7 +152,8 @@ CADV.boot(function () {
       t += dt * speed;
       if (t > T_END) { if ($('#loop').checked) t = T0; else { t = T_END; playing = false; $('#play').textContent = 'play'; } }
     }
-    update(); V.renderIfNeeded(); requestAnimationFrame(frame);
+    if (!V.frozen()) update();
+    V.renderIfNeeded(); requestAnimationFrame(frame);
   }
   V.view(-55, 28, 0.9);
   update(); V.render();
@@ -128,9 +162,12 @@ CADV.boot(function () {
     pause: () => { playing = false; $('#play').textContent = 'play'; },
     play: () => { playing = true; $('#play').textContent = 'pause'; },
     time: () => t, phases: PH,
+    viewer: V, view: setView, follow: setFollow, movers: V.movers.map(m => m.name),
+    freeze: on => { V.freeze(on !== false); if (on !== false) V.render(); },
     cut: (axis, frac, flip) => { $('#cax').value = axis || 'none'; $('#cut').value = Math.round(1000 * (frac == null ? 0.5 : frac)); $('#cflip').checked = !!flip; applyCut(); V.render(); },
   };
   window.SIM_SEEK = window.SIM.seek; window.SIM_PAUSE = window.SIM.pause; window.SIM_CUT = window.SIM.cut;
+  window.SIM_VIEW = window.SIM.view; window.SIM_FOLLOW = window.SIM.follow; window.SIM_FREEZE = window.SIM.freeze;
   requestAnimationFrame(frame);
   window.READY = true;
 });

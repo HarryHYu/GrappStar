@@ -57,9 +57,9 @@ ul.files a { color: var(--ink); text-decoration-color: var(--accent); text-under
   <p>One 12 V wiper motor launches the KEDGE anchor dart, aims it and winches the rover out against it. A small N20
   selector drum swaps the motor between the launcher and the capstan reel, in a fixed physical order:
   LAUNCH, NEUTRAL, WRAP, REEL.</p>
-  <div class="status">Built 434233d 03 Nov 2026 01:16</div>
+  <div class="status">Built e682b1a 03 Nov 2026 01:21</div>
 </header>
-<section><figure class="hero empty"><p>The mission sim renders here after the base pipeline runs.</p></figure><div class="actions" style="margin-top:14px"></div></section>
+<section><figure class="hero"><img src="hero.png" alt="The base station in the mission sim"></figure><div class="actions" style="margin-top:14px"><a class="go" href="sim.html">Open the mission sim</a></div></section>
 <section><h2>What to do next <small>in order</small></h2>
 <ol class="work"><li><span><b>Measure</b> the wiper motor and one spring (list below). Put the numbers in base/spec/params.py and rerun the base pipeline: the motor adapter, coupler and spring anchors regenerate.</span></li><li><span><b>Buy</b> 8 to 10 bearings 608ZZ (8 x 22 x 7). Optional: a small neodymium disc magnet for the angle sensor.</span></li><li><span><b>Print</b> the base print pack (plates for the X2D) and the dart v30 pack.</span></li><li><span><b>Build</b> the base in the order of the assembly steps, then the dart.</span></li><li><span><b>Wire</b> with the battery unplugged, following SYSTEM_ELECTRICAL and the two WIRING files.</span></li><li><span><b>Flash</b> the base ESP32-S3 and the dart XIAO; install the Jetson software.</span></li><li><span><b>Test</b> in the stages of TEST_PLAN, bench first. Never fire without the tether attached.</span></li></ol></section>
 <section><h2>Measure these first <small>assumed until measured</small></h2><div class="scroll"><table>

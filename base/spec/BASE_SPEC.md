@@ -121,12 +121,12 @@ The full list with suggested GPIOs is params.SWITCHES.
 
 LAUNCH (-4..8, collar LAUNCH, clutch LIGHT, cup locked) / L_TO_N (8..32) / NEUTRAL (32..50, clutch FIRM) /
 WRAP_PREP (50..62, clutch to LIGHT, cup lock releases at 60) / WRAP (62..302, collar NEUTRAL, clutch LIGHT, 7 cup
-turns = 4 pinion turns x 42/24) / N_TO_R (302..340: cup locked, clutch LIGHT to FIRM 302..316, collar NEUTRAL until
+turns = 4 pinion turns x 42/24) / N_TO_R (302..340: cup locked, clutch LIGHT to FIRM 302..312, collar NEUTRAL until
 318 then ramps to REEL) / REEL (340..352, collar REEL, clutch FIRM). Park targets (never on a code edge): LAUNCH 0,
-NEUTRAL 41, WRAP_PREP 56, WRAPPED 309, REEL 347. End stops -4 and 352 (a 4 deg gap keeps the code ramps from
+NEUTRAL 41, WRAP_PREP 56, WRAPPED 314, REEL 347. End stops -4 and 352 (a 4 deg gap keeps the code ramps from
 aliasing). Gray code (A B C): LAUNCH 100, L_TO_N 110, NEUTRAL 010, WRAP_PREP 011, WRAP 001, N_TO_R 101, REEL 111;
 000 = broken common wire. SW_DOG_L / SW_DOG_R are checked during every move (the wrap window is never entered with
-either closed). Unload jog before any shift out: 8 deg. A fault from REEL or N_TO_R goes to WRAPPED (309), never
+either closed). Unload jog before any shift out: 8 deg. A fault from REEL or N_TO_R goes to WRAPPED (314), never
 NEUTRAL; a boot inside WRAP stops and reports; REEL jogs forward only.
 
 ## 8. Launcher and aim (binding; params.LAUNCH, params.AIM)
@@ -149,10 +149,10 @@ through a fail-safe pushrod, driven by the take-up bus on every forward wiper tu
 
 Sequence (D16, D17, D22): boot and rebuild state -> aim (backward, only at HOME) -> arm and fire (forward one shot; the
 take-up winds the slack) -> flight -> LANDED (landing-zone verdict from the Jetson) -> unload jog, drum to NEUTRAL ->
-WRAP at once while the line is slack (drum 62..302, wiper off) -> WRAPPED park (309) -> wait ANCHORED -> TIDY (forward by
+WRAP at once while the line is slack (drum 62..302, wiper off) -> WRAPPED park (314) -> wait ANCHORED -> TIDY (forward by
 time: the FIRM take-up pulls the slack through the free capstan) -> REEL fly-in (wiper creeping forward while the
 drum enters REEL, then SW_DOG open) -> TOW (tow current limit) -> dart release -> reel in on the capstan until about
-1.5 m remain -> unload jog -> drum back to the WRAPPED park 309 (collar to NEUTRAL) -> UNWRAP (drum
+1.5 m remain -> unload jog -> drum back to the WRAPPED park 314 (collar to NEUTRAL) -> UNWRAP (drum
 302..62 while the wiper turns forward at about 30 percent, take-up only) -> NEUTRAL final approach on the FIRM
 take-up until SW_SEATED (fault DART_STUCK after 20 s) -> LAUNCH. A no-go landing retrieves the unanchored dart on
 the take-up (or after a wrap, on the capstan).

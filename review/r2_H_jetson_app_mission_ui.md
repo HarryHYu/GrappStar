@@ -7,21 +7,25 @@ agreed it is real but rated it lower.
 
 Confirmed: 11. Refuted and dropped: 0.
 
-| # | Sev | File:line | Owner | Finding |
-|---|---|---|---|---|
-| 1 | medium | `jetson/grappstar/app.py:357` | jetson | act_set passes any key straight to base `set` (require_seated, host_timeout_s, trip_a, aim_offset, line_m, enc_sign), with no allowlist and no mission-running guard |
-| 2 | medium | `jetson/grappstar/comms/base.py:519` | jetson | wait_event ignores link loss and the base reset whose HELLO is always missed after USB re-enumeration; FIRE then waits the full 30 s and the 15 s dart-video buffer drops the flight |
-| 3 | medium | `jetson/grappstar/mission.py:293` | jetson | No 'launcher still drawn' warning after STOP during COCK, or after a fire that never released |
-| 4 | medium | `jetson/grappstar/mission.py:427` | jetson | After an abort with the dart out or anchored there is no way to resume: preflight refuses every recovery state and the UI has no wrap, release or reel controls |
-| 5 | medium | `jetson/grappstar/mission.py:621` | jetson | Reshoot with a failed dart arm takes the previous shot's LANDED and frozen flight log as the new landing |
-| 6 | medium | `jetson/grappstar/mission.py:854` | jetson | Dart comes home during TOW: only Retry is offered, which pulls the seated dart into the cradle again, and there is no release or bring-home path |
-| 7 | medium | `jetson/grappstar/mission.py:886` | jetson | RETRIEVE reel (until "stop") keeps acting on stale telemetry, so the dart is pulled into the cradle at full duty until the 30 N LIMIT |
-| 8 | medium | `jetson/grappstar/ui/server.py:398` | jetson | Unauthenticated, CSRF-able action API: any LAN client or any web page open in the operator's browser can answer the FIRE prompts and drive the base and dart |
-| 9 | low | `jetson/grappstar/mission.py:141` | jetson | Prompt ids restart at p1 in every Mission and an answer is not tied to the prompt text, so a stale card can confirm a different FIRE prompt (another pitch and range) |
-| 10 | low | `jetson/grappstar/mission.py:866` | jetson | 'Keep towing' permanently raises the shared tow round limit for all later missions |
-| 11 | low | `jetson/grappstar/ui/static/app.js:242` | jetson | The keyboard STOP (Space) does nothing while focus is in any input, such as right after typing a range and pressing Enter |
+Re-checked 14:10 Sydney against base-v1 863d58d, one checker subagent per finding: see the Now column.
+
+| # | Sev | File:line | Owner | Finding | Now (863d58d) |
+|---|---|---|---|---|---|
+| 1 | medium | `jetson/grappstar/app.py:357` | jetson | act_set passes any key straight to base `set` (require_seated, host_timeout_s, trip_a, aim_offset, line_m, enc_sign), with no allowlist and no mission-running guard | fixed |
+| 2 | medium | `jetson/grappstar/comms/base.py:519` | jetson | wait_event ignores link loss and the base reset whose HELLO is always missed after USB re-enumeration; FIRE then waits the full 30 s and the 15 s dart-video buffer drops the flight | fixed |
+| 3 | medium | `jetson/grappstar/mission.py:293` | jetson | No 'launcher still drawn' warning after STOP during COCK, or after a fire that never released | fixed |
+| 4 | medium | `jetson/grappstar/mission.py:427` | jetson | After an abort with the dart out or anchored there is no way to resume: preflight refuses every recovery state and the UI has no wrap, release or reel controls | fixed |
+| 5 | medium | `jetson/grappstar/mission.py:621` | jetson | Reshoot with a failed dart arm takes the previous shot's LANDED and frozen flight log as the new landing | fixed |
+| 6 | medium | `jetson/grappstar/mission.py:854` | jetson | Dart comes home during TOW: only Retry is offered, which pulls the seated dart into the cradle again, and there is no release or bring-home path | fixed |
+| 7 | medium | `jetson/grappstar/mission.py:886` | jetson | RETRIEVE reel (until "stop") keeps acting on stale telemetry, so the dart is pulled into the cradle at full duty until the 30 N LIMIT | fixed |
+| 8 | medium | `jetson/grappstar/ui/server.py:398` | jetson | Unauthenticated, CSRF-able action API: any LAN client or any web page open in the operator's browser can answer the FIRE prompts and drive the base and dart | partly fixed |
+| 9 | low | `jetson/grappstar/mission.py:141` | jetson | Prompt ids restart at p1 in every Mission and an answer is not tied to the prompt text, so a stale card can confirm a different FIRE prompt (another pitch and range) | fixed |
+| 10 | low | `jetson/grappstar/mission.py:866` | jetson | 'Keep towing' permanently raises the shared tow round limit for all later missions | fixed |
+| 11 | low | `jetson/grappstar/ui/static/app.js:242` | jetson | The keyboard STOP (Space) does nothing while focus is in any input, such as right after typing a range and pressing Enter | fixed |
 
 ## 1. act_set passes any key straight to base `set` (require_seated, host_timeout_s, trip_a, aim_offset, line_m, enc_sign), with no allowlist and no mission-running guard
+
+- Now (863d58d): **fixed** at `jetson/grappstar/app.py:359`. Fixed. act_set now accepts only drag_n, tow_limit_n, check_n and retrieve_limit_n, and returns "unknown setting" for any other key. It also refuses every key except tow_limit_n while a mission runs (line 361). The page has no route left to base.set: the only base.set calls are internal ones in mission.py.
 
 - File: `jetson/grappstar/app.py:357`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
@@ -41,6 +45,8 @@ The firmware does not stop
 >
 
 ## 2. wait_event ignores link loss and the base reset whose HELLO is always missed after USB re-enumeration; FIRE then waits the full 30 s and the 15 s dart-video buffer drops the flight
+
+- Now (863d58d): **fixed** at `jetson/grappstar/comms/base.py:257-266,533-534 (session counter + link-drop check in wait_event/wait_tel); jetson/grappstar/mission.py:250-264,812-813; jetson/grappstar/video/camera.py:341-347`. A link drop now increments BaseClient.session, and wait_event, wait_tel and Mission.wait_evt raise BaseError BASE_RESET within about 0.25 s instead of waiting the full 30 s. fire() also pins the dart video with cam.hold(time.time() - pre_s), for up to 300 s, so the flight frames are no longer dropped. One gap is left: fire() catches only BaseTimeout/BaseDisconnected, so BASE_RESET skips the automatic dart_is_out recovery and goes to the operator Retry prompt, which does continue to FLIGHT through the fire_sent check.
 
 - File: `jetson/grappstar/comms/base.py:519`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -69,6 +75,8 @@ What I confirmed:
 
 ## 3. No 'launcher still drawn' warning after STOP during COCK, or after a fire that never released
 
+- Now (863d58d): **fixed** at `jetson/grappstar/mission.py:317-332`. The finally block now reads base.status() phase and warns about Decock whenever the phase is COCKING, COCKED, FIRING or UNKNOWN. That covers (a) STOP mid-cock (phase UNKNOWN; tests/test_review3_findings.py::test_stop_while_cocking_warns_to_decock passes) and (b) a fire fault with the base still COCKED. The early return in cock() is gone (lines 672-681), so (c) no longer applies. Two gaps remain: the fallback when the base does not answer still relies on shot['cocked'], which is set only after COCKED, and there is no test for a fire BAD_STATE followed by Abort.
+
 - File: `jetson/grappstar/mission.py:293`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
 - Owner: jetson
@@ -96,6 +104,8 @@ Spec: BASE_SPEC.md:192 says a stop or fault during cocking leaves the phase UNKN
 >
 
 ## 4. After an abort with the dart out or anchored there is no way to resume: preflight refuses every recovery state and the UI has no wrap, release or reel controls
+
+- Now (863d58d): **fixed** at `jetson/grappstar/mission.py:494`. Mission.start(recover=True) now runs _recover_sequence, which skips preflight and does RELEASE (when the phase is ANCHORING, ANCHORED, FAULT or RELEASING), then BASE_NEUTRAL, WRAP if needed, bring_home and LAUNCH_READY through _do. It is exposed as App.act_recover (app.py:265) and as 'Recover dart' buttons in ui/static/index.html:41 and :132. I found no test for this path, so the fix comes from reading the code, not from running it.
 
 - File: `jetson/grappstar/mission.py:427`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -129,6 +139,8 @@ What I confirmed:
 
 ## 5. Reshoot with a failed dart arm takes the previous shot's LANDED and frozen flight log as the new landing
 
+- Now (863d58d): **fixed** at `jetson/grappstar/mission.py:837`. Each shot gets a fresh self.shot from aim() (line 656), so dart_phase_at_arm is missing when the arm fails or is skipped. wait_landing now sets stale = dart_phase_at_arm != "ARMED" and only counts LANDED after a seen FLIGHT (line 862). landing_zone (lines 918-924) drops the flight log when the arm was not confirmed, t_launch_ms is null, or the launch is before the arm.
+
 - File: `jetson/grappstar/mission.py:621`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: jetson
@@ -154,6 +166,8 @@ Fix: Make LANDED count only after FLIGHT unless the arm is confirmed. Set stale 
 
 ## 6. Dart comes home during TOW: only Retry is offered, which pulls the seated dart into the cradle again, and there is no release or bring-home path
 
+- Now (863d58d): **fixed** at `jetson/grappstar/mission.py:1133-1137`. This is fixed. When the dart comes home during the tow, tow() now raises StepFailed with choices=["Release and bring home"]. _do turns that into the prompt "Release and bring home" / "Abort", so Retry is no longer offered (_do lines 381-383). Choosing it returns to _sequence, which goes on to RELEASE, then bring_home(), then LAUNCH_READY (lines 489-492). retrieve() returns at once when S is closed (line 1184).
+
 - File: `jetson/grappstar/mission.py:854`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: jetson
@@ -175,6 +189,8 @@ Fix: Raise StepFailed(..., choices=['Release and bring home']) at line 853. In _
 >
 
 ## 7. RETRIEVE reel (until "stop") keeps acting on stale telemetry, so the dart is pulled into the cradle at full duty until the 30 N LIMIT
+
+- Now (863d58d): **fixed** at `jetson/grappstar/mission.py:1199`. The retrieve loop now calls tel_fresh(0.5) on every pass. tel_fresh (mission.py:549) runs stop_settle and raises StepFailed when telemetry is older than 0.5 s. Separately, _keepalive_start (mission.py:518, called at line 299) sets the base's host_timeout_s to 1.5 and pings every 0.4 s, so the base also stops on its own if the link is lost.
 
 - File: `jetson/grappstar/mission.py:886`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
@@ -202,6 +218,8 @@ What I checked:
 
 ## 8. Unauthenticated, CSRF-able action API: any LAN client or any web page open in the operator's browser can answer the FIRE prompts and drive the base and dart
 
+- Now (863d58d): **partly fixed** at `jetson/grappstar/ui/server.py:456 (_check_post); jetson/grappstar/cli.py:284,296 and ui/server.py:230-234,297`. The CSRF part is fixed. do_POST now calls _check_post, which returns 403 when the Origin or Referer names a different host:port, and it also requires the per-process session_token header, which a cross-site page cannot read. Prompt ids also carry a time suffix now (mission.py:209). Unauthenticated LAN access is still open. `serve` still binds to 0.0.0.0 by default, --token is still optional and nothing generates one, and with no token _check_token passes every request while GET / hands out the session token in a meta tag (server.py:297). So any device on the rover WiFi can GET / and then POST /api/action/answer FIRE NOW.
+
 - File: `jetson/grappstar/ui/server.py:398`
 - Severity: medium (claimed critical); 2 of 2 skeptics confirmed
 - Owner: jetson
@@ -226,6 +244,8 @@ What the code does:
 
 ## 9. Prompt ids restart at p1 in every Mission and an answer is not tied to the prompt text, so a stale card can confirm a different FIRE prompt (another pitch and range)
 
+- Now (863d58d): **fixed** at `jetson/grappstar/mission.py:207`. Prompt ids now come from a module-level counter, _PROMPT_SEQ (lines 126-127 and 207-209), so they no longer restart at p1 in each Mission. answer() also rejects a reply whose text differs from the open prompt's text (line 192), and app.js:432 sends p.text, so a stale p3 card from mission 1 can no longer confirm mission 2's FIRE prompt. One cosmetic part of the suggested fix was not done: the second confirmation at line 807 still reads "FIRE NOW?" with no pitch or range.
+
 - File: `jetson/grappstar/mission.py:141`
 - Severity: low (claimed medium); 2 of 2 skeptics confirmed
 - Owner: jetson
@@ -243,6 +263,8 @@ Fix: Make prompt ids unique across missions and unguessable, for example `p = Pr
 
 ## 10. 'Keep towing' permanently raises the shared tow round limit for all later missions
 
+- Now (863d58d): **fixed** at `jetson/grappstar/mission.py:1149`. 'Keep towing' now adds 10 to self._extra_tow_rounds, which lives on the Mission instance, and leaves the shared cfg.tow_max_rounds alone. Lines 1107 and 1146 read the limit as cfg plus that extra. app.py:253/278 build a new Mission for each mission, so later missions start again from the configured 30.
+
 - File: `jetson/grappstar/mission.py:866`
 - Severity: low (claimed low); unverified (low)
 - Owner: jetson
@@ -255,6 +277,8 @@ Fix: Keep the extension local: give tow() a max_rounds argument (default self.cf
 
 
 ## 11. The keyboard STOP (Space) does nothing while focus is in any input, such as right after typing a range and pressing Enter
+
+- Now (863d58d): **fixed** at `jetson/grappstar/ui/static/app.js:257`. The global keydown handler now checks for STOP before the typing() early return. Escape (or Esc) sends stop even when focus is in an input, and Space still sends stop outside inputs. index.html:21-23 now names Esc as the key that works anywhere.
 
 - File: `jetson/grappstar/ui/static/app.js:242`
 - Severity: low (claimed low); unverified (low)

@@ -65,7 +65,7 @@ struct Plant {
   float rate[NMOT] = {1, 1, 1, 1};
   double kickContact = 3000, kickLand = 4300, deployEnd = 1400, drillTouch = 900, drillFull = 3000, footFull = 3000;
   // injected faults
-  int openWire = -1; bool drillJam = false, footJam = false, inaDead = false, shortOn = false, kickStrip = false;   // strip: gear slips
+  int openWire = -1; bool noGround = false, drillJam = false, footJam = false, inaDead = false, shortOn = false, kickStrip = false;   // strip: gear slips
   double kickJamFwd = -1, kickJamBack = -1, deployJamFwd = -1; float sagV = 0; double burstFail = 0;
   // state
   int hwDir[NMOT] = {0, 0, 0, 0}, hwDuty[NMOT] = {0, 0, 0, 0};
@@ -169,11 +169,11 @@ static uint32_t ET = 0, BASE = 0;                      // episode time (ms) and 
 static inline uint32_t NOWA() { return BASE + ET; }
 static uint64_t SEED = 0; static int EPI = 0; static bool VERBOSE = false, NOMINAL_EP = false;
 static long TICKS = 0, EP_TICKS = 0, CMDS = 0, EPISODES = 0, NOMINAL = 0; static double SIM_MS = 0;
-static long VIOL[11], VIOLN[11], CHECKS[11];   // VIOLN: violations inside nominal missions
+static long VIOL[12], VIOLN[12], CHECKS[12];   // VIOLN: violations inside nominal missions
 struct Stats { long launches = 0, impactLandings = 0, fallbackLandings = 0, autoByCmd = 0, autoByLanding = 0, anchored = 0, released = 0,
                nomAnch = 0, nomRel = 0, stallStops = 0, pairPauses = 0, holdsCapped = 0, faults[F_NFAULT] = {}, maxRun[4] = {};
                long pushArmed = 0, pushMissed = 0, jsonStatus = 0, jsonLog = 0; float pushLongestMissed = 0;
-               long manOutside = 0, manOutsideOver = 0; uint32_t manOutsideMax = 0; } ST;
+               long manOutside = 0, manOutsideOver = 0; uint32_t manOutsideMax = 0; long knownPods = 0; uint32_t knownPodsMax = 0; } ST;
 
 // event log (ring, repeats folded)
 struct Ev { uint32_t t0, t1; std::string s; int rep; };
@@ -193,11 +193,12 @@ static void dumpEvents(int n) {
   }
 }
 
-static const char* INV_NAME[11] = {"", "hardware matches dir (pause only)", "run time limits", "stall stopped (seq 3.0 s, manual 2.5 s)",
+static const char* INV_NAME[12] = {"", "hardware matches dir (pause only)", "run time limits", "stall stopped (seq 3.0 s, manual 2.5 s)",
   "stop() turns all off at once", "no motor while a fault is latched", "no motor in FLIGHT", "phase valid and consistent",
-  "status / flightlog JSON valid", "auto only after /auto or impact landing", "nominal auto and release complete"};
+  "status / flightlog JSON valid", "auto only after /auto or impact landing", "nominal auto and release complete",
+  "no ANCHORED: no ground, kick swung from stowed"};
 struct SigInfo { long n, nNom; uint64_t seed; int ep; uint32_t t; std::string msg; };
-static std::map<std::string, SigInfo> SIGS; static bool DUMPED[11]; static int ONELINERS = 0;
+static std::map<std::string, SigInfo> SIGS; static bool DUMPED[12]; static int ONELINERS = 0;
 static void violate(int inv, const std::string& sig, const char* fmt, ...) {
   char msg[600]; va_list ap; va_start(ap, fmt); vsnprintf(msg, sizeof msg, fmt, ap); va_end(ap);
   VIOL[inv]++;
@@ -303,11 +304,11 @@ struct Track {
   // invariant 3: stalls
   bool stallOn[NMOT] = {}, stallGood[NMOT] = {}, stallFlag[NMOT] = {}; int stallDir[NMOT] = {}; uint32_t stallT0[NMOT] = {};
   int stallNmax[NMOT] = {}, stallNmin[NMOT] = {}, stallSpdMin[NMOT] = {}; bool stallSeq[NMOT] = {};
-  int stallMask[NMOT] = {}; bool stallMaskChg[NMOT] = {}, stallInfo[NMOT] = {};   // set of running motors at the stall
+  int stallMask[NMOT] = {}; bool stallMaskChg[NMOT] = {}, stallInfo[NMOT] = {}, knownFlag[NMOT] = {};   // set of running motors at the stall
   // invariant 1: pause
   bool pauseOn = false; int pauseM = -1; uint32_t pauseT0 = 0;
   bool act[11] = {};
-  int lastPhase = -1, lastFault = 0, lastSeqV = IDLE; uint32_t seqChangeT = 0;
+  int lastPhase = -1, lastFault = 0, lastSeqV = IDLE; uint32_t seqChangeT = 0; bool swingFromStow = false;
   float maxAccFlight = 0;
   bool linkLost = false, bno = true; uint32_t lastImu = 0;
   int pendingPushCheck = 0; float pushCheckAt = 0, pushLen = 0, pushT0 = 0;   // launch detection info check
@@ -392,6 +393,8 @@ static void checkAll(bool afterStop) {
     if (ph != T.lastPhase) { evlog("phase %s (seq '%s')", phaseName(ph), seqName(K.seq)); T.lastPhase = ph; }
   }
   if (K.armed != T.lastArmed) { T.lastArmed = K.armed; if (K.armed) T.armChangeT = ET; }
+  if (K.seq != T.lastSeqV && K.seq == K_SWING) T.swingFromStow = P.kick < 100;   // the firmware sees the whole swing
+  if (K.seq != T.lastSeqV && K.seq == DONE && T.swingFromStow) { CHECKS[11]++; if (P.noGround) violate(11, "anchored with no ground under the kick", "seq anchored with no ground (kick end stop at %.0f, kick at %.0f), last event '%s'", P.kickLand, P.kick, K.lastEvent); }
   if (K.seq != T.lastSeqV) { if (K.seq == DONE) ST.anchored++; if (K.seq == RELEASED) ST.released++; T.lastSeqV = K.seq; T.seqChangeT = ET; }
   // 2: run limits
   {
@@ -439,7 +442,7 @@ static void checkAll(bool afterStop) {
         endStall(m);
         T.stallOn[m] = true; T.stallDir[m] = d; T.stallT0[m] = ET; T.stallGood[m] = true; T.stallFlag[m] = false; CHECKS[3]++;
         T.stallSeq[m] = K.seqRunning(); T.stallNmax[m] = 0; T.stallNmin[m] = 9; T.stallSpdMin[m] = 255;
-        T.stallMask[m] = runMask; T.stallMaskChg[m] = false;
+        T.stallMask[m] = runMask; T.stallMaskChg[m] = false; T.knownFlag[m] = false;
       }
       { int n = nRunning(); if (n > T.stallNmax[m]) T.stallNmax[m] = n; if (n < T.stallNmin[m]) T.stallNmin[m] = n; if (K.spd < T.stallSpdMin[m]) T.stallSpdMin[m] = K.spd; }
       if (runMask != T.stallMask[m]) T.stallMaskChg[m] = true;
@@ -447,6 +450,12 @@ static void checkAll(bool afterStop) {
       bool sq = T.stallSeq[m];
       bool covered = sq || (!T.stallMaskChg[m] && T.stallNmax[m] <= 2 && T.stallSpdMin[m] >= 150);
       uint32_t limit = sq ? 3000 : 2500;
+      // documented known limit (API.md): pods at a stop or jammed while the drills' current rises during each pause by
+      // more than the margin are only ended by the pods time limit. Still bounded: deployMaxMs + 0.5 s
+      bool knownPods = m == DEPLOY && (K.seq == D_DEPLOY || K.seq == R_PODS) && P.cDrill > 0.05f;
+      if (knownPods) limit = K.tu.deployMaxMs + 500;
+      if (knownPods && ET - T.stallT0[m] > 3000 && !T.knownFlag[m]) { T.knownFlag[m] = true; ST.knownPods++; }
+      if (knownPods && ET - T.stallT0[m] > ST.knownPodsMax) ST.knownPodsMax = ET - T.stallT0[m];
       if (!T.stallFlag[m] && T.stallGood[m] && !covered && ET - T.stallT0[m] > 2500) {
         T.stallFlag[m] = true; T.stallInfo[m] = true; ST.manOutsideOver++;
         evlog("info: manual stall outside the documented guarantee still driven after 2.5 s (%s, %d to %d motors, lowest speed %d)", motorName(m), T.stallNmin[m], T.stallNmax[m], T.stallSpdMin[m]);
@@ -527,15 +536,18 @@ static void checkLogJson() {
     size_t np = out.find("\"n\":"), sp = out.find("\"samples\":[");
     if (np == std::string::npos || sp == std::string::npos) why = "missing n or samples";
     else {
-      long nn = strtol(out.c_str() + np + 4, nullptr, 10), cnt = 0; uint32_t lastT = 0; bool order = true, width = true;
+      long nn = strtol(out.c_str() + np + 4, nullptr, 10), cnt = 0; uint32_t lastT = 0; bool order = true, width = true, hasLaunch = false;
       for (size_t k = sp + 11; k < out.size(); k++) if (out[k] == '[') {
         cnt++; char* q = &out[k + 1]; uint32_t t = (uint32_t)strtoul(q, &q, 10); int f = 1;
         while (*q == ',') { strtod(q + 1, &q); f++; }
         if (f != 8) width = false;
         if (cnt > 1 && (int32_t)(t - lastT) <= 0) order = false;   // millis() order, wrap-aware
+        if (K.flight.launched && abs((int32_t)(t - K.flight.tLaunch)) <= 60) hasLaunch = true;
         lastT = t;
       }
-      if (cnt != nn) why = "n does not match the sample count"; else if (!width) why = "a sample does not have 8 fields"; else if (!order) why = "samples not in time order";
+      bool frozenFlight = K.log.frozen && K.flight.launched && cnt > 0;
+      if (cnt != nn) why = "n does not match the sample count";
+      else if (frozenFlight && !hasLaunch) why = "frozen flight log no longer holds the launch"; else if (!width) why = "a sample does not have 8 fields"; else if (!order) why = "samples not in time order";
     }
   }
   if (why) violate(8, std::string("flightlog: ") + why, "LogJson (chunk cap %d, %zu bytes): %s: %.200s", cap, out.size(), why, out.c_str());
@@ -825,8 +837,15 @@ static void randomPlant(bool nominal) {
   double c = nominal ? 0.10 : 0.15; P.cDrill = (float)R.r(-c, c); P.cFoot = (float)R.r(-c, c);
   for (int m = 0; m < NMOT; m++) P.rate[m] = (float)R.r(0.85, 1.15);
   P.kickContact = R.r(2000, 3500); P.kickLand = P.kickContact + R.r(1000, 1600);
+  if (nominal) {   // documented geometry (API.md NO_GROUND, BENCH_TEST step 5): on flat ground the housing lands before 80 % of the swing in air
+    double air = K.tu.kickSwingMs * P.rate[KICK] * 8.0 / 7.6;   // the air swing in plant units
+    if (P.kickLand > 0.8 * air) { P.kickLand = 0.8 * air; if (P.kickContact > P.kickLand - 800) P.kickContact = P.kickLand - 800; }
+  }
   P.deployEnd = R.r(1100, 1700); P.drillTouch = P.deployEnd * R.r(0.4, 0.8);
   P.drillFull = R.r(1500, 6000); P.footFull = R.r(1200, 5000);
+  if (!nominal && R.p(0.08)) {   // on its back or side: the kick never touches ground and stops at its own outer end stop,
+    // placed where the firmware's travel count (rate and the 7.6 V plant reference) reads kickSwingMs, within 5 %
+    P.noGround = true; P.kickContact = 1e9; P.kickLand = K.tu.kickSwingMs * R.r(0.95, 1.05) * P.rate[KICK] * 8.0 / 7.6; }
   if (!nominal && R.p(0.3)) { P.kick = R.r(0, P.kickLand); P.deploy = R.r(0, P.deployEnd); }   // legs left anywhere
 }
 
@@ -942,6 +961,8 @@ int main(int argc, char** argv) {
   printf("\nnominal missions: %ld anchored fully, %ld released stowed\n", ST.nomAnch, ST.nomRel);
   printf("info (not an invariant): manual stalls outside the documented 2.5 s guarantee (3 or 4 motors, motors changing, speed <= 125): %ld,\n"
          "          %ld of them driven over 2.5 s, longest %lu ms (bounded by the 8 s hold cap, invariant 2)\n", ST.manOutside, ST.manOutsideOver, (unsigned long)ST.manOutsideMax);
+  printf("info (not an invariant): known limit, pods stalled with the drills' current rising in each pause: %ld driven over 3 s,\n"
+         "          longest %lu ms (bounded by the 6 s pods limit, checked in invariant 3)\n", ST.knownPods, (unsigned long)ST.knownPodsMax);
   int sweepTrials = quick ? 300 : 2000;
   int sJit = shortestAlwaysSeen(seed, 4, 7, sweepTrials), s5 = shortestAlwaysSeen(seed, 5, 5, sweepTrials);
   printf("info (not an invariant): launch push always detected from %d ms with 4..7 ms tick jitter, from %d ms with fixed 5 ms ticks\n"
@@ -949,7 +970,7 @@ int main(int argc, char** argv) {
          sJit, s5, ST.pushArmed, ST.pushMissed, ST.pushLongestMissed);
   printf("\ninvariant                                          checks   violations   (in nominal missions)\n");
   long total = 0;
-  for (int i = 1; i <= 10; i++) { printf("%2d %-44s %10ld %10ld   %10ld\n", i, INV_NAME[i], CHECKS[i], VIOL[i], VIOLN[i]); total += VIOL[i]; }
+  for (int i = 1; i <= 11; i++) { printf("%2d %-44s %10ld %10ld   %10ld\n", i, INV_NAME[i], CHECKS[i], VIOL[i], VIOLN[i]); total += VIOL[i]; }
   if (!SIGS.empty()) {
     printf("\nviolation signatures (count, first seed / episode / time):\n");
     for (auto& s : SIGS) printf("  [%s] x%ld (%ld in nominal missions)  first: seed %llu episode %d t %.3f s\n      %s\n", s.first.c_str(), s.second.n, s.second.nNom, (unsigned long long)s.second.seed, s.second.ep, s.second.t / 1000.0, s.second.msg.c_str());

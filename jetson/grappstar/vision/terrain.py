@@ -826,12 +826,20 @@ def _as_items(frames) -> List[tuple]:
     """Normalise input to a list of (img, idx, quality, bad)."""
     if isinstance(frames, np.ndarray):
         frames = [frames]
+    from ..video.frame import ensure_bgr
     items = []
     for i, fr in enumerate(frames or []):
+        img = fr if isinstance(fr, np.ndarray) else getattr(fr, "img", None)
+        if not isinstance(img, np.ndarray) or img.size == 0 or img.ndim not in (2, 3):
+            continue
+        try:
+            img = ensure_bgr(img)          # grey, HxWx1 and BGRA inputs become BGR
+        except Exception:
+            continue
         if isinstance(fr, np.ndarray):
-            items.append((fr, i, None, False))
-        elif hasattr(fr, "img"):
-            items.append((fr.img, int(getattr(fr, "idx", i)), getattr(fr, "quality", None),
+            items.append((img, i, None, False))
+        else:
+            items.append((img, int(getattr(fr, "idx", i)), getattr(fr, "quality", None),
                           bool(getattr(fr, "bad", False))))
     return items
 

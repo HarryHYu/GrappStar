@@ -109,9 +109,10 @@ def orient(solid, R):
     return ORIENT_CANDIDATES[min(ok)[1]] if ok else R
 
 
-def mk(name, solid, mat, notes, R=None, qty=1):
+def mk(name, solid, mat, notes, R=None, qty=1, keep_R=False):
+    """keep_R: use R as given (an owner-mandated print orientation), no flat-face auto flip."""
     solid = stl_clean(solid)
-    R0 = orient(solid, R if R is not None else tf.I4)
+    R0 = R if (keep_R and R is not None) else orient(solid, R if R is not None else tf.I4)
     R = tf.mul(tf.Rz(min_box_rz(solid, R0)), R0)          # smallest footprint for the packer
     return Part(name, solid, mat, qty=qty, print_tf=bed(solid, R), color=COL[mat], subsystem=SUB, notes=notes)
 
@@ -140,9 +141,14 @@ def coupon_1(P):
     import launch_gears as LG
     import launch as LN
     n = LA.A(P)
-    zs = 3.0                                          # sun / idler / output bottom above the plate
-    za = zs + (LA.Y_ARM0 - LA.Y_SUN)                  # arm bottom (11.5)
-    zc = za + (LA.Y_ARM1 - LA.Y_ARM0) + 3.0           # crank bottom (18.5)
+    arm = LA.arm_solid(P)
+    pad, shim, clip = LA.drag_pad_solid(P), LA.drag_shim_solid(P), LA.pin_clip_solid(P)
+    dz = LA.Y_ARM0 - LA.Y_SUN                         # arm bottom above the sun bottom (as built)
+    z_clip = LA._clip_y0(LA.Y_SUN) - LA.Y_ARM0        # clip low face in the arm frame (as built)
+    low = min(prim.bbox(arm)[0][2], z_clip)           # lowest point of arm pin / clip in the arm frame
+    zs = max(3.0, 1.0 - dz - low)                     # sun / idler / output bottom: pin end and clip 1 mm off the plate
+    za = zs + dz                                      # arm bottom
+    zc = za + (LA.Y_ARM1 - LA.Y_ARM0) + 3.0           # crank bottom
     ct = 6.0
     ztop = zc + ct
     zf0, zf1 = za + 0.1, zc - 0.5                     # stop finger in the arm plane
@@ -165,7 +171,7 @@ def coupon_1(P):
     sl = sl + prim.box(9.0, LN.RIB_R, -LN.RIB_W / 2, LN.RIB_W / 2, zs - 0.01, zs + face)
     sl = sl + prim.box(9.0, LN.RIB_R, -LN.RIB_W / 2, LN.RIB_W / 2, zc, ztop)
     sl = sl - prim.cyl(rp + fit / 2, ztop + 2, z=-1)
-    sun, arm, idl = LA.sun_solid(P), LA.arm_solid(P), LA.idler_solid(P)
+    sun, idl = LA.sun_solid(P), LA.idler_solid(P)
     out = LG.spur(LA.M_S, LA.Z_OUT, face, bore=2 * rp + fit)
     # crank (PLA): hub with the sun's keyway cut, bar, knob
     cr = prim.union([prim.cyl(15.0, ct), prim.box(0, 30, -5, 5, 0, ct), prim.cyl(5.0, ct, x=30),
@@ -181,10 +187,13 @@ def coupon_1(P):
         mk("rc1_plate", plate, "PLA", "Splitter base: centre pin d8, output pin d8, stop finger column (2 x M3 tap)"),
         mk("rc1_sleeve", sl, "PPA-CF", "Sleeve stub d20 with the integral key rib (launch.RIB_W, RIB_R) under the sun and the crank"),
         mk("rc1_sun", sun, "PPA-CF", "launch_aim.sun_solid: sun m1.5 z30 as built"),
-        mk("rc1_arm", arm, "PPA-CF", "launch_aim.arm_solid: swing arm as built (O-ring groove, d8 pin, clip groove)",
+        mk("rc1_arm", arm, "PPA-CF", "launch_aim.arm_solid: swing arm as built (drag pad pocket, d8 pin, clip groove)",
            R=tf.Rx(180)),
+        mk("rc1_drag_pad", pad, "PLA", "launch_aim.drag_pad_solid: printed flexure drag pad as built"),
+        mk("rc1_drag_shim", shim, "PLA", "launch_aim.drag_shim_solid: nominal preload shim as built"),
+        mk("rc1_idler_clip", clip, "PLA", "launch_aim.pin_clip_solid: printed C clip for the d8 idler pin"),
         mk("rc1_idler", idl, "PPA-CF", "launch_aim.idler_solid: idler m1.5 z18 as built"),
-        mk("rc1_output", out, "PPA-CF", "Output m1.5 z30 (launch_gears.spur, face 8) on a d8 pin"),
+        mk("rc1_output", out, "PPA-CF", f"Output m1.5 z30 (launch_gears.spur, face {face:g}) on a d8 pin"),
         mk("rc1_crank", cr, "PPA-CF", "Hand crank, keyed on the sleeve rib like the sun"),
         mk("rc1_stop", fg, "PLA", "Stop finger: rounded end at the as-built stop post position",
            R=tf.Rz(-math.degrees(phi))),
@@ -194,24 +203,31 @@ def coupon_1(P):
         Ra = tf.Rz(alpha)
         return {"rc1_plate": tf.I4, "rc1_sleeve": tf.I4, "rc1_sun": tf.T(0, 0, zs),
                 "rc1_arm": tf.mul(Ra, tf.T(0, 0, za)), "rc1_idler": tf.mul(Ra, tf.T(n["cd_si"], 0, zs)),
-                "rc1_output": tf.T(ox, oy, zs), "rc1_crank": tf.T(0, 0, zc), "rc1_stop": tf.I4}
+                "rc1_output": tf.T(ox, oy, zs), "rc1_crank": tf.T(0, 0, zc), "rc1_stop": tf.I4,
+                "rc1_drag_pad": tf.mul(Ra, tf.T(0, 0, za)), "rc1_drag_shim": tf.mul(Ra, tf.T(0, 0, za)),
+                "rc1_idler_clip": tf.mul(Ra, tf.T(n["cd_si"], 0, za + z_clip))}
     return dict(
         key="1", title="Swing-arm direction splitter", parts=parts,
         asm=[state(n["alpha_e"]), state(n["alpha_d"])],
         mesh=[("rc1_sun", "rc1_idler"), ("rc1_idler", "rc1_output")],
+        allow=[("rc1_drag_pad", "rc1_sleeve"), ("rc1_idler_clip", "rc1_arm")],   # pad preload bump, clip in its groove
         uses=(f"launch_aim.sun_solid, arm_solid, idler_solid (m{LA.M_S:g} z{LA.Z_SUN}/{LA.Z_IDL}/{LA.Z_OUT}, face "
               f"{face:g}, FIT {fit}), launch_gears.spur for the output, launch_aim.A: centre distances "
               f"{n['cd_si']:.2f} / {n['cd_io']:.2f}, output at ({ox:.1f}, {oy:.1f}), engaged arm "
               f"{n['alpha_e']:.1f} deg, stop {n['alpha_d']:.1f} deg (launch_aim._stop_post_xy), sleeve rib "
-              f"launch.RIB_W {LN.RIB_W:g} / RIB_R {LN.RIB_R:g}"),
-        bought="O-ring 20 x 1.5 (arm hub groove), e-clip for the d8 arm pin, 2 x M3x16",
-        do=("O-ring into the arm hub groove. On the plate: sleeve on the centre pin, sun on its rib, arm on the sleeve "
-            "above the sun with its pin down through the idler, e-clip on the pin, output on its pin, crank on top, stop "
-            "finger on the column (2 x M3x16). Turn the crank 10 turns each way."),
+              f"launch.RIB_W {LN.RIB_W:g} / RIB_R {LN.RIB_R:g}; drag_pad_solid, drag_shim_solid (DRAG_INT "
+              f"{LA.DRAG_INT:g}, shim up to +{LA.DRAG_SHIM_ADJ:g}), pin_clip_solid"),
+        bought="2 x M3x16 (stop finger); everything else printed",
+        do=("Push the drag pad root block and the shim into the arm hub pocket (finger in its recess). On the plate: "
+            "sleeve on the centre pin, sun on its rib, arm on the sleeve above the sun with its pin down through the "
+            "idler, printed C clip into the pin groove, output on its pin, crank on top, stop finger on the column "
+            "(2 x M3x16). Turn the crank 10 turns each way."),
         ok=("Clockwise seen from above: the arm swings the idler into the output at once and the output turns, no "
             "skipped teeth. Anticlockwise: the arm swings out to the finger within about 20 deg of crank, the idler "
-            "runs free and the output stays still. No jam at engagement."),
-        fail=("launch_aim.py: FIT (pin and bore play), arm_solid O-ring groove (drag), A() alpha_d = alpha_e + 20 "
+            "runs free and the output stays still. No jam at engagement. The pad drags the arm reliably both ways and "
+            "the clip stays on."),
+        fail=("launch_aim.py: FIT (pin and bore play), DRAG_INT and DRAG_SHIM_ADJ (drag: or print a thicker shim), "
+              "clips.py for the C clip, A() alpha_d = alpha_e + 20 "
               "(swing out), _stop_post_xy; launch_gears.py center_distance extra / spur backlash (mesh)."),
     )
 
@@ -583,8 +599,8 @@ def coupon_9(P):
                 f"with a lever, string hole at r {LEVER_R:g}", R=tf.Rx(180)),
              mk("rc9_outer_lever", outer, "PPA-CF", "drum.coupler slice (shear pin hole) "
                 f"with a lever, string hole at r {LEVER_R:g}"),
-             mk("rc9_shear_pin", pin, "PLA", "drum.shear_pin as built (d4 PLA), lying on its flat as drum prints it",
-                R=tf.Ry(180), qty=3)]
+             mk("rc9_shear_pin", pin, "PLA", "drum.shear_pin as built (d4 PLA), printed LYING on its 0.4 mm flat as drum "
+                "prints it (D44): the shear plane runs across the layers", R=tf.Ry(180), qty=3, keep_R=True)]
     return dict(
         key="9", title="Shear-pin torque limiter", parts=parts,
         asm=[{"rc9_hub_lever": tf.I4, "rc9_outer_lever": tf.I4, "rc9_shear_pin": tf.I4}], mesh=[],
@@ -593,7 +609,8 @@ def coupon_9(P):
               f"in single shear at r {r:g} (shear_s {g['shear_s']:g}); {t_est:.1f} N m at {sig:g} MPa"),
         bought="string or a strap, luggage scale",
         t_est=t_est, kg=kg, t_range=SHEAR_RANGE_NM, kg_range=kg_range,
-        do=(f"Hub slice into the outer slice, pin through both holes (head outside). Clamp the hub lever, hang the "
+        do=(f"Print the pins lying down on their flat, as exported (D44: shear plane across the layers; never stand them "
+            f"up). Hub slice into the outer slice, pin through both holes (head outside). Clamp the hub lever, hang the "
             f"luggage scale on the outer lever hole (r {LEVER_R:g} mm) at right angles and pull slowly until the pin "
             f"shears. Break all 3 pins. Torque = kg x 9.81 x {LEVER_R / 1000:g} N m."),
         ok=(f"Each pin shears cleanly between {kg_range[0]:.1f} and {kg_range[1]:.1f} kg on the scale "

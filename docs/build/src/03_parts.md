@@ -47,7 +47,7 @@ looking in the box.
 
 ## Dart (KEDGE v30)
 
-The full dart list with quantities is in the dart run sheet, section 2 (appendix). In short: XIAO ESP32S3, 2 x
+The full dart list with quantities is in the dart run sheet, section 2 (`kedge/pack_v30/KEDGE_v30_run_sheet.pdf`). In short: XIAO ESP32S3, 2 x
 DRV8833 (the third goes to the base), INA219, BNO085, MP1584 #1 (5.04 V), OTOTEC 2S BMS, 2 x 18350 cells, 3 worm
 N20s (kick, deploy, foot), 2 drill gearmotors, 5 x F693ZZ, Caddx Ant, Zeus VTX and antenna, JST-XH sockets,
 Schottky diode, capacitor, M3 hardware, 15 g nose ballast.

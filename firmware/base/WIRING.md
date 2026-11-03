@@ -1,10 +1,11 @@
 # Base station wiring
 
-Board: ESP32-S3 DevKitC-1-N8. Pins come from `grappstar_base/pins.h` (firmware `base-1.2.1`). Nothing here has been
+Board: ESP32-S3 DevKitC-1-N8. Pins come from `grappstar_base/pins.h` (firmware `base-1.3.0`). Nothing here has been
 wired and tested on real hardware yet: check every step with the multimeter.
 
 **The rule: battery unplugged whenever a wire or plug moves. Plug the battery in last, after the checks. Never pull a
-plug while the battery is in.**
+plug while the battery is in.** The one exception: lead #2's XT60 is the physical motor kill switch and may be pulled
+at any time (the build guide's motors-safe state).
 
 ## 1. Pin table
 
@@ -55,7 +56,7 @@ newer boards, so `SW_HOME` is on GPIO21 instead.
 | 10 k | BTS7960 L_EN | GND (BTS7960 header) | same | any value from 4.7 k to 47 k |
 | 1 k | R_IS + L_IS (tied) | GPIO1 | series protection for the pin | any value from 1 k to 4.7 k |
 | 680 R | GPIO1 | GND | turns the IS current into a voltage (sets `amps_per_volt` = 8500 / 680 = 12.5) | any value from 470 R to 1 k, then `set amps_per_volt` to 8500 / your value (1 k: 8.5) |
-| 100 k | BTS7960 B+ screw (soldered right at the screw) | the long wire to GPIO2 | battery divider top: the long wire then carries only the divided voltage, never the full 12.6 V | leave the divider out (both resistors) and send `{"id":1,"cmd":"set","key":"vbat_wired","val":false}`: no `vbat`, no battery checks |
+| 100 k | BTS7960 B+ screw (soldered right at the screw) | the long wire to GPIO2 | battery divider top: the long wire then carries only the divided voltage, never the full 12.6 V | leave the divider out (both resistors) and send `{"id":1,"cmd":"set","key":"vbat_wired","val":false}` after every start-up (it is not kept): no `vbat`, no battery checks, and no `NO_POWER` protection |
 | 1 uF capacitor (strongly recommended) | GPIO1 (at the ESP32 end of the IS wire) | GND | smooths the IS pulses. The sketch already averages 16 reads spread across the 20 kHz PWM period, so the reading is right without it; the capacitor is belt and braces against noise and timing slips | 1 uF to 2.2 uF, ceramic best (an electrolytic: striped leg to GND). Without one the firmware still works; fit it when you can |
 | 22 k | GPIO2 | GND | battery divider bottom (12.6 V reads 2.27 V) | as above: the firmware assumes exactly 100 k / 22 k, so do not swap in other values |
 | 2 A inline fuse | BTS7960 B+ screw | MP1584 IN+ | a short in the buck or the DRV8833 blows this, not the thin wires | no small fuse: use 18 AWG wire for that lead and keep it short (under 10 cm) |
@@ -95,7 +96,8 @@ ESP32 power: USB from the Jetson (from the Mac on the bench)
   GND. 12.6 V reads 2.27 V on the pin. It feeds `vbat` in telemetry and the battery checks (`NO_POWER` under 6 V,
   `BROWNOUT` under 9.9 V while a motor runs). With the battery unplugged `vbat` reads about 0. If you leave the divider
   out, send `{"id":1,"cmd":"set","key":"vbat_wired","val":false}` (then `vbat` is `null` and there is no battery
-  check).
+  check). It goes back to true at every start-up, so send it again after each power-up; without it every motor command
+  is refused with `NO_POWER`.
 
 ## 4. BTS7960 details
 
@@ -213,7 +215,10 @@ is wired to it.
    telemetry `sw` (BENCH_TEST.md step 2). Unplug USB.
 10. Battery unplugged. DRV8833: AIN1 GPIO15, AIN2 GPIO16, GND to ESP32 GND. SLP and FLT stay unconnected.
     AOUT1 and AOUT2 to the drum N20.
-11. Battery unplugged. Buck output (already set to 9.0 V in Part A): OUT+ to DRV8833 VM, OUT- to DRV8833 GND.
+11. Battery unplugged. Check the buck on its own once more before it touches the DRV8833: connect only its input to
+    the fused XT60 lead as in Part A (nothing on the output, meter on OUT+ / OUT-), plug the battery in, read 9.0 V
+    with no load, unplug the battery and disconnect the input again. Only then, battery still unplugged: OUT+ to
+    DRV8833 VM, OUT- to DRV8833 GND.
 12. Battery unplugged. Buck input: the 2 A inline fuse goes right at the BTS7960 B+ screw, then the IN+ lead to the
     buck IN+ (no fuse: 18 AWG, kept under 10 cm). IN- to BTS7960 B-.
 13. Battery unplugged. Power: fused XT60 lead + to BTS7960 B+, - to B-. Use 14 AWG. The 20 A fuse in the + lead.

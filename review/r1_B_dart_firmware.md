@@ -7,15 +7,19 @@ agreed it is real but rated it lower.
 
 Confirmed: 5. Refuted and dropped: 0.
 
-| # | Sev | File:line | Owner | Finding |
-|---|---|---|---|---|
-| 1 | medium | `firmware/dart/kedge_dart/kedge_logic.h:401` | fw-dart | Holding both directions of one motor bypasses the 8 s hold cap and stall detection, so the motor runs with no limit |
-| 2 | medium | `firmware/dart/kedge_dart/kedge_logic.h:428` | fw-dart | A 'timeout' landing after a real impact freezes the flight log about 15 s after launch, so the launch, the flight and the impact are all lost from the 12 s ring |
-| 3 | medium | `firmware/dart/kedge_dart/kedge_logic.h:463` | fw-dart | One failed INA219 read on the tick a normal phase timer ends aborts /auto or /release with SEQ_TIMEOUT |
-| 4 | medium | `jetson/grappstar/comms/dart.py:214` | jetson | Jetson gives up on /flightlog for good on the dart's 409 'busy' refusal, which happens every shot with auto_anchor_on_landing=True and whenever the dart is still in FLIGHT |
-| 5 | low | `jetson/grappstar/cli.py:179` | jetson | CLI 'dart release' reports success when the release was aborted by /stop (phase IDLE, seq aborted) |
+Re-checked 14:10 Sydney against base-v1 863d58d, one checker subagent per finding: see the Now column.
+
+| # | Sev | File:line | Owner | Finding | Now (863d58d) |
+|---|---|---|---|---|---|
+| 1 | medium | `firmware/dart/kedge_dart/kedge_logic.h:401` | fw-dart | Holding both directions of one motor bypasses the 8 s hold cap and stall detection, so the motor runs with no limit | fixed |
+| 2 | medium | `firmware/dart/kedge_dart/kedge_logic.h:428` | fw-dart | A 'timeout' landing after a real impact freezes the flight log about 15 s after launch, so the launch, the flight and the impact are all lost from the 12 s ring | fixed |
+| 3 | medium | `firmware/dart/kedge_dart/kedge_logic.h:463` | fw-dart | One failed INA219 read on the tick a normal phase timer ends aborts /auto or /release with SEQ_TIMEOUT | fixed |
+| 4 | medium | `jetson/grappstar/comms/dart.py:214` | jetson | Jetson gives up on /flightlog for good on the dart's 409 'busy' refusal, which happens every shot with auto_anchor_on_landing=True and whenever the dart is still in FLIGHT | fixed |
+| 5 | low | `jetson/grappstar/cli.py:179` | jetson | CLI 'dart release' reports success when the release was aborted by /stop (phase IDLE, seq aborted) | fixed |
 
 ## 1. Holding both directions of one motor bypasses the 8 s hold cap and stall detection, so the motor runs with no limit
+
+- Now (863d58d): **fixed** at `firmware/dart/kedge_dart/kedge_logic.h:454`. Fixed. If a press comes in for one direction while the same motor is still running the other way inside the repeat window, key() now sets bothLock, stops the motor and refuses both directions until neither key repeats (lines 454-455); stop() also locks both directions (line 376). I built and ran test_logic.cpp: 224 checks, all pass, including the new check "R1-B #1: '1' and '!' alternating every 75 ms: stopped, not driven for 20 s" (test_logic.cpp:475).
 
 - File: `firmware/dart/kedge_dart/kedge_logic.h:401`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -43,6 +47,8 @@ Code path (firmware/dart/kedge_dart/kedge_logic.h):
 >
 
 ## 2. A 'timeout' landing after a real impact freezes the flight log about 15 s after launch, so the launch, the flight and the impact are all lost from the 12 s ring
+
+- Now (863d58d): **fixed** at `firmware/dart/kedge_dart/kedge_logic.h:478-489`. There is now a freezeCap() helper, equal to tLaunch-2000+(LOG_N-1)*20. On LAUNCH the code schedules the freeze at that time, and on LAND it uses the earlier of tLand+3000 and the cap, which is what the finding asked for. The test at test_logic.cpp:469-473 reproduces the case: a timeout landing after an impact, with the dart nudged every 0.8 s. It now passes, and the log covers 2985..14965 with launch at t=5000, so the launch and the impact are both kept. The full suite passes all 224 checks.
 
 - File: `firmware/dart/kedge_dart/kedge_logic.h:428`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -73,6 +79,8 @@ Code (firmware/dart/kedge_dart/kedge_logic.h):
 
 ## 3. One failed INA219 read on the tick a normal phase timer ends aborts /auto or /release with SEQ_TIMEOUT
 
+- Now (863d58d): **fixed** at `firmware/dart/kedge_dart/kedge_logic.h:538-548`. When a read fails (the !curOk branch), a step timer that runs out now just stops that motor with drive(m,0,0,now), and the sequence moves on at the next good read. Only the kick timers in K_SWING, K_PLANT and R_KICK still raise F_KICK_TIMEOUT. The sequence-wide time limit (autoMaxMs/releaseMaxMs) and the inaFailLimit rule for losing the sensor are both still there, so the SEQ_TIMEOUT abort on a normal step end no longer happens.
+
 - File: `firmware/dart/kedge_dart/kedge_logic.h:463`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: fw-dart
@@ -97,6 +105,8 @@ hwCurrent in kedge_dart.ino returns NAN whenever an I2C transfer
 >
 
 ## 4. Jetson gives up on /flightlog for good on the dart's 409 'busy' refusal, which happens every shot with auto_anchor_on_landing=True and whenever the dart is still in FLIGHT
+
+- Now (863d58d): **fixed** at `jetson/grappstar/mission.py:906`. landing_zone now waits up to 40 s for LANDED/ANCHORED/IDLE/FAULT/ARMED with fail=() before fetching, so FLIGHT and ANCHORING are both waited out, and an ARMED dart gets disarmed. Dart.flightlog (comms/dart.py:202-215) also retries a 409 whose reason starts with "busy" with backoff for up to 45 s, and that is exactly the reason the firmware returns (kedge_dart.ino:275).
 
 - File: `jetson/grappstar/comms/dart.py:214`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -134,6 +144,8 @@ Case 1 is concrete and happens on every shot in that mode.
 >
 
 ## 5. CLI 'dart release' reports success when the release was aborted by /stop (phase IDLE, seq aborted)
+
+- Now (863d58d): **fixed** at `jetson/grappstar/cli.py:179`. The CLI now calls wait_phase(("IDLE",), 90, want_seq="released"). In comms/dart.py:297, IDLE alone no longer returns because seq must be "released", and dart.py:303-304 raises DartError("dart sequence aborted") when seq is "aborted", so an aborted release is no longer reported as success. cli.py:180 also prints "released" only when seq is "released".
 
 - File: `jetson/grappstar/cli.py:179`
 - Severity: low (claimed low); unverified (low)

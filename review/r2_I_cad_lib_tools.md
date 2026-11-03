@@ -7,17 +7,21 @@ agreed it is real but rated it lower.
 
 Confirmed: 7. Refuted and dropped: 1.
 
-| # | Sev | File:line | Owner | Finding |
-|---|---|---|---|---|
-| 1 | high | `base/tools/steps.py:64` | cad-infra | plan_steps silently drops every explicit assembly step whose parts are all already used, removing the 'Set the buck BEFORE wiring the DRV8833', 'Launcher 8: time the big gear' and deck-mounting steps from guide.pdf and assembly.html |
-| 2 | medium | `base/tools/audit.py:779` | cad-infra | refine() caps sub-steps at 720 without warning, so a joint can move far more than MAX_STEP_DEG between audited states (wrap phase: reel_cup moves 3.5 deg per step) |
-| 3 | medium | `base/tools/pack.py:112` | cad-infra | pack/bom/guide with --only reuse whatever OUT/asm.json exists and silently produce an empty print pack and BOM with exit 0 |
-| 4 | low | `base/cad/lib/gears.py:106` | cad-infra | Internal gear helper skips the interference check for tooth difference >= 10 and crashes on a positive pinion shift; it returns a centre distance where the pinion collides with the ring |
-| 5 | low | `base/cad/lib/worm.py:80` | cad-infra | worm_info self-locking flag uses the axial friction angle atan(mu), not the normal-plane angle atan(mu / cos an), so it contradicts back_efficiency |
-| 6 | low | `base/tools/audit.py:782` | cad-infra | refine() copies non-numeric S keys from the earlier state, so a joint driven by a string or flag key jumps in one unrefined step at the end of the interval |
-| 7 | low | `base/tools/bom.py:93` | cad-infra | BOM and guide parts list use a different mass model than the print pack, under-stating PPA-CF filament by about 20 percent |
+Re-checked 14:10 Sydney against base-v1 863d58d, one checker subagent per finding: see the Now column.
+
+| # | Sev | File:line | Owner | Finding | Now (863d58d) |
+|---|---|---|---|---|---|
+| 1 | high | `base/tools/steps.py:64` | cad-infra | plan_steps silently drops every explicit assembly step whose parts are all already used, removing the 'Set the buck BEFORE wiring the DRV8833', 'Launcher 8: time the big gear' and deck-mounting steps from guide.pdf and assembly.html | fixed |
+| 2 | medium | `base/tools/audit.py:779` | cad-infra | refine() caps sub-steps at 720 without warning, so a joint can move far more than MAX_STEP_DEG between audited states (wrap phase: reel_cup moves 3.5 deg per step) | fixed |
+| 3 | medium | `base/tools/pack.py:112` | cad-infra | pack/bom/guide with --only reuse whatever OUT/asm.json exists and silently produce an empty print pack and BOM with exit 0 | partly fixed |
+| 4 | low | `base/cad/lib/gears.py:106` | cad-infra | Internal gear helper skips the interference check for tooth difference >= 10 and crashes on a positive pinion shift; it returns a centre distance where the pinion collides with the ring | fixed |
+| 5 | low | `base/cad/lib/worm.py:80` | cad-infra | worm_info self-locking flag uses the axial friction angle atan(mu), not the normal-plane angle atan(mu / cos an), so it contradicts back_efficiency | fixed |
+| 6 | low | `base/tools/audit.py:782` | cad-infra | refine() copies non-numeric S keys from the earlier state, so a joint driven by a string or flag key jumps in one unrefined step at the end of the interval | fixed |
+| 7 | low | `base/tools/bom.py:93` | cad-infra | BOM and guide parts list use a different mass model than the print pack, under-stating PPA-CF filament by about 20 percent | fixed |
 
 ## 1. plan_steps silently drops every explicit assembly step whose parts are all already used, removing the 'Set the buck BEFORE wiring the DRV8833', 'Launcher 8: time the big gear' and deck-mounting steps from guide.pdf and assembly.html
+
+- Now (863d58d): **fixed** at `base/tools/steps.py:98-101,266-277`. plan_steps no longer filters anything out. Every authored step is kept: a step with no parts becomes a text step, and parts already claimed by an earlier step move to a new "handle" list. A scratch run showed a step with no parts ('Set the buck') and a step whose only part was already used ('Dup', handle=['a']) both stay in the output, and guide_steps and build both use this function.
 
 - File: `base/tools/steps.py:64`
 - Severity: high (claimed critical); 2 of 2 skeptics confirmed
@@ -44,6 +48,8 @@ I ran plan_steps on the full Assembly.load(load_params(), None). It returns 37 s
 >
 
 ## 2. refine() caps sub-steps at 720 without warning, so a joint can move far more than MAX_STEP_DEG between audited states (wrap phase: reel_cup moves 3.5 deg per step)
+
+- Now (863d58d): **fixed** at `base/tools/audit.py:1016`. refine() now defaults to cap=100000 and raises ValueError when an interval needs more than that, so it no longer clips silently. The 2520-step wraps 0->7 jump is now refined at 1 deg steps. _run also reports 'refinement capped' errors (audit.py:611). The wraps int target in params is unchanged, but it no longer gets past the audit.
 
 - File: `base/tools/audit.py:779`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -73,6 +79,8 @@ Fix: In refine(), when n > cap, do not clip silently. Either return the list of 
 
 ## 3. pack/bom/guide with --only reuse whatever OUT/asm.json exists and silently produce an empty print pack and BOM with exit 0
 
+- Now (863d58d): **partly fixed** at `base/tools/pack.py:116`. Fixed: load_out (pack.py:128-151) now re-exports when a requested --only subsystem is missing or the file is stale, and raises SystemExit when no printed parts are left, so the empty pack/BOM with exit 0 no longer happens. Still open: the reverse case. An --only export writes a subset asm.json to OUT (assembly.py:220, subsystems=list(self.modules)), and a later run without --only returns early at export_reason line 116-117 ("if not names: return None"). Nothing compares man['subsystems'] with the default set, so that subset is silently treated as the whole base.
+
 - File: `base/tools/pack.py:112`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: cad-infra
@@ -98,6 +106,8 @@ Fix: In load_out, compare the request with man['subsystems']. If any requested n
 >
 
 ## 4. Internal gear helper skips the interference check for tooth difference >= 10 and crashes on a positive pinion shift; it returns a centre distance where the pinion collides with the ring
+
+- Now (863d58d): **fixed** at `base/cad/lib/gears.py:45 and base/cad/lib/gears.py:116-123`. inv_inverse now raises ValueError when v <= 0. check_internal_pair no longer returns early for diff >= 10: it always computes aw and requires aw >= pa + 2*short. Running it confirms the fix: internal_center_distance(1,30,20,x_pinion=0.15/0.2) raises ValueError (aw 13.0 and 5.8 deg), x_pinion=0.3 raises ValueError instead of ZeroDivisionError, and center_distance(1,10,10,-0.3,-0.3) also raises ValueError.
 
 - File: `base/cad/lib/gears.py:106`
 - Severity: low (claimed medium); 2 of 2 skeptics confirmed
@@ -126,6 +136,8 @@ What I reproduced:
 
 ## 5. worm_info self-locking flag uses the axial friction angle atan(mu), not the normal-plane angle atan(mu / cos an), so it contradicts back_efficiency
 
+- Now (863d58d): **fixed** at `base/cad/lib/worm.py:47`. worm_info now sets self_locking = gam <= phin, where phin = atan(mu/cos pa). This is the same angle back_efficiency uses, so the flag is True exactly when back_efficiency <= 0. friction_angle now reports phin, and the axial angle has moved to a separate key, friction_angle_axial.
+
 - File: `base/cad/lib/worm.py:80`
 - Severity: low (claimed low); unverified (low)
 - Owner: cad-infra
@@ -138,6 +150,8 @@ Fix: worm.py:80: `"self_locking": bool(gam < phin)`. To keep the reported angle 
 
 
 ## 6. refine() copies non-numeric S keys from the earlier state, so a joint driven by a string or flag key jumps in one unrefined step at the end of the interval
+
+- Now (863d58d): **fixed** at `base/tools/audit.py:1021 (refine) and base/tools/audit.py:496 (pair-refine sub); base/tools/assembly.py:127`. The defect is fixed. refine() now sets S["_joints"] on every inserted state, interpolated linearly between the endpoint joint values, and the per-pair sub() at audit.py:496 does the same. Assembly.values() uses _joints when it is present instead of calling kin(), so a joint driven by a string or flag key such as 'mode' or 'phase' now moves evenly across the interval instead of jumping at the end.
 
 - File: `base/tools/audit.py:782`
 - Severity: low (claimed low); unverified (low)
@@ -157,6 +171,8 @@ Fix: After building the refined list, check it: compute asm.values() for each pa
 
 
 ## 7. BOM and guide parts list use a different mass model than the print pack, under-stating PPA-CF filament by about 20 percent
+
+- Now (863d58d): **fixed** at `base/tools/bom.py:91-108`. bom.build now takes out and computes each printed part's mass with pack.print_mass_g (PROFILE walls and infill) on the mesh area. This is the same call pack.py:641 uses for the print sheet. bom.run and guide.py:155 both pass out, so the BOM, the guide's 'Printed mass' line and the print pack now use the same model. The manifest mass_g is used only when out is None, which happens in unit tests with no meshes.
 
 - File: `base/tools/bom.py:93`
 - Severity: low (claimed low); unverified (low)

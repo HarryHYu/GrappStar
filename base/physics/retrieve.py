@@ -40,7 +40,8 @@ APPROACH = dict(
     pitch_deg=(5.0, 10.0),
     mu_cradle=(0.30, 0.40), # dart belly on the PLA cradle
     seat_force=1.0,         # N to close SW_SEATED (printed flex tongue; ASSUMED)
-    eye_gain=1.75,          # reel -> dart path when seating: guide eye 50 + ring 27 + exit eye 50 deg plain printed holes,
+    eye_gain=None,          # None: seating_gain(p) (1.3 with the D43 pulleys, 1.75 with plain holes)
+    eye_gain_plain=1.75,    # reel -> dart path when seating: guide eye 50 + ring 27 + exit eye 50 deg plain printed holes,
                             # pulleys (review: 1.47 to 2.03); about 1.3 with 693 pulleys at the eyes
 )
 
@@ -110,19 +111,27 @@ def wrap_loads(p, w=None, light_n=None):
                 line_drawn_m=line_drawn)
 
 
+def seating_gain(p, a=APPROACH):
+    """Reel -> dart tension gain when seating (line pulled in through the storage guide, cup ring and exit eye)."""
+    if a.get("eye_gain"):
+        return a["eye_gain"]
+    return 1.3 if p.capstan.get("path_gain", 1.5) <= 1.2 else a["eye_gain_plain"]
+
+
 def approach(p, a=APPROACH):
     rp = reel_props(p)
     torque = p.capstan["takeup_n"] * rp["r_full"]             # FIRM clutch: line tension with the reel full
     r_end = rp["r_full"]                                       # reel nearly full at the end of retrieve
     avail_reel = torque / r_end
-    avail_dart = avail_reel / a["eye_gain"]
+    gain = seating_gain(p, a)
+    avail_dart = avail_reel / gain
     rows = []
     for th in a["pitch_deg"]:
         for mu in a["mu_cradle"]:
             t = math.radians(th)
             need = p.dart.mass * G * (math.sin(t) + mu * math.cos(t)) + a["seat_force"]
             rows.append(dict(pitch_deg=th, mu=mu, need_n=need, avail_n=avail_dart, margin=avail_dart / need))
-    t_for_margin = max(r["need_n"] for r in rows) * 1.5 * a["eye_gain"]
+    t_for_margin = max(r["need_n"] for r in rows) * 1.5 * gain
     return dict(params=a, clutch_torque_nm=torque, avail_at_reel_n=avail_reel, avail_at_dart_n=avail_dart, rows=rows,
                 firm_setting_for_1p5_margin_n_full_reel=t_for_margin)
 
@@ -136,7 +145,7 @@ def takeup_speed(p, duties=(0.3, 0.5, 1.0), overdrive=None, eta_bus=0.9):
     line speed = wiper speed x overdrive x line radius. Above it the clutch slips and the line stops (dart stuck).
     The drag is at the dart; the reel sees drag x APPROACH eye_gain (guide, ring and exit eye), as in approach()."""
     od = p.capstan.get("overspeed", 2.5) if overdrive is None else overdrive
-    gain = APPROACH["eye_gain"]                               # dart pull -> reel-side tension
+    gain = seating_gain(p)                                    # dart pull -> reel-side tension
     rp = reel_props(p)
     t_clutch = p.capstan["takeup_n"] * rp["r_full"]           # FIRM, set as tension with the reel full
     w_drag = p.dart.mass * G

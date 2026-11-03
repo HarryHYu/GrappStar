@@ -1136,7 +1136,7 @@ def c_c1_sequence(rig, res):
         keep = keep[len(keep) - 1 - keep[::-1].index("aim"):]
     seq = " > ".join(keep)
     sr = getattr(rig, "seat_rec", None) or {}
-    seated_neutral = sr and not sr.get("inReel") and float(sr.get("wraps") or 0) < 0.05 and sr.get("step") in ("UNWRAP",)
+    seated_neutral = bool(sr) and not sr.get("inReel") and sr.get("step") in ("UNWRAP",)   # the unwrap take-up seated it
     pat = C1_SEQ.replace("RETRIEVE(retrieve > )", "(retrieve > )?" if seated_neutral else "retrieve > ")
     shot_pitch = (rig.solution or {}).get("pitch_deg") if hasattr(rig, "solution") else None
     pat = pat.replace("AIM6", "aim > " if (shot_pitch or 0) > 15 else "")      # D45: aim 6 before the wrap above 15 deg

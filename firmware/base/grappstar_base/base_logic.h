@@ -795,7 +795,7 @@ struct Base {
     if (state == S_FAULT || state == S_SAFING) { state = S_FAULT; }
     else {
       if (was != S_IDLE) evAborted(STATE_NAME[was], estop ? "estop" : "stop");
-      if (was == S_COCK || was == S_FIRE) phase = PH_UNKNOWN;   // stopped mid-cycle: re-establish with cock (sear contact)
+      if (was == S_COCK || was == S_FIRE || was == S_DECOCK) phase = PH_UNKNOWN;   // stopped mid-cycle: re-establish (cock or cal decock)
       state = S_IDLE;
     }
     if (estop && state != S_FAULT) {

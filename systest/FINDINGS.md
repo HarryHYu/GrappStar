@@ -5,6 +5,33 @@ sim over HTTP, the real Jetson App). Each entry: the exact failing scenario, the
 Line numbers are against `origin/base-v1` at the time of the entry. Status: OPEN until the owner says fixed and the
 harness re-runs green.
 
+## Status (14:00 Sydney)
+
+"fixed on branch" = green in `systest/preview.sh` (base-v1 ba121b9 + w/fw-base 6472524 + w/fw-dart 827b290 +
+w/jetson 79e30ed), not yet merged into base-v1. Evidence in `systest/runs_preview/<scenario>/`.
+
+| # | owner | status | evidence |
+|---|---|---|---|
+| F1 | fw-base | open (not re-tested: harness waits for BOOT) | |
+| F2 | fw-base, jetson | FIXED in base-v1 | `tidy` -> TIDIED in every nominal run |
+| F3 | fw-base | partly (jetson reads l r I) | PROTOCOL re-sync pending D35 |
+| F4 | jetson | fixed on branch | preview `nominal` PASS with the strict D22 plant, steps WRAP before ANCHOR |
+| F5 | jetson, docs | fixed on branch | preview `nominal_uncal` PASS (release option, no re-pull above the limit) |
+| F6 | jetson | fixed on branch | prompt now says "The drum HELD where it is (...)" |
+| F7 | jetson | fixed on branch | COCK fault prompt offers "Decock and re-aim" (re-test after the harness timing fix) |
+| F8 | jetson | fixed on branch | preview `power_unwrap`: BASE_RESET reported 1 s after the cut |
+| F9 | fw-base | open | |
+| F10 | jetson | open (re-test) | |
+| F11 | jetson | re-test | |
+| F12 | jetson | fixed on branch | preview `nominal` C1 order = BASE_SPEC 10.1 |
+| F13 | fw-base | open | |
+| F14 | fw-base, docs | OPEN | preview `ref_doc_cal`: plant 50.5 N at LIMIT 40 |
+| F15 | fw-base | open (escape path works, re-cocks) | `ref_power_wrap` |
+| F16 | fw-base | re-test | |
+| F17 | fw-base | open | |
+| F18 | jetson | OPEN | preview `nominal`, `power_unwrap`: TOW 60 s timeouts |
+| F19 | fw-base | OPEN (D39 new) | preview `ref_refusals` |
+
 ## F1 (fw-base) `cal` (and `set`) during the first 60 ms are acknowledged ok, then silently undone by the boot rebuild
 
 - Scenario: fresh base, the host sends `{"id":0,"cmd":"cal","what":"cock_rest"}` 10 ms after power-on.
@@ -264,3 +291,14 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
 - Fix: take the "already winding" branch only with a load cell and only on telemetry newer than the LIMIT event
   (`self.base.tel_t > e["_t"]`), or simply send `reel` and treat a `BUSY` reply as "already winding" (the code already
   handles BUSY).
+
+## F19 (fw-base, new spec 1.2.7 / D39, expected to be in progress) `retrieve` at the WRAPPED park and `reel max_n 80` are accepted
+
+- Scenario `ref_refusals` (preview: base-v1 ba121b9 + w/fw-base 6472524): wrong commands thrown into the 10.1
+  sequence. Refused as they should be: `aim 85` OUT_OF_RANGE, `fire` without arm NOT_ARMED, `wrap` while cocked
+  LAUNCH_BUSY, `reel until seated` with the wraps on WRAPS_ON. Accepted (D39 says refuse):
+  - `retrieve {"duty":0.3}` at the WRAPPED park (drum 314, wraps on) -> `ok:true` (D39: retrieve only in NEUTRAL with
+    the wraps off);
+  - `reel {"duty":1,"max_n":80,"until":"tension"}` in REEL -> `ok:true` (D39: tow cap 70 N; the harness stopped it at
+    once).
+- The check `every wrong command refused` goes green when D39 is in the firmware.

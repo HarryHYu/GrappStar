@@ -708,6 +708,14 @@ def build(P):
                           color="#c9b27a",
                           notes="wiper adapter plate: slotted M6 holes (+-%.0f mm) for the motor bosses, 6 x M3 to the cheek ring; reprint when the motor is measured" % w["slot"]))
         info["M_adapter"] = Mad
+        if C["v1"]:
+            sp_ = fw["motor_support"]
+            stay, stay_pts = MOT.can_stay(w, Mm, C["y_out"][ms], ms, mo[2] + sp_["plate_z"][1])
+            if stay is not None:
+                parts.append(Part("frame_can_stay", stay, "PLA", print_tf=U.print_flat(stay, tf.Rx(-90)), color="#aab4be",
+                                  notes="can stay: post on the motor plate (2 x M3 x 16 into plate inserts), cable tie or "
+                                        "hose clamp round the can through the cradle slots; reprint with the adapter"))
+                info["can_stay_pts"] = stay_pts
         sad, sad_holes = MOT.saddle(w, Mm)
         if sad is not None:
             parts.append(Part("frame_motor_saddle", sad, "PLA", print_tf=U.print_flat(sad), color="#9aa4ae",
@@ -715,6 +723,11 @@ def build(P):
             info["deck_holes"] += sad_holes
             info["saddle"] = True
 
+    if info.get("can_stay_pts"):
+        for p in parts:
+            if p.name == "frame_cheek_r" or p.name.startswith("frame_cheek_r_"):
+                for (x, z) in info["can_stay_pts"]:
+                    p.solid = p.solid - yfeat(U.insert_hole(0, 0, 0.0), x, z, C["y_out"][ms], -ms)
     # ---- electronics bay + AS5600 (separate helper)
     if True:
         from . import _frame_ebay as EB
@@ -786,7 +799,7 @@ def build(P):
             dmin = min([abs((h[0] if k == "x" else h[1]) - c) for h in info["deck_holes"]] or [1e9])
             if dmin > bestd + 1e-9 or (abs(dmin - bestd) < 1e-9 and abs(d) < abs(best - c0)):
                 best, bestd = c, dmin
-        if bestd < 12.0:
+        if bestd < 11.0:                       # dovetail tails 8 deep + 3 mm round the insert
             info["warnings"].append(f"deck seam {k} = {best:.1f} only {bestd:.1f} mm from a deck hole")
         return float(best)
     for i in range(1, nx):
@@ -861,6 +874,9 @@ def parts(P):
 def joints(P):
     C = cfg(P)
     js = []
+    if C["v1"]:
+        from . import _frame_rguard as RG
+        js += RG.joints(P)
     if C["main"] in C["layout"]:
         ms = C["fw"]["motor_side"]
         mo = C["layout"][C["main"]]["origin_w"]
@@ -870,7 +886,11 @@ def joints(P):
 
 def kin(P, S):
     # wiper_deg: + = motor forward. The motor shaft points into the frame along -motor_side * Y.
-    return {"frame_wiper": float(S.get("wiper_deg", 0.0))}
+    out = {"frame_wiper": float(S.get("wiper_deg", 0.0))}
+    if cfg(P)["v1"]:
+        from . import _frame_rguard as RG
+        out.update(RG.kin(P, S))
+    return out
 
 
 def _shaft_part(P):
@@ -893,6 +913,10 @@ def parts(P):  # noqa: F811  (adds the moving shaft stub to the static list)
     lst = list(_parts_plain(P))
     if cfg(P)["main"] in cfg(P)["layout"] and not any(p.name == "frame_wiper_shaft" for p in lst):
         lst.append(_shaft_part(P))
+    if cfg(P)["v1"] and not any(p.name.startswith("frame_spring_guard") for p in lst):
+        from . import _frame_rguard as RG
+        if RG.joints(P):
+            lst += RG.parts(P)
     return lst
 
 
@@ -910,12 +934,16 @@ def allowed(P):
         Allow("frame_cheek_*", "frame_cheek_*", "cheek dovetail seam", max_vol=1.0),
         Allow("frame_rc832", "frame_rc832_holder", "receiver in its slot", max_vol=1.0),
         Allow("frame_motor_leg", "frame_cheek_r", "leg bolted to the bridge face", max_vol=1.0),
+        Allow("frame_can_stay", "frame_cheek_r", "stay bolted to the plate face", max_vol=1.0),
+        Allow("frame_can_stay", "frame_wiper_motor", "cradle round the can (envelope)", max_vol=20.0),
         Allow("frame_kiyo_x", "frame_camera_mount", "camera clip on the edge plate", max_vol=50.0),
         Allow("frame_guard_band_*", "frame_cheek_*", "band lugs bear on the cheek inner faces", max_vol=1.0),
         Allow("frame_guard_band_*", "frame_guard_band_*", "band segments butt", max_vol=1.0),
     ]
     from . import _frame_ebay as EB
     a += EB.allowed(P)
+    from . import _frame_rguard as RG
+    a += RG.allowed(P)
     return a
 
 
@@ -925,7 +953,8 @@ def grounded(P):
 
 
 def clearances(P):
-    return [Clearance("frame_wiper_shaft", "frame_motor_adapter", 0.5, "shaft turns free in the adapter"),
+    from . import _frame_rguard as RG
+    return RG.clearances(P) + [Clearance("frame_wiper_shaft", "frame_motor_adapter", 0.5, "shaft turns free in the adapter"),
             Clearance("frame_wiper_shaft", "frame_cheek_*", 0.5, "shaft turns free in the cheek hole")]
 
 
@@ -997,12 +1026,13 @@ def steps(P):
                        parts=["frame_motor_adapter", "frame_wiper_motor", "frame_wiper_shaft"]))
         st.append(dict(title="Motor onto the cheek",
                        text="Before any shaft goes in: offer the motor and adapter to the motor-side cheek, spigot into "
-                            "the plate counterbore. From the frame side of the plate, M3 x 10 through the plate into every "
+                            "the plate counterbore (stand the motor leg on the deck first: 2 x M3 x 10 down into the deck, "
+                            "2 x M3 x 16 along y through the leg into the plate bridge). From the frame side of the plate, M3 x 10 through the plate into every "
                             "insert in the adapter hub (%d of the 12 holes line up with inserts; the others stay empty)."
                             % len(MOT.ring_used(info["cfg"]["wiper"]))
                             + (" Strap the can into the saddle (cable tie or hose clamp), saddle 4 x M3 x 10 into the deck."
                                if has("frame_motor_saddle") else ""),
-                       parts=["frame_motor_adapter"] + has("frame_motor_saddle")))
+                       parts=["frame_motor_adapter"] + has("frame_motor_saddle") + has("frame_motor_leg")))
     st += [
         dict(title="Shafts and trains (other subsystems)",
              text="Now the drum, launch and reel subsystems put their shaft assemblies in (bearings already pressed on "
@@ -1067,4 +1097,6 @@ def steps(P):
                   "1 mm from the magnet face: check with a 1 mm feeler (or a folded business card). STEMMA QT cable to "
                   "the bay sensor window.",
              parts=["frame_as5600_bracket", "frame_pcb_as5600"]))
+    from . import _frame_rguard as RG
+    st += RG.steps(P)
     return [x for x in st if x["parts"] or "Shafts" in x["title"]]

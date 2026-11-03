@@ -62,8 +62,9 @@ def test_takeup_constant_torque():
     assert capstan.takeup_tension(p, 0.0) == pytest.approx(tk * r20 / rc)
     tu = capstan.takeup_range(p)
     assert tu["t_hold_min"] == pytest.approx(tk) and tu["t_hold_max"] > tk
-    assert tu["overspeed_min"] == pytest.approx(capstan.TAKEUP_OVERSPEED)
-    assert tu["overspeed_max"] == pytest.approx(capstan.TAKEUP_OVERSPEED * r20 / rc)
+    k, rcap = p.capstan["ratio"], p.capstan["d"] / 2
+    assert tu["overspeed_min"] == pytest.approx(capstan.TAKEUP_OVERSPEED * k * rc / rcap)   # reel vs capstan line speed
+    assert tu["overspeed_max"] == pytest.approx(capstan.TAKEUP_OVERSPEED * k * r20 / rcap)
 
 
 def test_tow_roundtrip_and_numbers():
@@ -73,14 +74,14 @@ def test_tow_roundtrip_and_numbers():
     th = capstan.takeup_tension(p, 20.0)
     t = capstan.wiper_torque_for(50, p)          # full reel
     # r (F - Th(20 m) + overspeed x takeup_n) / (ratio eta)
-    assert t == pytest.approx(r * (50 - th + capstan.TAKEUP_OVERSPEED * capstan.clutch_torque(p) / (c["d"] * 0 + p.reel["core_d"] / 2)) / (k * eta))
+    assert t == pytest.approx(r * (50 - th) / (k * eta) + capstan.clutch_torque(p) * capstan.TAKEUP_OVERSPEED / capstan.ETA_BUS)
     assert capstan.line_from_wiper(t, p, line_left=20.0) == pytest.approx(50.0)
     pt = capstan.tow_point(50, p, 11.1)
     # drum turns 1/ratio per wiper turn: v_line = wiper speed / ratio x r
     assert pt["v_line"] == pytest.approx(pt["rpm_wiper"] * 2 * math.pi / 60 / k * r)
     assert 0.05 < pt["v_line"] < 0.2
     assert pt["current"] == pytest.approx(p.wiper.i_free + t / p.wiper.kt)
-    assert pt["t_drum"] == pytest.approx(t * k * eta)
+    assert pt["t_drum"] == pytest.approx(capstan.drum_shaft_torque(t, p))
     assert t < 0.8 * p.wiper.limiter_nm          # tow does not slip the limiter
 
 

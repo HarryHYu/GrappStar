@@ -14,7 +14,7 @@ plug while the battery is in.**
 | 5 | `PIN_LPWM` | BTS7960 LPWM | wiper BACKWARD (dir -1), PWM 20 kHz |
 | 6 | `PIN_REN` | BTS7960 R_EN | plus 10 k from R_EN to GND |
 | 7 | `PIN_LEN` | BTS7960 L_EN | plus 10 k from L_EN to GND |
-| 1 | `PIN_WIPER_IS` | BTS7960 R_IS + L_IS through 1 k | plus 680 R from GPIO1 to GND (the IS divider) |
+| 1 | `PIN_WIPER_IS` | BTS7960 R_IS + L_IS through 1 k | plus 680 R and a 1 uF capacitor from GPIO1 to GND (the IS divider and filter) |
 | 2 | `PIN_VBAT` | battery divider middle | 100 k from 3S + (at the BTS7960 B+ screw) to GPIO2, 22 k from GPIO2 to GND |
 | 8 | `PIN_SDA` | AS5600 SDA | STEMMA QT blue wire |
 | 9 | `PIN_SCL` | AS5600 SCL | STEMMA QT yellow wire |
@@ -25,17 +25,17 @@ plug while the battery is in.**
 | 12 | `PIN_SW_C` | contact `SW_DRUM_C` | drum code bit C |
 | 13 | `PIN_SW_D` | contact `SW_DOG_L` | collar engaged in LAUNCH |
 | 14 | `PIN_SW_E` | contact `SW_DOG_R` | collar engaged in REEL |
-| 47 | `PIN_SW_F` | contact `SW_N20` | drum N20 in mesh (open = hand lever latched out) |
+| 47 | `PIN_SW_F` | contact `SW_N20` | drum N20 in mesh (open = N20 swung out of mesh for the hand lever) |
 | 21 | `PIN_SW_G` | contact `SW_HOME` | carriage on its front stop (uncocked) |
 | 39 | `PIN_SW_H` | contact `SW_GAP` | big gear in its toothless gap (rest) |
 | 40 | `PIN_SW_I` | contact `SW_RAIL_LOW` | rail at its lowest pitch (aim home) |
 | 41 | `PIN_SW_J` | contact `SW_SEATED` | dart tail on the pusher |
-| 42 | `PIN_SW_K` | contact `SW_ARM` | wrap cup ring at home (one pulse per cup turn) |
+| 42 | `PIN_SW_K` | contact `SW_ARM` | closed while the wrap cup is away, OPENS for about +-5 deg at home (one cup turn counted per opening) |
 | 35 | `PIN_SW_L` | contact `SW_INDEX` | only on a build without the AS5600 magnet (decision D12). Leave open otherwise |
 | 17 | `PIN_HX_DT` | HX711 DT (DOUT) | optional load cell |
 | 18 | `PIN_HX_SCK` | HX711 SCK | optional load cell |
 | 3V3 | | AS5600 VIN, BTS7960 VCC, HX711 VCC | logic supply |
-| GND | | common ground (see section 2) | |
+| GND | | common ground (see section 3) | |
 
 The DRV8833 SLP pin is **not wired** to any GPIO (decision D9: the Pololu board pulls it high by itself). Its FLT pin
 is not used either. GPIO21 is `SW_HOME`, not SLP.
@@ -56,12 +56,13 @@ newer boards, so `SW_HOME` is on GPIO21 instead.
 | 1 k | R_IS + L_IS (tied) | GPIO1 | series protection for the pin | any value from 1 k to 4.7 k |
 | 680 R | GPIO1 | GND | turns the IS current into a voltage (sets `amps_per_volt` = 8500 / 680 = 12.5) | any value from 470 R to 1 k, then `set amps_per_volt` to 8500 / your value (1 k: 8.5) |
 | 100 k | BTS7960 B+ screw (soldered right at the screw) | the long wire to GPIO2 | battery divider top: the long wire then carries only the divided voltage, never the full 12.6 V | leave the divider out (both resistors) and send `{"id":1,"cmd":"set","key":"vbat_wired","val":false}`: no `vbat`, no battery checks |
+| 1 uF capacitor (strongly recommended) | GPIO1 (at the ESP32 end of the IS wire) | GND | smooths the IS pulses. The sketch already averages 16 reads spread across the 20 kHz PWM period, so the reading is right without it; the capacitor is belt and braces against noise and timing slips | 1 uF to 2.2 uF, ceramic best (an electrolytic: striped leg to GND). Without one the firmware still works; fit it when you can |
 | 22 k | GPIO2 | GND | battery divider bottom (12.6 V reads 2.27 V) | as above: the firmware assumes exactly 100 k / 22 k, so do not swap in other values |
 | 2 A inline fuse | BTS7960 B+ screw | MP1584 IN+ | a short in the buck or the DRV8833 blows this, not the thin wires | no small fuse: use 18 AWG wire for that lead and keep it short (under 10 cm) |
 | 20 A fuse | battery + (XT60 lead #2) | BTS7960 B+ | main fuse | none: never run without it |
 
-There is NO resistor on the DRV8833 SLP pin (it is not wired at all). Optional capacitors: 1 uF to 2.2 uF from GPIO1
-to GND (smooths the IS signal), 100 nF from GPIO2 to GND (steadies `vbat`).
+There is NO resistor on the DRV8833 SLP pin (it is not wired at all). The 1 uF capacitor from GPIO1 to GND is strongly
+recommended (above). Optional: 100 nF from GPIO2 to GND (steadies `vbat`).
 
 ## 3. Power
 
@@ -105,6 +106,10 @@ ESP32 power: USB from the Jetson (from the Mac on the bench)
 - **IS divider:** tie R_IS and L_IS together. From there a 1 k resistor to GPIO1. From GPIO1 a 680 R resistor to GND.
   The BTS7960 IS pin gives a small current: motor amps divided by 8500. At 20 A that is 2.35 mA, and 2.35 mA through
   the 680 R gives about 1.6 V at GPIO1, well under 3.3 V. So `amps_per_volt` = 8500 / 680 = 12.5 (the default).
+- **1 uF capacitor from GPIO1 to GND: strongly recommended.** Solder it at the ESP32 end of the IS wire, right at
+  GPIO1 and a GND pin. The IS pin only reports while the high side conducts (a 20 kHz pulse train); the sketch takes
+  16 reads 53 us apart that step through the PWM period, so their average is right even without the capacitor. The
+  capacitor is belt and braces: it also smooths noise and covers a late read.
 - **Check for an onboard IS resistor first.** With everything unpowered, tie R_IS and L_IS together and put the meter
   (ohms) between that point and GND. Open (no reading) means no onboard resistor: the default scale 12.5 is right.
   If it reads a resistance Rb, write it down. The scale changes:
@@ -156,7 +161,7 @@ The three drum code contacts read the drum position as a code (BENCH_TEST.md ste
 On the bench, before the drum is built, use two jumper wires:
 
 - GPIO11 to GND: code "b only" = NEUTRAL.
-- GPIO47 to GND: `SW_N20` closed. Without it the firmware thinks the hand lever is latched out and refuses every drum
+- GPIO47 to GND: `SW_N20` closed. Without it the firmware thinks the N20 is swung out of mesh (hand mode) and refuses every drum
   move (`HAND_MODE`).
 
 ## 7. AS5600 and HX711
@@ -171,7 +176,7 @@ On the bench, before the drum is built, use two jumper wires:
 ## 8. Build order, step by step
 
 You need: multimeter, the 20 A fuse lead (XT60 lead #2), MP1584 #2, a 2 A inline fuse for the buck, 2 x 10 k, 1 k,
-680 R, 100 k, 22 k (section 2 lists fallbacks), optionally a 1 uF to 2.2 uF and a 100 nF capacitor, an insulated small
+680 R, 100 k, 22 k, a 1 uF to 2.2 uF capacitor (strongly recommended), optionally a 100 nF capacitor (section 2 lists fallbacks), an insulated small
 screwdriver for the buck.
 
 ### Part A: set the buck (on its own, before the build)
@@ -194,8 +199,8 @@ is wired to it.
 
 1. Battery unplugged. Solder the two 10 k pull-downs: R_EN to GND and L_EN to GND on the BTS7960 header.
 2. Battery unplugged. Check the BTS7960 for an onboard IS resistor (section 4). Write the number down.
-3. Battery unplugged. Wire the IS divider: R_IS and L_IS tied, 1 k to GPIO1, 680 R from GPIO1 to GND. Optional
-   capacitor from GPIO1 to GND.
+3. Battery unplugged. Wire the IS divider: R_IS and L_IS tied, 1 k to GPIO1, 680 R from GPIO1 to GND, and the 1 uF
+   capacitor from GPIO1 to GND at the ESP32 end (strongly recommended).
 4. Battery unplugged. BTS7960 logic: RPWM GPIO4, LPWM GPIO5, R_EN GPIO6, L_EN GPIO7, VCC 3V3, GND to ESP32 GND.
 5. Battery unplugged. Battery divider: solder the 100 k right at the BTS7960 B+ screw, run the long wire from its
    other end to GPIO2, 22 k from GPIO2 to GND. Optional 100 nF from GPIO2 to GND.
@@ -209,8 +214,8 @@ is wired to it.
 10. Battery unplugged. DRV8833: AIN1 GPIO15, AIN2 GPIO16, GND to ESP32 GND. SLP and FLT stay unconnected.
     AOUT1 and AOUT2 to the drum N20.
 11. Battery unplugged. Buck output (already set to 9.0 V in Part A): OUT+ to DRV8833 VM, OUT- to DRV8833 GND.
-12. Battery unplugged. Buck input: IN+ through its 2 A fuse to the BTS7960 B+ screw (fuse right at the screw), IN- to
-    BTS7960 B-.
+12. Battery unplugged. Buck input: the 2 A inline fuse goes right at the BTS7960 B+ screw, then the IN+ lead to the
+    buck IN+ (no fuse: 18 AWG, kept under 10 cm). IN- to BTS7960 B-.
 13. Battery unplugged. Power: fused XT60 lead + to BTS7960 B+, - to B-. Use 14 AWG. The 20 A fuse in the + lead.
 14. Battery unplugged. Wiper motor to M+ and M- (red to M+, black to M-). On the bench the motor is clamped and has
     nothing attached (BENCH_TEST.md).

@@ -110,7 +110,55 @@ def test_static_served(name, tmp_path):
         r = c.getresponse()
         body = r.read().decode()
         assert r.status == 200
-        assert body == _read(name)
+        expect = _read(name)
+        if name == "index.html":       # served with this process's session token in the meta tag
+            expect = expect.replace('<meta name="grappstar-token" content="">',
+                                    f'<meta name="grappstar-token" content="{s.session_token}">')
+            assert s.session_token in body
+        assert body == expect
     finally:
         s.shutdown()
         s.server_close()
+
+
+def test_posts_carry_session_token():
+    """Every POST goes through action(), which sends the token from the page's meta tag (review r2_H #8)."""
+    assert '<meta name="grappstar-token" content="">' in HTML
+    assert 'meta[name="grappstar-token"]' in JS
+    assert '"X-GrappStar-Token": TOKEN' in JS
+    assert JS.count('method: "POST"') == 1, "all POSTs must go through action()"
+
+
+def test_answer_sends_prompt_text():
+    """The answer is tied to the prompt it answers: id, choice and the text shown (review r2_H #9)."""
+    assert re.search(r'action\("answer", \{ prompt_id: p\.id, choice: choice, text: p\.text', JS)
+
+
+def test_escape_stop_wired():
+    """Escape is STOP from anywhere, before the typing() early return; Space only outside inputs (#11)."""
+    m = re.search(r"^addEventListener\(\"keydown\", \(e\) => \{(.*?)\n\}\);", JS, re.S | re.M)
+    assert m
+    body = m.group(1)
+    esc = body.index('"Escape"')
+    assert esc < body.index("if (typing(e)) return;")
+    assert '(e.key === " " && !typing(e))' in body
+    assert 'action("stop", {})' in body[esc:body.index("if (typing(e)) return;")]
+    assert "Esc" in re.search(r'id="btn-stop"[^>]*title="([^"]*)"', HTML).group(1)
+    assert "Esc" in re.search(r'id="stop-keyhint"[^>]*>([^<]*)<', HTML).group(1)
+
+
+def test_recover_button_and_offer():
+    """Recover dart: in Manual with a confirm, and offered in the mission panel when the dart is out."""
+    manual = HTML[HTML.index('<details class="panel" id="manual">'):HTML.index("</details>")]
+    assert re.search(r'<button data-action="recover"[^>]*data-confirm="[^"]+"', manual)
+    mission = HTML[HTML.index('id="mission"'):HTML.index('id="videos"')]
+    assert re.search(r'<button data-action="recover" id="btn-recover-m"[^>]*data-confirm="[^"]+"', mission)
+    assert 'id="m-recover" class="recover hidden"' in mission
+    assert 'm.state === "ABORTED" || m.state === "FAILED"' in JS
+    assert re.search(r'pick\(base, "seated"\) === false', JS) and re.search(r'wraps > 0', JS)
+
+
+def test_tow_limit_max_70():
+    m = re.search(r'<label>([^<]*)<input[^>]*data-key="tow_limit_n"[^>]*>', HTML)
+    assert m and "70" in m.group(1)
+    assert 'max="70"' in m.group(0)

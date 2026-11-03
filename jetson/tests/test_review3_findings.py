@@ -144,6 +144,9 @@ def test_reshoot_limit_still_retrieves_the_dart(tmp_path):
     r.policy["Landing zone"] = "Retrieve and reshoot"
     try:
         m = r.run()
-        assert "RETRIEVE" in r.steps(), (m.state, m.error, r.steps())
+        # 10.1: a NO GO before the wrap comes home on the take-up (FINAL_APPROACH); the capstan RETRIEVE is only
+        # used when wrapped
+        assert "FINAL_APPROACH" in r.steps(), (m.state, m.error, r.steps())
+        assert r.base.tel["sw"].get("S"), "dart must be seated before the reshoot limit ends the mission"
     finally:
         r.close()

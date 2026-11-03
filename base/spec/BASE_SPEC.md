@@ -153,12 +153,12 @@ WRAP at once while the line is slack (drum 62..302, wiper off) -> WRAPPED park (
 time: the FIRM take-up pulls the slack through the free capstan) -> REEL fly-in (wiper creeping forward while the
 drum enters REEL, then SW_DOG open) -> TOW (tow current limit) -> dart release -> reel in on the capstan until about
 1.5 m remain -> unload jog -> drum back to the WRAPPED park 314 (collar to NEUTRAL) -> UNWRAP (drum
-302..62 while the wiper turns forward at about 30 percent, take-up only) -> NEUTRAL final approach on the FIRM
+302..62 while the wiper turns forward at about 40 percent (the firmware cap), take-up only) -> NEUTRAL final approach on the FIRM
 take-up until SW_SEATED (fault DART_STUCK after 20 s) -> LAUNCH. A no-go landing retrieves the unanchored dart on
 the take-up (or after a wrap, on the capstan).
 De-cock: from a partial cock run backward until SW_HOME and SW_GAP close. Refusals: no fire unless LAUNCH, SW_HOME,
 SW_GAP, SW_SEATED and a valid token; aim only at HOME; no drum move unless the wiper is stopped; no leaving LAUNCH
-unless SW_HOME; wiper backward refused outside LAUNCH except the 30 deg unload jog. Current trips (D8): ignore 50 ms
+unless SW_HOME; wiper backward refused outside LAUNCH except the 8 deg unload jog (params DRUM). Current trips (D8): ignore 50 ms
 after a start; 5 A for 30 ms in aim, reel and tow; 6.5 A while cocking; tow at free current plus the 50 N equivalent
 averaged over 200 ms. Any fault: wiper off, drum to NEUTRAL, except when wraps are on, the spring is drawn, or the drum itself faulted:
 then the drum HOLDS (D27).
@@ -176,13 +176,13 @@ Jetson sends, what ends the wait. Everything else in C1 stays as PROTOCOL.md doc
 | 4 | `arm` | reply with `token` | valid 3 s |
 | 5 | `fire` token | `FIRED`, then `RESET` | |
 | 6 | dart LANDED: `set` line_m | reply | from the landing distance |
-| 7 | (Jetson landing-zone verdict) | | NO_GO: skip 9 to 13, go to 14 (reel in on the capstan if wrapped, else 16) |
+| 7 | (Jetson landing-zone verdict) | | NO_GO before the wrap: `mode` NEUTRAL (step 8), then straight to step 17 (take-up retrieve). NO_GO after a wrap: steps 12 and 15 to 17 (fly-in, capstan reel-in, unwrap, retrieve) |
 | 8 | `mode` NEUTRAL | `MODE` ok | may be skipped: `wrap` also starts from LAUNCH |
-| 9 | `wrap` | `WRAPPED` | the drum parks at WRAPPED 314: cup locked, collar NEUTRAL, clutch FIRM. No `MODE` REEL here. Allow 60 s |
+| 9 | `wrap` | `WRAPPED` | the drum parks at WRAPPED 314: cup locked, collar NEUTRAL, clutch FIRM. No `MODE` REEL here. Allow 90 s (about 42 s from LAUNCH at 8.1 deg/s) |
 | 10 | dart `/auto` | dart phase ANCHORED | |
 | 11 | `tidy` {ms, duty} | `TIDIED` | take-up only, by time (default 3000 ms, duty 0.3). `reel` until `slip` stays as an alternative |
 | 12 | `mode` REEL | `MODE` ok (REEL) | the REEL fly-in from the park |
-| 13 | `reel` {duty 1, max_n, until `tension`} | `LIMIT` holding | the tow |
+| 13 | `reel` {duty 1, max_n, until `tension`} | `LIMIT` holding | the tow; max_n at most 70 N (D39) |
 | 14 | `stop`, then dart `/release` | `ABORTED`, then dart phase RELEASING and out of ANCHORED | the worm holds the line while the dart lets go |
 | 15 | `reel` {until `stop`}, then `stop` at line_m about 1.5 | `ABORTED` | capstan reel-in |
 | 16 | `unwrap` | `UNWRAPPED`, then `MODE` NEUTRAL | skipped when never wrapped |
@@ -196,9 +196,13 @@ WRAP sector or the park) HOLDS the drum where it is (D27): the Jetson reads the 
 
 ## 11. Physics summary (owner: physics; base/physics/FINDINGS.md)
 
-About 13 J stored, about 7.5 m/s, about 4.5 m at 35 deg with the 0.5 N brake (4 to 5 m band); a second spring pair
-gives about 8 to 9 m. Cocking peak about 3 N m at the wiper. Tow 50 N at about 2.3 N m. The tether keeps the dart
-nose first. The ballistics table for the Jetson is base/out/ballistics.json (contract C3).
+Physics v1.2.8 (D36 rear line guide, 70 g carriage, two springs): 12.1 J stored, 6.95 m/s at the muzzle, range from
+the ground point under the rail pivot 4.19 / 3.75 / 3.36 m at 36 deg for a 0.5 / 0.75 / 1.0 N payout brake, about
+2.6 m at 6 deg. The carriage stop takes about 2.5 J, about 266 N peak on the 19 mm PLA flexure (D26). A 50 N tow is
+3.2 N m at the wiper, about 5.05 A; the 6.5 A tow trip is about 75 N (D39 caps the limit at 70 N). The aim train
+fails at the old 5 A trip, so every backward run in LAUNCH trips at 3 A (D40) and the aim gears print in PPA-CF.
+The second spring pair is not supported in v1 (D38). The ballistics table for the Jetson is base/out/ballistics.json
+(contract C3); the first test shots calibrate it (calib.py range, then ballistics.py --v-scale).
 
 ## 12. Changing this spec
 

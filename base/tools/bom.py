@@ -17,6 +17,9 @@ the item starts with an M size (for example "2xM3x8 BHCS"); when the text after 
 (as in "8 x 120 mm rod") it is read as a size, so the whole item is the name and the count is 1, while a part code
 that starts with digits (as in "2 x 608ZZ") still counts; counts are multiplied by the part qty.
 
+Printed masses come from tools.pack.print_mass_g (walls and infill per material from pack.PROFILE), so the BOM, the
+guide and the print sheet give the same totals.
+
 Categories: bearings (a bearing code such as 608ZZ, 608-2RS, 693ZZ, F693ZZ, MR105ZZ, CSK20PP, a 6000 to 6900
 series number, LMxxUU, or the word bearing or bushing), fasteners, other. Totals: printed mass per material and the
 filament length (1.75 mm).
@@ -33,7 +36,7 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE not in sys.path:
     sys.path.insert(0, BASE)
 
-from tools.pack import DENSITY, FIL_D, MAT_ORDER, clean, filament_m, load_out  # noqa: E402
+from tools.pack import FIL_D, MAT_ORDER, clean, filament_m, load_out, part_mesh, print_mass_g  # noqa: E402
 
 # "<n> x <item>" with spaces; the item must not start with a number (a size: "8 x 120 mm rod", "10 x 3x8 dowel") unless
 # the digits run straight into letters or a dash, as a part code does ("2 x 608ZZ", "2 x 6204-2RS"; but "120mm" is a
@@ -85,12 +88,22 @@ def md_cell(s) -> str:
     return " ".join(clean(s).split()).replace("|", "\\|")
 
 
-def build(man: dict) -> dict:
+def printed_mass(p: dict, out: str | None) -> float:
+    """Printed mass of one copy: tools.pack.print_mass_g (the PROFILE walls and infill per material, the same model as
+    the print pack and PRINT_SHEET) on the volume and the surface of OUT/meshes/<name>.npz. Without out (a manifest
+    with no meshes, as in unit tests) the manifest's model mass_g is used."""
+    if out is None:
+        return p.get("mass_g") or 0.0
+    return print_mass_g(p["volume_mm3"], float(part_mesh(out, p["name"]).area), p["material"])
+
+
+def build(man: dict, out: str | None = None) -> dict:
+    """The BOM of a manifest. Pass out (the OUT holding meshes/) so printed masses match the print pack."""
     printed, bought, unref = [], {}, []
     for p in man["parts"]:
         qty = int(p.get("qty", 1))
         if p.get("printed"):
-            m = p.get("mass_g") or 0.0
+            m = printed_mass(p, out)
             printed.append(dict(name=p["name"], subsystem=p.get("subsystem", ""), material=p["material"], qty=qty,
                                 mass_g=round(m, 1), mass_total_g=round(m * qty, 1), notes=clean(p.get("notes", ""))))
         refs = parse_ref(p.get("bought_ref", ""))
@@ -154,7 +167,7 @@ def write(out: str, bom: dict, title="Bill of materials"):
 
 def run(out, only=None, log=print) -> dict:
     man = load_out(out, only)
-    bom = build(man)
+    bom = build(man, out)
     write(out, bom)
     log(f"bom: {len(bom['printed'])} printed parts, {len(bom['bought'])} bought items -> {out}/BOM.csv, BOM.md")
     for b in bom["bought"]:

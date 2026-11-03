@@ -57,8 +57,8 @@ def origin_check():
         roots = [f"{j.name} {tuple(round(v, 1) for v in j.origin)}" for j in asm.joints.values()
                  if j.parent is None and j.name.startswith(sub)][:3]
         zmin = min(zs) if zs else float("nan")
-        ok = abs(zmin - deck) < 2.0 or zmin > deck
-        verdict = "ok" if ok and zmin < 50 else ("parts below the deck" if zmin < deck - 2 else "check: lowest part far above the deck (deck at z 0?)")
+        ok = zmin > deck - 8.5                     # the frame deck itself is 8 thick below the deck top
+        verdict = "ok" if ok and zmin < deck + 50 else ("parts below the deck" if not ok else "check: lowest part far above the deck (deck at z 0?)")
         L.append(f"| {sub} | {zmin:.1f} | {'; '.join(roots)} | {verdict} |")
     return L + [""]
 
@@ -72,7 +72,9 @@ def write_md(rep, subs, args, git_rev, secs):
     L = []
     L.append("# Whole-base integration audit (cad-frame)")
     L.append("")
-    L.append(f"Run {time.strftime('%Y-%m-%d %H:%M')} Sydney on `{git_rev}` (base-v1 merged into w/cad-frame), "
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    L.append(f"Run {datetime.now(ZoneInfo('Australia/Sydney')).strftime('%Y-%m-%d %H:%M')} Sydney on `{git_rev}` (base-v1 merged into w/cad-frame), "
              f"`tools.audit --dt {args.dt} --jobs {args.jobs}{'' if args.refine else ' --no-refine'}`, {rep.get('n_parts')} parts, {rep.get('n_states')} states, "
              f"{secs:.0f} s. Verdict: **{'CLEAN' if rep.get('clean') else 'NOT CLEAN'}**.")
     L.append("")

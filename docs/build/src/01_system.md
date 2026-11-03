@@ -19,8 +19,7 @@ Three parts:
   - Take-up: every forward wiper turn also winds the storage reel through a slip clutch, so slack never builds up.
   - Payout at launch: the line skips the capstan and pulls off the free-spinning storage reel against a light
     payout brake (0.5 N; over 1 N costs range).
-  - Range: about 3 to 5 m with the two springs (6 to 47 degrees of pitch; minimum about 2.9 m, best about 5 m;
-    `base/out/ballistics.json` has the current table), about 8.5 m with a second pair.
+  - Range: a few metres with the two springs (6 to 47 degrees of pitch). Two springs only in v1 (decision D38).
   - Protection: current trips in the firmware and a printed torque limiter (about 5 N m) in the wiper coupler. Any
     fault: wiper off, drum to NEUTRAL (except when the wraps are on, the spring is drawn or the
     drum itself faulted: then the drum holds, decision D27). A hand lever on the
@@ -40,29 +39,33 @@ the base wraps the capstan at once while the line is still slack (the drum parks
 base tidies the slack, shifts into REEL and tows; the dart releases; the base reels in to about 1.5 m, unwraps, and
 brings the dart home on the take-up until it seats; back to LAUNCH.
 
+@ballistics
+
 ## Order of work
 
 0. Get the repo onto the Mac (Terminal; if macOS asks to install the command line developer tools for `git`,
    say Install and run the command again): `cd ~ && GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/HarryHYu/GrappStar.git`
-   (skips the 145 MB photo PDF). `cd ~/GrappStar && git pull` updates it later.
+   (skips the 145 MB photo PDF). If `~/GrappStar` then has no `docs/build` folder, run `cd ~/GrappStar && git checkout
+   base-v1`. `git pull` updates it later.
 1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5 and A8), the springs (group B), and the
    parts in H1, H3, H4. Put the
    numbers in `base/spec/params.py` and re-run the base pipeline. The base parts that touch the motor depend on
-   them. A6 and A7 (speed, current, torque) need the base electronics: do them at step 7. They change no
+   them. A6 (speed, current) needs the base electronics: do it at step 7. A7 is optional. They change no
    printed part.
 2. Confirm the parts box (section 14, group C). The only purchase is 608 bearings (and an AS5600 magnet if none
    is in the box).
-3. Print the dart fit coupon and the base risk coupon plate, and test them (section 4, test stage 0). The dart
+3. Print the dart fit coupon, the base fit coupon and the two base risk coupon plates, and test them (section 4, test stage 0). The dart
    plates (section 4) do not wait for the base coupons or the measurements: start them any time after the dart
    fit coupon passes.
 4. Flash the dart and build it (sections 6 and 8, and the dart run sheet in the appendix).
-5. Set up the Jetson on its own wall supply (section 9, steps 0 to 4 only; the rest comes later).
+5. Set up the Jetson on its own wall supply (section 9, steps 0 to 3 only; its step 4, plugging in the base, comes
+   after step 6).
 6. Flash the base ESP32 from the Mac (section 8.1). Battery out is enough: any wiring already on the board can stay.
 7. Wire the base electronics on the bench, wiper motor clamped in a vice and the drum N20 loose (section 7.2,
-   firmware/base/WIRING.md Parts A to D), then bench test them (section 11.1). Measure A6 and A7 here.
+   firmware/base/WIRING.md Parts A to D), then bench test them (section 11.1), then calibration parts (a) and (b) (section 10). Measure A6 here.
 8. Print the base (section 4, after the coupons pass and the measurements are in) and assemble it with the motor
    and drum N20 (section 5).
 9. Put the base on the rover and wire the rover (section 7.1), then do the first power-on of everything together
    (7.1, its part 4).
 10. Calibrate (section 10). Commands go to the base from the Jetson from now on (see section 10).
-11. Run the staged tests, bench to field (section 12).
+11. Run the staged tests from stage 4 on (section 12; stages 0 to 3 were done in steps 3, 7 and 9).

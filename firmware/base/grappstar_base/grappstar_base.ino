@@ -79,7 +79,13 @@ int hwAngle(uint8_t* st) {
   fails = 0;
   return r & 0x0FFF;
 }
-float hwWiperIs() { uint32_t mv = 0; for (int i = 0; i < 8; i++) mv += analogReadMilliVolts(PIN_WIPER_IS); return mv / 8000.0f; }
+// IS is chopped at the 20 kHz PWM (high side only). 16 samples 53.125 us apart step 3.125 us through the 50 us PWM period,
+// so their mean is the true average even without the IS capacitor (back-to-back reads can lock to one PWM phase). 0.85 ms.
+float hwWiperIs() {
+  uint32_t mv = 0, t0 = micros();
+  for (int i = 0; i < 16; i++) { while ((uint32_t)(micros() - t0) < (uint32_t)(i * 53125u / 1000u)) {} mv += analogReadMilliVolts(PIN_WIPER_IS); }
+  return mv / 16000.0f;
+}
 float hwVbat() {
   uint32_t mv = analogReadMilliVolts(PIN_VBAT);
   return mv / 1000.0f * B.c.vbatScale;                 // 0 with the battery unplugged; the logic ignores it if vbat_wired is off

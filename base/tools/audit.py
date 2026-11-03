@@ -375,7 +375,7 @@ def _env_solid(kind, u, travel=(0.0, 0.0)):
 
 # ---------------------------------------------------------------------------------------------- main audit
 def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print, pair_refine: int = 0, max_mm: float = MAX_STEP_MM,
-        cap: int = 720) -> dict:
+        cap: int = 100000) -> dict:
     """Audit asm over states. pair_refine = n: states[:n] are a timeline whose consecutive states each pair refines
     for itself (sub-states where its relative pose moves a point of either part by more than max_mm, at most cap per
     interval); the other states are audited as given. 0 audits exactly the given states."""
@@ -401,12 +401,20 @@ def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print, pair_refine
     finally:
         pool.close()
         _CTX = {}
+    # gear meshes across owners (declared Mesh pairs): centre distance, parallel axes, face overlap, ratio
+    from tools import meshcheck
+    t0 = time.time()
+    mres = meshcheck.run(asm, states)
+    rep["meshes"] = mres["meshes"]
+    rep["mesh_fails"] = mres["fails"]
+    rep["warns"] += mres["warns"]
+    timing["meshes"] = round(time.time() - t0, 2)
     rep["timing"] = timing
     # verdict
     static_fails = [dict(part=r["name"], fails=r["fails"]) for r in rep["static"] if r["fails"]]
     rep["static_fails"] = static_fails
     bad = (rep["errors"] or static_fails or rep["limits"] or rep["collisions"] or rep["floating"] or rep["checks"]
-           or [c for c in rep["clearances"] if not c["ok"]])
+           or [c for c in rep["clearances"] if not c["ok"]] or rep["mesh_fails"])
     rep["clean"] = not bad
     rep["seconds"] = round(time.time() - t_start, 1)
     return rep
@@ -480,7 +488,12 @@ class _States:
                 grow = np.empty((len(self.JW), self.JW.shape[1], 4, 4))
                 grow[:, 0] = np.eye(4)
                 self.JW = np.concatenate([self.JW, grow])
-            S = _interp(self.S[k], self.S[k + 1], float(fr))
+            u = float(fr)
+            S = _interp(self.S[k], self.S[k + 1], u)
+            # joints are interpolated directly, so a joint driven by a string / flag key (mode, phase) or a stepped
+            # int (wraps) still sweeps evenly through the interval instead of jumping at its end
+            vals = self.V[k] * (1 - u) + self.V[k + 1] * u
+            S["_joints"] = {jn: float(vals[c - 1]) for jn, c in self.jcol.items()}
             self.S.append(S)
             self.ord.append(k + float(fr))
             self.idx[(k, fr)] = r
@@ -593,8 +606,12 @@ def _run(asm, states, rep, names, NP, NB, bed, pool, log, lap, T, max_mm, cap):
 
     # the shared grid: interval k splits into nglob[k] steps by the old global rule (no joint more than 1 deg /
     # 0.5 mm); a pair uses every stride-th grid point, so pairs share sub-states and never exceed the global count
-    nglob = np.minimum(cap, np.ceil(np.abs(np.diff(SS.V[:T], axis=0)) / lim).max(axis=1, initial=1.0)).astype(int) \
-        if T >= 2 and len(lim) else np.ones(max(0, T - 1), int)
+    nraw = np.ceil(np.abs(np.diff(SS.V[:T], axis=0)) / lim).max(axis=1, initial=1.0) \
+        if T >= 2 and len(lim) else np.ones(max(0, T - 1))
+    for k in np.nonzero(nraw > cap)[0]:
+        rep["errors"].append(f"refinement capped: a joint moves {int(nraw[k])} steps between states {k} and {k + 1} "
+                             f"(phase {states[k].get('phase')}); raise cap or split the interval")
+    nglob = np.minimum(cap, nraw).astype(int)
 
     def substates(a, b, pad, need, dk, use=None):
         """Rows of the sub-states pair (a, b) needs (no point of a or b moves more than max_mm relative to the other
@@ -981,9 +998,10 @@ def _run(asm, states, rep, names, NP, NB, bed, pool, log, lap, T, max_mm, cap):
     lap("checks")
 
 
-def refine(asm: Assembly, states: list[dict], max_deg=MAX_STEP_DEG, max_mm=MAX_STEP_MM, cap=720) -> list[dict]:
+def refine(asm: Assembly, states: list[dict], max_deg=MAX_STEP_DEG, max_mm=MAX_STEP_MM, cap=100000) -> list[dict]:
     """Insert interpolated states so that no joint moves more than max_deg (rev) or max_mm (slide) between
-    consecutive states. Numeric S values are interpolated linearly, others are taken from the earlier state."""
+    consecutive states. Joint values are interpolated directly (S["_joints"]); numeric S values linearly, others
+    from the earlier state (for display). Raises ValueError if an interval needs more than cap steps."""
     if len(states) < 2:
         return list(states)
     vals = [asm.values(S) for S in states]
@@ -995,9 +1013,13 @@ def refine(asm: Assembly, states: list[dict], max_deg=MAX_STEP_DEG, max_mm=MAX_S
             d = abs(vb[jn] - va[jn])
             lim = max_deg if j.kind == "rev" else max_mm if j.kind == "slide" else math.inf
             n = max(n, int(math.ceil(d / lim)))
-        n = min(n, cap)
+        if n > cap:
+            raise ValueError(f"refine: {n} steps needed between states {k - 1} and {k} (cap {cap})")
         for i in range(1, n):
-            out.append(_interp(A, B, i / n))
+            u = i / n
+            S = _interp(A, B, u)
+            S["_joints"] = {jn: va[jn] + (vb[jn] - va[jn]) * u for jn in asm.joints}
+            out.append(S)
         out.append(B)
     return out
 
@@ -1021,6 +1043,10 @@ def summary(rep: dict) -> str:
         L.append(f"  FLOATING {f['part']}: {f['why']}")
     for c in rep["checks"]:
         L.append(f"  CHECK {c['subsystem']}: {c['fail']}")
+    for f in rep.get("mesh_fails", []):
+        L.append(f"  MESH {f}")
+    if rep.get("meshes"):
+        L.append(f"  gear meshes checked: {len(rep['meshes'])}, failing: {sum(not m['ok'] for m in rep['meshes'])}")
     for w in rep.get("warns", []):
         L.append(f"  warn {w}")
     for r in rep["static"]:

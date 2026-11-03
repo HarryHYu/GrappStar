@@ -1,6 +1,6 @@
 # Whole-base integration audit (cad-frame)
 
-Run 2026-11-03 01:59 Sydney on `162a1d4` (base-v1 merged into w/cad-frame), `tools.audit --dt 0.5 --jobs 2 --no-refine`, 133 parts, 831 states, 144 s. Verdict: **NOT CLEAN**.
+Run 2026-11-03 13:28 Sydney on `234aff2` (base-v1 merged into w/cad-frame), `tools.audit --dt 0.5 --jobs 2 --no-refine`, 190 parts, 855 states, 119 s. Verdict: **NOT CLEAN**.
 
 Subsystems: drum, frame, launch, reel
 
@@ -11,48 +11,46 @@ Spec: main axis z = 0, deck top z = -165.0. Lowest part bottom per subsystem (re
 | subsystem | lowest part z | root joints (parent None) | verdict |
 |---|---|---|---|
 | drum | -165.0 | drum_base (0.0, 0.0, 0.0) | ok |
-| frame | -173.0 | frame_wiper (0.0, 0.0, 0.0) | parts below the deck |
-| launch | -135.4 | launch_rail (0.0, 140.0, 0.0); launch_sleeve (0.0, 140.0, 0.0); launch_drive (0.0, 140.0, 0.0) | ok |
+| frame | -173.0 | frame_rail_guard (0.0, 140.0, 0.0); frame_wiper (0.0, 0.0, 0.0) | parts below the deck |
+| launch | -165.0 | launch_rail (0.0, 140.0, 0.0); launch_sleeve (0.0, 140.0, 0.0); launch_drive (0.0, 140.0, 0.0) | ok |
 | reel | -165.0 | reel_base (-18.7, 33.5, -69.6) | ok |
 
-## Collisions (16)
+## Collisions (20)
 
 | part A (owner) | part B (owner) | worst overlap mm3 | states hit | worst state: phase, t | note |
 |---|---|---|---|---|---|
-| drum_index_block (drum) | frame_motor_adapter (frame) | 6256.192 | 831 | load, 0.0 |  |
-| launch_aim_housing (launch) | launch_aim_cap (launch) | 2380.36 | 831 | load, 0.0 |  |
-| drum_bracket_idler2 (drum) | reel_wall (reel) | 1547.718 | 831 | load, 0.0 |  |
-| drum_coupler_hub (drum) | frame_wiper_motor (frame) | 1238.537 | 831 | aim, 2.5 |  |
-| drum_magnet_cap (drum) | launch_aim_housing (launch) | 662.037 | 831 | aim, 3.0 |  |
-| frame_motor_adapter (frame) | reel_sprag_hub (reel) | 654.61 | 831 | load, 0.0 |  |
-| launch_aim_conrod (launch) | launch_aim_housing (launch) | 570.682 | 286 | aim_sweep, None |  |
-| drum_index_lever (drum) | frame_motor_adapter (frame) | 485.255 | 831 | aim, 5.0 |  |
-| drum_shaft (drum) | launch_aim_housing (launch) | 254.05 | 831 | aim_fall, None |  |
-| drum_gear_reel (drum) | reel_gc (reel) | 225.223 | 828 | drum_wiper, 0.0 |  |
-| launch_rail_mid (launch) | launch_sleeve (launch) | 208.746 | 831 | aim_split_out, None |  |
-| drum_shaft (drum) | frame_wiper_shaft (frame) | 99.656 | 831 | drum_index, 0.0 |  |
-| drum_coupler_hub (drum) | frame_wiper_shaft (frame) | 97.197 | 831 | aim_sweep, None |  |
-| drum_idler_gear (drum) | reel_gk (reel) | 82.343 | 798 | wrap, 29.5 |  |
-| drum_coupler (drum) | reel_bus (reel) | 77.975 | 823 | aim_split_out, None |  |
-| frame_motor_adapter (frame) | reel_sprag (reel) | 17.449 | 831 | load, 0.0 |  |
+| drum_index_block (drum) | frame_motor_adapter (frame) | 4830.288 | 855 | load, 0.0 |  |
+| drum_coupler_hub (drum) | frame_wiper_motor (frame) | 1238.537 | 855 | aim, 2.5 |  |
+| frame_motor_adapter (frame) | reel_sprag_hub (reel) | 1096.572 | 855 | load, 0.0 |  |
+| frame_spring_guard_l_1 (frame) | launch_carriage_yoke (launch) | 837.094 | 28 | launch_shot, None |  |
+| frame_spring_guard_l_2 (frame) | launch_carriage_yoke (launch) | 837.094 | 829 | launch_shot, None |  |
+| frame_spring_guard_r_1 (frame) | launch_carriage_yoke (launch) | 837.094 | 28 | launch_shot, None |  |
+| frame_spring_guard_r_2 (frame) | launch_carriage_yoke (launch) | 837.094 | 829 | launch_shot, None |  |
+| launch_rail_front (launch) | launch_dart (launch) | 395.367 | 2 | approach, 103.5 |  |
+| launch_carriage (launch) | launch_dart (launch) | 268.616 | 1 | approach, 103.5 |  |
+| drum_index_lever (drum) | frame_motor_adapter (frame) | 259.673 | 855 | cock, 8.5 |  |
+| drum_coupler (drum) | reel_wall (reel) | 248.199 | 855 | drum_index, 0.0 |  |
+| drum_rail (drum) | launch_rail_mid (launch) | 194.735 | 73 | aim_fall, None |  |
+| drum_gear_reel (drum) | reel_gc (reel) | 144.265 | 3 | reel_swing_out, 0.0 |  |
+| drum_shaft (drum) | frame_wiper_shaft (frame) | 99.656 | 855 | aim_sw_low, None |  |
+| drum_coupler_hub (drum) | frame_wiper_shaft (frame) | 81.52 | 855 | aim_sweep, None |  |
+| drum_coupler (drum) | reel_bus (reel) | 71.559 | 3 | reel_swing_out, 0.0 |  |
+| drum_rail (drum) | launch_pulley_piv (launch) | 42.717 | 55 | aim_fall, None |  |
+| frame_motor_adapter (frame) | reel_sprag (reel) | 39.591 | 855 | load, 0.0 |  |
+| frame_motor_adapter (frame) | reel_drum (reel) | 21.7 | 855 | drum_wiper, 0.0 |  |
+| drum_rail (drum) | launch_line_c (launch) | 2.991 | 50 | aim, 5.0 |  |
 
-## Failed clearances (2)
-- launch_aim_conrod / launch_aim_housing: gap 0.0 < 1.0 (conrod sweeps past the housing inner wall)
-- reel_wall / reel_spool: gap 0.3 < 0.3 (reel spins in front of the wall)
+## Failed clearances (0)
+None.
 
-## Floating or ungrounded parts (1)
-- reel_shroud (reel): touches nothing in the rest state
+## Floating or ungrounded parts (0)
+None.
 
-## Static fails (6)
-- launch_rail_rear (launch): no real flat face on the bed (108.5 mm2, need 150)
-- launch_carriage (launch): no real flat face on the bed (108.0 mm2, need 150)
-- launch_aim_lug (launch): no real flat face on the bed (50.1 mm2, need 87)
-- launch_aim_housing (launch): 6 shells (printed parts must be one body); no real flat face on the bed (0.0 mm2, need 150)
-- reel_shroud (reel): not watertight as STL (self-touching edges after vertex merge)
-- reel_exit_post (reel): not watertight as STL (self-touching edges after vertex merge)
+## Static fails (0)
+None.
 
-## Subsystem check failures (1)
-- frame: layout: deck seam x = 51.2 only 11.9 mm from a deck hole
+## Subsystem check failures (0)
+None.
 
 ## Auditor's notes on the cross-owner pairs (cad-frame, hand analysis)
 

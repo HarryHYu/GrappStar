@@ -224,6 +224,7 @@ class BaseClient:
         self.tel_t = 0.0                # time.time() of the latest telemetry
         self.rx_t = 0.0                 # time.time() of the latest line of any kind
         self.connected = False
+        self.port_open = False
         self.session = 0                # increments at every link drop (and HELLO)
         self.errors = 0                 # bad lines seen
         self.reconnects = 0
@@ -270,8 +271,10 @@ class BaseClient:
         while not self._stop.is_set():
             try:
                 self.transport.open()
-                self._set_connected(True)
-                log.info("base link up on %s", self.port_name)
+                self.port_open = True
+                # the link counts as up only after a valid C1 JSON line arrives (r3_N #7): a wrong board on the port
+                # (the dart's XIAO has the same USB id) never gets a command
+                log.info("port %s open, waiting for the base to speak C1", self.port_name)
                 while not self._stop.is_set():
                     line = self.transport.readline(0.2)
                     if line is not None:
@@ -282,6 +285,7 @@ class BaseClient:
                     log.warning("base link down: %s", self.last_error)
             finally:
                 was = self.connected
+                self.port_open = False
                 self._set_connected(False)
                 try:
                     self.transport.close()
@@ -305,9 +309,14 @@ class BaseClient:
             obj = json.loads(text)
             if not isinstance(obj, dict):
                 raise ValueError("not an object")
+            if not ("tel" in obj or "evt" in obj or "id" in obj):
+                raise ValueError("not a C1 line")
         except Exception:
             self.errors += 1
             return
+        if not self.connected:
+            self._set_connected(True)
+            log.info("base link up on %s", self.port_name)
         if len(raw) > MAX_LINE:
             log.debug("base line over %d bytes (%d)", MAX_LINE, len(raw))
         if self.on_line:

@@ -416,6 +416,8 @@ class App:
         frames = cam.buffer() if cam else []
         try:
             fl = self.dart.flightlog()
+            if not fl.get("samples"):
+                fl = None
         except DartError:
             fl = None
         d = self.run_dir or self._new_run()

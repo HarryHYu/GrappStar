@@ -1,9 +1,10 @@
 import threading
 import time
 
+import numpy as np
 import pytest
 
-from grappstar.comms.dart import Dart, DartError, derive_phase, flightlog_arrays
+from grappstar.comms.dart import Dart, DartError, DartRefused, derive_phase, flightlog_arrays, remap_flightlog
 from grappstar.comms.mock_dart import MockDart, synth_flightlog
 
 
@@ -14,10 +15,12 @@ def md():
     m.stop()
 
 
-def test_status_has_phase(md):
+def test_status_v4_fields(md):
     d = Dart(md.host)
     s = d.status()
     assert s["phase"] == "IDLE" and "rail_V" in s
+    for k in ("fw", "t_ms", "fault", "auto_on_landing", "ina_ok", "imu_ok", "t_launch_ms", "log_frozen", "reset"):
+        assert k in s
     assert d.link()["connected"]
 
 
@@ -26,40 +29,85 @@ def test_derive_phase_old_firmware():
     assert derive_phase({"seq": "idle", "armed": True, "landed": True}) == "LANDED"
     assert derive_phase({"seq": "deploy + drills"}) == "ANCHORING"
     assert derive_phase({"seq": "anchored"}) == "ANCHORED"
+    assert derive_phase({"seq": "released"}) == "IDLE"
     assert derive_phase({"seq": "aborted"}) == "FAULT"
     assert derive_phase({"seq": "x", "phase": "FLIGHT"}) == "FLIGHT"
 
 
-def test_arm_land_auto_anchor(md):
+def test_arm_log_only_then_land_then_auto(md):
     d = Dart(md.host)
-    assert d.arm_landing()
-    assert d.arm_landing()          # second call must not toggle it off
-    assert d.status()["phase"] == "ARMED"
+    s = d.arm(True, auto=False)
+    assert s["armed"] and s["phase"] == "ARMED" and not s["auto_on_landing"]
     md.launch()
     assert d.status()["phase"] == "FLIGHT"
+    with pytest.raises(DartRefused) as ei:
+        d.auto()                              # refused in flight
+    assert ei.value.reason == "in flight"
+    with pytest.raises(DartRefused):
+        d.key("2", 350)
     md.land()
+    assert d.status()["phase"] == "LANDED"   # log-only: it waits for the mission
+    d.auto()
     s = d.wait_phase("ANCHORED", 5, poll=0.05)
     assert s["seq"] == "anchored"
+    with pytest.raises(DartRefused) as ei:
+        d.auto()
+    assert "already anchored" in ei.value.reason
     fl = d.flightlog()
     a = flightlog_arrays(fl)
-    assert fl["hz"] == 50 and len(a["t"]) > 100
+    assert fl["hz"] == 50 and fl["frozen"] and len(a["t"]) > 100
     assert max(a["amag"]) > 6 * 9.81
 
 
-def test_release(md):
+def test_auto_on_landing(md):
     d = Dart(md.host)
-    md.land(); d.auto(); d.wait_phase("ANCHORED", 5, poll=0.05)
+    d.arm(True, auto=True)
+    md.launch(); md.land()
+    assert d.status()["phase"] == "ANCHORING"
+    d.wait_phase("ANCHORED", 5, poll=0.05)
+
+
+def test_launch_ignored_when_not_armed(md):
+    d = Dart(md.host)
+    md.launch()
+    assert d.status()["phase"] == "IDLE"
+    assert d.flightlog()["samples"] == []
+
+
+def test_release_ends_released_idle(md):
+    d = Dart(md.host)
+    d.auto(); d.wait_phase("ANCHORED", 5, poll=0.05)
     d.release()
-    s = d.wait_phase("IDLE", 5, poll=0.05, fail=("FAULT",))
-    assert s["event"] == "released"
+    s = d.wait_phase("IDLE", 5, poll=0.05, want_seq="released")
+    assert s["seq"] == "released"
 
 
-def test_anchor_failure_raises(md):
+def test_release_refused_while_anchoring(md):
+    d = Dart(md.host)
+    d.auto()
+    with pytest.raises(DartRefused) as ei:
+        d.release()
+    assert ei.value.reason == "busy"
+
+
+def test_stop_aborts_and_wait_fails(md):
+    d = Dart(md.host)
+    d.auto()
+    threading.Timer(0.1, d.stop).start()
+    with pytest.raises(DartError) as ei:
+        d.wait_phase("ANCHORED", 5, poll=0.05)
+    assert "aborted" in str(ei.value)
+    s = d.status()
+    assert s["phase"] == "IDLE" and s["seq"] == "aborted" and not s["armed"]
+
+
+def test_anchor_fault(md):
     d = Dart(md.host)
     md.fail_anchor = True
-    md.land(); d.auto()
-    with pytest.raises(DartError):
+    d.auto()
+    with pytest.raises(DartError) as ei:
         d.wait_phase("ANCHORED", 5, poll=0.05)
+    assert "KICK_TIMEOUT" in str(ei.value)
 
 
 def test_hold_deadman_repeats_and_stops(md):
@@ -67,7 +115,7 @@ def test_hold_deadman_repeats_and_stops(md):
     d.hold(["#", "!"], 0.5)
     ks = [k for _, k, _ in md.keys]
     assert ks.count("#") >= 3 and ks.count("!") >= 3
-    assert ks[-1] == " "             # always ends with stop
+    assert ks[-1] == " "
 
 
 def test_hold_cancel(md):
@@ -89,23 +137,38 @@ def test_unreachable():
 
 def test_wait_phase_tolerates_short_outage(md):
     d = Dart(md.host, timeout=0.3, retries=0)
+    d.auto()
     md.down = True
     threading.Timer(0.5, lambda: setattr(md, "down", False)).start()
-    md.land(); md._start_seq("anchor")
     s = d.wait_phase("ANCHORED", 5, poll=0.1)
     assert s["phase"] == "ANCHORED"
 
 
-def test_flightlog_missing(md):
+def test_clock_offset(md):
     d = Dart(md.host)
-    with pytest.raises(DartError):
-        d.flightlog()
+    assert d.clock_offset() is None
+    for _ in range(5):
+        d.status()
+    off = d.clock_offset()
+    # mock millis run 5x fast, so compare against one fresh sample
+    t = time.time(); s = d.status()
+    assert abs((s["t_ms"] / 1000.0 + d.clock_offset()) - t) < 2.0
+
+
+def test_clock_offset_real_time():
+    m = MockDart(time_scale=1.0).start()
+    try:
+        d = Dart(m.host)
+        for _ in range(8):
+            d.status()
+        assert abs(d.clock_offset() - m.t_boot) < 0.02
+    finally:
+        m.stop()
 
 
 def test_synth_flightlog_shape():
     fl = synth_flightlog()
     a = flightlog_arrays(fl)
-    # on the rail about 1 g, launch spike over 4 g, free fall under 0.3 g, impact over 6 g
     g = 9.81
     t = a["t"]; m = a["amag"]
     tl, td = fl["t_launch_ms"] / 1000, fl["t_land_ms"] / 1000
@@ -113,3 +176,34 @@ def test_synth_flightlog_shape():
     assert max(x for ti, x in zip(t, m) if tl <= ti < tl + 0.1) > 4 * g
     assert all(x < 0.3 * g for ti, x in zip(t, m) if tl + 0.1 < ti < td - 0.05)
     assert max(x for ti, x in zip(t, m) if td <= ti < td + 0.1) > 6 * g
+
+
+def _rot(q):
+    qw, qx, qy, qz = q
+    return np.array([[1 - 2 * (qy * qy + qz * qz), 2 * (qx * qy - qz * qw), 2 * (qx * qz + qy * qw)],
+                     [2 * (qx * qy + qz * qw), 1 - 2 * (qx * qx + qz * qz), 2 * (qy * qz - qx * qw)],
+                     [2 * (qx * qz - qy * qw), 2 * (qy * qz + qx * qw), 1 - 2 * (qx * qx + qy * qy)]])
+
+
+def test_remap_flightlog_identity_and_rotation():
+    fl = synth_flightlog()
+    assert remap_flightlog(fl, "x,y,z") is fl
+    # chip mounted with chip x = body -y, chip y = body x (rotated 90 deg about z): body = (chip y, -chip x, z)
+    M = np.array([[0, 1, 0], [-1, 0, 0], [0, 0, 1]], float)
+    chip = dict(fl)
+    rows = []
+    for r in fl["samples"]:
+        Rb = _rot(r[1:5])
+        Rc = Rb @ M                       # world from chip
+        a_chip = M.T @ np.array(r[5:8])
+        # quaternion of Rc
+        w = np.sqrt(max(0, 1 + np.trace(Rc))) / 2
+        x = (Rc[2, 1] - Rc[1, 2]) / (4 * w); y = (Rc[0, 2] - Rc[2, 0]) / (4 * w); z = (Rc[1, 0] - Rc[0, 1]) / (4 * w)
+        rows.append([r[0], w, x, y, z] + list(a_chip))
+    chip["samples"] = rows
+    back = remap_flightlog(chip, "y,-x,z")
+    for r0, r1 in zip(fl["samples"][::25], back["samples"][::25]):
+        assert np.allclose(_rot(r0[1:5]), _rot(r1[1:5]), atol=1e-3)
+        assert np.allclose(r0[5:8], r1[5:8], atol=0.02)
+    with pytest.raises(ValueError):
+        remap_flightlog(chip, "y,x,z")    # mirrored: not a rotation

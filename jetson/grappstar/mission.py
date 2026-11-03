@@ -33,7 +33,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
 from .comms.base import BaseDisconnected, BaseError, BaseTimeout
-from .comms.dart import DartError
+from .comms.dart import DartError, DartRefused, remap_flightlog
 from .rover import OperatorRover, RoverDrive
 
 STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "ANCHOR", "REEL_MODE", "WRAP",
@@ -70,6 +70,7 @@ class MissionConfig:
     require_dart_video: bool = False       # True: preflight refuses without a dart video signal
     max_reshoots: int = 3
     pre_s: float = 2.0              # dart video kept from before the shot
+    imu_axes: str = "x,y,z"         # BNO085 chip axes to dart body axes (BENCH_TEST.md step 7 finds this)
 
 
 @dataclass
@@ -413,11 +414,18 @@ class Mission:
         self.log.info(f"aimed at {self.shot['pitch_deg']} deg")
 
     def arm(self) -> None:
-        if self.cfg.auto_anchor_on_landing:
-            if not self.dart.arm_landing():
-                raise StepFailed("dart did not arm")
+        """Arm the dart landing detector right before the shot (/stop disarms it). By default auto=0: the dart only
+        records the flight and the mission anchors after the landing zone verdict."""
         try:
-            self.shot["dart_phase_at_arm"] = self.dart.status()["phase"]
+            s = self.dart.arm(True, auto=self.cfg.auto_anchor_on_landing)
+            self.shot["dart_phase_at_arm"] = s["phase"]
+            if not s.get("armed"):
+                raise StepFailed("dart did not arm")
+        except DartRefused as e:
+            c = self.ask(f"Dart refused to arm ({e.reason}). Without it there is no flight log and landing comes "
+                         "from the line and video only. Continue?", ["Continue without", "Retry", "Abort"])
+            if c == "Retry":
+                raise StepFailed(f"dart refused arm: {e.reason}")
         except DartError as e:
             self.log.warn(f"dart not answering at arm: {e} (landing will be detected from the line and video)")
         if self.run_dir:
@@ -532,10 +540,16 @@ class Mission:
         fl = None
         try:
             fl = self.dart.flightlog()
+            if not fl.get("samples"):
+                self.log.warn("flight log is empty (dart was not armed or saw no launch)")
+                fl = None
+            else:
+                fl = remap_flightlog(fl, self.cfg.imu_axes)
             if self.run_dir:
                 import json
-                with open(os.path.join(self.run_dir, f"flightlog_shot{self.reshoots}.json"), "w") as f:
-                    json.dump(fl, f)
+                if fl is not None:
+                    with open(os.path.join(self.run_dir, f"flightlog_shot{self.reshoots}.json"), "w") as f:
+                        json.dump(dict(fl, clock_offset_s=self.dart.clock_offset()), f)
         except DartError as e:
             self.log.warn(f"no flightlog: {e}")
         for name, cam in self.cams.items():
@@ -547,7 +561,8 @@ class Mission:
                 except Exception:
                     pass
         self.log.info(f"analysing {len(frames)} dart frames")
-        res = self.analyse(frames, fl, self.run_dir, t_fire=t_fire, log=self.log.warn)
+        off = self.dart.clock_offset() if hasattr(self.dart, "clock_offset") else None
+        res = self.analyse(frames, fl, self.run_dir, t_fire=t_fire, log=self.log.warn, clock_offset_s=off)
         self.results = res
         self.on_results(res)
         self.log.write("result", msg="landing zone", terrain=res.get("terrain"), flight=res.get("flight"),
@@ -569,11 +584,19 @@ class Mission:
 
     def anchor(self) -> Optional[str]:
         s = self.dart.status()
+        if s["phase"] == "FLIGHT":
+            # /auto is refused in FLIGHT: the dart's own landing decision ends it (15 s timeout at worst)
+            self.log.info("dart still in FLIGHT: waiting for its landing decision")
+            s = self.dart.wait_phase(("LANDED", "ANCHORING", "ANCHORED", "IDLE", "ARMED"), 17.0, cancel=self.cancel)
         if s["phase"] == "ANCHORED":
             self.dart_anchored = True
             return None
         if s["phase"] not in ("ANCHORING",):
-            self.dart.auto()
+            try:
+                self.dart.auto()
+            except DartRefused as e:
+                if "already anchored" not in e.reason:
+                    raise StepFailed(f"dart refused auto: {e.reason}", choices=["Retry", "Release and reshoot"])
         try:
             s = self.dart.wait_phase("ANCHORED", self.cfg.anchor_timeout_s, cancel=self.cancel,
                                      log=self.log.info)
@@ -663,9 +686,17 @@ class Mission:
         if s["phase"] in ("IDLE", "LANDED", "ARMED") and not self.dart_anchored:
             return
         self.base.safe_stop()   # hold the line, never reel against a releasing dart
-        self.dart.release()
         try:
-            self.dart.wait_phase(("IDLE",), self.cfg.release_timeout_s, cancel=self.cancel, log=self.log.info)
+            self.dart.release()
+        except DartRefused as e:
+            if e.reason == "busy":            # an anchor sequence is still running: stop it, then release
+                self.dart.stop()
+                self.dart.release()
+            else:
+                raise StepFailed(f"dart refused release: {e.reason}")
+        try:
+            self.dart.wait_phase(("IDLE",), self.cfg.release_timeout_s, cancel=self.cancel, log=self.log.info,
+                                 want_seq="released")
         except DartError as e:
             if "cancelled" in str(e):
                 raise Aborted("operator STOP")

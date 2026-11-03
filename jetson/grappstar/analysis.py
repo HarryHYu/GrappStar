@@ -24,7 +24,8 @@ def _save_png(path: str, img) -> Optional[str]:
 
 
 def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Optional[str], t_fire: Optional[float] = None,
-                    terrain_model=None, do_mosaic: bool = True, log=None) -> Dict[str, Any]:
+                    terrain_model=None, do_mosaic: bool = True, log=None,
+                    clock_offset_s: Optional[float] = None) -> Dict[str, Any]:
     """Returns {"flight": dict|None, "terrain": dict, "mosaic": dict|None, "files": {...}, "errors": [...]}."""
     out: Dict[str, Any] = {"flight": None, "terrain": None, "mosaic": None, "files": {}, "errors": []}
     if outdir:
@@ -40,7 +41,12 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
     fres = None
     try:
         from .vision import flight
-        fres = flight.analyze_flight(frames, flightlog)
+        if flightlog is not None and clock_offset_s is None:
+            clock_offset_s = flightlog.get("clock_offset_s")
+        try:
+            fres = flight.analyze_flight(frames, flightlog, clock_offset_s=clock_offset_s)
+        except TypeError:
+            fres = flight.analyze_flight(frames, flightlog)
         out["flight"] = fres.to_dict()
     except Exception as e:
         note(f"flight analysis failed: {type(e).__name__}: {e}")

@@ -1,6 +1,7 @@
 """Checks that need no hardware: python3 -m grappstar selftest. Prints PASS or FAIL per check."""
 from __future__ import annotations
 
+import os
 import sys
 import tempfile
 import time
@@ -59,10 +60,13 @@ def run(verbose: bool = True) -> int:
     def ballistics():
         from .ballistics import Ballistics
         b = Ballistics.load()
-        s = b.solve(7.0)
+        probe = b.solve(1.0)
+        r = round((probe.range_min_m + probe.range_max_m) / 2, 2)
+        s = b.solve(r)
         if not s.reachable:
             raise RuntimeError(s.note)
-        return f"7 m -> pitch {s.pitch_deg} deg ({b.source})"
+        return (f"reach {probe.range_min_m} to {probe.range_max_m} m; {r} m -> pitch {s.pitch_deg} deg "
+                f"({os.path.basename(b.source)}{', PLACEHOLDER' if b.placeholder else ''})")
 
     def terrain():
         from .sim.terrain_textures import texture

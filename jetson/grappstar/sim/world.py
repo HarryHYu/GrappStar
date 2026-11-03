@@ -98,7 +98,7 @@ class _LoopSource:
 
 class SimWorld:
     def __init__(self, seed: int = 0, landing_class: str = "hard_ground", time_scale: float = 1.0,
-                 dart_size=(720, 480), rover_size=(640, 360), target=(6.5, 5.0), fps: float = 25.0,
+                 dart_size=(720, 480), rover_size=(640, 360), target=(4.0, 5.0), fps: float = 25.0,
                  anchor_holds: bool = True):
         self.seed, self.time_scale, self.fps = seed, time_scale, fps
         self.anchor_holds = anchor_holds
@@ -126,15 +126,29 @@ class SimWorld:
     def _prerender(self) -> None:
         from .flight_video import render_flight
         frames, truth = render_flight(seed=self.seed, fps=self.fps, landing_class=self.landing_class,
-                                      size=self.dart_size, dropouts=True, landed_s=3.0)
+                                      size=self.dart_size, dropouts=True, landed_s=3.0,
+                                      pitch_deg=35.0, v0=7.1)
         self.flight, self.truth = frames, truth
         tl = truth["t_launch"]
         self._rail = [f for f in frames if f.t < tl - 0.05] or frames[:1]
         self._landed = [f for f in frames if f.t > truth["t_landed"]] or frames[-1:]
         self.flight_s = truth["t_impact"] - tl
         self.range_m = float(truth.get("range_m", 8.0))
-        self.mock_dart.flightlog_provider = lambda: truth["flightlog"]
+        self.mock_dart.flightlog_provider = self._flightlog
         self._ready.set()
+
+    def _flightlog(self) -> dict:
+        """The rendered flight's IMU log, moved onto the mock dart's clock (its launch = the mock's launch time)."""
+        fl = dict(self.truth["flightlog"])
+        t_l = self.mock_dart.t_launch_ms
+        if t_l is None:
+            return fl
+        shift = t_l - fl["t_launch_ms"]
+        fl["samples"] = [[r[0] + shift] + list(r[1:]) for r in fl["samples"]]
+        fl["t_launch_ms"] = fl["t_launch_ms"] + shift
+        if fl.get("t_land_ms") is not None:
+            fl["t_land_ms"] = fl["t_land_ms"] + shift
+        return fl
 
     def wait_ready(self, timeout: float = 30.0) -> bool:
         return self._ready.wait(timeout)

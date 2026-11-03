@@ -48,6 +48,7 @@ static std::deque<std::string> evq;                  // the sketch's event ring
 static uint64_t evDrops = 0, telDrops = 0, linesIn = 0, linesOut = 0;
 static bool nvsPending = false; static gb::Saved nvsBuf; static uint32_t nvsT = 0;
 static uint32_t bootCount = 0;
+static int dryTotal = 0; static double peakTension = 0, peakAmps = 0; static bool plantGeomSet = false;
 static FILE* lgf = stdout;
 
 // ------------------------------------------------------------------------------------------------ files
@@ -67,11 +68,14 @@ struct Plant {
   uint32_t magic = 0x504c4e54;
   double wiperDeg, aimPh, cockPh, drumDeg, lineOut, anchorTautAt, anchorK, seatAtLine, win, slack, toothWiperAcc, lineOutAfterShot;
   int fired, shots, dogTip;
+  int drumJam, encMissing, searBroken, toothOnTooth, dryFires; double extraLoadNm, vbatOverride, maxSlack, drumJamAbove;
 };
 static void savePlant() {
   Plant p; p.wiperDeg = S.wiperDeg; p.aimPh = S.aimPh; p.cockPh = S.cockPh; p.drumDeg = S.drumDeg; p.lineOut = S.lineOut;
   p.anchorTautAt = S.anchorTautAt; p.anchorK = S.anchorK; p.seatAtLine = S.seatAtLine; p.win = S.win; p.slack = S.slack;
   p.toothWiperAcc = S.toothWiperAcc; p.lineOutAfterShot = S.lineOutAfterShot; p.fired = S.fired; p.shots = S.shots; p.dogTip = S.dogTip;
+  p.drumJam = S.drumJam; p.encMissing = S.encMissing; p.searBroken = S.searBroken; p.toothOnTooth = S.toothOnTooth; p.dryFires = dryTotal;
+  p.extraLoadNm = S.extraLoadNm; p.vbatOverride = S.vbatOverride; p.maxSlack = S.maxSlack; p.drumJamAbove = S.drumJamAbove;
   writeFile(sp("plant.bin"), &p, sizeof p);
 }
 static bool loadPlant() {
@@ -79,6 +83,8 @@ static bool loadPlant() {
   S.wiperDeg = p.wiperDeg; S.aimPh = p.aimPh; S.cockPh = p.cockPh; S.drumDeg = p.drumDeg; S.lineOut = p.lineOut;
   S.anchorTautAt = p.anchorTautAt; S.anchorK = p.anchorK; S.seatAtLine = p.seatAtLine; S.win = p.win; S.slack = p.slack;
   S.toothWiperAcc = p.toothWiperAcc; S.lineOutAfterShot = p.lineOutAfterShot; S.fired = p.fired; S.shots = p.shots; S.dogTip = p.dogTip;
+  S.drumJam = p.drumJam; S.encMissing = p.encMissing; S.searBroken = p.searBroken; S.toothOnTooth = p.toothOnTooth; dryTotal = p.dryFires;
+  S.extraLoadNm = p.extraLoadNm; S.vbatOverride = p.vbatOverride; S.maxSlack = p.maxSlack; S.drumJamAbove = p.drumJamAbove;
   return true;
 }
 
@@ -116,7 +122,7 @@ static bool writeLine(const char* s) {
 }
 
 // ------------------------------------------------------------------------------------------------ firmware glue
-static void shimSave(const gb::Saved& s) { nvsBuf = s; nvsPending = true; nvsT = S.t; S.saves++; S.saveSeq = s.seq; S.saveT = S.t; }
+static void shimSave(const gb::Saved& s) { if (!nvsPending) nvsT = S.t; nvsBuf = s; nvsPending = true; S.saves++; S.saveSeq = s.seq; S.saveT = S.t; }
 static void shimSaveTun(const gb::Tun& t) { writeFile(sp("tun.bin"), &t, sizeof t); }
 static void shimOut(const char* l) {
   if (evq.size() >= 24) { evDrops++; return; }      // the sketch's ring (RING 24): drop the newest
@@ -136,7 +142,7 @@ static void powerOn() {
   B->w.c.ampsPerVolt = (float)S.isAmpsPerVolt;
   gb::Tun tun; bool haveTun = readFile(sp("tun.bin"), &tun, sizeof tun);
   B->restoreTun(haveTun ? &tun : nullptr);
-  S.c = B->c;
+  if (!plantGeomSet) { S.c = B->c; plantGeomSet = true; }   // the plant's geometry is physical: fixed at the first boot
   B->begin(S.t);
   gb::Saved rec; bool haveRec = readFile(sp("nvs.bin"), &rec, sizeof rec);
   B->restore(haveRec ? &rec : nullptr);
@@ -187,6 +193,8 @@ static void serviceSerial() {
 static uint32_t lastPlantSave = 0;
 static void tickOnce() {
   S.step(5);
+  if (S.dryFires) { dryTotal += S.dryFires; S.dryFires = 0; }
+  peakTension = fmax(peakTension, S.tension()); peakAmps = fmax(peakAmps, S.amps);
   if (!powered) return;
   B->tick(S.t);
   if (nvsPending && (int32_t)(S.t - nvsT) >= 20) {   // NVS write done
@@ -232,13 +240,13 @@ static std::string getJson() {
            "\"tension\":%.2f,\"seated\":%s,\"drumDeg\":%.2f,\"wiperDeg\":%.1f,\"aimPh\":%.1f,\"cockPh\":%.1f,\"wraps\":%.2f,"
            "\"inLaunch\":%s,\"inReel\":%s,\"dogTip\":%s,\"anchorTautAt\":%.3f,\"slack\":%.3f,\"maxSlack\":%.3f,\"amps\":%.2f,"
            "\"wDir\":%d,\"wDuty\":%d,\"dDir\":%d,\"dryFires\":%d,\"evDrops\":%llu,\"linesIn\":%llu,\"linesOut\":%llu,\"evq\":%zu,"
-           "\"pty\":%s,\"saves\":%d,\"kNperA_cal\":%.4f,\"freeA_cal\":%.4f}",
+           "\"pty\":%s,\"saves\":%d,\"kNperA_cal\":%.4f,\"freeA_cal\":%.4f,\"peakTension\":%.2f,\"peakAmps\":%.2f}",
            (unsigned)S.t, powered ? "true" : "false", bootCount, st, powered ? B->fault : -1, S.shots, S.fired ? "true" : "false",
            S.lineOut, S.tension(), S.seated() ? "true" : "false", S.drumDeg, S.wiperDeg, S.aimPh, S.cockPh, S.wrapsExact(),
            S.inLaunch() ? "true" : "false", S.inReel() ? "true" : "false", S.dogTip ? "true" : "false", S.anchorTautAt, S.slack,
-           S.maxSlack, S.amps, S.wDir, S.wDuty, S.dDir, S.dryFires, (unsigned long long)evDrops, (unsigned long long)linesIn,
+           S.maxSlack, S.amps, S.wDir, S.wDuty, S.dDir, dryTotal, (unsigned long long)evDrops, (unsigned long long)linesIn,
            (unsigned long long)linesOut, evq.size(), masterFd >= 0 ? "true" : "false", S.saves,
-           1.0 / (S.capstanR * S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA), S.freeA + (S.reelFreeNm + 0.3) / S.stallNm * (S.stallA - S.freeA));
+           1.0 / (S.capstanR * S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA), S.freeA + (S.reelFreeNm + 0.3) / S.stallNm * (S.stallA - S.freeA), peakTension, peakAmps);
   return b;
 }
 static bool quitReq = false;
@@ -246,6 +254,7 @@ static std::string ctlCommand(const std::string& line) {
   char w[64] = ""; sscanf(line.c_str(), "%63s", w);
   std::string c = w;
   if (c == "get") return getJson();
+  if (c == "peakreset") { std::string r = getJson(); peakTension = S.tension(); peakAmps = S.amps; return r; }   // returns the peaks since the last reset
   if (c == "set") {
     const char* p = line.c_str() + 3; char k[64], v[64]; int n;
     while (sscanf(p, "%63s %63s%n", k, v, &n) == 2) { if (!setKnob(k, v)) return std::string("{\"ok\":false,\"err\":\"bad key ") + k + "\"}"; p += n; }
@@ -312,7 +321,7 @@ int main(int argc, char** argv) {
   setvbuf(stdout, nullptr, _IOLBF, 0);
   mkdir(stateDir.c_str(), 0755);
   S = Sim();
-  { gb::Base tmp; S.c = tmp.c; }
+  { gb::Base tmp; tmp.begin(0); S.c = tmp.c; plantGeomSet = true; }   // factory geometry (begin loads the aim table)
   S.lineOut = 0; S.seatAtLine = 0;                     // a new build: dart seated on the launcher
   if (fresh) { unlink(sp("nvs.bin").c_str()); unlink(sp("tun.bin").c_str()); unlink(sp("plant.bin").c_str()); }
   else if (loadPlant()) fprintf(lgf, "[shim] plant state restored (process restart = power loss)\n");

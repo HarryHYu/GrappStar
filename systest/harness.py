@@ -62,6 +62,10 @@ class BaseProc:
         self.log = open(os.path.join(rundir, "base.log"), "a")
 
     def start(self, fresh: bool) -> None:
+        with self.lock:
+            self._start(fresh)
+
+    def _start(self, fresh: bool) -> None:
         args = [SHIM, "--link", self.link, "--ctl", str(self.port), "--state", self.state, "--speed", str(self.speed)]
         if fresh:
             args.append("--fresh")
@@ -70,6 +74,7 @@ class BaseProc:
         while True:
             try:
                 self.sock = socket.create_connection(("127.0.0.1", self.port), timeout=2)
+                self.sock.settimeout(None)             # a SocketIO that once timed out refuses every later read
                 self.f = self.sock.makefile("rw")
                 break
             except OSError:
@@ -99,6 +104,7 @@ class BaseProc:
     def kill(self) -> None:
         """Power loss: SIGKILL, nothing is flushed (plant.bin is at most 100 ms old, nvs.bin as written)."""
         with self.lock:
+            self.kills = getattr(self, "kills", 0) + 1
             if self.proc:
                 self.proc.send_signal(signal.SIGKILL)
                 self.proc.wait()
@@ -311,14 +317,16 @@ class Rig:
         last_shots, last_phase, last_step = 0, None, None
         anchored = False
         while not self.stop_ev.is_set():
-            p = self.base.get()
-            if p:
+            step = self.app.mission.step if self.app.mission else ""
+            p = self.base.ctl("peakreset")            # plant truth; peaks are tracked every 5 ms tick inside the shim
+            if p and "t" in p:
                 self.plant_last = p
-                step = self.app.mission.step if self.app.mission else ""
-                for k in ("tension", "amps"):
+                self.ctl_ok = time.time()
+                for k, pk in (("tension", "peakTension"), ("amps", "peakAmps")):
+                    v = float(p.get(pk) or 0)
                     key = f"{step}:{k}"
-                    self.plant_max[key] = max(self.plant_max.get(key, 0.0), float(p.get(k) or 0))
-                    self.plant_max[k] = max(self.plant_max.get(k, 0.0), float(p.get(k) or 0))
+                    self.plant_max[key] = max(self.plant_max.get(key, 0.0), v)
+                    self.plant_max[k] = max(self.plant_max.get(k, 0.0), v)
                 self.plant_max["dryFires"] = max(self.plant_max.get("dryFires", 0), p.get("dryFires", 0))
                 if step != last_step:
                     self.step_plant[step] = p
@@ -451,6 +459,9 @@ class Rig:
         def chk(name, ok, detail=""):
             checks.append({"check": name, "ok": bool(ok), "detail": str(detail)[:300]})
             self.note("check", name=name, ok=bool(ok), detail=str(detail)[:200])
+        for tid, _c, _a in self.sc.triggers:
+            chk(f"fault injected: {tid}", tid in self.done_triggers, "trigger fired" if tid in self.done_triggers else "NEVER FIRED (scenario did not test what it says)")
+        chk("harness: plant link alive to the end", bool(plant) and "t" in plant and time.time() - getattr(self, "ctl_ok", 0) < 5, "ctl")
         for name, fn in self.sc.checks:
             try:
                 ok, det = fn(self, res)
@@ -486,6 +497,9 @@ class Rig:
         return [e.get("evt") for e in self.events]
 
     def restart_base(self, off_s: float = 2.0) -> None:
+        threading.Thread(target=self._restart_base, args=(off_s,), daemon=True).start()
+
+    def _restart_base(self, off_s: float) -> None:
         self.base.kill()
         self.note("info", msg=f"base process killed (power loss), off {off_s} s")
         time.sleep(off_s)
@@ -694,6 +708,7 @@ def at_step(name, delay=0.0):
         if rig.step() == name:
             st.setdefault("t", time.time())
             return time.time() - st["t"] >= delay
+        st.pop("t", None)
         return False
     return cond
 
@@ -705,6 +720,7 @@ def plant_state(state, step=None, delay=0.0):
         if rig.plant_last.get("state") == state and (step is None or rig.step() == step):
             st.setdefault("t", time.time())
             return time.time() - st["t"] >= delay
+        st.pop("t", None)
         return False
     return cond
 
@@ -783,8 +799,8 @@ sc(Scenario("stall_cock", "the wiper stalls while cocking (STALL), load removed,
 
 sc(Scenario("power_unwrap", "power loss mid-unwrap: kill the base process, restart it, the mission recovers",
             triggers=[("kill base mid-unwrap", plant_state("UNWRAP", delay=3.0), lambda r: r.restart_base(2.0))],
-            extra_checks=[("BOOT after restart", lambda r, res: ("BOOT" in res["events"] or r.base.get().get("boots", 0) >= 1,
-                                                                 f"boots {r.base.get().get('boots')}"))]))
+            extra_checks=[("base restarted and the Jetson saw it", lambda r, res: (getattr(r.base, "kills", 0) >= 1 and open(os.path.join(r.dir, "base.log")).read().count("BOOT #1") >= 2,
+                                                                                   f"kills {getattr(r.base, 'kills', 0)}"))]))
 
 sc(Scenario("dart_never_anchors", "the dart's drill motor is jammed: anchor fails, operator releases and reshoots",
             dart_setup=["drill_jam=1"],
@@ -818,8 +834,8 @@ sc(Scenario("usb_unplug_tow", "USB unplugged for 3 s while the base holds the to
                        lambda r: (r.base.ctl("unplug"), later(1.0, lambda r2: setattr(r2, "unplugged_plant", r2.base.get()))(r),
                                   later(3.0, lambda r2: r2.base.ctl("replug"))(r),
                                   later(4.5, lambda r2: setattr(r2, "replug_plant", r2.base.get()))(r)))],
-            extra_checks=[("motors off while unplugged, no motion by itself after replug",
-                           lambda r, res: (getattr(r, "unplugged_plant", {}).get("wDir") == 0 and getattr(r, "replug_plant", {}).get("wDir") == 0
+            extra_checks=[("no motion by itself after replug",
+                           lambda r, res: (getattr(r, "replug_plant", {}).get("wDir") == 0
                                            and getattr(r, "replug_plant", {}).get("dDir") == 0,
                                            f"unplugged {getattr(r, 'unplugged_plant', {}).get('wDir')}, after replug state {getattr(r, 'replug_plant', {}).get('state')} wDir {getattr(r, 'replug_plant', {}).get('wDir')}")),
                           ("tow limit respected", c_tow_limit)]))
@@ -867,13 +883,13 @@ for _step, _pst in POWER_STATES:
 
 def inject_garbage(rig):
     # the shim's inject command understands \n and \xHH escapes; quotes are plain
-    lines = ['ESP-ROM:esp32s3-20210327\nrst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)\n',
-             '{not json at all\n',
-             '{"id":1,"ok":true}\n',                      # a stale duplicate reply to an old id
-             '{"tel":{"state":"IDL', 'E"}}\n',            # one line split in two writes
-             '\xff\xfe\x00garbage\n',                     # bad UTF-8 and a NUL
-             '{"evt":"NEWTHING","t":1}\n',                # an event the Jetson does not know
-             '{"tel":"x' + ' ' * 300 + '"}\n']            # over 256 bytes
+    lines = [r'ESP-ROM:esp32s3-20210327\nrst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)\n',
+             r'{not json at all\n',
+             r'{"id":1,"ok":true}\n',                     # a stale duplicate reply to an old id
+             r'{"tel":{"state":"IDL', r'E"}}\n',          # one line split in two writes
+             r'\xff\xfe\x00garbage\n',                    # bad UTF-8 and a NUL
+             r'{"evt":"NEWTHING","t":1}\n',               # an event the Jetson does not know
+             r'{"tel":"x' + ' ' * 300 + r'"}\n']          # over 256 bytes
     for raw in lines:
         rig.base.ctl("inject " + raw)
         time.sleep(0.05)

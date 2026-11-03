@@ -181,3 +181,19 @@ def test_brake_parts_clear_through_the_stroke():
         assert (br ^ wall).volume() < 1e-3, s
         assert (cr ^ br).volume() < 0.1, s          # tip circle facets
         assert cr.min_gap(br, 1.0) < 0.1, s
+
+
+def test_pulley2_swivel_keeps_the_line_in_its_groove():
+    """D43 review: the line leaves pulley 2 toward cad-launch's pivot pulley within 2 deg of the groove plane at every
+    aim (the swivel follows the line)."""
+    o = np.asarray(reel.SP["origin"], float)
+    for aim in (6.0, 20.0, 36.0, 47.0, 60.0):
+        S = dict(wraps=0.0, aim_deg=aim)
+        ph = math.radians(reel.swivel_deg(P, S))
+        axis_r = np.array((-math.sin(ph), math.cos(ph), 0.0))              # pulley 2 axis (R) after the swivel
+        axis_w = np.array((axis_r[0], -axis_r[2], axis_r[1]))
+        pts = np.asarray(reel.line_path(P, S), float)
+        k = [i for i, p in enumerate(pts) if abs(p[1] - reel.P2_WORLD_Y) < 0.6]
+        d = pts[k[1]] - pts[k[0]]
+        d = d / np.linalg.norm(d)
+        assert abs(math.degrees(math.asin(abs(float(np.dot(d, axis_w)))))) < 2.0, aim

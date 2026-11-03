@@ -50,8 +50,8 @@ def free_port() -> int:
 
 # ====================================================================================================== base process
 class BaseProc:
-    def __init__(self, rundir: str, speed: float):
-        self.rundir, self.speed = rundir, speed
+    def __init__(self, rundir: str, speed: float, hello_delay: int = 2100):
+        self.rundir, self.speed, self.hello_delay = rundir, speed, hello_delay
         self.link = os.path.join(rundir, "base_tty")
         self.state = os.path.join(rundir, "base_state")
         self.port = free_port()
@@ -66,7 +66,7 @@ class BaseProc:
             self._start(fresh)
 
     def _start(self, fresh: bool) -> None:
-        args = [SHIM, "--link", self.link, "--ctl", str(self.port), "--state", self.state, "--speed", str(self.speed)]
+        args = [SHIM, "--link", self.link, "--ctl", str(self.port), "--state", self.state, "--speed", str(self.speed), "--hello-delay", str(self.hello_delay)]
         if fresh:
             args.append("--fresh")
         self.proc = subprocess.Popen(args, stdout=self.log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
@@ -261,10 +261,13 @@ class Rig:
     # -------------------------------------------------------------- start
     def start(self) -> None:
         sc = self.sc
-        self.base = BaseProc(self.dir, self.speed)
+        self.base = BaseProc(self.dir, self.speed, sc.hello_delay)
         self.base.start(fresh=True)
         t0 = time.time()                       # wait for BOOT (60 ms): earlier cal/set lines are lost (FINDINGS F1)
-        while self.base.get().get("t", 0) < 200 and time.time() - t0 < 3:
+        while time.time() - t0 < 8:          # setup() about 2.1 s, then BOOT 60 ms after the first tick
+            g = self.base.get()
+            if g.get("state") not in (None, "OFF") and g.get("t", 0) >= self.base.hello_delay + 150:
+                break
             time.sleep(0.02)
         # a new build on the bench (BENCH_TEST / CALIBRATION): carriage declared at rest, motor constants as calibrated
         self.base.cmd({"id": 0, "cmd": "cal", "what": "cock_rest"})
@@ -547,6 +550,7 @@ class Scenario:
         self.triggers = kw.get("triggers", [])
         self.anchor_holds = kw.get("anchor_holds", True)
         self.calibrated = kw.get("calibrated", True)
+        self.hello_delay = kw.get("hello_delay", 2100)   # ms from power on to HELLO (the sketch's setup())
         self.after = kw.get("after")              # run after the first mission ends (operator recovery + a new mission)
         self.tow_rounds = kw.get("tow_rounds", 3)
         self.timeout_s = kw.get("timeout_s", 420)
@@ -799,8 +803,18 @@ sc(Scenario("stall_cock", "the wiper stalls while cocking (STALL), load removed,
 
 sc(Scenario("power_unwrap", "power loss mid-unwrap: kill the base process, restart it, the mission recovers",
             triggers=[("kill base mid-unwrap", plant_state("UNWRAP", delay=3.0), lambda r: r.restart_base(2.0))],
-            extra_checks=[("base restarted and the Jetson saw it", lambda r, res: (getattr(r.base, "kills", 0) >= 1 and open(os.path.join(r.dir, "base.log")).read().count("BOOT #1") >= 2,
+            extra_checks=[("Jetson notices the reset within 10 s (no full 60 s wait)",
+                           lambda r, res: (not any("in 60 s" in p["text"] for p in res["prompts"]),
+                                           [p["text"][:70] for p in res["prompts"] if "failed" in p["text"]])),
+                          ("base restarted and the Jetson saw it", lambda r, res: (getattr(r.base, "kills", 0) >= 1 and open(os.path.join(r.dir, "base.log")).read().count("BOOT #1") >= 2,
                                                                                    f"kills {getattr(r.base, 'kills', 0)}"))]))
+
+sc(Scenario("power_unwrap_fasthello", "power loss mid-unwrap with HELLO sent as soon as the port exists (lost in the pyserial open flush)",
+            hello_delay=0,
+            triggers=[("kill base mid-unwrap", plant_state("UNWRAP", delay=3.0), lambda r: r.restart_base(2.0))],
+            extra_checks=[("Jetson notices the reset within 10 s (no full 60 s wait)",
+                           lambda r, res: (not any("in 60 s" in p["text"] for p in res["prompts"]),
+                                           [p["text"][:70] for p in res["prompts"] if "failed" in p["text"]]))]))
 
 sc(Scenario("dart_never_anchors", "the dart's drill motor is jammed: anchor fails, operator releases and reshoots",
             dart_setup=["drill_jam=1"],

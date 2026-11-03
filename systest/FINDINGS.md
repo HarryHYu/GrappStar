@@ -96,3 +96,21 @@ harness re-runs green.
   Skip for COCK in that state.
 - Harness: the scenario now models what the operator must do today (Abort, Clear, Decock, Start again) and checks
   that the second mission completes.
+
+## F8 (jetson) a base reset during a long action is noticed only at the action timeout (60 s) when HELLO is missed
+
+- Scenario `power_unwrap` (first batch, HELLO sent at power on): base killed 3 s into UNWRAP, restarted after 2 s.
+  The Jetson's link dropped (`base link down: SerialException`) and came back, but HELLO and BOOT had been written
+  before pyserial reopened the port, and `serial.Serial()` flushes the input buffer on open, so they were lost.
+  `wait_event("UNWRAPPED")` then waited its whole `wrap_timeout_s` (60 s): prompt "UNWRAP failed: no UNWRAPPED
+  event from the base in 60 s". Retry then recovered and the mission finished (DONE), 60 s late.
+- Where: `jetson/grappstar/comms/base.py:505-538` (`wait_event` fails fast only on a HELLO event) and `:259-284`
+  (`_run` knows the link went down and counts `reconnects`, but nothing waiting is told).
+- Real hardware: the ESP32-S3 sends HELLO about 2.1 s after reset (setup waits for the host up to 1.5 s, the HX711
+  probe up to 0.6 s), and the USB port re-enumerates in that time, so whether the Jetson reopens before HELLO is a
+  race (reconnect_s, udev). Do not rely on HELLO.
+- Suggest: treat a link drop as a session break: in `_run`'s `finally`, append a synthetic `{"evt":"HELLO","_lost":
+  true}` (or bump a session counter that `wait_event` / `wait_tel` / `cmd` check) so every pending wait raises
+  `BASE_RESET` at once; optionally confirm with `ping` (`t` smaller than before = reset).
+- The harness now models the sketch's 2.1 s setup delay by default (`power_unwrap`) and keeps the immediate-HELLO
+  race as `power_unwrap_fasthello`.

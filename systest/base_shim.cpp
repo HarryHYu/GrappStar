@@ -133,9 +133,19 @@ static void drainEvents() {
   while (!evq.empty()) { if (!writeLine(evq.front().c_str())) break; evq.pop_front(); }
 }
 
+static bool running = false; static uint32_t setupEnd = 0; static uint32_t helloDelayMs = 2100;
+// power on: the USB port enumerates at once, setup() runs (1.5 s waiting for the host, 0.6 s probing the HX711), then
+// HELLO and the tick task. Lines the host sends meanwhile wait in the CDC buffer (not read until loop() runs).
 static void powerOn() {
-  delete B; B = new gb::Base();
+  delete B; B = nullptr;
   evq.clear(); nvsPending = false;
+  powered = true; running = false; bootCount++;
+  setupEnd = S.t + helloDelayMs;
+  openPty();
+  fprintf(lgf, "[%8u] POWER ON #%u (setup until %u)\n", (unsigned)S.t, bootCount, (unsigned)setupEnd);
+}
+static void finishSetup() {
+  B = new gb::Base();
   gb::Io io = simIo(); io.save = shimSave; io.saveTun = shimSaveTun; io.out = shimOut;
   B->io = io;
   B->saveAck = true;
@@ -146,8 +156,7 @@ static void powerOn() {
   B->begin(S.t);
   gb::Saved rec; bool haveRec = readFile(sp("nvs.bin"), &rec, sizeof rec);
   B->restore(haveRec ? &rec : nullptr);
-  powered = true; bootCount++;
-  openPty();
+  running = true;
   char hello[200];
   snprintf(hello, sizeof hello, "{\"evt\":\"HELLO\",\"fw\":\"%s\",\"reset\":\"POWERON\",\"hx711\":%s,\"as5600\":%s,\"pwm\":true}",
            GB_FW_VERSION, S.hxFitted ? "true" : "false", S.encMissing ? "false" : "true");
@@ -156,7 +165,7 @@ static void powerOn() {
 }
 static void powerOff() {
   if (!powered) return;
-  powered = false;
+  powered = false; running = false;
   S.wDir = 0; S.wDuty = 0; S.dDir = 0; S.dDuty = 0; S.drumAwake = false;   // bridges lose their inputs (pull-downs)
   nvsPending = false;                                                      // an NVS write in flight is lost
   closePty();
@@ -193,9 +202,10 @@ static void serviceSerial() {
 static uint32_t lastPlantSave = 0;
 static void tickOnce() {
   S.step(5);
+  if (powered && !running && (int32_t)(S.t - setupEnd) >= 0) finishSetup();
   if (S.dryFires) { dryTotal += S.dryFires; S.dryFires = 0; }
   peakTension = fmax(peakTension, S.tension()); peakAmps = fmax(peakAmps, S.amps);
-  if (!powered) return;
+  if (!running) return;
   B->tick(S.t);
   if (nvsPending && (int32_t)(S.t - nvsT) >= 20) {   // NVS write done
     writeFile(sp("nvs.bin"), &nvsBuf, sizeof nvsBuf);
@@ -234,14 +244,14 @@ static bool setKnob(const std::string& k, const char* v) {
 static std::string getJson() {
   char b[1400];
   const char* st = "OFF"; static const char* SN[] = {"IDLE", "MODE", "AIM", "COCK", "FIRE", "WRAP", "UNWRAP", "REEL", "HOLD", "JOG", "DECOCK", "SAFING", "FAULT"};
-  if (powered) st = (B->state >= 0 && B->state < 13) ? SN[B->state] : "?";
+  if (running) st = (B->state >= 0 && B->state < 13) ? SN[B->state] : "?";
   snprintf(b, sizeof b,
            "{\"t\":%u,\"powered\":%s,\"boots\":%u,\"state\":\"%s\",\"fault\":%d,\"shots\":%d,\"fired\":%s,\"lineOut\":%.3f,"
            "\"tension\":%.2f,\"seated\":%s,\"drumDeg\":%.2f,\"wiperDeg\":%.1f,\"aimPh\":%.1f,\"cockPh\":%.1f,\"wraps\":%.2f,"
            "\"inLaunch\":%s,\"inReel\":%s,\"dogTip\":%s,\"anchorTautAt\":%.3f,\"slack\":%.3f,\"maxSlack\":%.3f,\"amps\":%.2f,"
            "\"wDir\":%d,\"wDuty\":%d,\"dDir\":%d,\"dryFires\":%d,\"evDrops\":%llu,\"linesIn\":%llu,\"linesOut\":%llu,\"evq\":%zu,"
            "\"pty\":%s,\"saves\":%d,\"kNperA_cal\":%.4f,\"freeA_cal\":%.4f,\"peakTension\":%.2f,\"peakAmps\":%.2f}",
-           (unsigned)S.t, powered ? "true" : "false", bootCount, st, powered ? B->fault : -1, S.shots, S.fired ? "true" : "false",
+           (unsigned)S.t, powered ? "true" : "false", bootCount, st, running ? B->fault : -1, S.shots, S.fired ? "true" : "false",
            S.lineOut, S.tension(), S.seated() ? "true" : "false", S.drumDeg, S.wiperDeg, S.aimPh, S.cockPh, S.wrapsExact(),
            S.inLaunch() ? "true" : "false", S.inReel() ? "true" : "false", S.dogTip ? "true" : "false", S.anchorTautAt, S.slack,
            S.maxSlack, S.amps, S.wDir, S.wDuty, S.dDir, dryTotal, (unsigned long long)evDrops, (unsigned long long)linesIn,
@@ -262,7 +272,7 @@ static std::string ctlCommand(const std::string& line) {
     return "{\"ok\":true}";
   }
   if (c == "cmd") {
-    if (!powered) return "{\"ok\":false,\"err\":\"powered off\"}";
+    if (!running) return "{\"ok\":false,\"err\":\"powered off\"}";
     std::string j = line.substr(4); char rep[300];
     B->handleLine(j.c_str(), (int)j.size(), rep, sizeof rep);
     fprintf(lgf, "[%8u] CTL-RX %s\n[%8u] CTL-TX %s\n", (unsigned)S.t, j.c_str(), (unsigned)S.t, rep);
@@ -315,6 +325,7 @@ int main(int argc, char** argv) {
     else if (a == "--state" && i + 1 < argc) stateDir = argv[++i];
     else if (a == "--speed" && i + 1 < argc) speed = atof(argv[++i]);
     else if (a == "--fresh") fresh = true;
+    else if (a == "--hello-delay" && i + 1 < argc) helloDelayMs = (uint32_t)atoi(argv[++i]);
     else { fprintf(stderr, "usage: base_shim --link PATH --ctl PORT --state DIR [--speed X] [--fresh]\n"); return 2; }
   }
   if (linkPath.empty() || !ctlPort || stateDir.empty()) { fprintf(stderr, "need --link, --ctl, --state\n"); return 2; }
@@ -339,14 +350,14 @@ int main(int argc, char** argv) {
     int n = 0;
     while (S.t + 5 <= target && n < 400) {
       tickOnce(); n++;
-      if (powered) {
+      if (running) {
         serviceSerial();                                 // lines are handled between ticks, like loop() on core 0
         drainEvents();
         if (B->telDue(S.t)) { char tb[300]; B->telemetry(tb, sizeof tb); if (!writeLine(tb)) telDrops++; }
       }
       if (S.t - lastPlantSave >= 100) { savePlant(); lastPlantSave = S.t; }
     }
-    if (powered) serviceSerial();
+    if (running) serviceSerial();
     serviceCtl();
     usleep(1000);
   }

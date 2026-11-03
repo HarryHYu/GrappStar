@@ -298,7 +298,8 @@ struct Track {
   int lastPhase = -1, lastFault = 0, lastSeqV = IDLE; uint32_t seqChangeT = 0;
   float maxAccFlight = 0;
   bool linkLost = false, bno = true; uint32_t lastImu = 0;
-  int pendingPushCheck = 0; float pushCheckAt = 0;     // launch detection info check
+  int pendingPushCheck = 0; float pushCheckAt = 0, pushLen = 0, pushT0 = 0;   // launch detection info check
+  bool lastArmed = false; uint32_t armChangeT = 0;
 };
 static Track T;
 
@@ -378,6 +379,7 @@ static void checkAll(bool afterStop) {
     edge(7, bad, sig, msg);
     if (ph != T.lastPhase) { evlog("phase %s (seq '%s')", phaseName(ph), seqName(K.seq)); T.lastPhase = ph; }
   }
+  if (K.armed != T.lastArmed) { T.lastArmed = K.armed; if (K.armed) T.armChangeT = ET; }
   if (K.seq != T.lastSeqV) { if (K.seq == DONE) ST.anchored++; if (K.seq == RELEASED) ST.released++; T.lastSeqV = K.seq; T.seqChangeT = ET; }
   // 2: run limits
   {
@@ -545,9 +547,9 @@ static void startImu(int kind, uint32_t t0, bool nominalPush) {
     case I_KNOCK: g.push = (float)R.r(5, 40); g.len = g.push + 500; break;
     case I_SILENT: g.len = (float)R.r(500, 5000); break;
   }
-  IMU = g;
+  IMU = g; T.pendingPushCheck = 0;                     // a replaced trace never produced its push
   evlog("IMU: %s starts at %.3f s (push %.0f ms, flight %.0f ms, impact %.1f g)", imuName(kind), t0 / 1000.0, g.push, g.flight, g.imp);
-  if ((kind == I_REAL || kind == I_SOFT || kind == I_SILFLIGHT) && K.armed && K.flight.st == Flight::WAIT && T.bno) { T.pendingPushCheck = 1; T.pushCheckAt = g.t0 + g.push + 60; }
+  if ((kind == I_REAL || kind == I_SOFT || kind == I_SILFLIGHT) && K.armed && K.flight.st == Flight::WAIT && T.bno) { T.pendingPushCheck = 1; T.pushCheckAt = g.t0 + g.push + 60; T.pushLen = g.push; T.pushT0 = g.t0; }
 }
 static float restA() { return 1.0f + (float)R.r(-0.02, 0.02); }
 static float imuAcc(float t) {
@@ -705,8 +707,8 @@ static void doTick(uint32_t dt) {
   checkAll(false);
   if (T.pendingPushCheck && (float)ET >= T.pushCheckAt) {
     T.pendingPushCheck = 0;
-    if (K.armed || K.flight.launched) {
-      bool seen = K.flight.launched; float push = IMU.push;
+    if ((K.armed || K.flight.launched) && (float)T.armChangeT < T.pushT0 - 1) {   // armed the whole time
+      bool seen = K.flight.launched; float push = T.pushLen;
       if (!seen) evlog("info: armed launch push of %.0f ms not detected", push);
       if (push >= 22) { ST.pushArmed22++; if (!seen) ST.pushMissed22++; }
       if (push >= 30) { ST.pushArmed30++; if (!seen) ST.pushMissed30++; }
@@ -860,7 +862,7 @@ static void runEpisode(uint64_t seed, int ep) {
 // ------------------------------------------------------------------------------------------------------- main
 int main(int argc, char** argv) {
   uint64_t seed = argc > 1 ? strtoull(argv[1], nullptr, 0) : 20261103ull;
-  int eps = argc > 2 ? atoi(argv[2]) : 2500;
+  int eps = argc > 2 ? atoi(argv[2]) : 8000;
   int only = argc > 3 ? atoi(argv[3]) : -1;
   VERBOSE = only >= 0;
   auto t0 = std::chrono::steady_clock::now();

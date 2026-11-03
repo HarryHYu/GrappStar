@@ -389,7 +389,7 @@ class Rig:
         if e2.get("evt") == "LIMIT" and e2.get("holding"):
             g = self.base.get()                       # dart-side truth when the firmware says it holds at the limit
             self.limit_samples.append({"fw": e2.get("tension_n"), "plant_dart": round(float(g.get("tension") or 0) / self.sc.path_gain, 1),
-                                       "max_n": e2.get("max_n"), "step": self.step()})
+                                       "max_n": e2.get("max_n"), "step": self.step(), "why": e2.get("why")})
         if e2.get("evt") == "AIMED" and not self.fired_seen:
             self.aimed_plant = self.base.get()       # the rail's real pitch when the firmware says it is aimed (the shot aim)
         e2["_step"] = self.step()
@@ -1089,11 +1089,18 @@ def c_tow_limit(rig, res):
 
 def c_limit_dart_side(rig, res):
     """D43/D46: the firmware's LIMIT/HOLD tension is the DART-side tension (plant capstan tension / path gain)."""
-    smp = [x for x in rig.limit_samples if x.get("fw") is not None and x["plant_dart"] > 3]
+    smp = [x for x in rig.limit_samples if x.get("fw") is not None and x["plant_dart"] > 3 and "already" not in str(x.get("why"))]
     if not smp:
         return True, "no holding LIMIT to compare"
     bad = [x for x in smp if abs(float(x["fw"]) - x["plant_dart"]) > max(5.0, 0.15 * x["plant_dart"])]
     return not bad, f"firmware vs plant dart-side at LIMIT (gain {rig.sc.path_gain:.2f}): {[(x['fw'], x['plant_dart']) for x in smp][:6]}"
+
+
+def c_tow_takes_slack(rig, res):
+    """F22: after the rover makes slack, the next tow round must pull again (host: stop, then reel), not get an
+    instant "already at the limit" on a slack line."""
+    stale = [x for x in rig.limit_samples if "already" in str(x.get("why")) and x["plant_dart"] < 0.8 * float(x.get("max_n") or 0)]
+    return not stale, f"'already at the limit' on a slack line: {[(x['fw'], x['plant_dart']) for x in stale]}"
 
 
 def c_released(rig, res):
@@ -1191,6 +1198,7 @@ def nominal_checks():
             ("REEL engaged, tow pulled", c_reel_engaged), ("tow limit respected", c_tow_limit),
             ("LIMIT reports the dart-side tension (D43/D46)", c_limit_dart_side),
             ("landing estimate (informational)", c_landing_estimate),
+            ("tow rounds take up the rover's slack (F22)", c_tow_takes_slack),
             ("dart released", c_released), ("reeled in to the approach", c_reeled), ("unwrapped", c_unwrapped),
             ("seated", c_seated), ("back to LAUNCH", c_launch), ("no dry fire", c_no_dry),
             ("wraps laid without jamming (D22 slack)", c_wrap_free), ("free dart tugged under 1 m by the wrap", c_tug),

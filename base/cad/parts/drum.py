@@ -661,7 +661,8 @@ def dog_post(g, c):
     sL = yt + st - g["dog_touch"] + head          # LAUNCH boss starts here
     bx0 = r1 + 8.5
     clamp = cyl(g["rail_d"] / 2 + 5.0, p0, p1, rx, ry)
-    arm = shp_extrude(LineString([(rx, ry), (bx0 + 2.25, 4.0)]).buffer(4.0), p0, p1)
+    arm = shp_extrude(LineString([(rx, ry), (bx0 + 2.25, 4.0)]).buffer(4.0), p0, p1 - 1.2)   # clear of the launch
+    # pulley pivot axle end (s 111, swings with aim)
     b0 = sR - 3.0
     bar = prim.box(bx0, bx0 + 4.5, -3.0, 7.0, b0, p1)
     bR = prim.box(r1 + 1.0, bx0 + 0.01, -1.0, 5.0, b0, sR)
@@ -1179,7 +1180,12 @@ def kin(P, S):
     th = drum_theta(S, c)
     # params TIMELINE: wiper_deg drives the main shaft, coupler, bus gear and collar (always); sleeve_deg the LAUNCH dog
     # ring (else it follows launch_sleeve through Joint.gear: it is bolted to the sleeve); reel_deg the REEL gear.
-    w = float(S.get("wiper_deg") or 0.0)
+    if S.get("wiper_deg") is not None:
+        w = float(S["wiper_deg"])
+    elif K.mode(th, c) == "LAUNCH":
+        w = main_angle(P, S)      # no wiper_deg (cad-launch's own sweeps): the engaged shaft turns with the sleeve
+    else:
+        w = 0.0
     x = K.collar_x(th, c)
     md = K.mode(th, c)
     v = {

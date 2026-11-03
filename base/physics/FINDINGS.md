@@ -5,6 +5,15 @@ launcher/reel geometry below is my placeholder: stroke along the rail, 60 g carr
 core 40 / flange 64 / width 20 mm, capstan 40 mm). Dart mass 0.279 kg (spec DART.mass_kg; the brief said 0.292 kg:
 coordinator please confirm which). Models: base/physics/*.py, every number reproducible with the CLIs.
 
+## Current numbers (latest run, spec decisions D5 to D10; details in SUMMARY.md and base/out/physics/*.json)
+
+- 2 springs, 280 mm at full cock, 13.1 J: 7.6 m/s, range 4.9 / 4.5 / 4.0 m at 0.5 / 0.75 / 1.0 N, best pitch 36 deg.
+  4 springs: 10.4 m/s, 8.7 / 7.9 / 7.2 m. Ballistics table 6 to 47 deg in base/out/ballistics.json (C3).
+- Cock 3.1 N m peak at the wiper, 4.9 A, 2.6 s per shot. Tow 50 N: 2.0 N m, 3.7 A, 0.12 m/s (ratio 0.6). Aim 0.33 N m,
+  6.6 s for 6 to 47 deg. Limiter (5 N m) slipping: 7 A, 127 N on the line.
+- Stop: 3.3 J (carriage 2.3 + springs 0.9): 15 mm linear pad 434 N, 22 mm for 300 N. Recoil 84 N for 55 ms.
+- Sections F1 to F9 below are the history of the findings (numbers in them are from earlier parameter sets).
+
 ## F1. RANGE: the two Century springs cannot reach 15 to 20 m. Expect 4 to 5 m. (biggest issue)
 
 | Case (pitch 35 deg, tether brake 0.5 / 0.75 / 1.0 N) | spring ext | stored | v muzzle | range m |
@@ -26,12 +35,12 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 
 ## F2. Spring limits (ASTM A228, Shigley 10-7, extra SF 1.2)
 
-- Formula rate 0.128 N/mm (98 body coils, consistent with the 0.125 catalogue estimate). Mass 55 g each.
+- Formula rate 0.131 N/mm (96 body coils, 165.1 mm taken over the hooks; the 0.125 catalogue estimate is used). Mass 54 g each.
 - Safe force 43.6 N, governed by hook torsion (r2 = 2.5 d assumed), body torsion 51.6 N. Safe extension 289 mm with
   F0 7.5 N (293 mm with spec F0 7.0). Without the 1.2 factor: ~356 mm. Spec max_ext 250 is conservative; 280 is fine.
 - Initial tension 7 N is at the top of the Shigley preferred band for this index (C 10.4): the hang test will likely
   find 5 to 7 N.
-- Surge 24 Hz fixed-fixed (one-way wave 21 ms vs a 57 ms stroke): the lumped 1/3-mass model and the chain model agree
+- Surge 25 Hz fixed-fixed (one-way wave 21 ms vs a 57 ms stroke): the lumped 1/3-mass model and the chain model agree
   within 1 %. But after the carriage hits the stop the coils keep moving and clash (chain model: 8 to 14 m/s coil
   closing speed). More preload (40 mm instead of 10) cuts clash to 7.7 m/s and keeps 96 % of the speed.
 
@@ -89,14 +98,14 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 
 ## F7. Capstan and tow speed
 
-- Wraps for 50 N at mu 0.15 with 2 N take-up: 3.4; design 5 to 6. Five wraps hold 223 N (mu 0.15) with 2 N take-up, so
+- Wraps for 50 N at mu 0.15 with the 3 N REEL take-up (constant clutch torque, lowest at the full reel): 3.3 raw, 5 design. Five wraps hold 223 N (mu 0.15) with 2 N take-up, so
   the capstan itself never limits force: the firmware must.
 - Tow at 1:1 on a 40 mm capstan: 0.077 m/s; reeling 20 m takes ~4 min. A 3:1 step-up to the capstan gives 0.23 m/s and
   still only ~24 % of stall at 50 N. Recommend capstan speed ratio 2.5 to 3 (and the same for the take-up overdrive).
 
 ## F8. Smaller notes
 
-- Cock force at 280 mm: 84 N on the carriage (rack/big gear tooth load); sprag #1 sees ~1.5 N m: huge margin.
+- Cock force at 280 mm: 84 N on the carriage (rack/big gear tooth load); sprag #1 (on the wiper axis) sees ~3.1 N m of 50: huge margin.
 - DRV8833 for the drum N20 needs the buck (VM max 10.8 V), as the workplan says.
 
 ## F9. Dart attitude at 6 to 8 m/s (attitude.py, 3-DOF pitch plane, same physics as kedge/flight_sim.py)

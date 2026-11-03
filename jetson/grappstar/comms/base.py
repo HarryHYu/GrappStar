@@ -98,15 +98,22 @@ class SerialTransport:
         self._buf = b""
 
     def open(self) -> None:
+        """Open without resetting the board (review r2_J #11). pyserial asserts DTR and RTS when it opens a port, and
+        the ESP32-S3 USB-Serial-JTAG treats a DTR drop with RTS asserted as a reset request. So create the Serial
+        unopened, set both lines low first (RTS before DTR, so EN is never pulsed), then open."""
         import serial  # pyserial, imported here so the rest works without it
-        self.ser = serial.Serial(self.port, self.baud, timeout=0.05, write_timeout=1.0)
-        # The DevKitC native USB port does not reset on open, but a UART bridge port does (DTR/RTS):
-        # keep both lines low so opening the port never resets the board.
+        ser = serial.Serial()
+        ser.port = self.port
+        ser.baudrate = self.baud
+        ser.timeout = 0.05
+        ser.write_timeout = 1.0
         try:
-            self.ser.dtr = False
-            self.ser.rts = False
+            ser.rts = False
+            ser.dtr = False
         except Exception:
             pass
+        ser.open()
+        self.ser = ser
         self._buf = b""
 
     def readline(self, timeout: float = 0.2) -> Optional[bytes]:

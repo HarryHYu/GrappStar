@@ -1,15 +1,14 @@
-"""BaseClient against the REAL base firmware (fw-base base_logic.h + its physics model test/sim.h) via basesim.
+"""BaseClient against the REAL base firmware (firmware/base base_logic.h, fw base-1.2, + its physics model test/sim.h)
+via basesim, following the one C1 sequence of BASE_SPEC 10.1 (D35).
 
 Skipped when jetson/tools/basesim/basesim is missing and cannot be built (make -C jetson/tools/basesim, which needs the
-firmware sources: firmware/base or the fw-base extract, see jetson/tools/basesim/README.md). The simulator runs at
-SPEED times real time; firmware timings below are in simulated seconds and converted with T().
+firmware sources, see jetson/tools/basesim/README.md). Marked slow (python3 -m pytest -m slow, check_all.sh). The
+simulator runs at SPEED times real time; firmware timings below are in simulated seconds and converted with T().
 
-The tests run in file order on one simulator (one mission). They use only BaseClient.cmd / wait_event / wait_tel.
-Two firmware generations are covered, detected with "#sim dump" (drum_order D16 or v1):
-  D16 (fw-base 93bfb1c WIP): drum LAUNCH / NEUTRAL / WRAP / REEL. mode REEL needs the wraps on (NOT_WRAPPED), "wrap"
-       goes NEUTRAL -> REEL (collar engaged, 4 wraps), "unwrap" goes back to NEUTRAL.
-  v1  (base-v1 39badb1):     drum LAUNCH / NEUTRAL / REEL / WRAPPED. mode REEL, then "wrap" to WRAPPED, "unwrap" back
-       to REEL.
+The tests run in file order on one simulator (one mission, load cell fitted). They use only BaseClient.cmd /
+wait_event / wait_tel. Drum: LAUNCH / L_TO_N / NEUTRAL / WRAP_PREP / WRAP / N_TO_R (WRAPPED park 314, collar NEUTRAL) /
+REEL. "wrap" parks at WRAPPED (WRAPPED only), "mode REEL" flies the collar in, "unwrap" goes back to NEUTRAL
+(UNWRAPPED then MODE), "retrieve" seats the dart on the take-up in NEUTRAL.
 """
 import os
 import subprocess
@@ -23,28 +22,11 @@ from basesim_transport import find_basesim, scenario_args, start_basesim
 
 SPEED = float(os.environ.get("GRAPPSTAR_BASESIM_SPEED", "8"))
 BIN = find_basesim(build=True)
-pytestmark = pytest.mark.skipif(BIN is None, reason="basesim not built and cannot be built (no firmware sources?)")
+pytestmark = [pytest.mark.slow,
+              pytest.mark.skipif(BIN is None, reason="basesim not built and cannot be built (no firmware sources?)")]
 
 TEL_KEYS = ["state", "mode", "drum_deg", "drum_pos", "wiper_deg", "rpm", "amps", "pitch_deg", "cock", "wraps",
             "line_m", "tension_n", "sw", "fault", "vbat"]
-
-
-FW = {"d16": None}
-
-
-def d16():
-    return FW["d16"]
-
-
-def _drum_order():
-    """Ask a throwaway basesim which firmware generation it was built from (#sim dump reports drum_order)."""
-    import subprocess
-    try:
-        out = subprocess.run([find_basesim(), "--speed", "8"], input="#sim dump\n", capture_output=True, text=True,
-                             timeout=5).stdout
-    except subprocess.TimeoutExpired as e:
-        out = (e.stdout or b"").decode() if isinstance(e.stdout, bytes) else (e.stdout or "")
-    return "D16" if '"drum_order":"D16"' in out else "v1"
 
 
 def T(sim_s):
@@ -54,8 +36,7 @@ def T(sim_s):
 
 @pytest.fixture(scope="module")
 def base():
-    proc, c = start_basesim(BIN, speed=SPEED, line_out=0.0, seat_at=0.0)   # dart seated in the cradle
-    FW["d16"] = _drum_order() == "D16"
+    proc, c = start_basesim(BIN, speed=SPEED, line_out=0.0, seat_at=0.0, load_cell=True)   # dart in the cradle
     yield c
     c.close()
     assert proc.poll() is not None
@@ -74,16 +55,16 @@ def refused(c, name, **args):
     return r["err"]
 
 
-def idle(c, sim_s=2, fail_on_fault=True):
-    return c.wait_tel(lambda t: t["state"] == "IDLE", T(sim_s), what="IDLE", fail_on_fault=fail_on_fault)
+def idle(c, sim_s=2, fail_on_fault=True, pred=lambda t: True):
+    return c.wait_tel(lambda t: t["state"] == "IDLE" and pred(t), T(sim_s), what="IDLE", fail_on_fault=fail_on_fault)
 
 
 # ------------------------------------------------------------------------------------------------ link
 def test_ping_status(base):
     r = base.cmd("ping")
-    assert r["ok"] and r["fw"] == "base-1.0" and isinstance(r["t"], int)
+    assert r["ok"] and r["fw"] == "base-1.2" and isinstance(r["t"], int)
     s = base.cmd("status")
-    assert s["phase"] == "REST" and s["drum_known"] and s["magnet"] == "OK" and s["hx"] is False
+    assert s["phase"] == "REST" and s["drum_known"] and s["magnet"] == "OK" and s["hx"] is True
     assert any(e["evt"] == "HELLO" for e in base.events()) and any(e["evt"] == "BOOT" for e in base.events())
 
 
@@ -91,8 +72,8 @@ def test_telemetry_shape_and_rate(base):
     t = base.wait_tel(lambda t: True, 2)
     assert list(t.keys()) == TEL_KEYS
     assert t["state"] == "IDLE" and t["mode"] == "LAUNCH" and t["drum_pos"] == "LAUNCH" and t["fault"] is None
-    assert t["cock"] == 0 and t["wraps"] == 0 and t["tension_n"] is None and t["vbat"] > 12
-    assert t["sw"].get("S") == 1 and t["sw"].get("H") == 1
+    assert t["cock"] == 0 and t["wraps"] == 0 and t["tension_n"] is not None and t["vbat"] > 12
+    assert {"a", "l", "n", "H", "G", "S", "W"} <= set(t["sw"])
     n = [0]
     base.add_tel_callback(lambda _t: n.__setitem__(0, n[0] + 1))
     t0 = time.monotonic()
@@ -101,7 +82,7 @@ def test_telemetry_shape_and_rate(base):
     assert 7 <= hz <= 12, hz                              # 10 Hz idle
 
 
-# ------------------------------------------------------------------------------------------------ launch
+# ------------------------------------------------------------------------------------------------ launch (10.1 steps 1 to 6)
 def test_mode_launch_already_there(base):
     e = run(base, "mode", "MODE", 1, to="LAUNCH")
     assert e["ok"] and e["mode"] == "LAUNCH" and e["drum_pos"] == "LAUNCH"
@@ -116,17 +97,16 @@ def test_aim(base):
 
 def test_cock(base):
     e = run(base, "cock", "COCKED", 10)
-    assert e["ok"] and 420 < e["cock_deg"] < 445
+    assert e["ok"] and 405 < e["cock_deg"] < 425
     assert base.cmd("status")["phase"] == "COCKED"
-    t = idle(base)
-    assert t["cock"] == 1 and "H" not in t["sw"]
+    t = idle(base, pred=lambda t: t["cock"] == 1)
+    assert "H" not in t["sw"] and "G" not in t["sw"]
+    assert refused(base, "mode", to="NEUTRAL") == "LAUNCH_BUSY"
+    assert refused(base, "wrap") == "LAUNCH_BUSY"
+    assert refused(base, "aim", deg=30) == "NOT_AT_REST"
 
 
 def test_arm_bad_token_then_fire(base):
-    # FIRMWARE ISSUE (fw-base D16 WIP): fire runs the last part of the draw under trip_a (5 A default) while the draw
-    # peaks at about 5.1 A, so every shot ends in OVERCURRENT. A higher trip_a over the protocol works around it.
-    if base.cmd("get", key="trip_a")["val"] < 7:
-        base.cmd("set", key="trip_a", val=7)
     tok = base.cmd("arm")["token"]
     assert isinstance(tok, int) and 100000 <= tok <= 999999
     assert refused(base, "fire", token=tok + 1 if tok < 999999 else tok - 1) == "BAD_TOKEN"
@@ -136,48 +116,62 @@ def test_arm_bad_token_then_fire(base):
     mark = base.event_mark()
     base.cmd("fire", token=r["token"])
     f = base.wait_event("FIRED", T(10), since=mark)
-    assert abs(f["pitch_deg"] - 35) < 1 and 440 < f["cock_deg"] < 475
+    assert abs(f["pitch_deg"] - 35) < 1 and 420 < f["cock_deg"] < 445
     e = base.wait_event("RESET", T(10), since=mark)
     assert e["ok"]
-    t = idle(base)
-    assert t["cock"] == 0 and t["line_m"] is None           # line unknown after a shot
+    t = idle(base, pred=lambda t: t["cock"] == 0)
+    assert t["line_m"] is None                             # line unknown after a shot
 
 
 def test_set_line(base):
     base.cmd("set", key="line_m", val=8.0)
     assert base.cmd("get", key="line_m")["val"] == pytest.approx(8.0)
     base.wait_tel(lambda t: t["line_m"] == 8.0, 2, what="line_m 8")
+    assert base.cmd("set", key="tension_offset_n", val=-10.4)["ok"]
 
 
-# ------------------------------------------------------------------------------------------------ reel side
+# ------------------------------------------------------------------------------------------------ reel side (steps 8 to 18)
 def test_neutral_refusals(base):
     e = run(base, "mode", "MODE", 15, to="NEUTRAL")
     assert e["ok"] and e["mode"] == "NEUTRAL" and e["drum_pos"] == "NEUTRAL"
     assert refused(base, "aim", deg=30) == "NOT_IN_LAUNCH"
-    if d16():
-        assert refused(base, "mode", to="REEL") == "NOT_WRAPPED"   # D16: REEL only with the wraps on
-    else:
-        assert refused(base, "wrap") == "NOT_IN_REEL"
-        e = run(base, "mode", "MODE", 15, to="REEL")
-        assert e["ok"] and e["drum_pos"] == "REEL"
-        assert refused(base, "reel", duty=0.5) == "NOT_WRAPPED"
+    assert refused(base, "decock") == "NOT_IN_LAUNCH"
+    assert refused(base, "mode", to="REEL") == "NOT_WRAPPED"   # REEL only with the wraps on
+    assert refused(base, "reel", until="tension") == "NOT_WRAPPED"   # no tension without the capstan
 
 
-def test_wrap(base):
+def test_wrap_parks_at_wrapped(base):
+    mark = base.event_mark()
     e = run(base, "wrap", "WRAPPED", 60)
-    assert e["ok"] and e["wraps"] == 4
+    assert e["ok"] and e["wraps"] == 7
+    t = idle(base, pred=lambda t: t["drum_pos"] == "WRAPPED")
+    assert t["mode"] == "NEUTRAL" and t["drum_deg"] == 314 and t["wraps"] == 7 and {"a", "c"} <= set(t["sw"])
+    time.sleep(T(0.5) - 2.0)
+    assert [x["evt"] for x in base.events(mark)] == ["WRAPPED"]   # no MODE REEL here
+    for to in ("LAUNCH", "NEUTRAL"):
+        assert refused(base, "mode", to=to) == "WRAPS_ON"
+
+
+def test_tidy(base):
+    base.transport.sim("anchor 7.5")                       # the dart is anchored: line taut at 7.5 m
+    e = run(base, "tidy", "TIDIED", 10, ms=3000, duty=0.3)
+    assert e["ok"] is True
     t = idle(base)
-    assert t["mode"] == "REEL" and t["wraps"] == 4
-    assert t["drum_pos"] == ("REEL" if d16() else "WRAPPED")
-    if d16():
-        pass   # contact letters are still changing in the WIP firmware (DR, then r): not asserted until PROTOCOL.md lists them
-    assert refused(base, "mode", to="LAUNCH") == "WRAPS_ON"
+    assert t["drum_pos"] == "WRAPPED" and t["line_m"] == 8   # take-up only: the capstan count does not change
+
+
+def test_mode_reel_fly_in(base):
+    e = run(base, "mode", "MODE", 30, to="REEL")
+    assert e["ok"] and e["mode"] == "REEL" and e["drum_pos"] == "REEL"
+    t = idle(base, pred=lambda t: t["drum_pos"] == "REEL")
+    assert t["drum_deg"] == 347 and t["sw"].get("r") == 1
+    assert refused(base, "tidy") == "NOT_IN_NEUTRAL"
+    assert refused(base, "reel", until="slip") == "BAD_ARG"
 
 
 def test_tow_to_limit_then_stop(base):
-    base.transport.sim("anchor 7.5")                       # the dart is anchored: line taut at 7.5 m
-    e = run(base, "reel", "LIMIT", 30, duty=1, max_n=40, until="tension")
-    assert e["holding"] is True and e["max_n"] == 40 and e["tension_n"] >= 40
+    e = run(base, "reel", "LIMIT", 60, duty=1, max_n=20, until="tension")
+    assert e["holding"] is True and e["max_n"] == 20 and e["tension_n"] >= 20
     base.wait_tel(lambda t: t["state"] == "HOLD", 2, what="HOLD")
     assert refused(base, "unwrap") == "HOLDING"
     mark = base.event_mark()
@@ -187,21 +181,36 @@ def test_tow_to_limit_then_stop(base):
     idle(base)
 
 
-def test_reel_until_seated(base):
-    base.transport.sim("free")                             # the dart let go: free retrieve
-    e = run(base, "reel", "SEATED", 120, duty=1, max_n=40, until="seated")
+def test_reel_until_stop(base):
+    base.transport.sim("free")                             # the dart let go
+    mark = base.event_mark()
+    base.cmd("reel", until="stop")
+    base.wait_tel(lambda t: t["line_m"] is not None and t["line_m"] < 1.5, T(60), what="line_m under 1.5")
+    base.cmd("stop")
+    a = base.wait_event("ABORTED", 2, since=mark, fail_on_abort=False)
+    assert a["what"] == "REEL" and a["why"] == "stop"
+    idle(base)
+
+
+def test_unwrap(base):
+    mark = base.event_mark()
+    base.cmd("unwrap")
+    base.wait_event("MODE", T(60), since=mark)
+    assert [x["evt"] for x in base.events(mark)] == ["UNWRAPPED", "MODE"]
+    m = base.events(mark)[-1]
+    assert m["ok"] and m["mode"] == "NEUTRAL" and m["drum_pos"] == "NEUTRAL"
+    t = idle(base, pred=lambda t: t["drum_pos"] == "NEUTRAL")
+    assert t["wraps"] == 0 and t["drum_deg"] == 41
+
+
+def test_retrieve_and_back_to_launch(base):
+    e = run(base, "retrieve", "SEATED", 60, duty=0.3)
     assert e["evt"] == "SEATED"
-    t = idle(base)
-    assert t["line_m"] == 0 and t["sw"].get("S") == 1
-
-
-def test_unwrap_and_back_to_launch(base):
-    e = run(base, "unwrap", "UNWRAPPED", 60)
-    assert e["ok"]
-    t = idle(base)
-    assert t["wraps"] == 0 and t["drum_pos"] == ("NEUTRAL" if d16() else "REEL")
+    t = idle(base, pred=lambda t: t["line_m"] == 0)
+    assert t["sw"].get("S") == 1
     e = run(base, "mode", "MODE", 20, to="LAUNCH")
     assert e["ok"] and e["mode"] == "LAUNCH"
+    assert base.cmd("status")["aim_known"] is False        # forgotten after the shift into LAUNCH
 
 
 # ------------------------------------------------------------------------------------------------ safety
@@ -261,7 +270,7 @@ def test_pty_mode_with_load_cell():
         c = BaseClient(path, timeout=1.0).start()
         try:
             assert c.wait_connected(5)
-            assert c.cmd("ping")["fw"] == "base-1.0"
+            assert c.cmd("ping")["fw"] == "base-1.2"
             assert c.cmd("status")["hx"] is True
             t = c.wait_tel(lambda t: t["tension_n"] is not None, 3, what="load cell tension")
             assert list(t.keys()) == TEL_KEYS

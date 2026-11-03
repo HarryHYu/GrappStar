@@ -14,10 +14,11 @@ photos in `originals/measure_2026-11/` so the numbers can be checked later.
 | A1 | Output shaft diameter | Caliper across the round part of the shaft, 3 places, take the smallest | `WIPER.shaft_d` | Wiper shaft coupler (drum parts) |
 | A2 | Shaft flats or spline | Flats: caliper across the flats (`shaft_flat`). Spline: count the teeth, caliper the outside and root diameter, photo end-on | `WIPER.shaft_flat` (note a spline in REPORT) | Wiper shaft coupler |
 | A3 | Shaft end thread and length | Thread a nut you know (M6, M8) onto it. Caliper the shaft length from the housing face to the tip | `WIPER.shaft_thread`, `WIPER.shaft_len` | Wiper shaft coupler |
-| A4 | Mount hole pattern | Lay the motor face down on paper, press so the holes mark it (or trace with a pencil). Then caliper each hole centre from the shaft centre along two square directions and each hole diameter. Photo of the paper with a ruler | `WIPER.mount_holes` as (x, y, dia) from the shaft axis | Motor adapter plate (frame parts) |
+| A4 | Mount hole pattern | Lay the motor face down on paper, press so the holes mark it (or trace with a pencil). Then caliper each hole centre from the shaft centre along two square directions and each hole diameter. Photo of the paper with a ruler | `WIPER.mount_holes` as (x, y, dia) from the shaft axis | `frame_motor_adapter` and `frame_motor_saddle` |
 | A5 | Housing size | Caliper the gearbox box (length, width, height) and the motor can (diameter, length), and how far the shaft sits from each edge | `WIPER.body_box` | Frame cheeks and guard if they clash (the audit says) |
 | A6 | Free speed and free current | After the first power-on and the current-sense calibration (G1, CALIBRATION.md (b)). Motor clamped, nothing on the shaft, AS5600 magnet on the shaft. Send `{"cmd":"jog","motor":"wiper","dir":1,"ms":1500}` and paste it again every second for about 10 s (each one extends the jog; it stops 1.5 s after the last). Read `rpm`, `amps` and `vbat` in telemetry while it runs steady. Check rpm by eye: tape flag on the shaft, count turns in 10 s, rpm = turns x 6. (Not with the meter in series at start-up: it can pass 10 A and blow the meter fuse) | `WIPER.n0_rpm`, `WIPER.free_a` | Nothing; re-run physics |
 | A7 | Stall current and stall torque | Do NOT use the meter: stall is about 18 A, over the meter's 10 A range. After base calibration (firmware/base/CALIBRATION.md), use the `amps` telemetry. Torque: clamp a 300 mm bar on the shaft, hook the luggage scale at the end, scale pulling at 90 degrees to the bar, scale anchored to the bench. Jog for at most 2 s at full duty and read the peak (the firmware stall trip may cut it early: note if it does). Torque N m = kg x 9.81 x 0.30. `python3 base/physics/calib.py wiper --v <vbat> --rpm <A6> --i-free <A6> --stall-kg <kg> --arm-mm 300 --i-stall <amps>` prints the whole WIPER block | `WIPER.stall_a`, `WIPER.stall_nm` | Nothing; re-run physics and the ballistics table |
+| A8 | Mounting boss and hub details | Caliper the boss round the output shaft (diameter `boss_d`, height `boss_h`), the hub (`hub_d`, `hub_h`), the threaded length (`thread_len`), where the motor can starts from the shaft (`can_x0`), and the bolt head and nut sizes the motor takes (`bolt_*`, M6 assumed: head 10, nut 10 AF x 5). Decide which way round the motor sits (`rot_deg`) so the can clears the frame | `WIPER.boss_d`, `boss_h`, `hub_d`, `hub_h`, `thread_len`, `can_x0`, `bolt_*`, `rot_deg` | `frame_motor_adapter`, `frame_motor_saddle` |
 
 ## B. Launch springs (params.py `SPRING`, set `measured=True` when done)
 
@@ -29,7 +30,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | B1 | Free length L0 | Caliper the spring hook to hook (inside of the hooks), no load | `SPRING.free_len` | Nothing |
 | B2 | Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load, but only if L3 - L0 is under 160 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm. Or let the computer fit it: `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` (kg:mm pairs) prints the rate and initial tension | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
 | B3 | Wire and outside diameter | Caliper | `SPRING.wire`, `SPRING.od` | Spring anchors only if OD differs by more than 0.5 mm |
-| B4 | Which preload hole | The design stretches each spring 35 mm at rest and 280 mm at full cock. If B2 shows a weaker spring than assumed (0.125 N/mm), re-run the physics: it says whether to use the alternate preload hole set in the spring anchors (base assembly steps) | assembly choice | Nothing |
+| B4 | Which preload hole | The coordinator's design value is 35 mm stretch at rest and 280 mm at full cock (launch_NOTES still said 5 mm and 250 mm at 11:30: the base assembly steps state the final one). If B2 shows a weaker spring than assumed (0.125 N/mm), re-run the physics: it says whether to use the alternate preload hole set in the spring anchors (base assembly steps) | assembly choice | Nothing |
 
 ## C. Parts box: confirm you have these (no new purchases)
 
@@ -49,6 +50,11 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | C12 | M3 screws (lengths from the base print list), M3 nuts, M3 heat-set inserts | printed contacts, frame joints | |
 | C13 | AS5600 magnet: 6 x 2.5 mm DIAMETRIC (magnetised across the diameter). The Adafruit board does not include one | main shaft angle | The one possible purchase besides the 608s: search "6x2.5mm diametric magnet AS5600" |
 | C14 | Optional: a second pair of the launch springs (Bunnings I/N 0487961) | range: about 4 to 5 m with two springs, 8 to 9 m with four | Two springs work; the base has the provision built in |
+| C15 | 8 mm steel rod (or M8 bolts) for: reel shaft S, aim worm wheel axle, storage reel axle | reel and aim | Printed PPA-CF shafts (the reel worker's fallback); tell the coordinator |
+| C16 | Hardware the CAD assumes: M3 x 4 x 5 heat-set inserts; M3 screws x 6, 8, 10, 12 mm (frame) and M3 x 25 cap screws + nylocs (rover mount); M6 bolts and nuts for the wiper (head 10, nut 10 AF); one M8 nut (drum coupler); 6 mm steel key 14 mm long (launch sleeve); 6 mm pins (spring anchors); a C-clip (reel cup head); cable ties, a hose clamp, glue (magnet) | frame, drum, launch, reel | Exact counts in the base print pack / assembly steps |
+| C17 | JST SH 4-pin (STEMMA QT) cable 400 mm or longer for the AS5600 | the 200 mm one is too short | Extend with 4 soldered wires and heat shrink |
+| C18 | Carriage stop pads: 15 to 20 mm foam or TPU | absorbs the carriage at the end of the stroke | Print TPU pads if you have TPU; size for about 8.5 J if four springs are fitted |
+| C19 | PETG filament (brake rocker) | reel | PLA works for the first tests |
 
 ## D. Electrical labels to read
 
@@ -67,6 +73,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | E1 | Deck size and mounting holes | Tape measure the free deck area; caliper the hole positions and diameters from one corner | params.py `FRAMEWORK` (rover mount) | Base deck / rover mount |
 | E2 | Drive train and whether the Jetson drives it | Tell the coordinator what drives the wheels and what controls it | jetson rover module | Nothing |
 | E3 | Kiyo X height and tilt on the rover | Tape measure lens to ground; phone level app on the camera for tilt | jetson camera model (target calibration) | Nothing |
+| E5 | Rover mass, wheelbase, centre of mass | Bathroom scale for the mass; tape for wheelbase and track; centre of mass: balance the rover on a broom handle, front to back | physics `recoil.py` ROVER block (recoil check) | Nothing |
 | E4 | Base launch height | Tape measure from the ground to the main shaft axis when the base is mounted | physics (ballistics table) | Nothing |
 
 ## F. Dart (from the KEDGE notes, still open)
@@ -89,8 +96,23 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | G4 | Storage reel payout drag | A luggage scale cannot read this low: use hanging weights in LAUNCH mode. Tie 40 g (coins in a bag, weighed) to the line end over the edge of the bench: it must NOT pull line off. 50 g must pull line off slowly. That sets the brake at 0.5 N (the design value). Above 1 N costs range, 3 N ruins the flight | slip clutch preload (reel parts) |
 | G5 | Muzzle speed | Phone slow-motion video side-on, tape measure laid in the flight line (same distance from the phone as the dart). Count the frames the nose takes to cross 0.5 m; speed m/s = 0.5 x slow-motion fps (240 or 120) / frames | physics model, ballistics table |
 | G6 | Range at three pitches | Tape measure from the base to the dart at 3 pitches, tether on, brake unchanged | ballistics table check (jetson uses it) |
+| G9 | Line tension per amp | Line hooked to the luggage scale anchored to a post, base in REEL, `reel` slowly: note scale newtons and `amps` at 3 loads. Model: about 18.8 N per amp above the 1.5 A free current | firmware `k_n_per_a` (CALIBRATION.md (e)) |
+| G10 | Tow limit (choose) | Pick 50 to 100 N, below the G7 holding force | firmware tension limit |
+| G11 | Payout brake trim | If G4 is off: add or remove printed 0.4 mm shims under thrust ring T (reel assembly steps) | reel shims (print more) |
+| G12 | Contact gaps | Each printed contact: the M3 screw head sits about 1.1 mm from the nut and must close halfway up its 3 mm bump. Turn the screw to set it, watch `sw` in telemetry | nothing |
+| G13 | AS5600 air gap | Magnet face to chip: 1.0 mm design, 0.5 to 3 mm works. Feeler: a stack of paper | nothing |
 | G7 | Soil holding force | Dart anchored, luggage scale on the tether, pull slowly up to 50 N, note where it moves | reel tension limit |
 | G8 | Rail friction | Before the rail is mounted: lay the rail part on a flat board, dart in the cradle, lift one end of the board slowly until the dart slides; phone level app on the board. Friction = tan(angle) | physics (launch efficiency) |
+
+## H. Other parts the CAD assumed
+
+| # | What | How | Changes | Reprint after |
+|---|---|---|---|---|
+| H1 | Drum N20 output shaft | Caliper the diameter (3 mm assumed) and the D flat depth | drum N20 pinion (drum_NOTES) | `drum` N20 pinion |
+| H2 | Drum N20 stall torque at 9 V | 50 mm lever on the shaft, pressing on the kitchen scale; jog the drum for at most 1 s. Torque N m = kg x 9.81 x 0.05. Estimate 0.22 N m | drum gear ratio: if weaker, the 10:100 drum gear | `drum_drum`, `drum_n20_cradle` |
+| H3 | CSK20PP keyway depths | Caliper the inner keyway (2.8 assumed) and outer keyway (2.0 assumed) depths | capstan tube key rib, capstan block rib (reel_NOTES) | capstan tube and block |
+| H4 | BTS7960 module | Height of the heatsink under the board (22 assumed) and the 4 mounting hole spacing (40 x 40 assumed) | `frame_ebay` standoffs | electronics bay |
+| H5 | DevKitC USB socket | Micro-USB (official board) or USB-C (clone). The slot fits both: just confirm, and have the right cable | nothing | nothing |
 
 ## After you measure
 

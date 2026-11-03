@@ -139,3 +139,9 @@ Still open (owner):
   tow limit rule (hand result minus 10 N, never above 50 N, in firmware and operator page), Jetson README steps
   4 to 7 scheduled after the rover power-on, STOP vs estop wording, references fixed. Sent to jetson (port lock,
   tow limit rule, README refs and range) and fw-base (motors-safe wording, require_seated persistence).
+- Round 13 (full cold read): Jetson step 4 moved to the end of order step 7 (it makes /dev/grappstar-base), bench
+  tow at 40 N with a 35 to 45 N band (D46), spring test never over 3.5 kg (rating 38.4 N), bench magnet taped
+  (rc10 fits only the base spigot), 23 coupon pieces, tow overshoot wording; commands from the Jetson now go
+  through the new `grappstar base console` (one connection: telemetry plus typed commands), because the port is
+  now exclusive. Sent: jetson (console, README tow rule, wrap time, approach speed: all done), fw-base (2 A fuse
+  wording, max_n cap 55 in PROTOCOL, console in CALIBRATION/BENCH_TEST), cad-infra (coupon 10 magnet: done).

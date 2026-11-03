@@ -55,8 +55,9 @@ N20 to DRV8833 #3 AOUT1 / AOUT2, loose on the bench. Battery in.
 3. Do the current-sense calibration now (MEASURE_LIST G1, CALIBRATION.md), then watch `amps` during a 1.5 s wiper
    jog (jogs are capped at 1.5 s; sending the same jog again extends it).
 
-Pass: each motor turns both ways, stops when the jog ends, wiper free current about 1 to 3 A (A6 in
-MEASURE_LIST.md), no fault.
+Pass: each motor turns both ways, stops when the jog ends, no fault. Wiper free current at jog power about 1 to
+2 A, safely under the jog trips (2.5 A forward, 3 A backward); a jog that trips on a bare clamped motor means
+something binds or the current scale is off (redo G1).
 If it fails: no movement on the wiper: check R_EN / L_EN wiring and the 20 A fuse. Wiper turns only one way: one of
 RPWM / LPWM is not connected. Drum does nothing: check 9.0 V on VM and the AIN1 / AIN2 / GND jumpers. If it still does nothing, check which board
 it is (MEASURE_LIST D3): a board that does not pull SLP high by itself cannot be used as wired (decision D9); write

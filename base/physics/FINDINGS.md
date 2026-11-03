@@ -106,6 +106,8 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 ## F8. Smaller notes
 
 - Cock force at 280 mm: 84 N on the carriage (rack/big gear tooth load); sprag #1 (on the wiper axis) sees ~3.1 N m of 50: huge margin.
+- Dart landing: 6.2 m/s at ~54 deg down (5.4 J). The dart's own landing check (kedge physics) used 13.3 m/s (25 J,
+  ~300 g in 3 cm of soil); at 6.2 m/s it is ~65 g: the dart parts have a large margin.
 - DRV8833 for the drum N20 needs the buck (VM max 10.8 V), as the workplan says.
 
 ## F9. Dart attitude at 6 to 8 m/s (attitude.py, 3-DOF pitch plane, same physics as kedge/flight_sim.py)

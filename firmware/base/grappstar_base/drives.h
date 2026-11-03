@@ -36,6 +36,8 @@ struct WiperDrive {
   void want(int dir, int duty) { wantDir = dir; wantDuty = dir ? (duty < 0 ? 0 : duty > 255 ? 255 : duty) : 0; }
   bool running() const { return outDir != 0; }
   // stop at once: both PWM low = both low-side FETs on = brake; the worm then self-locks
+  // stop the output but keep the request (it restarts when allowStart allows it again)
+  void pause(uint32_t now, void (*hw)(int, int)) { int wd = wantDir, wu = wantDuty; halt(now, hw); wantDir = wd; wantDuty = wu; }
   void halt(uint32_t now, void (*hw)(int, int)) {
     wantDir = 0; wantDuty = 0;
     if (outDir) stopT = now;

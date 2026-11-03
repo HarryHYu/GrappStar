@@ -179,8 +179,8 @@ Reverse pause:
 1. Battery unplugged, and USB unplugged too (the board must be off while the drum code changes, or it faults with
    "drum code jumped over a sector"). Move the GPIO11 jumper to GPIO10 (code `a` = LAUNCH), and add jumpers from
    GPIO13 (`SW_DOG_L`, collar in LAUNCH), GPIO21 (`SW_HOME`) and GPIO39 (`SW_GAP`) to GND. Keep GPIO47.
-2. Battery unplugged. Plug USB in. If a `FAULT` `DRUM_SENSOR` "drum code disagrees with the saved drum angle" comes
-   (the saved angle was NEUTRAL), send `{"id":12,"cmd":"clear"}` once. Telemetry: `"mode":"LAUNCH"`,
+2. Battery unplugged. Plug USB in. The `BOOT` line says `"drum_moved":true` (the saved angle was NEUTRAL); that is
+   expected and not a fault. Telemetry: `"mode":"LAUNCH"`,
    `"drum_pos":"LAUNCH"`, `sw` with `a`, `l`, `n`, `H`, `G`.
 3. Plug the battery in. Declare the launcher at rest: `{"id":13,"cmd":"cal","what":"cock_rest"}` (it needs `H` and
    `G` closed).
@@ -192,8 +192,8 @@ Reverse pause:
 6. Do not jog forward in this set-up: with `SW_HOME` jumpered closed a forward jog in LAUNCH faults ("SW_HOME still
    closed past the first tooth").
 7. Back to NEUTRAL: battery unplugged, USB unplugged. Take the GPIO10, GPIO13, GPIO21 and GPIO39 jumpers off and put
-   the GPIO11 jumper back. Plug USB in, `clear` once if the same `DRUM_SENSOR` "disagrees with the saved drum angle"
-   comes, then plug the battery in. Telemetry shows `"mode":"NEUTRAL"` again.
+   the GPIO11 jumper back. Plug USB in (`BOOT` says `"drum_moved":true` again, no fault),
+   then plug the battery in. Telemetry shows `"mode":"NEUTRAL"` again.
 
 ## Step 5: jog the drum N20
 

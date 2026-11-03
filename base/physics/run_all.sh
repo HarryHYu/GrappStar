@@ -13,6 +13,7 @@ $PY sensitivity.py
 $PY attitude.py
 $PY recoil.py
 $PY retrieve.py
+$PY mission.py
 $PY ballistics.py
 $PY summary.py
 $PY plots.py

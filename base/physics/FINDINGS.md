@@ -22,6 +22,8 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
   (x1.23 at the core). Final approach on FIRM 3 N: 2.3 N at the dart vs 2.1 to 2.6 N needed (margin 0.9 to 1.1):
   marginal. FIRM 5 N gives a 1.5 margin, or seat on the capstan.
 - Wrap: drum 0.49 to 0.60 N m, N20 61 to 74 N mm.
+- Mission (mission.py): aim, cock, flight, anchor, wrap, tow 3 m at 30 N, release, unwrap, reel 5 m: about 3.2 min,
+  0.66 Wh from the base pack (about 70 missions per 3S 5200 mAh, base side only). Drum N20 timings ASSUMED.
 - Sections F1 to F11 below are the history (numbers from earlier parameter sets).
 
 ## F1. RANGE: the two Century springs cannot reach 15 to 20 m. Expect 4 to 5 m. (biggest issue)

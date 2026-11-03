@@ -216,6 +216,8 @@ def run(out, only=None, title=None, pack_dir=None, log=print) -> str:
             blk.append(Pp(stp["text"]))
         if stp.get("parts"):
             blk.append(Pp("Parts: " + ", ".join(stp["parts"]) + ".", "SM"))
+        if stp.get("handle"):
+            blk.append(Pp("Also handle (fitted earlier): " + ", ".join(stp["handle"]) + ".", "SM"))
         img = step_image(out, n)
         if img:
             blk += [Spacer(1, 2), pdf_image(img, 150, 95)]

@@ -114,11 +114,14 @@ class App:
             self.cam_model = self.sim.rover_model
             return
         try:
-            from .vision.target import CameraModel
-            self.cam_model = CameraModel.load(self.cfg.calib_path)
-        except Exception:
+            from .campose import camera_model
+            self.cam_model = camera_model(self.cfg.calib_path, tuple(self.cfg.rover_size))
+            self.syslog.info(f"rover camera pose from {self.cam_model.pose_source}")
+        except Exception as e:
             self.cam_model = default_rover_model(*self.cfg.rover_size)
-            self.syslog.warn("rover camera not calibrated: using default guesses (python3 -m grappstar calibrate)")
+            self.syslog.warn(f"rover camera model: default guesses ({e})")
+        if getattr(self.cam_model, "uncalibrated", False):
+            self.syslog.warn("rover camera intrinsics not calibrated: python3 -m grappstar calibrate intrinsics")
 
     def _start_cameras(self) -> None:
         from .video.camera import Camera
@@ -372,6 +375,11 @@ class App:
     def _set_target(self, u: float, v: float, size, source: str) -> dict:
         from .vision.target import target_info
         info = target_info(self.cam_model, u, v, image_size=size)
+        off = float(getattr(self.cam_model, "range_offset_m", 0.0) or 0.0)
+        if info.get("range_m") is not None and off:
+            # ballistics ranges are from the launcher pivot; the camera sits off it along the launch azimuth
+            info["range_cam_m"] = info["range_m"]
+            info["range_m"] = round(info["range_m"] + off, 2)
         info.update(u=u / size[0], v=v / size[1], cam="rover", source=source, t=time.time())
         self.target = info
         self._update_solution()

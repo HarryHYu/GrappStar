@@ -10,5 +10,6 @@ $PY payout.py
 $PY capstan.py
 $PY drivetrain.py
 $PY sensitivity.py
+$PY attitude.py
 $PY ballistics.py
 $PY summary.py

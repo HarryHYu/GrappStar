@@ -196,13 +196,15 @@ def plot(path):
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     cols = {0.0: "#2a78d6", 0.5: "#eb6834", 1.0: "#1baf7a"}
-    fig, axs = plt.subplots(1, 2, figsize=(10, 3.8), sharey=True)
+    fig, axs = plt.subplots(1, 2, figsize=(10, 4.4), sharey=True)
     for ax, bal in zip(axs, (15.0, 0.0)):
         for te, cl in cols.items():
             for dth, dr, ls in ((10.0, 5.0, "-"), (-10.0, -5.0, "--")):
                 r = simulate(7.0, 36.0, te, dth, dr, bal)
                 lab = "no tether" if te == 0 else "%.1f N brake" % te
-                ax.plot(r["trace_t"], r["trace_alpha"][:, 0], color=cl, lw=1.6, ls=ls,
+                a = r["trace_alpha"][:, 0]
+                a = np.degrees(np.unwrap(np.radians(a[~np.isnan(a)])))   # unwrapped so a tumble reads as a ramp
+                ax.plot(r["trace_t"][:len(a)], a, color=cl, lw=1.6, ls=ls,
                         label="%s, %+d deg %+d rad/s" % (lab, dth, dr))
         ax.axhline(0, color="#52514e", lw=0.6)
         for yy in (90, -90):
@@ -213,10 +215,10 @@ def plot(path):
         for sp_ in ax.spines.values():
             sp_.set_color("#c3c2b7")
     axs[0].set_ylabel("angle of attack deg (+ nose above path)", color="#52514e")
-    axs[0].set_ylim(-185, 185)
-    axs[1].legend(fontsize=6.5, frameon=False, loc="lower right")
-    fig.suptitle("KEDGE v30, 7 m/s at 36 deg from 0.35 m, to ground contact", fontsize=10)
-    fig.tight_layout()
+    h, lb = axs[0].get_legend_handles_labels()
+    fig.legend(h, lb, fontsize=7, frameon=False, loc="lower center", ncol=3)
+    fig.suptitle("KEDGE v30, 7 m/s at 36 deg from 0.35 m, to ground contact (dotted: +-90 deg tumble line)", fontsize=10)
+    fig.tight_layout(rect=(0, 0.13, 1, 1))
     fig.savefig(path, dpi=150)
     plt.close(fig)
 

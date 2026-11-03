@@ -98,3 +98,10 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 
 - Cock force at 280 mm: 84 N on the carriage (rack/big gear tooth load); sprag #1 sees ~1.5 N m: huge margin.
 - DRV8833 for the drum N20 needs the buck (VM max 10.8 V), as the workplan says.
+
+## F9. Dart attitude at 6 to 8 m/s (attitude.py, 3-DOF pitch plane, same physics as kedge/flight_sim.py)
+
+- With the tether at 0.5 to 1 N: nose first in all 324 cases (pitch 10 to 47, +-10 deg and +-5 rad/s disturbances),
+  with or without the 15 g ballast. Nose-first body angle at impact -17 to -80 deg at 36 deg pitch.
+- Without the tether it tumbles or lands tail first: at this speed the tether, not the ballast, does the stabilising.
+  So never test-fire without the line on (a dry shot can land tail first).

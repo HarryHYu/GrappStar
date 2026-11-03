@@ -67,6 +67,8 @@ FRAMEWORK_DEFAULT = dict(
     adapter_standoff=12.0,  # adapter hub height over the cheek (clears block flanges, M6 nuts reachable)
     cheek_y_in=None,        # (right, left) inner cheek face y; None = from the motor face (y = 0) and cheek_gap
     ebay=None,              # electronics bay placement override, see _frame_ebay.py
+    motor_support=dict(plate_x=(-55.0, 108.0), plate_z=(-40.0, 62.0), leg_x=(76.0, 108.0), leg_y=(-55.0, -30.0),
+                       bridge_z=(-22.0, 22.0)),   # v1.x motor plate, bridge and leg (relative to the main axis, y world)
     plate_back=75.0,        # v1.0 plates: start as a rectangle this far behind the main axis ...
     plate_front=105.0,      # ... and this far in front, deck to above the axis, then carved round the others
     band=True,              # guard band round the cheek box
@@ -228,6 +230,80 @@ def contact_intervals(outline, min_len=12.0):
     return out
 
 
+def _swept_no_axis(C, axis_xz, margin=3.0):
+    """3D union of the other subsystems' swept hulls (deck frame) except those that contain the main axis (shafts,
+    sleeves, coupler: the frame bores take them)."""
+    from manifold3d import Manifold
+    from shapely.geometry import MultiPoint
+    from . import _frame_guard as G
+    ax = Point(*axis_xz)
+    hs = []
+    for cl in G.LAST_CLOUDS:
+        if MultiPoint(cl[:, [0, 2]]).convex_hull.buffer(-1.0).contains(ax):
+            continue
+        hs.append(Manifold.hull_points(cl))
+    return prim.union(hs)
+
+
+def motor_support_v1(P, C, info, mo):
+    """BASE_SPEC v1.x: the motor plate (y slab of the motor-side cheek) with the coupler bore, the keyed counterbore
+    and the 12-hole ring, a bridge forward of the drum brackets towards -y, and a separate leg down to the deck in the
+    free corner between the reel cup and the electronics bay. Everything is carved in 3D round the other subsystems'
+    swept volumes; the plate keeps the piece that holds the ring. Returns dict(plate=solid, parts=[...])."""
+    fw = C["fw"]
+    ms = fw["motor_side"]
+    s = ms
+    yo, yi = C["y_out"][s], C["y_in"][s]
+    y0, y1 = sorted((yo, yi))
+    mx, mz = mo[0], mo[2]
+    sp = fw["motor_support"]
+    plate = prim.box(mx + sp["plate_x"][0], mx + sp["plate_x"][1], y0, y1, mz + sp["plate_z"][0], mz + sp["plate_z"][1])
+    bx0, bx1 = mx + sp["leg_x"][0], mx + sp["leg_x"][1]
+    bridge = prim.box(bx0, bx1, sp["leg_y"][1] - 0.01, y0 + 0.01, mz + sp["bridge_z"][0], mz + sp["bridge_z"][1])
+    plate = plate + bridge
+    cuts = [prim.cylY(MOT.CHEEK_HOLE_D / 2, y0 - 1, y1 + 1, mx, mz),
+            prim.cylY(MOT.HUB_R + 0.3, min(yo, yo - s * MOT.SPIGOT_H) - 0.01, max(yo, yo - s * MOT.SPIGOT_H) + 0.01, mx, mz)]
+    for i in range(MOT.RING_N):
+        rx, rz = MOT.ring_xy(i)
+        wx, wz = mx - rx, mz + (rz if ms < 0 else -rz)
+        cuts.append(prim.cylY(U.CLR_D / 2, y0 - 1, y1 + 1, wx, wz))
+        cuts.append(yfeat(prim.cyl(U.HEAD_D / 2, U.HEAD_H + 0.01, z=-U.HEAD_H), wx, wz, yi, s))
+    # leg: column from the deck to the bridge side, foot flange towards -y, 2 x M3 along y into the bridge
+    ly0, ly1 = sp["leg_y"]
+    ztop = mz + sp["bridge_z"][1]
+    leg = prim.box(bx0, bx1, ly0, ly1, 0.0, ztop) + prim.box(bx0, bx1, ly0 - 22.0, ly1, 0.0, 6.0)
+    jz = [mz + sp["bridge_z"][0] + 10.0, mz + sp["bridge_z"][1] - 10.0]
+    xc = (bx0 + bx1) / 2
+    for z in jz:
+        leg = leg - prim.cylY(U.CLR_D / 2, ly0 - 1, ly1 + 1, xc, z) - prim.cylY(U.HEAD_D / 2, ly0 - 1, ly0 + U.HEAD_H, xc, z)
+        cuts.append(yfeat(U.insert_hole(0, 0, 0.0), xc, z, ly1, 1))
+    feet = [(bx0 + 7.0, ly0 - 11.0), (bx1 - 7.0, ly0 - 11.0)]
+    for fx, fy in feet:
+        leg = leg - U.clear_hole(fx, fy, -1, 7)
+    plate = prim.diff(plate, cuts)
+    carve = _swept_no_axis(C, (mx, mz))
+    if not carve.is_empty():
+        plate = plate - carve
+        leg_c = leg - carve
+        if abs(leg_c.volume() - leg.volume()) > 1.0:
+            info["warnings"].append(f"motor leg cut by {leg.volume() - leg_c.volume():.0f} mm3 of another subsystem's sweep")
+        leg = leg_c
+    comps = plate.decompose()
+    ring_pt = prim.box(mx + MOT.RING_R - 1, mx + MOT.RING_R + 1, y0 + 1, y1 - 1, mz - 1, mz + 1)
+    keep = [c for c in comps if not (c ^ prim.box(mx - 60, mx + 60, y0 - 1, y1 + 1, mz - 60, mz + 60)).is_empty()]
+    plate = max(keep or comps, key=lambda c: c.volume())
+    if (plate ^ bridge).volume() < 0.5 * bridge.volume():
+        info["warnings"].append("motor plate: the carve separated the plate from its bridge")
+    legs = sorted(leg.decompose(), key=lambda c: -c.volume())
+    leg = legs[0]
+    info["deck_holes"] += feet
+    info["motor_leg_feet"] = feet
+    parts = [Part("frame_motor_leg", leg, "PLA", print_tf=U.print_flat(leg, tf.Rx(90)), color="#aab4be",
+                  notes="motor support leg: stands on the deck beside the bay, 2 x M3 x 10 into the deck, 2 x M3 x 16 "
+                        "along y into the bridge of the motor plate")]
+    return dict(plate=plate, parts=parts)
+
+
 def carve_plate(poly, C, s, info, axis_xz, margin=3.0):
     """Remove from a plate outline (x, z, deck frame) the XZ shadow of every other subsystem's swept hull that reaches
     the plate's y slab, plus the bay. Hulls that contain the main axis (shafts and sleeves through the plate) are left
@@ -373,7 +449,14 @@ def build(P):
 
     # ---- cheek solids
     cheek_world = {}
+    v1_motor = None
+    if C["v1"] and C["main"] in lay:
+        v1_motor = motor_support_v1(P, C, info, lay[C["main"]]["origin"])
+        parts += v1_motor["parts"]
     for s in C["sides"]:
+        if v1_motor is not None and s == ms:
+            cheek_world[s] = v1_motor["plate"]
+            continue
         cs = prim.shapely_cs(outlines[s])
         # extrude along local Z then Rx(90): local (X, Y, Z) -> world (X, -Z, Y); y from y_ref to y_ref - t
         y_ref = C["y_in"][s] if s < 0 else C["y_out"][s]
@@ -672,15 +755,17 @@ def build(P):
     lx, ly = dx1 - dx0, dy1 - dy0
     nx, ny = int(math.ceil(lx / 248.0)), int(math.ceil(ly / 248.0))
     def seam_c(c0, k, lo, hi, n):
-        """seam near c0 with no deck hole within 14 mm (dovetail tails reach 8 mm), each tile still under 248."""
-        best = c0
-        for d in sorted(np.arange(-40, 40.1, 1.0), key=abs):
+        """seam near c0 as far as possible from every deck hole (dovetail tails reach 8 mm), tiles under 248."""
+        best, bestd = c0, -1.0
+        for d in np.arange(-60, 60.1, 0.5):
             c = c0 + d
-            if c - lo > 248.0 * 1 or hi - c > 248.0 * (n - 1):
+            if c - lo > 248.0 or hi - c > 248.0 * (n - 1):
                 continue
-            if all(abs((h[0] if k == "x" else h[1]) - c) > 14.0 for h in info["deck_holes"]):
-                best = c
-                break
+            dmin = min([abs((h[0] if k == "x" else h[1]) - c) for h in info["deck_holes"]] or [1e9])
+            if dmin > bestd + 1e-9 or (abs(dmin - bestd) < 1e-9 and abs(d) < abs(best - c0)):
+                best, bestd = c, dmin
+        if bestd < 12.0:
+            info["warnings"].append(f"deck seam {k} = {best:.1f} only {bestd:.1f} mm from a deck hole")
         return float(best)
     for i in range(1, nx):
         seams.append(dict(axis="x", c=seam_c(dx0 + i * lx / nx, "x", dx0, dx1, nx), n=3))

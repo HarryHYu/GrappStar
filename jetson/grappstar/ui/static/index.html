@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>GrappStar operator</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header id="top">
+  <div class="brand">GrappStar</div>
+  <div class="links" aria-label="Link status">
+    <span class="pill" id="ln-base">BASE</span>
+    <span class="pill" id="ln-dart">DART</span>
+    <span class="pill" id="ln-rover">ROVER CAM</span>
+    <span class="pill" id="ln-dartcam">DART CAM</span>
+  </div>
+  <div class="stops">
+    <button id="btn-stop" class="stop" title="Stop all motion. Hold 1 s for ESTOP. Keyboard: Space">STOP</button>
+    <button id="btn-estop" class="estop" title="Emergency stop (latched)">ESTOP</button>
+  </div>
+</header>
+<div id="linklost" class="banner hidden">LINK LOST: retrying</div>
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+<section id="prompt" class="prompt hidden" role="dialog" aria-modal="false" aria-labelledby="prompt-text">
+  <div class="prompt-card">
+    <div class="prompt-head">OPERATOR CONFIRMATION</div>
+    <div id="prompt-text" class="prompt-text"></div>
+    <div id="prompt-choices" class="prompt-choices"></div>
+  </div>
+</section>
+
+<main>
+  <section class="panel" id="mission">
+    <h2>Mission</h2>
+    <div class="state-row">
+      <div><span class="lbl">State</span> <b id="m-state">-</b></div>
+      <div><span class="lbl">Step</span> <b id="m-step">-</b></div>
+    </div>
+    <div id="m-error" class="err hidden"></div>
+    <ol id="m-steps" class="steps"></ol>
+    <div class="row">
+      <button data-action="preflight">Preflight</button>
+      <button data-action="start" class="primary">Start mission</button>
+      <button data-action="abort" data-confirm="Abort the mission?">Abort</button>
+    </div>
+  </section>
+
+  <section class="panel videos">
+    <div class="video">
+      <h2>Rover view <small>tap to set target</small></h2>
+      <div class="vbox" id="vbox-rover">
+        <img id="cam-rover" alt="Rover camera" data-cam="rover" draggable="false">
+        <div id="xhair" class="xhair hidden"></div>
+      </div>
+      <div id="target" class="target">No target. Tap the rover view or use Auto target.</div>
+      <div class="row">
+        <button data-action="target_auto">Auto target</button>
+        <button id="btn-aim-target">Aim to target</button>
+      </div>
+    </div>
+    <div class="video">
+      <h2>Dart nose camera</h2>
+      <div class="vbox"><img id="cam-dart" alt="Dart camera" data-cam="dart" draggable="false"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Telemetry</h2>
+    <div class="tlm">
+      <table id="t-base"><caption>Base</caption><tbody></tbody></table>
+      <table id="t-dart"><caption>Dart</caption><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section class="panel results">
+    <div>
+      <h2>Landing zone</h2>
+      <div id="lz-verdict" class="verdict">No report yet</div>
+      <div id="lz-info"></div>
+      <ul id="lz-reasons" class="reasons"></ul>
+      <img id="lz-img" class="report hidden" alt="Landing zone report">
+    </div>
+    <div>
+      <h2>Mosaic</h2>
+      <div id="mo-info">No mosaic yet</div>
+      <img id="mo-img" class="report hidden" alt="Aerial mosaic">
+    </div>
+  </section>
+
+  <details class="panel" id="manual">
+    <summary>Manual</summary>
+    <div class="group">
+      <h3>Base</h3>
+      <div class="row">
+        <button data-action="preflight">Preflight</button>
+        <button data-action="start">Start mission</button>
+        <button data-action="neutral">Neutral</button>
+        <button data-action="clear">Clear fault</button>
+        <button data-action="record" data-args='{"on": true}'>Record on</button>
+        <button data-action="record" data-args='{"on": false}'>Record off</button>
+      </div>
+      <div class="row">
+        <label>Range m <input id="in-range" type="number" inputmode="decimal" min="0" step="0.5" value="10"></label>
+        <button id="btn-aim-range">Aim to range</button>
+        <label>Pitch deg <input id="in-deg" type="number" inputmode="decimal" step="0.5" value="30"></label>
+        <button id="btn-aim-deg">Aim to pitch</button>
+      </div>
+    </div>
+    <div class="group">
+      <h3>Jog (hold to run)</h3>
+      <div class="row">
+        <button class="hold" data-jog="drum" data-dir="-1">Drum -</button>
+        <button class="hold" data-jog="drum" data-dir="1">Drum +</button>
+        <button class="hold" data-jog="wiper" data-dir="-1">Wiper -</button>
+        <button class="hold" data-jog="wiper" data-dir="1">Wiper +</button>
+      </div>
+    </div>
+    <div class="group">
+      <h3>Dart (hold to run, keys 1 ! 2 @ 3 # 4 $)</h3>
+      <div class="row" id="dart-keys"></div>
+      <div class="row"><button data-action="dart_stop" class="warn">Dart stop</button></div>
+    </div>
+    <div class="group">
+      <h3>Files</h3>
+      <div class="row">
+        <a class="btnlink" href="/api/log" download>Download mission log</a>
+        <a class="btnlink" href="/artifact/flight.json" target="_blank" rel="noopener">flight.json</a>
+      </div>
+    </div>
+  </details>
+</main>
+<footer><span id="clock">-</span></footer>
+<script src="/static/app.js"></script>
+</body>
+</html>

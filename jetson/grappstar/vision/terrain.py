@@ -1007,8 +1007,13 @@ def analyze_landing(frames, model: Optional[TerrainModel] = None, model_weight: 
     raw_ac = float(np.median([_raw_autocorr(it[0]) for it in sel]))
     grey_std = float(np.mean([cv2.cvtColor(r, cv2.COLOR_BGR2GRAY).std() for r in rois])) / 255.0
     noise_like = raw_ac < 0.15 and grey_std > 0.05
-    blank = grey_std < 0.006 and fmean["dark_frac"] < 0.7
     ood = min_d2 > ood_d2 and (mprobs is None or max(mprobs.values()) < 0.6)
+    blank = grey_std < 0.006 and fmean["dark_frac"] < 0.7
+    if blank and top == "water_void" and conf >= 0.6 and not ood:
+        # featureless but coloured like water and close to the water prototypes: still water is the
+        # one natural surface without texture, and water_void is the safe (NO_GO) reading anyway
+        blank = False
+        notes.append("Smooth and featureless with the colour of water.")
     q_factor = 1.0 if quality is None else float(min(1.0, max(0.0, (quality - 0.3) / 0.4)))
 
     cls = top

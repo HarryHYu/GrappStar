@@ -317,8 +317,15 @@ class App:
     def act_jog(self, motor: str, dir: int, ms: int = 300) -> dict:
         if self._busy():
             return {"ok": False, "msg": "mission running"}
-        self.base.jog(motor, int(dir), min(int(ms), 500))
+        self.base.jog(motor, int(dir), min(int(ms), 1500))
         return {"ok": True, "msg": "jog"}
+
+    def act_decock(self) -> dict:
+        """Unwind a cocked or half-cocked spring slowly (base cal decock). The aim becomes unknown."""
+        if self._busy():
+            return {"ok": False, "msg": "mission running"}
+        self.base.cal("decock")
+        return {"ok": True, "msg": "decocking: wait for the RESET event (carriage home)"}
 
     def act_dart_key(self, c: str, ms: int = 350) -> dict:
         if self._busy():

@@ -12,7 +12,11 @@ The dart is built from three documents. This section says which to use for what,
 
 - The dart now uses two DRV8833 boards. DRV#3 goes to the base selector drum; its pocket on the keel stays empty.
 - DRV#2 channel A drives BOTH drill motors (right drill leads still swapped), channel B drives the foot.
-- No pin bridge on DRV#2.
+- No pin bridge on DRV#2 (ignore the bridge in run sheet 7.3).
+- To reverse a motor, swap its two thin input wires at the driver instead of the motor leads (run sheet 7.6 and
+  10 swap motor leads by v29 number): drills = D8 / D9 at DRV#2 AIN1 / AIN2, foot = D6 / D7 at DRV#2 BIN1 / BIN2,
+  deploy = D0 / D1 at DRV#1 AIN1 / AIN2, kick = D2 / D3 at DRV#1 BIN1 / BIN2. Exception: if only ONE drill turns
+  the wrong way, swap that drill's motor leads.
 - **Wire numbers changed.** The tape flags carry the NEW numbers from the new cut list. Wherever the run sheet names
   a wire number (sections 7.6, 8b, 8d, 8e, 8f and 10), look it up in the table "Run sheet wire numbers" below.
 - Use the firmware in `firmware/dart/`, not the copy inside the v30 pack. Ignore the run sheet's `firmware/reel`

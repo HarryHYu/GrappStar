@@ -473,6 +473,14 @@ int main() {
     printf("     timeout landing: tLaunch %u tLand %u how %s, log %u..%u\n", K.flight.tLaunch, K.flight.tLand, K.flight.how, K.log.at(0).t, K.log.at(K.log.count - 1).t);
     CHECK(std::string(K.flight.how) == "timeout" && K.log.frozen && K.log.at(0).t <= K.flight.tLaunch - 1980 && K.log.at(K.log.count - 1).t >= K.flight.tLand,
           "timeout landing after an impact: the frozen log still holds 2 s before launch through the impact"); }
+  for (uint32_t fl : {7000u, 8500u, 10000u}) {   // impact landings 7 to 10 s after launch: the freeze cap keeps the launch
+    fresh(); static uint32_t F; F = fl;
+    ACC = [](uint32_t t) { if (t < 5000) return 1.0f; if (t < 5040) return 8.0f; if (t < 5000 + F) return 0.2f; if (t < 5015 + F) return 6.0f; return 1.0f; };
+    K.arm(true, false, NOW); run(5000 + fl + 6000);
+    bool impactIn = false; for (int k = 0; k < K.log.count; k++) if (K.log.at(k).t >= 5000 + fl - 20 && K.log.at(k).t <= 5000 + fl + 40) impactIn = true;
+    char m[140]; snprintf(m, sizeof m, "landing %u ms after launch: frozen log keeps 2 s before launch (first %u, launch %u)%s", fl, K.log.at(0).t, K.flight.tLaunch,
+                          fl <= 9900 ? " and the impact" : "");
+    CHECK(K.landed && K.log.frozen && K.log.at(0).t >= K.flight.tLaunch - 2020 && K.log.at(0).t <= K.flight.tLaunch - 1980 && (impactIn || fl > 9900), m); }
   { fresh(); for (int i = 0; i < 260; i++) { K.key(i % 2 ? '!' : '1', 350, NOW); run(75); }
     CHECK(P.mdir[DEPLOY] == 0 && logged("both directions held"), "R1-B #1: '1' and '!' alternating every 75 ms: stopped, not driven for 20 s"); }
 

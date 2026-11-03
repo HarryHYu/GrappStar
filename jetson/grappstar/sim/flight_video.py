@@ -38,7 +38,8 @@ truth keys: t_launch, t_stroke_end, t_impact, t_landed, landing_class, landing_x
 (col, row in world_map), range_m, launch_pitch_deg, launch_yaw_deg, v0, launch_xyz, flightlog, clock_offset_s,
 world_map (BGR), map_res (m/px), map_origin (X at col 0, Y at row 0), camera (fx, fy, cx, cy, hfov_deg, w, h),
 poses {frame idx: (t, x, y, z, roll, pitch, yaw)}, bad_idx {frame idx: kind}, phases [(name, t0, t1)].
-Use image_to_world(truth, idx, u, v) / world_to_map(truth, x, y) to check vision results against the truth.
+Use image_to_world(truth, idx, u, v) / world_to_map(truth, x, y) to check vision results against the truth,
+and render_view(pose, size) for a single clean view (tests).
 """
 from __future__ import annotations
 
@@ -715,3 +716,15 @@ def _make_flightlog(tl: _Timeline, rng, t0: float, t_end: float):
     t_launch_ms = int(round((tl.t_launch + 0.02 - t_boot) * 1000))   # firmware: |a| over 4 g for 20 ms
     t_land_ms = int(round((tl.t_impact - t_boot) * 1000))
     return {"hz": 50, "t_launch_ms": t_launch_ms, "t_land_ms": t_land_ms, "samples": samples}, offset
+
+
+def render_view(pose, size=(720, 480), seed: int = 0, hfov_deg: float = 100.0, noise: float = 0.0) -> np.ndarray:
+    """One clean camera view of a seeded world from pose = (x, y, z, roll, pitch, yaw) (m, deg). For tests."""
+    rng = np.random.default_rng([int(seed) & 0xFFFFFFFF, 7072])
+    origin, res = (-5.0, 6.0), 0.02
+    world, _ = make_world(rng, res=res, origin=origin)
+    rend = _Renderer(world, map_affine(origin, res), None, None, (int(size[0]), int(size[1])), hfov_deg, rng)
+    img = cv2.GaussianBlur(rend.render(tuple(float(v) for v in pose)), (3, 3), 0.8)
+    if noise > 0:
+        img = np.clip(img.astype(np.float32) + rng.normal(0, 255 * noise, img.shape), 0, 255).astype(np.uint8)
+    return img

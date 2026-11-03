@@ -37,11 +37,10 @@ static_assert(kedge::PIN_SDA_GPIO == D4 && kedge::PIN_SCL_GPIO == D5, "I2C pins"
 const int PWM_HZ = 20000, PWM_BITS = 8;
 
 Adafruit_BNO08x bno(-1);
-sh2_SensorValue_t sv;
 bool inaPresent = false, bnoPresent = false;
 float roll = 0, pitch = 0;
 float quat[4] = {1, 0, 0, 0}, accV[3] = {0, 0, 9.81f};
-uint32_t lastImuMs = 0, lastImuRetry = 0;
+uint32_t lastImuMs = 0, lastImuRetry = 0, imuNow = 0;   // imuNow: the tick's time, used for every IMU event
 WebServer web(80);
 kedge::Kedge K;
 volatile float railCache = -1;
@@ -108,22 +107,33 @@ void enableImuReports() {
   bno.enableReport(SH2_GAME_ROTATION_VECTOR, 20000);  // 50 Hz attitude for the flight log
   bno.enableReport(SH2_ACCELEROMETER, 2500);          // 400 Hz so a short launch or impact spike is seen
 }
+// Every BNO085 report goes through this callback (the library's getSensorEvent keeps only the last report of each
+// packet, which can drop 400 Hz accelerometer samples). Runs inside sh2_service(): tick task, mtx held.
+void imuEvent(void*, sh2_SensorEvent_t* e) {
+  sh2_SensorValue_t v;
+  if (sh2_decodeSensorEvent(&v, e) != SH2_OK) return;
+  uint32_t now = imuNow;                              // never later than the tick's now (unsigned time maths must not wrap)
+  if (v.sensorId == SH2_GAME_ROTATION_VECTOR) {
+    float r = v.un.gameRotationVector.real, i = v.un.gameRotationVector.i, j = v.un.gameRotationVector.j, k = v.un.gameRotationVector.k;
+    if (!(r == r && i == i && j == j && k == k)) return;
+    lastImuMs = now;
+    quat[0] = r; quat[1] = i; quat[2] = j; quat[3] = k;
+    roll = atan2f(2 * (r * i + j * k), 1 - 2 * (i * i + j * j)) * 57.2958f;
+    pitch = asinf(constrain(2 * (r * j - k * i), -1.0f, 1.0f)) * 57.2958f;
+  } else if (v.sensorId == SH2_ACCELEROMETER) {
+    float x = v.un.accelerometer.x, y = v.un.accelerometer.y, z = v.un.accelerometer.z;
+    if (!(x == x && y == y && z == z)) return;
+    lastImuMs = now;
+    accV[0] = x; accV[1] = y; accV[2] = z;
+    K.onAccel(sqrtf(x * x + y * y + z * z) / 9.80665f, now);
+  }
+}
 void readImu(uint32_t now) {                          // tick task, mtx held
   if (!bnoPresent) return;
   if (bno.wasReset()) enableImuReports();
-  while (bno.getSensorEvent(&sv)) {
-    lastImuMs = now;
-    if (sv.sensorId == SH2_GAME_ROTATION_VECTOR) {
-      float r = sv.un.gameRotationVector.real, i = sv.un.gameRotationVector.i, j = sv.un.gameRotationVector.j, k = sv.un.gameRotationVector.k;
-      quat[0] = r; quat[1] = i; quat[2] = j; quat[3] = k;
-      roll = atan2f(2 * (r * i + j * k), 1 - 2 * (i * i + j * j)) * 57.2958f;
-      pitch = asinf(constrain(2 * (r * j - k * i), -1.0f, 1.0f)) * 57.2958f;
-    } else if (sv.sensorId == SH2_ACCELEROMETER) {
-      accV[0] = sv.un.accelerometer.x; accV[1] = sv.un.accelerometer.y; accV[2] = sv.un.accelerometer.z;
-      K.onAccel(sqrtf(accV[0] * accV[0] + accV[1] * accV[1] + accV[2] * accV[2]) / 9.80665f, now);
-    }
-  }
-  bool fresh = now - lastImuMs < 1000;
+  imuNow = now;
+  for (int i = 0; i < 3; i++) sh2_service();          // calls imuEvent for every report waiting (one transfer per call)
+  bool fresh = (int32_t)(now - lastImuMs) < 1000;
   if (fresh != K.imuOk) { K.imuOk = fresh; hwLog(fresh ? "BNO085 data back" : "BNO085 silent for 1 s"); }
   if (fresh) K.imuSample(now, quat, accV);
   else if (now - lastImuRetry > 2000) { lastImuRetry = now; enableImuReports(); }   // short I2C writes, never a re-begin here
@@ -146,7 +156,8 @@ void help() {
 const char* handleKey(char c, uint32_t runMs) {
   uint32_t now = millis(); const char* why = nullptr;
   switch (c) {
-    case 'i': say("rail " + String(railCache, 2) + " V  " + String(K.lastMa, 0) + " mA  peak " + String(K.peakMa, 0) + " mA"); return nullptr;
+    case 'i': say("rail " + String(railCache, 2) + " V  " + String(K.lastMa, 0) + " mA  peak " + String(K.peakMa, 0) + " mA since the last i");
+              xSemaphoreTake(mtx, portMAX_DELAY); K.peakMa = 0; xSemaphoreGive(mtx); return nullptr;
     case 'b': say(K.imuOk ? "roll " + String(roll, 1) + "  pitch " + String(pitch, 1) + "  |a| " + String(K.accG, 2) + " g" : String("BNO085 not found or silent")); return nullptr;
     case 'z': xSemaphoreTake(mtx, portMAX_DELAY); K.stop(now); xSemaphoreGive(mtx); scanI2C(); return nullptr;   // motors stopped first
     case 'p': { char b[1024]; xSemaphoreTake(mtx, portMAX_DELAY); K.status(b, sizeof b, roll, pitch, now, railCache, resetName); xSemaphoreGive(mtx); say(b); return nullptr; }
@@ -171,7 +182,7 @@ void tickTask(void*) {                                 // 5 ms: IMU, flight, cur
     uint32_t now = millis();
     xSemaphoreTake(mtx, portMAX_DELAY);                // all I2C traffic happens inside this lock
     readImu(now);
-    if (inaPresent && now - lastV >= 100) { lastV = now; inaCheckCal(); }
+    if (now - lastV >= 100) { lastV = now; inaCheckCal(); }   // also sets up an INA219 that was missing at boot
     if (linkLostFlag) { linkLostFlag = false; K.linkLost(now); }
     K.tick(now);
     xSemaphoreGive(mtx);
@@ -212,9 +223,9 @@ const char PAGE[] PROGMEM = R"HTML(<!doctype html><html><head><meta name=viewpor
 <div id=b></div><div id=s></div><pre id=o></pre><script>
 const o=document.getElementById('o'),S=document.getElementById('s');const held=new Map();
 function add(x){if(x){o.textContent+=x;o.scrollTop=1e9}}
-let N=0;const busy={};
+let N=0;const busy={};const P=Math.random().toString(36).slice(2,8);
 function send(c){const n=++N;if(c!==' '&&busy[c])return;busy[c]=1;const ac=new AbortController();const to=setTimeout(()=>ac.abort(),300);
-fetch('/key?c='+encodeURIComponent(c)+'&ms=350&n='+n,{signal:ac.signal}).then(r=>r.text()).then(add).catch(()=>{}).finally(()=>{clearTimeout(to);busy[c]=0})}
+fetch('/key?c='+encodeURIComponent(c)+'&ms=350&n='+n+'&p='+P,{signal:ac.signal}).then(r=>r.text()).then(add).catch(()=>{}).finally(()=>{clearTimeout(to);busy[c]=0})}
 setInterval(()=>{for(const c of held.values())send(c)},150);   // several keys can be held at once (e.g. 2 and 4)
 function hold(id,c){if(held.has(id))return;held.set(id,c);send(c)}
 function release(id){if(!held.has(id))return;held.delete(id);if(!held.size)send(' ')}
@@ -237,6 +248,10 @@ void sendResult(const char* why) {
 }
 
 void handleFlightlog() {                               // streamed from a snapshot so the tick task is held for microseconds only
+  // while sending (about 0.3 s, longer on a weak link) the server cannot take /stop, so refuse while anything moves
+  // also while armed or in flight: the landing detector could start the motors in the middle of the stream
+  xSemaphoreTake(mtx, portMAX_DELAY); bool busy = K.running() || K.seqRunning() || K.armed || K.flight.flying(); xSemaphoreGive(mtx);
+  if (busy) { web.send(409, "text/plain", "refused: busy (motors running, armed or in flight)\n"); return; }
   kedge::Log* snap = (kedge::Log*)malloc(sizeof(kedge::Log));
   if (!snap) { web.send(503, "text/plain", "out of memory\n"); return; }
   kedge::LogJson w;
@@ -273,7 +288,7 @@ void setup() {
   K.inaOk = inaPresent;
   if (!inaPresent) Serial.println("INA219 not found: no current sensing, auto and release refused, manual keys still work");
   bnoPresent = bno.begin_I2C(0x4A) || bno.begin_I2C(0x4B);
-  if (bnoPresent) enableImuReports();
+  if (bnoPresent) { sh2_setSensorCallback(imuEvent, nullptr); enableImuReports(); }
   else Serial.println("BNO085 not found: no attitude, no flight log, arming refused");
   K.imuOk = bnoPresent; lastImuMs = millis();
   K.boot(rf, millis());
@@ -285,7 +300,8 @@ void setup() {
   web.on("/key", []() {
     reply = "";
     String c = web.arg("c"); long ms = web.hasArg("ms") ? web.arg("ms").toInt() : K.tu.wifiDeadmanMs;
-    static long lastStopN = -1; long n = web.hasArg("n") ? web.arg("n").toInt() : -1;   // the page numbers every request
+    static long lastStopN = -1; static String lastPage; long n = web.hasArg("n") ? web.arg("n").toInt() : -1;   // the page numbers every request
+    String pg = web.arg("p"); if (pg != lastPage) { lastPage = pg; lastStopN = -1; }   // a reloaded page starts counting again
     if (c == " " || c == "s") { if (n > lastStopN) lastStopN = n; }
     else if (n >= 0 && n < lastStopN) { web.send(200, "text/plain", ""); return; }      // a run key that left before the stop: drop it
     if (ms < 50) ms = 50;

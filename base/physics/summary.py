@@ -38,7 +38,9 @@ def collect(p=None, fast=False):
         ("Surge (fixed-fixed)", f"{su['f_fixed_fixed_hz']:.0f} Hz"),
     ]))
     L = launch(p)
-    pitch_best = 35.0
+    pitch_best = 36.0
+    if os.path.exists(BALL):
+        pitch_best = max(json.load(open(BALL))["table"], key=lambda r: r["range_m"][1])["pitch_deg"]
     sec.append(("Launch (chain spring model)", [
         ("Stroke, ratio, pitch", f"{L['stroke_m'] * 1000:.0f} mm, {L['pulley_ratio']:.1f}:1, {L['pitch_deg']:.0f} deg"),
         ("Spring extension full / rest", f"{L['ext_full_mm']:.0f} / {L['preload_ext_mm']:.0f} mm"),
@@ -51,7 +53,7 @@ def collect(p=None, fast=False):
         ("Spring KE at stop, coil clash", f"{L['ke_spring_j']:.2f} J, {L['coil_clash_v']:.1f} m/s"),
     ]))
     v = L["v_muzzle"]
-    fl = [simulate(p, v, pitch_best, brake_n=b) for b in (0.5, 0.75, 1.0)]
+    fl = [simulate(p, v, pitch_best, brake_n=b, reel_model=True) for b in (0.5, 0.75, 1.0)]
     nt = simulate(p, v, pitch_best, tether=False)
     rows = [("Range at 0.5 / 0.75 / 1.0 N brake", " / ".join(f"{r['range_m']:.2f}" for r in fl) + f" m (pitch {pitch_best:.0f})"),
             ("Same shot, no tether", f"{nt['range_m']:.2f} m"),
@@ -61,7 +63,7 @@ def collect(p=None, fast=False):
         b = json.load(open(BALL))
         best = max(b["table"], key=lambda r: r["range_m"][1])
         rows.append(("Ballistics table", f"{b['pitch_min']:.0f} to {b['pitch_max']:.0f} deg, best {best['pitch_deg']:.1f} deg: {best['range_m'][1]:.2f} m"))
-    sec.append(("Flight (bead-chain tether, level ground)", rows))
+    sec.append(("Flight (bead-chain tether + reel model, level ground)", rows))
     rp = reel_props(p)
     s2 = spin_up_in_stroke(p, v, L["stroke_m"], 0.75)
     pr = simulate(p, v, pitch_best, brake_n=0.75, reel_model=True)
@@ -77,14 +79,16 @@ def collect(p=None, fast=False):
         ("Wraps for tow limit (mu 0.15)", f"{c['wraps_needed']['raw']:.1f} raw, {c['wraps_needed']['design']:.0f} design"),
         ("Take-up needed (design wraps)", f"{c['takeup_needed_n']:.2f} N"),
         ("Tow at limit: torque, speed, current", f"{c['at_tow_nom']['t_wiper']:.2f} N m, {c['at_tow_nom']['v_line']:.3f} m/s, {c['at_tow_nom']['current']:.2f} A"),
-        ("Line pull at wiper stall (12.6 V)", f"{c['stall']['full']['f_line']:.0f} N (break {p.line.breaking:.0f} N)"),
+        (f"Line pull {c['stall']['full']['label']} (12.6 V)", f"{c['stall']['full']['f_line']:.0f} N (break {p.line.breaking:.0f} N)"),
+        ("Line pull, motor stall (no limiter, 12.6 V)", f"{c['motor_stall']['full']['f_line']:.0f} N"),
     ]))
     d = drivetrain.run(p)
     rows = []
     for k, f in d["functions"].items():
         rows.append((f"{k}: peak torque, current, time", f"{f['t_peak']:.2f} N m, {f['i_peak']:.1f} A, {f['time_s']:.0f} s"))
     e = d["electrical"]
-    rows.append(("Wiper stall 12.6 V (with sag)", f"{e['stall_full']['torque']:.1f} N m, {e['stall_full']['current']:.1f} A"))
+    rows.append((f"Wiper {e['stall_label']}, 12.6 V (with sag)", f"{e['stall_full']['torque']:.1f} N m, {e['stall_full']['current']:.1f} A"))
+    rows.append(("Wiper motor stall (no limiter), 12.6 V (with sag)", f"{e['motor_stall_full']['torque']:.1f} N m, {e['motor_stall_full']['current']:.1f} A"))
     sec.append(("Drivetrain (wiper at 11.1 V with sag)", rows))
     measure = [
         "Spring hang test: hang 1, 2, 3 kg from one spring, measure the length each time. Slope = rate, intercept = "
@@ -92,7 +96,7 @@ def collect(p=None, fast=False):
         "Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall "
         "current. Edit common.Wiper or spec WIPER.",
         "Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg).",
-        "Slip clutch: pull the line off the reel with a luggage scale; set 0.5 to 0.75 N.",
+        "Slip clutch: pull the line off the full reel with a luggage scale; set 0.4 to 0.5 N (FINDINGS F5).",
         "Rail friction: tilt the rail with the dart on it until it slides (mu = tan angle).",
     ]
     return dict(source=p.source, sections=sec, measure=measure)
@@ -118,7 +122,7 @@ def write_pdf(s, path):
     pdfmetrics.registerFont(TTFont("LS", FONT))
     pdfmetrics.registerFont(TTFont("LSB", FONT_B))
     W, H = A4
-    cv = canvas.Canvas(path, pagesize=A4)
+    cv = canvas.Canvas(path, pagesize=A4, initialFontName="LS", initialFontSize=8)
     cv.setTitle("Base station physics summary")
     cv.setAuthor("")
     m = 36
@@ -137,7 +141,7 @@ def write_pdf(s, path):
     lh = 9.4
     for title, rows in s["sections"]:
         need = lh * (len(rows) + 1.6)
-        if y - need < m + 120 and col == 0:
+        if col == 0 and (y - need < m + 120 or title.startswith("Storage reel")):
             col = 1
             y = y_top
         x = col_x[col]

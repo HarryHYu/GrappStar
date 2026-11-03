@@ -31,7 +31,9 @@ def test_valid(s):
 def test_key_dims():
     lo, hi = prim.bbox(S.keyed_shaft(30))
     assert abs(hi[0] - (10 + S.KEY20_H)) < 1e-6
-    assert abs(hi[1] - 10) < 0.01
+    assert abs(hi[1] - (20 - S.SHAFT_PRINT_UNDERSIZE) / 2) < 0.01
+    lo, hi = prim.bbox(S.keyed_shaft(30, fit=0))
+    assert abs(hi[1] - 10) < 0.01 and abs(hi[0] - (10 + S.KEY20_H)) < 1e-6
 
 
 def test_keyed_fit():
@@ -45,13 +47,16 @@ def test_keyed_fit():
 def test_keyed_shaft_in_csk20_inner():
     sh = S.keyed_shaft(30).translate((0, 0, -22))
     brg = B.bearing_csk20()
-    assert (brg ^ sh).volume() < 0.5      # 20 on 20 nominal: polygon facets only, key free in the keyway
+    assert (brg ^ sh).volume() < 1e-6     # body printed 0.1 under: clear, key free in the keyway
     assert (brg ^ prim.place(sh, tf.Rz(3))).volume() > 2.0
 
 
 def test_journal_in_608():
     sh = S.keyed_shaft(30, end_lo=(8, 9)).translate((0, 0, 0.5))
-    assert (B.bearing_608() ^ sh).volume() < 0.5   # 8 on 8 nominal, coincident surfaces only
+    assert (B.bearing_608() ^ sh).volume() < 1e-6  # journal 7.9: clear of the race
+    assert S.SHAFT_PRINT_UNDERSIZE == 0.1
+    lo, hi = prim.bbox(S.keyed_shaft(30, end_lo=(8, 9)) ^ prim.cyl(10, 8, z=-9))
+    assert abs(hi[1] - 3.95) < 0.01
 
 
 def test_d_and_hex_fit():

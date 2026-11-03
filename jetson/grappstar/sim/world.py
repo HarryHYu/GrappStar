@@ -39,22 +39,17 @@ def render_rover_view(model, size=(640, 360), marker=(8.0, 6.0), seed: int = 0) 
     m = model.for_size(w, h)
     rng = np.random.default_rng(seed)
     res = 0.02                                  # ground texture: 2 cm per pixel, X -10..10 m, Y 0..25 m
-    gw, gh = 1000, 1250
+    gw, gh = 1000, 3000
     base = rng.normal(0, 1, (gh // 25 + 2, gw // 25 + 2)).astype(np.float32)
     tex = cv2.resize(base, (gw, gh), interpolation=cv2.INTER_CUBIC)
     tex += 0.35 * rng.normal(0, 1, (gh, gw)).astype(np.float32)
     g = np.clip(110 + 22 * tex, 0, 255).astype(np.uint8)
     ground = cv2.merge([(g * 0.75).astype(np.uint8), (g * 0.9).astype(np.uint8), g])
-    # orange marker (a 0.3 m disc) at the target
     r_m, b_deg = marker
-    mx, my = r_m * math.sin(math.radians(b_deg)), r_m * math.cos(math.radians(b_deg))
-    col, row = (mx + 10.0) / res, (25.0 - my) / res
-    cv2.circle(ground, (int(col), int(row)), int(0.15 / res), (0, 110, 255), -1)
-
     def gpix(X, Y):
-        return ((X + 10.0) / res, (25.0 - Y) / res)
+        return ((X + 10.0) / res, (60.0 - Y) / res)
     src, dst = [], []
-    for X, Y in ((-3, 1.5), (3, 1.5), (-6, 20), (6, 20)):
+    for X, Y in ((-3, 1.5), (3, 1.5), (-8, 40), (8, 40)):
         p = m.world_to_pixel(X, Y, 0.0)
         if p is None:
             continue
@@ -68,6 +63,15 @@ def render_rover_view(model, size=(640, 360), marker=(8.0, 6.0), seed: int = 0) 
     mask = np.zeros((h, w), bool)
     mask[:hv] = True
     img[mask] = sky[mask]
+    # an orange traffic cone (0.3 m base, 0.45 m tall) standing at the target
+    mx, my = r_m * math.sin(math.radians(b_deg)), r_m * math.cos(math.radians(b_deg))
+    pts = []
+    for dx, dz in ((-0.15, 0.0), (0.15, 0.0), (0.03, 0.45), (-0.03, 0.45)):
+        p = m.world_to_pixel(mx + dx, my, dz)
+        if p is not None:
+            pts.append(p)
+    if len(pts) == 4:
+        cv2.fillConvexPoly(img, np.int32(np.round(pts)), (0, 100, 245), lineType=cv2.LINE_AA)
     return img
 
 
@@ -94,7 +98,7 @@ class _LoopSource:
 
 class SimWorld:
     def __init__(self, seed: int = 0, landing_class: str = "hard_ground", time_scale: float = 1.0,
-                 dart_size=(480, 320), rover_size=(640, 360), target=(8.0, 6.0), fps: float = 25.0,
+                 dart_size=(720, 480), rover_size=(640, 360), target=(3.6, 5.0), fps: float = 25.0,
                  anchor_holds: bool = True):
         self.seed, self.time_scale, self.fps = seed, time_scale, fps
         self.anchor_holds = anchor_holds
@@ -122,15 +126,29 @@ class SimWorld:
     def _prerender(self) -> None:
         from .flight_video import render_flight
         frames, truth = render_flight(seed=self.seed, fps=self.fps, landing_class=self.landing_class,
-                                      size=self.dart_size, dropouts=True, landed_s=3.0)
+                                      size=self.dart_size, dropouts=True, landed_s=3.0,
+                                      pitch_deg=35.0, v0=7.1)
         self.flight, self.truth = frames, truth
         tl = truth["t_launch"]
         self._rail = [f for f in frames if f.t < tl - 0.05] or frames[:1]
         self._landed = [f for f in frames if f.t > truth["t_landed"]] or frames[-1:]
         self.flight_s = truth["t_impact"] - tl
         self.range_m = float(truth.get("range_m", 8.0))
-        self.mock_dart.flightlog_provider = lambda: truth["flightlog"]
+        self.mock_dart.flightlog_provider = self._flightlog
         self._ready.set()
+
+    def _flightlog(self) -> dict:
+        """The rendered flight's IMU log, moved onto the mock dart's clock (its launch = the mock's launch time)."""
+        fl = dict(self.truth["flightlog"])
+        t_l = self.mock_dart.t_launch_ms
+        if t_l is None:
+            return fl
+        shift = t_l - fl["t_launch_ms"]
+        fl["samples"] = [[r[0] + shift] + list(r[1:]) for r in fl["samples"]]
+        fl["t_launch_ms"] = fl["t_launch_ms"] + shift
+        if fl.get("t_land_ms") is not None:
+            fl["t_land_ms"] = fl["t_land_ms"] + shift
+        return fl
 
     def wait_ready(self, timeout: float = 30.0) -> bool:
         return self._ready.wait(timeout)

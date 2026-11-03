@@ -15,3 +15,12 @@ def test_contract_c3_shape():
 def test_validate_catches_extra_keys():
     doc = dict(version=1, pitch_min=0, pitch_max=1, drag_n=[0.5], table=[], extra=1)
     assert validate(doc)
+
+
+def test_validate_catches_bad_rows():
+    good = dict(pitch_deg=30.0, v_muzzle=7.0, range_m=[3.0, 2.9, 2.8], t_flight_s=[0.7] * 3, apex_m=[0.8] * 3)
+    base = dict(version=1, pitch_min=30.0, pitch_max=30.0, drag_n=[0.5, 0.75, 1.0])
+    assert validate(dict(base, table=[good])) == []
+    assert validate(dict(base, table=[{k: v for k, v in good.items() if k != "pitch_deg"}]))
+    assert validate(dict(base, table=[dict(good, range_m=[float("nan"), 2.9, 2.8])]))
+    assert validate(dict(base, drag_n=[0.5, 1.0, 2.0], table=[good]))

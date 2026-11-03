@@ -201,6 +201,7 @@ def test_snag_on_retrieve_then_retry(tmp_path):
     def retrieve():
         if state["n"] == 0:
             state["n"] = 1
+            import time; time.sleep(0.1)     # let the rig's phase sync settle first
             r.world.dart = "anchored"; r.world.slack_m = 0.0     # line caught on a rock
             try:
                 return orig()
@@ -274,6 +275,6 @@ def test_auto_anchor_on_landing_mode(tmp_path):
     try:
         m = r.run()
         assert m.state == "DONE", m.error
-        assert any(k == "A" for _, k, _ in r.md.keys)
+        assert any(path == "/arm" and "auto=1" in q for _, path, q in r.md.requests)
     finally:
         r.close()

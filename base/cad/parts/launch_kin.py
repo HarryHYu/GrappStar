@@ -21,7 +21,9 @@ import numpy as np
 # ------------------------------------------------------------------------------------------------ local defaults
 DEFAULTS = dict(
     # springs (P.SPRING gives k, F0, free length, max extension)
-    preload=5.0,            # mm extension at home (carriage held on the front stop)
+    preload=None,           # mm extension at HOME; None = all spring extension left over after the stroke (min 5)
+    n_teeth=27,             # big gear teeth present (fixes the stroke and the rail length); None = most the springs allow
+    n_lead=3,               # rest: tooth 0 this many pitches before the mesh centre (first contact with the carriage on its stop)
     # cocking gears
     m_rack=2.5,             # module of big gear and rack
     z_big=40,               # big gear full tooth count (pitch d 100)
@@ -47,7 +49,16 @@ def lp(P=None):
     for blk in ("LAUNCH", "AIM"):
         b = getattr(P, blk, None) if P is not None else None
         if isinstance(b, dict):
-            d.update({k: v for k, v in b.items() if k in d})
+            d.update({k: v for k, v in b.items() if k in d and v is not None})
+    # stroke from the tooth count, preload from what is left of the allowed spring extension
+    pitch = math.pi * d["m_rack"]
+    max_ext = spring(P)["max_ext"]
+    n_max = int(math.floor((max_ext - 5.0 - REL_EXTRA) / pitch)) + 1 - d["n_lead"]
+    n = n_max if d["n_teeth"] is None else min(int(d["n_teeth"]), n_max)
+    d["n_teeth"] = n
+    d["stroke"] = (n - 1 + d["n_lead"]) * pitch + REL_EXTRA
+    if d["preload"] is None:
+        d["preload"] = max(5.0, max_ext - d["stroke"])
     return d
 
 
@@ -64,16 +75,25 @@ def spring_force(P, ext_mm):
     return s.get("qty", 2) * np.where(e > 0, s["F0_n"] + s["k_n_per_mm"] * e, 0.0)
 
 
+REL_EXTRA = 13.1     # mm of carriage travel past (n - 1) pitches before the relieved last tooth lets go (2D sweep)
+
+
+def stroke_max(P):
+    """Largest carriage travel the springs allow (mm) with the minimum 5 mm preload."""
+    return spring(P)["max_ext"] - 5.0
+
+
 def stroke(P):
-    d = lp(P)
-    return spring(P)["max_ext"] - d["preload"]
+    """Real stroke: carriage travel at release for the tooth count (lp n_teeth)."""
+    return lp(P)["stroke"]
 
 
 def spring_energy(P):
     """Energy released between full cock and home (J)."""
     s = spring(P)
     d = lp(P)
-    x0, x1 = d["preload"], s["max_ext"]
+    x0 = d["preload"]
+    x1 = x0 + stroke(P)
     per = s["F0_n"] * (x1 - x0) + 0.5 * s["k_n_per_mm"] * (x1 ** 2 - x0 ** 2)
     return s.get("qty", 2) * per / 1000.0
 
@@ -84,16 +104,15 @@ def gears(P):
     m = d["m_rack"]
     rb = m * d["z_big"] / 2
     rd = m * d["z_drive"] / 2
-    S = stroke(P)
-    # teeth needed: rack travel while engaged ~ (teeth present - 1) pitches + contact on the last tooth
     pitch = math.pi * m
-    n_present = int(math.ceil(S / pitch)) + 1
+    # release travel measured on the real 2D teeth (launch.release_table): (n - 1 + n_lead) pitches + REL_EXTRA
+    n_present = d["n_teeth"]
     gap_teeth = d["z_big"] - n_present
     return dict(m=m, r_big=rb, r_drive=rd, cd=rb + rd + 0.1, pitch=pitch, n_present=n_present,
                 gap_teeth=gap_teeth, gap_deg=gap_teeth * 360.0 / d["z_big"],
                 ratio=d["z_big"] / d["z_drive"],          # wiper turns per shot (1 big gear turn)
-                torque_big=float(spring_force(P, spring(P)["max_ext"])) * rb / 1000.0,
-                torque_wiper=float(spring_force(P, spring(P)["max_ext"])) * rb / 1000.0 / (d["z_big"] / d["z_drive"]))
+                torque_big=float(spring_force(P, lp(P)["preload"] + stroke(P))) * rb / 1000.0,
+                torque_wiper=float(spring_force(P, lp(P)["preload"] + stroke(P))) * rb / 1000.0 / (d["z_big"] / d["z_drive"]))
 
 
 def cock_vs_wiper(P, wiper_fwd_deg):
@@ -204,7 +223,7 @@ def worm_info(P):
 def summary(P=None):
     g = gears(P)
     t = pitch_table(P)
-    return dict(stroke=stroke(P), energy_J=spring_energy(P), f_max=float(spring_force(P, spring(P)["max_ext"])),
+    return dict(stroke=stroke(P), energy_J=spring_energy(P), f_max=float(spring_force(P, lp(P)["preload"] + stroke(P))),
                 f_home=float(spring_force(P, lp(P)["preload"])), gears=g, aim=dict(
                     pitch_min=t["pitch_min"], pitch_max=t["pitch_max"], crank_rise=t["crank_rise_deg"],
                     wiper_rise=t["wiper_rise_deg"], wiper_per_crank=t["wiper_per_crank"],

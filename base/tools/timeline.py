@@ -36,33 +36,72 @@ def _ease(u):
     return u * u * (3 - 2 * u)
 
 
-def _phases(P):
-    """P.TIMELINE (list of (name, duration s, text)) when the spec defines it, else the placeholder PHASES."""
+KNOWN = {n for n, _, _ in PHASES}
+
+
+def _custom(P):
+    """P.TIMELINE when the spec defines one. Entries: (name, duration s, text, targets) where targets is a dict of S
+    values reached (eased) at the end of the phase; S keys not named hold their value. Entries without targets must
+    use a built-in phase name."""
     tl = _p(P, "TIMELINE", None)
-    if isinstance(tl, (list, tuple)) and tl and len(tl[0]) >= 2:
-        return [(x[0], float(x[1]), x[2] if len(x) > 2 else "") for x in tl]
-    return PHASES
+    if not (isinstance(tl, (list, tuple)) and tl):
+        return None
+    out = []
+    for x in tl:
+        if isinstance(x, dict):
+            x = (x["name"], x["dur"], x.get("text", ""), x.get("targets"))
+        name, dur = x[0], float(x[1])
+        text = x[2] if len(x) > 2 else ""
+        targets = x[3] if len(x) > 3 else None
+        if targets is None and name not in KNOWN:
+            raise ValueError(f"P.TIMELINE phase {name!r} has no targets and is not a built-in phase {sorted(KNOWN)}")
+        out.append((name, dur, text, targets))
+    return out
+
+
+def _phases(P):
+    c = _custom(P)
+    return [(n, d, t) for n, d, t, _ in c] if c else PHASES
 
 
 def _drum(P):
     d = _p(P, "DRUM", None)
+    base = dict(_p(P, "DRUM_POS", None) or {"LAUNCH": 0.0, "NEUTRAL": 60.0, "REEL": 120.0, "WRAPPED": 300.0})
     if isinstance(d, dict) and isinstance(d.get("angles"), dict):
-        return d["angles"]
-    return _p(P, "DRUM_POS", {"LAUNCH": 0.0, "NEUTRAL": 60.0, "REEL": 120.0, "WRAPPED": 300.0})
+        base.update(d["angles"])
+    missing = {"LAUNCH", "NEUTRAL", "REEL", "WRAPPED"} - set(base)
+    if missing:
+        raise ValueError(f"drum angles missing {sorted(missing)}")
+    return base
+
+
+def _num(P, name, key, default):
+    """P.name[key] (dict) or P.name (number), else default."""
+    v = _p(P, name, None)
+    if isinstance(v, dict):
+        return float(v.get(key, default))
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return float(v)
+    return default
 
 
 def state_at(P, t: float) -> dict:
     """Master state at mission time t (s). Placeholder kinematics; the subsystem kin() turns these into joints.
     World frame: BASE_SPEC.md section 2 (origin on the wiper / main shaft axis)."""
     drum = _drum(P)
-    aim_deg = _p(P, "AIM_DEMO_DEG", 30.0)
-    aim_low = _p(P, "AIM_LOW_DEG", 5.0)
-    wiper_rpm = _p(P, "WIPER_RPM", 45.0)
-    line_total = _p(P, "LAUNCH_LINE_M", 10.0)
+    aim = _p(P, "AIM", None) if isinstance(_p(P, "AIM", None), dict) else {}
+    aim_low = float(aim.get("pitch_min", aim.get("pitch_load", 5.0)))
+    aim_deg = float(aim.get("pitch_demo", min(30.0, aim.get("pitch_max", 30.0))))
+    wiper_rpm = _num(P, "WIPER", "n0_rpm", _p(P, "WIPER_RPM", 45.0))
+    line_total = _num(P, "LINE", "launch_m", 0.5 * _num(P, "LINE", "length_m", _p(P, "LINE_M", 20.0)))
+    wraps_n = float((_p(P, "REEL", None) or {}).get("wraps", 3.0)) if isinstance(_p(P, "REEL", None), dict) else 3.0
     t0 = 0.0
+    custom = _custom(P)
     S = dict(t=t, wiper_deg=0.0, drum_deg=drum["LAUNCH"], line_out_m=0.0, mode="LAUNCH", aim_deg=aim_low, cock=0.0,
              fired=False, wraps=0.0, phase=_phases(P)[-1][0])
     wiper = 0.0
+    if custom and any(c[3] is not None for c in custom):
+        return _state_custom(S, custom, t)
     for name, dur, _ in _phases(P):
         u = (t - t0) / dur if dur else 1.0
         if u < 0:
@@ -90,7 +129,7 @@ def state_at(P, t: float) -> dict:
             S["mode"] = "REEL" if uu > 0.5 else "NEUTRAL"
         elif name == "wrap":
             S["drum_deg"] = drum["REEL"] + (drum["WRAPPED"] - drum["REEL"]) * _ease(uu)
-            S["wraps"] = _p(P, "WRAPS", 3.0) * _ease(uu)
+            S["wraps"] = wraps_n * _ease(uu)
             S["mode"] = "WRAPPED"
         elif name == "winch":
             wiper += 360 * wiper_rpm / 60 * dur * uu
@@ -99,7 +138,7 @@ def state_at(P, t: float) -> dict:
             wiper += 360 * wiper_rpm / 60 * dur * uu
         elif name == "unwrap":
             S["drum_deg"] = drum["WRAPPED"] + (drum["REEL"] - drum["WRAPPED"]) * _ease(uu)
-            S["wraps"] = _p(P, "WRAPS", 3.0) * (1 - _ease(uu))
+            S["wraps"] = wraps_n * (1 - _ease(uu))
             S["mode"] = "REEL"
         elif name == "reset":
             S["drum_deg"] = drum["REEL"] + (drum["LAUNCH"] - drum["REEL"]) * _ease(uu)
@@ -111,6 +150,30 @@ def state_at(P, t: float) -> dict:
         t0 += dur
     S["wiper_deg"] = wiper
     return S
+
+
+def _state_custom(S, custom, t):
+    """Generic timeline: each phase eases the S keys in its targets from their previous values."""
+    cur = dict(S)
+    t0 = 0.0
+    for name, dur, _, targets in custom:
+        u = (t - t0) / dur if dur else 1.0
+        if u < 0:
+            break
+        cur["phase"] = name
+        start = dict(cur)
+        e = _ease(min(1.0, u))
+        for k, v in (targets or {}).items():
+            a = start.get(k)
+            if isinstance(v, (int, float)) and not isinstance(v, bool) and isinstance(a, (int, float)) and not isinstance(a, bool):
+                cur[k] = a + (v - a) * e
+            else:
+                cur[k] = v if u >= 0.5 else a
+        if u < 1:
+            break
+        t0 += dur
+    cur["t"] = t
+    return cur
 
 
 def duration(P=None) -> float:

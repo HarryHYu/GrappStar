@@ -42,6 +42,10 @@ TOUCH_GAP = 0.2         # mm: floating check
 OVERHANG_DEG = 45.0
 FLAT_MIN_FRAC = 0.05    # bed contact area at least this fraction of the footprint (or FLAT_MIN_MM2)
 FLAT_MIN_MM2 = 20.0
+FLAT_CAP_MM2 = 150.0    # never ask for more bed contact than this
+OVERHANG_WARN_MM2 = 100.0
+MAX_STEP_DEG = 1.0      # timeline refinement: no rev joint moves more than this between audited states
+MAX_STEP_MM = 0.5       # ... and no slide joint more than this
 
 _ASM = None             # set before forking workers
 
@@ -66,12 +70,19 @@ def static_part(p, bed=(256.0, 256.0, 260.0)) -> dict:
         r["warns"].append(f"{r['shells']} shells")
     if r["volume_mm3"] <= 0:
         r["fails"].append("non-positive volume")
+    if p.printed:                      # what an STL loader / slicer sees after merging coincident vertices
+        tm = prim.to_trimesh(s)
+        tm.merge_vertices()
+        r["stl_watertight"] = bool(tm.is_watertight)
+        if not tm.is_watertight:
+            r["fails"].append("not watertight as STL (self-touching edges after vertex merge)")
     if p.printed:
         if p.print_tf is None:
             r["fails"].append("printed part without print_tf")
         else:
             r.update(print_check(s, p.print_tf, bed))
             r["fails"] += r.pop("_fails")
+            r["warns"] += r.pop("_warns")
     return r
 
 
@@ -97,12 +108,17 @@ def print_check(solid, M, bed) -> dict:
     bed_area = float(area[on_bed].sum())
     foot = float(size[0] * size[1])
     out["bed_contact_mm2"] = round(bed_area, 1)
-    if bed_area < min(FLAT_MIN_MM2, FLAT_MIN_FRAC * foot) and bed_area < FLAT_MIN_FRAC * foot:
-        out["_fails"].append(f"no flat face on the bed ({bed_area:.1f} mm2)")
+    need = min(max(FLAT_MIN_MM2, FLAT_MIN_FRAC * foot), FLAT_CAP_MM2)
+    if bed_area < need:
+        out["_fails"].append(f"no real flat face on the bed ({bed_area:.1f} mm2, need {need:.0f})")
     lim = -math.cos(math.radians(OVERHANG_DEG))
     over = (nz < lim) & ~on_bed & (zmin > lo[2] + 0.3)
     out["overhang_mm2"] = round(float(area[over].sum()), 1)
     out["overhang_frac"] = round(float(area[over].sum() / max(1e-9, area.sum())), 4)
+    out["_warns"] = []
+    if out["overhang_mm2"] > OVERHANG_WARN_MM2:
+        out["_warns"].append(f"overhang {out['overhang_mm2']} mm2 steeper than {OVERHANG_DEG:g} deg: needs supports "
+                             f"or a better print_tf")
     return out
 
 
@@ -153,7 +169,7 @@ def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print) -> dict:
     t_start = time.time()
     bed = tuple(getattr(asm.P, "BED", (256.0, 256.0, 260.0)))
     rep = dict(n_parts=len(asm.parts), n_states=len(states), errors=list(asm.errors), static=[], limits=[],
-               collisions=[], allowed_contacts=[], clearances=[], floating=[], checks=[])
+               collisions=[], allowed_contacts=[], clearances=[], floating=[], checks=[], warns=[])
     names = list(asm.parts)
 
     # 1 static
@@ -173,7 +189,8 @@ def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print) -> dict:
     for ia, a in enumerate(names):
         for b in names[ia + 1:]:
             al = [x for x in asm.allowed if x.match(a, b)]
-            allow_of[(a, b)] = al[0] if al else None
+            # the most restrictive matching Allow decides (None = unlimited), independent of module order
+            allow_of[(a, b)] = min(al, key=lambda x: math.inf if x.max_vol is None else x.max_vol) if al else None
     seen = {}
     tasks, task_keys = [], []
     hits = {}           # (a, b) -> list of (state, vol)
@@ -208,6 +225,10 @@ def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print) -> dict:
             if al is not None:
                 entry["note"] = f"allowed up to {al.max_vol} mm3 ({al.why})"
             rep["collisions"].append(entry)
+    used = {id(allow_of[(e["a"], e["b"])]) for e in rep["allowed_contacts"] + rep["collisions"] if allow_of.get((e["a"], e["b"]))}
+    for al in asm.allowed:
+        if id(al) not in used:
+            rep["warns"].append(f"Allow({al.a!r}, {al.b!r}) never matched an overlap: remove it or narrow it")
     # 4 clearances
     for c in asm.clearances:
         pairs = [(a, b) for ia, a in enumerate(names) for b in names[ia + 1:] if c.match(a, b)]
@@ -226,10 +247,12 @@ def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print) -> dict:
                 ctasks.append((a, b, W[a], W[b], search)); cmeta.append((a, b, i))
         gaps = _map(_pair_gap, ctasks, jobs)
         g, (a, b, i) = min(zip(gaps, cmeta), key=lambda x: x[0])
-        if (a, b) in hits or (b, a) in hits:
-            g = 0.0
+        hit = [(x, y) for x, y in pairs if (x, y) in hits or (y, x) in hits]
+        if hit:
+            g, (a, b) = 0.0, hit[0]
         rep["clearances"].append(dict(a=a, b=b, rule=f"{c.a} / {c.b}", min_mm=c.min_mm, gap=round(g, 3),
-                                      ok=g >= c.min_mm, worst_state=i, phase=states[i].get("phase"), why=c.why))
+                                      ok=(g >= c.min_mm and not hit), worst_state=i, phase=states[i].get("phase"),
+                                      why=c.why, note="parts intersect" if hit else ""))
     # 5 floating (rest state = first state)
     W0 = Ws[0]
     boxes = {n: _aabb(asm.parts[n].solid, W0[n]) for n in names}
@@ -246,11 +269,17 @@ def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print) -> dict:
     for g, (a, b) in zip(_map(_pair_gap, ftasks, jobs), fmeta):
         if g <= TOUCH_GAP:
             adj[a].add(b); adj[b].add(a)
-    grounded = set()
+    grounded, declared = set(), False
     for sub, mod in asm.modules.items():
         if hasattr(mod, "grounded"):
+            declared = True
             for pat in mod.grounded(asm.P):
-                grounded |= {n for n in names if fnmatchcase(n, pat)}
+                m = {n for n in names if fnmatchcase(n, pat)}
+                if not m:
+                    rep["errors"].append(f"{sub}.grounded pattern {pat!r} matches no part")
+                grounded |= m
+    if not declared:
+        rep["warns"].append("no subsystem declares grounded(P): connection to the ground is not checked")
     for n in names:
         if not adj[n] and len(names) > 1:
             rep["floating"].append(dict(part=n, why="touches nothing in the rest state"))
@@ -261,7 +290,7 @@ def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print) -> dict:
             for y in adj[x] - reach:
                 reach.add(y); todo.append(y)
         for n in names:
-            if n not in reach and adj[n]:
+            if n not in reach and adj[n]:          # parts touching nothing are already listed
                 rep["floating"].append(dict(part=n, why="not connected to a grounded part"))
     rep["contact_graph"] = {n: sorted(adj[n]) for n in names}
     # 6 subsystem checks
@@ -277,6 +306,34 @@ def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print) -> dict:
     rep["clean"] = not bad
     rep["seconds"] = round(time.time() - t_start, 1)
     return rep
+
+
+def refine(asm: Assembly, states: list[dict], max_deg=MAX_STEP_DEG, max_mm=MAX_STEP_MM, cap=720) -> list[dict]:
+    """Insert interpolated states so that no joint moves more than max_deg (rev) or max_mm (slide) between
+    consecutive states. Numeric S values are interpolated linearly, others are taken from the earlier state."""
+    if len(states) < 2:
+        return list(states)
+    vals = [asm.values(S) for S in states]
+    out = [states[0]]
+    for k in range(1, len(states)):
+        A, B, va, vb = states[k - 1], states[k], vals[k - 1], vals[k]
+        n = 1
+        for jn, j in asm.joints.items():
+            d = abs(vb[jn] - va[jn])
+            lim = max_deg if j.kind == "rev" else max_mm if j.kind == "slide" else math.inf
+            n = max(n, int(math.ceil(d / lim)))
+        n = min(n, cap)
+        for i in range(1, n):
+            u = i / n
+            S = dict(A)
+            for key, x in B.items():
+                y = A.get(key)
+                if isinstance(x, (int, float)) and not isinstance(x, bool) and isinstance(y, (int, float)) \
+                        and not isinstance(y, bool):
+                    S[key] = y + (x - y) * u
+            out.append(S)
+        out.append(B)
+    return out
 
 
 def summary(rep: dict) -> str:
@@ -298,6 +355,11 @@ def summary(rep: dict) -> str:
         L.append(f"  FLOATING {f['part']}: {f['why']}")
     for c in rep["checks"]:
         L.append(f"  CHECK {c['subsystem']}: {c['fail']}")
+    for w in rep.get("warns", []):
+        L.append(f"  warn {w}")
+    for r in rep["static"]:
+        for w in r.get("warns", []):
+            L.append(f"  warn {r['name']}: {w}")
     L.append(f"  allowed contacts: {len(rep['allowed_contacts'])}")
     L.append("CLEAN" if rep["clean"] else "NOT CLEAN")
     return "\n".join(L)
@@ -309,10 +371,14 @@ def main(argv=None):
     ap.add_argument("--only", default="")
     ap.add_argument("--dt", type=float, default=0.1)
     ap.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
+    ap.add_argument("--no-refine", action="store_true", help="audit the raw timeline samples only")
     a = ap.parse_args(argv)
     P = load_params()
     asm = Assembly.load(P, [s for s in a.only.split(",") if s] or None)
-    states = timeline(P, a.dt) + asm.extra_states
+    states = timeline(P, a.dt)
+    if not a.no_refine:
+        states = refine(asm, states)
+    states += asm.extra_states
     rep = run(asm, states, a.jobs)
     os.makedirs(a.out, exist_ok=True)
     with open(os.path.join(a.out, "audit.json"), "w") as fh:

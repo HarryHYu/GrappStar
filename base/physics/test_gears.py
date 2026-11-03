@@ -33,18 +33,34 @@ def test_barth():
 def test_shaft_torsion():
     r = gears.shaft_torsion(12.0)
     assert r["tau_nom_mpa"] == pytest.approx(16 * 12 / (math.pi * 0.02 ** 3) / 1e6)   # 7.64
-    assert r["pass"] and not r["strict_pass"]
+    assert r["pass"] and not r["strict_pass"] and not r["endmill_pass"]
     assert r["t_allow_kt"] == pytest.approx(9.42, abs=0.01)
+    assert r["t_allow_endmill"] == pytest.approx(6.28, abs=0.01)
     assert not gears.shaft_torsion(12.5)["pass"]
+    r = gears.shaft_torsion(8.0)
+    assert r["strict_pass"] and not r["endmill_pass"]
 
 
-def test_key():
-    # 6 N m on 20 mm: F 600 N; shear 600/(6x14) = 7.14 MPa; bearing 600/(3x14) = 14.29 MPa
+def test_key_steel():
+    # 6 N m on 20 mm: F 600 N. Bearing on the 3 mm keyway walls: 600 / (3 x 14) = 14.29 MPa.
+    # Shaft ligament behind the keyway: sqrt(10^2 - 7^2) - 3 = 4.14 mm -> 600 / (4.14 x 14) = 10.35 MPa
     r = gears.key(6.0, 14.0)
-    assert r["tau_mpa"] == pytest.approx(7.143, abs=0.01)
-    assert r["bearing_mpa"] == pytest.approx(14.286, abs=0.01)
+    m = r["modes"]
+    assert "shear_key" not in m
+    assert r["ligament_shaft_mm"] == pytest.approx(math.sqrt(51) - 3, abs=1e-6)
+    assert m["bearing_shaft"]["stress_mpa"] == pytest.approx(14.286, abs=0.01)
+    assert m["bearing_hub"]["stress_mpa"] == pytest.approx(14.286, abs=0.01)
+    assert m["shear_shaft"]["stress_mpa"] == pytest.approx(600 / (4.1414 * 14), abs=0.01)
+    assert r["governing"] == "shear_shaft"
     assert r["pass"]
+    assert r["t_max"] == pytest.approx(6.0 * 12 / m["shear_shaft"]["stress_mpa"], rel=1e-6)
     assert not gears.key(12.0, 14.0)["pass"]
+
+
+def test_key_printed():
+    r = gears.key(6.0, 14.0, key_material="printed", hub_printed=False)
+    assert r["modes"]["shear_key"]["stress_mpa"] == pytest.approx(7.143, abs=0.01)
+    assert "bearing_hub" not in r["modes"]
 
 
 def test_bearing_sprag():

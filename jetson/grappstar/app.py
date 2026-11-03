@@ -51,6 +51,18 @@ class AppConfig:
     mission: MissionConfig = field(default_factory=MissionConfig)
 
 
+def _brief(d):
+    """Drop long per-frame lists from a result dict (the page polls status several times a second)."""
+    if not isinstance(d, dict):
+        return d
+    out = {}
+    for k, v in d.items():
+        if isinstance(v, (list, dict)) and len(v) > 20:
+            continue
+        out[k] = v
+    return out
+
+
 class App:
     def __init__(self, cfg: Optional[AppConfig] = None, rover: Optional[RoverDrive] = None):
         self.cfg = cfg or AppConfig()
@@ -134,6 +146,12 @@ class App:
     def stop(self) -> None:
         if self.mission:
             self.mission.abort("app stop")
+            if self.mission.thread:
+                self.mission.thread.join(3.0)
+        try:
+            self.base.safe_stop()
+        except Exception:
+            pass
         for cam in self.cams.values():
             try:
                 cam.stop()
@@ -166,8 +184,8 @@ class App:
             "dart": dict(ds, link=self.dart.link()),
             "mission": m,
             "cams": {k: v.status() for k, v in self.cams.items()},
-            "results": {"flight": self.results.get("flight"), "terrain": self.results.get("terrain"),
-                        "mosaic": self.results.get("mosaic"), "errors": self.results.get("errors"),
+            "results": {"flight": _brief(self.results.get("flight")), "terrain": _brief(self.results.get("terrain")),
+                        "mosaic": _brief(self.results.get("mosaic")), "errors": self.results.get("errors"),
                         "files": sorted(self.files)},
             "target": self.target,
             "log": log_tail,
@@ -260,8 +278,8 @@ class App:
     def act_stop(self) -> dict:
         if self.mission:
             self.mission.abort("operator STOP")
-        ok_b = self.base.safe_stop()
-        ok_d = self.dart.safe_stop()
+        ok_b = self.base.safe_stop()           # base first: it is the dangerous one, and it answers fast
+        ok_d = self.dart.safe_stop(fast=True)
         log = self.mlog or self.syslog
         log.warn(f"STOP: base {'ok' if ok_b else 'NO REPLY'}, dart {'ok' if ok_d else 'NO REPLY'}")
         return {"ok": ok_b, "msg": f"STOP sent: base {'ok' if ok_b else 'NO REPLY'}, dart {'ok' if ok_d else 'NO REPLY'}"}
@@ -269,12 +287,13 @@ class App:
     def act_estop(self) -> dict:
         if self.mission:
             self.mission.abort("operator ESTOP")
-        self.dart.safe_stop()
         try:
-            self.base.estop(timeout=0.5)
-            return {"ok": True, "msg": "ESTOP: wiper off, drum to NEUTRAL"}
+            self.base.estop(timeout=0.5)       # base first, never delayed by a slow dart link
+            r = {"ok": True, "msg": "ESTOP: wiper off, drum to NEUTRAL"}
         except Exception as e:
-            return {"ok": False, "msg": f"ESTOP not acknowledged: {e}"}
+            r = {"ok": False, "msg": f"ESTOP not acknowledged: {e}"}
+        threading.Thread(target=self.dart.safe_stop, kwargs={"fast": True}, daemon=True).start()
+        return r
 
     def act_abort(self) -> dict:
         return self.act_stop()
@@ -404,6 +423,8 @@ class App:
         frames = cam.buffer() if cam else []
         try:
             fl = self.dart.flightlog()
+            if not fl.get("samples"):
+                fl = None
         except DartError:
             fl = None
         d = self.run_dir or self._new_run()

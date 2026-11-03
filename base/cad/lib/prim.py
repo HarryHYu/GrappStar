@@ -19,18 +19,22 @@ def segs(r, seg=None):
 
 
 def cyl(r, h, x=0.0, y=0.0, z=0.0, r2=None, seg=None, center=False):
-    """Cylinder along +Z from z to z + h (or centred on z if center)."""
+    """Cylinder along +Z from z to z + h (or centred on z if center). Negative h builds downward from z."""
+    if h < 0:
+        z, h = z + h, -h
     c = Manifold.cylinder(h, r, r if r2 is None else r2, segs(max(r, r2 or 0), seg), center)
     return c.translate((x, y, z))
 
 
 def cylX(r, x0, x1, y=0.0, z=0.0, seg=None):
-    """Cylinder along X from x0 to x1 centred on (y, z)."""
+    """Cylinder along X from x0 to x1 centred on (y, z) (order of x0, x1 free)."""
+    x0, x1 = sorted((x0, x1))
     return Manifold.cylinder(x1 - x0, r, r, segs(r, seg)).rotate((0, 90, 0)).translate((x0, y, z))
 
 
 def cylY(r, y0, y1, x=0.0, z=0.0, seg=None):
-    """Cylinder along Y from y0 to y1 centred on (x, z)."""
+    """Cylinder along Y from y0 to y1 centred on (x, z) (order of y0, y1 free)."""
+    y0, y1 = sorted((y0, y1))
     return Manifold.cylinder(y1 - y0, r, r, segs(r, seg)).rotate((-90, 0, 0)).translate((x, y0, z))
 
 

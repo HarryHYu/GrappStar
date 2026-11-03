@@ -1,0 +1,88 @@
+...............FFF.FF...F...........................                     [100%]
+=================================== FAILURES ===================================
+_________________________ test_stall_current_with_sag __________________________
+
+    def test_stall_current_with_sag():
+        p = Params()
+        t, i = capstan.stall_torque_sag(p, 12.6)
+        # 12.6 / (0.667 + 0.076) = 16.96 A
+>       assert i == pytest.approx(16.96, abs=0.05)
+E       assert 7.0 == 16.96 ± 0.05
+E         
+E         comparison failed
+E         Obtained: 7.0
+E         Expected: 16.96 ± 0.05
+
+test_capstan.py:31: AssertionError
+_________________________ test_takeup_constant_torque __________________________
+
+    def test_takeup_constant_torque():
+        p = Params()
+        rc = p.reel["core_d"] / 2
+>       assert capstan.takeup_tension(p, 0.0) == pytest.approx(2.0)
+E       assert 3.0 == 2.0 ± 2.0e-06
+E         
+E         comparison failed
+E         Obtained: 3.0
+E         Expected: 2.0 ± 2.0e-06
+
+test_capstan.py:38: AssertionError
+________________________ test_tow_roundtrip_and_numbers ________________________
+
+    def test_tow_roundtrip_and_numbers():
+        p = Params()
+        th = capstan.takeup_tension(p, 20.0)
+        t = capstan.wiper_torque_for(50, p)          # full reel
+        # r (F - Th(20 m) + 1.2 x 2 N) / (ratio eta)
+>       assert t == pytest.approx(0.02 * (50 - th + 2.4) / 0.85)
+E       assert 2.01609711976861 == 1.1814229777435188 ± 1.2e-06
+E         
+E         comparison failed
+E         Obtained: 2.01609711976861
+E         Expected: 1.1814229777435188 ± 1.2e-06
+
+test_capstan.py:52: AssertionError
+_________________________________ test_fw_trip _________________________________
+
+    def test_fw_trip():
+        p = Params()
+        ft = capstan.fw_trip(p)
+        assert ft["hard_torque"] == pytest.approx(15 / 16.5 * 3.5)    # 3.18 N m
+>       assert ft["hard_gear_pass"] and ft["hard_gear_sf"] == pytest.approx(1.21, abs=0.01)
+E       assert (False)
+
+test_capstan.py:72: AssertionError
+________________________________ test_run_flags ________________________________
+
+    def test_run_flags():
+        r = capstan.run(Params())
+        assert r["stall"]["full"]["f_line"] > 112
+        assert any("dart holding" in w for w in r["warnings"])
+>       assert r["current_limit"]["current"] == pytest.approx(2.80, abs=0.02)
+E       assert 3.682745098039216 == 2.8 ± 0.02
+E         
+E         comparison failed
+E         Obtained: 3.682745098039216
+E         Expected: 2.8 ± 0.02
+
+test_capstan.py:80: AssertionError
+___________________________________ test_run ___________________________________
+
+    def test_run():
+        r = drivetrain.run(Params())
+        f = r["functions"]
+        for k in ("aim", "cock", "reel", "tow"):
+>           assert f[k]["frac_stall"] < drivetrain.STALL_FRAC_MAX
+E           assert 0.6217524342825005 < 0.6
+E            +  where 0.6 = drivetrain.STALL_FRAC_MAX
+
+test_drivetrain.py:41: AssertionError
+=========================== short test summary info ============================
+FAILED test_capstan.py::test_stall_current_with_sag - assert 7.0 == 16.96 ± 0.05
+FAILED test_capstan.py::test_takeup_constant_torque - assert 3.0 == 2.0 ± 2.0...
+FAILED test_capstan.py::test_tow_roundtrip_and_numbers - assert 2.01609711976...
+FAILED test_capstan.py::test_fw_trip - assert (False)
+FAILED test_capstan.py::test_run_flags - assert 3.682745098039216 == 2.8 ± 0.02
+FAILED test_drivetrain.py::test_run - assert 0.6217524342825005 < 0.6
+6 failed, 46 passed in 20.76s
+EXIT 1

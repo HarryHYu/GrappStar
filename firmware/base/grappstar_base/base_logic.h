@@ -215,14 +215,15 @@ struct Base {
     JOut o(evBuf, sizeof evBuf); evBegin(o, "ABORTED"); o.str("what", what); o.str("why", why); evEnd(o);
   }
 
+  void gapAbort() { if (gapRun) { phase = PH_UNKNOWN; phaseHint = -1; cockPhase = 0; dirty = true; } gapRun = false; gapThenArm = false; firePending = false; }
   void raise(int f, const char* why) {
-    w.halt(now, io.wiper); gapRun = false; gapThenArm = false; firePending = false;
+    w.halt(now, io.wiper); bool wasGap = gapRun; gapAbort();
     if (state == S_SAFING) { d.halt(now, io.drum); state = S_FAULT; stT = now; evHeld(why); dirty = true; return; }   // a second fault stops the safing move
     if (state == S_FAULT) { return; }                 // the first fault wins
     fault = f; strncpy(faultWhy, why, sizeof faultWhy - 1); faultWhy[sizeof faultWhy - 1] = 0;
     // a fault during any launch-train motion: the phase is no longer trusted, but the last count is kept as a warning
     if (phase == PH_COCKING || phase == PH_FIRING || phase == PH_RESETTING || state == S_DECOCK || state == S_COCK || state == S_FIRE || (state == S_JOG && jogMotor == 1 && collarLaunch())) {
-      if (phase != PH_UNKNOWN || cockPhase > phaseHint) phaseHint = cockPhase;
+      if (!wasGap && (phase != PH_UNKNOWN || cockPhase > phaseHint)) phaseHint = cockPhase;   // (an aborted gap run: in the gap, not drawn)
       phase = PH_UNKNOWN;
     }
     tokenLive = false; homing = false;
@@ -395,12 +396,14 @@ struct Base {
     // (it only tapers the start); the first measured sample then replaces it
     if (winding && !windPrev) tCur = tc;
     windPrev = winding;
-    tCur = winding ? tCur + (tc - tCur) * al : ((state == S_HOLD || state == S_REEL) ? tCur : 0);
-    tRaw = winding ? tc : 0;                          // unfiltered: a stiff line rises faster than the 200 ms average
+    tCur = winding ? tCur + (tc - tCur) * al : ((state == S_HOLD || state == S_REEL || (sec == SEC_REEL && !hxLive())) ? tCur : 0);   // sprag #2 keeps the line loaded after a stop
+    tRaw = winding ? tc : 0;
+    if (winding && tc < pullMinN) pullMinN = tc;
+    if (sec != SEC_REEL) atLimitPulls = 0;                          // unfiltered: a stiff line rises faster than the 200 ms average
     tensionN = hxLive() ? fmaxf(hxN, tCur) : tCur;    // a frozen or unplugged load cell never hides the current estimate
   }
   bool hxLive() const { return hxSeen && now - hxT < 500; }
-  bool holdByHx = false; float tRaw = 0; bool windPrev = false; uint32_t rawOverT = 0; int towDuty = 0;
+  int atLimitPulls = 0; float pullMinN = 1e9f, limitPullN = 0; bool holdByHx = false; float tRaw = 0; bool windPrev = false; uint32_t rawOverT = 0; int towDuty = 0;
 
   // wiper motion -> trains. Only while running or just stopped (coast). The collar dogs have a free window
   // (dogWindowDeg): after a reversal the wiper first crosses the window and drives nothing. win = 0 touching the
@@ -549,7 +552,9 @@ struct Base {
     if (now - glitchT >= 1000) { if (glitchWin > 20 && w.running()) { glitchWin = 0; glitchT = now; raise(F_ANGLE_SENSOR, "AS5600 glitching (over 20 bad samples a second)"); return; } glitchWin = 0; glitchT = now; }
     // launch train invariants, every tick:
     // the carriage left its stop while the phase says rest (a jog or stop inside the switch debounce): not rest any more
-    if (phase == PH_REST && fitted(SW_HOME) && !closed(SW_HOME) && state != S_COCK && state != S_FIRE) { phaseHint = cockPhase > c.homeOpenDeg ? cockPhase : c.homeOpenDeg + 1; phase = PH_UNKNOWN; dirty = true; }
+    if (phase == PH_REST && fitted(SW_HOME) && !closed(SW_HOME) && state != S_COCK && state != S_FIRE) {
+      if (fell(SW_HOME) && w.lastDir == cockDir()) cockPhase = c.homeOpenDeg + sinceEdge(SW_HOME, cockDir());   // re-zero on the first tooth
+      phaseHint = cockPhase > c.homeOpenDeg ? cockPhase : c.homeOpenDeg + 1; phase = PH_UNKNOWN; dirty = true; }
     // forward travel past the first tooth from rest is cocking, whatever the switch says
     if (phase == PH_REST && cockPhase > c.homeOpenDeg + c.homeWinDeg) {
       if (fitted(SW_HOME) && closed(SW_HOME)) { raise(F_SWITCH_DISAGREE, "SW_HOME still closed past the first tooth"); return; }
@@ -972,6 +977,9 @@ struct Base {
     if (un == U_SEATED && !fitted(SW_SEATED)) return "NO_SENSOR";
     // a tow re-sent while holding at (or near) its limit stays in HOLD: re-pulling from the held line ratchets it up
     if (state == S_HOLD && un == U_TENSION && until == U_TENSION && tensionN >= 0.95f * (float)mxn) { maxN = (float)mxn; enterHold("already at the limit"); return nullptr; }
+    // stop + reel again on a line that never went slack: each blind start adds a little; after 3 such pulls stay held
+    if (un == U_TENSION && atLimitPulls >= 3 && sec == SEC_REEL && !hxLive() && (float)mxn <= limitPullN + 0.5f) { until = U_TENSION; maxN = (float)mxn; enterHold("already at the limit"); return nullptr; }
+    pullMinN = 1e9f;
     takeupOnly = neutral;
     until = un; maxN = (float)mxn; reelDutyCmd = (int)lround(duty * 255); if (reelDutyCmd < c.reelMinDuty) reelDutyCmd = c.reelMinDuty;
     if (takeupOnly && reelDutyCmd > c.takeupMaxDuty) reelDutyCmd = c.takeupMaxDuty;
@@ -986,6 +994,8 @@ struct Base {
   void enterHold(const char* why) {
     if (tRaw > tCur) { tCur = tRaw; if (!hxLive()) tensionN = tCur; }   // hold the higher estimate (raw cut: the average lags)
     holdByHx = hxLive() && hxN >= 0.95f * maxN;       // only a load-cell hold may resume when the load cell sees slack
+    if (until == U_TENSION && why && strcmp(why, "already at the limit")) {   // a real pull: did the line ever go slack in it?
+      if (pullMinN >= 0.9f * maxN) { atLimitPulls++; limitPullN = maxN; } else atLimitPulls = 0; }
     state = S_HOLD; stT = now; holdLimit = true;
     JOut o(evBuf, sizeof evBuf); evBegin(o, "LIMIT"); o.num("tension_n", tensionN, 1); o.num("max_n", maxN, 1); o.str("why", why);
     o.boolean("holding", until == U_TENSION); evEnd(o);
@@ -1012,6 +1022,7 @@ struct Base {
       if (loadedKnown() && p != DP_LAUNCH) return "LAUNCH_BUSY";   // code says away from LAUNCH but the spring is drawn
       if (p == DP_LAUNCH && dd == cockDir() && (phase == PH_COCKED || phase == PH_UNKNOWN || phase == PH_FIRING || phase == PH_RESETTING)) return "WOULD_FIRE";
       if (p == DP_LAUNCH && dd == cockDir() && !fitted(SW_HOME)) return "NO_SENSOR";
+      if (p == DP_LAUNCH && dd == cockDir() && fitted(SW_GAP) && !closed(SW_GAP)) return "SWITCH_DISAGREE";   // gear out of its gap: decock first (gap run)
       if (p == DP_LAUNCH && dd == c.aimDir && phase != PH_REST) return "NOT_AT_REST";   // the drawn spring would unwind: cal decock
       if ((sec >= SEC_REEL || closed(SW_DOG_R)) && dd != c.reelDir) return "BACKSTOP";  // sprag #2: the capstan never turns out
       if (p != DP_LAUNCH && dd != c.reelDir) return "BACKSTOP";   // BASE_SPEC 10: backward only in LAUNCH (fights the bus one-way)
@@ -1082,8 +1093,9 @@ struct Base {
             phase = PH_REST; cockPhase = 0; phaseHint = -1; dirty = true;
             JOut e(evBuf, sizeof evBuf); evBegin(e, "RESET"); e.boolean("ok", true); e.str("how", "decock"); e.str("why", "SW_HOME and SW_GAP closed: at rest"); evEnd(e); return nullptr;
           }
-          if (fitted(SW_GAP) && launchCentred()) {     // carriage home, gear dragged out of its gap: close it going forward
-            phase = PH_REST; aimKnown = false; aimed = false; tokenLive = false; state = S_DECOCK; stT = opT = now; startGapRun(); return nullptr; }
+          if (fitted(SW_GAP) && !closed(SW_GAP)) {     // home but out of its gap with the phase unknown: a forward run could be
+            JOut e(evBuf, sizeof evBuf); evBegin(e, "RESET"); e.boolean("ok", false); e.str("how", "decock");   // a lying SW_HOME on a drawn
+            e.str("why", "SW_GAP open: check the carriage by eye, then cal cock_rest force"); evEnd(e); return nullptr; }   // spring: the operator decides
           JOut e(evBuf, sizeof evBuf); evBegin(e, "RESET"); e.boolean("ok", false); e.str("how", "decock"); e.str("why", "carriage home: nothing to decock, cock finds the angle"); evEnd(e); return nullptr;
         }
         if (!force) return "SWITCH_DISAGREE";        // the spring should be drawn but SW_HOME says home: lying switch
@@ -1255,7 +1267,7 @@ struct Base {
   }
   void cmdStop(bool estop) {
     w.halt(now, io.wiper); d.halt(now, io.drum); tokenLive = false; homing = false;
-    gapRun = false; gapThenArm = false; firePending = false;   // a queued fire never survives a stop
+    gapAbort();                                       // a queued fire never survives a stop; an interrupted gap run: angle unknown
     int was = state;
     if (state == S_FAULT || state == S_SAFING) { state = S_FAULT; }
     else {

@@ -755,9 +755,8 @@ static void testReview3() {
     CHECK(R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"decock\"}") && R.lastEvt("RESET").find("\"ok\":true") != std::string::npos && R.B.phase == gb::PH_REST,
           "decock with the phase unknown, SW_HOME and SW_GAP closed: RESET ok:true, at rest (BASE_SPEC 10.1 decock, RESET, aim)"); }
   { Rig::restRig = false; Rig R; Rig::restRig = true; S.swStuckOpen = 1 << 7; R.run(50); S.out.clear();   // no SW_GAP reading
-    CHECK(R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"decock\"}"), "decock with SW_GAP reading open: the forward gap run starts");
-    R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 20000);
-    CHECK(R.B.state == gb::S_FAULT && S.shots == 0 && S.cockPh < 20, "SW_GAP lying open: the gap run stops at the first tooth (fault, no shot)"); }
+    CHECK(R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"decock\"}") && R.lastEvt("RESET").find("\"ok\":false") != std::string::npos && S.wDir == 0,
+          "phase unknown, carriage home, SW_GAP open: RESET ok:false, no forward run (a lying SW_HOME could hide a drawn spring)"); }
   { Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}"); R.run(200);
     CHECK(fabsf(R.B.w.c.tripA - R.B.c.aimTripA) < 1e-3 && fabsf(R.B.c.aimTripA - 3.0f) < 1e-3, "aim runs on its own 3 A trip (D40)"); R.ok("{\"id\":2,\"cmd\":\"stop\"}"); }
   { Rig R; R.toMode("NEUTRAL"); R.wrapToReel(); S.lineOut = 8; S.anchorTautAt = 7.5; R.run(50);
@@ -874,6 +873,16 @@ static void testReview4() {
     S.swStuckOpen |= 1 << 3; R.run(50); S.swStuckOpen = 0;   // 50 ms SW_DOG_L dropout during the homing
     R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 70000);
     CHECK(R.idle() && R.B.aimed, "a short collar dropout during aim homing: the wiper waits and resumes, AIMED"); }
+  { Rig R; S.aimDragDeg = 127; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}");   // adversarial round 2 H1
+    R.until([&] { return R.B.gapRun || R.idle(); }, 60000); R.run(300); R.ok("{\"id\":2,\"cmd\":\"stop\"}");
+    CHECK(R.B.phase == gb::PH_UNKNOWN, "a stopped gap run: phase unknown");
+    for (int i = 0; i < 60; i++) { R.cmd("{\"id\":3,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":1,\"ms\":500}"); R.run(300); }
+    CHECK(S.shots == 0, "held forward jog after a stopped gap run: no shot"); }
+  { Rig R; R.toMode("NEUTRAL"); R.wrapToReel(); S.lineOut = 10; S.anchorTautAt = 9.9; S.anchorK = 1000; R.run(50);   // round 2 H2
+    double mx = 0;
+    for (int i = 0; i < 30; i++) { R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":20,\"until\":\"tension\"}");
+      R.until([&] { if (S.tension() > mx) mx = S.tension(); return R.B.state == gb::S_HOLD || R.B.state == gb::S_FAULT; }, 20000); R.ok("{\"id\":2,\"cmd\":\"stop\"}"); }
+    char m[90]; snprintf(m, sizeof m, "30 x stop + reel on a taut line: no ratchet (peak %.1f N at limit 20)", mx); CHECK(mx < 26, m); }
   for (int every : {200, 100, 40}) {             // bursts of 3 failed I2C reads during a cock (review: travel was lost)
     Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":2,\"cmd\":\"aim\",\"deg\":30}"); R.until([&] { return R.idle(); }, 60000);
     S.encDropEvery = every; R.ok("{\"id\":3,\"cmd\":\"cock\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);

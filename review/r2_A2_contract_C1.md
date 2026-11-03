@@ -8,7 +8,7 @@ agreed it is real but rated it lower.
 Confirmed: 18. Refuted and dropped: 7.
 
 STATUS: base-v1 moved on while this ran. Each finding is being re-checked
-against base-v1 863d58d; the results will be added as a "Now" column.
+against base-v1 472bb65; the results will be added as a "Now" column.
 
 | # | Sev | File:line | Owner | Finding |
 |---|---|---|---|---|

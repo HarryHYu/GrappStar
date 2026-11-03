@@ -1,14 +1,14 @@
 # Round 2 D2: base firmware re-review (fw-base)
 
 Reviewed at base-v1 commit ba121b9. Method: independent finder subagents, one per lens; every finding of
-
-STATUS: base-v1 moved 250 commits (1285 lines in firmware/base) while this ran. Each finding is being re-checked
-against base-v1 863d58d; the results will be added as a "Now" column.
 medium severity or above was checked by two skeptic subagents told to refute it; kept only if fewer than
 two refuted it. Low findings are listed unverified. Severity is the finder's, lowered when both skeptics
 agreed it is real but rated it lower.
 
 Confirmed: 26. Refuted and dropped: 0.
+
+STATUS: base-v1 moved 250 commits (1285 lines in firmware/base) while this ran. Each finding is being re-checked
+against base-v1 863d58d; the results will be added as a "Now" column.
 
 | # | Sev | File:line | Owner | Finding |
 |---|---|---|---|---|

@@ -28,6 +28,7 @@ if _HERE not in sys.path:
 
 from cad.lib import Part, Joint, Allow, Clearance, prim, tf   # noqa: E402
 import launch_kin as K                                         # noqa: E402
+import launch_switch as SW                                     # noqa: E402
 
 try:
     import launch_gears as G                                   # noqa: E402
@@ -116,6 +117,25 @@ def L(P):
     return n
 
 
+def switch_frames(P):
+    """Printed contact switches: name -> dict(M = switch local -> carrier joint frame, carrier joint, z_s, screw)."""
+    n = L(P)
+    out = {}
+    # SW_HOME on the right rail lip, pressed by the right spring arm when the carriage is on its stop
+    u_tip = n["u_c_home"] + n["pusher_t"]                    # stop tab front face at HOME
+    w_base = n["w_floor0"] + 1.0
+    zs = (n["tab_w0"] + 5.0) - w_base
+    out["home"] = dict(M=tf.T(u_tip - SW.LEAF_T + 6.0, n["y_shoe0"] - 0.5 - 4.0, w_base),
+                       joint="launch_rail", z_s=zs, screw=6.0, x0=-3.0, width=8.0, top=3.5,
+                       where="rail mid piece, left of the big gear, pressed by the carriage stop tab at HOME")
+    # SW_SEATED on the carriage shelf behind the pusher, tip flush with the pusher face, pressed by the dart tail
+    zs2 = 70.0 - n["w_deck1"]
+    M2 = tf.mul(tf.T(n["u_c_home"] - 2.8 + 0.0, 0, n["w_deck1"]), tf.Rz(180))
+    out["seated"] = dict(M=M2, joint="launch_carriage", z_s=zs2, screw=12.0, x0=-2.8, width=None, top=5.0,
+                         where="carriage shelf behind the pusher, pressed by the dart tail cap")
+    return out
+
+
 # ------------------------------------------------------------------------------------------------ helpers
 def bed(solid, R=None, rz=0.0):
     """print_tf: rotate by R (4x4), then about z by rz deg, then translate so the part sits at z = 0 centred."""
@@ -192,7 +212,8 @@ def rail_solid(P):
     s.append(B(ua - 8, ua + 8, -46, 46, n["w_floor0"] - 6, n["w_floor0"]))
     # carriage front stop blocks (the carriage stop tab hits their rear face at HOME)
     ust = n["u_c_home"] + 8.0
-    s.append(Bs(ust, ust + 27.0, n["stop_y0"] - 0.5, n["y_shoe0"], n["w_floor0"], n["tab_w0"] + 6))
+    s.append(B(ust, ust + 27.0, -n["y_shoe0"], -(n["stop_y0"] - 0.5), n["w_floor0"], n["tab_w0"] + 6))
+    s.append(B(n["cd"], 111.0, 9.0, 17.0, 18.0, n["w_floor0"] + 1.0))          # SW_HOME seat (left)
     # mid piece cross tie (behind the drive gear, under the carriage tab path)
     s.append(B(n["split"][0] + 1.0, n["split"][0] + 10.0, -n["y_wall1"], n["y_wall1"], n["w_floor0"] + 6, n["tab_w0"] - 0.5))
     solid = prim.union(s)
@@ -201,8 +222,13 @@ def rail_solid(P):
     # anchor pins (steel 6 mm or printed): vertical holes through the posts
     for sg in (1, -1):
         solid = solid - cyl_w(3.1, n["w_floor0"] - 1, wsp, ua, sg * ys)
+    # SW_HOME mounting pilots (M3 self tap)
+    f = switch_frames(P)["home"]
+    for hx in SW.mount_holes(f["x0"], f["z_s"]):
+        q = tf.apply(f["M"], np.array([[hx, 0.0, 0.0]]))[0]
+        solid = solid - cyl_w(1.3, q[2] - 10.0, q[2] + 1.0, q[0], q[1])
     # stop pad pockets
-    solid = solid - Bs(ust - 1.0, ust + 10.0, n["stop_y0"], n["y_shoe0"] - 0.5, n["tab_w0"] - 8, n["tab_w0"] + 6.1)
+    solid = solid - B(ust - 1.0, ust + PAD_L, -(n["y_shoe0"] - 0.5), -n["stop_y0"], n["tab_w0"] - 8, n["tab_w0"] + 6.1)
     return solid
 
 
@@ -252,15 +278,24 @@ def carriage_solid(P):
     up = n["u_peg_c"]
     for sg in (1, -1):
         ya, yb = (12.0, n["y_spring"] + 5) if sg > 0 else (-n["y_spring"] - 5, -12.0)
-        s.append(B(0, 14, ya, yb, n["lip_w1"] + 0.5, n["lip_w1"] + 6.5))
+        s.append(B(0, n["pusher_t"], ya, yb, n["lip_w1"] + 0.5, n["lip_w1"] + 14.0))   # behind the dart tail only
         s.append(cyl_w(3.0, n["w_spring"] - 9, n["lip_w1"] + 1, up, sg * n["y_spring"]))
         s.append(cyl_w(4.5, n["w_spring"] - 11, n["w_spring"] - 9, up, sg * n["y_spring"]))   # keeper flange
         # web from deck up to the arm at the rear (clears the lip: |y| < y_lip0)
-        s.append(B(0, 14, 12.0 if sg > 0 else -n["y_lip0"] + 0.5, n["y_lip0"] - 0.5 if sg > 0 else -12.0,
-                   n["w_deck0"], n["lip_w1"] + 6.5))
+        s.append(B(0, n["pusher_t"], 12.0 if sg > 0 else -n["y_lip0"] + 0.5, n["y_lip0"] - 0.5 if sg > 0 else -12.0,
+                   n["w_deck0"], n["lip_w1"] + 14.0))
+    # SW_SEATED shelf behind the pusher, shank hole through the pusher (below the tether hole), pilots
+    s.append(B(-30.0, 0.5, -6.0, 6.0, n["w_deck0"], n["w_deck1"]))
     # stop tab under the rear (hits the rail stop pads at HOME)
     s.append(Bs(0, 8, n["stop_y0"], n["y_shoe0"] - 0.7, n["tab_w0"], n["w_deck0"] + 0.1))
-    return prim.union(s)
+    c = prim.union(s)
+    c = c - cyl_u(1.8, -1.0, n["pusher_t"] + 1.0, 0.0, 70.0)
+    f = switch_frames(P)["seated"]
+    Mloc = tf.mul(tf.T(-n["u_c_home"], 0, 0), f["M"])
+    for hx in SW.mount_holes(f["x0"], f["z_s"]):
+        q = tf.apply(Mloc, np.array([[hx, 0.0, 0.0]]))[0]
+        c = c - cyl_w(1.3, q[2] - 6.5, q[2] + 1.0, q[0], q[1])
+    return c
 
 
 def big_gear_solid(P):
@@ -342,6 +377,22 @@ def anchor_pin_solid(P):
 
 
 N_SEG = 5
+PAD_L = 18.0          # carriage stop pad length (physics F3: 15 to 20 mm of TPU or foam)
+_DART = {}
+
+
+def dart_solid(P=None):
+    """KEDGE v30 folded, dart frame (nose x = 0, tail x = 151.97, belly z = -21): legs and bought parts from the
+    out30 meshes (launch_dart_v30_solid.npz, built by launch_dartmesh.py) plus the hull and nose as solids."""
+    if "s" in _DART:
+        return _DART["s"]
+    from manifold3d import Manifold, Mesh
+    d = np.load(os.path.join(_HERE, "launch_dart_v30_solid.npz"))
+    U = Manifold(Mesh(vert_properties=np.asarray(d["v"], np.float32), tri_verts=np.asarray(d["f"], np.uint32)))
+    hull = prim.cylX(21.0, 20.0, 151.97)
+    nose = prim.place(prim.cyl(11.0, 20.0, r2=21.0), tf.Ry(90))
+    _DART["s"] = U + hull + nose
+    return _DART["s"]
 
 
 def parts(P):
@@ -389,12 +440,21 @@ def parts(P):
             out.append(Part(f"launch_spring_{side}_{i}", spring_segment_solid(P, seg_len), "bought",
                             joint=f"launch_spring_seg_{i}", place=tf.T(u_seg, y, n["w_spring"]), color="#c2c7cc",
                             notes="Spring coils (shown in segments that spread when stretched)"))
-    out.append(Part("launch_stop_pad_l", B(0, 10, 0, 5.0, 0, 14), "TPU", joint="launch_rail",
-                    place=tf.T(n["u_c_home"] + 8.0, n["stop_y0"], n["tab_w0"] - 8),
-                    print_tf=tf.I4, color="#222222", notes="Carriage stop pad, TPU 95A (PLA honeycomb if no TPU)"))
-    out.append(Part("launch_stop_pad_r", B(0, 10, -5.0, 0, 0, 14), "TPU", joint="launch_rail",
+    out.append(Part("launch_stop_pad_r", B(0, PAD_L, -5.0, 0, 0, 14), "TPU", joint="launch_rail",
                     place=tf.T(n["u_c_home"] + 8.0, -n["stop_y0"], n["tab_w0"] - 8),
                     print_tf=tf.T(0, 5, 0), color="#222222", notes="Carriage stop pad"))
+    for nm, f in switch_frames(P).items():
+        bod = SW.body(f["z_s"], f["screw"], f["x0"], width=f["width"], top=f["top"])
+        out.append(Part(f"launch_sw_{nm}", bod, "PLA", joint=f["joint"], place=f["M"], print_tf=bed(bod),
+                        color="#5fae5f", notes=f"SW_{nm.upper()} printed contact: {f['where']}"))
+        out.append(Part(f"launch_sw_{nm}_screw", SW.screw(f["screw"], f["z_s"]), "bought", joint=f["joint"], place=f["M"],
+                        color="#444444", bought_ref=f"M3x{f['screw']:g} SHCS", notes="Contact screw, threaded through the leaf"))
+        out.append(Part(f"launch_sw_{nm}_nut", SW.nut(f["z_s"]), "bought", joint=f["joint"], place=f["M"],
+                        color="#444444", bought_ref="M3 nut", notes="Contact nut in its trap, wire under it"))
+    out.append(Part("launch_dart", dart_solid(P), "bought", joint="launch_dart",
+                    place=tf.mul(tf.T(n["u_tail_home"] + 152.0, 0, n["w_dart"] - 0.4), tf.Rz(180)),
+                    color="#e8e8e8", bought_ref="KEDGE v30 dart (reference, built separately)",
+                    notes="The dart, folded, belly on the cradle, tail on the pusher"))
     out += _aim("parts_aim", P)
     return out
 
@@ -408,6 +468,7 @@ def joints(P):
         Joint("launch_drive", None, "rev", (0.0, n["Y0"], n["axis_z"]), (0, 1, 0)),
         Joint("launch_carriage", "launch_rail", "slide", (0, 0, 0), (-1, 0, 0), limits=(0.0, n["stroke"] + 0.5)),
         Joint("launch_big_gear", "launch_rail", "rev", (n["cd"], 0, 0), (0, 1, 0)),
+        Joint("launch_dart", "launch_carriage", "slide", (0, 0, 0), (1, 0, 0)),
     ]
     for i in range(N_SEG):
         out.append(Joint(f"launch_spring_seg_{i}", "launch_rail", "slide", (0, 0, 0), (-1, 0, 0),
@@ -435,34 +496,29 @@ def release_table(P):
     def ov(th, xu):
         return (gear.rotate(th) ^ rack.translate((u0 - xu, -n["w_rp"]))).area()
 
-    def follow(th, nom):
-        xs = np.arange(max(0.0, nom - 4.0), nom + 4.0, 0.05)
-        for x in xs:
+    def follow(th, prev):
+        x = max(0.0, prev - 1.0)
+        while x < prev + 4.0:
             if ov(th, x) < 1e-5:
                 return float(x)
-        return float(nom)
+            x += 0.03
+        return float(prev)
 
-    # mid-stroke offset (springs take up the backlash) measured once
-    d_mid = -math.radians(-150.0) * rb - follow(-150.0, -math.radians(-150.0) * rb)
     ths, trs = [0.0], [0.0]
     th_rel = None
     th = -1.0
-    th_start_fine = -math.degrees((n["n_present"] - 3) * p / rb)
+    th_fine = -math.degrees((n["n_present"] + n["n_lead"] - 3) * p / rb)
+    prev = 0.0
     while th > -359.0:
-        nom = -math.radians(th) * rb
-        if th > th_start_fine:
-            tr = max(0.0, nom - d_mid)
-            step = -2.0
-        else:
-            tr = follow(th, nom)
-            free = all(ov(th, x) < 1e-5 for x in np.arange(0.0, tr, 0.5))
-            if free:
-                th_rel = th
-                break
-            step = -0.25
+        tr = follow(th, prev)
+        if th <= th_fine and all(ov(th, x) < 1e-5 for x in np.arange(0.0, tr, 0.5)):
+            th_rel = th
+            break
         ths.append(th)
         trs.append(tr)
-        th += step
+        prev = tr
+        th += -1.0 if th > th_fine else -0.25
+    d_mid = float(np.median(-np.radians(np.array(ths[5:-20])) * rb - np.array(trs[5:-20])))
     out = dict(theta=np.array(ths), travel=np.array(trs), theta_release=th_rel,
                travel_release=float(trs[-1]), d_mid=d_mid)
     _REL_CACHE[key] = out
@@ -504,6 +560,8 @@ def kin(P, S):
         gdeg = gear_angle_for_travel(P, travel)
     out = {"launch_rail": pitch, "launch_carriage": travel, "launch_big_gear": gdeg,
            "launch_drive": -gdeg * g["ratio"] - pitch + _drive_phase(P), "launch_sleeve": S.get("wiper_deg", 0.0)}
+    flown = S.get("fired") and travel <= 0.0 or S.get("phase") in ("flight", "neutral", "reel_mode", "wrap", "winch")
+    out["launch_dart"] = float(S["launch_dart_fly"]) if "launch_dart_fly" in S else (3000.0 if flown else 0.0)
     if AIM is not None and hasattr(AIM, "kin_aim"):
         out.update(AIM.kin_aim(P, S, pitch))
     return out
@@ -517,6 +575,8 @@ def allowed(P):
         Allow("launch_anchor_pin_*", "launch_rail_front", "pin in its hole"),
         Allow("launch_spring_*_hook_c", "launch_carriage", "hook loop round the carriage peg"),
         Allow("launch_stop_pad_*", "launch_rail_mid", "pad in its pocket"),
+        Allow("launch_sw_*_screw", "launch_sw_home", "screw threaded into the leaf"),
+        Allow("launch_sw_*_screw", "launch_sw_seated", "screw threaded into the leaf"),
     ] + _aim("allowed_aim", P)
 
 
@@ -540,9 +600,15 @@ def audit_states(P):
     a0 = gear_release_angle(P)
     for a in np.linspace(a0, -360.0, 9):
         S.append(dict(aim_deg=25.0, launch_travel=0.0, launch_gear_deg=float(a), phase="launch_reset"))
+    # the dart leaving the carriage at HOME and passing the muzzle (pitch low and high)
+    for p in (6.02, 47.0):
+        for d in np.arange(0.0, 320.0, 20.0):
+            S.append(dict(aim_deg=p, launch_travel=0.0, launch_dart_fly=float(d), phase="launch_flight"))
     S += _aim("audit_states_aim", P)
     return S
 
 
 def grounded(P):
-    return []
+    """The aim housing stands on the deck; everything else must connect to it (or to other subsystems' grounded
+    parts) through contacts: rail cheeks on the sleeve, sleeve in the housing bushing, conrod to the crank."""
+    return ["launch_aim_housing"]

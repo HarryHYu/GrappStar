@@ -146,6 +146,12 @@ class App:
     def stop(self) -> None:
         if self.mission:
             self.mission.abort("app stop")
+            if self.mission.thread:
+                self.mission.thread.join(3.0)
+        try:
+            self.base.safe_stop()
+        except Exception:
+            pass
         for cam in self.cams.values():
             try:
                 cam.stop()
@@ -272,8 +278,8 @@ class App:
     def act_stop(self) -> dict:
         if self.mission:
             self.mission.abort("operator STOP")
-        ok_b = self.base.safe_stop()
-        ok_d = self.dart.safe_stop()
+        ok_b = self.base.safe_stop()           # base first: it is the dangerous one, and it answers fast
+        ok_d = self.dart.safe_stop(fast=True)
         log = self.mlog or self.syslog
         log.warn(f"STOP: base {'ok' if ok_b else 'NO REPLY'}, dart {'ok' if ok_d else 'NO REPLY'}")
         return {"ok": ok_b, "msg": f"STOP sent: base {'ok' if ok_b else 'NO REPLY'}, dart {'ok' if ok_d else 'NO REPLY'}"}
@@ -281,12 +287,13 @@ class App:
     def act_estop(self) -> dict:
         if self.mission:
             self.mission.abort("operator ESTOP")
-        self.dart.safe_stop()
         try:
-            self.base.estop(timeout=0.5)
-            return {"ok": True, "msg": "ESTOP: wiper off, drum to NEUTRAL"}
+            self.base.estop(timeout=0.5)       # base first, never delayed by a slow dart link
+            r = {"ok": True, "msg": "ESTOP: wiper off, drum to NEUTRAL"}
         except Exception as e:
-            return {"ok": False, "msg": f"ESTOP not acknowledged: {e}"}
+            r = {"ok": False, "msg": f"ESTOP not acknowledged: {e}"}
+        threading.Thread(target=self.dart.safe_stop, kwargs={"fast": True}, daemon=True).start()
+        return r
 
     def act_abort(self) -> dict:
         return self.act_stop()

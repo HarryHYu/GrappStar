@@ -38,9 +38,13 @@ def test_snap_pin_in_hole(d, L):
     assert z0 >= info["barb_z0"] + shift - 1e-6 and z1 <= info["barb_z1"] + shift + 1e-6
 
 
-def test_snap_pin_strain_defaults():
-    for d, L in [(4, 6), (6, 10), (12, 20)]:
-        assert C.snap_pin_info(d, L)["strain_ok"]
+@pytest.mark.parametrize("d", [4, 6, 8, 12])
+@pytest.mark.parametrize("L", [5, 8, 10, 20])
+def test_snap_pin_strain_defaults(d, L):
+    i = C.snap_pin_info(d, L)
+    assert i["strain_ok"], (d, L, i["strain"])
+    assert i["strain"] <= C.PLA_STRAIN_OK
+    assert i["barb"] > 0.15 and i["closes"]
 
 
 @pytest.mark.parametrize("d,grip", [(4, 6), (6, 8), (12, 20)])

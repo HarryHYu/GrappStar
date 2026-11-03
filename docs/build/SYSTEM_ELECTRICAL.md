@@ -29,7 +29,7 @@ whole rover is powered and connected. If this page and WIRING.md ever disagree o
        -> lead #1, 10 A fuse, 18 AWG -> barrel pigtail -> Jetson DC jack
                                    \-> 1 A inline fuse, 22 AWG -> RC832 power in
 Jetson USB -> ESP32-S3 DevKitC (5 V from USB; the board makes its own 3V3)
-                ESP32 3V3 -> BTS7960 VCC, DRV8833 SLP (via GPIO), AS5600, HX711
+                ESP32 3V3 -> BTS7960 VCC, AS5600, HX711 (DRV8833 #3 gets only AIN1, AIN2, GND)
 Jetson USB -> DIGITNOW capture <- RC832 AV out
 Jetson USB -> Kiyo X
 ```
@@ -67,7 +67,7 @@ Why it is laid out this way:
 | S3 | RC832 AV out | DIGITNOW video in | | yellow RCA | Video only; audio not used |
 | S4 | Jetson USB-A | Kiyo X | | its own USB plug | |
 | L1 | ESP32 pins | BTS7960 RPWM, LPWM, R_EN, L_EN, IS, VCC, GND | 26 to 28 AWG | Dupont jumpers | Pins in firmware/base/WIRING.md |
-| L2 | ESP32 pins | DRV8833 #3 AIN1, AIN2, SLP, GND (nFAULT if present) | 26 to 28 AWG | Dupont | |
+| L2 | ESP32 pins | DRV8833 #3 AIN1, AIN2, GND | 26 to 28 AWG | Dupont | SLP / nSLEEP is not wired: the board pulls it high, and its inputs are pulled low so the outputs are off until the ESP32 drives them |
 | L3 | ESP32 SDA / SCL / 3V3 / GND | AS5600 | | STEMMA QT to Dupont cable | Magnet 1 to 3 mm from the chip |
 | L4 | ESP32 pins | each printed contact | 26 AWG twisted pair | Dupont at the ESP32, M3 ring or solder at the contact | One wire to the pin, the other to GND |
 | L5 | ESP32 pins | HX711 DT, SCK, VCC, GND (optional) | 26 AWG | Dupont | Load cell 4 wires into HX711 E+, E-, A+, A- |
@@ -79,7 +79,7 @@ Gauges assume runs under 0.5 m. 14 AWG carries the 18 A wiper stall; 18 AWG is f
 ## 4. First power-on sequence (do it in this order, once, after any rewiring)
 
 Before you start: the pull-down and divider resistors are fitted as in firmware/base/WIRING.md (10 k from R_EN to
-GND, 10 k from L_EN to GND, 10 k from DRV8833 SLP to GND, the IS divider, the battery divider). Both motors are
+GND, 10 k from L_EN to GND, the IS divider, the battery divider). Both motors are
 disconnected from their drivers for this first power-on, and the DRV8833 VM wire (P5) is soldered to the DRV8833
 but NOT yet to MP1584 #2 OUT (tape its free end). Multimeter ready.
 
@@ -89,19 +89,13 @@ but NOT yet to MP1584 #2 OUT (tape its free end). Multimeter ready.
    BTS7960 B+ / B-; at MP1584 #2 IN and OUT; at DRV8833 VM / GND; at the barrel plug; at the RC832 lead. Nothing may
    beep steadily. A short chirp that stops is a capacitor charging, not a short. A steady beep is a short: find it
    before going on.
-3. Battery unplugged. Meter on resistance (not beep): DRV8833 SLP pad to VM must read open (OL or over 1 M). Some
-   DRV8833 boards pull SLP up to the motor supply through a resistor; that would put 9 V into the ESP32. If it reads
-   any value, the board has a pull-up from SLP (or EEP) to VM: look for a small solder jumper or a resistor
-   between the SLP / EEP pad and VM on the board (often marked J2). Cut the trace between the jumper pads with a
-   craft knife, or lift that resistor with the iron, then measure again until it reads open. If you cannot make it
-   read open, do not connect SLP to the ESP32 and leave the drum disconnected: the board cannot be used as is.
-   Write it in the test log; the base then needs a different driver board.
+3. Battery unplugged. Look at the wiring: only three DRV8833 #3 pins go to the ESP32 (AIN1, AIN2, GND). Its SLP / nSLEEP
+   / EEP pad is NOT wired: the board holds it high by itself. Check no wire is on SLP, VM or VCC going to the ESP32.
 4. Battery unplugged. Meter on DC volts on the LiPo balance lead: each cell 3.7 to 4.2 V.
 5. Battery unplugged. Fit the 20 A fuse and the 2 A inline fuse. Plug the battery in. Meter on DC volts:
    - BTS7960 B+ (red probe) to B- (black probe): battery voltage, positive. Negative means reversed: unplug at once.
    - MP1584 #2 IN+ to IN-: battery voltage, positive.
    - MP1584 #2 OUT: turn the brass screw until it reads 9.0 V.
-   - DRV8833 SLP to GND: 0 V.
 6. Unplug the battery. Connect the DRV8833 VM wire (P5) to MP1584 #2 OUT.
 7. Battery unplugged. Fit the 10 A fuse and the 1 A inline fuse. Plug the battery in. Meter on the barrel plug
    (before it goes into the Jetson): centre pin positive, battery voltage. Then plug the barrel into the Jetson: it
@@ -126,7 +120,7 @@ unplug the battery.
 - Charge the LiPo at 3.6 V per cell at rest (10.8 V). Never run it below 3.3 V per cell under load (9.9 V); the
   firmware reports `vbat`.
 - Never connect the DRV8833 VM to the LiPo directly (10.8 V maximum; the LiPo is 12.6 V full).
-- Never put 3V3 on a DRV8833 pad called VIN, VCC or VM: on these carriers that is the motor supply. The SLP /
-  nSLEEP / EEP pad is driven by an ESP32 GPIO, and must read open to VM on the resistance range (step 3).
+- Never put 3V3 on a DRV8833 pad called VIN, VCC or VM: on these carriers that is the motor supply. On the base,
+  the DRV8833 SLP / nSLEEP / EEP pad is left unwired.
 - Dart: power loop plug out whenever a wire moves or USB is plugged in (the dart run sheet rule).
 - The VTX on the dart must have its antenna on before it is powered.

@@ -98,7 +98,7 @@ class _LoopSource:
 
 class SimWorld:
     def __init__(self, seed: int = 0, landing_class: str = "hard_ground", time_scale: float = 1.0,
-                 dart_size=(720, 480), rover_size=(640, 360), target=(4.0, 5.0), fps: float = 25.0,
+                 dart_size=(720, 480), rover_size=(640, 360), target=(3.6, 5.0), fps: float = 25.0,
                  anchor_holds: bool = True):
         self.seed, self.time_scale, self.fps = seed, time_scale, fps
         self.anchor_holds = anchor_holds

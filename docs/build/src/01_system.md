@@ -15,7 +15,7 @@ Three parts:
   - LAUNCH, wiper backward: tilts the rail up and down to aim. A self-locking worm holds the angle.
   - REEL, wiper forward: the capstan winds in; the storage reel takes up the slack through a slip clutch.
   - Payout at launch: the line skips the capstan and pulls off the free-spinning storage reel against a light
-    payout brake (set 0.5 to 0.75 N; over 1 N costs range).
+    payout brake (set 0.5 N; over 1 N costs range).
   - Any fault: wiper off, drum to NEUTRAL. There is a hand lever on the drum shaft end.
   - Brain: an ESP32-S3 DevKitC on USB from the Jetson, with an AS5600 angle sensor on the main shaft and printed
     contact switches (an M3 screw head touching an M3 nut).

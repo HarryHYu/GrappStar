@@ -40,7 +40,7 @@ Adafruit_BNO08x bno(-1);
 bool inaPresent = false, bnoPresent = false;
 float roll = 0, pitch = 0;
 float quat[4] = {1, 0, 0, 0}, accV[3] = {0, 0, 9.81f};
-uint32_t lastImuMs = 0, lastImuRetry = 0;
+uint32_t lastImuMs = 0, lastImuRetry = 0, imuNow = 0;   // imuNow: the tick's time, used for every IMU event
 WebServer web(80);
 kedge::Kedge K;
 volatile float railCache = -1;
@@ -112,7 +112,7 @@ void enableImuReports() {
 void imuEvent(void*, sh2_SensorEvent_t* e) {
   sh2_SensorValue_t v;
   if (sh2_decodeSensorEvent(&v, e) != SH2_OK) return;
-  uint32_t now = millis();
+  uint32_t now = imuNow;                              // never later than the tick's now (unsigned time maths must not wrap)
   if (v.sensorId == SH2_GAME_ROTATION_VECTOR) {
     float r = v.un.gameRotationVector.real, i = v.un.gameRotationVector.i, j = v.un.gameRotationVector.j, k = v.un.gameRotationVector.k;
     if (!(r == r && i == i && j == j && k == k)) return;
@@ -131,8 +131,9 @@ void imuEvent(void*, sh2_SensorEvent_t* e) {
 void readImu(uint32_t now) {                          // tick task, mtx held
   if (!bnoPresent) return;
   if (bno.wasReset()) enableImuReports();
-  sh2_service();                                      // calls imuEvent for every report waiting
-  bool fresh = now - lastImuMs < 1000;
+  imuNow = now;
+  for (int i = 0; i < 3; i++) sh2_service();          // calls imuEvent for every report waiting (one transfer per call)
+  bool fresh = (int32_t)(now - lastImuMs) < 1000;
   if (fresh != K.imuOk) { K.imuOk = fresh; hwLog(fresh ? "BNO085 data back" : "BNO085 silent for 1 s"); }
   if (fresh) K.imuSample(now, quat, accV);
   else if (now - lastImuRetry > 2000) { lastImuRetry = now; enableImuReports(); }   // short I2C writes, never a re-begin here
@@ -248,8 +249,9 @@ void sendResult(const char* why) {
 
 void handleFlightlog() {                               // streamed from a snapshot so the tick task is held for microseconds only
   // while sending (about 0.3 s, longer on a weak link) the server cannot take /stop, so refuse while anything moves
-  xSemaphoreTake(mtx, portMAX_DELAY); bool moving = K.running() || K.seqRunning(); xSemaphoreGive(mtx);
-  if (moving) { web.send(409, "text/plain", "refused: busy (motors running)\n"); return; }
+  // also while armed or in flight: the landing detector could start the motors in the middle of the stream
+  xSemaphoreTake(mtx, portMAX_DELAY); bool busy = K.running() || K.seqRunning() || K.armed || K.flight.flying(); xSemaphoreGive(mtx);
+  if (busy) { web.send(409, "text/plain", "refused: busy (motors running, armed or in flight)\n"); return; }
   kedge::Log* snap = (kedge::Log*)malloc(sizeof(kedge::Log));
   if (!snap) { web.send(503, "text/plain", "out of memory\n"); return; }
   kedge::LogJson w;

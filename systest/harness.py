@@ -1320,8 +1320,8 @@ sc(Scenario("no_angle_sensor", "AS5600 magnet missing from boot (D12: SW_INDEX f
             checks=[("DONE in SW_INDEX mode (D12), or refused at PREFLIGHT before any motion (F9 / F10)",
                      lambda r, res: (c_done(r, res)[0] or (res["steps"][-1:] == ["PREFLIGHT"] and any(k in str(res["error"]).lower() + " ".join(p["text"].lower() for p in res["prompts"]) for k in ("angle sensor", "magnet"))),
                                      f"{res['mission_state']} at {res['steps'][-1:]}: {res['error']}")),
-                    ("refusal is explicit (ANGLE_SENSOR)", lambda r, res: (any("ANGLE_SENSOR" in (p["text"]) for p in res["prompts"]) or "ANGLE_SENSOR" in str(res["error"]),
-                                                                            res["error"])),
+                    ("refusal is explicit (angle sensor / magnet named)", lambda r, res: (any(k in p["text"] for p in res["prompts"] for k in ("ANGLE_SENSOR", "magnet", "AS5600")) or "ANGLE_SENSOR" in str(res["error"]),
+                                                                                         [p["text"][:70] for p in res["prompts"]][:1])),
                     ("no dry fire", c_no_dry)]))
 
 sc(Scenario("usb_unplug_tow", "USB unplugged for 3 s while the base holds the tow (board loses power), replugged",

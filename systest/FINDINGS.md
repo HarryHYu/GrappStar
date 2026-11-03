@@ -21,7 +21,7 @@ w/fw-dart 71c45ab + w/jetson c80c0f1), not yet merged into base-v1. Evidence in 
 | F7 | jetson | fixed on branch | `stall_cock`: "Decock and re-aim", then COCKED, FIRE, mission DONE |
 | F8 | jetson | fixed on branch | `power_unwrap(_fasthello)`: BASE_RESET at once, DONE in 121 s |
 | F9 | fw-base | open | `no_angle_sensor` |
-| F10 | jetson | re-test | |
+| F10 | jetson | fixed on branch | `no_angle_sensor`: "PREFLIGHT failed: AS5600 sees no magnet (status magnet NONE)" |
 | F11 | jetson | re-test | |
 | F12 | jetson | fixed on branch (one leftover) | C1 order matches 10.1 except a bench `set host_timeout_s` (allowed) |
 | F13 | fw-base | open | |

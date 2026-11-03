@@ -29,7 +29,7 @@ if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
 from cad.lib import Part, Joint, Allow, Clearance, prim, tf, switch  # noqa: E402,F401
-from cad.lib import fits  # noqa: E402
+from cad.lib import fits, fasteners  # noqa: E402
 
 PREFIX = "sensors"
 
@@ -227,10 +227,13 @@ def swl_geom(P):
     return dict(M=M, x_rest=x_rest, y_act=y_act, crank=(n["crank_x"], n["crank_z"]), deck_z=n["deck_z"], info=i)
 
 
-SWL_FOOT = dict(x=(103.0, 130.4), y=(193.8, 201.8))   # = cad-launch housing foot extension x 80..130.9 (top at deck+8)
-SWL_FOOT_PILOTS = ((107.0, 197.8),)   # M3 self tap d2.6 x 7 deep into the foot extension top (cad-launch also cut
-                                      # one at x 116: it sits under the bracket column, unused); the second fixing
-                                      # is the housing 4th deck screw, M3x20 from below into the foot
+SWL_FOOT = dict(x=(103.0, 134.0), y=(193.8, 201.8))   # on cad-launch's housing foot extension x 80..134.5
+                                                      # (launch_aim.SWL_EXT_X1, top at deck + 8)
+SWL_FOOT_PILOTS = ((107.0, 197.8),)   # M3x10 down into a self tap pilot d2.6 x 7 deep in the foot extension top
+                                      # (cad-launch also cut one at x 116: it sits under the bracket column, unused);
+                                      # the second fixing is the bracket's own deck screw (swl_deck_screw)
+SWL_DECK_SCREW_L = 16.0               # M3x16 from the top: counterbore 3.2 in the 6 mm foot, then 2.8 + 8 (foot
+                                      # extension) of plastic, 5.2 into the deck insert
 
 
 def _local_box_world(M, lo, hi):
@@ -241,7 +244,8 @@ def _local_box_world(M, lo, hi):
 
 def swl_bracket_solid(P):
     """Printed bracket (world): plate behind the switch base (world x beyond the base bottom), a column down to the
-    housing foot extension and a foot on it (1 x M3 down + the housing 4th deck screw from below into the foot)."""
+    housing foot extension and a foot on it (1 x M3x10 down into the extension, and the bracket's own deck screw: an
+    M3x16 from the top through the counterbored foot and the extension into a deck insert)."""
     g = swl_geom(P)
     d = sw_build()
     M = g["M"]
@@ -250,8 +254,8 @@ def swl_bracket_solid(P):
     xb = whi[0]                                           # base bottom face (world x)
     z_top_foot = g["deck_z"] + 8.0
     s = [prim.box(xb, xb + 5.0, wlo[1], whi[1], wlo[2], whi[2])]                           # backing plate
-    xdk, ydk = swl_deck_screw(P)
-    s.append(prim.box(xb, xb + 10.0, SWL_FOOT["y"][0], SWL_FOOT["y"][1], z_top_foot, wlo[2] + 0.01))   # column
+    # column: 1 mm up into the plate, not level with the web top (level tops left a pinch edge: STL not watertight)
+    s.append(prim.box(xb, xb + 10.0, SWL_FOOT["y"][0], SWL_FOOT["y"][1], z_top_foot, wlo[2] + 1.0))
     s.append(prim.box(SWL_FOOT["x"][0], SWL_FOOT["x"][1], SWL_FOOT["y"][0], SWL_FOOT["y"][1], z_top_foot,
                       z_top_foot + 6.0))                                                      # foot
     s.append(prim.box(xb - 6.0, xb + 0.01, SWL_FOOT["y"][0], SWL_FOOT["y"][1], z_top_foot + 5.99,
@@ -267,19 +271,26 @@ def swl_bracket_solid(P):
         b = b - prim.cyl(fits.M3_CLEAR_D / 2, 10.0, x=x, y=y, z=z_top_foot - 1)
         b = b - prim.cyl(3.0, 20.0, x=x, y=y, z=z_top_foot + 6.0)                           # head clearance up
     xdk, ydk = swl_deck_screw(P)
-    b = b - prim.cyl(fits.M3_TAP_D / 2, 5.0 + 1, x=xdk, y=ydk, z=z_top_foot - 1)          # deck screw tip (from below)
+    b = b - fasteners.m3_counterbore(6.0 + 1.0).translate((xdk, ydk, z_top_foot + 6.0))     # own deck screw (top)
     b = b - _mount_pilots(M, d["info"])
     return b
 
 
 def swl_deck_screw(P):
-    """cad-launch's 4th housing deck screw (x, y): from below through the deck and the housing foot extension, its tip
-    in a d2.6 pilot (5 deep) in the bracket foot. M3x20 with the 8 mm deck."""
+    """The bracket's own deck screw (x, y), in front of its column: M3x16 from the top through the counterbored foot
+    and cad-launch's clearance hole in the housing foot extension into the deck insert under it (deck_holes)."""
     try:
         import launch_aim as LA
-        return LA.deck_holes(P)[3]
+        return (float(LA.SWL_DECK_X), float(LA.SWL_Y))
     except Exception:                                    # pragma: no cover
-        return (125.9, 197.8)
+        return (128.3, 197.8)
+
+
+def deck_holes(P):
+    """Deck screws of this subsystem (world x, y): cad-frame puts an M3 heat-set insert in the deck under each
+    (_frame_others.deck_contacts). Only the SW_RAIL_LOW bracket screws to the deck (through the housing foot
+    extension)."""
+    return [swl_deck_screw(P)]
 
 
 def _mount_pilots(M, i, depth=5.5):
@@ -423,9 +434,11 @@ def parts(P):
     out += _switch_parts("rail_low", gl["M"], None,
                          "on its bracket on the aim housing foot, closed by the crank cam at the LOW dead point")
     out.append(Part(f"{PREFIX}_sw_rail_low_bracket", br, "PLA", joint=None, place=tf.I4, print_tf=_bed(br, tf.I4),
-                    color="#9aa7b4", bought_ref="M3x10 SHCS (foot into the housing)",
-                    notes="SW_RAIL_LOW bracket on the aim housing foot extension; the housing's 4th deck screw (M3x20 "
-                          "from below instead of the shorter one) goes on up into its foot"))
+                    color="#9aa7b4",
+                    bought_ref=f"M3x10 SHCS (foot into the housing); M3x{SWL_DECK_SCREW_L:g} SHCS (deck screw)",
+                    notes="SW_RAIL_LOW bracket on the aim housing foot extension: an M3x10 into the extension and its "
+                          f"own deck screw, an M3x{SWL_DECK_SCREW_L:g} from the top through the counterbored foot and "
+                          "the extension into a deck insert"))
     # SW_GAP
     gg = gap_geom(P)
     out += _switch_parts("gap", gg["M"], "launch_rail",
@@ -513,9 +526,10 @@ def steps(P):
         dict(stage=211, title="Sensors 2: SW_RAIL_LOW on the aim housing",
              text="Screw the switch base to its bracket (4 x M3x8 self tapping), lever pointing to the crank. Set the "
                   "bracket foot on the housing foot extension in front of the crank. Screw it down with an M3x10 "
-                  "in the hole nearest the crank (self taps into the housing). When the housing goes onto the deck, its "
-                  "4th deck screw (under this foot) is an M3x20 instead of the shorter one: from below through the "
-                  "deck and the foot extension up into the bracket foot. Turn the crank by hand (wiper backwards) to the lowest rail position: the cam lobe "
+                  "in the hole nearest the crank (self taps into the housing) and an "
+                  f"M3x{SWL_DECK_SCREW_L:g} in the counterbored hole at the front end of the foot: down through the "
+                  "foot and the foot extension into the deck insert under it (the bracket's own deck screw). Turn the "
+                  "crank by hand (wiper backwards) to the lowest rail position: the cam lobe "
                   "presses the lever tip and the meter shows the switch closed. Turn the crank about 20 deg either "
                   "side: the switch must open.",
              parts=[f"{PREFIX}_sw_rail_low_bracket"]),

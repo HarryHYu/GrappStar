@@ -146,6 +146,77 @@ def test_split_out_clear():
     assert d > G.tip_r(1.5, 18) + G.tip_r(1.5, 30) + 1.0
 
 
+def test_engaged_stop_post():
+    """cad_power-3: the backward tooth forces pull the arm on towards the output, so a second post holds it at the
+    engaged angle: the arm drawn at alpha_e is 0.05..0.15 off the housing, touches it within 0.3 deg further back,
+    and at that touch the idler-output centre distance has closed by less than the 0.10 centre distance extra. The
+    swung-out post does the same at alpha_d; in between the arm swings free."""
+    from cad.lib import prim
+    n = AIM.A(P)
+    parts = {p.name: p for p in LN.parts(P)}
+    J = {j.name: j for j in LN.joints(P)}
+    hs = prim.place(parts["launch_aim_housing"].solid, parts["launch_aim_housing"].place)
+
+    def arm(a):
+        j, p = J["launch_aim_arm"], parts["launch_aim_arm"]
+        return prim.place(p.solid, tf.T(*j.origin) @ tf.R(j.axis, a) @ p.place)
+
+    for a0, sgn in ((n["alpha_e"], -1.0), (n["alpha_d"], +1.0)):
+        assert 0.05 < arm(a0).min_gap(hs, 1.0) < 0.15, a0
+        assert (arm(a0 + sgn * 0.3) ^ hs).volume() > 1e-4, a0               # the post is there
+    for a in np.linspace(n["alpha_e"] + 1.0, n["alpha_d"] - 1.0, 5):
+        assert (arm(a) ^ hs).volume() < 1e-6, a
+    # centre distance idler-output at the engaged touch (arm 0.3 deg past alpha_e at the most)
+    ox, oy = n["cs_x"], -(n["cs_z"] - n["axis_z"])
+    a = math.radians(n["alpha_e"] - 0.3)
+    cd = math.hypot(ox - n["cd_si"] * math.cos(a), oy - n["cd_si"] * math.sin(a))
+    assert n["cd_io"] - cd < 0.10
+    assert n["cd_io"] == pytest.approx(G.center_distance(AIM.M_S, AIM.Z_IDL, AIM.Z_OUT))
+
+
+def test_deck_screws_from_top():
+    """cad_support-4: the deck is on the rover before Aim 3, so the housing screws to it from the TOP: launch.deck_holes
+    (what cad-frame reads for the deck inserts) = launch_aim.deck_holes, 4 points; at each a d3.4 hole through the
+    8 mm flange, a d6.1 x 3.2 counterbore with flange under the head, no housing above it and no aim part in a
+    d6 key path 60 mm up over the aim sweep; the SW_RAIL_LOW bracket screw has a clearance hole in the extension."""
+    from cad.lib import prim
+    n = AIM.A(P)
+    d0 = n["deck_z"]
+    holes = LN.deck_holes(P)
+    assert holes == AIM.deck_holes(P) and len(holes) == 4
+    parts = {p.name: p for p in LN.parts(P)}
+    hs = prim.place(parts["launch_aim_housing"].solid, parts["launch_aim_housing"].place)
+    lo, hi = prim.bbox(hs)
+    assert abs(lo[2] - d0) < 1e-6
+    for x, y in holes:
+        assert (hs ^ prim.cyl(1.65, 8.0, x=x, y=y, z=d0)).volume() < 1e-6, (x, y)
+        assert (hs ^ prim.cyl(3.0, 3.1, x=x, y=y, z=d0 + 4.85)).volume() < 1e-6, (x, y)
+        ring = prim.cyl(5.5, 4.7, x=x, y=y, z=d0 + 0.05) - prim.cyl(1.8, 5.0, x=x, y=y, z=d0)
+        assert (hs ^ ring).volume() == pytest.approx(ring.volume(), rel=1e-3), (x, y)   # flange round the screw
+        assert (hs ^ prim.cyl(3.05, 200.0, x=x, y=y, z=d0 + 8.0)).volume() < 1e-6, (x, y)
+    # the slice cad-frame takes 0.5 above the deck shows a round M3 clearance hole at each point (inserts follow),
+    # the 4 housing screws and the SW_RAIL_LOW bracket's deck screw through the foot extension, nothing else
+    from cad.parts import _frame_others as OTH
+    _, found = OTH.classify_slice(hs, d0 + 0.5)
+    want = holes + [(AIM.SWL_DECK_X, AIM.SWL_Y)]
+    assert len(found) == len(want)
+    for x, y in want:
+        assert min(math.hypot(x - a, y - b) for a, b in found) < 0.1, (x, y)
+    # key paths: no moving aim part over the screws anywhere in the aim sweep and the falling stroke
+    keys = [prim.cyl(3.0, 60.0, x=x, y=y, z=d0 + 8.0) for x, y in holes]
+    t = K.pitch_table(P)
+    for S in [dict(aim_deg=p) for p in (6.02, 20.0, 35.0, 47.0)] + \
+             [dict(aim_deg=float(K.pitch_of_psi(P, t["psi_low"] - d, +1)), aim_psi_from_low=float(d))
+              for d in range(0, 360, 30)]:
+        W, _ = _world(S)
+        for nm in ("launch_aim_crank", "launch_aim_conrod", "launch_aim_crankpin_clip", "launch_aim_output",
+                   "launch_aim_lug"):
+            p = parts[nm]
+            s = prim.place(p.solid, W[p.joint] @ p.place)
+            for k in keys:
+                assert (s ^ k).volume() < 1e-6, (nm, S)
+
+
 def test_sw_rail_low_cam():
     """SW_RAIL_LOW cam lobe (cad-sensors' lever rides on it): crest at SWL_RT facing the switch at the LOW dead point,
     inside the crank plane SWL_CAM_Y, and part of the crank solid."""

@@ -6,7 +6,9 @@ Driven only by BACKWARD wiper turns (launch sleeve turning negative about +y):
   (2) swing arm on the sleeve (friction drag: a printed PLA flexure pad, a cantilever finger in the arm hub bore
       pressing on the sleeve d20, preload set by a printed shim behind its root block) carrying an idler m1.5 z18 on
       a printed pin (printed C clip); backward the arm swings the idler into mesh with
-  (3) the output gear m1.5 z30 (one part with its d8 countershaft), forward it swings out against a stop post
+  (3) the output gear m1.5 z30 (one part with its d8 countershaft) and comes to rest on the engaged stop post, which
+      holds the idler at its design centre distance (the tooth forces pull the arm on towards the output, so without
+      that post the idler would wedge into the output gear); forward it swings out against the other stop post
   (4) bevel z30 on the countershaft (D flat) drives a bevel z15 (one part with the worm and its shaft), 2:1 up
   (5) worm m2 pd24 single start (self-locking) drives the worm wheel m2 z20 face 16 = crank gear, one PPA-CF part
       with the crank arm and the crank pin, on two 608 bearings on a fixed M8 bolt
@@ -14,7 +16,8 @@ Driven only by BACKWARD wiper turns (launch sleeve turning negative about +y):
   (7) the lug pin on the lug bracket (PPA-CF) bolted to the rail wall; both pins carry printed C clips
 Gear strength at the 5 A aim trip: see the LEWIS block below the numbers.
   (8) aim housing (one PLA part on the deck z = 0) with the sleeve end bushing, countershaft bushings, worm saddles
-      (cap on top), the M8 wheel bolt and the swing arm stop post.
+      (cap on top), the M8 wheel bolt and the two swing arm stop posts (engaged and swung out); 4 x M3 x 10 from the
+      top through counterbored foot flanges into cad-frame's deck inserts (deck_holes).
 
 World: x forward, y left, z up. Main axis along +y at (0, *, AXIS_Z). Plane order outward (world y):
   splitter 170..182 | arm 182.5..186.5 | housing inner wall 187..193 (behind x 22), conrod 187..193 (in front) |
@@ -40,7 +43,7 @@ if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
 from cad.lib import Part, Joint, Allow, Clearance, prim, tf   # noqa: E402
-from cad.lib import clips                                      # noqa: E402
+from cad.lib import clips, fits, fasteners                     # noqa: E402
 import launch_kin as K                                         # noqa: E402
 import launch_gears as G                                       # noqa: E402
 import launch_switch as SW                                     # noqa: E402
@@ -59,7 +62,7 @@ SHAFT_R = 4.0         # countershaft and worm shaft d8
 PIN_R = 4.0           # crank pin and lug pin d8
 BRG = (22.0, 8.0, 7.0)   # 608
 
-Y_SUN = 170.0                  # splitter inboard face (rail cheek B ends at y 168); sleeve rib under y 174..182
+Y_SUN = 170.0                  # splitter inboard face (rail cheek B ends at y 168); sleeve rib under y 170..182
 Y_ARM0, Y_ARM1 = 182.5, 186.5
 Y_W1 = (187.0, 193.0)          # housing inner wall
 Y_ROD = (187.0, 193.0)         # conrod plane
@@ -74,6 +77,20 @@ SWL_SCREW = 6.0
 SWL_DWELL = 4.0                # cam dwell half angle at SWL_RT (+ tip half width 2.1 deg = closed window ~ +-6 deg)
 SWL_RAMP = 6.0                 # ramp from SWL_RT down to SWL_RT - 2 (beyond the leaf travel)
 SWL_CAM_Y = (193.8, 199.4)
+# cad-sensors' SW_RAIL_LOW bracket stands on the foot extension (x 80..SWL_EXT_X1, y SWL_Y +- 4, top at deck + 8). Its
+# own deck screw (sensors.deck_holes) is an M3 x 16 from the top through the bracket foot (counterbored) and a
+# clearance hole in the extension into a deck insert, in front of the bracket column (x <= 124.5).
+SWL_DECK_X = 128.3
+SWL_EXT_X1 = SWL_DECK_X + 6.2
+# Deck fixing of the housing: the deck is on the rover long before Aim 3, so every screw goes in from the TOP:
+# 4 x M3 x 10 SHCS through counterbored holes (d6.1 x 3.2, 4.8 of flange under the head, 5.2 into the insert) in foot
+# flanges outside the spine and the walls, into cad-frame's M3 heat-set inserts (the frame cuts one under every
+# deck_holes point; launch.deck_holes re-exports it). Each screw has a free vertical path for a hex key.
+FOOT_T = 8.0                   # foot and flanges, z deck .. deck + 8
+DECK_FLANGES = ((-42.0, -29.9, 187.0, 229.0),   # behind the spine: both rear screws
+                (85.9, 98.0, 217.0, 229.0),     # in front of the outer wall (wheel x <= 80, SW_RAIL_LOW lever x >= 98)
+                (33.0, 47.0, 174.0, 187.1))     # inboard tab between the inner wall and the conrod
+DECK_SCREWS = ((-36.0, 193.0), (-36.0, 223.0), (92.0, 223.0), (40.0, 180.0))
 # Main shaft spigot d12 (cad-drum) runs to y 198.5, its AS5600 magnet cap is y 195..201.5 (magnet face 201.5)
 SPIGOT_CLR = 12.5
 SPIGOT_END = 198.5
@@ -450,22 +467,20 @@ def housing_solid(P):
     s.append(prim.box(-30, sx, a, b, d0 + 80, sz + 10))
     s.append(prim.cylY(10.0, a, b, sx, sz))
     s.append(prim.cylY(12.0, b - 0.01, BOLT_HEAD_Y, cx, cz))                     # M8 bolt head boss (outboard)
-    s.append(prim.box(-30, 86, Y_W1[0], Y_W2[1], d0, d0 + 8))                   # foot
-    # SW_RAIL_LOW pedestal (switch base on its top, 2 x M3 self tap)
-    Ms = swl_frame(P)
-    sx0 = Ms[0, 3] - 3.0
-    sx1 = Ms[0, 3] + SW.mount_holes(-3.0, SWL_ZS)[0] + 3.5
-    ztop = Ms[2, 3] - 0.02
+    s.append(prim.box(-30, 86, Y_W1[0], Y_W2[1], d0, d0 + FOOT_T))              # foot
+    for x0, x1, y0, y1 in DECK_FLANGES:                                          # deck screw flanges (top access)
+        s.append(prim.box(x0, x1, y0, y1, d0, d0 + FOOT_T))
     # (SW_RAIL_LOW pedestal tower removed: cad-sensors' bracket stands on the foot extension below)
-    s.append(prim.box(80, sx1, SWL_Y - 4.0, SWL_Y + 4.0, d0, d0 + 8))
+    s.append(prim.box(80, SWL_EXT_X1, SWL_Y - 4.0, SWL_Y + 4.0, d0, d0 + FOOT_T))
     s.append(prim.box(-30, -16, Y_W1[0], Y_W2[1], d0, d0 + 140))                # spine
     # (AS5600 arms and plate removed: cad-sensors carrier screws to the spine +x face)
     for x0, x1 in ((35.0, 41.5), (74.5, 80.5)):                                  # worm saddles (lower halves)
         s.append(prim.box(x0, x1, yw - 7.2, Y_W2[1], d0 + 80.3, sz))
         s.append(prim.box(x0, x1, Y_W2[0], Y_W2[1], d0 + 79.0, d0 + 81.0))       # join to the outer wall
-    # swing arm stop post (touches the arm's leading face at alpha_d)
-    px, py = _stop_post_xy(P)
-    s.append(prim.cylY(4.0, Y_ARM0 + 0.1, Y_W1[0] + 0.01, px, az - py))
+    # swing arm stop posts: swung out (the arm's leading face at alpha_d) and engaged (its trailing face at alpha_e:
+    # the backward tooth forces pull the arm on towards the output, this post holds the idler at cd_io)
+    for px, py in (_stop_post_xy(P), _stop_post_e_xy(P)):
+        s.append(prim.cylY(4.0, Y_ARM0 + 0.1, Y_W1[0] + 0.01, px, az - py))
     h = prim.union(s)
     h = h - prim.cylY(10.0 + FIT / 2, Y_W1[0] - 1, Y_W1[1], 0.0, az)          # sleeve bushing, thrust face y 193
     h = h - prim.cylY(SPIGOT_CLR / 2, Y_W1[0] - 1, SPIGOT_END + 1, 0.0, az)     # main shaft spigot clearance
@@ -480,21 +495,20 @@ def housing_solid(P):
             h = h - prim.cyl(1.25, 14, x=x, y=yy, z=sz - 13)                   # M3 self tap for the cap, 13 deep
     for x, y in ((107.0, 197.8), (116.0, 197.8)):                                # cad-sensors SW_RAIL_LOW bracket
         h = h - prim.cyl(1.3, 8.0, x=x, y=y, z=d0 + 1.0)                        # M3 self tap d2.6, 7 deep from the top
+    h = h - prim.cyl(fits.M3_CLEAR_D / 2, FOOT_T + 2.0, x=SWL_DECK_X, y=SWL_Y, z=d0 - 1.0)   # bracket deck screw
     for zb in (-33.0, -44.0):                                                    # cad-sensors AS5600 carrier column
         h = h - prim.cylX(1.3, -27.0, -15.0, y=209.1, z=zb)                     # M3 self tap d2.6, 11 deep along -x
-    for i, (x, y) in enumerate(deck_holes(P)):                                   # M3 self tap from below
-        h = h - prim.cyl(1.3, (11.0 if i < 3 else 8.0), x=x, y=y, z=d0 - 1)     # 10 deep (7 in the foot extension)
+    for x, y in deck_holes(P):                                                   # M3 x 10 from the top, counterbored
+        h = h - fasteners.m3_counterbore(FOOT_T + 1.0).translate((x, y, d0 + FOOT_T))
     return h
 
 
 def deck_holes(P):
-    """4 x M3 deck screws (world x, y), from below through the deck (clearance holes: cad-frame) into d2.6 self tap
-    pilots in the housing: 10 deep under the spine and the outer wall (first three), 7 deep in the 8 mm foot extension
-    (fourth; the spine and wall above the others leave no access from the top). Screw: M3 x (deck + 10) for the first
-    three, M3 x (deck + 6) for the fourth, rounded down to a stock length."""
-    Ms = swl_frame(P)
-    sx1 = Ms[0, 3] + SW.mount_holes(-3.0, SWL_ZS)[0] + 3.5
-    return [(-24.0, 190.5), (-24.0, 225.5), (80.0, 225.5), (round(float(sx1 - 5.0), 2), SWL_Y)]
+    """4 x M3 deck screws of the housing (world x, y): M3 x 10 SHCS from the top through the counterbored foot flange
+    holes into M3 heat-set inserts that cad-frame puts in the deck under these points (launch.deck_holes re-exports
+    this for _frame_others.deck_contacts). The SW_RAIL_LOW bracket's own deck screw is cad-sensors'
+    (sensors.deck_holes)."""
+    return [tuple(xy) for xy in DECK_SCREWS]
 
 
 def as5600_solid(P):
@@ -564,11 +578,21 @@ def _g2_local(P):
 
 
 def _stop_post_xy(P):
-    """Stop post centre (alpha frame X, Y) relative to the main axis."""
+    """Swung-out stop post centre (alpha frame X, Y) relative to the main axis: the arm's leading face at alpha_d."""
     n = A(P)
     rp, ro = 4.0, 26.0
     a = math.radians(n["alpha_d"])
     lx, ly = ro, 6.0 + rp + 0.1
+    return lx * math.cos(a) - ly * math.sin(a), lx * math.sin(a) + ly * math.cos(a)
+
+
+def _stop_post_e_xy(P):
+    """Engaged stop post centre (alpha frame X, Y): the arm's trailing face at alpha_e, 0.1 clear, so the idler sits at
+    cd_io (the 0.1 lets the arm on 0.22 deg, 0.07 off the centre distance, inside its +0.10 extra)."""
+    n = A(P)
+    rp, ro = 4.0, 26.0
+    a = math.radians(n["alpha_e"])
+    lx, ly = ro, -(6.0 + rp + 0.1)
     return lx * math.cos(a) - ly * math.sin(a), lx * math.sin(a) + ly * math.cos(a)
 
 
@@ -627,8 +651,9 @@ def parts_aim(P):
              place=tf.mul(tf.T(n["lug_u"], _clip_y0(Y_ROD[1], inboard=False) - Y0, 0.0), tf.Rx(-90)),
              print_tf=bed(clip), color="#e0c050", notes="Printed C clip on the lug pin, outboard of the conrod"),
         Part("launch_aim_housing", hs, "PLA", joint=None, place=tf.I4, print_tf=bed(hs), color="#9aa7b4",
-             notes="Aim housing on the deck (4 x M3): sleeve end bushing, countershaft bushings, worm saddles, "
-                   "M8 wheel bolt (head on the outer boss, nut in the inner face hex pocket), swing arm stop post"),
+             notes="Aim housing on the deck (4 x M3 x 10 from the top through its counterbored foot flanges into the "
+                   "deck inserts): sleeve end bushing, countershaft bushings, worm saddles, M8 wheel bolt (head on "
+                   "the outer boss, nut in the inner face hex pocket), engaged and swung-out swing arm stop posts"),
         Part("launch_aim_cap", cap, "PLA", joint=None, place=tf.I4, print_tf=bed(cap, tf.Rx(180)), color="#8796a5",
              notes="Worm shaft saddle cap, 4 x M3x30 through the legs into 13 deep pilots in the saddles"),
         Part("launch_aim_bolt", bolt, "bought", joint=None,

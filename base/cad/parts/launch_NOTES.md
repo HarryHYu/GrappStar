@@ -120,7 +120,11 @@ P.AIM.table holds the full cycle (backward wiper deg from the LOW dead point vs 
 - cad-drum: dog ring bolted to the sleeve flange at y 111 (D37: sleeve lugs in the ring slots, 3 x M3 x 10 from the
   flange side into the tapped ring, fitted before the sleeve goes into the cheeks). kin: the sleeve angle equals
   S["sleeve_deg"] exactly (or wiper_deg in drum-only and load states), so ring and sleeve always agree. Spigot d12 runs through the 12.35 sleeve bore to the magnet cap at y 195..203.
-- cad-frame: the aim housing stands on the deck (4 x M3, footprint in launch_aim).
+- cad-frame: the aim housing stands on the deck: 4 x M3 x 10 from the TOP through counterbored holes in its foot
+  flanges (two behind the spine, one in front of the outer wall, one on an inboard tab) into deck heat-set inserts.
+  `launch.deck_holes(P)` re-exports `launch_aim.deck_holes(P)` so the frame's deck_contacts cuts the inserts (the deck
+  is on the rover long before Aim 3, so nothing can be reached from below). The SW_RAIL_LOW bracket's deck screw
+  passes through a clearance hole in the housing foot extension; it is cad-sensors' (`sensors.deck_holes`).
 - cad-sensors: AS5600 carrier, SW_RAIL_LOW and SW_GAP (sensors.py) screw into pilots on the aim housing and the right
   cheek; the cams (big gear bump, crank cam) are launch parts. Keep out of the rail sweep (LAYOUT keep_out).
 - cad-reel: the tether arrives at the rear of the pivot pulley (D36: then over the bottom and top pulleys behind the

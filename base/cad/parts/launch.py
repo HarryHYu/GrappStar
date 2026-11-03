@@ -45,6 +45,13 @@ def _aim(fn, P, *a, default=()):
     f = getattr(AIM, fn, None) if AIM is not None else None
     return list(f(P, *a)) if f is not None else list(default)
 
+
+def deck_holes(P):
+    """Aim housing deck screws (world x, y), re-exported from launch_aim: cad-frame's _frame_others.deck_contacts
+    reads module.deck_holes of the subsystem modules only (launch_aim is a helper module) and cuts an M3 heat-set
+    insert in the deck under each point."""
+    return _aim("deck_holes", P)
+
 # ------------------------------------------------------------------------------------------------ layout numbers
 
 
@@ -1560,8 +1567,8 @@ def steps(P):
                   "from the print sheet: the carriage body lies on its side across the bed diagonal; the stop springs "
                   "print upside down at 100 percent infill (all perimeters); rail pieces lie on their largest flat face. "
                   "0.2 mm layers, 4 walls on every loaded part. Hardware (launcher and aim train): M3 screws 2 x 6, "
-                  "3 x 8, 14 x 10, 23 x 12, 5 x 16, 15 x 20, 4 x 30, plus 4 for the housing to the deck (deck thickness "
-                  "+ 10 / + 6, see Aim 1); 10 M3 nuts, 4 M3 nylocs; M8 x 25 bolt and M8 nut; 2 x 608; 4 x 693ZZ (3 "
+                  "3 x 8, 14 x 10, 23 x 12, 5 x 16, 15 x 20, 4 x 30, plus 4 x 10 for the aim housing to the deck (Aim "
+                  "3); 10 M3 nuts, 4 M3 nylocs; M8 x 25 bolt and M8 nut; 2 x 608; 4 x 693ZZ (3 "
                   "tether pulleys, 1 lip roller); 2 x 8 mm steel rod pins (cut to the length on the print sheet) for "
                   "the spring anchors; sprag #1 (CSK20PP); the two springs.",
              parts=[]),
@@ -1584,8 +1591,11 @@ def steps(P):
              text="First bolt cad-drum's LAUNCH dog ring to the sleeve flange: lugs in the ring slots, 3 x M3 x 8 from the "
                   "flange side into the tapped ring (the heads are out of reach once the sleeve is in the cheeks). "
                   "Slide sprag #1 into the drive gear so its outer keyway takes the rib inside the gear. Check the "
-                  "direction: holding the gear, the inner race must turn freely only the BACKWARD wiper way. Hold the drive "
-                  "gear between the cheeks (collar side right, then the spacer washer on its left), meshing the big gear's "
+                  "direction: look at the gear from its collar side (the side that goes to the right, towards the "
+                  "motor), hold the gear and turn the inner race with a finger. It must turn freely counter-clockwise "
+                  "(BACKWARD) and lock clockwise (FORWARD: clockwise seen from the motor side is the cock direction). "
+                  "If it is the other way round, push the sprag out, turn it over and slide it in other face first. "
+                  "Hold the drive gear between the cheeks (collar side right, then the spacer washer on its left), meshing the big gear's "
                   "full ring of teeth. Turn the cheek bores so their slots "
                   "point down, then push the launch sleeve in from the motor side, outboard end first, ribs lined up with "
                   "the slots and the sprag keyway, until the long (15 mm) rib sits inside the sprag.",
@@ -1665,8 +1675,10 @@ def steps(P):
                   "hex pocket on the inner face of the outer wall, fit the two 608 bearings into the crank (worm wheel) "
                   "hub, hold the crank in place and push the M8 x 25 bolt in from outboard through the wall, the nut and "
                   "both bearings; tighten so the head and nut clamp the wall. Lay the worm shaft with the small bevel in "
-                  "its saddles and screw the cap on (4 x M3 x 30 self tap). The housing screws to the deck from below "
-                  "later (4 x M3 self tap into the foot pilots, through cad-frame's deck clearance holes).",
+                  "its saddles and screw the cap on (4 x M3 x 30 self tap). The housing screws to the deck later (Aim "
+                  "3), from the top: 4 x M3 x 10 down through the counterbored holes in its foot flanges (two behind "
+                  "the spine, one in front of the outer wall, one on the inboard tab) into the deck's heat-set "
+                  "inserts. The SW_RAIL_LOW bracket on the foot extension has its own deck screw (Sensors 2).",
              parts=["launch_aim_housing", "launch_aim_cap", "launch_aim_worm", "launch_aim_crank", "launch_aim_bolt",
                     "launch_aim_brg_1", "launch_aim_brg_2", "launch_aim_output", "launch_aim_bevel30", "launch_aim_nut"]),
         dict(title="Aim 2: splitter",
@@ -1682,9 +1694,13 @@ def steps(P):
                   "(the LAUNCH dog ring is already bolted to its flange, Launcher 4) until the ring's dogs sit by the drum "
                   "collar. Hang the conrod's upper eye on the lug pin and snap a printed C clip into that groove. Then slide "
                   "the aim housing on from the outboard side so the sleeve end enters its bushing and the crank pin enters "
-                  "the conrod's lower eye; snap a printed C clip onto the crank pin and screw the housing to the deck. "
-                  "Turn the sleeve backward by hand: the arm swings the idler into the output gear and drives it; "
-                  "forward, the arm swings out onto its stop and the output gear stays still. Then turn the wiper "
+                  "the conrod's lower eye (hold the swing arm with the idler pointing down and a little to the rear, "
+                  "clear of the output gear, and let the arm go in between the two stop posts on the housing's inner "
+                  "face as they come up to it); snap a printed C clip onto the crank pin and screw the housing "
+                  "to the deck from the top: 4 x M3 x 10 through the counterbored foot flange holes into the deck "
+                  "inserts. Turn the sleeve backward by hand: the arm swings the idler into the output gear, comes to rest on "
+                  "its engaged stop post and drives the gear without binding; forward, the arm swings out onto the "
+                  "other post and the output gear stays still. Then turn the wiper "
                   "backward slowly: the rail rises to 47 deg, then lowers to 6 deg.",
              parts=["launch_aim_conrod", "launch_aim_crankpin_clip", "launch_aim_lugpin_clip"]),
         dict(title="Launcher 10: wiring (battery unplugged)",

@@ -10,6 +10,7 @@ list, datasheet). Dart viewer https://claude.ai/artifact/Sqt8tF67veTYfxQjUFTZ5f.
 
 ## Start here
 
+0. **`docs/build/FIRST_DAY.md`**: the first session back, in order (read, measure, buy, print the test coupons).
 1. **`docs/build/MEASURE_LIST.md`**: the few numbers nobody could know yet (the wiper motor, one spring hang test).
    Put them in `base/spec/params.py` and rerun the base pipeline: the motor adapter, coupler and spring anchors
    regenerate.
@@ -18,6 +19,8 @@ list, datasheet). Dart viewer https://claude.ai/artifact/Sqt8tF67veTYfxQjUFTZ5f.
 3. **`docs/build/TEST_PLAN.md`**: staged first tests, bench to field, with pass criteria. Never fire without the
    tether attached.
 4. **`docs/build/SYSTEM_ELECTRICAL.md`**: the whole rover electrical system and the first power-on sequence.
+5. **Try the whole mission on any PC first**: `cd jetson && python3 -m grappstar serve --sim`, then open
+   http://localhost:8080: the operator page runs every step against the simulated base, dart and cameras.
 
 ## What to buy
 

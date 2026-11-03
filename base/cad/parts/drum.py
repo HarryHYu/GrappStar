@@ -274,7 +274,7 @@ def reel_gear(g, c):
                g["dog_face_reel"])
     teeth = dog_teeth(c, g["dog_face_reel"], +1, 45.0)
     # inner lip bears on the sleeve end: the gear is held between the sleeve flange and the sleeve end
-    lip = ring(c["dog_r_in"] - 0.5, 13.0, g["dog_face_reel"] - 0.6, g["dog_face_reel"] + 1.5)
+    lip = ring(c["dog_r_in"] - 0.5, 13.0, g["rsl_journal"][1] + 0.05, g["dog_face_reel"] + 1.5)
     return prim.union([gr, hub, teeth, lip])
 
 
@@ -698,6 +698,8 @@ def n20_strap(g, c, P):
     zc = 0.5 * (b[2] + b[5])
     st = prim.box(b[0] - 3.0, b[3] + 3.0, b[1] - 3.0, ymid, zc - 4.0, zc + 4.0)
     st = st - env
+    st = st - cyl(gears.spur_info(c["drum_gear_m"], c["drum_gear_z"], c["drum_gear_x"])["r_tip"] + 1.5,
+                  -1, 200, 0.0, g["drum_off"])
     for x in (b[0] - 1.5, b[3] + 1.5):
         st = st - prim.place(cyl(1.7, -1, 30, seg=24), tf.T(x, ymid + 0.01, zc) @ tf.Rx(90))
     parts = st.decompose()

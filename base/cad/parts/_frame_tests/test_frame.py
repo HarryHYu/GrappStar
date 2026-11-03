@@ -172,3 +172,15 @@ def test_audit_clean_frame_only():
         rc = e.code
     a = json.load(open(os.path.join(out, "audit.json")))
     assert a["clean"], [c for c in a["collisions"]][:5]
+
+
+def test_608_inner_race_free(P):
+    """The block lip must leave the 608 inner race free (shaft-mounted race turns)."""
+    from cad.lib import bearings as LB
+    sh = dict(origin=(0, 0, 50), axis=(0, 1, 0), d=8.0, brg="608", cheeks=(-1, 1))
+    sol, b = frame.block_solid(P, sh, frame.FRAMEWORK_DEFAULT)
+    zsp = -(frame.FRAMEWORK_DEFAULT["cheek_t"] - 0.5)
+    race = prim.place(LB.bearing_608_inner_race(), tf.T(0, 0, zsp) @ tf.Rx(180))
+    assert (sol ^ race).volume() < 1e-6
+    body = prim.place(LB.bearing_608(), tf.T(0, 0, zsp) @ tf.Rx(180))
+    assert (sol ^ body).volume() < 6.0          # only the rib crush (8 ribs, 0.15 interference)

@@ -166,7 +166,7 @@ def block_solid(P, sh, fw):
         cuts.append(prim.cyl((sh["d"] + fits.SHAFT_IN_BORE) / 2, 100, z=-50))
     else:
         od, w, bore = U.brg_dims(P, sh["brg"])
-        cuts.append(U.bearing_seat_cutter(od, w, zsp, lip_id=max(bore + 4.0, sh["d"] + 1.0)))
+        cuts.append(U.bearing_seat_cutter(od, w, zsp, lip_id=U.lip_for(od, sh["d"])))
     for i in range(4):
         a = math.radians(45 + 90 * i)
         x, y = b["rs"] * math.cos(a), b["rs"] * math.sin(a)

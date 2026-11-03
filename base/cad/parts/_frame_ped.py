@@ -54,7 +54,7 @@ def pedestals(P, n, sh, fw):
             sol = plate + foot
             cuts = []
             # seat along local Y
-            seat = U.bearing_seat_cutter(od, w, -t / 2 - 0.0, lip_id=(bore + 4.0) if bore else None) if sh["brg"] != "bush" \
+            seat = U.bearing_seat_cutter(od, w, -t / 2 - 0.0, lip_id=U.lip_for(od, sh["d"])) if sh["brg"] != "bush" \
                 else prim.cyl((sh["d"] + fits.SHAFT_IN_BORE) / 2, 200, z=-100)
             cuts.append(prim.place(seat, tf.T(0, 0, c[2]) @ tf.Rx(-90)))
             fh = [(-(half + 7), 0.0), (half + 7, 0.0)]
@@ -86,7 +86,7 @@ def pedestals(P, n, sh, fw):
                 warns.append(f"shaft {n}: vertical bearing at z {z:.1f} below the deck")
                 continue
             sol = sol + arm
-            seat = U.bearing_seat_cutter(od, w, z - t / 2, lip_id=(bore + 4.0) if bore else None) if sh["brg"] != "bush" \
+            seat = U.bearing_seat_cutter(od, w, z - t / 2, lip_id=U.lip_for(od, sh["d"])) if sh["brg"] != "bush" \
                 else prim.cyl((sh["d"] + fits.SHAFT_IN_BORE) / 2, 200, z=z - 100)
             cuts.append(seat)
         fh = [(-back_gap - 16, -half - 4), (-back_gap - 16, half + 4)]

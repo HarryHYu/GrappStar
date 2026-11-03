@@ -68,27 +68,26 @@ def brg_dims(P, kind):
     raise ValueError(f"unknown bearing kind {kind!r}")
 
 
-def bearing_seat_cutter(od, w, z0, ribs=6, lip_id=None, depth_extra=0.0):
-    """Cutter for a bearing pocket along +Z from z0, depth w + depth_extra, with crush ribs (the ribs are left as
-    material: the cutter is the pocket minus the ribs). lip_id: through hole beyond the pocket (shoulder)."""
-    try:                                        # prefer the shared library seat when cad-infra ships it
-        from cad.lib import bearings as _b
-        if hasattr(_b, "seat_cutter"):
-            return _b.seat_cutter(od=od, w=w, z0=z0, depth=w + depth_extra, ribs=ribs, lip_id=lip_id)
-    except Exception:
-        pass
-    r_bore = (od + fits.BRG_RIB_BORE) / 2
-    r_rib = od / 2 - fits.BRG_RIB_INTERF
-    h = w + depth_extra
-    pocket = prim.cyl(r_bore, h + 0.02, z=z0 - 0.01)
-    rib_w = 1.6
-    rib = prim.box(r_rib, r_bore + 0.5, -rib_w / 2, rib_w / 2, z0 - 0.02, z0 + h + 0.04)
-    pocket = pocket - prim.polar(rib, ribs)
-    # lead-in chamfer at the entry so the bearing starts square
-    pocket = pocket.__add__(prim.cyl(r_bore + 0.6, 0.6, z=z0 - 0.01, r2=r_bore))
-    if lip_id:
-        pocket = pocket.__add__(prim.cyl(lip_id / 2, 200.0, z=z0 + h - 100.0))
-    return pocket
+def lip_for(od, shaft_d=0.0):
+    """Lip (shoulder) hole: the library default that leaves the inner race free, never smaller than shaft + 1."""
+    from cad.lib import bearings as LB
+    base = {LB.B608_OD: LB.B608_LIP_D, LB.CSK20_OD: LB.CSK20_LIP_D, LB.B693_OD: LB.B693_LIP_D}.get(od, od - 6.0)
+    return max(base, shaft_d + 1.0)
+
+
+def bearing_seat_cutter(od, w, z0, ribs=8, lip_id=None, depth_extra=0.0):
+    """Cutter for a crush-rib bearing pocket opening at z0 and going +Z (depth w + depth_extra), with a lip
+    (shoulder) hole of lip_id beyond. Uses the shared library (cad.lib.bearings): seat_608 for od 22, seat_csk20
+    (with its anti-rotation key) for od 47, ribbed_seat otherwise."""
+    from cad.lib import bearings as LB
+    depth = w + depth_extra
+    if abs(od - LB.B608_OD) < 1e-6:
+        c = LB.seat_608(depth=depth, lip_d=lip_id or LB.B608_LIP_D, below=60.0)
+    elif abs(od - LB.CSK20_OD) < 1e-6:
+        c = LB.seat_csk20(depth=depth, lip_d=lip_id or LB.CSK20_LIP_D, below=60.0)
+    else:
+        c = LB.ribbed_seat(od, depth, n_ribs=ribs, lip_d=lip_id or (od - 6.0), below=60.0)
+    return prim.place(c, tf.T(0, 0, z0) @ tf.Rx(180))
 
 
 # ------------------------------------------------------------------------------------------------ keyed plate split

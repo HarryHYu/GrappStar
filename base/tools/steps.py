@@ -25,12 +25,49 @@ from tools import timeline as TL  # noqa: E402
 from tools.render import build_data, write_pages, run_shots  # noqa: E402
 
 
-SUB_ORDER = ("frame", "drum", "launch", "reel")     # subsystem order for ties: frame first, then drum, launch, reel
+SUB_ORDER = ("frame", "drum", "launch", "reel", "sensors")  # subsystem order for steps of equal (or no) stage
 TOUCH_GAP = 0.2                                      # mm, same as the audit's contact rule
+# band name -> subsystems, used when params.ASSEMBLY_STAGES gives no owner for a band
+BAND_GUESS = (("deck", "frame"), ("motor", "frame"), ("electronics", "frame"), ("guards", "frame"),
+              ("main_shaft", "drum"), ("drum_", "drum"), ("main_stack", "drum"), ("reel_", "reel"),
+              ("launcher", "launch"), ("aim", "launch"), ("sensors", "sensors"))
+ANY_BAND = "test_stage_only"                         # any subsystem may use this band
 
 
 def _rank(sub: str) -> int:
     return SUB_ORDER.index(sub) if sub in SUB_ORDER else len(SUB_ORDER)
+
+
+def stage_bands(P=None) -> dict[str, tuple[int, int, set | None]]:
+    """{band: (lo, hi, subsystems allowed or None = any)} from params ASSEMBLY_STAGES = {band: (lo, hi, owner, what)}.
+    Owner "cad-frame / cad-launch" -> {"frame", "launch"}; "all" (or the test_stage_only band) -> any; no owner ->
+    guessed from the band name (BAND_GUESS)."""
+    if P is None:
+        try:
+            P = load_params()
+        except Exception:                                      # noqa: BLE001
+            return {}
+    out = {}
+    for band, v in (getattr(P, "ASSEMBLY_STAGES", None) or {}).items():
+        try:
+            lo, hi = int(v[0]), int(v[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        owner = v[2] if len(v) > 2 and isinstance(v[2], str) else ""
+        subs = {o.strip()[4:] for o in owner.split("/") if o.strip().startswith("cad-")}
+        if band == ANY_BAND or owner.strip() == "all":
+            subs = None
+        elif not subs:
+            subs = {s for pre, s in BAND_GUESS if band == pre or (pre.endswith("_") and band.startswith(pre))}
+        out[band] = (lo, hi, subs)
+    return out
+
+
+def band_of(stage, bands) -> str:
+    for b, (lo, hi, _) in bands.items():
+        if lo <= stage <= hi:
+            return b
+    return ""
 
 
 def _has_geometry(asm) -> bool:
@@ -86,43 +123,51 @@ def rest_contacts(asm, S=None, gap: float = TOUCH_GAP) -> dict[str, set]:
     return adj
 
 
-def plan_steps(asm, contacts="auto", grounded=None, out: str | None = None, log=None) -> tuple[list[dict], list[str]]:
+def heading(n: int, st: dict) -> str:
+    """'Step 12 (drum_core 131): Fit drum A', the step's place in the final order with its stage band."""
+    return f"Step {n}" + (f" ({st['label']})" if st.get("label") else "") + f": {st['title']}"
+
+
+def plan_steps(asm, contacts="auto", grounded=None, out: str | None = None, log=None,
+               bands=None) -> tuple[list[dict], list[str]]:
     """Ordered assembly steps covering every part exactly once. Returns (steps, warnings); never raises on bad steps
     and never drops an authored step.
 
     asm: an Assembly, or any object with .steps (authored step dicts), .parts {name: obj with step, subsystem, joint,
     printed} and .modules (dict of modules, or list of subsystem names).
-    Each returned step: title, text, parts (parts this step introduces), handle (parts placed earlier that the step
-    works on again), subsystem, auto, stage (int or None), seq (position), warnings (list of str).
+    Each returned step: title, text, parts (parts this step introduces), handle (parts introduced by an earlier step
+    that this step works on again), subsystem, auto, stage (int or None), band (stage band name or ""), label
+    ("drum_core 131" or ""), seq (position), warnings (list of str).
 
     Rules:
-    - every authored step is kept. Unknown part names are left out of parts and listed in a warning; parts already
-      introduced by an earlier authored step go to handle; a step left with no parts is a text step (shows the
-      current state).
-    - Part.step = k adds the part to authored step k (1-based); parts in no step get auto steps per subsystem.
-    - order: step["stage"] (int, lower first) is a hard order between staged steps. Otherwise a step goes once all
-      its new parts connect, through rest-state contacts, to parts already placed or to grounded parts (grounded(P)).
-      Ties: subsystem order (frame, drum, launch, reel, others), then authored order. Each subsystem keeps its own
-      step order; a step moved ahead of an earlier step of its subsystem (dependency) is warned. A step that can never
-      be placed (no contact path, cycle) goes at the end in authored order with a warning.
+    - every authored step is kept. Unknown part names are left out and warned; a step with no new parts is a text
+      step (shows the current state). Part.step = k adds the part to authored step k (1-based).
+    - order: strictly by step["stage"] (params ASSEMBLY_STAGES bands), then subsystem order (frame, drum, launch,
+      reel, sensors, others), then the subsystem's own order. Steps without a stage come after all staged steps
+      (same tie rule) and are warned; a stage outside the owner's bands is warned. Steps carrying "seq" (the plan
+      written back to asm.json) keep that order.
+    - the first step in that order that names a part introduces it; later mentions go to handle.
+    - parts in no step get auto steps per subsystem, inserted where their parts first connect to placed parts.
+    - validator only (never reorders): a step whose new parts rest only on parts placed later (rest-state contacts,
+      grounded(P) parts as roots) is warned, and so is a part that touches nothing.
     - contacts: "auto" = OUT/audit.json contact_graph if it matches, else computed from the geometry (Assembly only),
-      else none; None = no contact information (authored order with stage and subsystem order only).
-      Steps that carry "seq" (a plan written back to asm.json) keep that order for ties instead.
+      else none; None = no contact check.
+    - bands: {band: (lo, hi, subsystems or None)}; default stage_bands(asm.P or the params).
     """
     warn: list[str] = []
 
     def w(st, msg):
-        txt = f"step '{st['title']}' ({st['subsystem'] or '-'}): {msg}"
         st["warnings"].append(msg)
-        warn.append(txt)
+        warn.append(f"step '{st['title']}' ({st['subsystem'] or '-'}): {msg}")
 
+    if bands is None:
+        bands = stage_bands(getattr(asm, "P", None))
     names = list(asm.parts)
-    steps, seen = [], set()
+    steps = []
     for i, raw in enumerate(asm.steps):
+        st = dict(title=raw.get("title") or "Step", text=raw.get("text", ""), raw=[], subsystem=raw.get("subsystem", ""),
+                  auto=bool(raw.get("auto", False)), stage=None, idx=i, seq=raw.get("seq"), warnings=[])
         stage = raw.get("stage")
-        st = dict(title=raw.get("title") or "Step", text=raw.get("text", ""), parts=[], handle=[],
-                  subsystem=raw.get("subsystem", ""), auto=bool(raw.get("auto", False)),
-                  stage=None, idx=i, seq=raw.get("seq"), warnings=[])
         if stage is not None:
             try:
                 st["stage"] = int(stage)
@@ -132,43 +177,61 @@ def plan_steps(asm, contacts="auto", grounded=None, out: str | None = None, log=
         for n in list(raw.get("parts") or []) + list(raw.get("handle") or []):
             if n not in asm.parts:
                 unknown.append(n)
-            elif n in seen:
-                if n not in st["handle"] and n not in st["parts"]:
-                    st["handle"].append(n)
-            else:
-                st["parts"].append(n)
-                seen.add(n)
+            elif n not in st["raw"]:
+                st["raw"].append(n)
         if unknown:
             w(st, "unknown parts " + ", ".join(unknown))
         steps.append(st)
-    n_auth = len(steps)
+    named = {n for st in steps for n in st["raw"]}
     extra: dict[int, list[str]] = {}
     for n, p in asm.parts.items():
-        if n in seen or getattr(p, "step", None) is None:
+        if n in named or getattr(p, "step", None) is None:
             continue
         k = int(p.step)
-        if 1 <= k <= n_auth:
-            steps[k - 1]["parts"].append(n)
+        if 1 <= k <= len(steps):
+            steps[k - 1]["raw"].append(n)
         else:
             extra.setdefault(k, []).append(n)
-        seen.add(n)
+        named.add(n)
     for k in sorted(extra):
         subs = {asm.parts[n].subsystem for n in extra[k]}
-        steps.append(dict(title=f"Step {k}", text="Parts numbered for this step.", parts=extra[k], handle=[],
-                          subsystem=subs.pop() if len(subs) == 1 else "", auto=True, stage=None, idx=len(steps),
+        steps.append(dict(title=f"Step {k}", text="Parts numbered for this step.", raw=extra[k],
+                          subsystem=subs.pop() if len(subs) == 1 else "", auto=False, stage=None, idx=len(steps),
                           seq=None, warnings=[]))
-    subs = list(asm.modules) + sorted({p.subsystem for p in asm.parts.values()} - set(asm.modules))
-    for sub in subs:
-        rest = [n for n, p in asm.parts.items() if n not in seen and p.subsystem == sub]
-        if not rest:
-            continue
-        # fixed structure first, then moving parts, bought parts after the printed ones
-        rest.sort(key=lambda n: (asm.parts[n].joint is not None, not asm.parts[n].printed))
-        seen.update(rest)
-        steps.append(dict(title=f"Fit the remaining {sub} parts", text="", parts=rest, handle=[], subsystem=sub,
-                          auto=True, stage=None, idx=len(steps), seq=None, warnings=[]))
 
-    # ---- contact graph and grounded parts
+    # ---- stage checks and the order
+    for st in steps:
+        if st["auto"]:
+            continue
+        s = st["stage"]
+        own = sorted(k for k, (lo, hi, subs) in bands.items() if subs is not None and st["subsystem"] in subs)
+        if s is None:
+            if own:                         # subsystems with no band of their own (demo) need no stage
+                w(st, f"no stage (set step['stage'] inside its ASSEMBLY_STAGES bands: {', '.join(own)})")
+            continue
+        if not bands:
+            continue
+        b = band_of(s, bands)
+        if not b:
+            w(st, f"stage {s} is in no ASSEMBLY_STAGES band (own bands: {', '.join(own) or 'none'})")
+        elif bands[b][2] is not None and st["subsystem"] not in bands[b][2]:
+            w(st, f"stage {s} is in band {b}, which is not {st['subsystem'] or 'this subsystem'}'s "
+                  f"(own bands: {', '.join(own) or 'none'})")
+        st["band"] = b
+    planned = steps and all(st["seq"] is not None for st in steps)
+    big = float("inf")
+    if planned:
+        order = sorted(steps, key=lambda st: st["seq"])
+    else:
+        order = sorted(steps, key=lambda st: (big if st["stage"] is None else st["stage"], _rank(st["subsystem"]),
+                                              st["idx"]))
+    seen = set()
+    for st in order:
+        st["parts"] = [n for n in st["raw"] if n not in seen]
+        st["handle"] = [n for n in st["raw"] if n in seen]
+        seen.update(st["parts"])
+
+    # ---- contacts and grounded parts
     if isinstance(contacts, str) and contacts == "auto":
         contacts = audit_contacts(out, names) if out else None
         if contacts is None and _has_geometry(asm):
@@ -179,21 +242,16 @@ def plan_steps(asm, contacts="auto", grounded=None, out: str | None = None, log=
     if contacts is not None:
         contacts = {n: set(contacts.get(n, ())) for n in names}
 
-    planned = all(st["seq"] is not None for st in steps)
-
-    def tie(st):
-        return (st["seq"],) if planned else (_rank(st["subsystem"]), st["idx"])
-
-    def reach(st, placed):
-        """The new parts of st that connect to placed or grounded parts through contacts among placed + new."""
-        new = set(st["parts"])
+    def reach(parts, placed):
+        """The parts that connect to placed or grounded parts through contacts among placed + parts."""
+        new = set(parts)
         if contacts is None:
             return new
         roots = new & grounded
         if placed:
             roots |= {n for n in new if contacts[n] & placed}
-        elif not grounded and st["parts"]:
-            roots = {st["parts"][0]}        # nothing grounded anywhere: the first step seeds the build
+        elif not grounded and parts:
+            roots = {parts[0]}              # nothing grounded anywhere: the first step seeds the build
         got, todo = set(roots), list(roots)
         while todo:
             x = todo.pop()
@@ -202,76 +260,62 @@ def plan_steps(asm, contacts="auto", grounded=None, out: str | None = None, log=
                     got.add(y); todo.append(y)
         return got
 
-    def ready(st, placed):
-        # parts the step works on again must be in place first
-        return set(st["handle"]) <= placed and (not st["parts"] or reach(st, placed) == set(st["parts"]))
-
-    # a part that touches nothing in the rest state can never be placed by contact: its step goes to the end
-    order, placed, stuck, left = [], set(), [], []
-    for st in sorted(steps, key=tie):
-        loose = [] if contacts is None else [n for n in st["parts"] if not contacts[n] and n not in grounded]
-        if loose and len(names) > 1:
-            if st["auto"] and len(loose) < len(st["parts"]):      # only the loose parts of an auto step wait
-                st, st_l = dict(st, parts=[n for n in st["parts"] if n not in loose]), dict(st, parts=loose, warnings=[])
-                left.append(st)
-                st = st_l
-            w(st, "cannot be placed: " + ", ".join(loose) + (" touches" if len(loose) == 1 else " touch")
-              + " nothing in the rest state; put at the end")
-            stuck.append(st)
-        else:
-            left.append(st)
-    # authored order per subsystem (auto steps are not part of it)
-    chain: dict[str, list[dict]] = {}
-    for st in left:
-        if not st["auto"]:
-            chain.setdefault(st["subsystem"], []).append(st)
-
-    def earlier(s):
-        ch = chain.get(s["subsystem"], [])
-        return [] if s["auto"] or s not in ch else [o for o in ch[:ch.index(s)] if o not in order]
-
-    while left:
-        staged = [s["stage"] for s in left if s["stage"] is not None]
-        low = min(staged) if staged else None
-        allowed = [s for s in left if s["stage"] is None or s["stage"] == low]
-        ok = [s for s in allowed if ready(s, placed)]
-        pick = next((s for s in ok if not earlier(s)), None)
-        if pick is None and ok:
-            pick = ok[0]
-            w(pick, "moved ahead of " + ", ".join(f"'{o['title']}'" for o in earlier(pick))
-              + " of its subsystem: their parts do not sit on anything placed yet (reorder the subsystem's steps "
-              "or give them a stage)")
-        if pick is None:
-            # an auto step with some parts that already connect: fit those now, the rest later
-            for s in allowed:
-                if s["auto"]:
-                    got = reach(s, placed)
-                    if got:
-                        part = dict(s, parts=[n for n in s["parts"] if n in got], warnings=[])
-                        s["parts"] = [n for n in s["parts"] if n not in got]
-                        pick = part
-                        break
-            if pick is not None:
-                order.append(pick)
-                placed |= set(pick["parts"])
+    # ---- auto steps for parts in no step: inserted where they first connect (split when only some do)
+    subs = list(asm.modules) + sorted({p.subsystem for p in asm.parts.values()} - set(asm.modules))
+    for sub in sorted(subs, key=_rank):
+        rest = [n for n, p in asm.parts.items() if n not in seen and p.subsystem == sub]
+        if not rest:
+            continue
+        # fixed structure first, then moving parts, bought parts after the printed ones
+        rest.sort(key=lambda n: (asm.parts[n].joint is not None, not asm.parts[n].printed))
+        seen.update(rest)
+        placed, k = set(), 0
+        while rest and k <= len(order):
+            got = reach(rest, placed) if contacts is not None else set(rest) if k == len(order) else set()
+            if got:
+                chunk = [n for n in rest if n in got]
+                order.insert(k, dict(title=f"Fit the remaining {sub} parts", text="", parts=chunk, handle=[],
+                                     subsystem=sub, auto=True, stage=None, warnings=[]))
+                rest = [n for n in rest if n not in got]
+                placed |= set(chunk)
+                k += 1
                 continue
-            # dependency cycle (or parts joined only through later steps): authored order, warned
-            pick = next((s for s in allowed if not earlier(s)), allowed[0])
-            miss = sorted(set(pick["parts"]) - reach(pick, placed))
-            w(pick, "dependency not met: " + ", ".join(miss) + " do not sit on anything placed before (cycle or a "
-              "missing contact); placed in authored order")
-        order.append(pick)
-        placed |= set(pick["parts"])
-        left.remove(pick)
-    order += stuck
+            if k < len(order):
+                placed |= set(order[k]["parts"])
+            k += 1
+        if rest:
+            order.append(dict(title=f"Fit the remaining {sub} parts", text="", parts=rest, handle=[],
+                              subsystem=sub, auto=True, stage=None, warnings=[]))
+
+    # ---- validator: new parts must sit on parts placed before (never reorders)
+    if contacts is not None:
+        intro = {n: st for st in order for n in st["parts"]}
+        placed = set()
+        for st in order:
+            missing = sorted(set(st["parts"]) - reach(st["parts"], placed))
+            loose = [n for n in missing if not contacts[n] and len(names) > 1]
+            if loose:
+                w(st, ", ".join(loose) + (" touches" if len(loose) == 1 else " touch") + " nothing in the rest state")
+            later = [n for n in missing if n not in loose]
+            if later:
+                on = sorted({f"'{intro[m]['title']}'" for n in later for m in contacts[n]
+                             if m in intro and m not in placed and intro[m] is not st})
+                more = f" and {len(on) - 4} more" if len(on) > 4 else ""
+                w(st, ", ".join(later) + " rest only on parts placed later"
+                  + (f" (by {', '.join(on[:4])}{more})" if on else ""))
+            if not set(st["handle"]) <= placed:
+                w(st, "works on parts placed later: " + ", ".join(sorted(set(st["handle"]) - placed)))
+            placed |= set(st["parts"])
+
     res = []
     for k, st in enumerate(order):
-        st = dict(st)
-        st.pop("idx")
-        st["seq"] = k
-        if st["auto"] and not st["text"]:
-            st["text"] = "Parts without an explicit assembly step: " + ", ".join(st["parts"]) + "."
-        res.append(st)
+        b = st.get("band") or ""
+        res.append(dict(title=st["title"], text=st["text"] or ("Parts without an explicit assembly step: "
+                                                                + ", ".join(st["parts"]) + "." if st["auto"] else ""),
+                        parts=st["parts"], handle=st["handle"], subsystem=st["subsystem"], auto=st["auto"],
+                        stage=st["stage"], band=b, label=f"{b} {st['stage']}" if b else
+                        ("" if st["stage"] is None else str(st["stage"])), seq=k, warnings=st["warnings"]))
+        res[-1]["heading"] = heading(k + 1, res[-1])
     for x in warn:
         (log or print)("WARNING", x)
     return res, warn

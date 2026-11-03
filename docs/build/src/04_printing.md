@@ -4,8 +4,8 @@ Printer: Bambu X2D (bed 256 x 256 x 260 mm). PLA for everything except loaded ge
 PPA-CF (the print list says which).
 
 Magnet for the bench: the AS5600 magnet cap is coupon 10 on the PLA risk plate
-(`base/pack/coupons/rc10_magnet_cap.stl`); glue the magnet in it, so the bench test (order of work step 7) can use it on the clamped motor's shaft end; or, for the
-bench only, tape the magnet centred on the shaft end and clamp the AS5600 board 1 to 2 mm from it. `status`
+(`base/pack/coupons/rc10_magnet_cap.stl`; it fits the main shaft spigot, so it is for the base, not the bare
+motor); glue the magnet in it. For the bench test on the clamped motor, tape the magnet centred on the shaft end and clamp the AS5600 board 1 to 2 mm from it. `status`
 must show `"magnet":"OK"` (WEAK: move the board closer; STRONG: further; NONE: no magnet seen).
 
 Print settings (the 3MF files carry geometry only: set material and settings in Bambu Studio for each plate):
@@ -38,7 +38,7 @@ Two plates from the base print pack with small test pieces of the riskiest featu
 contact, dog clutch, slip clutch, bearing seats, heat-set inserts and nut traps, key rib, gear meshes, shear pin.
 Print them, then work through the test sheet. Do not print the big base parts until every coupon passes.
 
-Plates: `base/pack/coupons/risk_plate_1_PLA.3mf` (PLA, 19 pieces) and `risk_plate_2_PPA-CF.3mf` (PPA-CF, 26 pieces). Each
+Plates: `base/pack/coupons/risk_plate_1_PLA.3mf` (PLA, 23 pieces) and `risk_plate_2_PPA-CF.3mf` (PPA-CF, 26 pieces). Each
 piece is also there on its own (`base/pack/coupons/rcN_*.stl`) for a reprint. A printable copy of the test sheet is
 `base/pack/coupons/COUPON_TEST.pdf`. The coupons need a few bought parts (MEASURE_LIST C21): M3 screws and a jam
 nut, heat-set inserts, one each of 608ZZ, F693ZZ and 693ZZ, a CSK20PP.

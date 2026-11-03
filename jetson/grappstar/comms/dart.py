@@ -247,26 +247,40 @@ class Dart:
     def hold(self, keys, seconds: float, period: float = 0.15, ms: int = 350,
              cancel: Optional[threading.Event] = None) -> None:
         """Hold one or more keys like the web page (deadman): repeat every 150 ms, each repeat runs 350 ms.
-        Always ends with /stop. cancel (threading.Event) ends early."""
+        Ends with /stop?disarm=0 unless the dart refused the very first key: a refused hold (an /auto or /release
+        running, a latched fault) moved nothing, and a /stop would abort that sequence or clear the fault.
+        A lost reply counts as moved (stop to be safe). cancel (threading.Event) ends early."""
         if isinstance(keys, str):
             keys = [keys]
         t_end = time.time() + seconds
+        moved = False
         try:
             while time.time() < t_end and not (cancel and cancel.is_set()):
                 try:
                     for k in keys:
-                        self.key(k, ms)
+                        try:
+                            self.key(k, ms)
+                        except DartRefused:
+                            raise
+                        except DartError:
+                            moved = True        # the request may have reached the dart
+                            raise
+                        moved = True
                 except DartRefused as e:
                     if e.reason.startswith("stalled"):
+                        moved = True
                         break           # the motor reached its end stop: the normal end of a hold
+                    if e.reason.startswith("hold limit"):
+                        moved = True    # the 8 s manual cap ended the move UNFINISHED (fw-dart f5487cd): raise
                     raise
                 time.sleep(period)
         finally:
-            # stop the motors but keep the landing detector armed (a full /stop disarms, v4)
-            try:
-                self.stop(disarm=False)
-            except Exception:
-                self.safe_stop()
+            if moved:
+                # stop the motors but keep the landing detector armed (a full /stop disarms, v4)
+                try:
+                    self.stop(disarm=False)
+                except Exception:
+                    self.safe_stop()
 
     def wait_phase(self, phases, timeout: float, poll: float = 0.2, fail: tuple = ("FAULT",),
                    cancel: Optional[threading.Event] = None, log: Optional[Callable[[str], None]] = None,

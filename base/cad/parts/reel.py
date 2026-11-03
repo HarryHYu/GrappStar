@@ -315,7 +315,7 @@ def _wall():
     cut = [_teardrop_z(HUB_SPIGOT_R + 0.2, -WALL_T - 1, 1.0)]
     for a in hub_screw_deg():                      # hub screws tap into the wall from the front (blind, 5 deep)
         x, y = HUB_SCREW_R * math.cos(math.radians(a)), HUB_SCREW_R * math.sin(math.radians(a))
-        cut.append(prim.cyl(fits.M3_TAP_D / 2, 5.0 + 0.01, x=x, y=y, z=-5.0))
+        cut.append(prim.cyl(fits.M3_TAP_D / 2, WALL_T + 0.02, x=x, y=y, z=-WALL_T - 0.01))   # through: no bottoming
     cut.append(prim.cyl((S_D + fits.SHAFT_IN_BORE + fits.HOLE_HORIZ_EXTRA) / 2, WALL_T + Z_T + 2, x=X_REEL,
                         z=-WALL_T - 1))
     cut += _brake_wall_cuts()
@@ -649,7 +649,7 @@ P1_T = 6.0                    # pulley rim width (along R Y)
 
 P2_R = P1_R
 P2_WORLD_Y = 119.0            # cad-launch's pivot pulley plane (D34): the line leaves pulley 2 in it, heading -X
-P2_WORLD_Z = -60.0            # feed height (coordinator: exit about (10, 119, -60))
+P2_WORLD_Z = -56.0            # feed height (coordinator: exit about (10, 119, -60)); swivel block 3.5 above the drum
 P2_POST_X = 156.7             # R X of pulley 2's post (world x 138: clear of the drum and its switch block)
 
 
@@ -663,9 +663,19 @@ def p2_centre():
     return np.array((x, y, z))
 
 
+def exit_in_dir():
+    """Unit direction (XZ plane) of the line from the cup ring's front mouth (home) to Harry's exit eye centre."""
+    rf = v7.cup_line_points()["ring_front"] + np.array((0.0, 0.0, Z_CUP))
+    d = EXIT - rf
+    return _unit((d[0], 0.0, d[2]))
+
+
 def p1_centre():
-    """Pulley 1 (693ZZ) centre: turns the line from +X (out of the exit eye) to R -Z (world +Y), axis R +Y."""
-    return np.array((EXIT[0] + P1_DX, EXIT[1], EXIT[2] - P1_R))
+    """Pulley 1 (693ZZ, D43: replaces the plain exit eye) centre, axis R +Y. Its groove line is tangent to Harry's
+    ring -> exit eye line AT the old eye centre (the v7 31.5 rule holds), on the inside of the turn down to R -Z."""
+    d = exit_in_dir()
+    n = np.array((d[2], 0.0, -d[0]))                     # perpendicular, toward -Z (the turn goes clockwise in XZ)
+    return EXIT + P1_R * n
 
 
 def exit_post_screws():
@@ -674,50 +684,120 @@ def exit_post_screws():
 
 
 def _exit_post():
-    """Exit eye post (PPA-CF): own foot on the wall's pad (4 x M3 off the centre lines), 16 x 16 column, gussets on
-    all four sides (the line pulls it toward -Z and -X), 6 mm top with the plain eye at the line height, and a fork
-    carrying pulley 1 on an M3 axle."""
+    """Pulley 1 post (PPA-CF; D43: the plain exit eye is gone, pulley 1 sits where it was). Own foot on the deck
+    (4 x M3), 16 x 16 column, gussets on all four sides, two cheeks round pulley 1 on an M3 x 20 axle, a web joining
+    the cheeks on the side away from the line (-X, -Z)."""
     ex, ey, ez = EXIT
     px, py, pz = p1_centre()
-    y0 = Y_DECK                                       # stands on the deck on its own foot (4 x M3 into inserts)
+    y0 = Y_DECK
+    gap = P1_T / 2 + 0.4
+    ylo = py - gap - 3.5
     foot = prim.box(ex - 20, ex + 20, y0, y0 + FOOT_T + 1.0, ez - 16, ez + 16)
-    col = prim.box(ex - 8, ex + 8, y0, ey - 9, ez - 8, ez + 8)
-    taper = prim.box(ex - 3, ex + 3, ey - 9.01, ey + 10.5, ez - 6, ez + 6)
+    col = prim.box(ex - 8, ex + 8, y0, ylo + 0.01, ez - 8, ez + 8)
     gus = []
     for s_ in (-1, 1):
         yg = y0 + FOOT_T - 1.0                     # gussets start inside the foot, not on its bottom face
         pts = [(ex + s_ * 7.5, yg), (ex + s_ * 16, yg), (ex + s_ * 7.5, yg + 36)]
         gus.append(prim.extrude(prim.poly_cs(pts), 16.0, z=ez - 8))
         gus.append(_gusset(ex - 4.0, ex + 4.0, ez + s_ * 7.5, ez + s_ * 13.5, yg, 36.0))
-    # pulley fork: two cheeks above and below the pulley rim, from the post top out past the pulley
-    gap = P1_T / 2 + 0.4
-    cheeks = [prim.box(ex + 2.0, px + 7.0, py + s_ * gap, py + s_ * (gap + 3.5), pz - 8.0, ez + 1.5) for s_ in (-1, 1)]
-    web = prim.box(ex - 2.5, ex + 2.5, ey - 9.5, ey + gap + 3.5, ez - 5.5, ez + 1.5)
-    body = prim.union([foot, col, taper, web] + gus + cheeks + _race_bosses(px, py, pz, gap))
-    cut = [_eye_cut(EXIT, exit_axis(), 6.0), prim.cylY(fits.M3_CLEAR_D / 2, py - 10, py + 10, x=px, z=pz)]
+    cr = 6.0                                        # cheek radius round the axle (the pulley rim r 9 stands out past it)
+    zw = (pz - P1_R - 6.0, pz - P1_R - 3.0)         # web band, clear of the pulley rim (r P1_R + 2)
+    cheeks = [Manifold.batch_hull([prim.cylY(cr, y0_, y1_, x=px, z=pz), prim.box(px - 6.0, px + 2.0, y0_, y1_, *zw)])
+              for y0_, y1_ in ((py - gap - 3.5, py - gap), (py + gap, py + gap + 3.5))]
+    pad = prim.box(px - 6.0, ex + 8, ylo - 0.01, py - gap, min(ez - 8, pz - cr), ez + 8)   # lower cheek on the
+    # column top, kept right of the incoming dart line (it comes in low and steep while the cup wraps)
+    web = prim.box(px - 6.0, px + 2.0, ylo, py + gap + 3.5, *zw)                          # -Z side, away from the line
+    body = prim.union([foot, col, pad, web] + gus + cheeks + _race_bosses(px, py, pz, gap))
+    cut = [prim.cylY(fits.M3_CLEAR_D / 2, py - 10, py + 10, x=px, z=pz)]
     for (x, z) in exit_post_screws():
         cut.append(prim.cylY(fits.M3_CLEAR_D / 2, y0 - 1, y0 + FOOT_T + 1, x=x, z=z))
     return body - prim.union(cut)
 
 
+SW_TUBE_R, SW_TUBE_L = 6.0, 16.0   # pulley 2 swivel: tube on the fork, coaxial with the incoming run
+SW_HEAD = (10.0, 13.0)        # fork head band above the pulley centre (Z offsets)
+SW_BLOCK = (13.3, 27.0)       # post block band (Z offsets): the tube turns in its bore
+
+
+def swivel_axis():
+    """(x, y) in R of pulley 2's swivel axis = the incoming run from pulley 1 (along R -Z, on pulley 2's +X side)."""
+    c = p2_centre()
+    return c[0] + P2_R, c[1]
+
+
+def _p2_fork():
+    """Pulley 2 swivel fork (PPA-CF), local frame: R orientation, origin on the swivel axis at Z 0 = R Z 0 (it turns
+    about local +Z). Two cheeks round the pulley on the M3 x 20 axle, a head with the line hole, a tube up the axis
+    (the line runs down its bore) that turns in the post block, a C-clip groove at its top."""
+    ax, ay = swivel_axis()
+    px, py, pz = p2_centre()
+    px, py = px - ax, py - ay
+    gap = P1_T / 2 + 0.4
+    h0, h1 = pz + SW_HEAD[0], pz + SW_HEAD[1]
+    cheeks = []
+    for y0_, y1_ in ((py - gap - 3.5, py - gap), (py + gap, py + gap + 3.5)):
+        cheeks.append(Manifold.batch_hull([prim.cylY(6.0, y0_, y1_, x=px, z=pz),
+                                           prim.box(-6.5, 6.5, y0_, y1_, h0, h1)]))
+    head = prim.box(-6.5, 6.5, py - gap - 3.5, py + gap + 3.5, h0, h1)
+    tube = prim.cyl(SW_TUBE_R, pz + SW_BLOCK[1] + 3.0 - h1 + 0.01, z=h1 - 0.01)
+    body = prim.union(cheeks + [head, tube] + _race_bosses(px, py, pz, gap))
+    zt = pz + SW_BLOCK[1] + 0.2                                   # clip groove just above the block
+    g = clips.groove_dims(2 * SW_TUBE_R)
+    groove = prim.tube(SW_TUBE_R + 1, g["core_d"] / 2, g["width"], z=zt)
+    bore = prim.cyl(3.0, 200, z=h0 - 50)            # the run from pulley 1 is 4 deg off the axis: 2.2 off at the top
+    mouth = prim.cyl(3.0, 1.51, z=pz + SW_BLOCK[1] + 1.5, r2=4.5)      # coned line mouth at the tube top
+    axle = prim.cylY(fits.M3_CLEAR_D / 2, py - 15, py + 15, x=px, z=pz)
+    return body - prim.union([groove, bore, mouth, axle])
+
+
 def _p2_post():
     """Pulley 2 post (PPA-CF), R frame: foot on the deck (4 x M3), 16 x 16 column at P2_POST_X beside the drum, an
-    arm with a deep web above the pulley (the drum sits below) and two cheeks round the pulley on an M3 axle."""
+    arm to a block whose bore carries the swivel fork's tube (D43 review: the line leaves pulley 2 between 5 and 53
+    deg out of a fixed groove plane as the rail aims; the swivel turns the pulley into the line)."""
     px, py, pz = p2_centre()
-    gap = P1_T / 2 + 0.4
+    ax, ay = swivel_axis()
     xc = P2_POST_X
-    foot = prim.box(xc - 16, xc + 16, Y_DECK, Y_DECK + FOOT_T, pz - 14, pz + 14)
-    col = prim.box(xc - 8, xc + 8, Y_DECK, py + gap + 22.0, pz - 8, pz + 8)
-    upper = prim.box(px - 8.0, xc, py + gap, py + gap + 3.5, pz - 6, pz + 6)
-    web = prim.box(px - 8.0, xc, py + gap + 3.49, py + gap + 22.0, pz - 4, pz + 4)
-    lower = prim.box(px - 8.0, xc, py - gap - 3.5, py - gap, pz - 6, pz + 6)
-    gus = [_gusset(xc - 4, xc + 4, pz + s_ * 7.5, pz + s_ * 14.0, Y_DECK + FOOT_T - 1.0, 40.0) for s_ in (-1, 1)]
-    body = prim.union([foot, col, upper, web, lower] + gus + _race_bosses(px, py, pz, gap))
-    cut = [prim.cylY(fits.M3_CLEAR_D / 2, py - 15, py + 15, x=px, z=pz)]
+    b0, b1 = pz + SW_BLOCK[0], pz + SW_BLOCK[1]
+    yt = ay + 14.0
+    foot = prim.box(xc - 16, xc + 16, Y_DECK, Y_DECK + FOOT_T, b0 - 2, b1 + 2)
+    col = prim.box(xc - 8, xc + 8, Y_DECK, yt, b0, b1)
+    arm = prim.box(ax + 6.0, xc, ay - 4.0, yt, b0, b1)
+    block = prim.box(ax - 9.0, ax + 9.0, ay - 8.65, ay + 9.0, b0, b1)
+    gus = [_gusset(xc - 4, xc + 4, (b0 + b1) / 2 + s_ * 7.0, (b0 + b1) / 2 + s_ * 14.0, Y_DECK + FOOT_T - 1.0,
+                   min(40.0, yt - Y_DECK - FOOT_T - 2.0)) for s_ in (-1, 1)]
+    body = prim.union([foot, col, arm, block] + gus)
+    cut = [prim.cyl(SW_TUBE_R + 0.15, b1 - b0 + 2, x=ax, y=ay, z=b0 - 1)]
     for sx in (-1, 1):
         for sz in (-1, 1):
-            cut.append(prim.cylY(fits.M3_CLEAR_D / 2, Y_DECK - 1, Y_DECK + FOOT_T + 1, x=xc + sx * 11.5, z=pz + sz * 9.5))
+            cut.append(prim.cylY(fits.M3_CLEAR_D / 2, Y_DECK - 1, Y_DECK + FOOT_T + 1, x=xc + sx * 11.5,
+                                 z=(b0 + b1) / 2 + sz * 9.5))
     return body - prim.union(cut)
+
+
+def swivel_deg(P, S):
+    """Swivel angle (deg about R +Z, negative = the outgoing line rises) that puts pulley 2's groove plane through
+    the tangent onto cad-launch's pivot pulley for state S."""
+    ax, ay = swivel_axis()
+    o = np.asarray(SP["origin"], float)
+    c2 = p2_centre()
+    phi = 0.0
+    for _ in range(3):
+        # pulley 2 exit (bottom of its 90 deg arc) after the swivel, world
+        rel = np.array((c2[0] - ax, c2[1] - ay)) + np.array((0.0, 0.0))
+        cp, sp_ = math.cos(math.radians(phi)), math.sin(math.radians(phi))
+        cx = ax + rel[0] * cp - rel[1] * sp_
+        cy = ay + rel[0] * sp_ + rel[1] * cp
+        fx, fy, fz = cx, cy, c2[2] - P2_R                        # R (exit is straight below the centre in Z)
+        f = np.array((o[0] + fx, o[1] - fz, o[2] + fy))           # world
+        e, c, u = _pivot(P, S)
+        dx, dz = c[0] - f[0], c[2] - f[2]
+        d = math.hypot(dx, dz)
+        a0 = math.atan2(dz, dx)
+        b = math.asin(min(1.0, PIV_R / max(d, PIV_R)))
+        ang = a0 + b if dx < 0 else a0 - b                       # line to the lower side of the pivot pulley
+        beta = math.degrees(math.atan2(math.sin(ang), -math.cos(ang)))
+        phi = -beta
+    return phi
 
 
 RACE_BOSS_R = 2.4             # cheek bosses clamp the 693 inner race (land about 2.3 .. 2.6), not the pulley rim
@@ -788,15 +868,14 @@ def _cup_gear_track():
     ring = prim.tube(16.0, 13.0, SW_BUMP_H, z=-SW_BUMP_H)
     half = math.radians(SW_BUMP_DEG)
     a_top = half + SW_BUMP_H / SW_BUMP_R                   # 45 deg ramps measured at the lever radius
-    n = 24
-    ang = np.linspace(-a_top, a_top, n)
-    pts = [(0.0, 0.0)]
-    for t in ang:                                          # wedge-shaped notch cutter in the (angle, z) sense
-        pts.append((20.0 * math.cos(t - math.pi / 2), 20.0 * math.sin(t - math.pi / 2)))
-    notch = prim.extrude(prim.poly_cs(pts), SW_BUMP_H + 1.0, z=-SW_BUMP_H - 0.5)
+
+    def wedge(a, z0, h):
+        pts = [(0.0, 0.0)] + [(20.0 * math.cos(t - math.pi / 2), 20.0 * math.sin(t - math.pi / 2))
+                              for t in np.linspace(-a, a, 24)]
+        return prim.extrude(prim.poly_cs(pts), h, z=z0)
+    # ramps: wide at the track's outer face (z -SW_BUMP_H), the plain notch width at the gear face (z 0)
+    notch = Manifold.batch_hull([wedge(a_top + 0.5 / SW_BUMP_R, -SW_BUMP_H - 0.5, 0.5), wedge(half, -0.01, 0.02)])
     notch = prim.place(notch, tf.Rz(sw_tip_deg() + 90.0))       # centred on the lever tip
-    # 45 deg ramps: subtract a slightly smaller notch at full depth and a wider shallow one is approximated by
-    # stepping the notch in three depths
     out = ring - notch
     return out
 
@@ -871,8 +950,8 @@ def parts(P):
         notes=f"Capstan gear m{M_CAP:g} z{Z_CAPG}: driven by the drum's REEL output gear ({Z_MAIN}T)")
     add("reel_c_clip", clips.c_clip(C_D), "PLA", joint="reel_capstan", place=tf.T(0, 0, _clip_z(C_D, GC_Z[0])),
         color=COL["clip"], step=5, notes="C-clip holding the capstan gear on the tube")
-    add("reel_drum", v7.drum(mouth=(14.2, COLLAR_CONE + 0.2)), "PLA", joint="reel_capstan", place=tf.T(0, 0, Z_DRUM), color=COL["drum"], step=6,
-        notes="Capstan drum dia 40 x 40 (Harry v7), keyed on the tube. Print flange down")
+    add("reel_drum", v7.drum(mouth=(14.2, COLLAR_CONE + 0.2)), "PPA-CF", joint="reel_capstan", place=tf.T(0, 0, Z_DRUM), color=COL["drum"], step=6,
+        notes="Capstan drum dia 40 x 40 (Harry v7), keyed on the tube; PPA-CF: hoop stress 11.6 MPa if the shear pin slips. Print flange down")
     add("reel_k", _k_shaft(), "PPA-CF", joint="reel_cup", color=COL["ppa"], step=7,
         notes="Cup shaft: runs inside the capstan tube, cup in front, cup gear behind. Print standing")
     add("reel_cup", v7.cup(), "PLA", joint="reel_cup", place=tf.T(0, 0, Z_CUP), color=COL["cup"], step=7,
@@ -963,13 +1042,20 @@ def parts(P):
     p2 = p2_centre()
     add("reel_p2_post", _p2_post(), "PPA-CF", tf.Rx(90), joint="reel_base", color=COL["post"], step=15,
         notes="Pulley 2 post: stands on the deck beside the drum, turns the line into the rail pivot pulley's plane")
-    add("reel_pulley2", _pulley(), "PLA", joint="reel_base", place=tf.T(*p2) @ tf.Rx(-90) @ tf.T(0, 0, -P1_T / 2),
+    sax, say = swivel_axis()
+    Tsw = tf.T(-sax, -say, 0.0)
+    add("reel_p2_fork", _p2_fork(), "PPA-CF", tf.Rx(180), joint="reel_swivel", color=COL["ppa"], step=15,
+        notes="Pulley 2 swivel fork: turns about the incoming line so the groove follows the line to the rail")
+    add("reel_p2_clip", clips.c_clip(2 * SW_TUBE_R), "PLA", joint="reel_swivel",
+        place=tf.T(0, 0, p2[2] + SW_BLOCK[1] + 0.2 + clips.CLIP_AX_CLEAR / 2), color=COL["clip"], step=15,
+        notes="C-clip on the swivel tube above the post block")
+    add("reel_pulley2", _pulley(), "PLA", joint="reel_swivel", place=Tsw @ tf.T(*p2) @ tf.Rx(-90) @ tf.T(0, 0, -P1_T / 2),
         color=COL["clip"], step=15, notes="Pulley 2: feeds the line to cad-launch's rail pivot pulley (D34)")
-    add("reel_p2_brg", bearings.bearing_693(), "bought", joint="reel_base",
-        place=tf.T(*p2) @ tf.Rx(-90) @ tf.T(0, 0, 2.0), color=COL["brg"], bought_ref="693ZZ 3x8x4", step=15,
+    add("reel_p2_brg", bearings.bearing_693(), "bought", joint="reel_swivel",
+        place=Tsw @ tf.T(*p2) @ tf.Rx(-90) @ tf.T(0, 0, 2.0), color=COL["brg"], bought_ref="693ZZ 3x8x4", step=15,
         notes="Bearing in pulley 2")
-    add("reel_p2_axle", fasteners_m3(20.0), "bought", joint="reel_base",
-        place=tf.T(p2[0], p2[1] + P1_T / 2 + 0.4 + 3.5 + 3.0, p2[2]) @ tf.Rx(90), color=COL["brg"],
+    add("reel_p2_axle", fasteners_m3(20.0), "bought", joint="reel_swivel",
+        place=Tsw @ tf.T(p2[0], p2[1] + P1_T / 2 + 0.4 + 3.5 + 3.0, p2[2]) @ tf.Rx(90), color=COL["brg"],
         bought_ref="M3x20 SHCS + nyloc nut", step=15, notes="Pulley 2 axle")
     add("reel_p1_axle", fasteners_m3(20.0), "bought", joint="reel_base",
         place=tf.T(pc[0], pc[1] + P1_T / 2 + 0.4 + 3.5 + 3.0, pc[2]) @ tf.Rx(90), color=COL["brg"],
@@ -994,6 +1080,8 @@ def joints(P):
         Joint("reel_t", "reel_base", "slide", (X_REEL, 0, 0), (0, 0, 1), limits=(0.0, 0.3)),
         Joint("reel_bar", "reel_base", "slide", (0, 0, 0), (-1, 0, 0), limits=(0.0, BRAKE_STROKE)),
         Joint("reel_crank", "reel_base", "rev", (CRANK_X, 0, CRANK_Z), (0, 1, 0), limits=(-25.0, 0.0)),
+        Joint("reel_swivel", "reel_base", "rev", (swivel_axis()[0], swivel_axis()[1], 0.0), (0, 0, 1),
+              limits=(-70.0, 10.0)),
     ]
 
 
@@ -1137,7 +1225,7 @@ def kin(P, S):
     bar = bar_mm(P, S)
     return {"reel_capstan": cap, "reel_cup": -360.0 * wraps, "reel_bus": bus, "reel_swing": swing,
             "reel_idler": th_i, "reel_shaft": th_r, "reel_spool": spool, "reel_t": 0.0, "reel_bar": bar,
-            "reel_crank": crank_deg(bar)}
+            "reel_crank": crank_deg(bar), "reel_swivel": swivel_deg(P, S)}
 
 
 def allowed(P):
@@ -1175,7 +1263,8 @@ def allowed(P):
         Allow("reel_p1_axle", "reel_exit_post", "axle through the fork cheeks"),
         Allow("reel_p2_brg", "reel_pulley2", "693ZZ pressed in the pulley"),
         Allow("reel_p2_axle", "reel_p2_brg", "axle through the inner race"),
-        Allow("reel_p2_axle", "reel_p2_post", "axle through the cheeks"),
+        Allow("reel_p2_axle", "reel_p2_fork", "axle through the fork cheeks"),
+        Allow("reel_p2_clip", "reel_p2_fork", "clip in the swivel tube groove"),
         Allow("reel_trim_screws", "reel_t", "screw tips on the thrust ring (preload)", max_vol=0.5),
         Allow("reel_firm_screw", "reel_rocker", "FIRM screw tapped through the leg, lock nut on its front"),
         Allow("reel_crank", "reel_rocker", "arm B rises under the static leg (the real leg moves 2.1 mm away first)",
@@ -1234,7 +1323,7 @@ def _rz(p, deg):
     return np.array((c * p[0] - s * p[1], s * p[0] + c * p[1], p[2]))
 
 
-def _line_points(P, wraps=0.0, pack_r=None, z_spool=None):
+def _line_points(P, wraps=0.0, pack_r=None, z_spool=None, swivel=None):
     """Line centre polyline in the R frame as a list of (points (N x 3), allowed part names) spans:
     storage reel -> guide eye -> (capstan turns -> groove) -> ring -> exit eye -> 20 mm toward the dart.
     wraps = cup turns from home (cup angle -360 wraps). Spans with allowed parts may touch those parts only."""
@@ -1277,20 +1366,25 @@ def _line_points(P, wraps=0.0, pack_r=None, z_spool=None):
         grv = np.array(grv)
         spans.append((np.vstack([turns[-1:], grv, [ring_r]]), {"reel_drum", "reel_cup"}))
     spans.append((np.array([ring_r, ring_f]), {"reel_cup"}))
-    spans.append((np.array([ring_f, EXIT]), {"reel_cup", "reel_exit_post"}))
     pc = p1_centre()
-    top = np.array((pc[0], pc[1], pc[2] + P1_R))
-    spans.append((np.array([EXIT, top]), {"reel_exit_post", "reel_pulley1"}))
-    arc = np.array([(pc[0] + P1_R * math.sin(t), pc[1], pc[2] + P1_R * math.cos(t))
-                    for t in np.linspace(0.0, math.pi / 2, 7)])
+    spans.append((np.array([ring_f, EXIT]), {"reel_cup", "reel_pulley1"}))
+    a0 = math.atan2(EXIT[2] - pc[2], EXIT[0] - pc[0])          # tangent point = old eye centre
+    arc = np.array([(pc[0] + P1_R * math.cos(t), pc[1], pc[2] + P1_R * math.sin(t))
+                    for t in np.linspace(a0, 0.0, 13)])
     spans.append((arc, {"reel_pulley1"}))
     p2 = p2_centre()
     in2 = np.array((p2[0] + P2_R, p2[1], p2[2]))
     spans.append((np.array([arc[-1], in2]), {"reel_pulley1", "reel_pulley2"}))
-    arc2 = np.array([(p2[0] + P2_R * math.cos(t), p2[1], p2[2] - P2_R * math.sin(t))
+    sax, say = swivel_axis()
+    ph = math.radians(swivel if swivel is not None else 0.0)
+    def rot(q):
+        x, y = q[0] - sax, q[1] - say
+        return np.array((sax + x * math.cos(ph) - y * math.sin(ph), say + x * math.sin(ph) + y * math.cos(ph), q[2]))
+    arc2 = np.array([rot((p2[0] + P2_R * math.cos(t), p2[1], p2[2] - P2_R * math.sin(t)))
                      for t in np.linspace(0.0, math.pi / 2, 7)])
     spans.append((arc2, {"reel_pulley2"}))
-    spans.append((np.array([arc2[-1], arc2[-1] + (-RUN_CHECK, 0.0, 0.0)]), {"reel_pulley2"}))
+    out = np.array((-math.cos(ph), -math.sin(ph), 0.0))
+    spans.append((np.array([arc2[-1], arc2[-1] + RUN_CHECK * out]), {"reel_pulley2"}))
     return spans
 
 
@@ -1308,7 +1402,7 @@ def line_path(P, S):
     if 0.0 < w < 0.25:              # the turn model starts after the first quarter turn; show the launch path before
         w = 0.0
     pts = []
-    for span, _ in _line_points(P, w, pack_r=rp):
+    for span, _ in _line_points(P, w, pack_r=rp, swivel=swivel_deg(P, S)):
         for p in span:
             if not pts or np.linalg.norm(np.asarray(p) - pts[-1]) > 1e-6:
                 pts.append(np.asarray(p, float))
@@ -1382,10 +1476,10 @@ def line_check(P, wraps_list=None, local=None):
     for w in wraps_list:
         S = dict(wraps=w, mode="REEL")
         sol = local(S) if callable(local) else _local_posed(P, S)
-        for pts, allow in _line_points(P, w):
+        for pts, allow in _line_points(P, w, swivel=swivel_deg(P, S)):
             if len(pts) == 2 and np.linalg.norm(pts[-1] - EXIT) < 1e-6:
-                # dart line: rides round the outside of the ring for half of each turn (v7 README) and enters the
-                # exit eye at an angle; it must clear the cup face and everything else
+                # dart line: rides round the outside of the ring for half of each turn (v7 README) and lands on
+                # pulley 1 at the old exit eye centre; it must clear the cup face and everything else
                 q = _trim(pts, 0.0, 0.0)
                 psi = -360.0 * w
                 M = tf.T(0, 0, Z_CUP) @ tf.Rz(psi)
@@ -1395,6 +1489,13 @@ def line_check(P, wraps_list=None, local=None):
                 sol2 = dict(sol)
                 sol2["reel_cup"] = sol["reel_cup"] - rz
                 sol2["reel_exit_post"] = sol["reel_exit_post"] - ez
+                # lands on the pulley groove at the old eye centre; mid-wrap (ring turned away from home, dart side
+                # slack by D22) it comes in steeply and may brush the pulley rim and the lower cheek near the landing
+                home = abs(w - round(w)) < 1e-6
+                land = Manifold.sphere(3.0 if home else 10.0, 32).translate(tuple(EXIT))
+                sol2["reel_pulley1"] = sol["reel_pulley1"] - land
+                if not home:
+                    sol2["reel_exit_post"] = sol2["reel_exit_post"] - land
                 for name, v in line.line_hits(q, sol2).items():
                     if v > 1e-3:
                         fails.append(f"line at {w:.3f} wraps: dart span hits {name} ({v:.3f} mm3)")
@@ -1447,7 +1548,7 @@ def steps(P):
     """Assembly steps, in order, plain language, hardware named per step."""
     return [
         dict(title="Screw the reel wall to the deck",
-             text="Stand the reel wall on the deck at its marked place. Put eight M3 screws down through the "
+             text="Stand the reel wall on the deck at its marked place. Put seven M3 screws down through the "
                   "counterbored foot holes into the deck inserts and tighten. Do this first: the storage reel and "
                   "the gears later cover some of the holes.",
              parts=["reel_wall"]),
@@ -1527,22 +1628,28 @@ def steps(P):
                   "to home (ring at the top): the bump on the cup gear presses the lever; set the contact screw so it "
                   "just closes there and opens 15 degrees either side. Lock the jam nut.",
              parts=["reel_sw_bracket", "reel_sw_base", "reel_sw_lever", "reel_sw_hw"]),
-        dict(title="Pulley 2",
-             text="Screw the pulley 2 post to the deck beside the drum with four M3 screws. Press a 693ZZ into "
-                  "pulley 2, set it between the post's cheeks and push the M3 x 20 axle down through (nyloc nut "
-                  "under). The line from pulley 1 runs along the base to it and leaves toward the rail pivot pulley.",
-             parts=["reel_p2_post", "reel_pulley2", "reel_p2_brg", "reel_p2_axle"]),
+        dict(title="Pulley 2 swivel",
+             text="Press a 693ZZ into pulley 2, set it between the swivel fork's two cheeks and push the M3 x 20 "
+                  "axle through (nyloc nut on the far side, snug: the pulley must spin). Grease the fork's tube and "
+                  "push it up through the bore of the pulley 2 post's block from below; snap the C-clip into the "
+                  "groove above the block. The fork must turn freely. Screw the post to the deck beside the drum with "
+                  "four M3 screws. The line from pulley 1 goes down through the tube, round the pulley and out toward "
+                  "the rail pivot pulley; the fork turns itself to follow the line as the rail aims.",
+             parts=["reel_p2_post", "reel_p2_fork", "reel_p2_clip", "reel_pulley2", "reel_p2_brg", "reel_p2_axle"]),
         dict(title="Shroud",
              text="Put the shroud round the reel, its flange on the wall, opening at the top right, and screw it on "
                   "with three M3 x 8 screws into the wall. The reel must not touch it anywhere.",
              parts=["reel_shroud"]),
-        dict(title="Exit eye post and line",
-             text="Stand the exit eye post on the pad at the front of the wall foot and screw it down with four M3 "
-                  "screws into the deck. Wind the line onto the reel (counter-clockwise seen from the front, line over "
-                  "the top), thread it through the guide eye, over the top of the cup, through the cup ring from the "
-                  "back, then through the exit eye. Press the 693ZZ into pulley 1, set the pulley between the fork "
-                  "cheeks with the line in its groove and push the M3 x 20 axle down through (nyloc nut under). Lead "
-                  "the line on toward the rail pivot pulley.",
+        dict(title="Pulley 1 post and line",
+             text="Stand the pulley 1 post on the deck in front of the wall and screw it down with four M3 screws "
+                  "into the deck. Press a 693ZZ into pulley 1 and set it between the post's two cheeks. Wind the line "
+                  "onto the reel (counter-clockwise seen from the front, line over the top), thread it through the "
+                  "guide eye, over the top of the cup and through the cup ring from the back. Lay it over pulley 1 "
+                  "in its groove (it comes up from the ring and turns down toward the deck), then push the M3 x 20 "
+                  "axle down through the cheeks and the pulley (nyloc nut under). Lead the line down to pulley 2. "
+                  "Set FIRM last, with the drum in REEL (the bar pushed in by the cam): pull the line end with the "
+                  "luggage scale; it must slip at 5.0 N with the reel full. Too low: loosen the lock nut on the rocker "
+                  "leg and turn the FIRM screw in (toward the wall); too high: out. One turn is about 1 N at the line. Lock the nut.",
              parts=["reel_exit_post", "reel_pulley1", "reel_p1_brg", "reel_p1_axle"]),
     ]
 

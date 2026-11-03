@@ -138,7 +138,9 @@ def swept_cutters(P, C, others=("launch", "reel", "drum"), margin=4.0, n_states=
     for n in asm.parts:
         for k in range(0, len(Ws), chunk):
             pts = np.vstack([tf.apply(shift @ W[n], hv[n]) for W in Ws[k:k + chunk + 1]])
-            grown = np.vstack([pts + np.asarray(o) for o in offs])
+            # each hull grown a slightly different amount: hulls that share a boundary state never share faces
+            j = len(clouds)
+            grown = np.vstack([pts + np.asarray(o) * (1.0 + 0.0037 * (j % 11)) for o in offs])
             clouds.append(grown)
             hulls.append(Manifold.hull_points(grown))
     LAST_CLOUDS[:] = clouds

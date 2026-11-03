@@ -86,7 +86,7 @@ class JetsonClientTest(unittest.TestCase):
         self.assertTrue(s["armed"]); self.assertFalse(s["auto_on_landing"]); self.assertEqual(s["phase"], "ARMED")
         with self.assertRaises(self.m.DartRefused) as cm:
             self.d.flightlog(timeout=2.0, tries=1)
-        self.assertTrue(cm.exception.reason.startswith("busy"), cm.exception.reason)
+        self.assertTrue(cm.exception.reason.startswith("armed"), cm.exception.reason)
         self.assertTrue(self.d.link()["connected"], "a 409 must not count as a link failure")
 
     def test_02b_auto_while_armed_disarms_first(self):

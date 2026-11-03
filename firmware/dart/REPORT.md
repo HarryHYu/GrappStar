@@ -85,6 +85,12 @@ TEST_OUTPUT_PLACEHOLDER
     retried, "STOP NOT CONFIRMED" shown); Cmd/Ctrl/Alt key handling; a swapped INA219 read negative and was trusted
     (now a sensor fault); IMU silent not in `/status` event; failed OTA restart gap; bench steps reordered with
     "battery unplugged" before every repositioning, bench leads removed before the cells go in.
+13. Fresh logic review of round 11 (with the fuzz run on more seeds, which showed the default seed hid problems): a kick
+    jammed part way out in air anchored in air (now `KICK_JAM`); a retry after `NO_GROUND` with travel unknown, or a
+    `2` tap at the end stop, anchored in air (now `NO_GROUND` sticks); a soft end stop in air took the contact branch;
+    one noisy reading could latch the rise rule; the hold cap refusal read like an end stop (now `hold limit`); a
+    single-sample `NO_CURRENT` at the pods lead (now 100 ms). Rise rule now compares readings at a common voltage, and
+    a noisy stall just over its line is caught on 2 of the last 3 readings. Full fuzz passes on 6 seeds.
 - Coordinator R1-B review, the C2 cross-check with the jetson client, the clean-clone check (all README steps pass
   from a fresh clone; doc gaps fixed), the coordinator's `test_06_hold_and_stop` failure (firmware stall lock, fixed).
 
@@ -99,6 +105,12 @@ TEST_OUTPUT_PLACEHOLDER
 | r2_B2 #6 reversing gets round the hold cap | fixed in b9cf242: hold cap per motor |
 | r2_B2 #7 fuzz checks only flight log syntax | fixed: invariant 8 also requires a frozen flight log to hold the launch |
 | r3_N #5 WIRING A2 wire [15] vs [16] | fixed; every wire number re-checked against both lists, missing v29 numbers added, A7 checks DRV#2 GND and VM |
+| r3_B3 #1 #4 (alternating keys, keep=1 stop) | fixed earlier (b9cf242, 17b2823) |
+| r3_B3 #2 API arming from ANCHORED contradicted itself | fixed |
+| r3_B3 #3 one 409 reason for every /flightlog refusal | fixed: `busy (motors running)`, `armed (disarm first)`, `in flight` |
+| r3_B3 #5 no test of a landing 7 to 10 s after launch | added (7, 8.5 and 10 s) |
+| r3_B3 #6 #7 (dart.py hold) | jetson's |
+| OPEN_ITEMS fw-dart (4, checked at 863d58d) | r2_B2 #5 #6 #7 fixed since (see above); r1_G #21 WIRING B2: starts "Battery unplugged", now also beep-checks IN+ to IN- before the LiPo goes in |
 | docs worker learner round (7 items) | fixed: hull closed for assembled steps, struct and array order named, test-model warning, one capacitor location, B10 open circuit, full paths |
 
 ## Requests to other workers
@@ -119,5 +131,5 @@ TEST_OUTPUT_PLACEHOLDER
   the BMS cutoff against `lowRailV` 5.6 V.
 - Known limits (documented in `API.md` / `FAILURE_MODES.md`): one dead drill, or a drill or the foot wired backwards,
   cannot be detected; a kick jam in the last 40 % of the return is not caught; below about speed 70 only the 8 s cap
-  stops a manual stall; in the full fuzz run (8000 episodes) 6 chaos cases of the pods at a stop or jammed, with the
+  stops a manual stall; in the full fuzz runs (8000 episodes, 6 seeds) a few chaos cases of the pods at a stop or jammed, with the
   drills' current rising during each pause, run just over 3.0 s, bounded by the 6 s pods limit; a power-on with the legs out gives a false `KICK_JAM` on `/auto` (release first).

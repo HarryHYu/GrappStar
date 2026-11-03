@@ -44,17 +44,19 @@ PLUG_OUT = 6.0                    # JST SH plug + cable bend room beyond the boa
 CAP_R = 10.0                      # drum_magnet_cap radius (cad-drum magnet_holder)
 JST_CAP_CLR = 0.55                # JST body to the cap end face (the cap turns)
 PEG_D = 2.3
-STRIP_T = 1.4                     # clamp strip on the chip face
 STRIP_BAND = 3.2                  # strip covers the board 3.2 mm in from each long edge (clear of parts)
-STRIP_THICK_T = 3.4               # strip beyond the board edge (bridges to the carrier plate)
-STRIP_SCREW_Z = 14.0              # M3 clamp screws at z = +-14 (heads/tips stay > 1.5 mm outside the cap radius)
-PLATE_T = 5.0                     # carrier plate behind the board
+STRIP_FRONT_GAP = 0.3             # strip thick part stops this short of the plate: the band clamps the board
+STRIP_SCREW_Z = 14.0              # M3 clamp screws at z = +-14: heads 1.25 mm outside the cap radius
+STRIP_SCREW_L = 12.0
+PLATE_T = 8.0                     # carrier plate behind the board (nut pockets in its back)
 PLATE_HALF_X, PLATE_HALF_Z = 17.0, 17.5
 COL_X = (-16.0, -6.0)             # carrier column (on the housing spine's +x face at x -16)
 COL_Z0 = -50.0
+COL_LOW_Y0 = 204.6                # column below the plate (z < -18) is 10 thick in y, round the bolt holes
 SPINE_X = -16.0                   # launch_aim housing spine +x face (box x -30..-16, y 187..229, z up to -25)
 SPINE_TOP = -25.0
-COL_BOLT_Z = (-33.0, -44.0)       # 2 x M3 along -x into the spine (pilots d2.6 in the spine, cad-launch)
+COL_BOLT_Z = (-33.0, -44.0)       # 2 x M3x16 along -x into the spine (pilots d2.6 cut by cad-launch at y 209.1)
+COL_BOLT_Y = 209.1
 
 
 def _p(P, name, default):
@@ -71,11 +73,11 @@ def as_geom(P):
     """AS5600 stack along world y (all world mm). The chip-to-magnet gap is set by the JST connector height: the
     connectors sit at radius 7.5..11.8, inside the cap radius 10, so they must clear the turning cap face."""
     yf = magnet_face_y(P)
-    y_board = yf + JST_CAP_CLR + JST["h"]               # board chip face (204.0 with the defaults)
+    y_board = yf + JST_CAP_CLR + JST["h"]               # board chip face (205.0 with the defaults)
     g = dict(y_mag=yf, y_board=y_board, y_board_back=y_board + PCB_T, y_chip=y_board - CHIP[2],
              gap=y_board - CHIP[2] - yf, gap_min=y_board - CHIP_H_MAX - yf)
-    g["y_strip"] = y_board - STRIP_T
-    g["y_strip_thick"] = g["y_board_back"] - STRIP_THICK_T
+    g["y_strip"] = y_board - 1.8                        # strip front face (band 1.8 on the chip face)
+    g["y_peg_tip"] = y_board - 1.4
     g["y_plate"] = (g["y_board_back"], g["y_board_back"] + PLATE_T)
     g["axis_z"] = 0.0
     return g
@@ -104,74 +106,72 @@ def board_solid(P):
 
 
 def carrier_solid(P):
-    """Printed carrier: plate behind the board with 4 locating pegs, column down to the housing spine (2 x M3 along
-    -x), 2 clamp screw holes (M3 from the back into nuts in the strips)."""
+    """Printed carrier: plate behind the board with 4 locating pegs and 2 hex nut pockets in its back for the strip
+    screws, column down to the housing spine (2 x M3 along -x)."""
     g = as_geom(P)
     y0, y1 = g["y_plate"]
     s = [prim.box(-PLATE_HALF_X, PLATE_HALF_X, y0, y1, -PLATE_HALF_Z, PLATE_HALF_Z),
-         prim.box(COL_X[0], COL_X[1], y0, y1, COL_Z0, PLATE_HALF_Z)]
+         prim.box(COL_X[0], COL_X[1], y0, y1, COL_Z0, PLATE_HALF_Z),
+         prim.box(COL_X[0], COL_X[1], COL_LOW_Y0, y1, COL_Z0, -PLATE_HALF_Z - 0.5)]
     for bx, by in PCB_HOLES:
         x, z = _b2w(bx, by)
-        s.append(prim.cylY(PEG_D / 2, g["y_strip"], y0 + 0.01, x=x, z=z, seg=24))
+        s.append(prim.cylY(PEG_D / 2, g["y_peg_tip"], y0 + 0.01, x=x, z=z, seg=24))
     c = prim.union(s)
+    nut = prim.place(prim.cyl(switch.M3_NUT_S / math.sqrt(3) + 0.08, 2.7, seg=6), tf.Rx(90))   # +z -> -y
     for zz in (STRIP_SCREW_Z, -STRIP_SCREW_Z):
         c = c - prim.cylY(fits.M3_CLEAR_D / 2, y0 - 1, y1 + 1, x=0.0, z=zz)
+        c = c - nut.translate((0.0, y1 + 0.01, zz))
     for zb in COL_BOLT_Z:
-        c = c - prim.cylX(fits.M3_CLEAR_D / 2, COL_X[0] - 1, COL_X[1] + 7.0, y=0.5 * (y0 + y1), z=zb)
+        c = c - prim.cylX(fits.M3_CLEAR_D / 2, COL_X[0] - 1, COL_X[1] + 1.0, y=COL_BOLT_Y, z=zb)
     return c
 
 
 def strip_solid(P, sg):
-    """Clamp strip along one long board edge (sg +1 top, -1 bottom): thin band on the chip face over the corner holes,
-    thick part past the board edge down to the plate, hex nut pocket in its front face for the M3 clamp screw."""
+    """Clamp strip along one long board edge (sg +1 top, -1 bottom): band on the chip face over the corner holes, thick
+    part past the board edge reaching to 0.3 mm short of the plate (so the band clamps the board), M3 clearance hole
+    (screw head on the strip front, nut in the carrier back)."""
     g = as_geom(P)
     zin = PCB_W / 2 - STRIP_BAND                      # inner edge of the band (|z|)
     zout = STRIP_SCREW_Z + 3.5
-    th = g["y_strip_thick"]
-    a = prim.box(-PCB_L / 2, PCB_L / 2, g["y_strip"], g["y_board"], *sorted((sg * zin, sg * (PCB_W / 2 + 0.3))))
-    b = prim.box(-PCB_L / 2, PCB_L / 2, th, g["y_plate"][0], *sorted((sg * (PCB_W / 2 + 0.3), sg * zout)))
+    yf = g["y_strip"]
+    a = prim.box(-PCB_L / 2, PCB_L / 2, yf, g["y_board"], *sorted((sg * zin, sg * (PCB_W / 2 + 0.3))))
+    b = prim.box(-PCB_L / 2, PCB_L / 2, yf, g["y_plate"][0] - STRIP_FRONT_GAP,
+                 *sorted((sg * (PCB_W / 2 + 0.3), sg * zout)))
     s = a + b
     for bx, by in PCB_HOLES:
         x, z = _b2w(bx, by)
         if z * sg > 0:
-            s = s - prim.cylY(PEG_D / 2 + 0.15, g["y_strip"] - 1, g["y_board"] + 1, x=x, z=z)
-    z = sg * STRIP_SCREW_Z
-    s = s - prim.cylY(fits.M3_CLEAR_D / 2, th - 1, g["y_plate"][0] + 1, x=0.0, z=z)
-    nut = prim.place(prim.cyl(switch.M3_NUT_S / math.sqrt(3) + 0.08, 2.6, seg=6), tf.Rx(-90))  # +z -> +y
-    s = s - nut.translate((0.0, th - 0.01, z))
+            s = s - prim.cylY(PEG_D / 2 + 0.15, yf - 1, g["y_board"] + 1, x=x, z=z)
+    s = s - prim.cylY(fits.M3_CLEAR_D / 2, yf - 1, g["y_plate"][0] + 1, x=0.0, z=sg * STRIP_SCREW_Z)
     return s
 
 
 def strip_nut(P, sg):
     g = as_geom(P)
     n = prim.place(switch._nut(0.0), tf.Rx(-90))                       # nut along +y from y 0
-    return n.translate((0.0, g["y_strip_thick"] + 0.1, sg * STRIP_SCREW_Z))
+    return n.translate((0.0, g["y_plate"][1] - 0.1 - switch.M3_NUT_M, sg * STRIP_SCREW_Z))
 
 
-def strip_screw(P, sg, L=10.0):
-    """M3 x L SHCS from the carrier back, head on the back face."""
+def strip_screw(P, sg, L=STRIP_SCREW_L):
+    """M3 x L SHCS, head on the strip front face, into the nut in the carrier back."""
     g = as_geom(P)
-    y1 = g["y_plate"][1]
+    yf = g["y_strip"]
     z = sg * STRIP_SCREW_Z
-    return prim.cylY(1.5, y1 - L, y1 + 0.01, x=0.0, z=z, seg=20) + prim.cylY(2.75, y1, y1 + 3.0, x=0.0, z=z, seg=24)
+    return prim.cylY(1.5, yf - 0.01, yf + L, x=0.0, z=z, seg=20) + prim.cylY(2.75, yf - 3.0, yf, x=0.0, z=z, seg=24)
 
 
 def column_screws(P, L=16.0):
-    g = as_geom(P)
-    yc = 0.5 * sum(g["y_plate"])
     out = []
     xh = COL_X[1]                                          # head on the column's +x face
     for zb in COL_BOLT_Z:
-        out.append(prim.cylX(1.5, xh - L, xh + 0.01, y=yc, z=zb, seg=20) + prim.cylX(2.75, xh, xh + 3.0, y=yc, z=zb,
-                                                                                   seg=24))
+        out.append(prim.cylX(1.5, xh - L, xh + 0.01, y=COL_BOLT_Y, z=zb, seg=20) +
+                   prim.cylX(2.75, xh, xh + 3.0, y=COL_BOLT_Y, z=zb, seg=24))
     return prim.union(out)
 
 
 def spine_pilots(P):
     """Spec for cad-launch: M3 self tap pilots in the aim housing spine +x face (world)."""
-    g = as_geom(P)
-    yc = 0.5 * sum(g["y_plate"])
-    return [dict(x=SPINE_X, y=round(yc, 2), z=zb, d=fits.M3_TAP_D, depth=11.0, axis="-x") for zb in COL_BOLT_Z]
+    return [dict(x=SPINE_X, y=COL_BOLT_Y, z=zb, d=fits.M3_TAP_D, depth=11.0, axis="-x") for zb in COL_BOLT_Z]
 
 
 # ------------------------------------------------------------------------------------------------ switches
@@ -181,12 +181,12 @@ RISER = 4.0                       # SW_GAP: pad on the lever tip so the jam nut 
 _SW = {}
 
 
-def sw_build(riser=0.0):
+def sw_build(riser=0.0, root_len=14.0):
     """cad.lib.switch.contact_switch with the default (coupon 2) geometry. riser > 0 adds a printed pad of that height
     on the rigid lever tip beyond the jam nut (the actuator then touches the pad top); info["top"] = actuator face z."""
-    key = float(riser)
+    key = (float(riser), float(root_len))
     if key not in _SW:
-        d = dict(switch.contact_switch(SW_LEVER))
+        d = dict(switch.contact_switch(SW_LEVER, root_len=root_len))
         i = dict(d["info"])
         top = i["z_lever"] + 5.0                                    # boss_h 5 (contact_switch default)
         if riser > 0:
@@ -196,6 +196,7 @@ def sw_build(riser=0.0):
             top += riser
         i["top"] = top
         i["riser"] = riser
+        i["root_len"] = root_len
         d["info"] = i
         _SW[key] = d
     return _SW[key]
@@ -229,7 +230,7 @@ def swl_geom(P):
 SWL_FOOT = dict(x=(103.0, 130.4), y=(193.8, 201.8))   # = cad-launch housing foot extension x 80..130.9 (top at deck+8)
 SWL_FOOT_PILOTS = ((107.0, 197.8),)   # M3 self tap d2.6 x 7 deep into the foot extension top (cad-launch also cut
                                       # one at x 116: it sits under the bracket column, unused); the second fixing
-                                      # is the housing's 4th deck screw from below into the bracket foot
+                                      # is the housing 4th deck screw, M3x20 from above through the foot
 
 
 def _local_box_world(M, lo, hi):
@@ -240,7 +241,7 @@ def _local_box_world(M, lo, hi):
 
 def swl_bracket_solid(P):
     """Printed bracket (world): plate behind the switch base (world x beyond the base bottom), a column down to the
-    housing foot extension and a foot on it (2 x M3 down + the existing deck screw from below)."""
+    housing foot extension and a foot on it (1 x M3 down + the housing 4th deck screw from above through the foot)."""
     g = swl_geom(P)
     d = sw_build()
     M = g["M"]
@@ -249,7 +250,10 @@ def swl_bracket_solid(P):
     xb = whi[0]                                           # base bottom face (world x)
     z_top_foot = g["deck_z"] + 8.0
     s = [prim.box(xb, xb + 5.0, wlo[1], whi[1], wlo[2], whi[2])]                           # backing plate
-    s.append(prim.box(xb, xb + 10.0, SWL_FOOT["y"][0], SWL_FOOT["y"][1], z_top_foot, wlo[2] + 0.01))   # column
+    xdk, ydk = swl_deck_screw(P)
+    s.append(prim.box(xb, min(xb + 10.0, xdk - 3.4), SWL_FOOT["y"][0], SWL_FOOT["y"][1], z_top_foot,
+                      wlo[2] + 0.01))                                                         # column (clear of the
+    #                                                                                           deck screw head)
     s.append(prim.box(SWL_FOOT["x"][0], SWL_FOOT["x"][1], SWL_FOOT["y"][0], SWL_FOOT["y"][1], z_top_foot,
                       z_top_foot + 6.0))                                                      # foot
     s.append(prim.box(xb - 6.0, xb + 0.01, SWL_FOOT["y"][0], SWL_FOOT["y"][1], z_top_foot + 5.99,
@@ -265,13 +269,15 @@ def swl_bracket_solid(P):
         b = b - prim.cyl(fits.M3_CLEAR_D / 2, 10.0, x=x, y=y, z=z_top_foot - 1)
         b = b - prim.cyl(3.0, 20.0, x=x, y=y, z=z_top_foot + 6.0)                           # head clearance up
     xdk, ydk = swl_deck_screw(P)
-    b = b - prim.cyl(fits.M3_TAP_D / 2, 5.0, x=xdk, y=ydk, z=z_top_foot - 1)               # deck screw tip
+    b = b - prim.cyl(fits.M3_CLEAR_D / 2, 10.0, x=xdk, y=ydk, z=z_top_foot - 1)            # deck screw (from above)
+    b = b - prim.cyl(3.2, 30.0, x=xdk, y=ydk, z=z_top_foot + 6.0)                          # its head and driver
     b = b - _mount_pilots(M, d["info"])
     return b
 
 
 def swl_deck_screw(P):
-    """cad-launch's existing 4th deck screw (from below through the housing foot extension): (x, y)."""
+    """cad-launch's 4th housing deck screw (x, y): from above through the bracket foot and the housing foot extension
+    into the deck's heat-set insert."""
     try:
         import launch_aim as LA
         return LA.deck_holes(P)[3]
@@ -281,7 +287,7 @@ def swl_deck_screw(P):
 
 def _mount_pilots(M, i, depth=5.5):
     """Self tap pilots in the backing plate under the switch base's 4 mounting holes (switch local -> M)."""
-    d = sw_build(i.get("riser", 0.0))
+    d = sw_build(i.get("riser", 0.0), i.get("root_len", 14.0))
     lo, hi = prim.bbox(d["base"])
     base_w = hi[1] - lo[1]
     root_len = -lo[0] - 2.0
@@ -298,8 +304,11 @@ def gap_geom(P):
     from the gear pin; actuated towards -y."""
     import launch as LN
     n = LN.L(P)
-    i = sw_build(RISER)["info"]
-    u_t, w_t = LN.home_bump_point(P)
+    i = sw_build(RISER, GAP_ROOT)["info"]
+    u_b, w_b = LN.home_bump_point(P)
+    cd = n["cd"]
+    k = (LN.BUMP_R + GAP_R_OFF) / LN.BUMP_R                 # contact point moved along the bump's radius
+    u_t, w_t = cd + (u_b - cd) * k, w_b * k
     y_bump = n["y_sec"][0] - LN.BUMP_H
     y_rest = y_bump + i["pretravel"] + SW_PRESS
     a = math.radians(GAP_DIR)
@@ -308,8 +317,11 @@ def gap_geom(P):
     return dict(M=M, u=u_t, w=w_t, y_bump=y_bump, y_rest=y_rest, cd=n["cd"], y_chA=n["y_chA"], info=i)
 
 
-GAP_DIR = 217.5               # direction (rail u-w, deg) from the bump to the lever root; within 29 deg of the radial
+GAP_R_OFF = -1.0              # lever contact 1 mm inside the bump centre radius (bump flat top r 26.7..32.7)
+GAP_DIR = 213.75              # direction (rail u-w, deg) from the bump to the lever root; within 29 deg of the radial
                               # 225 so the contact screw stays outside the bump's circle
+GAP_ROOT = 10.0               # SW_GAP lever clamp pad length (cad.lib default 14): 4 mm shorter base at the root end,
+                              # clear of cad-reel's pulley 2 post; the flexing beam (coupon 2 geometry) is unchanged
 GAP_BASE_Y = (-17.5, 7.8)     # switch local y kept of the SW_GAP base (no mounting wings needed: it has its arm);
                               # +y (down-forward, towards cad-reel's p2 post) trimmed 1.7 past the wire channel
 GAP_TAB_PILOTS = ((48.0, 2.0), (64.0, 2.0))   # (u, w) M3 self tap d2.6 into the right cheek outer face, 7 deep along +y
@@ -323,7 +335,7 @@ def gap_arm_rail(P):
     M = g["M"]
     yo = g["y_chA"][0]                                    # cheek outer face (-17)
     yb = float(tf.apply(M, np.array([[0.0, 0.0, 0.0]]))[0, 1])                # base bottom (rail y)
-    t = sw_build(RISER)["info"]
+    t = sw_build(RISER, GAP_ROOT)["info"]
     base_t = 3.0
     u0, u1 = GAP_TAB_PILOTS[0][0] - 7.0, GAP_TAB_PILOTS[1][0] + 7.0
     tab = prim.box(u0, u1, yb, yo, -4.0, 8.0)
@@ -339,7 +351,7 @@ def gap_arm_rail(P):
 def gap_base_solid(P):
     """SW_GAP printed base (switch local frame): cad.lib switch base + the arm to the cheek."""
     g = gap_geom(P)
-    d = sw_build(RISER)
+    d = sw_build(RISER, GAP_ROOT)
     lo, hi = prim.bbox(d["base"])
     keep = prim.box(lo[0] - 1, hi[0] + 1, GAP_BASE_Y[0], GAP_BASE_Y[1], lo[2] - 1, hi[2] + 1)
     arm = prim.place(gap_arm_rail(P), tf.inv(g["M"]))
@@ -360,8 +372,9 @@ def _bed(solid, R=None):
     return LN.bed(solid, R)
 
 
-def _switch_parts(tag, M, joint, where, riser=0.0, base=None, base_ref="4 x M3x8 self tap (base to bracket)"):
-    d = sw_build(riser)
+def _switch_parts(tag, M, joint, where, riser=0.0, base=None, base_ref="4 x M3x8 self tap (base to bracket)",
+                  root_len=14.0):
+    d = sw_build(riser, root_len)
     i = d["info"]
     nm = f"{PREFIX}_sw_{tag}"
     up = f"SW_{tag.upper()}"
@@ -397,13 +410,14 @@ def parts(P):
     for sg, tag in ((1, "top"), (-1, "bot")):
         st = strip_solid(P, sg)
         out.append(Part(f"{PREFIX}_as5600_strip_{tag}", st, "PLA", joint=None, place=tf.I4,
-                        print_tf=_bed(st, tf.Rx(90)), color="#b8c4cc", bought_ref="M3x10 SHCS",
-                        notes="AS5600 clamp strip on the board edge over the pegs, M3 from the carrier back into "
-                              "the nut in the strip"))
+                        print_tf=_bed(st, tf.Rx(90)), color="#b8c4cc",
+                        bought_ref=f"M3x{STRIP_SCREW_L:g} SHCS; M3 nut",
+                        notes="AS5600 clamp strip on the board edge over the pegs, M3 from the strip front into a "
+                              "nut in the carrier back"))
         out.append(Part(f"{PREFIX}_as5600_nut_{tag}", strip_nut(P, sg), "bought", joint=None, place=tf.I4,
-                        color="#444444", bought_ref="M3 nut", notes="Clamp strip nut"))
+                        color="#444444", notes="Clamp strip nut in the carrier back (counted on the strip)"))
         out.append(Part(f"{PREFIX}_as5600_screw_{tag}", strip_screw(P, sg), "bought", joint=None, place=tf.I4,
-                        color="#444444", notes="Clamp strip screw M3x10 (counted on the strip)"))
+                        color="#444444", notes=f"Clamp strip screw M3x{STRIP_SCREW_L:g} (counted on the strip)"))
     out.append(Part(f"{PREFIX}_as5600_col_screws", column_screws(P), "bought", joint=None, place=tf.I4,
                     color="#444444", notes="2 x M3x16 carrier to spine (counted on the carrier)"))
     # SW_RAIL_LOW
@@ -411,16 +425,16 @@ def parts(P):
     br = swl_bracket_solid(P)
     out += _switch_parts("rail_low", gl["M"], None,
                          "on its bracket on the aim housing foot, closed by the crank cam at the LOW dead point")
-    out.append(Part(f"{PREFIX}_sw_rail_low_bracket", br, "PLA", joint=None, place=tf.I4, print_tf=_bed(br),
-                    color="#9aa7b4", bought_ref="M3x10 SHCS (foot into the housing)",
-                    notes="SW_RAIL_LOW bracket on the aim housing foot extension; the housing's 4th deck screw also "
-                          "bites into its foot"))
+    out.append(Part(f"{PREFIX}_sw_rail_low_bracket", br, "PLA", joint=None, place=tf.I4, print_tf=_bed(br, tf.I4),
+                    color="#9aa7b4", bought_ref="M3x10 SHCS (foot into the housing); M3x20 SHCS (housing deck screw)",
+                    notes="SW_RAIL_LOW bracket on the aim housing foot extension; the housing's 4th deck screw (M3x20 "
+                          "from above) goes through its foot into the deck insert"))
     # SW_GAP
     gg = gap_geom(P)
     out += _switch_parts("gap", gg["M"], "launch_rail",
                          "with its arm screwed to the right rail cheek outer face below the big gear, closed by the "
                          "big gear cam bump (gear in its gap)", riser=RISER, base=gap_base_solid(P),
-                         base_ref="2 x M3x12 SHCS (arm into the right cheek)")
+                         base_ref="2 x M3x12 SHCS (arm into the right cheek)", root_len=GAP_ROOT)
     return out
 
 
@@ -442,10 +456,10 @@ def allowed(P):
     out += [
         Allow(f"{PREFIX}_sw_rail_low_lever", "launch_aim_crank",
               "crank cam presses the lever tip at the LOW dead point (the lever bends; modelled rigid at rest)",
-              max_vol=120.0),
+              max_vol=60.0),
         Allow(f"{PREFIX}_sw_gap_lever", "launch_big_gear",
               "big gear cam bump presses the lever tip at rest (the lever bends; modelled rigid at rest)",
-              max_vol=120.0),
+              max_vol=60.0),
         Allow(f"{PREFIX}_as5600_screw_*", f"{PREFIX}_as5600_nut_*", "clamp screw in its nut"),
         Allow(f"{PREFIX}_as5600_col_screws", "launch_aim_housing", "M3 self tapping into the spine pilots"),
     ]
@@ -457,6 +471,9 @@ def clearances(P):
         Clearance(f"{PREFIX}_as5600", "drum_magnet_cap", 0.4, "JST connectors and chip vs the turning magnet cap"),
         Clearance(f"{PREFIX}_as5600_strip_*", "drum_magnet_cap", 0.4, "clamp strips vs the turning magnet cap"),
         Clearance(f"{PREFIX}_as5600_screw_*", "drum_magnet_cap", 0.4, "clamp screw tips vs the magnet cap"),
+        Clearance(f"{PREFIX}_sw_gap", "reel_p2_post", 2.5, "SW_GAP under the rail vs cad-reel's pulley 2 arm"),
+        Clearance(f"{PREFIX}_sw_gap", "launch_sleeve", 1.5, "SW_GAP vs the launch sleeve flange"),
+        Clearance(f"{PREFIX}_sw_gap", "drum_dog_post", 1.0, "SW_GAP arm vs cad-drum's dog post"),
     ]
 
 
@@ -487,7 +504,7 @@ def steps(P):
     i = sw_build()["info"]
     g = as_geom(P)
     return [
-        dict(title="Sensors 1: build the two contact switches (SW_RAIL_LOW, SW_GAP)",
+        dict(stage=210, title="Sensors 1: build the two contact switches (SW_RAIL_LOW, SW_GAP)",
              text=f"For each switch: press an M3 nut into the hex trap on the base pillar (a drop of glue), solder a "
                   f"wire to the nut through the side slot and lay it in the groove. Screw the lever onto the pad with "
                   f"2 x M3x{i['clamp_screw_len']} self tapping screws. Screw an M3x{i['screw_len']} through the "
@@ -495,27 +512,30 @@ def steps(P):
                   f"Turn the screw until the head touches the nut, then back it off {i['gap'] * 2:.1f} turns "
                   f"(gap about {i['gap']:.1f} mm, 0.5 mm per turn) and lock the jam nut.",
              parts=[f"{PREFIX}_sw_rail_low", f"{PREFIX}_sw_rail_low_lever", f"{PREFIX}_sw_rail_low_screw",
-                    f"{PREFIX}_sw_rail_low_jam", f"{PREFIX}_sw_rail_low_nut", f"{PREFIX}_sw_gap", f"{PREFIX}_sw_gap_lever",
-                    f"{PREFIX}_sw_gap_screw", f"{PREFIX}_sw_gap_jam", f"{PREFIX}_sw_gap_nut"]),
-        dict(title="Sensors 2: SW_RAIL_LOW on the aim housing",
+                    f"{PREFIX}_sw_rail_low_jam", f"{PREFIX}_sw_rail_low_nut"]),
+        dict(stage=211, title="Sensors 2: SW_RAIL_LOW on the aim housing",
              text="Screw the switch base to its bracket (4 x M3x8 self tapping), lever pointing to the crank. Set the "
-                  "bracket foot on the housing foot extension in front of the crank and screw it down with 1 x M3x10 "
-                  "(front hole). "
-                  "The housing's front deck screw goes up through the foot extension into the bracket foot. Turn the "
-                  "crank by hand (wiper backwards) to the lowest rail position: the cam lobe must press the lever "
-                  "tip and the meter must show the switch closed; 10 deg either side it must open.",
+                  "bracket foot on the housing foot extension in front of the crank. Screw it down with an M3x10 "
+                  "in the hole nearest the crank (self taps into the housing), and put the housing's 4th deck screw "
+                  "(M3x20 instead of the shorter one) down through the outer hole, the foot extension and into its "
+                  "deck insert. Turn the crank by hand (wiper backwards) to the lowest rail position: the cam lobe "
+                  "presses the lever tip and the meter shows the switch closed. Turn the crank about 20 deg either "
+                  "side: the switch must open.",
              parts=[f"{PREFIX}_sw_rail_low_bracket"]),
-        dict(title="Sensors 3: SW_GAP on the right rail cheek",
-             text="The SW_GAP base has its own arm. Hold the arm tab on the outer face of the right rail cheek, below "
+        dict(stage=212, title="Sensors 3: SW_GAP on the right rail cheek",
+             text="Build SW_GAP as in Sensors 1 (its base has its own arm). Hold the arm tab on the outer face of the right rail cheek, below "
                   "the big gear, and screw it on with 2 x M3x12 (heads in the counterbores). With the big gear "
                   "at rest (toothless gap at the rack) the cam bump presses the lever: switch closed. Turn the gear "
                   "20 deg either way: switch open.",
-             parts=[]),
-        dict(title="Sensors 4: AS5600 board",
-             text="Battery unplugged. Plug the STEMMA QT cable into the board's connector on the +x end (the end "
+             parts=[f"{PREFIX}_sw_gap", f"{PREFIX}_sw_gap_lever", f"{PREFIX}_sw_gap_screw", f"{PREFIX}_sw_gap_jam",
+                    f"{PREFIX}_sw_gap_nut"]),
+        dict(stage=213, title="Sensors 4: AS5600 board",
+             text="Do this after the magnet cap is on the main shaft end (drum steps): the board sits 2 mm in front of "
+                  "it. Battery unplugged. Plug the STEMMA QT cable into the board's connector on the +x end (the end "
                   "away from the housing spine). Push the board onto the 4 pegs of the carrier, chip facing out. Drop "
-                  "an M3 nut into the hex pocket of each clamp strip, lay the strips over the board edges (pegs "
-                  "through their holes) and screw each from the carrier back with an M3x10. Screw the carrier "
+                  "an M3 nut into each hex pocket in the carrier back, lay the strips over the board edges (pegs "
+                  f"through their holes) and screw each from the strip front with an M3x{STRIP_SCREW_L:g} into its "
+                  "nut. Screw the carrier "
                   "column to the aim housing spine with 2 x M3x16. Check by eye: the chip sits on the shaft axis, "
                   f"about {g['gap']:.1f} mm from the magnet face, and the cap turns free.",
              parts=[f"{PREFIX}_as5600", f"{PREFIX}_as5600_carrier", f"{PREFIX}_as5600_strip_top",

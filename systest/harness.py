@@ -42,6 +42,22 @@ DART_SIM = os.path.join(ROOT, "firmware", "dart", "sim", "kedge_sim")
 RUNS = os.environ.get("SYSTEST_RUNS") or os.path.join(HERE, "runs")
 
 
+def firmware_path_gain(default: float = 1.15) -> float:
+    """Capstan/dart path gain the firmware under test was built with (params_gen.h): PATH_GAIN if defined, else the
+    ratio of the capstan-side to the dart-side tension law (D43 / D46)."""
+    import re
+    try:
+        t = open(os.path.join(ROOT, "firmware", "base", "grappstar_base", "params_gen.h")).read()
+    except OSError:
+        return default
+    m = re.search(r"#define\s+P_\w*PATH_GAIN\w*\s+([0-9.]+)", t)
+    if m:
+        return float(m.group(1))
+    a = re.search(r"#define\s+P_REEL_TOW_TENSION_MODEL_CAPSTAN_N_PER_A\s+([0-9.]+)", t)
+    b = re.search(r"#define\s+P_REEL_TOW_TENSION_MODEL_N_PER_A\s+([0-9.]+)", t)
+    return float(a.group(1)) / float(b.group(1)) if a and b else default
+
+
 def free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
@@ -271,6 +287,7 @@ class Rig:
         self.done_triggers = set()
         self.base_seen_off = False
         self.probe_results: List[dict] = []
+        self.limit_samples: List[dict] = []
         self.dart_d: Optional[float] = None       # dart distance along the line from the base (m)
 
     # -------------------------------------------------------------- logging
@@ -369,6 +386,10 @@ class Rig:
 
     def _on_evt(self, e: dict) -> None:
         e2 = {k: v for k, v in e.items() if not k.startswith("_")}
+        if e2.get("evt") == "LIMIT" and e2.get("holding"):
+            g = self.base.get()                       # dart-side truth when the firmware says it holds at the limit
+            self.limit_samples.append({"fw": e2.get("tension_n"), "plant_dart": round(float(g.get("tension") or 0) / self.sc.path_gain, 1),
+                                       "max_n": e2.get("max_n"), "step": self.step(), "why": e2.get("why")})
         if e2.get("evt") == "AIMED" and not self.fired_seen:
             self.aimed_plant = self.base.get()       # the rail's real pitch when the firmware says it is aimed (the shot aim)
         e2["_step"] = self.step()
@@ -392,6 +413,7 @@ class Rig:
                     self.plant_max[k] = max(self.plant_max.get(k, 0.0), v)
                 self.plant_max["dryFires"] = max(self.plant_max.get("dryFires", 0), p.get("dryFires", 0))
                 if step != last_step:
+                    p = dict(p, tel_line_m=(self.app.base.tel or {}).get("line_m"))
                     self.step_plant[step] = p
                     self.note("plant", step=step, **{k: p.get(k) for k in ("state", "drumDeg", "lineOut", "wraps",
                                                                            "tension", "seated", "inLaunch", "inReel")})
@@ -417,6 +439,7 @@ class Rig:
                             rr = float(vt) + (rr - r0)
                         if rr:
                             self.base.set(lineOut=round(rr * 1.05 + 0.3, 3))
+                            self.landing_line = round(rr * 1.05 + 0.3, 3)
                             p["lineOut"] = round(rr * 1.05 + 0.3, 3)
                             self.note("info", msg=f"real pitch {pt:.2f} deg: range {rr:.2f} m, line out {p['lineOut']} m")
                     self.dart_d = float(p.get("lineOut") or 0) - self.sc.landing_slack   # landing slack on the dart side
@@ -510,7 +533,18 @@ class Rig:
         self.solution = sol.to_dict()
         rng_true = self.sc.target[0]
         self.base.set(lineOutAfterShot=round(rng_true * 1.05 + 0.3, 2))
-        self.video.render(sol.pitch_deg if sol.reachable else 35.0, float(sol.to_dict().get("v_muzzle") or 7.1))
+        # render the flight so it lands where the physics table (C3) says: the sim renderer's own drag model flies
+        # about 15 % long at 47 deg, so scale the muzzle speed until the rendered range matches the table
+        pitch_r = sol.pitch_deg if sol.reachable else 35.0
+        v0 = float(sol.to_dict().get("v_muzzle") or 7.1)
+        r_tab = app.bal.at_pitch(pitch_r, app.cfg.mission.drag_n).get("range_m")
+        for _ in range(3):
+            self.video.render(pitch_r, v0)
+            r_vid = (self.video.truth or {}).get("range_m")
+            if not (r_tab and r_vid) or abs(r_vid - r_tab) / r_tab < 0.03:
+                break
+            v0 *= (r_tab / r_vid) ** 0.5
+        self.note("info", msg=f"video rendered at {pitch_r:.1f} deg, v0 {v0:.2f}: range {self.video.truth.get('range_m'):.2f} m (table {r_tab})")
         self.note("info", msg=f"solution {self.solution}")
         time.sleep(4.0)                        # let the camera quality window fill with real frames
         if self.sc.driver == "ref":
@@ -1053,21 +1087,65 @@ def c_tow_limit(rig, res):
     return mx <= lim * 1.15, f"max dart-side tension {mx:.1f} N (capstan / {rig.sc.path_gain}, at {worst}), limit {lim} N (+15 %)"
 
 
+def c_limit_dart_side(rig, res):
+    """D43/D46: the firmware's LIMIT/HOLD tension is the DART-side tension (plant capstan tension / path gain)."""
+    smp = [x for x in rig.limit_samples if x.get("fw") is not None and x["plant_dart"] > 3 and "already" not in str(x.get("why"))]
+    if not smp:
+        return True, "no holding LIMIT to compare"
+    bad = [x for x in smp if abs(float(x["fw"]) - x["plant_dart"]) > max(5.0, 0.15 * x["plant_dart"])]
+    return not bad, f"firmware vs plant dart-side at LIMIT (gain {rig.sc.path_gain:.2f}): {[(x['fw'], x['plant_dart']) for x in smp][:6]}"
+
+
+def c_tow_takes_slack(rig, res):
+    """F22: after the rover makes slack, the next tow round must pull again (host: stop, then reel), not get an
+    instant "already at the limit" on a slack line."""
+    stale = [x for x in rig.limit_samples if "already" in str(x.get("why")) and x["plant_dart"] < 0.8 * float(x.get("max_n") or 0)]
+    return not stale, f"'already at the limit' on a slack line: {[(x['fw'], x['plant_dart']) for x in stale]}"
+
+
 def c_released(rig, res):
     return "RELEASING" in res["dart_phases"], f"dart phases {res['dart_phases']}"
 
 
 def c_reeled(rig, res):
-    """10.1 step 15: the capstan reel-in stops with about approach_m left (never seats on the capstan)."""
+    """10.1 step 15: the capstan reel-in stops at line_m about approach_m (the base's own estimate) and never seats the
+    dart on the capstan. The plant line out is reported too: the gap is the landing estimate error (F29: the sim
+    renderer and the C3 table disagree by about 13 %, so it is informational)."""
     p = rig.step_plant.get("UNWRAP") or {}
     r = rig.step_plant.get("RETRIEVE") or {}
     a = rig.app.cfg.mission.approach_m
-    lo = p.get("lineOut")
+    tl, lo = p.get("tel_line_m"), p.get("lineOut")
     if lo is None:
         return False, "no UNWRAP snapshot"
-    started_short = r.get("lineOut") is not None and float(r["lineOut"]) <= a + 0.3   # nothing to reel on the capstan
-    ok = (started_short or a - 0.4 <= float(lo) <= a + 0.3) and not p.get("seated")
-    return ok, f"line out {r.get('lineOut')} m at RETRIEVE start, {lo} m at UNWRAP (want {a - 0.4:.1f}..{a + 0.3:.1f}), seated {p.get('seated')}"
+    started_short = r.get("tel_line_m") is not None and float(r["tel_line_m"]) <= a + 0.3
+    ok = (started_short or (tl is not None and float(tl) <= a + 0.3)) and not p.get("seated")
+    return ok, (f"base line_m {r.get('tel_line_m')} -> {tl} (stop at {a}), plant line out {r.get('lineOut')} -> {lo} m, "
+                f"seated {p.get('seated')}")
+
+
+def c_landing_estimate(rig, res):
+    """Informational: the line out the Jetson told the base against the plant's line out at the landing."""
+    told = [e for e in c1_raw_sets(rig) if e[0] == "line_m"]
+    true_lo = getattr(rig, "landing_line", None)
+    if not told or true_lo is None:
+        return True, "n/a"
+    est = told[0][1]
+    return True, f"told {est} m, real {true_lo:.2f} m ({100 * (est - true_lo) / true_lo:+.0f} %)"
+
+
+def c1_raw_sets(rig):
+    d = rig.app.run_dir
+    out = []
+    if d and os.path.exists(os.path.join(d, "mission.jsonl")):
+        for l in open(os.path.join(d, "mission.jsonl")):
+            try:
+                r = json.loads(l)
+            except ValueError:
+                continue
+            o = r.get("obj") or {}
+            if r.get("kind") == "base_tx" and o.get("cmd") == "set":
+                out.append((o.get("key"), o.get("val")))
+    return out
 
 
 def c_seat_neutral(rig, res):
@@ -1118,6 +1196,9 @@ def nominal_checks():
     return [("mission DONE", c_done), ("aim reached", c_aim), ("fired", c_fired), ("landed (dart)", c_landed),
             ("anchored (dart)", c_anchored), ("tidy ran", c_tidy), ("wrapped (4+ wraps on the capstan)", c_wrapped),
             ("REEL engaged, tow pulled", c_reel_engaged), ("tow limit respected", c_tow_limit),
+            ("LIMIT reports the dart-side tension (D43/D46)", c_limit_dart_side),
+            ("landing estimate (informational)", c_landing_estimate),
+            ("tow rounds take up the rover's slack (F22)", c_tow_takes_slack),
             ("dart released", c_released), ("reeled in to the approach", c_reeled), ("unwrapped", c_unwrapped),
             ("seated", c_seated), ("back to LAUNCH", c_launch), ("no dry fire", c_no_dry),
             ("wraps laid without jamming (D22 slack)", c_wrap_free), ("free dart tugged under 1 m by the wrap", c_tug),

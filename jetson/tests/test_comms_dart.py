@@ -118,6 +118,39 @@ def test_hold_deadman_repeats_and_stops(md):
     assert ks[-1] == " "
 
 
+def test_hold_refused_does_not_stop_a_running_sequence(md):
+    """review B3: a hold refused at its first key (an /auto running) must not send /stop, which would abort it."""
+    d = Dart(md.host)
+    d.auto()
+    with pytest.raises(DartRefused):
+        d.hold("2", 0.5)
+    assert not any(path == "/stop" for _, path, _ in md.requests)
+    assert d.status()["phase"] == "ANCHORING"
+    d.wait_phase("ANCHORED", 10, poll=0.05)
+
+
+def test_hold_limit_raises_but_stalled_is_a_normal_end(md):
+    """fw-dart f5487cd: "hold limit: release the key first" (8 s manual cap) means the move is unfinished: raise.
+    "stalled" stays the normal end at an end stop. Both still end with /stop?disarm=0."""
+    for reason, raises in (("hold limit: release the key first", True), ("stalled: release the key first", False)):
+        d = Dart(md.host)
+        n = {"k": 0}
+        real_key = d.key
+        def key(c, ms, reason=reason):
+            n["k"] += 1
+            if n["k"] > 2:
+                raise DartRefused("/key", reason)
+            return real_key(c, ms)
+        d.key = key
+        before = sum(1 for _, p, _ in md.requests if p == "/stop")
+        if raises:
+            with pytest.raises(DartRefused):
+                d.hold("2", 3.0)
+        else:
+            d.hold("2", 3.0)
+        assert sum(1 for _, p, _ in md.requests if p == "/stop") == before + 1
+
+
 def test_hold_cancel(md):
     d = Dart(md.host)
     ev = threading.Event()

@@ -438,32 +438,25 @@ def firmware_table(c=None):
         collar_transitions=dict(LN=list(c["tr_ln"]), NR=list(c["tr_nr"])),
         brake_ramps=[list(r) for r in c["brake_ramps"]],
         rules=[
+            "fw-base (c740e46) is the reference for behaviour; these are the drum's requirements.",
             "Positive drum = N20 forward (DRV8833 #3 AIN1 high) = toward REEL = wrap direction.",
-            "Wiper stopped before drum moves, except: the fly-in into REEL (creep forward over 318..340) and the unwrap "
-            "(WRAPPED back to NEUTRAL with the wiper creeping forward for the bus take-up).",
+            "Wiper stopped before drum moves, except: the fly-in into REEL (D41: creep forward over 318..340, stop on "
+            "SW_DOG_R or +0.8 A, then jogs of at most 5 deg) and the unwrap (back to NEUTRAL with the wiper creeping "
+            "forward for the bus take-up).",
             "Check SW_DOG_L / SW_DOG_R during and after every move: LAUNCH needs DOG_L closed, REEL needs DOG_R closed, "
             "NEUTRAL / WRAP_PREP / WRAP / WRAPPED need both open; never enter the wrap window with either closed.",
-            "Dog not closed in LAUNCH: jog the wiper +-8 deg. Fly-in to REEL (D41): creep the wiper forward over drum "
-            "318..340; stop the creep when SW_DOG_R closes or the wiper current rises 0.8 A, then jog at most 5 deg at a time.",
-            "Leaving LAUNCH or REEL under load: unload jog 6 deg against the last load first (the dog play is +-8), stop the "
-            "jog early on a current rise. SWITCH_DISAGREE after 3 tries.",
-            "During every move: any code other than the current zone or the next zone in the travel direction -> stop, "
-            "SWITCH_DISAGREE. Each code must last at least 70 percent of its span / dps before the next is accepted.",
-            "Move timeout = 1.3 x nominal + 1 s up to the expected edge -> stop, DRUM_TIMEOUT.",
-            "SW_ARM opening (cup leaves home) during any move that is not a wrap or unwrap move -> stop, DRUM_SENSOR.",
-            "Contacts: debounce 5 ms (two equal reads).",
-            "Fault in LAUNCH or L_TO_N: HOLD the drum unless SW_HOME is closed (spring not drawn), then NEUTRAL (BASE_SPEC D27).",
-            "Fault in NEUTRAL or WRAP_PREP: stop the wiper, drum to NEUTRAL (41) if not there, hold.",
-            "Fault with the wraps on (WRAP, N_TO_R, REEL): the drum HOLDS where it is (D27, MODE err DRUM_HELD), never "
-            "NEUTRAL (that would unwrap under tow); the operator unwraps when safe.",
-            "Boot: accept the code only if the other switches agree: LAUNCH needs DOG_L closed; REEL needs DOG_R closed; "
-            "NEUTRAL and WRAP_PREP need both dogs open and SW_ARM closed (cup home). Otherwise hold and report.",
-            "Boot, agreed code: LAUNCH / L_TO_N -> hold until SW_HOME, then NEUTRAL; NEUTRAL / WRAP_PREP -> NEUTRAL through a "
-            "known edge (forward to edge 50, then back 9 deg); WRAP / N_TO_R / REEL -> hold and report. Code 000 at boot -> "
-            "DRUM_SENSOR, hold.",
-            "Going from REEL to WRAPPED (operator): by time from edge 342 (28 deg), never back into the wrap window.",
+            "Dog not closed in LAUNCH: backward wiper wiggle within 40 deg / 6 s. Leaving LAUNCH or REEL under load: "
+            "unload jog 6 deg (params unload_jog_deg), stopped early on a 0.8 A rise.",
+            "During every move: a code that is not the current or next zone -> stop, DRUM_SENSOR; an intermediate code "
+            "must last 70 percent of span / dps; timeout 1.3 x nominal + 1 s -> DRUM_TIMEOUT; SW_ARM opening outside a "
+            "wrap or unwrap -> fault. Contacts debounced 20 ms with chatter detection.",
+            "Fault in LAUNCH or L_TO_N: HOLD the drum unless SW_HOME is closed (spring not drawn), then NEUTRAL (D27).",
+            "Fault in NEUTRAL or WRAP_PREP: stop the wiper, hold.",
+            "Fault with the wraps on (WRAP, N_TO_R, REEL): the drum HOLDS (DRUM_HELD), never NEUTRAL; the operator "
+            "unwraps when safe (REEL -> NEUTRAL with the take-up; there is no REEL -> WRAPPED command).",
+            "Boot: no automatic drum moves. Cross-check the code with DOG_L / DOG_R / SW_ARM and report a mismatch; the "
+            "first commanded move re-references on a real code edge. Code 000 = DRUM_SENSOR.",
             "SW_N20 open = hand fallback active: no drum moves. When it closes again, run the boot rules.",
-            "Code 000 = DRUM_SENSOR fault.",
             "SW_INDEX: 6 pulses per wiper turn (degraded mode without the AS5600 magnet).",
         ],
     )

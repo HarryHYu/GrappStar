@@ -27,6 +27,7 @@ def _tx_log(base):
 
 
 # ------------------------------------------------------------------ F1: FINAL_APPROACH re-wraps instead of take-up
+@pytest.mark.slow       # a whole mission on the real firmware: check_all.sh runs it
 @needs_basesim
 def test_final_approach_uses_takeup_not_a_second_wrap(tmp_path):
     """D22: reel on the capstan to about approach_m, unwrap, then the take-up until seated. base-1.0 has no
@@ -51,6 +52,7 @@ def test_final_approach_uses_takeup_not_a_second_wrap(tmp_path):
 
 
 # ------------------------------------------------------------------ F2: tow with a load cell: reel refused BUSY
+@pytest.mark.slow       # a whole mission on the real firmware: check_all.sh runs it
 @needs_basesim
 def test_tow_with_load_cell_does_not_fail_busy(tmp_path, monkeypatch):
     """With a load cell the firmware winds again by itself when the held line slackens (tickHold, state REEL). The

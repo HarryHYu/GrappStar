@@ -1,5 +1,5 @@
 """Simulated base station that speaks contract C1 like the real firmware (firmware/base/grappstar_base/base_logic.h,
-fw "base-1.2") and follows the one C1 sequence of base/spec/BASE_SPEC.md section 10.1 (D35).
+fw "base-1.3.0") and follows the one C1 sequence of base/spec/BASE_SPEC.md section 10.1 (D35).
 
 Run it in-process (connected to BaseClient through a pipe) or on a pseudo terminal so the real client (or a terminal
 program) can open it like the USB port:
@@ -21,7 +21,7 @@ mechanics are simplified:
   (553.8 = one big gear turn). Fire from REST runs the whole cycle.
 - Wiper in REEL (collar engaged, wraps on): winds the capstan (about 0.22 m/s at duty 1). In NEUTRAL or at the WRAPPED
   park only the take-up turns (forward, duty 0.27..0.4, about 0.3 m/s per unit duty, slips at about 5 N): "tidy" (by
-  time, TIDIED), "retrieve" (until SW_SEATED, SEATED; FAULT DART_STUCK after max_s, default 20 + line_m / 0.08), "reel"
+  time, TIDIED), "retrieve" (until SW_SEATED, SEATED; FAULT DART_STUCK after max_s 5..600, default as approachLimit()), "reel"
   until stop / slip / seated. The line tension comes from the attached World (dart seated, flying, free, anchored).
   Telemetry tension_n is the load cell (null when load_cell is False).
 - Faults: inject_fault(code) or arm one with fail_next[cmd] = code (raised part way through that command's motion).
@@ -46,7 +46,7 @@ from typing import Any, Callable, Dict, Optional
 
 from .base import MAX_LINE, PipeEnd, pipe_pair
 
-FW = "base-1.2"
+FW = "base-1.3.0"
 PARAMS_VERSION = "1.2.1"
 
 # ---- drum (params.DRUM, base_logic.h Cfg): zones in travel order (name, lo, hi, closed code contacts)
@@ -97,7 +97,7 @@ REEL_MPS = N0_DPS * LINE_PER_WIPER_DEG                 # line speed at duty 1, l
 TAKEUP_MPS = 0.3          # take-up line speed per unit duty (0.09 m/s at duty 0.3)
 TAKEUP_SLIP_N = 5.0       # FIRM take-up clutch
 LINE_K = 400.0            # N per metre once the line is taut
-LIMIT_N, LIMIT_MAX_N = 50.0, 110.0
+LIMIT_N, LIMIT_MAX_N = 50.0, 55.0   # tow cap at the dart (params 1.3.2, D46; was 60 by D43)
 RESUME_FRAC = 0.6
 TENSION_IGNORE_S = 0.35
 TAPER_FRAC = 0.30
@@ -106,8 +106,17 @@ REEL_MIN_DUTY = 70.0 / 255.0
 TAKEUP_MAX_DUTY = 102.0 / 255.0
 TIDY_MS = 3000
 TIDY_STEADY_S, TIDY_MAX_S = 2.0, 15.0
-APPROACH_S = 20.0         # reel until seated on the take-up: DART_STUCK after this
-TAKEUP_MPS_NOMINAL = 0.08  # 10.1 step 17: retrieve max_s default = 20 + line_m / 0.08
+APPROACH_S = 30.0         # retrieve with line_m unknown: DART_STUCK after this (config.h approachMaxMs)
+TAKEUP_MPS_PER_DUTY, TAKEUP_MPS_OFF = 0.29, 0.03   # config.h: slowest take-up speed = 0.29 x duty - 0.03 m/s
+
+
+def approach_s(line_m: Optional[float], duty: float) -> float:
+    """base-1.2.1 approachLimit(): 10 + 1.5 x line_m / v, at least 20 s, at most 600 s; 30 s with line_m unknown."""
+    if line_m is None:
+        return APPROACH_S
+    d = min(max(duty, REEL_MIN_DUTY), TAKEUP_MAX_DUTY)
+    v = max(0.02, TAKEUP_MPS_PER_DUTY * d - TAKEUP_MPS_OFF)
+    return min(600.0, max(20.0, 10.0 + 1.5 * line_m / v))
 REEL_MAX_S = 240.0
 TRIP_A, COCK_TRIP_A, TOW_TRIP_A, TAKEUP_TRIP_A, HARD_TRIP_A = 5.0, 6.5, 6.5, 2.5, 17.0
 # ---- power, protocol
@@ -228,7 +237,7 @@ class MockBase:
         self.require_seated = True
         self.vbat_wired = True
         self.enc_sign = 1
-        self.settings: Dict[str, float] = {"limit_n": LIMIT_N, "k_n_per_a": 17.0, "tension_offset_n": -10.4,
+        self.settings: Dict[str, float] = {"limit_n": LIMIT_N, "k_n_per_a": 13.1, "tension_offset_n": -2.3,
                                            "free_a": 1.5, "amps_per_volt": 12.5, "offset_a": 0.0,
                                            "hx_n_per_count": 1 / 21000.0, "drum_dps": DRUM_DPS,
                                            "aim_tol": AIM_TOL_DEG, "aim_offset": 0.0, "aim_home_deg": AIM_HOME_DEG,
@@ -236,6 +245,7 @@ class MockBase:
                                            "vbat_low": VBAT_LOW, "host_timeout_s": 0.0}
         self.code_bad = False               # test hook: drum code invalid (drum_pos UNKNOWN, POSITION_UNKNOWN)
         self.ev_drops = 0
+        self.tension_cal = False             # base-1.3.0 (F28): true once k_n_per_a or tension_offset_n is set
         self.last_rx_t = 0.0                # sim time of the last line from the host (host watchdog)
         self.commands = self._commands()
         self._defer: Optional[list] = None  # events raised while a command is handled, sent after its reply
@@ -388,8 +398,9 @@ class MockBase:
             out["L"] = 1                     # rail at its low dead point (aim home)
         if self.seated():
             out["S"] = 1
-        if z != "WRAP" or ((self.drum_deg - WRAP_FROM) / WRAP_DEG) % 1.0 < 0.05:
-            out["W"] = 1                     # wrap cup ring at home (one pulse per cup turn in the WRAP sector)
+        wf = ((self.drum_deg - WRAP_FROM) / WRAP_DEG) % 1.0
+        if z == "WRAP" and 0.014 <= wf <= 0.986:
+            out["W"] = 1                     # cad-reel: SW_ARM closed while the cup is away, opens about +-5 deg at home
         return {k2: out[k2] for k2 in SW_KEYS if k2 in out}
 
     def moving(self) -> bool:
@@ -549,7 +560,7 @@ class MockBase:
                       "drum code jumped over a sector", "ANGLE_SENSOR": "AS5600 lost while the wiper runs",
                       "SWITCH_DISAGREE": "SW_DOG_L and SW_DOG_R both closed", "BROWNOUT":
                       "battery sagged under load", "BAD_STATE": "bad state", "DART_STUCK":
-                      "final approach: no SW_SEATED in 20 s"}.get(code, code)
+                      "final approach: no SW_SEATED in time"}.get(code, code)
         if self.state == "SAFING":           # a second fault stops the safing move
             self.op = {}
             self.drum_running = False
@@ -1129,7 +1140,8 @@ class MockBase:
     def _c_status(self, m: dict, extra: dict) -> Optional[str]:
         extra.update(phase=self.phase, aimed=self.aimed, aim_known=self.aim_known, drum_known=self.drum_known,
                      wraps_known=self.wraps_known, magnet="OK", glitches=0, hx=bool(self.load_cell),
-                     peak_a=_n(self.peak_a, 1), fw=FW, ev_drops=self.ev_drops)
+                     peak_a=_n(self.peak_a, 1), fw=FW, ev_drops=self.ev_drops,
+                     tension_cal=self.tension_cal)
         if self.fault:
             extra["why"] = self.fault_why[:32]
         return None
@@ -1179,14 +1191,14 @@ class MockBase:
         return e
 
     def _c_retrieve(self, m: dict, extra: dict) -> Optional[str]:
-        """10.1 step 17: take-up until SW_SEATED in NEUTRAL only; DART_STUCK after max_s (20 + line_m / 0.08)."""
+        """10.1 step 17: take-up until SW_SEATED in NEUTRAL only; DART_STUCK after max_s (approach_s())."""
         duty = self._num(m, "duty")
         max_n = self._num(m, "max_n")
         max_s = self._num(m, "max_s")
-        if max_s is not None and not max_s > 0:
+        if max_s is not None and not 5 <= max_s <= 600:
             return "BAD_ARG"
         if max_s is None:
-            max_s = APPROACH_S + (self.line_est / TAKEUP_MPS_NOMINAL if self.line_known else 0.0)
+            max_s = approach_s(self.line_est if self.line_known else None, 0.3 if duty is None else duty)
         return self._cmd_reel(0.3 if duty is None else duty, self.settings["limit_n"] if max_n is None else max_n,
                               "seated", "retrieve", max_s)
 
@@ -1469,7 +1481,8 @@ class MockBase:
             return "BAD_ARG"
         if not neutral and u == "seated":
             return "WRAPS_ON"                # D35: never seat the dart on the capstan: unwrap first
-        max_n = min(max_n, LIMIT_MAX_N)
+        if max_n > LIMIT_MAX_N:
+            return "BAD_ARG"                 # D39/D43: max_n above the cap is BAD_ARG (it used to be capped)
         duty = max(duty, REEL_MIN_DUTY)
         if neutral:
             duty = min(duty, TAKEUP_MAX_DUTY)
@@ -1575,6 +1588,12 @@ class MockBase:
         return None
 
     def _cmd_cal(self, what: str, m: dict) -> Optional[str]:
+        if what == "factory":                 # bench settings back to the params defaults (base-1.3.0)
+            if self.moving():
+                return "BUSY"
+            self.settings.update(k_n_per_a=13.1, tension_offset_n=-2.3)
+            self.tension_cal = False
+            return None
         if what == "current":
             return "BUSY" if self.moving() else None
         if what == "tare":
@@ -1640,6 +1659,8 @@ class MockBase:
             self.line_est, self.line_known = v, True
         elif k == "aim_offset":
             self.aim_offset = v
+        if k in ("k_n_per_a", "tension_offset_n"):
+            self.tension_cal = True
         self.settings[k] = v
         return None
 
@@ -1657,6 +1678,8 @@ class MockBase:
                          max=_n(min(PITCH_MAX, max(AIM_TABLE) + self.aim_offset), 2))
         elif k == "line_m":
             extra["val"] = _n(self.line_est, 6)
+        elif k == "tension_cal":
+            extra["val"] = self.tension_cal
         elif k in SET_KEYS:
             extra["val"] = _n(self.settings.get(k, 0.0), 6)
         else:

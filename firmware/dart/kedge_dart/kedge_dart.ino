@@ -276,8 +276,10 @@ void sendResult(const char* why) {
 void handleFlightlog() {                               // streamed from a snapshot so the tick task is held for microseconds only
   // while sending (about 0.3 s, longer on a weak link) the server cannot take /stop, so refuse while anything moves
   // also while armed or in flight: the landing detector could start the motors in the middle of the stream
-  xSemaphoreTake(mtx, portMAX_DELAY); bool busy = K.running() || K.seqRunning() || K.armed || K.flight.flying(); xSemaphoreGive(mtx);
-  if (busy) { web.send(409, "text/plain", "refused: busy (motors running, armed or in flight)\n"); return; }
+  xSemaphoreTake(mtx, portMAX_DELAY);
+  const char* why = K.flight.flying() ? "in flight" : (K.running() || K.seqRunning()) ? "busy (motors running)" : K.armed ? "armed (disarm first)" : nullptr;
+  xSemaphoreGive(mtx);
+  if (why) { web.send(409, "text/plain", String("refused: ") + why + "\n"); return; }   // distinct: a client retries only on busy
   kedge::Log* snap = (kedge::Log*)malloc(sizeof(kedge::Log));
   if (!snap) { web.send(503, "text/plain", "out of memory\n"); return; }
   kedge::LogJson w;

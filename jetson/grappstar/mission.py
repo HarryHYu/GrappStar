@@ -33,6 +33,7 @@ operator chooses Retry, Skip (only where safe) or Abort. STOP on the page aborts
 from __future__ import annotations
 
 import os
+import re
 import threading
 import time
 import traceback
@@ -49,7 +50,46 @@ STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LA
 RESHOOT_STEPS = ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
 SKIPPABLE = {"CHECK", "LANDING_ZONE", "TIDY", "COCK"}
 DEFAULT_DRAG_N = 0.5             # the LIGHT clutch: the one default for the CLI, settings and the App
-FACTORY_K_N_PER_A = (8.0, 17.0)   # firmware defaults (base-1.0, base-1.2 physics model): not bench calibrated
+def approach_max_s(line_m: float, duty: float) -> float:
+    """Final approach time limit, mirroring base-1.2.1 approachLimit(): 10 s + 1.5 x line_m / v, at least 20 s, at
+    most 600 s, where v is the slowest take-up speed at the duty from the physics (config.h takeupMpsPerDuty 0.29 x
+    duty - takeupMpsOff 0.03, duty clamped to reelMinDuty 70/255 .. takeupMaxDuty 102/255, v at least 0.02 m/s).
+    About 0.057 m/s at duty 0.3."""
+    d = min(max(float(duty), 70 / 255.0), 102 / 255.0)
+    v = max(0.02, 0.29 * d - 0.03)
+    return round(min(600.0, max(20.0, 10.0 + 1.5 * max(0.0, float(line_m)) / v)), 1)
+
+
+# Earlier firmware defaults of k_n_per_a (base-1.0 8, physics v1.2 capstan law 17, D43 dart-side law 14.8): a unit
+# flashed with an older build keeps them. The current default is read from base/spec/params.py (REEL
+# tow_tension_model n_per_a), never written here (systest F28: the literal match silently stopped warning).
+LEGACY_K_N_PER_A = (8.0, 17.0, 14.8)
+_PARAMS_PY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "base", "spec", "params.py")
+
+
+def params_default_k(path: str = _PARAMS_PY) -> Optional[float]:
+    """REEL tow_tension_model n_per_a from base/spec/params.py (the repo copy on the Jetson), None if not found."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            m = re.search(r"tow_tension_model\s*=\s*dict\(\s*n_per_a\s*=\s*([0-9.]+)", f.read())
+        return float(m.group(1)) if m else None
+    except (OSError, ValueError):
+        return None
+
+
+def k_is_factory(k, tension_cal: Optional[bool] = None, params_k: Optional[float] = None) -> bool:
+    """True when the tow tension looks uncalibrated. The base's own tension_cal flag (base-1.3.0, get / status) wins
+    when present; without it, k_n_per_a equal (to 0.05 N/A) to the params.py default or an earlier firmware
+    default counts as uncalibrated."""
+    if isinstance(tension_cal, bool):
+        return not tension_cal
+    defaults = LEGACY_K_N_PER_A + ((params_k,) if params_k else ())
+    try:
+        return k is not None and any(abs(float(k) - f) < 0.05 for f in defaults)
+    except (TypeError, ValueError):
+        return False
+
+
 BASE_FAULTS = ("STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR", "ANGLE_SENSOR", "SWITCH_DISAGREE", "BROWNOUT",
                "BAD_STATE", "FAULT", "FAULTED", "DART_STUCK")
 
@@ -60,8 +100,8 @@ def sw_closed(tel: dict, key: str) -> Optional[bool]:
     sw = tel.get("sw")
     if not isinstance(sw, dict):
         return None
-    # base-1.2 (D31): l, r = SW_DOG_L, SW_DOG_R; I = SW_INDEX; S seated; H carriage home; L rail low; W wrap home
-    long = {"S": "seated", "H": "home", "L": "rail_low", "W": "wrap_home", "l": "dog_l", "r": "dog_r", "I": "index"}
+    # base-1.2 (D31): l, r = SW_DOG_L, SW_DOG_R; I = SW_INDEX; S seated; H carriage home; L rail low; W wrap cup away
+    long = {"S": "seated", "H": "home", "L": "rail_low", "W": "cup_away", "l": "dog_l", "r": "dog_r", "I": "index"}
     if key in sw:
         return bool(sw[key])
     if long.get(key) in sw:
@@ -76,7 +116,7 @@ class Aborted(Exception):
 @dataclass
 class MissionConfig:
     drag_n: float = DEFAULT_DRAG_N  # payout brake setting (C3 column): LIGHT 0.5 N (coordinator)
-    tow_limit_n: float = 40.0       # tension at the dart, at most 60 N (spec 1.3.0, D43)       # line tension limit while towing (base firmware caps it too)
+    tow_limit_n: float = 40.0       # tension at the dart, at most 55 N (D46, spec 1.3.2)       # line tension limit while towing (base firmware caps it too)
     check_n: float = 15.0           # anchored check pull
     check_hold_s: float = 2.0       # hold at the check tension this long
     check_keep_frac: float = 0.7    # tension must stay above this fraction of the limit (load cell only)
@@ -108,7 +148,7 @@ class MissionConfig:
     require_dart_video: bool = False       # True: preflight refuses without a dart video signal
     max_reshoots: int = 3
     pre_s: float = 2.0              # dart video kept from before the shot
-    host_timeout_s: float = 1.5     # base host watchdog during the mission (keep-alive ping every 0.4 s)
+    host_timeout_s: float = 2.5     # base host watchdog during the mission (keep-alive ping every 0.4 s; F24)
     allow_uncalibrated_tow: bool = False   # True only for bench tests with no load on the line
     imu_axes: str = "x,y,z"         # BNO085 chip axes to dart body axes (BENCH_TEST.md step 7 finds this)
 
@@ -558,11 +598,18 @@ class Mission:
             return
 
         def run():
-            while not self._ka_stop.wait(0.4):
+            # F24: a fixed 0.4 s schedule (a slow reply must not stretch the gap between pings past the watchdog)
+            nxt = time.monotonic()
+            while True:
+                nxt += 0.4
+                if self._ka_stop.wait(max(0.0, nxt - time.monotonic())):
+                    break
                 try:
-                    self.base.ping(timeout=0.5)
+                    self.base.ping(timeout=0.35)
                 except Exception:
                     pass
+                if time.monotonic() > nxt + 0.4:
+                    nxt = time.monotonic()      # fell behind (link stall): restart the schedule, no burst
         self._ka_thread = threading.Thread(target=run, name="base-keepalive", daemon=True)
         self._ka_thread.start()
 
@@ -657,9 +704,9 @@ class Mission:
                 warnings.append("dart video mostly bad (check RC832 channel and antennas)")
         if t.get("tension_n") is None:
             try:
-                k = self.base.get("k_n_per_a").get("val")
-                if k is not None and any(abs(float(k) - f) < 1e-4 for f in FACTORY_K_N_PER_A):
-                    warnings.append(f"no load cell and the tension constant k_n_per_a is still the factory {k}: "
+                if self.tension_uncalibrated():
+                    k = self.base.get("k_n_per_a").get("val")
+                    warnings.append(f"no load cell and the tension constants are not calibrated (k_n_per_a {k}): "
                                     "the tow limit is a rough current estimate (calibrate, see firmware/base/"
                                     "CALIBRATION.md)")
             except (BaseError, BaseTimeout, BaseDisconnected, ValueError, TypeError):
@@ -715,11 +762,16 @@ class Mission:
         m0 = self.shot.pop("fire_mark", None)      # only the first attempt may look back to the shot
         t = self.tel()
         if t.get("mode") == "LAUNCH" and not (t.get("cock") == 0 and t.get("state") == "IDLE"):
-            try:
-                self.wait_evt("RESET", self.cfg.reset_timeout_s, m0 if m0 is not None else self.base.event_mark())
-            except BaseTimeout:
-                self.wait_tel(lambda t: t.get("state") == "IDLE" and t.get("cock") in (0, 0.0, None), 5.0,
-                              "launcher at rest")
+            if m0 is not None:
+                try:
+                    self.wait_evt("RESET", self.cfg.reset_timeout_s, m0)
+                    return
+                except BaseTimeout:
+                    pass
+            # no shot mark (a later step, or the RESET missed): the telemetry says when the launcher is at rest.
+            # Waiting for a new RESET here would wait out the whole timeout for an event that already came.
+            self.wait_tel(lambda t: t.get("state") == "IDLE" and t.get("cock") in (0, 0.0, None),
+                          self.cfg.reset_timeout_s if m0 is None else 5.0, "launcher at rest")
 
     def rail_low(self) -> None:
         """BASE_SPEC 10.1 step 7b (D45): before the wrap, bring the rail to its minimum pitch when it is above
@@ -776,12 +828,25 @@ class Mission:
         except DartError:
             pass
         try:
-            s = self.dart.arm(True, auto=self.cfg.auto_anchor_on_landing)
+            try:
+                s = self.dart.arm(True, auto=self.cfg.auto_anchor_on_landing)
+            except DartRefused as e:
+                if not e.reason.startswith("anchored"):
+                    raise
+                # API v4: /arm is refused while ANCHORED (legs out). Never fire a dart with its legs out:
+                # release it (legs and kick stowed), then arm again.
+                self.ask(f"The dart is ANCHORED ({e.reason}): its legs are out and it must not be fired like that. "
+                         "Release it (stows the legs), then arm?", ["Release the dart", "Abort"], danger=True)
+                self.dart_anchored = True
+                self.release_dart()
+                s = self.dart.arm(True, auto=self.cfg.auto_anchor_on_landing)
             self.shot["dart_phase_at_arm"] = s["phase"]
             self.shot["dart_t_ms_at_arm"] = s.get("t_ms")
             if not s.get("armed"):
                 raise StepFailed("dart did not arm")
         except DartRefused as e:
+            if e.reason.startswith("anchored"):
+                raise StepFailed(f"dart still anchored after the release ({e.reason}): use the manual dart keys")
             c = self.ask(f"Dart refused to arm ({e.reason}). Without it there is no flight log and landing comes "
                          "from the line and video only. Continue?", ["Continue without", "Retry", "Abort"])
             if c == "Retry":
@@ -827,8 +892,8 @@ class Mission:
         return t.get("drum_pos") in ("WRAPPED", "REEL") and (w is None or (isinstance(w, (int, float)) and w >= 7))
 
     def ensure_reel(self, wrapped: bool = True) -> None:
-        """Before a reel on the capstan: wraps on and the collar in REEL (fly-in). A fault in REEL parks the drum at
-        WRAPPED, so after a clear this flies in again."""
+        """Before a reel on the capstan: wraps on and the collar in REEL (fly-in). A fault in REEL holds the drum
+        (base-1.2.1, wraps on); if it is at the WRAPPED park after a clear, this flies in again."""
         if wrapped and not self.is_wrapped(self.tel()):
             self.log.info("capstan not wrapped: wrapping")
             self.wrap()
@@ -962,12 +1027,22 @@ class Mission:
         try:
             # /flightlog is refused (409) while armed, in FLIGHT or with motors running: let the dart decide first
             ph = None
+            done = ("LANDED", "ANCHORED", "IDLE", "FAULT", "ARMED")
             try:
-                ph = self.dart.wait_phase(("LANDED", "ANCHORED", "IDLE", "FAULT", "ARMED"), 40.0, poll=0.3, fail=(),
-                                          cancel=self.cancel)["phase"]
+                ph = self.dart.wait_phase(done, 3.0, poll=0.3, fail=(), cancel=self.cancel)["phase"]
             except DartError as e:
                 if "cancelled" in str(e):
                     raise Aborted("operator STOP")
+                # the mission already decided the dart is down (line, video or the operator) but the dart still
+                # says FLIGHT: a full /stop ends flight tracking (landing "stop", the log freezes 3 s later; API v4;
+                # /stop?disarm=0 would keep tracking), instead of waiting up to 40 s for the dart's own timeout
+                self.log.warn("dart still in FLIGHT after the landing decision: ending its flight tracking")
+                try:
+                    self.dart.stop()
+                    ph = self.dart.wait_phase(done, 6.0, poll=0.3, fail=(), cancel=self.cancel)["phase"]
+                except DartError as e2:
+                    if "cancelled" in str(e2):
+                        raise Aborted("operator STOP")
             if ph == "ARMED":
                 self.log.warn("dart still ARMED (launch not seen): disarming to read the live log")
                 self.dart.arm(False)
@@ -1083,6 +1158,11 @@ class Mission:
         except DartError as e:
             if "cancelled" in str(e):
                 raise Aborted("operator STOP")
+            if "NO_GROUND" in str(e):
+                # the kick swung through air: the dart lies on its back or side. A new /auto faults again; /release
+                # stows the kick, then the dart comes home for a new shot.
+                raise StepFailed(f"dart on its back or side (NO_GROUND: {e}). Retrying the anchor faults again: "
+                                 "release it and reshoot", choices=["Release and reshoot"])
             raise StepFailed(f"dart did not anchor: {e}", choices=["Retry", "Release and reshoot"])
         self.dart_anchored = True
         warn = [w for w in (s.get("warnings") or []) if w]
@@ -1162,17 +1242,32 @@ class Mission:
         self.log.info(f"anchor holds at {t.get('tension_n')} N")
         return None
 
+    def tension_uncalibrated(self, k=None) -> bool:
+        """F28: the base's tension_cal flag (get tension_cal) when the firmware has it, else k_n_per_a against the
+        params.py default and the earlier firmware defaults."""
+        try:
+            flag = self.base.get("tension_cal").get("val")
+            if isinstance(flag, bool):
+                return not flag
+        except (BaseError, BaseTimeout, BaseDisconnected):
+            pass                                   # older firmware: BAD_KEY
+        if k is None:
+            try:
+                k = self.base.get("k_n_per_a").get("val")
+            except (BaseError, BaseTimeout, BaseDisconnected):
+                return False
+        return k_is_factory(k, params_k=params_default_k())
+
     def tow(self) -> None:
         if self.tel().get("tension_n") is None:
             try:
                 k = self.base.get("k_n_per_a").get("val")
             except (BaseError, BaseTimeout):
                 k = None
-            if k is not None and any(abs(float(k) - f) < 1e-4 for f in FACTORY_K_N_PER_A) \
-                    and not self.cfg.allow_uncalibrated_tow:
-                raise StepFailed(f"TOW refused: no load cell and k_n_per_a is still the factory {k}, so the tension limit "
+            if self.tension_uncalibrated(k) and not self.cfg.allow_uncalibrated_tow:
+                raise StepFailed(f"TOW refused: no load cell and the tension constants are not calibrated (k_n_per_a {k}), so the tension limit "
                                  "cannot be trusted (a test reached 61 N against 40 N). Calibrate free_a and k_n_per_a "
-                                 "(firmware/base/CALIBRATION.md b and e), then Retry; or release the dart.",
+                                 "(firmware/base/CALIBRATION.md (d) and (f)), then Retry; or release the dart.",
                                  choices=["Retry", "Release the dart"])
         rounds = 0
         while rounds < self.cfg.tow_max_rounds + getattr(self, "_extra_tow_rounds", 0):
@@ -1194,6 +1289,11 @@ class Mission:
                 # load cell: the firmware already winds again by itself when the held line slackens; just wait
                 self.log.info("base is already winding (slack taken up by itself)")
             else:
+                if fresh.get("state") == "HOLD":
+                    # F22 (by design): without a load cell the HOLD at the limit never sees slack; stop, then a new
+                    # reel (the firmware restarts at minimum duty and cuts in about 110 ms if still at the limit)
+                    self.stop_settle()
+                    m = self.base.event_mark()
                 try:
                     self.go.reel(self.cfg.reel_duty, max_n=self.cfg.tow_limit_n, until="tension")
                 except BaseError as be:
@@ -1232,8 +1332,9 @@ class Mission:
         try:
             self.dart.release()
         except DartRefused as e:
-            if e.reason.startswith("busy") or e.reason.startswith("in flight"):
-                # an anchor sequence still running, or the dart still in FLIGHT: /stop ends both (the log is kept)
+            if e.reason.startswith("busy") or e.reason.startswith("in flight") or e.reason.startswith("fault latched"):
+                # an anchor sequence still running, the dart still in FLIGHT or a latched fault: /stop ends or
+                # clears them (the log is kept)
                 self.dart.stop()
                 self.dart.release()
             else:
@@ -1297,7 +1398,8 @@ class Mission:
 
     def final_approach(self) -> None:
         """10.1 step 17: retrieve {duty 0.3, max_s} on the take-up in NEUTRAL until SEATED (FAULT DART_STUCK after
-        max_s). The take-up is slow (about 0.08 m/s): max_s = 20 + line_m / 0.08. Never seat on the capstan."""
+        max_s). The take-up is slow (about 0.057 m/s at duty 0.3): max_s from approach_max_s(), the firmware's own
+        default formula. Never seat on the capstan."""
         t = self.tel()
         if sw_closed(t, "S"):
             return
@@ -1306,7 +1408,7 @@ class Mission:
         line = self.tel().get("line_m")
         if line is None:
             line = self.shot.get("line_est_m") or self.cfg.approach_m
-        max_s = min(600.0, max(5.0, round(20.0 + float(line) / 0.08, 1)))   # firmware range 5..600
+        max_s = approach_max_s(float(line), self.cfg.takeup_duty)   # the firmware default formula, sent explicitly
         m = self.base.event_mark()
         self.go.cmd("retrieve", duty=self.cfg.takeup_duty, max_n=self.cfg.retrieve_limit_n, max_s=max_s)
         self._wait_seated(m, max_s + 10.0)

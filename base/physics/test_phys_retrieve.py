@@ -34,3 +34,14 @@ def test_takeup_speed_uses_eye_gain():
     for r in t["rows"]:
         assert math.isclose(r["drag_at_reel_n"], r["drag_n"] * g, rel_tol=1e-12)
         assert r["slips"] == (r["drag_n"] * g >= r["slip_tension_n"])
+
+
+def test_seating_gain_cases():
+    from retrieve import seating_gain
+    p = Params()
+    p.capstan["path_gain"] = 1.5
+    assert seating_gain(p) == 1.75
+    p.capstan["path_gain"] = 1.30                    # plain cup ring, pulleys at the guide and exit eye
+    assert 1.15 < seating_gain(p) < 1.2
+    p.capstan["path_gain"] = 1.15
+    assert seating_gain(p) < 1.1

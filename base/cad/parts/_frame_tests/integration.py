@@ -30,6 +30,17 @@ def subsystems():
             out.append((n, f"IMPORT ERROR {type(e).__name__}: {e}"))
             continue
         if all(hasattr(m, f) for f in ("parts", "joints", "kin")):
+            try:
+                from tools.params import load_params
+                P = load_params()
+                m.parts(P)
+                m.joints(P)
+                m.kin(P, {})
+            except Exception as e:
+                import traceback
+                tb = traceback.extract_tb(e.__traceback__)[-1]
+                out.append((n, f"DOES NOT BUILD: {type(e).__name__}: {e} ({os.path.basename(tb.filename)}:{tb.lineno})"))
+                continue
             out.append((n, None))
     return out
 
@@ -79,6 +90,10 @@ def write_md(rep, subs, args, git_rev, secs):
              f"{secs:.0f} s. Verdict: **{'CLEAN' if rep.get('clean') else 'NOT CLEAN'}**.")
     L.append("")
     L.append("Subsystems: " + ", ".join(n + ("" if e is None else f" ({e})") for n, e in subs))
+    bad = [(n, e) for n, e in subs if e is not None]
+    if bad:
+        L.append("")
+        L.append("**Left out of this audit because they do not build:** " + "; ".join(f"{n}: {e}" for n, e in bad))
     L.append("")
     try:
         L += origin_check()
@@ -140,6 +155,9 @@ def main():
     a = ap.parse_args()
     subs = subsystems()
     names = [n for n, e in subs if e is None]
+    for fn in ("audit.json", "audit.txt"):
+        if os.path.exists(os.path.join(a.out, fn)):
+            os.remove(os.path.join(a.out, fn))               # never report a stale run
     t = time.time()
     r = subprocess.run([sys.executable, "-W", "ignore", "-m", "tools.audit", a.out, "--only", ",".join(names),
                         "--dt", str(a.dt), "--jobs", str(a.jobs)] + ([] if a.refine else ["--no-refine"]),

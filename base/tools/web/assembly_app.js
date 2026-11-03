@@ -31,7 +31,7 @@ CADV.boot(function () {
   });
 
   const list = $('#steps');
-  STEPS.forEach((st, i) => { const b = document.createElement('button'); b.textContent = (i + 1) + '. ' + st.title; b.title = st.text || ''; b.onclick = () => go(i); list.appendChild(b); });
+  STEPS.forEach((st, i) => { const b = document.createElement('button'); b.textContent = (i + 1) + (st.label ? ' (' + st.label + ')' : '') + '. ' + st.title; b.title = st.text || ''; b.onclick = () => go(i); list.appendChild(b); });
   let cur = 0, t0 = performance.now(), userCam = false, anim = true, fixedF = null;
   const info = n => V.parts[n].p;
   function bill(st) {
@@ -46,9 +46,9 @@ CADV.boot(function () {
     fixedF = null; V.freeze(false);
     cur = Math.max(0, Math.min(STEPS.length - 1, i)); t0 = performance.now() - (instant ? 1e5 : 0); anim = true;
     const st = STEPS[cur], sofar = STEPS.slice(0, cur + 1).reduce((a, s) => a + s.parts.length, 0);
-    $('#st').textContent = `Step ${cur + 1} of ${STEPS.length}: ${st.title}`;
+    $('#st').textContent = `Step ${cur + 1}${st.label ? ' (' + st.label + ')' : ''}: ${st.title}`;
     $('#sd').textContent = st.text || '';
-    $('#count').textContent = `${st.parts.length} new part${st.parts.length === 1 ? '' : 's'} (highlighted), ${sofar} of ${NP} fitted` + (st.subsystem ? `, ${st.subsystem}` : '');
+    $('#count').textContent = `Step ${cur + 1} of ${STEPS.length}. ${st.parts.length} new part${st.parts.length === 1 ? '' : 's'} (highlighted), ${sofar} of ${NP} fitted` + (st.subsystem ? `, ${st.subsystem}` : '');
     $('#bill').innerHTML = bill(st);
     [...list.children].forEach((b, j) => { b.classList.toggle('on', j === cur); b.classList.toggle('done', j < cur); });
     $('#prev').disabled = cur === 0; $('#next').disabled = cur === STEPS.length - 1;

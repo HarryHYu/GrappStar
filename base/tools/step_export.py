@@ -317,7 +317,10 @@ def _init(only, state, sdir):
     _JOB.update(asm=asm, S=S, W=asm.world(S), sdir=sdir)
 
 
-def run(out, only=None, state=None, part_names=None, jobs=None, assembly=True, log=print) -> dict:
+MAX_TRIS = 100000         # faceted STEP costs about 1 to 2 ms per face: bigger meshes are skipped (use the STL)
+
+
+def run(out, only=None, state=None, part_names=None, jobs=None, assembly=True, log=print, max_tris=MAX_TRIS) -> dict:
     sdir = os.path.join(out, "step")
     os.makedirs(sdir, exist_ok=True)
     _init(only, state, sdir)
@@ -325,6 +328,10 @@ def run(out, only=None, state=None, part_names=None, jobs=None, assembly=True, l
     names = [n for n in asm.parts if not part_names or n in part_names]
     # longest first: the assembly, then the parts by triangle count
     size = {n: len(asm.parts[n].solid.to_mesh().tri_verts) for n in names}
+    skipped = sorted(n for n in names if max_tris and size[n] > max_tris)
+    for n in skipped:
+        log(f"  {n:28s} {size[n]:7d} tri: skipped (over {max_tris}); use the STL")
+    names = [n for n in names if n not in skipped]
     tasks = ([("asm", names)] if assembly else []) + [("part", n) for n in sorted(names, key=lambda n: -size[n])]
     jobs = max(1, min(jobs or os.cpu_count() or 1, len(tasks)))
     t0 = time.time()
@@ -338,6 +345,8 @@ def run(out, only=None, state=None, part_names=None, jobs=None, assembly=True, l
                parts=sorted([r for r in res if "part" in r], key=lambda r: names.index(r["part"])),
                assembly=res[0] if assembly else None, seconds=round(time.time() - t0, 1))
     rep["crashed"] = [r.get("part", "assembly") for r in res if r.get("crashed")]
+    rep["skipped"] = [dict(part=n, triangles=size[n]) for n in skipped]
+    rep["max_tris"] = max_tris
     for r in rep["parts"]:
         err = f"  vol err {100 * r['rel_err']:.3f} %" if "rel_err" in r else ""
         log(f"  {r['part']:28s} {r['triangles']:7d} tri -> {r.get('step_faces', 0):6d} faces ({r.get('method', '-')}) "
@@ -362,8 +371,10 @@ def main(argv=None):
     ap.add_argument("--parts", default="", help="comma list: only these parts")
     ap.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
     ap.add_argument("--no-assembly", action="store_true", help="skip the assembly STEP")
+    ap.add_argument("--max-tris", type=int, default=MAX_TRIS, help="skip parts with more triangles (0 = no limit)")
     a = ap.parse_args(argv)
-    rep = run(a.out, a.only, json.loads(a.state) if a.state else None, only_list(a.parts), a.jobs, not a.no_assembly)
+    rep = run(a.out, a.only, json.loads(a.state) if a.state else None, only_list(a.parts), a.jobs, not a.no_assembly,
+              max_tris=a.max_tris)
     if rep["crashed"]:
         return 1
     return 2 if rep["invalid"] else 0

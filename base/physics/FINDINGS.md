@@ -25,6 +25,12 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 - Wrap on LIGHT: drum 0.49 to 0.60 N m, drum N20 61 to 74 N mm (30 to 37 % of an ASSUMED 0.2 N m).
 - Recoil rock (ASSUMED 4 kg rover): about 5 deg at 6 deg pitch braked, 0.5 deg at 36. No tip.
 - Mission: about 3.2 min, 0.7 Wh from the base pack.
+- Take-up reel-in in NEUTRAL (bus overdrive 2.5, FIRM 5 N), retrieve.json "takeup": dart drag on grass 1.4 to 2.7 N
+  (mu 0.5 to 1.0, ASSUMED), a snag about 5.5 N. Line speed (most line out, r 25 mm / nearly all in, r 30.7 mm):
+  duty 0.3: 0.058 to 0.073 m/s; duty 0.5: 0.113 to 0.146 m/s; duty 1.0: 0.26 to 0.33 m/s; motor 1.6 to 1.9 A.
+  The FIRM clutch slips above 6.1 N (core) / 5.0 N (full): a snag stops the line while the wiper keeps turning at
+  about 2 A, almost the same current as a normal pull, so current cannot detect DART_STUCK. Use time: expected
+  distance / speed (above) x 1.5, or a line encoder.
 - SPRING CATALOGUE (web check): Bunnings 0487961 is Century C-243, 5/8 in OD x 6-1/2 in x 0.054 in wire (1.37 mm,
   not 1.4). Century lists max safe load 8.64 lb (38.4 N) and max deflection 11.9 in (302 mm), rated for about 100,000
   cycles. The earlier 280 mm full cock was 42 N with the 0.125 N/mm / 7 N estimate: inside the deflection limit but 9 %

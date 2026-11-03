@@ -269,7 +269,7 @@ struct Base {
   // ---- D12 degraded angle source: SW_INDEX closes 6 times per shaft turn (every 60 deg). Between bumps the angle is
   // interpolated from the last measured bump-to-bump rate (nominal speed before that), never more than 59 deg past
   // the last bump; each bump snaps the angle to the nearest multiple of 60. Direction = the commanded drive.
-  bool indexMode = false; float idxDeg = 0, idxRate = 0, idxLast = 0; uint32_t idxEdgeT = 0; int idxDir = 0;
+  bool indexMode = false, idxOverdue = false; float idxDeg = 0, idxRate = 0, idxLast = 0; uint32_t idxEdgeT = 0; int idxDir = 0;
   void indexTick(uint32_t dt) {
     int dir = w.outDir ? w.outDir : (w.lastDir && now - w.stopT < 120 ? w.lastDir : 0);   // short coast after a stop
     if (dir && rose(SW_INDEX)) {
@@ -283,6 +283,9 @@ struct Base {
       if (!w.outDir) rate *= 0.5f;                    // coasting
       float nd = idxDeg + dir * rate * dt / 1000.f;
       if (fabsf(nd - idxLast) <= 59.f) idxDeg = nd;
+      // driving and no bump for 3 x the time 60 deg should take: the cam or its contact failed
+      uint32_t ref = idxEdgeT && (int32_t)(idxEdgeT - w.startT) > 0 ? idxEdgeT : w.startT;   // last bump in this run, else the start
+      if (w.outDir && w.outDuty > 60 && now - ref > (uint32_t)(3 * 60000.f / fmaxf(rate, 30.f)) + 500) idxOverdue = true;
     }
     enc.ok = true; enc.have = true; enc.status = AS_MD;
     enc.count = (int32_t)lroundf(idxDeg * 4096.f / 360.f);
@@ -292,6 +295,7 @@ struct Base {
     bootPending = false; booted = true;
     if (!enc.ok && fitted(SW_INDEX)) {                 // no magnet: degraded angle source, coarser checks
       indexMode = true; idxDeg = 0; enc.count = 0; c.homeWinDeg += 60;
+      c.cockEndDeg = c.releaseDeg - 60; c.cockSlowFrom = c.cockEndDeg - 40;   // the count can be 30 deg out: cock stops a bump early
     }
     const Saved* s = bootValid ? &boot : nullptr;
     bool wiperTrust = s && !(s->moving & MV_WIPER) && s->wiperKnown;
@@ -472,6 +476,7 @@ struct Base {
     }
     // the drum code says away from LAUNCH while the spring is known drawn: a code contact is lying
     if (loadedKnown() && sec != SEC_INVALID && sec > SEC_LN && booted) { raise(F_BAD_STATE, "drum code away from LAUNCH but the spring is drawn"); return; }
+    if (idxOverdue) { idxOverdue = false; idxEdgeT = now; raise(F_ANGLE_SENSOR, "SW_INDEX bump overdue (index cam or contact)"); return; }
     if (armBad) { armBad = false; char b[48]; snprintf(b, sizeof b, "SW_ARM counted %d of %d cup turns", armPulses, c.wrapsFull); raise(F_DRUM_SENSOR, b); return; }
     if (bootDrumMismatch) { bootDrumMismatch = false; raise(F_DRUM_SENSOR, "drum code disagrees with the saved drum angle"); return; }
     // optional host watchdog: no line from the Jetson for host_timeout_s while a motor runs = stop (0 = off)
@@ -537,7 +542,9 @@ struct Base {
       return 0;
     }
     if (mvStage == 3) {                               // centering jog
-      if (fabsf(enc.deg() - mvFrom) >= c.centerDeg || now - mvLegT > 1500) {
+      // also bounded in time (1.5 x the free-speed time): a noisy angle must never carry the jog past the window
+      uint32_t capMs = (uint32_t)(c.centerDeg / (c.n0Rpm * 6.f * c.jogDuty / 255.f) * 1500.f) + c.drumTimeMarginMs / 10 + 200;
+      if (fabsf(enc.deg() - mvFrom) >= c.centerDeg || now - mvLegT > capMs) {
         w.halt(now, io.wiper); mvWiper = 0; win = c.dogWindowDeg * 0.5f;
         mvStage = 0; mvT = mvLegT = mvSecT = now; d.want(mvDir * c.drumSign);
       }

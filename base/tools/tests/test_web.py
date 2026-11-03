@@ -279,3 +279,13 @@ def test_no_em_dashes_in_sources():
     files += glob.glob(os.path.join(HERE, "web", "*.js")) + glob.glob(os.path.join(HERE, "web", "*.html"))
     for f in files:
         assert EM not in open(f, encoding="utf-8").read(), f
+
+
+def test_ground_from_deck_top_and_never_above_model():
+    import types as _t
+    from tools import render
+    P = _t.SimpleNamespace(LAYOUT={"deck_top_z": -165.0})
+    assert render.ground_z(P) == -165.0
+    assert render._ground_below(-165.0, [[0, 0, -200.0], [1, 1, 1]]) == -200.0
+    assert render._ground_below(-165.0, [[0, 0, -100.0], [1, 1, 1]]) == -165.0
+    assert render._ground_below(None, [[0, 0, -5.0], [1, 1, 1]]) == -5.0

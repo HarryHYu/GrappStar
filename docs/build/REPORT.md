@@ -123,3 +123,10 @@ Still open (owner):
   base/, C21 exactly as the sheets list, WIRING section numbers, flashing with wiring left on, step 11 starts at
   stage 4. `grappstar base fire` is on w/jetson (merge pending). Sent: cad-infra (coupon commands, magnet cap),
   fw-base (FORWARD on the bench, README section ref).
+- Round 11 (coordinator r3_M safety items, then a learner round on the dart build): polarity at the bare lead ends
+  first, the exact decock failure path from fw-base (force only on SWITCH_DISAGREE with the carriage visibly drawn,
+  then a manual one-spring-at-a-time unload and `cal cock_rest`), buck re-measured before VM; dart: run sheet 6.4 /
+  6.5 wire numbers spelled out (old 25 to 27 means new 23 and 24; old 18 means new 16), old pack cut list marked
+  replaced, the capacitor fitted in step 3, live free ends insulated, dart never USB plus loop plug, `z` on the WiFi
+  page, troubleshooting reversal rule. Sent to fw-dart: hull open vs closed, impactG struct, stallMa test limit,
+  capacitor location, B10 open reading, full cut list path.

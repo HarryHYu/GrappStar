@@ -41,7 +41,7 @@ int duty[64];                                 // per GPIO (0..48 on the ESP32-S3
 double kickPos = 0, deployPos = 0;
 uint64_t lastAdvanceUs = 0;
 struct Knobs {
-  bool inaDead = false, drillJam = false, footJam = false, kickJam = false, deployJam = false, imuDead = false;
+  bool inaDead = false, noGround = false, drillJam = false, footJam = false, kickJam = false, deployJam = false, imuDead = false;
   double railV = 7.6, accelNoise = 0.02;
   uint32_t imuXferUs = 0;
 } K;
@@ -72,7 +72,7 @@ double motorMa(int m) {
   switch (m) {
     case KICK: {
       bool stalled = K.kickJam || (dir > 0 && kickPos >= KICK_TRAVEL) || (dir < 0 && kickPos <= 0);
-      ma = stalled ? STALL : (dir > 0 && kickPos >= KICK_CONTACT ? KICK_TOUCH : KICK_FREE);
+      ma = stalled ? STALL : (dir > 0 && kickPos >= KICK_CONTACT && !K.noGround ? KICK_TOUCH : KICK_FREE);
       break;
     }
     case DEPLOY: {
@@ -81,7 +81,7 @@ double motorMa(int m) {
       break;
     }
     case DRILLS: ma = K.drillJam ? DRILL_JAM : dir < 0 ? DRILL_REV : (deployPos >= DEPLOY_DIG ? DRILL_DIG : DRILL_AIR); break;
-    case FOOT: ma = K.footJam ? FOOT_JAM : dir < 0 ? FOOT_REV : (kickPos >= KICK_CONTACT ? FOOT_PLANT : FOOT_AIR); break;
+    case FOOT: ma = K.footJam ? FOOT_JAM : dir < 0 ? FOOT_REV : (kickPos >= KICK_CONTACT && !K.noGround ? FOOT_PLANT : FOOT_AIR); break;
   }
   return ma * (d / 255.0) * (d / 255.0);   // slow decay: supply current ~ duty squared
 }
@@ -272,6 +272,7 @@ static bool parseBool(const std::string& v, bool& out) {
 //   ina_dead=0|1     INA219 stops answering (NACK). Back to 0 = it powers up again uncalibrated, like after a brownout.
 //   ina_brownout=1   INA219 loses its configuration and calibration (reads 0 mA until the sketch re-initialises it)
 //   drill_jam, foot_jam, kick_jam, deploy_jam=0|1   that motor is jammed (stall current, no travel)
+//   no_ground=0|1    dart on its back: the kick never touches ground and stops at its own end stop (4300)
 //   rail_v=<volts>   motor rail voltage read by the INA219 (default 7.6)
 //   kick_pos=<0..4300>, deploy_pos=<0..1400>        put a leg somewhere
 //   imu_dead=0|1     BNO085 stops sending reports
@@ -284,7 +285,7 @@ bool setKnob(const std::string& key, const std::string& v, std::string& err) {
   bool b = false; char* end = nullptr; double x = strtod(v.c_str(), &end);
   bool num = !v.empty() && end && *end == 0;
   bool* flag = key == "drill_jam" ? &K.drillJam : key == "foot_jam" ? &K.footJam : key == "kick_jam" ? &K.kickJam
-             : key == "deploy_jam" ? &K.deployJam : nullptr;
+             : key == "deploy_jam" ? &K.deployJam : key == "no_ground" ? &K.noGround : nullptr;
   if (flag) { if (!parseBool(v, b)) { err = key + ": want 0 or 1"; return false; } *flag = b; return true; }
   if (key == "ina_dead") {
     if (!parseBool(v, b)) { err = "ina_dead: want 0 or 1"; return false; }

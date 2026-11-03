@@ -265,12 +265,18 @@ def cmd_calibrate(a, rest) -> int:
     argv = list(rest)
     if argv and argv[0] == "mount":
         argv[0] = "ground"
+    intr_json = os.path.join(os.path.dirname(DEFAULT_CALIB), "intrinsics.json")
     if argv and argv[0] in ("ground", "marker", "default") and "--out" not in argv:
         os.makedirs(os.path.dirname(DEFAULT_CALIB), exist_ok=True)
         argv += ["--out", DEFAULT_CALIB]
+    # mount/marker: use the checkerboard intrinsics saved by `calibrate intrinsics`, not the Kiyo estimate
+    if (argv and argv[0] in ("ground", "marker") and "--intrinsics" not in argv
+            and not any(x.startswith("--intrinsics=") for x in argv) and os.path.isfile(intr_json)):
+        argv += ["--intrinsics", intr_json]
+        print(f"using intrinsics {intr_json}")
     if argv and argv[0] == "intrinsics" and "--out" not in argv:
         os.makedirs(os.path.dirname(DEFAULT_CALIB), exist_ok=True)
-        argv += ["--out", os.path.join(os.path.dirname(DEFAULT_CALIB), "intrinsics.json")]
+        argv += ["--out", intr_json]
     return int(calibrate.main(argv) or 0)
 
 

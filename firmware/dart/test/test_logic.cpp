@@ -282,7 +282,8 @@ int main() {
     CHECK(j.rfind("{\"hz\":50,", 0) == 0 && j.size() > 2 && j.substr(j.size() - 2) == "]}" && j.find("CHUNK_OVERFLOW") == std::string::npos, "flightlog JSON shape, no chunk overflow");
     CHECK(j.find("\"landing\":\"impact\"") != std::string::npos, "flightlog says how it landed");
     int before = K.log.head; run(2000); CHECK(K.log.head == before, "frozen log ignores new samples");
-    K.arm(true, false, NOW); CHECK(K.arm(true, false, NOW) != nullptr || true, "re-arm");
+    if (K.seq == DONE) { CHECK(K.arm(true, false, NOW) != nullptr, "arming while ANCHORED is refused (release first)"); K.key('!', 100, NOW); run(300); }
+    CHECK(K.arm(true, false, NOW) == nullptr, "re-arm after the legs moved");
     CHECK(!K.log.frozen, "re-arming unfreezes the log"); }
   { fresh(); ACC = [](uint32_t t) { return (t > 2000 && t < 2015) ? 4.5f : 1.0f; }; K.arm(true, true, NOW); run(4000);
     CHECK(ph() == "ARMED", "a 15 ms knock over 4 g is not a launch"); }
@@ -345,7 +346,8 @@ int main() {
   section("review round 1 regressions");
   { fresh(); K.onAccel(NAN, NOW); K.onAccel(INFINITY, NOW); static char b[1024]; K.status(b, sizeof b, NAN, INFINITY, NOW, NAN, "x");
     std::string st = b; save("status_nan.json", st); CHECK(st.find("nan") == std::string::npos && st.find("inf") == std::string::npos, "NaN / inf inputs never reach the status JSON"); }
-  { fresh(); K.startAuto(NOW); run(20000); CHECK(K.arm(true, true, NOW) == nullptr && ph() == "ARMED", "arming from ANCHORED starts a new shot (phase ARMED)");
+  { fresh(); K.startAuto(NOW); run(20000); CHECK(K.arm(true, true, NOW) != nullptr && ph() == "ANCHORED", "arming while ANCHORED is refused (legs out, release first)");
+    K.startRelease(NOW); run(40000); CHECK(K.arm(true, true, NOW) == nullptr && ph() == "ARMED", "after the release, arming starts a new shot (phase ARMED)");
     uint32_t t0 = NOW + 1000; ACC = [&](uint32_t t) { return flightTrace(t, t0); }; run(4000); CHECK(ph() == "ANCHORING", "...and auto runs on the next landing"); }
   { fresh(); NOW = 0xFFFFFFFFu - 4000; K.boot(F_NONE, NOW); K.arm(true, false, NOW); uint32_t t0 = 1000;   // launch 5 s later, just after the wrap
     ACC = [&](uint32_t t) { return flightTrace(t, t0); }; run(12000);
@@ -546,6 +548,40 @@ int main() {
     CHECK(ok && P.mdir[KICK] == -1, "an old '@' lock does not refuse a fresh '@' right after '2' presses (per-direction lock)"); }
   { fresh(); K.startAuto(NOW); run(20000); K.bothLock[DEPLOY] = true; K.lastCmd[DEPLOY] = NOW; K.key('1', 350, NOW);
     CHECK(K.seq == DONE, "a refused key does not change seq (still anchored)"); }
+
+  // ===================================================================================================== review round 10
+  section("review round 10 regressions");
+  { fresh(); P.kickContact = P.kickLand = 4300; bool augers = false; K.startAuto(NOW);   // landed on its back: kick swings through air
+    for (int i = 0; i < 2000 && K.seq != IDLE && !K.fault; i++) { run(5); if (P.mdir[FOOT] || P.mdir[DRILLS] || P.mdir[DEPLOY]) augers = true; }
+    CHECK(std::string(faultName(K.fault)) == "NO_GROUND" && !augers && allOff(), "kick swings its whole travel through air to its end stop: NO_GROUND, foot, pods and drills never driven");
+    K.startRelease(NOW); run(30000); CHECK(K.seq == RELEASED && P.kick == 0 && K.fault == F_NONE, "...and /release brings the kick back (released)"); }
+  { fresh(); P.footPaused = 75; P.kickLand = 5800; K.startAuto(NOW);   // the foot draws 55 mA less while the kick pauses
+    while (K.seq != K_PLANT && NOW < 20000) run(5); while (K.seq == K_PLANT && NOW < 30000) run(5);
+    printf("     plant ended with the kick at %.0f of 5800\n", P.kick);
+    CHECK(P.kick >= 5700, "a foot current drop of 55 mA in the kick's pause does not fake a kick stall (kick reaches the housing)"); run(20000);
+    CHECK(K.seq == DONE, "...and the anchor completes"); }
+  { fresh(); for (int i = 0; i < 15; i++) { K.key('2', 350, NOW); run(150); }   // kick out held, then reversed with no stop between
+    int on = 0; for (int i = 0; i < 8; i++) { K.key('@', 350, NOW); run(150); if (P.mdir[KICK] < 0) on++; }
+    CHECK(on == 8 && !K.bothLock[KICK], "reversing a held key without a stop reverses the motor (no 'both directions held' latch)"); }
+  { fresh(); for (int i = 0; i < 6; i++) { K.key('2', 350, NOW); K.key('@', 350, NOW); run(150); }
+    CHECK(P.mdir[KICK] == 0 && K.bothLock[KICK], "both kick keys repeated together still lock the motor"); }
+  { fresh(); K.startAuto(NOW); run(20000); CHECK(K.seq == DONE && K.arm(true, false, NOW) != nullptr && !K.armed, "arm (even log-only) is refused while ANCHORED"); }
+  // review round 11
+  { fresh(); P.kickContact = P.kickLand = 4300; K.startAuto(NOW); run(10000); K.stop(NOW); run(700);   // NO_GROUND, then Retry
+    bool augers = false; K.startAuto(NOW);
+    for (int i = 0; i < 2000 && K.seq != IDLE && !K.fault; i++) { run(5); if (P.mdir[FOOT] || P.mdir[DRILLS] || P.mdir[DEPLOY]) augers = true; }
+    CHECK(std::string(faultName(K.fault)) == "NO_GROUND" && !augers, "a retried /auto after NO_GROUND is NO_GROUND again (augers never run in air)"); }
+  { fresh(); P.kickContact = P.kickLand = 4300; K.startAuto(NOW); run(2000); K.stop(NOW); run(700);   // swing stopped half way, then retried
+    bool augers = false; K.startAuto(NOW);
+    for (int i = 0; i < 2000 && K.seq != IDLE && !K.fault; i++) { run(5); if (P.mdir[FOOT] || P.mdir[DRILLS] || P.mdir[DEPLOY]) augers = true; }
+    CHECK(std::string(faultName(K.fault)) == "NO_GROUND" && !augers, "an /auto stopped half way through the air and retried: NO_GROUND"); }
+  { fresh(); K.startAuto(NOW); while (K.seq != D_DEPLOY) run(5); run(1000); K.stop(NOW); run(700); K.startAuto(NOW); run(25000);
+    CHECK(K.seq == DONE && K.fault == F_NONE, "a retried /auto after a real plant still takes 'kick already down' (no false NO_GROUND)"); }
+  { fresh(); P.deploy = P.deployEnd; uint32_t drivenAtStop = 0;   // pods at their down stop, keys alternated every 300 ms
+    for (int i = 0; i < 60; i++) { K.key(i % 2 ? '!' : '1', 350, NOW); for (int k = 0; k < 60; k++) { run(5); if (P.mdir[DEPLOY] > 0) drivenAtStop += 5; } }
+    printf("     alternating 1 / ! for 18 s: driven into the stop %u ms\n", drivenAtStop);
+    CHECK(drivenAtStop <= 8500, "alternating 1 and ! every 300 ms: the hold cap counts per motor, so the stop is not driven without limit"); }
+
 
   // ===================================================================================================== whole mission
   section("whole mission phases");

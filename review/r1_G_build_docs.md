@@ -7,31 +7,35 @@ agreed it is real but rated it lower.
 
 Confirmed: 21. Refuted and dropped: 1.
 
-| # | Sev | File:line | Owner | Finding |
-|---|---|---|---|---|
-| 1 | high | `firmware/base/BENCH_TEST.md:48` | docs | BENCH_TEST contact table lists the wrong GPIOs and a telemetry key that does not exist |
-| 2 | high | `firmware/base/BENCH_TEST.md:59` | fw-base | BENCH_TEST step 2 drum-code walk cannot pass: first row change faults ('drum code changed with the drum still'), row 7 jumps sectors, and rows 7 to 9 give the wrong drum_pos/mode |
-| 3 | high | `firmware/base/WIRING.md:27` | docs | Contact pin table in WIRING.md, BENCH_TEST.md, Build Guide and CALIBRATION.md uses the old SW_DOG layout (D27). Firmware swBit follows D31 (SW_DOG_L/SW_DOG_R), so every contact from GPIO14 on is wired to the wrong logical switch |
-| 4 | high | `firmware/base/WIRING.md:27` | fw-base | Contact pin table in WIRING.md / BENCH_TEST.md / PROTOCOL telemetry keys is from the old firmware (one SW_DOG); the current firmware has SW_DOG_L + SW_DOG_R, so every launcher contact from GPIO39 on lands on the wrong input |
-| 5 | medium | `base/spec/params.py:236` | docs | params.SWITCHES claims to match pins.h, but every GPIO differs, including the DRV8833 and HX711 pins swapped and SW_HOME on GPIO21, which the firmware drives as an output |
-| 6 | medium | `docs/build/MEASURE_LIST.md:34` | docs | MEASURE_LIST B4 gives the superseded 280 mm full-cock extension (and 35 mm preload); D30/params now say 265 mm and 23.8 mm because 280 mm overloads the spring |
-| 7 | medium | `docs/build/TEST_PLAN.md:41` | docs | Stage 1 pass band for wiper free current (1 to 3 A) overlaps the jog trips (2.5 A forward, 3 A backward in NEUTRAL) |
-| 8 | medium | `docs/build/TEST_PLAN.md:64` | docs | Mode sequences in TEST_PLAN and CALIBRATION send `mode REEL` from NEUTRAL/LAUNCH, which the D16 firmware always refuses |
-| 9 | medium | `docs/build/TEST_PLAN.md:67` | docs | Dry-fire stages 3 and 4 cannot be done as written: no dart means NOT_SEATED, and the CLI cannot send fire within the 3 s token life |
-| 10 | medium | `docs/build/TEST_PLAN.md:70` | docs | Stage 3 estop test expects the drum to go to NEUTRAL after every move, but the firmware deliberately holds it during cock/fire and with wraps on |
-| 11 | medium | `firmware/base/BENCH_TEST.md:58` | docs | BENCH_TEST step 2 drum-code walk faults on the very first row and can lock the base in a DRUM_SENSOR fault that only a reboot clears |
-| 12 | medium | `firmware/base/CALIBRATION.md:96` | fw-base | Calibration and test plan send `mode REEL` from NEUTRAL, which the firmware always refuses (NOT_WRAPPED); REEL to NEUTRAL is refused too (WRAPS_ON) |
-| 13 | medium | `firmware/base/CALIBRATION.md:163` | docs | CALIBRATION (e) k_n_per_a: jogging to 20 N needs about 4 A, but a jog trips OVERCURRENT at 3 A |
-| 14 | medium | `firmware/base/WIRING.md:165` | docs | WIRING.md and the Build Guide wire DRV8833 SLP to GPIO21, against D9 and SYSTEM_ELECTRICAL. TEST_PLAN then adds SLP to 3V3, which shorts 3V3 into the GPIO21 output the firmware drives LOW |
-| 15 | medium | `firmware/base/WIRING.md:165` | fw-base | DRV8833 SLP wiring contradicts itself across docs: WIRING says wire SLP to GPIO21, SYSTEM_ELECTRICAL/D9/pins.h say leave it unwired, TEST_PLAN says wire it to 3V3 |
-| 16 | medium | `firmware/base/WIRING.md:168` | docs | WIRING.md wires the 22 AWG MP1584 input straight to the B+ screw behind only the 20 A fuse, without the 2 A inline fuse SYSTEM_ELECTRICAL requires |
-| 17 | medium | `firmware/base/WIRING.md:168` | fw-base | WIRING.md wires the 22 AWG buck input straight off the B+ screw behind only the 20 A fuse, with no 2 A inline fuse; SYSTEM_ELECTRICAL requires the 2 A fuse |
-| 18 | low | `firmware/base/CALIBRATION.md:151` | docs | CALIBRATION note warns that aim_home_deg can only be set from -720 to 720; the firmware accepts -7200..7200 |
-| 19 | low | `firmware/base/README.md:144` | fw-base | Firmware README safety summary gives the wrong current trips (17 A / 15 A while cocking); the firmware trips at 5 A, 6.5 A while cocking, 3 A on jogs, hard 17 A |
-| 20 | low | `firmware/base/WIRING.md:64` | fw-base | WIRING.md tells the learner to buy an MP1584, which breaks the parts rule and contradicts SYSTEM_ELECTRICAL/MEASURE_LIST (MP1584 #2 is freed by the v4 dart) |
-| 21 | low | `firmware/dart/WIRING.md:97` | fw-dart | Dart WIRING step B2 connects the 3S LiPo to the MP1584 without starting from 'battery unplugged' or saying to make the connection before plugging in |
+Re-checked 14:10 Sydney against base-v1 863d58d, one checker subagent per finding: see the Now column.
+
+| # | Sev | File:line | Owner | Finding | Now (863d58d) |
+|---|---|---|---|---|---|
+| 1 | high | `firmware/base/BENCH_TEST.md:48` | docs | BENCH_TEST contact table lists the wrong GPIOs and a telemetry key that does not exist | fixed |
+| 2 | high | `firmware/base/BENCH_TEST.md:59` | fw-base | BENCH_TEST step 2 drum-code walk cannot pass: first row change faults ('drum code changed with the drum still'), row 7 jumps sectors, and rows 7 to 9 give the wrong drum_pos/mode | fixed |
+| 3 | high | `firmware/base/WIRING.md:27` | docs | Contact pin table in WIRING.md, BENCH_TEST.md, Build Guide and CALIBRATION.md uses the old SW_DOG layout (D27). Firmware swBit follows D31 (SW_DOG_L/SW_DOG_R), so every contact from GPIO14 on is wired to the wrong logical switch | fixed |
+| 4 | high | `firmware/base/WIRING.md:27` | fw-base | Contact pin table in WIRING.md / BENCH_TEST.md / PROTOCOL telemetry keys is from the old firmware (one SW_DOG); the current firmware has SW_DOG_L + SW_DOG_R, so every launcher contact from GPIO39 on lands on the wrong input | fixed |
+| 5 | medium | `base/spec/params.py:236` | docs | params.SWITCHES claims to match pins.h, but every GPIO differs, including the DRV8833 and HX711 pins swapped and SW_HOME on GPIO21, which the firmware drives as an output | fixed |
+| 6 | medium | `docs/build/MEASURE_LIST.md:34` | docs | MEASURE_LIST B4 gives the superseded 280 mm full-cock extension (and 35 mm preload); D30/params now say 265 mm and 23.8 mm because 280 mm overloads the spring | fixed |
+| 7 | medium | `docs/build/TEST_PLAN.md:41` | docs | Stage 1 pass band for wiper free current (1 to 3 A) overlaps the jog trips (2.5 A forward, 3 A backward in NEUTRAL) | fixed |
+| 8 | medium | `docs/build/TEST_PLAN.md:64` | docs | Mode sequences in TEST_PLAN and CALIBRATION send `mode REEL` from NEUTRAL/LAUNCH, which the D16 firmware always refuses | fixed |
+| 9 | medium | `docs/build/TEST_PLAN.md:67` | docs | Dry-fire stages 3 and 4 cannot be done as written: no dart means NOT_SEATED, and the CLI cannot send fire within the 3 s token life | partly fixed |
+| 10 | medium | `docs/build/TEST_PLAN.md:70` | docs | Stage 3 estop test expects the drum to go to NEUTRAL after every move, but the firmware deliberately holds it during cock/fire and with wraps on | partly fixed |
+| 11 | medium | `firmware/base/BENCH_TEST.md:58` | docs | BENCH_TEST step 2 drum-code walk faults on the very first row and can lock the base in a DRUM_SENSOR fault that only a reboot clears | fixed |
+| 12 | medium | `firmware/base/CALIBRATION.md:96` | fw-base | Calibration and test plan send `mode REEL` from NEUTRAL, which the firmware always refuses (NOT_WRAPPED); REEL to NEUTRAL is refused too (WRAPS_ON) | fixed |
+| 13 | medium | `firmware/base/CALIBRATION.md:163` | docs | CALIBRATION (e) k_n_per_a: jogging to 20 N needs about 4 A, but a jog trips OVERCURRENT at 3 A | fixed |
+| 14 | medium | `firmware/base/WIRING.md:165` | docs | WIRING.md and the Build Guide wire DRV8833 SLP to GPIO21, against D9 and SYSTEM_ELECTRICAL. TEST_PLAN then adds SLP to 3V3, which shorts 3V3 into the GPIO21 output the firmware drives LOW | fixed |
+| 15 | medium | `firmware/base/WIRING.md:165` | fw-base | DRV8833 SLP wiring contradicts itself across docs: WIRING says wire SLP to GPIO21, SYSTEM_ELECTRICAL/D9/pins.h say leave it unwired, TEST_PLAN says wire it to 3V3 | fixed |
+| 16 | medium | `firmware/base/WIRING.md:168` | docs | WIRING.md wires the 22 AWG MP1584 input straight to the B+ screw behind only the 20 A fuse, without the 2 A inline fuse SYSTEM_ELECTRICAL requires | fixed |
+| 17 | medium | `firmware/base/WIRING.md:168` | fw-base | WIRING.md wires the 22 AWG buck input straight off the B+ screw behind only the 20 A fuse, with no 2 A inline fuse; SYSTEM_ELECTRICAL requires the 2 A fuse | fixed |
+| 18 | low | `firmware/base/CALIBRATION.md:151` | docs | CALIBRATION note warns that aim_home_deg can only be set from -720 to 720; the firmware accepts -7200..7200 | fixed |
+| 19 | low | `firmware/base/README.md:144` | fw-base | Firmware README safety summary gives the wrong current trips (17 A / 15 A while cocking); the firmware trips at 5 A, 6.5 A while cocking, 3 A on jogs, hard 17 A | fixed |
+| 20 | low | `firmware/base/WIRING.md:64` | fw-base | WIRING.md tells the learner to buy an MP1584, which breaks the parts rule and contradicts SYSTEM_ELECTRICAL/MEASURE_LIST (MP1584 #2 is freed by the v4 dart) | fixed |
+| 21 | low | `firmware/dart/WIRING.md:97` | fw-dart | Dart WIRING step B2 connects the 3S LiPo to the MP1584 without starting from 'battery unplugged' or saying to make the connection before plugging in | still open |
 
 ## 1. BENCH_TEST contact table lists the wrong GPIOs and a telemetry key that does not exist
+
+- Now (863d58d): **fixed** at `firmware/base/BENCH_TEST.md:62-70`. The table now lists SW_DOG_L 13 "l", SW_DOG_R 14 "r", SW_HOME 21 "H", SW_GAP 39 "G", SW_RAIL_LOW 40 "L", SW_SEATED 41 "S" and SW_ARM 42 "W". Each row matches the firmware: the swBit index into PIN_SW_A..L (pins.h:29-40), SW_TEL (config.h:18) and params_gen.h. WIRING.md:148-155 now matches too.
 
 - File: `firmware/base/BENCH_TEST.md:48`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -63,6 +67,8 @@ What the code does:
 
 ## 2. BENCH_TEST step 2 drum-code walk cannot pass: first row change faults ('drum code changed with the drum still'), row 7 jumps sectors, and rows 7 to 9 give the wrong drum_pos/mode
 
+- Now (863d58d): **fixed** at `firmware/base/BENCH_TEST.md:86-110`. The drum-code table now follows the current secCode travel order: b NEUTRAL, ab, a LAUNCH, back to b, then bc PREP, c WRAP, ac WRAPPED (LOCK), abc REEL. Each step changes one contact and none skips a sector. The doc now says to expect the "drum code changed with the drum still" fault, says LAUNCH/REEL need SW_DOG_L/R closed, and ends with a single clear, which works because watch() in base_logic.h:474 returns early and updates quietSec while in FAULT. One small gap I found: on the walk back from REEL, row 8 (a c) probably reads mode NONE rather than NEUTRAL. The angle snaps to edge 340, which is past collarNdeg 318, and the doc only says NEUTRAL for rows 6 to 8.
+
 - File: `firmware/base/BENCH_TEST.md:59`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -83,6 +89,8 @@ Fix: Replace the table with the current travel order and the real readings: b NE
 
 ## 3. Contact pin table in WIRING.md, BENCH_TEST.md, Build Guide and CALIBRATION.md uses the old SW_DOG layout (D27). Firmware swBit follows D31 (SW_DOG_L/SW_DOG_R), so every contact from GPIO14 on is wired to the wrong logical switch
 
+- Now (863d58d): **fixed** at `firmware/base/WIRING.md:21-32`. The WIRING.md pin table now matches pins.h:29-40 and the config.h:15-38 swBit default {0..10,-1}: GPIO10-14 = DRUM_A/B/C, DOG_L, DOG_R; 47 = N20; 21 = HOME; 39 = GAP; 40 = RAIL_LOW; 41 = SEATED; 42 = ARM; 35 = INDEX. The BENCH_TEST.md table (lines 64-76), the Build Guide copies (lines 1429-1440 and 1551-1562) and CALIBRATION.md use the same mapping with the firmware's SW_TEL keys (l, r, n, H, G, L, S, W). The Build Guide still says "SW_DOG screws" at line 381, but that is only a leftover name for the mechanical contact screws, not a pin mismatch.
+
 - File: `firmware/base/WIRING.md:27`
 - Severity: high (claimed critical); 2 of 2 skeptics confirmed
 - Owner: docs
@@ -101,6 +109,8 @@ WIRING.md:27-31 and :116 still give the D27 single-SW_DOG layout: 14=SW_DOG, 39=
 >
 
 ## 4. Contact pin table in WIRING.md / BENCH_TEST.md / PROTOCOL telemetry keys is from the old firmware (one SW_DOG); the current firmware has SW_DOG_L + SW_DOG_R, so every launcher contact from GPIO39 on lands on the wrong input
+
+- Now (863d58d): **fixed** at `firmware/base/WIRING.md:23-34`. WIRING.md, BENCH_TEST.md (lines 64-76), PROTOCOL.md (sw keys at 206-215, mode at 187) and base/spec/params.py SWITCHES/DRV8833/HX711 (lines 251-266) now match pins.h and the config.h SwId/swBit order (SW_DOG_L on 13, SW_DOG_R on 14, through SW_ARM on 42 and SW_INDEX on 35), and the dog contacts are described as closed when engaged. The old SW_DOG 'tip to tip' text is gone from the firmware docs. One leftover outside this finding's scope: jetson/grappstar/comms/base.py:54 still uses the old one-SW_DOG key map ('D', 'W'=SW_WRAP_HOME).
 
 - File: `firmware/base/WIRING.md:27`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -134,6 +144,8 @@ So by default the firmware reads:
 
 ## 5. params.SWITCHES claims to match pins.h, but every GPIO differs, including the DRV8833 and HX711 pins swapped and SW_HOME on GPIO21, which the firmware drives as an output
 
+- Now (863d58d): **fixed** at `base/spec/params.py:248-268 vs firmware/base/grappstar_base/pins.h:24-45 and config.h:15`. The firmware was changed to match params, so the two now agree. pins.h has DRV8833 15/16, HX711 17/18, drum A/B/C on 10/11/12, SW_HOME on 21 and SW_N20/SW_GAP/SW_ARM present in SwId. GPIO21 is no longer driven as an output because SLP is not wired (D9) and hwDrumSleep is gone. No test compares params.SWITCHES with pins.h yet, but params_gen.h is generated from params, so the old mismatch no longer occurs.
+
 - File: `base/spec/params.py:236`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: docs
@@ -157,6 +169,8 @@ GPIO mismatches:
 
 ## 6. MEASURE_LIST B4 gives the superseded 280 mm full-cock extension (and 35 mm preload); D30/params now say 265 mm and 23.8 mm because 280 mm overloads the spring
 
+- Now (863d58d): **fixed** at `docs/build/MEASURE_LIST.md:34`. B4 now gives the D30 values: 265 mm full cock, 23.8 mm preload, 241.2 mm stroke, and a 250 mm fallback hole set. The old 280/35 mm numbers are gone, and the regenerated Build Guide (line 3527) matches params.py:51-52,182-184. Two small parts of the suggested fix were left out: the 8.8 mm fallback preload is not stated, and there is no explicit "never set 280 mm" warning.
+
 - File: `docs/build/MEASURE_LIST.md:34`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: docs
@@ -178,6 +192,8 @@ The stale number is real:
 >
 
 ## 7. Stage 1 pass band for wiper free current (1 to 3 A) overlaps the jog trips (2.5 A forward, 3 A backward in NEUTRAL)
+
+- Now (863d58d): **fixed** at `docs/build/TEST_PLAN.md:61`. The pass band now reads "about 1 to 2 A, safely under the jog trips (2.5 A forward, 3 A backward)", and it says a trip on a bare motor means binding or a bad current scale (redo G1). The bench-power text in the build guide (docs/build/GrappStar_Build_Guide.md:3010-3011) now says forward jogs in NEUTRAL run at 40 % and backward jogs at about 60 %.
 
 - File: `docs/build/TEST_PLAN.md:41`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -206,6 +222,8 @@ Code path (all read directly):
 
 ## 8. Mode sequences in TEST_PLAN and CALIBRATION send `mode REEL` from NEUTRAL/LAUNCH, which the D16 firmware always refuses
 
+- Now (863d58d): **fixed** at `docs/build/TEST_PLAN.md:98-100; firmware/base/CALIBRATION.md:137-163; firmware/base/grappstar_base/base_logic.h:706-708`. The firmware now parks `wrap` at the WRAPPED/LOCK position and accepts `mode REEL` from there (base_logic.h:706-708). TEST_PLAN and CALIBRATION now always send `wrap` before `mode REEL` and use `unwrap` to leave REEL, and CALIBRATION states the NOT_WRAPPED and WRAPS_ON rules plus the new collar-contact fault text. No step sends `mode REEL` straight from NEUTRAL or LAUNCH any more. The one loose spot left is Stage 4 step 1 ("every other mode ... in the order PROTOCOL.md gives"), which is vague but does not tell anyone to send `mode REEL` without wrapping first.
+
 - File: `docs/build/TEST_PLAN.md:64`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
 - Owner: docs
@@ -222,6 +240,8 @@ Fix: Stage 3 step 1: `mode` LAUNCH, NEUTRAL, then `wrap` (ends in REEL, `WRAPPED
 >
 
 ## 9. Dry-fire stages 3 and 4 cannot be done as written: no dart means NOT_SEATED, and the CLI cannot send fire within the 3 s token life
+
+- Now (863d58d): **partly fixed** at `docs/build/TEST_PLAN.md:95 (and :6, :117); jetson/grappstar/cli.py:322`. The NOT_SEATED part is fixed. TEST_PLAN.md:84-85 now has you set require_seated false for stages 4-5, and :137 checks that it is back to true before the first dart. The fire part is still broken. Stages 4 and 5 (and line 6) now say to use `python3 -m grappstar base fire`, but cli.py:322 has no "fire" choice, so the command fails with argparse "invalid choice: 'fire'". The spring shots still cannot be done as written.
 
 - File: `docs/build/TEST_PLAN.md:67`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
@@ -241,6 +261,8 @@ Fix: In Stages 3 and 4 give one command that arms and fires in a single process,
 >
 
 ## 10. Stage 3 estop test expects the drum to go to NEUTRAL after every move, but the firmware deliberately holds it during cock/fire and with wraps on
+
+- Now (863d58d): **partly fixed** at `docs/build/TEST_PLAN.md:101`. Partly fixed. Stage 4 step 5 now says the drum correctly holds (DRUM_HELD, D27) when the spring is drawn, the wraps are on or the drum faulted, so these cases are no longer a fail. Still missing: it says nothing about the shot phase going UNKNOWN after an estop during cock/fire, and it gives no recovery (`unwrap`; `cal decock` or `cock`; then `aim` again), so the next commands still fail with LAUNCH_BUSY, NOT_COCKED or PHASE_UNKNOWN.
 
 - File: `docs/build/TEST_PLAN.md:70`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -271,6 +293,8 @@ What the code does:
 
 ## 11. BENCH_TEST step 2 drum-code walk faults on the very first row and can lock the base in a DRUM_SENSOR fault that only a reboot clears
 
+- Now (863d58d): **fixed** at `firmware/base/BENCH_TEST.md:80-111`. The step 2 drum walk now follows the firmware Gray order (b, ab, a, ab, b, bc, c, ac, abc; config.h:135). It warns that the first change made by hand raises DRUM_SENSOR "drum code changed with the drum still", and its drum_pos and mode values match drumPos() and modeName() (base_logic.h:149-165). The firmware also fixed the stale quietSec: watch() now updates quietSec while in FAULT (base_logic.h:472), so one clear is enough, and test_base.cpp:747 covers that. The doc says STILL_PRESENT means two contacts were changed at once, but it does not spell out the jump case in detail.
+
 - File: `firmware/base/BENCH_TEST.md:58`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
 - Owner: docs
@@ -294,6 +318,8 @@ Fix: Rewrite the step 2 walk in the firmware order: b NEUTRAL/NEUTRAL, ab BETWEE
 
 ## 12. Calibration and test plan send `mode REEL` from NEUTRAL, which the firmware always refuses (NOT_WRAPPED); REEL to NEUTRAL is refused too (WRAPS_ON)
 
+- Now (863d58d): **fixed** at `firmware/base/CALIBRATION.md:137`. Fixed. CALIBRATION (c) step 8 now runs wrap (wait for WRAPPED), then mode REEL, then unwrap, and lines 160-162 warn that mode REEL alone is refused. The free running current step (line 188), the tension step (line 249) and docs/build/TEST_PLAN.md (stage 4 step 4, the stage 7 table, stage 8) all wrap before mode REEL and leave with unwrap. test_base.cpp:388 confirms that mode REEL works from the WRAPPED park, and no NEUTRAL→REEL or REEL→NEUTRAL sequence is left in the docs or the build guide.
+
 - File: `firmware/base/CALIBRATION.md:96`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -316,6 +342,8 @@ Code (firmware/base/grappstar_base/base_logic.h, cmdMode at about lines 583-596)
 
 ## 13. CALIBRATION (e) k_n_per_a: jogging to 20 N needs about 4 A, but a jog trips OVERCURRENT at 3 A
 
+- Now (863d58d): **fixed** at `firmware/base/CALIBRATION.md:243`. The k_n_per_a procedure no longer uses a jog. Line 243 now says "Do not use jogs for this: a jog trips at 3 A, about 15 N". Steps 3 and 4 use `{"cmd":"reel","duty":0.3,"until":"stop"}` (reel-in trip 5 A) and stop at about 10, 20 and 30 N, all below the 5 A trip.
+
 - File: `firmware/base/CALIBRATION.md:163`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: docs
@@ -332,6 +360,8 @@ Fix: Replace the jog with a slow reel and stop: `{"id":3,"cmd":"reel","duty":0.3
 >
 
 ## 14. WIRING.md and the Build Guide wire DRV8833 SLP to GPIO21, against D9 and SYSTEM_ELECTRICAL. TEST_PLAN then adds SLP to 3V3, which shorts 3V3 into the GPIO21 output the firmware drives LOW
+
+- Now (863d58d): **fixed** at `firmware/base/WIRING.md:40`. WIRING.md (lines 40-41, 127, 214, 231), BENCH_TEST.md:180, the regenerated Build Guide (1446, 1620) and pins.h:23 now all say SLP has no wire, following D9. GPIO21 is now the SW_HOME input, and the firmware no longer drives an SLP pin (grappstar_base.ino:158 passes no sleep callback). So the later 3V3 fallback wire on SLP can no longer short into a GPIO output.
 
 - File: `firmware/base/WIRING.md:165`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
@@ -351,6 +381,8 @@ The firmware drives the pin either way. It sets PIN_DRUM_SLP a
 >
 
 ## 15. DRV8833 SLP wiring contradicts itself across docs: WIRING says wire SLP to GPIO21, SYSTEM_ELECTRICAL/D9/pins.h say leave it unwired, TEST_PLAN says wire it to 3V3
+
+- Now (863d58d): **fixed** at `firmware/base/WIRING.md:214`. WIRING.md (lines 40-41, 127, 214, 231), BENCH_TEST.md:180, SYSTEM_ELECTRICAL.md, pins.h:23 and drives.h:5 now all say SLP stays unwired (D9) and GPIO21 is SW_HOME, and the firmware has no SLP output any more, so the GPIO21/3V3 short can no longer happen. One small wording gap is left: WIRING.md:130 and BENCH_TEST.md:181 still offer "wire SLP to 3V3" as a fallback, while TEST_PLAN.md:66 says a board that does not pull SLP high cannot be used as wired.
 
 - File: `firmware/base/WIRING.md:165`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -381,6 +413,8 @@ Fix: Follow D9 everywhere. In WIRING.md line 22 write 'not wired (D9)'. Delete t
 
 ## 16. WIRING.md wires the 22 AWG MP1584 input straight to the B+ screw behind only the 20 A fuse, without the 2 A inline fuse SYSTEM_ELECTRICAL requires
 
+- Now (863d58d): **fixed** at `firmware/base/WIRING.md:217`. WIRING.md now puts a 2 A inline fuse in the buck IN+ lead, right at the BTS7960 B+ screw. It appears in the fuse table (line 61), the diagram (line 70), the "You need" list (line 178), Part A step 1 (line 187) and Part B step 12 (lines 217-218), with 18 AWG under 10 cm as the fallback.
+
 - File: `firmware/base/WIRING.md:168`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: docs
@@ -408,6 +442,8 @@ The other documents ask for this fuse:
 
 ## 17. WIRING.md wires the 22 AWG buck input straight off the B+ screw behind only the 20 A fuse, with no 2 A inline fuse; SYSTEM_ELECTRICAL requires the 2 A fuse
 
+- Now (863d58d): **fixed** at `firmware/base/WIRING.md:217`. Step 12 now puts the 2 A inline fuse right at the BTS7960 B+ screw in the buck IN+ lead. The 2 A fuse also appears in the section 2 diagram (line 70), the parts table (line 61), the notes (line 89), the Part A leads (line 187) and the 'You need' list (line 178). WIRING.md now agrees with SYSTEM_ELECTRICAL P4. The only fallback it gives, 18 AWG kept under 10 cm, is the same one MEASURE_LIST C8 gives.
+
 - File: `firmware/base/WIRING.md:168`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -427,6 +463,8 @@ Fix: In WIRING.md step 12 write: 'Battery unplugged. Buck input: IN+ through the
 
 ## 18. CALIBRATION note warns that aim_home_deg can only be set from -720 to 720; the firmware accepts -7200..7200
 
+- Now (863d58d): **fixed** at `firmware/base/CALIBRATION.md:228`. The note claiming a -720 to 720 limit is gone. The doc now says "The allowed range is -7200 to +7200", which matches base_logic.h:1010 ({"aim_home_deg", ..., -7200, 7200}). The only 720 left in the docs is the drum_dps range in PROTOCOL.md, and that is a different key.
+
 - File: `firmware/base/CALIBRATION.md:151`
 - Severity: low (claimed low); unverified (low)
 - Owner: docs
@@ -439,6 +477,8 @@ Fix: Delete the note (lines 151-152). Change the 'If the reply is OUT_OF_RANGE' 
 
 
 ## 19. Firmware README safety summary gives the wrong current trips (17 A / 15 A while cocking); the firmware trips at 5 A, 6.5 A while cocking, 3 A on jogs, hard 17 A
+
+- Now (863d58d): **fixed** at `firmware/base/README.md:192`. The README now gives the same trips as config.h:76-81: 5 A for aim and reel, 6.5 A for cock, fire and tow, 2.5 A for take-up, 3 A for jogs, centering and fly-in, and a hard 17 A. The build guide (docs/build/GrappStar_Build_Guide.md:1852) was regenerated to match. The suggested warning "do not raise trip_a to get past a trip" was not added, but the wrong numbers are gone.
 
 - File: `firmware/base/README.md:144`
 - Severity: low (claimed low); unverified (low)
@@ -453,6 +493,8 @@ Fix: Change README.md:144 to: 'Over-current trips (D8): 5 A for aim, reel and to
 
 ## 20. WIRING.md tells the learner to buy an MP1584, which breaks the parts rule and contradicts SYSTEM_ELECTRICAL/MEASURE_LIST (MP1584 #2 is freed by the v4 dart)
 
+- Now (863d58d): **fixed** at `firmware/base/WIRING.md:87`. WIRING.md now says the dart uses one MP1584 and that MP1584 #2 is the spare from the dart build (MEASURE_LIST C4), to be reset to 9.0 V in Part A. The "Both of yours are in the dart ... Buy another one" text is gone from the whole tree. It now appears only in review/r1_G_build_docs.md.
+
 - File: `firmware/base/WIRING.md:64`
 - Severity: low (claimed low); unverified (low)
 - Owner: fw-base
@@ -465,6 +507,8 @@ Fix: Replace WIRING.md lines 64-65 with: 'Use MP1584 #2, the spare from the dart
 
 
 ## 21. Dart WIRING step B2 connects the 3S LiPo to the MP1584 without starting from 'battery unplugged' or saying to make the connection before plugging in
+
+- Now (863d58d): **still open** at `firmware/dart/WIRING.md:97`. Step B2 still says "3S LiPo on XT60 lead #1 to MP1584 IN+ / IN-". It never says to start with the battery unplugged, to make the connection before plugging in, or to beep-check IN+ to IN- for a short. Every other Path B step begins "Battery unplugged", and line 92 says every step starts that way.
 
 - File: `firmware/dart/WIRING.md:97`
 - Severity: low (claimed low); unverified (low)

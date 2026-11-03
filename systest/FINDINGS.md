@@ -5,32 +5,41 @@ sim over HTTP, the real Jetson App). Each entry: the exact failing scenario, the
 Line numbers are against `origin/base-v1` at the time of the entry. Status: OPEN until the owner says fixed and the
 harness re-runs green.
 
-## Status (14:00 Sydney)
+## Status (14:40 Sydney)
 
-"fixed on branch" = green in `systest/preview.sh` (base-v1 ba121b9 + w/fw-base 6472524 + w/fw-dart 827b290 +
-w/jetson 79e30ed), not yet merged into base-v1. Evidence in `systest/runs_preview/<scenario>/`.
+"fixed on branch" = green in the preview runs (`PREVIEW=1 systest/batch.sh`, base-v1 + w/fw-base + w/fw-dart +
+w/jetson; commits in `systest/runs_preview.version` and the logs), or stated fixed by the owner with the commit and
+re-tested where noted. Evidence in `systest/runs_preview/<scenario>/` and `systest/runs_fw87/`.
 
 | # | owner | status | evidence |
 |---|---|---|---|
-| F1 | fw-base | open (not re-tested: harness waits for BOOT) | |
-| F2 | fw-base, jetson | FIXED in base-v1 | `tidy` -> TIDIED in every nominal run |
-| F3 | fw-base | partly (jetson reads l r I) | PROTOCOL re-sync pending D35 |
-| F4 | jetson | fixed on branch | preview `nominal` PASS with the strict D22 plant, steps WRAP before ANCHOR |
-| F5 | jetson, docs | fixed on branch | preview `nominal_uncal` PASS (release option, no re-pull above the limit) |
-| F6 | jetson | fixed on branch | prompt now says "The drum HELD where it is (...)" |
-| F7 | jetson | fixed on branch | COCK fault prompt offers "Decock and re-aim" (re-test after the harness timing fix) |
-| F8 | jetson | fixed on branch | preview `power_unwrap`: BASE_RESET reported 1 s after the cut |
-| F9 | fw-base | open | |
-| F10 | jetson | open (re-test) | |
-| F11 | jetson | re-test | |
-| F12 | jetson | fixed on branch | preview `nominal` C1 order = BASE_SPEC 10.1 |
-| F13 | fw-base | open | |
-| F14 | fw-base, docs | OPEN | preview `ref_doc_cal`: plant 50.5 N at LIMIT 40 |
-| F15 | fw-base | open (escape path works, re-cocks) | `ref_power_wrap` |
-| F16 | fw-base | re-test | |
-| F17 | fw-base | open | |
-| F18 | jetson | OPEN | preview `nominal`, `power_unwrap`: TOW 60 s timeouts |
-| F19 | fw-base | OPEN (D39 new) | preview `ref_refusals` |
+| F1 | fw-base | open (not re-tested: the harness waits for BOOT) | |
+| F2 | fw-base, jetson | FIXED in base-v1 | `tidy` -> TIDIED in every run |
+| F3 | fw-base | partly (Jetson reads l r I) | PROTOCOL re-sync |
+| F4 | jetson | fixed on branch | WRAP before ANCHOR in every mission run |
+| F5 | jetson, docs | fixed on branch | `nominal_uncal` PASS: TOW refused, dart brought home |
+| F6 | jetson | fixed on branch | prompt says "The drum HELD where it is (...)" |
+| F7 | jetson | fixed on branch | `stall_cock`: Decock and re-aim, mission DONE |
+| F8 | jetson | fixed on branch | `power_unwrap(_fasthello)`: BASE_RESET at once, DONE in about 120 s |
+| F9 | fw-base | fw-base reports an index mode (`indexMode` in cmdAim); not re-tested: the plant has no index cam | |
+| F10 | jetson | fixed on branch | `no_angle_sensor` PASS: preflight "AS5600 sees no magnet" |
+| F11 | jetson | not reproduced since F4 (no partial wrap any more) | |
+| F12 | jetson | fixed on branch | C1 order = 10.1 apart from F25 |
+| F13 | fw-base | fixed on branch (fw-base) | retrieve at the park WRAPS_ON |
+| F14 | fw-base, docs | fixed on branch | CALIBRATION.md two-point fit with offset (D42 default -3.0) |
+| F15 | fw-base | fixed on branch | `ref_power_wrap`, `power_aim`, `ref_power_aim` PASS |
+| F16 | fw-base | fixed on branch (fw-base: tension_offset_n saved; host_timeout_s deliberately not) | |
+| F17 | fw-base | fixed on branch (fw-base 87c48b3) | |
+| F18 | jetson | fixed on branch | no 60 s TOW waits |
+| F19 | fw-base | fixed on branch | `ref_refusals`: every wrong command refused (fw-base 6381edd) |
+| F20 | fw-base (D41) | fixed on branch | `ref_nominal` fly-in 14.6 N, no fault (c28396c) |
+| F21 | fw-base | fixed on branch | `ref_tow_stiff` PASS (6381edd): tow limit held on the stiff line |
+| F22 | fw-base / jetson | by design: host sends `stop` then `reel`; PROTOCOL + mission to align | |
+| F23 | fw-base | fixed in firmware 783f3b2 (line_m - 0.88 m after the wrap): the Jetson must not subtract it too | re-test |
+| F24 | jetson (low) | open | |
+| F25 | jetson / spec (low) | open (stop-first is safer: suggest the spec adopts it) | |
+| F26 | fw-base | fixed in 4231f46 (owner) | re-test `hand_lever` |
+| F27 | fw-base (low) | fixed in 4231f46 (owner: clamp within aim_tol) | re-test |
 
 ## F1 (fw-base) `cal` (and `set`) during the first 60 ms are acknowledged ok, then silently undone by the boot rebuild
 
@@ -323,3 +332,74 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   defined slack after the tidy (tidy by length). The harness check stays: fly-in on a taut 5.6 kN/m line.
 - Note: the stiffness assumption (EA 20 kN) is mine from the line spec (667 N break, about 3.5 % at break); real
   braid has some bedding-in stretch, which makes it softer at first. Even at EA 5 kN (1.4 kN/m) 6 mm is about 8 N.
+
+## F21 (fw-base) on a stiff line the tow overshoots the limit by about 25 % at duty 1
+
+- Preview (fw-base c28396c, D41 in), scenario `ref_nominal` (BASE_SPEC 10.1, 1 mm Dyneema EA 20 kN, anchored at
+  3.6 m: about 5.6 kN/m): after the fly-in (14.6 N), `reel duty 1 max_n 40 until tension` -> `LIMIT` after 245 ms with
+  `tension_n` 48.9 (the firmware saw it was over), plant line 50.3 N held by the worm. Same pull in `ref_tow_duty08`
+  at duty 0.8 for comparison in the batch log.
+- Why: once taut the line tension rises at capstan speed x stiffness, several hundred N/s; the taper "over the last
+  30 % of max_n" (PROTOCOL.md `reel`) never gets a sample in that window, and the 60 ms raw-estimate hold adds
+  ~10 N. The worm then holds the overshoot (no back-off).
+- Suggest: when a tow starts from HOLD or right after the fly-in (line known taut), start at low duty and raise it
+  only while the estimate stays under about 50 % of max_n; or predict from the tension rate (stop when
+  `tension + rate x 60 ms >= max_n`). Acceptance: `ref_nominal` / `ref_tow_stiff` plant peak under max_n + 15 %.
+
+## F22 (fw-base: BY DESIGN, host must `stop` then `reel`; jetson / PROTOCOL to align) without a load cell, a held tow never pulls again: `reel` from HOLD answers "already at the limit" on a slack line
+
+- Same run: after round 1 the rover drives 0.6 m toward the dart (plant line goes slack: 0.5 N). Round 2 and 3:
+  `reel ... until tension` -> `LIMIT {"tension_n":48.9,"why":"already at the limit","holding":true}` within 5 ms,
+  nothing turns. The held estimate (48.9 N from round 1) is kept although the line went slack, so the tow can never
+  take up the slack the rover gives. PROTOCOL.md `reel`: "also accepted while holding (state HOLD): winds again".
+- Suggest: without a load cell, a `reel` from HOLD (or after `stop`) re-measures: start winding at low duty and take
+  the estimate from the new current after the start blanking, not the held value; refuse only with a load cell that
+  shows the line still at the limit.
+
+## F23 (fw-base: FIXED on w/fw-base 783f3b2, line_m drops 0.88 m after the wrap) `line_m` ignores the 0.9 m the wrap draws from the dart side: the reel-in leaves 0.6 m, not 1.5 m
+
+- Same run: `set line_m 4.48` after the landing; the wrap (7 turns on d 40 + line) draws 0.9 m from the dart side
+  (D22: the landing slack), plant line out 3.58 m after the wrap. The capstan reel-in stopped when telemetry
+  `line_m` reached 1.5 (10.1 step 15): plant line out was 0.58 m. The dart then seated during the unwrap.
+- Fix: the firmware subtracts `wrapsFull x pi x (d + line d)` from `line_m` when it lays the wraps (it knows the
+  count), or the Jetson re-sends `set line_m` after WRAPPED. Without it, "stop at about 1.5 m" means 0.6 m.
+
+## F24 (jetson, low) host watchdog margin: pings every 0.8 s against `host_timeout_s` 1.5
+
+- Preview `nominal` (base at 2x sim speed, 3 parallel shards on 4 cores): the Jetson sets `host_timeout_s 1.5` and
+  pings about every 0.8 s; one gap of 1.5 s of base time (0.75 s of wall time at 2x) during AIM made the base stop
+  (`ABORTED {"what":"HOST","why":"host silent"}`). Retry recovered. At real speed the same needs a 1.5 s gap, so this
+  is mostly my speed scaling, but the margin is only 0.7 s against a Python process that also runs video, vision and
+  the landing analysis (GC or a busy GIL can take that).
+- Suggest: ping from a dedicated thread at 0.3 s, or set the watchdog to 3 s; log the largest ping gap.
+- Harness: the final batch runs the base at real time (`SYSTEST_SPEED=1`).
+
+## F25 (jetson + spec, low) step 14 order: the mission stops the base before `/release`; 10.1 says release, then stop
+
+- Preview `dog_tip`, `drum_timeout`, `nominal`: `... reel tension > stop > dart release > reel stop ...`
+  (`mission.py` `release_dart`: `self.base.safe_stop()` then `self.dart.release()`). BASE_SPEC 10.1 step 14:
+  "dart `/release`, then `stop`".
+- Stop first is the safer order (the capstan never pulls against a releasing dart; the worm holds the line either way),
+  so I suggest the spec adopts it. The C1 check accepts both orders meanwhile.
+
+## F26 (fw-base) a drum turned by hand while the board is off gives `DRUM_SENSOR` at boot
+
+- Preview (fw-base c28396c), scenario `power_launch_mode` set-up: board off, drum turned from LAUNCH to NEUTRAL
+  (41 deg), board on. `BOOT {"record":true,"was_moving":false,"phase":"UNKNOWN"}` then
+  `FAULT DRUM_SENSOR "drum code disagrees with the saved drum angle"`. The spec makes the drum lever the manual
+  fallback (BASE_SPEC 1: "Manual lever on the drum shaft end as the hand fallback") and PROTOCOL.md section 7 says the
+  sector always comes from the absolute drum code at boot. A clear is needed before anything moves. (The phase UNKNOWN in the same log is
+  the harness cutting power 20 ms after `cal cock_rest`; fixed in the harness.) Re-confirmed on fw-base 6381edd.
+- Suggest: at boot, a valid code in another sector than the record = the drum was moved by hand: take the code's
+  sector (angle mid-sector), no fault; keep DRUM_SENSOR for invalid codes. New scenario `hand_lever` checks it.
+
+## F27 (fw-base / spec, low) `aim 6` (the D45 rail-low step, as BASE_SPEC 10.1 writes it) is refused `OUT_OF_RANGE`
+
+- Preview fw-base 6381edd, scenario `ref_nominal` (10.1 with step 7b): after the landing, `{"cmd":"aim","deg":6}`
+  -> `{"ok":false,"err":"OUT_OF_RANGE"}` every time. `params_gen.h:280 P_AIM_PITCH_MIN 6.0f`, but `get pitch_range`
+  is `max(pitchMin, table min)`; the aim table starts at 6.01 deg (`params_gen.h:284`), so `cmdAim` (`base_logic.h:812-813`,
+  `deg >= lo - 1e-3`) refuses 6.00 by 0.009 deg. The tow then runs with the rail high (D45 says that loads the carriage stop against the spring).
+- Fix: accept a target within `aim_tol` of the range ends (clamp to the end), or make 10.1 / the Jetson aim at
+  `get pitch_range` min. The reference driver now falls back to `pitch_range` min and logs it.
+- The Jetson mission (w/jetson 0195c38) already sends `aim 6.06` (`power_aim` base.log), so only the spec text and
+  any other host that follows it literally are affected.

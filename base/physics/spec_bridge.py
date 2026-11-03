@@ -106,12 +106,20 @@ def apply(p, path=None):
             setattr(p.battery, pk, float(b[sk]))
     _overlay(p, getattr(mod, "LAUNCH", None), LAUNCH_MAP, used)
     lt = getattr(mod, "LAUNCH", None) or {}
+    dg = lt.get("drive_gear") if isinstance(lt.get("drive_gear"), dict) else {}
+    if dg.get("face") is not None:
+        p.launch["cock_gear"] = dict(module=float(dg.get("module", 2.5)), face=float(dg["face"]), z_driver=int(dg.get("teeth", 26)))
+        used.append("LAUNCH.drive_gear")
     if lt.get("carriage_mass_target_g") is not None:          # D36 (wins over the older _kg key)
         p.launch["carriage_mass"] = float(lt["carriage_mass_target_g"]) * 1e-3
         used.append("LAUNCH.carriage_mass_target_g")
     if lt.get("carriage_mass_g") is not None:                 # as built / slicer mass: wins over the target
         p.launch["carriage_mass"] = float(lt["carriage_mass_g"]) * 1e-3
         used.append("LAUNCH.carriage_mass_g")
+    if isinstance(lt.get("v_scale"), (int, float)) and not isinstance(lt.get("v_scale"), bool):
+        # muzzle speed factor from test shots (calib.py range); only ballistics.py and summary.py flight rows apply it
+        p.launch["v_scale"] = float(lt["v_scale"])
+        used.append("LAUNCH.v_scale")
     if isinstance(lt.get("stop"), dict) and lt["stop"].get("travel_min") is not None:
         p.launch["stop_pad_travel"] = float(lt["stop"]["travel_min"]) * 1e-3
         used.append("LAUNCH.stop.travel_min")

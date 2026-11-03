@@ -13,6 +13,7 @@ No em dashes anywhere in the text.
 from __future__ import annotations
 
 import argparse
+import re
 import base64
 import glob
 import html
@@ -85,7 +86,7 @@ def measure_rows():
                  "params.WIPER", "motor adapter, coupler"],
                 ["Springs", "hang a full 1 L bottle on one spring, length before and after", "params.SPRING",
                  "spring anchor holes"]]
-    return rows[:40]
+    return rows
 
 
 def build(out, branch, checks_file):
@@ -131,13 +132,30 @@ def build(out, branch, checks_file):
                 checks.append((st, name.strip(), detail.strip()))
     audit_state = audit.get("result") or audit.get("status") or ("CLEAN" if audit.get("clean") else "")
 
-    # copy generated pages
+    # copy generated pages. Prefer the publishing variants (<name>_body.html plus web/*.json data files): each file
+    # must stay under the 16 MB artifact limit, and the standalone sim.html inlines everything (about 20 MB).
     files = {}
-    for src, dst in [("base/out/base/sim.html", "sim.html"), ("base/out/base/assembly.html", "assembly.html")]:
-        s = os.path.join(ROOT, src)
-        if os.path.exists(s):
-            shutil.copy(s, os.path.join(out, dst))
-            files[dst] = True
+    head = ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width,initial-scale=1"></head><body>\n')
+    for name in ("sim", "assembly"):
+        body = os.path.join(ROOT, f"base/out/base/{name}_body.html")
+        full = os.path.join(ROOT, f"base/out/base/{name}.html")
+        dst = os.path.join(out, f"{name}.html")
+        if os.path.exists(body):
+            with open(body, encoding="utf-8") as f:
+                txt = f.read()
+            with open(dst, "w", encoding="utf-8") as f:
+                f.write(head + txt + "\n</body></html>\n")
+            files[f"{name}.html"] = True
+            for ref in sorted(set(re.findall(r"web/[A-Za-z0-9_.-]+\.(?:json|js|bin)", txt))):
+                srcf = os.path.join(ROOT, "base/out/base", ref)
+                if os.path.exists(srcf):
+                    os.makedirs(os.path.join(out, "web"), exist_ok=True)
+                    shutil.copy(srcf, os.path.join(out, ref))
+                    files[ref] = True
+        elif os.path.exists(full) and os.path.getsize(full) < 15_500_000:
+            shutil.copy(full, dst)
+            files[f"{name}.html"] = True
     shots = sorted(glob.glob(os.path.join(ROOT, "base/out/base/shots/sim_t*.png")))
     hero = ""
     if shots:
@@ -199,6 +217,12 @@ def build(out, branch, checks_file):
         nav.append('<a class="go alt" href="assembly.html">Assembly steps</a>')
     status = f"Built {esc(git_head())}" + (f" &middot; collision audit {esc(audit_state)}" if audit_state else "")
 
+    _all = measure_rows()
+    _first_ids = ("A1", "A2", "A3", "A4", "A5", "A8", "B1", "B2", "B3", "B4", "H1", "H2", "H3", "H4", "H5")
+    mrows_first = [r for r in _all if r and r[0].split(" ")[0] in _first_ids]
+    mrows_box = [r for r in _all if r and r[0][:1] == "C" and r[0][1:2].isdigit()]
+    if not mrows_first:
+        mrows_first = _all[:15]
     body = f"""<title>GrappStar Base Station</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -234,6 +258,7 @@ a.go.alt {{ background: transparent; color: var(--ink); border: 1px solid var(--
 a.go:focus-visible, a:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
 h2 {{ font: 600 1.35rem/1.2 var(--display); margin: 0 0 14px; letter-spacing: 0.02em; text-wrap: balance; }}
 h2 small {{ font: 0.75rem var(--mono); color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-left: 8px; }}
+.note {{ color: var(--muted); font-size: 0.9rem; margin: 10px 0 0; }}
 ol.work {{ margin: 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 10px; }}
 ol.work li {{ counter-increment: s; display: grid; grid-template-columns: 2.2rem 1fr; gap: 10px; min-width: 0; }}
 ol.work li::before {{ content: counter(s); font: 500 0.9rem var(--mono); color: var(--accent); padding-top: 2px; }}
@@ -261,10 +286,14 @@ ul.files a {{ color: var(--ink); text-decoration-color: var(--accent); text-unde
 <section>{hero_html}<div class="actions" style="margin-top:14px">{''.join(nav)}</div></section>
 <section><h2>What to do next <small>in order</small></h2>
 <ol class="work">{''.join(f'<li><span><b>{esc(a)}</b> {esc(b)}</span></li>' for a, b in steps)}</ol></section>
-<section><h2>Measure these first <small>assumed until measured</small></h2><div class="scroll"><table>
+<section><h2>Measure before printing the base <small>assumed until measured</small></h2><div class="scroll"><table>
 <thead><tr><th>Item</th><th>How</th><th>Changes</th><th>Reprint</th></tr></thead><tbody>
-{''.join('<tr>' + ''.join(f'<td>{esc(c)}</td>' for c in (r + ['', '', '', ''])[:4]) + '</tr>' for r in measure_rows())}
+{''.join('<tr>' + ''.join(f'<td>{esc(c)}</td>' for c in (r + ['', '', '', ''])[:4]) + '</tr>' for r in mrows_first)}
 </tbody></table></div></section>
+<section><h2>Confirm in the parts box <small>no new purchases except 608s</small></h2><div class="scroll"><table>
+<thead><tr><th>Item</th><th>How</th><th>If not</th></tr></thead><tbody>
+{''.join('<tr>' + ''.join(f'<td>{esc(c)}</td>' for c in [r[0], r[1], (r + ['', '', ''])[2]]) + '</tr>' for r in mrows_box)}
+</tbody></table></div><p class="note">Bench and field numbers (current sense, tension per amp, payout brake, range shots) come later, in the order of the test plan: see the full measure list.</p></section>
 <section><h2>Datasheet</h2><div class="scroll"><table><tbody>
 {''.join(f'<tr><td>{esc(k)}</td><td class="num">{esc(val)}</td></tr>' for k, val in data)}
 </tbody></table></div>

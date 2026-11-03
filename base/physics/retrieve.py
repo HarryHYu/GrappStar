@@ -60,7 +60,32 @@ def snatch(p, pitch=36.0, slack=0.245, seg_len=0.5):
                 line_spike_n_upper=t_peak, line_break_n=p.line.breaking)
 
 
-def wrap_loads(p, w=WRAP, light_n=None):
+def wrap_params(base=WRAP):
+    """WRAP defaults overlaid with the spec (DRUM.n20, DRUM wrap window and cup turns) when params.py has them."""
+    w = dict(base)
+    try:
+        import spec_bridge
+        mod = spec_bridge.load_spec_module()
+    except Exception:
+        mod = None
+    dr = getattr(mod, "DRUM", None) if mod is not None else None
+    if isinstance(dr, dict):
+        n = dr.get("n20") or {}
+        for sk, wk in (("ratio", "n20_ratio"), ("stall_nm_design", "n20_torque_nm"), ("drum_deg_per_s", "drum_deg_per_s"),
+                       ("peak_drum_load_nm", "peak_drum_load_nm")):
+            if n.get(sk) is not None:
+                w[wk] = float(n[sk])
+        if dr.get("wrap_turns") is not None:
+            w["cup_turns"] = float(dr["wrap_turns"])
+        if dr.get("cup_turns_per_drum_deg") is not None:
+            w["cup_per_drum"] = float(dr["cup_turns_per_drum_deg"]) * 360.0
+            w["drum_sector_deg"] = w["cup_turns"] / float(dr["cup_turns_per_drum_deg"])
+        w["source"] = "spec DRUM"
+    return w
+
+
+def wrap_loads(p, w=None, light_n=None):
+    w = wrap_params() if w is None else w
     light = p.flight["brake_n"] if light_n is None else light_n
     rp = reel_props(p)
     torque = light * rp["r_full"]                             # light clutch set at the full reel
@@ -74,7 +99,10 @@ def wrap_loads(p, w=WRAP, light_n=None):
         rows.append(dict(line_on_reel_m=left, t_reel_n=t_reel, t_ring_n=t_ring, t_cup_nm=t_cup, t_drum_nm=t_drum,
                          t_n20_nm=t_n20, n20_frac=t_n20 / w["n20_torque_nm"]))
     drum_turns = w["drum_sector_deg"] / 360
-    t_wrap_s = drum_turns * w["n20_ratio"] / (20.0 / 60)      # N20 about 20 rpm at 9 V
+    if w.get("drum_deg_per_s"):
+        t_wrap_s = w["drum_sector_deg"] / w["drum_deg_per_s"]  # cad-drum as built (spec DRUM.n20)
+    else:
+        t_wrap_s = drum_turns * w["n20_ratio"] / (20.0 / 60)  # N20 about 20 rpm at 9 V
     cup_turns_check = drum_turns * w["cup_per_drum"]
     line_drawn = w["cup_turns"] * 2 * math.pi * (p.capstan["d"] / 2 + p.line.d / 2)
     return dict(params=w, light_n=light, rows=rows, wrap_time_s=t_wrap_s, cup_turns_in_sector=cup_turns_check,

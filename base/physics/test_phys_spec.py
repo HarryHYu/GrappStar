@@ -84,3 +84,15 @@ def test_committed_ballistics_not_stale(p):
     assert row["v_muzzle"] == pytest.approx(v, rel=0.005)
     rng = simulate(p, v, row["pitch_deg"], brake_n=doc["drag_n"][1], reel_model=True)["range_m"]
     assert row["range_m"][1] == pytest.approx(rng, rel=0.01)
+
+
+def test_wrap_time_from_spec(p):
+    from retrieve import wrap_loads
+    s = _spec()
+    n = s.DRUM.get("n20") or {}
+    if not n.get("drum_deg_per_s"):
+        pytest.skip("spec has no DRUM.n20.drum_deg_per_s")
+    w = wrap_loads(p)
+    sector = s.DRUM["wrap_turns"] / s.DRUM["cup_turns_per_drum_deg"]
+    assert w["wrap_time_s"] == pytest.approx(sector / n["drum_deg_per_s"])
+    assert w["params"]["n20_ratio"] == pytest.approx(n["ratio"])

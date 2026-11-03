@@ -18,7 +18,7 @@ OUT_DIR = os.path.join(HERE, "..", "out", "physics")
 ASSUMED = dict(
     drum_shift_s=3.0,       # N20 drum move between adjacent positions (cad-drum to confirm)
     drum_a=0.15,            # N20 current at 9 V, A (buck from the 3S)
-    wrap_s=18.0,            # retrieve.py: 240 deg of drum at ~20 rpm N20 through 9:1
+    wrap_s=None,            # from retrieve.wrap_loads (spec DRUM.n20: 240 deg at drum_deg_per_s)
     anchor_s=60.0,          # dart: kick + drills + foot (dart battery, not the base battery)
     release_s=20.0,         # dart release sequence
     idle_w=4.0,             # ESP32-S3 + AS5600 + BTS logic, base side, W (Jetson not counted)
@@ -30,7 +30,10 @@ def run(p=None, tow_n=30.0, tow_m=3.0, reel_n=3.0):
     p = p or load_params()
     d = drivetrain.run(p, light_n=reel_n, reel_len=5.0, tow_len=tow_m)
     f = d["functions"]
-    a = ASSUMED
+    a = dict(ASSUMED)
+    if a["wrap_s"] is None:
+        from retrieve import wrap_loads
+        a["wrap_s"] = wrap_loads(p)["wrap_time_s"]
     steps = []
 
     def add(name, t, wh, note=""):

@@ -78,7 +78,7 @@ M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post.
 
 - Phase convention: tooth 0 on +X of each gear's own frame at joint angle 0. Cross-owner meshes: my kin reads
   cad-drum's drum.kin and sets c1 = (50/46) drum_main + 3.78 deg, capstan = (50/22) drum_out_reel + 7.91 deg,
-  cup = (42/24) (drum_idler - its value at drum 0), cup gear teeth +14.92 deg in the cup frame (zero overlap by
+  cup = (42/24) (drum_idler - its value at drum 0), cup gear teeth +8.67 deg in the cup frame (zero overlap by
   numeric search). Without drum.py it falls back to S["wiper_deg"], S["reel_deg"], S["wraps"].
 - Stall: at the 15 N m wiper stall the line sees 274 N (eta 0.85), under the 667 N break; the D26 shear pin (5 N m)
   caps it at about 100 N.

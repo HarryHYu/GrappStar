@@ -697,13 +697,15 @@ def _bgr_frame(f):
 
 def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_offset_s: Optional[float] = None,
                    hfov_deg: float = 100.0, v0_default: Optional[float] = None, h0: float = RAIL_H,
-                   ballistics=None, drag_n: float = 0.5, aim_pitch_deg: Optional[float] = None) -> FlightResult:
+                   ballistics=None, drag_n: float = 0.5, aim_pitch_deg: Optional[float] = None,
+                   calibrate_range: bool = True) -> FlightResult:
     """Analyse a dart flight video (list of Frame) with an optional C2 flightlog. Never raises on bad input.
 
     ballistics: a grappstar.ballistics.Ballistics (C3 table) used as the prior for the muzzle speed and to
     calibrate the range (the table is the launcher model; the simple drag model here only interpolates around it).
     drag_n: the clutch drag column (LIGHT 0.5 N at launch). aim_pitch_deg: the commanded rail pitch (a strong
-    prior for the video-only path)."""
+    prior for the video-only path). calibrate_range=False keeps the simple drag model's range (no scaling to the
+    table): for a simulator world that does not follow the table."""
     res = FlightResult()
     frames = [_bgr_frame(f) for f in (frames or []) if f is not None and getattr(f, "img", None) is not None]
     frames = [f for f in frames if f is not None]
@@ -942,7 +944,7 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
         # calibrate the simple model to the C3 table at this pitch (the table is the launcher model)
         scale = 1.0
         vp = v_tab(pitch)
-        if vp is not None and bal.pitch_min - 1e-6 <= pitch <= bal.pitch_max + 1e-6:
+        if calibrate_range and vp is not None and bal.pitch_min - 1e-6 <= pitch <= bal.pitch_max + 1e-6:
             r_tab = float(bal.at_pitch(pitch, drag_n)["range_m"])
             r_mod = model_range(vp)
             if r_mod > 0.1:

@@ -5,25 +5,24 @@ launcher/reel geometry below is my placeholder: stroke along the rail, 60 g carr
 core 40 / flange 64 / width 20 mm, capstan 40 mm). Dart mass 0.279 kg (spec DART.mass_kg; the brief said 0.292 kg:
 coordinator please confirm which). Models: base/physics/*.py, every number reproducible with the CLIs.
 
-## Current numbers (spec v1.0, latest run; details in SUMMARY.md, base/out/physics/*.json)
+## Current numbers (spec v1.2, latest run; details in SUMMARY.md, base/out/physics/*.json)
 
-- Launch: 2 springs, 35 mm preload, 280 mm full, 13.1 J, carriage 60 g: 7.8 m/s, 22 g, 65 % efficient.
+- Launch: 2 x Century C-243, 23.8 mm preload, 265 mm full (40.1 N each, catalogue 38.4 N), 12.1 J, carriage 60 g:
+  7.41 m/s, 21 g, 63 % efficient. 4 springs (provision): 10.2 m/s.
 - Range from the rail pivot's ground point (pivot 0.315 m up: deck 0.15 ASSUMED + 0.165), LIGHT 0.5 / 0.75 / 1.0 N:
-  5.2 / 4.8 / 4.3 m at 36 deg (best). Table 6 to 47 deg in base/out/ballistics.json (C3): 2.9 m at 6 deg.
-  4 springs (provision): 10.6 m/s, 9.0 / 8.2 / 7.5 m; stop KE 7.8 J.
-- Stop: 2.8 J (carriage 1.8 + springs 1.0): 15 mm linear pad 370 N; for 300 N use about 19 mm or a constant-force stop.
-- Storage reel 50/66/22: 43 g, 27.6 kg mm2 full; the spin-up adds 5.0 N of line pull in the stroke (the bigger reel
-  costs 0.36 m/s vs no reel inertia, about the same for a 40 mm core); overrun after landing 0.30 m at 0.5 N.
-- Capstan 50:22 (2.27x faster), 7 wraps: tow 50 N = 3.0 N m, 4.8 A, 0.15 m/s; 20 m reel-in 107 s; limiter slipping
-  pulls 88 N (current 7 A). 7 wraps hold far more than any limit: the trips protect the dart, not the capstan.
-- Cock 3.1 N m, 4.9 A, 2.7 s per shot. Aim 0.32 N m, 6.6 s for 6 to 47 deg.
-- Recoil rock (ASSUMED 4 kg rover): 5.8 deg at 6 deg pitch braked (1.2 rolling), 0.7 deg at 36. No tip.
-- Clutch convention (both LIGHT and FIRM): line tension with the reel FULL; it rises as the reel empties
-  (x1.23 at the core). Final approach on FIRM 3 N: 2.3 N at the dart vs 2.1 to 2.6 N needed (margin 0.9 to 1.1):
-  marginal. FIRM 5 N gives a 1.5 margin, or seat on the capstan.
-- Wrap: drum 0.49 to 0.60 N m, N20 61 to 74 N mm.
-- Mission (mission.py): aim, cock, flight, anchor, wrap, tow 3 m at 30 N, release, unwrap, reel 5 m: about 3.2 min,
-  0.66 Wh from the base pack (about 70 missions per 3S 5200 mAh, base side only). Drum N20 timings ASSUMED.
+  4.8 / 4.4 / 4.0 m at 36 deg (best). Table 6 to 47 deg in base/out/ballistics.json (C3). 4 springs: 8.5 / 7.7 / 7.0 m.
+- Stop: 2.5 J (carriage 1.65 + springs 0.9): the 19 mm flexure peaks at about 270 N if linear (D26 limit 300 N: OK).
+- Storage reel 50 core / 72 flanges / 22: 46 g, 31.4 kg mm2 full; spin-up adds 4.9 N of line pull in the stroke.
+  Overrun after landing at LIGHT 0.5 N: 0.65 m in 0.28 s (heavier reel; 0.30 m with the 66 mm flanges). Still cleared
+  by the take-up at the start of reel-in; lighter (spoked) flanges would halve it.
+- Capstan 50:22, 7 wraps (4 needed with margin): tow 50 N = 3.2 N m, 5.1 A, 0.14 m/s; 20 m reel-in 110 s. Limiter
+  slipping pulls 84 N (7 A). Tow sensing: line = 17.0 x (I - I_free) - 10.4 N (offset = FIRM take-up drag).
+- Cock 2.9 N m, 4.7 A, 2.7 s per shot. Aim 0.32 N m, 6.6 s for 6 to 47 deg.
+- Final approach on FIRM 5 N (reel full): 3.85 N at the dart vs 2.1 to 2.6 N needed: margin 1.5 to 1.9. OK.
+- Wrap on LIGHT: ring pull 1.1 to 1.3 N, drum 0.49 to 0.60 N m, drum N20 61 to 74 N mm (30 to 37 % of an ASSUMED
+  0.2 N m usable N20 torque). Taut line at the shot (take-up bus) vs 245 mm slack: slack would be 6.8 % slower.
+- Recoil rock (ASSUMED 4 kg rover): 4.8 deg at 6 deg pitch braked (0.9 rolling), 0.5 deg at 36. No tip.
+- Mission: about 3.2 min, 0.71 Wh from the base pack (about 65 missions per pack).
 - SPRING CATALOGUE (web check): Bunnings 0487961 is Century C-243, 5/8 in OD x 6-1/2 in x 0.054 in wire (1.37 mm,
   not 1.4). Century lists max safe load 8.64 lb (38.4 N) and max deflection 11.9 in (302 mm), rated for about 100,000
   cycles. Our 280 mm full cock is 42 N with the 0.125 N/mm / 7 N estimate: inside the deflection limit but 9 % over

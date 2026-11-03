@@ -148,7 +148,6 @@ python3 -m grappstar mockbase --pty           # terminal 1: prints a path like /
 python3 -m grappstar base ping --base /dev/pts/5    # terminal 2, using the path it printed
 ```
 
-(The `--base` option on the `base` subcommand is assumed to match `serve`; check `python3 -m grappstar base --help`.)
 
 ## 4. Plug in the base
 
@@ -169,6 +168,7 @@ the 3S LiPo, the BTS7960 or the motors yet.
 3. Talk to it:
 
    ```bash
+   sudo systemctl stop grappstar       # only if you installed the service: it holds the port and the cameras
    python3 -m grappstar base ping      # expect a reply with "ok": true
    python3 -m grappstar base status
    python3 -m grappstar base monitor   # telemetry lines about 10 per second, Ctrl+C stops
@@ -188,7 +188,8 @@ the dart's Caddx Ant VTX before powering them: a VTX powered without an antenna 
 1. Plug in the Kiyo X and the DIGITNOW capture dongle (USB). Connect the RC832 video out (yellow) to the dongle's
    video in. Battery unplugged while you wire the RC832 power; power it as its label says (NOT VERIFIED which
    supply on the rover).
-2. List the cameras:
+2. If the boot service is installed, stop it first (it holds the cameras): `sudo systemctl stop grappstar`.
+   List the cameras:
 
    ```bash
    python3 -m grappstar cameras

@@ -102,6 +102,7 @@ class MissionConfig:
     require_dart_video: bool = False       # True: preflight refuses without a dart video signal
     max_reshoots: int = 3
     pre_s: float = 2.0              # dart video kept from before the shot
+    allow_uncalibrated_tow: bool = False   # True only for bench tests with no load on the line
     imu_axes: str = "x,y,z"         # BNO085 chip axes to dart body axes (BENCH_TEST.md step 7 finds this)
 
 
@@ -908,6 +909,16 @@ class Mission:
         return None
 
     def tow(self) -> None:
+        if self.tel().get("tension_n") is None:
+            try:
+                k = self.base.get("k_n_per_a").get("val")
+            except (BaseError, BaseTimeout):
+                k = None
+            if k is not None and abs(float(k) - 8.0) < 1e-6 and not self.cfg.allow_uncalibrated_tow:
+                raise StepFailed("TOW refused: no load cell and k_n_per_a is still the factory 8, so the tension limit "
+                                 "cannot be trusted (a test reached 61 N against 40 N). Calibrate free_a and k_n_per_a "
+                                 "(firmware/base/CALIBRATION.md b and e), then Retry; or release the dart.",
+                                 choices=["Retry", "Release the dart"])
         rounds = 0
         while rounds < self.cfg.tow_max_rounds:
             rounds += 1

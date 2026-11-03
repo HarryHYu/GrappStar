@@ -463,6 +463,10 @@ Before the first real launch:
 - [ ] Antennas on the VTX and RC832 before power. Dart view clean on the page.
 - [ ] Dart status OK (`python3 -m grappstar dart status`), base ping OK, preflight all green.
 - [ ] Recording on, so you can replay it.
+- [ ] HARD PREREQUISITE before any tow: `free_a` and `k_n_per_a` calibrated (firmware/base/CALIBRATION.md steps (b)
+      and (e)) and `limit_n` set. Reason: without a load cell the tension limit is estimated from the wiper current;
+      with factory constants a simulated tow reached 61 N against a 40 N limit. The mission refuses the TOW step
+      while `k_n_per_a` is still the factory 8 and there is no load cell.
 - [ ] Start with a short shot at low pitch.
 - [ ] The real launcher reaches only about 3 to 4.4 m (base/out/ballistics.json). The page says "not reachable"
       for anything outside that: move the rover instead.

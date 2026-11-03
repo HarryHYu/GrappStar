@@ -298,3 +298,16 @@ def test_dart_reboot_at_impact_counts_as_landing(tmp_path):
         assert "dart" in m.shot.get("landing_sources", [])
     finally:
         r.close()
+
+
+def test_tow_refused_without_load_cell_and_factory_constants(tmp_path):
+    r = Rig(tmp_path)
+    r.mb.load_cell = False                       # tension_n null; k_n_per_a still the factory 8
+    r.policy["TOW refused"] = "Release the dart"
+    try:
+        m = r.run(120)
+        assert any("TOW refused" in a[0] for a in r.answers)
+        assert m.state == "DONE"                 # released and brought home instead
+        assert "RELEASE" in r.steps()
+    finally:
+        r.close()

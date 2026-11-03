@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 11:37 Sydney time from commit `a0b6868`.
+Built 2026-11-03 11:37 Sydney time from commit `c3dee29`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -46,7 +46,8 @@ base wraps the capstan and tows, the dart releases, the base reels it home.
 
 ## Order of work
 
-1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5) and the springs (group B). Put the
+1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5 and A8), the springs (group B), and the
+   parts in H1, H3, H4. Put the
    numbers in `base/spec/params.py` and re-run the base pipeline. The base parts that touch the motor depend on
    them. A6 and A7 (speed, current, torque) need the base electronics: do them at test stage 1. They change no
    printed part.
@@ -2533,8 +2534,9 @@ First move for any problem: send `estop` (or pull the battery plug), then read t
 
 ## What to measure or confirm
 
-Everything nobody could know from here. Do group A and B first: the base parts that depend on them should not
-be printed until those numbers are in `base/spec/params.py` and the pipeline has been re-run (see "After you
+Everything nobody could know from here. Before printing the base, do A1 to A5, A8, group B, and H1, H3, H4 (all
+caliper and hang tests, no electronics needed): the base parts that depend on them should not be printed until
+those numbers are in `base/spec/params.py` and the pipeline has been re-run (see "After you
 measure" at the end). Tools: caliper, multimeter, kitchen scale, luggage scale, phone camera, tape measure.
 
 Photo rule: for every caliper reading, take a photo with the caliper on the part and the reading visible. Put the
@@ -2569,7 +2571,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 
 | # | Item | Needed for | If you do not have it |
 |---|---|---|---|
-| C1 | 608 bearings (8 to 10) | storage reel, capstan or wrap arm, cam roller | The only purchase: search "608ZZ bearing 8x22x7" |
+| C1 | 608 bearings (buy 10) | storage reel (2), capstan or wrap arm (2), aim pedestal (4), 2 spares | The only purchase: search "608ZZ bearing 8x22x7" |
 | C2 | M8 bolts or 8 mm steel rod, and their lengths | axles through the 608s | Printed PPA-CF axles (tell the coordinator, it is a params switch) |
 | C3 | Worm N20 count: you need 4 (dart kick, deploy, foot, and the base selector drum) | dart and base | The kedge notes said 2 in hand and one to buy; the August order listed 8 worm N20s. Count them |
 | C4 | MP1584 #2 (the spare from the dart build) | drum N20 supply at 9.0 V | No other way to run the DRV8833 from the 3S: tell the coordinator |

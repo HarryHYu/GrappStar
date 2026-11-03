@@ -32,7 +32,8 @@ base wraps the capstan and tows, the dart releases, the base reels it home.
 
 ## Order of work
 
-1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5) and the springs (group B). Put the
+1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5 and A8), the springs (group B), and the
+   parts in H1, H3, H4. Put the
    numbers in `base/spec/params.py` and re-run the base pipeline. The base parts that touch the motor depend on
    them. A6 and A7 (speed, current, torque) need the base electronics: do them at test stage 1. They change no
    printed part.

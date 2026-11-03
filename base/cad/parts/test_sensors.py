@@ -128,12 +128,42 @@ def test_switch_lever_within_limits():
 
 
 def test_mount_pilots_under_base_holes(parts):
-    """The bracket pilots line up with the base mounting holes: a d2.6 rod through each base hole hits bracket."""
-    for tag, br in (("rail_low", "sensors_sw_rail_low_bracket"),):
-        base = parts[f"sensors_sw_{tag}"]
-        bracket = parts[br]
-        assert _ov(prim.place(base.solid, base.place), prim.place(bracket.solid, bracket.place)) < TOL
-        assert prim.place(base.solid, base.place).volume() > 0
+    """SW_RAIL_LOW: a d2.0 rod down each base mounting hole finds an open pilot in the bracket, a d4 rod hits bracket
+    (so the pilot is there and has wall round it); base and bracket do not overlap."""
+    base = parts["sensors_sw_rail_low"]
+    bracket = prim.place(parts["sensors_sw_rail_low_bracket"].solid, parts["sensors_sw_rail_low_bracket"].place)
+    assert _ov(prim.place(base.solid, base.place), bracket) < TOL
+    i = SE.sw_build()["info"]
+    lo, hi = prim.bbox(SE.sw_build()["base"])
+    root_len = -lo[0] - 2.0
+    yy = (hi[1] - lo[1]) / 2 - 3.5
+    for x in (-root_len / 2, i["x_flex"] / 2):
+        for y in (-yy, yy):
+            thin = prim.place(prim.cyl(1.0, 5.0, x=x, y=y, z=-5.0), base.place)
+            fat = prim.place(prim.cyl(2.0, 5.0, x=x, y=y, z=-5.0), base.place)
+            assert _ov(thin, bracket) < TOL, (x, y)
+            assert _ov(fat, bracket) > 1.0, (x, y)
+
+
+def test_rail_low_deck_screw_path_open(parts):
+    """The housing's 4th deck screw goes in from above: shank and head paths through the bracket must be open."""
+    br = prim.place(parts["sensors_sw_rail_low_bracket"].solid, parts["sensors_sw_rail_low_bracket"].place)
+    x, y = SE.swl_deck_screw(P)
+    import launch_aim as LA
+    zf = LA.A(P)["deck_z"] + 8.0
+    assert _ov(prim.cyl(1.5, 6.0, x=x, y=y, z=zf), br) < TOL
+    assert _ov(prim.cyl(2.9, 60.0, x=x, y=y, z=zf + 6.0), br) < TOL
+
+
+def test_as5600_strip_clamps(parts):
+    """The strip thick part stops short of the plate (band clamps the board) and the nut pocket has a real floor."""
+    g = SE.as_geom(P)
+    st = parts["sensors_as5600_strip_top"].solid
+    assert prim.bbox(st)[1][1] <= g["y_plate"][0] - 0.2
+    car = parts["sensors_as5600_carrier"].solid
+    floor = prim.cylY(1.5 + 1.0, g["y_plate"][0], g["y_plate"][1] - 2.7 - 0.01, z=SE.STRIP_SCREW_Z) - \
+        prim.cylY(1.75, g["y_plate"][0] - 1, g["y_plate"][1] + 1, z=SE.STRIP_SCREW_Z)
+    assert _ov(floor, car) > 0.9 * floor.volume()            # at least 5 mm of plate in front of the nut
 
 
 def test_old_launch_parts_gone(asm):

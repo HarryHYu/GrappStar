@@ -7,7 +7,7 @@ numbers), `sensors_launch_patch.diff` (the change cad-launch applied to their fi
 
 1. AS5600 mount (Adafruit PID 6357). Board modelled from Adafruit's EAGLE file: 4 corner holes (not the 2 mid holes
    assumed before), chip at the board centre, JST SH connectors on the short edges. Printed carrier on the aim housing
-   spine (2 x M3x16), 4 printed pegs through the board holes, 2 printed clamp strips pulled down by M3x10 into M3 nuts.
+   spine (2 x M3x16), 4 printed pegs through the board holes, 2 printed clamp strips pulled down by M3x12 into M3 nuts in the carrier back.
    No M2.5 screws and no heat staking. Chip to magnet 2.0 mm (1.75 with the tallest SOIC), see open item 1.
 2. SW_RAIL_LOW (GPIO 40): cad.lib contact switch (coupon 2 geometry) on a printed bracket standing on the aim housing
    foot extension, pressed by cad-launch's crank cam. Closed within about +-9 deg of crank from the LOW dead point

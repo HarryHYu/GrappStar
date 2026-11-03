@@ -18,7 +18,8 @@ State keys (params 1.2.3):
 - reel_deg drives the REEL gear;
 - drum_deg drives the drum.
 
-A state without wiper_deg takes cad-launch's sleeve angle.
+A state without wiper_deg has the main shaft at 0. Without sleeve_deg the dog ring follows cad-launch's sleeve joint
+(it is bolted to it).
 
 ## 0. Deviations from the params v1.0 table, all now in params v1.2.3
 
@@ -71,12 +72,11 @@ A state without wiper_deg takes cad-launch's sleeve angle.
 | 100.5..111 | `drum_dogring_launch` | dogs 100.5..105.5, back face at 111 with 3 key slots, 3 x M3 tapped at r 28.5 |
 | 195..201.5 | `drum_magnet_cap` | magnet pocket d6.2 x 2.6, face at 201.5; M3 x 6 radial onto the spigot flat. AS5600 bracket: cad-launch |
 
-### 2b. Launch sleeve interface (cad-launch: please match)
+### 2b. Launch sleeve interface (agreed, D37)
 
 - Sleeve flange face at s 111.
 - Lugs on the SLEEVE: 3 lugs 6.0 wide x 3.0 tall, r 15..21, at 60 / 180 / 300 deg. They key into my slots, which are
-  6.4 x 3.2. Note: launch.py on base-v1 has slots on the sleeve too, so there is no key; one side must have lugs.
-  I keep the slots because the ring prints on that face.
+  6.4 x 3.2. I keep the slots because the ring prints on that face.
 - Screws: 3 x M3 clearance holes in the sleeve flange at r 28.5, 0 / 120 / 240 deg. The heads go on the sleeve side
   and thread into my ring. My ring has no room for counterbores between its dogs.
 - The sleeve's two-way axial location is in cad-launch's aim housing (D23).
@@ -102,7 +102,7 @@ A state without wiper_deg takes cad-launch's sleeve angle.
 | 52..60 | segment gear m1.25 from 60T, 39 teeth over 240 deg |
 | 59.95..66 | locking arc ring r 38, sitting on the segment gear |
 | 29..77 | neck r 10 |
-| 77..83 | hex spigot 16 AF into drum B |
+| 77..83 | hex spigot 16 AF into drum B, +x corner cut flat at x 7.5 (drum B's socket keeps it: one orientation only) |
 
 `drum_drum_b` (PLA, prints standing on the barrel face):
 
@@ -114,7 +114,7 @@ A state without wiper_deg takes cad-launch's sleeve angle.
 
 Fork:
 - pads in the collar groove (s 82.3..87.7), yoke 82.3..84.7;
-- sleeve on the rail s 32.3..98.3 at NEUTRAL (66 long, grease it);
+- sleeve on the rail s 15.5..98.5 at NEUTRAL (83 long, grease it), necked to r 7.5 below s 57 (cad-reel c1);
 - follower pin d6 at s 91.8, entering the barrel from the main-axis side.
 
 Rail and dog post:
@@ -229,7 +229,7 @@ Timing:
 
 | load | peak N m | basis |
 |---|---|---|
-| fork | 0.86 | yoke block force 4.3 N plus 3 N friction, x 2.04 racking: (1 + 2 mu 63.2/66) / (1 - 2 mu 36.5/66), mu 0.25 greased rail; groove 44 deg |
+| fork | 0.72 | yoke block force 4.3 N plus 3 N friction, x 1.88 racking: (1 + 2 mu a/L) / (1 - 2 mu b/L), pin b 36.5 and yoke a 77.6 on opposite sides of the rail (a = far pad: a soft yoke may bear on one pad), sleeve L 83, mu 0.25 greased rail; groove 44 deg. Margin 2.30 at mu 0.35, 1.85 at mu 0.45; lock-up only at mu 1.14 |
 | clutch ramps | 0.78 | 15 N pushrod at FIRM 5 N (cad-reel: 10.8 N at 4 mm, design 15) |
 | wrap | 0.78 | 0.06 N m at the cup x 10.5 / 0.81 |
 

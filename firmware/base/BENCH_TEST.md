@@ -69,7 +69,7 @@ screw head onto its nut), watch `sw`, then take it off again before the next row
 | `SW_GAP` | 39 | `"G":1` |
 | `SW_RAIL_LOW` | 40 | `"L":1` |
 | `SW_SEATED` | 41 | `"S":1` |
-| `SW_ARM` | 42 | `"W":1` |
+| `SW_ARM` | 42 | `"W":1` (in the base `W` means the cup is AWAY from home: the contact opens at home) |
 
 Then take the GPIO47 jumper off: `"n":1` must disappear. Put it back.
 

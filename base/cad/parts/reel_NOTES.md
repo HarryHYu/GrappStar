@@ -27,7 +27,7 @@ them in your REPORT.md or message the coordinator.
 
 - params.LAYOUT.reel_frame_R: origin world (-18.661, 33.5, -69.643) = capstan axis on the front face of my reel wall;
   R +X = world +X, R +Y = world +Z, R +Z = world -Y. Deck top = R Y -95.36.
-- R = Harry's v7 world frame shifted by (0, -44, +46): every v7 line rule carries over unchanged.
+- R is a pure translation of Harry's v7 world frame: every v7 line rule carries over unchanged.
 - Senses about R +Z: capstan wind-in +, storage reel take-up +, bus gear under a FORWARD wiper +, cup WRAP -,
   cup UNWRAP +.
 
@@ -35,8 +35,8 @@ them in your REPORT.md or message the coordinator.
 
 | item | X | Y | Z | world y |
 |---|---|---|---|---|
-| whole reel unit | -136.5 .. +93 | -95.4 .. +43 | -46.5 .. +124 | 80 .. -90.5 |
-| reel wall (PLA, 6 mm, foot and exit pad) | -128 .. +90 | -95.4 .. +43 | -40 .. +124 | |
+| whole reel unit (without pulley 2's post) | -131 .. +93 | -95.4 .. +43 | -64 .. +124 | 97.5 .. -90.5 |
+| reel wall (PLA, 6 mm, foot, guides, crank boss) | -128 .. +30 | -95.4 .. +43 | -40 .. +42 | |
 | sprag hub (PPA-CF) | -33.5 .. +33.5 | -33.5 .. +33.5 | -6 .. +25 | |
 | storage reel (flange d 72) | -124 .. -52 | -36 .. +36 | 12 .. 37.5 | |
 | shroud | -131 .. -57 | -43.5 .. +30 | 0 .. 42 | |
@@ -47,7 +47,8 @@ them in your REPORT.md or message the coordinator.
 | pulley 1 centre (axis R Y) | +84 | +23.5 | 101 | -67.5 |
 | pulley 2 centre (axis world Z), own post | +84 | +9.6 | -78.5 | 112 (world (65.3, 112, -60)) |
 | pulley 2 post | +140 .. +173 | -95.4 .. +34.6 | -93 .. -64 | 97 .. 126 |
-| gears behind the wall | -105 .. +36 | -36 .. +36 | -46.5 .. -6 | 40 .. 80 |
+| gears and SW_ARM behind the wall | -104.5 .. +36 | -75.7 .. +41 | -64 .. -6 | 39.5 .. 97.5 |
+| brake bar, crank, guide caps, rocker | -104 .. +48.5 | -58 .. +40 | -2.5 .. +20 | 13.5 .. 36 |
 
 - My checks() test every reel part against the main-axis stack (coupler r 27 y 0.5..46, bus r 41, REEL gear r 54,
   collar r 32, dog ring r 33, shaft r 15) and the drum (r 44): clear.

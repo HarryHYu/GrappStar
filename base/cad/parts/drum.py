@@ -898,17 +898,17 @@ def parts(P):
     add("drum_coupler", coupler(g, P), "PPA-CF", "drum_main", R=tf.Rx(180), color="ppa",
         notes="Coupler: 5 N m shear pin limiter (D8), bus gear 40T m1.5 (D15), SW_INDEX cam, hex socket; prints bus gear down")
     add("drum_shear_pin", shear_pin(g), "PLA", "drum_main", R=tf.Ry(180), color="sw", qty=6,
-        notes="Torque limiter shear pin d4 (about 5 N m), prints lying; print 6, 5 are spares")
+        infill=1.0, notes="Torque limiter shear pin d4 (about 5 N m), prints lying; print 6, 5 are spares")
     add("drum_shaft", main_shaft(g), "PPA-CF", "drum_main", R=tf.Rx(90) @ tf.Ry(90), color="ppa",
-        notes="Main shaft: hex 22 AF, d12 spigot into the launch sleeve; prints on a hex flat (support under the spigot)")
+        infill=1.0, notes="Main shaft: hex 22 AF, d12 spigot into the launch sleeve; prints on a hex flat (support under the spigot)")
     add("drum_sleeve_reel", reel_sleeve(g), "PPA-CF", "drum_main", color="ppa",
         notes="REEL sleeve: keyed on the hex, journal for the REEL gear, 2 x M3 to the coupler end face")
     add("drum_gear_reel", reel_gear(g, c), "PPA-CF", "drum_out_reel", color="gear",
         notes="REEL output gear m2 50T face 12 (D20), free on its sleeve, dog face toward the collar")
     add("drum_collar", collar(g, c), "PPA-CF", "drum_collar", color="ppa",
-        notes="Dog collar: hex bore, 4 back-cut roofed dogs each face, fork groove (bridges over the lower dogs)")
+        infill=1.0, notes="Dog collar: hex bore, 4 back-cut roofed dogs each face, fork groove (bridges over the lower dogs)")
     add("drum_dogring_launch", dog_ring(g, c), "PPA-CF", "drum_out_launch", R=tf.Rx(180), color="gear",
-        notes="LAUNCH dog ring: 3 slots for the launch sleeve lugs, 3 x M3 from the sleeve side")
+        infill=1.0, notes="LAUNCH dog ring: 3 slots for the launch sleeve lugs, 3 x M3 from the sleeve side")
     add("drum_drum_a", drum_a(g, c), "PLA", "drum_drum", color="drum",
         notes="Drum A: N20 gear 120T m0.8, brake cam, wrap segment gear + locking arc, hex spigot")
     add("drum_drum_b", drum_b(g, c), "PLA", "drum_drum", color="drum",

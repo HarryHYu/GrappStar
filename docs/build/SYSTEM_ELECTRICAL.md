@@ -122,8 +122,8 @@ unplug the battery.
 ## 5. Rules
 
 - Battery unplugged before you touch, add or move any wire, or fit a fuse. This killed the first XIAO.
-- Battery unplugged before you plug the ESP32 into the Mac. Flash from the Mac with the ESP32 out of the rover
-  harness (firmware/base/README.md).
+- Battery unplugged before you plug the ESP32 into the Mac. Flash from the Mac; battery out is enough, the
+  wiring can stay on the board (firmware/base/README.md).
 - Charge the LiPo at 3.6 V per cell at rest (10.8 V). Never run it below 3.3 V per cell under load (9.9 V); the
   firmware reports `vbat`.
 - Never connect the DRV8833 VM to the LiPo directly (10.8 V maximum; the LiPo is 12.6 V full).

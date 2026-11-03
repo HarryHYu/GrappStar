@@ -184,3 +184,18 @@ def test_608_inner_race_free(P):
     assert (sol ^ race).volume() < 1e-6
     body = prim.place(LB.bearing_608(), tf.T(0, 0, zsp) @ tf.Rx(180))
     assert (sol ^ body).volume() < 6.0          # only the rib crush (8 ribs, 0.15 interference)
+
+
+def test_steps_reference_real_parts_and_cover_printed(P):
+    names = {p.name for p in frame.parts(P)}
+    covered = set()
+    for st in frame.steps(P):
+        assert st["title"] and st["text"]
+        assert "—" not in st["text"]
+        for n in st["parts"]:
+            assert n in names, n
+            covered.add(n)
+    missing = [p.name for p in frame.parts(P) if p.printed and p.name not in covered]
+    assert not missing, missing
+    wiring = [st for st in frame.steps(P) if "wir" in st["title"].lower() or "buck" in st["title"].lower()]
+    assert all(st["text"].startswith("Battery unplugged") for st in wiring)

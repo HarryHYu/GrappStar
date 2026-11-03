@@ -611,4 +611,87 @@ def checks(P, asm=None):
 
 
 def steps(P):
-    return []
+    """Frame assembly steps, in the whole-base order (other subsystems slot in where named)."""
+    B = build(P)
+    names = [p.name for p in parts(P)]
+    info = B["info"]
+
+    def has(prefix):
+        return [n for n in names if n.startswith(prefix)]
+
+    deck = has("frame_deck")
+    st = [
+        dict(title="Heat-set inserts",
+             text="Soldering iron at about 220 C (PLA) with an insert tip. Press every M3 x 4 x 5 insert square into its "
+                  "4.0 mm hole until flush: deck (%d), cheeks (block rings, ties, motor ring, sensor bracket), bay "
+                  "corners, standoffs and clamp posts, cheek ties (both ends). Let each cool before the next one nearby."
+                  % len(info["deck_holes"]), parts=deck + has("frame_cheek") + has("frame_tie") + ["frame_ebay"]),
+        dict(title="Drill the rover",
+             text="Lay the deck on the rover top plate where it will live (launch direction forward). Mark through the "
+                  "%d perimeter holes with a 3 mm drill or a scriber, take the deck off, drill 3.4 mm. Deburr. "
+                  "If the deck is in tiles, slide the dovetails together first and mark them as one." % len(info["rover_holes"]),
+             parts=deck),
+        dict(title="Deck on the rover",
+             text="Slide the tiles together on the dovetails (from above). M3 x 25 SHCS down through every perimeter "
+                  "hole, washer and nyloc under the rover plate. Snug, not crushed.", parts=deck),
+        dict(title="Motor-side cheek",
+             text="Stand the motor-side cheek on the deck, foot outboard. M3 x 10 SHCS through the foot into the deck "
+                  "inserts. The 44 mm hole with the 6-insert ring is the wiper axis.",
+             parts=[n for n in has("frame_cheek_r" if info["cfg"]["fw"]["motor_side"] < 0 else "frame_cheek_l")]),
+        dict(title="Motor-side bearing blocks",
+             text="Push each block's spigot into its cheek hole from outside (flange outside), 4 x M3 x 16 into the "
+                  "cheek inserts. The blocks on this side go on now; the shaft bearings drop into their pockets from "
+                  "inside when the shafts go in.",
+             parts=[sp["part"] for sp in info["supports"] if sp["side"] == info["cfg"]["fw"]["motor_side"]]),
+        dict(title="Shafts and trains (other subsystems)",
+             text="Now the drum, launch and reel subsystems put their shaft assemblies in (bearings already pressed on "
+                  "the shafts), each bearing into its block pocket on this cheek. Follow their steps, then come back.",
+             parts=[]),
+        dict(title="Second cheek",
+             text="Lower the other cheek over the shaft ends (each bearing enters its hole), foot outboard, M3 x 10 "
+                  "into the deck. Then the cheek ties: M3 x 12 through each cheek into the tie inserts.",
+             parts=[n for n in has("frame_cheek_l" if info["cfg"]["fw"]["motor_side"] < 0 else "frame_cheek_r")] + has("frame_tie")),
+        dict(title="Second-side bearing blocks",
+             text="Slide each block over its bearing from outside, 4 x M3 x 16. Turn every shaft by hand: it must spin "
+                  "free with no tight spot. If one binds, loosen its two blocks, turn the shaft, retighten.",
+             parts=[sp["part"] for sp in info["supports"] if sp["side"] != info["cfg"]["fw"]["motor_side"]]),
+    ]
+    if has("frame_ped"):
+        st.append(dict(title="Pedestals",
+                       text="Press the 608s into the pedestal seats (vice with soft jaws, push on the outer race only). "
+                            "Thread the shaft through, stand the pedestals on the deck, M3 x 10 into the inserts.",
+                       parts=has("frame_ped")))
+    if "frame_motor_adapter" in names:
+        st.append(dict(title="Wiper motor",
+                       text="Battery unplugged. Drop an M6 nut into each slot channel on the cheek side of the adapter. "
+                            "Bolt the adapter to the cheek ring: 6 x M3 x %d from the motor face into the ring inserts. "
+                            "Offer the motor up (its shaft through the hub hole into the coupler from cad-drum), M6 bolts "
+                            "through the bosses into the nuts, slide each to centre the shaft, tighten. Strap the can "
+                            "into the saddle (cable tie or hose clamp), saddle 4 x M3 x 10 into the deck."
+                            % int(round(MOT.PLATE_T + info.get("adapter_standoff", 0) - U.HEAD_H + 5)),
+                       parts=["frame_motor_adapter", "frame_wiper_motor", "frame_wiper_shaft"] + has("frame_motor_saddle")))
+    st += [
+        dict(title="Electronics bay",
+             text="Battery unplugged. Bay on the deck, 4 x M3 x 10 through the tabs. Boards in: BTS7960 on its 4 standoffs "
+                  "(M3 x 6), heatsink down; ESP32 DevKitC pins down into the cradle, USB end into the wall slot, clamp "
+                  "with 2 x M3 x 10; DRV8833, MP1584 and HX711 into their pockets with a cable tie through the floor slots "
+                  "or a drop of hot glue. Fuse holder in its cradle with a cable tie.",
+             parts=has("frame_ebay") + has("frame_pcb") + has("frame_fuse")),
+        dict(title="Set the buck BEFORE wiring the DRV8833",
+             text="Battery unplugged. Wire only the buck input to the fuse output and ground. Plug the battery in, "
+                  "meter on the buck output, turn the trimpot until it reads 9.0 V. Unplug the battery. Only then wire "
+                  "buck output to DRV8833 VIN (the DRV8833 dies above 10.8 V).",
+             parts=["frame_pcb_mp1584", "frame_pcb_drv8833"]),
+        dict(title="AS5600 board",
+             text="Battery unplugged, USB unplugged. Board on the bracket pegs (chip side towards the magnet), melt each "
+                  "peg tip flat with the soldering iron (heat stake). Bracket to the cheek: 2 x M3 x 10. The chip is "
+                  "1 mm from the magnet face: check with a 1 mm feeler (or a folded business card). STEMMA QT cable to "
+                  "the bay sensor window.",
+             parts=["frame_as5600_bracket", "frame_pcb_as5600"]),
+        dict(title="Wiring and lid",
+             text="Battery unplugged. Follow firmware/base/WIRING.md. Every wire leaving the bay goes through its wall "
+                  "exit and is cable-tied to the anchor beside it (strain relief). 14 AWG for battery, fuse, BTS7960 "
+                  "and motor. Lid on, 4 x M3 x 8. USB cable from the ESP32 native USB port to the Jetson.",
+             parts=["frame_ebay_lid"]),
+    ]
+    return st

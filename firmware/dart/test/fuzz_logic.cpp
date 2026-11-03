@@ -52,7 +52,8 @@ struct Rng {
 // Positions are ms of travel at 7.6 V and full duty. Kick: 0 stowed, ground contact at kickContact, housing on the
 // ground at kickLand (hard stop). Pods: 0 stowed, deployEnd down (hard stops at both ends). Drills reach the soil when
 // the pods pass drillTouch and stall at drillFull (full depth or stone). The foot digs once the kick touches the ground
-// and stalls at footFull. Currents are mA at 8 V and full duty; the INA219 sees sum(I * (duty/255)^2 * V/8).
+// and stalls at footFull. Currents are mA at 8 V and full duty. DRV8833 slow decay: a stalled motor's supply current
+// goes as duty^2, a turning motor's (free, pushing, digging: torque-limited) as duty; both scale with V/8.
 struct Plant {
   float vbat = 7.6f, rint = 0.1f, noise = 0; double readFail = 0; int maxFailRun = 1000, failRun = 0;   // nominal: isolated failures only
   float kFree = 30, kPush = 80, kStall = 180, dFree = 30, dStall = 180;
@@ -61,7 +62,7 @@ struct Plant {
   float rate[NMOT] = {1, 1, 1, 1};
   double kickContact = 3000, kickLand = 4300, deployEnd = 1400, drillTouch = 900, drillFull = 3000, footFull = 3000;
   // injected faults
-  int openWire = -1; bool drillJam = false, footJam = false, inaDead = false, shortOn = false;
+  int openWire = -1; bool drillJam = false, footJam = false, inaDead = false, shortOn = false, kickStrip = false;   // strip: gear slips
   double kickJamFwd = -1, kickJamBack = -1, deployJamFwd = -1; float sagV = 0; double burstFail = 0;
   // state
   int hwDir[NMOT] = {0, 0, 0, 0}, hwDuty[NMOT] = {0, 0, 0, 0};
@@ -70,6 +71,7 @@ struct Plant {
 
   bool hwOn(int m) const { return hwDir[m] != 0 && hwDuty[m] > 0; }
   bool stalledDir(int m, int d) const {
+    if (m == KICK && kickStrip) return false;          // a stripped gear spins free and never reaches a stop
     switch (m) {
       case KICK: return d > 0 ? (kick >= kickLand || (kickJamFwd >= 0 && kick >= kickJamFwd)) : d < 0 ? (kick <= 0 || (kickJamBack >= 0 && kick <= kickJamBack)) : false;
       case DEPLOY: return d > 0 ? (deploy >= deployEnd || (deployJamFwd >= 0 && deploy >= deployJamFwd)) : d < 0 ? deploy <= 0 : false;
@@ -82,6 +84,7 @@ struct Plant {
     if (!hwOn(m) || m == openWire) return 0;
     int d = hwDir[m];
     if (stalledDir(m, d)) return m == KICK ? kStall : m == DEPLOY ? dStall : m == DRILLS ? drStall : fStall;
+    if (m == KICK && kickStrip) return kFree;
     switch (m) {
       case KICK: return (d > 0 && kick >= kickContact) ? kPush : kFree;
       case DEPLOY: return dFree;
@@ -110,7 +113,11 @@ struct Plant {
   }
   void electrical() {
     double k = 0;                                      // mA per volt of rail
-    for (int m = 0; m < NMOT; m++) { double du = hwDuty[m] / 255.0; k += baseMa(m) * du * du / 8.0; }
+    for (int m = 0; m < NMOT; m++) {
+      if (!hwOn(m)) continue;
+      double du = hwDuty[m] / 255.0; bool st = m != openWire && stalledDir(m, hwDir[m]);
+      k += baseMa(m) * (st ? du * du : du) / 8.0;
+    }
     float vo = sagV > 0 ? sagV : vbat;
     railNow = (float)(vo / (1.0 + k * rint / 1000.0)); total = (float)(k * railNow);
     if (shortOn) { total = 3000; railNow = vo - 3.0f * rint; }
@@ -120,7 +127,7 @@ struct Plant {
     electrical();
     for (int m = 0; m < NMOT; m++) {
       if (!hwOn(m) || m == openWire) continue;
-      int d = hwDir[m]; if (stalledDir(m, d)) continue;
+      int d = hwDir[m]; if (stalledDir(m, d) || (m == KICK && kickStrip)) continue;
       double v = rate[m] * (hwDuty[m] / 255.0) * (railNow / 7.6) * dt;
       switch (m) {
         case KICK:
@@ -185,7 +192,7 @@ static void dumpEvents(int n) {
 static const char* INV_NAME[11] = {"", "hardware matches dir (pause only)", "run time limits", "stall stopped within 2.5 s",
   "stop() turns all off at once", "no motor while a fault is latched", "no motor in FLIGHT", "phase valid and consistent",
   "status / flightlog JSON valid", "auto only after /auto or impact landing", "nominal auto and release complete"};
-struct SigInfo { long n; uint64_t seed; int ep; uint32_t t; std::string msg; };
+struct SigInfo { long n, nNom; uint64_t seed; int ep; uint32_t t; std::string msg; };
 static std::map<std::string, SigInfo> SIGS; static bool DUMPED[11]; static int ONELINERS = 0;
 static void violate(int inv, const std::string& sig, const char* fmt, ...) {
   char msg[600]; va_list ap; va_start(ap, fmt); vsnprintf(msg, sizeof msg, fmt, ap); va_end(ap);
@@ -193,8 +200,8 @@ static void violate(int inv, const std::string& sig, const char* fmt, ...) {
   if (NOMINAL_EP) VIOLN[inv]++;
   char key[300]; snprintf(key, sizeof key, "%02d | %s", inv, sig.c_str());
   auto it = SIGS.find(key);
-  if (it != SIGS.end()) { it->second.n++; return; }
-  SIGS[key] = {1, SEED, EPI, ET, msg};
+  if (it != SIGS.end()) { it->second.n++; if (NOMINAL_EP) it->second.nNom++; return; }
+  SIGS[key] = {1, NOMINAL_EP ? 1 : 0, SEED, EPI, ET, msg};
   evlog("VIOLATION %d: %s", inv, msg);
   if (!DUMPED[inv] || VERBOSE) {
     DUMPED[inv] = true;
@@ -647,7 +654,7 @@ static void doRandomCmd() {
 }
 
 // ------------------------------------------------------------------------------------------------------- faults
-enum { X_OPEN, X_KJAM, X_KJAMB, X_DJAM, X_DRJAM, X_FJAM, X_SAG, X_SAGMILD, X_INADEAD, X_BURST, X_SHORT, X_STONE, X_IMUDEAD, X_N };
+enum { X_OPEN, X_KJAM, X_KJAMB, X_DJAM, X_DRJAM, X_FJAM, X_SAG, X_SAGMILD, X_INADEAD, X_BURST, X_SHORT, X_STONE, X_IMUDEAD, X_STRIP, X_N };
 static void applyAct(const Act& a) {
   char b[120] = "";
   switch (a.kind) {
@@ -664,6 +671,7 @@ static void applyAct(const Act& a) {
     case X_SHORT: P.shortOn = !a.clear; snprintf(b, sizeof b, "short circuit (3 A)"); break;
     case X_STONE: P.drillFull = R.r(100, 600); snprintf(b, sizeof b, "stone under the drills at depth %.0f", P.drillFull); break;
     case X_IMUDEAD: T.bno = a.clear; snprintf(b, sizeof b, "BNO085 silent"); break;
+    case X_STRIP: P.kickStrip = !a.clear; snprintf(b, sizeof b, "kick gear stripped (spins free, never moves)"); break;
   }
   evlog("inject: %s%s", a.clear ? "cleared: " : "", b);
 }
@@ -707,7 +715,7 @@ static void doTick(uint32_t dt) {
   checkAll(false);
   if (T.pendingPushCheck && (float)ET >= T.pushCheckAt) {
     T.pendingPushCheck = 0;
-    if ((K.armed || K.flight.launched) && (float)T.armChangeT < T.pushT0 - 1) {   // armed the whole time
+    if ((K.armed || K.flight.launched) && (float)T.armChangeT < T.pushT0 - 1 && T.bno && K.imuOk) {   // armed, IMU alive
       bool seen = K.flight.launched; float push = T.pushLen;
       if (!seen) evlog("info: armed launch push of %.0f ms not detected", push);
       if (push >= 22) { ST.pushArmed22++; if (!seen) ST.pushMissed22++; }
@@ -820,6 +828,7 @@ static void runEpisode(uint64_t seed, int ep) {
     dur = R.i(15000, 70000); scheduleFaults(dur); SS = S_END; RAND_MODE = M_CHAOS; NEXT_RAND = R.i(50, 1500); NEXT_SCRIPT = UINT32_MAX;
   }
   checkAll(false);
+  if (!NOMINAL_EP && R.p(0.3)) { int n = R.i(1, 8); for (int k = 0; k < n; k++) cmdKey('-', 0, "key - (start at a lower speed)"); }
   int logChecks = R.i(0, 2); std::vector<uint32_t> logAt; for (int k = 0; k < logChecks; k++) logAt.push_back(R.i(0, NOMINAL_EP ? 60000 : dur));
   uint32_t nextTick = R.i(4, 7), lastTick = 0;
   for (;;) {
@@ -886,7 +895,7 @@ int main(int argc, char** argv) {
   for (int i = 1; i <= 10; i++) { printf("%2d %-44s %10ld %10ld   %10ld\n", i, INV_NAME[i], CHECKS[i], VIOL[i], VIOLN[i]); total += VIOL[i]; }
   if (!SIGS.empty()) {
     printf("\nviolation signatures (count, first seed / episode / time):\n");
-    for (auto& s : SIGS) printf("  [%s] x%ld  first: seed %llu episode %d t %.3f s\n      %s\n", s.first.c_str(), s.second.n, (unsigned long long)s.second.seed, s.second.ep, s.second.t / 1000.0, s.second.msg.c_str());
+    for (auto& s : SIGS) printf("  [%s] x%ld (%ld in nominal missions)  first: seed %llu episode %d t %.3f s\n      %s\n", s.first.c_str(), s.second.n, s.second.nNom, (unsigned long long)s.second.seed, s.second.ep, s.second.t / 1000.0, s.second.msg.c_str());
   }
   printf("\n%s\n", total ? "FUZZ FAIL" : "FUZZ PASS");
   return total ? 1 : 0;

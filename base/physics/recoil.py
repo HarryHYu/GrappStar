@@ -141,7 +141,7 @@ def main(argv=None):
     print(f"stop travel for a 300 N peak with a linear pad: {s['travel_for_300n_linear_mm']:.0f} mm; dart impulse {s['impulse_dart_ns']:.2f} N s")
     out["springs"] = [spring_count_case(p, n, a.pitch) for n in (2, 4)]
     for c in out["springs"]:
-        print(f"{c['n_springs']} springs: {c['energy_j']:.1f} J, v {c['v_muzzle']:.2f} m/s, eff {c['efficiency']:.2f}, "
+        print(f"{c['n_springs']} springs{' (NOT SUPPORTED IN v1, D38: cocking needs 5.8 N m, above the shear pin)' if c['n_springs'] == 4 else ''}: {c['energy_j']:.1f} J, v {c['v_muzzle']:.2f} m/s, eff {c['efficiency']:.2f}, "
               f"carriage force {c['f_carriage_full_n']:.0f} N, {c['a_peak_g']:.0f} g, stop KE {c['ke_stop_j']:.2f} J, "
               f"range 0.5/0.75/1.0 N: " + " / ".join(f"{x:.2f}" for x in c["range_m"]))
     os.makedirs(OUT_DIR, exist_ok=True)

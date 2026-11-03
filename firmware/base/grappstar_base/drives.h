@@ -1,8 +1,8 @@
 // Motor drive logic. Plain C++ (no Arduino calls): the sketch passes the hardware in through the callbacks.
 //  WiperDrive: BTS7960 on the 3S. Soft start ramp (wiper inrush blew a 10 A fuse), a stopped gap before any
 //    direction change, current from the IS pins scaled by the duty, over-current trip and stall detection.
-//  DrumDrive: DRV8833 channel A for the selector drum N20 (worm, self-locking). Short ramp, brake on stop,
-//    sleep when idle.
+//  DrumDrive: DRV8833 channel A for the selector drum N20 (worm, self-locking). Short ramp, brake on stop.
+//    SLP is not wired (D9): the carrier keeps the chip awake; the sketch passes no sleep callback.
 #pragma once
 #include <stdint.h>
 #include <math.h>

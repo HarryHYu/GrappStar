@@ -165,8 +165,9 @@ def _state_custom(S, custom, t):
         e = _ease(min(1.0, u))
         for k, v in (targets or {}).items():
             a = start.get(k)
-            if isinstance(v, float) and isinstance(a, (int, float)) and not isinstance(a, bool):
-                cur[k] = a + (v - a) * e          # floats ease; ints and bools (flags, counts) step at mid-phase
+            flag = isinstance(v, bool) or (isinstance(v, int) and v in (0, 1) and a in (0, 1))
+            if isinstance(v, (int, float)) and not flag and isinstance(a, (int, float)) and not isinstance(a, bool):
+                cur[k] = a + (v - a) * e          # numbers ease (wraps 0 -> 7 winds evenly); 0/1 flags and bools step
             else:
                 cur[k] = v if u >= 0.5 else a
         if u < 1:

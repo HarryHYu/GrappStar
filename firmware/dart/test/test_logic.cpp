@@ -21,12 +21,14 @@ struct Plant {
   bool shortCircuit = false, spike = false, inaDead = false, drillJam = false, footJam = false, kickNoStow = false, drillStallFwd = false, footStallFwd = false;
   float railV = 7.6f;
   float drillPaused = 380, footPaused = 130;
-  int open = -1;                               // this motor's wire is open (draws nothing)   // auger current while the worm of the pair is paused (coupling)
+  int open = -1;                               // this motor's wire is open (draws nothing)
+  double kickJamBackAt = -1;                    // coming back, the kick jams here and draws stall current   // auger current while the worm of the pair is paused (coupling)
   float motorMa(int m) const {
     int d = mdir[m]; if (!d || m == open) return 0;
     switch (m) {
       case KICK:
         if (d > 0) return kick < kickContact ? 25 : kick < kickLand ? 70 : 185;
+        if (kickJamBackAt >= 0 && kick <= kickJamBackAt) return 185;
         return (kick > 0 || kickNoStow) ? 30 : 185;
       case FOOT:
         if (footJam && d < 0) return 600;
@@ -45,7 +47,7 @@ struct Plant {
   float total() const { float s = 0; for (int m = 0; m < 4; m++) s += motorMa(m) * (duty[m] / 255.f) * (duty[m] / 255.f) * railV / 8.0f; return shortCircuit || spike ? 3000 : s; }
   void step(uint32_t dt) {
     if (mdir[KICK] > 0 && kick < kickLand) kick += dt;
-    if (mdir[KICK] < 0 && kick > 0 && !kickNoStow) kick -= dt;
+    if (mdir[KICK] < 0 && kick > 0 && !kickNoStow && !(kickJamBackAt >= 0 && kick <= kickJamBackAt)) kick -= dt;
     if (kick < 0) kick = 0;
     if (kickNoStow && mdir[KICK] < 0 && kick > 2000) kick -= dt;   // jams half way back
     if (mdir[DEPLOY] > 0 && deploy < deployEnd) deploy += dt;
@@ -183,7 +185,7 @@ int main() {
     uint32_t t0 = NOW; CHECK(K.startRelease(NOW) == nullptr, "release accepted from ANCHORED");
     run(100); CHECK(P.mdir[DRILLS] == -1 && P.mdir[DEPLOY] == 0 && P.mdir[KICK] == 0 && P.mdir[FOOT] == 0, "release step 1: drills unscrew alone");
     CHECK(K.startRelease(NOW) == nullptr && K.seqStart == t0 && K.startAuto(NOW) != nullptr, "repeated /release accepted without restart; /auto refused while releasing");
-    run(3000); CHECK(P.mdir[DRILLS] == -1 && P.mdir[DEPLOY] == -1, "release step 2: pods lift while the drills keep unscrewing");
+    run(3000); CHECK(P.mdir[DRILLS] == -1 && P.mdir[DEPLOY] == -1, "release step 2: pods lift while the drills keep unscrewing (no deploy-alone lead: augers may still be in soil)");
     runWatch(20000);
     dumpLog();
     uint32_t tp = when("release: pods up, foot out"), tk = when("release: kick back"), td = when("release: done");
@@ -242,7 +244,7 @@ int main() {
     CHECK(std::string(faultName(K.fault)) == "CURRENT_SENSOR" && allOff() && !K.inaOk, "INA219 lost during auto: CURRENT_SENSOR fault, all off");
     CHECK(K.startAuto(NOW) != nullptr && K.startRelease(NOW) != nullptr, "auto and release refused without the current sensor");
     CHECK(K.key('2', 350, NOW) != nullptr, "run keys refused while the fault is latched");
-    K.stop(NOW); CHECK(K.key('2', 350, NOW) == nullptr && P.mdir[KICK] == 1, "after stop, manual keys work without the current sensor");
+    K.stop(NOW); run(700); CHECK(K.key('2', 350, NOW) == nullptr && P.mdir[KICK] == 1, "after stop (and the key released), manual keys work without the current sensor");
     run(400); CHECK(P.mdir[KICK] == 0, "...and still stop on the deadman");
     P.inaDead = false; run(10); CHECK(K.inaOk, "INA219 readings back: sensor OK again"); }
   { fresh(); P.inaDead = true; run(10); P.inaDead = false; run(10); CHECK(K.inaOk, "one or two failed reads are tolerated"); }
@@ -334,7 +336,8 @@ int main() {
   { fresh(); ACC = [](uint32_t t) { return t < 15000 ? 1.0f : t < 15030 ? 8.0f : t < 25000 ? 0.4f + 0.3f * sinf(t * 0.01f) : t < 25015 ? 8.0f : 1.0f; };
     K.arm(true, false, NOW); run(32000);
     std::string j = logJson(256); save("flightlog_long.json", j);
-    CHECK(K.landed && K.log.frozen && countSamples(j) == LOG_N && K.log.at(0).t > K.flight.tLaunch - 2000, "10 s flight: window longer than 12 s keeps the newest 12 s");
+    CHECK(K.landed && K.log.frozen && countSamples(j) >= LOG_N - 5 && K.log.at(0).t >= K.flight.tLaunch - 2020 && K.log.at(0).t <= K.flight.tLaunch - 1980,
+          "10 s flight: window longer than 12 s keeps 2 s before launch and the first 10 s (launch never lost)");
     CHECK(j.find("CHUNK_OVERFLOW") == std::string::npos, "small 256 B chunks never overflow"); }
   { fresh(); std::string j = logJson(); save("flightlog_empty.json", j); CHECK(countSamples(j) == 0 && j.find("\"n\":0") != std::string::npos, "empty log is valid JSON with no samples"); }
 
@@ -360,7 +363,7 @@ int main() {
     CHECK(std::string(faultName(K.fault)) == "FOOT_JAM" && allOff(), "foot jams while the kick swings back: FOOT_JAM, all off"); }
   { fresh(); ACC = [](uint32_t t) { return t < 1000 ? 1.0f : t < 1450 ? 0.05f : t < 1480 ? 7.0f : 1.0f; };   // dropped onto a cushion
     K.arm(true, true, NOW); run(20000);
-    CHECK(ph() == "LANDED" && K.flight.fallback() && allOff() && logged("auto not started"), "armed dart dropped on a cushion: fallback landing only, auto NOT started");
+    CHECK(!K.flight.launched && ph() == "ARMED" && allOff(), "armed dart dropped on a cushion: not a launch at all (free fall before the hit), auto NOT started");
     fresh(); ACC = [](uint32_t t) { return t < 1000 ? 1.0f : t < 1030 ? 8.0f : 1.0f; }; K.arm(true, true, NOW); run(20000);
     CHECK(!K.running() && K.seq == IDLE, "armed dart knocked hard on the bench: auto NOT started"); }
   { for (int ms : {15, 20, 40}) { fresh(); ACC = [ms](uint32_t t) { return t >= 1000 && t < 1000u + ms ? 8.0f : t > 1000u + ms && t < 1600 ? 0.3f : 1.0f; };
@@ -418,7 +421,7 @@ int main() {
   { fresh(); ACC = [](uint32_t t) { if (t < 1000) return 1.0f; uint32_t d = t - 1000; if (d < 200) return 0.02f; if (d < 222) return 8.0f; if (d < 350) return 0.02f; if (d < 358) return 8.0f; return 1.0f; };
     K.arm(true, true, NOW); run(5000); CHECK(!K.running() && K.seq == IDLE, "armed dart dropped 20 cm onto a desk with a bounce: auto NOT started"); }
   { fresh(); K.boot(F_BROWNOUT, NOW); CHECK(K.key('3', 350, NOW) != nullptr && P.mdir[DRILLS] == 0, "boot fault latched: run keys refused until stop"); }
-  { fresh(); K.arm(true, false, NOW); K.key('3', 1500, NOW); ACC = [](uint32_t t) { return t > 100 && t < 140 ? 8.0f : 0.3f; }; run(200);
+  { fresh(); K.arm(true, false, NOW); K.key('3', 1500, NOW); ACC = [](uint32_t t) { return t < 400 ? 1.0f : t < 440 ? 8.0f : 0.3f; }; run(500);
     CHECK(K.flight.flying() && P.mdir[DRILLS] == 0 && logged("launch: motors stopped"), "a manual motor running at launch is stopped"); }
 
   // ===================================================================================================== review round 4 (hardware) regressions
@@ -453,12 +456,92 @@ int main() {
 
   { fresh(); K.startRelease(NOW); run(30000);   // legs already stowed: pods and kick start at their stops
     int podsOn = 0; (void)podsOn;
-    uint32_t tp = when("release: pods up"), tk = when("release: kick back"), td = when("release: done");
-    printf("     stowed release: pods step %u ms, kick step %u ms\n", when("foot out") - tp, td - tk);
-    CHECK(K.seq == RELEASED && when("pods up, foot out") - tp < 2500 && td - tk < 2500, "release with legs already stowed: each worm stops within 2.5 s (no rise needed)"); }
+    uint32_t tp = when("release: pods up"), ta = when("pods up, foot out"), tk = when("release: kick back"), td = when("release: done");
+    printf("     stowed release: pods step %u ms, kick step %u ms\n", ta - tp, td - tk);
+    CHECK(K.seq == RELEASED && ta && ta - tp < 2500 && td - tk < 2500, "release with legs already stowed: each worm stops within 2.5 s"); }
   { fresh(); K.startAuto(NOW); while (K.seq != D_DEPLOY) run(5); run(1000); K.stop(NOW); run(500); LOG.clear(); uint32_t t0 = NOW; K.startAuto(NOW); run(25000);
     uint32_t tk = when("kick already down"); printf("     retry: kick off after %u ms\n", tk - t0);
     CHECK(K.seq == DONE && tk && tk - t0 < 1000, "auto retried with the kick already planted: kick stopped within 1 s, foot planted alone, anchored"); }
+
+  // ===================================================================================================== coordinator review R1-B
+  section("coordinator review R1-B regressions");
+  { fresh(); ACC = [](uint32_t t) { if (t < 5000) return 1.0f; if (t < 5040) return 8.0f; if (t < 6540) return 0.2f; if (t < 6555) return 6.0f;
+      return ((t - 6555) % 800) < 40 ? 1.4f : 1.0f; };   // impact, then nudged every 0.8 s: never still, lands by timeout
+    K.arm(true, false, NOW); run(25000);
+    printf("     timeout landing: tLaunch %u tLand %u how %s, log %u..%u\n", K.flight.tLaunch, K.flight.tLand, K.flight.how, K.log.at(0).t, K.log.at(K.log.count - 1).t);
+    CHECK(std::string(K.flight.how) == "timeout" && K.log.frozen && K.log.at(0).t <= K.flight.tLaunch - 1980 && K.log.at(K.log.count - 1).t >= K.flight.tLand,
+          "timeout landing after an impact: the frozen log still holds 2 s before launch through the impact"); }
+  { fresh(); for (int i = 0; i < 260; i++) { K.key(i % 2 ? '!' : '1', 350, NOW); run(75); }
+    CHECK(P.mdir[DEPLOY] == 0 && logged("both directions held"), "R1-B #1: '1' and '!' alternating every 75 ms: stopped, not driven for 20 s"); }
+
+  // ===================================================================================================== failure-mode walk gaps
+  section("failure-mode walk gap fixes");
+  { fresh(); K.key('2', 1500, NOW); run(200); K.stop(NOW); for (int i = 0; i < 4; i++) { K.key('2', 350, NOW); run(150); }
+    CHECK(P.mdir[KICK] == 0, "a stop also locks a key another client keeps repeating"); run(700); CHECK(K.key('2', 350, NOW) == nullptr, "...until that key is released"); }
+  { fresh(); K.arm(true, false, NOW); CHECK(K.startAuto(NOW) == nullptr && !K.armed && K.seq == K_SWING && logged("disarmed first"), "/auto while ARMED (launch never seen): disarms and starts"); }
+  { fresh(); P.railV = 6.3f; run(20); CHECK(K.arm(true, true, NOW) != nullptr && std::string(K.arm(true, true, NOW)) == "battery low", "arming with auto refused on a flat battery (6.3 V at rest)");
+    CHECK(K.arm(true, false, NOW) == nullptr, "...a log-only arm is still allowed (no motors)"); }
+  { fresh(); K.key('3', 1500, NOW); run(100); P.railV = 0.0f; run(700); CHECK(std::string(faultName(K.fault)) == "LOW_RAIL", "motor rail reading 0 V while driving: LOW_RAIL"); }
+  { fresh(); ACC = [](uint32_t) { return 1.0f; }; K.arm(true, false, NOW); run(15UL * 60 * 1000 + 1000); CHECK(!K.armed && logged("arm expired"), "an arm expires after 15 min without a launch"); }
+  { fresh(); ACC = [](uint32_t t) { if (t < 1000) return 1.0f; if (t < 1500) return 0.02f; if (t < 1530) return 8.0f; if (t < 1800) return 0.02f; if (t < 1810) return 8.0f; return 1.0f; };   // 1.2 m drop, bounce
+    K.arm(true, true, NOW); run(5000); CHECK(!K.flight.launched && allOff(), "armed dart dropped 1.2 m with a bounce: not a launch"); }
+  { fresh(); P.open = DEPLOY; K.startAuto(NOW); run(20000);
+    CHECK(std::string(faultName(K.fault)) == "NO_CURRENT" && logged("deploy draws no current"), "deploy wire open: NO_CURRENT at the start of the pods step"); }
+  { fresh(); P.kickNoStow = true; P.kick = 4300; K.kickPos = 4300; K.startRelease(NOW); run(30000);
+    CHECK(std::string(faultName(K.fault)) == "KICK_JAM" || std::string(faultName(K.fault)) == "KICK_TIMEOUT", "kick jams half way back: KICK_JAM (not 'released')"); }
+  { fresh(); P.kickContact = 0; P.kickLand = 0; K.startAuto(NOW); run(5000);   // kick blocked right at stowed (jam or backwards)
+    CHECK(std::string(faultName(K.fault)) == "KICK_JAM" && allOff(), "kick stalled near stowed at the start of /auto: KICK_JAM, not 'kick already down'"); }
+  { fresh(); P.footStallFwd = false; K.startAuto(NOW); run(25000); std::string st = statusJson();
+    CHECK(st.find("\"warnings\":[]") != std::string::npos, "clean anchor: no warnings");
+    fresh(); P.drillStallFwd = true; K.startAuto(NOW); run(25000); st = statusJson(); save("status_warnings.json", st);
+    CHECK(st.find("drills_stalled") != std::string::npos, "drills stopped by a stone: status warnings list says so"); }
+
+  // ===================================================================================================== review round 8 regressions
+  section("review round 8 regressions");
+  { for (int ramp : {0, 3, 8, 15, 25}) { fresh(); ACC = [ramp](uint32_t t) { if (t < 2000) return 1.0f + 0.25f * sinf(t * 0.9f);   // rail vibration 0.18 g rms
+        if (t < 2000u + ramp) return 1.0f + 7.0f * (t - 2000) / (float)(ramp ? ramp : 1);   // ramp up through 1.3..4 g
+        if (t < 2045u + ramp) return 8.0f; if (t < 2800) return 0.3f; if (t < 2810) return 6.0f; return 1.0f; };
+      K.arm(true, true, NOW); run(5000); char m[100]; snprintf(m, sizeof m, "vibrating rail (0.18 g rms) and a %d ms ramp into the push: launch seen, auto runs", ramp);
+      CHECK(K.flight.launched && ph() == "ANCHORING", m); } }
+  { fresh(); ACC = [](uint32_t t) { if (t < 2000) return 1.0f; if (t < 2020) return 2.5f; if (t < 2060) return 8.0f; if (t < 2800) return 0.3f; if (t < 2810) return 6.0f; return 1.0f; };
+    K.arm(true, false, NOW); run(5000); CHECK(K.flight.launched, "a single 2.5 g sample before the push does not block the launch"); }
+  { fresh(); K.startAuto(NOW); run(20000); CHECK(K.seq == DONE, "anchored"); K.boot(F_BROWNOUT, NOW, false); K.stop(NOW); K.startAuto(NOW); run(20000);
+    CHECK(K.fault != F_KICK_JAM && K.seq == DONE, "reboot with the kick planted, then /stop and /auto: no false KICK_JAM (position unknown after a non power-on reset)"); }
+  { fresh(); P.kickContact = 2000; P.kickLand = 2600; P.footPaused = 200; K.startAuto(NOW); run(25000); K.startRelease(NOW); run(30000);
+    CHECK(K.seq == RELEASED && K.fault == F_NONE, "near ground and a hidden housing stall (plant time limit): release ends 'released', no false KICK_JAM"); }
+  { fresh(); for (int i = 0; i < 6; i++) { K.key('2', 350, NOW); run(150); }   // web page: hold, release (keep=1 stop), tap again soon
+    K.stop(NOW, false); run(300); CHECK(K.key('2', 350, NOW) == nullptr && P.mdir[KICK] == 1, "page key release (keep=1) then the same key 300 ms later: runs (no lock)"); }
+  { fresh(); K.key('2', 350, NOW); run(370); K.stop(NOW); run(30); CHECK(K.key('2', 350, NOW) != nullptr && P.mdir[KICK] == 0, "STOP during a deadman gap still locks the repeating key"); }
+  { fresh(); K.startAuto(NOW); run(1000); for (int i = 0; i < 3; i++) { K.key('1', 350, NOW); run(150); }   // phone holds 1 during /auto (refused busy)
+    K.stop(NOW); K.key('1', 350, NOW); run(100); CHECK(P.mdir[DEPLOY] == 0, "STOP of a sequence locks a key that was held (refused) during it"); }
+  { fresh(); K.startAuto(NOW); while (K.seq != D_DEPLOY) run(5); run(700); K.stop(NOW); run(500); P.deploy = 1000; K.startAuto(NOW); run(25000);
+    CHECK(K.seq == DONE && P.deploy >= 1400, "retry after an abort with the pods half down: pods go fully down (no false 'already down')"); }
+  { fresh(); ACC = [](uint32_t t) { if (t < 3000) return 1.0f; if (t < 3040) return 8.0f; if (t < 11500) return 0.4f; if (t < 11515) return 6.0f; return 1.0f; };
+    K.arm(true, false, NOW); run(9500); K.stop(NOW); run(4000);
+    CHECK(K.log.frozen && K.log.at(0).t <= K.flight.tLaunch - 1980, "stop 6.5 s into a long flight: the frozen log still starts 2 s before launch"); }
+
+  // ===================================================================================================== review round 9 regressions
+  section("review round 9 regressions");
+  { for (double at : {3800.0, 3400.0, 3000.0}) { fresh(); K.startAuto(NOW); run(20000); P.kickJamBackAt = at; K.startRelease(NOW); run(30000);
+      char m[100]; snprintf(m, sizeof m, "kick jams on the way back at %.0f of 4300 (stall current): KICK_JAM, not 'released'", at);
+      CHECK(std::string(faultName(K.fault)) == "KICK_JAM" && K.seq != RELEASED && allOff(), m); } }
+  { fresh(); K.startAuto(NOW); run(20000); K.startRelease(NOW); run(30000); CHECK(K.seq == RELEASED && K.fault == F_NONE, "normal release after a normal anchor: no false KICK_JAM"); }
+  { fresh(); K.arm(true, true, NOW); K.key('3', 1500, NOW); run(100); P.shortCircuit = true; run(30); P.shortCircuit = false;
+    CHECK(K.fault == F_OVERCURRENT && !K.armed, "a fault while armed disarms (landing cannot clear it and drive motors)");
+    ACC = [](uint32_t t) { return flightTrace(t, NOW + 500 > t ? 0 : 0); }; run(100); CHECK(allOff(), "...motors stay off"); }
+  { fresh(); K.startAuto(NOW); while (K.seq != D_DEPLOY) run(5); run(400); P.drillStallFwd = true; run(2000);
+    int restarts = 0; for (auto& l : LOG) if (l.find("drills stalled") != std::string::npos) restarts++;
+    run(10000); restarts = 0; for (auto& l : LOG) if (l.find("drills stalled") != std::string::npos) restarts++;
+    CHECK(restarts == 1 && K.seq == DONE, "drills stalled while the pods swing are not driven again in the finishing step"); P.drillStallFwd = false; }
+  { fresh(); P.kick = 4300; for (int i = 0; i < 6; i++) { K.key('2', 350, NOW); run(150); }   // kick held into the ground: stall lock
+    K.key('@', 350, NOW); run(150); K.stop(NOW, false);                                      // a brief opposite tap
+    int on = 0; for (int i = 0; i < 6; i++) { K.key('2', 350, NOW); run(150); if (P.mdir[KICK] > 0) on++; }
+    CHECK(on == 0, "a brief opposite-direction tap does not clear the stall lock of the held key"); }
+  { fresh(); for (int i = 0; i < 4; i++) { K.key('@', 350, NOW); K.key('2', 350, NOW); run(150); }   // both kick keys being pressed
+    K.stop(NOW); K.key('@', 350, NOW); run(50); K.key('2', 350, NOW); run(50);
+    CHECK(P.mdir[KICK] == 0, "STOP with both directions of a motor being pressed locks both"); }
+  { fresh(); K.startAuto(NOW); run(20000); K.bothLock[DEPLOY] = true; K.lastCmd[DEPLOY] = NOW; K.key('1', 350, NOW);
+    CHECK(K.seq == DONE, "a refused key does not change seq (still anchored)"); }
 
   // ===================================================================================================== whole mission
   section("whole mission phases");

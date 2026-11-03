@@ -27,15 +27,14 @@ def camera_mount(cam_world, pitch_deg, deck_z):
     zc = z - deck_z                                     # optical centre above the deck
     ze = zc - KIYO["optic_above_edge"]                  # top of the edge plate
     h_col = ze - 30.0
-    col = prim.box(x - COL / 2, x + COL / 2, y - COL / 2, y + COL / 2, 0.0, h_col) \
-        - prim.box(x - COL / 2 + 3, x + COL / 2 - 3, y - COL / 2 + 3, y + COL / 2 - 3, 6.0, h_col - 3.0)
+    col = prim.box(x - COL / 2, x + COL / 2, y - COL / 2, y + COL / 2, 0.0, h_col)      # solid (print at 15 % infill)
     foot = prim.box(x - COL / 2 - 14, x + COL / 2 + 14, y - COL / 2 - 14, y + COL / 2 + 14, 0, 6)
     holes = [(x + sx * (COL / 2 + 7), y + sy * (COL / 2 + 7)) for sx in (-1, 1) for sy in (-1, 1)]
     # edge plate: 70 wide (y), 30 tall, 16 thick (x), its top face tilted by the pitch about y
     t = KIYO["edge_t"]
     plate = prim.box(-t / 2, t / 2, -36.0, 36.0, -30.0, 0.0)
     plate = plate - prim.cyl(3.3, 20, 0, 0, -10)        # 1/4" tripod screw hole from the top
-    plate = prim.place(plate, tf.T(x, y, ze) @ tf.Ry(-pitch_deg))
+    plate = prim.place(plate, tf.T(x, y, ze))           # level: the Kiyo X clip hinge sets the -10 deg pitch
     neck = prim.box(x - COL / 2, x + COL / 2, y - COL / 2, y + COL / 2, h_col - 3.0, ze - 22.0)
     sol = prim.union([col, foot, plate, neck])
     for hx, hy in holes:
@@ -100,10 +99,9 @@ def build(P, C, info):
                       color="#30343a", bought_ref="RC832 5.8 GHz receiver (80 x 65 x 15)", notes="video receiver, antenna up"))
     bx_, by_, bz_ = KIYO["body"]
     x, y, z = pos
-    cam_sol = prim.place(prim.box(-by_ / 2, by_ / 2, -bx_ / 2, bx_ / 2, -bz_ / 2, bz_ / 2),
-                         tf.T(x, y, z - C["deck_z"]) @ tf.Ry(-float(cam.get("pitch_deg", -10.0))))
     edge_top = z - C["deck_z"] - KIYO["optic_above_edge"]
-    cam_sol = cam_sol - prim.box(x - 50, x + 50, y - 50, y + 50, edge_top - 60, edge_top + 1.0)   # sits on the edge
+    # body envelope sitting on the edge plate (the clip arm hangs behind the plate; envelope only)
+    cam_sol = prim.box(x - by_ / 2, x + by_ / 2, y - bx_ / 2, y + bx_ / 2, edge_top + 0.05, edge_top + 0.05 + bz_)
     parts.append(Part("frame_kiyo_x", cam_sol, "bought", color="#202020", bought_ref="Razer Kiyo X webcam",
                       notes="rover camera (body envelope), looks along +X"))
     # cable anchors: Jetson USB from the bay, capture dongle and receiver leads

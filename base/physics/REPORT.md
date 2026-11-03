@@ -60,7 +60,7 @@ See FINDINGS.md "Current numbers" and SUMMARY.md (final values pasted below at t
   are assumed (4 kg, 0.30 m, 0.15 m).
 - Jetson: range_m is from the pivot ground point; the camera is 150 mm ahead of the pivot, so add the offset. Clamp
   to AIM.launch_pitch_range or ask me to narrow the table.
-- fw-base: trips (50 ms blank, 5 A / 30 ms in aim, reel and tow, 6.5 A cocking, tow trip at measured free current + 3.5 A for 50 N over 200 ms: line = 17 x (I - I_free) - 10.4 N at FIRM 5 N), and
+- fw-base: trips (50 ms blank; 30 ms hard trips at 5 A in aim, 6 A in REEL, 6.5 A cocking; tow trip at measured free current + 3.5 A for 50 N over 200 ms: line = 17 x (I - I_free) - 10.4 N at FIRM 5 N), and
   sample the BTS7960 IS pin in the PWM on-time.
 
 ## Harry must measure

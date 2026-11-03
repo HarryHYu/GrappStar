@@ -3,7 +3,7 @@ An example of the module contract (base/cad/README.md) and the test case of the 
 Not part of the base: the tools skip it unless asked (--only demo)."""
 import math
 
-from cad.lib import Part, Joint, Allow, Clearance, prim, tf, fits, gears, bearings, shafts
+from cad.lib import Part, Joint, Allow, Clearance, Mesh, prim, tf, fits, gears, bearings, shafts
 
 M = 2.0            # module
 Z1, Z2 = 20, 30
@@ -75,6 +75,10 @@ def allowed(P):
 def clearances(P):
     return [Clearance("demo_gear_*", "demo_plate", 1.0, "gears clear the plate"),
             Clearance("demo_gear_1", "demo_gear_2", 0.05, "gear mesh keeps backlash")]
+
+
+def meshes(P):
+    return [Mesh("demo_gear_1", "demo_gear_2", M, Z1, Z2, why="demo pair")]
 
 
 def audit_states(P):

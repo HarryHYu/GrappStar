@@ -19,16 +19,18 @@ import argparse
 import json
 import os
 
-from common import load_params
+from common import load_params, params_hash
 from flight import simulate
-from launcher import launch
+from launcher import effective_muzzle, launch, line_slack
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "out", "ballistics.json")
 DRAG_N = [0.5, 0.75, 1.0]
 
 
-def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = None, with_wind: bool = True):
+def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = None, with_wind: bool = True,
+          v_scale: float = 1.0):
+    """v_scale: muzzle speed factor fitted from test shots (calib.py range); 1.0 = pure model."""
     p = p or load_params()
     lo, hi = float(p.flight["pitch_min"]), float(p.flight["pitch_max"])
     pitches = []
@@ -39,9 +41,11 @@ def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = N
     if pitches[-1] < hi:
         pitches.append(hi)
     table = []
+    impact_angles = []
     for th in pitches:
-        v = launch(p, th, **(launch_over or {}))["v_muzzle"]
+        v = effective_muzzle(p, th, **(launch_over or {}))["v"] * v_scale
         rows = [simulate(p, v, th, brake_n=b, reel_model=True) for b in drag_n]
+        impact_angles.append(round(rows[1]["impact_angle_deg"], 1))
         if not all(r["landed"] for r in rows):
             raise RuntimeError(f"a shot at pitch {th} did not land within the time limit")
         table.append(dict(pitch_deg=th, v_muzzle=round(v, 3),
@@ -54,15 +58,18 @@ def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = N
     if with_wind:
         for th in (10.0, 20.0, 36.0, 45.0):
             if lo <= th <= hi:
-                v = launch(p, th, **(launch_over or {}))["v_muzzle"]
+                v = effective_muzzle(p, th, **(launch_over or {}))["v"] * v_scale
                 r = [simulate(p, v, th, brake_n=drag_n[1], reel_model=True, wind=w)["range_m"] for w in (-3.0, 0.0, 3.0)]
                 wind.append(dict(pitch_deg=th, range_headwind3=r[0], range_calm=r[1], range_tailwind3=r[2],
                                  dr_per_mps=(r[2] - r[0]) / 6.0))
-    meta = dict(params_source=p.source, dart_mass_kg=p.dart.mass, dart_cda_m2=p.dart.cda,
+    meta = dict(params_source=p.source, params_hash=params_hash(p), dart_mass_kg=p.dart.mass, dart_cda_m2=p.dart.cda,
                 pivot_height_m=p.launch.get("pivot_h"), release_u_m=p.launch.get("release_u"), dart_w_m=p.launch.get("dart_w"),
                 range_origin="ground point under the rail pivot (main axis)" if p.launch.get("pivot_h") else "muzzle ground point",
                 stroke_m=launch_over.get("stroke", p.launch["stroke"]) if launch_over else p.launch["stroke"],
-                wind_sensitivity=wind,
+                wind_sensitivity=wind, v_scale=v_scale, line_slack=line_slack(p),
+                v_muzzle_note="v_muzzle is the speed the flight starts from: after the snatch when the line path goes slack in the stroke",
+                impact=[dict(pitch_deg=r_["pitch_deg"], impact_angle_deg_mid_drag=a_, note="target dh higher -> about dh / tan(angle) shorter")
+                        for r_, a_ in zip(table, impact_angles)],
                 notes=__doc__.split("Meaning of the numbers")[1].split("python ballistics.py")[0].split(":", 1)[1].strip(),
                 launch_pitch_range_spec=(getattr(p, "aim_launch_range", None)))
     return doc, meta
@@ -111,11 +118,12 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--step", type=float, default=2.5)
     ap.add_argument("--out", default=OUT)
+    ap.add_argument("--v-scale", type=float, default=1.0, help="muzzle speed factor from test shots (python calib.py range ...)")
     a = ap.parse_args(argv)
     if a.step <= 0:
         raise SystemExit("--step must be > 0")
     p = load_params()
-    doc, meta = build(p, a.step)
+    doc, meta = build(p, a.step, v_scale=a.v_scale)
     errs = validate(doc)
     if errs:
         raise SystemExit("contract C3 violated: " + "; ".join(errs))

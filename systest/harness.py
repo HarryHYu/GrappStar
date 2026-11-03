@@ -386,7 +386,14 @@ class Rig:
                     last_shots = p["shots"]
                     pt = p.get("pitchTrue")
                     if isinstance(pt, (int, float)) and pt == pt:   # the dart flies from the rail's REAL pitch
-                        rr = self.app.bal.at_pitch(float(pt), self.app.cfg.mission.drag_n).get("range_m")
+                        dn = self.app.cfg.mission.drag_n
+                        rr = self.app.bal.at_pitch(float(pt), dn).get("range_m")
+                        vt = (self.video.truth or {}).get("range_m")
+                        if rr and vt and self.video.pitch is not None:
+                            # the dart lands where the rendered flight shows it (the Jetson analyses that video),
+                            # shifted by the table's range change between the rendered and the real pitch
+                            r0 = self.app.bal.at_pitch(float(self.video.pitch), dn).get("range_m") or rr
+                            rr = float(vt) + (rr - r0)
                         if rr:
                             self.base.set(lineOut=round(rr * 1.05 + 0.3, 3))
                             p["lineOut"] = round(rr * 1.05 + 0.3, 3)

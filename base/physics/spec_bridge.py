@@ -22,6 +22,9 @@ LAUNCH_MAP = {
     "mu_rail": ("launch", "mu_rail", 1.0),
     "stop_pad_travel": ("launch", "stop_pad_travel", 1e-3),
     "spring_preload": ("launch", "preload_ext", 1e-3),
+    "line_guide_u": ("launch", "line_guide_u", 1e-3),
+    "line_guide_w": ("launch", "line_guide_w", 1e-3),
+    "tail_home_u": ("launch", "tail_home_u", 1e-3),
     "carriage_mass_target_kg": ("launch", "carriage_mass", 1.0),
     "muzzle_height": ("launch", "muzzle_height", 1e-3),
 }

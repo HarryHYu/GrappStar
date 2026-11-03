@@ -126,3 +126,26 @@ class Clearance:
 
     def match(self, x: str, y: str) -> bool:
         return (fnmatchcase(x, self.a) and fnmatchcase(y, self.b)) or (fnmatchcase(y, self.a) and fnmatchcase(x, self.b))
+
+
+@dataclass
+class Mesh:
+    """A gear mesh between two parts (any owners). Each gear's axis is its part-local +Z through frame_a / frame_b
+    (4x4 in the part's local frame, default identity = the cad.lib.gears convention: axis +Z, face z = 0..face).
+    kind: "spur" (external pair), "internal" (gear_b is the ring), "rack" (gear_b is a rack: pitch line y = 0,
+    teeth along +X, face along Z: the check is pitch line distance and face overlap)."""
+    gear_a: str
+    gear_b: str
+    m: float
+    z_a: int
+    z_b: int = 0
+    x_a: float = 0.0
+    x_b: float = 0.0
+    kind: str = "spur"
+    face_a: float | None = None     # face widths (mm); None = the part's extent along its axis
+    face_b: float | None = None
+    frame_a: np.ndarray | None = None
+    frame_b: np.ndarray | None = None
+    pa: float = 20.0
+    tol: float = 0.15               # allowed centre distance error (mm) beyond the fits extra
+    why: str = ""

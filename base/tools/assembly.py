@@ -47,6 +47,7 @@ class Assembly:
         self.joints: dict[str, Joint] = {}
         self.allowed: list[Allow] = []
         self.clearances: list[Clearance] = []
+        self.meshes: list = []
         self.extra_states: list[dict] = []
         self.steps: list[dict] = []
         self.errors: list[str] = []
@@ -64,6 +65,8 @@ class Assembly:
                 self.allowed += list(mod.allowed(P))
             if hasattr(mod, "clearances"):
                 self.clearances += list(mod.clearances(P))
+            if hasattr(mod, "meshes"):
+                self.meshes += list(mod.meshes(P))
             if hasattr(mod, "audit_states"):
                 for S in mod.audit_states(P):
                     S = dict(S); S.setdefault("phase", f"{sub}_extra"); self.extra_states.append(S)

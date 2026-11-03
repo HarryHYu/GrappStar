@@ -2,7 +2,7 @@
 
 Units: mm, deg, N, N m, s, kg unless a name says otherwise.
 Owner: the coordinator. Workers read it and never edit it; request changes in your REPORT.md or NOTES.md.
-STATUS: v1.3.2 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
+STATUS: v1.3.3 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed; 1.3.3 unload jog 6 deg). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
 The architecture blocks below hold the INTERFACE numbers (where two owners must agree) and the module placements.
 Each owner keeps its internal geometry in its own module and maps these numbers explicitly (read with defaults).
 Code against the names; never hard-code a shared number anywhere else.
@@ -10,7 +10,7 @@ Code against the names; never hard-code a shared number anywhere else.
 
 import math
 
-VERSION = "1.3.2"
+VERSION = "1.3.3"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
@@ -146,7 +146,7 @@ DRUM = dict(
     # bits A B C, 1 = contact closed; Gray order; 000 = broken common wire (fault DRUM_SENSOR)
     dog_contacts=("SW_DOG_L", "SW_DOG_R"),   # collar engaged LAUNCH / REEL; checked during every move: the wrap window is
                                             # never entered with either closed
-    unload_jog_deg=8.0,        # before any shift out of LAUNCH or REEL
+    unload_jog_deg=6.0,        # before any shift out of LAUNCH or REEL (dog play +-8; stopped early on a 0.8 A current rise)
     fault_rules=dict(from_REEL_or_N_TO_R="the drum HOLDS where it is (D27, MODE err DRUM_HELD), never NEUTRAL (that would run back through the wrap window and unwrap under tow); the operator unwraps when safe",
                      boot_in_WRAP="stop and report", REEL_jog="forward only (sprag #2)"),
     wrap_turns=7,
@@ -303,12 +303,12 @@ TIMELINE = [
     ("release", 2.0, "The dart unscrews its drills and lets go.", dict(anchored=0)),
     ("reel_in", 3.0, "Capstan reels the dart in until about 1.5 m remain.",
      dict(wiper_deg=3420.0 + 600.0, reel_deg=3600.0 + 600.0, line_out_m=1.3, dart_return=0.3)),
-    ("unload", 6.5, "Wiper jogs 8 deg back inside the dog window, then the drum goes back to the WRAPPED park (314): the collar leaves the REEL dogs.",
-     dict(wiper_deg=4020.0 - 8.0, drum_deg=314.0, mode="NEUTRAL", drum_pos="WRAPPED")),
+    ("unload", 6.5, "Wiper jogs 6 deg back inside the dog window, then the drum goes back to the WRAPPED park (314): the collar leaves the REEL dogs.",
+     dict(wiper_deg=4020.0 - 6.0, drum_deg=314.0, mode="NEUTRAL", drum_pos="WRAPPED")),
     ("unwrap", 47.0, "Drum from the park back through the wrap sector to 62, collar in NEUTRAL; the wiper turns forward slowly and the take-up winds the freed line.",
-     dict(drum_deg=62.0, wraps=0, wiper_deg=4012.0 + 1800.0, mode="NEUTRAL", drum_pos="BETWEEN")),
+     dict(drum_deg=62.0, wraps=0, wiper_deg=4014.0 + 1800.0, mode="NEUTRAL", drum_pos="BETWEEN")),
     ("approach", 4.0, "Drum to NEUTRAL; the FIRM take-up pulls the dart tail first onto the sled until SW_SEATED.",
-     dict(drum_deg=41.0, line_out_m=0.0, dart_return=1.0, wiper_deg=5812.0 + 1449.8, drum_pos="NEUTRAL")),
+     dict(drum_deg=41.0, line_out_m=0.0, dart_return=1.0, wiper_deg=5814.0 + 1447.8, drum_pos="NEUTRAL")),
     ("to_launch", 8.0, "Drum to LAUNCH: clutch LIGHT, collar into the LAUNCH dogs.",
      dict(drum_deg=0.0, dart_flight=0.0, dart_return=0.0, wiper_deg=7263.8, mode="LAUNCH", drum_pos="LAUNCH")),
     ("lower", 4.0, "Wiper backward through the rest of the aim cycle: the rail comes down to its low stop.",

@@ -24,8 +24,8 @@ numpy 1.26 (JetPack pins numpy<2), OpenCV, pyserial; nothing else is required (o
 | Whole-system simulator for the page (`serve --sim`) | `grappstar/sim/world.py` | done |
 | Setup: install.sh, requirements.txt, systemd unit, udev rules, check_env.py, hotspot.sh, settings.json, README bring-up for a learner | `setup/`, `README.md` | done |
 
-Mission steps: PREFLIGHT, LAUNCH_MODE, AIM, COCK, ARM, FIRE, FLIGHT, LANDING_ZONE, BASE_NEUTRAL, WRAP, ANCHOR, TIDY,
-CHECK, TOW, RELEASE, RETRIEVE, UNWRAP, FINAL_APPROACH, LAUNCH_READY. No-go and failed anchors retrieve and reshoot.
+Mission steps (BASE_SPEC 10.1, D35): PREFLIGHT, LAUNCH_MODE, AIM, COCK, ARM, FIRE, FLIGHT, LANDING_ZONE, RAIL_LOW
+(D45), BASE_NEUTRAL, WRAP, ANCHOR, TIDY, FLY_IN, CHECK, TOW, RELEASE, RETRIEVE, UNWRAP, FINAL_APPROACH, LAUNCH_READY. No-go and failed anchors retrieve and reshoot.
 Confirmations: base goes live, aim, cock, fire (twice), landing verdict, tow assist.
 
 ## Verified
@@ -42,6 +42,17 @@ Confirmations: base goes live, aim, cock, fire (twice), landing verdict, tow ass
    reshoot limit leaving the dart out, load-cell rewind BUSY, decock warning). `tests/test_review3_findings.py`.
 4. Browser test of the page: field-name mismatches, modal hiding the landing report, layout at 360 px. Fixed.
 5. Coordinator relays (systest F2 to F6, R1-B, docs safety review): fixed.
+6. Afternoon relays and self-review (`tests/test_review5_findings.py`, `tests/test_dart_v4_round11.py`):
+   - BASE_NEUTRAL waited out the whole reset timeout after RAIL_LOW (30 s on hardware; found by profiling the tests).
+   - LANDING_ZONE waited up to 40 s for a dart still in FLIGHT after the landing was decided: now a /stop.
+   - O#13 final approach max_s from the firmware's own approachLimit formula (about 0.057 m/s at duty 0.3).
+   - F22 stop before a new reel after HOLD; F24 watchdog 2.5 s with a fixed 0.4 s ping schedule.
+   - F28 uncalibrated tow: the base `tension_cal` flag (base-1.3.0) when present, else k_n_per_a against the
+     params.py default (read from base/spec/params.py) and the earlier firmware defaults.
+   - D46 tow cap 55 N (page, app, CLI). fw-dart round 11: /arm refused while ANCHORED releases first; NO_GROUND
+     offers only release and reshoot; hold() raises on "hold limit" and never stops a sequence it did not start.
+   - Serial port opened exclusively (a second serve or base monitor gets "port busy").
+   - Mock base follows base-1.3.0 (drum holds with the wraps on, SW_ARM polarity, k 13.1 / -2.3, cap 55).
 
 ## Open items
 
@@ -58,8 +69,10 @@ Confirmations: base goes live, aim, cock, fire (twice), landing verdict, tow ass
 
 1. **Deck height above the ground** on the rover (sets the camera height): `settings.json` `"deck_height"`.
 2. **IMU axes** of the dart (BENCH_TEST.md step 7): `"imu_axes"`, for example `"y,-x,z"`.
-3. **Base current constants** `free_a`, `k_n_per_a` (firmware/base/CALIBRATION.md b and e) and `limit_n`: the
-   mission refuses TOW without a load cell while `k_n_per_a` is the factory 8.
+3. **Base current constants** `free_a` and `k_n_per_a` / `tension_offset_n` (firmware/base/CALIBRATION.md (d) and
+   (f)) and `limit_n`: the mission refuses TOW without a load cell until the base says `tension_cal` true.
+   **Tow limit**: the dart's hand-pull holding force (TEST_PLAN stage 8 step 2) minus 10 N, never above 50 N
+   (firmware cap 55 N): set it on the base (`limit_n`) and in `settings.json` `tow_limit`.
 4. **Rover camera calibration** (printed 9x6 checkerboard, 25 mm squares): `python3 -m grappstar calibrate
    intrinsics --images ...`, then `calibrate mount` with the board on the ground.
 5. **USB IDs** of the Kiyo X and the capture dongle (`lsusb`), then edit `setup/99-grappstar.rules`.

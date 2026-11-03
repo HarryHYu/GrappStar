@@ -91,7 +91,7 @@ def test_ping_status_and_telemetry(pair):
     assert tel_seated(t) and tel_carriage_home(t)
     s = c.status()
     assert list(s)[2:] == ["phase", "aimed", "aim_known", "drum_known", "wraps_known", "magnet", "glitches", "hx",
-                           "peak_a", "fw", "ev_drops"]
+                           "peak_a", "fw", "ev_drops", "tension_cal"]
     assert s["phase"] == "REST" and s["aimed"] is False and s["ev_drops"] == 0 and s["fw"] == "base-1.3.0"
 
 

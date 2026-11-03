@@ -33,6 +33,7 @@ operator chooses Retry, Skip (only where safe) or Abort. STOP on the page aborts
 from __future__ import annotations
 
 import os
+import re
 import threading
 import time
 import traceback
@@ -59,22 +60,36 @@ def approach_max_s(line_m: float, duty: float) -> float:
     return round(min(600.0, max(20.0, 10.0 + 1.5 * max(0.0, float(line_m)) / v)), 1)
 
 
-# firmware defaults, not bench calibrated: base-1.0 (8), physics v1.2 capstan law (17), D43 dart-side law (14.8),
-# params 1.3.2 dart-side law with the plain-eye cup ring (13.1). F28: the default moved with each physics run, so a
-# literal match against one value silently stopped warning. A base "calibrated" flag is requested (CONTRACT_REQUESTS).
-FACTORY_K_N_PER_A = (8.0, 17.0, 14.8, 13.1)
+# Earlier firmware defaults of k_n_per_a (base-1.0 8, physics v1.2 capstan law 17, D43 dart-side law 14.8): a unit
+# flashed with an older build keeps them. The current default is read from base/spec/params.py (REEL
+# tow_tension_model n_per_a), never written here (systest F28: the literal match silently stopped warning).
+LEGACY_K_N_PER_A = (8.0, 17.0, 14.8)
+_PARAMS_PY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "base", "spec", "params.py")
 
 
-def k_is_factory(k, tel_or_status: Optional[dict] = None) -> bool:
-    """True when k_n_per_a looks uncalibrated: the base says so (a future "tension_cal" flag), or it equals a
-    known firmware default to 0.05 N/A (a calibrated value that lands exactly on one is unlikely)."""
-    flag = (tel_or_status or {}).get("tension_cal")
-    if isinstance(flag, bool):
-        return not flag
+def params_default_k(path: str = _PARAMS_PY) -> Optional[float]:
+    """REEL tow_tension_model n_per_a from base/spec/params.py (the repo copy on the Jetson), None if not found."""
     try:
-        return k is not None and any(abs(float(k) - f) < 0.05 for f in FACTORY_K_N_PER_A)
+        with open(path, encoding="utf-8") as f:
+            m = re.search(r"tow_tension_model\s*=\s*dict\(\s*n_per_a\s*=\s*([0-9.]+)", f.read())
+        return float(m.group(1)) if m else None
+    except (OSError, ValueError):
+        return None
+
+
+def k_is_factory(k, tension_cal: Optional[bool] = None, params_k: Optional[float] = None) -> bool:
+    """True when the tow tension looks uncalibrated. The base's own tension_cal flag (base-1.3.0, get / status) wins
+    when present; without it, k_n_per_a equal (to 0.05 N/A) to the params.py default or an earlier firmware
+    default counts as uncalibrated."""
+    if isinstance(tension_cal, bool):
+        return not tension_cal
+    defaults = LEGACY_K_N_PER_A + ((params_k,) if params_k else ())
+    try:
+        return k is not None and any(abs(float(k) - f) < 0.05 for f in defaults)
     except (TypeError, ValueError):
         return False
+
+
 BASE_FAULTS = ("STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR", "ANGLE_SENSOR", "SWITCH_DISAGREE", "BROWNOUT",
                "BAD_STATE", "FAULT", "FAULTED", "DART_STUCK")
 
@@ -689,9 +704,9 @@ class Mission:
                 warnings.append("dart video mostly bad (check RC832 channel and antennas)")
         if t.get("tension_n") is None:
             try:
-                k = self.base.get("k_n_per_a").get("val")
-                if k_is_factory(k):
-                    warnings.append(f"no load cell and the tension constant k_n_per_a is still the factory {k}: "
+                if self.tension_uncalibrated():
+                    k = self.base.get("k_n_per_a").get("val")
+                    warnings.append(f"no load cell and the tension constants are not calibrated (k_n_per_a {k}): "
                                     "the tow limit is a rough current estimate (calibrate, see firmware/base/"
                                     "CALIBRATION.md)")
             except (BaseError, BaseTimeout, BaseDisconnected, ValueError, TypeError):
@@ -1012,12 +1027,22 @@ class Mission:
         try:
             # /flightlog is refused (409) while armed, in FLIGHT or with motors running: let the dart decide first
             ph = None
+            done = ("LANDED", "ANCHORED", "IDLE", "FAULT", "ARMED")
             try:
-                ph = self.dart.wait_phase(("LANDED", "ANCHORED", "IDLE", "FAULT", "ARMED"), 40.0, poll=0.3, fail=(),
-                                          cancel=self.cancel)["phase"]
+                ph = self.dart.wait_phase(done, 3.0, poll=0.3, fail=(), cancel=self.cancel)["phase"]
             except DartError as e:
                 if "cancelled" in str(e):
                     raise Aborted("operator STOP")
+                # the mission already decided the dart is down (line, video or the operator) but the dart still
+                # says FLIGHT: a full /stop ends flight tracking (landing "stop", the log freezes 3 s later; API v4;
+                # /stop?disarm=0 would keep tracking), instead of waiting up to 40 s for the dart's own timeout
+                self.log.warn("dart still in FLIGHT after the landing decision: ending its flight tracking")
+                try:
+                    self.dart.stop()
+                    ph = self.dart.wait_phase(done, 6.0, poll=0.3, fail=(), cancel=self.cancel)["phase"]
+                except DartError as e2:
+                    if "cancelled" in str(e2):
+                        raise Aborted("operator STOP")
             if ph == "ARMED":
                 self.log.warn("dart still ARMED (launch not seen): disarming to read the live log")
                 self.dart.arm(False)
@@ -1217,14 +1242,30 @@ class Mission:
         self.log.info(f"anchor holds at {t.get('tension_n')} N")
         return None
 
+    def tension_uncalibrated(self, k=None) -> bool:
+        """F28: the base's tension_cal flag (get tension_cal) when the firmware has it, else k_n_per_a against the
+        params.py default and the earlier firmware defaults."""
+        try:
+            flag = self.base.get("tension_cal").get("val")
+            if isinstance(flag, bool):
+                return not flag
+        except (BaseError, BaseTimeout, BaseDisconnected):
+            pass                                   # older firmware: BAD_KEY
+        if k is None:
+            try:
+                k = self.base.get("k_n_per_a").get("val")
+            except (BaseError, BaseTimeout, BaseDisconnected):
+                return False
+        return k_is_factory(k, params_k=params_default_k())
+
     def tow(self) -> None:
         if self.tel().get("tension_n") is None:
             try:
                 k = self.base.get("k_n_per_a").get("val")
             except (BaseError, BaseTimeout):
                 k = None
-            if k_is_factory(k) and not self.cfg.allow_uncalibrated_tow:
-                raise StepFailed(f"TOW refused: no load cell and k_n_per_a is still the factory {k}, so the tension limit "
+            if self.tension_uncalibrated(k) and not self.cfg.allow_uncalibrated_tow:
+                raise StepFailed(f"TOW refused: no load cell and the tension constants are not calibrated (k_n_per_a {k}), so the tension limit "
                                  "cannot be trusted (a test reached 61 N against 40 N). Calibrate free_a and k_n_per_a "
                                  "(firmware/base/CALIBRATION.md (d) and (f)), then Retry; or release the dart.",
                                  choices=["Retry", "Release the dart"])

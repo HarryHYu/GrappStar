@@ -97,7 +97,7 @@ REEL_MPS = N0_DPS * LINE_PER_WIPER_DEG                 # line speed at duty 1, l
 TAKEUP_MPS = 0.3          # take-up line speed per unit duty (0.09 m/s at duty 0.3)
 TAKEUP_SLIP_N = 5.0       # FIRM take-up clutch
 LINE_K = 400.0            # N per metre once the line is taut
-LIMIT_N, LIMIT_MAX_N = 50.0, 60.0   # D43 cap at the dart (params 1.3.2 D46 lowers it to 55)
+LIMIT_N, LIMIT_MAX_N = 50.0, 55.0   # tow cap at the dart (params 1.3.2, D46; was 60 by D43)
 RESUME_FRAC = 0.6
 TENSION_IGNORE_S = 0.35
 TAPER_FRAC = 0.30
@@ -237,7 +237,7 @@ class MockBase:
         self.require_seated = True
         self.vbat_wired = True
         self.enc_sign = 1
-        self.settings: Dict[str, float] = {"limit_n": LIMIT_N, "k_n_per_a": 14.8, "tension_offset_n": -2.6,
+        self.settings: Dict[str, float] = {"limit_n": LIMIT_N, "k_n_per_a": 13.1, "tension_offset_n": -2.3,
                                            "free_a": 1.5, "amps_per_volt": 12.5, "offset_a": 0.0,
                                            "hx_n_per_count": 1 / 21000.0, "drum_dps": DRUM_DPS,
                                            "aim_tol": AIM_TOL_DEG, "aim_offset": 0.0, "aim_home_deg": AIM_HOME_DEG,
@@ -245,6 +245,7 @@ class MockBase:
                                            "vbat_low": VBAT_LOW, "host_timeout_s": 0.0}
         self.code_bad = False               # test hook: drum code invalid (drum_pos UNKNOWN, POSITION_UNKNOWN)
         self.ev_drops = 0
+        self.tension_cal = False             # base-1.3.0 (F28): true once k_n_per_a or tension_offset_n is set
         self.last_rx_t = 0.0                # sim time of the last line from the host (host watchdog)
         self.commands = self._commands()
         self._defer: Optional[list] = None  # events raised while a command is handled, sent after its reply
@@ -1139,7 +1140,8 @@ class MockBase:
     def _c_status(self, m: dict, extra: dict) -> Optional[str]:
         extra.update(phase=self.phase, aimed=self.aimed, aim_known=self.aim_known, drum_known=self.drum_known,
                      wraps_known=self.wraps_known, magnet="OK", glitches=0, hx=bool(self.load_cell),
-                     peak_a=_n(self.peak_a, 1), fw=FW, ev_drops=self.ev_drops)
+                     peak_a=_n(self.peak_a, 1), fw=FW, ev_drops=self.ev_drops,
+                     tension_cal=self.tension_cal)
         if self.fault:
             extra["why"] = self.fault_why[:32]
         return None
@@ -1586,6 +1588,12 @@ class MockBase:
         return None
 
     def _cmd_cal(self, what: str, m: dict) -> Optional[str]:
+        if what == "factory":                 # bench settings back to the params defaults (base-1.3.0)
+            if self.moving():
+                return "BUSY"
+            self.settings.update(k_n_per_a=13.1, tension_offset_n=-2.3)
+            self.tension_cal = False
+            return None
         if what == "current":
             return "BUSY" if self.moving() else None
         if what == "tare":
@@ -1651,6 +1659,8 @@ class MockBase:
             self.line_est, self.line_known = v, True
         elif k == "aim_offset":
             self.aim_offset = v
+        if k in ("k_n_per_a", "tension_offset_n"):
+            self.tension_cal = True
         self.settings[k] = v
         return None
 
@@ -1668,6 +1678,8 @@ class MockBase:
                          max=_n(min(PITCH_MAX, max(AIM_TABLE) + self.aim_offset), 2))
         elif k == "line_m":
             extra["val"] = _n(self.line_est, 6)
+        elif k == "tension_cal":
+            extra["val"] = self.tension_cal
         elif k in SET_KEYS:
             extra["val"] = _n(self.settings.get(k, 0.0), 6)
         else:

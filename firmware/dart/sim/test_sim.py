@@ -352,5 +352,29 @@ class SimTest(unittest.TestCase):
             self.get("/arm?on=0")
 
 
+    def test_12_no_ground_faults_and_release_stows(self):
+        # dart on its back: the kick swings through air to its end stop; NO_GROUND, augers never run; /release stows
+        self.get("/stop"); time.sleep(0.3)
+        self.sim_set(kick_pos=0, deploy_pos=0, no_ground=1)
+        try:
+            code, body = self.get("/auto")
+            self.assertEqual(code, 200, body)
+            s = self.wait_for(lambda s: s["phase"] == "FAULT", 15.0, "NO_GROUND fault")
+            self.assertEqual(s["fault"], "NO_GROUND")
+            self.assertTrue(all(v == 0 for v in s["motors"].values()), s)
+            self.assertEqual(self.sim_state()["deploy_pos"], 0, "pods never moved")
+            self.get("/auto")                        # a retry faults again (never anchors in air)
+            time.sleep(1.5)
+            self.assertEqual(self.get_status()["fault"], "NO_GROUND")
+            self.assertEqual(self.sim_state()["deploy_pos"], 0)
+            code, body = self.get("/release")
+            self.assertEqual(code, 200, body)
+            s = self.wait_for(lambda s: s["seq"] == "released", 40.0, "released", poll=0.3)
+            self.assertEqual(self.sim_state()["kick_pos"], 0)
+        finally:
+            self.sim_set(no_ground=0)
+            self.get("/stop")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

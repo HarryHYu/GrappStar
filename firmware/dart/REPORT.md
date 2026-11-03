@@ -38,12 +38,15 @@ the real sketch in a host simulator, the web page in headless Chromium, the Jets
 9. **Sequences run at full duty**; thresholds scale with rail voltage (bench values at 8.0 V) and with duty squared for
    manual keys (slow decay drive).
 10. **Two motors at once**: the self-locking worm pauses 150 ms every 550 ms and the auger is read alone. A worm stall in
-    a sequence must also raise the total (rise rule, round 10 version: half the way from the worm's own lowest reading
-    to its line, at least 25 mA), or be over the line in 3 of the first 4 readings of a step (worm already at its stop).
+    a sequence must also raise the total (rise rule: half the way from the worm's own lowest reading to its line, at
+    least 25 mA, measured against the lowest of the last 4 readings), or be over the line in 3 of the first 4 readings
+    of a step (worm already at its stop).
 11. **Brownout or watchdog reset boots in `FAULT`** with motors off, until `/stop`, `/auto`, `/release` or `/arm`.
-12. **Kick travel bookkeeping**: the kick's travel is counted from power-on (power on with the legs stowed). It turns
-    "stall near stowed" into `KICK_JAM`, a stall after a whole swing in air into `NO_GROUND` (new, round 10), and a
-    release that stalls before 60 % of the way back into `KICK_JAM`.
+12. **Kick travel bookkeeping**: the kick's travel is counted from power-on (power on with the legs stowed), scaled by
+    rail voltage. It turns "stall near stowed" into `KICK_JAM`, a stall with no contact at 95 % of the swing in air
+    (not planted since the last release) into `NO_GROUND` (rounds 10 and 11, also on retries), and a release that
+    stalls before 60 % of the way back into `KICK_JAM`. Assumes the housing lands on flat ground before 90 to 95 % of
+    the swing in air (BENCH_TEST step 5 checks it).
 13. **Hold contract with the Jetson** (agreed with jetson, in `API.md`): repeat `/key` every 150 ms with `ms=350`,
     `stalled` is the normal end, always finish with `/stop?disarm=0`. The stall lock is per direction.
 14. **`/arm` is refused while `ANCHORED`** (legs out: release first).
@@ -73,6 +76,10 @@ TEST_OUTPUT_PLACEHOLDER
 10. Fresh review: a kick swinging through air ended in a false `ANCHORED` (now `NO_GROUND`); the no-rise rule could end
     planting early (now first 4 readings only); a quick key reversal latched "both directions held" (now reverses);
     a stalled `/flightlog` client could reboot the dart (watchdog 10 s to 30 s); arming while anchored; doc mismatches.
+11. Fresh review of round 10: a retry after `NO_GROUND` (or a part swing retried) still anchored in air; flat ground
+    could be called `NO_GROUND` (travel now voltage-scaled, geometry assumption documented and bench-checked); a falling
+    auger current could hide a worm stall (rise now against the last 4 readings); alternating keys drove a jammed stop
+    without limit (hold cap per motor). The fuzz test got a no-ground case and invariant 11.
 - Coordinator R1-B review, the C2 cross-check with the jetson client, the clean-clone check (all README steps pass
   from a fresh clone; doc gaps fixed), the coordinator's `test_06_hold_and_stop` failure (firmware stall lock, fixed).
 

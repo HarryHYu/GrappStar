@@ -201,7 +201,7 @@ static void testProtocolBasics() {
   char tel[300]; R.B.telemetry(tel, sizeof tel);
   CHECK(std::string(tel).find("{\"tel\":{\"state\":\"IDLE\"") == 0, tel);
   CHECK(strlen(tel) <= 256, "telemetry within 256 bytes");
-  CHECK(std::string(tel).find("\"sw\":{\"a\":1,\"l\":1,\"n\":1,\"H\":1,\"G\":1,\"S\":1,\"W\":1}") != std::string::npos, tel);   // drum code 001, carriage home, wrap arm home
+  CHECK(std::string(tel).find("\"sw\":{\"a\":1,\"l\":1,\"n\":1,\"H\":1,\"G\":1,\"S\":1}") != std::string::npos, tel);   // LAUNCH code, carriage home; SW_ARM open = cup at home (cad-reel)
 }
 
 static void testTelemetryWorstCase() {
@@ -242,7 +242,7 @@ static void testModeChanges() {
   CHECK(R.err("{\"id\":2,\"cmd\":\"aim\",\"deg\":30}") == "BUSY", "aim while moving: BUSY");
   R.until([&] { return R.idle(); }, 20000);
   CHECK(R.B.drumPos() == gb::DP_NEUTRAL, "arrived");
-  CHECK(R.err("{\"id\":2,\"cmd\":\"unwrap\"}") == "" && R.evt("UNWRAPPED"), "unwrap in NEUTRAL: ok at once");
+  S.out.clear(); CHECK(R.err("{\"id\":2,\"cmd\":\"unwrap\"}") == "" && R.evt("UNWRAPPED") && R.evt("MODE"), "unwrap in NEUTRAL: ok at once, UNWRAPPED then MODE");
 }
 
 static void testDrumFaults() {
@@ -458,7 +458,7 @@ static void testStallOvercurrent() {
   { Rig R; R.toMode("NEUTRAL"); R.wrapToReel();
     S.lineOut = 5; R.run(50); S.extraLoadNm = 14.5;
     CHECK(R.err("{\"id\":1,\"cmd\":\"reel\",\"until\":\"seated\"}") == "WRAPS_ON" && R.err("{\"id\":1,\"cmd\":\"retrieve\"}") == "WRAPS_ON", "no seating on the capstan (D35): WRAPS_ON");
-    R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":100,\"until\":\"stop\"}");
+    R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":70,\"until\":\"stop\"}");
     R.until([&] { return R.B.state == gb::S_FAULT || R.B.state == gb::S_IDLE; }, 10000);
     CHECK(R.B.state == gb::S_FAULT, "stalled reel-in: fault");
     R.run(2000);
@@ -536,9 +536,13 @@ static void testPowerLoss() {
     S.out.clear(); S.dDir = 0; S.wDir = 0;
     Rig R2(false);
     CHECK(R2.B.drumKnown && R2.B.drumPos() == gb::DP_BETWEEN, "drum sector known from the code after the cut");
-    CHECK(R2.err("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}") == "LAUNCH_BUSY", "launch phase unknown near LAUNCH: no shift away");
-    CHECK(R2.toMode("LAUNCH"), "back to LAUNCH is allowed");
-    CHECK(R2.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"cock_rest\"}") && R2.toMode("NEUTRAL"), "carriage seen home: the move completes"); }
+    CHECK(R2.B.phase == gb::PH_REST, "train was at rest when the move started and SW_HOME + SW_GAP are closed: REST (systest F15)");
+    CHECK(R2.toMode("NEUTRAL"), "the move completes"); }
+  { Rig R; R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); R.until([&] { return R.B.sec == gb::SEC_LN; }, 5000); R.run(200);
+    S.dDir = 0; S.wDir = 0; S.swStuckOpen = 1 << 7;   // SW_GAP reads open after the cut
+    Rig R2(false);
+    CHECK(R2.B.phase == gb::PH_UNKNOWN && R2.err("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}") == "LAUNCH_BUSY", "SW_GAP open: phase unknown, no shift away");
+    CHECK(R2.toMode("LAUNCH"), "back to LAUNCH is allowed"); }
   // 2: power cut mid-cock -> phase UNKNOWN, cock runs until the sear closes
   { Rig R; R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"cock_rest\"}"); R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"cock\"}"); R.run(2500);
     double ph = S.cockPh; S.wDir = 0;
@@ -806,9 +810,10 @@ static void testReview4() {
     Rig R2(false); R2.run(100);
     CHECK(R2.err("{\"id\":1,\"cmd\":\"cock\"}") == "LOADED_UNKNOWN" && S.shots == 0, "cut mid-cock + SW_HOME stuck closed: no recovery creep, no shot"); }
   { Rig R; R.toMode("NEUTRAL"); R.wrapToReel(); S.lineOut = 8; S.anchorTautAt = 7.6; S.anchorK = 60; R.run(50);
-    R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":100}");
-    R.ok("{\"id\":2,\"cmd\":\"reel\",\"duty\":1,\"max_n\":100,\"until\":\"tension\"}");
-    CHECK(R.B.w.c.tripA > 8.5f && R.B.w.c.tripA <= R.B.c.hardTripA, "D34: tow trip follows the limit ((100 + 10.4) / 17 + I_free + 1 A)");
+    CHECK(R.err("{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":71}") == "OUT_OF_RANGE" && R.err("{\"id\":2,\"cmd\":\"reel\",\"max_n\":71,\"until\":\"tension\"}") == "BAD_ARG", "D39: tow limit above 70 N refused");
+    R.B.c.freeA = 3.0f; R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":70}");
+    R.ok("{\"id\":2,\"cmd\":\"reel\",\"duty\":1,\"max_n\":70,\"until\":\"tension\"}");
+    CHECK(R.B.w.c.tripA > 8.0f && R.B.w.c.tripA <= R.B.c.hardTripA, "D34: tow trip follows the limit ((70 + 10.4) / 17 + I_free + 1 A)");
     R.ok("{\"id\":3,\"cmd\":\"stop\"}"); }
   { Rig R; R.toMode("NEUTRAL"); R.wrapToReel(); R.ok("{\"id\":1,\"cmd\":\"unwrap\"}");
     R.until([&] { return S.drumDeg < 180; }, 120000); R.ok("{\"id\":2,\"cmd\":\"stop\"}"); R.run(500);
@@ -833,6 +838,12 @@ static void testReview4() {
     R.ok("{\"id\":5,\"cmd\":\"unwrap\"}"); R.until([&] { if (S.slack > mx) mx = S.slack; return R.idle() || R.B.state == gb::S_FAULT; }, 120000);
     printf("    doubt unwrap: max slack %.3f m, drum %.1f, state %d\n", mx, S.drumDeg, R.B.state);
     CHECK(mx < 0.15, "the unwrap runs the take-up all the way (no loose line)"); }
+  { Rig R; R.toMode("NEUTRAL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 120000);
+    CHECK(R.B.drumPos() == gb::DP_WRAPPED && R.err("{\"id\":2,\"cmd\":\"retrieve\"}") == "WRAPS_ON", "D39: no retrieve at the WRAPPED park (wraps on)"); }
+  { Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":40}"); R.run(3000); S.wDir = 0;   // power cut mid-aim (systest F15)
+    Rig R2(false);
+    CHECK(R2.B.phase == gb::PH_REST && !R2.B.aimKnown && R2.ok("{\"id\":2,\"cmd\":\"aim\",\"deg\":30}"), "cut during aim: REST kept (SW_HOME + SW_GAP closed), aim re-homes");
+    R2.until([&] { return R2.idle() || R2.B.state == gb::S_FAULT; }, 60000); CHECK(R2.B.aimed && S.shots == 0, "aimed, no shot"); }
   { Rig Q; CHECK(Q.B.c.flyDuty >= Q.B.w.c.minScaleDuty, "fly-in duty high enough for the IS current scaling (3 A trip works)"); }
   { Rig Q; Q.toMode("NEUTRAL"); S.swStuckClosed |= 1 << Q.B.c.swBit[gb::SW_DOG_L]; Q.run(100);
     CHECK(Q.err("{\"id\":3,\"cmd\":\"jog\",\"motor\":\"drum\",\"dir\":1,\"ms\":300}") != "", "drum jog refused with a collar contact disagreeing"); }

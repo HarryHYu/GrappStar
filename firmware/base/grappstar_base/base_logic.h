@@ -349,6 +349,9 @@ struct Base {
       aimKnown = false; phase = PH_UNKNOWN;
       if (s && !s->cockKnown && s->cockPhase > 0) phaseHint = s->cockPhase;
       if (s && s->cockKnown && (s->phase == PH_COCKED || s->phase == PH_COCKING || s->phase == PH_FIRING)) phaseHint = s->phase == PH_COCKED ? c.cockEndDeg : fmaxf(s->cockPhase, c.cockEndDeg);   // a stale angle is still a warning
+      // systest F15: the wiper was turning with the launch train at rest (aim, centering jog, reel, take-up: a cock or
+      // fire records COCKING / FIRING before it starts). With SW_HOME and SW_GAP closed the springs are still relaxed
+      if (s && s->cockKnown && s->phase == PH_REST && fitted(SW_HOME) && closed(SW_HOME) && (!fitted(SW_GAP) || closed(SW_GAP))) { phase = PH_REST; cockPhase = 0; phaseHint = -1; }
     }
     // SW_HOME (carriage forward) must agree with the record: rest = closed, cocked = open
     if (fitted(SW_HOME)) {
@@ -461,7 +464,7 @@ struct Base {
     if (drumDeg < lo) drumDeg = lo; if (drumDeg > hi) drumDeg = hi;
     wraps = wrapsAt(sec, drumDeg);
     if (sec != SEC_WRAP && !wrapsDoubt) wrapsKnown = true;           // outside the WRAP sector the count follows from the sector
-    if (sec == SEC_WRAP && rose(SW_ARM) && d.running()) armPulses++;
+    if (sec == SEC_WRAP && (c.armHomeOpen ? fell(SW_ARM) : rose(SW_ARM)) && d.running()) armPulses++;   // one per cup arrival at home
   }
 
   // ================================================================== watchdogs (every tick)
@@ -826,7 +829,7 @@ struct Base {
     if (const char* e = idleCheck(false)) return e;
     if (state == S_HOLD) return "HOLDING";
     if (sec == SEC_NEUTRAL || sec == SEC_PREP) {
-      if (sec == SEC_NEUTRAL) { wrapsDoubt = false; wrapsKnown = true; JOut o(evBuf, sizeof evBuf); evBegin(o, "UNWRAPPED"); o.boolean("ok", true); evEnd(o); return nullptr; }
+      if (sec == SEC_NEUTRAL) { wrapsDoubt = false; wrapsKnown = true; JOut o(evBuf, sizeof evBuf); evBegin(o, "UNWRAPPED"); o.boolean("ok", true); evEnd(o); evMode(true); return nullptr; }   // always UNWRAPPED then MODE (BASE_SPEC 10.1 step 16)
     } else if (sec < SEC_PREP || sec == SEC_INVALID || secBad) return sec == SEC_INVALID || secBad ? "POSITION_UNKNOWN" : "NOT_WRAPPED";
     if (w.running()) return "BUSY";
     if (!enc.ok) return "ANGLE_SENSOR";              // the take-up needs the wiper
@@ -862,8 +865,8 @@ struct Base {
     if (!collarReel() && !neutral) return "NOT_WRAPPED";
     if (neutral && un == U_TENSION) return "NOT_WRAPPED";   // no tension without the capstan
     if (!neutral && un == U_SLIP) return "BAD_ARG";
-    if (!neutral && un == U_SEATED) return "WRAPS_ON";   // D35: never seat the dart on the capstan: unwrap first
-    if (mxn > c.limitMaxN) mxn = c.limitMaxN;
+    if (un == U_SEATED && sec != SEC_NEUTRAL) return "WRAPS_ON";   // D35 / D39: seat the dart only in NEUTRAL with the wraps off   // D35: never seat the dart on the capstan: unwrap first
+    if (mxn > c.limitMaxN) return "BAD_ARG";          // D39: tow limit at most 70 N
     if (un == U_SEATED && !fitted(SW_SEATED)) return "NO_SENSOR";
     takeupOnly = neutral;
     until = un; maxN = (float)mxn; reelDutyCmd = (int)lround(duty * 255); if (reelDutyCmd < c.reelMinDuty) reelDutyCmd = c.reelMinDuty;

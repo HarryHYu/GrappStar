@@ -47,12 +47,12 @@ struct Io {
 // the INA219 on the motor rail at 2S.
 struct Tuning {
   uint32_t serialRunMs = 1500, wifiDeadmanMs = 350, wifiMaxRunMs = 500;
-  float tripMa = 2000; uint32_t tripHoldMs = 10;        // all four stalled at 8.4 V is about 1750 mA
+  float tripMa = 2000; uint32_t tripHoldMs = 10;        // all four stalled at 8.4 V is about 1700 mA
   float stallMa[NMOT] = {150, 150, 600, 450};           // deploy, kick, drill PAIR, foot (stall 180 / 180 / 700 / 550)
   float loadMa[NMOT] = {40, 70, 420, 130};              // normal working current (in soil), used when 3+ run at once
   float freeMa[NMOT] = {30, 30, 70, 45};               // free running current (bench, 8 V)
   float refV = 8.0f;                                    // the currents above are at this rail voltage; they scale with it
-  float kickContactMa = 60;                             // foot auger tip meets the ground (kick free ~25 mA)
+  float kickContactMa = 60;                             // foot auger tip meets the ground (kick free ~30 mA)
   uint32_t kickMaxMs = 15000, footAfterMs = 1500, deployMaxMs = 6000, drillAfterMs = 3000;
   uint32_t drillLeadMs = 3000, footLeadMs = 1500, footOutMs = 3000;   // release: mirror of the anchor timings
   uint32_t autoMaxMs = 35000, releaseMaxMs = 35000;     // whole-sequence limits
@@ -382,8 +382,8 @@ struct Kedge {
     if (anchoring()) return nullptr;                  // already running: a repeated request is not an error
     if (seqRunning()) return "busy";
     if (seq == DONE) return "already anchored, release first";
+    if (!inaOk) return "no current sensor";          // refuse before changing anything
     if (armed) { armed = false; ev("auto: disarmed first (the launch was not seen)"); }
-    if (!inaOk) return "no current sensor";
     stopAll(now); pairReset(now); fault = F_NONE; armed = false; warn = 0;
     seq = K_SWING; seqT0 = seqStart = now; peakMa = 0; drive(KICK, +1, tu.kickMaxMs + 500, now); ev("auto: kick swing");
     return nullptr;

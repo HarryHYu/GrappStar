@@ -10,7 +10,7 @@ Code against the names; never hard-code a shared number anywhere else.
 
 import math
 
-VERSION = "1.2"
+VERSION = "1.2.1"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
@@ -130,15 +130,16 @@ DRUM = dict(
     # v1.0 zone table with cad-drum's forced deviations (drum_NOTES v4 section 0); drum deg, forward = toward REEL
     zones=[
         dict(name="LAUNCH", deg=(-4.0, 8.0), collar="LAUNCH", clutch="LIGHT", cup="locked home"),
-        dict(name="L_TO_N", deg=(8.0, 32.0), collar="ramp", clutch="LIGHT to FIRM", cup="locked"),
-        dict(name="NEUTRAL", deg=(32.0, 50.0), collar="NEUTRAL", clutch="FIRM", cup="locked"),
+        dict(name="L_TO_N", deg=(8.0, 32.0), collar="ramp", clutch="LIGHT (clutch ramps to FIRM over 30..40, after the collar shift)", cup="locked"),
+        dict(name="NEUTRAL", deg=(32.0, 50.0), collar="NEUTRAL", clutch="FIRM from 40", cup="locked"),
         dict(name="WRAP_PREP", deg=(50.0, 62.0), collar="NEUTRAL", clutch="FIRM to LIGHT", cup="lock releases at 60"),
         dict(name="WRAP", deg=(62.0, 302.0), collar="NEUTRAL", clutch="LIGHT", cup="7 turns (4 pinion turns x 42/24), ends at home"),
-        dict(name="N_TO_R", deg=(302.0, 340.0), collar="NEUTRAL until 318, then ramp to REEL", clutch="LIGHT to FIRM 302..316", cup="locked home"),
+        dict(name="N_TO_R", deg=(302.0, 340.0), collar="NEUTRAL until 318, then ramp to REEL", clutch="LIGHT to FIRM 302..312", cup="locked home"),
         dict(name="REEL", deg=(340.0, 352.0), collar="REEL", clutch="FIRM", cup="locked"),
     ],
-    targets=dict(LAUNCH=0.0, NEUTRAL=41.0, WRAP_PARK_START=56.0, WRAP_WINDOW=(62.0, 302.0), WRAPPED=309.0, REEL=347.0),
-    # park angles avoid code edges: 56 is mid WRAP_PREP, 309 is in N_TO_R with the cup locked and the collar still NEUTRAL
+    targets=dict(LAUNCH=0.0, NEUTRAL=41.0, WRAP_PARK_START=56.0, WRAP_WINDOW=(62.0, 302.0), WRAPPED=314.0, REEL=347.0),
+    # park angles avoid code edges: 56 is mid WRAP_PREP; 314 is in N_TO_R with the clutch FIRM, the cup locked and the
+    # collar still NEUTRAL (ramp starts 318): a 30 percent rate error lands 310.4..317.6
     end_stops=(-4.0, 352.0),   # 356 deg of travel; the 4 deg unreachable gap keeps the code ramps from aliasing
     code_contacts=("SW_DRUM_A", "SW_DRUM_B", "SW_DRUM_C"),
     codes=dict(LAUNCH="100", L_TO_N="110", NEUTRAL="010", WRAP_PREP="011", WRAP="001", N_TO_R="101", REEL="111"),
@@ -146,13 +147,13 @@ DRUM = dict(
     dog_contacts=("SW_DOG_L", "SW_DOG_R"),   # collar engaged LAUNCH / REEL; checked during every move: the wrap window is
                                             # never entered with either closed
     unload_jog_deg=8.0,        # before any shift out of LAUNCH or REEL
-    fault_rules=dict(from_REEL_or_N_TO_R="go to WRAPPED (309), never NEUTRAL (that would run back through the wrap window and unwrap under tow)",
+    fault_rules=dict(from_REEL_or_N_TO_R="go to WRAPPED (314), never NEUTRAL (that would run back through the wrap window and unwrap under tow)",
                      boot_in_WRAP="stop and report", REEL_jog="forward only (sprag #2)"),
     wrap_turns=7,
     wrap_train=dict(segment_pinion_turns=4, idler_out=dict(module=1.5, teeth=42, face=8.0), cup_gear=dict(module=1.5, teeth=24),
                     centre_idler_cup=49.6, plane_y=(68.5, 76.5), idler_axis_xz=(16.24, -104.88)),
     n20=dict(axis_xz=(99.9, -78.5), note="motor pointing up; cad-drum sizes the ratio with at least 2x margin (FIRM 5 N, D24)"),
-    magnet_face_y=201.5,        # D23: magnet cap on the spigot end outboard of the launch sleeve
+    magnet_face_y=201.5,        # D23: magnet cap y 195..201.5 on the spigot end (spigot to y 198.5)
     index_cam_bumps=6,          # D12
     sw_index_mount="2 x M3 in the wiper adapter plate front face at (x 43.1, z +6) and (x 43.1, z -36)",
     torque_limiter_nm=5.0,      # D8 / D26
@@ -271,7 +272,7 @@ TIMELINE = [
     ("neutral", 4.0, "Unload jog, then the drum goes to NEUTRAL: wiper coupled to nothing.", dict(drum_deg=41.0)),
     ("wrap", 30.0, "Right after landing, while the line still lies slack: the drum turns the wrap cup 7 times round the capstan.",
      dict(drum_deg=302.0, wraps=7, line_out_m=4.3)),
-    ("wrapped", 2.0, "Drum to the WRAPPED park (309): cup locked, collar still NEUTRAL.", dict(drum_deg=309.0)),
+    ("wrapped", 2.0, "Drum to the WRAPPED park (314): cup locked, clutch FIRM, collar still NEUTRAL.", dict(drum_deg=314.0)),
     ("anchor", 4.0, "The dart plants its foot and screws its two drills into the ground.", dict(anchored=1)),
     ("tidy", 3.0, "Wiper forward: the take-up pulls the slack through the free capstan until the line is straight.",
      dict(wiper_deg=-566.2 + 400.0, line_out_m=4.1)),

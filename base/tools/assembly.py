@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import inspect
 import json
 import os
 import pkgutil
@@ -169,13 +170,15 @@ class Assembly:
 
     def line(self, S: dict) -> list:
         """Tether polyline in world mm for state S: the points of every subsystem's optional line_path(P, S), joined
-        in subsystem order (reel first, then launch, then the rest), duplicates at the joins dropped. [] if none."""
+        in subsystem order (reel first, then launch, then the rest), duplicates at the joins dropped. [] if none.
+        Only functions whose first two parameters are named exactly (P, S) count as the hook."""
         order = sorted(self.modules, key=lambda n: (n != "reel", n != "launch", n))
         pts = []
         for sub in order:
             mod = self.modules[sub]
-            if hasattr(mod, "line_path"):
-                for p in mod.line_path(self.P, S) or []:
+            fn = getattr(mod, "line_path", None)
+            if fn is not None and list(inspect.signature(fn).parameters)[:2] == ["P", "S"]:
+                for p in fn(self.P, S) or []:
                     p = [float(v) for v in p]
                     if not pts or max(abs(a - b) for a, b in zip(p, pts[-1])) > 1e-6:
                         pts.append(p)

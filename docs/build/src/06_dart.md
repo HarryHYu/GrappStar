@@ -52,7 +52,7 @@ The dart is built from three documents. This section says which to use for what,
 
 @include firmware/dart/WIRING.md
 
-@image firmware/dart/wiring/wiring.png Dart wiring v4 (numbers match the new cut list)
+@image firmware/dart/wiring/wiring.png Dart wiring v4 (numbers match the new cut list). To zoom in, open firmware/dart/wiring/wiring.svg on a screen.
 
 ### Run sheet wire numbers
 

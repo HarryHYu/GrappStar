@@ -44,3 +44,10 @@ Status: in progress. Final version at 18:30 Sydney.
   MP1584, lead #2 as the motor-only emergency stop, Jetson shutdown before unplugging, second ground path warning,
   A6 free current from telemetry (not the meter), hanging weights for the 0.5 to 0.75 N payout drag, slow-motion
   frame counting formula, stall test arm at 90 degrees, spring 4 kg load limit, defined FORWARD in test stage 1.
+- Round 2 (cold learner, fresh agent, read the whole preview guide with the worker branches' docs): 15 findings.
+  Fixed in docs/build: a merged dart build order (run sheet + WIRING.md + BENCH_TEST), a generated run-sheet-to-new
+  wire number table (the run sheet's 7.6/8b/8e/10 numbers now point at other wires), foot direction wording,
+  order of work (Jetson on its wall supply first, A6/A7 at test stage 1), P5 left open until the buck is set,
+  SLP pull-up procedure, release order (pods up before kick back), one payout brake number (0.5 to 0.75 N),
+  spring 4 kg limit 160 mm, INA219 library dropped. Sent to fw-dart (their files): antenna before power, B2 order,
+  BENCH_TEST step order and Jetson-only steps, B4/B5 overlap. "No jetson CLI" was stale (it is on w/jetson).

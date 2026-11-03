@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 11:06 Sydney time from commit `9f0aff1`.
+Built 2026-11-03 11:06 Sydney time from commit `35e74a9`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -267,7 +267,7 @@ The dart is built from three documents. This section says which to use for what,
 
 
 
-![Dart wiring v4 (numbers match the new cut list)](firmware/dart/wiring/wiring.png)
+![Dart wiring v4 (numbers match the new cut list). To zoom in, open firmware/dart/wiring/wiring.svg on a screen.](firmware/dart/wiring/wiring.png)
 
 
 ### Run sheet wire numbers

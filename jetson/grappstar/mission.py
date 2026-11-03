@@ -12,9 +12,10 @@ Follows firmware/base/PROTOCOL.md (C1 final) and the coordinator's binding seque
   LANDING_ZONE    flight analysis, terrain verdict, aerial map; tell the base the line out (set line_m);
                   operator chooses: anchor, or retrieve and reshoot
   BASE_NEUTRAL    wait for the launcher RESET, then drum to NEUTRAL
+  WRAP            capstan wraps on at once, while the line is still slack (D22; on firmware that needs it,
+                  mode REEL first)
   ANCHOR          dart /auto, wait ANCHORED
   TIDY            base winds the slack onto the storage reel (only if the firmware has "tidy")
-  WRAP            capstan wraps on (wrap; on firmware that needs it, mode REEL first)
   CHECK           test pull at a low tension: it must reach the tension and hold it
   TOW             reel to the tension limit, hold, rover drives (hook or operator), repeat until free
   RELEASE         base stop (hold), dart /release, wait for seq "released"
@@ -42,8 +43,8 @@ from .comms.base import BaseDisconnected, BaseError, BaseTimeout
 from .comms.dart import DartError, DartRefused, remap_flightlog
 from .rover import OperatorRover, RoverDrive
 
-STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "BASE_NEUTRAL", "ANCHOR",
-         "TIDY", "WRAP", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
+STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "BASE_NEUTRAL", "WRAP",
+         "ANCHOR", "TIDY", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
 RESHOOT_STEPS = ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
 SKIPPABLE = {"CHECK", "LANDING_ZONE", "TIDY", "COCK"}
 
@@ -378,6 +379,8 @@ class Mission:
             if choice == "reshoot":
                 self.reshoot()
                 continue
+            # D22: wrap at once while the line is still slack, then the dart anchors
+            self._do("WRAP", self.wrap)
             r = self._do("ANCHOR", self.anchor)
             if r == "Release and reshoot":
                 self.dart_anchored = True      # it may be partly dug in: always run the release
@@ -386,7 +389,6 @@ class Mission:
                 continue
             break
         self._do("TIDY", self.tidy)
-        self._do("WRAP", self.wrap)
         r = self._do("CHECK", self.anchored_check)
         if r == "Release and reshoot":
             self._do("RELEASE", self.release_dart)

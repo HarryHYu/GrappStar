@@ -158,7 +158,11 @@ def test_landing_not_detected_operator_confirms(tmp_path):
         r.world.flight = lambda t: 7.0 * min(1.0, t / 1.1) + (0.5 * t if t > 1.1 else 0)  # line keeps creeping
     r.world.on_fire = fire
     try:
-        r.policy["Landing not detected"] = "Dart is down"
+        def down(p):
+            r.world.dart = "free"          # it is lying on the ground; only the detector missed it
+            r.world.flight = lambda t: 7.0
+            return "Dart is down"
+        r.policy["Landing not detected"] = down
         r.policy["Landing zone"] = "Retrieve and reshoot"
         r.policy["Dart is home"] = "Abort"
         m = r.run()

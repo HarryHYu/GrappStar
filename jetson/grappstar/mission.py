@@ -482,11 +482,8 @@ class Mission:
     def cock(self) -> None:
         """Cock the spring now, so the fire after the confirmations is instant. Aim must already be done (PROTOCOL:
         aim needs the carriage home)."""
-        t = self.tel()
-        if t.get("cock") is not None and t.get("cock") >= 0.999:
-            return
         m = self.base.event_mark()
-        self.base.cmd("cock")
+        self.base.cmd("cock")                 # already cocked: ok and an immediate COCKED event
         self.wait_evt("COCKED", self.cfg.cock_timeout_s, m)
         self.shot["cocked"] = True
         self.log.info("cocked")
@@ -584,9 +581,12 @@ class Mission:
             return
         self.ensure_launch()
         if self.cfg.cock_first:
-            t = self.tel()
-            if t.get("cock") is not None and t.get("cock") < 0.999:
-                self.log.info("not cocked (fault or decock): cocking again")
+            try:
+                phase = self.base.status().get("phase")      # fresh, unlike telemetry right after COCKED
+            except (BaseError, BaseTimeout):
+                phase = None
+            if phase is not None and phase != "COCKED":
+                self.log.info(f"launcher phase {phase}, not COCKED: cocking again")
                 self.cock()
         p = self.shot.get("pitch_deg")
         self.ask(f"FIRE at pitch {p} deg toward {self.shot.get('range_m', 0):.1f} m? Area clear, line free, "
@@ -914,7 +914,7 @@ class Mission:
                 tt = self.tel()
                 cur = tt.get("line_m")
                 if sw_closed(tt, "S"):
-                    self.base.safe_stop()
+                    self.stop_settle()
                     self.shot["seated_in_retrieve"] = True
                     return
                 if cur is not None and cur <= self.cfg.approach_m:
@@ -932,7 +932,7 @@ class Mission:
                                          "then Retry.")
                     raise BaseError("reel", str(e.get("code") or e.get("why") or e["evt"]), e)
                 if time.monotonic() > t_end:
-                    self.base.safe_stop()
+                    self.stop_settle()
                     raise StepFailed("retrieve took too long (line_m not falling?)")
                 self.sleep(0.1)
         self.base.reel(self.cfg.retrieve_duty, max_n=self.cfg.retrieve_limit_n, until="seated")
@@ -979,7 +979,6 @@ class Mission:
         if ph in ("ANCHORING", "ANCHORED") or self.dart_anchored:
             self.dart_anchored = True
             self._do("RELEASE", self.release_dart)
-        self._do("BASE_NEUTRAL", self.base_neutral)
         self._do("WRAP", self.wrap)
         self.bring_home()
         self._set_step("AIM")

@@ -105,3 +105,21 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
   with or without the 15 g ballast. Nose-first body angle at impact -17 to -80 deg at 36 deg pitch.
 - Without the tether it tumbles or lands tail first: at this speed the tether, not the ballast, does the stabilising.
   So never test-fire without the line on (a dry shot can land tail first).
+
+## F10. After coordinator decisions D5 to D10 (preload 35, stroke 245, 280 mm full, brake 0.5 N, 5 N m limiter)
+
+- 2 springs: 13.1 J, 7.6 m/s at 36 deg, range 4.9 / 4.5 / 4.0 m at 0.5 / 0.75 / 1.0 N (coupled reel model).
+- 4 springs (second pair): 26.2 J, 10.4 m/s, 43 g peak, carriage force 168 N, range 8.7 / 7.9 / 7.2 m.
+  Stop KE 8.5 J (vs 3.3 J): the D6 stop must be sized for it if the second pair is fitted.
+- D6 stop: carriage + spring surge KE at the stop is 3.3 J (2 springs). A linear pad of 15 mm peaks at ~430 N; for
+  a 300 N peak a linear pad needs 22 mm, or 15 mm of a near-constant-force element (~220 N, e.g. a crush or friction
+  stop, or a pre-loaded spring).
+- Recoil at the shot: the frame feels 84 N peak backward along the rail at the spring line for ~55 ms (dart impulse
+  2.1 N s). With an ASSUMED rover (4 kg, pivot 0.30 m above ground, wheels 0.15 m behind and ahead of the pivot, CG
+  0.12 m high) the static moment is 3 to 5 x the rover's righting moment, but the pulse is short: the rover rocks back
+  ~17 deg at 6 deg pitch, ~10 deg at 20 deg, ~3 deg at 36 deg, under 1 deg at 47 deg, and ~3 deg forward at the stop.
+  None tip over. At low pitch the rock happens during the stroke, so it changes the actual launch angle: fire low
+  shots only with the rover braked, the base low on the deck, the rover heavy or long, or accept the low pitches as
+  less accurate. Rover mass, wheelbase and CG are needed: recoil.py ROVER block.
+- With the 5 N m limiter the stall cases in drivetrain/capstan are evaluated at the limiter torque (motor current
+  ~7 A while it slips, caught by the 5 A trip).

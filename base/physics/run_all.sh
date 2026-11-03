@@ -11,5 +11,6 @@ $PY capstan.py
 $PY drivetrain.py
 $PY sensitivity.py
 $PY attitude.py
+$PY recoil.py
 $PY ballistics.py
 $PY summary.py

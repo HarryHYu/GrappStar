@@ -132,7 +132,12 @@ def drum_shaft_torque(t_wiper: float, p: Params) -> float:
 def stall_torque_sag(p: Params, v_oc: float):
     w, b = p.wiper, p.battery
     i_s = v_oc / (w.r_winding + b.r_source)
-    return w.kt * (i_s - w.i_free), i_s
+    t_s = w.kt * (i_s - w.i_free)
+    lim = getattr(w, "limiter_nm", None)
+    if lim is not None and t_s > lim:
+        # the torque limiter slips: the train sees the limiter torque, the motor keeps turning at that load
+        return lim, w.i_free + lim / w.kt
+    return t_s, i_s
 
 
 def tow_point(f_line: float, p: Params, v_oc: float, overspeed: float = 1.2, line_left: float | None = None) -> dict:

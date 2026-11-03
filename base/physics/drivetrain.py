@@ -30,18 +30,26 @@ STALL_FRAC_MAX = 0.6
 BTS_PEAK_A = 43.0
 BTS_CONT_A = 15.0
 
-# ASSUMED until base/spec/params.py lands
+# Aim train from cad-launch NOTES (3 Nov): backward wiper -> swing-arm splitter -> 2:1 bevel -> single-start worm
+# (m 2, pitch d 24, lead angle 4.8 deg) -> worm wheel 20 T = crank -> conrod -> rail lug. 10 wiper turns per crank turn.
+# Pitch vs crank angle: the v10 table scaled (6.0 to 47.1 deg), from launch_NOTES.md section 7.
+AIM_TABLE = [(0, 6.01), (10, 6.24), (20, 6.93), (30, 8.12), (40, 9.83), (50, 12.10), (60, 14.93), (70, 18.32),
+             (80, 22.22), (90, 26.50), (100, 30.98), (110, 35.39), (120, 39.42), (130, 42.76), (140, 45.19),
+             (150, 46.62), (160, 47.06), (170, 46.59), (180, 45.37), (190, 43.52), (200, 41.20), (210, 38.54),
+             (220, 35.64), (230, 32.59), (240, 29.49), (250, 26.39), (260, 23.36), (270, 20.46), (280, 17.72),
+             (290, 15.19), (300, 12.91), (310, 10.91), (320, 9.21), (330, 7.85), (340, 6.85), (350, 6.23), (360, 6.01)]
 AIM_DEFAULTS = dict(
-    rail_mass=0.90,       # kg rail beam, cheeks, springs, pulleys, everything that pitches (excl. dart + carriage)
-    cg_dist=0.15,         # m pivot to CG of the pitching mass
-    lever=0.06,           # m pivot to the lead screw nut pin (nut force taken perpendicular to the lever)
-    screw_dm=0.010,       # m printed screw mean thread diameter
-    screw_lead=0.004,     # m lead (single start)
-    screw_mu=0.25,        # PLA/PPA on PLA thread friction
-    thread_half_angle=15.0,   # deg, trapezoidal
-    ratio=1.0 / 3.0,      # wiper turns per screw turn (step-up 3:1, screw 3x wiper speed)
-    eta_gear=0.95,
-    gear=dict(module=1.5, face=10.0, z_driver=45),   # wiper gear 45T drives screw gear 15T
+    rail_mass=0.90,       # kg rail beam, cheeks, springs, aim lug, everything that pitches (excl. dart + carriage). ASSUMED
+    cg_dist=0.15,         # m pivot to CG of the pitching mass. ASSUMED
+    worm_pd=0.024,        # m worm pitch diameter
+    lead_deg=4.8,         # worm lead angle
+    wheel_pd=0.040,       # m worm wheel pitch diameter (m 2 x 20 T)
+    wheel_z=20,
+    mu=0.25,              # printed worm on printed wheel, dry/greased PLA-PPA
+    phi_n_deg=20.0,       # normal pressure angle
+    bevel=2.0,            # worm turns per wiper turn
+    eta_bevel=0.95,       # bevel + splitter idler
+    gear=dict(module=2.0, face=10.0, z_driver=30),   # splitter / bevel stage (m 2 needed: m 1.5 fails at the 5 A trip)
 )
 COCK_DEFAULTS = dict(
     drum_r=0.050,         # m big gear pitch radius on the rack (cad-launch NOTES: m 2.5, 40 T, pitch d 100)
@@ -71,27 +79,35 @@ def screw_eff(dm, lead, mu, half_deg):
 
 
 def aim(p: Params, **kw) -> dict:
+    """Wiper torque over one crank turn. Raising: gravity moment through dtheta/dphi, worm efficiency. Lowering: the
+    worm is self-locking, so the wiper must still drive it (screw lowering formula on the worm)."""
     a = dict(AIM_DEFAULTS, **kw)
     m = a["rail_mass"] + p.dart.mass + p.launch["carriage_mass"]
-    lo, hi = math.radians(p.flight["pitch_min"]), math.radians(p.flight["pitch_max"])
-    eta_s, mu_e, tl = screw_eff(a["screw_dm"], a["screw_lead"], a["screw_mu"], a["thread_half_angle"])
-    r = a["screw_dm"] / 2
-    th = [lo + (hi - lo) * i / 40 for i in range(41)]
-    t_raise, t_lower = [], []
-    for x in th:
-        f = m * G * a["cg_dist"] * math.cos(x) / a["lever"]
-        t_raise.append(f * a["screw_lead"] / (2 * math.pi * eta_s))
-        t_lower.append(f * r * (mu_e - tl) / (1 + mu_e * tl))      # self-locking: lowering also needs torque
-    k = 1.0 / (a["ratio"] * a["eta_gear"])
-    w_peak = max(t_raise) * k
-    w_mean = sum(t_raise) / len(t_raise) * k
-    travel = a["lever"] * (hi - lo)
-    screw_turns = travel / a["screw_lead"]
-    wiper_turns = screw_turns * a["ratio"]
-    return dict(params=a, mass=m, screw_eff=eta_s, self_locking=tl < mu_e, t_screw_peak=max(t_raise),
-                t_screw_lower_peak=max(t_lower), t_peak=w_peak, t_mean=w_mean, wiper_turns=wiper_turns,
-                shaft_torque=max(t_raise), shaft_k=a["ratio"] * a["eta_gear"], gear=a["gear"], gear_ratio=a["ratio"], train_k=k,
-                sprag_torque=None)
+    lam = math.radians(a["lead_deg"])
+    mu_e = a["mu"] / math.cos(math.radians(a["phi_n_deg"]))
+    tl = math.tan(lam)
+    eta_w = tl * (1 - mu_e * tl) / (tl + mu_e)
+    r_w, r_wh = a["worm_pd"] / 2, a["wheel_pd"] / 2
+    k_turns = a["wheel_z"] / a["bevel"]                      # wiper turns per crank turn
+    rows = []
+    for (p0, t0), (p1, t1) in zip(AIM_TABLE[:-1], AIM_TABLE[1:]):
+        th = math.radians((t0 + t1) / 2)
+        dth_dphi = (t1 - t0) / (p1 - p0)                     # rail deg per crank deg
+        t_crank = m * G * a["cg_dist"] * math.cos(th) * dth_dphi   # + needs drive (raising), - gravity assists
+        F = abs(t_crank) / r_wh                              # worm axial force
+        if t_crank >= 0:
+            t_worm = F * r_w * (tl + mu_e) / (1 - mu_e * tl)
+        else:
+            t_worm = F * r_w * (mu_e - tl) / (1 + mu_e * tl)
+        rows.append((p1, t_crank, t_worm / (a["bevel"] * a["eta_bevel"])))
+    t_w = [r[2] for r in rows]
+    wiper_deg_rise = 160 * k_turns                           # crank 0 -> 160 deg raises 6 -> 47
+    return dict(params=a, mass=m, screw_eff=eta_w, self_locking=tl * math.cos(math.radians(a["phi_n_deg"])) < a["mu"],
+                t_screw_peak=max(r[1] for r in rows), t_screw_lower_peak=-min(r[1] for r in rows),
+                t_peak=max(t_w), t_mean=sum(t_w) / len(t_w), wiper_turns=wiper_deg_rise / 360,
+                wiper_turns_full_cycle=k_turns, profile=rows,
+                shaft_torque=max(r[1] for r in rows), shaft_k=k_turns * eta_w * a["eta_bevel"], gear=a["gear"],
+                gear_ratio=1.0 / a["bevel"], train_k=1.0 / (a["bevel"] * a["eta_bevel"]), sprag_torque=None)
 
 
 # ------------------------------------------------------------------ cock
@@ -234,7 +250,7 @@ def main():
               f"{f['gear_sf_peak']:7.2f}")
     a, c = r["aim"], r["cock"]
     print(f"aim: mass {a['mass']:.2f} kg, screw eff {a['screw_eff']:.2f}, self-locking {a['self_locking']}, "
-          f"screw torque {a['t_screw_peak']:.3f} N m raise / {a['t_screw_lower_peak']:.3f} lower")
+          f"crank torque {a["t_screw_peak"]:.3f} N m raising / {a["t_screw_lower_peak"]:.3f} gravity-assisted, worm turns per crank turn {a["params"]["wheel_z"]}")
     print(f"cock: spring ext {c['ext_full_mm']:.0f} mm (safe {c['spring_safe_ext_mm']:.0f}), "
           f"springs {c['f_spring_full']:.1f} N, carriage peak {c['f_peak']:.1f} N")
     print(f"total energy {r['total_energy_wh']:.3f} Wh")

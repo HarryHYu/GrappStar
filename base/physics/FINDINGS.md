@@ -82,6 +82,11 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
   do not put it on a keyed 20 mm printed shaft (it rides on its pin: fine). Other loads: tow 50 N = 1.2 N m, aim 0.2 N m. All under
   13 % of stall. The wiper is far stronger than needed: use the margin for speed.
 
+- Aim through the cad-launch train (2:1 bevel, worm 4.8 deg lead, 20 T wheel = crank, rail ~1.26 kg pitching incl.
+  dart, CG 150 mm assumed): wiper 0.08 N m peak (worm efficiency 0.23, self-locking), 6.5 s for 6 to 47 deg. But at
+  the 5 A trip the splitter/bevel stage sees 3.2 N m: module 2 face 10 passes (sf ~1.3), module 1.5 does not. At wiper
+  stall the crank sees ~31 N m (8 mm axle, conrod pins): only the trip protects it.
+
 ## F7. Capstan and tow speed
 
 - Wraps for 50 N at mu 0.15 with 2 N take-up: 3.4; design 5 to 6. Five wraps hold 223 N (mu 0.15) with 2 N take-up, so

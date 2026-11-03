@@ -456,9 +456,11 @@ static void testStallOvercurrent() {
     CHECK(R.evt("FAULT") && S.wDir == 0, "FAULT event, wiper off");
     CHECK(R.B.drumPos() == gb::DP_LAUNCH, "partly cocked: the drum holds LAUNCH"); }
   { Rig R; R.toMode("NEUTRAL"); R.wrapToReel();
-    S.lineOut = 5; R.run(50); S.extraLoadNm = 14.5; R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":100,\"until\":\"seated\"}");
+    S.lineOut = 5; R.run(50); S.extraLoadNm = 14.5;
+    CHECK(R.err("{\"id\":1,\"cmd\":\"reel\",\"until\":\"seated\"}") == "WRAPS_ON" && R.err("{\"id\":1,\"cmd\":\"retrieve\"}") == "WRAPS_ON", "no seating on the capstan (D35): WRAPS_ON");
+    R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":100,\"until\":\"stop\"}");
     R.until([&] { return R.B.state == gb::S_FAULT || R.B.state == gb::S_IDLE; }, 10000);
-    CHECK(R.B.state == gb::S_FAULT, "stalled retrieve: fault");
+    CHECK(R.B.state == gb::S_FAULT, "stalled reel-in: fault");
     R.until([&] { return S.dDir == 0 && R.B.drumPos() == gb::DP_WRAPPED; }, 30000);
     CHECK(R.B.drumPos() == gb::DP_WRAPPED && R.B.wraps == R.B.c.wrapsFull, "fault in REEL: drum to the WRAPPED park (D31), wraps kept"); }
 }

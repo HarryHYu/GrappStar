@@ -20,7 +20,7 @@
 
 namespace gb {
 
-#define GB_FW_VERSION "base-1.2"
+#define GB_FW_VERSION "base-1.2.1"
 
 enum Fault { F_NONE, F_STALL, F_OVERCURRENT, F_DRUM_TIMEOUT, F_DRUM_SENSOR, F_ANGLE_SENSOR, F_SWITCH_DISAGREE, F_BROWNOUT, F_BAD_STATE, F_DART_STUCK };
 static const char* const FAULT_NAME[] = {nullptr, "STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR", "ANGLE_SENSOR",
@@ -802,6 +802,7 @@ struct Base {
     if (!collarReel() && !neutral) return "NOT_WRAPPED";
     if (neutral && un == U_TENSION) return "NOT_WRAPPED";   // no tension without the capstan
     if (!neutral && un == U_SLIP) return "BAD_ARG";
+    if (!neutral && un == U_SEATED) return "WRAPS_ON";   // D35: never seat the dart on the capstan: unwrap first
     if (mxn > c.limitMaxN) mxn = c.limitMaxN;
     if (un == U_SEATED && !fitted(SW_SEATED)) return "NO_SENSOR";
     takeupOnly = neutral;
@@ -999,7 +1000,7 @@ struct Base {
       else if (!neutral) err = sec == SEC_INVALID ? "POSITION_UNKNOWN" : "NOT_IN_NEUTRAL";
       else { err = cmdReel(a, c.limitN, "stop"); if (!err) { until = U_TIME; tidyUntil = now + (uint32_t)b; } }
     }
-    else if (!strcmp(cmd, "retrieve")) {           // final approach until SW_SEATED (take-up in NEUTRAL, capstan in REEL)
+    else if (!strcmp(cmd, "retrieve")) {           // final approach until SW_SEATED on the take-up (D35: refused with the wraps on)
       if (!o.num("duty", &a)) a = 0.3; if (!o.num("max_n", &m)) m = c.limitN;
       err = cmdReel(a, m, "seated");
     }

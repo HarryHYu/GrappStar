@@ -264,3 +264,14 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
 - Fix: take the "already winding" branch only with a load cell and only on telemetry newer than the LIMIT event
   (`self.base.tel_t > e["_t"]`), or simply send `reel` and treat a `BUSY` reply as "already winding" (the code already
   handles BUSY).
+
+## F19 (fw-base, new spec 1.2.7 / D39, expected to be in progress) `retrieve` at the WRAPPED park and `reel max_n 80` are accepted
+
+- Scenario `ref_refusals` (preview: base-v1 ba121b9 + w/fw-base 6472524): wrong commands thrown into the 10.1
+  sequence. Refused as they should be: `aim 85` OUT_OF_RANGE, `fire` without arm NOT_ARMED, `wrap` while cocked
+  LAUNCH_BUSY, `reel until seated` with the wraps on WRAPS_ON. Accepted (D39 says refuse):
+  - `retrieve {"duty":0.3}` at the WRAPPED park (drum 314, wraps on) -> `ok:true` (D39: retrieve only in NEUTRAL with
+    the wraps off);
+  - `reel {"duty":1,"max_n":80,"until":"tension"}` in REEL -> `ok:true` (D39: tow cap 70 N; the harness stopped it at
+    once).
+- The check `every wrong command refused` goes green when D39 is in the firmware.

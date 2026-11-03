@@ -5,15 +5,16 @@ looking in the box.
 
 ## The only purchase: 608 bearings
 
-- Search: "608ZZ bearing 8x22x7" (or "608-2RS", sealed). Buy 8 to 10. Skateboard bearings are 608s and fine.
+- Search: "608ZZ bearing 8x22x7" (or "608-2RS", sealed). Buy 10. Skateboard bearings are 608s and fine.
 - Specs: 8 mm bore, 22 mm outside, 7 mm wide, rated well over 10,000 rpm.
-- Uses: storage reel (2), capstan or wrap arm (2), aim pedestal worm wheel and worm shaft (4), spares. Axles: M8 bolt or 8 mm rod (check the box).
+- Uses: storage reel (2), aim pedestal worm wheel and worm shaft (4), spares. Axles: M8 bolt or 8 mm rod (check the box).
 
 ## Possible extra purchases
 
-- **AS5600 magnet**, only if it is not in the box: the Adafruit AS5600 board does not include one. It needs a
-  6 x 2.5 mm DIAMETRIC magnet (magnetised across the diameter, not through the thickness). Search "6x2.5mm diametric
-  magnet AS5600". A normal disc magnet does not work.
+- **AS5600 magnet** (optional): the Adafruit board does not include one. The magnet cap takes any small neodymium
+  disc (6 to 10 mm across, 2 to 3 mm thick) mounted edge-on, or a 6 x 2.5 mm diametric disc. Look in the box first
+  (old speakers, fridge magnets with a neodymium disc). Decision D12 plans a no-magnet mode (a printed 6-bump index
+  cam read by the contact SW_INDEX); until firmware/base/README.md says it exists, the magnet is needed.
 - **Optional, for range:** a second pair of the same launch springs (Bunnings I/N 0487961). The two springs give
   about 4 to 5 m; four give about 8 to 9 m. The base has the mounting provision built in.
 
@@ -24,13 +25,14 @@ looking in the box.
 | 12 V wiper motor, self-locking worm | 1 | Rebuilt to 2 wires, park linkage removed. Measure it first (section 14 A) |
 | BTS7960 motor driver module | 1 | Drives the wiper |
 | ESP32-S3 DevKitC-1-N8 | 1 | Base brain, USB to the Jetson |
-| Adafruit AS5600 (STEMMA QT) | 1 | Main shaft angle. Needs a 6 x 2.5 mm diametric magnet (see above) |
+| Adafruit AS5600 (STEMMA QT) | 1 | Main shaft angle. Needs a small magnet (see above) |
 | DRV8833 carrier | 1 | DRV8833 #3, freed from the dart by the new dart pin map |
 | MP1584 buck | 1 | MP1584 #2 from the dart build, set to 9.0 V |
 | N20 right-angle worm motor | 1 | Selector drum (count your N20s: section 14 C3) |
+| 693ZZ / F693ZZ bearings | as many as are left after the dart | Line pulleys (the dart uses 5 F693ZZ; count what is left, section 14 C20) |
 | CSK20PP one-way bearings (20 x 47 x 14) | 2 | #1 spring cock and fire, #2 capstan backstop |
 | Century 16 x 165.1 x 1.4 mm extension springs | 2 | Launch springs (Bunnings 0487961). Measure them (section 14 B) |
-| 608 bearings | 8 to 10 | The purchase |
+| 608 bearings | 10 | The purchase |
 | Dyneema braid 150 lb, 1 mm | 20 m | Tether |
 | 100 kg load cell + HX711 | 1 | Optional line tension |
 | 3S LiPo 5200 mAh (Zeee), iMax B6 charger | 1 | Rover battery |

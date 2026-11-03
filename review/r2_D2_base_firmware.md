@@ -7,39 +7,41 @@ agreed it is real but rated it lower.
 
 Confirmed: 26. Refuted and dropped: 0.
 
-STATUS: base-v1 moved 250 commits (1285 lines in firmware/base) while this ran. Each finding is being re-checked
-against base-v1 863d58d; the results will be added as a "Now" column.
+STATUS: base-v1 moved 250 commits (1285 lines in firmware/base) while this ran. Each finding was re-checked against
+863d58d by one checker subagent each; see the Now column.
 
-| # | Sev | File:line | Owner | Finding |
-|---|---|---|---|---|
-| 1 | high | `firmware/base/CALIBRATION.md:210` | fw-base | CALIBRATION.md k_n_per_a procedure ignores the -10.4 N offset and tension_offset_n is not persisted: a calibrated base ends every default tow in a fault at about 75-80 N |
-| 2 | high | `firmware/base/PROTOCOL.md:82` | fw-base | PROTOCOL.md (C1) still documents the old drum sequence; no tidy, retrieve, TIDIED or WRAPPED park (R1 #1 not fixed) |
-| 3 | high | `firmware/base/grappstar_base/base_logic.h:986` | fw-base | retrieve ignores max_s: DART_STUCK always fires at a fixed 20 s, so a normal final approach from 2 m (or any NO_GO retrieval) faults |
-| 4 | high | `firmware/base/grappstar_base/base_logic.h:1269` | fw-base | retrieve ignores max_s: the take-up final approach always faults DART_STUCK after a fixed 20 s, breaking the no-go retrieve |
-| 5 | medium | `firmware/base/PROTOCOL.md:293` | fw-base | PROTOCOL.md (C1) still documents the old trips and tension law: tow at trip_a 5 A, aim without a trip, k_n_per_a 8 with no offset, SAFING to NEUTRAL (R1 #1 still open) |
-| 6 | medium | `firmware/base/grappstar_base/base_logic.h:237` | fw-base | Fault or estop in REEL drives the drum out of REEL to 314 (no unload jog), contrary to params.DRUM.fault_rules and BASE_SPEC 10/10.1 (HOLD); afterwards the step-15 `reel` silently becomes take-up only |
-| 7 | medium | `firmware/base/grappstar_base/base_logic.h:237` | fw-base | A fault in REEL or N_TO_R drives the drum to the WRAPPED park, but params fault_rules, BASE_SPEC 10.1 and PROTOCOL.md say the drum HOLDS (DRUM_HELD "wraps on") |
-| 8 | medium | `firmware/base/grappstar_base/base_logic.h:320` | fw-base | line_m after a power cut comes from the motion-start record: the capstan reel-in pulls the dart into the base |
-| 9 | medium | `firmware/base/grappstar_base/base_logic.h:324` | fw-base | The AS5600 multi-turn count is never lined up with the raw angle, so the wiper position is never restored after a power cycle: a cocked or aimed base always boots with phase UNKNOWN and aim unknown |
-| 10 | medium | `firmware/base/grappstar_base/base_logic.h:369` | fw-base | Retrying a tow from HOLD restarts a pull already over the limit: the estimate is zeroed and the limit is blind for 350 ms at full duty |
-| 11 | medium | `firmware/base/grappstar_base/base_logic.h:412` | fw-base | Drum code returning after 000 (wire fixed, then clear) leaves drumDeg at the sector's low end marked trusted: unwrap faults DRUM_TIMEOUT mid-wrap, mode NEUTRAL parks 6 deg off |
-| 12 | medium | `firmware/base/grappstar_base/base_logic.h:755` | fw-base | Boot after a power cut in N_TO_R: drumDeg is guessed at 321 (collar REEL side), `wrap` answers WRAPPED without moving, and tidy and reel are refused for good |
-| 13 | medium | `firmware/base/grappstar_base/base_logic.h:791` | fw-base | retrieve (and reel until seated) is accepted in REEL and at the WRAPPED park: the dart is seated on the capstan/through the wraps |
-| 14 | medium | `firmware/base/grappstar_base/base_logic.h:801` | fw-base | Tow trip is a fixed 6.5 A: any max_n above about 75 N can never reach LIMIT/HOLD and always ends in OVERCURRENT (D34 computed trip not implemented) |
-| 15 | medium | `firmware/base/grappstar_base/base_logic.h:886` | fw-base | Power cut during any wiper motion loses phase REST, and decock then silently does nothing: aim is refused for good (no RESET path) |
-| 16 | medium | `firmware/base/grappstar_base/base_logic.h:932` | fw-base | `set trip_a` while a motion runs overwrites that motion's own trip (take-up 2.5 A, jog/fly-in 3 A, tow 6.5 A) |
-| 17 | medium | `firmware/base/grappstar_base/base_logic.h:1308` | fw-base | Drum jog skips the SW_DOG_L/R check and can run back from the WRAPPED park into the wrap window, unwrapping with the wiper stopped (R1 #15 still open) |
-| 18 | medium | `firmware/base/grappstar_base/grappstar_base.ino:82` | fw-base | Wiper IS scaling assumes an averaged IS voltage, but the averaging capacitor is optional and hwWiperIs takes 8 back-to-back point samples: at partial duty the D8 trips depend on PWM phase |
-| 19 | low | `firmware/base/grappstar_base/base_logic.h:111` | fw-base | require_seated=false (and vbat_wired=false) persist silently in NVS: fire without SW_SEATED keeps working after every reboot |
-| 20 | low | `firmware/base/grappstar_base/base_logic.h:791` | fw-base | retrieve (until seated) is accepted in REEL and seats the dart on the capstan, against 10.1 step 17 |
-| 21 | low | `firmware/base/grappstar_base/base_logic.h:844` | fw-base | Drum jog backward from the WRAPPED park runs into the WRAP sector and unwraps with the wiper stopped (R1 #15 not fixed) |
-| 22 | low | `firmware/base/grappstar_base/base_logic.h:906` | fw-base | New settable key tension_offset_n is not saved in NVS: a calibrated tension offset is silently lost at every reboot |
-| 23 | low | `firmware/base/grappstar_base/base_logic.h:1331` | fw-base | decock ends on SW_HOME alone and reports RESET ok without SW_GAP closed (R1 #10 still open for decock) |
-| 24 | low | `firmware/base/grappstar_base/base_logic.h:1331` | fw-base | decock ends as REST without SW_GAP; spec requires SW_HOME and SW_GAP (R1 #10 partly open) |
-| 25 | low | `firmware/base/grappstar_base/drives.h:50` | fw-base | Current below duty 60 is not scaled: the 3 A jog trip is blind during the 20 % fly-in and centering jog (R1 #17 still open) |
-| 26 | low | `firmware/base/grappstar_base/drives.h:50` | fw-base | (round 1 #17, still open) Wiper current is not scaled below duty 60: the 3 A jog/fly-in trip cannot be reached at flyDuty 51 |
+| # | Sev | File:line | Owner | Finding | Now (863d58d) |
+|---|---|---|---|---|---|
+| 1 | high | `firmware/base/CALIBRATION.md:210` | fw-base | CALIBRATION.md k_n_per_a procedure ignores the -10.4 N offset and tension_offset_n is not persisted: a calibrated base ends every default tow in a fault at about 75-80 N | fixed |
+| 2 | high | `firmware/base/PROTOCOL.md:82` | fw-base | PROTOCOL.md (C1) still documents the old drum sequence; no tidy, retrieve, TIDIED or WRAPPED park (R1 #1 not fixed) | fixed |
+| 3 | high | `firmware/base/grappstar_base/base_logic.h:986` | fw-base | retrieve ignores max_s: DART_STUCK always fires at a fixed 20 s, so a normal final approach from 2 m (or any NO_GO retrieval) faults | fixed |
+| 4 | high | `firmware/base/grappstar_base/base_logic.h:1269` | fw-base | retrieve ignores max_s: the take-up final approach always faults DART_STUCK after a fixed 20 s, breaking the no-go retrieve | fixed |
+| 5 | medium | `firmware/base/PROTOCOL.md:293` | fw-base | PROTOCOL.md (C1) still documents the old trips and tension law: tow at trip_a 5 A, aim without a trip, k_n_per_a 8 with no offset, SAFING to NEUTRAL (R1 #1 still open) | fixed |
+| 6 | medium | `firmware/base/grappstar_base/base_logic.h:237` | fw-base | Fault or estop in REEL drives the drum out of REEL to 314 (no unload jog), contrary to params.DRUM.fault_rules and BASE_SPEC 10/10.1 (HOLD); afterwards the step-15 `reel` silently becomes take-up only | fixed |
+| 7 | medium | `firmware/base/grappstar_base/base_logic.h:237` | fw-base | A fault in REEL or N_TO_R drives the drum to the WRAPPED park, but params fault_rules, BASE_SPEC 10.1 and PROTOCOL.md say the drum HOLDS (DRUM_HELD "wraps on") | fixed |
+| 8 | medium | `firmware/base/grappstar_base/base_logic.h:320` | fw-base | line_m after a power cut comes from the motion-start record: the capstan reel-in pulls the dart into the base | still open |
+| 9 | medium | `firmware/base/grappstar_base/base_logic.h:324` | fw-base | The AS5600 multi-turn count is never lined up with the raw angle, so the wiper position is never restored after a power cycle: a cocked or aimed base always boots with phase UNKNOWN and aim unknown | still open |
+| 10 | medium | `firmware/base/grappstar_base/base_logic.h:369` | fw-base | Retrying a tow from HOLD restarts a pull already over the limit: the estimate is zeroed and the limit is blind for 350 ms at full duty | still open |
+| 11 | medium | `firmware/base/grappstar_base/base_logic.h:412` | fw-base | Drum code returning after 000 (wire fixed, then clear) leaves drumDeg at the sector's low end marked trusted: unwrap faults DRUM_TIMEOUT mid-wrap, mode NEUTRAL parks 6 deg off | still open |
+| 12 | medium | `firmware/base/grappstar_base/base_logic.h:755` | fw-base | Boot after a power cut in N_TO_R: drumDeg is guessed at 321 (collar REEL side), `wrap` answers WRAPPED without moving, and tidy and reel are refused for good | still open |
+| 13 | medium | `firmware/base/grappstar_base/base_logic.h:791` | fw-base | retrieve (and reel until seated) is accepted in REEL and at the WRAPPED park: the dart is seated on the capstan/through the wraps | fixed |
+| 14 | medium | `firmware/base/grappstar_base/base_logic.h:801` | fw-base | Tow trip is a fixed 6.5 A: any max_n above about 75 N can never reach LIMIT/HOLD and always ends in OVERCURRENT (D34 computed trip not implemented) | fixed |
+| 15 | medium | `firmware/base/grappstar_base/base_logic.h:886` | fw-base | Power cut during any wiper motion loses phase REST, and decock then silently does nothing: aim is refused for good (no RESET path) | fixed |
+| 16 | medium | `firmware/base/grappstar_base/base_logic.h:932` | fw-base | `set trip_a` while a motion runs overwrites that motion's own trip (take-up 2.5 A, jog/fly-in 3 A, tow 6.5 A) | fixed |
+| 17 | medium | `firmware/base/grappstar_base/base_logic.h:1308` | fw-base | Drum jog skips the SW_DOG_L/R check and can run back from the WRAPPED park into the wrap window, unwrapping with the wiper stopped (R1 #15 still open) | fixed |
+| 18 | medium | `firmware/base/grappstar_base/grappstar_base.ino:82` | fw-base | Wiper IS scaling assumes an averaged IS voltage, but the averaging capacitor is optional and hwWiperIs takes 8 back-to-back point samples: at partial duty the D8 trips depend on PWM phase | fixed |
+| 19 | low | `firmware/base/grappstar_base/base_logic.h:111` | fw-base | require_seated=false (and vbat_wired=false) persist silently in NVS: fire without SW_SEATED keeps working after every reboot | still open |
+| 20 | low | `firmware/base/grappstar_base/base_logic.h:791` | fw-base | retrieve (until seated) is accepted in REEL and seats the dart on the capstan, against 10.1 step 17 | fixed |
+| 21 | low | `firmware/base/grappstar_base/base_logic.h:844` | fw-base | Drum jog backward from the WRAPPED park runs into the WRAP sector and unwraps with the wiper stopped (R1 #15 not fixed) | fixed |
+| 22 | low | `firmware/base/grappstar_base/base_logic.h:906` | fw-base | New settable key tension_offset_n is not saved in NVS: a calibrated tension offset is silently lost at every reboot | fixed |
+| 23 | low | `firmware/base/grappstar_base/base_logic.h:1331` | fw-base | decock ends on SW_HOME alone and reports RESET ok without SW_GAP closed (R1 #10 still open for decock) | fixed |
+| 24 | low | `firmware/base/grappstar_base/base_logic.h:1331` | fw-base | decock ends as REST without SW_GAP; spec requires SW_HOME and SW_GAP (R1 #10 partly open) | fixed |
+| 25 | low | `firmware/base/grappstar_base/drives.h:50` | fw-base | Current below duty 60 is not scaled: the 3 A jog trip is blind during the 20 % fly-in and centering jog (R1 #17 still open) | fixed |
+| 26 | low | `firmware/base/grappstar_base/drives.h:50` | fw-base | (round 1 #17, still open) Wiper current is not scaled below duty 60: the 3 A jog/fly-in trip cannot be reached at flyDuty 51 | partly fixed |
 
 ## 1. CALIBRATION.md k_n_per_a procedure ignores the -10.4 N offset and tension_offset_n is not persisted: a calibrated base ends every default tow in a fault at about 75-80 N
+
+- Now (863d58d): **fixed** at `firmware/base/CALIBRATION.md:241-272; firmware/base/grappstar_base/persist.h:53-62; firmware/base/grappstar_base/base_logic.h:111-126`. CALIBRATION.md now fits both k_n_per_a and tension_offset_n from two pulls (k = (N3-N1)/(I3-I1), offset = N1 - k(I1-free_a)), so the -10.4 offset is no longer left out. Tun now stores tensOffsetN (tunNow/restoreTun handle it), its version was bumped to 2 so old ver-1 records are rejected (validTun checks ver==2), and towTrip() now raises the trip limit to cover (maxN - offset)/k + free_a + 1.
 
 - File: `firmware/base/CALIBRATION.md:210`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -70,6 +72,8 @@ What I checked in the reviewed tree:
 
 ## 2. PROTOCOL.md (C1) still documents the old drum sequence; no tidy, retrieve, TIDIED or WRAPPED park (R1 #1 not fixed)
 
+- Now (863d58d): **fixed** at `firmware/base/PROTOCOL.md:88-92,248-255,454-475`. PROTOCOL.md has been rewritten. `wrap` now parks at 314 with the collar in NEUTRAL, and the doc says "no MODE event follows". It also documents the `tidy`→TIDIED, `retrieve`→SEATED and `decock` commands and adds the TIDIED event. The section 8 mission now runs wrap→WRAPPED, tidy, mode REEL, then reel until tension, so a Jetson built from the doc no longer waits for a MODE that never comes or gets refused NOT_WRAPPED.
+
 - File: `firmware/base/PROTOCOL.md:82`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -99,6 +103,8 @@ The firmware does somethin
 
 ## 3. retrieve ignores max_s: DART_STUCK always fires at a fixed 20 s, so a normal final approach from 2 m (or any NO_GO retrieval) faults
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:1086`. The retrieve handler now calls approachLimit(o, a) before cmdReel (line 1086), and plain reel calls it too (line 1073). approachLimit (lines 847-854) uses max_s (5 to 600 s) when it is given. Otherwise it works out a default from line_m: 10 s + 1.5 x line_m / take-up speed, at least 20 s and at most 600 s. tickReel (line 1375) checks approachMs and prints the real limit in the fault text, so the fixed 20 s DART_STUCK no longer happens.
+
 - File: `firmware/base/grappstar_base/base_logic.h:986`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -127,6 +133,8 @@ Some points pull the severity down from high:
 
 ## 4. retrieve ignores max_s: the take-up final approach always faults DART_STUCK after a fixed 20 s, breaking the no-go retrieve
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:847-853,1086,1375`. The retrieve and reel handlers now call approachLimit(), which reads max_s (5 to 600, BAD_ARG outside that range). Without max_s it uses max(20, 10 + 1.5*line_m/v), or 30 s when line_m is unknown, capped at 600 s. tickReel checks `now - opT > approachMs`, and the fault text now reports the actual limit. test_base.cpp:888-892 tests this and PROTOCOL.md:91 documents it. One small leftover: the comment at line 843 still says "DART_STUCK after 20 s".
+
 - File: `firmware/base/grappstar_base/base_logic.h:1269`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -150,6 +158,8 @@ Fix: In the retrieve handler, read max_s (default 20 + (lineKnown ? lineM : line
 >
 
 ## 5. PROTOCOL.md (C1) still documents the old trips and tension law: tow at trip_a 5 A, aim without a trip, k_n_per_a 8 with no offset, SAFING to NEUTRAL (R1 #1 still open)
+
+- Now (863d58d): **fixed** at `firmware/base/PROTOCOL.md:340-347`. PROTOCOL.md was rewritten for base-1.2.1 and now matches the code. The trip table and lines 103-109 give the tow trip as max(tow_trip_a 6.5 A, the computed limit), and aim/reel-in as trip_a 5 A, which is what base_logic.h:740/753/876 does. The tension estimate is 17 x (amps - free_a) + tension_offset_n (default -10.4), and tension_offset_n is in the key table at line 429. The fault response at lines 374-396 says the drum holds with the wraps on instead of going to NEUTRAL. The tidy, retrieve and decock rows are at lines 90-92.
 
 - File: `firmware/base/PROTOCOL.md:293`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -192,6 +202,8 @@ The code says otherwise:
 
 ## 6. Fault or estop in REEL drives the drum out of REEL to 314 (no unload jog), contrary to params.DRUM.fault_rules and BASE_SPEC 10/10.1 (HOLD); afterwards the step-15 `reel` silently becomes take-up only
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:255`. safeToNeutral now returns "wraps on: the drum holds..." when sec >= SEC_WRAP, and the Sector enum orders WRAP < LOCK < REEL (config.h:24). So in REEL, raise() (line 231-237) and the estop path (line 1155-1159) no longer call startDrumMove: atPark(DP_WRAPPED) is false, so they emit MODE err DRUM_HELD and the collar stays in REEL.
+
 - File: `firmware/base/grappstar_base/base_logic.h:237`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -223,6 +235,8 @@ What the code does (base_logic.h):
 
 ## 7. A fault in REEL or N_TO_R drives the drum to the WRAPPED park, but params fault_rules, BASE_SPEC 10.1 and PROTOCOL.md say the drum HOLDS (DRUM_HELD "wraps on")
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:255`. safeToNeutral now returns "wraps on: the drum holds..." whenever sec >= SEC_WRAP, which covers WRAP, LOCK and REEL (config.h:24 enum). raise() (line 231-237) and estop in cmdStop (line 1155-1159) both skip startDrumMove when hold is set and send MODE ok:false err DRUM_HELD, as params fault_rules and BASE_SPEC line 194 require. safeTarget still returns DP_WRAPPED for REEL/LOCK, but the code no longer reaches it while the wraps are on. It is kept on purpose as a guard (comment at line 240).
+
 - File: `firmware/base/grappstar_base/base_logic.h:237`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -246,6 +260,8 @@ The newer and binding contract says something different:
 
 ## 8. line_m after a power cut comes from the motion-start record: the capstan reel-in pulls the dart into the base
 
+- Now (863d58d): **still open** at `firmware/base/grappstar_base/base_logic.h:331`. resolveBoot still does `if (s && s->lineM >= 0) { lineM = s->lineM; lineKnown = true; }` and never checks `s->moving & MV_WIPER`. The capstan reel start (line 877, and 1400) still calls markMoving(MV_WIPER), which saves the starting line_m (line 265). After a power cut mid-reel, boot therefore reports that stale value as known.
+
 - File: `firmware/base/grappstar_base/base_logic.h:320`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -262,6 +278,8 @@ Fix: In resolveBoot: `if (s && s->lineM >= 0 && !(s->moving & MV_WIPER)) { lineM
 >
 
 ## 9. The AS5600 multi-turn count is never lined up with the raw angle, so the wiper position is never restored after a power cycle: a cocked or aimed base always boots with phase UNKNOWN and aim unknown
+
+- Now (863d58d): **still open** at `firmware/base/grappstar_base/base_logic.h:334`. The bug is still there. resolveBoot still sets wiperOk only when wrap180(enc.absDeg() - wrap360(s->wiperDeg)) is under 3 degrees (lines 334-337). Nothing lines the multi-turn count up with the raw angle when the record can't be used: the only setDeg call is that restore, and the first reading in sensors.h:82 sets lastRaw but leaves count at 0. So when the magnet's raw angle at first boot isn't near 0, every power cycle still boots with phase UNKNOWN and aim unknown. The persistent-glitch resync at sensors.h:93 also still drops the step without counting it, so the count can still drift out of line with the raw angle.
 
 - File: `firmware/base/grappstar_base/base_logic.h:324`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -283,6 +301,8 @@ Fix: In resolveBoot, right after the wiperTrust block (after base_logic.h:326), 
 >
 
 ## 10. Retrying a tow from HOLD restarts a pull already over the limit: the estimate is zeroed and the limit is blind for 350 ms at full duty
+
+- Now (863d58d): **still open** at `firmware/base/grappstar_base/base_logic.h:858`. cmdReel (858-878) still accepts a reel from S_HOLD through idleCheck (681) with no over-limit check, and sets state = S_REEL. In readSensors (387), tCur is still zeroed when not winding unless the state is S_HOLD, so it reads 0 through the tensionIgnoreMs window. tickReel (1390) still skips the limit until now - w.startT > tensionIgnoreMs. BASE_SPEC.md:194 still requires that "a retry never restarts a pull that is already over the limit".
 
 - File: `firmware/base/grappstar_base/base_logic.h:369`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -308,6 +328,8 @@ In readSensors (lines 367-369), winding is false until now - w.startT > te
 
 ## 11. Drum code returning after 000 (wire fixed, then clear) leaves drumDeg at the sector's low end marked trusted: unwrap faults DRUM_TIMEOUT mid-wrap, mode NEUTRAL parks 6 deg off
 
+- Now (863d58d): **still open** at `firmware/base/grappstar_base/base_logic.h:438`. updateSector still does `if (was == SEC_INVALID || !booted) { drumKnown = true; return; }` without setting drumDeg, wraps or wrapsKnown, and degTrusted still defaults to true (line 530). So when the drum code comes back after a 000 boot, drumDeg stays at 0, gets clamped to the sector's low edge (line 464) and is treated as trusted. resolveBoot (lines 321-329) was the only part changed, so the scenario still happens; I found this by reading the code and did not run a test.
+
 - File: `firmware/base/grappstar_base/base_logic.h:412`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -327,6 +349,8 @@ Fix: In updateSector, when `was == SEC_INVALID && booted`, rebuild the drum stat
 >
 
 ## 12. Boot after a power cut in N_TO_R: drumDeg is guessed at 321 (collar REEL side), `wrap` answers WRAPPED without moving, and tidy and reel are refused for good
+
+- Now (863d58d): **still open** at `firmware/base/grappstar_base/base_logic.h:815`. resolveBoot (line 327) now sets degTrusted=false after a cut during a drum move, but it still guesses drumDeg at the sector middle (321, above collarNdeg 318). Nothing reads that flag: cmdWrap still answers WRAPPED at once for any SEC_LOCK/SEC_REEL with no atPark or degTrusted check and no re-reference move, and tidy (line 1078) and reel (line 864) still use the untrusted drumDeg < collarNdeg, so they still refuse NOT_IN_NEUTRAL / NOT_WRAPPED.
 
 - File: `firmware/base/grappstar_base/base_logic.h:755`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -353,6 +377,8 @@ Fix: In cmdWrap, answer at once only when `atPark(DP_WRAPPED) && degTrusted` (or
 
 ## 13. retrieve (and reel until seated) is accepted in REEL and at the WRAPPED park: the dart is seated on the capstan/through the wraps
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:868`. cmdReel now returns WRAPS_ON for until=seated whenever sec != SEC_NEUTRAL, so it is refused in REEL and at the WRAPPED park (SEC_LOCK). retrieve goes through the same check. In NEUTRAL with a dog contact closed, the call is still refused (NOT_WRAPPED via line 865). Tests at test_base.cpp:460 and :842 cover both cases, and PROTOCOL.md:91 documents the change.
+
 - File: `firmware/base/grappstar_base/base_logic.h:791`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -370,6 +396,8 @@ Fix: In the retrieve handler, and in cmdReel for un == U_SEATED, require sec == 
 >
 
 ## 14. Tow trip is a fixed 6.5 A: any max_n above about 75 N can never reach LIMIT/HOLD and always ends in OVERCURRENT (D34 computed trip not implemented)
+
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:857`. The computed tow trip from D34 is now in the firmware. towTrip() = min(hardTripA 17 A, max(towTripA 6.5 A, (maxN - offset)/kNperA + freeA + 1)), and line 876 uses it for reel until tension, and line 1025 too when a constant changes. On top of that, D39 (base/spec/DECISIONS.md:47) caps max_n at 70 N, and cmdReel refuses anything higher with BAD_ARG (line 869, limitMaxN = 70), so the max_n 90 and 110 cases from the review are now rejected up front.
 
 - File: `firmware/base/grappstar_base/base_logic.h:801`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -392,6 +420,8 @@ cmdReel accepts any max_n above 0 and caps it at limitMaxN, which is 110 (base_l
 >
 
 ## 15. Power cut during any wiper motion loses phase REST, and decock then silently does nothing: aim is refused for good (no RESET path)
+
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:970`. When phase is UNKNOWN with no drawn hint and both SW_HOME and SW_GAP are closed, cal decock now sets phase = PH_REST, clears cockPhase and phaseHint, marks dirty and emits RESET {ok:true, how:"decock"} (lines 970-974), so aim is no longer stuck at PHASE_UNKNOWN. resolveBoot still boots as UNKNOWN. If SW_GAP is not fitted, decock sends RESET ok:false and the phase stays UNKNOWN, but the spec treats SW_GAP as a required switch (BASE_SPEC.md:73,159), so that case falls outside the spec.
 
 - File: `firmware/base/grappstar_base/base_logic.h:886`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -419,6 +449,8 @@ Fix: In cmdCal decock (line 886), when SW_HOME is closed, SW_GAP is closed (or n
 >
 
 ## 16. `set trip_a` while a motion runs overwrites that motion's own trip (take-up 2.5 A, jog/fly-in 3 A, tow 6.5 A)
+
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:1024`. cmdSet now copies c.tripA into w.c.tripA only during S_AIM, or during S_REEL when the reel is neither take-up-only nor U_TENSION (the motions that start on c.tripA). A tow gets towTrip() back, clamped to hardTripA (line 1025). Take-up (NEUTRAL reel), S_JOG and the fly-in/centering helpers in S_DRUM/S_WRAP/S_UNWRAP keep their own trip, so the failure no longer happens. The 3-19 A range on trip_a is unchanged, but it now only reaches motions that already run at c.tripA.
 
 - File: `firmware/base/grappstar_base/base_logic.h:932`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -448,6 +480,8 @@ Each motion sets its own trip only once, when it starts:
 
 ## 17. Drum jog skips the SW_DOG_L/R check and can run back from the WRAPPED park into the wrap window, unwrapping with the wiper stopped (R1 #15 still open)
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:1420`. cmdJog now applies the dog-contact rule (line 923) and refuses inside WRAP (line 921). tickJog checks SW_DOG_L/R on every drum tick and halts at the WRAP edge (lines 1419-1422). A scratch test of the reported scenario (/tmp/claude-0/review-scratch-stale/f8/t.cpp): from the WRAPPED park 314.9 with SW_DOG_R stuck closed, the second -1 jog raises fault 6 (SWITCH_DISAGREE) at 303.2 deg on entering WRAP, with 7.00 wraps still on, and the later jogs are refused with FAULTED.
+
 - File: `firmware/base/grappstar_base/base_logic.h:1308`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -474,6 +508,8 @@ For the drum, cmdJog (base_logic.h:840-846) refuses only these cases: unknown se
 
 ## 18. Wiper IS scaling assumes an averaged IS voltage, but the averaging capacitor is optional and hwWiperIs takes 8 back-to-back point samples: at partial duty the D8 trips depend on PWM phase
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/grappstar_base.ino:84-88`. hwWiperIs now takes 16 reads paced 53.125 us apart. Each read lands 3.125 us later in the 50 us period of the 20 kHz PWM (PWM_HZ 20000 in pins.h:47), so the 16 reads cover the whole period evenly and their mean is the true average with or without the capacitor. That is the alternative fix the review proposed. The capacitor is still optional rather than required: WIRING.md:59 and :109 call it "strongly recommended", and with the sampling fix that is acceptable.
+
 - File: `firmware/base/grappstar_base/grappstar_base.ino:82`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -499,6 +535,8 @@ What the code does:
 
 ## 19. require_seated=false (and vbat_wired=false) persist silently in NVS: fire without SW_SEATED keeps working after every reboot
 
+- Now (863d58d): **still open** at `firmware/base/grappstar_base/base_logic.h:112`. tunNow() still packs requireSeated and vbatWired into Tun.requireSeated (bit 0 and bit 2), and restoreTun() (line 122) loads both back at boot. The flags show up only through `get` (lines 1128-1129), not in status or telemetry. CALIBRATION.md:303 now says outright that the setting is saved, and PROTOCOL.md:443 does not mark it "NOT saved".
+
 - File: `firmware/base/grappstar_base/base_logic.h:111`
 - Severity: low (claimed medium); 1 of 2 skeptics confirmed
 - Owner: fw-base
@@ -521,6 +559,8 @@ Fix: Do not persist require_seated: always boot with requireSeated = true, and m
 
 ## 20. retrieve (until seated) is accepted in REEL and seats the dart on the capstan, against 10.1 step 17
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:868`. On the newest tree, cmdReel refuses an until-seated reel with WRAPS_ON unless the drum is in SEC_NEUTRAL (`if (un == U_SEATED && sec != SEC_NEUTRAL) return "WRAPS_ON";`). Both `retrieve` (line 1084) and `reel until seated` go through cmdReel, so a retrieve sent in REEL is now refused and the capstan never seats the dart.
+
 - File: `firmware/base/grappstar_base/base_logic.h:791`
 - Severity: low (claimed medium); 1 of 2 skeptics confirmed
 - Owner: fw-base
@@ -540,6 +580,8 @@ Fix: In the retrieve handler (and for `reel until seated`), refuse when not in N
 
 ## 21. Drum jog backward from the WRAPPED park runs into the WRAP sector and unwraps with the wiper stopped (R1 #15 not fixed)
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:1422`. This is fixed. tickJog now stops any drum jog on the tick where sec reads SEC_WRAP. updateSector runs earlier in the same tick, so a backward jog from the WRAPPED park halts at the 302 edge with a "wrap window: use wrap or unwrap" abort. cmdJog (line 921) also refuses any drum jog that starts in SEC_WRAP or while wrapsDoubt is set, returning WRAPS_ON. I checked this by reading the code; I did not run the sim. The drum may still coast a little past the edge before it stops.
+
 - File: `firmware/base/grappstar_base/base_logic.h:844`
 - Severity: low (claimed low); unverified (low)
 - Owner: fw-base
@@ -553,6 +595,8 @@ Fix: In cmdJog drum: `if (sec >= SEC_WRAP && dd < 0) return "WRAPS_ON";` (use un
 
 ## 22. New settable key tension_offset_n is not saved in NVS: a calibrated tension offset is silently lost at every reboot
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/persist.h:57; firmware/base/grappstar_base/base_logic.h:116,125`. Tun ver 2 now stores tensOffsetN (it is saved in tunNow and restored in restoreTun), and PROTOCOL.md:429 lists the key. test_base.cpp:772-775 checks that tension_offset_n -3 survives a reboot, and all 384 checks pass.
+
 - File: `firmware/base/grappstar_base/base_logic.h:906`
 - Severity: low (claimed low); unverified (low)
 - Owner: fw-base
@@ -565,6 +609,8 @@ Fix: Add `float tensOffsetN = 0;` to Tun, bump Tun ver to 2 and the static_asser
 
 
 ## 23. decock ends on SW_HOME alone and reports RESET ok without SW_GAP closed (R1 #10 still open for decock)
+
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:1442`. tickDecock now sets PH_REST and emits RESET ok only when SW_HOME has stayed closed for decockExtraDeg AND (!fitted(SW_GAP) || closed(SW_GAP)). If SW_GAP stays open it keeps running until the travel or time limit, then raises F_BAD_STATE "decock: SW_GAP never closed" (line 1448). The decock-by-travel fallback path (line 1432) still does not check SW_GAP, but that path exists for travel-only decock and was not part of this finding.
 
 - File: `firmware/base/grappstar_base/base_logic.h:1331`
 - Severity: low (claimed medium); 2 of 2 skeptics confirmed
@@ -585,6 +631,8 @@ What the code does: tickDecock (base_logic.h:1319-1338) ends the normal path onc
 
 ## 24. decock ends as REST without SW_GAP; spec requires SW_HOME and SW_GAP (R1 #10 partly open)
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:1442`. The defect is fixed on the newest tree. In tickDecock, the normal path now ends as REST only when SW_HOME stays closed for the whole run-on and SW_GAP is closed (or not fitted). Otherwise it keeps running until the travel or time limit, then raises "decock: SW_GAP never closed" (line 1447). cal cock_rest now refuses with SWITCH_DISAGREE when SW_GAP is fitted and open, unless force is set (line 959). One gap remains, and only on the forced path: decock-by-travel still sets REST without checking SW_GAP. That path runs only when the operator passes force, which is the exception the fix allowed.
+
 - File: `firmware/base/grappstar_base/base_logic.h:1331`
 - Severity: low (claimed low); unverified (low)
 - Owner: fw-base
@@ -597,6 +645,8 @@ Fix: In tickDecock, end only when `homeSeen && run-on done && (!fitted(SW_GAP) |
 
 
 ## 25. Current below duty 60 is not scaled: the 3 A jog trip is blind during the 20 % fly-in and centering jog (R1 #17 still open)
+
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/config.h:167`. flyDuty is now 64, at or above minScaleDuty 60 (drives.h:17,50), so fly-in current gets scaled and the 3 A jogTripA sees the real current. The stage-5 centering jog runs at jogDuty 150 (base_logic.h:586). test_base.cpp:856 guards flyDuty >= minScaleDuty. Readings are still unscaled for the first ~70 ms of the ramp while outDuty is below 60, which is the intended design.
 
 - File: `firmware/base/grappstar_base/drives.h:50`
 - Severity: low (claimed low); unverified (low)
@@ -613,6 +663,8 @@ Fix: Raise flyDuty to at least 64 (above minScaleDuty), or scale every sample wi
 
 
 ## 26. (round 1 #17, still open) Wiper current is not scaled below duty 60: the 3 A jog/fly-in trip cannot be reached at flyDuty 51
+
+- Now (863d58d): **partly fixed** at `firmware/base/grappstar_base/config.h:167 (flyDuty = 64); firmware/base/grappstar_base/drives.h:50 (scaling still gated on outDuty >= minScaleDuty)`. The main case is fixed. flyDuty is now 64, which is at least minScaleDuty 60, so fly-in, the REEL centering jog and the LAUNCH wiggle get scaled current and can reach the 3 A trip. A test at test_base.cpp:856 checks this. What remains: drives.h:50 still skips scaling below duty 60, so during the first ~70 ms of every start's ramp (0 to 60 at 255 per 300 ms) the reading is still I x duty/255. In that window the 'never ignored' hardA 17 A trip only fires on a far larger real current.
 
 - File: `firmware/base/grappstar_base/drives.h:50`
 - Severity: low (claimed low); unverified (low)

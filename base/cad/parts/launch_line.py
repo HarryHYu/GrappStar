@@ -67,10 +67,8 @@ def rail_add(n):
     # pivot pulley lug on the right cheek (y -17 .. -9), down to below the pulley centre
     pv = g["piv"]
     s.append(prim.box(-9.0, 9.0, -17.0, -9.0, pv[2] - 8.0, 0.0))
-    # thrust bosses (r 2.3, inner race only) so a tight axle clamps the 693ZZ inner race, not the pulley (review 3)
-    for p in (g["top"], g["bot"]):
-        s.append(prim.cylY(2.3, PUL_W / 2 - 0.5, PUL_W / 2 + 1.01, x=p[0], z=p[2]))
-        s.append(prim.cylY(2.3, -PUL_W / 2 - 1.01, -PUL_W / 2 + 0.5, x=p[0], z=p[2]))
+    # pivot pulley: thrust boss (r 2.3, inner race only) on the lug face, the nut bears on the inner race outside
+    # (review 3). The fork pulleys get loose printed top-hat washers instead (a boss each side would block insertion).
     s.append(prim.cylY(2.3, pv[1] + 2.0, -16.99, x=pv[0], z=pv[2]))
     return prim.union(s)
 
@@ -96,6 +94,12 @@ def pulley_solid():
 
 def bearing_solid():
     return prim.tube(4.0, 1.5, 4.0, z=-2.0)
+
+
+def washer_solid():
+    """Printed top-hat thrust washer for the fork pulleys: hub r 2.4 x 0.5 on the 693ZZ inner race, flange r 4.4 x 1.0
+    on the fork plate (local z from 0 at the race to 1.5 at the plate)."""
+    return prim.cyl(2.4, 0.51) + prim.cyl(4.4, 1.0, z=0.5) - prim.cyl(1.65, 3.0, z=-1.0)
 
 
 def axle_solid(length):
@@ -134,12 +138,18 @@ def parts_line(n, bed):
                         color="#777c84", bought_ref="693ZZ 3x8x4", notes="Pulley bearing"))
         if nm == "piv":
             ax = tf.mul(tf.T(p[0], -9.0, p[2]), tf.Rx(90))         # head on the cheek inner face, along -y
-            out.append(Part("launch_pulley_piv_axle", axle_solid(17.0), "bought", joint="launch_rail", place=ax,
-                            color="#444444", bought_ref="M3x16 SHCS + nut", notes="Pivot pulley axle"))
+            out.append(Part("launch_pulley_piv_axle", axle_solid(20.0), "bought", joint="launch_rail", place=ax,
+                            color="#444444", bought_ref="M3x20 SHCS + nyloc nut", notes="Pivot pulley axle"))
         else:
             ax = tf.mul(tf.T(p[0], -PUL_W / 2 - 5.0, p[2]), tf.Rx(-90))
-            out.append(Part(f"launch_pulley_{nm}_axle", axle_solid(2 * (PUL_W / 2 + 5.0)), "bought", joint="launch_rail",
-                            place=ax, color="#444444", bought_ref="M3x16 SHCS + nut", notes="Pulley axle"))
+            out.append(Part(f"launch_pulley_{nm}_axle", axle_solid(20.0), "bought", joint="launch_rail",
+                            place=ax, color="#444444", bought_ref="M3x20 SHCS + nyloc nut", notes="Pulley axle"))
+            ws = washer_solid()
+            for sg in (1, -1):
+                Mw = tf.mul(tf.T(p[0], sg * 2.0, p[2]), tf.Rx(-90 if sg > 0 else 90))
+                out.append(Part(f"launch_pulley_{nm}_washer_{'l' if sg > 0 else 'r'}", ws, "PLA", joint="launch_rail",
+                                place=Mw, print_tf=bed(ws, tf.Rx(180)), color="#e0c060",
+                                notes="Printed top-hat thrust washer between fork plate and 693ZZ inner race"))
     # line: pusher -> top pulley, telescoped: N_A segments of the cocked length, spread evenly between the pulley
     # tangent and the pusher (segment k slides back by k/(N_A-1) of the carriage travel), so none passes either end
     L_home = n["u_c_home"] - g["p_top_front"][0]

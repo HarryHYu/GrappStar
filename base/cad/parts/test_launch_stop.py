@@ -116,6 +116,33 @@ def test_plunger_stays_behind_moving_R():
             assert _ov(pls.translate((d, 0, 0)), sol) < TOL, (d, nm)
 
 
+def test_draw_screws():
+    d = S.draw_screw_check(N)
+    assert d["start"] >= 5.0            # engaged before the pull starts (gap DELTA0 open)
+    assert d["seated"] <= d["pilot"] - 0.3
+    assert d["wall_behind_pilot"] >= 0.6
+
+
+def test_frame_fasteners_accessible_and_guard_drops_in():
+    import launch_guard as GD
+    us, uF = N["u_stop"], S.U_FW
+    for side, sg in (("l", 1.0), ("r", -1.0)):
+        fr = S.frame_solid(N, side)
+        # straight vertical path from above the front wall down to each front foot bolt head (counterbore top)
+        for y in S.FRONT_BOLTS_Y:
+            path = LA.cyl_w(1.5, 50.6, 90.0, uF + S.FRAME_T / 2, sg * y)
+            assert _ov(path, fr) < TOL, (side, y)
+        # rear bolt heads (d5.5 x 3, outboard of the foot plate) clear the frame
+        for du, w in S.REAR_BOLTS:
+            head = LA.cyl_y(2.75, sg * 34.0, sg * 37.0, us + du, w)
+            assert _ov(head, fr) < TOL, (side, w)
+        # guard segment b drops in from above with the frame fitted (stop springs not yet fitted)
+        gb = [p for p in GD.guard_parts(P, N) if p.name == f"launch_guard_{side}_b"][0]
+        g = prim.place(gb.solid, gb.place)
+        for dw in np.linspace(0.0, 60.0, 31):
+            assert _ov(g.translate((0, 0, dw)), fr) < TOL, (side, dw)
+
+
 def test_audit_states_shape():
     st = S.stop_audit_states(P)
     assert st[0]["launch_travel"] == 0.0 and abs(st[-1]["launch_travel"] + S.TRAVEL) < 1e-9

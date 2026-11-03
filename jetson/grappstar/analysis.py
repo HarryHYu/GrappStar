@@ -128,6 +128,20 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
         # and analyze_landing handles dark frames itself); never in-flight frames
         t_l = getattr(fres, "t_landed", None) if fres is not None else None
         land_frames = [f for f in frames if t_l is not None and f.t >= t_l][-15:] or frames[-15:]
+    # Dark check on the WHOLE landed window, whatever the quality flags (review round 2): landing_frames() keeps
+    # only frames that pass the link check, so 14 black frames of a void plus one lit frame of the rim would reach
+    # terrain as one clean frame and could get GO. terrain's own dark check runs first on what it is given.
+    try:
+        from .vision import terrain
+        t_l = None
+        if fres is not None:
+            t_l = getattr(fres, "t_landed", None) or getattr(fres, "t_impact", None)
+        window = [f for f in frames if t_l is not None and f.t >= t_l + 0.05][-45:] or frames[-30:]
+        if window and terrain._dark_landing(terrain._as_items(window)) is not None:
+            land_frames = window
+            note("most landed frames are black: passing the whole landed window to the terrain check")
+    except Exception as e:
+        note(f"dark window check failed: {e}")
     try:
         from .vision import terrain
         # Tilt cue from the IMU: never the Euler roll (spin about the nose, arbitrary for a dart), only the
@@ -150,7 +164,7 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
                 out["files"]["landing.png"] = p
     except Exception as e:
         note(f"terrain analysis failed: {type(e).__name__}: {e}")
-        out["terrain"] = {"cls": "unknown", "score": 0, "verdict": "UNSURE", "probs": {},
+        out["terrain"] = {"cls": "unknown", "score": 45, "verdict": "UNSURE", "probs": {},
                           "reasons": [f"Landing zone analysis failed ({type(e).__name__}). Look at the video."]}
     if do_mosaic:
         try:

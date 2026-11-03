@@ -5,7 +5,7 @@ Concept (per side, left shown, right mirrored in y):
   Each loop = two leaves spanning y, joined by end blocks at both ends; consecutive loops are joined by a centre
   block at y_mid. The load runs along the stack axis through the centre blocks, so every leaf half is a
   fixed-guided beam (inflection at its middle, no rotation, no lateral force). Leaves are constant-stress tapered
-  (thickness ~ sqrt of the moment, 1.2 mm minimum at the inflections). The rear leaf of loop 1 is a rigid bar R
+  (thickness ~ sqrt of the moment, 1.0 mm minimum at the inflections). The rear leaf of loop 1 is a rigid bar R
   with a contact pad at y_mid (the carriage arm hits only this pad); the front end is a rigid anchor block A.
 - FRAME (one print): outboard bar with the outboard preload ledge, front wall (anchor seat), legs and two feet
   (rear foot bolted with 2 x M3 to the rail wall outer face under the spring, front foot with 2 x M3 down into the
@@ -47,12 +47,16 @@ T0 = 3.15                     # leaf thickness at the blocks (moment peaks)
 T_MIN = 1.0                   # leaf thickness at the inflections (shear about 8 MPa at peak)
 N_LOOPS = 16                  # loop 1 = rigid R + one leaf, loops 2..16 = two leaves -> 31 flexible leaves
 T_R, T_A_MIN = 6.0, 8.0       # rigid rear bar R / minimum anchor A thickness (u)
-G_MIN = 0.6                   # printed gap where the closure is small
+G_MIN = 0.5                   # printed gap where the closure is small (only next to the blocks: fusing there is harmless)
 F0_TARGET = 32.0              # preload per side (64 N total > main spring pull at HOME, about 20 N)
 TRAVEL = 23.8                 # travel to SOLID STACK (the hard stop): gaps are sized to close exactly here
 U_FW = 240.15                 # frame front wall rear face (fixed: the spring guards are cut around the frame)
 PAD_HALF = 4.0                # contact pad half width (y) around Y_MID, w 72..80
 FRAME_T = 8.0                 # front wall thickness (u)
+DRAW_DY = 13.0                # draw screws at y_mid +- 13 (the anchor is thickest there: about 13.3)
+DRAW_PILOT = 12.5             # pilot depth in the anchor (M3 self tap, d2.6)
+DRAW_SCREW_L = 20.0           # M3x20 SHCS, head on the front wall: engagement 5.4 at the start of the pull
+                              # (gap DELTA0 open), 12.0 seated (pilot 12.5)
 
 
 def _sg(side):
@@ -88,7 +92,9 @@ def stop_calc(P=None):
     b = W1 - W0
     x, t, v = _leaf_profile()
     c_leaf = v[-1]                                   # mm/N, one leaf (both halves in parallel carry F/2 each)
-    k_side = 1.0 / (c_leaf * n_leaves())
+    span_r = (Y_OUT - Y_IN) - E_BLK                  # rigid bar R: centre load, carried at the end blocks
+    c_r = span_r ** 3 / (48.0 * E_PLA * b * T_R ** 3 / 12.0)
+    k_side = 1.0 / (c_leaf * n_leaves() + c_r)
     delta0 = round(F0_TARGET / k_side, 2)
     f0 = k_side * delta0
     f1 = k_side * (delta0 + TRAVEL)
@@ -98,11 +104,12 @@ def stop_calc(P=None):
     tau = 1.5 * (0.5 * f1) / (b * T_MIN)
     vol_leaves = n_leaves() * 2.0 * float(np.trapezoid(t, x) if hasattr(np, "trapezoid") else np.trapz(t, x)) * b / 1000.0
     d_leaf_full = c_leaf * f1
+    d_r_full = c_r * f1
     return dict(k_n_per_mm=2.0 * k_side, travel_mm=TRAVEL, energy_j_at_travel=2.0 * e_side, peak_force_n=2.0 * f1,
                 peak_stress_mpa=sigma, volume_cm3=vol_leaves,
                 # extras
                 k_side_n_per_mm=k_side, preload_mm=delta0, preload_force_n=2.0 * f0, f_side_peak_n=f1,
-                n_leaves=n_leaves(), leaf_defl_full_mm=d_leaf_full, shear_mpa=tau,
+                n_leaves=n_leaves(), leaf_defl_full_mm=d_leaf_full, r_bow_full_mm=d_r_full, shear_mpa=tau,
                 energy_stored_side_j=0.5 * f1 * (delta0 + TRAVEL) / 1000.0)
 
 
@@ -129,7 +136,7 @@ def _stack_layout(n):
     # sit +-D1/2 about the mid plane, so all loops are congruent and the stack stays straight
     D1 = t + gi                                      # intra-loop centreline separation
     lam = float(np.max(2.0 * t + gi + ge))
-    cF1 = u0 + T_R + np.maximum(G, d * phi) + t / 2.0
+    cF1 = u0 + T_R + np.maximum(G, (d + c["r_bow_full_mm"]) * phi) + t / 2.0   # R bows forward too
     m2 = float(np.max(cF1 + t + ge + D1 / 2.0))
     cl = [cF1]
     for k in range(2, N_LOOPS + 1):
@@ -176,9 +183,20 @@ def spring_solid(n, side="l"):
     # contact pad (the only face the arm touches); R's inboard end sits on the rail ledge at w 69.5..71.5
     s = s + _bx(us, lay["u0"] + 0.01, Y_MID - PAD_HALF, Y_MID + PAD_HALF, 74.0, 80.0, sg)
     # draw screw pilots in the anchor (M3 self tap, 2.6)
-    for dy in (-6.0, 6.0):
-        s = s - LA.cyl_u(1.3, lay["u_front"] - 9.0, lay["u_front"] + 1.0, sg * (Y_MID + dy), 76.5)
+    for dy in (-DRAW_DY, DRAW_DY):
+        s = s - LA.cyl_u(1.3, lay["u_front"] - DRAW_PILOT, lay["u_front"] + 1.0, sg * (Y_MID + dy), 76.5)
     return s
+
+
+def draw_screw_check(n):
+    """Draw screw engagement (mm): at the start of the pull, seated, and the anchor wall left behind the pilot."""
+    c = stop_calc()
+    lay = _stack_layout(n)
+    ar = lay["voids"][-1][1]
+    yy = np.concatenate([np.linspace(Y_MID + dy - 1.3, Y_MID + dy + 1.3, 9) for dy in (-DRAW_DY, DRAW_DY)])
+    wall = float(np.min(np.interp(yy, lay["ys"], lay["u_front"] - ar))) - DRAW_PILOT
+    seated = DRAW_SCREW_L - FRAME_T
+    return dict(start=seated - c["preload_mm"], seated=seated, pilot=DRAW_PILOT, wall_behind_pilot=wall)
 
 
 def frame_geom(n):
@@ -188,8 +206,9 @@ def frame_geom(n):
     return dict(uF=uF, u_front=lay["u_front"], u_r0=n["u_stop"] + 3.0, u_r1=n["u_stop"] + 15.0)
 
 
-REAR_BOLTS = ((6.0, 44.0), (12.0, 38.5))             # (u - u_stop, w): M3 along y into the rail wall / shelf
-FRONT_BOLTS_Y = (27.0, 42.0)                         # M3 down into the rail front plate (w 30..40)
+REAR_BOLTS = ((6.0, 44.0), (12.0, 39.5))             # (u - u_stop, w): M3x12 along y into the rail wall / shelf
+FRONT_BOLTS_Y = (32.5, 44.0)                         # M3x16 down into the rail front plate (w 30..40), between the legs
+ACCESS_R = 3.25                                      # d6.5 hex key access through the front wall above each foot bolt
 
 
 def frame_solid(n, side="l"):
@@ -214,7 +233,8 @@ def frame_solid(n, side="l"):
     for y in FRONT_BOLTS_Y:
         f = f - LA.cyl_w(1.7, 39.0, 51.0, uF + FRAME_T / 2, sg * y)
         f = f - LA.cyl_w(3.1, 47.5, 51.0, uF + FRAME_T / 2, sg * y)                  # head counterbore (under the springs)
-    for dy in (-6.0, 6.0):
+        f = f - LA.cyl_w(ACCESS_R, W0 - 1.0, W1 + 1.0, uF + FRAME_T / 2, sg * y)      # straight access from above
+    for dy in (-DRAW_DY, DRAW_DY):
         f = f - LA.cyl_u(1.7, uF - 1.0, uF + FRAME_T + 1.0, sg * (Y_MID + dy), 76.5)  # draw screws
     return f
 
@@ -278,9 +298,10 @@ def stop_parts(P, n=None):
                               f"M3x20 draw screws through the frame front wall"))
         fr = frame_solid(n, side)
         out.append(Part(f"launch_stop_frame_{side}", fr, "PLA", joint="launch_rail", place=tf.I4,
-                        print_tf=LA.bed(fr, tf.Rx(180)), color="#7a8a99",
-                        notes="Stop frame: outboard preload ledge, anchor seat, rear foot (2 x M3x12 into the rail wall), "
-                              "front foot (2 x M3x16 into the rail front plate)"))
+                        print_tf=LA.bed(fr, tf.Rx(-90.0 if side == "l" else 90.0)), color="#7a8a99",
+                        notes="Stop frame (print outboard face down): outboard preload ledge, anchor seat, rear foot (2 x M3x12 "
+                              "into the rail wall), front foot (2 x M3x16 into the rail front plate, hex key through the "
+                              "d6.5 holes in the front wall). Fit before the spring guards and the main springs"))
     return out
 
 

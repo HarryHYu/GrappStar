@@ -36,19 +36,34 @@ def test_spec_loaded(p):
 def test_capstan_ratio_direction(p):
     s = _spec()
     # spec: capstan turns per main shaft turn; physics: wiper turns per capstan turn
-    assert p.capstan["ratio"] == pytest.approx(1.0 / s.REEL["capstan_ratio"])
-    # free line speed: 45 rpm x 2.27 x pi x 0.04 = 0.21 m/s (spec REEL.line_speed_mps.free)
+    assert p.capstan["ratio"] == pytest.approx(1.0 / s.REEL["capstan_ratio"]), "capstan ratio direction flipped in spec_bridge"
+    # free line speed from the loaded WIPER.n0_rpm and REEL capstan: must match the spec's quoted REEL.line_speed_mps.free
+    assert p.wiper.n0_rpm == pytest.approx(s.WIPER["n0_rpm"]), "WIPER.n0_rpm not mapped by spec_bridge"
     v_free = p.wiper.n0_rpm / 60 / p.capstan["ratio"] * math.pi * p.capstan["d"]
-    assert v_free == pytest.approx(s.REEL["line_speed_mps"]["free"], rel=0.05)
+    quoted = s.REEL["line_speed_mps"]["free"]
+    assert v_free == pytest.approx(quoted, rel=0.05), f"update REEL.line_speed_mps.free in the spec to {v_free:.2f}"
 
 
 def test_tow_50n_absolute(p):
-    t = capstan.wiper_torque_for(50.0, p)
-    # 50 N on a 20 mm drum through 0.44 / 0.85 is 2.6 N m, plus the FIRM take-up drag through the bus
-    assert 2.3 < t < 4.6                  # 1.15 (pulleys) to 1.5 (plain eyes) path gain
+    """Tow at 50 N (and at the spec tow limit) with the loaded WIPER and REEL: lossless torque as a floor, the wiper's
+    stall and the tow trip as ceilings, and the spec's quoted line speed."""
+    s = _spec()
+    r_cap = p.capstan["d"] / 2
+    for f_tow in sorted({50.0, float(p.capstan["tow_limit_n"])}):
+        t = capstan.wiper_torque_for(f_tow, p)
+        t_ideal = f_tow * r_cap / p.capstan["ratio"]               # no path gain, no friction, no take-up
+        assert t_ideal < t < 2.5 * t_ideal, f"tow torque {t:.2f} N m at {f_tow:g} N outside {t_ideal:.2f} to {2.5 * t_ideal:.2f}: check REEL mapping"
+        lim = capstan.limiter_nm(p) or p.wiper.t_stall
+        assert t < min(p.wiper.t_stall, lim), f"wiper too weak to tow {f_tow:g} N ({t:.2f} N m needed): see FINDINGS"
+        pt = capstan.tow_point(f_tow, p, p.battery.v_nom)
+        assert not pt["stalled"] and pt["v_line"] > 0, f"wiper too weak to tow {f_tow:g} N: see FINDINGS"
+        trip = capstan.trip_a(p, "tow")
+        assert pt["current"] < trip, (f"tow at {f_tow:g} N draws {pt['current']:.1f} A, over the {trip:g} A trip: "
+                                      "wiper too weak (see FINDINGS) or raise REEL.current_trips_a.tow")
     pt = capstan.tow_point(50.0, p, p.battery.v_nom)
-    assert 0.10 < pt["v_line"] < 0.20
-    assert 3.5 < pt["current"] < 6.5
+    quoted = (s.REEL.get("line_speed_mps") or {}).get("at_50n")
+    if quoted is not None:
+        assert pt["v_line"] == pytest.approx(quoted, rel=0.10), f"update REEL.line_speed_mps.at_50n in the spec to {pt['v_line']:.2f}"
 
 
 def test_spring_geometry_from_spec(p):
@@ -77,21 +92,24 @@ def test_headline_launch_band(p):
 def test_committed_ballistics_not_stale(p):
     meta = json.load(open(META))
     from common import params_hash
-    assert meta.get("params_hash") == params_hash(p), "ballistics.json was built from other physics inputs: run python ballistics.py"
+    stale = "run ./run_all.sh (regenerates the table, SUMMARY and the PDF)"
+    assert meta.get("params_hash") == params_hash(p), f"ballistics.json was built from other physics inputs: {stale}"
+    v_scale = meta.get("v_scale", 1.0)               # the table must use the spec LAUNCH v_scale (calib.py range)
+    assert v_scale == pytest.approx(p.launch.get("v_scale", 1.0)), f"table v_scale {v_scale} != spec LAUNCH v_scale: {stale}"
     doc = json.load(open(BALL))
     row = min(doc["table"], key=lambda r: abs(r["pitch_deg"] - 36.0))
     from launcher import effective_muzzle
-    v = effective_muzzle(p, row["pitch_deg"])["v"] * meta.get("v_scale", 1.0)
-    assert row["v_muzzle"] == pytest.approx(v, rel=0.005)
+    v = effective_muzzle(p, row["pitch_deg"])["v"] * v_scale
+    assert row["v_muzzle"] == pytest.approx(v, rel=0.005), stale
     rng = simulate(p, v, row["pitch_deg"], brake_n=doc["drag_n"][1], reel_model=True)["range_m"]
-    assert row["range_m"][1] == pytest.approx(rng, rel=0.01)
+    assert row["range_m"][1] == pytest.approx(rng, rel=0.01), stale
     from ballistics import validate
     assert validate(doc) == []
     for r_ in (doc["table"][0], doc["table"][-1]):                # the ends too, all three drags
-        v_ = effective_muzzle(p, r_["pitch_deg"])["v"] * meta.get("v_scale", 1.0)
+        v_ = effective_muzzle(p, r_["pitch_deg"])["v"] * v_scale
         for j, b in enumerate(doc["drag_n"]):
             got = simulate(p, v_, r_["pitch_deg"], brake_n=b, reel_model=True)["range_m"]
-            assert r_["range_m"][j] == pytest.approx(got, rel=0.01)
+            assert r_["range_m"][j] == pytest.approx(got, rel=0.01), stale
 
 
 def test_spec_launch_headline_matches_model(p):

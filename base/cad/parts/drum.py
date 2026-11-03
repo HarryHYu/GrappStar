@@ -56,7 +56,7 @@ GEOM = dict(
     brA=(1.0, 7.7), brB=(136.0, 142.0), brI=(78.0, 85.0),
     idl=(40.0, 86.0), idl_gear=(68.5, 76.5), idl_j=10.0, idler_side=1, brI2=(40.5, 46.5),
     lock_RL=38.0, lock_rl=11.0, lock_c=0.25,
-    sw_L=30.0,
+    sw_L=36.0,              # contact lever length: 0.66 percent peak strain (cad.lib.switch model, limit 0.8)
 )
 
 
@@ -761,8 +761,8 @@ def index_block(g):
     s0, s1 = 0.5, i1 + 3.0
     b, cuts = contact_block(g, 0.0, 0.0, g["idx_r0"], g["idx_bump"], [g["idx_s"]], -12.0, g["sw_L"] + 12.0, s0, s1)
     x0 = lever_x0(g, g["idx_r0"], g["idx_bump"])
-    for y in (-6.0, g["sw_L"] + 6.0):
-        cuts.append(cyl(1.25, s0 - 1, s1 + 1, x0 + 10.0, y, seg=24))
+    for y in (-6.0, 36.0):                    # params.DRUM.sw_index_mount: (x 43.1, z +6) and (x 43.1, z -36)
+        cuts.append(cyl(1.25, s0 - 1, s1 + 1, 43.1, y, seg=24))
     return prim.diff(b, cuts)
 
 
@@ -890,6 +890,7 @@ def parts(P):
     out = []
 
     def add(name, solid, mat, joint, R=None, color="pla", notes="", **kw):
+        solid = prim.clean(solid) if hasattr(prim, "clean") else solid
         out.append(Part(name, solid, mat, joint=joint, print_tf=None if mat == "bought" else bed(solid, I if R is None else R),
                         color=COL.get(color, color), notes=notes, **kw))
 

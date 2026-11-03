@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 13:18 Sydney time from commit `95b734d`.
+Built 2026-11-03 13:19 Sydney time from commit `2fc8fa7`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -3581,8 +3581,8 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | G4 Storage reel payout drag | A luggage scale cannot read this low: use hanging weights in LAUNCH mode. Tie 40 g (coins in a bag, weighed) to the line end over the edge of the bench: it must NOT pull line off. 50 g must pull line off slowly. That sets the brake at 0.5 N (the design value). Above 1 N costs range, 3 N ruins the flight. Then in NEUTRAL the clutch is FIRM, 5 N (decision D24): with the luggage scale, line pulls off at about 0.5 kg | slip clutch preload (reel parts) |  |
 | G5 Muzzle speed | Phone slow-motion video side-on, tape measure laid in the flight line (same distance from the phone as the dart). Count the frames the nose takes to cross 0.5 m; speed m/s = 0.5 x slow-motion fps (240 or 120) / frames | physics model, ballistics table |  |
 | G6 Range at three pitches | Tape measure from the base to the dart at 3 pitches, tether on, brake unchanged | ballistics table check (jetson uses it) |  |
-| G9 Line tension per amp | Line hooked to the luggage scale anchored to a post, base in REEL, `reel` slowly: note scale newtons and `amps` at 3 loads. The firmware ships the physics model (decision D33): line N = 17.0 x (amps - free amps) - 10.4, so a 50 N tow draws about 5.05 A (hard trip 6.5 A). The 17 is a model, so this check matters before any tow | firmware `k_n_per_a` and its offset (CALIBRATION.md (e)) | |
-| G10 Tow limit (choose) | The firmware ships `limit_n` 50 N (decision D3). Lower it with `{"cmd":"set","key":"limit_n","val":40}`; raise it only if G7 shows the anchor holds well above it (keep it below the holding force) | firmware `limit_n` | |
+| G9 Line tension per amp | CALIBRATION.md (e): `wrap`, `mode` REEL, line tied to a luggage scale on a post, stand beside the line. `{"cmd":"reel","duty":0.3,"until":"stop"}`, send `stop` at about 10, 20 and 30 N (the worm holds between), read `amps` each time; stay under 40 N. Fit the slope and offset. The firmware ships the physics model (decision D33): line N = 17.0 x (amps - free amps) - 10.4, a 50 N tow draws about 5.05 A (hard trip 6.5 A). The 17 is a model, so this check matters before any tow | firmware `k_n_per_a`, `tension_offset_n` | |
+| G10 Tow limit (choose) | The firmware ships `limit_n` 50 N (decision D3) and refuses anything above 70 N (decision D39). Lower it with `{"cmd":"set","key":"limit_n","val":40}`; raise it (70 N at most) only if G7 shows the anchor holds well above it (keep it below the holding force) | firmware `limit_n` | |
 | G11 Payout brake trim | If G4 is off: add or remove printed 0.4 mm shims under thrust ring T (reel assembly steps) | reel shims (print more) |  |
 | G12 Contact gaps | Set each contact to the gap its assembly step gives, then check in telemetry `sw` that it opens and closes at the right place: SW_HOME and SW_SEATED screw head to the nut then back half a turn (0.25 mm); SW_INDEX about 1.5 mm on a low part of the cam; drum code contacts about 1.8 mm with the nub low. The coupon contact (risk coupon 2) is set to 0.9 mm and is only a test piece. Half a turn of an M3 screw is 0.25 mm | nothing | |
 | G13 AS5600 air gap | Magnet face to chip: 1.0 mm design, 1 to 2 mm is the target (params), 0.5 to 3 mm still reads. Feeler: a stack of paper | nothing |  |

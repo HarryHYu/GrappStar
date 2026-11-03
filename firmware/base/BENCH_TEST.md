@@ -115,6 +115,11 @@ at once): check the jumpers and send `clear` again.
 - If a contact never shows: check its wire goes to the right GPIO and the other side to GND.
 - If it shows when open: the two sides touch, or the GPIO wire touches GND somewhere.
 - If it flickers on and off while held closed: the screw and nut do not touch firmly. Clean or tighten them.
+- Printed contacts that rattle can still trip faults in the base later: `SWITCH_DISAGREE` "drum code contact
+  chattering" if a code contact keeps fuzzing for more than about 1 s during a drum move, and "SW_HOME opened at the
+  wrong angle" if the real dog window (the free play of the collar dogs) is much wider than the 16 deg the firmware
+  assumes. Measure the dog window when the base is built (turn the collar by hand between its two flanks, read
+  `wiper_deg`) and tell the firmware author if it is far from 16 deg.
 
 ## Step 3: battery in, current zero
 
@@ -180,7 +185,9 @@ Reverse pause:
 3. Plug the battery in. Declare the launcher at rest: `{"id":13,"cmd":"cal","what":"cock_rest"}` (it needs `H` and
    `G` closed).
 4. Type: `{"id":14,"cmd":"jog","motor":"wiper","dir":-1,"ms":500}`
-5. You should see: the shaft turns the other way (about 60 % power, trip 3 A). `wiper_deg` goes DOWN.
+5. You should see: the shaft turns the other way (about 60 % power). `wiper_deg` goes DOWN. Every backward run in
+   LAUNCH trips at 3 A (D40): a `FAULT` `OVERCURRENT` "wiper over 3.0 A" on the bare motor means write down `peak_a`,
+   `clear` and tell the firmware author.
    `NOT_IN_LAUNCH`: `l` is missing. `NOT_AT_REST`: send the `cock_rest` of step 3 again.
 6. Do not jog forward in this set-up: with `SW_HOME` jumpered closed a forward jog in LAUNCH faults ("SW_HOME still
    closed past the first tooth").

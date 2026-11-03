@@ -110,6 +110,40 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
 | r1_G | 19 | README trips 17/15 A | FIXED | README trip list = config | ee60e0c, d11549f |
 | r1_G | 20 | WIRING says buy an MP1584 | FIXED | MP1584 #2 is the dart spare | ee60e0c |
 
+- Review round 2 D2 (26 findings at ba121b9), re-checked item by item:
+
+| # | sev | finding (short) | status | evidence / commit |
+|---|---|---|---|---|
+| 1 | high | k_n_per_a calibration ignores the offset; tension_offset_n not saved | FIXED | two-pull fit in CALIBRATION; Tun ver 2 / 256a71c, 3ed2044 |
+| 2 | high | PROTOCOL old drum sequence | FIXED | 8a0ea41, 3ed2044 |
+| 3 | high | retrieve ignores max_s | FIXED | d11549f, 7b7c367 |
+| 4 | high | same, take-up final approach | FIXED | d11549f |
+| 5 | medium | PROTOCOL old trips / tension law | FIXED | 77f0ab9, D40/D42 docs in the 1.2.9 docs commit |
+| 6 | medium | fault in REEL drives out to 314 | FIXED (hold, params fault_rules) | 7b7c367 |
+| 7 | medium | same for N_TO_R | FIXED | 7b7c367 |
+| 8 | medium | line_m after a cut mid-reel from the motion-start record | FIXED | c28396c + b2f37ee (also a cut mid-fire) |
+| 9 | medium | AS5600 multi-turn count not lined up at boot | FIXED | c28396c (first read absolute) + b2f37ee (resync keeps alignment) |
+| 10 | medium | tow retry from HOLD over the limit | FIXED | 4bb87cc |
+| 11 | medium | drum code back after 000 trusted at the sector end | FIXED | b2f37ee (boot path, park check, in-sector re-reference) |
+| 12 | medium | boot in N_TO_R guessed 321 | FIXED | c28396c + b2f37ee (re-reference down to the WRAP edge with take-up) |
+| 13 | medium | retrieve in REEL / park | FIXED | 7418b0e, 3ff1a86 |
+| 14 | medium | tow trip fixed 6.5 A | FIXED | fe22a96, 4bb87cc |
+| 15 | medium | cut during wiper motion, decock no-op | FIXED | b352cbc, 3ff1a86 |
+| 16 | medium | set trip_a mid-motion | FIXED | 4bb87cc |
+| 17 | medium | drum jog skips dog check / enters WRAP | FIXED | fe22a96 |
+| 18 | medium | IS scaling without the capacitor | FIXED | 629ce02 (16 paced reads) |
+| 19 | low | require_seated / vbat_wired persist | FIXED | c28396c + b2f37ee |
+| 20 | low | retrieve in REEL seats on the capstan | FIXED | 7418b0e |
+| 21 | low | drum jog back from the park unwraps | FIXED | fe22a96, 4bb87cc |
+| 22 | low | tension_offset_n not saved | FIXED | 256a71c |
+| 23 | low | decock RESET without SW_GAP | FIXED | 256a71c |
+| 24 | low | same | FIXED | 256a71c |
+| 25 | low | 3 A trip blind at 20 % fly-in | FIXED | fe22a96 (fly-in 25 %), D41 rework c28396c |
+| 26 | low | current unscaled below duty 60 | FIXED | b2f37ee (floored divisor) |
+
+- Nuisance-fault review (checks likely to false-trip on real contacts): 89872c8.
+- systest ref_nominal on its stiff Dyneema plant: D41 fly-in and the tow limit pass since 87c48b3; the two remaining failures are Jetson-side (line_m set, command order).
+
 ## What Harry must measure (bench, then CALIBRATION.md)
 
 1. Wiper direction: which way RPWM turns the shaft, and that FORWARD cocks (CALIBRATION g); AS5600 `enc_sign`.

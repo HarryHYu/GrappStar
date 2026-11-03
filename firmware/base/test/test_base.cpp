@@ -113,7 +113,7 @@ static void testSwitches() {
 
 static void testAngle() {
   T("as5600: unwrap, glitch, loss");
-  gb::AngleTracker a; uint8_t md = gb::AS_MD;
+  gb::AngleTracker a; a.missLimit = 4; uint8_t md = gb::AS_MD;   // (firmware default 10)
   int raw = 4000; a.feed(raw, md, 5);
   CHECK(a.count == 4000, "first reading lines the count up with the absolute angle (boot alignment)");
   a.count -= 4000;                                 // the checks below count from 0
@@ -125,8 +125,8 @@ static void testAngle() {
   CHECK(a.count == 3030, "continues after a glitch");
   for (int i = 0; i < 4; i++) a.feed(-1, 0, 5);
   CHECK(!a.ok, "lost after 4 bad reads");
-  a.feed(100, md, 5);
-  CHECK(a.ok && a.count == 3030, "comes back without counting the jump");
+  int32_t before = a.count; uint32_t rs = a.resyncs; a.feed(100, md, 5);
+  CHECK(a.ok && a.resyncs == rs + 1 && ((a.count - before) % 4096 + 4096) % 4096 == ((100 - raw) % 4096 + 4096) % 4096, "comes back lined up with the raw angle, the jump flagged as uncounted travel");
   a.feed(100, 0, 5); a.feed(100, 0, 5); a.feed(100, 0, 5);
   CHECK(a.ok, "3 reads without the magnet are tolerated");
   a.feed(100, 0, 5);
@@ -155,7 +155,7 @@ static void testWiperDrive() {
   for (int i = 0; i < 20; i++) w.tick(t += 5, 5, 0, NAN, hw);
   CHECK(hd == -1, "reverses after the gap");
   // scaling: at duty 128 the IS average is half the motor current
-  gb::WiperDrive s; s.want(1, 128); for (int i = 0; i < 100; i++) s.tick(t += 5, 5, 4.0 / 12.5 * 128 / 255, 100, hw);
+  gb::WiperDrive s; s.want(1, 128); for (int i = 0; i < 100; i++) s.tick(t += 5, 5, 4.0 / 12.5 * s.outDuty / 255, 100, hw);   // IS average = I x duty
   CHECK(fabsf(s.amps - 4.0f) < 0.1f, "IS reading scaled back by the duty");
   gb::WiperDrive o; o.want(1, 255); for (int i = 0; i < 70; i++) o.tick(t += 5, 5, 10.0 / 12.5 * o.outDuty / 255, 100, hw);
   CHECK(!o.overcurrent, "10 A during the ramp: no trip");
@@ -163,8 +163,8 @@ static void testWiperDrive() {
   CHECK(!o.overcurrent, "25 ms over the trip is not a trip");
   o.tick(t += 5, 5, 6.0 / 12.5, 100, hw); CHECK(o.overcurrent && hd == 0, "30 ms over: trip, motor off (D8)");
   o.want(1, 255); o.tick(t += 5, 5, 0, 100, hw); CHECK(hd == 0, "stays off until the latch is cleared");
-  gb::WiperDrive st; st.want(1, 255); for (int i = 0; i < 70; i++) st.tick(t += 5, 5, 0.3, 100, hw);
-  for (int i = 0; i < 90; i++) st.tick(t += 5, 5, 0.3, 0, hw);
+  gb::WiperDrive st; st.want(1, 255); for (int i = 0; i < 70; i++) st.tick(t += 5, 5, 0.3 * st.outDuty / 255, 100, hw);
+  for (int i = 0; i < 90; i++) st.tick(t += 5, 5, 0.3 * st.outDuty / 255, 0, hw);
   CHECK(st.stalled && hd == 0, "stall: hard drive, shaft still for 400 ms");
 }
 
@@ -643,8 +643,9 @@ static void testReview1() {
   { Rig R; R.toMode("NEUTRAL"); R.wrapToReel();
     S.extraLoadNm = 14.5; S.hxFitted = true; R.run(50);
     R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":30,\"until\":\"tension\"}");
-    R.until([&] { return R.B.state == gb::S_FAULT; }, 20000);
-    CHECK(R.B.fault == gb::F_STALL || R.B.fault == gb::F_OVERCURRENT, "jammed reel in a tow: a fault, not a hold loop"); }
+    R.until([&] { return R.B.state == gb::S_FAULT || R.B.state == gb::S_HOLD; }, 20000);
+    bool restarted = false; R.until([&] { if (S.wDir != 0) restarted = true; return false; }, 5000);
+    CHECK((R.B.fault == gb::F_STALL || R.B.fault == gb::F_OVERCURRENT || R.B.state == gb::S_HOLD) && !restarted, "jammed reel in a tow: a fault or a hold, never a hold loop"); }
   { Rig R; R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); R.run(500);
     S.drumJam = true; R.B.raise(gb::F_BAD_STATE, "test"); R.run(200); S.vbatOverride = 8.0; R.B.c.vbatLow = 9.9f;
     R.B.raise(gb::F_BROWNOUT, "second"); R.run(50);
@@ -827,6 +828,22 @@ static void testReview4() {
     Rig R(false); R.cmd("{\"id\":0,\"cmd\":\"cal\",\"what\":\"cock_rest\"}"); R.homeAimAndCock(); R.run(500);
     Rig R2(false);
     CHECK(R2.B.aimKnown && R2.B.phase == gb::PH_COCKED, "idle reboot with the shaft anywhere: aim and cocked phase kept (AS5600 count lined up, review D2 #9)"); }
+  { Rig R0; S = Sim(); S.drumDeg = 333; S.win = 8;   // power cut during the REEL fly-in (N_TO_R, collar starting to engage)
+    S.nvsHas = true; S.nvs = R0.B.snapshot(2); S.nvs.drumDeg = 314; S.nvs.drumKnown = 1; S.nvs.wraps = 7; S.nvs.wrapsKnown = 1; gb::sealSaved(&S.nvs);
+    Rig R(false); R.cmd("{\"id\":0,\"cmd\":\"cal\",\"what\":\"cock_rest\"}");
+    CHECK(R.B.sec == gb::SEC_LOCK && !R.B.degTrusted, "boot in N_TO_R after a cut mid-move: angle untrusted");
+    CHECK(R.err("{\"id\":1,\"cmd\":\"tidy\"}") != "", "tidy refused on a guessed N_TO_R angle");
+    S.slack = 0; double mx = 0; R.ok("{\"id\":2,\"cmd\":\"wrap\"}");
+    R.until([&] { if (S.slack > mx) mx = S.slack; return R.idle() || R.B.state == gb::S_FAULT; }, 60000);
+    char m[110]; snprintf(m, sizeof m, "wrap re-references on the WRAP edge and parks (true %.1f, slack %.3f m)", S.drumDeg, mx);
+    CHECK(R.idle() && fabs(S.drumDeg - 314) < 5 && mx < 0.1 && R.B.degTrusted, m); }
+  { Rig R0; S = Sim(); S.drumDeg = 47; S.swStuckOpen = 0x7;   // boot with the drum code common wire off (000), drum at 47
+    Rig R(false); R.cmd("{\"id\":0,\"cmd\":\"cal\",\"what\":\"cock_rest\"}"); R.run(500);
+    S.swStuckOpen = 0; R.run(300); R.cmd("{\"id\":1,\"cmd\":\"clear\"}"); R.run(100);
+    CHECK(R.B.sec == gb::SEC_NEUTRAL && !R.B.degTrusted, "code back after 000: sector known, angle untrusted");
+    R.ok("{\"id\":2,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 40000);
+    char m[90]; snprintf(m, sizeof m, "mode NEUTRAL re-references and parks at 41 (true %.1f)", S.drumDeg);
+    CHECK(R.idle() && fabs(S.drumDeg - 41) < 5, m); }
   for (int every : {200, 100, 40}) {             // bursts of 3 failed I2C reads during a cock (review: travel was lost)
     Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":2,\"cmd\":\"aim\",\"deg\":30}"); R.until([&] { return R.idle(); }, 60000);
     S.encDropEvery = every; R.ok("{\"id\":3,\"cmd\":\"cock\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);

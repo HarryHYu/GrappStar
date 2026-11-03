@@ -112,3 +112,78 @@ def test_full_mission_against_real_base_firmware(tmp_path):
         assert not failed, failed
     finally:
         r.close()
+
+
+# ------------------------------------------------------------------ both real firmwares
+from test_dart_realsim import SIM as DART_SIM, _free_port  # noqa: E402
+
+
+@pytest.mark.skipif(DART_SIM is None, reason="dart firmware simulator not built")
+def test_full_mission_both_real_firmwares(tmp_path):
+    import subprocess
+    import urllib.request
+    port = _free_port()
+    dp = subprocess.Popen([DART_SIM, "--port", str(port)], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                          stderr=subprocess.DEVNULL)
+    r = RealRig(tmp_path)
+    r.md.stop()                                    # replace the mock dart by the real firmware simulator
+    dart = Dart(f"127.0.0.1:{port}", timeout=1.0)
+    t0 = time.time()
+    while True:
+        try:
+            dart.status()
+            break
+        except Exception:
+            assert time.time() - t0 < 10, "dart simulator did not start"
+            time.sleep(0.2)
+    r.m.dart = dart
+    r.dart = dart
+
+    def evt(e):
+        if e.get("evt") == "FIRED":
+            urllib.request.urlopen(f"http://127.0.0.1:{port}/sim/launch?push_ms=40&flight_ms=900&impact=1", timeout=2)
+            r.base.transport.sim(f"set lineOut {r.line_out}")
+    r.base._evt_cbs = [evt]
+    r._stop.set()                                  # stop the mock-dart sync; run our own on the real dart
+
+    stop = threading.Event()
+
+    def sync():
+        last = None
+        while not stop.is_set():
+            try:
+                ph = dart.status()["phase"]
+            except Exception:
+                time.sleep(0.2)
+                continue
+            if ph != last:
+                if ph == "ANCHORED":
+                    r.base.transport.sim(f"anchor {r.line_out - r.slack}")
+                elif ph == "IDLE" and last == "RELEASING":
+                    r.base.transport.sim("free")
+                last = ph
+            time.sleep(0.2)
+    threading.Thread(target=sync, daemon=True).start()
+    answers = []
+
+    def operator():
+        while not stop.is_set():
+            p = r.m.prompt
+            if p is not None and p.answer is None:
+                answers.append((r.m.step, p.text, p.choices[0]))
+                r.m.answer(p.id, p.choices[0])
+            time.sleep(0.01)
+    threading.Thread(target=operator, daemon=True).start()
+    try:
+        r.m.start()
+        r.m.thread.join(300)
+        steps = [h["state"] for h in r.m.history]
+        assert not r.m.thread.is_alive(), f"hung at {r.m.step}: {answers[-3:]}"
+        assert r.m.state == "DONE", (r.m.error, steps, answers[-4:])
+        assert not [a for a in answers if "failed" in a[1]], answers
+        assert r.m.shot.get("landing_sources") and "dart" in r.m.shot["landing_sources"]
+    finally:
+        stop.set()
+        r.close()
+        dp.terminate()
+        dp.wait(5)

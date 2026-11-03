@@ -566,6 +566,15 @@ int main() {
   { fresh(); for (int i = 0; i < 6; i++) { K.key('2', 350, NOW); K.key('@', 350, NOW); run(150); }
     CHECK(P.mdir[KICK] == 0 && K.bothLock[KICK], "both kick keys repeated together still lock the motor"); }
   { fresh(); K.startAuto(NOW); run(20000); CHECK(K.seq == DONE && K.arm(true, false, NOW) != nullptr && !K.armed, "arm (even log-only) is refused while ANCHORED"); }
+  // review round 12: the firmware measures the kick swing for BENCH_TEST step 5
+  { fresh(); P.kickContact = P.kickLand = 4300; P.railV = 8.0f; for (int i = 0; i < 60 && !when("kick travel from stowed"); i++) { K.key('2', 350, NOW); run(150); }
+    std::string e; for (auto& l : LOG) if (l.find("kick travel from stowed") != std::string::npos) e = l;
+    float ms = e.empty() ? 0 : atof(e.c_str() + e.find("stowed") + 7); printf("     %s\n", e.c_str());
+    CHECK(ms > 4300 * 0.95f && ms < 4300 * 1.05f, "a kick held out in air to its end stop reports its travel (within 5 % of the real 4300 ms)"); }
+  // coordinator review r2_B2 #5
+  { fresh(); K.startAuto(NOW); run(500); CHECK(K.key('3', 350, NOW) != nullptr, "a run key during ANCHORING is refused (busy)");
+    K.keyRelease(NOW); run(100); CHECK(K.anchoring() && P.mdir[KICK] > 0, "...and the page's key-release stop does not abort the anchor"); }
+  { fresh(); K.key('3', 350, NOW); run(100); K.keyRelease(NOW); CHECK(allOff() && K.seq == IDLE, "the key-release stop stops a manual motor"); }
   // review round 11
   { fresh(); P.kickContact = P.kickLand = 4300; K.startAuto(NOW); run(10000); K.stop(NOW); run(700);   // NO_GROUND, then Retry
     bool augers = false; K.startAuto(NOW);

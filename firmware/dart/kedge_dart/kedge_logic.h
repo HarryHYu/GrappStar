@@ -66,7 +66,7 @@ struct Tuning {
   float armMinV = 6.6f;                                 // refuse to arm a flat battery (3.3 V per cell at rest)
   uint32_t armMaxMs = 15UL * 60 * 1000;                 // an arm expires after 15 min without a launch
   uint32_t podLeadMs = 300;                             // pods steps start with the deploy worm alone (open wire, at the stop)
-  float noGroundFrac = 0.95f;                           // NO_GROUND: kick at this share of kickSwingMs (its swing in air) with no contact
+  float noGroundFrac = 0.90f;                           // NO_GROUND: kick at this share of kickSwingMs (its swing in air) with no contact
   uint32_t kickSwingMs = 4300;                          // full kick swing at full duty and refV (BENCH_TEST step 5): travel bookkeeping
   uint32_t manualMaxMs = 8000;                          // a manual motor (held key or repeats) never runs longer
   uint32_t manualMaxNoInaMs = 2000;                     // ...and without current sensing (no stall detection)
@@ -250,6 +250,7 @@ struct Kedge {
   bool armed = false, autoOnLanding = true, landed = false; uint32_t armT = 0;
   bool podLead = false; float kickPos = 0; uint32_t lastTickT = 0; bool tickSeen = false;   // kickPos: kick travel estimate, ms at full duty from stowed
   float kickSwing0 = 0;                                 // kickPos when this K_SWING started
+  float kickRaw = 0;                                    // kick travel like kickPos but not clamped to kickSwingMs
   bool kickPlanted = false;                             // an anchor got past the kick swing since the last release (kick is on the ground)
   bool kickKnown = true;                                // kickPos is trusted (power-on with the legs stowed, or after a release)
   bool kickOverPair = false;                            // last pair reading said the kick (as the paused worm) is at stall
@@ -379,7 +380,7 @@ struct Kedge {
   // kickStowed: true after a power-on (legs stowed, as README asks); false after a brownout, crash, OTA or software
   // reset, when the legs may be out (kick jam checks then wait for the next completed release)
   void boot(int resetFault, uint32_t now, bool kickStowed = true) {
-    stopAll(now); kickKnown = kickStowed; kickPos = 0; kickPlanted = false;
+    stopAll(now); kickKnown = kickStowed; kickPos = 0; kickRaw = 0; kickPlanted = false;
     if (resetFault) { fault = resetFault; char b[64]; snprintf(b, sizeof b, "boot after %s reset, motors off", faultName(resetFault)); ev(b); }
     else ev("boot, motors off");
   }
@@ -493,6 +494,9 @@ struct Kedge {
   }
   // WiFi station left: manual (hold-to-run) motors stop at once; a running sequence carries on (it is autonomous)
   void linkLost(uint32_t now) { if (!seqRunning() && running()) { stopAll(now); ev("WiFi client lost, motors stopped"); } }
+  // the web page let go of its last held key (or lost focus): stop the manual motors only. A running sequence carries on
+  // and a latched fault stays (the key itself was refused; lifting a finger must not abort an anchor)
+  void keyRelease(uint32_t now) { if (!seqRunning() && running()) { stopAll(now); ev("keys released, motors stopped"); } }
 
   // one BNO085 accelerometer reading (|a| in g)
   void onAccel(float aG, uint32_t now) {
@@ -563,6 +567,7 @@ struct Kedge {
         if (seq == R_KICK && dir[KICK] < 0) kickBackDone += step;
         if (kickPos < 0) kickPos = 0;
         if (kickPos > tu.kickSwingMs) kickPos = tu.kickSwingMs;
+        kickRaw += dir[KICK] * step; if (kickRaw < 0) kickRaw = 0;   // not clamped: the bench measurement of the swing
       }
     }
     if (armed && !flight.flying() && (int32_t)(now - armT) > (int32_t)tu.armMaxMs) { armed = false; ev("arm expired (15 min without a launch)"); }
@@ -613,10 +618,14 @@ struct Kedge {
       }
       if (nrun != 2 && pairKey >= 0) { pairKey = -1; endPause(); }
       if (stopMask) {
+        bool kickRawOut = dir[KICK] > 0;
         char b[64]; int n = snprintf(b, sizeof b, "stalled:");
         for (int m = 0; m < NMOT; m++) if (stopMask & (1 << m)) { n += snprintf(b + n, sizeof b - n, " %s", motorName(m)); stallLock[m] = dir[m]; if (m == KICK && dir[m] > 0) kickPlanted = true; drive(m, 0, 0, now); }
         // (a kick driven out by hand until it stalls: ground or its own end stop cannot be told apart; the operator put it there)
         snprintf(b + n, sizeof b - n, " at %.0f mA, stopped", ma); ev(b); manOn = false;
+        if ((stopMask & (1 << KICK)) && kickRawOut && kickKnown) {   // BENCH_TEST step 5 reads kickSwingMs from this
+          char t[64]; snprintf(t, sizeof t, "kick travel from stowed %.0f ms (at 8.0 V)", kickRaw); ev(t);
+        }
       }
     } else { manOn = false; if (pairKey >= 0) { pairKey = -1; endPause(); } }
 
@@ -717,7 +726,7 @@ struct Kedge {
         if (r & 1) {
           // the real travel back must cover most of the travel out (the estimate out is short: planting is not counted)
           if (kickKnown && kickBackDone < 0.6f * kickBackStart) { setFault(F_KICK_JAM, "release: kick stalled before it was back (jammed)", now); return; }
-          stopAll(now); seq = RELEASED; kickPos = 0; kickKnown = true; kickPlanted = false; ev("release: done, legs stowed");
+          stopAll(now); seq = RELEASED; kickPos = 0; kickRaw = 0; kickKnown = true; kickPlanted = false; ev("release: done, legs stowed");
         }
         break;
       }

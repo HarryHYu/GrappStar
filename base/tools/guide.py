@@ -3,23 +3,35 @@
 python -m tools.guide OUT [--only demo] [--title "..."] [--pack PACK]
 
 Sections: title page (title, date), safety, parts list (tools.bom), print list (PACK/print_report.json from
-tools.pack, default PACK = OUT/pack, skipped when missing), assembly steps (asm.json steps, with the step image when
-OUT/shots has one: step_<n>.png, step_<nn>.png or assembly_step<nn>.png), audit summary (OUT/audit.json) and what
+tools.pack, default PACK = OUT/pack, skipped when missing), assembly steps, audit summary (OUT/audit.json) and what
 must be measured (P.MEASURE when the params define it).
+
+The assembly steps are tools.steps.plan_steps on the exported manifest, the same list as the assembly page
+(assembly.html): the same numbering, the parts of Part.step and the auto steps for parts in no step, and the step
+image OUT/shots/assembly_step<nn>.png (or step_<n>.png, step_<nn>.png) of that number. A wiring step (wire, lead,
+solder, connector, plug, terminal, battery, JST, crimp in the title or text) always starts with "Battery unplugged.";
+it is prepended, with a note, when the step text does not already start with it.
 """
 from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
 import time
+from types import SimpleNamespace
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE not in sys.path:
     sys.path.insert(0, BASE)
 
 from tools import bom as bom_tool  # noqa: E402
-from tools.pack import canvasmaker, clean, load_json, load_out, pdf_image, pdf_kit  # noqa: E402
+from tools.pack import canvasmaker, clean, doc_template, load_json, load_out, only_list, pdf_image, pdf_kit  # noqa: E402
+from tools.steps import plan_steps  # noqa: E402
+
+BATTERY = "Battery unplugged."
+WIRING_RE = re.compile(r"\b(wir(e|es|ed|ing)|leads?|solder\w*|connect(or|ors)|plug(s|ged|ging)?|terminals?|"
+                       r"batter(y|ies)|jst|crimp\w*)\b", re.I)
 
 SAFETY = [
     "Wiring always starts with the battery unplugged. Plug it in last, after a check of every connection.",
@@ -39,6 +51,33 @@ def step_image(out, n):
         if os.path.exists(fn):
             return fn
     return None
+
+
+def is_wiring(step: dict) -> bool:
+    return bool(WIRING_RE.search(f"{step.get('title', '')} {step.get('text', '')}"))
+
+
+def battery_rule(step: dict) -> tuple[str, bool]:
+    """(step text, changed): a wiring step gets "Battery unplugged. " in front unless it already starts with it."""
+    txt = (step.get("text") or "").strip()
+    if not is_wiring(step) or txt.lower().startswith(BATTERY.lower()):
+        return txt, False
+    return (f"{BATTERY} {txt}" if txt else BATTERY), True
+
+
+def guide_steps(man: dict, only=None) -> tuple[list[dict], list[str]]:
+    """The assembly page's step list (tools.steps.plan_steps) built from the manifest, battery rule applied.
+    Returns (steps, notes)."""
+    names = only_list(only)
+    parts = {p["name"]: SimpleNamespace(step=p.get("step"), subsystem=p.get("subsystem", ""), joint=p.get("joint"),
+                                        printed=bool(p.get("printed"))) for p in man["parts"]}
+    mods = [m for m in man.get("subsystems", []) if not names or m in names]
+    steps, notes = plan_steps(SimpleNamespace(steps=man.get("steps", []), parts=parts, modules=mods))
+    for n, st in enumerate(steps, 1):
+        st["text"], changed = battery_rule(st)
+        if changed:
+            notes.append(f"step {n} '{st['title']}' is a wiring step: prepended '{BATTERY}'")
+    return steps, notes
 
 
 def measure_items(P):
@@ -80,9 +119,8 @@ def audit_lines(au):
 
 
 def run(out, only=None, title=None, pack_dir=None, log=print) -> str:
-    from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
-    from reportlab.platypus import KeepTogether, PageBreak, SimpleDocTemplate, Spacer
+    from reportlab.platypus import KeepTogether, PageBreak, Spacer
     from tools.params import load_params
     P = load_params()
     man = load_out(out, only)
@@ -136,11 +174,15 @@ def run(out, only=None, title=None, pack_dir=None, log=print) -> str:
     # steps
     S.append(PageBreak())
     S.append(Pp("4. Assembly steps", "H2"))
-    steps = man.get("steps", [])
+    steps, notes = guide_steps(man, only)
+    for x in notes:
+        log(f"  note: {x}")
     if not steps:
         S.append(Pp("No assembly steps are defined yet."))
     for n, stp in enumerate(steps, 1):
-        blk = [Pp(f"Step {n}. {stp.get('title', '')}", "H3"), Pp(stp.get("text", ""))]
+        blk = [Pp(f"Step {n}. {stp.get('title', '')}", "H3")]
+        if stp.get("text"):
+            blk.append(Pp(stp["text"]))
         if stp.get("parts"):
             blk.append(Pp("Parts: " + ", ".join(stp["parts"]) + ".", "SM"))
         img = step_image(out, n)
@@ -161,8 +203,7 @@ def run(out, only=None, title=None, pack_dir=None, log=print) -> str:
         for name, txt in items:
             S.append(Pp("- " + (f"{name}: {txt}" if name and txt else name or txt)))
     fn = os.path.join(out, "guide.pdf")
-    doc = SimpleDocTemplate(fn, pagesize=A4, leftMargin=14 * mm, rightMargin=14 * mm, topMargin=15 * mm, bottomMargin=15 * mm,
-                            title=title, author="", creator="", subject="", producer="")
+    doc = doc_template(fn, title, leftMargin=14 * mm, rightMargin=14 * mm, topMargin=15 * mm, bottomMargin=15 * mm)
     doc.build(S, onLaterPages=_page_no(st), canvasmaker=canvasmaker())
     log(f"guide: {fn} ({len(steps)} steps, audit {verdict}, print list {'yes' if pr else 'no'})")
     return fn

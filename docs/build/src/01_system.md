@@ -66,6 +66,7 @@ brings the dart home on the take-up until it seats; back to LAUNCH.
 8. Print the base (section 4, after the coupons pass and the measurements are in) and assemble it with the motor
    and drum N20 (section 5).
 9. Put the base on the rover and wire the rover (section 7.1), then do the first power-on of everything together
-   (7.1, its part 4).
+   (7.1, its part 4). Then finish the Jetson setup (section 9, steps 4 to 7: the base port, cameras, dart WiFi,
+   rover camera calibration), now with the base wired and powered.
 10. Calibrate (section 10). Commands go to the base from the Jetson from now on (see section 10).
 11. Run the staged tests from stage 4 on (section 12; stages 0 to 3 were done in steps 3, 7 and 9).

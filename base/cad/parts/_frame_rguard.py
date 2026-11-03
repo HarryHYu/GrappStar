@@ -64,7 +64,8 @@ def fix_points(P):
 
 
 _CACHE = {}
-SKIP = ("launch_spring", "launch_carriage", "launch_dart")     # clearance-checked, not carved
+SKIP = ("launch_spring", "launch_dart")      # coils and dart run free under the guard (collision audit checks them)
+SKIP_EXACT = {"launch_carriage"}               # the carriage body passes under the guard top (its arms and yoke are carved)
 
 
 def _cutters(P):
@@ -78,7 +79,7 @@ def _cutters(P):
     from tools.timeline import timeline
     asm = Assembly.load(P, ["launch"])
     states = timeline(P, 0.5)
-    states = [states[i] for i in np.linspace(0, len(states) - 1, min(40, len(states))).astype(int)]
+    states = [states[i] for i in np.linspace(0, len(states) - 1, min(40, len(states))).astype(int)] + list(asm.extra_states)
     exact, hulls = [], []
     rel = {}
     for S in states:
@@ -86,17 +87,23 @@ def _cutters(P):
         Rinv = tf.inv(JW["launch_rail"])
         W = asm.world(S)
         for nme, p in asm.parts.items():
-            if nme.startswith(SKIP):
+            if nme.startswith(SKIP) or nme in SKIP_EXACT:
                 continue
             rel.setdefault(nme, []).append(Rinv @ W[nme])
     offs = np.array([(3, 0, 0), (-3, 0, 0), (0, 3, 0), (0, -3, 0), (0, 0, 3), (0, 0, -3)], float)
     for nme, Ms in rel.items():
         p = asm.parts[nme]
         if all(np.allclose(M, Ms[0], atol=1e-6) for M in Ms):
-            exact.append(prim.place(p.solid, Ms[0]))
+            # grown by 0.05 mm (4 shifted copies) so no guard face ends up coplanar with a rail face (watertight STL)
+            exact.append(prim.union([prim.place(p.solid, tf.T(*d) @ Ms[0]) for d in
+                                     ((0, 0.05, 0), (0, -0.05, 0), (0, 0, 0.05), (0, 0, -0.05))]))
         else:
             v = prim.mesh_of(p.solid.hull())[0]
             v = v[:: max(1, len(v) // 150)]
+            if all(np.allclose(M[:3, :3], Ms[0][:3, :3], atol=1e-6) for M in Ms):
+                pts = np.vstack([tf.apply(M, v) for M in Ms])       # pure slide (carriage family): one hull = exact sweep
+                hulls.append(Manifold.hull_points(np.vstack([pts + o for o in offs])))
+                continue
             for k in range(0, len(Ms), 4):
                 pts = np.vstack([tf.apply(M, v) for M in Ms[k:k + 5]])
                 hulls.append(Manifold.hull_points(np.vstack([pts + o for o in offs])))

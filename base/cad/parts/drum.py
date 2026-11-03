@@ -491,10 +491,11 @@ def band_poly(g, c, bit):
 
 def cam_radius(g, c, alpha):
     th = theta_of_local(alpha, g["phi_brake"], c)
-    if th > c["stop_hi"] or th < c["stop_lo"]:  # unreachable gap: blend from the high stop value to the low one
+    if th > c["stop_hi"] or th < c["stop_lo"]:
+        # unreachable gap: a radial cliff 0.5 deg past the high stop, LIGHT for the rest, so the whole LAUNCH zone up
+        # to the -4 stop stays LIGHT (3.5 deg from the cliff; REEL 347 is 5.5 deg from it)
         tt = th if th > c["stop_hi"] else th + 360.0
-        u = (tt - c["stop_hi"]) / (c["stop_lo"] + 360.0 - c["stop_hi"])
-        v = K.brake_lift(c["stop_hi"], c) * (1 - u) + K.brake_lift(c["stop_lo"], c) * u
+        v = K.brake_lift(c["stop_hi"], c) if tt < c["stop_hi"] + 0.5 else K.brake_lift(c["stop_lo"], c)
     else:
         v = K.brake_lift(th, c)
     return g["cam_r0"] + v

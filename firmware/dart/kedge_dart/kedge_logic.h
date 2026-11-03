@@ -59,8 +59,9 @@ struct Tuning {
   uint32_t surgeIgnoreMs = 250, stallHoldMs = 200, contactHoldMs = 150;
   uint32_t podsMinMs = 700, kickBackMinMs = 1500;      // shortest real travel before an end-stop stall is believed
   uint32_t kickPlantMaxMs = 6000;                       // kick on the ground but no housing stall seen: carry on after this
-  float riseFrac = 0.5f;
-  float noCurrentFrac = 0.5f; uint32_t noCurrentMs = 500;   // a lone motor under half its free current: open wire or short                                // a worm stall in a sequence must also raise the total current
+  float riseFrac = 0.5f;                                // a worm stall in a sequence must also raise the total current
+  float noCurrentFrac = 0.4f; uint32_t noCurrentMs = 500;   // a lone motor under 40 % of its free current: open wire, or a
+                                                        // short chopped by the DRV8833 protection (about 9 mA); worms 20+
   float lowRailV = 5.6f; uint32_t lowRailMs = 500;      // 2S at 2.8 V per cell under load
   uint32_t manualMaxMs = 8000;                          // a manual motor (held key or repeats) never runs longer
   uint32_t manualMaxNoInaMs = 2000;                     // ...and without current sensing (no stall detection)

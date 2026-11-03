@@ -87,7 +87,7 @@ Manual key, same keys as the web page and Serial Monitor.
   four at once: the limit is "one stalled while the others work normally".
 - Stall currents are bench values at 8.0 V and scale with the rail voltage (0.6 to 1.15 x) and, for manual keys,
   with (`speed`/255) squared (the drivers run in slow decay: one input high, the other PWM inverted).
-- A single motor drawing under half its free current for 0.5 s (open wire, or a short that the driver's own
+- A single motor drawing under 40 % of its free current for 0.5 s (open wire, or a short that the driver's own
   protection keeps chopping) is stopped with the event `<motor> draws no current: wire open or shorted`.
 - One stalled drill while the other turns cannot be told from normal drilling (both share one channel and one current
   reading); only both stalled is detected.
@@ -222,7 +222,7 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 | `OVERCURRENT` | motor current over 2000 mA for 10 ms while a motor runs (or the INA219 range overflowed) | all motors off |
 | `KICK_TIMEOUT` | kick found no ground in 15.5 s (anchor), or no stow stop in 15 s (release), or a kick timer ran out while current reads were failing | all off |
 | `SEQ_TIMEOUT` | anchor or release sequence over 35 s, or a sequence motor timer ran out while current reads were failing | all off |
-| `NO_CURRENT` | a lone motor in a sequence drew under half its free current for 0.5 s: open wire or shorted output | all off |
+| `NO_CURRENT` | a lone motor in a sequence drew under 40 % of its free current for 0.5 s: open wire or shorted output | all off |
 | `DRILL_JAM`, `FOOT_JAM` | stalled while unscrewing in release | all off |
 | `CURRENT_SENSOR` | 3 failed INA219 reads in a row during a sequence | all off; manual keys still work on timers |
 | `LOW_RAIL` | rail under 5.6 V for 0.5 s while a motor runs | all off |

@@ -330,7 +330,7 @@ class MockBase:
                 self.state = "HOLD"
                 self.rpm = 0.0
                 self.evt("LIMIT", tension_n=round(self.tension, 1), line_m=round(self.line_m, 3))
-            elif until == "seated" and self.sw()["seated"]:
+            elif self.sw()["seated"]:      # dart home: always stop, whatever "until" says
                 self.reel_cfg = None
                 self.state = "IDLE"
                 self.tension = 0.0

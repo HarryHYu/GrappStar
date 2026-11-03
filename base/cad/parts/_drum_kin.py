@@ -19,7 +19,7 @@ DEFAULTS = dict(
     stop_lo=-10.0,          # groove end (hard stop) below LAUNCH
     launch=0.0,
     neutral=40.0,
-    reel=80.0,
+    reel=87.0,
     wrapped=338.0,
     stop_hi=346.0,          # groove end (hard stop) past WRAPPED. stop_hi - stop_lo < 360 so the code disc is unique
     tr_ln=(6.0, 34.0),      # groove 1 transition LAUNCH -> NEUTRAL
@@ -56,7 +56,7 @@ DEFAULTS = dict(
     code_arcs={
         "b0": ((-10.0, 36.0), (76.0, 327.0)),
         "b1": ((4.0, 98.0),),
-        "b2": ((44.0, 346.0),),
+        "b2": ((44.0, 347.0),),
     },
     sw_tol=1.5,             # expected edge tolerance (deg) of a printed contact on a bump ramp
 )

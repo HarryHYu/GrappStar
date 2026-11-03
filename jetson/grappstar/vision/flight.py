@@ -12,12 +12,12 @@ How it works
 2. Video motion energy. Each good frame is shrunk to 160 px wide grey and blurred; the energy of a pair of
    consecutive good frames is the mean absolute difference divided by the frame gap. The static floor (rail and
    landed parts) is a low percentile; "moving" is energy above a threshold derived from it. Launch = first
-   sustained motion, landed = after the last motion, impact = the peak of motion just before landed (the nose
-   hitting the ground is the most violent change in the picture).
+   sustained motion, landed = after the last motion, impact = the end of the large flight motion (the last
+   pair above half the peak energy of the final second; after it only a fast decaying shake follows).
 3. IMU (C2 flightlog: t_ms dart millis, quaternion world from body, specific force in body frame m/s^2).
    Launch = first sample with |a| over 4 g, impact = first sample over 6 g at least 0.3 s later, landed = first
-   time after impact the reading stays at its final resting vector (1 g) for 0.3 s. Clock alignment: video_t = t_ms / 1000 +
-   offset. The offset is either given (clock_offset_s) or estimated by matching the IMU launch spike to the
+   time after impact the reading stays at its final resting vector (1 g) for 0.3 s.
+   Clock alignment: video_t = t_ms / 1000 + offset. The offset is either given (clock_offset_s) or estimated by matching the IMU launch spike to the
    video launch onset (and the IMU impact to the video impact when both exist; the median is used). With a
    flightlog, phase times come from the IMU (precise) shifted by the offset.
 4. Attitude: from quaternions (roll, pitch, yaw deg, convention below) when there is a flightlog, else roll and
@@ -514,9 +514,7 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
     t_first = frames[0].t if frames else None
     t_last = frames[-1].t if frames else None
     if use_imu:
-        res.source = "video+imu" if vid.get("launch") is not None or clock_offset_s is not None else "imu"
-        if clock_offset_s is not None:
-            res.source = "imu" if not m_e else "video+imu"
+        res.source = "video+imu" if vid.get("launch") is not None else "imu"
         sh = lambda v: None if v is None else v + offset  # noqa: E731
         t_launch, t_launch_end = sh(imu["launch"]), sh(imu.get("launch_end"))
         t_impact, t_landed = sh(imu.get("impact")), sh(imu.get("landed"))

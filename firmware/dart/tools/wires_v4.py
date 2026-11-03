@@ -73,7 +73,7 @@ w("MP1584 OUT-", "VTX GND", "black", "26 AWG", L(X["mp"], X["vtx"]), "", 21)
 w("VTX 5V in (same pad)", "Camera + (red)", "orange", "28 AWG", L(X["vtx"], X["cam"]), "runs forward along the top through the disc notches", 22)
 w("VTX GND (same pad)", "Camera - (black)", "black", "28 AWG", L(X["vtx"], X["cam"]), "", 23)
 w("Camera video (yellow)", "VTX video in", "yellow", "28 AWG", L(X["vtx"], X["cam"]), "twist with the camera ground", 24)
-w("XIAO 3V3", "DRV#1 SLP / nSLEEP / EEP pad (NOT VCC or VIN)", "red/white", "28 AWG", L(X["xiao_pins"], X["drv1"]), "wakes the driver; meter check first (WIRING.md step 6)", 25)
+w("XIAO 3V3", "DRV#1 SLP / nSLEEP / EEP pad (NOT VCC or VIN)", "red/white", "28 AWG", L(X["xiao_pins"], X["drv1"]), "wakes the driver; meter check first (WIRING.md step B6)", 25)
 w("DRV#1 SLP", "DRV#2 SLP", "red/white", "28 AWG", L(X["drv1"], X["drv2"]), "", 26)
 w("XIAO 3V3", "INA219 VCC", "red/white", "28 AWG", L(X["xiao_pins"], X["ina"]), "", 28)
 w("INA219 VCC", "BNO085 VIN", "red/white", "28 AWG", L(X["ina"], X["bno"]), "", 29)
@@ -148,15 +148,18 @@ COL = {"black": "#222222", "red": "#d0312d", "white": "#999999", "orange": "#e58
        "blue": "#1f5fd0", "green": "#1e9e48", "purple": "#8a3fd1", "grey": "#777777"}
 NODES = ["XIAO", "DRV#1", "DRV#2", "INA219", "BNO085", "MP1584", "BMS", "VTX", "Camera", "Charge socket", "Power loop socket",
          "Deploy N20", "Kick N20", "Foot N20", "Drill motor LEFT", "Drill motor RIGHT"]
-LABEL = {"XIAO": "XIAO ESP32S3", "DRV#1": "DRV8833 #1\nA = deploy, B = kick", "DRV#2": "DRV8833 #2\nA = both drills, B = foot",
+LABEL = {"Cell 1": "18350 cell 1", "Cell 2": "18350 cell 2", "Diode": "Schottky 1N5817 / SS14\nstripe toward the XIAO",
+         "Cap": "capacitor on MP1584 OUT\nlong leg OUT+, striped leg OUT-", "XIAO": "XIAO ESP32S3", "DRV#1": "DRV8833 #1\nA = deploy, B = kick", "DRV#2": "DRV8833 #2\nA = both drills, B = foot",
          "INA219": "INA219 (0x40)", "BNO085": "BNO085 (0x4A)", "MP1584": "MP1584 buck 5.04 V", "BMS": "2S BMS", "Cell": "2 x 18350 (2S)"}
 
 
 def node(s):
+    if s.startswith(("Rear plate", "Front spring")):   # cell 1 or cell 2 (the spring pair is cell 1 + / cell 2 -)
+        return "Cell 2" if ("cell 2" in s and "pair" not in s) else "Cell 1"
     s = s.split("(")[0].strip()
-    for k in NODES + ["Rear plate", "Front spring"]:
+    for k in NODES:
         if s.startswith(k):
-            return "Cell" if k in ("Rear plate", "Front spring") else k
+            return k
     return s
 
 
@@ -167,22 +170,29 @@ def pad(s):
     return p.replace("SWAPPED", "").replace("via a Schottky diode", "(diode)").strip() or "+"
 
 
-lines = ['digraph G { rankdir=LR; splines=true; nodesep=0.3; ranksep=1.2; bgcolor="white";',
+lines = ['digraph G { rankdir=LR; splines=true; pad=0.4; nodesep=0.3; ranksep=1.2; bgcolor="white";',
          'label="KEDGE dart wiring v4: DRV8833 #3 removed (its pocket stays empty). Every wire: battery unplugged."; labelloc=t; fontname="Arial"; fontsize=16;',
          'node [shape=box, style="rounded,filled", fillcolor="#f2f2f2", fontname="Arial", fontsize=11, color="#555555"];',
          'edge [fontname="Arial", fontsize=8, penwidth=1.4, arrowhead=none];']
-for n in ["Cell"] + NODES:
+for n in ["Cell 1", "Cell 2", "Diode", "Cap"] + NODES:
     lab = LABEL.get(n, n).replace("\n", "\\n")
     fill = "#ffe9c7" if n == "DRV#2" else "#f2f2f2"
     lines.append(f'"{n}" [label="{lab}", fillcolor="{fill}"];')
-lines.append('{rank=same; "Cell"; "Charge socket"; "Power loop socket";} {rank=same; "DRV#1"; "DRV#2"; "BNO085";} '
+lines.append('{rank=same; "Cell 1"; "Cell 2"; "Charge socket"; "Power loop socket";} '
              '{rank=same; "Deploy N20"; "Kick N20"; "Drill motor LEFT"; "Drill motor RIGHT"; "Foot N20"; "Camera";}')
+lines.append('"MP1584" -> "Cap" [style=dashed, color="#555555", label="soldered across OUT+ / OUT-"];')
 for r in W:
     a, b = node(r[1]), node(r[2])
     if a == b:
         continue
-    lab = f"{r[0]}: {pad(r[1])} - {pad(r[2])}"
-    lines.append(f'"{a}" -> "{b}" [color="{COL.get(r[3], "#444")}", label="{lab}"];')
+    if r[0] == 16:   # buck 5 V to the XIAO goes through the diode
+        lines.append(f'"MP1584" -> "Diode" [color="{COL[r[3]]}", label="16: OUT+ to diode (no stripe end)"];')
+        lines.append(f'"Diode" -> "XIAO" [color="{COL[r[3]]}", label="16: diode stripe end to 5V"];')
+        continue
+    lab = f"{r[0]}: {pad(r[1])} to {pad(r[2])}"
+    if r[0] == 2:
+        lab = "2: series link, cell 1 + to cell 2 -"
+    lines.append(f'"{a}" -> "{b}" [minlen={2 if {a, b} == {"DRV#1", "DRV#2"} else 1}, color="{COL.get(r[3], "#444")}", label="{lab}"];')
 lines.append("}")
 dot = os.path.join(PK, "wiring.dot")
 open(dot, "w").write("\n".join(lines))

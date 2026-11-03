@@ -51,6 +51,18 @@ class AppConfig:
     mission: MissionConfig = field(default_factory=MissionConfig)
 
 
+def _brief(d):
+    """Drop long per-frame lists from a result dict (the page polls status several times a second)."""
+    if not isinstance(d, dict):
+        return d
+    out = {}
+    for k, v in d.items():
+        if isinstance(v, (list, dict)) and len(v) > 20:
+            continue
+        out[k] = v
+    return out
+
+
 class App:
     def __init__(self, cfg: Optional[AppConfig] = None, rover: Optional[RoverDrive] = None):
         self.cfg = cfg or AppConfig()
@@ -166,8 +178,8 @@ class App:
             "dart": dict(ds, link=self.dart.link()),
             "mission": m,
             "cams": {k: v.status() for k, v in self.cams.items()},
-            "results": {"flight": self.results.get("flight"), "terrain": self.results.get("terrain"),
-                        "mosaic": self.results.get("mosaic"), "errors": self.results.get("errors"),
+            "results": {"flight": _brief(self.results.get("flight")), "terrain": _brief(self.results.get("terrain")),
+                        "mosaic": _brief(self.results.get("mosaic")), "errors": self.results.get("errors"),
                         "files": sorted(self.files)},
             "target": self.target,
             "log": log_tail,
@@ -404,6 +416,8 @@ class App:
         frames = cam.buffer() if cam else []
         try:
             fl = self.dart.flightlog()
+            if not fl.get("samples"):
+                fl = None
         except DartError:
             fl = None
         d = self.run_dir or self._new_run()

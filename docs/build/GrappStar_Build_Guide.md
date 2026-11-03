@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 12:05 Sydney time from commit `2290708`.
+Built 2026-11-03 12:06 Sydney time from commit `92e9a75`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -234,7 +234,9 @@ dog clutch, slip clutch, bearing seats, heat-set inserts and nut traps, key rib,
 through its test sheet. Do not print the big base parts until every coupon passes.
 
 
-> NOT IN THE REPO YET: `base/pack/**/*oupon*.md` (written by cad-infra (print pack)). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
+
+
+> NOT IN THE REPO YET: `base/**/coupon/COUPON.md` (written by cad-infra (risk coupons)). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
 
 
 ## Dart prints
@@ -2849,6 +2851,7 @@ shows a placeholder; re-run the script after it lands.
 | `base/pack` | cad-infra (print pack) | NOT YET |
 | `base/out` | cad-infra (assembly pipeline) | yes |
 | `base/guide` | cad-infra (assembly steps) | NOT YET |
+| `base/**/coupon/COUPON.md` | cad-infra (risk coupons) | NOT YET |
 | `kedge/pack_v30/KEDGE_v30_run_sheet.pdf` | dart v30 pack (done) | yes |
 | `firmware/base/WIRING.md` | fw-base | yes |
 | `firmware/base/README.md` | fw-base | yes |

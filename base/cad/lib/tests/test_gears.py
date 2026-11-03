@@ -151,3 +151,27 @@ def test_options_valid():
     inf = gears.spur_info(1, 120)
     lo, hi = prim.bbox(big)
     assert abs(hi[0] - inf["r_tip"]) < 0.05
+
+
+def test_din_key_table():
+    assert gears._din_key(20) == (6, 2.8)
+    assert gears._din_key(12) == (4, 1.8)
+    assert gears._din_key(12.1) == (5, 2.3)
+    assert gears._din_key(22) == (6, 2.8)
+    assert gears._din_key(8) == (2, 1.0)
+    assert gears._din_key(25) == (8, 3.3)
+
+
+def test_key_bore_matches_keyed_shaft():
+    from cad.lib import shafts
+    L = 10.0
+    sh = shafts.keyed_shaft(L, d=20)
+    g = gears.spur_gear(2, 30, L, bore=20 + fits.SHAFT_IN_BORE, bore_kind="key")
+    assert (sh ^ g).volume() < 1e-6
+    assert (sh.rotate((0, 0, 3)) ^ g).volume() > 1e-3
+    # keyway equals shafts.keyed_bore: 6.0 wide, floor at r 12.8
+    from shapely.geometry import Polygon, box
+    cs = gears.bore_cs(20 + fits.SHAFT_IN_BORE, "key")
+    assert abs(cs.bounds()[2] - 12.8) < 1e-3
+    slot = box(10.6, -5, 14, 5).intersection(Polygon(cs.to_polygons()[0]))
+    assert abs((slot.bounds[3] - slot.bounds[1]) - 6.0) < 1e-3

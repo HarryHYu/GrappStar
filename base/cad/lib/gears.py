@@ -209,23 +209,27 @@ def spur_profile(m, z, pa=20.0, shift=0.0, backlash=fits.GEAR_BACKLASH, root_fil
 
 # ---------------------------------------------------------------- bores, hubs, chamfers
 
-_DIN6885 = [(6, 2, 1.0), (8, 2, 1.0), (10, 3, 1.4), (12, 4, 1.8), (17, 5, 2.3), (22, 6, 2.8), (30, 8, 3.3),
-            (38, 10, 3.3), (44, 12, 3.3), (50, 14, 3.8)]
+# DIN 6885 parallel keys: (d_min, key width b, hub keyway depth t2), valid for d_min < d <= next d_min
+_DIN6885 = [(6, 2, 1.0), (8, 3, 1.4), (10, 4, 1.8), (12, 5, 2.3), (17, 6, 2.8), (22, 8, 3.3), (30, 10, 3.3),
+            (38, 12, 3.3), (44, 14, 3.8)]
 
 
 def _din_key(d):
-    w, t = 2, 1.0
+    """DIN 6885 key (width b, hub keyway depth t2) for a nominal shaft diameter d (band d_min < d <= next)."""
+    w, t = _DIN6885[0][1], _DIN6885[0][2]
     for dmin, ww, tt in _DIN6885:
-        if d >= dmin:
+        if d > dmin + 1e-9:
             w, t = ww, tt
     return w, t
 
 
-def bore_cs(d, kind="round", flat=None, key_w=None, key_depth=None, n=6, spline_h=None, spline_w=None, seg=None):
+def bore_cs(d, kind="round", flat=None, key_w=None, key_depth=None, n=6, spline_h=None, spline_w=None, seg=None,
+            fit=fits.SHAFT_IN_BORE):
     """CrossSection of a bore hole (as cut, add fits allowances to d yourself), centred on the origin.
-    kind: 'round'; 'd' (flat on +X, flat = depth of the flat, default 0.1 d); 'key' (keyway on +X, key_w width,
-    default DIN 6885 for d, widened by 2 * fits.KEY_CLEAR; key_depth = depth beyond the bore wall, default DIN hub
-    depth t2); 'hex' (d = across flats, flats normal to X); 'spline' (n straight-sided lobes, d = minor diameter,
+    kind: 'round'; 'd' (flat on +X, flat = depth of the flat, default 0.1 d); 'key' (keyway on +X, same as
+    shafts.keyed_bore: width key_w, default DIN 6885 for the nominal shaft d - fit, the clearance fits.KEY_CLEAR
+    is taken on the shaft key ridge; floor at r = (d - fit) / 2 + key_depth, key_depth default DIN hub depth t2;
+    fit is the diametral allowance the caller added to d, default fits.SHAFT_IN_BORE); 'hex' (d = across flats, flats normal to X); 'spline' (n straight-sided lobes, d = minor diameter,
     spline_h lobe height default 0.12 d, spline_w lobe width default pi d / (2 n))."""
     from manifold3d import CrossSection
     r = d / 2
@@ -236,10 +240,11 @@ def bore_cs(d, kind="round", flat=None, key_w=None, key_depth=None, n=6, spline_
         f = 0.1 * d if flat is None else flat
         return circ ^ CrossSection.square((2 * r + 2, 2 * r + 2)).translate((r - f - (2 * r + 2), -r - 1))
     if kind == "key":
-        w0, t0 = _din_key(d)
-        w = (w0 if key_w is None else key_w) + 2 * fits.KEY_CLEAR
+        dn = d - (fit or 0.0)
+        w0, t0 = _din_key(dn)
+        w = w0 if key_w is None else key_w
         t = t0 if key_depth is None else key_depth
-        return circ + CrossSection.square((r + t, w)).translate((0, -w / 2))
+        return circ + CrossSection.square((dn / 2 + t, w)).translate((0, -w / 2))
     if kind == "hex":
         rc = r / math.cos(math.pi / 6)
         return prim.poly_cs([(rc * math.cos(math.radians(30 + 60 * i)), rc * math.sin(math.radians(30 + 60 * i)))

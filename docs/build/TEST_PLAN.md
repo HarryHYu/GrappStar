@@ -194,7 +194,7 @@ away; everyone beside the line, glasses on. Free current and tension calibrated 
 
 Pass: the wraps stay in place, no line trapped, the base holds at about 50 N.
 To slacken afterwards (and if it fails: `estop` first): the
-capstan cannot let line out, so walk the scale end slowly toward the base, standing beside the line. Then: wraps walking or trapped line: check the
+capstan cannot let line out, so walk the scale end slowly toward the base, standing beside the line. If it failed: wraps walking or trapped line: check the
 wrap cup position and the capstan skirt; wrong tension: redo CALIBRATION.md (f).
 
 ## Stage 8. The anchor in soil

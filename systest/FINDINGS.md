@@ -21,7 +21,7 @@ harness re-runs green.
   (PROTOCOL.md section 2 lists `BOOTING` as a common refusal for actions only).
 - Harness workaround: waits for `BOOT` before bench setup.
 
-## F2 (fw-base + jetson) TIDY never runs: the Jetson sends `tidy`, the firmware only knows `reel until:"slip"`
+## F2 (fw-base + jetson) [FIXED in base-v1 d15129e: firmware has `tidy` / TIDIED, harness sees TIDY run] TIDY never runs: the Jetson sends `tidy`, the firmware only knows `reel until:"slip"`
 
 - Scenario `nominal` (every run): mission step TIDY logs "base has no tidy command: skipped". The base replied
   `UNKNOWN_CMD` to `{"cmd":"tidy"}`. The firmware has a tidy, but as `reel` with `until:"slip"`
@@ -50,8 +50,11 @@ harness re-runs green.
 - Scenario `nominal`: steps `... LANDING_ZONE, BASE_NEUTRAL, ANCHOR, TIDY, WRAP, CHECK, TOW ...`
   (`jetson/grappstar/mission.py:325-347` `_sequence`). D22 (spec v1.1): LANDED -> NEUTRAL -> WRAP -> WRAPPED ->
   anchor -> TIDY -> REEL fly-in -> TOW (laying turns against a taut dart side needs about 360 N at the ring).
-- In the sim plant the wrap still works after anchoring because sim.h models the anchored line with 0.3 m of slack;
-  the real capstan would jam or tug the anchor. The harness will flag the order once the plant models D22 (pending).
+- CONFIRMED with the D22 plant (13:40 run, base-v1 merged at d15129e). The harness plant now makes every laid turn
+  draw one capstan circumference (d 40 + line: 0.129 m) from the dart side; an anchored dart side gives only its slack.
+  Scenario `nominal`: dart lands with 0.9 m slack, ANCHOR, TIDY (3 s) pulls 0.19 m, WRAP lays 5.5 of 7 turns using the
+  remaining 0.71 m, then the cup cannot turn: `FAULT DRUM_TIMEOUT "drum not turning (no code edge)"`, drum HELD
+  at 250 deg (BETWEEN, wraps 5.48). This is the D22 jam, now reproduced end to end. Fix = the D22 order in `_sequence`.
 
 ## F5 (jetson + docs) the tow limit is only as good as CALIBRATION.md, and a tow fault has no way out
 
@@ -140,3 +143,13 @@ harness re-runs green.
   treats any err string that equals a fault code as a fault). Retry then repeats it 3 times without any new information.
 - Suggest: preflight problem "angle sensor not reading (magnet NONE): fit the magnet / check the AS5600 wires" when
   `magnet` is `NONE` (warning for `WEAK` / `STRONG`); only add the FAULT sentence when telemetry `fault` is set.
+
+## F11 (jetson) `is_wrapped` still uses the 4-wrap threshold: a half-laid 7-turn wrap counts as wrapped, Retry skips the wrap
+
+- Scenario `nominal` after the F4 jam: the wrap stopped at 5.48 turns (telemetry `wraps` 5.48, `drum_pos` BETWEEN).
+  The operator chose Retry: `wrap()` returned at once because `is_wrapped()` is true for `wraps >= 3.5`, the mission
+  went on to CHECK, and `reel` was refused `NOT_WRAPPED` three times (Retry / Skip / Abort loop) until Abort.
+- Where: `jetson/grappstar/mission.py:565-566` (`wraps >= 3.5`, from the 4-wrap firmware). The firmware now lays 7
+  (`config.h:131 wrapsFull`, D16).
+- Fix: wrapped only when `drum_pos == "WRAPPED"` (the drum code is absolute), or `wraps >= wrapsFull` read from the
+  base; never from a partial estimate. Same test is used by `ensure_reel()` and `unwrap()`.

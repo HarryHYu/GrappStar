@@ -7,14 +7,18 @@ agreed it is real but rated it lower.
 
 Confirmed: 4. Refuted and dropped: 1.
 
-| # | Sev | File:line | Owner | Finding |
-|---|---|---|---|---|
-| 1 | high | `jetson/grappstar/cli.py:301` | jetson | R1-C #3 is still broken in a real run: `serve --drag` defaults to 0.75 and settings.example.json says 0.75, so every served mission solves on the 0.75 N column, not the LIGHT 0.5 N clutch |
-| 2 | medium | `jetson/grappstar/mission.py:877` | jetson | tell_line_out sends the video-only flight range to the base as line_m, so the capstan reel-in can pull the dart onto the capstan |
-| 3 | medium | `jetson/grappstar/video/camera.py:335` | jetson-vision | A long operator prompt still loses the launch frames: once the hold is over HELD_MAX_MB it drops the OLDEST packed frames (the launch first), and HOLD_MAX_S ends the hold without warning (R1-C #4 only partly fixed) |
-| 4 | medium | `jetson/grappstar/vision/flight.py:689` | jetson-vision | Video-only flight reconstruction still gives a range 30 to 80 percent too long (round 1 #6 not fixed): DEFAULT_V0 is 10 m/s and v0 is bisected from a noisy flight time |
+Re-checked 14:10 Sydney against base-v1 863d58d, one checker subagent per finding: see the Now column.
+
+| # | Sev | File:line | Owner | Finding | Now (863d58d) |
+|---|---|---|---|---|---|
+| 1 | high | `jetson/grappstar/cli.py:301` | jetson | R1-C #3 is still broken in a real run: `serve --drag` defaults to 0.75 and settings.example.json says 0.75, so every served mission solves on the 0.75 N column, not the LIGHT 0.5 N clutch | partly fixed |
+| 2 | medium | `jetson/grappstar/mission.py:877` | jetson | tell_line_out sends the video-only flight range to the base as line_m, so the capstan reel-in can pull the dart onto the capstan | still open |
+| 3 | medium | `jetson/grappstar/video/camera.py:335` | jetson-vision | A long operator prompt still loses the launch frames: once the hold is over HELD_MAX_MB it drops the OLDEST packed frames (the launch first), and HOLD_MAX_S ends the hold without warning (R1-C #4 only partly fixed) | still open |
+| 4 | medium | `jetson/grappstar/vision/flight.py:689` | jetson-vision | Video-only flight reconstruction still gives a range 30 to 80 percent too long (round 1 #6 not fixed): DEFAULT_V0 is 10 m/s and v0 is bisected from a noisy flight time | fixed |
 
 ## 1. R1-C #3 is still broken in a real run: `serve --drag` defaults to 0.75 and settings.example.json says 0.75, so every served mission solves on the 0.75 N column, not the LIGHT 0.5 N clutch
+
+- Now (863d58d): **partly fixed** at `jetson/grappstar/cli.py:301`. Ballistics.at_pitch and solve now default to LIGHT_DRAG_N = 0.5 (ballistics.py:31, 93, 111), and MissionConfig still uses 0.5. The serve path is unchanged, though: `serve --drag` still defaults to 0.75 (cli.py:301), cmd_serve still always sets cfg.mission.drag_n = a.drag (cli.py:46), `solve --drag` still defaults to 0.75 (cli.py:354), and settings.example.json:11 still has "drag": 0.75. So every served mission still solves on the 0.75 N column, as the finding describes.
 
 - File: `jetson/grappstar/cli.py:301`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -53,6 +57,8 @@ What the code does:
 
 ## 2. tell_line_out sends the video-only flight range to the base as line_m, so the capstan reel-in can pull the dart onto the capstan
 
+- Now (863d58d): **still open** at `jetson/grappstar/mission.py:974`. tell_line_out (mission.py:968-987) has not changed. It still uses any flight range_m between 0.5 and 30 m, with no check on fl["source"] and no cap against sol["line_out_m"], so a range from video alone still wins over the ballistic line-out and goes to the base as line_m. vision/flight.py did add fixes for the video-only range (a commanded-pitch prior and calibration to the C3 table), but mission.py:945 calls self.analyse without aim_pitch_deg, so the video-only path still estimates pitch from the horizon or the flight time, and nothing stops an overestimated range from making the capstan over-reel.
+
 - File: `jetson/grappstar/mission.py:877`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: jetson
@@ -82,6 +88,8 @@ Fix: In tell_line_out, use the flight range only when it comes from the IMU: `if
 
 ## 3. A long operator prompt still loses the launch frames: once the hold is over HELD_MAX_MB it drops the OLDEST packed frames (the launch first), and HOLD_MAX_S ends the hold without warning (R1-C #4 only partly fixed)
 
+- Now (863d58d): **still open** at `jetson/grappstar/video/camera.py:335`. The hold still has no end time: _held_locked is `f.t >= self._hold_t`. Step 3 still calls _pop_locked, which removes ring[0], the oldest packed frame, so the launch is the first frame lost once the store passes HELD_MAX_MB. Lines 309-310 still end the hold silently after hold_max_s. Meanwhile mission.py:874 still waits on the 'Is the dart down?' ask with no timeout, and the docstring claim at lines 20-22 is unchanged.
+
 - File: `jetson/grappstar/video/camera.py:335`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: jetson-vision
@@ -105,6 +113,8 @@ The code path is real:
 >
 
 ## 4. Video-only flight reconstruction still gives a range 30 to 80 percent too long (round 1 #6 not fixed): DEFAULT_V0 is 10 m/s and v0 is bisected from a noisy flight time
+
+- Now (863d58d): **fixed** at `jetson/grappstar/vision/flight.py:810-856`. The no-IMU path no longer bisects v0 over 2 to 30 m/s. It now fuses the speed from the flight time, the sky track and the C3 table prior, then scales the range to the C3 table. analysis.py:111 passes the ballistics table and the aim pitch. I re-ran the reviewer's short.py on HEAD with a bare analyze_flight(frames) and no table: errors are now at most about 15% (for example 4.34 m against a true 3.77 m), down from 30 to 80%. The test_flight real_speed tests, which use the table and a 15% tolerance, pass. One thing is left: DEFAULT_V0 is still 10.0 at line 62, but it is now only a last-resort fallback.
 
 - File: `jetson/grappstar/vision/flight.py:689`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed

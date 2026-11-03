@@ -11,7 +11,9 @@ if BASE not in sys.path:
 def load_params():
     try:
         P = importlib.import_module("spec.params")
-    except ModuleNotFoundError:
+    except ModuleNotFoundError as e:
+        if e.name not in ("spec", "spec.params"):
+            raise                       # a real error inside spec/params.py: never hide it behind the stub
         from tools import params_stub as P
     from tools import params_stub as D
     for k in dir(D):            # fill the few names the tools rely on

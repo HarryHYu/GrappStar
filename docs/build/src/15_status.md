@@ -1,0 +1,13 @@
+# 15. Sources and appendices
+
+This guide is built by `docs/build/make_guide.py` from the files below. A "NOT YET" row is a section that still
+shows a placeholder; re-run the script after it lands.
+
+@status
+
+Appendices attached after this page (when present): the base assembly steps PDF from `base/guide`, then the KEDGE
+v30 dart run sheet. In the run sheet, follow section 6 of this guide for the new dart pin map.
+
+Other documents in the repo: `kedge/pack_v30/KEDGE_v30_engineering_report.pdf` (dart physics and loads),
+`base/spec/BASE_SPEC.md` (base design), `firmware/base/PROTOCOL.md` (base serial protocol), `firmware/dart/API.md`
+(dart HTTP API), `jetson/INTERFACES.md` (Jetson software).

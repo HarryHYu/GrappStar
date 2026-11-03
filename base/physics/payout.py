@@ -144,7 +144,7 @@ def analyse(p: Params, brake_n: float = 0.75, pitch_deg: float = 40.0, v_muzzle:
     elif fr["overrun_after_landing_m"] > 0.3 or fr["slack_max_m"] > 0.15:
         risk = "medium"
     return dict(brake_n=brake_n, pitch_deg=pitch_deg, v_muzzle=v_muzzle, shoes=shoes, reel=rp, spin_up=su,
-                rpm_max=fr["reel_rpm_max"], bearing_ok=fr["reel_rpm_max"] < p.bearing.n_max_rpm_2rs,
+                rpm_max=fr["reel_rpm_max"], bearing_ok=bool(fr["reel_rpm_max"] < p.bearing.n_max_rpm_2rs),
                 t_line_max_n=fr["t_dart_max_n"], t_reel_max_n=fr["t_reel_max_n"],
                 slack_in_flight_m=fr["slack_max_m"], overrun_after_landing_m=fr["overrun_after_landing_m"],
                 stop_time_after_landing_s=fr["reel_stop_after_landing_s"], range_m=fr["range_m"],
@@ -162,8 +162,8 @@ def main(argv=None):
     p = load_params()
     rp = reel_props(p)
     print(f"params: {p.source}")
-    print(f"reel: empty {rp['mass_empty'] * 1000:.1f} g, I empty {rp['inertia_empty'] * 1e6:.2f} g m2 x1e-3 "
-          f"(kg m2 x1e-6), full {rp['inertia_full'] * 1e6:.2f}, r full {rp['r_full'] * 1000:.1f} mm, "
+    print(f"reel: empty {rp['mass_empty'] * 1000:.1f} g, I empty {rp['inertia_empty'] * 1e6:.2f} kg mm2, "
+          f"full {rp['inertia_full'] * 1e6:.2f} kg mm2, r full {rp['r_full'] * 1000:.1f} mm, "
           f"capacity {rp['capacity_m']:.1f} m, flange margin {rp['flange_margin_mm']:.1f} mm")
     rows = []
     for shoes in (False, True):
@@ -176,7 +176,7 @@ def main(argv=None):
     out = dict(params_source=p.source, reel=rp, runs=[{k: v for k, v in r.items() if k != "history"} for r in rows],
                history=rows[0]["history"])
     os.makedirs(os.path.dirname(a.json), exist_ok=True)
-    json.dump(out, open(a.json, "w"), indent=1)
+    json.dump(out, open(a.json, "w"), indent=1, default=float)
     return out
 
 

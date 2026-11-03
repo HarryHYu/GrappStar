@@ -1,6 +1,6 @@
 # Physics findings for the spec (worker `physics`)
 
-Status: first pass, 3 Nov ~11:15 Sydney, run on base/spec/params.py v0.1-stub (LAUNCH, AIM, REEL still None, so
+Status: updated 3 Nov (after review round 1 and cad-launch NOTES), run on base/spec/params.py v0.1-stub (LAUNCH, AIM, REEL still None, so
 launcher/reel geometry below is my placeholder: stroke along the rail, 60 g carriage, 1:1 springs to carriage, reel
 core 40 / flange 64 / width 20 mm, capstan 40 mm). Dart mass 0.279 kg (spec DART.mass_kg; the brief said 0.292 kg:
 coordinator please confirm which). Models: base/physics/*.py, every number reproducible with the CLIs.
@@ -9,6 +9,7 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 
 | Case (pitch 35 deg, tether brake 0.5 / 0.75 / 1.0 N) | spring ext | stored | v muzzle | range m |
 |---|---|---|---|---|
+| cad-launch NOTES: 250 mm, 1:1, preload 5 mm, carriage 80 g (current baseline) | 250 mm | 11.2 J | 6.9 m/s | 4.0 / 3.6 / 3.2 |
 | spec max_ext 250 mm, 1:1, carriage 60 g | 250 mm | 11.2 J | 7.1 m/s | 4.2 / 3.8 / 3.4 |
 | ext 280 mm (still under the wire limit, SF 1.25) | 280 | 13.6 | 7.9 | 5.0 / 4.5 / 4.1 |
 | 280 mm + carriage 30 g | 280 | 13.6 | 8.2 | 5.5 / 4.9 / 4.4 |
@@ -37,10 +38,13 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 ## F3. Carriage stop
 
 - Carriage KE at the stop 1.0 J (30 g) to 1.9 J (60 g), plus ~1.2 J of spring KE arriving through the cord.
-  With a 4 mm pad the peak is ~0.5 to 1 kN. Make the stop pad 15 to 20 mm of foam/TPU (peak ~150 to 250 N), and the
+  With a 4 mm pad the peak is ~1.2 kN (carriage + spring KE; the cord alone sees ~310 N after a rigid stop). Make the stop pad 15 to 20 mm of foam/TPU (peak ~150 to 250 N), and the
   carriage as light as possible (every 10 g is ~0.15 m/s).
 
-## F4. Pitch range
+## F4. Pitch range (cad-launch crank-rocker 6 to 47 deg: good, keep it)
+
+- Baseline: best 36 deg (3.6 m at 0.75 N); 6 deg gives 2.2 m, 47 deg 3.3 m. The table spans 2.2 to 3.6 m, so every
+  target from 2.2 to 3.6 m is reachable on the rising branch. Older note below was for an 8.6 m/s shot.
 
 - Best range at 35 deg (0.75 N). 30 to 40 deg are within 2 % of best. Below 20 deg range drops fast (the dart lands at
   4.6 m from 8.6 m/s). An aim range of 15 to 50 deg covers 75 % to 100 % of max range; above 45 deg buys nothing but
@@ -53,19 +57,35 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 - Reel at ~3,000 rpm at 8.6 m/s: 608s are fine. Overrun after landing ~0.24 m (reel stops in ~0.1 s): bird's nest risk
   low, centrifugal shoes not needed at these speeds. Reel inertia (19 kg mm2 full, two thirds of it the 64 mm flanges) adds ~26 g of
   effective mass to the dart during the stroke (line pull ~4 N in the stroke). Spoked or thinner flanges help.
-- Range falls ~0.45 m per +0.25 N of brake. Set the light brake as low as reliably repeatable (0.5 N).
+- Range vs brake at 36 deg (coupled reel): 0.2 N 4.7 m (overrun 1.5 m), 0.3 N 4.5 m (0.9 m), 0.4 N 4.3 m (0.6 m),
+  0.5 N 4.1 m (0.4 m), 0.75 N 3.7 m (0.2 m). Recommend the payout clutch at 0.4 to 0.5 N: under 0.6 m of loose line
+  at the reel after landing, the take-up clears it at the start of reel-in. Below 0.3 N the overrun grows fast.
 
 ## F6. Wiper stall is the dangerous case (drivetrain.py, capstan.py)
 
 - Stall 14.1 N m / 17 A at 12.6 V (with sag). Nothing mechanical limits it:
-  - 20 mm keyed PPA-CF shaft allowable 12 N m < stall. Every printed gear (as assumed: m 2, 20 T, 12 mm) fails Lewis
+  - 20 mm keyed PPA-CF shaft allowable 12 N m < stall (and only ~6 N m if the keyseat is a sharp end-milled slot,
+    Kt ~3: round the keyway corners). With a steel 6 mm key 14 mm long, the plastic shearing behind the shaft keyway
+    governs at about 7 N m. So the "12 N m keyed shaft" figure in the plan is optimistic: either a longer key engagement
+    (30 mm gives ~15 N m) or keep every keyed joint under ~5 N m with the trip below. Every printed gear (as assumed: m 2, 20 T, 12 mm) fails Lewis
     at stall (SF 0.27). On the capstan, stall pulls ~600 N on the line (break 667 N; dart holds 7 to 112 N).
-  - The 20 A fuse does not blow at 17 A. Firmware current trip is the ONLY protection: trip in < 0.3 s at 6 A for
-    cock/aim (normal peak 3.2 A) and at the tow limit current for tow (50 N = 2.8 A, only 1.3 A above free current:
-    coarse; the load cell is worth fitting). Request to fw-base and to the spec.
+  - The 20 A fuse holds a 17 A stall indefinitely. Firmware current trip (request to fw-base and the spec):
+    ignore current for 50 ms after a start (inrush is near stall); hard trip at 5 A for 30 ms for aim, reel, tow (about
+    3.2 N m at the wiper) and 6.5 A while cocking (cock peak 4.6 A); tow trip at measured free current + 1.3 A (50 N),
+    averaged over 200 ms. The BTS7960 IS pin senses the high side only: sample in the PWM on-time or scale by duty.
+    Current is a coarse tension sensor (1.3 A over free): the load cell is worth fitting.
+  - After a trip, sprag #2 (capstan backstop) and the self-locking worm keep the stall tension locked in. So add a
+    printed slip clutch of about 3 N m on the REEL output gear as well (reviewer recommendation, I agree).
   - Or: a printed slip clutch on the wiper output set ~5 N m (protects every train mechanically).
-- Normal loads are tiny: cock 1.5 N m peak (15 mm winch drum equivalent), tow 50 N = 1.2 N m, aim 0.2 N m. All under
+- Cock through the cad-launch train (big gear m 2.5 40 T on the rack, drive 26 T): 2.8 N m peak at the wiper, 4.6 A,
+  2.0 s; so the hard trip while cocking must be higher (6.5 A, 4.5 N m). At wiper stall the big gear sees 19.5 N m:
+  do not put it on a keyed 20 mm printed shaft (it rides on its pin: fine). Other loads: tow 50 N = 1.2 N m, aim 0.2 N m. All under
   13 % of stall. The wiper is far stronger than needed: use the margin for speed.
+
+- Aim through the cad-launch train (2:1 bevel, worm 4.8 deg lead, 20 T wheel = crank, rail ~1.26 kg pitching incl.
+  dart, CG 150 mm assumed): wiper 0.08 N m peak (worm efficiency 0.23, self-locking), 6.5 s for 6 to 47 deg. But at
+  the 5 A trip the splitter/bevel stage sees 3.2 N m: module 2 face 10 passes (sf ~1.3), module 1.5 does not. At wiper
+  stall the crank sees ~31 N m (8 mm axle, conrod pins): only the trip protects it.
 
 ## F7. Capstan and tow speed
 
@@ -78,3 +98,10 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 
 - Cock force at 280 mm: 84 N on the carriage (rack/big gear tooth load); sprag #1 sees ~1.5 N m: huge margin.
 - DRV8833 for the drum N20 needs the buck (VM max 10.8 V), as the workplan says.
+
+## F9. Dart attitude at 6 to 8 m/s (attitude.py, 3-DOF pitch plane, same physics as kedge/flight_sim.py)
+
+- With the tether at 0.5 to 1 N: nose first in all 324 cases (pitch 10 to 47, +-10 deg and +-5 rad/s disturbances),
+  with or without the 15 g ballast. Nose-first body angle at impact -17 to -80 deg at 36 deg pitch.
+- Without the tether it tumbles or lands tail first: at this speed the tether, not the ballast, does the stabilising.
+  So never test-fire without the line on (a dry shot can land tail first).

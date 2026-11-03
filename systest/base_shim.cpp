@@ -262,6 +262,17 @@ static std::string ctlCommand(const std::string& line) {
   if (line == "power off" || c == "unplug") { powerOff(); return "{\"ok\":true}"; }
   if (line == "power on" || c == "replug") { if (!powered) powerOn(); return "{\"ok\":true}"; }
   if (c == "glitch") { if (powered) { closePty(); usleep(300000); openPty(); } fprintf(lgf, "[%8u] USB GLITCH\n", (unsigned)S.t); return "{\"ok\":true}"; }
+  if (c == "inject") {                               // raw bytes onto the serial line (escapes: \n \xHH), for wrong / malformed replies
+    std::string raw, a = line.size() > 7 ? line.substr(7) : "";
+    for (size_t i = 0; i < a.size(); i++) {
+      if (a[i] == '\\' && i + 1 < a.size() && a[i + 1] == 'n') { raw += '\n'; i++; }
+      else if (a[i] == '\\' && i + 3 < a.size() && a[i + 1] == 'x') { raw += (char)strtol(a.substr(i + 2, 2).c_str(), nullptr, 16); i += 3; }
+      else raw += a[i];
+    }
+    if (masterFd >= 0 && write(masterFd, raw.data(), raw.size()) < 0) {}
+    fprintf(lgf, "[%8u] INJECT %s\n", (unsigned)S.t, a.c_str());
+    return "{\"ok\":true}";
+  }
   if (c == "quit") { quitReq = true; return "{\"ok\":true}"; }
   return "{\"ok\":false,\"err\":\"unknown\"}";
 }

@@ -535,8 +535,13 @@ class Scenario:
 
     def answer(self, rig: Rig, step: str, text: str, choices: List[str]) -> str:
         for sub, ans in self.policy.items():
-            if sub in text and ans in choices:
-                return ans
+            if sub in text:
+                if callable(ans):
+                    a = ans(rig, text, choices)
+                    if a in choices:
+                        return a
+                elif ans in choices:
+                    return ans
         prefer = ["Continue", "Aim", "Fire", "FIRE NOW", "Anchor", "Anchor anyway", "Shoot again", "Dart is down",
                   "Release the dart"]
         for p in prefer:
@@ -780,6 +785,87 @@ sc(Scenario("usb_unplug_tow", "USB unplugged for 3 s while the base holds the to
 sc(Scenario("usb_glitch_reel", "USB re-enumerates (no reset) while reeling in: the link recovers",
             triggers=[("glitch", lambda r: r.step() == "RETRIEVE" and r.plant_last.get("state") == "REEL",
                        lambda r: r.base.ctl("glitch"))]))
+
+
+# ---------------------------------------------------------------- more scenarios
+def decock_then_retry(rig, text, choices):
+    """Operator presses Decock on the page (carriage drawn with the angle unknown), waits for RESET, then Retry."""
+    r = rig.app.action("decock")
+    rig.note("info", msg=f"operator: decock -> {r}")
+    t0 = time.time()
+    while time.time() - t0 < 60 and "RESET" not in [e.get("evt") for e in rig.events[-5:]]:
+        time.sleep(0.2)
+    return "Retry"
+
+
+def c_recovered(rig, res):
+    return c_done(rig, res)
+
+
+def c_d22_order(rig, res):
+    """D22: WRAP before the dart anchors."""
+    st = res["steps"]
+    if "WRAP" not in st or "ANCHOR" not in st:
+        return False, f"steps {st}"
+    return st.index("WRAP") < st.index("ANCHOR"), f"WRAP at {st.index('WRAP')}, ANCHOR at {st.index('ANCHOR')}"
+
+
+SCENARIOS["nominal"].checks.append(("D22 order: WRAP before ANCHOR", c_d22_order))
+
+POWER_STATES = [("LAUNCH_MODE", "MODE"), ("AIM", "AIM"), ("COCK", "COCK"), ("BASE_NEUTRAL", "MODE"), ("WRAP", "WRAP"),
+                ("CHECK", "REEL"), ("TOW", "HOLD"), ("RETRIEVE", "REEL"), ("LAUNCH_READY", "MODE")]
+for _step, _pst in POWER_STATES:
+    sc(Scenario(f"power_{_step.lower()}", f"power loss in {_step} (base state {_pst}): kill, restart, mission recovers",
+                triggers=[(f"kill base in {_step}", plant_state(_pst, step=_step, delay=1.0), lambda r: r.restart_base(2.0))],
+                policy={"LOADED_UNKNOWN": decock_then_retry, "phase UNKNOWN": decock_then_retry, "Decock": decock_then_retry},
+                retry_max=4,
+                checks=[("mission DONE after the power loss", c_done), ("no dry fire", c_no_dry),
+                        ("seated", c_seated), ("back to LAUNCH", c_launch), ("tow limit respected", c_tow_limit)]))
+
+
+def inject_garbage(rig):
+    # the shim's inject command understands \n and \xHH escapes; quotes are plain
+    lines = ['ESP-ROM:esp32s3-20210327\nrst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)\n',
+             '{not json at all\n',
+             '{"id":1,"ok":true}\n',                      # a stale duplicate reply to an old id
+             '{"tel":{"state":"IDL', 'E"}}\n',            # one line split in two writes
+             '\xff\xfe\x00garbage\n',                     # bad UTF-8 and a NUL
+             '{"evt":"NEWTHING","t":1}\n',                # an event the Jetson does not know
+             '{"tel":"x' + ' ' * 300 + '"}\n']            # over 256 bytes
+    for raw in lines:
+        rig.base.ctl("inject " + raw)
+        time.sleep(0.05)
+
+
+sc(Scenario("serial_garbage", "malformed and wrong lines on the serial link (boot text, bad JSON, a stale reply, split, bad UTF-8, unknown event, 300 bytes) during AIM and TOW",
+            triggers=[("garbage in AIM", plant_state("AIM", delay=1.0), inject_garbage),
+                      ("garbage in TOW", plant_state("HOLD", step="TOW", delay=0.5), inject_garbage)]))
+
+
+def nogo_policy(rig, text, choices):
+    if "Retrieve and reshoot" in choices and rig.video.landing_class != "hard_ground":
+        rig.video.landing_class = "hard_ground"     # the operator picks a better target for the second shot
+        sol = rig.solution
+        threading.Thread(target=rig.video.render, args=(sol["pitch_deg"], sol.get("v_muzzle") or 7.5), daemon=True).start()
+        return "Retrieve and reshoot"
+    return "Anchor" if "Anchor" in choices else "Anchor anyway"
+
+
+sc(Scenario("nogo_reshoot", "first landing on water (NO GO): retrieve the free dart and reshoot, second lands on hard ground",
+            landing_class="water_void", policy={"Landing zone": nogo_policy}, timeout_s=600,
+            extra_checks=[("two shots", lambda r, res: (res["plant"].get("shots", 0) == 2, f"shots {res['plant'].get('shots')}"))]))
+
+sc(Scenario("dart_wifi_drop", "the dart's WiFi station drops right after landing",
+            triggers=[("wifi drop", lambda r: "LANDED" in r.dart_phases, lambda r: r.dart.get("/sim/disconnect"))]))
+
+sc(Scenario("brownout_tow", "battery sags under 9.9 V while towing: BROWNOUT, the drum holds (wraps on), battery back, Retry",
+            triggers=[("sag", plant_state("REEL", step="TOW", delay=0.5),
+                       lambda r: (r.base.set(vbatOverride=9.0), later(3.0, lambda r2: r2.base.set(vbatOverride=-1))(r)))],
+            extra_checks=[("BROWNOUT raised", lambda r, res: (any(e.get("code") == "BROWNOUT" for e in r.events),
+                                                              [e.get("code") for e in r.events if e.get("evt") == "FAULT"]))]))
+
+sc(Scenario("encoder_glitch", "AS5600 returns a garbage angle every 50 reads for the whole mission",
+            plant_setup={"encGlitchEvery": 50}))
 
 
 # ====================================================================================================== main

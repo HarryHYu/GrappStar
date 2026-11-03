@@ -62,7 +62,7 @@ WALL_T = 6.0                  # wall Z -6 .. 0 (the bus plane starts at -6.5 beh
 FOOT_T = 5.0
 H_AXIS = SP["h_axis"]         # capstan axis above the deck top (95.4 in v1.0)
 Y_DECK = -H_AXIS
-X_WALL = (-134.0, 30.0)       # D44: 6 mm longer on the left (free space, checked against frame and drum)
+X_WALL = (-139.5, 30.0)       # D44: 6 mm longer on the left (free space, checked against frame and drum)
 Y_WALL_TOP = 40.0             # keeps 29 mm from the main shaft coupler (main axis at R (18.7, 69.6))
 Z_FOOT = (-40.0, 42.0)
 
@@ -328,7 +328,7 @@ def _wall():
     for a in SHROUD_SCREW_DEG:                     # shroud screws tap into the wall
         x = X_REEL + SHROUD_SCREW_R * math.cos(math.radians(a))
         y = SHROUD_SCREW_R * math.sin(math.radians(a))
-        cut.append(prim.cyl(fits.M3_TAP_D / 2, WALL_T - 1.0, x=x, y=y, z=-WALL_T + 1.0))
+        cut.append(prim.cyl(fits.M3_TAP_D / 2, WALL_T + 0.02, x=x, y=y, z=-WALL_T - 0.01))   # through: no bottoming
     for (x, z) in MOUNT_HOLES:
         cut.append(prim.cylY(fits.M3_CLEAR_D / 2, Y_DECK - 1, Y_DECK + FOOT_T + 1, x=x, z=z))
         cut.append(prim.cylY(fits.M3_HEAD_D / 2, Y_DECK + FOOT_T - fits.M3_HEAD_H - 0.2, Y_DECK + FOOT_T + 60,
@@ -680,7 +680,7 @@ def p1_centre():
 
 def exit_post_screws():
     ex, _, ez = EXIT
-    return [(ex + sx * 17.0, ez + sz * 12.0) for sx in (-1, 1) for sz in (-1, 1)]   # clear of all four gussets
+    return [(ex + sx * 17.0, ez + sz * 18.0) for sx in (-1, 1) for sz in (-1, 1)]   # clear of all four gussets
 
 
 def _exit_post():
@@ -692,23 +692,24 @@ def _exit_post():
     y0 = Y_DECK
     gap = P1_T / 2 + 0.4
     ylo = py - gap - 3.5
-    foot = prim.box(ex - 20, ex + 20, y0, y0 + FOOT_T + 1.0, ez - 16, ez + 16)
-    col = prim.box(ex - 8, ex + 8, y0, ylo + 0.01, ez - 8, ez + 8)
+    foot = prim.box(ex - 20, ex + 20, y0, y0 + FOOT_T + 1.0, ez - 22, ez + 22)
+    col = prim.box(ex - 8, ex + 8, y0, ylo + 0.01, ez - 14, ez + 14)       # 16 x 28: stiff against the tow pull
     gus = []
     for s_ in (-1, 1):
         yg = y0 + FOOT_T - 1.0                     # gussets start inside the foot, not on its bottom face
         pts = [(ex + s_ * 7.5, yg), (ex + s_ * 16, yg), (ex + s_ * 7.5, yg + 36)]
-        gus.append(prim.extrude(prim.poly_cs(pts), 16.0, z=ez - 8))
-        gus.append(_gusset(ex - 4.0, ex + 4.0, ez + s_ * 7.5, ez + s_ * 13.5, yg, 36.0))
+        gus.append(prim.extrude(prim.poly_cs(pts), 28.0, z=ez - 14))
+        gus.append(_gusset(ex - 4.0, ex + 4.0, ez + s_ * 13.5, ez + s_ * 19.5, yg, 36.0))
     cr = 6.0                                        # cheek radius round the axle (the pulley rim r 9 stands out past it)
     zw = (pz - P1_R - 6.0, pz - P1_R - 3.0)         # web band, clear of the pulley rim (r P1_R + 2)
     cheeks = [Manifold.batch_hull([prim.cylY(cr, y0_, y1_, x=px, z=pz), prim.box(px - 6.0, px + 2.0, y0_, y1_, *zw)])
               for y0_, y1_ in ((py - gap - 3.5, py - gap), (py + gap, py + gap + 3.5))]
-    pad = prim.box(px - 6.0, ex + 8, ylo - 0.01, py - gap, min(ez - 8, pz - cr), ez + 8)   # lower cheek on the
+    pad = prim.box(px - 6.0, ex + 8, ylo - 0.01, py - gap, min(ez - 14, pz - cr), ez + 14)   # lower cheek on the
     # column top, kept right of the incoming dart line (it comes in low and steep while the cup wraps)
     web = prim.box(px - 6.0, px + 2.0, ylo, py + gap + 3.5, *zw)                          # -Z side, away from the line
     body = prim.union([foot, col, pad, web] + gus + cheeks + _race_bosses(px, py, pz, gap))
-    cut = [prim.cylY(fits.M3_CLEAR_D / 2, py - 10, py + 10, x=px, z=pz)]
+    cut = [prim.cylY(fits.M3_CLEAR_D / 2, py - gap - 0.01, py + 10, x=px, z=pz),
+           prim.cylY(fits.M3_TAP_D / 2, py - gap - 10.0, py - gap + 0.01, x=px, z=pz)]   # axle tapped below
     for (x, z) in exit_post_screws():
         cut.append(prim.cylY(fits.M3_CLEAR_D / 2, y0 - 1, y0 + FOOT_T + 1, x=x, z=z))
     return body - prim.union(cut)
@@ -800,7 +801,7 @@ def swivel_deg(P, S):
     return phi
 
 
-RACE_BOSS_R = 2.4             # cheek bosses clamp the 693 inner race (land about 2.3 .. 2.6), not the pulley rim
+RACE_BOSS_R = 2.25            # cheek bosses clamp the 693 inner race (land about 2.3 .. 2.6), not the pulley rim
 
 
 def _race_bosses(px, py, pz, gap):
@@ -924,7 +925,7 @@ def parts(P):
         out.append(Part(name, solid, mat, print_tf=pt, **k))
 
     add("reel_wall", _wall(), "PLA", tf.Rx(90), joint="reel_base", color=COL["wall"], step=1,
-        notes="Reel wall: foot, guide eye post, rocker ears, stop pins, exit post pad. Print on its foot")
+        notes="Reel wall: foot, guide eye post, rocker ears, stop pins, brake guides and crank boss. Print on its foot")
     add("reel_sprag_hub", _sprag_hub(), "PPA-CF", tf.Rx(180), joint="reel_base", color=COL["post"], step=2,
         notes="Sprag hub: holds the CSK20PP backstop and bushes the capstan tube. Print front face down")
     add("reel_hub_screws", prim.union([prim.place(fasteners_m3(8.0), tf.T(HUB_SCREW_R * math.cos(math.radians(a)),
@@ -1055,11 +1056,11 @@ def parts(P):
         place=Tsw @ tf.T(*p2) @ tf.Rx(-90) @ tf.T(0, 0, 2.0), color=COL["brg"], bought_ref="693ZZ 3x8x4", step=15,
         notes="Bearing in pulley 2")
     add("reel_p2_axle", fasteners_m3(20.0), "bought", joint="reel_swivel",
-        place=Tsw @ tf.T(p2[0], p2[1] + P1_T / 2 + 0.4 + 3.5 + 3.0, p2[2]) @ tf.Rx(90), color=COL["brg"],
+        place=Tsw @ tf.T(p2[0], p2[1] + P1_T / 2 + 0.4 + 3.5, p2[2]) @ tf.Rx(90), color=COL["brg"],
         bought_ref="M3x20 SHCS + nyloc nut", step=15, notes="Pulley 2 axle")
     add("reel_p1_axle", fasteners_m3(20.0), "bought", joint="reel_base",
-        place=tf.T(pc[0], pc[1] + P1_T / 2 + 0.4 + 3.5 + 3.0, pc[2]) @ tf.Rx(90), color=COL["brg"],
-        bought_ref="M3x20 SHCS + nyloc nut", step=13, notes="Pulley 1 axle")
+        place=tf.T(pc[0], pc[1] + P1_T / 2 + 0.4 + 3.5, pc[2]) @ tf.Rx(90), color=COL["brg"],
+        bought_ref="M3x20 SHCS", step=13, notes="Pulley 1 axle: tapped into the post below the lower cheek (threadlocker)")
     return out
 
 
@@ -1601,7 +1602,7 @@ def steps(P):
                   "short arm lies in the recess in the wall and points right, the long arm sticks straight out from "
                   "the wall. Put the printed washer on the boss and screw the M3 x 20 into it: the crank must swing "
                   "freely. Screw the M3 x 10 FIRM screw into the rocker's leg from the front with its nut on the front "
-                  "face, until 0.6 mm of its tip shows at the back. Hang the yellow rocker between the two ears at the "
+                  "face, until 0.35 mm of its tip shows at the back. Hang the yellow rocker between the two ears at the "
                   "top with an M3 x 25 screw and nut (snug, it must swing); its round hole goes over the small boss, "
                   "its leg rests on the small pad on the wall, the FIRM screw tip just above the crank's short arm. "
                   "Screw two M3 x 8 screws into the rocker's two bosses from behind, until their tips stand 0.5 mm "
@@ -1626,7 +1627,7 @@ def steps(P):
                   "trap, lever screwed on, M3 x 10 contact screw with its jam nut in the lever. Screw the switch base to "
                   "the bracket, and the bracket to the back of the wall below the gears with two M3 x 8. Turn the cup "
                   "to home (ring at the top): the bump on the cup gear presses the lever; set the contact screw so it "
-                  "just closes there and opens 15 degrees either side. Lock the jam nut.",
+                  "just closes there and opens 12 degrees either side. Lock the jam nut.",
              parts=["reel_sw_bracket", "reel_sw_base", "reel_sw_lever", "reel_sw_hw"]),
         dict(title="Pulley 2 swivel",
              text="Press a 693ZZ into pulley 2, set it between the swivel fork's two cheeks and push the M3 x 20 "
@@ -1646,7 +1647,7 @@ def steps(P):
                   "onto the reel (counter-clockwise seen from the front, line over the top), thread it through the "
                   "guide eye, over the top of the cup and through the cup ring from the back. Lay it over pulley 1 "
                   "in its groove (it comes up from the ring and turns down toward the deck), then push the M3 x 20 "
-                  "axle down through the cheeks and the pulley (nyloc nut under). Lead the line down to pulley 2. "
+                  "axle down through the top cheek and the pulley and screw it into the post below (threadlocker, no nut). Lead the line down to pulley 2. "
                   "Set FIRM last, with the drum in REEL (the bar pushed in by the cam): pull the line end with the "
                   "luggage scale; it must slip at 5.0 N with the reel full. Too low: loosen the lock nut on the rocker "
                   "leg and turn the FIRM screw in (toward the wall); too high: out. One turn is about 1 N at the line. Lock the nut.",

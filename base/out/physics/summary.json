@@ -75,24 +75,28 @@
    "Flight (bead-chain tether + reel model, level ground)",
    [
     [
+     "Line path at the shot",
+     "slack 72 mm: snatch, flight starts at 6.50 m/s"
+    ],
+    [
      "Range at 0.5 / 0.75 / 1.0 N brake",
-     "4.29 / 3.84 / 3.45 m (pitch 36)"
+     "3.70 / 3.33 / 3.01 m (pitch 34)"
     ],
     [
      "Same shot, no tether",
-     "5.35 m"
+     "4.58 m"
     ],
     [
      "Flight time, apex (0.75 N)",
-     "0.83 s, 1.18 m"
+     "0.75 s, 1.00 m"
     ],
     [
      "Impact speed, angle (0.75 N)",
-     "5.8 m/s, 57 deg down"
+     "5.4 m/s, 55 deg down"
     ],
     [
      "Ballistics table",
-     "6 to 47 deg, best 36.0 deg: 3.84 m"
+     "6 to 47 deg, best 33.5 deg: 3.33 m"
     ]
    ]
   ],
@@ -109,15 +113,15 @@
     ],
     [
      "Line pull in the stroke (spin-up)",
-     "5.30 N"
+     "4.61 N"
     ],
     [
      "Reel rpm max",
-     "2188 rpm"
+     "2019 rpm"
     ],
     [
      "Overrun after landing",
-     "0.55 m in 0.26 s"
+     "0.53 m in 0.26 s"
     ]
    ]
   ],

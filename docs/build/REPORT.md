@@ -77,3 +77,9 @@ Status: in progress. Final version at 18:30 Sydney.
   CSK20PP outer keyway 1.5, wiper orientation decided (D20), no steel key (integral rib, D13), stop pad 300 N rule,
   tension per amp about 22 N/A, limit_n set to 50, 608 uses (reel 2, aim pedestal 4), magnet gap 1 to 2 mm, green
   park wire never wired, D9 exception to "WIRING.md wins", fault exceptions, dart SLP beep check, D17 final approach.
+- Round 5 (learner-eyes, fresh agent following FIRST_DAY and the order of work): 16 findings. Fixed: one power-up
+  order everywhere (USB in first, battery last), Mac clone step, exact pipeline commands and a "Claude Code does it"
+  route, MEASURE_RESULTS.md/.pdf fill-in sheet generated from MEASURE_LIST, dart Path B step split around the BMS,
+  bench-supply reading of BENCH_TEST steps 0 to 2, hole compensation location, spring measured with a rule and real
+  weights, dart plates do not wait for base coupons, kickContactMa wording, part references. Sent to fw-dart: bench
+  supply version of BENCH_TEST 0 to 2. fw-base items (SLP, MP1584, 2 A fuse) already sent; guide notes cover them.

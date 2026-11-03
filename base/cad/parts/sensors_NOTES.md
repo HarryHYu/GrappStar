@@ -59,11 +59,11 @@ sit at y 200.7..207, outside the crank plane.
 
 Bracket (PLA): backing plate behind the switch base (world x 114.5..119.5), a column down to cad-launch's housing foot
 extension (x 80..130.9, y 193.8..201.8, top at deck + 8), a foot on it and a web (about 48 deg) under the cantilevered
-plate. Fixing: 1 x M3x10 down into the pilot at (107, 197.8), and the housing's 4th deck screw (x 125.9; deck screws go
-in from above into the deck's heat-set inserts) becomes an M3x20 through the bracket foot (6), the foot extension (8)
-and into the insert. The column stops 3.4 mm short of that screw so the head and driver have room. cad-launch also cut
-a pilot at x 116: it lies under the bracket column and is not used. The switch base screws to the plate with
-4 x M3x8 self tap. Print foot down.
+plate. Fixing: 1 x M3x10 down into the pilot at (107, 197.8), and the housing's 4th deck screw (x 125.9; cad-launch
+4d203e4: housing screws go in from BELOW through deck clearance holes into pilots in the housing) becomes an M3x20:
+deck (8) + foot extension (8) + 4 mm into a d2.6 pilot (5 deep) in the bracket foot. For that cad-launch runs their 4th
+pilot through the 8 mm foot extension (it is 7 deep blind). cad-launch's pilot at x 116 lies under the bracket column
+and is not used. The switch base screws to the plate with 4 x M3x8 self tap. Print foot down.
 
 ## 3. SW_GAP (GPIO 39)
 

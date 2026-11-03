@@ -247,6 +247,7 @@ class Rig:
         self.fault_injected: List[str] = []
         self.done_triggers = set()
         self.base_seen_off = False
+        self.dart_d: Optional[float] = None       # dart distance along the line from the base (m)
 
     # -------------------------------------------------------------- logging
     def note(self, kind: str, **kw) -> None:
@@ -336,8 +337,11 @@ class Rig:
                     self.note("plant", step=step, **{k: p.get(k) for k in ("state", "drumDeg", "lineOut", "wraps",
                                                                            "tension", "seated", "inLaunch", "inReel")})
                     last_step = step
+                if not anchored and self.dart_d is not None and p.get("lineOut") is not None:
+                    self.dart_d = min(self.dart_d, float(p["lineOut"]))   # a free dart is tugged along by a short line
                 if p.get("shots", 0) > last_shots:
                     last_shots = p["shots"]
+                    self.dart_d = float(p.get("lineOut") or 0) - self.sc.landing_slack   # landing slack on the dart side
                     self.fired_seen = last_shots
                     self.video.t_fire = time.time()
                     fms = int(self.video.flight_s() * 1000)
@@ -354,7 +358,9 @@ class Rig:
                     self.note("dart", phase=ph, seq=ds.get("seq"), ev=ds.get("event"))
                     if ph == "ANCHORED" and (self.sc.anchor_holds or getattr(self, "anchor_ok", False)):
                         lo = float(self.base.get().get("lineOut") or 0)
-                        self.base.set(anchorTautAt=round(max(0.0, lo - 0.3), 3))
+                        d = min(self.dart_d if self.dart_d is not None else lo, lo)   # the dart lies at d: taut at d
+                        self.base.set(anchorTautAt=round(max(0.0, d), 3))
+                        self.note("info", msg=f"dart anchored at {d:.2f} m, line out {lo:.2f} m (dart-side slack {lo - d:.2f} m)")
                         anchored = True
                     elif anchored and ph in ("RELEASING", "IDLE", "FAULT"):
                         self.base.set(anchorTautAt=-1)
@@ -550,7 +556,8 @@ class Scenario:
         self.triggers = kw.get("triggers", [])
         self.anchor_holds = kw.get("anchor_holds", True)
         self.calibrated = kw.get("calibrated", True)
-        self.hello_delay = kw.get("hello_delay", 2100)   # ms from power on to HELLO (the sketch's setup())
+        self.hello_delay = kw.get("hello_delay", 2100)
+        self.landing_slack = kw.get("landing_slack", 0.9)   # D22: about 0.9 m of line lies slack after the landing   # ms from power on to HELLO (the sketch's setup())
         self.after = kw.get("after")              # run after the first mission ends (operator recovery + a new mission)
         self.tow_rounds = kw.get("tow_rounds", 3)
         self.timeout_s = kw.get("timeout_s", 420)
@@ -701,7 +708,18 @@ def nominal_checks():
             ("anchored (dart)", c_anchored), ("tidy ran", c_tidy), ("wrapped (4+ wraps on the capstan)", c_wrapped),
             ("REEL engaged, tow pulled", c_reel_engaged), ("tow limit respected", c_tow_limit),
             ("dart released", c_released), ("reeled in to the approach", c_reeled), ("unwrapped", c_unwrapped),
-            ("seated", c_seated), ("back to LAUNCH", c_launch), ("no dry fire", c_no_dry)]
+            ("seated", c_seated), ("back to LAUNCH", c_launch), ("no dry fire", c_no_dry),
+            ("wraps laid without jamming (D22 slack)", c_wrap_free), ("free dart tugged under 1 m by the wrap", c_tug)]
+
+
+def c_wrap_free(rig, res):
+    n = res["plant"].get("wrapBlocks", -1)
+    return n == 0, f"wrap cup blocked for {n} ticks (taut dart side while laying turns)"
+
+
+def c_tug(rig, res):
+    t = res["plant"].get("dartTug", 9)
+    return t < 1.0, f"free dart pulled {t:.2f} m by the wrap"
 
 
 # triggers: (id, condition(rig), action(rig))
@@ -935,6 +953,9 @@ def nogo_policy(rig, text, choices):
 sc(Scenario("nogo_reshoot", "first landing on water (NO GO): retrieve the free dart and reshoot, second lands on hard ground",
             landing_class="water_void", policy={"Landing zone": nogo_policy}, timeout_s=600,
             extra_checks=[("two shots", lambda r, res: (res["plant"].get("shots", 0) == 2, f"shots {res['plant'].get('shots')}"))]))
+
+sc(Scenario("land_short", "the dart lands with only 0.3 m of slack on its side (short of the turn length): the wrap must "
+            "tug the free dart, never jam against an anchored one", landing_slack=0.3))
 
 sc(Scenario("dart_wifi_drop", "the dart's WiFi station drops right after landing",
             triggers=[("wifi drop", lambda r: "LANDED" in r.dart_phases, lambda r: r.dart.get("/sim/disconnect"))]))

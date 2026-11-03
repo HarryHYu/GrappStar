@@ -49,8 +49,8 @@ GEOM = dict(
     # fork (yoke round the collar groove, long carrier to the drum groove)
     fork_s=85.0, fork_over=0.0, fork_t=2.4, yoke_r=(31.0, 37.0), pin_d=6.0, pin_off=9.5, hub_len=14.0,
     rail_xy=(25.0, 58.0), rail_d=10.0, rail_s=(1.0, 142.0),
-    dogpost_s=(128.0, 133.0), dog_touch=0.5,      # clamp on the rail beyond the fork sleeve; bar back to s 70
-    fork_sleeve=(-20.0, 38.2),                    # fork rail sleeve from sb: 58 long against racking       # SW_DOG_L / SW_DOG_R close 0.5 mm before full engagement
+    dogpost_s=(106.5, 111.5), dog_touch=0.5,      # clamp on the rail beyond the fork sleeve, clear of the launch cheeks (y 123..131)
+    fork_sleeve=(-50.0, 16.0),                    # fork rail sleeve from sb: 66 long against racking
     # world-fixed angles round the drum axis (L xy plane, deg; y is down). phi_pin and phi_idler are derived in G()
     phi_pin=-118.0, phi_idler=-170.8, phi_brake=180.0, phi_sw=0.0, phi_n20=-40.0, n20_motor_deg=-90.0,
     phi_idx=0.0,

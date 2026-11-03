@@ -114,13 +114,13 @@ A state without wiper_deg takes cad-launch's sleeve angle.
 
 Fork:
 - pads in the collar groove (s 82.3..87.7), yoke 82.3..84.7;
-- sleeve on the rail s 62.3..120.5 (58 long, grease it);
+- sleeve on the rail s 32.3..98.3 at NEUTRAL (66 long, grease it);
 - follower pin d6 at s 91.8, entering the barrel from the main-axis side.
 
 Rail and dog post:
 - `drum_rail` d10 at world (25, z -58), s 1..142.
-- `drum_dog_post` clamps the rail at s 128..133. Its bar runs back to s 69.8; REEL boss to s 72.8, LAUNCH boss from
-  s 94.6.
+- `drum_dog_post` clamps the rail at s 106.5..111.5, clear of the launch rail cheeks (y 123..131). Its bar runs back
+  to s 69.8; REEL boss to s 72.8, LAUNCH boss from s 94.6.
 
 Wrap idler:
 - `drum_idler` shaft: d10 journals in two posts (s 40.5..46.5 and 78..85), d12 between them (the shoulders locate it
@@ -220,11 +220,11 @@ Timing:
 ## 9. Loads and strength
 
 - N20 stall estimate 0.22 N m at 9 V (0.20 used). Drum stall capacity 2.16 N m at 12:1.
-- Peak drum load 0.93 N m, margin 2.3 (params rule: at least 2). Peaks per load:
+- Peak drum load 0.92 N m, margin 2.34 (params rule: at least 2). Peaks per load:
 
 | load | peak N m | basis |
 |---|---|---|
-| fork | 0.86 | yoke block force 4.3 N plus 3 N friction, x 2.25 racking: (1 + 2 mu 63.2/58.2) / (1 - 2 mu 36.5/58.2), mu 0.25 greased rail; groove 44 deg |
+| fork | 0.86 | yoke block force 4.3 N plus 3 N friction, x 2.07 racking: (1 + 2 mu 63.2/66) / (1 - 2 mu 36.5/66), mu 0.25 greased rail; groove 44 deg |
 | clutch ramps | 0.78 | 15 N pushrod at FIRM 5 N (cad-reel: 10.8 N at 4 mm, design 15) |
 | wrap | 0.78 | 0.06 N m at the cup x 10.5 / 0.81 |
 

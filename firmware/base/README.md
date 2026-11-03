@@ -185,12 +185,12 @@ a power cycle and over a new upload of the same firmware version.
   firing is treated as a drawn spring: `cock` is refused (`LOADED_UNKNOWN`) until a `decock` (PROTOCOL.md section 9).
 - `stop`: wiper off now, drum stops. `estop`: the same, then the drum goes to NEUTRAL when that is safe (never with
   the wraps on).
-- Before every shift out of LAUNCH or REEL the wiper makes a small centering jog (8 deg) so the collar is not loaded.
+- Before every shift out of LAUNCH or REEL the wiper makes a small centering jog (6 deg) so the collar is not loaded.
   The collar contacts `SW_DOG_L` and `SW_DOG_R` are checked during every drum move.
 - Soft start: the wiper ramps up over 300 ms (inrush once blew a 10 A fuse). It always stops for 200 ms before it
   changes direction.
 - Current trips per job (each for 30 ms, ignored for 50 ms after a start): every backward run in LAUNCH (aim, decock,
-  backward and centering jogs) 3 A, reel in 5 A, cock and fire 6.5 A, tow 5 to 6.7 A set from `max_n` (at most 60 N, D43) (the tension
+  backward and centering jogs) 3 A, reel in 5 A, cock and fire 6.5 A, tow 5 to 6.9 A set from `max_n` (at most 55 N, D46) (the tension
   estimate is the real tow limit), take-up 2.5 A, jogs and fly-in 3 A; 17 A at any
   time. Stall: the shaft slower than 12 deg/s for 200 ms while driving.
 - AS5600 lost while the wiper runs, or its angle jumps so travel is lost: fault `ANGLE_SENSOR`. If the AS5600 is not reading, wiper actions and the drum

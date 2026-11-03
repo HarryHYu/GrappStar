@@ -181,7 +181,8 @@ Reverse pause:
    "drum code jumped over a sector"). Move the GPIO11 jumper to GPIO10 (code `a` = LAUNCH), and add jumpers from
    GPIO13 (`SW_DOG_L`, collar in LAUNCH), GPIO21 (`SW_HOME`) and GPIO39 (`SW_GAP`) to GND. Keep GPIO47.
 2. Battery unplugged. Plug USB in. The `BOOT` line says `"drum_moved":true` (the saved angle was NEUTRAL); that is
-   expected and not a fault. Telemetry: `"mode":"LAUNCH"`,
+   expected and not a fault (without the GPIO13 jumper the boot cross-check gives `SWITCH_DISAGREE` "LAUNCH code
+   without SW_DOG_L" instead). Telemetry: `"mode":"LAUNCH"`,
    `"drum_pos":"LAUNCH"`, `sw` with `a`, `l`, `n`, `H`, `G`.
 3. Plug the battery in. Declare the launcher at rest: `{"id":13,"cmd":"cal","what":"cock_rest"}` (it needs `H` and
    `G` closed).

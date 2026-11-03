@@ -109,7 +109,7 @@ struct Base {
 #endif
   }
   Tun tunNow() const {
-    Tun t; t.encSign = enc.sign > 0 ? 1 : 0; t.requireSeated = (c.requireSeated ? 1 : 0) | (c.vbatWired ? 0 : 2);
+    Tun t; t.encSign = enc.sign > 0 ? 1 : 0; t.requireSeated = (c.requireSeated ? 1 : 0) | (c.vbatWired ? 0 : 2) | (tensionCal ? 4 : 0);   // bit 2: tension calibrated
     t.ampsPerVolt = w.c.ampsPerVolt; t.offsetA = w.c.offsetA; t.freeA = c.freeA; t.kNperA = c.kNperA; t.hxNPerCount = c.hxNPerCount;
     t.hxOff = hxOff; t.limitN = c.limitN; t.drumDps = c.drumDps; t.aimOffset = aimOffset; t.aimTol = c.aimTolDeg; t.tripA = c.tripA;
     t.cockTripA = c.cockTripA; t.vbatLow = c.vbatLow; t.aimHomeDeg = c.aimHomeDeg;
@@ -120,11 +120,12 @@ struct Base {
   void restoreTun(const Tun* t) {
     if (!t || !validTun(t)) return;
     lastTun = *t;
-    enc.sign = c.wiperSign = t->encSign ? 1 : -1; c.requireSeated = true; c.vbatWired = true;   /* require_seated and vbat_wired are never kept off across a boot (review D2 #19) */ w.c.ampsPerVolt = t->ampsPerVolt; w.c.offsetA = t->offsetA;
+    enc.sign = c.wiperSign = t->encSign ? 1 : -1; c.requireSeated = true; c.vbatWired = true; tensionCal = (t->requireSeated & 4) != 0;   /* require_seated and vbat_wired are never kept off across a boot (review D2 #19) */ w.c.ampsPerVolt = t->ampsPerVolt; w.c.offsetA = t->offsetA;
     c.freeA = t->freeA; c.kNperA = t->kNperA; c.hxNPerCount = t->hxNPerCount; hxOff = t->hxOff; c.limitN = t->limitN; c.drumDps = t->drumDps;
     aimOffset = t->aimOffset; c.aimTolDeg = t->aimTol; c.tripA = t->tripA; c.cockTripA = t->cockTripA; c.vbatLow = t->vbatLow; c.aimHomeDeg = t->aimHomeDeg;
     c.tensOffsetN = t->tensOffsetN; c.towTripA = t->towTripA;
   }
+  bool tensionCal = false;                          // systest F28: k_n_per_a / tension_offset_n set by the operator (saved)
   bool tunDirty = false; Tun lastTun;              // lastTun: what flash holds (restoreTun / last save)
   uint32_t evDrops = 0;                              // set by the sketch: events dropped by the USB ring (status ev_drops)
   // the sketch calls this before the first tick with what save() stored (or nullptr)
@@ -1098,6 +1099,13 @@ struct Base {
       if (moving()) return "BUSY";
       aimPhase = c.aimHomeDeg; aimKnown = true; aimed = false; dirty = true; return nullptr;
     }
+    if (!strcmp(what, "factory")) {                   // bench settings back to the params defaults; tension not calibrated
+      if (moving() || state == S_HOLD) return "BUSY";
+      Cfg d0; c.kNperA = d0.kNperA; c.tensOffsetN = d0.tensOffsetN; c.freeA = d0.freeA; c.limitN = d0.limitN; c.drumDps = d0.drumDps;
+      c.aimTolDeg = d0.aimTolDeg; c.tripA = d0.tripA; c.cockTripA = d0.cockTripA; c.towTripA = d0.towTripA; c.vbatLow = d0.vbatLow;
+      c.aimHomeDeg = d0.aimHomeDeg; c.hxNPerCount = d0.hxNPerCount; aimOffset = 0; WiperCfg w0; w.c.ampsPerVolt = w0.ampsPerVolt; w.c.offsetA = w0.offsetA;
+      tensionCal = false; return nullptr;
+    }
     if (!strcmp(what, "aim_forget")) { if (moving()) return "BUSY"; aimKnown = false; aimed = false; dirty = true; return nullptr; }   // next aim re-homes
     if (!strcmp(what, "cock_rest")) {                 // declare the launch train at rest (carriage forward, uncocked)
       if (moving()) return "BUSY";
@@ -1174,6 +1182,7 @@ struct Base {
       for (const char* l : live) if (!strcmp(k, l) && (moving() || state == S_HOLD)) return "BUSY";
       *ks[i].f = (float)v;
       if (!strcmp(k, "line_m")) { lineKnown = true; dirty = true; }
+      if (!strcmp(k, "k_n_per_a") || !strcmp(k, "tension_offset_n")) tensionCal = true;
       return nullptr;
     }
     return "BAD_KEY";
@@ -1277,6 +1286,7 @@ struct Base {
       return true;
     }
     if (!strcmp(k, "require_seated")) { r.boolean("val", c.requireSeated); return true; }
+    if (!strcmp(k, "tension_cal")) { r.boolean("val", tensionCal); return true; }
     if (!strcmp(k, "vbat_wired")) { r.boolean("val", c.vbatWired); return true; }
     if (!strcmp(k, "enc_sign")) { r.integer("val", enc.sign); return true; }
     if (!strcmp(k, "pitch_range")) { r.num("min", fmaxf(c.pitchMin, pitchRange(false)), 2); r.num("max", fminf(c.pitchMax, pitchRange(true)), 2); return true; }
@@ -1289,7 +1299,7 @@ struct Base {
     r.boolean("drum_known", drumKnown); r.boolean("wraps_known", wrapsKnown);
     r.str("magnet", indexMode ? "INDEX" : !enc.ok ? "NONE" : enc.magnetWeak() ? "WEAK" : enc.magnetStrong() ? "STRONG" : "OK");
     r.integer("glitches", (long)(enc.glitches > 99999 ? 99999 : enc.glitches)); r.boolean("hx", hxLive()); r.num("peak_a", w.peakA, 1);
-    r.str("fw", GB_FW_VERSION); r.integer("ev_drops", (long)(evDrops > 99999 ? 99999 : evDrops));   // events lost (host not reading)
+    r.boolean("tension_cal", tensionCal); r.str("fw", GB_FW_VERSION); r.integer("ev_drops", (long)(evDrops > 99999 ? 99999 : evDrops));   // events lost (host not reading)
     if (fault && full) { char wy[33]; strncpy(wy, faultWhy, 32); wy[32] = 0; r.str("why", wy); }
   }
   void cmdStop(bool estop) {

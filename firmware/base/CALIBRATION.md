@@ -119,7 +119,10 @@ about 8 deg per second.
    until `n` disappears from `sw`, turn the hand lever until only `b` is closed, swing the N20 back and tighten the
    screw (`n` closed). Turning the drum while the board runs
    gives `FAULT` `DRUM_SENSOR` "drum code changed with the drum still": expected, send `{"id":3,"cmd":"clear"}` once
-   the drum is still (one `clear` is enough).
+   the drum is still (one `clear` is enough). When the N20 swings back into mesh the firmware checks the code against
+   the other contacts (at NEUTRAL: both dog contacts open and the cup at home, `W` absent); a mismatch is
+   `SWITCH_DISAGREE` "NEUTRAL code with a dog contact closed" or "... with the wrap cup away from home". The drum
+   angle is then a guess, so the next drum move first runs to a code edge and back (re-reference).
 5. Direction check. Motors on. Drum at NEUTRAL. Send a drum jog toward REEL (the longest jog, 1.5 s, is
    about 12 deg):
 
@@ -169,8 +172,9 @@ about 8 deg per second.
    inside the wrap window (`WRAPS_ON`) and a running drum jog stops when it enters it: only `wrap` and `unwrap` cross
    it.
 9. The wiper turns a little during these moves. Keep clear:
-   - leaving LAUNCH it first turns 8 deg BACKWARD (the centering jog) so the dogs carry no load;
-   - leaving REEL (start of `unwrap`) it first turns forward a little (up to 16 deg), then 8 deg back;
+   - leaving LAUNCH it first turns 6 deg BACKWARD (the centering jog, stopped early if the current rises) so the dogs
+     carry no load;
+   - leaving REEL (start of `unwrap`) it first turns forward a little (up to 16 deg), then 6 deg back;
    - entering REEL it creeps forward slowly from drum 318 deg until the dogs bite (`r` closes, or the current rises
      0.8 A); if `r` is still open at the park it winds in 5 deg at a time, stopping at an estimated 20 N (the fly-in);
    - entering LAUNCH, if `l` does not close, it turns BACKWARD slowly (up to 40 deg) until the dogs drop in;
@@ -246,11 +250,11 @@ firmware assumes (`aim_home_deg`, the aim-train angle where `SW_RAIL_LOW` closes
 
 **Do not tow before `free_a` (section d), `k_n_per_a` and `tension_offset_n` are calibrated.** Without a load cell
 the firmware stops a tow on its tension ESTIMATE, not on a measured force. With the defaults on an uncalibrated base
-the PC system test reached 61 N against a 40 N limit. The current trip (5 to 6.7 A, set from `max_n`) is only a backstop.
+the PC system test reached 61 N against a 40 N limit. The current trip (5 to 6.9 A, set from `max_n`) is only a backstop.
 
 ### `k_n_per_a` and `tension_offset_n` (used without a load cell)
 
-The estimate is: line N = `k_n_per_a` x (`amps` - `free_a`) + `tension_offset_n`. Defaults 14.8 and -2.6 (D43). Since D43 these constants give the DART-side line tension (the tow limit is
+The estimate is: line N = `k_n_per_a` x (`amps` - `free_a`) + `tension_offset_n`. Defaults 13.1 and -2.3 (D46). Since D43 these constants give the DART-side line tension (the tow limit is
 the tension at the dart); the luggage scale at the line end measures exactly that side, so fit them straight from the
 scale. Pulls against a luggage scale at three loads give both numbers (this matches MEASURE_LIST G9).
 Do not use jogs for this: a jog trips at 3 A, about 15 N.
@@ -272,7 +276,7 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
    monitor log shows the last lines), then send `{"id":4,"cmd":"stop"}`. The worm and sprag #2 hold the line. Write
    down the scale reading N1 and the current I1.
 4. Send the same `reel` line again and stop at about 20 N (N2, I2), then again at about 30 N (N3, I3). Keep every load
-   under 40 N: the reel-in trips at 5 A (about 49 N with the default constants) and stops at `limit_n` anyway.
+   under 40 N: the reel-in trips at 5 A (about 44 N with the default constants) and stops at `limit_n` anyway.
 5. Fit the numbers (use the lowest and the highest load):
    - new `k_n_per_a` = (N3 - N1) / (I3 - I1)
    - new `tension_offset_n` = N1 - new `k_n_per_a` x (I1 - `free_a`)
@@ -280,9 +284,9 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
    Check the middle load: N2 should be close to new `k_n_per_a` x (I2 - `free_a`) + new `tension_offset_n`. If it is
    off by more than 3 N, repeat the pulls.
 
-   Example with `free_a` 1.5: N1 10 at I1 2.35, N3 30 at I3 3.7. k = 20 / 1.35 = 14.8. Offset = 10 - 14.8 x 0.85 = -2.6.
-6. Set them: `{"id":5,"cmd":"set","key":"k_n_per_a","val":14.8}` and
-   `{"id":6,"cmd":"set","key":"tension_offset_n","val":-2.6}` (your numbers; the offset range is -50 to 50). Both are
+   Example with `free_a` 1.5: N1 10 at I1 2.44, N3 30 at I3 3.97. k = 20 / 1.53 = 13.1. Offset = 10 - 13.1 x 0.94 = -2.3.
+6. Set them: `{"id":5,"cmd":"set","key":"k_n_per_a","val":13.1}` and
+   `{"id":6,"cmd":"set","key":"tension_offset_n","val":-2.3}` (your numbers; the offset range is -50 to 50). Both are
    saved in flash.
 7. To release the line: unhook the scale from the post by hand, slowly (30 N is about 3 kg: hold it firmly). The
    capstan never turns back (sprag #2).

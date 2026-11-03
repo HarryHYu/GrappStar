@@ -786,6 +786,11 @@ static void testReview3() {
     CHECK(std::string(rep).find("BOOTING") != std::string::npos, "set in the first 60 ms: BOOTING (resolveBoot would undo it)");
     const char* l2 = "{\"id\":2,\"cmd\":\"cal\",\"what\":\"cock_rest\"}"; B.handleLine(l2, (int)strlen(l2), rep, sizeof rep);
     CHECK(std::string(rep).find("BOOTING") != std::string::npos, "cal in the first 60 ms: BOOTING"); }
+  { Rig R; CHECK(R.cmd("{\"id\":1,\"cmd\":\"get\",\"key\":\"tension_cal\"}").find("\"val\":false") != std::string::npos, "tension_cal false on a new build (systest F28)");
+    R.ok("{\"id\":2,\"cmd\":\"set\",\"key\":\"k_n_per_a\",\"val\":13.4}"); gb::Tun t = R.B.tunNow(); gb::Base B2; B2.restoreTun(&t);
+    CHECK(R.cmd("{\"id\":3,\"cmd\":\"status\"}").find("\"tension_cal\":true") != std::string::npos && B2.tensionCal, "set k_n_per_a: tension_cal true, saved with the tuning");
+    R.ok("{\"id\":4,\"cmd\":\"cal\",\"what\":\"factory\"}");
+    CHECK(!R.B.tensionCal && R.B.c.kNperA == P_REEL_TOW_TENSION_MODEL_N_PER_A, "cal factory: defaults back, tension_cal false"); }
   { Rig R; R.B.evDrops = 3; std::string r = R.cmd("{\"id\":1,\"cmd\":\"status\"}");
     CHECK(r.find("\"ev_drops\":3") != std::string::npos && r.size() <= 256, "status reports dropped events, within 256 bytes"); }
   { Rig R; R.B.c.freeA = 1.5f; R.B.w.amps = 5.0f;

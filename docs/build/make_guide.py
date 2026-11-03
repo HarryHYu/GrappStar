@@ -310,7 +310,7 @@ def render_diagram():
 
 
 # ----------------------------------------------------------------------------------------------- PDF
-def build_pdf(md):
+def build_pdf(md, out=None, doc_title=TITLE):
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_LEFT
     from reportlab.lib.pagesizes import A4
@@ -366,14 +366,14 @@ def build_pdf(md):
     class Doc(BaseDocTemplate):
         def __init__(self, fn):
             super().__init__(fn, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=16 * mm,
-                             bottomMargin=16 * mm, title=TITLE, author="", subject="", creator="")
+                             bottomMargin=16 * mm, title=doc_title, author="", subject="", creator="")
             frame = Frame(self.leftMargin, self.bottomMargin, self.width, self.height, id="f")
             self.addPageTemplates([PageTemplate(id="p", frames=[frame], onPage=self.footer)])
 
         def footer(self, c, d):
             c.setFont("Sans", 8)
             c.drawRightString(A4[0] - 18 * mm, 9 * mm, str(d.page))
-            c.drawString(18 * mm, 9 * mm, TITLE)
+            c.drawString(18 * mm, 9 * mm, doc_title)
 
         def afterFlowable(self, f):
             if isinstance(f, Paragraph) and getattr(f, "_toc", 0):
@@ -381,7 +381,8 @@ def build_pdf(md):
                 key = f"h{id(f)}"
                 self.canv.bookmarkPage(key)
                 self.canv.addOutlineEntry(f.getPlainText(), key, level=lvl, closed=lvl > 0)
-                self.notify("TOCEntry", (lvl, f.getPlainText(), self.page, key))
+                if not getattr(f, "_outline_only", False):
+                    self.notify("TOCEntry", (lvl, f.getPlainText(), self.page, key))
 
     def table_flow(rows):
         ncol = max(len(r) for r in rows)
@@ -390,7 +391,10 @@ def build_pdf(md):
             return re.sub(r"[`*]", "", c)
         lens = [max(4, min(60, max(len(plain(r[i])) for r in rows))) for i in range(ncol)]
         # never narrower than the longest word in the column (about 0.55 em per character at 8 pt)
-        mins = [max(len(w) for r in rows for w in (plain(r[i]).split() or [""])) * 4.6 + 8 for i in range(ncol)]
+        def wmin(c):
+            words = plain(c).split() or [""]
+            return max(len(w) for w in words) * (5.0 if "`" in c else 4.6) + 8
+        mins = [max(wmin(r[i]) for r in rows) for i in range(ncol)]
         tot = sum(lens)
         widths = [W * l / tot for l in lens]
         for _ in range(5):
@@ -465,7 +469,9 @@ def build_pdf(md):
             lvl = len(m.group(1))
             txt = m.group(2).strip()
             if lvl == 1 and first_h1:
-                story.append(Paragraph(inline(txt), title))
+                tp = Paragraph(inline(txt), title)
+                tp._toc, tp._outline_only = 1, True
+                story.append(tp)
                 first_h1 = False
             else:
                 if lvl == 1:
@@ -538,7 +544,7 @@ def build_pdf(md):
         i += 1
     flush()
 
-    tmp = OUT_PDF + ".main.pdf"
+    tmp = out or (OUT_PDF + ".main.pdf")
     doc = Doc(tmp)
     doc.multiBuild(story)
     return tmp
@@ -574,6 +580,70 @@ def append_pdfs(main):
     return added
 
 
+def first_table_after(path, heading_regex):
+    """The first Markdown table after the first heading matching heading_regex (or after a line matching it)."""
+    full = os.path.join(ROOT, path)
+    if not os.path.exists(full):
+        return None
+    lines = open(full, encoding="utf-8").read().splitlines()
+    start = next((i for i, l in enumerate(lines) if re.search(heading_regex, l)), None)
+    if start is None:
+        return None
+    out = []
+    for l in lines[start + 1:]:
+        if l.strip().startswith("|"):
+            out.append(l)
+        elif out:
+            break
+    return "\n".join(out) if out else None
+
+
+def build_cheatsheets():
+    """One printable page per board: the pin table from the owner's WIRING.md plus the power and safety lines."""
+    sheets = []
+    base_pins = first_table_after("firmware/base/WIRING.md", r"^## 1\. Pin table")
+    base_md = f"""# Base ESP32-S3 wiring cheat sheet
+
+**Battery unplugged before any wire moves.** ESP32-S3 DevKitC-1-N8, powered only by USB (port marked USB) from the
+Jetson or the Mac. Pins from `firmware/base/WIRING.md` (that file wins if this page is older).
+
+{base_pins or placeholder("firmware/base/WIRING.md", "fw-base")}
+
+Power: 3S LiPo, XT60 lead #2 (20 A fuse), BTS7960 B+ / B- (14 AWG). Wiper on M+ (red) / M- (black), 14 AWG.
+MP1584 #2 from the B+ / B- screws through a 2 A inline fuse, set to 9.0 V BEFORE its output is connected, out to
+DRV8833 VM / GND. DRV8833 #3: only AIN1, AIN2, GND go to the ESP32; SLP is not wired (decision D9).
+
+Resistors: 10 k R_EN to GND, 10 k L_EN to GND, IS: R_IS + L_IS tied, 1 k to GPIO1, 680 R GPIO1 to GND. Battery:
+100 k at the B+ screw to GPIO2, 22 k GPIO2 to GND. Common ground: ESP32 GND, BTS7960 GND, DRV8833 GND, MP1584 OUT-.
+
+Never: the 3S on the DRV8833 VM (10.8 V max); 3V3 on a pad that beeps to VM; a plug pulled with the battery in.
+"""
+    dart_pins = first_table_after("firmware/dart/WIRING.md", r"^Pin map")
+    dart_md = f"""# Dart XIAO ESP32S3 wiring cheat sheet
+
+**Power loop plug out before any wire moves or USB goes in.** Pins from `firmware/dart/WIRING.md` (v4, DRV#3
+removed; that file wins if this page is older). Full wire list: `firmware/dart/wiring/wire_cut_list.csv`.
+
+{dart_pins or placeholder("firmware/dart/WIRING.md", "fw-dart")}
+
+Power: 2 x 18350 in series (2S, 6.0 to 8.4 V), OTOTEC BMS, JST-XH loop plug = ON switch, INA219 VIN+ then the motor
+rail to DRV#1 VM and DRV#2 VM (no buck for motors). MP1584 #1 at 5.04 V taps INA219 VIN+: OUT through a Schottky
+diode (stripe toward the XIAO) to XIAO 5V, and to the VTX and camera. Capacitor across MP1584 OUT (long leg OUT+).
+
+DRV8833: 3V3 only to the SLP / nSLEEP / EEP pad (check it does NOT beep to VM). DRV#2 channel A drives both drills
+(right drill leads swapped); channel B drives the foot. No bridge between pads.
+
+Reverse a motor: swap its two input wires at the driver (drills D8 / D9, foot D6 / D7, deploy D0 / D1, kick
+D2 / D3). One drill wrong only: swap that drill's motor leads. VTX antenna on before any power.
+"""
+    for name, md, title in (("Wiring_Cheat_Sheet_Base.pdf", base_md, "Base ESP32-S3 wiring"),
+                            ("Wiring_Cheat_Sheet_Dart.pdf", dart_md, "Dart XIAO wiring")):
+        out = os.path.join(HERE, name)
+        build_pdf(clean(md), out=out, doc_title=title)
+        sheets.append(rel(out))
+    return sheets
+
+
 def lint(md):
     bad = [n for n, line in enumerate(md.splitlines(), 1) if "—" in line]
     if bad:
@@ -590,6 +660,8 @@ def main():
         f.write(md.replace("@@toc\n", "").replace("@@pagebreak\n", ""))
     main_pdf = build_pdf(md)
     added = append_pdfs(main_pdf)
+    for sh in build_cheatsheets():
+        print(f"wrote {sh}")
     for p, page in added:
         print(f"appended {p} at page {page}")
     missing = [p for p, _ in SOURCES if not exists(p)]

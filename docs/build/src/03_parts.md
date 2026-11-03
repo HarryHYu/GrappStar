@@ -13,8 +13,8 @@ looking in the box.
 
 - **AS5600 magnet** (optional): the Adafruit board does not include one. The magnet cap takes any small neodymium
   disc (6 to 10 mm across, 2 to 3 mm thick) mounted edge-on, or a 6 x 2.5 mm diametric disc. Look in the box first
-  (old speakers, fridge magnets with a neodymium disc). With no magnet at all the base still works in a degraded
-  mode: a printed 6-bump index cam read by the contact SW_INDEX counts the shaft turns.
+  (old speakers, fridge magnets with a neodymium disc). Decision D12 plans a no-magnet mode (a printed 6-bump index
+  cam read by the contact SW_INDEX); until firmware/base/README.md says it exists, the magnet is needed.
 - **Optional, for range:** a second pair of the same launch springs (Bunnings I/N 0487961). The two springs give
   about 4 to 5 m; four give about 8 to 9 m. The base has the mounting provision built in.
 
@@ -25,7 +25,7 @@ looking in the box.
 | 12 V wiper motor, self-locking worm | 1 | Rebuilt to 2 wires, park linkage removed. Measure it first (section 14 A) |
 | BTS7960 motor driver module | 1 | Drives the wiper |
 | ESP32-S3 DevKitC-1-N8 | 1 | Base brain, USB to the Jetson |
-| Adafruit AS5600 (STEMMA QT) | 1 | Main shaft angle. Needs a 6 x 2.5 mm diametric magnet (see above) |
+| Adafruit AS5600 (STEMMA QT) | 1 | Main shaft angle. Needs a small magnet (see above) |
 | DRV8833 carrier | 1 | DRV8833 #3, freed from the dart by the new dart pin map |
 | MP1584 buck | 1 | MP1584 #2 from the dart build, set to 9.0 V |
 | N20 right-angle worm motor | 1 | Selector drum (count your N20s: section 14 C3) |

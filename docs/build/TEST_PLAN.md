@@ -116,17 +116,18 @@ Never fire a dart (dummy or real) without the tether tied on. The tether is what
 with no line can tumble or land tail first.
 
 Make the dummy: the plate A hull top and bottom, nose and tail cap (spare prints or the dart shells before the
-electronics go in), taped shut with M8 nuts or sand inside to 280 g including the 15 g nose ballast. Paint the
+electronics go in), taped shut with M8 nuts or sand inside to 279 g including the 15 g nose ballast (decision D10). Paint the
 nose bright. Tie the line through the tail cap holes. Route the line as in the base assembly steps (for launch it
 bypasses the capstan). Set the payout brake with hanging weights (G4): 40 g does not pull line off, 50 g does.
 
 1. `aim` 20 degrees. Load the dummy, check `SW_SEATED` is closed. Fire.
 2. Film it side-on with the phone in slow motion, tape measure on the ground in view (muzzle speed, G5).
-3. Measure the range. Repeat at 30 and 35 degrees (G6).
+3. Measure the range. Repeat at 30 and 37 degrees (G6).
 4. Check the line paid out with no loops or overrun on the storage reel.
 
 Pass: clean exit (no rubbing marks on the dummy), it flies nose first, payout is clean, the range is within 30
-percent of the ballistics table at the same pitch (about 4 to 5 m at 35 degrees with the two springs).
+percent of the ballistics table at the same pitch (best about 5 m near 36 to 38 degrees with the two springs;
+`base/physics/SUMMARY.md` has the current number).
 If it fails: short range: measure the springs (B2) and the muzzle speed, then re-run the physics. Rubbing marks:
 check the cradle and the barrel against the dart. Loops on the reel: raise the brake a little (never over 1 N).
 Big range loss with clean payout: the line catches somewhere; watch the slow-motion video.
@@ -165,8 +166,8 @@ calibration (G1).
 From the operator page on the Jetson (jetson/README.md): preflight, pick a target on the Kiyo view, aim, confirm
 the fire prompt, flight video from the dart, landing verdict, anchor, tow, release, reel home.
 
-1. First run: a short target well inside the range the operator page offers (the physics model gives about 4 m at
-   35 degrees with the current springs), soft soil, open ground.
+1. First run: a short target well inside the range the operator page offers (the physics model gives about 5 m at its best
+   pitch with the two springs), soft soil, open ground.
 2. Watch every prompt: the software stops and asks before each dangerous step.
 
 Pass: the whole sequence runs with only the expected operator confirmations, the dart lands within 2 m of the target,

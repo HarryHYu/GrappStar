@@ -14,7 +14,7 @@ Three parts:
   - LAUNCH, wiper forward: draws the spring carriage back (245 mm), fires at the end of the stroke, resets.
   - LAUNCH, wiper backward: tilts the rail between 6 and 47 degrees to aim. A self-locking worm holds the angle.
   - WRAP zone: the collar stays in NEUTRAL while the drum turns a wrap cup 7 times round the capstan.
-  - REEL, wiper forward: the capstan (2.27 times wiper speed) winds in and tows. A one-way bearing stops it ever
+  - REEL, wiper forward: the capstan (REEL gear 50T to capstan gear 22T, 2.27 times wiper speed) winds in and tows. A one-way bearing stops it ever
     turning out. Tow limit 50 N by default.
   - Take-up: every forward wiper turn also winds the storage reel through a slip clutch, so slack never builds up.
   - Payout at launch: the line skips the capstan and pulls off the free-spinning storage reel against a light

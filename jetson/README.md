@@ -477,6 +477,7 @@ The mission steps, in order (the page highlights the current one):
 | FIRE | two confirmations, then the shot (FIRED, then the launcher RESET) | Fire, then FIRE NOW |
 | FLIGHT | waits for the dart to say LANDED (or the dart video to go still) | |
 | LANDING_ZONE | landing report, map, verdict; the base is told how much line is out | Anchor, or Retrieve and reshoot |
+| RAIL_LOW | if the rail is above 15 degrees, it is lowered to its minimum pitch before the tow (skipped on a reshoot) | |
 | BASE_NEUTRAL | launcher at rest, drum to NEUTRAL | |
 | WRAP | the capstan wraps go on while the line is still slack; the drum parks at WRAPPED (about 24 s) | |
 | ANCHOR | the dart digs in (kick, foot, drills) | if it reports warnings, choose Tow anyway or Release and reshoot |

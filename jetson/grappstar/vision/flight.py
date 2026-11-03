@@ -370,7 +370,8 @@ def _gamma_track(v0: float, pitch: float, h0: float):
 def fuse_speed(pitch: float, h0: float, T_obs: Optional[float] = None, T_sigma: Optional[float] = None,
                T_min: Optional[float] = None, track: Sequence[Tuple[float, float]] = (),
                v_prior: Optional[float] = None, prior_sigma: Optional[float] = None, v_min: Optional[float] = None,
-               lo: float = 3.0, hi: float = 16.0, launch_free: bool = False) -> Tuple[Optional[float], dict]:
+               lo: float = 3.0, hi: float = 16.0, launch_free: bool = False,
+               launch_late_max: float = 0.10, launch_late_sigma: float = 0.06) -> Tuple[Optional[float], dict]:
     """Muzzle speed that best explains every cue, by a search over v0. Returns (v0 or None, details).
 
     Cues (each optional), all times measured from the end of the stroke (where the model flight starts):
@@ -382,14 +383,14 @@ def fuse_speed(pitch: float, h0: float, T_obs: Optional[float] = None, T_sigma: 
     - v_prior: table muzzle speed (C3 v_muzzle) with prior_sigma relative spread.
     - v_min: lower bound (a saturated IMU push).
     launch_free: the launch time itself is uncertain (video: the first motion can be seen late when the camera
-    looks at plain sky). A launch time shift d (true launch = observed - d... in [-0.04, +0.10] s) is searched too;
-    it moves every time cue. details["launch_shift_s"] gives it."""
+    looks at plain sky). A launch time shift d (true launch = observed - d, in [-0.04, launch_late_max] s) is
+    searched too; it moves every time cue. details["launch_shift_s"] gives it."""
     cues = {"T_obs": T_obs, "T_min": T_min, "track_n": len(track), "v_prior": v_prior, "v_min": v_min}
     if T_obs is None and not track and v_prior is None:
         return None, cues
     prior_sigma = PRIOR_SIGMA if prior_sigma is None else prior_sigma
     tr = np.array(track, float) if len(track) else np.zeros((0, 2))
-    shifts = np.arange(-0.04, 0.1001, 0.01) if launch_free else np.array([0.0])
+    shifts = np.arange(-0.04, launch_late_max + 1e-4, 0.01) if launch_free else np.array([0.0])
 
     def cost(v):
         ts, xs, zs, gam = _gamma_track(v, pitch, h0)
@@ -398,7 +399,7 @@ def fuse_speed(pitch: float, h0: float, T_obs: Optional[float] = None, T_sigma: 
         for d in shifts:
             c = 0.0
             if launch_free:     # the video launch is more often late (sky view) than early
-                c += (d / 0.06) ** 2 if d >= 0 else (d / 0.02) ** 2
+                c += (d / launch_late_sigma) ** 2 if d >= 0 else (d / 0.02) ** 2
             if v_prior is not None:
                 c += ((v - v_prior) / (prior_sigma * v_prior)) ** 2
             if T_obs is not None:
@@ -805,9 +806,53 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
             sl_ = v * STROKE_S / 2.0
             return float(ballistic(v, p, h0 + sl_ * math.sin(math.radians(p)))[0][-1])
         video_T = not use_imu
+        # horizon track in flight and the last frame that still saw the sky (a lower bound on the flight time)
+        track, t_sky = [], None
+        t_end_track = t_impact if not video_T else (vid.get("impact") or t_impact)
+        for i, hz in hor_by_idx.items():
+            ft = frames[i].t
+            if t_start + 0.03 < ft < t_end_track:
+                if hz["sky_ratio"] is not None and hz["sky_ratio"] >= 0.01:
+                    t_sky = ft if t_sky is None else max(t_sky, ft)
+                if hz["pitch_deg"] is not None:
+                    track.append((ft - t_start, float(hz["pitch_deg"])))
+        v0_min = imu.get("v0_min") if imu else None
+        # a rail view that is all sky hides the launch motion (no texture): the video launch can be late by more
+        rail_sky = [hz["sky_ratio"] for i, hz in hor_by_idx.items()
+                    if frames[i].t < t_launch - 0.05 and hz["sky_ratio"] is not None]
+        sky_rail = len(rail_sky) >= 3 and float(np.median(rail_sky)) >= 0.97
+
+        def fuse(p):
+            vp_ = v_tab(p)
+            return fuse_speed(p, h0, T_obs=T, T_sigma=None if video_T else 0.02,
+                              T_min=None if t_sky is None else t_sky - t_start, track=track,
+                              v_prior=vp_, v_min=v0_min, launch_free=video_T,
+                              launch_late_max=0.18 if sky_rail else 0.10, launch_late_sigma=0.10 if sky_rail else 0.06,
+                              # with a table the speed is searched only inside a band around it (a noisy
+                              # flight time can never give a 2 or 30 m/s launcher)
+                              lo=0.6 * vp_ if vp_ else 3.0, hi=1.4 * vp_ if vp_ else 16.0)
+        if pitch is None and v0 is None and len(track) >= 4:
+            # no pitch from the IMU, the rail horizon or the command: fit pitch and speed together to the horizon
+            # track (its start says the launch angle, its slope the speed) and the flight time
+            lo_p, hi_p = (bal.pitch_min, bal.pitch_max) if bal is not None else (4.0, 60.0)
+            # a rail view that is all sky means the camera looks above the horizon by more than half the vertical
+            # field of view: the launch pitch is at least that
+            if sky_rail:
+                hh, ww = frames[0].img.shape[:2]
+                half_v = math.degrees(math.atan(math.tan(math.radians(hfov_deg) / 2.0) * hh / float(ww)))
+                if half_v - 1.0 < hi_p:
+                    lo_p = max(lo_p, half_v - 1.0)
+                    res.notes.append("rail view all sky: launch pitch at least %.0f deg" % (half_v - 1.0))
+            coarse = [(fuse(float(p))[1].get("cost", float("inf")), float(p))
+                      for p in np.arange(lo_p, hi_p + 1e-9, 2.0)]
+            p0 = min(coarse)[1]
+            fine = [(fuse(float(p))[1].get("cost", float("inf")), float(p))
+                    for p in np.arange(max(lo_p, p0 - 1.5), min(hi_p, p0 + 1.5) + 1e-9, 0.5)]
+            pitch = min(fine)[1]
+            res.notes.append("pitch %.1f deg fitted to the horizon track in flight" % pitch)
         if pitch is None:
-            # no pitch from the IMU, the horizon or the command: solve it from the flight time at the table speed
-            # (or the default speed), allowing for the typical 30 ms late video impact
+            # no pitch and no usable track: solve it from the flight time at the table speed (or the default
+            # speed), allowing for the typical 30 ms late video impact
             T_fit = T - (0.03 if video_T else 0.0)
             pitch = _bisect(lambda p: tf(v_tab(p) or v0 or v0_default, p), 2.0, 80.0, T_fit)
             if pitch is None:
@@ -816,24 +861,8 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
             else:
                 res.notes.append("pitch solved from flight time with v0 %.1f m/s" % (v_tab(pitch) or v0 or v0_default))
         if v0 is None:
-            # horizon track in flight and the last frame that still saw the sky (a lower bound on the flight time)
-            track, t_sky = [], None
-            t_end_track = t_impact if not video_T else (vid.get("impact") or t_impact)
-            for i, hz in hor_by_idx.items():
-                ft = frames[i].t
-                if t_start + 0.03 < ft < t_end_track:
-                    if hz["sky_ratio"] is not None and hz["sky_ratio"] >= 0.01:
-                        t_sky = ft if t_sky is None else max(t_sky, ft)
-                    if hz["pitch_deg"] is not None:
-                        track.append((ft - t_start, float(hz["pitch_deg"])))
             vp = v_tab(pitch)
-            v0_min = imu.get("v0_min") if imu else None
-            v_f, cues = fuse_speed(pitch, h0, T_obs=T, T_sigma=None if video_T else 0.02,
-                                   T_min=None if t_sky is None else t_sky - t_start, track=track,
-                                   v_prior=vp, v_min=v0_min, launch_free=video_T,
-                                   # with a table the speed is searched only inside a band around it (a noisy
-                                   # flight time can never give a 2 or 30 m/s launcher)
-                                   lo=0.6 * vp if vp else 3.0, hi=1.4 * vp if vp else 16.0)
+            v_f, cues = fuse(pitch)
             if v_f is not None:
                 v0 = v_f
                 used = [n for n, ok in (("flight time", True), ("sky track", bool(track)),

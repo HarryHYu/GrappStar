@@ -166,3 +166,136 @@ def test_empty_and_bad_inputs():
     frames, truth = sim(0)
     r = analyze_flight(frames[:20], truth["flightlog"])
     assert r.t_launch is None or r.source == "video+imu"
+
+
+# ---------------------------------------------------------------- real launcher speeds (review R1-C #6)
+# The real launcher (base/out/ballistics.json, physics model) gives about 7.4 m/s and 6..47 deg, flights of
+# 0.4 to 1.1 s. Video-only range must stay within 15 percent across 6 to 8 m/s. The sim's world uses its own
+# drag model, so the C3 prior here is a table made from the sim physics at the REAL table's muzzle speed: the
+# "launcher" the video sees and the table agree on the model, and the true speed is off the table by up to 20 %.
+
+import os
+import grappstar.vision.flight as FL
+from grappstar.ballistics import REPO_TABLE, Ballistics
+
+REAL_TOL = 0.15
+
+
+def _real_v_muzzle():
+    if not os.path.exists(REPO_TABLE):
+        pytest.skip("no base/out/ballistics.json")
+    with open(REPO_TABLE) as f:
+        d = json.load(f)
+    return float(np.median([r["v_muzzle"] for r in d["table"]])), float(d["pitch_min"]), float(d["pitch_max"])
+
+
+def _sim_table(v, p_lo=6, p_hi=47):
+    from grappstar.sim.flight_video import STROKE_S, RAIL_H
+    rows = []
+    for p in range(int(p_lo), int(p_hi) + 1):
+        sl = v * STROKE_S / 2
+        ts, xs, zs = FL.ballistic(v, p, RAIL_H + sl * math.sin(math.radians(p)), dt=0.001)
+        r = float(xs[-1] + sl * math.cos(math.radians(p)))
+        rows.append({"pitch_deg": float(p), "v_muzzle": v, "range_m": [r] * 3, "t_flight_s": [float(ts[-1])] * 3,
+                     "apex_m": [float(zs.max())] * 3})
+    return Ballistics({"version": 1, "pitch_min": p_lo, "pitch_max": p_hi, "drag_n": [0.5, 0.75, 1.0],
+                       "table": rows}, source="sim_table")
+
+
+_real_cache = {}
+
+
+def real_sim(seed, pitch, v):
+    key = (seed, pitch, v)
+    if key not in _real_cache:
+        _real_cache[key] = render_flight(seed=seed, size=SMALL, pitch_deg=pitch, v0=v)
+    return _real_cache[key]
+
+
+@pytest.mark.parametrize("pitch,speed,seed", [
+    (8, "lo", 0), (8, "nom", 1), (8, "hi", 2),
+    (20, "lo", 3), (20, "nom", 4), (20, "hi", 5),
+    (40, "lo", 6), (40, "nom", 7), (40, "hi", 8),
+])
+def test_video_only_range_at_real_speed_with_aim(pitch, speed, seed):
+    v_nom, _, _ = _real_v_muzzle()
+    v = {"lo": 6.0, "nom": v_nom, "hi": 8.0}[speed]
+    frames, truth = real_sim(seed, pitch, v)
+    r = analyze_flight(frames, None, ballistics=_sim_table(v_nom), aim_pitch_deg=pitch)
+    assert r.source == "video"
+    err = (r.range_m - truth["range_m"]) / truth["range_m"]
+    assert abs(err) < REAL_TOL, (r.range_m, truth["range_m"], r.v0, r.notes)
+    assert r.launch_pitch_deg == pytest.approx(pitch)
+    assert any("fused" in n for n in r.notes)
+
+
+@pytest.mark.parametrize("pitch,v,seed", [(8, 6.0, 11), (20, 8.0, 12), (40, 7.0, 13)])
+def test_video_only_range_at_real_speed_without_aim(pitch, v, seed):
+    """No commanded pitch: the pitch comes from the horizon on the rail or the flight time."""
+    v_nom, _, _ = _real_v_muzzle()
+    frames, truth = real_sim(seed, pitch, v)
+    r = analyze_flight(frames, None, ballistics=_sim_table(v_nom))
+    err = (r.range_m - truth["range_m"]) / truth["range_m"]
+    assert abs(err) < REAL_TOL, (r.range_m, truth["range_m"], r.v0, r.launch_pitch_deg, r.notes)
+
+
+@pytest.mark.parametrize("pitch,v,seed", [(8, 6.0, 0), (40, 8.0, 7)])
+def test_imu_range_at_real_speed(pitch, v, seed):
+    v_nom, _, _ = _real_v_muzzle()
+    frames, truth = real_sim(seed, pitch, v)
+    r = analyze_flight(frames, truth["flightlog"], ballistics=_sim_table(v_nom))
+    assert r.source == "video+imu"
+    assert abs(r.range_m - truth["range_m"]) < 0.10 * truth["range_m"]
+    assert abs(r.v0 - v) < 0.5
+
+
+def test_old_estimator_failure_case_is_fixed():
+    """The review's case: pitch 10, 7.7 m/s, true range 3.8 m; the old video-only estimate was 4.7 to 6.8 m."""
+    v_nom, _, _ = _real_v_muzzle()
+    for seed in (0, 1):
+        frames, truth = real_sim(seed, 10, 7.7)
+        r = analyze_flight(frames, None, ballistics=_sim_table(v_nom), aim_pitch_deg=10)
+        assert abs(r.range_m - truth["range_m"]) < REAL_TOL * truth["range_m"], (seed, r.range_m, truth["range_m"])
+
+
+def test_range_calibrated_to_table():
+    """The range follows the C3 table at the table speed (the simple drag model only interpolates around it)."""
+    v_nom, _, _ = _real_v_muzzle()
+    tab = _sim_table(v_nom)
+    rows = [dict(r, range_m=[x * 0.8 for x in r["range_m"]]) for r in tab.data["table"]]
+    short = Ballistics(dict(tab.data, table=rows))
+    frames, truth = real_sim(4, 20, v_nom)
+    a = analyze_flight(frames, None, ballistics=tab, aim_pitch_deg=20)
+    b = analyze_flight(frames, None, ballistics=short, aim_pitch_deg=20)
+    assert a.range_scale == pytest.approx(1.0, abs=0.01)
+    assert b.range_scale == pytest.approx(0.8, abs=0.01)
+    assert b.range_m == pytest.approx(0.8 * a.range_m, rel=0.03)
+    assert b.trajectory[-1][1] == pytest.approx(b.range_m)
+
+
+def test_fuse_speed_recovers_model_speed():
+    from grappstar.sim.flight_video import RAIL_H
+    for v_true, p in ((6.0, 10.0), (7.4, 25.0), (8.0, 42.0)):
+        ts, xs, zs, gam = FL._gamma_track(v_true, p, RAIL_H)
+        track = [(float(t), float(g)) for t, g in zip(ts[5::12], gam[5::12]) if t < ts[-1] - 0.05]
+        v, d = FL.fuse_speed(p, RAIL_H, T_obs=float(ts[-1]) + 0.03, track=track, v_prior=7.4, launch_free=True)
+        assert v == pytest.approx(v_true, abs=0.4), (v_true, p, v, d)     # the 7.4 prior pulls a little
+        # time only (no track): the asymmetric window keeps a late impact from inflating the speed
+        v2, _ = FL.fuse_speed(p, RAIL_H, T_obs=float(ts[-1]) + 0.08)
+        assert v2 <= v_true + 0.3
+    assert FL.fuse_speed(20.0, RAIL_H) == (None, {"T_obs": None, "T_min": None, "track_n": 0, "v_prior": None,
+                                                  "v_min": None})
+
+
+def test_run_post_flight_passes_aim_and_table(tmp_path):
+    from grappstar import analysis
+    v_nom, _, _ = _real_v_muzzle()
+    frames, truth = real_sim(4, 20, v_nom)
+    res = analysis.run_post_flight(frames, None, None, do_mosaic=False, aim_pitch_deg=20,
+                                   ballistics=_sim_table(v_nom))
+    fl = res["flight"]
+    assert fl["launch_pitch_deg"] == pytest.approx(20.0)
+    assert abs(fl["range_m"] - truth["range_m"]) < REAL_TOL * truth["range_m"]
+    # auto: the repo table (real launcher) is loaded and used as the prior
+    res = analysis.run_post_flight(frames, None, None, do_mosaic=False, aim_pitch_deg=20)
+    assert any("table" in n for n in res["flight"]["notes"])

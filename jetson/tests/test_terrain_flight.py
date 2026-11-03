@@ -5,6 +5,8 @@ constants are learned on flight seeds 10 and up, so seeds 0 and 1 are unseen.
 """
 import time
 
+import pytest
+
 import numpy as np
 
 import eval_terrain_flight as E
@@ -59,3 +61,68 @@ def test_runtime_15_frames_720x480():
     dt = time.perf_counter() - t0
     assert rep.cls == "loose_soil"
     assert dt < 1.0, dt                # target about 0.3 s on the dev PC, generous for slow CI
+
+
+# ---------------------------------------------------------------- roll-invariant landing tilt (review R1-C #1)
+
+def _spin_log(fl, roll_deg):
+    """The same flight, with the dart spun by roll_deg about its own nose for the whole log."""
+    import math
+    c, s = math.cos(math.radians(roll_deg) / 2), math.sin(math.radians(roll_deg) / 2)
+    cr, sr = math.cos(math.radians(roll_deg)), math.sin(math.radians(roll_deg))
+    out = dict(fl)
+    rows = []
+    for r in fl["samples"]:
+        w, x, y, z = r[1:5]
+        # q' = q * qx(roll): w' = w c - x s, x' = x c + w s, y' = y c + z s, z' = z c - y s
+        q = [w * c - x * s, x * c + w * s, y * c + z * s, z * c - y * s]
+        ax, ay, az = r[5:8]
+        # body vector in the spun body frame: Rx(roll)^T a
+        a = [ax, cr * ay + sr * az, -sr * ay + cr * az]
+        rows.append([r[0]] + q + a)
+    out["samples"] = rows
+    return out
+
+
+def test_rest_tilt_is_roll_invariant_and_verdict_does_not_change():
+    from grappstar import analysis
+    from grappstar.sim.flight_video import render_flight
+    frames, truth = render_flight(seed=3, size=(360, 240), landing_class="hard_ground", pitch_deg=30, v0=7.4)
+    base = truth["flightlog"]
+    reps = []
+    for roll in (0, 45, 90, 180):
+        fl = _spin_log(base, roll)
+        t = analysis.rest_tilt(fl)
+        assert t is not None and t["source"] == "accelerometer"
+        res = analysis.run_post_flight(frames, fl, None, do_mosaic=False)
+        reps.append((round(t["nose_elev_deg"], 1), res["terrain"]["verdict"], res["terrain"]["score"],
+                     res["terrain"].get("slope_deg"), res["rest_tilt"]["tilt_deg"]))
+    assert all(r[:4] == reps[0][:4] for r in reps[1:]), reps
+    assert all(abs(r[4] - reps[0][4]) < 0.1 for r in reps), reps
+    # the sim dart rests nose down at -54..-66 deg on flat ground: small tilt, and no tilt penalty reason
+    pitch_f = [p for p in truth["poses"].values()][-1][5]
+    assert reps[0][0] == pytest.approx(pitch_f, abs=2.0)
+    assert reps[0][4] < 8.0
+    assert reps[0][1] != "NO_GO"
+
+
+def test_rest_tilt_shapes():
+    import math
+    from grappstar import analysis
+
+    def log(elev_deg, roll_deg=0.0, n=60, g=9.81):
+        # dart at nose elevation elev, spun by roll: specific force in body = R^T (0, 0, g)
+        e, r = math.radians(elev_deg), math.radians(roll_deg)
+        fx = g * math.sin(e)
+        fy = g * math.cos(e) * math.sin(r)
+        fz = g * math.cos(e) * math.cos(r)
+        return {"hz": 50, "samples": [[i * 20, 1, 0, 0, 0, fx, fy, fz] for i in range(n)]}
+
+    for roll in (0, 45, 90, 180, -120):
+        t = analysis.rest_tilt(log(-60, roll))
+        assert t["nose_elev_deg"] == pytest.approx(-60, abs=0.01) and t["tilt_deg"] == pytest.approx(0, abs=0.01)
+    t = analysis.rest_tilt(log(-2.0, 90))
+    assert t["expected_deg"] == 0.0 and t["tilt_deg"] == pytest.approx(2.0, abs=0.01)    # lying flat
+    t = analysis.rest_tilt(log(-30.0, 33))
+    assert t["tilt_deg"] == pytest.approx(30.0, abs=0.01)                               # neither pose: tilted
+    assert analysis.rest_tilt(None) is None and analysis.rest_tilt({"samples": []}) is None

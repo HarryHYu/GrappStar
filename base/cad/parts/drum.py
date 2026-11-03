@@ -13,7 +13,7 @@ from shapely.geometry import Point, Polygon, LineString
 from shapely.ops import unary_union
 from shapely import affinity
 
-from cad.lib import Part, Joint, Allow, Clearance, prim, tf, fits, gears
+from cad.lib import Part, Joint, Allow, Clearance, Mesh, prim, tf, fits, gears
 from cad.lib.clutch import _polar_tooth
 from cad.parts import _drum_kin as K
 
@@ -57,7 +57,8 @@ GEOM = dict(
     fork_s=85.0, fork_over=0.0, fork_t=2.4, yoke_r=(31.0, 37.0), pin_d=6.0, pin_off=9.5, hub_len=14.0,
     rail_xy=(25.0, 58.0), rail_d=10.0, rail_s=(1.0, 142.0),
     dogpost_s=(106.5, 111.5), dog_touch=0.5,      # clamp on the rail beyond the fork sleeve, clear of the launch cheeks (y 123..131)
-    fork_sleeve=(-50.0, 16.0),                    # fork rail sleeve from sb: 66 long against racking
+    fork_sleeve=(-66.8, 16.2),                    # fork rail sleeve from sb: s 15.5..98.5, 83 long against racking
+                                                  # (0.8 from bracket A and 1.0 from the dog post at full stroke)
     # world-fixed angles round the drum axis (L xy plane, deg; y is down). phi_pin and phi_idler are derived in G()
     phi_pin=-118.0, phi_idler=-170.8, phi_brake=180.0, phi_sw=180.0, phi_n20=-40.0, n20_motor_deg=-90.0,
     # brackets (s)
@@ -512,7 +513,8 @@ def drum_a(g, c):
     parts.append(prim.place(sg, tf.T(0, 0, g["seg"][0] - 0.01) @ tf.Rz(seg_phase(g, c))))
     parts.append(shp_extrude(lock_layer_poly(g, c), g["seg"][1] - 0.05, g["lock"][1]))
     parts.append(shp_extrude(polar_profile(lambda a: cam_radius(g, c, a)), g["cam"][0] - 0.01, g["cam"][1]))
-    parts.append(hexprism(g["spig_af"], g["neck_s"][1] - 0.01, a1))
+    # hex spigot with its +x corner cut off (flat at x 7.5): drum B fits only one way (drum B's socket keeps that corner)
+    parts.append(hexprism(g["spig_af"], g["neck_s"][1] - 0.01, a1) - prim.box(7.5, 20, -20, 20, g["neck_s"][1] - 1, a1 + 1))
     # 45 deg cones under every outward step (prints without support when standing on the gear face)
     rc = g["cam_r0"]
     parts.append(prim.cyl(rc - 0.5 - (g["cam"][0] - a0), g["cam"][0] - a0, z=a0, r2=rc - 0.5))
@@ -535,7 +537,8 @@ def drum_b(g, c):
     h0, h1, af = g["hexboss"]
     parts.append(hexprism(af, h0, h1))
     d = prim.union(parts)
-    d = d - hexprism(g["spig_af"] + fits.HOLE_SLIDE, b0 - 1, g["drumA_s"][1] + 0.3)
+    d = d - (hexprism(g["spig_af"] + fits.HOLE_SLIDE, b0 - 1, g["drumA_s"][1] + 0.3)
+             - prim.box(7.5 + fits.HOLE_SLIDE / 2, 20, -20, 20, b0 - 2, g["drumA_s"][1] + 1))   # keyed corner
     return d - cyl((g["axle_d"] + fits.SHAFT_IN_BORE) / 2, b0 - 1, b1 + 1)
 
 
@@ -595,7 +598,7 @@ def fork_planes(g):
 
 def fork(g, c):
     """Fork at NEUTRAL in L. Prints flat on the pad plane sb. The thin yoke (lower half ring round the collar groove,
-    pads at 3 and 9 o'clock) is the spring; a hub under the yoke, an arm to the rail sleeve (66 long against racking),
+    pads at 3 and 9 o'clock) is the spring; a hub under the yoke, an arm to the rail sleeve (83 long against racking),
     an arm to the follower pin block at the drum, pin into groove 1. The yoke tab (+x, nut inside) touches the
     SW_DOG_L / SW_DOG_R screw heads on the fixed dog post only when the collar is fully engaged."""
     F = fork_planes(g)
@@ -1101,6 +1104,34 @@ def main_angle(P, S):
     return float(S.get("wiper_deg", 0.0) or 0.0)
 
 
+def meshes(P):
+    """Gear meshes for cad-infra's mesh check (gear axis = part-local +Z; frames put z 0 at each gear's face start)."""
+    g, c = G(P), C(P)
+    T = tf.T
+    out = [
+        Mesh("drum_drum_a", "drum_n20_pinion", c["drum_gear_m"], c["drum_gear_z"], c["n20_z"], c["drum_gear_x"],
+             c["n20_x"], face_a=g["dgear"][1] - g["dgear"][0], face_b=g["dgear"][1] - g["dgear"][0],
+             frame_a=T(0, 0, g["dgear"][0]), frame_b=T(0, 0, g["dgear"][0]), why="N20 pinion 10T to drum gear 120T"),
+        Mesh("drum_drum_a", "drum_idler", c["seg_m"], c["seg_z"], c["pin_z"], 0.0, c["pin_x"],
+             face_a=g["seg"][1] - g["seg"][0], face_b=g["seg"][1] - g["seg"][0] - 0.3,
+             frame_a=T(0, 0, g["seg"][0]), frame_b=T(0, 0, g["seg"][0]), why="segment gear to wrap pinion (WRAP only)"),
+    ]
+    # the segment gear only has teeth over the WRAP zone (meshcheck reads Mesh.when when present)
+    out[1].when = lambda S: c["seg_start"] - 2 <= drum_theta(S, c) <= c["seg_start"] + K.seg_span(c) + 2
+    import os
+    if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "reel.py")):
+        out += [
+            Mesh("drum_coupler", "reel_bus", g["bus_m"], g["bus_z"], 46, face_a=g["bus_s"][1] - g["bus_s"][0],
+                 frame_a=T(0, 0, g["bus_s"][0]), why="bus gear 50T to cad-reel c1 46T"),
+            Mesh("drum_gear_reel", "reel_gc", g["out_m"], g["out_z"], 22, face_a=g["out_face"],
+                 frame_a=T(0, 0, g["rgear_s"]), why="REEL gear 50T to cad-reel capstan gear 22T"),
+            Mesh("drum_idler_gear", "reel_gk", c["idl_m"], c["idl_z"], c["ring_z"],
+                 face_a=g["idl_gear"][1] - g["idl_gear"][0], frame_a=T(0, 0, g["idl_gear"][0]),
+                 why="wrap idler 42T to cad-reel cup gear 24T"),
+        ]
+    return out
+
+
 def drum_theta(S, c):
     if "drum_deg" in S and S["drum_deg"] is not None:
         return float(S["drum_deg"])
@@ -1141,10 +1172,9 @@ def reel_cup_deg(P, S):
 def kin(P, S):
     g, c = G(P), C(P)
     th = drum_theta(S, c)
-    # params v1.2.3: wiper_deg drives the main shaft, coupler, bus gear and collar; sleeve_deg the launch sleeve and the
-    # LAUNCH dog ring (through Joint.gear on launch_sleeve); reel_deg the REEL output gear. States without wiper_deg
-    # (cad-launch's own sweeps) take the launch sleeve angle so the engaged dogs stay consistent.
-    w = float(S["wiper_deg"]) if S.get("wiper_deg") is not None else main_angle(P, S)
+    # params TIMELINE: wiper_deg drives the main shaft, coupler, bus gear and collar (always); sleeve_deg the LAUNCH dog
+    # ring (else it follows launch_sleeve through Joint.gear: it is bolted to the sleeve); reel_deg the REEL gear.
+    w = float(S.get("wiper_deg") or 0.0)
     x = K.collar_x(th, c)
     md = K.mode(th, c)
     v = {
@@ -1255,7 +1285,8 @@ def steps(P):
                   "SW_DOG_L.",
              parts=["drum_dog_post", "drum_fork"]),
         dict(title="Drum: drum B, hand lever, bracket B",
-             text="Swing the fork up on the rail, slide drum B onto the axle (hex socket over the drum A spigot), "
+             text="Swing the fork up on the rail, slide drum B onto the axle (hex socket over the drum A spigot; it fits one "
+                  "way only, cut corner to filled corner), "
                   "swing the fork down so its pin drops into the groove. Slide the hand lever onto the hex boss. Press "
                   "bracket B onto the axle and rail ends and bolt it down (2 x M3 x 12). The drum turns by hand with "
                   "about 0.6 mm end play.",

@@ -401,6 +401,8 @@ class Mission:
                     pos = self.tel().get("drum_pos")
                     msg += (". The base is in FAULT. " + (f"The drum HELD where it is ({held[-1].get('why')}). "
                             if held else f"Drum now at {pos}. ") + "Check it, then Retry clears the fault.")
+                if isinstance(e, BaseError) and e.err == "OVERCURRENT" and name == "AIM":
+                    msg += ". Aim jammed: check the rail and the aim train before Retry (D40: 3 A trip backward)."
                 if isinstance(e, BaseError) and e.err in ("LOADED_UNKNOWN", "PHASE_UNKNOWN", "NOT_AT_REST", "LAUNCH_BUSY"):
                     msg += ". The launcher spring may be drawn: use Decock (Manual section), then Retry."
                 if isinstance(e, BaseError) and e.err == "BASE_RESET":
@@ -979,17 +981,23 @@ class Mission:
 
     def tell_line_out(self, res: dict) -> None:
         """The base has no payout sensor (line_m is null after a shot): give it our estimate (PROTOCOL set line_m).
-        Best source: the flight analysis range; else the ballistic solution's line out."""
+        R2-C2: a video-only range can be far too long (9 m against 5 m), and a long estimate would let the capstan
+        reel-in seat the dart on the capstan. So the flight range is used only when the IMU flight log backs it, and
+        never beyond what the C3 table allows; otherwise the ballistic solution's line out."""
         fl = res.get("flight") or {}
         sol = (self.shot.get("solution") or {})
-        est = None
-        if isinstance(fl.get("range_m"), (int, float)) and 0.5 < fl["range_m"] < 30:
-            est = fl["range_m"] * 1.05 + 0.3          # straight distance plus a little sag and the rail
-            src = "flight analysis"
+        est, src = None, ""
+        rng = fl.get("range_m")
+        imu = "imu" in str(fl.get("source") or "").lower()
+        if imu and isinstance(rng, (int, float)) and 0.5 < rng < 30:
+            est, src = rng * 1.05 + 0.3, "IMU flight log"     # straight distance plus a little sag and the rail
         elif sol.get("line_out_m"):
             est, src = sol["line_out_m"], "ballistics"
         if est is None:
             return
+        rmax = sol.get("range_max_m")
+        if isinstance(rmax, (int, float)) and rmax > 0:
+            est = min(est, rmax * 1.1 + 0.5)
         est = round(min(est, 100.0), 2)
         self.shot["line_est_m"] = est
         try:

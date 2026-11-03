@@ -601,3 +601,15 @@ def test_pty_with_real_serial_transport():
         assert c.wait_tel(lambda t: True, 2)["mode"] == "NEUTRAL"
     finally:
         c.close(); mb.stop()
+
+
+def test_reply_is_written_before_the_events_it_caused(pair):
+    mb, c = pair
+    seen = []
+    c.on_line = lambda d, obj: seen.append(obj) if d == "rx" and "tel" not in obj else None
+    m = c.event_mark()
+    r = c.mode("NEUTRAL")                               # already there: ok and MODE at once
+    c.wait_event("MODE", 1, since=m)
+    i_rep = next(i for i, o in enumerate(seen) if o.get("id") == r["id"])
+    i_evt = next(i for i, o in enumerate(seen) if o.get("evt") == "MODE")
+    assert i_rep < i_evt

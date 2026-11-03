@@ -199,3 +199,12 @@ def test_steps_reference_real_parts_and_cover_printed(P):
     assert not missing, missing
     wiring = [st for st in frame.steps(P) if "wir" in st["title"].lower() or "buck" in st["title"].lower()]
     assert all(st["text"].startswith("Battery unplugged") for st in wiring)
+
+
+def test_calc_working_loads_ok(P, B):
+    from cad.parts import _frame_calc as FC
+    rows = FC.loads(P, B["info"])
+    assert len(rows) >= 9
+    for case, item, v, lim, ok in rows:
+        if not case.startswith("FAULT"):
+            assert ok, (case, item, v, lim)

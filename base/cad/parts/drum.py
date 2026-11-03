@@ -276,7 +276,7 @@ def coupler_hub(g, P):
     h0, h1 = g["hub_s"]
     body = cyl(g["hub_od"] / 2, h0, h1)
     f0 = g["wiper_face_s"] + 2.5                                        # round shaft below, flats above
-    f1 = L - 0.2                     # flats end at WIPER.shaft_len from the motor frame origin (y 0), M8 thread beyond
+    f1 = L + 0.5                     # flats end at WIPER.shaft_len from the motor frame origin (y 0), M8 thread beyond
     dd = prim.extrude(prim.shapely_cs(Point(0, 0).buffer((d + fits.HOLE_SLIDE) / 2, 64)
                                       .intersection(Polygon([(-20, -(fl + 0.2) / 2), (20, -(fl + 0.2) / 2),
                                                              (20, (fl + 0.2) / 2), (-20, (fl + 0.2) / 2)]))),
@@ -621,7 +621,10 @@ def fork(g, c):
     sleeve = cyl(g["rail_d"] / 2 + 4.0, sb + fs0, sb + fs1, rx, ry)
     if sb + fs0 < 57.0:        # necked to r 7.5 up to s 57 (cad-reel's bus gear c1 passes 0.2 from r 9), 45 deg step
         rn, rw = g["rail_d"] / 2 + 2.5, g["rail_d"] / 2 + 4.0
-        sleeve = prim.union([cyl(rn, sb + fs0, 57.0 + 0.01, rx, ry), prim.cyl(rn, rw - rn, rx, ry, 57.0, r2=rw),
+        # neck over s 33..57 only (c1 plane plus the stroke); full r 9 below it so the bed face is big enough
+        sleeve = prim.union([cyl(rw, sb + fs0, 33.0 - (rw - rn) + 0.01, rx, ry),
+                             prim.cyl(rw, rw - rn, rx, ry, 33.0 - (rw - rn), r2=rn),
+                             cyl(rn, 33.0 - 0.01, 57.0 + 0.01, rx, ry), prim.cyl(rn, rw - rn, rx, ry, 57.0, r2=rw),
                              cyl(rw, 57.0 + rw - rn - 0.01, sb + fs1, rx, ry)])
     dx, dy = drum_xy(g)
     ph = math.radians(g["phi_pin"])
@@ -658,7 +661,8 @@ def dog_post(g, c):
     sL = yt + st - g["dog_touch"] + head          # LAUNCH boss starts here
     bx0 = r1 + 8.5
     clamp = cyl(g["rail_d"] / 2 + 5.0, p0, p1, rx, ry)
-    arm = shp_extrude(LineString([(rx, ry), (bx0 + 2.25, 4.0)]).buffer(4.0), p0, p1)
+    arm = shp_extrude(LineString([(rx, ry), (bx0 + 2.25, 4.0)]).buffer(4.0), p0, p1 - 1.2)   # clear of the launch
+    # pulley pivot axle end (s 111, swings with aim)
     b0 = sR - 3.0
     bar = prim.box(bx0, bx0 + 4.5, -3.0, 7.0, b0, p1)
     bR = prim.box(r1 + 1.0, bx0 + 0.01, -1.0, 5.0, b0, sR)
@@ -1119,7 +1123,9 @@ def meshes(P):
     # the segment gear only has teeth over the WRAP zone (meshcheck reads Mesh.when when present)
     out[1].when = lambda S: c["seg_start"] - 2 <= drum_theta(S, c) <= c["seg_start"] + K.seg_span(c) + 2
     import os
-    if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "reel.py")):
+    # cross-owner meshes: tools.meshcheck fails on a part that is not loaded (an --only drum run), so they are
+    # declared only when DRUM_REEL_MESHES=1 (whole-base runs) until meshcheck skips missing parts
+    if os.environ.get("DRUM_REEL_MESHES") == "1":
         out += [
             Mesh("drum_coupler", "reel_bus", g["bus_m"], g["bus_z"], 46, face_a=g["bus_s"][1] - g["bus_s"][0],
                  frame_a=T(0, 0, g["bus_s"][0]), why="bus gear 50T to cad-reel c1 46T"),
@@ -1174,7 +1180,12 @@ def kin(P, S):
     th = drum_theta(S, c)
     # params TIMELINE: wiper_deg drives the main shaft, coupler, bus gear and collar (always); sleeve_deg the LAUNCH dog
     # ring (else it follows launch_sleeve through Joint.gear: it is bolted to the sleeve); reel_deg the REEL gear.
-    w = float(S.get("wiper_deg") or 0.0)
+    if S.get("wiper_deg") is not None:
+        w = float(S["wiper_deg"])
+    elif K.mode(th, c) == "LAUNCH":
+        w = main_angle(P, S)      # no wiper_deg (cad-launch's own sweeps): the engaged shaft turns with the sleeve
+    else:
+        w = 0.0
     x = K.collar_x(th, c)
     md = K.mode(th, c)
     v = {
@@ -1190,7 +1201,7 @@ def kin(P, S):
     }
     for i in range(3):
         v[f"drum_sw{i}"] = lever_deg(th, g, c, i)
-    if _launch_gear() is not None and S.get("sleeve_deg") is None and md != "LAUNCH":
+    if _launch_gear() is not None and S.get("sleeve_deg") is None and (md != "LAUNCH" or S.get("wiper_deg") is None):
         v.pop("drum_out_launch")              # no sleeve_deg in S: follow launch_sleeve through Joint.gear
     return v
 
@@ -1254,7 +1265,7 @@ def steps(P):
              text="Push the coupler hub onto the wiper output shaft (flats in line). Drop the M8 nut on the thread and "
                   "tighten it with a 13 mm socket (1/4 inch drive). Slide the outer coupler over the hub, line up the "
                   "holes, push a shear pin in (head outside, its flat facing the outboard end) and put a piece of tape "
-                  "round the coupler over the head. Keep the 5 spare pins with the base. A broken pin stub comes out with an "
+                  "round the coupler over the head. Print the pins lying on their flat (D44: shear across the layers). Keep the 5 spare pins with the base. A broken pin stub comes out with an "
                   "M3 screw turned into it.",
              parts=["drum_coupler_hub", "drum_coupler", "drum_shear_pin"]),
         dict(title="Drum: bracket A, axle, rail, drum A",

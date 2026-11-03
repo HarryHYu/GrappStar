@@ -668,7 +668,8 @@ class RefMission:
             pass
 
     def s_line(self):
-        self.tx("set", key="line_m", val=round(self.rig.sc.target[0] * 1.05 + 0.3, 2))
+        lo = self.rig.base.get().get("lineOut")          # an ideal landing estimate: the plant's own line out
+        self.tx("set", key="line_m", val=round(float(lo), 2) if lo else round(self.rig.sc.target[0] * 1.05 + 0.3, 2))
 
     def s_lowaim(self):
         """D45 (10.1 step 7b): after the landing, above 15 deg, aim 6 before the wrap."""

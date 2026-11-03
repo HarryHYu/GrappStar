@@ -46,7 +46,7 @@ kedge::Kedge K;
 volatile float railCache = -1;
 volatile bool linkLostFlag = false;
 volatile uint32_t loopBeat = 0; volatile bool otaActive = false;   // web loop heartbeat (watched by the safety task)
-uint32_t i2cBad = 0, lastBusFix = 0;                                // consecutive failed INA219 reads, last bus recovery
+uint32_t i2cBad = 0, i2cBadSince = 0, lastBusFix = 0;               // consecutive failed INA219 reads, since when, last bus recovery
 const char* resetName = "";
 String reply;
 SemaphoreHandle_t mtx;                                 // guards K, I2C and the log ring
@@ -83,12 +83,12 @@ bool inaRead(uint8_t reg, uint16_t& v) {
 bool inaInit() { return inaWrite(0x00, INA_CONFIG) && inaWrite(0x05, INA_CAL); }
 float hwCurrent() {                                  // tick task, mtx held: NAN = read failed, 9999 = overflow (trips)
   uint16_t bus, r;
-  if (!inaRead(0x02, bus) || !inaRead(0x04, r)) { railCache = -1; i2cBad++; return NAN; }
+  if (!inaRead(0x02, bus) || !inaRead(0x04, r)) { railCache = -1; if (!i2cBad++) i2cBadSince = millis(); return NAN; }
   i2cBad = 0;
   railCache = (bus >> 3) * 0.004f;
   if (bus & 1) return 9999;                          // OVF: shunt over its 3.2 A range, the current register is meaningless
   float ma = (int16_t)r / 10.0f;
-  if (ma < -50.f) { i2cBad++; return NAN; }            // well below zero: VIN+ and VIN- swapped (stall and trip would never fire)
+  if (ma < -50.f) return NAN;                          // well below zero: VIN+ and VIN- swapped (stall and trip would never fire)
   return ma;
 }
 float hwRail() { return railCache; }
@@ -205,7 +205,7 @@ void tickTask(void*) {                                 // 5 ms: IMU, flight, cur
     if (now - lastV >= 100) { lastV = now; inaCheckCal(); }   // also sets up an INA219 that was missing at boot
     if (linkLostFlag) { linkLostFlag = false; K.linkLost(now); }
     K.tick(now);
-    if (i2cBad >= 200 && !K.imuOk && now - lastBusFix > 3000) { lastBusFix = now; busRecover(); hwLog("I2C bus stuck: recovered (9 clocks, Wire restart)"); if (bnoPresent) enableImuReports(); }
+    if (i2cBad >= 3 && (int32_t)(now - i2cBadSince) > 1000 && !K.imuOk && now - lastBusFix > 3000) { lastBusFix = now; busRecover(); hwLog("I2C bus stuck: recovered (9 clocks, Wire restart)"); if (bnoPresent) enableImuReports(); }   // by time: a stuck tick is slow
     // web loop hung for 30 s (and nothing moving, no OTA): restart; motors coast through the reset
     if (!otaActive && (int32_t)(now - loopBeat) > 30000 && !K.running() && !K.seqRunning() && !K.armed && !K.flight.flying()) { hwLog("web loop stuck 30 s: restarting"); Serial.flush(); esp_restart(); }
     xSemaphoreGive(mtx);

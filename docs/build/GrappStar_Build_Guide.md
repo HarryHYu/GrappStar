@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 12:08 Sydney time from commit `46f659d`.
+Built 2026-11-03 12:09 Sydney time from commit `1ac3f5c`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -193,7 +193,7 @@ looking in the box.
 | 693ZZ / F693ZZ bearings | as many as are left after the dart | Line pulleys (the dart uses 5 F693ZZ; count what is left, section 14 C20) |
 | CSK20PP one-way bearings (20 x 47 x 14) | 2 | #1 spring cock and fire, #2 capstan backstop |
 | Century 16 x 165.1 x 1.4 mm extension springs | 2 | Launch springs (Bunnings 0487961). Measure them (section 14 B) |
-| 608 bearings | 8 to 10 | The purchase |
+| 608 bearings | 10 | The purchase |
 | Dyneema braid 150 lb, 1 mm | 20 m | Tether |
 | 100 kg load cell + HX711 | 1 | Optional line tension |
 | 3S LiPo 5200 mAh (Zeee), iMax B6 charger | 1 | Rover battery |

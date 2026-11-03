@@ -371,6 +371,9 @@ def params_hash(p: "Params") -> str:
     import json as _json
     d = asdict(p)
     d.pop("source", None)
+    for k in ("wiper", "battery", "capstan", "sprag", "shaft"):     # not used by launch / flight / payout
+        d.pop(k, None)
+    d.get("launch", {}).pop("cock_gear", None)
     return hashlib.sha256(_json.dumps(d, sort_keys=True, default=str).encode()).hexdigest()[:16]
 
 

@@ -9,7 +9,8 @@ Functions (selector drum position in brackets):
 Driver limits: BTS7960 module 43 A peak (datasheet current limit) but heat limited; 15 A continuous without a heatsink
 is used as the conservative number. Fuse: 20 A blade on lead #2. A 20 A blade carries 18 A for minutes, so a wiper
 stall (about 17 A at 12.6 V with sag) will NOT blow it; it holds a 17 A stall indefinitely. The firmware current trip
-(capstan.fw_trip: 50 ms blanking, 5 A hard trip for 30 ms (6.5 A while cocking), tow trip at free + tow current over 200 ms)
+(capstan.fw_trip: 50 ms blanking; hard trips from spec REEL.current_trips_a: aim 3 A, reel-in 5 A, tow and cock 6.5 A;
+tow trip at free + the tow-limit current over 200 ms)
 is the only stall protection for the motor and driver. The printed torque limiter in the wiper coupler
 (p.wiper.limiter_nm, 5 N m) caps the torque every train can see; while it slips the motor draws about 7 A.
 "(at limiter (5 N m))" checks use the limiter torque when it is set; the raw motor stall (no limiter) is reported as
@@ -303,7 +304,7 @@ def main(argv=None):
     lm = r["capstan_limiter"]
     if lm is not None:
         tw = r["functions"]["tow"]
-        print(f"tow {r['functions']['tow']['t_peak']:.2f} N m at 50 N: {tw['i_peak']:.2f} A, {tw['rpm_mean']:.1f} wiper rpm; "
+        print(f"tow {r['functions']['tow']['t_peak']:.2f} N m at {load_params().capstan['tow_limit_n']:.0f} N (dart side): {tw['i_peak']:.2f} A, {tw['rpm_mean']:.1f} wiper rpm; "
               f"limiter slip line force {lm['f_line_empty_reel']:.0f} N (empty reel) / {lm['f_line_full_reel']:.0f} N "
               f"(full reel) vs dart holding " + ", ".join(f"{k} {v:.0f}" for k, v in lm["dart_hold"].items())
               + f" N, line break {lm['line_breaking']:.0f} N")

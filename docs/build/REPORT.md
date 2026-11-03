@@ -106,3 +106,20 @@ Still open (owner):
   glossary (AF, SHCS, e-clip, jam nut, module, crush rib, backlash, self-tapper, hole compensation), Markdown image
   paths relative to docs/build. Sent to cad-infra: luggage-scale-too-coarse test, shear pin pass range, unmeasurable
   play tests, missing base fit coupon, settings in the sheet, Mac command.
+- Round 9 (coordinator's review files r1_G and r2_J, items owned by docs): fixed r2_J #10 (stale pin map: diagram
+  GPIOs now filled from pins.h at build, new test that every GPIO in the built guide is a pins.h pin), D38 (no
+  4-spring promises), #18 (stage 4 uses rubber-band stand-in springs; cock/decock then fire), #16 (A6 n0 scaled
+  x 2.5 from the 40 percent jog), #22 (per-contact gaps), #23, #24 (tools), #25/26 (coupon sheet included), #27
+  (motor adapter M3 x 10, 10 of 12), #28 (swing-screw drum release); r1_G #6 (B4 = D30), #7 (stage 2 current band
+  under the jog trips), #9 (firing via the new `grappstar base fire`, arm and fire inside the 3 s token life),
+  #10 (estop holds), #14/#15 (SLP unwired, no 3V3 fallback). Sent to fw-base: k_n_per_a procedure (4 A vs 3 A jog
+  trip), latch wording, WIRING 2 A fuse; fw-dart: B2 battery-unplugged wording.
+- Round 10 (full cold read, steps 0 to 11): 19 findings. Fixed: clone then `git checkout base-v1` if main lacks the
+  docs, Jetson step 4 after flashing, calibration part letters ((d) free current, (f) tension, (g) cock geometry),
+  range numbers now generated from base/out/ballistics.json at build time (best 3.7 m at 38.5 deg today, not the
+  older 5 m), safety energy about 7 J, A7 optional (jog trips far below stall), A6 after CALIBRATION (a) and (b) at
+  step 7, dart SLP check in ohms (over 50 ohms), `z` over USB only, dart wires cut from the new list, a magnet for the
+  bench test, base fit coupon in FIRST_DAY and order, hole compensation 0 for base parts, coupon command path from
+  base/, C21 exactly as the sheets list, WIRING section numbers, flashing with wiring left on, step 11 starts at
+  stage 4. `grappstar base fire` is on w/jetson (merge pending). Sent: cad-infra (coupon commands, magnet cap),
+  fw-base (FORWARD on the bench, README section ref).

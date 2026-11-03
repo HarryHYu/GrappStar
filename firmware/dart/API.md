@@ -40,7 +40,7 @@ JSON, always 200. Example (written by the host test to `test/out/status_anchorin
 {"fw":"kedge-dart-v4","t_ms":5535,"phase":"ANCHORING","fault":null,"rail_V":7.60,"current_mA":24,"peak_mA":24,
  "speed":255,"motors":{"deploy":0,"kick":1,"drills":0,"foot":0},"seq":"kick swing","armed":false,
  "auto_on_landing":true,"landed":true,"roll":1.5,"pitch":-3.2,"accel_g":1.01,"peak_g":8.00,"ina_ok":true,"imu_ok":true,
- "t_launch_ms":3000,"t_land_ms":4010,"log_frozen":false,"reset":"poweron","event":"auto: kick swing"}
+ "t_launch_ms":3000,"t_land_ms":4010,"log_frozen":false,"reset":"poweron","warnings":[],"event":"auto: kick swing"}
 ```
 
 | Field | Type | Meaning |
@@ -55,7 +55,7 @@ JSON, always 200. Example (written by the host test to `test/out/status_anchorin
 | `speed` | int | PWM duty 50..255 (keys `+` / `-`) |
 | `motors` | object | `deploy`, `kick`, `drills`, `foot`: -1, 0 or +1 (+1 = out / in / down, -1 = back / up / unscrew) |
 | `seq` | string | sequence step (below) |
-| `armed` | bool | landing detector armed (cleared on landing, `/stop`, `/auto`, `/release`) |
+| `armed` | bool | landing detector armed (cleared on landing, `/stop`, `/auto`, `/release`, `/arm?on=0`, or the 15 min arm expiry) |
 | `auto_on_landing` | bool | when armed: start `/auto` by itself on landing |
 | `landed` | bool | a landing was detected since the last arm |
 | `roll`, `pitch` | number | degrees from the BNO085; stale when `imu_ok` is false |
@@ -96,7 +96,7 @@ Manual key, same keys as the web page and Serial Monitor.
 - Both directions of one motor held at once (`1` and `!`): the motor stops and both are refused (`both directions held`)
   until neither has been pressed for a window. To reverse, release (the page then sends a stop) and press the other.
 - At low `speed` the stall line never drops below 1.5 x the motor's free current, so normal running is not taken for a
-  stall; below about speed 100 a stall may then only be stopped by the 8 s hold cap.
+  stall; below about speed 70 a stall may then only be stopped by the 8 s hold cap.
 - Other keys: space or `s` stop (same as `/stop`; with `keep=1` it stops the motors but keeps the arm, like
   `/stop?disarm=0`: the web page sends this when the last held key is released or the page loses focus), `a` auto (same as `/auto`), `r` release (same as `/release`),
   `A` arm toggle (prefer `/arm`), `+` / `-` speed, `i` current, `b` attitude, `p` status line, `f` flight log summary,
@@ -106,7 +106,8 @@ Manual key, same keys as the web page and Serial Monitor.
   page ids are remembered).
 - Refused (409) while a sequence runs (`busy`), during `FLIGHT`, while a fault is latched (`fault latched: send stop
   first`), and after a stall or the hold cap until the key has been released (`stalled: release the key first`).
-  "Released" means no press for max(last `ms`, 350) + 250 ms. The opposite direction is never locked.
+  "Released" means no press for max(last `ms`, 350) + 250 ms. A stall lock never blocks the opposite direction
+  (both directions held is the exception, see above).
 - A launch detected while a manual motor runs stops it (event `launch: motors stopped`).
 - Sequences (`/auto`, `/release`) always run at full duty, whatever `speed` is.
 - A manual run key moves the legs out of a known state, so `seq` `anchored` / `released` / `aborted` becomes `idle`.
@@ -138,18 +139,19 @@ spinning, drills finishing, `anchored`.
   unscrewing from the start of the pods lift (the augers may still be in soil).
 - Kick travel bookkeeping: the firmware adds up how long the kick has been driven out and back (at full duty) and
   assumes it was **stowed at power-on**. A kick that stalls near stowed at the start of `/auto` is a jam or wired
-  backwards (`KICK_JAM`), not "already down"; a kick that stalls before it has come back half way in `/release` is
-  `KICK_JAM`, not "stowed". Travel is not counted while the kick is stalled or planting. After any reset other than a
+  backwards (`KICK_JAM`), not "already down"; in `/release` a kick that stalls before its real travel back covers
+  60 % of the estimated travel out is `KICK_JAM`, not "stowed" (a jam in the last part of the return looks like the
+  stowed stop). Travel is not counted while the kick is stalled (either way) or planting. After any reset other than a
   power-on (brownout, crash, OTA) the position is unknown and these checks wait until the next completed release.
   `kickSwingMs` (4.3 s) is the bench swing time (BENCH_TEST step 5).
 - Stall handling inside the sequence: while two motors run (kick + foot, pods + drills), the worm (kick or deploy)
   pauses 150 ms every 550 ms. It self-locks and holds position while the auger keeps turning and is read alone; the
   worm's current is (both) - (auger alone). A worm stall must also show as a rise of the total current over the
   phase's lowest reading, so an auger whose current changes during the pause cannot fake one. A stalled auger is
-  stopped (anchor) or faults (release). An end-stop stall is only believed after a minimum travel time (pods 0.7 s,
+  stopped (anchor; it is not driven again in the next step) or faults (release). An end-stop stall is only believed after a minimum travel time (pods 0.7 s,
   kick back 1.5 s). If the kick's housing stall is never seen, planting carries on after 6 s (`kick plant time limit`).
-  A worm already at its end stop when such a step starts shows no rise; it is still stopped after 3 readings in a row
-  over the line (3 of the last 4 readings, about 1.6 to 2.2 s). An auger current change of up to about 100 mA during
+  A worm already at its end stop when such a step starts shows no rise; it is still stopped
+  over the line in 3 of the last 4 readings (about 1.6 to 2.2 s). An auger current change of up to about 100 mA during
   the pause is tolerated. Known limit: if the pods jam in soil mid-travel and the drills' current rises during each
   pause by more than the margin, the jam is only ended by the 6 s pods limit. A retried
   `/auto` whose kick is already down skips the planting step (event `kick already down, foot planting`).
@@ -161,7 +163,7 @@ Starts the release sequence, the anchor sequence backwards:
 
 1. drills unscrew alone for 3 s (`release: drills out`)
 2. pods lift while the drills keep unscrewing, until the pods stall on their stowed stop (after 6 s it carries on, event
-   `release: pods time limit, foot out`)
+   `release: pods time limit (stowed or stalled), foot out`)
 3. foot unscrews alone for 1.5 s (`release: foot out`)
 4. kick swings back while the foot keeps unscrewing for 3 s more, until the kick stalls on its stowed stop (15 s limit)
 5. `seq` = `released`, phase `IDLE`, all motors off.
@@ -171,8 +173,8 @@ of `/auto` (pods up before the kick comes back), because the kick goes down firs
 
 - Refused in `FLIGHT`, while anchoring (`busy`, send `/stop` first), and without the INA219.
 - A repeated `/release` while releasing is accepted and does not restart it.
-- Faults: drills or foot jammed (`DRILL_JAM`, `FOOT_JAM`), kick not stowed in 15 s (`KICK_TIMEOUT`), whole sequence over
-  35 s (`SEQ_TIMEOUT`). All motors stop on any fault.
+- Faults: `DRILL_JAM`, `FOOT_JAM`, `KICK_JAM` (kick stalled before half way back), `NO_CURRENT`, `KICK_TIMEOUT`
+  (15 s), `SEQ_TIMEOUT` (35 s), plus `OVERCURRENT`, `LOW_RAIL`, `CURRENT_SENSOR`. All motors stop on any fault.
 
 ### GET /arm?on=1&auto=1
 
@@ -191,6 +193,7 @@ of `/auto` (pods up before the kick comes back), because the kick goes down firs
 
 The BNO085 log, streamed as JSON (chunked, up to about 40 kB). The server is busy for about 0.3 s while it sends,
 so it is refused (409 `busy (motors running, armed or in flight)`) while any motor runs, while armed and in FLIGHT.
+A client that stops reading is cut off after 8 s.
 Fetch it after landing (phase `LANDED` or `ANCHORED`).
 
 ```json
@@ -232,7 +235,7 @@ Worked out in this priority order (the first that applies):
 
 | Phase | When |
 |---|---|
-| `FAULT` | a fault code is set (latched until `/stop`, `/auto`, `/release` or `/arm`) |
+| `FAULT` | a fault code is set (latched until `/stop`, `/auto`, `/release` or `/arm`). A fault also disarms, so a landing can never clear it and start motors by itself |
 | `RELEASING` | release sequence running |
 | `ANCHORING` | anchor sequence running |
 | `FLIGHT` | launch detected, landing not yet decided |
@@ -256,7 +259,7 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 | `DRILL_JAM`, `FOOT_JAM` | stalled while unscrewing in release | all off |
 | `CURRENT_SENSOR` | 3 failed INA219 reads in a row during a sequence | all off; manual keys still work on timers |
 | `LOW_RAIL` | rail under 5.6 V (including a dead 0 V rail) for 0.5 s while a motor runs | all off |
-| `KICK_JAM` | kick stalled near stowed at the start of `/auto`, or before it came back half way in `/release` | all off |
+| `KICK_JAM` | kick stalled near stowed at the start of `/auto`, or in `/release` before its travel back covered 60 % of its travel out | all off |
 | `BROWNOUT` | the dart rebooted from a brownout | booted with motors off |
 | `WATCHDOG` | the dart rebooted from a crash or the 2 s safety-task watchdog | booted with motors off |
 
@@ -292,7 +295,7 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 ## Changes from v3 (for client authors)
 
 - New: `/release`, `/arm`, `/flightlog`, `/stop?disarm=0`, and the status fields `fw`, `phase`, `fault`,
-  `auto_on_landing`, `accel_g`, `peak_g`, `ina_ok`, `imu_ok`, `t_launch_ms`, `t_land_ms`, `log_frozen`, `reset`.
+  `auto_on_landing`, `accel_g`, `peak_g`, `warnings`, `ina_ok`, `imu_ok`, `t_launch_ms`, `t_land_ms`, `log_frozen`, `reset`.
 - Refusals are now HTTP 409 (v3 silently ignored keys during auto).
 - `/stop` disarms. `armed` means "landing detector armed"; the auto choice is `auto_on_landing`.
 - `/key` `ms` is capped at 500 (was 5000); a hold is capped at 8 s. A held key that stalls stays off until released.

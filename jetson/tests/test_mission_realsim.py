@@ -46,7 +46,7 @@ class RealRig:
         self.base.add_evt_callback(self._evt)
         self._stop = threading.Event()
         threading.Thread(target=self._sync, daemon=True).start()
-        cfg = MissionConfig(settle_s=0.1, still_s=0.3, approach_m=1.0)
+        cfg = MissionConfig(settle_s=0.1, still_s=0.3, approach_m=1.0, host_timeout_s=0)   # sim runs 8x fast
         self.log = JLog(str(tmp_path / "mission.jsonl"))
         bal = Ballistics.load()
         probe = bal.solve(1.0)

@@ -53,6 +53,7 @@ class Rig:
         self.analyse_calls = 0
         c = cfg or MissionConfig()
         c.settle_s = 0.1
+        c.host_timeout_s = 0          # the mock runs 20x fast: a 1.5 s watchdog would be 75 ms of wall time
         c.still_s = 0.3
         c.mode_timeout_s = 5
         c.anchor_timeout_s = 10

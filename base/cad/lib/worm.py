@@ -30,9 +30,10 @@ def worm_pitch_d(m, bore=None, q=WORM_Q):
 
 
 def worm_info(m, d1=None, starts=1, pa=20.0, mu=MU_PLA, bore=None):
-    """Worm numbers: pitch (axial, pi m), lead, d1, tip / root diameters, lead angle (deg), friction angle (deg,
-    atan(mu)), self_locking (lead angle < atan(mu)), efficiency (worm driving) and back_efficiency (wheel driving,
-    <= 0 means it cannot back drive)."""
+    """Worm numbers: pitch (axial, pi m), lead, d1, tip / root diameters, lead angle (deg), friction angle (deg, the
+    effective angle of the pa thread atan(mu / cos pa), the one in both efficiencies; friction_angle_axial is
+    atan(mu)), self_locking (lead angle <= friction angle, exactly when back_efficiency <= 0), efficiency (worm
+    driving) and back_efficiency (wheel driving, <= 0 means it cannot back drive)."""
     d1 = worm_pitch_d(m, bore) if d1 is None else d1
     p = math.pi * m
     lead = p * starts
@@ -42,8 +43,9 @@ def worm_info(m, d1=None, starts=1, pa=20.0, mu=MU_PLA, bore=None):
     eff = math.tan(gam) / math.tan(gam + phin)
     back = math.tan(gam - phin) / math.tan(gam)
     return {"m": m, "d1": d1, "starts": starts, "pitch": p, "lead": lead, "d_tip": d1 + 2 * HA * m,
-            "d_root": d1 - 2 * HF * m, "lead_angle": math.degrees(gam), "friction_angle": math.degrees(phi),
-            "self_locking": bool(gam < phi), "efficiency": eff, "back_efficiency": back}
+            "d_root": d1 - 2 * HF * m, "lead_angle": math.degrees(gam), "friction_angle": math.degrees(phin),
+            "friction_angle_axial": math.degrees(phi), "self_locking": bool(gam <= phin), "efficiency": eff,
+            "back_efficiency": back}
 
 
 def worm_center_distance(m, z, worm_pitch_d, extra=fits.GEAR_CENTER_EXTRA):

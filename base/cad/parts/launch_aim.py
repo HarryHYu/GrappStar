@@ -302,7 +302,9 @@ def lug_solid(P):
     s = s + prim.box(100, 130, yw, yw + 6.0, 32.0, 48.0)                        # bolting plate
     s = s + prim.box(103, 127, yo - 6.0, yo, -2.0, 48.0)                        # outer plate
     s = s + prim.cylY(10.0, yo - 6.0, yo, x=u, z=0.0)
-    s = s + prim.cylY(PIN_R, yo - 0.01, Y_ROD[1] + 1.0 - ln["Y0"], x=u, z=0.0)
+    s = s + prim.cylY(PIN_R, yo - 0.01, Y_ROD[1] + 2.3 - ln["Y0"], x=u, z=0.0)
+    s = s - (prim.cylY(PIN_R + 1, Y_ROD[1] + 0.3 - ln["Y0"], Y_ROD[1] + 1.1 - ln["Y0"], x=u, z=0.0)
+             - prim.cylY(PIN_R - 0.5, Y_ROD[1] - ln["Y0"], Y_ROD[1] + 1.4 - ln["Y0"], x=u, z=0.0))  # C clip groove (DIN 6799 d8)
     for uu in (107.0, 123.0):
         s = s - prim.cylY(1.7, yw - 1, yo + 1, x=uu, z=41.0)
         s = s - prim.cylY(3.2, yw + 6.0, yo + 1, x=uu, z=41.0)                  # screw head / driver access

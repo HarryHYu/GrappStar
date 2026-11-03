@@ -53,7 +53,7 @@ Read this before any hands-on step.
 - Chock or brake the rover during every shot and every tow. Strap the LiPo down under a cover on the rover.
 - **Picking up a landed dart:** send dart STOP, check it reads IDLE (an armed dart can start anchoring when moved),
   then pull its loop plug before you touch it.
-- The dart is 279 g leaving the rail at about 8 m/s: about 9 J, like a thrown cricket ball, with sharp augers.
+- The dart is 279 g leaving the rail at about 7 m/s: about 7 J, like a hard-thrown cricket ball, with sharp augers.
   From the first spring test on: safety glasses on, nobody in front of the rail or within 2 m to either side, and
   the area in front clear for 30 m (four times the longest expected range, for a misfire at a wrong pitch).
 - Before every shot: look along the rail, call "firing" out loud, keep hands off the rail and carriage.

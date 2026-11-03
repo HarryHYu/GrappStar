@@ -16,7 +16,8 @@ Routes:
     GET  /static/<file>         files from ui/static (flat names only, no path traversal)
     GET  /api/status            JSON of app.status()
     POST /api/action/<name>     JSON object body = args; reply JSON from app.action (400 on bad JSON,
-                                500 with {"ok": false, "msg": ...} when the App raises)
+                                500 with {"ok": false, "msg": ...} when the App raises; 403 without the
+                                session token header or from another origin, see below)
     GET  /stream/<cam>.mjpg     multipart/x-mixed-replace MJPEG of app.camera(cam).jpeg()
     GET  /snapshot/<cam>.jpg    one JPEG (placeholder "NO VIDEO" image when the camera has no frame)
     GET  /artifact/<name>       file at app.artifact(name), with its content type (404 when None)
@@ -27,6 +28,16 @@ either as the cookie `grappstar_token` or as the query parameter `?token=...`. O
 http://<rover>:8080/?token=SECRET once sets the cookie, so the page, its API calls and the video
 streams then work without the parameter. Without the token the server answers 401 (a small form to
 enter it for "/"). The token only keeps casual WiFi users out; it is not encryption (plain HTTP).
+
+Action API protection (review r2_H #8), always on, on top of the optional ui_token:
+  * Session token: the server makes a random token at start (secrets.token_urlsafe) and writes it into
+    index.html when serving it (<meta name="grappstar-token" content="...">). Every POST must carry it in the
+    header X-GrappStar-Token, else 403. Another web site cannot read the page, so it cannot learn the token,
+    and a custom header cannot be sent cross site without a CORS preflight, which this server never allows.
+    After a server restart an old page holds a stale token: the 403 says "reload": true and the page reloads.
+  * Same origin: a POST whose Origin (or Referer when there is no Origin) host:port differs from the Host
+    header is refused with 403. A phone on another IP works: its Host header is whatever address it used.
+GET requests never change state and stay open (status, video, snapshots, artifacts).
 """
 
 from __future__ import annotations
@@ -38,6 +49,7 @@ import math
 import mimetypes
 import os
 import re
+import secrets
 import threading
 import time
 from http import HTTPStatus
@@ -54,6 +66,8 @@ BOUNDARY = "grappstarframe"
 MAX_BODY = 64 * 1024
 DEFAULT_MAX_FPS = 12.0
 KEEPALIVE_S = 2.0           # resend the last frame this often when nothing new arrives (detects dead clients)
+TOKEN_HEADER = "X-GrappStar-Token"
+TOKEN_META_RE = re.compile(rb'<meta name="grappstar-token" content="[^"]*">')
 NAME_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.\-]{0,63}$")
 
 CONTENT_TYPES = {
@@ -142,6 +156,7 @@ class UIServer(ThreadingHTTPServer):
         self.app = app
         self.max_fps = max(0.5, float(max_fps))
         self.stopping = threading.Event()
+        self.session_token = secrets.token_urlsafe(24)     # per process: the page must echo it on every POST
         super().__init__(addr, Handler)
 
     def handle_error(self, request, client_address):
@@ -251,7 +266,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             if path in ("/", "/index.html"):
-                return self._file(os.path.join(STATIC_DIR, "index.html"), headers=extra)
+                return self._index(extra)
             if path.startswith("/static/"):
                 return self._static(path[len("/static/"):])
             if path == "/api/status":
@@ -271,6 +286,19 @@ class Handler(BaseHTTPRequestHandler):
             return self._text(404, "not found")
         except (ConnectionError, TimeoutError):
             self.close_connection = True
+
+    def _index(self, headers: dict):
+        """index.html with this process's session token written into its grappstar-token meta tag."""
+        try:
+            with open(os.path.join(STATIC_DIR, "index.html"), "rb") as f:
+                body = f.read()
+        except OSError:
+            return self._text(404, "not found")
+        meta = f'<meta name="grappstar-token" content="{self.server.session_token}">'.encode("ascii")
+        body, n = TOKEN_META_RE.subn(lambda _m: meta, body, count=1)
+        if not n:
+            body = body.replace(b"</head>", meta + b"\n</head>", 1)
+        self._send(200, body, "text/html; charset=utf-8", headers)
 
     def _static(self, name: str):
         # Flat names only: rejects "..", "/", "\\" and anything else odd, then double-checks the real path.
@@ -390,10 +418,62 @@ class Handler(BaseHTTPRequestHandler):
             pass        # client disconnected
 
     # ---- POST -----------------------------------------------------------------------------------
+    @staticmethod
+    def _hostport(netloc: str, scheme: str = "http") -> str:
+        """Lower-case host:port with the default port filled in ("rover" -> "rover:80")."""
+        netloc = (netloc or "").strip().lower().rsplit("@", 1)[-1]
+        if not netloc:
+            return ""
+        if netloc.startswith("["):              # IPv6 literal: [::1]:8080
+            host, _, rest = netloc.partition("]")
+            host += "]"
+            port = rest[1:] if rest.startswith(":") else ""
+        elif ":" in netloc:
+            host, _, port = netloc.rpartition(":")
+        else:
+            host, port = netloc, ""
+        if not port:
+            port = "443" if scheme == "https" else "80"
+        return f"{host}:{port}"
+
+    def _same_origin(self) -> bool:
+        """False when Origin (or Referer if no Origin) names another host:port than the Host header.
+        Requests with neither header (curl, scripts) pass here; they still need the session token."""
+        src = self.headers.get("Origin")
+        if src is None:
+            src = self.headers.get("Referer")
+            if not src:
+                return True
+        src = src.strip()
+        if not src or src == "null":
+            return False
+        parts = urlsplit(src)
+        if parts.scheme not in ("http", "https") or not parts.netloc:
+            return False
+        host = self.headers.get("Host") or ""
+        return bool(host) and self._hostport(parts.netloc, parts.scheme) == self._hostport(host)
+
+    def _check_post(self) -> bool:
+        """Same origin plus the per-process session token. False = refused (403 already sent)."""
+        if not self._same_origin():
+            self._json(403, {"ok": False, "msg": "cross-origin request refused"})
+            return False
+        given = self.headers.get(TOKEN_HEADER) or ""
+        if not given or not hmac.compare_digest(given.encode("utf-8", "replace"),
+                                                self.server.session_token.encode()):
+            self._json(403, {"ok": False, "reload": True,
+                             "msg": "page session expired (rover restarted?): reload the page"})
+            return False
+        return True
+
     def do_POST(self):
         path, query = self._split()
         extra = self._check_token(query)
         if extra is None:
+            return
+        # Refused: the body is not read, so close the connection rather than keep it alive out of sync.
+        if not self._check_post():
+            self.close_connection = True
             return
         m = re.fullmatch(r"/api/action/([A-Za-z0-9_\-]{1,64})", path)
         if not m:

@@ -27,7 +27,7 @@ Printed contacts (12 of them) tell the firmware where everything is.
 | Wiper direction | LAUNCH | NEUTRAL, WRAP and the WRAPPED park | REEL |
 |---|---|---|---|
 | FORWARD (`dir` 1, RPWM) | cocks, fires and resets the launcher | take-up only, at most 40 % power | winds the capstan |
-| BACKWARD (`dir` -1, LPWM) | aims (turns the rail pitch) | turns nothing | refused (`BACKSTOP`): sprag #2 holds the capstan |
+| BACKWARD (`dir` -1, LPWM) | aims (turns the rail pitch) | refused (`BACKSTOP`): it would fight the take-up bus one-way | refused (`BACKSTOP`): sprag #2 holds the capstan |
 
 The Jetson sends commands over USB as JSON lines. The base answers every command, sends telemetry 10 times a second
 (20 while something moves) and sends an event when an action ends. Full details: PROTOCOL.md.
@@ -93,7 +93,7 @@ firmware/base/grappstar_base` from the repository folder. It should report about
 
 1. Battery unplugged. USB only. If the contacts are not wired yet, put two jumper wires on the board first:
    GPIO11 to GND (makes the drum code read NEUTRAL) and GPIO47 to GND (says the drum N20 is in mesh). WIRING.md
-   section 5 explains why. Without the GPIO11 jumper you get a harmless `FAULT` `DRUM_SENSOR` "drum code 000" a moment
+   section 6 explains why. Without the GPIO11 jumper you get a harmless `FAULT` `DRUM_SENSOR` "drum code 000" a moment
    after start-up.
 2. Tools > Serial Monitor. At the bottom right set the line ending to **Newline**. The baud rate does not matter (USB).
 3. Tap RESET on the board. You should see a `HELLO` line, then a `BOOT` line, then telemetry lines:
@@ -169,19 +169,22 @@ a power cycle and over a new upload of the same firmware version.
 
 ## Safety summary
 
-- Any fault: the wiper stops at once. Then the drum goes to a safe park, so the wiper turns nothing: from REEL or the
-  WRAPPED sector it goes to the WRAPPED park (314 deg, collar in NEUTRAL, wraps kept), never back to NEUTRAL (that
-  would unwrap under tow). From anywhere before the wrap window it goes to NEUTRAL.
+- Any fault: the wiper stops at once. Then, if the wraps are off and nothing below applies, the drum goes to NEUTRAL,
+  so the wiper turns nothing.
 - The drum does NOT move, and holds where it is, when:
+  - the wraps are on (wrap window, WRAPPED park, REEL): the worm and sprag #2 hold the line, and the operator
+    unwraps when it is safe (`unwrap`). This applies to `estop` too;
   - the launch spring may be drawn: there is no sear, only the wiper worm holds the spring, and a shift under that
     load could dry fire. Recover with `decock`;
-  - the drum is inside the wrap window: the operator decides. Recover with `unwrap`;
-  - the drum itself faulted, its position or the wraps are unknown, or the N20 is latched out (hand mode).
+  - the drum itself faulted, its position or the wraps are unknown, or the N20 is swung out of mesh (hand mode). After a
+    drum code that changed with the drum still near the wrap window, only `unwrap` is accepted until NEUTRAL.
 
-  It then sends a `MODE` event with `"err":"DRUM_HELD"` and a `"why"` that says which.
+  It then sends a `MODE` event with `"err":"DRUM_HELD"` and a `"why"` that says which (exactly at the WRAPPED park
+  it says `"ok":true` instead).
 - After a power cut the base never moves by itself. Inside the wrap window it stops and reports. A cut while cocking or
   firing is treated as a drawn spring: `cock` is refused (`LOADED_UNKNOWN`) until a `decock` (PROTOCOL.md section 9).
-- `stop`: wiper off now, drum stops. `estop`: the same, then the drum goes to its safe park when that is safe.
+- `stop`: wiper off now, drum stops. `estop`: the same, then the drum goes to NEUTRAL when that is safe (never with
+  the wraps on).
 - Before every shift out of LAUNCH or REEL the wiper makes a small centering jog (8 deg) so the collar is not loaded.
   The collar contacts `SW_DOG_L` and `SW_DOG_R` are checked during every drum move.
 - Soft start: the wiper ramps up over 300 ms (inrush once blew a 10 A fuse). It always stops for 200 ms before it
@@ -189,7 +192,7 @@ a power cycle and over a new upload of the same firmware version.
 - Current trips per job (each for 30 ms, ignored for 50 ms after a start): aim and reel in 5 A, cock and fire 6.5 A,
   tow 6.5 A or more for a high `max_n` (the tension estimate is the real tow limit), take-up 2.5 A, jogs, centering and fly-in 3 A; 17 A at any
   time. Stall: the shaft slower than 12 deg/s for 200 ms while driving.
-- AS5600 lost while the wiper runs: fault `ANGLE_SENSOR`. If the AS5600 is not reading, wiper actions and the drum
+- AS5600 lost while the wiper runs, or its angle jumps so travel is lost: fault `ANGLE_SENSOR`. If the AS5600 is not reading, wiper actions and the drum
   moves that need the centering jog or the fly-in are refused (`ANGLE_SENSOR`). Exception: a build with no magnet can
   switch on the 6-bump index cam `SW_INDEX` in `config.h` (decision D12, off by default); then the base runs on that
   coarser angle (PROTOCOL.md section 9).

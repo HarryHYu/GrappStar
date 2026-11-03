@@ -2,7 +2,7 @@
 
 Units: mm, deg, N, N m, s, kg unless a name says otherwise.
 Owner: the coordinator. Workers read it and never edit it; request changes in your REPORT.md or NOTES.md.
-STATUS: v1.2.7 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
+STATUS: v1.2.8 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
 The architecture blocks below hold the INTERFACE numbers (where two owners must agree) and the module placements.
 Each owner keeps its internal geometry in its own module and maps these numbers explicitly (read with defaults).
 Code against the names; never hard-code a shared number anywhere else.
@@ -10,7 +10,7 @@ Code against the names; never hard-code a shared number anywhere else.
 
 import math
 
-VERSION = "1.2.7"
+VERSION = "1.2.8"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
@@ -173,12 +173,12 @@ LAUNCH = dict(
     line_guide_u=-200.0,  # D36: last line guide BEHIND the rail rear end on the dart axis (rail coords mm: u along the rail, 0 at the pivot)
     line_guide_w=85.0,    # D36: so the pulley-to-tail path only gets longer during the stroke (no slack, no snatch)
     carriage_mass_target_g=70.0,  # D36: printed carriage at most 70 g (physics: 100 g costs about 0.4 m and overloads the stop)
-    drive_gear=dict(module=2.5, teeth=26, face=16.0, y=(142.5, 158.5), note="on sprag #1 (inside), coaxial on the launch sleeve"),
-    big_gear=dict(module=2.5, teeth=40, present=27, centre_from_pivot=82.6, layers=dict(sector=(134.0, 146.0), full=(146.0, 154.0)),
+    drive_gear=dict(module=2.5, teeth=26, face=7.0, y=(147.5, 154.5), note="on sprag #1 (inside), coaxial on the launch sleeve; face 7 as built (rail-relative 7.5..14.5, cad-launch 13:30)"),
+    big_gear=dict(module=2.5, teeth=40, present=27, centre_from_pivot=82.6, as_built="sector layer 27 teeth + full 40T layer, face 7 each (cad-launch 13:30)", layers=dict(sector=(134.0, 146.0), full=(146.0, 154.0)),
                   note="two layers: a sector layer meshes the rack (last tooth relieved, the one before 30 percent taller), a full "
                        "40T layer meshes the drive gear so every cock can start (D23)"),
     wiper_turns_per_shot=40.0 / 26.0,
-    stroke=241.2,
+    stroke=240.9,          # as built (cad-launch 13:30); was 241.2
     spring_preload=23.8,        # D30: extension at HOME = SPRING.max_ext 265 - stroke 241.2
     spring_ext_full=265.0,
     spring_preload_fallback=8.8,   # anchor hole set for SPRING.max_ext_fallback 250
@@ -227,7 +227,7 @@ REEL = dict(
     tow_limit_n=50.0,                         # firmware default
     tow_limit_max_n=70.0,                     # D39: the 6.5 A tow trip is about 75 N at the line and the shear pin slips near it
     tow_tension_model=dict(n_per_a=17.0, offset_n=-10.4, note="line N = 17.0 x (I - I_free) - 10.4 (physics v1.2, D32/D33)"),
-    current_trips_a=dict(aim=5.0, reel_in=5.0, cock=6.5, tow=6.5, blank_ms=50, hold_ms=30, note="D8/D33"),
+    current_trips_a=dict(aim=3.0, backward_launch=3.0, reel_in=5.0, cock=6.5, tow=6.5, blank_ms=50, hold_ms=30, note="D8/D33/D40: every backward wiper run in LAUNCH (aim, decock, backward jog) drives the aim train: 3 A"),
     line_speed_mps=dict(free=0.21, at_50n=0.14),
     pulleys="693ZZ printed pulleys where the line turns more than about 20 deg; one on the rail at the pivot (D14)",
     cup_gear=dict(module=1.5, teeth=24, note="driven by cad-drum's wrap idler output 42T m1.5 (4 pinion turns = 7 cup turns)"),
@@ -259,7 +259,7 @@ SWITCHES = dict(
     SW_GAP=dict(owner="cad-launch", closes="big gear in its toothless gap (cam arc on the big gear, switch on the right cheek)", gpio=39),
     SW_RAIL_LOW=dict(owner="cad-launch", closes="rail at minimum pitch (cam on the aim crank)", gpio=40),
     SW_SEATED=dict(owner="cad-launch", closes="dart tail against the pusher (rail lever via a carriage plunger, no wires on the carriage)", gpio=41),
-    SW_ARM=dict(owner="cad-reel", closes="wrap cup at home (cam bump on the cup gear, closed +-12 deg)", gpio=42),
+    SW_ARM=dict(owner="cad-reel", closes="CLOSED while the wrap cup is away from home; OPENS for about +-5 deg at home (lever drops into a notch on the cup gear track); firmware home = open", gpio=42),
     AS5600=dict(owner="cad-drum (magnet cap) + cad-launch (bracket)", i2c=dict(sda=8, scl=9)),
     BTS7960=dict(rpwm=4, lpwm=5, r_en=6, l_en=7, is_adc=1, note="10 k pull-downs on R_EN and L_EN"),
     DRV8833=dict(ain1=15, ain2=16, slp="NOT WIRED (D9)"),

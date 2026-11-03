@@ -3,6 +3,9 @@
 Do the stages in order. Do not skip ahead when a stage fails: fix it, then repeat the stage. Write the date and the
 result of each stage in a notebook (or `docs/build/test_log.md`).
 
+How to fire: `python3 -m grappstar base fire` on the Jetson. It shows mode, pitch, cock and seated, asks you to type
+FIRE, then sends `arm` and `fire` with the token at once (the token is only valid 3 s, too short to type by hand).
+
 How to send base commands: the operator page on the Jetson (jetson/README.md) has buttons for most of these. From a
 terminal on the Jetson, in `~/GrappStar/jetson`, send any command (firmware/base/PROTOCOL.md) with
 `python3 -m grappstar base cmd '{"cmd": "jog", "motor": "wiper", "dir": 1, "ms": 300}'` and watch telemetry with
@@ -47,7 +50,8 @@ cable is a data cable and in the ESP32 port marked USB; see troubleshooting in t
 Battery unplugged. Connect the wiper motor to BTS7960 M+ / M- and clamp the motor to the bench. Connect the drum
 N20 to DRV8833 #3 AOUT1 / AOUT2, loose on the bench. Battery in.
 
-1. `jog` wiper dir 1 for 300 ms, then dir -1. Mark with a pen arrow on the motor which way the shaft turns for
+1. `jog` wiper dir 1 for 300 ms, then dir -1 (backward jogs are refused outside LAUNCH with `BACKSTOP`: on the
+   bench set the drum code to LAUNCH with the jumpers BENCH_TEST.md gives). Mark with a pen arrow on the motor which way the shaft turns for
    dir 1. That is FORWARD: on the built base it is the direction that draws the carriage back (cocks). Before the
    base exists it is only a label; once assembled, a short forward jog in LAUNCH must move the carriage BACK. If it
    moves forward, swap the wiper leads at M+ / M- (battery unplugged).
@@ -55,8 +59,9 @@ N20 to DRV8833 #3 AOUT1 / AOUT2, loose on the bench. Battery in.
 3. Do the current-sense calibration now (MEASURE_LIST G1, CALIBRATION.md), then watch `amps` during a 1.5 s wiper
    jog (jogs are capped at 1.5 s; sending the same jog again extends it).
 
-Pass: each motor turns both ways, stops when the jog ends, wiper free current about 1 to 3 A (A6 in
-MEASURE_LIST.md), no fault.
+Pass: each motor turns both ways, stops when the jog ends, no fault. Wiper free current at jog power about 1 to
+2 A, safely under the jog trips (2.5 A forward, 3 A backward); a jog that trips on a bare clamped motor means
+something binds or the current scale is off (redo G1).
 If it fails: no movement on the wiper: check R_EN / L_EN wiring and the 20 A fuse. Wiper turns only one way: one of
 RPWM / LPWM is not connected. Drum does nothing: check 9.0 V on VM and the AIN1 / AIN2 / GND jumpers. If it still does nothing, check which board
 it is (MEASURE_LIST D3): a board that does not pull SLP high by itself cannot be used as wired (decision D9); write
@@ -76,7 +81,7 @@ check the GND wire and that the screw head really touches the nut.
 
 ## Stage 4. Base assembled, dry cycles, NO springs, no line
 
-Springs off, no tether, no dart. Run CALIBRATION.md first (zeros and drum positions; part (f) waits for stage 5).
+Springs off, no tether, no dart. Run CALIBRATION.md first (zeros and drum positions; part (g), the cock geometry check, waits for stage 5).
 With no dart, `arm` refuses (`NOT_SEATED`): for this stage and stage 5 send
 `{"cmd":"set","key":"require_seated","val":false}`, and set it back to `true` before stage 6.
 
@@ -84,8 +89,13 @@ With no dart, `arm` refuses (`NOT_SEATED`): for this stage and stage 5 send
    gives. Each change ends with the right `drum_pos`.
 2. `aim` 15, 30, 45, then the minimum and maximum pitch: 5 rounds. Rail reaches each angle within 1 degree
    (`pitch_deg`) and holds with the motor off.
-3. Cock and fire with no springs: `arm`, then `fire` with the token. The carriage travels back, releases, and the
-   big gear re-engages: 10 cycles.
+3. Cock and fire with stand-in springs: without springs nothing returns the carriage after the release, so the
+   firmware would fault every cycle. Hook two strong rubber bands (or loops of bicycle inner tube) from the spring
+   anchor pins to the carriage hooks instead: enough to pull the carriage home, far too weak to throw anything.
+   Then `cock`, `{"cmd":"decock"}` (the carriage creeps home, `SW_HOME` closes): 5 cycles. Then fire with
+   `python3 -m grappstar base fire` (it arms and fires in one go, inside the 3 s token life, after you type FIRE):
+   the carriage travels back, releases, the bands pull it home, and the big gear re-engages: 10 cycles.
+   Take the bands off afterwards.
 4. Wrap and unwrap, with a spare line through the capstan path and slack: from LAUNCH, `wrap`, `tidy`, `mode`
    REEL, then `unwrap` and `mode` LAUNCH (the stage 7 table without the shot): 10 cycles. Once wrapped and in REEL,
    send `reel` with duty 0.3, wait 3 s, send `stop`.
@@ -105,7 +115,7 @@ contacts close cleanly.
 
 Fit both springs. Start at the lowest pitch, rail pointing at a clear area.
 
-1. `aim` to the lowest pitch. `arm` and `fire` once. Look at every part of the launch train after the shot.
+1. `aim` to the lowest pitch. Fire once with `python3 -m grappstar base fire`. Look at every part of the launch train after the shot.
 2. Five more shots. Check the stop bumpers, the carriage, the rack teeth and the big gear's last tooth after each.
 3. Watch `amps` while cocking: note the peak (the physics expects about 5 A; decision D8 trips at 6.5 A while
    cocking).
@@ -138,7 +148,7 @@ bypasses the capstan). Set the payout brake with hanging weights (G4): 40 g does
 
 Pass: clean exit (no rubbing marks on the dummy), it flies nose first, payout is clean, the range is within 30
 percent of the ballistics table at the same pitch (measured from the ground point under the rail pivot; the table is `base/out/ballistics.json`, shown on the
-operator page; best is about 5 m with the two springs and the 0.5 N brake).
+operator page and in section 1 of the build guide).
 If it fails: short range: measure the springs (B2) and the muzzle speed, then re-run the physics. Rubbing marks:
 check the cradle and the barrel against the dart. Loops on the reel: raise the brake a little (never over 1 N).
 Big range loss with clean payout: the line catches somewhere; watch the slow-motion video.
@@ -180,7 +190,7 @@ The real dart, built and tested to the dart run sheet section 10. Use real soil 
 2. When the dart reports ANCHORED: standing beside the line, not in line with it, glasses on, pull the tether by
    hand with the luggage scale, slowly, up to 50 N or until
    it moves (G7).
-3. HARD PREREQUISITE for any tow: CALIBRATION.md (b) free running current (`free_a`) and (e) newtons per amp
+3. HARD PREREQUISITE for any tow: CALIBRATION.md (d) free running current (`free_a`) and (f) tension (`k_n_per_a`
    (`k_n_per_a`, MEASURE_LIST G9) are done. Why: with the factory values a simulated tow reached 61 N against a
    40 N limit. Re-anchor (wrap first, as in step 1). Rover chocked, everyone beside the line. Then the stage 7 table
    from `tidy` on: `tidy`, `mode` REEL, then the tow with `max_n` 10 N under the hand result:
@@ -202,8 +212,7 @@ Before the first mission: `free_a` and `k_n_per_a` are calibrated (stage 8 step 
 From the operator page on the Jetson (jetson/README.md): preflight, pick a target on the Kiyo view, aim, confirm
 the fire prompt, flight video from the dart, landing verdict, anchor, tow, release, reel home.
 
-1. First run: a short target well inside the range the operator page offers (3 to 4 m: the minimum is about 2.9 m and the best
-   about 5 m with the two springs), soft soil, open ground.
+1. First run: a short target well inside the range the operator page offers (about two thirds of the best range shown on the operator page), soft soil, open ground.
 2. Watch every prompt: the software stops and asks before each dangerous step.
 
 Pass: the whole sequence runs with only the expected operator confirmations, the dart lands within 2 m of the target,

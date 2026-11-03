@@ -4,7 +4,7 @@
 # With no names it merges all workers in a fixed order (spec readers first, outputs last).
 set -u
 cd "$(dirname "$0")/.."
-ORDER=(fw-base fw-dart physics jetson jetson-vision systest cad-infra cad-drum cad-reel cad-launch cad-frame docs review)
+ORDER=(fw-base fw-dart physics jetson jetson-vision systest cad-infra cad-drum cad-reel cad-launch cad-frame sensors docs review)
 [ $# -gt 0 ] && ORDER=("$@")
 cur=$(git rev-parse --abbrev-ref HEAD)
 if [ "$cur" != "base-v1" ]; then echo "on $cur, not base-v1: stop"; exit 2; fi

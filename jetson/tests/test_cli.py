@@ -60,9 +60,14 @@ def test_base_fire_one_connection(monkeypatch, capsys):
         port = mb.pty_path
         import time; time.sleep(0.5)                 # past the base's BOOTING window
         assert cli.main(["base", "mode", "LAUNCH", "--port", port]) == 0
-        import time; time.sleep(1.0)
+        import time
+        t0 = time.time()
+        while (mb.state != "IDLE" or mb.drum_running) and time.time() - t0 < 20:
+            time.sleep(0.05)
         assert cli.main(["base", "aim", "30", "--port", port]) == 0
-        time.sleep(1.5)
+        t0 = time.time()
+        while (mb.state != "IDLE" or mb.drum_running) and time.time() - t0 < 20:   # aim runs about 17 s of base time
+            time.sleep(0.05)
         monkeypatch.setattr("builtins.input", lambda prompt="": "nope")
         assert cli.main(["base", "fire", "--port", port]) == 1      # not confirmed: nothing sent
         assert not any(r["cmd"] in ("arm", "fire") for r in mb.received)

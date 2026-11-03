@@ -51,7 +51,22 @@ See FINDINGS.md "Current numbers" and SUMMARY.md (final values pasted below at t
    now read from the spec, both clutch settings referenced to the full reel, and a complete spec_used.
 5. Cross-worker: module names launch.py and gears.py clashed with cad-launch / cad lib in a combined pytest run. Renamed
    them to launcher.py and printed_gears.py, and the tests to test_phys_*.py. conftest.py pins this directory's modules
-   and fails if a test writes under base/out or kedge/out30.
+   and fails if a test writes this worker's outputs or kedge/out30.
+6. Round 5 (robustness): fixed a 3.12-only f-string (blocked Python 3.10), an infinite loop on --step 0, calib
+   tracebacks, --help missing on four CLIs, odd flags overwriting committed outputs, and stale docs. A test now
+   guards 3.10 syntax.
+7. Blind cross-check: a fresh agent with no access to the code got the same muzzle speed (7.77 vs 7.78 m/s). Its longer
+   range came from a taut/slack chatter in its own script.
+8. Catalogue check (web): the spring is Century C-243, 1.37 mm wire, 38.4 N / 302 mm. This led to D30 (265 mm full cock).
+9. Adversarial critic: found the line slack at the shot with the D14 pivot guide (snatch, about -0.5 m), which led to
+   D36 (rear guide). Also a heavy CAD carriage, line-path friction (eye gain now 1.35), carriage shoe couple friction
+   (now modelled) and terrain height (impact angles in the meta).
+10. Coordinator review F (round 1): mostly already fixed. Added tests on the REAL spec and a content-hash staleness
+   test for ballistics.json.
+11. Round 6: corrected the take-up drag (D25: clutch disk at 2.5 x wiper). The tow model offset is now -3.0 N, not
+   -10.4. Also: flight eye at the D36 guide, taut detection from the peak slack, trips from the spec.
+12. Coordinator review F2 (round 2): tow limit cap check (72 N available vs the 70 N D39 cap), validate() and end
+   rows in the staleness test, and the spec headline kept within 10 % of the model by a test.
 
 ## Open items / requests
 

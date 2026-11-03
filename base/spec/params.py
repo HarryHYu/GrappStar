@@ -2,7 +2,7 @@
 
 Units: mm, deg, N, N m, s, kg unless a name says otherwise.
 Owner: the coordinator. Workers read it and never edit it; request changes in your REPORT.md or NOTES.md.
-STATUS: v1.2.8 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
+STATUS: v1.3.0 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
 The architecture blocks below hold the INTERFACE numbers (where two owners must agree) and the module placements.
 Each owner keeps its internal geometry in its own module and maps these numbers explicitly (read with defaults).
 Code against the names; never hard-code a shared number anywhere else.
@@ -10,7 +10,7 @@ Code against the names; never hard-code a shared number anywhere else.
 
 import math
 
-VERSION = "1.2.8"
+VERSION = "1.3.0"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
@@ -158,8 +158,9 @@ DRUM = dict(
              peak_drum_load_nm=0.93, note_ratio="cad-drum as built (drum_NOTES sections 3 and 9); physics and firmware read these"),
     magnet_face_y=201.5,        # D23: magnet cap y 195..201.5 on the spigot end (spigot to y 198.5)
     index_cam_bumps=6,          # D12
-    sw_index_mount="2 x M3 in the wiper adapter plate front face at (x 43.1, z +6) and (x 43.1, z -36)",
+    sw_index_mount="on drum idler post 2 (block on the +x side, screwed to a strut); index cam at s 33.5..38.5, base r 26 (cad-drum 13:45)",
     torque_limiter_nm=5.0,      # D8 / D26
+    shear_pin_print="lying down (pin axis flat on the bed) so the shear plane cuts across layers; a layer line on the shear plane slips at 2.5 to 3.3 N m, the same as the cock and tow torques (D44)",
     bus=dict(module=1.5, teeth=50, face=8.0, plane_y=(40.0, 48.0), meshes="cad-reel c1 46T m1.5 at 72.1",
              overdrive_total=2.5, note="D15/D25: no drag brake (the swing idler stays engaged under payout)"),
     reel_output=dict(module=2.0, teeth=50, face=12.0, plane_y=(50.5, 62.5)),
@@ -173,6 +174,7 @@ LAUNCH = dict(
     line_guide_u=-200.0,  # D36: last line guide BEHIND the rail rear end on the dart axis (rail coords mm: u along the rail, 0 at the pivot)
     line_guide_w=85.0,    # D36: so the pulley-to-tail path only gets longer during the stroke (no slack, no snatch)
     carriage_mass_target_g=70.0,  # D36: printed carriage at most 70 g (physics: 100 g costs about 0.4 m and overloads the stop)
+    carriage_mass_g=85.8,         # as built (cad-launch 13:40); physics uses this over the target; lower it when the carriage gets lighter
     drive_gear=dict(module=2.5, teeth=26, face=7.0, y=(147.5, 154.5), note="on sprag #1 (inside), coaxial on the launch sleeve; face 7 as built (rail-relative 7.5..14.5, cad-launch 13:30)"),
     big_gear=dict(module=2.5, teeth=40, present=27, centre_from_pivot=82.6, as_built="sector layer 27 teeth + full 40T layer, face 7 each (cad-launch 13:30)", layers=dict(sector=(134.0, 146.0), full=(146.0, 154.0)),
                   note="two layers: a sector layer meshes the rack (last tooth relieved, the one before 30 percent taller), a full "
@@ -189,7 +191,7 @@ LAUNCH = dict(
     carriage_mass_target_kg=0.060,
     sleeve=dict(od_at_sprag=20.0, key="integral rib 6 wide", wall_min=3.8, spigot_bore=12.35, y=(111.0, 193.0), note="D13, D23"),
     rail_walls_y=(112.0, 168.0), springs_y=(94.0, 186.0), cheeks_y=((123.0, 131.0), (159.5, 167.5)),
-    flight=dict(range_m=4.8, apex_m=1.1, pitch_deg=36.0, t_flight_s=1.1, note="for the sim; physics v1.2: 12.1 J, 7.41 m/s, 4.8 m at 0.5 N"),
+    flight=dict(range_m=4.1, apex_m=1.1, pitch_deg=34.0, t_flight_s=0.8, note="for the sim; physics 1.2.9: 12.06 J, 6.80 m/s, 4.14 m at 34 deg with the 0.5 N brake (85.8 g carriage, D36 routing)"),
     never_fire_without_tether=True,   # D11
 )
 
@@ -225,8 +227,10 @@ REEL = dict(
                  reel_gear=dict(module=1.5, teeth=20), disk_ratio=2.5, drag_brake=False,
                  note="D25: compound c1 free on the capstan tube meshes the bus 50T; the swing idler rides c1's hub, engages on forward turns"),
     tow_limit_n=50.0,                         # firmware default
-    tow_limit_max_n=70.0,                     # D39: the 6.5 A tow trip is about 75 N at the line and the shear pin slips near it
-    tow_tension_model=dict(n_per_a=17.0, offset_n=-10.4, note="line N = 17.0 x (I - I_free) - 10.4 (physics v1.2, D32/D33)"),
+    tow_limit_max_n=60.0,                     # D39/D43: tension AT THE DART; the train can pull about 62 N at the dart with the D43 pulleys before 0.8 x the shear pin
+    path_gain=1.15,                           # D43: capstan-side / dart-side tension with pulleys at the exit eye, cup ring and guide (1.5 with plain printed eyes)
+    tow_tension_model=dict(n_per_a=14.8, offset_n=-2.6, at="dart", capstan_n_per_a=17.0, capstan_offset_n=-3.0,
+                           note="D43: dart-side line N = 14.8 x (I - I_free) - 2.6 (capstan side 17.0 / -3.0, D42, divided by path_gain 1.15); tow_limit_n means the DART side; calibrate with the luggage scale at the line end"),
     current_trips_a=dict(aim=3.0, backward_launch=3.0, reel_in=5.0, cock=6.5, tow=6.5, blank_ms=50, hold_ms=30, note="D8/D33/D40: every backward wiper run in LAUNCH (aim, decock, backward jog) drives the aim train: 3 A"),
     line_speed_mps=dict(free=0.21, at_50n=0.14),
     pulleys="693ZZ printed pulleys where the line turns more than about 20 deg; one on the rail at the pivot (D14)",
@@ -280,7 +284,7 @@ TIMELINE = [
     ("aim", 4.0, "Wiper backward: the crank-rocker lifts the rail to 36 deg; the worm holds it.",
      dict(wiper_deg=-1120.0, sleeve_deg=-1120.0, aim_deg=36.0)),
     ("cock", 3.0, "Wiper forward: the big gear draws the sled back 241 mm; the take-up winds the slack.",
-     dict(wiper_deg=-1120.0 + 470.0, sleeve_deg=-1120.0 + 470.0, cock=1.0)),
+     dict(wiper_deg=-1120.0 + 425.0, sleeve_deg=-1120.0 + 425.0, cock=1.0)),
     ("fire", 0.5, "The relieved tooth lets go: the sled throws the dart; the big gear resets into its gap.",
      dict(wiper_deg=-1120.0 + 553.8, sleeve_deg=-1120.0 + 553.8, cock=0.0, fired=1, dart_flight=0.05)),
     ("flight", 1.5, "Dart in flight; the line pays off the storage reel against the 0.5 N clutch.",

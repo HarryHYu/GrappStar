@@ -33,8 +33,9 @@ for line in L:
             continue
     res.append(line)
 s = "\n".join(res)
-s = s.replace("Each finding is being re-checked\nagainst base-v1 863d58d; the results will be added as a \"Now\" column.",
-              f"Each finding was re-checked against\n{commit} by one checker subagent each; see the Now column.")
+import re
+s = re.sub(r"Each finding is being re-checked\nagainst base-v1 [0-9a-f]+; the results will be added as a \"Now\" column\.",
+           f"Each finding was re-checked against\nbase-v1 {commit} by one checker subagent each; see the Now column.", s)
 open(md, "w").write(s)
 c = {}
 for r in R:

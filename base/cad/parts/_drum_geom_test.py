@@ -79,3 +79,23 @@ def test_idler_locked_at_home(asm):
         JW = asm.joint_world(S, v2)
         idl = prim.place(asm.parts["drum_idler"].solid, JW["drum_idler"] @ asm.parts["drum_idler"].place)
         assert (d ^ idl).volume() > 1e-3
+
+
+def test_index_lever_follows_cam(asm):
+    """The SW_INDEX nub rides the coupler cam (within 0.7 mm) at bump tops, valleys and ramps."""
+    for w in (0.0, 15.0, 30.0, 45.0, 60.0, 77.0):
+        S = dict(drum_deg=41.0, wiper_deg=w)
+        cp = posed(asm, "drum_coupler", S)
+        lv = posed(asm, "drum_index_lever", S)
+        assert (cp ^ lv).volume() < 1e-3, w
+        assert cp.min_gap(lv, 2.0) < 0.7, w
+
+
+@pytest.mark.parametrize("th", [0, 41, 347])
+def test_post2_strut_clear(asm, th):
+    """Idler post 2 and its SW_INDEX strut stay clear of the fork, rail, bus gear, drum A and the index lever."""
+    S = dict(drum_deg=float(th), wiper_deg=0.0)
+    for b in ("drum_fork", "drum_rail", "drum_coupler", "drum_drum_a", "drum_index_lever", "drum_idler_gear"):
+        assert overlap(asm, "drum_bracket_idler2", b, S) < 1e-3, (th, b)
+    for b in ("drum_fork", "drum_coupler", "drum_index_lever"):
+        assert overlap(asm, "drum_index_block", b, S) < 1e-3, (th, b)

@@ -4,8 +4,9 @@ Line path in REEL mode: dart -> capstan (n wraps) -> storage reel. Dart side ten
 from the storage reel slip clutch. Grip holds while F <= T_hold * exp(2 pi mu n).
 
 Take-up: the storage reel slip clutch slips at a constant TORQUE Tc, set as p.capstan["takeup_n"] of line tension at
-clutch_r (default the reel core radius). The hold tension at the capstan is Tc / r_line, and r_line grows as line
-winds on (payout.line_radius), so T_hold falls from takeup_n (empty reel) to Tc / r_full (20 m on the reel).
+clutch_r (default the line radius with the reel FULL). The hold tension at the capstan is Tc / r_line, and r_line
+grows as line winds on (payout.line_radius), so T_hold is takeup_n with the reel FULL (20 m on the reel) and higher,
+Tc / r_core, with the reel empty.
 The take-up is driven from the main shaft by the bus (D15/D25): the clutch input disk turns at `overspeed` (2.5) x
 the wiper speed, so it costs Tc x overspeed / eta_bus of wiper torque, constant. The reel line speed is then
 overspeed x ratio x r_line / r_capstan times the capstan line speed (1.4 at the core, 1.7 full): it always slips.
@@ -37,7 +38,7 @@ OUT_DIR = os.path.join(HERE, "..", "out", "physics")
 
 WRAP_MARGIN = 1.5
 DART_HOLD = dict(sand=7.0, loam=45.0, clay=112.0)   # N, Broms short pile (kedge CLAUDE.md)
-CAP_GEAR = dict(module=2.0, face=12.0, z_driver=50)  # REEL gear 40 T on the wiper drives the capstan 24 T (ratio 0.6);
+CAP_GEAR = dict(module=2.0, face=12.0, z_driver=50)  # REEL gear 50 T on the wiper drives the capstan 22 T (ratio 0.44);
                                                      # module and face ASSUMED, PPA-CF
 
 # recommended firmware current trip (all modes)
@@ -65,7 +66,8 @@ def wraps_needed(f_tow: float, t_hold: float, mu: float, margin: float = WRAP_MA
 
 
 def max_hold(wraps: float, t_hold: float, mu: float) -> float:
-    """Largest dart side tension the wraps hold before the line slips on the drum."""
+    """Largest tension on the loaded (dart) side of the drum the wraps hold before the line slips. This is the
+    capstan-side tension (dart pull x path_gain), not the pull at the dart."""
     return t_hold * ratio(mu, wraps)
 
 
@@ -80,6 +82,14 @@ def slips(f_tow: float, wraps: float, t_hold: float, mu: float) -> bool:
 # ------------------------------------------------------------------ take-up (slip clutch, constant torque)
 def _core_r(p: Params) -> float:
     return p.reel["core_d"] / 2
+
+
+def path_gain(p: Params) -> float:
+    """Tension gain from the dart to the capstan through the exit eye, cup groove and pulleys (line pulled in):
+    capstan tension = dart pull x gain. Plain printed eyes and the groove (about 50 + 58 deg at mu 0.25, plus
+    pulleys): about 1.5. With 693 pulleys at the exit eye and ring: about 1.15. All "f_line" values in this module
+    are DART-side pulls."""
+    return p.capstan.get("path_gain", 1.5)
 
 
 def trip_a(p: Params, mode: str) -> float:
@@ -107,9 +117,9 @@ def takeup_tension(p: Params, line_left: float, clutch_r: float | None = None) -
 
 
 def takeup_drive_force(p: Params, overspeed: float | None = None, clutch_r: float | None = None) -> float:
-    overspeed = _os(p, overspeed)
     """Line pull equivalent at the drum of the wiper torque spent driving the slipping take-up (bus at overspeed x
     wiper speed, D25)."""
+    overspeed = _os(p, overspeed)
     r, k, eta = _cap(p)
     t_w = clutch_torque(p, clutch_r) * overspeed / ETA_BUS
     return t_w * k * eta / r
@@ -137,23 +147,25 @@ def _full(p: Params) -> float:
 
 def wiper_torque_for(f_line: float, p: Params, overspeed: float | None = None, line_left: float | None = None,
                      clutch_r: float | None = None) -> float:
-    overspeed = _os(p, overspeed)
     """Wiper output torque to pull the dart side at f_line. Default line_left = full reel (lowest hold tension, so
     the most torque for a given f_line)."""
+    overspeed = _os(p, overspeed)
     r, k, eta = _cap(p)
     L = _full(p) if line_left is None else line_left
     th = takeup_tension(p, L, clutch_r)
-    return r * (max(f_line - th, 0.0) + takeup_drive_force(p, overspeed, clutch_r)) / (k * eta)
+    f_cap = f_line * path_gain(p)                    # dart pull -> capstan tension through the exit eye and cup groove
+    return r * (max(f_cap - th, 0.0) + takeup_drive_force(p, overspeed, clutch_r)) / (k * eta)
 
 
 def line_from_wiper(t_wiper: float, p: Params, overspeed: float | None = None, line_left: float = 0.0,
                     clutch_r: float | None = None) -> float:
-    overspeed = _os(p, overspeed)
     """Dart side tension for a wiper torque. Default line_left = 0 (empty reel, highest hold tension, so the most
     line tension for a given torque)."""
+    overspeed = _os(p, overspeed)
     r, k, eta = _cap(p)
-    return (t_wiper * k * eta / r + takeup_tension(p, line_left, clutch_r)
-            - takeup_drive_force(p, overspeed, clutch_r))
+    f_cap = (t_wiper * k * eta / r + takeup_tension(p, line_left, clutch_r)
+             - takeup_drive_force(p, overspeed, clutch_r))
+    return f_cap / path_gain(p)
 
 
 def drum_shaft_torque(t_wiper: float, p: Params) -> float:
@@ -196,8 +208,8 @@ def stall_label(p: Params, v_oc: float | None = None) -> str:
 
 
 def tow_point(f_line: float, p: Params, v_oc: float, overspeed: float | None = None, line_left: float | None = None) -> dict:
-    overspeed = _os(p, overspeed)
     """Steady tow at dart side tension f_line, battery at v_oc with sag."""
+    overspeed = _os(p, overspeed)
     r, k, eta = _cap(p)
     t_w = wiper_torque_for(f_line, p, overspeed, line_left)
     op = p.wiper.operate(t_w, p.battery, v_oc)
@@ -208,11 +220,11 @@ def tow_point(f_line: float, p: Params, v_oc: float, overspeed: float | None = N
 
 
 def current_limit_for(f_limit: float, p: Params, overspeed: float | None = None) -> dict:
-    overspeed = _os(p, overspeed)
     """Motor current at the tow limit. Taken at the empty reel (highest hold tension, so the least torque reaches
     f_limit): a trip at this current keeps the line under f_limit at any line left.
     BTS7960 IS pin: it senses the HIGH side only, so it reads zero in the PWM off-time. Sample during the on-time,
     or scale the averaged reading by 1/duty, to get motor current."""
+    overspeed = _os(p, overspeed)
     t_w = wiper_torque_for(f_limit, p, overspeed, line_left=0.0)
     t_w_full = wiper_torque_for(f_limit, p, overspeed)
     i = p.wiper.current_at(t_w)
@@ -221,8 +233,8 @@ def current_limit_for(f_limit: float, p: Params, overspeed: float | None = None)
 
 
 def fw_trip(p: Params, tow_limit: float | None = None, overspeed: float | None = None, gear: dict | None = None) -> dict:
-    overspeed = _os(p, overspeed)
     """Recommended firmware current trip and what the hard trip means mechanically."""
+    overspeed = _os(p, overspeed)
     tow_limit = p.capstan["tow_limit_n"] if tow_limit is None else tow_limit
     g = CAP_GEAR if gear is None else gear
     t_hard = p.wiper.kt * (trip_a(p, "tow") - p.wiper.i_free)
@@ -265,20 +277,23 @@ def part_stresses(f_line: float, t_wiper: float, p: Params, wraps: int, rpm_drum
     """drum_wall_m: drum shell between the line and the bore (40 mm drum on the 20 mm shaft: 10 mm). p_allow: line
     bearing and shell hoop allowable on printed PLA (sigma_lewis, conservative). bearing_split: share of the resultant
     on the most loaded 608 (0.5 = drum centred between two). wrap_angle_deg: angle between the dart line and the reel
-    line leaving the drum (180 = parallel, worst case: resultant F + T_hold)."""
+    line leaving the drum (180 = parallel, worst case: resultant F_cap + T_hold).
+    f_line is the DART-side pull; the drum sees the capstan-side tension f_cap = f_line x path_gain on the loaded wrap.
+    Drum torque, key and sprag come from the wiper torque."""
     r = p.capstan["d"] / 2
     t_drum = drum_shaft_torque(t_wiper, p)
+    f_cap = f_line * path_gain(p)
     # line bearing pressure on the drum under the loaded wrap: T / (r d_line)
-    p_line = f_line / (r * p.line.d)
+    p_line = f_cap / (r * p.line.d)
     # external pressure from the loaded wrap, p = T / (r pitch); thick wall (Lame) hoop compression at the bore:
     # sigma = 2 p ro^2 / (ro^2 - ri^2)
     ro, ri = r, r - drum_wall_m
-    p_ext = f_line / (r * line_pitch_m)
+    p_ext = f_cap / (r * line_pitch_m)
     hoop = 2 * p_ext * ro ** 2 / (ro ** 2 - ri ** 2)
     phi = math.radians(wrap_angle_deg)
-    resultant = math.sqrt(f_line ** 2 + t_hold ** 2 - 2 * f_line * t_hold * math.cos(phi))
+    resultant = math.sqrt(f_cap ** 2 + t_hold ** 2 - 2 * f_cap * t_hold * math.cos(phi))
     return dict(
-        f_line=f_line, t_drum=t_drum,
+        f_line=f_line, f_capstan=f_cap, t_drum=t_drum,
         shaft=gears.shaft_torsion(t_drum, p.shaft),
         key=gears.key(t_drum, key_len_mm, p.shaft, hub_r_mm=r * 1e3),
         sprag=gears.sprag(t_drum, rpm_drum, p.sprag),
@@ -302,8 +317,10 @@ def run(p: Params | None = None, tow: float | None = None, mu: float | None = No
     b = p.battery
     tu = takeup_range(p, overspeed, clutch_r)
     th_min, th_max = tu["t_hold_min"], tu["t_hold_max"]
+    g = path_gain(p)                    # dart pull -> capstan-side tension (the highest in the line)
+    tow_cap = tow * g
 
-    wn = wraps_needed(tow, th_min, mu)
+    wn = wraps_needed(tow_cap, th_min, mu)
     loads = [5, 10, 20, 30, 45, 50, 75, 100, 112]
     table = {}
     for name, v in (("full", b.v_full), ("nom", b.v_nom)):
@@ -311,11 +328,11 @@ def run(p: Params | None = None, tow: float | None = None, mu: float | None = No
 
     def _stall_entry(v, t_s, i_s, label):
         f_s = line_from_wiper(t_s, p, overspeed)      # empty reel: highest
-        return dict(v_oc=v, t_wiper=t_s, current=i_s, f_line=f_s, label=label,
+        return dict(v_oc=v, t_wiper=t_s, current=i_s, f_line=f_s, f_capstan=f_s * g, label=label,
                     f_line_full_reel=line_from_wiper(t_s, p, overspeed, line_left=_full(p)),
                     exceeds_dart={k: f_s > hv for k, hv in DART_HOLD.items()},
-                    exceeds_break=f_s > p.line.breaking, line_breaking=p.line.breaking,
-                    wraps_slip_first=slips(f_s, wraps, th_max, mu_hi),
+                    exceeds_break=f_s * g > p.line.breaking, line_breaking=p.line.breaking,
+                    wraps_slip_first=slips(f_s * g, wraps, th_max, mu_hi),
                     holds_max=max_hold(wraps, th_max, mu_hi))
 
     # stall = what the train actually sees (at the limiter when it is set); motor_stall = raw motor, no limiter
@@ -329,12 +346,16 @@ def run(p: Params | None = None, tow: float | None = None, mu: float | None = No
         f_lim = line_from_wiper(lim, p, overspeed)
         t_tow = wiper_torque_for(tow, p, overspeed)       # full reel: most torque for the tow limit
         limiter = dict(torque=lim, current_slip=p.wiper.i_free + lim / p.wiper.kt,
-                       f_line_empty_reel=f_lim, f_line_full_reel=line_from_wiper(lim, p, overspeed, line_left=_full(p)),
+                       f_line_empty_reel=f_lim, f_capstan_empty_reel=f_lim * g, f_line_full_reel=line_from_wiper(lim, p, overspeed, line_left=_full(p)),
                        t_drum=drum_shaft_torque(lim, p), dart_hold=dict(DART_HOLD), line_breaking=p.line.breaking,
                        exceeds_dart={k: f_lim > hv for k, hv in DART_HOLD.items()},
-                       exceeds_break=f_lim > p.line.breaking,
-                       wraps_slip_first=slips(f_lim, wraps, th_max, mu_hi), holds_max=max_hold(wraps, th_max, mu_hi),
+                       exceeds_break=f_lim * g > p.line.breaking,
+                       wraps_slip_first=slips(f_lim * g, wraps, th_max, mu_hi), holds_max=max_hold(wraps, th_max, mu_hi),
                        tow_frac=t_tow / lim, slips_at_tow=t_tow > LIMITER_FRAC_MAX * lim)
+        # highest tow limit the firmware may allow: below both the tow hard trip and 0.8 x the shear pin
+        t_cap = min(LIMITER_FRAC_MAX * lim, p.wiper.kt * (trip_a(p, "tow") - p.wiper.i_free))
+        limiter["f_tow_max_n"] = line_from_wiper(t_cap, p, overspeed, line_left=_full(p))
+        limiter["tow_limit_max_spec_n"] = c.get("tow_limit_max_n")
 
     light = tow_point(light_n, p, b.v_nom, overspeed)
     t_reel = reel_len / light["v_line"] if light["v_line"] > 0 else math.inf
@@ -343,17 +364,18 @@ def run(p: Params | None = None, tow: float | None = None, mu: float | None = No
     m_full = motor_stall["full"]
 
     res = dict(
-        inputs=dict(tow=tow, mu=mu, mu_range=(mu_lo, mu_hi), takeup_n=c["takeup_n"], wraps=wraps, drum_d=c["d"],
+        inputs=dict(tow=tow, tow_capstan=tow_cap, path_gain=g, mu=mu, mu_range=(mu_lo, mu_hi), takeup_n=c["takeup_n"], wraps=wraps, drum_d=c["d"],
                     ratio=c["ratio"], eta=c["eta"], overspeed=overspeed, light_n=light_n, source=p.source),
         takeup=tu,
         wraps_needed=wn,
         capstan_ratio=ratio(mu, wraps),
         max_hold_n=dict(mu_low_worst=max_hold(wraps, th_min, mu_lo), mu_low_best=max_hold(wraps, th_max, mu_lo),
                         mu_high=max_hold(wraps, th_max, mu_hi)),
-        takeup_needed_n=takeup_needed(tow, wraps, mu),
-        slips_at_tow=slips(tow, wraps, th_min, mu),
+        takeup_needed_n=takeup_needed(tow_cap, wraps, mu),
+        slips_at_tow=slips(tow_cap, wraps, th_min, mu),
         tow_table=table,
         at_tow_nom=at_tow,
+        at_tow_cap=tow_point(c.get("tow_limit_max_n", tow), p, b.v_nom, overspeed),   # D39 cap (70 N)
         current_limit=current_limit_for(tow, p, overspeed),
         current_limit_dart=dict({k: current_limit_for(v, p, overspeed)["current"] for k, v in DART_HOLD.items()}),
         fw_trip=fw_trip(p, tow, overspeed),
@@ -372,6 +394,11 @@ def run(p: Params | None = None, tow: float | None = None, mu: float | None = No
 
 def warnings(r: dict) -> list:
     w = []
+    lm = r.get("limiter") or {}
+    if lm.get("f_tow_max_n") is not None and lm.get("tow_limit_max_spec_n") is not None \
+            and lm["tow_limit_max_spec_n"] > lm["f_tow_max_n"]:
+        w.append(f"tow limit cap {lm['tow_limit_max_spec_n']:.0f} N is above what the train can pull before the tow trip / "
+                 f"0.8 x shear pin: {lm['f_tow_max_n']:.0f} N (clamp the firmware tow limit to this)")
     s = r["stall"]["full"]
     lab = s["label"]
     over = [k for k, v in s["exceeds_dart"].items() if v]
@@ -379,7 +406,8 @@ def warnings(r: dict) -> list:
         w.append(f"{lab}: line pull {s['f_line']:.0f} N (empty reel; {s['f_line_full_reel']:.0f} N full reel): above "
                  f"dart holding in {', '.join(over)}")
     if s["exceeds_break"]:
-        w.append(f"{lab}: line tension {s['f_line']:.0f} N exceeds line breaking {s['line_breaking']:.0f} N")
+        w.append(f"{lab}: capstan-side line tension {s['f_capstan']:.0f} N (dart {s['f_line']:.0f} N) exceeds line "
+                 f"breaking {s['line_breaking']:.0f} N")
     if not s["wraps_slip_first"]:
         w.append(f"{lab}: wraps hold {s['holds_max']:.0f} N at mu high, the line does not slip on the drum: the "
                  "firmware current limit must protect the dart and line")
@@ -454,14 +482,20 @@ def main(argv=None):
     print(f"capstan d {i['drum_d']*1000:.0f} mm, ratio {i['ratio']}, eta {i['eta']}, wraps {i['wraps']}, "
           f"take-up {i['takeup_n']} N, mu {i['mu']}, tow {i['tow']} N  [{i['source']}]")
     wn = r["wraps_needed"]
-    print(f"wraps needed: raw {wn['raw']:.2f}, design {wn['design']} (x{wn['margin']})   "
+    tc = r["at_tow_cap"]
+    p = load_params()
+    print(f"tow at the cap {tc['f_line']:.0f} N: {tc['t_wiper']:.2f} N m, {tc['current']:.2f} A, {tc['v_line']:.3f} m/s "
+          f"(tow hard trip {trip_a(p, 'tow')} A, shear pin {limiter_nm(p)} N m)")
+    print(f"wraps needed for {i['tow_capstan']:.0f} N at the capstan ({i['tow']:.0f} N dart x {i['path_gain']}): "
+          f"raw {wn['raw']:.2f}, design {wn['design']} (x{wn['margin']})   "
           f"e^(2 pi mu n) = {r['capstan_ratio']:.1f}")
     tu = r["takeup"]
     print(f"take-up clutch {tu['clutch_torque']*1000:.1f} N mm: hold {tu['t_hold_min']:.2f} to {tu['t_hold_max']:.2f} N, "
           f"overspeed {tu['overspeed_min']:.2f} to {tu['overspeed_max']:.2f} over 0 to {tu['l_max']:.0f} m on the reel")
     mh = r["max_hold_n"]
     print(f"max hold with {i['wraps']} wraps: {mh['mu_low_worst']:.0f} N (mu low, full reel), {mh['mu_low_best']:.0f} N "
-          f"(mu low, empty), {mh['mu_high']:.0f} N (mu high); take-up needed for tow: {r['takeup_needed_n']:.2f} N")
+          f"(mu low, empty), {mh['mu_high']:.0f} N (mu high) at the capstan; take-up needed for the tow at {i['wraps']} wraps: "
+          f"{r['takeup_needed_n']:.2f} N")
     print(f"\n{'F N':>6} {'T_w Nm':>7} {'rpm':>6} {'v m/s':>6} {'I A':>6} {'Vbat':>6}   (11.1 V nominal, sag)")
     lm = r["limiter"]
     for row in r["tow_table"]["nom"]:

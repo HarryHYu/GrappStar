@@ -184,7 +184,7 @@ def evaluate(p: Params, name: str, fn: dict, v_oc: float) -> dict:
     trip_a = capstan.trip_a(p, {"cock": "cock", "reel": "reel_in", "tow": "tow", "aim": "aim"}.get(name, "reel_in"))
     t_trip = p.wiper.kt * (trip_a - p.wiper.i_free)
     mesh_tr = gears.mesh(t_trip, fn["gear_ratio"], g["module"], g["z_driver"], g["face"], PPA_CF, 0.0)
-    shaft_tr = fn["shaft_k"] * t_trip
+    shaft_tr = capstan.drum_shaft_torque(t_trip, p) if name in ("reel", "tow") else fn["shaft_k"] * t_trip
     sp = None
     if fn.get("sprag_torque") is not None:
         rpm_out = pk["rpm"] / fn.get("sprag_ratio", fn["gear_ratio"])

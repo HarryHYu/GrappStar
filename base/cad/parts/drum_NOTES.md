@@ -18,7 +18,8 @@ State keys (params 1.2.3):
 - reel_deg drives the REEL gear;
 - drum_deg drives the drum.
 
-A state without wiper_deg takes cad-launch's sleeve angle.
+A state without wiper_deg has the main shaft at 0. Without sleeve_deg the dog ring follows cad-launch's sleeve joint
+(it is bolted to it).
 
 ## 0. Deviations from the params v1.0 table, all now in params v1.2.3
 
@@ -54,29 +55,28 @@ A state without wiper_deg takes cad-launch's sleeve angle.
 
 | s | part | notes |
 |---|---|---|
-| 0.5..21 | `drum_coupler_hub` PPA-CF OD 26 | wiper bore from params.WIPER (d10, flats 8, M8 thread s 12..20). M8 nut at s 13.5..20 in a round pocket (13 mm socket) |
-| 0.5..62 | `drum_coupler` PPA-CF | OD 40, 45 deg cone from s 24.7 up to the bus gear root; prints standing on its motor face |
+| 4.5..27.5 | `drum_coupler_hub` PPA-CF OD 26 | starts clear of the wiper boss (y 4). Wiper shaft per cad-frame's model (not measured): round d10 to s 6, flats 8 to s 20, M8 thread s 20..32. Round bore to s 6.5, D bore to s 19.8, M8 nut at s 20.8..27.3 in a round pocket (13 mm socket) |
+| 0.5..62 | `drum_coupler` PPA-CF | OD 40 to s 27.5, 45 deg cone to the index cam (r 26), 45 deg cone to r 28.5, bus gear. Stays under r 28.5 for s < 40 (cad-reel's wall top edge is 29.6 under the axis). Prints hub end down; tree support under the bus gear ring (r 28.5..39) |
 | | (coupler) shear pin | `drum_shear_pin` d4, radial at s 9, single shear at r 13 (about 4.9 N m) |
-| | (coupler) socket | hex 22 AF from s 30 |
-| | (coupler) shaft retention | M3 x 20 tapped radially at s 34 into a dimple on a hex flat |
-| 1..6 | SW_INDEX cam on the coupler | 6 bumps, base r 20, nub lift 2.5 |
+| | (coupler) socket | hex 22 AF from s 28; the shaft end is bored d9.6 for the wiper thread end |
+| | (coupler) shaft retention | M3 x 16 tapped radially at s 30.5 (spot face on the cone) into a dimple on a hex flat |
+| 33.5..38.5 | SW_INDEX cam on the coupler | 6 bumps, base r 26, nub lift 2.5 |
 | 40..48 | bus gear | 50T m1.5, face 8, tip r 39 |
 | 48..50.3 | thrust step r 20 | the REEL gear bears on it |
-| 50..62 | REEL journal OD 30 | |
-| 62.05..63.5 | `drum_reel_washer` | r 12.9..17.4, 2 x M3 x 6 at r 13.2 into the journal end |
+| 50..62 | REEL journal OD 32 | |
+| 62.05..63.5 | `drum_reel_washer` | OD 34.8, hex bore on the shaft, 2 x M3 x 6 at r 13.8 on the flat lines into the journal end (heads clear the flats) |
 | 50.5..69.5 | `drum_gear_reel` m2 50T face 12, dogs 64.5..69.5 | bore steps to r 17.7 past the journal |
-| 30..106 | `drum_shaft` hex 22 AF | |
+| 28..106 | `drum_shaft` hex 22 AF | |
 | 106..198.5 | d12 spigot | through the launch sleeve bore (12.35) and the aim housing bushing (D23); flat from s 194.5 |
 | 72..98 | `drum_collar` at NEUTRAL | dogs 72..77 and 93..98, groove 82..88. REEL engaged: tips at 65. LAUNCH engaged: tips at 105 |
 | 100.5..111 | `drum_dogring_launch` | dogs 100.5..105.5, back face at 111 with 3 key slots, 3 x M3 tapped at r 28.5 |
 | 195..201.5 | `drum_magnet_cap` | magnet pocket d6.2 x 2.6, face at 201.5; M3 x 6 radial onto the spigot flat. AS5600 bracket: cad-launch |
 
-### 2b. Launch sleeve interface (cad-launch: please match)
+### 2b. Launch sleeve interface (agreed, D37)
 
 - Sleeve flange face at s 111.
 - Lugs on the SLEEVE: 3 lugs 6.0 wide x 3.0 tall, r 15..21, at 60 / 180 / 300 deg. They key into my slots, which are
-  6.4 x 3.2. Note: launch.py on base-v1 has slots on the sleeve too, so there is no key; one side must have lugs.
-  I keep the slots because the ring prints on that face.
+  6.4 x 3.2. I keep the slots because the ring prints on that face.
 - Screws: 3 x M3 clearance holes in the sleeve flange at r 28.5, 0 / 120 / 240 deg. The heads go on the sleeve side
   and thread into my ring. My ring has no room for counterbores between its dogs.
 - The sleeve's two-way axial location is in cad-launch's aim housing (D23).
@@ -102,7 +102,7 @@ A state without wiper_deg takes cad-launch's sleeve angle.
 | 52..60 | segment gear m1.25 from 60T, 39 teeth over 240 deg |
 | 59.95..66 | locking arc ring r 38, sitting on the segment gear |
 | 29..77 | neck r 10 |
-| 77..83 | hex spigot 16 AF into drum B |
+| 77..83 | hex spigot 16 AF into drum B, +x corner cut flat at x 7.5 (drum B's socket keeps it: one orientation only) |
 
 `drum_drum_b` (PLA, prints standing on the barrel face):
 
@@ -114,29 +114,34 @@ A state without wiper_deg takes cad-launch's sleeve angle.
 
 Fork:
 - pads in the collar groove (s 82.3..87.7), yoke 82.3..84.7;
-- sleeve on the rail s 32.3..98.3 at NEUTRAL (66 long, grease it);
+- sleeve on the rail s 15.5..98.5 at NEUTRAL (83 long, grease it), necked to r 7.5 below s 57 (cad-reel c1);
 - follower pin d6 at s 91.8, entering the barrel from the main-axis side.
 
 Rail and dog post:
 - `drum_rail` d10 at world (25, z -58), s 1..142.
 - `drum_dog_post` clamps the rail at s 106.5..111.5, clear of the launch rail cheeks (y 123..131). Its bar runs back
-  to s 69.8; REEL boss to s 72.8, LAUNCH boss from s 94.6.
+  to s 69.8; REEL boss to s 72.8, LAUNCH boss from s 94.2. Clamp: slide fit on the rail, M3 x 8 tapped onto the
+  rail flat. The two boss screws go in before the post goes on (no driver room later).
 
 Wrap idler:
 - `drum_idler` shaft: d10 journals in two posts (s 40.5..46.5 and 78..85), d12 between them (the shoulders locate it
   axially).
 - Pinion 10T m1.25 x +0.4 at s 52..59.7; lock cam at s 60.3..66.
-- `drum_idler_gear` 42T m1.5 on the D flat at s 68.5..76.5, with a thrust hub to post 1.
+- `drum_idler_gear` 42T m1.5 on the D flat at s 68.5..75.8 (ends short of the bump on cad-reel's cup gear back), with a thrust hub to post 1.
 - Axis at world (16.24, z -104.88).
 
 N20 cradle (on the bracket A ear):
 - pivot M3 at world (109.9, z -87.5);
-- swing M3 in a +-15 deg arc slot;
+- swing M3 in an arc slot, 0..+15 deg only (+ swings the pinion out; it cannot be pushed into the drum gear);
+- the N20 shaft end below the pinion runs in a matching arc slot in the ear;
 - SW_N20: nut in the cradle bottom face, screw tip tapped in the ear.
 
 Contact blocks:
-- `drum_switch_block`: s 105..128.
-- `drum_index_block`: in front of the coupler, screwed to the adapter plate.
+- `drum_switch_block`: s 105..128, on the back (-x) side of the drum (cad-reel's pulley 2 post fills the front).
+  The code levers are mirrored; their joints turn about -z.
+- `drum_index_block`: +x of the coupler cam at s 32.5..40.5, held by a strut of idler post 2 (2 x M3 x 12 from the
+  far face of the post, tapped into the block). Nothing of mine is fixed to the frame cheek: cad-frame carves the
+  cheek round every drum part.
 
 ## 5. Drum angle table
 
@@ -207,7 +212,7 @@ Timing:
 
 | name | GPIO (params) | where | closes |
 |---|---|---|---|
-| SW_DRUM_A / B / C | 10 / 11 / 12 | levers on the bands, drum front | at 80 percent of the bump lift |
+| SW_DRUM_A / B / C | 10 / 11 / 12 | levers on the bands, drum back (-x) | at 80 percent of the bump lift |
 | SW_DOG_L | 13 | dog post LAUNCH boss (M3 x 8) | collar within 0.5 mm of full LAUNCH engagement |
 | SW_DOG_R | 14 | dog post REEL boss (M3 x 8) | collar within 0.5 mm of full REEL engagement |
 | SW_INDEX | 35 | index lever on the coupler cam | 6 times per wiper turn |
@@ -224,7 +229,7 @@ Timing:
 
 | load | peak N m | basis |
 |---|---|---|
-| fork | 0.86 | yoke block force 4.3 N plus 3 N friction, x 2.04 racking: (1 + 2 mu 63.2/66) / (1 - 2 mu 36.5/66), mu 0.25 greased rail; groove 44 deg |
+| fork | 0.72 | yoke block force 4.3 N plus 3 N friction, x 1.88 racking: (1 + 2 mu a/L) / (1 - 2 mu b/L), pin b 36.5 and yoke a 77.6 on opposite sides of the rail (a = far pad: a soft yoke may bear on one pad), sleeve L 83, mu 0.25 greased rail; groove 44 deg. Margin 2.30 at mu 0.35, 1.85 at mu 0.45; lock-up only at mu 1.14 |
 | clutch ramps | 0.78 | 15 N pushrod at FIRM 5 N (cad-reel: 10.8 N at 4 mm, design 15) |
 | wrap | 0.78 | 0.06 N m at the cup x 10.5 / 0.81 |
 
@@ -240,8 +245,9 @@ Timing:
 - Window 62..302 = 40 pitches of the 60T m1.25 segment = 4 pinion turns.
 - Lock: locked at home and at 7 cup turns. Lock play +-1.5 deg at the pinion; mesh backlash +-1 deg. Clean handover
   (one side always held).
-- Output gear 42T m1.5, face 8, s 68.5..76.5, axis world (16.24, z -104.88). Cup gear 24T at 49.6.
-- Ring angle = -42/24 x the drum_idler joint angle.
+- Output gear 42T m1.5, face 7.3, s 68.5..75.8, axis world (16.24, z -104.88). Cup gear 24T at 49.6.
+- Tooth phase (measured on the exact meshes, cad-reel joint conventions): reel_cup = (42/24) x drum_idler + 3.01
+  (`drum.reel_cup_deg(P, S)`), reel_bus = (50/46) x wiper_deg + 3.91, reel_capstan = (50/22) x reel_deg + 8.18.
 
 ## 11. Frame interfaces (cad-frame)
 
@@ -250,12 +256,13 @@ Timing:
 | bracket A | 1..7.7 | 2 x M3 at world x 32 and 88 |
 | bracket B | 136..142 | 2 x M3 at world x 32 and 88 |
 | idler post 1 | 78..85 | 2 x M3 at world x -8.8 and 33.2 |
-| idler post 2 | 40.5..46.5 | 2 x M3 at world x -8.8 and 33.2 |
-| switch block | 105..128 | 2 x M3 at world x 115 |
+| idler post 2 | 40.5..46.5 | 2 x M3 at world x 33.2 and 45.2 (x >= 12.3 below z -118: reel_wall) |
+| switch block | 105..128 | 2 x M3 at world x 5.0 |
 
 - All stand on the deck top (z -165).
-- Index block: 2 x M3 into the adapter plate front face at world (43.1, z +6) and (43.1, z -36).
-- Clear the coupler cone (r up to 35 at s 24.7..40) and the bus gear (r 39, s 40..48).
+- Index block: on idler post 2, no frame fixing (params DRUM.sw_index_mount is out of date).
+- Clear the coupler (r 28.5 at s < 40), the index block (s 32.5..40.5, x 39..53, z +12..-56) and the bus gear
+  (r 39, s 40..48).
 
 ## 12. Open items and measurements for Harry
 
@@ -270,8 +277,8 @@ Timing:
 
 | part | material | on the bed | supports |
 |---|---|---|---|
-| drum_coupler | PPA-CF | motor face down | none (45 deg cone under the bus gear) |
-| drum_coupler_hub | PPA-CF | motor face down | none |
+| drum_coupler | PPA-CF | hub end down | tree support under the bus gear ring only |
+| drum_coupler_hub | PPA-CF | motor end down | none |
 | drum_shear_pin (x6) | PLA, 100 percent | lying on its 0.4 mm flat | none |
 | drum_shaft | PPA-CF, 100 percent | lying on a hex flat | tree supports under the spigot |
 | drum_gear_reel | PPA-CF | plain face down | none |

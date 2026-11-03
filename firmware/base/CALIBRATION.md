@@ -29,7 +29,9 @@ shot phase is `UNKNOWN`. Then `aim` is refused (`PHASE_UNKNOWN`) and leaving LAU
 because only the wiper worm holds the spring and the firmware will not shift while the spring might be drawn.
 
 Look at the launcher: carriage fully forward on its stop (`H` in telemetry `sw`) and the big gear in its gap (`G`).
-Then send `{"id":1,"cmd":"cal","what":"cock_rest"}`. `SWITCH_DISAGREE` means `SW_HOME` or `SW_GAP` is open: the carriage is not
+Then send `{"id":1,"cmd":"cal","what":"cock_rest"}`. Use `"force":true` only when you have SEEN the carriage on
+its stop and a contact is known broken: the firmware then trusts you completely, and a wrong force on a drawn spring
+can FIRE on the next forward jog or `cock`. `SWITCH_DISAGREE` means `SW_HOME` or `SW_GAP` is open: the carriage is not
 home or the big gear is not in its gap, or a contact is not touching.
 
 ## (a) AS5600 magnet and direction
@@ -279,8 +281,10 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
 9. `{"id":8,"cmd":"unwrap"}` when done.
 
 A `FAULT` `OVERCURRENT` "wiper over 5.0 A" during a pull means the load went too high or the line jammed: `clear`
-and use lower loads. In the tow itself the trip is the larger of `tow_trip_a` (default 6.5; leave it there) and the
-current `max_n` needs plus 1 A (D34).
+and use lower loads. In the tow itself the trip is the current `max_n` needs plus 1 A, at least 5 A (D34; the
+old `tow_trip_a` setting is no longer used). These constants cannot be set while a motor runs or the reel holds
+(`BUSY`): `stop` first. On a very stiff, short line a full-speed tow can overshoot a low limit by about half; for
+low limits tow on a long line or at a lower duty.
 
 ### HX711 load cell (only if fitted)
 

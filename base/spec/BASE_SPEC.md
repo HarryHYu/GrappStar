@@ -131,12 +131,16 @@ NEUTRAL; a boot inside WRAP stops and reports; REEL jogs forward only.
 
 ## 8. Launcher and aim (binding; params.LAUNCH, params.AIM)
 
-Coaxial launch sleeve with an integral key rib (D13). Drive gear 26T m2.5 on sprag #1, big gear 40T m2.5 (33 teeth,
-v10 relieved last tooth) on the rail at 82.6 from the pivot: 1.538 wiper turns per shot. Springs 1:1, preload 35,
-stroke 245, 280 at full cock, fallback hole set at preload 5, provision for a second pair (D5). Compliant stop at
-least 15 mm under 300 N (D6). Aim: swing-arm splitter on backward turns, self-locking worm, crank-rocker 6 to 47 deg
-(cad-launch may extend the minimum down to about -10 for retrieval), 10 wiper turns per crank cycle, aim only at
-HOME. Retrieval funnel and lip roller at the muzzle; never fire without the tether (D11).
+Coaxial launch sleeve with an integral key rib (D13), flange lugs and M3 screws to the dog ring (D37). Drive gear 26T
+m2.5 face 7 on sprag #1 (keyed to the outer race); big gear 40T m2.5 in two layers (a 27-tooth sector layer with the
+v10 relieved last tooth meshing the rack, a full 40T layer meshing the drive gear, D23) on the rail at 82.6 from the
+pivot: 553.8 wiper deg per shot (release at 432.7). Two Century C-243 springs 1:1 (D30, D38): stroke 240.9, preload
+23.8, 265 mm at full cock; fallback hole set F 8.5 mm rearward (256.5 mm). Carriage 85.8 g as built (target 70 g,
+D36); stop is a printed PLA flexure, about 19 mm travel, peak about 295 N (D26). Line guide behind the rail rear end on
+the dart axis (D36). Aim: swing-arm splitter on backward turns (printed drag pad and clips, PPA-CF gears, D40),
+self-locking worm, crank-rocker 6 to 47 deg, 10 wiper turns per crank cycle, aim only at HOME; every backward run in
+LAUNCH trips at 3 A. Rail down to 6 deg before the wrap (D45). Retrieval funnel and lip roller at the muzzle; never
+fire without the tether (D11).
 
 ## 9. Reel (binding; params.REEL)
 
@@ -159,7 +163,8 @@ the take-up (or after a wrap, on the capstan).
 De-cock: from a partial cock run backward until SW_HOME and SW_GAP close. Refusals: no fire unless LAUNCH, SW_HOME,
 SW_GAP, SW_SEATED and a valid token; aim only at HOME; no drum move unless the wiper is stopped; no leaving LAUNCH
 unless SW_HOME; wiper backward refused outside LAUNCH except the 8 deg unload jog (params DRUM). Current trips (D8): ignore 50 ms
-after a start; 5 A for 30 ms in aim, reel and tow; 6.5 A while cocking; tow at free current plus the 50 N equivalent
+after a start; 3 A for 30 ms on every backward run in LAUNCH (D40), 5 A in capstan reel-in, 6.5 A while cocking;
+tow limited by the dart-side tension estimate (D43, at most 60 N), with the hard trip above it at the 50 N equivalent
 averaged over 200 ms. Any fault: wiper off, drum to NEUTRAL, except when wraps are on, the spring is drawn, or the drum itself faulted:
 then the drum HOLDS (D27).
 
@@ -177,12 +182,13 @@ Jetson sends, what ends the wait. Everything else in C1 stays as PROTOCOL.md doc
 | 5 | `fire` token | `FIRED`, then `RESET` | |
 | 6 | dart LANDED: `set` line_m | reply | from the landing distance |
 | 7 | (Jetson landing-zone verdict) | | NO_GO before the wrap: `mode` NEUTRAL (step 8), then straight to step 17 (take-up retrieve). NO_GO after a wrap: steps 12 and 15 to 17 (fly-in, capstan reel-in, unwrap, retrieve) |
+| 7b | `aim` pitch_min (6 deg) | `AIMED` | D45: rail down before the wrap when the pitch is above 15 deg, so tow tension over the lip roller cannot push the carriage back (the line stays slack meanwhile) |
 | 8 | `mode` NEUTRAL | `MODE` ok | may be skipped: `wrap` also starts from LAUNCH |
 | 9 | `wrap` | `WRAPPED` | the drum parks at WRAPPED 314: cup locked, collar NEUTRAL, clutch FIRM. No `MODE` REEL here. Allow 90 s (about 42 s from LAUNCH at 8.1 deg/s) |
 | 10 | dart `/auto` | dart phase ANCHORED | |
 | 11 | `tidy` {ms, duty} | `TIDIED` | take-up only, by time (default 3000 ms, duty 0.3). `reel` until `slip` stays as an alternative |
-| 12 | `mode` REEL | `MODE` ok (REEL) | the REEL fly-in from the park |
-| 13 | `reel` {duty 1, max_n, until `tension`} | `LIMIT` holding | the tow; max_n at most 70 N (D39) |
+| 12 | `mode` REEL | `MODE` ok (REEL) | the REEL fly-in from the park; the creep stops at the dog bite and any wind-in after it is tension limited (D41) |
+| 13 | `reel` {duty 1, max_n, until `tension`} | `LIMIT` holding | the tow; max_n is the DART-side tension, at most 60 N (D39, D43) |
 | 14 | `stop`, then dart `/release` | `ABORTED`, then dart phase RELEASING and out of ANCHORED | the worm holds the line while the dart lets go |
 | 15 | `reel` {until `stop`}, then `stop` at line_m about 1.5 | `ABORTED` | capstan reel-in |
 | 16 | `unwrap` | `UNWRAPPED`, then `MODE` NEUTRAL | skipped when never wrapped |
@@ -196,13 +202,14 @@ WRAP sector or the park) HOLDS the drum where it is (D27): the Jetson reads the 
 
 ## 11. Physics summary (owner: physics; base/physics/FINDINGS.md)
 
-Physics v1.2.8 (D36 rear line guide, 70 g carriage, two springs): 12.1 J stored, 6.95 m/s at the muzzle, range from
-the ground point under the rail pivot 4.19 / 3.75 / 3.36 m at 36 deg for a 0.5 / 0.75 / 1.0 N payout brake, about
-2.6 m at 6 deg. The carriage stop takes about 2.5 J, about 266 N peak on the 19 mm PLA flexure (D26). A 50 N tow is
-3.2 N m at the wiper, about 5.05 A; the 6.5 A tow trip is about 75 N (D39 caps the limit at 70 N). The aim train
-fails at the old 5 A trip, so every backward run in LAUNCH trips at 3 A (D40) and the aim gears print in PPA-CF.
-The second spring pair is not supported in v1 (D38). The ballistics table for the Jetson is base/out/ballistics.json
-(contract C3); the first test shots calibrate it (calib.py range, then ballistics.py --v-scale).
+Physics on params 1.2.9 (D36 rear line guide, carriage 85.8 g as built, two springs): 12.06 J stored, 6.80 m/s at the
+muzzle, best range from the ground point under the rail pivot 4.14 / 3.72 / 3.34 m at 34 deg for a 0.5 / 0.75 / 1.0 N
+payout brake (about 4.3 m with a 70 g carriage), about 2.7 m at 6 deg; flight about 0.8 s, apex about 1.1 m. The
+carriage stop peaks at about 295 N on the 19 mm PLA flexure (D26 limit 300 N; 265 N at 70 g). Tow sensing (D42): line
+N = 17.0 x (I - I_free) - 3.0 at the capstan; with the D43 pulleys (path gain 1.15) the DART side is 14.8 x (I - I_free) - 2.6, and the tow limit means the dart side. A 50 N pull at the dart is about 5.1 A; the train can pull about 62 N at the dart before 0.8 x the shear pin, so the cap is 60 N (D39). Every backward run in LAUNCH
+trips at 3 A (D40) and the aim gears print in PPA-CF. The second spring pair is not supported in v1 (D38). The
+ballistics table for the Jetson is base/out/ballistics.json (contract C3); the first test shots calibrate it
+(calib.py range, then ballistics.py --v-scale).
 
 ## 12. Changing this spec
 

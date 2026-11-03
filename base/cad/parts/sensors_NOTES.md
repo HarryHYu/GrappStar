@@ -73,8 +73,8 @@ space under the right cheek, outside the sleeve flange clear zone (r 33.5).
 
 ## 4. Spring guard
 
-Left with cad-launch: `launch_guard.py` exists (6 segments, side plates outside both springs, M3 brackets on the rail
-walls). At 1d668d6 it is not called from `launch.parts()`; cad-launch was asked to wire it (3 lines).
+Not in this module: cad-frame builds the spring guards (frame_guards.py, joint following launch_rail, in base-v1).
+The sensors audit runs with frame loaded, so the switches are checked against the guards.
 
 ## Assumptions (Harry: check)
 

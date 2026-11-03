@@ -609,7 +609,7 @@ def fork(g, c):
         x0, x1 = sorted((sx * (g["groove_r"] + 0.5), sx * (r0 + 0.5)))
         pads.append(prim.box(x0, x1, -4.0, 1.0, sb, sb + pw))
         pads.append(prim.box(min(sx * r0, sx * r1), max(sx * r0, sx * r1), -4.0, 1.0, sb, yt))
-    tab = prim.box(r0, r1 + 7.0, -1.0, 5.0, sb, yt)
+    tab = prim.box(r0, r1 + 8.0, -2.0, 6.0, sb, yt)          # M3 nut pocket with 0.8 mm walls
     rx, ry = g["rail_xy"]
     hl = g["hub_len"]
     hub = prim.box(-6, 6, r1 - 1.0, r1 + 7.0, sb, sb + hl)
@@ -653,7 +653,7 @@ def dog_post(g, c):
     head = 3.0
     sR = sb - st + g["dog_touch"] - head          # REEL boss ends here
     sL = yt + st - g["dog_touch"] + head          # LAUNCH boss starts here
-    bx0 = r1 + 7.5
+    bx0 = r1 + 8.5
     clamp = cyl(g["rail_d"] / 2 + 5.0, p0, p1, rx, ry)
     arm = shp_extrude(LineString([(rx, ry), (bx0 + 2.25, 4.0)]).buffer(4.0), p0, p1)
     b0 = sR - 3.0

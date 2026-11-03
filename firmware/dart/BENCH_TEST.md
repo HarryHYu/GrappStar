@@ -47,11 +47,15 @@ INA219. Then, with the power loop plug still out, plug in USB: Serial Monitor `z
 
 1. Press `b`: roll, pitch and |a| about 1.00 g with the dart still.
 2. Tilt the dart nose up: pitch changes by about 90. Roll it on its side: roll changes by about 90.
-3. If `BNO085 MISSING`: battery unplugged, check wires. Then, plug still out, plug in USB: Serial `z` must list 0x4a.
+3. If `BNO085 MISSING`: battery unplugged, check wires. Then, plug still out, plug in USB: Serial `z` must list 0x4a (or 0x4b).
    If the Serial Monitor stays blank: right port, 115200 baud, tap R on the XIAO.
 
 If a motor in steps 3 to 6 does not stop by itself at the end within 8 s (the hold cap), the default stall threshold
-is above its real stall current: release, press `i`, and write down the peak it prints. That is the stall current.
+is above its real stall current. So press `i` once BEFORE each hold (it resets the peak), then hold, release, and
+press `i` again: the peak it prints is the stall current.
+
+Also check once, battery unplugged, meter on ohms: each DRV8833 SLP pad to VM. Under 50 ohms means the pad is tied to
+the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
 
 ## Step 3. Deploy (DRV#1 A)
 
@@ -95,7 +99,8 @@ is above its real stall current: release, press `i`, and write down the peak it 
 1. Open `http://192.168.4.1/arm?on=1&auto=0` (arm, log only: no motors will run). Status shows `ARMED`.
 2. Hold the dart over the towel on the floor. Jerk it sharply upwards and let go about 40 cm above the towel.
 3. Status should go `FLIGHT` then `LANDED` (or stay `ARMED` if the jerk was under 4 g: jerk harder).
-4. Wait 4 s. Open `http://192.168.4.1/flightlog`: `frozen: true`, `t_launch_ms` and `t_land_ms` set, a few hundred
+4. Wait until the status shows `LANDED`, then 4 s more (if the towel landing ends as `timeout` that is about 18 s
+   after the jerk; `/flightlog` is refused while armed or in flight). Open `http://192.168.4.1/flightlog`: `frozen: true`, `t_launch_ms` and `t_land_ms` set, a few hundred
    samples. Save it. The towel drop usually reads `landing: "timeout"` or `"still"` (soft), which is correct.
 5. Open `http://192.168.4.1/stop` to disarm.
 
@@ -120,7 +125,9 @@ In `kedge_logic.h`, `struct Tuning`, set (all at full speed 255, battery fully c
 | `stallMa[DRILLS]` | 85 % of drill pair stall | 600 |
 | `stallMa[FOOT]` | 80 % of foot stall | 450 |
 | `kickContactMa` | about 2 x kick free, below kick stall / 2 | 60 |
+| `freeMa[...]` | measured free currents (steps 3 to 6) | 30, 30, 70, 45 |
 | `loadMa[...]` | typical working current in soil (step 9) | 40, 70, 420, 130 |
+| `impactG` | under the `peak_g` of a real landing (step 8 and the first shots), over 2 g | 3.5 |
 | `kickMaxMs` | 2 x kick swing time, at least 8000 | 15000 |
 
 Re-run `test/run_tests.sh`, upload, repeat steps 3, 5 and 6 and step 9 once to see the stops still work.

@@ -129,7 +129,7 @@ def shoe_k_for(p: Params, brake_extra_n: float, at_speed: float) -> float:
 def analyse(p: Params, brake_n: float = 0.75, pitch_deg: float = 40.0, v_muzzle: float | None = None, shoes: bool = False,
             shoe_extra_n: float = 0.5):
     from flight import simulate
-    from launch import launch as do_launch
+    from launcher import launch as do_launch
     if v_muzzle is None:
         v_muzzle = do_launch(p, pitch_deg)["v_muzzle"]
     kw = {}
@@ -155,7 +155,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--brake", type=float, default=0.75)
     ap.add_argument("--pitch", type=float, default=40.0)
-    ap.add_argument("--v", type=float, default=None, help="muzzle speed (default: from launch.py)")
+    ap.add_argument("--v", type=float, default=None, help="muzzle speed (default: from launcher.py)")
     ap.add_argument("--shoes", action="store_true")
     ap.add_argument("--json", default=os.path.join(OUT_DIR, "payout.json"))
     a = ap.parse_args(argv)

@@ -403,7 +403,7 @@ def build(P):
     opolys, oholes, oown = OTH.deck_contacts(P, C["deck_z"])
     info["others_foot"], info["others_holes"] = opolys, oholes
     info["deck_holes"] += oholes
-    info["keepout"] = unary_union([g for g in opolys + [OTH.shadow(info["swept"], 0.0, 80.0)] if g is not None]) \
+    info["keepout"] = unary_union([g for g in opolys + [G.shadow(0.0, 80.0)] if g is not None]) \
         if (opolys or not info["swept"].is_empty()) else None
 
     # ---- guard band round the cheek box (openings where other subsystems pass)

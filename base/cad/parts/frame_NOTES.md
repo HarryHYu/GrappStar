@@ -85,12 +85,14 @@ of the native USB opening, then smallest deck plus shortest motor and sensor lea
 | MP1584 (9.0 V out for DRV8833 VM) | floor pocket + cable tie | set 9.0 V with a meter BEFORE connecting the DRV8833 |
 | DRV8833 | floor pocket + cable tie | headers off |
 | HX711 (optional) | floor pocket + cable tie | |
-| 20 A fuse holder | cradle + cable tie | battery + goes through the fuse first |
+| 20 A fuse | WIRING.md puts it in XT60 lead #2 (outside the bay); the cradle holds that inline holder right at the battery entry so the fused lead stays short | battery + goes through the fuse first |
+| perfboard 55 x 31 | 2 bosses on the y = 0 wall, 6 mm off it | IS divider (1 k / 680 R), battery divider (100 k / 22 k), 2 x 10 k pull-downs, 3V3 and GND buses for the switches |
 | Wire exits | x = L wall: 14 AWG wiper pair window 14 x 8 and the XT60 cutout; x = 0 wall: sensor window 16 x 10 (switches, N20, AS5600 STEMMA QT, load cell) | a cable-tie anchor inside next to each exit (strain relief) |
 
 Power path (to agree with fw-base WIRING.md): rover 3S XT60 -> 20 A fuse -> BTS7960 B+ and MP1584 IN+ (tap at the
 BTS terminal, as the old station did) ; MP1584 OUT 9 V -> DRV8833 VIN; ESP32 from USB only; grounds common.
-BTS7960 logic VCC (5 V) from the ESP32 5V pin (USB powered). fw-base owns the final pin and wire table.
+BTS7960 logic VCC from the ESP32 3V3 (WIRING.md, fw-base owns the pin and wire table; 3V3 VCC keeps the IBT-2 input
+buffer thresholds below the ESP32 output high).
 
 ## 5. AS5600
 

@@ -671,10 +671,21 @@ def build(P):
     seams = []
     lx, ly = dx1 - dx0, dy1 - dy0
     nx, ny = int(math.ceil(lx / 248.0)), int(math.ceil(ly / 248.0))
+    def seam_c(c0, k, lo, hi, n):
+        """seam near c0 with no deck hole within 14 mm (dovetail tails reach 8 mm), each tile still under 248."""
+        best = c0
+        for d in sorted(np.arange(-40, 40.1, 1.0), key=abs):
+            c = c0 + d
+            if c - lo > 248.0 * 1 or hi - c > 248.0 * (n - 1):
+                continue
+            if all(abs((h[0] if k == "x" else h[1]) - c) > 14.0 for h in info["deck_holes"]):
+                best = c
+                break
+        return float(best)
     for i in range(1, nx):
-        seams.append(dict(axis="x", c=dx0 + i * lx / nx, n=3))
+        seams.append(dict(axis="x", c=seam_c(dx0 + i * lx / nx, "x", dx0, dx1, nx), n=3))
     for i in range(1, ny):
-        seams.append(dict(axis="y", c=dy0 + i * ly / ny, n=3))
+        seams.append(dict(axis="y", c=seam_c(dy0 + i * ly / ny, "y", dy0, dy1, ny), n=3))
     pieces = U.split_plate(outline, fw["deck_t"], seams) if seams else [outline]
     info["deck_seams"] = seams
     # rover holes: perimeter of every piece, pitch <= rover_hole_pitch, 7 mm in from the edge, away from deck inserts
@@ -694,6 +705,7 @@ def build(P):
         cuts = []
         for (hx, hy) in info["deck_holes"]:
             if pc.buffer(-3.0).contains(Point(hx, hy)):
+                info.setdefault("_ins_ok", set()).add((round(hx, 2), round(hy, 2)))
                 cuts.append(U.insert_hole(hx, hy, 0.0))
         for (rx, ry, kk) in rover:
             if kk == k:
@@ -721,6 +733,9 @@ def build(P):
         parts.append(Part(nm, sol, "PLA", print_tf=U.print_flat(sol), color="#80888f", infill=0.2,
                           notes="deck: M3 inserts for every frame foot; %d x M3 rover holes (it is its own drill template)" % sum(1 for r in rover if r[2] == k)))
     info["deck_pieces"] = len(pieces)
+    for (hx, hy) in info["deck_holes"]:
+        if (round(hx, 2), round(hy, 2)) not in info.get("_ins_ok", set()):
+            info["warnings"].append(f"deck hole ({hx:.1f}, {hy:.1f}) gets no insert (on a seam or off the deck)")
 
     # deck frame -> world (z shift only)
     for p in parts:
@@ -928,6 +943,15 @@ def steps(P):
                   "and motor. Lid on, 4 x M3 x 6. USB cable from the ESP32 native USB port to the Jetson.",
              parts=["frame_ebay_lid"]),
     ]
+    if has("frame_camera_mount") or has("frame_rc832_holder"):
+        st.insert(len(st) - 1, dict(
+            title="Camera, receiver and cable anchors",
+            text="Camera column on the deck, 4 x M3 x 10 into the inserts. Clip the Kiyo X onto the 16 mm edge plate like "
+                 "onto a monitor (or use a 1/4-20 tripod screw up through the plate hole); it looks forward along the "
+                 "launch line. RC832: stand it antenna-end up in its holder slot, leads out of the low notch, holder 2 x "
+                 "M3 x 10. Cable anchors 1 x M3 x 12 each; tie the camera USB, the receiver AV lead and the capture "
+                 "dongle lead to them so no plug carries the cable weight.",
+            parts=has("frame_camera_mount") + has("frame_rc832") + has("frame_kiyo_x") + has("frame_cable_anchor")))
     if "frame_as5600_bracket" in names:
         st.insert(len(st) - 1, dict(title="AS5600 board",
              text="Battery unplugged, USB unplugged. Board on the bracket pegs (chip side towards the magnet), melt each "

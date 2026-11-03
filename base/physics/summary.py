@@ -65,9 +65,9 @@ def collect(p=None, fast=False):
         rows.append(("Ballistics table", f"{b['pitch_min']:.0f} to {b['pitch_max']:.0f} deg, best {best['pitch_deg']:.1f} deg: {best['range_m'][1]:.2f} m"))
     sec.append(("Flight (bead-chain tether + reel model, level ground)", rows))
     rp = reel_props(p)
-    s2 = spin_up_in_stroke(p, v, L["stroke_m"], 0.75)
-    pr = simulate(p, v, pitch_best, brake_n=0.75, reel_model=True)
-    sec.append(("Storage reel payout (0.75 N at full reel)", [
+    s2 = spin_up_in_stroke(p, v, L["stroke_m"], p.flight["brake_n"])
+    pr = simulate(p, v, pitch_best, brake_n=p.flight["brake_n"], reel_model=True)
+    sec.append((f"Storage reel payout (LIGHT {p.flight['brake_n']} N at full reel)", [
         ("Reel empty mass, inertia full", f"{rp['mass_empty'] * 1000:.0f} g, {rp['inertia_full'] * 1e6:.1f} kg mm2"),
         ("Line radius full / core", f"{rp['r_full'] * 1000:.1f} / {rp['r_core'] * 1000:.1f} mm (brake +{(rp['r_full'] / rp['r_core'] - 1) * 100:.0f} % at core)"),
         ("Line pull in the stroke (spin-up)", f"{s2['t_line_in_stroke_n']:.2f} N"),

@@ -5,14 +5,22 @@ launcher/reel geometry below is my placeholder: stroke along the rail, 60 g carr
 core 40 / flange 64 / width 20 mm, capstan 40 mm). Dart mass 0.279 kg (spec DART.mass_kg; the brief said 0.292 kg:
 coordinator please confirm which). Models: base/physics/*.py, every number reproducible with the CLIs.
 
-## Current numbers (latest run, spec decisions D5 to D10; details in SUMMARY.md and base/out/physics/*.json)
+## Current numbers (spec v1.0, latest run; details in SUMMARY.md, base/out/physics/*.json)
 
-- 2 springs, 280 mm at full cock, 13.1 J: 7.6 m/s, range 4.9 / 4.5 / 4.0 m at 0.5 / 0.75 / 1.0 N, best pitch 36 deg.
-  4 springs: 10.4 m/s, 8.7 / 7.9 / 7.2 m. Ballistics table 6 to 47 deg in base/out/ballistics.json (C3).
-- Cock 3.1 N m peak at the wiper, 4.9 A, 2.7 s per shot. Tow 50 N: 2.0 N m, 3.7 A, 0.12 m/s (ratio 0.6). Aim 0.33 N m,
-  6.6 s for 6 to 47 deg. Limiter (5 N m) slipping: 7 A, 127 N on the line.
-- Stop: 3.3 J (carriage 2.3 + springs 0.9): 15 mm linear pad 434 N, 22 mm for 300 N. Recoil 84 N for 55 ms.
-- Sections F1 to F9 below are the history of the findings (numbers in them are from earlier parameter sets).
+- Launch: 2 springs, 35 mm preload, 280 mm full, 13.1 J, carriage 60 g: 7.8 m/s, 22 g, 65 % efficient.
+- Range from the rail pivot's ground point (pivot 0.315 m up: deck 0.15 ASSUMED + 0.165), LIGHT 0.5 / 0.75 / 1.0 N:
+  5.2 / 4.8 / 4.3 m at 36 deg (best). Table 6 to 47 deg in base/out/ballistics.json (C3): 2.9 m at 6 deg.
+  4 springs (provision): 10.6 m/s, 9.0 / 8.2 / 7.5 m; stop KE 7.8 J.
+- Stop: 2.8 J (carriage 1.8 + springs 1.0): 15 mm linear pad 370 N; for 300 N use about 19 mm or a constant-force stop.
+- Storage reel 50/66/22: 43 g, 27.6 kg mm2 full; the spin-up adds 5.0 N of line pull in the stroke (the bigger reel
+  costs about 0.1 m/s vs the 40 mm core); overrun after landing 0.30 m at 0.5 N.
+- Capstan 50:22 (2.27x faster), 7 wraps: tow 50 N = 2.9 N m, 4.7 A, 0.15 m/s; 20 m reel-in 107 s; limiter slipping
+  pulls 89 N (current 7 A). 7 wraps hold far more than any limit: the trips protect the dart, not the capstan.
+- Cock 3.1 N m, 4.9 A, 2.7 s per shot. Aim 0.32 N m, 6.6 s for 6 to 47 deg.
+- Recoil rock (ASSUMED 4 kg rover): 5.8 deg at 6 deg pitch braked (1.2 rolling), 0.7 deg at 36. No tip.
+- Final approach on FIRM 3 N (set at the core): 1.9 N at the dart vs 2.1 to 2.6 N needed: still short (F11).
+- Wrap: drum 0.49 to 0.60 N m, N20 61 to 74 N mm.
+- Sections F1 to F11 below are the history (numbers from earlier parameter sets).
 
 ## F1. RANGE: the two Century springs cannot reach 15 to 20 m. Expect 4 to 5 m. (biggest issue)
 

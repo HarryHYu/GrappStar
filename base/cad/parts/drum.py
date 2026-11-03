@@ -224,6 +224,7 @@ def main_shaft(g):
     h0, h1 = g["hex_s"]
     sh = prim.union([hexprism(g["hex_af"], h0, h1), cyl(g["spig_d"] / 2, h1 - 0.5, g["spig_end"])])
     sh = sh - prim.place(cyl(1.7, -30, 30), tf.T(0, 0, g["xpin_s"]) @ tf.Ry(90))
+    sh = sh - prim.place(cyl(1.7, -30, 30, seg=24), tf.T(0, 0, g["spig_end"] - 6.0) @ tf.Ry(90))
     return sh
 
 
@@ -508,6 +509,17 @@ def sw_lever_root(g, i):
     return (x, dy + g["sw_L"])
 
 
+def magnet_holder(g):
+    """AS5600 magnet cap on the outboard end of the main shaft spigot: d6 x 2.5 diametric magnet pocket on the end
+    face, M3 cross screw through cap and spigot. The frame owns the AS5600 board bracket (chip 2 mm off the cap face)."""
+    e = g["spig_end"]
+    cap = cyl(10.0, e - 12.0, e + 4.0)
+    cuts = [cyl(g["spig_d"] / 2 + fits.HOLE_SLIDE / 2, e - 13.0, e + 0.01),
+            cyl(3.0 + 0.1, e + 4.0 - 2.6, e + 5.0, seg=48),
+            prim.place(cyl(1.7, -15, 15, seg=24), tf.T(0, 0, e - 6.0) @ tf.Ry(90))]
+    return prim.diff(cap, cuts)
+
+
 def lever_hand(g):
     h0, h1, af = g["hexboss"]
     hub = cyl(af / 2 + 5, h0 + 0.5, h1)
@@ -610,6 +622,9 @@ def parts(P):
         lv = sw_lever(g, c, i)
         out.append(Part(f"drum_sw_lever_{i}", lv, "PLA", joint=f"drum_sw{i}", print_tf=bed(lv, I), color=COL["sw"],
                         notes=f"Code switch lever b{i}: flexure, M3 screw head contact"))
+    mh = magnet_holder(g)
+    out.append(Part("drum_magnet_cap", mh, "PLA", joint="drum_main", print_tf=bed(mh, tf.Rx(180)), color=COL["pla"],
+                    notes="AS5600 magnet cap on the main shaft end (6 x 2.5 diametric magnet, M3 cross screw)"))
     lh = lever_hand(g)
     out.append(Part("drum_hand_lever", lh, "PLA", joint="drum_drum", print_tf=bed(lh, I), color=COL["pla"],
                     notes="Hand lever on the drum hex boss (fallback; slide the N20 out of mesh first)"))
@@ -686,6 +701,7 @@ def allowed(P):
         Allow("drum_n20", "drum_n20_cradle", "N20 seated in its cradle", max_vol=1.0),
         Allow("drum_sw_lever_*", "drum_switch_block", "lever foot clamped to the block (M3)"),
         Allow("drum_hand_lever", "drum_drum", "lever on the hex boss", max_vol=1.0),
+        Allow("drum_magnet_cap", "drum_shaft", "cap on the spigot end", max_vol=1.0),
     ]
 
 

@@ -211,7 +211,7 @@ def run(out, only=None, title=None, pack_dir=None, log=print) -> str:
     if not steps:
         S.append(Pp("No assembly steps are defined yet."))
     for n, stp in enumerate(steps, 1):
-        blk = [Pp(f"Step {n}. {stp.get('title', '')}", "H3")]
+        blk = [Pp(stp.get("heading") or f"Step {n}. {stp.get('title', '')}", "H3")]
         if stp.get("text"):
             blk.append(Pp(stp["text"]))
         if stp.get("parts"):

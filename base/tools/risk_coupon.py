@@ -5,8 +5,9 @@ python -m tools.risk_coupon [PACKDIR]          (default base/pack/coupons, run f
 
 Writes into PACKDIR
   rc<k>_<part>.stl        one per printed part, print orientation, min corner at (0, 0, 0)
-  risk_plate_<n>.3mf      the parts packed on the 256 x 256 bed, one plate per material (tools.pack helpers)
-  risk_plate_<n>.png      top-down preview of that plate
+  risk_plate_<n>_<material>.3mf  the parts packed on the 256 x 256 bed, one plate per material (tools.pack helpers)
+  risk_plate_<n>_<material>.png  top-down preview of that plate
+and the base fit coupon (tools.coupon.write) into base/pack/fit_coupon (--fit DIR, '' to skip).
   COUPON_TEST.md / .pdf   the one-page test sheet: what to do, what pass looks like, what to change if it fails
 
 Coupons (k):
@@ -202,8 +203,10 @@ def coupon_2(P):
         do=(f"Nut into the pillar trap (drop of glue), lever clamped with 2 M3 self tappers, contact screw head down "
             f"through the lever, set the head {i['gap']:.1f} mm above the nut (0.5 mm per turn), lock the jam nut. "
             f"Meter on beep between screw and nut. Press the lever tip 100 times."),
-        ok=(f"Beeps after about {i['pretravel']:.1f} mm of tip travel, silent when let go, tip stops on the hard stop "
-            "without cracking, lever back flat, same after 100 presses."),
+        ok=(f"Measure the tip travel with calipers (depth rod from the lever tip down to the base top, note the reading "
+            f"at rest, press until it beeps, read again): beep within {i['pretravel'] - 0.35:.1f} to "
+            f"{i['pretravel'] + 0.25:.1f} mm of tip travel (design {i['pretravel']:.2f}), silent when let go, tip stops "
+            "on the hard stop without cracking, lever back flat, same after 100 presses."),
         fail=("cad/lib/switch.py contact_switch args travel, overtravel, t, b; STRAIN_LIMIT, NUT_PRESS (loose nut), "
               "SCREW_LENGTHS."),
     )
@@ -274,6 +277,21 @@ def key_stub_len(sc):
     return float(math.ceil(sc["info"]["height"]) + 12.0)
 
 
+def slip_bands(info, r_lug, band=0.25):
+    """Hanging weight pass bands (grams at r_lug) per quarter turn of the nuts, from slip_clutch's torque table:
+    the design weight -band must hold, +band must slip."""
+    out = []
+    names = {0.125: "1/4 turn", 0.25: "1/2 turn", 0.375: "3/4 turn", 0.5: "1 turn"}
+    for d, F, T, s in info["table"]:
+        if d <= 0:
+            continue
+        grams = T / (r_lug / 1000.0) / 9.81 * 1000.0
+        lo, hi = 5 * math.floor(grams * (1 - band) / 5), 5 * math.ceil(grams * (1 + band) / 5)
+        nm = names.get(round(d, 3), f"{d:.2f} mm")
+        out.append(f"{nm}: {lo} g holds, {hi} g slips (design {grams:.0f} g, {T:.3f} N m)")
+    return out
+
+
 def coupon_4(P, sc=None):
     sc = sc or clutch.slip_clutch()
     info = sc["info"]
@@ -282,9 +300,7 @@ def coupon_4(P, sc=None):
     asm = {f"rc4_{nm}": sc["place"][nm] for nm in names}
     asm["rc7_key_stub"] = tf.T(0, 0, -12.0)
     r_lug = info["r_out"] + 1.5
-    tab = []
-    for d, F, T, s in info["table"]:
-        tab.append(f"{d:.2f} mm: {T:.3f} N m, {T / (r_lug / 1000) / 9.81:.2f} kg")
+    tab = slip_bands(info, r_lug)
     return dict(
         key="4", title="Face slip clutch with the flexure spring", parts=parts, asm=[asm], mesh=[],
         uses=(f"cad.lib.clutch.slip_clutch() defaults (reel does not use it: its clutch is the spool face plus the "
@@ -292,14 +308,15 @@ def coupon_4(P, sc=None):
               f"{info['r_out']:g}, mu {info['mu']}, flexure t {info['flex_geom']['t']:g} gap "
               f"{info['flex_geom']['gap']:g}, {info['torque_per_mm']:.3f} N m per mm, travel {info['travel']:.2f}; on the "
               f"shared keyed stub of coupon 7"),
-        bought=f"3 x M3x{info['screw_len']} SHCS, 3 x M3 nut, string, luggage scale",
+        bought=f"3 x M3x{info['screw_len']} SHCS, 3 x M3 nut, string, coins in a small bag, kitchen scale",
         table=tab, r_lug=r_lug,
         do=("Stack on the key stub: hub plate (counterbores down), friction disc, pressure plate (pads up), flexure (beam "
             "down, tabs on the screws), adjuster plate (traps up); 3 screws from below, nuts on top. Run the nuts down "
-            "until the flexure just touches, then turn each nut 1/2 turn at a time (0.25 mm). Clamp the stub, tie a string "
-            f"to a disc lug (r {r_lug:.1f} mm), pull along the rim with the luggage scale while it slips steadily."),
-        ok=("Smooth steady slip, no judder; the reading repeats within 20 percent and rises with each half turn, close to "
-            "the table below (kg on the scale at the lug); the nuts never bottom the flexure before the last row."),
+            "until the flexure just touches (zero), then turn all 3 nuts the same, 1/4 turn (0.125 mm) at a time. Clamp the "
+            f"stub level in a vice, tie a string to a disc lug (r {r_lug:.1f} mm), lay it over the rim and hang a bag of "
+            "coins weighed on a kitchen scale. Add or take coins to find the hold and slip weights at each setting."),
+        ok=("At each setting the lower weight must not pull the disc round and the higher one must (smooth steady slip, "
+            "no judder); same result 3 times; the flexure never bottoms before 1 turn. Bands: " + "; ".join(tab) + "."),
         fail=("cad/lib/clutch.py: slip_clutch args flex_t, flex_gap, flex_ro, r_in, r_out, n_grooves; MU_PLA_PLA, E_PLA, "
               "SIGMA_FLEX_PLA_SUSTAINED (creep: if the torque falls overnight)."),
     )
@@ -328,7 +345,7 @@ def coupon_5(P):
         ok=("Firm press, seated flat on the lip, stays in when tapped upside down, spins as freely as before; the CSK20PP "
             "key slides in without force, it still freewheels one way and locks the other."),
         fail=("fits.py BRG_RIB_INTERF, BRG_RIB_BORE (all seats); bearings.py CSK20_KEY_RCLEAR, CSK20_OKEY_W (key), "
-              "KEY_CLEAR in fits.py. Print the fit coupon tile A if the 608 is off."),
+              "KEY_CLEAR in fits.py. If the 608 is off, print tile A of the fit coupon (base/pack/fit_coupon, COUPON.md)."),
     )
 
 
@@ -346,7 +363,7 @@ def coupon_6(P):
         do="Left to right: heat-set the insert (220 C), press the nut in, push a screw through, self-tap a screw in.",
         ok=("Insert flush and does not spin when the screw is tightened; nut presses in and holds; screw drops through "
             "the clearance hole; the tap hole cuts a thread and holds a hard pull without splitting."),
-        fail="fits.py M3_INSERT_D, M3_NUT_AF, M3_CLEAR_D, M3_TAP_D (the fit coupon tiles C, D, E bracket them).",
+        fail="fits.py M3_INSERT_D, M3_NUT_AF, M3_CLEAR_D, M3_TAP_D (tiles C, D, E of the fit coupon in base/pack/fit_coupon bracket them).",
     )
 
 
@@ -377,8 +394,9 @@ def coupon_7(P, sc=None):
         bought="CSK20PP from coupon 5 (inner keyway)",
         do=("Slide the key stub into the keyed tile and into the CSK20PP inner race (the real interface). Push the spigot "
             "into the sleeve slice and turn it."),
-        ok=("Stub slides in by hand, key in the keyway, no visible rock, under 1 deg of play when turned; the spigot "
-            "turns freely with no wobble."),
+        ok=("Stub slides in by hand, key in the keyway, no visible rock. Play: clamp the tile, tape a ruler to the stub "
+            "end, mark the ruler 60 mm from the axis, rock the stub both ways: the mark moves under 1 mm (about 1 deg). "
+            "The spigot turns freely; rocked at its free end it moves under 0.5 mm."),
         fail=(f"fits.py KEY_CLEAR, SHAFT_IN_BORE; shafts.py KEY20_H, SHAFT_PRINT_UNDERSIZE; launch.py SPIGOT_BORE "
               f"(now {LN.SPIGOT_BORE:g}); drum.py GEOM spig_d."),
     )
@@ -478,6 +496,7 @@ def coupon_8(P):
 
 
 # ---------------------------------------------------------------------------------------------- 9 shear pin
+SHEAR_RANGE_NM = (3.5, 6.0)   # drum_NOTES: 30 MPa assumed, so the limit could be 3.5 to 6 N m
 LEVER_R = 60.0             # string hole radius on both levers
 
 
@@ -496,6 +515,7 @@ def coupon_9(P):
     sig = 30.0
     t_est = sig * math.pi * (g["shear_d"] / 2) ** 2 * r / 1000.0
     kg = t_est / (LEVER_R / 1000.0) / 9.81
+    kg_range = tuple(t / (LEVER_R / 1000.0) / 9.81 for t in SHEAR_RANGE_NM)
     parts = [mk("rc9_hub_lever", hub, "PPA-CF", "drum.coupler_hub slice (shear pin hole) "
                 f"with a lever, string hole at r {LEVER_R:g}"),
              mk("rc9_outer_lever", outer, "PPA-CF", "drum.coupler slice (shear pin hole) "
@@ -508,12 +528,14 @@ def coupon_9(P):
         uses=(f"drum.coupler_hub and drum.coupler (sliced s {s_lo:g}..{s_hi:g}), drum.shear_pin: d{g['shear_d']:g} PLA "
               f"in single shear at r {r:g} (shear_s {g['shear_s']:g}); {t_est:.1f} N m at {sig:g} MPa"),
         bought="string or a strap, luggage scale",
-        t_est=t_est, kg=kg,
+        t_est=t_est, kg=kg, t_range=SHEAR_RANGE_NM, kg_range=kg_range,
         do=(f"Hub slice into the outer slice, pin through both holes (head outside). Clamp the hub lever, hang the "
             f"luggage scale on the outer lever hole (r {LEVER_R:g} mm) at right angles and pull slowly until the pin "
             f"shears. Break all 3 pins. Torque = kg x 9.81 x {LEVER_R / 1000:g} N m."),
-        ok=(f"Clean single shear at about {kg:.1f} kg ({t_est:.1f} N m), the 3 pins within 20 percent, both slices "
-            "undamaged (holes still round); a fresh pin goes in by hand."),
+        ok=(f"Each pin shears cleanly between {kg_range[0]:.1f} and {kg_range[1]:.1f} kg on the scale "
+            f"({SHEAR_RANGE_NM[0]:g} to {SHEAR_RANGE_NM[1]:g} N m, drum_NOTES; design {t_est:.1f} N m = {kg:.1f} kg), the "
+            "3 pins within 20 percent of each other, both slices undamaged (holes still round); a fresh pin goes in by "
+            "hand."),
         fail=("drum.py GEOM shear_d (torque goes with d squared), hub_od (radius), shear_s; fits for the hole: "
               "drum.coupler shear hole (shear_d + 0.1) and shear_pin (shear_d - 0.04). Spec D8 / D26 limit 5 N m."),
     )
@@ -556,12 +578,32 @@ def _clean(s):
     return clean(s)
 
 
+FIT_COUPON_DIR = os.path.join(BASE, "pack", "fit_coupon")
+
+
+def settings_text():
+    """Print settings, numbers from tools.pack.PROFILE (the one profile table behind PRINT_SHEET)."""
+    from tools.pack import PROFILE
+    a, b = PROFILE["PLA"], PROFILE["PPA-CF"]
+    return (f"PLA: 0.4 mm nozzle, 0.2 mm layers, {a['walls']} walls, {100 * a['infill']:.0f} % gyroid infill unless "
+            f"noted, {a['top']} top and {a['bottom']} bottom layers, hole and XY compensation 0, no supports. "
+            f"PPA-CF: hardened steel nozzle (never brass), filament dried (80 C, 8 h) and fed from a dry box, 0.2 mm "
+            f"layers, {b['walls']} walls, {100 * b['infill']:.0f} % gyroid infill, {b['top']} top and {b['bottom']} "
+            f"bottom layers, hole and XY compensation 0, no supports. The 3MF files carry geometry only: set the "
+            f"material and these settings in Bambu Studio.")
+
+
+RERUN = ("To change a number: on the Mac, after bash kedge/setup_mac.sh, run kedge/.venv/bin/python -m tools.risk_coupon "
+         "from base/ (it rewrites base/pack/coupons and base/pack/fit_coupon). Easier: give the failing result to a "
+         "Claude session and let it change the numbers. Change one number at a time and reprint only that coupon.")
+
+
 def sheet_md(cs, plates) -> str:
     L = ["# Day-one risk coupons: test sheet", "",
          "Print these before the big parts. Each coupon is made from the same geometry functions and numbers as the "
-         "real part, so a pass here is a pass there. Print as exported, no supports, 0.4 nozzle, 0.2 layers, 4 walls; "
-         "PLA plate and PPA-CF plate as marked. Let parts cool 10 minutes before testing. Change one number at a time, "
-         "then rerun `python -m tools.risk_coupon` (from `base/`) and reprint only that coupon.", "",
+         "real part, so a pass here is a pass there. Let parts cool 10 minutes before testing. The fit coupon "
+         "(tolerance tiles A to H, base/pack/fit_coupon/COUPON.md) is printed alongside.", "",
+         "## Settings", "", settings_text(), "", "## If a coupon fails", "", RERUN, "",
          "## Plates", "", "| plate | material | objects |", "|---|---|---|"]
     for pl in plates:
         L.append(f"| {pl['file']} | {pl['material']} | {pl['objects']} |")
@@ -574,8 +616,6 @@ def sheet_md(cs, plates) -> str:
               f"- Pass: {c['ok']}",
               f"- If it fails, change: {c['fail']}",
               f"- Made from: {c['uses']}"]
-        if "table" in c:
-            L.append(f"- Expected slip (nut travel: torque, scale reading at r {c['r_lug']:.1f}): " + "; ".join(c["table"]))
         L.append("")
     L += ["## Parts", "", "| part | material | qty | print bbox mm | what |", "|---|---|---|---|---|"]
     for p in all_parts(cs):
@@ -591,15 +631,13 @@ def sheet_pdf(fn, cs, plates, fs=6.6):
     from tools import pack
     st, Pp, tbl, note = pack.pdf_kit()
     S = [Pp("Day-one risk coupons: test sheet", "H2"),
-         Pp("Print before the big parts; every coupon uses the real part's geometry functions and numbers. As exported, "
-            "no supports, 0.4 nozzle, 0.2 layers, 4 walls. Plates: " + ", ".join(
-                f"{pl['file']} ({pl['material']}, {pl['objects']})" for pl in plates)
-            + ". Change one number at a time, rerun python -m tools.risk_coupon, reprint that coupon.", "SM")]
+         Pp("Print before the big parts; every coupon uses the real part's geometry functions and numbers. Plates: "
+            + ", ".join(f"{pl['file']} ({pl['objects']} objects)" for pl in plates)
+            + "; the fit coupon is in base/pack/fit_coupon. " + settings_text(), "SM"),
+         Pp(RERUN, "SM")]
     rows = [["#", "do", "pass", "if it fails, change (file: name)"]]
     for c in cs:
         ok = c["ok"]
-        if "table" in c:
-            ok += " Expected: " + "; ".join(c["table"][1:]) + "."
         rows.append([f"{c['key']} {c['title']}. Bought: {c['bought']}", c["do"], ok, c["fail"]])
     S.append(tbl(rows, [30, 58, 48, 46], fs=fs))
     if note:
@@ -638,12 +676,12 @@ def write(out_dir: str = DEFAULT_OUT, P=None, log=print) -> dict:
     for i, pl in enumerate(plates, 1):
         names = pack.object_names(pl["items"], qty)
         objs = [(on, pack.place_on_plate(meshes[it["name"]], it)) for on, it in zip(names, pl["items"])]
-        fn = os.path.join(out_dir, f"risk_plate_{i}.3mf")
+        fn = os.path.join(out_dir, f"risk_plate_{i}_{pl['material']}.3mf")
         pack.write_3mf(fn, objs)
         nb = pack.count_3mf_items(fn)
         if nb != len(objs):
             rep["errors"].append(f"risk_plate_{i}.3mf reopens with {nb} build items, expected {len(objs)}")
-        pack.plate_png(os.path.join(out_dir, f"risk_plate_{i}.png"),
+        pack.plate_png(fn[:-4] + ".png",
                        f"risk coupon plate {i}, {pl['material']} ({len(objs)} objects)", objs, pack.BED)
         lo = np.min([m.bounds[0] for _, m in objs], axis=0)
         hi = np.max([m.bounds[1] for _, m in objs], axis=0)
@@ -652,7 +690,7 @@ def write(out_dir: str = DEFAULT_OUT, P=None, log=print) -> dict:
     with open(os.path.join(out_dir, "COUPON_TEST.md"), "w") as fh:
         fh.write(sheet_md(cs, rep["plates"]))
     pdf = os.path.join(out_dir, "COUPON_TEST.pdf")
-    for fs in (6.6, 6.2, 5.8, 5.4):
+    for fs in (6.6, 6.2, 5.8, 5.4, 5.0):
         sheet_pdf(pdf, cs, rep["plates"], fs)
         if pdf_pages(pdf) == 1:
             break
@@ -667,12 +705,31 @@ def write(out_dir: str = DEFAULT_OUT, P=None, log=print) -> dict:
     return rep
 
 
+def write_fit_coupon(dest: str = FIT_COUPON_DIR, log=print) -> dict:
+    """The base fit coupon (tools.coupon, not edited here) into dest: coupon.write puts it in <dir>/coupon, so it is
+    written next to dest and moved."""
+    import shutil
+    from tools import coupon
+    tmp = dest.rstrip("/") + ".tmp"
+    shutil.rmtree(tmp, ignore_errors=True)
+    rep = coupon.write(tmp, log=log)
+    shutil.rmtree(dest, ignore_errors=True)
+    shutil.move(os.path.join(tmp, "coupon"), dest)
+    shutil.rmtree(tmp, ignore_errors=True)
+    return rep
+
+
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Write the day-one risk coupons (STL, 3MF, PNG, COUPON_TEST.md/.pdf)")
+    ap = argparse.ArgumentParser(description="Write the day-one risk coupons (STL, 3MF, PNG, COUPON_TEST.md/.pdf) and "
+                                             "the fit coupon (base/pack/fit_coupon)")
     ap.add_argument("out", nargs="?", default=DEFAULT_OUT)
+    ap.add_argument("--fit", default=FIT_COUPON_DIR, help="fit coupon directory ('' to skip)")
     a = ap.parse_args(argv)
     rep = write(a.out)
-    return 2 if rep["errors"] else 0
+    errs = list(rep["errors"])
+    if a.fit:
+        errs += write_fit_coupon(a.fit).get("errors", [])
+    return 2 if errs else 0
 
 
 if __name__ == "__main__":

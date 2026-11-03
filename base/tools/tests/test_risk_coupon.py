@@ -85,3 +85,29 @@ def test_outputs(written):
     pdf = os.path.join(d, "COUPON_TEST.pdf")
     assert os.path.getsize(pdf) > 1000 and rep["pdf_pages"] == 1
     assert EM_DASH.encode("utf-8") not in open(pdf, "rb").read()
+
+
+def test_sheet_numbers_are_measurable():
+    by = {c["key"]: c for c in COUPONS}
+    assert " g holds, " in by["4"]["ok"] and "luggage" not in by["4"]["ok"] + by["4"]["bought"]
+    lo, hi = by["9"]["kg_range"]
+    assert by["9"]["t_range"] == (3.5, 6.0)
+    assert lo == pytest.approx(3.5 / (rc.LEVER_R / 1000) / 9.81) and f"{lo:.1f} and {hi:.1f} kg" in by["9"]["ok"]
+    assert "calipers" in by["2"]["ok"] and "60 mm" in by["7"]["ok"]
+    s = rc.settings_text()
+    from tools.pack import PROFILE
+    assert f"{PROFILE['PPA-CF']['walls']} walls" in s and "geometry only" in s
+
+
+def test_sheet_settings_and_fit_coupon(written, tmp_path):
+    d, rep = written
+    md = open(os.path.join(d, "COUPON_TEST.md"), encoding="utf-8").read()
+    assert "Bambu Studio" in md and "setup_mac.sh" in md and "base/pack/fit_coupon" in md
+    assert all(pl["material"] in pl["file"] for pl in rep["plates"])
+    fit = str(tmp_path / "fit_coupon")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        r = rc.write_fit_coupon(fit, log=lambda *a: None)
+    assert r["errors"] == []
+    assert os.path.exists(os.path.join(fit, "COUPON.md")) and r["plates"]
+    assert not os.path.exists(fit + ".tmp")

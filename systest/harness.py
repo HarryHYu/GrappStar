@@ -348,8 +348,8 @@ class Rig:
 
     def _on_evt(self, e: dict) -> None:
         e2 = {k: v for k, v in e.items() if not k.startswith("_")}
-        if e2.get("evt") == "AIMED":
-            self.aimed_plant = self.base.get()       # the rail's real pitch when the firmware says it is aimed
+        if e2.get("evt") == "AIMED" and not self.fired_seen:
+            self.aimed_plant = self.base.get()       # the rail's real pitch when the firmware says it is aimed (the shot aim)
         e2["_step"] = self.step()
         self.events.append(dict(e2, _wall=time.time()))
         self.note("evt", e=json.dumps({k: v for k, v in e2.items() if k != "_step"}))
@@ -719,6 +719,7 @@ class RefMission:
         self.tokens.append("dart release")
         if st.get("phase") != "RELEASING":
             self.d.release()
+        self.tokens.append("stop")
         self.b.cmd("stop", timeout=2.0)
         self.d.wait_phase(("IDLE",), 40, want_seq="released")
 
@@ -957,9 +958,10 @@ def c_steps(*names):
 
 def c_aim(rig, res):
     """The rail's REAL pitch (plant aim phase through the factory table) when AIMED came, against the solution."""
-    ev = [e for e in rig.events if e.get("evt") == "AIMED"]
+    fired_t = min([e["_wall"] for e in rig.events if e.get("evt") == "FIRED"] or [1e18])
+    ev = [e for e in rig.events if e.get("evt") == "AIMED" and e["_wall"] < fired_t]
     if not ev:
-        return False, "no AIMED"
+        return False, "no AIMED before the shot"
     e = ev[-1]
     sol = (res.get("solution") or {}).get("pitch_deg")
     pt = (getattr(rig, "aimed_plant", None) or {}).get("pitchTrue")

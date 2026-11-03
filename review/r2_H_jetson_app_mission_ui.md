@@ -1,6 +1,6 @@
 # Round 2 H: Jetson app, mission control, operator UI, comms robustness (jetson)
 
-Reviewed at base-v1 commit c21a2d4. Method: independent finder subagents, one per lens; every finding of
+Reviewed at base-v1 commit 0bfd59a, merged c631495 mid-run. Method: independent finder subagents, one per lens; every finding of
 medium severity or above was checked by two skeptic subagents told to refute it; kept only if fewer than
 two refuted it. Low findings are listed unverified. Severity is the finder's, lowered when both skeptics
 agreed it is real but rated it lower.

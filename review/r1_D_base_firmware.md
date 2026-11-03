@@ -1,6 +1,6 @@
 # Round 1 D: base firmware (fw-base)
 
-Reviewed at base-v1 commit ef5cbc0. Method: independent finder subagents, one per lens; every finding of
+Reviewed at base-v1 commit 0bfd59a (tree at 12:20). Method: independent finder subagents, one per lens; every finding of
 medium severity or above was checked by two skeptic subagents told to refute it; kept only if fewer than
 two refuted it. Low findings are listed unverified. Severity is the finder's, lowered when both skeptics
 agreed it is real but rated it lower.

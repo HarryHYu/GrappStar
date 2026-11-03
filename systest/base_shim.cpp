@@ -138,6 +138,7 @@ static void drainEvents() {
   while (!evq.empty()) { if (!writeLine(evq.front().c_str(), 20)) break; evq.pop_front(); }
 }
 
+static bool indexCam = false;     // --index-cam: a no-magnet build with SW_INDEX switched on in config.h (D12)
 static bool running = false; static uint32_t setupEnd = 0; static uint32_t helloDelayMs = 2100;
 // power on: the USB port enumerates at once, setup() runs (1.5 s waiting for the host, 0.6 s probing the HX711), then
 // HELLO and the tick task. Lines the host sends meanwhile wait in the CDC buffer (not read until loop() runs).
@@ -157,6 +158,7 @@ static void finishSetup() {
   B->w.c.ampsPerVolt = (float)S.isAmpsPerVolt;
   gb::Tun tun; bool haveTun = readFile(sp("tun.bin"), &tun, sizeof tun);
   B->restoreTun(haveTun ? &tun : nullptr);
+  if (indexCam) { B->c.swBit[gb::SW_INDEX] = 11; S.c.swBit[gb::SW_INDEX] = 11; }
   if (!plantGeomSet) { S.c = B->c; plantGeomSet = true; }   // the plant's geometry is physical: fixed at the first boot
   B->begin(S.t);
   gb::Saved rec; bool haveRec = readFile(sp("nvs.bin"), &rec, sizeof rec);
@@ -368,6 +370,7 @@ int main(int argc, char** argv) {
     else if (a == "--state" && i + 1 < argc) stateDir = argv[++i];
     else if (a == "--speed" && i + 1 < argc) speed = atof(argv[++i]);
     else if (a == "--fresh") fresh = true;
+    else if (a == "--index-cam") indexCam = true;
     else if (a == "--hello-delay" && i + 1 < argc) helloDelayMs = (uint32_t)atoi(argv[++i]);
     else { fprintf(stderr, "usage: base_shim --link PATH --ctl PORT --state DIR [--speed X] [--fresh]\n"); return 2; }
   }

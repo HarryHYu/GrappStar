@@ -69,6 +69,8 @@ class BaseProc:
         args = [SHIM, "--link", self.link, "--ctl", str(self.port), "--state", self.state, "--speed", str(self.speed), "--hello-delay", str(self.hello_delay)]
         if fresh:
             args.append("--fresh")
+        if getattr(self, "index_cam", False):
+            args.append("--index-cam")
         self.proc = subprocess.Popen(args, stdout=self.log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
         t0 = time.time()
         while True:
@@ -264,6 +266,7 @@ class Rig:
     def start(self) -> None:
         sc = self.sc
         self.base = BaseProc(self.dir, self.speed, sc.hello_delay)
+        self.base.index_cam = sc.index_cam
         self.base.start(fresh=True)
         t0 = time.time()                       # wait for BOOT (60 ms): earlier cal/set lines are lost (FINDINGS F1)
         while time.time() - t0 < 8:          # setup() about 2.1 s, then BOOT 60 ms after the first tick
@@ -883,7 +886,8 @@ class Scenario:
         self.slip_n = kw.get("slip_n", 0.0)
         self.stiff = kw.get("stiff", False)
         self.path_gain = kw.get("path_gain", 1.15)
-        self.start_mode = kw.get("start_mode")         # bench: drive the drum here before the mission (C1 mode)     # D43: capstan-side tension = 1.15 x dart-side (pulleys)          # strict line: 1 mm Dyneema stiffness (else the sim.h 40 N/m spring)             # the anchor (or a dragging dart) slides above this tension
+        self.start_mode = kw.get("start_mode")
+        self.index_cam = kw.get("index_cam", False)    # no-magnet build with SW_INDEX switched on (D12)         # bench: drive the drum here before the mission (C1 mode)     # D43: capstan-side tension = 1.15 x dart-side (pulleys)          # strict line: 1 mm Dyneema stiffness (else the sim.h 40 N/m spring)             # the anchor (or a dragging dart) slides above this tension
         self.c1_from_last_aim = kw.get("c1_from_last_aim", False)
         self.expect_faults = kw.get("expect_faults", False)
         self.d22 = kw.get("d22", False)
@@ -1465,6 +1469,9 @@ sc(Scenario("nogo_reshoot", "first landing on water (NO GO): retrieve the free d
 
 sc(Scenario("land_short", "the dart lands with only 0.3 m of slack on its side (short of the turn length): the wrap must "
             "tug the free dart, never jam against an anchored one", landing_slack=0.3, d22=True))
+
+sc(Scenario("no_magnet_index", "no AS5600 magnet, SW_INDEX switched on in config.h (D12 degraded mode): the whole mission on the "
+            "6-bump index cam", plant_setup={"encMissing": 1}, index_cam=True))
 
 sc(Scenario("hand_lever", "the drum was turned to NEUTRAL by the manual lever with the board off (the spec's hand fallback): "
             "the base must boot with the drum from its absolute code (PROTOCOL 7) and the mission must run",

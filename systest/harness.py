@@ -293,11 +293,12 @@ class Rig:
         if sc.slip_n:
             self.base.set(slipN=sc.slip_n)
         ps = dict(sc.plant_setup)
-        if "drumDeg" in ps:          # the drum is turned by hand with the board off, then it boots there
+        pre = {k: ps.pop(k) for k in ("drumDeg", "encMissing") if k in ps}
+        if pre:                      # set with the board off (drum turned by hand, magnet missing), then it boots
             time.sleep(2.0)                    # the bench set-up is saved first (nobody pulls the plug within 20 ms)
             self.base.ctl("power off")
             self.base.boot_t = self.base.get().get("t", 0)
-            self.base.set(drumDeg=ps.pop("drumDeg"))
+            self.base.set(**pre)
             self.base.ctl("power on")
             t0 = time.time()
             while time.time() - t0 < 8:

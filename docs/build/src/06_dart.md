@@ -43,9 +43,8 @@ The dart is built from three documents. This section says which to use for what,
 6. Battery unplugged. **Click the u.FL antenna onto the VTX** (never power the VTX without it). Bench power-up: the
    8.0 V MP1584 #2 on the LiPo feeds the INA219 VIN+ pad and main ground, exactly as run sheet 7.5. Check the
    readings there (about 4.7 V at the XIAO 5V pad, VTX LED on, `z` finds 0x40 and 0x4a). USB unplugged whenever the
-   bench supply is connected. Where BENCH_TEST.md says "insert the power loop plug" or "meter the battery", on the
-   bench read: connect the 8.0 V bench supply (clip leads or soldered, onto INA219 VIN+ and main ground) and meter
-   it.
+   bench supply is connected. BENCH_TEST.md section "Power: bench supply or battery" says how the bench supply
+   stands in for the battery.
 7. Motor directions on the bench (BENCH_TEST.md, the steps that need only a loose motor; run sheet 7.6 with the
    new wire numbers). Mark each motor lead. Disconnect the bench supply.
 8. Start plate B. Run sheet 8a: nose ballast.

@@ -8,13 +8,13 @@ PLA: 0.4 mm nozzle, 0.2 mm layers, 4 walls, 40 % gyroid infill unless noted, 5 t
 
 ## If a coupon fails
 
-To change a number: on the Mac, after bash kedge/setup_mac.sh, run kedge/.venv/bin/python -m tools.risk_coupon from base/ (it rewrites base/pack/coupons and base/pack/fit_coupon). Easier: give the failing result to a Claude session and let it change the numbers. Change one number at a time and reprint only that coupon.
+To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo root), cd base and run ../kedge/.venv/bin/python -m tools.risk_coupon (it rewrites base/pack/coupons and base/pack/fit_coupon). Easier: give the failing result to a Claude session and let it change the numbers. Change one number at a time and reprint only that coupon.
 
 ## Plates
 
 | plate | material | objects |
 |---|---|---|
-| risk_plate_1_PLA.3mf | PLA | 19 |
+| risk_plate_1_PLA.3mf | PLA | 20 |
 | risk_plate_2_PPA-CF.3mf | PPA-CF | 26 |
 
 ## Tests
@@ -100,6 +100,15 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh, run kedge/.venv/b
 - If it fails, change: drum.py GEOM shear_d (torque goes with d squared), hub_od (radius), shear_s; fits for the hole: drum.coupler shear hole (shear_d + 0.1) and shear_pin (shear_d - 0.04). Spec D8 / D26 limit 5 N m.
 - Made from: drum.coupler_hub and drum.coupler (sliced s 4..20), drum.shear_pin: d4 PLA in single shear at r 13 (shear_s 9); 4.9 N m at 30 MPa
 
+### 10. AS5600 magnet cap (bench test)
+
+- Parts: rc10_magnet_cap
+- Bought: 6 x 2.5 mm diametric magnet (comes with the AS5600 board), M3x6, superglue
+- Do: Glue the magnet into the end pocket (flush, any way round), push the cap on the shaft end (flat to the flat), M3x6 onto the flat. For the bench: AS5600 chip on the shaft axis, 1 to 2 mm from the magnet face.
+- Pass: Cap does not wobble or slip on the shaft; the AS5600 angle follows the shaft smoothly through full turns (no jumps), magnet status OK (not too weak, not too strong) at 1 to 2 mm.
+- If it fails, change: drum.py GEOM cap_s, spig_d; magnet_holder pocket d6.2 x 2.6 (magnet loose or tight); fits.py HOLE_SLIDE (cap on the spigot).
+- Made from: drum.magnet_holder (spig_d 12 with its flat, cap_s (195.0, 201.5), magnet pocket d6.2 x 2.6), printed as drum prints it
+
 ## Parts
 
 | part | material | qty | print bbox mm | what |
@@ -147,3 +156,4 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh, run kedge/.venv/b
 | rc9_hub_lever | PPA-CF | 1 | 79.0 x 26.0 x 16.0 | drum.coupler_hub slice (shear pin hole) with a lever, string hole at r 60 |
 | rc9_outer_lever | PPA-CF | 1 | 86.6 x 45.0 x 10.0 | drum.coupler slice (shear pin hole) with a lever, string hole at r 60 |
 | rc9_shear_pin | PLA | 3 | 12.1 x 5.0 x 4.1 | drum.shear_pin as built (d4 PLA), lying on its flat as drum prints it |
+| rc10_magnet_cap | PLA | 1 | 20.0 x 20.0 x 6.5 | drum.magnet_holder as built: AS5600 magnet cap on the d12 spigot end |

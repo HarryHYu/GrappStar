@@ -586,10 +586,33 @@ def coupon_9(P):
     )
 
 
+# ---------------------------------------------------------------------------------------------- 10 magnet cap
+def coupon_10(P):
+    """Not a risk test: drum's real AS5600 magnet cap, printed early for the motor bench test."""
+    from cad.parts import drum
+    g = drum.G(P)
+    cap = drum.magnet_holder(g)
+    parts = [mk("rc10_magnet_cap", cap, "PLA", "drum.magnet_holder as built: AS5600 magnet cap on the d12 spigot end",
+                R=tf.Rx(180))]
+    return dict(
+        key="10", title=TITLES["10"], parts=parts, asm=[], mesh=[],
+        uses=(f"drum.magnet_holder (spig_d {g['spig_d']:g} with its flat, cap_s {g['cap_s']}, magnet pocket d6.2 x 2.6), "
+              f"printed as drum prints it"),
+        bought="6 x 2.5 mm diametric magnet (comes with the AS5600 board), M3x6, superglue",
+        do=("Glue the magnet into the end pocket (flush, any way round), push the cap on the shaft end (flat to the "
+            "flat), M3x6 onto the flat. For the bench: AS5600 chip on the shaft axis, 1 to 2 mm from the magnet face."),
+        ok=("Cap does not wobble or slip on the shaft; the AS5600 angle follows the shaft smoothly through full turns "
+            "(no jumps), magnet status OK (not too weak, not too strong) at 1 to 2 mm."),
+        fail=("drum.py GEOM cap_s, spig_d; magnet_holder pocket d6.2 x 2.6 (magnet loose or tight); fits.py HOLE_SLIDE "
+              "(cap on the spigot)."),
+    )
+
+
 # ---------------------------------------------------------------------------------------------- all
 TITLES = {"1": "Swing-arm direction splitter", "2": "Printed contact switch", "3": "Dog clutch and compliant fork",
           "4": "Face slip clutch with the flexure spring", "5": "Bearing seats", "6": "M3 holes",
-          "7": "Key rib and spigot", "8": "Gear meshes m1.25, m1.5, m2, m2.5", "9": "Shear-pin torque limiter"}
+          "7": "Key rib and spigot", "8": "Gear meshes m1.25, m1.5, m2, m2.5", "9": "Shear-pin torque limiter",
+          "10": "AS5600 magnet cap (bench test)"}
 # a renamed or removed function, constant or module in a subsystem file skips only the coupon that uses it
 SOURCE_ERRORS = (AttributeError, ImportError, KeyError, NameError, TypeError)
 
@@ -602,7 +625,8 @@ def coupons(P=None, skipped=None, log=print):
     sc = clutch.slip_clutch()
     fns = [("1", lambda: coupon_1(P)), ("2", lambda: coupon_2(P)), ("3", lambda: coupon_3(P)),
            ("4", lambda: coupon_4(P, sc)), ("5", lambda: coupon_5(P)), ("6", lambda: coupon_6(P)),
-           ("7", lambda: coupon_7(P, sc)), ("8", lambda: coupon_8(P)), ("9", lambda: coupon_9(P))]
+           ("7", lambda: coupon_7(P, sc)), ("8", lambda: coupon_8(P)), ("9", lambda: coupon_9(P)),
+           ("10", lambda: coupon_10(P))]
     out = []
     for key, fn in fns:
         try:
@@ -662,8 +686,8 @@ def settings_text():
             f"material and these settings in Bambu Studio.")
 
 
-RERUN = ("To change a number: on the Mac, after bash kedge/setup_mac.sh, run kedge/.venv/bin/python -m tools.risk_coupon "
-         "from base/ (it rewrites base/pack/coupons and base/pack/fit_coupon). Easier: give the failing result to a "
+RERUN = ("To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo root), cd base and run "
+         "../kedge/.venv/bin/python -m tools.risk_coupon (it rewrites base/pack/coupons and base/pack/fit_coupon). Easier: give the failing result to a "
          "Claude session and let it change the numbers. Change one number at a time and reprint only that coupon.")
 
 
@@ -735,7 +759,7 @@ def pdf_pages(fn) -> int:
 def write(out_dir: str = DEFAULT_OUT, P=None, log=print) -> dict:
     from tools import pack
     os.makedirs(out_dir, exist_ok=True)
-    for pat in ("rc[0-9]_*.stl", "risk_plate_*", "COUPON_TEST.*"):
+    for pat in ("rc[0-9]*_*.stl", "risk_plate_*", "COUPON_TEST.*"):
         for f in glob.glob(os.path.join(out_dir, pat)):
             os.remove(f)
     skipped = []

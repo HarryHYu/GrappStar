@@ -58,12 +58,14 @@ so at the dwell the cam pushes 0.3 mm past first contact (overtravel to the hard
 sit at y 200.7..207, outside the crank plane.
 
 Bracket (PLA): backing plate behind the switch base (world x 114.5..119.5), a column down to cad-launch's housing foot
-extension (x 80..130.9, y 193.8..201.8, top at deck + 8), a foot on it and a web (about 48 deg) under the cantilevered
-plate. Fixing: 1 x M3x10 down into the pilot at (107, 197.8), and the housing's 4th deck screw (x 125.9; cad-launch
-4d203e4: housing screws go in from BELOW through deck clearance holes into pilots in the housing) becomes an M3x20:
-deck (8) + foot extension (8) + 4 mm into a d2.6 pilot (5 deep) in the bracket foot. For that cad-launch runs their 4th
-pilot through the 8 mm foot extension (it is 7 deep blind). cad-launch's pilot at x 116 lies under the bracket column
-and is not used. The switch base screws to the plate with 4 x M3x8 self tap. Print foot down.
+extension (x 80..134.5, y 193.8..201.8, top at deck + 8), a foot on it (x 103..134) and a web (about 48 deg) under the
+cantilevered plate. Fixing: 1 x M3x10 down into the pilot at (107, 197.8), and the bracket's own deck screw
+(cross-check cad_support-4: the deck is on the rover before the housing goes on, so nothing goes in from below): an
+M3x16 from the top at (128.3, 197.8), in front of the column, through a d6.1 x 3.2 counterbore in the 6 mm foot and
+cad-launch's d3.4 clearance hole in the foot extension, 5.2 mm into the deck insert that cad-frame cuts there
+(`deck_holes(P)`, read by the frame's deck_contacts). cad-launch's pilot at x 116 lies under the bracket column and is
+not used. The switch base screws to the plate with 4 x M3x8 self tap. Print foot down. The column reaches 1 mm up
+into the plate (not level with the web top: level tops left a pinch edge and the STL was not watertight).
 
 ## 3. SW_GAP (GPIO 39)
 

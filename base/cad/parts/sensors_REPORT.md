@@ -11,7 +11,9 @@ numbers), `sensors_launch_patch.diff` (the change cad-launch applied to their fi
    No M2.5 screws and no heat staking. Chip to magnet 2.0 mm (1.75 with the tallest SOIC), see open item 1.
 2. SW_RAIL_LOW (GPIO 40): cad.lib contact switch (coupon 2 geometry) on a printed bracket standing on the aim housing
    foot extension, pressed by cad-launch's crank cam. Closed within about +-9 deg of crank from the LOW dead point
-   (pitch 6.0 to 6.2).
+   (pitch 6.0 to 6.2). Fixed by an M3x10 into the extension and its own deck screw (cross-check cad_support-4): an
+   M3x16 from the top through the counterbored foot and the extension into a deck insert (`sensors.deck_holes`, which
+   cad-frame reads); it no longer relies on a housing screw from below.
 3. SW_GAP (GPIO 39): cad.lib contact switch whose base and cheek arm are one printed part, screwed to the right rail
    cheek outer face; 4 mm riser on the lever tip so the jam nut stays under the gear web; pressed by the big gear cam
    bump; closed within about +-14 deg of the gear rest angle.

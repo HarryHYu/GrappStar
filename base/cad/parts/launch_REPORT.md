@@ -71,8 +71,14 @@ audit_states, checks, grounded, steps, line_path, line_entry), `launch_kin.py` (
     (7.9 g each of moving mass); an 8 mm steel rod fits the same hole if a peg breaks.
 16. Lip contact levers (SW_HOME, SW_SEATED) are modelled at rest on their own joints: gap 0.50 mm (one screw turn),
     0.25 mm overtravel, 0.10 percent strain.
-17. Aim housing bolts to the deck from below (d2.6 pilots in its feet): three of the four holes are under the spine or
-    the outer wall. cad-frame provides clearance holes in the deck.
+17. Aim housing screws to the deck from the TOP (cross-check cad_support-4: the deck is on the rover long before Aim 3,
+    and the frame only cuts blind inserts from the top): 4 x M3 x 10 through counterbored holes (d6.1 x 3.2) in foot
+    flanges outside the spine and the walls, into deck heat-set inserts at `launch.deck_holes(P)`. The SW_RAIL_LOW
+    bracket has its own deck screw (`sensors.deck_holes`) through a clearance hole in the foot extension.
+18. Swing arm engaged stop post (cross-check cad_power-3): the backward tooth forces pull the arm on towards the output
+    (about 60 x F_t N mm against the arm), so a second post on the housing inner wall holds it at alpha_e with the
+    idler at cd_io 36.10 (0.1 clear in the model, 0.22 deg / 0.07 mm of centre distance, inside the +0.10 extra).
+    Risk coupon 1 has the matching second stop finger.
 
 ## 4. Open items and risks
 
@@ -118,7 +124,9 @@ audit_states, checks, grounded, steps, line_path, line_entry), `launch_kin.py` (
    SPRING.k_n_per_mm, F0_n, free_len, max_ext. Preload follows automatically.
 2. Stop flexure: after printing, a press test (force at 10 mm) to confirm the stiffness.
 3. Fit coupon for the 0.2 mm running clearances (sleeve journals 20.4 in the cheeks, gear pin 10.35).
-4. The sprag direction before assembly (inner race must freewheel the BACKWARD wiper way).
+4. The sprag direction before assembly: seen from the drive gear's collar side (the side towards the motor), with the
+   gear held, the inner race turns freely counter-clockwise (BACKWARD) and locks clockwise (FORWARD, the cock
+   direction). Fitted the other way round neither motor direction can cock, and swapping M+ and M- does not help.
 5. Lip roller fork: pull a printed fork to 270 N on the line before a full tow.
 6. The aim table zero: run backward until SW_RAIL_LOW closes; record the AS5600 angle at the closing edge.
 

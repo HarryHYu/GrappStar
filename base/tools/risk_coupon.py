@@ -11,7 +11,7 @@ and the base fit coupon (tools.coupon.write) into base/pack/fit_coupon (--fit DI
   COUPON_TEST.md / .pdf   the one-page test sheet: what to do, what pass looks like, what to change if it fails
 
 Coupons (k):
-  1 swing-arm direction splitter (launch_aim: sun, arm, idler as built; output spur on a pin)
+  1 swing-arm direction splitter (launch_aim: sun, arm, idler as built; output spur on a pin; both stop posts as fingers)
   2 printed contact switch (cad.lib.switch.contact_switch)
   3 dog clutch: REEL face, thin collar, compliant fork, fork stop, short rail (drum.py functions)
   4 face slip clutch with the flexure spring pack (cad.lib.clutch.slip_clutch) on a keyed stub
@@ -154,17 +154,37 @@ def coupon_1(P):
     zf0, zf1 = za + 0.1, zc - 0.5                     # stop finger in the arm plane
     rp, fit, face = LA.PIN_R, LA.FIT, LA.FACE_S
     ox, oy = n["cs_x"], -(n["cs_z"] - n["axis_z"])    # output axis in the alpha frame (as built)
-    px, py = LA._stop_post_xy(P)                      # stop post centre (as built)
+
+    def finger(px, py, cx, cy):
+        """Stop finger in the arm plane: rounded end r 4 at the post (px, py), bar to a column at (cx, cy) on the
+        plate, 2 x M3 along the bar. Returns (column on the plate, finger, holes, bar angle)."""
+        phi = math.atan2(cy - py, cx - px)
+        ux, uy = math.cos(phi), math.sin(phi)
+        holes = [(cx - 5 * ux, cy - 5 * uy), (cx + 5 * ux, cy + 5 * uy)]
+        col = prim.place(prim.box(-9, 9, -5, 5, 0, zf0), tf.mul(tf.T(cx, cy, 0), tf.Rz(math.degrees(phi))))
+        fpoly = unary_union([LineString([(px, py), (cx, cy)]).buffer(4.0, 32),
+                             Polygon([(cx + a * 9 * ux - b * 5 * uy, cy + a * 9 * uy + b * 5 * ux)
+                                      for a, b in ((-1, -1), (1, -1), (1, 1), (-1, 1))])])
+        fg = prim.extrude(prim.shapely_cs(fpoly), zf1 - zf0, z=zf0)
+        fg = fg - prim.union([fasteners.m3_clear(zf1 - zf0 + 1).translate((x, y, zf1)) for x, y in holes])
+        return col, fg, holes, phi
+
+    px, py = LA._stop_post_xy(P)                      # swung-out stop post centre (as built)
     phi = math.atan2(py, px)
-    ux, uy = math.cos(phi), math.sin(phi)
-    cx, cy = 62.0 * ux, 62.0 * uy                     # finger column, outside the idler swing
-    holes = [(cx - 5 * ux, cy - 5 * uy), (cx + 5 * ux, cy + 5 * uy)]
-    # base plate (PLA) with the centre pin, the output pin and the finger column
-    col = prim.place(prim.box(-9, 9, -5, 5, 0, zf0), tf.mul(tf.T(cx, cy, 0), tf.Rz(math.degrees(phi))))
-    plate = prim.union([hull_plate([(0, 0, 15), (ox, oy, 9), (cx, cy, 11)], -4.0, 0.0),
+    col, fg, holes, _ = finger(px, py, 62.0 * math.cos(phi), 62.0 * math.sin(phi))   # radial, outside the idler swing
+    # engaged stop post (as built): its finger runs forward to a column at r 62, 20 deg (a radial one would cross the
+    # output gear and its pin, which stands up into the arm plane)
+    pex, pey = LA._stop_post_e_xy(P)
+    cex, cey = 62.0 * math.cos(math.radians(20.0)), 62.0 * math.sin(math.radians(20.0))
+    col_e, fg_e, holes_e, phi_e = finger(pex, pey, cex, cey)
+    # base plate (PLA) with the centre pin, the output pin and the two finger columns
+    plate = prim.union([hull_plate([(0, 0, 15), (ox, oy, 9), (62.0 * math.cos(phi), 62.0 * math.sin(phi), 11),
+                                    (cex, cey, 11)], -4.0, 0.0),
                         pin_post(rp, ztop - 0.2, rp, 0.0),
-                        pin_post(rp, zs + face + 1.5, 7.0, zs, ox, oy), col.translate((0, 0, -0.01))])
-    plate = plate - prim.union([fasteners.m3_tap(8.0).translate((x, y, zf0)) for x, y in holes])
+                        pin_post(rp, zs + face + 1.5, 7.0, zs, ox, oy), col.translate((0, 0, -0.01)),
+                        col_e.translate((0, 0, -0.01))])
+    plate = plate - prim.union([fasteners.m3_tap(8.0).translate((x, y, zf0)) for x, y in holes + holes_e])
+    cx, cy = 62.0 * math.cos(phi), 62.0 * math.sin(phi)
     plate = plate + label("1", 0.5 * cx, 0.5 * cy, 0.0)
     # sleeve stub (PPA-CF): d20 with the as-built integral rib (launch.RIB_W, RIB_R) under the sun and the crank
     sl = prim.cyl(13.0, zs) + prim.cyl(10.0, ztop)
@@ -177,14 +197,9 @@ def coupon_1(P):
     cr = prim.union([prim.cyl(15.0, ct), prim.box(0, 30, -5, 5, 0, ct), prim.cyl(5.0, ct, x=30),
                      prim.cyl(4.0, 14.0, x=30, z=ct - 0.01)])
     cr = cr - prim.cyl(10.0 + fit / 2, ct + 2, z=-1) - prim.box(9.0, 13.2, -3.2, 3.2, -1, ct + 1)
-    # stop finger (PLA): rounded end r 4 at the as-built stop post, two M3 into the column
-    fpoly = unary_union([LineString([(px, py), (cx, cy)]).buffer(4.0, 32),
-                         Polygon([(cx + a * 9 * ux - b * 5 * uy, cy + a * 9 * uy + b * 5 * ux)
-                                  for a, b in ((-1, -1), (1, -1), (1, 1), (-1, 1))])])
-    fg = prim.extrude(prim.shapely_cs(fpoly), zf1 - zf0, z=zf0)
-    fg = fg - prim.union([fasteners.m3_clear(zf1 - zf0 + 1).translate((x, y, zf1)) for x, y in holes])
     parts = [
-        mk("rc1_plate", plate, "PLA", "Splitter base: centre pin d8, output pin d8, stop finger column (2 x M3 tap)"),
+        mk("rc1_plate", plate, "PLA", "Splitter base: centre pin d8, output pin d8, two stop finger columns (2 x M3 "
+                                      "tap each)"),
         mk("rc1_sleeve", sl, "PPA-CF", "Sleeve stub d20 with the integral key rib (launch.RIB_W, RIB_R) under the sun and the crank"),
         mk("rc1_sun", sun, "PPA-CF", "launch_aim.sun_solid: sun m1.5 z30 as built"),
         mk("rc1_arm", arm, "PPA-CF", "launch_aim.arm_solid: swing arm as built (drag pad pocket, d8 pin, clip groove)",
@@ -195,15 +210,17 @@ def coupon_1(P):
         mk("rc1_idler", idl, "PPA-CF", "launch_aim.idler_solid: idler m1.5 z18 as built"),
         mk("rc1_output", out, "PPA-CF", f"Output m1.5 z30 (launch_gears.spur, face {face:g}) on a d8 pin"),
         mk("rc1_crank", cr, "PPA-CF", "Hand crank, keyed on the sleeve rib like the sun"),
-        mk("rc1_stop", fg, "PLA", "Stop finger: rounded end at the as-built stop post position",
+        mk("rc1_stop", fg, "PLA", "Stop finger: rounded end at the as-built swung-out stop post position",
            R=tf.Rz(-math.degrees(phi))),
+        mk("rc1_stop_e", fg_e, "PLA", "Engaged stop finger: rounded end at the as-built engaged stop post position "
+                                      "(launch_aim._stop_post_e_xy)", R=tf.Rz(-math.degrees(phi_e))),
     ]
 
     def state(alpha):
         Ra = tf.Rz(alpha)
         return {"rc1_plate": tf.I4, "rc1_sleeve": tf.I4, "rc1_sun": tf.T(0, 0, zs),
                 "rc1_arm": tf.mul(Ra, tf.T(0, 0, za)), "rc1_idler": tf.mul(Ra, tf.T(n["cd_si"], 0, zs)),
-                "rc1_output": tf.T(ox, oy, zs), "rc1_crank": tf.T(0, 0, zc), "rc1_stop": tf.I4,
+                "rc1_output": tf.T(ox, oy, zs), "rc1_crank": tf.T(0, 0, zc), "rc1_stop": tf.I4, "rc1_stop_e": tf.I4,
                 "rc1_drag_pad": tf.mul(Ra, tf.T(0, 0, za)), "rc1_drag_shim": tf.mul(Ra, tf.T(0, 0, za)),
                 "rc1_idler_clip": tf.mul(Ra, tf.T(n["cd_si"], 0, za + z_clip))}
     return dict(
@@ -214,21 +231,26 @@ def coupon_1(P):
         uses=(f"launch_aim.sun_solid, arm_solid, idler_solid (m{LA.M_S:g} z{LA.Z_SUN}/{LA.Z_IDL}/{LA.Z_OUT}, face "
               f"{face:g}, FIT {fit}), launch_gears.spur for the output, launch_aim.A: centre distances "
               f"{n['cd_si']:.2f} / {n['cd_io']:.2f}, output at ({ox:.1f}, {oy:.1f}), engaged arm "
-              f"{n['alpha_e']:.1f} deg, stop {n['alpha_d']:.1f} deg (launch_aim._stop_post_xy), sleeve rib "
+              f"{n['alpha_e']:.1f} deg on the engaged stop (launch_aim._stop_post_e_xy), swung out {n['alpha_d']:.1f} "
+              f"deg on the other stop (launch_aim._stop_post_xy), sleeve rib "
               f"launch.RIB_W {LN.RIB_W:g} / RIB_R {LN.RIB_R:g}; drag_pad_solid, drag_shim_solid (DRAG_INT "
               f"{LA.DRAG_INT:g}, shim up to +{LA.DRAG_SHIM_ADJ:g}), pin_clip_solid"),
-        bought="2 x M3x16 (stop finger); everything else printed",
+        bought="4 x M3x16 (two stop fingers); everything else printed",
         do=("Push the drag pad root block and the shim into the arm hub pocket (finger in its recess). On the plate: "
             "sleeve on the centre pin, sun on its rib, arm on the sleeve above the sun with its pin down through the "
-            "idler, printed C clip into the pin groove, output on its pin, crank on top, stop finger on the column "
-            "(2 x M3x16). Turn the crank 10 turns each way."),
-        ok=("Clockwise seen from above: the arm swings the idler into the output at once and the output turns, no "
-            "skipped teeth. Anticlockwise: the arm swings out to the finger within about 20 deg of crank, the idler "
-            "runs free and the output stays still. No jam at engagement. The pad drags the arm reliably both ways and "
-            "the clip stays on."),
+            "idler, printed C clip into the pin groove, output on its pin, crank on top, the two stop fingers on "
+            "their columns (2 x M3x16 each). Turn the crank 10 turns each way."),
+        ok=("Clockwise seen from above: the arm swings the idler into the output at once and comes to rest on the "
+            "engaged stop finger, the output turns, no skipped teeth. Brake the output lightly with a finger and "
+            "keep turning: the arm stays on that finger (the idler is held at full depth, never pulled in deeper) "
+            "and the crank still turns smoothly, no binding. Anticlockwise: the arm swings out to the other finger "
+            "within about 20 deg of crank, the idler runs free and the output stays still. No jam at engagement. "
+            "The pad drags the arm reliably both ways and the clip stays on."),
         fail=("launch_aim.py: FIT (pin and bore play), DRAG_INT and DRAG_SHIM_ADJ (drag: or print a thicker shim), "
               "clips.py for the C clip, A() alpha_d = alpha_e + 20 "
-              "(swing out), _stop_post_xy; launch_gears.py center_distance extra / spur backlash (mesh)."),
+              "(swing out), _stop_post_xy (swung-out stop), _stop_post_e_xy (engaged stop: binding with the output "
+              "braked means it lets the idler in too deep); launch_gears.py center_distance extra / spur backlash "
+              "(mesh)."),
     )
 
 

@@ -14,19 +14,19 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 
 | plate | material | objects |
 |---|---|---|
-| risk_plate_1_PLA.3mf | PLA | 23 |
+| risk_plate_1_PLA.3mf | PLA | 24 |
 | risk_plate_2_PPA-CF.3mf | PPA-CF | 26 |
 
 ## Tests
 
 ### 1. Swing-arm direction splitter
 
-- Parts: rc1_plate, rc1_sleeve, rc1_sun, rc1_arm, rc1_drag_pad, rc1_drag_shim, rc1_idler_clip, rc1_idler, rc1_output, rc1_crank, rc1_stop
-- Bought: 2 x M3x16 (stop finger); everything else printed
-- Do: Push the drag pad root block and the shim into the arm hub pocket (finger in its recess). On the plate: sleeve on the centre pin, sun on its rib, arm on the sleeve above the sun with its pin down through the idler, printed C clip into the pin groove, output on its pin, crank on top, stop finger on the column (2 x M3x16). Turn the crank 10 turns each way.
-- Pass: Clockwise seen from above: the arm swings the idler into the output at once and the output turns, no skipped teeth. Anticlockwise: the arm swings out to the finger within about 20 deg of crank, the idler runs free and the output stays still. No jam at engagement. The pad drags the arm reliably both ways and the clip stays on.
-- If it fails, change: launch_aim.py: FIT (pin and bore play), DRAG_INT and DRAG_SHIM_ADJ (drag: or print a thicker shim), clips.py for the C clip, A() alpha_d = alpha_e + 20 (swing out), _stop_post_xy; launch_gears.py center_distance extra / spur backlash (mesh).
-- Made from: launch_aim.sun_solid, arm_solid, idler_solid (m1.5 z30/18/30, face 12, FIT 0.35), launch_gears.spur for the output, launch_aim.A: centre distances 36.10 / 36.10, output at (11.7, 68.4), engaged arm 96.2 deg, stop 116.2 deg (launch_aim._stop_post_xy), sleeve rib launch.RIB_W 6 / RIB_R 12.8; drag_pad_solid, drag_shim_solid (DRAG_INT 0.45, shim up to +0.25), pin_clip_solid
+- Parts: rc1_plate, rc1_sleeve, rc1_sun, rc1_arm, rc1_drag_pad, rc1_drag_shim, rc1_idler_clip, rc1_idler, rc1_output, rc1_crank, rc1_stop, rc1_stop_e
+- Bought: 4 x M3x16 (two stop fingers); everything else printed
+- Do: Push the drag pad root block and the shim into the arm hub pocket (finger in its recess). On the plate: sleeve on the centre pin, sun on its rib, arm on the sleeve above the sun with its pin down through the idler, printed C clip into the pin groove, output on its pin, crank on top, the two stop fingers on their columns (2 x M3x16 each). Turn the crank 10 turns each way.
+- Pass: Clockwise seen from above: the arm swings the idler into the output at once and comes to rest on the engaged stop finger, the output turns, no skipped teeth. Brake the output lightly with a finger and keep turning: the arm stays on that finger (the idler is held at full depth, never pulled in deeper) and the crank still turns smoothly, no binding. Anticlockwise: the arm swings out to the other finger within about 20 deg of crank, the idler runs free and the output stays still. No jam at engagement. The pad drags the arm reliably both ways and the clip stays on.
+- If it fails, change: launch_aim.py: FIT (pin and bore play), DRAG_INT and DRAG_SHIM_ADJ (drag: or print a thicker shim), clips.py for the C clip, A() alpha_d = alpha_e + 20 (swing out), _stop_post_xy (swung-out stop), _stop_post_e_xy (engaged stop: binding with the output braked means it lets the idler in too deep); launch_gears.py center_distance extra / spur backlash (mesh).
+- Made from: launch_aim.sun_solid, arm_solid, idler_solid (m1.5 z30/18/30, face 12, FIT 0.35), launch_gears.spur for the output, launch_aim.A: centre distances 36.10 / 36.10, output at (11.7, 68.4), engaged arm 96.2 deg on the engaged stop (launch_aim._stop_post_e_xy), swung out 116.2 deg on the other stop (launch_aim._stop_post_xy), sleeve rib launch.RIB_W 5.8 / RIB_R 12.6; drag_pad_solid, drag_shim_solid (DRAG_INT 0.45, shim up to +0.25), pin_clip_solid
 
 ### 2. Printed contact switch
 
@@ -113,7 +113,7 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 
 | part | material | qty | print bbox mm | what |
 |---|---|---|---|---|
-| rc1_plate | PLA | 1 | 83.3 x 83.2 x 33.1 | Splitter base: centre pin d8, output pin d8, stop finger column (2 x M3 tap) |
+| rc1_plate | PLA | 1 | 110.1 x 82.2 x 33.1 | Splitter base: centre pin d8, output pin d8, two stop finger columns (2 x M3 tap each) |
 | rc1_sleeve | PPA-CF | 1 | 26.0 x 26.0 x 29.3 | Sleeve stub d20 with the integral key rib (launch.RIB_W, RIB_R) under the sun and the crank |
 | rc1_sun | PPA-CF | 1 | 47.8 x 48.0 x 12.0 | launch_aim.sun_solid: sun m1.5 z30 as built |
 | rc1_arm | PPA-CF | 1 | 61.4 x 41.0 x 19.3 | launch_aim.arm_solid: swing arm as built (drag pad pocket, d8 pin, clip groove) |
@@ -123,7 +123,8 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 | rc1_idler | PPA-CF | 1 | 30.0 x 29.7 x 12.0 | launch_aim.idler_solid: idler m1.5 z18 as built |
 | rc1_output | PPA-CF | 1 | 47.8 x 48.0 x 12.0 | Output m1.5 z30 (launch_gears.spur, face 12) on a d8 pin |
 | rc1_crank | PPA-CF | 1 | 48.2 x 30.3 x 20.0 | Hand crank, keyed on the sleeve rib like the sun |
-| rc1_stop | PLA | 1 | 47.1 x 10.0 x 6.4 | Stop finger: rounded end at the as-built stop post position |
+| rc1_stop | PLA | 1 | 47.1 x 10.0 x 6.4 | Stop finger: rounded end at the as-built swung-out stop post position |
+| rc1_stop_e | PLA | 1 | 64.4 x 10.0 x 6.4 | Engaged stop finger: rounded end at the as-built engaged stop post position (launch_aim._stop_post_e_xy) |
 | rc2_switch_base | PLA | 1 | 54.0 x 35.0 x 11.5 | contact_switch base: pad, nut pillar, hard stop, wire channel |
 | rc2_switch_lever | PLA | 1 | 50.0 x 5.0 x 8.0 | contact_switch lever, printed on its side (Y up) |
 | rc3_base | PLA | 1 | 40.0 x 91.5 x 97.5 | Base: d30 journal (REEL sleeve) and hex 22 AF (main shaft), rail hole (press) |

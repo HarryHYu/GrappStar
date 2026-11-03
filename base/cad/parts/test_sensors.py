@@ -148,14 +148,31 @@ def test_mount_pilots_under_base_holes(parts):
             assert _ov(fat, bracket) > 1.0, (x, y)
 
 
-def test_rail_low_deck_screw_pilot(parts):
-    """The housing's 4th deck screw comes from below: the bracket foot has a d2.6 pilot on its axis, 5 deep."""
-    br = prim.place(parts["sensors_sw_rail_low_bracket"].solid, parts["sensors_sw_rail_low_bracket"].place)
-    x, y = SE.swl_deck_screw(P)
+def test_rail_low_deck_screw(parts):
+    """The bracket has its own deck screw (cad_support-4): sensors.deck_holes gives it to cad-frame (an insert under
+    it); an M3 from the TOP goes through a counterbored hole in the bracket foot and a clearance hole in the housing
+    foot extension, with plastic under the head and a free path up for the hex key (clear of the bracket column)."""
+    import launch as LN
     import launch_aim as LA
-    zf = LA.A(P)["deck_z"] + 8.0
-    assert _ov(prim.cyl(1.25, 4.9, x=x, y=y, z=zf), br) < TOL
-    assert _ov(prim.cyl(2.5, 4.9, x=x, y=y, z=zf), br) > 10.0
+    br = prim.place(parts["sensors_sw_rail_low_bracket"].solid, parts["sensors_sw_rail_low_bracket"].place)
+    hs = {p.name: p for p in LN.parts(P)}["launch_aim_housing"]
+    hs = prim.place(hs.solid, hs.place)
+    x, y = SE.swl_deck_screw(P)
+    assert SE.deck_holes(P) == [(x, y)]
+    d0 = LA.A(P)["deck_z"]
+    zf = d0 + 8.0                                            # foot extension top = bracket foot bottom
+    assert SE.SWL_FOOT["x"][1] == pytest.approx(LA.SWL_EXT_X1 - 0.5)
+    bore = prim.cyl(1.65, 14.0, x=x, y=y, z=d0)              # d3.3 through extension and foot
+    assert _ov(bore, br) < TOL and _ov(bore, hs) < TOL
+    assert _ov(prim.cyl(3.0, 2.9, x=x, y=y, z=zf + 3.0), br) < TOL                     # d6 counterbore, 3 deep
+    under = prim.cyl(2.7, 2.7, x=x, y=y, z=zf + 0.05) - prim.cyl(1.8, 3.0, x=x, y=y, z=zf)
+    assert _ov(under, br) == pytest.approx(under.volume(), rel=1e-3)                    # plastic under the head
+    ext = prim.cyl(2.7, 7.9, x=x, y=y, z=d0 + 0.05) - prim.cyl(1.8, 8.0, x=x, y=y, z=d0)
+    assert _ov(ext, hs) == pytest.approx(ext.volume(), rel=1e-3)                        # extension round the screw
+    assert _ov(prim.cyl(3.0, 60.0, x=x, y=y, z=zf + 6.0), br) < TOL                    # key path up, past the column
+    # M3x16: counterbore 3.2 in the 6 mm foot, 2.8 + 8 of plastic, then into the M3 x 5 insert (hole 6 deep)
+    into = SE.SWL_DECK_SCREW_L - (6.0 - 3.2) - 8.0
+    assert 4.5 <= into <= 5.8
 
 
 def test_as5600_strip_clamps(parts):

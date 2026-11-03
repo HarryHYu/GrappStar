@@ -45,7 +45,7 @@ them in your REPORT.md or message the coordinator.
 | guide eye centre | -45 | +26 | 25 | 8.5 |
 | old exit eye centre = pulley 1 tangent point (D43) | +70 | +23.5 | 107.2 | -73.7 |
 | pulley 1 centre (axis R Y) | +72.9 | +23.5 | 100.8 | -67.3 (world x 54.3, z -46.1) |
-| pulley 2 centre (axis world Z), own post | +72.9 | +9.6 | -78.5 | 112 (world (54.3, 112, -60)) |
+| pulley 2 centre (axis world Z at swivel 0), on a swivel fork | +72.9 | +13.6 | -78.5 | 112 (world (54.3, 112, -56)) |
 | pulley 2 post | +65 .. +173 | -95.4 .. +35 | -92.5 .. -64.5 | 98 .. 126 |
 | gears and SW_ARM behind the wall | -104.5 .. +36 | -75.7 .. +41 | -64 .. -6 | 39.5 .. 97.5 |
 | brake bar, crank, guide caps, rocker | -113 .. +48.5 | -60 .. +40 | -3.5 .. +25 | 8.5 .. 37 |
@@ -67,6 +67,18 @@ them in your REPORT.md or message the coordinator.
 Bought: CSK20PP, 2 x 608, 2 x 693ZZ (pulleys 1 and 2), M3: 7 deck screws, 4 x M3x8 hub, 3 x M3x8 shroud, 2 x M3x8 trim,
 M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post, brake: M3x10 crank screw and
 4 x M3x16 guide caps.
+
+## 4b. Pulley 2 swivel (review r3_Q, D43)
+
+- Over the aim range the line leaves pulley 2 toward cad-launch's pivot pulley 5 to 53 deg out of a fixed groove
+  plane. Pulley 2 therefore sits in a swivel fork that turns about the incoming run from pulley 1 (axis along R -Z
+  through the tangent point, R (79.9, 13.6)). The fork's tube (d 12, line bore d 6, coned mouth) turns in the post
+  block's bore and is held by a C-clip above the block. The line tension pushes the fork shoulder up into the block.
+- kin `reel_swivel` = swivel_deg(P, S): -4.6 deg at aim 6, -8.6 at 15, -31 at 36, -47 at 47 and above. The line
+  stays within 2 deg of the groove plane (test).
+- The run from pulley 1 is 4 deg off the swivel axis (pulley 1 is 14 mm higher), 2.2 mm off the axis at the tube's
+  top: inside the bore.
+- Pulley 2 raised to world z -56 (block 3.5 mm above the drum). The line still leaves pulley 2 in the y 119 plane.
 
 ## 5. Gears (spur 20 deg PPA-CF, axes parallel to the main shaft)
 

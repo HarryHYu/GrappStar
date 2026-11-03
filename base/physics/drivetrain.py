@@ -29,7 +29,7 @@ import math
 
 from common import load_params, Params, PPA_CF, G
 import capstan
-import gears
+import printed_gears as gears
 
 STALL_FRAC_MAX = 0.6
 LIMITER_FRAC_MAX = capstan.LIMITER_FRAC_MAX

@@ -303,6 +303,13 @@ class Rig:
                 time.sleep(0.02)
         if ps:
             self.base.set(**ps)
+        if sc.start_mode:
+            self.base.cmd({"id": 0, "cmd": "mode", "to": sc.start_mode})
+            t0 = time.time()
+            while time.time() - t0 < 30 and self.base.get().get("state") != "IDLE":
+                time.sleep(0.1)
+            time.sleep(0.5)
+            self.note("info", msg=f"bench: drum moved to {sc.start_mode} before the mission: {self.base.get().get('drumDeg')} deg")
         self.dart = DartProc(self.dir)
         for q in sc.dart_setup:
             self.dart.get("/sim/set?" + q)
@@ -863,7 +870,8 @@ class Scenario:
         self.line_ea_n = kw.get("line_ea_n", 20000.0)   # 1 mm Dyneema: about 3.5 % at 667 N
         self.slip_n = kw.get("slip_n", 0.0)
         self.stiff = kw.get("stiff", False)
-        self.path_gain = kw.get("path_gain", 1.15)     # D43: capstan-side tension = 1.15 x dart-side (pulleys)          # strict line: 1 mm Dyneema stiffness (else the sim.h 40 N/m spring)             # the anchor (or a dragging dart) slides above this tension
+        self.path_gain = kw.get("path_gain", 1.15)
+        self.start_mode = kw.get("start_mode")         # bench: drive the drum here before the mission (C1 mode)     # D43: capstan-side tension = 1.15 x dart-side (pulleys)          # strict line: 1 mm Dyneema stiffness (else the sim.h 40 N/m spring)             # the anchor (or a dragging dart) slides above this tension
         self.c1_from_last_aim = kw.get("c1_from_last_aim", False)
         self.expect_faults = kw.get("expect_faults", False)
         self.d22 = kw.get("d22", False)
@@ -1404,7 +1412,7 @@ for _step, _pst in POWER_STATES:
     sc(Scenario(f"power_{_step.lower()}", f"power loss in {_step} (base state {_pst}): kill, restart, mission recovers",
                 triggers=[(f"kill base in {_step}", plant_state(_pst, step=_step, delay=1.0), lambda r: r.restart_base(2.0))],
                 policy={"LOADED_UNKNOWN": decock_then_retry, "PHASE_UNKNOWN": decock_then_retry, "phase UNKNOWN": decock_then_retry, "use Decock": decock_then_retry},
-                retry_max=4, plant_setup={"drumDeg": 41} if _step == "LAUNCH_MODE" else {},
+                retry_max=4, start_mode="NEUTRAL" if _step == "LAUNCH_MODE" else None,
                 checks=[("mission DONE after the power loss", c_done), ("no dry fire", c_no_dry),
                         ("seated", c_seated), ("back to LAUNCH", c_launch), ("tow limit respected", c_tow_limit)]))
 
@@ -1443,6 +1451,10 @@ sc(Scenario("nogo_reshoot", "first landing on water (NO GO): retrieve the free d
 
 sc(Scenario("land_short", "the dart lands with only 0.3 m of slack on its side (short of the turn length): the wrap must "
             "tug the free dart, never jam against an anchored one", landing_slack=0.3, d22=True))
+
+sc(Scenario("hand_lever", "the drum was turned to NEUTRAL by the manual lever with the board off (the spec's hand fallback): "
+            "the base must boot with the drum from its absolute code (PROTOCOL 7) and the mission must run",
+            plant_setup={"drumDeg": 41}))
 
 sc(Scenario("dart_wifi_drop", "the dart's WiFi station drops right after landing",
             triggers=[("wifi drop", lambda r: "LANDED" in r.dart_phases, lambda r: r.dart.get("/sim/disconnect"))]))

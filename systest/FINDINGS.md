@@ -373,3 +373,14 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   "dart `/release`, then `stop`".
 - Stop first is the safer order (the capstan never pulls against a releasing dart; the worm holds the line either way),
   so I suggest the spec adopts it. The C1 check accepts both orders meanwhile.
+
+## F26 (fw-base) a drum turned by hand while the board is off gives `DRUM_SENSOR` at boot
+
+- Preview (fw-base c28396c), scenario `power_launch_mode` set-up: board off, drum turned from LAUNCH to NEUTRAL
+  (41 deg), board on. `BOOT {"record":true,"was_moving":false,"phase":"UNKNOWN"}` then
+  `FAULT DRUM_SENSOR "drum code disagrees with the saved drum angle"`. The spec makes the drum lever the manual
+  fallback (BASE_SPEC 1: "Manual lever on the drum shaft end as the hand fallback") and PROTOCOL.md section 7 says the
+  sector always comes from the absolute drum code at boot. A clear is needed before anything moves, and the phase is
+  UNKNOWN as well (the `cal cock_rest` 100 ms before the power cut was not in flash yet: the F1 family).
+- Suggest: at boot, a valid code in another sector than the record = the drum was moved by hand: take the code's
+  sector (angle mid-sector), no fault; keep DRUM_SENSOR for invalid codes. New scenario `hand_lever` checks it.

@@ -793,6 +793,9 @@ static void testIndexMode() {
   std::string a = R2.cmd("{\"id\":4,\"cmd\":\"arm\"}"); long tok = atol(a.c_str() + a.find("\"token\":") + 8);
   R2.ok("{\"id\":5,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}"); R2.until([&] { return R2.idle() || R2.B.state == gb::S_FAULT; }, 30000);
   CHECK(S.shots == 1 && R2.B.phase == gb::PH_REST && R2.B.fault == gb::F_NONE, "fired and reset on the index alone");
+  R2.ok("{\"id\":6,\"cmd\":\"aim\",\"deg\":6.06}"); R2.until([&] { return R2.idle() || R2.B.state == gb::S_FAULT; }, 60000);
+  CHECK(R2.B.cockPhase <= R2.B.c.homeOpenDeg, "the coast after the reset does not draw the phase (systest F31)");
+  CHECK(R2.toMode("NEUTRAL"), "shift out of LAUNCH after a shot and a re-aim on the index (systest F31)");
 }
 
 static void testReview3() {

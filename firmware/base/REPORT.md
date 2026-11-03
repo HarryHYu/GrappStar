@@ -51,26 +51,26 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
 
 ## Verified
 
-(run at cd3ea88, 3 Nov 19:30 Sydney, from firmware/base/test: `./run_tests.sh`; summary lines)
+(run with the F31 fix below, 3 Nov 19:45 Sydney, from firmware/base/test: `./run_tests.sh`; summary lines)
 
 ```
 == params generator
 18 checks, 18 passed, 0 failed: ALL PASS
 == firmware logic (simulation)
-444 checks, 444 passed, 0 failed: ALL PASS
+446 checks, 446 passed, 0 failed: ALL PASS
 
-fuzz: 300 seeds (1..300), 300 steps each, 28.0 h simulated, 961 shots in 243 seeds
+fuzz: 300 seeds (1..300), 300 steps each, 27.9 h simulated, 922 shots in 243 seeds
 fuzz: no invariant violated
 == fuzz with faults during motion, held jogs and the tow limit check
 
-fuzz: 200 seeds (5001..5200), 400 steps each, 19.8 h simulated, 235 shots in 113 seeds
+fuzz: 200 seeds (5001..5200), 400 steps each, 19.9 h simulated, 230 shots in 113 seeds
 fuzz: no invariant violated
 ```
 
 Compile (`arduino-cli`, esp32 core 3.3.12, fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc, HX711 by Rob Tillaart 0.6.6):
 
 ```
-Sketch uses 407037 bytes (31%) of program storage space. Maximum is 1310720 bytes.
+Sketch uses 407049 bytes (31%) of program storage space. Maximum is 1310720 bytes.
 Global variables use 35600 bytes (10%) of dynamic memory, leaving 292080 bytes for local variables. Maximum is 327680 bytes.
 ```
 
@@ -88,6 +88,11 @@ Global variables use 35600 bytes (10%) of dynamic memory, leaving 292080 bytes f
   (review notes in this report's history); bench tests in BENCH_TEST.md cover them by hand.
 - Spec text that disagrees with params / decisions (reported to the coordinator): BASE_SPEC 30 deg unload jog
   (params 1.3.3 now 6, firmware uses it), take-up "about 30 percent" (firmware 40, I4 cap), D31 309 / D32 -6 (superseded by 314 / -10.4).
+- systest F31 (fixed after the final push, 19:45): in D12 index mode the estimated coast after each reset grew the
+  launch phase about 11 deg at REST, so `mode NEUTRAL` was LAUNCH_BUSY after every shot. The coast estimate no longer
+  moves the phase at REST; regression in the D12 index test.
+- Still over at 18ab2b2 (systest): ref_tow_stiff 50.4 N and tow_stiff 46.2 N dart side vs the 46.0 bound on the
+  stiff 3 m line; ref_nominal passes (38.6 N). Next step if Harry wants it: hold small and stiff-line limits earlier.
 - Pending at the final push: systest re-runs of ref_tow_stiff (F21, 46.2 N vs 46.0 bound before the taper fix) and
   F30 (15 N check pull held at 20.5 N) on the taper fix 6dd2cf3. If either still overshoots, hold small limits earlier.
 - Review round 8 (drum moves and boot; protocol and sketch glue) was started but its agents stopped on an API limit

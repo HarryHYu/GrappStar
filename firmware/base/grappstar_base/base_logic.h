@@ -445,6 +445,9 @@ struct Base {
         if (c.aimDir < 0) aimPhase = wrapCyc(aimPhase + use, c.aimCycleDeg);
         if (phase != PH_REST && cockPhase > c.homeOpenDeg - 1) cockPhase = fmaxf(c.homeOpenDeg - 1, cockPhase - back);   // drawn spring follows back
       }
+      // D12 index mode at REST: the coast after a stop is only an estimate (it grew the phase about 11 deg after each
+      // reset and blocked the shift out of LAUNCH, systest F31); the real gear coasts inside its toothless gap
+      if (fwd > 0 && indexMode && !w.outDir && phase == PH_REST && c.aimDir < 0) fwd = 0;
       if (fwd > 0) { lashDir = 1; if (c.aimDir > 0) aimPhase = wrapCyc(aimPhase + fwd, c.aimCycleDeg); else cockPhase += fwd; }
     } else if (reel && fwd > 0 && c.reelDir > 0) {
       lineM -= fwd / 360.f * c.capstanPerWiper * (float)M_PI * c.capstanDmm / 1000.f; if (lineM < 0) lineM = 0;

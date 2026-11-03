@@ -58,8 +58,11 @@ struct Cfg {
       45.0f;
 #endif
   // current trips per state (decision D8, lens B I5); a printed torque limiter in the coupler slips at about 5 N m
-#ifndef P_REEL_CURRENT_TRIPS_A_AIM
-#define P_REEL_CURRENT_TRIPS_A_AIM 5.0f
+#ifndef P_REEL_CURRENT_TRIPS_A_BACKWARD_LAUNCH
+#define P_REEL_CURRENT_TRIPS_A_BACKWARD_LAUNCH 3.0f
+#endif
+#ifndef P_REEL_CURRENT_TRIPS_A_REEL_IN
+#define P_REEL_CURRENT_TRIPS_A_REEL_IN 5.0f
 #endif
 #ifndef P_REEL_CURRENT_TRIPS_A_COCK
 #define P_REEL_CURRENT_TRIPS_A_COCK 6.5f
@@ -71,9 +74,10 @@ struct Cfg {
 #define P_REEL_TOW_TENSION_MODEL_N_PER_A 17.0f
 #endif
 #ifndef P_REEL_TOW_TENSION_MODEL_OFFSET_N
-#define P_REEL_TOW_TENSION_MODEL_OFFSET_N -10.4f
+#define P_REEL_TOW_TENSION_MODEL_OFFSET_N -3.0f
 #endif
-  float tripA = P_REEL_CURRENT_TRIPS_A_AIM;     // aim, reel-in (params.REEL.current_trips_a, D8 / D33)
+  float tripA = P_REEL_CURRENT_TRIPS_A_REEL_IN;  // reel-in and the reset run (params.REEL.current_trips_a, D8 / D33)
+  float aimTripA = P_REEL_CURRENT_TRIPS_A_BACKWARD_LAUNCH;   // D40: every backward run in LAUNCH (aim, decock): the aim gears
   float cockTripA = P_REEL_CURRENT_TRIPS_A_COCK;          // cock and fire (peak about 5.1 A)
   float towTripA = P_REEL_CURRENT_TRIPS_A_TOW;           // tow (reel until tension): a 50 N tow draws about 5.1 A; the tension estimate is the limit
   float takeupTripA = 2.5f;        // take-up only (NEUTRAL / WRAP)
@@ -165,6 +169,9 @@ struct Cfg {
   // fly-in (lens B 7.2 steps 8, 15): the wiper creeps forward while the collar drops into REEL; into LAUNCH the collar
   // dropping in is checked with SW_DOG_L and, if needed, the wiper is turned BACKWARD (never forward: that would cock)
   int flyDuty = 64;                 // 25 percent (about 20 percent asked; at least minScaleDuty 60 so the 3 A trip sees the real current)
+  float flyBiteA = 0.8f;            // D41: fly-in creep stops when the current rises this much over its running level
+  float flyMaxN = 20;               // D41: after the bite any wind-in is limited by the tension estimate at this (N)
+  float flyLegDeg = 5;              // D41: wind-in legs of at most this many wiper degrees, SW_DOG_R read between legs
   float flyMaxDeg = 120;            // at most this much wiper travel for the dogs to drop in
   float flyLaunchMaxDeg = 40;
   // take-up while unwrapping (lens B step 13): wiper forward at 40 percent while the drum is in the WRAP sector

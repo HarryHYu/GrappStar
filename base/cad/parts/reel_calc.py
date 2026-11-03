@@ -168,6 +168,45 @@ def rocker(d, E=2100.0, b=None):
     return dict(t=t, EI=EI, sigma_max=sigma, precompress_input=delta0, E=E, b=b)
 
 
+def rocker_section(d, y_load=-48.6, t=3.0, t_leg=5.5, y_leg=-30.0, E=2100.0, n=4000):
+    """Rocker spring with its real section (review 2): pin at R Y 37, trim screws on the clutch stack at Y 0, load at
+    y_load on the stiff leg. Plate t (top 10 wide, ring r 14.5 with the S hole r 6, trim bosses r 4 x 6 thick at
+    Y 0, 15 wide below), leg 10 wide x t_leg below y_leg. Unit-load integration of M^2 / EI.
+    Returns the input stroke at y_load for the LAUNCH -> REEL preload change, the push forces and the peak stress."""
+    cl = clutch(d)
+    yp = 37.0
+    L, a = yp, -y_load
+
+    def width_inertia(y):
+        if y > 31.0:
+            return 10.0 * t ** 3 / 12, 10.0 * t ** 2 / 6
+        if y < y_leg:
+            return 10.0 * t_leg ** 3 / 12, 10.0 * t_leg ** 2 / 6
+        b = 15.0
+        if abs(y) < 14.5:
+            b = max(b, 2 * math.sqrt(14.5 ** 2 - y ** 2))
+        if abs(y) < 6.0:
+            b -= 2 * math.sqrt(36.0 - y ** 2)
+        i = b * t ** 3 / 12
+        if abs(y) < 4.0:
+            i += 2 * 2 * math.sqrt(16.0 - y ** 2) * (6.0 ** 3 - t ** 3) / 12
+        return i, b * t ** 2 / 6
+
+    comp, sig = 0.0, 0.0
+    P_firm = cl["reel"]["preload_n"] * L / (L + a)
+    h = (yp - y_load) / n
+    for k in range(n):
+        y = yp - (k + 0.5) * h
+        m = a * (yp - y) / L if y > 0 else a + y
+        i, zmod = width_inertia(y)
+        comp += m * m / (E * i) * h
+        sig = max(sig, P_firm * abs(m) / zmod)
+    dF = cl["reel"]["preload_n"] - cl["launch"]["preload_n"]
+    dP = dF * L / (L + a)
+    return dict(stroke=dP * comp, compliance=comp, push_firm=P_firm,
+                push_light=cl["launch"]["preload_n"] * L / (L + a), sigma_max=sig, t=t)
+
+
 # ------------------------------------------------------------------------------------------------ gear train
 def train(d):
     """Speeds, torques and line speed for the reel train. Main = drum worker's reel output gear on the main shaft."""

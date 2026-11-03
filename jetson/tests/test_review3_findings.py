@@ -42,7 +42,9 @@ def test_final_approach_uses_takeup_not_a_second_wrap(tmp_path):
         cmds = [o.get("cmd") for d, o in log if d == "tx" and o.get("cmd") not in ("ping", "status")]
         i_unwrap = cmds.index("unwrap")
         after = cmds[i_unwrap + 1:]
-        assert "retrieve" not in after, f"sent a command base-1.0 does not have: {after}"
+        # BASE_SPEC 10.1: the final approach is "retrieve" on the take-up in NEUTRAL (base-1.2 faults DART_STUCK
+        # after a fixed 20 s on a long line, so one Retry may appear; base-1.2.1 honours max_s)
+        assert "retrieve" in after, after
         assert "wrap" not in after, f"re-wrapped after UNWRAP (D22 final approach is on the take-up): {after}"
     finally:
         r.close()

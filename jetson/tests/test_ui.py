@@ -244,8 +244,11 @@ def test_token_protection(srv):
     assert r.status == 401
     r, data = req(port, "GET", "/")
     assert r.status == 401 and b"token" in data
-    r, _ = req(port, "POST", "/api/action/stop", b"{}")
+    r, _ = req(port, "POST", "/api/action/start", b"{}")
     assert r.status == 401 and app.calls == []
+    r, _ = req(port, "POST", "/api/action/stop", b"{}")   # safety: STOP never needs a password or token (r3_M #3)
+    assert r.status == 200
+    app.calls.clear()
     r, _ = req(port, "GET", "/api/status?token=wrong")
     assert r.status == 401
     r, _ = req(port, "GET", "/api/status", headers={"Cookie": "grappstar_token=wrong"})
@@ -260,10 +263,10 @@ def test_token_protection(srv):
     assert r.status == 200 and app.calls[-1][0] == "stop"
     # the shared password alone is not enough: the session token is still required on POST
     n = len(app.calls)
-    r, _ = req(port, "POST", "/api/action/stop?token=s3cret", b"{}")
+    r, _ = req(port, "POST", "/api/action/start?token=s3cret", b"{}")
     assert r.status == 403 and len(app.calls) == n
-    # and the session token alone does not get past the shared password
-    r, _ = post(s, port, "/api/action/stop", b"{}")
+    # and the session token alone does not get past the shared password (STOP is exempt, see the safety test)
+    r, _ = post(s, port, "/api/action/start", b"{}")
     assert r.status == 401 and len(app.calls) == n
 
 
@@ -361,3 +364,51 @@ def test_get_stays_open_without_session_token(srv):
         assert r.status == 200, path
     r, _ = req(port, "GET", "/api/action/stop")
     assert r.status == 404 and app.calls == []                # GET never runs an action
+
+
+def test_post_refused_for_foreign_host_name(tmp_path):
+    """DNS rebinding: a POST whose Host is some other DNS name is refused even with the token and a matching Origin."""
+    import http.client
+    app = FakeApp(tmp_path)
+    srv = ui_server.make_server(app, host="127.0.0.1", port=0)
+    import threading
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        port = srv.server_address[1]
+        c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        c.request("POST", "/api/action/stop", body="{}", headers={
+            "Host": f"evil.example:{port}", "Origin": f"http://evil.example:{port}",
+            "X-GrappStar-Token": srv.session_token, "Content-Type": "application/json"})
+        r = c.getresponse()
+        assert r.status == 403
+        c.close()
+        c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        c.request("POST", "/api/action/stop", body="{}", headers={
+            "Host": f"127.0.0.1:{port}", "Origin": f"http://127.0.0.1:{port}",
+            "X-GrappStar-Token": srv.session_token, "Content-Type": "application/json"})
+        assert c.getresponse().status == 200
+    finally:
+        srv.shutdown()
+
+
+def test_safety_actions_work_without_the_session_token(tmp_path):
+    """r3_M #3: after an app restart the page holds a stale token; STOP, ESTOP and dart_stop must still work (same
+    origin), every other action still needs the token."""
+    app = FakeApp(tmp_path)
+    srv = ui_server.make_server(app, host="127.0.0.1", port=0)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        port = srv.server_address[1]
+        hdr = {"Host": f"127.0.0.1:{port}", "Origin": f"http://127.0.0.1:{port}", "Content-Type": "application/json",
+               "X-GrappStar-Token": "stale"}
+        for name, want in (("stop", 200), ("estop", 200), ("dart_stop", 200), ("start", 403)):
+            c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+            c.request("POST", f"/api/action/{name}", body="{}", headers=hdr)
+            assert c.getresponse().status == want, name
+            c.close()
+        c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        c.request("POST", "/api/action/stop", body="{}",
+                  headers=dict(hdr, Origin="http://evil.example", Host=f"127.0.0.1:{port}"))
+        assert c.getresponse().status == 403           # still same-origin only
+    finally:
+        srv.shutdown()

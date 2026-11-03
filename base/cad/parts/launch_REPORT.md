@@ -55,9 +55,25 @@ audit_states, checks, grounded, steps, line_path, line_entry), `launch_kin.py` (
    changes by about 25 mm over the aim range (take-up handles it).
 7. Worm in the aim train although v10's notes say "no worm gear": the system plan and coordinator asked for a printed
    self-locking stage; it is pawl-free.
+8. Fallback spring hole set F 8.5 mm rearward, not the 15 mm params asks (256.5 mm at full cock instead of 250): the
+   stop frame front wall ends at u 248.15 and the anchor post starts at 255.5, so 8.5 is the room there is.
+9. Anchor pins are 8 mm steel rod (on Harry's list), not 6 mm dowels (not on it) or printed pins.
+10. The launch sleeve prints outboard end down with supports under the flange: the D37 lugs stand on the flange face,
+    which used to be the bed face.
+11. In kin, the sleeve follows S["sleeve_deg"] exactly (or wiper_deg in drum-only and load states), because cad-drum's
+    dog ring is bolted to it. Off the 12 deg sun tooth phase, the splitter arm is drawn swung out.
+12. Sun key rib 12 mm long (the full sun face), not D8's 20: cheek B ends at y 168 and the housing bushing starts at 187.
+    Bearing stress at the 3.2 N m trip is about 7 MPa.
+13. Aim drag: printed PLA finger with a shim for preload (0.43 percent strain), not an M3 screw: the arm hub is 4 mm thick.
 
 ## 4. Open items and risks
 
+- Big gear backlash on aiming (review 3): the sprag drag can carry the big gear up to 127 deg backward on aim turns
+  (no damage, SW_GAP opens). Firmware rule sent to the coordinator: after any aim move, run forward until SW_GAP closes,
+  then fire. A printed detent would remove the rule; not done.
+- Aim bevel pair z15 is SF 0.70 at the 5 A trip (3.2 N m): face 8 is the cone/3 limit and the housing has no room for
+  a bigger module. Worm wheel SF 1.42 (face 16 is the limit for the pd 24 worm), splitter 1.57 to 1.83. Lower the trip
+  current in firmware for the aim direction, or accept that a jam strips the bevel first (printed, cheap to replace).
 - PLA stop returns most of the energy: the carriage rebounds up to about 100 mm before friction and the springs settle
   it. The gear is in its gap then (audited); firmware should wait 0.5 s after the release before trusting SW_HOME.
 - In tow, the line over the lip roller pushes the carriage back by T (1 - cos a): lower the rail to minimum before
@@ -67,17 +83,22 @@ audit_states, checks, grounded, steps, line_path, line_entry), `launch_kin.py` (
 - Sleeve wall over the spigot is 3.83 mm (D13 asks 4): bore 12.35 is cad-drum's bushing size on a d20 sprag bore.
   Fine for 2.7 N m (about 2 MPa); flagged to the coordinator.
 - params LAUNCH still lists big_gear present 33 and drive face 12/16; the model has 27 + full layer, face 7.
+- Lip roller fork cheeks are now 2.5 mm plates (funnel lightening): about 380 N in tow at a 270 N line. Pull-test a
+  printed fork to 270 N line before trusting a full tow.
 - Overhang warnings (supports needed): rail pieces, big gear sector side, worm, crank, aim housing. Listed on the print
   sheet by the pipeline.
 
 ## 5. What Harry must measure
 
-1. Springs: hang test (rate and initial tension) and whether 165.1 mm is the length outside or inside the hooks; then
-   set SPRING.k_n_per_mm, F0_n, free_len, max_ext. Preload follows automatically.
+1. Springs: hang test (rate and initial tension) and whether 165.1 mm is the length outside or inside the hooks. The
+   model takes it as the pin centre distance at zero extension; if it is inside the hooks, the true extension at full
+   cock is about 7 mm more (about 272 mm, 41 N per spring against the 38.4 N rating): then use hole set F. Set
+   SPRING.k_n_per_mm, F0_n, free_len, max_ext. Preload follows automatically.
 2. Stop flexure: after printing, a press test (force at 10 mm) to confirm the stiffness.
 3. Fit coupon for the 0.2 mm running clearances (sleeve journals 20.4 in the cheeks, gear pin 10.35).
 4. The sprag direction before assembly (inner race must freewheel the BACKWARD wiper way).
-5. The aim table zero: run backward until SW_RAIL_LOW closes; record the AS5600 angle at the closing edge.
+5. Lip roller fork: pull a printed fork to 270 N on the line before a full tow.
+6. The aim table zero: run backward until SW_RAIL_LOW closes; record the AS5600 angle at the closing edge.
 
 ## 6. Verification output
 

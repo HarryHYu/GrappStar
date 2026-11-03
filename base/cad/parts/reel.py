@@ -15,6 +15,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
+from manifold3d import Manifold
 
 from cad.lib import Part, Joint, Allow, Clearance, prim, tf, fits, gears, bearings, shafts, clips, line, switch
 from cad.parts import reel_calc, reel_v7 as v7
@@ -89,11 +90,31 @@ SHROUD_R = (39.5, 41.5)       # shroud shell round the storage reel
 SHROUD_DEG = (140.0, 318.0)   # covered arc (the line leaves at the top, the guide post stands at the right)
 
 ROCKER_PIVOT = np.array((X_REEL, 37.0, 3.0))
-ROCKER_Z = (0.5, 3.5)
-PUSH_Y = -33.0                # push rod axis height
-PUSH_D = 5.6
-BRAKE_STROKE = 4.0            # the drum pushes the rod +Z this far for FIRM
-PUSH_COLLAR_R, PUSH_COLLAR_T, PUSH_CB = 4.5, 1.5, 3.2   # collar on the rod, counterbore depth in the wall front
+ROCKER_Z = (0.5, 3.5)         # spring plate (t 3.0, reel_calc.rocker_section)
+BRAKE_STROKE = 4.0            # cad-drum's track 2 cam lift (radial, base r 30, follower at L angle 180 = R -X)
+# Brake input: the cam pushes a sliding bar -X (in front of the wall, under the shroud); the bar turns a bell crank
+# (axis R Y) left of the reel; the crank's arm B pushes the rocker's stiff leg +Z from behind. Fail-safe LIGHT: the
+# rocker's own spring pushes everything back.
+CAM_R0 = 30.0
+BAR_GAP = 0.2                 # bar nose to the cam base circle at LIGHT
+BAR_Z = (9.2, 15.2)           # bar thickness: rides the cam at world y 18.3 .. 24.3 (cam s 18 .. 29)
+BAR_H = 6.0                   # bar height (R Y)
+BAR_YL = -55.0                # left run: under the shroud and under the guide post
+BAR_DOG = (-30.0, -10.0)      # dogleg up to the cam height between these X
+LEG_X = (-93.0, -83.0)        # rocker leg (stiff, Z 0.5 .. 6), from the spring plate down past the shroud
+LEG_Y0, LEG_Z1 = -51.7, 6.0
+CRANK_X, CRANK_Z = -99.83, 2.0                # crank pivot (axis R +Y)
+CRANK_Y = (-58.1, -45.7)
+CRANK_LA, CRANK_RT = 10.2, 2.5                # arm A: tip circle centre above the pivot, radius (bar contact)
+CRANK_B, CRANK_RB = (12.83, -3.05), 1.5       # arm B: tip circle centre from the pivot (leg contact), radius
+CRANK_HUB_R, CRANK_BOSS_R = 4.3, 2.5
+CRANK_COL_TOP, CRANK_BOSS_TOP = -58.4, -45.4  # column under the crank, pivot boss top (washer + M3 x 10 on it)
+WASHER_T, WASHER_R = 1.2, 4.5
+POCKET_D = 3.0                # wall front recess for arm B and the hub
+BAR_GUIDES = ((-76.0, BAR_YL), (17.0, None))  # (x, y) of the two U guides (y None = right run)
+GUIDE_W, GUIDE_FRONT, GUIDE_SCREW_Z = 10.0, 20.0, 17.2
+POST_Y0 = -51.0               # guide post bottom (the bar passes under it)
+MAIN_CLEAR_R = 37.5           # wall cut round the main axis (cad-drum's coupler reaches r 35 in the wall plane)
 
 # gear planes behind the wall (from params)
 BUS_Z = (SP["bus_z"][1] - 6.0, SP["bus_z"][1])  # my bus gear c1 (face 6) inside cad-drum's bus plane (-14.5..-6.5)
@@ -240,7 +261,6 @@ def stop_angles():
     return (arm_deg() + STOP_OFF, arm_deg() - SWING_OUT_DEG - STOP_OFF)
 
 
-GUIDE_LIFT = 8.0              # guide post and its web start this far above the deck (clear of the cheek's flange)
 FOOT_FRONT_X1 = -57.0         # front foot ends here (cad-frame's cheek r stands at world x > -75)
 FOOT_REAR_X1 = 3.0            # rear strip ends here (cad-drum's idler bracket at R X 4.9 .. 46.9 behind the wall)
 MOUNT_HOLES = [(-120.0, 14.0), (-120.0, 36.0), (-64.0, 36.0), (-64.0, 14.0), (-120.0, -32.0), (-60.0, -32.0),
@@ -258,8 +278,9 @@ def _wall():
     wall = prim.box(x0, x1, Y_DECK, Y_WALL_TOP, -WALL_T, 0.0)
     # guide eye post (v7 top: 6 mm thick with the eye), 12 x 12 column, a web back to the wall below the line
     gx, gy, gz = GUIDE
-    # it hangs from the wall: cad-frame's cheek r has a 6 mm foot flange on the deck right under it
-    yb = Y_DECK + GUIDE_LIFT
+    # it hangs from the wall (cad-frame's cheek r has a 6 mm foot flange on the deck under it; the brake bar passes
+    # under its bottom end)
+    yb = POST_Y0
     post = prim.union([prim.box(gx - 6, gx + 6, yb, gy - 8, gz - 6, gz + 6),
                        prim.box(gx - 3, gx + 3, gy - 8.01, gy + 6, gz - 5, gz + 5),
                        prim.box(gx - 2.5, gx + 2.5, yb, -2.0, -0.01, gz)])
@@ -285,9 +306,7 @@ def _wall():
         cut.append(prim.cyl(fits.M3_TAP_D / 2, 5.0 + 0.01, x=x, y=y, z=-5.0))
     cut.append(prim.cyl((S_D + fits.SHAFT_IN_BORE + fits.HOLE_HORIZ_EXTRA) / 2, WALL_T + Z_T + 2, x=X_REEL,
                         z=-WALL_T - 1))
-    cut.append(prim.cyl((PUSH_D + fits.HOLE_SLIDE + fits.HOLE_HORIZ_EXTRA) / 2, WALL_T + 2, x=X_REEL, y=PUSH_Y,
-                        z=-WALL_T - 1))
-    cut.append(prim.cyl(PUSH_COLLAR_R + 0.3, PUSH_CB + 1.0, x=X_REEL, y=PUSH_Y, z=-PUSH_CB))
+    cut += _brake_wall_cuts()
     cut.append(_eye_cut(GUIDE, guide_axis(), 6.0))
     for s_ in (-1, 1):                             # hex key access to the rocker's trim screws
         cut.append(prim.cyl(3.6, WALL_T + 2, x=X_REEL + s_ * TRIM_R, z=-WALL_T - 1))
@@ -302,7 +321,115 @@ def _wall():
         cut.append(prim.cylY(fits.M3_CLEAR_D / 2, Y_DECK - 1, Y_DECK + FOOT_T + 1, x=x, z=z))
         cut.append(prim.cylY(fits.M3_HEAD_D / 2, Y_DECK + FOOT_T - fits.M3_HEAD_H - 0.2, Y_DECK + FOOT_T + 60,
                              x=x, z=z))
-    return body - prim.union(cut)
+    mx, my = SP["main_xy"]                         # wall top cut round cad-drum's coupler (bus gear, SW_INDEX cam)
+    cut.append(prim.cyl(MAIN_CLEAR_R, WALL_T + 2, x=mx, y=my, z=-WALL_T - 1, seg=192))
+    body = body - prim.union(cut)
+    add_, cut2 = _brake_wall_adds()
+    return prim.union([body] + add_) - prim.union(cut2)
+
+
+def cam_contact(P=None):
+    """R (x, y) of cad-drum's clutch cam base circle on the follower line (L angle 180 from the drum axis)."""
+    sp = _spec(P) if P is not None else SP
+    lay = (getattr(P, "LAYOUT", None) if P is not None else None) or {}
+    do = lay.get("axes", {}).get("drum", {}).get("origin", (60.0, 0.0, -112.0))
+    return do[0] - CAM_R0 - sp["origin"][0], do[2] - sp["origin"][2]
+
+
+def _bar_y_right():
+    return cam_contact()[1]
+
+
+def _guide_ys():
+    """(y_lo, y_hi) of the bar run at each guide."""
+    out = []
+    for gx, gy in BAR_GUIDES:
+        yc = gy if gy is not None else _bar_y_right()
+        out.append((gx, yc - BAR_H / 2, yc + BAR_H / 2))
+    return out
+
+
+GUIDE_JAW = 4.6               # lower jaw and cap thickness (R Y)
+GUIDE_CLEAR = 0.4             # bar clearance in the guides (each side)
+
+
+def _wedge_down(x0, x1, y_top, depth, z0=0.0):
+    """45 deg support wedge under a ledge that sticks out of the wall front (prints standing on the foot)."""
+    cs = prim.poly_cs([(z0, y_top), (z0 + depth, y_top), (z0, y_top - depth)])
+    s = prim.extrude(cs, x1 - x0)
+    M = np.array([[0, 0, -1, x1], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]], float)
+    return prim.place(s, M)
+
+
+def _brake_wall_cuts():
+    """Recess in the wall front for the crank hub and arm B (behind the rocker leg), washer and screw head."""
+    x0 = CRANK_X - CRANK_HUB_R - 0.9
+    return [prim.box(x0, LEG_X[1] - 1.5, CRANK_Y[0] - 0.4, CRANK_Y[1] + 0.4, -POCKET_D, 0.01),
+            prim.box(x0, CRANK_X + CRANK_HUB_R + 0.9, CRANK_Y[0] - 0.4, CRANK_BOSS_TOP + WASHER_T + 3.6, -POCKET_D,
+                     0.01)]
+
+
+def _brake_wall_adds():
+    """Crank column and pivot boss, two U guides for the bar (lower jaw + back; the cap is a separate part).
+    Returns (solids to add, holes to cut after)."""
+    adds, cuts = [], []
+    yf = Y_DECK + FOOT_T - 0.01
+    adds.append(prim.box(CRANK_X - 3.0, CRANK_X + 3.0, yf, CRANK_COL_TOP, -0.01, CRANK_Z + 3.0))
+    adds.append(prim.cylY(CRANK_BOSS_R, CRANK_COL_TOP - 0.01, CRANK_BOSS_TOP, x=CRANK_X, z=CRANK_Z))
+    cuts.append(prim.cylY(fits.M3_TAP_D / 2, CRANK_BOSS_TOP - 9.0, CRANK_BOSS_TOP + 1.0, x=CRANK_X, z=CRANK_Z))
+    for gx, ylo, yhi in _guide_ys():
+        x0, x1 = gx - GUIDE_W / 2, gx + GUIDE_W / 2
+        s0, s1 = ylo - GUIDE_CLEAR, yhi + GUIDE_CLEAR          # slot
+        zb = BAR_Z[0] - GUIDE_CLEAR                            # slot back face
+        adds.append(prim.box(x0, x1, s0 - GUIDE_JAW, s0, -0.01, GUIDE_FRONT))          # lower jaw
+        adds.append(prim.box(x0, x1, s0 - 0.01, s1, -0.01, zb))                       # back pillar
+        adds.append(_wedge_down(x0, x1, s0 - GUIDE_JAW + 0.01, GUIDE_FRONT, z0=-0.01))
+        for z in (zb / 2, GUIDE_SCREW_Z):                     # cap screws: tapped into the pillar and the jaw
+            cuts.append(prim.cylY(fits.M3_TAP_D / 2, s0 - GUIDE_JAW - 0.5, s1 + 0.01, x=gx, z=z))
+    return adds, cuts
+
+
+def _bar():
+    """Brake bar (PPA-CF), R frame at LIGHT. Nose (round, r 3) on cad-drum's cam at the right end, left end face
+    on the crank's arm A tip. A flat dogleg takes it from the cam height down under the shroud."""
+    cx, cy = cam_contact()
+    zr = BAR_Z
+    xl = CRANK_X + CRANK_RT + 0.05
+    xn = cx - BAR_GAP - NOSE_R
+    yl, yr, h = BAR_YL, cy, BAR_H / 2
+    left = prim.box(xl, BAR_DOG[0], yl - h, yl + h, zr[0], zr[1])
+    right = prim.box(BAR_DOG[1], xn, yr - h, yr + h, zr[0], zr[1])
+    dog = Manifold.batch_hull([prim.box(BAR_DOG[0] - 4.0, BAR_DOG[0], yl - h, yl + h, zr[0], zr[1]),
+                               prim.box(BAR_DOG[1], BAR_DOG[1] + 4.0, yr - h, yr + h, zr[0], zr[1])])
+    nose = prim.cyl(NOSE_R, zr[1] - zr[0], x=xn, y=yr, z=zr[0], seg=96)
+    return prim.union([left, dog, right, nose])
+
+
+def _guide_cap(gx, ylo, yhi):
+    """Bar guide cap (PLA), R frame: closes the U guide over the bar; 2 x M3 x 16 down into the pillar and jaw."""
+    s1 = yhi + GUIDE_CLEAR
+    cap = prim.box(gx - GUIDE_W / 2, gx + GUIDE_W / 2, s1 + 0.05, s1 + 0.05 + GUIDE_JAW, 0.0, GUIDE_FRONT)
+    zb = BAR_Z[0] - GUIDE_CLEAR
+    holes = [prim.cylY(fits.M3_CLEAR_D / 2, s1 - 1, s1 + GUIDE_JAW + 1, x=gx, z=z) for z in (zb / 2, GUIDE_SCREW_Z)]
+    return cap - prim.union(holes)
+
+
+def _crank():
+    """Bell crank (PPA-CF), local frame: pivot at the origin (R orientation, R Y absolute), axis +Y. One extrusion
+    along Y: hub on the wall boss, arm A up (+Z) to the bar, arm B along +X in the wall recess to the rocker leg."""
+    bx, bz = CRANK_B
+    z0, z1 = -CRANK_Z - 0.25 - 1.95, -CRANK_Z - 0.25          # arm B strip (R Z -2.2 .. -0.25)
+    cs = (prim.circle_cs(CRANK_HUB_R) + prim.poly_cs([(-2.2, 0.0), (2.2, 0.0), (1.2, 7.0), (1.2, CRANK_LA), (-1.2, CRANK_LA), (-2.2, 7.0)])
+          + prim.circle_cs(CRANK_RT, 0.0, CRANK_LA)
+          + prim.poly_cs([(0.0, z0), (bx, z0), (bx, z1), (0.0, z1)]) + prim.circle_cs(CRANK_RB, bx, bz))
+    s = prim.extrude(cs, CRANK_Y[1] - CRANK_Y[0])            # profile (u = R x, v = R z), extruded along w
+    s = prim.place(s, tf.T(0, CRANK_Y[1], 0) @ tf.Rx(90))     # (u, v, w) -> (u, -w, v): R y = y1 - w
+    return s - prim.cylY(CRANK_BOSS_R + fits.HOLE_CLEAR / 2 + 0.15, CRANK_Y[0] - 1, CRANK_Y[1] + 1)
+
+
+def _washer():
+    """Printed washer (PPA-CF) on the crank boss top, under the M3 x 10 head; it keeps the crank on the boss."""
+    return prim.tube(WASHER_R, fits.M3_CLEAR_D / 2, WASHER_T)
 
 
 def _sprag_hub():
@@ -432,7 +559,8 @@ def _shroud():
                                tf.T(X_REEL + (SHROUD_R[0] + 0.5) * math.cos(math.radians(a)),
                                     (SHROUD_R[0] + 0.5) * math.sin(math.radians(a)), 0) @ tf.Rz(a)))
     body = prim.union([shell, flange] + tabs)
-    cut = []
+    cut = [prim.box(LEG_X[0] - 1.5, LEG_X[1] + 1.5, -46.0, -36.0, -1.0, 11.5),    # window: the rocker leg (FIRM +5)
+           prim.cylY(3.6, -46.0, -36.0, x=CRANK_X, z=CRANK_Z)]                    # crank screw head
     for a in SHROUD_SCREW_DEG:
         x = X_REEL + SHROUD_SCREW_R * math.cos(math.radians(a))
         y = SHROUD_SCREW_R * math.sin(math.radians(a))
@@ -478,13 +606,14 @@ def _thrust_ring():
 
 
 def _rocker():
-    """Brake rocker (PETG, flexible lever), local frame = R. Pivots on an M3 pin at the top, two bumps press T at
-    Y 0, the drum's push rod pushes the bottom. With T blocked by the clutch stack the plate bends: it IS the
-    clutch spring (reel_calc.rocker)."""
+    """Brake rocker (PETG, flexible lever), local frame = R. Pivots on an M3 pin at the top, two trim screw tips press
+    T at Y 0, the crank pushes the stiff leg at the bottom. With T blocked by the clutch stack the plate bends: it IS
+    the clutch spring (reel_calc.rocker_section, plate t 3.0)."""
     x, y, z = ROCKER_PIVOT
     z0, z1 = ROCKER_Z
     w = 7.5
-    plate = prim.box(x - 5.0, x + 5.0, y - 6.0, y, z0, z1) + prim.box(x - w, x + w, PUSH_Y - 3.5, y - 6.0, z0, z1)
+    plate = prim.box(x - 5.0, x + 5.0, y - 6.0, y, z0, z1) + prim.box(x - w, x + w, -30.0, y - 6.0, z0, z1)
+    plate = plate + prim.box(LEG_X[0], LEG_X[1], LEG_Y0, -28.0, z0, LEG_Z1)          # stiff leg
     ring = prim.cyl(14.5, z1 - z0, x=x, z=z0)
     hole = prim.cyl(6.0, 10, x=x, z=z0 - 2)
     bosses = [prim.cyl(4.0, Z_T - 0.5 - z0, x=x + s * TRIM_R, z=z0) for s in (-1, 1)]
@@ -492,14 +621,6 @@ def _rocker():
     boss = prim.cylX(2.6, x - 5.0, x + 5.0, y=y, z=z) ^ prim.box(x - 5.0, x + 5.0, y - 3, y + 3, z0, z + 3)
     pin = prim.cylX(fits.M3_CLEAR_D / 2, x - 10, x + 10, y=y, z=z)
     return prim.union([plate, ring, boss] + bosses) - prim.union([hole, pin] + taps)
-
-
-def _pushrod():
-    """Brake push rod (PPA-CF), local frame = R at the LIGHT position. Rear end face = the drum's contact."""
-    z_front = ROCKER_Z[0] - 0.1
-    rod = prim.cyl(PUSH_D / 2, z_front + 24.0, x=X_REEL, y=PUSH_Y, z=-24.0)
-    collar = prim.cyl(PUSH_COLLAR_R, PUSH_COLLAR_T, x=X_REEL, y=PUSH_Y, z=-PUSH_CB + 0.05)
-    return prim.union([rod, collar])
 
 
 P1_R = 7.0                    # line radius on pulley 1 (groove root 6.5 + half the line)
@@ -747,8 +868,25 @@ def parts(P):
     add("reel_trim_screws", prim.union([prim.place(fasteners_m3(8.0), tf.T(X_REEL + s_ * TRIM_R, 0, Z_T - 8.0))
                                         for s_ in (-1, 1)]), "bought", joint="reel_base", color=COL["brg"],
         bought_ref="2 x M3x8 SHCS", step=10, notes="LIGHT trim screws: their tips press the thrust ring; 1/8 turn = 0.4 N")
-    add("reel_pushrod", _pushrod(), "PPA-CF", joint="reel_push", color=COL["ppa"], step=10,
-        notes="Brake push rod: the drum pushes it 4 mm for FIRM. Print standing")
+    add("reel_crank", _crank(), "PPA-CF", tf.Rx(-90), joint="reel_crank", color=COL["ppa"], step=10,
+        notes="Brake bell crank: the bar turns it, arm B pushes the rocker leg. Print on its flat side")
+    add("reel_crank_washer", _washer(), "PPA-CF", joint="reel_base",
+        place=tf.T(CRANK_X, CRANK_BOSS_TOP, CRANK_Z) @ tf.Rx(-90), color=COL["ppa"], step=10,
+        notes="Printed washer: keeps the crank on its boss")
+    add("reel_crank_screw", fasteners_m3(10.0), "bought", joint="reel_base",
+        place=tf.T(CRANK_X, CRANK_BOSS_TOP + WASHER_T, CRANK_Z) @ tf.Rx(90), color=COL["brg"],
+        bought_ref="M3x10 SHCS", step=10, notes="Crank retaining screw, into the boss")
+    add("reel_bar", _bar(), "PPA-CF", joint="reel_bar", color=COL["ppa"], step=10,
+        notes="Brake bar: cad-drum's track 2 cam pushes its nose, its left end turns the crank. Print flat")
+    for k, (gx, ylo, yhi) in enumerate(_guide_ys()):
+        add(f"reel_bar_cap_{k + 1}", _guide_cap(gx, ylo, yhi), "PLA", tf.Rx(-90), joint="reel_base",
+            color=COL["wall"], step=10, notes="Bar guide cap: closes the U guide over the bar. Print flat")
+    add("reel_bar_screws", prim.union([prim.place(fasteners_m3(16.0), tf.T(gx, yhi + GUIDE_CLEAR + 0.05 + GUIDE_JAW,
+                                                                           z) @ tf.Rx(90))
+                                       for gx, ylo, yhi in _guide_ys()
+                                       for z in ((BAR_Z[0] - GUIDE_CLEAR) / 2, GUIDE_SCREW_Z)]),
+        "bought", joint="reel_base", color=COL["brg"], bought_ref="4 x M3x16 SHCS", step=10,
+        notes="Guide cap screws (the front one crosses the slot mouth in front of the bar)")
     add("reel_gr", _gear(M_BUS, Z_REELG, BUS_Z[1] - BUS_Z[0], S_D, 1.0, hub=(14.0, -WALL_T - BUS_Z[1] - 0.1)),
         "PPA-CF", joint="reel_shaft", place=tf.T(0, 0, BUS_Z[0]), color=COL["gear"], step=11,
         notes=f"Reel gear m{M_BUS:g} z{Z_REELG}: turns the clutch disk {Z_BUSMAIN / Z_REELG:g} x wiper speed")
@@ -807,7 +945,8 @@ def joints(P):
         Joint("reel_shaft", "reel_base", "rev", (X_REEL, 0, 0), (0, 0, 1)),
         Joint("reel_spool", "reel_base", "rev", (X_REEL, 0, 0), (0, 0, 1)),
         Joint("reel_t", "reel_base", "slide", (X_REEL, 0, 0), (0, 0, 1), limits=(0.0, 0.3)),
-        Joint("reel_push", "reel_base", "slide", (0, 0, 0), (0, 0, 1), limits=(0.0, BRAKE_STROKE)),
+        Joint("reel_bar", "reel_base", "slide", (0, 0, 0), (-1, 0, 0), limits=(0.0, BRAKE_STROKE)),
+        Joint("reel_crank", "reel_base", "rev", (CRANK_X, 0, CRANK_Z), (0, 1, 0), limits=(-25.0, 0.0)),
     ]
 
 
@@ -837,11 +976,17 @@ def _zone(P, drum_deg):
 
 
 def brake_mm(P, S):
-    """Push rod stroke: LIGHT 0, FIRM BRAKE_STROKE, linear on the drum's ramps (params DRUM zones)."""
+    """Cam lift at the follower (0 LIGHT .. BRAKE_STROKE FIRM): cad-drum's own track 2 profile when its module is
+    there, else linear on the ramps of the params DRUM zones."""
     if "reel_brake_mm" in S:
         return float(S["reel_brake_mm"])
     if "drum_deg" in S:
         dd = float(S["drum_deg"])
+        try:
+            from cad.parts import _drum_kin as K
+            return float(K.brake_lift(dd, K.cfg(P)))
+        except Exception:
+            pass
         z = _zone(P, dd)
         if z is not None:
             c = z.get("clutch", "LIGHT")
@@ -854,6 +999,43 @@ def brake_mm(P, S):
             return BRAKE_STROKE * (f if c.startswith("LIGHT to") else 1.0 - f)
     mode = str(S.get("mode", "LAUNCH")).upper()
     return BRAKE_STROKE if mode in ("REEL", "WRAPPED", "TOW", "NEUTRAL") else 0.0
+
+
+NOSE_R = 3.0
+
+
+def bar_mm(P, S):
+    """Bar slide (-X). With cad-drum's module: the round nose's envelope on the real cam profile (on a ramp the
+    nose touches off the follower line, higher up the ramp). Else the cam lift less the LIGHT gap."""
+    if "reel_brake_mm" not in S:
+        try:
+            from cad.parts import drum as _dm
+            g, c = _dm.G(P), _dm.C(P)
+            th = _dm.drum_theta(S, c)
+            d0 = g["cam_r0"] + BAR_GAP + NOSE_R
+            dreq = d0
+            for k in range(-40, 41):
+                dl = 0.2 * k                                   # deg off the follower line
+                r = _dm.cam_radius(g, c, g["phi_brake"] + dl - th)
+                y = r * math.sin(math.radians(dl))
+                if abs(y) < NOSE_R:
+                    dreq = max(dreq, r * math.cos(math.radians(dl)) + math.sqrt(NOSE_R ** 2 - y * y))
+            return min(max(0.0, dreq - d0), BRAKE_STROKE)
+        except Exception:
+            pass
+    return max(0.0, brake_mm(P, S) - BAR_GAP)
+
+
+def crank_deg(bar):
+    """Crank angle about R +Y for a bar slide: arm A's tip circle stays on the bar's end face."""
+    return -math.degrees(math.asin(min(bar / CRANK_LA, 1.0)))
+
+
+def leg_push_mm(bar):
+    """Arm B tip rise (+Z) at the rocker leg for a bar slide."""
+    p = math.radians(crank_deg(bar))
+    bx, bz = CRANK_B
+    return -bx * math.sin(p) + bz * (math.cos(p) - 1.0)
 
 
 def _num(S, k, default=0.0):
@@ -905,8 +1087,10 @@ def kin(P, S):
     else:
         r_mid = 0.5 * (d["core_r"] + reel_calc.pack_r(d, d["line_len_m"]))
         spool = -math.degrees(_num(S, "line_out_m") * 1000.0 / r_mid)
+    bar = bar_mm(P, S)
     return {"reel_capstan": cap, "reel_cup": -360.0 * wraps, "reel_bus": bus, "reel_swing": swing,
-            "reel_idler": th_i, "reel_shaft": th_r, "reel_spool": spool, "reel_t": 0.0, "reel_push": brake_mm(P, S)}
+            "reel_idler": th_i, "reel_shaft": th_r, "reel_spool": spool, "reel_t": 0.0, "reel_bar": bar,
+            "reel_crank": crank_deg(bar)}
 
 
 def allowed(P):
@@ -946,8 +1130,12 @@ def allowed(P):
         Allow("reel_p2_axle", "reel_p2_brg", "axle through the inner race"),
         Allow("reel_p2_axle", "reel_p2_post", "axle through the cheeks"),
         Allow("reel_trim_screws", "reel_t", "screw tips on the thrust ring (preload)", max_vol=0.5),
-        Allow("reel_pushrod", "reel_rocker", "the push rod bends the flexible rocker 4 mm at FIRM (elastic)",
-              max_vol=160.0),
+        Allow("reel_crank", "reel_rocker", "arm B bends the flexible rocker (static in the model; 5 mm at FIRM)",
+              max_vol=140.0),
+        Allow("reel_crank_washer", "reel_crank_screw", "screw through the washer"),
+        Allow("reel_crank_screw", "reel_wall", "screw tapped into the crank boss"),
+        Allow("reel_bar_screws", "reel_wall", "cap screws tapped into the guides"),
+        Allow("reel_bar_screws", "reel_bar_cap_*", "cap screws through the caps"),
     ]
 
 
@@ -973,7 +1161,7 @@ def audit_states(P):
         out.append(dict(phase="reel_mesh", t=0.0, drum_deg=347.0, wiper_deg=k * 360.0 / Z_BUSMAIN / 5,
                         reel_deg=k * 360.0 / Z_MAIN / 5))
     for k in range(3):
-        out.append(dict(phase="reel_swing_out", t=0.0, drum_deg=0.0, wiper_dir=-1, bus_deg=k * 5.0))
+        out.append(dict(phase="reel_swing_out", t=0.0, drum_deg=0.0, wiper_dir=-1, wiper_deg=-k * 5.0))
     for w in (0.0, 0.25, 0.5, 0.75, 1.0, 3.5, float(WRAPS)):
         out.append(dict(phase="reel_wrap", t=0.0, wraps=w))
     out.append(dict(phase="reel_firm", t=0.0, drum_deg=41.0, line_out_m=3.0))
@@ -1257,12 +1445,18 @@ def steps(P):
                   "until the disc meets the shaft's round head. Slide the thrust ring onto the shaft behind the "
                   "reel, small boss toward the bearing.",
              parts=["reel_spool", "reel_spool_flange", "reel_brg_1", "reel_brg_2", "reel_s", "reel_t"]),
-        dict(title="Brake rocker and push rod",
-             text="Push the brake push rod into its hole low on the front of the wall, rear end first, until "
-                  "its collar sits in the counterbore. Hang the yellow rocker between the two ears at the top with an M3 x 25 screw and nut "
-                  "(snug, it must swing). Its round hole sits over the small boss. Screw two M3 x 8 screws into the rocker's "
-                  "two bosses from behind, until their tips stand 0.5 mm proud of the front.",
-             parts=["reel_pushrod", "reel_rocker", "reel_rocker_pin", "reel_trim_screws"]),
+        dict(title="Brake crank, rocker and bar",
+             text="Grease the crank boss low on the left of the wall front. Slide the black bell crank onto it, "
+                  "the long arm into the recess pointing right, the short arm up. Put the printed washer on the boss "
+                  "and screw the M3 x 10 into the boss top: the crank must swing freely. Hang the yellow rocker "
+                  "between the two ears at the top with an M3 x 25 screw and nut (snug, it must swing); its round "
+                  "hole sits over the small boss and its leg hangs in front of the crank's long arm. Screw two "
+                  "M3 x 8 screws into the rocker's two bosses from behind, until their tips stand 0.5 mm proud of "
+                  "the front. Lay the brake bar in the two U guides, left end against the crank's short arm, nose "
+                  "toward the drum. Close each guide with its cap and two M3 x 16 screws. Push the nose: the crank "
+                  "swings and the rocker leg moves forward; let go and it all springs back.",
+             parts=["reel_crank", "reel_crank_washer", "reel_crank_screw", "reel_rocker", "reel_rocker_pin",
+                    "reel_trim_screws", "reel_bar", "reel_bar_cap_1", "reel_bar_cap_2", "reel_bar_screws"]),
         dict(title="Reel shaft into the wall",
              text="Feed the reel shaft's thin end through the rocker's hole and the wall bushing from the front. "
                   "From behind, slide the 20-tooth reel gear onto the D-flat, hub toward the wall, and snap its "
@@ -1311,7 +1505,7 @@ def main_axis_keepouts(P):
         ("collar", cyl_y(30.0 + 2, 65.0, 105.0), ()),
         ("dog_ring", cyl_y(31.0 + 2, 100.5, 111.0), ()),
         ("main_shaft", cyl_y(13.0 + 2, 0.5, 200.0), ()),
-        ("drum", cyl_y(42.0 + 2, 1.0, 142.0, x=drum_ax[0], z=drum_ax[2]), ("reel_gk",)),
+        ("drum", cyl_y(42.0 + 2, 1.0, 142.0, x=drum_ax[0], z=drum_ax[2]), ("reel_gk", "reel_bar")),   # the bar nose rides the cam (audit vs drum_drum_a)
     ]
 
 

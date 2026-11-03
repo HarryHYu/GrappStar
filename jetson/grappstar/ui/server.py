@@ -66,6 +66,7 @@ BOUNDARY = "grappstarframe"
 MAX_BODY = 64 * 1024
 DEFAULT_MAX_FPS = 12.0
 KEEPALIVE_S = 2.0           # resend the last frame this often when nothing new arrives (detects dead clients)
+SAFETY_ACTIONS = ("stop", "estop", "dart_stop")   # always accepted from a same-origin page (no token)
 TOKEN_HEADER = "X-GrappStar-Token"
 TOKEN_META_RE = re.compile(rb'<meta name="grappstar-token" content="[^"]*">')
 NAME_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.\-]{0,63}$")
@@ -453,11 +454,38 @@ class Handler(BaseHTTPRequestHandler):
         host = self.headers.get("Host") or ""
         return bool(host) and self._hostport(parts.netloc, parts.scheme) == self._hostport(host)
 
-    def _check_post(self) -> bool:
-        """Same origin plus the per-process session token. False = refused (403 already sent)."""
+    def _host_allowed(self) -> bool:
+        """DNS rebinding guard (review round 4 #7): the Host must be an IP literal, localhost or this machine's own
+        name, never an arbitrary DNS name that could be rebound to the rover."""
+        import ipaddress
+        import socket
+        host = (self.headers.get("Host") or "").strip()
+        if not host:
+            return True                      # HTTP/1.0 clients without Host: still need the token
+        name = host.rsplit(":", 1)[0] if not host.startswith("[") else host[1:host.find("]")]
+        try:
+            ipaddress.ip_address(name)
+            return True
+        except ValueError:
+            pass
+        n = name.lower().rstrip(".")
+        me = socket.gethostname().lower()
+        # IP literals, localhost, this machine, mDNS names (*.local, only resolvable on the local link) and bare
+        # single-label names (the rover's own hostname, for example GrappStar); public DNS names are refused
+        return n in ("localhost", me) or n.endswith(".local") or "." not in n
+
+    def _check_post(self, safety: bool = False) -> bool:
+        """Same origin plus the per-process session token. False = refused (403 already sent).
+        safety=True (STOP, ESTOP, dart_stop): host and same-origin checks only, so a stale page after a restart can
+        always stop the machine (review r3_M #3)."""
+        if not self._host_allowed():
+            self._json(403, {"ok": False, "msg": "unknown host name: open the page by its IP address"})
+            return False
         if not self._same_origin():
             self._json(403, {"ok": False, "msg": "cross-origin request refused"})
             return False
+        if safety:
+            return True
         given = self.headers.get(TOKEN_HEADER) or ""
         if not given or not hmac.compare_digest(given.encode("utf-8", "replace"),
                                                 self.server.session_token.encode()):
@@ -468,14 +496,16 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path, query = self._split()
-        extra = self._check_token(query)
-        if extra is None:
-            return
+        m = re.fullmatch(r"/api/action/([A-Za-z0-9_\-]{1,64})", path)
+        safety = bool(m) and m.group(1) in SAFETY_ACTIONS
+        if not safety:
+            extra = self._check_token(query)
+            if extra is None:
+                return
         # Refused: the body is not read, so close the connection rather than keep it alive out of sync.
-        if not self._check_post():
+        if not self._check_post(safety=safety):
             self.close_connection = True
             return
-        m = re.fullmatch(r"/api/action/([A-Za-z0-9_\-]{1,64})", path)
         if not m:
             return self._json(404, {"ok": False, "msg": "not found"})
         try:

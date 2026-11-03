@@ -9,7 +9,8 @@ Status: in progress. Final version at 18:30 Sydney.
   imageglob, csv, printlist (base pack in any of csv/json/md form, from base/pack or base/out/base/pack; dart from
   kedge/pack_v30), wiremap (run sheet v29 wire numbers to the new dart numbers), assumed (params measured=False and
   None blocks), status, date. Missing sources become placeholders naming the owner, so it always builds. Appends
-  `base/guide/*.pdf` and the KEDGE v30 run sheet as PDF appendices with bookmarks. Renders the system diagram with
+  the base assembly guide (`base/out/base/guide.pdf`) as a PDF appendix with a bookmark; the KEDGE v30 run sheet
+  is pointed to, not appended (coordinator decision: it is kedge's own document and carries Helvetica). Renders the system diagram with
   graphviz (wide pictures get their own rotated page). Lints for em dashes. Also writes the one-pagers:
   `Wiring_Cheat_Sheet_Base.pdf`, `Wiring_Cheat_Sheet_Dart.pdf`, `Commands_Cheat_Sheet.pdf`, and
   `MEASURE_RESULTS.md/.pdf` (fill-in sheet generated from MEASURE_LIST).

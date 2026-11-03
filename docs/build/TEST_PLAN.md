@@ -162,12 +162,13 @@ you; by hand it is (each line: what you send, what to wait for):
 | Step | Send | Wait for |
 |---|---|---|
 | after the shot | `{"cmd":"set","key":"line_m","val":4.5}` (the measured distance) | reply |
+| rail down first if above 15 degrees (decision D45) | `{"cmd":"aim","deg":6}` | `AIMED` |
 | wrap at once, line still slack | `{"cmd":"wrap"}` (from LAUNCH or NEUTRAL) | `WRAPPED` (up to 60 s; the drum parks at 314: cup locked, collar NEUTRAL, clutch FIRM) |
 | (real dart only: anchor) | dart `auto` | dart ANCHORED |
 | tidy the slack | `{"cmd":"tidy"}` | `TIDIED` |
 | into REEL | `{"cmd":"mode","to":"REEL"}` | `MODE` ok (REEL) |
 | tow (stage 8 only) | `{"cmd":"reel","duty":1,"until":"tension"}` | `LIMIT` holding |
-| (real dart: release) | dart `release`, then `{"cmd":"stop"}` | `ABORTED` |
+| (real dart: release) | `{"cmd":"stop"}` FIRST (`ABORTED`), then dart `release` | dart released (operator page) |
 | reel in | `{"cmd":"reel","until":"stop"}`, then `{"cmd":"stop"}` when `line_m` reads about 1.5 | `ABORTED` |
 | unwrap | `{"cmd":"unwrap"}` | `UNWRAPPED`, then `MODE` NEUTRAL |
 | final approach | `{"cmd":"retrieve","duty":0.3}` | `SEATED` (never seat it on the capstan) |
@@ -211,8 +212,8 @@ The real dart, built and tested to the dart run sheet section 10. Use real soil 
    40 N limit. Re-anchor (wrap first, as in step 1). Rover chocked, everyone beside the line. Then the stage 7 table
    from `tidy` on: `tidy`, `mode` REEL, then the tow with `max_n` 10 N under the hand result:
    `{"cmd":"reel","duty":1,"max_n":40,"until":"tension"}`.
-4. Send release (operator page, or `python3 -m grappstar dart release`): drills out, pods up, foot out, kick back.
-   Then finish the stage 7 table: `stop`, reel in to about 1.5 m, `unwrap`, `retrieve`, `mode` LAUNCH.
+4. `stop` the tow first, then send release (operator page, or `python3 -m grappstar dart release`): drills out,
+   pods up, foot out, kick back. Then finish the stage 7 table: reel in to about 1.5 m, `unwrap`, `retrieve`, `mode` LAUNCH.
 
 Pass: the dart anchors on its own, holds at least 20 N in loam, the base stops at its tension limit, the release
 sequence frees the dart, it reels home.

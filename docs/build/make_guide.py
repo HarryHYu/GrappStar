@@ -633,7 +633,6 @@ APPENDICES = [
     # (repo path or glob, bookmark title). Missing files are skipped.
     ("base/out/base/guide.pdf", "Appendix: base assembly guide (base pipeline)"),
     ("base/guide/*.pdf", "Appendix: base assembly steps (base pipeline)"),
-    ("kedge/pack_v30/KEDGE_v30_run_sheet.pdf", "Appendix: KEDGE v30 dart run sheet"),
 ]
 
 

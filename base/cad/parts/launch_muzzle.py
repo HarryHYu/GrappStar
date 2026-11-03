@@ -6,15 +6,17 @@ w up. The carriage moves -u by the cock travel (0..241) and +u by up to 19 into 
 LIP ROLLER: the tether runs from the pusher hole (u 0..8, y 0, w 84.6) forward to the dart. In tow and retrieval it
 bends down over the carriage front, so a printed pulley (launch_line pulley, 693ZZ, M3 axle along y) sits in a fork
 on the carriage front: centre (U_R, 0, W_R), top W_R + 7 = 62.3 (below the dart belly 63.6 as the dart flies off),
-bottom 48.3 (nothing of the carriage below the rack tips 47.6). The fork prongs (|y| 3..17.5, w 53.7..62.5) run back
-over the deck to the rack end, the shoes run on to the fork. At full cock the fork passes over the big gear (tip
-circle r 52.5 about rail (82.6, 0)): the parts below the deck sit far enough forward to clear it.
+bottom 48.3 (nothing of the carriage below the rack tips 47.6). Light fork (carriage mass): two 2.5 mm cheek plates
+(|y| 3..5.5, top w 61.5) from the u 250 deck rib past the front rib to the roller hub, a floor between them behind
+the roller, lightening windows. At full cock the hub roots pass over the big gear (tip circle r 52.5 about rail
+(82.6, 0)) about 2 mm clear.
 
-RETRIEVAL FUNNEL: the dart is reeled home tail first; a cone concentric with the dart axis (w 85) opens from the
-cradle bore r 21.4 at u 148 to r 27 at u 200 (floor 63.6 -> 58, just above the rack spine 57.7), cut at w 80 and to
-the carriage body |y| <= 21.5, clear of the rail lips (|y| > 17.5 at w 59.7..64.5). It catches a tail cap (d 42)
-arriving low or off centre and steers it up and onto the cradle centreline. Being outside r 21.4 about w 85 it never
-touches the dart in flight (hull r 21 about w 84.6).
+RETRIEVAL FUNNEL (light): the dart is reeled home tail first. Two 2 mm guide rails on a cone concentric with the dart
+axis (w 85), 20..48 deg either side of the bottom (the tail cap rides in their V like on the cradle strips), open from
+the cradle bore r 21.4 at u 148 to r 27 at the mouth ring (u 190..196, full cone section, floor 58), which stands on
+the u 190 deck rib through a bulkhead; posts onto the u 160 rib. Cut at w 80, |y| <= 21.5, clear of the rail lips.
+A tail cap (d 42) arriving low or off centre meets the rails and is steered up onto the cradle centreline. Outside
+r 21.4 about w 85 it never touches the dart in flight (hull r 21 about w 84.6). Added volume about 4 cm3.
 
 Integration (launch.py):
     import launch_muzzle as MZ
@@ -40,15 +42,18 @@ import launch_line as LN                     # noqa: E402
 U_R = 281.0                 # roller centre u (forward enough that the hub clears the big gear at full cock)
 W_R = 55.3                  # roller centre w: top 62.3, bottom 48.3
 Y_CHEEK0 = 3.0              # cheek inner faces |y| (pulley 5 wide: 0.5 side clearance)
-Y_CHEEK1 = 8.5              # cheek outer faces at the hub (axle head / nut seat)
+Y_CHEEK1 = 5.5              # cheek plate outer faces (2.5 thick; axle head / nut seat)
 R_HUB = 5.0                 # cheek hub radius about the axle (inside the groove bottom r 6: the line never touches)
 AXLE_L = 20.0               # M3 x 20 SHCS + nyloc nut
-U_FORK0 = 238.0             # fork root (rack end)
-W_FORK1 = 62.5              # fork top (dart belly 63.6 in flight)
+U_FORK0 = 250.0             # fork root (deck rib at u 250)
+W_FORK1 = 61.5              # cheek top (dart belly 63.6 in flight)
+R_PUL_CLEAR = 8.5           # floor ends this far behind the roller centre (pulley r 7)
+RACK_BACK_MZ = 4.0          # = launch.RACK_BACK: deck ribs top at w_rroot + 4
 U_FRONT = U_R + R_HUB       # carriage front (286): the body prints across the bed diagonal (L + W <= 362)
 
 # funnel
-U_F0, U_F1 = 148.0, 200.0
+U_F0, U_F1 = 148.0, 196.0
+U_MOUTH = 190.0             # mouth ring over the u 190 deck rib
 R_F0, R_F1 = 21.4, 27.0
 F_WALL = 2.0                # like the cradle pipe
 W_F_TOP = 80.0
@@ -79,7 +84,20 @@ def _lip_keepout(n):
     return Bs(-100, 400, n["y_lip0"] - 0.5, 40.0, n["shoe_w1"], n["lip_w1"] + 0.4)
 
 
+def _wedge_u(a0, a1, u0, u1, w):
+    """Sector about the axis (y 0, w) between angles a0..a1 from straight down (+ towards +y), along u0..u1."""
+    pts = [(0.0, 0.0)] + [(60.0 * math.sin(math.radians(a)), -60.0 * math.cos(math.radians(a)))
+                          for a in [a0 + (a1 - a0) * i / 8 for i in range(9)]]
+    cs = prim.poly_cs(pts)                                           # (x = y, y = w - w_axis)
+    M = [[0.0, 0.0, 1.0, u0], [1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, w], [0.0, 0.0, 0.0, 1.0]]
+    import numpy as np
+    return prim.place(prim.extrude(cs, u1 - u0), np.array(M))       # (x, y, z) -> (u = z, y = x, w = y)
+
+
 def funnel_solid(P=None, n=None):
+    """Light lead-in: two guide rails on the cone surface 20..48 deg either side of the bottom (the tail cap rides in
+    their V, as on the cradle strips) from the cradle front ring to a mouth ring (u 190..196, full cone section)
+    over the u 190 deck rib; small posts onto the u 160 rib."""
     n = _n(P, n)
     wd = n["w_dart"]
     k = (R_F1 - R_F0) / (U_F1 - U_F0)
@@ -87,30 +105,36 @@ def funnel_solid(P=None, n=None):
     outer = _cone_u(R_F0 + F_WALL, R_F1 + F_WALL, U_F0, U_F1, wd)
     env = B(U_F0, U_F1, -n["y_shoe1"], n["y_shoe1"], n["w_deck0"], W_F_TOP) - _lip_keepout(n)
     shell = (outer - inner) ^ env
-    # keel onto the rack spine, webs on the deck cross ribs (u 160, 190) up to the cone
-    keel = B(U_F0 + 10.0, U_F1, -1.5, 1.5, n["w_rroot"] + 3.5, wd - R_F0) - inner
-    webs = prim.union([B(uc, uc + 3.0, -(n["y_lip0"] - 0.5), n["y_lip0"] - 0.5, n["w_rroot"] + 3.5, wd - 12.0)
-                       for uc in (160.0, 190.0)]) - inner - _lip_keepout(n)
-    return shell + keel + webs
+    keep = _wedge_u(20.0, 48.0, U_F0 - 1, U_F1 + 1, wd) + _wedge_u(-48.0, -20.0, U_F0 - 1, U_F1 + 1, wd) \
+        + B(U_MOUTH, U_F1 + 1.0, -50, 50, 0, 200)
+    s = shell ^ keep
+    rib_top = n["w_rroot"] + RACK_BACK_MZ
+    yo = n["y_lip0"] - 0.5
+    # mouth bulkhead under the ring onto the rib (u 190..193), open in the middle for the line and the rack spine
+    s = s + (B(U_MOUTH, U_MOUTH + 3.0, -yo, yo, rib_top - 0.5, wd - 15.0) - inner - B(0, 400, -5.0, 5.0, 0, 300))
+    for sg in (1, -1):                                               # posts onto the u 160 rib under each rail
+        y0, y1 = sorted((sg * 7.0, sg * 13.0))
+        s = s + (B(160.0, 163.0, y0, y1, rib_top - 0.5, wd - 12.0) - inner)
+    return s
 
 
 def fork_solid(P=None, n=None):
+    """Thin cheek plates (|y| 3..Y_CHEEK1) from the u 250 deck rib to the roller hub, a floor tying them behind the
+    roller, bearing bosses."""
     n = _n(P, n)
-    yo = n["y_lip0"] - 0.5                                       # 17.5: inside the lips
+    rib_top = n["w_rroot"] + RACK_BACK_MZ
     s = []
-    s.append(Bs(U_FORK0, U_R, Y_CHEEK0, yo, n["w_deck0"], W_FORK1))                      # prongs
-    s.append(Bs(n["c_len"] - 1.0, U_R, yo - 0.01, n["y_shoe1"], n["shoe_w0"], n["shoe_w1"]))   # shoes run on
+    s.append(Bs(U_FORK0, U_R, Y_CHEEK0, Y_CHEEK1, n["w_deck0"], W_FORK1))                # cheek plates
     s.append(prim.cylY(R_HUB, Y_CHEEK0, Y_CHEEK1, x=U_R, z=W_R, seg=48)
              + prim.cylY(R_HUB, -Y_CHEEK1, -Y_CHEEK0, x=U_R, z=W_R, seg=48))             # hubs (rounded front)
     s.append(Bs(U_R - 6.0, U_R, Y_CHEEK0, Y_CHEEK1, W_R - R_HUB, n["w_deck0"] + 0.01))  # hub roots under the deck
-    # bosses that clamp the bearing inner race (693ZZ 4 wide), clear of the pulley bore (r 3.95)
+    s.append(B(n["c_len"] - 0.5, U_R - R_PUL_CLEAR, -Y_CHEEK1, Y_CHEEK1, n["w_deck0"], rib_top - 1.5))   # floor
     s.append(prim.cylY(2.9, 2.05, Y_CHEEK0 + 0.01, x=U_R, z=W_R) + prim.cylY(2.9, -Y_CHEEK0 - 0.01, -2.05, x=U_R, z=W_R))
     f = prim.union(s)
-    # lightening pockets in the prongs (open at the top), axle clearance hole
-    f = f - Bs(U_FORK0 + 4.0, U_R - 9.0, 9.5, 16.0, n["w_deck0"] + 1.8, W_FORK1 + 1.0)
+    # lightening windows through the cheek plates between the ribs
+    f = f - Bs(U_FORK0 + 4.0, n["c_len"] - 4.0, Y_CHEEK0 - 1.0, Y_CHEEK1 + 1.0, rib_top + 1.0, W_FORK1 - 1.5)
+    f = f - Bs(n["c_len"] + 1.5, U_R - 9.0, Y_CHEEK0 - 1.0, Y_CHEEK1 + 1.0, rib_top, W_FORK1 - 1.5)
     f = f - prim.cylY(1.7, -20.0, 20.0, x=U_R, z=W_R)
-    # counterbores for the screw head (right) and the nyloc nut (left), open through the shoes: fitted from the side
-    f = f - prim.cylY(3.6, Y_CHEEK1, 30.0, x=U_R, z=W_R) - prim.cylY(3.6, -30.0, -Y_CHEEK1, x=U_R, z=W_R)
     return f
 
 

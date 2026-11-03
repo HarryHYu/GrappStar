@@ -176,14 +176,14 @@ def test_guard_clear_of_rail_stop_and_arms(guards, rail):
 
 
 def test_guard_brackets_touch_rail_and_pilots_in_material(guards, rail):
-    """Each bracket bears on the rail (contact within 0.05) and every pilot sits in rail material (the cut removes
-    real volume)."""
-    full = LA.rail_solid(P)
+    """Each bracket bears on the rail (contact within 0.05) and every pilot has rail material round it."""
+    full = LA.rail_solid(P)          # may already carry the pilots (integrated): test the wall round each pilot
     for (u, y, w, ax) in GD.pilot_positions():
         if ax == "y":
-            c = prim.cylY(1.3, *sorted((y - np.sign(y) * 4.0, y)), x=u, z=w)
+            y0, y1 = sorted((y - np.sign(y) * 4.0, y))
+            c = prim.cylY(2.5, y0, y1, x=u, z=w) - prim.cylY(1.31, y0 - 1, y1 + 1, x=u, z=w)
         else:
-            c = prim.cyl(1.3, 4.0, x=u, y=y, z=w - 4.0)
+            c = prim.cyl(2.5, 4.0, x=u, y=y, z=w - 4.0) - prim.cyl(1.31, 6.0, x=u, y=y, z=w - 5.0)
         assert _ov(c, full) > 0.9 * c.volume(), (u, y, w)
     for p in guards:
         grown = p.solid.translate((0, 0, 0))

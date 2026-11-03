@@ -184,6 +184,47 @@ def test_internal_interference_raises(zr, zp):
     gears.internal_center_distance(1.0, 40, 30)          # difference 10 is fine
 
 
+def _internal_overlap(m, zr, zp, xr, xp, a, steps=12):
+    """Largest overlap volume of internal_gear(zr, shift xr) and spur_gear(zp, shift xp) at centre distance a while
+    the pinion turns through one tooth pitch (ring at the gear ratio; ring space and pinion tooth 0 on +X)."""
+    ring = gears.internal_gear(m, zr, FACE, rim_od=m * zr + 16, shift=xr)
+    pin = gears.spur_gear(m, zp, FACE, shift=xp)
+    worst = 0.0
+    for i in range(steps + 1):
+        ap = 360.0 / zp * i / steps
+        worst = max(worst, (pin.rotate((0, 0, ap)).translate((a, 0, 0)) ^ ring.rotate((0, 0, ap * zp / zr))).volume())
+    return worst
+
+
+@pytest.mark.parametrize("xp", [0.15, 0.2])
+def test_internal_pinion_shift_checked_for_any_tooth_difference(xp):
+    """Review R2-I #4: z_ring - z_pinion = 10 with a shifted pinion and an unshifted ring lowers aw (13.0 deg at
+    x_pinion 0.15, 5.8 deg at 0.2) and the formula's centre distance collides; the check rejects it. Shifting the
+    ring by the same amount gives a distance with zero overlap over one pitch."""
+    m, zr, zp = 1.0, 30, 20
+    with pytest.raises(ValueError, match="interference"):
+        gears.internal_center_distance(m, zr, zp, x_pinion=xp)
+    aw = math.radians(gears.internal_working_pressure_angle(zr, zp, 0.0, xp))
+    a_bad = m * (zr - zp) / 2 * math.cos(math.radians(20)) / math.cos(aw) - fits.GEAR_CENTER_EXTRA
+    assert _internal_overlap(m, zr, zp, 0.0, xp, a_bad) > 1e-4          # the rejected distance really collides
+    a = gears.internal_center_distance(m, zr, zp, x_ring=xp, x_pinion=xp)
+    assert _internal_overlap(m, zr, zp, xp, xp, a) < 1e-6
+
+
+def test_internal_unshifted_diff10_meshes():
+    a = gears.internal_center_distance(1.0, 30, 20)
+    assert _internal_overlap(1.0, 30, 20, 0.0, 0.0, a) < 1e-6
+
+
+def test_no_real_working_pressure_angle_is_a_value_error():
+    with pytest.raises(ValueError, match="interference"):
+        gears.internal_center_distance(1, 30, 20, x_pinion=0.25)    # was ZeroDivisionError
+    with pytest.raises(ValueError, match="no real working pressure angle"):
+        gears.center_distance(1, 10, 10, -0.3, -0.3)
+    with pytest.raises(ValueError):
+        gears.inv_inverse(0.0)
+
+
 def test_internal_shifted_center_distance():
     m, zr, zp, xr = 1.0, 40, 16, 0.4
     aw = math.radians(gears.internal_working_pressure_angle(zr, zp, xr, 0.0))

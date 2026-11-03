@@ -1,6 +1,6 @@
 # GrappStar base station spec
 
-Status: v1.2 (3 Nov 2026, 12:30 Sydney). Everything here is binding, together with base/spec/DECISIONS.md (D1 onward)
+Status: v1.2 (3 Nov 2026, 12:30 Sydney; text synced to params 1.3.8 after the final cross-check). Everything here is binding, together with base/spec/DECISIONS.md (D1 onward)
 and base/spec/params.py (the numbers). `params.py` holds every shared number;
 this file explains them. Workers never edit either file: write change requests in your REPORT.md or NOTES.md.
 
@@ -83,9 +83,9 @@ The full list with suggested GPIOs is params.SWITCHES.
 - Main axis = world Y, 165 above the deck top (deck_top_z -165). The wiper motor sits on the -y side of the adapter
   plate with its gearbox and can ABOVE the axis (WIPER.orient_deg 90), so the body stays clear of the wrap cup.
 - Main axis stack (world y): coupler with the printed shear-pin torque limiter 0.5..46 (D26); take-up bus gear
-  m1.5 50T 40..48 (D25); REEL output gear m2 50T 50.5..62.5 (dogs to 67.5); dog collar 72..98 at NEUTRAL (stroke 7
+  m1.5 50T 40..48 (D25); REEL output gear m2 50T 50.5..62.5 (dogs to 69.5); dog collar 72..98 at NEUTRAL (stroke 7
   each way); LAUNCH dog ring 100.5..111 bolted to the launch sleeve flange; launch sleeve 111..193 (rail cheeks,
-  two-layer big gear mesh, drive gear 26T m2.5 on sprag #1 at 142.5..158.5, splitter sun 174..182) with its outboard
+  two-layer big gear mesh, drive gear 26T m2.5 on sprag #1 at 142.5..158.5, splitter sun 170..182) with its outboard
   bushing and thrust face in cad-launch's aim housing at 187..193 (D23); d12 spigot through the sleeve to about 200;
   magnet cap 195..203; AS5600 bracket on the aim housing at about 205. Owners may move a part inside its band and
   must report the final numbers.
@@ -96,7 +96,7 @@ The full list with suggested GPIOs is params.SWITCHES.
   R +Y = world +Z, R +Z = world -Y: the capstan gear plane (R Z -29..-17) lands on world y 50.5..62.5.
 - Selector drum axis at (x 60, z -112), y 1..142, parallel to the main axis: front-below, clear of the big gear sweep
   (lowest z about -44) and of the reel gear zone (x up to about +8). The fork reaches up to the collar groove (y 82..88).
-  The wrap idler (segment gear pinion plus a 48T m1.5 output gear) sits between the drum and the capstan (89 mm apart)
+  The wrap idler (segment gear pinion plus a 42T m1.5 output gear) sits between the drum and the capstan (89 mm apart)
   and its output gear runs in the cup gear plane (cad-reel R Z -43..-35 = world y 68.5..76.5).
 - Aim pedestal: crank centre at about (x 58, y 195, z -100.5), about 55 outboard of the rail plane (cad-launch).
 - Electronics bay on the deck in front of the drum (x 110..240, y -70..60). Kiyo X camera mount and RC832 holder on
@@ -132,7 +132,7 @@ NEUTRAL; a boot inside WRAP stops and reports; REEL jogs forward only.
 ## 8. Launcher and aim (binding; params.LAUNCH, params.AIM)
 
 Coaxial launch sleeve with an integral key rib (D13), flange lugs and M3 screws to the dog ring (D37). Drive gear 26T
-m2.5 face 7 on sprag #1 (keyed to the outer race); big gear 40T m2.5 in two layers (a 27-tooth sector layer with the
+m2.5 face 11 on sprag #1 (keyed to the outer race); big gear 40T m2.5 in two layers (a 27-tooth sector layer with the
 v10 relieved last tooth meshing the rack, a full 40T layer meshing the drive gear, D23) on the rail at 82.6 from the
 pivot: 553.8 wiper deg per shot (release at 432.7). Two Century C-243 springs 1:1 (D30, D38): stroke 240.9, preload
 23.8, 265 mm at full cock; fallback hole set F 8.5 mm rearward (256.5 mm). Carriage 85.8 g as built (target 70 g,
@@ -158,7 +158,7 @@ time: the FIRM take-up pulls the slack through the free capstan) -> REEL fly-in 
 drum enters REEL, then SW_DOG open) -> TOW (tow current limit) -> dart release -> reel in on the capstan until about
 1.5 m remain -> unload jog -> drum back to the WRAPPED park 314 (collar to NEUTRAL) -> UNWRAP (drum
 302..62 while the wiper turns forward at about 40 percent (the firmware cap), take-up only) -> NEUTRAL final approach on the FIRM
-take-up until SW_SEATED (fault DART_STUCK after 20 s) -> LAUNCH. A no-go landing retrieves the unanchored dart on
+take-up until SW_SEATED (fault DART_STUCK after max_s, 10.1 step 17) -> LAUNCH. A no-go landing retrieves the unanchored dart on
 the take-up (or after a wrap, on the capstan).
 De-cock: from a partial cock run backward until SW_HOME and SW_GAP close. Refusals: no fire unless LAUNCH, SW_HOME,
 SW_GAP, SW_SEATED and a valid token; aim only at HOME; no drum move unless the wiper is stopped; no leaving LAUNCH
@@ -192,7 +192,7 @@ Jetson sends, what ends the wait. Everything else in C1 stays as PROTOCOL.md doc
 | 14 | `stop`, then dart `/release` | `ABORTED`, then dart phase RELEASING and out of ANCHORED | the worm holds the line while the dart lets go |
 | 15 | `reel` {until `stop`}, then `stop` at line_m about 1.5 | `ABORTED` | capstan reel-in |
 | 16 | `unwrap` | `UNWRAPPED`, then `MODE` NEUTRAL | skipped when never wrapped |
-| 17 | `retrieve` {duty 0.3, max_s} | `SEATED` | take-up final approach in NEUTRAL only (FAULT `DART_STUCK` after max_s: default 20 + line_m / 0.08 s, the take-up is slow). Never seat on the capstan |
+| 17 | `retrieve` {duty 0.3, max_s} | `SEATED` | take-up final approach in NEUTRAL only (FAULT `DART_STUCK` after max_s: default the longer of 20 s and 10 s + 1.5 x line_m / v, v = 0.29 x duty - 0.03 m/s (about 0.057 at duty 0.3, physics retrieve.json), 30 s with line_m unknown, at most 600 s). Never seat on the capstan |
 | 18 | `mode` LAUNCH | `MODE` ok | back to 2 |
 
 Recovery: a fault or stop while cocking leaves the phase UNKNOWN: `decock` (same as `cal decock`), wait `RESET`, then

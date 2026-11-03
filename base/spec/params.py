@@ -2,7 +2,7 @@
 
 Units: mm, deg, N, N m, s, kg unless a name says otherwise.
 Owner: the coordinator. Workers read it and never edit it; request changes in your REPORT.md or NOTES.md.
-STATUS: v1.3.7 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed; 1.3.3 unload jog 6 deg; 1.3.4 ASSEMBLY_STAGES; 1.3.5 TIMELINE rail_low after the flight (D45), no lower at the end; 1.3.6 drum stage bands per cad-drum; 1.3.7 ASSEMBLY_STAGE_OVERRIDES for unstaged steps, launcher band 190-204). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
+STATUS: v1.3.8 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed; 1.3.3 unload jog 6 deg; 1.3.4 ASSEMBLY_STAGES; 1.3.5 TIMELINE rail_low after the flight (D45), no lower at the end; 1.3.6 drum stage bands per cad-drum; 1.3.7 ASSEMBLY_STAGE_OVERRIDES for unstaged steps, launcher band 190-204; 1.3.8 final cross-check: WIPER boss_face_y -10 (D48), DRUM code_edges as built, big gear full layer plane face 11, splitter sun plane 170..182). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
 The architecture blocks below hold the INTERFACE numbers (where two owners must agree) and the module placements.
 Each owner keeps its internal geometry in its own module and maps these numbers explicitly (read with defaults).
 Code against the names; never hard-code a shared number anywhere else.
@@ -10,7 +10,7 @@ Code against the names; never hard-code a shared number anywhere else.
 
 import math
 
-VERSION = "1.3.7"
+VERSION = "1.3.8"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
@@ -30,6 +30,7 @@ WIPER = dict(                          # 12 V car wiper motor, self-locking worm
     measured=False,
     n0_rpm=45.0, stall_nm=15.0, stall_a=18.0, free_a=1.5,
     shaft_d=10.0, shaft_flat=8.0, shaft_thread="M8", shaft_len=20.0,
+    boss_face_y=-10.0,                 # D48: world y of the boss face (rear face of the 10 mm motor plate); frame and drum coupler both read it
     # motor frame: origin on the output shaft axis in the boss face plane, +Z along the shaft into the base (world +Y),
     # +X along the gearbox towards the can. Typical car wiper, NOT MEASURED (cad-frame defaults):
     mount_holes=[(-24.0, 38.0, 6.5), (-24.0, -38.0, 6.5), (72.0, 0.0, 6.5)],
@@ -104,7 +105,7 @@ LAYOUT = dict(
         dict(y=(50.5, 62.5), part="REEL output gear m2 50T face 12, on a journal on the outer coupler; dogs to y 69.5 (as built)", owner="cad-drum"),
         dict(y=(72.0, 98.0), part="dog collar at NEUTRAL (stroke 7 each way); fork groove y 82..88", owner="cad-drum"),
         dict(y=(100.5, 111.0), part="LAUNCH dog ring, bolted to the launch sleeve flange (face at y 111); its joint follows the sleeve", owner="cad-drum"),
-        dict(y=(111.0, 193.0), part="LAUNCH sleeve: flange, rail cheek journals, drive gear 26T m2.5 on sprag #1 (y 142.5..158.5), splitter sun (y 174..182)", owner="cad-launch"),
+        dict(y=(111.0, 193.0), part="LAUNCH sleeve: flange, rail cheek journals, drive gear 26T m2.5 on sprag #1 (y 142.5..158.5), splitter sun (y 170..182)", owner="cad-launch"),
         dict(y=(187.0, 193.0), part="sleeve outboard bushing with the thrust face, in cad-launch's AIM HOUSING (stands on the deck; no frame seat on the sleeve)", owner="cad-launch"),
         dict(y=(106.0, 198.5), part="main shaft d12 spigot through the launch sleeve bore (12.35), as built", owner="cad-drum"),
         dict(y=(195.0, 203.0), part="AS5600 magnet cap on the spigot end (edge-on disc or 6 x 2.5 diametric)", owner="cad-drum"),
@@ -127,6 +128,7 @@ LAYOUT = dict(
 DRUM = dict(
     owner="cad-drum",
     order="LAUNCH / NEUTRAL / WRAP / (park WRAPPED in N_TO_R) / REEL (D16, D22)",
+    code_edges=(6.0, 34.0, 50.0, 62.0, 302.0, 342.0),   # drum deg where the code bumps switch, as built (_drum_kin arcs, drum_table.json); firmware edgeDeg
     # v1.0 zone table with cad-drum's forced deviations (drum_NOTES v4 section 0); drum deg, forward = toward REEL
     zones=[
         dict(name="LAUNCH", deg=(-4.0, 8.0), collar="LAUNCH", clutch="LIGHT", cup="locked home"),
@@ -176,7 +178,7 @@ LAUNCH = dict(
     carriage_mass_target_g=70.0,  # D36: printed carriage at most 70 g (physics: 100 g costs about 0.4 m and overloads the stop)
     carriage_mass_g=80.5,         # as built (cad-launch 14:28, printed set); physics uses this over the target
     drive_gear=dict(module=2.5, teeth=26, face=11.0, y=(147.5, 158.5), sprag_centre_y=152.0, note="on sprag #1 (inside, keyed), coaxial on the launch sleeve; face 11 for SF 1.5 at the 5 N m shear pin (physics, cad-launch 14:28)"),
-    big_gear=dict(module=2.5, teeth=40, present=27, centre_from_pivot=82.6, as_built="sector layer 27 teeth (rack) + full 40T layer face 11 (drive gear), cad-launch 14:28", layers=dict(sector=(134.0, 146.0), full=(146.0, 154.0)),
+    big_gear=dict(module=2.5, teeth=40, present=27, centre_from_pivot=82.6, as_built="sector layer 27 teeth (rack) + full 40T layer face 11 (drive gear), cad-launch 14:28", layers=dict(sector=(134.0, 146.0), full=(147.5, 158.5)),
                   note="two layers: a sector layer meshes the rack (last tooth relieved, the one before 30 percent taller), a full "
                        "40T layer meshes the drive gear so every cock can start (D23)"),
     wiper_turns_per_shot=40.0 / 26.0,

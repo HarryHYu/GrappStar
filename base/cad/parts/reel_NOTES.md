@@ -46,13 +46,20 @@ them in your REPORT.md or message the coordinator.
 | guide eye centre | -45 | +26 | 25 | 8.5 |
 | old exit eye centre = pulley 1 tangent point (D43) | +70 | +23.5 | 107.2 | -73.7 |
 | pulley 1 centre (axis R Y) | +72.9 | +23.5 | 100.8 | -67.3 (world x 54.3, z -46.1) |
-| pulley 2 centre (axis world Z at swivel 0), on a swivel fork | +72.9 | +13.6 | -78.5 | 112 (world (54.3, 112, -56)) |
-| pulley 2 post | +65 .. +173 | -95.4 .. +35 | -92.5 .. -64.5 | 98 .. 126 |
+| pulley 2 centre (axis world Z at swivel 0), on a swivel fork | +72.9 | +15.6 | -78.5 | 112 (world (54.3, 112, -54)) |
+| pulley 2 post (foot 32 x 29, column at world x 138, y 91.9) | +70.9 .. +172.7 | -95.4 .. +29.6 | -72.8 .. -43.8 | 77.4 .. 106.4 |
 | gears and SW_ARM behind the wall | -104.5 .. +36 | -75.7 .. +41 | -64 .. -6 | 39.5 .. 97.5 |
 | brake bar, crank, guide caps, rocker | -113 .. +48.5 | -60 .. +40 | -3.5 .. +25 | 8.5 .. 37 |
 
 - My checks() test every reel part against the main-axis stack (coupler r 27 y 0.5..46, bus r 41, REEL gear r 54,
   collar r 32, dog ring r 33, shaft r 15) and the drum (r 44): clear.
+- Given the assembly (tools.audit passes it), checks() also runs tether_check: every span of the posed line
+  (line_spans, then cad-launch's line_path spans) at every TIMELINE phase (start, end, at least every 1 s) and at 0
+  and 7 wraps, as the d 1.0 tube, against every posed part of every subsystem except the parts that span is meant to
+  touch (guide eye in the wall, capstan, cup ring, pulleys 1 and 2, exit post, storage reel, the pivot pulley, the
+  rail pulleys, carriage, dart and cad-launch's own line model). It names each (span, part) that blocks the line.
+- The line follows the cup as kin poses it (cad-drum's wrap idler), not S["wraps"]: mid-wrap the two are up to half
+  a turn apart, and the line has to meet the posed parts.
 - Keep out: the dart line sweep in front of the cup face (Z 76 .. 108, inside the cone from the ring circle to the
   exit eye) and the line run beyond pulley 1 (world x 72.3, z -46.1, from y -67.5 toward +Y).
 
@@ -67,20 +74,25 @@ them in your REPORT.md or message the coordinator.
 
 Bought: CSK20PP, 2 x 608, 2 x 693ZZ (pulleys 1 and 2), M3: 7 deck screws, 4 x M3x8 hub, 3 x M3x8 shroud, 2 x M3x8 trim,
 M3x25 + nut rocker pivot, pulley 1 axle M3x20 (tapped into its post), pulley 2 axle M3x20 + nyloc, 4 x M3 pulley 1
-post, 4 x M3 pulley 2 post, 2 x M3x8 SW bracket, brake: M3x20 crank screw, M3x10 + nut FIRM screw, 4 x M3x16
-guide caps.
+post, 4 x M3 pulley 2 post, 2 x M3x8 SW bracket, SW_ARM switch: M3x10 contact screw + 2 nuts, 2 x M3x10 self tap
+(lever clamp), 4 x M3x8 self tap (base to bracket, into pilots through the plate), brake: M3x20 crank screw, M3x10 +
+nut FIRM screw, 4 x M3x16 guide caps.
 
 ## 4b. Pulley 2 swivel (review r3_Q, D43)
 
 - Over the aim range the line leaves pulley 2 toward cad-launch's pivot pulley 5 to 53 deg out of a fixed groove
   plane. Pulley 2 therefore sits in a swivel fork that turns about the incoming run from pulley 1 (axis along R -Z
-  through the tangent point, R (79.9, 13.6)). The fork's tube (d 12, line bore d 6, coned mouth) turns in the post
+  through the tangent point, R (79.9, 15.6)). The fork's tube (d 12, line bore d 6, coned mouth) turns in the post
   block's bore and is held by a C-clip above the block. The line tension pushes the fork shoulder up into the block.
-- kin `reel_swivel` = swivel_deg(P, S): -4.6 deg at aim 6, -8.6 at 15, -31 at 36, -47 at 47 and above. The line
-  stays within 2 deg of the groove plane (test).
-- The run from pulley 1 is 4 deg off the swivel axis (pulley 1 is 14 mm higher), 2.2 mm off the axis at the tube's
-  top: inside the bore.
-- Pulley 2 raised to world z -56 (block 3.5 mm above the drum). The line still leaves pulley 2 in the y 119 plane.
+- kin `reel_swivel` = swivel_deg(P, S): -3.8 deg at aim 6, -5.7 at 15, -18.3 at 36, -29.9 at 47 (the rail's top).
+  The line stays within 2 deg of the groove plane (test). The pivot pulley centre is 6.5 up the rail NORMAL from
+  launch.line_entry (its bottom), at the pitch launch.kin poses (cross-check cad_support-10: it was taken along the
+  rail, 9.2 mm off, and at S aim_deg, which is up to 15 deg off while the rail lowers).
+- The run from pulley 1 is 2.5 deg off the swivel axis (pulley 1 is 7.9 mm higher), 1.3 mm off the axis at the
+  tube's top: inside the d 6 bore (1.2 mm clear).
+- Pulley 2 at world z -54 (block 5.5 mm above the drum): the run to the pivot pulley clears cad-drum's d10 shift rail
+  (x 25, z -58) by 0.88 mm at the 6 deg tow pitch (D45), 1.3 at 10, 2.1 at 15 (it was 0.13 at z -56). The line
+  still leaves pulley 2 in the y 119 plane.
 
 ## 5. Gears (spur 20 deg PPA-CF, axes parallel to the main shaft)
 
@@ -181,7 +193,12 @@ guide caps.
 
 - SW_ARM (GPIO 42, mine): printed contact (cad.lib.switch, strain 0.79 percent) on a bracket behind the wall. Its
   lever rides a raised track on the cup gear's rear face: CLOSED (LOW) everywhere except home, where it drops into a
-  notch and OPENS for about +-12 deg (SW_BUMP_DEG, 45 deg ramps). Firmware: home = SW_ARM high, one open pulse per cup turn (7 per wrap).
+  notch (+-12 deg at the gear face, SW_BUMP_DEG, 45 deg ramps). With the lever tip's width it OPENS from about -6 to
+  +8 deg of cup turn (lever push 1.75 mm on the track, 0.04 at home, pretravel 1.28). Firmware: home = SW_ARM high,
+  one open pulse per cup turn (7 per wrap). Setting (step "SW_ARM contact"): cup at home, lever free in the notch,
+  contact screw head onto the nut and back 1.9 turns (gap 0.95 mm); check closed 15 deg either way, open at home.
+- The switch base screws to the bracket with 4 x M3x8 self tap into d2.6 pilots through the 4 mm plate (the tips
+  stand 1 mm out of its back; nothing lies within 5 mm there).
 
 ## 11. Frame mounting
 
@@ -190,12 +207,25 @@ guide caps.
   (-120, 14), (-120, 36), (-64, 36), (-64, 14), (-120, -32), (-60, -32), (-8, -32). The guide post hangs from the
   wall 8 mm above the deck (the cheek's foot flange is under it).
 - Pulley 1 post: own foot on the deck, 4 x M3 at R (X, Z) (53, 89.2), (53, 125.2), (87, 89.2), (87, 125.2).
-- Pulley 2 post: own foot on the deck at world x 138, y 112, 4 x M3 (+-11.5 in x, +-9.5 in y about the column).
+- Pulley 2 post: own foot on the deck (32 x 29, gussets fused to the column), column at world x 138, y 91.9, 4 x M3
+  at +-11.5 in x and +-9.5 in y about it: world (126.5, 82.4), (126.5, 101.4), (149.5, 82.4), (149.5, 101.4), 2.8 mm
+  or more of solid round each (they broke out of the old 17.7 mm foot, so the deck had no inserts there).
+- deck_holes(P) lists all 15 reel deck screws in world (x, y) (wall 7, pulley 1 post 4, pulley 2 post 4);
+  _frame_others.deck_contacts reads it, so cad-frame cuts an insert under each whatever its slice finds.
 - cad-frame: the motor adapter plate must clear my sprag hub and drum: a notch r 30.5 about world (x -18.66, z -69.64) for y 0..24 (or its lower edge raised to z -38). Since cad-frame's 194 mm plate (y -16..0): a through hole r 30.5 about the same centre, plus a notch at world x 56..67, z -60..-43 for the line run from pulley 1 down to pulley 2 (it crosses the plate at world x 61.3, z about -49).
 
 ## 12. Open items
 
 - cad-frame: notch the motor adapter plate round my capstan (section 11).
+- cad-frame (cross-check cad_support-1): the tether check finds the motor adapter plate across the line twice: the
+  guide eye -> cup ring run (0 wraps: load to approach) near world (-51, -5.5, -44), and the pulley 1 -> pulley 2
+  run (every phase) near world (61.3, -5, -49). Carve both from reel.line_path(P, dict(wraps=0.0)) and
+  dict(wraps=7.0) (pulley 2 is now at world z -54, so the second run sits about 0.7 mm higher at the plate).
+- cad-launch: launch.line_path draws the pusher -> dart tail span straight to the landed dart. In rail_low (t 11 to
+  12, rail 36 to 47 deg) that straight line dips 38 to 49 deg below the rail axis and the tether check finds it in
+  launch_rail_front (near world (103, 140, 106)) and launch_big_gear (near (59, 140, 107)). The real line runs
+  forward over the lip roller (launch_muzzle_roller) first: route the span over MZ.roller_top when the dart lies
+  below the line ahead of the muzzle, and name the roller in that span's allowed parts.
 - cad-drum: drum.kin's drum_main / drum_out_reel should follow S["wiper_deg"] / S["reel_deg"] (params 1.2.3).
 - coordinator: WRAP sector FIRM for the unwrap (section 9).
 - Harry measures: CSK20PP keyway depths (inner 2.8, outer 1.5 assumed), mu of Dyneema on the printed capstan.

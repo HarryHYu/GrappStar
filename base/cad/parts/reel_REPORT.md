@@ -52,6 +52,21 @@ Status: DRAFT, updated through the day; final version at 18:30 Sydney.
 - FIRM made adjustable (review 3): printed PPA-CF stiffness is only known to about 4 to 9 GPa. A FIRM screw in the
   rocker leg sets the lost motion, and a pad on the wall stops the rocker at LIGHT so the bar is not loaded there.
 - Capstan drum in PPA-CF (physics: hoop stress 11.6 MPa if the shear pin slips, PLA allows 12).
+- Final cross-check (params 1.3.8):
+  - cad_support-5: the pulley 2 post's foot screw holes broke out of its 17.7 mm foot, so cad-frame cut no inserts.
+    Foot widened to 29 mm (it now carries the whole gussets too, which also were not fused to the column: fixed),
+    2.8 mm or more of solid round each hole; deck_holes(P) lists all 15 reel deck screws for cad-frame.
+  - cad_support-7 / docs-3: the SW_ARM step said a bump closes the contact at home. The track holds it CLOSED away
+    from home and the notch OPENS it at home (params SWITCHES, config.h armHomeOpen). Step, notes and comments say so;
+    the step sets the gap with the lever free in the notch and checks both states with the meter.
+  - cad_support-11: d2.6 pilots through the bracket plate under the switch base's four holes; the BOM lists the base,
+    lever clamp and bracket screws.
+  - cad_support-10: the pivot pulley centre is taken up the rail normal (it was along the rail, 9.2 mm off) at the
+    pitch launch.kin poses; pulley 2 raised 2 mm to world z -54, so the real run to the pivot pulley clears cad-drum's
+    shift rail by 0.88 mm at 6 deg (it was 0.13).
+  - The line follows the cup as kin poses it (cad-drum's wrap idler), not S["wraps"] (up to half a turn apart
+    mid-wrap), and checks(P, asm) adds tether_check: the posed line against every posed part of every subsystem, with
+    each span's allowed contacts.
 
 ## 3. Verified (pasted at the final update)
 
@@ -61,7 +76,11 @@ Status: DRAFT, updated through the day; final version at 18:30 Sydney.
   - frame_motor_adapter (194 mm plate, world y -16..0) cuts through my capstan drum, C tube and K shaft. Needs a
     through hole r 30.5 about world (x -18.66, z -69.64).
   - The same plate is crossed by the line run from pulley 1 down to pulley 2 (world x 61.3, z about -49). Needs a
-    notch at world x 56..67, z -60..-43, y -16..0.
+    notch at world x 56..67, z -60..-43, y -16..0. The tether check also finds the guide eye -> cup ring run (0
+    wraps) in the plate near world (-51, -5.5, -44) (cross-check cad_support-1, being carved).
+- cad-launch (not mine to change): launch.line_path draws the pusher -> dart span straight to the landed dart; in
+  rail_low (rail 36 to 47 deg) the tether check finds that straight line in launch_rail_front and launch_big_gear. The
+  real line runs over the lip roller first (reel_NOTES.md section 12).
 - D46 (coordinator): the cup ring stays a plain eye; a steel ring liner is left open for Harry. A roller in the ring
   would rebuild Harry's v7 cup, so I did not do it.
 - D43 storage guide eye: kept as a plain eye. It carries only the tail, at most 5 N (FIRM). The pack position sweeps

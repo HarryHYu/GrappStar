@@ -510,7 +510,7 @@ def drive_washer_solid(P):
     sp.update(getattr(P, "SPRAG", None) or {})
     ym = 0.5 * (n["y_full"][0] + n["y_full"][1])
     y0 = ym + (sp["w"] + 2.0) / 2 + 0.1
-    return prim.tube(16.0, 10.3, (n["y_chB"][0] - 0.2) - y0, z=y0)
+    return prim.tube(16.0, 13.4, (n["y_chB"][0] - 0.2) - y0, z=y0)        # bore passes the sun rib (r 12.8)
 
 
 def sprag_solid(P):
@@ -1030,11 +1030,19 @@ def kin(P, S):
         sl = float(sleeve_cmd)
         wb = max(0.0, -sl + drive_rel)
         d = wb / K.wiper_per_crank(P)
+        held = (_f(S, "cock", 0.0) > 0.0 or (bool(_f(S, "fired", 0.0)) and S.get("phase") == "fire"))
+        if held and S.get("aim_deg") is not None and hasattr(AIM, "psi_of_pitch"):
+            # cocking / the shot: the self-locking worm holds the crank where the aim left it (review 3)
+            pp = AIM.psi_of_pitch(P, float(np.clip(_f(S, "aim_deg", pmin), pmin, pmax)))
+            if pp is not None:
+                d = float(pp[1])
+                wb = d * K.wiper_per_crank(P)
         def s_eng(dd):
             return AIM.kin_aim(P, {"aim_psi_from_low": dd % 360.0}, float(K.pitch_of_psi(P, (t["psi_low"] - dd) % 360.0)))["launch_sleeve"]
         K0 = s_eng(0.0)
-        kk = round((K0 - sl - 10.0 * d) / 12.0)
-        d = max(0.0, (K0 - sl - 12.0 * kk) / 10.0)
+        if not held:
+            kk = round((K0 - sl - 10.0 * d) / 12.0)
+            d = max(0.0, (K0 - sl - 12.0 * kk) / 10.0)
         pitch = float(np.clip(K.pitch_of_psi(P, (t["psi_low"] - d) % 360.0), pmin, pmax))
         S_aim = {k: v for k, v in S.items() if k != "aim_deg"}
         S_aim["aim_psi_from_low"] = d % 360.0
@@ -1227,12 +1235,14 @@ def steps(P):
                   "into its groove. The gear must spin freely with almost no end play.",
              parts=["launch_big_gear", "launch_gear_pin", "launch_gear_clip", "launch_gear_washer"]),
         dict(title="Launcher 4: drive gear, sprag #1 and the launch sleeve",
-             text="Slide sprag #1 into the drive gear so its outer keyway takes the rib inside the gear. Check the "
+             text="First bolt cad-drum's LAUNCH dog ring to the sleeve flange: lugs in the ring slots, 3 x M3 x 10 from the "
+                  "flange side into the tapped ring (the heads are out of reach once the sleeve is in the cheeks). "
+                  "Slide sprag #1 into the drive gear so its outer keyway takes the rib inside the gear. Check the "
                   "direction: holding the gear, the inner race must turn freely only the BACKWARD wiper way. Hold the drive "
                   "gear between the cheeks (collar side right, then the spacer washer on its left), meshing the big gear's "
                   "full ring of teeth. Turn the cheek bores so their slots "
                   "point down, then push the launch sleeve in from the motor side, outboard end first, ribs lined up with "
-                  "the slots and the sprag keyway, until the short rib sits inside the sprag.",
+                  "the slots and the sprag keyway, until the long (15 mm) rib sits inside the sprag.",
              parts=["launch_drive_gear", "launch_sprag", "launch_sleeve", "launch_drive_washer"]),
         dict(title="Launcher 5: carriage",
              text="Turn the big gear so its toothless gap faces the rack. Slide the carriage BODY into the track from the "
@@ -1291,19 +1301,21 @@ def steps(P):
              parts=["launch_aim_housing", "launch_aim_cap", "launch_aim_worm", "launch_aim_crank", "launch_aim_bolt",
                     "launch_aim_brg_1", "launch_aim_brg_2", "launch_aim_output", "launch_aim_bevel30"]),
         dict(title="Aim 2: splitter",
-             text="Slide the sun onto the sleeve's outer rib. Put the O-ring in the swing arm hub groove, slide the arm on "
-                  "next to the sun, fit the idler on the arm pin with its clip. Turn the sleeve backward by hand: the arm "
+             text="Slide the sun onto the sleeve's outer rib. Push the printed drag pad into the swing arm hub pocket with the "
+                  "shim behind its root block (a thicker shim gives more drag), slide the arm on next to the sun, fit the "
+                  "idler on the arm pin and snap the printed C clip into the pin groove. Turn the sleeve backward by hand: the arm "
                   "swings the idler into the output gear and drives it; forward, the arm swings out onto its stop and the "
                   "output gear stays still.",
-             parts=["launch_aim_sun", "launch_aim_arm", "launch_aim_idler"]),
+             parts=["launch_aim_sun", "launch_aim_arm", "launch_aim_idler", "launch_aim_drag_pad", "launch_aim_drag_shim",
+                    "launch_aim_idler_clip"]),
         dict(title="Aim 3: lug, conrod, rail onto the base",
              text="Bolt the lug to the left rail wall (2 x M3 self tap). With the sun and swing arm already on the sleeve, "
                   "slide the rail assembly's sleeve along the main axis onto the drum's d12 spigot from the outboard side "
-                  "until its flange meets the drum's LAUNCH dog ring; fit the 3 x M3 from the drum side into the flange nut "
-                  "traps. Then slide the aim housing on from the outboard side so the sleeve end enters its bushing, and "
-                  "screw the housing to the deck (4 x M3). Join the conrod to the crank pin and the lug pin. Turn the wiper "
+                  "(the LAUNCH dog ring is already bolted to its flange, Launcher 4) until the ring's dogs sit by the drum "
+                  "collar. Then slide the aim housing on from the outboard side so the sleeve end enters its bushing, and "
+                  "screw the housing to the deck (4 x M3). Join the conrod to the crank pin and the lug pin and snap a printed C clip into each pin groove. Turn the wiper "
                   "backward slowly: the rail rises to 47 deg, then lowers to 6 deg.",
-             parts=["launch_aim_lug", "launch_aim_conrod"]),
+             parts=["launch_aim_lug", "launch_aim_conrod", "launch_aim_crankpin_clip", "launch_aim_lugpin_clip"]),
         dict(title="Launcher 11: wiring (battery unplugged)",
              text="Battery unplugged. Run the SW_HOME, SW_SEATED and SW_GAP wires along the rail to the pivot and leave a "
                   "150 mm loop at the main axis before they go to the frame. No wire goes onto the carriage. Each contact: "

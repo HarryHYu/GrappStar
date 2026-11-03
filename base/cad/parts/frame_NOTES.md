@@ -1,6 +1,9 @@
 # Frame subsystem notes (worker cad-frame)
 
-Status: phase 0 (3 Nov 2026, 11:00 Sydney). Code: `frame.py` (API module), helpers `_frame_util.py`,
+Status: phase 0, updated for BASE_SPEC v0.1 (3 Nov 2026, 11:05 Sydney). World frame per the spec: origin on the
+wiper axis in the motor boss face plane (y = 0), so the deck top is at z = FRAMEWORK["deck_z"] (default -60) and
+the motor-side cheek outer face is PLATE_T + adapter_standoff (10 + 12) from y = 0. The AS5600 magnet holder belongs to
+cad-drum; the frame only builds the board bracket (magnet face y from DRUM["magnet_face_y"] when it exists). Code: `frame.py` (API module), helpers `_frame_util.py`,
 `_frame_motor.py`, `_frame_ebay.py` (leading underscore so `tools.assembly` does not load them as subsystems).
 `python -m tools.audit OUT --only frame` says CLEAN on the placeholder layout (37 parts, 296 states).
 
@@ -17,7 +20,8 @@ Status: phase 0 (3 Nov 2026, 11:00 Sydney). Code: `frame.py` (API module), helpe
 | `frame_motor_saddle` | strap saddle under the can end, 4 x M3 into the deck | PLA |
 | `frame_ebay`, `frame_ebay_lid`, `frame_ebay_esp_clamp` | electronics bay (section 4) | PLA |
 | `frame_pcb_*`, `frame_fuse_20a` | board envelopes | bought |
-| `frame_as5600_bracket`, `frame_as5600_magnet_cap`, `frame_as5600_magnet`, `frame_pcb_as5600` | angle sensor on the main shaft end (section 5) | PLA / bought |
+| `frame_as5600_bracket`, `frame_pcb_as5600` | angle sensor board on the main shaft end (section 5) | PLA / bought |
+| `frame_ped_<shaft>[_n]` | pedestals for shafts not along Y: pillow plates (horizontal axes) or a C bracket (vertical axes), 608 seats | PLA |
 
 Fasteners: M3 only (M3 x 4 x 5 heat-set inserts, holes 4.0 x 6 deep), plus M6 for the wiper bosses (motor bolts).
 Rover: M3 x 25 SHCS + nyloc through the deck perimeter holes.
@@ -84,10 +88,17 @@ BTS7960 logic VCC (5 V) from the ESP32 5V pin (USB powered). fw-base owns the fi
 
 ## 5. AS5600
 
-Magnet cap pressed on the main shaft end on the non-motor side (shaft end assumed 8 mm proud of the main block
-face: **main shaft owner, please confirm or give me the shaft end**), M3 grub into an insert, magnet pocket 6.15 x
-2.5. Board 1.0 mm from the magnet face, chip on the axis, bracket with 4 heat-stake pegs, 2 x M3 into the cheek.
-STEMMA QT cable (200 mm) to the bay sensor window.
+cad-drum owns the magnet holder on the main shaft end (non-motor side). Until `DRUM["magnet_face_y"]` exists the
+frame assumes the magnet face 21 mm beyond the main block face. Board 1.0 mm from the magnet face, chip on the axis,
+bracket with 4 heat-stake pegs, 2 x M3 into the cheek. STEMMA QT cable (200 mm) to the bay sensor window.
+
+## 5b. Cable routes
+
+Every bundle runs along a cheek foot flange (cable-tie points between the foot screws: two slots and a tunnel
+under the foot) to the bay. Bay exits: 14 AWG wiper pair and XT60 battery lead on the x = L wall, everything else
+(AS5600 STEMMA QT, drum N20 pair, contact switches, load cell) through the sensor window on the x = 0 wall. Never
+route a wire across a moving part; wires to parts on the rail (SW_SEATED, SW_HOME) leave the frame at the main
+axis (the rail pivot: least travel) with a loop of 150 mm, as the old station did.
 
 ## 6. What I need from the other subsystems
 
@@ -99,6 +110,10 @@ STEMMA QT cable (200 mm) to the bay sensor window.
   Send the bolt pattern or let me own the pedestal.
 - Everyone: the axial position of each bearing on its shaft (I seat bearings inside the cheek thickness; blocks
   slide on over bearings already on the shaft). Tell me if a bearing must sit elsewhere.
+- cad-drum: magnet face y (`DRUM["magnet_face_y"]`) and the main shaft end; the wiper coupler length (it lives in the
+  44 mm cheek hole and the adapter hub).
+- cad-reel: sprag #2 backstop hub "bolts to a frame block": give me its bolt pattern (or I give a block face with
+  4 x M3 inserts on R 30 round the capstan axis) and the reaction torque (tow 1.2 N m at the limit, 14 N m at stall).
 - Keep-out: no other shaft block within about 40 mm (radius) of the main axis on the motor-side cheek (adapter hub).
 - fw-base: board placement above; connectors: XT60 in, screw terminals on the BTS7960, DuPont on the ESP32 pins.
 

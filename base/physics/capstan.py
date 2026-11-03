@@ -358,6 +358,7 @@ def run(p: Params | None = None, tow: float | None = None, mu: float | None = No
         slips_at_tow=slips(tow, wraps, th_min, mu),
         tow_table=table,
         at_tow_nom=at_tow,
+        at_tow_cap=tow_point(c.get("tow_limit_max_n", tow), p, b.v_nom, overspeed),   # D39 cap (70 N)
         current_limit=current_limit_for(tow, p, overspeed),
         current_limit_dart=dict({k: current_limit_for(v, p, overspeed)["current"] for k, v in DART_HOLD.items()}),
         fw_trip=fw_trip(p, tow, overspeed),
@@ -463,6 +464,9 @@ def main(argv=None):
     print(f"capstan d {i['drum_d']*1000:.0f} mm, ratio {i['ratio']}, eta {i['eta']}, wraps {i['wraps']}, "
           f"take-up {i['takeup_n']} N, mu {i['mu']}, tow {i['tow']} N  [{i['source']}]")
     wn = r["wraps_needed"]
+    tc = r["at_tow_cap"]
+    print(f"tow at the cap {tc['f_line']:.0f} N: {tc['t_wiper']:.2f} N m, {tc['current']:.2f} A, {tc['v_line']:.3f} m/s "
+          f"(tow hard trip {trip_a(p, 'tow')} A, shear pin {limiter_nm(p)} N m)")
     print(f"wraps needed: raw {wn['raw']:.2f}, design {wn['design']} (x{wn['margin']})   "
           f"e^(2 pi mu n) = {r['capstan_ratio']:.1f}")
     tu = r["takeup"]

@@ -30,6 +30,7 @@ CLIP_RING_MIN = 1.6
 PIN_PLAY = 0.2              # axial end float between host face and clip / barb
 PLA_E = 3500.0              # N/mm2
 PLA_STRAIN_OK = 0.02        # one-off snap strain limit for PLA (yield about 3 %)
+SNAP_STRAIN_DESIGN = 0.9    # default snap pin barbs are sized to this fraction of PLA_STRAIN_OK
 
 
 def groove_dims(d):
@@ -114,17 +115,29 @@ def pin_hole_cutter(d, L, ext=1.0, chamfer=0.0):
     return h
 
 
+def _prong_section(rs):
+    """Half-disc prong of radius rs: (second moment about its centroid, distance centroid to the far fibre)."""
+    return (math.pi / 8 - 8 / (9 * math.pi)) * rs ** 4, rs - 4 * rs / (3 * math.pi)
+
+
 def _snap_dims(d, L, fit, slot, barb, barb_len, play):
     s = max(1.0, 0.3 * d) if slot is None else slot
-    bh = min(max(0.3, 0.08 * d), 0.45 * s) if barb is None else barb
     bl = max(1.5, 0.5 * d) if barb_len is None else barb_len
     rs = (d - fit) / 2
-    rb = d / 2 + bh
     zc = L + play
     land = 0.4
     ztip = zc + land + bl
     slot_len = max(0.75 * L, 2 * d) + land + bl
     slot_len = min(slot_len, ztip + 0.0)         # never cut into the head
+    if barb is None:
+        # barb height from the strain limit of the prong model in snap_pin_info: eps = 3 bh ymax / lp^2
+        lp = slot_len - s / 2
+        ymax = _prong_section(rs)[1]
+        bh_strain = SNAP_STRAIN_DESIGN * PLA_STRAIN_OK * lp ** 2 / (3 * ymax)
+        bh = min(max(0.3, 0.08 * d), 0.45 * s, bh_strain)
+    else:
+        bh = barb
+    rb = d / 2 + bh
     return dict(s=s, bh=bh, bl=bl, rs=rs, rb=rb, zc=zc, land=land, ztip=ztip, slot_len=slot_len,
                 rt=max(rs - bh, 0.5 * rs))
 
@@ -133,9 +146,9 @@ def snap_pin(d, L, fit=fits.HOLE_SLIDE, slot=None, barb=None, barb_len=None, hea
              play=PIN_PLAY):
     """Split compliant snap pin with barbs for a hole of diameter d through total grip length L.
     Head on one end (v10 proportions), shank d - fit, two prongs split by a slot of width slot (normal X), barb
-    ring (radial height barb over the hole) whose flat catch face sits at z = L + play past the far face, then a
-    lead-in cone to the tip. Frame: axis +Z, host near face z = 0, head z in [-head_h, 0]. Print standing on the head
-    (slot vertical). Returns Manifold (one shell)."""
+    ring (radial height barb over the hole, default sized to the PLA strain limit, see snap_pin_info) whose flat
+    catch face sits at z = L + play past the far face, then a lead-in cone to the tip. Frame: axis +Z, host near
+    face z = 0, head z in [-head_h, 0]. Print standing on the head (slot vertical). Returns Manifold (one shell)."""
     k = _snap_dims(d, L, fit, slot, barb, barb_len, play)
     hd = HEAD_D_RATIO * d if head_d is None else head_d
     hh = max(HEAD_H_MIN, HEAD_H_RATIO * d) if head_h is None else head_h
@@ -150,11 +163,11 @@ def snap_pin(d, L, fit=fits.HOLE_SLIDE, slot=None, barb=None, barb_len=None, hea
 
 def snap_pin_info(d, L, fit=fits.HOLE_SLIDE, slot=None, barb=None, barb_len=None, play=PIN_PLAY):
     """Derived numbers: slot, barb height, barb z range (barb_z0, barb_z1), prong length, prong root strain and
-    insertion force estimate (each prong a half-disc cantilever deflected by the barb height, PLA E 3.5 GPa)."""
+    insertion force estimate (each prong a half-disc cantilever deflected by the barb height, PLA E 3.5 GPa).
+    The default barb (barb=None) is the smaller of 0.08 d (min 0.3), 0.45 slot and the height that gives
+    SNAP_STRAIN_DESIGN x PLA_STRAIN_OK in this model, so the defaults always give strain_ok."""
     k = _snap_dims(d, L, fit, slot, barb, barb_len, play)
-    r = k["rs"]
-    Ihalf = (math.pi / 8 - 8 / (9 * math.pi)) * r ** 4
-    ymax = r - 4 * r / (3 * math.pi)
+    Ihalf, ymax = _prong_section(k["rs"])
     lp = k["slot_len"] - k["s"] / 2
     delta = k["bh"]
     eps = 3 * delta * ymax / lp ** 2

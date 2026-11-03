@@ -4,252 +4,548 @@
   "params": {
    "rail_mass": 0.9,
    "cg_dist": 0.15,
-   "lever": 0.06,
-   "screw_dm": 0.01,
-   "screw_lead": 0.004,
-   "screw_mu": 0.25,
-   "thread_half_angle": 15.0,
-   "ratio": 0.3333333333333333,
-   "eta_gear": 0.95,
+   "worm_pd": 0.024,
+   "lead_deg": 4.8,
+   "wheel_pd": 0.04,
+   "wheel_z": 20,
+   "mu": 0.25,
+   "phi_n_deg": 20.0,
+   "bevel": 2.0,
+   "eta_bevel": 0.95,
    "gear": {
-    "module": 1.5,
+    "module": 2.0,
     "face": 10.0,
-    "z_driver": 45
+    "z_driver": 30
    }
   },
-  "mass": 1.239,
-  "screw_eff": 0.31886668485216413,
+  "mass": 1.2590000000000001,
+  "screw_eff": 0.23454981271934447,
   "self_locking": true,
-  "t_screw_peak": 0.05859965739615185,
-  "t_screw_lower_peak": 0.018681972089241418,
-  "t_peak": 0.18505154967205847,
-  "t_mean": 0.15360772130725708,
-  "wiper_turns": 3.490658503988659,
-  "shaft_torque": 0.05859965739615185,
+  "t_screw_peak": 0.7277292765770867,
+  "t_screw_lower_peak": 0.5092662527047981,
+  "t_peak": 0.32910060801285973,
+  "t_mean": 0.12528377244059452,
+  "wiper_turns": 4.444444444444445,
+  "wiper_turns_full_cycle": 10.0,
+  "profile": [
+   [
+    10,
+    0.04236698430475228,
+    0.01915959786577077
+   ],
+   [
+    20,
+    0.1269873547775308,
+    0.05742742117480718
+   ],
+   [
+    30,
+    0.21856294522649247,
+    0.09884059976457567
+   ],
+   [
+    40,
+    0.31291905134470277,
+    0.1415112094166797
+   ],
+   [
+    50,
+    0.4128667554290824,
+    0.18671050432257105
+   ],
+   [
+    60,
+    0.5097727724899463,
+    0.23053425878912182
+   ],
+   [
+    70,
+    0.6017843328448894,
+    0.27214459580820155
+   ],
+   [
+    80,
+    0.6777758093256128,
+    0.3065101791625383
+   ],
+   [
+    90,
+    0.7223284455717982,
+    0.32665819319621886
+   ],
+   [
+    100,
+    0.7277292765770867,
+    0.32910060801285973
+   ],
+   [
+    110,
+    0.6837575214443078,
+    0.30921528552362865
+   ],
+   [
+    120,
+    0.5930745557571492,
+    0.2682057781359018
+   ],
+   [
+    130,
+    0.4663568579692173,
+    0.21090030379226965
+   ],
+   [
+    140,
+    0.3239733414074537,
+    0.14651028489418869
+   ],
+   [
+    150,
+    0.1843477086759102,
+    0.08336746227440399
+   ],
+   [
+    160,
+    0.05575950583243609,
+    0.02521609046466263
+   ],
+   [
+    170,
+    -0.05957791650263803,
+    0.013402654837302666
+   ],
+   [
+    180,
+    -0.1570630509234816,
+    0.03533292170644985
+   ],
+   [
+    190,
+    -0.24468596827275815,
+    0.05504458310732902
+   ],
+   [
+    200,
+    -0.3175958932268372,
+    0.07144640807430136
+   ],
+   [
+    210,
+    -0.37822177776055627,
+    0.08508481391844706
+   ],
+   [
+    220,
+    -0.4285659910883687,
+    0.09641025384480513
+   ],
+   [
+    230,
+    -0.4678114169692584,
+    0.10523890929134494
+   ],
+   [
+    240,
+    -0.4920746176437737,
+    0.11069716166031356
+   ],
+   [
+    250,
+    -0.5073692344500668,
+    0.11413784038754761
+   ],
+   [
+    260,
+    -0.5092662527047981,
+    0.11456459382876774
+   ],
+   [
+    270,
+    -0.4984537341427792,
+    0.11213220842968703
+   ],
+   [
+    280,
+    -0.47970155800219205,
+    0.10791371676340888
+   ],
+   [
+    290,
+    -0.44951519107254634,
+    0.10112298824351688
+   ],
+   [
+    300,
+    -0.4097606902528215,
+    0.09217981124113807
+   ],
+   [
+    310,
+    -0.3625474291881719,
+    0.0815587106901488
+   ],
+   [
+    320,
+    -0.3101029796474828,
+    0.06976080138771343
+   ],
+   [
+    330,
+    -0.2491690618416942,
+    0.056053100343830924
+   ],
+   [
+    340,
+    -0.18373958674968882,
+    0.04133407822419687
+   ],
+   [
+    350,
+    -0.11411488978789223,
+    0.025671298518071425
+   ],
+   [
+    360,
+    -0.040525320854790374,
+    0.009116580764680636
+   ]
+  ],
+  "shaft_torque": 0.7277292765770867,
+  "shaft_k": 2.2282232208337724,
   "gear": {
-   "module": 1.5,
+   "module": 2.0,
    "face": 10.0,
-   "z_driver": 45
+   "z_driver": 30
   },
-  "gear_ratio": 0.3333333333333333,
-  "train_k": 3.1578947368421053,
+  "gear_ratio": 0.5,
+  "train_k": 2.1052631578947367,
   "sprag_torque": null
  },
  "cock": {
   "params": {
-   "drum_r": 0.015,
-   "ratio": 1.0,
+   "drum_r": 0.05,
+   "ratio": 1.5384615384615385,
    "eta": 0.9,
    "gear": {
-    "module": 2.0,
+    "module": 2.5,
     "face": 12.0,
-    "z_driver": 20
+    "z_driver": 26
    }
   },
-  "ext_full_mm": 250.0,
-  "f_spring_full": 76.5,
-  "f_peak": 77.4636819805946,
-  "f_mean": 47.4636819805946,
-  "t_peak": 1.2910613663432433,
-  "t_mean": 0.7910613663432433,
-  "wiper_turns": 2.5464790894703255,
-  "shaft_torque": 1.161955229708919,
-  "sprag_torque": 1.161955229708919,
+  "ext_full_mm": 280.0,
+  "f_spring_full": 84.0,
+  "f_peak": 85.05074917976671,
+  "f_mean": 54.42574917976671,
+  "t_peak": 3.0712770537137977,
+  "t_mean": 1.96537427593602,
+  "wiper_turns": 1.5384615384615385,
+  "wiper_turns_stroke": 1.199783417154288,
+  "shaft_torque": 4.252537458988336,
+  "shaft_k": 1.3846153846153848,
+  "sprag_torque": 3.0712770537137977,
+  "sprag_ratio": 1.0,
   "gear": {
-   "module": 2.0,
+   "module": 2.5,
    "face": 12.0,
-   "z_driver": 20
+   "z_driver": 26
   },
-  "gear_ratio": 1.0,
-  "train_k": 0.016666666666666666,
+  "gear_ratio": 1.5384615384615385,
+  "train_k": 0.03611111111111111,
   "spring_safe_ext_mm": 293.00080470730165,
   "spring_ok": true
  },
  "cock_profile": [
-  17.4636819805946,
-  18.4636819805946,
-  19.4636819805946,
-  20.4636819805946,
-  21.4636819805946,
-  22.4636819805946,
-  23.4636819805946,
-  24.4636819805946,
-  25.4636819805946,
-  26.4636819805946,
-  27.4636819805946,
-  28.4636819805946,
-  29.4636819805946,
-  30.4636819805946,
-  31.4636819805946,
-  32.46368198059459,
-  33.4636819805946,
-  34.4636819805946,
-  35.4636819805946,
-  36.4636819805946,
-  37.4636819805946,
-  38.4636819805946,
-  39.4636819805946,
-  40.4636819805946,
-  41.4636819805946,
-  42.4636819805946,
-  43.4636819805946,
-  44.4636819805946,
-  45.4636819805946,
-  46.4636819805946,
-  47.46368198059459,
-  48.46368198059459,
-  49.4636819805946,
-  50.46368198059461,
-  51.46368198059461,
-  52.46368198059461,
-  53.46368198059461,
-  54.4636819805946,
-  55.4636819805946,
-  56.4636819805946,
-  57.4636819805946,
-  58.46368198059461,
-  59.46368198059461,
-  60.46368198059461,
-  61.4636819805946,
-  62.4636819805946,
-  63.4636819805946,
-  64.4636819805946,
-  65.4636819805946,
-  66.4636819805946,
-  67.4636819805946,
-  68.4636819805946,
-  69.4636819805946,
-  70.4636819805946,
-  71.4636819805946,
-  72.4636819805946,
-  73.4636819805946,
-  74.4636819805946,
-  75.4636819805946,
-  76.4636819805946,
-  77.4636819805946
+  23.800749179766708,
+  24.821582513100044,
+  25.842415846433376,
+  26.863249179766708,
+  27.884082513100044,
+  28.904915846433376,
+  29.925749179766708,
+  30.946582513100044,
+  31.967415846433376,
+  32.98824917976671,
+  34.00908251310005,
+  35.029915846433376,
+  36.05074917976671,
+  37.07158251310005,
+  38.09241584643338,
+  39.11324917976671,
+  40.13408251310004,
+  41.15491584643338,
+  42.17574917976671,
+  43.19658251310005,
+  44.21741584643338,
+  45.23824917976671,
+  46.25908251310005,
+  47.27991584643338,
+  48.30074917976671,
+  49.32158251310005,
+  50.342415846433376,
+  51.36324917976671,
+  52.38408251310004,
+  53.404915846433376,
+  54.42574917976671,
+  55.44658251310005,
+  56.467415846433376,
+  57.488249179766704,
+  58.50908251310005,
+  59.529915846433376,
+  60.55074917976671,
+  61.57158251310004,
+  62.59241584643338,
+  63.61324917976671,
+  64.63408251310005,
+  65.65491584643337,
+  66.67574917976671,
+  67.69658251310005,
+  68.71741584643338,
+  69.73824917976671,
+  70.75908251310004,
+  71.77991584643338,
+  72.80074917976671,
+  73.82158251310004,
+  74.84241584643337,
+  75.86324917976671,
+  76.88408251310005,
+  77.90491584643337,
+  78.92574917976671,
+  79.94658251310004,
+  80.96741584643338,
+  81.98824917976671,
+  83.00908251310004,
+  84.02991584643338,
+  85.05074917976671
  ],
  "functions": {
   "aim": {
    "name": "aim",
-   "t_peak": 0.18505154967205847,
-   "t_mean": 0.15360772130725708,
-   "rpm_peak": 40.23337590281416,
-   "rpm_mean": 40.33846117720932,
-   "i_peak": 1.7035567046392643,
-   "i_mean": 1.6689684934379827,
-   "v_batt_peak": 10.970529690447416,
-   "frac_stall": 0.015138672072110317,
+   "t_peak": 0.32910060801285973,
+   "t_mean": 0.12528377244059452,
+   "rpm_peak": 39.7519639498392,
+   "rpm_mean": 40.43311981432172,
+   "i_peak": 1.8620106688141458,
+   "i_mean": 1.637812149684654,
+   "v_batt_peak": 10.958487189170125,
+   "frac_stall": 0.02692301789565113,
+   "frac_limiter": 0.06582012160257195,
+   "limiter_nm": 5.0,
+   "stall_label": "at limiter (5 N m)",
    "stall_torque": 12.22376366900604,
-   "time_s": 5.192055029547087,
-   "energy_wh": 0.026412929515141247,
-   "shaft_torque": 0.05859965739615185,
-   "shaft_torque_at_stall": 4.452301289374898,
-   "gear_sf_peak": 19.3821841938266,
-   "gear_sf_stall": 0.26104828704509836,
+   "torque_at_limiter": 5.0,
+   "time_s": 6.595253294607539,
+   "energy_wh": 0.03293202383771337,
+   "shaft_torque": 0.7277292765770867,
+   "shaft_torque_at_stall": 11.141116104168862,
+   "shaft_stall": {
+    "torque_nm": 11.141116104168862,
+    "tau_nom_mpa": 7.092654798156775,
+    "tau_peak_mpa": 14.18530959631355,
+    "kt": 2.0,
+    "kt_endmill": 3.0,
+    "t_allow": 12.0,
+    "t_allow_kt": 9.424777960769381,
+    "t_allow_endmill": 6.283185307179587,
+    "sf": 1.077091369284784,
+    "strict_pass": false,
+    "endmill_pass": false,
+    "pass": true
+   },
+   "shaft_torque_at_motor_stall": 31.328593007789348,
+   "gear_sf_motor_stall": 0.3093905624238203,
+   "t_trip": 3.1818181818181817,
+   "gear_sf_trip": 1.3671428571428572,
+   "shaft_torque_at_trip": 7.089801157198367,
+   "gear_sf_peak": 12.952664338380204,
+   "gear_sf_stall": 0.8699999999999999,
    "sprag": null,
    "flags": [],
    "stall_warnings": [
-    "gear fails at wiper stall (sf 0.26)"
+    "keyed shaft 11.1 N m over the Kt 2 limit 9.4 N m",
+    "gear fails (sf 0.87); relies on the trip"
+   ],
+   "info": [
+    "motor stall (no limiter) 14.06 N m: shaft 31.3 N m (fail), gear sf 0.31; only if the limiter seizes"
    ]
   },
   "cock": {
    "name": "cock",
-   "t_peak": 1.2910613663432433,
-   "t_mean": 0.7910613663432433,
-   "rpm_peak": 36.53709109549907,
-   "rpm_mean": 38.20809109549906,
-   "i_peak": 2.9201675029775678,
-   "i_mean": 2.3701675029775675,
-   "v_batt_peak": 10.878067269773705,
-   "frac_stall": 0.10561897311683091,
+   "t_peak": 3.0712770537137977,
+   "t_mean": 1.96537427593602,
+   "rpm_peak": 30.58761026830667,
+   "rpm_mean": 34.28353735164,
+   "i_peak": 4.878404759085178,
+   "i_mean": 3.661911703529622,
+   "v_batt_peak": 10.729241238309527,
+   "frac_stall": 0.2512546165712589,
+   "frac_limiter": 0.6142554107427596,
+   "limiter_nm": 5.0,
+   "stall_label": "at limiter (5 N m)",
    "stall_torque": 12.22376366900604,
-   "time_s": 3.998858382805158,
-   "energy_wh": 0.028749475255530597,
-   "shaft_torque": 1.161955229708919,
-   "shaft_torque_at_stall": 12.65390892769708,
-   "gear_sf_peak": 2.9558064800475434,
-   "gear_sf_stall": 0.2748241685530211,
+   "torque_at_limiter": 5.0,
+   "time_s": 2.6924786483060115,
+   "energy_wh": 0.029638274327250087,
+   "shaft_torque": 4.252537458988336,
+   "shaft_torque_at_stall": 6.923076923076924,
+   "shaft_stall": {
+    "torque_nm": 6.923076923076924,
+    "tau_nom_mpa": 4.407367654852486,
+    "tau_peak_mpa": 8.814735309704972,
+    "kt": 2.0,
+    "kt_endmill": 3.0,
+    "t_allow": 12.0,
+    "t_allow_kt": 9.424777960769381,
+    "t_allow_endmill": 6.283185307179587,
+    "sf": 1.733333333333333,
+    "strict_pass": true,
+    "endmill_pass": false,
+    "pass": true
+   },
+   "shaft_torque_at_motor_stall": 19.467552196457046,
+   "gear_sf_motor_stall": 0.599844288699286,
+   "t_trip": 4.545454545454545,
+   "gear_sf_trip": 1.855425,
+   "shaft_torque_at_trip": 6.293706293706294,
+   "gear_sf_peak": 2.699930965050833,
+   "gear_sf_stall": 1.68675,
    "sprag": {
-    "torque_nm": 1.161955229708919,
-    "rpm": 36.53709109549907,
+    "torque_nm": 3.0712770537137977,
+    "rpm": 30.58761026830667,
     "t_rated": 50.0,
     "n_max_rpm": 6000.0,
-    "sf": 43.030917819893524,
+    "sf": 16.279872875532295,
     "pass": true
    },
    "flags": [],
-   "stall_warnings": [
-    "gear fails at wiper stall (sf 0.27)",
-    "keyed shaft 12.7 N m at wiper stall > 12.0"
+   "stall_warnings": [],
+   "info": [
+    "motor stall (no limiter) 14.06 N m: shaft 19.5 N m (fail), gear sf 0.60; only if the limiter seizes"
    ]
   },
   "reel": {
    "name": "reel",
-   "t_peak": 0.08,
-   "t_mean": 0.08,
-   "rpm_peak": 40.58445818181818,
-   "rpm_mean": 40.58445818181818,
-   "i_peak": 1.588,
-   "i_mean": 1.588,
-   "v_batt_peak": 10.979312,
-   "frac_stall": 0.006544629147473129,
+   "t_peak": 0.172959864866649,
+   "t_mean": 0.172959864866649,
+   "rpm_peak": 40.27378631343383,
+   "rpm_mean": 40.27378631343383,
+   "i_peak": 1.690255851353314,
+   "i_mean": 1.690255851353314,
+   "v_batt_peak": 10.971540555297148,
+   "frac_stall": 0.014149477161866056,
+   "frac_limiter": 0.0345919729733298,
+   "limiter_nm": 5.0,
+   "stall_label": "at limiter (5 N m)",
    "stall_torque": 12.22376366900604,
-   "time_s": 235.29442090203386,
-   "energy_wh": 1.1395535900003027,
-   "shaft_torque": 0.02,
-   "shaft_torque_at_stall": 3.5149747021380775,
-   "gear_sf_peak": 47.63621749694129,
-   "gear_sf_stall": 0.2748241685530211,
+   "torque_at_limiter": 5.0,
+   "time_s": 142.26568882094548,
+   "energy_wh": 0.732854452949164,
+   "shaft_torque": 0.08820953108199099,
+   "shaft_torque_at_stall": 2.55,
+   "shaft_stall": {
+    "torque_nm": 2.55,
+    "tau_nom_mpa": 1.623380419537332,
+    "tau_peak_mpa": 3.246760839074664,
+    "kt": 2.0,
+    "kt_endmill": 3.0,
+    "t_allow": 12.0,
+    "t_allow_kt": 9.424777960769381,
+    "t_allow_endmill": 6.283185307179587,
+    "sf": 4.705882352941177,
+    "strict_pass": true,
+    "endmill_pass": true,
+    "pass": true
+   },
+   "shaft_torque_at_motor_stall": 7.170548392361678,
+   "gear_sf_motor_stall": 0.5752530733066342,
+   "t_trip": 3.1818181818181817,
+   "gear_sf_trip": 2.5419428571428577,
+   "shaft_torque_at_trip": 1.6227272727272726,
+   "gear_sf_peak": 45.503862445215326,
+   "gear_sf_stall": 1.6176000000000001,
    "sprag": {
-    "torque_nm": 0.02,
-    "rpm": 40.58445818181818,
+    "torque_nm": 0.08820953108199099,
+    "rpm": 67.12297718905639,
     "t_rated": 50.0,
     "n_max_rpm": 6000.0,
-    "sf": 2500.0,
+    "sf": 566.8321709308813,
     "pass": true
    },
    "flags": [],
-   "stall_warnings": [
-    "gear fails at wiper stall (sf 0.27)"
+   "stall_warnings": [],
+   "info": [
+    "motor stall (no limiter) 14.06 N m: shaft 7.2 N m (ok), gear sf 0.58; only if the limiter seizes"
    ]
   },
   "tow": {
    "name": "tow",
-   "t_peak": 1.1858823529411766,
-   "t_mean": 1.1858823529411766,
-   "rpm_peak": 36.888599358288765,
-   "rpm_mean": 36.888599358288765,
-   "i_peak": 2.8044705882352945,
-   "i_mean": 2.8044705882352945,
-   "v_batt_peak": 10.886860235294117,
-   "frac_stall": 0.0970145026566605,
+   "t_peak": 2.01609711976861,
+   "t_mean": 2.01609711976861,
+   "rpm_peak": 34.114021607551486,
+   "rpm_mean": 34.114021607551486,
+   "i_peak": 3.717706831745471,
+   "i_mean": 3.717706831745471,
+   "v_batt_peak": 10.817454280787343,
+   "frac_stall": 0.16493259967717835,
+   "frac_limiter": 0.403219423953722,
+   "limiter_nm": 5.0,
+   "stall_label": "at limiter (5 N m)",
    "stall_torque": 12.22376366900604,
-   "time_s": 64.71712637259579,
-   "energy_wh": 0.5488709702417186,
-   "shaft_torque": 0.96,
-   "shaft_torque_at_stall": 11.381822845018535,
-   "gear_sf_peak": 3.217581189678196,
-   "gear_sf_stall": 0.2748241685530211,
+   "torque_at_limiter": 5.0,
+   "time_s": 41.98843819428146,
+   "energy_wh": 0.4690589510071914,
+   "shaft_torque": 1.028209531081991,
+   "shaft_torque_at_stall": 2.55,
+   "shaft_stall": {
+    "torque_nm": 2.55,
+    "tau_nom_mpa": 1.623380419537332,
+    "tau_peak_mpa": 3.246760839074664,
+    "kt": 2.0,
+    "kt_endmill": 3.0,
+    "t_allow": 12.0,
+    "t_allow_kt": 9.424777960769381,
+    "t_allow_endmill": 6.283185307179587,
+    "sf": 4.705882352941177,
+    "strict_pass": true,
+    "endmill_pass": true,
+    "pass": true
+   },
+   "shaft_torque_at_motor_stall": 7.170548392361678,
+   "gear_sf_motor_stall": 0.5752530733066342,
+   "t_trip": 3.1818181818181817,
+   "gear_sf_trip": 2.5419428571428577,
+   "shaft_torque_at_trip": 1.6227272727272726,
+   "gear_sf_peak": 3.9198856217861873,
+   "gear_sf_stall": 1.6176000000000001,
    "sprag": {
-    "torque_nm": 0.96,
-    "rpm": 36.888599358288765,
+    "torque_nm": 1.028209531081991,
+    "rpm": 56.85670267925248,
     "t_rated": 50.0,
     "n_max_rpm": 6000.0,
-    "sf": 52.083333333333336,
+    "sf": 48.62822069679193,
     "pass": true
    },
    "flags": [],
-   "stall_warnings": [
-    "gear fails at wiper stall (sf 0.27)"
+   "stall_warnings": [],
+   "info": [
+    "motor stall (no limiter) 14.06 N m: shaft 7.2 N m (ok), gear sf 0.58; only if the limiter seizes"
    ]
   }
  },
  "electrical": {
   "stall_full": {
+   "torque": 5.0,
+   "current": 7.0
+  },
+  "stall_nom": {
+   "torque": 5.0,
+   "current": 7.0
+  },
+  "stall_label": "at limiter (5 N m)",
+  "limiter_nm": 5.0,
+  "motor_stall_full": {
    "torque": 14.05989880855231,
    "current": 16.965888689407542
   },
-  "stall_nom": {
+  "motor_stall_nom": {
    "torque": 12.22376366900604,
    "current": 14.946140035906645
   },
@@ -258,26 +554,83 @@
   "bts_cont_a": 15.0,
   "fuse_a": 20.0,
   "fuse_blows_on_stall": false,
-  "note": "20 A blade survives 18 A for minutes: a stall at 17.0 A will not blow it; firmware current trip must cut a stall within about 1 s (motor and BTS heating)"
+  "note": "20 A blade survives 18 A for minutes and holds a 17.0 A motor stall (no limiter) indefinitely: the firmware current trip is the only stall protection (motor and BTS heating)"
  },
  "general_flags": [
-  "20 A blade survives 18 A for minutes: a stall at 17.0 A will not blow it; firmware current trip must cut a stall within about 1 s (motor and BTS heating)",
-  "stall current 17.0 A > BTS7960 15.0 A continuous (no heatsink)"
+  "20 A blade survives 18 A for minutes and holds a 17.0 A motor stall (no limiter) indefinitely: the firmware current trip is the only stall protection (motor and BTS heating)"
+ ],
+ "info": [
+  "at limiter (5 N m): motor draws 7.0 A while the limiter slips (12.6 V); motor stall (no limiter) 14.06 N m / 17.0 A > BTS7960 15.0 A continuous",
+  "motor stall (no limiter) at 12.6 V: 14.06 N m, 17.0 A, line 358 N (above dart holding in sand, loam, clay)",
+  "motor stall (no limiter) at 11.1 V: 12.22 N m, 14.9 A, line 311 N (above dart holding in sand, loam, clay)",
+  "parts at motor stall (no limiter): drum T 7.17 N m, fails: key; only reached if the limiter seizes"
  ],
  "capstan_warnings": [
-  "wiper stall pulls 597 N on the line: above dart holding in sand, loam, clay",
-  "wraps hold 5152 N at mu high: the capstan is no torque limiter, firmware current limit (or a slip clutch) must protect the dart and line",
-  "wraps 5 < design 6 (1.5x margin)",
-  "tow limit is only 1.30 A above free current: current sensing of tension is coarse, calibrate on the bench or use the load cell",
-  "parts_at_stall: key fails",
-  "parts_at_stall: drum line pressure 29.9 / hoop 56.9 MPa over 12 MPa"
+  "at limiter (5 N m): line pull 127 N (empty reel; 126 N full reel): above dart holding in sand, loam, clay",
+  "at limiter (5 N m): wraps hold 7728 N at mu high, the line does not slip on the drum: the firmware current limit must protect the dart and line",
+  "5.0 A hard trip still allows 81 N on the line (above sand, loam): the tow trip must act first",
+  "parts at limiter (5 N m): drum line pressure 6.3 / hoop 16.1 MPa over 12 MPa"
  ],
+ "capstan_limiter": {
+  "torque": 5.0,
+  "current_slip": 7.0,
+  "f_line_empty_reel": 126.9,
+  "f_line_full_reel": 126.08952344590045,
+  "t_drum": 2.55,
+  "dart_hold": {
+   "sand": 7.0,
+   "loam": 45.0,
+   "clay": 112.0
+  },
+  "line_breaking": 667.0,
+  "exceeds_dart": {
+   "sand": true,
+   "loam": true,
+   "clay": true
+  },
+  "exceeds_break": false,
+  "wraps_slip_first": false,
+  "holds_max": 7727.911489792709,
+  "tow_frac": 0.403219423953722,
+  "slips_at_tow": false
+ },
  "capstan_current_limit": {
   "f_limit": 50.0,
-  "t_wiper": 1.1858823529411766,
-  "current": 2.8044705882352945,
+  "t_wiper": 1.9843137254901961,
+  "t_wiper_full_reel": 2.01609711976861,
+  "current": 3.682745098039216,
   "i_free": 1.5,
-  "delta_over_free": 1.3044705882352945
+  "delta_over_free": 2.182745098039216
  },
- "total_energy_wh": 1.7435869650126932
+ "fw_trip": {
+  "blank_ms": 50,
+  "hard_a": 5.0,
+  "hard_ms": 30,
+  "hard_torque": 3.1818181818181817,
+  "hard_gear_sf": 2.5419428571428577,
+  "hard_gear_pass": true,
+  "hard_drum_torque": 1.6227272727272726,
+  "hard_line_n": 80.53636363636363,
+  "tow_trip_delta_a": 2.182745098039216,
+  "tow_trip_avg_ms": 200,
+  "tow_trip_rule": "measured free current + 2.18 A, averaged over 200 ms",
+  "notes": [
+   "ignore current for 50 ms after start; hard trip at 5.0 A for 30 ms in aim, reel and tow (3.18 N m at the wiper), 6.5 A while cocking (4.55 N m)",
+   "the 5 N m torque limiter in the wiper coupler caps the train at 5 N m (motor current while it slips 7.0 A); sprag #2 plus the self-locking worm still lock in the line tension after a trip, so the trip must stop the motor before the limiter slips for long (heat, wear)",
+   "the 20 A fuse holds a 17 A motor stall (no limiter) and the 7.0 A limiter slip indefinitely: it is wiring protection only",
+   "BTS7960 IS reads the high side only (zero in the PWM off-time): sample in the on-time or scale by duty"
+  ]
+ },
+ "takeup": {
+  "clutch_torque": 0.06,
+  "clutch_r": 0.02,
+  "r_empty": 0.02,
+  "r_full": 0.0274032233417463,
+  "l_max": 20.0,
+  "t_hold_max": 3.0,
+  "t_hold_min": 2.18952344590045,
+  "overspeed_min": 1.2,
+  "overspeed_max": 1.644193400504778
+ },
+ "total_energy_wh": 1.2644837021213189
 }

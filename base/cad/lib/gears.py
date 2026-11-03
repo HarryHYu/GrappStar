@@ -9,6 +9,7 @@ undercut. Backlash is split: each gear thins its teeth by backlash / 2 (arc at t
 from __future__ import annotations
 
 import math
+import warnings
 
 import numpy as np
 from shapely import affinity
@@ -23,6 +24,7 @@ ALLOW_PPA_CF = 35.0       # MPa, design bending stress for printed PPA-CF teeth 
 ROOT_FILLET = 0.38        # cutter tip radius as a fraction of m (gives the root fillet)
 HF = 1.25                 # dedendum coefficient (cutter addendum)
 HA = 1.0                  # addendum coefficient
+MIN_TIP_LAND = 0.4        # mm, smallest printable tooth tip land (0.4 nozzle); spur_gear warns below it
 
 # Lewis form factor Y (20 deg full depth, load at tip), by tooth count
 _LEWIS = [(8, 0.180), (10, 0.201), (12, 0.245), (13, 0.261), (14, 0.277), (15, 0.290), (16, 0.296), (17, 0.303),
@@ -83,19 +85,56 @@ def center_distance(m, z1, z2, x1=0.0, x2=0.0, pa=20.0, extra=fits.GEAR_CENTER_E
     return m * (z1 + z2) / 2 * math.cos(math.radians(pa)) / math.cos(aw) + extra
 
 
-def internal_center_distance(m, z_ring, z_pinion, pa=20.0, extra=fits.GEAR_CENTER_EXTRA):
-    """Centre distance (mm) of a pinion inside an unshifted ring: m (z_ring - z_pinion) / 2 - extra
-    (moving the pinion towards the ring centre opens the backlash, the sign is opposite to external pairs)."""
-    return m * (z_ring - z_pinion) / 2 - extra
+INTERNAL_MIN_DIFF = 10     # minimum z_ring - z_pinion of an unshifted 20 deg internal pair (tip interference)
+
+
+def internal_working_pressure_angle(z_ring, z_pinion, x_ring=0.0, x_pinion=0.0, pa=20.0):
+    """Working pressure angle (deg) of an internal pair from inv(aw) = inv(a) + 2 tan(a) (x2 - x1) / (z2 - z1),
+    x2 = x_ring (positive moves the ring profile outwards, as internal_gear's shift), x1 = x_pinion."""
+    a = math.radians(pa)
+    return math.degrees(inv_inverse(inv(a) + 2 * math.tan(a) * (x_ring - x_pinion) / (z_ring - z_pinion)))
+
+
+def check_internal_pair(z_ring, z_pinion, x_ring=0.0, x_pinion=0.0, pa=20.0):
+    """Raise ValueError when an internal pair has tip (trochoid) interference: with unshifted 20 deg teeth the
+    tooth tips of ring and pinion collide when z_ring - z_pinion < INTERNAL_MIN_DIFF (10). A positive
+    x_ring - x_pinion (larger working pressure angle) is required for smaller differences: the check then asks for
+    a working pressure angle of at least 20 + 2 deg per missing tooth (conservative, verify the mesh)."""
+    diff = z_ring - z_pinion
+    if diff <= 0:
+        raise ValueError(f"internal pair needs z_ring > z_pinion (got {z_ring} and {z_pinion})")
+    if diff >= INTERNAL_MIN_DIFF:
+        return
+    aw = internal_working_pressure_angle(z_ring, z_pinion, x_ring, x_pinion, pa)
+    need = 20.0 + 2.0 * (INTERNAL_MIN_DIFF - diff)
+    if pa < 20.0 - 1e-9 or aw < need - 1e-9:
+        raise ValueError(
+            f"internal gear interference: z_ring - z_pinion = {diff} < {INTERNAL_MIN_DIFF} with working pressure "
+            f"angle {aw:.1f} deg (tooth tips of ring and pinion collide); use a tooth difference of at least "
+            f"{INTERNAL_MIN_DIFF}, or shift the ring outwards (x_ring - x_pinion > 0) to reach aw >= {need:.1f} deg")
+
+
+def internal_center_distance(m, z_ring, z_pinion, pa=20.0, extra=fits.GEAR_CENTER_EXTRA, x_ring=0.0, x_pinion=0.0):
+    """Centre distance (mm) of a pinion inside a ring: m (z_ring - z_pinion) / 2 cos(a) / cos(aw) - extra, aw from
+    internal_working_pressure_angle (equal to pa for unshifted gears; x_ring is internal_gear's shift, x_pinion
+    spur_gear's). Moving the pinion towards the ring centre opens the backlash, the sign of extra is opposite to
+    external pairs. Raises ValueError for pairs with tip interference (see check_internal_pair)."""
+    check_internal_pair(z_ring, z_pinion, x_ring, x_pinion, pa)
+    aw = math.radians(internal_working_pressure_angle(z_ring, z_pinion, x_ring, x_pinion, pa))
+    return m * (z_ring - z_pinion) / 2 * math.cos(math.radians(pa)) / math.cos(aw) - extra
 
 
 def contact_ratio(m, z1, z2, x1=0.0, x2=0.0, pa=20.0):
-    """Transverse contact ratio of an external pair at its working centre distance (no extra)."""
+    """Transverse contact ratio of an external pair at its working centre distance (no extra). Each gear's share
+    sqrt(ra^2 - rb^2) is clamped at the length a sin(aw) of the line of action between the interference points T1, T2
+    (contact beyond them is in the mate's undercut / interference zone and does not count)."""
     i1, i2 = spur_info(m, z1, x1, pa), spur_info(m, z2, x2, pa)
     aw = math.radians(working_pressure_angle(z1, z2, x1, x2, pa))
     a_w = center_distance(m, z1, z2, x1, x2, pa, extra=0.0)
-    L = (math.sqrt(i1["r_tip"] ** 2 - i1["r_base"] ** 2) + math.sqrt(i2["r_tip"] ** 2 - i2["r_base"] ** 2)
-         - a_w * math.sin(aw))
+    T = a_w * math.sin(aw)
+    g1 = min(math.sqrt(i1["r_tip"] ** 2 - i1["r_base"] ** 2), T)
+    g2 = min(math.sqrt(i2["r_tip"] ** 2 - i2["r_base"] ** 2), T)
+    L = g1 + g2 - T
     return L / (math.pi * m * math.cos(math.radians(pa)))
 
 
@@ -209,24 +248,29 @@ def spur_profile(m, z, pa=20.0, shift=0.0, backlash=fits.GEAR_BACKLASH, root_fil
 
 # ---------------------------------------------------------------- bores, hubs, chamfers
 
-_DIN6885 = [(6, 2, 1.0), (8, 2, 1.0), (10, 3, 1.4), (12, 4, 1.8), (17, 5, 2.3), (22, 6, 2.8), (30, 8, 3.3),
-            (38, 10, 3.3), (44, 12, 3.3), (50, 14, 3.8)]
+# DIN 6885 parallel keys: (d_min, key width b, hub keyway depth t2), valid for d_min < d <= next d_min
+_DIN6885 = [(6, 2, 1.0), (8, 3, 1.4), (10, 4, 1.8), (12, 5, 2.3), (17, 6, 2.8), (22, 8, 3.3), (30, 10, 3.3),
+            (38, 12, 3.3), (44, 14, 3.8)]
 
 
 def _din_key(d):
-    w, t = 2, 1.0
+    """DIN 6885 key (width b, hub keyway depth t2) for a nominal shaft diameter d (band d_min < d <= next)."""
+    w, t = _DIN6885[0][1], _DIN6885[0][2]
     for dmin, ww, tt in _DIN6885:
-        if d >= dmin:
+        if d > dmin + 1e-9:
             w, t = ww, tt
     return w, t
 
 
-def bore_cs(d, kind="round", flat=None, key_w=None, key_depth=None, n=6, spline_h=None, spline_w=None, seg=None):
+def bore_cs(d, kind="round", flat=None, key_w=None, key_depth=None, n=6, spline_h=None, spline_w=None, seg=None,
+            fit=fits.SHAFT_IN_BORE):
     """CrossSection of a bore hole (as cut, add fits allowances to d yourself), centred on the origin.
-    kind: 'round'; 'd' (flat on +X, flat = depth of the flat, default 0.1 d); 'key' (keyway on +X, key_w width,
-    default DIN 6885 for d, widened by 2 * fits.KEY_CLEAR; key_depth = depth beyond the bore wall, default DIN hub
-    depth t2); 'hex' (d = across flats, flats normal to X); 'spline' (n straight-sided lobes, d = minor diameter,
-    spline_h lobe height default 0.12 d, spline_w lobe width default pi d / (2 n))."""
+    kind: 'round'; 'd' (flat on +X, flat = depth of the flat, default 0.1 d); 'key' (keyway on +X, same as
+    shafts.keyed_bore: width key_w, default DIN 6885 for the nominal shaft d - fit, the clearance fits.KEY_CLEAR
+    is taken on the shaft key ridge; floor at r = (d - fit) / 2 + key_depth, key_depth default DIN hub depth t2;
+    fit is the diametral allowance the caller added to d, default fits.SHAFT_IN_BORE); 'hex' (d = across flats,
+    flats normal to X); 'spline' (n straight-sided lobes, d = minor diameter, spline_h lobe height default 0.12 d,
+    spline_w lobe width default pi d / (2 n))."""
     from manifold3d import CrossSection
     r = d / 2
     circ = prim.circle_cs(r, seg=seg)
@@ -236,10 +280,11 @@ def bore_cs(d, kind="round", flat=None, key_w=None, key_depth=None, n=6, spline_
         f = 0.1 * d if flat is None else flat
         return circ ^ CrossSection.square((2 * r + 2, 2 * r + 2)).translate((r - f - (2 * r + 2), -r - 1))
     if kind == "key":
-        w0, t0 = _din_key(d)
-        w = (w0 if key_w is None else key_w) + 2 * fits.KEY_CLEAR
+        dn = d - (fit or 0.0)
+        w0, t0 = _din_key(dn)
+        w = w0 if key_w is None else key_w
         t = t0 if key_depth is None else key_depth
-        return circ + CrossSection.square((r + t, w)).translate((0, -w / 2))
+        return circ + CrossSection.square((dn / 2 + t, w)).translate((0, -w / 2))
     if kind == "hex":
         rc = r / math.cos(math.pi / 6)
         return prim.poly_cs([(rc * math.cos(math.radians(30 + 60 * i)), rc * math.sin(math.radians(30 + 60 * i)))
@@ -262,6 +307,9 @@ def cut_bore(solid, d, kind="round", z0=-1.0, z1=1000.0, **opts):
     return solid - prim.extrude(bore_cs(d, kind, **opts), z1 - z0, z=z0)
 
 
+_CONE_PHASE = (math.sqrt(5) - 1) / 2     # facet phase of the chamfer cones (see tip_chamfer)
+
+
 def tip_chamfer(solid, r_tip, h, c, z0=0.0):
     """Intersect a gear body (from z0 to z0 + h) with a double cone that chamfers the tip edges by c (45 deg)."""
     if not c or c <= 0:
@@ -270,7 +318,10 @@ def tip_chamfer(solid, r_tip, h, c, z0=0.0):
     e = 0.3 + c
     pts = [(0, z0 - 0.01), (r_tip - c, z0 - 0.01), (r_tip + e, z0 + c + e), (r_tip + e, z0 + h - c - e),
            (r_tip - c, z0 + h + 0.01), (0, z0 + h + 0.01)]
-    return solid ^ prim.revolve_pts(pts, seg=max(prim.segs(r_tip), 96))
+    n = max(prim.segs(r_tip), 96)
+    # turn the cone facets off the blank's vertex angles (irrational fraction of a facet): a cone ridge through a
+    # tip vertex leaves coincident vertices that slicers / trimesh merge into non-manifold edges
+    return solid ^ prim.revolve_pts(pts, seg=n).rotate((0, 0, _CONE_PHASE * 360.0 / n))
 
 
 def _finish(body, ra, face, chamfer, hub, bore, bore_kind, bore_opts):
@@ -295,9 +346,15 @@ def spur_gear(m, z, face, pa=20.0, shift=0.0, backlash=fits.GEAR_BACKLASH, root_
     diameter (see bore_cs for bore_kind and bore_opts), hub (d, h) boss on top from z = face to face + h (keep d
     under the root diameter), chamfer tip edge chamfer (mm), present tooth indices to keep (partial gear, other
     teeth removed down to the root circle)."""
+    inf = spur_info(m, z, shift, pa, backlash, tip_short)
+    land = inf["s_tip"]
+    if inf["pointed"] or not land == land or land < MIN_TIP_LAND:
+        warnings.warn(f"spur_gear m{m:g} z{z} shift {shift:g}: pointed teeth (tip land {land:.2f} mm, need >= "
+                      f"{MIN_TIP_LAND:g} mm for the 0.4 nozzle and >= 0.25 m); reduce shift or use tip_short",
+                      stacklevel=2)
     g2 = spur_profile(m, z, pa, shift, backlash, root_fillet, present, tip_short, seg)
     body = prim.extrude(prim.shapely_cs(g2), face)
-    ra = spur_info(m, z, shift, pa, backlash, tip_short)["r_tip"]
+    ra = inf["r_tip"]
     return _finish(body, ra, face, chamfer, hub, bore, bore_kind, bore_opts)
 
 
@@ -318,8 +375,9 @@ def internal_gear(m, z, face, rim_od, pa=20.0, shift=0.0, backlash=fits.GEAR_BAC
         c = min(chamfer, face / 2 - 1e-3)
         e = 0.3 + c
         pts = [(ri + c, -0.01), (ri - e, c + e), (ri - e, face - c - e), (ri + c, face + 0.01)]
+        nc = max(prim.segs(ri), 96)
         cone = prim.revolve_pts([(ri + c, -1)] + pts + [(ri + c, face + 1), (ri - e - 1, face + 1), (ri - e - 1, -1)],
-                                seg=max(prim.segs(ri), 96))
+                                seg=nc).rotate((0, 0, _CONE_PHASE * 360.0 / nc))
         body = body - cone
     return body
 

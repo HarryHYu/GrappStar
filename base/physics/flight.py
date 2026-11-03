@@ -49,29 +49,32 @@ def simulate(p: Params, v0: float, pitch_deg: float, brake_n: float | None = Non
     nodes = muzzle[None, :].copy()           # last node is the dart
     vel = vd0[None, :].copy()
     d0 = float(np.linalg.norm(muzzle - eye))
+    u_start = (muzzle - eye) / max(d0, 1e-9)
+    v_pay0 = max(0.0, float(vd0 @ u_start))   # the dart draws line only at its speed along the eye-to-dart line
     l0 = d0                                   # rest length of segment 0 (eye -> first node)
     reel = None
     if tether and reel_model:
         from payout import Reel
         reel = Reel(p, brake, shoes=shoes, shoe_k=shoe_k, shoe_on=shoe_on)
         reel.paid = d0
-        reel.omega = v0 / reel.radius()
+        reel.omega = v_pay0 / reel.radius()
     paid = d0
     m_b = lam * seg
     k_seg = ea_sim / seg
-    dt = min(dt, 0.55 * math.sqrt(m_b / k_seg))   # explicit stability on the stiffest segment
+    dt = min(dt, 0.35 * math.sqrt(m_b / k_seg))   # explicit stability, and no step-to-step tension flip
     t = 0.0
     apex = muzzle[1]
     t_dart_max = 0.0
     t_at_max = 0.0
     t_dart_f = 0.0
+    t_reel_f = 0.0
     t_reel_max = 0.0
     slack_max = 0.0
     hist = []
     hist_reel = []
     line_end_hit = False
     landed = False
-    pay_rate = v0
+    pay_rate = v_pay0
     while t < tmax:
         n = len(nodes)
         P = np.vstack([eye, nodes])
@@ -144,7 +147,9 @@ def simulate(p: Params, v0: float, pitch_deg: float, brake_n: float | None = Non
         # reel
         if reel is not None:
             t_reel = t_eye / gain
-            t_reel_max = max(t_reel_max, t_reel)
+            t_reel_f += (t_reel - t_reel_f) * dt / 0.005
+            if t > 0.02:
+                t_reel_max = max(t_reel_max, t_reel_f)
             dlp = reel.step(t_reel, dt)
             l0 += dlp
             paid += dlp

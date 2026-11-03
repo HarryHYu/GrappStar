@@ -21,7 +21,7 @@
 20,VTX 5V in (same pad),Camera + (red),orange,28 AWG,105,runs forward along the top through the disc notches,22
 21,VTX GND (same pad),Camera - (black),black,28 AWG,105,,23
 22,Camera video (yellow),VTX video in,yellow,28 AWG,105,twist with the camera ground,24
-23,XIAO 3V3,DRV#1 SLP / nSLEEP / EEP pad (NOT VCC or VIN),red/white,28 AWG,55,wakes the driver; meter check first (WIRING.md step 6),25
+23,XIAO 3V3,DRV#1 SLP / nSLEEP / EEP pad (NOT VCC or VIN),red/white,28 AWG,55,wakes the driver; meter check first (WIRING.md step B6),25
 24,DRV#1 SLP,DRV#2 SLP,red/white,28 AWG,65,,26
 25,XIAO 3V3,INA219 VCC,red/white,28 AWG,60,,28
 26,INA219 VCC,BNO085 VIN,red/white,28 AWG,60,,29

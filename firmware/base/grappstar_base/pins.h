@@ -25,7 +25,7 @@
 #define PIN_DRUM_FLT  47   // nFAULT if the carrier has the pad (open drain, internal pull-up). Leave open if not
 
 // Printed contact switches: M3 screw head touching an M3 nut, one side to the pin, other side to GND.
-// Internal pull-up: closed = LOW. Which contact sits on which pin comes from params (SWITCH_PINS in params_gen.h).
+// Internal pull-up: closed = LOW. Which contact sits on which pin: Cfg::swBit in config.h (SwId order A..H).
 #define PIN_SW_A      11
 #define PIN_SW_B      12
 #define PIN_SW_C      13

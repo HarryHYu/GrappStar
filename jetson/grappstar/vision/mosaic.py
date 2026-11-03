@@ -424,7 +424,8 @@ def _build(frames, landing_t, flight, max_frames, work_w, max_canvas, min_inlier
     x1, y1 = max(x1, rx1), max(y1, ry1)
     s = min(1.0, max_canvas / max(x1 - x0, y1 - y0))
     T = np.array([[s, 0, -x0 * s], [0, s, -y0 * s], [0, 0, 1.0]])
-    cw, ch = int(math.ceil((x1 - x0) * s)) + 1, int(math.ceil((y1 - y0) * s)) + 1
+    cw = int(min(max_canvas, math.ceil((x1 - x0) * s) + 1))
+    ch = int(min(max_canvas, math.ceil((y1 - y0) * s) + 1))
 
     acc_img = np.zeros((ch, cw, 3), np.float32)
     acc_w = np.zeros((ch, cw), np.float32)

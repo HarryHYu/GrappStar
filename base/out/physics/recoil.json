@@ -1,0 +1,42 @@
+{
+ "params_source": "base/spec/params.py v0.1-stub (still defaults for LAUNCH, AIM, REEL, LAYOUT)",
+ "recoil": [
+  {
+   "pitch_deg": 6.0,
+   "v_muzzle": 7.727054736994601,
+   "f_recoil_peak_n": 84.0,
+   "f_recoil_x_n": 83.53983921093496,
+   "f_recoil_down_n": 8.780390914482892,
+   "t_stroke_ms": 54.20000000000592,
+   "impulse_dart_ns": 2.155848271621494,
+   "moment_back_tip_nm": 28.78489312610805,
+   "resist_back_tip_nm": 5.886,
+   "back_tip_margin": 0.20448225999009764,
+   "stop_ke_j": 3.345888304525363,
+   "f_stop_linear_pad_n": 446.11844060338177,
+   "f_stop_constant_force_n": 223.05922030169089,
+   "travel_for_300n_linear_mm": 22.30592203016909,
+   "moment_front_tip_nm": 166.86428482323203,
+   "resist_front_tip_nm": 5.886,
+   "front_tip_margin": 0.03527417509525987,
+   "rover": {
+    "mass": 4.0,
+    "pivot_h": 0.3,
+    "spring_w": 0.06,
+    "rear": 0.15,
+    "front": 0.15,
+    "cg_x": 0.0,
+    "cg_h": 0.12
+   },
+   "back_dynamic": {
+    "omega": 4.555003560689468,
+    "ke_j": 1.5312066389165577,
+    "tip_energy_j": 2.8289578523059493,
+    "tips": false,
+    "lift_deg": 17.21699204298393
+   },
+   "front_dynamic": {
+    "omega": 2.039769562367804,
+    "ke_j": 0.30705669822608617,
+    "tip_energy_j": 2.8289578523059493,
+    "tips": 

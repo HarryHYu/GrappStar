@@ -1,6 +1,6 @@
 # Whole-base integration audit (cad-frame)
 
-Run 2026-11-03 14:46 Sydney on `7cce086` (base-v1 merged into w/cad-frame), `tools.audit --dt 0.5 --jobs 2 --no-refine`, 226 parts, 885 states, 139 s. Verdict: **NOT CLEAN**.
+Run 2026-11-03 15:06 Sydney on `7d5d409` (base-v1 merged into w/cad-frame), `tools.audit --dt 0.5 --jobs 2 --no-refine`, 230 parts, 988 states, 141 s. Verdict: **NOT CLEAN**.
 
 Subsystems: drum, frame, launch, reel, sensors
 
@@ -16,10 +16,11 @@ Spec: main axis z = 0, deck top z = -165.0. Lowest part bottom per subsystem (re
 | reel | -165.0 | reel_base (-18.7, 33.5, -69.6) | ok |
 | sensors | -157.0 |  | ok |
 
-## Collisions (1)
+## Collisions (2)
 
 | part A (owner) | part B (owner) | worst overlap mm3 | states hit | worst state: phase, t | note |
 |---|---|---|---|---|---|
+| reel_p2_post (reel) | sensors_sw_gap (sensors) | 53.255 | 621 | load, 0.0 |  |
 | drum_coupler_hub (drum) | frame_wiper_shaft (frame) | 21.885 | 149 | aim_sweep, None |  |
 
 ## Failed clearances (0)
@@ -44,6 +45,10 @@ None.
 - **Puck vs the reel cup and capstan (y below 0):** the puck and the plate are carved round every other
   subsystem's swept volume, so the reel unit can pass behind the plate below the axis; the frame keeps at least 4 rim
   screws with both plate and lip material (checked).
+- **Open interpretation, needs the coordinator:** cad-drum's `coupler_hub` puts the WIPER flats from the motor frame
+  origin at y 0 (boss face at y 0), the frame puts the boss face at y -10 because the spec's y = 0 is the ADAPTER PLATE
+  face and the adapter (10 thick) sits between the motor bosses and the base. One of the two moves by 10 mm; the
+  remaining whole-base collision (drum_coupler_hub x frame_wiper_shaft) comes from this.
 - **Wiper shaft and the coupler (cad-drum):** the WIPER model (params, not measured) has the output boss r 12 standing
   4 mm proud of the boss face (y -10..-6), the shaft d10 with flats 8 across from y -4 to y +10 and the M8 thread
   y +10..+22. The coupler hub (y 0.5..) must take the flats and leave room for the M8 nut.

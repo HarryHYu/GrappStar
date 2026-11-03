@@ -8,10 +8,13 @@
 - **Puck vs the reel cup and capstan (y below 0):** the puck and the plate are carved round every other
   subsystem's swept volume, so the reel unit can pass behind the plate below the axis; the frame keeps at least 4 rim
   screws with both plate and lip material (checked).
-- **Open interpretation, needs the coordinator:** cad-drum's `coupler_hub` puts the WIPER flats from the motor frame
-  origin at y 0 (boss face at y 0), the frame puts the boss face at y -10 because the spec's y = 0 is the ADAPTER PLATE
-  face and the adapter (10 thick) sits between the motor bosses and the base. One of the two moves by 10 mm; the
-  remaining whole-base collision (drum_coupler_hub x frame_wiper_shaft) comes from this.
+- **Wiper angle:** `frame_wiper` (the motor's output stub) now takes cad-drum's `drum_main` value in every state (they
+  are the same shaft); the old drum_coupler_hub x frame_wiper_shaft overlap came from the two joints disagreeing in
+  the aim-sweep audit states.
+- **Coupler hub flats (cad-drum, check):** the hub's flat bore assumes the flats run to y 20.5 from a boss face at
+  y 0; with the boss face at y -10 (adapter plate face at y 0, BASE_SPEC section 2) the real flats end at y +10 and the
+  last 10 mm of the hub's flat bore sits on the M8 thread. Geometry is clear; torque goes through 10 to 12 mm of flat
+  engagement instead of 18. Shift the hub's flats 10 mm towards the motor if that is too short.
 - **Wiper shaft and the coupler (cad-drum):** the WIPER model (params, not measured) has the output boss r 12 standing
   4 mm proud of the boss face (y -10..-6), the shaft d10 with flats 8 across from y -4 to y +10 and the M8 thread
   y +10..+22. The coupler hub (y 0.5..) must take the flats and leave room for the M8 nut.

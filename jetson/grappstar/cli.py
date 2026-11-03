@@ -3,7 +3,7 @@
   serve       operator web page (http://<jetson>:8080); --sim runs everything simulated
   cameras     list cameras and their formats
   snap        save frames from a camera (for calibration images)
-  base        talk to the base: status | ping | monitor | cmd '<json>' | mode X | aim DEG | stop | estop | clear
+  base        talk to the base: status | ping | monitor | console | cmd '<json>' | mode X | aim DEG | stop | estop | clear
   dart        talk to the dart: status | key C --hold S | stop | auto | release | flightlog
   mockbase    run the simulated base on a pseudo terminal (--pty) for testing the client
   mockdart    run the simulated dart HTTP API
@@ -19,6 +19,7 @@ import json
 import os
 import sys
 import time
+from typing import Optional
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 JETSON_DIR = os.path.dirname(HERE)
@@ -116,10 +117,73 @@ def _base_client(a):
     return c
 
 
+def parse_console_line(line: str) -> Optional[dict]:
+    """base console input: a JSON object ({"cmd": "set", "key": "limit_n", "val": 30}), or a bare command word with
+    optional key=value pairs ("stop", "estop", "status", "reel duty=0.3 max_n=20 until=stop"). None for blank."""
+    line = line.strip()
+    if not line:
+        return None
+    if line.startswith("{"):
+        obj = json.loads(line)
+        if not isinstance(obj, dict) or not isinstance(obj.get("cmd"), str):
+            raise ValueError('a JSON line needs "cmd"')
+        return obj
+    words = line.split()
+    obj: dict = {"cmd": words[0]}
+    for w in words[1:]:
+        if "=" not in w:
+            raise ValueError(f"expected key=value, got {w!r}")
+        k, v = w.split("=", 1)
+        try:
+            obj[k] = json.loads(v)          # numbers, true/false, null, "quoted"
+        except ValueError:
+            obj[k] = v                      # bare text (until=stop, to=REEL)
+    return obj
+
+
+def tel_line(t: dict) -> str:
+    """One short telemetry line for the console (the full JSON is in base monitor)."""
+    keys = ("state", "mode", "drum_pos", "fault", "tension_n", "amps", "line_m", "pitch_deg", "cock", "wraps")
+    sw = "".join(sorted((t.get("sw") or {}).keys()))
+    return "TEL " + "  ".join(f"{k}={t.get(k)}" for k in keys if k in t) + f"  sw={sw}"
+
+
+def base_console(c, inp, out, tel_every: float = 0.5) -> int:
+    """One connection: prints telemetry (every tel_every s) and every event, and sends what is typed. "quit" ends."""
+    last = {"t": 0.0}
+
+    def on_tel(t):
+        now = time.monotonic()
+        if now - last["t"] >= tel_every:
+            last["t"] = now
+            print(tel_line(t), file=out, flush=True)
+    c.add_tel_callback(on_tel)
+    c.add_evt_callback(lambda e: print("EVENT", json.dumps({k: v for k, v in e.items() if k[0] != "_"}),
+                                       file=out, flush=True))
+    print('base console: type a command ("stop", "estop", "status", "reel duty=0.3 max_n=20 until=stop") or a JSON '
+          'line; "quit" ends', file=out, flush=True)
+    for line in inp:
+        if line.strip() in ("quit", "exit", "q"):
+            break
+        try:
+            obj = parse_console_line(line)
+            if obj is None:
+                continue
+            name = obj.pop("cmd")
+            obj.pop("id", None)
+            r = c.cmd(name, check=False, timeout=3.0, **obj)
+            print("REPLY", json.dumps(r), file=out, flush=True)
+        except Exception as e:              # bad input or a timeout: say so and keep the console open
+            print("ERROR", e, file=out, flush=True)
+    return 0
+
+
 def cmd_base(a) -> int:
     from .comms.base import BaseError, BaseTimeout
     c = _base_client(a)
     try:
+        if a.what == "console":
+            return base_console(c, sys.stdin, sys.stdout)
         if a.what == "monitor":
             c.add_tel_callback(lambda t: print(json.dumps(t)))
             c.add_evt_callback(lambda e: print("EVENT", json.dumps({k: v for k, v in e.items() if k[0] != "_"})))
@@ -354,7 +418,7 @@ def main(argv=None) -> int:
     s.add_argument("--out", default=os.path.join(JETSON_DIR, "calib", "images"))
 
     s = sub.add_parser("base", help="talk to the base")
-    s.add_argument("what", choices=["status", "ping", "monitor", "cmd", "mode", "aim", "stop", "estop", "clear",
+    s.add_argument("what", choices=["status", "ping", "monitor", "console", "cmd", "mode", "aim", "stop", "estop", "clear",
                                     "wrap", "unwrap", "reel", "fire"],
                    help="fire: confirm, then arm and fire on one connection (the token lives 3 s)")
     s.add_argument("args", nargs="*")

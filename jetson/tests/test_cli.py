@@ -86,3 +86,42 @@ def test_one_drag_default_everywhere():
     from grappstar import mission
     ex = json.load(open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "settings.example.json")))
     assert cli.DEFAULT_DRAG_N == mission.DEFAULT_DRAG_N == mission.MissionConfig().drag_n == ex["drag"] == 0.5
+
+
+def test_console_line_parsing():
+    assert cli.parse_console_line("  ") is None
+    assert cli.parse_console_line("stop") == {"cmd": "stop"}
+    assert cli.parse_console_line("reel duty=0.3 max_n=20 until=stop") == {"cmd": "reel", "duty": 0.3, "max_n": 20,
+                                                                          "until": "stop"}
+    assert cli.parse_console_line('{"cmd": "set", "key": "limit_n", "val": 30}')["val"] == 30
+    import pytest
+    with pytest.raises(ValueError):
+        cli.parse_console_line("reel 0.3")
+    with pytest.raises(ValueError):
+        cli.parse_console_line('{"key": "x"}')
+
+
+def test_base_console_one_connection_shows_tel_and_sends_commands():
+    """docs: CALIBRATION (f) needs telemetry live while sending stop: one connection does both."""
+    import io
+    from grappstar.comms.base import BaseClient, pipe_pair
+    from grappstar.comms.mock_base import MockBase
+    import time
+    a, b = pipe_pair()
+    mb = MockBase(a, time_scale=10).start()
+    c = BaseClient(b, reconnect_s=0.05).start()
+    try:
+        assert c.wait_connected(3.0)
+        time.sleep(0.5)                              # past BOOTING
+        out = io.StringIO()
+        inp = io.StringIO('status\nbogus 1\n{"cmd": "get", "key": "fw"}\nmode to=LAUNCH\nquit\nstop\n')
+        assert cli.base_console(c, inp, out, tel_every=0.0) == 0
+        time.sleep(1.5)
+        text = out.getvalue()
+        assert "TEL state=" in text and "REPLY" in text and "ERROR" in text
+        assert '"val": "base-1.3.0"' in text
+        assert "EVENT" in text or '"ok": true' in text
+        assert text.count("REPLY") == 3                # "stop" after quit is never sent
+    finally:
+        c.close()
+        mb.stop()

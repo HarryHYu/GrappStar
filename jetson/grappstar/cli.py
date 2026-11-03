@@ -128,7 +128,18 @@ def cmd_base(a) -> int:
         elif a.what == "aim":
             r = c.cmd("aim", deg=float(a.args[0]), check=False)
         elif a.what == "reel":
-            r = c.cmd("reel", duty=float(a.args[0]) if a.args else 0.5, until="stop", ms=1000, check=False)
+            # bench test: reel for a fixed time (default 1 s), always followed by stop
+            duty = float(a.args[0]) if a.args else 0.5
+            secs = float(a.args[1]) if len(a.args) > 1 else 1.0
+            try:
+                r = c.cmd("reel", duty=duty, max_n=float(a.max_n), until="stop", check=False)
+                if r.get("ok"):
+                    time.sleep(min(secs, 10.0))
+            finally:
+                try:
+                    c.cmd("stop", check=False, timeout=1.0)
+                except Exception:
+                    print("WARNING: stop not acknowledged: run  python3 -m grappstar base stop")
         elif a.what == "status":
             r = c.cmd("status", check=False)
             if c.tel and "tel" not in r:
@@ -302,6 +313,7 @@ def main(argv=None) -> int:
     s.add_argument("args", nargs="*")
     s.add_argument("--port", "--base", dest="port", default="/dev/grappstar-base")
     s.add_argument("--timeout", type=float, default=2.0)
+    s.add_argument("--max-n", default=30.0, help="reel: tension limit, N")
 
     s = sub.add_parser("dart", help="talk to the dart")
     s.add_argument("what", choices=["status", "key", "stop", "auto", "release", "flightlog", "watch"])

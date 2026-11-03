@@ -175,3 +175,67 @@ def test_key_bore_matches_keyed_shaft():
     assert abs(cs.bounds()[2] - 12.8) < 1e-3
     slot = box(10.6, -5, 14, 5).intersection(Polygon(cs.to_polygons()[0]))
     assert abs((slot.bounds[3] - slot.bounds[1]) - 6.0) < 1e-3
+
+
+@pytest.mark.parametrize("zr,zp", [(30, 24), (36, 30), (40, 32), (40, 31), (24, 18)])
+def test_internal_interference_raises(zr, zp):
+    with pytest.raises(ValueError, match="interference"):
+        gears.internal_center_distance(1.0, zr, zp)
+    gears.internal_center_distance(1.0, 40, 30)          # difference 10 is fine
+
+
+def test_internal_shifted_center_distance():
+    m, zr, zp, xr = 1.0, 40, 16, 0.4
+    aw = math.radians(gears.internal_working_pressure_angle(zr, zp, xr, 0.0))
+    a = math.radians(20)
+    assert abs(gears.inv(aw) - (gears.inv(a) + 2 * math.tan(a) * xr / (zr - zp))) < 1e-12
+    cd = gears.internal_center_distance(m, zr, zp, x_ring=xr)
+    assert abs(cd - (m * (zr - zp) / 2 * math.cos(a) / math.cos(aw) - fits.GEAR_CENTER_EXTRA)) < 1e-9
+    assert cd > gears.internal_center_distance(m, zr, zp) + 0.3
+    # a shifted ring rescues a small tooth difference: meshes without overlap, contact within the backlash
+    zr, zp, xr = 30, 24, 0.3
+    cd = gears.internal_center_distance(m, zr, zp, x_ring=xr)
+    ring = gears.internal_gear(m, zr, FACE, rim_od=m * zr + 16, shift=xr)
+    pin = gears.spur_gear(m, zp, FACE)
+    awr = math.radians(gears.internal_working_pressure_angle(zr, zp, xr, 0.0))
+    jt = fits.GEAR_BACKLASH + 2 * fits.GEAR_CENTER_EXTRA * math.tan(awr)
+    rp = m * zp / 2
+    for i in range(6):
+        ap = 360.0 / zp * i / 6
+        R = ring.rotate((0, 0, ap * zp / zr))
+        assert (pin.rotate((0, 0, ap)).translate((cd, 0, 0)) ^ R).volume() < 1e-6
+        dA = math.degrees((jt / 2 + 0.05) / rp)
+        assert max((pin.rotate((0, 0, ap + s * dA)).translate((cd, 0, 0)) ^ R).volume() for s in (1, -1)) > 1e-4
+
+
+def test_contact_ratio_clamped_at_interference():
+    # 8 / 40: the mate's tip reaches past T1, only a sin(aw) of the approach counts
+    aw = math.radians(20)
+    T = 24 * math.sin(aw)
+    i1 = gears.spur_info(1, 8)
+    exp = (math.sqrt(i1["r_tip"] ** 2 - i1["r_base"] ** 2) + T - T) / (math.pi * math.cos(aw))
+    assert abs(gears.contact_ratio(1, 8, 40) - exp) < 1e-9
+    assert gears.contact_ratio(1, 8, 40) < 1.2
+    assert 1.6 < gears.contact_ratio(1, 20, 40) < 1.7      # no interference: unchanged
+
+
+def test_pointed_teeth_warn():
+    with pytest.warns(UserWarning, match="pointed"):
+        gears.spur_gear(1, 8, 3, shift=0.5)
+    with pytest.warns(UserWarning, match="pointed"):
+        gears.spur_gear(0.5, 12, 3)                          # tip land 0.31 mm < 0.4 nozzle
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        gears.spur_gear(2, 20, 3)
+
+
+@pytest.mark.parametrize("z", list(range(8, 61)))
+def test_merged_mesh_watertight(z):
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        g = gears.spur_gear(2, z, 10)
+    t = prim.to_trimesh(g)
+    t.merge_vertices()
+    assert t.is_watertight

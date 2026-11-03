@@ -54,7 +54,8 @@ Read this before any hands-on step.
 - **Line under tension:** the capstan never turns back (one-way bearing), so a towing line cannot be let off at the
   base. During any pull (hand test or tow) stand beside or behind the rover, never in line with the dart, glasses
   on. To slacken it, release the dart (`release`) or drive the rover toward the dart. Calibrate the current-to-
-  tension number (MEASURE_LIST G9) before any tow: the shipped value lets the line reach about twice the limit.
+  tension number (MEASURE_LIST G9) before any tow: with uncalibrated values a simulated tow reached 61 N
+  against a 40 N limit.
 - Chock or brake the rover during every shot and every tow. Strap the LiPo down under a cover on the rover.
 - **Picking up a landed dart:** send dart STOP, check it reads IDLE (an armed dart can start anchoring when moved),
   then pull its loop plug before you touch it.

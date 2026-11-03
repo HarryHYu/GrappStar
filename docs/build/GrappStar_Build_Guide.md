@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 15:08 Sydney time from commit `e493579`.
+Built 2026-11-03 15:14 Sydney time from commit `99c78e2`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -130,16 +130,16 @@ Range today (from `base/out/ballistics.json`, 0.5 N payout brake, measured from 
    plates (section 4) do not wait for the base coupons or the measurements: start them any time after the dart
    fit coupon passes.
 4. Flash the dart and build it (sections 6 and 8, and the dart run sheet `kedge/pack_v30/KEDGE_v30_run_sheet.pdf`: print it separately).
-5. Set up the Jetson on its own wall supply (section 9, steps 0 to 3 only; its step 4, plugging in the base, comes
-   after step 6).
+5. Set up the Jetson on its own wall supply (section 9, steps 0 to 3 only; its step 4 comes at the end of step 7).
 6. Flash the base ESP32 from the Mac (section 8.1). Battery out is enough: any wiring already on the board can stay.
 7. Wire the base electronics on the bench, wiper motor clamped in a vice and the drum N20 loose (section 7.2,
-   firmware/base/WIRING.md Parts A to D), then bench test them (section 11.1), then calibration parts (a) and (b) (section 10). Measure A6 here.
+   firmware/base/WIRING.md Parts A to D), then bench test them (section 11.1), then calibration parts (a) and (b) (section 10). Measure A6 here. At the end:
+   battery out, Jetson still on its wall supply, plug the ESP32 into the Jetson and do Jetson section 9 step 4
+   (it creates `/dev/grappstar-base`, which every later `base` command uses).
 8. Print the base (section 4, after the coupons pass and the measurements are in) and assemble it with the motor
    and drum N20 (section 5).
 9. Put the base on the rover and wire the rover (section 7.1), then do the first power-on of everything together
-   (7.1, its part 4). Then finish the Jetson setup (section 9, steps 4 to 7: the base port, cameras, dart WiFi,
-   rover camera calibration), now with the base wired and powered.
+   (7.1, its part 4). Then finish the Jetson setup (section 9, steps 5 to 7: cameras, dart WiFi, rover camera calibration).
 10. Calibrate (section 10). Commands go to the base from the Jetson from now on (see section 10).
 11. Run the staged tests from stage 4 on (section 12; stages 0 to 3 were done in steps 3, 7 and 9).
 
@@ -199,7 +199,8 @@ Read this before any hands-on step.
 - **Line under tension:** the capstan never turns back (one-way bearing), so a towing line cannot be let off at the
   base. During any pull (hand test or tow) stand beside or behind the rover, never in line with the dart, glasses
   on. To slacken it, release the dart (`release`) or drive the rover toward the dart. Calibrate the current-to-
-  tension number (MEASURE_LIST G9) before any tow: the shipped value lets the line reach about twice the limit.
+  tension number (MEASURE_LIST G9) before any tow: with uncalibrated values a simulated tow reached 61 N
+  against a 40 N limit.
 - Chock or brake the rover during every shot and every tow. Strap the LiPo down under a cover on the rover.
 - **Picking up a landed dart:** send dart STOP, check it reads IDLE (an armed dart can start anchoring when moved),
   then pull its loop plug before you touch it.
@@ -287,8 +288,8 @@ Printer: Bambu X2D (bed 256 x 256 x 260 mm). PLA for everything except loaded ge
 PPA-CF (the print list says which).
 
 Magnet for the bench: the AS5600 magnet cap is coupon 10 on the PLA risk plate
-(`base/pack/coupons/rc10_magnet_cap.stl`); glue the magnet in it, so the bench test (order of work step 7) can use it on the clamped motor's shaft end; or, for the
-bench only, tape the magnet centred on the shaft end and clamp the AS5600 board 1 to 2 mm from it. `status`
+(`base/pack/coupons/rc10_magnet_cap.stl`; it fits the main shaft spigot, so it is for the base, not the bare
+motor); glue the magnet in it. For the bench test on the clamped motor, tape the magnet centred on the shaft end and clamp the AS5600 board 1 to 2 mm from it. `status`
 must show `"magnet":"OK"` (WEAK: move the board closer; STRONG: further; NONE: no magnet seen).
 
 Print settings (the 3MF files carry geometry only: set material and settings in Bambu Studio for each plate):
@@ -321,7 +322,7 @@ Two plates from the base print pack with small test pieces of the riskiest featu
 contact, dog clutch, slip clutch, bearing seats, heat-set inserts and nut traps, key rib, gear meshes, shear pin.
 Print them, then work through the test sheet. Do not print the big base parts until every coupon passes.
 
-Plates: `base/pack/coupons/risk_plate_1_PLA.3mf` (PLA, 19 pieces) and `risk_plate_2_PPA-CF.3mf` (PPA-CF, 26 pieces). Each
+Plates: `base/pack/coupons/risk_plate_1_PLA.3mf` (PLA, 23 pieces) and `risk_plate_2_PPA-CF.3mf` (PPA-CF, 26 pieces). Each
 piece is also there on its own (`base/pack/coupons/rcN_*.stl`) for a reprint. A printable copy of the test sheet is
 `base/pack/coupons/COUPON_TEST.pdf`. The coupons need a few bought parts (MEASURE_LIST C21): M3 screws and a jam
 nut, heat-set inserts, one each of 608ZZ, F693ZZ and 693ZZ, a CSK20PP.
@@ -3428,7 +3429,8 @@ the big base parts until the coupons pass.
 ### Stage 1. Power-on (no motors attached)
 
 Follow SYSTEM_ELECTRICAL.md section 4, the first power-on sequence, steps 1 to 9. Both motors stay disconnected
-from their drivers until step 10.
+from their drivers until step 10, unless the base already passed WIRING.md Part D on the bench (then see the note at
+the top of that sequence).
 
 Pass: no steady beeps on the short check, MP1584 #2 reads 9.0 V, the Jetson boots, `ping` replies, `vbat` within 0.3 V
 of the meter, `fault` is null.
@@ -3589,12 +3591,12 @@ Rover chocked, base wrapped and in REEL (stage 7 table), the line end tied to th
 and tension calibrated (CALIBRATION.md (d) and (f)).
 
 1. First pull: `{"cmd":"reel","duty":0.5,"max_n":30,"until":"tension"}`. Slacken (below), then the real one:
-   `{"cmd":"reel","duty":0.5,"max_n":50,"until":"tension"}`.
+   `{"cmd":"reel","duty":0.5,"max_n":40,"until":"tension"}` (40 N: the first-tows limit, decision D46).
 2. Watch the 7 wraps on the capstan the whole time: they must not walk along the capstan, and the line must not get
    trapped in the gap at the capstan skirt.
-3. Read the scale when the base holds (`LIMIT`): it should read about 50 N (within 10 N).
+3. Read the scale when the base holds (`LIMIT`): it should read 35 to 45 N.
 
-Pass: the wraps stay in place, no line trapped, the base holds at about 50 N.
+Pass: the wraps stay in place, no line trapped, the base holds at 35 to 45 N.
 To slacken afterwards (and if it fails: `estop` first): the
 capstan cannot let line out, so walk the scale end slowly toward the base, standing beside the line. If it failed: wraps walking or trapped line: check the
 wrap cup position and the capstan skirt; wrong tension: redo CALIBRATION.md (f).
@@ -3810,7 +3812,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | Item | How | Changes | Reprint |
 |---|---|---|---|
 | B1 Free length L0 | Steel rule or tape, hook to hook (inside of the hooks), no load (the spring is longer than a caliper) | `SPRING.free_len` | Nothing |
-| B2 Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load, but only if L3 - L0 is under 160 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm. Or let the computer fit it: `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` (kg:mm pairs) prints the rate and initial tension | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
+| B2 Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 3.5 kg load (never more: 4 kg is over the 38.4 N rating), but only if L3 - L0 is under 160 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm. Or let the computer fit it: `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` (kg:mm pairs) prints the rate and initial tension | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
 | B3 Wire and outside diameter | Caliper | `SPRING.wire`, `SPRING.od` | Spring anchors only if OD differs by more than 0.5 mm |
 | B4 Which preload hole | Decision D30: the springs are Century C-243, rated 38.4 N maximum safe load. Full cock is 265 mm extension (about 40 N each with the estimated rate; preload 23.8 mm, stroke 241.2 mm). A fallback anchor hole set F, 8.5 mm rearward, gives 256.5 mm at full cock. After B2, re-run the physics: if the force at full cock is over 38.4 N, use the fallback hole set | assembly choice (spring anchor holes) | Nothing |
 

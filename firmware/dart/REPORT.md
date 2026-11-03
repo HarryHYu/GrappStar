@@ -35,7 +35,7 @@ Status: DRAFT, updated through the day; the final version is pushed at 18:30 wit
    manual keys.
 9. **Two motors at once**: the self-locking worm pauses 150 ms every 550 ms and the auger is read alone (pausing the
    worm, not the auger, so a stopped screw never fakes a stall); a worm stall in a sequence must also raise the total.
-10. **Brownout or watchdog reset boots in `FAULT`** with motors off, until `/stop`. Run keys are refused while a fault
+10. **Brownout or watchdog reset boots in `FAULT`** with motors off, until `/stop`, `/auto`, `/release` or `/arm`. Run keys are refused while a fault
     is latched.
 11. **Geometry unchanged**: v30 stays the default build; the DRV#3 pocket in the sled stays empty.
 

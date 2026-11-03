@@ -13,7 +13,7 @@
 //        space or s  STOP ALL   + / -  speed   i  current   b  attitude   z  I2C scan   p  status   f  flight log
 //        a  auto-anchor now     r  release now     A  arm / disarm (auto-anchor on landing)     h  help
 // Board: "XIAO_ESP32S3", Tools > USB CDC On Boot: Enabled. Pull the power loop plug before plugging in USB.
-// Safety (trip, stall, deadman timers, sequences, flight detection) and all I2C run in their own FreeRTOS task every
+// Safety (trip, stall, deadman timers, sequences, flight detection) and all I2C (except the z scan) run in their own FreeRTOS task every
 // 5 ms under a task watchdog, so a slow web client or a stuck Serial port cannot stop the motors from being stopped.
 // Wireless upload: Arduino IDE > Port > network port "kedge" while joined to KEDGE.
 #include <Wire.h>
@@ -58,9 +58,12 @@ void pwmAttach(int pin, int ch) { ledcSetup(ch, PWM_HZ, PWM_BITS); ledcAttachPin
 void pwmWrite(int pin, int ch, int duty) { (void)pin; ledcWrite(ch, duty); }
 #endif
 
-void hwSetMotor(int m, int dir, int duty) {          // DRV8833: PWM one input, other low; both low = coast
-  pwmWrite(PINS[m].gpioA, 2 * m, dir > 0 ? duty : 0);
-  pwmWrite(PINS[m].gpioB, 2 * m + 1, dir < 0 ? duty : 0);
+// DRV8833 slow decay: one input high, the other PWM inverted, so the bridge alternates drive and brake. Supply current
+// then goes as duty squared at stall (the logic scales its thresholds that way). Duty 255 = plain DC. Both low = coast.
+void hwSetMotor(int m, int dir, int duty) {
+  if (duty < 0) duty = 0; if (duty > 255) duty = 255;
+  pwmWrite(PINS[m].gpioA, 2 * m, dir > 0 ? 255 : dir < 0 ? 255 - duty : 0);
+  pwmWrite(PINS[m].gpioB, 2 * m + 1, dir < 0 ? 255 : dir > 0 ? 255 - duty : 0);
 }
 
 // ---- INA219, read directly so a failed read is seen (the library returns stale numbers silently).
@@ -145,7 +148,7 @@ void scanI2C() {
     xSemaphoreTake(mtx, portMAX_DELAY); Wire.beginTransmission(a); bool ok = Wire.endTransmission() == 0; xSemaphoreGive(mtx);
     if (ok) { say("I2C device at 0x" + String(a, HEX)); n++; }
   }
-  say(String(n) + " device(s). Expect 0x40 (INA219) and 0x4a (BNO085).");
+  say(String(n) + " device(s). Expect 0x40 (INA219) and 0x4a or 0x4b (BNO085).");
 }
 void help() {
   say("KEDGE v4 ready. 1/! deploy down/up  2/@ kick out/back  3/# drills in/out  4/$ foot in/out");

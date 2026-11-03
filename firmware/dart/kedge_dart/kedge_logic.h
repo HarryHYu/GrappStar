@@ -43,7 +43,7 @@ struct Io {
   void (*log)(const char* line);
 };
 
-// Replace the current numbers with bench values (BENCH_TEST.md, step "stall currents"). Currents are the total read by
+// Replace the current numbers with bench values (BENCH_TEST.md steps 3 to 6, written in at step 10). Currents are the total read by
 // the INA219 on the motor rail at 2S.
 struct Tuning {
   uint32_t serialRunMs = 1500, wifiDeadmanMs = 350, wifiMaxRunMs = 500;
@@ -59,7 +59,8 @@ struct Tuning {
   uint32_t surgeIgnoreMs = 250, stallHoldMs = 200, contactHoldMs = 150;
   uint32_t podsMinMs = 700, kickBackMinMs = 1500;      // shortest real travel before an end-stop stall is believed
   uint32_t kickPlantMaxMs = 6000;                       // kick on the ground but no housing stall seen: carry on after this
-  float riseFrac = 0.5f;                                // a worm stall in a sequence must also raise the total current
+  float riseFrac = 0.5f;
+  float noCurrentFrac = 0.5f; uint32_t noCurrentMs = 500;   // a lone motor under half its free current: open wire or short                                // a worm stall in a sequence must also raise the total current
   float lowRailV = 5.6f; uint32_t lowRailMs = 500;      // 2S at 2.8 V per cell under load
   uint32_t manualMaxMs = 8000;                          // a manual motor (held key or repeats) never runs longer
   uint32_t manualMaxNoInaMs = 2000;                     // ...and without current sensing (no stall detection)
@@ -67,10 +68,10 @@ struct Tuning {
 };
 
 enum Fault { F_NONE = 0, F_OVERCURRENT, F_KICK_TIMEOUT, F_SEQ_TIMEOUT, F_DRILL_JAM, F_FOOT_JAM, F_CURRENT_SENSOR, F_LOW_RAIL,
-             F_BROWNOUT, F_WATCHDOG, F_NFAULT };
+             F_BROWNOUT, F_WATCHDOG, F_NO_CURRENT, F_NFAULT };
 static inline const char* faultName(int f) {
   static const char* n[] = {"", "OVERCURRENT", "KICK_TIMEOUT", "SEQ_TIMEOUT", "DRILL_JAM", "FOOT_JAM", "CURRENT_SENSOR",
-                            "LOW_RAIL", "BROWNOUT", "WATCHDOG"};
+                            "LOW_RAIL", "BROWNOUT", "WATCHDOG", "NO_CURRENT"};
   return (f > 0 && f < F_NFAULT) ? n[f] : "";
 }
 
@@ -90,14 +91,15 @@ static inline const char* phaseName(int p) {
 // ---------------------------------------------------------------------------------------------------------------
 // Launch and landing detector on |a| in g (BNO085 accelerometer, gravity included, saturates near 8 g).
 //   launch:  |a| > launchG continuously for launchHoldMs (contract C2: 4 g for 20 ms)
-//   landing: after the launch push has ended (|a| below quietG) and minFlightMs, an impact over impactG, then still
-//            (|a| inside stillLo..stillHi) for stillMs (C2: 6 g, then still 1 s). Landing time = the LAST impact.
+//   landing: after free fall (|a| < freeFallG for freeFallMs in total) or pushOverMs after launch with |a| < launchG,
+//            and minFlightMs, an impact over impactG, then still (|a| inside stillLo..stillHi) for stillMs. C2 said 6 g;
+//            3.5 g is used because the sensor clips and filters short impacts (API.md). Landing time = the LAST impact.
 //   fallbacks: no impact seen but still for softStillMs after the flight ("still"); nothing for flightTimeoutMs after
 //            launch ("timeout": also covers a silent IMU, checked from tick()).
 struct Flight {
   enum St { WAIT = 0, FLYING, IMPACTED, LANDED };
   enum Ev { NONE = 0, LAUNCH, LAND };
-  float launchG = 4, impactG = 6, freeFallG = 0.6f, stillLo = 0.85f, stillHi = 1.15f;
+  float launchG = 4, impactG = 3.5f, freeFallG = 0.6f, stillLo = 0.85f, stillHi = 1.15f;
   uint32_t launchHoldMs = 20, sampleSlackMs = 5, freeFallMs = 60, pushOverMs = 400, minFlightMs = 400, stillMs = 1000, softStillMs = 2000, flightTimeoutMs = 15000;
   int st = WAIT; bool above = false, quiet = false, stillOn = false, launched = false;
   uint32_t tAbove = 0, tLaunch = 0, tImpact = 0, tStill = 0, tLand = 0, ffMs = 0, tPrev = 0;
@@ -236,7 +238,8 @@ struct Kedge {
   float bothMa = -1, soloMa = -1, bothMin = -1, railV = -1; bool needRise = false;
   uint32_t lastRunMs[NMOT] = {0, 0, 0, 0};
   Flight flight; Log log;
-  float accG = 1.0f;
+  float accG = 1.0f, peakG = 0;                        // peakG: highest |a| since the last arm
+  uint32_t lowT2 = 0; bool lowOn2 = false;
 
   bool seqRunning() const { return (seq >= K_SWING && seq <= D_AFTER) || (seq >= R_DRILL && seq <= R_KICK); }
   bool anchoring() const { return seq >= K_SWING && seq <= D_AFTER; }
@@ -261,7 +264,7 @@ struct Kedge {
 
   // threshold for motor m: bench stall current scaled by rail voltage, and by PWM duty for manual runs
   float vScale() const { if (!(railV > 3.f)) return 1.f; float k = railV / tu.refV; return k < 0.6f ? 0.6f : k > 1.15f ? 1.15f : k; }
-  float lim(float ma) const { return ma * vScale() * duty() / 255.f; }
+  float lim(float ma) const { float d = duty() / 255.f; return ma * vScale() * d * d; }   // slow decay: supply current ~ duty^2
 
   // Pair check: two motors share the INA219. Every 550 ms the self-locking worm ("main") stops for 150 ms and holds
   // its position while the other motor keeps turning and is read alone at 110 ms; the main motor's own current is
@@ -358,7 +361,7 @@ struct Kedge {
     if (flight.flying()) return "in flight";
     if (!imuOk) return "no IMU";
     if (withAuto && !inaOk) return "no current sensor";
-    flight.reset(); log.unfreeze(); landed = false; armed = true; autoOnLanding = withAuto; fault = F_NONE;
+    flight.reset(); log.unfreeze(); landed = false; peakG = 0; armed = true; autoOnLanding = withAuto; fault = F_NONE;
     if (seq == ABORTED || seq == RELEASED || seq == DONE) seq = IDLE;   // a new shot
     ev(withAuto ? "armed: auto-anchor on landing" : "armed: log only");
     (void)now; return nullptr;
@@ -384,7 +387,7 @@ struct Kedge {
     if (flight.flying()) return "in flight";
     if (fault) return "fault latched: send stop first";
     if (runMs > tu.manualMaxMs) runMs = tu.manualMaxMs;
-    // same hold if this press comes within the last one's run time + 250 ms (at least the WiFi deadman + 150)
+    // same hold if this press comes within max(last run time, WiFi deadman) + 250 ms (so at least 600 ms)
     uint32_t win = (lastRunMs[m] > tu.wifiDeadmanMs ? lastRunMs[m] : tu.wifiDeadmanMs) + 250;
     if (win < tu.wifiDeadmanMs + 150) win = tu.wifiDeadmanMs + 150;
     bool repeat = now - lastCmd[m] < win; lastCmd[m] = now; lastRunMs[m] = runMs;
@@ -409,7 +412,7 @@ struct Kedge {
   // one BNO085 accelerometer reading (|a| in g)
   void onAccel(float aG, uint32_t now) {
     if (!(aG == aG) || aG > 1e6f) return;            // NaN / inf from a bad read
-    accG = aG;
+    accG = aG; if (aG > peakG) peakG = aG;
     if (!armed && !flight.flying()) return;           // launch is only looked for while armed
     handleFlight(flight.update(aG, now), now);
   }
@@ -501,6 +504,18 @@ struct Kedge {
       }
     } else { manOn = false; if (pairKey >= 0) { pairKey = -1; endPause(); } }
 
+    // a single motor drawing well under its free current: open wire, or a short that the driver's own over-current
+    // protection keeps chopping (the INA219 average then reads almost nothing)
+    {
+      int nrun = 0, only = -1; for (int m = 0; m < NMOT; m++) if (dir[m]) { nrun++; only = m; }
+      bool low = nrun == 1 && !paused && now - motT0[only] > tu.surgeIgnoreMs && fMa < tu.noCurrentFrac * lim(tu.freeMa[only]);
+      if (heldT(low, lowOn2, lowT2, tu.noCurrentMs, now)) {
+        char b[64]; snprintf(b, sizeof b, "%s draws no current: wire open or shorted", motorName(only));
+        if (seqRunning()) { setFault(F_NO_CURRENT, b, now); return; }
+        stallLock[only] = dir[only]; drive(only, 0, 0, now); ev(b);
+      }
+    }
+
     uint32_t t = now - seqT0;
     switch (seq) {
       case K_SWING:
@@ -573,11 +588,11 @@ struct Kedge {
     if (flight.st == Flight::LANDED) snprintf(td, sizeof td, "%lu", (unsigned long)flight.tLand);
     return snprintf(buf, n, "{\"fw\":\"%s\",\"t_ms\":%lu,\"phase\":\"%s\",\"fault\":%s%s%s,\"rail_V\":%.2f,\"current_mA\":%.0f,\"peak_mA\":%.0f,\"speed\":%d,"
                     "\"motors\":{\"deploy\":%d,\"kick\":%d,\"drills\":%d,\"foot\":%d},\"seq\":\"%s\",\"armed\":%s,\"auto_on_landing\":%s,\"landed\":%s,"
-                    "\"roll\":%.1f,\"pitch\":%.1f,\"accel_g\":%.2f,\"ina_ok\":%s,\"imu_ok\":%s,\"t_launch_ms\":%s,\"t_land_ms\":%s,\"log_frozen\":%s,"
+                    "\"roll\":%.1f,\"pitch\":%.1f,\"accel_g\":%.2f,\"peak_g\":%.2f,\"ina_ok\":%s,\"imu_ok\":%s,\"t_launch_ms\":%s,\"t_land_ms\":%s,\"log_frozen\":%s,"
                     "\"reset\":\"%s\",\"event\":\"%s\"}",
                     FW_VERSION, (unsigned long)now, phaseName(phase()), fault ? "\"" : "", fault ? faultName(fault) : "null", fault ? "\"" : "",
                     fin(railV >= 0 ? railV : (io.rail_V ? io.rail_V() : -1.f)), fin(lastMa), fin(peakMa), spd, dir[0], dir[1], dir[2], dir[3], seqName(seq),
-                    armed ? "true" : "false", autoOnLanding ? "true" : "false", landed ? "true" : "false", fin(roll), fin(pitch), fin(accG),
+                    armed ? "true" : "false", autoOnLanding ? "true" : "false", landed ? "true" : "false", fin(roll), fin(pitch), fin(accG), fin(peakG),
                     inaOk ? "true" : "false", imuOk ? "true" : "false", tl, td, log.frozen ? "true" : "false", reset, lastEvent);
   }
 };

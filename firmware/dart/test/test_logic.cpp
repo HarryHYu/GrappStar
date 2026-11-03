@@ -20,9 +20,10 @@ struct Plant {
   uint32_t kickContact = 3000, kickLand = 4300, deployEnd = 1400;
   bool shortCircuit = false, spike = false, inaDead = false, drillJam = false, footJam = false, kickNoStow = false, drillStallFwd = false, footStallFwd = false;
   float railV = 7.6f;
-  float drillPaused = 380, footPaused = 130;   // auger current while the worm of the pair is paused (coupling)
+  float drillPaused = 380, footPaused = 130;
+  int open = -1;                               // this motor's wire is open (draws nothing)   // auger current while the worm of the pair is paused (coupling)
   float motorMa(int m) const {
-    int d = mdir[m]; if (!d) return 0;
+    int d = mdir[m]; if (!d || m == open) return 0;
     switch (m) {
       case KICK:
         if (d > 0) return kick < kickContact ? 25 : kick < kickLand ? 70 : 185;
@@ -41,7 +42,7 @@ struct Plant {
     }
     return 0;
   }
-  float total() const { float s = 0; for (int m = 0; m < 4; m++) s += motorMa(m) * duty[m] / 255.f * railV / 8.0f; return shortCircuit || spike ? 3000 : s; }
+  float total() const { float s = 0; for (int m = 0; m < 4; m++) s += motorMa(m) * (duty[m] / 255.f) * (duty[m] / 255.f) * railV / 8.0f; return shortCircuit || spike ? 3000 : s; }
   void step(uint32_t dt) {
     if (mdir[KICK] > 0 && kick < kickLand) kick += dt;
     if (mdir[KICK] < 0 && kick > 0 && !kickNoStow) kick -= dt;
@@ -418,6 +419,20 @@ int main() {
   { fresh(); K.boot(F_BROWNOUT, NOW); CHECK(K.key('3', 350, NOW) != nullptr && P.mdir[DRILLS] == 0, "boot fault latched: run keys refused until stop"); }
   { fresh(); K.arm(true, false, NOW); K.key('3', 1500, NOW); ACC = [](uint32_t t) { return t > 100 && t < 140 ? 8.0f : 0.3f; }; run(200);
     CHECK(K.flight.flying() && P.mdir[DRILLS] == 0 && logged("launch: motors stopped"), "a manual motor running at launch is stopped"); }
+
+  // ===================================================================================================== review round 4 (hardware) regressions
+  section("review round 4 (hardware) regressions");
+  { fresh(); P.open = KICK; K.startAuto(NOW); run(2000);
+    CHECK(std::string(faultName(K.fault)) == "NO_CURRENT" && allOff(), "kick wire open (or shorted, driver chopping): NO_CURRENT fault within 1 s, all off");
+    fresh(); P.open = DRILLS; K.key('3', 1500, NOW); run(1000);
+    CHECK(P.mdir[DRILLS] == 0 && logged("drills draws no current") && K.fault == F_NONE, "manual key on an open drill wire: stopped with a message, no fault latched"); }
+  { fresh(); K.key('-', 0, NOW); K.key('-', 0, NOW); K.key('2', 1500, NOW); run(1000);
+    CHECK(P.mdir[KICK] == 1 && !logged("no current"), "free-running kick at speed 205 is not mistaken for an open wire"); }
+  { fresh(); ACC = [](uint32_t t) { if (t < 1000) return 1.0f; uint32_t d = t - 1000; if (d < 30) return 8.0f; if (d < 900) return 0.4f; if (d < 905) return 5.0f; return 1.0f; };
+    K.arm(true, true, NOW); run(3500);
+    CHECK(K.landed && std::string(K.flight.how) == "impact" && ph() == "ANCHORING", "impact read at only 5 g (sensor filter): still an impact landing, auto starts");
+    std::string st = statusJson(); CHECK(st.find("\"peak_g\":8.00") != std::string::npos, "status peak_g holds the highest |a| since arming"); }
+  { fresh(); K.key('3', 1500, NOW); run(100); CHECK(P.duty[DRILLS] == 255, "manual at speed 255 drives full duty (slow decay with a DC input)"); }
 
   // ===================================================================================================== whole mission
   section("whole mission phases");

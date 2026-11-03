@@ -5,12 +5,20 @@ Status: in progress. Final version at 18:30 Sydney.
 ## Done
 
 - `make_guide.py`: builds `GrappStar_Build_Guide.md` and `.pdf` from `docs/build/src/NN_*.md` plus the other workers'
-  docs (included live, headings pushed down). Missing sources become placeholders naming the owner, so it always
-  builds. Appends `base/guide/*.pdf` and the KEDGE v30 run sheet as PDF appendices (pypdf). Renders the system
-  diagram with graphviz. Lints for em dashes. Re-run: `python3 docs/build/make_guide.py`
-  (needs reportlab, pypdf, pillow; graphviz `dot` optional).
-- `SYSTEM_ELECTRICAL.md` + `system_electrical.dot/.svg/.png`.
-- `MEASURE_LIST.md`, `TEST_PLAN.md`, `README_draft.md`.
+  docs, included live (headings pushed down, relative images fixed). Directives: include, includeglob, image,
+  imageglob, csv, printlist (base pack in any of csv/json/md form, from base/pack or base/out/base/pack; dart from
+  kedge/pack_v30), wiremap (run sheet v29 wire numbers to the new dart numbers), assumed (params measured=False and
+  None blocks), status, date. Missing sources become placeholders naming the owner, so it always builds. Appends
+  `base/guide/*.pdf` and the KEDGE v30 run sheet as PDF appendices with bookmarks. Renders the system diagram with
+  graphviz (wide pictures get their own rotated page). Lints for em dashes. Also writes the one-pagers:
+  `Wiring_Cheat_Sheet_Base.pdf`, `Wiring_Cheat_Sheet_Dart.pdf`, `Commands_Cheat_Sheet.pdf`, and
+  `MEASURE_RESULTS.md/.pdf` (fill-in sheet generated from MEASURE_LIST).
+  Re-run: `python3 docs/build/make_guide.py` (reportlab, pypdf, pillow; graphviz `dot` optional).
+- `SYSTEM_ELECTRICAL.md` + `system_electrical.dot/.svg/.png`: whole rover, gauges, fuses, first power-on sequence.
+- `MEASURE_LIST.md` (Item | How | Changes | Reprint, groups A to H, read by the coordinator's site), `TEST_PLAN.md`
+  (stages 0 coupons to 9 full mission), `FIRST_DAY.md`, `README_draft.md` (coordinator owns the root README).
+- `test_make_guide.py`: 6 PC tests (em dash cleaning, heading demotion, placeholders, dart print list, full build has
+  sections 1 to 15 and the key safety strings, base pack in csv/json/md forms plus the coupon sheet).
 
 ## Decisions made (owner away)
 

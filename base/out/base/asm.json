@@ -1,6 +1,6 @@
 {
  "version": 1,
- "created": "2026-11-03 09:27",
+ "created": "2026-11-03 15:57",
  "subsystems": [
   "drum",
   "frame",
@@ -58,7 +58,7 @@
      0.0,
      0.0,
      1.0,
-     -4.5
+     5.0
     ],
     [
      0.0,
@@ -72,13 +72,13 @@
    "bought_ref": "",
    "printed": true,
    "infill": 0.4,
-   "volume_mm3": 8992.77,
-   "mass_g": 9.04,
+   "volume_mm3": 11691.72,
+   "mass_g": 11.94,
    "bbox": [
     [
      -13.0,
      -13.0,
-     4.5
+     -5.0
     ],
     [
      13.0,
@@ -2783,12 +2783,12 @@
     ]
    ],
    "color": "#c9b27a",
-   "notes": "puck adapter: slotted M6 holes (+-4 mm) for the motor bosses, rear lip with 8 M3 inserts for the rim screws, 2 inserts for cad-drum's SW_INDEX block; reprint when the motor is measured",
+   "notes": "puck adapter: slotted M6 holes (+-4 mm) for the motor bosses, rear lip with 8 M3 inserts for the rim screws, tether channels open to the edge; reprint when the motor is measured",
    "bought_ref": "",
    "printed": true,
    "infill": 0.4,
-   "volume_mm3": 255542.61,
-   "mass_g": 209.98,
+   "volume_mm3": 252945.88,
+   "mass_g": 208.94,
    "bbox": [
     [
      -97.0,
@@ -3639,8 +3639,8 @@
    "bought_ref": "",
    "printed": true,
    "infill": 0.4,
-   "volume_mm3": 30277.92,
-   "mass_g": 37.54,
+   "volume_mm3": 29893.12,
+   "mass_g": 37.07,
    "bbox": [
     [
      90.0,
@@ -4142,8 +4142,8 @@
    "bought_ref": "",
    "printed": true,
    "infill": 0.2,
-   "volume_mm3": 345925.91,
-   "mass_g": 237.35,
+   "volume_mm3": 345471.75,
+   "mass_g": 237.93,
    "bbox": [
     [
      48.819,
@@ -4296,12 +4296,12 @@
     ]
    ],
    "color": "#80888f",
-   "notes": "deck: M3 inserts for every frame foot; 7 x M3 rover holes (it is its own drill template)",
+   "notes": "deck: M3 inserts for every frame foot; 6 x M3 rover holes (it is its own drill template)",
    "bought_ref": "",
    "printed": true,
    "infill": 0.2,
-   "volume_mm3": 356738.96,
-   "mass_g": 244.67,
+   "volume_mm3": 356647.68,
+   "mass_g": 244.84,
    "bbox": [
     [
      -164.011,
@@ -11257,13 +11257,13 @@
      1.0,
      0.0,
      0.0,
-     -50.47
+     -46.25
     ],
     [
      0.0,
      1.0,
      0.0,
-     -207.8
+     -203.5
     ],
     [
      0.0,
@@ -11279,20 +11279,20 @@
     ]
    ],
    "color": "#9aa7b4",
-   "notes": "Aim housing on the deck (4 x M3): sleeve end bushing, countershaft bushings, worm saddles, M8 wheel bolt (head on the outer boss, nut in the inner face hex pocket), swing arm stop post",
+   "notes": "Aim housing on the deck (4 x M3 x 10 from the top through its counterbored foot flanges into the deck inserts): sleeve end bushing, countershaft bushings, worm saddles, M8 wheel bolt (head on the outer boss, nut in the inner face hex pocket), engaged and swung-out swing arm stop posts",
    "bought_ref": "",
    "printed": true,
    "infill": 0.4,
-   "volume_mm3": 206103.68,
-   "mass_g": 175.22,
+   "volume_mm3": 212770.26,
+   "mass_g": 181.64,
    "bbox": [
     [
-     -30.0,
-     182.6,
+     -42.0,
+     174.0,
      -165.0
     ],
     [
-     130.94,
+     134.5,
      233.0,
      18.0
     ]
@@ -12709,7 +12709,7 @@
     ]
    ],
    "color": "#d97a00",
-   "notes": "Cup gear m1.5 z24: driven by the drum's wrap idler; the bump on its back trips SW_ARM",
+   "notes": "Cup gear m1.5 z24: driven by the drum's wrap idler; the raised track on its back holds SW_ARM closed, the notch at home lets it open",
    "bought_ref": "",
    "printed": true,
    "infill": 0.4,
@@ -14194,11 +14194,11 @@
    ],
    "color": "#b9c2cc",
    "notes": "SW_ARM bracket: screwed to the wall below the gears. Print flat",
-   "bought_ref": "",
+   "bought_ref": "2 x M3x8 SHCS",
    "printed": true,
    "infill": 0.4,
-   "volume_mm3": 18650.19,
-   "mass_g": 20.0,
+   "volume_mm3": 18566.21,
+   "mass_g": 20.07,
    "bbox": [
     [
      -23.5,
@@ -14273,7 +14273,7 @@
    ],
    "color": "#9a94e8",
    "notes": "SW_ARM contact base (printed switch, M3 head on M3 nut)",
-   "bought_ref": "",
+   "bought_ref": "4 x M3x8 self tap (base to bracket)",
    "printed": true,
    "infill": 0.4,
    "volume_mm3": 5668.94,
@@ -14351,8 +14351,8 @@
     ]
    ],
    "color": "#e0b040",
-   "notes": "SW_ARM lever: the cup gear's bump presses its tip at home. Print on its side",
-   "bought_ref": "",
+   "notes": "SW_ARM lever: rides the cup gear's raised track (contact closed) and drops into its home notch (open). Print on its side",
+   "bought_ref": "2 x M3x10 self tap (lever clamp)",
    "printed": true,
    "infill": 0.4,
    "volume_mm3": 1014.17,
@@ -14759,7 +14759,7 @@
      0.0,
      0.0,
      -1.0,
-     -44.35
+     -43.85
     ],
     [
      0.0,
@@ -14779,18 +14779,18 @@
    "bought_ref": "",
    "printed": true,
    "infill": 0.4,
-   "volume_mm3": 48530.06,
-   "mass_g": 43.31,
+   "volume_mm3": 50459.05,
+   "mass_g": 43.84,
    "bbox": [
     [
      70.942,
      -95.357,
-     -72.35
+     -72.85
     ],
     [
      172.7,
-     27.643,
-     -44.35
+     29.643,
+     -43.85
     ]
    ],
    "step": 15
@@ -16112,7 +16112,7 @@
      1.0,
      0.0,
      0.0,
-     -116.7
+     -118.5
     ],
     [
      0.0,
@@ -16134,12 +16134,12 @@
     ]
    ],
    "color": "#9aa7b4",
-   "notes": "SW_RAIL_LOW bracket on the aim housing foot extension; the housing's 4th deck screw (M3x20 from below instead of the shorter one) goes on up into its foot",
-   "bought_ref": "M3x10 SHCS (foot into the housing)",
+   "notes": "SW_RAIL_LOW bracket on the aim housing foot extension: an M3x10 into the extension and its own deck screw, an M3x16 from the top through the counterbored foot and the extension into a deck insert",
+   "bought_ref": "M3x10 SHCS (foot into the housing); M3x16 SHCS (deck screw)",
    "printed": true,
    "infill": 0.4,
-   "volume_mm3": 15926.02,
-   "mass_g": 17.1,
+   "volume_mm3": 16046.62,
+   "mass_g": 17.33,
    "bbox": [
     [
      103.0,
@@ -16147,7 +16147,7 @@
      -157.0
     ],
     [
-     130.4,
+     134.0,
      240.9,
      -83.04
     ]
@@ -17804,7 +17804,7 @@
    "kind": "rev",
    "origin": [
     79.94228933790738,
-    13.643,
+    15.643,
     0.0
    ],
    "axis": [
@@ -17823,7 +17823,7 @@
  "steps": [
   {
    "title": "Heat-set inserts",
-   "text": "Soldering iron with an insert tip, about 220 C for PLA and about 280 C for the PPA-CF puck. Press every M3 x 4 x 5 insert square into its 4.0 mm hole until flush: deck (40), motor plate (2 for the leg bridge, 2 for the can stay, 3 for the gear hood), puck adapter (8 in the rear lip, 0 on the front face for cad-drum's SW_INDEX block), bay (corner bosses, standoffs, clamp posts, perfboard bosses). Let each cool before the next one nearby.",
+   "text": "Soldering iron with an insert tip, about 220 C for PLA and about 280 C for the PPA-CF puck. Press every M3 x 4 x 5 insert square into its 4.0 mm hole until flush: deck (49), motor plate (2 for the leg bridge, 2 for the can stay, 3 for the gear hood), puck adapter (8 in the rear lip), bay (corner bosses, standoffs, clamp posts, perfboard bosses). Let each cool before the next one nearby.",
    "parts": [
     "frame_deck_1",
     "frame_deck_2",
@@ -17863,7 +17863,7 @@
   },
   {
    "title": "Drill the rover",
-   "text": "Lay the deck on the rover top plate where it will live (launch direction forward). Mark through the 33 perimeter holes with a 3 mm drill or a scriber (or tape down the 1:1 PDF template from cad/parts/_frame_tests/drill_template.py), take the deck off, drill 3.4 mm. Deburr.",
+   "text": "Lay the deck on the rover top plate where it will live (launch direction forward). Mark through the 32 perimeter holes with a 3 mm drill or a scriber (or tape down the 1:1 PDF template from cad/parts/_frame_tests/drill_template.py), take the deck off, drill 3.4 mm. Deburr.",
    "parts": [],
    "handle": [
     "frame_deck_1",
@@ -17984,7 +17984,7 @@
   },
   {
    "title": "Shafts and trains (other subsystems)",
-   "text": "Now cad-drum (coupler on the wiper shaft, SW_INDEX block on the puck front face: 2 x M3 into the puck inserts), cad-reel and cad-launch install their trains and aim housing. Follow their steps, then come back.",
+   "text": "Now cad-drum (coupler on the wiper shaft, SW_INDEX block on the strut of idler post 2: drum step \"Main shaft: index contact\"), cad-reel and cad-launch install their trains and aim housing. Follow their steps, then come back. The tether crosses the puck twice, in channels cut out to the puck's edge: from the guide eye to the cup ring it runs in the channel that opens into the capstan opening (lay it in from there); from pulley 1 forward to pulley 2 it runs in the notch near the rim, which the plate closes (push the line end through it from behind).",
    "parts": [],
    "handle": [],
    "subsystem": "frame",
@@ -18051,7 +18051,7 @@
   },
   {
    "title": "Main shaft: coupler and limiter",
-   "text": "Push the coupler hub onto the wiper output shaft (flats in line). Drop the M8 nut on the thread and tighten it with a 13 mm socket (1/4 inch drive). Slide the outer coupler over the hub, line up the holes, push a shear pin in (head outside, its flat facing the outboard end) and put a piece of tape round the coupler over the head. Print the pins lying on their flat (D44: shear across the layers). Keep the 5 spare pins with the base. A broken pin stub comes out with an M3 screw turned into it. Then slide the REEL gear onto the coupler journal (plain face first) and screw the retaining washer to the journal end (2 x M3 x 6): the gear must spin free (it cannot go on once the dog post is fitted).",
+   "text": "Push the coupler hub onto the wiper output shaft (flats in line) until it stops on the end of the flats; its lower end goes into the puck bore, just clear of the motor's output boss. Drop the M8 nut into the hub pocket onto the thread (it sits about 8 mm down the pocket) and tighten it with a 13 mm socket (1/4 inch drive). Slide the outer coupler over the hub, line up the holes, push a shear pin in (head outside, its flat facing the outboard end) and put a piece of tape round the coupler over the head. Print the pins lying on their flat (D44: shear across the layers). Keep the 5 spare pins with the base. A broken pin stub comes out with an M3 screw turned into it. Then slide the REEL gear onto the coupler journal (plain face first) and screw the retaining washer to the journal end (2 x M3 x 6): the gear must spin free (it cannot go on once the dog post is fitted).",
    "parts": [
     "drum_coupler_hub",
     "drum_coupler",
@@ -18224,7 +18224,7 @@
   },
   {
    "title": "SW_ARM contact",
-   "text": "Battery unplugged. Build the printed contact (see the contact switch page): nut pressed in the base trap, lever screwed on, M3 x 10 contact screw with its jam nut in the lever. Screw the switch base to the bracket, and the bracket to the back of the wall below the gears with two M3 x 8. Turn the cup to home (ring at the top): the bump on the cup gear presses the lever; set the contact screw so it just closes there and opens 12 degrees either side. Lock the jam nut.",
+   "text": "Battery unplugged. Build the printed contact (see the contact switch page): nut pressed in the base trap, lever screwed onto the pad with 2 x M3 x 10 self tapping screws, M3 x 10 contact screw with its jam nut in the lever. Screw the switch base to the bracket with 4 x M3 x 8 self tapping screws (into the pilot holes in the plate), and the bracket to the back of the wall below the gears with two M3 x 8. SW_ARM is closed while the cup is away from home and opens at home: the lever rides a raised track on the back of the cup gear and drops into a notch in it at home. Turn the cup to home (ring at the top): the lever tip sits free in the notch. Turn the contact screw until its head just touches the nut, then back it off 1.9 turns (gap about 0.9 mm, 0.5 mm per turn) and lock the jam nut. Check with the meter: turn the cup about 15 degrees either way, the lever rides up onto the track and the contact closes; back at home it must open, for about 7 degrees either side.",
    "parts": [
     "reel_sw_bracket",
     "reel_sw_base",
@@ -18435,7 +18435,7 @@
   },
   {
    "title": "Pulley 2 swivel",
-   "text": "Press a 693ZZ into pulley 2, set it between the swivel fork's two cheeks and push the M3 x 20 axle through (nyloc nut on the far side, snug: the pulley must spin). Grease the fork's tube and push it up through the bore of the pulley 2 post's block from below; snap the C-clip into the groove above the block. The fork must turn freely. Screw the post to the deck beside the drum with four M3 screws. The line from pulley 1 goes down through the tube, round the pulley and out toward the rail pivot pulley; the fork turns itself to follow the line as the rail aims.",
+   "text": "Press a 693ZZ into pulley 2, set it between the swivel fork's two cheeks and push the M3 x 20 axle through (nyloc nut on the far side, snug: the pulley must spin). Grease the fork's tube and push it through the bore of the pulley 2 post's block from the pulley side (the tube is level and points toward pulley 1); snap the C-clip into the groove where the tube comes out of the block. The fork must turn freely. Screw the post to the deck beside the drum with four M3 screws into the deck inserts. The line from pulley 1 goes through the tube, round the pulley and out toward the rail pivot pulley; the fork turns itself to follow the line as the rail aims.",
    "parts": [
     "reel_p2_post",
     "reel_p2_fork",
@@ -18472,7 +18472,7 @@
   },
   {
    "title": "Launcher 1: print the parts",
-   "text": "All PLA unless named. PPA-CF: big gear, drive gear, launch sleeve, big gear pin, SW_SEATED plunger and pushrod, and the aim gears (sun, idler, output, bevel, worm, crank). Use each part's print orientation from the print sheet: the carriage body lies on its side across the bed diagonal; the stop springs print upside down at 100 percent infill (all perimeters); rail pieces lie on their largest flat face. 0.2 mm layers, 4 walls on every loaded part. Hardware (launcher and aim train): M3 screws 2 x 6, 3 x 8, 14 x 10, 23 x 12, 5 x 16, 15 x 20, 4 x 30, plus 4 for the housing to the deck (deck thickness + 10 / + 6, see Aim 1); 10 M3 nuts, 4 M3 nylocs; M8 x 25 bolt and M8 nut; 2 x 608; 4 x 693ZZ (3 tether pulleys, 1 lip roller); 2 x 8 mm steel rod pins (cut to the length on the print sheet) for the spring anchors; sprag #1 (CSK20PP); the two springs.",
+   "text": "All PLA unless named. PPA-CF: big gear, drive gear, launch sleeve, big gear pin, SW_SEATED plunger and pushrod, and the aim gears (sun, idler, output, bevel, worm, crank). Use each part's print orientation from the print sheet: the carriage body lies on its side across the bed diagonal; the stop springs print upside down at 100 percent infill (all perimeters); rail pieces lie on their largest flat face. 0.2 mm layers, 4 walls on every loaded part. Hardware (launcher and aim train): M3 screws 2 x 6, 3 x 8, 14 x 10, 23 x 12, 5 x 16, 15 x 20, 4 x 30, plus 4 x 10 for the aim housing to the deck (Aim 3); 10 M3 nuts, 4 M3 nylocs; M8 x 25 bolt and M8 nut; 2 x 608; 4 x 693ZZ (3 tether pulleys, 1 lip roller); 2 x 8 mm steel rod pins (cut to the length on the print sheet) for the spring anchors; sprag #1 (CSK20PP); the two springs.",
    "parts": [],
    "handle": [],
    "subsystem": "launch",
@@ -18543,7 +18543,7 @@
   },
   {
    "title": "Launcher 4: drive gear, sprag #1 and the launch sleeve",
-   "text": "First bolt cad-drum's LAUNCH dog ring to the sleeve flange: lugs in the ring slots, 3 x M3 x 8 from the flange side into the tapped ring (the heads are out of reach once the sleeve is in the cheeks). Slide sprag #1 into the drive gear so its outer keyway takes the rib inside the gear. Check the direction: holding the gear, the inner race must turn freely only the BACKWARD wiper way. Hold the drive gear between the cheeks (collar side right, then the spacer washer on its left), meshing the big gear's full ring of teeth. Turn the cheek bores so their slots point down, then push the launch sleeve in from the motor side, outboard end first, ribs lined up with the slots and the sprag keyway, until the long (15 mm) rib sits inside the sprag.",
+   "text": "First bolt cad-drum's LAUNCH dog ring to the sleeve flange: lugs in the ring slots, 3 x M3 x 8 from the flange side into the tapped ring (the heads are out of reach once the sleeve is in the cheeks). Slide sprag #1 into the drive gear so its outer keyway takes the rib inside the gear. Check the direction: look at the gear from its collar side (the side that goes to the right, towards the motor), hold the gear and turn the inner race with a finger. It must turn freely counter-clockwise (BACKWARD) and lock clockwise (FORWARD: clockwise seen from the motor side is the cock direction). If it is the other way round, push the sprag out, turn it over and slide it in other face first. Hold the drive gear between the cheeks (collar side right, then the spacer washer on its left), meshing the big gear's full ring of teeth. Turn the cheek bores so their slots point down, then push the launch sleeve in from the motor side, outboard end first, ribs lined up with the slots and the sprag keyway, until the long (15 mm) rib sits inside the sprag.",
    "parts": [
     "launch_drive_gear",
     "launch_sprag",
@@ -18752,7 +18752,7 @@
   },
   {
    "title": "Aim 1: aim housing, worm, wheel, crank",
-   "text": "Build the aim housing on the bench (it goes onto the base later, after the rail). The AS5600 carrier and SW_RAIL_LOW are cad-sensors parts (Sensors steps), screwed into the pilots on the housing. Push the countershaft in from the inboard side through the inner wall bushing, through the big bevel (D bore, slid on from the outboard end of the shaft) and into the outer wall bushing. Drop the M8 nut into the hex pocket on the inner face of the outer wall, fit the two 608 bearings into the crank (worm wheel) hub, hold the crank in place and push the M8 x 25 bolt in from outboard through the wall, the nut and both bearings; tighten so the head and nut clamp the wall. Lay the worm shaft with the small bevel in its saddles and screw the cap on (4 x M3 x 30 self tap). The housing screws to the deck from below later (4 x M3 self tap into the foot pilots, through cad-frame's deck clearance holes).",
+   "text": "Build the aim housing on the bench (it goes onto the base later, after the rail). The AS5600 carrier and SW_RAIL_LOW are cad-sensors parts (Sensors steps), screwed into the pilots on the housing. Push the countershaft in from the inboard side through the inner wall bushing, through the big bevel (D bore, slid on from the outboard end of the shaft) and into the outer wall bushing. Drop the M8 nut into the hex pocket on the inner face of the outer wall, fit the two 608 bearings into the crank (worm wheel) hub, hold the crank in place and push the M8 x 25 bolt in from outboard through the wall, the nut and both bearings; tighten so the head and nut clamp the wall. Lay the worm shaft with the small bevel in its saddles and screw the cap on (4 x M3 x 30 self tap). The housing screws to the deck later (Aim 3), from the top: 4 x M3 x 10 down through the counterbored holes in its foot flanges (two behind the spine, one in front of the outer wall, one on the inboard tab) into the deck's heat-set inserts. The SW_RAIL_LOW bracket on the foot extension has its own deck screw (Sensors 2).",
    "parts": [
     "launch_aim_housing",
     "launch_aim_cap",
@@ -18798,7 +18798,7 @@
   },
   {
    "title": "Aim 3: lug, conrod, rail onto the base",
-   "text": "With the sun and swing arm already on the sleeve (the lug is on the rail since Launcher 2b), slide the rail assembly's sleeve along the main axis onto the drum's d12 spigot from the outboard side (the LAUNCH dog ring is already bolted to its flange, Launcher 4) until the ring's dogs sit by the drum collar. Hang the conrod's upper eye on the lug pin and snap a printed C clip into that groove. Then slide the aim housing on from the outboard side so the sleeve end enters its bushing and the crank pin enters the conrod's lower eye; snap a printed C clip onto the crank pin and screw the housing to the deck. Turn the sleeve backward by hand: the arm swings the idler into the output gear and drives it; forward, the arm swings out onto its stop and the output gear stays still. Then turn the wiper backward slowly: the rail rises to 47 deg, then lowers to 6 deg.",
+   "text": "With the sun and swing arm already on the sleeve (the lug is on the rail since Launcher 2b), slide the rail assembly's sleeve along the main axis onto the drum's d12 spigot from the outboard side (the LAUNCH dog ring is already bolted to its flange, Launcher 4) until the ring's dogs sit by the drum collar. Hang the conrod's upper eye on the lug pin and snap a printed C clip into that groove. Then slide the aim housing on from the outboard side so the sleeve end enters its bushing and the crank pin enters the conrod's lower eye (hold the swing arm with the idler pointing down and a little to the rear, clear of the output gear, and let the arm go in between the two stop posts on the housing's inner face as they come up to it); snap a printed C clip onto the crank pin and screw the housing to the deck from the top: 4 x M3 x 10 through the counterbored foot flange holes into the deck inserts. Turn the sleeve backward by hand: the arm swings the idler into the output gear, comes to rest on its engaged stop post and drives the gear without binding; forward, the arm swings out onto the other post and the output gear stays still. Then turn the wiper backward slowly: the rail rises to 47 deg, then lowers to 6 deg.",
    "parts": [
     "launch_aim_conrod",
     "launch_aim_crankpin_clip",
@@ -18850,7 +18850,7 @@
   },
   {
    "title": "Sensors 2: SW_RAIL_LOW on the aim housing",
-   "text": "Screw the switch base to its bracket (4 x M3x8 self tapping), lever pointing to the crank. Set the bracket foot on the housing foot extension in front of the crank. Screw it down with an M3x10 in the hole nearest the crank (self taps into the housing). When the housing goes onto the deck, its 4th deck screw (under this foot) is an M3x20 instead of the shorter one: from below through the deck and the foot extension up into the bracket foot. Turn the crank by hand (wiper backwards) to the lowest rail position: the cam lobe presses the lever tip and the meter shows the switch closed. Turn the crank about 20 deg either side: the switch must open.",
+   "text": "Screw the switch base to its bracket (4 x M3x8 self tapping), lever pointing to the crank. Set the bracket foot on the housing foot extension in front of the crank. Screw it down with an M3x10 in the hole nearest the crank (self taps into the housing) and an M3x16 in the counterbored hole at the front end of the foot: down through the foot and the foot extension into the deck insert under it (the bracket's own deck screw). Turn the crank by hand (wiper backwards) to the lowest rail position: the cam lobe presses the lever tip and the meter shows the switch closed. Turn the crank about 20 deg either side: the switch must open.",
    "parts": [
     "sensors_sw_rail_low_bracket"
    ],
@@ -19414,6 +19414,14 @@
   "DRUM": {
    "owner": "cad-drum",
    "order": "LAUNCH / NEUTRAL / WRAP / (park WRAPPED in N_TO_R) / REEL (D16, D22)",
+   "code_edges": [
+    6.0,
+    34.0,
+    50.0,
+    62.0,
+    302.0,
+    342.0
+   ],
    "zones": [
     {
      "name": "LAUNCH",
@@ -19681,8 +19689,8 @@
       146.0
      ],
      "full": [
-      146.0,
-      154.0
+      147.5,
+      158.5
      ]
     },
     "note": "two layers: a sector layer meshes the rack (last tooth relieved, the one before 30 percent taller), a full 40T layer meshes the drive gear so every cock can start (D23)"
@@ -19691,7 +19699,7 @@
    "stroke": 240.9,
    "spring_preload": 23.8,
    "spring_ext_full": 265.0,
-   "spring_preload_fallback": 8.8,
+   "spring_preload_fallback": 15.6,
    "second_pair_provision": true,
    "spring_guard": true,
    "stop": {
@@ -19823,7 +19831,7 @@
       0.5,
       46.0
      ],
-     "part": "drum_coupler: coupler hub on the wiper shaft, printed PLA shear pin d4 at r 13 (D8, about 5 N m, 6 spares), outer coupler",
+     "part": "drum_coupler: coupler hub on the wiper shaft (the hub reaches back to y -5 inside the puck bore, D48), printed PLA shear pin d4 at r 13 (D8, about 5 N m, 6 spares), outer coupler",
      "owner": "cad-drum"
     },
     {
@@ -19863,7 +19871,7 @@
       111.0,
       193.0
      ],
-     "part": "LAUNCH sleeve: flange, rail cheek journals, drive gear 26T m2.5 on sprag #1 (y 142.5..158.5), splitter sun (y 174..182)",
+     "part": "LAUNCH sleeve: flange, rail cheek journals, drive gear 26T m2.5 on sprag #1 (y 142.5..158.5), splitter sun (y 170..182)",
      "owner": "cad-launch"
     },
     {
@@ -20084,7 +20092,7 @@
     "note": "Century rating, about 100k cycles"
    },
    "max_ext": 265.0,
-   "max_ext_fallback": 250.0
+   "max_ext_fallback": 256.5
   },
   "SWITCHES": {
    "SW_DRUM_A": {
@@ -20144,7 +20152,7 @@
    },
    "SW_ARM": {
     "owner": "cad-reel",
-    "closes": "CLOSED while the wrap cup is away from home; OPENS for about +-5 deg at home (lever drops into a notch on the cup gear track); firmware home = open",
+    "closes": "CLOSED while the wrap cup is away from home; OPENS for about -6 to +8 deg at home (lever drops into a notch on the cup gear track); firmware home = open",
     "gpio": 42
    },
    "AS5600": {
@@ -20388,7 +20396,7 @@
     }
    ]
   ],
-  "VERSION": "1.3.7",
+  "VERSION": "1.3.8",
   "WIPER": {
    "measured": false,
    "n0_rpm": 45.0,
@@ -20399,6 +20407,7 @@
    "shaft_flat": 8.0,
    "shaft_thread": "M8",
    "shaft_len": 20.0,
+   "boss_face_y": -10.0,
    "mount_holes": [
     [
      -24.0,
@@ -20478,7 +20487,7 @@
   {
    "title": "Main shaft: coupler and limiter",
    "stage": 146,
-   "text": "Push the coupler hub onto the wiper output shaft (flats in line). Drop the M8 nut on the thread and tighten it with a 13 mm socket (1/4 inch drive). Slide the outer coupler over the hub, line up the holes, push a shear pin in (head outside, its flat facing the outboard end) and put a piece of tape round the coupler over the head. Print the pins lying on their flat (D44: shear across the layers). Keep the 5 spare pins with the base. A broken pin stub comes out with an M3 screw turned into it. Then slide the REEL gear onto the coupler journal (plain face first) and screw the retaining washer to the journal end (2 x M3 x 6): the gear must spin free (it cannot go on once the dog post is fitted).",
+   "text": "Push the coupler hub onto the wiper output shaft (flats in line) until it stops on the end of the flats; its lower end goes into the puck bore, just clear of the motor's output boss. Drop the M8 nut into the hub pocket onto the thread (it sits about 8 mm down the pocket) and tighten it with a 13 mm socket (1/4 inch drive). Slide the outer coupler over the hub, line up the holes, push a shear pin in (head outside, its flat facing the outboard end) and put a piece of tape round the coupler over the head. Print the pins lying on their flat (D44: shear across the layers). Keep the 5 spare pins with the base. A broken pin stub comes out with an M3 screw turned into it. Then slide the REEL gear onto the coupler journal (plain face first) and screw the retaining washer to the journal end (2 x M3 x 6): the gear must spin free (it cannot go on once the dog post is fitted).",
    "parts": [
     "drum_coupler_hub",
     "drum_coupler",
@@ -20565,7 +20574,7 @@
   },
   {
    "title": "Heat-set inserts",
-   "text": "Soldering iron with an insert tip, about 220 C for PLA and about 280 C for the PPA-CF puck. Press every M3 x 4 x 5 insert square into its 4.0 mm hole until flush: deck (40), motor plate (2 for the leg bridge, 2 for the can stay, 3 for the gear hood), puck adapter (8 in the rear lip, 0 on the front face for cad-drum's SW_INDEX block), bay (corner bosses, standoffs, clamp posts, perfboard bosses). Let each cool before the next one nearby.",
+   "text": "Soldering iron with an insert tip, about 220 C for PLA and about 280 C for the PPA-CF puck. Press every M3 x 4 x 5 insert square into its 4.0 mm hole until flush: deck (49), motor plate (2 for the leg bridge, 2 for the can stay, 3 for the gear hood), puck adapter (8 in the rear lip), bay (corner bosses, standoffs, clamp posts, perfboard bosses). Let each cool before the next one nearby.",
    "parts": [
     "frame_deck_1",
     "frame_deck_2",
@@ -20579,7 +20588,7 @@
   },
   {
    "title": "Drill the rover",
-   "text": "Lay the deck on the rover top plate where it will live (launch direction forward). Mark through the 33 perimeter holes with a 3 mm drill or a scriber (or tape down the 1:1 PDF template from cad/parts/_frame_tests/drill_template.py), take the deck off, drill 3.4 mm. Deburr.",
+   "text": "Lay the deck on the rover top plate where it will live (launch direction forward). Mark through the 32 perimeter holes with a 3 mm drill or a scriber (or tape down the 1:1 PDF template from cad/parts/_frame_tests/drill_template.py), take the deck off, drill 3.4 mm. Deburr.",
    "parts": [
     "frame_deck_1",
     "frame_deck_2",
@@ -20643,7 +20652,7 @@
   },
   {
    "title": "Shafts and trains (other subsystems)",
-   "text": "Now cad-drum (coupler on the wiper shaft, SW_INDEX block on the puck front face: 2 x M3 into the puck inserts), cad-reel and cad-launch install their trains and aim housing. Follow their steps, then come back.",
+   "text": "Now cad-drum (coupler on the wiper shaft, SW_INDEX block on the strut of idler post 2: drum step \"Main shaft: index contact\"), cad-reel and cad-launch install their trains and aim housing. Follow their steps, then come back. The tether crosses the puck twice, in channels cut out to the puck's edge: from the guide eye to the cup ring it runs in the channel that opens into the capstan opening (lay it in from there); from pulley 1 forward to pulley 2 it runs in the notch near the rim, which the plate closes (push the line end through it from behind).",
    "parts": [],
    "subsystem": "frame"
   },
@@ -20704,7 +20713,7 @@
   },
   {
    "title": "Launcher 1: print the parts",
-   "text": "All PLA unless named. PPA-CF: big gear, drive gear, launch sleeve, big gear pin, SW_SEATED plunger and pushrod, and the aim gears (sun, idler, output, bevel, worm, crank). Use each part's print orientation from the print sheet: the carriage body lies on its side across the bed diagonal; the stop springs print upside down at 100 percent infill (all perimeters); rail pieces lie on their largest flat face. 0.2 mm layers, 4 walls on every loaded part. Hardware (launcher and aim train): M3 screws 2 x 6, 3 x 8, 14 x 10, 23 x 12, 5 x 16, 15 x 20, 4 x 30, plus 4 for the housing to the deck (deck thickness + 10 / + 6, see Aim 1); 10 M3 nuts, 4 M3 nylocs; M8 x 25 bolt and M8 nut; 2 x 608; 4 x 693ZZ (3 tether pulleys, 1 lip roller); 2 x 8 mm steel rod pins (cut to the length on the print sheet) for the spring anchors; sprag #1 (CSK20PP); the two springs.",
+   "text": "All PLA unless named. PPA-CF: big gear, drive gear, launch sleeve, big gear pin, SW_SEATED plunger and pushrod, and the aim gears (sun, idler, output, bevel, worm, crank). Use each part's print orientation from the print sheet: the carriage body lies on its side across the bed diagonal; the stop springs print upside down at 100 percent infill (all perimeters); rail pieces lie on their largest flat face. 0.2 mm layers, 4 walls on every loaded part. Hardware (launcher and aim train): M3 screws 2 x 6, 3 x 8, 14 x 10, 23 x 12, 5 x 16, 15 x 20, 4 x 30, plus 4 x 10 for the aim housing to the deck (Aim 3); 10 M3 nuts, 4 M3 nylocs; M8 x 25 bolt and M8 nut; 2 x 608; 4 x 693ZZ (3 tether pulleys, 1 lip roller); 2 x 8 mm steel rod pins (cut to the length on the print sheet) for the spring anchors; sprag #1 (CSK20PP); the two springs.",
    "parts": [],
    "stage": 10,
    "subsystem": "launch"
@@ -20745,7 +20754,7 @@
   },
   {
    "title": "Launcher 4: drive gear, sprag #1 and the launch sleeve",
-   "text": "First bolt cad-drum's LAUNCH dog ring to the sleeve flange: lugs in the ring slots, 3 x M3 x 8 from the flange side into the tapped ring (the heads are out of reach once the sleeve is in the cheeks). Slide sprag #1 into the drive gear so its outer keyway takes the rib inside the gear. Check the direction: holding the gear, the inner race must turn freely only the BACKWARD wiper way. Hold the drive gear between the cheeks (collar side right, then the spacer washer on its left), meshing the big gear's full ring of teeth. Turn the cheek bores so their slots point down, then push the launch sleeve in from the motor side, outboard end first, ribs lined up with the slots and the sprag keyway, until the long (15 mm) rib sits inside the sprag.",
+   "text": "First bolt cad-drum's LAUNCH dog ring to the sleeve flange: lugs in the ring slots, 3 x M3 x 8 from the flange side into the tapped ring (the heads are out of reach once the sleeve is in the cheeks). Slide sprag #1 into the drive gear so its outer keyway takes the rib inside the gear. Check the direction: look at the gear from its collar side (the side that goes to the right, towards the motor), hold the gear and turn the inner race with a finger. It must turn freely counter-clockwise (BACKWARD) and lock clockwise (FORWARD: clockwise seen from the motor side is the cock direction). If it is the other way round, push the sprag out, turn it over and slide it in other face first. Hold the drive gear between the cheeks (collar side right, then the spacer washer on its left), meshing the big gear's full ring of teeth. Turn the cheek bores so their slots point down, then push the launch sleeve in from the motor side, outboard end first, ribs lined up with the slots and the sprag keyway, until the long (15 mm) rib sits inside the sprag.",
    "parts": [
     "launch_drive_gear",
     "launch_sprag",
@@ -20875,7 +20884,7 @@
   },
   {
    "title": "Aim 1: aim housing, worm, wheel, crank",
-   "text": "Build the aim housing on the bench (it goes onto the base later, after the rail). The AS5600 carrier and SW_RAIL_LOW are cad-sensors parts (Sensors steps), screwed into the pilots on the housing. Push the countershaft in from the inboard side through the inner wall bushing, through the big bevel (D bore, slid on from the outboard end of the shaft) and into the outer wall bushing. Drop the M8 nut into the hex pocket on the inner face of the outer wall, fit the two 608 bearings into the crank (worm wheel) hub, hold the crank in place and push the M8 x 25 bolt in from outboard through the wall, the nut and both bearings; tighten so the head and nut clamp the wall. Lay the worm shaft with the small bevel in its saddles and screw the cap on (4 x M3 x 30 self tap). The housing screws to the deck from below later (4 x M3 self tap into the foot pilots, through cad-frame's deck clearance holes).",
+   "text": "Build the aim housing on the bench (it goes onto the base later, after the rail). The AS5600 carrier and SW_RAIL_LOW are cad-sensors parts (Sensors steps), screwed into the pilots on the housing. Push the countershaft in from the inboard side through the inner wall bushing, through the big bevel (D bore, slid on from the outboard end of the shaft) and into the outer wall bushing. Drop the M8 nut into the hex pocket on the inner face of the outer wall, fit the two 608 bearings into the crank (worm wheel) hub, hold the crank in place and push the M8 x 25 bolt in from outboard through the wall, the nut and both bearings; tighten so the head and nut clamp the wall. Lay the worm shaft with the small bevel in its saddles and screw the cap on (4 x M3 x 30 self tap). The housing screws to the deck later (Aim 3), from the top: 4 x M3 x 10 down through the counterbored holes in its foot flanges (two behind the spine, one in front of the outer wall, one on the inboard tab) into the deck's heat-set inserts. The SW_RAIL_LOW bracket on the foot extension has its own deck screw (Sensors 2).",
    "parts": [
     "launch_aim_housing",
     "launch_aim_cap",
@@ -20907,7 +20916,7 @@
   },
   {
    "title": "Aim 3: lug, conrod, rail onto the base",
-   "text": "With the sun and swing arm already on the sleeve (the lug is on the rail since Launcher 2b), slide the rail assembly's sleeve along the main axis onto the drum's d12 spigot from the outboard side (the LAUNCH dog ring is already bolted to its flange, Launcher 4) until the ring's dogs sit by the drum collar. Hang the conrod's upper eye on the lug pin and snap a printed C clip into that groove. Then slide the aim housing on from the outboard side so the sleeve end enters its bushing and the crank pin enters the conrod's lower eye; snap a printed C clip onto the crank pin and screw the housing to the deck. Turn the sleeve backward by hand: the arm swings the idler into the output gear and drives it; forward, the arm swings out onto its stop and the output gear stays still. Then turn the wiper backward slowly: the rail rises to 47 deg, then lowers to 6 deg.",
+   "text": "With the sun and swing arm already on the sleeve (the lug is on the rail since Launcher 2b), slide the rail assembly's sleeve along the main axis onto the drum's d12 spigot from the outboard side (the LAUNCH dog ring is already bolted to its flange, Launcher 4) until the ring's dogs sit by the drum collar. Hang the conrod's upper eye on the lug pin and snap a printed C clip into that groove. Then slide the aim housing on from the outboard side so the sleeve end enters its bushing and the crank pin enters the conrod's lower eye (hold the swing arm with the idler pointing down and a little to the rear, clear of the output gear, and let the arm go in between the two stop posts on the housing's inner face as they come up to it); snap a printed C clip onto the crank pin and screw the housing to the deck from the top: 4 x M3 x 10 through the counterbored foot flange holes into the deck inserts. Turn the sleeve backward by hand: the arm swings the idler into the output gear, comes to rest on its engaged stop post and drives the gear without binding; forward, the arm swings out onto the other post and the output gear stays still. Then turn the wiper backward slowly: the rail rises to 47 deg, then lowers to 6 deg.",
    "parts": [
     "launch_aim_conrod",
     "launch_aim_crankpin_clip",
@@ -21061,7 +21070,7 @@
   },
   {
    "title": "SW_ARM contact",
-   "text": "Battery unplugged. Build the printed contact (see the contact switch page): nut pressed in the base trap, lever screwed on, M3 x 10 contact screw with its jam nut in the lever. Screw the switch base to the bracket, and the bracket to the back of the wall below the gears with two M3 x 8. Turn the cup to home (ring at the top): the bump on the cup gear presses the lever; set the contact screw so it just closes there and opens 12 degrees either side. Lock the jam nut.",
+   "text": "Battery unplugged. Build the printed contact (see the contact switch page): nut pressed in the base trap, lever screwed onto the pad with 2 x M3 x 10 self tapping screws, M3 x 10 contact screw with its jam nut in the lever. Screw the switch base to the bracket with 4 x M3 x 8 self tapping screws (into the pilot holes in the plate), and the bracket to the back of the wall below the gears with two M3 x 8. SW_ARM is closed while the cup is away from home and opens at home: the lever rides a raised track on the back of the cup gear and drops into a notch in it at home. Turn the cup to home (ring at the top): the lever tip sits free in the notch. Turn the contact screw until its head just touches the nut, then back it off 1.9 turns (gap about 0.9 mm, 0.5 mm per turn) and lock the jam nut. Check with the meter: turn the cup about 15 degrees either way, the lever rides up onto the track and the contact closes; back at home it must open, for about 7 degrees either side.",
    "parts": [
     "reel_sw_bracket",
     "reel_sw_base",
@@ -21072,7 +21081,7 @@
   },
   {
    "title": "Pulley 2 swivel",
-   "text": "Press a 693ZZ into pulley 2, set it between the swivel fork's two cheeks and push the M3 x 20 axle through (nyloc nut on the far side, snug: the pulley must spin). Grease the fork's tube and push it up through the bore of the pulley 2 post's block from below; snap the C-clip into the groove above the block. The fork must turn freely. Screw the post to the deck beside the drum with four M3 screws. The line from pulley 1 goes down through the tube, round the pulley and out toward the rail pivot pulley; the fork turns itself to follow the line as the rail aims.",
+   "text": "Press a 693ZZ into pulley 2, set it between the swivel fork's two cheeks and push the M3 x 20 axle through (nyloc nut on the far side, snug: the pulley must spin). Grease the fork's tube and push it through the bore of the pulley 2 post's block from the pulley side (the tube is level and points toward pulley 1); snap the C-clip into the groove where the tube comes out of the block. The fork must turn freely. Screw the post to the deck beside the drum with four M3 screws into the deck inserts. The line from pulley 1 goes through the tube, round the pulley and out toward the rail pivot pulley; the fork turns itself to follow the line as the rail aims.",
    "parts": [
     "reel_p2_post",
     "reel_p2_fork",
@@ -21118,7 +21127,7 @@
   {
    "stage": 211,
    "title": "Sensors 2: SW_RAIL_LOW on the aim housing",
-   "text": "Screw the switch base to its bracket (4 x M3x8 self tapping), lever pointing to the crank. Set the bracket foot on the housing foot extension in front of the crank. Screw it down with an M3x10 in the hole nearest the crank (self taps into the housing). When the housing goes onto the deck, its 4th deck screw (under this foot) is an M3x20 instead of the shorter one: from below through the deck and the foot extension up into the bracket foot. Turn the crank by hand (wiper backwards) to the lowest rail position: the cam lobe presses the lever tip and the meter shows the switch closed. Turn the crank about 20 deg either side: the switch must open.",
+   "text": "Screw the switch base to its bracket (4 x M3x8 self tapping), lever pointing to the crank. Set the bracket foot on the housing foot extension in front of the crank. Screw it down with an M3x10 in the hole nearest the crank (self taps into the housing) and an M3x16 in the counterbored hole at the front end of the foot: down through the foot and the foot extension into the deck insert under it (the bracket's own deck screw). Turn the crank by hand (wiper backwards) to the lowest rail position: the cam lobe presses the lever tip and the meter shows the switch closed. Turn the crank about 20 deg either side: the switch must open.",
    "parts": [
     "sensors_sw_rail_low_bracket"
    ],

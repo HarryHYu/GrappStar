@@ -1,5 +1,5 @@
 {
- "created": "2026-11-03 08:39",
+ "created": "2026-11-03 15:57",
  "bed": [
   256.0,
   256.0,
@@ -18,16 +18,16 @@
     211.28,
     8.0
    ],
-   "volume_cm3": 356.74,
-   "mass_g": 299.9,
-   "model_mass_g": 244.67,
+   "volume_cm3": 356.65,
+   "mass_g": 300.1,
+   "model_mass_g": 244.84,
    "walls": 4,
    "infill": 0.4,
    "time_h": 7.52,
    "overhang_mm2": 0.0,
    "supports": "no",
    "orientation": "As modelled, bottom face on the bed.",
-   "notes": "deck: M3 inserts for every frame foot; 7 x M3 rover holes (it is its own drill template)",
+   "notes": "deck: M3 inserts for every frame foot; 6 x M3 rover holes (it is its own drill template)",
    "watertight": true,
    "stl": "stl/frame_deck_3.stl"
   },
@@ -41,9 +41,9 @@
     211.28,
     8.0
    ],
-   "volume_cm3": 345.93,
-   "mass_g": 290.9,
-   "model_mass_g": 237.35,
+   "volume_cm3": 345.47,
+   "mass_g": 291.2,
+   "model_mass_g": 237.93,
    "walls": 4,
    "infill": 0.4,
    "time_h": 7.3,
@@ -152,20 +152,20 @@
    "material": "PLA",
    "qty": 1,
    "dims": [
-    160.94,
-    50.4,
+    176.5,
+    59.0,
     183.0
    ],
-   "volume_cm3": 206.1,
-   "mass_g": 178.9,
-   "model_mass_g": 175.22,
+   "volume_cm3": 212.77,
+   "mass_g": 185.4,
+   "model_mass_g": 181.64,
    "walls": 4,
    "infill": 0.4,
-   "time_h": 5.72,
-   "overhang_mm2": 753.3,
-   "supports": "yes, tree supports from the plate (753 mm2 over 45 deg)",
+   "time_h": 5.89,
+   "overhang_mm2": 761.3,
+   "supports": "yes, tree supports from the plate (761 mm2 over 45 deg)",
    "orientation": "As modelled, bottom face on the bed.",
-   "notes": "Aim housing on the deck (4 x M3): sleeve end bushing, countershaft bushings, worm saddles, M8 wheel bolt (head on the outer boss, nut in the inner face hex pocket), swing arm stop post",
+   "notes": "Aim housing on the deck (4 x M3 x 10 from the top through its counterbored foot flanges into the deck inserts): sleeve end bushing, countershaft bushings, worm saddles, M8 wheel bolt (head on the outer boss, nut in the inner face hex pocket), engaged and swung-out swing arm stop posts",
    "watertight": true,
    "stl": "stl/launch_aim_housing.stl"
   },
@@ -547,12 +547,12 @@
     104.0,
     16.4
    ],
-   "volume_cm3": 30.28,
-   "mass_g": 37.5,
-   "model_mass_g": 37.54,
+   "volume_cm3": 29.89,
+   "mass_g": 37.1,
+   "model_mass_g": 37.07,
    "walls": 4,
    "infill": 0.4,
-   "time_h": 1.05,
+   "time_h": 1.04,
    "overhang_mm2": 39.9,
    "supports": "no",
    "orientation": "Rotated: the part's -x axis points up.",
@@ -731,12 +731,12 @@
     63.0,
     57.9
    ],
-   "volume_cm3": 18.65,
-   "mass_g": 20.5,
-   "model_mass_g": 20.0,
+   "volume_cm3": 18.57,
+   "mass_g": 20.6,
+   "model_mass_g": 20.07,
    "walls": 4,
    "infill": 0.4,
-   "time_h": 0.91,
+   "time_h": 0.92,
    "overhang_mm2": 334.0,
    "supports": "yes, tree supports from the plate (334 mm2 over 45 deg)",
    "orientation": "As modelled, bottom face on the bed.",
@@ -819,21 +819,21 @@
    "material": "PLA",
    "qty": 1,
    "dims": [
-    27.4,
+    31.0,
     48.0,
     73.96
    ],
-   "volume_cm3": 15.93,
-   "mass_g": 17.6,
-   "model_mass_g": 17.1,
+   "volume_cm3": 16.05,
+   "mass_g": 17.8,
+   "model_mass_g": 17.33,
    "walls": 4,
    "infill": 0.4,
-   "time_h": 0.95,
-   "overhang_mm2": 70.5,
+   "time_h": 0.96,
+   "overhang_mm2": 65.3,
    "supports": "no",
    "orientation": "As modelled, bottom face on the bed.",
-   "notes": "SW_RAIL_LOW bracket on the aim housing foot extension; the housing's 4th deck screw (M3x20 from below instead of the shorter one) goes on up into its foot",
-   "watertight": false,
+   "notes": "SW_RAIL_LOW bracket on the aim housing foot extension: an M3x10 into the extension and its own deck screw, an M3x16 from the top through the counterbored foot and the extension into a deck insert",
+   "watertight": true,
    "stl": "stl/sensors_sw_rail_low_bracket.stl"
   },
   {
@@ -1476,7 +1476,7 @@
    "overhang_mm2": 31.5,
    "supports": "no",
    "orientation": "Rotated: the part's +y axis points up.",
-   "notes": "SW_ARM lever: the cup gear's bump presses its tip at home. Print on its side",
+   "notes": "SW_ARM lever: rides the cup gear's raised track (contact closed) and drops into its home notch (open). Print on its side",
    "watertight": true,
    "stl": "stl/reel_sw_lever.stl"
   },
@@ -2387,16 +2387,16 @@
     194.0,
     16.0
    ],
-   "volume_cm3": 255.54,
-   "mass_g": 278.0,
-   "model_mass_g": 209.98,
+   "volume_cm3": 252.95,
+   "mass_g": 276.3,
+   "model_mass_g": 208.94,
    "walls": 6,
    "infill": 0.6,
-   "time_h": 12.47,
-   "overhang_mm2": 6705.6,
-   "supports": "yes, tree supports from the plate (6706 mm2 over 45 deg)",
+   "time_h": 12.39,
+   "overhang_mm2": 6734.4,
+   "supports": "yes, tree supports from the plate (6734 mm2 over 45 deg)",
    "orientation": "Rotated: the part's -z axis points up.",
-   "notes": "puck adapter: slotted M6 holes (+-4 mm) for the motor bosses, rear lip with 8 M3 inserts for the rim screws, 2 inserts for cad-drum's SW_INDEX block; reprint when the motor is measured",
+   "notes": "puck adapter: slotted M6 holes (+-4 mm) for the motor bosses, rear lip with 8 M3 inserts for the rim screws, tether channels open to the edge; reprint when the motor is measured",
    "watertight": true,
    "stl": "stl/frame_motor_adapter.stl"
   },
@@ -2499,17 +2499,17 @@
    "qty": 1,
    "dims": [
     101.76,
-    28.0,
-    123.0
+    29.0,
+    125.0
    ],
-   "volume_cm3": 48.53,
-   "mass_g": 56.4,
-   "model_mass_g": 43.31,
+   "volume_cm3": 50.46,
+   "mass_g": 57.4,
+   "model_mass_g": 43.84,
    "walls": 6,
    "infill": 0.6,
-   "time_h": 3.36,
-   "overhang_mm2": 1280.0,
-   "supports": "yes, tree supports from the plate (1280 mm2 over 45 deg)",
+   "time_h": 3.42,
+   "overhang_mm2": 1197.6,
+   "supports": "yes, tree supports from the plate (1198 mm2 over 45 deg)",
    "orientation": "Rotated: the part's +y axis points up.",
    "notes": "Pulley 2 post: stands on the deck beside the drum, turns the line into the rail pivot pulley's plane",
    "watertight": true,
@@ -2884,6 +2884,29 @@
    "stl": "stl/launch_aim_lug.stl"
   },
   {
+   "name": "drum_coupler_hub",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "qty": 1,
+   "dims": [
+    26.0,
+    26.0,
+    32.5
+   ],
+   "volume_cm3": 11.69,
+   "mass_g": 14.6,
+   "model_mass_g": 11.94,
+   "walls": 6,
+   "infill": 0.6,
+   "time_h": 0.88,
+   "overhang_mm2": 37.0,
+   "supports": "no",
+   "orientation": "As modelled, bottom face on the bed.",
+   "notes": "Coupler hub on the wiper shaft (bore parametric: WIPER), M8 nut inside, shear pin hole",
+   "watertight": true,
+   "stl": "stl/drum_coupler_hub.stl"
+  },
+  {
    "name": "reel_s",
    "subsystem": "reel",
    "material": "PPA-CF",
@@ -3022,29 +3045,6 @@
    "stl": "stl/reel_gi.stl"
   },
   {
-   "name": "drum_coupler_hub",
-   "subsystem": "drum",
-   "material": "PPA-CF",
-   "qty": 1,
-   "dims": [
-    26.0,
-    26.0,
-    23.0
-   ],
-   "volume_cm3": 8.99,
-   "mass_g": 11.2,
-   "model_mass_g": 9.04,
-   "walls": 6,
-   "infill": 0.6,
-   "time_h": 0.66,
-   "overhang_mm2": 37.0,
-   "supports": "no",
-   "orientation": "As modelled, bottom face on the bed.",
-   "notes": "Coupler hub on the wiper shaft (bore parametric: WIPER), M8 nut inside, shear pin hole",
-   "watertight": true,
-   "stl": "stl/drum_coupler_hub.stl"
-  },
-  {
    "name": "reel_gk",
    "subsystem": "reel",
    "material": "PPA-CF",
@@ -3063,7 +3063,7 @@
    "overhang_mm2": 668.3,
    "supports": "yes, tree supports from the plate (668 mm2 over 45 deg)",
    "orientation": "As modelled, bottom face on the bed.",
-   "notes": "Cup gear m1.5 z24: driven by the drum's wrap idler; the bump on its back trips SW_ARM",
+   "notes": "Cup gear m1.5 z24: driven by the drum's wrap idler; the raised track on its back holds SW_ARM closed, the notch at home lets it open",
    "watertight": true,
    "stl": "stl/reel_gk.stl"
   },
@@ -3526,17 +3526,17 @@
    "material": "PLA",
    "items": [
     {
-     "name": "drum_hand_lever",
-     "copy": 1,
-     "x": 225.0,
-     "y": 74.0,
-     "rot": true
-    },
-    {
      "name": "drum_switch_block",
      "copy": 1,
      "x": 225.0,
      "y": 18.0,
+     "rot": false
+    },
+    {
+     "name": "frame_cable_anchor_2",
+     "copy": 1,
+     "x": 225.0,
+     "y": 105.0,
      "rot": false
     },
     {
@@ -3547,47 +3547,39 @@
      "rot": false
     },
     {
-     "name": "reel_c_clip",
-     "copy": 1,
-     "x": 225.0,
-     "y": 156.0,
-     "rot": true
-    },
-    {
      "name": "reel_t",
      "copy": 1,
      "x": 225.0,
-     "y": 125.0,
+     "y": 74.0,
      "rot": false
     },
     {
      "name": "sensors_as5600_strip_bot",
      "copy": 1,
      "x": 225.0,
-     "y": 204.73,
+     "y": 142.82,
      "rot": false
     },
     {
      "name": "sensors_as5600_strip_top",
      "copy": 1,
      "x": 225.0,
-     "y": 187.91,
+     "y": 126.0,
      "rot": false
     }
    ],
    "objects": [
-    "drum_hand_lever",
     "drum_switch_block",
+    "frame_cable_anchor_2",
     "frame_cheek_r",
-    "reel_c_clip",
     "reel_t",
     "sensors_as5600_strip_bot",
     "sensors_as5600_strip_top"
    ],
-   "build_items": 7,
+   "build_items": 6,
    "solo": false,
-   "mass_g": 207.8,
-   "time_h": 5.38
+   "mass_g": 206.8,
+   "time_h": 5.36
   },
   {
    "file": "plate_3_PLA.3mf",
@@ -3598,97 +3590,105 @@
      "name": "drum_magnet_cap",
      "copy": 1,
      "x": 230.765,
-     "y": 64.66,
-     "rot": false
-    },
-    {
-     "name": "drum_n20_strap",
-     "copy": 1,
-     "x": 230.765,
-     "y": 6.16,
+     "y": 18.845,
      "rot": false
     },
     {
      "name": "frame_deck_3",
      "copy": 1,
      "x": 5.235,
-     "y": 6.16,
+     "y": 18.845,
      "rot": false
     },
     {
      "name": "launch_gear_clip",
      "copy": 1,
      "x": 230.765,
-     "y": 158.65,
+     "y": 112.835,
      "rot": true
     },
     {
      "name": "launch_gear_washer",
      "copy": 1,
      "x": 230.765,
-     "y": 135.66,
+     "y": 89.845,
+     "rot": false
+    },
+    {
+     "name": "launch_pulley_bot",
+     "copy": 1,
+     "x": 230.765,
+     "y": 204.155,
+     "rot": false
+    },
+    {
+     "name": "launch_pulley_piv",
+     "copy": 1,
+     "x": 230.765,
+     "y": 223.155,
+     "rot": false
+    },
+    {
+     "name": "launch_pulley_top",
+     "copy": 1,
+     "x": 230.765,
+     "y": 185.155,
      "rot": false
     },
     {
      "name": "reel_bar_cap_1",
      "copy": 1,
      "x": 230.765,
-     "y": 200.97,
+     "y": 155.155,
      "rot": true
     },
     {
      "name": "reel_bar_cap_2",
      "copy": 1,
      "x": 230.765,
-     "y": 215.97,
+     "y": 170.155,
      "rot": true
     },
     {
      "name": "reel_p2_clip",
      "copy": 1,
      "x": 230.765,
-     "y": 180.99,
+     "y": 135.175,
      "rot": false
     },
     {
      "name": "reel_pulley1",
      "copy": 1,
      "x": 230.765,
-     "y": 89.66,
+     "y": 43.845,
      "rot": false
     },
     {
      "name": "reel_pulley2",
      "copy": 1,
      "x": 230.765,
-     "y": 112.66,
+     "y": 66.845,
      "rot": false
-    },
-    {
-     "name": "sensors_sw_rail_low_bracket",
-     "copy": 1,
-     "x": 5.235,
-     "y": 222.44,
-     "rot": true
     }
    ],
    "objects": [
     "drum_magnet_cap",
-    "drum_n20_strap",
     "frame_deck_3",
     "launch_gear_clip",
     "launch_gear_washer",
+    "launch_pulley_bot",
+    "launch_pulley_piv",
+    "launch_pulley_top",
     "reel_bar_cap_1",
     "reel_bar_cap_2",
     "reel_p2_clip",
     "reel_pulley1",
-    "reel_pulley2",
-    "sensors_sw_rail_low_bracket"
+    "reel_pulley2"
    ],
-   "build_items": 11,
+   "build_items": 12,
    "solo": false,
-   "mass_g": 327.5,
-   "time_h": 8.67
+   "mass_g": 308.9,
+   "time_h": 7.74
   },
   {
    "file": "plate_4_PLA.3mf",
@@ -3698,34 +3698,26 @@
     {
      "name": "frame_deck_1",
      "copy": 1,
-     "x": 8.235,
+     "x": 8.475,
      "y": 22.36,
      "rot": false
     },
     {
-     "name": "launch_pulley_bot",
+     "name": "reel_k_clip",
      "copy": 1,
-     "x": 233.765,
+     "x": 234.005,
      "y": 22.36,
-     "rot": false
-    },
-    {
-     "name": "launch_pulley_piv",
-     "copy": 1,
-     "x": 233.765,
-     "y": 41.36,
      "rot": false
     }
    ],
    "objects": [
     "frame_deck_1",
-    "launch_pulley_bot",
-    "launch_pulley_piv"
+    "reel_k_clip"
    ],
-   "build_items": 3,
+   "build_items": 2,
    "solo": false,
-   "mass_g": 291.9,
-   "time_h": 7.32
+   "mass_g": 291.3,
+   "time_h": 7.31
   },
   {
    "file": "plate_5_PLA.3mf",
@@ -3735,130 +3727,34 @@
     {
      "name": "drum_bracket_idler",
      "copy": 1,
-     "x": 184.775,
-     "y": 179.3,
+     "x": 192.75,
+     "y": 179.58,
      "rot": false
-    },
-    {
-     "name": "drum_sw_lever_0",
-     "copy": 1,
-     "x": 5.225,
-     "y": 237.3,
-     "rot": true
-    },
-    {
-     "name": "drum_sw_lever_1",
-     "copy": 1,
-     "x": 57.725,
-     "y": 237.3,
-     "rot": true
-    },
-    {
-     "name": "drum_sw_lever_2",
-     "copy": 1,
-     "x": 110.225,
-     "y": 237.3,
-     "rot": true
     },
     {
      "name": "frame_deck_4",
      "copy": 1,
-     "x": 5.225,
-     "y": 5.02,
+     "x": 11.25,
+     "y": 5.3,
      "rot": false
     },
     {
-     "name": "frame_ebay_esp_clamp",
+     "name": "launch_aim_housing",
      "copy": 1,
-     "x": 241.775,
-     "y": 50.02,
-     "rot": true
-    },
-    {
-     "name": "launch_aim_drag_pad",
-     "copy": 1,
-     "x": 241.775,
-     "y": 191.42,
+     "x": 11.25,
+     "y": 179.58,
      "rot": false
-    },
-    {
-     "name": "launch_aim_lugpin_clip",
-     "copy": 1,
-     "x": 162.725,
-     "y": 237.3,
-     "rot": true
-    },
-    {
-     "name": "launch_pulley_top_washer_l",
-     "copy": 1,
-     "x": 241.775,
-     "y": 220.88,
-     "rot": false
-    },
-    {
-     "name": "launch_pulley_top_washer_r",
-     "copy": 1,
-     "x": 241.775,
-     "y": 234.66,
-     "rot": false
-    },
-    {
-     "name": "launch_seat_clip",
-     "copy": 1,
-     "x": 230.755,
-     "y": 5.02,
-     "rot": true
-    },
-    {
-     "name": "launch_stop_frame_l",
-     "copy": 1,
-     "x": 5.225,
-     "y": 179.3,
-     "rot": false
-    },
-    {
-     "name": "launch_sw_home",
-     "copy": 1,
-     "x": 241.775,
-     "y": 144.92,
-     "rot": true
-    },
-    {
-     "name": "launch_sw_seated",
-     "copy": 1,
-     "x": 241.775,
-     "y": 98.42,
-     "rot": true
-    },
-    {
-     "name": "sensors_sw_gap_lever",
-     "copy": 1,
-     "x": 241.775,
-     "y": 5.02,
-     "rot": true
     }
    ],
    "objects": [
     "drum_bracket_idler",
-    "drum_sw_lever_0",
-    "drum_sw_lever_1",
-    "drum_sw_lever_2",
     "frame_deck_4",
-    "frame_ebay_esp_clamp",
-    "launch_aim_drag_pad",
-    "launch_aim_lugpin_clip",
-    "launch_pulley_top_washer_l",
-    "launch_pulley_top_washer_r",
-    "launch_seat_clip",
-    "launch_stop_frame_l",
-    "launch_sw_home",
-    "launch_sw_seated",
-    "sensors_sw_gap_lever"
+    "launch_aim_housing"
    ],
-   "build_items": 15,
+   "build_items": 3,
    "solo": false,
-   "mass_g": 302.3,
-   "time_h": 7.91
+   "mass_g": 446.6,
+   "time_h": 12.39
   },
   {
    "file": "plate_6_PLA.3mf",
@@ -3866,82 +3762,169 @@
    "material": "PLA",
    "items": [
     {
-     "name": "drum_drum_b",
-     "copy": 1,
-     "x": 187.775,
-     "y": 179.54,
-     "rot": false
+     "name": "drum_shear_pin",
+     "copy": 4,
+     "x": 244.675,
+     "y": 52.01,
+     "rot": true
     },
     {
-     "name": "drum_index_lever",
-     "copy": 1,
-     "x": 8.225,
-     "y": 237.54,
+     "name": "drum_shear_pin",
+     "copy": 5,
+     "x": 244.675,
+     "y": 69.12,
      "rot": true
+    },
+    {
+     "name": "drum_shear_pin",
+     "copy": 6,
+     "x": 244.675,
+     "y": 86.23,
+     "rot": true
+    },
+    {
+     "name": "drum_sw_lever_0",
+     "copy": 1,
+     "x": 5.125,
+     "y": 237.29,
+     "rot": true
+    },
+    {
+     "name": "drum_sw_lever_1",
+     "copy": 1,
+     "x": 57.625,
+     "y": 237.29,
+     "rot": true
+    },
+    {
+     "name": "drum_sw_lever_2",
+     "copy": 1,
+     "x": 110.125,
+     "y": 237.29,
+     "rot": true
+    },
+    {
+     "name": "frame_can_stay",
+     "copy": 1,
+     "x": 184.675,
+     "y": 179.29,
+     "rot": false
     },
     {
      "name": "frame_deck_2",
      "copy": 1,
-     "x": 8.225,
-     "y": 5.26,
+     "x": 5.125,
+     "y": 5.01,
      "rot": false
+    },
+    {
+     "name": "launch_aim_drag_pad",
+     "copy": 1,
+     "x": 230.655,
+     "y": 5.01,
+     "rot": false
+    },
+    {
+     "name": "launch_guard_l_b1",
+     "copy": 1,
+     "x": 162.625,
+     "y": 239.29,
+     "rot": true
     },
     {
      "name": "launch_muzzle_washer_l",
      "copy": 1,
-     "x": 89.535,
-     "y": 244.54,
+     "x": 244.675,
+     "y": 103.34,
      "rot": false
     },
     {
      "name": "launch_muzzle_washer_r",
      "copy": 1,
-     "x": 100.735,
-     "y": 244.54,
+     "x": 244.675,
+     "y": 114.54,
      "rot": false
     },
     {
-     "name": "launch_pulley_bot_washer_r",
+     "name": "launch_pulley_top_washer_l",
      "copy": 1,
-     "x": 75.755,
-     "y": 237.54,
+     "x": 230.655,
+     "y": 34.47,
+     "rot": false
+    },
+    {
+     "name": "launch_pulley_top_washer_r",
+     "copy": 1,
+     "x": 230.655,
+     "y": 48.25,
+     "rot": false
+    },
+    {
+     "name": "launch_seat_clip",
+     "copy": 1,
+     "x": 244.675,
+     "y": 125.74,
      "rot": true
     },
     {
-     "name": "launch_stop_frame_r",
+     "name": "launch_stop_frame_l",
      "copy": 1,
-     "x": 8.225,
-     "y": 179.54,
+     "x": 5.125,
+     "y": 179.29,
      "rot": false
     },
     {
      "name": "reel_s_clip",
      "copy": 1,
-     "x": 60.725,
-     "y": 237.54,
+     "x": 216.625,
+     "y": 239.29,
+     "rot": true
+    },
+    {
+     "name": "reel_sw_lever",
+     "copy": 1,
+     "x": 244.675,
+     "y": 5.01,
      "rot": true
     }
    ],
    "objects": [
-    "drum_drum_b",
-    "drum_index_lever",
+    "drum_shear_pin__c4",
+    "drum_shear_pin__c5",
+    "drum_shear_pin__c6",
+    "drum_sw_lever_0",
+    "drum_sw_lever_1",
+    "drum_sw_lever_2",
+    "frame_can_stay",
     "frame_deck_2",
+    "launch_aim_drag_pad",
+    "launch_guard_l_b1",
     "launch_muzzle_washer_l",
     "launch_muzzle_washer_r",
-    "launch_pulley_bot_washer_r",
-    "launch_stop_frame_r",
-    "reel_s_clip"
+    "launch_pulley_top_washer_l",
+    "launch_pulley_top_washer_r",
+    "launch_seat_clip",
+    "launch_stop_frame_l",
+    "reel_s_clip",
+    "reel_sw_lever"
    ],
-   "build_items": 8,
+   "build_items": 18,
    "solo": false,
-   "mass_g": 354.5,
-   "time_h": 9.23
+   "mass_g": 313.0,
+   "time_h": 8.28
   },
   {
    "file": "plate_7_PLA.3mf",
    "png": "plate_7_PLA.png",
    "material": "PLA",
    "items": [
+    {
+     "name": "drum_index_lever",
+     "copy": 1,
+     "x": 181.25,
+     "y": 237.185,
+     "rot": true
+    },
     {
      "name": "frame_guard_front",
      "copy": 1,
@@ -3957,7 +3940,7 @@
      "rot": false
     },
     {
-     "name": "launch_pulley_bot_washer_l",
+     "name": "launch_pulley_bot_washer_r",
      "copy": 1,
      "x": 128.75,
      "y": 138.085,
@@ -3994,7 +3977,7 @@
     {
      "name": "reel_cup_clip",
      "copy": 1,
-     "x": 181.25,
+     "x": 233.75,
      "y": 237.185,
      "rot": false
     },
@@ -4007,9 +3990,10 @@
     }
    ],
    "objects": [
+    "drum_index_lever",
     "frame_guard_front",
     "frame_rc832_holder",
-    "launch_pulley_bot_washer_l",
+    "launch_pulley_bot_washer_r",
     "launch_rail_front",
     "launch_rail_rear",
     "launch_rail_splice_l",
@@ -4017,10 +4001,10 @@
     "reel_cup_clip",
     "reel_wall"
    ],
-   "build_items": 9,
+   "build_items": 10,
    "solo": false,
-   "mass_g": 539.5,
-   "time_h": 14.68
+   "mass_g": 540.0,
+   "time_h": 14.7
   },
   {
    "file": "plate_8_PLA.3mf",
@@ -4056,6 +4040,20 @@
      "rot": false
     },
     {
+     "name": "drum_index_block",
+     "copy": 1,
+     "x": 236.56,
+     "y": 5.0,
+     "rot": false
+    },
+    {
+     "name": "drum_shear_pin",
+     "copy": 1,
+     "x": 236.56,
+     "y": 97.0,
+     "rot": false
+    },
+    {
      "name": "frame_ebay",
      "copy": 1,
      "x": 5.44,
@@ -4063,31 +4061,10 @@
      "rot": false
     },
     {
-     "name": "launch_aim_cap",
-     "copy": 1,
-     "x": 236.56,
-     "y": 5.0,
-     "rot": true
-    },
-    {
-     "name": "launch_aim_drag_shim",
-     "copy": 1,
-     "x": 236.56,
-     "y": 93.5,
-     "rot": true
-    },
-    {
      "name": "launch_muzzle_roller",
      "copy": 1,
      "x": 236.56,
-     "y": 55.5,
-     "rot": false
-    },
-    {
-     "name": "launch_pulley_top",
-     "copy": 1,
-     "x": 236.56,
-     "y": 74.5,
+     "y": 78.0,
      "rot": false
     }
    ],
@@ -4096,16 +4073,15 @@
     "drum_bracket_b",
     "drum_bracket_idler2",
     "drum_drum_a",
+    "drum_index_block",
+    "drum_shear_pin__c1",
     "frame_ebay",
-    "launch_aim_cap",
-    "launch_aim_drag_shim",
-    "launch_muzzle_roller",
-    "launch_pulley_top"
+    "launch_muzzle_roller"
    ],
-   "build_items": 9,
+   "build_items": 8,
    "solo": false,
-   "mass_g": 405.4,
-   "time_h": 10.61
+   "mass_g": 407.9,
+   "time_h": 10.67
   },
   {
    "file": "plate_9_PLA.3mf",
@@ -4113,122 +4089,105 @@
    "material": "PLA",
    "items": [
     {
-     "name": "drum_shear_pin",
+     "name": "frame_camera_mount",
      "copy": 1,
-     "x": 245.95,
-     "y": 101.26,
-     "rot": true
-    },
-    {
-     "name": "drum_shear_pin",
-     "copy": 2,
-     "x": 245.95,
-     "y": 118.37,
-     "rot": true
-    },
-    {
-     "name": "drum_shear_pin",
-     "copy": 3,
-     "x": 245.95,
-     "y": 135.48,
-     "rot": true
-    },
-    {
-     "name": "drum_shear_pin",
-     "copy": 4,
-     "x": 245.95,
-     "y": 152.59,
+     "x": 164.955,
+     "y": 192.17,
      "rot": true
     },
     {
      "name": "frame_ebay_lid",
      "copy": 1,
-     "x": 5.05,
-     "y": 5.26,
+     "x": 5.045,
+     "y": 5.17,
      "rot": false
     },
     {
-     "name": "launch_aim_housing",
+     "name": "launch_aim_drag_shim",
      "copy": 1,
-     "x": 134.05,
-     "y": 5.26,
-     "rot": true
+     "x": 241.955,
+     "y": 243.82,
+     "rot": false
     },
     {
-     "name": "launch_guard_l_c",
+     "name": "launch_carriage_yoke",
      "copy": 1,
-     "x": 73.5,
-     "y": 207.26,
-     "rot": true
+     "x": 207.045,
+     "y": 5.17,
+     "rot": false
+    },
+    {
+     "name": "launch_pulley_bot_washer_l",
+     "copy": 1,
+     "x": 241.955,
+     "y": 230.04,
+     "rot": false
     },
     {
      "name": "launch_rail_mid",
      "copy": 1,
-     "x": 5.05,
-     "y": 134.26,
+     "x": 134.045,
+     "y": 5.17,
+     "rot": true
+    },
+    {
+     "name": "launch_stop_frame_r",
+     "copy": 1,
+     "x": 5.045,
+     "y": 134.17,
      "rot": false
     },
     {
      "name": "launch_stop_spring_l",
      "copy": 1,
-     "x": 189.45,
-     "y": 5.26,
-     "rot": true
-    },
-    {
-     "name": "reel_shroud",
-     "copy": 1,
-     "x": 133.55,
-     "y": 171.2,
+     "x": 5.045,
+     "y": 192.17,
      "rot": false
-    },
-    {
-     "name": "reel_sw_lever",
-     "copy": 1,
-     "x": 245.95,
-     "y": 54.26,
-     "rot": true
     },
     {
      "name": "sensors_sw_gap",
      "copy": 1,
-     "x": 5.05,
-     "y": 207.26,
+     "x": 184.595,
+     "y": 136.77,
      "rot": false
     },
     {
-     "name": "sensors_sw_rail_low_lever",
+     "name": "sensors_sw_gap_lever",
      "copy": 1,
-     "x": 245.95,
-     "y": 5.26,
+     "x": 241.955,
+     "y": 185.04,
      "rot": true
     }
    ],
    "objects": [
-    "drum_shear_pin__c1",
-    "drum_shear_pin__c2",
-    "drum_shear_pin__c3",
-    "drum_shear_pin__c4",
+    "frame_camera_mount",
     "frame_ebay_lid",
-    "launch_aim_housing",
-    "launch_guard_l_c",
+    "launch_aim_drag_shim",
+    "launch_carriage_yoke",
+    "launch_pulley_bot_washer_l",
     "launch_rail_mid",
+    "launch_stop_frame_r",
     "launch_stop_spring_l",
-    "reel_shroud",
-    "reel_sw_lever",
     "sensors_sw_gap",
-    "sensors_sw_rail_low_lever"
+    "sensors_sw_gap_lever"
    ],
-   "build_items": 13,
+   "build_items": 10,
    "solo": false,
-   "mass_g": 547.5,
-   "time_h": 14.9
+   "mass_g": 570.2,
+   "time_h": 15.83
   },
   {
    "file": "plate_10_PLA.3mf",
    "png": "plate_10_PLA.png",
    "material": "PLA",
    "items": [
+    {
+     "name": "drum_drum_b",
+     "copy": 1,
+     "x": 97.46,
+     "y": 5.22,
+     "rot": false
+    },
     {
      "name": "drum_fork",
      "copy": 1,
@@ -4238,37 +4197,16 @@
     },
     {
      "name": "drum_shear_pin",
-     "copy": 5,
-     "x": 5.33,
+     "copy": 2,
+     "x": 54.33,
      "y": 245.78,
      "rot": false
     },
     {
      "name": "drum_shear_pin",
-     "copy": 6,
-     "x": 22.44,
+     "copy": 3,
+     "x": 71.44,
      "y": 245.78,
-     "rot": false
-    },
-    {
-     "name": "frame_cable_anchor_1",
-     "copy": 1,
-     "x": 97.46,
-     "y": 82.22,
-     "rot": true
-    },
-    {
-     "name": "frame_cable_anchor_2",
-     "copy": 1,
-     "x": 126.46,
-     "y": 82.22,
-     "rot": false
-    },
-    {
-     "name": "frame_camera_mount",
-     "copy": 1,
-     "x": 97.46,
-     "y": 5.22,
      "rot": false
     },
     {
@@ -4289,21 +4227,21 @@
      "name": "launch_aim_crankpin_clip",
      "copy": 1,
      "x": 240.64,
-     "y": 233.07,
+     "y": 216.76,
      "rot": true
     },
     {
-     "name": "launch_aim_idler_clip",
+     "name": "launch_aim_lugpin_clip",
      "copy": 1,
      "x": 240.64,
-     "y": 217.22,
+     "y": 232.61,
      "rot": true
     },
     {
      "name": "launch_guard_r_b2",
      "copy": 1,
      "x": 90.33,
-     "y": 217.22,
+     "y": 216.76,
      "rot": false
     },
     {
@@ -4314,40 +4252,46 @@
      "rot": false
     },
     {
-     "name": "reel_spool",
+     "name": "reel_shroud",
      "copy": 1,
      "x": 165.24,
      "y": 132.22,
      "rot": false
     },
     {
-     "name": "reel_spool_flange",
+     "name": "reel_spool",
      "copy": 1,
      "x": 5.33,
      "y": 160.78,
      "rot": false
+    },
+    {
+     "name": "sensors_sw_rail_low_lever",
+     "copy": 1,
+     "x": 5.33,
+     "y": 245.78,
+     "rot": false
     }
    ],
    "objects": [
+    "drum_drum_b",
     "drum_fork",
-    "drum_shear_pin__c5",
-    "drum_shear_pin__c6",
-    "frame_cable_anchor_1",
-    "frame_cable_anchor_2",
-    "frame_camera_mount",
+    "drum_shear_pin__c2",
+    "drum_shear_pin__c3",
     "frame_guard_hood",
     "frame_motor_leg",
     "launch_aim_crankpin_clip",
-    "launch_aim_idler_clip",
+    "launch_aim_lugpin_clip",
     "launch_guard_r_b2",
     "launch_stop_spring_r",
+    "reel_shroud",
     "reel_spool",
-    "reel_spool_flange"
+    "sensors_sw_rail_low_lever"
    ],
-   "build_items": 14,
+   "build_items": 13,
    "solo": false,
-   "mass_g": 492.1,
-   "time_h": 13.89
+   "mass_g": 402.5,
+   "time_h": 11.32
   },
   {
    "file": "plate_11_PLA.3mf",
@@ -4357,122 +4301,178 @@
     {
      "name": "drum_dog_post",
      "copy": 1,
-     "x": 46.0,
-     "y": 196.65,
-     "rot": true
+     "x": 42.695,
+     "y": 90.5,
+     "rot": false
     },
     {
-     "name": "drum_index_block",
+     "name": "drum_hand_lever",
      "copy": 1,
-     "x": 159.0,
-     "y": 182.95,
+     "x": 137.445,
+     "y": 118.0,
      "rot": false
     },
     {
      "name": "drum_n20_cradle",
      "copy": 1,
-     "x": 122.0,
-     "y": 189.45,
+     "x": 87.195,
+     "y": 206.9,
+     "rot": true
+    },
+    {
+     "name": "drum_n20_strap",
+     "copy": 1,
+     "x": 164.695,
+     "y": 5.5,
      "rot": false
     },
     {
-     "name": "frame_can_stay",
+     "name": "frame_cable_anchor_1",
      "copy": 1,
-     "x": 46.0,
-     "y": 136.65,
+     "x": 42.695,
+     "y": 234.5,
+     "rot": true
+    },
+    {
+     "name": "frame_ebay_esp_clamp",
+     "copy": 1,
+     "x": 164.195,
+     "y": 183.99,
      "rot": false
     },
     {
-     "name": "launch_carriage_yoke",
+     "name": "launch_aim_cap",
      "copy": 1,
-     "x": 46.0,
-     "y": 5.05,
-     "rot": false
+     "x": 173.445,
+     "y": 64.0,
+     "rot": true
+    },
+    {
+     "name": "launch_aim_idler_clip",
+     "copy": 1,
+     "x": 71.695,
+     "y": 234.5,
+     "rot": true
     },
     {
      "name": "launch_drive_washer",
      "copy": 1,
-     "x": 178.0,
-     "y": 182.95,
+     "x": 164.195,
+     "y": 146.99,
      "rot": false
     },
     {
-     "name": "launch_guard_l_b1",
+     "name": "launch_guard_l_c",
      "copy": 1,
-     "x": 138.8,
-     "y": 56.05,
-     "rot": true
+     "x": 127.695,
+     "y": 5.5,
+     "rot": false
     },
     {
      "name": "launch_guard_r_b1",
      "copy": 1,
-     "x": 46.0,
-     "y": 238.4,
-     "rot": true
+     "x": 187.625,
+     "y": 5.5,
+     "rot": false
     },
     {
      "name": "launch_guard_r_c",
      "copy": 1,
-     "x": 106.0,
-     "y": 129.95,
+     "x": 87.195,
+     "y": 147.4,
      "rot": false
+    },
+    {
+     "name": "launch_sw_home",
+     "copy": 1,
+     "x": 204.325,
+     "y": 5.5,
+     "rot": true
+    },
+    {
+     "name": "launch_sw_seated",
+     "copy": 1,
+     "x": 192.445,
+     "y": 59.5,
+     "rot": true
+    },
+    {
+     "name": "reel_c_clip",
+     "copy": 1,
+     "x": 188.445,
+     "y": 114.5,
+     "rot": true
     },
     {
      "name": "reel_cup",
      "copy": 1,
-     "x": 94.3,
-     "y": 73.05,
+     "x": 84.445,
+     "y": 90.5,
      "rot": false
     },
     {
-     "name": "reel_k_clip",
+     "name": "reel_spool_flange",
      "copy": 1,
-     "x": 100.0,
-     "y": 238.4,
+     "x": 42.695,
+     "y": 5.5,
      "rot": false
     },
     {
      "name": "reel_sw_base",
      "copy": 1,
-     "x": 138.8,
-     "y": 5.05,
+     "x": 145.695,
+     "y": 200.4,
      "rot": true
     },
     {
      "name": "reel_sw_bracket",
      "copy": 1,
-     "x": 94.3,
-     "y": 5.05,
+     "x": 42.695,
+     "y": 166.5,
      "rot": false
     },
     {
      "name": "sensors_sw_rail_low",
      "copy": 1,
-     "x": 143.0,
-     "y": 129.95,
+     "x": 124.195,
+     "y": 147.4,
      "rot": true
+    },
+    {
+     "name": "sensors_sw_rail_low_bracket",
+     "copy": 1,
+     "x": 137.445,
+     "y": 65.0,
+     "rot": false
     }
    ],
    "objects": [
     "drum_dog_post",
-    "drum_index_block",
+    "drum_hand_lever",
     "drum_n20_cradle",
-    "frame_can_stay",
-    "launch_carriage_yoke",
+    "drum_n20_strap",
+    "frame_cable_anchor_1",
+    "frame_ebay_esp_clamp",
+    "launch_aim_cap",
+    "launch_aim_idler_clip",
     "launch_drive_washer",
-    "launch_guard_l_b1",
+    "launch_guard_l_c",
     "launch_guard_r_b1",
     "launch_guard_r_c",
+    "launch_sw_home",
+    "launch_sw_seated",
+    "reel_c_clip",
     "reel_cup",
-    "reel_k_clip",
+    "reel_spool_flange",
     "reel_sw_base",
     "reel_sw_bracket",
-    "sensors_sw_rail_low"
+    "sensors_sw_rail_low",
+    "sensors_sw_rail_low_bracket"
    ],
-   "build_items": 14,
+   "build_items": 21,
    "solo": false,
-   "mass_g": 139.5,
-   "time_h": 3.97
+   "mass_g": 127.7,
+   "time_h": 3.69
   },
   {
    "file": "plate_12_PLA.3mf",
@@ -4598,8 +4598,8 @@
    ],
    "build_items": 9,
    "solo": false,
-   "mass_g": 429.2,
-   "time_h": 19.95
+   "mass_g": 427.5,
+   "time_h": 19.87
   },
   {
    "file": "plate_15_PPA-CF.3mf",
@@ -4747,8 +4747,8 @@
    ],
    "build_items": 17,
    "solo": false,
-   "mass_g": 501.5,
-   "time_h": 23.16
+   "mass_g": 504.9,
+   "time_h": 23.31
   },
   {
    "file": "plate_16_PPA-CF.3mf",
@@ -4880,8 +4880,8 @@
    ],
    "build_items": 15,
    "solo": false,
-   "mass_g": 406.0,
-   "time_h": 18.9
+   "mass_g": 407.0,
+   "time_h": 18.96
   },
   {
    "file": "plate_17_PPA-CF.3mf",
@@ -4955,22 +4955,21 @@
  ],
  "errors": [],
  "warnings": [
-  "sensors_sw_rail_low_bracket: STL is not watertight once coincident vertices are merged (the mesh touches itself along an edge or point); slicers may flag it, fix the model",
   "launch_guard_l_a: print bbox 250.0 x 49.0 fits the bed but not inside the 5 mm margin; printed alone, centred on its own plate",
   "launch_guard_r_a: print bbox 250.0 x 49.0 fits the bed but not inside the 5 mm margin; printed alone, centred on its own plate"
  ],
  "totals": {
   "PLA": {
-   "mass_g": 3828.2,
-   "filament_m": 1283.53,
-   "time_h": 102.89,
+   "mass_g": 3835.1,
+   "filament_m": 1285.85,
+   "time_h": 103.63,
    "count": 108,
    "plates": 13
   },
   "PPA-CF": {
-   "mass_g": 1432.0,
-   "filament_m": 476.29,
-   "time_h": 66.89,
+   "mass_g": 1434.7,
+   "filament_m": 477.18,
+   "time_h": 67.02,
    "count": 48,
    "plates": 4
   }

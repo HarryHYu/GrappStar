@@ -1,10 +1,9 @@
 # Print sheet
 
-Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times are rough estimates: walls and infill per material from the settings below, volume at a typical print rate plus 5 s per 0.2 mm layer, the layer time counted once per plate.
+Generated 2026-11-03 15:57. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times are rough estimates: walls and infill per material from the settings below, volume at a typical print rate plus 5 s per 0.2 mm layer, the layer time counted once per plate.
 
 ## Warnings
 
-- sensors_sw_rail_low_bracket: STL is not watertight once coincident vertices are merged (the mesh touches itself along an edge or point); slicers may flag it, fix the model
 - launch_guard_l_a: print bbox 250.0 x 49.0 fits the bed but not inside the 5 mm margin; printed alone, centred on its own plate
 - launch_guard_r_a: print bbox 250.0 x 49.0 fits the bed but not inside the 5 mm margin; printed alone, centred on its own plate
 
@@ -12,13 +11,13 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 
 | part | material | qty | print bbox mm | volume cm3 | mass g (each) | time h (each, alone) | overhang mm2 | supports |
 |---|---|---|---|---|---|---|---|---|
-| frame_deck_3 | PLA | 1 | 220.5 x 211.3 x 8.0 | 356.7 | 299.9 | 7.52 | 0 | no |
-| frame_deck_1 | PLA | 1 | 220.5 x 211.3 x 8.0 | 345.9 | 290.9 | 7.30 | 0 | no |
+| frame_deck_3 | PLA | 1 | 220.5 x 211.3 x 8.0 | 356.6 | 300.1 | 7.52 | 0 | no |
+| frame_deck_1 | PLA | 1 | 220.5 x 211.3 x 8.0 | 345.5 | 291.2 | 7.30 | 0 | no |
 | frame_deck_4 | PLA | 1 | 220.5 x 169.3 x 8.0 | 294.3 | 248.7 | 6.25 | 0 | no |
 | frame_deck_2 | PLA | 1 | 220.5 x 169.3 x 8.0 | 285.6 | 241.7 | 6.07 | 0 | no |
 | frame_camera_mount | PLA | 1 | 58.0 x 72.0 x 236.4 | 236.8 | 166.5 | 5.79 | 672 | yes, tree supports from the plate (672 mm2 over 45 deg) |
 | frame_cheek_r | PLA | 1 | 215.0 x 220.0 x 30.0 | 213.6 | 182.5 | 4.75 | 5227 | yes, tree supports from the plate (5227 mm2 over 45 deg) |
-| launch_aim_housing | PLA | 1 | 160.9 x 50.4 x 183.0 | 206.1 | 178.9 | 5.72 | 753 | yes, tree supports from the plate (753 mm2 over 45 deg) |
+| launch_aim_housing | PLA | 1 | 176.5 x 59.0 x 183.0 | 212.8 | 185.4 | 5.89 | 761 | yes, tree supports from the plate (761 mm2 over 45 deg) |
 | launch_rail_mid | PLA | 1 | 123.5 x 68.0 x 170.0 | 205.6 | 183.0 | 5.74 | 2613 | yes, tree supports from the plate (2613 mm2 over 45 deg) |
 | reel_wall | PLA | 1 | 169.5 x 82.0 x 138.4 | 205.1 | 204.8 | 6.06 | 604 | yes, tree supports from the plate (604 mm2 over 45 deg) |
 | drum_drum_a | PLA | 1 | 97.1 x 97.1 x 75.0 | 195.6 | 146.5 | 4.17 | 732 | yes, tree supports from the plate (732 mm2 over 45 deg) |
@@ -35,7 +34,7 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 | launch_carriage | PLA | 1 | 205.2 x 240.2 x 43.0 | 48.0 | 59.6 | 1.78 | 6453 | yes, tree supports from the plate (6453 mm2 over 45 deg) |
 | drum_bracket_a | PLA | 1 | 104.9 x 117.0 x 6.7 | 37.5 | 37.7 | 0.99 | 32 | no |
 | frame_can_stay | PLA | 1 | 55.0 x 55.0 x 71.0 | 31.0 | 28.4 | 1.20 | 906 | yes, tree supports from the plate (906 mm2 over 45 deg) |
-| frame_guard_front | PLA | 1 | 155.0 x 104.0 x 16.4 | 30.3 | 37.5 | 1.05 | 40 | no |
+| frame_guard_front | PLA | 1 | 155.0 x 104.0 x 16.4 | 29.9 | 37.1 | 1.04 | 40 | no |
 | reel_spool | PLA | 1 | 80.0 x 80.0 x 24.1 | 27.6 | 34.3 | 1.02 | 329 | yes, tree supports from the plate (329 mm2 over 45 deg) |
 | launch_stop_frame_l | PLA | 1 | 174.6 x 53.0 x 55.1 | 26.3 | 32.7 | 1.20 | 541 | yes, tree supports from the plate (541 mm2 over 45 deg) |
 | launch_stop_frame_r | PLA | 1 | 174.6 x 53.0 x 55.1 | 26.3 | 32.7 | 1.20 | 541 | yes, tree supports from the plate (541 mm2 over 45 deg) |
@@ -43,11 +42,11 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 | frame_guard_hood | PLA | 1 | 122.0 x 60.0 x 14.4 | 21.1 | 26.2 | 0.75 | 84 | no |
 | drum_fork | PLA | 1 | 87.1 x 94.1 x 83.0 | 21.0 | 25.9 | 1.22 | 1302 | yes, tree supports from the plate (1302 mm2 over 45 deg) |
 | launch_carriage_yoke | PLA | 1 | 43.3 x 126.6 x 28.0 | 18.9 | 23.5 | 0.78 | 1406 | yes, tree supports from the plate (1406 mm2 over 45 deg) |
-| reel_sw_bracket | PLA | 1 | 39.5 x 63.0 x 57.9 | 18.6 | 20.5 | 0.91 | 334 | yes, tree supports from the plate (334 mm2 over 45 deg) |
+| reel_sw_bracket | PLA | 1 | 39.5 x 63.0 x 57.9 | 18.6 | 20.6 | 0.92 | 334 | yes, tree supports from the plate (334 mm2 over 45 deg) |
 | frame_rc832_holder | PLA | 1 | 97.0 x 21.6 x 40.0 | 18.4 | 22.8 | 0.84 | 0 | no |
 | drum_switch_block | PLA | 1 | 26.0 x 51.0 x 24.0 | 18.1 | 16.6 | 0.58 | 216 | yes, tree supports from the plate (216 mm2 over 45 deg) |
 | launch_guard_r_b2 | PLA | 1 | 145.3 x 32.5 x 40.0 | 17.6 | 21.8 | 0.82 | 56 | no |
-| sensors_sw_rail_low_bracket | PLA | 1 | 27.4 x 48.0 x 74.0 | 15.9 | 17.6 | 0.95 | 70 | no |
+| sensors_sw_rail_low_bracket | PLA | 1 | 31.0 x 48.0 x 74.0 | 16.1 | 17.8 | 0.96 | 65 | no |
 | launch_guard_l_b2 | PLA | 1 | 145.3 x 32.5 x 40.0 | 14.4 | 17.9 | 0.72 | 33 | no |
 | drum_bracket_idler2 | PLA | 1 | 50.1 x 141.0 x 6.0 | 13.9 | 16.2 | 0.44 | 32 | no |
 | sensors_as5600_carrier | PLA | 1 | 34.0 x 67.5 x 11.0 | 12.4 | 12.7 | 0.39 | 90 | no |
@@ -115,12 +114,12 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 | launch_seat_clip | PLA | 1 | 5.6 x 5.6 x 2.4 | 0.1 | 0.1 | 0.02 | 0 | no |
 | launch_muzzle_washer_l | PLA | 1 | 6.2 x 6.2 x 0.9 | 0.0 | 0.0 | 0.01 | 0 | no |
 | launch_muzzle_washer_r | PLA | 1 | 6.2 x 6.2 x 0.9 | 0.0 | 0.0 | 0.01 | 0 | no |
-| frame_motor_adapter | PPA-CF | 1 | 194.0 x 194.0 x 16.0 | 255.5 | 278.0 | 12.47 | 6706 | yes, tree supports from the plate (6706 mm2 over 45 deg) |
+| frame_motor_adapter | PPA-CF | 1 | 194.0 x 194.0 x 16.0 | 252.9 | 276.3 | 12.39 | 6734 | yes, tree supports from the plate (6734 mm2 over 45 deg) |
 | launch_big_gear | PPA-CF | 1 | 105.0 x 105.0 x 27.3 | 184.2 | 177.6 | 8.09 | 639 | yes, tree supports from the plate (639 mm2 over 45 deg) |
 | drum_gear_reel | PPA-CF | 1 | 104.0 x 103.9 x 19.0 | 87.9 | 95.9 | 4.39 | 0 | no |
 | drum_coupler | PPA-CF | 1 | 78.0 x 77.9 x 61.5 | 79.6 | 89.3 | 4.40 | 1998 | yes, tree supports from the plate (1998 mm2 over 45 deg) |
 | reel_exit_post | PPA-CF | 1 | 40.0 x 44.0 x 125.8 | 67.8 | 70.6 | 4.01 | 207 | yes, tree supports from the plate (207 mm2 over 45 deg) |
-| reel_p2_post | PPA-CF | 1 | 101.8 x 28.0 x 123.0 | 48.5 | 56.4 | 3.36 | 1280 | yes, tree supports from the plate (1280 mm2 over 45 deg) |
+| reel_p2_post | PPA-CF | 1 | 101.8 x 29.0 x 125.0 | 50.5 | 57.4 | 3.42 | 1198 | yes, tree supports from the plate (1198 mm2 over 45 deg) |
 | drum_shaft | PPA-CF | 1 | 170.3 x 25.4 x 22.0 | 42.7 | 45.2 | 2.16 | 922 | yes, tree supports from the plate (922 mm2 over 45 deg) |
 | reel_drum | PPA-CF | 1 | 46.0 x 46.0 x 43.0 | 41.0 | 44.5 | 2.27 | 251 | yes, tree supports from the plate (251 mm2 over 45 deg) |
 | launch_sleeve | PPA-CF | 1 | 64.0 x 64.0 x 85.0 | 39.4 | 49.3 | 2.78 | 2907 | yes, tree supports from the plate (2907 mm2 over 45 deg) |
@@ -137,13 +136,13 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 | launch_aim_sun | PPA-CF | 1 | 48.0 x 47.8 x 12.0 | 14.6 | 18.3 | 0.89 | 0 | no |
 | reel_gc | PPA-CF | 1 | 48.0 x 47.7 x 12.8 | 14.5 | 18.1 | 0.89 | 0 | no |
 | launch_aim_lug | PPA-CF | 1 | 30.0 x 58.0 x 27.8 | 13.6 | 16.9 | 0.95 | 995 | yes, tree supports from the plate (995 mm2 over 45 deg) |
+| drum_coupler_hub | PPA-CF | 1 | 26.0 x 26.0 x 32.5 | 11.7 | 14.6 | 0.88 | 37 | no |
 | reel_s | PPA-CF | 1 | 62.0 x 62.0 x 55.5 | 11.6 | 14.5 | 1.03 | 11 | no |
 | launch_aim_conrod | PPA-CF | 1 | 173.0 x 17.0 x 6.0 | 11.3 | 14.2 | 0.67 | 0 | no |
 | drum_axle | PPA-CF | 1 | 141.0 x 10.0 x 9.0 | 10.5 | 13.1 | 0.64 | 0 | no |
 | drum_rail | PPA-CF | 1 | 141.0 x 10.0 x 9.0 | 10.5 | 13.1 | 0.64 | 0 | no |
 | reel_k | PPA-CF | 1 | 10.0 x 10.0 x 125.8 | 9.4 | 11.8 | 1.40 | 32 | no |
 | reel_gi | PPA-CF | 1 | 48.0 x 47.8 x 6.0 | 9.1 | 11.3 | 0.55 | 0 | no |
-| drum_coupler_hub | PPA-CF | 1 | 26.0 x 26.0 x 23.0 | 9.0 | 11.2 | 0.66 | 37 | no |
 | reel_gk | PPA-CF | 1 | 38.9 x 38.9 x 10.6 | 8.0 | 9.9 | 0.52 | 668 | yes, tree supports from the plate (668 mm2 over 45 deg) |
 | launch_aim_bevel30 | PPA-CF | 1 | 52.6 x 52.4 x 9.7 | 7.0 | 8.8 | 0.46 | 590 | yes, tree supports from the plate (590 mm2 over 45 deg) |
 | reel_bar | PPA-CF | 1 | 153.5 x 18.6 x 15.8 | 6.3 | 7.9 | 0.46 | 0 | no |
@@ -164,13 +163,13 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 | launch_seat_pushrod | PPA-CF | 1 | 16.0 x 4.8 x 3.6 | 0.1 | 0.2 | 0.03 | 0 | no |
 | reel_crank_washer | PPA-CF | 1 | 12.0 x 12.0 x 1.2 | 0.1 | 0.2 | 0.02 | 0 | no |
 
-- **frame_deck_3**: As modelled, bottom face on the bed. deck: M3 inserts for every frame foot; 7 x M3 rover holes (it is its own drill template)
+- **frame_deck_3**: As modelled, bottom face on the bed. deck: M3 inserts for every frame foot; 6 x M3 rover holes (it is its own drill template)
 - **frame_deck_1**: As modelled, bottom face on the bed. deck: M3 inserts for every frame foot; 9 x M3 rover holes (it is its own drill template)
 - **frame_deck_4**: As modelled, bottom face on the bed. deck: M3 inserts for every frame foot; 10 x M3 rover holes (it is its own drill template)
 - **frame_deck_2**: As modelled, bottom face on the bed. deck: M3 inserts for every frame foot; 7 x M3 rover holes (it is its own drill template)
 - **frame_camera_mount**: As modelled, bottom face on the bed. Kiyo X mount: its own clip grips the 16 mm edge plate (or a 1/4-20 screw), 4 x M3 x 10 into the deck
 - **frame_cheek_r**: Rotated: the part's -y axis points up. motor plate (y -10..0, front face = the spec's y 0): window for the puck adapter, 8 rim holes (M3 x 12 from the front into the puck lip), bridge to the motor leg (2 x M3 x 12), can stay and hood inserts; carved round the other subsystems
-- **launch_aim_housing**: As modelled, bottom face on the bed. Aim housing on the deck (4 x M3): sleeve end bushing, countershaft bushings, worm saddles, M8 wheel bolt (head on the outer boss, nut in the inner face hex pocket), swing arm stop post
+- **launch_aim_housing**: As modelled, bottom face on the bed. Aim housing on the deck (4 x M3 x 10 from the top through its counterbored foot flanges into the deck inserts): sleeve end bushing, countershaft bushings, worm saddles, M8 wheel bolt (head on the outer boss, nut in the inner face hex pocket), engaged and swung-out swing arm stop posts
 - **launch_rail_mid**: Rotated: the part's -x axis points up. Rail mid piece: shoe track, cheeks on the sleeve, big gear pin bosses, lever seats, SW_GAP bracket pilots
 - **reel_wall**: Rotated: the part's +y axis points up. Reel wall: foot, guide eye post, rocker ears, stop pins, brake guides and crank boss. Print on its foot
 - **drum_drum_a**: As modelled, bottom face on the bed. Drum A: N20 gear 120T m0.8, brake cam, wrap segment gear + locking arc, hex spigot
@@ -199,7 +198,7 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 - **frame_rc832_holder**: As modelled, bottom face on the bed. RC832 holder: receiver stands antenna-end up in the slot, leads out low, 2 x M3 x 10
 - **drum_switch_block**: As modelled, bottom face on the bed. Code switch block: 3 lever feet, 3 M3 nut contacts (SW_DRUM_A, B, C)
 - **launch_guard_r_b2**: Rotated: the part's +y axis points up. Spring guard right mid under the stop spring (D33): 2 mm side plate outside both spring pairs, 2 wall brackets (M3x12 self tap into the rail wall) and a foot on the front plate (M3x10 self tap down); fit by moving it inward
-- **sensors_sw_rail_low_bracket**: As modelled, bottom face on the bed. SW_RAIL_LOW bracket on the aim housing foot extension; the housing's 4th deck screw (M3x20 from below instead of the shorter one) goes on up into its foot
+- **sensors_sw_rail_low_bracket**: As modelled, bottom face on the bed. SW_RAIL_LOW bracket on the aim housing foot extension: an M3x10 into the extension and its own deck screw, an M3x16 from the top through the counterbored foot and the extension into a deck insert
 - **launch_guard_l_b2**: Rotated: the part's -y axis points up. Spring guard left mid under the stop spring (D33): 2 mm side plate outside both spring pairs, 1 wall bracket (M3x12 self tap into the rail wall) and a foot on the front plate (M3x10 self tap down); fit by moving it inward
 - **drum_bracket_idler2**: As modelled, bottom face on the bed. Wrap idler second journal post (motor end), 2 x M3 to the deck
 - **sensors_as5600_carrier**: Rotated: the part's -y axis points up. AS5600 carrier: plate with 4 pegs through the board holes, column screwed to the aim housing spine
@@ -227,7 +226,7 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 - **frame_ebay_esp_clamp**: As modelled, bottom face on the bed. ESP32 hold-down over the module end, 2 x M3 x 8 into the cradle posts
 - **sensors_sw_gap_lever**: Rotated: the part's +y axis points up. SW_GAP lever, t 1.4 mm, print on its side so layers run along the beam
 - **sensors_sw_rail_low_lever**: Rotated: the part's +y axis points up. SW_RAIL_LOW lever, t 1.4 mm, print on its side so layers run along the beam
-- **reel_sw_lever**: Rotated: the part's +y axis points up. SW_ARM lever: the cup gear's bump presses its tip at home. Print on its side
+- **reel_sw_lever**: Rotated: the part's +y axis points up. SW_ARM lever: rides the cup gear's raised track (contact closed) and drops into its home notch (open). Print on its side
 - **reel_pulley1**: As modelled, bottom face on the bed. Pulley 1: turns the line from the exit eye toward the rail (D14)
 - **reel_pulley2**: As modelled, bottom face on the bed. Pulley 2: feeds the line to cad-launch's rail pivot pulley (D34)
 - **reel_bar_cap_1**: Rotated: the part's -y axis points up. Bar guide cap: closes the U guide over the bar. Print flat
@@ -267,7 +266,7 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 - **launch_seat_clip**: Rotated: the part's -z axis points up. Head cap on the plunger pin (rests on the yoke block)
 - **launch_muzzle_washer_l**: Rotated: the part's -z axis points up. Lip roller thrust washer (0.9 thick, flange on the cheek side) between the bearing inner race and the cheek: put both in the roller bore, then drop roller and washers into the fork slot
 - **launch_muzzle_washer_r**: Rotated: the part's -z axis points up. Lip roller thrust washer (0.9 thick, flange on the cheek side) between the bearing inner race and the cheek: put both in the roller bore, then drop roller and washers into the fork slot
-- **frame_motor_adapter**: Rotated: the part's -z axis points up. puck adapter: slotted M6 holes (+-4 mm) for the motor bosses, rear lip with 8 M3 inserts for the rim screws, 2 inserts for cad-drum's SW_INDEX block; reprint when the motor is measured
+- **frame_motor_adapter**: Rotated: the part's -z axis points up. puck adapter: slotted M6 holes (+-4 mm) for the motor bosses, rear lip with 8 M3 inserts for the rim screws, tether channels open to the edge; reprint when the motor is measured
 - **launch_big_gear**: Rotated: the part's -z axis points up. Big gear m2.5: sector layer 27 of 40 teeth (rack, v10 release teeth) + full 40T layer (drive), SW_GAP cam bump, on the rail pin
 - **drum_gear_reel**: As modelled, bottom face on the bed. REEL output gear m2 50T face 12 (D20), free on its sleeve, dog face toward the collar
 - **drum_coupler**: As modelled, bottom face on the bed. Coupler: 5 N m shear pin limiter (D8), bus gear 50T m1.5 (D25), SW_INDEX cam, REEL journal, hex socket; prints hub end down, tree support under the bus gear ring
@@ -289,14 +288,14 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 - **launch_aim_sun**: As modelled, bottom face on the bed. Splitter sun m1.5 z30 face 12, keyed on the launch sleeve
 - **reel_gc**: As modelled, bottom face on the bed. Capstan gear m2 z22: driven by the drum's REEL output gear (50T)
 - **launch_aim_lug**: Rotated: the part's +y axis points up. Lug bracket (PPA-CF), 2 x M3 into the rail wall, d8 lug pin at (u 115.2, w 0)
+- **drum_coupler_hub**: As modelled, bottom face on the bed. Coupler hub on the wiper shaft (bore parametric: WIPER), M8 nut inside, shear pin hole
 - **reel_s**: Rotated: the part's -z axis points up. Reel shaft: 608 journals, head = clutch disk, D flat for the reel gear. Print head down
 - **launch_aim_conrod**: Rotated: the part's +y axis points up. Conrod 156 between pin centres (PPA-CF), printed C clips on both pins
 - **drum_axle**: Rotated: the part's -x axis points up. Fixed drum axle d10, pressed into brackets A and B
 - **drum_rail**: Rotated: the part's -x axis points up. Shift rail d10, pressed into brackets A and B
 - **reel_k**: As modelled, bottom face on the bed. Cup shaft: runs inside the capstan tube, cup in front, cup gear behind. Print standing
 - **reel_gi**: As modelled, bottom face on the bed. Swing idler m1.5 z30: meshes the reel gear only on forward wiper turns
-- **drum_coupler_hub**: As modelled, bottom face on the bed. Coupler hub on the wiper shaft (bore parametric: WIPER), M8 nut inside, shear pin hole
-- **reel_gk**: As modelled, bottom face on the bed. Cup gear m1.5 z24: driven by the drum's wrap idler; the bump on its back trips SW_ARM
+- **reel_gk**: As modelled, bottom face on the bed. Cup gear m1.5 z24: driven by the drum's wrap idler; the raised track on its back holds SW_ARM closed, the notch at home lets it open
 - **launch_aim_bevel30**: As modelled, bottom face on the bed. Bevel m1.5 z30 on the countershaft D flat, drives the z15 2:1
 - **reel_bar**: As modelled, bottom face on the bed. Brake bar: cad-drum's track 2 cam pushes its nose, its left end turns the crank. Print flat
 - **drum_idler**: As modelled, bottom face on the bed. Wrap idler shaft: pinion 10T m1.25 (locked at home by the drum lock arc), lock cam, two journals
@@ -321,27 +320,27 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 | plate | material | objects | mass g | time h |
 |---|---|---|---|---|
 | plate_1_PLA.3mf | PLA | 3: launch_carriage, launch_guard_l_b2, sensors_as5600_carrier | 90 | 2.5 |
-| plate_2_PLA.3mf | PLA | 7: drum_hand_lever, drum_switch_block, frame_cheek_r, reel_c_clip, reel_t, sensors_as5600_strip_bot, sensors_as5600_strip_top | 208 | 5.4 |
-| plate_3_PLA.3mf | PLA | 11: drum_magnet_cap, drum_n20_strap, frame_deck_3, launch_gear_clip, launch_gear_washer, reel_bar_cap_1, reel_bar_cap_2, reel_p2_clip, reel_pulley1, reel_pulley2, sensors_sw_rail_low_bracket | 328 | 8.7 |
-| plate_4_PLA.3mf | PLA | 3: frame_deck_1, launch_pulley_bot, launch_pulley_piv | 292 | 7.3 |
-| plate_5_PLA.3mf | PLA | 15: drum_bracket_idler, drum_sw_lever_0, drum_sw_lever_1, drum_sw_lever_2, frame_deck_4, frame_ebay_esp_clamp, launch_aim_drag_pad, launch_aim_lugpin_clip, launch_pulley_top_washer_l, launch_pulley_top_washer_r, launch_seat_clip, launch_stop_frame_l, launch_sw_home, launch_sw_seated, sensors_sw_gap_lever | 302 | 7.9 |
-| plate_6_PLA.3mf | PLA | 8: drum_drum_b, drum_index_lever, frame_deck_2, launch_muzzle_washer_l, launch_muzzle_washer_r, launch_pulley_bot_washer_r, launch_stop_frame_r, reel_s_clip | 354 | 9.2 |
-| plate_7_PLA.3mf | PLA | 9: frame_guard_front, frame_rc832_holder, launch_pulley_bot_washer_l, launch_rail_front, launch_rail_rear, launch_rail_splice_l, launch_rail_splice_r, reel_cup_clip, reel_wall | 540 | 14.7 |
-| plate_8_PLA.3mf | PLA | 9: drum_bracket_a, drum_bracket_b, drum_bracket_idler2, drum_drum_a, frame_ebay, launch_aim_cap, launch_aim_drag_shim, launch_muzzle_roller, launch_pulley_top | 405 | 10.6 |
-| plate_9_PLA.3mf | PLA | 13: drum_shear_pin__c1, drum_shear_pin__c2, drum_shear_pin__c3, drum_shear_pin__c4, frame_ebay_lid, launch_aim_housing, launch_guard_l_c, launch_rail_mid, launch_stop_spring_l, reel_shroud, reel_sw_lever, sensors_sw_gap, sensors_sw_rail_low_lever | 548 | 14.9 |
-| plate_10_PLA.3mf | PLA | 14: drum_fork, drum_shear_pin__c5, drum_shear_pin__c6, frame_cable_anchor_1, frame_cable_anchor_2, frame_camera_mount, frame_guard_hood, frame_motor_leg, launch_aim_crankpin_clip, launch_aim_idler_clip, launch_guard_r_b2, launch_stop_spring_r, reel_spool, reel_spool_flange | 492 | 13.9 |
-| plate_11_PLA.3mf | PLA | 14: drum_dog_post, drum_index_block, drum_n20_cradle, frame_can_stay, launch_carriage_yoke, launch_drive_washer, launch_guard_l_b1, launch_guard_r_b1, launch_guard_r_c, reel_cup, reel_k_clip, reel_sw_base, reel_sw_bracket, sensors_sw_rail_low | 140 | 4.0 |
+| plate_2_PLA.3mf | PLA | 6: drum_switch_block, frame_cable_anchor_2, frame_cheek_r, reel_t, sensors_as5600_strip_bot, sensors_as5600_strip_top | 207 | 5.4 |
+| plate_3_PLA.3mf | PLA | 12: drum_magnet_cap, frame_deck_3, launch_gear_clip, launch_gear_washer, launch_pulley_bot, launch_pulley_piv, launch_pulley_top, reel_bar_cap_1, reel_bar_cap_2, reel_p2_clip, reel_pulley1, reel_pulley2 | 309 | 7.7 |
+| plate_4_PLA.3mf | PLA | 2: frame_deck_1, reel_k_clip | 291 | 7.3 |
+| plate_5_PLA.3mf | PLA | 3: drum_bracket_idler, frame_deck_4, launch_aim_housing | 447 | 12.4 |
+| plate_6_PLA.3mf | PLA | 18: drum_shear_pin__c4, drum_shear_pin__c5, drum_shear_pin__c6, drum_sw_lever_0, drum_sw_lever_1, drum_sw_lever_2, frame_can_stay, frame_deck_2, launch_aim_drag_pad, launch_guard_l_b1, launch_muzzle_washer_l, launch_muzzle_washer_r, launch_pulley_top_washer_l, launch_pulley_top_washer_r, launch_seat_clip, launch_stop_frame_l, reel_s_clip, reel_sw_lever | 313 | 8.3 |
+| plate_7_PLA.3mf | PLA | 10: drum_index_lever, frame_guard_front, frame_rc832_holder, launch_pulley_bot_washer_r, launch_rail_front, launch_rail_rear, launch_rail_splice_l, launch_rail_splice_r, reel_cup_clip, reel_wall | 540 | 14.7 |
+| plate_8_PLA.3mf | PLA | 8: drum_bracket_a, drum_bracket_b, drum_bracket_idler2, drum_drum_a, drum_index_block, drum_shear_pin__c1, frame_ebay, launch_muzzle_roller | 408 | 10.7 |
+| plate_9_PLA.3mf | PLA | 10: frame_camera_mount, frame_ebay_lid, launch_aim_drag_shim, launch_carriage_yoke, launch_pulley_bot_washer_l, launch_rail_mid, launch_stop_frame_r, launch_stop_spring_l, sensors_sw_gap, sensors_sw_gap_lever | 570 | 15.8 |
+| plate_10_PLA.3mf | PLA | 13: drum_drum_b, drum_fork, drum_shear_pin__c2, drum_shear_pin__c3, frame_guard_hood, frame_motor_leg, launch_aim_crankpin_clip, launch_aim_lugpin_clip, launch_guard_r_b2, launch_stop_spring_r, reel_shroud, reel_spool, sensors_sw_rail_low_lever | 402 | 11.3 |
+| plate_11_PLA.3mf | PLA | 21: drum_dog_post, drum_hand_lever, drum_n20_cradle, drum_n20_strap, frame_cable_anchor_1, frame_ebay_esp_clamp, launch_aim_cap, launch_aim_idler_clip, launch_drive_washer, launch_guard_l_c, launch_guard_r_b1, launch_guard_r_c, launch_sw_home, launch_sw_seated, reel_c_clip, reel_cup, reel_spool_flange, reel_sw_base, reel_sw_bracket, sensors_sw_rail_low, sensors_sw_rail_low_bracket | 128 | 3.7 |
 | plate_12_PLA.3mf | PLA | 1: launch_guard_l_a | 65 | 1.9 |
 | plate_13_PLA.3mf | PLA | 1: launch_guard_r_a | 65 | 1.9 |
-| plate_14_PPA-CF.3mf | PPA-CF | 9: drum_axle, drum_reel_washer, frame_motor_adapter, reel_bar, reel_drum, reel_exit_post, reel_gr, reel_p2_fork, reel_swing_arm | 429 | 19.9 |
-| plate_15_PPA-CF.3mf | PPA-CF | 17: drum_coupler, drum_coupler_hub, drum_gear_reel, drum_n20_pinion, launch_aim_bevel30, launch_aim_conrod, launch_aim_output, launch_aim_sun, launch_big_gear, launch_gear_pin, launch_seat_pushrod, launch_yoke_peg_l, launch_yoke_peg_r, reel_bus, reel_crank, reel_gi, reel_k | 502 | 23.2 |
-| plate_16_PPA-CF.3mf | PPA-CF | 15: drum_collar, drum_dogring_launch, drum_idler_gear, drum_shaft, launch_aim_arm, launch_aim_crank, launch_aim_lug, launch_drive_gear, launch_seat_plunger, launch_sleeve, reel_gk, reel_p2_post, reel_rocker, reel_s, reel_sprag_hub | 406 | 18.9 |
+| plate_14_PPA-CF.3mf | PPA-CF | 9: drum_axle, drum_reel_washer, frame_motor_adapter, reel_bar, reel_drum, reel_exit_post, reel_gr, reel_p2_fork, reel_swing_arm | 428 | 19.9 |
+| plate_15_PPA-CF.3mf | PPA-CF | 17: drum_coupler, drum_coupler_hub, drum_gear_reel, drum_n20_pinion, launch_aim_bevel30, launch_aim_conrod, launch_aim_output, launch_aim_sun, launch_big_gear, launch_gear_pin, launch_seat_pushrod, launch_yoke_peg_l, launch_yoke_peg_r, reel_bus, reel_crank, reel_gi, reel_k | 505 | 23.3 |
+| plate_16_PPA-CF.3mf | PPA-CF | 15: drum_collar, drum_dogring_launch, drum_idler_gear, drum_shaft, launch_aim_arm, launch_aim_crank, launch_aim_lug, launch_drive_gear, launch_seat_plunger, launch_sleeve, reel_gk, reel_p2_post, reel_rocker, reel_s, reel_sprag_hub | 407 | 19.0 |
 | plate_17_PPA-CF.3mf | PPA-CF | 7: drum_idler, drum_rail, launch_aim_idler, launch_aim_worm, reel_c, reel_crank_washer, reel_gc | 95 | 4.9 |
 
 ## Totals on the plates
 
-- PLA: 108 objects on 13 plates, 3828 g, about 1283.5 m of 1.75 mm filament, 102.9 h
-- PPA-CF: 48 objects on 4 plates, 1432 g, about 476.3 m of 1.75 mm filament, 66.9 h
+- PLA: 108 objects on 13 plates, 3835 g, about 1285.8 m of 1.75 mm filament, 103.6 h
+- PPA-CF: 48 objects on 4 plates, 1435 g, about 477.2 m of 1.75 mm filament, 67.0 h
 
 ## Recommended settings
 

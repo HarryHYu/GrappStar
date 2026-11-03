@@ -308,11 +308,27 @@ def rail_solid(P):
         solid = solid - B(st["u_tip"] - 2.9, st["u_tip"] + 2.9, *sorted((st["y"], sg * (n["y_wall1"] + 1))),
                           st["w_nut0"] - 0.2, st["w_nut0"] + SW.NUT_T + 0.2)
         solid = solid - cyl_w(1.3, n["lip_w1"] - 9.0, n["lip_w1"] + 1.0, st["u_root"] + 2.5, st["y"])
+    # top splice straps across the front joint: 2 x M3 self tap pilots each side of the split, into the walls
+    for sg in (1, -1):
+        for du in (-8.0, -2.5, 2.5, 8.0):
+            solid = solid - cyl_w(1.3, n["lip_w1"] - 12.0, n["lip_w1"] + 1.0, n["split"][1] + du, sg * SPLICE_Y)
     # aim lug: 2 x M3 self tap pilots through the left wall into the shelf (lug bolting plate at u 100..130)
     for uu in LUG_BOLTS_U:
         solid = solid - cyl_y(1.3, n["y_shoe0"] + 1.0, n["y_wall1"] + 0.5, uu, 41.0)
     solid = solid - LN.rail_cut(n)
+    solid = solid - GD.guard_rail_cut(n)
     return solid
+
+
+def splice_solid(P, sg):
+    """Strap on the wall top across the front rail split: keeps the joint from opening at the lips (the springs pull
+    at w 60, the flange bolts sit lower)."""
+    n = L(P)
+    u0 = n["split"][1]
+    st = B(u0 - 11.0, u0 + 11.0, *sorted((sg * 23.0, sg * n["y_wall1"])), n["lip_w1"], n["lip_w1"] + 3.0)
+    for du in (-8.0, -2.5, 2.5, 8.0):
+        st = st - cyl_w(1.7, n["lip_w1"] - 1.0, n["lip_w1"] + 4.0, u0 + du, sg * SPLICE_Y)
+    return st
 
 
 def rail_pieces(P):
@@ -383,6 +399,7 @@ def carriage_solid(P):
         s.append(B(0, n["pusher_t"], yc, yd, n["w_deck0"], ARM_LAP_W))                 # web deck -> stub (inside the lips)
     c = prim.union(s)
     c = c ^ B(-100, 400, -Y_BODY, Y_BODY, -100, 300)        # body inside the shoe faces: prints on its side, flat
+    c = c + MZ.muzzle_carriage_add(P, n)                    # lip roller fork and retrieval funnel (launch_muzzle.py)
     for sg in (1, -1):                                       # keyway slots for the yoke key plates
         c = c - B(KEY_U[0], KEY_U[1], *sorted((sg * 12.9, sg * 17.6)), 61.5, ARM_LAP_W + 1.0)
     for sg in (1, -1):                                       # arm bolt pilots (M3 self tap, from above)
@@ -575,6 +592,7 @@ ARM_LAP_W = 76.0      # half-lap joint plane between the body stub and the bolte
 ARM_BOLT_U, ARM_BOLT_Y = 6.0, 15.0
 KEY_U = (0.8, 3.2)            # yoke key plates in slots of the body webs (bear both ways in u)
 FOOT_U0, FOOT_U1 = -30.0, -0.5   # SW feet span (carriage local): covers the lever screw over the stop overshoot
+SPLICE_Y = 25.5      # top splice strap centre line (on the wall top / lip)
 Y_SPRING2 = 56.0      # second spring pair provision (D5): pegs, anchor holes and clear space at y +-56, w 60
 LUG_BOLTS_U = (107.0, 123.0)   # launch_aim lug_solid bolt positions (w 41)
 RACK_BACK = 4.0       # rack body above the tooth roots (carriage mass, review 1)
@@ -789,7 +807,12 @@ def parts(P):
             out.append(Part(f"launch_spring_{side}_{i}", spring_segment_solid(P, seg_len), "bought",
                             joint=f"launch_spring_seg_{i}", place=tf.T(u_seg, y, n["w_spring"]), color="#c2c7cc",
                             notes="Spring coils (shown in segments that spread when stretched)"))
+    for sg, side in ((1, "l"), (-1, "r")):
+        sp = splice_solid(P, sg)
+        out.append(Part(f"launch_rail_splice_{side}", sp, "PLA", joint="launch_rail", place=tf.I4, print_tf=bed(sp),
+                        color="#8796a5", notes="Top splice strap over the front rail joint (4 x M3 x 10 self tap)"))
     out += ST.stop_parts(P, n)
+    out += MZ.muzzle_parts(P, n, bed) + GD.guard_parts(P, n)
     # generic contact switch: SW_GAP
     for nm, f in switch_frames(P).items():
         bod = SW.body(f["z_s"], f["screw"], f["x0"], width=f["width"], top=f["top"])
@@ -1077,7 +1100,7 @@ def allowed(P):
         Allow("launch_sw_home_screw", "launch_sw_home", "screw threaded into the lever"),
         Allow("launch_sw_seated_screw", "launch_sw_seated", "screw threaded into the lever"),
         Allow("launch_sw_rail_low_screw", "launch_sw_rail_low", "screw threaded into the leaf"),
-    ] + LN.allowed_line() + ST.stop_allowed() + _aim("allowed_aim", P)
+    ] + LN.allowed_line() + ST.stop_allowed() + MZ.muzzle_allowed() + GD.guard_allowed() + _aim("allowed_aim", P)
 
 
 def clearances(P):
@@ -1136,6 +1159,14 @@ def grounded(P):
     return ["launch_aim_housing"]
 
 
+def GD_PART_NAMES(P):
+    return [p.name for p in GD.guard_parts(P, L(P))]
+
+
+def MZ_PART_NAMES(P):
+    return [p.name for p in MZ.muzzle_parts(P, L(P), bed)]
+
+
 def steps(P):
     """Assembly steps for the launcher and aim train (plain language, hardware per step)."""
     n = L(P)
@@ -1155,6 +1186,11 @@ def steps(P):
                   "2 x M3 x 20 with nuts through each flange pair (8 in total). Tighten evenly; file any step inside the "
                   "track where the pieces meet so the carriage shoes slide over it.",
              parts=["launch_rail_rear", "launch_rail_mid", "launch_rail_front"]),
+        dict(title="Launcher 2b: splice straps and spring guards",
+             text="Screw a splice strap on each wall top across the front joint (4 x M3 x 10 self tap each). Screw the "
+                  "spring guard plates to the rail walls and anchor posts (M3 self tap into the pilots, see the print "
+                  "sheet), three per side: rear, middle (under the stop units), front. Fit them before the springs.",
+             parts=["launch_rail_splice_l", "launch_rail_splice_r"] + [p for p in GD_PART_NAMES(P)]),
         dict(title="Launcher 3: big gear",
              text="Hold the big gear between the two cheeks of the mid piece, the toothed sector towards the drum side "
                   "(right) and the full ring of teeth towards the left, with the spacer washer between the gear and the "
@@ -1178,6 +1214,11 @@ def steps(P):
                   "webs, and fit 1 x M3 x 16 per side through the yoke into the webs.",
              parts=["launch_carriage", "launch_carriage_yoke", "launch_seat_plunger", "launch_seat_pushrod",
                     "launch_seat_clip"]),
+        dict(title="Launcher 5b: lip roller",
+             text="Press a 693ZZ into the lip roller and fit it in the fork at the carriage front with the M3 x 20 and a "
+                  "nyloc nut through the side counterbores; it must spin freely. The tether runs over it in tow and "
+                  "retrieval, and the dart's tail slides in over it through the funnel onto the cradle.",
+             parts=MZ_PART_NAMES(P)),
         dict(title="Launcher 6: carriage stops",
              text="For each side: put the stop spring on its ledges over the main spring position, rear bar towards the "
                   "carriage arm. Fit the stop frame over it: 2 x M3 x 12 through the rear foot into the rail wall and "
@@ -1311,3 +1352,5 @@ def line_path(P, S=None):
 
 
 import launch_stop as ST                                        # noqa: E402  (imports launch: keep at the end)
+import launch_muzzle as MZ                                      # noqa: E402
+import launch_guard as GD                                       # noqa: E402

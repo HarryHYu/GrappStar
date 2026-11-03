@@ -87,7 +87,7 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
 2. **Drill pair free = ____ mA** (expect 60 to 70). Press a printed stick or a
    pencil end lightly against one auger flight (never a cloth or fingers: cloth winds in and pulls fingers with it):
    current rises.
-   Do not stall both by hand for long. Stalling both reads **drill pair stall = ____ mA** (expect about 700 at 8 V).
+   Do not stall both for long (two sticks, never hands). Stalling both reads **drill pair stall = ____ mA** (expect about 700 at 8 V).
 3. Hold `drills out` (`#`): they reverse.
 
 ## Step 5. Kick (DRV#1 B)

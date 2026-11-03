@@ -451,3 +451,14 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   within 0.05 of a factory value: scenario `tow_stiff` set `k_n_per_a` 16.967 by calibration (base `tension_cal`
   true) and got "TOW refused: ... still the factory 16.967" (17.0 is in `FACTORY_K_N_PER_A`). When the base reports
   `tension_cal`, trust the flag and drop the value match.
+
+## F31 (fw-base) in D12 index mode (no magnet, SW_INDEX on) `mode NEUTRAL` is refused LAUNCH_BUSY after the D45 low aim
+
+- Batch 5 (fw-base ecc413f, base-1.3.0), scenario `no_magnet_index` (AS5600 absent from power-on, SW_INDEX switched
+  on as `config.h` allows; harness flag `--index-cam`): `BOOT {"angle":"INDEX","phase":"REST"}`, aim, cock, FIRED,
+  RESET, `status` phase REST, then the D45 `aim 6.06` -> AIMED 6.5, then `mode NEUTRAL` -> `LAUNCH_BUSY`, every retry
+  (4x) until the operator aborted. Plant: carriage home, cock phase 1.3 deg (at rest), wiper stopped.
+- `launchExitCheck()` refuses on `maybeLoaded()` or SW_GAP open; in index mode the count after the long backward aim
+  apparently leaves one of them set. The same sequence with the AS5600 (scenario `nominal`) shifts to NEUTRAL fine.
+- Impact: on a no-magnet build the mission cannot leave LAUNCH after the shot (no wrap, no tow, no retrieve).
+  Log: `systest/runs_preview/no_magnet_index/base.log` (local run, reproduce with `systest/run_mission.sh no_magnet_index`).

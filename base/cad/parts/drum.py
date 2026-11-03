@@ -1195,7 +1195,7 @@ def kin(P, S):
     }
     for i in range(3):
         v[f"drum_sw{i}"] = lever_deg(th, g, c, i)
-    if _launch_gear() is not None and S.get("sleeve_deg") is None and md != "LAUNCH":
+    if _launch_gear() is not None and S.get("sleeve_deg") is None and (md != "LAUNCH" or S.get("wiper_deg") is None):
         v.pop("drum_out_launch")              # no sleeve_deg in S: follow launch_sleeve through Joint.gear
     return v
 
@@ -1259,7 +1259,7 @@ def steps(P):
              text="Push the coupler hub onto the wiper output shaft (flats in line). Drop the M8 nut on the thread and "
                   "tighten it with a 13 mm socket (1/4 inch drive). Slide the outer coupler over the hub, line up the "
                   "holes, push a shear pin in (head outside, its flat facing the outboard end) and put a piece of tape "
-                  "round the coupler over the head. Keep the 5 spare pins with the base. A broken pin stub comes out with an "
+                  "round the coupler over the head. Print the pins lying on their flat (D44: shear across the layers). Keep the 5 spare pins with the base. A broken pin stub comes out with an "
                   "M3 screw turned into it.",
              parts=["drum_coupler_hub", "drum_coupler", "drum_shear_pin"]),
         dict(title="Drum: bracket A, axle, rail, drum A",

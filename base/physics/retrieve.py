@@ -40,7 +40,8 @@ APPROACH = dict(
     pitch_deg=(5.0, 10.0),
     mu_cradle=(0.30, 0.40), # dart belly on the PLA cradle
     seat_force=1.0,         # N to close SW_SEATED (printed flex tongue; ASSUMED)
-    eye_gain=1.3,           # exit eye + guides between the reel and the dart (line pulled in through them)
+    eye_gain=1.75,          # reel -> dart path when seating: guide eye 50 + ring 27 + exit eye 50 deg plain printed holes,
+                            # pulleys (review: 1.47 to 2.03); about 1.3 with 693 pulleys at the eyes
 )
 
 

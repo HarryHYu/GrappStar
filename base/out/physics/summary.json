@@ -1,5 +1,5 @@
 {
- "source": "base/spec/params.py v1.2.7",
+ "source": "base/spec/params.py v1.2.8",
  "sections": [
   [
    "Spring (each, A228, SF 1.2 on Shigley static limits)",
@@ -51,7 +51,7 @@
     ],
     [
      "Muzzle speed",
-     "6.95 m/s"
+     "6.94 m/s"
     ],
     [
      "Peak acceleration, stroke time",
@@ -63,11 +63,11 @@
     ],
     [
      "Carriage KE at stop, pad peak",
-     "1.69 J, 266 N (19 mm pad)"
+     "1.69 J, 265 N (19 mm pad)"
     ],
     [
      "Spring KE at stop, coil clash",
-     "0.84 J, 8.3 m/s"
+     "0.83 J, 8.7 m/s"
     ]
    ]
   ],
@@ -80,11 +80,11 @@
     ],
     [
      "Range at 0.5 / 0.75 / 1.0 N brake",
-     "4.29 / 3.86 / 3.48 m (pitch 34)"
+     "4.28 / 3.85 / 3.47 m (pitch 34)"
     ],
     [
      "Same shot, no tether",
-     "5.14 m"
+     "5.13 m"
     ],
     [
      "Flight time, apex (0.75 N)",
@@ -96,7 +96,7 @@
     ],
     [
      "Ballistics table",
-     "6 to 47 deg, best 33.5 deg: 3.86 m"
+     "6 to 47 deg, best 33.5 deg: 3.85 m"
     ]
    ]
   ],
@@ -117,7 +117,7 @@
     ],
     [
      "Reel rpm max",
-     "2161 rpm"
+     "2158 rpm"
     ],
     [
      "Overrun after landing",
@@ -138,19 +138,19 @@
     ],
     [
      "Tow at limit: torque, speed, current",
-     "2.83 N m, 0.149 m/s, 4.62 A"
+     "4.17 N m, 0.128 m/s, 6.09 A"
     ],
     [
      "Line pull at limiter (5 N m) (12.6 V)",
-     "92 N (break 667 N)"
+     "61 N (break 667 N)"
     ],
     [
      "Line pull, motor stall (no limiter, 12.6 V)",
-     "261 N"
+     "174 N"
     ],
     [
      "Tow sensing: line N per wiper amp above free",
-     "17.0 N/A (line = 17.0 x (I - I_free) - 3.0 N)"
+     "11.3 N/A (line = 11.3 x (I - I_free) - 2.0 N)"
     ]
    ]
   ],
@@ -171,7 +171,7 @@
     ],
     [
      "tow: peak torque, current, time",
-     "2.83 N m, 4.6 A, 33 s"
+     "4.17 N m, 6.1 A, 39 s"
     ],
     [
      "Wiper at limiter (5 N m), 12.6 V (with sag)",

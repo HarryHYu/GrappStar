@@ -1,5 +1,5 @@
 {
- "params_source": "base/spec/params.py v1.2.7",
+ "params_source": "base/spec/params.py v1.2.8",
  "steps": [
   {
    "step": "aim (worst case full 6 to 47 deg)",
@@ -15,8 +15,8 @@
   },
   {
    "step": "cock + fire + reset",
-   "time_s": 2.6615210723421416,
-   "wh": 0.028273435062233933,
+   "time_s": 2.6611738210882745,
+   "wh": 0.028258114546125618,
    "note": ""
   },
   {
@@ -45,8 +45,8 @@
   },
   {
    "step": "tow the rover 3.0 m at 30.0 N",
-   "time_s": 18.029010719459862,
-   "wh": 0.18672368467891412,
+   "time_s": 19.52640052014457,
+   "wh": 0.2525318377549995,
    "note": ""
   },
   {
@@ -74,10 +74,10 @@
    "note": ""
   }
  ],
- "total_s": 212.18762259433132,
- "total_wh": 0.6722457752148202,
- "idle_wh": 0.23576402510481256,
- "missions_per_pack": 68.68916355070314,
+ "total_s": 213.68466514376217,
+ "total_wh": 0.739701988385276,
+ "idle_wh": 0.2374274057152913,
+ "missions_per_pack": 62.425139752293184,
  "assumed": {
   "drum_shift_s": 3.0,
   "drum_a": 0.15,

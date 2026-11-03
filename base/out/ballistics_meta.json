@@ -1,50 +1,50 @@
 {
- "params_source": "base/spec/params.py v1.2.7",
- "params_hash": "ae918fc95a213091",
+ "params_source": "base/spec/params.py v1.2.8",
+ "params_hash": "f011b9cab2d9b8c8",
  "dart_mass_kg": 0.279,
  "dart_cda_m2": 0.0026,
  "pivot_height_m": 0.315,
  "release_u_m": 0.149,
  "dart_w_m": 0.085,
  "range_origin": "ground point under the rail pivot (main axis)",
- "stroke_m": 0.2412,
+ "stroke_m": 0.2409,
  "wind_sensitivity": [
   {
    "pitch_deg": 10.0,
-   "range_headwind3": 2.812976570336824,
-   "range_calm": 2.8337060022991656,
-   "range_tailwind3": 2.8463356418685795,
-   "dr_per_mps": 0.005559845255292591
+   "range_headwind3": 2.809472514491551,
+   "range_calm": 2.8296681463865894,
+   "range_tailwind3": 2.8422687535240816,
+   "dr_per_mps": 0.005466039838755081
   },
   {
    "pitch_deg": 20.0,
-   "range_headwind3": 3.446938269018012,
-   "range_calm": 3.4846712795161428,
-   "range_tailwind3": 3.508088828013784,
-   "dr_per_mps": 0.010191759832628655
+   "range_headwind3": 3.441330389223882,
+   "range_calm": 3.478984406532765,
+   "range_tailwind3": 3.5023404699715104,
+   "dr_per_mps": 0.010168346791271432
   },
   {
    "pitch_deg": 36.0,
-   "range_headwind3": 3.7872657960275347,
-   "range_calm": 3.853487514006658,
-   "range_tailwind3": 3.891455826398769,
-   "dr_per_mps": 0.017365005061872402
+   "range_headwind3": 3.780936305437922,
+   "range_calm": 3.84701789186047,
+   "range_tailwind3": 3.884589930399909,
+   "dr_per_mps": 0.017275604160331175
   },
   {
    "pitch_deg": 45.0,
-   "range_headwind3": 3.5743288163078435,
-   "range_calm": 3.6527331817044923,
-   "range_tailwind3": 3.6944187359860727,
-   "dr_per_mps": 0.020014986613038206
+   "range_headwind3": 3.567826724402197,
+   "range_calm": 3.6458412189854714,
+   "range_tailwind3": 3.687607558508917,
+   "dr_per_mps": 0.01996347235112002
   }
  ],
  "v_scale": 1.0,
  "line_slack": {
   "slack_at_release_m": 0.0,
   "slack_peak_m": 0.0,
-  "path_cocked_m": 0.034400000000000014,
+  "path_cocked_m": 0.03470000000000001,
   "path_home_m": 0.2756,
-  "path_min_m": 0.034400000000000014,
+  "path_min_m": 0.03470000000000001,
   "taut": true
  },
  "v_muzzle_note": "v_muzzle is the speed the flight starts from: after the snatch when the line path goes slack in the stroke",
@@ -56,12 +56,12 @@
   },
   {
    "pitch_deg": 8.5,
-   "impact_angle_deg_mid_drag": 28.6,
+   "impact_angle_deg_mid_drag": 28.7,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 11.0,
-   "impact_angle_deg_mid_drag": 30.5,
+   "impact_angle_deg_mid_drag": 30.6,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
@@ -76,12 +76,12 @@
   },
   {
    "pitch_deg": 18.5,
-   "impact_angle_deg_mid_drag": 37.6,
+   "impact_angle_deg_mid_drag": 37.7,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 21.0,
-   "impact_angle_deg_mid_drag": 40.3,
+   "impact_angle_deg_mid_drag": 40.4,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
@@ -101,7 +101,7 @@
   },
   {
    "pitch_deg": 31.0,
-   "impact_angle_deg_mid_drag": 52.1,
+   "impact_angle_deg_mid_drag": 52.2,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
@@ -126,7 +126,7 @@
   },
   {
    "pitch_deg": 43.5,
-   "impact_angle_deg_mid_drag": 66.9,
+   "impact_angle_deg_mid_drag": 67.0,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {

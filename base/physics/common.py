@@ -337,13 +337,13 @@ class Params:
     ))
     # storage reel
     reel: dict = field(default_factory=lambda: dict(
-        core_d=0.050, flange_d=0.066, width=0.022, wall=0.002, flange_t=0.002,   # spec v1.0 storage reel
+        core_d=0.050, flange_d=0.066, width=0.022, lay_width=None, wall=0.002, flange_t=0.002,   # spec v1.0 storage reel
         infill=0.40, line_pitch=1.05e-3, hub_mass=0.010,   # hub/clutch plate that spins with the reel
         line_stored=20.0,
     ))
     # capstan
     capstan: dict = field(default_factory=lambda: dict(
-        d=0.040, ratio=22 / 50, eta=0.85, wraps=7, takeup_n=3.0, tow_limit_n=50.0,   # ratio = wiper turns per capstan turn (spec v1.0: REEL 50 T -> capstan 22 T); FIRM take-up 3 N (D7)
+        d=0.040, ratio=22 / 50, eta=0.85, wraps=7, path_gain=1.5, takeup_n=3.0, tow_limit_n=50.0,   # ratio = wiper turns per capstan turn (spec v1.0: REEL 50 T -> capstan 22 T); FIRM take-up 3 N (D7)
     ))
     source: str = "defaults (base/spec/params.py not found)"
 

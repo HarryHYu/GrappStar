@@ -717,7 +717,7 @@ D2 / D3). One drill wrong only: swap that drill's motor leads. VTX antenna on be
 """
     cmd_md = """# Commands cheat sheet
 
-On the Jetson, in `~/GrappStar/jetson`. Full lists: `firmware/base/PROTOCOL.md`, `firmware/dart/API.md`,
+On the Jetson, in `~/GrappStar/jetson`. One program on the base port at a time. Full lists: `firmware/base/PROTOCOL.md`, `firmware/dart/API.md`,
 `jetson/README.md`. If a command here and those files disagree, those files win.
 
 **Stop:** 1. `estop` (or STOP on the operator page). 2. Pull lead #2's XT60 (motors off). 3. Main battery.
@@ -731,6 +731,7 @@ line with, a towing line.
 |---|---|
 | `python3 -m grappstar serve` | operator page at http://<jetson>:8080 (`--sim` for no hardware) |
 | `python3 -m grappstar base ping` / `status` / `monitor` | talk to the base; `monitor` shows live telemetry (Ctrl+C stops) |
+| `python3 -m grappstar base console` | live telemetry and events; type commands (JSON, `mode to=REEL`, `stop`); `quit` |
 | `python3 -m grappstar base cmd '<json>'` | send one base command (below) |
 | `python3 -m grappstar base mode LAUNCH` / `base aim 30` / `base fire` | shift, aim, fire (fire asks you to type FIRE) |
 | `python3 -m grappstar dart status` | one dart status reading |

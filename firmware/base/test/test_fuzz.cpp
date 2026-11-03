@@ -290,7 +290,9 @@ std::string randomCommand() {
       else t = numJson(100000, 999999);
       return obj("fire", {{"token", t}});
     }
-    case 11: return obj("wrap", {});
+    case 11: if (pr(0.3)) return obj("tidy", {{"ms", pr(0.5) ? std::string() : numJson(-100, 20000)}});
+             if (pr(0.2)) return obj(pr(0.5) ? "retrieve" : "decock", {});
+             return obj("wrap", {});
     case 12: return obj("unwrap", {});
     case 13: case 14:
       return obj("reel", {{"duty", pr(0.3) ? std::string() : numJson(0, 1)}, {"max_n", pr(0.3) ? std::string() : numJson(0, 150)},
@@ -428,10 +430,16 @@ void missionReel() {
   if (B->state == S_FAULT) cmd("{\"id\":" + idn() + ",\"cmd\":\"clear\"}");
   if (!resting()) { cmd("{\"id\":" + idn() + ",\"cmd\":\"stop\"}"); run(250); }
   if (B->wraps < 1) {
-    cmd("{\"id\":" + idn() + ",\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); waitRest(30000);
-    if (pr(0.5)) { cmd("{\"id\":" + idn() + ",\"cmd\":\"reel\",\"duty\":0.2,\"until\":\"slip\"}"); run(ri(500, 6000)); }
+    if (pr(0.7)) { cmd("{\"id\":" + idn() + ",\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); waitRest(30000); }   // D22: or wrap straight from LAUNCH
+    if (pr(0.3)) { cmd("{\"id\":" + idn() + ",\"cmd\":\"reel\",\"duty\":0.2,\"until\":\"slip\"}"); run(ri(500, 6000)); }
     cmd("{\"id\":" + idn() + ",\"cmd\":\"wrap\"}");
-    if (pr(0.2)) { run(ri(100, 20000)); cmd("{\"id\":" + idn() + ",\"cmd\":\"stop\"}"); } else waitRest(60000);
+    if (pr(0.2)) { run(ri(100, 40000)); cmd("{\"id\":" + idn() + ",\"cmd\":\"" + (pr(0.5) ? "stop" : "estop") + "\"}"); } else waitRest(120000);
+  }
+  if (B->drumPos() == DP_WRAPPED || pr(0.1)) {     // D22: tidy in the WRAPPED park, then the fly-in to REEL
+    if (pr(0.6)) { cmd("{\"id\":" + idn() + ",\"cmd\":\"tidy\"" + (pr(0.5) ? ",\"ms\":" + std::to_string(ri(0, 9000)) : std::string()) + "}"); waitRest(20000); }
+    cmd("{\"id\":" + idn() + ",\"cmd\":\"mode\",\"to\":\"REEL\"}");
+    if (pr(0.1)) { run(ri(100, 5000)); cmd("{\"id\":" + idn() + ",\"cmd\":\"estop\"}"); }
+    waitRest(30000);
   }
   if (pr(0.4)) { S.lineOut = rd(2, 15); S.anchorTautAt = S.lineOut - rd(0.1, 1); S.anchorK = rd(20, 100); flushAdvance(); logl("inject: tow anchor"); }
   else { S.lineOut = rd(0.5, 6); S.seatAtLine = 0; S.anchorTautAt = -1; flushAdvance(); logl("inject: dart out, slack line"); }

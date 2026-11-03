@@ -108,7 +108,10 @@ void tick() {
   // capstan): the centering jog moves inside the free dog window by design
   if (S.wDir == -S.c.reelDir && S.wDuty > 0 && S.inReel() && S.win <= 1e-6)
     violation("BACKWARD_IN_REEL", "wiper driven backward with the REEL dogs engaged (true drum " + std::to_string(S.drumDeg) + ")");
-  if (getenv("TOWCHK") && (prevState == S_REEL || prevState == S_HOLD) && !B->takeupOnly && S.anchorTautAt >= 0 && S.tension() > 1.3 * B->maxN + 3)
+  static double towStartN = 0; static int lastSt = 0;
+  if (prevState == S_REEL && lastSt != S_REEL) towStartN = S.tension();   // a line already over the limit is not the tow's doing
+  lastSt = prevState;
+  if (getenv("TOWCHK") && (prevState == S_REEL || prevState == S_HOLD) && !B->takeupOnly && S.anchorTautAt >= 0 && S.tension() > fmax(1.3 * B->maxN, towStartN) + 3)
     { violation("TOW_OVER_LIMIT", "true tension " + std::to_string(S.tension()) + " N, max_n " + std::to_string(B->maxN)); S.anchorTautAt = -1; }
   B->tick(S.t);
   if (S.saveSeq != B->saveDoneSeq && (int32_t)(S.t - S.saveT) >= 20) B->saveDoneSeq = S.saveSeq;   // NVS write done

@@ -243,13 +243,14 @@ def K_wrapped_flat(theta, c=None):
 
 
 def code_lift(theta, bit, c=None):
-    """Nub centre lift fraction 0..1 of code band `bit` at drum angle theta (ramps centred on the arc edges)."""
+    """Nub centre lift fraction 0..1 of code band `bit` at drum angle theta. The lever contact closes at 80 percent of
+    the lift, so the ramps put 0.8 exactly on the arc edges: the closing edge is the code edge."""
     c = c or DEFAULTS
     h = c["code_ramp"]
     best = 0.0
     for a0, a1 in c["code_arcs"]["b%d" % bit]:
         d = min(theta - a0, a1 - theta)
-        best = max(best, min(1.0, max(0.0, 0.5 + d / (2 * h))))
+        best = max(best, min(1.0, max(0.0, 0.8 + d / (2 * h))))     # 80 percent (contact closes) at the edge
     return best
 
 

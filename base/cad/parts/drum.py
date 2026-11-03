@@ -721,11 +721,12 @@ def contact_lever(g, w0, w1, bump):
     boss = prim.box(bx, bx + 4.0, -L + 5.0, -L + 11.0, w0, w1)
     nub = cyl(g["nub_r"], w0, w1, -1.0, -L, seg=32)
     arm = prim.box(-1.0, bx + 0.5, -L - 1.5, -L + 1.5, w0, w1)
-    foot = prim.box(bx, bx + 10.0, 2.0, 10.0, w0, w1)
+    fx = bx + 4.0 + 3.0 + lever_gap(g, bump)          # block front face in the lever frame
+    foot = prim.box(bx, fx, 2.0, 10.0, w0, w1)
     lv = prim.union([beam, boss, nub, arm, foot])
     sc = 0.5 * (w0 + w1)
     lv = lv - prim.place(cyl(1.25, -1, 6, seg=24), tf.T(bx - 0.5, -L + 8.0, sc) @ tf.Ry(90))      # M3 x 6, tapped
-    lv = lv - prim.place(cyl(1.7, -1, 20, seg=24), tf.T(bx + 6.0, 6.0, sc) @ tf.Rx(90))          # foot screw
+    lv = lv - prim.place(cyl(1.7, -1, 30, seg=24), tf.T(bx - 1.0, 6.0, sc) @ tf.Ry(90))          # foot screw along x
     return lv
 
 
@@ -738,7 +739,7 @@ def contact_block(g, cx, cy, r0, bump, bands, y_top, y_bot, s0, s1):
         cuts.append(prim.place(prim.extrude(hex_cs(5.6), 2.6, z=-0.01), tf.T(x0, cy + 8.0, sc) @ tf.Ry(90)))
         cuts.append(prim.place(cyl(1.7, -1, 16, seg=24), tf.T(x0, cy + 8.0, sc) @ tf.Ry(90)))
         rx, ry = lever_root(g, cx, cy, r0)
-        cuts.append(prim.place(cyl(1.25, -1, 14, seg=24), tf.T(rx + lever_bx(g, bump) + 6.0, ry + 9.0, sc) @ tf.Rx(-90)))
+        cuts.append(prim.place(cyl(1.25, -1, 12, seg=24), tf.T(x0 - 0.5, ry + 6.0, sc) @ tf.Ry(90)))   # foot screw, tapped
     return b, cuts
 
 
@@ -813,7 +814,7 @@ def n20_model(g, c, P):
     zc = g["dgear"][1] + 0.5 + bw / 2
     box = prim.box(-6.0, 6.0, -bh / 2, bh / 2, zc - bw / 2, zc + bw / 2)
     mot = prim.box(6.0, ln - 6.0, -5.0, 5.0, zc - bw / 2 + 0.5, zc + bw / 2 - 0.5)
-    sh = cyl(1.5, zc - tip / 2, zc + tip / 2, seg=24)
+    sh = cyl(1.5, zc - tip / 2, zc + tip / 2, seg=24) - prim.box(1.0, 5, -5, 5, zc - tip, zc + tip)   # D flat
     return prim.union([box, mot, sh])
 
 
@@ -1070,8 +1071,7 @@ def allowed(P):
         Allow("drum_n20", "drum_n20_strap", "strap closes the cradle", max_vol=1.0),
         Allow("drum_n20", "drum_bracket_a", "N20 rear shaft end in the ear hole", max_vol=1.0),
         Allow("drum_idler_gear", "drum_idler", "gear on the D flat", max_vol=1.0),
-        Allow("drum_sw_lever_*", "drum_switch_block", "lever foot clamped to the block (M3)"),
-        Allow("drum_index_lever", "drum_index_block", "lever foot clamped to the block (M3)"),
+
         Allow("drum_hand_lever", "drum_drum_b", "lever on the hex boss", max_vol=1.0),
         Allow("drum_axle", "drum_bracket_*", "axle pressed into the brackets"),
         Allow("drum_drum_a", "drum_drum_b", "hex spigot in its socket", max_vol=1.0),

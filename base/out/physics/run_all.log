@@ -102,7 +102,7 @@ cock    2.93   1.85  34.7  4.73  3.53   24.0  58.7     2.7  0.028    4.06    2.5
 reel    0.43   0.43  39.4  1.97  1.97    3.5   8.5   106.6  0.638    0.00   22.51
 tow     3.64   3.64  28.7  5.50  5.50   29.7  72.7    36.6  0.597    1.20    2.67
   %stall = peak / motor stall (no limiter, 11.1 V); %lim = peak / limiter (flag above 80 %)
-tow 3.64 N m at 50 N: 5.50 A, 28.7 wiper rpm; limiter slip line force 71 N (empty reel) / 70 N (full reel) vs dart holding sand 7, loam 45, clay 112 N, line break 667 N
+tow 3.64 N m at 50 N (dart side): 5.50 A, 28.7 wiper rpm; limiter slip line force 71 N (empty reel) / 70 N (full reel) vs dart holding sand 7, loam 45, clay 112 N, line break 667 N
 aim: mass 1.26 kg, screw eff 0.23, self-locking True, crank torque 0.728 N m raising / 0.509 gravity-assisted, worm turns per crank turn 20
 cock: spring ext 265 mm (safe 271), springs 80.2 N, carriage peak 81.2 N
 total energy 1.297 Wh
@@ -318,31 +318,31 @@ params: base/spec/params.py v1.3.2
    20.0 m on reel: ring pull 1.10 N, cup 33 N mm, drum 0.493 N m, N20 46 N mm (23 % of 0.2 N m)
     5.0 m on reel: ring pull 1.27 N, cup 38 N mm, drum 0.571 N m, N20 53 N mm (26 % of 0.2 N m)
     0.5 m on reel: ring pull 1.34 N, cup 40 N mm, drum 0.603 N m, N20 56 N mm (28 % of 0.2 N m)
-3. final approach on the FIRM clutch (5.0 N with the reel full): 2.86 N at the dart
-   pitch 5, mu 0.3: need 2.06 N, margin 1.39
-   pitch 5, mu 0.4: need 2.33 N, margin 1.23
-   pitch 10, mu 0.3: need 2.28 N, margin 1.25
-   pitch 10, mu 0.4: need 2.55 N, margin 1.12
-   FIRM setting for a 1.5 margin: 6.7 N with the reel full
+3. final approach on the FIRM clutch (5.0 N with the reel full): 4.27 N at the dart
+   pitch 5, mu 0.3: need 2.06 N, margin 2.08
+   pitch 5, mu 0.4: need 2.33 N, margin 1.83
+   pitch 10, mu 0.3: need 2.28 N, margin 1.87
+   pitch 10, mu 0.4: need 2.55 N, margin 1.67
+   FIRM setting for a 1.5 margin: 4.5 N with the reel full
 4. take-up in NEUTRAL (bus overdrive 2.5, FIRM 5.0 N): dart drag on grass grass_low 1.37 N, grass_high 2.74 N, snag 5.47 N
-   empty (line out, r core)   grass_low  duty 0.3: 0.059 m/s, motor 1.68 A, wiper 9 rpm
-   empty (line out, r core)   grass_low  duty 0.5: 0.118 m/s, motor 1.68 A, wiper 18 rpm
-   empty (line out, r core)   grass_low  duty 1.0: 0.264 m/s, motor 1.68 A, wiper 40 rpm
-   empty (line out, r core)   grass_high duty 0.3: 0.056 m/s, motor 1.87 A, wiper 8 rpm
-   empty (line out, r core)   grass_high duty 0.5: 0.114 m/s, motor 1.87 A, wiper 17 rpm
-   empty (line out, r core)   grass_high duty 1.0: 0.260 m/s, motor 1.87 A, wiper 40 rpm
-   empty (line out, r core)   snag       duty 0.3: CLUTCH SLIPS (9.6 N at the reel > 6.1 N), line stops
-   empty (line out, r core)   snag       duty 0.5: CLUTCH SLIPS (9.6 N at the reel > 6.1 N), line stops
-   empty (line out, r core)   snag       duty 1.0: CLUTCH SLIPS (9.6 N at the reel > 6.1 N), line stops
-   full (20 m in)             grass_low  duty 0.3: 0.071 m/s, motor 1.72 A, wiper 9 rpm
-   full (20 m in)             grass_low  duty 0.5: 0.144 m/s, motor 1.72 A, wiper 18 rpm
-   full (20 m in)             grass_low  duty 1.0: 0.323 m/s, motor 1.72 A, wiper 40 rpm
-   full (20 m in)             grass_high duty 0.3: 0.066 m/s, motor 1.95 A, wiper 8 rpm
-   full (20 m in)             grass_high duty 0.5: 0.139 m/s, motor 1.95 A, wiper 17 rpm
-   full (20 m in)             grass_high duty 1.0: 0.318 m/s, motor 1.95 A, wiper 39 rpm
-   full (20 m in)             snag       duty 0.3: CLUTCH SLIPS (9.6 N at the reel > 5.0 N), line stops
-   full (20 m in)             snag       duty 0.5: CLUTCH SLIPS (9.6 N at the reel > 5.0 N), line stops
-   full (20 m in)             snag       duty 1.0: CLUTCH SLIPS (9.6 N at the reel > 5.0 N), line stops
+   empty (line out, r core)   grass_low  duty 0.3: 0.060 m/s, motor 1.62 A, wiper 9 rpm
+   empty (line out, r core)   grass_low  duty 0.5: 0.119 m/s, motor 1.62 A, wiper 18 rpm
+   empty (line out, r core)   grass_low  duty 1.0: 0.265 m/s, motor 1.62 A, wiper 40 rpm
+   empty (line out, r core)   grass_high duty 0.3: 0.058 m/s, motor 1.74 A, wiper 9 rpm
+   empty (line out, r core)   grass_high duty 0.5: 0.117 m/s, motor 1.74 A, wiper 18 rpm
+   empty (line out, r core)   grass_high duty 1.0: 0.263 m/s, motor 1.74 A, wiper 40 rpm
+   empty (line out, r core)   snag       duty 0.3: CLUTCH SLIPS (6.4 N at the reel > 6.1 N), line stops
+   empty (line out, r core)   snag       duty 0.5: CLUTCH SLIPS (6.4 N at the reel > 6.1 N), line stops
+   empty (line out, r core)   snag       duty 1.0: CLUTCH SLIPS (6.4 N at the reel > 6.1 N), line stops
+   full (20 m in)             grass_low  duty 0.3: 0.073 m/s, motor 1.65 A, wiper 9 rpm
+   full (20 m in)             grass_low  duty 0.5: 0.145 m/s, motor 1.65 A, wiper 18 rpm
+   full (20 m in)             grass_low  duty 1.0: 0.325 m/s, motor 1.65 A, wiper 40 rpm
+   full (20 m in)             grass_high duty 0.3: 0.070 m/s, motor 1.80 A, wiper 9 rpm
+   full (20 m in)             grass_high duty 0.5: 0.142 m/s, motor 1.80 A, wiper 18 rpm
+   full (20 m in)             grass_high duty 1.0: 0.321 m/s, motor 1.80 A, wiper 40 rpm
+   full (20 m in)             snag       duty 0.3: CLUTCH SLIPS (6.4 N at the reel > 5.0 N), line stops
+   full (20 m in)             snag       duty 0.5: CLUTCH SLIPS (6.4 N at the reel > 5.0 N), line stops
+   full (20 m in)             snag       duty 1.0: CLUTCH SLIPS (6.4 N at the reel > 5.0 N), line stops
 == mission.py
 params: base/spec/params.py v1.3.2
   aim (worst case full 6 to 47 deg)                             6.6 s    32.9 mWh  
@@ -427,9 +427,9 @@ wrote SUMMARY.md and /home/user/GrappStar/base/physics/../out/physics/physics_su
 == plots.py
 wrote range_vs_pitch.png, trajectories.png in /home/user/GrappStar/base/out/physics
 == tests
-........................................................................ [ 87%]
-..........                                                               [100%]
-82 passed in 65.21s (0:01:05)
+........................................................................ [ 86%]
+...........                                                              [100%]
+83 passed in 66.17s (0:01:06)
 
 PASS: all models ran and all tests passed
 EXIT 0

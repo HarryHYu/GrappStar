@@ -2,7 +2,7 @@
 
 Units: mm, deg, N, N m, s, kg unless a name says otherwise.
 Owner: the coordinator. Workers read it and never edit it; request changes in your REPORT.md or NOTES.md.
-STATUS: v1.2 (3 Nov 2026, 12:30 Sydney). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
+STATUS: v1.2.5 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
 The architecture blocks below hold the INTERFACE numbers (where two owners must agree) and the module placements.
 Each owner keeps its internal geometry in its own module and maps these numbers explicitly (read with defaults).
 Code against the names; never hard-code a shared number anywhere else.
@@ -10,7 +10,7 @@ Code against the names; never hard-code a shared number anywhere else.
 
 import math
 
-VERSION = "1.2.3"
+VERSION = "1.2.5"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
@@ -152,7 +152,10 @@ DRUM = dict(
     wrap_turns=7,
     wrap_train=dict(segment_pinion_turns=4, idler_out=dict(module=1.5, teeth=42, face=8.0), cup_gear=dict(module=1.5, teeth=24),
                     centre_idler_cup=49.6, plane_y=(68.5, 76.5), idler_axis_xz=(16.24, -104.88)),
-    n20=dict(axis_xz=(99.9, -78.5), note="motor pointing up; cad-drum sizes the ratio with at least 2x margin (FIRM 5 N, D24)"),
+    n20=dict(axis_xz=(99.9, -78.5), note="motor pointing up; cad-drum sizes the ratio with at least 2x margin (FIRM 5 N, D24)",
+             pinion=dict(module=0.8, teeth=10), drum_gear=dict(module=0.8, teeth=120), ratio=12.0,
+             stall_nm_est=0.22, stall_nm_design=0.20, drum_deg_per_s=8.1, supply_v=9.0,
+             peak_drum_load_nm=0.93, note_ratio="cad-drum as built (drum_NOTES sections 3 and 9); physics and firmware read these"),
     magnet_face_y=201.5,        # D23: magnet cap y 195..201.5 on the spigot end (spigot to y 198.5)
     index_cam_bumps=6,          # D12
     sw_index_mount="2 x M3 in the wiper adapter plate front face at (x 43.1, z +6) and (x 43.1, z -36)",
@@ -164,6 +167,9 @@ DRUM = dict(
 
 LAUNCH = dict(
     owner="cad-launch",
+    axis_z=0.0,          # world z of the main axis = LAYOUT axes main origin z (the world origin is ON the main axis)
+    sleeve_y0=111.0,     # world y of the launch sleeve flange face (meets the dog ring 100.5..111, D23)
+    rail_y=140.0,        # world y of the rail / dart centre plane (= LAYOUT rail_plane_y)
     drive_gear=dict(module=2.5, teeth=26, face=16.0, y=(142.5, 158.5), note="on sprag #1 (inside), coaxial on the launch sleeve"),
     big_gear=dict(module=2.5, teeth=40, present=27, centre_from_pivot=82.6, layers=dict(sector=(134.0, 146.0), full=(146.0, 154.0)),
                   note="two layers: a sector layer meshes the rack (last tooth relieved, the one before 30 percent taller), a full "

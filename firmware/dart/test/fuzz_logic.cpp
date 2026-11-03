@@ -536,15 +536,18 @@ static void checkLogJson() {
     size_t np = out.find("\"n\":"), sp = out.find("\"samples\":[");
     if (np == std::string::npos || sp == std::string::npos) why = "missing n or samples";
     else {
-      long nn = strtol(out.c_str() + np + 4, nullptr, 10), cnt = 0; uint32_t lastT = 0; bool order = true, width = true;
+      long nn = strtol(out.c_str() + np + 4, nullptr, 10), cnt = 0; uint32_t lastT = 0; bool order = true, width = true, hasLaunch = false;
       for (size_t k = sp + 11; k < out.size(); k++) if (out[k] == '[') {
         cnt++; char* q = &out[k + 1]; uint32_t t = (uint32_t)strtoul(q, &q, 10); int f = 1;
         while (*q == ',') { strtod(q + 1, &q); f++; }
         if (f != 8) width = false;
         if (cnt > 1 && (int32_t)(t - lastT) <= 0) order = false;   // millis() order, wrap-aware
+        if (K.flight.launched && abs((int32_t)(t - K.flight.tLaunch)) <= 60) hasLaunch = true;
         lastT = t;
       }
-      if (cnt != nn) why = "n does not match the sample count"; else if (!width) why = "a sample does not have 8 fields"; else if (!order) why = "samples not in time order";
+      bool frozenFlight = K.log.frozen && K.flight.launched && cnt > 0;
+      if (cnt != nn) why = "n does not match the sample count";
+      else if (frozenFlight && !hasLaunch) why = "frozen flight log no longer holds the launch"; else if (!width) why = "a sample does not have 8 fields"; else if (!order) why = "samples not in time order";
     }
   }
   if (why) violate(8, std::string("flightlog: ") + why, "LogJson (chunk cap %d, %zu bytes): %s: %.200s", cap, out.size(), why, out.c_str());
@@ -834,9 +837,9 @@ static void randomPlant(bool nominal) {
   double c = nominal ? 0.10 : 0.15; P.cDrill = (float)R.r(-c, c); P.cFoot = (float)R.r(-c, c);
   for (int m = 0; m < NMOT; m++) P.rate[m] = (float)R.r(0.85, 1.15);
   P.kickContact = R.r(2000, 3500); P.kickLand = P.kickContact + R.r(1000, 1600);
-  if (nominal) {   // documented geometry (API.md NO_GROUND): on flat ground the housing lands before 90 % of the swing in air
+  if (nominal) {   // documented geometry (API.md NO_GROUND, BENCH_TEST step 5): on flat ground the housing lands before 80 % of the swing in air
     double air = K.tu.kickSwingMs * P.rate[KICK] * 8.0 / 7.6;   // the air swing in plant units
-    if (P.kickLand > 0.9 * air) { P.kickLand = 0.9 * air; if (P.kickContact > P.kickLand - 800) P.kickContact = P.kickLand - 800; }
+    if (P.kickLand > 0.8 * air) { P.kickLand = 0.8 * air; if (P.kickContact > P.kickLand - 800) P.kickContact = P.kickLand - 800; }
   }
   P.deployEnd = R.r(1100, 1700); P.drillTouch = P.deployEnd * R.r(0.4, 0.8);
   P.drillFull = R.r(1500, 6000); P.footFull = R.r(1200, 5000);

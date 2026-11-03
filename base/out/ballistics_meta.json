@@ -1,5 +1,5 @@
 {
- "params_source": "base/spec/params.py v1.2",
+ "params_source": "base/spec/params.py v1.2.3",
  "dart_mass_kg": 0.279,
  "dart_cda_m2": 0.0026,
  "pivot_height_m": 0.315,
@@ -10,31 +10,124 @@
  "wind_sensitivity": [
   {
    "pitch_deg": 10.0,
-   "range_headwind3": 2.992888172811527,
-   "range_calm": 3.014330598645475,
-   "range_tailwind3": 3.027596061967766,
-   "dr_per_mps": 0.0057846481927064835
+   "range_headwind3": 2.735837392730745,
+   "range_calm": 2.754727299803267,
+   "range_tailwind3": 2.766012380154554,
+   "dr_per_mps": 0.0050291645706348476
   },
   {
    "pitch_deg": 20.0,
-   "range_headwind3": 3.7787112149325126,
-   "range_calm": 3.8203527205183687,
-   "range_tailwind3": 3.8474175893456404,
-   "dr_per_mps": 0.011451062402187961
+   "range_headwind3": 3.3836576480394314,
+   "range_calm": 3.4187806995926056,
+   "range_tailwind3": 3.4407425799564533,
+   "dr_per_mps": 0.00951415531950365
   },
   {
    "pitch_deg": 36.0,
-   "range_headwind3": 4.305982344587439,
-   "range_calm": 4.383755746116508,
-   "range_tailwind3": 4.430215443770189,
-   "dr_per_mps": 0.02070551653045838
+   "range_headwind3": 3.772884642477529,
+   "range_calm": 3.8372886220004316,
+   "range_tailwind3": 3.874258484312519,
+   "dr_per_mps": 0.01689564030583172
   },
   {
    "pitch_deg": 45.0,
-   "range_headwind3": 4.131765597322156,
-   "range_calm": 4.225417763115615,
-   "range_tailwind3": 4.277925953451695,
-   "dr_per_mps": 0.02436005935492321
+   "range_headwind3": 3.588714204983407,
+   "range_calm": 3.6657750050106674,
+   "range_tailwind3": 3.7072397223604434,
+   "dr_per_mps": 0.01975425289617272
+  }
+ ],
+ "v_scale": 1.0,
+ "impact": [
+  {
+   "pitch_deg": 6.0,
+   "impact_angle_deg_mid_drag": 26.9,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 8.5,
+   "impact_angle_deg_mid_drag": 28.4,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 11.0,
+   "impact_angle_deg_mid_drag": 30.1,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 13.5,
+   "impact_angle_deg_mid_drag": 32.2,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 16.0,
+   "impact_angle_deg_mid_drag": 34.5,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 18.5,
+   "impact_angle_deg_mid_drag": 36.9,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 21.0,
+   "impact_angle_deg_mid_drag": 39.6,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 23.5,
+   "impact_angle_deg_mid_drag": 42.3,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 26.0,
+   "impact_angle_deg_mid_drag": 45.2,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 28.5,
+   "impact_angle_deg_mid_drag": 48.2,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 31.0,
+   "impact_angle_deg_mid_drag": 51.2,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 33.5,
+   "impact_angle_deg_mid_drag": 54.2,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 36.0,
+   "impact_angle_deg_mid_drag": 57.2,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 38.5,
+   "impact_angle_deg_mid_drag": 60.2,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 41.0,
+   "impact_angle_deg_mid_drag": 63.1,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 43.5,
+   "impact_angle_deg_mid_drag": 66.0,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 46.0,
+   "impact_angle_deg_mid_drag": 68.8,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
+  },
+  {
+   "pitch_deg": 47.0,
+   "impact_angle_deg_mid_drag": 69.9,
+   "note": "target dh higher -> about dh / tan(angle) shorter"
   }
  ],
  "notes": "- drag_n: slip-clutch setting, expressed as the line pull at the reel exit with the reel FULL (20 m on). The coupled\n  reel model (inertia, clutch torque, guide eye, line weight and drag) is used, so the real pull on the dart differs.\n- range_m: level ground, from the ground point under the rail pivot (main axis) to the dart's first ground contact\n  (the pivot is fixed on the rover; the muzzle moves with pitch). Pivot height = deck height (ASSUMED 0.15 m) + 0.165 m.\n- v_muzzle: from launcher.py at that pitch (gravity and friction along the rail change it slightly).\n- t_flight_s: muzzle to ground contact. apex_m: highest point of the dart above the ground.",

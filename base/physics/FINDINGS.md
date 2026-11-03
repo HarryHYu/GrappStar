@@ -5,25 +5,26 @@ launcher/reel geometry below is my placeholder: stroke along the rail, 60 g carr
 core 40 / flange 64 / width 20 mm, capstan 40 mm). Dart mass 0.279 kg (spec DART.mass_kg; the brief said 0.292 kg:
 coordinator please confirm which). Models: base/physics/*.py, every number reproducible with the CLIs.
 
-## Current numbers (spec v1.2, latest run; details in SUMMARY.md, base/out/physics/*.json)
+## Current numbers (spec v1.2.3; model includes the review fixes: eye gain 1.35, carriage shoe couple friction)
 
-- Launch: 2 x Century C-243, 23.8 mm preload, 265 mm full (40.1 N each, catalogue 38.4 N), 12.1 J, carriage 60 g:
-  7.41 m/s, 21 g, 63 % efficient. 4 springs (provision): 10.2 m/s.
+- Launch: 2 x Century C-243, 23.8 mm preload, 265 mm full (40.1 N each), 12.1 J, carriage 60 g (target; the CAD
+  carriage may be 100 to 130 g, see F12): 7.04 m/s, 19 g, 57 % efficient. 4 springs (provision): 9.8 m/s.
 - Range from the rail pivot's ground point (pivot 0.315 m up: deck 0.15 ASSUMED + 0.165), LIGHT 0.5 / 0.75 / 1.0 N:
-  4.8 / 4.4 / 4.0 m at 36 deg (best). Table 6 to 47 deg in base/out/ballistics.json (C3). 4 springs: 8.5 / 7.7 / 7.0 m.
-- Stop: 2.5 J (carriage 1.65 + springs 0.9): the 19 mm flexure peaks at about 270 N if linear (D26 limit 300 N: OK).
-- Storage reel 50 core / 72 flanges / 22: 46 g, 31.4 kg mm2 full; spin-up adds 4.9 N of line pull in the stroke.
-  Overrun after landing at LIGHT 0.5 N: 0.65 m in 0.28 s (heavier reel; 0.30 m with the 66 mm flanges). Still cleared
-  by the take-up at the start of reel-in; lighter (spoked) flanges would halve it.
-- Capstan 50:22, 7 wraps (4 needed with margin): tow 50 N = 3.2 N m, 5.1 A, 0.14 m/s; 20 m reel-in 110 s. Limiter
-  slipping pulls 84 N (7 A). Tow sensing: line = 17.0 x (I - I_free) - 10.4 N (offset = FIRM take-up drag), so
-  the 50 N tow trip is at measured free current + 3.5 A (it was + 1.3 A with FIRM 3 N and the old ratio: F6 is history).
+  4.3 / 3.8 / 3.4 m at 36 deg (best). Table 6 to 47 deg in base/out/ballistics.json (C3), with impact angles and
+  wind sensitivity in the meta. 4 springs: 7.7 / 6.9 / 6.2 m. Test shots then `calib.py range` refine the table.
+- Not yet in the numbers (design fixes pending, F12): line slack at the shot (about -0.5 m if not rerouted) and a
+  heavier carriage (about -0.4 m at 100 g).
+- Stop: 2.3 J (carriage 1.5 + springs 0.8): the 19 mm flexure peaks at about 245 N if linear (D26 300 N: OK at 60 g).
+- Storage reel 50 / 72 / 22: 46 g, 31.4 kg mm2 full; overrun after landing at LIGHT 0.5 N 0.55 m in 0.26 s.
+- Capstan 50:22, 7 wraps: tow 50 N = 3.2 N m, 5.05 A, 0.14 m/s; 20 m reel-in 110 s. Limiter slipping: 84 N, 7 A.
+  Tow sensing: line = 17.0 x (I - I_free) - 10.4 N. The 50 N tow trip is at free + 3.5 A = about 5.0 A, the same
+  as the 5 A hard trip: in REEL/tow use a hard trip of 6 A (about 67 N) so the tow trip acts first, and keep it under
+  the 7 A limiter-slip current.
 - Cock 2.9 N m, 4.7 A, 2.7 s per shot. Aim 0.32 N m, 6.6 s for 6 to 47 deg.
-- Final approach on FIRM 5 N (reel full): 3.85 N at the dart vs 2.1 to 2.6 N needed: margin 1.5 to 1.9. OK.
-- Wrap on LIGHT: ring pull 1.1 to 1.3 N, drum 0.49 to 0.60 N m, drum N20 61 to 74 N mm (30 to 37 % of an ASSUMED
-  0.2 N m usable N20 torque). Taut line at the shot (take-up bus) vs 245 mm slack: slack would be 6.8 % slower.
-- Recoil rock (ASSUMED 4 kg rover): 4.8 deg at 6 deg pitch braked (0.9 rolling), 0.5 deg at 36. No tip.
-- Mission: about 3.2 min, 0.71 Wh from the base pack (about 65 missions per pack).
+- Final approach on FIRM 5 N (reel full): 3.85 N at the dart vs 2.1 to 2.6 N needed: margin 1.5 to 1.9.
+- Wrap on LIGHT: drum 0.49 to 0.60 N m, drum N20 61 to 74 N mm (30 to 37 % of an ASSUMED 0.2 N m).
+- Recoil rock (ASSUMED 4 kg rover): about 5 deg at 6 deg pitch braked, 0.5 deg at 36. No tip.
+- Mission: about 3.2 min, 0.7 Wh from the base pack.
 - SPRING CATALOGUE (web check): Bunnings 0487961 is Century C-243, 5/8 in OD x 6-1/2 in x 0.054 in wire (1.37 mm,
   not 1.4). Century lists max safe load 8.64 lb (38.4 N) and max deflection 11.9 in (302 mm), rated for about 100,000
   cycles. The earlier 280 mm full cock was 42 N with the 0.125 N/mm / 7 N estimate: inside the deflection limit but 9 %

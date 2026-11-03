@@ -454,6 +454,7 @@ class _States:
         self.idx = {}
         self.JW = np.empty((max(256, 2 * len(states)), len(jcol) + 1, 4, 4))
         self.JW[:, 0] = np.eye(4)
+        self.V = np.zeros((len(states), len(jcol)))          # joint values at the given states
         for k, S in enumerate(states):
             self._fill(k, S)
 
@@ -467,6 +468,8 @@ class _States:
         jw = asm.joint_world(S, vals)
         for jn, k in self.jcol.items():
             self.JW[row, k] = jw[jn]
+            if row < len(self.V):
+                self.V[row, k - 1] = vals[jn]
 
     def sub(self, k, fr):
         """Row of the state at fraction fr (Fraction in (0, 1)) between states k and k + 1."""
@@ -524,8 +527,11 @@ def _run(asm, states, rep, names, NP, NB, bed, pool, log, lap, T, max_mm, cap):
 
     LO = np.empty((NP, NB, 3))
     HI = np.empty((NP, NB, 3))
+    CEN = np.empty((NP, NB, 3))
     for p in range(NP):
         LO[p], HI[p] = boxes(p, base)
+        Wp = W(p, base)
+        CEN[p] = np.einsum("kij,j->ki", Wp[:, :3, :3], cen[p]) + Wp[:, :3, 3]
     # 3 collisions: candidates by AABB, grouped by the rounded relative pose, chunk pairs culled by boxes
     allow_sets = _matcher(asm.allowed, names)
     allow_of = {}
@@ -535,7 +541,36 @@ def _run(asm, states, rep, names, NP, NB, bed, pool, log, lap, T, max_mm, cap):
             # the most restrictive matching Allow decides (None = unlimited), independent of module order
             allow_of[(a, b)] = min(al, key=lambda x: math.inf if x.max_vol is None else x.max_vol) if al else None
 
-    def pair_scan(a, b, pad):
+    def cr(p):
+        """Bounding sphere (centre, radius) of part p (or of a cropped stand-in) in its local frame."""
+        while len(cen) <= p:
+            bx = _CTX["box"][len(cen)]
+            ok = np.all(np.isfinite(bx))
+            cen.append((bx[0] + bx[1]) / 2 if ok else np.zeros(3))
+            rho.append(float(np.linalg.norm(bx[1] - bx[0]) / 2) if ok else 0.0)
+        return cen[p], rho[p]
+
+    # joints that move each part (its joint and that joint's parents) and their step limits
+    lim = np.array([MAX_STEP_DEG if asm.joints[j].kind == "rev" else MAX_STEP_MM if asm.joints[j].kind == "slide"
+                    else np.inf for j in jnames])
+
+    def chain(p):
+        out, j, seen = [], asm.parts[names[p]].joint, set()
+        while j in asm.joints and j not in seen:
+            seen.add(j)
+            out.append(jcol[j] - 1)
+            j = asm.joints[j].parent
+        return out
+
+    def joint_steps(a, b):
+        """Per timeline interval: splits needed so no joint moving a or b steps more than 1 deg / 0.5 mm."""
+        js = sorted(set(chain(a) + chain(b)))
+        if not js or T < 2:
+            return np.ones(max(0, T - 1))
+        d = np.abs(np.diff(SS.V[:T, js], axis=0)) / lim[js]
+        return np.maximum(1.0, d.max(axis=1))
+
+    def pair_scan(a, b, pad, use=None):
         """Given states where the boxes of a and b are within pad, and the timeline intervals in which their relative
         pose moves some point of a or b by more than max_mm while the boxes are within pad + that motion."""
         d0 = _boxdist(LO[a], HI[a], LO[b], HI[b])
@@ -543,26 +578,35 @@ def _run(asm, states, rep, names, NP, NB, bed, pool, log, lap, T, max_mm, cap):
         if T < 2:
             return rows, None, None
         rel = _rel(W(a, base[:T]), W(b, base[:T]))
-        dk = np.minimum(_move(rel[:-1], rel[1:], cen[b], rho[b]),
-                        _move(_inv(rel[:-1]), _inv(rel[1:]), cen[a], rho[a]))
-        need = np.nonzero((dk > max_mm) & (np.minimum(d0[:T - 1], d0[1:T]) <= pad + dk))[0]
+        (ca, ra), (cb, rb) = cr(use[0] if use else a), cr(use[1] if use else b)     # a crop moves less
+        dk = np.minimum(_move(rel[:-1], rel[1:], cb, rb), _move(_inv(rel[:-1]), _inv(rel[1:]), ca, ra))
+        # never finer than the old per-joint rule (1 deg / 0.5 mm for the joints that move a or b): sub-states are
+        # needed where a point moves more than max_mm AND a joint of the pair steps more than its limit
+        dk = np.minimum(dk, joint_steps(a, b) * max_mm)
+        # bounding spheres: a part turning about its centre stays in its sphere, so the gap between the spheres can
+        # close only by the motion of the centres
+        cmove = np.minimum(_move(rel[:-1], rel[1:], cb, 0.0), _move(_inv(rel[:-1]), _inv(rel[1:]), ca, 0.0))
+        gap = np.linalg.norm(CEN[a, :T] - CEN[b, :T], axis=1) - rho[a] - rho[b]
+        reach = np.maximum(np.minimum(d0[:T - 1], d0[1:T]), np.minimum(gap[:-1], gap[1:]))
+        need = np.nonzero((dk > max_mm) & (reach <= pad + cmove))[0]
         return rows, need, dk
 
-    def substates(a, b, pad, need, dk):
-        """Rows of the sub-states pair (a, b) needs (each step moves no point of a or b relative to the other by more
-        than max_mm, checked once more after the first split) where its boxes are within pad."""
+    # the shared grid: interval k splits into nglob[k] steps by the old global rule (no joint more than 1 deg /
+    # 0.5 mm); a pair uses every stride-th grid point, so pairs share sub-states and never exceed the global count
+    nglob = np.minimum(cap, np.ceil(np.abs(np.diff(SS.V[:T], axis=0)) / lim).max(axis=1, initial=1.0)).astype(int) \
+        if T >= 2 and len(lim) else np.ones(max(0, T - 1), int)
+
+    def substates(a, b, pad, need, dk, use=None):
+        """Rows of the sub-states pair (a, b) needs (no point of a or b moves more than max_mm relative to the other
+        per step, on the shared grid) where its boxes are within pad."""
         out = []
         for k in need:
-            n = min(cap, int(math.ceil(dk[k] / max_mm)))
-            frs = [Fraction(0)] + [Fraction(i, n) for i in range(1, n)] + [Fraction(1)]
-            seq = [k] + [SS.sub(k, f) for f in frs[1:-1]] + [k + 1]
-            r = _rel(W(a, seq), W(b, seq))
-            dq = np.minimum(_move(r[:-1], r[1:], cen[b], rho[b]), _move(_inv(r[:-1]), _inv(r[1:]), cen[a], rho[a]))
-            out += seq[1:-1]
-            for q in np.nonzero(dq > max_mm * (1 + 1e-9))[0]:
-                m = min(cap, int(math.ceil(dq[q] / max_mm)))
-                f0, f1 = frs[q], frs[q + 1]
-                out += [SS.sub(k, f0 + (f1 - f0) * Fraction(i, m)) for i in range(1, m)]
+            ng = max(1, int(nglob[k]))
+            n = min(ng, int(math.ceil(dk[k] / max_mm)))
+            if n <= 1:
+                continue
+            stride = max(1, ng // n)
+            out += [SS.sub(k, Fraction(i, ng)) for i in range(stride, ng, stride)]
         if not out:
             return np.zeros(0, int)
         out = np.unique(np.array(out, int))
@@ -702,8 +746,10 @@ def _run(asm, states, rep, names, NP, NB, bed, pool, log, lap, T, max_mm, cap):
             use = envelope_stage(a, b) if (len(rows) > 1 or (need is not None and len(need))) else (a, b)
             if use == "clear":
                 continue
+            if use != (a, b) and need is not None and len(need):
+                rows, need, dk = pair_scan(a, b, BOX_PAD, use)
             if need is not None and len(need):
-                rows = np.concatenate([rows, substates(a, b, BOX_PAD, need, dk)])
+                rows = np.concatenate([rows, substates(a, b, BOX_PAD, need, dk, use)])
             if len(rows):
                 rows = timeorder(rows)
                 n_cand += len(rows)

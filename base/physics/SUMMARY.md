@@ -6,12 +6,12 @@ Params: base/spec/params.py v0.1-stub (still defaults for LAUNCH, AIM, REEL, LAY
 
 | Item | Value |
 |---|---|
-| Rate used / by formula | 0.125 / 0.128 N/mm |
+| Rate used / by formula | 0.125 / 0.131 N/mm |
 | Initial tension used | 7.0 N |
-| Body coils, mass | 98, 55 g |
+| Body coils, mass | 96, 54 g |
 | Safe force (governed by) | 43.6 N (hook torsion) |
 | Safe extension (wire) / spec cap | 293 / 250 mm |
-| Surge (fixed-fixed) | 24 Hz |
+| Surge (fixed-fixed) | 25 Hz |
 
 ## Launch (chain spring model)
 
@@ -21,21 +21,21 @@ Params: base/spec/params.py v0.1-stub (still defaults for LAUNCH, AIM, REEL, LAY
 | Spring extension full / rest | 250 / 10 mm |
 | Stored energy (2 springs) | 11.2 J |
 | Carriage force at full draw | 76 N |
-| Muzzle speed | 7.13 m/s |
+| Muzzle speed | 7.12 m/s |
 | Peak acceleration, stroke time | 20 g, 56 ms |
 | Efficiency (dart KE / stored) | 63 % |
-| Carriage KE at stop, pad peak | 1.52 J, 762 N (4 mm pad) |
-| Spring KE at stop, coil clash | 0.99 J, 10.5 m/s |
+| Carriage KE at stop, pad peak | 1.52 J, 1213 N (4 mm pad) |
+| Spring KE at stop, coil clash | 0.90 J, 10.3 m/s |
 
 ## Flight (bead-chain tether, level ground)
 
 | Item | Value |
 |---|---|
-| Range at 0.5 / 0.75 / 1.0 N brake | 4.20 / 3.77 / 3.40 m (pitch 35) |
-| Same shot, no tether | 5.22 m |
+| Range at 0.5 / 0.75 / 1.0 N brake | 4.19 / 3.77 / 3.40 m (pitch 35) |
+| Same shot, no tether | 5.21 m |
 | Flight time, apex (0.75 N) | 0.81 s, 1.07 m |
-| Impact speed, angle (0.75 N) | 5.8 m/s, 54 deg down |
-| Ballistics table | 15 to 55 deg, best 35.0 deg: 3.96 m |
+| Impact speed, angle (0.75 N) | 5.7 m/s, 54 deg down |
+| Ballistics table | 15 to 55 deg, best 37.5 deg: 3.94 m |
 
 ## Storage reel payout (0.75 N at full reel)
 
@@ -44,16 +44,16 @@ Params: base/spec/params.py v0.1-stub (still defaults for LAUNCH, AIM, REEL, LAY
 | Reel empty mass, inertia full | 35 g, 19.4 kg mm2 |
 | Line radius full / core | 27.4 / 20.0 mm (brake +37 % at core) |
 | Line pull in the stroke (spin-up) | 4.00 N |
-| Reel rpm max | 2483 rpm |
+| Reel rpm max | 2482 rpm |
 | Overrun after landing | 0.23 m in 0.12 s |
 
 ## Capstan and tow
 
 | Item | Value |
 |---|---|
-| Wraps for tow limit (mu 0.15) | 3.4 raw, 6 design |
+| Wraps for tow limit (mu 0.15) | 3.7 raw, 6 design |
 | Take-up needed (design wraps) | 0.45 N |
-| Tow at limit: torque, speed, current | 1.19 N m, 0.077 m/s, 2.80 A |
+| Tow at limit: torque, speed, current | 1.20 N m, 0.077 m/s, 2.82 A |
 | Line pull at wiper stall (12.6 V) | 597 N (break 667 N) |
 
 ## Drivetrain (wiper at 11.1 V with sag)
@@ -62,8 +62,8 @@ Params: base/spec/params.py v0.1-stub (still defaults for LAUNCH, AIM, REEL, LAY
 |---|---|
 | aim: peak torque, current, time | 0.19 N m, 1.7 A, 5 s |
 | cock: peak torque, current, time | 1.29 N m, 2.9 A, 4 s |
-| reel: peak torque, current, time | 0.08 N m, 1.6 A, 235 s |
-| tow: peak torque, current, time | 1.19 N m, 2.8 A, 65 s |
+| reel: peak torque, current, time | 0.09 N m, 1.6 A, 236 s |
+| tow: peak torque, current, time | 1.20 N m, 2.8 A, 65 s |
 | Wiper stall 12.6 V (with sag) | 14.1 N m, 17.0 A |
 
 ## Harry must measure

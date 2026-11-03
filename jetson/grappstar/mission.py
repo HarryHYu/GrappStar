@@ -1230,7 +1230,7 @@ class Mission:
         line = self.tel().get("line_m")
         if line is None:
             line = self.shot.get("line_est_m") or self.cfg.approach_m
-        max_s = round(20.0 + float(line) / 0.08, 1)
+        max_s = min(600.0, max(5.0, round(20.0 + float(line) / 0.08, 1)))   # firmware range 5..600
         m = self.base.event_mark()
         self.base.cmd("retrieve", duty=self.cfg.takeup_duty, max_n=self.cfg.retrieve_limit_n, max_s=max_s)
         self._wait_seated(m, max_s + 10.0)

@@ -68,7 +68,7 @@ def test_solids_valid_and_printable(parts):
             lo, hi = prim.bbox(prim.place(p.solid, p.print_tf))
             assert abs(lo[2]) < 1e-6, n
             assert hi[0] - lo[0] <= 256 and hi[1] - lo[1] <= 256 and hi[2] - lo[2] <= 260, n
-        assert "—" not in p.notes and "—" not in p.bought_ref
+        assert "\u2014" not in p.notes and "\u2014" not in p.bought_ref
 
 
 def test_as5600_gap_and_alignment():

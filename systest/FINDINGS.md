@@ -389,7 +389,7 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
 
 - Preview fw-base 6381edd, scenario `ref_nominal` (10.1 with step 7b): after the landing, `{"cmd":"aim","deg":6}`
   -> `{"ok":false,"err":"OUT_OF_RANGE"}` every time. `params_gen.h:280 P_AIM_PITCH_MIN 6.0f`, but `get pitch_range`
-  is `max(pitchMin, table min)` and the table minimum sits just above 6, so the documented minimum is outside the
-  accepted range. The tow then runs with the rail high (D45 says that loads the carriage stop against the spring).
+  is `max(pitchMin, table min)`; the aim table starts at 6.01 deg (`params_gen.h:284`), so `cmdAim` (`base_logic.h:812-813`,
+  `deg >= lo - 1e-3`) refuses 6.00 by 0.009 deg. The tow then runs with the rail high (D45 says that loads the carriage stop against the spring).
 - Fix: accept a target within `aim_tol` of the range ends (clamp to the end), or make 10.1 / the Jetson aim at
   `get pitch_range` min. The reference driver now falls back to `pitch_range` min and logs it.

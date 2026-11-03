@@ -34,8 +34,8 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
    `decock` with `force` if SW_HOME lies). Safer than trusting a contact.
 4. A drum code change with the drum still near the wrap window makes the wrap count doubtful: only `unwrap` (with
    the take-up) until NEUTRAL.
-5. Tow (D33 / D34 / D39 / D43): the limit is the dart-side tension, at most 60 N; estimate 14.8 x (I - I_free) - 2.6;
-   trip = (max_n + 2.6) / 14.8 + I_free + 1 A (at least 5 A); the tow starts at the minimum duty and speeds up only
+5. Tow (D33 / D34 / D39 / D43): the limit is the dart-side tension, at most 55 N (D46); estimate 13.1 x (I - I_free) - 2.3;
+   trip = (max_n + 2.3) / 13.1 + I_free + 1 A (at least 5 A); the tow starts at the minimum duty and speeds up only
    while the line is slack; it holds on the 200 ms average OR on the raw estimate held 30 ms at the limit; a re-sent
    tow at the limit stays in HOLD (stop + reel to wind again); constants cannot change while moving or holding.
 6. Fly-in at 25 percent duty (asked about 20) so the 3 A trip reads real current (IS scaling needs duty 60 or more).
@@ -157,7 +157,7 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
 2. Wiper current: IS scale `amps_per_volt` at low duty with a meter in series, `offset_a` with the motor off, free current
    `free_a` while reeling slack (`cal free`).
 3. Tension: `k_n_per_a` and `tension_offset_n` with a luggage scale at the line end (dart side, D43) at 3 loads
-   (defaults 14.8 and -2.6 are physics estimates). Hard prerequisite of the first tow.
+   (defaults 13.1 and -2.3 at the dart are physics estimates, D46). Hard prerequisite of the first tow.
 4. Drum speed (`drum_dps`, learned automatically between code edges; default 8.1 deg/s) and the end stops.
 5. Aim: `aim_home_deg` (SW_RAIL_LOW position) and `aim_offset` against a phone inclinometer on the rail.
 6. Launch train angles: SW_HOME opening (first tooth, about 4 deg), release (432.7), SW_GAP closing (about 520):

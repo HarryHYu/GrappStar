@@ -203,7 +203,7 @@ struct Cfg {
       50.0f / 22.0f;
 #endif
   int reelDuty = 220; int reelMinDuty = 70; float taperFrac = 0.30f;
-  float kNperA = P_REEL_TOW_TENSION_MODEL_N_PER_A;             // physics v1.2 (FIRM 5 N): line N = 17.0 x (I - I_free) - 10.4. Bench: CALIBRATION.md
+  float kNperA = P_REEL_TOW_TENSION_MODEL_N_PER_A;             // params REEL tow_tension_model (D42/D43/D46): dart-side line N = 13.1 x (I - I_free) - 2.3. Bench: CALIBRATION.md
   float tensOffsetN = P_REEL_TOW_TENSION_MODEL_OFFSET_N;
   float towSlackFrac = 0.25f;       // tow: above this fraction of max_n the duty stays at the minimum (taut line)
   int towRampPerTick = 2;           // tow: duty ramp while the line is slack (min to full in about 0.5 s)
@@ -219,7 +219,7 @@ struct Cfg {
 #ifndef P_REEL_TOW_LIMIT_MAX_N
 #define P_REEL_TOW_LIMIT_MAX_N 70.0f
 #endif
-  float limitMaxN = P_REEL_TOW_LIMIT_MAX_N;   // D39: above 70 N the 6.5 A trip and the shear pin are reached (BAD_ARG beyond)
+  float limitMaxN = P_REEL_TOW_LIMIT_MAX_N;   // D39/D46: tow cap at the dart from params (55 N): the train reaches 0.8 x the shear pin above it (BAD_ARG beyond)
   bool armHomeOpen = true;          // cad-reel: SW_ARM is closed while the cup is away and OPENS for about +-5 deg at home
   float resumeFrac = 0.6f;          // holding winds again below this fraction of the limit (load cell only)
   uint32_t tensionIgnoreMs = 80;    // ramp inrush is not tension (the trips ignore 50 ms; a stiff line needs an early look)

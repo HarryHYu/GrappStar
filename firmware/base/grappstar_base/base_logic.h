@@ -1010,7 +1010,7 @@ struct Base {
     if (neutral && un == U_TENSION) return "NOT_WRAPPED";   // no tension without the capstan
     if (!neutral && un == U_SLIP) return "BAD_ARG";
     if (un == U_SEATED && sec != SEC_NEUTRAL) return "WRAPS_ON";   // D35 / D39: seat the dart only in NEUTRAL with the wraps off   // D35: never seat the dart on the capstan: unwrap first
-    if (mxn > c.limitMaxN) return "BAD_ARG";          // D39: tow limit at most 70 N
+    if (mxn > c.limitMaxN) return "BAD_ARG";          // D39/D46: tow limit at most limitMaxN (55 N at the dart)
     if (un == U_SEATED && !fitted(SW_SEATED)) return "NO_SENSOR";
     // a tow re-sent while holding at (or near) its limit stays in HOLD: re-pulling from the held line ratchets it up
     if (state == S_HOLD && un == U_TENSION && until == U_TENSION && tensionN >= 0.95f * (float)mxn) { maxN = (float)mxn; enterHold("already at the limit"); return nullptr; }

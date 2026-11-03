@@ -178,7 +178,7 @@ def build(out, branch, checks_file):
     names = {"load": "Load", "aim": "Aim", "cock": "Cock", "fire": "Fire", "flight": "Flight", "neutral": "Neutral",
              "wrap": "Wrap", "wrapped": "Wrapped park", "anchor": "Anchor", "tidy": "Tidy", "reel_engage": "Reel engage",
              "tow": "Tow", "release": "Release", "reel_in": "Reel in", "unload": "Unload", "unwrap": "Unwrap",
-             "approach": "Final approach", "to_launch": "Back to LAUNCH", "lower": "Lower"}
+             "approach": "Final approach", "to_launch": "Back to LAUNCH", "lower": "Lower", "rail_low": "Rail low"}
     mission = []
     for ph in getattr(P, "TIMELINE", None) or []:
         try:

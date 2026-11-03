@@ -2,7 +2,7 @@
 
 Units: mm, deg, N, N m, s, kg unless a name says otherwise.
 Owner: the coordinator. Workers read it and never edit it; request changes in your REPORT.md or NOTES.md.
-STATUS: v1.3.4 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed; 1.3.3 unload jog 6 deg; 1.3.4 ASSEMBLY_STAGES). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
+STATUS: v1.3.5 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed; 1.3.3 unload jog 6 deg; 1.3.4 ASSEMBLY_STAGES; 1.3.5 TIMELINE rail_low after the flight (D45), no lower at the end). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
 The architecture blocks below hold the INTERFACE numbers (where two owners must agree) and the module placements.
 Each owner keeps its internal geometry in its own module and maps these numbers explicitly (read with defaults).
 Code against the names; never hard-code a shared number anywhere else.
@@ -10,7 +10,7 @@ Code against the names; never hard-code a shared number anywhere else.
 
 import math
 
-VERSION = "1.3.4"
+VERSION = "1.3.5"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
@@ -310,28 +310,28 @@ TIMELINE = [
      dict(wiper_deg=-1120.0 + 553.8, sleeve_deg=-1120.0 + 553.8, cock=0.0, fired=1, dart_flight=0.05)),
     ("flight", 1.5, "Dart in flight; the line pays off the storage reel against the 0.5 N clutch.",
      dict(dart_flight=1.0, line_out_m=5.2)),
+    ("rail_low", 4.0, "D45: wiper backward through the rest of the aim cycle: the rail comes down to 6 deg before the wrap, so tow tension cannot push the carriage back.",
+     dict(aim_deg=6.0, wiper_deg=-566.2 - 2480.0, sleeve_deg=-566.2 - 2480.0)),
     ("neutral", 8.0, "Unload jog, then the drum goes to NEUTRAL: wiper coupled to nothing.", dict(drum_deg=41.0, mode="NEUTRAL", drum_pos="NEUTRAL")),
     ("wrap", 49.0, "Right after landing, while the line still lies slack: the drum turns the wrap cup 7 times round the capstan.",
      dict(drum_deg=302.0, wraps=7, line_out_m=4.3, drum_pos="BETWEEN")),
     ("wrapped", 2.5, "Drum to the WRAPPED park (314): cup locked, clutch FIRM, collar still NEUTRAL.", dict(drum_deg=314.0, drum_pos="WRAPPED")),
     ("anchor", 4.0, "The dart plants its foot and screws its two drills into the ground.", dict(anchored=1)),
     ("tidy", 3.0, "Wiper forward: the take-up pulls the slack through the free capstan until the line is straight.",
-     dict(wiper_deg=-566.2 + 380.0, line_out_m=4.1)),
+     dict(wiper_deg=-3046.2 + 430.2, line_out_m=4.1)),
     ("reel_engage", 6.5, "Drum into REEL while the wiper creeps forward: the collar drops into the REEL dogs.",
-     dict(drum_deg=347.0, wiper_deg=-180.0, reel_deg=0.0, mode="REEL", drum_pos="REEL")),
+     dict(drum_deg=347.0, wiper_deg=-2610.0, reel_deg=0.0, mode="REEL", drum_pos="REEL")),
     ("tow", 5.0, "Capstan winches the rover toward the anchored dart; sprag #2 holds the load.",
-     dict(wiper_deg=-180.0 + 3600.0, reel_deg=0.0 + 3600.0, line_out_m=1.6)),
-    ("release", 2.0, "The dart unscrews its drills and lets go.", dict(anchored=0)),
+     dict(wiper_deg=-2610.0 + 3600.0, reel_deg=0.0 + 3600.0, line_out_m=1.6)),
+    ("release", 2.0, "The base stops (the worm holds the line), then the dart unscrews its drills and lets go.", dict(anchored=0)),
     ("reel_in", 3.0, "Capstan reels the dart in until about 1.5 m remain.",
-     dict(wiper_deg=3420.0 + 600.0, reel_deg=3600.0 + 600.0, line_out_m=1.3, dart_return=0.3)),
+     dict(wiper_deg=990.0 + 600.0, reel_deg=3600.0 + 600.0, line_out_m=1.3, dart_return=0.3)),
     ("unload", 6.5, "Wiper jogs 6 deg back inside the dog window, then the drum goes back to the WRAPPED park (314): the collar leaves the REEL dogs.",
-     dict(wiper_deg=4020.0 - 6.0, drum_deg=314.0, mode="NEUTRAL", drum_pos="WRAPPED")),
+     dict(wiper_deg=1590.0 - 6.0, drum_deg=314.0, mode="NEUTRAL", drum_pos="WRAPPED")),
     ("unwrap", 47.0, "Drum from the park back through the wrap sector to 62, collar in NEUTRAL; the wiper turns forward slowly and the take-up winds the freed line.",
-     dict(drum_deg=62.0, wraps=0, wiper_deg=4014.0 + 1800.0, mode="NEUTRAL", drum_pos="BETWEEN")),
+     dict(drum_deg=62.0, wraps=0, wiper_deg=1584.0 + 1800.0, mode="NEUTRAL", drum_pos="BETWEEN")),
     ("approach", 4.0, "Drum to NEUTRAL; the FIRM take-up pulls the dart tail first onto the sled until SW_SEATED.",
-     dict(drum_deg=41.0, line_out_m=0.0, dart_return=1.0, wiper_deg=5814.0 + 1447.8, drum_pos="NEUTRAL")),
-    ("to_launch", 8.0, "Drum to LAUNCH: clutch LIGHT, collar into the LAUNCH dogs.",
-     dict(drum_deg=0.0, dart_flight=0.0, dart_return=0.0, wiper_deg=7263.8, mode="LAUNCH", drum_pos="LAUNCH")),
-    ("lower", 4.0, "Wiper backward through the rest of the aim cycle: the rail comes down to its low stop.",
-     dict(aim_deg=6.0, wiper_deg=7263.8 - 2480.0, sleeve_deg=-566.2 - 2480.0)),
+     dict(drum_deg=41.0, line_out_m=0.0, dart_return=1.0, wiper_deg=3384.0 + 1487.8, drum_pos="NEUTRAL")),
+    ("to_launch", 8.0, "Drum to LAUNCH: clutch LIGHT, collar into the LAUNCH dogs (a 2 deg alignment creep). Rail already low: ready to aim again.",
+     dict(drum_deg=0.0, dart_flight=0.0, dart_return=0.0, wiper_deg=4873.8, mode="LAUNCH", drum_pos="LAUNCH")),
 ]

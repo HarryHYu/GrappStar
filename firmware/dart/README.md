@@ -83,8 +83,8 @@ aborted and the dart disarms when the upload starts.
 - All safety runs in its own task every 5 ms with a 2 s watchdog; a stuck web client or Serial port cannot block it.
 - After a brownout or watchdog reset the dart boots with motors off and reports `FAULT` until `/stop`, `/auto`, `/release` or `/arm`.
 - INA219 missing: manual keys only (on timers), auto and release refused. BNO085 missing: no arming, no flight log.
-- A stuck I2C bus is recovered (9 clocks and a Wire restart). If the web loop hangs for 10 s with nothing moving, the
-  dart restarts itself.
+- A stuck I2C bus is recovered (9 clocks and a Wire restart). If the web loop hangs for 10 s while nothing moves, the
+  dart is not armed or in flight, and no OTA upload runs, it restarts itself.
 - **Power on with the legs stowed.** The firmware keeps track of the kick's travel from power-on to tell a jammed kick
   from one that is already down or stowed.
 

@@ -364,5 +364,15 @@ def load_params(spec_path: str | None = None) -> Params:
     return spec_bridge.apply(p, spec_path)
 
 
+def params_hash(p: "Params") -> str:
+    """Hash of every effective physics input (after the spec overlay), without the version string: changes only
+    when something the models use changes. Stored in ballistics_meta.json for the staleness test."""
+    import hashlib
+    import json as _json
+    d = asdict(p)
+    d.pop("source", None)
+    return hashlib.sha256(_json.dumps(d, sort_keys=True, default=str).encode()).hexdigest()[:16]
+
+
 def fmt(x, n=2):
     return f"{x:.{n}f}"

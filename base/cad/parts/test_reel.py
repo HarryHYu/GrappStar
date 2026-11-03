@@ -48,7 +48,8 @@ def test_joints_and_kin_cover_each_other():
         assert p.joint in js
 
 
-def test_forward_wiper_turns_bus_in_take_up_sense():
+def test_forward_wiper_turns_bus_in_take_up_sense(monkeypatch):
+    monkeypatch.setattr(reel, "_drum_vals", lambda P, S: None)        # my own S-key path (no cad-drum kin)
     a = reel.kin(P, dict(wiper_deg=0.0))
     b = reel.kin(P, dict(wiper_deg=36.0))
     assert b["reel_bus"] - a["reel_bus"] == pytest.approx(36.0 * reel.Z_BUSMAIN / reel.Z_C1)
@@ -127,3 +128,18 @@ def test_line_path_world_contract():
 
 def test_clear_of_main_axis_stack():
     assert reel.main_axis_check(P) == []
+
+
+def test_cup_follows_drum_idler_seven_turns():
+    if reel._drum_vals(P, {}) is None:
+        pytest.skip("cad-drum module absent")
+    assert reel.kin(P, dict(drum_deg=0.0))["reel_cup"] == pytest.approx(0.0, abs=1e-6)
+    assert reel.kin(P, dict(drum_deg=302.0))["reel_cup"] == pytest.approx(-7 * 360.0, abs=1e-3)
+
+
+def test_printed_parts_watertight_after_vertex_merge(parts):
+    for n, p in parts.items():
+        if p.printed:
+            m = prim.to_trimesh(p.solid)
+            m.merge_vertices()
+            assert m.is_watertight, n

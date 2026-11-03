@@ -247,6 +247,7 @@ class Rig:
         self.fault_injected: List[str] = []
         self.done_triggers = set()
         self.base_seen_off = False
+        self.probe_results: List[dict] = []
         self.dart_d: Optional[float] = None       # dart distance along the line from the base (m)
 
     # -------------------------------------------------------------- logging
@@ -548,6 +549,7 @@ class RefMission:
         self.state, self.error, self.shot = "RUNNING", "", {}
         self.thread = threading.Thread(target=self._run, name="ref", daemon=True)
         self.tokens: List[str] = []
+        self.probed = set()
 
     def start(self):
         self.thread.start()
@@ -735,6 +737,18 @@ class RefMission:
                     self._set("AIM")
                     self.s_aim()
                 self._set(name)
+                for pst, pcmd, pargs in rig.sc.probes:
+                    if pst == name and (pst, pcmd) not in self.probed:
+                        self.probed.add((pst, pcmd))
+                        try:
+                            r = self.b.cmd(pcmd, timeout=2.0, check=False, **pargs)
+                        except Exception as e:
+                            r = {"ok": None, "err": f"{type(e).__name__}: {e}"}
+                        rig.probe_results.append({"step": pst, "cmd": pcmd, "args": pargs, "reply": r})
+                        rig.note("info", msg=f"probe at {pst}: {pcmd} {pargs} -> {r}")
+                        if r.get("ok"):
+                            self.b.cmd("stop", timeout=2.0)      # it started: stop it again
+                            time.sleep(1.0)
                 try:
                     getattr(self, fn)()
                     i += 1
@@ -801,7 +815,8 @@ class Scenario:
         self.d22 = kw.get("d22", False)
         self.driver = kw.get("driver", "mission")
         self.tow_duty = kw.get("tow_duty", 1.0)
-        self.doc_cal = kw.get("doc_cal", False)     # calibrate literally as CALIBRATION.md says (offset left at default)     # BASE_SPEC 10.1 step 13: duty 1  # "mission" = jetson mission.py; "ref" = RefMission (BASE_SPEC 10.1)            # strict D22 plant: laying turns draws line from the dart side   # D22: about 0.9 m of line lies slack after the landing   # ms from power on to HELLO (the sketch's setup())
+        self.doc_cal = kw.get("doc_cal", False)
+        self.probes = kw.get("probes", [])         # ref driver: (step, cmd, args) sent at the start of step; must be refused     # calibrate literally as CALIBRATION.md says (offset left at default)     # BASE_SPEC 10.1 step 13: duty 1  # "mission" = jetson mission.py; "ref" = RefMission (BASE_SPEC 10.1)            # strict D22 plant: laying turns draws line from the dart side   # D22: about 0.9 m of line lies slack after the landing   # ms from power on to HELLO (the sketch's setup())
         self.after = kw.get("after")              # run after the first mission ends (operator recovery + a new mission)
         self.tow_rounds = kw.get("tow_rounds", 3)
         self.timeout_s = kw.get("timeout_s", 420)
@@ -1107,6 +1122,22 @@ sc(Scenario("nominal", "whole mission, aim to seated, no faults (strict D22 plan
 sc(Scenario("ref_nominal", "BASE_SPEC 10.1 sequence driven directly (no mission.py): firmware + dart + D22 plant",
             driver="ref", d22=True,
             checks=[c for c in nominal_checks() if c[0] not in ("tidy ran",)] + [("D22 order: WRAP step before ANCHOR step", lambda r, res: c_d22_order(r, res))]))
+
+def c_probes_refused(rig, res):
+    pr = rig.probe_results
+    bad = [p for p in pr if p["reply"].get("ok") is not False]
+    return bool(pr) and not bad and len(pr) == len(rig.sc.probes), [(p["step"], p["cmd"], p["reply"].get("err")) for p in pr]
+
+
+sc(Scenario("ref_refusals", "BASE_SPEC 10.1 with wrong commands thrown in: retrieve at the WRAPPED park (D39: NEUTRAL with the "
+            "wraps off only), tow max_n 80 (D39 cap 70), reel seated on the capstan, wrap while cocked, fire without arm, aim out of range",
+            driver="ref", d22=True,
+            probes=[("FIRE", "fire", {"token": 123456}), ("COCK", "aim", {"deg": 85}),
+                    ("FIRE", "wrap", {}),
+                    ("TIDY", "retrieve", {"duty": 0.3}), ("TOW", "reel", {"duty": 1.0, "max_n": 80, "until": "tension"}),
+                    ("RETRIEVE", "reel", {"duty": 0.6, "max_n": 30, "until": "seated"})],
+            checks=[("every wrong command refused", c_probes_refused), ("mission DONE", c_done),
+                    ("tow limit respected", c_tow_limit), ("no dry fire", c_no_dry)]))
 
 sc(Scenario("ref_doc_cal", "ref_nominal calibrated literally as CALIBRATION.md (e): tension_offset_n left at the default",
             driver="ref", d22=True, doc_cal=True,

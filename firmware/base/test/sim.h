@@ -27,6 +27,8 @@ struct Sim {
   // ---- motor model
   double n0rpm = 45, stallNm = 15, stallA = 18, freeA = 1.5, vbat0 = 12.4, rint = 0.05;
   double amps = 0, wRateDps = 0;
+  double inertiaMs = 0;            // wiper speed lag and coast time constant (0 = instant, the old model)
+  double vel = 0;                  // signed wiper speed, deg/s (with inertia)
   double drumDpsTrue = 7.5;        // a little slower than the firmware 8.1 estimate
   double aimLoadNm = 0.5, cockMaxNm = 2.5, reelFreeNm = 0.4;
   double capstanR = 0.0205;        // m (capstan d 40 + line)
@@ -115,19 +117,27 @@ struct Sim {
       double cap = fmax(stallA * frac, freeA);
       if (amps > cap || rpm == 0) amps = rpm == 0 ? cap : amps;
     } else amps = 0;
-    double dDeg = wDir * rpm * 6.0 * s;
-    wRateDps = wDir * rpm * 6.0;
+    double tgt = wDir * rpm * 6.0;
+    if (inertiaMs > 0) {                              // first-order lag; a load at the flank stops a coast faster
+      double k = fmin(1.0, dt / inertiaMs); vel += (tgt - vel) * k;
+      if (wDir == 0 && engaged && ((vel > 0 && win >= c.dogWindowDeg - 1e-6) || (vel < 0 && win <= 1e-6)) && (inLaunch() || inReel())) vel *= 0.5;
+      if (inReel() && vel * c.reelDir < 0 && win <= 1e-6) vel = 0;   // sprag #2
+      if (fabs(vel) < 0.5 && wDir == 0) vel = 0;
+    } else vel = tgt;
+    double dDeg = vel * s;
+    wRateDps = vel;
+    int mDir = dDeg > 0 ? 1 : dDeg < 0 ? -1 : 0;     // the way the shaft actually turns (coast included)
     wiperDeg += dDeg;
     double ad = fabs(dDeg);
     if (ad > 0) {
-      if (wDir > 0) { double t = ad / 360.0 * 0.39; slack = fmax(0, slack - t); }   // take-up: 2.5 x a 50 mm core per turn   // take-up winds slack in (clutch slips beyond)
+      if (mDir > 0) { double t = ad / 360.0 * 0.39; slack = fmax(0, slack - t); }   // take-up: 2.5 x a 50 mm core per turn   // take-up winds slack in (clutch slips beyond)
       if (dogTip) { toothWiperAcc += ad; if (toothWiperAcc >= toothNeedWiper) { dogTip = false; toothWiperAcc = 0; } }
       else if (engaged) {
         double drive = 0;                                            // travel beyond the window
-        if (wDir > 0) { double room = fmax(0.0, c.dogWindowDeg - win); double u = fmin(room, ad); win += u; drive = ad - u; }
+        if (mDir > 0) { double room = fmax(0.0, c.dogWindowDeg - win); double u = fmin(room, ad); win += u; drive = ad - u; }
         else { double room = fmax(0.0, win); double u = fmin(room, ad); win -= u; drive = ad - u; }
         if (drive > 0 && inLaunch()) {
-          if (wDir == c.aimDir) {
+          if (mDir == c.aimDir) {
             aimPh = fmod(aimPh + drive, c.aimCycleDeg);
             if (!fired && cockPh > c.homeOpenDeg - 1) cockPh = fmax(c.homeOpenDeg - 1, cockPh - drive);   // drawn spring follows back (decock)
           } else {
@@ -135,10 +145,10 @@ struct Sim {
             if (!fired && !searBroken && before < c.releaseDeg && cockPh >= c.releaseDeg) { fired = true; shots++; lineOut = lineOutAfterShot; }
             if (fired && cockPh >= c.cycleDeg - 5) { cockPh -= c.cycleDeg; fired = false; }
           }
-        } else if (drive > 0 && inReel() && wDir == c.reelDir) {
+        } else if (drive > 0 && inReel() && mDir == c.reelDir) {
           lineOut -= drive / 360.0 * c.capstanPerWiper * 2 * M_PI * capstanR; if (lineOut < 0) lineOut = 0;
         }
-      } else if (wDir > 0 && anchorTautAt < 0 && lineOut > seatAtLine) {   // NEUTRAL: take-up pulls a free dart home
+      } else if (mDir > 0 && anchorTautAt < 0 && lineOut > seatAtLine) {   // NEUTRAL: take-up pulls a free dart home
         lineOut = fmax(seatAtLine, lineOut - ad / 360.0 * 0.39);
       }
     }

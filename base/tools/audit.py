@@ -401,12 +401,20 @@ def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print, pair_refine
     finally:
         pool.close()
         _CTX = {}
+    # gear meshes across owners (declared Mesh pairs): centre distance, parallel axes, face overlap, ratio
+    from tools import meshcheck
+    t0 = time.time()
+    mres = meshcheck.run(asm, states)
+    rep["meshes"] = mres["meshes"]
+    rep["mesh_fails"] = mres["fails"]
+    rep["warns"] += mres["warns"]
+    timing["meshes"] = round(time.time() - t0, 2)
     rep["timing"] = timing
     # verdict
     static_fails = [dict(part=r["name"], fails=r["fails"]) for r in rep["static"] if r["fails"]]
     rep["static_fails"] = static_fails
     bad = (rep["errors"] or static_fails or rep["limits"] or rep["collisions"] or rep["floating"] or rep["checks"]
-           or [c for c in rep["clearances"] if not c["ok"]])
+           or [c for c in rep["clearances"] if not c["ok"]] or rep["mesh_fails"])
     rep["clean"] = not bad
     rep["seconds"] = round(time.time() - t_start, 1)
     return rep
@@ -1021,6 +1029,10 @@ def summary(rep: dict) -> str:
         L.append(f"  FLOATING {f['part']}: {f['why']}")
     for c in rep["checks"]:
         L.append(f"  CHECK {c['subsystem']}: {c['fail']}")
+    for f in rep.get("mesh_fails", []):
+        L.append(f"  MESH {f}")
+    if rep.get("meshes"):
+        L.append(f"  gear meshes checked: {len(rep['meshes'])}, failing: {sum(not m['ok'] for m in rep['meshes'])}")
     for w in rep.get("warns", []):
         L.append(f"  warn {w}")
     for r in rep["static"]:

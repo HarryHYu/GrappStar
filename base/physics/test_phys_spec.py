@@ -76,7 +76,8 @@ def test_headline_launch_band(p):
 
 def test_committed_ballistics_not_stale(p):
     meta = json.load(open(META))
-    assert meta["params_source"] == p.source, "ballistics.json was built from other params: run python ballistics.py"
+    from common import params_hash
+    assert meta.get("params_hash") == params_hash(p), "ballistics.json was built from other physics inputs: run python ballistics.py"
     doc = json.load(open(BALL))
     row = min(doc["table"], key=lambda r: abs(r["pitch_deg"] - 36.0))
     from launcher import effective_muzzle

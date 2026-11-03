@@ -1,5 +1,6 @@
 {
  "params_source": "base/spec/params.py v1.2.5",
+ "params_hash": "422df832d96e263e",
  "dart_mass_kg": 0.279,
  "dart_cda_m2": 0.0026,
  "pivot_height_m": 0.315,

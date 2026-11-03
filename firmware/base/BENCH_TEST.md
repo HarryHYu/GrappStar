@@ -34,7 +34,8 @@ Two rules for the whole test:
      `HAND_MODE`.
 
    Leave both jumpers on for the whole bench test unless a step says otherwise.
-5. Battery unplugged. Wired as in WIRING.md, and the Part C multimeter checks done.
+5. Battery unplugged. Wired as in WIRING.md, and the Part C multimeter checks done. The 1 uF capacitor from GPIO1 to
+   GND is strongly recommended (WIRING.md section 4).
 
 ## Step 1: USB only
 
@@ -216,9 +217,9 @@ proper stop. Skip it if you do not have one: the PC tests check stall detection.
 - You should see: the motor stops at once. `{"evt":"ABORTED",...,"what":"JOG","why":"stop"}`.
 - Same again with `{"id":21,"cmd":"estop"}`.
 - You should see: the motor stops at once. `ABORTED` with `"why":"estop"`, then a `MODE` line with `"ok":true`: the
-  drum code says NEUTRAL already, so the drum does not move. In the base, estop drives the drum to its safe park when
-  that is safe (NEUTRAL, or the WRAPPED park from REEL), and otherwise sends a `MODE` line with `"err":"DRUM_HELD"`
-  and a `"why"`.
+  drum code says NEUTRAL already, so the drum does not move. In the base, estop drives the drum to NEUTRAL when
+  that is safe; with the wraps on (or another reason) the drum holds and a `MODE` line with `"err":"DRUM_HELD"` and
+  a `"why"` comes.
 - If the motor keeps running: unplug the battery. Report it.
 
 ## Step 9: brownout (optional)

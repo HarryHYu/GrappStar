@@ -3,23 +3,22 @@
 Status: updated through the day; the Current numbers block is the latest. Sections F1 onward are the history of
 the findings (their numbers come from earlier parameter sets). Every number is reproducible with the CLIs.
 
-## Current numbers (spec 1.2.9: D36 rear guide, carriage 85.8 g as built; latest model)
+## Current numbers (spec 1.3.0: D36 rear guide, carriage 85.8 g as built, D43 pulleys; latest model)
 
 - Launch: 2 x Century C-243, 265 mm full cock (40.1 N each), 12.1 J, carriage 85.8 g: 6.80 m/s, line taut.
 - Range from the rail pivot's ground point, LIGHT 0.5 / 0.75 / 1.0 N: 4.13 / 3.72 / 3.35 m at 34 deg (best).
   Table 6 to 47 deg in base/out/ballistics.json (C3), content-hash checked. 4 springs: not supported in v1 (D38).
 - Stop: 2.0 J carriage + 0.8 J springs: 295 N on the 19 mm flexure (D26 300 N: just inside; lighter carriage helps).
 - Storage reel 50 / 72 / 22: overrun after landing at LIGHT 0.5 N about 0.6 m. No level wind (F13).
-- Tow, plain printed exit eye and cup groove (REEL.path_gain 1.5, default until the design adds pulleys):
-  50 N AT THE DART = 4.17 N m, 6.09 A, 0.13 m/s, above 0.8 x the 5 N m shear pin and near the 6.5 A trip; the most
-  the train can put on the dart is about 48 N. Sense law at the dart: line = 11.3 x (I - I_free) - 2.0 N
-  (= the spec D42 law 17.0 / -3.0 at the capstan divided by the path gain). With 693 pulleys (gain 1.15): 50 N =
-  3.2 N m, 5.1 A, max about 62 N, law 14.8 / -2.6.
-- Capstan drum (capstan-side tension = dart pull x 1.5): wraps 2.9 raw / 5 design (7 fitted). Hoop stress 9.5 MPa at
-  the 50 N tow and 11.6 MPa when the shear pin slips, against 12 MPa allowed for PLA: print the drum in PPA-CF or
-  thicken the wall. Most loaded 608: 40 to 49 N (fine).
+- Tow with the D43 pulleys (REEL.path_gain 1.15), tension AT THE DART: 50 N = 3.23 N m, 5.06 A, 0.14 m/s (shear pin
+  5 N m: 1.55 x margin; 0.8 x pin = 4 N m reached at 62.5 N). Tow cap 60 N (D43) = 3.85 N m, 5.73 A, under the 6.5 A
+  trip. Shear pin slipping puts about 79 N on the dart. Sense law at the dart: 14.8 x (I - I_free) - 2.6 N
+  (capstan side 17.0 / -3.0).
+- Capstan drum (capstan-side tension = dart pull x 1.15): hoop stress 7.3 MPa at the 50 N tow and 11.6 MPa when the
+  shear pin slips (92 N at the capstan), against 12 MPa allowed for PLA: print the drum in PPA-CF or thicken the wall.
+  608 radial 63 to 98 N (fine).
 - Cock 2.9 N m, 4.7 A. Aim 0.33 N m, 1.9 A (D40 aim trip 3 A: splitter sf 1.44 in PPA-CF).
-- Final approach on FIRM 5 N with the real seating path (gain 1.75): margin 1.1 to 1.4.
+- Final approach on FIRM 5 N with the D43 pulleys (seating gain 1.3): 3.85 N at the dart, margin 1.5 to 1.9.
 - Wrap on LIGHT: N20 46 to 56 N mm (23 to 28 % of 0.20 N m), about 30 s.
 - Take-up in NEUTRAL: 0.06 / 0.12 / 0.26 to 0.33 m/s at duty 0.3 / 0.5 / 1.0.
 - Recoil rock (ASSUMED 4 kg rover): about 5 deg at 6 deg pitch braked, 0.5 deg at 36. No tip.

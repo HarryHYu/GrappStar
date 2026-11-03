@@ -1,5 +1,5 @@
 {
- "source": "base/spec/params.py v1.2.9",
+ "source": "base/spec/params.py v1.3.0",
  "sections": [
   [
    "Spring (each, A228, SF 1.2 on Shigley static limits)",
@@ -129,31 +129,31 @@
    "Capstan and tow",
    [
     [
-     "Wraps for tow limit at the capstan (75 N, mu 0.15)",
-     "2.9 raw, 5 design"
+     "Wraps for tow limit at the capstan (57 N, mu 0.15)",
+     "2.6 raw, 4 design"
     ],
     [
      "Take-up needed for the tow at the actual wraps (7)",
-     "0.10 N"
+     "0.08 N"
     ],
     [
      "Tow at limit: torque, speed, current",
-     "4.17 N m, 0.128 m/s, 6.09 A"
+     "3.23 N m, 0.143 m/s, 5.06 A"
     ],
     [
      "Line pull at limiter (5 N m) (12.6 V)",
-     "61 N (break 667 N)"
+     "80 N (break 667 N)"
     ],
     [
      "Line pull, motor stall (no limiter, 12.6 V)",
-     "174 N"
+     "227 N"
     ],
     [
      "Tow sensing at the dart: N per wiper amp above free",
-     "11.3 N/A (dart = 11.3 x (I - I_free) - 2.0 N)"
+     "14.8 N/A (dart = 14.8 x (I - I_free) - 2.6 N)"
     ],
     [
-     "Tow sensing at the capstan (x1.5): N per wiper amp above free",
+     "Tow sensing at the capstan (x1.15): N per wiper amp above free",
      "17.0 N/A (capstan = 17.0 x (I - I_free) - 3.0 N)"
     ]
    ]
@@ -175,7 +175,7 @@
     ],
     [
      "tow: peak torque, current, time",
-     "4.17 N m, 6.1 A, 39 s"
+     "3.23 N m, 5.1 A, 35 s"
     ],
     [
      "Wiper at limiter (5 N m), 12.6 V (with sag)",

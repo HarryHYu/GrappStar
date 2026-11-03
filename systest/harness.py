@@ -291,6 +291,7 @@ class Rig:
             self.base.set(slipN=sc.slip_n)
         ps = dict(sc.plant_setup)
         if "drumDeg" in ps:          # the drum is turned by hand with the board off, then it boots there
+            time.sleep(2.0)                    # the bench set-up is saved first (nobody pulls the plug within 20 ms)
             self.base.ctl("power off")
             self.base.boot_t = self.base.get().get("t", 0)
             self.base.set(drumDeg=ps.pop("drumDeg"))

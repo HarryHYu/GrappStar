@@ -771,7 +771,9 @@ struct Base {
       if (ts == SEC_LAUNCH) { wiper(c.aimDir, c.flyDuty, c.jogTripA); return 0; }
       // D41: REEL not confirmed after the drum move: wind in at most 5 deg at a time, limited by the tension estimate
       // (20 N, like a tow start) instead of the 3 A jog trip; pause between legs to read SW_DOG_R
-      if (tRaw >= c.flyMaxN) { w.halt(now, io.wiper); failDrum(safing, F_DRUM_TIMEOUT, "dogs did not engage: line tension reached the fly-in limit"); return -1; }
+      float flyN = tRaw;                                // own estimate too: tRaw needs sec == SEC_REEL, which a LOCK or odd code reading lacks
+      if (w.outDir == c.reelDir && now - w.startT > c.tensionIgnoreMs) flyN = fmaxf(flyN, (w.amps - c.freeA) * c.kNperA + c.tensOffsetN);
+      if (flyN >= c.flyMaxN) { w.halt(now, io.wiper); failDrum(safing, F_DRUM_TIMEOUT, "dogs did not engage: line tension reached the fly-in limit"); return -1; }
       if (w.wantDir) {
         if (fabsf(enc.deg() - flyLegFrom) >= c.flyLegDeg) { w.halt(now, io.wiper); mvWiper = 0; flyPauseT = now; }
       } else if (now - flyPauseT >= 200) {
@@ -987,8 +989,6 @@ struct Base {
     float sec = lineKnown ? fmaxf(20.f, 10.f + 1.5f * lineM / v) : c.approachMaxMs / 1000.f; if (sec > 600) sec = 600;
     approachMs = (uint32_t)(sec * 1000); return true;
   }
-  // D34: the tow trip sits above the current the limit needs, I = (limit + 10.4) / 17 + I_free, with a 1 A margin;
-  // never below tow_trip_a (6.5 A, D33) and never above the hard trip
   // D34: the tow trip sits 1 A above the current max_n needs, I = (max_n - tension_offset_n) / k_n_per_a + free_a; never
   // below the 5 A reel trip, never above the hard trip
   float towTrip() const { float need = (maxN - c.tensOffsetN) / c.kNperA + c.freeA + 1.0f; return fminf(fmaxf(c.tripA, need), c.hardTripA); }
@@ -1598,7 +1598,10 @@ struct Base {
       else towDuty = towDuty + c.towRampPerTick > reelDutyCmd ? reelDutyCmd : towDuty + c.towRampPerTick;
       if (duty > towDuty) duty = towDuty;
     }
-    if (frac > 1 - c.taperFrac) { int dd = (int)(reelDutyCmd * (1 - frac) / c.taperFrac); duty = dd < c.reelMinDuty ? c.reelMinDuty : dd; }
+    if (frac > 1 - c.taperFrac) {                    // the taper may only lower the duty (it must not undo the tow cap)
+      int dd = (int)(reelDutyCmd * (1 - frac) / c.taperFrac); if (dd < c.reelMinDuty) dd = c.reelMinDuty;
+      if (dd < duty) duty = dd;
+    }
     if (until == U_SEATED && lineKnown && lineM < c.seatSlowM && duty > c.seatSlowDuty) duty = c.seatSlowDuty;
     w.want(c.reelDir, duty);
     if (now - opT > c.reelMaxMs) { w.halt(now, io.wiper); state = S_IDLE; evAborted("REEL", "timeout"); dirty = true; }

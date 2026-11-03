@@ -62,7 +62,7 @@ WALL_T = 6.0                  # wall Z -6 .. 0 (the bus plane starts at -6.5 beh
 FOOT_T = 5.0
 H_AXIS = SP["h_axis"]         # capstan axis above the deck top (95.4 in v1.0)
 Y_DECK = -H_AXIS
-X_WALL = (-128.0, 30.0)
+X_WALL = (-134.0, 30.0)       # D44: 6 mm longer on the left (free space, checked against frame and drum)
 Y_WALL_TOP = 40.0             # keeps 29 mm from the main shaft coupler (main axis at R (18.7, 69.6))
 Z_FOOT = (-40.0, 42.0)
 
@@ -79,14 +79,14 @@ Z_CUP = Z_DRUM + v7.FLANGE_H + v7.DL - 7.0      # cup rim plane (cup skirt 7 mm 
 GUIDE = np.array((-45.0, v7.CUP_OUT + 2.0, Z_GUIDE))            # guide eye centre (v7)
 EXIT = np.array((70.0, v7.ER, Z_CUP + v7.EZP + 31.5))           # exit eye centre, 31.5 past the ring (v7)
 
-X_REEL = -88.0                # storage reel axis (Y 0)
+X_REEL = -94.0                # storage reel axis (Y 0); D44: moved 6 left for the r 40 flange (guide post clear)
 SPOOL_LEN = FL_T + WIDTH + FL_F                 # rear face .. front flange disc face
 ANNULUS = (20.0, 30.0, 0.3)   # clutch friction annulus on the front flange disc: r_in, r_out, raised (r_eff 25)
 Z_D = Z_SPOOL + SPOOL_LEN + ANNULUS[2]          # clutch disk D (head of S) rear face
 D_T, D_R = 3.0, 31.0
 Z_T = 7.0                     # thrust ring T rear face (the rocker's two M3 trim screw tips press it)
 TRIM_R = 10.0                 # trim screws at X +-10 from the reel axis
-SHROUD_R = (39.5, 41.5)       # shroud shell round the storage reel
+SHROUD_R = (43.5, 45.5)       # shroud shell round the storage reel (flange r 40, D44)
 SHROUD_DEG = (140.0, 318.0)   # covered arc (the line leaves at the top, the guide post stands at the right)
 
 ROCKER_PIVOT = np.array((X_REEL, 37.0, 3.0))
@@ -112,7 +112,7 @@ CRANK_HUB_R, CRANK_BOSS_R = 4.3, 2.5
 CRANK_COL_TOP, CRANK_BOSS_TOP = -58.4, -45.4  # column under the crank, pivot boss top (washer + M3 x 10 on it)
 WASHER_T, WASHER_R = 1.2, 4.5
 POCKET_D = 3.0                # wall front recess for arm B and the hub
-BAR_GUIDES = ((-76.0, BAR_YL), (17.0, None))  # (x, y) of the two U guides (y None = right run)
+BAR_GUIDES = ((-71.5, BAR_YL), (17.0, None))  # (x, y) of the two U guides (y None = right run)
 GUIDE_W, GUIDE_FRONT, GUIDE_SCREW_Z = 10.0, 20.0, 17.2
 POST_Y0 = -51.0               # guide post bottom (the bar passes under it)
 MAIN_CLEAR_R = 37.5           # wall cut round the main axis (cad-drum's coupler reaches r 35 in the wall plane)
@@ -148,12 +148,15 @@ COL = dict(wall="#b9c2cc", ppa="#3a3f45", gear="#d97a00", drum="#2e9c86", cup="#
            clip="#9a94e8", brg="#8a8f96", rocker="#e0b040", post="#4a5058")
 
 
+FLANGE_R_MIN = 40.0           # D44: no level wind; a mounded 20 m pack reaches r 35 .. 36
+
+
 def flange_r(P=None):
     """Flange radius: the spec value, raised (physics) until 20 m of line packs with 4 mm to spare."""
     d = reel_calc.get(P)
     d["core_r"], d["width"] = CORE_R, WIDTH
     need = reel_calc.pack_r(d, d["line_len_m"]) + 4.0
-    return max(SP["flange_d"] / 2, math.ceil(need))
+    return max(SP["flange_d"] / 2, math.ceil(need), FLANGE_R_MIN)
 
 
 def _d(P):
@@ -241,6 +244,7 @@ COLLAR_CONE = 4.0             # 45 deg cone on the capstan collar (prints front 
 HUB_SPIGOT_R = 14.0
 HUB_SCREW_R = 29.5
 HUB_FL_R = 33.5
+HUB_TOP_Y = 28.6             # flange cut flat here: cad-frame's cheek r starts at R Y 29.6 (base-v1 5356f65)
 STOP_R, STOP_RAD = 2.5, 40.0
 ARM_W = 16.0
 STOP_OFF = 27.0               # stop pins sit this far (deg) off the idler: outside its tip circle where they cross it
@@ -450,6 +454,7 @@ def _sprag_hub():
     # the flange is cut back to the block on the side facing the main axis (cad-frame's motor adapter plate)
     ma = math.degrees(math.atan2(SP["main_xy"][1], SP["main_xy"][0]))
     flange = flange - prim.place(prim.box(-HUB_FL_R - 5, HUB_FL_R + 5, rb + 0.4, HUB_FL_R + 5, -1, 20), tf.Rz(ma - 90.0))
+    flange = flange - prim.box(-HUB_FL_R - 5, HUB_FL_R + 5, HUB_TOP_Y, HUB_FL_R + 5, -1, 20)   # cad-frame's cheek r above
     body = prim.union([block, flange, spig])
     cut = [prim.place(bearings.seat_csk20(key_deg=90.0, below=2.0), tf.T(0, 0, Z_BLOCK)),
            prim.cyl((C_D + fits.SHAFT_IN_BORE) / 2, Z_BLOCK + 30, z=-WALL_T - 1)]
@@ -564,8 +569,8 @@ def _shroud():
                                tf.T(X_REEL + (SHROUD_R[0] + 0.5) * math.cos(math.radians(a)),
                                     (SHROUD_R[0] + 0.5) * math.sin(math.radians(a)), 0) @ tf.Rz(a)))
     body = prim.union([shell, flange] + tabs)
-    cut = [prim.box(LEG_X[0] - 1.5, LEG_X[1] + 1.5, -46.0, -36.0, -1.0, 11.5),    # window: the rocker leg (FIRM +5)
-           prim.cylY(3.6, -46.0, -36.0, x=CRANK_X, z=CRANK_Z)]                    # crank screw head
+    cut = [prim.box(LEG_X[0] - 1.5, LEG_X[1] + 1.5, -50.0, -38.0, -1.0, 11.5),    # window: the rocker leg (FIRM +2.5)
+           prim.cylY(WASHER_R + 0.7, -50.0, -38.0, x=CRANK_X, z=CRANK_Z)]          # crank washer and screw head
     for a in SHROUD_SCREW_DEG:
         x = X_REEL + SHROUD_SCREW_R * math.cos(math.radians(a))
         y = SHROUD_SCREW_R * math.sin(math.radians(a))

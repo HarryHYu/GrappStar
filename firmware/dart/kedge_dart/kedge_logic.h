@@ -436,6 +436,7 @@ struct Kedge {
       case '4': m = FOOT; d = +1; break;   case '$': m = FOOT; d = -1; break;
       default: return "unknown key";
     }
+    uint32_t prevPressT = pressT[m][d > 0]; bool prevPressSeen = pressSeen[m][d > 0];   // for the per-direction lock
     pressT[m][d > 0] = now; pressSeen[m][d > 0] = true;
     if (seqRunning() || flight.flying() || fault) lastCmd[m] = now;   // a refused press still counts as "held" for the locks
     if (seqRunning()) return "busy";                  // a sequence owns the motors; stop first
@@ -446,7 +447,9 @@ struct Kedge {
     uint32_t win = (lastRunMs[m] > tu.wifiDeadmanMs ? lastRunMs[m] : tu.wifiDeadmanMs) + 250;
     if (win < tu.wifiDeadmanMs + 150) win = tu.wifiDeadmanMs + 150;
     bool repeat = now - lastCmd[m] < win; lastCmd[m] = now; lastRunMs[m] = runMs;
-    if (stallLock[m] == d && repeat) return "stalled: release the key first";
+    // the lock holds while THIS direction's key keeps coming (presses of the other direction do not count)
+    bool dirRepeat = prevPressSeen && (int32_t)(now - prevPressT) < (int32_t)win;
+    if (stallLock[m] == d && dirRepeat) return "stalled: release the key first";
     if (stallLock[m] == d) stallLock[m] = 0;          // only a fresh press of the locked direction clears its lock
     // a repeat within the deadman window (even after a short gap that let the motor stop) continues the same hold:
     // the hold cap and the stall start-up time are not restarted by slow repeats

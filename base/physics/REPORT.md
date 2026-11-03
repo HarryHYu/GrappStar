@@ -1,7 +1,7 @@
 # Worker `physics`: report
 
 Branch `w/physics`. Code in `base/physics/`, outputs in `base/out/physics/` and `base/out/ballistics.json` (+ meta).
-Run everything: `cd base/physics && ./run_all.sh` (pytest, every model, ballistics table, summary PDF, plots; ~6 min).
+Run everything: `cd base/physics && ./run_all.sh` (pytest, every model, ballistics table, summary PDF, plots; about 3 to 5 min).
 Every number runs on `base/spec/params.py` through `spec_bridge.py` (the only file that knows spec names).
 
 ## Done
@@ -9,7 +9,7 @@ Every number runs on `base/spec/params.py` through `spec_bridge.py` (the only fi
 | File | What |
 |---|---|
 | common.py | every assumption in one place: battery sag, wiper (one block, linear, 5 N m limiter), A228 extension spring (rate, hook and body limits, mass, surge), line, dart, 608, sprag, shaft, launcher/reel/capstan defaults |
-| spec_bridge.py | overlays base/spec/params.py (v1.0) onto the defaults, lists what it used in `p.spec_used` |
+| spec_bridge.py | overlays base/spec/params.py (v1.2) onto the defaults, lists what it used in `p.spec_used` |
 | launcher.py | spring launcher: chain (surge) and lumped spring models, pulley ratio, friction, reel inertia in the stroke, stop impact, coil clash |
 | flight.py | dart point mass with drag + bead-chain tether (line weight, cross-flow and skin drag, ground contact), ideal brake or coupled reel; spec geometry (pivot pulley, release point), range from the pivot ground point |
 | payout.py | storage reel geometry and inertia, slip clutch (constant torque, set as line tension with the reel full), centrifugal shoes, spin-up, overrun, bird's nest risk |
@@ -26,7 +26,7 @@ Every number runs on `base/spec/params.py` through `spec_bridge.py` (the only fi
 | summary.py, plots.py | SUMMARY.md + base/out/physics/physics_summary.pdf (one page, Liberation Sans, black) + two plain plots |
 | FINDINGS.md | problems and numbers for the spec (pushed from 11:15, kept current) |
 
-## Numbers (spec v1.0)
+## Numbers (spec v1.2)
 
 See FINDINGS.md "Current numbers" and SUMMARY.md (final values pasted below at the 18:20 push).
 
@@ -56,11 +56,11 @@ See FINDINGS.md "Current numbers" and SUMMARY.md (final values pasted below at t
 ## Open items / requests
 
 - Coordinator: clutch convention (LIGHT and FIRM are line tension with the reel full) into the spec text. The final
-  approach is marginal on FIRM 3 N (need about 5 N, or seat on the capstan). The rover mass, wheelbase and deck height
+  approach is fine on FIRM 5 N (D24, margin 1.5 to 1.9). The rover mass, wheelbase and deck height
   are assumed (4 kg, 0.30 m, 0.15 m).
 - Jetson: range_m is from the pivot ground point; the camera is 150 mm ahead of the pivot, so add the offset. Clamp
   to AIM.launch_pitch_range or ask me to narrow the table.
-- fw-base: trips (50 ms blank, 5 A / 30 ms in aim, reel and tow, 6.5 A cocking, tow trip at free + 1.3 A over 200 ms), and
+- fw-base: trips (50 ms blank; 30 ms hard trips at 5 A in aim, 6 A in REEL, 6.5 A cocking; tow trip at measured free current + 3.5 A for 50 N over 200 ms: line = 17 x (I - I_free) - 10.4 N at FIRM 5 N), and
   sample the BTS7960 IS pin in the PWM on-time.
 
 ## Harry must measure
@@ -70,6 +70,6 @@ See FINDINGS.md "Current numbers" and SUMMARY.md (final values pasted below at t
 2. Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s only), stall
    current. `python calib.py wiper ...` gives the block.
 3. Dart mass with ballast and tether knot (0.279 kg assumed).
-4. Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 3 N (or 5 N, see above).
+4. Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 5 N.
 5. Rail friction (tilt test) and the drum N20 torque.
 6. Rover: mass, wheelbase, deck height (recoil and launch height).

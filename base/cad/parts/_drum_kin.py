@@ -23,7 +23,7 @@ DEFAULTS = dict(
     launch=0.0,
     neutral=41.0,
     wrap_start=56.0,        # park before the wrap (params target 62 sits on a code edge; 56 is mid WRAP_PREP)
-    wrapped=309.0,          # wraps done, cup locked, collar NEUTRAL (params target 302 sits on a code edge)
+    wrapped=314.0,          # WRAPPED park: wraps done, cup locked, collar NEUTRAL (ramp from 318), clutch FIRM from 312
     reel=347.0,
     stop_hi=352.0,
     tr_ln=(8.0, 32.0),      # groove 1 transition LAUNCH -> NEUTRAL
@@ -37,13 +37,15 @@ DEFAULTS = dict(
     dog_backcut=4.0,        # flank back-cut (deg), both flanks: torque pulls the dogs together either way
     dog_roof=1.2,           # tip chamfer (mm) on each side of the crest
     dog_r_in=18.0, dog_r_out=26.0,
-    fork_k=1.5,             # fork yoke rate (N/mm): compliant when the dogs land tip to tip
+    fork_k=0.95,            # fork yoke rate (2.4 thick yoke) (N/mm): compliant when the dogs land tip to tip
     fork_free=4.5,          # yoke deflection when the dogs land tip to tip (stroke - dog_gap)
     # ---------------------------------------------------------------- track 2 (storage reel slip clutch preload)
     brake_lift=4.0,         # full radial lift (mm) = FIRM; 0 = LIGHT (cad-reel lever, 10 N design force)
-    brake_force=10.0,
+    brake_force=15.0,       # cad-reel pushrod at FIRM 5 N (D24): 7.8 N push at 3 N scaled to 13 N plus friction; cad-reel to confirm
     # (theta0, theta1, frac0, frac1): LAUNCH light, NEUTRAL firm (tidy), WRAP light, WRAPPED and REEL firm
-    brake_ramps=((8.0, 32.0, 0.0, 1.0), (50.0, 62.0, 1.0, 0.0), (302.0, 316.0, 0.0, 1.0)),
+    # FIRM before the WRAPPED park for the tidy: ramp 302..312 (302..309 would need 1.2 N m at FIRM 5 N, margin 1.8 < 2)
+    brake_ramps=((30.0, 40.0, 0.0, 1.0), (50.0, 62.0, 1.0, 0.0), (302.0, 312.0, 0.0, 1.0)),  # first ramp after the collar shift
+    brake_blend=0.2,        # ramp profile: constant slope with harmonic blends over this fraction at each end
     # ---------------------------------------------------------------- wrap drive (segment gear with locking arc)
     seg_m=1.25, seg_z=60,   # drum segment gear: module, tooth count of the full circle it is cut from
     seg_teeth=40,           # window = 40 pitches = 240 deg = 4 pinion turns
@@ -97,6 +99,14 @@ def cfg(P=None):
             for k in ("LAUNCH", "NEUTRAL", "WRAPPED", "REEL"):
                 if ang.get(k) is not None:
                     d[k.lower()] = float(ang[k])
+        n20 = over.get("n20")
+        if isinstance(n20, dict):              # params 1.2.5 interface numbers for the N20 train
+            pin, dg = n20.get("pinion") or {}, n20.get("drum_gear") or {}
+            d["n20_z"] = int(pin.get("teeth", d["n20_z"]))
+            d["drum_gear_m"] = float(dg.get("module", pin.get("module", d["drum_gear_m"])))
+            d["drum_gear_z"] = int(dg.get("teeth", d["drum_gear_z"]))
+            d["n20_stall_nm_9v"] = float(n20.get("stall_nm_design", d["n20_stall_nm_9v"]))
+            d["n20_v"] = float(n20.get("supply_v", d["n20_v"]))
         tg = over.get("targets")
         if isinstance(tg, dict):           # params v1.0 targets; the two on code edges are kept off the edges
             for k, kk in (("LAUNCH", "launch"), ("NEUTRAL", "neutral"), ("REEL", "reel")):
@@ -134,6 +144,24 @@ def collar_slope(theta, c=None, h=0.01):
     return (collar_x(theta + h, c) - collar_x(theta - h, c)) / math.radians(2 * h)
 
 
+def _trap(u, b):
+    """0..1 rise with constant slope in the middle and harmonic blends of width b at both ends (peak slope 1/(1-b))."""
+    u = min(1.0, max(0.0, u))
+    if b <= 0:
+        return u
+    v = 1.0 / (1.0 - b)                     # middle slope
+    if u < b:
+        return _blend(u, b, v)
+    if u > 1 - b:
+        return 1.0 - _blend(1.0 - u, b, v)
+    return _blend(b, b, v) + v * (u - b)
+
+
+def _blend(u, b, v):
+    """Distance covered from rest with the slope rising as v sin^2(pi u / (2 b)) over 0..b."""
+    return v * (u / 2 - (b / (2 * math.pi)) * math.sin(math.pi * u / b))
+
+
 def brake_frac(theta, c=None):
     """Track 2 lift fraction 0 (light) .. 1 (firm)."""
     c = c or DEFAULTS
@@ -142,7 +170,7 @@ def brake_frac(theta, c=None):
         if theta >= t1:
             f = f1
         elif theta > t0:
-            return f0 + (f1 - f0) * _harm((theta - t0) / (t1 - t0))
+            return f0 + (f1 - f0) * _trap((theta - t0) / (t1 - t0), c.get("brake_blend", 0.2))
     return f
 
 
@@ -223,13 +251,14 @@ def K_wrapped_flat(theta, c=None):
 
 
 def code_lift(theta, bit, c=None):
-    """Nub centre lift fraction 0..1 of code band `bit` at drum angle theta (ramps centred on the arc edges)."""
+    """Nub centre lift fraction 0..1 of code band `bit` at drum angle theta. The lever contact closes at 80 percent of
+    the lift, so the ramps put 0.8 exactly on the arc edges: the closing edge is the code edge."""
     c = c or DEFAULTS
     h = c["code_ramp"]
     best = 0.0
     for a0, a1 in c["code_arcs"]["b%d" % bit]:
         d = min(theta - a0, a1 - theta)
-        best = max(best, min(1.0, max(0.0, 0.5 + d / (2 * h))))
+        best = max(best, min(1.0, max(0.0, 0.8 + d / (2 * h))))     # 80 percent (contact closes) at the edge
     return best
 
 
@@ -280,16 +309,19 @@ def cam_eta(slope_mm_per_rad, r_mm, mu=0.3):
     return math.tan(phi) / math.tan(min(phi + rho, math.radians(89.0)))
 
 
-def loads(c=None, r_groove=30.0, r_cam=24.0, rack_arm=45.0, sleeve_len=40.0, mu=0.3, residual_nm=0.2):
+def loads(c=None, r_groove=30.0, r_cam=32.0, arm_pin=36.5, arm_yoke=63.2, sleeve_len=66.0, mu=0.3, mu_rail=0.25,
+          residual_nm=0.2):
     """Drum torque budget (N m at the drum) along the travel.
 
     Fork: yoke force at a full tip-to-tip block (fork_k x fork_free) plus 3 N rail friction, times the racking factor
-    of the long carrier (pin 45 mm off the rail, 40 mm sleeve: 1 + 2 mu arm / sleeve), through the groove at its local
+    of the long carrier (see below), through the groove at its local
     pressure angle. Disengage: 0.2 N m residual train torque after the firmware unload jog. Brake: cad-reel follower force through the cam at its pressure angle. Wrap: cup torque geared up by
     the wrap train. Loads at the same angle add. N20 margin rule (params.DRUM.n20_ratio_min_margin): stall / peak >= 2."""
     c = c or DEFAULTS
     eta_gear = 0.9
-    rack = 1.0 + 2.0 * mu * rack_arm / sleeve_len
+    # racking of the long fork carrier: pin force / yoke force = (1 + 2 mu a / L) / (1 - 2 mu b / L) with the yoke
+    # reaction a = 63.2 and the pin b = 36.5 from the rail, sleeve L = 66, mu 0.25 on a greased rail
+    rack = (1.0 + 2.0 * mu_rail * arm_yoke / sleeve_len) / (1.0 - 2.0 * mu_rail * arm_pin / sleeve_len)
     f_fork = (c["fork_k"] * c["fork_free"] + 3.0) * rack
     r_dog = 0.5 * (c["dog_r_in"] + c["dog_r_out"]) / 1000.0
     f_dis = ((residual_nm / r_dog) * (mu + math.tan(math.radians(c["dog_backcut"]))) + 3.0) * rack
@@ -353,7 +385,7 @@ def stop_plan(c=None):
         if above:
             e = above[0]
             p = dict(target=name.upper(), dir=-1, edge=e[0], code_from=e[2], code_to=e[1], extra_deg=e[0] - tgt)
-            if p["extra_deg"] > 20.0 and below:
+            if p["extra_deg"] > 30.0 and below:
                 # too far to run by time: pass the target down to the edge below it, then come back up
                 eb = below[-1]
                 p = dict(target=name.upper(), dir=-1, method="pass_and_return", edge=eb[0], code_from=eb[2],
@@ -389,14 +421,15 @@ def firmware_table(c=None):
     """Everything fw-base needs, JSON-ready (written to drum_table.json by `python _drum_kin.py --json`)."""
     c = c or DEFAULTS
     return dict(
-        version="drum v4 (BASE_SPEC v1.0)",
+        version="drum v6 (params v1.2.6)",
         positions={k.upper(): c[k] for k in ("launch", "neutral", "wrap_start", "wrapped", "reel")},
         stops=[c["stop_lo"], c["stop_hi"]],
         code_table_ABC={code_abc(k): v for k, v in CODE_TABLE.items()},
         code_bits={"SW_DRUM_A": "b0", "SW_DRUM_B": "b1", "SW_DRUM_C": "b2"},
         code_arcs={k: [list(a) for a in v] for k, v in c["code_arcs"].items()},
         edges=[dict(deg=e[0], below=code_abc(e[1]), above=code_abc(e[2])) for e in edges(c)],
-        stop_plan=stop_plan(c),
+        stop_plan=[dict(p, code_from=code_abc(p["code_from"]), code_to=code_abc(p["code_to"])) for p in stop_plan(c)],
+        code_note="all codes are strings of bits A B C (1 = contact closed), as params.DRUM.codes",
         timing_s=timing(c),
         dps_nominal=drum_dps(c),
         wrap_window=[c["seg_start"], c["seg_start"] + seg_span(c)],
@@ -405,14 +438,18 @@ def firmware_table(c=None):
         brake_ramps=[list(r) for r in c["brake_ramps"]],
         rules=[
             "Positive drum = N20 forward (DRV8833 #3 AIN1 high) = toward REEL = wrap direction.",
-            "Wiper stopped before every drum move, except the fly-in into REEL: creep the wiper forward over 318..340.",
+            "Wiper stopped before drum moves, except: the fly-in into REEL (creep forward over 318..340) and the unwrap "
+            "(WRAPPED back to NEUTRAL with the wiper creeping forward for the bus take-up).",
             "Check SW_DOG_L / SW_DOG_R during and after every move: LAUNCH needs DOG_L closed, REEL needs DOG_R closed, "
             "NEUTRAL / WRAP_PREP / WRAP / WRAPPED need both open; never enter the wrap window with either closed.",
             "Dog not closed in LAUNCH: jog the wiper +-8 deg; in REEL: creep forward only (sprag #2 blocks backward).",
             "Leaving LAUNCH or REEL under load: unload jog 8 deg against the last load first. SWITCH_DISAGREE after 3 tries.",
-            "Fault from REEL or N_TO_R: go to WRAPPED (309), never back through the wrap window. Fault from LAUNCH or L_TO_N: NEUTRAL.",
-            "Boot: LAUNCH / L_TO_N / NEUTRAL / WRAP_PREP -> NEUTRAL; WRAP -> stop and report; N_TO_R / REEL -> WRAPPED.",
-            "Unwrap (WRAPPED back to NEUTRAL): drum negative with the wiper creeping forward (bus take-up).",
+            "Fault in LAUNCH or L_TO_N: HOLD the drum unless SW_HOME is closed (spring not drawn), then NEUTRAL (BASE_SPEC D27).",
+            "Fault with the wraps on (WRAP, N_TO_R, REEL): the drum HOLDS where it is (D27, MODE err DRUM_HELD), never "
+            "NEUTRAL (that would unwrap under tow); the operator unwraps when safe.",
+            "Boot: LAUNCH / L_TO_N -> hold until SW_HOME, then NEUTRAL; NEUTRAL / WRAP_PREP -> NEUTRAL; WRAP / N_TO_R / "
+            "REEL -> hold and report.",
+            "Going from REEL to WRAPPED (operator): by time from edge 342 (28 deg), never back into the wrap window.",
             "SW_N20 open = hand fallback active: no drum moves.",
             "Code 000 = DRUM_SENSOR fault. Timeout = 2 x nominal + 2 s: DRUM_TIMEOUT.",
             "SW_INDEX: 6 pulses per wiper turn (degraded mode without the AS5600 magnet).",

@@ -83,7 +83,7 @@ def test_brake_levels():
     assert K.brake_frac(C["launch"]) == 0.0
     assert K.brake_frac(C["neutral"]) == pytest.approx(1.0)
     assert K.brake_frac(180.0) == 0.0
-    assert 0.0 < K.brake_frac(C["wrapped"]) < 1.0      # ramping LIGHT to FIRM over 302..316 (params)
+    assert K.brake_frac(C["wrapped"]) == pytest.approx(1.0)   # FIRM at the WRAPPED park for the tidy (D22)
     assert K.brake_frac(C["reel"]) == pytest.approx(1.0)
 
 
@@ -91,8 +91,8 @@ def test_code_lift_matches_code():
     th = C["stop_lo"]
     while th <= C["stop_hi"]:
         for b in range(3):
-            if K.code_lift(th, b) not in (0.5,):
-                assert (K.code_lift(th, b) > 0.5) == bool(K.code(th) >> b & 1), (th, b)
+            if abs(K.code_lift(th, b) - 0.8) > 1e-9:
+                assert (K.code_lift(th, b) > 0.8) == bool(K.code(th) >> b & 1), (th, b)
         th += 0.1
 
 

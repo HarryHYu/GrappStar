@@ -81,7 +81,8 @@ def test_block_seat_matches_bearing(P):
 def test_adapter_slots_follow_params(P):
     w = dict(MOT.WIPER_DEFAULT)
     w["mount_holes"] = [(-30.0, 40.0, 6.5), (-30.0, -40.0, 6.5), (80.0, 5.0, 6.5)]
-    assert MOT.adapter_checks(w) == []
+    assert MOT.adapter_checks(w) == [], MOT.adapter_checks(w)
+    assert len(MOT.ring_used(w)) >= MOT.RING_MIN
     ad = MOT.adapter_plate(w, 10.0)
     # a bolt at every nominal hole and at both slot ends passes through
     for (hx, hy, hd) in w["mount_holes"]:
@@ -90,8 +91,8 @@ def test_adapter_slots_follow_params(P):
             x, y = hx + hx / r * s, hy + hy / r * s
             bolt = prim.cyl(w["bolt_d"] / 2 - 0.05, 30, x, y, -5)
             assert (ad ^ bolt).volume() < 1e-6, (hx, hy, s)
-    # a hole on the ring screws is flagged
-    w["mount_holes"] = [(MOT.ring_xy(0)[0], MOT.ring_xy(0)[1], 6.5)]
+    # a pattern that leaves too few ring screws is flagged
+    w["mount_holes"] = [(MOT.ring_xy(i)[0] * 1.05, MOT.ring_xy(i)[1] * 1.05, 6.5) for i in range(12)]
     assert MOT.adapter_checks(w)
 
 
@@ -157,6 +158,8 @@ def test_bay_usb_faces_free_space(P, B):
 def test_as5600_on_axis(P, B):
     C = B["info"]["cfg"]
     mo = np.asarray(C["layout"][C["main"]]["origin"])
+    if not any(p.name == "frame_pcb_as5600" for p in B["parts"]):
+        pytest.skip("v1.1 (D23): the AS5600 bracket belongs to cad-launch")
     pcb = next(p for p in B["parts"] if p.name == "frame_pcb_as5600")
     return  # magnet now owned by cad-drum (checked in the full assembly)
     (x0, y0, z0), (x1, y1, z1) = prim.bbox(pcb.solid)
@@ -262,10 +265,10 @@ def test_adapter_ring_screws_line_up(P, rot):
     ad = prim.place(parts_["frame_motor_adapter"].solid, parts_["frame_motor_adapter"].place)
     ck = [prim.place(p.solid, p.place) for n, p in parts_.items() if n.startswith("frame_cheek_" + ("r" if ms < 0 else "l"))]
     Mad = C["to_world"] @ Bq["info"]["M_adapter"]
-    tz = MOT.PLATE_T + C["fw"]["adapter_standoff"]
-    for i in range(MOT.RING_N):
+    tz = MOT.PLATE_T + C["fw"]["adapter_standoff"] + MOT.SPIGOT_H
+    for i in MOT.ring_used(C["wiper"]):
         x, y = MOT.ring_xy(i)
-        a = tf.apply(Mad, [(x, y, tz + 10.0 + 3.0)])[0]    # past the cheek inner face
+        a = tf.apply(Mad, [(x, y, tz + 8.0 + 3.0)])[0]     # past the plate inner face
         b = tf.apply(Mad, [(x, y, tz - 5.5)])[0]           # insert bottom
         rod = prim.cylY(1.4, min(a[1], b[1]), max(a[1], b[1]), a[0], a[2])
         assert (rod ^ ad).volume() < 1e-6, (rot, i, "adapter")

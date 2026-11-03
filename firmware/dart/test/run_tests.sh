@@ -4,6 +4,8 @@ set -e
 cd "$(dirname "$0")"
 g++ -std=c++17 -O1 -Wall -Wextra -I../kedge_dart -o test_logic test_logic.cpp
 ./test_logic
+g++ -std=c++17 -O2 -Wall -Wextra -I../kedge_dart -o fuzz_logic fuzz_logic.cpp
+./fuzz_logic --quick | tail -16          # randomized property test, 1000 episodes (full run: ./fuzz_logic)
 python3 - <<'PY'
 import json, glob, sys
 bad = 0
@@ -26,9 +28,9 @@ PY
 
 # Host simulator of the real sketch (about 40 s). Skip with: ./run_tests.sh --quick
 if [ "$1" != "--quick" ] && command -v make >/dev/null; then
-  if ( cd ../sim && make -s && python3 test_sim.py && { ! command -v node >/dev/null || node test_page.js; } ) > out/sim.log 2>&1; then
+  if ( cd ../sim && make -s && python3 test_sim.py && python3 test_jetson_client.py && { ! command -v node >/dev/null || node test_page.js; } ) > out/sim.log 2>&1; then
     grep -E "^Ran|^OK|passed, " out/sim.log
-    echo "dart firmware: host logic checks ALL PASS, simulator HTTP tests OK, web page browser checks OK"
+    echo "dart firmware: host logic checks ALL PASS, simulator HTTP tests OK, Jetson client tests OK, web page browser checks OK"
   else
     tail -30 out/sim.log; echo "SIMULATOR TESTS FAILED"; exit 1
   fi

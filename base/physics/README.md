@@ -5,7 +5,7 @@ files in this folder. They read the shared numbers from `base/spec/params.py`. W
 the measured value in the spec and run everything again; the ballistics table for the Jetson and the summary PDF
 update themselves.
 
-## Run everything (about 6 minutes)
+## Run everything (about 3 to 5 minutes)
 
 1. Open a terminal in the repo.
 2. `cd base/physics`
@@ -33,10 +33,18 @@ update themselves.
 3. `python calib.py wiper --v 12.0 --rpm 44 --i-free 1.4 --stall-kg 3.1 --arm-mm 100 --i-stall 17` (your numbers).
 4. Ask for the printed values to go into `WIPER` in `base/spec/params.py`, then `./run_all.sh`.
 
+## After the first real shots (the best calibration of all)
+
+1. On level ground, fire 2 or 3 shots at different pitches (for example 20 and 36 deg) with the LIGHT clutch.
+2. Measure each range from the ground point under the rail pivot to where the dart first touched down.
+3. `python calib.py range 20:0.5:3.6 36:0.5:4.2` (pitch:brake:range for each shot).
+4. It prints a muzzle speed factor. Then `python ballistics.py --v-scale <factor>` rewrites the table the
+   Jetson uses. This corrects spring, friction and reel errors in one step.
+
 ## Other numbers worth measuring
 
 - Dart mass on a kitchen scale with the ballast and tether knot (0.279 kg assumed).
-- Slip clutch: luggage scale on the line with the reel full. LIGHT should read 0.5 N, FIRM 3 N.
+- Slip clutch: luggage scale on the line with the reel full. LIGHT should read 0.5 N, FIRM 5 N.
 - Rail friction: tilt the rail with the dart on it until it slides. mu = tan(angle).
 - Rover mass, wheelbase and deck height (for recoil and launch height): edit `ROVER` in `recoil.py` and
   `deck_h` in `common.py`.
@@ -47,4 +55,4 @@ See `REPORT.md` (table "Done"). Problems found for the design are in `FINDINGS.m
 
 ## Tests
 
-`python -m pytest -q` in this folder runs every check (about 25 s). They never write to `base/out` or `kedge/`.
+`python -m pytest -q` in this folder runs every check (about 25 s). They never write to `base/out` or `kedge/out30` (the conftest checks it).

@@ -1,10 +1,10 @@
 {
- "version": "drum v4 (BASE_SPEC v1.0)",
+ "version": "drum v6 (params v1.2.6)",
  "positions": {
   "LAUNCH": 0.0,
   "NEUTRAL": 41.0,
   "WRAP_START": 56.0,
-  "WRAPPED": 309.0,
+  "WRAPPED": 314.0,
   "REEL": 347.0
  },
  "stops": [
@@ -91,75 +91,74 @@
    "target": "LAUNCH",
    "dir": -1,
    "edge": 6.0,
-   "code_from": 3,
-   "code_to": 1,
+   "code_from": "110",
+   "code_to": "100",
    "extra_deg": 6.0
   },
   {
    "target": "NEUTRAL",
    "dir": 1,
    "edge": 34.0,
-   "code_from": 3,
-   "code_to": 2,
+   "code_from": "110",
+   "code_to": "010",
    "extra_deg": 7.0
   },
   {
    "target": "NEUTRAL",
    "dir": -1,
    "edge": 50.0,
-   "code_from": 6,
-   "code_to": 2,
+   "code_from": "011",
+   "code_to": "010",
    "extra_deg": 9.0
   },
   {
    "target": "WRAP_START",
    "dir": 1,
    "edge": 50.0,
-   "code_from": 2,
-   "code_to": 6,
+   "code_from": "010",
+   "code_to": "011",
    "extra_deg": 6.0
   },
   {
    "target": "WRAP_START",
    "dir": -1,
    "edge": 62.0,
-   "code_from": 4,
-   "code_to": 6,
+   "code_from": "001",
+   "code_to": "011",
    "extra_deg": 6.0
   },
   {
    "target": "WRAPPED",
    "dir": 1,
    "edge": 302.0,
-   "code_from": 4,
-   "code_to": 5,
-   "extra_deg": 7.0
+   "code_from": "001",
+   "code_to": "101",
+   "extra_deg": 12.0
   },
   {
    "target": "WRAPPED",
    "dir": -1,
-   "method": "pass_and_return",
-   "edge": 302.0,
-   "code_from": 5,
-   "code_to": 4,
-   "extra_deg": 7.0,
-   "note": "drive - until the edge, then + by extra_deg"
+   "edge": 342.0,
+   "code_from": "111",
+   "code_to": "101",
+   "extra_deg": 28.0
   },
   {
    "target": "REEL",
    "dir": 1,
    "edge": 342.0,
-   "code_from": 5,
-   "code_to": 7,
+   "code_from": "101",
+   "code_to": "111",
    "extra_deg": 5.0
   }
  ],
+ "code_note": "all codes are strings of bits A B C (1 = contact closed), as params.DRUM.codes",
  "timing_s": {
   "dps": 8.1,
   "launch_to_neutral": 5.061728395061729,
-  "neutral_to_wrapped": 33.086419753086425,
+  "neutral_to_wrapped": 33.7037037037037,
   "wrap_window": 29.62962962962963,
-  "wrapped_to_reel": 4.691358024691358,
+  "wrapped_to_reel": 4.074074074074074,
   "launch_to_reel": 42.839506172839506,
   "full_travel": 43.95061728395062
  },
@@ -181,8 +180,8 @@
  },
  "brake_ramps": [
   [
-   8.0,
-   32.0,
+   30.0,
+   40.0,
    0.0,
    1.0
   ],
@@ -194,20 +193,21 @@
   ],
   [
    302.0,
-   316.0,
+   312.0,
    0.0,
    1.0
   ]
  ],
  "rules": [
   "Positive drum = N20 forward (DRV8833 #3 AIN1 high) = toward REEL = wrap direction.",
-  "Wiper stopped before every drum move, except the fly-in into REEL: creep the wiper forward over 318..340.",
+  "Wiper stopped before drum moves, except: the fly-in into REEL (creep forward over 318..340) and the unwrap (WRAPPED back to NEUTRAL with the wiper creeping forward for the bus take-up).",
   "Check SW_DOG_L / SW_DOG_R during and after every move: LAUNCH needs DOG_L closed, REEL needs DOG_R closed, NEUTRAL / WRAP_PREP / WRAP / WRAPPED need both open; never enter the wrap window with either closed.",
   "Dog not closed in LAUNCH: jog the wiper +-8 deg; in REEL: creep forward only (sprag #2 blocks backward).",
   "Leaving LAUNCH or REEL under load: unload jog 8 deg against the last load first. SWITCH_DISAGREE after 3 tries.",
-  "Fault from REEL or N_TO_R: go to WRAPPED (309), never back through the wrap window. Fault from LAUNCH or L_TO_N: NEUTRAL.",
-  "Boot: LAUNCH / L_TO_N / NEUTRAL / WRAP_PREP -> NEUTRAL; WRAP -> stop and report; N_TO_R / REEL -> WRAPPED.",
-  "Unwrap (WRAPPED back to NEUTRAL): drum negative with the wiper creeping forward (bus take-up).",
+  "Fault in LAUNCH or L_TO_N: HOLD the drum unless SW_HOME is closed (spring not drawn), then NEUTRAL (BASE_SPEC D27).",
+  "Fault with the wraps on (WRAP, N_TO_R, REEL): the drum HOLDS where it is (D27, MODE err DRUM_HELD), never NEUTRAL (that would unwrap under tow); the operator unwraps when safe.",
+  "Boot: LAUNCH / L_TO_N -> hold until SW_HOME, then NEUTRAL; NEUTRAL / WRAP_PREP -> NEUTRAL; WRAP / N_TO_R / REEL -> hold and report.",
+  "Going from REEL to WRAPPED (operator): by time from edge 342 (28 deg), never back into the wrap window.",
   "SW_N20 open = hand fallback active: no drum moves.",
   "Code 000 = DRUM_SENSOR fault. Timeout = 2 x nominal + 2 s: DRUM_TIMEOUT.",
   "SW_INDEX: 6 pulses per wiper turn (degraded mode without the AS5600 magnet)."

@@ -43,7 +43,9 @@ CAP_GEAR = dict(module=2.0, face=12.0, z_driver=50)  # REEL gear 40 T on the wip
 # recommended firmware current trip (all modes)
 TAKEUP_OVERSPEED = 2.5    # take-up bus overdrive (spec D15, DRUM.bus.overdrive_total)
 TRIP_BLANK_MS = 50       # ignore current after start (inrush)
-TRIP_HARD_A = 5.0        # hard trip, motor current (aim, reel, tow)
+TRIP_HARD_A = 5.0        # hard trip, motor current: reel-in (D33)
+TRIP_AIM_A = 3.0         # recommended for aim: the real splitter m1.5 z30 face 8 fails Lewis at 5 A (aim peak 1.9 A)
+TRIP_REEL_A = 6.5        # hard trip while towing (D33, firmware has it): above the 50 N tow trip (~5 A), below limiter slip (7 A)
 TRIP_COCK_A = 6.5        # hard trip while cocking (launch mode forward): cock peak is ~4.6 A
 TRIP_HARD_MS = 30
 TRIP_TOW_AVG_MS = 200
@@ -210,7 +212,7 @@ def fw_trip(p: Params, tow_limit: float | None = None, overspeed: float | None =
     """Recommended firmware current trip and what the hard trip means mechanically."""
     tow_limit = p.capstan["tow_limit_n"] if tow_limit is None else tow_limit
     g = CAP_GEAR if gear is None else gear
-    t_hard = p.wiper.kt * (TRIP_HARD_A - p.wiper.i_free)
+    t_hard = p.wiper.kt * (TRIP_REEL_A - p.wiper.i_free)
     m = gears.mesh(t_hard, p.capstan["ratio"], g["module"], g["z_driver"], g["face"], PPA_CF, 0.0)
     cl = current_limit_for(tow_limit, p, overspeed)
     lim = limiter_nm(p)
@@ -227,14 +229,14 @@ def fw_trip(p: Params, tow_limit: float | None = None, overspeed: float | None =
                 f"mechanical slip clutch of about {CLUTCH_REEL_NM:.0f} N m on the REEL output gear")
         fuse = f"the 20 A fuse holds a {i_m:.0f} A stall indefinitely: it is wiring protection only"
     return dict(
-        blank_ms=TRIP_BLANK_MS, hard_a=TRIP_HARD_A, hard_ms=TRIP_HARD_MS, hard_torque=t_hard,
+        blank_ms=TRIP_BLANK_MS, hard_a=TRIP_REEL_A, hard_ms=TRIP_HARD_MS, hard_torque=t_hard,
         hard_gear_sf=m["sf"], hard_gear_pass=m["pass"], hard_drum_torque=drum_shaft_torque(t_hard, p),
         hard_line_n=line_from_wiper(t_hard, p, overspeed),
         tow_trip_delta_a=cl["delta_over_free"], tow_trip_avg_ms=TRIP_TOW_AVG_MS,
         tow_trip_rule=f"measured free current + {cl['delta_over_free']:.2f} A, averaged over {TRIP_TOW_AVG_MS} ms",
         notes=[
-            f"ignore current for {TRIP_BLANK_MS} ms after start; hard trip at {TRIP_HARD_A} A for {TRIP_HARD_MS} ms in "
-            f"aim, reel and tow ({t_hard:.2f} N m at the wiper), {TRIP_COCK_A} A while cocking "
+            f"ignore current for {TRIP_BLANK_MS} ms after start; hard trip for {TRIP_HARD_MS} ms at {TRIP_HARD_A} A in reel-in "
+            f"(D33; {TRIP_AIM_A} A recommended in aim), {TRIP_REEL_A} A towing ({t_hard:.2f} N m at the wiper), {TRIP_COCK_A} A while cocking "
             f"({p.wiper.kt * (TRIP_COCK_A - p.wiper.i_free):.2f} N m)",
             prot,
             fuse,
@@ -431,6 +433,8 @@ def main(argv=None):
     ap.add_argument("--tow", type=float, default=None)
     ap.add_argument("--mu", type=float, default=None)
     a = ap.parse_args(argv)
+    _defaults = vars(ap.parse_args([]))
+    write_ok = vars(a) == _defaults   # odd flags never overwrite the committed output
     r = run(tow=a.tow, mu=a.mu)
     i = r["inputs"]
     print(f"capstan d {i['drum_d']*1000:.0f} mm, ratio {i['ratio']}, eta {i['eta']}, wraps {i['wraps']}, "
@@ -489,7 +493,10 @@ def main(argv=None):
         print("INFO:")
         for x in r["info"]:
             print(" -", x)
-    print("wrote", write_json(r, "capstan.json"))
+    if write_ok:
+        print("wrote", write_json(r, "capstan.json"))
+    else:
+        print("(non-default flags: base/out/physics/capstan.json left unchanged)")
     return r
 
 

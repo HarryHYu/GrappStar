@@ -30,7 +30,7 @@ Write each number with its unit. Photo: the file name of the caliper photo in `o
 | Item | Result (with unit) .................... | Photo file or note ................ |
 |---|---|---|
 | C1 608 bearings (buy 10) |  |  |
-| C2 M8 bolts or 8 mm steel rod, and their lengths |  |  |
+| C2 One M8 x 25 bolt and nut (the CAD's bought list), and any M8 ... |  |  |
 | C3 Worm N20 count: you need 4 (dart kick, deploy, foot, and the ... |  |  |
 | C4 MP1584 #2 (the spare from the dart build; confirm it, decision ... |  |  |
 | C5 DRV8833 #3 (freed from the dart by the new pin map) |  |  |
@@ -41,14 +41,15 @@ Write each number with its unit. Photo: the file name of the caliper photo in `o
 | C10 Yellow RCA lead |  |  |
 | C11 USB data cable for the DevKitC, STEMMA QT to Dupont cable |  |  |
 | C12 M3 screws (lengths from the base print list), M3 nuts, M3 ... |  |  |
-| C13 AS5600 magnet: any small neodymium disc (6 to 10 mm, 2 to 3 mm ... |  |  |
-| C14 Optional: a second pair of the launch springs (Bunnings I/N ... |  |  |
+| C13 AS5600 magnet (recommended): any small neodymium disc (6 to 10 ... |  |  |
+| C14 Launch springs: two only (decision D38) |  |  |
 | C15 8 mm steel rod (or M8 bolts) for: reel shaft S, aim worm wheel ... |  |  |
 | C16 Hardware the CAD assumes: M3 x 4 x 5 heat-set inserts; M3 ... |  |  |
 | C17 JST SH 4-pin (STEMMA QT) cable 400 mm or longer for the AS5600 |  |  |
 | C18 Carriage stop |  |  |
 | C19 PETG filament (brake rocker) |  |  |
 | C20 How many 693ZZ / F693ZZ bearings are left after the dart (the ... |  |  |
+| C21 Risk coupon extras listed in base/pack/coupons/COUPON_TEST.md: ... |  |  |
 
 ## D. Electrical labels to read
 

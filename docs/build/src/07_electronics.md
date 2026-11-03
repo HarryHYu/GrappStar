@@ -6,8 +6,8 @@ Battery unplugged for every step in this section. Two documents, used in this or
    wire the ESP32, BTS7960, DRV8833, sensors and contacts, run the meter checks, first power with the ESP32 on the
    Mac's USB. Then `firmware/base/BENCH_TEST.md`.
 2. **The whole rover** (7.1, the system page): the XT60 Y harness, the fuses, the Jetson and video, and the first
-   power-on of everything together (its section 4). Do this once the base is on the rover, and again after any
-   rewiring.
+   power-on of everything together (its part 4). Do this once the base is assembled and on the rover (order of
+   work step 9), and again after any rewiring.
 
 One-page printable pin sheets for the bench: `docs/build/Wiring_Cheat_Sheet_Base.pdf` (base ESP32-S3) and
 `docs/build/Wiring_Cheat_Sheet_Dart.pdf` (dart XIAO).

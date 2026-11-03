@@ -22,6 +22,9 @@ LAUNCH_MAP = {
     "mu_rail": ("launch", "mu_rail", 1.0),
     "stop_pad_travel": ("launch", "stop_pad_travel", 1e-3),
     "spring_preload": ("launch", "preload_ext", 1e-3),
+    "line_guide_u": ("launch", "line_guide_u", 1e-3),
+    "line_guide_w": ("launch", "line_guide_w", 1e-3),
+    "tail_home_u": ("launch", "tail_home_u", 1e-3),
     "carriage_mass_target_kg": ("launch", "carriage_mass", 1.0),
     "muzzle_height": ("launch", "muzzle_height", 1e-3),
 }
@@ -103,6 +106,9 @@ def apply(p, path=None):
             setattr(p.battery, pk, float(b[sk]))
     _overlay(p, getattr(mod, "LAUNCH", None), LAUNCH_MAP, used)
     lt = getattr(mod, "LAUNCH", None) or {}
+    if lt.get("carriage_mass_target_g") is not None:          # D36 (wins over the older _kg key)
+        p.launch["carriage_mass"] = float(lt["carriage_mass_target_g"]) * 1e-3
+        used.append("LAUNCH.carriage_mass_target_g")
     if isinstance(lt.get("stop"), dict) and lt["stop"].get("travel_min") is not None:
         p.launch["stop_pad_travel"] = float(lt["stop"]["travel_min"]) * 1e-3
         used.append("LAUNCH.stop.travel_min")
@@ -143,7 +149,7 @@ def apply(p, path=None):
     if isinstance(dr, dict) and dr.get("torque_limiter_nm") is not None:
         p.wiper.limiter_nm = float(dr["torque_limiter_nm"])
         used.append("DRUM.torque_limiter_nm")
-    # SPRING.max_ext only caps (launch.py flags over_safe); the stroke comes from LAUNCH or the D5 defaults
+    # SPRING.max_ext only caps (launcher.py flags over_safe); the stroke comes from LAUNCH or the D5 defaults
     _overlay(p, getattr(mod, "AIM", None), AIM_MAP, used)
     _overlay(p, getattr(mod, "REEL", None), REEL_MAP, used)
     pending = [n for n in ("LAUNCH", "AIM", "REEL", "LAYOUT") if getattr(mod, n, None) is None]

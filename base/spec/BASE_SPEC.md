@@ -153,15 +153,46 @@ WRAP at once while the line is slack (drum 62..302, wiper off) -> WRAPPED park (
 time: the FIRM take-up pulls the slack through the free capstan) -> REEL fly-in (wiper creeping forward while the
 drum enters REEL, then SW_DOG open) -> TOW (tow current limit) -> dart release -> reel in on the capstan until about
 1.5 m remain -> unload jog -> drum back to the WRAPPED park 314 (collar to NEUTRAL) -> UNWRAP (drum
-302..62 while the wiper turns forward at about 30 percent, take-up only) -> NEUTRAL final approach on the FIRM
+302..62 while the wiper turns forward at about 40 percent (the firmware cap), take-up only) -> NEUTRAL final approach on the FIRM
 take-up until SW_SEATED (fault DART_STUCK after 20 s) -> LAUNCH. A no-go landing retrieves the unanchored dart on
 the take-up (or after a wrap, on the capstan).
 De-cock: from a partial cock run backward until SW_HOME and SW_GAP close. Refusals: no fire unless LAUNCH, SW_HOME,
 SW_GAP, SW_SEATED and a valid token; aim only at HOME; no drum move unless the wiper is stopped; no leaving LAUNCH
-unless SW_HOME; wiper backward refused outside LAUNCH except the 30 deg unload jog. Current trips (D8): ignore 50 ms
+unless SW_HOME; wiper backward refused outside LAUNCH except the 8 deg unload jog (params DRUM). Current trips (D8): ignore 50 ms
 after a start; 5 A for 30 ms in aim, reel and tow; 6.5 A while cocking; tow at free current plus the 50 N equivalent
 averaged over 200 ms. Any fault: wiper off, drum to NEUTRAL, except when wraps are on, the spring is drawn, or the drum itself faulted:
 then the drum HOLDS (D27).
+
+### 10.1 C1 command sequence (binding, D35)
+
+One sequence for the firmware, PROTOCOL.md, the Jetson mission, the mock base and the system test. Each line: what the
+Jetson sends, what ends the wait. Everything else in C1 stays as PROTOCOL.md documents it.
+
+| Step | Jetson sends | Wait for | Notes |
+|---|---|---|---|
+| 1 | `mode` LAUNCH | `MODE` ok | after every shift into LAUNCH the aim is forgotten |
+| 2 | `aim` deg | `AIMED` | homes on SW_RAIL_LOW first |
+| 3 | `cock` (optional) | `COCKED` | |
+| 4 | `arm` | reply with `token` | valid 3 s |
+| 5 | `fire` token | `FIRED`, then `RESET` | |
+| 6 | dart LANDED: `set` line_m | reply | from the landing distance |
+| 7 | (Jetson landing-zone verdict) | | NO_GO: skip 9 to 13, go to 14 (reel in on the capstan if wrapped, else 16) |
+| 8 | `mode` NEUTRAL | `MODE` ok | may be skipped: `wrap` also starts from LAUNCH |
+| 9 | `wrap` | `WRAPPED` | the drum parks at WRAPPED 314: cup locked, collar NEUTRAL, clutch FIRM. No `MODE` REEL here. Allow 90 s (about 42 s from LAUNCH at 8.1 deg/s) |
+| 10 | dart `/auto` | dart phase ANCHORED | |
+| 11 | `tidy` {ms, duty} | `TIDIED` | take-up only, by time (default 3000 ms, duty 0.3). `reel` until `slip` stays as an alternative |
+| 12 | `mode` REEL | `MODE` ok (REEL) | the REEL fly-in from the park |
+| 13 | `reel` {duty 1, max_n, until `tension`} | `LIMIT` holding | the tow; max_n at most 70 N (D39) |
+| 14 | `stop`, then dart `/release` | `ABORTED`, then dart phase RELEASING and out of ANCHORED | the worm holds the line while the dart lets go |
+| 15 | `reel` {until `stop`}, then `stop` at line_m about 1.5 | `ABORTED` | capstan reel-in |
+| 16 | `unwrap` | `UNWRAPPED`, then `MODE` NEUTRAL | skipped when never wrapped |
+| 17 | `retrieve` {duty 0.3, max_s} | `SEATED` | take-up final approach in NEUTRAL only (FAULT `DART_STUCK` after max_s: default 20 + line_m / 0.08 s, the take-up is slow). Never seat on the capstan |
+| 18 | `mode` LAUNCH | `MODE` ok | back to 2 |
+
+Recovery: a fault or stop while cocking leaves the phase UNKNOWN: `decock` (same as `cal decock`), wait `RESET`, then
+`aim` again (the decock turns the aim train). A fault in the tow or the check pull offers "Release the dart" (step 14
+on), and a retry never restarts a pull that is already over the limit. A fault with the wraps on (REEL, N_TO_R, the
+WRAP sector or the park) HOLDS the drum where it is (D27): the Jetson reads the `MODE` event (`DRUM_HELD` with the reason) and offers unwrap or retry.
 
 ## 11. Physics summary (owner: physics; base/physics/FINDINGS.md)
 

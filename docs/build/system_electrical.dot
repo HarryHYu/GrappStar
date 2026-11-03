@@ -1,6 +1,6 @@
 // GrappStar whole-system electrical diagram. Render: dot -Tsvg / -Tpng (make_guide.py does it).
 // Bold lines = battery power, plain = low-voltage power and USB, dashed = signal, dotted = radio.
-// GPIO numbers come from firmware/base/grappstar_base/pins.h (fw-base owns them).
+// GPIO numbers: brace PIN_ placeholders are filled from firmware/base/grappstar_base/pins.h by make_guide.py.
 digraph G {
   graph [rankdir=TB, fontname="Liberation Sans", fontsize=11, nodesep=0.25, ranksep=0.55, splines=true, newrank=true];
   node  [shape=box, fontname="Liberation Sans", fontsize=10, color=black, fontcolor=black];
@@ -29,7 +29,7 @@ digraph G {
     wiper [label="12 V wiper motor\n(2 wires)"];
     n20   [label="Selector drum N20\n(worm, self-locking)"];
     as5600[label="AS5600 (STEMMA QT)\nmain shaft end, 0x36"];
-    sw    [label="Printed contacts (M3 screw on M3 nut)\nSW_DRUM_A/B/C, SW_DOG, SW_N20, SW_INDEX,\nSW_HOME, SW_GAP, SW_RAIL_LOW, SW_SEATED, SW_ARM"];
+    sw    [label="Printed contacts (M3 screw on M3 nut)\nSW_DRUM_A/B/C, SW_DOG_L/R, SW_N20, SW_INDEX,\nSW_HOME, SW_GAP, SW_RAIL_LOW, SW_SEATED, SW_ARM"];
   }
 
   subgraph cluster_jetson {
@@ -65,13 +65,13 @@ digraph G {
   jet   -> kiyo   [label="USB", dir=back];
   rc832 -> cap    [label="AV out (yellow RCA)"];
 
-  esp   -> bts    [label="RPWM 4, LPWM 5\nR_EN 6, L_EN 7, 3V3, GND", style=dashed];
-  bts   -> esp    [label="IS -> GPIO 1\n(1 k / 680 R)", style=dashed];
-  div   -> esp    [label="GPIO 2", style=dashed];
-  esp   -> drv    [label="AIN1 17, AIN2 18, GND", style=dashed];
-  esp   -> as5600 [label="I2C SDA 8, SCL 9, 3V3, GND", style=dashed, dir=both];
+  esp   -> bts    [label="RPWM {PIN_RPWM}, LPWM {PIN_LPWM}\nR_EN {PIN_REN}, L_EN {PIN_LEN}, 3V3, GND", style=dashed];
+  bts   -> esp    [label="IS -> GPIO {PIN_WIPER_IS}\n(1 k / 680 R)", style=dashed];
+  div   -> esp    [label="GPIO {PIN_VBAT}", style=dashed];
+  esp   -> drv    [label="AIN1 {PIN_DRUM_IN1}, AIN2 {PIN_DRUM_IN2}, GND", style=dashed];
+  esp   -> as5600 [label="I2C SDA {PIN_SDA}, SCL {PIN_SCL}, 3V3, GND", style=dashed, dir=both];
   sw    -> esp    [label="GPIOs per WIRING.md\n(pull-up, closed = LOW)", style=dashed];
-  hx    -> esp    [label="DT 16, SCK 15", style=dashed];
+  hx    -> esp    [label="DT {PIN_HX_DT}, SCK {PIN_HX_SCK}", style=dashed];
 
   dbat  -> xiao   [label="5 V buck"];
   dbat  -> ddrv   [label="2S direct"];

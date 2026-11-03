@@ -34,7 +34,7 @@ def test_full_build_has_every_section_and_no_em_dash():
     md = mg.build_markdown()
     assert "\u2014" not in md
     heads = re.findall(r"^# (\d+)\.", md, re.M)
-    assert heads == [str(i) for i in range(1, 16)], heads
+    assert heads == [str(i) for i in range(1, 17)], heads
     for must in ("battery unplugged", "608", "20 A fuse", "9.0 V"):
         assert must.lower() in md.lower(), must
 
@@ -55,3 +55,20 @@ def test_base_pack_formats(tmp_path, monkeypatch):
     (pack / "print_report.json").write_text('{"parts": {"frame_deck": {"material": "PLA", "plate": 2}}}')
     (pack / "print_list.csv").unlink()
     assert "frame_deck" in mg.printlist_base()
+
+
+AVOIDED = {0, 3, 45, 46, 19, 20, 26, 27, 28, 29, 30, 31, 32, 43, 44, 38, 48}
+
+
+def test_every_gpio_in_the_guide_matches_pins_h():
+    """Every 'GPIO n' / 'GPIOn' in the built guide and the diagram is a pin pins.h uses (or one it avoids on purpose)."""
+    pins = set(mg.read_pins().values())
+    assert pins, "pins.h not found"
+    md = mg.build_markdown()
+    used = {int(n) for n in re.findall(r"\bGPIO ?(\d+)\b", md)}
+    bad = sorted(n for n in used if n not in pins | AVOIDED)
+    assert not bad, f"GPIO numbers not in pins.h: {bad}"
+    dot = open(os.path.join(HERE, "system_electrical.dot")).read()
+    assert not re.search(r"(RPWM|LPWM|R_EN|L_EN|AIN1|AIN2|SDA|SCL|DT|SCK) \d", dot), "hard-coded GPIO in the diagram"
+    for name in re.findall(r"\{(PIN_\w+)\}", dot):
+        assert name in mg.read_pins(), name

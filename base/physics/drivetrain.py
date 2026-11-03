@@ -55,7 +55,7 @@ AIM_DEFAULTS = dict(
     phi_n_deg=20.0,       # normal pressure angle
     bevel=2.0,            # worm turns per wiper turn
     eta_bevel=0.95,       # bevel + splitter idler
-    gear=dict(module=2.0, face=10.0, z_driver=30),   # splitter / bevel stage (m 2 needed: m 1.5 fails at the 5 A trip)
+    gear=dict(module=1.5, face=8.0, z_driver=30),    # cad-launch as built: splitter sun m1.5 z30 face 8 (launch_aim.py); fails Lewis at 5 A, passes at 3 A
 )
 COCK_DEFAULTS = dict(
     drum_r=0.050,         # m big gear pitch radius on the rack (cad-launch NOTES: m 2.5, 40 T, pitch d 100)
@@ -181,7 +181,7 @@ def evaluate(p: Params, name: str, fn: dict, v_oc: float) -> dict:
     # shaft torque at wiper stall and at the hard trip, through the same train
     shaft_st = fn["shaft_k"] * t_s_full
     st_chk = gears.shaft_torsion(shaft_st, p.shaft)
-    trip_a = capstan.TRIP_COCK_A if name == "cock" else capstan.TRIP_HARD_A
+    trip_a = {"cock": capstan.TRIP_COCK_A, "reel": capstan.TRIP_HARD_A, "tow": capstan.TRIP_REEL_A, "aim": capstan.TRIP_AIM_A}.get(name, capstan.TRIP_HARD_A)
     t_trip = p.wiper.kt * (trip_a - p.wiper.i_free)
     mesh_tr = gears.mesh(t_trip, fn["gear_ratio"], g["module"], g["z_driver"], g["face"], PPA_CF, 0.0)
     shaft_tr = fn["shaft_k"] * t_trip
@@ -277,7 +277,9 @@ def run(p: Params | None = None, aim_kw=None, cock_kw=None, light_n=3.0, reel_le
                 total_energy_wh=sum(r["energy_wh"] for r in rows.values()))
 
 
-def main():
+def main(argv=None):
+    import argparse
+    argparse.ArgumentParser(description=__doc__.splitlines()[0]).parse_args(argv)
     r = run()
     e = r["electrical"]
     print(f"[{r['source']}]  motor stall (no limiter) {e['motor_stall_full']['torque']:.2f} N m / "
@@ -305,7 +307,7 @@ def main():
               + f" N, line break {lm['line_breaking']:.0f} N")
     a, c = r["aim"], r["cock"]
     print(f"aim: mass {a['mass']:.2f} kg, screw eff {a['screw_eff']:.2f}, self-locking {a['self_locking']}, "
-          f"crank torque {a["t_screw_peak"]:.3f} N m raising / {a["t_screw_lower_peak"]:.3f} gravity-assisted, worm turns per crank turn {a["params"]["wheel_z"]}")
+          f"crank torque {a['t_screw_peak']:.3f} N m raising / {a['t_screw_lower_peak']:.3f} gravity-assisted, worm turns per crank turn {a['params']['wheel_z']}")
     print(f"cock: spring ext {c['ext_full_mm']:.0f} mm (safe {c['spring_safe_ext_mm']:.0f}), "
           f"springs {c['f_spring_full']:.1f} N, carriage peak {c['f_peak']:.1f} N")
     print(f"total energy {r['total_energy_wh']:.3f} Wh")

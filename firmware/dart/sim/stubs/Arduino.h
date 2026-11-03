@@ -26,6 +26,8 @@
 #define LOW 0
 #define INPUT 0x01
 #define OUTPUT 0x03
+#define INPUT_PULLUP 0x05
+#define OUTPUT_OPEN_DRAIN 0x13
 #define DEC 10
 #define HEX 16
 #define BIN 2
@@ -112,6 +114,7 @@ class SimSerial {
  public:
   void begin(unsigned long baud);
   void setTxTimeoutMs(uint32_t ms) { (void)ms; }
+  void flush() {}
   explicit operator bool() const { return true; }   // the host is always "connected"
   int available();
   int read();

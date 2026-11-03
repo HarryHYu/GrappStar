@@ -84,8 +84,10 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
 
 1. Pods down first (step 3). Hold `drills in` (`3`) for 2 s. Check the directions in the table (left clockwise,
    right anticlockwise, from motor end to tip). If both turn the same way: WIRING.md "Drill direction check".
-2. **Drill pair free = ____ mA** (expect 60 to 70). Grip one auger lightly with a cloth: current rises.
-   Do not stall both by hand for long. Stalling both reads **drill pair stall = ____ mA** (expect about 700 at 8 V).
+2. **Drill pair free = ____ mA** (expect 60 to 70). Press a printed stick or a
+   pencil end lightly against one auger flight (never a cloth or fingers: cloth winds in and pulls fingers with it):
+   current rises.
+   Do not stall both for long (two sticks, never hands). Stalling both reads **drill pair stall = ____ mA** (expect about 700 at 8 V).
 3. Hold `drills out` (`#`): they reverse.
 
 ## Step 5. Kick (DRV#1 B)
@@ -99,7 +101,9 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
 ## Step 6. Foot (DRV#2 B)
 
 1. Hold `foot in` (`4`): the foot auger turns the way that screws in. Wrong way: fix as above.
-2. **Foot free = ____ mA** (expect about 40). Brake it with a cloth: **foot stall = ____ mA** (expect 500 to 600).
+2. **Foot free = ____ mA** (expect about 40). Brake it by holding the coupler with
+   pliers, or press a printed stick against the auger (never a cloth or fingers): **foot stall = ____ mA** (expect
+   500 to 600).
 3. Hold `foot out` (`$`): it reverses.
 
 ## Step 7. BNO085 axes (for the Jetson flight analysis)
@@ -115,10 +119,13 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
 1. Open `http://192.168.4.1/arm?on=1&auto=0` (arm, log only: no motors will run). Status shows `ARMED`.
 2. Hold the dart over the towel on the floor. Jerk it sharply upwards and let go about 40 cm above the towel.
 3. Status should go `FLIGHT` then `LANDED` (or stay `ARMED` if the jerk was under 4 g: jerk harder).
-4. Wait until the status shows `LANDED`, then 4 s more (if the towel landing ends as `timeout` that is about 18 s
-   after the jerk; `/flightlog` is refused while armed or in flight). Open `http://192.168.4.1/flightlog`: `frozen: true`, `t_launch_ms` and `t_land_ms` set, a few hundred
+4. Wait until the status shows `LANDED`, then 4 s more (if the towel landing ends as `timeout` that is about 19 s after the jerk, and the log is already frozen by then; `/flightlog` is refused while armed or in flight). Open `http://192.168.4.1/flightlog`: `frozen: true`, `t_launch_ms` and `t_land_ms` set, a few hundred
    samples. Save it. The towel drop usually reads `landing: "timeout"` or `"still"` (soft), which is correct.
 5. Open `http://192.168.4.1/stop` to disarm.
+
+**Safe to touch, after any arm or auto test:** press STOP, check the status is not `ARMED`, `FLIGHT`, `ANCHORING` or
+`RELEASING` (`IDLE`, `LANDED` or `ANCHORED` is fine), pull the power loop plug (or unplug the bench LiPo), and only then pick the dart up or touch a leg. An
+armed dart can start the auto sequence by itself after a knock.
 
 ## Step 9. Anchor and release on soil (assembled, hull open)
 
@@ -127,7 +134,8 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
    deploy + drills, drills finishing, `ANCHORED`. Write the time of each event from the event lines on the web page
    (not the Serial Monitor: no USB while the battery is in). Note the working currents for `loadMa`.
 3. Pull the tether gently by hand: the dart should hold.
-4. Press `RELEASE`: drills out, pods up, foot out, kick back, `released`. The legs end stowed.
+4. Press `RELEASE`: drills out, pods up, foot out, kick back, `released`. The legs end stowed. Before lifting the dart
+   out of the soil: STOP, status `IDLE`, plug out (the "safe to touch" rule in step 8).
 5. If it stops with `FAULT`: write down the fault and the last event, press STOP, and fix the threshold (step 10).
 
 ## Step 10. Write the real thresholds
@@ -143,6 +151,7 @@ In `kedge_logic.h`, `struct Tuning`, set (all at full speed 255, battery fully c
 | `kickContactMa` | about 2 x kick free, below kick stall / 2 | 60 |
 | `freeMa[...]` | measured free currents (steps 3 to 6) | 30, 30, 70, 45 |
 | `loadMa[...]` | typical working current in soil (step 9) | 40, 70, 420, 130 |
+| `kickSwingMs` | kick swing time from step 5, in ms | 4300 |
 | `impactG` | under the `peak_g` of a real landing (step 8 and the first shots), over 2 g | 3.5 |
 | `kickMaxMs` | 2 x kick swing time, at least 8000 | 15000 |
 

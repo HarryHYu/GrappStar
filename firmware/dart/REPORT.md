@@ -10,7 +10,7 @@ Status: DRAFT, updated through the day; the final version is pushed at 18:30 wit
 | 1. Firmware copied from `kedge/fw/` and moved on to v4 | `kedge_dart/kedge_dart.ino`, `kedge_dart/kedge_logic.h` |
 | 2. Pin map with DRV8833 #3 freed: DRV#1 A deploy, DRV#1 B kick, DRV#2 A both drills (parallel, right drill swapped), DRV#2 B foot | `kedge_logic.h` `PINS[]`, compile-time checked against the XIAO Dn macros |
 | 3. Contract C2: `/release`, `phase`, `/flightlog` (50 Hz, 12 s ring, frozen 2 s before launch to 3 s after landing) | `API.md` (final C2) |
-| 4. Safety review of the whole firmware (6 independent review rounds, all confirmed findings fixed) | below |
+| 4. Safety review of the whole firmware (9 independent review rounds, all confirmed findings fixed) | below |
 | 5. PC tests: logic, simulator of the real sketch over HTTP, web page in headless Chromium | `test/`, `sim/` |
 | 6. Docs: API, README (Arduino IDE), WIRING (v29 conversion and fresh build, learner steps), wiring diagram SVG/PNG, cut list, change list | `API.md`, `README.md`, `WIRING.md`, `wiring/` |
 | 7. Bench test plan | `BENCH_TEST.md` |
@@ -22,7 +22,7 @@ Status: DRAFT, updated through the day; the final version is pushed at 18:30 wit
    landing, the 15 s flight timeout, or `/stop`.
 2. **Release order is the exact reverse of `/auto`**: drills out alone 3 s, pods up with the drills still unscrewing,
    foot out alone 1.5 s, kick back with the foot still unscrewing. C2's text listed "drills, foot, kick, deploy".
-3. **Auto-anchor on landing starts only after an impact landing** (impact over 6 g at least 400 ms after launch, after
+3. **Auto-anchor on landing starts only after an impact landing** (impact over 3.5 g at least 400 ms after launch, after
    free fall or 400 ms with the push over, then still 1 s). Soft "still" and "timeout" landings stop at `LANDED` and the
    Jetson sends `/auto` (the jetson worker's mission arms log-only and sends `/auto` itself).
 4. **Launch is only looked for while armed** (`/arm`); `/stop` disarms (`/stop?disarm=0` keeps the arm).

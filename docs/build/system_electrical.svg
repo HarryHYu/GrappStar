@@ -231,7 +231,7 @@
 <title>esp&#45;&gt;drv</title>
 <path fill="none" stroke="black" stroke-dasharray="5,2" d="M646,-199.97C646,-187.41 646,-170.95 646,-157.32"/>
 <polygon fill="black" stroke="black" points="648.1,-157.28 646,-151.28 643.9,-157.28 648.1,-157.28"/>
-<text text-anchor="middle" x="688.5" y="-173.6" font-family="Liberation Sans" font-size="8.00">AIN1 17, AIN2 18, GND</text>
+<text text-anchor="middle" x="688.5" y="-173.6" font-family="Liberation Sans" font-size="8.00">AIN1 15, AIN2 16, GND</text>
 </g>
 <!-- as5600 -->
 <g id="node13" class="node">
@@ -267,14 +267,14 @@
 <title>hx&#45;&gt;esp</title>
 <path fill="none" stroke="black" stroke-dasharray="5,2" d="M646,-319.03C646,-299.93 646,-269.13 646,-247.26"/>
 <polygon fill="black" stroke="black" points="648.1,-247.06 646,-241.06 643.9,-247.06 648.1,-247.06"/>
-<text text-anchor="middle" x="673.5" y="-277.1" font-family="Liberation Sans" font-size="8.00">DT 16, SCK 15</text>
+<text text-anchor="middle" x="673.5" y="-277.1" font-family="Liberation Sans" font-size="8.00">DT 17, SCK 18</text>
 </g>
 <!-- sw -->
 <g id="node14" class="node">
 <title>sw</title>
 <polygon fill="none" stroke="black" points="327.5,-358 16.5,-358 16.5,-317 327.5,-317 327.5,-358"/>
 <text text-anchor="middle" x="172" y="-346" font-family="Liberation Sans" font-size="10.00">Printed contacts (M3 screw on M3 nut)</text>
-<text text-anchor="middle" x="172" y="-335" font-family="Liberation Sans" font-size="10.00">SW_DRUM_A/B/C, SW_DOG, SW_N20, SW_INDEX,</text>
+<text text-anchor="middle" x="172" y="-335" font-family="Liberation Sans" font-size="10.00">SW_DRUM_A/B/C, SW_DOG_L/R, SW_N20, SW_INDEX,</text>
 <text text-anchor="middle" x="172" y="-324" font-family="Liberation Sans" font-size="10.00">SW_HOME, SW_GAP, SW_RAIL_LOW, SW_SEATED, SW_ARM</text>
 </g>
 <!-- sw&#45;&gt;esp -->

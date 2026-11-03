@@ -1,14 +1,14 @@
 {
- "params_source": "base/spec/params.py v1.0",
+ "params_source": "base/spec/params.py v1.2.5",
  "snatch": {
   "slack_m": 0.245,
-  "reel_mass_eff_kg": 0.03361728278281651,
-  "v_taut": 7.778339578715577,
-  "v_no_line_in_stroke": 8.186236589368272,
-  "v_after_snatch": 7.305930075594943,
-  "speed_loss_vs_taut": 0.060733977777638004,
-  "ke_loss_snatch_j": 1.0052924363110076,
-  "line_spike_n_upper": 259.7485149670437,
+  "reel_mass_eff_kg": 0.044964324495882946,
+  "v_taut": 7.037544274426387,
+  "v_no_line_in_stroke": 7.535388390307809,
+  "v_after_snatch": 6.489521227892476,
+  "speed_loss_vs_taut": 0.07787134619179059,
+  "ke_loss_snatch_j": 1.09940163064888,
+  "line_spike_n_upper": 271.6345786877124,
   "line_break_n": 667.0
  },
  "wrap": {
@@ -20,10 +20,13 @@
    "guide_wrap_rad": 3.141592653589793,
    "mu_guide": 0.25,
    "eta_wrap": 0.7,
-   "n20_ratio": 9.0,
+   "n20_ratio": 12.0,
    "eta_n20_mesh": 0.9,
    "n20_torque_nm": 0.2,
-   "n20_rpm": 27.0
+   "n20_rpm": 27.0,
+   "drum_deg_per_s": 8.1,
+   "peak_drum_load_nm": 0.93,
+   "source": "spec DRUM"
   },
   "light_n": 0.5,
   "rows": [
@@ -33,8 +36,8 @@
     "t_ring_n": 1.0966400253690076,
     "t_cup_nm": 0.032899200761070224,
     "t_drum_nm": 0.4934880114160534,
-    "t_n20_nm": 0.06092444585383376,
-    "n20_frac": 0.30462222926916876
+    "t_n20_nm": 0.04569333439037531,
+    "n20_frac": 0.22846667195187653
    },
    {
     "line_on_reel_m": 5.0,
@@ -42,8 +45,8 @@
     "t_ring_n": 1.2692221572811972,
     "t_cup_nm": 0.03807666471843592,
     "t_drum_nm": 0.5711499707765388,
-    "t_n20_nm": 0.07051234207117764,
-    "n20_frac": 0.3525617103558882
+    "t_n20_nm": 0.052884256553383226,
+    "n20_frac": 0.2644212827669161
    },
    {
     "line_on_reel_m": 0.5,
@@ -51,11 +54,11 @@
     "t_ring_n": 1.3392578152484487,
     "t_cup_nm": 0.04017773445745346,
     "t_drum_nm": 0.6026660168618019,
-    "t_n20_nm": 0.07440321195824715,
-    "n20_frac": 0.3720160597912357
+    "t_n20_nm": 0.05580240896868536,
+    "n20_frac": 0.2790120448434268
    }
   ],
-  "wrap_time_s": 18.0,
+  "wrap_time_s": 29.62962962962963,
   "cup_turns_in_sector": 7.0,
   "line_drawn_m": 0.9016370915802706
  },
@@ -72,39 +75,284 @@
    "seat_force": 1.0,
    "eye_gain": 1.3
   },
-  "clutch_torque_nm": 0.09217537556033985,
-  "avail_at_reel_n": 3.0,
-  "avail_at_dart_n": 2.3076923076923075,
+  "clutch_torque_nm": 0.15362562593389975,
+  "avail_at_reel_n": 5.0,
+  "avail_at_dart_n": 3.846153846153846,
   "rows": [
    {
     "pitch_deg": 5.0,
     "mu": 0.3,
     "need_n": 2.056516874361951,
-    "avail_n": 2.3076923076923075,
-    "margin": 1.1221363347228965
+    "avail_n": 3.846153846153846,
+    "margin": 1.870227224538161
    },
    {
     "pitch_deg": 5.0,
     "mu": 0.4,
     "need_n": 2.3291743670349643,
-    "avail_n": 2.3076923076923075,
-    "margin": 0.9907769638689595
+    "avail_n": 3.846153846153846,
+    "margin": 1.6512949397815992
    },
    {
     "pitch_deg": 10.0,
     "mu": 0.3,
     "need_n": 2.2838960173676766,
-    "avail_n": 2.3076923076923075,
-    "margin": 1.0104191653839203
+    "avail_n": 3.846153846153846,
+    "margin": 1.684031942306534
    },
    {
     "pitch_deg": 10.0,
     "mu": 0.4,
     "need_n": 2.5534369145593656,
-    "avail_n": 2.3076923076923075,
-    "margin": 0.9037592801036696
+    "avail_n": 3.846153846153846,
+    "margin": 1.5062654668394493
    }
   ],
   "firm_setting_for_1p5_margin_n_full_reel": 4.979201983390763
+ },
+ "takeup": {
+  "overdrive": 2.5,
+  "clutch_torque_nm": 0.15362562593389975,
+  "drag_n": {
+   "grass_low": 1.3684950000000002,
+   "grass_high": 2.7369900000000005,
+   "snag": 5.473980000000001
+  },
+  "grass": {
+   "mu_low": 0.5,
+   "mu_high": 1.0,
+   "snag_factor": 2.0
+  },
+  "rows": [
+   {
+    "pack": "empty (line out, r core)",
+    "r_mm": 25.0,
+    "drag": "grass_low",
+    "drag_n": 1.3684950000000002,
+    "duty": 0.3,
+    "slips": false,
+    "v_line": 0.06022575255334846,
+    "current": 1.6045378125,
+    "i_batt": 0.48136134375,
+    "wiper_rpm": 9.201817171482954,
+    "slip_tension_n": 6.14502503735599
+   },
+   {
+    "pack": "empty (line out, r core)",
+    "r_mm": 25.0,
+    "drag": "grass_low",
+    "drag_n": 1.3684950000000002,
+    "duty": 0.5,
+    "slips": false,
+    "v_line": 0.11914370293840633,
+    "current": 1.6045378125,
+    "i_batt": 0.80226890625,
+    "wiper_rpm": 18.20381689048295,
+    "slip_tension_n": 6.14502503735599
+   },
+   {
+    "pack": "empty (line out, r core)",
+    "r_mm": 25.0,
+    "drag": "grass_low",
+    "drag_n": 1.3684950000000002,
+    "duty": 1.0,
+    "slips": false,
+    "v_line": 0.2652958056752222,
+    "current": 1.6045378125,
+    "i_batt": 1.6045378125,
+    "wiper_rpm": 40.534213300568176,
+    "slip_tension_n": 6.14502503735599
+   },
+   {
+    "pack": "empty (line out, r core)",
+    "r_mm": 25.0,
+    "drag": "grass_high",
+    "drag_n": 2.7369900000000005,
+    "duty": 0.3,
+    "slips": false,
+    "v_line": 0.0583406118489834,
+    "current": 1.709075625,
+    "i_batt": 0.5127226875,
+    "wiper_rpm": 8.913788888420454,
+    "slip_tension_n": 6.14502503735599
+   },
+   {
+    "pack": "empty (line out, r core)",
+    "r_mm": 25.0,
+    "drag": "grass_high",
+    "drag_n": 2.7369900000000005,
+    "duty": 0.5,
+    "slips": false,
+    "v_line": 0.11722452647448667,
+    "current": 1.709075625,
+    "i_batt": 0.8545378125,
+    "wiper_rpm": 17.910588326420452,
+    "slip_tension_n": 6.14502503735599
+   },
+   {
+    "pack": "empty (line out, r core)",
+    "r_mm": 25.0,
+    "drag": "grass_high",
+    "drag_n": 2.7369900000000005,
+    "duty": 1.0,
+    "slips": false,
+    "v_line": 0.26321708658839044,
+    "current": 1.709075625,
+    "i_batt": 1.709075625,
+    "wiper_rpm": 40.21660841931818,
+    "slip_tension_n": 6.14502503735599
+   },
+   {
+    "pack": "empty (line out, r core)",
+    "r_mm": 25.0,
+    "drag": "snag",
+    "drag_n": 5.473980000000001,
+    "duty": 0.3,
+    "slips": false,
+    "v_line": 0.05457033044025324,
+    "current": 1.9181512500000002,
+    "i_batt": 0.575445375,
+    "wiper_rpm": 8.33773232229545,
+    "slip_tension_n": 6.14502503735599
+   },
+   {
+    "pack": "empty (line out, r core)",
+    "r_mm": 25.0,
+    "drag": "snag",
+    "drag_n": 5.473980000000001,
+    "duty": 0.5,
+    "slips": false,
+    "v_line": 0.11338617354664737,
+    "current": 1.9181512500000002,
+    "i_batt": 0.9590756250000001,
+    "wiper_rpm": 17.324131198295454,
+    "slip_tension_n": 6.14502503735599
+   },
+   {
+    "pack": "empty (line out, r core)",
+    "r_mm": 25.0,
+    "drag": "snag",
+    "drag_n": 5.473980000000001,
+    "duty": 1.0,
+    "slips": false,
+    "v_line": 0.2590596484147269,
+    "current": 1.9181512500000002,
+    "i_batt": 1.9181512500000002,
+    "wiper_rpm": 39.58139865681817,
+    "slip_tension_n": 6.14502503735599
+   },
+   {
+    "pack": "full (20 m in)",
+    "r_mm": 30.725125186779948,
+    "drag": "grass_low",
+    "drag_n": 1.3684950000000002,
+    "duty": 0.3,
+    "slips": false,
+    "v_line": 0.07348718181855149,
+    "current": 1.6284774950325853,
+    "i_batt": 0.4885432485097756,
+    "wiper_rpm": 9.13585725236831,
+    "slip_tension_n": 5.0
+   },
+   {
+    "pack": "full (20 m in)",
+    "r_mm": 30.725125186779948,
+    "drag": "grass_low",
+    "drag_n": 1.3684950000000002,
+    "duty": 0.5,
+    "slips": false,
+    "v_line": 0.1458880585650301,
+    "current": 1.6284774950325853,
+    "i_batt": 0.8142387475162927,
+    "wiper_rpm": 18.136666080979055,
+    "slip_tension_n": 5.0
+   },
+   {
+    "pack": "full (20 m in)",
+    "r_mm": 30.725125186779948,
+    "drag": "grass_low",
+    "drag_n": 1.3684950000000002,
+    "duty": 1.0,
+    "slips": false,
+    "v_line": 0.32546482168087915,
+    "current": 1.6284774950325853,
+    "i_batt": 1.6284774950325853,
+    "wiper_rpm": 40.46148019236463,
+    "slip_tension_n": 5.0
+   },
+   {
+    "pack": "full (20 m in)",
+    "r_mm": 30.725125186779948,
+    "drag": "grass_high",
+    "drag_n": 2.7369900000000005,
+    "duty": 0.3,
+    "slips": false,
+    "v_line": 0.07063976480486396,
+    "current": 1.7569549900651704,
+    "i_batt": 0.5270864970195511,
+    "wiper_rpm": 8.781869050191165,
+    "slip_tension_n": 5.0
+   },
+   {
+    "pack": "full (20 m in)",
+    "r_mm": 30.725125186779948,
+    "drag": "grass_high",
+    "drag_n": 2.7369900000000005,
+    "duty": 0.5,
+    "slips": false,
+    "v_line": 0.14298923212571982,
+    "current": 1.7569549900651704,
+    "i_batt": 0.8784774950325852,
+    "wiper_rpm": 17.77628670741265,
+    "slip_tension_n": 5.0
+   },
+   {
+    "pack": "full (20 m in)",
+    "r_mm": 30.725125186779948,
+    "drag": "grass_high",
+    "drag_n": 2.7369900000000005,
+    "duty": 1.0,
+    "slips": false,
+    "v_line": 0.3223250135589622,
+    "current": 1.7569549900651704,
+    "i_batt": 1.7569549900651704,
+    "wiper_rpm": 40.07114220291109,
+    "slip_tension_n": 5.0
+   },
+   {
+    "pack": "full (20 m in)",
+    "r_mm": 30.725125186779948,
+    "drag": "snag",
+    "drag_n": 5.473980000000001,
+    "duty": 0.3,
+    "slips": true,
+    "v_line": 0.0,
+    "current": null,
+    "slip_tension_n": 5.0
+   },
+   {
+    "pack": "full (20 m in)",
+    "r_mm": 30.725125186779948,
+    "drag": "snag",
+    "drag_n": 5.473980000000001,
+    "duty": 0.5,
+    "slips": true,
+    "v_line": 0.0,
+    "current": null,
+    "slip_tension_n": 5.0
+   },
+   {
+    "pack": "full (20 m in)",
+    "r_mm": 30.725125186779948,
+    "drag": "snag",
+    "drag_n": 5.473980000000001,
+    "duty": 1.0,
+    "slips": true,
+    "v_line": 0.0,
+    "current": null,
+    "slip_tension_n": 5.0
+   }
+  ],
+  "note": "line stops when the drag exceeds the FIRM slip tension (5 N at the full reel, 6.1 N at the core)"
  }
 }

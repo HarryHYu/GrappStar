@@ -540,6 +540,10 @@ int main() {
   { fresh(); for (int i = 0; i < 4; i++) { K.key('@', 350, NOW); K.key('2', 350, NOW); run(150); }   // both kick keys being pressed
     K.stop(NOW); K.key('@', 350, NOW); run(50); K.key('2', 350, NOW); run(50);
     CHECK(P.mdir[KICK] == 0, "STOP with both directions of a motor being pressed locks both"); }
+  { fresh(); for (int i = 0; i < 6; i++) { K.key('@', 350, NOW); run(150); }   // kick held into stowed: locked '@'
+    run(800); for (int i = 0; i < 6; i++) { K.key('2', 350, NOW); run(150); } K.stop(NOW, false); run(100);   // jog out
+    bool ok = K.key('@', 350, NOW) == nullptr; run(50);
+    CHECK(ok && P.mdir[KICK] == -1, "an old '@' lock does not refuse a fresh '@' right after '2' presses (per-direction lock)"); }
   { fresh(); K.startAuto(NOW); run(20000); K.bothLock[DEPLOY] = true; K.lastCmd[DEPLOY] = NOW; K.key('1', 350, NOW);
     CHECK(K.seq == DONE, "a refused key does not change seq (still anchored)"); }
 

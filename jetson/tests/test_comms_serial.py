@@ -44,3 +44,26 @@ def test_link_up_only_after_a_c1_line():
         assert c.wait_connected(1.0)
     finally:
         c.close()
+
+
+def test_second_open_of_the_same_port_is_refused_clearly():
+    """docs learner round: serve, base monitor and base cmd on one tty split the lines. The port opens exclusively
+    and a second open says the port is busy."""
+    import os
+    import pty
+    import pytest
+    from grappstar.comms.base import PortBusy, SerialTransport
+    master, slave = pty.openpty()
+    path = os.ttyname(slave)
+    a, b = SerialTransport(path), SerialTransport(path)
+    try:
+        a.open()
+        with pytest.raises(PortBusy) as ei:
+            b.open()
+        assert "busy" in str(ei.value) and path in str(ei.value)
+        a.close()
+        b.open()                     # free again once the first one closed
+        b.close()
+    finally:
+        os.close(master)
+        os.close(slave)

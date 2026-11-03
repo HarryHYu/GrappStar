@@ -153,7 +153,8 @@ python3 -m grappstar base ping --base /dev/pts/5    # terminal 2, using the path
 ## 4. Plug in the base
 
 **Battery unplugged.** For this step the base runs from USB only: the Jetson's USB powers the DevKitC. Do not connect
-the 3S LiPo, the BTS7960 or the motors yet. Any time you change wiring, unplug the battery first.
+the 3S LiPo, the BTS7960 or the motors yet (if you are following the build guide, they are already wired: battery
+unplugged, just check the USB port). Any time you change wiring, unplug the battery first.
 
 Why this step matters: the base (ESP32-S3 DevKitC) and the dart (XIAO ESP32S3) show up on USB with the same ID,
 303a:1001. To tell them apart, the Jetson remembers the base's own USB serial number (each board has a different
@@ -525,7 +526,10 @@ Before the first real launch:
 - [ ] Clear area: nobody in front of the launcher or anywhere along the flight path or the line. Check behind the
       target too. Everyone knows the shout for stop.
 - [ ] Line attached at both ends (dart and reel) and laid so it cannot snag on the rover, feet or wires.
-- [ ] Tension limit set to a low value for the first runs (the base `set` key, or the page) and you know what it is.
+- [ ] Tow limit set, and you know what it is. The rule: the dart's hand-pull holding force (TEST_PLAN stage 8 step 2)
+      minus 10 N, never above 50 N (the firmware caps it at 55 N at the dart, D46). Set it in two places: the base
+      (`python3 -m grappstar base cmd '{"cmd": "set", "key": "limit_n", "val": 40}'`) and the Jetson (`settings.json` key `tow_limit`,
+      or `serve --tow-limit <N>`, or the page's "Tow limit N at the dart" field). The default 40 N is only a start.
 - [ ] Know the stop rule (the same in every GrappStar document):
       1. ESTOP or the page's STOP button.
       2. Pull lead #2's XT60 (motors off, the Jetson stays up).
@@ -537,13 +541,14 @@ Before the first real launch:
 - [ ] Antennas on the VTX and RC832 before power. Dart view clean on the page.
 - [ ] Dart status OK (`python3 -m grappstar dart status`), base ping OK, preflight all green.
 - [ ] Recording on, so you can replay it.
-- [ ] HARD PREREQUISITE before any tow: `free_a` and `k_n_per_a` calibrated (firmware/base/CALIBRATION.md steps (b)
-      and (e)) and `limit_n` set. Reason: without a load cell the tension limit is estimated from the wiper current;
+- [ ] HARD PREREQUISITE before any tow: `free_a` and `k_n_per_a` calibrated (firmware/base/CALIBRATION.md steps (d)
+      free running current and (f) tension) and `limit_n` set. Reason: without a load cell the tension limit is estimated from the wiper current;
       with factory constants a simulated tow reached 61 N against a 40 N limit. The mission refuses the TOW step
-      while `k_n_per_a` is still a factory value (8 or 17) and there is no load cell.
+      while `k_n_per_a` is still a firmware default (8, 17, 14.8 or 13.1) and there is no load cell.
 - [ ] Start with a short shot at low pitch.
-- [ ] The real launcher reaches only about 3 to 4.4 m (base/out/ballistics.json). The page says "not reachable"
-      for anything outside that: move the rover instead.
+- [ ] Know the launcher's reachable range: it comes from `base/out/ballistics.json` (copied in at build time;
+      `python3 -m grappstar solve <range>` answers for one range). The page says "not reachable" for anything
+      outside it: move the rover instead.
 
 ## 10. Troubleshooting
 

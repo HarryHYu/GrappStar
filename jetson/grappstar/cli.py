@@ -43,6 +43,9 @@ def cmd_serve(a) -> int:
                     deck_height_m=a.deck_height)
     if a.runs:
         cfg.runs_dir = a.runs
+    if not 1.0 <= a.tow_limit <= 55.0:
+        print(f"--tow-limit {a.tow_limit}: must be 1 to 55 N (tension at the dart, firmware cap 55 N, D46)")
+        return 2
     cfg.mission.tow_limit_n = a.tow_limit
     cfg.mission.drag_n = a.drag
     cfg.mission.imu_axes = a.imu_axes

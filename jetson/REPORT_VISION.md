@@ -63,6 +63,9 @@ Review round 2 (fresh subagent on mosaic, target, terrain, calibrate, video/*, a
 - Also in this round: with no known pitch, the video-only path fits pitch and speed together to the horizon track,
   and a rail view that is all sky bounds the pitch from below (half the vertical field of view).
 
+Terrain verdicts with the roll-invariant tilt (eval_terrain_flight, seeds 0 to 2, 480x320, with and without the
+flightlog): accuracy 1.000 (36/36), unsafe GO (sand or water judged GO): 0.
+
 ## Open items
 
 - Without a commanded pitch, video-only shots above about 40 deg read 5 to 11 percent short in the sim (one case at

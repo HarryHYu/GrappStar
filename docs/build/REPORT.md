@@ -97,3 +97,12 @@ Status: in progress. Final version at 18:30 Sydney.
   stance and the preload fallback, unfused Y harness kept under 10 cm, 18350 charging on the B6 (Li-ion 2S, 1 A),
   dart pick-up rule, rover chocked and LiPo strapped, require_seated back on before shots, meter range wording.
   Sent: jetson README (COCK runs without a prompt; one stop rule), fw-dart (no cloth near augers).
+- Round 7 (learner, sections 7 to 11 against the firmware headers and cli.py): every JSON command, set/get key, cal
+  word and CLI subcommand quoted is accepted by the code. Fixed: order of work now bench-tests the electronics with
+  the motor in a vice BEFORE base assembly, then calibrates on the assembled base; where to type commands (Mac
+  Serial Monitor vs `grappstar base cmd` on the Jetson, stop the service first); Jetson wall-supply branch in the
+  power-on sequence; flashing with the wiring left on; glossary terms. Sent to fw-base (cock_rest before mode
+  changes, two command hosts, free current after (c), AS5600 fault test without hands near the shaft, magnet gap,
+  fuse) and jetson (service holds the port).
+- params 1.2.1 folded in: D30 springs C-243 rated 38.4 N, full cock 265 mm; D31 SW_DOG_L/R; D32 17 N/A; range
+  4.8 m at 36 deg, 8.5 m with four springs.

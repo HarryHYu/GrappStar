@@ -176,7 +176,8 @@ def cmd_dart(a) -> int:
             print(d.wait_phase(("ANCHORED",), 90, log=print)["phase"])
         elif a.what == "release":
             d.release()
-            print(d.wait_phase(("IDLE",), 90, log=print)["phase"])
+            s = d.wait_phase(("IDLE",), 90, log=print, want_seq="released")   # a /stop gives IDLE + "aborted"
+            print("released" if s.get("seq") == "released" else s["phase"])
         elif a.what == "flightlog":
             fl = d.flightlog()
             if a.out:

@@ -46,16 +46,18 @@ struct Io {
 // Replace the current numbers with bench values (BENCH_TEST.md, step "stall currents"). Currents are the total read by
 // the INA219 on the motor rail at 2S.
 struct Tuning {
-  uint32_t serialRunMs = 1500, wifiDeadmanMs = 350, wifiMaxRunMs = 1500;
+  uint32_t serialRunMs = 1500, wifiDeadmanMs = 350, wifiMaxRunMs = 500;
   float tripMa = 2000; uint32_t tripHoldMs = 10;        // all four stalled at 8.4 V is about 1750 mA
   float stallMa[NMOT] = {150, 150, 600, 450};           // deploy, kick, drill PAIR, foot (stall 180 / 180 / 700 / 550)
+  float loadMa[NMOT] = {40, 70, 420, 130};              // normal working current (in soil), used when several run at once
   float kickContactMa = 60;                             // foot auger tip meets the ground (kick free ~25 mA)
   uint32_t kickMaxMs = 15000, footAfterMs = 1500, deployMaxMs = 6000, drillAfterMs = 3000;
   uint32_t drillLeadMs = 3000, footLeadMs = 1500, footOutMs = 3000;   // release: mirror of the anchor timings
   uint32_t autoMaxMs = 35000, releaseMaxMs = 35000;     // whole-sequence limits
   uint32_t surgeIgnoreMs = 250, stallHoldMs = 200, contactHoldMs = 150;
   float lowRailV = 5.6f; uint32_t lowRailMs = 500;      // 2S at 2.8 V per cell under load
-  uint32_t manualMaxMs = 5000;                          // no single manual command runs longer
+  uint32_t manualMaxMs = 8000;                          // a manual motor (held key or repeats) never runs longer
+  uint32_t manualMaxNoInaMs = 2000;                     // ...and without current sensing (no stall detection)
   int inaFailLimit = 3;                                 // consecutive failed current reads = sensor lost
 };
 
@@ -90,12 +92,13 @@ static inline const char* phaseName(int p) {
 struct Flight {
   enum St { WAIT = 0, FLYING, IMPACTED, LANDED };
   enum Ev { NONE = 0, LAUNCH, LAND };
-  float launchG = 4, impactG = 6, quietG = 2.5f, stillLo = 0.85f, stillHi = 1.15f;
-  uint32_t launchHoldMs = 20, minFlightMs = 150, stillMs = 1000, softStillMs = 2000, flightTimeoutMs = 15000;
+  float launchG = 4, impactG = 6, freeFallG = 0.6f, stillLo = 0.85f, stillHi = 1.15f;
+  uint32_t launchHoldMs = 20, sampleSlackMs = 5, freeFallMs = 60, minFlightMs = 150, stillMs = 1000, softStillMs = 2000, flightTimeoutMs = 15000;
   int st = WAIT; bool above = false, quiet = false, stillOn = false, launched = false;
-  uint32_t tAbove = 0, tLaunch = 0, tImpact = 0, tStill = 0, tLand = 0;
+  uint32_t tAbove = 0, tLaunch = 0, tImpact = 0, tStill = 0, tLand = 0, ffMs = 0, tPrev = 0;
   const char* how = "";                       // impact | still | timeout | stop
-  void reset() { st = WAIT; above = quiet = stillOn = launched = false; tAbove = tLaunch = tImpact = tStill = tLand = 0; how = ""; }
+  void reset() { st = WAIT; above = quiet = stillOn = launched = false; tAbove = tLaunch = tImpact = tStill = tLand = ffMs = tPrev = 0; how = ""; }
+  bool fallback() const { return st == LANDED && (strcmp(how, "still") == 0 || strcmp(how, "timeout") == 0); }
   bool flying() const { return st == FLYING || st == IMPACTED; }
   int land(uint32_t t, const char* why) { st = LANDED; tLand = t; how = why; return LAND; }
   int update(float a, uint32_t now) {
@@ -104,12 +107,14 @@ struct Flight {
       case WAIT:
         if (a > launchG) {
           if (!above) { above = true; tAbove = now; }
-          if (now - tAbove >= launchHoldMs) { st = FLYING; launched = true; tLaunch = tAbove; quiet = false; stillOn = false; return LAUNCH; }
+          // samples above 4 g spanning hold - one sample period = the push lasted about 20 ms
+          if (now - tAbove + sampleSlackMs >= launchHoldMs) { st = FLYING; launched = true; tLaunch = tAbove; quiet = false; stillOn = false; ffMs = 0; tPrev = now; return LAUNCH; }
         } else above = false;
         break;
       case FLYING:
         if (now - tLaunch >= flightTimeoutMs) return land(now, "timeout");
-        if (!quiet) { if (a < quietG) quiet = true; else break; }
+        // a real flight has free fall (|a| well under 1 g, drag and tether only); a bump on the bench does not
+        if (!quiet) { uint32_t dt = now - tPrev; tPrev = now; if (a < freeFallG) { ffMs += dt > 20 ? 20 : dt; if (ffMs >= freeFallMs) quiet = true; } break; }
         if (now - tLaunch < minFlightMs) break;
         if (a > impactG) { st = IMPACTED; tImpact = now; stillOn = false; break; }
         if (a > stillLo && a < stillHi) { if (!stillOn) { stillOn = true; tStill = now; } if (now - tStill >= softStillMs) return land(tStill, "still"); }
@@ -213,6 +218,8 @@ struct Kedge {
   bool inaOk = true, imuOk = true; int inaFails = 0;
   uint32_t tripT = 0, lowT = 0, manT = 0; bool tripOn = false, lowOn = false, manOn = false;
   int stallLock[NMOT] = {0, 0, 0, 0}; uint32_t lastCmd[NMOT] = {0, 0, 0, 0};   // a held key that stalled stays off until released
+  uint32_t heldStart[NMOT] = {0, 0, 0, 0};             // when the current manual hold began
+  float mainSolo = -1; uint32_t helpT = 0; bool helpOn = false;   // last main-motor-alone reading, helper stall timer
   uint32_t pulseT = 0; int stallHits = 0; bool paused = false; float lastSolo = -1;
   Flight flight; Log log;
   float accG = 1.0f;
@@ -226,11 +233,13 @@ struct Kedge {
     if (anchoring()) return P_ANCHORING;
     if (flight.flying()) return P_FLIGHT;
     if (seq == DONE) return P_ANCHORED;
-    if (landed && seq == IDLE) return P_LANDED;
+    if (landed && (seq == IDLE || seq == ABORTED)) return P_LANDED;
     if (armed) return P_ARMED;
     return P_IDLE;
   }
 
+  int duty() const { return seqRunning() ? 255 : spd; }   // sequences always run at full duty (stall currents are for 255)
+  static float fin(float v) { return v == v && v < 1e9f && v > -1e9f ? v : 0.f; }
   void ev(const char* s) { strncpy(lastEvent, s, sizeof(lastEvent) - 1); lastEvent[sizeof(lastEvent) - 1] = 0; if (io.log) io.log(s); }
   void setFault(int f, const char* msg, uint32_t now) { stopAll(now); if (seqRunning()) seq = ABORTED; fault = f; ev(msg); }
 
@@ -239,12 +248,17 @@ struct Kedge {
   bool pulse(int helper, float stallMa, uint32_t now) {
     uint32_t ph = now - pulseT;
     if (!paused && ph >= 400) { paused = true; pulseT = now; io.setMotor(helper, 0, 0); return false; }
-    if (paused && ph >= 110 && ph < 150 && lastSolo < 0) { lastSolo = lastMa; stallHits = lastSolo > stallMa ? stallHits + 1 : 0; return stallHits >= 2; }
-    if (paused && ph >= 150) { paused = false; pulseT = now; lastSolo = -1; if (dir[helper]) io.setMotor(helper, dir[helper], spd); }
+    if (paused && ph >= 110 && ph < 150 && lastSolo < 0) { lastSolo = mainSolo = lastMa; stallHits = lastSolo > stallMa ? stallHits + 1 : 0; return stallHits >= 2; }
+    if (paused && ph >= 150) { paused = false; pulseT = now; lastSolo = -1; if (dir[helper]) io.setMotor(helper, dir[helper], duty()); }
     if (!paused) lastSolo = -1;
     return false;
   }
-  void pulseReset(uint32_t now) { pulseT = now; stallHits = 0; paused = false; lastSolo = -1; condT = 0; }
+  void pulseReset(uint32_t now) { pulseT = now; stallHits = 0; paused = false; lastSolo = -1; condT = 0; mainSolo = -1; helpOn = false; }
+  // helper stall while both run: total minus the last main-alone reading
+  bool helperStalled(int helper, uint32_t now) {
+    if (!dir[helper] || paused || mainSolo < 0 || now - motT0[helper] < tu.surgeIgnoreMs) { helpOn = false; return false; }
+    return heldT(lastMa - mainSolo > tu.stallMa[helper], helpOn, helpT, tu.stallHoldMs, now);
+  }
   // stall of the main motor: pulse trick while the helper runs, plain current threshold once it has stopped
   bool mainStalled(int main, int helper, float stallMa, uint32_t now) {
     if (dir[helper]) return pulse(helper, stallMa, now);
@@ -255,7 +269,7 @@ struct Kedge {
   void drive(int m, int d, uint32_t ms, uint32_t now) {
     if (d && dir[m] != d) motT0[m] = now;     // a repeat of the same command keeps its start time (stall timer)
     dir[m] = d; until[m] = d ? now + ms : 0;
-    io.setMotor(m, d, d ? spd : 0);
+    io.setMotor(m, d, d ? duty() : 0);
   }
   void stopAll(uint32_t now) { for (int m = 0; m < NMOT; m++) drive(m, 0, 0, now); paused = false; }
   bool running() const { for (int m = 0; m < NMOT; m++) if (dir[m]) return true; return false; }
@@ -307,7 +321,7 @@ struct Kedge {
     if (!imuOk) return "no IMU";
     if (withAuto && !inaOk) return "no current sensor";
     flight.reset(); log.unfreeze(); landed = false; armed = true; autoOnLanding = withAuto; fault = F_NONE;
-    if (seq == ABORTED || seq == RELEASED) seq = IDLE;
+    if (seq == ABORTED || seq == RELEASED || seq == DONE) seq = IDLE;   // a new shot
     ev(withAuto ? "armed: auto-anchor on landing" : "armed: log only");
     (void)now; return nullptr;
   }
@@ -335,6 +349,10 @@ struct Kedge {
     if (stallLock[m] == d && repeat) return "stalled: release the key first";
     stallLock[m] = 0;
     if (seq == DONE || seq == RELEASED || seq == ABORTED) seq = IDLE;   // legs moved by hand: no longer a known state
+    if (dir[m] != d) heldStart[m] = now;
+    uint32_t cap = inaOk ? tu.manualMaxMs : tu.manualMaxNoInaMs, used = now - heldStart[m];
+    if (used >= cap) return "stalled: release the key first";
+    if (runMs > cap - used) runMs = cap - used;       // the whole hold, not each repeat, is capped
     drive(m, d, runMs, now);
     return nullptr;
   }
@@ -343,19 +361,21 @@ struct Kedge {
 
   // one BNO085 accelerometer reading (|a| in g)
   void onAccel(float aG, uint32_t now) {
+    if (!(aG == aG) || aG > 1e6f) return;            // NaN / inf from a bad read
     accG = aG;
     if (!armed && !flight.flying()) return;           // launch is only looked for while armed
     handleFlight(flight.update(aG, now), now);
   }
   void handleFlight(int e, uint32_t now) {
     if (e == Flight::LAUNCH) {
-      log.window(flight.tLaunch > 2000 ? flight.tLaunch - 2000 : 0);
+      log.window(flight.tLaunch - 2000);             // modular: fine across the millis() wrap
       char b[64]; snprintf(b, sizeof b, "launch detected at %lu ms", (unsigned long)flight.tLaunch); ev(b);
     } else if (e == Flight::LAND) {
       landed = true;
       uint32_t fr = flight.tLand + 3000; log.scheduleFreeze((int32_t)(fr - now) > 0 ? fr : now);
       char b[64]; snprintf(b, sizeof b, "landed (%s)", flight.how); ev(b);
       bool go = armed && autoOnLanding; armed = false;
+      if (go && flight.fallback()) { go = false; ev("no impact seen: auto not started, send /auto"); }
       if (go) { const char* r = startAuto(now); if (r) { char m[64]; snprintf(m, sizeof m, "auto on landing refused: %s", r); ev(m); } }
     }
   }
@@ -390,6 +410,7 @@ struct Kedge {
     for (int m = 0; m < NMOT; m++) if (dir[m] && (int32_t)(now - until[m]) >= 0) {
       if (m == KICK && (seq == K_SWING || seq == K_PLANT)) { setFault(F_KICK_TIMEOUT, "auto: kick timed out", now); return; }
       if (m == KICK && seq == R_KICK) { setFault(F_KICK_TIMEOUT, "release: kick timed out", now); return; }
+      if (!seqRunning() && now - heldStart[m] >= (inaOk ? tu.manualMaxMs : tu.manualMaxNoInaMs)) stallLock[m] = dir[m];   // hold cap reached: off until released
       drive(m, 0, 0, now);
     }
 
@@ -397,13 +418,16 @@ struct Kedge {
       uint32_t lim = anchoring() ? tu.autoMaxMs : tu.releaseMaxMs;
       if (now - seqStart > lim) { setFault(F_SEQ_TIMEOUT, "sequence time limit", now); return; }
     } else if (running()) {                           // manual: stop on stall (sum of the running motors' stall currents)
-      float lim = 0; bool settled = true;
-      for (int m = 0; m < NMOT; m++) if (dir[m]) { lim += tu.stallMa[m]; if (now - motT0[m] < tu.surgeIgnoreMs) settled = false; }
+      // limit = the smallest "this motor stalled while the others work normally" over the running motors
+      float sumLoad = 0, lim = 1e9f; bool settled = true;
+      for (int m = 0; m < NMOT; m++) if (dir[m]) { sumLoad += tu.loadMa[m]; if (now - motT0[m] < tu.surgeIgnoreMs) settled = false; }
+      for (int m = 0; m < NMOT; m++) if (dir[m]) { float l = tu.stallMa[m] + sumLoad - tu.loadMa[m]; if (l < lim) lim = l; }
+      lim *= spd / 255.f;                             // rail current scales with PWM duty
       if (heldT(settled && ma > lim, manOn, manT, tu.stallHoldMs, now)) {
         char b[64]; int n = snprintf(b, sizeof b, "stalled:");
         for (int m = 0; m < NMOT; m++) if (dir[m]) n += snprintf(b + n, sizeof b - n, " %s", motorName(m));
         for (int m = 0; m < NMOT; m++) if (dir[m]) stallLock[m] = dir[m];
-        stopAll(now); snprintf(b + n, sizeof b - n, ", stopped"); ev(b);
+        stopAll(now); snprintf(b + n, sizeof b - n, " at %.0f mA, stopped", ma); ev(b);
       }
     } else manOn = false;
 
@@ -415,6 +439,7 @@ struct Kedge {
         }
         break;
       case K_PLANT:   // kick keeps pushing while the foot screws in; the foot pauses so the kick is read alone
+        if (helperStalled(FOOT, now)) { drive(FOOT, 0, 0, now); ev("auto: foot stalled (stone?), kick carries on"); }
         if (pulse(FOOT, tu.stallMa[KICK], now)) {
           drive(KICK, 0, 0, now); drive(FOOT, +1, tu.footAfterMs, now); seq = F_AFTER; seqT0 = now; condT = 0; ev("auto: kick down, foot finishing");
         }
@@ -424,6 +449,7 @@ struct Kedge {
         if (!dir[FOOT]) { drive(DRILLS, +1, tu.deployMaxMs + tu.drillAfterMs, now); drive(DEPLOY, +1, tu.deployMaxMs, now); seq = D_DEPLOY; seqT0 = now; pulseReset(now); ev("auto: deploy with drills spinning"); }
         break;
       case D_DEPLOY: {  // pods swing down while the augers cut; drills pause briefly to read the deploy worm alone
+        if (helperStalled(DRILLS, now)) { drive(DRILLS, 0, 0, now); ev("auto: drills stalled (stone?), pods carry on"); }
         bool st = pulse(DRILLS, tu.stallMa[DEPLOY], now);
         if (st || !dir[DEPLOY]) {
           drive(DEPLOY, 0, 0, now); drive(DRILLS, +1, tu.drillAfterMs, now); seq = D_AFTER; seqT0 = now; condT = 0; paused = false;
@@ -442,6 +468,7 @@ struct Kedge {
         if (!dir[DRILLS]) { drive(DRILLS, -1, tu.deployMaxMs, now); drive(DEPLOY, -1, tu.deployMaxMs, now); seq = R_PODS; seqT0 = now; pulseReset(now); ev("release: pods up, drills still out"); }
         break;
       case R_PODS: {
+        if (helperStalled(DRILLS, now)) { setFault(F_DRILL_JAM, "release: drills jammed", now); return; }
         bool st = pulse(DRILLS, tu.stallMa[DEPLOY], now);
         if (st || !dir[DEPLOY]) {
           drive(DEPLOY, 0, 0, now); drive(DRILLS, 0, 0, now); drive(FOOT, -1, tu.footLeadMs, now); seq = R_FOOT; seqT0 = now; condT = 0; paused = false;
@@ -454,6 +481,7 @@ struct Kedge {
         if (!dir[FOOT]) { drive(FOOT, -1, tu.footOutMs, now); drive(KICK, -1, tu.kickMaxMs, now); seq = R_KICK; seqT0 = now; pulseReset(now); ev("release: kick back, foot still out"); }
         break;
       case R_KICK:
+        if (helperStalled(FOOT, now)) { setFault(F_FOOT_JAM, "release: foot jammed", now); return; }
         if (t > tu.surgeIgnoreMs && mainStalled(KICK, FOOT, tu.stallMa[KICK], now)) { stopAll(now); seq = RELEASED; ev("release: done, legs stowed"); }
         break;
       default: break;
@@ -469,8 +497,8 @@ struct Kedge {
                     "\"roll\":%.1f,\"pitch\":%.1f,\"accel_g\":%.2f,\"ina_ok\":%s,\"imu_ok\":%s,\"t_launch_ms\":%s,\"t_land_ms\":%s,\"log_frozen\":%s,"
                     "\"reset\":\"%s\",\"event\":\"%s\"}",
                     FW_VERSION, (unsigned long)now, phaseName(phase()), fault ? "\"" : "", fault ? faultName(fault) : "null", fault ? "\"" : "",
-                    railV >= 0 ? railV : (io.rail_V ? io.rail_V() : 0.f), lastMa, peakMa, spd, dir[0], dir[1], dir[2], dir[3], seqName(seq),
-                    armed ? "true" : "false", autoOnLanding ? "true" : "false", landed ? "true" : "false", roll, pitch, accG,
+                    fin(railV >= 0 ? railV : (io.rail_V ? io.rail_V() : -1.f)), fin(lastMa), fin(peakMa), spd, dir[0], dir[1], dir[2], dir[3], seqName(seq),
+                    armed ? "true" : "false", autoOnLanding ? "true" : "false", landed ? "true" : "false", fin(roll), fin(pitch), fin(accG),
                     inaOk ? "true" : "false", imuOk ? "true" : "false", tl, td, log.frozen ? "true" : "false", reset, lastEvent);
   }
 };

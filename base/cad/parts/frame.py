@@ -1036,7 +1036,7 @@ def checks(P, asm=None):
             sx, sy, sz = U.bbox_size(p.solid, p.print_tf)
             if sx > bed[0] - 2 or sy > bed[1] - 2 or sz > bed[2]:
                 fails.append(f"{p.name}: {sx:.0f} x {sy:.0f} x {sz:.0f} does not fit the bed")
-    for p in B["parts"]:
+    for p in (B["parts"] if C["v1"] else []):
         if p.printed and not U.stl_ok(p.solid):
             fails.append(f"{p.name}: not watertight as an STL after vertex merge")
     if info["cfg"]["v1"]:

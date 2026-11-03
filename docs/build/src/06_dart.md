@@ -32,17 +32,19 @@ The dart is built from three documents. This section says which to use for what,
 
 1. Run sheet section 4: print and check the fit coupon.
 2. Run sheet section 5: start plate A, flash the firmware from `firmware/dart/` (section 8.2 of this guide).
-3. Run sheet section 6 steps 1 to 3: clip headers, set the buck. Set MP1584 #1 to 5.04 V and MP1584 #2 to 8.0 V
+3. Run sheet section 6 steps 1 to 3: clip headers, set the buck, cut the wires (cut and flag them from the NEW cut
+   list below, not the run sheet's section 9). Set MP1584 #1 to 5.04 V and MP1584 #2 to 8.0 V
    from the 3S LiPo on XT60 lead #1 (run sheet 6.2), before either buck is soldered to anything. (This replaces
    WIRING.md step B2.) MP1584 #2 later becomes the base drum supply at 9.0 V.
-4. Run sheet section 6 step 4: find the SLP pad on DRV#1 and DRV#2 (WIRING.md step B6). Meter on beep: SLP to VM
-   must NOT beep (a Pololu pull-up of tens of kilohms is fine; a beep means the pad is the motor supply).
+4. Run sheet section 6 step 4: find the SLP pad on DRV#1 and DRV#2 (WIRING.md step B6). Meter on ohms (not beep: beep only catches a dead short): SLP to VM must read over 50 ohms (a Pololu pull-up of
+   tens of kilohms is fine). Under 50 ohms means the pad is the motor supply: do not put 3V3 on it.
 5. Battery unplugged. Solder the bench harness with WIRING.md Path B, steps B3 to B10 (B2 is replaced by step 3
    above), on the bench, outside the hull, motor leads left free at their far ends. B1 (cells and BMS) and every
    wire end that goes to the BMS (P+, P-) wait for step 9.
 6. Battery unplugged. **Click the u.FL antenna onto the VTX** (never power the VTX without it). Bench power-up: the
    8.0 V MP1584 #2 on the LiPo feeds the INA219 VIN+ pad and main ground, exactly as run sheet 7.5. Check the
-   readings there (about 4.7 V at the XIAO 5V pad, VTX LED on, `z` finds 0x40 and 0x4a). USB unplugged whenever the
+   readings there (about 4.7 V at the XIAO 5V pad, VTX LED on; the `z` I2C check (0x40 and 0x4a) is typed over USB, so do
+   it with the bench supply off and USB only, as WIRING.md's power-on check does). USB unplugged whenever the
    bench supply is connected. BENCH_TEST.md section "Power: bench supply or battery" says how the bench supply
    stands in for the battery.
 7. Motor directions on the bench (BENCH_TEST.md, the steps that need only a loose motor; run sheet 7.6 with the

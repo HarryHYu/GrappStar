@@ -38,7 +38,9 @@ def collect(p=None, fast=False):
         ("Surge (fixed-fixed)", f"{su['f_fixed_fixed_hz']:.0f} Hz"),
     ]))
     L = launch(p)
-    pitch_best = 35.0
+    pitch_best = 36.0
+    if os.path.exists(BALL):
+        pitch_best = max(json.load(open(BALL))["table"], key=lambda r: r["range_m"][1])["pitch_deg"]
     sec.append(("Launch (chain spring model)", [
         ("Stroke, ratio, pitch", f"{L['stroke_m'] * 1000:.0f} mm, {L['pulley_ratio']:.1f}:1, {L['pitch_deg']:.0f} deg"),
         ("Spring extension full / rest", f"{L['ext_full_mm']:.0f} / {L['preload_ext_mm']:.0f} mm"),
@@ -51,7 +53,7 @@ def collect(p=None, fast=False):
         ("Spring KE at stop, coil clash", f"{L['ke_spring_j']:.2f} J, {L['coil_clash_v']:.1f} m/s"),
     ]))
     v = L["v_muzzle"]
-    fl = [simulate(p, v, pitch_best, brake_n=b) for b in (0.5, 0.75, 1.0)]
+    fl = [simulate(p, v, pitch_best, brake_n=b, reel_model=True) for b in (0.5, 0.75, 1.0)]
     nt = simulate(p, v, pitch_best, tether=False)
     rows = [("Range at 0.5 / 0.75 / 1.0 N brake", " / ".join(f"{r['range_m']:.2f}" for r in fl) + f" m (pitch {pitch_best:.0f})"),
             ("Same shot, no tether", f"{nt['range_m']:.2f} m"),
@@ -61,7 +63,7 @@ def collect(p=None, fast=False):
         b = json.load(open(BALL))
         best = max(b["table"], key=lambda r: r["range_m"][1])
         rows.append(("Ballistics table", f"{b['pitch_min']:.0f} to {b['pitch_max']:.0f} deg, best {best['pitch_deg']:.1f} deg: {best['range_m'][1]:.2f} m"))
-    sec.append(("Flight (bead-chain tether, level ground)", rows))
+    sec.append(("Flight (bead-chain tether + reel model, level ground)", rows))
     rp = reel_props(p)
     s2 = spin_up_in_stroke(p, v, L["stroke_m"], 0.75)
     pr = simulate(p, v, pitch_best, brake_n=0.75, reel_model=True)
@@ -92,7 +94,7 @@ def collect(p=None, fast=False):
         "Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall "
         "current. Edit common.Wiper or spec WIPER.",
         "Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg).",
-        "Slip clutch: pull the line off the reel with a luggage scale; set 0.5 to 0.75 N.",
+        "Slip clutch: pull the line off the full reel with a luggage scale; set 0.4 to 0.5 N (FINDINGS F5).",
         "Rail friction: tilt the rail with the dart on it until it slides (mu = tan angle).",
     ]
     return dict(source=p.source, sections=sec, measure=measure)
@@ -118,7 +120,7 @@ def write_pdf(s, path):
     pdfmetrics.registerFont(TTFont("LS", FONT))
     pdfmetrics.registerFont(TTFont("LSB", FONT_B))
     W, H = A4
-    cv = canvas.Canvas(path, pagesize=A4)
+    cv = canvas.Canvas(path, pagesize=A4, initialFontName="LS", initialFontSize=8)
     cv.setTitle("Base station physics summary")
     cv.setAuthor("")
     m = 36
@@ -137,7 +139,7 @@ def write_pdf(s, path):
     lh = 9.4
     for title, rows in s["sections"]:
         need = lh * (len(rows) + 1.6)
-        if y - need < m + 120 and col == 0:
+        if col == 0 and (y - need < m + 120 or title.startswith("Storage reel")):
             col = 1
             y = y_top
         x = col_x[col]

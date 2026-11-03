@@ -99,7 +99,7 @@ def aim(p: Params, **kw) -> dict:
             t_worm = F * r_w * (tl + mu_e) / (1 - mu_e * tl)
         else:
             t_worm = F * r_w * (mu_e - tl) / (1 + mu_e * tl)
-        rows.append((p1, t_crank, t_worm / (a["bevel"] * a["eta_bevel"])))
+        rows.append((p1, t_crank, t_worm * a["bevel"] / a["eta_bevel"]))   # worm turns bevel x faster than the wiper
     t_w = [r[2] for r in rows]
     wiper_deg_rise = 160 * k_turns                           # crank 0 -> 160 deg raises 6 -> 47
     return dict(params=a, mass=m, screw_eff=eta_w, self_locking=tl * math.cos(math.radians(a["phi_n_deg"])) < a["mu"],
@@ -107,7 +107,7 @@ def aim(p: Params, **kw) -> dict:
                 t_peak=max(t_w), t_mean=sum(t_w) / len(t_w), wiper_turns=wiper_deg_rise / 360,
                 wiper_turns_full_cycle=k_turns, profile=rows,
                 shaft_torque=max(r[1] for r in rows), shaft_k=k_turns * eta_w * a["eta_bevel"], gear=a["gear"],
-                gear_ratio=1.0 / a["bevel"], train_k=1.0 / (a["bevel"] * a["eta_bevel"]), sprag_torque=None)
+                gear_ratio=1.0 / a["bevel"], train_k=a["bevel"] / a["eta_bevel"], sprag_torque=None)
 
 
 # ------------------------------------------------------------------ cock
@@ -130,8 +130,10 @@ def cock(p: Params, **kw) -> dict:
     lim = p.spring.limits()
     return dict(params=c, ext_full_mm=ext1 * 1000, f_spring_full=p.n_springs * p.spring.force(ext1),
                 f_peak=max(fs), f_mean=sum(fs) / len(fs), t_peak=max(fs) * k, t_mean=sum(fs) / len(fs) * k,
-                wiper_turns=drum_turns * c["ratio"], shaft_torque=max(fs) * c["drum_r"], shaft_k=c["ratio"] * c["eta"],
-                sprag_torque=max(fs) * c["drum_r"], gear=c["gear"], gear_ratio=c["ratio"], train_k=k,
+                wiper_turns=c["ratio"],     # one big gear turn per shot: cock, fire, reset (stroke alone is ~78 %)
+                wiper_turns_stroke=drum_turns * c["ratio"], shaft_torque=max(fs) * c["drum_r"], shaft_k=c["ratio"] * c["eta"],
+                sprag_torque=max(fs) * k, sprag_ratio=1.0,   # sprag #1 is in the drive gear on the wiper axis
+                gear=c["gear"], gear_ratio=c["ratio"], train_k=k,
                 spring_safe_ext_mm=lim["ext_safe_mm"], spring_ok=ext1 * 1000 <= lim["ext_safe_mm"],
                 profile=fs)
 
@@ -170,7 +172,7 @@ def evaluate(p: Params, name: str, fn: dict, v_oc: float) -> dict:
     shaft_tr = fn["shaft_k"] * t_trip
     sp = None
     if fn.get("sprag_torque") is not None:
-        rpm_out = pk["rpm"] / fn["gear_ratio"]
+        rpm_out = pk["rpm"] / fn.get("sprag_ratio", fn["gear_ratio"])
         sp = gears.sprag(fn["sprag_torque"], rpm_out, p.sprag)
     frac = fn["t_peak"] / t_s
     flags, stall_warn = [], []

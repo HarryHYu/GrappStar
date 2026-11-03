@@ -77,6 +77,11 @@ def L(P):
     )
     m = n["m"]
     n["w_rp"] = n["rb"] + 0.1                                  # rack pitch line height
+    # tooth 0 sits N_LEAD pitches before the mesh centre at rest so that it is the FIRST tooth to touch the rack
+    # (rack tooth 0) while the carriage is held on its stop (a rotating gear cannot enter a stationary rack at the
+    # mesh centre: the teeth within about 25 deg of it would cut the rack). Checked by the reset audit states.
+    n["n_lead"] = d["n_lead"]
+    n["fta"] = -90.0 + n["n_lead"] * 360.0 / n["z_big"]           # gear-local angle of tooth 0 at rest
     n["w_rtip"] = n["w_rp"] - m                                # rack tooth tips (towards the gear)
     n["w_rroot"] = n["w_rp"] + 1.45 * m
     n["w_deck0"], n["w_deck1"] = n["w_rroot"], n["w_rroot"] + 7.0
@@ -112,6 +117,13 @@ def L(P):
 
 
 # ------------------------------------------------------------------------------------------------ helpers
+def bed(solid, R=None, rz=0.0):
+    """print_tf: rotate by R (4x4), then about z by rz deg, then translate so the part sits at z = 0 centred."""
+    M = tf.mul(tf.Rz(rz), R if R is not None else tf.I4)
+    lo, hi = prim.bbox(prim.place(solid, M))
+    return tf.mul(tf.T(-(lo[0] + hi[0]) / 2, -(lo[1] + hi[1]) / 2, -lo[2]), M)
+
+
 def B(u0, u1, y0, y1, w0, w1):
     return prim.box(u0, u1, y0, y1, w0, w1)
 
@@ -180,7 +192,9 @@ def rail_solid(P):
     s.append(B(ua - 8, ua + 8, -46, 46, n["w_floor0"] - 6, n["w_floor0"]))
     # carriage front stop blocks (the carriage stop tab hits their rear face at HOME)
     ust = n["u_c_home"] + 8.0
-    s.append(Bs(ust + 3.0, ust + 30.0, n["stop_y0"] - 0.5, n["y_shoe0"], n["w_floor0"], n["tab_w0"] + 6))
+    s.append(Bs(ust, ust + 27.0, n["stop_y0"] - 0.5, n["y_shoe0"], n["w_floor0"], n["tab_w0"] + 6))
+    # mid piece cross tie (behind the drive gear, under the carriage tab path)
+    s.append(B(n["split"][0] + 1.0, n["split"][0] + 10.0, -n["y_wall1"], n["y_wall1"], n["w_floor0"] + 6, n["tab_w0"] - 0.5))
     solid = prim.union(s)
     # bores: sleeve journals (d20 + running clearance) and the big gear pin
     solid = solid - cyl_y(10.0 + 0.2, -30, 30, 0.0, 0.0) - cyl_y(5.0 + 0.2, -30, 30, n["cd"], 0.0)
@@ -188,7 +202,7 @@ def rail_solid(P):
     for sg in (1, -1):
         solid = solid - cyl_w(3.1, n["w_floor0"] - 1, wsp, ua, sg * ys)
     # stop pad pockets
-    solid = solid - Bs(ust + 3.0, ust + 13.0, n["stop_y0"], n["y_shoe0"] - 0.5, n["tab_w0"] - 8, n["tab_w0"] + 6.1)
+    solid = solid - Bs(ust - 1.0, ust + 10.0, n["stop_y0"], n["y_shoe0"] - 0.5, n["tab_w0"] - 8, n["tab_w0"] + 6.1)
     return solid
 
 
@@ -211,7 +225,7 @@ def carriage_solid(P):
     s = []
     # rack spine with teeth (pitch line at w_rp, teeth down), length = stroke + margin
     rack_n = n["n_present"]
-    u_first = n["u_mesh"] - n["u_c_home"] - 0.5 * math.pi * m       # local u of the rearmost tooth centre
+    u_first = n["u_mesh"] - n["u_c_home"] + (n["n_lead"] - 0.5) * math.pi * m   # local u of rack tooth 0 (rearmost)
     if G is not None:
         rk = G.rack_2d(m, rack_n, back=n["w_deck1"] - n["w_rroot"], dedendum=1.45)
         rk = prim.extrude(rk, 12.0)                                   # 2D (x, y) -> (u, -w)? place below
@@ -245,7 +259,7 @@ def carriage_solid(P):
         s.append(B(0, 14, 12.0 if sg > 0 else -n["y_lip0"] + 0.5, n["y_lip0"] - 0.5 if sg > 0 else -12.0,
                    n["w_deck0"], n["lip_w1"] + 6.5))
     # stop tab under the rear (hits the rail stop pads at HOME)
-    s.append(Bs(0, 8, n["stop_y0"], n["y_shoe0"] + 0.1, n["tab_w0"], n["w_deck0"] + 0.1))
+    s.append(Bs(0, 8, n["stop_y0"], n["y_shoe0"] - 0.7, n["tab_w0"], n["w_deck0"] + 0.1))
     return prim.union(s)
 
 
@@ -253,7 +267,7 @@ def big_gear_solid(P):
     n = L(P)
     m = n["m"]
     if G is not None:
-        cs = G.sector_gear_2d(m, n["z_big"], n["n_present"], first_tooth_angle=-90.0)
+        cs = G.sector_gear_2d(m, n["z_big"], n["n_present"], first_tooth_angle=n["fta"])
         g = prim.extrude(cs, n["face"])
     else:
         g = prim.cyl(n["rb"] + m, n["face"])
@@ -306,12 +320,25 @@ def spring_segment_solid(P, length):
     return prim.cylX(ro, 0, length) - prim.cylX(ro - n["spring_wire"], -1, length + 1)
 
 
-def hook_solid(P):
-    """Spring hook loop around a d6 peg (ring about w), with a short neck to the coils (+u)."""
+HOOK_L = 12.0     # pin centre to the first coil
+
+
+def hook_solid(P, sign=1):
+    """Spring hook loop round a d6 pin (ring about w) with a neck to the coils (towards +u for sign 1)."""
     n = L(P)
     r = n["spring_wire"]
     ring = prim.tube(3.0 + 2 * r, 3.0 + 0.05, r * 2, z=-r)
-    return ring
+    neck = prim.box(3.0, HOOK_L + 0.01, -r, r, -r, r)
+    neck = neck + prim.cylX(n["spring_od"] / 2, HOOK_L - 2.0, HOOK_L) - prim.cylX(n["spring_od"] / 2 - r, HOOK_L - 3, HOOK_L + 1)
+    h = ring + neck
+    return h if sign > 0 else prim.place(h, tf.Rz(180))
+
+
+def anchor_pin_solid(P):
+    """Printed PPA-CF pin d6 (vertical) with a head on top; the spring hook sits on it."""
+    n = L(P)
+    h = n["w_spring"] + 6.0 - (n["w_floor0"] - 1.0)
+    return prim.cyl(3.0, h) + prim.cyl(5.0, 2.5, z=h)
 
 
 N_SEG = 5
@@ -324,44 +351,49 @@ def parts(P):
     cols = dict(rear="#9aa7b4", mid="#8796a5", front="#9aa7b4")
     for k, sol in pcs.items():
         out.append(Part(f"launch_rail_{k}", sol, "PLA", joint="launch_rail", place=tf.I4,
-                        print_tf=tf.mul(tf.T(0, 0, 0), tf.Rx(90)), color=cols[k],
+                        print_tf=bed(sol, tf.Rx(90)), color=cols[k],
                         notes=f"Rail {k} piece: shoe track, walls" + (", cheeks on the sleeve, big gear pin bosses" if k == "mid" else "")))
-    out.append(Part("launch_carriage", carriage_solid(P), "PLA", joint="launch_carriage", place=tf.T(n["u_c_home"], 0, 0),
+    cs = carriage_solid(P)
+    out.append(Part("launch_carriage", cs, "PLA", joint="launch_carriage", place=tf.T(n["u_c_home"], 0, 0),
+                    print_tf=bed(cs, tf.Rx(90), rz=45.0),
                     color="#d97a00", notes="Carriage: rack, shoes, dart cradle, pusher with tether hole, spring pegs, stop tab"))
     out.append(Part("launch_big_gear", big_gear_solid(P), "PPA-CF", joint="launch_big_gear",
                     place=tf.mul(tf.Rx(-90), tf.T(0, 0, -n["face"] / 2)), print_tf=tf.T(0, 0, (17.0 - n["face"]) / 2),
                     color="#3d7cc9", notes="Big gear m2.5 40T, 33 teeth present, relieved last tooth, rides on the rail"))
     out.append(Part("launch_gear_pin", gear_pin_solid(P), "PPA-CF", joint="launch_rail",
-                    place=tf.mul(tf.T(n["cd"], 0, 0), tf.Rx(-90)), color="#3a3f45",
+                    place=tf.mul(tf.T(n["cd"], 0, 0), tf.Rx(-90)), print_tf=bed(gear_pin_solid(P)), color="#3a3f45",
                     notes="Snap pin d10 for the big gear, C clip"))
     out.append(Part("launch_drive_gear", drive_gear_solid(P), "PPA-CF", joint="launch_drive",
-                    place=tf.mul(tf.Rx(-90), tf.T(0, 0, -n["face"] / 2)), color="#2f6db5",
+                    place=tf.mul(tf.Rx(-90), tf.T(0, 0, -n["face"] / 2)), print_tf=bed(drive_gear_solid(P)), color="#2f6db5",
                     notes="Drive gear m2.5 26T, sprag #1 keyed inside"))
     out.append(Part("launch_sprag", sprag_solid(P), "bought", joint="launch_drive", place=tf.Rx(-90),
                     color="#777c84", bought_ref="CSK20PP 20x47x14 sprag #1", notes="Sprag #1: forward wiper cocks"))
     out.append(Part("launch_sleeve", sleeve_solid(P), "PPA-CF", joint="launch_sleeve",
-                    place=tf.mul(tf.T(0, n["y_flange"] - n["Y0"], 0), tf.Rx(-90)), color="#3a3f45",
+                    place=tf.mul(tf.T(0, n["y_flange"] - n["Y0"], 0), tf.Rx(-90)), print_tf=bed(sleeve_solid(P)), color="#3a3f45",
                     notes="Launch sleeve d20 keyed: dog ring flange, sprag #1, splitter sun, journals"))
     # springs: hooks + coil segments that spread as the carriage moves
-    seg_len = (n["L_home"] - 2 * 3.0 - 2 * 6.0) / N_SEG
+    seg_len = (n["L_home"] - 2 * HOOK_L) / N_SEG
     for sg, side in ((1, "l"), (-1, "r")):
         y = sg * n["y_spring"]
-        out.append(Part(f"launch_spring_{side}_hook_a", hook_solid(P), "bought", joint="launch_rail",
+        out.append(Part(f"launch_anchor_pin_{side}", anchor_pin_solid(P), "PPA-CF", joint="launch_rail",
+                        place=tf.T(n["u_anchor"], y, n["w_floor0"] - 1.0), print_tf=bed(anchor_pin_solid(P), tf.Rx(180)),
+                        color="#3a3f45", notes="Spring anchor pin d6, pushed down through the front post"))
+        out.append(Part(f"launch_spring_{side}_hook_a", hook_solid(P, -1), "bought", joint="launch_rail",
                         place=tf.T(n["u_anchor"], y, n["w_spring"]), color="#b0b5bb",
                         bought_ref="Century 16 x 165.1 x 1.4 extension spring", notes="Spring hook on the anchor pin"))
-        out.append(Part(f"launch_spring_{side}_hook_c", hook_solid(P), "bought", joint="launch_carriage",
+        out.append(Part(f"launch_spring_{side}_hook_c", hook_solid(P, 1), "bought", joint="launch_carriage",
                         place=tf.T(n["u_c_home"] + n["u_peg_c"], y, n["w_spring"]), color="#b0b5bb",
                         notes="Spring hook on the carriage peg"))
         for i in range(N_SEG):
-            u_seg = n["u_c_home"] + n["u_peg_c"] + 3.0 + 6.0 + i * seg_len
-            out.append(Part(f"launch_spring_{side}_{i}", spring_segment_solid(P, seg_len - 0.3), "bought",
+            u_seg = n["u_c_home"] + n["u_peg_c"] + HOOK_L + i * seg_len
+            out.append(Part(f"launch_spring_{side}_{i}", spring_segment_solid(P, seg_len), "bought",
                             joint=f"launch_spring_seg_{i}", place=tf.T(u_seg, y, n["w_spring"]), color="#c2c7cc",
                             notes="Spring coils (shown in segments that spread when stretched)"))
     out.append(Part("launch_stop_pad_l", B(0, 10, 0, 5.0, 0, 14), "TPU", joint="launch_rail",
-                    place=tf.T(n["u_c_home"] + 11.0, n["stop_y0"], n["tab_w0"] - 8),
+                    place=tf.T(n["u_c_home"] + 8.0, n["stop_y0"], n["tab_w0"] - 8),
                     print_tf=tf.I4, color="#222222", notes="Carriage stop pad, TPU 95A (PLA honeycomb if no TPU)"))
     out.append(Part("launch_stop_pad_r", B(0, 10, -5.0, 0, 0, 14), "TPU", joint="launch_rail",
-                    place=tf.T(n["u_c_home"] + 11.0, -n["stop_y0"], n["tab_w0"] - 8),
+                    place=tf.T(n["u_c_home"] + 8.0, -n["stop_y0"], n["tab_w0"] - 8),
                     print_tf=tf.T(0, 5, 0), color="#222222", notes="Carriage stop pad"))
     out += _aim("parts_aim", P)
     return out
@@ -384,10 +416,71 @@ def joints(P):
     return out
 
 
-def gear_angle_for_travel(P, travel):
-    """Big gear angle (deg, about rail +y) for a carriage travel back from HOME (mm)."""
+_REL_CACHE = {}
+
+
+def release_table(P):
+    """Carriage travel (mm) vs big gear angle (deg, negative = cocking) from the real 2D teeth: the springs press the
+    rack forward against the gear, so the travel is the smallest rack position with no tooth overlap. Release = the
+    first angle at which the rack can run all the way home without touching the gear. Returns dict with arrays."""
     n = L(P)
-    return -math.degrees(travel / n["rb"])
+    key = (n["m"], n["z_big"], n["n_present"], round(n["stroke"], 3))
+    if key in _REL_CACHE:
+        return _REL_CACHE[key]
+    m, rb, p = n["m"], n["rb"], math.pi * n["m"]
+    gear = G.sector_gear_2d(m, n["z_big"], n["n_present"], first_tooth_angle=n["fta"])
+    rack = G.rack_2d(m, n["n_present"], back=7.0, dedendum=1.45).scale((1.0, -1.0))
+    u0 = -p / 2 + n["n_lead"] * p
+
+    def ov(th, xu):
+        return (gear.rotate(th) ^ rack.translate((u0 - xu, -n["w_rp"]))).area()
+
+    def follow(th, nom):
+        xs = np.arange(max(0.0, nom - 4.0), nom + 4.0, 0.05)
+        for x in xs:
+            if ov(th, x) < 1e-5:
+                return float(x)
+        return float(nom)
+
+    # mid-stroke offset (springs take up the backlash) measured once
+    d_mid = -math.radians(-150.0) * rb - follow(-150.0, -math.radians(-150.0) * rb)
+    ths, trs = [0.0], [0.0]
+    th_rel = None
+    th = -1.0
+    th_start_fine = -math.degrees((n["n_present"] - 3) * p / rb)
+    while th > -359.0:
+        nom = -math.radians(th) * rb
+        if th > th_start_fine:
+            tr = max(0.0, nom - d_mid)
+            step = -2.0
+        else:
+            tr = follow(th, nom)
+            free = all(ov(th, x) < 1e-5 for x in np.arange(0.0, tr, 0.5))
+            if free:
+                th_rel = th
+                break
+            step = -0.25
+        ths.append(th)
+        trs.append(tr)
+        th += step
+    out = dict(theta=np.array(ths), travel=np.array(trs), theta_release=th_rel,
+               travel_release=float(trs[-1]), d_mid=d_mid)
+    _REL_CACHE[key] = out
+    return out
+
+
+def gear_angle_for_travel(P, travel):
+    """Big gear angle (deg, about rail +y) for a carriage travel back from HOME (mm), from the real contact table."""
+    if G is None:
+        return -math.degrees(travel / L(P)["rb"])
+    t = release_table(P)
+    tr = np.maximum.accumulate(t["travel"])
+    travel = min(float(travel), float(tr[-1]))
+    return float(np.interp(travel, tr, t["theta"]))
+
+
+def gear_release_angle(P):
+    return release_table(P)["theta_release"] if G is not None else -math.degrees(L(P)["stroke"] / L(P)["rb"])
 
 
 def _drive_phase(P):
@@ -406,7 +499,7 @@ def kin(P, S):
     if "launch_gear_deg" in S:
         gdeg = float(S["launch_gear_deg"])
     elif S.get("fired") and cock < 1.0:
-        gdeg = gear_angle_for_travel(P, n["stroke"])               # gear stays at the release angle in the shot
+        gdeg = gear_release_angle(P)                                # gear stays at the release angle in the shot
     else:
         gdeg = gear_angle_for_travel(P, travel)
     out = {"launch_rail": pitch, "launch_carriage": travel, "launch_big_gear": gdeg,
@@ -420,7 +513,8 @@ def allowed(P):
     return [
         Allow("launch_sprag", "launch_drive_gear", "sprag outer race keyed in the drive gear (press)"),
         Allow("launch_sprag", "launch_sleeve", "sprag inner race on the keyed sleeve"),
-        Allow("launch_spring_*_hook_a", "launch_rail_front", "hook loop round the anchor pin"),
+        Allow("launch_spring_*_hook_a", "launch_anchor_pin_*", "hook loop round the anchor pin"),
+        Allow("launch_anchor_pin_*", "launch_rail_front", "pin in its hole"),
         Allow("launch_spring_*_hook_c", "launch_carriage", "hook loop round the carriage peg"),
         Allow("launch_stop_pad_*", "launch_rail_mid", "pad in its pocket"),
     ] + _aim("allowed_aim", P)
@@ -438,11 +532,12 @@ def audit_states(P):
         for c in (0.0, 0.5, 1.0):
             S.append(dict(aim_deg=p, cock=c, phase="launch_sweep"))
     # the shot: gear at the release angle, carriage flying home
-    for f in np.linspace(0, 1, 11):
-        S.append(dict(aim_deg=25.0, launch_travel=n["stroke"] * (1 - f), fired=True, cock=0.5,
-                      launch_gear_deg=gear_angle_for_travel(P, n["stroke"]), phase="launch_shot"))
+    for f in np.linspace(0, 1, 11):            # the wiper keeps turning about 16 deg (gear about 10) during the shot
+        for lag in (0.0, 12.0):
+            S.append(dict(aim_deg=25.0, launch_travel=n["stroke"] * (1 - f), fired=True, cock=0.5,
+                          launch_gear_deg=gear_release_angle(P) - lag * f, phase="launch_shot"))
     # reset: gear turns through the gap with the carriage at HOME
-    a0 = gear_angle_for_travel(P, n["stroke"])
+    a0 = gear_release_angle(P)
     for a in np.linspace(a0, -360.0, 9):
         S.append(dict(aim_deg=25.0, launch_travel=0.0, launch_gear_deg=float(a), phase="launch_reset"))
     S += _aim("audit_states_aim", P)

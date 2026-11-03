@@ -22,6 +22,7 @@ import numpy as np
 DEFAULTS = dict(
     # springs (P.SPRING gives k, F0, free length, max extension)
     preload=5.0,            # mm extension at home (carriage held on the front stop)
+    n_lead=3,               # rest: tooth 0 this many pitches before the mesh centre (first contact with the carriage on its stop)
     # cocking gears
     m_rack=2.5,             # module of big gear and rack
     z_big=40,               # big gear full tooth count (pitch d 100)
@@ -78,8 +79,8 @@ def stroke(P):
     d = lp(P)
     m = d["m_rack"]
     pitch = math.pi * m
-    n = int(math.floor((stroke_max(P) - REL_EXTRA) / pitch)) + 1
-    return (n - 1) * pitch + REL_EXTRA
+    n = int(math.floor((stroke_max(P) - REL_EXTRA) / pitch)) + 1 - d["n_lead"]
+    return (n - 1 + d["n_lead"]) * pitch + REL_EXTRA
 
 
 def spring_energy(P):
@@ -102,7 +103,7 @@ def gears(P):
     # teeth needed: rack travel while engaged ~ (teeth present - 1) pitches + contact on the last tooth
     pitch = math.pi * m
     # release travel measured on the real 2D teeth (launch.release_table): (n - 1) pitches + REL_EXTRA
-    n_present = int(math.floor((S - REL_EXTRA) / pitch)) + 1
+    n_present = int(math.floor((S - REL_EXTRA) / pitch)) + 1 - d["n_lead"]
     gap_teeth = d["z_big"] - n_present
     return dict(m=m, r_big=rb, r_drive=rd, cd=rb + rd + 0.1, pitch=pitch, n_present=n_present,
                 gap_teeth=gap_teeth, gap_deg=gap_teeth * 360.0 / d["z_big"],

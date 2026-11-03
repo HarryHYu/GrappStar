@@ -52,8 +52,8 @@ def refused(c, name, **args):
     return r["err"]
 
 
-def idle(c, sim_s=2):
-    return c.wait_tel(lambda t: t["state"] == "IDLE", T(sim_s), what="IDLE")
+def idle(c, sim_s=2, fail_on_fault=True):
+    return c.wait_tel(lambda t: t["state"] == "IDLE", T(sim_s), what="IDLE", fail_on_fault=fail_on_fault)
 
 
 # ------------------------------------------------------------------------------------------------ link
@@ -199,21 +199,23 @@ def test_injected_fault_safing_and_clear(base):
     base.transport.sim("fault encMissing 0")
     time.sleep(T(0.2))
     base.cmd("clear")
-    t = idle(base)
+    t = idle(base, fail_on_fault=False)                    # the telemetry before the clear still shows the fault
     assert t["fault"] is None and t["mode"] == "NEUTRAL"
 
 
 def test_drum_jam_fault_holds(base):
-    base.transport.sim("fault drumJam 1")
+    run(base, "mode", "MODE", 10, to="LAUNCH")
+    base.transport.sim("fault drumJam 1")                 # the selector drum N20 does not turn
     mark = base.event_mark()
-    base.cmd("mode", to="LAUNCH")
+    base.cmd("mode", to="NEUTRAL")
     f = base.wait_event("FAULT", T(15), since=mark)
     assert f["code"] == "DRUM_TIMEOUT"
     m = base.wait_event("MODE", 2, since=mark, fail_on_fault=False, fail_on_not_ok=False)
-    assert m["ok"] is False and m["err"] == "DRUM_HELD"
+    assert m["ok"] is False and m["err"] == "DRUM_HELD" and m["drum_pos"] == "LAUNCH"   # a drum fault never moves it
     base.transport.sim("fault drumJam 0")
     base.cmd("clear")
-    idle(base)
+    t = idle(base, fail_on_fault=False)
+    assert t["fault"] is None
 
 
 # ------------------------------------------------------------------------------------------------ pty mode

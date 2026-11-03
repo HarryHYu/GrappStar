@@ -120,12 +120,21 @@ def test_filesource_corrupt_jpeg_ends_playback(tmp_path):
     assert len(frames) >= 29
 
 
-def test_video_only_last_attitude_is_in_flight(sim):
-    """analysis.py passes fres.attitude[-1] roll to terrain as the resting side tilt. Without a flightlog the last
-    attitude entry is the last frame with a visible horizon, i.e. a flight frame before landing."""
+def test_video_only_no_inflight_roll_passed_as_ground_tilt(sim, monkeypatch):
+    """Without a flightlog the last attitude entry is a flight frame (horizon gone after landing). analysis.py must
+    then pass no resting attitude to terrain rather than the in-flight roll (fixed in analysis.py)."""
+    from grappstar import analysis
+    from grappstar.vision import terrain
     frames, truth = sim
-    r = analyze_flight(frames)
-    assert r.attitude and r.attitude[-1][0] >= truth["t_landed"]
+    got = {}
+    orig = terrain.analyze_landing
+    def spy(fr, model=None, attitude=None, **kw):
+        got["attitude"] = attitude
+        return orig(fr, model=model, attitude=attitude, **kw)
+    monkeypatch.setattr(terrain, "analyze_landing", spy)
+    analysis.run_post_flight(frames, None, None, do_mosaic=False)
+    att = got.get("attitude")
+    assert att is None or att[0] >= truth["t_landed"]
 
 
 # ------------------------------------------------------------------ fixes (added with the round 2 fixes)

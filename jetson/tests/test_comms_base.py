@@ -430,7 +430,8 @@ def test_estop(pair):
     with pytest.raises(BaseError) as ei:
         c.wait_event("MODE", 2, since=m)
     assert ei.value.err == "DRUM_HELD"
-    assert c.wait_tel(lambda t: True, 1)["drum_pos"] == "WRAPPED"
+    time.sleep(0.3)
+    assert mb.drum_pos() == "WRAPPED" and c.wait_tel(lambda t: t["drum_pos"] == "WRAPPED", 1)
 
 
 def test_jog_and_settings(pair):
@@ -471,9 +472,8 @@ def test_invalid_drum_code(pair):
 
 def test_256_byte_line_is_legal(pair):
     mb, c = pair
-    base = len(json.dumps({"id": 1000000, "cmd": "ping", "x": ""}, separators=(",", ":")))
-    n = 256 - base
-    r = c.cmd("ping", x="a" * (n - (len(str(c._next_id)) - 7)))
+    base = len(json.dumps({"id": c._next_id, "cmd": "ping", "x": ""}, separators=(",", ":")))
+    r = c.cmd("ping", x="a" * (256 - base))
     assert r["ok"]
     assert max(len(json.dumps(m, separators=(",", ":"))) for m in mb.received) == 256
     with pytest.raises(ValueError):

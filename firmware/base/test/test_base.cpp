@@ -203,7 +203,7 @@ static void testProtocolBasics() {
   char tel[300]; R.B.telemetry(tel, sizeof tel);
   CHECK(std::string(tel).find("{\"tel\":{\"state\":\"IDLE\"") == 0, tel);
   CHECK(strlen(tel) <= 256, "telemetry within 256 bytes");
-  CHECK(std::string(tel).find("\"sw\":{\"a\":1,\"l\":1,\"n\":1,\"H\":1,\"G\":1,\"S\":1}") != std::string::npos, tel);   // LAUNCH code, carriage home; SW_ARM open = cup at home (cad-reel)
+  CHECK(std::string(tel).find("\"sw\":{\"a\":1,\"l\":1,\"n\":1,\"H\":1,\"G\":1,\"L\":1,\"S\":1}") != std::string::npos, tel);   // LAUNCH code, carriage home, rail at its LOW dead point (CAD SW_RAIL_LOW window); SW_ARM open = cup at home (cad-reel)
 }
 
 static void testTelemetryWorstCase() {
@@ -339,17 +339,20 @@ static void testCockFireReset() {
 static void testFireRefusals() {
   T("fire refusals");
   Rig R; R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"cock_rest\"}");
-  R.homeAimAndCock();
-  S.seatAtLine = -1; S.lineOut = 5; R.run(50);   // dart not seated
-  CHECK(R.err("{\"id\":1,\"cmd\":\"arm\"}") == "NOT_SEATED", "not seated");
+  R.toMode("LAUNCH"); R.ok("{\"id\":3,\"cmd\":\"aim\",\"deg\":35}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000);
+  S.seatAtLine = -1; S.lineOut = 5; R.run(50);   // dart not seated (carriage home: SW_SEATED reads the dart)
+  CHECK(R.err("{\"id\":1,\"cmd\":\"arm\"}") == "NOT_SEATED", "not seated (fire from rest)");
   S.seatAtLine = 0; S.lineOut = 0; R.run(50);
   R.B.aimed = false;
   CHECK(R.err("{\"id\":1,\"cmd\":\"arm\"}") == "NOT_AIMED", "not aimed");
   R.B.aimed = true;
   { std::string a = R.cmd("{\"id\":2,\"cmd\":\"arm\"}"); long tok = atol(a.c_str() + a.find("\"token\":") + 8);
     S.lineOut = 3; R.run(50);                  // dart pulled out between arm and fire
-    CHECK(R.err("{\"id\":3,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}") == "NOT_SEATED", "rechecked at fire"); }
+    CHECK(R.err("{\"id\":3,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}") == "NOT_SEATED", "rechecked at fire (from rest)"); }
   S.lineOut = 0; R.run(50);
+  R.ok("{\"id\":2,\"cmd\":\"cock\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
+  CHECK(R.B.phase == gb::PH_COCKED && !R.B.closed(gb::SW_SEATED), "cocked: SW_SEATED open (the plunger presses its lever only at HOME)");
+  CHECK(R.cmd("{\"id\":2,\"cmd\":\"arm\"}").find("\"token\":") != std::string::npos, "arm while cocked: the dart seated when the cock started counts (latch)");
   CHECK(R.err("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}") == "LAUNCH_BUSY", "no shift while cocked (no sear: the worm holds the spring)");
   CHECK(R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"decock\"}"), "decock");
   R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
@@ -453,7 +456,7 @@ static void testTowTaper() {
 static long armTok(Rig& R) { std::string a = R.cmd("{\"id\":2,\"cmd\":\"arm\"}"); size_t p = a.find("\"token\":"); return p == std::string::npos ? -1 : atol(a.c_str() + p + 8); }
 static void testReview7() {
   T("review M1: a fault with the big gear out of its gap (SW_GAP open) holds the drum in LAUNCH");
-  { Rig R; S.aimDragDeg = 127; R.toMode("LAUNCH"); R.cmd("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}");
+  { Rig R; S.aimDragDeg = 195.4; R.toMode("LAUNCH"); R.cmd("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}");
     R.until([&] { return !R.B.closed(gb::SW_GAP) && S.cockPh < -60; }, 60000);
     CHECK(!R.B.closed(gb::SW_GAP) && R.B.closed(gb::SW_HOME), "SW_GAP opened by the aim drag, carriage home");
     R.cmd("{\"id\":2,\"cmd\":\"estop\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 40000);
@@ -472,7 +475,7 @@ static void testReview7() {
     std::string e = R.err("{\"id\":6,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}");
     CHECK(e != "" && S.shots == 0, "decock at rest cancels the token"); }
   T("review M3: decock re-runs a gap run that was stopped");
-  { Rig R; S.aimDragDeg = 127; R.toMode("LAUNCH"); R.cmd("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}");
+  { Rig R; S.aimDragDeg = 195.4; R.toMode("LAUNCH"); R.cmd("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}");
     CHECK(R.until([&] { return R.B.gapRun; }, 60000), "gap run started after the aim");
     R.run(300); R.cmd("{\"id\":2,\"cmd\":\"stop\"}"); R.run(100);
     CHECK(R.B.phase == gb::PH_UNKNOWN && !R.B.closed(gb::SW_GAP), "stopped: phase unknown, SW_GAP open");
@@ -904,9 +907,9 @@ static void testReview4() {
     R.ok("{\"id\":2,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 40000);
     char m[90]; snprintf(m, sizeof m, "mode NEUTRAL re-references and parks at 41 (true %.1f)", S.drumDeg);
     CHECK(R.idle() && fabs(S.drumDeg - 41) < 5, m); }
-  { Rig R; S.aimDragDeg = 127; R.toMode("LAUNCH");   // cad-launch: the aim drags the big gear back and opens SW_GAP
+  { Rig R; S.aimDragDeg = 195.4; R.toMode("LAUNCH");   // cad-launch: the aim drags the big gear back and opens SW_GAP
     R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000);
-    CHECK(R.B.aimed && R.B.closed(gb::SW_GAP) && S.cockPh > -34.5 && S.cockPh < 0, "aim then the forward gap run: AIMED with SW_GAP closed, train still in its gap");
+    CHECK(R.B.aimed && R.B.closed(gb::SW_GAP) && S.cockPh > -S.gapWinDeg - 2 && S.cockPh < 0, "aim then the forward gap run: AIMED with SW_GAP closed, train still in its gap (CAD window)");
     std::string a = R.cmd("{\"id\":2,\"cmd\":\"arm\"}"); long tok = atol(a.c_str() + a.find("\"token\":") + 8);
     CHECK(R.ok("{\"id\":3,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}"), "arm and fire after the gap run");
     R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
@@ -926,14 +929,14 @@ static void testReview4() {
   { Rig R; R.toMode("LAUNCH");
     CHECK(R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":6}"), "aim 6 (just under the table minimum 6.01) accepted and clamped (systest F27)");
     R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000); CHECK(R.B.aimed, "aimed at the minimum"); }
-  { Rig R; S.aimDragDeg = 127; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}");
+  { Rig R; S.aimDragDeg = 195.4; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}");
     R.until([&] { return R.B.gapRun || R.idle() || R.B.state == gb::S_FAULT; }, 60000); R.run(200); R.ok("{\"id\":2,\"cmd\":\"stop\"}");
     CHECK(!R.B.gapRun && !R.B.gapThenArm && !R.B.firePending, "stop clears the gap run and any queued fire"); }
   { Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}"); R.run(400);
     S.swStuckOpen |= 1 << 3; R.run(50); S.swStuckOpen = 0;   // 50 ms SW_DOG_L dropout during the homing
     R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 70000);
     CHECK(R.idle() && R.B.aimed, "a short collar dropout during aim homing: the wiper waits and resumes, AIMED"); }
-  { Rig R; S.aimDragDeg = 127; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}");   // adversarial round 2 H1
+  { Rig R; S.aimDragDeg = 195.4; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}");   // adversarial round 2 H1
     R.until([&] { return R.B.gapRun || R.idle(); }, 60000); R.run(300); R.ok("{\"id\":2,\"cmd\":\"stop\"}");
     CHECK(R.B.phase == gb::PH_UNKNOWN, "a stopped gap run: phase unknown");
     for (int i = 0; i < 60; i++) { R.cmd("{\"id\":3,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":1,\"ms\":500}"); R.run(300); }
@@ -1085,10 +1088,80 @@ static void testReview6() {
   }
 }
 
+// final cross-check (fw-1..3, cad_support-3 and -9): the firmware defaults against the contacts as the CAD builds them
+static void testCadContacts() {
+  T("contacts as built: SW_GAP and SW_RAIL_LOW windows, SW_SEATED at HOME only, drum code edges");
+  auto aimFire = [](Rig& R, double deg) {        // aim, arm, fire from rest; true when FIRED and RESET came, no fault
+    R.ok("{\"id\":3,\"cmd\":\"aim\",\"deg\":" + std::to_string(deg) + "}");
+    R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 90000);
+    if (!R.B.aimed) return false;
+    long tok = armTok(R); if (tok < 0) return false;
+    R.ok("{\"id\":4,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}");
+    R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
+    return R.idle() && R.B.phase == gb::PH_REST && R.evt("RESET") && R.B.fault == gb::F_NONE;
+  };
+  { Rig R; S.aimDragDeg = 195.4; R.toMode("LAUNCH");   // the full CAD drag: 127 big-gear deg back after every long aim
+    bool ok = true; for (double d : {34.0, 6.0, 42.0}) { S.lineOut = 0; S.seatAtLine = 0; R.run(50); ok = ok && aimFire(R, d); }
+    char m[120]; snprintf(m, sizeof m, "three aim, gap run, fire and RESET cycles on the CAD windows (shots %d, true rest %.1f)", S.shots, S.cockPh);
+    CHECK(ok && S.shots == 3 && fabs(S.cockPh) < 8, m); }
+  { Rig R(true, [](gb::Cfg& c) { c.gapCloseDeg = 520; }); R.toMode("LAUNCH");   // the old default: closes 34 deg early
+    CHECK(!aimFire(R, 34) && R.B.fault == gb::F_BAD_STATE && S.shots == 1, "regression guard: gap_close_deg 520 against the CAD SW_GAP faults the reset (the sim does not follow the firmware)"); }
+  { Rig R(true, [](gb::Cfg& c) { c.gapRunMaxDeg = 150; }); S.aimDragDeg = 195.4; R.toMode("LAUNCH");
+    R.ok("{\"id\":3,\"cmd\":\"aim\",\"deg\":34}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 90000);
+    CHECK(R.B.fault == gb::F_BAD_STATE && !R.B.aimed, "regression guard: a 150 deg gap run cannot close the gap after the full CAD drag"); }
+  for (double home : {3365.0, 3502.0}) {
+    Rig R(true, [home](gb::Cfg& c) { c.aimHomeDeg = (float)home; }); R.toMode("LAUNCH"); S.aimPh = 1234; R.run(50);
+    R.ok("{\"id\":3,\"cmd\":\"aim\",\"deg\":30}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 90000);
+    double tp = R.B.pitchAt((float)S.aimPh) - R.B.aimOffset;
+    char m[120]; snprintf(m, sizeof m, "aim_home_deg %.0f against the CAD SW_RAIL_LOW: true pitch %.2f for 30", home, tp);
+    CHECK(R.B.aimed && (home == 3502.0 ? fabs(tp - 30) < 0.8 : fabs(tp - 30) > 3), m); }
+  { Rig R; bool same = true;                     // params DRUM code_edges (as built) feed the firmware edge table
+    for (int i = 0; i < gb::SEC_COUNT - 1; i++) same = same && R.B.c.edgeDeg[i] == P_DRUM_CODE_EDGES[i];
+    CHECK(same && R.B.c.edgeDeg[0] == 6 && R.B.c.edgeDeg[1] == 34 && R.B.c.edgeDeg[5] == 342, "drum code edges 6 34 50 62 302 342 from params");
+    CHECK(R.toMode("NEUTRAL") && fabs(S.drumDeg - 41) < 3, "NEUTRAL park at 41 on the as-built edges");
+    CHECK(R.wrapToReel() && fabs(S.drumDeg - 347) < 3, "REEL park at 347 on the as-built edges"); }
+  // SW_SEATED as built: read only at HOME; a dart seated when the cock started counts while COCKED (latch)
+  { Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":3,\"cmd\":\"aim\",\"deg\":30}"); R.until([&] { return R.idle(); }, 60000);
+    R.ok("{\"id\":2,\"cmd\":\"cock\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
+    CHECK(R.B.phase == gb::PH_COCKED && !R.B.closed(gb::SW_SEATED) && armTok(R) >= 0, "cocked with the dart seated: arm ok although SW_SEATED is open");
+    { std::string ev = R.lastEvt("COCKED"); size_t p = ev.find("\"gap_deg\":"); double g = p == std::string::npos ? -1 : atof(ev.c_str() + p + 10);
+      char m[120]; snprintf(m, sizeof m, "COCKED gap_deg %.1f: 553.8 minus it is the CAD SW_GAP closing angle (CALIBRATION.md h)", g);
+      CHECK(fabs(R.B.c.cycleDeg - g - (S.c.cycleDeg - S.gapWinDeg)) < 1.5, m); }
+    R.B.raise(gb::F_BAD_STATE, "test"); R.run(100); R.ok("{\"id\":5,\"cmd\":\"clear\"}");
+    CHECK(R.B.phase == gb::PH_COCKED && R.err("{\"id\":6,\"cmd\":\"arm\"}") == "NOT_SEATED", "a fault clears the latch: arm NOT_SEATED while cocked");
+    R.ok("{\"id\":7,\"cmd\":\"decock\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 40000);
+    CHECK(R.B.phase == gb::PH_REST && S.shots == 0, "then decock to rest"); }
+  { Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":3,\"cmd\":\"aim\",\"deg\":30}"); R.until([&] { return R.idle(); }, 60000);
+    R.ok("{\"id\":2,\"cmd\":\"cock\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000); R.run(500);
+    Rig R2(false);
+    CHECK(R2.B.phase == gb::PH_COCKED && R2.B.aimKnown && R2.err("{\"id\":2,\"cmd\":\"arm\"}") == "NOT_AIMED", "restart while cocked: arm needs a new aim, and aim needs rest (decock, aim, cock again)");
+    R2.B.aimed = true; R2.B.aimTarget = R2.B.pitch();   // (white box: past the aim check)
+    CHECK(R2.err("{\"id\":2,\"cmd\":\"arm\"}") == "NOT_SEATED", "and the restart cleared the seated latch"); }
+  { Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":3,\"cmd\":\"aim\",\"deg\":30}"); R.until([&] { return R.idle(); }, 60000);
+    S.lineOut = 4; S.seatAtLine = -1; R.run(50); R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"require_seated\",\"val\":false}");
+    R.ok("{\"id\":2,\"cmd\":\"cock\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
+    R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"require_seated\",\"val\":true}");
+    CHECK(R.B.phase == gb::PH_COCKED && R.err("{\"id\":2,\"cmd\":\"arm\"}") == "NOT_SEATED", "cocked without the dart (require_seated off): no latch, arm NOT_SEATED once it is back on"); }
+  // gap_close_deg: a bench setting, saved, put back by cal factory
+  { Rig R;
+    CHECK(R.cmd("{\"id\":1,\"cmd\":\"get\",\"key\":\"gap_close_deg\"}").find("\"val\":531") != std::string::npos, "gap_close_deg default 531 (CAD)");
+    CHECK(R.err("{\"id\":2,\"cmd\":\"set\",\"key\":\"gap_close_deg\",\"val\":470}") == "OUT_OF_RANGE" && R.err("{\"id\":2,\"cmd\":\"set\",\"key\":\"gap_close_deg\",\"val\":560}") == "OUT_OF_RANGE", "gap_close_deg range 480..553");
+    CHECK(R.ok("{\"id\":3,\"cmd\":\"set\",\"key\":\"gap_close_deg\",\"val\":528.5}"), "set gap_close_deg");
+    gb::Tun t = R.B.tunNow(); gb::Base B2; B2.restoreTun(&t);
+    CHECK(B2.c.gapCloseDeg == 528.5f && t.ver == 3, "saved with the bench settings (record version 3)");
+    gb::Tun old = t; old.ver = 2; gb::sealTun(&old); gb::Base B3; B3.restoreTun(&old);
+    CHECK(B3.c.gapCloseDeg == 531.0f, "a version 2 record is ignored (defaults)");
+    R.ok("{\"id\":4,\"cmd\":\"cal\",\"what\":\"factory\"}");
+    CHECK(R.B.c.gapCloseDeg == 531.0f, "cal factory puts gap_close_deg back");
+    R.toMode("LAUNCH"); R.ok("{\"id\":5,\"cmd\":\"cock\"}"); R.run(300);
+    CHECK(R.err("{\"id\":6,\"cmd\":\"set\",\"key\":\"gap_close_deg\",\"val\":530}") == "BUSY", "gap_close_deg refused while the wiper runs");
+    R.ok("{\"id\":7,\"cmd\":\"stop\"}"); }
+}
+
 // params.TIMELINE (the mission the HD sim plays) as a scenario: each step's end state must be reachable in order
 static void testTimeline() {
   T("params.TIMELINE scenario");
-  Rig R; S.lineOut = 0; S.seatAtLine = 0;
+  Rig R; S.lineOut = 0; S.seatAtLine = 0; S.aimDragDeg = 195.4;   // cad-launch: every long aim drags the big gear back (gap runs)
   struct Step { const char* name; std::function<bool()> run; };
   auto wait = [&](uint32_t ms) { return R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, ms) && R.idle(); };
   std::vector<Step> steps = {
@@ -1097,6 +1170,8 @@ static void testTimeline() {
     {"cock", [&] { R.ok("{\"id\":3,\"cmd\":\"cock\"}"); return wait(30000) && R.B.phase == gb::PH_COCKED; }},
     {"fire", [&] { std::string a = R.cmd("{\"id\":4,\"cmd\":\"arm\"}"); long tok = atol(a.c_str() + a.find("\"token\":") + 8);
                    R.ok("{\"id\":5,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}"); return wait(30000) && S.shots == 1; }},
+    {"rail_low (D45, BASE_SPEC 10.1 step 7b: the long backward run, then the gap run)",
+                  [&] { R.ok("{\"id\":6,\"cmd\":\"aim\",\"deg\":6}"); return wait(60000) && R.B.aimed && R.B.pitch() < 7 && R.B.closed(gb::SW_GAP); }},
     {"wrap (D22: straight from LAUNCH)", [&] { R.ok("{\"id\":7,\"cmd\":\"wrap\"}"); return wait(120000) && R.B.wraps == 7 && R.B.drumPos() == gb::DP_WRAPPED; }},
     {"tidy (by time, WRAPPED park)", [&] { S.anchorTautAt = 4.4; S.anchorK = 60; R.ok("{\"id\":6,\"cmd\":\"tidy\"}"); return wait(20000) && R.evt("TIDIED"); }},
     {"reel_engage", [&] { return R.toMode("REEL") && R.B.collarReel(); }},
@@ -1110,7 +1185,6 @@ static void testTimeline() {
     {"unload + unwrap", [&] { R.ok("{\"id\":12,\"cmd\":\"unwrap\"}"); return wait(60000) && R.B.wraps == 0 && S.slack < 0.05; }},
     {"approach", [&] { R.ok("{\"id\":13,\"cmd\":\"reel\",\"duty\":0.3,\"until\":\"seated\"}"); return wait(30000) && S.seated(); }},
     {"to_launch", [&] { return R.toMode("LAUNCH"); }},
-    {"lower", [&] { R.ok("{\"id\":14,\"cmd\":\"aim\",\"deg\":6.2}"); return wait(60000) && R.B.pitch() < 7; }},
   };
   for (auto& st : steps) { bool ok = st.run(); CHECK(ok, st.name); if (!ok) break; }
   CHECK(R.B.fault == gb::F_NONE && Rig::dryTotal == 0, "no fault, no dry fire over the whole timeline");
@@ -1170,12 +1244,12 @@ static void testFullMission() {
 
 int main(int argc, char** argv) {
   if (argc > 1) { std::string w = argv[1];
-    if (w == "cock") testCockFireReset(); else if (w == "aim") testAim(); else if (w == "wrap") testWrapReelUnwrap(); else if (w == "jog") testJog(); else if (w == "drum") testDrumFaults(); else if (w == "power") testPowerLoss(); else if (w == "stall") testStallOvercurrent(); else if (w == "enc") testAngleSensorFault(); else if (w == "tow") testTow(); else if (w == "rev1") testReview1(); else if (w == "rev2") testReview2(); else if (w == "v1") testSpecV1Contacts(); else if (w == "tl") testTimeline(); else if (w == "idx") testIndexMode(); else if (w == "mission") testFullMission(); else if (w == "stop") testStopEstop(); else if (w == "rev3") testReview3(); else if (w == "rev4") testReview4(); else if (w == "rev5") testReview5(); else if (w == "rev6") testReview6(); else if (w == "idxf") testIndexFailures(); else if (w == "modes") testModeChanges(); else if (w == "hx") testTowHx(); else if (w == "taper") testTowTaper(); else if (w == "rev7") testReview7();
+    if (w == "cock") testCockFireReset(); else if (w == "aim") testAim(); else if (w == "wrap") testWrapReelUnwrap(); else if (w == "jog") testJog(); else if (w == "drum") testDrumFaults(); else if (w == "power") testPowerLoss(); else if (w == "stall") testStallOvercurrent(); else if (w == "enc") testAngleSensorFault(); else if (w == "tow") testTow(); else if (w == "rev1") testReview1(); else if (w == "rev2") testReview2(); else if (w == "v1") testSpecV1Contacts(); else if (w == "tl") testTimeline(); else if (w == "idx") testIndexMode(); else if (w == "mission") testFullMission(); else if (w == "stop") testStopEstop(); else if (w == "rev3") testReview3(); else if (w == "rev4") testReview4(); else if (w == "rev5") testReview5(); else if (w == "rev6") testReview6(); else if (w == "idxf") testIndexFailures(); else if (w == "modes") testModeChanges(); else if (w == "hx") testTowHx(); else if (w == "taper") testTowTaper(); else if (w == "rev7") testReview7(); else if (w == "cad") testCadContacts();
     printf("%d passed, %d failed\n", pass, fail); return fail ? 1 : 0; }
   testJson(); testSwitches(); testAngle(); testWiperDrive(); testPersist();
   testProtocolBasics(); testTelemetryWorstCase(); testModeChanges(); testDrumFaults(); testAim(); testCockFireReset(); testFireRefusals();
   testNoRelease(); testWrapReelUnwrap(); testTow(); testTowHx(); testTowTaper(); testReview7(); testStallOvercurrent(); testAngleSensorFault(); testBrownout();
-  testStopEstop(); testJog(); testPowerLoss(); testSaveGate(); testPersistWear(); testTelemetryRate(); testHostTimeout(); testReview1(); testReview2(); testSpecV1Contacts(); testReview3(); testReview4(); testReview5(); testReview6(); testIndexMode(); testIndexFailures(); testTimeline(); testFullMission();
+  testStopEstop(); testJog(); testPowerLoss(); testSaveGate(); testPersistWear(); testTelemetryRate(); testHostTimeout(); testReview1(); testReview2(); testSpecV1Contacts(); testReview3(); testReview4(); testReview5(); testReview6(); testIndexMode(); testIndexFailures(); testCadContacts(); testTimeline(); testFullMission();
   curTest = "all"; CHECK(Rig::dryTotal == 0, "no test ever moved the collar out of LAUNCH with the spring drawn");
   printf("\n%d checks, %d passed, %d failed: %s\n", pass + fail, pass, fail, fail ? "FAILURES" : "ALL PASS");
   return fail ? 1 : 0;

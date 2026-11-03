@@ -1,7 +1,7 @@
 # GrappStar base station firmware
 
-Firmware `base-1.3.0` for the ESP32-S3 DevKitC-1-N8 in the base station. It follows BASE_SPEC v1.2,
-`base/spec/params.py` 1.2.1 and the mission order of decision D22.
+Firmware `base-1.3.1` for the ESP32-S3 DevKitC-1-N8 in the base station. It follows BASE_SPEC v1.2,
+`base/spec/params.py` 1.3.8 (generated into `params_gen.h`) and the C1 sequence of BASE_SPEC 10.1 (D22, D35, D45).
 
 Nothing in this folder has run on real hardware yet. The logic passes the PC tests (a simulation). Go slowly the first
 time and follow BENCH_TEST.md before the wiper motor goes into the base.
@@ -32,8 +32,9 @@ Printed contacts (12 of them) tell the firmware where everything is.
 The Jetson sends commands over USB as JSON lines. The base answers every command, sends telemetry 10 times a second
 (20 while something moves) and sends an event when an action ends. Full details: PROTOCOL.md.
 
-A mission in short (D22): `mode LAUNCH`, `aim`, (`cock`), `arm`, `fire`, flight, `wrap` right after landing (straight
-from LAUNCH, ends at the WRAPPED park), wait for the dart to anchor, `tidy` (take-up for a few seconds), `mode REEL`
+A mission in short (BASE_SPEC 10.1): `mode LAUNCH`, `aim`, (`cock`), `arm`, `fire`, flight, `set line_m` (the landing
+distance), `aim 6` if the rail is above 15 deg (D45: the tow runs with the rail low), `wrap` right after landing
+(straight from LAUNCH, ends at the WRAPPED park), wait for the dart to anchor, `tidy` (take-up for a few seconds), `mode REEL`
 (fly-in), tow (`reel` until tension), release, reel in, `unwrap` (back to NEUTRAL with the take-up running), final
 approach (`retrieve`, until the dart is seated), `mode LAUNCH`.
 
@@ -99,8 +100,8 @@ firmware/base/grappstar_base` from the repository folder. It should report about
 3. Tap RESET on the board. You should see a `HELLO` line, then a `BOOT` line, then telemetry lines:
 
    ```
-   {"evt":"HELLO","fw":"base-1.3.0","reset":"POWERON","hx711":false,"as5600":true,"pwm":true}
-   {"evt":"BOOT","t":60,"fw":"base-1.3.0","record":false,"was_moving":false,"drum_moved":false,"drum_known":true,"wraps_known":true,"aim_known":false,"phase":"UNKNOWN","angle":"AS5600"}
+   {"evt":"HELLO","fw":"base-1.3.1","reset":"POWERON","hx711":false,"as5600":true,"pwm":true}
+   {"evt":"BOOT","t":60,"fw":"base-1.3.1","record":false,"was_moving":false,"drum_moved":false,"drum_known":true,"wraps_known":true,"aim_known":false,"phase":"UNKNOWN","angle":"AS5600"}
    {"tel":{"state":"IDLE","mode":"NEUTRAL","drum_deg":41,"drum_pos":"NEUTRAL",...,"sw":{"b":1,"n":1},"fault":null,"vbat":0}}
    ```
 
@@ -113,7 +114,7 @@ firmware/base/grappstar_base` from the repository folder. It should report about
    {"id":1,"cmd":"ping"}
    ```
 
-   You should get `{"id":1,"ok":true,"fw":"base-1.3.0","t":...}` somewhere between the telemetry lines.
+   You should get `{"id":1,"ok":true,"fw":"base-1.3.1","t":...}` somewhere between the telemetry lines.
 5. Telemetry scrolls fast. Untick "Autoscroll" to read a line, tick it again to follow.
 6. Also try `{"id":2,"cmd":"status"}`. It shows `"magnet"`: `OK`, `WEAK`, `STRONG` or `NONE`.
 7. Telemetry `sw` lists the closed contacts with one letter each: `a` `b` `c` (drum code), `l` (`SW_DOG_L`), `r`
@@ -200,7 +201,9 @@ a power cycle and over a new upload of the same firmware version.
   coarser angle (PROTOCOL.md section 9).
 - Battery below 9.9 V for 300 ms while a motor runs: fault `BROWNOUT`.
 - Fire needs a fresh 6-digit token from `arm`, valid 3 s, used once, plus the dart seated. `cock` also needs the dart
-  seated.
+  seated. The seated contact can only read the dart with the carriage home (the carriage plunger presses it there), so
+  `cock` checks it before the draw and that reading counts for `arm` and `fire` while cocked (until a fire, a decock, a
+  fault or a restart).
 - Both worm gears self-lock, so the mechanism stays where it stopped when the power goes. The position is saved in
   flash, and after a power cut mid-motion the base only trusts what its sensors can prove.
 - After a fault, fix the cause, then send `{"id":1,"cmd":"clear"}`.

@@ -14,7 +14,7 @@ All public methods are thread safe.
   b = BaseClient("/dev/grappstar-base"); b.start()
   b.mode("LAUNCH"); b.wait_event("MODE", timeout=10); b.aim(32.5)
 
-The contract is firmware/base/PROTOCOL.md (fw "base-1.0"); Jetson-side notes in jetson/docs/C1_NOTES.md. A shot is:
+The contract is firmware/base/PROTOCOL.md (fw "base-1.3.1"); Jetson-side notes in jetson/docs/C1_NOTES.md. A shot is:
 mode LAUNCH (MODE), aim (AIMED), cock (COCKED, optional), arm (token), fire (FIRED, then RESET). In wait_event a
 FAULT, an ABORTED, an awaited event with "ok": false, and a HELLO (the base restarted) raise BaseError. A HELLO also
 fails every command still waiting for its reply.
@@ -63,7 +63,7 @@ def tel_contact(tel: Optional[dict], name: str) -> bool:
 
 
 def tel_seated(tel: Optional[dict]) -> bool:
-    """Dart seated in the cradle (SW_SEATED closed)."""
+    """SW_SEATED closed. As built it reads the dart only with the carriage home (mission.dart_seated)."""
     return tel_contact(tel, "SW_SEATED")
 
 
@@ -497,8 +497,8 @@ class BaseClient:
 
     def reel(self, duty: float, max_n: Optional[float] = None, until: str = "stop", **kw) -> dict:
         """Wind the capstan (wraps on and the collar in REEL; also accepted in HOLD). duty 0 < d <= 1 (firmware
-        default 0.86, floor 0.27), max_n > 0: the tension at the DART (spec 1.3.0, D43), default limit_n, capped at
-        60 N. until: stop, tension (holds at max_n), slip (take-up tidy), seated (NEUTRAL take-up only, D35).
+        default 0.86, floor 0.27), max_n > 0: the tension at the DART (D43), default limit_n, at most 55 N (BAD_ARG
+        above, D46). until: stop, tension (holds at max_n), slip (take-up tidy), seated (NEUTRAL take-up only, D35).
         Ends: SEATED, LIMIT (holding true and state HOLD for until tension), ABORTED (stop, timeout, host watchdog)."""
         if until not in ("seated", "tension", "stop", "slip"):
             raise ValueError("until must be seated, tension, stop or slip")

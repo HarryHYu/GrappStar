@@ -139,6 +139,17 @@ class Dart:
             self._clock_sample(s.get("t_ms"), t0, t1)
         return s
 
+    def status_cached(self, max_age: float = 0.3, newer_than: float = 0.0) -> dict:
+        """The latest /status when it is under max_age s old and was read after newer_than (time.time(); a wait passes
+        its start, so a status from before the command it waits on never counts), else a new GET. The App's DartPoller
+        keeps it fresh at 5 Hz. API.md: the dart serves one request at a time and must not be polled faster than 5 Hz
+        in total, so every wait on the dart reads through this instead of adding its own GETs on top of the poller."""
+        with self._lock:
+            s, t = self.last, self.last_t
+        if s is not None and t > newer_than and time.time() - t < max_age:
+            return dict(s)
+        return self.status()
+
     def _clock_sample(self, t_ms, t0: float, t1: float) -> None:
         """Dart millis to Jetson time: offset = jetson_time - t_ms / 1000, taken from the fastest recent replies."""
         if not isinstance(t_ms, (int, float)):
@@ -287,17 +298,19 @@ class Dart:
                    want_seq: Optional[str] = None) -> dict:
         """Poll /status until phase is in phases (and seq == want_seq if given). Raises DartError on a fail phase,
         on seq "aborted" (a /stop ended the sequence), or on timeout. A few missed polls are tolerated (WiFi drops);
-        a long outage raises. v4 asks for at most 5 Hz polling."""
+        a long outage raises. v4 asks for at most 5 Hz polling in total: the status is read through status_cached(),
+        so with the App's DartPoller running no extra GETs are sent (fw-10)."""
         if isinstance(phases, str):
             phases = (phases,)
-        t_end = time.time() + timeout
+        t0 = time.time()
+        t_end = t0 + timeout
         last_ev = None
         misses = 0
         while time.time() < t_end:
             if cancel and cancel.is_set():
                 raise DartError("cancelled")
             try:
-                s = self.status()
+                s = self.status_cached(max(0.3, poll), newer_than=t0)
                 misses = 0
             except DartError:
                 misses += 1

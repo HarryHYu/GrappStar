@@ -1,6 +1,6 @@
 # Base station bench test
 
-No-load checks BEFORE the wiper motor goes into the base, with firmware `base-1.3.0`. Nothing here has run on real
+No-load checks BEFORE the wiper motor goes into the base, with firmware `base-1.3.1`. Nothing here has run on real
 hardware yet, so this is the first time the firmware meets the parts. Go one step at a time.
 
 Each step says what to type, what you should see, and what to do if not. Keep `{"id":9,"cmd":"stop"}` ready to paste.
@@ -45,7 +45,7 @@ Two rules for the whole test:
 Battery unplugged. Plug USB into the port labelled USB. Open the Serial Monitor (or the two Jetson terminals).
 
 - Type: `{"id":1,"cmd":"ping"}`
-- You should see: `{"id":1,"ok":true,"fw":"base-1.3.0","t":...}`, and telemetry lines with `"state":"IDLE"`,
+- You should see: `{"id":1,"ok":true,"fw":"base-1.3.1","t":...}`, and telemetry lines with `"state":"IDLE"`,
   `"mode":"NEUTRAL"`, `"sw":{"b":1,"n":1}` and `vbat` about 0 (no battery).
 - If not: no output at all means wrong port or "USB CDC On Boot: Enabled" not set (README.md). Telemetry but no reply
   means the line ending is not "Newline". `BAD_JSON` means a typo (straight quotes only, no smart quotes). `BOOTING`
@@ -108,7 +108,7 @@ Then walk back the same way (rows 8, 7, 6, 5) and finish with only `b` closed.
 The `mode` field also needs the collar contacts: at row 3 it says `NONE` until you also close `SW_DOG_L` (GPIO13):
 then `LAUNCH`. At row 9 it says `NONE` until you close `SW_DOG_R` (GPIO14): then `REEL`. At rows 6, 7 and 8 it says
 `NEUTRAL` (the collar stays in NEUTRAL there); on the way back from REEL, row 8 (`a` `c`) says `NONE`, because the
-angle is then taken as 340, past the 318 collar point. Take any extra jumper off again before the next row.
+angle is then taken as 342 (the code edge), past the 318 collar point. Take any extra jumper off again before the next row.
 
 At the end, only `b` (and the `n` jumper) closed, send `{"id":3,"cmd":"clear"}`. You should see `"ok":true` and
 `"state":"IDLE"`. One `clear` is enough. `STILL_PRESENT` means the code is not valid (000, or you changed two contacts

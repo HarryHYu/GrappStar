@@ -1,7 +1,12 @@
 # fw-base report (firmware/base)
 
-Worker `fw-base`, 3 Nov 2026, branch `w/fw-base`. Firmware string `base-1.3.0`, params `1.3.4` (params_gen.h regenerated from base-v1 at d704362).
-Nothing here has run on hardware: every claim below is from the PC simulation and the arduino-cli compile.
+Worker `fw-base`, 3 Nov 2026, branch `w/fw-base`. Firmware string `base-1.3.1`, params `1.3.8` (params_gen.h regenerated from
+spec 1.3.8 at 3a32af7). Nothing here has run on hardware: every claim below is from the PC simulation and the arduino-cli
+compile (the base-1.3.1 changes were checked with the PC tests only: no arduino-cli in the final cross-check session).
+
+Status (final cross-check, 3 Nov, base-1.3.1): the firmware defaults now match the contacts as built and the PC sim
+models those contacts from the CAD, not from the firmware's own constants (section "Final cross-check" below). All
+PC tests and both fuzz runs pass.
 
 ## Done
 
@@ -18,7 +23,8 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
   limit, current trips, tension model, drum speed and the 37-point aim table all come from params.
 - `test/`: `sim.h` (physics sim: wiper DC motor with optional inertia and coast, IS output, AS5600 with dropouts and
   glitches, drum Gray code with edge offsets, dog window and tooth-on-tooth, launch train with release, take-up and
-  capstan line model, HX711, battery, fault injection, dry-fire detector), `test_base.cpp` (375 checks),
+  capstan line model, HX711, battery, fault injection, dry-fire detector; SW_GAP, SW_RAIL_LOW and SW_SEATED as the CAD
+  builds them), `test_base.cpp` (470 checks),
   `test_fuzz.cpp` (random commands and faults against invariants), `test_gen_params.py`, `run_tests.sh`.
 - Docs: `PROTOCOL.md` (contract C1, BASE_SPEC 10.1 sequence, section 10 lists every change for the Jetson),
   `README.md` (exact Arduino IDE settings, core and library versions), `WIRING.md` (every step starts "Battery
@@ -42,8 +48,8 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
 7. Final approach time limit: max(20 s, 10 s + 1.5 x line_m / slowest take-up speed at the duty), 30 s with line_m
    unknown, `max_s` 5..600. The coordinator asked 5..180; physics shows 20 m at duty 0.3 needs about 500 s.
 8. Reel-in trip stays 5 A (D33) although physics suggested 6 A; one config line if Harry agrees.
-9. `retrieve` is also accepted at the WRAPPED park below 318 with the collar free (BASE_SPEC says NEUTRAL only);
-   refused with the collar in REEL (D35).
+9. `retrieve` (and `reel` until `seated`) runs only in the NEUTRAL sector (D39); anywhere else, the WRAPPED park
+   included, it is refused with `WRAPS_ON`.
 10. Backward runs in LAUNCH trip at 3 A (D40); after an aim or decock a slow forward gap run closes SW_GAP (big gear
     drag, cad-launch); SW_HOME ignored 0.5 s after the release (D45).
 11. Index mode (D12): cock stops a bump early, a missed bump faults within 1.5 bump periods, every aim re-homes on
@@ -51,23 +57,24 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
 
 ## Verified
 
-(run with the F31 fix below, 3 Nov 19:45 Sydney, from firmware/base/test: `./run_tests.sh`; summary lines)
+(base-1.3.1, final cross-check, 3 Nov, from firmware/base/test: `./run_tests.sh`; summary lines)
 
 ```
 == params generator
-18 checks, 18 passed, 0 failed: ALL PASS
+19 checks, 19 passed, 0 failed: ALL PASS
 == firmware logic (simulation)
-446 checks, 446 passed, 0 failed: ALL PASS
+470 checks, 470 passed, 0 failed: ALL PASS
 
-fuzz: 300 seeds (1..300), 300 steps each, 27.9 h simulated, 922 shots in 243 seeds
+fuzz: 300 seeds (1..300), 300 steps each, 27.9 h simulated, 928 shots in 241 seeds
 fuzz: no invariant violated
 == fuzz with faults during motion, held jogs and the tow limit check
 
-fuzz: 200 seeds (5001..5200), 400 steps each, 19.9 h simulated, 230 shots in 113 seeds
+fuzz: 200 seeds (5001..5200), 400 steps each, 19.5 h simulated, 227 shots in 116 seeds
 fuzz: no invariant violated
 ```
 
-Compile (`arduino-cli`, esp32 core 3.3.12, fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc, HX711 by Rob Tillaart 0.6.6):
+Compile of base-1.3.0 (`arduino-cli`, esp32 core 3.3.12, fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc, HX711 by Rob Tillaart
+0.6.6; not repeated for base-1.3.1, whose changes are in the headers the PC tests compile):
 
 ```
 Sketch uses 407049 bytes (31%) of program storage space. Maximum is 1310720 bytes.
@@ -190,9 +197,10 @@ Global variables use 35600 bytes (10%) of dynamic memory, leaving 292080 bytes f
    (defaults 13.1 and -2.3 are physics estimates; tow cap 55 N). Hard prerequisite of the first tow. Then
    `tension_cal` reads true.
 4. Drum speed (`drum_dps`, learned automatically between code edges; default 8.1 deg/s) and the end stops.
-5. Aim: `aim_home_deg` (SW_RAIL_LOW position) and `aim_offset` against a phone inclinometer on the rail.
-6. Launch train angles: SW_HOME opening (first tooth, about 4 deg), release (432.7), SW_GAP closing (about 520):
-   compare telemetry `cock` with what you see.
+5. Aim: `aim_home_deg` (SW_RAIL_LOW position, default 3502 from the CAD contact) and `aim_offset` against a phone
+   inclinometer on the rail (CALIBRATION e).
+6. Launch train angles: SW_HOME opening (first tooth, about 4 deg), release (432.7), SW_GAP closing (`gap_close_deg`,
+   about 531: CALIBRATION h reads `gap_deg` from the `COCKED` event); compare telemetry `cock` with what you see.
 7. Spring rate and preload (hang test), battery sag under the cock peak, AS5600 magnet (status "magnet":"OK").
 8. DRV8833 SLP: if the drum does nothing, battery unplugged, SLP to 3V3 (never VM).
 9. Take-up line speed at duty 0.3 (physics 0.058 to 0.073 m/s) for the retrieve time limit.
@@ -203,4 +211,24 @@ Global variables use 35600 bytes (10%) of dynamic memory, leaving 292080 bytes f
   no-go from LAUNCH straight to retrieve (needs `mode NEUTRAL` first); params SWITCHES.SW_ARM says "closed at home"
   but cad-reel says it opens at home (firmware follows cad-reel); physics suggested a 6 A reel-in trip (firmware
   keeps 5 A per D33).
-- Jetson: follow PROTOCOL.md section 10 (76 items); test against w/fw-base, not the older base-1.2 snapshot.
+- Jetson: follow PROTOCOL.md section 10 (80 items); test against w/fw-base, not the older base-1.2 snapshot.
+
+## Final cross-check (3 Nov, base-1.3.1)
+
+A read-only cross-check against the CAD found defaults that the PC tests could not see, because `test/sim.h` drew the
+contacts from the firmware's own constants. Fixed, each with a regression test in `test_base.cpp`
+("contacts as built", the timeline and the fire refusals):
+
+| finding | fix |
+|---|---|
+| fw-1 / cad_support-2: `gapCloseDeg` 520, the CAD SW_GAP closes about 531: every reset ran into the first tooth (BAD_STATE, no RESET) | default 531; new saved `set` key `gap_close_deg` (480..553, BUSY while moving, `cal factory`); `COCKED` reports `gap_deg` (where SW_GAP opened on the draw) and CALIBRATION h turns it into `gap_close_deg`; bench record (Tun) version 3 |
+| fw-2: the gap run allowed 150 deg, the CAD drag is 127 big-gear deg (195 wiper deg) | 215 deg; the tests drag 195.4 wiper deg |
+| fw-3 / cad_support-6: `aimHomeDeg` 3365, the CAD SW_RAIL_LOW closes at about 3502 (aims 3 to 6 deg high) | default 3502 |
+| cad_support-3: SW_SEATED is pressed only with the carriage at HOME, but arm and fire after `cock` needed it closed | latch: the reading taken as the cock starts counts while COCKED (cleared by a fire, a decock, any fault and a restart) |
+| cad_support-9: the edge table 8/32/340 against the bumps as built 6/34/342 | `edgeDeg` from params DRUM `code_edges` through `params_gen.h` |
+| fw-8: params_gen.h from 1.3.4, stale fallbacks, unchecked names | regenerated (1.3.8); fallbacks 13.1 / -2.3 / 55 N and `P_DRUM_UNLOAD_JOG_DEG`; `gen_params.py` checks every name the firmware reads (test fails on a missing one) |
+| fw-4 to fw-7, fw-9, fw-11, docs-16 | PROTOCOL (tow trip 6.5 A, fault in REEL holds, D45 rail-low step, SW_ARM examples, versions, retrieve default as BASE_SPEC 10.1 step 17), this report's decision 9, README mission summary |
+
+`test/sim.h` now models SW_GAP (closed within 22.9 wiper deg of rest), SW_RAIL_LOW (within 97.6 aim deg of the low dead
+point) and SW_SEATED (closed only with the carriage home and the dart seated) from the CAD, and a test proves that the
+old defaults fail against it.

@@ -49,12 +49,15 @@ STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LA
          "ANCHOR", "TIDY", "FLY_IN", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
 RESHOOT_STEPS = ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
 SKIPPABLE = {"CHECK", "LANDING_ZONE", "TIDY", "COCK"}
+DECOCK_STEPS = ("COCK", "FIRE", "AIM", "LAUNCH_MODE", "RAIL_LOW", "BASE_NEUTRAL")
 DEFAULT_DRAG_N = 0.5             # the LIGHT clutch: the one default for the CLI, settings and the App
-def approach_max_s(line_m: float, duty: float) -> float:
-    """Final approach time limit, mirroring base-1.2.1 approachLimit(): 10 s + 1.5 x line_m / v, at least 20 s, at
-    most 600 s, where v is the slowest take-up speed at the duty from the physics (config.h takeupMpsPerDuty 0.29 x
-    duty - takeupMpsOff 0.03, duty clamped to reelMinDuty 70/255 .. takeupMaxDuty 102/255, v at least 0.02 m/s).
-    About 0.057 m/s at duty 0.3."""
+def approach_max_s(line_m: Optional[float], duty: float) -> float:
+    """Final approach time limit, BASE_SPEC 10.1 step 17 and the firmware's approachLimit() (base-1.3.1): the longer of
+    20 s and 10 s + 1.5 x line_m / v, at most 600 s, where v is the slowest take-up speed at the duty from the physics
+    (config.h takeupMpsPerDuty 0.29 x duty - takeupMpsOff 0.03, duty clamped to reelMinDuty 70/255 .. takeupMaxDuty
+    102/255, v at least 0.02 m/s; about 0.057 m/s at duty 0.3); 30 s with line_m unknown (None)."""
+    if line_m is None:
+        return 30.0
     d = min(max(float(duty), 70 / 255.0), 102 / 255.0)
     v = max(0.02, 0.29 * d - 0.03)
     return round(min(600.0, max(20.0, 10.0 + 1.5 * max(0.0, float(line_m)) / v)), 1)
@@ -109,6 +112,15 @@ def sw_closed(tel: dict, key: str) -> Optional[bool]:
     return False if sw is not None else None
 
 
+def dart_seated(tel: dict) -> Optional[bool]:
+    """The dart in the cradle, from SW_SEATED (S). As built (cad-launch) the carriage plunger presses that lever on the
+    rail lip only with the carriage on its front stop, so S reads the dart only while SW_HOME (H) is closed: None while
+    the carriage is drawn (cocked), or without telemetry. The base latches the reading taken when the cock started."""
+    if sw_closed(tel, "H") is False:
+        return None
+    return sw_closed(tel, "S")
+
+
 class Aborted(Exception):
     """The operator pressed STOP or chose Abort."""
 
@@ -124,8 +136,9 @@ class MissionConfig:
     reel_duty: float = 0.8
     retrieve_duty: float = 0.6
     vbat_min: float = 10.8          # 3S: 3.6 V per cell under light load
-    mode_timeout_s: float = 60.0    # drum about 10.8 deg/s: 4 s per detent step, more after a wiggle
-    wrap_timeout_s: float = 60.0    # about 24 s for the 4 wraps
+    mode_timeout_s: float = 60.0    # drum about 8.1 deg/s: LAUNCH to NEUTRAL about 5.5 s, WRAPPED to REEL about 5 s
+    wrap_timeout_s: float = 90.0    # WRAPPED / UNWRAPPED: about 37 s from NEUTRAL, 42 s from LAUNCH, 41 s from REEL at
+                                    # 8.1 deg/s; BASE_SPEC 10.1 step 9 and PROTOCOL: allow 90 s
     aim_timeout_s: float = 60.0     # one-way aim through a crank: a full aim can take about 17 s
     cock_timeout_s: float = 40.0    # COCKED in up to about 20 s
     fire_timeout_s: float = 30.0    # from rest the fire runs the whole draw first
@@ -443,14 +456,15 @@ class Mission:
                     choices = list(extra) + ["Abort"]
                 if is_fault and name in ("TOW", "CHECK"):
                     choices = ["Release the dart", "Retry", "Abort"]
-                if name in ("COCK", "FIRE", "AIM"):
+                if name in DECOCK_STEPS:
                     phase = None
                     try:
                         phase = self.base.status(timeout=1.0).get("phase")
                     except Exception:
                         pass
                     if phase == "UNKNOWN" or (isinstance(e, BaseError) and e.err in ("LOADED_UNKNOWN",
-                                                                                  "PHASE_UNKNOWN")):
+                                                                                  "PHASE_UNKNOWN", "NOT_AT_REST",
+                                                                                  "LAUNCH_BUSY")):
                         # 10.1 recovery: a fault or stop while cocking leaves the phase UNKNOWN (systest F7: no Skip)
                         choices = ["Decock and re-aim", "Abort"]
                 if is_fault:
@@ -462,7 +476,8 @@ class Mission:
                 if isinstance(e, BaseError) and e.err == "OVERCURRENT" and name == "AIM":
                     msg += ". Aim jammed: check the rail and the aim train before Retry (D40: 3 A trip backward)."
                 if isinstance(e, BaseError) and e.err in ("LOADED_UNKNOWN", "PHASE_UNKNOWN", "NOT_AT_REST", "LAUNCH_BUSY"):
-                    msg += ". The launcher spring may be drawn: use Decock (Manual section), then Retry."
+                    msg += (". The launcher spring may be drawn: choose Decock and re-aim (or Abort, then Decock on "
+                            "the page).")
                 if isinstance(e, BaseError) and e.err == "BASE_RESET":
                     msg += ". The base restarted (power or USB): check it before Retry."
                 c = self.ask(msg, choices, danger=True)
@@ -475,15 +490,16 @@ class Mission:
                 if c == "Decock and re-aim":
                     self._clear_fault()
                     try:
-                        self.decock_and_reaim()
+                        self.decock_and_reaim(low=name in ("RAIL_LOW", "BASE_NEUTRAL"))
                     except (BaseError, BaseTimeout, BaseDisconnected, StepFailed, DartError) as de:
                         self.error = f"decock and re-aim failed: {de}"
                         self.log.error(self.error)
                     continue
                 return c   # a custom choice from StepFailed.choices
 
-    def decock_and_reaim(self) -> None:
-        """decock (wait RESET; ok false = nothing to undo), then aim again (the decock turns the aim train)."""
+    def decock_and_reaim(self, low: bool = False) -> None:
+        """decock (wait RESET; ok false = nothing to undo), then aim again (the decock turns the aim train). low: after
+        the shot (RAIL_LOW, BASE_NEUTRAL) the rail goes to the D45 low pitch, never back up to the shot pitch."""
         m = self.base.event_mark()
         try:
             self.go.cmd("decock")
@@ -496,9 +512,18 @@ class Mission:
         except BaseError as e:
             if not (isinstance(e.reply, dict) and e.reply.get("evt") == "RESET"):
                 raise
-            self.log.info(f"decock: nothing to undo ({e.err})")
+            if str(e.reply.get("why", "")).startswith("SW_GAP open"):
+                # PROTOCOL item 66: the carriage reads home but the big gear is out of its gap (a stopped reset or
+                # gap run). Only the operator's eyes can tell a lying SW_HOME from a slack spring.
+                self.ask("The launcher reads home but the big gear is out of its gap (SW_GAP open after a stopped "
+                         "reset). Look at the launcher: is the carriage fully forward on its stop and are the springs "
+                         "slack? Only then declare it at rest (the next aim closes the gap with a slow forward run "
+                         "that stops if the carriage moves).", ["Carriage at rest", "Abort"], danger=True)
+                self.go.cmd("cal", what="cock_rest", force=True)
+            else:
+                self.log.info(f"decock: nothing to undo ({e.err})")
         self.shot.pop("cocked", None)
-        p = self.shot.get("pitch_deg")
+        p = self.low_pitch() if low else self.shot.get("pitch_deg")
         if p is not None:
             if self.tel().get("mode") != "LAUNCH":
                 self.base_mode("LAUNCH")
@@ -573,15 +598,18 @@ class Mission:
             self.dart_anchored = True
             self._do("RELEASE", self.release_dart)
         t = self.tel()
-        if sw_closed(t, "S") and (self.is_wrapped(t) or (t.get("wraps") or 0) > 0):
-            self._do("UNWRAP", self.unwrap)          # seated on the capstan with the wraps on: unwrap first
-        if not sw_closed(t, "S"):
+        if dart_seated(t) is None:
+            self._do("PREFLIGHT", self._need_rest)   # carriage drawn: SW_SEATED cannot read the dart
+            t = self.tel()
+        if dart_seated(t) and self.wraps_maybe_on(t):
+            self._do("UNWRAP", self.unwrap)          # seated with the wraps on or not known off: unwrap first
+        if not dart_seated(t):
             if t.get("mode") == "LAUNCH":
                 self._do("BASE_NEUTRAL", self.base_neutral)
             if (t.get("line_m") or self.shot.get("line_est_m") or 0) > self.cfg.approach_m + 0.5 \
                     and not self.is_wrapped(t):
-                self._do("WRAP", self.wrap)
-            self.bring_home()
+                self._do("WRAP", self.wrap)          # (also from inside the wrap window: on to the WRAPPED park)
+            self.bring_home()                        # unwraps a drum stopped inside the window (wraps_maybe_on)
         self._do("LAUNCH_READY", lambda: self.base_mode(self.cfg.end_mode))
 
     # ---- host watchdog (review r2_H #7, coordinator 1): if the Jetson stalls, the base stops by itself
@@ -641,10 +669,25 @@ class Mission:
     def bring_home(self) -> None:
         """Steps 15 to 17: capstan reel-in to about approach_m (only when wrapped), UNWRAP, then the take-up final
         approach (retrieve) in NEUTRAL. Never seat on the capstan."""
-        if self.is_wrapped(self.tel()):
+        t = self.tel()
+        if self.is_wrapped(t):
             self._do("RETRIEVE", self.retrieve)
             self._do("UNWRAP", self.unwrap)
+        elif self.wraps_maybe_on(t):
+            self._do("UNWRAP", self.unwrap)   # stopped inside the wrap window: only unwrap reaches NEUTRAL
         self._do("FINAL_APPROACH", self.final_approach)
+
+    def _need_rest(self) -> None:
+        """Recover with the carriage drawn (cocked or unknown): SW_SEATED cannot read the dart and the drum cannot
+        leave LAUNCH until a decock."""
+        try:
+            phase = self.base.status(timeout=1.0).get("phase")
+        except (BaseError, BaseTimeout, BaseDisconnected):
+            phase = None
+        if phase in ("COCKING", "COCKED", "FIRING", "RESETTING", "UNKNOWN"):   # (no answer: the drum moves tell)
+            raise StepFailed(f"launcher not at rest (phase {phase}): the seated contact reads the dart only with the "
+                             "carriage home, and the drum cannot leave LAUNCH. Abort, press Decock on the page, then "
+                             "Recover dart again.")
 
     def fly_in(self) -> None:
         """mode REEL from the WRAPPED park (the collar engages the capstan)."""
@@ -673,14 +716,20 @@ class Mission:
         elif t.get("magnet") in ("WEAK", "STRONG"):
             warnings.append(f"AS5600 magnet {t.get('magnet')}: angle readings may glitch")
         if t.get("phase") == "UNKNOWN":
-            problems.append("launcher shot phase UNKNOWN (power lost mid-cycle): use Decock on the page")
+            problems.append("launcher shot phase UNKNOWN (power lost mid-cycle): Abort, press Decock on the page, "
+                            "then start again")
+        elif t.get("phase") in ("COCKING", "COCKED"):
+            problems.append(f"launcher {t.get('phase')} (the seated contact reads the dart only with the carriage "
+                            "home): Abort, press Decock on the page, then start again")
         if t.get("drum_pos") in ("UNKNOWN", "BETWEEN"):
-            problems.append(f"drum position {t.get('drum_pos')} (run cal or jog the drum)")
+            problems.append(f"drum position {t.get('drum_pos')} (inside the wrap window: press Unwrap or Recover dart; "
+                            "between LAUNCH and NEUTRAL: Neutral or jog the drum)")
         if t.get("wraps") is None and "wraps" in t:
-            problems.append("capstan wraps unknown (after a restart): run unwrap from the page, then Retry")
+            problems.append("capstan wraps unknown (after a restart): press Unwrap (Manual section) or Recover dart, "
+                            "then Retry")
         elif (t.get("wraps") or 0) > 0.05:
             problems.append("capstan still wrapped (unwrap first)")
-        if sw_closed(t, "S") is False:
+        if dart_seated(t) is False:
             problems.append("dart not seated on the launcher (seated contact open)")
         vb = t.get("vbat")
         if vb is not None and vb < self.cfg.vbat_min:
@@ -781,16 +830,21 @@ class Mission:
         p = t.get("pitch_deg")
         if t.get("mode") != "LAUNCH" or p is None or p <= self.cfg.rail_low_above_deg:
             return
+        lo = self.low_pitch()
+        m = self.base.event_mark()
+        self.go.aim(lo)
+        self.wait_evt("AIMED", self.cfg.aim_timeout_s, m)
+        self.log.info(f"rail low for the tow ({lo:.1f} deg)")
+
+    def low_pitch(self) -> float:
+        """D45: the minimum pitch the base accepts (pitch_range min, at least 6.0), plus 0.05."""
         lo = 6.0
         try:
             r = self.base.get("pitch_range")
             lo = max(lo, float(r.get("min", lo)))
         except (BaseError, BaseTimeout, BaseDisconnected, TypeError, ValueError):
             pass
-        m = self.base.event_mark()
-        self.go.aim(round(lo + 0.05, 2))
-        self.wait_evt("AIMED", self.cfg.aim_timeout_s, m)
-        self.log.info(f"rail low for the tow ({lo:.1f} deg)")
+        return round(lo + 0.05, 2)
 
     def base_neutral(self) -> None:
         """Launcher at rest, then the drum to NEUTRAL."""
@@ -888,6 +942,16 @@ class Mission:
             self.wait_evt("AIMED", self.cfg.aim_timeout_s, m)
 
     @staticmethod
+    def wraps_maybe_on(t: dict) -> bool:
+        """Wraps on or not known off: outside the LAUNCH and NEUTRAL parks with drum code bit c closed (WRAP_PREP,
+        WRAP, N_TO_R, REEL), or wraps null or above 0. Only unwrap brings such a drum back to NEUTRAL (mode, a drum jog
+        and retrieve are refused WRAPS_ON inside the window)."""
+        if t.get("drum_pos") in ("LAUNCH", "NEUTRAL"):
+            return False
+        w = t.get("wraps")
+        return bool(sw_closed(t, "c")) or w is None or (isinstance(w, (int, float)) and w > 0)
+
+    @staticmethod
     def is_wrapped(t: dict) -> bool:
         """Wraps on: parked at WRAPPED (314) or flown in to REEL. Not while the drum is still laying them (WRAP)."""
         if t.get("state") in ("WRAP", "UNWRAP"):
@@ -906,9 +970,10 @@ class Mission:
             self.fly_in()
 
     def dart_is_out(self) -> bool:
-        """True when telemetry says the dart has left the launcher (line out, not seated)."""
+        """True when telemetry says the dart has left the launcher (line out, or not seated with the carriage home:
+        SW_SEATED is open whenever the carriage is drawn, seated or not)."""
         t = self.tel()
-        return (t.get("line_m") or 0) > 0.3 or sw_closed(t, "S") is False
+        return (t.get("line_m") or 0) > 0.3 or dart_seated(t) is False
 
     def fire(self) -> None:
         if self.shot.get("fire_sent") and self.dart_is_out():
@@ -1213,7 +1278,7 @@ class Mission:
         if self.tel().get("state") == "HOLD":
             self.stop_settle()
         t = self.tel()
-        if not self.is_wrapped(t) and t.get("wraps") == 0:
+        if not self.is_wrapped(t) and not self.wraps_maybe_on(t):
             return                          # wraps None (unknown) still unwraps: the firmware knows the sector
         m = self.base.event_mark()
         self.go.unwrap()
@@ -1428,12 +1493,12 @@ class Mission:
         t = self.tel()
         if sw_closed(t, "S"):
             return
-        if self.is_wrapped(t):
-            self.unwrap()                       # the take-up only works with the wraps off
+        if self.is_wrapped(t) or self.wraps_maybe_on(t):
+            self.unwrap()                       # the take-up only works with the wraps off (and only in NEUTRAL)
         line = self.tel().get("line_m")
         if line is None:
-            line = self.shot.get("line_est_m") or self.cfg.approach_m
-        max_s = approach_max_s(float(line), self.cfg.takeup_duty)   # the firmware default formula, sent explicitly
+            line = self.shot.get("line_est_m")
+        max_s = approach_max_s(line, self.cfg.takeup_duty)   # the firmware default (30 s unknown), sent explicitly
         m = self.base.event_mark()
         self.go.cmd("retrieve", duty=self.cfg.takeup_duty, max_n=self.cfg.retrieve_limit_n, max_s=max_s)
         self._wait_seated(m, max_s + 10.0)

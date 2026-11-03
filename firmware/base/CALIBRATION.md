@@ -1,6 +1,6 @@
 # Base station calibration
 
-Firmware `base-1.3.0`. Do BENCH_TEST.md first. Sections (a) and (b) can be done on the bench. The rest needs the base
+Firmware `base-1.3.1`. Do BENCH_TEST.md first. Sections (a) and (b) can be done on the bench. The rest needs the base
 assembled. Do them in order: (d) needs REEL from (c), and (f) needs (b) and (d).
 
 - Two ways to send the commands below:
@@ -10,10 +10,11 @@ assembled. Do them in order: (d) needs REEL from (c), and (f) needs (b) and (d).
     words (for example `reel duty=0.3 until=stop`) or a bare `stop`, `estop` or `status`; `quit` ends it.
 - Any whole `id` number works.
 - Every value you `set` or learn with `cal` is **saved in flash automatically** (once everything has stopped) and is
-  kept over a power cycle and over a new upload of base-1.3.0. Read a value back with `get`, for example
+  kept over a power cycle and over a new upload of base-1.3.1. Read a value back with `get`, for example
   `{"id":1,"cmd":"get","key":"amps_per_volt"}`.
-- **Coming from base-1.0:** the old saved bench values are ignored by base-1.3.0 (new record format since base-1.2). Everything is back
-  at its default after the upload: redo or re-enter every value below.
+- **Coming from an older build (base-1.0 to base-1.3.0):** the old saved bench values are ignored by base-1.3.1 (record
+  version 3: it gained `gap_close_deg`). Everything is back at its default after the upload: redo or re-enter every
+  value below.
 - In the first 60 ms after a start-up commands are refused with `BOOTING`: just send again.
 - If something faults, read the `FAULT` line (`code` and `why`), fix the cause, then send `{"id":1,"cmd":"clear"}`.
 - `stop` is always there: `{"id":1,"cmd":"stop"}`. Keep it pasted in the box, ready to send.
@@ -240,8 +241,9 @@ firmware assumes (`aim_home_deg`, the aim-train angle where `SW_RAIL_LOW` closes
    - Telemetry reached 30 AFTER the phone did: the firmware is behind. New `aim_home_deg` = old + D.
    - Telemetry reached 30 BEFORE the phone did: new `aim_home_deg` = old minus D.
 
-   Get the old value with `{"id":2,"cmd":"get","key":"aim_home_deg"}` (default 3365), then set the new one, for
-   example `{"id":3,"cmd":"set","key":"aim_home_deg","val":3340}`. The allowed range is -7200 to +7200.
+   Get the old value with `{"id":2,"cmd":"get","key":"aim_home_deg"}` (default 3502: where cad-sensors' contact closes,
+   about 10 crank deg before the low dead point), then set the new one, for example
+   `{"id":3,"cmd":"set","key":"aim_home_deg","val":3480}`. The allowed range is -7200 to +7200.
 3. Changing `aim_home_deg` does not re-home by itself. Send `{"id":4,"cmd":"cal","what":"aim_forget"}`: the next
    `aim` homes again on `SW_RAIL_LOW`.
 4. Redo steps 5 to 7 above.
@@ -357,3 +359,27 @@ for the dry shots.
    `{"id":11,"cmd":"cal","what":"cock_rest","force":true}`, then `aim` (its gap run closes the gap). A forward jog in
    LAUNCH is refused (`SWITCH_DISAGREE`) while `G` is open.
 9. `{"id":7,"cmd":"set","key":"require_seated","val":true}`.
+
+## (h) SW_GAP closing angle (`gap_close_deg`)
+
+The reset after every shot runs FORWARD until the big gear is back in its gap: the firmware re-zeroes the shot angle at
+the moment `SW_GAP` (`G`) closes and runs on to the rest point from there. So it must know where `G` closes:
+`gap_close_deg`, the angle in the 553.8 deg shot cycle. Default 531: cad-sensors' contact on the bump of the big gear is
+closed within about 15 big-gear deg (23 wiper deg) either side of rest. If the real contact closes later than the
+setting, the reset runs into the first tooth and draws the carriage: `FAULT` `BAD_STATE` "reset ended with the carriage
+off its stop" after a shot. If it closes earlier, the reset stops short of rest.
+
+The bump is symmetric about rest, so the firmware measures the other side for you: during every `cock` it notes where
+`G` opens on the draw, counted from the first tooth like every shot angle, and reports it as `gap_deg` in the `COCKED`
+event. Do this once, together with (g):
+
+1. Do (g) up to and including step 6 (springs hooked, no dart, `require_seated` false, nobody and no hands in front of
+   the carriage or the rail).
+2. Read `gap_deg` in the `COCKED` event, for example
+   `{"evt":"COCKED","t":51230,"ok":true,"cock_deg":415.2,"gap_deg":22.6}`. Expected about 23. No `gap_deg` means `G`
+   never opened during the cock: the contact sits wrong or is stuck closed. Fix it before any shot.
+3. `gap_close_deg` = 553.8 minus `gap_deg` (here 531.2). Send it once the wiper has stopped:
+   `{"id":4,"cmd":"set","key":"gap_close_deg","val":531.2}` (allowed 480 to 553; `BUSY` while a motor runs). It is
+   saved like every bench value; `cal factory` puts 531 back.
+4. Go on with (g) step 8 (`decock`, wait for `RESET`) and step 9 (`require_seated` true again).
+5. The first dry shots of the build guide check it: after `FIRED` the `RESET` event must come, with `H` and `G` closed.

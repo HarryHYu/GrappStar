@@ -7,6 +7,10 @@ harness re-runs green.
 
 ## Status (final, 19:35 Sydney; last runs 15:25)
 
+Final cross-check update (3 Nov, base-1.3.1 with the CAD contact windows in sim.h, jetson and harness fixes, every
+scenario on the strict D22 plant): see "Final cross-check run" in REPORT.md for the per-scenario list. F22, F24, F25,
+F28 and F31 were fixed after the last batch and are green in that run; F21 is unchanged.
+
 "fixed on branch" = green in the preview runs (`PREVIEW=1 systest/batch.sh`, base-v1 + w/fw-base + w/fw-dart +
 w/jetson; commits in `systest/runs_preview.version` and the logs), or stated fixed by the owner with the commit and
 re-tested where noted. Evidence in `systest/runs_preview/<scenario>/` and `systest/runs_fw87/`.
@@ -33,17 +37,18 @@ re-tested where noted. Evidence in `systest/runs_preview/<scenario>/` and `syste
 | F18 | jetson | fixed on branch | no 60 s TOW waits |
 | F19 | fw-base | fixed on branch | `ref_refusals`: every wrong command refused (fw-base 6381edd) |
 | F20 | fw-base (D41) | fixed on branch | `ref_nominal` fly-in 14.6 N, no fault (c28396c) |
-| F21 | fw-base | improved, still OPEN on the 3 m stiff line | 18ab2b2: `ref_tow_stiff` 50.4 N, `tow_stiff` 46.2 N dart-side vs 46.0 bound; `ref_nominal` (3.6 m) 38.6 N PASS |
-| F22 | jetson (host side) | OPEN: firmware by design (host sends `stop` then `reel`); the mission still re-sends `reel` from HOLD | batch 5: LIMIT 40 "already at the limit" on a 19 N line in every tow with rover slack |
+| F21 | fw-base | improved, still OPEN on the 3 m stiff line | 18ab2b2: `ref_tow_stiff` 50.4 N, `tow_stiff` 46.2 N dart-side vs 46.0 bound; `ref_nominal` (3.6 m) 38.6 N PASS. Final cross-check run: unchanged (`tow_stiff` 46.2 N, `ref_tow_stiff` 50.3 N) |
+| F22 | jetson (host side) | fixed in jetson ce29e1a after the final batch (stop, wait ABORTED, then a new reel); green in the final cross-check run | batch 5: LIMIT 40 "already at the limit" on a 19 N line in every tow with rover slack; final run: check "tow rounds take up the rover's slack" ok in every tow scenario |
 | F23 | fw-base | fixed in firmware 783f3b2 (line_m - 0.88 m after the wrap): the Jetson must not subtract it too | batch 5: base line_m 4.18 after the wrap of a 5.08 m shot |
-| F24 | jetson (low) | open | |
-| F25 | jetson / spec (low) | open (stop-first is safer: suggest the spec adopts it) | |
+| F24 | jetson (low) | fixed in jetson acf8483 (host_timeout_s 2.5, a fixed 0.4 s ping schedule) | final cross-check run: no host watchdog stop |
+| F25 | jetson / spec (low) | resolved: BASE_SPEC 10.1 step 14 is now stop, then dart /release (edaf622); the mission stops first, and the harness C1 check and reference driver now use that order | final cross-check run: C1 order `... reel tension > stop > dart release ...` |
 | F26 | fw-base | fixed on branch | batch 5 `hand_lever`: no DRUM_SENSOR at boot, mission DONE |
 | F27 | fw-base (low) | fixed in 4231f46 (owner: clamp within aim_tol); the Jetson sends 6.06 anyway | |
-| F28 | jetson | OPEN: guard keyed on literal factory k; base now has `tension_cal`, the Jetson still also matches values | batch 5 `nominal_uncal` towed without the warning; `tow_stiff` refused a calibrated 16.967 |
+| F28 | jetson | fixed in jetson 4d6863c (the base's tension_cal flag first, else params.py k) | batch 5 `nominal_uncal` towed without the warning; final cross-check run: `nominal_uncal` PASS (TOW refused without calibration) |
 | F29 | jetson vision | speed part fixed on w/jetson-vision 6fc97c8; remaining ~11 % = renderer vs C3 table (by design) | |
 | F30 | fw-base (low) | re-test on 18ab2b2 not done | |
-| F31 | fw-base | OPEN | batch 5 `no_magnet_index`: mode NEUTRAL LAUNCH_BUSY after the low aim in index mode |
+| F31 | fw-base | fixed in fw-base a1714b2 (merged eb48f20) | batch 5 `no_magnet_index`: mode NEUTRAL LAUNCH_BUSY after the low aim in index mode; final cross-check run: the index-mode mission now leaves LAUNCH, wraps, anchors and flies in (then F32) |
+| F32 | fw-base (index mode only) | OPEN (new in the final cross-check run) | `no_magnet_index`: the CHECK pull faults ANGLE_SENSOR "SW_INDEX bump overdue" (see F32 below) |
 
 ## F1 (fw-base) `cal` (and `set`) during the first 60 ms are acknowledged ok, then silently undone by the boot rebuild
 
@@ -466,3 +471,17 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   apparently leaves one of them set. The same sequence with the AS5600 (scenario `nominal`) shifts to NEUTRAL fine.
 - Impact: on a no-magnet build the mission cannot leave LAUNCH after the shot (no wrap, no tow, no retrieve).
   Log: `systest/runs_preview/no_magnet_index/base.log` (local run, reproduce with `systest/run_mission.sh no_magnet_index`).
+
+## F32 (fw-base) in D12 index mode the anchored check pull faults ANGLE_SENSOR "SW_INDEX bump overdue"
+
+- Final cross-check run (base-1.3.1 with the F31 fix a1714b2), scenario `no_magnet_index` (AS5600 absent from
+  power-on, `--index-cam`): the mission now gets past the shot, the D45 low aim, BASE_NEUTRAL, WRAP, ANCHOR, TIDY and
+  the fly-in (F31 is gone), then the CHECK pull `reel duty 0.48 max_n 15 until tension` on the anchored line faults
+  2.9 s in: `FAULT ANGLE_SENSOR "SW_INDEX bump overdue (index cam or contact)"`; the drum holds in REEL (DRUM_HELD,
+  wraps on). Log: `systest/runs/no_magnet_index/base.log` (t 149725 to 152650).
+- Probable cause: as the anchored line takes up load the tow drops to the minimum duty and the worm slows, so the
+  gap between index bumps grows by more than the 1.5 x margin of `indexTick()` (`base_logic.h`, the overdue limit is
+  1.5 x the last measured bump period, scaled only by the duty drop since that bump). A real tow near its limit slows
+  the same way, so an index-mode build cannot tow.
+- Not seen before because F31 stopped every index-mode mission right after the shot. Reproduce with
+  `systest/run_mission.sh no_magnet_index`. Owner: fw-base (index mode is off by default; D12 fallback only).

@@ -71,10 +71,10 @@ struct Cfg {
 #define P_REEL_CURRENT_TRIPS_A_TOW 6.5f
 #endif
 #ifndef P_REEL_TOW_TENSION_MODEL_N_PER_A
-#define P_REEL_TOW_TENSION_MODEL_N_PER_A 17.0f
+#define P_REEL_TOW_TENSION_MODEL_N_PER_A 13.1f
 #endif
 #ifndef P_REEL_TOW_TENSION_MODEL_OFFSET_N
-#define P_REEL_TOW_TENSION_MODEL_OFFSET_N -3.0f
+#define P_REEL_TOW_TENSION_MODEL_OFFSET_N -2.3f
 #endif
   float tripA = P_REEL_CURRENT_TRIPS_A_REEL_IN;  // reel-in and the reset run (params.REEL.current_trips_a, D8 / D33)
   float aimTripA = P_REEL_CURRENT_TRIPS_A_BACKWARD_LAUNCH;   // D40: every backward run in LAUNCH (aim, decock): the aim gears
@@ -109,7 +109,10 @@ struct Cfg {
 #else
       47.0f;
 #endif
-  float aimHomeDeg = 3365.0f;       // aim phase where SW_RAIL_LOW closes on the backward run (pitch falls through 7 deg)
+  // aim phase where SW_RAIL_LOW closes on the backward run (set key aim_home_deg, CALIBRATION.md e): cad-sensors' contact on
+  // the crank cam is closed within about +-9.8 crank deg of the LOW dead point (sensors_NOTES about +-9; 10 wiper deg per
+  // crank deg), so it closes about 98 wiper deg before phase 3600 = 0, at pitch about 6.2
+  float aimHomeDeg = 3502.0f;
   float aimMaxDeg = 7600.0f;        // longest aim run (two cycles) before BAD_STATE
 
   // ---- shot cycle: wiper deg FORWARD from rest, one big gear turn per shot (BASE_SPEC section 1). No sear: the
@@ -130,14 +133,22 @@ struct Cfg {
   float cockSlowFrom = 380.0f;      // slow from here so the stop is precise
   float releaseDeg = 432.7f;        // the last tooth lets the rack go: carriage flies forward, SW_HOME closes
   float releaseWinDeg = 15.0f;
-  float gapCloseDeg = 520.0f;       // SW_GAP closes here on the reset run (big gear entering its gap; the rest point is 0)
+  // SW_GAP closes here on the reset run (big gear entering its gap; the rest point is cycleDeg = 0). cad-sensors' contact on
+  // the big-gear bump is closed within about +-15 big-gear deg of rest (sensors_NOTES; mesh check +-14.9), so it closes
+  // 22.9 wiper deg before rest: 553.8 - 22.9. Set key gap_close_deg (CALIBRATION.md h)
+  float gapCloseDeg = 531.0f;
   float decockExtraDeg = 15.0f;     // decock: run on this far after SW_HOME closes
   uint32_t cockMaxMs = 20000, fireMaxMs = 20000;
   int decockDuty = 120;
 
   // ---- drum (N20 worm on DRV8833 #3): lens B table 4.1 (numbers come from params.py DRUM once BASE_SPEC v1.0 has them)
   uint8_t secCode[SEC_COUNT] = {0x1, 0x3, 0x2, 0x6, 0x4, 0x5, 0x7};   // bit0 A, bit1 B, bit2 C: 100 110 010 011 001 101 111 (A B C)
-  float edgeDeg[SEC_COUNT - 1] = {8, 32, 50, 62, 302, 340};          // drum deg of the edge between sector i and i+1 (params.DRUM.zones)
+  float edgeDeg[SEC_COUNT - 1] =                                      // drum deg of the code edge between sector i and i+1
+#if defined(P_DRUM_CODE_EDGES_N) && P_DRUM_CODE_EDGES_N == 6           // (params.DRUM.code_edges: the bumps as built)
+      {P_DRUM_CODE_EDGES[0], P_DRUM_CODE_EDGES[1], P_DRUM_CODE_EDGES[2], P_DRUM_CODE_EDGES[3], P_DRUM_CODE_EDGES[4], P_DRUM_CODE_EDGES[5]};
+#else
+      {6, 34, 50, 62, 302, 342};
+#endif
   float secLoDeg = -4, secHiDeg = 352;                                // end stops (params.DRUM.end_stops): never driven into
   float targetDeg[4] =
 #if defined(P_DRUM_TARGETS_LAUNCH) && defined(P_DRUM_TARGETS_NEUTRAL) && defined(P_DRUM_TARGETS_REEL) && defined(P_DRUM_TARGETS_WRAPPED)
@@ -166,13 +177,19 @@ struct Cfg {
   // centering jog (lens B 3.7): before every shift the wiper turns this far BACKWARD so the collar sits in the middle of
   // its free dog window and touches no flank (in REEL sprag #2 holds the line meanwhile)
   float dogWindowDeg = 16;          // free play of the collar dogs (unload jog = half of it)
+#ifndef P_DRUM_UNLOAD_JOG_DEG
+#define P_DRUM_UNLOAD_JOG_DEG 6.0f
+#endif
   float centerDeg = P_DRUM_UNLOAD_JOG_DEG;   // unload (centering) jog: params 1.3.3 drum unload_jog_deg (dog play +-8)
   // fly-in (lens B 7.2 steps 8, 15): the wiper creeps forward while the collar drops into REEL; into LAUNCH the collar
   // dropping in is checked with SW_DOG_L and, if needed, the wiper is turned BACKWARD (never forward: that would cock)
   int flyDuty = 64;                 // 25 percent (about 20 percent asked; at least minScaleDuty 60 so the 3 A trip sees the real current)
   uint32_t aimHomeMaxMs = 60000;    // aim homing must find SW_RAIL_LOW within this (an aim leg within twice this)
   uint32_t reboundIgnoreMs = 500;   // D45: SW_HOME ignored this long after the release (the carriage rebounds off the PLA stop)
-  float gapRunMaxDeg = 150;         // the forward gap run (after an aim / decock) must see SW_GAP close within this
+  // the forward gap run (after an aim / decock) must see SW_GAP close within this: the sprag drag can carry the big gear
+  // up to about 127 big-gear deg back (launch_NOTES), 195 wiper deg; from there the 16 deg dog window plus 195 - 23 to
+  // the SW_GAP edge, plus margin (about 2.5 s at the nudge duty, inside the 8 s limit)
+  float gapRunMaxDeg = 215;
   float notDrawnExtraDeg = 15;      // "carriage not drawn": debounce travel and a looser dog window beyond the SW_HOME window
   float noReleaseExtraDeg = 20;     // "no release seen": slam bounce and the debounce at near free speed
   float flyBiteA = 0.8f;            // D41: fly-in creep stops when the current rises this much over its running level
@@ -217,7 +234,7 @@ struct Cfg {
       50.0f;
 #endif
 #ifndef P_REEL_TOW_LIMIT_MAX_N
-#define P_REEL_TOW_LIMIT_MAX_N 70.0f
+#define P_REEL_TOW_LIMIT_MAX_N 55.0f
 #endif
   float limitMaxN = P_REEL_TOW_LIMIT_MAX_N;   // D39/D46: tow cap at the dart from params (55 N): the train reaches 0.8 x the shear pin above it (BAD_ARG beyond)
   bool armHomeOpen = true;          // cad-reel: SW_ARM is closed while the cup is away and OPENS for about +-5 deg at home

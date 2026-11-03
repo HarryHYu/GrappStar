@@ -196,7 +196,7 @@ def test_recover_unwraps_a_seated_dart(tmp_path):
     """The page offers Recover when the wraps are on even with the dart seated (abort during UNWRAP after the capstan
     seated it). _recover_sequence skips everything when SW_SEATED is closed and goes straight to LAUNCH_READY:
     mode LAUNCH is refused WRAPS_ON, and Retry repeats the same refusal forever. The page has no unwrap button."""
-    base = FakeBase({"state": "IDLE", "mode": "NONE", "drum_pos": "WRAPPED", "wraps": 4.0, "sw": {"S": 1}})
+    base = FakeBase({"state": "IDLE", "mode": "NONE", "drum_pos": "WRAPPED", "wraps": 4.0, "sw": {"H": 1, "S": 1}})
     m = _mission(tmp_path, base, host_timeout_s=0)
     stop = threading.Event()
     _operator(m, ["Base may move", "Abort"], stop)

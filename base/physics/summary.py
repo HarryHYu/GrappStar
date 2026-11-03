@@ -57,7 +57,7 @@ def collect(p=None, fast=False):
     ls = line_slack(p)
     v = em["v"]
     fl = [simulate(p, v, pitch_best, brake_n=b, reel_model=True) for b in (0.5, 0.75, 1.0)]
-    nt = simulate(p, v, pitch_best, tether=False)
+    nt = simulate(p, em["v_muzzle"], pitch_best, tether=False)   # no line at all: no load in the stroke, no snatch
     rows = [("Line path at the shot", (f"slack {ls['slack_at_release_m'] * 1000:.0f} mm: snatch, flight starts at {v:.2f} m/s"
                                        if em["snatch"] else "taut (path only lengthens)")),
             ("Range at 0.5 / 0.75 / 1.0 N brake", " / ".join(f"{r['range_m']:.2f}" for r in fl) + f" m (pitch {pitch_best:.0f})"),
@@ -105,7 +105,8 @@ def collect(p=None, fast=False):
         "Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall "
         "current. Edit common.Wiper or spec WIPER.",
         "Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg).",
-        "Slip clutch: pull the line off the full reel with a luggage scale; set 0.4 to 0.5 N (FINDINGS F5).",
+        "Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 5 N.",
+        "After the first shots: python calib.py range pitch:brake:range ... then python ballistics.py --v-scale <factor>.",
         "Rail friction: tilt the rail with the dart on it until it slides (mu = tan angle).",
     ]
     return dict(source=p.source, sections=sec, measure=measure)

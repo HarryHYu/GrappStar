@@ -84,7 +84,7 @@
     ],
     [
      "Same shot, no tether",
-     "4.58 m"
+     "5.92 m"
     ],
     [
      "Flight time, apex (0.75 N)",
@@ -188,7 +188,8 @@
   "Spring hang test: hang 1, 2, 3 kg from one spring, measure the length each time. Slope = rate, intercept = initial tension. Every range number scales with the stored energy.",
   "Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall current. Edit common.Wiper or spec WIPER.",
   "Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg).",
-  "Slip clutch: pull the line off the full reel with a luggage scale; set 0.4 to 0.5 N (FINDINGS F5).",
+  "Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 5 N.",
+  "After the first shots: python calib.py range pitch:brake:range ... then python ballistics.py --v-scale <factor>.",
   "Rail friction: tilt the rail with the dart on it until it slides (mu = tan angle)."
  ]
 }

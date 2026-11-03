@@ -176,7 +176,11 @@ class Mission:
     def running(self) -> bool:
         return bool(self.thread and self.thread.is_alive())
 
-    def abort(self, why: str = "operator STOP") -> None:
+    def abort(self, why: str = "operator STOP", base_stop: bool = True) -> None:
+        """base_stop=False (ESTOP): the mission must not send its own stop afterwards, because a stop would cancel
+        the firmware's estop drum-to-NEUTRAL safing (review r3_M #2)."""
+        if not base_stop:
+            self._skip_base_stop = True
         if not self.running():
             return
         self.log.warn(f"abort requested: {why}")
@@ -352,6 +356,10 @@ class Mission:
                     pass
 
     def _safe_stop(self) -> None:
+        if getattr(self, "_skip_base_stop", False):
+            ok_d = True if not self.dart_motion_possible() else self.dart.safe_stop()
+            self.log.write("info", msg="ESTOP owns the base (no mission stop sent)")
+            return
         ok_b = self.base.safe_stop()
         ok_d = True if not self.dart_motion_possible() else self.dart.safe_stop()
         self.log.write("info", msg=f"safe stop: base {'ok' if ok_b else 'NO REPLY'}, dart {'ok' if ok_d else 'NO REPLY'}")
@@ -369,6 +377,8 @@ class Mission:
             except Aborted:
                 raise
             except (BaseError, BaseTimeout, BaseDisconnected, DartError, TimeoutError, StepFailed) as e:
+                if self.cancel.is_set():
+                    raise Aborted("operator STOP")      # STOP/ESTOP caused this error: never answer it with a stop
                 msg = f"{name} failed: {e}"
                 self.error = msg
                 self.log.error(msg)
@@ -557,11 +567,8 @@ class Mission:
         if ev is not None:
             ev.set()
         if getattr(self, "_ka_prev", None) is not None:
-            prev = self._ka_prev
-            if isinstance(prev, (int, float)) and abs(prev - self.cfg.host_timeout_s) < 1e-6:
-                prev = 0      # left on by a crashed mission (not saved in flash): idle means off
             try:
-                self.base.set("host_timeout_s", prev)
+                self.base.set("host_timeout_s", 0)   # r3_M #4: off outside a mission, on every exit path
             except Exception:
                 pass
 

@@ -35,12 +35,12 @@ struct Rig {
   bool idle() const { return B.state == gb::S_IDLE; }
   // helpers to reach mission states
   bool toMode(const char* m) { if (!ok(std::string("{\"id\":1,\"cmd\":\"mode\",\"to\":\"") + m + "\"}")) return false; return until([&] { return idle() || B.state == gb::S_FAULT; }, 20000) && idle(); }
-  bool homeAimAndCock() {
+  bool homeAimAndCock() {          // aim first (needs the carriage home), then cock (forward does not move the aim)
     if (!toMode("LAUNCH")) return false;
-    if (!ok("{\"id\":2,\"cmd\":\"cock\"}")) return false;
-    if (!until([&] { return idle() || B.state == gb::S_FAULT; }, 30000) || !idle()) return false;
     if (!ok("{\"id\":3,\"cmd\":\"aim\",\"deg\":35}")) return false;
-    return until([&] { return idle() || B.state == gb::S_FAULT; }, 30000) && B.aimed;
+    if (!until([&] { return idle() || B.state == gb::S_FAULT; }, 30000) || !B.aimed) return false;
+    if (!ok("{\"id\":2,\"cmd\":\"cock\"}")) return false;
+    return until([&] { return idle() || B.state == gb::S_FAULT; }, 30000) && idle() && B.aimed;
   }
 };
 
@@ -225,7 +225,7 @@ static void testDrumFaults() {
     R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}");
     R.until([&] { return R.B.state == gb::S_FAULT; }, 20000);
     CHECK(R.B.fault == gb::F_DRUM_TIMEOUT, "jammed drum: DRUM_TIMEOUT"); CHECK(S.wDir == 0 && S.dDir == 0, "everything off"); }
-  { Rig R; S.swStuckOpen = 1 << 2;             // REEL contact dead
+  { Rig R; S.swStuckOpen = 1 << 1;             // SW_DRUM_B dead: NEUTRAL and REEL codes never appear
     R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}");
     R.until([&] { return R.B.state == gb::S_FAULT; }, 30000);
     CHECK(R.B.fault == gb::F_DRUM_TIMEOUT, "dead target contact: DRUM_TIMEOUT"); }
@@ -240,8 +240,8 @@ static void testDrumFaults() {
   { Rig R; S.swChatter = 1 << 1; R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}");
     R.until([&] { return R.B.state == gb::S_FAULT; }, 5000);
     CHECK(R.B.fault == gb::F_SWITCH_DISAGREE, "chattering NEUTRAL contact during a move: SWITCH_DISAGREE"); }
-  { Rig R; S.swStuckClosed = (1 << 0) | (1 << 1); R.run(300);
-    CHECK(R.B.fault == gb::F_SWITCH_DISAGREE, "two detent contacts closed: SWITCH_DISAGREE");
+  { Rig R(true, [](gb::Cfg& c) { c.swBit[gb::SW_DRUM_C] = 2; c.codeValid = 0x0F; }); S.swStuckClosed = 1 << 2; R.run(300);
+    CHECK(R.B.fault == gb::F_SWITCH_DISAGREE, "impossible drum code: SWITCH_DISAGREE");
     CHECK(R.err("{\"id\":1,\"cmd\":\"clear\"}") == "STILL_PRESENT", "clear refused while present");
     S.swStuckClosed = 0; R.run(100);
     CHECK(R.ok("{\"id\":1,\"cmd\":\"clear\"}") && R.idle(), "clear once fixed"); }
@@ -269,7 +269,7 @@ static void testAim() {
   }
   R.toMode("NEUTRAL");
   CHECK(R.err("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}") == "NOT_IN_LAUNCH", "aim outside LAUNCH");
-  { Rig Q; Q.B.c.swBit[gb::SW_AIM_HOME] = -1; Q.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"cock_rest\"}");
+  { Rig Q; Q.B.c.swBit[gb::SW_RAIL_LOW] = -1; Q.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"cock_rest\"}");
     CHECK(Q.err("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}") == "AIM_UNKNOWN", "no home switch and no cal: AIM_UNKNOWN"); }
 }
 
@@ -316,8 +316,11 @@ static void testFireRefusals() {
     S.lineOut = 3; R.run(50);                  // dart pulled out between arm and fire
     CHECK(R.err("{\"id\":3,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}") == "NOT_SEATED", "rechecked at fire"); }
   S.lineOut = 0; R.run(50);
-  CHECK(R.err("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}") == "" , "leaving LAUNCH while cocked on the sear is allowed");
-  R.until([&] { return R.idle(); }, 20000);
+  CHECK(R.err("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}") == "LAUNCH_BUSY", "no shift while cocked (no sear: the worm holds the spring)");
+  CHECK(R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"decock\"}"), "decock");
+  R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
+  CHECK(R.B.phase == gb::PH_REST && S.shots == 0 && S.cockPh < S.c.homeOpenDeg && !R.B.aimKnown, "decocked to rest without a shot, aim to redo");
+  CHECK(R.toMode("NEUTRAL"), "then the shift is allowed");
   CHECK(R.err("{\"id\":1,\"cmd\":\"arm\"}") == "NOT_IN_LAUNCH", "not in LAUNCH");
   CHECK(R.err("{\"id\":1,\"cmd\":\"cock\"}") == "NOT_IN_LAUNCH", "cock outside LAUNCH");
 }
@@ -456,13 +459,14 @@ static void testStopEstop() {
 static void testJog() {
   T("jog: deadman, refusals");
   Rig R; R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"cock_rest\"}"); R.toMode("LAUNCH");
-  CHECK(R.ok("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":1,\"ms\":300}"), "jog wiper (aim direction)");
-  R.run(100); CHECK(S.wDir == 1, "running");
+  CHECK(R.ok("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":-1,\"ms\":300}"), "jog wiper (aim direction)");
+  R.run(100); CHECK(S.wDir == -1, "running");
   R.run(400); CHECK(S.wDir == 0 && R.idle(), "stops after ms");
-  CHECK(R.ok("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":1,\"ms\":99999}"), "long jog accepted");
+  CHECK(R.ok("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":-1,\"ms\":99999}"), "long jog accepted");
   R.run(1600); CHECK(S.wDir == 0, "capped at 1.5 s");
   R.homeAimAndCock();
-  CHECK(R.err("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":-1,\"ms\":300}") == "WOULD_FIRE", "cock-direction jog refused when cocked");
+  CHECK(R.err("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":1,\"ms\":300}") == "WOULD_FIRE", "forward jog refused when cocked");
+  CHECK(R.err("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":-1,\"ms\":300}") == "NOT_AT_REST", "backward jog refused when cocked (spring would unwind)");
   CHECK(R.err("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"arm\",\"dir\":1}") == "BAD_ARG", "bad motor");
   CHECK(R.err("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"drum\",\"dir\":2}") == "BAD_ARG", "bad dir");
   CHECK(R.ok("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"drum\",\"dir\":1,\"ms\":600}"), "jog drum");
@@ -488,9 +492,19 @@ static void testPowerLoss() {
     CHECK(R2.B.phase == gb::PH_UNKNOWN && ph > 10, "phase UNKNOWN after a cut mid-cock");
     CHECK(R2.err("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}") == "PHASE_UNKNOWN", "aim refused with the phase unknown");
     CHECK(R2.err("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}") == "LAUNCH_BUSY", "no mode change with the launch train loaded");
-    CHECK(R2.ok("{\"id\":1,\"cmd\":\"cock\"}"), "cock (recovery run)");
+    CHECK(R2.err("{\"id\":1,\"cmd\":\"cock\"}") == "LOADED_UNKNOWN", "cock refused: carriage drawn, angle unknown");
+    CHECK(R2.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"decock\"}"), "decock");
     R2.until([&] { return R2.idle() || R2.B.state == gb::S_FAULT; }, 40000);
-    CHECK(R2.B.phase == gb::PH_COCKED && fabs(S.cockPh - R2.B.c.cockEndDeg) < 8 && S.shots == 0, "cocked, no shot"); }
+    CHECK(R2.B.phase == gb::PH_REST && S.shots == 0, "decocked to rest, no shot");
+    R2.ok("{\"id\":1,\"cmd\":\"cock\"}"); R2.until([&] { return R2.idle() || R2.B.state == gb::S_FAULT; }, 40000);
+    CHECK(R2.B.phase == gb::PH_COCKED && fabs(S.cockPh - R2.B.c.cockEndDeg) < 8 && S.shots == 0, "then cocks normally"); }
+  // 2b: cut early in the cock (carriage still home) -> cock creeps until SW_HOME opens, then knows the angle
+  { Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"cock\"}"); R.until([&] { return S.cockPh > 15; }, 5000); S.wDir = 0;
+    Rig R2(false);
+    CHECK(R2.B.phase == gb::PH_UNKNOWN, "phase UNKNOWN");
+    CHECK(R2.ok("{\"id\":1,\"cmd\":\"cock\"}"), "cock (recovery creep)");
+    R2.until([&] { return R2.idle() || R2.B.state == gb::S_FAULT; }, 40000);
+    CHECK(R2.B.phase == gb::PH_COCKED && fabs(S.cockPh - R2.B.c.cockEndDeg) < 8 && S.shots == 0, "cocked at the right angle, no shot"); }
   // 3: power cut while cocked and idle -> stays known (record + sear contact)
   { Rig R; R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"cock_rest\"}"); R.homeAimAndCock(); R.run(500);
     Rig R2(false);

@@ -42,23 +42,19 @@ struct Sim {
   double drumJamAbove = 1e9;       // drum cannot pass above this angle (jam)
   bool toothOnTooth = false; double toothNeedWiper = 10; double toothWiperAcc = 0;   // LAUNCH dog blocked until the wiper turns
   double extraLoadNm = 0;          // stall injection
-  bool searBroken = false;         // the sear never trips (no release)
-  double searCloseDeg = -1;        // default cockEnd - 8
+  bool searBroken = false;         // the relieved tooth never lets go (no release)
   // ---- log
   std::vector<std::string> out;
   gb::Saved nvs; bool nvsHas = false; int saves = 0;
   uint32_t t = 0;
 
-  double searClose() const { return searCloseDeg >= 0 ? searCloseDeg : c.searCloseDeg; }
   bool inLaunch() const { return fabs(drumDeg - c.drumPosDeg[0]) <= 5; }   // dog fully engaged
   bool inReel() const { return fabs(drumDeg - c.drumPosDeg[2]) <= 5 || drumDeg > c.drumPosDeg[2] + 5; }   // past REEL stays coupled
   int wrapsTrue() const { double l = (drumDeg - c.wrapStartDeg) / c.degPerWrap; return l <= 0 ? 0 : (int)floor(l + 0.15); }
-  double cockLoad() const {
-    if (cockPh <= 0) return 0.5;
-    if (cockPh < c.cockEndDeg) return 0.5 + cockMaxNm * cockPh / c.cockEndDeg;
-    if (!fired && !searBroken) return 0.5 + cockMaxNm;      // carriage on the sear, cam pushing the trip
-    if (searBroken) return 0.5 + cockMaxNm;
-    return 1.0;                                               // after release: resetting is light
+  double cockLoad() const {        // the rack is engaged from homeOpenDeg to the release tooth
+    if (fired || cockPh < c.homeOpenDeg) return 0.5;
+    double f = (cockPh - c.homeOpenDeg) / (c.releaseDeg - c.homeOpenDeg); if (f > 1) f = 1;
+    return 0.5 + cockMaxNm * (0.3 + 0.7 * f);
   }
   double tension() const {
     if (anchorTautAt < 0) return lineOut > seatAtLine + 0.02 ? 1.0 : 0;   // slack retrieve: light take-up
@@ -69,15 +65,16 @@ struct Sim {
   uint8_t contactsRaw() {
     uint8_t b = 0;
     auto setb = [&](int id, bool v) { int bit = c.swBit[id]; if (bit >= 0 && v) b |= (1 << bit); };
-    for (int k = 0; k < 3; k++) setb(k, fabs(drumDeg - c.drumPosDeg[k]) <= c.drumWinDeg);
+    int code = 0;
+    for (int k = 0; k < 3; k++) if (fabs(drumDeg - c.drumPosDeg[k]) <= c.drumWinDeg) code = c.posCode[k];
+    setb(gb::SW_DRUM_A, code & 1); setb(gb::SW_DRUM_B, code & 2); setb(gb::SW_DRUM_C, code & 4);
     double wz = drumDeg - c.wrapStartDeg;
     double m = fmod(wz, c.degPerWrap); if (m < 0) m += c.degPerWrap;
-    setb(gb::SW_WRAP, drumDeg >= c.wrapStartDeg + c.degPerWrap * 0.5 && (m < c.wrapWinDeg || m > c.degPerWrap - c.wrapWinDeg));
+    setb(gb::SW_WRAP_HOME, drumDeg >= c.wrapStartDeg + c.degPerWrap * 0.5 && (m < c.wrapWinDeg || m > c.degPerWrap - c.wrapWinDeg));
     setb(gb::SW_SEATED, seated());
-    bool searClosed = cockPh >= searClose() && !fired && !(cockPh >= c.releaseDeg && !searBroken);
-    setb(gb::SW_COCKED, searClosed);
+    setb(gb::SW_HOME, fired || cockPh < c.homeOpenDeg);
     double am = fmod(aimPh - c.aimHomeDeg, c.aimCycleDeg); if (am < 0) am += c.aimCycleDeg;
-    setb(gb::SW_AIM_HOME, am < 8);
+    setb(gb::SW_RAIL_LOW, am < 8);
     b |= swStuckClosed; b &= ~swStuckOpen;
     if (swChatter) { chatterSeed = chatterSeed * 1103515245u + 12345u; if ((chatterSeed >> 16) & 1) b ^= swChatter; }
     return b;
@@ -90,6 +87,7 @@ struct Sim {
     double load = 0.2 + extraLoadNm;
     if (wDir != 0) {
       if (inLaunch()) load += (wDir == c.aimDir) ? aimLoadNm : cockLoad();
+      else if (inReel() && wDir != c.reelDir) load += 1000;                // sprag #2 backstop: cannot turn out
       else if (inReel() && wDir == c.reelDir && wrapsTrue() > 0) load += reelFreeNm + tension() * capstanR / c.capstanPerWiper;
     }
     double v = vbat();
@@ -109,11 +107,13 @@ struct Sim {
     double ad = fabs(dDeg);
     if (ad > 0) {
       if (inLaunch()) {
-        if (wDir == c.aimDir) aimPh = fmod(aimPh + ad, c.aimCycleDeg);
-        else {
+        if (wDir == c.aimDir) {
+          aimPh = fmod(aimPh + ad, c.aimCycleDeg);
+          if (!fired && cockPh > c.homeOpenDeg - 1) cockPh = fmax(c.homeOpenDeg - 1, cockPh - ad);   // drawn spring follows back (decock)
+        } else {
           double before = cockPh; cockPh += ad;
-          if (!fired && !searBroken && before < c.releaseDeg && cockPh >= c.releaseDeg && before >= searClose()) { fired = true; shots++; lineOut = 0; }
-          if (fired && cockPh >= c.cycleDeg - 5) { cockPh -= c.cycleDeg; fired = false; lineOut = lineOutAfterShot; }
+          if (!fired && !searBroken && before < c.releaseDeg && cockPh >= c.releaseDeg) { fired = true; shots++; lineOut = lineOutAfterShot; }
+          if (fired && cockPh >= c.cycleDeg - 5) { cockPh -= c.cycleDeg; fired = false; }
         }
       } else if (toothOnTooth && drumDeg < c.drumPosDeg[0] + 30) toothWiperAcc += ad;
       else if (inReel() && wDir == c.reelDir && wrapsTrue() > 0) { lineOut -= ad / 360.0 * c.capstanPerWiper * 2 * M_PI * capstanR; if (lineOut < 0) lineOut = 0; }

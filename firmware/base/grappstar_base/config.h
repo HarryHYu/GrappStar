@@ -7,9 +7,11 @@
 
 namespace gb {
 
-// Logical contacts. Each maps onto one of the 8 switch pins (bit 0..7 = PIN_SW_A..H) or -1 when not fitted.
-enum SwId { SW_LAUNCH, SW_NEUTRAL, SW_REEL, SW_WRAP, SW_SEATED, SW_COCKED, SW_AIM_HOME, SW_COUNT };
-static const char* const SW_KEY[SW_COUNT] = {"launch", "neutral", "reel", "wrap", "seated", "cocked", "aim_home"};
+// Contacts (names from BASE_SPEC.md section 4). Each maps onto one of the 8 switch pins (bit 0..7 = PIN_SW_A..H) or
+// -1 when not fitted. SW_DRUM_A/B/C are code bumps on the selector drum: the code they make says the drum position.
+enum SwId { SW_DRUM_A, SW_DRUM_B, SW_DRUM_C, SW_SEATED, SW_HOME, SW_RAIL_LOW, SW_WRAP_HOME, SW_COUNT };
+static const char* const SW_NAME[SW_COUNT] = {"SW_DRUM_A", "SW_DRUM_B", "SW_DRUM_C", "SW_SEATED", "SW_HOME", "SW_RAIL_LOW", "SW_WRAP_HOME"};
+static const char* const SW_TEL[SW_COUNT] = {"a", "b", "c", "S", "H", "L", "W"};   // telemetry keys (PROTOCOL.md)
 
 // drum positions along its travel (drum deg from the LAUNCH detent, rising toward REEL and the wrap zone)
 enum DrumPos { DP_LAUNCH, DP_NEUTRAL, DP_REEL, DP_WRAPPED, DP_BETWEEN, DP_UNKNOWN };
@@ -22,7 +24,10 @@ struct Cfg {
   uint32_t tickMs = 5;
 
   // ---- switches: physical bit for each logical contact (-1 = not fitted)
-  int8_t swBit[SW_COUNT] = {0, 1, 2, 3, 4, 5, 6};   // PIN_SW_A..G in that order (WIRING.md)
+  int8_t swBit[SW_COUNT] = {0, 1, -1, 3, 4, 5, 6};  // PIN_SW_A..G in that order (WIRING.md); SW_DRUM_C not fitted
+  // drum code: bit 0 = SW_DRUM_A, bit 1 = SW_DRUM_B, bit 2 = SW_DRUM_C (placeholder Gray code until BASE_SPEC v1.0)
+  uint8_t posCode[3] = {0x1, 0x3, 0x2};             // LAUNCH, NEUTRAL, REEL
+  uint8_t codeValid = 0x0F;                         // bit n set = code n can occur (0 = between bumps); others = SWITCH_DISAGREE
   uint32_t debounceMs = 15;
 
   // ---- wiper (BTS7960)
@@ -48,10 +53,12 @@ struct Cfg {
   float cockTripA = 15.0f;         // while cocking (spring loading): tighter
   int wiperSign = +1;              // AS5600 count direction (CALIBRATION.md step 3)
 
-  // which wiper direction does what. LAUNCH mode: aimDir aims (one-way element 1), the other direction cocks /
-  // fires / resets (sprag #1). REEL mode: reelDir winds the capstan (sprag #2); the other direction is refused.
-  int aimDir = +1;
+  // which wiper direction does what (BASE_SPEC section 1; wiper +1 = FORWARD = RPWM). LAUNCH: FORWARD cocks, fires and
+  // resets through sprag #1; BACKWARD aims through the swing-arm splitter and the aim worm. REEL: FORWARD winds the
+  // capstan; BACKWARD is refused (sprag #2 backstops the capstan: the wiper would stall against it).
+  int aimDir = -1;
   int reelDir = +1;
+  float aimLashDeg = 0.0f;          // wiper travel after reversing before the swing-arm splitter drives the aim (spec TBD)
   int aimDuty = 200, aimSlowDuty = 110; float aimSlowDeg = 25; float aimCoastDeg = 1.0f;
   int cockDuty = 255, cockSlowDuty = 140, fireDuty = 255, resetDuty = 200, jogDuty = 150, nudgeDuty = 90;
 
@@ -59,18 +66,21 @@ struct Cfg {
   float aimCycleDeg = 360.0f;
   float aimTolDeg = 0.75f;          // AIMED if within this
   float pitchMin = 15.0f, pitchMax = 60.0f;
-  float aimHomeDeg = 0.0f;          // aim phase where SW_AIM_HOME closes (moving in aimDir)
+  float aimHomeDeg = 0.0f;          // aim phase where SW_RAIL_LOW closes (moving in aimDir)
   float aimMaxDeg = 760.0f;         // longest aim run (two cycles) before STALL / BAD_STATE
 
-  // ---- shot cycle (wiper deg in the cock direction from rest)
-  float cycleDeg = 720.0f;          // one full shot cycle: rest -> cocked -> release -> reset -> rest
-  float cockEndDeg = 540.0f;        // stop here: carriage on the sear (SW_COCKED closes just before)
-  float cockSlowFrom = 500.0f;      // slow from here so the stop is precise
-  float searCloseDeg = 532.0f;      // SW_COCKED closes here while cocking (carriage drops onto the sear)
-  float searWinDeg = 25.0f;         // SW_COCKED must close within this before cockEndDeg
-  float releaseDeg = 570.0f;        // sear trips (SW_COCKED opens) about here while firing
-  float releaseWinDeg = 25.0f;
+  // ---- shot cycle: wiper deg FORWARD from rest, one big gear turn per shot (BASE_SPEC section 1). No sear: the
+  // drawn carriage is held by sprag #1 and the wiper worm, released by the relieved last tooth.
+  float cycleDeg = 720.0f;          // one big gear turn: rest -> draw -> release -> reset -> rest
+  float homeOpenDeg = 40.0f;        // SW_HOME opens here (first tooth starts drawing the carriage back)
+  float homeWinDeg = 25.0f;         // ... within this
+  float cockEndDeg = 560.0f;        // cocked: stop here, just before the relieved tooth
+  float cockSlowFrom = 520.0f;      // slow from here so the stop is precise
+  float releaseDeg = 580.0f;        // the relieved tooth lets the rack go: carriage flies forward, SW_HOME closes
+  float releaseWinDeg = 20.0f;
+  float decockExtraDeg = 15.0f;     // decock: run on this far after SW_HOME closes
   uint32_t cockMaxMs = 20000, fireMaxMs = 15000;
+  int decockDuty = 120;
 
   // ---- drum (N20 worm on DRV8833)
   float drumPosDeg[3] = {0.0f, 60.0f, 120.0f};   // LAUNCH, NEUTRAL, REEL detents
@@ -112,6 +122,7 @@ struct Cfg {
   uint32_t jogMaxMs = 1500;
   uint32_t telSlowMs = 100, telFastMs = 50;     // 10 Hz idle, 20 Hz while anything moves
   bool requireSeated = true;        // fire needs SW_SEATED closed
+  bool aimNeedsRest = true;         // aim only with the carriage home: backward drive would let the drawn spring unwind
 };
 
 // placeholder aim table until params.py has AIM: a crank-rocker like sine between pitchMin and pitchMax

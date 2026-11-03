@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 13:17 Sydney time from commit `d8ee35b`.
+Built 2026-11-03 13:18 Sydney time from commit `95b734d`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -1171,13 +1171,12 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
 1. Open `http://192.168.4.1/arm?on=1&auto=0` (arm, log only: no motors will run). Status shows `ARMED`.
 2. Hold the dart over the towel on the floor. Jerk it sharply upwards and let go about 40 cm above the towel.
 3. Status should go `FLIGHT` then `LANDED` (or stay `ARMED` if the jerk was under 4 g: jerk harder).
-4. Wait until the status shows `LANDED`, then 4 s more (if the towel landing ends as `timeout` that is about 18 s
-   after the jerk; `/flightlog` is refused while armed or in flight). Open `http://192.168.4.1/flightlog`: `frozen: true`, `t_launch_ms` and `t_land_ms` set, a few hundred
+4. Wait until the status shows `LANDED`, then 4 s more (if the towel landing ends as `timeout` that is about 19 s after the jerk, and the log is already frozen by then; `/flightlog` is refused while armed or in flight). Open `http://192.168.4.1/flightlog`: `frozen: true`, `t_launch_ms` and `t_land_ms` set, a few hundred
    samples. Save it. The towel drop usually reads `landing: "timeout"` or `"still"` (soft), which is correct.
 5. Open `http://192.168.4.1/stop` to disarm.
 
-**Safe to touch, after any arm or auto test:** press STOP, check the status shows `IDLE` (not `ARMED`, `FLIGHT` or
-`ANCHORING`), pull the power loop plug (or unplug the bench LiPo), and only then pick the dart up or touch a leg. An
+**Safe to touch, after any arm or auto test:** press STOP, check the status is not `ARMED`, `FLIGHT`, `ANCHORING` or
+`RELEASING` (`IDLE`, `LANDED` or `ANCHORED` is fine), pull the power loop plug (or unplug the bench LiPo), and only then pick the dart up or touch a leg. An
 armed dart can start the auto sequence by itself after a knock.
 
 #### Step 9. Anchor and release on soil (assembled, hull open)
@@ -1204,6 +1203,7 @@ In `kedge_logic.h`, `struct Tuning`, set (all at full speed 255, battery fully c
 | `kickContactMa` | about 2 x kick free, below kick stall / 2 | 60 |
 | `freeMa[...]` | measured free currents (steps 3 to 6) | 30, 30, 70, 45 |
 | `loadMa[...]` | typical working current in soil (step 9) | 40, 70, 420, 130 |
+| `kickSwingMs` | kick swing time from step 5, in ms | 4300 |
 | `impactG` | under the `peak_g` of a real landing (step 8 and the first shots), over 2 g | 3.5 |
 | `kickMaxMs` | 2 x kick swing time, at least 8000 | 15000 |
 
@@ -1408,7 +1408,7 @@ plug while the battery is in.**
 | 5 | `PIN_LPWM` | BTS7960 LPWM | wiper BACKWARD (dir -1), PWM 20 kHz |
 | 6 | `PIN_REN` | BTS7960 R_EN | plus 10 k from R_EN to GND |
 | 7 | `PIN_LEN` | BTS7960 L_EN | plus 10 k from L_EN to GND |
-| 1 | `PIN_WIPER_IS` | BTS7960 R_IS + L_IS through 1 k | plus 680 R from GPIO1 to GND (the IS divider) |
+| 1 | `PIN_WIPER_IS` | BTS7960 R_IS + L_IS through 1 k | plus 680 R and a 1 uF capacitor from GPIO1 to GND (the IS divider and filter) |
 | 2 | `PIN_VBAT` | battery divider middle | 100 k from 3S + (at the BTS7960 B+ screw) to GPIO2, 22 k from GPIO2 to GND |
 | 8 | `PIN_SDA` | AS5600 SDA | STEMMA QT blue wire |
 | 9 | `PIN_SCL` | AS5600 SCL | STEMMA QT yellow wire |
@@ -1450,12 +1450,13 @@ newer boards, so `SW_HOME` is on GPIO21 instead.
 | 1 k | R_IS + L_IS (tied) | GPIO1 | series protection for the pin | any value from 1 k to 4.7 k |
 | 680 R | GPIO1 | GND | turns the IS current into a voltage (sets `amps_per_volt` = 8500 / 680 = 12.5) | any value from 470 R to 1 k, then `set amps_per_volt` to 8500 / your value (1 k: 8.5) |
 | 100 k | BTS7960 B+ screw (soldered right at the screw) | the long wire to GPIO2 | battery divider top: the long wire then carries only the divided voltage, never the full 12.6 V | leave the divider out (both resistors) and send `{"id":1,"cmd":"set","key":"vbat_wired","val":false}`: no `vbat`, no battery checks |
+| 1 uF capacitor (strongly recommended) | GPIO1 (at the ESP32 end of the IS wire) | GND | smooths the IS pulses. The sketch already averages 16 reads spread across the 20 kHz PWM period, so the reading is right without it; the capacitor is belt and braces against noise and timing slips | 1 uF to 2.2 uF, ceramic best (an electrolytic: striped leg to GND). Without one the firmware still works; fit it when you can |
 | 22 k | GPIO2 | GND | battery divider bottom (12.6 V reads 2.27 V) | as above: the firmware assumes exactly 100 k / 22 k, so do not swap in other values |
 | 2 A inline fuse | BTS7960 B+ screw | MP1584 IN+ | a short in the buck or the DRV8833 blows this, not the thin wires | no small fuse: use 18 AWG wire for that lead and keep it short (under 10 cm) |
 | 20 A fuse | battery + (XT60 lead #2) | BTS7960 B+ | main fuse | none: never run without it |
 
-There is NO resistor on the DRV8833 SLP pin (it is not wired at all). Optional capacitors: 1 uF to 2.2 uF from GPIO1
-to GND (smooths the IS signal), 100 nF from GPIO2 to GND (steadies `vbat`).
+There is NO resistor on the DRV8833 SLP pin (it is not wired at all). The 1 uF capacitor from GPIO1 to GND is strongly
+recommended (above). Optional: 100 nF from GPIO2 to GND (steadies `vbat`).
 
 #### 3. Power
 
@@ -1499,6 +1500,10 @@ ESP32 power: USB from the Jetson (from the Mac on the bench)
 - **IS divider:** tie R_IS and L_IS together. From there a 1 k resistor to GPIO1. From GPIO1 a 680 R resistor to GND.
   The BTS7960 IS pin gives a small current: motor amps divided by 8500. At 20 A that is 2.35 mA, and 2.35 mA through
   the 680 R gives about 1.6 V at GPIO1, well under 3.3 V. So `amps_per_volt` = 8500 / 680 = 12.5 (the default).
+- **1 uF capacitor from GPIO1 to GND: strongly recommended.** Solder it at the ESP32 end of the IS wire, right at
+  GPIO1 and a GND pin. The IS pin only reports while the high side conducts (a 20 kHz pulse train); the sketch takes
+  16 reads 53 us apart that step through the PWM period, so their average is right even without the capacitor. The
+  capacitor is belt and braces: it also smooths noise and covers a late read.
 - **Check for an onboard IS resistor first.** With everything unpowered, tie R_IS and L_IS together and put the meter
   (ohms) between that point and GND. Open (no reading) means no onboard resistor: the default scale 12.5 is right.
   If it reads a resistance Rb, write it down. The scale changes:
@@ -1565,7 +1570,7 @@ On the bench, before the drum is built, use two jumper wires:
 #### 8. Build order, step by step
 
 You need: multimeter, the 20 A fuse lead (XT60 lead #2), MP1584 #2, a 2 A inline fuse for the buck, 2 x 10 k, 1 k,
-680 R, 100 k, 22 k (section 2 lists fallbacks), optionally a 1 uF to 2.2 uF and a 100 nF capacitor, an insulated small
+680 R, 100 k, 22 k, a 1 uF to 2.2 uF capacitor (strongly recommended), optionally a 100 nF capacitor (section 2 lists fallbacks), an insulated small
 screwdriver for the buck.
 
 ##### Part A: set the buck (on its own, before the build)
@@ -1588,8 +1593,8 @@ is wired to it.
 
 1. Battery unplugged. Solder the two 10 k pull-downs: R_EN to GND and L_EN to GND on the BTS7960 header.
 2. Battery unplugged. Check the BTS7960 for an onboard IS resistor (section 4). Write the number down.
-3. Battery unplugged. Wire the IS divider: R_IS and L_IS tied, 1 k to GPIO1, 680 R from GPIO1 to GND. Optional
-   capacitor from GPIO1 to GND.
+3. Battery unplugged. Wire the IS divider: R_IS and L_IS tied, 1 k to GPIO1, 680 R from GPIO1 to GND, and the 1 uF
+   capacitor from GPIO1 to GND at the ESP32 end (strongly recommended).
 4. Battery unplugged. BTS7960 logic: RPWM GPIO4, LPWM GPIO5, R_EN GPIO6, L_EN GPIO7, VCC 3V3, GND to ESP32 GND.
 5. Battery unplugged. Battery divider: solder the 100 k right at the BTS7960 B+ screw, run the long wire from its
    other end to GPIO2, 22 k from GPIO2 to GND. Optional 100 nF from GPIO2 to GND.
@@ -1811,19 +1816,22 @@ a power cycle and over a new upload of the same firmware version.
 
 #### Safety summary
 
-- Any fault: the wiper stops at once. Then the drum goes to a safe park, so the wiper turns nothing: from REEL or the
-  WRAPPED sector it goes to the WRAPPED park (314 deg, collar in NEUTRAL, wraps kept), never back to NEUTRAL (that
-  would unwrap under tow). From anywhere before the wrap window it goes to NEUTRAL.
+- Any fault: the wiper stops at once. Then, if the wraps are off and nothing below applies, the drum goes to NEUTRAL,
+  so the wiper turns nothing.
 - The drum does NOT move, and holds where it is, when:
+  - the wraps are on (wrap window, WRAPPED park, REEL): the worm and sprag #2 hold the line, and the operator
+    unwraps when it is safe (`unwrap`). This applies to `estop` too;
   - the launch spring may be drawn: there is no sear, only the wiper worm holds the spring, and a shift under that
     load could dry fire. Recover with `decock`;
-  - the drum is inside the wrap window: the operator decides. Recover with `unwrap`;
-  - the drum itself faulted, its position or the wraps are unknown, or the N20 is latched out (hand mode).
+  - the drum itself faulted, its position or the wraps are unknown, or the N20 is latched out (hand mode). After a
+    drum code that changed with the drum still near the wrap window, only `unwrap` is accepted until NEUTRAL.
 
-  It then sends a `MODE` event with `"err":"DRUM_HELD"` and a `"why"` that says which.
+  It then sends a `MODE` event with `"err":"DRUM_HELD"` and a `"why"` that says which (exactly at the WRAPPED park
+  it says `"ok":true` instead).
 - After a power cut the base never moves by itself. Inside the wrap window it stops and reports. A cut while cocking or
   firing is treated as a drawn spring: `cock` is refused (`LOADED_UNKNOWN`) until a `decock` (PROTOCOL.md section 9).
-- `stop`: wiper off now, drum stops. `estop`: the same, then the drum goes to its safe park when that is safe.
+- `stop`: wiper off now, drum stops. `estop`: the same, then the drum goes to NEUTRAL when that is safe (never with
+  the wraps on).
 - Before every shift out of LAUNCH or REEL the wiper makes a small centering jog (8 deg) so the collar is not loaded.
   The collar contacts `SW_DOG_L` and `SW_DOG_R` are checked during every drum move.
 - Soft start: the wiper ramps up over 300 ms (inrush once blew a 10 A fuse). It always stops for 200 ms before it
@@ -1831,7 +1839,7 @@ a power cycle and over a new upload of the same firmware version.
 - Current trips per job (each for 30 ms, ignored for 50 ms after a start): aim and reel in 5 A, cock and fire 6.5 A,
   tow 6.5 A or more for a high `max_n` (the tension estimate is the real tow limit), take-up 2.5 A, jogs, centering and fly-in 3 A; 17 A at any
   time. Stall: the shaft slower than 12 deg/s for 200 ms while driving.
-- AS5600 lost while the wiper runs: fault `ANGLE_SENSOR`. If the AS5600 is not reading, wiper actions and the drum
+- AS5600 lost while the wiper runs, or its angle jumps so travel is lost: fault `ANGLE_SENSOR`. If the AS5600 is not reading, wiper actions and the drum
   moves that need the centering jog or the fly-in are refused (`ANGLE_SENSOR`). Exception: a build with no magnet can
   switch on the 6-bump index cam `SW_INDEX` in `config.h` (decision D12, off by default); then the base runs on that
   coarser angle (PROTOCOL.md section 9).
@@ -1940,8 +1948,8 @@ aborted and the dart disarms when the upload starts.
 - All safety runs in its own task every 5 ms with a 2 s watchdog; a stuck web client or Serial port cannot block it.
 - After a brownout or watchdog reset the dart boots with motors off and reports `FAULT` until `/stop`, `/auto`, `/release` or `/arm`.
 - INA219 missing: manual keys only (on timers), auto and release refused. BNO085 missing: no arming, no flight log.
-- A stuck I2C bus is recovered (9 clocks and a Wire restart). If the web loop hangs for 10 s with nothing moving, the
-  dart restarts itself.
+- A stuck I2C bus is recovered (9 clocks and a Wire restart). If the web loop hangs for 10 s while nothing moves, the
+  dart is not armed or in flight, and no OTA upload runs, it restarts itself.
 - **Power on with the legs stowed.** The firmware keeps track of the kick's travel from power-on to tell a jammed kick
   from one that is already down or stowed.
 
@@ -2601,7 +2609,9 @@ home, or the contact is not touching.
 
 #### Current scale (multimeter with a 10 A range, low duty only)
 
-If WIRING.md section 4 found an onboard IS resistor, set the computed `amps_per_volt` first.
+Fit the 1 uF capacitor from GPIO1 to GND first if you have it (WIRING.md section 4, strongly recommended; the sketch
+averages 16 reads across the PWM period, so the reading is right without it too). If WIRING.md section 4 found an
+onboard IS resistor, set the computed `amps_per_volt` first.
 
 The meter's 10 A range cannot take a start surge or a stall. So this is done only at low duty, with nothing loading
 the shaft: a FORWARD jog with the drum in NEUTRAL runs the take-up at 40 % power with the 300 ms soft start (on the
@@ -2895,7 +2905,8 @@ Two rules for the whole test:
      `HAND_MODE`.
 
    Leave both jumpers on for the whole bench test unless a step says otherwise.
-5. Battery unplugged. Wired as in WIRING.md, and the Part C multimeter checks done.
+5. Battery unplugged. Wired as in WIRING.md, and the Part C multimeter checks done. The 1 uF capacitor from GPIO1 to
+   GND is strongly recommended (WIRING.md section 4).
 
 #### Step 1: USB only
 
@@ -3077,9 +3088,9 @@ proper stop. Skip it if you do not have one: the PC tests check stall detection.
 - You should see: the motor stops at once. `{"evt":"ABORTED",...,"what":"JOG","why":"stop"}`.
 - Same again with `{"id":21,"cmd":"estop"}`.
 - You should see: the motor stops at once. `ABORTED` with `"why":"estop"`, then a `MODE` line with `"ok":true`: the
-  drum code says NEUTRAL already, so the drum does not move. In the base, estop drives the drum to its safe park when
-  that is safe (NEUTRAL, or the WRAPPED park from REEL), and otherwise sends a `MODE` line with `"err":"DRUM_HELD"`
-  and a `"why"`.
+  drum code says NEUTRAL already, so the drum does not move. In the base, estop drives the drum to NEUTRAL when
+  that is safe; with the wraps on (or another reason) the drum holds and a `MODE` line with `"err":"DRUM_HELD"` and
+  a `"why"` comes.
 - If the motor keeps running: unplug the battery. Report it.
 
 #### Step 9: brownout (optional)

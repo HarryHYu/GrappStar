@@ -899,7 +899,10 @@ class Mission:
         c = self.cams.get("dart")
         if c is not None:
             try:
-                frames = [f for f in c.buffer() if f.t >= t_fire - self.cfg.pre_s]
+                try:
+                    frames = c.buffer(since=t_fire - self.cfg.pre_s)   # filters before decoding held frames
+                except TypeError:          # cameras without since=
+                    frames = [f for f in c.buffer() if f.t >= t_fire - self.cfg.pre_s]
             except Exception as e:
                 self.log.warn(f"no dart frames: {e}")
         fl = None

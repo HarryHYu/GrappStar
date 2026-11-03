@@ -1219,7 +1219,7 @@ for _step, _pst in POWER_STATES:
     sc(Scenario(f"power_{_step.lower()}", f"power loss in {_step} (base state {_pst}): kill, restart, mission recovers",
                 triggers=[(f"kill base in {_step}", plant_state(_pst, step=_step, delay=1.0), lambda r: r.restart_base(2.0))],
                 policy={"LOADED_UNKNOWN": decock_then_retry, "phase UNKNOWN": decock_then_retry, "Decock": decock_then_retry},
-                retry_max=4,
+                retry_max=4, plant_setup={"drumDeg": 41} if _step == "LAUNCH_MODE" else {},
                 checks=[("mission DONE after the power loss", c_done), ("no dry fire", c_no_dry),
                         ("seated", c_seated), ("back to LAUNCH", c_launch), ("tow limit respected", c_tow_limit)]))
 
@@ -1309,8 +1309,10 @@ def build() -> None:
     hdrs.append(os.path.join(ROOT, "firmware", "base", "test", "sim.h"))
     if not os.path.exists(SHIM) or any(os.path.getmtime(h) > os.path.getmtime(SHIM) for h in hdrs + [src]):
         os.makedirs(os.path.dirname(SHIM), exist_ok=True)
+        tmp = SHIM + f".tmp{os.getpid()}"          # build aside, then rename: a running shim keeps its old binary
         subprocess.check_call(["g++", "-std=c++17", "-O2", "-Wno-unused-parameter", "-Wno-misleading-indentation",
-                               "-o", SHIM, src])
+                               "-o", tmp, src])
+        os.replace(tmp, SHIM)
     subprocess.check_call(["make", "-s", "-C", os.path.dirname(DART_SIM)], stdout=subprocess.DEVNULL)
 
 

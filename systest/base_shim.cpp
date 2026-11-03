@@ -259,6 +259,7 @@ static bool setKnob(const std::string& k, const char* v) {
   else if (k == "swStuckOpen") S.swStuckOpen = (uint16_t)num(v);
   else if (k == "swStuckClosed") S.swStuckClosed = (uint16_t)num(v);
   else if (k == "swChatter") S.swChatter = (uint16_t)num(v);
+  else if (k == "drumDeg") S.drumDeg = num(v);              // bench: drum turned by hand (manual lever) before the run
   else if (k == "wrapDraw") wrapDraw = num(v) != 0;
   else if (k == "hxFitted") S.hxFitted = num(v) != 0;
   else return false;

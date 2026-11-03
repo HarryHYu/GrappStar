@@ -135,7 +135,9 @@ spinning, drills finishing, `anchored`.
   stopped (anchor) or faults (release). An end-stop stall is only believed after a minimum travel time (pods 0.7 s,
   kick back 1.5 s). If the kick's housing stall is never seen, planting carries on after 6 s (`kick plant time limit`).
   A worm already at its end stop when such a step starts shows no rise; it is still stopped after 3 readings in a row
-  over the line (about 1.6 s). An auger current change of up to about 100 mA during the pause is tolerated. A retried
+  over the line (3 of the last 4 readings, about 1.6 to 2.2 s). An auger current change of up to about 100 mA during
+  the pause is tolerated. Known limit: if the pods jam in soil mid-travel and the drills' current rises during each
+  pause by more than the margin, the jam is only ended by the 6 s pods limit. A retried
   `/auto` whose kick is already down skips the planting step (event `kick already down, foot planting`).
 - One failed current read at the moment a step ends does not fault: the step ends and the next good read moves on.
 
@@ -242,8 +244,9 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 ## Flight detection (decision record)
 
 - Launch: \|a\| over 4 g continuously for 20 ms, **only while armed**. Launch time = start of those 20 ms.
-  In practice the samples over 4 g must span at least 15 ms (one 5 ms sample period of slack): pushes of 22 ms or more
-  are always seen, knocks of 10 ms or less never, 15 to 20 ms sometimes. A launch alone never starts motors.
+  In practice the samples over 4 g must span at least 15 ms (one 5 ms sample period of slack): pushes of 24 ms or more
+  are always seen (18 ms with steady 5 ms ticks; measured by the fuzz test with 4 to 7 ms tick jitter), knocks of 10 ms
+  or less never, 15 to 23 ms sometimes. A launch alone never starts motors.
 - Landing: once the dart has been in free fall (\|a\| under 0.6 g for 60 ms in total, or, for a tumbling dart that
   never reads that low, 400 ms after launch with \|a\| back under 4 g),
   an impact over 3.5 g at least 400 ms after launch (real flights last 0.6 s or more; this stops a dropped dart's bounce

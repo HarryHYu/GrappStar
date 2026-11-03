@@ -291,10 +291,10 @@ struct Kedge {
         // current changing while the worm pauses, which biases both - alone)
         bool rose = !needRise || (bothMin >= 0 && bothMa - bothMin > tu.riseFrac * (mainLim - lim(tu.freeMa[main])));
         hitsMain = (bothMa - soloMa > mainLim && rose) ? hitsMain + 1 : 0;
-        // a worm already at its stop when the step starts never shows a rise: 3 readings in a row over the line also
-        // count (an auger current change of up to about 100 mA during the pause cannot fake this)
-        hitsNoRise = bothMa - soloMa > mainLim ? hitsNoRise + 1 : 0;
-        if (hitsNoRise >= 3) hitsMain = 2;
+        // a worm already at its stop when the step starts never shows a rise: 3 of the last 4 readings over the line
+        // also count (one noisy reading does not reset it; an auger change of up to about 100 mA cannot fake this)
+        hitsNoRise = ((hitsNoRise << 1) | (bothMa - soloMa > mainLim ? 1 : 0)) & 0xF;
+        if (__builtin_popcount(hitsNoRise) >= 3) hitsMain = 2;
         if (bothMin < 0 || bothMa < bothMin) bothMin = bothMa;
       }
       hitsOther = soloMa > otherLim ? hitsOther + 1 : 0;

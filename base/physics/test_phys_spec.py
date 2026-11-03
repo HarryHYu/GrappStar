@@ -79,7 +79,8 @@ def test_committed_ballistics_not_stale(p):
     assert meta["params_source"] == p.source, "ballistics.json was built from other params: run python ballistics.py"
     doc = json.load(open(BALL))
     row = min(doc["table"], key=lambda r: abs(r["pitch_deg"] - 36.0))
-    v = launch(p, row["pitch_deg"])["v_muzzle"] * meta.get("v_scale", 1.0)
+    from launcher import effective_muzzle
+    v = effective_muzzle(p, row["pitch_deg"])["v"] * meta.get("v_scale", 1.0)
     assert row["v_muzzle"] == pytest.approx(v, rel=0.005)
     rng = simulate(p, v, row["pitch_deg"], brake_n=doc["drag_n"][1], reel_model=True)["range_m"]
     assert row["range_m"][1] == pytest.approx(rng, rel=0.01)

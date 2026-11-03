@@ -21,7 +21,7 @@ import os
 
 from common import load_params
 from flight import simulate
-from launcher import launch
+from launcher import effective_muzzle, launch, line_slack
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "out", "ballistics.json")
@@ -43,7 +43,7 @@ def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = N
     table = []
     impact_angles = []
     for th in pitches:
-        v = launch(p, th, **(launch_over or {}))["v_muzzle"] * v_scale
+        v = effective_muzzle(p, th, **(launch_over or {}))["v"] * v_scale
         rows = [simulate(p, v, th, brake_n=b, reel_model=True) for b in drag_n]
         impact_angles.append(round(rows[1]["impact_angle_deg"], 1))
         if not all(r["landed"] for r in rows):
@@ -58,7 +58,7 @@ def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = N
     if with_wind:
         for th in (10.0, 20.0, 36.0, 45.0):
             if lo <= th <= hi:
-                v = launch(p, th, **(launch_over or {}))["v_muzzle"] * v_scale
+                v = effective_muzzle(p, th, **(launch_over or {}))["v"] * v_scale
                 r = [simulate(p, v, th, brake_n=drag_n[1], reel_model=True, wind=w)["range_m"] for w in (-3.0, 0.0, 3.0)]
                 wind.append(dict(pitch_deg=th, range_headwind3=r[0], range_calm=r[1], range_tailwind3=r[2],
                                  dr_per_mps=(r[2] - r[0]) / 6.0))
@@ -66,7 +66,8 @@ def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = N
                 pivot_height_m=p.launch.get("pivot_h"), release_u_m=p.launch.get("release_u"), dart_w_m=p.launch.get("dart_w"),
                 range_origin="ground point under the rail pivot (main axis)" if p.launch.get("pivot_h") else "muzzle ground point",
                 stroke_m=launch_over.get("stroke", p.launch["stroke"]) if launch_over else p.launch["stroke"],
-                wind_sensitivity=wind, v_scale=v_scale,
+                wind_sensitivity=wind, v_scale=v_scale, line_slack=line_slack(p),
+                v_muzzle_note="v_muzzle is the speed the flight starts from: after the snatch when the line path goes slack in the stroke",
                 impact=[dict(pitch_deg=r_["pitch_deg"], impact_angle_deg_mid_drag=a_, note="target dh higher -> about dh / tan(angle) shorter")
                         for r_, a_ in zip(table, impact_angles)],
                 notes=__doc__.split("Meaning of the numbers")[1].split("python ballistics.py")[0].split(":", 1)[1].strip(),

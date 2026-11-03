@@ -323,6 +323,9 @@ class Params:
         spring_w=0.060,        # m spring line (cad-launch NOTES)
         shoe_len_cocked=0.263, # m carriage shoe engagement when cocked and at HOME (review of cad-launch geometry)
         shoe_len_home=0.111,
+        line_guide_u=0.0,      # m last line guide before the dart, rail coords (D14: pulley on the pivot axis)
+        line_guide_w=0.0,
+        tail_home_u=0.0756,    # m dart tail (line attachment) at HOME along the rail (cad-launch NOTES)
     ))
     # flight
     flight: dict = field(default_factory=lambda: dict(

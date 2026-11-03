@@ -229,6 +229,41 @@ def launch(p: Params | None = None, pitch_deg: float | None = None, model: str =
     return res
 
 
+def line_slack(p: Params, n: int = 200) -> dict:
+    """Slack the line path makes during the stroke: path length from the last guide to the dart tail as the tail
+    moves from cocked to HOME. Where the path shortens the line goes slack (the take-up bus is far too slow to
+    follow in ~50 ms). Slack at release = longest path so far - path at release."""
+    L = p.launch
+    gu, gw = L.get("line_guide_u", 0.0), L.get("line_guide_w", 0.0)
+    w = L.get("dart_w", 0.085)
+    u1 = L.get("tail_home_u", 0.0756)
+    u0 = u1 - L["stroke"]
+    longest = 0.0
+    lens = []
+    for i in range(n + 1):
+        u = u0 + (u1 - u0) * i / n
+        d = math.hypot(u - gu, w - gw)
+        lens.append(d)
+        longest = max(longest, d)
+    slack = longest - lens[-1]
+    peak = max(max(lens[:i + 1]) - lens[i] for i in range(len(lens)))
+    return dict(slack_at_release_m=slack, slack_peak_m=peak, path_cocked_m=lens[0], path_home_m=lens[-1],
+                path_min_m=min(lens), taut=slack < 0.005)
+
+
+def effective_muzzle(p: Params, pitch_deg: float, **over) -> dict:
+    """Muzzle speed the flight model should start from. Taut line: the reel spins up in the stroke (launch()).
+    Slack line: no line load in the stroke, then a plastic snatch with the reel's effective mass after the muzzle."""
+    ls = line_slack(p)
+    if ls["taut"]:
+        r = launch(p, pitch_deg, **over)
+        return dict(v=r["v_muzzle"], v_muzzle=r["v_muzzle"], snatch=False, slack_m=ls["slack_at_release_m"])
+    r = launch(p, pitch_deg, line_load=(0.0, 0.0), **over)
+    _, m_eff = reel_line_load(p)
+    v1 = r["v_muzzle"] * p.dart.mass / (p.dart.mass + m_eff)
+    return dict(v=v1, v_muzzle=r["v_muzzle"], snatch=True, slack_m=ls["slack_at_release_m"])
+
+
 def ratio_sweep(p: Params, stroke: float, ratios=(0.5, 0.75, 1.0, 1.5, 2.0, 3.0), pitch=35.0, cap_safe=True):
     """For a fixed carriage stroke, what pulley ratio gives the fastest shot without exceeding the safe extension?"""
     rows = []

@@ -52,10 +52,15 @@ def collect(p=None, fast=False):
         ("Carriage KE at stop, pad peak", f"{L['ke_carriage_j']:.2f} J, {L['f_stop_peak_n']:.0f} N ({p.launch['stop_pad_travel'] * 1000:.0f} mm pad)"),
         ("Spring KE at stop, coil clash", f"{L['ke_spring_j']:.2f} J, {L['coil_clash_v']:.1f} m/s"),
     ]))
-    v = L["v_muzzle"]
+    from launcher import effective_muzzle, line_slack
+    em = effective_muzzle(p, pitch_best)
+    ls = line_slack(p)
+    v = em["v"]
     fl = [simulate(p, v, pitch_best, brake_n=b, reel_model=True) for b in (0.5, 0.75, 1.0)]
     nt = simulate(p, v, pitch_best, tether=False)
-    rows = [("Range at 0.5 / 0.75 / 1.0 N brake", " / ".join(f"{r['range_m']:.2f}" for r in fl) + f" m (pitch {pitch_best:.0f})"),
+    rows = [("Line path at the shot", (f"slack {ls['slack_at_release_m'] * 1000:.0f} mm: snatch, flight starts at {v:.2f} m/s"
+                                       if em["snatch"] else "taut (path only lengthens)")),
+            ("Range at 0.5 / 0.75 / 1.0 N brake", " / ".join(f"{r['range_m']:.2f}" for r in fl) + f" m (pitch {pitch_best:.0f})"),
             ("Same shot, no tether", f"{nt['range_m']:.2f} m"),
             ("Flight time, apex (0.75 N)", f"{fl[1]['t_flight_s']:.2f} s, {fl[1]['apex_m']:.2f} m"),
             ("Impact speed, angle (0.75 N)", f"{fl[1]['v_impact']:.1f} m/s, {fl[1]['impact_angle_deg']:.0f} deg down")]

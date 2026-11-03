@@ -46,4 +46,35 @@ Status: DRAFT, updated through the day; final version at 18:30 Sydney.
 
 ## 4. Open items
 
+- cad-frame (not mine to change):
+  - frame_motor_adapter cuts through my sprag hub, sprag and capstan drum. Needs a notch r 30.5 about world
+    (x -18.66, z -69.64) for y 0..24, or its lower edge raised to z -38.
+  - frame_guard_front crosses my pulley 2 post arm. Needs a slot at world x 90..106, y 104..120, z -70..-30.
+- D46 (coordinator): the cup ring stays a plain eye; a steel ring liner is left open for Harry. A roller in the ring
+  would rebuild Harry's v7 cup, so I did not do it.
+- D43 storage guide eye: kept as a plain eye. It carries only the tail, at most 5 N (FIRM). The pack position sweeps
+  22 mm across a 45 mm run to the guide, which would throw a line off a pulley. Plain eye with coned mouths.
+- Mid-wrap the dart line reaches pulley 1 steeply while the ring is turned away from home. It may brush the pulley rim
+  and the lower cheek edge; this is slack line (D22). Under tow the cup is at home and the line is in the groove.
+- Printing (needs supports or care, noted rather than redesigned):
+  - sprag hub seat lip and the ring under it (paint supports inside the seat);
+  - the pulley 1 and pulley 2 post cheeks and the pulley 2 arm (supports);
+  - SW bracket flange (supports, or print on the flange's wall face).
+- 693 inner-race bosses: 0.7 mm wall round the M3 hole; print slowly, or drop them and use two thin shims per pulley.
+- Past the LAUNCH stop (drum -4 .. -2) the bar nose already sees cad-drum's gap blend toward FIRM (2.5 mm at -4).
+  Harmless unless the drum parks on its stop.
+- Rocker creep: 17 MPa held through NEUTRAL, WRAPPED and REEL. Recheck FIRM with the luggage scale after the first
+  week (section 5).
+
 ## 5. What Harry must measure
+
+1. Capstan sprag CSK20PP keyway depths (inner and outer) against the seat and key rib dimensions in reel_NOTES.md.
+2. mu of the Dyneema on the printed capstan (7 wraps hold 407 N at mu 0.10 with the 5 N tail). Hang a weight over a
+   printed drum offcut: the wrap count is set from it.
+3. LIGHT drag: drum at LAUNCH, reel full. A 50 g weight on the line end must just pull line off slowly (0.5 N). Set
+   it with the two trim screws: park the swing arm, line up the reel gear's holes, use a 2.5 mm hex key from behind.
+4. FIRM drag: drum in REEL. The luggage scale on the line end must read 5.0 N at slip. Set it with the FIRM screw in
+   the rocker leg (one turn is about 1 N), then lock its nut. This also measures the real E of Harry's PPA-CF: the
+   screw range covers 4 to 9 GPa.
+5. Bar travel: drum at LAUNCH, the nose must sit about 0.2 mm off the cam (feeler). At REEL the crank turns about 11 deg.
+6. Storage pack: after winding 20 m, the pack top must stay at least 4 mm under the d 80 flange rim.

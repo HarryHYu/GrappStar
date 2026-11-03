@@ -6,7 +6,7 @@ on the Jetson, on the Jetson in `~/GrappStar/jetson`: `python3 -m grappstar base
 it first (`sudo systemctl stop grappstar`): it holds the serial port. Never move the USB plug with the battery in.
 
 Do it after the base is assembled and wired, springs off, before test stage 4. The bench test (section 11.1) comes
-first, on the bench (order of work step 7). Part (f), the cock geometry check,
+first, on the bench (order of work step 7). Part (g), the cock geometry check,
 needs the springs: do it at test stage 5. The values are stored on the ESP32.
 
 @include firmware/base/CALIBRATION.md

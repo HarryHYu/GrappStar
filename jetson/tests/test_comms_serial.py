@@ -23,5 +23,5 @@ def test_serial_open_sets_lines_low_before_open(monkeypatch):
     t.open()
     names = [e[0] for e in log]
     assert names.index("rts") < names.index("open") and names.index("dtr") < names.index("open")
-    assert names.index("rts") < names.index("dtr")
-    assert all(e[1] is False for e in log if e[0] in ("rts", "dtr"))
+    vals = {e[0]: e[1] for e in log if e[0] in ("rts", "dtr")}
+    assert vals == {"dtr": True, "rts": False}       # never DTR low with RTS high (the reset state)

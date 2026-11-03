@@ -1,6 +1,7 @@
 """Fit coupon: small PLA test tiles Harry prints FIRST to tune cad/lib/fits.py before the real parts.
 
-python -m tools.coupon OUT
+../kedge/.venv/bin/python -m tools.coupon OUT      (from base/; ../kedge/.venv/bin/python -m tools.risk_coupon
+                                                    writes this fit coupon to base/pack/fit_coupon with the risk coupons)
 
 Writes
   OUT/coupon/<part>.stl          one per coupon part, in print orientation, min corner at (0, 0, 0)
@@ -308,7 +309,9 @@ def coupon_md(parts) -> str:
          "supports. Let the parts cool fully (10 minutes) before testing. The first character of every label is the",
          "tile letter below; the rest is the value that tile was made with.", "",
          "How to change a fit: open `base/cad/lib/fits.py`, change the one number named in the step, save, then rerun",
-         "`python -m tools.coupon out` (from `base/`) and the audit of your subsystem. Change one number at a time.",
+         "`../kedge/.venv/bin/python -m tools.risk_coupon` from `base/` (on the Mac after `bash kedge/setup_mac.sh`;",
+         "it rewrites this fit coupon in base/pack/fit_coupon and the risk coupons in base/pack/coupons), then the",
+         "audit of your subsystem. Change one number at a time.",
          "If none of the variants is right, pick the closest one, move the number one more step in that direction",
          "and print only that tile again.", "",
          "## Parts", "", "| part | qty | print bbox mm | what |", "|---|---|---|---|"]

@@ -124,6 +124,9 @@ class Assembly:
     def values(self, S: dict) -> dict[str, float]:
         """Joint values for state S: kin() of every subsystem; joints kin does not give follow Joint.gear (a missing
         master counts as its own value, recursively, else 0); everything else 0."""
+        if "_joints" in S:                  # explicit joint values (audit sub-states interpolate joints directly)
+            v = {j: float(S["_joints"].get(j, 0.0)) for j in self.joints}
+            return v
         v, src = {}, {}
         for sub, mod in self.modules.items():
             for k, x in (mod.kin(self.P, S) or {}).items():

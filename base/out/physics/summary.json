@@ -1,5 +1,5 @@
 {
- "source": "base/spec/params.py v1.2.5",
+ "source": "base/spec/params.py v1.2.8",
  "sections": [
   [
    "Spring (each, A228, SF 1.2 on Shigley static limits)",
@@ -51,23 +51,23 @@
     ],
     [
      "Muzzle speed",
-     "7.04 m/s"
+     "6.94 m/s"
     ],
     [
      "Peak acceleration, stroke time",
-     "19 g, 57 ms"
+     "19 g, 58 ms"
     ],
     [
      "Efficiency (dart KE / stored)",
-     "57 %"
+     "56 %"
     ],
     [
      "Carriage KE at stop, pad peak",
-     "1.49 J, 245 N (19 mm pad)"
+     "1.69 J, 265 N (19 mm pad)"
     ],
     [
      "Spring KE at stop, coil clash",
-     "0.84 J, 8.7 m/s"
+     "0.83 J, 8.7 m/s"
     ]
    ]
   ],
@@ -76,27 +76,27 @@
    [
     [
      "Line path at the shot",
-     "slack 72 mm: snatch, flight starts at 6.50 m/s"
+     "taut (path only lengthens)"
     ],
     [
      "Range at 0.5 / 0.75 / 1.0 N brake",
-     "3.70 / 3.33 / 3.01 m (pitch 34)"
+     "4.28 / 3.85 / 3.47 m (pitch 34)"
     ],
     [
      "Same shot, no tether",
-     "5.92 m"
+     "5.13 m"
     ],
     [
      "Flight time, apex (0.75 N)",
-     "0.75 s, 1.00 m"
+     "0.81 s, 1.12 m"
     ],
     [
      "Impact speed, angle (0.75 N)",
-     "5.4 m/s, 55 deg down"
+     "5.8 m/s, 55 deg down"
     ],
     [
      "Ballistics table",
-     "6 to 47 deg, best 33.5 deg: 3.33 m"
+     "6 to 47 deg, best 33.5 deg: 3.85 m"
     ]
    ]
   ],
@@ -113,15 +113,15 @@
     ],
     [
      "Line pull in the stroke (spin-up)",
-     "4.61 N"
+     "5.18 N"
     ],
     [
      "Reel rpm max",
-     "2019 rpm"
+     "2158 rpm"
     ],
     [
      "Overrun after landing",
-     "0.53 m in 0.26 s"
+     "0.58 m in 0.27 s"
     ]
    ]
   ],
@@ -138,19 +138,19 @@
     ],
     [
      "Tow at limit: torque, speed, current",
-     "3.23 N m, 0.143 m/s, 5.05 A"
+     "4.17 N m, 0.128 m/s, 6.09 A"
     ],
     [
      "Line pull at limiter (5 N m) (12.6 V)",
-     "84 N (break 667 N)"
+     "61 N (break 667 N)"
     ],
     [
      "Line pull, motor stall (no limiter, 12.6 V)",
-     "254 N"
+     "174 N"
     ],
     [
      "Tow sensing: line N per wiper amp above free",
-     "17.0 N/A (line = 17.0 x (I - I_free) - 10.4 N)"
+     "11.3 N/A (line = 11.3 x (I - I_free) - 2.0 N)"
     ]
    ]
   ],
@@ -159,7 +159,7 @@
    [
     [
      "aim: peak torque, current, time",
-     "0.32 N m, 1.9 A, 7 s"
+     "0.33 N m, 1.9 A, 7 s"
     ],
     [
      "cock: peak torque, current, time",
@@ -167,11 +167,11 @@
     ],
     [
      "reel: peak torque, current, time",
-     "0.82 N m, 2.4 A, 110 s"
+     "0.43 N m, 2.0 A, 107 s"
     ],
     [
      "tow: peak torque, current, time",
-     "3.23 N m, 5.1 A, 35 s"
+     "4.17 N m, 6.1 A, 39 s"
     ],
     [
      "Wiper at limiter (5 N m), 12.6 V (with sag)",

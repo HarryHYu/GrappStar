@@ -8,9 +8,13 @@ simple point-mass model: NOT the real launcher, marked "placeholder": true).
 
 Rules:
 - Interpolate linearly in pitch and in drag (drag outside the table is clamped).
-- Range rises with pitch up to a peak (about 36 deg) and then falls. When two pitches reach the range, prefer the
-  higher one (coordinator decision D29); lob=False gives the flatter, faster low branch.
-- range_m is measured from the ground point under the rail pivot (D29): callers add the camera's offset.
+- range_m is measured from the ground point under the rail pivot (D29). Callers that measure the target from the
+  rover camera add the camera-to-pivot offset first (campose.pivot_target).
+- The whole pitch window pitch_min..pitch_max is used (6..47 deg on the real launcher, D29).
+- Range rises with pitch up to a peak (about 38 deg) and then falls, so a long target can have two solutions.
+  D29 and params AIM.solver: prefer the HIGHER pitch then (steeper arrival, the nose digs in). low=True picks the
+  lower one (flatter, shorter flight) when the operator asks for it.
+- Default drag is the LIGHT launch clutch, 0.5 N at the line with the reel full (D16, D24, params REEL.clutch).
 - Line payout = path length of the flight approximated by the straight distance plus sag, times a margin.
 """
 from __future__ import annotations
@@ -24,6 +28,7 @@ from typing import List, Optional
 PREFER_HIGH = True   # D29 (3 Nov): prefer the higher pitch when two solutions exist
 HERE = os.path.dirname(os.path.abspath(__file__))
 PLACEHOLDER = os.path.join(HERE, "data", "ballistics_placeholder.json")
+LIGHT_DRAG_N = 0.5   # launch clutch LIGHT (D24), the C3 column the real shots use
 REPO_TABLE = os.path.normpath(os.path.join(HERE, "..", "..", "base", "out", "ballistics.json"))
 
 
@@ -85,7 +90,7 @@ class Ballistics:
                 return [_lerp(r[key][j], r[key][j + 1], f) for r in self.rows]
         return [r[key][0] for r in self.rows]
 
-    def at_pitch(self, pitch_deg: float, drag_n: float = 0.75) -> dict:
+    def at_pitch(self, pitch_deg: float, drag_n: float = LIGHT_DRAG_N) -> dict:
         """range, flight time and apex for one pitch."""
         ps = [r["pitch_deg"] for r in self.rows]
         p = min(max(pitch_deg, ps[0]), ps[-1])
@@ -103,13 +108,16 @@ class Ballistics:
                 out["v_muzzle"] = _lerp(vs[i], vs[i + 1], (p - ps[i]) / (ps[i + 1] - ps[i]))
         return out
 
-    def solve(self, range_m: float, drag_n: float = 0.75, lob: Optional[bool] = None,
-              line_margin: float = 1.10) -> Solution:
-        """Pitch for a range. lob=None uses PREFER_HIGH (coordinator D29: prefer the higher pitch when two solutions
-        exist; the steeper shot lands nose-down for the augers and clears low obstacles). Ranges are from the ground
-        point under the rail pivot (D29)."""
-        if lob is None:
-            lob = PREFER_HIGH
+    def solve(self, range_m: float, drag_n: float = LIGHT_DRAG_N, lob: Optional[bool] = None,
+              line_margin: float = 1.10, low: bool = False) -> Solution:
+        """Pitch for a target range_m (from the ground under the rail pivot).
+
+        Two solutions: the higher pitch (PREFER_HIGH, D29) unless low=True. lob is the older flag: lob=None keeps
+        the default, lob=True asks for the high branch, lob=False for the low branch."""
+        if lob is not None:
+            low = not lob
+        elif not PREFER_HIGH:
+            low = True
         ps = [r["pitch_deg"] for r in self.rows]
         rng = self._col("range_m", drag_n)
         tf = self._col("t_flight_s", drag_n)
@@ -135,10 +143,20 @@ class Ballistics:
             return Solution(False, None, None, None, None, None,
                             note=f"{why}: reachable {rmin:.1f} to {rmax:.1f} m at drag {drag_n:g} N", **base)
         cands.sort(key=lambda c: c[0])
-        p, t, apex, v = cands[-1] if lob else cands[0]
+        # a range exactly on a table row matches both neighbouring segments: one solution, not two
+        uniq = [cands[0]]
+        for c in cands[1:]:
+            if abs(c[0] - uniq[-1][0]) > 1e-6:
+                uniq.append(c)
+        cands = uniq
+        p, t, apex, v = cands[0] if low else cands[-1]
         sag = 8.0 * (apex * 0.25) ** 2 / (3.0 * max(range_m, 0.1))   # small extra for the line's arc
         line = (math.hypot(range_m, 0.0) + sag) * line_margin
-        note = ("high branch" if lob else "low branch") if len(cands) > 1 else ""
+        note = ""
+        if len(cands) > 1:
+            other = cands[-1] if low else cands[0]
+            note = ("low branch on request (high branch %.1f deg)" if low else
+                    "high branch (D29); low branch would be %.1f deg") % other[0]
         if self.placeholder:
             note = (note + "; " if note else "") + "PLACEHOLDER table: not the real launcher"
         return Solution(True, round(p, 2), round(t, 3), round(line, 2), round(apex, 2), round(v, 2), note=note, **base)

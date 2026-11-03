@@ -12,6 +12,7 @@ The section texts live in docs/build/src/NN_*.md. Lines in them that start with 
   @includeglob <glob> [first]       insert every file (or the first) matching the glob
   @imageglob <glob> <caption>       insert every picture matching the glob
   @exists <repo path>               a 'present' note, or the placeholder
+  @ballistics                       range numbers from base/out/ballistics.json
   @csv <repo path>                  insert a CSV file as a table
   @wiremap                          dart run sheet wire numbers -> new cut list numbers
   @printlist base | dart            print tables from base/pack and kedge/pack_v30
@@ -233,6 +234,23 @@ def d_exists(args, level):
     return placeholder(path, who_writes(path))
 
 
+def d_ballistics(args, level):
+    """One line of range numbers from base/out/ballistics.json (contract C3), so the guide never goes stale."""
+    p = os.path.join(ROOT, "base/out/ballistics.json")
+    if not os.path.exists(p):
+        return placeholder("base/out/ballistics.json", "physics")
+    d = json.load(open(p))
+    rows = [(r["pitch_deg"], r["range_m"][0], r.get("v_muzzle")) for r in d.get("table", [])]
+    if not rows:
+        return "(ballistics table empty)"
+    lo, hi = min(rows, key=lambda r: r[1]), max(rows, key=lambda r: r[1])
+    brake = d.get("drag_n", [0.5])[0]
+    v = f", leaving the rail at about {hi[2]:.1f} m/s" if hi[2] else ""
+    return (f"Range today (from `base/out/ballistics.json`, {brake} N payout brake, measured from the ground point under "
+            f"the rail pivot): best about {hi[1]:.1f} m at {hi[0]:g} degrees, shortest about {lo[1]:.1f} m at {lo[0]:g} "
+            f"degrees{v}. These numbers change after the spring and wiper measurements; rebuild the guide.")
+
+
 def d_csv(args, level):
     path = args[0]
     full = os.path.join(ROOT, path)
@@ -298,7 +316,7 @@ def d_date(args, level):
     return f"\nBuilt {now.strftime('%Y-%m-%d %H:%M')} Sydney time from commit `{commit}`.\n"
 
 
-DIRECTIVES = {"include": d_include, "exists": d_exists, "includeglob": d_includeglob, "imageglob": d_imageglob, "csv": d_csv, "wiremap": d_wiremap, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
+DIRECTIVES = {"include": d_include, "ballistics": d_ballistics, "exists": d_exists, "includeglob": d_includeglob, "imageglob": d_imageglob, "csv": d_csv, "wiremap": d_wiremap, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
               "status": d_status, "date": d_date}
 
 
@@ -702,6 +720,7 @@ line with, a towing line.
 | `python3 -m grappstar serve` | operator page at http://<jetson>:8080 (`--sim` for no hardware) |
 | `python3 -m grappstar base ping` / `status` / `monitor` | talk to the base; `monitor` shows live telemetry (Ctrl+C stops) |
 | `python3 -m grappstar base cmd '<json>'` | send one base command (below) |
+| `python3 -m grappstar base mode LAUNCH` / `base aim 30` / `base fire` | shift, aim, fire (fire asks you to type FIRE) |
 | `python3 -m grappstar dart status` | one dart status reading |
 | `python3 -m grappstar dart key 2 --hold 1.0` | hold a dart key for 1 s (quote `'!'`, `'#'`, `'$'`) |
 | `python3 -m grappstar dart auto` / `release` / `flightlog` | anchor, release, download the flight log |
@@ -717,8 +736,8 @@ line with, a towing line.
 | `{"cmd":"clear"}` | clear a fault once its cause is gone |
 | `{"cmd":"mode","to":"LAUNCH"}` | drum to LAUNCH, NEUTRAL or REEL |
 | `{"cmd":"aim","deg":30}` | rail to 30 degrees (only with the carriage home) |
-| `{"cmd":"arm"}` then `{"cmd":"fire","token":123456}` | fire within 3 s of arm. Tether on, area clear |
-| `{"cmd":"cal","what":"decock"}` | unload a cocked carriage slowly |
+| `python3 -m grappstar base fire` (Jetson CLI) | arm and fire in one go after you type FIRE. Tether on, area clear |
+| `{"cmd":"decock"}` | unload a cocked carriage slowly (`"force":true` if SW_HOME is broken) |
 | `{"cmd":"wrap"}` | lay 7 wraps, right after landing (from LAUNCH or NEUTRAL; parks at WRAPPED) |
 | `{"cmd":"tidy"}` | take up the slack after the dart anchors |
 | `{"cmd":"unwrap"}` | remove the wraps (after reeling in to about 1.5 m) |

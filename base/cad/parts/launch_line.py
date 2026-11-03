@@ -36,11 +36,21 @@ def geom(n):
     u_t = n["u_track0"] - 22.6                        # top / bottom pulley u (behind the cocked SW_SEATED body)
     top = (u_t, 0.0, w_line - R_PATH)
     bot = (u_t, 0.0, 30.0)
-    piv = (0.0, -21.0, -44.0)            # below the sleeve flange (r 32) and dog ring (r 31)
+    piv = (0.0, -21.0, -44.0)            # clear of the sleeve flange (r 32) and cad-drum's fork rail (r >= 56.6); the
+                                         # reel feed arrives at its bottom (w -50.5) and wraps round its rear
     return dict(w_line=w_line, top=top, bot=bot, piv=piv,
                 p_top_front=(u_t, 0.0, w_line), p_top_rear=(u_t - R_PATH, 0.0, top[2]),
                 p_bot_rear=(u_t - R_PATH, 0.0, bot[2]), p_bot_low=(u_t, 0.0, bot[2] - R_PATH),
-                p_piv_top=(piv[0], piv[1], piv[2] + R_PATH))
+                p_piv_top=(piv[0], piv[1], piv[2] + R_PATH), p_piv_tan=_piv_tangent(piv, bot))
+
+
+def _piv_tangent(piv, bot):
+    """Point where the line leaves the pivot pulley (bottom-rear) towards the bottom pulley's lowest path point."""
+    qx, qz = bot[0], bot[2] - R_PATH
+    dx, dz = qx - piv[0], qz - piv[2]
+    d = math.hypot(dx, dz)
+    a = math.atan2(dz, dx) + math.acos(min(1.0, R_PATH / d))
+    return (piv[0] + R_PATH * math.cos(a), piv[1], piv[2] + R_PATH * math.sin(a))
 
 
 def rail_add(n):
@@ -136,8 +146,8 @@ def parts_line(n, bed):
                     "bought", joint="launch_carriage", color="#f0f0f0", notes="Tether through the pusher hole to the tail"))
     out.append(Part("launch_line_b", seg(g["p_top_rear"], g["p_bot_rear"]), "bought", joint="launch_rail", color="#f0f0f0",
                     notes="Tether down the back of the fork"))
-    out.append(Part("launch_line_c", seg(g["p_bot_low"], g["p_piv_top"]), "bought", joint="launch_rail", color="#f0f0f0",
-                    notes="Tether under the rail to the pivot pulley"))
+    out.append(Part("launch_line_c", seg(g["p_bot_low"], g["p_piv_tan"]), "bought", joint="launch_rail", color="#f0f0f0",
+                    notes="Tether under the rail to the pivot pulley (wraps under it to cad-reel's feed)"))
     return out
 
 

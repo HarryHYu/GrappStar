@@ -81,7 +81,7 @@ struct Sim {
     setb(gb::SW_DRUM_A, code & 1); setb(gb::SW_DRUM_B, code & 2); setb(gb::SW_DRUM_C, code & 4);
     setb(gb::SW_DOG_L, inLaunch()); setb(gb::SW_DOG_R, inReel());
     double wf = wrapsExact() - floor(wrapsExact());
-    setb(gb::SW_ARM, wf < 0.03 || wf > 0.97);
+    setb(gb::SW_ARM, c.armHomeOpen ? !(wf < 0.014 || wf > 0.986) : (wf < 0.03 || wf > 0.97));   // cad-reel: opens +-5 deg at home
     { double m = fmod(wiperDeg, 60.0); if (m < 0) m += 60; setb(gb::SW_INDEX, m < 10); }   // 6-bump index cam
     setb(gb::SW_N20, !handLatched);
     double g = fmod(cockPh, c.cycleDeg); if (g < 0) g += c.cycleDeg;

@@ -452,11 +452,12 @@ class Rig:
         while app.mission and app.mission.running() and time.time() < deadline:
             time.sleep(0.2)
         hung = bool(app.mission and app.mission.running())
-        if not hung and self.sc.after:
+        after = self.sc.after or (decock_and_restart if getattr(self, "wants_decock_restart", False) else None)
+        if not hung and after:
             self.first_mission = {"state": app.mission.state, "error": app.mission.error,
                                   "steps": [h["state"] for h in app.mission.history]}
             self.note("info", msg=f"first mission ended {self.first_mission['state']}: {self.first_mission['error']}")
-            self.sc.after(self)
+            after(self)
             deadline = time.time() + self.sc.timeout_s
             while app.mission and app.mission.running() and time.time() < deadline:
                 time.sleep(0.2)
@@ -1075,7 +1076,7 @@ def decock_and_restart(rig):
     r = app.action("decock")
     rig.note("info", msg=f"operator: decock -> {r}")
     t0 = time.time()
-    while time.time() - t0 < 90 and not any(e.get("evt") in ("RESET", "FAULT", "ABORTED") for e in rig.events[mark:]):
+    while time.time() - t0 < 30 and not any(e.get("evt") in ("RESET", "FAULT", "ABORTED") for e in rig.events[mark:]):
         time.sleep(0.2)
     rig.note("info", msg=f"after decock: {[e.get('evt') for e in rig.events[mark:]]}, tel {app.base.tel}")
     rig.sc._retries = 0
@@ -1204,6 +1205,9 @@ def decock_then_retry(rig, text, choices):
     """Operator presses Decock on the page (carriage drawn with the angle unknown), waits for RESET, then Retry."""
     r = rig.app.action("decock")
     rig.note("info", msg=f"operator: decock -> {r}")
+    if not r.get("ok"):          # the page refuses Decock while the mission runs (F7): Abort, then Decock, then Start
+        rig.wants_decock_restart = True
+        return "Abort"
     t0 = time.time()
     while time.time() - t0 < 60 and "RESET" not in [e.get("evt") for e in rig.events[-5:]]:
         time.sleep(0.2)
@@ -1229,7 +1233,7 @@ POWER_STATES = [("LAUNCH_MODE", "MODE"), ("AIM", "AIM"), ("COCK", "COCK"), ("BAS
 for _step, _pst in POWER_STATES:
     sc(Scenario(f"power_{_step.lower()}", f"power loss in {_step} (base state {_pst}): kill, restart, mission recovers",
                 triggers=[(f"kill base in {_step}", plant_state(_pst, step=_step, delay=1.0), lambda r: r.restart_base(2.0))],
-                policy={"LOADED_UNKNOWN": decock_then_retry, "phase UNKNOWN": decock_then_retry, "Decock": decock_then_retry},
+                policy={"LOADED_UNKNOWN": decock_then_retry, "PHASE_UNKNOWN": decock_then_retry, "phase UNKNOWN": decock_then_retry, "Decock": decock_then_retry},
                 retry_max=4, plant_setup={"drumDeg": 41} if _step == "LAUNCH_MODE" else {},
                 checks=[("mission DONE after the power loss", c_done), ("no dry fire", c_no_dry),
                         ("seated", c_seated), ("back to LAUNCH", c_launch), ("tow limit respected", c_tow_limit)]))

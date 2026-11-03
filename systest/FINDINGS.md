@@ -234,3 +234,18 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
 - Consequence: every power cycle silently changes the tow limit by 10 N (F14) and switches the host watchdog off.
 - Fix: add both to `Tun` (bump `ver` to 2 and accept a v1 record with defaults), add a host test that sets every key,
   power cycles and reads them back.
+
+- F15 also for a cut during AIM (scenario `power_aim`, batch 2): aim runs the wiper BACKWARD with the carriage home
+  (sprag #1 freewheels, the cock train cannot move), yet after the restart `BOOT "phase":"UNKNOWN"` and every `aim`
+  is refused `PHASE_UNKNOWN`. PROTOCOL.md section 7 lists only "cocking, firing or resetting" as making the phase
+  UNKNOWN. A backward run should keep the shot phase (REST), and only forget the aim.
+
+## F17 (fw-base) `decock` with the carriage home and the phase UNKNOWN answers ok but does nothing and sends no RESET
+
+- Scenario `power_aim` follow-up: phase UNKNOWN, `sw.H` closed. PROTOCOL.md section 5: "`RESET` event with
+  `how:"decock"` (immediately if the carriage is already home)". Firmware `base_logic.h:886`:
+  `if (phase == PH_UNKNOWN && !(phaseHint ...)) return nullptr;` replies `ok:true`, starts nothing, emits no event
+  and leaves the phase UNKNOWN. A host that waits for RESET (the Jetson's Decock button, the D35 recovery "decock,
+  wait RESET, then aim") hangs until its own timeout, and `aim` is still refused PHASE_UNKNOWN afterwards.
+- Suggest: with the carriage home and no evidence of a drawn spring, `decock` sets the phase REST and sends
+  `RESET {"how":"decock"}` (or refuses with a code that says "use cock to re-zero"), and PROTOCOL.md says which.

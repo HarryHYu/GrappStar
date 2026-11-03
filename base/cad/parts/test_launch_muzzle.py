@@ -87,6 +87,22 @@ def test_roller_parts_clear_of_fork(add):
     assert _ov(rp["launch_muzzle_roller"], add) < TOL
     assert _ov(rp["launch_muzzle_roller_brg"], add) < TOL
     assert _ov(rp["launch_muzzle_roller_axle"], add) < TOL
+    for side in "lr":
+        assert _ov(rp[f"launch_muzzle_washer_{side}"], add) < TOL
+        assert _ov(rp[f"launch_muzzle_washer_{side}"], rp["launch_muzzle_roller"]) < TOL
+        assert _ov(rp[f"launch_muzzle_washer_{side}"], rp["launch_muzzle_roller_brg"]) < TOL
+
+
+def test_roller_drops_into_fork(add):
+    """Roller with bearing and both washers moves straight down into place from above the fork (no printed boss in
+    its way), and the M3 x 16 reaches through the nyloc nut (head at |y| 5.5, nut 4 thick)."""
+    rp = _roller_parts()
+    unit = rp["launch_muzzle_roller"] + rp["launch_muzzle_roller_brg"] + rp["launch_muzzle_washer_l"] + \
+        rp["launch_muzzle_washer_r"]
+    for dw in np.arange(0.0, 30.0, 1.0):
+        assert _ov(unit.translate((0, 0, dw)), add) < TOL, dw
+    lo, hi = prim.bbox(rp["launch_muzzle_roller_axle"])
+    assert hi[1] >= MZ.Y_CHEEK1 + 4.0 + 0.5 and hi[1] <= MZ.Y_CHEEK1 + 4.0 + 2.5
 
 
 def test_line_clear_over_carriage(carriage):
@@ -134,7 +150,7 @@ def test_roller_clear_of_big_gear_at_full_cock():
 
 # ------------------------------------------------------------------------------------------------ guards
 def test_guard_parts_print_and_bodies(guards):
-    assert len(guards) == 6
+    assert len(guards) == 8
     for p in guards:
         assert p.joint == "launch_rail"
         assert prim.shells(p.solid) == 1, p.name
@@ -144,39 +160,79 @@ def test_guard_parts_print_and_bodies(guards):
         assert max(d[0], d[1]) <= 250.0 + 1e-6 and min(d[0], d[1]) <= 256.0 and d[2] <= 260.0, p.name
 
 
+def _side(guards, side):
+    return prim.union([p.solid for p in guards if p.name.startswith(f"launch_guard_{side}_")])
+
+
 def test_guard_covers_springs(guards):
-    """The plates cover the side of both spring pairs (w 52..68) from u -170 to 264 except where the stop frame front
-    legs (u 240.2..248.2) close the side; inner face outside the D5 spring (|y| 64)."""
+    """The side of both spring pairs (w 52..68) is closed from u -178 to 264 by the plates or the stop frame
+    (rear leg, front legs); the rear end wall closes u -180.9; the top cover spans |y| 42..66 over segments a and c
+    (rest of the top: stop springs); nothing inside |y| 66 between the brackets and the lips / cover."""
     for sg, side in ((1, "l"), (-1, "r")):
-        g = prim.union([p.solid for p in guards if p.name.startswith(f"launch_guard_{side}_")])
-        fr = ST.frame_solid(N, side)
-        cover = g + fr
-        for u in np.arange(-170.0, 264.0, 4.0):
-            probe = prim.box(u, u + 1.0, *sorted((sg * 65.0, sg * 69.0)), 52.0, 68.0)
-            assert _ov(probe, cover) > 0.9 * 1.0 * 16.0 * 1.0, (side, u)
-        inner = prim.box(-200, 300, *sorted((sg * 29.0, sg * 65.99)), 49.5, 66.9)      # below the top lips
-        lo, hi = prim.bbox(g)
-        assert min(abs(lo[1]), abs(hi[1])) >= 28.0 - 1e-6
-        # nothing inside |y| 66 between the brackets / bosses and the top lips: the springs have the space
+        g = _side(guards, side)
+        cover = g + ST.frame_solid(N, side)
+        for u in np.arange(-178.0, 264.0, 2.0):
+            probe = prim.box(u, u + 1.0, *sorted((sg * 65.0, sg * 81.0)), 52.0, 68.0)
+            assert _ov(probe, cover) > 0.5 * 2.0 * 16.0, (side, u)          # gaps under 1 mm only
+        back = prim.box(GD.U_A[0], GD.U_A[0] + 2.0, *sorted((sg * 29.0, sg * 65.0)), 40.0, 85.0)
+        assert _ov(back, g) > 0.95 * back.volume()
+        for u0, u1 in ((GD.U_A[0], GD.U_A[1]), (GD.U_C[0], GD.U_C[1])):
+            top = prim.box(u0, u1, *sorted((sg * 42.0, sg * 66.0)), 83.5, 85.5)
+            assert _ov(top, g) > 0.95 * top.volume()
+        inner = prim.box(-178.8, 300, *sorted((sg * 29.0, sg * 65.99)), 49.5, 66.9)
         assert _ov(g, inner) < TOL
 
 
-def test_guard_clear_of_rail_stop_and_arms(guards, rail):
+def test_guard_clear_of_rail_stop_arms_dart(guards, rail):
     stops = prim.union([ST.frame_solid(N, s) + ST.spring_solid(N, s) for s in ("l", "r")])
     if hasattr(LA, "carriage_yoke_solid"):
         arms = [LA.carriage_yoke_solid(P)]
     else:
         arms = [LA.carriage_arm_solid(P, sg) for sg in (1, -1)]
+    dart = [p for p in LA.parts(P) if p.name == "launch_dart"][0]
+    dart = prim.place(dart.solid, dart.place).translate((0, 0, N["w_dart"]))      # rail frame at HOME
     for p in guards:
         assert _ov(p.solid, rail) < TOL, p.name
         assert _ov(p.solid, stops) < TOL, p.name
-        for tr in np.linspace(-ST.TRAVEL, N["stroke"], 13):
+        for tr in list(np.linspace(-ST.TRAVEL, N["stroke"], 13)) + [N["stroke"] + 0.5]:
             for a in arms:
                 assert _ov(p.solid, a.translate((N["u_c_home"] - tr, 0, 0))) < TOL, (p.name, tr)
+            assert _ov(p.solid, dart.translate((-tr, 0, 0))) < TOL, (p.name, tr)
+        for d in (100.0, 250.0):                                                    # flying off along the rail
+            assert _ov(p.solid, dart.translate((d, 0, 0))) < TOL, (p.name, d)
+
+
+def test_guard_inserts_inward_with_stop_frame_fitted(guards, rail):
+    """Each segment reaches its place by a straight move inward along y (from 20 mm out) with the rail, the stop
+    units and the springs (both pairs, as cylinders) present."""
+    stops = prim.union([ST.frame_solid(N, s) + ST.spring_solid(N, s) for s in ("l", "r")])
+    springs = prim.union([prim.cylX(8.0, -150.0, 264.0, y=sg * yy, z=N["w_spring"])
+                          for sg in (1, -1) for yy in (N["y_spring"], LA.Y_SPRING2)])
+    world = rail + stops + springs
+    for p in guards:
+        sg = 1.0 if "_l_" in p.name else -1.0
+        for dy in np.arange(0.5, 20.0, 0.5):
+            assert _ov(p.solid.translate((0, sg * dy, 0)), world) < TOL, (p.name, dy)
+
+
+def test_bracket_screw_and_key_paths_clear(guards):
+    """Head (d5.5) seat and hex key path along each wall bolt axis are free of guard material from the tab face out
+    through the plate; the stop frame rear-foot bolt key paths (u 84.6, 90.6) are clear of the guard."""
+    for p in guards:
+        sg = 1.0 if "_l_" in p.name else -1.0
+        seg = p.name.split("_")[-1]
+        for b in GD.WALL_BRACKETS.get(seg, {}).get(sg, ()):
+            u = GD._uh(b)[0]
+            path = prim.cylY(2.9, *sorted((sg * (GD.Y_WALL + 4.05), sg * 80.0)), x=u, z=GD.W_BOLT)
+            assert _ov(path, p.solid) < TOL, (p.name, u)
+        for du, w in ST.REAR_BOLTS:
+            path = prim.cylY(3.4, *sorted((sg * 35.0, sg * 81.0)), x=N["u_stop"] + du, z=w)
+            assert _ov(path, p.solid) < TOL, (p.name, du)
 
 
 def test_guard_brackets_touch_rail_and_pilots_in_material(guards, rail):
-    """Each bracket bears on the rail (contact within 0.05) and every pilot has rail material round it."""
+    """Each segment bears on the rail (contact within 0.05), every pilot has rail material round it, the edge bolt
+    pilots stay clear of the spring anchor holes, and each screw length fits its pilot."""
     full = LA.rail_solid(P)          # may already carry the pilots (integrated): test the wall round each pilot
     for (u, y, w, ax) in GD.pilot_positions():
         if ax == "y":
@@ -185,9 +241,16 @@ def test_guard_brackets_touch_rail_and_pilots_in_material(guards, rail):
         else:
             c = prim.cyl(2.5, 4.0, x=u, y=y, z=w - 4.0) - prim.cyl(1.31, 6.0, x=u, y=y, z=w - 5.0)
         assert _ov(c, full) > 0.9 * c.volume(), (u, y, w)
+    holes = prim.union([prim.cyl(LA.ANCHOR_D / 2 + 0.1, 60.0, x=uu, y=sg * yy, z=20.0)
+                        for uu in (N["u_anchor"], N["u_anchor"] - LA.ANCHOR_F) for sg in (1, -1)
+                        for yy in (N["y_spring"], LA.Y_SPRING2)])
+    assert _ov(GD.guard_rail_cut(N), holes) < TOL
+    # screw lengths: wall M3x12 through a 4 mm tab, 10.5 deep pilot; foot M3x10 through 3.5, 9.5 deep pilot;
+    # edge M3x12 through plate + boss 4 mm, 9.5 deep pilot: each leaves 1..3 mm of pilot below the tip
+    for L_s, grip, depth in ((12.0, 4.0, 10.5), (10.0, 3.5, 9.5), (12.0, GD.Y_OUT - GD.Y_EDGE, 9.5)):
+        assert 1.0 <= depth - (L_s - grip) <= 3.0
     for p in guards:
-        grown = p.solid.translate((0, 0, 0))
-        near = prim.union([grown.translate((0, dy, 0)) for dy in (-0.05, 0.05)] + [grown.translate((0, 0, -0.05))])
+        near = prim.union([p.solid.translate((0, dy, 0)) for dy in (-0.05, 0.05)] + [p.solid.translate((0, 0, -0.05))])
         assert _ov(near, rail) > 0.0, p.name
 
 

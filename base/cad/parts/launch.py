@@ -1109,6 +1109,10 @@ def kin(P, S):
     cock = float(np.clip(_f(S, "cock", 0.0), 0.0, 1.0))
     fired = bool(_f(S, "fired", 0.0))
     phase = S.get("phase", "")
+    if phase == "fire" and cock < 1.0:
+        # TIMELINE fire: cock runs 1 -> 0 while "fired" flips half way; the carriage coming home is the shot, never a
+        # decock along the tooth curve (that and the jump at the flip swept the teeth through the rack, full audit)
+        fired = True
     travel = cock * n["stroke"]
     if S.get("launch_travel") is not None:
         travel = _f(S, "launch_travel", travel)
@@ -1180,6 +1184,12 @@ def kin(P, S):
             if abs((out["launch_sleeve"] - wv + 6.0) % 12.0 - 6.0) > 0.5:
                 out.update(AIM.kin_aim(P, dict(S_aim, aim_split="out", wiper_deg=wv), pitch))
             out["launch_sleeve"] = wv
+        # keep the idler on the engaged branch: an "out" pose may differ from it by many whole idler tooth pitches
+        # (same mesh geometry), and interpolating across that spins the idler through the sun and output teeth
+        if "launch_aim_idler" in out and "launch_aim_idler" in eng:
+            ip = 360.0 / float(getattr(AIM, "Z_IDL", 18))
+            dd = out["launch_aim_idler"] - eng["launch_aim_idler"]
+            out["launch_aim_idler"] -= ip * round(dd / ip)
     else:
         out["launch_sleeve"] = _f(S, "wiper_deg", 0.0)
     return out
@@ -1350,8 +1360,9 @@ def steps(P):
              parts=["launch_carriage", "launch_carriage_yoke", "launch_seat_plunger", "launch_seat_pushrod",
                     "launch_seat_clip"]),
         dict(title="Launcher 5b: lip roller",
-             text="Press a 693ZZ into the lip roller and fit it in the fork at the carriage front with the M3 x 20 and a "
-                  "nyloc nut; it must spin freely. The tether runs over it in tow and "
+             text="Press a 693ZZ into the lip roller, put a printed thrust washer each side in its bore (hub to the "
+                  "bearing), drop roller and washers into the fork at the carriage front and fit the M3 x 16 and a nyloc "
+                  "nut; it must spin freely. The tether runs over it in tow and "
                   "retrieval, and the dart's tail slides in over it through the funnel onto the cradle.",
              parts=MZ_PART_NAMES(P)),
         dict(title="Launcher 6: carriage stop frames",
@@ -1361,8 +1372,10 @@ def steps(P):
              parts=["launch_stop_frame_l", "launch_stop_frame_r"]),
         dict(title="Launcher 6b: spring guards",
              text="Screw the spring guard plates to the rail walls and anchor posts (M3 self tap into the pilots, see the "
-                  "print sheet), three per side: rear, middle (drops in from above inside the stop frame), front. "
-                  "Never cock with a guard off.",
+                  "print sheet), four per side: a (rear, with the end wall), b1 and b2 (either side of the stop frame's "
+                  "rear leg) and c (front, 2 x M3 x 12 into the front plate edge). Slide each one in from the side, "
+                  "under the stop frame's outboard bar. Wall brackets: M3 x 12 self tap, head and hex key through the "
+                  "hole in the plate; b2 foot: M3 x 10 down. Never cock with a guard off.",
              parts=[p for p in GD_PART_NAMES(P)]),
         dict(title="Launcher 6c: stop springs",
              text="Put each stop spring on its ledges inside its frame, rear bar towards the yoke arm, and pull it onto "
@@ -1389,7 +1402,7 @@ def steps(P):
         dict(title="Launcher 9: tether pulleys",
              text="Press a 693ZZ into each printed pulley. Fit the top and bottom pulleys in the fork behind the rail "
                   "(M3 x 20 axle and nyloc nut, a printed top-hat washer each side between plate and bearing, hub towards "
-                  "the bearing) and the pivot pulley on the right cheek lug under the axis (M3 x 20 from inside, nyloc). "
+                  "the bearing) and the pivot pulley on the right cheek lug under the axis (M3 x 20 from outside, head on the bearing, nyloc on the cheek inner face). "
                   "Thread the line from the reel side under the pivot pulley, back under the rail to the bottom pulley, up "
                   "over the top pulley and forward through the pusher hole to the dart's tail cap. Never fire without the "
                   "tether.",

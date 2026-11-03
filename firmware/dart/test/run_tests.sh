@@ -23,3 +23,13 @@ for p in sorted(glob.glob("out/*.json")):
         print("JSON FAIL:", p, e); bad += 1
 sys.exit(1 if bad else 0)
 PY
+
+# Host simulator of the real sketch (about 40 s). Skip with: ./run_tests.sh --quick
+if [ "$1" != "--quick" ] && command -v make >/dev/null; then
+  if ( cd ../sim && make -s && python3 test_sim.py && { ! command -v node >/dev/null || node test_page.js; } ) > out/sim.log 2>&1; then
+    grep -E "^Ran|^OK|passed, " out/sim.log
+    echo "dart firmware: host logic checks ALL PASS, simulator HTTP tests OK, web page browser checks OK"
+  else
+    tail -30 out/sim.log; echo "SIMULATOR TESTS FAILED"; exit 1
+  fi
+fi

@@ -4,7 +4,7 @@ set -e
 cd "$(dirname "$0")"
 PY=${PY:-../../kedge/.venv/bin/python}
 $PY -m pytest -q || echo "TESTS FAILED (models still run)"
-$PY launch.py --sweep
+$PY launcher.py --sweep
 $PY flight.py --sweep
 $PY payout.py
 $PY capstan.py

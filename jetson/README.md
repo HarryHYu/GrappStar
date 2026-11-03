@@ -276,6 +276,21 @@ python3 -m grappstar dart flightlog         # download the last flight log
 Dart keys: `1` deploy down, `!` deploy up, `2` kick out, `@` kick back, `3` drills in, `#` drills out, `4` foot in,
 `$` foot out. Quote the symbols in the shell, e.g. `dart key '!' --hold 1.0`.
 
+### Tell the Jetson how the IMU sits in the dart
+
+The dart's flight log is in the BNO085 chip's own axes. The bench test in `firmware/dart/BENCH_TEST.md` (step 7)
+finds how the chip sits in the hull. Write it as three entries: which chip axis points along the nose (body x),
+which points left (body y) and which points up when the dart lies level (body z), with a minus sign where the chip
+axis points the other way. Examples: `x,y,z` (chip matches the dart), `y,-x,z` (chip turned 90 degrees). Put it in
+`settings.json` (below) as `"imu_axes": "y,-x,z"`, or pass `--imu-axes y,-x,z` to `serve`. A mirrored entry (for
+example `y,x,z`) is refused: one sign is wrong.
+
+### Settings file
+
+Copy `settings.example.json` to `settings.json` in this folder and edit it once. `serve` (and the boot service)
+read it, so you do not have to type options. Options typed on the command line still win. Keys: `base`, `dart`,
+`rover_cam`, `dart_cam`, `fourcc`, `rover_fourcc`, `rover_size`, `dart_size`, `tow_limit`, `drag`, `imu_axes`.
+
 ### Option A: the operator joins KEDGE too
 
 1. On the Jetson, find its KEDGE address:
@@ -380,6 +395,33 @@ What is on the page (layout may differ a little from this list):
 - **STOP** (wiper off now) and **E-STOP** (wiper off and drum to neutral). Always visible. Know where they are
   before you press anything else.
 
+The mission steps, in order (the page highlights the current one):
+
+| Step | What happens | You do |
+|---|---|---|
+| PREFLIGHT | links, faults, dart seated, battery, videos, a target set | fix what it lists, then Retry |
+| LAUNCH_MODE | drum to LAUNCH (about 4 s per drum step) | |
+| AIM | pitch from the ballistics table; the page says how far to turn the rover | turn the rover, press Aim |
+| COCK | the base draws the spring (up to about 20 s) | |
+| ARM | the dart's landing detector is armed (it only records; you decide on anchoring) | |
+| FIRE | two confirmations, then the shot | Fire, then FIRE NOW |
+| FLIGHT | waits for the dart to say LANDED (or the dart video to go still) | |
+| LANDING_ZONE | landing report, map, verdict; the base is told how much line is out | Anchor, or Retrieve and reshoot |
+| BASE_NEUTRAL | launcher back at rest, drum to NEUTRAL | |
+| ANCHOR | the dart digs in (kick, foot, drills) | |
+| TIDY | slack wound onto the storage reel (if the base firmware has it) | |
+| WRAP | the capstan wraps go on (about 24 s) | |
+| CHECK | a gentle test pull must reach the check tension and hold it | |
+| TOW | reel to the tension limit and hold | drive the rover gently, then Take up slack or Rover free |
+| RELEASE | the dart unscrews and folds | |
+| RETRIEVE | capstan reels in until about 1.5 m is left | |
+| UNWRAP | capstan wraps come off | |
+| FINAL_APPROACH | the last metre until the dart is seated | |
+| LAUNCH_READY | drum back to LAUNCH for the next shot | |
+
+If you abort after COCK and before FIRE, the spring stays drawn: press **Decock** in the Manual section before you
+touch the launcher.
+
 Dry mission in sim, step by step:
 
 1. Press **Preflight**. Everything should go green (base link, dart link, cameras).
@@ -414,6 +456,8 @@ Before the first real launch:
 - [ ] Dart status OK (`python3 -m grappstar dart status`), base ping OK, preflight all green.
 - [ ] Recording on, so you can replay it.
 - [ ] Start with a short shot at low pitch.
+- [ ] The real launcher reaches only about 3 to 4.4 m (base/out/ballistics.json). The page says "not reachable"
+      for anything outside that: move the rover instead.
 
 ## 10. Troubleshooting
 

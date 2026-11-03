@@ -82,6 +82,14 @@ def _core_r(p: Params) -> float:
     return p.reel["core_d"] / 2
 
 
+def path_gain(p: Params) -> float:
+    """Tension gain from the dart to the capstan through the exit eye, cup groove and pulleys (line pulled in):
+    capstan tension = dart pull x gain. Plain printed eyes and the groove (about 50 + 58 deg at mu 0.25, plus
+    pulleys): about 1.5. With 693 pulleys at the exit eye and ring: about 1.15. All "f_line" values in this module
+    are DART-side pulls."""
+    return p.capstan.get("path_gain", 1.5)
+
+
 def trip_a(p: Params, mode: str) -> float:
     """Hard trip current for a mode (aim, reel_in, cock, tow): spec REEL.current_trips_a when present, else defaults."""
     d = dict(aim=TRIP_AIM_A, reel_in=TRIP_HARD_A, cock=TRIP_COCK_A, tow=TRIP_REEL_A)
@@ -143,7 +151,8 @@ def wiper_torque_for(f_line: float, p: Params, overspeed: float | None = None, l
     r, k, eta = _cap(p)
     L = _full(p) if line_left is None else line_left
     th = takeup_tension(p, L, clutch_r)
-    return r * (max(f_line - th, 0.0) + takeup_drive_force(p, overspeed, clutch_r)) / (k * eta)
+    f_cap = f_line * path_gain(p)                    # dart pull -> capstan tension through the exit eye and cup groove
+    return r * (max(f_cap - th, 0.0) + takeup_drive_force(p, overspeed, clutch_r)) / (k * eta)
 
 
 def line_from_wiper(t_wiper: float, p: Params, overspeed: float | None = None, line_left: float = 0.0,
@@ -152,8 +161,9 @@ def line_from_wiper(t_wiper: float, p: Params, overspeed: float | None = None, l
     """Dart side tension for a wiper torque. Default line_left = 0 (empty reel, highest hold tension, so the most
     line tension for a given torque)."""
     r, k, eta = _cap(p)
-    return (t_wiper * k * eta / r + takeup_tension(p, line_left, clutch_r)
-            - takeup_drive_force(p, overspeed, clutch_r))
+    f_cap = (t_wiper * k * eta / r + takeup_tension(p, line_left, clutch_r)
+             - takeup_drive_force(p, overspeed, clutch_r))
+    return f_cap / path_gain(p)
 
 
 def drum_shaft_torque(t_wiper: float, p: Params) -> float:

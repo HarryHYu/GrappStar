@@ -364,19 +364,42 @@ def carriage_solid(P):
         s.append(rk)
     else:
         s.append(B(u_first - 4, u_first + rack_n * math.pi * m, -6, 6, n["w_rtip"], n["w_deck1"]))
-    s.append(B(0, u_first, -6, 6, n["w_deck0"], n["w_rroot"] + RACK_BACK))           # spine behind the rack teeth
-    # shoes (full length: the carriage is guided over its whole length) and a light deck: a 3 mm floor under the
-    # cradle, cross ribs every 30 mm in front of it
-    s.append(Bs(0, Lc, n["y_lip0"] - 0.5, n["y_shoe1"], n["shoe_w0"], n["shoe_w1"]))
-    for uc in np.arange(160.0, Lc - 3.0, 30.0):
-        s.append(B(uc, uc + 3.0, -n["y_lip0"] + 0.5, n["y_lip0"] - 0.5, n["w_deck0"], n["w_rroot"] + RACK_BACK))
-    s.append(B(Lc - 3.0, Lc, -n["y_lip0"] + 0.5, n["y_lip0"] - 0.5, n["w_deck0"], n["w_rroot"] + RACK_BACK))
+    # Rack back stress (RACK_BACK 3.0, review: carriage mass): tooth force 80 N + 30 % shock = 104 N tangential at the
+    # pitch line, 38 N radial (20 deg). Rack back 12 x 3 (teeth ignored): Z = 12 * 3^2 / 6 = 18 mm3, A = 36 mm2. Worst
+    # clear span between deck ribs 29 mm, fixed-fixed: radial 38 * 29 / 8 = 138 Nmm; tangential force 5.1 mm below the
+    # back centroid, couple 104 * 5.1 = 530 Nmm at mid span -> 265 Nmm; axial 104 / 36 = 2.9 MPa. Total
+    # (138 + 265) / 18 + 2.9 = 25 MPa < 30 MPa (bending along u, in the layers: the body prints on its side), and the
+    # teeth (6 mm deep over half the length) make the real section stiffer. Tooth root (Lewis, Y 0.3): 104 / (12 * 2.5
+    # * 0.3) = 12 MPa.
+    rib_top = n["w_rroot"] + DECK_T
+    yo = n["y_lip0"] - 0.5
+    s.append(B(0, u_first, -6, 6, n["w_deck0"], rib_top))                              # spine behind the rack teeth
+    # light deck: cross ribs (ring ribs, one between the rear rings' long span, every 30 mm in front of the cradle)
+    deck_u = [128.0] + [float(uc) for uc in np.arange(160.0, Lc - 3.0, 30.0)] + [Lc - 3.0]
+    for uc in deck_u:
+        s.append(B(uc, uc + 3.0, -yo, yo, n["w_deck0"], rib_top))
+    # shoes (full length: the carriage is guided over its whole length) with windows through them (y, vertical as
+    # printed): 1.6 mm chords bear on the shelf and under the lips, posts 2 mm, solid where a rib or web meets the shoe.
+    # Chord check: 40 N (the whole radial rack force on one side over one window) on a 4 x 1.6 chord, span 8,
+    # fixed-fixed: 40 * 8 / 8 / (4 * 1.6^2 / 6) = 23 MPa (along u, in the layers).
+    keep = sorted([(0.0, n["pusher_t"])] + [(uc, uc + RIB_T) for uc in RING_U] + [(uc, uc + 3.0) for uc in deck_u])
+    shoe = Bs(0, Lc, yo, n["y_shoe1"], n["shoe_w0"], n["shoe_w1"])
+    for (_, a), (b, _) in zip(keep[:-1], keep[1:]):
+        a, b = a + 2.0, b - 2.0
+        nw = int(math.floor((b - a + 2.0) / 10.0))
+        if nw < 1:
+            continue
+        lw = (b - a - 2.0 * (nw - 1)) / nw
+        for k in range(nw):
+            u0 = a + k * (lw + 2.0)
+            shoe = shoe - Bs(u0, u0 + lw, yo - 1.0, n["y_shoe1"] + 1.0, n["shoe_w0"] + 1.6, n["shoe_w1"] - 1.6)
+    s.append(shoe)
     # cradle: five rings (full half pipe up to 5 below the dart axis) and two longitudinal strips 20..50 deg either side
     # of the bottom, so the belly sits in a V of two lines (light, self-centring). Ribs from each ring to the shoes.
     rc_in, rc_out = n["r_hull"] + 0.4, n["r_hull"] + 2.4
     pipe = (cyl_u(rc_out, 0, 152, 0, n["w_dart"]) - cyl_u(rc_in, -1, 153, 0, n["w_dart"])) ^ \
         B(-1, 153, -40, 40, n["w_deck0"], n["w_dart"] - 5)
-    rings = prim.union([B(uc, uc + 6.0, -40, 40, 0, 200) for uc in RING_U])
+    rings = prim.union([B(uc, uc + RING_T, -40, 40, 0, 200) for uc in RING_U])
     def wedge(a0, a1):
         pts = [(0.0, 0.0)] + [(40 * math.sin(math.radians(a)), -40 * math.cos(math.radians(a))) for a in np.linspace(a0, a1, 8)]
         cs = prim.poly_cs(pts)
@@ -384,12 +407,13 @@ def carriage_solid(P):
     strips = wedge(20.0, 50.0) + wedge(-50.0, -20.0)
     s.append(pipe ^ (rings + strips))
     for uc in RING_U:
-        rib = B(uc, uc + 6.0, -n["y_lip0"] + 0.5, n["y_lip0"] - 0.5, n["w_deck0"], n["w_dart"] - 12.0)
+        rib = B(uc, uc + RIB_T, -yo, yo, n["w_deck0"], n["w_dart"] - 12.0)
         s.append(rib - cyl_u(rc_in, uc - 1, uc + 7, 0, n["w_dart"]))
-    for sg in (1, -1):                                   # strip-to-shoe webs between the rings
-        for uc in RING_U[:-1]:
-            s.append(B(uc + 6.0, uc + 36.0, *sorted((sg * 13.0, sg * 15.0)), n["w_deck0"], n["w_dart"] - 17.5)
-                     - cyl_u(rc_in, uc, uc + 40, 0, n["w_dart"]))
+    for sg in (1, -1):                                   # strip-to-shoe webs between the rings: Warren truss windows
+        for uc, uc1 in zip(RING_U[:-1], RING_U[1:]):
+            web = B(uc + RIB_T - 0.01, uc1 + 0.01, *sorted((sg * 13.0, sg * 15.0)), n["w_deck0"], n["w_dart"] - 17.5)
+            web = web - _truss_windows(uc + RIB_T, uc1, n["w_deck0"] + 1.6, n["w_dart"] - 19.1, -16.0, 16.0, 1.6)
+            s.append(web - cyl_u(rc_in, uc, uc + 40, 0, n["w_dart"]))
     # cradle lead-in at the front (dart reeled in tail first): 2 mm chamfer
     s.append((cyl_u(rc_out, 148.0, 152.0, 0, n["w_dart"]) - prim.place(prim.cyl(rc_in, 4.0, r2=rc_in + 2.0),
               tf.mul(tf.T(148.0, 0, n["w_dart"]), tf.Ry(90)))) ^ B(147, 153, -40, 40, n["w_deck0"], n["w_dart"] - 5))
@@ -551,7 +575,7 @@ def sleeve_solid(P):
     z_sun1 = n["Y0"] + 42.0 - n["y_flange"]
     # two rib lengths: under sprag #1 (between the rail cheeks) and under the sun; never inside a cheek bore
     s = s + prim.box(9.0, RIB_R, -RIB_W / 2, RIB_W / 2, zg - 7.5, zg + 7.5)
-    s = s + prim.box(9.0, RIB_R, -RIB_W / 2, RIB_W / 2, z_sun1 - 8.0, z_sun1)
+    s = s + prim.box(9.0, RIB_R, -RIB_W / 2, RIB_W / 2, z_sun1 - 12.0, z_sun1)     # full sun face (y 170..182)
     s = s - prim.cyl(SPIGOT_BORE / 2, z_end + 2, z=-1)
     # D37: 3 lugs 6.0 wide x 3.0 tall on the flange face (r 15..21, at 60/180/300 deg) into cad-drum's ring slots,
     # 3 x M3 clearance holes at r 28.5 (0/120/240 deg), screws from this side (counterbored heads) into the tapped ring
@@ -605,7 +629,8 @@ FOOT_U0, FOOT_U1 = -30.0, -0.5   # SW feet span (carriage local): covers the lev
 SPLICE_Y = 25.5      # top splice strap centre line (on the wall top / lip)
 Y_SPRING2 = 56.0      # second spring pair provision (D5): pegs, anchor holes and clear space at y +-56, w 60
 LUG_BOLTS_U = (107.0, 123.0)   # launch_aim lug_solid bolt positions (w 41)
-RACK_BACK = 4.0       # rack body above the tooth roots (carriage mass, review 1)
+RACK_BACK = 3.0       # rack body above the tooth roots (carriage mass: stress check in carriage_solid)
+DECK_T = 4.0          # deck rib tops above the tooth roots (= launch_muzzle.RACK_BACK_MZ: the fork and funnel sit on them)
 RING_U = (14.0, 46.0, 78.0, 110.0, 146.0)   # cradle ring positions (carriage local u)
 FLANGE_W = (36.0, 43.5)  # w of the M3 bolts through the rail split flanges
 PAD_L = 18.0          # carriage stop pad length (physics F3: 15 to 20 mm of TPU or foam)

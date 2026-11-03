@@ -1,0 +1,32 @@
+............................................                             [100%]
+44 passed in 17.30s
+params: base/spec/params.py v0.1-stub (still defaults for LAUNCH, AIM, REEL, LAYOUT)
+spring: k 0.125 N/mm (formula 0.131), Fi 7.0 N, body coils 96.1, mass 54.1 g, surge 24.7 Hz
+spring safe: 43.6 N (hook torsion), extension 293 mm, Sut 2106 MPa
+  pitch_deg            35.000
+  stroke_m             0.245
+  pulley_ratio         1.000
+  ext_full_mm          250.000
+  over_safe            False
+  f_carriage_full_n    76.500
+  energy_stored_j      11.239
+  v_muzzle             6.921
+  t_stroke_ms          58.200
+  a_peak_g             19.081
+  ke_dart_j            6.683
+  efficiency           0.595
+  ke_carriage_j        1.916
+  f_stop_peak_n        1425.547
+  ke_spring_j          0.935
+  f_cord_peak_after_stop_n 285.094
+  coil_clash_v         9.713
+ratio sweep at stroke 0.245
+   {'ratio': 0.5, 'stroke_used_m': 0.122, 'ext_full_mm': 250.0, 'v_muzzle': np.float64(5.913), 'energy_j': 11.239, 'efficiency': np.float64(0.434), 'f_carriage_full_n': 153.0}
+   {'ratio': 0.75, 'stroke_used_m': 0.184, 'ext_full_mm': 250.0, 'v_muzzle': np.float64(6.897), 'energy_j': 11.239, 'efficiency': np.float64(0.59), 'f_carriage_full_n': 102.0}
+   {'ratio': 1.0, 'stroke_used_m': 0.245, 'ext_full_mm': 250.0, 'v_muzzle': np.float64(6.921), 'energy_j': 11.239, 'efficiency': np.float64(0.595), 'f_carriage_full_n': 76.5}
+   {'ratio': 1.5, 'stroke_used_m': 0.245, 'ext_full_mm': 168.333, 'v_muzzle': np.float64(4.922), 'energy_j': 5.826, 'efficiency': np.float64(0.58), 'f_carriage_full_n': 37.389}
+   {'ratio': 2.0, 'stroke_used_m': 0.245, 'ext_full_mm': 127.5, 'v_muzzle': np.float64(3.765), 'energy_j': 3.744, 'efficiency': np.float64(0.528), 'f_carriage_full_n': 22.938}
+   {'ratio': 3.0, 'stroke_used_m': 0.245, 'ext_full_mm': 86.667, 'v_muzzle': np.float64(2.431), 'energy_j': 2.079, 'efficiency': np.float64(0.397), 'f_carriage_full_n': 11.889}
+params: base/spec/params.py v0.1-stub (still defaults for LAUNCH, AIM, REEL, LAYOUT)
+pitch 40.0 v0 6.91: range 3.51 m, apex 1.19 m, t 0.85 s, impact 5.64 m/s at 60.1 deg, line out 3.6 m, max line pull on dart 0.90 N
+  same shot without tether 5.07 m, vacuum 5.17 m

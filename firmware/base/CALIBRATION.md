@@ -338,4 +338,10 @@ carriage or the rail.
    (decock by travel). If the decock faults again there is no powered way out (a backward jog is `NOT_AT_REST`, and
    `fire` needs `COCKED`, the dart seated, an aim and a token): battery unplugged, unload the springs by hand as the
    build guide says, then `{"id":10,"cmd":"cal","what":"cock_rest"}`, then `aim`.
+
+   A `RESET` with `"ok":false` and `"why":"SW_GAP open: check the carriage by eye, then cal cock_rest force"` means the
+   carriage reads home but the big gear is out of its gap (for example after a `stop` during a gap run): nothing moved.
+   Look: if the carriage is really forward on its stop and the springs are slack, send
+   `{"id":11,"cmd":"cal","what":"cock_rest","force":true}`, then `aim` (its gap run closes the gap). A forward jog in
+   LAUNCH is refused (`SWITCH_DISAGREE`) while `G` is open.
 9. `{"id":7,"cmd":"set","key":"require_seated","val":true}`.

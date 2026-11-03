@@ -9,11 +9,12 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 
 - Launch: 2 x Century C-243, 23.8 mm preload, 265 mm full (40.1 N each), 12.1 J, carriage 60 g (target; the CAD
   carriage may be 100 to 130 g, see F12): 7.04 m/s, 19 g, 57 % efficient. 4 springs (provision): 9.8 m/s.
-- Range from the rail pivot's ground point (pivot 0.315 m up: deck 0.15 ASSUMED + 0.165), LIGHT 0.5 / 0.75 / 1.0 N:
-  4.3 / 3.8 / 3.4 m at 36 deg (best). Table 6 to 47 deg in base/out/ballistics.json (C3), with impact angles and
-  wind sensitivity in the meta. 4 springs: 7.7 / 6.9 / 6.2 m. Test shots then `calib.py range` refine the table.
-- Not yet in the numbers (design fixes pending, F12): line slack at the shot (about -0.5 m if not rerouted) and a
-  heavier carriage (about -0.4 m at 100 g).
+- LINE SLACK IS NOW IN THE MODEL (launcher.line_slack): with the last guide on the pivot (D14 as specified) the
+  path shortens 72 mm in the stroke, so the dart leaves at 7.54 m/s with no line load and the snatch drops it to
+  6.50 m/s. Range from the rail pivot's ground point, LIGHT 0.5 / 0.75 / 1.0 N: 3.7 / 3.3 / 3.0 m at 34 deg (best);
+  this is what base/out/ballistics.json now holds. With a guide behind the rail end on the dart axis (taut line):
+  4.3 / 3.8 / 3.4 m at 36 deg. Set LAUNCH line_guide_u / line_guide_w (rail coords, m) when cad-launch routes it.
+- 4 springs (taut line): 7.7 / 6.9 / 6.2 m. A heavier carriage costs about 0.4 m at 100 g (F12).
 - Stop: 2.3 J (carriage 1.5 + springs 0.8): the 19 mm flexure peaks at about 245 N if linear (D26 300 N: OK at 60 g).
 - Storage reel 50 / 72 / 22: 46 g, 31.4 kg mm2 full; overrun after landing at LIGHT 0.5 N 0.55 m in 0.26 s.
 - Capstan 50:22, 7 wraps: tow 50 N = 3.2 N m, 5.05 A, 0.14 m/s; 20 m reel-in 110 s. Limiter slipping: 84 N, 7 A.
@@ -22,7 +23,8 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
   the 7 A limiter-slip current.
 - Cock 2.9 N m, 4.7 A, 2.7 s per shot. Aim 0.32 N m, 6.6 s for 6 to 47 deg.
 - Final approach on FIRM 5 N (reel full): 3.85 N at the dart vs 2.1 to 2.6 N needed: margin 1.5 to 1.9.
-- Wrap on LIGHT: drum 0.49 to 0.60 N m, drum N20 61 to 74 N mm (30 to 37 % of an ASSUMED 0.2 N m).
+- Wrap on LIGHT (spec DRUM.n20, 12:1, 8.1 deg/s): drum 0.49 to 0.60 N m, N20 46 to 56 N mm (23 to 28 % of the
+  0.20 N m design value); 240 deg sector in about 30 s.
 - Recoil rock (ASSUMED 4 kg rover): about 5 deg at 6 deg pitch braked, 0.5 deg at 36. No tip.
 - Mission: about 3.2 min, 0.7 Wh from the base pack.
 - Take-up reel-in in NEUTRAL (bus overdrive 2.5, FIRM 5 N), retrieve.json "takeup": dart drag on grass 1.4 to 2.7 N

@@ -93,6 +93,10 @@ def test_wrap_time_from_spec(p):
     if not n.get("drum_deg_per_s"):
         pytest.skip("spec has no DRUM.n20.drum_deg_per_s")
     w = wrap_loads(p)
-    sector = s.DRUM["wrap_turns"] / s.DRUM["cup_turns_per_drum_deg"]
+    sector = w["params"]["drum_sector_deg"]
+    if s.DRUM.get("cup_turns_per_drum_deg"):
+        assert sector == pytest.approx(s.DRUM["wrap_turns"] / s.DRUM["cup_turns_per_drum_deg"])
+    else:
+        assert sector == pytest.approx(240.0)                     # WRAP window 62..302 deg
     assert w["wrap_time_s"] == pytest.approx(sector / n["drum_deg_per_s"])
     assert w["params"]["n20_ratio"] == pytest.approx(n["ratio"])

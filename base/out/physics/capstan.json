@@ -13,7 +13,7 @@
   "eta": 0.85,
   "overspeed": 2.5,
   "light_n": 3.0,
-  "source": "base/spec/params.py v1.2.3"
+  "source": "base/spec/params.py v1.2.5"
  },
  "takeup": {
   "clutch_torque": 0.15362562593389975,

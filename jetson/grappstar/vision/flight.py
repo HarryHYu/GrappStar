@@ -16,7 +16,7 @@ How it works
    pair above half the peak energy of the final second; after it only a fast decaying shake follows).
 3. IMU (C2 flightlog: t_ms dart millis, quaternion world from body, specific force in body frame m/s^2).
    Launch = the run over 4 g that matches the flightlog's t_launch_ms (else the first run of 20 ms), launch time
-   = the start of the window (firmware convention). Impact = the last run over 6 g once the push has ended (under
+   = the start of the window (firmware convention). Impact = the last run over 3.5 g once the push has ended (under
    2.5 g) and 150 ms after launch (the one followed by stillness), landed = first time after impact the reading
    stays at its final resting vector (1 g) for 0.3 s. A saturated push (about 75 m/s^2 or more on an axis) gives
    only a lower bound on v0, which is then solved from the flight time.
@@ -65,6 +65,7 @@ RAIL_H = 0.5
 STROKE_S = 0.06
 DRAG_K = 0.01
 DRAG_C = 1.0
+IMPACT_G = 3.5           # g: firmware landing impact threshold (was 6 g)
 SAT_NEAR = 75.0          # m/s^2: the BNO085 accelerometer saturates near 78 m/s^2 (firmware/dart/API.md)
 PHASES = ("ON_RAIL", "LAUNCH", "FLIGHT", "IMPACT", "LANDED")
 
@@ -377,7 +378,8 @@ def imu_events(fl: dict) -> dict:
       one, else the first run of at least 20 ms (2 consecutive samples at 50 Hz), so a single glitch sample (latch
       click, knock while loading) is ignored. Launch time = the START of the window.
     - impact: searched only after the push has ended (|a| under 2.5 g) and at least 150 ms after launch; an impact
-      is a run of samples over 6 g, and the landing impact is the LAST one (the one followed by stillness).
+      is a run of samples over 3.5 g (firmware: the BNO085 clips at 8 g and low-pass filters, so a short impact
+      can read under 6 g), and the landing impact is the LAST one (the one followed by stillness).
     - v0: integrated push. The accelerometer saturates near 78 m/s^2; when the push touches about 75 m/s^2 on any
       axis the integral is only a lower bound (v0_min, saturated=True) and v0 stays None so analyze_flight solves
       it from the flight time and the rail pitch."""
@@ -451,18 +453,18 @@ def imu_events(fl: dict) -> dict:
         k0 += 1
     while k0 < len(acc) and t[k0] < t_launch + 0.15:
         k0 += 1
-    runs6 = _runs(acc > 6 * G, k0)
-    if not runs6:
+    runs_imp = _runs(acc > IMPACT_G * G, k0)
+    if not runs_imp:
         return out
     # the landing impact is the last one: the first impact followed by 1 s of stillness (0.85..1.15 g) before the
     # next impact; the log may end sooner, then 0.3 s still up to the end counts. No stillness: the last impact.
     band = (acc > 0.85 * G) & (acc < 1.15 * G)
     n_fw = max(3, int(round(1.0 / dt)))
     n_min = max(3, int(round(0.3 / dt)))
-    chosen = runs6[-1]
-    for ri, (s0, s1) in enumerate(runs6):
-        last = ri + 1 == len(runs6)
-        nxt = len(acc) if last else runs6[ri + 1][0]
+    chosen = runs_imp[-1]
+    for ri, (s0, s1) in enumerate(runs_imp):
+        last = ri + 1 == len(runs_imp)
+        nxt = len(acc) if last else runs_imp[ri + 1][0]
         quiet = [r for r in _runs(band[:nxt], s1 + 1)
                  if r[1] - r[0] + 1 >= n_fw or (last and r[1] == len(acc) - 1 and r[1] - r[0] + 1 >= n_min)]
         if quiet:

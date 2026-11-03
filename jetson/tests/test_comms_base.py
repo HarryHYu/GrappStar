@@ -1,4 +1,4 @@
-"""BaseClient against the firmware-faithful MockBase (firmware/base fw base-1.0, docs/C1_AS_IMPLEMENTED.md)."""
+"""BaseClient against MockBase, both following firmware/base/PROTOCOL.md (fw base-1.0); notes in docs/C1_NOTES.md."""
 import json
 import os
 import threading
@@ -66,9 +66,9 @@ def test_ping_status_and_telemetry(pair):
     assert set(TEL_KEYS) <= set(t)
     assert t["mode"] == "NEUTRAL" and t["drum_pos"] == "NEUTRAL" and t["state"] == "IDLE"
     assert t["fault"] is None and isinstance(t["wraps"], int) and t["cock"] == 0
-    # sw: one-letter keys, closed contacts only: NEUTRAL code a+b, dart seated S, carriage home H
-    assert set(t["sw"]) <= set(SW_KEYS)
-    assert t["sw"].get("a") == 1 and t["sw"].get("b") == 1 and tel_seated(t) and tel_carriage_home(t)
+    # sw: one-letter keys, closed contacts only: NEUTRAL drum code b, dart seated S, carriage home H
+    assert set(t["sw"]) <= set(SW_KEYS) and all(v == 1 for v in t["sw"].values())
+    assert t["sw"].get("b") == 1 and "a" not in t["sw"] and tel_seated(t) and tel_carriage_home(t)
     s = c.status()
     for k in ("phase", "aimed", "aim_known", "drum_known", "wraps_known", "magnet", "glitches", "hx", "peak_a", "fw"):
         assert k in s, k
@@ -108,7 +108,7 @@ def test_id_null_reply_goes_to_the_waiting_command(pair):
 def test_shot_order_aim_cock_arm_fire(pair):
     mb, c = pair
     to_mode(c, "LAUNCH")
-    assert err_of(c.arm) == "NOT_COCKED"
+    assert err_of(c.arm) == "NOT_AIMED"
     e = aim(c, 30)
     assert e["ok"] and abs(e["pitch_deg"] - 30) < 0.01 and e["target_deg"] == 30
     assert abs(c.wait_tel(lambda t: t["state"] == "IDLE", 2)["pitch_deg"] - 30) < 0.01
@@ -137,7 +137,21 @@ def test_shot_order_aim_cock_arm_fire(pair):
     s = c.status()
     assert s["phase"] == "REST" and s["aimed"] is False
     assert err_of(c.fire, tok) == "NOT_ARMED"            # single use
-    assert err_of(c.arm) == "NOT_COCKED"
+    assert err_of(c.arm) == "NOT_AIMED"                  # aim again after a shot
+
+
+def test_fire_from_rest_runs_the_whole_cycle(pair):
+    mb, c = pair
+    to_mode(c, "LAUNCH")
+    aim(c, 40)
+    tok = c.arm()                                        # cock is optional
+    m = c.event_mark()
+    c.fire(tok)
+    c.wait_tel(lambda t: t["state"] == "FIRE", 2)
+    e = c.wait_event("FIRED", 10, since=m)
+    assert e["pitch_deg"] == 40
+    c.wait_event("RESET", 10, since=m)
+    assert c.status()["phase"] == "REST"
 
 
 def test_arm_refusals_and_tokens(pair):
@@ -212,12 +226,15 @@ def test_wrap_rules_tow_hold_and_retrieve(pair):
     m = c.event_mark()
     c.wrap()
     assert err_of(c.mode, "LAUNCH") == "BUSY"
+    c.wait_tel(lambda t: t["state"] == "WRAP" and t["drum_pos"] == "BETWEEN" and t["mode"] == "REEL", 3)
     e = c.wait_event("WRAPPED", 10, since=m)
     assert e["ok"] and e["wraps"] == 4
     t = c.wait_tel(lambda t: t["state"] == "IDLE", 2)
     assert t["drum_pos"] == "WRAPPED" and t["mode"] == "REEL" and t["wraps"] == 4
     assert err_of(c.mode, "LAUNCH") == "WRAPS_ON"
-    assert err_of(c.wrap) == "NOT_IN_REEL"
+    m = c.event_mark()
+    c.wrap()                                            # already wrapped: WRAPPED at once
+    assert c.wait_event("WRAPPED", 1, since=m)["wraps"] == 4
     assert c.cmd("reel", duty=1.5, check=False)["err"] == "BAD_ARG"
     assert c.cmd("reel", duty=0.5, until="forever", check=False)["err"] == "BAD_ARG"
     assert c.cmd("reel", duty=0.5, max_n=0, check=False)["err"] == "BAD_ARG"
@@ -391,6 +408,7 @@ def test_stop_mid_cock_then_decock(pair):
     assert err_of(c.cock) == "LOADED_UNKNOWN"
     assert err_of(c.mode, "NEUTRAL") == "LAUNCH_BUSY"
     assert err_of(c.aim, 30) == "PHASE_UNKNOWN"
+    assert err_of(c.arm) == "NOT_COCKED"
     m = c.event_mark()
     c.decock()
     c.wait_event("RESET", 10, since=m)
@@ -419,9 +437,9 @@ def test_jog_and_settings(pair):
     mb, c = pair
     assert c.cmd("jog", motor="arm", dir=1, check=False)["err"] == "BAD_ARG"
     assert c.cmd("jog", motor="drum", dir=2, check=False)["err"] == "BAD_ARG"
-    c.jog("drum", 1, 600)
+    c.jog("drum", 1, 1000)
     t = c.wait_tel(lambda t: t["state"] == "IDLE" and t["drum_pos"] == "BETWEEN", 3)
-    assert t["mode"] == "NONE" and abs(t["drum_deg"] - 96) < 3
+    assert t["mode"] == "NONE" and abs(t["drum_deg"] - 50.8) < 1.5
     c.set("limit_n", 30)
     assert c.get("limit_n")["val"] == 30
     assert err_of(c.set, "limit_n", 900) == "OUT_OF_RANGE"
@@ -429,6 +447,81 @@ def test_jog_and_settings(pair):
     r = c.get("pitch_range")
     assert r["min"] == 15 and r["max"] == 60
     assert c.get("fw")["val"] == "base-1.0"
+    c.set("line_m", 7.5)
+    assert c.get("line_m")["val"] == 7.5
+    c.set("require_seated", False)
+    assert c.get("require_seated")["val"] is False
+    c.cal_aim_forget()
+    assert c.status()["aim_known"] is False
+    m = c.event_mark()
+    c.cal_drum()                                         # the drum code is absolute: only reports
+    assert c.wait_event("MODE", 1, since=m)["drum_pos"] == "BETWEEN"
+
+
+def test_invalid_drum_code(pair):
+    mb, c = pair
+    with mb.lock:
+        mb.code_bad = True
+    t = c.wait_tel(lambda t: t["drum_pos"] == "UNKNOWN", 2)
+    assert t["mode"] == "NONE"
+    assert err_of(c.mode, "LAUNCH") == "POSITION_UNKNOWN"
+    assert err_of(c.cal_drum) == "POSITION_UNKNOWN"
+    mb.code_bad = False
+
+
+def test_256_byte_line_is_legal(pair):
+    mb, c = pair
+    base = len(json.dumps({"id": 1000000, "cmd": "ping", "x": ""}, separators=(",", ":")))
+    n = 256 - base
+    r = c.cmd("ping", x="a" * (n - (len(str(c._next_id)) - 7)))
+    assert r["ok"]
+    assert max(len(json.dumps(m, separators=(",", ":"))) for m in mb.received) == 256
+    with pytest.raises(ValueError):
+        c.cmd("ping", x="a" * 300)
+
+
+def test_hello_fails_pending_commands_and_waits(pair):
+    mb, c = pair
+    mb.ignore.add("ping")
+    threading.Timer(0.15, lambda: mb._send({"evt": "HELLO", "fw": "base-1.0", "reset": "WATCHDOG"})).start()
+    with pytest.raises(BaseError) as ei:
+        c.ping(timeout=2)
+    assert ei.value.err == "BASE_RESET"
+    mb.ignore.clear()
+    m = c.event_mark()
+    threading.Timer(0.1, lambda: mb._send({"evt": "HELLO", "fw": "base-1.0", "reset": "BROWNOUT"})).start()
+    with pytest.raises(BaseError) as ei:
+        c.wait_event("MODE", 2, since=m)
+    assert ei.value.err == "BASE_RESET"
+
+
+def test_host_watchdog_stops_a_reel(pair):
+    mb, c = pair
+    to_mode(c, "REEL")
+    wrap(c)
+    with mb.lock:
+        mb.world.dart, mb.line_m = "free", 30.0
+    c.set("host_timeout_s", 2)
+    m = c.event_mark()
+    c.reel(0.5)
+    e = c.wait_event("ABORTED", 3, since=m, fail_on_abort=False)
+    assert e["what"] == "HOST" and e["why"] == "host silent"
+
+
+def test_reel_defaults_and_from_hold(pair):
+    mb, c = pair
+    to_mode(c, "REEL")
+    wrap(c)
+    with mb.lock:
+        mb.world.dart, mb.line_m, mb.world.slack_m = "anchored", 5.0, 0.0
+    m = c.event_mark()
+    c.cmd("reel", until="tension")                       # defaults: duty 0.86, max_n limit_n 20
+    e = c.wait_event("LIMIT", 10, since=m)
+    assert e["max_n"] == 20 and e["holding"]
+    c.wait_tel(lambda t: t["state"] == "HOLD", 2)
+    m = c.event_mark()
+    c.reel(1.0, max_n=30, until="tension")               # allowed from HOLD: winds again
+    assert c.wait_event("LIMIT", 10, since=m)["max_n"] == 30
 
 
 # ---------------------------------------------------------------- link
@@ -488,7 +581,7 @@ def test_telemetry_rate_doubles_while_moving():
         time.sleep(1.0)
         idle = len(n)
         n.clear()
-        c.mode("LAUNCH")   # drum moves 60 deg at 60 deg/s: 1 s
+        c.mode("LAUNCH")   # drum moves 40 deg at 10.8 deg/s: 3.7 s
         time.sleep(0.6)
         moving = len(n) / 0.6
         assert 7 <= idle <= 13

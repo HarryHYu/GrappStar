@@ -504,6 +504,7 @@ class Mission:
         try:
             s = self.dart.arm(True, auto=self.cfg.auto_anchor_on_landing)
             self.shot["dart_phase_at_arm"] = s["phase"]
+            self.shot["dart_t_ms_at_arm"] = s.get("t_ms")
             if not s.get("armed"):
                 raise StepFailed("dart did not arm")
         except DartRefused as e:
@@ -609,6 +610,13 @@ class Mission:
                 ds = self.dart.status()
                 if ds["phase"] == "FLIGHT":
                     seen_flight = True
+                t_arm = self.shot.get("dart_t_ms_at_arm")
+                if isinstance(t_arm, (int, float)) and isinstance(ds.get("t_ms"), (int, float)) and ds["t_ms"] < t_arm:
+                    # the dart rebooted (power plug dropout at impact): armed state and flight log are lost.
+                    # fw-dart: treat it as landed, then /stop and /auto.
+                    self.shot["dart_rebooted"] = True
+                    sources.add("dart")
+                    self.log.warn(f"dart rebooted during the flight (reset {ds.get('reset')}): treating as landed")
                 if ds["phase"] in ("LANDED", "ANCHORING", "ANCHORED") and (seen_flight or not stale):
                     sources.add("dart")
             except DartError:
@@ -719,6 +727,8 @@ class Mission:
             self.log.warn(f"could not set line_m on the base: {e}")
 
     def anchor(self) -> Optional[str]:
+        if self.shot.pop("dart_rebooted", False):
+            self.dart.safe_stop()              # clears a reboot FAULT before /auto
         s = self.dart.status()
         if s["phase"] == "FLIGHT":
             # /auto is refused in FLIGHT: the dart's own landing decision ends it (15 s timeout at worst)

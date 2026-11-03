@@ -138,6 +138,18 @@ class MockDart:
             return "IDLE"
 
     # ------------------------------------------------ world events
+    def reboot(self, reason: str = "brownout") -> None:
+        """Power dropout (the JST plug at impact): armed state and flight log are lost, millis restart."""
+        with self.lock:
+            self.t_boot = time.time()
+            self.armed = self.flying = self.landed = False
+            self._flightlog = None
+            self.t_launch_ms = self.t_land_ms = None
+            self.seq_t0 = self.seq_kind = None
+            self.seq = "idle"
+            self.fault = "BROWNOUT" if reason == "brownout" else None
+            self.event = f"boot ({reason})"
+
     def launch(self) -> None:
         with self.lock:
             if not self.armed or self.no_imu:
@@ -207,7 +219,7 @@ class MockDart:
                     "rail_V": 7.62, "current_mA": self.current_mA, "peak_mA": self.peak_mA, "speed": 255,
                     "motors": {"deploy": 0, "kick": 0, "drills": 0, "foot": 0}, "seq": self.seq,
                     "armed": self.armed, "auto_on_landing": self.auto_on_landing, "landed": self.landed,
-                    "roll": self.roll, "pitch": self.pitch, "accel_g": 1.0, "ina_ok": True,
+                    "roll": self.roll, "pitch": self.pitch, "accel_g": 1.0, "peak_g": 8.0 if self.t_land_ms else 1.0, "ina_ok": True,
                     "imu_ok": not self.no_imu, "t_launch_ms": self.t_launch_ms, "t_land_ms": self.t_land_ms,
                     "log_frozen": self._flightlog is not None, "reset": "poweron", "event": self.event}
 
@@ -241,7 +253,7 @@ class MockDart:
                     elif busy:
                         code, body = refuse("busy")
                     else:
-                        self.keys.append((time.time(), c, max(50, min(1500, ms))))
+                        self.keys.append((time.time(), c, max(50, min(500, ms))))
                         if self.seq in ("anchored", "released", "aborted"):
                             self.seq = "idle"
                 elif c == "A":
@@ -300,6 +312,10 @@ class MockDart:
                     self.armed = False
                     self._start_seq("release")
                     body = "release"
+            elif u.path == "/flightlog" and (self.armed or ph == "FLIGHT"):
+                code, body = refuse("armed" if self.armed and ph != "FLIGHT" else "in flight")
+            elif u.path == "/flightlog" and busy:
+                code, body = refuse("busy")
             elif u.path == "/flightlog":
                 fl = self._flightlog or (self.flightlog_provider() if self.flightlog_provider else None)
                 if fl is None:

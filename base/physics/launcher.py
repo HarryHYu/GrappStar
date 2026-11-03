@@ -8,7 +8,7 @@ The chain model is the reference; `lumped` is kept as a hand check.
 pulley_ratio r = carriage travel / spring extension change. r = 2 means a 2:1 block (the carriage moves twice as far
 as the spring end, and feels half the force). r = 1 is direct.
 
-python launch.py [--pitch 35] [--stroke 0.30] [--ratio 1] [--model chain] [--sweep]
+python launcher.py [--pitch 35] [--stroke 0.30] [--ratio 1] [--model chain] [--sweep]
 """
 from __future__ import annotations
 

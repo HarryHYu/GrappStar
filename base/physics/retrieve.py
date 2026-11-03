@@ -17,7 +17,7 @@ import math
 import os
 
 from common import G, load_params
-from launch import launch, reel_line_load
+from launcher import launch, reel_line_load
 from payout import line_radius, reel_props
 
 HERE = os.path.dirname(os.path.abspath(__file__))

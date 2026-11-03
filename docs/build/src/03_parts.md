@@ -7,7 +7,7 @@ looking in the box.
 
 - Search: "608ZZ bearing 8x22x7" (or "608-2RS", sealed). Buy 8 to 10. Skateboard bearings are 608s and fine.
 - Specs: 8 mm bore, 22 mm outside, 7 mm wide, rated well over 10,000 rpm.
-- Uses: storage reel (2), capstan or wrap arm (2), rollers and spares. Axles: M8 bolt or 8 mm rod (check the box).
+- Uses: storage reel (2), capstan or wrap arm (2), aim pedestal worm wheel and worm shaft (4), spares. Axles: M8 bolt or 8 mm rod (check the box).
 
 ## Possible extra purchases
 

@@ -252,12 +252,12 @@ def carriage_solid(P):
     up = n["u_peg_c"]
     for sg in (1, -1):
         ya, yb = (12.0, n["y_spring"] + 5) if sg > 0 else (-n["y_spring"] - 5, -12.0)
-        s.append(B(0, 14, ya, yb, n["lip_w1"] + 0.5, n["lip_w1"] + 6.5))
+        s.append(B(0, n["pusher_t"], ya, yb, n["lip_w1"] + 0.5, n["lip_w1"] + 14.0))   # behind the dart tail only
         s.append(cyl_w(3.0, n["w_spring"] - 9, n["lip_w1"] + 1, up, sg * n["y_spring"]))
         s.append(cyl_w(4.5, n["w_spring"] - 11, n["w_spring"] - 9, up, sg * n["y_spring"]))   # keeper flange
         # web from deck up to the arm at the rear (clears the lip: |y| < y_lip0)
-        s.append(B(0, 14, 12.0 if sg > 0 else -n["y_lip0"] + 0.5, n["y_lip0"] - 0.5 if sg > 0 else -12.0,
-                   n["w_deck0"], n["lip_w1"] + 6.5))
+        s.append(B(0, n["pusher_t"], 12.0 if sg > 0 else -n["y_lip0"] + 0.5, n["y_lip0"] - 0.5 if sg > 0 else -12.0,
+                   n["w_deck0"], n["lip_w1"] + 14.0))
     # stop tab under the rear (hits the rail stop pads at HOME)
     s.append(Bs(0, 8, n["stop_y0"], n["y_shoe0"] - 0.7, n["tab_w0"], n["w_deck0"] + 0.1))
     return prim.union(s)
@@ -342,6 +342,21 @@ def anchor_pin_solid(P):
 
 
 N_SEG = 5
+_DART = {}
+
+
+def dart_solid(P=None):
+    """KEDGE v30 folded, dart frame (nose x = 0, tail x = 151.97, belly z = -21): legs and bought parts from the
+    out30 meshes (launch_dart_v30_solid.npz, built by launch_dartmesh.py) plus the hull and nose as solids."""
+    if "s" in _DART:
+        return _DART["s"]
+    from manifold3d import Manifold, Mesh
+    d = np.load(os.path.join(_HERE, "launch_dart_v30_solid.npz"))
+    U = Manifold(Mesh(vert_properties=np.asarray(d["v"], np.float32), tri_verts=np.asarray(d["f"], np.uint32)))
+    hull = prim.cylX(21.0, 20.0, 151.97)
+    nose = prim.place(prim.cyl(11.0, 20.0, r2=21.0), tf.Ry(90))
+    _DART["s"] = U + hull + nose
+    return _DART["s"]
 
 
 def parts(P):
@@ -395,6 +410,10 @@ def parts(P):
     out.append(Part("launch_stop_pad_r", B(0, 10, -5.0, 0, 0, 14), "TPU", joint="launch_rail",
                     place=tf.T(n["u_c_home"] + 8.0, -n["stop_y0"], n["tab_w0"] - 8),
                     print_tf=tf.T(0, 5, 0), color="#222222", notes="Carriage stop pad"))
+    out.append(Part("launch_dart", dart_solid(P), "bought", joint="launch_dart",
+                    place=tf.mul(tf.T(n["u_tail_home"] + 152.0, 0, n["w_dart"] - 0.4), tf.Rz(180)),
+                    color="#e8e8e8", bought_ref="KEDGE v30 dart (reference, built separately)",
+                    notes="The dart, folded, belly on the cradle, tail on the pusher"))
     out += _aim("parts_aim", P)
     return out
 
@@ -408,6 +427,7 @@ def joints(P):
         Joint("launch_drive", None, "rev", (0.0, n["Y0"], n["axis_z"]), (0, 1, 0)),
         Joint("launch_carriage", "launch_rail", "slide", (0, 0, 0), (-1, 0, 0), limits=(0.0, n["stroke"] + 0.5)),
         Joint("launch_big_gear", "launch_rail", "rev", (n["cd"], 0, 0), (0, 1, 0)),
+        Joint("launch_dart", "launch_carriage", "slide", (0, 0, 0), (1, 0, 0)),
     ]
     for i in range(N_SEG):
         out.append(Joint(f"launch_spring_seg_{i}", "launch_rail", "slide", (0, 0, 0), (-1, 0, 0),
@@ -504,6 +524,8 @@ def kin(P, S):
         gdeg = gear_angle_for_travel(P, travel)
     out = {"launch_rail": pitch, "launch_carriage": travel, "launch_big_gear": gdeg,
            "launch_drive": -gdeg * g["ratio"] - pitch + _drive_phase(P), "launch_sleeve": S.get("wiper_deg", 0.0)}
+    flown = S.get("fired") and travel <= 0.0 or S.get("phase") in ("flight", "neutral", "reel_mode", "wrap", "winch")
+    out["launch_dart"] = float(S["launch_dart_fly"]) if "launch_dart_fly" in S else (3000.0 if flown else 0.0)
     if AIM is not None and hasattr(AIM, "kin_aim"):
         out.update(AIM.kin_aim(P, S, pitch))
     return out
@@ -540,6 +562,10 @@ def audit_states(P):
     a0 = gear_release_angle(P)
     for a in np.linspace(a0, -360.0, 9):
         S.append(dict(aim_deg=25.0, launch_travel=0.0, launch_gear_deg=float(a), phase="launch_reset"))
+    # the dart leaving the carriage at HOME and passing the muzzle (pitch low and high)
+    for p in (6.02, 47.0):
+        for d in np.arange(0.0, 320.0, 20.0):
+            S.append(dict(aim_deg=p, launch_travel=0.0, launch_dart_fly=float(d), phase="launch_flight"))
     S += _aim("audit_states_aim", P)
     return S
 

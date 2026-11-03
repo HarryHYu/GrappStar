@@ -663,9 +663,19 @@ def p2_centre():
     return np.array((x, y, z))
 
 
+def exit_in_dir():
+    """Unit direction (XZ plane) of the line from the cup ring's front mouth (home) to Harry's exit eye centre."""
+    rf = v7.cup_line_points()["ring_front"] + np.array((0.0, 0.0, Z_CUP))
+    d = EXIT - rf
+    return _unit((d[0], 0.0, d[2]))
+
+
 def p1_centre():
-    """Pulley 1 (693ZZ) centre: turns the line from +X (out of the exit eye) to R -Z (world +Y), axis R +Y."""
-    return np.array((EXIT[0] + P1_DX, EXIT[1], EXIT[2] - P1_R))
+    """Pulley 1 (693ZZ, D43: replaces the plain exit eye) centre, axis R +Y. Its groove line is tangent to Harry's
+    ring -> exit eye line AT the old eye centre (the v7 31.5 rule holds), on the inside of the turn down to R -Z."""
+    d = exit_in_dir()
+    n = np.array((d[2], 0.0, -d[0]))                     # perpendicular, toward -Z (the turn goes clockwise in XZ)
+    return EXIT + P1_R * n
 
 
 def exit_post_screws():
@@ -674,27 +684,31 @@ def exit_post_screws():
 
 
 def _exit_post():
-    """Exit eye post (PPA-CF): own foot on the wall's pad (4 x M3 off the centre lines), 16 x 16 column, gussets on
-    all four sides (the line pulls it toward -Z and -X), 6 mm top with the plain eye at the line height, and a fork
-    carrying pulley 1 on an M3 axle."""
+    """Pulley 1 post (PPA-CF; D43: the plain exit eye is gone, pulley 1 sits where it was). Own foot on the deck
+    (4 x M3), 16 x 16 column, gussets on all four sides, two cheeks round pulley 1 on an M3 x 20 axle, a web joining
+    the cheeks on the side away from the line (-X, -Z)."""
     ex, ey, ez = EXIT
     px, py, pz = p1_centre()
-    y0 = Y_DECK                                       # stands on the deck on its own foot (4 x M3 into inserts)
+    y0 = Y_DECK
+    gap = P1_T / 2 + 0.4
+    ylo = py - gap - 3.5
     foot = prim.box(ex - 20, ex + 20, y0, y0 + FOOT_T + 1.0, ez - 16, ez + 16)
-    col = prim.box(ex - 8, ex + 8, y0, ey - 9, ez - 8, ez + 8)
-    taper = prim.box(ex - 3, ex + 3, ey - 9.01, ey + 10.5, ez - 6, ez + 6)
+    col = prim.box(ex - 8, ex + 8, y0, ylo + 0.01, ez - 8, ez + 8)
     gus = []
     for s_ in (-1, 1):
         yg = y0 + FOOT_T - 1.0                     # gussets start inside the foot, not on its bottom face
         pts = [(ex + s_ * 7.5, yg), (ex + s_ * 16, yg), (ex + s_ * 7.5, yg + 36)]
         gus.append(prim.extrude(prim.poly_cs(pts), 16.0, z=ez - 8))
         gus.append(_gusset(ex - 4.0, ex + 4.0, ez + s_ * 7.5, ez + s_ * 13.5, yg, 36.0))
-    # pulley fork: two cheeks above and below the pulley rim, from the post top out past the pulley
-    gap = P1_T / 2 + 0.4
-    cheeks = [prim.box(ex + 2.0, px + 7.0, py + s_ * gap, py + s_ * (gap + 3.5), pz - 8.0, ez + 1.5) for s_ in (-1, 1)]
-    web = prim.box(ex - 2.5, ex + 2.5, ey - 9.5, ey + gap + 3.5, ez - 5.5, ez + 1.5)
-    body = prim.union([foot, col, taper, web] + gus + cheeks + _race_bosses(px, py, pz, gap))
-    cut = [_eye_cut(EXIT, exit_axis(), 6.0), prim.cylY(fits.M3_CLEAR_D / 2, py - 10, py + 10, x=px, z=pz)]
+    cr = 6.0                                        # cheek radius round the axle (the pulley rim r 9 stands out past it)
+    zw = (pz - P1_R - 6.0, pz - P1_R - 3.0)         # web band, clear of the pulley rim (r P1_R + 2)
+    cheeks = [Manifold.batch_hull([prim.cylY(cr, y0_, y1_, x=px, z=pz), prim.box(px - 6.0, px + 2.0, y0_, y1_, *zw)])
+              for y0_, y1_ in ((py - gap - 3.5, py - gap), (py + gap, py + gap + 3.5))]
+    pad = prim.box(px - 6.0, ex + 8, ylo - 0.01, py - gap, min(ez - 8, pz - cr), ez + 8)   # lower cheek on the
+    # column top, kept right of the incoming dart line (it comes in low and steep while the cup wraps)
+    web = prim.box(px - 6.0, px + 2.0, ylo, py + gap + 3.5, *zw)                          # -Z side, away from the line
+    body = prim.union([foot, col, pad, web] + gus + cheeks + _race_bosses(px, py, pz, gap))
+    cut = [prim.cylY(fits.M3_CLEAR_D / 2, py - 10, py + 10, x=px, z=pz)]
     for (x, z) in exit_post_screws():
         cut.append(prim.cylY(fits.M3_CLEAR_D / 2, y0 - 1, y0 + FOOT_T + 1, x=x, z=z))
     return body - prim.union(cut)
@@ -1277,12 +1291,11 @@ def _line_points(P, wraps=0.0, pack_r=None, z_spool=None):
         grv = np.array(grv)
         spans.append((np.vstack([turns[-1:], grv, [ring_r]]), {"reel_drum", "reel_cup"}))
     spans.append((np.array([ring_r, ring_f]), {"reel_cup"}))
-    spans.append((np.array([ring_f, EXIT]), {"reel_cup", "reel_exit_post"}))
     pc = p1_centre()
-    top = np.array((pc[0], pc[1], pc[2] + P1_R))
-    spans.append((np.array([EXIT, top]), {"reel_exit_post", "reel_pulley1"}))
-    arc = np.array([(pc[0] + P1_R * math.sin(t), pc[1], pc[2] + P1_R * math.cos(t))
-                    for t in np.linspace(0.0, math.pi / 2, 7)])
+    spans.append((np.array([ring_f, EXIT]), {"reel_cup", "reel_pulley1"}))
+    a0 = math.atan2(EXIT[2] - pc[2], EXIT[0] - pc[0])          # tangent point = old eye centre
+    arc = np.array([(pc[0] + P1_R * math.cos(t), pc[1], pc[2] + P1_R * math.sin(t))
+                    for t in np.linspace(a0, 0.0, 13)])
     spans.append((arc, {"reel_pulley1"}))
     p2 = p2_centre()
     in2 = np.array((p2[0] + P2_R, p2[1], p2[2]))
@@ -1384,8 +1397,8 @@ def line_check(P, wraps_list=None, local=None):
         sol = local(S) if callable(local) else _local_posed(P, S)
         for pts, allow in _line_points(P, w):
             if len(pts) == 2 and np.linalg.norm(pts[-1] - EXIT) < 1e-6:
-                # dart line: rides round the outside of the ring for half of each turn (v7 README) and enters the
-                # exit eye at an angle; it must clear the cup face and everything else
+                # dart line: rides round the outside of the ring for half of each turn (v7 README) and lands on
+                # pulley 1 at the old exit eye centre; it must clear the cup face and everything else
                 q = _trim(pts, 0.0, 0.0)
                 psi = -360.0 * w
                 M = tf.T(0, 0, Z_CUP) @ tf.Rz(psi)
@@ -1395,6 +1408,13 @@ def line_check(P, wraps_list=None, local=None):
                 sol2 = dict(sol)
                 sol2["reel_cup"] = sol["reel_cup"] - rz
                 sol2["reel_exit_post"] = sol["reel_exit_post"] - ez
+                # lands on the pulley groove at the old eye centre; mid-wrap (ring turned away from home, dart side
+                # slack by D22) it comes in steeply and may brush the pulley rim and the lower cheek near the landing
+                home = abs(w - round(w)) < 1e-6
+                land = Manifold.sphere(3.0 if home else 10.0, 32).translate(tuple(EXIT))
+                sol2["reel_pulley1"] = sol["reel_pulley1"] - land
+                if not home:
+                    sol2["reel_exit_post"] = sol2["reel_exit_post"] - land
                 for name, v in line.line_hits(q, sol2).items():
                     if v > 1e-3:
                         fails.append(f"line at {w:.3f} wraps: dart span hits {name} ({v:.3f} mm3)")
@@ -1447,7 +1467,7 @@ def steps(P):
     """Assembly steps, in order, plain language, hardware named per step."""
     return [
         dict(title="Screw the reel wall to the deck",
-             text="Stand the reel wall on the deck at its marked place. Put eight M3 screws down through the "
+             text="Stand the reel wall on the deck at its marked place. Put seven M3 screws down through the "
                   "counterbored foot holes into the deck inserts and tighten. Do this first: the storage reel and "
                   "the gears later cover some of the holes.",
              parts=["reel_wall"]),
@@ -1536,13 +1556,13 @@ def steps(P):
              text="Put the shroud round the reel, its flange on the wall, opening at the top right, and screw it on "
                   "with three M3 x 8 screws into the wall. The reel must not touch it anywhere.",
              parts=["reel_shroud"]),
-        dict(title="Exit eye post and line",
-             text="Stand the exit eye post on the pad at the front of the wall foot and screw it down with four M3 "
-                  "screws into the deck. Wind the line onto the reel (counter-clockwise seen from the front, line over "
-                  "the top), thread it through the guide eye, over the top of the cup, through the cup ring from the "
-                  "back, then through the exit eye. Press the 693ZZ into pulley 1, set the pulley between the fork "
-                  "cheeks with the line in its groove and push the M3 x 20 axle down through (nyloc nut under). Lead "
-                  "the line on toward the rail pivot pulley.",
+        dict(title="Pulley 1 post and line",
+             text="Stand the pulley 1 post on the deck in front of the wall and screw it down with four M3 screws "
+                  "into the deck. Press a 693ZZ into pulley 1 and set it between the post's two cheeks. Wind the line "
+                  "onto the reel (counter-clockwise seen from the front, line over the top), thread it through the "
+                  "guide eye, over the top of the cup and through the cup ring from the back. Lay it over pulley 1 "
+                  "in its groove (it comes up from the ring and turns down toward the deck), then push the M3 x 20 "
+                  "axle down through the cheeks and the pulley (nyloc nut under). Lead the line down to pulley 2.",
              parts=["reel_exit_post", "reel_pulley1", "reel_p1_brg", "reel_p1_axle"]),
     ]
 

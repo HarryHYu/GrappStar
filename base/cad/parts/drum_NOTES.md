@@ -1,6 +1,7 @@
 # Drum subsystem notes (worker cad-drum): main shaft, dog clutch, N20 selector drum
 
-Status: v4, 3 Nov 2026 12:20 Sydney. Conforms to BASE_SPEC v1.0 and params.py v1.0. Deviations are in section 0.
+Status: v5, 3 Nov 2026 12:30 Sydney. Conforms to params.py v1.2 (and D23, D24, D25 from v1.1). Deviations are in
+section 0.
 
 Every number lives in code:
 - `_drum_kin.py` DEFAULTS: angles, groove and brake profiles, Gray code, stop plan, timing, loads. It has no CAD
@@ -20,15 +21,17 @@ x = world x, y = world DOWN.
 | targets WRAP_START 62, WRAP_END 302 | park angles 56 and 309 | 62 and 302 sit exactly on code edges, so a stop there reads either code. 56 is mid WRAP_PREP; 309 is in N_TO_R with the cup locked and the collar still NEUTRAL (the collar ramp starts at 318). The wrap window itself is exactly 62..302 |
 | REEL cup gear driven by a 48T idler output | 42T m1.5 | 7 cup turns need 4 pinion turns x 42/24. 48/24 gives an even number (8 with 4 turns); 3.5 pinion turns would break the lock phase. Centre to the cup gear: 49.6 |
 | REEL zone 340..355 | REEL dwell 340..352 (target 347) | end stop |
+| WRAPPED park 309, clutch ramp 302..316 | park 314, clutch ramp 302..312 (FIRM from 312) | the tidy at the park needs FIRM. A 302..309 ramp at FIRM 5 N (pushrod about 15 N) needs 1.2 N m at the drum, under the 2x N20 margin. 314 is still in N_TO_R and the collar moves only from 318. A 30 percent rate error lands at 310.4..317.6 (clutch 0.92..1.0) |
+| L_TO_N clutch ramp 8..32 | clutch ramp 30..40 | after the collar shift, so the two loads do not add (margin 2.3); FIRM by the NEUTRAL park 41 |
 
 Everything else follows params: stack bands, drum axis (60, z -112), reel_output m2 50T face 12 at y 50.5..62.5,
-bus gear m1.5 at y 40..48, zones and Gray codes (A B C), the contacts SW_DRUM_A/B/C, SW_DOG_L/R, SW_N20 and
+bus gear m1.5 50T at y 40..48 (D25), zones and Gray codes (A B C), the contacts SW_DRUM_A/B/C, SW_DOG_L/R, SW_N20 and
 SW_INDEX, magnet face y 178.5, 5 N m limiter.
 
 ## 1. What it does
 
 - The wiper turns the coupler hub. A printed shear pin (about 5 N m, D8) drives the outer coupler, which carries:
-  - the take-up bus gear 40T m1.5 (D15, after the limiter);
+  - the take-up bus gear 50T m1.5 (D15/D25, after the limiter), meshing cad-reel c1 46T at 72.1;
   - the 6-bump SW_INDEX cam (D12);
   - the hex socket for the main shaft.
 - REEL output gear m2 50T (D20): free on a sleeve keyed to the hex. The sleeve is screwed to the coupler.
@@ -51,14 +54,14 @@ SW_INDEX, magnet face y 178.5, 5 N m limiter.
 | 0.5..21 | `drum_coupler_hub` PPA-CF OD 26 | wiper bore from params.WIPER (d10, flats 8, M8). M8 nut in a round pocket from s 14.5 (13 mm socket) |
 | 0.5..48 | `drum_coupler` PPA-CF OD 40 | runs on the hub; `drum_shear_pin` d4 radial at s 11.5, single shear at r 13 (about 5 N m at 30 MPa). Hex socket 22 AF s 30..48; M3 x 45 cross screw at s 35; 2 tapped M3 holes in the end face for the sleeve |
 | 3..9 | SW_INDEX cam on the coupler | 6 bumps, base r 20, nub lift 2.5, 24 deg wide at 50 percent |
-| 40..48 | bus gear on the coupler | 40T m1.5, face 8, tip r 31.5 |
+| 40..48 | bus gear on the coupler | 50T m1.5, face 8, tip r 39 |
 | 30..106 | `drum_shaft` hex 22 AF | |
-| 106..175.5 | spigot d12 | 1 mm flat from s 171.5 for the cap screw |
+| 106..198.5 | spigot d12 | runs through the launch sleeve bore (12.35) and the aim housing bushing (D23); 1 mm flat from s 194.5 for the cap screw |
 | 48..62 | `drum_sleeve_reel` | flange OD 44 s 48..50 (2 x M3 x 10 into the coupler), journal OD 30 s 50..62 |
 | 50.5..69.5 | `drum_gear_reel` m2 50T face 12 (s 50.5..62.5), hub to 64.5, dogs 64.5..69.5 | free on the sleeve; inner lip on the sleeve end. Lewis 10 MPa at 5 N m |
 | 72..98 | `drum_collar` at NEUTRAL | dogs 72..77 and 93..98, groove 82..88 (root r 26). It moves -7 to REEL (dog tips at 65) and +7 to LAUNCH (tips at 105) |
 | 100.5..111 | `drum_dogring_launch` | dogs 100.5..105.5, body 105.5..111 (OD 62). 3 slots in the back face; 3 x M3 tapped at r 28.5 from the sleeve side |
-| 172..178.5 | `drum_magnet_cap` | magnet pocket d6.2 x 2.6, face at s 178.5; radial M3 x 6 onto the spigot flat |
+| 195..201.5 | `drum_magnet_cap` | magnet pocket d6.2 x 2.6, face at s 201.5 (params magnet_face_y); radial M3 x 6 onto the spigot flat. AS5600 bracket: cad-launch |
 
 ### 2b. Launch sleeve interface (cad-launch)
 
@@ -88,7 +91,7 @@ SW_INDEX, magnet face y 178.5, 5 N m limiter.
 | s | feature |
 |---|---|
 | 8..16 | drum gear 120T m0.8 x -0.3 (tip r 48.6). N20 pinion 10T m0.8 x +0.3 (tip shortened 0.08 m), centre 52.1 at drum angle -40 (L: front, up): world x 99.9, z -78.5 |
-| 18..29 | brake cam: base r 22, lift 0 (LIGHT) or 4 (FIRM). Follower contact at L angle 180 (straight back) |
+| 18..29 | brake cam: base r 30, lift 0 (LIGHT) or 4 (FIRM). Follower contact at L angle 180 (straight back), 15 N at FIRM |
 | 52..60 | segment gear m1.25 from 60T, 39 teeth over the 240 deg window |
 | 60.3..66 | locking arc ring r 38 |
 | 29..77 | neck r 10, with the cones |
@@ -124,11 +127,11 @@ Other parts:
 | zone (params) | drum deg | collar | clutch | cup | code A B C |
 |---|---|---|---|---|---|
 | LAUNCH | -4..8 (target 0) | LAUNCH | LIGHT | home, locked | 100 |
-| L_TO_N | 8..32 | ramp 8..32 | LIGHT to FIRM | locked | 110 (code from 6) |
+| L_TO_N | 8..32 | ramp 8..32 | LIGHT (ramps to FIRM over 30..40) | locked | 110 (code from 6) |
 | NEUTRAL | 32..50 (target 41) | NEUTRAL | FIRM | locked | 010 (from 34) |
 | WRAP_PREP | 50..62 (park 56) | NEUTRAL | FIRM to LIGHT | lock frees at 62 | 011 |
 | WRAP | 62..302 | NEUTRAL | LIGHT | 7 turns, linear | 001 |
-| N_TO_R | 302..340 (park WRAPPED 309) | ramp 318..340 | LIGHT to FIRM 302..316 | locked at 7 | 101 |
+| N_TO_R | 302..340 (park WRAPPED 314) | NEUTRAL to 318, ramp 318..340 | LIGHT to FIRM 302..312 | locked at 7 | 101 |
 | REEL | 340..352 (target 347) | REEL | FIRM | locked | 111 (from 342) |
 
 - Bit arcs (closed inside):
@@ -146,13 +149,13 @@ Other parts:
 | NEUTRAL 41 | - | 50 | 011 to 010 | 9 |
 | WRAP_START 56 | + | 50 | 010 to 011 | 6 |
 | WRAP_START 56 | - | 62 | 001 to 011 | 6 |
-| WRAPPED 309 | + | 302 | 001 to 101 | 7 |
-| WRAPPED 309 | - | pass down to edge 302 (101 to 001), then + 7 | | |
+| WRAPPED 314 | + | 302 | 001 to 101 | 12 |
+| WRAPPED 314 | - | pass down to edge 302 (101 to 001), then + 12 | | |
 | REEL 347 | + | 342 | 101 to 111 | 5 |
 
 Rate and timing:
 - 8.1 deg/s nominal. A 30 percent rate error stays in the right zone (tested).
-- Nominal times: LAUNCH to NEUTRAL 5.1 s, wrap window 29.6 s, WRAPPED to REEL 4.7 s, full travel 44 s.
+- Nominal times: LAUNCH to NEUTRAL 5.1 s, wrap window 29.6 s, WRAPPED to REEL 4.1 s, full travel 44 s.
 - Timeout = 2 x nominal + 2 s, then DRUM_TIMEOUT.
 
 ## 7. Firmware rules (from both review rounds)
@@ -168,7 +171,7 @@ Rate and timing:
      closes.
    - Leaving LAUNCH or REEL under load: unload jog 8 deg (half the dog play) against the last load, then move.
    - Still disagreeing after 3 tries: SWITCH_DISAGREE.
-4. Fault from REEL or N_TO_R: go to WRAPPED (309), never back through the wrap window. The collar is NEUTRAL there
+4. Fault from REEL or N_TO_R: go to WRAPPED (314), never back through the wrap window. The collar is NEUTRAL there
    and the wraps and the locked cup stay on (the tow load is held by sprag #2). Fault from LAUNCH or L_TO_N: go to
    NEUTRAL (41).
 5. Boot:
@@ -196,11 +199,15 @@ Levers: PLA beam 1.6 thick, 30 long, round nub r 1.5, M3 x 6 in a 4 mm boss 8 mm
 ## 9. Loads and strength
 
 - N20 stall estimate 0.22 N m at 9 V (0.20 used). Drum stall capacity 2.16 N m at 12:1.
-- Peak drum load 1.05 N m at drum 20 (collar shift plus clutch ramp), margin 2.05 (params rule: at least 2):
-  - fork: block force 6.75 N plus 3 N friction, x 1.68 racking (40 mm sleeve);
-  - groove pressure angle 44 deg, efficiency from the pressure angle and mu 0.3;
-  - brake: 10 N follower;
-  - wrap: 0.06 N m at the cup x 10.5 / 0.81 = 0.78 N m.
+- Peak drum load 0.93 N m (at drum 32), margin 2.3 (params rule: at least 2). Peaks per load:
+
+| load | peak N m | basis |
+|---|---|---|
+| fork shift | 0.86 | block force 6.75 N plus 3 N friction, x 1.68 racking (40 mm sleeve); groove pressure angle 44 deg, efficiency from the pressure angle with mu 0.3 |
+| clutch ramps | 0.78 | 15 N pushrod at FIRM 5 N (D24, cad-reel to confirm), cam r 30 to 34, constant-slope ramps with blends |
+| wrap | 0.78 | 0.06 N m at the cup x 10.5 / 0.81 |
+
+  The ramps are placed so the loads do not add.
 - At the 5 N m limiter:
   - hex torsion 2.5 MPa;
   - REEL gear Lewis 10 MPa (31 MPa even at 15 N m);

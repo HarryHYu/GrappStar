@@ -5,12 +5,20 @@ Status: in progress. Final version at 18:30 Sydney.
 ## Done
 
 - `make_guide.py`: builds `GrappStar_Build_Guide.md` and `.pdf` from `docs/build/src/NN_*.md` plus the other workers'
-  docs (included live, headings pushed down). Missing sources become placeholders naming the owner, so it always
-  builds. Appends `base/guide/*.pdf` and the KEDGE v30 run sheet as PDF appendices (pypdf). Renders the system
-  diagram with graphviz. Lints for em dashes. Re-run: `python3 docs/build/make_guide.py`
-  (needs reportlab, pypdf, pillow; graphviz `dot` optional).
-- `SYSTEM_ELECTRICAL.md` + `system_electrical.dot/.svg/.png`.
-- `MEASURE_LIST.md`, `TEST_PLAN.md`, `README_draft.md`.
+  docs, included live (headings pushed down, relative images fixed). Directives: include, includeglob, image,
+  imageglob, csv, printlist (base pack in any of csv/json/md form, from base/pack or base/out/base/pack; dart from
+  kedge/pack_v30), wiremap (run sheet v29 wire numbers to the new dart numbers), assumed (params measured=False and
+  None blocks), status, date. Missing sources become placeholders naming the owner, so it always builds. Appends
+  `base/guide/*.pdf` and the KEDGE v30 run sheet as PDF appendices with bookmarks. Renders the system diagram with
+  graphviz (wide pictures get their own rotated page). Lints for em dashes. Also writes the one-pagers:
+  `Wiring_Cheat_Sheet_Base.pdf`, `Wiring_Cheat_Sheet_Dart.pdf`, `Commands_Cheat_Sheet.pdf`, and
+  `MEASURE_RESULTS.md/.pdf` (fill-in sheet generated from MEASURE_LIST).
+  Re-run: `python3 docs/build/make_guide.py` (reportlab, pypdf, pillow; graphviz `dot` optional).
+- `SYSTEM_ELECTRICAL.md` + `system_electrical.dot/.svg/.png`: whole rover, gauges, fuses, first power-on sequence.
+- `MEASURE_LIST.md` (Item | How | Changes | Reprint, groups A to H, read by the coordinator's site), `TEST_PLAN.md`
+  (stages 0 coupons to 9 full mission), `FIRST_DAY.md`, `README_draft.md` (coordinator owns the root README).
+- `test_make_guide.py`: 6 PC tests (em dash cleaning, heading demotion, placeholders, dart print list, full build has
+  sections 1 to 15 and the key safety strings, base pack in csv/json/md forms plus the coupon sheet).
 
 ## Decisions made (owner away)
 
@@ -83,3 +91,18 @@ Status: in progress. Final version at 18:30 Sydney.
   bench-supply reading of BENCH_TEST steps 0 to 2, hole compensation location, spring measured with a rule and real
   weights, dart plates do not wait for base coupons, kickContactMa wording, part references. Sent to fw-dart: bench
   supply version of BENCH_TEST 0 to 2. fw-base items (SLP, MP1584, 2 A fuse) already sent; guide notes cover them.
+- Round 6 (fresh safety reviewer): 14 findings. Fixed: one stop rule everywhere (estop, lead #2 XT60 as the physical
+  kill, then battery), "cutting power freezes stored energy", an approach checklist and a failed-decock procedure,
+  hand lever never under load, line-tension stance and G9 before any tow, spring hook margin (42 N vs 43.6 N) with
+  stance and the preload fallback, unfused Y harness kept under 10 cm, 18350 charging on the B6 (Li-ion 2S, 1 A),
+  dart pick-up rule, rover chocked and LiPo strapped, require_seated back on before shots, meter range wording.
+  Sent: jetson README (COCK runs without a prompt; one stop rule), fw-dart (no cloth near augers).
+- Round 7 (learner, sections 7 to 11 against the firmware headers and cli.py): every JSON command, set/get key, cal
+  word and CLI subcommand quoted is accepted by the code. Fixed: order of work now bench-tests the electronics with
+  the motor in a vice BEFORE base assembly, then calibrates on the assembled base; where to type commands (Mac
+  Serial Monitor vs `grappstar base cmd` on the Jetson, stop the service first); Jetson wall-supply branch in the
+  power-on sequence; flashing with the wiring left on; glossary terms. Sent to fw-base (cock_rest before mode
+  changes, two command hosts, free current after (c), AS5600 fault test without hands near the shaft, magnet gap,
+  fuse) and jetson (service holds the port).
+- params 1.2.1 folded in: D30 springs C-243 rated 38.4 N, full cock 265 mm; D31 SW_DOG_L/R; D32 17 N/A; range
+  4.8 m at 36 deg, 8.5 m with four springs.

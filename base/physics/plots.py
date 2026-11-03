@@ -76,7 +76,9 @@ def trajectory_plot(path, pitches=(10.0, 25.0, 36.0, 47.0)):
     plt.close(fig)
 
 
-def main():
+def main(argv=None):
+    import argparse
+    argparse.ArgumentParser(description=__doc__.splitlines()[0]).parse_args(argv)
     _style()
     os.makedirs(OUT_DIR, exist_ok=True)
     range_plot(os.path.join(OUT_DIR, "range_vs_pitch.png"))

@@ -1,3 +1,4 @@
 build/
 runs/
 __pycache__/
+runs_all.log

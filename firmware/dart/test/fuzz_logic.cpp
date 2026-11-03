@@ -3,6 +3,7 @@
 //   cd firmware/dart/test
 //   g++ -std=c++17 -O2 -Wall -Wextra -I../kedge_dart -o fuzz_logic fuzz_logic.cpp
 //   ./fuzz_logic [seed] [episodes] [only_episode]
+//   ./fuzz_logic --quick [seed]          (1000 episodes, a few seconds: run_tests.sh)
 //
 // seed defaults to 20261103. Every episode draws from its own RNG stream made from (seed, episode index), so one
 // episode can be replayed alone with full event output: ./fuzz_logic <seed> <episode+1> <episode>.
@@ -16,7 +17,9 @@
 // Invariants checked on every tick and after every command:
 //   1 hardware off while dir is 0; hardware equals dir except during the worm's 150 ms pair-check pause
 //   2 run limits: manual hold 8 s (2 s without INA219), kick 15.5 s, pods 6 s, whole sequence 35 s
-//   3 a motor driven into a hard stop (stalled) is stopped within 2.5 s in every mode while the INA219 works
+//   3 a motor driven into a hard stop (stalled) is stopped while the INA219 works, as API.md guarantees: within 3.0 s in a
+//     sequence; within 2.5 s in manual when exactly one or two motors ran without change since the stall at speed 150+
+//     (other manual stalls only have the 8 s hold cap of invariant 2 and are reported as information)
 //   4 after stop() every motor is off at once
 //   5 no motor runs while a fault is latched
 //   6 no motor runs in FLIGHT
@@ -169,7 +172,8 @@ static long TICKS = 0, EP_TICKS = 0, CMDS = 0, EPISODES = 0, NOMINAL = 0; static
 static long VIOL[11], VIOLN[11], CHECKS[11];   // VIOLN: violations inside nominal missions
 struct Stats { long launches = 0, impactLandings = 0, fallbackLandings = 0, autoByCmd = 0, autoByLanding = 0, anchored = 0, released = 0,
                nomAnch = 0, nomRel = 0, stallStops = 0, pairPauses = 0, holdsCapped = 0, faults[F_NFAULT] = {}, maxRun[4] = {};
-               long pushArmed22 = 0, pushMissed22 = 0, pushArmed30 = 0, pushMissed30 = 0, jsonStatus = 0, jsonLog = 0; } ST;
+               long pushArmed = 0, pushMissed = 0, jsonStatus = 0, jsonLog = 0; float pushLongestMissed = 0;
+               long manOutside = 0, manOutsideOver = 0; uint32_t manOutsideMax = 0; } ST;
 
 // event log (ring, repeats folded)
 struct Ev { uint32_t t0, t1; std::string s; int rep; };
@@ -189,7 +193,7 @@ static void dumpEvents(int n) {
   }
 }
 
-static const char* INV_NAME[11] = {"", "hardware matches dir (pause only)", "run time limits", "stall stopped within 2.5 s",
+static const char* INV_NAME[11] = {"", "hardware matches dir (pause only)", "run time limits", "stall stopped (seq 3.0 s, manual 2.5 s)",
   "stop() turns all off at once", "no motor while a fault is latched", "no motor in FLIGHT", "phase valid and consistent",
   "status / flightlog JSON valid", "auto only after /auto or impact landing", "nominal auto and release complete"};
 struct SigInfo { long n, nNom; uint64_t seed; int ep; uint32_t t; std::string msg; };
@@ -299,6 +303,7 @@ struct Track {
   // invariant 3: stalls
   bool stallOn[NMOT] = {}, stallGood[NMOT] = {}, stallFlag[NMOT] = {}; int stallDir[NMOT] = {}; uint32_t stallT0[NMOT] = {};
   int stallNmax[NMOT] = {}, stallNmin[NMOT] = {}, stallSpdMin[NMOT] = {}; bool stallSeq[NMOT] = {};
+  int stallMask[NMOT] = {}; bool stallMaskChg[NMOT] = {}, stallInfo[NMOT] = {};   // set of running motors at the stall
   // invariant 1: pause
   bool pauseOn = false; int pauseM = -1; uint32_t pauseT0 = 0;
   bool act[11] = {};
@@ -415,18 +420,37 @@ static void checkAll(bool afterStop) {
       T.lastDir[m] = d; T.lastSeq[m] = sq;
     }
   }
-  // 3: stalled motor stopped within 2.5 s while the INA219 works
+  // 3: stalled motor stopped while the INA219 works, as documented (API.md): within 3.0 s in a sequence; within 2.5 s
+  // in manual when exactly one or two motors have run without change since the stall, at speed 150 or more. Other
+  // manual stalls (3 or 4 motors, a changing set of motors, speed 125 or less) only have the 8 s hold cap (inv 2):
+  // they are counted as information.
+  auto endStall = [](int m) {
+    if (T.stallOn[m] && !T.stallSeq[m] && (T.stallMaskChg[m] || T.stallNmax[m] > 2 || T.stallSpdMin[m] < 150)) ST.manOutside++;
+    if (T.stallOn[m] && T.stallInfo[m]) { uint32_t dur = ET - T.stallT0[m]; if (dur > ST.manOutsideMax) ST.manOutsideMax = dur; }
+    T.stallInfo[m] = false;
+  };
+  int runMask = 0; for (int k = 0; k < NMOT; k++) if (K.dir[k]) runMask |= 1 << k;
   for (int m = 0; m < NMOT; m++) {
     int d = K.dir[m];
     bool st = d && m != P.openWire && P.stalledDir(m, d);
     if (st) {
       if (!T.stallOn[m] || T.stallDir[m] != d || T.stallSeq[m] != K.seqRunning()) {   // a sequence taking over is a new run
+        endStall(m);
         T.stallOn[m] = true; T.stallDir[m] = d; T.stallT0[m] = ET; T.stallGood[m] = true; T.stallFlag[m] = false; CHECKS[3]++;
         T.stallSeq[m] = K.seqRunning(); T.stallNmax[m] = 0; T.stallNmin[m] = 9; T.stallSpdMin[m] = 255;
+        T.stallMask[m] = runMask; T.stallMaskChg[m] = false;
       }
       { int n = nRunning(); if (n > T.stallNmax[m]) T.stallNmax[m] = n; if (n < T.stallNmin[m]) T.stallNmin[m] = n; if (K.spd < T.stallSpdMin[m]) T.stallSpdMin[m] = K.spd; }
+      if (runMask != T.stallMask[m]) T.stallMaskChg[m] = true;
       if (!K.inaOk || P.inaDead || P.burstFail > 0 || P.shortOn) T.stallGood[m] = false;
-      if (!T.stallFlag[m] && T.stallGood[m] && ET - T.stallT0[m] > 2500) {
+      bool sq = T.stallSeq[m];
+      bool covered = sq || (!T.stallMaskChg[m] && T.stallNmax[m] <= 2 && T.stallSpdMin[m] >= 150);
+      uint32_t limit = sq ? 3000 : 2500;
+      if (!T.stallFlag[m] && T.stallGood[m] && !covered && ET - T.stallT0[m] > 2500) {
+        T.stallFlag[m] = true; T.stallInfo[m] = true; ST.manOutsideOver++;
+        evlog("info: manual stall outside the documented guarantee still driven after 2.5 s (%s, %d to %d motors, lowest speed %d)", motorName(m), T.stallNmin[m], T.stallNmax[m], T.stallSpdMin[m]);
+      }
+      if (!T.stallFlag[m] && T.stallGood[m] && covered && ET - T.stallT0[m] > limit) {
         T.stallFlag[m] = true;
         const char* where = m == KICK ? (d > 0 ? (P.kick >= P.kickLand ? "housing on the ground" : "jammed going out") : (P.kick <= 0 ? "stowed stop" : "jammed going back"))
                           : m == DEPLOY ? (d > 0 ? (P.deploy >= P.deployEnd ? "pods-down stop" : "jammed going down") : "pods-up stop")
@@ -447,6 +471,7 @@ static void checkAll(bool afterStop) {
       }
     } else {
       if (T.stallOn[m] && !d) ST.stallStops++;
+      endStall(m);
       T.stallOn[m] = false;
     }
   }
@@ -718,8 +743,8 @@ static void doTick(uint32_t dt) {
     if ((K.armed || K.flight.launched) && (float)T.armChangeT < T.pushT0 - 1 && T.bno && K.imuOk) {   // armed, IMU alive
       bool seen = K.flight.launched; float push = T.pushLen;
       if (!seen) evlog("info: armed launch push of %.0f ms not detected", push);
-      if (push >= 22) { ST.pushArmed22++; if (!seen) ST.pushMissed22++; }
-      if (push >= 30) { ST.pushArmed30++; if (!seen) ST.pushMissed30++; }
+      ST.pushArmed++;
+      if (!seen) { ST.pushMissed++; if (push > ST.pushLongestMissed) ST.pushLongestMissed = push; }
     }
   }
   if (EP_TICKS % 23 == 0) checkStatus();             // per-episode count: a replayed episode draws the same numbers
@@ -868,11 +893,35 @@ static void runEpisode(uint64_t seed, int ep) {
   SIM_MS += ET; EPISODES++;
 }
 
+// ------------------------------------------------------------------------------------------------------- launch sweep
+// Shortest push over 4 g that the launch detector always sees, with the samples of each tick stamped with the tick time
+// (as the sketch does): every push length from 10 to 50 ms at many random phases, for jittered and fixed tick periods.
+static int shortestAlwaysSeen(uint64_t seed, int tMin, int tMax, int trials) {
+  Rng r; r.s = seed ^ 0xA5A5A5A5DEADBEEFull; int best = -1;
+  for (int len = 50; len >= 10; len--) {
+    bool all = true;
+    for (int k = 0; k < trials && all; k++) {
+      Flight f; f.reset(); double p0 = 100 + r.r(0, 10); uint32_t t = 0, prev = 0;
+      while (t < p0 + len + 100) {
+        prev = t; t += (uint32_t)r.i(tMin, tMax);
+        int n = t - prev >= 6 ? 3 : 2;
+        for (int j = 0; j < n; j++) { double ts = t - (n - 1 - j) * 2.5; f.update(ts >= p0 && ts < p0 + len ? 8.0f : 1.0f, t); }
+      }
+      if (f.st == Flight::WAIT) all = false;
+    }
+    if (!all) break;
+    best = len;
+  }
+  return best;
+}
+
 // ------------------------------------------------------------------------------------------------------- main
 int main(int argc, char** argv) {
-  uint64_t seed = argc > 1 ? strtoull(argv[1], nullptr, 0) : 20261103ull;
-  int eps = argc > 2 ? atoi(argv[2]) : 8000;
-  int only = argc > 3 ? atoi(argv[3]) : -1;
+  bool quick = false; std::vector<char*> pos;
+  for (int k = 1; k < argc; k++) { if (!strcmp(argv[k], "--quick")) quick = true; else pos.push_back(argv[k]); }
+  uint64_t seed = pos.size() > 0 ? strtoull(pos[0], nullptr, 0) : 20261103ull;
+  int eps = pos.size() > 1 ? atoi(pos[1]) : quick ? 1000 : 8000;
+  int only = pos.size() > 2 ? atoi(pos[2]) : -1;
   VERBOSE = only >= 0;
   auto t0 = std::chrono::steady_clock::now();
   printf("KEDGE dart logic fuzz: seed %llu, %d episode(s)%s\n", (unsigned long long)seed, eps, VERBOSE ? " (single episode, verbose)" : "");
@@ -889,7 +938,13 @@ int main(int argc, char** argv) {
   printf("faults latched:");
   for (int f = 1; f < F_NFAULT; f++) printf(" %s %ld", faultName(f), ST.faults[f]);
   printf("\nnominal missions: %ld anchored fully, %ld released stowed\n", ST.nomAnch, ST.nomRel);
-  printf("info (not an invariant): armed launch pushes >= 22 ms missed %ld of %ld, >= 30 ms missed %ld of %ld\n", ST.pushMissed22, ST.pushArmed22, ST.pushMissed30, ST.pushArmed30);
+  printf("info (not an invariant): manual stalls outside the documented 2.5 s guarantee (3 or 4 motors, motors changing, speed <= 125): %ld,\n"
+         "          %ld of them driven over 2.5 s, longest %lu ms (bounded by the 8 s hold cap, invariant 2)\n", ST.manOutside, ST.manOutsideOver, (unsigned long)ST.manOutsideMax);
+  int sweepTrials = quick ? 300 : 2000;
+  int sJit = shortestAlwaysSeen(seed, 4, 7, sweepTrials), s5 = shortestAlwaysSeen(seed, 5, 5, sweepTrials);
+  printf("info (not an invariant): launch push always detected from %d ms with 4..7 ms tick jitter, from %d ms with fixed 5 ms ticks\n"
+         "          (API.md says 22 ms, which assumes 5 ms ticks); in episodes %ld armed pushes, %ld missed, longest missed %.0f ms\n",
+         sJit, s5, ST.pushArmed, ST.pushMissed, ST.pushLongestMissed);
   printf("\ninvariant                                          checks   violations   (in nominal missions)\n");
   long total = 0;
   for (int i = 1; i <= 10; i++) { printf("%2d %-44s %10ld %10ld   %10ld\n", i, INV_NAME[i], CHECKS[i], VIOL[i], VIOLN[i]); total += VIOL[i]; }

@@ -1,14 +1,14 @@
 {
- "params_source": "base/spec/params.py v1.0",
+ "params_source": "base/spec/params.py v1.2",
  "snatch": {
   "slack_m": 0.245,
-  "reel_mass_eff_kg": 0.03361728278281651,
-  "v_taut": 7.778339578715577,
-  "v_no_line_in_stroke": 8.186236589368272,
-  "v_after_snatch": 7.305930075594943,
-  "speed_loss_vs_taut": 0.060733977777638004,
-  "ke_loss_snatch_j": 1.0052924363110076,
-  "line_spike_n_upper": 259.7485149670437,
+  "reel_mass_eff_kg": 0.03830294308908547,
+  "v_taut": 7.411066378980119,
+  "v_no_line_in_stroke": 7.852841874426275,
+  "v_after_snatch": 6.90489303892087,
+  "speed_loss_vs_taut": 0.06829966352681716,
+  "ke_loss_snatch_j": 1.0384508772827301,
+  "line_spike_n_upper": 263.99751845522894,
   "line_break_n": 667.0
  },
  "wrap": {
@@ -72,37 +72,37 @@
    "seat_force": 1.0,
    "eye_gain": 1.3
   },
-  "clutch_torque_nm": 0.09217537556033985,
-  "avail_at_reel_n": 3.0,
-  "avail_at_dart_n": 2.3076923076923075,
+  "clutch_torque_nm": 0.15362562593389975,
+  "avail_at_reel_n": 5.0,
+  "avail_at_dart_n": 3.846153846153846,
   "rows": [
    {
     "pitch_deg": 5.0,
     "mu": 0.3,
     "need_n": 2.056516874361951,
-    "avail_n": 2.3076923076923075,
-    "margin": 1.1221363347228965
+    "avail_n": 3.846153846153846,
+    "margin": 1.870227224538161
    },
    {
     "pitch_deg": 5.0,
     "mu": 0.4,
     "need_n": 2.3291743670349643,
-    "avail_n": 2.3076923076923075,
-    "margin": 0.9907769638689595
+    "avail_n": 3.846153846153846,
+    "margin": 1.6512949397815992
    },
    {
     "pitch_deg": 10.0,
     "mu": 0.3,
     "need_n": 2.2838960173676766,
-    "avail_n": 2.3076923076923075,
-    "margin": 1.0104191653839203
+    "avail_n": 3.846153846153846,
+    "margin": 1.684031942306534
    },
    {
     "pitch_deg": 10.0,
     "mu": 0.4,
     "need_n": 2.5534369145593656,
-    "avail_n": 2.3076923076923075,
-    "margin": 0.9037592801036696
+    "avail_n": 3.846153846153846,
+    "margin": 1.5062654668394493
    }
   ],
   "firm_setting_for_1p5_margin_n_full_reel": 4.979201983390763

@@ -143,7 +143,7 @@ def apply(p, path=None):
     if isinstance(dr, dict) and dr.get("torque_limiter_nm") is not None:
         p.wiper.limiter_nm = float(dr["torque_limiter_nm"])
         used.append("DRUM.torque_limiter_nm")
-    # SPRING.max_ext only caps (launch.py flags over_safe); the stroke comes from LAUNCH or the D5 defaults
+    # SPRING.max_ext only caps (launcher.py flags over_safe); the stroke comes from LAUNCH or the D5 defaults
     _overlay(p, getattr(mod, "AIM", None), AIM_MAP, used)
     _overlay(p, getattr(mod, "REEL", None), REEL_MAP, used)
     pending = [n for n in ("LAUNCH", "AIM", "REEL", "LAYOUT") if getattr(mod, n, None) is None]

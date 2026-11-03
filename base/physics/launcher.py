@@ -248,6 +248,8 @@ def main(argv=None):
     ap.add_argument("--sweep", action="store_true", help="pulley ratio sweep at the given stroke")
     ap.add_argument("--json", default=os.path.join(OUT_DIR, "launch.json"))
     a = ap.parse_args(argv)
+    _defaults = vars(ap.parse_args([]))
+    write_ok = a.json != _defaults["json"] or vars(a) == _defaults   # odd flags never overwrite the committed output
     p = load_params()
     over = {}
     if a.stroke is not None:
@@ -258,6 +260,8 @@ def main(argv=None):
     sp = p.spring
     lim = sp.limits()
     print(f"params: {p.source}")
+    if res.get("over_safe"):
+        print(f"WARNING: spring extension {res['ext_full_mm']:.0f} mm is over the limit {res['ext_cap_mm']:.0f} mm: the speed below is not safe to use")
     print(f"spring: k {sp.k / 1000:.3f} N/mm (formula {sp.rate_formula:.3f}), Fi {sp.f_init} N, body coils {sp.n_body:.1f}, "
           f"mass {sp.mass * 1000:.1f} g, surge {sp.surge()['f_fixed_fixed_hz']:.1f} Hz")
     print(f"spring safe: {lim['f_safe_n']:.1f} N ({lim['governed_by']}), extension {lim['ext_safe_mm']:.0f} mm, "
@@ -277,7 +281,10 @@ def main(argv=None):
         for row in out["ratio_sweep"]:
             print("  ", {k: (round(v, 3) if isinstance(v, float) else v) for k, v in row.items()})
     os.makedirs(os.path.dirname(a.json), exist_ok=True)
-    json.dump(out, open(a.json, "w"), indent=1)
+    if write_ok:
+        json.dump(out, open(a.json, "w"), indent=1)
+    else:
+        print("(non-default flags: output JSON left unchanged; pass --json PATH to save)")
     return out
 
 

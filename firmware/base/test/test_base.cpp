@@ -450,6 +450,39 @@ static void testTowTaper() {
   CHECK(S.tension() < 50, "no overshoot");
 }
 
+static long armTok(Rig& R) { std::string a = R.cmd("{\"id\":2,\"cmd\":\"arm\"}"); size_t p = a.find("\"token\":"); return p == std::string::npos ? -1 : atol(a.c_str() + p + 8); }
+static void testReview7() {
+  T("review M1: a fault with the big gear out of its gap (SW_GAP open) holds the drum in LAUNCH");
+  { Rig R; S.aimDragDeg = 127; R.toMode("LAUNCH"); R.cmd("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}");
+    R.until([&] { return !R.B.closed(gb::SW_GAP) && S.cockPh < -60; }, 60000);
+    CHECK(!R.B.closed(gb::SW_GAP) && R.B.closed(gb::SW_HOME), "SW_GAP opened by the aim drag, carriage home");
+    R.cmd("{\"id\":2,\"cmd\":\"estop\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 40000);
+    CHECK(R.B.sec == gb::SEC_LAUNCH, "drum still in LAUNCH after the estop");
+    CHECK(R.lastEvt("MODE").find("DRUM_HELD") != std::string::npos, "MODE ok:false DRUM_HELD"); }
+  T("review M2: mode, cock and decock cancel the arm token even when nothing moves");
+  { Rig R; R.toMode("LAUNCH"); CHECK(R.homeAimAndCock(), "aimed and cocked");
+    long tok = armTok(R); CHECK(tok >= 0, "armed");
+    R.cmd("{\"id\":4,\"cmd\":\"cock\"}");
+    CHECK(R.err("{\"id\":6,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}") == "NOT_ARMED", "cock when cocked cancels the token");
+    tok = armTok(R); CHECK(tok >= 0, "armed again"); R.cmd("{\"id\":5,\"cmd\":\"mode\",\"to\":\"LAUNCH\"}");
+    CHECK(R.err("{\"id\":6,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}") == "NOT_ARMED", "mode LAUNCH when there cancels the token");
+    CHECK(S.shots == 0, "no shot"); }
+  { Rig R; R.toMode("LAUNCH"); R.cmd("{\"id\":3,\"cmd\":\"aim\",\"deg\":35}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000);
+    long tok = armTok(R); R.cmd("{\"id\":4,\"cmd\":\"cal\",\"what\":\"decock\"}");
+    std::string e = R.err("{\"id\":6,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}");
+    CHECK(e != "" && S.shots == 0, "decock at rest cancels the token"); }
+  T("review M3: decock re-runs a gap run that was stopped");
+  { Rig R; S.aimDragDeg = 127; R.toMode("LAUNCH"); R.cmd("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}");
+    CHECK(R.until([&] { return R.B.gapRun; }, 60000), "gap run started after the aim");
+    R.run(300); R.cmd("{\"id\":2,\"cmd\":\"stop\"}"); R.run(100);
+    CHECK(R.B.phase == gb::PH_UNKNOWN && !R.B.closed(gb::SW_GAP), "stopped: phase unknown, SW_GAP open");
+    CHECK(R.ok("{\"id\":3,\"cmd\":\"decock\"}"), "decock accepted");
+    R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 20000);
+    CHECK(R.idle() && R.B.phase == gb::PH_REST && R.B.closed(gb::SW_GAP), "gap closed, at rest");
+    CHECK(R.lastEvt("RESET").find("\"ok\":true") != std::string::npos, "RESET ok:true");
+    CHECK(R.ok("{\"id\":5,\"cmd\":\"aim\",\"deg\":30}"), "aim accepted again"); }
+}
+
 static void testTowHx() {
   T("tow with the HX711: limit, resume when the line slackens");
   Rig R; S.hxFitted = true; R.run(100);
@@ -1134,11 +1167,11 @@ static void testFullMission() {
 
 int main(int argc, char** argv) {
   if (argc > 1) { std::string w = argv[1];
-    if (w == "cock") testCockFireReset(); else if (w == "aim") testAim(); else if (w == "wrap") testWrapReelUnwrap(); else if (w == "jog") testJog(); else if (w == "drum") testDrumFaults(); else if (w == "power") testPowerLoss(); else if (w == "stall") testStallOvercurrent(); else if (w == "enc") testAngleSensorFault(); else if (w == "tow") testTow(); else if (w == "rev1") testReview1(); else if (w == "rev2") testReview2(); else if (w == "v1") testSpecV1Contacts(); else if (w == "tl") testTimeline(); else if (w == "idx") testIndexMode(); else if (w == "mission") testFullMission(); else if (w == "stop") testStopEstop(); else if (w == "rev3") testReview3(); else if (w == "rev4") testReview4(); else if (w == "rev5") testReview5(); else if (w == "rev6") testReview6(); else if (w == "idxf") testIndexFailures(); else if (w == "modes") testModeChanges(); else if (w == "hx") testTowHx(); else if (w == "taper") testTowTaper();
+    if (w == "cock") testCockFireReset(); else if (w == "aim") testAim(); else if (w == "wrap") testWrapReelUnwrap(); else if (w == "jog") testJog(); else if (w == "drum") testDrumFaults(); else if (w == "power") testPowerLoss(); else if (w == "stall") testStallOvercurrent(); else if (w == "enc") testAngleSensorFault(); else if (w == "tow") testTow(); else if (w == "rev1") testReview1(); else if (w == "rev2") testReview2(); else if (w == "v1") testSpecV1Contacts(); else if (w == "tl") testTimeline(); else if (w == "idx") testIndexMode(); else if (w == "mission") testFullMission(); else if (w == "stop") testStopEstop(); else if (w == "rev3") testReview3(); else if (w == "rev4") testReview4(); else if (w == "rev5") testReview5(); else if (w == "rev6") testReview6(); else if (w == "idxf") testIndexFailures(); else if (w == "modes") testModeChanges(); else if (w == "hx") testTowHx(); else if (w == "taper") testTowTaper(); else if (w == "rev7") testReview7();
     printf("%d passed, %d failed\n", pass, fail); return fail ? 1 : 0; }
   testJson(); testSwitches(); testAngle(); testWiperDrive(); testPersist();
   testProtocolBasics(); testTelemetryWorstCase(); testModeChanges(); testDrumFaults(); testAim(); testCockFireReset(); testFireRefusals();
-  testNoRelease(); testWrapReelUnwrap(); testTow(); testTowHx(); testTowTaper(); testStallOvercurrent(); testAngleSensorFault(); testBrownout();
+  testNoRelease(); testWrapReelUnwrap(); testTow(); testTowHx(); testTowTaper(); testReview7(); testStallOvercurrent(); testAngleSensorFault(); testBrownout();
   testStopEstop(); testJog(); testPowerLoss(); testSaveGate(); testPersistWear(); testTelemetryRate(); testHostTimeout(); testReview1(); testReview2(); testSpecV1Contacts(); testReview3(); testReview4(); testReview5(); testReview6(); testIndexMode(); testIndexFailures(); testTimeline(); testFullMission();
   curTest = "all"; CHECK(Rig::dryTotal == 0, "no test ever moved the collar out of LAUNCH with the spring drawn");
   printf("\n%d checks, %d passed, %d failed: %s\n", pass + fail, pass, fail, fail ? "FAILURES" : "ALL PASS");

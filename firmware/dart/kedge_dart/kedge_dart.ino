@@ -205,7 +205,7 @@ void tickTask(void*) {                                 // 5 ms: IMU, flight, cur
     K.tick(now);
     if (i2cBad >= 200 && !K.imuOk && now - lastBusFix > 3000) { lastBusFix = now; busRecover(); hwLog("I2C bus stuck: recovered (9 clocks, Wire restart)"); if (bnoPresent) enableImuReports(); }
     // web loop hung for 10 s (and nothing moving, no OTA): restart; motors coast through the reset
-    if (!otaActive && (int32_t)(now - loopBeat) > 10000 && !K.running() && !K.seqRunning()) { hwLog("web loop stuck 10 s: restarting"); Serial.flush(); esp_restart(); }
+    if (!otaActive && (int32_t)(now - loopBeat) > 10000 && !K.running() && !K.seqRunning() && !K.armed && !K.flight.flying()) { hwLog("web loop stuck 10 s: restarting"); Serial.flush(); esp_restart(); }
     xSemaphoreGive(mtx);
     esp_task_wdt_reset();
     vTaskDelayUntil(&last, pdMS_TO_TICKS(5));
@@ -312,7 +312,7 @@ void setup() {
   if (bnoPresent) { sh2_setSensorCallback(imuEvent, nullptr); enableImuReports(); }
   else Serial.println("BNO085 not found: no attitude, no flight log, arming refused");
   K.imuOk = bnoPresent; lastImuMs = millis();
-  K.boot(rf, millis());
+  K.boot(rf, millis(), esp_reset_reason() == ESP_RST_POWERON);   // only a power-on means "legs stowed"
   Serial.printf("reset reason: %s\n", resetName);
   WiFi.mode(WIFI_AP);
   WiFi.softAP("KEDGE", "grappstar");
@@ -337,20 +337,20 @@ void setup() {
     if (ms > (long)K.tu.wifiMaxRunMs) ms = K.tu.wifiMaxRunMs;
     if (!c.length()) { web.send(400, "text/plain", "missing c\n"); return; }
     if ((c == " " || c == "s") && web.arg("keep") == "1") {   // key release on the page: stop motors, keep the arm
-      xSemaphoreTake(mtx, portMAX_DELAY); K.stop(millis(), false); xSemaphoreGive(mtx); drainLog(); sendResult(nullptr); return;
+      uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); K.stop(t, false); xSemaphoreGive(mtx); drainLog(); sendResult(nullptr); return;
     }
     sendResult(handleKey(c[0], (uint32_t)ms));
   });
   web.on("/stop", []() {
     reply = "";
-    if (web.hasArg("disarm") && web.arg("disarm") == "0") { xSemaphoreTake(mtx, portMAX_DELAY); K.stop(millis(), false); xSemaphoreGive(mtx); drainLog(); sendResult(nullptr); }
+    if (web.hasArg("disarm") && web.arg("disarm") == "0") { uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); K.stop(t, false); xSemaphoreGive(mtx); drainLog(); sendResult(nullptr); }
     else sendResult(handleKey(' ', 0));
   });
   web.on("/auto", []() { reply = ""; sendResult(handleKey('a', 0)); });
   web.on("/release", []() { reply = ""; sendResult(handleKey('r', 0)); });
   web.on("/arm", []() {
     reply = ""; bool on = !web.hasArg("on") || web.arg("on") != "0"; bool withAuto = !web.hasArg("auto") || web.arg("auto") != "0";
-    xSemaphoreTake(mtx, portMAX_DELAY); const char* why = K.arm(on, withAuto, millis()); xSemaphoreGive(mtx);
+    uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); const char* why = K.arm(on, withAuto, t); xSemaphoreGive(mtx);
     drainLog(); sendResult(why);
   });
   web.on("/status", []() { char b[1024]; xSemaphoreTake(mtx, portMAX_DELAY); K.status(b, sizeof b, roll, pitch, millis(), railCache, resetName); xSemaphoreGive(mtx); web.send(200, "application/json", b); });
@@ -358,7 +358,7 @@ void setup() {
   web.onNotFound([]() { web.send(404, "text/plain", "not found\n"); });
   web.begin();
   ArduinoOTA.setHostname("kedge");
-  ArduinoOTA.onStart([]() { otaActive = true; xSemaphoreTake(mtx, portMAX_DELAY); K.stop(millis()); xSemaphoreGive(mtx); });   // abort any sequence and disarm
+  ArduinoOTA.onStart([]() { otaActive = true; uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); K.stop(t); xSemaphoreGive(mtx); });   // abort any sequence and disarm
   ArduinoOTA.onError([](ota_error_t) { otaActive = false; });
   ArduinoOTA.begin();
   setupWatchdog();

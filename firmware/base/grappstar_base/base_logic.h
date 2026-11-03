@@ -324,7 +324,7 @@ struct Base {
       else {
         if (drumTrust && s->drumKnown) bootDrumMismatch = true;   // the drum cannot move while off (worm): a code contact changed
         int k = detentClosed();
-        drumDeg = k >= 0 ? c.targetDeg[k] : 0.5f * (fmaxf(secLo(sec), c.targetDeg[0]) + fminf(secHi(sec), c.targetDeg[2])); degTrusted = k >= 0;
+        drumDeg = k >= 0 ? c.targetDeg[k] : 0.5f * (fmaxf(secLo(sec), c.targetDeg[0]) + fminf(secHi(sec), c.targetDeg[2])); degTrusted = k >= 0 && !(s && (s->moving & MV_DRUM));   // cut mid-move: the park angle is only a guess
       }
       wraps = wrapsAt(sec, drumDeg); wrapsKnown = sec != SEC_WRAP || degTrusted;
     } else { drumKnown = false; wrapsKnown = false; wraps = 0; }
@@ -766,7 +766,7 @@ struct Base {
     if (phase == PH_UNKNOWN && phaseHint > c.homeOpenDeg + c.homeWinDeg && phaseHint < c.releaseDeg + c.releaseWinDeg) return "LOADED_UNKNOWN";
     homeSeen = false; tokenLive = false;
     if (phase == PH_UNKNOWN) opFrom = enc.deg();      // recovery: creep forward until SW_HOME opens (first tooth = reference)
-    else phase = PH_COCKING;
+    else { if (phase == PH_REST && fitted(SW_GAP) && !closed(SW_GAP)) return "SWITCH_DISAGREE"; phase = PH_COCKING; }   // REST needs the gear in its gap
     w.c.tripA = c.cockTripA;
     w.want(cockDir(), phase == PH_UNKNOWN ? c.cockSlowDuty : c.cockDuty);
     markMoving(MV_WIPER); state = S_COCK; stT = opT = now;
@@ -908,6 +908,7 @@ struct Base {
       if (p == DP_LAUNCH && dd == cockDir() && !fitted(SW_HOME)) return "NO_SENSOR";
       if (p == DP_LAUNCH && dd == c.aimDir && phase != PH_REST) return "NOT_AT_REST";   // the drawn spring would unwind: cal decock
       if ((sec >= SEC_REEL || closed(SW_DOG_R)) && dd != c.reelDir) return "BACKSTOP";  // sprag #2: the capstan never turns out
+      if (p != DP_LAUNCH && dd != c.reelDir) return "BACKSTOP";   // BASE_SPEC 10: backward only in LAUNCH (fights the bus one-way)
       bool takeup = sec >= SEC_NEUTRAL && sec <= SEC_WRAP && dd == c.reelDir;              // I4: take-up only, at most 40 percent
       w.c.tripA = takeup ? c.takeupTripA : (p == DP_LAUNCH && dd == cockDir()) ? c.cockTripA : c.jogTripA; w.want(dd, takeup && c.jogDuty > c.takeupMaxDuty ? c.takeupMaxDuty : c.jogDuty); markMoving(MV_WIPER);
       if (p == DP_LAUNCH && dd == c.aimDir) aimed = false;
@@ -917,7 +918,8 @@ struct Base {
       if (handMode()) return "HAND_MODE";
       if ((sec <= SEC_LN || loadedKnown()) && !(sec == SEC_LAUNCH && dd < 0)) { if (const char* e = launchExitCheck()) return e; }   // never shift under load
       if (sec == SEC_REEL && dd < 0) return "WRAPS_ON";   // leaving REEL needs the centering jog: use unwrap
-      if (sec == SEC_WRAP || wrapsDoubt) return "WRAPS_ON";   // inside the wrap window only wrap / unwrap (with the take-up) move the drum
+      if (sec == SEC_WRAP || wrapsDoubt) return "WRAPS_ON";
+      if (!degTrusted && ((sec == SEC_LAUNCH && dd < 0) || (sec == SEC_REEL && dd > 0))) return "POSITION_UNKNOWN";   // end stop guard needs the angle   // inside the wrap window only wrap / unwrap (with the take-up) move the drum
       if ((closed(SW_DOG_L) && sec > SEC_LN) || (closed(SW_DOG_R) && sec < SEC_LOCK)) return "SWITCH_DISAGREE";
       d.want(dd * c.drumSign); markMoving(MV_DRUM); aimed = false;
     }
@@ -954,6 +956,7 @@ struct Base {
       if (moving()) return "BUSY";
       bool force = false; o.boolean("force", &force);  // force: SW_HOME known broken, the operator checked by eye
       if (fitted(SW_HOME) && !closed(SW_HOME) && !force) return "SWITCH_DISAGREE";
+      if (fitted(SW_GAP) && !closed(SW_GAP) && !force) return "SWITCH_DISAGREE";   // big gear must sit in its gap
       phase = PH_REST; cockPhase = 0; phaseHint = -1; dirty = true; return nullptr;
     }
     if (!strcmp(what, "decock")) {                    // carriage drawn with the angle unknown (or a cocked shot called off):
@@ -1410,7 +1413,7 @@ struct Base {
     }
     if (jogMotor == 2) {                              // stay off the groove ends (hard stops)
       int dirL = jogDir * c.drumSign; (void)dirL;
-      if ((jogDir < 0 && sec == SEC_LAUNCH && drumDeg <= c.targetDeg[DP_LAUNCH] - 4) || (jogDir > 0 && sec == SEC_REEL && drumDeg >= c.targetDeg[DP_REEL] + 4)) {
+      if ((jogDir < 0 && sec == SEC_LAUNCH && drumDeg <= c.secLoDeg + 2) || (jogDir > 0 && sec == SEC_REEL && drumDeg >= c.secHiDeg - 2)) {
         d.halt(now, io.drum); state = S_IDLE; stT = now; evAborted("JOG", "drum end stop"); dirty = true; return;
       }
       // the collar contacts are checked during every drum move, jogs included

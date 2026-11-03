@@ -16,7 +16,7 @@ import math
 
 import numpy as np
 
-from cad.lib import Part, Joint, Allow, Clearance, prim, tf, fits, gears, bearings, shafts, clips, line
+from cad.lib import Part, Joint, Allow, Clearance, prim, tf, fits, gears, bearings, shafts, clips, line, switch
 from cad.parts import reel_calc, reel_v7 as v7
 
 
@@ -279,6 +279,8 @@ def _wall():
     for s_ in (-1, 1):                             # hex key access to the rocker's trim screws
         cut.append(prim.cyl(3.6, WALL_T + 2, x=X_REEL + s_ * TRIM_R, z=-WALL_T - 1))
     cut.append(prim.cylX(fits.M3_CLEAR_D / 2, px - 12, px + 12, y=py, z=pz))
+    for sx in (-12.0, 12.0):                       # SW_ARM bracket screws tap into the wall rear face
+        cut.append(prim.cyl(fits.M3_TAP_D / 2, 5.0, x=sx, y=_sw_bracket()[1] - 13.0, z=-WALL_T - 0.01))
     for a in SHROUD_SCREW_DEG:                     # shroud screws tap into the wall
         x = X_REEL + SHROUD_SCREW_R * math.cos(math.radians(a))
         y = SHROUD_SCREW_R * math.sin(math.radians(a))
@@ -542,6 +544,54 @@ def _cap_clip():
     return prim.tube(7.0, 2.3, 2.0) - prim.box(-1.9, 1.9, -8, 0, -1, 3)
 
 
+# ---- SW_ARM: printed contact behind the cup gear (BASE_SPEC section 4, GPIO 42)
+SW_BUMP_R = 16.5              # bump radius on the cup gear's rear face (screw boss stays outside the gear tips)
+SW_BUMP_H = 2.1               # bump height (gap 0.4 + pretravel 1.3 + 0.4)
+SW_BUMP_DEG = 12.0            # contact closed +- this about home
+SW_LEVER = 28.0
+
+
+def _sw():
+    return switch.contact_switch(SW_LEVER)
+
+
+def sw_frame():
+    """Switch frame -> R: switch +X = R +Y (lever tip toward the axis), switch +Z = R +Z (toward the gear)."""
+    i = _sw()["info"]
+    z_top = 16.5 if "z_lever_top" not in i else i["z_lever_top"]
+    tip_y = -SW_BUMP_R
+    z_rest = CUPGEAR_Z[0] - SW_BUMP_H - 0.4                     # lever top 0.4 behind the bump's crest
+    M = np.eye(4)
+    M[:3, 0], M[:3, 1], M[:3, 2] = (0, 1, 0), (-1, 0, 0), (0, 0, 1)
+    M[:3, 3] = (0.0, tip_y - i["x_act"], z_rest - z_top)
+    return M
+
+
+def _cup_gear_bump():
+    """Bump on the cup gear's rear face at home (local angle 270 deg), ramped both ends (gear frame z 0 = rear face)."""
+    half = math.radians(SW_BUMP_DEG)
+    a_full = math.radians(SW_BUMP_DEG - 5.0)
+    pts = [(-SW_BUMP_R * half, 0.0), (-SW_BUMP_R * a_full, -SW_BUMP_H), (SW_BUMP_R * a_full, -SW_BUMP_H),
+           (SW_BUMP_R * half, 0.0), (SW_BUMP_R * half, 0.5), (-SW_BUMP_R * half, 0.5)]
+    w = prim.extrude(prim.poly_cs(pts), 4.0, z=-2.0)               # (tangent, axial) profile, 4 wide radially
+    M = np.array([[1, 0, 0, 0], [0, 0, 1, -SW_BUMP_R], [0, 1, 0, 0], [0, 0, 0, 1]], float)   # local z -> radial
+    return prim.place(w, M)
+
+
+def _sw_bracket():
+    """SW_ARM bracket (PLA), R frame: flange screwed to the wall rear face below the gears, an arm back under the
+    gears, a plate the switch base screws onto."""
+    M = sw_frame()
+    (x0, y0, z0), (x1, y1, z1) = prim.bbox(prim.place(_sw()["base"], M))
+    zb = z0
+    plate = prim.box(x0 - 3.0, x1 + 3.0, y0 - 9.0, y1, zb - 4.0, zb)
+    arm = prim.box(-10.0, 10.0, y0 - 9.0, y0 - 1.0, zb - 4.0, -WALL_T)       # below the switch base
+    flange = prim.box(-16.0, 16.0, y0 - 17.0, y0 - 1.0, -WALL_T - 4.0, -WALL_T)
+    body = prim.union([plate, arm, flange])
+    cut = [prim.cyl(fits.M3_CLEAR_D / 2, 10, x=sx, y=y0 - 13.0, z=-WALL_T - 6.0) for sx in (-12.0, 12.0)]
+    return body - prim.union(cut), y0
+
+
 def fasteners_m3(L):
     """M3 SHCS model along +Z: head z = -3 .. 0, shank 0 .. L."""
     return prim.union([prim.cyl(2.75, 3.0, z=-3.0), prim.cyl(1.5, L)])
@@ -604,10 +654,10 @@ def parts(P):
         notes="Wrap cup (Harry v7): ring and groove lay the wraps on the capstan. Print open end down")
     add("reel_cup_clip", _cap_clip(), "PLA", joint="reel_cup", place=tf.T(0, 0, k_front() + 0.3),
         color=COL["clip"], step=7, notes="Harry's v7 C-clip on the cup shaft neck in front of the cup")
-    add("reel_gk", _gear(M_CUPG, Z_CUPG, CUPGEAR_Z[1] - CUPGEAR_Z[0], K_D, 1.2,
-                         hub=(16.0, C_Z0 - CUPGEAR_Z[1] - 0.3)), "PPA-CF",
+    add("reel_gk", prim.union([_gear(M_CUPG, Z_CUPG, CUPGEAR_Z[1] - CUPGEAR_Z[0], K_D, 1.2,
+                                     hub=(16.0, C_Z0 - CUPGEAR_Z[1] - 0.3)), _cup_gear_bump()]), "PPA-CF",
         joint="reel_cup", place=tf.T(0, 0, CUPGEAR_Z[0]), color=COL["gear"], step=8,
-        notes=f"Cup gear m{M_CUPG:g} z{Z_CUPG}: driven by the drum's wrap idler")
+        notes=f"Cup gear m{M_CUPG:g} z{Z_CUPG}: driven by the drum's wrap idler; the bump on its back trips SW_ARM")
     add("reel_k_clip", clips.c_clip(K_D), "PLA", joint="reel_cup", place=tf.T(0, 0, _clip_z(K_D, CUPGEAR_Z[0])),
         color=COL["clip"], step=8, notes="C-clip holding the cup gear on the cup shaft")
     add("reel_s", _s_shaft(), "PPA-CF", tf.Rx(180), joint="reel_shaft", color=COL["ppa"], step=9,
@@ -638,6 +688,17 @@ def parts(P):
         notes=f"Reel gear m{M_BUS:g} z{Z_REELG}: turns the clutch disk {Z_BUSMAIN / Z_REELG:g} x wiper speed")
     add("reel_s_clip", clips.c_clip(S_D), "PLA", joint="reel_shaft", place=tf.T(0, 0, _clip_z(S_D, BUS_Z[0])),
         color=COL["clip"], step=11, notes="C-clip holding the reel gear")
+    sw = _sw()
+    Msw = sw_frame()
+    brk, _ = _sw_bracket()
+    add("reel_sw_bracket", brk, "PLA", joint="reel_base", color=COL["wall"], step=14,
+        notes="SW_ARM bracket: screwed to the wall below the gears. Print flat")
+    add("reel_sw_base", sw["base"], "PLA", joint="reel_base", place=Msw, color=COL["clip"], step=14,
+        notes="SW_ARM contact base (printed switch, M3 head on M3 nut)")
+    add("reel_sw_lever", sw["lever"], "PLA", tf.Rx(90), joint="reel_base", place=Msw, color=COL["rocker"], step=14,
+        notes="SW_ARM lever: the cup gear's bump presses its tip at home. Print on its side")
+    add("reel_sw_hw", prim.union([sw["screw"], sw["nut"], sw["jam_nut"]]), "bought", joint="reel_base", place=Msw,
+        color=COL["brg"], bought_ref="M3x10 SHCS + 2 M3 nuts", step=14, notes="SW_ARM contact screw and nuts")
     add("reel_shroud", _shroud(), "PLA", joint="reel_base", color=COL["wall"], step=12,
         notes="Shroud round the storage reel: keeps loose loops on it. Print standing on its flange")
     add("reel_exit_post", _exit_post(), "PPA-CF", tf.Rx(90), joint="reel_base", color=COL["post"], step=13,
@@ -767,6 +828,9 @@ def allowed(P):
         Allow("reel_rocker_pin", "reel_rocker", "M3 pin through the rocker"),
         Allow("reel_trim_screws", "reel_rocker", "trim screws tapped into the rocker bosses"),
         Allow("reel_p1_brg", "reel_pulley1", "693ZZ pressed in the pulley"),
+        Allow("reel_sw_hw", "reel_sw_*", "contact screw in the lever, nut in the base trap"),
+        Allow("reel_sw_lever", "reel_sw_base", "lever clamped on the base pad"),
+        Allow("reel_sw_lever", "reel_gk", "the bump presses the lever at home (contact closes)", max_vol=60.0),
         Allow("reel_p1_axle", "reel_p1_brg", "axle through the inner race"),
         Allow("reel_p1_axle", "reel_exit_post", "axle through the fork cheeks"),
         Allow("reel_trim_screws", "reel_t", "screw tips on the thrust ring (preload)", max_vol=0.5),
@@ -1050,6 +1114,13 @@ def steps(P):
                   "C-clip on. Swing the arm toward the reel gear (to its stop): the idler meshes it. Spin the reel "
                   "by hand: it should turn with a light, even drag.",
              parts=["reel_gr", "reel_s_clip"]),
+        dict(title="SW_ARM contact",
+             text="Battery unplugged. Build the printed contact (see the contact switch page): nut pressed in the base "
+                  "trap, lever screwed on, M3 x 10 contact screw with its jam nut in the lever. Screw the switch base to "
+                  "the bracket, and the bracket to the back of the wall below the gears with two M3 x 10. Turn the cup "
+                  "to home (ring at the top): the bump on the cup gear presses the lever; set the contact screw so it "
+                  "just closes there and opens 15 degrees either side. Lock the jam nut.",
+             parts=["reel_sw_bracket", "reel_sw_base", "reel_sw_lever", "reel_sw_hw"]),
         dict(title="Shroud",
              text="Put the shroud round the reel, its flange on the wall, opening at the top right, and screw it on "
                   "with three M3 x 8 screws into the wall. The reel must not touch it anywhere.",

@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 12:50 Sydney time from commit `eda209a`.
+Built 2026-11-03 12:51 Sydney time from commit `95f1fff`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -267,6 +267,12 @@ Soldering iron and solder, flux, multimeter, wire strippers, flush cutters, smal
 heat shrink and heat gun, caliper, hex keys, tweezers, kitchen scale, luggage scale, tape measure, safety glasses,
 5-minute epoxy, threadlocker, zip ties, foam tape.
 
+## Base bill of materials (from the model)
+
+
+> NOT IN THE REPO YET: `base/out/base/BOM.md` (written by cad-infra (assembly pipeline)). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
+
+
 # 4. Printing
 
 Printer: Bambu X2D (bed 256 x 256 x 260 mm). PLA for everything except loaded gears and keyed shafts, which are
@@ -277,9 +283,12 @@ Print settings (the 3MF files carry geometry only: set material and settings in 
 | Plate | Material | Layer | Walls | Infill | Top / bottom | Hole compensation |
 |---|---|---|---|---|---|---|
 | Dart fit coupon, dart plates A and B | PLA | 0.16 mm | 4 | 40% gyroid | 5 / 5 | start at 0; adjust from the dart fit coupon (run sheet section 4) |
-| Risk plate 1 | PLA | 0.2 mm | 4 | per the base print list (40% gyroid if it says nothing) | 5 / 5 | 0 ("print as exported") |
-| Risk plate 2 | PPA-CF | 0.2 mm | 4 | as above | 5 / 5 | 0 |
-| Base plates | PLA or PPA-CF as the print list says | as the base print list says (0.2 mm if it says nothing) | 4 | as above | 5 / 5 | 0, unless the coupons showed a fit off |
+| Base fit coupon, risk plate 1 | PLA | 0.2 mm | 4 | 40% gyroid | 5 / 5 | 0 ("print as exported") |
+| Risk plate 2 | PPA-CF | 0.2 mm | 6 | 60% gyroid | 5 / 5 | 0 |
+| Base plates, PLA | PLA | 0.2 mm | 4 | 40% gyroid | 5 / 5 | 0, unless the coupons showed a fit off |
+| Base plates, PPA-CF | PPA-CF | 0.2 mm | 6 | 60% gyroid | 5 / 5 | 0, unless the coupons showed a fit off |
+
+No supports on any plate. The base print sheet (below) has the final word for each part.
 
 Hole compensation is a process setting in Bambu Studio, "X-Y hole compensation" (Process, Quality tab; the name may
 move between versions). It is saved with each project, so check it on every plate.
@@ -463,6 +472,12 @@ Print these before the big parts. Each coupon is made from the same geometry fun
 | rc9_shear_pin | PLA | 3 | 6.0 x 6.0 x 12.1 | drum.shear_pin as built (d4 PLA) |
 
 
+### Base fit coupon
+
+
+> NOT IN THE REPO YET: `base/pack/fit_coupon/COUPON.md` (written by cad-infra (print pack)). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
+
+
 ## Dart prints
 
 Dart plates (in `kedge/pack_v30/`, also inside `kedge/dist_v30/KEDGE_v30_build_pack.zip` under `print/`):
@@ -492,7 +507,8 @@ Settings: PLA, 0.4 nozzle, 0.16 mm layers, 4 walls, 40% gyroid infill, 5 top and
 
 ## Base prints
 
-The base print pack comes from the base pipeline (`base/pack`). It holds every part already in print orientation,
+The base print pack comes from the base pipeline (`base/out/base/pack`: PRINT_SHEET.pdf, the plates in
+`plates/plate_<n>_<material>.3mf`, print_report.json). It holds every part already in print orientation,
 the plates as 3MF, and the material for each part.
 
 
@@ -509,13 +525,14 @@ Before printing the base:
 # 5. Base assembly
 
 The assembly steps come from the base pipeline: every step is generated from the same model that passed the
-collision audit, with a picture per step. They are in `base/guide` (PDF, also attached as an appendix) and
-`base/out`.
+collision audit, with a picture per step. They are in `base/out/base/guide.pdf` (attached as an appendix at the end of this guide).
+
+
+> NOT IN THE REPO YET: `base/out/base/guide.pdf` (written by cad-infra (assembly pipeline)). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
 
 
 
 
-> NOT IN THE REPO YET: `base/guide/README.md` (written by cad-infra (assembly steps)). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
 
 
 General rules for the base:
@@ -3325,7 +3342,10 @@ shows a placeholder; re-run the script after it lands.
 | `base/spec/BASE_SPEC.md` | coordinator | yes |
 | `base/pack` | cad-infra (print pack) | yes |
 | `base/out` | cad-infra (assembly pipeline) | yes |
-| `base/guide` | cad-infra (assembly steps) | NOT YET |
+| `base/out/base/guide.pdf` | cad-infra (base assembly guide, final run about 18:00) | NOT YET |
+| `base/out/base/pack/PRINT_SHEET.md` | cad-infra (base print sheet, final run about 18:00) | NOT YET |
+| `base/out/base/BOM.md` | cad-infra (bill of materials) | NOT YET |
+| `base/pack/fit_coupon/COUPON.md` | cad-infra (base fit coupon) | NOT YET |
 | `base/pack/coupons/COUPON_TEST.md` | cad-infra (risk coupons) | yes |
 | `kedge/pack_v30/KEDGE_v30_run_sheet.pdf` | dart v30 pack (done) | yes |
 | `firmware/base/WIRING.md` | fw-base | yes |

@@ -8,9 +8,12 @@ Print settings (the 3MF files carry geometry only: set material and settings in 
 | Plate | Material | Layer | Walls | Infill | Top / bottom | Hole compensation |
 |---|---|---|---|---|---|---|
 | Dart fit coupon, dart plates A and B | PLA | 0.16 mm | 4 | 40% gyroid | 5 / 5 | start at 0; adjust from the dart fit coupon (run sheet section 4) |
-| Risk plate 1 | PLA | 0.2 mm | 4 | per the base print list (40% gyroid if it says nothing) | 5 / 5 | 0 ("print as exported") |
-| Risk plate 2 | PPA-CF | 0.2 mm | 4 | as above | 5 / 5 | 0 |
-| Base plates | PLA or PPA-CF as the print list says | as the base print list says (0.2 mm if it says nothing) | 4 | as above | 5 / 5 | 0, unless the coupons showed a fit off |
+| Base fit coupon, risk plate 1 | PLA | 0.2 mm | 4 | 40% gyroid | 5 / 5 | 0 ("print as exported") |
+| Risk plate 2 | PPA-CF | 0.2 mm | 6 | 60% gyroid | 5 / 5 | 0 |
+| Base plates, PLA | PLA | 0.2 mm | 4 | 40% gyroid | 5 / 5 | 0, unless the coupons showed a fit off |
+| Base plates, PPA-CF | PPA-CF | 0.2 mm | 6 | 60% gyroid | 5 / 5 | 0, unless the coupons showed a fit off |
+
+No supports on any plate. The base print sheet (below) has the final word for each part.
 
 Hole compensation is a process setting in Bambu Studio, "X-Y hole compensation" (Process, Quality tab; the name may
 move between versions). It is saved with each project, so check it on every plate.
@@ -45,13 +48,18 @@ Then reprint only that piece from its `rcN_*.stl`.
 
 @includeglob base/pack/coupons/COUPON_TEST.md first
 
+### Base fit coupon
+
+@include base/pack/fit_coupon/COUPON.md
+
 ## Dart prints
 
 @printlist dart
 
 ## Base prints
 
-The base print pack comes from the base pipeline (`base/pack`). It holds every part already in print orientation,
+The base print pack comes from the base pipeline (`base/out/base/pack`: PRINT_SHEET.pdf, the plates in
+`plates/plate_<n>_<material>.3mf`, print_report.json). It holds every part already in print orientation,
 the plates as 3MF, and the material for each part.
 
 @printlist base

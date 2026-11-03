@@ -11,6 +11,7 @@ The section texts live in docs/build/src/NN_*.md. Lines in them that start with 
   @image <repo path> <caption>      insert a picture (PNG or JPG)
   @includeglob <glob> [first]       insert every file (or the first) matching the glob
   @imageglob <glob> <caption>       insert every picture matching the glob
+  @exists <repo path>               a 'present' note, or the placeholder
   @csv <repo path>                  insert a CSV file as a table
   @wiremap                          dart run sheet wire numbers -> new cut list numbers
   @printlist base | dart            print tables from base/pack and kedge/pack_v30
@@ -42,7 +43,10 @@ SOURCES = [
     ("base/spec/BASE_SPEC.md", "coordinator"),
     ("base/pack", "cad-infra (print pack)"),
     ("base/out", "cad-infra (assembly pipeline)"),
-    ("base/guide", "cad-infra (assembly steps)"),
+    ("base/out/base/guide.pdf", "cad-infra (base assembly guide, final run about 18:00)"),
+    ("base/out/base/pack/PRINT_SHEET.md", "cad-infra (base print sheet, final run about 18:00)"),
+    ("base/out/base/BOM.md", "cad-infra (bill of materials)"),
+    ("base/pack/fit_coupon/COUPON.md", "cad-infra (base fit coupon)"),
     ("base/pack/coupons/COUPON_TEST.md", "cad-infra (risk coupons)"),
     ("kedge/pack_v30/KEDGE_v30_run_sheet.pdf", "dart v30 pack (done)"),
     ("firmware/base/WIRING.md", "fw-base"),
@@ -156,13 +160,15 @@ def printlist_dart():
 
 
 def printlist_base():
-    pack = next((os.path.join(ROOT, c) for c in ("base/pack", "base/out/base/pack") if os.path.isdir(os.path.join(ROOT, c))),
+    pack = next((os.path.join(ROOT, c) for c in ("base/out/base/pack", "base/pack")
+                 if os.path.isdir(os.path.join(ROOT, c)) and any(
+                     f for f in os.listdir(os.path.join(ROOT, c)) if f not in ("coupons", "fit_coupon"))),
                 os.path.join(ROOT, "base/pack"))
     if not os.path.isdir(pack):
         return placeholder("base/pack", "cad-infra (print pack)")
     s = ""
     # A print list table, whatever form the pack writes it in.
-    for name in ("print_list.md", "PRINT_LIST.md", "README.md"):
+    for name in ("PRINT_SHEET.md", "print_list.md", "PRINT_LIST.md", "README.md"):
         p = os.path.join(pack, name)
         if os.path.exists(p):
             s += demote(open(p, encoding="utf-8").read(), 3, pack) + "\n"
@@ -217,6 +223,14 @@ def d_imageglob(args, level):
     hits = sorted(glob.glob(os.path.join(ROOT, args[0]), recursive=True))
     caption = " ".join(args[1:])
     return "".join(f"\n![{caption} ({os.path.basename(h)})]({rel(h)})\n" for h in hits)
+
+
+def d_exists(args, level):
+    """A note that a file is present (and where it is), or the placeholder when it is not."""
+    path = args[0]
+    if exists(path):
+        return f"\nPresent: `{path}`" + (" (attached at the end of this guide)." if path.endswith(".pdf") else ".") + "\n"
+    return placeholder(path, who_writes(path))
 
 
 def d_csv(args, level):
@@ -284,7 +298,7 @@ def d_date(args, level):
     return f"\nBuilt {now.strftime('%Y-%m-%d %H:%M')} Sydney time from commit `{commit}`.\n"
 
 
-DIRECTIVES = {"include": d_include, "includeglob": d_includeglob, "imageglob": d_imageglob, "csv": d_csv, "wiremap": d_wiremap, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
+DIRECTIVES = {"include": d_include, "exists": d_exists, "includeglob": d_includeglob, "imageglob": d_imageglob, "csv": d_csv, "wiremap": d_wiremap, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
               "status": d_status, "date": d_date}
 
 
@@ -568,6 +582,7 @@ def build_pdf(md, out=None, doc_title=TITLE):
 
 APPENDICES = [
     # (repo path or glob, bookmark title). Missing files are skipped.
+    ("base/out/base/guide.pdf", "Appendix: base assembly guide (base pipeline)"),
     ("base/guide/*.pdf", "Appendix: base assembly steps (base pipeline)"),
     ("kedge/pack_v30/KEDGE_v30_run_sheet.pdf", "Appendix: KEDGE v30 dart run sheet"),
 ]

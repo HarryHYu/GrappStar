@@ -58,3 +58,7 @@ Schottky diode, capacitor, M3 hardware, 15 g nose ballast.
 Soldering iron and solder, flux, multimeter, wire strippers, flush cutters, small flat screwdriver (MP1584 trimmer),
 heat shrink and heat gun, caliper, hex keys, tweezers, kitchen scale, luggage scale, tape measure, safety glasses,
 5-minute epoxy, threadlocker, zip ties, foam tape.
+
+## Base bill of materials (from the model)
+
+@include base/out/base/BOM.md

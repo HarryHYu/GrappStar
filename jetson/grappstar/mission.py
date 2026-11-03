@@ -57,7 +57,8 @@ def sw_closed(tel: dict, key: str) -> Optional[bool]:
     sw = tel.get("sw")
     if not isinstance(sw, dict):
         return None
-    long = {"S": "seated", "H": "home", "L": "rail_low", "W": "wrap_home", "D": "dog"}
+    # base-1.2 (D31): l, r = SW_DOG_L, SW_DOG_R; I = SW_INDEX; S seated; H carriage home; L rail low; W wrap home
+    long = {"S": "seated", "H": "home", "L": "rail_low", "W": "wrap_home", "l": "dog_l", "r": "dog_r", "I": "index"}
     if key in sw:
         return bool(sw[key])
     if long.get(key) in sw:
@@ -351,6 +352,8 @@ class Mission:
                 extra = getattr(e, "choices", None)
                 if extra:
                     choices = list(extra) + ["Abort"]
+                if is_fault and name in ("TOW", "CHECK"):
+                    choices = ["Release the dart", "Retry", "Abort"]
                 if is_fault:
                     held = [ev for ev in self.base.events(max(0, self.base.event_mark() - 10))
                             if ev.get("evt") == "MODE" and ev.get("err") == "DRUM_HELD"]
@@ -407,7 +410,7 @@ class Mission:
             break
         self._do("TIDY", self.tidy)
         r = self._do("CHECK", self.anchored_check)
-        if r == "Release and reshoot":
+        if r in ("Release and reshoot", "Release the dart"):
             self._do("RELEASE", self.release_dart)
             self.bring_home()
             self.reshoots += 1
@@ -469,6 +472,15 @@ class Mission:
                     f"{name} video not connected")
             elif name == "dart" and (st.get("bad_frac") or 0) > 0.5:
                 warnings.append("dart video mostly bad (check RC832 channel and antennas)")
+        if t.get("tension_n") is None:
+            try:
+                k = self.base.get("k_n_per_a").get("val")
+                if k is not None and abs(float(k) - 8.0) < 1e-6:
+                    warnings.append("no load cell and the tension constant k_n_per_a is still the default 8: "
+                                    "the tow limit is a rough current estimate (calibrate, see firmware/base/"
+                                    "CALIBRATION.md)")
+            except (BaseError, BaseTimeout, BaseDisconnected, ValueError, TypeError):
+                pass
         tgt = self.get_target()
         if not tgt or not tgt.get("range_m"):
             problems.append("no target: tap the target on the rover view or enter a range")
@@ -530,6 +542,15 @@ class Mission:
     def tidy(self) -> None:
         """Wind the slack onto the storage reel until the line is straight. base-1.0: reel until "slip" (take-up until
         the slip clutch slips); older firmware: a "tidy" command; neither: skipped (the CHECK pull takes the slack)."""
+        m = self.base.event_mark()
+        try:
+            self.base.cmd("tidy")                       # base-1.2: TIDIED event
+            self.wait_evt(("TIDIED",), self.cfg.wrap_timeout_s, m)
+            self.log.info("line tidied")
+            return
+        except BaseError as e:
+            if e.err != "UNKNOWN_CMD":
+                raise
         m = self.base.event_mark()
         try:
             self.base.reel(self.cfg.retrieve_duty * 0.5, max_n=self.cfg.check_n, until="slip")
@@ -893,6 +914,15 @@ class Mission:
             self.check_cancel()
             self.ensure_reel()
             m = self.base.event_mark()
+            tn_now = self.tel().get("tension_n")
+            if tn_now is not None and tn_now >= 0.95 * self.cfg.tow_limit_n:
+                self.log.info(f"line already at {tn_now} N: not pulling again")
+                r = self.rover.tow_assist(self, tn_now)
+                if r == "done":
+                    return
+                if r == "abort":
+                    raise Aborted("operator chose Abort")
+                continue
             if self.tel().get("state") == "REEL":
                 # load cell: the firmware already winds again by itself when the held line slackens; just wait
                 self.log.info("base is already winding (slack taken up by itself)")

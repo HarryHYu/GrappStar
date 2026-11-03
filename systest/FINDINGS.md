@@ -172,3 +172,14 @@ retries collapsed) against the 10.1 order. Batch 1 (base-v1 before d15129e), sce
    (`power_unwrap`, `usb_unplug_tow`: `... unwrap > retrieve > wrap > reel seated > unwrap`). The firmware now has
    `retrieve` (base_logic.h:986), so drop the fallback.
 The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it goes green when the order matches.
+
+## F13 (fw-base) `reel until tension` at the WRAPPED park is refused `NOT_WRAPPED` although the wraps are on
+
+- Scenario `nominal_uncal`, batch 2 (base-v1 d15129e): `wrap` -> `WRAPPED {"wraps":7}` (park 314, collar NEUTRAL),
+  then the Jetson's check pull `{"cmd":"reel","duty":0.48,"max_n":15.0,"until":"tension"}` -> `NOT_WRAPPED`, four times.
+  The real cause is F12 item 2 (the Jetson does not send `mode REEL` first), but the code sends the operator the
+  wrong way: telemetry says `drum_pos` WRAPPED and the prompt says "NOT_WRAPPED".
+- Where: `firmware/base/grappstar_base/base_logic.h:791-792` (`!collarReel() && !neutral` and `neutral && un ==
+  U_TENSION` both return `NOT_WRAPPED`).
+- Suggest: `NOT_IN_REEL` (send `mode REEL`) when the wraps are on but the collar is in NEUTRAL; keep `NOT_WRAPPED`
+  for no wraps. Document it in PROTOCOL.md.

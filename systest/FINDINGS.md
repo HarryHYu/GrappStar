@@ -5,7 +5,7 @@ sim over HTTP, the real Jetson App). Each entry: the exact failing scenario, the
 Line numbers are against `origin/base-v1` at the time of the entry. Status: OPEN until the owner says fixed and the
 harness re-runs green.
 
-## Status (14:40 Sydney)
+## Status (final, 19:35 Sydney; last runs 15:25)
 
 "fixed on branch" = green in the preview runs (`PREVIEW=1 systest/batch.sh`, base-v1 + w/fw-base + w/fw-dart +
 w/jetson; commits in `systest/runs_preview.version` and the logs), or stated fixed by the owner with the commit and
@@ -21,7 +21,7 @@ re-tested where noted. Evidence in `systest/runs_preview/<scenario>/` and `syste
 | F6 | jetson | fixed on branch | prompt says "The drum HELD where it is (...)" |
 | F7 | jetson | fixed on branch | `stall_cock`: Decock and re-aim, mission DONE |
 | F8 | jetson | fixed on branch | `power_unwrap(_fasthello)`: BASE_RESET at once, DONE in about 120 s |
-| F9 | fw-base | fw-base reports an index mode (`indexMode` in cmdAim); not re-tested: the plant has no index cam | |
+| F9 | fw-base | index mode implemented behind config.h (D12); runs up to the shot, then F31 | batch 5 `no_magnet_index`: BOOT angle INDEX, aim, cock, FIRED |
 | F10 | jetson | fixed on branch | `no_angle_sensor` PASS: preflight "AS5600 sees no magnet" |
 | F11 | jetson | not reproduced since F4 (no partial wrap any more) | |
 | F12 | jetson | fixed on branch | C1 order = 10.1 apart from F25 |
@@ -33,13 +33,17 @@ re-tested where noted. Evidence in `systest/runs_preview/<scenario>/` and `syste
 | F18 | jetson | fixed on branch | no 60 s TOW waits |
 | F19 | fw-base | fixed on branch | `ref_refusals`: every wrong command refused (fw-base 6381edd) |
 | F20 | fw-base (D41) | fixed on branch | `ref_nominal` fly-in 14.6 N, no fault (c28396c) |
-| F21 | fw-base | fixed on branch | `ref_tow_stiff` PASS (6381edd): tow limit held on the stiff line |
-| F22 | fw-base / jetson | by design: host sends `stop` then `reel`; PROTOCOL + mission to align | |
-| F23 | fw-base | fixed in firmware 783f3b2 (line_m - 0.88 m after the wrap): the Jetson must not subtract it too | re-test |
+| F21 | fw-base | improved, still OPEN on the 3 m stiff line | 18ab2b2: `ref_tow_stiff` 50.4 N, `tow_stiff` 46.2 N dart-side vs 46.0 bound; `ref_nominal` (3.6 m) 38.6 N PASS |
+| F22 | jetson (host side) | OPEN: firmware by design (host sends `stop` then `reel`); the mission still re-sends `reel` from HOLD | batch 5: LIMIT 40 "already at the limit" on a 19 N line in every tow with rover slack |
+| F23 | fw-base | fixed in firmware 783f3b2 (line_m - 0.88 m after the wrap): the Jetson must not subtract it too | batch 5: base line_m 4.18 after the wrap of a 5.08 m shot |
 | F24 | jetson (low) | open | |
 | F25 | jetson / spec (low) | open (stop-first is safer: suggest the spec adopts it) | |
-| F26 | fw-base | fixed in 4231f46 (owner) | re-test `hand_lever` |
-| F27 | fw-base (low) | fixed in 4231f46 (owner: clamp within aim_tol) | re-test |
+| F26 | fw-base | fixed on branch | batch 5 `hand_lever`: no DRUM_SENSOR at boot, mission DONE |
+| F27 | fw-base (low) | fixed in 4231f46 (owner: clamp within aim_tol); the Jetson sends 6.06 anyway | |
+| F28 | jetson | OPEN: guard keyed on literal factory k; base now has `tension_cal`, the Jetson still also matches values | batch 5 `nominal_uncal` towed without the warning; `tow_stiff` refused a calibrated 16.967 |
+| F29 | jetson vision | speed part fixed on w/jetson-vision 6fc97c8; remaining ~11 % = renderer vs C3 table (by design) | |
+| F30 | fw-base (low) | re-test on 18ab2b2 not done | |
+| F31 | fw-base | OPEN | batch 5 `no_magnet_index`: mode NEUTRAL LAUNCH_BUSY after the low aim in index mode |
 
 ## F1 (fw-base) `cal` (and `set`) during the first 60 ms are acknowledged ok, then silently undone by the boot rebuild
 

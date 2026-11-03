@@ -8,9 +8,10 @@ Each step says what to type, what you should see, and what to do if not. Keep `{
 Two ways to send the commands:
 
 - On the bench: the Arduino Serial Monitor (line ending "Newline"), as in README.md "First contact".
-- On the Jetson: stop the service first (`sudo systemctl stop grappstar`). In one terminal run
-  `python3 -m grappstar base monitor` (shows telemetry and events). In a second terminal send each command with
-  `python3 -m grappstar base cmd '<json>'`, for example `python3 -m grappstar base cmd '{"id":1,"cmd":"ping"}'`.
+- On the Jetson: stop the service first (`sudo systemctl stop grappstar`), then run
+  `python3 -m grappstar base console`. It keeps one connection, prints telemetry twice a second plus every event, and
+  takes a typed JSON line, `key=value` words (for example `jog motor=wiper dir=1 ms=500`) or a bare `stop`, `estop` or
+  `status`; `quit` ends it.
 
 Two rules for the whole test:
 

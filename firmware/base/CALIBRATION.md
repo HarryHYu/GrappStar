@@ -5,9 +5,9 @@ assembled. Do them in order: (d) needs REEL from (c), and (f) needs (b) and (d).
 
 - Two ways to send the commands below:
   - on the bench: the Arduino Serial Monitor (line ending "Newline"), as in README.md;
-  - on the Jetson: stop the service first (`sudo systemctl stop grappstar`), run `python3 -m grappstar base monitor`
-    in one terminal (telemetry and events), and send each command from a second terminal with
-    `python3 -m grappstar base cmd '<json>'`, for example `python3 -m grappstar base cmd '{"id":1,"cmd":"status"}'`.
+  - on the Jetson: stop the service first (`sudo systemctl stop grappstar`), then run `python3 -m grappstar base console`. It
+    keeps one connection, prints telemetry twice a second plus every event, and takes a typed JSON line, `key=value`
+    words (for example `reel duty=0.3 until=stop`) or a bare `stop`, `estop` or `status`; `quit` ends it.
 - Any whole `id` number works.
 - Every value you `set` or learn with `cal` is **saved in flash automatically** (once everything has stopped) and is
   kept over a power cycle and over a new upload of base-1.3.0. Read a value back with `get`, for example
@@ -275,10 +275,10 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
    {"id":3,"cmd":"reel","duty":0.3,"until":"stop"}
    ```
 
-   (reel-in trip 5 A). Watch the scale. When it shows about 10 N, read `amps` in telemetry at that moment (the
-   monitor log shows the last lines), then send `{"id":4,"cmd":"stop"}`. The worm and sprag #2 hold the line. Write
+   (reel-in trip 5 A). Watch the scale. When it shows about 10 N, read `amps` in telemetry at that moment (on the
+   Jetson the console prints it twice a second), then send `{"id":4,"cmd":"stop"}` (in the console a bare `stop`). The worm and sprag #2 hold the line. Write
    down the scale reading N1 and the current I1.
-4. Send the same `reel` line again and stop at about 20 N (N2, I2), then again at about 30 N (N3, I3). Keep every load
+4. Send the same `reel` line again and `stop` at about 20 N (N2, I2), then again at about 30 N (N3, I3). Keep every load
    under 40 N: the reel-in trips at 5 A (about 44 N with the default constants) and stops at `limit_n` anyway.
 5. Fit the numbers (use the lowest and the highest load):
    - new `k_n_per_a` = (N3 - N1) / (I3 - I1)

@@ -3,9 +3,10 @@
 Printer: Bambu X2D (bed 256 x 256 x 260 mm). PLA for everything except loaded gears and keyed shafts, which are
 PPA-CF (the print list says which).
 
-Magnet for the bench: print the AS5600 magnet cap from the base print pack early (with the coupons) and glue the
-magnet in it, so the bench test (order of work step 7) can use it on the clamped motor's shaft end; or, for the
-bench only, tape the magnet centred on the shaft end and clamp the AS5600 board 1 to 2 mm from it.
+Magnet for the bench: the AS5600 magnet cap is coupon 10 on the PLA risk plate
+(`base/pack/coupons/rc10_magnet_cap.stl`); glue the magnet in it, so the bench test (order of work step 7) can use it on the clamped motor's shaft end; or, for the
+bench only, tape the magnet centred on the shaft end and clamp the AS5600 board 1 to 2 mm from it. `status`
+must show `"magnet":"OK"` (WEAK: move the board closer; STRONG: further; NONE: no magnet seen).
 
 Print settings (the 3MF files carry geometry only: set material and settings in Bambu Studio for each plate):
 

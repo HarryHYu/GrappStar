@@ -290,6 +290,6 @@ Timing:
 | drum_drum_b | PLA | barrel face down | groove roof ledge 4 mm |
 | drum_idler | PPA-CF | pinion end down | none |
 | drum_idler_gear, drum_n20_pinion | PPA-CF | flat | none |
-| drum_fork | PLA | pad plane down (the yoke is the spring) | the far arm starts 2 mm up: let the slicer support it |
+| drum_fork | PLA | sleeve end down (s 15.5, about 170 mm2) | tree support under the yoke and arms (the yoke spring is about 67 mm up) |
 | drum_axle, drum_rail | PPA-CF | on their 1 mm flat | none |
 | everything else | PLA | largest flat face down | none |

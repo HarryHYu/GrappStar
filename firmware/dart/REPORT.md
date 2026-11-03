@@ -94,5 +94,5 @@ TEST_OUTPUT_PLACEHOLDER
   the BMS cutoff against `lowRailV` 5.6 V.
 - Known limits (documented in `API.md` / `FAILURE_MODES.md`): one dead drill, or a drill or the foot wired backwards,
   cannot be detected; a kick jam in the last 40 % of the return is not caught; below about speed 70 only the 8 s cap
-  stops a manual stall; in the full fuzz run 2 chaos cases of pods jammed mid-travel run 3.0 s before the 6 s pods
-  limit; a power-on with the legs out gives a false `KICK_JAM` on `/auto` (release first).
+  stops a manual stall; in the full fuzz run (8000 episodes) 6 chaos cases of the pods at a stop or jammed, with the
+  drills' current rising during each pause, run just over 3.0 s, bounded by the 6 s pods limit; a power-on with the legs out gives a false `KICK_JAM` on `/auto` (release first).

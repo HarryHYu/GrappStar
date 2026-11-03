@@ -91,3 +91,9 @@ Status: in progress. Final version at 18:30 Sydney.
   bench-supply reading of BENCH_TEST steps 0 to 2, hole compensation location, spring measured with a rule and real
   weights, dart plates do not wait for base coupons, kickContactMa wording, part references. Sent to fw-dart: bench
   supply version of BENCH_TEST 0 to 2. fw-base items (SLP, MP1584, 2 A fuse) already sent; guide notes cover them.
+- Round 6 (fresh safety reviewer): 14 findings. Fixed: one stop rule everywhere (estop, lead #2 XT60 as the physical
+  kill, then battery), "cutting power freezes stored energy", an approach checklist and a failed-decock procedure,
+  hand lever never under load, line-tension stance and G9 before any tow, spring hook margin (42 N vs 43.6 N) with
+  stance and the preload fallback, unfused Y harness kept under 10 cm, 18350 charging on the B6 (Li-ion 2S, 1 A),
+  dart pick-up rule, rover chocked and LiPo strapped, require_seated back on before shots, meter range wording.
+  Sent: jetson README (COCK runs without a prompt; one stop rule), fw-dart (no cloth near augers).

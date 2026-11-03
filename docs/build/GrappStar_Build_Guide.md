@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 12:12 Sydney time from commit `a92fdef`.
+Built 2026-11-03 12:13 Sydney time from commit `d0b7968`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -88,9 +88,11 @@ Three parts:
   - Take-up: every forward wiper turn also winds the storage reel through a slip clutch, so slack never builds up.
   - Payout at launch: the line skips the capstan and pulls off the free-spinning storage reel against a light
     payout brake (0.5 N; over 1 N costs range).
-  - Range: about 4 to 5 m with the two springs, about 8 to 9 m with a second pair.
+  - Range: about 3 to 5 m with the two springs (6 to 47 degrees of pitch; minimum about 2.9 m), about 8 to 9 m
+    with a second pair.
   - Protection: current trips in the firmware and a printed torque limiter (about 5 N m) in the wiper coupler. Any
-    fault: wiper off, drum to NEUTRAL (except when cocked or wrapped: then the drum holds). A hand lever on the
+    fault: wiper off, drum to NEUTRAL (except when the wraps are on, the spring is drawn or the
+    drum itself faulted: then the drum holds, decision D27). A hand lever on the
     drum is the fallback.
   - Brain: an ESP32-S3 DevKitC on USB from the Jetson, with an AS5600 angle sensor on the main shaft and printed
     contact switches (an M3 screw head touching an M3 nut).
@@ -103,7 +105,8 @@ over WiFi (HTTP at 192.168.4.1, `firmware/dart/API.md`). Video is analog 5.8 GHz
 
 A mission: pick a target on the rover camera view, the Jetson looks up the pitch in the ballistics table, the base
 aims, cocks and fires on your confirmation, the dart video is analysed for the landing zone, the dart anchors, the
-base tidies the slack, wraps the capstan, engages REEL and tows, the dart releases, the base reels it home onto
+base wraps the capstan right after landing (while the line is still slack, decision D22), the
+dart anchors, the base tidies the slack, engages REEL and tows, the dart releases, the base reels it home onto
 the cradle, unwraps and returns to LAUNCH.
 
 ## Order of work
@@ -867,8 +870,8 @@ ESP32 pins always come from WIRING.md.
 
 Diagram: `system_electrical.svg` / `system_electrical.png` (source `system_electrical.dot`). The ESP32 pin
 table is owned by `firmware/base/WIRING.md` and `firmware/base/grappstar_base/pins.h`; this page shows how the
-whole rover is powered and connected. If this page and WIRING.md ever disagree on a pin, WIRING.md wins, with one exception: decision D9, the DRV8833
-#3 SLP pin is NOT wired (if WIRING.md still shows SLP on GPIO21, leave it unwired).
+whole rover is powered and connected. If this page and WIRING.md ever disagree on a pin, WIRING.md wins. Decision D9: the DRV8833 #3 SLP pin is
+NOT wired (GPIO21 is now the SW_HOME contact, decision D27).
 
 #### 1. What is on the rover
 
@@ -2505,7 +2508,8 @@ With no dart, `arm` refuses (`NOT_SEATED`): for this stage and stage 5 send
    with `NOT_IN_REEL` or `WRAPS_ON` if the order is wrong): 10 cycles. Once wrapped and in REEL, send `reel` with
    duty 0.3, wait 3 s, send `stop`.
 5. Send `estop` in the middle of each kind of move once. The wiper stops at once and the drum goes to NEUTRAL,
-   except when the launcher is cocked or the wraps are on: then the drum holds (`DRUM_HELD`), which is correct.
+   except when the spring is drawn, the wraps are on or the drum itself faulted: then the drum holds (`DRUM_HELD`),
+   which is correct (decision D27).
 6. Fault test: with nothing moving, slide the AS5600 board away from its magnet (do not unplug anything). The base
    reports the magnet missing and refuses to move. Put it back, `clear`.
 
@@ -2553,8 +2557,9 @@ Big range loss with clean payout: the line catches somewhere; watch the slow-mot
 
 ### Stage 7. Reel cycle with the dummy
 
-1. After a stage 6 shot: wrap and get into REEL, reel in, then bring the dummy home, all in the order PROTOCOL.md
-   gives (spec D17: reel until about 1.5 m remain, unwrap, then the final approach in NEUTRAL until `SW_SEATED`).
+1. After a stage 6 shot, while the line is still slack: wrap (decision D22: wrap right after landing), get into
+   REEL, reel in, then bring the dummy home, all in the order PROTOCOL.md gives (spec D17: reel until about 1.5 m
+   remain, unwrap, then the final approach in NEUTRAL until `SW_SEATED`).
 2. `unwrap`, then `mode` NEUTRAL and `mode` LAUNCH. Check the line runs on the launch path again (not round the capstan).
 3. Fire again at 30 degrees.
 
@@ -2567,10 +2572,11 @@ capstan after `unwrap`: do not fire; unwrap again and check the drum position.
 
 The real dart, built and tested to the dart run sheet section 10. Use real soil (moist loam is the target).
 
-1. Place the dart on the soil by hand, tether tied, line slack. Send `/auto` from the operator page (or key `a`).
+1. Place the dart on the soil by hand, tether tied, line slack. Wrap the capstan now, before the dart anchors
+   (decision D22). Then send `/auto` from the operator page (or key `a`).
 2. When the dart reports ANCHORED: pull the tether by hand with the luggage scale, slowly, up to 50 N or until
    it moves (G7).
-3. Re-anchor. Base in REEL with wraps on: `reel` with `until` tension at a limit 10 N under the hand result.
+3. Re-anchor (wrap first, as in step 1). Base in REEL with wraps on: `reel` with `until` tension at a limit 10 N under the hand result.
 4. Send release (operator page, or `python3 -m grappstar dart release`): drills out, pods up, foot out, kick back.
    Then reel the dart home.
 
@@ -2585,8 +2591,8 @@ calibration (G1).
 From the operator page on the Jetson (jetson/README.md): preflight, pick a target on the Kiyo view, aim, confirm
 the fire prompt, flight video from the dart, landing verdict, anchor, tow, release, reel home.
 
-1. First run: a short target well inside the range the operator page offers (the physics model gives about 5 m at its best
-   pitch with the two springs), soft soil, open ground.
+1. First run: a short target well inside the range the operator page offers (3 to 4 m: the minimum is about 2.9 m and the best
+   about 5 m with the two springs), soft soil, open ground.
 2. Watch every prompt: the software stops and asks before each dangerous step.
 
 Pass: the whole sequence runs with only the expected operator confirmations, the dart lands within 2 m of the target,
@@ -2783,7 +2789,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | C15 8 mm steel rod (or M8 bolts) for: reel shaft S, aim worm wheel axle, storage reel axle | Look in the parts box. Needed for: reel and aim | If not: Printed PPA-CF shafts (the reel worker's fallback); tell the coordinator |  |
 | C16 Hardware the CAD assumes: M3 x 4 x 5 heat-set inserts; M3 screws x 6, 8, 10, 12 mm (frame) and M3 x 25 cap screws + nylocs (rover mount); M6 bolts and nuts for the wiper (head 10, nut 10 AF); one M8 nut (drum coupler); 6 mm pins (spring anchors); a C-clip (reel cup head); cable ties, a hose clamp, glue (magnet) | Look in the parts box. Needed for: frame, drum, launch, reel | If not: Exact counts in the base print pack / assembly steps |  |
 | C17 JST SH 4-pin (STEMMA QT) cable 400 mm or longer for the AS5600 | Look in the parts box. Needed for: the 200 mm one is too short | If not: Extend with 4 soldered wires and heat shrink |  |
-| C18 Carriage stop: the printed compliant stop needs at least 15 mm of travel and must stay under 300 N (decision D6); a plain 15 mm foam pad peaks near 430 N, 22 mm is needed | Look in the parts box. Needed for: absorbs the carriage at the end of the stroke | If not: Print TPU pads if you have TPU; size for about 8.5 J if four springs are fitted |  |
+| C18 Carriage stop | Nothing to find: it is a printed PLA flexure with about 19 mm travel (decision D26). TPU pads are an optional upgrade if you get TPU | none | |
 | C19 PETG filament (brake rocker) | Look in the parts box. Needed for: reel | If not: PLA works for the first tests |  |
 | C20 How many 693ZZ / F693ZZ bearings are left after the dart (the dart uses 5 F693ZZ) | Look in the parts box. Needed for: line pulleys on the base | If not: Tell the coordinator the count |  |
 
@@ -2824,7 +2830,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | G1 BTS7960 current sense scale | firmware/base/CALIBRATION.md (meter in series at low duty, compare with `amps`) | firmware `set` key (stored on the ESP32) |  |
 | G2 Battery voltage reading | Meter on the LiPo vs `vbat` telemetry | firmware `set` key |  |
 | G3 AS5600 zero and drum positions | firmware/base/CALIBRATION.md | stored on the ESP32 |  |
-| G4 Storage reel payout drag | A luggage scale cannot read this low: use hanging weights in LAUNCH mode. Tie 40 g (coins in a bag, weighed) to the line end over the edge of the bench: it must NOT pull line off. 50 g must pull line off slowly. That sets the brake at 0.5 N (the design value). Above 1 N costs range, 3 N ruins the flight | slip clutch preload (reel parts) |  |
+| G4 Storage reel payout drag | A luggage scale cannot read this low: use hanging weights in LAUNCH mode. Tie 40 g (coins in a bag, weighed) to the line end over the edge of the bench: it must NOT pull line off. 50 g must pull line off slowly. That sets the brake at 0.5 N (the design value). Above 1 N costs range, 3 N ruins the flight. Then in NEUTRAL the clutch is FIRM, 5 N (decision D24): with the luggage scale, line pulls off at about 0.5 kg | slip clutch preload (reel parts) |  |
 | G5 Muzzle speed | Phone slow-motion video side-on, tape measure laid in the flight line (same distance from the phone as the dart). Count the frames the nose takes to cross 0.5 m; speed m/s = 0.5 x slow-motion fps (240 or 120) / frames | physics model, ballistics table |  |
 | G6 Range at three pitches | Tape measure from the base to the dart at 3 pitches, tether on, brake unchanged | ballistics table check (jetson uses it) |  |
 | G9 Line tension per amp | Line hooked to the luggage scale anchored to a post, base in REEL, `reel` slowly: note scale newtons and `amps` at 3 loads. The physics model gives about 22 N per amp above the free current; the firmware ships `k_n_per_a` 8, so this calibration matters | firmware `k_n_per_a` (CALIBRATION.md (e)) |  |
@@ -2832,7 +2838,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | G11 Payout brake trim | If G4 is off: add or remove printed 0.4 mm shims under thrust ring T (reel assembly steps) | reel shims (print more) |  |
 | G12 Contact gaps | Each printed contact: the M3 screw head sits about 1.1 mm from the nut and must close halfway up its 3 mm bump. Turn the screw to set it, watch `sw` in telemetry | nothing |  |
 | G13 AS5600 air gap | Magnet face to chip: 1.0 mm design, 1 to 2 mm is the target (params), 0.5 to 3 mm still reads. Feeler: a stack of paper | nothing |  |
-| G14 Wiper coupler shear pin | The coupler's torque limiter is a printed PLA pin (d 4) that SHEARS at about 5 N m (3.5 to 6 N m expected). Break one spare pin on the bench: pin in the coupler, coupler held in a vice by the hub, 300 mm bar on the output side, luggage scale at 90 degrees to the bar. Note the peak: N m = kg x 9.81 x 0.30. Three spare pins are in the print pack | pin diameter if it breaks well outside 3.5 to 6 N m (tell the coordinator) | spare shear pins |
+| G14 Wiper coupler shear pin | The coupler's torque limiter is a printed PLA pin (d 4) that SHEARS at about 5 N m (3.5 to 6 N m expected). Break one spare pin on the bench: pin in the coupler, coupler held in a vice by the hub, 300 mm bar on the output side, luggage scale at 90 degrees to the bar. Note the peak: N m = kg x 9.81 x 0.30. Six spare pins are in the print pack (decision D26) | pin diameter if it breaks well outside 3.5 to 6 N m (tell the coordinator) | spare shear pins |
 | G7 Soil holding force | Dart anchored, luggage scale on the tether, pull slowly up to 50 N, note where it moves | reel tension limit |  |
 | G8 Rail friction | Before the rail is mounted: lay the rail part on a flat board, dart in the cradle, lift one end of the board slowly until the dart slides; phone level app on the board. Friction = tan(angle) | physics (launch efficiency) |  |
 
@@ -2870,7 +2876,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 ## Numbers still assumed in params.py right now
 
 
-params.py version: `1.0.1`.
+params.py version: `1.1`.
 
 | params.py name | State | Who fixes it |
 |---|---|---|

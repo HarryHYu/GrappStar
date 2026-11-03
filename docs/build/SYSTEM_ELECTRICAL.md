@@ -2,8 +2,8 @@
 
 Diagram: `system_electrical.svg` / `system_electrical.png` (source `system_electrical.dot`). The ESP32 pin
 table is owned by `firmware/base/WIRING.md` and `firmware/base/grappstar_base/pins.h`; this page shows how the
-whole rover is powered and connected. If this page and WIRING.md ever disagree on a pin, WIRING.md wins, with one exception: decision D9, the DRV8833
-#3 SLP pin is NOT wired (if WIRING.md still shows SLP on GPIO21, leave it unwired).
+whole rover is powered and connected. If this page and WIRING.md ever disagree on a pin, WIRING.md wins. Decision D9: the DRV8833 #3 SLP pin is
+NOT wired (GPIO21 is now the SW_HOME contact, decision D27).
 
 ## 1. What is on the rover
 

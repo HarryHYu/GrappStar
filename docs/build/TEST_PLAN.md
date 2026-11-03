@@ -87,7 +87,8 @@ With no dart, `arm` refuses (`NOT_SEATED`): for this stage and stage 5 send
    with `NOT_IN_REEL` or `WRAPS_ON` if the order is wrong): 10 cycles. Once wrapped and in REEL, send `reel` with
    duty 0.3, wait 3 s, send `stop`.
 5. Send `estop` in the middle of each kind of move once. The wiper stops at once and the drum goes to NEUTRAL,
-   except when the launcher is cocked or the wraps are on: then the drum holds (`DRUM_HELD`), which is correct.
+   except when the spring is drawn, the wraps are on or the drum itself faulted: then the drum holds (`DRUM_HELD`),
+   which is correct (decision D27).
 6. Fault test: with nothing moving, slide the AS5600 board away from its magnet (do not unplug anything). The base
    reports the magnet missing and refuses to move. Put it back, `clear`.
 
@@ -135,8 +136,9 @@ Big range loss with clean payout: the line catches somewhere; watch the slow-mot
 
 ## Stage 7. Reel cycle with the dummy
 
-1. After a stage 6 shot: wrap and get into REEL, reel in, then bring the dummy home, all in the order PROTOCOL.md
-   gives (spec D17: reel until about 1.5 m remain, unwrap, then the final approach in NEUTRAL until `SW_SEATED`).
+1. After a stage 6 shot, while the line is still slack: wrap (decision D22: wrap right after landing), get into
+   REEL, reel in, then bring the dummy home, all in the order PROTOCOL.md gives (spec D17: reel until about 1.5 m
+   remain, unwrap, then the final approach in NEUTRAL until `SW_SEATED`).
 2. `unwrap`, then `mode` NEUTRAL and `mode` LAUNCH. Check the line runs on the launch path again (not round the capstan).
 3. Fire again at 30 degrees.
 
@@ -149,10 +151,11 @@ capstan after `unwrap`: do not fire; unwrap again and check the drum position.
 
 The real dart, built and tested to the dart run sheet section 10. Use real soil (moist loam is the target).
 
-1. Place the dart on the soil by hand, tether tied, line slack. Send `/auto` from the operator page (or key `a`).
+1. Place the dart on the soil by hand, tether tied, line slack. Wrap the capstan now, before the dart anchors
+   (decision D22). Then send `/auto` from the operator page (or key `a`).
 2. When the dart reports ANCHORED: pull the tether by hand with the luggage scale, slowly, up to 50 N or until
    it moves (G7).
-3. Re-anchor. Base in REEL with wraps on: `reel` with `until` tension at a limit 10 N under the hand result.
+3. Re-anchor (wrap first, as in step 1). Base in REEL with wraps on: `reel` with `until` tension at a limit 10 N under the hand result.
 4. Send release (operator page, or `python3 -m grappstar dart release`): drills out, pods up, foot out, kick back.
    Then reel the dart home.
 
@@ -167,8 +170,8 @@ calibration (G1).
 From the operator page on the Jetson (jetson/README.md): preflight, pick a target on the Kiyo view, aim, confirm
 the fire prompt, flight video from the dart, landing verdict, anchor, tow, release, reel home.
 
-1. First run: a short target well inside the range the operator page offers (the physics model gives about 5 m at its best
-   pitch with the two springs), soft soil, open ground.
+1. First run: a short target well inside the range the operator page offers (3 to 4 m: the minimum is about 2.9 m and the best
+   about 5 m with the two springs), soft soil, open ground.
 2. Watch every prompt: the software stops and asks before each dangerous step.
 
 Pass: the whole sequence runs with only the expected operator confirmations, the dart lands within 2 m of the target,

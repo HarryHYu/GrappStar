@@ -1,6 +1,6 @@
 # Whole-base integration audit (cad-frame)
 
-Run 2026-11-03 13:44 Sydney on `0a28edf` (base-v1 merged into w/cad-frame), `tools.audit --dt 0.5 --jobs 2 --no-refine`, 224 parts, 897 states, 234 s. Verdict: **NOT CLEAN**.
+Run 2026-11-03 14:06 Sydney on `0f2ee6e` (base-v1 merged into w/cad-frame), `tools.audit --dt 0.5 --jobs 2 --no-refine`, 224 parts, 897 states, 8 s. Verdict: **NOT CLEAN**.
 
 Subsystems: drum, frame, launch, reel, sensors
 
@@ -10,11 +10,7 @@ Spec: main axis z = 0, deck top z = -165.0. Lowest part bottom per subsystem (re
 
 | subsystem | lowest part z | root joints (parent None) | verdict |
 |---|---|---|---|
-| drum | -165.0 | drum_base (0.0, 0.0, 0.0) | ok |
-| frame | -173.0 | frame_rail_guard (0.0, 140.0, 0.0); frame_wiper (0.0, 0.0, 0.0) | ok |
-| launch | -165.0 | launch_rail (0.0, 140.0, 0.0); launch_sleeve (0.0, 140.0, 0.0); launch_drive (0.0, 140.0, 0.0) | ok |
-| reel | -165.0 | reel_base (-18.7, 33.5, -69.6) | ok |
-| sensors | -157.0 |  | ok |
+| (all) | load failed: NameError: name 'RIB_T' is not defined | | |
 
 ## Collisions (45)
 

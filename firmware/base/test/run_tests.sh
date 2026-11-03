@@ -7,3 +7,4 @@ python3 test_gen_params.py
 echo "== firmware logic (simulation)"
 g++ -std=c++17 -O1 -g -Wall -Wextra -Wno-unused-parameter -Wno-misleading-indentation -fsanitize=address,undefined -o test_base test_base.cpp
 ./test_base
+g++ -std=c++17 -O1 -g -Wall -Wextra -Wno-unused-parameter -Wno-misleading-indentation -fsanitize=address,undefined -I. -o test_fuzz test_fuzz.cpp && ./test_fuzz 300

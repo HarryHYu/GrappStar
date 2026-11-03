@@ -5,7 +5,7 @@
 // Invariants are checked after every command and every 5 ms tick (see check* below).
 //
 // Build and run:  g++ -std=c++17 -O1 -g -fsanitize=address,undefined -I. -o test_fuzz test_fuzz.cpp && ./test_fuzz [seeds] [first]
-// Replay one seed with the whole log:  FUZZ_LOG=1 ./test_fuzz 1 <seed>
+// Replay one seed with the whole log:  FUZZ_LOG=1 ./test_fuzz 1 <seed>   (FUZZ_TRACE=1 adds firmware vs sim truth)
 // Exit code 1 when any invariant was violated.
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +32,7 @@ Tun tunStore; bool tunHas = false;
 void fuzzSaveTun(const Tun& t) { tunStore = t; tunHas = true; }
 
 std::deque<std::string> logRing;          // last commands, replies, events, injections
-bool verbose = false;
+bool verbose = false, trace = false;
 void logl(const std::string& s) {
   char p[32]; snprintf(p, sizeof p, "[%7u] ", (unsigned)S.t);
   std::string l = p + s;
@@ -99,7 +99,9 @@ void tick() {
   if (S.shots > shots0 && prevState != S_FIRE)
     violation("SHOT_OUTSIDE_FIRE", std::string("sim fired while the base was in ") + STATE_NAME[prevState]);
   if (S.dryFires) { violation("DRY_FIRE", "the collar left the LAUNCH dwell with the spring drawn"); S.dryFires = 0; }
-  if (S.wDir == -S.c.reelDir && S.wDuty > 0 && S.inReel())
+  // backward with the REEL dogs engaged is only wrong once the collar presses the backward flank (sprag #2 holds the
+  // capstan): the centering jog moves inside the free dog window by design
+  if (S.wDir == -S.c.reelDir && S.wDuty > 0 && S.inReel() && S.win <= 1e-6)
     violation("BACKWARD_IN_REEL", "wiper driven backward with the REEL dogs engaged (true drum " + std::to_string(S.drumDeg) + ")");
   B->tick(S.t);
   if (S.saveSeq != B->saveDoneSeq && (int32_t)(S.t - S.saveT) >= 20) B->saveDoneSeq = S.saveSeq;   // NVS write done
@@ -109,6 +111,9 @@ void tick() {
   if ((st == S_FAULT || st == S_SAFING) && S.wDir != 0)
     violation("WIPER_AFTER_FAULT", std::string("wiper still driven in ") + STATE_NAME[st]);
   checkStates("tick");
+  if (trace && (S.wDir || S.dDir) && S.t % 50 == 0)
+    printf("    trace t=%u %s %s fw: cock %.1f aim %.1f enc %.1f drum %.1f sec %d | sim: cockPh %.1f aimPh %.1f wiper %.1f drum %.2f sw 0x%02x\n", (unsigned)S.t,
+           STATE_NAME[B->state], PHASE_NAME[B->phase], B->cockPhase, B->aimPhase, B->enc.deg(), B->drumDeg, B->sec, S.cockPh, S.aimPh, S.wiperDeg, S.drumDeg, S.contactsRaw());
   scanEvents();
   if (B->telDue(S.t)) { char tel[300]; B->telemetry(tel, sizeof tel); validLine(tel, "TELEMETRY", false); }
 }
@@ -137,6 +142,9 @@ std::string cmd(const std::string& line) {
         const JVal* id = in.find("id");
         const JVal* rid = ro.find("id");
         if (!rid) violation("REPLY_NO_ID", r);
+        else if (id && id->t == J_NUM && !(id->n == floor(id->n) && fabs(id->n) < 9007199254740992.0)) {
+          if (r.find("\"err\":\"BAD_ID\"") == std::string::npos) violation("INEXACT_ID_NOT_REFUSED", r);   // PROTOCOL: BAD_ID
+        }
         else if (id && id->t == J_NUM) {
           if (rid->t != J_NUM) violation("ID_NOT_ECHOED", "sent id " + std::to_string(id->n) + ", reply " + r);
           else {
@@ -359,6 +367,7 @@ void freshRig() {
 void healAll() {
   S.drumJam = false; S.drumJamAbove = 1e9; S.swStuckClosed = 0; S.swStuckOpen = 0; S.swChatter = 0; S.encMissing = false;
   S.encGlitchEvery = 0; S.magnetWeak = false; S.extraLoadNm = 0; S.vbatOverride = -1; S.toothOnTooth = false; S.searBroken = false;
+  tags.erase("stuck_contact");             // (a belief it left behind may survive, but the sensor tells the truth again)
   flushAdvance(); logl("inject: heal all");
 }
 void injectFault() {
@@ -460,6 +469,7 @@ int main(int argc, char** argv) {
   uint32_t first = argc > 2 ? (uint32_t)strtoul(argv[2], nullptr, 10) : 1;
   int steps = getenv("FUZZ_STEPS") ? atoi(getenv("FUZZ_STEPS")) : 300;
   verbose = getenv("FUZZ_LOG") != nullptr;
+  trace = getenv("FUZZ_TRACE") != nullptr;      // with FUZZ_LOG: firmware against sim truth every 50 ms while a motor runs
   long shotsTotal = 0, firedSeeds = 0; uint64_t simMs = 0;
   for (int i = 0; i < seeds; i++) {
     runSeed(first + i, steps);

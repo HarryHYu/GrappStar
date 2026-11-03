@@ -36,8 +36,8 @@ struct Sim {
   bool hxFitted = false; double hxCountsPerN = 21000; double hxOffset = 1234;
   bool vbatWired = true; double vbatOverride = -1;
   // ---- fault injection
-  uint8_t swStuckClosed = 0, swStuckOpen = 0;   // physical bits
-  uint8_t swChatter = 0; uint32_t chatterSeed = 1;
+  uint16_t swStuckClosed = 0, swStuckOpen = 0;   // physical bits
+  uint16_t swChatter = 0; uint32_t chatterSeed = 1;
   bool drumJam = false;            // drum N20 does not move
   double drumJamAbove = 1e9;       // drum cannot pass above this angle (jam)
   bool toothOnTooth = false; double toothNeedWiper = 10; double toothWiperAcc = 0;   // LAUNCH dog blocked until the wiper turns
@@ -72,8 +72,8 @@ struct Sim {
   }
   bool seated() const { return anchorTautAt < 0 && lineOut <= seatAtLine + 0.01; }
 
-  uint8_t contactsRaw() {
-    uint8_t b = 0;
+  uint16_t contactsRaw() {
+    uint16_t b = 0;
     auto setb = [&](int id, bool v) { int bit = c.swBit[id]; if (bit >= 0 && v) b |= (1 << bit); };
     int code = c.secCode[sectorTrue()];
     setb(gb::SW_DRUM_A, code & 1); setb(gb::SW_DRUM_B, code & 2); setb(gb::SW_DRUM_C, code & 4);
@@ -145,7 +145,7 @@ struct Sim {
       if (nd < c.secLoDeg) nd = c.secLoDeg; if (nd > c.secHiDeg) nd = c.secHiDeg;   // groove ends
       if (toothOnTooth && ((drumDeg > c.lnEngageDeg && nd <= c.lnEngageDeg) || (drumDeg < c.nrEngageDeg && nd >= c.nrEngageDeg))) { dogTip = true; toothWiperAcc = 0; }
       if (nd > c.lnEngageDeg && nd < c.nrEngageDeg) dogTip = false;
-      if (drumDeg <= c.lnEngageDeg && nd > c.lnEngageDeg && !fired && cockPh > c.homeOpenDeg + 1 && cockPh < c.releaseDeg) { dryFires++; cockPh = 0; }
+      if (drumDeg <= c.lnEngageDeg && nd > c.lnEngageDeg && !fired && cockPh > c.homeOpenDeg && cockPh < c.releaseDeg) { dryFires++; cockPh = 0; }
       // unwrapping frees one capstan turn of line per wrap: slack unless the take-up winds it in
       double w0 = wrapsExact(); double d0 = drumDeg; drumDeg = nd; double w1 = wrapsExact(); drumDeg = d0;
       if (w1 < w0) { slack += (w0 - w1) * M_PI * capstanR * 2; maxSlack = fmax(maxSlack, slack); }
@@ -176,7 +176,7 @@ inline float simIs() {
   return (float)(S.amps / S.isAmpsPerVolt * (S.wDuty / 255.0));   // IS reports only during the on time
 }
 inline float simVbat() { return S.vbatWired ? (float)S.vbat() : NAN; }
-inline uint8_t simSw() { return S.contactsRaw(); }
+inline uint16_t simSw() { return S.contactsRaw(); }
 inline float simHx() { return S.hxFitted ? (float)(S.hxOffset + S.tension() * S.hxCountsPerN) : NAN; }
 inline void simSave(const gb::Saved& s) { S.nvs = s; S.nvsHas = true; S.saves++; S.saveSeq = s.seq; S.saveT = S.t; }
 inline void simOut(const char* l) { S.out.push_back(l); if (getenv("SIMLOG")) printf("      [%6u] %s\n", (unsigned)S.t, l); }

@@ -14,7 +14,7 @@ namespace gb {
 enum SwId { SW_DRUM_A, SW_DRUM_B, SW_DRUM_C, SW_DOG_L, SW_DOG_R, SW_SEATED, SW_HOME, SW_RAIL_LOW, SW_WRAP_HOME, SW_INDEX, SW_COUNT };
 static const char* const SW_NAME[SW_COUNT] = {"SW_DRUM_A", "SW_DRUM_B", "SW_DRUM_C", "SW_DOG_L", "SW_DOG_R", "SW_SEATED", "SW_HOME",
                                               "SW_RAIL_LOW", "SW_WRAP_HOME", "SW_INDEX"};
-static const char* const SW_TEL[SW_COUNT] = {"a", "b", "c", "DL", "DR", "S", "H", "L", "W", "I"};   // telemetry keys (PROTOCOL.md)
+static const char* const SW_TEL[SW_COUNT] = {"a", "b", "c", "l", "r", "S", "H", "L", "W", "I"};   // telemetry keys (PROTOCOL.md)
 
 // Drum sectors in travel order (drum angle rising), decision D16 / lens B table 4.1: LAUNCH, ramp L to N, NEUTRAL,
 // wrap prep (cup lock releases), WRAP (cup lays the wraps, collar in NEUTRAL), LOCK (cup locked, collar ramps N to R),

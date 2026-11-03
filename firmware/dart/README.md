@@ -32,9 +32,9 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
 
 | esp32 core | Result | Flash | RAM |
 |---|---|---|---|
-| 3.3.12 (latest) | OK, no warnings from the sketch | 1,013,947 B (30 %) | 70,484 B (21 %) |
-| 3.3.2 | OK, no warnings from the sketch | about 1,016 kB (30 %), measured on an earlier build | about 68 kB (20 %) |
-| 2.0.17 | OK, no warnings from the sketch | about 802 kB (23 %), measured on an earlier build | about 67 kB (20 %) |
+| 3.3.12 (latest) | OK, no warnings from the sketch | 1,014,379 B (30 %) | 70,500 B (21 %) |
+| 3.3.2 | OK, no warnings from the sketch | 1,018,875 B (30 %) | 68,512 B (20 %) |
+| 2.0.17 | OK, no warnings from the sketch | 805,405 B (24 %) | 66,968 B (20 %) |
 
 Libraries: Adafruit BNO08x 1.2.7, plus Adafruit BusIO 1.17.4 and Adafruit Unified Sensor 1.1.15 (installed with it).
 arduino-cli 1.5.2-rc.1.

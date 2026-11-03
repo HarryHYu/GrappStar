@@ -1562,7 +1562,10 @@ def steps(P):
                   "onto the reel (counter-clockwise seen from the front, line over the top), thread it through the "
                   "guide eye, over the top of the cup and through the cup ring from the back. Lay it over pulley 1 "
                   "in its groove (it comes up from the ring and turns down toward the deck), then push the M3 x 20 "
-                  "axle down through the cheeks and the pulley (nyloc nut under). Lead the line down to pulley 2.",
+                  "axle down through the cheeks and the pulley (nyloc nut under). Lead the line down to pulley 2. "
+                  "Set FIRM last, with the drum in REEL (the bar pushed in by the cam): pull the line end with the "
+                  "luggage scale; it must slip at 5.0 N with the reel full. Too low: loosen the lock nut on the rocker "
+                  "leg and turn the FIRM screw in (toward the wall); too high: out. One turn is about 1 N at the line. Lock the nut.",
              parts=["reel_exit_post", "reel_pulley1", "reel_p1_brg", "reel_p1_axle"]),
     ]
 

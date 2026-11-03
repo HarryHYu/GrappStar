@@ -277,6 +277,7 @@ class Rig:
         from grappstar.app import App, AppConfig
         from grappstar.sim.world import default_rover_model, render_rover_view
         self.video = DartVideo(landing_class=sc.landing_class)
+        self.video.render(30.0, 7.5)           # provisional rail view (re-rendered for the solution before the start)
         cfg = AppConfig(sim=False, base_port=self.base.link, dart_host=self.dart.host,
                         runs_dir=os.path.join(self.dir, "jetson"), calib_path=os.path.join(self.dir, "nocalib.json"))
         for k, v in sc.mission_cfg.items():
@@ -409,6 +410,7 @@ class Rig:
         self.base.set(lineOutAfterShot=round(rng_true * 1.05 + 0.3, 2))
         self.video.render(sol.pitch_deg if sol.reachable else 35.0, float(sol.to_dict().get("v_muzzle") or 7.1))
         self.note("info", msg=f"solution {self.solution}")
+        time.sleep(4.0)                        # let the camera quality window fill with real frames
         r = app.action("start")
         self.note("info", msg=f"start: {r}")
         deadline = time.time() + self.sc.timeout_s

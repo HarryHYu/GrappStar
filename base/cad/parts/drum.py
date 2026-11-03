@@ -146,7 +146,7 @@ def tip_short_for(m, z, x):
     need = max(0.4, 0.25 * m)
     k = 0.0
     while k < 0.6:
-        st = gears.spur_info(m, z, x, tip_short=k)["s_tip"]
+        st = gears.spur_info(m, z, x, backlash=fits.GEAR_BACKLASH, tip_short=k)["s_tip"]
         if st == st and st >= need:
             return round(k, 3)
         k += 0.02

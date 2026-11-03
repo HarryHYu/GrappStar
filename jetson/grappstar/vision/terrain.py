@@ -12,24 +12,34 @@ the rover winches itself towards the dart.
 
 Pipeline
 --------
-1. Frame selection: drop frames marked bad or with quality below `min_quality`, then keep
-   the `n_best` sharpest (Laplacian variance of the central region).
-2. Central ROI: the central square (60 percent of the short side) is resized to 256x256.
-   The edges are skipped because the dart body, legs and lens vignetting live there.
-3. Classical features (numpy and OpenCV only, see FEATURE_NAMES): brightness, contrast,
-   Laplacian variance, Canny edge density, uniform local binary pattern histogram, a small
-   GLCM-like contrast at two distances, gradient orientation entropy, Lab and HSV colour
-   moments, green fraction, dark and specular fractions, fine/coarse texture energy and
-   lag-1 autocorrelation.
-4. Classifier: per-class diagonal Gaussian prototypes (a nearest centroid classifier with
-   per-feature spread) in z-scored feature space. Prototypes are learned from the
-   procedural textures in grappstar.sim.terrain_textures (stored in _PROTOTYPES below,
-   regenerated with `python -m grappstar.vision.terrain --learn`). Some classes get two
-   prototypes (water vs void). Probabilities are a softmax over negative squared
-   distances. Two hand rules sit on top: lots of green with edges pushes towards
-   vegetation, a very dark and smooth patch pushes towards water_void.
-5. "unknown" when frames are missing or poor, the image looks like pure noise or is
-   blank, the feature vector is far from every prototype, or the top probability is low.
+0. Dark landing check (on all frames, before any quality filtering): if most frames are almost
+   black the verdict is NO_GO at once (see "Dark landings" below).
+1. Frame selection: drop frames marked bad or with quality below `min_quality`. Frames without a
+   quality value get the cheap link check of vision.flight (blue or black screen, snow, torn),
+   unless that would drop all of them. Then keep the `n_best` sharpest (Laplacian variance of
+   the central region).
+2. Central ROI: the central square (60 percent of the short side) is resized to 192x192. The
+   edges are skipped because the dart body, legs, buried nose dirt and lens vignetting live
+   there. The fixed ROI size also normalises the capture resolution (720x480 and 480x320 give the
+   same angular scale).
+3. Scale tolerant classical features (numpy and OpenCV only, see FEATURE_NAMES and
+   extract_features): brightness, Lab and HSV colour moments, green, dark and specular
+   fractions, chroma variation; contrast relative to the mean brightness overall and per octave
+   (difference of Gaussians at sigma 1 to 16) with the band centroid and peak; edge density,
+   uniform LBP histogram, gradient orientation entropy and structure tensor coherence pooled over
+   a three level pyramid; lag-1 autocorrelation at two levels; a multi scale crack measure.
+   Ratios instead of absolute values wherever possible, so exposure, gain and the unknown
+   distance to the ground matter less.
+4. Classifier: z-scored features projected by a regularised linear discriminant (LDA), then up
+   to two diagonal Gaussian prototypes per class in that space; probabilities are a softmax
+   over negative squared distances. Learned from procedural textures seen at many scales, blurs,
+   exposures and noise levels plus the landing frames of simulated flights (seeds 10 and up),
+   stored in _PROTOTYPES_JSON, regenerated with `python -m grappstar.vision.terrain --learn
+   --write`. Three hand rules sit on top: lots of green with edges pushes towards vegetation, a
+   mostly dark patch and bright glints on a dark smooth patch push towards water_void.
+5. "unknown" when frames are missing or poor, the image looks like pure noise or is blank, the
+   feature vector is far from every class (per class diagonal Gaussians in z space, threshold
+   learned from the training data), or the top probability is low.
 6. Optional learned model (TerrainModel) fused with the classical probabilities by a
    weighted average.
 7. Anchor score 0..100, verdict GO (>= 60), UNSURE (40..59), NO_GO (< 40), with reasons.
@@ -57,6 +67,18 @@ The score is the probability weighted mean of the base scores, so an uncertain m
 towards the middle (for example 50/50 hard ground and sand gives 57, UNSURE). Slope
 subtracts points above 10 degrees. Low image quality or low confidence shrinks the score
 towards 50 (UNSURE) and very poor quality (below 0.5) clamps the verdict to UNSURE.
+
+Dark landings
+-------------
+An almost black landing picture (central region median grey below 30 of 255 in at least 60
+percent of the landing frames, whatever their quality flags say) is a hole, crevasse, deep
+shadow, dark water at low light, or the nose buried in soft ground. video.quality marks such
+near uniform frames as dropouts, so simply skipping them would end in "no usable frames" and
+UNSURE, hiding the most dangerous case. Decision: it is checked first and always gives NO_GO.
+With some texture or sensor noise in the dark frames it is reported as water_void (score 5);
+a perfectly flat black screen (grey std below 0.6, the receiver's "no signal" screen looks like
+that) is reported as unknown but still NO_GO (score 30), with reasons that say the link may be
+down and the operator must look before winching.
 
 Slope
 -----
@@ -95,17 +117,16 @@ GO_MIN = 60
 UNSURE_MIN = 40
 
 ROI_FRAC = 0.6
-ROI_SIZE = 256
+ROI_SIZE = 192
 
 FEATURE_NAMES = (
-    "v_mean", "grey_std", "log_lap", "edge_density",
-    "lbp_entropy", "lbp_flat", "lbp_nonuniform",
-    "glcm_c1", "glcm_c8", "orient_entropy",
-    "lab_a", "lab_b", "sat_mean", "sat_std", "hue_cos", "hue_sin",
-    "green_frac", "dark_frac", "spec_frac",
-    "log_fine", "log_mid", "log_coarse", "autocorr1", "crack_frac",
+    "v_mean", "lab_a", "lab_b", "sat_mean", "hue_cos", "hue_sin",
+    "green_frac", "dark_frac", "spec_frac", "chroma_std",
+    "log_cv", "band0", "band1", "band2", "band3", "band4", "band_centroid", "band_peak",
+    "edge_max", "edge_mean", "lbp_entropy", "lbp_flat", "lbp_nonuni",
+    "orient_entropy", "coherence", "autocorr0", "autocorr2", "crack_frac",
 )
-FEATURE_VERSION = 5
+FEATURE_VERSION = 6
 
 CLASS_COLOURS = {  # BGR, for bars in the report image
     "bedrock": (140, 140, 150), "hard_ground": (80, 130, 190), "loose_soil": (50, 80, 120),
@@ -231,7 +252,11 @@ class OnnxTerrainModel(TerrainModel):
 # ============================================================ features
 
 def central_roi(img: np.ndarray, frac: float = ROI_FRAC, size: int = ROI_SIZE) -> np.ndarray:
-    """Central square crop (frac of the short side), resized to size x size."""
+    """Central square crop (frac of the short side), resized to size x size.
+
+    Resizing the crop to a fixed pixel size normalises the angular scale: the same camera captured
+    at 720x480 or at 480x320 gives the same ROI scale (only the detail differs).
+    """
     h, w = img.shape[:2]
     s = max(8, int(min(h, w) * frac))
     y0, x0 = (h - s) // 2, (w - s) // 2
@@ -272,8 +297,44 @@ def _autocorr1(g: np.ndarray) -> float:
     return float(max(ch, cv))
 
 
+def _half(g: np.ndarray) -> np.ndarray:
+    return cv2.resize(g, (g.shape[1] // 2, g.shape[0] // 2), interpolation=cv2.INTER_AREA)
+
+
+def _level_texture(x: np.ndarray) -> Dict[str, float]:
+    """Contrast normalised texture measures of one pyramid level (float32 grey)."""
+    xb = cv2.GaussianBlur(x, (0, 0), 0.8)
+    sd = max(4.0, float(xb.std()))            # floor: do not blow up the noise of a flat patch
+    xu = np.clip((xb - float(xb.mean())) / sd * 40.0 + 128.0, 0, 255).astype(np.uint8)
+    out = {"edge": float((cv2.Canny(xu, 60, 140) > 0).mean())}
+    hist = _lbp_hist(xb, 0.15 * sd + 1.0)
+    out["lbp_entropy"] = _entropy(hist) / math.log2(10)
+    out["lbp_flat"] = float(hist[0] + hist[8])
+    out["lbp_nonuni"] = float(hist[9])
+    gx = cv2.Sobel(xb, cv2.CV_32F, 1, 0, ksize=3)
+    gy = cv2.Sobel(xb, cv2.CV_32F, 0, 1, ksize=3)
+    mag = np.sqrt(gx * gx + gy * gy)
+    ang = np.arctan2(gy, gx) % np.pi
+    oh, _ = np.histogram(ang, bins=18, range=(0, np.pi), weights=mag)
+    out["orient"] = _entropy(oh / oh.sum()) / math.log2(18) if oh.sum() > 0 else 1.0
+    jxx = cv2.GaussianBlur(gx * gx, (0, 0), 3.0)
+    jyy = cv2.GaussianBlur(gy * gy, (0, 0), 3.0)
+    jxy = cv2.GaussianBlur(gx * gy, (0, 0), 3.0)
+    coh = np.sqrt((jxx - jyy) ** 2 + 4.0 * jxy ** 2) / (jxx + jyy + 16.0)
+    out["coherence"] = float(coh.mean())
+    out["autocorr"] = _autocorr1(x)
+    return out
+
+
 def extract_features(roi: np.ndarray) -> Dict[str, float]:
-    """Classical texture and colour features of a BGR ROI (ideally ROI_SIZE square)."""
+    """Scale tolerant texture and colour features of a BGR ROI (ideally ROI_SIZE square).
+
+    Colour features do not depend on scale. Texture is measured as contrast relative to the mean
+    brightness (so exposure and gain cancel), per octave (band0..band4, difference of Gaussians at
+    sigma 1, 2, 4, 8, 16) plus scale free summaries (band centroid and peak), and edge, LBP,
+    orientation and coherence measures pooled over a three level pyramid (max, mean or min over the
+    levels), so a texture seen two to four times larger still gives similar values.
+    """
     grey_u8 = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
     g = grey_u8.astype(np.float32)
     hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
@@ -284,49 +345,42 @@ def extract_features(roi: np.ndarray) -> Dict[str, float]:
 
     f: Dict[str, float] = {}
     f["v_mean"] = float(V.mean() / 255.0)
-    f["grey_std"] = float(g.std() / 255.0)
-    gb = cv2.GaussianBlur(g, (0, 0), 1.0)
-    lap = cv2.Laplacian(gb, cv2.CV_32F, ksize=3)
-    f["log_lap"] = float(math.log10(float(lap.var()) + 1.0))
-    edges = cv2.Canny(cv2.GaussianBlur(grey_u8, (5, 5), 1.2), 40, 110)
-    f["edge_density"] = float((edges > 0).mean())
-
-    hist = _lbp_hist(gb)
-    f["lbp_entropy"] = _entropy(hist) / math.log2(10)
-    f["lbp_flat"] = float(hist[0] + hist[8])
-    f["lbp_nonuniform"] = float(hist[9])
-
-    q = np.floor(gb / 16.0)
-    sd = max(1e-3, float(q.std()))
-    f["glcm_c1"] = float(np.abs(q[:, 1:] - q[:, :-1]).mean() + np.abs(q[1:] - q[:-1]).mean()) / (2 * sd)
-    f["glcm_c8"] = float(np.abs(q[:, 8:] - q[:, :-8]).mean() + np.abs(q[8:] - q[:-8]).mean()) / (2 * sd)
-
-    gx = cv2.Sobel(gb, cv2.CV_32F, 1, 0, ksize=3)
-    gy = cv2.Sobel(gb, cv2.CV_32F, 0, 1, ksize=3)
-    mag = np.sqrt(gx * gx + gy * gy)
-    ang = (np.arctan2(gy, gx) % np.pi)
-    oh, _ = np.histogram(ang, bins=18, range=(0, np.pi), weights=mag)
-    f["orient_entropy"] = _entropy(oh / max(1e-9, oh.sum())) / math.log2(18) if oh.sum() > 0 else 1.0
-
     f["lab_a"] = float((lab[..., 1].mean() - 128.0) / 128.0)
     f["lab_b"] = float((lab[..., 2].mean() - 128.0) / 128.0)
     f["sat_mean"] = float(S.mean() / 255.0)
-    f["sat_std"] = float(S.std() / 255.0)
     hr = H * (2 * np.pi / 180.0)
     wsum = max(1e-6, float(S.sum()))
     f["hue_cos"] = float((np.cos(hr) * S).sum() / wsum)
     f["hue_sin"] = float((np.sin(hr) * S).sum() / wsum)
-    f["green_frac"] = float(((H >= 35) & (H <= 85) & (S > 60) & (V > 40)).mean())
+    f["green_frac"] = float(((H >= 35) & (H <= 85) & (S > 50) & (V > 35)).mean())
     f["dark_frac"] = float((V < 45).mean())
     f["spec_frac"] = float(((V > 220) & (S < 50)).mean())
+    f["chroma_std"] = float(math.log10(1.0 + float(lab[..., 1].std()) + float(lab[..., 2].std())))
 
-    b2 = cv2.GaussianBlur(g, (0, 0), 2.0)
-    b8 = cv2.GaussianBlur(g, (0, 0), 8.0)
-    f["log_fine"] = float(math.log10(float((g - b2).std()) + 1.0))
-    f["log_mid"] = float(math.log10(float((b2 - b8).std()) + 1.0))
-    f["log_coarse"] = float(math.log10(float(b8.std()) + 1.0))
-    f["autocorr1"] = _autocorr1(g)
-    f["crack_frac"] = float(math.sqrt(crack_fraction(roi)))
+    den = float(g.mean()) + 12.0
+    f["log_cv"] = float(math.log10(1e-3 + float(g.std()) / den))
+    blurs = [g] + [cv2.GaussianBlur(g, (0, 0), s) for s in (1.0, 2.0, 4.0, 8.0, 16.0)]
+    e = [float((blurs[i] - blurs[i + 1]).std()) / den for i in range(5)]
+    le = [math.log10(1e-4 + x) for x in e]
+    for i, x in enumerate(le):
+        f["band%d" % i] = x
+    p = np.array(e) / (sum(e) + 1e-9)
+    f["band_centroid"] = float((p * np.arange(5)).sum())
+    f["band_peak"] = float(max(le))
+
+    levels = [g, _half(g)]
+    levels.append(_half(levels[1]))
+    lt = [_level_texture(x) for x in levels]
+    f["edge_max"] = max(t["edge"] for t in lt)
+    f["edge_mean"] = float(np.mean([t["edge"] for t in lt]))
+    f["lbp_entropy"] = float(np.mean([t["lbp_entropy"] for t in lt]))
+    f["lbp_flat"] = float(np.mean([t["lbp_flat"] for t in lt]))
+    f["lbp_nonuni"] = float(np.mean([t["lbp_nonuni"] for t in lt]))
+    f["orient_entropy"] = float(min(t["orient"] for t in lt))
+    f["coherence"] = float(max(t["coherence"] for t in lt))
+    f["autocorr0"] = lt[0]["autocorr"]
+    f["autocorr2"] = lt[2]["autocorr"]
+    f["crack_frac"] = float(math.sqrt(crack_fraction(roi, grey=grey_u8, half=levels[1])))
     return f
 
 
@@ -334,120 +388,263 @@ def _vec(f: Dict[str, float]) -> np.ndarray:
     return np.array([f[k] for k in FEATURE_NAMES], np.float64)
 
 
-# ============================================================ prototypes
+def _crack_level(g: np.ndarray, k: int) -> float:
+    bh = cv2.morphologyEx(g, cv2.MORPH_BLACKHAT, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)))
+    thr = max(12.0, 3.0 * float(np.median(bh)) + 6.0)
+    m = (bh > thr).astype(np.uint8)
+    n, _lab, stats, _ = cv2.connectedComponentsWithStats(m, 8)
+    min_len = 0.15 * max(g.shape)
+    total = 0
+    for i in range(1, n):
+        w, h, a = stats[i, cv2.CC_STAT_WIDTH], stats[i, cv2.CC_STAT_HEIGHT], stats[i, cv2.CC_STAT_AREA]
+        if max(w, h) >= min_len and a < 0.25 * w * h + 1:
+            total += a
+    return float(total) / m.size
 
-# Learned from grappstar.sim.terrain_textures by `python -m grappstar.vision.terrain --learn`
-# (z-score parameters mu/sd plus one or two diagonal Gaussian prototypes per class).
-# None means "learn on first use" (about 10 s). Regenerate after changing the features.
-_PROTOTYPES: Optional[dict] = json.loads("""
-{"version": 5, "features": ["v_mean", "grey_std", "log_lap", "edge_density", "lbp_entropy",
-"lbp_flat", "lbp_nonuniform", "glcm_c1", "glcm_c8", "orient_entropy", "lab_a", "lab_b",
-"sat_mean", "sat_std", "hue_cos", "hue_sin", "green_frac", "dark_frac", "spec_frac", "log_fine",
-"log_mid", "log_coarse", "autocorr1", "crack_frac"], "mu": [0.44549, 0.05785, 2.13559, 0.06926,
-0.46251, 0.57783, 0.02369, 0.16595, 0.62265, 0.97505, -0.00714, 0.10461, 0.41014, 0.09538,
-0.4451, 0.37975, 0.15078, 0.13389, 0.00981, 0.85953, 0.76195, 0.81899, 0.81055, 0.07285], "sd":
-[0.21462, 0.03242, 0.72249, 0.09198, 0.2887, 0.32414, 0.02064, 0.09095, 0.33232, 0.04743,
-0.09922, 0.10791, 0.18829, 0.0586, 0.54843, 0.42643, 0.31054, 0.28691, 0.06116, 0.27315, 0.3029,
-0.24152, 0.17198, 0.0879], "classes": {"bedrock": [{"mean": [0.12409, -0.2945, -0.28516,
--0.53985, -1.05157, 1.07333, -0.72689, -1.04851, -1.04386, -0.52018, 0.17016, -0.36998,
--1.07079, -0.75738, 0.17322, 0.16828, -0.43605, -0.4647, -0.16035, -0.4842, -0.34974, 0.78791,
-0.7334, 0.82643], "std": [0.29531, 0.30189, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.71351,
-0.51778, 0.46936, 0.51319, 0.28343, 0.76653, 0.90582, 0.25, 0.25, 0.25, 0.25, 0.25, 0.49021,
-0.25, 0.4839]}, {"mean": [0.21573, -0.14602, 0.14301, -0.50117, -0.09543, 0.36151, -0.07035,
--0.31449, -0.58558, 0.20528, 0.50786, -0.61669, -0.95593, -0.10822, 0.20545, -0.65495, -0.3841,
--0.46138, -0.16035, 0.18971, -0.193, 0.7269, -0.0051, 1.08575], "std": [0.49335, 0.25, 0.25,
-0.25, 0.44701, 0.36098, 0.26881, 0.28772, 0.25, 0.29855, 0.40266, 0.42499, 0.35277, 0.45235,
-0.77723, 0.68393, 0.25, 0.25, 0.25, 0.25, 0.25, 0.31444, 0.28992, 0.42088]}], "hard_ground":
-[{"mean": [0.45742, -0.72919, -0.16047, -0.62349, 0.1979, 0.05693, -0.42908, 0.25168, 0.1295,
-0.49207, 0.70429, 0.34453, -0.12286, -0.97338, 0.74334, 0.13132, -0.459, -0.46667, -0.16035,
--0.29325, -0.38543, -0.35311, 0.05945, -0.82876], "std": [0.32322, 0.25, 0.25, 0.25, 0.25, 0.25,
-0.25, 0.25, 0.25, 0.25, 0.49767, 0.46918, 0.39556, 0.29566, 0.25, 0.53802, 0.25, 0.25, 0.25,
-0.25, 0.25, 0.36539, 0.36406, 0.25]}, {"mean": [0.74642, -0.43529, 0.2058, -0.56, 0.70302,
--0.4948, 0.50966, 0.68337, 0.33102, 0.50055, 0.8792, 0.70554, 0.17113, -0.25839, 0.72214,
-0.19526, -0.45163, -0.46667, -0.15796, 0.29733, -0.22323, -0.36863, -0.90495, -0.82876], "std":
-[0.35569, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25476, 0.25773, 0.26666, 0.25, 0.5315, 0.49521,
-0.57645, 0.41338, 0.25, 0.27989, 0.25, 0.25, 0.25, 0.25, 0.25, 0.54171, 0.38475, 0.25]}],
-"loose_soil": [{"mean": [-1.12996, 0.11893, 0.37077, 0.21821, 0.89144, -0.91385, 0.36356,
-0.45742, 1.02923, 0.40963, 0.54221, -0.43597, 0.5164, 1.07556, 0.67511, -0.21853, -0.4242,
-0.82659, -0.16035, 0.25768, 0.73007, -0.26013, 0.4639, -0.29436], "std": [0.25, 0.25, 0.25,
-0.3386, 0.25, 0.25, 0.29811, 0.25, 0.25, 0.25, 0.28501, 0.28704, 0.3944, 0.68185, 0.25, 0.63217,
-0.25, 0.31276, 0.25, 0.25, 0.25, 0.25, 0.25, 0.42545]}, {"mean": [-0.7623, 0.68605, 0.73465,
-0.98114, 1.04066, -1.10807, 0.79778, 0.60858, 1.14826, 0.37375, 0.50899, -0.00747, 0.51842,
-0.6194, 0.66254, 0.15785, -0.4109, 0.13778, -0.16035, 0.66224, 1.07113, 0.0661, 0.42942,
-1.34638], "std": [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.32952, 0.29525,
-0.38234, 0.65529, 0.25, 0.43779, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.65425]}],
-"sand_dust": [{"mean": [1.53101, -0.85935, -1.09452, -0.75298, -0.95254, 0.88134, -0.84799,
--0.56558, -0.54604, -0.93593, 0.34488, 0.10869, -0.9886, -1.03593, 0.53111, 0.19415, -0.47938,
--0.46667, 0.67681, -0.94639, -0.93935, -0.18928, -0.24637, -0.82876], "std": [0.44192, 0.25,
-0.73014, 0.25, 0.66946, 0.4726, 0.40761, 0.63877, 0.53208, 1.84485, 0.3268, 0.62342, 0.51209,
-0.40358, 0.53828, 0.64218, 0.25, 0.25, 2.32547, 0.82286, 0.36709, 0.69611, 1.12747, 0.25]}],
-"vegetation": [{"mean": [0.05578, 1.4427, 1.40257, 2.08031, 1.21382, -1.44657, 1.85188, 1.46849,
-1.27604, 0.32304, -2.13434, 1.66294, 1.33762, 0.43448, -0.90952, 1.29645, 2.19655, -0.45031,
--0.16035, 1.48661, 1.14898, 0.2307, -0.01493, 1.61934], "std": [0.25, 0.26577, 0.25, 0.25, 0.25,
-0.25, 0.25, 0.25, 0.25, 0.33577, 0.34002, 0.25, 0.25, 0.38176, 0.25, 0.25, 0.25, 0.25, 0.25,
-0.25, 0.25, 0.25287, 0.26168, 0.37147]}, {"mean": [-0.23336, 0.86577, 1.13551, 1.75575, 1.17558,
--1.37566, 1.59887, 1.36745, 1.19744, 0.43379, -1.90409, 1.32785, 1.30353, 0.69495, -0.94703,
-1.27791, 2.23124, -0.39506, -0.16035, 1.1674, 0.89064, 0.04336, 0.02496, 0.30483], "std": [0.25,
-0.25, 0.25, 0.25, 0.25, 0.25, 0.26589, 0.25, 0.25, 0.25, 0.34332, 0.25, 0.25, 0.39709, 0.25,
-0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.27829, 0.31804, 0.50637]}], "water_void": [{"mean":
-[-1.74996, -1.39334, -1.62863, -0.75298, -1.26435, 1.09616, -1.04003, -1.01452, -1.34098,
-0.2581, 0.11893, -0.97407, -0.07896, 0.9025, -0.17612, -0.99195, -0.47436, 2.98847, -0.16035,
--1.50349, -1.88747, -2.15755, -1.38575, -0.82876], "std": [0.25, 0.25, 1.04252, 0.25, 0.47239,
-0.30527, 0.25, 1.19537, 0.85007, 0.37792, 0.25, 0.25, 1.32926, 1.39091, 0.72215, 0.31434, 0.25,
-0.25, 0.25, 1.15899, 0.36791, 0.25559, 2.01048, 0.25]}, {"mean": [-0.67585, 1.84304, 0.51168,
--0.61482, -0.61916, 0.7525, -0.87656, -1.13047, -0.91528, -0.53158, -0.01534, -1.90061, 0.47748,
-0.74793, -2.32375, -1.98897, -0.42164, -0.39341, 0.10229, 0.43186, 1.28714, 1.83781, 0.88229,
--0.82876], "std": [0.25, 0.71994, 0.28417, 0.25, 0.53025, 0.41176, 0.34346, 0.25, 0.25, 0.86243,
-0.25, 0.25, 0.309, 0.64724, 0.25, 0.28908, 0.25, 0.25, 0.25, 0.3272, 0.25, 0.53939, 0.25,
-0.25]}]}}
-""")
+
+def crack_fraction(roi: np.ndarray, grey: Optional[np.ndarray] = None, half: Optional[np.ndarray] = None) -> float:
+    """Fraction of ROI pixels on long thin dark lines (black-hat filter, elongated blobs).
+
+    Measured at full and half ROI resolution (the larger of the two), with the minimum line length
+    relative to the ROI, so a crack seen closer up (wider, blurrier) is still found.
+    """
+    g = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY) if grey is None else grey
+    h2 = _half(g.astype(np.float32)) if half is None else half
+    return max(_crack_level(cv2.GaussianBlur(g, (3, 3), 0), 9),
+               _crack_level(np.clip(h2, 0, 255).astype(np.uint8), 7))
+
+
+# ============================================================ prototypes
+#
+# Classifier: the features are z-scored (mu, sd), projected by a regularised linear discriminant
+# (LDA, "lda_w", 5 axes, scaled so every class has unit spread), and compared with one Gaussian
+# prototype per class in that space. LDA keeps the feature combinations that separate the classes
+# across all training conditions (scale, blur, exposure, noise) and drops the ones that mostly
+# vary with them, which is what makes the classifier tolerant. Per class diagonal Gaussians in the
+# full z space ("classes") are kept for the out of distribution check.
+#
+# Training data (learn_prototypes, `python -m grappstar.vision.terrain --learn [--write]`):
+# - procedural textures (sim.terrain_textures.texture_view) at zoom 1 to 4, blur, exposure (gain,
+#   gamma), Gaussian and analog noise, at 720x480 and 480x320; a quarter at the native scale;
+# - landing frames of full simulated flights (sim.flight_video.render_flight, seeds 10 and up, both
+#   frame sizes, dropouts on), picked by vision.flight.landing_frames exactly as the mission does.
+# Seeds 0..5 are never used for learning: tests/eval_terrain_flight.py tests on them.
+
+_PROTOTYPES_JSON = r"""
+{"version": 6, "features": ["v_mean", "lab_a", "lab_b", "sat_mean", "hue_cos", "hue_sin", "green_frac",
+"dark_frac", "spec_frac", "chroma_std", "log_cv", "band0", "band1", "band2", "band3", "band4",
+"band_centroid", "band_peak", "edge_max", "edge_mean", "lbp_entropy", "lbp_flat", "lbp_nonuni",
+"orient_entropy", "coherence", "autocorr0", "autocorr2", "crack_frac"], "mu": [0.47209, -0.01197, 0.0976,
+0.39209, 0.38381, 0.3849, 0.153, 0.07451, 0.0167, 0.95362, -0.98529, -1.57072, -1.8002, -1.72605, -1.71713,
+-1.75957, 1.81495, -1.42616, 0.2592, 0.19269, 0.51137, 0.54576, 0.03651, 0.92654, 0.45774, 0.79488, 0.7672,
+0.04812], "sd": [0.20969, 0.09093, 0.10694, 0.1824, 0.61419, 0.43608, 0.31664, 0.21966, 0.1085, 0.28992,
+0.41164, 0.37828, 0.4436, 0.52693, 0.56657, 0.54856, 0.59642, 0.38858, 0.12614, 0.11569, 0.27136, 0.29033,
+0.02895, 0.10992, 0.18106, 0.23158, 0.17124, 0.08482], "lda_w": [[-0.56158, 0.35141, 0.95144, -0.64636,
+0.20678], [-0.91265, 0.8481, -0.42556, -0.24222, 0.07217], [0.71961, 0.33308, 0.1698, -0.35286, -0.0279],
+[0.58685, -0.41101, -0.39422, -0.96849, -0.76306], [0.31165, 1.07346, 0.30631, 1.08819, -0.78214], [-0.021,
+0.78379, 0.06926, 0.34192, -0.40221], [2.50552, -0.86349, 1.70819, 0.57926, 0.239], [-0.22908, -0.53523,
+0.11798, -0.40574, -0.21287], [0.08955, 0.02263, -0.0347, -0.16555, -0.31667], [0.43131, -0.35857, 0.49717,
+0.30799, 0.27389], [-0.10542, -0.46826, -0.35212, -0.32622, -0.44117], [-0.40394, 0.25281, -0.21604, 0.30459,
+0.05286], [0.21659, -0.32278, 0.09787, 0.08473, -0.0362], [0.16634, 0.1121, 0.01647, 0.44959, 0.60401],
+[0.01853, 0.21732, -0.16104, 0.43798, 0.46312], [0.11554, 0.26489, -0.27562, 0.00503, -0.18192], [0.28825,
+0.04176, -0.46319, -0.2433, 0.16054], [-0.24558, -0.30761, -0.19527, 0.04395, -0.77132], [0.18271, 0.10834,
+0.16178, 0.13069, -1.14645], [0.01269, 0.36738, 0.23889, -1.01301, 1.42758], [0.60825, 0.86171, -0.98009,
+-0.35426, 1.00607], [-1.25794, -0.52753, 1.37122, 0.29861, 0.70895], [-0.33861, 0.1107, 0.57265, 0.53199,
+-0.46351], [0.2376, 0.30054, -0.32665, 0.08224, 0.06558], [-0.5803, -0.07496, 1.1182, -0.04432, -1.02703],
+[0.50091, 0.0658, -0.19715, 0.10577, 0.0217], [-0.09826, 0.2257, 0.07919, 0.10769, -0.40391], [-0.16687,
+-0.07452, 0.00508, 0.85696, 0.12321]], "lda_classes": {"bedrock": [{"mean": [-4.61099, -0.32091, 1.71733,
+3.49727, 0.68941], "std": [1.35642, 1.27218, 1.1277, 1.47206, 1.21738]}], "hard_ground": [{"mean": [0.60204,
+4.56843, -2.02721, -1.41764, 1.62533], "std": [0.89176, 0.65875, 0.83562, 0.70194, 0.62479]}], "loose_soil":
+[{"mean": [0.73304, 0.59123, -4.9536, -0.14222, -2.35192], "std": [0.9577, 1.13733, 0.63741, 0.74958,
+0.91406]}, {"mean": [0.80953, 2.872, -4.10505, 1.30443, -1.31098], "std": [0.68298, 0.54021, 0.64085, 0.79496,
+0.62791]}], "sand_dust": [{"mean": [-4.08413, 1.76676, 3.62321, -0.82362, 0.1214], "std": [1.02948, 1.01105,
+0.85539, 0.73977, 0.97092]}, {"mean": [-4.28203, 2.86653, 5.15379, -2.26692, -1.58234], "std": [0.74476,
+0.90659, 0.71604, 0.80557, 0.77136]}], "vegetation": [{"mean": [10.7475, -2.31573, 0.69721, 0.18639, -0.5649],
+"std": [0.94647, 0.5821, 0.80891, 0.71434, 0.75836]}, {"mean": [12.379, -2.20813, 2.2937, 0.17841, 0.19466],
+"std": [0.82765, 0.5, 0.55873, 0.636, 0.57985]}], "water_void": [{"mean": [-5.07774, -7.12744, -1.22062,
+-1.69743, 0.09959], "std": [0.61537, 0.68683, 0.85677, 0.68418, 1.3288]}, {"mean": [-3.74293, -6.21157,
+-3.02374, -1.11588, 0.30813], "std": [0.6955, 1.1757, 0.87781, 1.08676, 1.05196]}]}, "classes": {"bedrock":
+[{"mean": [0.09732, 0.34433, -0.60173, -1.28734, 0.32135, -0.32176, -0.40918, -0.32283, -0.14971, -0.32596,
+-0.35495, -0.29284, -0.32101, -0.24097, -0.24892, -0.26815, -0.08172, -0.43769, -0.94171, -0.97287, -0.82352,
+0.95141, -0.4656, -0.56549, 0.10665, 0.08425, 0.49318, 1.33462], "std": [0.48801, 0.4022, 0.41059, 0.57998,
+0.66509, 0.81106, 0.28498, 0.25, 0.25, 0.74744, 0.65189, 0.70327, 0.60558, 0.64546, 0.69012, 0.72716, 0.79914,
+0.57842, 0.77002, 0.47892, 0.50392, 0.37854, 0.55405, 1.15572, 0.99407, 0.78465, 0.43994, 1.27606]}],
+"hard_ground": [{"mean": [0.48012, 0.62425, 0.41422, -0.20731, 0.72237, 0.27408, -0.43277, -0.33922, -0.1515,
+-0.34526, -0.49805, -0.28877, -0.19759, -0.14262, -0.18426, -0.32245, -0.07695, -0.50794, 0.68136, 1.0178,
+0.81224, -0.72566, 0.54455, 0.59914, -0.68475, 0.01417, -0.5248, -0.55053], "std": [0.46807, 0.44811, 0.37092,
+0.34148, 0.25, 0.33478, 0.25, 0.25, 0.25, 0.72839, 0.25, 0.64712, 0.28774, 0.25, 0.25, 0.27647, 0.58873,
+0.4425, 0.25, 0.28411, 0.25, 0.25, 0.56788, 0.25, 0.26918, 0.65932, 0.66474, 0.25]}], "loose_soil": [{"mean":
+[-0.75383, 0.69639, 0.02324, 0.49245, 0.74042, 0.05144, -0.44, 0.38518, -0.15395, 0.03077, 0.93617, 0.55463,
+0.81937, 0.93613, 0.99765, 1.01014, 0.71731, 0.85038, 0.39394, 0.27665, 0.76518, -0.77793, 0.47251, 0.53599,
+0.30478, 0.55824, -0.05253, 0.47651], "std": [0.43726, 0.30121, 0.3255, 0.44669, 0.25, 0.4246, 0.25, 0.9767,
+0.25, 0.57087, 0.25, 0.77412, 0.48812, 0.27648, 0.25, 0.25, 0.57744, 0.32055, 0.41934, 0.58107, 0.29817,
+0.37927, 0.97036, 0.25, 0.424, 0.30249, 0.91981, 1.015]}], "sand_dust": [{"mean": [1.54496, 0.39304, 0.35503,
+-0.79726, 0.59887, 0.37474, -0.45971, -0.33922, 0.64337, -0.56936, -1.41456, -1.06383, -1.4732, -1.49378,
+-1.35938, -1.25583, -0.64085, -1.30348, 0.19847, -0.00349, -0.57747, 0.56991, -0.57013, -1.0272, 0.53596,
+-0.60302, 0.62473, -0.56733], "std": [0.62624, 0.36221, 0.48761, 0.4221, 0.33016, 0.46782, 0.25, 0.25,
+2.31479, 0.83229, 0.38965, 0.87167, 0.46562, 0.35808, 0.44079, 0.4869, 0.86525, 0.6746, 0.7882, 0.78965,
+0.65968, 0.59097, 0.70144, 1.24732, 1.36329, 1.004, 0.64135, 0.25]}], "vegetation": [{"mean": [-0.27186,
+-2.01904, 1.38142, 1.25909, -0.75232, 1.2505, 2.19917, -0.19816, -0.15395, 1.58589, 0.8431, 0.69549, 1.08425,
+1.02722, 0.91147, 0.79008, 0.35549, 0.78829, 0.7746, 0.86913, 1.06755, -1.19609, 1.01303, 0.50909, 0.27061,
+0.4893, -0.63643, -0.15647], "std": [0.38707, 0.37355, 0.37544, 0.35462, 0.25, 0.25, 0.25, 0.33899, 0.25,
+0.25, 0.25, 0.53403, 0.27217, 0.25, 0.25, 0.25, 0.51038, 0.28465, 0.25, 0.34265, 0.25, 0.25, 0.7656, 0.25,
+0.38058, 0.3345, 0.7816, 0.58476]}], "water_void": [{"mean": [-1.09672, -0.03897, -1.57218, 0.54037, -1.63069,
+-1.629, -0.45752, 0.81424, -0.03426, -0.37608, 0.4883, 0.39533, 0.08818, -0.08599, -0.11655, 0.04622,
+-0.27328, 0.61045, -1.10665, -1.18722, -1.24398, 1.17835, -0.99436, -0.05154, -0.53324, -0.54294, 0.09586,
+-0.5368], "std": [0.58111, 0.25, 0.4109, 0.76673, 0.78831, 0.53651, 0.25, 1.93475, 0.36246, 0.79493, 1.04098,
+1.09267, 0.92422, 1.04105, 1.20015, 1.28177, 1.59164, 0.98231, 1.09343, 0.62248, 0.46329, 0.34553, 0.52363,
+0.89769, 1.24025, 1.58791, 1.47322, 0.25]}]}, "n_samples": 1080, "ood_d2": 9.0}
+"""
+_PROTOTYPES: Optional[dict] = json.loads(_PROTOTYPES_JSON)
 _LEARNED: Optional[dict] = None
 
+LEARN_TEXTURE_SEEDS = tuple(range(9000, 9100))
+LEARN_FLIGHT_SEEDS = tuple(range(10, 30))
+LEARN_SIZES = ((720, 480), (480, 320))
+LDA_REG = 0.1
 
-def learn_prototypes(seeds: Sequence[int] = tuple(range(9000, 9012)),
-                     noises: Sequence[float] = (0.0, 0.03, 0.06), size: int = 480) -> dict:
-    """Learn per-class feature means and spreads from the procedural textures."""
-    from grappstar.sim.terrain_textures import texture
+
+def _texture_params(cls: str, seed: int) -> dict:
+    """Random but reproducible viewing conditions for one training texture."""
+    rng = np.random.default_rng([int(seed), CLASSES.index(cls), 4242])
+    native = seed % 4 == 0
+    w, h = LEARN_SIZES[int(rng.integers(len(LEARN_SIZES)))] if not native else (720, 480)
+    return {
+        "h": h, "w": w,
+        "zoom": 1.0 if native else float(rng.choice([1.0, 1.5, 2.0, 2.5, 3.0, 4.0])),
+        "blur": 0.0 if native else float(rng.choice([0.0, 0.6, 1.0, 1.5, 2.0])),
+        "gain": 1.0 if native else float(rng.uniform(0.7, 1.35)),
+        "gamma": 1.0 if native else float(rng.uniform(0.75, 1.3)),
+        "noise": float(rng.choice([0.0, 0.02, 0.03, 0.05])),
+        "analog": bool(rng.random() < 0.35),
+    }
+
+
+def _texture_sample(args) -> tuple:
+    from grappstar.sim.terrain_textures import texture_view
+    cls, seed = args
+    p = _texture_params(cls, seed)
+    img = texture_view(cls, p.pop("h"), p.pop("w"), seed=int(seed), **p)
+    return cls, [_vec(extract_features(central_roi(img)))]
+
+
+def _flight_sample(args) -> tuple:
+    """Feature vectors of the frames analyze_landing would use in one simulated flight."""
+    from grappstar.sim.flight_video import render_flight
+    from grappstar.vision import flight
+    cls, seed, size, n = args
+    frames, _truth = render_flight(seed=int(seed), landing_class=cls, size=tuple(size), dropouts=True)
+    res = flight.analyze_flight(frames, None)
+    land = flight.landing_frames(frames, res, n=15)
+    land.sort(key=lambda fr: _sharpness(fr.img), reverse=True)
+    return cls, [_vec(extract_features(central_roi(fr.img))) for fr in land[:n]]
+
+
+def learn_prototypes(texture_seeds: Sequence[int] = LEARN_TEXTURE_SEEDS,
+                     flight_seeds: Sequence[int] = LEARN_FLIGHT_SEEDS,
+                     sizes: Sequence[tuple] = LEARN_SIZES, frames_per_flight: int = 2,
+                     jobs: int = 1, verbose: bool = False) -> dict:
+    """Learn the classifier constants (see the comment above _PROTOTYPES_JSON). Deterministic."""
+    tasks_t = [(c, int(s)) for c in CLASSES for s in texture_seeds]
+    tasks_f = [(c, int(s), tuple(sz), int(frames_per_flight)) for c in CLASSES for s in flight_seeds
+               for sz in sizes]
+    if jobs > 1:
+        import multiprocessing as mp
+        with mp.get_context("fork").Pool(jobs) as pool:
+            parts = pool.map(_texture_sample, tasks_t) + pool.map(_flight_sample, tasks_f)
+    else:
+        parts = [_texture_sample(t) for t in tasks_t] + [_flight_sample(t) for t in tasks_f]
     rows: Dict[str, List[np.ndarray]] = {c: [] for c in CLASSES}
-    for c in CLASSES:
-        for s in seeds:
-            for i, nz in enumerate(noises):
-                img = texture(c, size, size, seed=int(s) * 7 + i, noise=float(nz),
-                              analog=bool((s + i) % 3 == 0))
-                rows[c].append(_vec(extract_features(central_roi(img))))
-    allx = np.concatenate([np.stack(v) for v in rows.values()])
-    mu = allx.mean(0)
-    sd = allx.std(0) + 1e-9
-    protos = {}
-    for c in CLASSES:
-        z = (np.stack(rows[c]) - mu) / sd
-        protos[c] = [{"mean": m.tolist(), "std": np.maximum(s, 0.25).tolist()}
-                     for m, s in _two_means(z)]
-    return {"version": FEATURE_VERSION, "features": list(FEATURE_NAMES), "mu": mu.tolist(),
-            "sd": sd.tolist(), "classes": protos}
+    for c, vs in parts:
+        rows[c].extend(vs)
+    if verbose:
+        print("samples per class:", {c: len(v) for c, v in rows.items()})
+    X = np.concatenate([np.stack(rows[c]) for c in CLASSES])
+    y = np.concatenate([np.full(len(rows[c]), i) for i, c in enumerate(CLASSES)])
+    mu = X.mean(0)
+    sd = X.std(0) + 1e-9
+    Z = (X - mu) / sd
+    W = _lda(Z, y, LDA_REG)
+    P = Z @ W
+    protos, lprotos = {}, {}
+    for k, c in enumerate(CLASSES):
+        zk = Z[y == k]
+        protos[c] = [{"mean": zk.mean(0).tolist(), "std": np.maximum(zk.std(0), 0.25).tolist()}]
+        # up to two prototypes per class in LDA space (rippled vs flat sand, cracked vs smooth rock, ...)
+        lprotos[c] = [{"mean": m.tolist(), "std": np.maximum(s_, 0.5).tolist()}
+                      for m, s_ in _two_means(P[y == k])]
+    out = {"version": FEATURE_VERSION, "features": list(FEATURE_NAMES), "mu": mu.tolist(), "sd": sd.tolist(),
+           "lda_w": W.tolist(), "lda_classes": lprotos, "classes": protos, "n_samples": int(len(X))}
+    # out of distribution threshold from the training data itself
+    dz = np.array([_ood_d2(z, out) for z in Z])
+    out["ood_d2"] = float(max(9.0, 2.0 * np.quantile(dz, 0.995)))
+    return _rounded(out)
 
 
 def _two_means(z: np.ndarray, iters: int = 10) -> List[tuple]:
-    """Split one class into up to two clusters (some classes are bimodal, e.g. water vs void).
+    """Split one class into up to two clusters, returned as [(mean, std), ...].
 
-    Deterministic 2-means; a cluster is kept only if it holds at least 25 percent of the
+    Deterministic 2-means; both clusters are kept only if each holds at least 20 percent of the
     samples, otherwise the class gets a single prototype.
     """
     one = [(z.mean(0), z.std(0))]
-    if len(z) < 8:
+    if len(z) < 10:
         return one
     a = z[np.argmax(((z - z.mean(0)) ** 2).sum(1))]
     b = z[np.argmax(((z - a) ** 2).sum(1))]
     cents = np.stack([a, b])
+    lab = np.zeros(len(z), int)
     for _ in range(iters):
         lab = np.argmin(((z[:, None, :] - cents[None]) ** 2).sum(2), 1)
         if lab.min() == lab.max():
             return one
         cents = np.stack([z[lab == k].mean(0) for k in range(2)])
-    counts = np.bincount(lab, minlength=2)
-    if counts.min() < 0.25 * len(z):
+    if np.bincount(lab, minlength=2).min() < 0.2 * len(z):
         return one
     return [(z[lab == k].mean(0), z[lab == k].std(0)) for k in range(2)]
+
+
+def _lda(Z: np.ndarray, y: np.ndarray, reg: float) -> np.ndarray:
+    """Regularised LDA projection (n_features x n_classes-1), unit within class spread per axis."""
+    K = int(y.max()) + 1
+    m = Z.mean(0)
+    Sw = np.zeros((Z.shape[1], Z.shape[1]))
+    Sb = np.zeros_like(Sw)
+    for k in range(K):
+        zk = Z[y == k]
+        mk = zk.mean(0)
+        Sw += (zk - mk).T @ (zk - mk) / len(Z)
+        Sb += np.outer(mk - m, mk - m) / K
+    Sw = (1 - reg) * Sw + reg * np.eye(len(Sw)) * np.trace(Sw) / len(Sw)
+    ev, evec = np.linalg.eig(np.linalg.solve(Sw, Sb))
+    order = np.argsort(-ev.real)[:K - 1]
+    W = evec[:, order].real
+    W = W / np.linalg.norm(W, axis=0)
+    P = Z @ W
+    spread = np.concatenate([P[y == k] - P[y == k].mean(0) for k in range(K)]).std(0)
+    W = W / spread
+    # fixed sign convention so --learn output is reproducible across LAPACK builds
+    W = W * np.where(W[np.abs(W).argmax(0), np.arange(W.shape[1])] < 0, -1.0, 1.0)
+    return W
+
+
+def _rounded(x, nd: int = 5):
+    if isinstance(x, dict):
+        return {k: _rounded(v, nd) for k, v in x.items()}
+    if isinstance(x, list):
+        return [_rounded(v, nd) for v in x]
+    if isinstance(x, float):
+        return round(x, nd)
+    return x
+
+
+def _ood_d2(z: np.ndarray, p: dict) -> float:
+    best = float("inf")
+    for c in CLASSES:
+        for pr in p["classes"][c]:
+            d = float((((z - np.asarray(pr["mean"])) / np.asarray(pr["std"])) ** 2).mean())
+            best = min(best, d)
+    return best
 
 
 def _prototypes() -> dict:
@@ -455,47 +652,54 @@ def _prototypes() -> dict:
     if _LEARNED is None:
         p = _PROTOTYPES
         if not p or p.get("version") != FEATURE_VERSION or p.get("features") != list(FEATURE_NAMES):
-            p = learn_prototypes()
-        means, stds, owner = [], [], []
+            p = learn_prototypes(flight_seeds=())   # fast fallback (textures only, a few seconds)
+        means, stds, lmeans, lstds, lowner = [], [], [], [], []
         for i, c in enumerate(CLASSES):
             for pr in p["classes"][c]:
                 means.append(pr["mean"])
                 stds.append(pr["std"])
-                owner.append(i)
+            for pr in p["lda_classes"][c]:
+                lmeans.append(pr["mean"])
+                lstds.append(pr["std"])
+                lowner.append(i)
         _LEARNED = {"mu": np.array(p["mu"]), "sd": np.array(p["sd"]), "mean": np.array(means),
-                    "std": np.array(stds), "owner": np.array(owner)}
+                    "std": np.array(stds), "W": np.array(p["lda_w"]), "lmean": np.array(lmeans),
+                    "lstd": np.array(lstds), "lowner": np.array(lowner),
+                    "ood_d2": float(p.get("ood_d2", OOD_DIST))}
     return _LEARNED
 
 
-TEMPERATURE = 0.3       # softmax temperature on mean squared z distance
-OOD_DIST = 9.0          # mean squared z distance to the nearest prototype above this = unknown
+TEMPERATURE = 1.5       # softmax temperature on the squared LDA distance (higher = softer)
+OOD_DIST = 9.0          # default mean squared z distance to the nearest class for "unknown"
 MIN_CONFIDENCE = 0.45   # top probability below this = unknown
 
 
 def classify_features(f: Dict[str, float]) -> Dict[str, object]:
-    """Prototype classifier. Returns probs (over CLASSES), min distance and rule notes."""
+    """Prototype classifier. Returns probs (over CLASSES), OOD distance and rule notes."""
     P = _prototypes()
     z = (_vec(f) - P["mu"]) / P["sd"]
-    dp = (((z[None, :] - P["mean"]) / P["std"]) ** 2).mean(1)
-    d2 = np.array([dp[P["owner"] == i].min() for i in range(len(CLASSES))])
+    q = z @ P["W"]
+    dp = (((q[None, :] - P["lmean"]) / P["lstd"]) ** 2).sum(1)
+    d2 = np.array([dp[P["lowner"] == i].min() for i in range(len(CLASSES))])
     probs = _softmax(-0.5 * d2 / TEMPERATURE)
     pr = {c: float(probs[i]) for i, c in enumerate(CLASSES)}
+    dz = (((z[None, :] - P["mean"]) / P["std"]) ** 2).mean(1)
     notes: List[str] = []
     # Hand rules (transparent overrides on top of the prototypes).
-    if f["green_frac"] > 0.25 and f["edge_density"] > 0.04:
+    if f["green_frac"] > 0.25 and f["edge_max"] > 0.04:
         target = min(0.9, 0.4 + f["green_frac"])
         if pr["vegetation"] < target:
             pr = _push(pr, "vegetation", target)
             notes.append("%d percent of the patch is green (plants)." % round(100 * f["green_frac"]))
-    if f["dark_frac"] > 0.7 and f["log_fine"] < 1.4:
+    if f["dark_frac"] > 0.7:
         if pr["water_void"] < 0.85:
             pr = _push(pr, "water_void", 0.85)
-        notes.append("The patch is very dark and smooth: water, a hole or deep shadow.")
-    elif f["spec_frac"] > 0.01 and f["v_mean"] < 0.45 and f["log_fine"] < 1.2:
+        notes.append("The patch is very dark: water, a hole or deep shadow.")
+    elif f["spec_frac"] > 0.01 and f["v_mean"] < 0.4 and f["log_cv"] < -0.6:
         if pr["water_void"] < 0.7:
             pr = _push(pr, "water_void", 0.7)
         notes.append("Bright glints on a dark smooth surface look like water.")
-    return {"probs": pr, "min_d2": float(d2.min()), "notes": notes}
+    return {"probs": pr, "min_d2": float(dz.min()), "ood_d2": P["ood_d2"], "notes": notes}
 
 
 def _push(pr: Dict[str, float], cls: str, target: float) -> Dict[str, float]:
@@ -504,21 +708,6 @@ def _push(pr: Dict[str, float], cls: str, target: float) -> Dict[str, float]:
            for k, v in pr.items() if k != cls}
     out[cls] = target
     return out
-
-
-def crack_fraction(roi: np.ndarray) -> float:
-    """Fraction of ROI pixels on long thin dark lines (black-hat filter, elongated blobs)."""
-    g = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-    g = cv2.GaussianBlur(g, (3, 3), 0)
-    bh = cv2.morphologyEx(g, cv2.MORPH_BLACKHAT, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9)))
-    m = (bh > 18).astype(np.uint8)
-    n, lab, stats, _ = cv2.connectedComponentsWithStats(m, 8)
-    total = 0
-    for i in range(1, n):
-        w, h, a = stats[i, cv2.CC_STAT_WIDTH], stats[i, cv2.CC_STAT_HEIGHT], stats[i, cv2.CC_STAT_AREA]
-        if max(w, h) >= 30 and a < 0.25 * w * h + 1:
-            total += a
-    return float(total) / m.size
 
 
 # ============================================================ slope
@@ -665,6 +854,81 @@ def _sharpness(img: np.ndarray) -> float:
     return float(cv2.Laplacian(g, cv2.CV_32F).var())
 
 
+DARK_MEDIAN = 30       # grey level (0..255) of the central region below which a frame counts as black
+DARK_P90 = 60
+DARK_SHARE = 0.6       # share of the landing frames that must be black for the dark landing verdict
+UNIFORM_STD = 0.6      # grey std below which a black frame is a flat screen (no sensor noise at all)
+
+
+def _dark_stats(img: np.ndarray) -> tuple:
+    """(median grey, 90th percentile grey, grey std, mean B - mean R) of the central region."""
+    h, w = img.shape[:2]
+    s = max(8, int(min(h, w) * ROI_FRAC))
+    crop = img[(h - s) // 2:(h - s) // 2 + s:2, (w - s) // 2:(w - s) // 2 + s:2]
+    if crop.ndim == 2:
+        g, blue = crop, 0.0
+    else:
+        g = cv2.cvtColor(np.ascontiguousarray(crop), cv2.COLOR_BGR2GRAY)
+        blue = float(crop[..., 0].mean()) - float(crop[..., 2].mean())
+    p50, p90 = np.percentile(g, (50, 90))
+    return float(p50), float(p90), float(g.std()), blue
+
+
+def _dark_landing(items: List[tuple]) -> Optional[dict]:
+    """Detect a black landing picture (most frames black), whatever the frame quality flags say.
+
+    A black void (hole, crevasse, deep shadow, dark water at low light) or a camera buried in the
+    ground looks like a near uniform black frame, which video.quality marks as a dropout. Dropping
+    those frames would hide the most dangerous case, so it is checked first, on all frames.
+    """
+    if not items:
+        return None
+    stats = [_dark_stats(it[0]) for it in items]
+    dark = [st for st in stats if st[0] < DARK_MEDIAN and st[1] < DARK_P90 and st[3] < 40.0]
+    if len(dark) < max(1, math.ceil(DARK_SHARE * len(items))):
+        return None
+    return {"n_dark": len(dark), "n": len(items),
+            "uniform": float(np.median([st[2] for st in dark])) < UNIFORM_STD,
+            "level": float(np.median([st[0] for st in dark]))}
+
+
+def _dark_report(dark: dict, items: List[tuple]) -> "TerrainReport":
+    """NO_GO report for a black landing picture (see the module docstring, Dark landings)."""
+    n_dark, n = dark["n_dark"], dark["n"]
+    used = [it[1] for it in items]
+    if dark["uniform"]:
+        probs = {c: 0.0 for c in CLASSES} | {"water_void": 0.4, "unknown": 0.6}
+        reasons = ["%d of %d landing frames are a flat black screen (no texture, no sensor noise)." % (n_dark, n),
+                   "Either the video link is down or the camera faces a black void or is buried.",
+                   "Ground cannot be confirmed: treat as NO_GO until the dart camera shows ground.",
+                   "Check the dart camera picture yourself before winching."]
+        return TerrainReport("unknown", probs, None, 30, "NO_GO", reasons, None, 0.0, "none", None, used,
+                             {c: 0.0 for c in CLASSES}, None, {"dark_level": dark["level"]})
+    probs = {c: 0.0 for c in CLASSES} | {"water_void": 0.8, "unknown": 0.2}
+    reasons = ["%d of %d landing frames are almost black (grey level about %d of 255)." % (n_dark, n,
+                                                                                            round(dark["level"])),
+               "Looks like a void: a hole, crevasse, deep shadow or dark water, or the nose is buried.",
+               "Nothing visible to anchor in: do not rely on this anchor, retrieve and relaunch.",
+               "If the camera may be covered, check the dart camera picture yourself."]
+    return TerrainReport("water_void", probs, None, 5, "NO_GO", reasons, None, 0.6, "none", None, used,
+                         {c: (1.0 if c == "water_void" else 0.0) for c in CLASSES}, None,
+                         {"dark_level": dark["level"]})
+
+
+def _drop_link_artefacts(good: List[tuple], min_quality: float) -> List[tuple]:
+    """Drop frames without a quality value that look like link artefacts (blue or black screen,
+    snow, torn), using the same cheap check as vision.flight.landing_frames. If every frame looks
+    bad the list is returned unchanged and the noise and blank checks decide later."""
+    if all(it[2] is not None for it in good):
+        return good
+    try:
+        from grappstar.vision.flight import quick_quality
+    except Exception:  # pragma: no cover - flight ships with the package
+        return good
+    keep = [it for it in good if it[2] is not None or quick_quality(it[0]) >= min_quality]
+    return keep or good
+
+
 def analyze_landing(frames, model: Optional[TerrainModel] = None, model_weight: float = 0.5,
                     imu_roll_deg: Optional[float] = None, imu_pitch_deg: Optional[float] = None,
                     n_best: int = 3, min_quality: float = 0.4, make_image: bool = True,
@@ -682,10 +946,16 @@ def analyze_landing(frames, model: Optional[TerrainModel] = None, model_weight: 
         tilt = slope_from_attitude(attitude)
         if tilt is not None:
             imu_roll_deg, imu_pitch_deg = tilt, 0.0
-    items = _as_items(frames)
-    good = [it for it in items if it[0] is not None and it[0].size > 0 and not it[3]
-            and (it[2] is None or it[2] >= min_quality)]
+    items = [it for it in _as_items(frames) if it[0] is not None and it[0].size > 0]
     reasons: List[str] = []
+    dark = _dark_landing(items)
+    if dark is not None:
+        rep = _dark_report(dark, items)
+        if make_image:
+            rep.image = render_report(rep, items[0][0] if items else None)
+        return rep
+    good = [it for it in items if not it[3] and (it[2] is None or it[2] >= min_quality)]
+    good = _drop_link_artefacts(good, min_quality)
     if not good:
         reasons.append("No usable landing frames (all missing, bad or too noisy).")
         reasons.append("Look at the dart camera yourself before winching.")
@@ -706,6 +976,7 @@ def analyze_landing(frames, model: Optional[TerrainModel] = None, model_weight: 
     results = [classify_features(f) for f in feats]
     cprobs = {c: float(np.mean([r["probs"][c] for r in results])) for c in CLASSES}
     min_d2 = float(np.median([r["min_d2"] for r in results]))
+    ood_d2 = float(results[0]["ood_d2"])
     fmean = {k: float(np.mean([f[k] for f in feats])) for k in FEATURE_NAMES}
     notes: List[str] = []
     for r in results:
@@ -734,9 +1005,15 @@ def analyze_landing(frames, model: Optional[TerrainModel] = None, model_weight: 
     top = max(probs, key=probs.get)
     conf = probs[top]
     raw_ac = float(np.median([_raw_autocorr(it[0]) for it in sel]))
-    noise_like = raw_ac < 0.15 and fmean["grey_std"] > 0.05
-    blank = fmean["grey_std"] < 0.006 and fmean["dark_frac"] < 0.7
-    ood = min_d2 > OOD_DIST and (mprobs is None or max(mprobs.values()) < 0.6)
+    grey_std = float(np.mean([cv2.cvtColor(r, cv2.COLOR_BGR2GRAY).std() for r in rois])) / 255.0
+    noise_like = raw_ac < 0.15 and grey_std > 0.05
+    ood = min_d2 > ood_d2 and (mprobs is None or max(mprobs.values()) < 0.6)
+    blank = grey_std < 0.006 and fmean["dark_frac"] < 0.7
+    if blank and top == "water_void" and conf >= 0.6 and not ood:
+        # featureless but coloured like water and close to the water prototypes: still water is the
+        # one natural surface without texture, and water_void is the safe (NO_GO) reading anyway
+        blank = False
+        notes.append("Smooth and featureless with the colour of water.")
     q_factor = 1.0 if quality is None else float(min(1.0, max(0.0, (quality - 0.3) / 0.4)))
 
     cls = top
@@ -928,16 +1205,54 @@ def render_report(rep: TerrainReport, img: Optional[np.ndarray], size=(960, 540)
     return out
 
 
+def _format_prototypes(p: dict, width: int = 110) -> str:
+    """JSON of the learned constants wrapped to lines of about `width` characters."""
+    text = json.dumps(p, separators=(", ", ": "))
+    lines, cur = [], ""
+    for tok in text.split(" "):
+        if cur and len(cur) + 1 + len(tok) > width:
+            lines.append(cur)
+            cur = tok
+        else:
+            cur = (cur + " " + tok) if cur else tok
+    lines.append(cur)
+    return "\n".join(lines)
+
+
+def write_prototypes(p: dict, path: Optional[str] = None) -> str:
+    """Replace the _PROTOTYPES_JSON block of this source file with `p`. Returns the path."""
+    import os
+    path = path or os.path.abspath(__file__)
+    with open(path) as fh:
+        src = fh.read()
+    head = '_PROTOTYPES_JSON = r"""\n'
+    a = src.index(head) + len(head)
+    b = src.index('"""', a)
+    src = src[:a] + _format_prototypes(p) + "\n" + src[b:]
+    with open(path, "w") as fh:
+        fh.write(src)
+    return path
+
+
 if __name__ == "__main__":
     import argparse
     import sys
     ap = argparse.ArgumentParser(description="Landing zone verdict from dart camera images")
     ap.add_argument("images", nargs="*", help="landing images (BGR files)")
     ap.add_argument("--out", default="landing.png", help="report image path")
-    ap.add_argument("--learn", action="store_true", help="print learned prototypes as JSON")
+    ap.add_argument("--learn", action="store_true",
+                    help="learn the classifier constants (textures plus simulated flights, a few minutes)")
+    ap.add_argument("--write", action="store_true", help="with --learn: store them in this source file")
+    ap.add_argument("--jobs", type=int, default=4, help="with --learn: worker processes")
+    ap.add_argument("--textures-only", action="store_true", help="with --learn: no simulated flights")
     a = ap.parse_args()
     if a.learn:
-        print(json.dumps(learn_prototypes()))
+        protos = learn_prototypes(flight_seeds=() if a.textures_only else LEARN_FLIGHT_SEEDS,
+                                  jobs=a.jobs, verbose=True)
+        if a.write:
+            print("written to", write_prototypes(protos))
+        else:
+            print(json.dumps(protos))
         sys.exit(0)
     imgs = [cv2.imread(p) for p in a.images]
     rep = analyze_landing([i for i in imgs if i is not None])

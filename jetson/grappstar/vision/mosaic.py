@@ -40,7 +40,8 @@ from typing import Dict, List, Optional, Sequence, Tuple
 import cv2
 import numpy as np
 
-from grappstar.vision.flight import FlightResult, analyze_flight, detect_horizon, frame_ok, sharpness, sky_mask
+from grappstar.vision.flight import (FlightResult, _bgr_frame, analyze_flight, detect_horizon, frame_ok, sharpness,
+                                     sky_mask)
 
 RATIO = 0.75
 RANSAC_PX = 4.0
@@ -240,8 +241,8 @@ def build_mosaic(frames: Sequence, landing_t: Optional[float] = None, flight: Op
 
 def _build(frames, landing_t, flight, max_frames, work_w, max_canvas, min_inliers, max_chain, n_features,
            rectify, hfov_deg):
-    frames = sorted([f for f in (frames or []) if f is not None and getattr(f, "img", None) is not None
-                     and f.img.ndim == 3 and f.img.size > 0], key=lambda f: f.t)
+    frames = [_bgr_frame(f) for f in (frames or []) if f is not None and getattr(f, "img", None) is not None]
+    frames = sorted([f for f in frames if f is not None], key=lambda f: f.t)
     res = MosaicResult(image=None)
     if not frames:
         res.image = _placeholder(["no frames"])
@@ -256,7 +257,7 @@ def _build(frames, landing_t, flight, max_frames, work_w, max_canvas, min_inlier
 
     # --- flight window
     t_a, t_b, t_landed = None, landing_t, None
-    if flight is None and landing_t is None:
+    if flight is None and landing_t is None:   # pass flight= (the caller's result) to skip this second pass
         flight = analyze_flight(frames)
     if flight is not None:
         t_a = flight.t_launch

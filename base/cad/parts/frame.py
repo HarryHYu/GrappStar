@@ -28,18 +28,18 @@ from . import _frame_util as U
 from . import _frame_motor as MOT
 
 # ------------------------------------------------------------------------------------------------ defaults
-# Placeholder shaft layout until params.LAYOUT lands (world: x forward, y left, z up, origin on the deck top under
+# Placeholder shaft layout (deck coordinates, main axis 165 above the deck) until params.LAYOUT lands (world: x forward, y left, z up, origin on the deck top under
 # the wiper axis). Keys per shaft: origin, axis, d (shaft diameter), brg ('608', 'sprag', 'bush', dict(od, w)),
 # cheeks (which cheeks support it: (-1, 1), (1,), (-1,), ()).
 LAYOUT_DEFAULT = {
-    "main":    dict(origin=(0.0, 0.0, 60.0), axis=(0, 1, 0), d=20.0, brg="bush", cheeks=(1,)),
-    "drum":    dict(origin=(-58.0, 0.0, 30.0), axis=(0, 1, 0), d=8.0, brg="608", cheeks=(-1, 1)),
-    "launch":  dict(origin=(62.0, 0.0, 92.0), axis=(0, 1, 0), d=20.0, brg="bush", cheeks=(-1, 1)),
-    "aim":     dict(origin=(10.0, 0.0, 140.0), axis=(0, 1, 0), d=8.0, brg="608", cheeks=(-1, 1)),
-    "capstan": dict(origin=(-55.0, 0.0, 105.0), axis=(0, 1, 0), d=20.0, brg="bush", cheeks=(-1, 1)),
-    "reel":    dict(origin=(-100.0, 0.0, 55.0), axis=(0, 1, 0), d=8.0, brg="608", cheeks=(-1, 1)),
-    "aim_worm": dict(origin=(40.0, 135.0, 40.0), axis=(0, 0, 1), d=8.0, brg="608", supports=(-15.0, 25.0)),
-    "aim_wheel": dict(origin=(135.0, 0.0, 50.0), axis=(1, 0, 0), d=8.0, brg="608", span=40.0),
+    "main":    dict(origin=(0.0, 0.0, 165.0), axis=(0, 1, 0), d=20.0, brg="bush", cheeks=(1,)),
+    "drum":    dict(origin=(-58.0, 0.0, 135.0), axis=(0, 1, 0), d=8.0, brg="608", cheeks=(-1, 1)),
+    "launch":  dict(origin=(62.0, 0.0, 197.0), axis=(0, 1, 0), d=20.0, brg="bush", cheeks=(-1, 1)),
+    "aim":     dict(origin=(10.0, 0.0, 245.0), axis=(0, 1, 0), d=8.0, brg="608", cheeks=(-1, 1)),
+    "capstan": dict(origin=(-55.0, 0.0, 210.0), axis=(0, 1, 0), d=20.0, brg="bush", cheeks=(-1, 1)),
+    "reel":    dict(origin=(-100.0, 0.0, 160.0), axis=(0, 1, 0), d=8.0, brg="608", cheeks=(-1, 1)),
+    "aim_worm": dict(origin=(40.0, 135.0, 145.0), axis=(0, 0, 1), d=8.0, brg="608", supports=(-15.0, 25.0)),
+    "aim_wheel": dict(origin=(135.0, 0.0, 155.0), axis=(1, 0, 0), d=8.0, brg="608", span=40.0),
 }
 
 FRAMEWORK_DEFAULT = dict(
@@ -60,7 +60,7 @@ FRAMEWORK_DEFAULT = dict(
     block_t=6.0,            # bearing block flange thickness (min)
     ties=None,              # list of (x, z) cheek tie centres; None = automatic (top corners)
     tie_d=16.0,
-    deck_z=-60.0,           # world z of the deck top (world z = 0 is the wiper axis)
+    deck_z=-165.0,          # world z of the deck top (world z = 0 is the wiper axis; coordinator 11:00: axis 165 up)
     adapter_standoff=12.0,  # adapter hub height over the cheek (clears block flanges, M6 nuts reachable)
     cheek_y_in=None,        # (right, left) inner cheek face y; None = from the motor face (y = 0) and cheek_gap
     ebay=None,              # electronics bay placement override, see _frame_ebay.py
@@ -80,6 +80,7 @@ def _get(P, name, default):
 def cfg(P):
     """Resolved frame configuration: dict(fw=..., layout=..., wiper=..., derived numbers)."""
     fw = dict(FRAMEWORK_DEFAULT)
+    fw["_raw"] = {}
     src = _get(P, "FRAMEWORK", {})
     if isinstance(src, dict):
         fw.update({k: v for k, v in src.items() if v is not None and k in FRAMEWORK_DEFAULT})
@@ -112,7 +113,7 @@ def cfg(P):
                     e[k] = s_[k]
             layout[n] = e
     else:                                   # placeholder: built in deck coordinates, main axis at world z = 0
-        deck_z = -LAYOUT_DEFAULT["main"]["origin"][2]
+        deck_z = -LAYOUT_DEFAULT["main"]["origin"][2] if not fw["_raw"].get("deck_z") else float(fw["deck_z"])
         for n, v in LAYOUT_DEFAULT.items():
             e = dict(v)
             o = v["origin"]
@@ -148,11 +149,12 @@ def block_geom(P, sh, fw):
     else:
         od, w, _ = U.brg_dims(P, sh["brg"])
     spig = od + 6.0
-    rs = spig / 2 + U.INS_D / 2 + 2.5           # insert centre radius on the cheek
+    rs = spig / 2 + U.INS_D / 2 + 3.5           # insert centre radius on the cheek (3.3 mm wall to the hole)
     half = rs / math.sqrt(2) + U.INS_D / 2 + 3.0
     half = max(half, spig / 2 + 2.0)
     tb = max(fw["block_t"], w - (fw["cheek_t"] - 0.5) + 3.0)
-    return dict(od=od, w=w, spig=spig, rs=rs, half=half, tb=tb, hole=spig + 0.4)
+    cb = max(U.HEAD_H, tb - 4.0)                 # counterbore: 2.8 to 4 mm under the head, so every block takes M3 x 8
+    return dict(od=od, w=w, spig=spig, rs=rs, half=half, tb=tb, hole=spig + 0.4, cb=cb)
 
 
 def block_solid(P, sh, fw):
@@ -174,7 +176,7 @@ def block_solid(P, sh, fw):
     for i in range(4):
         a = math.radians(45 + 90 * i)
         x, y = b["rs"] * math.cos(a), b["rs"] * math.sin(a)
-        cuts.append(U.clear_hole(x, y, -1, b["tb"] + 1, head_top=b["tb"] + 0.01))
+        cuts.append(U.clear_hole(x, y, -1, b["tb"] + 1, head_top=b["tb"] + 0.01, head_h=b["cb"] + 0.01))
     return prim.diff(blk, cuts), b
 
 
@@ -228,7 +230,7 @@ _CACHE = {}
 
 def build(P):
     """Build every frame solid once per params module (cached). Returns dict with parts list and metadata."""
-    key = id(P)
+    key = repr([getattr(P, k, None) for k in ("LAYOUT", "FRAMEWORK", "WIPER", "B608", "SPRAG", "BED", "DRUM")])
     if key in _CACHE:
         return _CACHE[key]
     C = cfg(P)
@@ -309,11 +311,16 @@ def build(P):
         feet = []
         for i in range(nf):
             xf = fx0 + 8 + i * (fx1 - fx0 - 16) / (nf - 1)
-            if gx and min(abs(xf - q) for q in gx) < 6.0:      # dodge the gussets
-                xf += 7.0 if xf < (fx0 + fx1) / 2 else -7.0
+            for _ in range(4):                                  # dodge the gussets (away from the nearest one)
+                if not gx:
+                    break
+                q = min(gx, key=lambda g: abs(xf - g))
+                if abs(xf - q) >= 8.0:
+                    break
+                xf = q + (8.0 if xf >= q else -8.0)
             yf = yo + s * (fw["foot_w"] / 2 + 1.0)
             feet.append((xf, yf))
-            cuts.append(U.clear_hole(xf, yf, -1, fw["foot_t"] + 1, head_top=fw["foot_t"] + 0.01))
+            cuts.append(U.clear_hole(xf, yf, -1, fw["foot_t"] + 1))     # M3 x 10, head on the foot top
         info["deck_holes"] += feet
         # cable-tie points between foot screws: two slots through the foot and a 2 mm tunnel under it joining them
         ties_ = []
@@ -341,7 +348,11 @@ def build(P):
             cuts.append(prim.cylY(MOT.CHEEK_HOLE_D / 2, min(yo, C["y_in"][s]) - 1, max(yo, C["y_in"][s]) + 1, mo[0], mo[2]))
             for i in range(MOT.RING_N):
                 rx, rz = MOT.ring_xy(i)
-                cuts.append(yfeat(U.insert_hole(0, 0, 0.0), mo[0] + rx, mo[2] + rz, yo, -s))
+                # adapter frame x -> world -x (x_hint), y -> world z (for motor_side -1); mirror for +1
+                wx, wz = mo[0] - rx, mo[2] + (rz if ms < 0 else -rz)
+                yin = C["y_in"][s]
+                cuts.append(prim.cylY(U.CLR_D / 2, min(yo, yin) - 1, max(yo, yin) + 1, wx, wz))
+                cuts.append(yfeat(prim.cyl(U.HEAD_D / 2, U.HEAD_H + 0.01, z=-U.HEAD_H), wx, wz, yin, s))   # head on the inner face
         cheek_world[s] = prim.diff(sol, cuts)
 
     # ---- ties between the cheeks (auto: near the top of the overlap of both outlines, clear of every block)
@@ -385,11 +396,21 @@ def build(P):
         parts.append(Part(f"frame_tie_{i + 1}", tie, "PLA", print_tf=U.print_flat(tie), color="#9aa4ae",
                           notes="cheek tie: spacer between the cheeks, M3 x 12 through each cheek into an insert at each end"))
 
+    # ---- the other subsystems: swept volumes (band openings, bay keep-out), feet and screw holes on the deck
+    from . import _frame_guard as G
+    from . import _frame_others as OTH
+    info["swept"] = G.swept_cutters(P, C)
+    opolys, oholes, oown = OTH.deck_contacts(P, C["deck_z"])
+    info["others_foot"], info["others_holes"] = opolys, oholes
+    info["deck_holes"] += oholes
+    info["keepout"] = unary_union([g for g in opolys + [G.shadow(0.0, 80.0)] if g is not None]) \
+        if (opolys or not info["swept"].is_empty()) else None
+
     # ---- guard band round the cheek box (openings where other subsystems pass)
     if fw["band"]:
         from . import _frame_guard as G
         both = outlines[-1].intersection(outlines[1])
-        cut = G.swept_cutters(P, C) if fw["band_cut"] else None
+        cut = info["swept"] if fw["band_cut"] else None
         bands, bholes = G.band_parts(C, both, cut)
         info["band_holes"] = bholes
         for i, sol in enumerate(bands):
@@ -421,12 +442,12 @@ def build(P):
         ox, _, oz = sh["origin"]
         # block local +Z = outward = s * Y
         M = tf.T(ox, C["y_out"][s], oz) @ (tf.Rx(-90) if s > 0 else tf.Rx(90))
-        mat = "PPA-CF" if n in ("capstan", "launch", "main") else "PLA"
+        mat = "PPA-CF" if sh["brg"] == "sprag" else "PLA"      # bushings stay PLA (PPA-CF shaft in a PLA bush)
         nm = f"frame_blk_{n}_{'l' if s > 0 else 'r'}"
         parts.append(Part(nm, prim.place(sol, M), mat, print_tf=None, color="#c9b27a" if mat == "PPA-CF" else "#b8c2cc",
-                          notes=f"bearing block, {n} shaft ({sh['brg']}), 4 x M3 x 16 into cheek inserts"))
+                          notes=f"bearing block, {n} shaft ({sh['brg']}), 4 x M3 x 8 into cheek inserts"))
         p = parts[-1]
-        p.print_tf = U.print_flat(p.solid, tf.Rx(90) if s > 0 else tf.Rx(-90))  # flange face down
+        p.print_tf = U.print_flat(p.solid, tf.Rx(-90) if s > 0 else tf.Rx(90))  # flange outer face down, spigot up
         sp["part"] = nm
 
     # ---- pedestals for shafts not along Y
@@ -461,7 +482,7 @@ def build(P):
                           notes="wiper motor ENVELOPE (assumed, not measured): edit params.WIPER and reprint the adapter"))
         ad = MOT.adapter_plate(w, standoff)
         Mad = tf.frame((mo[0], yo + ms * MOT.PLATE_T, mo[2]), zdir, xh)    # the ring is fixed; rot only moves the slots
-        ad_rot = prim.place(ad, tf.Rz(w["rot_deg"]))
+        ad_rot = ad                                   # slots already turned by rot_deg; the ring stays fixed
         parts.append(Part("frame_motor_adapter", ad_rot, "PPA-CF", place=Mad, print_tf=U.print_flat(ad_rot),
                           color="#c9b27a",
                           notes="wiper adapter plate: slotted M6 holes (+-%.0f mm) for the motor bosses, 6 x M3 to the cheek ring; reprint when the motor is measured" % w["slot"]))
@@ -498,6 +519,9 @@ def build(P):
         (x0, y0, z0), (x1, y1, z1) = prim.bbox(prim.place(p.solid, W))
         if z0 < 25.0 or p.name == "frame_wiper_motor":
             foot_pts += [(x0, y0), (x1, y1)]
+    for pg in info["others_foot"]:
+        bx0, by0, bx1, by1 = pg.bounds
+        foot_pts += [(bx0, by0), (bx1, by1)]
     fp = np.array([q for q in foot_pts if np.all(np.isfinite(q))])
     foot_polys = []                     # exact contact footprints: slice every part 0.5 mm above the deck top
     for p in parts:
@@ -690,7 +714,7 @@ def steps(P):
                   % len(info["deck_holes"]), parts=deck + has("frame_cheek") + has("frame_tie") + ["frame_ebay"]),
         dict(title="Drill the rover",
              text="Lay the deck on the rover top plate where it will live (launch direction forward). Mark through the "
-                  "%d perimeter holes with a 3 mm drill or a scriber, take the deck off, drill 3.4 mm. Deburr. "
+                  "%d perimeter holes with a 3 mm drill or a scriber (or tape down the 1:1 PDF template from cad/parts/_frame_tests/drill_template.py), take the deck off, drill 3.4 mm. Deburr. "
                   "If the deck is in tiles, slide the dovetails together first and mark them as one." % len(info["rover_holes"]),
              parts=deck),
         dict(title="Deck on the rover",
@@ -701,10 +725,25 @@ def steps(P):
                   "inserts. The 44 mm hole with the 6-insert ring is the wiper axis.",
              parts=[n for n in has("frame_cheek_r" if info["cfg"]["fw"]["motor_side"] < 0 else "frame_cheek_l")]),
         dict(title="Motor-side bearing blocks",
-             text="Push each block's spigot into its cheek hole from outside (flange outside), 4 x M3 x 16 into the "
+             text="Push each block's spigot into its cheek hole from outside (flange outside), 4 x M3 x 8 into the "
                   "cheek inserts. The blocks on this side go on now; the shaft bearings drop into their pockets from "
                   "inside when the shafts go in.",
              parts=[sp["part"] for sp in info["supports"] if sp["side"] == info["cfg"]["fw"]["motor_side"]]),
+    ]
+    if "frame_motor_adapter" in names:
+        st.append(dict(title="Wiper motor on its adapter (bench)",
+                       text="Battery unplugged. Put the M6 bolts through the adapter slots from the cheek side (heads sit "
+                            "in the slot counterbores), into the motor bosses (threaded bosses, or a nut behind each boss "
+                            "ear). Slide the motor so its shaft is centred in the hub hole (a 10 mm drill shank in the "
+                            "coupler bore helps), then tighten.",
+                       parts=["frame_motor_adapter", "frame_wiper_motor", "frame_wiper_shaft"]))
+        st.append(dict(title="Motor onto the cheek",
+                       text="Before any shaft goes in: offer the motor and adapter to the motor-side cheek, spigot into "
+                            "the 44 mm hole. From INSIDE the cheek box, 6 x M3 x 12 through the cheek into the inserts in "
+                            "the adapter hub. Strap the can into the saddle (cable tie or hose clamp), saddle "
+                            "4 x M3 x 10 into the deck.",
+                       parts=["frame_motor_adapter"] + has("frame_motor_saddle")))
+    st += [
         dict(title="Shafts and trains (other subsystems)",
              text="Now the drum, launch and reel subsystems put their shaft assemblies in (bearings already pressed on "
                   "the shafts), each bearing into its block pocket on this cheek. Follow their steps, then come back.",
@@ -714,7 +753,7 @@ def steps(P):
                   "into the deck. Then the cheek ties: M3 x 12 through each cheek into the tie inserts.",
              parts=[n for n in has("frame_cheek_l" if info["cfg"]["fw"]["motor_side"] < 0 else "frame_cheek_r")] + has("frame_tie")),
         dict(title="Second-side bearing blocks",
-             text="Slide each block over its bearing from outside, 4 x M3 x 16. Turn every shaft by hand: it must spin "
+             text="Slide each block over its bearing from outside, 4 x M3 x 8. Turn every shaft by hand: it must spin "
                   "free with no tight spot. If one binds, loosen its two blocks, turn the shaft, retighten.",
              parts=[sp["part"] for sp in info["supports"] if sp["side"] != info["cfg"]["fw"]["motor_side"]]),
     ]
@@ -729,20 +768,11 @@ def steps(P):
                        text="Press the 608s into the pedestal seats (vice with soft jaws, push on the outer race only). "
                             "Thread the shaft through, stand the pedestals on the deck, M3 x 10 into the inserts.",
                        parts=has("frame_ped")))
-    if "frame_motor_adapter" in names:
-        st.append(dict(title="Wiper motor",
-                       text="Battery unplugged. Drop an M6 nut into each slot channel on the cheek side of the adapter. "
-                            "Bolt the adapter to the cheek ring: 6 x M3 x %d from the motor face into the ring inserts. "
-                            "Offer the motor up (its shaft through the hub hole into the coupler from cad-drum), M6 bolts "
-                            "through the bosses into the nuts, slide each to centre the shaft, tighten. Strap the can "
-                            "into the saddle (cable tie or hose clamp), saddle 4 x M3 x 10 into the deck."
-                            % int(round(MOT.PLATE_T + info.get("adapter_standoff", 0) - U.HEAD_H + 5)),
-                       parts=["frame_motor_adapter", "frame_wiper_motor", "frame_wiper_shaft"] + has("frame_motor_saddle")))
     st += [
         dict(title="Electronics bay",
              text="Battery unplugged. Bay on the deck, 4 x M3 x 10 through the tabs. Boards in: BTS7960 on its 4 standoffs "
                   "(M3 x 6), heatsink down; ESP32 DevKitC pins down into the cradle, USB end into the wall slot, clamp "
-                  "with 2 x M3 x 10; DRV8833, MP1584 and HX711 into their pockets with a cable tie through the floor slots "
+                  "with 2 x M3 x 8; DRV8833, MP1584 and HX711 into their pockets with a cable tie through the floor slots "
                   "or a drop of hot glue. Fuse holder in its cradle with a cable tie.",
              parts=has("frame_ebay") + has("frame_pcb") + has("frame_fuse")),
         dict(title="Set the buck BEFORE wiring the DRV8833",
@@ -759,7 +789,7 @@ def steps(P):
         dict(title="Wiring and lid",
              text="Battery unplugged. Follow firmware/base/WIRING.md. Every wire leaving the bay goes through its wall "
                   "exit and is cable-tied to the anchor beside it (strain relief). 14 AWG for battery, fuse, BTS7960 "
-                  "and motor. Lid on, 4 x M3 x 8. USB cable from the ESP32 native USB port to the Jetson.",
+                  "and motor. Lid on, 4 x M3 x 6. USB cable from the ESP32 native USB port to the Jetson.",
              parts=["frame_ebay_lid"]),
     ]
     return st

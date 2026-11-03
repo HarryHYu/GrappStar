@@ -72,3 +72,31 @@ def test_hard_stop_and_info(sw):
 def test_short_lever_rejected():
     with pytest.raises(ValueError):
         SW.contact_switch(12)
+
+
+def test_strain_limit_default(sw):
+    i = sw["info"]
+    assert SW.STRAIN_LIMIT == 0.008
+    assert i["strain_max"] <= SW.STRAIN_LIMIT and SW.T_MIN <= i["t"] <= SW.T_MAX
+
+
+def test_explicit_t_still_works():
+    with pytest.warns(UserWarning, match="strain"):
+        i = SW.contact_switch(25, t=1.6)["info"]
+    assert i["t"] == 1.6 and not i["strain_ok"]
+
+
+def test_wire_channel_clear_of_clamp_screws(sw):
+    from shapely.geometry import Point, Polygon
+    i = sw["info"]
+    base = sw["base"]
+    for z in (0.5, 3.0 - 1.0, 3.0 - 0.1):      # through the channel depth (base_t 3, channel 2 deep)
+        g = Polygon()
+        for q in sorted((Polygon(p) for p in base.slice(z).to_polygons()), key=lambda p: -p.area):
+            g = g.symmetric_difference(q.buffer(0))
+        for x in i["clamp_screw_x"]:
+            # a screw of any length on the clamp axis (major d 3.0) keeps 0.8 mm of plastic to the channel
+            assert g.contains(Point(x, 0).buffer(1.5 + 0.8, 64)), (z, x)
+    assert i["channel_y"][0] > 1.5 + 0.8
+    assert i["clamp_screw_len"] <= i["clamp_screw_max_len"]
+    assert "M3x" in i["clamp_screw"] and "M3" in i["mount_screw"]

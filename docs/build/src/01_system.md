@@ -15,7 +15,7 @@ Three parts:
   - LAUNCH, wiper backward: tilts the rail up and down to aim. A self-locking worm holds the angle.
   - REEL, wiper forward: the capstan winds in; the storage reel takes up the slack through a slip clutch.
   - Payout at launch: the line skips the capstan and pulls off the free-spinning storage reel against a light
-    payout brake (set 0.5 to 0.75 N; over 1 N costs range).
+    payout brake (set 0.5 N; over 1 N costs range).
   - Any fault: wiper off, drum to NEUTRAL. There is a hand lever on the drum shaft end.
   - Brain: an ESP32-S3 DevKitC on USB from the Jetson, with an AS5600 angle sensor on the main shaft and printed
     contact switches (an M3 screw head touching an M3 nut).
@@ -32,7 +32,8 @@ base wraps the capstan and tows, the dart releases, the base reels it home.
 
 ## Order of work
 
-1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5) and the springs (group B). Put the
+1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5 and A8), the springs (group B), and the
+   parts in H1, H3, H4. Put the
    numbers in `base/spec/params.py` and re-run the base pipeline. The base parts that touch the motor depend on
    them. A6 and A7 (speed, current, torque) need the base electronics: do them at test stage 1. They change no
    printed part.

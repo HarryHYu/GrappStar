@@ -275,6 +275,20 @@ def test_auto_anchor_on_landing_mode(tmp_path):
     try:
         m = r.run()
         assert m.state == "DONE", m.error
-        assert any(k == "A" for _, k, _ in r.md.keys)
+        assert any(path == "/arm" and "auto=1" in q for _, path, q in r.md.requests)
+    finally:
+        r.close()
+
+
+def test_dart_reboot_at_impact_counts_as_landing(tmp_path):
+    r = Rig(tmp_path)
+    def land():
+        r.md.reboot("brownout")          # power plug dropout at impact: no LANDED, no flight log
+        r.world.dart = "free"
+    r._land = land
+    try:
+        m = r.run(120)
+        assert m.state == "DONE", m.error
+        assert "dart" in m.shot.get("landing_sources", [])
     finally:
         r.close()

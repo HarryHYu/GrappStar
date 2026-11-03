@@ -223,7 +223,7 @@ def range_vs_pitch(p, v_of_pitch, pitches, brakes, **kw):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--v", type=float, default=None, help="muzzle speed m/s (default: launch.py at each pitch)")
+    ap.add_argument("--v", type=float, default=None, help="muzzle speed m/s (default: launcher.py at each pitch)")
     ap.add_argument("--pitch", type=float, default=40.0)
     ap.add_argument("--brake", type=float, default=None)
     ap.add_argument("--reel", action="store_true", help="couple the real reel instead of an ideal brake")
@@ -231,7 +231,7 @@ def main(argv=None):
     ap.add_argument("--json", default=os.path.join(OUT_DIR, "flight.json"))
     a = ap.parse_args(argv)
     p = load_params()
-    from launch import launch
+    from launcher import launch
     vcache = {}
 
     def v_of(th):

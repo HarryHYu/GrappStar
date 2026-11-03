@@ -70,6 +70,12 @@ def static_part(p, bed=(256.0, 256.0, 260.0)) -> dict:
         r["warns"].append(f"{r['shells']} shells")
     if r["volume_mm3"] <= 0:
         r["fails"].append("non-positive volume")
+    if p.printed:                      # what an STL loader / slicer sees after merging coincident vertices
+        tm = prim.to_trimesh(s)
+        tm.merge_vertices()
+        r["stl_watertight"] = bool(tm.is_watertight)
+        if not tm.is_watertight:
+            r["fails"].append("not watertight as STL (self-touching edges after vertex merge)")
     if p.printed:
         if p.print_tf is None:
             r["fails"].append("printed part without print_tf")

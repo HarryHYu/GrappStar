@@ -12,7 +12,7 @@ import os
 
 from common import load_params
 from flight import simulate
-from launch import launch
+from launcher import launch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(HERE, "..", "out", "physics")
@@ -41,7 +41,7 @@ CASES = [
     ("reel brake N", "flight.brake_n", 0.5, 1.0),
     ("guide eye gain", "flight.eye_gain", 1.0, 1.4),
     ("line mass kg/m", "line.lam", 0.50e-3, 0.75e-3),
-    ("muzzle height m", "launch.muzzle_height", 0.20, 0.50),
+    ("muzzle height m", "launch.muzzle_height", 0.30, 0.50),
 ]
 
 
@@ -51,7 +51,7 @@ def run(p=None, pitch=35.0, brake=None):
         p.flight["brake_n"] = brake
 
     def shot(q):
-        v = launch(q, pitch, model="lumped")["v_muzzle"]
+        v = launch(q, pitch)["v_muzzle"]
         return v, simulate(q, v, pitch, brake_n=q.flight["brake_n"], reel_model=True)["range_m"]
 
     v0, r0 = shot(p)

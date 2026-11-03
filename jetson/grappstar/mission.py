@@ -1,27 +1,33 @@
-"""GrappStar mission: the whole shot from preflight to NEUTRAL, with operator confirmations and fault handling.
+"""GrappStar mission: the whole shot from preflight back to LAUNCH, with operator confirmations and fault handling.
 
-Steps (normal path):
-  PREFLIGHT     base link, no fault, dart seated, battery, dart reachable, both videos
-  LAUNCH_MODE   base drum to LAUNCH
-  AIM           ballistics pitch for the target range; operator turns the rover (the base has no yaw); base aims
-  ARM           arm dart landing detection, start recording
-  FIRE          double confirmation, then base arm (token) and fire
-  FLIGHT        wait for the landing: dart phase, line out stopped, dart video still (any two, or one plus time)
-  LANDING_ZONE  flight analysis, terrain verdict, aerial map; operator chooses: anchor, or retrieve and reshoot
-  ANCHOR        dart /auto, wait ANCHORED
-  REEL_MODE     base drum to REEL
-  WRAP          wrap the capstan
-  CHECK         test pull at a low tension: the line must stop coming in (the dart holds)
-  TOW           reel to the tension limit, hold, rover drives (hook or operator), repeat until the rover is free
-  RELEASE       dart /release, wait for IDLE
-  RETRIEVE      reel until the dart is seated
-  UNWRAP        unwrap the capstan
-  NEUTRAL       base drum to NEUTRAL
+Follows firmware/base/PROTOCOL.md (C1 final) and the coordinator's binding sequence (3 Nov):
+  PREFLIGHT       base link, no fault, dart seated, battery, dart reachable, both videos, a target
+  LAUNCH_MODE     base drum to LAUNCH
+  AIM             ballistics pitch for the target range; operator turns the rover (no yaw axis); base aims
+                  (aim only with the carriage home, so always before cocking)
+  COCK            base cocks the spring (COCKED); optional, fire from rest also works
+  ARM             arm the dart landing detector (log only: the mission anchors after the verdict), start recording
+  FIRE            double confirmation, then base arm (token) and fire (FIRED)
+  FLIGHT          wait for the landing: dart phase LANDED, or the dart video goes still
+  LANDING_ZONE    flight analysis, terrain verdict, aerial map; tell the base the line out (set line_m);
+                  operator chooses: anchor, or retrieve and reshoot
+  BASE_NEUTRAL    wait for the launcher RESET, then drum to NEUTRAL
+  ANCHOR          dart /auto, wait ANCHORED
+  TIDY            base winds the slack onto the storage reel (only if the firmware has "tidy")
+  WRAP            capstan wraps on (wrap; on firmware that needs it, mode REEL first)
+  CHECK           test pull at a low tension: it must reach the tension and hold it
+  TOW             reel to the tension limit, hold, rover drives (hook or operator), repeat until free
+  RELEASE         base stop (hold), dart /release, wait for seq "released"
+  RETRIEVE        reel in on the capstan until about approach_m of line is left (or until seated on firmware
+                  without "retrieve")
+  UNWRAP          capstan wraps off
+  FINAL_APPROACH  take-up until the dart is seated ("retrieve"; skipped when RETRIEVE already seated it)
+  LAUNCH_READY    drum back to LAUNCH for the next shot
   DONE
 
-Reshoot path (NO GO or a failed anchor): REEL_MODE, WRAP, RETRIEVE, UNWRAP, then back to LAUNCH_MODE.
-Any error: the base is stopped (the firmware itself goes NEUTRAL on a fault) and the operator chooses Retry, Skip (only
-where safe) or Abort. STOP on the page aborts at once.
+Reshoot path (NO GO or a failed anchor): RELEASE if needed, BASE_NEUTRAL, WRAP, RETRIEVE, UNWRAP, FINAL_APPROACH,
+then back to LAUNCH_MODE. Any error: the base is stopped (the firmware itself goes NEUTRAL on a fault when safe) and the
+operator chooses Retry, Skip (only where safe) or Abort. STOP on the page aborts at once.
 """
 from __future__ import annotations
 
@@ -36,10 +42,24 @@ from .comms.base import BaseDisconnected, BaseError, BaseTimeout
 from .comms.dart import DartError, DartRefused, remap_flightlog
 from .rover import OperatorRover, RoverDrive
 
-STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "ANCHOR", "REEL_MODE", "WRAP",
-         "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "NEUTRAL", "DONE"]
-RESHOOT_STEPS = ["REEL_MODE", "WRAP", "RETRIEVE", "UNWRAP"]
-SKIPPABLE = {"CHECK", "LANDING_ZONE"}
+STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "BASE_NEUTRAL", "ANCHOR",
+         "TIDY", "WRAP", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
+RESHOOT_STEPS = ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
+SKIPPABLE = {"CHECK", "LANDING_ZONE", "TIDY", "COCK"}
+
+
+def sw_closed(tel: dict, key: str) -> Optional[bool]:
+    """Contact state from telemetry sw. PROTOCOL.md: closed contacts only, one-letter keys (S seated, H carriage home,
+    L rail low, W wrap arm home, D dogs tip to tip, a b c drum code). Older long names are accepted too."""
+    sw = tel.get("sw")
+    if not isinstance(sw, dict):
+        return None
+    long = {"S": "seated", "H": "home", "L": "rail_low", "W": "wrap_home", "D": "dog"}
+    if key in sw:
+        return bool(sw[key])
+    if long.get(key) in sw:
+        return bool(sw[long[key]])
+    return False if sw is not None else None
 
 
 class Aborted(Exception):
@@ -51,14 +71,22 @@ class MissionConfig:
     drag_n: float = 0.75            # payout brake setting (C3 column)
     tow_limit_n: float = 40.0       # line tension limit while towing (base firmware caps it too)
     check_n: float = 15.0           # anchored check pull
-    check_max_line_m: float = 0.15  # line that may come in during the check once taut
+    check_hold_s: float = 2.0       # hold at the check tension this long
+    check_keep_frac: float = 0.7    # tension must stay above this fraction of the limit (load cell only)
     retrieve_limit_n: float = 30.0  # snag limit while retrieving
     reel_duty: float = 0.8
     retrieve_duty: float = 0.6
     vbat_min: float = 10.8          # 3S: 3.6 V per cell under light load
-    mode_timeout_s: float = 15.0
-    aim_timeout_s: float = 20.0
-    fire_timeout_s: float = 12.0    # cocking plus release
+    mode_timeout_s: float = 60.0    # drum about 10.8 deg/s: 4 s per detent step, more after a wiggle
+    wrap_timeout_s: float = 60.0    # about 24 s for the 4 wraps
+    aim_timeout_s: float = 60.0     # one-way aim through a crank: a full aim can take about 17 s
+    cock_timeout_s: float = 40.0    # COCKED in up to about 20 s
+    fire_timeout_s: float = 30.0    # from rest the fire runs the whole draw first
+    reset_timeout_s: float = 30.0   # RESET after FIRED
+    cock_first: bool = True         # cock before the confirmations (fire is then instant); False = fire from rest
+    approach_m: float = 1.5         # RETRIEVE on the capstan stops with this much line left, FINAL_APPROACH does the rest
+    final_timeout_s: float = 90.0
+    end_mode: str = "LAUNCH"        # drum position at the end (coordinator: LAUNCH, ready for the next shot)
     land_timeout_s: float = 10.0
     still_s: float = 1.0            # line out unchanged this long = landed
     settle_s: float = 2.0           # wait after landing before analysing (dart video settles)
@@ -112,6 +140,7 @@ class Mission:
         self._pcv = threading.Condition()
         self._pid = 0
         self.cancel = threading.Event()
+        self.fire_lock = threading.Lock()
         self.thread: Optional[threading.Thread] = None
         self.results: Dict[str, Any] = {}
         self.shot: Dict[str, Any] = {}
@@ -135,6 +164,8 @@ class Mission:
             return
         self.log.warn(f"abort requested: {why}")
         self.cancel.set()
+        with self.fire_lock:      # wait out an arm+fire already in progress (a few ms), so STOP comes after it
+            pass
         with self._pcv:
             self._pcv.notify_all()
 
@@ -248,6 +279,10 @@ class Mission:
             self._safe_stop()
         finally:
             self.prompt = None
+            if self.state in ("ABORTED", "FAILED") and self.shot.get("cocked") and not self.shot.get("fire_sent"):
+                msg = "Launcher is still COCKED: press Decock on the page before touching the launcher."
+                self.error = (self.error + ". " if self.error else "") + msg
+                self.log.warn(msg)
             for c in self.cams.values():
                 try:
                     if c is not None and c.status().get("recording"):
@@ -262,7 +297,7 @@ class Mission:
 
     def dart_motion_possible(self) -> bool:
         s = self.dart.last or {}
-        return s.get("phase") in ("ANCHORING", "RELEASING") or bool(s.get("current_mA", 0) > 200)
+        return s.get("phase") in ("ANCHORING", "RELEASING") or bool((s.get("current_mA") or 0) > 200)
 
     def _do(self, name: str, fn: Callable[[], Any]) -> Any:
         """Run one step with fault handling: Retry, Skip (where safe) or Abort."""
@@ -276,8 +311,9 @@ class Mission:
                 msg = f"{name} failed: {e}"
                 self.error = msg
                 self.log.error(msg)
-                self.base.safe_stop() if not isinstance(e, BaseDisconnected) else None
-                if isinstance(e, DartError) and self.dart_motion_possible():
+                if not isinstance(e, BaseDisconnected):
+                    self.base.safe_stop()
+                if self.dart_motion_possible():      # whatever failed, never leave dart motors running
                     self.dart.safe_stop()
                 choices = ["Retry", "Abort"]
                 if name in SKIPPABLE:
@@ -314,35 +350,43 @@ class Mission:
         while True:
             self._do("LAUNCH_MODE", lambda: self.base_mode("LAUNCH"))
             self._do("AIM", self.aim)
+            if self.cfg.cock_first:
+                self._do("COCK", self.cock)
             self._do("ARM", self.arm)
             self._do("FIRE", self.fire)
             self._do("FLIGHT", self.wait_landing)
             choice = self._do("LANDING_ZONE", self.landing_zone)
+            self._do("BASE_NEUTRAL", self.base_neutral)
             if choice == "reshoot":
                 self.reshoot()
                 continue
             r = self._do("ANCHOR", self.anchor)
             if r == "Release and reshoot":
-                self.release_dart()
+                self.dart_anchored = True      # it may be partly dug in: always run the release
+                self._do("RELEASE", self.release_dart)
                 self.reshoot()
                 continue
             break
-        self._do("REEL_MODE", lambda: self.base_mode("REEL"))
+        self._do("TIDY", self.tidy)
         self._do("WRAP", self.wrap)
         r = self._do("CHECK", self.anchored_check)
         if r == "Release and reshoot":
             self._do("RELEASE", self.release_dart)
-            self._do("RETRIEVE", self.retrieve)
-            self._do("UNWRAP", self.unwrap)
+            self.bring_home()
             self.reshoots += 1
-            self._do("NEUTRAL", lambda: self.base_mode("NEUTRAL"))
+            self._do("LAUNCH_READY", lambda: self.base_mode(self.cfg.end_mode))
             self.log.info("dart retrieved after a failed anchor check; start a new mission to shoot again")
             return
         self._do("TOW", self.tow)
         self._do("RELEASE", self.release_dart)
+        self.bring_home()
+        self._do("LAUNCH_READY", lambda: self.base_mode(self.cfg.end_mode))
+
+    def bring_home(self) -> None:
+        """RETRIEVE on the capstan, UNWRAP, FINAL_APPROACH on the take-up until seated."""
         self._do("RETRIEVE", self.retrieve)
         self._do("UNWRAP", self.unwrap)
-        self._do("NEUTRAL", lambda: self.base_mode("NEUTRAL"))
+        self._do("FINAL_APPROACH", self.final_approach)
 
     # ------------------------------------------------ steps
     def preflight(self) -> None:
@@ -350,18 +394,21 @@ class Mission:
         try:
             r = self.base.ping(timeout=1.5)
             self.log.info(f"base {r.get('fw', 'firmware ?')}")
-            t = self.base.status().get("tel") or self.tel()
+            st = self.base.status()
+            t = dict(self.tel())
+            t.update({k: v for k, v in st.items() if k not in ("id", "ok")})   # PROTOCOL: flat status fields
         except (BaseError, BaseTimeout, BaseDisconnected) as e:
             raise StepFailed(f"base not answering: {e}")
         if t.get("fault"):
             raise StepFailed(f"base in FAULT {t['fault']}: clear it first")
+        if t.get("phase") == "UNKNOWN":
+            problems.append("launcher shot phase UNKNOWN (power lost mid-cycle): use Decock on the page")
         if t.get("drum_pos") in ("UNKNOWN", "BETWEEN"):
             problems.append(f"drum position {t.get('drum_pos')} (run cal or jog the drum)")
         if (t.get("wraps") or 0) > 0.05:
             problems.append("capstan still wrapped (unwrap first)")
-        sw = t.get("sw") or {}
-        if sw.get("seated") is False:
-            problems.append("dart not seated on the launcher")
+        if sw_closed(t, "S") is False:
+            problems.append("dart not seated on the launcher (seated contact open)")
         vb = t.get("vbat")
         if vb is not None and vb < self.cfg.vbat_min:
             problems.append(f"battery low {vb:.1f} V")
@@ -410,8 +457,46 @@ class Mission:
         m = self.base.event_mark()
         self.base.aim(sol.pitch_deg)
         e = self.wait_evt("AIMED", self.cfg.aim_timeout_s, m)
-        self.shot["pitch_deg"] = e.get("deg", sol.pitch_deg)
-        self.log.info(f"aimed at {self.shot['pitch_deg']} deg")
+        self.shot["pitch_deg"] = sol.pitch_deg
+        self.shot["pitch_actual"] = e.get("pitch_deg", e.get("deg", sol.pitch_deg))
+        self.log.info(f"aimed at {self.shot['pitch_actual']} deg (target {sol.pitch_deg})")
+
+    def cock(self) -> None:
+        """Cock the spring now, so the fire after the confirmations is instant. Aim must already be done (PROTOCOL:
+        aim needs the carriage home)."""
+        t = self.tel()
+        if t.get("cock") is not None and t.get("cock") >= 0.999:
+            return
+        m = self.base.event_mark()
+        self.base.cmd("cock")
+        self.wait_evt("COCKED", self.cfg.cock_timeout_s, m)
+        self.shot["cocked"] = True
+        self.log.info("cocked")
+
+    def base_neutral(self) -> None:
+        """After the shot: wait for the launcher RESET (mode refuses LAUNCH_BUSY until it is at rest), then NEUTRAL."""
+        m0 = self.shot.get("fire_mark")
+        t = self.tel()
+        if t.get("mode") == "LAUNCH" and not (t.get("cock") == 0 and t.get("state") == "IDLE"):
+            try:
+                self.wait_evt("RESET", self.cfg.reset_timeout_s, m0 if m0 is not None else self.base.event_mark())
+            except BaseTimeout:
+                self.wait_tel(lambda t: t.get("state") == "IDLE" and t.get("cock") in (0, 0.0, None), 5.0,
+                              "launcher at rest")
+        self.base_mode("NEUTRAL")
+
+    def tidy(self) -> None:
+        """Wind the slack onto the storage reel until the line is straight (firmware with "tidy" only)."""
+        m = self.base.event_mark()
+        try:
+            self.base.cmd("tidy", timeout=2.0)
+        except BaseError as e:
+            if e.err == "UNKNOWN_CMD":
+                self.log.info("base has no tidy command: skipped")
+                return
+            raise
+        e = self.wait_evt(("TIDY", "TIDIED", "LIMIT"), self.cfg.wrap_timeout_s, m)
+        self.log.info(f"line tidied ({e.get('evt')})")
 
     def arm(self) -> None:
         """Arm the dart landing detector right before the shot (/stop disarms it). By default auto=0: the dart only
@@ -419,6 +504,7 @@ class Mission:
         try:
             s = self.dart.arm(True, auto=self.cfg.auto_anchor_on_landing)
             self.shot["dart_phase_at_arm"] = s["phase"]
+            self.shot["dart_t_ms_at_arm"] = s.get("t_ms")
             if not s.get("armed"):
                 raise StepFailed("dart did not arm")
         except DartRefused as e:
@@ -445,31 +531,60 @@ class Mission:
             self.base_mode("LAUNCH")
             t = self.tel()
         p = self.shot.get("pitch_deg")
-        if p is not None and abs((t.get("pitch_deg") or -99) - p) > 0.5:
+        cur = t.get("pitch_deg")
+        if p is not None and (cur is None or abs(cur - p) > 1.0):
             self.log.info(f"re-aiming to {p} deg")
             m = self.base.event_mark()
             self.base.aim(p)
             self.wait_evt("AIMED", self.cfg.aim_timeout_s, m)
 
+    @staticmethod
+    def is_wrapped(t: dict) -> bool:
+        return t.get("drum_pos") == "WRAPPED" or (t.get("wraps") or 0) >= 3.5
+
     def ensure_reel(self, wrapped: bool = True) -> None:
-        t = self.tel()
-        if t.get("mode") != "REEL" or (t.get("drum_pos") not in ("REEL", "WRAPPED") and (t.get("wraps") or 0) < 0.05):
-            self.log.info("base not in REEL: switching back")
-            self.base_mode("REEL")
-        if wrapped and self.tel().get("drum_pos") != "WRAPPED":
+        """Make sure the capstan carries the line (wraps on) before any reel command."""
+        if wrapped and not self.is_wrapped(self.tel()):
+            self.log.info("capstan not wrapped: wrapping")
             self.wrap()
 
+    def dart_is_out(self) -> bool:
+        """True when telemetry says the dart has left the launcher (line out, not seated)."""
+        t = self.tel()
+        return (t.get("line_m") or 0) > 0.3 or sw_closed(t, "S") is False
+
     def fire(self) -> None:
+        if self.shot.get("fire_sent") and self.dart_is_out():
+            # the shot happened but its FIRED event was lost (USB glitch, reset): carry on with the flight
+            self.log.warn("dart already out after the fire command: continuing to FLIGHT")
+            self.shot.setdefault("t_fire", self.shot["fire_sent"])
+            return
         self.ensure_launch()
+        if self.cfg.cock_first:
+            t = self.tel()
+            if t.get("cock") is not None and t.get("cock") < 0.999:
+                self.log.info("not cocked (fault or decock): cocking again")
+                self.cock()
         p = self.shot.get("pitch_deg")
         self.ask(f"FIRE at pitch {p} deg toward {self.shot.get('range_m', 0):.1f} m? Area clear, line free, "
                  "everyone behind the launcher?", ["Fire", "Abort"], danger=True)
         self.ask("Second confirmation: FIRE NOW?", ["FIRE NOW", "Abort"], danger=True)
-        self.check_cancel()
-        token = self.base.arm()
-        m = self.base.event_mark()
-        self.base.fire(token)
-        e = self.wait_evt("FIRED", self.cfg.fire_timeout_s, m)
+        with self.fire_lock:               # STOP takes this lock too, so it can never slip between arm and fire
+            self.check_cancel()
+            token = self.base.arm()
+            self.check_cancel()
+            m = self.base.event_mark()
+            self.shot["fire_mark"] = m
+            self.base.fire(token)
+            self.shot["fire_sent"] = time.time()
+        try:
+            e = self.wait_evt("FIRED", self.cfg.fire_timeout_s, m)
+        except (BaseTimeout, BaseDisconnected):
+            if self.dart_is_out():
+                self.log.warn("no FIRED event but the dart is out: continuing to FLIGHT")
+                self.shot["t_fire"] = self.shot["fire_sent"]
+                return
+            raise
         self.shot["t_fire"] = e.get("_t", time.time())
         self.log.info("FIRED")
 
@@ -495,6 +610,13 @@ class Mission:
                 ds = self.dart.status()
                 if ds["phase"] == "FLIGHT":
                     seen_flight = True
+                t_arm = self.shot.get("dart_t_ms_at_arm")
+                if isinstance(t_arm, (int, float)) and isinstance(ds.get("t_ms"), (int, float)) and ds["t_ms"] < t_arm:
+                    # the dart rebooted (power plug dropout at impact): armed state and flight log are lost.
+                    # fw-dart: treat it as landed, then /stop and /auto.
+                    self.shot["dart_rebooted"] = True
+                    sources.add("dart")
+                    self.log.warn(f"dart rebooted during the flight (reset {ds.get('reset')}): treating as landed")
                 if ds["phase"] in ("LANDED", "ANCHORING", "ANCHORED") and (seen_flight or not stale):
                     sources.add("dart")
             except DartError:
@@ -507,7 +629,7 @@ class Mission:
         self.shot["landing_sources"] = sorted(sources)
         self.shot["line_out_m"] = self.tel().get("line_m")
         if not sources:
-            c = self.ask("Landing not detected (no dart signal, line still moving or no data). Is the dart down?",
+            self.ask("Landing not detected (no dart signal, line still moving or no data). Is the dart down?",
                          ["Dart is down", "Abort"], danger=True)
             self.shot["landing_sources"] = ["operator"]
         self.log.info(f"landed ({', '.join(self.shot['landing_sources'])}), line out {self.shot['line_out_m']} m")
@@ -565,6 +687,7 @@ class Mission:
         res = self.analyse(frames, fl, self.run_dir, t_fire=t_fire, log=self.log.warn, clock_offset_s=off)
         self.results = res
         self.on_results(res)
+        self.tell_line_out(res)
         self.log.write("result", msg="landing zone", terrain=res.get("terrain"), flight=res.get("flight"),
                        mosaic=res.get("mosaic"), errors=res.get("errors"))
         tr = res.get("terrain") or {}
@@ -582,7 +705,30 @@ class Mission:
             return "reshoot"
         return "anchor"
 
+    def tell_line_out(self, res: dict) -> None:
+        """The base has no payout sensor (line_m is null after a shot): give it our estimate (PROTOCOL set line_m).
+        Best source: the flight analysis range; else the ballistic solution's line out."""
+        fl = res.get("flight") or {}
+        sol = (self.shot.get("solution") or {})
+        est = None
+        if isinstance(fl.get("range_m"), (int, float)) and 0.5 < fl["range_m"] < 30:
+            est = fl["range_m"] * 1.05 + 0.3          # straight distance plus a little sag and the rail
+            src = "flight analysis"
+        elif sol.get("line_out_m"):
+            est, src = sol["line_out_m"], "ballistics"
+        if est is None:
+            return
+        est = round(min(est, 100.0), 2)
+        self.shot["line_est_m"] = est
+        try:
+            self.base.set("line_m", est)
+            self.log.info(f"told the base line_m = {est} m ({src})")
+        except (BaseError, BaseTimeout, BaseDisconnected) as e:
+            self.log.warn(f"could not set line_m on the base: {e}")
+
     def anchor(self) -> Optional[str]:
+        if self.shot.pop("dart_rebooted", False):
+            self.dart.safe_stop()              # clears a reboot FAULT before /auto
         s = self.dart.status()
         if s["phase"] == "FLIGHT":
             # /auto is refused in FLIGHT: the dart's own landing decision ends it (15 s timeout at worst)
@@ -609,24 +755,28 @@ class Mission:
         return None
 
     def wrap(self) -> None:
-        self.ensure_reel(wrapped=False)
-        t = self.tel()
-        if t.get("drum_pos") == "WRAPPED":
+        if self.is_wrapped(self.tel()):
             return
         m = self.base.event_mark()
-        self.base.wrap()
-        self.wait_evt("WRAPPED", self.cfg.mode_timeout_s, m)
-        self.wait_tel(lambda t: t.get("drum_pos") == "WRAPPED", 3.0, "drum at WRAPPED")
+        try:
+            self.base.wrap()
+        except BaseError as e:
+            if e.err != "NOT_IN_REEL":
+                raise
+            self.base_mode("REEL")           # firmware with REEL before the wrap sectors
+            m = self.base.event_mark()
+            self.base.wrap()
+        self.wait_evt("WRAPPED", self.cfg.wrap_timeout_s, m)
+        self.wait_tel(self.is_wrapped, 5.0, "wraps on")
 
     def unwrap(self) -> None:
-        self.ensure_reel(wrapped=False)
         t = self.tel()
-        if (t.get("wraps") or 0) < 0.05 and t.get("drum_pos") == "REEL":
+        if not self.is_wrapped(t) and (t.get("wraps") or 0) == 0:
             return
         m = self.base.event_mark()
         self.base.unwrap()
-        self.wait_evt("UNWRAPPED", self.cfg.mode_timeout_s, m)
-        self.wait_tel(lambda t: t.get("drum_pos") == "REEL", 3.0, "drum at REEL")
+        self.wait_evt("UNWRAPPED", self.cfg.wrap_timeout_s, m)
+        self.wait_tel(lambda t: (t.get("wraps") or 0) == 0, 5.0, "wraps off")
 
     def anchored_check(self) -> Optional[str]:
         """Pull to check_n. If the line stops coming in, the dart holds. If it keeps coming in at the check tension,
@@ -644,14 +794,21 @@ class Mission:
         if e.get("evt") == "SEATED":
             raise StepFailed("the dart came all the way home during the check (it did not hold)",
                              choices=["Release and reshoot"])
-        line1 = self.tel().get("line_m") or 0.0
-        self.sleep(1.0)
-        line2 = self.tel().get("line_m") or 0.0
+        # Reaching the check tension is itself the main evidence: a dart dragging over the ground pulls only a few N.
+        # The worm self-locks after LIMIT, so line cannot come in during the hold; instead watch the tension
+        # (load cell) for a decay that means the anchor is creeping out.
+        t1 = self.tel()
+        line1 = t1.get("line_m") or 0.0
+        n1 = e.get("tension_n", t1.get("tension_n"))
+        self.sleep(self.cfg.check_hold_s)
         t = self.tel()
-        held = (line1 - line2) < self.cfg.check_max_line_m
-        self.shot["check"] = {"line_in_m": round(line0 - line2, 3), "tension_n": t.get("tension_n"), "held": held}
+        n2 = t.get("tension_n")
+        decayed = (n1 is not None and n2 is not None and n2 < self.cfg.check_keep_frac * float(n1))
+        held = not decayed
+        self.shot["check"] = {"line_in_m": round(line0 - line1, 3), "tension_n": n2, "tension_at_limit_n": n1,
+                              "held": held, "load_cell": n2 is not None}
         if not held:
-            raise StepFailed("line still creeping in at the check tension: the anchor is slipping",
+            raise StepFailed(f"tension fell from {n1} to {n2} N during the hold: the anchor is slipping",
                              choices=["Retry", "Release and reshoot"])
         self.log.info(f"anchor holds at {t.get('tension_n')} N")
         return None
@@ -676,7 +833,11 @@ class Mission:
                 return
             if r == "abort":
                 raise Aborted("operator chose Abort")
-        self.log.warn("tow round limit reached")
+        c = self.ask(f"Tow round limit ({self.cfg.tow_max_rounds}) reached. Release the dart now?",
+                     ["Release the dart", "Keep towing", "Abort"])
+        if c == "Keep towing":
+            self.cfg.tow_max_rounds += 10
+            return self.tow()
 
     def release_dart(self) -> None:
         try:
@@ -705,18 +866,77 @@ class Mission:
         self.log.info("dart released")
 
     def retrieve(self) -> None:
+        """Reel in on the capstan. With the line out known, stop with approach_m left (FINAL_APPROACH finishes on the
+        take-up); without it, reel until seated (the firmware slows over the last metre)."""
         t = self.tel()
-        if (t.get("sw") or {}).get("seated"):
+        if sw_closed(t, "S"):
+            self.shot["seated_in_retrieve"] = True
             return
         self.ensure_reel()
-        line = t.get("line_m") or 10.0
-        timeout = 20.0 + line / self.cfg.retrieve_speed_mps
+        line = t.get("line_m")
+        if line is None:
+            line = self.shot.get("line_est_m")
+        timeout = 30.0 + (line or 10.0) / self.cfg.retrieve_speed_mps
         m = self.base.event_mark()
+        if line is not None and line > self.cfg.approach_m + 0.3 and self.cfg.approach_m > 0:
+            self.base.reel(self.cfg.retrieve_duty, max_n=self.cfg.retrieve_limit_n, until="stop")
+            t_end = time.monotonic() + timeout
+            while True:
+                self.check_cancel()
+                tt = self.tel()
+                cur = tt.get("line_m")
+                if sw_closed(tt, "S"):
+                    self.base.safe_stop()
+                    self.shot["seated_in_retrieve"] = True
+                    return
+                if cur is not None and cur <= self.cfg.approach_m:
+                    self.base.stop()
+                    self.log.info(f"capstan retrieve done: {cur:.2f} m left")
+                    return
+                ev = [e for e in self.base.events(m) if e.get("evt") in ("LIMIT", "SEATED", "FAULT", "ABORTED")]
+                if ev:
+                    e = ev[0]
+                    if e["evt"] == "SEATED":
+                        self.shot["seated_in_retrieve"] = True
+                        return
+                    if e["evt"] == "LIMIT":
+                        raise StepFailed(f"snag while retrieving ({e.get('tension_n')} N). Free the line or jog, "
+                                         "then Retry.")
+                    raise BaseError("reel", str(e.get("code") or e.get("why") or e["evt"]), e)
+                if time.monotonic() > t_end:
+                    self.base.safe_stop()
+                    raise StepFailed("retrieve took too long (line_m not falling?)")
+                self.sleep(0.1)
         self.base.reel(self.cfg.retrieve_duty, max_n=self.cfg.retrieve_limit_n, until="seated")
         e = self.wait_evt(("SEATED", "LIMIT"), timeout, m)
         if e.get("evt") == "LIMIT":
-            raise StepFailed(f"snag while retrieving ({e.get('tension_n')} N at {e.get('line_m')} m). "
-                             "Free the line or jog, then Retry.")
+            raise StepFailed(f"snag while retrieving ({e.get('tension_n')} N). Free the line or jog, then Retry.")
+        self.shot["seated_in_retrieve"] = True
+        self.log.info("dart seated")
+
+    def final_approach(self) -> None:
+        """Last metre on the storage take-up until the seated contact closes (firmware "retrieve"). Firmware without
+        it: wrap again and reel until seated on the capstan."""
+        if self.shot.pop("seated_in_retrieve", False) or sw_closed(self.tel(), "S"):
+            return
+        m = self.base.event_mark()
+        try:
+            self.base.cmd("retrieve")
+        except BaseError as e:
+            if e.err != "UNKNOWN_CMD":
+                raise
+            self.log.info("base has no retrieve command: finishing on the capstan")
+            self.wrap()
+            m = self.base.event_mark()
+            self.base.reel(self.cfg.retrieve_duty * 0.6, max_n=self.cfg.retrieve_limit_n, until="seated")
+            e2 = self.wait_evt(("SEATED", "LIMIT"), self.cfg.final_timeout_s, m)
+            if e2.get("evt") == "LIMIT":
+                raise StepFailed(f"snag on the final approach ({e2.get('tension_n')} N)")
+            self.unwrap()
+            return
+        e = self.wait_evt(("SEATED", "LIMIT"), self.cfg.final_timeout_s, m)
+        if e.get("evt") == "LIMIT":
+            raise StepFailed(f"snag on the final approach ({e.get('tension_n')} N): check the cradle")
         self.log.info("dart seated")
 
     def reshoot(self) -> None:
@@ -724,11 +944,17 @@ class Mission:
         if self.reshoots > self.cfg.max_reshoots:
             raise Aborted("too many reshoots")
         self.log.info(f"retrieving for reshoot {self.reshoots}")
-        self._do("REEL_MODE", lambda: self.base_mode("REEL"))
+        try:
+            ph = self.dart.status()["phase"]
+        except DartError:
+            ph = None
+        if ph in ("ANCHORING", "ANCHORED") or self.dart_anchored:
+            self.dart_anchored = True
+            self._do("RELEASE", self.release_dart)
+        self._do("BASE_NEUTRAL", self.base_neutral)
         self._do("WRAP", self.wrap)
-        self._do("RETRIEVE", self.retrieve)
-        self._do("UNWRAP", self.unwrap)
-        tgt = self.get_target()
+        self.bring_home()
+        self._set_step("AIM")
         self.ask("Dart is home. Check the dart and the line, set the new target if needed, then shoot again.",
                  ["Shoot again", "Abort"])
 

@@ -7,4 +7,4 @@ They are NOT binding. Binding: base/spec/BASE_SPEC.md, base/spec/params.py and b
 - `B_reliable.md`: reliability first (source of decisions D15, D16, D17).
 - `C_compact.md`: compact and printable (source of D14; its sprag-on-the-rail-pin change was rejected, D13).
 - `D_perform.md`: performance (independently found the take-up bus, D15; retrieve at negative pitch; reel shroud).
-- `A_faithful.md`: added when it lands.
+- `A_faithful.md`: Harry-faithful (v10 and v7 kept as literally as the parts allow; also puts the take-up gear on the main shaft: three of four architects converged on D15).

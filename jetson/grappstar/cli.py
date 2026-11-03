@@ -23,6 +23,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 JETSON_DIR = os.path.dirname(HERE)
 DEFAULT_CALIB = os.path.join(JETSON_DIR, "calib", "rovercam.json")
+SETTINGS = os.path.join(JETSON_DIR, "settings.json")
 
 
 def _size(s: str):
@@ -37,11 +38,13 @@ def cmd_serve(a) -> int:
                     dart_fourcc=a.fourcc, rover_fourcc=a.rover_fourcc, rover_size=_size(a.rover_size),
                     dart_size=_size(a.dart_size), gstreamer=a.gst, ui_token=a.token or "",
                     sim_landing=a.sim_landing, sim_seed=a.sim_seed, calib_path=a.calib,
-                    dart_deinterlace=a.deinterlace, terrain_model=a.model, ballistics_path=a.ballistics)
+                    dart_deinterlace=a.deinterlace, terrain_model=a.model, ballistics_path=a.ballistics,
+                    deck_height_m=a.deck_height)
     if a.runs:
         cfg.runs_dir = a.runs
     cfg.mission.tow_limit_n = a.tow_limit
     cfg.mission.drag_n = a.drag
+    cfg.mission.imu_axes = a.imu_axes
     app = App(cfg).start()
     print(f"GrappStar operator page: http://0.0.0.0:{a.port}/  ({'SIMULATOR' if a.sim else 'hardware'})")
     try:
@@ -128,7 +131,18 @@ def cmd_base(a) -> int:
         elif a.what == "aim":
             r = c.cmd("aim", deg=float(a.args[0]), check=False)
         elif a.what == "reel":
-            r = c.cmd("reel", duty=float(a.args[0]) if a.args else 0.5, until="stop", ms=1000, check=False)
+            # bench test: reel for a fixed time (default 1 s), always followed by stop
+            duty = float(a.args[0]) if a.args else 0.5
+            secs = float(a.args[1]) if len(a.args) > 1 else 1.0
+            try:
+                r = c.cmd("reel", duty=duty, max_n=float(a.max_n), until="stop", check=False)
+                if r.get("ok"):
+                    time.sleep(min(secs, 10.0))
+            finally:
+                try:
+                    c.cmd("stop", check=False, timeout=1.0)
+                except Exception:
+                    print("WARNING: stop not acknowledged: run  python3 -m grappstar base stop")
         elif a.what == "status":
             r = c.cmd("status", check=False)
             if c.tel and "tel" not in r:
@@ -282,6 +296,10 @@ def main(argv=None) -> int:
     s.add_argument("--tow-limit", type=float, default=40.0, help="tow tension limit, N")
     s.add_argument("--drag", type=float, default=0.75, help="payout brake setting, N (C3 column)")
     s.add_argument("--runs", help="folder for run logs (default jetson/runs)")
+    s.add_argument("--deck-height", type=float, default=0.15,
+                   help="base deck top above the ground on the rover, m (measure it: sets the camera height)")
+    s.add_argument("--imu-axes", default="x,y,z",
+                   help="BNO085 chip axes as dart body axes, from the bench test, e.g. 'y,-x,z'")
     s.add_argument("--sim-landing", default="hard_ground")
     s.add_argument("--sim-seed", type=int, default=0)
 
@@ -302,6 +320,7 @@ def main(argv=None) -> int:
     s.add_argument("args", nargs="*")
     s.add_argument("--port", "--base", dest="port", default="/dev/grappstar-base")
     s.add_argument("--timeout", type=float, default=2.0)
+    s.add_argument("--max-n", default=30.0, help="reel: tension limit, N")
 
     s = sub.add_parser("dart", help="talk to the dart")
     s.add_argument("what", choices=["status", "key", "stop", "auto", "release", "flightlog", "watch"])
@@ -337,6 +356,15 @@ def main(argv=None) -> int:
     argv = sys.argv[1:] if argv is None else list(argv)
     if argv and argv[0] == "calibrate":
         return cmd_calibrate(None, argv[1:])
+    # site settings: jetson/settings.json holds defaults for serve (keys = option names with _ instead of -),
+    # so the systemd service and the command line agree. Command line options still win.
+    if argv and argv[0] == "serve" and os.path.exists(SETTINGS):
+        try:
+            with open(SETTINGS) as f:
+                sub.choices["serve"].set_defaults(**{k.replace("-", "_"): v for k, v in json.load(f).items()})
+            print(f"settings from {SETTINGS}")
+        except Exception as e:
+            print(f"WARNING: {SETTINGS} ignored: {e}")
     a = ap.parse_args(argv)
     return {"serve": cmd_serve, "cameras": cmd_cameras, "snap": cmd_snap, "base": cmd_base, "dart": cmd_dart,
             "mockbase": cmd_mockbase, "mockdart": cmd_mockdart, "replay": cmd_replay, "solve": cmd_solve,

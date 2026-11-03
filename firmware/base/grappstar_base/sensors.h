@@ -11,23 +11,26 @@ namespace gb {
 // wiper running. Each bit: the raw level must hold debounceMs before the debounced level follows. A bit whose raw
 // level changed more than chatterEdges times inside chatterWinMs is marked chattering until it has been quiet for
 // chatterQuietMs; the logic then treats that contact as unreliable (SWITCH_DISAGREE if it matters).
-static const int MAX_SW = 8;
+static const int MAX_SW = 12;
 
 struct Switches {
   uint32_t debounceMs = 15, chatterWinMs = 250, chatterQuietMs = 1000; int chatterEdges = 10;
-  uint8_t stable = 0, prev = 0, cand = 0, raw = 0, chatter = 0;
+  uint16_t stable = 0, prev = 0, cand = 0, raw = 0, chatter = 0;
   uint32_t candT[MAX_SW] = {0}, edgeT[MAX_SW][16] = {{0}}, lastEdge[MAX_SW] = {0};
+  float candAux[MAX_SW] = {0};      // caller's position value (wiper deg) when the raw level last changed
   uint8_t edgeHead[MAX_SW] = {0}; uint16_t edgeCount[MAX_SW] = {0};
   bool inited = false;
 
-  void update(uint8_t r, uint32_t now) {
+  // aux: a position (the wiper angle) recorded at each raw change, so an edge can be placed where it really happened
+  // instead of debounceMs later (4 deg of wiper at 45 rpm)
+  void update(uint16_t r, uint32_t now, float aux = 0) {
     if (!inited) { stable = prev = cand = raw = r; inited = true; for (int i = 0; i < MAX_SW; i++) candT[i] = now; return; }
     prev = stable;
-    uint8_t changed = r ^ raw; raw = r;
+    uint16_t changed = r ^ raw; raw = r;
     for (int i = 0; i < MAX_SW; i++) {
-      uint8_t m = 1u << i;
+      uint16_t m = (uint16_t)(1u << i);
       if (changed & m) {
-        candT[i] = now; lastEdge[i] = now;
+        candT[i] = now; lastEdge[i] = now; candAux[i] = aux;
         edgeT[i][edgeHead[i]] = now; edgeHead[i] = (edgeHead[i] + 1) & 15; if (edgeCount[i] < 16) edgeCount[i]++;
         int n = 0;                                           // edges inside the window
         for (int k = 0; k < edgeCount[i]; k++) if (now - edgeT[i][k] <= chatterWinMs) n++;
@@ -41,6 +44,8 @@ struct Switches {
   bool closed(int i) const { return i >= 0 && i < MAX_SW && (stable >> i) & 1; }
   bool rose(int i) const { return i >= 0 && i < MAX_SW && ((stable & ~prev) >> i) & 1; }     // just closed
   bool fell(int i) const { return i >= 0 && i < MAX_SW && ((~stable & prev) >> i) & 1; }     // just opened
+  float edgeAux(int i) const { return i >= 0 && i < MAX_SW ? candAux[i] : 0; }
+  uint32_t edgeTime(int i) const { return i >= 0 && i < MAX_SW ? candT[i] : 0; }
   bool chattering(int i) const { return i >= 0 && i < MAX_SW && (chatter >> i) & 1; }
 };
 
@@ -51,8 +56,8 @@ struct Switches {
 enum { AS_MH = 0x08, AS_ML = 0x10, AS_MD = 0x20 };
 
 struct AngleTracker {
-  int sign = +1;                // +1 if the raw count rises while the wiper runs dir +1 (CALIBRATION.md step 3)
-  float maxStepDeg = 45;        // per tick (5 ms): 45 deg in 5 ms = 1500 rpm, far above the wiper
+  int sign = +1;                // +1 if the raw count rises while the wiper runs dir +1 (CALIBRATION.md step a)
+  float maxStepDeg = 4;         // per tick (5 ms): 4 deg in 5 ms = 133 rpm, about 3 x the wiper free speed
   int missLimit = 4;            // this many bad reads in a row = sensor lost
   int32_t count = 0;            // multi-turn, 4096 per output turn, sign applied
   int lastRaw = 0; bool have = false, ok = false; int miss = 0, glitchRun = 0;

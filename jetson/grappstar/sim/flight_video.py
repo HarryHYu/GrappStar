@@ -20,7 +20,8 @@ What it simulates
   frames and torn frames. Frames are returned as raw captures: quality=None and bad=False, unless
   mark_bad=True (then bad=True on the corrupted frames). truth["bad_idx"] lists them either way.
 - A C2 flightlog (GET /flightlog) consistent with the video: 50 Hz, quaternion world from body, specific force
-  (accelerometer reading, includes gravity) in the body frame in m/s^2.
+  (accelerometer reading, includes gravity) in the body frame in m/s^2, each axis clamped at +-78 m/s^2 like the
+  BNO085 (the launch push saturates). t_launch_ms = start of the 20 ms over 4 g, t_land_ms = the last impact.
 
 Frames and conventions
 ----------------------
@@ -69,6 +70,7 @@ DRAG_K = 0.01            # quadratic air drag, a = DRAG_K * v^2 (1/m)
 DRAG_C = 1.0             # tether payout drag, constant deceleration (m/s^2)
 IMPACT_PULSE_S = 0.05    # nose deceleration half sine
 SETTLE_S = 0.25          # impact to still
+ACC_SAT = 78.0           # m/s^2, accelerometer saturation per axis (firmware/dart/API.md)
 WORLD_CLASSES = ("bedrock", "hard_ground", "loose_soil", "sand_dust", "vegetation", "water_void")
 CLASS_ALIASES = {"sand": "sand_dust", "dust": "sand_dust", "grass": "vegetation", "water": "water_void",
                  "pond": "water_void", "soil": "loose_soil", "rock": "bedrock", "hard": "hard_ground"}
@@ -712,8 +714,11 @@ def _make_flightlog(tl: _Timeline, rng, t0: float, t_end: float):
             q = -q
         q_prev = q
         f_b = R.T @ tl.specific_force(t, R) + rng.normal(0, 0.05, 3)
+        f_b = np.clip(f_b, -ACC_SAT, ACC_SAT)       # BNO085 accelerometer saturates near 78 m/s^2 per axis
         samples.append([int(t_ms)] + [round(float(v), 5) for v in q] + [round(float(v), 3) for v in f_b])
-    t_launch_ms = int(round((tl.t_launch + 0.02 - t_boot) * 1000))   # firmware: |a| over 4 g for 20 ms
+    # firmware (API.md): launch time = the START of the 20 ms over 4 g; landing time = the last impact (the dart
+    # hits the ground once here, so the last impact is the impact)
+    t_launch_ms = int(round((tl.t_launch - t_boot) * 1000))
     t_land_ms = int(round((tl.t_impact - t_boot) * 1000))
     return {"hz": 50, "t_launch_ms": t_launch_ms, "t_land_ms": t_land_ms, "samples": samples}, offset
 

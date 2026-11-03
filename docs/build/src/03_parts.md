@@ -1,13 +1,21 @@
 # 3. Parts
 
-Everything below is already in hand except the 608 bearings. Section 14 group C lists the items to confirm by
+Everything below is already in hand except the 608 bearings (and possibly the AS5600 magnet). Section 14 group C lists the items to confirm by
 looking in the box.
 
 ## The only purchase: 608 bearings
 
 - Search: "608ZZ bearing 8x22x7" (or "608-2RS", sealed). Buy 8 to 10. Skateboard bearings are 608s and fine.
 - Specs: 8 mm bore, 22 mm outside, 7 mm wide, rated well over 10,000 rpm.
-- Uses: storage reel (2), capstan or wrap arm (2), rollers and spares. Axles: M8 bolt or 8 mm rod (check the box).
+- Uses: storage reel (2), capstan or wrap arm (2), aim pedestal worm wheel and worm shaft (4), spares. Axles: M8 bolt or 8 mm rod (check the box).
+
+## Possible extra purchases
+
+- **AS5600 magnet**, only if it is not in the box: the Adafruit AS5600 board does not include one. It needs a
+  6 x 2.5 mm DIAMETRIC magnet (magnetised across the diameter, not through the thickness). Search "6x2.5mm diametric
+  magnet AS5600". A normal disc magnet does not work.
+- **Optional, for range:** a second pair of the same launch springs (Bunnings I/N 0487961). The two springs give
+  about 4 to 5 m; four give about 8 to 9 m. The base has the mounting provision built in.
 
 ## Base station and rover
 
@@ -16,7 +24,7 @@ looking in the box.
 | 12 V wiper motor, self-locking worm | 1 | Rebuilt to 2 wires, park linkage removed. Measure it first (section 14 A) |
 | BTS7960 motor driver module | 1 | Drives the wiper |
 | ESP32-S3 DevKitC-1-N8 | 1 | Base brain, USB to the Jetson |
-| Adafruit AS5600 (STEMMA QT) + diametric magnet | 1 | Main shaft angle |
+| Adafruit AS5600 (STEMMA QT) | 1 | Main shaft angle. Needs a 6 x 2.5 mm diametric magnet (see above) |
 | DRV8833 carrier | 1 | DRV8833 #3, freed from the dart by the new dart pin map |
 | MP1584 buck | 1 | MP1584 #2 from the dart build, set to 9.0 V |
 | N20 right-angle worm motor | 1 | Selector drum (count your N20s: section 14 C3) |
@@ -31,7 +39,7 @@ looking in the box.
 | Jetson Orin Nano Super | 1 | |
 | Lockmaner RC832 receiver, DIGITNOW USB capture, RCA lead | 1 each | Dart video in |
 | Razer Kiyo X | 1 | Rover camera |
-| Resistors 10 k x 3, 1 k, 680 R, 100 k, 22 k | | Pull-downs and dividers (firmware/base/WIRING.md) |
+| Resistors 10 k x 2, 1 k, 680 R, 100 k, 22 k | | Pull-downs and dividers (firmware/base/WIRING.md) |
 | M3 screws, M3 nuts, M3 brass heat-set inserts | | Frame joints and printed contacts |
 | Dupont jumpers, 14 / 18 / 22 / 26 AWG wire, heat shrink | | |
 

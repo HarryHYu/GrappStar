@@ -52,7 +52,7 @@ ERRORS = ("TOO_LONG", "BAD_JSON", "NO_CMD", "UNKNOWN_CMD", "BAD_ARG", "BAD_KEY",
           "NOT_IN_REEL", "NOT_WRAPPED", "WOULD_FIRE", "BACKSTOP", "NOT_RUNNING", "STILL_PRESENT")
 # telemetry "sw": closed contacts only (absent = open), one-letter keys (PROTOCOL.md section 3)
 SW_KEYS = {"a": "SW_DRUM_A", "b": "SW_DRUM_B", "c": "SW_DRUM_C", "D": "SW_DOG", "S": "SW_SEATED", "H": "SW_HOME",
-           "L": "SW_RAIL_LOW", "W": "SW_WRAP_HOME"}
+           "L": "SW_RAIL_LOW", "W": "SW_ARM"}
 SW_BY_NAME = {v: k for k, v in SW_KEYS.items()}
 
 

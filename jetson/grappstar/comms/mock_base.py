@@ -1,28 +1,30 @@
-"""Simulated base station that speaks contract C1 the way the real firmware does (firmware/base, fw "base-1.0").
+"""Simulated base station that speaks contract C1 exactly as firmware/base/PROTOCOL.md (fw "base-1.0") states it.
 
 Run it in-process (connected to BaseClient through a pipe) or on a pseudo terminal so the real client (or a terminal
 program) can open it like the USB port:
 
   python3 -m grappstar mockbase --pty        # prints /dev/pts/N; then: python3 -m grappstar base --port /dev/pts/N status
 
-The command set, refusals (error codes and their order), events, telemetry keys, states and phases follow
-firmware/base/grappstar_base/base_logic.h. See jetson/docs/C1_AS_IMPLEMENTED.md. The mechanics are simplified:
+Commands, refusals (codes and check order), events, telemetry keys, states and phases follow PROTOCOL.md and
+base_logic.h. Jetson-side notes: jetson/docs/C1_NOTES.md. The mechanics are simplified:
 
-- Selector drum (N20 worm): one line of travel, LAUNCH 0 deg, NEUTRAL 60, REEL 120, then the wrap zone from 150 deg,
-  360 drum deg per capstan wrap, "wrap" lays 4 wraps. The drum moves at 60 deg/s. Mode changes are refused with wraps
-  on (WRAPS_ON) and in LAUNCH while the launch train is not at rest (LAUNCH_BUSY).
-- Wiper in LAUNCH: the backward direction aims (crank-rocker aim train, pitch 15..60 deg over a 360 deg aim cycle,
-  always turning one way), the forward direction cocks (rest -> 560 deg), fires (release at 580 deg) and resets
-  (720 deg = one big gear turn). Aim needs the train at rest, so the order is mode LAUNCH, aim, cock, arm, fire.
-- Wiper in REEL with wraps on: winds the capstan. The line tension comes from the attached World (dart free,
+- Selector drum (N20 worm, absolute drum code): stop points LAUNCH 0, NEUTRAL 40, REEL 80, WRAPPED 338 drum deg at
+  10.8 deg/s (about 4 s per detent step, 24 s to lay the 4 wraps). Between REEL and WRAPPED are the wrap sectors
+  (drum_pos BETWEEN, mode REEL, wraps estimated). Mode changes are refused in the wrap sectors (WRAPS_ON) and when
+  leaving LAUNCH with the shot phase not REST (LAUNCH_BUSY). The stop points and their order live in DRUM_DEG /
+  DRUM_ORDER so a new drum layout (or new drum commands) is a table change plus a handler in _commands().
+- Wiper in LAUNCH: BACKWARD aims (crank-rocker aim train, pitch 15..60 deg over a 360 deg aim cycle, one way only),
+  FORWARD cocks (rest -> 560 deg), fires (release at 580 deg) and resets (720 deg = one big gear turn). Aim needs the
+  train at rest, so the order is mode LAUNCH, aim, (cock, optional), arm, fire. Fire from REST runs the whole cycle.
+- Wiper in REEL with the wraps on: winds the capstan. The line tension comes from the attached World (dart free,
   anchored, seated). Telemetry tension_n is the load cell (null when load_cell is False).
 - Faults: inject_fault(code) or arm one with fail_next[cmd] = code (raised part way through that command's motion).
-  Like the firmware, a fault stops the wiper and sends the drum to NEUTRAL only when that is safe; otherwise the drum
-  holds and a MODE event with ok false and err DRUM_HELD says why.
+  A fault stops the wiper and sends the drum to NEUTRAL only when that is safe; otherwise the drum holds and a MODE
+  event with ok false and err DRUM_HELD says why.
 
 One deliberate difference, switchable: seat_ends_any_reel (default True) makes the seat contact end every reel with a
-SEATED event. The firmware only does that for until "seated" (with "tension" or "stop" it winds on until the tension
-limit). Set it to False for the exact firmware behaviour.
+SEATED event. PROTOCOL.md only stops at SW_SEATED for until "seated" (with "tension" or "stop" it winds on until
+max_n). Set it to False for the exact firmware behaviour.
 
 Times run on a scaled clock (time_scale) so tests can go faster than real life.
 """
@@ -41,16 +43,19 @@ from .base import MAX_LINE, PipeEnd, pipe_pair
 FW = "base-1.0"
 PARAMS_VERSION = "0.1-stub"
 
-# ---- drum (config.h)
-DRUM_DEG = {"LAUNCH": 0.0, "NEUTRAL": 60.0, "REEL": 120.0}
-DETENTS = ("LAUNCH", "NEUTRAL", "REEL")
-WRAP_START_DEG = 150.0
-WRAP_DEG = 360.0          # drum travel per capstan wrap
-N_WRAPS = 4               # wraps laid by "wrap"
-MAX_WRAPS = 6
-DRUM_DPS = 60.0           # drum speed, deg/s
-DRUM_WIN_DEG = 10.0       # a detent code is closed within +- this of the detent
+# ---- drum (PROTOCOL.md section 3: stop points, deg from LAUNCH; the drum code is absolute)
+DRUM_DEG = {"LAUNCH": 0.0, "NEUTRAL": 40.0, "REEL": 80.0, "WRAPPED": 338.0}
+DRUM_ORDER = ("LAUNCH", "NEUTRAL", "REEL", "WRAPPED")   # physical order along the drum travel
+DETENTS = ("LAUNCH", "NEUTRAL", "REEL")                 # the stop points "mode" goes to
+N_WRAPS = 4               # wraps laid between REEL and WRAPPED
+WRAP_DEG = (DRUM_DEG["WRAPPED"] - DRUM_DEG["REEL"]) / N_WRAPS   # drum travel per capstan wrap
+WRAP_START_DEG = DRUM_DEG["REEL"]
+MAX_WRAPS = N_WRAPS
+DRUM_DPS = 10.8           # drum speed, deg/s
+DRUM_WIN_DEG = 5.0        # half width of a stop point's code sector
 POS_TOL = DRUM_WIN_DEG    # kept for older imports
+# drum code (a = b0, b = b1, c = b2) per sector, in drum order: LAUNCH, L-N, NEUTRAL, N-R, REEL, wrap sectors, WRAPPED
+SECTOR_CODE = {"LAUNCH": "a", "L-N": "ab", "NEUTRAL": "b", "N-R": "bc", "REEL": "c", "WRAP": "ac", "WRAPPED": "abc"}
 # ---- aim train
 PITCH_MIN, PITCH_MAX = 15.0, 60.0
 AIM_CYCLE_DEG = 360.0
@@ -79,8 +84,8 @@ LIMIT_N, LIMIT_MAX_N = 20.0, 150.0
 RESUME_FRAC = 0.6         # holding winds again below this fraction of the limit (load cell only)
 TENSION_IGNORE_S = 0.35
 TAPER_FRAC = 0.30
-REEL_DUTY = 220.0 / 255.0
-REEL_MIN_DUTY = 70.0 / 255.0
+REEL_DUTY = 0.86
+REEL_MIN_DUTY = 0.27
 SEAT_SLOW_M, SEAT_SLOW_DUTY = 1.0, 110.0 / 255.0
 REEL_MAX_S = 240.0
 TRIP_A, COCK_TRIP_A = 17.0, 15.0
@@ -88,21 +93,21 @@ TRIP_A, COCK_TRIP_A = 17.0, 15.0
 VBAT_LOW, VBAT_PRESENT = 9.9, 6.0
 TEL_SLOW_S, TEL_FAST_S = 0.10, 0.05
 
-STATES = ("IDLE", "MODE", "AIM", "COCK", "FIRE", "WRAP", "UNWRAP", "REEL", "HOLD", "JOG", "CAL", "SAFING", "FAULT",
-          "DECOCK")
+STATES = ("IDLE", "MODE", "AIM", "COCK", "FIRE", "WRAP", "UNWRAP", "REEL", "HOLD", "JOG", "DECOCK", "SAFING",
+          "FAULT")
 PHASES = ("REST", "COCKING", "COCKED", "FIRING", "RESETTING", "UNKNOWN")
 FAULTS = ("STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR", "ANGLE_SENSOR", "SWITCH_DISAGREE", "BROWNOUT",
           "BAD_STATE")
-# telemetry "sw" keys (config.h SW_TEL): closed contacts only, absent = open
-SW_KEYS = {"a": "SW_DRUM_A", "b": "SW_DRUM_B", "c": "SW_DRUM_C", "S": "SW_SEATED", "H": "SW_HOME",
+# telemetry "sw" keys (PROTOCOL.md section 3): closed contacts only, value 1, absent = open
+SW_KEYS = {"a": "SW_DRUM_A", "b": "SW_DRUM_B", "c": "SW_DRUM_C", "D": "SW_DOG", "S": "SW_SEATED", "H": "SW_HOME",
            "L": "SW_RAIL_LOW", "W": "SW_WRAP_HOME"}
-POS_CODE = {"LAUNCH": ("a",), "NEUTRAL": ("a", "b"), "REEL": ("b",)}
 
 # settable keys: name -> (lo, hi)
 SET_KEYS = {"limit_n": (1, LIMIT_MAX_N), "k_n_per_a": (0.1, 200), "free_a": (0, 10), "amps_per_volt": (1, 200),
             "offset_a": (0, 5), "hx_n_per_count": (1e-7, 1), "drum_dps": (5, 720), "aim_tol": (0.1, 5),
-            "aim_offset": (-20, 20), "line_m": (0, 100), "trip_a": (3, 19), "cock_trip_a": (3, 19),
-            "vbat_low": (6, 12), "aim_home_deg": (-720, 720)}
+            "aim_offset": (-20, 20), "aim_home_deg": (-7200, 7200), "line_m": (0, 100), "trip_a": (3, 19),
+            "cock_trip_a": (3, 19), "vbat_low": (6, 12), "host_timeout_s": (0, 600)}
+BOOL_KEYS = ("require_seated", "vbat_wired")
 
 
 def pitch_at(phase: float, offset: float = 0.0) -> float:
@@ -193,11 +198,17 @@ class MockBase:
         self.vbat0 = 12.4
         self.vbat = 12.4
         self.require_seated = True
+        self.vbat_wired = True
+        self.enc_sign = 1
         self.settings: Dict[str, float] = {"limit_n": LIMIT_N, "k_n_per_a": 8.0, "free_a": 1.5,
                                            "amps_per_volt": 12.5, "offset_a": 0.0, "hx_n_per_count": 1 / 21000.0,
                                            "drum_dps": DRUM_DPS, "aim_tol": AIM_TOL_DEG, "aim_offset": 0.0,
-                                           "trip_a": TRIP_A, "cock_trip_a": COCK_TRIP_A, "vbat_low": VBAT_LOW,
-                                           "aim_home_deg": 0.0}
+                                           "aim_home_deg": 3365.0, "trip_a": TRIP_A, "cock_trip_a": COCK_TRIP_A,
+                                           "vbat_low": VBAT_LOW, "host_timeout_s": 0.0}
+        self.code_bad = False               # test hook: drum code invalid (drum_pos UNKNOWN, POSITION_UNKNOWN)
+        self.dog_tip = False                # test hook: SW_DOG closed (dogs tip to tip)
+        self.last_rx_t = 0.0                # sim time of the last line from the host (host watchdog)
+        self.commands = self._commands()
         self.op: Dict[str, Any] = {}
         self._seat_prev = self.seated()
         # ---- test hooks
@@ -214,11 +225,13 @@ class MockBase:
     @property
     def mode(self) -> str:
         """modeName(): derived from the drum position, NONE between detents."""
-        p = self.drum_pos()
-        if p in ("LAUNCH", "NEUTRAL"):
-            return p
-        if p in ("REEL", "WRAPPED"):
-            return "REEL"
+        if self.code_bad:
+            return "NONE"
+        k = self.detent()
+        if k in ("LAUNCH", "NEUTRAL"):
+            return k
+        if self.drum_deg >= DRUM_DEG["REEL"] - DRUM_WIN_DEG:
+            return "REEL"                    # REEL, the wrap sectors and WRAPPED: the collar stays in REEL
         return "NONE"
 
     @mode.setter
@@ -246,7 +259,8 @@ class MockBase:
 
     # ------------------------------------------------ run
     def start(self) -> "MockBase":
-        self._send({"evt": "HELLO", "fw": FW, "reset": "POWERON", "hx711": bool(self.load_cell), "as5600": True})
+        self._send({"evt": "HELLO", "fw": FW, "reset": "POWERON", "hx711": bool(self.load_cell), "as5600": True,
+                    "pwm": True})
         for fn, name in ((self._rx_loop, "mock-base-rx"), (self._sim_loop, "mock-base-sim")):
             th = threading.Thread(target=fn, name=name, daemon=True)
             th.start()
@@ -311,24 +325,39 @@ class MockBase:
         return int(self.sim_t * 1000)
 
     def detent(self) -> Optional[str]:
-        for name in DETENTS:
+        """The stop point whose code sector the drum is in (LAUNCH, NEUTRAL, REEL, WRAPPED), or None."""
+        if self.code_bad:
+            return None
+        for name in DRUM_ORDER:
             if abs(self.drum_deg - DRUM_DEG[name]) <= DRUM_WIN_DEG:
                 return name
         return None
 
-    def wraps(self) -> int:
-        laid = (self.drum_deg - WRAP_START_DEG) / WRAP_DEG
-        return 0 if laid <= 0 else int(math.floor(laid + 0.15))
+    def in_wrap_sectors(self) -> bool:
+        return self.drum_deg > DRUM_DEG["REEL"] + DRUM_WIN_DEG
 
-    def drum_pos(self) -> str:
+    def sector(self) -> str:
         k = self.detent()
         if k:
             return k
-        if not self.drum_known:
+        d = self.drum_deg
+        if d < DRUM_DEG["NEUTRAL"]:
+            return "L-N"
+        if d < DRUM_DEG["REEL"]:
+            return "N-R"
+        return "WRAP"
+
+    def wraps(self) -> int:
+        if self.drum_deg <= DRUM_DEG["REEL"] + DRUM_WIN_DEG:
+            return 0
+        if self.drum_deg >= DRUM_DEG["WRAPPED"] - DRUM_WIN_DEG:
+            return N_WRAPS
+        return max(0, min(N_WRAPS - 1, int((self.drum_deg - DRUM_DEG["REEL"]) // WRAP_DEG)))
+
+    def drum_pos(self) -> str:
+        if self.code_bad:
             return "UNKNOWN"
-        if self.drum_deg > DRUM_DEG["REEL"] + DRUM_WIN_DEG and self.wraps_known and self.wraps() >= 1:
-            return "WRAPPED"
-        return "BETWEEN"
+        return self.detent() or "BETWEEN"
 
     def seated(self) -> bool:
         return self.world.dart == "seated" and self.line_m <= 0.01
@@ -339,20 +368,19 @@ class MockBase:
 
     def sw(self) -> dict:
         out = {}
-        k = self.detent()
-        if k:
-            for key in POS_CODE[k]:
+        if not self.code_bad:
+            for key in SECTOR_CODE[self.sector()]:
                 out[key] = 1
+        if self.dog_tip:
+            out["D"] = 1
         if self.seated():
             out["S"] = 1
         if self.home_closed():
             out["H"] = 1
-        if (self.aim_phase - self.settings["aim_home_deg"]) % AIM_CYCLE_DEG < 8:
-            out["L"] = 1
-        wz = self.drum_deg - WRAP_START_DEG
-        m = wz % WRAP_DEG
-        if self.drum_deg >= WRAP_START_DEG + WRAP_DEG * 0.5 and (m < 6 or m > WRAP_DEG - 6):
-            out["W"] = 1
+        if self.aim_phase % AIM_CYCLE_DEG < 8:
+            out["L"] = 1                     # rail at its low dead point
+        if not self.in_wrap_sectors():
+            out["W"] = 1                     # wrap arm at home
         return {k2: out[k2] for k2 in SW_KEYS if k2 in out}
 
     def moving(self) -> bool:
@@ -385,9 +413,7 @@ class MockBase:
         self._send_line(s if len(s) <= MAX_LINE else '{"evt":"OVERFLOW"}')
 
     def _ev_mode(self, ok: bool, err: Optional[str] = None, why: Optional[str] = None) -> None:
-        kw: Dict[str, Any] = {"ok": ok, "mode": self.mode}
-        if why is None:
-            kw["drum_pos"] = self.drum_pos()
+        kw: Dict[str, Any] = {"ok": ok, "mode": self.mode, "drum_pos": self.drum_pos()}
         if err:
             kw["err"] = err
         if why:
@@ -405,11 +431,9 @@ class MockBase:
         """safeToNeutral(): None if the drum may go to NEUTRAL now, else why it must hold."""
         if code in ("DRUM_TIMEOUT", "DRUM_SENSOR"):
             return "drum fault"
-        if not self.drum_known and self.detent() is None:
-            return "drum position unknown"
-        if not self.wraps_known:
-            return "wraps unknown"
-        if self.wraps() > 0 or self.drum_pos() == "WRAPPED":
+        if self.code_bad:
+            return "drum code invalid"
+        if self.in_wrap_sectors():
             return "wraps on: the capstan holds the line"
         if self.drum_pos() == "LAUNCH" and self.phase != "REST":
             return "launch train not at rest: the wiper worm holds the spring (a shift under load could dry fire)"
@@ -432,7 +456,7 @@ class MockBase:
             self.evt("STALL")
         hold = self._hold_reason(code) if drum_to_neutral else "drum fault"
         if not hold and self.detent() != "NEUTRAL":
-            self._start_drum(DRUM_DEG["NEUTRAL"], "safing")
+            self._start_drum(DRUM_DEG["NEUTRAL"], "safing", self.fail_next.pop("safing", None))
             self.state = "SAFING"
             return
         self.op = {}
@@ -467,7 +491,12 @@ class MockBase:
         self.rpm = 0.0
         self.amps = 0.0
         st = self.state
-        if st in ("MODE", "SAFING", "CAL", "WRAP", "UNWRAP"):
+        ht = self.settings["host_timeout_s"]
+        if ht > 0 and st not in ("IDLE", "HOLD", "FAULT", "SAFING") and self.sim_t - self.last_rx_t > ht:
+            self._halt()                     # host watchdog
+            self.evt("ABORTED", what="HOST", why="host silent")
+            return
+        if st in ("MODE", "SAFING", "WRAP", "UNWRAP"):
             self._drum_step(dt)
         elif st == "AIM":
             self._aim_step(dt)
@@ -524,11 +553,11 @@ class MockBase:
             span = abs(target - op["from"]) or 1.0
             if abs(self.drum_deg - op["from"]) >= 0.4 * span:
                 op["fail"] = None
-                if op["kind"] in ("safing", "estop"):
+                if op["kind"] == "safing":
                     self.state = "FAULT"
                     self.op = {}
-                    self._ev_mode(False, "drum did not reach the detent in time")
-                else:
+                    self._ev_mode(False, fail, "safing move failed: drum did not reach NEUTRAL")
+                else:                        # mode, wrap, unwrap, a failed estop move: a drum fault
                     self.raise_fault(fail)
                 return
         if abs(d) > stepd:
@@ -546,8 +575,7 @@ class MockBase:
         elif kind == "unwrap":
             self.state = "IDLE"
             self.evt("UNWRAPPED", ok=True)
-        else:                                # mode, estop, cal
-            self.drum_known = self.wraps_known = True
+        else:                                # mode, estop
             self.state = "IDLE"
             self._ev_mode(True)
 
@@ -640,7 +668,7 @@ class MockBase:
             if f:
                 self.raise_fault(f)
                 return
-            trav = self._wiper(COCK_DIR, FIRE_DPS, 8.0) * dt
+            trav = self._wiper(COCK_DIR, FIRE_DPS, 8.0) * dt   # from COCKED, or the whole cycle from REST
             before = self.cock_deg
             self.cock_deg += trav
             self.wiper_deg += trav
@@ -797,7 +825,7 @@ class MockBase:
                     self.op = {}
                     self.evt("ABORTED", what="JOG", why="would pass the release tooth")
                     return
-            elif p in ("REEL", "WRAPPED") and self.wraps() > 0:
+            elif self.mode == "REEL" and self.wraps() > 0:
                 take = self._reel_tension(trav / 360.0 * math.pi * 0.03, 1.0)
                 self.line_est = max(0.0, self.line_est - take)
         else:
@@ -817,6 +845,7 @@ class MockBase:
                 raise ValueError
         except Exception:
             return '{"id":null,"ok":false,"err":"BAD_JSON"}'
+        self.last_rx_t = self.sim_t
         self.received.append(m)
         i = m.get("id")
         if isinstance(i, bool) or not isinstance(i, (int, float, str)):
@@ -853,7 +882,7 @@ class MockBase:
             return "BUSY"
         if not self.booted:
             return "BOOTING"
-        if self.vbat < VBAT_PRESENT:
+        if self.vbat_wired and self.vbat < VBAT_PRESENT:
             return "NO_POWER"
         return None
 
@@ -864,85 +893,98 @@ class MockBase:
             return None
         return float(v)
 
+    def _commands(self) -> Dict[str, Callable[[dict, dict], Optional[str]]]:
+        """Command name -> handler(msg, reply_extra) returning an error code or None. Add new commands here."""
+        return {"ping": self._c_ping, "status": self._c_status,
+                "stop": lambda m, x: self._cmd_stop(False), "estop": lambda m, x: self._cmd_stop(True),
+                "clear": lambda m, x: self._cmd_clear(),
+                "mode": lambda m, x: self._cmd_mode(m["to"]) if isinstance(m.get("to"), str) else "BAD_ARG",
+                "aim": self._c_aim, "cock": lambda m, x: self._cmd_cock(), "arm": self._c_arm, "fire": self._c_fire,
+                "wrap": lambda m, x: self._cmd_wrap(), "unwrap": lambda m, x: self._cmd_unwrap(),
+                "reel": self._c_reel, "jog": self._c_jog,
+                "cal": lambda m, x: self._cmd_cal(m["what"], m) if isinstance(m.get("what"), str) else "BAD_ARG",
+                "set": self._c_set, "get": self._c_get}
+
     def handle(self, m: dict, extra: Optional[dict] = None) -> Optional[str]:
         """Run one command. Returns an error code or None; reply fields go into extra."""
         extra = {} if extra is None else extra
-        c = m.get("cmd")
-        if c == "ping":
-            extra.update(fw=FW, t=self.now_ms())
-            return None
-        if c == "status":
-            extra.update(phase=self.phase, aimed=self.aimed, aim_known=self.aim_known, drum_known=self.drum_known,
-                         wraps_known=self.wraps_known, magnet="OK", glitches=0, hx=bool(self.load_cell),
-                         peak_a=_n(self.peak_a, 1), fw=FW)
-            if self.fault:
-                extra["why"] = self.fault_why[:32]
-            return None
-        if c in ("stop", "estop"):
-            self._cmd_stop(c == "estop")
-            return None
-        if c == "clear":
-            return self._cmd_clear()
-        if c == "mode":
-            to = m.get("to")
-            return self._cmd_mode(to) if isinstance(to, str) else "BAD_ARG"
-        if c == "aim":
-            deg = self._num(m, "deg")
-            return "BAD_ARG" if deg is None else self._cmd_aim(deg)
-        if c == "arm":
-            e = self._fire_check()
-            if e:
-                return e
-            self.token = self.rng.randrange(100000, 1000000)
-            self.token_t = self.sim_t
-            extra.update(token=self.token, valid_ms=int(TOKEN_S * 1000))
-            return None
-        if c == "fire":
-            tok = self._num(m, "token")
-            if tok is None and isinstance(m.get("token"), str):
-                try:
-                    tok = float(m["token"])
-                except ValueError:
-                    tok = 0.0
-            return "BAD_ARG" if tok is None else self._cmd_fire(tok)
-        if c == "cock":
-            return self._cmd_cock()
-        if c == "wrap":
-            return self._cmd_wrap()
-        if c == "unwrap":
-            return self._cmd_unwrap()
-        if c == "reel":
-            duty = self._num(m, "duty")
-            max_n = self._num(m, "max_n")
-            until = m.get("until") if isinstance(m.get("until"), str) else None
-            return self._cmd_reel(REEL_DUTY if duty is None else duty,
-                                  self.settings["limit_n"] if max_n is None else max_n, until)
-        if c == "jog":
-            ms = self._num(m, "ms")
-            d = self._num(m, "dir")
-            motor = m.get("motor")
-            if not isinstance(motor, str) or d is None:
-                return "BAD_ARG"
-            return self._cmd_jog(motor, d, 300.0 if ms is None else ms)
-        if c == "cal":
-            what = m.get("what")
-            return self._cmd_cal(what, m) if isinstance(what, str) else "BAD_ARG"
-        if c == "set":
-            k = m.get("key")
-            v = m.get("val")
-            if isinstance(v, bool):
-                v = 1.0 if v else 0.0
-            if not isinstance(k, str) or not isinstance(v, (int, float)):
-                return "BAD_ARG"
-            return self._cmd_set(k, float(v))
-        if c == "get":
-            k = m.get("key")
-            if not isinstance(k, str):
-                return "BAD_ARG"
-            return None if self._get_key(k, extra) else "BAD_KEY"
-        return "UNKNOWN_CMD"
+        fn = self.commands.get(m.get("cmd"))
+        return fn(m, extra) if fn else "UNKNOWN_CMD"
+
+    def _c_ping(self, m: dict, extra: dict) -> Optional[str]:
+        extra.update(fw=FW, t=self.now_ms())
+        return None
+
+    def _c_status(self, m: dict, extra: dict) -> Optional[str]:
+        extra.update(phase=self.phase, aimed=self.aimed, aim_known=self.aim_known, drum_known=not self.code_bad,
+                     wraps_known=not self.code_bad, magnet="OK", glitches=0, hx=bool(self.load_cell),
+                     peak_a=_n(self.peak_a, 1), fw=FW)
+        if self.fault:
+            extra["why"] = self.fault_why[:32]
+        return None
+
+    def _c_aim(self, m: dict, extra: dict) -> Optional[str]:
+        deg = self._num(m, "deg")
+        return "BAD_ARG" if deg is None else self._cmd_aim(deg)
+
+    def _c_arm(self, m: dict, extra: dict) -> Optional[str]:
+        e = self._fire_check()
+        if e:
+            return e
+        self.token = self.rng.randrange(100000, 1000000)     # a new arm replaces the old token
+        self.token_t = self.sim_t
+        extra.update(token=self.token, valid_ms=int(TOKEN_S * 1000))
+        return None
+
+    def _c_fire(self, m: dict, extra: dict) -> Optional[str]:
+        tok = self._num(m, "token")
+        if tok is None and isinstance(m.get("token"), str):
+            try:
+                tok = float(m["token"])
+            except ValueError:
+                tok = 0.0
+        return "BAD_ARG" if tok is None else self._cmd_fire(tok)
+
+    def _c_reel(self, m: dict, extra: dict) -> Optional[str]:
+        duty = self._num(m, "duty")
+        max_n = self._num(m, "max_n")
+        until = m.get("until") if isinstance(m.get("until"), str) else None
+        return self._cmd_reel(REEL_DUTY if duty is None else duty,
+                              self.settings["limit_n"] if max_n is None else max_n, until)
+
+    def _c_jog(self, m: dict, extra: dict) -> Optional[str]:
+        ms = self._num(m, "ms")
+        d = self._num(m, "dir")
+        motor = m.get("motor")
+        if not isinstance(motor, str) or d is None:
+            return "BAD_ARG"
+        return self._cmd_jog(motor, d, 300.0 if ms is None else ms)
+
+    def _c_set(self, m: dict, extra: dict) -> Optional[str]:
+        k = m.get("key")
+        v = m.get("val")
+        if isinstance(v, bool):
+            v = 1.0 if v else 0.0
+        if not isinstance(k, str) or not isinstance(v, (int, float)):
+            return "BAD_ARG"
+        return self._cmd_set(k, float(v))
+
+    def _c_get(self, m: dict, extra: dict) -> Optional[str]:
+        k = m.get("key")
+        if not isinstance(k, str):
+            return "BAD_ARG"
+        return None if self._get_key(k, extra) else "BAD_KEY"
 
     # ---- commands (base_logic.h cmdXxx, same checks in the same order)
+    def _halt(self) -> None:
+        """Wiper and drum off now; a stop during cock or fire makes the phase UNKNOWN."""
+        self.token = None
+        if self.state in ("COCK", "FIRE"):
+            self.phase = "UNKNOWN"
+        self.state = "IDLE"
+        self.op = {}
+        self.rpm = self.amps = 0.0
+
     def _cmd_stop(self, estop: bool) -> None:
         self.token = None
         was = self.state
@@ -974,25 +1016,25 @@ class MockBase:
         return None
 
     def _cmd_mode(self, to: str) -> Optional[str]:
-        if to not in DRUM_DEG:
+        if to not in DETENTS:
             return "BAD_ARG"
         e = self._idle_check()
         if e:
             return e
         if self.state == "HOLD":
             return "HOLDING"
-        if not self.wraps_known:
-            return "POSITION_UNKNOWN"
-        if self.wraps() > 0 or self.drum_pos() == "WRAPPED":
+        if self.in_wrap_sectors():
             return "WRAPS_ON"
+        if self.code_bad:
+            return "POSITION_UNKNOWN"
         k = self.detent()
         if k == to:
             self._ev_mode(True)
             return None
-        if k is None and not self.drum_known:
-            return "POSITION_UNKNOWN"
-        if self.drum_pos() == "LAUNCH" and self.phase != "REST":
+        if k == "LAUNCH" and self.phase != "REST":
             return "LAUNCH_BUSY"
+        if k == "LAUNCH":
+            self.wiper_deg -= 3.0            # unload the dogs: 3 deg backward before leaving LAUNCH
         self.aimed = False
         self.token = None
         self._start_drum(DRUM_DEG[to], "mode", self.fail_next.pop("mode", None))
@@ -1068,7 +1110,9 @@ class MockBase:
             return "NOT_IN_LAUNCH"
         if not self.wraps_known or self.wraps() > 0:
             return "WRAPS_ON"
-        if self.phase != "COCKED" or self.home_closed():
+        cocked = self.phase == "COCKED" and not self.home_closed()
+        at_rest = self.phase == "REST" and self.home_closed()     # fire from rest runs the whole cycle
+        if not (cocked or at_rest):
             return "NOT_COCKED"
         p = self.pitch
         if (not self.aim_known or not self.aimed or self.aim_target is None or p is None
@@ -1105,12 +1149,12 @@ class MockBase:
             return e
         if self.state == "HOLD":
             return "HOLDING"
-        if self.detent() != "REEL":
-            return "NOT_IN_REEL"
-        if not self.wraps_known or self.wraps() != 0:
-            return "WRAPS_ON"
-        n = min(N_WRAPS, MAX_WRAPS)
-        self._start_drum(WRAP_START_DEG + n * WRAP_DEG, "wrap", self.fail_next.pop("wrap", None))
+        if self.drum_pos() == "WRAPPED":
+            self.evt("WRAPPED", ok=True, wraps=self.wraps())
+            return None
+        if self.code_bad or self.drum_deg < DRUM_DEG["REEL"] - DRUM_WIN_DEG:
+            return "NOT_IN_REEL"             # from REEL, or the wrap sectors (an interrupted wrap is repeated)
+        self._start_drum(DRUM_DEG["WRAPPED"], "wrap", self.fail_next.pop("wrap", None))
         self.state = "WRAP"
         return None
 
@@ -1120,12 +1164,12 @@ class MockBase:
             return e
         if self.state == "HOLD":
             return "HOLDING"
-        if self.detent() == "REEL" and self.wraps_known and self.wraps() == 0:
+        if self.code_bad:
+            return "POSITION_UNKNOWN"
+        if self.detent() == "REEL":
             self.evt("UNWRAPPED", ok=True)
             return None
-        if not self.drum_known:
-            return "POSITION_UNKNOWN"
-        if self.drum_deg < DRUM_DEG["REEL"] - DRUM_WIN_DEG:
+        if not self.in_wrap_sectors():
             return "NOT_WRAPPED"
         self._start_drum(DRUM_DEG["REEL"], "unwrap", self.fail_next.pop("unwrap", None))
         self.state = "UNWRAP"
@@ -1135,7 +1179,7 @@ class MockBase:
         e = self._idle_check(True)
         if e:
             return e
-        if self.drum_pos() != "WRAPPED" or not self.wraps_known or self.wraps() < 1:
+        if self.drum_pos() != "WRAPPED":
             return "NOT_WRAPPED"
         u = "stop" if until is None else until
         if u not in ("stop", "seated", "tension"):
@@ -1180,7 +1224,7 @@ class MockBase:
                 return "WOULD_FIRE"
             if p == "LAUNCH" and dd == AIM_DIR and self.phase != "REST":
                 return "NOT_AT_REST"
-            if p in ("REEL", "WRAPPED") and dd != REEL_DIR:
+            if self.mode == "REEL" and dd != REEL_DIR:
                 return "BACKSTOP"
             if p == "LAUNCH" and dd == AIM_DIR:
                 self.aimed = False
@@ -1213,8 +1257,14 @@ class MockBase:
         if what == "aim_home":
             if self.moving():
                 return "BUSY"
-            self.aim_phase = self.settings["aim_home_deg"] % AIM_CYCLE_DEG
+            self.aim_phase = 0.0             # (the mock's aim cycle has its home at phase 0)
             self.aim_known = True
+            self.aimed = False
+            return None
+        if what == "aim_forget":
+            if self.moving():
+                return "BUSY"
+            self.aim_known = False
             self.aimed = False
             return None
         if what == "cock_rest":
@@ -1239,32 +1289,24 @@ class MockBase:
             self.op = {"home_at": None}
             self.state = "DECOCK"
             return None
-        if what == "drum":
-            e = self._idle_check()
-            if e:
-                return e
-            if self.wraps_known and self.wraps() > 0:
-                return "WRAPS_ON"
-            k = self.detent()
-            if k:
-                self.drum_known = True
-                self.drum_deg = DRUM_DEG[k]
-                self._ev_mode(True)
-                return None
-            below = [DRUM_DEG[n] for n in DETENTS if DRUM_DEG[n] <= self.drum_deg]
-            self._start_drum(max(below) if below else DRUM_DEG["LAUNCH"], "cal")
-            self.state = "CAL"
+        if what == "drum":                   # the drum code is absolute: this only reports
+            if self.code_bad:
+                return "POSITION_UNKNOWN"
+            self._ev_mode(True)
             return None
         return "BAD_ARG"
 
     def _cmd_set(self, k: str, v: float) -> Optional[str]:
-        if k == "require_seated":
-            self.require_seated = v != 0
+        if k in BOOL_KEYS:
+            setattr(self, k, v != 0)
             return None
         if k == "enc_sign":
             if v not in (1, -1):
                 return "BAD_ARG"
-            return "BUSY" if self.moving() else None
+            if self.moving():
+                return "BUSY"
+            self.enc_sign = int(v)
+            return None
         if k not in SET_KEYS:
             return "BAD_KEY"
         lo, hi = SET_KEYS[k]
@@ -1284,10 +1326,10 @@ class MockBase:
             extra["val"] = FW
         elif k == "params":
             extra["val"] = PARAMS_VERSION
-        elif k == "require_seated":
-            extra["val"] = self.require_seated
+        elif k in BOOL_KEYS:
+            extra["val"] = bool(getattr(self, k))
         elif k == "enc_sign":
-            extra["val"] = 1
+            extra["val"] = self.enc_sign
         elif k == "pitch_range":
             extra.update(min=_n(PITCH_MIN, 2), max=_n(PITCH_MAX, 2))
         elif k == "line_m":

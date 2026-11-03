@@ -288,8 +288,20 @@ class Rig:
             sc.checks = [c for c in sc.checks if c[1] not in (c_wrap_free, c_tug)]
         if sc.slip_n:
             self.base.set(slipN=sc.slip_n)
-        if sc.plant_setup:
-            self.base.set(**sc.plant_setup)
+        ps = dict(sc.plant_setup)
+        if "drumDeg" in ps:          # the drum is turned by hand with the board off, then it boots there
+            self.base.ctl("power off")
+            self.base.boot_t = self.base.get().get("t", 0)
+            self.base.set(drumDeg=ps.pop("drumDeg"))
+            self.base.ctl("power on")
+            t0 = time.time()
+            while time.time() - t0 < 8:
+                g = self.base.get()
+                if g.get("state") not in (None, "OFF") and g.get("t", 0) >= self.base.boot_t + self.base.hello_delay + 150:
+                    break
+                time.sleep(0.02)
+        if ps:
+            self.base.set(**ps)
         self.dart = DartProc(self.dir)
         for q in sc.dart_setup:
             self.dart.get("/sim/set?" + q)

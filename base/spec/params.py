@@ -10,7 +10,7 @@ Code against the names; never hard-code a shared number anywhere else.
 
 import math
 
-VERSION = "1.2.1"
+VERSION = "1.2.2"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
@@ -174,12 +174,13 @@ LAUNCH = dict(
     spring_ext_full=265.0,
     spring_preload_fallback=8.8,   # anchor hole set for SPRING.max_ext_fallback 250
     second_pair_provision=True, # D5
+    spring_guard=True,          # D33: printed guard over both springs (hooks near their rating)
     stop=dict(travel_min=19.0, peak_force_max=300.0,
               note="D6/D26: about 2.8 to 3.3 J per shot; a linear printed PLA flexure needs about 19 mm; TPU pads only if Harry gets TPU"),
     carriage_mass_target_kg=0.060,
     sleeve=dict(od_at_sprag=20.0, key="integral rib 6 wide", wall_min=3.8, spigot_bore=12.35, y=(111.0, 193.0), note="D13, D23"),
     rail_walls_y=(112.0, 168.0), springs_y=(94.0, 186.0), cheeks_y=((123.0, 131.0), (159.5, 167.5)),
-    flight=dict(range_m=5.0, apex_m=1.1, pitch_deg=36.0, t_flight_s=1.1, note="for the sim; physics owns the real table"),
+    flight=dict(range_m=4.8, apex_m=1.1, pitch_deg=36.0, t_flight_s=1.1, note="for the sim; physics v1.2: 12.1 J, 7.41 m/s, 4.8 m at 0.5 N"),
     never_fire_without_tether=True,   # D11
 )
 
@@ -215,7 +216,9 @@ REEL = dict(
                  reel_gear=dict(module=1.5, teeth=20), disk_ratio=2.5, drag_brake=False,
                  note="D25: compound c1 free on the capstan tube meshes the bus 50T; the swing idler rides c1's hub, engages on forward turns"),
     tow_limit_n=50.0,                         # firmware default, adjustable 2..110
-    line_speed_mps=dict(free=0.21, at_50n=0.15),
+    tow_tension_model=dict(n_per_a=17.0, offset_n=-10.4, note="line N = 17.0 x (I - I_free) - 10.4 (physics v1.2, D32/D33)"),
+    current_trips_a=dict(aim=5.0, reel_in=5.0, cock=6.5, tow=6.5, blank_ms=50, hold_ms=30, note="D8/D33"),
+    line_speed_mps=dict(free=0.21, at_50n=0.14),
     pulleys="693ZZ printed pulleys where the line turns more than about 20 deg; one on the rail at the pivot (D14)",
     cup_gear=dict(module=1.5, teeth=24, note="driven by cad-drum's wrap idler output 42T m1.5 (4 pinion turns = 7 cup turns)"),
     line_path_hook="reel.line_path(P, S) starts the tether polyline at the storage reel; launch.line_path continues to the dart",

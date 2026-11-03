@@ -40,3 +40,16 @@ def test_texture_class_character():
 def test_texture_bad_class():
     with pytest.raises(ValueError):
         texture("lava", 10, 10)
+
+
+def test_texture_view_zoom_blur_exposure():
+    from grappstar.sim.terrain_textures import texture_view
+    a = texture_view("hard_ground", 120, 160, seed=4, zoom=3.0, blur=1.0, gain=0.8, gamma=1.2, noise=0.02)
+    b = texture_view("hard_ground", 120, 160, seed=4, zoom=3.0, blur=1.0, gain=0.8, gamma=1.2, noise=0.02)
+    assert a.shape == (120, 160, 3) and a.dtype == np.uint8 and np.array_equal(a, b)
+    native = texture_view("hard_ground", 120, 160, seed=4).astype(float)
+    zoomed = texture_view("hard_ground", 120, 160, seed=4, zoom=3.0).astype(float)
+    # magnified grain: less fine (pixel to pixel) detail than the native texture
+    assert np.abs(np.diff(zoomed, axis=1)).mean() < np.abs(np.diff(native, axis=1)).mean()
+    dark = texture_view("hard_ground", 120, 160, seed=4, gain=0.5)
+    assert dark.mean() < native.mean() - 20

@@ -21,7 +21,7 @@ Safety for every stage:
 Follow SYSTEM_ELECTRICAL.md section 4, the first power-on sequence, steps 1 to 9. Both motors stay disconnected
 from their drivers until step 10.
 
-Pass: no steady beeps on the short check, SLP reads open to VM, MP1584 #2 reads 9.0 V, the Jetson boots, `ping` replies, `vbat` within 0.3 V
+Pass: no steady beeps on the short check, MP1584 #2 reads 9.0 V, the Jetson boots, `ping` replies, `vbat` within 0.3 V
 of the meter, `fault` is null.
 If it fails: a beep means a short (check the Y harness and the BTS7960 screws first). No reply: check the USB
 cable is a data cable and in the ESP32 port marked USB; see troubleshooting in the build guide.
@@ -40,7 +40,9 @@ N20 to DRV8833 #3 AOUT1 / AOUT2, loose on the bench. Battery in.
 Pass: each motor turns both ways, stops when the jog ends, wiper free current about 1 to 3 A (A6 in
 MEASURE_LIST.md), no fault.
 If it fails: no movement on the wiper: check R_EN / L_EN wiring and the 20 A fuse. Wiper turns only one way: one of
-RPWM / LPWM is not connected. Drum does nothing: check SLP wiring and 9.0 V on VM. Wrong direction against
+RPWM / LPWM is not connected. Drum does nothing: check 9.0 V on VM and the AIN1 / AIN2 / GND jumpers. If it still does nothing, the board's
+SLP may not be pulled high on its own (some non-Pololu boards): battery unplugged, add a wire from DRV8833 SLP to
+the ESP32 3V3 pin (never to VM). Wrong direction against
 CALIBRATION.md: swap that motor's two leads (battery unplugged).
 
 ## Stage 2. Sensors alone

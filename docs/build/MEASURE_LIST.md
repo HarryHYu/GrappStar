@@ -40,7 +40,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | C4 | MP1584 #2 (the spare from the dart build) | drum N20 supply at 9.0 V | No other way to run the DRV8833 from the 3S: tell the coordinator |
 | C5 | DRV8833 #3 (freed from the dart by the new pin map) | drum N20 | |
 | C6 | 100 kg load cell + HX711 (August order) | optional line tension reading | Leave it out: the firmware uses wiper current instead |
-| C7 | Resistors: 3 x 10 k, 1 x 1 k, 1 x 680 R, 1 x 100 k, 1 x 22 k | BTS7960 enable pull-downs, DRV8833 SLP pull-down, IS divider, battery divider (firmware/base/WIRING.md) | Any value within 20 percent works for the pull-downs; tell fw-base if the dividers differ |
+| C7 | Resistors: 2 x 10 k, 1 x 1 k, 1 x 680 R, 1 x 100 k, 1 x 22 k | BTS7960 enable pull-downs, IS divider, battery divider (firmware/base/WIRING.md) | Any value within 20 percent works for the pull-downs; tell fw-base if the dividers differ |
 | C8 | Spare XT60 plugs, 14 AWG wire, two small inline fuse holders with a 2 A and a 1 A fuse | XT60 Y harness; fuses for the MP1584 and RC832 taps | Without the small fuses: use 18 AWG for those taps and keep them under 10 cm |
 | C9 | Barrel plug 5.5 x 2.5 mm with lead | Jetson from the LiPo | Run the Jetson from its own supply on the bench; the rover needs one |
 | C10 | Yellow RCA lead | RC832 AV out to the DIGITNOW | |
@@ -53,7 +53,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 |---|---|---|---|
 | D1 | RC832 input voltage | Read the label or the listing. Most take 7 to 24 V. If it says 12 V only, it still runs from the 3S (12.6 V full) but report it | SYSTEM_ELECTRICAL.md run P8 |
 | D2 | Jetson DC input range | Label on the Jetson's own supply and the NVIDIA dev kit page. The 3S gives 9.9 to 12.6 V in use and sags during a wiper stall. If the minimum is above 10 V, charge earlier (3.7 V per cell at rest) | SYSTEM_ELECTRICAL.md run P7 |
-| D3 | DRV8833 carrier pad names | Which pad is SLP / nSLEEP / EEP on your boards. Meter on beep: that pad must NOT beep to VM / VIN | firmware/base/WIRING.md |
+| D3 | DRV8833 carrier make | Is DRV8833 #3 a Pololu board (marked pololu, pads VIN, GND, BIN, AIN, nSLEEP) or a generic red board (pads VCC, EEP, ULT)? The base leaves SLP unwired, which relies on the board pulling it high (Pololu does) | firmware/base/WIRING.md, TEST_PLAN stage 1 |
 | D4 | DevKitC board version | Printed on the back (v1.0 or v1.1). The RGB LED pin differs; the firmware avoids both | Nothing |
 | D5 | Video standard | When the dart video shows on the Jetson, note the size (720 x 480 = NTSC, 720 x 576 = PAL) | jetson config |
 

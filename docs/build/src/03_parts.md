@@ -31,7 +31,7 @@ looking in the box.
 | Jetson Orin Nano Super | 1 | |
 | Lockmaner RC832 receiver, DIGITNOW USB capture, RCA lead | 1 each | Dart video in |
 | Razer Kiyo X | 1 | Rover camera |
-| Resistors 10 k x 3, 1 k, 680 R, 100 k, 22 k | | Pull-downs and dividers (firmware/base/WIRING.md) |
+| Resistors 10 k x 2, 1 k, 680 R, 100 k, 22 k | | Pull-downs and dividers (firmware/base/WIRING.md) |
 | M3 screws, M3 nuts, M3 brass heat-set inserts | | Frame joints and printed contacts |
 | Dupont jumpers, 14 / 18 / 22 / 26 AWG wire, heat shrink | | |
 

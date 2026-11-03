@@ -18,7 +18,7 @@ digraph G {
     label="Base electronics bay"; style=solid;
     bts   [label="BTS7960\nB+ B- | M+ M-\nRPWM LPWM R_EN L_EN IS VCC GND"];
     buck  [label="MP1584 #2\nset 9.0 V"];
-    drv   [label="DRV8833 #3\nVM 9 V (max 10.8)\nAIN1 AIN2 SLP"];
+    drv   [label="DRV8833 #3\nVM 9 V (max 10.8)\nAIN1 AIN2 (SLP not wired)"];
     esp   [label="ESP32-S3 DevKitC-1-N8\nUSB from Jetson\nGPIO: see firmware/base/WIRING.md", shape=box, style=bold];
     div   [label="Battery divider\n100 k / 22 k"];
     hx    [label="HX711 (optional)\n+ 100 kg load cell", style=dashed];
@@ -68,7 +68,7 @@ digraph G {
   esp   -> bts    [label="RPWM 4, LPWM 5\nR_EN 6, L_EN 7, 3V3, GND", style=dashed];
   bts   -> esp    [label="IS -> GPIO 1\n(1 k / 680 R)", style=dashed];
   div   -> esp    [label="GPIO 2", style=dashed];
-  esp   -> drv    [label="AIN1 17, AIN2 18\nSLP 21, GND", style=dashed];
+  esp   -> drv    [label="AIN1 17, AIN2 18, GND", style=dashed];
   esp   -> as5600 [label="I2C SDA 8, SCL 9, 3V3, GND", style=dashed, dir=both];
   sw    -> esp    [label="GPIO 11-14, 39-42\n(pull-up, closed = LOW)", style=dashed];
   hx    -> esp    [label="DT 16, SCK 15", style=dashed];

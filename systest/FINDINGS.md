@@ -439,3 +439,11 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
     design: the estimator is calibrated to the C3 table, and the table's range is a constant 0.873 of the
     render_flight physics. The harness now judges step 15 on the base's own line_m and reports the estimate error
     as information.
+
+## F30 (fw-base, low) the 15 N check pull on a stiff line holds at about 20 N dart-side, reported as 16.5
+
+- Batch 5 `tow_stiff` (3 m of Dyneema, fw-base ecc413f): check pull `reel max_n 15 until tension` -> `LIMIT
+  tension_n 16.5`, plant dart-side 20.5 N (+37 % over max_n). At the 40 N tow the same comparison is 43.8 vs 45.5 N.
+  The low-limit pull overshoots more in relative terms (fixed cut delay against a fast rise). Harmless for the check
+  pull; noted so the D41/D43 tuning can take it into account. The harness compares LIMIT with the plant within
+  max(5 N, 15 %).

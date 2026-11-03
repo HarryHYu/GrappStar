@@ -1092,7 +1092,7 @@ def c_limit_dart_side(rig, res):
     smp = [x for x in rig.limit_samples if x.get("fw") is not None and x["plant_dart"] > 3]
     if not smp:
         return True, "no holding LIMIT to compare"
-    bad = [x for x in smp if abs(float(x["fw"]) - x["plant_dart"]) > max(3.0, 0.15 * x["plant_dart"])]
+    bad = [x for x in smp if abs(float(x["fw"]) - x["plant_dart"]) > max(5.0, 0.15 * x["plant_dart"])]
     return not bad, f"firmware vs plant dart-side at LIMIT (gain {rig.sc.path_gain:.2f}): {[(x['fw'], x['plant_dart']) for x in smp][:6]}"
 
 

@@ -189,9 +189,21 @@ class SimWorld:
         self.t_fire = None
 
     def _sync(self) -> None:
-        """Keep the base world in step with the dart (anchored, released)."""
-        last = None
+        """Keep the base world in step with the dart (anchored, released). One bad sample never kills the thread."""
+        self._sync_last = None
         while not self._stop.is_set():
+            try:
+                self._sync_once()
+            except Exception as e:             # keep the simulator alive; log once per distinct error
+                msg = f"sim sync: {type(e).__name__}: {e}"
+                if msg != getattr(self, "_sync_err", None):
+                    self._sync_err = msg
+                    print(msg)
+            self._stop.wait(0.05)
+
+    def _sync_once(self) -> None:
+        last = self._sync_last
+        if True:
             ph = self.mock_dart.phase
             if ph != last:
                 if ph == "ANCHORED" and self.anchor_holds:
@@ -199,7 +211,7 @@ class SimWorld:
                     self.world.slack_m = 0.3
                 elif ph in ("RELEASING", "IDLE", "FAULT") and self.world.dart == "anchored":
                     self.world.dart = "free"
-                last = ph
+                self._sync_last = ph
             # re-render when the base has aimed at a new pitch (cocking takes long enough for the 2 s render)
             mb = self.mock_base
             tgt = getattr(mb, "aim_target", None)
@@ -207,12 +219,11 @@ class SimWorld:
                 tgt = getattr(mb, "pitch", 35.0)
                 tgt = tgt() if callable(tgt) else tgt
             if (self._ready.is_set() and not self._rendering and self.t_fire is None and self.rendered_pitch is not None
-                    and abs(tgt - self.rendered_pitch) > 1.0):
+                    and tgt is not None and abs(tgt - self.rendered_pitch) > 1.0):
                 self._rendering = True
                 threading.Thread(target=self._prerender, args=(float(tgt),), name="sim-render", daemon=True).start()
             if self.t_fire is not None and self.world.dart == "seated" and time.time() - self.t_fire > 5.0:
                 self._rearm_video()
-            self._stop.wait(0.05)
 
     def rover_advance(self, m: float) -> None:
         """The rover drove m metres toward the dart: slack appears in the line."""

@@ -205,4 +205,5 @@ a power cycle and over a new upload of the same firmware version.
 - After a fault, fix the cause, then send `{"id":1,"cmd":"clear"}`.
 
 And the rule that matters most: **battery unplugged whenever a wire or plug moves.** Plug the battery in last, and
-never pull a plug while the battery is in.
+never pull a plug while the battery is in. The one exception: lead #2's XT60 is the physical motor kill switch and
+may be pulled at any time (motors dead, the ESP32 and the Jetson stay up: the build guide's motors-safe state).

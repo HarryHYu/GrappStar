@@ -17,8 +17,12 @@ assembled. Do them in order: (d) needs REEL from (c), and (f) needs (b) and (d).
 - In the first 60 ms after a start-up commands are refused with `BOOTING`: just send again.
 - If something faults, read the `FAULT` line (`code` and `why`), fix the cause, then send `{"id":1,"cmd":"clear"}`.
 - `stop` is always there: `{"id":1,"cmd":"stop"}`. Keep it pasted in the box, ready to send.
-- **Battery unplugged** before you touch any wire, plug, contact or the meter leads. Never pull a plug while the
-  battery is in.
+- **Battery unplugged** before you move any wire, plug, contact or the meter leads. Never pull a plug while the
+  battery is in. The one exception: lead #2's XT60 is the physical motor kill switch and may be pulled at any time.
+- **Motors-safe state** (the build guide's term): lead #2's XT60 out. The motors are dead, but the ESP32 and the
+  Jetson stay up (on the rover they run from the same LiPo, so unplugging the battery would turn the ESP32 off too).
+  Use it for every step that only looks, turns something by hand or reads `sw`. On the bench, with the ESP32 on USB
+  from the Mac, "battery unplugged" is the same thing. **Motors on** = lead #2's XT60 (and the battery) in.
 
 Nothing here has been tried on the real base yet. Expect to adjust.
 
@@ -36,7 +40,7 @@ home or the big gear is not in its gap, or a contact is not touching.
 
 ## (a) AS5600 magnet and direction
 
-1. Battery unplugged. USB only. Magnet in its cap on the shaft end, 1 to 2 mm from the chip, centred. Any small
+1. Motors-safe state. Magnet in its cap on the shaft end, 1 to 2 mm from the chip, centred. Any small
    neodymium disc mounted edge-on works (decision D12), or a 6 x 2.5 mm diametric disc.
 2. Send `{"id":1,"cmd":"status"}`. You want `"magnet":"OK"`.
    - `NONE`: no magnet seen or no I2C. Check the STEMMA QT cable and the magnet.
@@ -44,8 +48,8 @@ home or the big gear is not in its gap, or a contact is not touching.
 3. The wiper output cannot be turned by hand (its worm locks it). So for this check turn the magnet instead: before
    it is glued, hold it over the chip at 1 to 2 mm and turn it slowly (or turn the AS5600 board round the magnet).
    Watch `wiper_deg` in telemetry: it must change smoothly, about 360 per turn. Then fix the magnet in its cap.
-4. Direction (needs the battery; done once in BENCH_TEST.md step 4, check it again in the base). Battery unplugged:
-   check nobody's hands are near the shaft. Plug the battery in. Drum in NEUTRAL. Send a FORWARD jog (a backward jog is only allowed at
+4. Direction (needs the motors on; done once in BENCH_TEST.md step 4, check it again in the base). Motors-safe state:
+   check nobody's hands are near the shaft. Motors on. Drum in NEUTRAL. Send a FORWARD jog (a backward jog is only allowed at
    the LAUNCH park, `BACKSTOP` elsewhere):
 
    ```
@@ -67,7 +71,7 @@ home or the big gear is not in its gap, or a contact is not touching.
 
 ### Current zero
 
-1. Battery plugged in, wiper stopped (`"amps"` should be near 0 anyway).
+1. Motors on, wiper stopped (`"amps"` should be near 0 anyway).
 2. Send `{"id":1,"cmd":"cal","what":"current"}`. `amps` now reads 0.0 when stopped. `OUT_OF_RANGE` means the zero
    would be over 5 A: something is wrong with the IS wiring (WIRING.md section 4).
 
@@ -83,7 +87,7 @@ bench: the bare motor with the GPIO11 jumper on). Never in LAUNCH or REEL with t
 
 1. Battery unplugged. Put the meter in series with the motor + wire (BTS7960 M+ to the meter 10 A jack, meter COM to
    the motor red wire). In the MOTOR wire, not the battery wire. Meter on the 10 A DC range.
-2. Plug the battery in. Drum in NEUTRAL. Jog forward for 1.5 s:
+2. Battery in, motors on. Drum in NEUTRAL. Jog forward for 1.5 s:
 
    ```
    {"id":2,"cmd":"jog","motor":"wiper","dir":1,"ms":1500}
@@ -103,20 +107,20 @@ The drum position comes from three code contacts (a Gray code, BENCH_TEST.md ste
 is no home search: the base always knows which sector the drum is in, even after a power cut. The drum turns slowly,
 about 8 deg per second.
 
-1. Battery unplugged. The drum N20 is in place and in mesh (`n` in telemetry `sw`), the three drum code contacts are
+1. Motors-safe state. The drum N20 is in place and in mesh (`n` in telemetry `sw`), the three drum code contacts are
    wired (the bench jumpers are OFF), and the line is slack.
 2. On a new build send `{"id":1,"cmd":"cal","what":"cock_rest"}` first (carriage forward, `H` and `G` closed: see
    "New build" above). Without it every drum move out of LAUNCH or L_TO_N is refused with `LAUNCH_BUSY`.
-3. USB plugged in, battery still unplugged. `{"id":2,"cmd":"cal","what":"drum"}` replies `"ok":true` and sends a
+3. Still in the motors-safe state (the ESP32 stays up). `{"id":2,"cmd":"cal","what":"drum"}` replies `"ok":true` and sends a
    `MODE` event with the `drum_pos` the code shows. `POSITION_UNKNOWN` means the code is invalid (000, or a jump):
    check the code contacts (BENCH_TEST.md step 2).
 4. Get the drum to NEUTRAL (`drum_pos` `NEUTRAL`, only `b` of the code closed) by hand, because the motor direction
-   is not checked yet. Battery still unplugged: loosen the cradle swing screw (M3, in the slot), swing the N20 out of mesh
+   is not checked yet. Still in the motors-safe state: loosen the cradle swing screw (M3, in the slot), swing the N20 out of mesh
    until `n` disappears from `sw`, turn the hand lever until only `b` is closed, swing the N20 back and tighten the
    screw (`n` closed). Turning the drum while the board runs
    gives `FAULT` `DRUM_SENSOR` "drum code changed with the drum still": expected, send `{"id":3,"cmd":"clear"}` once
    the drum is still (one `clear` is enough).
-5. Direction check. Plug the battery in. Drum at NEUTRAL. Send a drum jog toward REEL (the longest jog, 1.5 s, is
+5. Direction check. Motors on. Drum at NEUTRAL. Send a drum jog toward REEL (the longest jog, 1.5 s, is
    about 12 deg):
 
    ```
@@ -127,7 +131,7 @@ about 8 deg per second.
    `drum_pos` `BETWEEN`. Then go back with `{"id":5,"cmd":"jog","motor":"drum","dir":-1,"ms":1500}`: only `b` again.
 6. If instead `sw` shows `a` and `b` (code 1 1 0, L_TO_N, toward LAUNCH), the drum turned the wrong way: battery
    unplugged, swap the two N20 wires at AOUT1 and AOUT2. Bring the drum back to NEUTRAL with the hand lever as in
-   step 4, plug the battery in and repeat step 5.
+   step 4, battery in, motors on, and repeat step 5.
 7. Now try the modes and wait for each `MODE` event with `"ok":true` (about 5 s each):
 
    ```
@@ -183,7 +187,7 @@ about 8 deg per second.
     opening. Check it with the drum still: `W` must disappear from `sw` while the cup is at home.
 11. The drum speed (`drum_dps`, default 8.1) is learned by itself between code edges. See it with
     `{"id":11,"cmd":"get","key":"drum_dps"}`. Nothing to do.
-12. If you get `DRUM_TIMEOUT` or `DRUM_SENSOR`: read the `why`. Battery unplugged, check the code contacts close and
+12. If you get `DRUM_TIMEOUT` or `DRUM_SENSOR`: read the `why`. Motors-safe state, check the code contacts close and
     open cleanly as the drum turns (N20 swung out of mesh, `n` open, turn the hand lever), then `clear` and try again.
 
 ## (d) Free running current
@@ -202,8 +206,8 @@ The tension estimate uses the current above free running in REEL. Learn it with 
 You need a phone inclinometer app (any "level" app that shows degrees). Base assembled, no dart, nobody in front of
 the rail.
 
-1. Battery unplugged. Fix the phone flat on the rail (tape or a rubber band), along the rail.
-2. Plug the battery in. `{"id":1,"cmd":"mode","to":"LAUNCH"}`.
+1. Motors-safe state. Fix the phone flat on the rail (tape or a rubber band), along the rail.
+2. Motors on. `{"id":1,"cmd":"mode","to":"LAUNCH"}`.
 3. The launcher must be at rest: carriage fully forward, `H` and `G` in telemetry `sw`. On a new build, declare it
    (top of this file).
 4. See the allowed range: `{"id":3,"cmd":"get","key":"pitch_range"}` (it replies `min` and `max`, about 6 and 47).
@@ -254,8 +258,8 @@ Do not use jogs for this: a jog trips at 3 A, about 15 N.
 You need a luggage scale and a solid post. Do (b) and (d) first and do not change `free_a` afterwards. If a load cell
 is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip this part.
 
-1. Battery unplugged. Tie the line end to the luggage scale. Hook the scale to the post. Line slack.
-2. Plug the battery in. Drum in REEL with the wraps on: `{"id":1,"cmd":"wrap"}`, wait for `WRAPPED` (the wrap only
+1. Motors-safe state. Tie the line end to the luggage scale. Hook the scale to the post. Line slack.
+2. Motors on. Drum in REEL with the wraps on: `{"id":1,"cmd":"wrap"}`, wait for `WRAPPED` (the wrap only
    parks at the WRAPPED park), then `{"id":2,"cmd":"mode","to":"REEL"}` and wait for `MODE` REEL. The capstan only
    pulls in REEL.
 3. Stand to the side of the line, never in line with it. Wind in slowly:
@@ -305,14 +309,15 @@ old `tow_trip_a` setting is no longer used). These constants cannot be set while
 
 This checks that FORWARD really cocks, that `SW_HOME` opens where the firmware expects, and that cocking stops before
 the release tooth. The springs are hooked, so treat it as loaded: no dart, nobody and no hands in front of the
-carriage or the rail.
+carriage or the rail. The build guide runs this as TEST_PLAN stage 5 step 0, then sets `require_seated` false again
+for the dry shots.
 
-1. Battery unplugged. Springs hooked, no dart. Carriage fully forward.
-2. Plug the battery in. `{"id":1,"cmd":"mode","to":"LAUNCH"}`. Check `H` and `G` are in telemetry `sw`.
+1. Motors-safe state. Springs hooked, no dart. Carriage fully forward.
+2. Motors on. `{"id":1,"cmd":"mode","to":"LAUNCH"}`. Check `H` and `G` are in telemetry `sw`.
 3. On a new build: `{"id":2,"cmd":"cal","what":"cock_rest"}`.
 4. `cock` needs the dart seated. For this check without a dart send
-   `{"id":3,"cmd":"set","key":"require_seated","val":false}`. **Set it back to true at the end** (it also comes back on by itself at the next start-up; it is saved in
-   flash).
+   `{"id":3,"cmd":"set","key":"require_seated","val":false}`. It is NOT saved: it comes back true at every start-up, so
+   send it again after every power-up in the no-dart stages. Set it back to true at the end.
 5. Aim first: `{"id":4,"cmd":"aim","deg":30}` and wait for `AIMED`. (After a shift into LAUNCH only an aim run tells
    the firmware where the dogs sit. Cocking straight after a shift can fault with `BAD_STATE` "carriage not drawn".)
 6. `{"id":5,"cmd":"cock"}`. Watch the carriage and telemetry:
@@ -338,4 +343,10 @@ carriage or the rail.
    (decock by travel). If the decock faults again there is no powered way out (a backward jog is `NOT_AT_REST`, and
    `fire` needs `COCKED`, the dart seated, an aim and a token): battery unplugged, unload the springs by hand as the
    build guide says, then `{"id":10,"cmd":"cal","what":"cock_rest"}`, then `aim`.
+
+   A `RESET` with `"ok":false` and `"why":"SW_GAP open: check the carriage by eye, then cal cock_rest force"` means the
+   carriage reads home but the big gear is out of its gap (for example after a `stop` during a gap run): nothing moved.
+   Look: if the carriage is really forward on its stop and the springs are slack, send
+   `{"id":11,"cmd":"cal","what":"cock_rest","force":true}`, then `aim` (its gap run closes the gap). A forward jog in
+   LAUNCH is refused (`SWITCH_DISAGREE`) while `G` is open.
 9. `{"id":7,"cmd":"set","key":"require_seated","val":true}`.

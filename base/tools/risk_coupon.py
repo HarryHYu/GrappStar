@@ -90,9 +90,28 @@ def min_box_rz(solid, R=None):
     return best[1]
 
 
+ORIENT_CANDIDATES = (tf.I4, tf.Rx(180), tf.Rx(90), tf.Rx(-90), tf.Ry(90), tf.Ry(-90))
+
+
+def flat_ok(solid, R):
+    """(passes the audit's bed check, overhang mm2) for print rotation R."""
+    from tools.audit import print_check
+    r = print_check(solid, bed(solid, R), (256.0, 256.0, 260.0))
+    return not r["_fails"], r["overhang_mm2"]
+
+
+def orient(solid, R):
+    """R if the part sits on a real flat face that way (tools.audit.print_check), else the axis rotation that does,
+    with the least overhang. Keeps a coupon printable when a subsystem changes a part's lowest face."""
+    if flat_ok(solid, R)[0]:
+        return R
+    ok = [(flat_ok(solid, C)[1], k) for k, C in enumerate(ORIENT_CANDIDATES) if flat_ok(solid, C)[0]]
+    return ORIENT_CANDIDATES[min(ok)[1]] if ok else R
+
+
 def mk(name, solid, mat, notes, R=None, qty=1):
     solid = stl_clean(solid)
-    R0 = R if R is not None else tf.I4
+    R0 = orient(solid, R if R is not None else tf.I4)
     R = tf.mul(tf.Rz(min_box_rz(solid, R0)), R0)          # smallest footprint for the packer
     return Part(name, solid, mat, qty=qty, print_tf=bed(solid, R), color=COL[mat], subsystem=SUB, notes=notes)
 

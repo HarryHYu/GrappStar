@@ -134,9 +134,9 @@ spinning, drills finishing, `anchored`.
   phase's lowest reading, so an auger whose current changes during the pause cannot fake one. A stalled auger is
   stopped (anchor) or faults (release). An end-stop stall is only believed after a minimum travel time (pods 0.7 s,
   kick back 1.5 s). If the kick's housing stall is never seen, planting carries on after 6 s (`kick plant time limit`).
-  A worm already at its end stop when such a step starts shows no rise, so it is stopped by the step time limit (pods
-  6 s: event `deploy time limit (down or stalled)` or `pods time limit (stowed or stalled)`); a 6 s stall of an N20
-  worm is harmless.
+  A worm already at its end stop when such a step starts shows no rise; it is still stopped after 3 readings in a row
+  over the line (about 1.6 s). An auger current change of up to about 100 mA during the pause is tolerated. A retried
+  `/auto` whose kick is already down skips the planting step (event `kick already down, foot planting`).
 - One failed current read at the moment a step ends does not fault: the step ends and the next good read moves on.
 
 ### GET /release

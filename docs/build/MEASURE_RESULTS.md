@@ -47,7 +47,7 @@ Write each number with its unit. Photo: the file name of the caliper photo in `o
 | C16 Hardware the CAD assumes: M3 x 4 x 5 heat-set inserts; M3 ... |  |  |
 | C17 JST SH 4-pin (STEMMA QT) cable 400 mm or longer for the AS5600 |  |  |
 | C18 Carriage stop |  |  |
-| C19 PETG filament (brake rocker) |  |  |
+| C19 No PETG needed: the brake rocker prints in PPA-CF with an ... |  |  |
 | C20 How many 693ZZ / F693ZZ bearings are left after the dart (the ... |  |  |
 | C21 Coupon extras, exactly as the coupon sheets list them ... |  |  |
 

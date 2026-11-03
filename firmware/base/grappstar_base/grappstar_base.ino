@@ -99,7 +99,7 @@ uint32_t hwRand() { return esp_random(); }
 // ---------------------------------------------------------------- tick task
 volatile uint32_t tickOverruns = 0;
 void tickTask(void*) {
-  esp_task_wdt_add(NULL);                              // a hung tick resets the board; the EN / SLP pull-downs then stop both motors
+  esp_task_wdt_add(NULL);                              // a hung tick resets the board; the BTS7960 EN pull-downs and the DRV8833 inputs (pins float low at reset) then stop both motors
   TickType_t last = xTaskGetTickCount();
   for (;;) {
     uint32_t t0 = micros();
@@ -205,7 +205,7 @@ void handleLine() {
   char rep[300];
   xSemaphoreTake(mtx, portMAX_DELAY);
   if (lineOver) snprintf(rep, sizeof rep, "{\"id\":null,\"ok\":false,\"err\":\"TOO_LONG\"}");
-  else B.handleLine(line, lineLen, rep, sizeof rep);
+  else { B.evDrops = ringDrops; B.handleLine(line, lineLen, rep, sizeof rep); }   // status reports dropped events
   xSemaphoreGive(mtx);
   writeLine(rep, 1000);                                // the reply first, then any event the command raised
   drainEvents();

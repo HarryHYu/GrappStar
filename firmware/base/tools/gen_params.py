@@ -29,7 +29,10 @@ DEF_OUT = os.path.join(REPO, "firmware", "base", "grappstar_base", "params_gen.h
 
 # names the firmware reads (config.h / base.h). Missing ones only warn: config.h has a default for each.
 EXPECTED = [
-    "P_WIPER_STALL_A", "P_WIPER_FREE_A", "P_WIPER_N0_RPM", "P_BATTERY_V_FULL",
+    "P_WIPER_STALL_A", "P_WIPER_FREE_A", "P_WIPER_N0_RPM",
+    "P_DRUM_TARGETS_LAUNCH", "P_DRUM_TARGETS_NEUTRAL", "P_DRUM_TARGETS_WRAPPED", "P_DRUM_TARGETS_REEL",
+    "P_DRUM_WRAP_TURNS", "P_REEL_CAPSTAN_RATIO", "P_REEL_CAPSTAN_D", "P_REEL_TOW_LIMIT_N",
+    "P_AIM_PITCH_MIN", "P_AIM_PITCH_MAX", "P_LAUNCH_WIPER_TURNS_PER_SHOT",
 ]
 
 

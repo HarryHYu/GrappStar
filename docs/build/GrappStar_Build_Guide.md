@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 13:59 Sydney time from commit `1e65de1`.
+Built 2026-11-03 14:03 Sydney time from commit `5356f65`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -111,7 +111,7 @@ the base wraps the capstan at once while the line is still slack (the drum parks
 base tidies the slack, shifts into REEL and tows; the dart releases; the base reels in to about 1.5 m, unwraps, and
 brings the dart home on the take-up until it seats; back to LAUNCH.
 
-Range today (from `base/out/ballistics.json`, 0.5 N payout brake, measured from the ground point under the rail pivot): best about 4.3 m at 38.5 degrees, shortest about 2.6 m at 6 degrees, leaving the rail at about 6.9 m/s. These numbers change after the spring and wiper measurements; rebuild the guide.
+Range today (from `base/out/ballistics.json`, 0.5 N payout brake, measured from the ground point under the rail pivot): best about 4.2 m at 36 degrees, shortest about 2.5 m at 6 degrees, leaving the rail at about 6.8 m/s. These numbers change after the spring and wiper measurements; rebuild the guide.
 
 ## Order of work
 
@@ -188,7 +188,7 @@ Read this before any hands-on step.
   unhook ONE spring at a time from its anchor pin with a hook tool (a bent coat-hanger wire or a long screwdriver
   through the hook), never with fingers in the hook. Then the carriage is slack and safe. Afterwards, with the
   carriage home: `{"cmd":"cal","what":"cock_rest"}`, then `aim` again before any shot.
-- Never use the hand lever while the carriage is drawn (`cock` above 0 or `SW_HOME` open) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first.
+- Never use the hand lever while the carriage is drawn (unless `cock` is 0 AND `SW_HOME` is closed) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first.
 - The launch springs store energy. Cocked carriage = loaded. Never put a hand in front of the rail or the carriage.
   To unload a cocked base without firing, see troubleshooting. The spring hooks have little margin at full draw
   (about 40 N each at full cock against the 38.4 N rating of the Century C-243, decision D30, until the
@@ -206,8 +206,8 @@ Read this before any hands-on step.
   From the first spring test on: safety glasses on, nobody in front of the rail or within 2 m to either side, and
   the area in front clear for 30 m (four times the longest expected range, for a misfire at a wrong pitch).
 - Before every shot: look along the rail, call "firing" out loud, keep hands off the rail and carriage.
-- A cocked carriage stays loaded until it fires or is de-cocked (`cal decock`). Treat the base as loaded whenever
-  `cock` in telemetry is above 0.
+- A cocked carriage stays loaded until it fires or is de-cocked (`decock`). Treat the base as LOADED unless
+  telemetry shows `cock` 0 AND `H` (SW_HOME) closed in `sw`. Unknown (`cock` null) counts as loaded.
 - **Never fire a dart, dummy or real, without the tether tied on.** The tether keeps it nose first; without it the
   dart can tumble or come down tail first.
 - Augers and drills are sharp and turn with force. Hold the dart by the hull, never near a pod or the foot.
@@ -1227,6 +1227,13 @@ armed dart can start the auto sequence by itself after a knock.
 4. Press `RELEASE`: drills out, pods up, foot out, kick back, `released`. The legs end stowed. Before lifting the dart
    out of the soil: STOP, status `IDLE`, plug out (the "safe to touch" rule in step 8).
 5. If it stops with `FAULT`: write down the fault and the last event, press STOP, and fix the threshold (step 10).
+6. Foot current drop (for the kick stall check). Battery in, dart anchored in soil, hull open, hands clear. Hold
+   `foot in` (`4`) alone for 1 s and read `i`: **foot alone in soil = ____ mA**. Then hold `kick out` (`2`) and `4`
+   together for 1 s: **kick + foot = ____ mA**. If (foot alone) is more than 80 mA below (kick + foot minus the kick's
+   working current), the kick's end stop can be faked while planting: tell whoever owns the firmware. STOP after each.
+7. No ground check. Release first (legs stowed), STOP. Lay the dart on its back on the bench, nothing within reach of
+   the kick. Press `AUTO anchor`: the kick swings through air to its end stop and the dart reports `FAULT`
+   `NO_GROUND`; foot, pods and drills must not turn. Press `RELEASE` to bring the kick back, then STOP.
 
 #### Step 10. Write the real thresholds
 
@@ -1923,7 +1930,7 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
 | `API.md` | the HTTP API for the Jetson (contract C2) |
 | `WIRING.md`, `wiring/` | wire cut list, change list from v29, diagram |
 | `BENCH_TEST.md` | how to check every motor and sensor before closing the hull |
-| `tools/wires_v4.py` | regenerates `wiring/` |
+| `tools/wires_v4.py` | regenerates `wiring/` (run from the repo root; needs python3 with numpy, graphviz `dot`, and `kedge/out30`. Another graphviz version gives harmless image differences) |
 | `sim/` | host simulator: the real sketch compiled on Linux with stub Arduino headers, serving the real HTTP API (`make && python3 test_sim.py`) |
 | `REPORT.md` | build-day report |
 
@@ -1944,11 +1951,12 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
 
 | esp32 core | Result | Flash | RAM |
 |---|---|---|---|
-| 3.3.12 (latest) | OK, no warnings from the sketch | 1,011,135 B (30 %) | 70,316 B (21 %) |
-| 3.3.2 | OK, no warnings from the sketch | 1,015,763 B (30 %) | 68,344 B (20 %) |
-| 2.0.17 | OK, no warnings from the sketch | 801,985 B (23 %) | 66,784 B (20 %) |
+| 3.3.12 (latest) | OK, no warnings from the sketch | 1,014,379 B (30 %) | 70,500 B (21 %) |
+| 3.3.2 | OK, no warnings from the sketch | 1,018,875 B (30 %) | 68,512 B (20 %) |
+| 2.0.17 | OK, no warnings from the sketch | 805,405 B (24 %) | 66,968 B (20 %) |
 
-Libraries: Adafruit BNO08x 1.2.7, Adafruit BusIO 1.17.4 (installed with it). arduino-cli 1.5.2.
+Libraries: Adafruit BNO08x 1.2.7, plus Adafruit BusIO 1.17.4 and Adafruit Unified Sensor 1.1.15 (installed with it).
+arduino-cli 1.5.2-rc.1.
 Note for arduino-cli users: on this board the menu value for "USB CDC On Boot: Enabled" is `CDCOnBoot=default` and
 `CDCOnBoot=cdc` means Disabled (the sketch then refuses to compile, on purpose).
 
@@ -1962,7 +1970,7 @@ Note for arduino-cli users: on this board the menu value for "USB CDC On Boot: E
 
 1. **Battery unplugged** (power loop plug out). Never have the battery plug and USB in together while you work.
 2. Plug the XIAO into the Mac with a USB-C data cable.
-3. Tools > Port: pick the one that appears (`/dev/cu.usbmodem...`).
+3. Tools > Port: pick the one that appears (Mac `/dev/cu.usbmodem...`, Linux `/dev/ttyACM0`, Windows `COM3` or similar).
 4. Click Upload (arrow). Wait for "Hard resetting via RTS pin" / "Done uploading".
    If the port does not appear or the upload fails: hold the XIAO's **B** (boot) button, tap **R** (reset), release
    B, then upload again. After such an upload, tap R once.
@@ -1995,7 +2003,7 @@ aborted and the dart disarms when the upload starts.
 - All safety runs in its own task every 5 ms with a 2 s watchdog; a stuck web client or Serial port cannot block it.
 - After a brownout or watchdog reset the dart boots with motors off and reports `FAULT` until `/stop`, `/auto`, `/release` or `/arm`.
 - INA219 missing: manual keys only (on timers), auto and release refused. BNO085 missing: no arming, no flight log.
-- A stuck I2C bus is recovered (9 clocks and a Wire restart). If the web loop hangs for 10 s while nothing moves, the
+- A stuck I2C bus is recovered (9 clocks and a Wire restart). If the web loop hangs for 30 s while nothing moves, the
   dart is not armed or in flight, and no OTA upload runs, it restarts itself.
 - **Power on with the legs stowed.** The firmware keeps track of the kick's travel from power-on to tell a jammed kick
   from one that is already down or stowed.
@@ -2011,14 +2019,23 @@ ones with BENCH_TEST.md steps 3 to 6 and write them in at step 10. Then run the 
 cd firmware/dart/test && ./run_tests.sh
 ```
 
-Needs g++ and python3 (Mac: run `xcode-select --install` once for g++). Prints every check and `ALL PASS`, then checks the JSON files the tests wrote.
+Needs g++ and python3 (Mac: run `xcode-select --install` once for g++). Prints every check and `ALL PASS`, runs the
+fuzz test, then checks the JSON files the tests wrote (into `test/out/`).
+
+If `make` is found it also runs the whole simulator suite below (about 2 minutes). That part needs Linux, make,
+node 18 or newer and Playwright with Chromium (`npm i playwright && npx playwright install chromium`). Without node the
+browser check is skipped; node without Playwright makes the run fail. `./run_tests.sh --quick` runs only the logic
+and fuzz checks (seconds, any OS).
 
 #### Simulator (Linux, optional)
 
+Needs Linux, g++, make, pthread, python3, and for the page check node 18+ with Playwright and Chromium
+(`npm i playwright && npx playwright install chromium`).
+
 ```
 cd firmware/dart/sim && make && python3 test_sim.py      # 11 HTTP tests against the real sketch
-python3 test_jetson_client.py                            # the Jetson's own dart client against the real sketch (C2)
-node test_page.js                                        # the web page in headless Chromium
+python3 test_jetson_client.py                            # 9 tests: the Jetson's own dart client against the real sketch (C2)
+node test_page.js                                        # 11 checks of the web page in headless Chromium (one logged 409 is expected)
 ./kedge_sim --port 8790                                  # then open http://localhost:8790 (the real web page)
 ```
 
@@ -2026,10 +2043,12 @@ node test_page.js                                        # the web page in headl
 
 #### Compile check without the IDE (optional)
 
+Run from the repo root:
+
 ```
 arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
 arduino-cli lib install "Adafruit BNO08x"
-arduino-cli compile -b esp32:esp32:XIAO_ESP32S3 firmware/dart/kedge_dart
+arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32S3 --warnings all firmware/dart/kedge_dart
 ```
 
 
@@ -3279,6 +3298,7 @@ check the GND wire and that the screw head really touches the nut.
 
 ### Stage 4. Base assembled, dry cycles, NO springs, no line
 
+Before the first powered cock: break three spare shear pins on the torque arm (MEASURE_LIST G14, decision D44).
 Springs off, no tether, no dart. Run CALIBRATION.md first (zeros and drum positions; part (g), the cock geometry check, waits for stage 5).
 With no dart, `arm` refuses (`NOT_SEATED`): for this stage and stage 5 send
 `{"cmd":"set","key":"require_seated","val":false}`, and set it back to `true` before stage 6.
@@ -3379,6 +3399,21 @@ If it fails: wrap misses the capstan: check the wrap cup position at the end of 
 capstan after `unwrap`: do not fire; unwrap again and check the drum position. `DART_STUCK` after 20 s of
 `retrieve`: the dummy snagged; clear it by hand after the approach checklist (section 2).
 
+### Stage 7b. Bench tow (before the first field tow)
+
+Rover chocked, base wrapped and in REEL (stage 7 table), the line end tied to the luggage scale on a post 2 to 3 m
+away; everyone beside the line, glasses on. Free current and tension calibrated (CALIBRATION.md (d) and (f)).
+
+1. `{"cmd":"reel","duty":1,"max_n":50,"until":"tension"}`.
+2. Watch the 7 wraps on the capstan the whole time: they must not walk along the capstan, and the line must not get
+   trapped in the gap at the capstan skirt.
+3. Read the scale when the base holds (`LIMIT`): it should read about 50 N (within 10 N).
+
+Pass: the wraps stay in place, no line trapped, the base holds at about 50 N.
+To slacken afterwards (and if it fails: `estop` first): the
+capstan cannot let line out, so walk the scale end slowly toward the base, standing beside the line. Then: wraps walking or trapped line: check the
+wrap cup position and the capstan skirt; wrong tension: redo CALIBRATION.md (f).
+
 ### Stage 8. The anchor in soil
 
 The real dart, built and tested to the dart run sheet section 10. Use real soil (moist loam is the target).
@@ -3429,7 +3464,7 @@ and wiper numbers and re-run the physics, they update.
 
 ### Base station physics: summary
 
-Params: base/spec/params.py v1.2.8. Generated by base/physics/summary.py.
+Params: base/spec/params.py v1.2.9. Generated by base/physics/summary.py.
 
 #### Spring (each, A228, SF 1.2 on Shigley static limits)
 
@@ -3450,22 +3485,22 @@ Params: base/spec/params.py v1.2.8. Generated by base/physics/summary.py.
 | Spring extension full / rest | 265 / 24 mm |
 | Stored energy (2 springs) | 12.1 J |
 | Carriage force at full draw | 80 N |
-| Muzzle speed | 6.94 m/s |
-| Peak acceleration, stroke time | 19 g, 58 ms |
-| Efficiency (dart KE / stored) | 56 % |
-| Carriage KE at stop, pad peak | 1.69 J, 265 N (19 mm pad) |
-| Spring KE at stop, coil clash | 0.83 J, 8.7 m/s |
+| Muzzle speed | 6.80 m/s |
+| Peak acceleration, stroke time | 18 g, 59 ms |
+| Efficiency (dart KE / stored) | 53 % |
+| Carriage KE at stop, pad peak | 1.98 J, 295 N (19 mm pad) |
+| Spring KE at stop, coil clash | 0.82 J, 8.1 m/s |
 
 #### Flight (bead-chain tether + reel model, level ground)
 
 | Item | Value |
 |---|---|
 | Line path at the shot | taut (path only lengthens) |
-| Range at 0.5 / 0.75 / 1.0 N brake | 4.28 / 3.85 / 3.47 m (pitch 34) |
-| Same shot, no tether | 5.13 m |
-| Flight time, apex (0.75 N) | 0.81 s, 1.12 m |
-| Impact speed, angle (0.75 N) | 5.8 m/s, 55 deg down |
-| Ballistics table | 6 to 47 deg, best 33.5 deg: 3.85 m |
+| Range at 0.5 / 0.75 / 1.0 N brake | 4.13 / 3.72 / 3.35 m (pitch 34) |
+| Same shot, no tether | 4.95 m |
+| Flight time, apex (0.75 N) | 0.79 s, 1.10 m |
+| Impact speed, angle (0.75 N) | 5.7 m/s, 56 deg down |
+| Ballistics table | 6 to 47 deg, best 33.5 deg: 3.71 m |
 
 #### Storage reel payout (LIGHT 0.5 N at full reel)
 
@@ -3473,9 +3508,9 @@ Params: base/spec/params.py v1.2.8. Generated by base/physics/summary.py.
 |---|---|
 | Reel empty mass, inertia full | 46 g, 31.4 kg mm2 |
 | Line radius full / core | 30.7 / 25.0 mm (brake +23 % at core) |
-| Line pull in the stroke (spin-up) | 5.18 N |
-| Reel rpm max | 2158 rpm |
-| Overrun after landing | 0.58 m in 0.27 s |
+| Line pull in the stroke (spin-up) | 5.00 N |
+| Reel rpm max | 2115 rpm |
+| Overrun after landing | 0.56 m in 0.26 s |
 
 #### Capstan and tow
 
@@ -3588,7 +3623,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | B1 Free length L0 | Steel rule or tape, hook to hook (inside of the hooks), no load (the spring is longer than a caliper) | `SPRING.free_len` | Nothing |
 | B2 Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load, but only if L3 - L0 is under 160 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm. Or let the computer fit it: `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` (kg:mm pairs) prints the rate and initial tension | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
 | B3 Wire and outside diameter | Caliper | `SPRING.wire`, `SPRING.od` | Spring anchors only if OD differs by more than 0.5 mm |
-| B4 Which preload hole | Decision D30: the springs are Century C-243, rated 38.4 N maximum safe load. Full cock is 265 mm extension (about 40 N each with the estimated rate; preload 23.8 mm, stroke 241.2 mm). A fallback anchor hole set gives 250 mm at full cock. After B2, re-run the physics: if the force at full cock is over 38.4 N, use the fallback hole set | assembly choice (spring anchor holes) | Nothing |
+| B4 Which preload hole | Decision D30: the springs are Century C-243, rated 38.4 N maximum safe load. Full cock is 265 mm extension (about 40 N each with the estimated rate; preload 23.8 mm, stroke 241.2 mm). A fallback anchor hole set F, 8.5 mm rearward, gives 256.5 mm at full cock. After B2, re-run the physics: if the force at full cock is over 38.4 N, use the fallback hole set | assembly choice (spring anchor holes) | Nothing |
 
 ### C. Parts box: confirm you have these (no new purchases)
 
@@ -3656,12 +3691,12 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | G4 Storage reel payout drag | A luggage scale cannot read this low: use hanging weights in LAUNCH mode. Tie 40 g (coins in a bag, weighed) to the line end over the edge of the bench: it must NOT pull line off. 50 g must pull line off slowly. That sets the brake at 0.5 N (the design value). Above 1 N costs range, 3 N ruins the flight. Then in NEUTRAL the clutch is FIRM, 5 N (decision D24): with the luggage scale, line pulls off at about 0.5 kg | slip clutch preload (reel parts) |  |
 | G5 Muzzle speed | Phone slow-motion video side-on, tape measure laid in the flight line (same distance from the phone as the dart). Count the frames the nose takes to cross 0.5 m; speed m/s = 0.5 x slow-motion fps (240 or 120) / frames | physics model, ballistics table |  |
 | G6 Range at three pitches | Tape measure from the base to the dart at 3 pitches, tether on, brake unchanged | ballistics table check (jetson uses it) |  |
-| G9 Line tension per amp | CALIBRATION.md (f): `wrap`, `mode` REEL, line tied to a luggage scale on a post, stand beside the line. `{"cmd":"reel","duty":0.3,"until":"stop"}`, send `stop` at about 10, 20 and 30 N (the worm holds between), read `amps` each time; stay under 40 N. Fit the slope and offset. The firmware ships the physics model (decision D33): line N = 17.0 x (amps - free amps) - 10.4, a 50 N tow draws about 5.05 A (hard trip 6.5 A). The 17 is a model, so this check matters before any tow | firmware `k_n_per_a`, `tension_offset_n` | |
-| G10 Tow limit (choose) | The firmware ships `limit_n` 50 N (decision D3) and refuses anything above 70 N (decision D39). Lower it with `{"cmd":"set","key":"limit_n","val":40}`; raise it (70 N at most) only if G7 shows the anchor holds well above it (keep it below the holding force) | firmware `limit_n` | |
+| G9 Line tension per amp (dart-side tension, decision D43) | CALIBRATION.md (f): `wrap`, `mode` REEL, the line END (where the dart would be) tied to a luggage scale on a post, stand beside the line. `{"cmd":"reel","duty":0.3,"until":"stop"}`, send `stop` at about 10, 20 and 30 N (the worm holds between), read `amps` each time; stay under 40 N. Fit the slope and offset. Default law: line N = 14.8 x (amps - free amps) - 2.6. It is a model, so this check matters before any tow | firmware `k_n_per_a`, `tension_offset_n` | |
+| G10 Tow limit (choose) | The limit is the tension at the dart (D43). The firmware ships `limit_n` 50 N and refuses anything above 60 N (D43). Lower it with `{"cmd":"set","key":"limit_n","val":40}`; keep it below the holding force from G7 | firmware `limit_n` | |
 | G11 Payout brake trim | If G4 is off: add or remove printed 0.4 mm shims under thrust ring T (reel assembly steps) | reel shims (print more) |  |
 | G12 Contact gaps | Set each contact to the gap its assembly step gives, then check in telemetry `sw` that it opens and closes at the right place: SW_HOME and SW_SEATED screw head to the nut then back half a turn (0.25 mm); SW_INDEX about 1.5 mm on a low part of the cam; drum code contacts about 1.8 mm with the nub low. The coupon contact (risk coupon 2) is set to 0.9 mm and is only a test piece. Half a turn of an M3 screw is 0.25 mm | nothing | |
 | G13 AS5600 air gap | Magnet face to chip: 1.0 mm design, 1 to 2 mm is the target (params), 0.5 to 3 mm still reads. Feeler: a stack of paper | nothing |  |
-| G14 Wiper coupler shear pin | The coupler's torque limiter is a printed PLA pin (d 4) that SHEARS at about 5 N m (3.5 to 6 N m expected). Break one spare pin on the bench: pin in the coupler, coupler held in a vice by the hub, 300 mm bar on the output side, luggage scale at 90 degrees to the bar. Note the peak: N m = kg x 9.81 x 0.30. Six spare pins are in the print pack (decision D26) | pin diameter if it breaks well outside 3.5 to 6 N m (tell the coordinator) | spare shear pins |
+| G14 Wiper coupler shear pin (before the first powered cock, decision D44) | The torque limiter is a printed PLA pin (d 4), printed LYING DOWN, that shears at about 5 N m (3.5 to 6 N m). Break THREE spare pins on a torque arm: pin in the coupler, hub held in a vice, 300 mm bar on the output side, luggage scale at 90 degrees. N m = kg x 9.81 x 0.30 (about 1.2 to 2.0 kg). They must agree within 20 percent (risk coupon 9 is the same test) | pin diameter if outside 3.5 to 6 N m (tell the coordinator) | spare shear pins |
 | G7 Soil holding force | Dart anchored, luggage scale on the tether, pull slowly up to 50 N, note where it moves | reel tension limit |  |
 | G8 Rail friction | Before the rail is mounted: lay the rail part on a flat board, dart in the cradle, lift one end of the board slowly until the dart slides; phone level app on the board. Friction = tan(angle) | physics (launch efficiency) |  |
 
@@ -3699,7 +3734,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 ## Numbers still assumed in params.py right now
 
 
-params.py version: `1.2.9`.
+params.py version: `1.3.0`.
 
 | params.py name | State | Who fixes it |
 |---|---|---|

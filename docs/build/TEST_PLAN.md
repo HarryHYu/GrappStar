@@ -81,6 +81,7 @@ check the GND wire and that the screw head really touches the nut.
 
 ## Stage 4. Base assembled, dry cycles, NO springs, no line
 
+Before the first powered cock: break three spare shear pins on the torque arm (MEASURE_LIST G14, decision D44).
 Springs off, no tether, no dart. Run CALIBRATION.md first (zeros and drum positions; part (g), the cock geometry check, waits for stage 5).
 With no dart, `arm` refuses (`NOT_SEATED`): for this stage and stage 5 send
 `{"cmd":"set","key":"require_seated","val":false}`, and set it back to `true` before stage 6.
@@ -180,6 +181,21 @@ seats, and the next shot pays out cleanly. Repeat 5 times.
 If it fails: wrap misses the capstan: check the wrap cup position at the end of `wrap`. Line still round the
 capstan after `unwrap`: do not fire; unwrap again and check the drum position. `DART_STUCK` after 20 s of
 `retrieve`: the dummy snagged; clear it by hand after the approach checklist (section 2).
+
+## Stage 7b. Bench tow (before the first field tow)
+
+Rover chocked, base wrapped and in REEL (stage 7 table), the line end tied to the luggage scale on a post 2 to 3 m
+away; everyone beside the line, glasses on. Free current and tension calibrated (CALIBRATION.md (d) and (f)).
+
+1. `{"cmd":"reel","duty":1,"max_n":50,"until":"tension"}`.
+2. Watch the 7 wraps on the capstan the whole time: they must not walk along the capstan, and the line must not get
+   trapped in the gap at the capstan skirt.
+3. Read the scale when the base holds (`LIMIT`): it should read about 50 N (within 10 N).
+
+Pass: the wraps stay in place, no line trapped, the base holds at about 50 N.
+To slacken afterwards (and if it fails: `estop` first): the
+capstan cannot let line out, so walk the scale end slowly toward the base, standing beside the line. Then: wraps walking or trapped line: check the
+wrap cup position and the capstan skirt; wrong tension: redo CALIBRATION.md (f).
 
 ## Stage 8. The anchor in soil
 

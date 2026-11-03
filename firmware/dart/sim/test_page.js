@@ -420,15 +420,9 @@ async function main() {
   await check('4a holding a button, window blur stops the motors', check4a);
   await check('4b holding a key, page hidden (visibilitychange) stops the motors', check4b);
   await check('4c holding a key, navigating away (pagehide): the motor stops within 0.6 s', check4c);
-  await check('4d on pagehide the page\'s own STOP reaches the dart (6 tries)', check4d,
-    'lost() sends the STOP with a plain fetch() from the pagehide handler; the navigation usually cancels it before it ' +
-    'is sent (it arrives only now and then, a race). Needs fetch(..., {keepalive: true}) or navigator.sendBeacon. ' +
-    'Safety is kept by the 350 ms firmware deadman (4c), so this is low severity.');
+  await check('4d on pagehide the page\'s own STOP reaches the dart (6 tries)', check4d);  // regression: fixed 3 Nov (keepalive STOP on pagehide / STOP button clears held keys)
   await check('5 AUTO -> ANCHORING, RELEASE refused in log, STOP stops all', check5);
-  await check('5b STOP button while a run key is held keeps the motors stopped', check5b,
-    'the STOP button calls send(\' \') but does not clear the page\'s held map (only the Space key does held.clear()), ' +
-    'so the 150 ms repeat timer sends the held key again with a higher n than the STOP and the motor restarts. ' +
-    'Reachable with keyboard + mouse, or two fingers on a phone (hold "foot in", tap STOP).');
+  await check('5b STOP button while a run key is held keeps the motors stopped', check5b);  // regression: fixed 3 Nov (keepalive STOP on pagehide / STOP button clears held keys)
   await check('6 reload, then a held key works at once (page id resets the stop counter)', check6);
   await check('7 status line shows phase, INA219 ok, BNO085 ok', check7);
 

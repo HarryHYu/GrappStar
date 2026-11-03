@@ -1779,8 +1779,22 @@ def line_path(P, S=None):
     du, dw = v.get("launch_dart", 0.0), v.get("launch_dart_w", 0.0)
     tail = tail_seat + np.array((du, 0.0, dw))
     rail_pts = np.array(arc + bot + top + [pusher])
+    # pusher -> dart tail: when the tail is ahead of the lip roller and the straight line would pass under the roller
+    # top (dart landed ahead and below, e.g. the rail is still up in rail_low), the line runs over the roller groove
+    # and leaves it at the upper front tangent towards the tail (MZ.roller_top, carriage local, + u_c_home - travel)
+    tip = [pusher]
+    allowed_tip = {"launch_carriage", "launch_dart", "launch_line_p"}
+    ur, wr = MZ.U_R + n["u_c_home"] - travel, MZ.W_R
+    if tail[0] > ur + LN.R_PATH:
+        f = (ur - pusher[0]) / (tail[0] - pusher[0])
+        if pusher[2] + f * (tail[2] - pusher[2]) < wr + LN.R_PATH:
+            a_d = min(90.0, _tangent_angle((ur, wr), LN.R_PATH, (tail[0], tail[2]), 1.0))
+            tip += [(ur + LN.R_PATH * math.cos(math.radians(a)), 0.0, wr + LN.R_PATH * math.sin(math.radians(a)))
+                    for a in np.linspace(90.0, a_d, 4)]
+            allowed_tip.add("launch_muzzle_roller")
+    tip.append(tuple(tail))
     spans = [(tf.apply(W, rail_pts), {"launch_pulley_piv", "launch_pulley_bot", "launch_pulley_top", "launch_rail_rear"}),
-             (tf.apply(W, np.array([pusher, tail])), {"launch_carriage", "launch_dart", "launch_line_p"})]
+             (tf.apply(W, np.array(tip)), allowed_tip)]
     return spans
 
 

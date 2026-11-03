@@ -2,7 +2,7 @@
 
 Units: mm, deg, N, N m, s, kg unless a name says otherwise.
 Owner: the coordinator. Workers read it and never edit it; request changes in your REPORT.md or NOTES.md.
-STATUS: v1.3.8 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed; 1.3.3 unload jog 6 deg; 1.3.4 ASSEMBLY_STAGES; 1.3.5 TIMELINE rail_low after the flight (D45), no lower at the end; 1.3.6 drum stage bands per cad-drum; 1.3.7 ASSEMBLY_STAGE_OVERRIDES for unstaged steps, launcher band 190-204; 1.3.8 final cross-check: WIPER boss_face_y -10 (D48), DRUM code_edges as built, big gear full layer plane face 11, splitter sun plane 170..182). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
+STATUS: v1.3.8 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed; 1.3.3 unload jog 6 deg; 1.3.4 ASSEMBLY_STAGES; 1.3.5 TIMELINE rail_low after the flight (D45), no lower at the end; 1.3.6 drum stage bands per cad-drum; 1.3.7 ASSEMBLY_STAGE_OVERRIDES for unstaged steps, launcher band 190-204; 1.3.8 final cross-check: WIPER boss_face_y -10 (D48), DRUM code_edges as built, big gear full layer plane face 11, splitter sun plane 170..182, spring fallback hole set F 256.5, SW_ARM window as built). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
 The architecture blocks below hold the INTERFACE numbers (where two owners must agree) and the module placements.
 Each owner keeps its internal geometry in its own module and maps these numbers explicitly (read with defaults).
 Code against the names; never hard-code a shared number anywhere else.
@@ -14,7 +14,8 @@ VERSION = "1.3.8"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
-# (wiper output = main shaft = rail pivot), y = 0 at the wiper motor adapter plate face (the wiper boss face).
+# (wiper output = main shaft = rail pivot), y = 0 at the front face of the wiper motor adapter plate; the wiper boss
+# face is at WIPER boss_face_y (-10, the plate's rear face, D48).
 FRAME = dict(origin="main axis at the wiper adapter plate face", x="forward (launch azimuth)", y="left", z="up",
              main_axis="world Y through the origin")
 
@@ -50,7 +51,7 @@ SPRING = dict(                         # 2 x Century Spring Corp extension sprin
     k_n_per_mm=0.125, F0_n=7.0, measured=False,     # rate and F0 by formula; hang test pending
     catalogue=dict(max_safe_load_n=38.4, max_deflection_mm=302.0, note="Century rating, about 100k cycles"),
     max_ext=265.0,                     # D30: force at full cock about 40 N (catalogue 38.4 N, low cycle count); was 280
-    max_ext_fallback=250.0,            # alternate anchor hole set if the hang test shows a weaker spring
+    max_ext_fallback=256.5,            # anchor hole set F, 8.5 mm rearward (cad-launch as built), if the hang test shows a weaker spring
 )
 LINE = dict(name="Dyneema braid 150 lb", d=1.0, length_m=20.0, break_n=667.0)
 N20_WORM = dict(                       # right-angle self-locking worm N20, 12 V, biaxial output (caliper data)
@@ -100,7 +101,7 @@ LAYOUT = dict(
     ),
     # main axis stack (world y = s from the adapter face). Owners may move a part within its band and must report it.
     stack=[
-        dict(y=(0.5, 46.0), part="drum_coupler: coupler hub on the wiper shaft, printed PLA shear pin d4 at r 13 (D8, about 5 N m, 6 spares), outer coupler", owner="cad-drum"),
+        dict(y=(0.5, 46.0), part="drum_coupler: coupler hub on the wiper shaft (the hub reaches back to y -5 inside the puck bore, D48), printed PLA shear pin d4 at r 13 (D8, about 5 N m, 6 spares), outer coupler", owner="cad-drum"),
         dict(y=(40.0, 48.0), part="TAKE-UP BUS gear m1.5 50T face 8 on the outer coupler (D15), downstream of the shear pin, upstream of the dog", owner="cad-drum"),
         dict(y=(50.5, 62.5), part="REEL output gear m2 50T face 12, on a journal on the outer coupler; dogs to y 69.5 (as built)", owner="cad-drum"),
         dict(y=(72.0, 98.0), part="dog collar at NEUTRAL (stroke 7 each way); fork groove y 82..88", owner="cad-drum"),
@@ -185,7 +186,7 @@ LAUNCH = dict(
     stroke=240.9,          # as built (cad-launch 13:30); was 241.2
     spring_preload=23.8,        # D30: extension at HOME = SPRING.max_ext 265 - stroke 241.2
     spring_ext_full=265.0,
-    spring_preload_fallback=8.8,   # anchor hole set for SPRING.max_ext_fallback 250
+    spring_preload_fallback=15.6,  # anchor hole set F for SPRING.max_ext_fallback 256.5 (256.5 - stroke 240.9)
     second_pair_provision=True, # D5
     spring_guard=True,          # D33: printed guard over both springs (hooks near their rating)
     stop=dict(travel_min=19.0, peak_force_max=300.0,
@@ -265,7 +266,7 @@ SWITCHES = dict(
     SW_GAP=dict(owner="cad-launch", closes="big gear in its toothless gap (cam arc on the big gear, switch on the right cheek)", gpio=39),
     SW_RAIL_LOW=dict(owner="cad-launch", closes="rail at minimum pitch (cam on the aim crank)", gpio=40),
     SW_SEATED=dict(owner="cad-launch", closes="dart tail against the pusher (rail lever via a carriage plunger, no wires on the carriage)", gpio=41),
-    SW_ARM=dict(owner="cad-reel", closes="CLOSED while the wrap cup is away from home; OPENS for about +-5 deg at home (lever drops into a notch on the cup gear track); firmware home = open", gpio=42),
+    SW_ARM=dict(owner="cad-reel", closes="CLOSED while the wrap cup is away from home; OPENS for about -6 to +8 deg at home (lever drops into a notch on the cup gear track); firmware home = open", gpio=42),
     AS5600=dict(owner="cad-drum (magnet cap) + cad-launch (bracket)", i2c=dict(sda=8, scl=9)),
     BTS7960=dict(rpwm=4, lpwm=5, r_en=6, l_en=7, is_adc=1, note="10 k pull-downs on R_EN and L_EN"),
     DRV8833=dict(ain1=15, ain2=16, slp="NOT WIRED (D9)"),

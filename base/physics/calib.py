@@ -18,7 +18,7 @@ G = 9.81
 CATALOGUE_N = 38.4          # Century C-243 max safe load (spec SPRING.catalogue)
 SOFT_LIMIT_N = 41.0         # A228 static limit with SF 1.2 at 1.37 mm wire (hook torsion); D30 accepts about 40 N
 MAX_EXT_MM = 265.0          # spec SPRING.max_ext default
-FALLBACK_EXT_MM = 250.0     # spec SPRING.max_ext_fallback default
+FALLBACK_EXT_MM = 256.5     # spec SPRING.max_ext_fallback default (hole set F)
 
 
 def fit_spring(free_mm: float, pairs: list[tuple[float, float]]) -> dict:
@@ -99,7 +99,7 @@ def spring_verdict(f_n: float, catalogue_n: float = CATALOGUE_N, soft_n: float =
         return "OK"
     if f_n <= soft_n:
         return "over catalogue, accept for low cycles"
-    return "too high: use the 250 mm holes"
+    return "too high: use the fallback holes (set F, 256.5 mm)"
 
 
 HINTS = dict(spring="usage: calib.py spring free_mm mass_kg:length_mm ..., e.g. 165.1 1.0:187 2.0:265.5 3.0:344",

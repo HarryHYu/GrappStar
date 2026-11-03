@@ -1214,6 +1214,11 @@ def steps(P):
                   "to home (ring at the top): the bump on the cup gear presses the lever; set the contact screw so it "
                   "just closes there and opens 15 degrees either side. Lock the jam nut.",
              parts=["reel_sw_bracket", "reel_sw_base", "reel_sw_lever", "reel_sw_hw"]),
+        dict(title="Pulley 2",
+             text="Screw the pulley 2 post to the deck beside the drum with four M3 screws. Press a 693ZZ into "
+                  "pulley 2, set it between the post's cheeks and push the M3 x 16 axle down through (nyloc nut "
+                  "under). The line from pulley 1 runs along the base to it and leaves toward the rail pivot pulley.",
+             parts=["reel_p2_post", "reel_pulley2", "reel_p2_brg", "reel_p2_axle"]),
         dict(title="Shroud",
              text="Put the shroud round the reel, its flange on the wall, opening at the top right, and screw it on "
                   "with three M3 x 8 screws into the wall. The reel must not touch it anywhere.",

@@ -89,7 +89,7 @@ TRIM_R = 10.0                 # trim screws at X +-10 from the reel axis
 SHROUD_R = (43.5, 45.5)       # shroud shell round the storage reel (flange r 40, D44)
 SHROUD_DEG = (140.0, 318.0)   # covered arc (the line leaves at the top, the guide post stands at the right)
 
-ROCKER_PIVOT = np.array((X_REEL, 37.0, 3.0))
+ROCKER_PIVOT = np.array((X_REEL, 37.0, 3.5))  # pin hole floor 1.3 above the plate's back
 ROCKER_Z = (0.5, 3.5)         # spring plate (PPA-CF, t 3.0, reel_calc.rocker_section)
 BAR_LUG = (19.2, 25.0, 4.0)   # bar end lug for crank arm A: Z from .. to at the end face, 45 deg chamfer below
 BRAKE_STROKE = 4.0            # cad-drum's track 2 cam lift (radial, base r 30, follower at L angle 180 = R -X)
@@ -102,16 +102,19 @@ BAR_Z = (9.2, 15.2)           # bar thickness: rides the cam at world y 18.3 .. 
 BAR_H = 6.0                   # bar height (R Y)
 BAR_YL = -55.0                # left run: under the shroud and under the guide post
 BAR_DOG = (-30.0, -10.0)      # dogleg up to the cam height between these X
-LEG_X = (-92.0, -83.0)        # rocker leg (stiff, Z 0.5 .. 6), from the spring plate down past the shroud
+LEG_X = (-98.5, -88.5)        # rocker leg (stiff, Z 0.5 .. 6), from the spring plate down past the shroud
 LEG_Y0, LEG_Z1 = -51.7, 6.0
-CRANK_X, CRANK_Z = -97.8, 2.0                 # crank pivot (axis R +Y)
-CRANK_Y = (-58.1, -45.7)
+CRANK_X, CRANK_Z = -107.6, 2.0                # crank pivot (axis R +Y)
+CRANK_Y = (-59.6, -47.2)
 CRANK_LA, CRANK_RT = 20.0, 2.5                # arm A: tip circle centre above the pivot, radius (bar lug contact)
-CRANK_B, CRANK_RB = (10.8, -3.05), 1.5        # arm B: tip circle centre from the pivot (leg contact), radius
-CRANK_HUB_R, CRANK_BOSS_R = 4.3, 2.5
-CRANK_COL_TOP, CRANK_BOSS_TOP = -58.4, -45.4  # column under the crank, pivot boss top (washer + M3 x 10 on it)
-WASHER_T, WASHER_R = 1.2, 4.5
-POCKET_D = 3.0                # wall front recess for arm B and the hub
+CRANK_B, CRANK_RB = (14.1, -4.0), 1.5         # arm B: tip circle centre from the pivot (FIRM screw contact)
+FIRM_SCREW = (-93.5, -48.7)   # M3 x 10 through the rocker leg (R X, Y): its tip on arm B; lost motion g sets FIRM
+FIRM_GAP = 0.64               # nominal lost motion g at LIGHT (arm B rise 2.75 - g = leg stroke 2.11 at E 5 GPa)
+LIGHT_PAD = (-34.0, -30.0)    # 0.45 mm pad on the wall front under the leg: the rocker rests on it at LIGHT
+CRANK_HUB_R, CRANK_BOSS_R = 5.5, 3.5
+CRANK_COL_TOP, CRANK_BOSS_TOP = -59.9, -46.9  # column under the crank, pivot boss top (washer + M3 x 20 on it)
+WASHER_T, WASHER_R = 1.2, 6.0
+POCKET_D = 4.0                # wall front recess for arm B and the hub
 BAR_GUIDES = ((-71.5, BAR_YL), (17.0, None))  # (x, y) of the two U guides (y None = right run)
 GUIDE_W, GUIDE_FRONT, GUIDE_SCREW_Z = 10.0, 20.0, 17.2
 POST_Y0 = -51.0               # guide post bottom (the bar passes under it)
@@ -140,7 +143,7 @@ HUB1_R = 13.0
 
 C_D, K_D, S_D = 20.0, 10.0, 8.0
 C_BORE = K_D + fits.SHAFT_IN_BORE
-C_Z0 = GC_Z[0] - 0.3 - clips.groove_dims(C_D)["width"] - 1.05      # C rear end
+C_Z0 = GC_Z[0] - 0.3 - clips.groove_dims(C_D)["width"] - 1.65      # C rear end (clip land 1.65, clips.groove_dims min 1.6)
 K_Z0 = CUPGEAR_Z[0] - 0.3 - clips.groove_dims(K_D)["width"] - 1.6
 S_Z0 = BUS_Z[0] - 0.3 - clips.groove_dims(S_D)["width"] - 1.0
 
@@ -289,9 +292,13 @@ def _wall():
     post = prim.union([prim.box(gx - 6, gx + 6, yb, gy - 8, gz - 6, gz + 6),
                        prim.box(gx - 3, gx + 3, gy - 8.01, gy + 6, gz - 7.5, gz + 7.5),   # eye flares stay inside
                        prim.box(gx - 2.5, gx + 2.5, yb, -2.0, -0.01, gz)])
+    # 45 deg underside (y = yb + z): the post prints standing on the wall foot without support
+    under = prim.poly_cs([(-1.0, yb - 1.0), (gz + 10.0, yb + gz + 10.0), (gz + 10.0, yb - 20.0), (-1.0, yb - 20.0)])
+    M = np.array([[0, 0, -1, gx + 8.0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]], float)
+    post = post - prim.place(prim.extrude(under, 16.0), M)
     # rocker pivot ears (M3 pin along X) and the S bushing boss through the rocker's hole
     px, py, pz = ROCKER_PIVOT
-    ears = [prim.box(px + s * 5.4, px + s * 9.4, py - 6, py + 6, -0.01, 5.7) for s in (-1, 1)]
+    ears = [prim.box(px + s * 5.4, px + s * 9.4, py - 6, py + 6, -0.01, 6.5) for s in (-1, 1)]
     sboss = prim.cyl(5.5, Z_T - 0.3, x=X_REEL, z=-0.01)        # S bushing 12.7 long (through the rocker's hole)
     ex, _, ez = EXIT
     # swing-arm stop pins from the wall rear face
@@ -379,9 +386,10 @@ def _brake_wall_adds():
     Returns (solids to add, holes to cut after)."""
     adds, cuts = [], []
     yf = Y_DECK + FOOT_T - 0.01
-    adds.append(prim.box(CRANK_X - 3.0, CRANK_X + 3.0, yf, CRANK_COL_TOP, -0.01, CRANK_Z + 3.0))
+    adds.append(prim.box(CRANK_X - 4.0, CRANK_X + 4.0, yf, CRANK_COL_TOP, -0.01, CRANK_Z + 4.0))
+    adds.append(prim.box(LEG_X[0], LEG_X[1], LIGHT_PAD[0], LIGHT_PAD[1], -0.01, ROCKER_Z[0] - 0.05))   # LIGHT stop
     adds.append(prim.cylY(CRANK_BOSS_R, CRANK_COL_TOP - 0.01, CRANK_BOSS_TOP, x=CRANK_X, z=CRANK_Z))
-    cuts.append(prim.cylY(fits.M3_TAP_D / 2, CRANK_BOSS_TOP - 9.0, CRANK_BOSS_TOP + 1.0, x=CRANK_X, z=CRANK_Z))
+    cuts.append(prim.cylY(fits.M3_TAP_D / 2, CRANK_BOSS_TOP - 19.0, CRANK_BOSS_TOP + 1.0, x=CRANK_X, z=CRANK_Z))
     for gx, ylo, yhi in _guide_ys():
         x0, x1 = gx - GUIDE_W / 2, gx + GUIDE_W / 2
         s0, s1 = ylo - GUIDE_CLEAR, yhi + GUIDE_CLEAR          # slot
@@ -406,7 +414,7 @@ def _bar():
     left = prim.box(xl + lstep, BAR_DOG[0], yl - h, yl + h, zr[0], zr[1])
     lug_cs = prim.poly_cs([(xl, lz0), (xl + lstep, zr[1] - 0.01), (xl + lstep, zr[0] + 1.0), (xl + lstep + 8.0, zr[0] + 1.0),
                            (xl + lstep + 8.0, lz1), (xl, lz1)])           # (R x, R z) profile, extruded along R Y
-    lug = prim.place(prim.extrude(lug_cs, 2 * h), tf.T(0, yl + h, 0) @ tf.Rx(90))
+    lug = prim.place(prim.extrude(lug_cs, 2 * h - 0.04), tf.T(0, yl + h - 0.02, 0) @ tf.Rx(90))   # inset: no coplanar sides
     right = prim.box(BAR_DOG[1], xn, yr - h, yr + h, zr[0], zr[1])
     dog = Manifold.batch_hull([prim.box(BAR_DOG[0] - 4.0, BAR_DOG[0], yl - h, yl + h, zr[0], zr[1]),
                                prim.box(BAR_DOG[1], BAR_DOG[1] + 4.0, yr - h, yr + h, zr[0], zr[1])])
@@ -427,13 +435,13 @@ def _crank():
     """Bell crank (PPA-CF), local frame: pivot at the origin (R orientation, R Y absolute), axis +Y. One extrusion
     along Y: hub on the wall boss, arm A up (+Z) to the bar, arm B along +X in the wall recess to the rocker leg."""
     bx, bz = CRANK_B
-    z0, z1 = -CRANK_Z - 0.25 - 1.95, -CRANK_Z - 0.25          # arm B strip (R Z -2.2 .. -0.25)
+    z0, z1 = -CRANK_Z - 2.9, -CRANK_Z - 1.0                  # arm B strip (R Z -2.9 .. -1.0)
     cs = (prim.circle_cs(CRANK_HUB_R) + prim.poly_cs([(-2.2, 0.0), (2.2, 0.0), (1.2, 7.0), (1.2, CRANK_LA), (-1.2, CRANK_LA), (-2.2, 7.0)])
           + prim.circle_cs(CRANK_RT, 0.0, CRANK_LA)
           + prim.poly_cs([(0.0, z0), (bx, z0), (bx, z1), (0.0, z1)]) + prim.circle_cs(CRANK_RB, bx, bz))
     s = prim.extrude(cs, CRANK_Y[1] - CRANK_Y[0])            # profile (u = R x, v = R z), extruded along w
     s = prim.place(s, tf.T(0, CRANK_Y[1], 0) @ tf.Rx(90))     # (u, v, w) -> (u, -w, v): R y = y1 - w
-    return s - prim.cylY(CRANK_BOSS_R + fits.HOLE_CLEAR / 2 + 0.15, CRANK_Y[0] - 1, CRANK_Y[1] + 1)
+    return s - prim.cylY(CRANK_BOSS_R + fits.HOLE_CLEAR / 2, CRANK_Y[0] - 1, CRANK_Y[1] + 1)   # running fit
 
 
 def _washer():
@@ -523,7 +531,7 @@ def _spool_body(rf):
     L = FL_T + WIDTH
     prof = [(4.6, 0), (rf - 0.6, 0), (rf, 0.6), (rf, FL_T), (rc + 1.5, FL_T), (rc, FL_T + 1.5), (rc, L), (4.6, L)]
     body = prim.revolve_pts(prof, seg=180)
-    lugs = [prim.place(prim.box(rc - 4.0, rc - 1.0, -3.0, 3.0, L - 0.01, L + 1.5), tf.Rz(a))
+    lugs = [prim.place(prim.box(rc - 4.0, rc - 1.0, -3.0, 3.0, L - 0.01, L + 0.9), tf.Rz(a))     # into blind slots
             for a in (0.0, 120.0, 240.0)]
     body = prim.union([body] + lugs)
     s_rear = prim.place(bearings.seat_608(bottom="lip", lip_d=14.0, below=0.0), tf.Rx(180))
@@ -542,7 +550,7 @@ def _spool_flange(rf):
     disc = prim.tube(rf, 9.5, FL_F)
     ann = prim.tube(ANNULUS[1], ANNULUS[0], ANNULUS[2] + 0.01, z=FL_F - 0.01)
     body = prim.union([disc, ann])
-    slots = [prim.place(prim.box(CORE_R - 4.3, CORE_R - 0.7, -3.3, 3.3, -1.0, 1.6), tf.Rz(a))
+    slots = [prim.place(prim.box(CORE_R - 4.3, CORE_R - 0.7, -3.3, 3.3, -1.0, 1.0), tf.Rz(a))     # blind: 0.9 skin
              for a in (0.0, 120.0, 240.0)]
     return body - prim.union(slots)
 
@@ -628,8 +636,9 @@ def _rocker():
     hole = prim.cyl(6.0, 10, x=x, z=z0 - 2)
     bosses = [prim.cyl(4.0, Z_T - 0.5 - z0, x=x + s * TRIM_R, z=z0) for s in (-1, 1)]
     taps = [prim.cyl(fits.M3_TAP_D / 2, 20, x=x + s * TRIM_R, z=z0 - 5) for s in (-1, 1)]
-    boss = prim.cylX(2.6, x - 5.0, x + 5.0, y=y, z=z) ^ prim.box(x - 5.0, x + 5.0, y - 3, y + 3, z0, z + 3)
+    boss = prim.cylX(3.2, x - 5.0, x + 5.0, y=y, z=z) ^ prim.box(x - 5.0, x + 5.0, y - 3, y + 3, z0, z + 3)
     pin = prim.cylX(fits.M3_CLEAR_D / 2, x - 10, x + 10, y=y, z=z)
+    taps.append(prim.cyl(fits.M3_TAP_D / 2, 20, x=FIRM_SCREW[0], y=FIRM_SCREW[1], z=z0 - 5))   # FIRM screw
     return prim.union([plate, ring, boss] + bosses) - prim.union([hole, pin] + taps)
 
 
@@ -711,7 +720,7 @@ def _p2_post():
     return body - prim.union(cut)
 
 
-RACE_BOSS_R = 2.2             # cheek bosses clamp the 693 inner race (OD about 4.6), not the pulley rim
+RACE_BOSS_R = 2.4             # cheek bosses clamp the 693 inner race (land about 2.3 .. 2.6), not the pulley rim
 
 
 def _race_bosses(px, py, pz, gap):
@@ -903,9 +912,15 @@ def parts(P):
     add("reel_crank_washer", _washer(), "PPA-CF", joint="reel_base",
         place=tf.T(CRANK_X, CRANK_BOSS_TOP, CRANK_Z) @ tf.Rx(-90), color=COL["ppa"], step=10,
         notes="Printed washer: keeps the crank on its boss")
-    add("reel_crank_screw", fasteners_m3(10.0), "bought", joint="reel_base",
+    add("reel_crank_screw", fasteners_m3(20.0), "bought", joint="reel_base",
         place=tf.T(CRANK_X, CRANK_BOSS_TOP + WASHER_T, CRANK_Z) @ tf.Rx(90), color=COL["brg"],
-        bought_ref="M3x10 SHCS", step=10, notes="Crank retaining screw, into the boss")
+        bought_ref="M3x20 SHCS", step=10, notes="Crank retaining screw: tapped 18 deep, the steel passes the boss root")
+    tip_z = CRANK_Z + CRANK_B[1] + CRANK_RB + FIRM_GAP                 # arm B top + g
+    fs = prim.place(fasteners_m3(10.0), tf.T(FIRM_SCREW[0], FIRM_SCREW[1], tip_z + 10.0) @ tf.Rx(180))
+    nut = prim.cyl(3.2, 2.4, x=FIRM_SCREW[0], y=FIRM_SCREW[1], z=LEG_Z1, seg=6)
+    add("reel_firm_screw", fs + nut, "bought", joint="reel_base",
+        color=COL["brg"], bought_ref="M3x10 SHCS + M3 nut", step=10,
+        notes="FIRM set screw: through the rocker leg from the front, its tip on the crank's arm B (sets FIRM)")
     add("reel_bar", _bar(), "PPA-CF", joint="reel_bar", color=COL["ppa"], step=10,
         notes="Brake bar: cad-drum's track 2 cam pushes its nose, its left end turns the crank. Print flat")
     for k, (gx, ylo, yhi) in enumerate(_guide_ys()):
@@ -1064,7 +1079,7 @@ def crank_deg(bar):
 
 
 def leg_push_mm(bar):
-    """Arm B tip rise (+Z) at the rocker leg for a bar slide."""
+    """Arm B tip rise (+Z) under the FIRM screw for a bar slide (the leg moves this less the lost motion g)."""
     p = math.radians(crank_deg(bar))
     bx, bz = CRANK_B
     return -bx * math.sin(p) + bz * (math.cos(p) - 1.0)
@@ -1162,8 +1177,11 @@ def allowed(P):
         Allow("reel_p2_axle", "reel_p2_brg", "axle through the inner race"),
         Allow("reel_p2_axle", "reel_p2_post", "axle through the cheeks"),
         Allow("reel_trim_screws", "reel_t", "screw tips on the thrust ring (preload)", max_vol=0.5),
-        Allow("reel_crank", "reel_rocker", "arm B bends the flexible rocker (static in the model; 5 mm at FIRM)",
-              max_vol=140.0),
+        Allow("reel_firm_screw", "reel_rocker", "FIRM screw tapped through the leg, lock nut on its front"),
+        Allow("reel_crank", "reel_rocker", "arm B rises under the static leg (the real leg moves 2.1 mm away first)",
+              max_vol=40.0),
+        Allow("reel_firm_screw", "reel_crank", "arm B lifts the screw tip: the leg bends 2.1 mm at FIRM (static rocker in the model)",
+              max_vol=20.0),
         Allow("reel_crank_washer", "reel_crank_screw", "screw through the washer"),
         Allow("reel_crank_screw", "reel_wall", "screw tapped into the crank boss"),
         Allow("reel_bar_screws", "reel_wall", "cap screws tapped into the guides"),
@@ -1478,23 +1496,27 @@ def steps(P):
                   "reel, small boss toward the bearing.",
              parts=["reel_spool", "reel_spool_flange", "reel_brg_1", "reel_brg_2", "reel_s", "reel_t"]),
         dict(title="Brake crank, rocker and bar",
-             text="Grease the crank boss low on the left of the wall front. Slide the black bell crank onto it, "
-                  "the long arm into the recess pointing right, the short arm up. Put the printed washer on the boss "
-                  "and screw the M3 x 10 into the boss top: the crank must swing freely. Hang the yellow rocker "
-                  "between the two ears at the top with an M3 x 25 screw and nut (snug, it must swing); its round "
-                  "hole sits over the small boss and its leg hangs in front of the crank's long arm. Screw two "
-                  "M3 x 8 screws into the rocker's two bosses from behind, until their tips stand 0.5 mm proud of "
-                  "the front. Lay the brake bar in the two U guides, left end against the crank's short arm, nose "
-                  "toward the drum. Close each guide with its cap and two M3 x 16 screws. Push the nose: the crank "
-                  "swings and the rocker leg moves forward; let go and it all springs back.",
-             parts=["reel_crank", "reel_crank_washer", "reel_crank_screw", "reel_rocker", "reel_rocker_pin",
-                    "reel_trim_screws", "reel_bar", "reel_bar_cap_1", "reel_bar_cap_2", "reel_bar_screws"]),
+             text="Grease the crank boss low on the left of the wall front. Slide the black bell crank onto it: the "
+                  "short arm lies in the recess in the wall and points right, the long arm sticks straight out from "
+                  "the wall. Put the printed washer on the boss and screw the M3 x 20 into it: the crank must swing "
+                  "freely. Screw the M3 x 10 FIRM screw into the rocker's leg from the front with its nut on the front "
+                  "face, until 0.6 mm of its tip shows at the back. Hang the yellow rocker between the two ears at the "
+                  "top with an M3 x 25 screw and nut (snug, it must swing); its round hole goes over the small boss, "
+                  "its leg rests on the small pad on the wall, the FIRM screw tip just above the crank's short arm. "
+                  "Screw two M3 x 8 screws into the rocker's two bosses from behind, until their tips stand 0.5 mm "
+                  "proud of the front. Lay the brake bar in the two U guides, its raised lug against the crank's long "
+                  "arm, nose toward the drum. Close each guide with its cap and two M3 x 16 screws. Push the nose: "
+                  "the crank swings and the rocker leg moves away from the wall; let go and it all springs back.",
+             parts=["reel_crank", "reel_crank_washer", "reel_crank_screw", "reel_firm_screw", "reel_rocker",
+                    "reel_rocker_pin", "reel_trim_screws", "reel_bar", "reel_bar_cap_1", "reel_bar_cap_2",
+                    "reel_bar_screws"]),
         dict(title="Reel shaft into the wall",
              text="Feed the reel shaft's thin end through the rocker's hole and the wall bushing from the front. "
                   "From behind, slide the 20-tooth reel gear onto the D-flat, hub toward the wall, and snap its "
                   "C-clip on. Swing the arm toward the reel gear (to its stop): the idler meshes it. Spin the reel "
                   "by hand: it should turn with a light, even drag. Set LIGHT (after the line is wound on, drum at "
-                  "LAUNCH): turn the reel until the reel gear's two small holes line up with the wall holes, reach "
+                  "LAUNCH): swing the arm to its parked stop (the idler leaves the reel gear), turn the reel shaft "
+                  "until the reel gear's two small holes line up with the wall holes, swing the arm back, reach "
                   "through with a 2.5 mm hex key and turn both trim screws the same amount until a 50 g weight hung "
                   "on the line end just pulls line off slowly (0.5 N). 1/8 turn changes it by about 0.4 N of squeeze.",
              parts=["reel_gr", "reel_s_clip"]),

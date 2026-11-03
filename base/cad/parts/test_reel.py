@@ -149,11 +149,15 @@ def test_brake_linkage_gives_the_rocker_stroke():
     """cam lift 4 less the 0.2 gap turns the crank so arm B lifts the leg by the stroke the real rocker section
     needs for LIGHT -> FIRM (reel_calc.rocker_section), within 3 percent."""
     from cad.parts import reel_calc
-    y_contact = 0.5 * (reel.LEG_Y0 + reel.CRANK_Y[1])                  # arm B touches the leg over this band
+    y_contact = reel.FIRM_SCREW[1]                                     # arm B lifts the FIRM screw
     need = reel_calc.rocker_section(dict(reel_calc.DEFAULTS), y_load=y_contact)["stroke"]
-    got = reel.leg_push_mm(reel.BRAKE_STROKE - reel.BAR_GAP)
+    got = reel.leg_push_mm(reel.BRAKE_STROKE - reel.BAR_GAP) - reel.FIRM_GAP
     assert got == pytest.approx(need, rel=0.03)
     assert reel.leg_push_mm(0.0) == pytest.approx(0.0, abs=1e-9)
+    # FIRM adjustable over E 4 .. 9 GPa: g from 0 to 2.0 covers the needed stroke
+    for E in (4000.0, 9000.0):
+        st = reel_calc.rocker_section(dict(reel_calc.DEFAULTS), y_load=y_contact, E=E)["stroke"]
+        assert 0.0 <= reel.leg_push_mm(reel.BRAKE_STROKE - reel.BAR_GAP) - st <= 2.0
 
 
 def test_bar_follows_the_drum_cam():

@@ -111,11 +111,13 @@ In REEL (capstan, wiper FORWARD):
   a live load cell the tension used is the larger of the load cell and the current estimate (a frozen load cell cannot
   hide the current). The speed tapers over the last 30 % of `max_n`, using the larger of the averaged and the
   unaveraged estimate.
-- Tow speed (`until:"tension"`): it starts at the minimum duty (0.27) and ramps up to the commanded `duty` (about
-  0.5 s) only while the tension estimate is under 25 % of `max_n`; above that it stays at the minimum duty. A tidied
+- Tow speed (`until:"tension"`): it starts at the minimum duty (0.27) and keeps it until the first tension samples are
+  in (the 80 ms blanking plus 60 ms). Then it ramps up to the commanded `duty` (about 0.5 s) only while the tension estimate is under 25 % of `max_n`; above that it stays at the minimum duty. A tidied
   Dyneema line gains about 4.5 N per wiper degree once taut, so the current must see the rise before the limit.
 - The tow stops at `max_n` when the 200 ms average reaches it OR the unaveraged estimate stays at or above it for
-  30 ms (config `rawHoldMs`; a stiff line rises faster than the average). It sends `LIMIT` (`why:"tension limit"`,
+  30 ms (config `rawHoldMs`; a stiff line rises faster than the average), OR the unaveraged estimate plus its rise
+  rate x 60 ms (config `tensionLeadMs`) stays at or above it for those 30 ms (a stiff line going taut rises faster than
+  the current lags). It sends `LIMIT` (`why:"tension limit"`,
   `tension_n` the higher of the two estimates). With `until:"tension"` the base then HOLDS (state `HOLD`,
   `holding:true`, the worm and sprag #2 hold the line); it winds again by itself (after at least 1 s) when the load
   cell reads under 60 % of `max_n`, but only when the load cell itself caused the hold: a hold from the current
@@ -775,3 +777,5 @@ What the Jetson worker must change (against the base-1.0 version of this file):
 72. New read-only `get` key `tension_cal` and `status` field `tension_cal`: true once the operator set `k_n_per_a` or
     `tension_offset_n` (saved in flash). The Jetson must refuse a tow (`reel` until `tension`) while it is false
     (systest F28). New `cal factory` puts the bench settings back to the params defaults and clears `tension_cal`.
+73. Tow: the minimum duty is kept until the first tension samples are in (80 ms + 60 ms), and the tow also holds when
+    the unaveraged estimate plus its rise rate x 60 ms reaches `max_n` (stiff line going taut).

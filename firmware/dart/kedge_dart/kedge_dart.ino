@@ -205,7 +205,7 @@ void tickTask(void*) {                                 // 5 ms: IMU, flight, cur
     K.tick(now);
     if (i2cBad >= 200 && !K.imuOk && now - lastBusFix > 3000) { lastBusFix = now; busRecover(); hwLog("I2C bus stuck: recovered (9 clocks, Wire restart)"); if (bnoPresent) enableImuReports(); }
     // web loop hung for 10 s (and nothing moving, no OTA): restart; motors coast through the reset
-    if (!otaActive && (int32_t)(now - loopBeat) > 10000 && !K.running() && !K.seqRunning() && !K.armed && !K.flight.flying()) { hwLog("web loop stuck 10 s: restarting"); Serial.flush(); esp_restart(); }
+    if (!otaActive && (int32_t)(now - loopBeat) > 30000 && !K.running() && !K.seqRunning() && !K.armed && !K.flight.flying()) { hwLog("web loop stuck 30 s: restarting"); Serial.flush(); esp_restart(); }
     xSemaphoreGive(mtx);
     esp_task_wdt_reset();
     vTaskDelayUntil(&last, pdMS_TO_TICKS(5));
@@ -283,7 +283,12 @@ void handleFlightlog() {                               // streamed from a snapsh
   web.setContentLength(CONTENT_LENGTH_UNKNOWN);
   web.send(200, "application/json", "");
   static char buf[1400]; int n;
-  while ((n = w.chunk(buf, sizeof buf)) > 0) web.sendContent(buf, n);
+  uint32_t t0 = millis();
+  while ((n = w.chunk(buf, sizeof buf)) > 0) {
+    web.sendContent(buf, n);
+    loopBeat = millis();                               // a slow client is not a hung loop
+    if (millis() - t0 > 8000) { web.client().stop(); break; }   // give up on a client that stopped reading
+  }
   web.sendContent("");
   free(snap);
 }

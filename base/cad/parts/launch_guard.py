@@ -3,7 +3,7 @@
 Each side: a 2 mm PLA side plate at |y| 66..68 (outside the main spring at |y| 38 and the D5 provision spring at
 |y| 56, d 16: outer face 64), in three printable segments:
   a (rear)  u -177.5 .. 72     w 37 .. 83   (behind the stop units; the carriage arms sweep inside, |y| <= 61)
-  b (mid)   u 72 .. 239.6      w 37 .. 83 to u 78, then w 37 .. 69 (the stop spring covers the springs from above
+  b (mid)   u 72.2 .. 239.6     w 37 .. 83 to u 78, then w 37 .. 69 (the stop spring covers the springs from above
                                there, w >= 69.5; the stop frame front legs at u 240.2..248.2 close the side)
   c (front) u 248.7 .. 271.5   w 37 .. 83   (hooks on the anchor pins)
 Inward top lips (|y| 62.5..66) stiffen the plates. Brackets under the springs (w < 48, clear of the arm peg keepers
@@ -39,7 +39,7 @@ W_TOP_STOP = 69.0                   # plate top under the stop spring (stack bot
 LIP_Y = 62.5                        # inward top lip inner edge (arms |y| <= 61)
 LIP_T = 2.0
 U_A = (-177.5, 72.0)
-U_B = (72.0, 239.6)
+U_B = (72.2, 239.6)
 U_B_TALL = 78.0                     # stop spring pad starts at u 78.6
 U_C = (248.7, 271.5)
 W_BOLT = 42.0                       # wall bolt height
@@ -47,7 +47,7 @@ Y_WALL = 28.0                       # rail wall outer face
 # wall brackets (u centre) per segment and side (+1 left / -1 right)
 WALL_BRACKETS = {
     "a": {1: (-160.0, -105.0, -60.0, 50.0), -1: (-160.0, -105.0, -60.0, 50.0)},
-    "b": {1: (76.0, 165.0), -1: (76.0, 115.0, 165.0)},
+    "b": {1: ((76.95, 4.4), 165.0), -1: ((76.95, 4.4), 115.0, 165.0)},
 }
 TAB_HALF = 5.0                      # bracket half length along u
 FOOT_U, FOOT_Y = 215.0, 47.0        # seg b foot on the rail front plate (w 40): M3 down
@@ -65,14 +65,20 @@ def _cyl_y(r, ya, yb, u, w, sg):
     return prim.cylY(r, y0, y1, x=u, z=w)
 
 
-def _bracket(uc, sg):
+def _uh(b):
+    """Bracket entry: u centre or (u centre, half length)."""
+    return (float(b[0]), float(b[1])) if isinstance(b, tuple) else (float(b), TAB_HALF)
+
+
+def _bracket(b, sg):
     """Wall bracket: tab on the wall face (|y| 28..32, w 36.5..47.5), 45 deg gussets onto a web (w 40..44) out to the
     plate. Profile in (|y|, w), extruded along u."""
     pts = [(Y_WALL, 36.5), (Y_WALL + 4.0, 36.5), (Y_WALL + 7.5, 40.0), (Y_IN + 0.01, 40.0), (Y_IN + 0.01, 44.0),
            (Y_WALL + 7.5, 44.0), (Y_WALL + 4.0, 47.5), (Y_WALL, 47.5)]
+    uc, hl = _uh(b)
     cs = prim.poly_cs([(sg * y, w) for (y, w) in pts])     # profile x = signed y, profile y = w
-    s = prim.extrude(cs, 2 * TAB_HALF)                     # z = 0 .. 2 * TAB_HALF
-    M = np.array([[0.0, 0.0, 1.0, uc - TAB_HALF], [1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]])
+    s = prim.extrude(cs, 2 * hl)                            # z = 0 .. 2 * hl
+    M = np.array([[0.0, 0.0, 1.0, uc - hl], [1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]])
     s = prim.place(s, M)                                   # (x, y, z) -> (u = z, y = x, w = y)
     return s
 
@@ -96,8 +102,8 @@ def segment_solid(seg, sg):
         s.append(_bracket(uc, sg))
     g = prim.union(s)
     for uc in WALL_BRACKETS.get(seg, {}).get(sg, ()):
-        g = g - _cyl_y(1.7, Y_WALL - 1.0, Y_WALL + 5.0, uc, W_BOLT, sg)                        # M3 clearance
-        g = g - _cyl_y(3.2, Y_IN - 1.0, Y_OUT + 1.0, uc, W_BOLT, sg)                           # hex key access
+        g = g - _cyl_y(1.7, Y_WALL - 1.0, Y_WALL + 5.0, _uh(uc)[0], W_BOLT, sg)                # M3 clearance
+        g = g - _cyl_y(3.2, Y_IN - 1.0, Y_OUT + 1.0, _uh(uc)[0], W_BOLT, sg)                   # hex key access
     if seg == "b":
         g = g - prim.cyl(1.7, 6.0, x=FOOT_U, y=sg * FOOT_Y, z=39.0)
     if seg == "c":
@@ -114,7 +120,7 @@ def guard_rail_cut(n=None):
     for seg, d in WALL_BRACKETS.items():
         for sg, us in d.items():
             for uc in us:
-                c.append(_cyl_y(1.3, 18.0, Y_WALL + 0.5, uc, W_BOLT, sg))
+                c.append(_cyl_y(1.3, 18.0, Y_WALL + 0.5, _uh(uc)[0], W_BOLT, sg))
     for sg in (1, -1):
         c.append(prim.cyl(1.3, 9.5, x=FOOT_U, y=sg * FOOT_Y, z=31.0))
         for uu in POST_BOLTS_U:
@@ -127,7 +133,7 @@ def pilot_positions():
     out = []
     for seg, d in WALL_BRACKETS.items():
         for sg, us in d.items():
-            out += [(uc, sg * Y_WALL, W_BOLT, "y") for uc in us]
+            out += [(_uh(uc)[0], sg * Y_WALL, W_BOLT, "y") for uc in us]
     for sg in (1, -1):
         out.append((FOOT_U, sg * FOOT_Y, 40.0, "w"))
         out += [(uu, sg * 64.0, W_POST_BOLT, "y") for uu in POST_BOLTS_U]
@@ -143,7 +149,7 @@ def guard_parts(P=None, n=None, bed=None):
     for sg, side in ((1, "l"), (-1, "r")):
         for seg in ("a", "b", "c"):
             s = segment_solid(seg, sg)
-            R = tf.Rx(90) if sg > 0 else tf.Rx(-90)          # outer face (|y| 68) down on the bed
+            R = tf.Rx(-90) if sg > 0 else tf.Rx(90)          # outer face (|y| 68) down on the bed
             nb = len(WALL_BRACKETS.get(seg, {}).get(sg, ()))
             fix = {"a": f"{nb} brackets bolted to the rail wall (M3x12 self tap)",
                    "b": f"{nb} wall brackets (M3x12 self tap) and a foot on the front plate (M3x10 down)",

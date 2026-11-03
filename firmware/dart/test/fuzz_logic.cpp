@@ -411,10 +411,11 @@ static void checkAll(bool afterStop) {
         uint32_t lim = sq ? (m == KICK ? 15500u : m == DEPLOY ? 6000u : 35000u) : (T.segIna[m] ? 8000u : 2000u);
         uint32_t run = ET - T.segStart[m];
         if (run > ST.maxRun[m]) ST.maxRun[m] = run;
-        if (!T.segFlag[m] && run > lim + 10) {
+        if (!T.segFlag[m] && run > lim + 15) {   // one jittered tick (up to 7 ms) plus the sample boundary
           T.segFlag[m] = true;
           violate(2, std::string(motorName(m)) + (sq ? " in sequence" : T.segIna[m] ? " manual hold" : " manual hold without INA219"),
                   "%s has run %u ms (limit %u ms), %s", motorName(m), run, lim, modeCtx().c_str());
+          if (getenv("FUZZ_DEBUG")) printf("DEBUG heldStart %u segStart %u until %u now %u ET %u\n", K.heldStart[m], T.segStart[m], K.until[m], ET, ET);
         }
       } else if (T.lastDir[m]) T.lastOff[m] = ET;
       T.lastDir[m] = d; T.lastSeq[m] = sq;

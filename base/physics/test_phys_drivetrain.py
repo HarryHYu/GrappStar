@@ -36,6 +36,7 @@ def test_cock_hand():
 
 def test_run():
     p = Params()
+    p.capstan["path_gain"] = 1.15          # pulleys at the exit eye and ring
     r = drivetrain.run(p)
     f = r["functions"]
     t_m, _ = capstan.motor_stall_sag(p, p.battery.v_nom)
@@ -51,6 +52,10 @@ def test_run():
     # tow shaft at stall matches capstan.py
     cap = capstan.run(p)
     assert f["tow"]["shaft_torque_at_stall"] == pytest.approx(cap["parts_at_stall"]["t_drum"])
+    # shaft at trip: same train as at stall (take-up branch excluded) for reel and tow
+    for k, mode in (("reel", "reel_in"), ("tow", "tow")):
+        t_trip = p.wiper.kt * (capstan.trip_a(p, mode) - p.wiper.i_free)
+        assert f[k]["shaft_torque_at_trip"] == pytest.approx(capstan.drum_shaft_torque(t_trip, p))
     for k in f:
         assert f[k]["gear_sf_trip"] > 1.0
     for k in f:

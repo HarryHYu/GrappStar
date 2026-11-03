@@ -376,3 +376,89 @@ def test_run_all_problems_cleanup_jobs(tmp_path):
         assert r.returncode == 2 and "refusing" in r.stdout, bad
     sh = open(os.path.join(BASE, "run_all.sh")).read()
     assert '"${ONLY[@]}"' not in sh.replace('${ONLY[@]+"${ONLY[@]}"}', "")     # bash 3.2: no bare empty array
+
+
+# ---------------------------------------------------------------------------------------------- review R2-I #3, #7
+def _write_man(d, subsystems, printed=True, mtime=None):
+    import json
+    parts = [dict(name=f"{s}_p", subsystem=s, material="PLA", qty=1, printed=printed, volume_mm3=1000.0, mass_g=1.0,
+                  notes="", bought_ref="" if printed else "M3 nut") for s in subsystems]
+    fn = os.path.join(d, "asm.json")
+    with open(fn, "w") as fh:
+        json.dump(dict(subsystems=list(subsystems), parts=parts, steps=[]), fh)
+    if mtime is not None:
+        os.utime(fn, (mtime, mtime))
+
+
+@pytest.fixture
+def fake_export(monkeypatch):
+    """Assembly.load stubbed: records the subsystems asked for, export writes a manifest of one part per subsystem
+    (printed unless the subsystem is in the no_print set)."""
+    calls, no_print = [], set()
+
+    class Stub:
+        def __init__(self, names):
+            self.names = names
+
+        def export(self, out):
+            _write_man(out, self.names, printed=not (set(self.names) & no_print))
+
+    def load(cls, P=None, names=None):
+        calls.append(list(names or []))
+        return Stub(list(names or ["base"]))
+    monkeypatch.setattr(Assembly, "load", classmethod(load))
+    return calls, no_print
+
+
+def test_load_out_reexports_missing_lacking_or_stale_manifest(tmp_path, fake_export):
+    calls, _ = fake_export
+    d = str(tmp_path)
+    future = 4.0e9                                       # newer than every source file
+    man = pack.load_out(d, "demo", log=lambda *a: None)  # missing
+    assert calls == [["demo"]] and [p["name"] for p in man["parts"]] == ["demo_p"]
+    _write_man(d, ["frame"], mtime=future)               # a base export without demo
+    man = pack.load_out(d, "demo", log=lambda *a: None)
+    assert calls[-1] == ["demo"] and man["subsystems"] == ["demo"] and len(man["parts"]) == 1
+    _write_man(d, ["demo"], mtime=1.0)                   # older than cad/parts and cad/lib
+    pack.load_out(d, "demo", log=lambda *a: None)
+    assert len(calls) == 3
+    _write_man(d, ["demo", "frame"], mtime=future)       # fresh superset: filtered, not re-exported
+    man = pack.load_out(d, "frame", log=lambda *a: None)
+    assert len(calls) == 3 and [p["name"] for p in man["parts"]] == ["frame_p"]
+    _write_man(d, ["frame"], mtime=1.0)                  # without --only an existing manifest is used as is
+    assert pack.load_out(d, log=lambda *a: None)["subsystems"] == ["frame"] and len(calls) == 3
+
+
+def test_no_printed_parts_fails_pack_bom_guide(tmp_path, fake_export):
+    """Review R2-I #3: an --only request with no printed parts exits non-zero instead of writing empty outputs."""
+    calls, no_print = fake_export
+    no_print.add("demo")
+    d = str(tmp_path)
+    for main, args in ((pack.main, [d, os.path.join(d, "pack"), "--only", "demo"]), (bom.main, [d, "--only", "demo"]),
+                       (guide.main, [d, "--only", "demo"])):
+        _write_man(d, ["frame"], mtime=4.0e9)            # stale for demo: re-exported, still nothing printed
+        with pytest.raises(SystemExit) as ei:
+            main(args)
+        assert ei.value.code not in (0, None) and "no printed parts" in str(ei.value.code)
+    assert calls == [["demo"]] * 3
+    assert not os.path.exists(os.path.join(d, "BOM.csv")) and not os.path.exists(os.path.join(d, "guide.pdf"))
+    assert not os.path.exists(os.path.join(d, "pack", "print_report.json"))
+
+
+def test_bom_totals_equal_pack_totals(out):
+    """Review R2-I #7: BOM (and so the guide's parts list) uses the pack PROFILE mass, not Part.mass_g."""
+    import json
+    rep = json.load(open(os.path.join(out, "pack", "print_report.json")))
+    b = bom.build(pack.load_out(out, "demo"), out)
+    pk = {}
+    for tot in (rep["totals"], rep["unplaced_totals"]):
+        for mat, t in tot.items():
+            pk[mat] = pk.get(mat, 0.0) + t["mass_g"]
+    assert set(b["totals"]) == set(pk)
+    for mat, t in b["totals"].items():
+        assert t["mass_g"] == pytest.approx(pk[mat], abs=0.2), mat
+    each = {r["name"]: r["mass_g"] for r in rep["parts"]}
+    assert {r["name"]: r["mass_g"] for r in b["printed"]} == each
+    with open(os.path.join(out, "BOM.csv")) as fh:
+        csv_tot = {r["name_or_ref"]: float(r["mass_g_total"]) for r in csv.DictReader(fh) if r["section"] == "total"}
+    assert csv_tot == {m: t["mass_g"] for m, t in b["totals"].items()}

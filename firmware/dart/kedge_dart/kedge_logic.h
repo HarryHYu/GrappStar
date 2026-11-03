@@ -73,10 +73,10 @@ struct Tuning {
 };
 
 enum Fault { F_NONE = 0, F_OVERCURRENT, F_KICK_TIMEOUT, F_SEQ_TIMEOUT, F_DRILL_JAM, F_FOOT_JAM, F_CURRENT_SENSOR, F_LOW_RAIL,
-             F_BROWNOUT, F_WATCHDOG, F_NO_CURRENT, F_KICK_JAM, F_NFAULT };
+             F_BROWNOUT, F_WATCHDOG, F_NO_CURRENT, F_KICK_JAM, F_NO_GROUND, F_NFAULT };
 static inline const char* faultName(int f) {
   static const char* n[] = {"", "OVERCURRENT", "KICK_TIMEOUT", "SEQ_TIMEOUT", "DRILL_JAM", "FOOT_JAM", "CURRENT_SENSOR",
-                            "LOW_RAIL", "BROWNOUT", "WATCHDOG", "NO_CURRENT", "KICK_JAM"};
+                            "LOW_RAIL", "BROWNOUT", "WATCHDOG", "NO_CURRENT", "KICK_JAM", "NO_GROUND"};
   return (f > 0 && f < F_NFAULT) ? n[f] : "";
 }
 
@@ -248,17 +248,21 @@ struct Kedge {
   int fault = F_NONE;
   bool armed = false, autoOnLanding = true, landed = false; uint32_t armT = 0;
   bool podLead = false; float kickPos = 0; uint32_t lastTickT = 0; bool tickSeen = false;   // kickPos: kick travel estimate, ms at full duty from stowed
+  float kickSwing0 = 0;                                 // kickPos when this K_SWING started
   bool kickKnown = true;                                // kickPos is trusted (power-on with the legs stowed, or after a release)
+  bool kickOverPair = false;                            // last pair reading said the kick (as the paused worm) is at stall
+  float kickBackStart = 0, kickBackDone = 0;            // release: estimated travel out at the start, real travel counted back
+  bool footStalled = false, drillsStalled = false;      // an auger stopped for a stall is not re-driven in the next step
   uint32_t warn = 0;                                    // warnings of the last sequence (bits, see warnNames)
   bool inaOk = true, imuOk = true; int inaFails = 0;
   uint32_t tripT = 0, lowT = 0, manT = 0; bool tripOn = false, lowOn = false, manOn = false;
   int stallLock[NMOT] = {0, 0, 0, 0}; uint32_t lastCmd[NMOT] = {0, 0, 0, 0};   // a held key that stalled stays off until released
   uint32_t heldStart[NMOT] = {0, 0, 0, 0};             // when the current manual hold began
   int lastKeyDir[NMOT] = {0, 0, 0, 0}; bool bothLock[NMOT] = {false, false, false, false};
-  int pressDir[NMOT] = {0, 0, 0, 0}; uint32_t pressT[NMOT] = {0, 0, 0, 0}; bool pressSeen[NMOT] = {false, false, false, false};   // every run-key press, refused or not                 // direction of the last accepted key per motor (hold continuity)
+  uint32_t pressT[NMOT][2] = {}; bool pressSeen[NMOT][2] = {};   // last press of each direction ([0] = -1, [1] = +1), refused or not                 // direction of the last accepted key per motor (hold continuity)
   // pair check state (two motors share the INA219, see pairCheck)
-  uint32_t pulseT = 0; bool paused = false, readDone = false; int pz = -1, hitsMain = 0, hitsOther = 0, hitsNoRise = 0, pairKey = -1;
-  float bothMa = -1, soloMa = -1, bothMin = -1, railV = -1; bool needRise = false;
+  uint32_t pulseT = 0; bool paused = false, readDone = false; int pz = -1, hitsMain = 0, hitsOther = 0, hitsNoRise = 0, hitsRise = 0, nReads = 0, pairKey = -1;
+  float bothMa = -1, soloMa = -1, bothMin = -1, diffMin = -1, railV = -1; bool needRise = false;
   uint32_t lastRunMs[NMOT] = {0, 0, 0, 0};
   Flight flight; Log log;
   float accG = 1.0f, peakG = 0;                        // peakG: highest |a| since the last arm
@@ -284,6 +288,7 @@ struct Kedge {
   static float fin(float v) { return v == v && v < 1e9f && v > -1e9f ? v : 0.f; }
   void ev(const char* s) { strncpy(lastEvent, s, sizeof(lastEvent) - 1); lastEvent[sizeof(lastEvent) - 1] = 0; if (io.log) io.log(s); }
   void setFault(int f, const char* msg, uint32_t now) {
+    armed = false;                                    // a fault must never be cleared by the automatic landing /auto
     if (!seqRunning()) for (int m = 0; m < NMOT; m++) if (dir[m]) stallLock[m] = dir[m];   // a held key stays off until released
     stopAll(now); if (seqRunning()) seq = ABORTED; fault = f; ev(msg); }
 
@@ -300,7 +305,6 @@ struct Kedge {
   // turning, so a stopped screw never fakes a stall. Returns bit 1 = main stalled, bit 2 = other stalled
   // (2 readings in a row each).
   int pairCheck(int main, int other, float mainLim, float otherLim, uint32_t now) {
-    (void)other;                                      // the other motor keeps running; only its reading is used
     uint32_t ph = now - pulseT;
     if (!paused) {
       if (ph >= 380 && ph < 400) bothMa = fMa;
@@ -312,14 +316,26 @@ struct Kedge {
       readDone = true; soloMa = fMa;
       if (bothMa >= 0) {
         // sequences: the total must also have risen over the phase's lowest reading (guards against the auger's
-        // current changing while the worm pauses, which biases both - alone)
-        bool rose = !needRise || (bothMin >= 0 && bothMa - bothMin > tu.riseFrac * (mainLim - lim(tu.freeMa[main])));
-        hitsMain = (bothMa - soloMa > mainLim && rose) ? hitsMain + 1 : 0;
-        // a worm already at its stop when the step starts never shows a rise: 3 of the last 4 readings over the line
-        // also count (one noisy reading does not reset it; an auger change of up to about 100 mA cannot fake this)
+        // current changing while the worm pauses, which biases both - alone). The rise asked for is a share of the
+        // way from the worm's own lowest reading in this step (at least its free current) to the line, at least 25 mA,
+        // so a worm already working hard on the ground still shows its stall
+        float base = lim(tu.freeMa[main]); if (diffMin > base) base = diffMin;
+        float need = tu.riseFrac * (mainLim - base); if (need < 25.f) need = 25.f;
+        bool rose = !needRise || (bothMin >= 0 && bothMa - bothMin > need)
+                    || soloMa < tu.noCurrentFrac * lim(tu.freeMa[other]);   // other draws nothing (open wire): nothing to fake with
+        bool hitR = bothMa - soloMa > mainLim && rose;
+        hitsMain = hitR ? hitsMain + 1 : 0;
+        hitsRise = ((hitsRise << 1) | (hitR ? 1 : 0)) & 0xF;   // one noisy miss does not reset it: 3 of the last 4 also count
+        if (__builtin_popcount(hitsRise) >= 3) hitsMain = 2;
+        if (main == KICK) kickOverPair = bothMa - soloMa > mainLim;
+        // a worm already at its stop when the step starts never shows a rise: 3 of the first 4 readings of the step
+        // over the line also count (one noisy reading does not spoil it). Only at the start: a stop reached later
+        // shows a rise, and an auger whose current drops during the pause could otherwise fake a stall
+        if (nReads < 100) nReads++;
         hitsNoRise = ((hitsNoRise << 1) | (bothMa - soloMa > mainLim ? 1 : 0)) & 0xF;
-        if (__builtin_popcount(hitsNoRise) >= 3) hitsMain = 2;
+        if (nReads <= 4 && __builtin_popcount(hitsNoRise) >= 3) hitsMain = 2;
         if (bothMin < 0 || bothMa < bothMin) bothMin = bothMa;
+        if (diffMin < 0 || bothMa - soloMa < diffMin) diffMin = bothMa - soloMa;
       }
       hitsOther = soloMa > otherLim ? hitsOther + 1 : 0;
       if (hitsMain >= 2) r |= 1;
@@ -329,7 +345,7 @@ struct Kedge {
     return r;
   }
   void endPause() { if (paused && pz >= 0 && dir[pz]) io.setMotor(pz, dir[pz], duty()); paused = false; pz = -1; bothMa = -1; }
-  void pairReset(uint32_t now) { endPause(); pulseT = now; readDone = false; hitsMain = hitsOther = hitsNoRise = 0; soloMa = -1; bothMin = -1; condT = 0; }
+  void pairReset(uint32_t now) { endPause(); pulseT = now; readDone = false; hitsMain = hitsOther = hitsNoRise = hitsRise = nReads = 0; soloMa = -1; bothMin = -1; diffMin = -1; condT = 0; kickOverPair = false; }
   // stall of main (and of other while it runs): pair check while both run, plain threshold once other has stopped
   int stallPair(int main, int other, uint32_t now) {
     if (dir[other] && dir[main]) { needRise = true; return pairCheck(main, other, stallLim(main), stallLim(other), now); }
@@ -364,8 +380,12 @@ struct Kedge {
     // explicit STOP: a key that any client is still repeating (running, in a deadman gap, or refused while a sequence
     // ran) cannot restart its motor until it has been released
     if (disarm) for (int m = 0; m < NMOT; m++) {
-      if (dir[m] && !wasSeq) stallLock[m] = dir[m];
-      else if (pressSeen[m] && (int32_t)(now - pressT[m]) < (int32_t)(tu.wifiDeadmanMs + 250)) { stallLock[m] = pressDir[m]; lastCmd[m] = pressT[m]; lastKeyDir[m] = pressDir[m]; }
+      uint32_t w = tu.wifiDeadmanMs + 250;
+      bool neg = pressSeen[m][0] && (int32_t)(now - pressT[m][0]) < (int32_t)w;
+      bool pos = pressSeen[m][1] && (int32_t)(now - pressT[m][1]) < (int32_t)w;
+      if (dir[m] && !wasSeq) { if (dir[m] > 0) pos = true; else neg = true; }
+      if (pos && neg) { bothLock[m] = true; lastCmd[m] = now; }               // both keys of this motor still held: lock both
+      else if (pos || neg) { int d = pos ? 1 : -1; stallLock[m] = d; lastCmd[m] = now; lastKeyDir[m] = d; }
     }
     stopAll(now);
     if (wasSeq) seq = ABORTED;
@@ -384,8 +404,8 @@ struct Kedge {
     if (seq == DONE) return "already anchored, release first";
     if (!inaOk) return "no current sensor";          // refuse before changing anything
     if (armed) { armed = false; ev("auto: disarmed first (the launch was not seen)"); }
-    stopAll(now); pairReset(now); fault = F_NONE; armed = false; warn = 0;
-    seq = K_SWING; seqT0 = seqStart = now; peakMa = 0; drive(KICK, +1, tu.kickMaxMs + 500, now); ev("auto: kick swing");
+    stopAll(now); pairReset(now); fault = F_NONE; armed = false; warn = 0; footStalled = drillsStalled = false;
+    seq = K_SWING; seqT0 = seqStart = now; peakMa = 0; kickSwing0 = kickPos; drive(KICK, +1, tu.kickMaxMs + 500, now); ev("auto: kick swing");
     return nullptr;
   }
   const char* startRelease(uint32_t now) {
@@ -402,6 +422,7 @@ struct Kedge {
     if (seqRunning()) return "busy";
     if (flight.flying()) return "in flight";
     if (!imuOk) return "no IMU";
+    if (seq == DONE) return "anchored: release first";   // legs out: arming would forget that
     if (withAuto && !inaOk) return "no current sensor";
     if (withAuto && !running() && railV >= 0.f && railV < tu.armMinV) return "battery low";   // includes 0 V (plug out); log-only arm still allowed
     // the moment of arming counts as still, so a shot right after the arm is still seen
@@ -427,7 +448,8 @@ struct Kedge {
       case '4': m = FOOT; d = +1; break;   case '$': m = FOOT; d = -1; break;
       default: return "unknown key";
     }
-    pressDir[m] = d; pressT[m] = now; pressSeen[m] = true;
+    uint32_t prevPressT = pressT[m][d > 0]; bool prevPressSeen = pressSeen[m][d > 0];   // for the per-direction lock
+    pressT[m][d > 0] = now; pressSeen[m][d > 0] = true;
     if (seqRunning() || flight.flying() || fault) lastCmd[m] = now;   // a refused press still counts as "held" for the locks
     if (seqRunning()) return "busy";                  // a sequence owns the motors; stop first
     if (flight.flying()) return "in flight";
@@ -437,19 +459,22 @@ struct Kedge {
     uint32_t win = (lastRunMs[m] > tu.wifiDeadmanMs ? lastRunMs[m] : tu.wifiDeadmanMs) + 250;
     if (win < tu.wifiDeadmanMs + 150) win = tu.wifiDeadmanMs + 150;
     bool repeat = now - lastCmd[m] < win; lastCmd[m] = now; lastRunMs[m] = runMs;
-    if (stallLock[m] == d && repeat) return "stalled: release the key first";
-    stallLock[m] = 0;
-    if (seq == DONE || seq == RELEASED || seq == ABORTED) seq = IDLE;   // legs moved by hand: no longer a known state
+    // the lock holds while THIS direction's key keeps coming (presses of the other direction do not count)
+    bool dirRepeat = prevPressSeen && (int32_t)(now - prevPressT) < (int32_t)win;
+    if (stallLock[m] == d && dirRepeat) return "stalled: release the key first";
+    if (stallLock[m] == d) stallLock[m] = 0;          // only a fresh press of the locked direction clears its lock
     // a repeat within the deadman window (even after a short gap that let the motor stop) continues the same hold:
     // the hold cap and the stall start-up time are not restarted by slow repeats
     // both directions of one motor held (1 and ! together): stop it and refuse both until neither has been pressed for a window
     if (bothLock[m]) { if (repeat) return "both directions held"; bothLock[m] = false; }
-    if (repeat && lastKeyDir[m] == -d && dir[m] == -d) { bothLock[m] = true; drive(m, 0, 0, now); ev("both directions held: motor stopped"); return "both directions held"; }
+    bool otherRecent = pressSeen[m][d < 0] && (int32_t)(now - pressT[m][d < 0]) < (int32_t)win;
+    if (repeat && dirRepeat && otherRecent && lastKeyDir[m] == -d && dir[m] == -d) { bothLock[m] = true; drive(m, 0, 0, now); ev("both directions held: motor stopped"); return "both directions held"; }
     bool cont = repeat && lastKeyDir[m] == d; lastKeyDir[m] = d;
     if (!cont) heldStart[m] = now;
     uint32_t cap = inaOk ? tu.manualMaxMs : tu.manualMaxNoInaMs, used = now - heldStart[m];
     if (used >= cap) { stallLock[m] = d; return "stalled: release the key first"; }
     if (runMs > cap - used) runMs = cap - used;       // the whole hold, not each repeat, is capped
+    if (seq == DONE || seq == RELEASED || seq == ABORTED) seq = IDLE;   // legs moved by hand: no longer a known state
     uint32_t keepT0 = motT0[m];
     drive(m, d, runMs, now);
     if (cont) motT0[m] = keepT0;
@@ -512,10 +537,13 @@ struct Kedge {
       uint32_t dt = tickSeen ? now - lastTickT : 0; lastTickT = now; tickSeen = true; if (dt > 50) dt = 50;
       // counts only real travel: not while paused, not while planting (the kick is on the ground), and outward not
       // while the kick alone draws stall current
+      // stalled in either direction: alone, current over its stall line; in a pair, the last pair reading
       bool alone = dir[KICK] && !dir[DEPLOY] && !dir[DRILLS] && !dir[FOOT];
-      bool stalledOut = dir[KICK] > 0 && alone && fMa > stallLim(KICK);
-      if (dir[KICK] && !(paused && pz == KICK) && seq != K_PLANT && !stalledOut) {
-        kickPos += dir[KICK] * (float)dt * duty() / 255.f;
+      bool stalled = alone ? fMa > stallLim(KICK) : kickOverPair;
+      if (dir[KICK] && !(paused && pz == KICK) && seq != K_PLANT && !stalled) {
+        float step = (float)dt * duty() / 255.f;
+        kickPos += dir[KICK] * step;
+        if (seq == R_KICK && dir[KICK] < 0) kickBackDone += step;
         if (kickPos < 0) kickPos = 0;
         if (kickPos > tu.kickSwingMs) kickPos = tu.kickSwingMs;
       }
@@ -592,7 +620,9 @@ struct Kedge {
         if (t > tu.surgeIgnoreMs && held(fMa > lim(tu.kickContactMa), tu.contactHoldMs, now) && fMa > stallLim(KICK)) {
           // already at stall level at the first contact: the kick was down already (a retried /auto); plant the foot
           // alone. Only believed if the kick has travelled out; near stowed it is a jam (or wired backwards).
-          if (kickKnown && kickPos < 0.25f * tu.kickSwingMs) { setFault(F_KICK_JAM, "auto: kick stalled near stowed (jammed or backwards)", now); return; }
+          if (kickKnown && kickPos < 0.25f * tu.kickSwingMs) { setFault(F_KICK_JAM, "auto: kick stalled near stowed (jammed, backwards, or powered on with legs out)", now); return; }
+          // this swing ran (almost) its whole travel through air and hit the kick's own end stop: no ground under it
+          if (kickPos - kickSwing0 >= 0.85f * tu.kickSwingMs) { setFault(F_NO_GROUND, "auto: kick reached its end stop without touching ground", now); return; }
           drive(KICK, 0, 0, now); drive(FOOT, +1, tu.footAfterMs * 2, now); seq = F_AFTER; seqT0 = now; condT = 0; pairReset(now);
           warn |= W_KICK_ALREADY; ev("auto: kick already down, foot planting");
         } else if (t > tu.surgeIgnoreMs && condT && now - condT >= tu.contactHoldMs) {
@@ -601,10 +631,10 @@ struct Kedge {
         break;
       case K_PLANT: {   // kick keeps pushing while the foot screws in
         int r = stallPair(KICK, FOOT, now);
-        if (r & 2) { drive(FOOT, 0, 0, now); warn |= W_FOOT_STALL; ev("auto: foot stalled (stone?), kick carries on"); }
+        if (r & 2) { drive(FOOT, 0, 0, now); warn |= W_FOOT_STALL; footStalled = true; ev("auto: foot stalled (stone?), kick carries on"); }
         bool lim2 = t >= tu.kickPlantMaxMs;
         if (lim2) warn |= W_PLANT_LIMIT;           // housing stall never seen: the kick is on the ground anyway
-        if ((r & 1) || lim2) { drive(KICK, 0, 0, now); drive(FOOT, +1, tu.footAfterMs, now); seq = F_AFTER; seqT0 = now; pairReset(now);
+        if ((r & 1) || lim2) { drive(KICK, 0, 0, now); if (!footStalled) drive(FOOT, +1, tu.footAfterMs, now); seq = F_AFTER; seqT0 = now; pairReset(now);
           ev(lim2 ? "auto: kick plant time limit, foot finishing" : "auto: kick down, foot finishing"); }
         break;
       }
@@ -623,10 +653,10 @@ struct Kedge {
         }
         int r = stallPair(DEPLOY, DRILLS, now);
         if (t < tu.podsMinMs) r &= ~1;
-        if (r & 2) { drive(DRILLS, 0, 0, now); warn |= W_DRILL_STALL; ev("auto: drills stalled (stone?), pods carry on"); }
+        if (r & 2) { drive(DRILLS, 0, 0, now); warn |= W_DRILL_STALL; drillsStalled = true; ev("auto: drills stalled (stone?), pods carry on"); }
         if ((r & 1) || !dir[DEPLOY]) {
           bool st = r & 1; if (!st) warn |= W_PODS_LIMIT;
-          drive(DEPLOY, 0, 0, now); drive(DRILLS, +1, tu.drillAfterMs, now); seq = D_AFTER; seqT0 = now; pairReset(now);
+          drive(DEPLOY, 0, 0, now); if (!drillsStalled) drive(DRILLS, +1, tu.drillAfterMs, now); else drive(DRILLS, 0, 0, now); seq = D_AFTER; seqT0 = now; pairReset(now);
           ev(st ? "auto: pods down, drills finishing" : "auto: deploy time limit (down or stalled), drills finishing");
         }
         break;
@@ -655,14 +685,16 @@ struct Kedge {
       }
       case R_FOOT:
         if (soloStalled(FOOT, now)) { setFault(F_FOOT_JAM, "release: foot jammed", now); return; }
-        if (!dir[FOOT]) { drive(FOOT, -1, tu.footOutMs, now); drive(KICK, -1, tu.kickMaxMs, now); seq = R_KICK; seqT0 = now; pairReset(now); ev("release: kick back, foot still out"); }
+        if (!dir[FOOT]) { drive(FOOT, -1, tu.footOutMs, now); drive(KICK, -1, tu.kickMaxMs, now); seq = R_KICK; seqT0 = now; pairReset(now);
+          kickBackStart = kickPos; kickBackDone = 0; ev("release: kick back, foot still out"); }
         break;
       case R_KICK: {
         int r = stallPair(KICK, FOOT, now);
         if (t < tu.kickBackMinMs) r &= ~1;
         if (r & 2) { setFault(F_FOOT_JAM, "release: foot jammed", now); return; }
         if (r & 1) {
-          if (kickKnown && kickPos > 0.5f * tu.kickSwingMs) { setFault(F_KICK_JAM, "release: kick stalled half way back (jammed)", now); return; }
+          // the real travel back must cover most of the travel out (the estimate out is short: planting is not counted)
+          if (kickKnown && kickBackDone < 0.6f * kickBackStart) { setFault(F_KICK_JAM, "release: kick stalled before it was back (jammed)", now); return; }
           stopAll(now); seq = RELEASED; kickPos = 0; kickKnown = true; ev("release: done, legs stowed");
         }
         break;

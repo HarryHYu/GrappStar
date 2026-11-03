@@ -5,6 +5,34 @@ sim over HTTP, the real Jetson App). Each entry: the exact failing scenario, the
 Line numbers are against `origin/base-v1` at the time of the entry. Status: OPEN until the owner says fixed and the
 harness re-runs green.
 
+## Status (14:20 Sydney)
+
+"fixed on branch" = green in the preview (`PREVIEW=1 systest/batch.sh`: base-v1 9a3bdf9 + w/fw-base 1027c3f +
+w/fw-dart 71c45ab + w/jetson c80c0f1), not yet merged into base-v1. Evidence in `systest/runs_preview/<scenario>/`.
+
+| # | owner | status | evidence |
+|---|---|---|---|
+| F1 | fw-base | open (not re-tested: the harness waits for BOOT) | |
+| F2 | fw-base, jetson | FIXED in base-v1 | `tidy` -> TIDIED in every run |
+| F3 | fw-base | partly (Jetson reads l r I) | PROTOCOL re-sync |
+| F4 | jetson | fixed on branch | preview: WRAP before ANCHOR in every mission |
+| F5 | jetson, docs | fixed on branch | `nominal_uncal`: "TOW refused: no load cell and k_n_per_a is still ..." |
+| F6 | jetson | fixed on branch | prompt says "The drum HELD where it is (...)" |
+| F7 | jetson | fixed on branch | `stall_cock`: "Decock and re-aim", then COCKED, FIRE, mission DONE |
+| F8 | jetson | fixed on branch | `power_unwrap(_fasthello)`: BASE_RESET at once, DONE in 121 s |
+| F9 | fw-base | open | `no_angle_sensor` |
+| F10 | jetson | fixed on branch | `no_angle_sensor`: "PREFLIGHT failed: AS5600 sees no magnet (status magnet NONE)" |
+| F11 | jetson | re-test | |
+| F12 | jetson | fixed on branch (one leftover) | C1 order matches 10.1 except a bench `set host_timeout_s` (allowed) |
+| F13 | fw-base | open | |
+| F14 | fw-base, docs | fixed on branch | CALIBRATION.md: two-point `k_n_per_a` + `tension_offset_n` |
+| F15 | fw-base | claimed fixed in 3ff1a86 | re-test `ref_power_wrap`, `power_aim` (this batch) |
+| F16 | fw-base | re-test | |
+| F17 | fw-base | open | |
+| F18 | jetson | fixed on branch | no 60 s TOW waits in this batch |
+| F19 | fw-base | retrieve at the park now refused (WRAPS_ON); max_n 80 untested behind F20 | `ref_refusals` |
+| F20 | fw-base (D41) | OPEN, acceptance test ready | `ref_nominal`, `ref_tow_stiff`, `tow_stiff`, `nominal`: OVERCURRENT 3.0 A at the fly-in |
+
 ## F1 (fw-base) `cal` (and `set`) during the first 60 ms are acknowledged ok, then silently undone by the boot rebuild
 
 - Scenario: fresh base, the host sends `{"id":0,"cmd":"cal","what":"cock_rest"}` 10 ms after power-on.
@@ -275,3 +303,55 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   - `reel {"duty":1,"max_n":80,"until":"tension"}` in REEL -> `ok:true` (D39: tow cap 70 N; the harness stopped it at
     once).
 - The check `every wrong command refused` goes green when D39 is in the firmware.
+
+## F20 (fw-base + spec, D35 order) with a stiff (real Dyneema) line the REEL fly-in after TIDY trips OVERCURRENT every time
+
+- Found after R2-L review item 1: the plant line is now 1 mm Dyneema (EA 20 kN: about 5.6 kN/m at 3.6 m) instead
+  of sim.h's 40 N/m spring. Scenario `ref_nominal` (BASE_SPEC 10.1 exactly, preview fw-base 6472524): the wrap takes
+  the 0.9 m landing slack, the dart anchors, `tidy` -> TIDIED (dart side taut), `mode REEL` (fly-in) ->
+  `FAULT OVERCURRENT "wiper over 3.0 A"` and `MODE ok:false DRUM_HELD` within 3 s (plant peak line tension during
+  the fly-in 37.4 N, peak wiper 4.2 A); four retries, the same.
+- Why: the fly-in creeps the wiper FORWARD until the collar drops into REEL (config.h:147, `jogTripA` 3.0 A at
+  config.h:65). Once the dogs bite, every further wiper degree winds the capstan (1.667 capstan turns per wiper turn,
+  r 20.5 mm: about 0.6 mm of line per wiper degree). On a taut Dyneema line 10 deg of creep is about 6 mm, about 33 N:
+  far over the 3 A trip (about 14 N of line with the calibrated constants). With sim.h's soft spring the same 6 mm is
+  0.24 N, which is why every earlier run passed.
+- The order is binding (BASE_SPEC 10.1 steps 11-12): TIDY leaves the dart side taut at FIRM 5 N by design, so the
+  fly-in always starts against a taut line in the field.
+- Options for fw-base / coordinator: stop the fly-in creep the moment SW_DOG_R (or the collar position) says engaged
+  and do not count wind-in current as a fault during the fly-in (treat it as the tow start: `LIMIT` at the tow cap);
+  or fly in BEFORE the tidy and tidy through the engaged capstan (the take-up still runs in REEL); or leave a
+  defined slack after the tidy (tidy by length). The harness check stays: fly-in on a taut 5.6 kN/m line.
+- Note: the stiffness assumption (EA 20 kN) is mine from the line spec (667 N break, about 3.5 % at break); real
+  braid has some bedding-in stretch, which makes it softer at first. Even at EA 5 kN (1.4 kN/m) 6 mm is about 8 N.
+
+## F21 (fw-base) on a stiff line the tow overshoots the limit by about 25 % at duty 1
+
+- Preview (fw-base c28396c, D41 in), scenario `ref_nominal` (BASE_SPEC 10.1, 1 mm Dyneema EA 20 kN, anchored at
+  3.6 m: about 5.6 kN/m): after the fly-in (14.6 N), `reel duty 1 max_n 40 until tension` -> `LIMIT` after 245 ms with
+  `tension_n` 48.9 (the firmware saw it was over), plant line 50.3 N held by the worm. Same pull in `ref_tow_duty08`
+  at duty 0.8 for comparison in the batch log.
+- Why: once taut the line tension rises at capstan speed x stiffness, several hundred N/s; the taper "over the last
+  30 % of max_n" (PROTOCOL.md `reel`) never gets a sample in that window, and the 60 ms raw-estimate hold adds
+  ~10 N. The worm then holds the overshoot (no back-off).
+- Suggest: when a tow starts from HOLD or right after the fly-in (line known taut), start at low duty and raise it
+  only while the estimate stays under about 50 % of max_n; or predict from the tension rate (stop when
+  `tension + rate x 60 ms >= max_n`). Acceptance: `ref_nominal` / `ref_tow_stiff` plant peak under max_n + 15 %.
+
+## F22 (fw-base) without a load cell, a held tow never pulls again: `reel` from HOLD answers "already at the limit" on a slack line
+
+- Same run: after round 1 the rover drives 0.6 m toward the dart (plant line goes slack: 0.5 N). Round 2 and 3:
+  `reel ... until tension` -> `LIMIT {"tension_n":48.9,"why":"already at the limit","holding":true}` within 5 ms,
+  nothing turns. The held estimate (48.9 N from round 1) is kept although the line went slack, so the tow can never
+  take up the slack the rover gives. PROTOCOL.md `reel`: "also accepted while holding (state HOLD): winds again".
+- Suggest: without a load cell, a `reel` from HOLD (or after `stop`) re-measures: start winding at low duty and take
+  the estimate from the new current after the start blanking, not the held value; refuse only with a load cell that
+  shows the line still at the limit.
+
+## F23 (fw-base or jetson) `line_m` ignores the 0.9 m the wrap draws from the dart side: the reel-in leaves 0.6 m, not 1.5 m
+
+- Same run: `set line_m 4.48` after the landing; the wrap (7 turns on d 40 + line) draws 0.9 m from the dart side
+  (D22: the landing slack), plant line out 3.58 m after the wrap. The capstan reel-in stopped when telemetry
+  `line_m` reached 1.5 (10.1 step 15): plant line out was 0.58 m. The dart then seated during the unwrap.
+- Fix: the firmware subtracts `wrapsFull x pi x (d + line d)` from `line_m` when it lays the wraps (it knows the
+  count), or the Jetson re-sends `set line_m` after WRAPPED. Without it, "stop at about 1.5 m" means 0.6 m.

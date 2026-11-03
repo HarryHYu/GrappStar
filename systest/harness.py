@@ -821,7 +821,7 @@ class Scenario:
                         return a
                 elif ans in choices:
                     return ans
-        prefer = ["Continue", "Aim", "Fire", "FIRE NOW", "Anchor", "Anchor anyway", "Shoot again", "Dart is down",
+        prefer = ["Continue", "Base may move", "Aim", "Fire", "FIRE NOW", "Anchor", "Anchor anyway", "Shoot again", "Dart is down",
                   "Release the dart"]
         for p in prefer:
             if p in choices:
@@ -830,6 +830,11 @@ class Scenario:
             self._retries += 1
             time.sleep(1.0)
             return "Retry"
+        if "Retry" not in choices:          # a prompt the script does not know: go on with the first choice that is not Abort
+            for c in choices:
+                if c not in ("Abort", "Skip"):
+                    rig.note("info", msg=f"operator: unknown prompt, chose {c!r}")
+                    return c
         return "Abort" if "Abort" in choices else choices[0]
 
 

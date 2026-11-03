@@ -4,6 +4,7 @@
     cam.latest()            # newest Frame or None
     cam.jpeg()              # newest frame as JPEG bytes (for the MJPEG web stream)
     cam.buffer(10)          # frames from the last 10 s (ring buffer)
+    cam.hold(t_from)        # keep every frame from t_from on until release_hold() (the flight)
     cam.start_recording("runs/flight.avi"); ...; cam.stop_recording()
     cam.status()            # dict for the UI
     cam.stop()
@@ -12,6 +13,14 @@ source_factory() must return a FrameSource (see INTERFACES.md). If it raises,
 returns None, or the source stops giving frames, the thread closes it and calls
 the factory again, waiting a little longer each time (backoff) so a missing
 camera does not spin the CPU. When frames flow again the wait resets.
+
+Ring buffer sizing (review R1-C #4): the ring keeps buffer_s seconds. Its RAM cap follows the time window: by
+default (buffer_max_mb=None) it is buffer_s x the measured frame rate x the frame size x 1.25, at least
+BUFFER_MAX_MB and at most RAM_HARD_MAX_MB. 720x480 BGR at 30 fps is 31 MB/s, so 15 s needs about 470 MB.
+A hold (hold(t_from), set at fire time from 2 s before the launch) pins the flight frames: they are never dropped
+by age or count. When the RAM cap is reached the oldest held frames are JPEG-compressed in memory (about 10x
+smaller; buffer() decodes them back), so an operator prompt with no timeout cannot lose the launch frames.
+release_hold() ends it (a hold also ends by itself after hold_max_s).
 """
 import collections
 import threading
@@ -28,10 +37,41 @@ from .record import Recorder
 
 STATS_WINDOW_S = 2.0      # fps and bad fraction are measured over this window
 MAX_BUFFER_FRAMES = 4000  # hard cap so a fast camera cannot eat all the RAM
-BUFFER_MAX_MB = 400.0     # ring buffer cap in MB of image data (720x480 BGR is about 1 MB per frame)
+BUFFER_MAX_MB = 400.0     # minimum ring RAM cap in MB of image data (720x480 BGR is about 1 MB per frame)
+RAM_HARD_MAX_MB = 1200.0  # automatic cap never goes above this (Orin Nano: 8 GB shared with the GPU)
+HELD_MAX_MB = 400.0       # compressed held frames above this are dropped (about 3 min of 720x480 at 30 fps)
+HOLD_MAX_S = 300.0        # a hold nobody released ends by itself after this
+PACK_JPEG_QUALITY = 92
+
+
+class _Packed:
+    """A JPEG-compressed frame in the ring (held frames over the RAM cap). Decoded back by unpack()."""
+    __slots__ = ("data", "t", "idx", "quality", "bad")
+
+    def __init__(self, f):
+        ok, buf = cv2.imencode(".jpg", f.img, [cv2.IMWRITE_JPEG_QUALITY, PACK_JPEG_QUALITY])
+        if not ok:
+            raise ValueError("jpeg encode failed")
+        self.data = buf.tobytes()
+        self.t, self.idx, self.quality, self.bad = f.t, f.idx, f.quality, f.bad
+
+    @property
+    def nbytes(self) -> int:
+        return len(self.data)
+
+    def unpack(self) -> Frame:
+        import numpy as np
+        img = cv2.imdecode(np.frombuffer(self.data, np.uint8), cv2.IMREAD_COLOR)
+        return Frame(img=img, t=self.t, idx=self.idx, quality=self.quality, bad=self.bad)
+
+
+def _unpack(f):
+    return f.unpack() if isinstance(f, _Packed) else f
 
 
 def _nbytes(f) -> int:
+    if isinstance(f, _Packed):
+        return f.nbytes
     img = getattr(f, "img", None)
     return int(getattr(img, "nbytes", 0) or 0)
 
@@ -41,13 +81,17 @@ class Camera:
                  deinterlace="none", buffer_s: float = 20.0, jpeg_quality: int = 80,
                  max_fps: Optional[float] = None, start: bool = True,
                  backoff_min: float = 0.5, backoff_max: float = 5.0,
-                 stall_s: float = 3.0, none_limit: int = 100, buffer_max_mb: float = BUFFER_MAX_MB):
+                 stall_s: float = 3.0, none_limit: int = 100, buffer_max_mb: Optional[float] = None,
+                 hold_max_s: float = HOLD_MAX_S):
         self.name = name
         self.source_factory = source_factory
         self.quality_enabled = bool(quality)
         self.deinterlace_mode = normalize_mode(deinterlace)
         self.buffer_s = float(buffer_s)
-        self.buffer_max_bytes = int(float(buffer_max_mb) * 1024 * 1024)
+        # None = automatic (follows buffer_s and the frame rate); a number = fixed cap in MB
+        self.buffer_auto = buffer_max_mb is None
+        self.buffer_max_bytes = int(float(BUFFER_MAX_MB if buffer_max_mb is None else buffer_max_mb) * 1024 * 1024)
+        self.hold_max_s = float(hold_max_s)
         self.jpeg_quality = int(jpeg_quality)
         self.max_fps = max_fps
         self.backoff_min = backoff_min
@@ -69,6 +113,11 @@ class Camera:
         self._prev_img = None           # previous image, for freeze detection
         self._ring = collections.deque()   # (receive time, Frame)
         self._ring_bytes = 0            # image bytes held by the ring
+        self._hold_t = None             # frames with f.t >= this are pinned (None = no hold)
+        self._hold_set_at = None        # receive time of the first frame after hold() (expiry clock)
+        self._n_packed = 0              # packed (JPEG) entries at the front of the ring
+        self._packed_bytes = 0
+        self._dropped_held = 0          # held frames lost anyway (HELD_MAX_MB reached)
         self._stats = collections.deque()  # (receive time, bad) over STATS_WINDOW_S
         self._last_rx = 0.0             # time.time() of the newest frame
         self._next_due = 0.0            # max_fps schedule: the next frame is kept from about this time
@@ -197,8 +246,8 @@ class Camera:
         with self._lock:
             self._reconnects += 1
 
-    def _handle(self, f: Frame) -> None:
-        now = time.time()
+    def _handle(self, f: Frame, now: Optional[float] = None) -> None:
+        now = time.time() if now is None else now
         if self.max_fps:
             # schedule, not a minimum gap: with max_fps equal to the source rate a few ms of jitter must not drop
             # frames. Keep a frame from 20 % of a period before it is due; the next is due one period later
@@ -224,13 +273,10 @@ class Camera:
             self._connected = True
             self._ring.append((now, f))
             self._ring_bytes += _nbytes(f)
-            while len(self._ring) > 1 and (now - self._ring[0][0] > self.buffer_s
-                                           or len(self._ring) > MAX_BUFFER_FRAMES
-                                           or self._ring_bytes > self.buffer_max_bytes):
-                self._ring_bytes -= _nbytes(self._ring.popleft()[1])
             self._stats.append((now, f.bad))
             while self._stats and now - self._stats[0][0] > STATS_WINDOW_S:
                 self._stats.popleft()
+            self._trim_locked(now, _nbytes(f))
             rec = self._recorder
             self._new_frame.notify_all()
         if rec is not None:
@@ -239,7 +285,79 @@ class Camera:
             except Exception as e:
                 self._error("record: %s" % e)
 
+    def _cap_locked(self, frame_bytes: int) -> int:
+        if not self.buffer_auto:
+            return self.buffer_max_bytes
+        fps = self._fps_locked() or 30.0
+        need = int(self.buffer_s * min(fps, 120.0) * frame_bytes * 1.25)
+        return max(self.buffer_max_bytes, min(need, int(RAM_HARD_MAX_MB * 1024 * 1024)))
+
+    def _held_locked(self, f) -> bool:
+        return self._hold_t is not None and f.t >= self._hold_t
+
+    def _pop_locked(self) -> None:
+        _, f = self._ring.popleft()
+        n = _nbytes(f)
+        self._ring_bytes -= n
+        if self._n_packed:
+            self._n_packed -= 1
+            self._packed_bytes -= n
+
+    def _trim_locked(self, now: float, frame_bytes: int) -> None:
+        if self._hold_t is not None and self._hold_set_at is None:
+            self._hold_set_at = now                     # measured on the frame clock from the first frame after hold()
+        if self._hold_t is not None and now - self._hold_set_at > self.hold_max_s:
+            self._hold_t = None                         # forgotten hold: end it
+        cap = self._cap_locked(frame_bytes)
+        ring = self._ring
+        # 1. age, count and RAM limits for frames that are not held (the oldest come first)
+        while len(ring) > 1 and not self._held_locked(ring[0][1]) and (
+                now - ring[0][0] > self.buffer_s or len(ring) > MAX_BUFFER_FRAMES or self._ring_bytes > cap):
+            self._pop_locked()
+        if self._hold_t is None:
+            if self._n_packed:      # no hold: packed frames are only kept while they are in the time window
+                while self._n_packed and len(ring) > 1 and now - ring[0][0] > self.buffer_s:
+                    self._pop_locked()
+            return
+        # 2. held frames over the RAM cap: compress the oldest ones in place
+        while self._ring_bytes > cap and self._n_packed < len(ring) - 1:
+            i = self._n_packed
+            t_rx, f = ring[i]
+            try:
+                p = _Packed(f)
+            except Exception:
+                break
+            ring[i] = (t_rx, p)
+            self._ring_bytes += p.nbytes - _nbytes(f)
+            self._packed_bytes += p.nbytes
+            self._n_packed += 1
+        # 3. last resort: drop the oldest packed frames
+        while self._packed_bytes > HELD_MAX_MB * 1024 * 1024 and self._n_packed and len(ring) > 1:
+            self._pop_locked()
+            self._dropped_held += 1
+
     # ------------------------------------------------------------ public API
+
+    def hold(self, t_from: Optional[float] = None) -> None:
+        """Pin every frame with f.t >= t_from (default: now) until release_hold(): the flight frames.
+
+        Frames already in the ring from t_from on are kept too. Set it at fire time with t_fire - 2 s."""
+        with self._lock:
+            self._hold_t = time.time() if t_from is None else float(t_from)
+            self._hold_set_at = None
+
+    def release_hold(self) -> None:
+        """End the hold: the ring goes back to its normal time window (trimmed on the next frame)."""
+        with self._lock:
+            self._hold_t = None
+
+    def held(self) -> list:
+        """The held frames (f.t >= the hold time), decoded, oldest first. [] without a hold."""
+        with self._lock:
+            if self._hold_t is None:
+                return []
+            items = [f for _, f in self._ring if f.t >= self._hold_t]
+        return [_unpack(f) for f in items]
 
     def latest(self) -> Optional[Frame]:
         with self._lock:
@@ -283,9 +401,11 @@ class Camera:
             if not self._ring:
                 return []
             if seconds is None:
-                return [f for _, f in self._ring]
-            cutoff = self._ring[-1][0] - seconds
-            return [f for t, f in self._ring if t >= cutoff]
+                items = [f for _, f in self._ring]
+            else:
+                cutoff = self._ring[-1][0] - seconds
+                items = [f for t, f in self._ring if t >= cutoff]
+        return [_unpack(f) for f in items]       # packed (held) frames are decoded outside the lock
 
     def start_recording(self, path: str, fps: Optional[float] = None, **kw) -> str:
         """Start writing frames to path (AVI + sidecar). Returns the path."""
@@ -335,6 +455,10 @@ class Camera:
                 "age_s": None if f is None else round(now - self._last_rx, 3),
                 "buffer_frames": len(self._ring),
                 "buffer_mb": round(self._ring_bytes / (1024.0 * 1024.0), 1),
+                "buffer_s": round(self._ring[-1][0] - self._ring[0][0], 2) if self._ring else 0.0,
+                "hold": self._hold_t,
+                "packed_frames": self._n_packed,
+                "dropped_held": self._dropped_held,
                 "errors": self._errors,
                 "last_error": self._last_error,
                 "reconnects": self._reconnects,

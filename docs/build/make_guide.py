@@ -61,9 +61,9 @@ SOURCES = [
 # ----------------------------------------------------------------------------------------------- text helpers
 def clean(text):
     """House rules: no em dashes. En dashes become plain hyphens. Smart quotes become plain."""
-    text = text.replace(" — ", ", ").replace("—", ", ")
-    text = text.replace("–", "-").replace("‘", "'").replace("’", "'")
-    text = text.replace("“", '"').replace("”", '"')
+    text = text.replace(" \u2014 ", ", ").replace("\u2014", ", ")
+    text = text.replace("\u2013", "-").replace("\u2018", "'").replace("\u2019", "'")
+    text = text.replace("\u201c", '"').replace("\u201d", '"')
     return text
 
 
@@ -658,7 +658,7 @@ D2 / D3). One drill wrong only: swap that drill's motor leads. VTX antenna on be
 
 
 def lint(md):
-    bad = [n for n, line in enumerate(md.splitlines(), 1) if "—" in line]
+    bad = [n for n, line in enumerate(md.splitlines(), 1) if "\u2014" in line]
     if bad:
         print(f"ERROR: em dash on guide lines {bad[:10]}")
         return False

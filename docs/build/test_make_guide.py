@@ -10,7 +10,7 @@ spec.loader.exec_module(mg)
 
 
 def test_clean_removes_em_dashes():
-    assert "—" not in mg.clean("a — b—c – d")
+    assert "\u2014" not in mg.clean("a \u2014 b\u2014c \u2013 d")
 
 
 def test_demote_pushes_headings_down_and_keeps_code():
@@ -32,7 +32,7 @@ def test_dart_printlist_lists_plates():
 
 def test_full_build_has_every_section_and_no_em_dash():
     md = mg.build_markdown()
-    assert "—" not in md
+    assert "\u2014" not in md
     heads = re.findall(r"^# (\d+)\.", md, re.M)
     assert heads == [str(i) for i in range(1, 16)], heads
     for must in ("battery unplugged", "608", "20 A fuse", "9.0 V"):

@@ -343,3 +343,43 @@ if __name__ == "__main__":
         print("edge %6.1f  %s -> %s" % (e[0], CODE_TABLE[e[1]], CODE_TABLE[e[2]]))
     for p in stop_plan(c):
         print(p)
+
+
+def firmware_table(c=None):
+    """Everything fw-base needs, JSON-ready (written to drum_table.json by `python _drum_kin.py --json`)."""
+    c = c or DEFAULTS
+    return dict(
+        version="drum v3 (BASE_SPEC D16)",
+        positions={k.upper(): c[k] for k in ("launch", "neutral", "wrapped", "reel")},
+        stops=[c["stop_lo"], c["stop_hi"]],
+        code_table={format(k, "03b"): v for k, v in CODE_TABLE.items()},
+        code_bits={"SW_DRUM_A": "b0", "SW_DRUM_B": "b1", "SW_DRUM_C": "b2"},
+        code_arcs={k: [list(a) for a in v] for k, v in c["code_arcs"].items()},
+        edges=[dict(deg=e[0], below=format(e[1], "03b"), above=format(e[2], "03b")) for e in edges(c)],
+        stop_plan=stop_plan(c),
+        timing_s=timing(c),
+        dps_nominal=drum_dps(c),
+        wrap_window=[c["seg_start"], c["seg_start"] + seg_span(c)],
+        cup_turns=wraps_total(c),
+        collar_transitions=dict(LN=list(c["tr_ln"]), NR=list(c["tr_nr"])),
+        brake_ramps=[list(r) for r in c["brake_ramps"]],
+        rules=[
+            "Positive drum = N20 forward (DRV8833 #3 IN1 high) = wrap direction.",
+            "Wiper stopped before every drum move, except the fly-in into REEL: creep the wiper forward over NR.",
+            "After every drum arrival check SW_DOG (closed = collar not where the groove put it).",
+            "SW_DOG closed in LAUNCH or REEL: jog the wiper +-15 deg, up to 60 deg, 30 percent duty, until it opens.",
+            "SW_DOG closed in NEUTRAL: jog the wiper about 14 deg against the last load, recheck, SWITCH_DISAGREE after 3.",
+            "Before leaving LAUNCH or REEL under load: unload jog about 14 deg first.",
+            "Unwrap (WRAPPED or WRAPPING back to NEUTRAL): drum negative with the wiper creeping forward (bus take-up).",
+            "Code 000 = DRUM_SENSOR fault. Timeout = 2 x nominal + 2 s: DRUM_TIMEOUT, stop, try NEUTRAL once.",
+            "Boot: LN -> go + to NEUTRAL; WRAPPING / WRAPPED / NR / REEL -> go - to NEUTRAL with the wiper creeping forward.",
+        ],
+    )
+
+
+if __name__ == "__main__" and "--json" in __import__("sys").argv:
+    import json, os
+    fn = os.path.join(os.path.dirname(os.path.abspath(__file__)), "drum_table.json")
+    with open(fn, "w") as fh:
+        json.dump(firmware_table(), fh, indent=1)
+    print(fn)

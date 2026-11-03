@@ -141,7 +141,7 @@ Other parts:
 - Gray code: adjacent sectors differ by one bit, so a slow contact can only show the neighbour.
 - At both hard stops every band is fully up or fully down (tested).
 
-## 7. Stop plan (run to the edge, then the extra angle by time)
+## 7. Stop plan (run to the edge, then the extra angle by time). Machine-readable: `drum_table.json` (`python _drum_kin.py --json`)
 
 | target | dir | watch edge | code change | extra |
 |---|---|---|---|---|

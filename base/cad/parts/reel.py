@@ -90,7 +90,8 @@ SHROUD_R = (39.5, 41.5)       # shroud shell round the storage reel
 SHROUD_DEG = (140.0, 318.0)   # covered arc (the line leaves at the top, the guide post stands at the right)
 
 ROCKER_PIVOT = np.array((X_REEL, 37.0, 3.0))
-ROCKER_Z = (0.5, 3.5)         # spring plate (t 3.0, reel_calc.rocker_section)
+ROCKER_Z = (0.5, 3.5)         # spring plate (PPA-CF, t 3.0, reel_calc.rocker_section)
+BAR_LUG = (19.2, 25.0, 4.0)   # bar end lug for crank arm A: Z from .. to at the end face, 45 deg chamfer below
 BRAKE_STROKE = 4.0            # cad-drum's track 2 cam lift (radial, base r 30, follower at L angle 180 = R -X)
 # Brake input: the cam pushes a sliding bar -X (in front of the wall, under the shroud); the bar turns a bell crank
 # (axis R Y) left of the reel; the crank's arm B pushes the rocker's stiff leg +Z from behind. Fail-safe LIGHT: the
@@ -101,12 +102,12 @@ BAR_Z = (9.2, 15.2)           # bar thickness: rides the cam at world y 18.3 .. 
 BAR_H = 6.0                   # bar height (R Y)
 BAR_YL = -55.0                # left run: under the shroud and under the guide post
 BAR_DOG = (-30.0, -10.0)      # dogleg up to the cam height between these X
-LEG_X = (-93.0, -83.0)        # rocker leg (stiff, Z 0.5 .. 6), from the spring plate down past the shroud
+LEG_X = (-92.0, -83.0)        # rocker leg (stiff, Z 0.5 .. 6), from the spring plate down past the shroud
 LEG_Y0, LEG_Z1 = -51.7, 6.0
-CRANK_X, CRANK_Z = -99.83, 2.0                # crank pivot (axis R +Y)
+CRANK_X, CRANK_Z = -97.8, 2.0                 # crank pivot (axis R +Y)
 CRANK_Y = (-58.1, -45.7)
-CRANK_LA, CRANK_RT = 10.2, 2.5                # arm A: tip circle centre above the pivot, radius (bar contact)
-CRANK_B, CRANK_RB = (12.83, -3.05), 1.5       # arm B: tip circle centre from the pivot (leg contact), radius
+CRANK_LA, CRANK_RT = 20.0, 2.5                # arm A: tip circle centre above the pivot, radius (bar lug contact)
+CRANK_B, CRANK_RB = (10.8, -3.05), 1.5        # arm B: tip circle centre from the pivot (leg contact), radius
 CRANK_HUB_R, CRANK_BOSS_R = 4.3, 2.5
 CRANK_COL_TOP, CRANK_BOSS_TOP = -58.4, -45.4  # column under the crank, pivot boss top (washer + M3 x 10 on it)
 WASHER_T, WASHER_R = 1.2, 4.5
@@ -397,12 +398,16 @@ def _bar():
     xl = CRANK_X + CRANK_RT + 0.05
     xn = cx - BAR_GAP - NOSE_R
     yl, yr, h = BAR_YL, cy, BAR_H / 2
-    left = prim.box(xl, BAR_DOG[0], yl - h, yl + h, zr[0], zr[1])
+    lz0, lz1, lstep = BAR_LUG
+    left = prim.box(xl + lstep, BAR_DOG[0], yl - h, yl + h, zr[0], zr[1])
+    lug_cs = prim.poly_cs([(xl, lz0), (xl + lstep, zr[1] - 0.01), (xl + lstep, zr[0] + 1.0), (xl + lstep + 8.0, zr[0] + 1.0),
+                           (xl + lstep + 8.0, lz1), (xl, lz1)])           # (R x, R z) profile, extruded along R Y
+    lug = prim.place(prim.extrude(lug_cs, 2 * h), tf.T(0, yl + h, 0) @ tf.Rx(90))
     right = prim.box(BAR_DOG[1], xn, yr - h, yr + h, zr[0], zr[1])
     dog = Manifold.batch_hull([prim.box(BAR_DOG[0] - 4.0, BAR_DOG[0], yl - h, yl + h, zr[0], zr[1]),
                                prim.box(BAR_DOG[1], BAR_DOG[1] + 4.0, yr - h, yr + h, zr[0], zr[1])])
     nose = prim.cyl(NOSE_R, zr[1] - zr[0], x=xn, y=yr, z=zr[0], seg=96)
-    return prim.union([left, dog, right, nose])
+    return prim.union([left, lug, dog, right, nose])
 
 
 def _guide_cap(gx, ylo, yhi):
@@ -606,7 +611,7 @@ def _thrust_ring():
 
 
 def _rocker():
-    """Brake rocker (PETG, flexible lever), local frame = R. Pivots on an M3 pin at the top, two trim screw tips press
+    """Brake rocker (PPA-CF, flexible lever), local frame = R. Pivots on an M3 pin at the top, two trim screw tips press
     T at Y 0, the crank pushes the stiff leg at the bottom. With T blocked by the clutch stack the plate bends: it IS
     the clutch spring (reel_calc.rocker_section, plate t 3.0)."""
     x, y, z = ROCKER_PIVOT
@@ -880,8 +885,8 @@ def parts(P):
             color=COL["brg"], bought_ref="608ZZ 8x22x7", step=9, notes="608 bearing in the storage reel")
     add("reel_t", _thrust_ring(), "PLA", joint="reel_t", place=tf.T(0, 0, Z_T), color=COL["clip"], step=9,
         notes="Thrust ring: the rocker pushes it onto the rear 608 inner race")
-    add("reel_rocker", _rocker(), "PETG", joint="reel_base", color=COL["rocker"], step=10,
-        notes="Brake rocker: flexible lever = clutch spring, pushed by the drum. Print flat")
+    add("reel_rocker", _rocker(), "PPA-CF", joint="reel_base", color=COL["rocker"], step=10,
+        notes="Brake rocker: flexible PPA-CF lever = clutch spring, pushed by the crank. Print flat")
     add("reel_rocker_pin", fasteners_m3(24.0), "bought", joint="reel_base",
         place=tf.T(ROCKER_PIVOT[0] - 12.0, ROCKER_PIVOT[1], ROCKER_PIVOT[2]) @ tf.Ry(90), color=COL["brg"],
         bought_ref="M3x25 SHCS + M3 nut", step=10, notes="Rocker pivot pin")

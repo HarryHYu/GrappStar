@@ -70,7 +70,9 @@ home, or the contact is not touching.
 
 ### Current scale (multimeter with a 10 A range, low duty only)
 
-If WIRING.md section 4 found an onboard IS resistor, set the computed `amps_per_volt` first.
+Fit the 1 uF capacitor from GPIO1 to GND first if you have it (WIRING.md section 4, strongly recommended; the sketch
+averages 16 reads across the PWM period, so the reading is right without it too). If WIRING.md section 4 found an
+onboard IS resistor, set the computed `amps_per_volt` first.
 
 The meter's 10 A range cannot take a start surge or a stall. So this is done only at low duty, with nothing loading
 the shaft: a FORWARD jog with the drum in NEUTRAL runs the take-up at 40 % power with the 300 ms soft start (on the

@@ -62,3 +62,10 @@ Status: in progress. Final version at 18:30 Sydney.
   SLP pull-up procedure, release order (pods up before kick back), one payout brake number (0.5 to 0.75 N),
   spring 4 kg limit 160 mm, INA219 library dropped. Sent to fw-dart (their files): antenna before power, B2 order,
   BENCH_TEST step order and Jetson-only steps, B4/B5 overlap. "No jetson CLI" was stale (it is on w/jetson).
+- Round 3 (fresh agent, cross-document consistency against spec v1.0 and DECISIONS): 13 groups. Fixed in docs/build:
+  FORWARD defined physically, `require_seated false` for the no-dart dry cycles, estop exceptions (DRUM_HELD when
+  cocked or wrapped), no plug pulled with the battery in (AS5600 fault test by moving the board; barrel plugged in
+  with the battery out), magnet required until the firmware has the D12 index mode, jog duty in the stall test,
+  tow limit 50 N default, CALIBRATION (f) moved to stage 4, `reel` then `stop`, contact reading on USB only,
+  bench-built motors may stay connected for the rover power-on. Sent 11 items to fw-base (D16 order, 11 contacts,
+  D9 SLP, D12, D8 trips, limit_n 20 vs 50, STEMMA plug rule, MP1584, aim range, 2 A fuse, FORWARD).

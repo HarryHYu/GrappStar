@@ -402,25 +402,28 @@ The mission steps, in order (the page highlights the current one):
 
 | Step | What happens | You do |
 |---|---|---|
-| PREFLIGHT | links, faults, dart seated, battery, videos, a target set | fix what it lists, then Retry |
+| PREFLIGHT | links, faults, dart seated, battery, videos, a target set | fix what it lists, then Retry; then confirm "Base may move" |
 | LAUNCH_MODE | drum to LAUNCH (about 4 s per drum step) | |
 | AIM | pitch from the ballistics table; the page says how far to turn the rover | turn the rover, press Aim |
-| COCK | the base draws the spring (up to about 20 s) | |
+| COCK | the base draws the spring (up to about 20 s) | confirm Cock |
 | ARM | the dart's landing detector is armed (it only records; you decide on anchoring) | |
-| FIRE | two confirmations, then the shot | Fire, then FIRE NOW |
+| FIRE | two confirmations, then the shot (FIRED, then the launcher RESET) | Fire, then FIRE NOW |
 | FLIGHT | waits for the dart to say LANDED (or the dart video to go still) | |
 | LANDING_ZONE | landing report, map, verdict; the base is told how much line is out | Anchor, or Retrieve and reshoot |
-| BASE_NEUTRAL | launcher back at rest, drum to NEUTRAL | |
-| ANCHOR | the dart digs in (kick, foot, drills) | |
-| TIDY | slack wound onto the storage reel (if the base firmware has it) | |
-| WRAP | the capstan wraps go on (about 24 s) | |
+| BASE_NEUTRAL | launcher at rest, drum to NEUTRAL | |
+| WRAP | the capstan wraps go on while the line is still slack; the drum parks at WRAPPED (about 24 s) | |
+| ANCHOR | the dart digs in (kick, foot, drills) | if it reports warnings, choose Tow anyway or Release and reshoot |
+| TIDY | slack wound onto the storage reel for a few seconds | |
+| FLY_IN | drum on to REEL: the capstan is now driven | |
 | CHECK | a gentle test pull must reach the check tension and hold it | |
 | TOW | reel to the tension limit and hold | drive the rover gently, then Take up slack or Rover free |
-| RELEASE | the dart unscrews and folds | |
+| RELEASE | base stops (the worm holds the line), then the dart unscrews and folds | |
 | RETRIEVE | capstan reels in until about 1.5 m is left | |
-| UNWRAP | capstan wraps come off | |
-| FINAL_APPROACH | the last metre until the dart is seated | |
+| UNWRAP | capstan wraps come off, drum back to NEUTRAL | |
+| FINAL_APPROACH | the storage take-up pulls the last metre until the dart is seated (slow, about 0.08 m/s) | |
 | LAUNCH_READY | drum back to LAUNCH for the next shot | |
+
+A NO GO verdict comes before the wrap: the dart is not anchored, so it comes home on the take-up alone.
 
 If you abort after COCK and before FIRE, the spring stays drawn: press **Decock** in the Manual section before you
 touch the launcher.

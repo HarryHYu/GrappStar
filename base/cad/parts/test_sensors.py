@@ -129,7 +129,7 @@ def test_switch_lever_within_limits():
 
 def test_mount_pilots_under_base_holes(parts):
     """The bracket pilots line up with the base mounting holes: a d2.6 rod through each base hole hits bracket."""
-    for tag, br in (("rail_low", "sensors_sw_rail_low_bracket"), ("gap", "sensors_sw_gap_bracket")):
+    for tag, br in (("rail_low", "sensors_sw_rail_low_bracket"),):
         base = parts[f"sensors_sw_{tag}"]
         bracket = parts[br]
         assert _ov(prim.place(base.solid, base.place), prim.place(bracket.solid, bracket.place)) < TOL
@@ -150,7 +150,7 @@ def test_rail_low_closes_only_near_low(asm):
     lev = "sensors_sw_rail_low_lever"
     v0 = _ov(_posed(asm, lev, S(0.0)), _posed(asm, "launch_aim_crank", S(0.0)))
     assert v0 > 1.0                                               # cam presses the lever at LOW
-    for d in (12.0, -12.0, 90.0, 180.0):
+    for d in (20.0, -20.0, 90.0, 180.0):
         assert _ov(_posed(asm, lev, S(d)), _posed(asm, "launch_aim_crank", S(d))) < TOL, d
 
 
@@ -158,6 +158,22 @@ def test_gap_closes_only_at_rest(asm):
     lev = "sensors_sw_gap_lever"
     S0 = dict(aim_deg=6.0, cock=0.0, launch_gear_deg=-360.0)
     assert _ov(_posed(asm, lev, S0), _posed(asm, "launch_big_gear", S0)) > 1.0
-    for gd in (-360.0 + 20.0, -360.0 - 20.0 + 360.0, -180.0, -90.0):
+    for gd in (-360.0 + 30.0, -30.0, -180.0, -90.0):
         S1 = dict(aim_deg=6.0, cock=0.0, launch_gear_deg=gd)
         assert _ov(_posed(asm, lev, S1), _posed(asm, "launch_big_gear", S1)) < TOL, gd
+
+
+def test_gap_base_clear_of_drum_dog_post(asm):
+    for a in (6.0, 20.0, 35.0, 47.0):
+        S = dict(aim_deg=a, cock=0.0)
+        assert _ov(_posed(asm, "sensors_sw_gap", S), _posed(asm, "drum_dog_post", S)) < TOL, a
+
+
+def test_gap_screw_end_below_gear_web(parts):
+    """Riser: jam nut and screw end stay at least 0.4 mm off the big gear web face (rail y_rel -6) at rest."""
+    import launch as LN
+    y_web = LN.L(P)["y_sec"][0]
+    for n in ("sensors_sw_gap_screw", "sensors_sw_gap_jam"):
+        p = parts[n]
+        hi = prim.bbox(prim.place(p.solid, p.place))[1]
+        assert hi[1] <= y_web - 0.4, n

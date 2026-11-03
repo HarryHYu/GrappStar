@@ -2,7 +2,7 @@
 
 The tether leaves the dart tail through the pusher hole on the rail axis, runs straight back above everything to a
 TOP pulley on a fork behind the rail, down the back to a BOTTOM pulley, then forward and sideways under the rail ties to
-a PIVOT pulley just under the main axis on the left (inboard) cheek. Length from the pivot pulley to the frame barely
+a PIVOT pulley just under the main axis on the right cheek (y -17..-9). Length from the pivot pulley to the frame barely
 changes with pitch (the pulley is 24 mm from the axis). cad-reel takes the line from the pivot pulley tangent point.
 All pulleys: printed PLA, 693ZZ bearing (3 x 8 x 4, Harry has them), M3 screw axle with nut.
 
@@ -54,7 +54,7 @@ def _piv_tangent(piv, bot):
 
 
 def rail_add(n):
-    """Solids to union into the rail (fork behind the rear end, lug under the pivot on the left cheek)."""
+    """Solids to union into the rail (fork behind the rear end, lug under the pivot on the right cheek, y -17..-9)."""
     g = geom(n)
     u_t = g["top"][0]
     u0 = n["u_track0"]
@@ -64,9 +64,14 @@ def rail_add(n):
     for sg in (1, -1):
         y0, y1 = (PUL_W / 2 + 1.0, PUL_W / 2 + 5.0) if sg > 0 else (-PUL_W / 2 - 5.0, -PUL_W / 2 - 1.0)
         s.append(prim.box(u_t - 10.0, u0 - 1.0, y0, y1, g["bot"][2] - 10.0, g["top"][2] + 9.0))
-    # pivot pulley lug on the left cheek (y -17 .. -9), down to below the pulley centre
+    # pivot pulley lug on the right cheek (y -17 .. -9), down to below the pulley centre
     pv = g["piv"]
     s.append(prim.box(-9.0, 9.0, -17.0, -9.0, pv[2] - 8.0, 0.0))
+    # thrust bosses (r 2.3, inner race only) so a tight axle clamps the 693ZZ inner race, not the pulley (review 3)
+    for p in (g["top"], g["bot"]):
+        s.append(prim.cylY(2.3, PUL_W / 2 - 0.5, PUL_W / 2 + 1.01, x=p[0], z=p[2]))
+        s.append(prim.cylY(2.3, -PUL_W / 2 - 1.01, -PUL_W / 2 + 0.5, x=p[0], z=p[2]))
+    s.append(prim.cylY(2.3, pv[1] + 2.0, -16.99, x=pv[0], z=pv[2]))
     return prim.union(s)
 
 
@@ -84,7 +89,9 @@ def pulley_solid():
     p = prim.cyl(R_PUL, PUL_W, z=-PUL_W / 2)
     groove = prim.revolve_pts([(R_GROOVE, -0.7), (R_PUL + 1, -1.8), (R_PUL + 1, 1.8), (R_GROOVE, 0.7)])
     p = p - groove
-    return p - prim.cyl(4.0 - 0.05, PUL_W + 2, z=-PUL_W / 2 - 1)
+    p = p - prim.cyl(4.0 - 0.05, PUL_W + 2, z=-PUL_W / 2 - 1)
+    # hub faces recessed 0.6 inside r 4.6 so bosses and the screw head bear on the bearing only (review 3)
+    return p - prim.tube(4.6, 3.0, 0.6, z=PUL_W / 2 - 0.6) - prim.tube(4.6, 3.0, 0.6, z=-PUL_W / 2)
 
 
 def bearing_solid():

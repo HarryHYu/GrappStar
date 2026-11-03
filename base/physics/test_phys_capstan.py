@@ -74,7 +74,7 @@ def test_tow_roundtrip_and_numbers():
     th = capstan.takeup_tension(p, 20.0)
     t = capstan.wiper_torque_for(50, p)          # full reel
     # r (F - Th(20 m) + overspeed x takeup_n) / (ratio eta)
-    assert t == pytest.approx(r * (50 - th) / (k * eta) + capstan.clutch_torque(p) * capstan.TAKEUP_OVERSPEED / capstan.ETA_BUS)
+    assert t == pytest.approx(r * (50 * capstan.path_gain(p) - th) / (k * eta) + capstan.clutch_torque(p) * capstan.TAKEUP_OVERSPEED / capstan.ETA_BUS)
     assert capstan.line_from_wiper(t, p, line_left=20.0) == pytest.approx(50.0)
     pt = capstan.tow_point(50, p, 11.1)
     # drum turns 1/ratio per wiper turn: v_line = wiper speed / ratio x r
@@ -82,15 +82,35 @@ def test_tow_roundtrip_and_numbers():
     assert 0.05 < pt["v_line"] < 0.2
     assert pt["current"] == pytest.approx(p.wiper.i_free + t / p.wiper.kt)
     assert pt["t_drum"] == pytest.approx(capstan.drum_shaft_torque(t, p))
-    assert t < 0.8 * p.wiper.limiter_nm          # tow does not slip the limiter
+    assert (t < 0.8 * p.wiper.limiter_nm) == (capstan.path_gain(p) < 1.3)   # plain eyes put 50 N near the pin
 
 
 def test_lame_hoop():
     p = Params()
     t = capstan.wiper_torque_for(50, p)
     ps = capstan.part_stresses(50, t, p, 5, 40, 2.0)
-    pe = 50 / (0.02 * 1.05e-3)
-    assert ps["hoop_mpa"] == pytest.approx(2 * pe * 0.02 ** 2 / (0.02 ** 2 - 0.01 ** 2) / 1e6)   # 6.35 MPa
+    f_cap = 50 * capstan.path_gain(p)                     # the drum sees the capstan-side tension
+    pe = f_cap / (0.02 * 1.05e-3)
+    assert ps["f_capstan"] == pytest.approx(f_cap)
+    assert ps["hoop_mpa"] == pytest.approx(2 * pe * 0.02 ** 2 / (0.02 ** 2 - 0.01 ** 2) / 1e6)   # 9.5 MPa at gain 1.5
+    assert ps["line_pressure_mpa"] == pytest.approx(f_cap / (0.02 * p.line.d) / 1e6)
+    assert ps["radial_n"] == pytest.approx(f_cap + 2.0)   # parallel lines: F_cap + T_hold
+    assert ps["t_drum"] == pytest.approx(capstan.drum_shaft_torque(t, p))
+
+
+def test_run_uses_capstan_side_tension():
+    p = Params()
+    p.capstan["path_gain"] = 1.5
+    r = capstan.run(p)
+    tu = r["takeup"]
+    mu = r["inputs"]["mu"]
+    f_cap = r["inputs"]["tow"] * 1.5
+    assert r["inputs"]["tow_capstan"] == pytest.approx(f_cap)
+    assert r["wraps_needed"] == capstan.wraps_needed(f_cap, tu["t_hold_min"], mu)
+    assert r["takeup_needed_n"] == pytest.approx(capstan.takeup_needed(f_cap, r["inputs"]["wraps"], mu))
+    s = r["stall"]["full"]
+    assert s["f_capstan"] == pytest.approx(s["f_line"] * 1.5)
+    assert s["exceeds_break"] == (s["f_line"] * 1.5 > p.line.breaking)
 
 
 def test_fw_trip():
@@ -107,6 +127,7 @@ def test_fw_trip():
 
 def test_run_flags():
     p = Params()
+    p.capstan["path_gain"] = 1.15          # with pulleys at the exit eye and ring (plain holes: see test_plain_eyes_flag)
     r = capstan.run(p)
     lim = p.wiper.limiter_nm
     assert r["stall"]["full"]["t_wiper"] == pytest.approx(lim)
@@ -127,3 +148,11 @@ def test_run_no_limiter():
     assert r["limiter"] is None and r["info"] == []
     assert r["stall"]["full"]["current"] == pytest.approx(16.96, abs=0.05)
     assert any("motor stall (no limiter)" in w and "dart holding" in w for w in r["warnings"])
+
+
+def test_plain_eyes_flag():
+    p = Params()
+    p.capstan["path_gain"] = 1.5
+    r = capstan.run(p)
+    assert r["limiter"]["slips_at_tow"]                  # 50 N at the dart through plain printed eyes is near the pin
+    assert r["limiter"]["f_tow_max_n"] < 50.0

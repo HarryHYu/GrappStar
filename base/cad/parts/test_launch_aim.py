@@ -146,39 +146,27 @@ def test_split_out_clear():
     assert d > G.tip_r(1.5, 18) + G.tip_r(1.5, 30) + 1.0
 
 
-def _sw_gap(d):
-    """Gap (mm) between the crank cam and the SW_RAIL_LOW screw (modelled pressed) at crank d deg from LOW, and the
-    overlap volume. Gap 0 = fully pressed (closed); gap >= TRAVEL = tip free."""
+def test_sw_rail_low_cam():
+    """SW_RAIL_LOW cam lobe (cad-sensors' lever rides on it): crest at SWL_RT facing the switch at the LOW dead point,
+    inside the crank plane SWL_CAM_Y, and part of the crank solid."""
     from cad.lib import prim
-    import launch_switch as SW
-    parts = {p.name: p for p in AIM.parts_aim(P)}
-    pv = float(K.pitch_of_psi(P, K.pitch_table(P)["psi_low"] - d, +1))
-    W, _ = _world(dict(aim_deg=pv, aim_psi_from_low=d))
-    cr = prim.place(parts["launch_aim_crank"].solid, W["launch_aim_crank"] @ parts["launch_aim_crank"].place)
-    zc = AIM.A(P)["crank_z"]
-    cr = cr ^ prim.box(85, 150, 180, 210, zc - 35, zc + 35)               # only the region round the switch (speed)
-    sc = prim.place(parts["launch_sw_rail_low_screw"].solid, parts["launch_sw_rail_low_screw"].place)
-    bd = prim.place(parts["launch_sw_rail_low"].solid, parts["launch_sw_rail_low"].place)
-    return cr.min_gap(sc, 5.0), (cr ^ sc).volume(), (cr ^ bd).volume(), cr.min_gap(bd, 5.0)
-
-
-def test_sw_rail_low_window():
-    import launch_switch as SW
-    closed = []
-    for d in np.arange(-10.0, 10.01, 1.0):
-        g, v_sc, v_bd, g_bd = _sw_gap(float(d))
-        assert v_sc < 1e-3 and v_bd < 1e-3, d            # never pushes past the pressed position, never hits the body
-        assert g_bd > 0.5, d
-        if g < 0.05:                                  # full travel (screw set 0.05 proud closes it)
-            closed.append(float(d))
-    print(f"\nSW_RAIL_LOW closed for crank d from LOW in [{min(closed)}, {max(closed)}] deg")
-    assert min(closed) >= -7.0 and max(closed) <= 7.0 and min(closed) <= -5.0 and max(closed) >= 5.0
-    # released elsewhere: tip free beyond the window (cam below the free tip position)
-    for d in (-12.0, 12.0, 30.0, 90.0, 180.0, 270.0):
-        assert _sw_gap(d)[0] > SW.TRAVEL, d
-    # the audit rest state (pitch 6.02 on the rising branch) is pressed
+    n = AIM.A(P)
+    cam = AIM.swl_cam_joint(P)
+    lo, hi = prim.bbox(cam)
+    assert lo[1] == pytest.approx(AIM.SWL_CAM_Y[0], abs=1e-6) and hi[1] == pytest.approx(AIM.SWL_CAM_Y[1], abs=1e-6)
     d0 = AIM.psi_of_pitch(P, 6.02)[1]
-    assert _sw_gap(d0)[0] < 0.05
+    pv = float(K.pitch_of_psi(P, K.pitch_table(P)["psi_low"], +1))
+    W, _ = _world(dict(aim_deg=pv, aim_psi_from_low=0.0))
+    parts = {p.name: p for p in AIM.parts_aim(P)}
+    cr = prim.place(parts["launch_aim_crank"].solid, W["launch_aim_crank"] @ parts["launch_aim_crank"].place)
+    ym = 0.5 * (AIM.SWL_CAM_Y[0] + AIM.SWL_CAM_Y[1])
+    tip = prim.box(n["crank_x"] + AIM.SWL_RT - 0.3, n["crank_x"] + AIM.SWL_RT - 0.05, ym - 0.5, ym + 0.5,
+                   n["crank_z"] - 0.2, n["crank_z"] + 0.2)
+    assert (cr ^ tip).volume() > 0.05                    # crest at SWL_RT straight ahead at LOW
+    out = prim.box(n["crank_x"] + AIM.SWL_RT + 0.05, n["crank_x"] + AIM.SWL_RT + 3, ym - 2, ym + 2,
+                   n["crank_z"] - 3, n["crank_z"] + 3)
+    assert (cr ^ out).volume() < 1e-6
+    assert d0 >= 0
 
 
 def test_drum_interface_clear():
@@ -190,7 +178,7 @@ def test_drum_interface_clear():
     spig = prim.cylY(6.0, 96.0, 198.5, 0.0, az)
     cap = prim.cylY(10.0, 195.0, 201.5, 0.0, az)
     parts = {p.name: p for p in AIM.parts_aim(P)}
-    for nm in ("launch_aim_housing", "launch_aim_as5600"):
+    for nm in ("launch_aim_housing",):
         s = prim.place(parts[nm].solid, parts[nm].place)
         assert (s ^ spig).volume() < 1e-6 and (s ^ cap).volume() < 1e-6, nm
         assert s.min_gap(cap, 2.0) > 0.4, nm
@@ -199,5 +187,80 @@ def test_drum_interface_clear():
     assert hi[1] < 195.0
     # thrust face: housing material just beyond the sleeve end (y 193) between r 6.25 and r 10
     assert (hs ^ prim.box(7.0, 9.0, 193.0, 194.0, az - 1, az + 1)).volume() > 1.0
-    b = prim.bbox(prim.place(parts["launch_aim_as5600"].solid, tf.I4))
-    assert 202.5 <= b[0][1] <= 203.5
+
+
+def test_no_o_ring_or_e_clip():
+    """Only Harry's hardware is bought (M3, M8, 608 here); drag and pin retention are printed."""
+    for p in AIM.parts_aim(P):
+        txt = (p.notes + " " + str(getattr(p, "bought_ref", "") or "")).lower()
+        assert "o-ring" not in txt and "e-clip" not in txt and "din 6799" not in txt, p.name
+        if p.material == "bought":
+            assert any(k in txt for k in ("m8", "608", "m3")), p.name
+    mats = {p.name: p.material for p in AIM.parts_aim(P)}
+    assert mats["launch_aim_conrod"] == "PPA-CF" and mats["launch_aim_lug"] == "PPA-CF"
+
+
+def test_drag_pad_flexure():
+    """Flexure pad: bump presses into the sleeve d20 by DRAG_INT (the Allow), the rest of the pad, the shim and the
+    arm stay off the sleeve; finger strain under 0.8 % at the thickest shim; pad / shim sit in the arm pocket
+    without overlap (0.05 gaps) and the Allow is declared."""
+    from cad.lib import prim
+    parts = {p.name: p for p in LN.parts(P)}
+    W, _ = _world(dict(aim_deg=20.0))
+
+    def posed(nm):
+        p = parts[nm]
+        return prim.place(p.solid, W[p.joint] @ p.place)
+
+    sl, pad, shim, arm = posed("launch_sleeve"), posed("launch_aim_drag_pad"), posed("launch_aim_drag_shim"), \
+        posed("launch_aim_arm")
+    v = (pad ^ sl).volume()
+    assert 0.05 < v < 5.0
+    assert (shim ^ sl).volume() < 1e-6 and (arm ^ sl).volume() < 1e-6
+    assert (pad ^ arm).volume() < 1e-6 and (shim ^ arm).volume() < 1e-6 and (pad ^ shim).volume() < 1e-6
+    assert pad.min_gap(arm, 0.3) <= 0.06 and shim.min_gap(pad, 0.3) <= 0.06
+    t = AIM.DRAG_T
+    rm = AIM.DRAG_W_RB + t / 2
+    L = math.radians(AIM.DRAG_ROOT - AIM.DRAG_TIP) * rm
+    for d in (AIM.DRAG_INT, AIM.DRAG_INT + AIM.DRAG_SHIM_ADJ):
+        assert 3 * t * d / (2 * L ** 2) < 0.008
+    assert 1.2 > AIM.DRAG_INT + AIM.DRAG_SHIM_ADJ                         # gap behind the finger > deflection
+    al = [(a.a, a.b) for a in AIM.allowed_aim(P)]
+    assert ("launch_aim_drag_pad", "launch_sleeve") in al
+
+
+def test_printed_clips_seated():
+    """Printed C clips sit in their pin grooves: no overlap with pin, rod, idler; within 0.2 of the pin (touch)."""
+    from cad.lib import prim
+    parts = {p.name: p for p in LN.parts(P)}
+    for pv in (6.02, 30.0, 47.0):
+        W, _ = _world(dict(aim_deg=pv))
+
+        def posed(nm):
+            p = parts[nm]
+            return prim.place(p.solid, (W[p.joint] if p.joint else np.eye(4)) @ p.place)
+
+        for clip, pin, others in (("launch_aim_idler_clip", "launch_aim_arm", ("launch_aim_idler",)),
+                                  ("launch_aim_crankpin_clip", "launch_aim_crank", ("launch_aim_conrod",)),
+                                  ("launch_aim_lugpin_clip", "launch_aim_lug", ("launch_aim_conrod",))):
+            c = posed(clip)
+            assert (c ^ posed(pin)).volume() < 1e-6, (clip, pv)
+            assert c.min_gap(posed(pin), 0.5) < 0.2, (clip, pv)
+            for o in others:
+                assert (c ^ posed(o)).volume() < 1e-6, (clip, o, pv)
+
+
+def test_lewis_sf_at_trip():
+    """Lewis numbers quoted in launch_aim (LEWIS block): splitter >= 1.5 at 40 MPa, worm wheel as built."""
+    T = 3.18e3                                           # N mm at the sleeve (5 A trip)
+    wt = T / (AIM.M_S * AIM.Z_SUN / 2)
+    for z, y in ((AIM.Z_SUN, 0.359), (AIM.Z_IDL, 0.309)):
+        assert 40.0 / (wt / (AIM.FACE_S * AIM.M_S * y)) >= 1.5, z
+    lam = math.radians(G.worm_lead_angle(AIM.A(P)["m_w"], AIM.A(P)["pd_w"], AIM.A(P)["starts"]))
+    cn, mu = math.cos(math.radians(20.0)), 0.25
+    tw = T / 2 * 0.95
+    fa = tw / (AIM.A(P)["pd_w"] / 2 * (cn * math.tan(lam) + mu) / (cn - mu * math.tan(lam)))
+    fe = min(AIM.WHEEL_FACE, 2.0 / 3.0 * AIM.A(P)["pd_w"])
+    sig = fa / (math.pi * AIM.A(P)["m_w"] * math.cos(lam) * fe * 0.125)
+    print(f"\nworm wheel: thrust {fa:.0f} N, sigma {sig:.1f} MPa, SF {40.0 / sig:.2f} (40 MPa)")
+    assert 40.0 / sig > 1.4

@@ -17,7 +17,7 @@ and never poll `/status` faster than 5 Hz (held-key repeats every 150 ms are the
 Refusal reasons: `in flight`, `busy` (a sequence owns the motors), `already anchored, release first`,
 `no current sensor` (INA219 missing or lost), `no IMU` (BNO085 missing or silent), `stalled: release the key first`,
 `fault latched: send stop first`, `both directions held`, `sent before a stop`,
-`battery low`, `unknown key`, and for `/flightlog` `busy (motors running, armed or in flight)`.
+`battery low`, `anchored: release first`, `unknown key`, and for `/flightlog` `busy (motors running, armed or in flight)`.
 
 **One request at a time.** If a client opens a connection and never sends a request (a browser tab closing mid
 request can do this), the ESP32 web server waits up to 5 s for it before serving anyone else. Motors are not affected
@@ -65,7 +65,7 @@ JSON, always 200. Example (written by the host test to `test/out/status_anchorin
 | `t_launch_ms`, `t_land_ms` | int or null | detected launch and landing times, null when none |
 | `log_frozen` | bool | flight log holds a finished flight |
 | `reset` | string | why the dart last booted: `poweron`, `software`, `brownout`, `panic`, `task_wdt`, `int_wdt`, `wdt`, `reset_pin`, `deepsleep`, `other` (USB upload) |
-| `warnings` | array of strings | what went less than perfectly in the last `/auto` or `/release`, empty when clean: `foot_stalled`, `drills_stalled` (stone or full depth), `kick_plant_time_limit`, `pods_time_limit`, `kick_already_down`, `pods_already_at_stop`. `ANCHORED` with warnings may be a weak anchor |
+| `warnings` | array of strings | what went less than perfectly in the last `/auto` or `/release`, empty when clean: `foot_stalled`, `drills_stalled` (stone or full depth), `kick_plant_time_limit`, `pods_time_limit`, `kick_already_down`. `ANCHORED` with warnings may be a weak anchor |
 | `event` | string | last event line |
 
 `seq` values: `idle`, `kick swing`, `kick + foot planting`, `foot finishing`, `deploy + drills`, `drills finishing`,
@@ -93,8 +93,9 @@ Manual key, same keys as the web page and Serial Monitor.
   protection keeps chopping) is stopped with the event `<motor> draws no current: wire open or shorted`.
 - One stalled drill while the other turns cannot be told from normal drilling (both share one channel and one current
   reading); only both stalled is detected.
-- Both directions of one motor held at once (`1` and `!`): the motor stops and both are refused (`both directions held`)
-  until neither has been pressed for a window. To reverse, release (the page then sends a stop) and press the other.
+- Both directions of one motor held at once (`1` and `!` both being repeated): the motor stops and both are refused
+  (`both directions held`) until neither has been pressed for a window. A single switch from one key to the other
+  (release one, press the other, with or without a stop between) just reverses the motor.
 - At low `speed` the stall line never drops below 1.5 x the motor's free current, so normal running is not taken for a
   stall; below about speed 70 a stall may then only be stopped by the 8 s hold cap.
 - Other keys: space or `s` stop (same as `/stop`; with `keep=1` it stops the motors but keeps the arm, like
@@ -121,6 +122,19 @@ page's own key-release stop (`/key?c=%20&keep=1`) does not lock, so quick taps w
 `FLIGHT` it also ends flight tracking (`landing` = `stop`, `t_land_ms` = now, log freezes 3 s later).
 `/stop?disarm=0` stops the motors, aborts any sequence and clears the fault, but keeps the arm and flight tracking.
 Always 200.
+
+### Client hold contract (agreed with the Jetson client, `Dart.hold()`)
+
+How a client holds a run key, for example to bring the kick back (`@`) or push it out (`2`):
+
+1. Send `/key?c=<key>&ms=350` every 150 ms for as long as the hold should last.
+2. A refusal `stalled: release the key first` is the normal end: the motor hit its end stop and the dart already
+   stopped it. Stop repeating; do not treat it as an error.
+3. Always finish with `/stop?disarm=0`: every motor off, the arm and flight tracking kept, no key locked.
+4. Effect on the kick motor: it runs only while the repeats keep coming, stops within 350 ms of the last one, and
+   stops by itself at a stall. Effect on the arm: none (a hold never disarms; only a plain `/stop` does).
+5. The stall lock is per direction. After an `@` hold ends stalled, a `2` hold runs at once, and a fresh `@` hold
+   after `2` presses also runs (the old `@` lock is dropped once `@` repeats have stopped).
 
 ### GET /auto
 
@@ -151,10 +165,15 @@ spinning, drills finishing, `anchored`.
   stopped (anchor; it is not driven again in the next step) or faults (release). An end-stop stall is only believed after a minimum travel time (pods 0.7 s,
   kick back 1.5 s). If the kick's housing stall is never seen, planting carries on after 6 s (`kick plant time limit`).
   A worm already at its end stop when such a step starts shows no rise; it is still stopped
-  over the line in 3 of the last 4 readings (about 1.6 to 2.2 s). An auger current change of up to about 100 mA during
-  the pause is tolerated. Known limit: if the pods jam in soil mid-travel and the drills' current rises during each
+  over the line in 3 of the first 4 readings of the step (about 1.6 to 2.2 s). The rise asked for is half the way from
+  the worm's own lowest reading in the step to its line (at least 25 mA); if the other motor draws nothing (open wire)
+  no rise is needed. Known limit: an auger whose current drops during every pause by more than the worm's margin
+  (about 80 mA for the kick while planting, about 100 mA for the pods) fakes an end stop from the start of the step;
+  the step then ends early with no warning (weak anchor). BENCH_TEST step 9.6 measures this drop. Known limit: if the pods jam in soil mid-travel and the drills' current rises during each
   pause by more than the margin, the jam is only ended by the 6 s pods limit. A retried
-  `/auto` whose kick is already down skips the planting step (event `kick already down, foot planting`).
+  `/auto` whose kick is already down skips the planting step (event `kick already down, foot planting`). A kick
+  that swings at least 85 % of its full travel and stalls without a contact phase hit its own end stop in air (dart on
+  its back or side): fault `NO_GROUND`, foot, pods and drills are not driven.
 - One failed current read at the moment a step ends does not fault: the step ends and the next good read moves on.
 
 ### GET /release
@@ -173,7 +192,7 @@ of `/auto` (pods up before the kick comes back), because the kick goes down firs
 
 - Refused in `FLIGHT`, while anchoring (`busy`, send `/stop` first), and without the INA219.
 - A repeated `/release` while releasing is accepted and does not restart it.
-- Faults: `DRILL_JAM`, `FOOT_JAM`, `KICK_JAM` (kick stalled before half way back), `NO_CURRENT`, `KICK_TIMEOUT`
+- Faults: `DRILL_JAM`, `FOOT_JAM`, `KICK_JAM` (kick stalled before 60 % of the way back), `NO_CURRENT`, `KICK_TIMEOUT`
   (15 s), `SEQ_TIMEOUT` (35 s), plus `OVERCURRENT`, `LOW_RAIL`, `CURRENT_SENSOR`. All motors stop on any fault.
 
 ### GET /arm?on=1&auto=1
@@ -182,7 +201,7 @@ of `/auto` (pods up before the kick comes back), because the kick goes down firs
   records the flight log. Re-arming resets the flight detector, `landed`, and unfreezes the log.
 - `on=0`: disarm. Always accepted, also in FLIGHT (then no auto on landing; the log still freezes after landing).
 - Arming clears a latched fault. Key `A` toggles: when disarmed it arms with `auto=1`.
-- Refused without the BNO085 (`no IMU`), with `auto=1` and no INA219, while a sequence runs, in `FLIGHT`, and with
+- Refused while `ANCHORED` (`anchored: release first`; the legs are out), without the BNO085 (`no IMU`), with `auto=1` and no INA219, while a sequence runs, in `FLIGHT`, and with
   `auto=1` when the rail is under 6.6 V at rest, including 0 V with the plug out (`battery low`; a log-only arm is
   still allowed).
 - An arm expires after 15 min without a launch (event `arm expired`).
@@ -260,6 +279,7 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 | `CURRENT_SENSOR` | 3 failed INA219 reads in a row during a sequence | all off; manual keys still work on timers |
 | `LOW_RAIL` | rail under 5.6 V (including a dead 0 V rail) for 0.5 s while a motor runs | all off |
 | `KICK_JAM` | kick stalled near stowed at the start of `/auto`, or in `/release` before its travel back covered 60 % of its travel out | all off |
+| `NO_GROUND` | in `/auto` the kick swung (almost) its whole travel and stalled at its own end stop without touching ground (dart on its back or side) | all off; `/release` stows the kick |
 | `BROWNOUT` | the dart rebooted from a brownout | booted with motors off |
 | `WATCHDOG` | the dart rebooted from a crash or the 2 s safety-task watchdog | booted with motors off |
 

@@ -64,7 +64,8 @@ them in your REPORT.md or message the coordinator.
 | swing arm | PPA-CF | split C ring on the bus gear hub r 13 | stop pins on the wall rear face at the engaged and parked ends of its 12 deg swing |
 
 Bought: CSK20PP, 2 x 608, 693ZZ (pulley 1), M3: 8 deck screws, 4 x M3x8 hub, 3 x M3x8 shroud, 2 x M3x8 trim,
-M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post.
+M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post, brake: M3x10 crank screw and
+4 x M3x16 guide caps.
 
 ## 5. Gears (spur 20 deg PPA-CF, axes parallel to the main shaft)
 
@@ -93,21 +94,33 @@ M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post.
 
 - Face clutch: annulus r 20 .. 30 (r_eff 25) on the storage reel's front flange disc against the clutch disk D (head
   of S). The thrust ring T presses the rear 608 inner race, so the reel onto D. T is pushed by two M3 TRIM SCREWS in
-  my BRAKE ROCKER (PETG plate 3 x 15, pivot M3 at the top, screws 37 below the pivot, push point 33 below that). The
-  clutch stack is rigid, so the rocker bends: it is the FIRM spring. LIGHT is set by the trim screws (hex key through
-  two holes in the wall from behind): 1/8 turn is about 0.4 N of axial preload.
+  my BRAKE ROCKER (PETG plate 3.0 thick, 15 wide, ring r 14.5 round S; pivot M3 at the top, R Y 37; screws at Y 0;
+  a stiff leg 10 x 5.5 runs down to Y -51.7, past the shroud through a window). The clutch stack is rigid, so the
+  plate bends: it is the FIRM spring. LIGHT is set by the trim screws (hex key through two holes in the wall from
+  behind): 1/8 turn is about 0.4 N of axial preload.
+- Brake input (review 2 rebuild; cad-drum's track 2 unchanged): the cam (base r 30, lift 4, follower at L angle 180)
+  pushes my BRAKE BAR (PPA-CF, 6 x 6) along R -X. Its round nose (r 3, R Z 9.2 .. 15.2 = world y 18.3 .. 24.3) sits
+  0.2 mm off the cam base circle at LIGHT, at R (48.66 - 0.2, -42.36). The bar runs in front of the wall, doglegs
+  down at R X -30 .. -10 to R Y -55 (under the shroud and under the guide post, which now ends at R Y -51), in two U
+  guides (wall jaw + printed cap, 2 x M3 x 16 each). Its left end turns a BELL CRANK (PPA-CF, axis R Y, on a d 5
+  boss at R (-99.83, Z 2), printed washer + M3 x 10): arm A (tip circle 10.2 above the pivot) on the bar end, arm B
+  (12.8 along +X, in a 3 mm recess in the wall front) under the rocker leg. Bar 3.8 mm -> crank 21.9 deg -> leg
+  +5.0 mm at R Y -48.7.
+- Spring sizing with the real section (reel_calc.rocker_section, unit-load integration, review 2 found the old 4 mm
+  at Y -33 about 80 percent too stiff): 5.0 mm at the leg contact gives exactly LIGHT -> FIRM.
 - Levels (line tension with the reel full, D24):
 
-| level | rod stroke | line N (full .. empty) | torque | axial | push force |
-|---|---|---|---|---|---|
-| LIGHT (LAUNCH, WRAP) | 0 (rod on its collar seat) | 0.50 .. 0.63 | 15.7 N mm | 2.1 N | about 1 N (rocker preload) |
-| FIRM (NEUTRAL, WRAPPED, REEL) | +4.0 mm | 5.0 .. 6.3 | 157 N mm | 20.9 N | 11.1 N (design 15 N) |
+| level | bar slide | line N (full .. empty) | torque | axial | leg force | bar force (cam) |
+|---|---|---|---|---|---|---|
+| LIGHT (LAUNCH, WRAP) | 0 (0.2 gap at the nose) | 0.50 .. 0.63 | 15.7 N mm | 2.1 N | 0.9 N (trim preload) | 0 |
+| FIRM (NEUTRAL, WRAPPED, REEL) | 3.8 mm | 5.0 .. 6.3 | 157 N mm | 20.9 N | 9.1 N | 11.9 N + friction (design 15) |
 
-- Fail-safe: if the track or follower lets go, the rocker pushes the rod back onto its collar seat: LIGHT.
-- Rocker bend at FIRM: 4 mm at the push point; the reel sits 8.5 mm in front of the rocker. Peak stress 17.5 MPa
-  (PETG); creep would lower FIRM first, which the firmware sees as a softer tidy, never as a dry LAUNCH brake because
-  LIGHT is set by the screws.
-- BRAKE INPUT (cad-drum's track 2): push rod d 5.6, rear end face at R (-88, -33, -24), push along R +Z 4.0 mm.
+- The bar follows the nose's envelope on the real cam (kin bar_mm): on the ramps the round nose touches higher up the
+  ramp than the follower line, so the bar leads the lift by up to 1.5 mm there. Note for cad-drum: past the LAUNCH
+  stop (drum -4 .. -2) the nose already sees the gap blend toward FIRM (bar 2.5 mm at -4).
+- Fail-safe: if the track or follower lets go, the rocker spring pushes the leg, crank and bar back: LIGHT.
+- Peak plate stress at FIRM about 17 MPa beside the S hole (PETG); creep would lower FIRM first, which the firmware
+  sees as a softer tidy, never as a dry LAUNCH brake because LIGHT is set by the screws.
 
 ## 7. Wrap cup
 

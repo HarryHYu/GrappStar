@@ -1,7 +1,7 @@
 # Launcher + aim train: notes (worker cad-launch)
 
-Current state for BASE_SPEC v1.1 (D23: sleeve y 111..193, two-layer big gear, sleeve outboard bushing in the aim
-housing). Every number below comes from the code: `launch_kin.py` (sizing), `launch.py` (geometry, kin, contacts),
+Current state for BASE_SPEC v1.2.7 (D23 sleeve y 111..193 in the aim housing bushing, D26 PLA flexure stop, D36 rear
+line guide, D37 flange lugs, D38 two springs). Every number below comes from the code: `launch_kin.py` (sizing), `launch.py` (geometry, kin, contacts),
 `launch_aim.py` (aim train), `launch_line.py` (tether on the rail). Run `python cad/parts/launch_kin.py` for the
 sizing summary.
 
@@ -12,11 +12,13 @@ sizing summary.
 - The BIG GEAR rides on the rail on its own pin (82.6 from the axis). Two layers on one hub:
   - sector layer (y 134..146, the rack plane): 27 of 40 teeth, Harry's release teeth (last one cut to the pitch line,
     the one before 30 percent taller);
-  - full 40T layer (y 146..154) that the drive gear meshes all the way round. (One sector layer would leave the
+  - full 40T layer (y 147.5..154.5) that the drive gear meshes all the way round. (One sector layer would leave the
     drive in the toothless gap for 117 deg of every turn: found in review round 1.)
 - One big gear turn (553.8 forward wiper deg) = cock, release, reset to rest. Backward wiper turns freewheel in
-  sprag #1; with the carriage on its stop the gear cannot follow, so aiming never decocks.
-- Firmware rule: aim only at HOME (spring slack). Aim, then fire in one forward run.
+  sprag #1. The sprag drag can carry the big gear up to about 127 deg BACKWARD from rest before its relieved last
+  tooth meets rack tooth 0 from behind (review 3): no damage, the carriage only presses its stop, but SW_GAP opens.
+- Firmware rules: aim only at HOME (spring slack). After any aim move, run FORWARD until SW_GAP closes (the gear
+  passes its gap with no tooth contact), then fire in one forward run of 553.8 wiper deg.
 - The carriage is a long sled (the rack must be one stroke long). The dart rides on it in a light V cradle (5 rings
   and 2 strips), tail on the pusher; the tether leaves through the pusher hole on the axis.
 - Aim: v10 crank-rocker scaled 0.6, rotated -90 deg about the pivot (pitch table identical to v10, 6.0 to 47.1 deg),
@@ -65,11 +67,11 @@ World: x = u cos p - w sin p, z = u sin p + w cos p (p = pitch); world origin on
 |---|---|
 | rack pitch line / dart axis | w 50.1 / w 85 (dart rests 0.4 low on the cradle) |
 | shoe track (rail walls y +-22..28) | u -178.3 to 190 |
-| spring anchors | 6 mm steel pins in post + strap (double shear); second-pair holes at y +-56 (D5) |
+| spring anchors | 8 mm steel rod pins in post + strap (double shear); fallback hole set F 8.5 mm rearward (256.5 at full cock; the stop frame front wall at u 248.15 leaves no room for 15); spare holes at y +-56 (D5 provision, D38: two springs in v1) |
 | rail | 3 printed pieces split at u -30 and 140 (2 x M3 x 16 per flange pair) |
 | tether pulleys | 693ZZ in printed pulleys (groove r 6); positions in section 2 |
 | carriage | body (|y| <= 21.5, prints on its side) + 2 bolted spring arms (half lap, 2 x M3 each) |
-| sleeve (world y) | flange 111..119 (dog ring, 3 x M3 r 28, lug slots), cheek journals 123..131 and 159.5..167.5, sprag rib 142.5..157.5, sun rib 174..182, end 193 in the aim housing bushing |
+| sleeve (world y) | flange 111..119 (D37: 3 lugs 6 x 3 at r 15..21 on the face into the dog ring slots, 3 x M3 at r 28.5 into the tapped ring), cheek journals 123..131 and 161..168, sprag rib 143.5..158.5, sun rib 174..182, end 193 in the aim housing bushing |
 | aim crank centre | world (58.0, about 202, -100.5) |
 
 Swept envelope: rail rear dips to about z -150 at 47 deg (fork bottom about 22 above the deck); muzzle about +260 up.
@@ -78,22 +80,24 @@ Swept envelope: rail rear dips to about z -150 at 47 deg (fork bottom about 22 a
 
 | name | where | closes when |
 |---|---|---|
-| SW_HOME | flex lever on the RIGHT rail lip at u 40..69, y -25 | a rigid 20 mm foot under the right spring arm sits on its screw: carriage within about +-10 mm of the stop. Overshoot into the stop just slides the foot (never a load path) |
+| SW_HOME | flex lever on the RIGHT rail lip at u 40..69, y -25 | a rigid foot under the right yoke arm sits on its screw: closed from about 3 to 5 mm behind the stop to 21 mm into the stop overshoot. Overshoot into the stop just slides the foot (never a load path) |
 | SW_SEATED | flex lever on the LEFT rail lip, mirrored | the dart tail pushes a pushrod in the pusher (y 15, w 86) back 1.5 mm; its wedge pushes a plunger whose foot presses the lever screw. Only meaningful at HOME |
-| SW_GAP | generic contact on the right cheek ledge (u 61.6, w -21) | a 2 mm cam bump on the big gear web passes its tip: gear within about +-5 deg of rest (in its gap) |
-| SW_RAIL_LOW | on the aim housing, cam on the crank | crank within the window around the LOW dead point (see launch_aim) |
+| SW_GAP | cad-sensors contact on a bracket on the right cheek outer face (pilots at u 48 / 64, w 2) | a 2 mm cam bump on the big gear web (r 29.7 at 225 deg) passes its tip: gear within about +-5 deg of rest |
+| SW_RAIL_LOW | cad-sensors contact on the aim housing foot, cam on the crank (launch_aim) | crank within the window around the LOW dead point |
 
 Firmware: shot reference = SW_GAP closing edge at the end of the forward run (or AS5600 angle); SW_HOME confirms the
 carriage really came home; SW_RAIL_LOW zeroes the aim crank on the backward run.
 
 ## 6. Carriage stop (`launch_stop.py`, D26: no TPU)
 
-Printed PLA flexure per side: 16 closed loops (31 tapered leaves, 2.93 to 1.2 mm thick, 14 tall) lying over the main
-spring, in a bolted frame, preloaded 4.4 mm (54 N, more than the 20 N spring pull, so the carriage rests exactly at
-u_stop). Both sides: 12.4 N/mm, 3.26 J at 19 mm, peak 290 N, leaf stress 34 MPa. Hard stop on the rail at 19 mm.
-PLA returns most of the energy: the carriage rebounds up to about 100 mm before the springs and friction settle it; the
-gear is in its gap then (audited). Firmware: wait 0.5 s after the release before reading SW_HOME. TPU pads would damp
-better if Harry ever gets TPU.
+Printed PLA flexure per side: 16 closed loops (31 tapered leaves, 3.15 to 1.0 mm thick) lying over the main spring,
+in a bolted frame, preloaded 6.56 mm (64 N per side, far more than the 10 N per side spring pull at HOME, so the carriage rests
+exactly at u_stop). Both sides: 9.76 N/mm, 4.29 J at 23.8 mm, peak 296 N, leaf stress 34.8 MPa. Every gap closes at
+23.8 mm, so the stack goes solid exactly at full travel (no separate hard stop). Sized for the moving mass of the
+first build (about 122 g moving: up to 3.9 J after the dart leaves); the lighter
+carriage only adds margin. PLA returns most of the energy: the carriage rebounds up to about 100 mm before the
+springs and friction settle it; the gear is in its gap then (audited). Firmware: wait 0.5 s after the release before
+reading SW_HOME. Dry fire (no dart, 12 J into the stop) exceeds it: firmware refuses fire without SW_SEATED.
 
 ## 7. Aim table for fw-base
 
@@ -102,11 +106,14 @@ P.AIM.table holds the full cycle (backward wiper deg from the LOW dead point vs 
 
 ## 8. Interfaces
 
-- cad-drum: dog ring keys to the sleeve flange at y 111 (3 x M3 at r 28, nut traps outboard, 3 lug slots 6.4 x 3.2);
-  its joint follows launch_sleeve. Spigot d12 runs through the 12.35 sleeve bore to the magnet cap at y 195..203.
-- cad-frame: the aim housing stands on the deck (4 x M3, footprint in launch_aim); AS5600 bracket on the housing
-  outer side at about y 205. Keep out of the rail sweep (LAYOUT keep_out).
-- cad-reel: the tether arrives at the rear of the pivot pulley, `launch.line_entry(P, S)` (world); `launch.line_path(P, S)`
+- cad-drum: dog ring bolted to the sleeve flange at y 111 (D37: sleeve lugs in the ring slots, 3 x M3 x 10 from the
+  flange side into the tapped ring, fitted before the sleeve goes into the cheeks). kin: the sleeve angle equals
+  S["sleeve_deg"] exactly (or wiper_deg in drum-only and load states), so ring and sleeve always agree. Spigot d12 runs through the 12.35 sleeve bore to the magnet cap at y 195..203.
+- cad-frame: the aim housing stands on the deck (4 x M3, footprint in launch_aim).
+- cad-sensors: AS5600 carrier, SW_RAIL_LOW and SW_GAP (sensors.py) screw into pilots on the aim housing and the right
+  cheek; the cams (big gear bump, crank cam) are launch parts. Keep out of the rail sweep (LAYOUT keep_out).
+- cad-reel: the tether arrives at the rear of the pivot pulley (D36: then over the bottom and top pulleys behind the
+  rail rear end, top tangent on the dart axis, forward to the pusher), `launch.line_entry(P, S)` (world); `launch.line_path(P, S)`
   continues it over the rail pulleys to the pusher and the dart tail.
 - Timeline keys used by kin: aim_deg, cock, fired, dart_flight, dart_return, phase ("lower" runs the crank over the
   top and down the falling stroke).

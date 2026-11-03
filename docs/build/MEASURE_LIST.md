@@ -85,7 +85,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 |---|---|---|---|
 | F1 Dart v30 is the one being built | Confirm | print pack choice |  |
 | F2 Bought part weights and the finished dart weight | Kitchen scale | `DART.mass_kg`, dart physics |  |
-| F3 Stall current of each dart motor at 2S | The dart `i` key while holding the shaft with pliers for 1 s | firmware/dart tuning values (see firmware/dart/README.md) |  |
+| F3 Stall current of each dart motor at 2S | The dart `i` key while braking the output for 1 s with a printed stick against the auger or pliers on the coupler (never a cloth or fingers), as BENCH_TEST.md says | firmware/dart tuning values (see firmware/dart/README.md) |  |
 | F4 OTOTEC BMS size and F693ZZ flange | Caliper (pocket is 40.8 x 8 x 2.1 plus 0.5 each way) | dart geometry if it does not fit |  |
 | F5 Nose ballast | Weigh it: 15 g | flight stability |  |
 

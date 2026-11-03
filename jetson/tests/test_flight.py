@@ -227,6 +227,7 @@ def test_video_only_range_at_real_speed_with_aim(pitch, speed, seed):
     assert abs(err) < REAL_TOL, (r.range_m, truth["range_m"], r.v0, r.notes)
     assert r.launch_pitch_deg == pytest.approx(pitch)
     assert any("fused" in n for n in r.notes)
+    assert 0.6 * v_nom - 1e-6 <= r.v0 <= 1.4 * v_nom + 1e-6          # searched only in the band around C3
 
 
 @pytest.mark.parametrize("pitch,v,seed", [(8, 6.0, 11), (20, 8.0, 12), (40, 7.0, 13)])
@@ -313,3 +314,17 @@ def test_fuse_speed_matches_analyze_flight_model():
         T = float(FL.ballistic(v_true, p, RAIL_H + sl * math.sin(math.radians(p)))[0][-1])
         v, _ = FL.fuse_speed(p, RAIL_H, T_obs=T, T_sigma=0.02)
         assert v == pytest.approx(v_true, abs=0.08), (v_true, p, v)
+
+
+def test_video_speed_stays_in_table_band_and_default_from_table():
+    """A flight time that would need a 2 or 30 m/s launcher cannot give one when there is a C3 table."""
+    v_nom, _, _ = _real_v_muzzle()
+    tab = _sim_table(v_nom)
+    from grappstar.sim.flight_video import RAIL_H
+    for T in (0.05, 3.0):
+        v, _ = FL.fuse_speed(20.0, RAIL_H, T_obs=T, v_prior=v_nom, lo=0.6 * v_nom, hi=1.4 * v_nom)
+        assert 0.6 * v_nom - 1e-6 <= v <= 1.4 * v_nom + 1e-6
+    assert FL.DEFAULT_V0 < 8.0
+    frames, truth = real_sim(4, 20, v_nom)
+    r = analyze_flight(frames, None, ballistics=tab, aim_pitch_deg=20)
+    assert 0.6 * v_nom <= r.v0 <= 1.4 * v_nom

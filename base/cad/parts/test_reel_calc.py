@@ -324,3 +324,12 @@ def test_unwrap_schedule_partial_last_step():
         steps = rc.unwrap_schedule(d, st)
         assert abs(sum(s[0] for s in steps) - d["wraps"]) < 1e-9
         assert all(0 < s[0] <= st + 1e-12 for s in steps)
+
+
+def test_rocker_section_real_plate():
+    d = dict(rc.DEFAULTS)
+    a = rc.rocker_section(d)
+    assert 4.0 < a["stroke"] < 6.5
+    assert a["push_firm"] < 13.0                 # cad-drum designs track 2 for 15 N
+    assert a["sigma_max"] < 25.0                 # PETG, long FIRM holds
+    assert rc.rocker_section(d, t=2.5)["stroke"] > a["stroke"]

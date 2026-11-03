@@ -70,7 +70,7 @@ class RealRig:
             if ph != last:
                 if ph == "ANCHORED":
                     self.base.transport.sim(f"anchor {self.line_out - self.slack}")
-                elif ph == "IDLE" and last == "RELEASING":
+                elif ph == "RELEASING" or (ph == "IDLE" and last == "RELEASING"):   # the dart lets go
                     self.base.transport.sim("free")
                 last = ph
             time.sleep(0.02)
@@ -159,7 +159,7 @@ def test_full_mission_both_real_firmwares(tmp_path):
             if ph != last:
                 if ph == "ANCHORED":
                     r.base.transport.sim(f"anchor {r.line_out - r.slack}")
-                elif ph == "IDLE" and last == "RELEASING":
+                elif ph == "RELEASING" or (ph == "IDLE" and last == "RELEASING"):   # the dart lets go
                     r.base.transport.sim("free")
                 last = ph
             time.sleep(0.2)

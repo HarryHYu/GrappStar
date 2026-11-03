@@ -264,3 +264,31 @@ def test_lewis_sf_at_trip():
     sig = fa / (math.pi * AIM.A(P)["m_w"] * math.cos(lam) * fe * 0.125)
     print(f"\nworm wheel: thrust {fa:.0f} N, sigma {sig:.1f} MPa, SF {40.0 / sig:.2f} (40 MPa)")
     assert 40.0 / sig > 1.4
+
+
+def test_bevel_slides_onto_countershaft():
+    """The D flat runs to the outboard shaft end, so the bevel's D bore passes over the shaft from that end."""
+    from cad.lib import prim
+    parts = {p.name: p for p in AIM.parts_aim(P)}
+    out = prim.place(parts["launch_aim_output"].solid, parts["launch_aim_output"].place)
+    bv = prim.place(parts["launch_aim_bevel30"].solid, parts["launch_aim_bevel30"].place)
+    for k in np.arange(0.0, AIM.Y_W2[1] + 1.0 - AIM.A(P)["y_b"], 1.0):
+        assert (out ^ bv.translate((0, float(k), 0))).volume() < 1e-6, k
+
+
+def test_wheel_bolt_clamps_wall():
+    """M8 bolt: head on the outer boss, nut in the inner face pocket, both 608 on the shank, nut face = race shoulder."""
+    from cad.lib import prim
+    parts = {p.name: p for p in AIM.parts_aim(P)}
+
+    def w(nm):
+        return prim.place(parts[nm].solid, parts[nm].place)
+
+    hs, nut, bolt, b1, b2 = (w(k) for k in ("launch_aim_housing", "launch_aim_nut", "launch_aim_bolt",
+                                            "launch_aim_brg_1", "launch_aim_brg_2"))
+    for a, b in ((hs, nut), (hs, bolt), (nut, bolt), (nut, b1), (b1, bolt), (b2, bolt)):
+        assert (a ^ b).volume() < 1e-6
+    assert nut.min_gap(hs, 0.2) < 0.05 and nut.min_gap(b1, 0.2) < 0.05
+    lo, hi = prim.bbox(bolt)
+    assert lo[1] < prim.bbox(b2)[0][1] - 0.5                                 # shank passes the inboard 608
+    assert hi[1] - lo[1] == pytest.approx(25.0 + 5.3 + 0.02, abs=0.05)      # M8 x 25 + head

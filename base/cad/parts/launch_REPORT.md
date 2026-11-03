@@ -65,6 +65,14 @@ audit_states, checks, grounded, steps, line_path, line_entry), `launch_kin.py` (
 12. Sun key rib 12 mm long (the full sun face), not D8's 20: cheek B ends at y 168 and the housing bushing starts at 187.
     Bearing stress at the 3.2 N m trip is about 7 MPa.
 13. Aim drag: printed PLA finger with a shim for preload (0.43 percent strain), not an M3 screw: the arm hub is 4 mm thick.
+14. Drive gear and full 40T layer face 11, not 7 (physics: SF 1.55 at the 5 N m shear pin); the rail's inner shoe
+    shelf is notched around both gears for it. Rack 9 wide (carriage mass).
+15. Yoke spring pegs: separate printed PPA-CF pegs lying down (about 5 MPa, 1.3 g each) in d8.1 holes, not steel
+    (7.9 g each of moving mass); an 8 mm steel rod fits the same hole if a peg breaks.
+16. Lip contact levers (SW_HOME, SW_SEATED) are modelled at rest on their own joints: gap 0.50 mm (one screw turn),
+    0.25 mm overtravel, 0.10 percent strain.
+17. Aim housing bolts to the deck from below (d2.6 pilots in its feet): three of the four holes are under the spine or
+    the outer wall. cad-frame provides clearance holes in the deck.
 
 ## 4. Open items and risks
 
@@ -83,6 +91,11 @@ audit_states, checks, grounded, steps, line_path, line_entry), `launch_kin.py` (
   floats 6 mm over the w 24 ties). Extending the shelves down would add about 40 cm3; supports chosen instead.
 - Rail shoe shelf is notched to y 19 around the face 11 gears: the shoes bear on the outer 3 mm (y 19..22) between
   u about 30 and 135. The lips hold the carriage down there.
+- SW_SEATED may not close from the dart's weight alone at low pitch: the lever needs about 0.05 N to make contact
+  and 0.76 N at full overtravel, through the 45 deg wedge. At HOME the take-up tension (about 2.4 N on the FIRM
+  clutch) pulls the dart onto the pusher, which is enough; check on the bench.
+- Aim housing: the M8 head boss now stands out to world y 238 (the old outer face was at y 229).
+- Carriage printed set 80.5 g + 2.6 g pegs (target 70): below that needs short shoe pads or dropping the D5 pegs.
 - PLA stop returns most of the energy: the carriage rebounds up to about 100 mm before friction and the springs settle
   it. The gear is in its gap then (audited); firmware should wait 0.5 s after the release before trusting SW_HOME.
 - In tow, the line over the lip roller pushes the carriage back by T (1 - cos a): lower the rail to minimum before

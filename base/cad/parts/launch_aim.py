@@ -282,7 +282,8 @@ def output_solid(P):
     z_end = Y_W2[1] + 0.5 - Y_SUN
     s = G.spur(M_S, Z_OUT, FACE_S) + prim.cyl(8.0, Y_W1[0] - 0.1 - Y_SUN - FACE_S + 0.01, z=FACE_S - 0.01)
     s = s + prim.cyl(SHAFT_R, z_end - 1, z=1)
-    s = s - prim.box(3.2, 5, -5, 5, 199.0 - Y_SUN, 211.0 - Y_SUN)            # D flat under the bevel
+    s = s - prim.box(3.2, 5, -5, 5, 199.0 - Y_SUN, z_end + 1)                # D flat from the bevel to the end (bevel
+    #                                                                            slides on from the outboard end)
     return s
 
 
@@ -335,13 +336,20 @@ def wheel_solid(P):
     return s
 
 
-BOLT_Y0 = 205.2                # M8 wheel bolt end (world y); its head bears on the outer wall face y 229
+# M8 wheel axle: M8 x 25 hex bolt (ISO 4017) from outboard, head on a boss of the outer wall (y Y_W2[1] .. BOLT_HEAD_Y),
+# M8 nut (13 AF x 6.5) in a hex pocket (13.2 AF x 6.6 deep) open to the outer wall inner face: the bolt clamps the
+# wall between head and nut, and the nut's inboard face is the shoulder for the outboard 608 inner race (the race
+# face stands 0.08 proud of the wall face, in a relief r 11.6 x 0.7 so the outer race runs free). The shank carries
+# both 608 and ends 1.1 past the inboard one, in a d10 pocket of the crank hub.
+BOLT_L = 25.0
+BOLT_HEAD_Y = Y_W2[1] + 4.0                     # outer face of the bolt boss (head seat), y 233
+BOLT_Y0 = BOLT_HEAD_Y - BOLT_L                  # bolt end (world y), 208
+NUT_Y = (Y_W2[0] + 0.09, Y_W2[0] + 6.59)        # nut in its pocket (pocket Y_W2[0] - 0.1 .. Y_W2[0] + 6.6)
 
 
 def _brg_y(P):
-    """World y of the inboard faces of the outboard and inboard 608 (outboard one 0.2 proud of the wheel face, on
-    the housing washer boss)."""
-    y1 = A(P)["y_wheel_out"] + 0.2 - BRG[2]
+    """World y of the inboard faces of the outboard and inboard 608 (outboard one on the nut face, 0.02 clear)."""
+    y1 = NUT_Y[0] - 0.02 - BRG[2]
     return y1, y1 - BRG[2]
 
 
@@ -441,7 +449,7 @@ def housing_solid(P):
     s.append(prim.box(-30, 86, a, b, d0, d0 + 80))
     s.append(prim.box(-30, sx, a, b, d0 + 80, sz + 10))
     s.append(prim.cylY(10.0, a, b, sx, sz))
-    s.append(prim.cylY(7.0, n["y_wheel_out"] + 0.22, b, cx, cz))                # washer face on the bearing race
+    s.append(prim.cylY(12.0, b - 0.01, BOLT_HEAD_Y, cx, cz))                     # M8 bolt head boss (outboard)
     s.append(prim.box(-30, 86, Y_W1[0], Y_W2[1], d0, d0 + 8))                   # foot
     # SW_RAIL_LOW pedestal (switch base on its top, 2 x M3 self tap)
     Ms = swl_frame(P)
@@ -462,22 +470,28 @@ def housing_solid(P):
     h = h - prim.cylY(10.0 + FIT / 2, Y_W1[0] - 1, Y_W1[1], 0.0, az)          # sleeve bushing, thrust face y 193
     h = h - prim.cylY(SPIGOT_CLR / 2, Y_W1[0] - 1, SPIGOT_END + 1, 0.0, az)     # main shaft spigot clearance
     h = h - prim.cylY(SHAFT_R + FIT / 2, Y_W1[0] - 1, Y_W2[1] + 1, sx, sz)
-    h = h - prim.cylY(4.1, Y_W2[0] - 1, Y_W2[1] + 1, cx, cz)
+    h = h - prim.cylY(4.1, Y_W2[0] - 1, BOLT_HEAD_Y + 1, cx, cz)              # M8 bolt
+    h = h - prim.cylY(11.6, Y_W2[0] - 1, Y_W2[0] + 0.6, cx, cz)                 # relief: 608 outer race runs free
+    h = h - prim.place(prim.cyl(13.2 / math.sqrt(3), 6.7, seg=6),
+                       tf.mul(tf.T(cx, Y_W2[0] - 0.1, cz), tf.Rx(-90)))         # M8 nut pocket 13.2 AF x 6.6 deep
     h = h - prim.cylX(SHAFT_R + FIT / 2, 30, 90, yw, sz)
     for x in (38.25, 77.5):
         for yy in (yw - 5.0, yw + 5.0):
-            h = h - prim.cyl(1.25, 12, x=x, y=yy, z=sz - 11)                   # M3 self tap for the cap
+            h = h - prim.cyl(1.25, 14, x=x, y=yy, z=sz - 13)                   # M3 self tap for the cap, 13 deep
     for x, y in ((107.0, 197.8), (116.0, 197.8)):                                # cad-sensors SW_RAIL_LOW bracket
         h = h - prim.cyl(1.3, 8.0, x=x, y=y, z=d0 + 1.0)                        # M3 self tap d2.6, 7 deep from the top
     for zb in (-33.0, -44.0):                                                    # cad-sensors AS5600 carrier column
         h = h - prim.cylX(1.3, -27.0, -15.0, y=209.1, z=zb)                     # M3 self tap d2.6, 11 deep along -x
-    for x, y in deck_holes(P):
-        h = h - prim.cyl(1.7, 10, x=x, y=y, z=d0 - 1)
+    for i, (x, y) in enumerate(deck_holes(P)):                                   # M3 self tap from below
+        h = h - prim.cyl(1.3, (11.0 if i < 3 else 8.0), x=x, y=y, z=d0 - 1)     # 10 deep (7 in the foot extension)
     return h
 
 
 def deck_holes(P):
-    """4 x M3 deck screws (world x, y), from below into the housing foot (self tap 2.6 / heat-set in the foot)."""
+    """4 x M3 deck screws (world x, y), from below through the deck (clearance holes: cad-frame) into d2.6 self tap
+    pilots in the housing: 10 deep under the spine and the outer wall (first three), 7 deep in the 8 mm foot extension
+    (fourth; the spine and wall above the others leave no access from the top). Screw: M3 x (deck + 10) for the first
+    three, M3 x (deck + 6) for the fourth, rounded down to a stock length."""
     Ms = swl_frame(P)
     sx1 = Ms[0, 3] + SW.mount_holes(-3.0, SWL_ZS)[0] + 3.5
     return [(-24.0, 190.5), (-24.0, 225.5), (80.0, 225.5), (round(float(sx1 - 5.0), 2), SWL_Y)]
@@ -508,9 +522,14 @@ def cap_solid(P):
 
 
 def bolt_solid(P):
-    """M8 x 25 hex bolt along +z: shank z 0..(229 - 205.2), head on top."""
-    Ls = Y_W2[1] - BOLT_Y0
+    """M8 x 25 hex bolt along +z: shank z 0..25, head on top (seat on the outer wall boss)."""
+    Ls = BOLT_L
     return prim.cyl(3.95, Ls + 0.1) + prim.cyl(7.5, 5.3, z=Ls + 0.02, seg=6)
+
+
+def nut_solid(P):
+    """M8 nut 13 AF x 6.5 along +z (same hex orientation as its pocket)."""
+    return prim.cyl(13.0 / math.sqrt(3), NUT_Y[1] - NUT_Y[0], seg=6) - prim.cyl(4.0, 10, z=-1)
 
 
 def brg_solid(P):
@@ -609,12 +628,16 @@ def parts_aim(P):
              print_tf=bed(clip), color="#e0c050", notes="Printed C clip on the lug pin, outboard of the conrod"),
         Part("launch_aim_housing", hs, "PLA", joint=None, place=tf.I4, print_tf=bed(hs), color="#9aa7b4",
              notes="Aim housing on the deck (4 x M3): sleeve end bushing, countershaft bushings, worm saddles, "
-                   "M8 wheel bolt (captive nut), swing arm stop post"),
+                   "M8 wheel bolt (head on the outer boss, nut in the inner face hex pocket), swing arm stop post"),
         Part("launch_aim_cap", cap, "PLA", joint=None, place=tf.I4, print_tf=bed(cap, tf.Rx(180)), color="#8796a5",
-             notes="Worm shaft saddle cap, 4 x M3"),
+             notes="Worm shaft saddle cap, 4 x M3x30 through the legs into 13 deep pilots in the saddles"),
         Part("launch_aim_bolt", bolt, "bought", joint=None,
              place=tf.mul(tf.T(n["crank_x"], BOLT_Y0, n["crank_z"]), tf.Rx(-90)), color="#777c84",
-             bought_ref="M8x25 hex bolt ISO 4017 + M8 nut", notes="Fixed axle of the worm wheel"),
+             bought_ref="M8x25 hex bolt ISO 4017",
+             notes="Fixed axle of the worm wheel, from outboard into the nut, clamps the outer wall"),
+        Part("launch_aim_nut", nut_solid(P), "bought", joint=None,
+             place=tf.mul(tf.T(n["crank_x"], NUT_Y[0], n["crank_z"]), tf.Rx(-90)), color="#777c84",
+             bought_ref="M8 hex nut ISO 4032", notes="Captive in the outer wall hex pocket, shoulder for the 608"),
         Part("launch_aim_brg_1", brg, "bought", joint=None,
              place=tf.mul(tf.T(n["crank_x"], _brg_y(P)[0], n["crank_z"]), tf.Rx(-90)), color="#b0b5bb",
              bought_ref="608ZZ 8x22x7", notes="Worm wheel bearing (outboard)"),

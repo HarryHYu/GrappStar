@@ -137,6 +137,13 @@ armed dart can start the auto sequence by itself after a knock.
 4. Press `RELEASE`: drills out, pods up, foot out, kick back, `released`. The legs end stowed. Before lifting the dart
    out of the soil: STOP, status `IDLE`, plug out (the "safe to touch" rule in step 8).
 5. If it stops with `FAULT`: write down the fault and the last event, press STOP, and fix the threshold (step 10).
+6. Foot current drop (for the kick stall check). Battery in, dart anchored in soil, hull open, hands clear. Hold
+   `foot in` (`4`) alone for 1 s and read `i`: **foot alone in soil = ____ mA**. Then hold `kick out` (`2`) and `4`
+   together for 1 s: **kick + foot = ____ mA**. If (foot alone) is more than 80 mA below (kick + foot minus the kick's
+   working current), the kick's end stop can be faked while planting: tell whoever owns the firmware. STOP after each.
+7. No ground check. Release first (legs stowed), STOP. Lay the dart on its back on the bench, nothing within reach of
+   the kick. Press `AUTO anchor`: the kick swings through air to its end stop and the dart reports `FAULT`
+   `NO_GROUND`; foot, pods and drills must not turn. Press `RELEASE` to bring the kick back, then STOP.
 
 ## Step 10. Write the real thresholds
 

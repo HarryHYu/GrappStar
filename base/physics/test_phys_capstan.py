@@ -89,8 +89,28 @@ def test_lame_hoop():
     p = Params()
     t = capstan.wiper_torque_for(50, p)
     ps = capstan.part_stresses(50, t, p, 5, 40, 2.0)
-    pe = 50 / (0.02 * 1.05e-3)
-    assert ps["hoop_mpa"] == pytest.approx(2 * pe * 0.02 ** 2 / (0.02 ** 2 - 0.01 ** 2) / 1e6)   # 6.35 MPa
+    f_cap = 50 * capstan.path_gain(p)                     # the drum sees the capstan-side tension
+    pe = f_cap / (0.02 * 1.05e-3)
+    assert ps["f_capstan"] == pytest.approx(f_cap)
+    assert ps["hoop_mpa"] == pytest.approx(2 * pe * 0.02 ** 2 / (0.02 ** 2 - 0.01 ** 2) / 1e6)   # 9.5 MPa at gain 1.5
+    assert ps["line_pressure_mpa"] == pytest.approx(f_cap / (0.02 * p.line.d) / 1e6)
+    assert ps["radial_n"] == pytest.approx(f_cap + 2.0)   # parallel lines: F_cap + T_hold
+    assert ps["t_drum"] == pytest.approx(capstan.drum_shaft_torque(t, p))
+
+
+def test_run_uses_capstan_side_tension():
+    p = Params()
+    p.capstan["path_gain"] = 1.5
+    r = capstan.run(p)
+    tu = r["takeup"]
+    mu = r["inputs"]["mu"]
+    f_cap = r["inputs"]["tow"] * 1.5
+    assert r["inputs"]["tow_capstan"] == pytest.approx(f_cap)
+    assert r["wraps_needed"] == capstan.wraps_needed(f_cap, tu["t_hold_min"], mu)
+    assert r["takeup_needed_n"] == pytest.approx(capstan.takeup_needed(f_cap, r["inputs"]["wraps"], mu))
+    s = r["stall"]["full"]
+    assert s["f_capstan"] == pytest.approx(s["f_line"] * 1.5)
+    assert s["exceeds_break"] == (s["f_line"] * 1.5 > p.line.breaking)
 
 
 def test_fw_trip():

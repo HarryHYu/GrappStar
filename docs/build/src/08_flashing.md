@@ -11,6 +11,7 @@ cable. Flash the dart XIAO before it goes into the hull (run sheet section 5).
 
 Arduino IDE: board XIAO_ESP32S3, Tools > USB CDC On Boot: Enabled (the sketch refuses to compile otherwise).
 Library: Adafruit BNO08x (the INA219 library is no longer needed). Open `firmware/dart/kedge_dart/kedge_dart.ino`. After the first USB
-upload you can upload over WiFi (port "kedge").
+upload you can upload over WiFi (port "kedge"). On a bare XIAO the `z` scan finds nothing: 0x40 and 0x4a only
+appear once the INA219 and BNO085 are wired.
 
 @include firmware/dart/README.md

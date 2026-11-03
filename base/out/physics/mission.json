@@ -1,10 +1,10 @@
 {
- "params_source": "base/spec/params.py v1.2.8",
+ "params_source": "base/spec/params.py v1.2.9",
  "steps": [
   {
    "step": "aim (worst case full 6 to 47 deg)",
-   "time_s": 6.59471087666776,
-   "wh": 0.03290755682254384,
+   "time_s": 6.595567937898944,
+   "wh": 0.03294621639789665,
    "note": ""
   },
   {
@@ -15,8 +15,8 @@
   },
   {
    "step": "cock + fire + reset",
-   "time_s": 2.6611738210882745,
-   "wh": 0.028258114546125618,
+   "time_s": 2.661602061322672,
+   "wh": 0.028277008211407502,
    "note": ""
   },
   {
@@ -74,10 +74,10 @@
    "note": ""
   }
  ],
- "total_s": 213.68466514376217,
- "total_wh": 0.739701988385276,
- "idle_wh": 0.2374274057152913,
- "missions_per_pack": 62.425139752293184,
+ "total_s": 213.68595044522775,
+ "total_wh": 0.7397609697386502,
+ "idle_wh": 0.23742883382803082,
+ "missions_per_pack": 62.42016257807369,
  "assumed": {
   "drum_shift_s": 3.0,
   "drum_a": 0.15,

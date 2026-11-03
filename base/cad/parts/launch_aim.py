@@ -2,21 +2,23 @@
 allowed_aim, clearances_aim, audit_states_aim).
 
 Driven only by BACKWARD wiper turns (launch sleeve turning negative about +y):
-  (1) splitter sun m1.5 z30 keyed on the launch sleeve
-  (2) swing arm on the sleeve (friction drag: O-ring in a groove of its hub bore) carrying an idler m1.5 z18 on a
-      printed pin; backward the arm swings the idler into mesh with
+  (1) splitter sun m1.5 z30 face 12 keyed on the launch sleeve
+  (2) swing arm on the sleeve (friction drag: a printed PLA flexure pad, a cantilever finger in the arm hub bore
+      pressing on the sleeve d20, preload set by a printed shim behind its root block) carrying an idler m1.5 z18 on
+      a printed pin (printed C clip); backward the arm swings the idler into mesh with
   (3) the output gear m1.5 z30 (one part with its d8 countershaft), forward it swings out against a stop post
   (4) bevel z30 on the countershaft (D flat) drives a bevel z15 (one part with the worm and its shaft), 2:1 up
-  (5) worm m2 pd24 single start (self-locking) drives the worm wheel m2 z20 = crank gear, one PPA-CF part with the
-      crank arm and the crank pin, on two 608 bearings on a fixed M8 bolt
-  (6) conrod 156 between the crank pin and
-  (7) the lug pin on the lug bracket bolted to the rail wall
+  (5) worm m2 pd24 single start (self-locking) drives the worm wheel m2 z20 face 16 = crank gear, one PPA-CF part
+      with the crank arm and the crank pin, on two 608 bearings on a fixed M8 bolt
+  (6) conrod 156 (PPA-CF) between the crank pin and
+  (7) the lug pin on the lug bracket (PPA-CF) bolted to the rail wall; both pins carry printed C clips
+Gear strength at the 5 A aim trip: see the LEWIS block below the numbers.
   (8) aim housing (one PLA part on the deck z = 0) with the sleeve end bushing, countershaft bushings, worm saddles
       (cap on top), the M8 wheel bolt and the swing arm stop post.
 
 World: x forward, y left, z up. Main axis along +y at (0, *, AXIS_Z). Plane order outward (world y):
-  splitter 174..182 | arm 182.5..186.5 | housing inner wall 187..193 (behind x 22), conrod 187..193 (in front) |
-  crank arm 193.6..199.6 | bevel z30 200.3..210 | wheel 208.2..220.2, worm axis 214.2 | outer wall 221..229.
+  splitter 170..182 | arm 182.5..186.5 | housing inner wall 187..193 (behind x 22), conrod 187..193 (in front) |
+  crank arm 193.6..199.6 | bevel z30 200.3..210 | wheel 206.2..222.2, worm axis 214.2 | outer wall 223..229.
 The lug bracket stays inside y_rel 28..46.5 below the springs (w < 49) and puts its pin into the conrod plane.
 
 Ratio: wiper / crank = worm_wheel_z / worm_starts / bevel_up / split_ratio = 20 / 1 / 2 / 1 = 10 (launch_kin).
@@ -38,6 +40,7 @@ if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
 from cad.lib import Part, Joint, Allow, Clearance, prim, tf   # noqa: E402
+from cad.lib import clips                                      # noqa: E402
 import launch_kin as K                                         # noqa: E402
 import launch_gears as G                                       # noqa: E402
 import launch_switch as SW                                     # noqa: E402
@@ -46,22 +49,22 @@ import launch_switch as SW                                     # noqa: E402
 FIT = 0.35            # diametral clearance pin in bore (gives real contact for the floating check)
 M_S = 1.5             # splitter module
 Z_SUN, Z_IDL, Z_OUT = 30, 18, 30
-FACE_S = 8.0
+FACE_S = 12.0         # splitter face (sun, idler, output): 12 for Lewis SF >= 1.5 at the trip (LEWIS below)
 M_B, Z_B1, Z_B2, FACE_B = 1.5, 30, 15, 8.0   # bevel pair (z30 on the countershaft, z15 on the worm shaft)
 WORM_L = 32.0
 BEV_PLAY = 0.2       # z15 moved back along its axis (backlash: the library pair overlaps up to ~1 mm3)
-WHEEL_FACE = 12.0
+WHEEL_FACE = 16.0     # = 2/3 of the worm pd 24, the most face a worm wheel can use (LEWIS below)
 R_CRANK_HUB = 16.5
 SHAFT_R = 4.0         # countershaft and worm shaft d8
 PIN_R = 4.0           # crank pin and lug pin d8
 BRG = (22.0, 8.0, 7.0)   # 608
 
-Y_SUN = 174.0
+Y_SUN = 170.0                  # splitter inboard face (rail cheek B ends at y 168); sleeve rib under y 174..182
 Y_ARM0, Y_ARM1 = 182.5, 186.5
 Y_W1 = (187.0, 193.0)          # housing inner wall
 Y_ROD = (187.0, 193.0)         # conrod plane
 Y_CRANK = (193.6, 199.6)       # crank arm plane
-Y_W2 = (221.0, 229.0)          # housing outer wall
+Y_W2 = (223.0, 229.0)          # housing outer wall (6 thick: its inner face moved out 2 for the face 16 wheel)
 # SW_RAIL_LOW: printed contact on a housing pedestal in front of the crank (screw along world +x at the crank centre
 # height), pressed by a cam lobe on the crank only around the LOW dead point psi_low.
 SWL_RT = 41.5                  # tip (pressed position) radius from the crank centre; free tip at SWL_RT - TRAVEL
@@ -79,6 +82,24 @@ AS_CHIP_Y = 202.6              # chip face 1.1 beyond the magnet face
 AS_BOARD_Y = 203.6             # board inboard face (1.6 thick)
 AS_PLATE = (205.22, 208.2)     # bracket plate behind the board
 AS_HOLES_X = (-10.15, 10.15)   # 2 x M2.5, 20.3 apart (assumed)
+
+# LEWIS (root bending at the 5 A aim trip). Assumptions: wiper torque at the trip kt 0.909 x (5 - 1.5) = 3.18 N m
+# on the sleeve, no losses credited in the splitter (conservative), static (Kv 1), one tooth carries the load, Shigley
+# Table 14-2 Y (20 deg full depth), all aim gears printed PPA-CF with an allowable of 40 MPa (25 MPa in
+# physics/common.py is the conservative figure; SF quoted at both, 40 / 25).
+#   splitter m1.5 (pitch r 22.5): Wt = 3180 / 22.5 = 141 N
+#     face 8 (before):  sun z30 Y 0.359: 32.8 MPa, SF 1.22 / 0.76; idler z18 Y 0.309: 38.1 MPa, SF 1.05 / 0.66
+#     face 12 (now):    sun z30: 21.9 MPa, SF 1.83 / 1.14;          idler z18: 25.4 MPa, SF 1.57 / 0.98
+#   worm wheel m2 z20: worm torque 3.18 / 2 x 0.95 = 1.51 N m, thrust = 1.51 / (0.012 x (cos20 tan4.77 + mu) /
+#     (cos20 - mu tan4.77)) = 352 N with mu 0.25 (printed on printed, dry). Shigley worm gear Lewis:
+#     sigma = Wt / (pn Fe y), pn = pi m cos(lambda), y 0.125 (20 deg), Fe = min(face, 2/3 worm pd = 16)
+#     face 12 (before): 37.5 MPa, SF 1.07 / 0.67 (spur Y 0.322: 45.5 MPa, SF 0.88)
+#     face 16 (now):    28.1 MPa, SF 1.42 / 0.89 (spur Y 0.322: 34.2 MPa, SF 1.17). Fe is capped at 16 by the
+#     worm pd 24 (launch_kin), so more face buys nothing; the outer wall inner face moved out 2 for it.
+#   bevel m1.5 z30 / z15 face 8 (unchanged): face 8 is already the cone distance / 3 limit (25.2 / 3) and a bigger
+#     module meets the housing spine (x <= -16) and the worm saddles, so the bevel stays: z15 at the large end,
+#     equivalent z 16.8 (Y 0.301), 39.1 MPa (SF 1.02 / 0.64), with the bevel factor A / (A - b) 1.47: 57.4 MPa
+#     (SF 0.70 / 0.44). The bevel pair stays the weak link at the trip.
 
 
 def bed(solid, R=None, rz=0.0):
@@ -165,18 +186,91 @@ def sun_solid(P):
     return g
 
 
+# ---- swing arm drag: printed PLA flexure pad (replaces the O-ring) ---------------------------------------------
+# A curved cantilever finger lies in a recess of the arm hub bore; its root block sits in a pocket of the hub (pushed
+# in axially, held by the sun face and the housing bushing face 0.5 away) and a bump at its free tip bears on the
+# sleeve d20. The bump stands DRAG_INT proud of the sleeve surface as printed, so the finger tip deflects outward by
+# DRAG_INT when the sleeve is in: that deflection times the finger stiffness is the preload. The printed shim behind
+# the root block sets it: a shim DRAG_SHIM_ADJ thicker pushes the root block (and the bump) that much further in.
+# Finger: PLA (E 3500 MPa), radial thickness t 2.0, axial width b 4.0, mean radius 11.3 over 90 deg: L = 17.7 mm.
+#   strain at the root, eps = 3 t d / (2 L^2):
+#     nominal d = DRAG_INT 0.45:            3 x 2.0 x 0.45 / (2 x 17.7^2) = 0.43 %
+#     thickest shim d = 0.45 + 0.25 = 0.70: 3 x 2.0 x 0.70 / (2 x 17.7^2) = 0.67 %  (limit 0.8 %)
+#   tip force F = 3 E I d / L^3, I = b t^3 / 12 = 2.67 mm4: 2.3 N nominal (3.5 N thickest shim); drag torque on the
+#   sleeve mu F r = 0.3 x 2.3 x 10 = 7 N mm (about twice what swings the arm and idler up against gravity).
+#   The gap behind the finger (1.2) is larger than the deflection, so the finger never bottoms in its recess.
+DRAG_T, DRAG_W_RB = 2.0, 10.3          # finger radial thickness, finger inner radius (0.3 clear of the sleeve)
+DRAG_TIP, DRAG_ROOT, DRAG_END = 130.0, 220.2, 250.0   # arm local deg: finger tip, root block from .. to
+DRAG_INT = 0.45                        # bump interference with the sleeve d20 (= working tip deflection)
+DRAG_SHIM_ADJ = 0.25                   # thickest shim over nominal (more preload)
+DRAG_BLOCK_R = 16.0                    # root block outer radius; shim DRAG_BLOCK_R + 0.05 .. DRAG_POCKET_R - 0.05
+DRAG_POCKET_R = 18.6                    # hub pocket outer radius (shim 2.5 thick, hub wall 1.9)
+ARM_HUB_R = 20.5
+
+
+def _sector(r0, r1, a0, a1, h, z=0.0, seg=None):
+    """Annular sector r0..r1 between a0 and a1 deg (counterclockwise), extruded along +z from z by h."""
+    k = seg or max(4, int(abs(a1 - a0) / 2.0))
+    aa = np.linspace(math.radians(a0), math.radians(a1), k + 1)
+    pts = [(r1 * math.cos(a), r1 * math.sin(a)) for a in aa] + [(r0 * math.cos(a), r0 * math.sin(a)) for a in aa[::-1]]
+    return prim.extrude(prim.poly_cs(pts), h, z=z)
+
+
+def drag_pad_solid(P):
+    """Printed PLA flexure pad in the arm frame (axis +z, z 0..arm thickness): finger, root block and tip bump as one
+    outline (one shell, clean STL)."""
+    t = Y_ARM1 - Y_ARM0
+    rf, ro, rb = DRAG_W_RB, DRAG_W_RB + DRAG_T, 10.0 - DRAG_INT                # finger in / out, bump crest radius
+
+    def P2(r, a):
+        return (r * math.cos(math.radians(a)), r * math.sin(math.radians(a)))
+
+    def arc(r, a0, a1):
+        k = max(4, int(abs(a1 - a0) / 2.0))
+        return [P2(r, a) for a in np.linspace(a0, a1, k + 1)]
+
+    tip = DRAG_TIP
+    pts = arc(ro, tip, DRAG_ROOT) + arc(DRAG_BLOCK_R, DRAG_ROOT, DRAG_END) + arc(rf, DRAG_END, tip + 8.0)[:-1]
+    pts += [P2(rf, tip + 8.0), P2(rb, tip + 5.5), P2(rb, tip + 1.5), P2(rf, tip)]
+    return prim.extrude(prim.poly_cs(pts), t)
+
+
+def drag_shim_solid(P):
+    """Printed preload shim (nominal) behind the pad root block, arm frame. Print one DRAG_SHIM_ADJ thicker for more
+    preload (it then pushes the root block in by that much)."""
+    return _sector(DRAG_BLOCK_R + 0.05, DRAG_POCKET_R - 0.05, DRAG_ROOT + 0.2, DRAG_END - 0.2, Y_ARM1 - Y_ARM0)
+
+
 def arm_solid(P):
-    """Swing arm: hub on the sleeve (O-ring groove in the bore), bar to the idler pin at alpha 0 (local +x), pin
-    towards -z (inboard) through the idler, clip groove at the end."""
+    """Swing arm: hub on the sleeve (recess and pocket for the printed flexure pad and its shim), bar to the idler
+    pin at alpha 0 (local +x), pin towards -z (inboard) through the idler, printed C clip groove at the end."""
     n = A(P)
     t = Y_ARM1 - Y_ARM0
     r = n["cd_si"]
-    s = prim.cyl(16.0, t) + prim.box(10.0, r, -6.0, 6.0, 0, t) + prim.cyl(7.0, t, x=r)
-    s = s + prim.cyl(PIN_R, t + (Y_ARM0 - (Y_SUN - 1.5)), x=r, z=-(Y_ARM0 - (Y_SUN - 1.5)))
+    g = clips.groove_dims(2 * PIN_R)
+    z_end = -(Y_ARM0 - Y_SUN) - clips.PIN_PLAY - g["width"] - g["land"]       # pin end (arm local z)
+    s = prim.cyl(ARM_HUB_R, t) + prim.box(10.0, r, -6.0, 6.0, 0, t) + prim.cyl(7.0, t, x=r)
+    s = s + prim.cyl(PIN_R, t - z_end, x=r, z=z_end)
     s = s - prim.cyl(10.0 + FIT / 2, t + 2, z=-1)
-    s = s - prim.tube(11.3, 10.0, 1.6, z=t / 2 - 0.8)                         # O-ring groove (drag on the sleeve)
-    s = s - prim.tube(PIN_R + 1, PIN_R - 0.5, 0.8, z=-(Y_ARM0 - Y_SUN) - 1.4).translate((r, 0, 0))   # clip groove
+    s = s - _sector(9.0, DRAG_W_RB + DRAG_T + 1.2, DRAG_TIP - 6.0, DRAG_ROOT - 0.2, t + 2, z=-1)   # finger recess
+    s = s - _sector(9.0, DRAG_POCKET_R, DRAG_ROOT - 0.2, DRAG_END + 0.2, t + 2, z=-1)             # block + shim
+    zg = -(Y_ARM0 - Y_SUN) - clips.PIN_PLAY - g["width"]
+    s = s - clips.clip_groove_cutter(2 * PIN_R, z=zg).translate((r, 0, 0))
     return s
+
+
+def pin_clip_solid(P):
+    """Printed C clip for the d8 printed pins (idler pin, crank pin, lug pin): cad.lib.clips v10 style."""
+    return clips.c_clip(2 * PIN_R)
+
+
+def _clip_y0(face_y, inboard=True):
+    """World y of the clip's low face for a clip seated in the groove next to a part face at face_y. inboard: the
+    clip sits on the -y side of that face (groove below it), else on the +y side."""
+    g = clips.groove_dims(2 * PIN_R)
+    if inboard:
+        return face_y - clips.PIN_PLAY - g["width"] + clips.CLIP_AX_CLEAR / 2
+    return face_y + clips.PIN_PLAY + clips.CLIP_AX_CLEAR / 2
 
 
 def idler_solid(P):
@@ -217,8 +311,9 @@ def worm_solid(P):
 
 
 def wheel_solid(P):
-    """Worm wheel z20 (lib frame: axis +z, face 0..12, z = 0 is the outboard face) + hub + crank arm + crank pin.
-    Pocket for two 608 from the outboard face. Built pre-rotated by -mesh phase (place adds it back)."""
+    """Worm wheel z20 (lib frame: axis +z, face 0..WHEEL_FACE, z = 0 is the outboard face) + hub + crank arm + crank
+    pin (printed C clip groove next to the conrod). Pocket for two 608 from the outboard face. Built pre-rotated by
+    -mesh phase (place adds it back)."""
     n = A(P)
     yo = n["y_wheel_out"]
     zl = lambda y: yo - y                                                       # world y -> lib z
@@ -227,13 +322,27 @@ def wheel_solid(P):
     mp = G.mesh_phase(n["z_w"], 90.0)
     arm = prim.box(0, n["rc"], -7.0, 7.0, zl(Y_CRANK[1]), zl(Y_CRANK[0])) + \
         prim.cyl(8.0, Y_CRANK[1] - Y_CRANK[0], x=n["rc"], z=zl(Y_CRANK[1]))
-    arm = arm + prim.cyl(PIN_R, Y_CRANK[0] - 186.0 + 0.01, x=n["rc"], z=zl(Y_CRANK[0]) - 0.01)
-    arm = arm - prim.tube(PIN_R + 1, PIN_R - 0.5, 0.8, z=zl(186.0) - 1.6).translate((n["rc"], 0, 0))
+    g = clips.groove_dims(2 * PIN_R)
+    y_g1 = Y_ROD[0] - clips.PIN_PLAY                                            # groove outboard edge (world y)
+    y_end = y_g1 - g["width"] - g["land"]                                       # crank pin end
+    arm = arm + prim.cyl(PIN_R, Y_CRANK[0] - y_end + 0.01, x=n["rc"], z=zl(Y_CRANK[0]) - 0.01)
+    arm = arm - clips.clip_groove_cutter(2 * PIN_R, z=zl(y_g1)).translate((n["rc"], 0, 0))
     s = s + prim.place(arm, tf.Rz(-mp))
     s = s + prim.place(swl_cam_joint(P), tf.inv(_wheel_place(P)))              # SW_RAIL_LOW cam lobe
-    s = s - prim.cyl(BRG[0] / 2 + 0.05, zl(206.2) + 1, z=-1)                   # 608 pocket
-    s = s - prim.cyl(5.0, 2.0, z=zl(206.2) - 0.01)                              # bolt end
+    s = s - prim.cyl(BRG[0] / 2 + 0.05, zl(_brg_y(P)[1] - 0.2) + 1, z=-1)       # 608 pocket (two, from outboard)
+    s = s - prim.cyl(5.0, zl(BOLT_Y0 - 1.0) - zl(_brg_y(P)[1] - 0.2) + 0.01,
+                     z=zl(_brg_y(P)[1] - 0.2) - 0.01)                           # bolt end
     return s
+
+
+BOLT_Y0 = 205.2                # M8 wheel bolt end (world y); its head bears on the outer wall face y 229
+
+
+def _brg_y(P):
+    """World y of the inboard faces of the outboard and inboard 608 (outboard one 0.2 proud of the wheel face, on
+    the housing washer boss)."""
+    y1 = A(P)["y_wheel_out"] + 0.2 - BRG[2]
+    return y1, y1 - BRG[2]
 
 
 def swl_cam_joint(P):
@@ -280,7 +389,8 @@ def swl_body(P):
 
 
 def conrod_solid(P):
-    """Conrod in its joint frame: crank pin at the origin, lug pin at (+rod, 0), plane y Y_ROD."""
+    """Conrod (PPA-CF) in its joint frame: crank pin at the origin, lug pin at (+rod, 0), plane y Y_ROD. Held on both
+    pins by printed C clips (crank pin: inboard of the rod; lug pin: outboard)."""
     n = A(P)
     L = n["rod"]
     y0, y1 = Y_ROD
@@ -290,8 +400,9 @@ def conrod_solid(P):
 
 
 def lug_solid(P):
-    """Lug bracket in the rail frame (u, y_rel, w): bolted (2 x M3) to the rail wall outer face y_rel 28 at
-    u 100..130, w 32..48 (below the springs), outer plate y_rel 40.5..46.5 down to the pin at (rl, w 0)."""
+    """Lug bracket (PPA-CF) in the rail frame (u, y_rel, w): bolted (2 x M3) to the rail wall outer face y_rel 28 at
+    u 100..130, w 32..48 (below the springs), outer plate y_rel 40.5..46.5 down to the pin at (rl, w 0); the pin
+    carries a printed C clip outboard of the conrod."""
     n = A(P)
     import launch as LN
     ln = LN.L(P)
@@ -302,9 +413,10 @@ def lug_solid(P):
     s = s + prim.box(100, 130, yw, yw + 6.0, 32.0, 48.0)                        # bolting plate
     s = s + prim.box(103, 127, yo - 6.0, yo, -2.0, 48.0)                        # outer plate
     s = s + prim.cylY(10.0, yo - 6.0, yo, x=u, z=0.0)
-    s = s + prim.cylY(PIN_R, yo - 0.01, Y_ROD[1] + 2.3 - ln["Y0"], x=u, z=0.0)
-    s = s - (prim.cylY(PIN_R + 1, Y_ROD[1] + 0.3 - ln["Y0"], Y_ROD[1] + 1.1 - ln["Y0"], x=u, z=0.0)
-             - prim.cylY(PIN_R - 0.5, Y_ROD[1] - ln["Y0"], Y_ROD[1] + 1.4 - ln["Y0"], x=u, z=0.0))  # C clip groove (DIN 6799 d8)
+    g = clips.groove_dims(2 * PIN_R)
+    yg = Y_ROD[1] + clips.PIN_PLAY - ln["Y0"]                                   # printed C clip groove (rail y)
+    s = s + prim.cylY(PIN_R, yo - 0.01, yg + g["width"] + g["land"], x=u, z=0.0)
+    s = s - prim.place(clips.clip_groove_cutter(2 * PIN_R), tf.mul(tf.T(u, yg, 0.0), tf.Rx(-90)))
     for uu in (107.0, 123.0):
         s = s - prim.cylY(1.7, yw - 1, yo + 1, x=uu, z=41.0)
         s = s - prim.cylY(3.2, yw + 6.0, yo + 1, x=uu, z=41.0)                  # screw head / driver access
@@ -329,20 +441,17 @@ def housing_solid(P):
     s.append(prim.box(-30, 86, a, b, d0, d0 + 80))
     s.append(prim.box(-30, sx, a, b, d0 + 80, sz + 10))
     s.append(prim.cylY(10.0, a, b, sx, sz))
-    s.append(prim.cylY(7.0, 220.42, b, cx, cz))                                 # washer face on the bearing race
+    s.append(prim.cylY(7.0, n["y_wheel_out"] + 0.22, b, cx, cz))                # washer face on the bearing race
     s.append(prim.box(-30, 86, Y_W1[0], Y_W2[1], d0, d0 + 8))                   # foot
     # SW_RAIL_LOW pedestal (switch base on its top, 2 x M3 self tap)
     Ms = swl_frame(P)
     sx0 = Ms[0, 3] - 3.0
     sx1 = Ms[0, 3] + SW.mount_holes(-3.0, SWL_ZS)[0] + 3.5
     ztop = Ms[2, 3] - 0.02
-    s.append(prim.box(sx0, sx1, SWL_Y - 4.0, SWL_Y + 4.0, d0, ztop))
+    # (SW_RAIL_LOW pedestal tower removed: cad-sensors' bracket stands on the foot extension below)
     s.append(prim.box(80, sx1, SWL_Y - 4.0, SWL_Y + 4.0, d0, d0 + 8))
     s.append(prim.box(-30, -16, Y_W1[0], Y_W2[1], d0, d0 + 140))                # spine
-    # AS5600 board bracket: two arms round the magnet cap (|x| >= 13.5) to a plate behind the board
-    for sg in (1, -1):
-        s.append(prim.box(sg * 13.5, sg * 17.5, Y_W1[0] + 1, AS_PLATE[1], az - 6.0, az + 6.0))
-    s.append(prim.box(-17.5, 17.5, AS_PLATE[0], AS_PLATE[1], az - 11.0, az + 11.0))
+    # (AS5600 arms and plate removed: cad-sensors carrier screws to the spine +x face)
     for x0, x1 in ((35.0, 41.5), (74.5, 80.5)):                                  # worm saddles (lower halves)
         s.append(prim.box(x0, x1, yw - 7.2, Y_W2[1], d0 + 80.3, sz))
         s.append(prim.box(x0, x1, Y_W2[0], Y_W2[1], d0 + 79.0, d0 + 81.0))       # join to the outer wall
@@ -353,15 +462,15 @@ def housing_solid(P):
     h = h - prim.cylY(10.0 + FIT / 2, Y_W1[0] - 1, Y_W1[1], 0.0, az)          # sleeve bushing, thrust face y 193
     h = h - prim.cylY(SPIGOT_CLR / 2, Y_W1[0] - 1, SPIGOT_END + 1, 0.0, az)     # main shaft spigot clearance
     h = h - prim.cylY(SHAFT_R + FIT / 2, Y_W1[0] - 1, Y_W2[1] + 1, sx, sz)
-    h = h - prim.cylY(4.1, 220, Y_W2[1] + 1, cx, cz)
+    h = h - prim.cylY(4.1, Y_W2[0] - 1, Y_W2[1] + 1, cx, cz)
     h = h - prim.cylX(SHAFT_R + FIT / 2, 30, 90, yw, sz)
     for x in (38.25, 77.5):
         for yy in (yw - 5.0, yw + 5.0):
             h = h - prim.cyl(1.25, 12, x=x, y=yy, z=sz - 11)                   # M3 self tap for the cap
-    for hx in SW.mount_holes(-3.0, SWL_ZS):
-        h = h - prim.cyl(1.3, 12, x=Ms[0, 3] + hx, y=SWL_Y, z=ztop - 11.99)
-    for hx in AS_HOLES_X:
-        h = h - prim.cylY(1.1, AS_PLATE[0] - 1, AS_PLATE[1] + 1, hx, az)        # M2.5 self tap for the board
+    for x, y in ((107.0, 197.8), (116.0, 197.8)):                                # cad-sensors SW_RAIL_LOW bracket
+        h = h - prim.cyl(1.3, 8.0, x=x, y=y, z=d0 + 1.0)                        # M3 self tap d2.6, 7 deep from the top
+    for zb in (-33.0, -44.0):                                                    # cad-sensors AS5600 carrier column
+        h = h - prim.cylX(1.3, -27.0, -15.0, y=209.1, z=zb)                     # M3 self tap d2.6, 11 deep along -x
     for x, y in deck_holes(P):
         h = h - prim.cyl(1.7, 10, x=x, y=y, z=d0 - 1)
     return h
@@ -400,7 +509,7 @@ def cap_solid(P):
 
 def bolt_solid(P):
     """M8 x 25 hex bolt along +z: shank z 0..(229 - 205.2), head on top."""
-    Ls = Y_W2[1] - 205.2
+    Ls = Y_W2[1] - BOLT_Y0
     return prim.cyl(3.95, Ls + 0.1) + prim.cyl(7.5, 5.3, z=Ls + 0.02, seg=6)
 
 
@@ -451,18 +560,32 @@ def parts_aim(P):
     wm, wh, rod, lug = worm_solid(P), wheel_solid(P), conrod_solid(P), lug_solid(P)
     hs, cap = housing_solid(P), cap_solid(P)
     bolt, brg = bolt_solid(P), brg_solid(P)
+    pad, shim, clip = drag_pad_solid(P), drag_shim_solid(P), pin_clip_solid(P)
     Y0 = n["Y0"]
-    yo = n["y_wheel_out"]
+    f = f"face {FACE_S:g}"
     return [
         Part("launch_aim_sun", sun, "PPA-CF", joint="launch_sleeve", place=_ygear(sun, Y_SUN - Y0),
-             print_tf=bed(sun), color="#2f6db5", notes="Splitter sun m1.5 z30, keyed on the launch sleeve"),
+             print_tf=bed(sun), color="#2f6db5", notes=f"Splitter sun m1.5 z30 {f}, keyed on the launch sleeve"),
         Part("launch_aim_arm", arm, "PPA-CF", joint="launch_aim_arm", place=_ygear(arm, Y_ARM0),
              print_tf=bed(arm, tf.Rx(180)), color="#5a6a7a",
-             notes="Swing arm on the sleeve, O-ring 20x1.5 in the hub drags it; printed idler pin, e-clip groove"),
+             notes="Swing arm on the sleeve, dragged by the printed PLA flexure pad in its hub; printed idler pin "
+                   "with a printed C clip groove"),
+        Part("launch_aim_drag_pad", pad, "PLA", joint="launch_aim_arm", place=_ygear(pad, Y_ARM0),
+             print_tf=bed(pad), color="#e0c050",
+             notes=f"Flexure drag pad: cantilever finger t {DRAG_T:g}, tip bump {DRAG_INT:g} into the sleeve d20 "
+                   "(strain 0.43 %, about 2.3 N), root block pushed axially into the arm hub pocket"),
+        Part("launch_aim_drag_shim", shim, "PLA", joint="launch_aim_arm", place=_ygear(shim, Y_ARM0),
+             print_tf=bed(shim), color="#c0a040",
+             notes=f"Preload shim behind the drag pad root block (nominal; print up to {DRAG_SHIM_ADJ:g} thicker for "
+                   "more drag, strain stays under 0.7 %)"),
         Part("launch_aim_idler", idl, "PPA-CF", joint="launch_aim_idler", place=_ygear(idl, Y_SUN),
-             print_tf=bed(idl), color="#3d7cc9", notes="Splitter idler m1.5 z18 on the arm pin"),
+             print_tf=bed(idl), color="#3d7cc9", notes=f"Splitter idler m1.5 z18 {f} on the arm pin"),
+        Part("launch_aim_idler_clip", clip, "PLA", joint="launch_aim_arm",
+             place=tf.mul(_ygear(clip, Y_ARM0), tf.T(n["cd_si"], 0.0, _clip_y0(Y_SUN) - Y_ARM0)),
+             print_tf=bed(clip), color="#e0c050", notes="Printed C clip on the arm pin, holds the idler"),
         Part("launch_aim_output", out, "PPA-CF", joint="launch_aim_cshaft", place=_ygear(out, Y_SUN),
-             print_tf=bed(out), color="#2f6db5", notes="Splitter output m1.5 z30 with its d8 countershaft (D flat)"),
+             print_tf=bed(out), color="#2f6db5",
+             notes=f"Splitter output m1.5 z30 {f} with its d8 countershaft (D flat)"),
         Part("launch_aim_bevel30", b1, "PPA-CF", joint="launch_aim_cshaft", place=_ygear(b1, n["y_b"]),
              print_tf=bed(b1), color="#3d7cc9", notes="Bevel m1.5 z30 on the countershaft D flat, drives the z15 2:1"),
         Part("launch_aim_worm", wm, "PPA-CF", joint="launch_aim_worm", place=_worm_place(P),
@@ -470,35 +593,33 @@ def parts_aim(P):
              notes="Worm m2 pd24 single start (lead angle 4.8 deg, self-locking) + d8 shaft + bevel z15"),
         Part("launch_aim_crank", wh, "PPA-CF", joint="launch_aim_crank", place=_wheel_place(P),
              print_tf=bed(wh), color="#3d7cc9",
-             notes="Worm wheel m2 z20 = crank gear, crank arm r30 and d8 crank pin in one part, two 608 inside"),
+             notes=f"Worm wheel m2 z20 face {WHEEL_FACE:g} = crank gear, crank arm r30 and d8 crank pin in one "
+                   "part, two 608 inside"),
         Part("launch_aim_conrod", rod, "PPA-CF", joint="launch_aim_conrod", place=tf.I4,
-             print_tf=bed(rod, tf.Rx(90)), color="#d97a00", notes="Conrod 156 between pin centres, e-clips"),
+             print_tf=bed(rod, tf.Rx(90)), color="#d97a00",
+             notes="Conrod 156 between pin centres (PPA-CF), printed C clips on both pins"),
+        Part("launch_aim_crankpin_clip", clip, "PLA", joint="launch_aim_conrod",
+             place=tf.mul(tf.T(0.0, _clip_y0(Y_ROD[0]), 0.0), tf.Rx(-90)),
+             print_tf=bed(clip), color="#e0c050", notes="Printed C clip on the crank pin, inboard of the conrod"),
         Part("launch_aim_lug", lug, "PPA-CF", joint="launch_rail", place=tf.I4,
              print_tf=bed(lug, tf.Rx(90)), color="#d97a00",
-             notes="Lug bracket, 2 x M3 into the rail wall, d8 lug pin at (u 115.2, w 0)"),
+             notes="Lug bracket (PPA-CF), 2 x M3 into the rail wall, d8 lug pin at (u 115.2, w 0)"),
+        Part("launch_aim_lugpin_clip", clip, "PLA", joint="launch_rail",
+             place=tf.mul(tf.T(n["lug_u"], _clip_y0(Y_ROD[1], inboard=False) - Y0, 0.0), tf.Rx(-90)),
+             print_tf=bed(clip), color="#e0c050", notes="Printed C clip on the lug pin, outboard of the conrod"),
         Part("launch_aim_housing", hs, "PLA", joint=None, place=tf.I4, print_tf=bed(hs), color="#9aa7b4",
              notes="Aim housing on the deck (4 x M3): sleeve end bushing, countershaft bushings, worm saddles, "
                    "M8 wheel bolt (captive nut), swing arm stop post"),
         Part("launch_aim_cap", cap, "PLA", joint=None, place=tf.I4, print_tf=bed(cap, tf.Rx(180)), color="#8796a5",
              notes="Worm shaft saddle cap, 4 x M3"),
         Part("launch_aim_bolt", bolt, "bought", joint=None,
-             place=tf.mul(tf.T(n["crank_x"], 205.2, n["crank_z"]), tf.Rx(-90)), color="#777c84",
+             place=tf.mul(tf.T(n["crank_x"], BOLT_Y0, n["crank_z"]), tf.Rx(-90)), color="#777c84",
              bought_ref="M8x25 hex bolt ISO 4017 + M8 nut", notes="Fixed axle of the worm wheel"),
         Part("launch_aim_brg_1", brg, "bought", joint=None,
-             place=tf.mul(tf.T(n["crank_x"], 213.4, n["crank_z"]), tf.Rx(-90)), color="#b0b5bb",
+             place=tf.mul(tf.T(n["crank_x"], _brg_y(P)[0], n["crank_z"]), tf.Rx(-90)), color="#b0b5bb",
              bought_ref="608ZZ 8x22x7", notes="Worm wheel bearing (outboard)"),
-        Part("launch_sw_rail_low", swl_body(P), "PLA", joint=None, place=swl_frame(P), print_tf=bed(swl_body(P)),
-             color="#5fae5f", notes="SW_RAIL_LOW printed contact on the aim housing pedestal, closed by the crank cam "
-                                    "within about +-6 deg of the LOW dead point (pitch 6.0)"),
-        Part("launch_sw_rail_low_screw", SW.screw(SWL_SCREW, SWL_ZS), "bought", joint=None, place=swl_frame(P),
-             color="#444444", bought_ref=f"M3x{SWL_SCREW:g} SHCS", notes="Contact screw, threaded through the leaf"),
-        Part("launch_sw_rail_low_nut", SW.nut(SWL_ZS), "bought", joint=None, place=swl_frame(P),
-             color="#444444", bought_ref="M3 nut", notes="Contact nut in its trap, wire under it"),
-        Part("launch_aim_as5600", as5600_solid(P), "bought", joint=None, place=tf.I4, color="#1a5fb4",
-             bought_ref="Adafruit AS5600 STEMMA QT (25.4 x 17.8 x 1.6), 2 x M2.5 x 6",
-             notes="Main shaft angle sensor, chip on the axis 1.1 mm beyond the magnet face"),
         Part("launch_aim_brg_2", brg, "bought", joint=None,
-             place=tf.mul(tf.T(n["crank_x"], 206.4, n["crank_z"]), tf.Rx(-90)), color="#b0b5bb",
+             place=tf.mul(tf.T(n["crank_x"], _brg_y(P)[1], n["crank_z"]), tf.Rx(-90)), color="#b0b5bb",
              bought_ref="608ZZ 8x22x7", notes="Worm wheel bearing (inboard)"),
     ]
 
@@ -539,7 +660,7 @@ def psi_of_pitch(P, pitch):
 
 def kin_aim(P, S, pitch):
     n = A(P)
-    if "aim_psi_from_low" in S:                                # any crank angle (falling stroke too)
+    if S.get("aim_psi_from_low") is not None:                  # any crank angle (falling stroke too)
         psi = K.pitch_table(P)["psi_low"] - float(S["aim_psi_from_low"]) % 360.0
     else:
         psi, _ = psi_of_pitch(P, float(pitch))
@@ -552,23 +673,24 @@ def kin_aim(P, S, pitch):
     a_rod = math.degrees(math.atan2(-(lz - czp), lx - cxp))
     out = {"launch_aim_crank": c, "launch_aim_worm": w, "launch_aim_cshaft": o, "launch_aim_conrod": a_rod - c}
     k_io, k_si = Z_OUT / Z_IDL, Z_IDL / Z_SUN
-    if S.get("aim_split", "in") == "out":
+    if S.get("aim_split") == "out":
         th = n["alpha_d"]
-        s = float(S.get("wiper_deg", 0.0))
+        s = float(S.get("wiper_deg") or 0.0)
         I = G.mesh_phase(Z_IDL, th + 180.0) - (s - th) * Z_SUN / Z_IDL
     else:
         th = n["alpha_e"]
         be = n["beta"]
         I = be + (G.mesh_phase(Z_OUT, be + 180.0) - o) * k_io
         s = th + (G.mesh_phase(Z_IDL, th + 180.0) - I) * k_si
-        out["launch_sleeve"] = s
+    out["launch_sleeve"] = s                                   # split out: the sleeve follows wiper_deg
     out["launch_aim_arm"] = th
     out["launch_aim_idler"] = I - th
     return out
 
 
 def allowed_aim(P):
-    return [Allow("launch_sw_rail_low_screw", "launch_sw_rail_low", "screw threaded into the leaf")]
+    return [Allow("launch_aim_drag_pad", "launch_sleeve",
+                  f"flexure pad tip bump bears on the sleeve d20 ({DRAG_INT:g} preload interference)")]
 
 
 def clearances_aim(P):

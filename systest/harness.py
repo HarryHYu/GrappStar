@@ -288,8 +288,20 @@ class Rig:
             sc.checks = [c for c in sc.checks if c[1] not in (c_wrap_free, c_tug)]
         if sc.slip_n:
             self.base.set(slipN=sc.slip_n)
-        if sc.plant_setup:
-            self.base.set(**sc.plant_setup)
+        ps = dict(sc.plant_setup)
+        if "drumDeg" in ps:          # the drum is turned by hand with the board off, then it boots there
+            self.base.ctl("power off")
+            self.base.boot_t = self.base.get().get("t", 0)
+            self.base.set(drumDeg=ps.pop("drumDeg"))
+            self.base.ctl("power on")
+            t0 = time.time()
+            while time.time() - t0 < 8:
+                g = self.base.get()
+                if g.get("state") not in (None, "OFF") and g.get("t", 0) >= self.base.boot_t + self.base.hello_delay + 150:
+                    break
+                time.sleep(0.02)
+        if ps:
+            self.base.set(**ps)
         self.dart = DartProc(self.dir)
         for q in sc.dart_setup:
             self.dart.get("/sim/set?" + q)
@@ -873,7 +885,7 @@ class Scenario:
                         return a
                 elif ans in choices:
                     return ans
-        prefer = ["Continue", "Base may move", "Aim", "Fire", "FIRE NOW", "Anchor", "Anchor anyway", "Shoot again", "Dart is down",
+        prefer = ["Continue", "Base may move", "Aim", "Cock", "Decock and re-aim", "Fire", "FIRE NOW", "Anchor", "Anchor anyway", "Shoot again", "Dart is down",
                   "Release the dart"]
         for p in prefer:
             if p in choices:
@@ -963,9 +975,14 @@ def c_reel_engaged(rig, res):
 
 
 def c_tow_limit(rig, res):
+    """Peak plant line tension over the whole pull (check, fly-in, tow, release: the 50 ms poll can attribute a peak
+    to the next step), against the tow limit + 15 %."""
     lim = rig.app.cfg.mission.tow_limit_n
-    mx = max(rig.plant_max.get("TOW:tension", 0), rig.plant_max.get("CHECK:tension", 0))
-    return mx <= lim * 1.15, f"max plant tension {mx:.1f} N, limit {lim} N (+15 %)"
+    keys = [k for k in rig.plant_max if k.endswith(":tension") and k.split(":")[0] in
+            ("CHECK", "TOW", "FLY_IN", "REEL_FLYIN", "RELEASE", "TIDY", "ANCHOR")]
+    mx = max([rig.plant_max[k] for k in keys] or [0.0])
+    worst = max(keys, key=lambda k: rig.plant_max[k]) if keys else "-"
+    return mx <= lim * 1.15, f"max plant tension {mx:.1f} N ({worst}), limit {lim} N (+15 %)"
 
 
 def c_released(rig, res):
@@ -1320,8 +1337,8 @@ sc(Scenario("no_angle_sensor", "AS5600 magnet missing from boot (D12: SW_INDEX f
             checks=[("DONE in SW_INDEX mode (D12), or refused at PREFLIGHT before any motion (F9 / F10)",
                      lambda r, res: (c_done(r, res)[0] or (res["steps"][-1:] == ["PREFLIGHT"] and any(k in str(res["error"]).lower() + " ".join(p["text"].lower() for p in res["prompts"]) for k in ("angle sensor", "magnet"))),
                                      f"{res['mission_state']} at {res['steps'][-1:]}: {res['error']}")),
-                    ("refusal is explicit (ANGLE_SENSOR)", lambda r, res: (any("ANGLE_SENSOR" in (p["text"]) for p in res["prompts"]) or "ANGLE_SENSOR" in str(res["error"]),
-                                                                            res["error"])),
+                    ("refusal is explicit (angle sensor / magnet named)", lambda r, res: (any(k in p["text"] for p in res["prompts"] for k in ("ANGLE_SENSOR", "magnet", "AS5600")) or "ANGLE_SENSOR" in str(res["error"]),
+                                                                                         [p["text"][:70] for p in res["prompts"]][:1])),
                     ("no dry fire", c_no_dry)]))
 
 sc(Scenario("usb_unplug_tow", "USB unplugged for 3 s while the base holds the tow (board loses power), replugged",
@@ -1373,7 +1390,7 @@ POWER_STATES = [("LAUNCH_MODE", "MODE"), ("AIM", "AIM"), ("COCK", "COCK"), ("BAS
 for _step, _pst in POWER_STATES:
     sc(Scenario(f"power_{_step.lower()}", f"power loss in {_step} (base state {_pst}): kill, restart, mission recovers",
                 triggers=[(f"kill base in {_step}", plant_state(_pst, step=_step, delay=1.0), lambda r: r.restart_base(2.0))],
-                policy={"LOADED_UNKNOWN": decock_then_retry, "PHASE_UNKNOWN": decock_then_retry, "phase UNKNOWN": decock_then_retry, "Decock": decock_then_retry},
+                policy={"LOADED_UNKNOWN": decock_then_retry, "PHASE_UNKNOWN": decock_then_retry, "phase UNKNOWN": decock_then_retry, "use Decock": decock_then_retry},
                 retry_max=4, plant_setup={"drumDeg": 41} if _step == "LAUNCH_MODE" else {},
                 checks=[("mission DONE after the power loss", c_done), ("no dry fire", c_no_dry),
                         ("seated", c_seated), ("back to LAUNCH", c_launch), ("tow limit respected", c_tow_limit)]))

@@ -123,8 +123,9 @@ firmware/base/grappstar_base` from the repository folder. It should report about
 In the first 60 ms after a start-up motor commands, `set` and `cal` are refused with `BOOTING`: send again.
 
 On the Jetson the same commands go through the GrappStar program instead of the Serial Monitor. Stop the service
-first (`sudo systemctl stop grappstar`), then in one terminal `python3 -m grappstar base monitor` (shows telemetry and
-events) and in a second terminal `python3 -m grappstar base cmd '{"id":1,"cmd":"ping"}'`.
+first (`sudo systemctl stop grappstar`), then run `python3 -m grappstar base console`: one connection, telemetry
+twice a second plus every event; type a JSON line, `key=value` words (`reel duty=0.3 until=stop`) or a bare `stop`,
+`estop` or `status`, and `quit` to end.
 
 Every command is one line of JSON with a `"cmd"`. The `"id"` is any whole number you like; the reply carries the same
 id (a number like 1.5 gives `BAD_ID`). A few examples (all in PROTOCOL.md):

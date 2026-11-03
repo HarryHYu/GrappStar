@@ -186,8 +186,8 @@ screwdriver for the buck.
 MP1584 #2 must be set to 9.0 V before it ever touches the DRV8833. This is done with the buck on its own: nothing else
 is wired to it.
 
-1. Battery unplugged. Solder short input leads to MP1584 #2: red to IN+ (with the 2 A fuse in it), black to IN-.
-   Nothing on the output.
+1. Battery unplugged. Solder input leads to MP1584 #2, long enough to reach the BTS7960 B+ and B- screws later: red
+   to IN+, with the 2 A inline fuse at the far (B+ screw) end of the red lead; black to IN-. Nothing on the output.
 2. Battery unplugged. Connect the input leads to the fused side of the XT60 lead (red to +, black to -). Check with
    the meter (beep mode) that IN+ and IN- are not shorted.
 3. Battery unplugged. Clip the meter probes onto OUT+ and OUT- (meter on DC volts), so you do not have to hold them.
@@ -219,8 +219,9 @@ is wired to it.
     the fused XT60 lead as in Part A (nothing on the output, meter on OUT+ / OUT-), plug the battery in, read 9.0 V
     with no load, unplug the battery and disconnect the input again. Only then, battery still unplugged: OUT+ to
     DRV8833 VM, OUT- to DRV8833 GND.
-12. Battery unplugged. Buck input: the 2 A inline fuse goes right at the BTS7960 B+ screw, then the IN+ lead to the
-    buck IN+ (no fuse: 18 AWG, kept under 10 cm). IN- to BTS7960 B-.
+12. Battery unplugged. Buck input: the red lead's fuse end (the 2 A inline fuse) to the BTS7960 B+ screw, so the
+    fuse sits right at the screw; its other end is already on the buck IN+ (If you have no 2 A fuse: 18 AWG, under
+    10 cm). Black lead from IN- to BTS7960 B-.
 13. Battery unplugged. Power: fused XT60 lead + to BTS7960 B+, - to B-. Use 14 AWG. The 20 A fuse in the + lead.
 14. Battery unplugged. Wiper motor to M+ and M- (red to M+, black to M-). On the bench the motor is clamped and has
     nothing attached (BENCH_TEST.md).

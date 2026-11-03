@@ -106,3 +106,11 @@ Still open (owner):
   glossary (AF, SHCS, e-clip, jam nut, module, crush rib, backlash, self-tapper, hole compensation), Markdown image
   paths relative to docs/build. Sent to cad-infra: luggage-scale-too-coarse test, shear pin pass range, unmeasurable
   play tests, missing base fit coupon, settings in the sheet, Mac command.
+- Round 9 (coordinator's review files r1_G and r2_J, items owned by docs): fixed r2_J #10 (stale pin map: diagram
+  GPIOs now filled from pins.h at build, new test that every GPIO in the built guide is a pins.h pin), D38 (no
+  4-spring promises), #18 (stage 4 uses rubber-band stand-in springs; cock/decock then fire), #16 (A6 n0 scaled
+  x 2.5 from the 40 percent jog), #22 (per-contact gaps), #23, #24 (tools), #25/26 (coupon sheet included), #27
+  (motor adapter M3 x 10, 10 of 12), #28 (swing-screw drum release); r1_G #6 (B4 = D30), #7 (stage 2 current band
+  under the jog trips), #9 (firing via the new `grappstar base fire`, arm and fire inside the 3 s token life),
+  #10 (estop holds), #14/#15 (SLP unwired, no 3V3 fallback). Sent to fw-base: k_n_per_a procedure (4 A vs 3 A jog
+  trip), latch wording, WIRING 2 A fuse; fw-dart: B2 battery-unplugged wording.

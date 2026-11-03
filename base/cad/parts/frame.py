@@ -68,7 +68,7 @@ FRAMEWORK_DEFAULT = dict(
     cheek_y_in=None,        # (right, left) inner cheek face y; None = from the motor face (y = 0) and cheek_gap
     ebay=None,              # electronics bay placement override, see _frame_ebay.py
     motor_support=dict(plate_x=(-104.0, 111.0), plate_z=(-100.0, 120.0), leg_x=(78.0, 108.0), leg_y=(-55.0, -30.0),
-                       bridge_z=(-22.0, 22.0)),   # v1.x motor plate, bridge and leg (relative to the main axis, y world)
+                       bridge_z=(-22.0, 22.0), foot_dx=(16.0, 3.0)),   # v1.x motor plate, bridge and leg (relative to the main axis, y world)
     plate_back=75.0,        # v1.0 plates: start as a rectangle this far behind the main axis ...
     plate_front=105.0,      # ... and this far in front, deck to above the axis, then carved round the others
     guards=dict(hood_x=(-60.0, 62.0), hood_len=60.0, hood_z=56.0, front_x=104.0, front_len=106.0, front_top=-10.0),
@@ -295,7 +295,9 @@ def motor_support_v1(P, C, info, mo):
     ztop = bz1
     leg = prim.box(lx0, lx1, ly0, ly1, 0.0, ztop)
     fy0, fy1 = ly0 - 22.0, ly1 + 22.0
-    leg = leg + prim.box(lx0, lx1, fy0, fy1, 0.0, 6.0)
+    fx1 = lx1 + sp["foot_dx"][1]
+    fxa, fxb = lx0, lx0 - sp["foot_dx"][0]               # -y half of the foot starts at the column; +y half reaches further
+    leg = leg + prim.box(fxa, fx1, fy0, (ly0 + ly1) / 2, 0.0, 8.0) + prim.box(fxb, fx1, (ly0 + ly1) / 2, fy1, 0.0, 8.0)
     for xg in (lx0 + 2.0, lx1 - 6.0):
         for (ya, yb) in ((fy0, ly0), (ly1, fy1)):
             g_ = prim.extrude(prim.poly_cs([(0, 0), (abs(yb - ya), 0), (0, 40.0)]), 4.0)
@@ -310,9 +312,9 @@ def motor_support_v1(P, C, info, mo):
     for z in jz:
         leg = leg - prim.cylY(U.CLR_D / 2, ly0 - 1, ly1 + 1, xc, z) - prim.cylY(U.HEAD_D / 2, ly0 - 1, ly1 - 8.0, xc, z)
         cuts.append(yfeat(U.insert_hole(0, 0, 0.0), xc, z, ly1, 1))
-    feet = [(lx0 + 8.0, fy0 + 8.0), (lx1 - 8.0, fy0 + 8.0), (lx0 + 8.0, fy1 - 8.0), (lx1 - 8.0, fy1 - 8.0)]
+    feet = [(fxa + 7.0, fy0 + 7.0), (fx1 - 6.0, fy0 + 7.0), (fxb + 7.0, fy1 - 7.0), (fx1 - 6.0, fy1 - 7.0)]
     for fx, fy in feet:
-        leg = leg - U.clear_hole(fx, fy, -1, 7)
+        leg = leg - U.clear_hole(fx, fy, -1, 9)
     plate = prim.diff(plate, cuts)
     carve = _swept_no_axis(C, (mx, mz))
     if not carve.is_empty():

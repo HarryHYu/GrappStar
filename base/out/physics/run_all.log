@@ -1,1 +1,22 @@
-............................
+..................................................                       [100%]
+50 passed in 19.56s
+params: base/spec/params.py v0.1-stub (still defaults for LAUNCH, AIM, REEL, LAYOUT)
+spring: k 0.125 N/mm (formula 0.131), Fi 7.0 N, body coils 96.1, mass 54.1 g, surge 24.7 Hz
+spring safe: 43.6 N (hook torsion), extension 293 mm, Sut 2106 MPa
+  pitch_deg            35.000
+  stroke_m             0.245
+  pulley_ratio         1.000
+  ext_full_mm          250.000
+  over_safe            False
+  f_carriage_full_n    76.500
+  energy_stored_j      11.239
+  v_muzzle             6.921
+  t_stroke_ms          58.200
+  a_peak_g             19.081
+  ke_dart_j            6.683
+  efficiency           0.595
+  ke_carriage_j        1.916
+  f_stop_peak_n        1425.547
+  ke_spring_j          0.935
+  f_cord_peak_after_stop_n 285.094
+  coil_clash_v         9.713

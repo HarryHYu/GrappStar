@@ -55,9 +55,10 @@ so at the dwell the cam pushes 0.3 mm past first contact (overtravel to the hard
 sit at y 200.7..207, outside the crank plane.
 
 Bracket (PLA): backing plate behind the switch base (world x 114.5..119.5), a column down to cad-launch's housing foot
-extension (x 80..130.9, y 193.8..201.8, top at deck + 8) and a foot on it: 2 x M3x10 down into pilots at (107, 197.8)
-and (116, 197.8); the housing's 4th deck screw (from below, 125.9, 197.8) bites into a d2.6 pilot in the foot. The
-switch base screws to the plate with 4 x M3x8 self tap.
+extension (x 80..130.9, y 193.8..201.8, top at deck + 8), a foot on it and a web (about 48 deg) under the cantilevered
+plate. Fixing: 1 x M3x10 down into the pilot at (107, 197.8), and the housing's 4th deck screw (from below, x 125.9)
+bites into a d2.6 pilot in the bracket foot. cad-launch also cut a pilot at x 116: it lies under the bracket column and
+is not used. The switch base screws to the plate with 4 x M3x8 self tap. Print foot down.
 
 ## 3. SW_GAP (GPIO 39)
 

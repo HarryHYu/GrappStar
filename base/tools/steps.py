@@ -92,7 +92,7 @@ def shots(out: str, n: int, which=None) -> list[str]:
         job.append(dict(file=f, ops=[["ASM_GO", i, True], ["ASM_FREEZE", 1.0]]))
         files.append(f)
     f = os.path.join(sd, f"assembly_step{n:02d}_flyin.png")
-    job.append(dict(file=f, ops=[["ASM_GO", n - 1], ["ASM_FREEZE", 0.45]]))
+    job.append(dict(file=f, ops=[["ASM_GO", n - 1], ["ASM_FREEZE", 0.2]]))
     files.append(f)
     res = run_shots(dict(url=url, width=1400, height=880, ready="window.READY === true", shots=job))
     f = os.path.join(sd, "assembly_dark_phone.png")

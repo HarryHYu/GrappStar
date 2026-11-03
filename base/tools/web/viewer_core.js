@@ -121,7 +121,7 @@
     const hd = !!opts.hd, shot = !!window.CAD_SHOT;       // CAD_SHOT: headless capture (shots.js), cheaper settings
     const dpr = window.devicePixelRatio || 1;
     const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-    renderer.setPixelRatio(shot ? 1 : Math.min(2, dpr) * (hd && dpr < 2 ? 1.5 : 1));
+    renderer.setPixelRatio(shot ? Math.min(2, dpr) : Math.min(2, dpr) * (hd && dpr < 2 ? 1.5 : 1));   // shots: no hd boost (ratio 1 unless the job sets a device scale)
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.localClippingEnabled = true;
     renderer.shadowMap.enabled = opts.shadows !== false;

@@ -269,3 +269,22 @@ def test_cli_base_reel_is_bounded(monkeypatch):
     names = [n for n, _ in sent]
     reel_kw = sent[0][1]
     assert "ms" not in reel_kw or "stop" in names, f"unbounded reel per C1: {sent}"
+
+
+# ---------------------------------------------------------------- 8. auto-anchor + reshoot reels against an anchored dart
+def test_auto_anchor_reshoot_releases_first(tmp_path):
+    """mission.py:319-322 + 691-699: with auto_anchor_on_landing the dart anchors itself on landing. A NO GO verdict
+    (or "Retrieve and reshoot") calls reshoot(), which never releases the dart: RETRIEVE reels against the anchor up to
+    retrieve_limit_n and reports a "snag"."""
+    from mission_harness import Rig
+    r = Rig(tmp_path, verdict="NO_GO", cfg=MissionConfig(auto_anchor_on_landing=True))
+    r.policy["snag"] = "Abort"
+    r.policy["Dart is home"] = "Abort"
+    try:
+        r.run(90)
+        texts = [t for t, _ in r.answers]
+        paths = [p for _, p, _ in r.md.requests]
+        assert not any("snag" in t for t in texts) and "/release" in paths, \
+            f"retrieved against an anchored dart: {texts[-2:]}"
+    finally:
+        r.close()

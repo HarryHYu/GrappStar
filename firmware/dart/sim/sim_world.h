@@ -26,8 +26,12 @@ struct ImuReport { uint64_t tUs; uint8_t sensor; float v[4]; };   // accel x,y,z
 bool imuPresent();
 bool imuEnable(uint8_t sensor, uint32_t intervalUs);
 bool imuTakeReset();                    // true once after a simulated chip reset
-std::vector<ImuReport> imuDue();        // reports whose time has come since the last call, oldest first
-uint32_t imuTransferUs();               // simulated I2C time of one sh2_service() that moved data
+// One SHTP transfer, the unit one sh2_service() call reads: the oldest reports waiting in the chip that share a
+// timestamp (an accelerometer report, a game rotation vector report, or both when they fall due together). Reports
+// fall due on their own clock and wait in a bounded FIFO in the chip; when the host reads too slowly the oldest are
+// dropped (counted in /sim/state "imu.dropped"). Empty = nothing waiting.
+std::vector<ImuReport> imuNextTransfer();
+uint32_t imuTransferUs();               // simulated I2C time of one sh2_service() call that moved data
 
 // One step of an acceleration / attitude trace: hold accel (m/s^2, chip axes) for durMs while roll and pitch move
 // linearly from the previous step's end values to these ones. After the last step its values hold.

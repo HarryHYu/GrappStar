@@ -100,3 +100,71 @@ def test_slip_numbers(slip):
     Tmax = C.slip_torque(C.flexure_force(i["max_deflection"], g), i["mu"], i["r_in"], i["r_out"], 2)
     assert Tmax > 0.02
     assert i["table"][0][1] == 0.0
+
+
+def _slice(solid, z):
+    from shapely.geometry import Polygon
+    g = Polygon()
+    for p in sorted((Polygon(q) for q in solid.slice(z).to_polygons() if len(q) >= 3), key=lambda p: -p.area):
+        g = g.symmetric_difference(p.buffer(0))
+    return g
+
+
+def test_slip_min_wall(slip):
+    # eroding by half of 1.6 mm keeps every hole separate (no wall thinner than 1.6 mm around the screw features)
+    P = slip["parts"]
+    assert slip["info"]["min_wall"] >= 1.6
+    for name, z in (("hub_plate", 0.5), ("hub_plate", 4.0), ("adjuster_plate", 3.5), ("pressure_plate", 1.5)):
+        g = _slice(P[name], z)
+        e = g.buffer(-0.8)
+        assert e.geom_type == "Polygon", name
+        assert len(e.interiors) == len(g.interiors), (name, z)
+
+
+def test_slip_flexure_no_bridges(slip):
+    tm = prim.to_trimesh(slip["parts"]["flexure"])
+    down = (tm.face_normals[:, 2] < -0.7) & (tm.triangles_center[:, 2] > 0.05)
+    assert tm.area_faces[down].sum() < 0.1
+    g = slip["info"]["flex_geom"]
+    assert g["z_beam"] == 0.0
+
+
+def test_slip_sustained_stress(slip):
+    i = slip["info"]
+    g = i["flex_geom"]
+    assert C.SIGMA_FLEX_PLA_SUSTAINED == 10.0
+    assert C.flexure_stress(i["travel"], g) <= C.SIGMA_FLEX_PLA_SUSTAINED + 1e-9
+    assert max(r[3] for r in i["table"]) <= C.SIGMA_FLEX_PLA_SUSTAINED
+    assert i["table"][-1][2] > 0.02          # still reaches the payout brake torque
+    assert C.flexure_travel(g, C.E_PETG) >= i["travel"] - 1e-9
+
+
+def test_slip_flexure_on_pads(slip):
+    # the flexure beam rests on the pressure plate pads, upper bumps touch the adjuster: zero gap, no overlap
+    P, M = slip["parts"], slip["place"]
+    flex = prim.place(P["flexure"], M["flexure"])
+    pp = prim.place(P["pressure_plate"], M["pressure_plate"])
+    adj = prim.place(P["adjuster_plate"], M["adjuster_plate"])
+    assert (flex ^ pp).volume() < 1e-4
+    assert (flex.translate((0, 0, -0.05)) ^ pp).volume() > 1e-3
+    assert (flex.translate((0, 0, 0.05)) ^ adj).volume() > 1e-3
+
+
+def test_flexure_lower_bumps_option():
+    s, g = C.flexure_ring(16.5, 23.0, n=4, t=0.6, gap=0.7, lower_bumps=True)
+    ok(s)
+    assert g["z_beam"] == 0.7 and abs(prim.bbox(s)[0][2]) < 1e-9
+
+
+def test_dog_ramp_axial_free():
+    d = C.dog_clutch(od=50, id=30, n_teeth=8, ramp_deg=35, bore=("keyed", 20, 6))
+    i = d["info"]
+    assert abs(i["axial_free"] - i["tip_gap"]) < 1e-9
+    drv = d["driver"]
+    dvn = prim.place(d["driven"], C.dog_mate(i))
+    assert (drv ^ dvn.translate((0, 0, -(i["tip_gap"] - 0.02)))).volume() < 1e-6
+    assert (drv ^ dvn.translate((0, 0, -(i["tip_gap"] + 0.05)))).volume() > 1e-4
+    # a narrow ramp gap is reported honestly
+    j = C.dog_clutch(od=50, id=30, n_teeth=8, ramp_deg=35, ramp_gap=0.3)["info"]
+    assert j["axial_free"] < j["tip_gap"]
+    assert C.dog_clutch()["info"]["axial_free"] == C.dog_clutch()["info"]["tip_gap"]

@@ -10,15 +10,16 @@ system it drives.
 1. **`docs/build/GrappStar_Build_Guide.pdf`**: the one guide to build and run everything, in order: safety, parts,
    printing, base assembly, dart build, wiring, flashing, Jetson setup, calibration, bench tests, first mission,
    troubleshooting, and what to measure. Print it.
-2. **`docs/build/MEASURE_LIST.md`**: do groups A (wiper motor) and B (springs) first. The base parts that touch the
+2. **`docs/build/MEASURE_LIST.md`**: do A1 to A5 (wiper motor shaft and mount) and group B (springs) first. The base parts that touch the
    motor are generated from those numbers.
 3. **`docs/build/TEST_PLAN.md`**: the staged first tests, bench to field, with pass criteria.
 4. **`docs/build/SYSTEM_ELECTRICAL.md`**: the whole rover electrical system, wire gauges, first power-on sequence.
 
-## The only purchase
+## What to buy
 
-608 bearings, 8 to 10 (search "608ZZ bearing 8x22x7"). Everything else is already in hand or printed (Bambu X2D,
-PLA; PPA-CF for loaded gears and keyed shafts).
+608 bearings, 8 to 10 (search "608ZZ bearing 8x22x7"). Possibly also a 6 x 2.5 mm diametric magnet for the AS5600 if
+there is none in the box. Everything else is already in hand or printed (Bambu X2D, PLA; PPA-CF for loaded gears and
+keyed shafts). Range is about 4 to 5 m with the two launch springs; a second pair of the same springs gives 8 to 9 m.
 
 ## Layout
 

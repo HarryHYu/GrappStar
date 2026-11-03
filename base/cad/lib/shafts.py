@@ -23,6 +23,7 @@ KEY20_H = KEY20_HUB_D - KEY_RCLEAR   # 2.6 key ridge height above the shaft circ
 TAU_PPA_CF = 8.0         # MPa, allowable torsional shear of a printed PPA-CF shaft (conservative)
 P_KEY_ALLOW = 15.0       # MPa, allowable bearing pressure on a printed key flank (conservative)
 JOURNAL_608_D = 8.0      # printed journal for the 608 inner race (prints come out about +0.05; sand to fit)
+SHAFT_PRINT_UNDERSIZE = 0.1   # diametral: printed shafts print oversize, keyed_shaft body and journals are d - this
 
 
 def _round_profile(segments, chamfer):
@@ -57,17 +58,17 @@ def stepped_shaft(segments, chamfer=0.6):
     return prim.revolve_pts(_round_profile(segments, chamfer), seg=prim.segs(r_max))
 
 
-def _segments(length, d, end_lo, end_hi):
+def _segments(length, d, end_lo, end_hi, fit=0.0):
     lo = _steps(end_lo)                      # outward from the body, i.e. going down
     seg = []
     z = -sum(l for _, l in lo)
     for dj, lj in reversed(lo):
-        seg.append((dj, z, z + lj))
+        seg.append((dj - fit, z, z + lj))
         z += lj
-    seg.append((d, 0.0, length))
+    seg.append((d - fit, 0.0, length))
     z = length
     for dj, lj in _steps(end_hi):
-        seg.append((dj, z, z + lj))
+        seg.append((dj - fit, z, z + lj))
         z += lj
     return seg
 
@@ -82,16 +83,19 @@ def _steps(spec):
 
 
 def keyed_shaft(length, d=20.0, key_w=KEY20_W, key_h=KEY20_H, key_z=None, end_lo=None, end_hi=None,
-                chamfer=0.8, key_deg=0.0):
+                chamfer=0.8, key_deg=0.0, fit=SHAFT_PRINT_UNDERSIZE):
     """Printed shaft with an integral key ridge.
 
     Frame: axis +Z, main body d from z = 0 to z = length; key ridge on angle key_deg (default +X), width
     key_w - 2 * KEY_CLEAR, crest at r = d/2 + key_h, running z = key_z (default the main body less the chamfers),
     with 45 deg ends. end_lo / end_hi: (d, len) or [(d, len), ...] journal steps outward from the main body,
     e.g. end_lo=(8, 9) for a 608 journal below z = 0 (z = [-9, 0]).
+    fit: diametral undersize of the main body and the journals (default SHAFT_PRINT_UNDERSIZE = 0.1, printed
+    shafts print oversize; this gives clearance in keyed_bore, the CSK20 inner ring and a 608 race). fit=0 gives
+    the nominal diameters (e.g. for a turned shaft model). The key ridge (width, crest radius) stays nominal.
     Print lying on its side with the key up, or upright for short shafts.
     """
-    body = stepped_shaft(_segments(length, d, end_lo, end_hi), chamfer)
+    body = stepped_shaft(_segments(length, d, end_lo, end_hi, fit), chamfer)
     w = key_w - 2 * KEY_CLEAR
     r_top = d / 2 + key_h
     z0, z1 = key_z if key_z is not None else (chamfer, length - chamfer)

@@ -53,31 +53,57 @@ def lewis(torque_nm: float, module_mm: float, teeth: int, face_mm: float, materi
 
 
 def key(torque_nm: float, length_mm: float = 14.0, shaft: Shaft = Shaft(), key_h_mm: float = 6.0,
-        material: Printed = PPA_CF, bearing_allow: float | None = None) -> dict:
-    """Square key in a printed PPA-CF shaft. Shear on w x L, bearing on (h/2) x L. Default length = sprag width 14 mm.
+        material: Printed = PPA_CF, key_material: str = "steel", hub_printed: bool = True, hub_r_mm: float = 20.0,
+        bearing_allow: float | None = None) -> dict:
+    """Square key, half its height in the printed shaft keyway and half in the hub keyway. Length default = sprag
+    width 14 mm. Printed failure modes:
+      bearing_shaft / bearing_hub: keyway side wall, F / ((h/2) L)
+      shear_shaft: the plastic behind the shaft keyway side wall shears out on the plane through the keyway bottom
+        corner, parallel to the force, from the corner to the shaft surface: a = sqrt(R^2 - (R - h/2)^2) - w/2
+      shear_hub: same behind the hub keyway, plane through its top corner out to the hub radius hub_r_mm
+      shear_key: only when key_material is "printed" (a steel key does not govern)
     Bearing allowable defaults to material.sigma_lewis (conservative stand-in for printed compression with creep)."""
     L = length_mm * 1e-3
     w = shaft.key_w
-    h = key_h_mm * 1e-3
-    f = abs(torque_nm) / (shaft.d / 2)
-    tau = f / (w * L)
-    sig_b = f / (h / 2 * L)
+    t = key_h_mm * 1e-3 / 2
+    R = shaft.d / 2
+    f = abs(torque_nm) / R
     b_allow = material.sigma_lewis if bearing_allow is None else bearing_allow
-    sf_s = material.tau_allow / tau if tau > 0 else math.inf
-    sf_b = b_allow / sig_b if sig_b > 0 else math.inf
-    return dict(torque_nm=torque_nm, length_mm=length_mm, force_n=f, tau_mpa=tau / 1e6, bearing_mpa=sig_b / 1e6,
-                tau_allow_mpa=material.tau_allow / 1e6, bearing_allow_mpa=b_allow / 1e6, sf_shear=sf_s,
-                sf_bearing=sf_b, **{"pass": min(sf_s, sf_b) >= 1.0})
+    modes = {}
+    modes["bearing_shaft"] = (f / (t * L), b_allow)
+    a_s = math.sqrt(R ** 2 - (R - t) ** 2) - w / 2
+    modes["shear_shaft"] = (f / (a_s * L), material.tau_allow)
+    if hub_printed:
+        modes["bearing_hub"] = (f / (t * L), b_allow)
+        rh = hub_r_mm * 1e-3
+        a_h = math.sqrt(max(rh ** 2 - (R + t) ** 2, 0.0)) - w / 2
+        modes["shear_hub"] = (f / (a_h * L) if a_h > 0 else math.inf, material.tau_allow)
+    if key_material == "printed":
+        modes["shear_key"] = (f / (w * L), material.tau_allow)
+    out = {}
+    for k, (stress, allow) in modes.items():
+        out[k] = dict(stress_mpa=stress / 1e6, allow_mpa=allow / 1e6, sf=allow / stress if stress > 0 else math.inf)
+    gov = min(out, key=lambda k: out[k]["sf"])
+    sf = out[gov]["sf"]
+    return dict(torque_nm=torque_nm, length_mm=length_mm, force_n=f, key_material=key_material,
+                hub_printed=hub_printed, ligament_shaft_mm=a_s * 1e3, modes=out, governing=gov, sf=sf,
+                t_max=abs(torque_nm) * sf if torque_nm else math.inf, **{"pass": sf >= 1.0})
 
 
-def shaft_torsion(torque_nm: float, shaft: Shaft = Shaft(), kt: float = 2.0, material: Printed = PPA_CF) -> dict:
-    """tau = 16 T / (pi d^3). Pass is T <= Shaft.t_allow (the agreed 12 N m). Also reported: the stricter torque if
-    Kt x tau_nominal must stay under material.tau_allow (12 MPa, Kt 2 gives 9.4 N m)."""
+def shaft_torsion(torque_nm: float, shaft: Shaft = Shaft(), material: Printed = PPA_CF, kt: float = 2.0,
+                  kt_endmill: float = 3.0) -> dict:
+    """tau = 16 T / (pi d^3). Three verdicts:
+      pass:        T <= Shaft.t_allow (the agreed 12 N m)
+      strict_pass: Kt 2 keyway (rounded, sled runner style), Kt x tau <= material.tau_allow (about 9.4 N m)
+      endmill_pass: end-milled keyseat, Kt about 3 (about 6.3 N m)"""
     tau = 16 * abs(torque_nm) / (math.pi * shaft.d ** 3)
-    t_kt = material.tau_allow * math.pi * shaft.d ** 3 / (16 * kt)
-    return dict(torque_nm=torque_nm, tau_nom_mpa=tau / 1e6, tau_peak_mpa=kt * tau / 1e6, kt=kt,
-                t_allow=shaft.t_allow, t_allow_kt=t_kt, sf=shaft.t_allow / abs(torque_nm) if torque_nm else math.inf,
-                strict_pass=abs(torque_nm) <= t_kt, **{"pass": abs(torque_nm) <= shaft.t_allow})
+    base = material.tau_allow * math.pi * shaft.d ** 3 / 16
+    t_kt, t_em = base / kt, base / kt_endmill
+    T = abs(torque_nm)
+    return dict(torque_nm=torque_nm, tau_nom_mpa=tau / 1e6, tau_peak_mpa=kt * tau / 1e6, kt=kt, kt_endmill=kt_endmill,
+                t_allow=shaft.t_allow, t_allow_kt=t_kt, t_allow_endmill=t_em,
+                sf=shaft.t_allow / T if T else math.inf, strict_pass=T <= t_kt, endmill_pass=T <= t_em,
+                **{"pass": T <= shaft.t_allow})
 
 
 def bearing608(radial_n: float, rpm: float, b: Bearing608 = Bearing608(), sealed: bool = False,
@@ -112,5 +138,6 @@ if __name__ == "__main__":
     for t in (1.0, 5.0, 12.0):
         r = lewis(t, 2.0, 20, 12.0, PPA_CF, 45)
         print(f"T {t:5.1f} N m  m2 z20 b12 PPA-CF: sigma {r['sigma_mpa']:.1f} MPa  sf {r['sf']:.2f}  pass {r['pass']}")
-    print("key 12 N m:", {k: round(v, 2) if isinstance(v, float) else v for k, v in key(12.0).items()})
+    k = key(12.0)
+    print(f"key 12 N m: governing {k['governing']} sf {k['sf']:.2f}, max {k['t_max']:.1f} N m")
     print("shaft 12 N m:", {k: round(v, 2) if isinstance(v, float) else v for k, v in shaft_torsion(12.0).items()})

@@ -2,7 +2,7 @@
 // Bold lines = battery power, plain = low-voltage power and USB, dashed = signal, dotted = radio.
 // GPIO numbers come from firmware/base/grappstar_base/pins.h (fw-base owns them).
 digraph G {
-  graph [rankdir=LR, fontname="Liberation Sans", fontsize=11, nodesep=0.25, ranksep=0.55, splines=true, newrank=true];
+  graph [rankdir=TB, fontname="Liberation Sans", fontsize=11, nodesep=0.25, ranksep=0.55, splines=true, newrank=true];
   node  [shape=box, fontname="Liberation Sans", fontsize=10, color=black, fontcolor=black];
   edge  [fontname="Liberation Sans", fontsize=8, color=black, fontcolor=black, arrowsize=0.6];
 
@@ -18,7 +18,7 @@ digraph G {
     label="Base electronics bay"; style=solid;
     bts   [label="BTS7960\nB+ B- | M+ M-\nRPWM LPWM R_EN L_EN IS VCC GND"];
     buck  [label="MP1584 #2\nset 9.0 V"];
-    drv   [label="DRV8833 #3\nVM 9 V (max 10.8)\nAIN1 AIN2 SLP"];
+    drv   [label="DRV8833 #3\nVM 9 V (max 10.8)\nAIN1 AIN2 (SLP not wired)"];
     esp   [label="ESP32-S3 DevKitC-1-N8\nUSB from Jetson\nGPIO: see firmware/base/WIRING.md", shape=box, style=bold];
     div   [label="Battery divider\n100 k / 22 k"];
     hx    [label="HX711 (optional)\n+ 100 kg load cell", style=dashed];
@@ -53,11 +53,11 @@ digraph G {
   ysplit-> f10    [label="18 AWG", style=bold, penwidth=1.8];
   f20   -> bts    [label="B+ B-  14 AWG", style=bold, penwidth=2.5];
   bts   -> wiper  [label="M+ M-  14 AWG", style=bold, penwidth=2.5];
-  bts   -> buck   [label="from B+ B- screws\n22 AWG"];
+  bts   -> buck   [label="2 A inline fuse\n22 AWG"];
   buck  -> drv    [label="9.0 V  22 AWG"];
   drv   -> n20    [label="AOUT1 AOUT2\n26 AWG"];
   f10   -> jet    [label="barrel pigtail\n18 AWG, centre +", style=bold, penwidth=1.8];
-  f10   -> rc832  [label="22 AWG"];
+  f10   -> rc832  [label="1 A inline fuse\n22 AWG"];
   bts   -> div    [label="B+  26 AWG", style=dashed];
 
   jet   -> esp    [label="USB (power + serial)"];
@@ -68,7 +68,7 @@ digraph G {
   esp   -> bts    [label="RPWM 4, LPWM 5\nR_EN 6, L_EN 7, 3V3, GND", style=dashed];
   bts   -> esp    [label="IS -> GPIO 1\n(1 k / 680 R)", style=dashed];
   div   -> esp    [label="GPIO 2", style=dashed];
-  esp   -> drv    [label="AIN1 17, AIN2 18\nSLP 21, GND", style=dashed];
+  esp   -> drv    [label="AIN1 17, AIN2 18, GND", style=dashed];
   esp   -> as5600 [label="I2C SDA 8, SCL 9, 3V3, GND", style=dashed, dir=both];
   sw    -> esp    [label="GPIO 11-14, 39-42\n(pull-up, closed = LOW)", style=dashed];
   hx    -> esp    [label="DT 16, SCK 15", style=dashed];

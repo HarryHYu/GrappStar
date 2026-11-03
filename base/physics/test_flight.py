@@ -57,3 +57,9 @@ def test_reel_model_runs_and_reports():
     assert r["landed"]
     assert r["reel_rpm_max"] < p.bearing.n_max_rpm_2rs
     assert 0 <= r["overrun_after_landing_m"] < 2.0
+
+
+def test_low_pitch_reel_start_no_snap():
+    p = Params()
+    r = simulate(p, 7.2, 15, brake_n=0.75, reel_model=True)
+    assert r["t_dart_max_n"] < 2.0

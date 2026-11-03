@@ -225,7 +225,8 @@ class SimTest(unittest.TestCase):
             self.sim_set(rail_v=7.6)
         self.wait_for(lambda s: all(v == 0 for v in s["motors"].values()), 1.0, "motors off")
         self.get("/stop")
-        self.sim_set(deploy_pos=0)                           # put the pods back where the mission starts
+        self.hold("!", 1.8)                                  # drive the pods back up (the dart refuses to arm with legs out)
+        self.get("/stop")
         self.assertEqual(self.get_status()["phase"], "IDLE")
 
     def test_07_mission_arm_launch_flight_anchoring_anchored(self):

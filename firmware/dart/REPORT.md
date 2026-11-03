@@ -49,7 +49,7 @@ the real sketch in a host simulator, the web page in headless Chromium, the Jets
     swing in air (BENCH_TEST step 5 checks it; the firmware itself measures and logs the swing).
 13. **Hold contract with the Jetson** (agreed with jetson, in `API.md`): repeat `/key` every 150 ms with `ms=350`,
     `stalled` is the normal end, always finish with `/stop?disarm=0`. The stall lock is per direction.
-14. **`/arm` is refused while `ANCHORED`** (legs out: release first).
+14. **`/arm` is refused while `ANCHORED`, and whenever the kick or pods are known to be out** (release first).
 15. **Geometry unchanged**: v30 stays the default build; the DRV#3 pocket in the sled stays empty.
 
 ## Verified
@@ -91,6 +91,12 @@ TEST_OUTPUT_PLACEHOLDER
     one noisy reading could latch the rise rule; the hold cap refusal read like an end stop (now `hold limit`); a
     single-sample `NO_CURRENT` at the pods lead (now 100 ms). Rise rule now compares readings at a common voltage, and
     a noisy stall just over its line is caught on 2 of the last 3 readings. Full fuzz passes on 6 seeds.
+14. Whole-system review and an end-to-end run of 9 mission scenarios with the Jetson's real client: a release said
+    "legs stowed" with the pods jammed part way (now the pods finish their lift alone, read every 5 ms, and a stall
+    before 60 % of the way is `PODS_JAM`); the release kick check counted travel the kick never made (now only up to a
+    reading under the line); arming with the legs out after an aborted anchor (now `legs out: release first`); phase
+    `LANDED` came back after a release; a key held through a sequence got an instant `hold limit`; old presses after
+    25 days; `/flightlog` refusals now distinct; duplicated refusal lines. Fuzz on 12 seeds in total: clean.
 - Coordinator R1-B review, the C2 cross-check with the jetson client, the clean-clone check (all README steps pass
   from a fresh clone; doc gaps fixed), the coordinator's `test_06_hold_and_stop` failure (firmware stall lock, fixed).
 

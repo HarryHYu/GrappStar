@@ -181,6 +181,7 @@ The four-motor arrays are in the order {deploy, kick, drills, foot}: `stallMa[0]
 | `kickContactMa` | about 2 x kick free, below kick stall / 2 | 60 |
 | `freeMa[...]` | measured free currents (steps 3 to 6) | 30, 30, 70, 45 |
 | `loadMa[...]` | typical working current in soil (step 9) | 40, 70, 420, 130 |
+| `podsTravelMs` | pods travel stowed to down at full speed (step 3: hold `1` from stowed until it stalls, time it, or use the default) | 1400 |
 | `kickSwingMs` | kick swing in air from step 5 (the firmware's own `kick travel` number), in ms | 4300 |
 | `impactG` | under the `peak_g` of a real landing (step 8 and the first shots), over 2 g | 3.5 |
 | `kickMaxMs` | 2 x kick swing time, at least 8000 | 15000 |

@@ -770,7 +770,7 @@ def build(P):
                             if (probe ^ cut_local).volume() > 0.5:
                                 info["warnings"].append(f"adapter carve reaches the SW_INDEX insert at ({x:.0f}, {y:.0f})")
                     ad_rot = U.carve_healed(ad_rot, cut_local)
-        parts.append(Part("frame_motor_adapter", ad_rot, "PPA-CF", place=Mad, print_tf=U.print_flat(ad_rot),
+        parts.append(Part("frame_motor_adapter", ad_rot, "PPA-CF", place=Mad, print_tf=U.print_flat(ad_rot, tf.Rx(180) if C["v1"] else None),
                           color="#c9b27a",
                           notes=("puck adapter: slotted M6 holes (+-%.0f mm) for the motor bosses, rear lip with 8 M3 inserts "
                                  "for the rim screws, 2 inserts for cad-drum's SW_INDEX block; reprint when the motor is measured"
@@ -1302,7 +1302,7 @@ def guards_v1(P, C, info, mo):
     comps = [roof]
     if comps and comps[0].volume() > 2000:
         roof = comps[0]
-        parts.append(Part("frame_guard_hood", roof, "PLA", print_tf=U.print_flat(roof), color="#d0d6dc",
+        parts.append(Part("frame_guard_hood", roof, "PLA", print_tf=U.print_flat(roof, tf.Rx(180)), color="#d0d6dc",
                           notes="gear hood over the reel and bus gears, M3 x 10 through its lugs into the motor plate"))
         # keep only the lug pins that survived the carve
         pins = [(x, z) for (x, z) in pins if not (roof ^ prim.cylY(3.0, min(yi, yi + s_in * 8) + 0.5,

@@ -29,6 +29,8 @@ def _asm():
           Part("gear_2", g2, "PPA-CF", joint="g2", place=tf.T(0, 0, 1), print_tf=tf.I4),
           # a pin on a slide that dips into gear 2's teeth for part of the travel (real, varying collisions)
           Part("pin", pin, "steel", joint="pin"),
+          # a block inside gear 1's loose box but outside its swept cylinder (cleared by the motion envelope)
+          Part("block", prim.cbox(4, 4, 8, x=-13.2, y=-13.2, z=0), "steel"),
           # an arm swinging over the gears, clear of them
           Part("arm", prim.cbox(6, 50, 3, y=25, z=0), "PLA", joint="arm", print_tf=tf.I4)]
     off = 180.0 / z2 if z2 % 2 == 0 else 0.0
@@ -80,7 +82,8 @@ def test_fast_audit_matches_brute_force(monkeypatch, jobs):
     asm = _asm()
     states = _states(30)
     rep = audit.run(asm, states, jobs=jobs, **Q)
-    assert rep["stats"]["chunked_parts"] >= 2 and rep["stats"]["chunks"] > 20
+    st = rep["stats"]
+    assert st["chunked_parts"] >= 2 and st["chunks"] > 20 and st["envelope_cleared_pairs"] >= 1 and st["cropped_pairs"] >= 2
     hits, gaps = _brute(asm, states)
     got = {(e["a"], e["b"]): e for e in rep["collisions"] + rep["allowed_contacts"]}
     assert set(got) == set(hits), (set(got) ^ set(hits))

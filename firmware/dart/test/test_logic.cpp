@@ -334,7 +334,8 @@ int main() {
   { fresh(); ACC = [](uint32_t t) { return t < 15000 ? 1.0f : t < 15030 ? 8.0f : t < 25000 ? 0.4f + 0.3f * sinf(t * 0.01f) : t < 25015 ? 8.0f : 1.0f; };
     K.arm(true, false, NOW); run(32000);
     std::string j = logJson(256); save("flightlog_long.json", j);
-    CHECK(K.landed && K.log.frozen && countSamples(j) == LOG_N && K.log.at(0).t > K.flight.tLaunch - 2000, "10 s flight: window longer than 12 s keeps the newest 12 s");
+    CHECK(K.landed && K.log.frozen && countSamples(j) == LOG_N && K.log.at(0).t >= K.flight.tLaunch - 2000 && K.log.at(0).t <= K.flight.tLaunch - 1980,
+          "10 s flight: window longer than 12 s keeps 2 s before launch and the first 10 s (launch never lost)");
     CHECK(j.find("CHUNK_OVERFLOW") == std::string::npos, "small 256 B chunks never overflow"); }
   { fresh(); std::string j = logJson(); save("flightlog_empty.json", j); CHECK(countSamples(j) == 0 && j.find("\"n\":0") != std::string::npos, "empty log is valid JSON with no samples"); }
 
@@ -459,6 +460,17 @@ int main() {
   { fresh(); K.startAuto(NOW); while (K.seq != D_DEPLOY) run(5); run(1000); K.stop(NOW); run(500); LOG.clear(); uint32_t t0 = NOW; K.startAuto(NOW); run(25000);
     uint32_t tk = when("kick already down"); printf("     retry: kick off after %u ms\n", tk - t0);
     CHECK(K.seq == DONE && tk && tk - t0 < 1000, "auto retried with the kick already planted: kick stopped within 1 s, foot planted alone, anchored"); }
+
+  // ===================================================================================================== coordinator review R1-B
+  section("coordinator review R1-B regressions");
+  { fresh(); ACC = [](uint32_t t) { if (t < 5000) return 1.0f; if (t < 5040) return 8.0f; if (t < 6540) return 0.2f; if (t < 6555) return 6.0f;
+      return ((t - 6555) % 800) < 40 ? 1.4f : 1.0f; };   // impact, then nudged every 0.8 s: never still, lands by timeout
+    K.arm(true, false, NOW); run(25000);
+    printf("     timeout landing: tLaunch %u tLand %u how %s, log %u..%u\n", K.flight.tLaunch, K.flight.tLand, K.flight.how, K.log.at(0).t, K.log.at(K.log.count - 1).t);
+    CHECK(std::string(K.flight.how) == "timeout" && K.log.frozen && K.log.at(0).t <= K.flight.tLaunch - 1980 && K.log.at(K.log.count - 1).t >= K.flight.tLand,
+          "timeout landing after an impact: the frozen log still holds 2 s before launch through the impact"); }
+  { fresh(); for (int i = 0; i < 260; i++) { K.key(i % 2 ? '!' : '1', 350, NOW); run(75); }
+    CHECK(P.mdir[DEPLOY] == 0 && logged("both directions held"), "R1-B #1: '1' and '!' alternating every 75 ms: stopped, not driven for 20 s"); }
 
   // ===================================================================================================== whole mission
   section("whole mission phases");

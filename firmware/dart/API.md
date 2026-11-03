@@ -198,8 +198,9 @@ Fetch it after landing (phase `LANDED` or `ANCHORED`).
 - Chip axes: how the BNO085 axes sit in the hull is not fixed by the firmware. BENCH_TEST.md step 7 finds them by
   standing the dart on its tail (nose up) and on its side and writes them down. Clients must use that mapping, not assume one.
 - Window: when a flight was detected, the log runs from 2 s before launch until 3 s after landing, then freezes
-  (`frozen: true`) and stays until the next arm. The ring holds 12 s (600 samples): in a flight longer than about
-  7 s the earliest samples are gone and the first sample comes after `t_launch_ms - 2000`. Before any launch the reply
+  (`frozen: true`) and stays until the next arm. The ring holds 12 s (600 samples): if the landing is decided more
+  than about 7 s after launch (a long flight, or a `timeout` landing), the log freezes 10 s after launch instead, so
+  it always keeps 2 s before launch, the launch and the first 10 s; the end of a very long flight is then missing. Before any launch the reply
   is the last 12 s, live (`frozen: false`, `t_launch_ms: null`).
 - `t_land_ms` is the last impact for `impact`, the start of stillness for `still`, for `timeout` the last impact if one
   was seen (else the time of the decision), and the time of the `/stop` for `stop`.

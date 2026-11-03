@@ -428,14 +428,19 @@ struct Kedge {
     if (!armed && !flight.flying()) return;           // launch is only looked for while armed
     handleFlight(flight.update(aG, now), now);
   }
+  // the last moment the whole window from 2 s before launch still fits in the 12 s ring
+  uint32_t freezeCap() const { return flight.tLaunch - 2000 + (LOG_N - 1) * 20; }
   void handleFlight(int e, uint32_t now) {
     if (e == Flight::LAUNCH) {
       log.window(flight.tLaunch - 2000);             // modular: fine across the millis() wrap
+      log.scheduleFreeze(freezeCap());               // never let the ring overwrite the start of the window
       if (running()) { stopAll(now); ev("launch: motors stopped"); }
       char b[64]; snprintf(b, sizeof b, "launch detected at %lu ms", (unsigned long)flight.tLaunch); ev(b);
     } else if (e == Flight::LAND) {
       landed = true;
-      uint32_t fr = flight.tLand + 3000; log.scheduleFreeze((int32_t)(fr - now) > 0 ? fr : now);
+      uint32_t fr = flight.tLand + 3000, cap = freezeCap();
+      if ((int32_t)(fr - cap) > 0) fr = cap;         // a long (timeout) flight: keep launch and impact rather than the end
+      if (!log.frozen) log.scheduleFreeze((int32_t)(fr - now) > 0 ? fr : now);
       char b[64]; snprintf(b, sizeof b, "landed (%s)", flight.how); ev(b);
       bool go = armed && autoOnLanding; armed = false;
       if (go && flight.fallback()) { go = false; ev("no impact seen: auto not started, send /auto"); }

@@ -230,7 +230,8 @@ The real dart, built and tested to the dart run sheet section 10. Use real soil 
    it moves (G7).
 3. HARD PREREQUISITE for any tow: CALIBRATION.md (d) free running current (`free_a`) and (f) tension
    (`k_n_per_a`, MEASURE_LIST G9) are done, and stage 7b passed. Why: with the factory values a simulated tow
-   reached 61 N against a 40 N limit. The tow limit rule: the hand result from step 2 minus 10 N, never above 50 N.
+   reached 61 N against a 40 N limit. The tow limit rule: the hand result from step 2 minus 10 N, and never above 40 N for the first field tows, until
+   the wrap cup ring has been checked for wear (decision D46; the firmware cap is 55 N).
    Example: the dart held 45 N by hand, so the limit is 35 N. Set it in the firmware
    (`{"cmd":"set","key":"limit_n","val":35}`) and as the operator page's tow limit (jetson/README.md, settings).
    Re-anchor (wrap first, as in step 1). Rover chocked, everyone beside the line. Then the stage 7 table from

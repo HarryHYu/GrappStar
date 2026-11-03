@@ -15,7 +15,8 @@ Two ways to send the commands:
 Two rules for the whole test:
 
 - **Battery unplugged** before you touch any wire, jumper or plug. Never pull a plug (not even the small sensor
-  cable) while the battery is in.
+  cable) while the battery is in. The one exception: lead #2's XT60 is the physical motor kill switch and may be
+  pulled at any time.
 - Never hold a turning shaft, and never put a hand near a spinning shaft.
 
 ## Set-up

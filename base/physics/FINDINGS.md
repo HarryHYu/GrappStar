@@ -5,14 +5,37 @@ launcher/reel geometry below is my placeholder: stroke along the rail, 60 g carr
 core 40 / flange 64 / width 20 mm, capstan 40 mm). Dart mass 0.279 kg (spec DART.mass_kg; the brief said 0.292 kg:
 coordinator please confirm which). Models: base/physics/*.py, every number reproducible with the CLIs.
 
-## Current numbers (latest run, spec decisions D5 to D10; details in SUMMARY.md and base/out/physics/*.json)
+## Current numbers (spec v1.0, latest run; details in SUMMARY.md, base/out/physics/*.json)
 
-- 2 springs, 280 mm at full cock, 13.1 J: 7.6 m/s, range 4.9 / 4.5 / 4.0 m at 0.5 / 0.75 / 1.0 N, best pitch 36 deg.
-  4 springs: 10.4 m/s, 8.7 / 7.9 / 7.2 m. Ballistics table 6 to 47 deg in base/out/ballistics.json (C3).
-- Cock 3.1 N m peak at the wiper, 4.9 A, 2.7 s per shot. Tow 50 N: 2.0 N m, 3.7 A, 0.12 m/s (ratio 0.6). Aim 0.33 N m,
-  6.6 s for 6 to 47 deg. Limiter (5 N m) slipping: 7 A, 127 N on the line.
-- Stop: 3.3 J (carriage 2.3 + springs 0.9): 15 mm linear pad 434 N, 22 mm for 300 N. Recoil 84 N for 55 ms.
-- Sections F1 to F9 below are the history of the findings (numbers in them are from earlier parameter sets).
+- Launch: 2 springs, 35 mm preload, 280 mm full, 13.1 J, carriage 60 g: 7.8 m/s, 22 g, 65 % efficient.
+- Range from the rail pivot's ground point (pivot 0.315 m up: deck 0.15 ASSUMED + 0.165), LIGHT 0.5 / 0.75 / 1.0 N:
+  5.2 / 4.8 / 4.3 m at 36 deg (best). Table 6 to 47 deg in base/out/ballistics.json (C3): 2.9 m at 6 deg.
+  4 springs (provision): 10.6 m/s, 9.0 / 8.2 / 7.5 m; stop KE 7.8 J.
+- Stop: 2.8 J (carriage 1.8 + springs 1.0): 15 mm linear pad 370 N; for 300 N use about 19 mm or a constant-force stop.
+- Storage reel 50/66/22: 43 g, 27.6 kg mm2 full; the spin-up adds 5.0 N of line pull in the stroke (the bigger reel
+  costs 0.36 m/s vs no reel inertia, about the same for a 40 mm core); overrun after landing 0.30 m at 0.5 N.
+- Capstan 50:22 (2.27x faster), 7 wraps: tow 50 N = 3.0 N m, 4.8 A, 0.15 m/s; 20 m reel-in 107 s; limiter slipping
+  pulls 88 N (current 7 A). 7 wraps hold far more than any limit: the trips protect the dart, not the capstan.
+- Cock 3.1 N m, 4.9 A, 2.7 s per shot. Aim 0.32 N m, 6.6 s for 6 to 47 deg.
+- Recoil rock (ASSUMED 4 kg rover): 5.8 deg at 6 deg pitch braked (1.2 rolling), 0.7 deg at 36. No tip.
+- Clutch convention (both LIGHT and FIRM): line tension with the reel FULL; it rises as the reel empties
+  (x1.23 at the core). Final approach on FIRM 3 N: 2.3 N at the dart vs 2.1 to 2.6 N needed (margin 0.9 to 1.1):
+  marginal. FIRM 5 N gives a 1.5 margin, or seat on the capstan.
+- Wrap: drum 0.49 to 0.60 N m, N20 61 to 74 N mm.
+- Mission (mission.py): aim, cock, flight, anchor, wrap, tow 3 m at 30 N, release, unwrap, reel 5 m: about 3.2 min,
+  0.66 Wh from the base pack (about 70 missions per 3S 5200 mAh, base side only). Drum N20 timings ASSUMED.
+- SPRING CATALOGUE (web check): Bunnings 0487961 is Century C-243, 5/8 in OD x 6-1/2 in x 0.054 in wire (1.37 mm,
+  not 1.4). Century lists max safe load 8.64 lb (38.4 N) and max deflection 11.9 in (302 mm), rated for about 100,000
+  cycles. Our 280 mm full cock is 42 N with the 0.125 N/mm / 7 N estimate: inside the deflection limit but 9 % over
+  the load rating (our A228 static limit with SF 1.2 is 43.6 N at 1.4 mm wire, about 41 N at 1.37 mm). For a few
+  hundred shots this is acceptable; the hang test decides: keep the force at full cock at or under about 40 N
+  (if the spring measures 0.125 N/mm and 7 N: about 265 mm). Each 10 mm less extension costs about 0.15 m of range.
+- Tow current sensing: 17 N of line per amp above free current (line = 17 x (I - I_free) - 6 N, the offset is the
+  take-up drag). A firmware constant of 8 N/A would let the line reach about twice the set limit.
+- Blind cross-check (fresh agent, no access to this code): muzzle speed 7.77 m/s (ours 7.78). Its range was 12 %
+  longer; traced to a taut/slack chatter in its reel logic that applied the brake only about half the time. With the
+  brake applied continuously its approach matches ours within 1 %.
+- Sections F1 to F11 below are the history (numbers from earlier parameter sets).
 
 ## F1. RANGE: the two Century springs cannot reach 15 to 20 m. Expect 4 to 5 m. (biggest issue)
 

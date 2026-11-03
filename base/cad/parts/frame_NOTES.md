@@ -42,15 +42,15 @@ Fasteners: M3 only (M3 x 4 x 5 heat-set inserts, holes 4.0 x 6 deep), plus M6 fo
 | 20 A fuse | inline ATO holder envelope 55 x 26 x 16 (typical). 14 AWG holder: Littelfuse FHAC0003ZXJB (FHAC0001ZXJ has 16 AWG leads) | cradle with a tie slot | littelfuse.com |
 | XT60 | body 15.7 x 8.1; panel cutout 16.5 x 9 | wall cutout | seller data |
 
-## 3. Wiper motor adapter (Harry edits only params.WIPER, reprints one part)
+## 3. Wiper motor adapter (Harry edits only params.WIPER, reprints the puck)
 
-Fixed frame interface (never changes): the motor plate (y 22..32) has a 67 mm bore round the main axis (cad-drum's
-coupler with the shear-pin limiter is r 32 over y 0.5..46), a 2 mm counterbore r 49.3 on its motor face that keys the
-adapter hub, and 12 x M3 clearance holes on R 43 (30 deg apart, heads on the frame side). The adapter hub ring (r 33.5
-to 49, 22 mm tall + 2 mm spigot) carries an insert at every ring position clear of the motor's head slots (at least 4,
-no gap over 150 deg, checked by `frame.checks`). Assembly: motor to adapter on the bench (M6 bolts from the plate side
-of the wings, heads in the slots, into threaded bosses or nuts behind the boss ears); then M3 x 10 from the frame side
-of the plate into the hub inserts. Nothing is screwed behind the gearbox.
+BASE_SPEC section 2: world y = 0 is the adapter plate FRONT face, the motor sits behind it. The frame's motor plate
+(`frame_cheek_r`) occupies y -10..0 with a window r 88. The adapter is a PUCK (`frame_motor_adapter`, PPA-CF) that
+fills the window (y -10..0), with a rear lip out to r 97 (y -16..-10) that keys it, held by 8 x M3 x 12 from the
+plate front face at r 92.5 into lip inserts (the frame uses the ones with both plate and lip material, at least 4,
+checked). The motor bosses bear on the puck's rear face (y -10), the M6 bolts go in from the front (heads in the slot
+counterbores) on the bench. The puck front face carries 2 inserts for cad-drum's SW_INDEX block (params
+DRUM.sw_index_mount). Puck and plate are carved round the reel cup and capstan behind the plate.
 
 Motor frame: origin on the output shaft axis in the plane of the boss faces, +Z along the shaft (into the frame),
 +X along the gearbox towards the can. Keys read from `params.WIPER` (any non-None value overrides the default):
@@ -67,8 +67,9 @@ Motor frame: origin on the output shaft axis in the plane of the boss faces, +Z 
 | `slot` | 4 | every hole may sit +-4 mm from nominal (radial slots) |
 | `orient_deg` (params) / `rot_deg` | 90 | turns the motor about its shaft: 90 = gearbox and can above the axis (D20); only the slots turn, the ring stays |
 
-Checks (`frame.checks`): slots clear the ring inserts and the hub, plate fits the bed. Plate: 10 thick PPA-CF, outline = hull of
-the ring and the slots. Saddle: under the can end, height computed from the motor numbers, cable tie or hose clamp.
+Checks (`frame.checks`): slots inside the puck and clear of the bore and of the SW_INDEX inserts, at least 4 usable
+rim screws, every printed part watertight as an STL. The can stay (`frame_can_stay`) is sized from the can numbers too:
+reprint it with the puck.
 
 ## 4. Electronics bay
 

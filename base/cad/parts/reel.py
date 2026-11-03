@@ -137,9 +137,6 @@ def _wall():
     x0, x1 = X_WALL
     foot = prim.box(x0, x1, Y_DECK, Y_DECK + FOOT_T, Z_FOOT[0], Z_FOOT[1])
     wall = prim.box(x0, x1, Y_DECK, Y_WALL_TOP, -WALL_T, 0.0)
-    # capstan block round the sprag seat
-    rb = bearings.CSK20_OD / 2 + bearings.BRG_RIB_BORE / 2 + 4.0
-    block = prim.union([prim.cyl(rb, Z_BLOCK, seg=128), prim.box(-rb, rb, Y_DECK, 0.0, 0.0, Z_BLOCK)])
     # guide eye post (v7 style: 10 x 10 column, 6 mm thick top with the eye along X)
     gx, gy, gz = GUIDE
     post = prim.union([prim.box(gx - 5, gx + 5, Y_DECK, gy - 8, gz - 5, gz + 5),
@@ -152,15 +149,16 @@ def _wall():
     arm = prim.union([prim.box(8.0, 36.0, Y_DECK, Y_DECK + FOOT_T, Z_FOOT[1] - 1.0, ez - 9.0),
                       prim.box(ex - 17, ex + 17, Y_DECK, Y_DECK + FOOT_T, ez - 12, ez + 12),
                       prim.box(8.0, ex - 16, Y_DECK, Y_DECK + FOOT_T, ez - 12, ez - 2)])
-    boss = prim.cyl(BOSS_R, BOSS_Z[1] - BOSS_Z[0] + 0.01, z=BOSS_Z[0])
     stops = [prim.cyl(STOP_R, BOSS_Z[1] - ARM_Z[0] + 0.5, x=STOP_RAD * math.cos(math.radians(a)),
                       y=STOP_RAD * math.sin(math.radians(a)), z=ARM_Z[0] - 0.5) for a in stop_angles()]
-    body = prim.union([foot, wall, block, post, arm, boss] + ears + stops)
+    body = prim.union([foot, wall, post, arm] + ears + stops)
     cut = []
-    # sprag seat (outer key rib on +Y), mouth at the block front face
-    cut.append(prim.place(bearings.seat_csk20(key_deg=90.0), tf.T(0, 0, Z_BLOCK)))
-    # capstan tube bushing through the wall (printed horizontal: extra for the sagging roof)
-    cut.append(prim.cyl((C_D + fits.SHAFT_IN_BORE + fits.HOLE_HORIZ_EXTRA) / 2, WALL_T + 16, z=BOSS_Z[0] - 1))
+    # hole for the sprag hub's spigot (teardrop roof: the spigot sits on the lower half) and the hub screws
+    cut.append(_teardrop_z(HUB_SPIGOT_R + 0.2, -WALL_T - 1, 1.0))
+    for a in HUB_SCREW_DEG:
+        x, y = HUB_SCREW_R * math.cos(math.radians(a)), HUB_SCREW_R * math.sin(math.radians(a))
+        cut.append(prim.cyl(fits.M3_CLEAR_D / 2, WALL_T + 2, x=x, y=y, z=-WALL_T - 1))
+        cut.append(prim.cyl(fits.M3_HEAD_D / 2, fits.M3_HEAD_H + 0.2 + 1, x=x, y=y, z=-WALL_T - 1))
     # reel shaft bushing
     cut.append(prim.cyl((S_D + fits.SHAFT_IN_BORE + fits.HOLE_HORIZ_EXTRA) / 2, WALL_T + 2, x=X_REEL, z=-WALL_T - 1))
     # pushrod bore
@@ -179,6 +177,37 @@ def _wall():
         cut.append(prim.cylY(fits.M3_CLEAR_D / 2, Y_DECK - 1, Y_DECK + FOOT_T + 1, x=x, z=z))
         cut.append(prim.cylY(fits.M3_HEAD_D / 2, Y_DECK + FOOT_T - fits.M3_HEAD_H - 0.2, Y_DECK + FOOT_T + 30,
                              x=x, z=z))
+    return body - prim.union(cut)
+
+
+HUB_SPIGOT_R = BOSS_R
+HUB_SCREW_R = 29.5
+HUB_SCREW_DEG = (20.0, 100.0, 230.0, 300.0)   # clear of the swing arm's band (about 138 .. 195 deg) behind the wall
+HUB_FL_R = 33.5
+
+
+def _teardrop_z(r, z0, z1, x=0.0, y=0.0):
+    """Round hole along Z with a 45 deg roof (+Y) so it prints without support when the part stands on its foot."""
+    cs = prim.circle_cs(r) + prim.poly_cs([(-r * 0.7071, r * 0.7071), (r * 0.7071, r * 0.7071), (0.0, r * 1.4142)])
+    return prim.extrude(cs, z1 - z0, z=z0).translate((x, y, 0))
+
+
+def _sprag_hub():
+    """Sprag #2 hub (PPA-CF), reel frame: CSK20PP crush-rib seat (outer key rib at +Y, mouth at the front face),
+    flange on the wall front face (45 deg cone back to the block so it prints face down), spigot through the wall
+    and the swing-arm pivot boss behind it, capstan tube bushing 20.3 through. 4 M3 from behind the wall, self
+    tapping into the flange."""
+    rb = bearings.CSK20_OD / 2 + bearings.BRG_RIB_BORE / 2 + 4.0
+    fl_t = 3.0
+    block = prim.cyl(rb, Z_BLOCK, seg=128)
+    flange = prim.revolve_pts([(0, 0), (HUB_FL_R, 0), (HUB_FL_R, fl_t), (rb, fl_t + HUB_FL_R - rb), (0, fl_t + HUB_FL_R - rb)])
+    spig = prim.cyl(HUB_SPIGOT_R, -BOSS_Z[0] + 0.01, z=BOSS_Z[0])
+    body = prim.union([block, flange, spig])
+    cut = [prim.place(bearings.seat_csk20(key_deg=90.0, below=2.0), tf.T(0, 0, Z_BLOCK)),
+           prim.cyl((C_D + fits.SHAFT_IN_BORE) / 2, Z_BLOCK + 30, z=BOSS_Z[0] - 1)]
+    for a in HUB_SCREW_DEG:
+        x, y = HUB_SCREW_R * math.cos(math.radians(a)), HUB_SCREW_R * math.sin(math.radians(a))
+        cut.append(prim.cyl(fits.M3_TAP_D / 2, 9.0, x=x, y=y, z=-0.5))
     return body - prim.union(cut)
 
 
@@ -377,6 +406,13 @@ def parts(P):
 
     add("reel_wall", _wall(), "PLA", tf.Rx(90), joint="reel_base", color=COL["wall"], step=1,
         notes="Reel wall: foot, sprag housing, bushings, guide eye, rocker ears. Print on its foot")
+    add("reel_sprag_hub", _sprag_hub(), "PPA-CF", tf.Rx(180), joint="reel_base", color=COL["post"], step=2,
+        notes="Sprag hub: holds the CSK20PP backstop, bushes the capstan tube, pivots the swing arm. Print front face down")
+    add("reel_hub_screws", prim.union([prim.place(fasteners_m3(18.0), tf.T(HUB_SCREW_R * math.cos(math.radians(a)),
+                                                                      HUB_SCREW_R * math.sin(math.radians(a)),
+                                                                      -WALL_T + fits.M3_HEAD_H + 0.2))
+                                       for a in HUB_SCREW_DEG]), "bought", joint="reel_base", color=COL["brg"],
+        bought_ref="4 x M3x18 SHCS", step=2, notes="Hub screws from behind the wall")
     add("reel_sprag", bearings.bearing_csk20(okey_deg=90.0, ikey_deg=0.0), "bought", joint="reel_base",
         place=tf.T(0, 0, Z_BLOCK), color=COL["brg"], bought_ref="CSK20PP one-way bearing 20x47x14", step=2,
         notes="Sprag #2: capstan backstop, lets the capstan turn only in the wind-in sense")
@@ -525,15 +561,19 @@ def kin(P, S):
 
 def allowed(P):
     return [
-        Allow("reel_sprag", "reel_wall", "CSK20PP pressed in its crush-rib seat, outer key rib"),
+        Allow("reel_sprag", "reel_sprag_hub", "CSK20PP pressed in its crush-rib seat, outer key rib"),
+        Allow("reel_hub_screws", "reel_wall", "screws through the wall"),
+        Allow("reel_hub_screws", "reel_sprag_hub", "screws tapped into the hub flange"),
+        Allow("reel_sprag_hub", "reel_c", "capstan tube in the hub bushing"),
+        Allow("reel_sprag_hub", "reel_wall", "hub spigot in the wall hole"),
         Allow("reel_sprag", "reel_c", "C rib in the sprag inner keyway, inner race on C (model is one solid)"),
         Allow("reel_c", "reel_gc", "D-flat fit"),
         Allow("reel_c", "reel_bus", "bus pair turns free on the capstan tube"),
         Allow("reel_bus", "reel_c2", "hex fit"),
-        Allow("reel_wall", "reel_c", "capstan tube in the wall bushing"),
+
         Allow("reel_swing_arm", "reel_gi", "idler turns on the arm pin"),
         Allow("reel_swing_arm", "reel_gi_clip", "clip on the arm pin"),
-        Allow("reel_swing_arm", "reel_wall", "arm pivots on the wall boss"),
+        Allow("reel_swing_arm", "reel_sprag_hub", "arm pivots on the hub boss"),
         Allow("reel_c", "reel_c_clip", "clip in the groove"),
         Allow("reel_c", "reel_drum", "keyed fit"),
         Allow("reel_k", "reel_cup", "D fit"),
@@ -552,7 +592,7 @@ def allowed(P):
 def clearances(P):
     return [
         Clearance("reel_cup", "reel_drum", 0.25, "cup skirt over the drum (v7 0.6 radial)"),
-        Clearance("reel_drum", "reel_wall", 0.5, "drum flange in front of the block"),
+        Clearance("reel_drum", "reel_sprag_hub", 0.5, "drum flange in front of the hub"),
         Clearance("reel_c2", "reel_gi", 0.0, "mesh"),
         Clearance("reel_gi", "reel_gr", 0.0, "mesh"),
         Clearance("reel_spool", "reel_wall", 0.3, "spool spins in front of the wall"),
@@ -729,12 +769,13 @@ def steps(P):
              text="Stand the reel wall on the deck at its marked place. Put six M3 screws down through the foot "
                   "holes into the deck inserts and tighten. Do this first: the storage reel later covers two of the holes.",
              parts=["reel_wall"]),
-        dict(title="Press in the sprag (CSK20PP)",
-             text="Find the key slot on the outside of the CSK20PP and line it up with the printed rib at the top of "
-                  "the round housing on the front of the wall. Check the arrow on the bearing: looking at the housing "
+        dict(title="Sprag hub and sprag (CSK20PP)",
+             text="Push the sprag hub's spigot into the big hole in the wall from the front, flange flat on the wall, "
+                  "and screw it on from behind with four M3 x 18 screws (they tap into the flange). Find the key slot "
+                  "on the outside of the CSK20PP and line it up with the printed rib at the top of the hub's seat. Check the arrow on the bearing: looking at the housing "
                   "from the front, the inner ring must turn freely counter-clockwise and lock clockwise. Press it in "
                   "flat until it sits on the lip (a vice with two flat boards works).",
-             parts=["reel_wall", "reel_sprag"]),
+             parts=["reel_sprag_hub", "reel_hub_screws", "reel_sprag"]),
         dict(title="Fit the capstan tube",
              text="Slide the capstan tube in from the FRONT, D-flat end first, with its key rib lined up with the "
                   "key slot inside the sprag. Push until the collar sits on the sprag. Turn it by hand: it turns one "

@@ -1,5 +1,5 @@
 {
- "params_source": "base/spec/params.py v1.3.1",
+ "params_source": "base/spec/params.py v1.3.2",
  "recoil": [
   {
    "pitch_deg": 6.0,

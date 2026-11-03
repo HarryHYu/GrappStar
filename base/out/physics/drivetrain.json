@@ -1,5 +1,5 @@
 {
- "source": "base/spec/params.py v1.3.1",
+ "source": "base/spec/params.py v1.3.2",
  "aim": {
   "params": {
    "rail_mass": 0.9,
@@ -477,22 +477,22 @@
   },
   "tow": {
    "name": "tow",
-   "t_peak": 3.234224480832431,
-   "t_mean": 3.234224480832431,
-   "rpm_peak": 30.043039966876194,
-   "rpm_mean": 30.043039966876194,
-   "i_peak": 5.057646928915674,
-   "i_mean": 5.057646928915674,
-   "v_batt_peak": 10.715618833402408,
-   "frac_stall": 0.26458499758408843,
-   "frac_limiter": 0.6468448961664862,
+   "t_peak": 3.6352939995490092,
+   "t_mean": 3.6352939995490092,
+   "rpm_peak": 28.70266563532539,
+   "rpm_mean": 28.70266563532539,
+   "i_peak": 5.498823399503911,
+   "i_mean": 5.498823399503911,
+   "v_batt_peak": 10.682089421637702,
+   "frac_stall": 0.29739563836353267,
+   "frac_limiter": 0.7270587999098018,
    "limiter_nm": 5.0,
    "stall_label": "at limiter (5 N m)",
    "stall_torque": 12.22376366900604,
    "torque_at_limiter": 5.0,
-   "time_s": 34.96392593974003,
-   "energy_wh": 0.5263607002193609,
-   "shaft_torque": 1.0499999999999998,
+   "time_s": 36.59669236831149,
+   "energy_wh": 0.597125084683065,
+   "shaft_torque": 1.2,
    "shaft_torque_at_stall": 1.7104000441686704,
    "shaft_stall": {
     "torque_nm": 1.7104000441686704,
@@ -513,14 +513,14 @@
    "t_trip": 4.545454545454545,
    "gear_sf_trip": 2.1846,
    "shaft_torque_at_trip": 1.5404000441686705,
-   "gear_sf_peak": 2.993102569855511,
+   "gear_sf_peak": 2.665873869006689,
    "gear_sf_stall": 1.9859999999999998,
    "sprag": {
-    "torque_nm": 1.0499999999999998,
-    "rpm": 68.279636288355,
+    "torque_nm": 1.2,
+    "rpm": 65.23333098937589,
     "t_rated": 50.0,
     "n_max_rpm": 6000.0,
-    "sf": 47.61904761904763,
+    "sf": 41.66666666666667,
     "pass": true
    },
    "flags": [],
@@ -561,21 +561,21 @@
  ],
  "info": [
   "at limiter (5 N m): motor draws 7.0 A while the limiter slips (12.6 V); motor stall (no limiter) 14.06 N m / 17.0 A > BTS7960 15.0 A continuous",
-  "motor stall (no limiter) at 12.6 V: 14.06 N m, 17.0 A, line 227 N (above dart holding in sand, loam, clay)",
-  "motor stall (no limiter) at 11.1 V: 12.22 N m, 14.9 A, line 197 N (above dart holding in sand, loam, clay)",
+  "motor stall (no limiter) at 12.6 V: 14.06 N m, 17.0 A, line 201 N (above dart holding in sand, loam, clay)",
+  "motor stall (no limiter) at 11.1 V: 12.22 N m, 14.9 A, line 174 N (above dart holding in sand, loam, clay)",
   "parts at motor stall (no limiter): drum T 5.10 N m, all pass; only reached if the limiter seizes"
  ],
  "capstan_warnings": [
-  "at limiter (5 N m): line pull 80 N (empty reel; 79 N full reel): above dart holding in sand, loam",
+  "at limiter (5 N m): line pull 71 N (empty reel; 70 N full reel): above dart holding in sand, loam",
   "at limiter (5 N m): wraps hold 366303 N at mu high, the line does not slip on the drum: the firmware current limit must protect the dart and line",
-  "6.5 A hard trip still allows 72 N on the line (above sand, loam): the tow trip must act first"
+  "6.5 A hard trip still allows 64 N on the line (above sand, loam): the tow trip must act first"
  ],
  "capstan_limiter": {
   "torque": 5.0,
   "current_slip": 7.0,
-  "f_line_empty_reel": 79.7087193441648,
-  "f_capstan_empty_reel": 91.66502724578952,
-  "f_line_full_reel": 78.71304539863786,
+  "f_line_empty_reel": 70.5115594198381,
+  "f_capstan_empty_reel": 91.66502724578953,
+  "f_line_full_reel": 69.63077092956425,
   "t_drum": 1.7104000441686704,
   "dart_hold": {
    "sand": 7.0,
@@ -591,18 +591,18 @@
   "exceeds_break": false,
   "wraps_slip_first": false,
   "holds_max": 366303.3539440175,
-  "tow_frac": 0.6468448961664862,
+  "tow_frac": 0.7270587999098018,
   "slips_at_tow": false,
-  "f_tow_max_n": 62.45217583342046,
-  "tow_limit_max_spec_n": 60.0
+  "f_tow_max_n": 55.24615554494886,
+  "tow_limit_max_spec_n": 55.0
  },
  "capstan_current_limit": {
   "f_limit": 50.0,
-  "t_wiper": 3.1729931954123245,
-  "t_wiper_full_reel": 3.234224480832431,
-  "current": 4.990292514953557,
+  "t_wiper": 3.5740627141289028,
+  "t_wiper_full_reel": 3.6352939995490092,
+  "current": 5.431468985541793,
   "i_free": 1.5,
-  "delta_over_free": 3.4902925149535573
+  "delta_over_free": 3.931468985541793
  },
  "fw_trip": {
   "blank_ms": 50,
@@ -612,10 +612,10 @@
   "hard_gear_sf": 2.1846,
   "hard_gear_pass": true,
   "hard_drum_torque": 1.5404000441686705,
-  "hard_line_n": 72.3174149963387,
-  "tow_trip_delta_a": 3.4902925149535573,
+  "hard_line_n": 63.97309788137654,
+  "tow_trip_delta_a": 3.931468985541793,
   "tow_trip_avg_ms": 200,
-  "tow_trip_rule": "measured free current + 3.49 A, averaged over 200 ms",
+  "tow_trip_rule": "measured free current + 3.93 A, averaged over 200 ms",
   "notes": [
    "ignore current for 50 ms after start; hard trip for 30 ms at 5.0 A in reel-in, 3.0 A in aim (physics recommends 3.0 A: aim splitter), 6.5 A towing (4.55 N m at the wiper), 6.5 A while cocking (4.55 N m)",
    "the 5 N m torque limiter in the wiper coupler caps the train at 5 N m (motor current while it slips 7.0 A); sprag #2 plus the self-locking worm still lock in the line tension after a trip, so the trip must stop the motor before the limiter slips for long (heat, wear)",
@@ -634,5 +634,5 @@
   "overspeed_min": 1.3749999999999998,
   "overspeed_max": 1.689881885272897
  },
- "total_energy_wh": 1.22598402262856
+ "total_energy_wh": 1.2967484070922644
 }

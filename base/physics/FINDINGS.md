@@ -3,7 +3,7 @@
 Status: updated through the day; the Current numbers block is the latest. Sections F1 onward are the history of
 the findings (their numbers come from earlier parameter sets). Every number is reproducible with the CLIs.
 
-## Current numbers (spec 1.3.1: D36 rear guide, carriage 80.5 g as built, cock gears face 11; latest model)
+## Current numbers (spec 1.3.2, the 17:30 freeze table: D36 rear guide, carriage 80.5 g as built, cock gears face 11; latest model)
 
 - Launch: 2 x Century C-243, 265 mm full cock (40.1 N each), 12.1 J, carriage 80.5 g: 6.85 m/s, line taut.
 - Range from the rail pivot's ground point, LIGHT 0.5 / 0.75 / 1.0 N: 4.18 / 3.76 / 3.39 m at 34 deg (best).
@@ -12,8 +12,8 @@ the findings (their numbers come from earlier parameter sets). Every number is r
 - Cock gears face 11 (PPA-CF): SF 1.55 / 1.74 at the 5 N m shear pin.
 - Storage reel 50 / 72 / 22: overrun after landing at LIGHT 0.5 N about 0.6 m. No level wind (F13).
 - Tow, cup ring left as a plain eye (27 deg) with pulleys at the exit eye and storage guide: path gain about 1.30
-  (1.15 with a ring roller; params still say 1.15 until the coordinator sets it). At the DART with 1.30: 50 N =
-  3.64 N m, 5.50 A, 0.14 m/s; max pull before 0.8 x the shear pin 55 N (cap should be 55); law 13.1 x (I - I_free)
+  (1.15 with a ring roller; spec 1.3.2 / D46 sets 1.30). At the DART: 50 N =
+  3.64 N m, 5.50 A, 0.14 m/s; max pull before 0.8 x the shear pin 55 N (D46 cap 55); law 13.1 x (I - I_free)
   - 2.3 N. Ring heat at 50 N: about 24 N normal, 0.9 W on PLA: line the ring with a smooth steel surface.
 - Capstan drum (capstan-side tension = dart pull x 1.15): hoop stress 7.3 MPa at the 50 N tow and 11.6 MPa when the
   shear pin slips (92 N at the capstan), against 12 MPa allowed for PLA: print the drum in PPA-CF or thicken the wall.

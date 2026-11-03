@@ -86,7 +86,7 @@ def test_line_path_clear():
 
 
 def test_launch_line_bypasses_capstan():
-    spans = reel.line_path(P, 0.0)
+    spans = reel._line_points(P, 0.0)
     pts = np.vstack([s[0] for s in spans])
     drum = reel._local_posed(P, {})["reel_drum"]
     assert line.line_hits(pts, {"d": drum})["d"] < 1e-6
@@ -113,3 +113,17 @@ def test_steps_name_real_parts(parts):
             assert n in parts, n
             seen.add(n)
     assert seen == set(parts)
+
+
+def test_line_path_world_contract():
+    pts = reel.line_path(P, dict(wraps=0.0, line_out_m=4.6))
+    assert len(pts) > 5 and all(len(p) == 3 for p in pts)
+    assert pts[-1][1] == pytest.approx(reel.P2_WORLD_Y, abs=0.5)
+    gaps = [np.linalg.norm(np.subtract(a, b)) for a, b in zip(pts[:-1], pts[1:])]
+    assert max(gaps) < 400.0 and len(pts) < 250
+    pts7 = reel.line_path(P, dict(wraps=7.0))
+    assert len(pts7) > len(pts)
+
+
+def test_clear_of_main_axis_stack():
+    assert reel.main_axis_check(P) == []

@@ -303,7 +303,7 @@ def test_dart_reboot_at_impact_counts_as_landing(tmp_path):
 
 def test_tow_refused_without_load_cell_and_factory_constants(tmp_path):
     r = Rig(tmp_path)
-    r.mb.load_cell = False                       # tension_n null; k_n_per_a still the factory 8
+    r.mb.load_cell = False                       # tension_n null; k_n_per_a still a factory value
     r.policy["TOW refused"] = "Release the dart"
     try:
         m = r.run(120)
@@ -312,3 +312,23 @@ def test_tow_refused_without_load_cell_and_factory_constants(tmp_path):
         assert "RELEASE" in r.steps()
     finally:
         r.close()
+
+
+def test_line_out_uses_video_range_only_with_imu(tmp_path):
+    """R2-C2: a video-only range (9.2 m) must not become line_m; the solver's line out is used, capped by the table."""
+    from grappstar.mission import Mission
+    sent = {}
+
+    class B:
+        def set(self, k, v):
+            sent[k] = v
+    m = Mission(B(), None, {}, None, type("L", (), {"info": lambda *a, **k: None, "warn": lambda *a, **k: None,
+                                                     "write": lambda *a, **k: None})(),
+                analyse=lambda *a, **k: {})
+    m.shot = {"solution": {"line_out_m": 4.6, "range_max_m": 4.9}}
+    m.tell_line_out({"flight": {"range_m": 9.2, "source": "video"}})
+    assert sent["line_m"] == 4.6
+    m.tell_line_out({"flight": {"range_m": 4.2, "source": "video+imu"}})
+    assert abs(sent["line_m"] - (4.2 * 1.05 + 0.3)) < 0.01
+    m.tell_line_out({"flight": {"range_m": 12.0, "source": "imu"}})
+    assert sent["line_m"] <= 4.9 * 1.1 + 0.5

@@ -47,6 +47,8 @@ STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LA
          "ANCHOR", "TIDY", "FLY_IN", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
 RESHOOT_STEPS = ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
 SKIPPABLE = {"CHECK", "LANDING_ZONE", "TIDY", "COCK"}
+DEFAULT_DRAG_N = 0.5             # the LIGHT clutch: the one default for the CLI, settings and the App
+FACTORY_K_N_PER_A = (8.0, 17.0)   # firmware defaults (base-1.0, base-1.2 physics model): not bench calibrated
 BASE_FAULTS = ("STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR", "ANGLE_SENSOR", "SWITCH_DISAGREE", "BROWNOUT",
                "BAD_STATE", "FAULT", "FAULTED", "DART_STUCK")
 
@@ -72,7 +74,7 @@ class Aborted(Exception):
 
 @dataclass
 class MissionConfig:
-    drag_n: float = 0.5             # payout brake setting (C3 column): LIGHT 0.5 N (coordinator)
+    drag_n: float = DEFAULT_DRAG_N  # payout brake setting (C3 column): LIGHT 0.5 N (coordinator)
     tow_limit_n: float = 40.0       # at most 70 N (D39)       # line tension limit while towing (base firmware caps it too)
     check_n: float = 15.0           # anchored check pull
     check_hold_s: float = 2.0       # hold at the check tension this long
@@ -399,6 +401,8 @@ class Mission:
                     pos = self.tel().get("drum_pos")
                     msg += (". The base is in FAULT. " + (f"The drum HELD where it is ({held[-1].get('why')}). "
                             if held else f"Drum now at {pos}. ") + "Check it, then Retry clears the fault.")
+                if isinstance(e, BaseError) and e.err == "OVERCURRENT" and name == "AIM":
+                    msg += ". Aim jammed: check the rail and the aim train before Retry (D40: 3 A trip backward)."
                 if isinstance(e, BaseError) and e.err in ("LOADED_UNKNOWN", "PHASE_UNKNOWN", "NOT_AT_REST", "LAUNCH_BUSY"):
                     msg += ". The launcher spring may be drawn: use Decock (Manual section), then Retry."
                 if isinstance(e, BaseError) and e.err == "BASE_RESET":
@@ -628,8 +632,8 @@ class Mission:
         if t.get("tension_n") is None:
             try:
                 k = self.base.get("k_n_per_a").get("val")
-                if k is not None and abs(float(k) - 8.0) < 1e-6:
-                    warnings.append("no load cell and the tension constant k_n_per_a is still the default 8: "
+                if k is not None and any(abs(float(k) - f) < 1e-4 for f in FACTORY_K_N_PER_A):
+                    warnings.append(f"no load cell and the tension constant k_n_per_a is still the factory {k}: "
                                     "the tow limit is a rough current estimate (calibrate, see firmware/base/"
                                     "CALIBRATION.md)")
             except (BaseError, BaseTimeout, BaseDisconnected, ValueError, TypeError):
@@ -898,7 +902,10 @@ class Mission:
         c = self.cams.get("dart")
         if c is not None:
             try:
-                frames = [f for f in c.buffer() if f.t >= t_fire - self.cfg.pre_s]
+                try:
+                    frames = c.buffer(since=t_fire - self.cfg.pre_s)   # filters before decoding held frames
+                except TypeError:          # cameras without since=
+                    frames = [f for f in c.buffer() if f.t >= t_fire - self.cfg.pre_s]
             except Exception as e:
                 self.log.warn(f"no dart frames: {e}")
         fl = None
@@ -942,7 +949,14 @@ class Mission:
                     pass
         self.log.info(f"analysing {len(frames)} dart frames")
         off = self.dart.clock_offset() if hasattr(self.dart, "clock_offset") else None
-        res = self.analyse(frames, fl, self.run_dir, t_fire=t_fire, log=self.log.warn, clock_offset_s=off)
+        kw = dict(t_fire=t_fire, log=self.log.warn, clock_offset_s=off)
+        try:      # jetson-vision: the commanded pitch and the clutch drag are strong priors for the range
+            res = self.analyse(frames, fl, self.run_dir, aim_pitch_deg=self.shot.get("pitch_actual") or
+                               self.shot.get("pitch_deg"), drag_n=self.cfg.drag_n, **kw)
+        except TypeError as e:
+            if "aim_pitch_deg" not in str(e) and "drag_n" not in str(e):
+                raise
+            res = self.analyse(frames, fl, self.run_dir, **kw)
         if c is not None and hasattr(c, "release_hold"):
             c.release_hold()
         self.results = res
@@ -967,17 +981,23 @@ class Mission:
 
     def tell_line_out(self, res: dict) -> None:
         """The base has no payout sensor (line_m is null after a shot): give it our estimate (PROTOCOL set line_m).
-        Best source: the flight analysis range; else the ballistic solution's line out."""
+        R2-C2: a video-only range can be far too long (9 m against 5 m), and a long estimate would let the capstan
+        reel-in seat the dart on the capstan. So the flight range is used only when the IMU flight log backs it, and
+        never beyond what the C3 table allows; otherwise the ballistic solution's line out."""
         fl = res.get("flight") or {}
         sol = (self.shot.get("solution") or {})
-        est = None
-        if isinstance(fl.get("range_m"), (int, float)) and 0.5 < fl["range_m"] < 30:
-            est = fl["range_m"] * 1.05 + 0.3          # straight distance plus a little sag and the rail
-            src = "flight analysis"
+        est, src = None, ""
+        rng = fl.get("range_m")
+        imu = "imu" in str(fl.get("source") or "").lower()
+        if imu and isinstance(rng, (int, float)) and 0.5 < rng < 30:
+            est, src = rng * 1.05 + 0.3, "IMU flight log"     # straight distance plus a little sag and the rail
         elif sol.get("line_out_m"):
             est, src = sol["line_out_m"], "ballistics"
         if est is None:
             return
+        rmax = sol.get("range_max_m")
+        if isinstance(rmax, (int, float)) and rmax > 0:
+            est = min(est, rmax * 1.1 + 0.5)
         est = round(min(est, 100.0), 2)
         self.shot["line_est_m"] = est
         try:
@@ -1098,8 +1118,9 @@ class Mission:
                 k = self.base.get("k_n_per_a").get("val")
             except (BaseError, BaseTimeout):
                 k = None
-            if k is not None and abs(float(k) - 8.0) < 1e-6 and not self.cfg.allow_uncalibrated_tow:
-                raise StepFailed("TOW refused: no load cell and k_n_per_a is still the factory 8, so the tension limit "
+            if k is not None and any(abs(float(k) - f) < 1e-4 for f in FACTORY_K_N_PER_A) \
+                    and not self.cfg.allow_uncalibrated_tow:
+                raise StepFailed(f"TOW refused: no load cell and k_n_per_a is still the factory {k}, so the tension limit "
                                  "cannot be trusted (a test reached 61 N against 40 N). Calibrate free_a and k_n_per_a "
                                  "(firmware/base/CALIBRATION.md b and e), then Retry; or release the dart.",
                                  choices=["Retry", "Release the dart"])
@@ -1230,7 +1251,7 @@ class Mission:
         line = self.tel().get("line_m")
         if line is None:
             line = self.shot.get("line_est_m") or self.cfg.approach_m
-        max_s = round(20.0 + float(line) / 0.08, 1)
+        max_s = min(600.0, max(5.0, round(20.0 + float(line) / 0.08, 1)))   # firmware range 5..600
         m = self.base.event_mark()
         self.base.cmd("retrieve", duty=self.cfg.takeup_duty, max_n=self.cfg.retrieve_limit_n, max_s=max_s)
         self._wait_seated(m, max_s + 10.0)

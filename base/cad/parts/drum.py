@@ -25,12 +25,17 @@ GEOM = dict(
     deck_y=165.0,                  # deck top in L (world z -165)
     cap_xy=(-18.66, 69.64),        # cad-reel capstan axis in L (for the wrap idler mesh)
     # coupler (D8 shear pin limiter, D15 bus gear)
-    cpl_s=(0.5, 62.0), cpl_od=40.0, sock_s=30.0,      # the outer coupler carries the REEL gear journal (s 50..62)
-    hub_od=26.0, hub_s=(0.5, 21.0), nut_s=13.5, shear_s=9.0, shear_d=4.0,   # M8 nut fully on the thread (12..20)
+    cpl_s=(0.5, 62.0), cpl_od=40.0, sock_s=28.0,      # the outer coupler carries the REEL gear journal (s 50..62)
+    wiper_face_s=4.0,        # wiper output boss top (frame_wiper_motor reaches y 4.0): round shaft to 6, flats to
+                             # WIPER.shaft_len (y 20), then the M8 thread to y 32 (cad-frame motor model, not measured)
+    hub_od=26.0, hub_s=(4.5, 27.5), nut_s=20.8, shear_s=9.0, shear_d=4.0,   # M8 nut on the thread (20.8..27.3)
     bus_m=1.5, bus_z=50, bus_s=(40.0, 48.0),
-    idx_s=(1.0, 6.0), idx_r0=20.0, idx_bump=2.5, idx_n=6, idx_w=24.0, idx_ramp=4.0,   # D12 SW_INDEX cam
+    cpl_rmax=28.5,           # coupler radius below s 40: reel_wall top edge is 29.6 under the axis (s 3..40)
+    idx_s=(33.5, 38.5), idx_r0=26.0, idx_bump=2.5, idx_n=6, idx_w=24.0, idx_ramp=4.0,   # D12 SW_INDEX cam
+    idx_psi=-90.0,           # SW_INDEX lever and block above the axis (L angle -90 = world up), block on the cheek face
+    cheek_face_s=32.0,       # inner face of the motor-side cheek (frame_cheek_r y 22..32, coupler hole r 34)
     # main shaft
-    hex_af=22.0, hex_s=(30.0, 106.0), spig_d=12.0, spig_end=198.5, xpin_s=34.0,
+    hex_af=22.0, hex_s=(28.0, 106.0), spig_d=12.0, spig_end=198.5, xpin_s=30.5,
     cap_s=(195.0, 201.5),      # D23: magnet face at y 201.5, outboard of the launch sleeve (y 111..193)
     # REEL sleeve and gear (params.DRUM.reel_output m2 50T face 12, plane 50.5..62.5)
     rsl_flange=(48.0, 50.3, 40.0), rsl_journal=(50.0, 62.0, 30.0),   # thrust step and REEL journal on the coupler
@@ -52,11 +57,11 @@ GEOM = dict(
     dogpost_s=(106.5, 111.5), dog_touch=0.5,      # clamp on the rail beyond the fork sleeve, clear of the launch cheeks (y 123..131)
     fork_sleeve=(-50.0, 16.0),                    # fork rail sleeve from sb: 66 long against racking
     # world-fixed angles round the drum axis (L xy plane, deg; y is down). phi_pin and phi_idler are derived in G()
-    phi_pin=-118.0, phi_idler=-170.8, phi_brake=180.0, phi_sw=0.0, phi_n20=-40.0, n20_motor_deg=-90.0,
-    phi_idx=0.0,
+    phi_pin=-118.0, phi_idler=-170.8, phi_brake=180.0, phi_sw=180.0, phi_n20=-40.0, n20_motor_deg=-90.0,
     # brackets (s)
     brA=(1.0, 7.7), brB=(136.0, 142.0), brI=(78.0, 85.0),
-    idl=(40.0, 86.0), idl_gear=(68.5, 76.5), idl_j=10.0, idler_side=1, brI2=(40.5, 46.5), idl_mid=12.0,
+    idl=(40.0, 86.0), idl_gear=(68.5, 75.8),   # face ends 0.2 short of the cup gear bump (y 76)
+    idl_j=10.0, idler_side=1, brI2=(40.5, 46.5), idl_mid=12.0,
     lock_RL=38.0, lock_rl=11.0, lock_c=0.25,
     sw_L=36.0,              # contact lever length: 0.66 percent peak strain (cad.lib.switch model, limit 0.8)
 )
@@ -267,11 +272,14 @@ def coupler_hub(g, P):
     d = float(W.get("shaft_d", 10.0)); fl = float(W.get("shaft_flat", 8.0)); L = float(W.get("shaft_len", 20.0))
     h0, h1 = g["hub_s"]
     body = cyl(g["hub_od"] / 2, h0, h1)
+    f0 = g["wiper_face_s"] + 2.5                                        # round shaft below, flats above
+    f1 = g["wiper_face_s"] + L - 0.2                                    # flats end, M8 thread beyond
     dd = prim.extrude(prim.shapely_cs(Point(0, 0).buffer((d + fits.HOLE_SLIDE) / 2, 64)
                                       .intersection(Polygon([(-20, -(fl + 0.2) / 2), (20, -(fl + 0.2) / 2),
                                                              (20, (fl + 0.2) / 2), (-20, (fl + 0.2) / 2)]))),
-                      g["nut_s"] - h0 + 1.0, z=h0 - 1.0)
-    cut = [dd, cyl(4.3, h0 - 1, h1 + 1), cyl(9.6, g["nut_s"], h1 + 1)]   # round pocket: M8 nut + 13 mm socket
+                      f1 - f0, z=f0)
+    cut = [dd, cyl((d + fits.HOLE_SLIDE) / 2, h0 - 1, f0 + 0.01), cyl(4.3, h0 - 1, h1 + 1),
+           cyl(9.6, g["nut_s"], h1 + 1)]                                # round pocket: M8 nut + 13 mm socket
     r = g["hub_od"] / 2
     cut.append(prim.place(cyl(g["shear_d"] / 2, r - 4.0, r + 1.0, seg=32), tf.T(0, 0, g["shear_s"]) @ tf.Ry(90)))
     return prim.diff(body, cut)
@@ -284,20 +292,26 @@ def coupler(g, P):
     b0, b1 = g["bus_s"]
     f0, f1, fd = g["rsl_flange"]
     j0, j1, jd = g["rsl_journal"]
-    rr = gears.spur_info(g["bus_m"], g["bus_z"])["r_root"] - 0.3
-    h = rr - g["cpl_od"] / 2
-    cone = prim.cyl(g["cpl_od"] / 2, h, z=b0 - h, r2=rr)          # 45 deg under the bus gear: prints standing, no support
-    body = prim.union([cyl(g["cpl_od"] / 2, s0, b0 + 0.01), cone, cyl(fd / 2, b1 - 0.01, f1), cyl(jd / 2, f1 - 0.01, j1)])
-    bus = gears.spur_gear(g["bus_m"], g["bus_z"], b1 - b0).translate((0, 0, b0))
     i0, i1 = g["idx_s"]
+    r0, r1 = g["cpl_od"] / 2, g["idx_r0"]
+    rm = g["cpl_rmax"]
+    # 45 deg cones (prints hub end down, no support): r 20 up to the index cam base r 26, then r 28.5 under the bus gear.
+    # The bus gear ring overhangs r 28.5..39 at s 40: tree support there (the reel_wall top edge is 29.6 under the axis)
+    cone1 = prim.cyl(r0, r1 - r0, z=i0 - (r1 - r0), r2=r1)
+    cone2 = prim.cyl(r1, rm - r1, z=i1, r2=rm)
+    body = prim.union([cyl(r0, s0, i0 - (r1 - r0) + 0.01), cone1, cyl(r1, i0 - 0.01, i1 + 0.01), cone2,
+                       cyl(rm, i1 + rm - r1 - 0.01, b0 + 0.01), cyl(fd / 2, b1 - 0.01, f1), cyl(jd / 2, f1 - 0.01, j1)])
+    bus = gears.spur_gear(g["bus_m"], g["bus_z"], b1 - b0).translate((0, 0, b0))
     cam = shp_extrude(idx_band_poly(g), i0, i1)
     body = prim.union([body, bus, cam])
     h0, h1 = g["hub_s"]
     cut = [cyl((g["hub_od"] + fits.SHAFT_IN_BORE) / 2, s0 - 1, h1 + 0.15),
+           prim.cyl(13.2, 3.4, z=h1 + 0.149, r2=9.8),                                # 45 deg roof over the hub end
            cyl(9.8, h1, g["sock_s"] + 0.5),                                          # 13 mm socket reaches the nut
            hexprism(g["hex_af"] + fits.HOLE_SLIDE, g["sock_s"], s1 + 1)]
-    # shaft retention: one M3 x 20 tapped radially through the coupler wall onto a hex flat, tip in a dimple
+    # shaft retention: one M3 x 16 tapped radially through the coupler wall onto a hex flat, tip in a dimple
     cut.append(prim.place(cyl(1.25, 0, 40, seg=24), tf.T(0, 0, g["xpin_s"]) @ tf.Rx(-90)))
+    cut.append(prim.place(cyl(2.9, g["cpl_od"] / 2 + 3.0, 40, seg=32), tf.T(0, 0, g["xpin_s"]) @ tf.Rx(-90)))  # spot face
     cut.append(prim.place(cyl((g["shear_d"] + 0.1) / 2, 10.0, 30.0, seg=32), tf.T(0, 0, g["shear_s"]) @ tf.Ry(90)))
     for a in (90.0, 270.0):        # tapped holes for the REEL gear retaining washer (on the hex flats' radial lines)
         x, y = g["washer_screw_r"] * math.cos(math.radians(a)), g["washer_screw_r"] * math.sin(math.radians(a))
@@ -345,7 +359,8 @@ def shear_pin(g):
 def main_shaft(g):
     h0, h1 = g["hex_s"]
     sh = prim.union([hexprism(g["hex_af"], h0, h1), cyl(g["spig_d"] / 2, h1 - 0.5, g["spig_end"])])
-    sh = sh - prim.place(cyl(1.7, g["hex_af"] / 2 - 2.0, g["hex_af"] / 2 + 1.0, seg=24), tf.T(0, 0, g["xpin_s"]) @ tf.Rx(-90))
+    sh = sh - cyl(4.8, h0 - 1, h0 + 5.0)                                # room for the wiper shaft thread end (to s 32)
+    sh = sh - prim.place(cyl(1.7, g["hex_af"] / 2 - 4.5, g["hex_af"] / 2 + 1.0, seg=24), tf.T(0, 0, g["xpin_s"]) @ tf.Rx(-90))
     e = g["spig_end"]
     sh = sh - prim.box(g["spig_d"] / 2 - 1.0, 20, -20, 20, g["cap_s"][0] - 0.5, e + 1)      # flat for the cap screw
     return sh
@@ -699,9 +714,16 @@ def bracket_idler(g, c, which="I"):
     outline = unary_union([Point(ix, iy).buffer(g["idl_j"] / 2 + 6, 64),
                            Polygon([(ix - 10, iy), (ix + 8, iy), (ix + 10, yd), (ix - 20, yd)]),
                            Polygon([(ix - 30, yd - 6), (ix + 22, yd - 6), (ix + 22, yd), (ix - 30, yd)])])
+    screws = (ix - 25.0, ix + 17.0)
+    if which == "I2":
+        # post 2 stands beside reel_wall (x up to 11.3 below world z -121): only x >= 12.3 there, foot toward +x
+        xw = 12.3
+        outline = unary_union([outline.difference(Polygon([(-100, iy + 13), (xw, iy + 13), (xw, yd + 1), (-100, yd + 1)])),
+                               Polygon([(xw, yd - 6), (ix + 34, yd - 6), (ix + 34, yd), (xw, yd)])])
+        screws = (ix + 17.0, ix + 29.0)
     b = shp_extrude(outline, s0, s1)
     cuts = [cyl((g["idl_j"] + fits.SHAFT_IN_BORE) / 2, s0 - 1, s1 + 1, ix, iy)]
-    for x in (ix - 25.0, ix + 17.0):
+    for x in screws:
         cuts.append(prim.place(cyl(1.7, -1, 8, seg=24), tf.T(x, yd + 0.5, 0.5 * (s0 + s1)) @ tf.Rx(90)))
     return prim.diff(b, cuts)
 
@@ -760,8 +782,15 @@ def contact_block(g, cx, cy, r0, bump, bands, y_top, y_bot, s0, s1):
     return b, cuts
 
 
+def sw_mirror(g):
+    """The code contacts sit on the -x (back) side of the drum (reel_p2_post fills the front): everything is built
+    on the +x side as for the index contact, then mirrored about the plane x = drum x."""
+    dx, _ = drum_xy(g)
+    return tf.T(dx, 0, 0) @ np.diag([-1.0, 1.0, 1.0, 1.0]) @ tf.T(-dx, 0, 0)
+
+
 def switch_block(g, c):
-    """Code switch block on the +X side of the code bands (2 x M3 to the deck)."""
+    """Code switch block on the -X (back) side of the code bands (2 x M3 to the deck)."""
     dx, dy = drum_xy(g)
     yd = deck_y(g)
     s0, s1 = g["bands"][0][0] - 3.0, g["bands"][-1][1]
@@ -770,28 +799,50 @@ def switch_block(g, c):
     foot = prim.box(x0 - 2.0, x0 + 24.0, yd - 6.0, yd, s0, s1)
     for sc in (s0 + 5.0, s1 - 5.0):
         cuts.append(prim.place(cyl(1.7, -1, 8, seg=24), tf.T(x0 + 19.0, yd + 0.5, sc) @ tf.Rx(90)))
-    return prim.diff(prim.union([b, foot]), cuts)
+    return prim.place(prim.diff(prim.union([b, foot]), cuts), sw_mirror(g))
+
+
+def idx_R(g):
+    """L frame transform of the SW_INDEX lever and block: built along +x from the axis, turned to idx_psi."""
+    return tf.Rz(g["idx_psi"])
+
+
+def idx_block_holes(g):
+    """Block screw positions in the built frame (x radial, y along the lever): 2 x M3 into the cheek face inserts."""
+    x0 = lever_x0(g, g["idx_r0"], g["idx_bump"])
+    return [(x0 + 7.0, -6.0), (x0 + 7.0, 30.0)]
+
+
+def idx_block_holes_world(g):
+    """(world x, world z) of the two cheek inserts for the SW_INDEX block (on the cheek inner face, world y 32)."""
+    out = []
+    for (x, y) in idx_block_holes(g):
+        p = idx_R(g) @ np.array([x, y, 0.0, 1.0])
+        out.append((round(float(p[0]), 1), round(float(-p[1]), 1)))
+    return out
 
 
 def index_block(g):
-    """SW_INDEX block in front of the coupler cam, screwed (2 x M3) to the front face of the frame adapter plate."""
+    """SW_INDEX block above the coupler cam, screwed (2 x M3 x 12) into heat-set inserts in the inner face of the
+    motor-side cheek (world y 32); clearance holes, heads on the bus gear side."""
     i0, i1 = g["idx_s"]
-    s0, s1 = 0.5, i1 + 3.0
+    s0, s1 = g["cheek_face_s"], i1 + 1.0
     b, cuts = contact_block(g, 0.0, 0.0, g["idx_r0"], g["idx_bump"], [g["idx_s"]], -12.0, g["sw_L"] + 12.0, s0, s1)
-    x0 = lever_x0(g, g["idx_r0"], g["idx_bump"])
-    for y in (-6.0, 36.0):                    # params.DRUM.sw_index_mount: (x 43.1, z +6) and (x 43.1, z -36)
-        cuts.append(cyl(1.25, s0 - 1, s1 + 1, 43.1, y, seg=24))
-    return prim.diff(b, cuts)
+    for (x, y) in idx_block_holes(g):
+        cuts.append(cyl(1.7, s0 - 1, s1 + 1, x, y, seg=24))
+    return prim.place(prim.diff(b, cuts), idx_R(g))
 
 
 def sw_lever(g, c, i):
+    """Mirrored lever (x -> -x about its pivot): its joint turns about -z, so the same angle lifts it the same way."""
     b0, b1 = g["bands"][i]
-    return contact_lever(g, b0 + 0.6, b1 - 0.6, g["bump"])
+    return prim.place(contact_lever(g, b0 + 0.6, b1 - 0.6, g["bump"]), np.diag([-1.0, 1.0, 1.0, 1.0]))
 
 
 def sw_lever_root(g, i):
     dx, dy = drum_xy(g)
-    return lever_root(g, dx, dy, g["band_r0"])
+    rx, ry = lever_root(g, dx, dy, g["band_r0"])
+    return 2 * dx - rx, ry
 
 
 def idx_lever(g):
@@ -998,9 +1049,10 @@ def joints(P):
     ]
     for i in range(3):
         rx, ry = sw_lever_root(g, i)
-        js.append(Joint(f"drum_sw{i}", "drum_base", "rev", (rx, ry, 0), (0, 0, 1), limits=(-0.5, 8.0)))
+        js.append(Joint(f"drum_sw{i}", "drum_base", "rev", (rx, ry, 0), (0, 0, -1), limits=(-0.5, 8.0)))
     rx, ry = lever_root(g, 0.0, 0.0, g["idx_r0"])
-    js.append(Joint("drum_idx", "drum_base", "rev", (rx, ry, 0), (0, 0, 1), limits=(-0.5, 8.0)))
+    p = idx_R(g) @ np.array([rx, ry, 0.0, 1.0])
+    js.append(Joint("drum_idx", "drum_base", "rev", (p[0], p[1], 0), (0, 0, 1), base=idx_R(g), limits=(-0.5, 8.0)))
     return js
 
 
@@ -1049,8 +1101,27 @@ def lever_deg(theta, g, c, i):
 
 
 def idx_lever_deg(wiper, g):
-    lift = idx_centre_r(g, g["phi_idx"] - wiper) - (g["idx_r0"] + g["nub_r"] + 0.3)
+    lift = idx_centre_r(g, g["idx_psi"] - wiper) - (g["idx_r0"] + g["nub_r"] + 0.3)
     return math.degrees(math.asin(min(1.0, lift / g["sw_L"])))
+
+
+# Tooth phase of the cad-reel gears that mesh mine (measured with the exact meshes at params 1.2.6; centre of the
+# zero-overlap window). My gears: tooth 0 on world +x at joint angle 0, joint axis world +y. In cad-reel's joints:
+#   reel_bus     = (50 / 46) * wiper_deg + 3.91       (my bus gear 50T m1.5 on drum_main = wiper_deg)
+#   reel_capstan = (50 / 22) * reel_deg + 8.18        (my REEL gear 50T m2 on drum_out_reel = reel_deg)
+#   reel_cup     = (42 / 24) * idler + 3.01           (my 42T idler gear on drum_idler = reel_idler_deg(P, S))
+REEL_MESH = dict(bus_offset=3.91, capstan_offset=8.18, cup_offset=3.01)
+
+
+def reel_idler_deg(P, S):
+    """drum_idler joint angle (the 42T wrap idler gear) for state S: cad-reel's cup gear follows it."""
+    g, c = G(P), C(P)
+    return pinion_angle(drum_theta(S, c), g, c)
+
+
+def reel_cup_deg(P, S):
+    """cad-reel cup gear joint angle that meshes my 42T idler gear in state S (reel_cup joint convention)."""
+    return (42.0 / 24.0) * reel_idler_deg(P, S) + REEL_MESH["cup_offset"]
 
 
 def kin(P, S):
@@ -1144,10 +1215,10 @@ def steps(P):
              parts=["drum_coupler_hub", "drum_coupler", "drum_shear_pin"]),
         dict(title="Main shaft: index contact",
              text="Press an M3 nut into the index block pocket, screw the index lever foot to the block (M3 x 12), "
-                  "thread an M3 x 6 into the lever boss, head toward the nut. Screw the block to the front face of the "
-                  "motor adapter plate (2 x M3 x 16) with the nub on the coupler cam. Set the gap so the screw head "
-                  "touches the nut near the top of a bump (about 1.5 mm on a low part). Battery unplugged: nut to GND, "
-                  "screw to SW_INDEX.",
+                  "thread an M3 x 6 into the lever boss, head toward the nut. Screw the block to the inner face of the "
+                  "motor-side cheek, above the coupler (2 x M3 x 12 into the two cheek inserts), with the nub on the "
+                  "coupler cam. Set the gap so the screw head touches the nut near the top of a bump (about 1.5 mm on a "
+                  "low part). Battery unplugged: nut to GND, screw to SW_INDEX.",
              parts=["drum_index_block", "drum_index_lever"]),
         dict(title="Drum: bracket A, axle, rail, drum A",
              text="Bolt bracket A to the deck (2 x M3 x 12). Press the drum axle and the shift rail into it (both "
@@ -1193,8 +1264,8 @@ def steps(P):
              text="Slide the REEL gear onto the coupler journal (plain face first) and screw the retaining washer to "
                   "the journal end (2 x M3 x 6): the gear must spin free. Slide the collar onto the main shaft from the "
                   "spigot end. Lower the shaft so the collar groove drops between the fork pads and push the hex end into "
-                  "the coupler socket, dimple up. Turn the M3 x 20 retaining screw into the coupler wall until its tip "
-                  "sits in the dimple.",
+                  "the coupler socket, dimple toward the coupler screw hole (turn the shaft so the hole faces you). Turn "
+                  "the M3 x 16 retaining screw into the coupler wall until its tip sits in the dimple.",
              parts=["drum_shaft", "drum_collar", "drum_gear_reel", "drum_reel_washer"]),
         dict(title="Main shaft: LAUNCH dog ring and magnet cap",
              text="Fit the LAUNCH dog ring on the launch sleeve flange (sleeve lugs in the ring slots, 3 x M3 x 10 from "

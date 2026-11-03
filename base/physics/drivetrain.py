@@ -9,7 +9,7 @@ Functions (selector drum position in brackets):
 Driver limits: BTS7960 module 43 A peak (datasheet current limit) but heat limited; 15 A continuous without a heatsink
 is used as the conservative number. Fuse: 20 A blade on lead #2. A 20 A blade carries 18 A for minutes, so a wiper
 stall (about 17 A at 12.6 V with sag) will NOT blow it; it holds a 17 A stall indefinitely. The firmware current trip
-(capstan.fw_trip: 50 ms blanking, 5 A hard trip for 30 ms in all modes, tow trip at free + tow current over 200 ms)
+(capstan.fw_trip: 50 ms blanking, 5 A hard trip for 30 ms (6.5 A while cocking), tow trip at free + tow current over 200 ms)
 is the only stall protection, and a mechanical slip clutch of about 3 N m on the REEL output gear is recommended.
 Shaft verdicts at stall: over the agreed 12 N m is a fail, over the Kt 2 value (9.4 N m) a warning.
 
@@ -44,10 +44,10 @@ AIM_DEFAULTS = dict(
     gear=dict(module=1.5, face=10.0, z_driver=45),   # wiper gear 45T drives screw gear 15T
 )
 COCK_DEFAULTS = dict(
-    drum_r=0.015,         # m winch drum radius (cord to the carriage)
-    ratio=1.0,            # wiper turns per drum turn
-    eta=0.90,             # mesh + drum bearings
-    gear=dict(module=2.0, face=12.0, z_driver=20),
+    drum_r=0.050,         # m big gear pitch radius on the rack (cad-launch NOTES: m 2.5, 40 T, pitch d 100)
+    ratio=40 / 26,        # wiper turns per big gear turn (drive gear 26 T on the main axis)
+    eta=0.90,             # drive gear + rack meshes (printed spur, about 0.95 each)
+    gear=dict(module=2.5, face=12.0, z_driver=26),
 )
 CAP_GEAR = capstan.CAP_GEAR
 
@@ -148,7 +148,8 @@ def evaluate(p: Params, name: str, fn: dict, v_oc: float) -> dict:
     # shaft torque at wiper stall and at the hard trip, through the same train
     shaft_st = fn["shaft_k"] * t_s_full
     st_chk = gears.shaft_torsion(shaft_st, p.shaft)
-    t_trip = p.wiper.kt * (capstan.TRIP_HARD_A - p.wiper.i_free)
+    trip_a = capstan.TRIP_COCK_A if name == "cock" else capstan.TRIP_HARD_A
+    t_trip = p.wiper.kt * (trip_a - p.wiper.i_free)
     mesh_tr = gears.mesh(t_trip, fn["gear_ratio"], g["module"], g["z_driver"], g["face"], PPA_CF, 0.0)
     shaft_tr = fn["shaft_k"] * t_trip
     sp = None
@@ -170,7 +171,7 @@ def evaluate(p: Params, name: str, fn: dict, v_oc: float) -> dict:
     if pk["current"] > BTS_CONT_A:
         flags.append(f"peak current {pk['current']:.1f} A > BTS7960 {BTS_CONT_A} A continuous")
     if not mesh_tr["pass"]:
-        flags.append(f"gear (Lewis) fails at the {capstan.TRIP_HARD_A} A hard trip, sf {mesh_tr['sf']:.2f}")
+        flags.append(f"gear (Lewis) fails at the {trip_a} A hard trip, sf {mesh_tr['sf']:.2f}")
     if not st_chk["pass"]:
         flags.append(f"(at stall) keyed shaft {shaft_st:.1f} N m > {p.shaft.t_allow} N m")
     elif not st_chk["strict_pass"]:

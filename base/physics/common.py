@@ -303,8 +303,8 @@ class Params:
     launch: dict = field(default_factory=lambda: dict(
         stroke=0.30,           # m carriage travel under spring force (dart acceleration length)
         pulley_ratio=1.0,      # carriage travel / spring extension (1 = springs pull the carriage directly)
-        preload_ext=0.010,     # m spring extension at the carriage stop (rest), keeps the springs from going slack
-        carriage_mass=0.060,   # kg printed carriage + pins + pulleys riding with it
+        preload_ext=0.005,     # m spring extension at HOME (cad-launch NOTES: 5 mm)
+        carriage_mass=0.080,   # kg carriage sled + rack + cradle (cad-launch NOTES estimate, CAD value to come)
         mu_rail=0.30,          # PLA on PLA sliding (dart + carriage on the rail)
         eta_pulley=0.97,       # per pulley turn on a 608 or printed bushing
         n_pulley_turns=0,      # cord turns between spring and carriage (0 when direct)
@@ -317,7 +317,7 @@ class Params:
         brake_n=0.75,          # N line tension from the reel brake at the reel exit
         eye_gain=1.15,         # tension gain through the guide eye(s): exp(mu theta), ceramic or smooth PLA
         reel_height=0.25,      # m above ground
-        pitch_min=15.0, pitch_max=55.0,
+        pitch_min=6.0, pitch_max=47.0,  # cad-launch crank-rocker range (6.0 to 47.1)
     ))
     # storage reel
     reel: dict = field(default_factory=lambda: dict(

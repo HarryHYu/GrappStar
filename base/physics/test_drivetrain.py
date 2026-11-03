@@ -25,11 +25,13 @@ def test_screw_self_locking():
 def test_cock_hand():
     p = Params()
     c = drivetrain.cock(p)
-    # Params defaults: 2 x (7.5 + 125 x 0.31) = 92.5 N at full draw
-    assert c["f_spring_full"] == pytest.approx(92.5)
-    fr = 0.30 * (0.060 + 0.292) * 9.81 * math.cos(math.radians(15))
-    assert c["f_peak"] == pytest.approx(92.5 + fr, abs=0.01)
-    assert c["t_peak"] == pytest.approx(c["f_peak"] * 0.015 / 0.9)
+    L = p.launch
+    e = L["preload_ext"] + L["stroke"] / L["pulley_ratio"]
+    f_full = 2 * (p.spring.f_init + p.spring.k * e)
+    assert c["f_spring_full"] == pytest.approx(f_full)
+    fr = 0.30 * (L["carriage_mass"] + p.dart.mass) * 9.81 * math.cos(math.radians(p.flight["pitch_min"]))
+    assert c["f_peak"] == pytest.approx(f_full + fr, abs=0.01)
+    assert c["t_peak"] == pytest.approx(c["f_peak"] * 0.050 / (40 / 26 * 0.9))
 
 
 def test_run():

@@ -38,7 +38,8 @@ CAP_GEAR = dict(module=2.0, face=12.0, z_driver=20)  # ASSUMED wiper to capstan 
 
 # recommended firmware current trip (all modes)
 TRIP_BLANK_MS = 50       # ignore current after start (inrush)
-TRIP_HARD_A = 5.0        # hard trip, motor current
+TRIP_HARD_A = 5.0        # hard trip, motor current (aim, reel, tow)
+TRIP_COCK_A = 6.5        # hard trip while cocking (launch mode forward): cock peak is ~4.6 A
 TRIP_HARD_MS = 30
 TRIP_TOW_AVG_MS = 200
 CLUTCH_REEL_NM = 3.0     # recommended mechanical slip clutch on the REEL output gear
@@ -172,7 +173,8 @@ def fw_trip(p: Params, tow_limit: float | None = None, overspeed: float = 1.2, g
         tow_trip_rule=f"measured free current + {cl['delta_over_free']:.2f} A, averaged over {TRIP_TOW_AVG_MS} ms",
         notes=[
             f"ignore current for {TRIP_BLANK_MS} ms after start; hard trip at {TRIP_HARD_A} A for {TRIP_HARD_MS} ms in "
-            f"all modes ({t_hard:.2f} N m at the wiper)",
+            f"aim, reel and tow ({t_hard:.2f} N m at the wiper), {TRIP_COCK_A} A while cocking "
+            f"({p.wiper.kt * (TRIP_COCK_A - p.wiper.i_free):.2f} N m)",
             "sprag #2 (capstan backstop) plus the self-locking worm lock in the stall tension after a trip: add a "
             f"mechanical slip clutch of about {CLUTCH_REEL_NM:.0f} N m on the REEL output gear",
             "the 20 A fuse holds a 17 A stall indefinitely: it is wiring protection only",

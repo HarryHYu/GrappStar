@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 12:39 Sydney time from commit `bd747e4`.
+Built 2026-11-03 12:45 Sydney time from commit `514bd36`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -3128,7 +3128,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 ## Numbers still assumed in params.py right now
 
 
-params.py version: `1.2.3`.
+params.py version: `1.2.4`.
 
 | params.py name | State | Who fixes it |
 |---|---|---|

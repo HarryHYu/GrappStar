@@ -309,7 +309,7 @@ def cam_eta(slope_mm_per_rad, r_mm, mu=0.3):
     return math.tan(phi) / math.tan(min(phi + rho, math.radians(89.0)))
 
 
-def loads(c=None, r_groove=30.0, r_cam=32.0, arm_pin=36.5, arm_yoke=63.2, sleeve_len=66.0, mu=0.3, mu_rail=0.25,
+def loads(c=None, r_groove=30.0, r_cam=32.0, arm_pin=36.5, arm_yoke=77.6, sleeve_len=83.0, mu=0.3, mu_rail=0.25,
           residual_nm=0.2):
     """Drum torque budget (N m at the drum) along the travel.
 
@@ -319,8 +319,10 @@ def loads(c=None, r_groove=30.0, r_cam=32.0, arm_pin=36.5, arm_yoke=63.2, sleeve
     the wrap train. Loads at the same angle add. N20 margin rule (params.DRUM.n20_ratio_min_margin): stall / peak >= 2."""
     c = c or DEFAULTS
     eta_gear = 0.9
-    # racking of the long fork carrier: pin force / yoke force = (1 + 2 mu a / L) / (1 - 2 mu b / L) with the yoke
-    # reaction a = 63.2 and the pin b = 36.5 from the rail, sleeve L = 66, mu 0.25 on a greased rail
+    # racking of the long fork carrier: pin force / yoke force = (1 + 2 mu a / L) / (1 - 2 mu b / L). The pin
+    # (b = 36.5) and the yoke are on opposite sides of the rail, so both moments add. Yoke offset: a soft yoke may
+    # bear on one pad only, so a = 77.6 (the far pad at x -26.5, not the axis at 63.2). Sleeve L = 83, mu 0.25 on a
+    # greased rail. Lock-up only at mu = L / (2 b) = 1.14
     rack = (1.0 + 2.0 * mu_rail * arm_yoke / sleeve_len) / (1.0 - 2.0 * mu_rail * arm_pin / sleeve_len)
     f_fork = (c["fork_k"] * c["fork_free"] + 3.0) * rack
     r_dog = 0.5 * (c["dog_r_in"] + c["dog_r_out"]) / 1000.0

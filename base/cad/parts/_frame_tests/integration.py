@@ -57,8 +57,8 @@ def origin_check():
         roots = [f"{j.name} {tuple(round(v, 1) for v in j.origin)}" for j in asm.joints.values()
                  if j.parent is None and j.name.startswith(sub)][:3]
         zmin = min(zs) if zs else float("nan")
-        ok = abs(zmin - deck) < 2.0 or zmin > deck
-        verdict = "ok" if ok and zmin < 50 else ("parts below the deck" if zmin < deck - 2 else "check: lowest part far above the deck (deck at z 0?)")
+        ok = zmin > deck - 8.5                     # the frame deck itself is 8 thick below the deck top
+        verdict = "ok" if ok and zmin < deck + 50 else ("parts below the deck" if not ok else "check: lowest part far above the deck (deck at z 0?)")
         L.append(f"| {sub} | {zmin:.1f} | {'; '.join(roots)} | {verdict} |")
     return L + [""]
 

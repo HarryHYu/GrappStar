@@ -237,3 +237,35 @@ def saddle(w, M_world, deck_top=0.0):
     M = tf.T(c0[0], c0[1], deck_top) @ tf.Rz(yaw)
     holes = [tuple(tf.apply(M, [(fx, fy, 0)])[0][:2]) for fx, fy in feet]
     return prim.place(blk, M), holes
+
+
+def can_stay(w, M_motor, plate_y_face, side, z_plate_top, frac=0.6):
+    """Can stay for a motor whose can points up: a post bolted to the motor plate's motor-side face (2 x M3 along y
+    into plate inserts), an arm over to the can and a half-ring cradle on the can's -x side with two strap slots (cable
+    tie or hose clamp). Deck-frame solid, the plate insert points [(x, z)], or (None, []) if the can is not vertical.
+    side = motor_side (-1: the motor is at lower y than the plate)."""
+    x0, x1, y0, y1, d = w["body_box"]
+    zf = -w["boss_h"]
+    ca = tf.apply(M_motor, [(w["can_x0"], 0.0, zf - d / 2), (w["can_x0"] + w["can_len"], 0.0, zf - d / 2)])
+    ax = ca[1] - ca[0]
+    if abs(ax[2]) < 0.9 * np.linalg.norm(ax):
+        return None, []
+    c = ca[0] + frac * ax                                # strap height on the can axis
+    r = w["can_d"] / 2
+    cx, cy, cz = c
+    py0, py1 = sorted((plate_y_face, plate_y_face + side * 10.0))    # post: 10 mm off the plate face towards the motor
+    px0, px1 = cx - r - 26.0, cx - r - 8.0               # beside the can on its -x side
+    pz0 = z_plate_top - 26.0                             # clear of the adapter hub ring (r 49)
+    post = prim.box(px0, px1, py0, py1, pz0, cz + 8.0)
+    arm = prim.box(px0, cx - r - 2.0, min(py0, cy - 8.0), max(py1, cy + 8.0), cz - 8.0, cz + 8.0)
+    ring = prim.cyl(r + 6.0, 16.0, cx, cy, cz - 8.0) - prim.cyl(r + 0.5, 20.0, cx, cy, cz - 10.0) \
+        - prim.box(cx, cx + r + 10, cy - r - 10, cy + r + 10, cz - 9, cz + 9)        # half ring on the -x side
+    sol = prim.union([post, arm, ring])
+    for sy in (-1, 1):                                   # strap slots through the ring ends
+        sol = sol - prim.box(cx - 3.0, cx + 1.0, cy + sy * (r + 3.0) - 1.6, cy + sy * (r + 3.0) + 1.6, cz - 10, cz + 10)
+    pts = [((px0 + px1) / 2, pz0 + 6.0), ((px0 + px1) / 2, pz0 + 20.0)]
+    yface = plate_y_face
+    for (x, z) in pts:
+        sol = sol - prim.cylY(U.CLR_D / 2, py0 - 1, py1 + 1, x, z) \
+            - prim.cylY(U.HEAD_D / 2, (py0 - 1) if side < 0 else (py1 - U.HEAD_H), (py0 + U.HEAD_H) if side < 0 else (py1 + 1), x, z)
+    return sol, pts

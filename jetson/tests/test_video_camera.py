@@ -264,7 +264,9 @@ def test_forgotten_hold_expires():
     cam = Camera("dart", lambda: None, quality=False, buffer_s=2, start=False, hold_max_s=0.0)
     cam.hold(0.0)
     _feed(cam, synth.textured(48, 64, seed=1), time.time() + 1.0, 4)
-    assert cam.status()["hold"] is None and cam.status()["buffer_s"] <= 2.0 + 1e-6
+    st = cam.status()
+    assert st["hold"] is None and st["buffer_s"] <= 2.0 + 1e-6
+    assert st["hold_expired"] == 1 and "hold expired" in st["last_error"]
 
 
 def test_very_long_hold_thins_after_the_head_and_keeps_launch(monkeypatch):

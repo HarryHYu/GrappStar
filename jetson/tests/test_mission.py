@@ -303,12 +303,53 @@ def test_dart_reboot_at_impact_counts_as_landing(tmp_path):
 
 def test_tow_refused_without_load_cell_and_factory_constants(tmp_path):
     r = Rig(tmp_path)
-    r.mb.load_cell = False                       # tension_n null; k_n_per_a still the factory 8
+    r.mb.load_cell = False                       # tension_n null; k_n_per_a still a factory value
     r.policy["TOW refused"] = "Release the dart"
     try:
         m = r.run(120)
         assert any("TOW refused" in a[0] for a in r.answers)
         assert m.state == "DONE"                 # released and brought home instead
         assert "RELEASE" in r.steps()
+    finally:
+        r.close()
+
+
+def test_line_out_uses_video_range_only_with_imu(tmp_path):
+    """R2-C2: a video-only range (9.2 m) must not become line_m; the solver's line out is used, capped by the table."""
+    from grappstar.mission import Mission
+    sent = {}
+
+    class B:
+        def set(self, k, v):
+            sent[k] = v
+    m = Mission(B(), None, {}, None, type("L", (), {"info": lambda *a, **k: None, "warn": lambda *a, **k: None,
+                                                     "write": lambda *a, **k: None})(),
+                analyse=lambda *a, **k: {})
+    m.shot = {"solution": {"line_out_m": 4.6, "range_max_m": 4.9}}
+    m.tell_line_out({"flight": {"range_m": 9.2, "source": "video"}})
+    assert sent["line_m"] == 4.6
+    m.tell_line_out({"flight": {"range_m": 4.2, "source": "video+imu"}})
+    assert abs(sent["line_m"] - (4.2 * 1.05 + 0.3)) < 0.01
+    m.tell_line_out({"flight": {"range_m": 12.0, "source": "imu"}})
+    assert sent["line_m"] <= 4.9 * 1.1 + 0.5
+
+
+def test_estop_is_not_followed_by_a_mission_stop(tmp_path):
+    """r3_M #2: the ESTOP's drum-to-NEUTRAL safing must not be cancelled by the aborting mission's own stop."""
+    import time
+    r = Rig(tmp_path)
+    r.policy["Aim now"] = lambda p: (time.sleep(0.3), "Aim")[1]
+    try:
+        r.m.start()
+        t0 = time.time()
+        while r.m.step != "AIM" and time.time() - t0 < 30:
+            time.sleep(0.01)
+        r.m.abort("operator ESTOP", base_stop=False)
+        r.base.estop(timeout=1.0)
+        r.m.thread.join(10)
+        cmds = [c["cmd"] for c in r.mb.received]
+        i = len(cmds) - 1 - cmds[::-1].index("estop")
+        assert "stop" not in cmds[i + 1:], cmds[i:]
+        assert r.m.state == "ABORTED"
     finally:
         r.close()

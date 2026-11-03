@@ -1,8 +1,8 @@
 # Whole-base integration audit (cad-frame)
 
-Run 2026-11-03 01:59 Sydney on `162a1d4` (base-v1 merged into w/cad-frame), `tools.audit --dt 0.5 --jobs 2 --no-refine`, 133 parts, 831 states, 144 s. Verdict: **NOT CLEAN**.
+Run 2026-11-03 13:44 Sydney on `0a28edf` (base-v1 merged into w/cad-frame), `tools.audit --dt 0.5 --jobs 2 --no-refine`, 224 parts, 897 states, 234 s. Verdict: **NOT CLEAN**.
 
-Subsystems: drum, frame, launch, reel
+Subsystems: drum, frame, launch, reel, sensors
 
 ## Frame-origin check
 
@@ -11,48 +11,73 @@ Spec: main axis z = 0, deck top z = -165.0. Lowest part bottom per subsystem (re
 | subsystem | lowest part z | root joints (parent None) | verdict |
 |---|---|---|---|
 | drum | -165.0 | drum_base (0.0, 0.0, 0.0) | ok |
-| frame | -173.0 | frame_wiper (0.0, 0.0, 0.0) | parts below the deck |
-| launch | -135.4 | launch_rail (0.0, 140.0, 0.0); launch_sleeve (0.0, 140.0, 0.0); launch_drive (0.0, 140.0, 0.0) | ok |
+| frame | -173.0 | frame_rail_guard (0.0, 140.0, 0.0); frame_wiper (0.0, 0.0, 0.0) | ok |
+| launch | -165.0 | launch_rail (0.0, 140.0, 0.0); launch_sleeve (0.0, 140.0, 0.0); launch_drive (0.0, 140.0, 0.0) | ok |
 | reel | -165.0 | reel_base (-18.7, 33.5, -69.6) | ok |
+| sensors | -157.0 |  | ok |
 
-## Collisions (16)
+## Collisions (45)
 
 | part A (owner) | part B (owner) | worst overlap mm3 | states hit | worst state: phase, t | note |
 |---|---|---|---|---|---|
-| drum_index_block (drum) | frame_motor_adapter (frame) | 6256.192 | 831 | load, 0.0 |  |
-| launch_aim_housing (launch) | launch_aim_cap (launch) | 2380.36 | 831 | load, 0.0 |  |
-| drum_bracket_idler2 (drum) | reel_wall (reel) | 1547.718 | 831 | load, 0.0 |  |
-| drum_coupler_hub (drum) | frame_wiper_motor (frame) | 1238.537 | 831 | aim, 2.5 |  |
-| drum_magnet_cap (drum) | launch_aim_housing (launch) | 662.037 | 831 | aim, 3.0 |  |
-| frame_motor_adapter (frame) | reel_sprag_hub (reel) | 654.61 | 831 | load, 0.0 |  |
-| launch_aim_conrod (launch) | launch_aim_housing (launch) | 570.682 | 286 | aim_sweep, None |  |
-| drum_index_lever (drum) | frame_motor_adapter (frame) | 485.255 | 831 | aim, 5.0 |  |
-| drum_shaft (drum) | launch_aim_housing (launch) | 254.05 | 831 | aim_fall, None |  |
-| drum_gear_reel (drum) | reel_gc (reel) | 225.223 | 828 | drum_wiper, 0.0 |  |
-| launch_rail_mid (launch) | launch_sleeve (launch) | 208.746 | 831 | aim_split_out, None |  |
-| drum_shaft (drum) | frame_wiper_shaft (frame) | 99.656 | 831 | drum_index, 0.0 |  |
-| drum_coupler_hub (drum) | frame_wiper_shaft (frame) | 97.197 | 831 | aim_sweep, None |  |
-| drum_idler_gear (drum) | reel_gk (reel) | 82.343 | 798 | wrap, 29.5 |  |
-| drum_coupler (drum) | reel_bus (reel) | 77.975 | 823 | aim_split_out, None |  |
-| frame_motor_adapter (frame) | reel_sprag (reel) | 17.449 | 831 | load, 0.0 |  |
+| drum_index_block (drum) | frame_motor_adapter (frame) | 4830.288 | 897 | load, 0.0 |  |
+| launch_aim_housing (launch) | sensors_sw_rail_low_bracket (sensors) | 3988.73 | 897 | load, 0.0 |  |
+| drum_dog_post (drum) | sensors_sw_gap_bracket (sensors) | 1429.398 | 897 | load, 0.0 |  |
+| drum_coupler_hub (drum) | frame_wiper_motor (frame) | 1238.537 | 897 | aim, 2.5 |  |
+| launch_aim_housing (launch) | sensors_as5600_carrier (sensors) | 1207.447 | 897 | load, 0.0 |  |
+| frame_motor_adapter (frame) | reel_sprag_hub (reel) | 1096.572 | 897 | load, 0.0 |  |
+| launch_aim_housing (launch) | sensors_as5600 (sensors) | 586.065 | 897 | load, 0.0 |  |
+| reel_p2_post (reel) | sensors_sw_gap_bracket (sensors) | 397.881 | 652 | load, 0.0 |  |
+| launch_rail_mid (launch) | sensors_sw_gap_bracket (sensors) | 358.248 | 897 | load, 0.0 |  |
+| launch_sw_rail_low (launch) | sensors_sw_rail_low (sensors) | 328.899 | 897 | load, 0.0 |  |
+| launch_sw_gap (launch) | sensors_sw_gap (sensors) | 305.698 | 897 | load, 0.0 |  |
+| launch_sw_rail_low (launch) | sensors_sw_rail_low_bracket (sensors) | 297.75 | 897 | load, 0.0 |  |
+| launch_rail_mid (launch) | sensors_sw_gap (sensors) | 285.47 | 897 | load, 0.0 |  |
+| drum_index_lever (drum) | frame_motor_adapter (frame) | 259.673 | 897 | cock, 8.5 |  |
+| reel_p2_post (reel) | sensors_sw_gap (sensors) | 254.427 | 652 | aim_fall, None |  |
+| drum_coupler (drum) | reel_wall (reel) | 248.199 | 897 | drum_index, 0.0 |  |
+| launch_rail_mid (launch) | sensors_sw_gap_lever (sensors) | 224.71 | 897 | load, 0.0 |  |
+| launch_aim_housing (launch) | sensors_sw_rail_low (sensors) | 203.52 | 897 | load, 0.0 |  |
+| launch_aim_as5600 (launch) | sensors_as5600 (sensors) | 179.941 | 897 | load, 0.0 |  |
+| launch_sw_gap (launch) | sensors_sw_gap_bracket (sensors) | 164.097 | 897 | load, 0.0 |  |
+| launch_sw_gap (launch) | sensors_sw_gap_lever (sensors) | 146.761 | 897 | load, 0.0 |  |
+| drum_gear_reel (drum) | reel_gc (reel) | 144.265 | 3 | reel_swing_out, 0.0 |  |
+| launch_aim_as5600 (launch) | sensors_as5600_strip_bot (sensors) | 102.238 | 897 | load, 0.0 |  |
+| launch_aim_as5600 (launch) | sensors_as5600_strip_top (sensors) | 102.238 | 897 | load, 0.0 |  |
+| drum_shaft (drum) | frame_wiper_shaft (frame) | 99.656 | 897 | aim_sw_low, None |  |
+| drum_coupler_hub (drum) | frame_wiper_shaft (frame) | 81.52 | 897 | aim_sweep, None |  |
+| launch_sw_gap_screw (launch) | sensors_sw_gap_lever (sensors) | 80.334 | 897 | load, 0.0 |  |
+| drum_coupler (drum) | reel_bus (reel) | 71.559 | 3 | reel_swing_out, 0.0 |  |
+| launch_aim_housing (launch) | sensors_as5600_strip_bot (sensors) | 63.444 | 897 | load, 0.0 |  |
+| launch_aim_housing (launch) | sensors_as5600_strip_top (sensors) | 63.444 | 897 | load, 0.0 |  |
+| launch_sw_gap (launch) | sensors_sw_gap_screw (sensors) | 45.087 | 897 | load, 0.0 |  |
+| launch_sw_rail_low_screw (launch) | sensors_sw_rail_low (sensors) | 41.364 | 897 | load, 0.0 |  |
+| frame_motor_adapter (frame) | reel_sprag (reel) | 39.591 | 897 | load, 0.0 |  |
+| launch_sw_rail_low_nut (launch) | sensors_sw_rail_low (sensors) | 36.061 | 897 | load, 0.0 |  |
+| launch_carriage (launch) | launch_big_gear (launch) | 27.414 | 15 | sensors_gap_bump, None |  |
+| launch_aim_as5600 (launch) | sensors_as5600_carrier (sensors) | 26.288 | 897 | load, 0.0 |  |
+| launch_sw_rail_low_screw (launch) | sensors_sw_rail_low_lever (sensors) | 24.194 | 897 | load, 0.0 |  |
+| frame_motor_adapter (frame) | reel_drum (reel) | 21.7 | 897 | drum_wiper, 0.0 |  |
+| launch_rail_mid (launch) | sensors_sw_gap_jam (sensors) | 20.249 | 897 | load, 0.0 |  |
+| launch_rail_mid (launch) | sensors_sw_gap_screw (sensors) | 20.129 | 897 | load, 0.0 |  |
+| launch_sw_gap (launch) | sensors_sw_gap_nut (sensors) | 17.188 | 897 | load, 0.0 |  |
+| launch_sw_gap_nut (launch) | sensors_sw_gap (sensors) | 12.392 | 897 | load, 0.0 |  |
+| launch_sw_gap (launch) | sensors_sw_gap_jam (sensors) | 7.859 | 897 | load, 0.0 |  |
+| launch_rail_mid (launch) | sensors_sw_gap_nut (sensors) | 7.514 | 897 | load, 0.0 |  |
+| launch_sw_rail_low (launch) | sensors_sw_rail_low_nut (sensors) | 3.6 | 897 | load, 0.0 |  |
 
-## Failed clearances (2)
-- launch_aim_conrod / launch_aim_housing: gap 0.0 < 1.0 (conrod sweeps past the housing inner wall)
-- reel_wall / reel_spool: gap 0.3 < 0.3 (reel spins in front of the wall)
+## Failed clearances (0)
+None.
 
-## Floating or ungrounded parts (1)
-- reel_shroud (reel): touches nothing in the rest state
+## Floating or ungrounded parts (0)
+None.
 
-## Static fails (6)
-- launch_rail_rear (launch): no real flat face on the bed (108.5 mm2, need 150)
-- launch_carriage (launch): no real flat face on the bed (108.0 mm2, need 150)
-- launch_aim_lug (launch): no real flat face on the bed (50.1 mm2, need 87)
-- launch_aim_housing (launch): 6 shells (printed parts must be one body); no real flat face on the bed (0.0 mm2, need 150)
-- reel_shroud (reel): not watertight as STL (self-touching edges after vertex merge)
-- reel_exit_post (reel): not watertight as STL (self-touching edges after vertex merge)
+## Static fails (2)
+- frame_spring_guard_r_2 (frame): not watertight as STL (self-touching edges after vertex merge)
+- frame_spring_guard_l_3 (frame): not watertight as STL (self-touching edges after vertex merge)
 
-## Subsystem check failures (1)
-- frame: layout: deck seam x = 51.2 only 11.9 mm from a deck hole
+## Subsystem check failures (0)
+None.
 
 ## Auditor's notes on the cross-owner pairs (cad-frame, hand analysis)
 

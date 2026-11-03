@@ -5,6 +5,34 @@ sim over HTTP, the real Jetson App). Each entry: the exact failing scenario, the
 Line numbers are against `origin/base-v1` at the time of the entry. Status: OPEN until the owner says fixed and the
 harness re-runs green.
 
+## Status (14:20 Sydney)
+
+"fixed on branch" = green in the preview (`PREVIEW=1 systest/batch.sh`: base-v1 9a3bdf9 + w/fw-base 1027c3f +
+w/fw-dart 71c45ab + w/jetson c80c0f1), not yet merged into base-v1. Evidence in `systest/runs_preview/<scenario>/`.
+
+| # | owner | status | evidence |
+|---|---|---|---|
+| F1 | fw-base | open (not re-tested: the harness waits for BOOT) | |
+| F2 | fw-base, jetson | FIXED in base-v1 | `tidy` -> TIDIED in every run |
+| F3 | fw-base | partly (Jetson reads l r I) | PROTOCOL re-sync |
+| F4 | jetson | fixed on branch | preview: WRAP before ANCHOR in every mission |
+| F5 | jetson, docs | fixed on branch | `nominal_uncal`: "TOW refused: no load cell and k_n_per_a is still ..." |
+| F6 | jetson | fixed on branch | prompt says "The drum HELD where it is (...)" |
+| F7 | jetson | fixed on branch | `stall_cock`: "Decock and re-aim", then COCKED, FIRE, mission DONE |
+| F8 | jetson | fixed on branch | `power_unwrap(_fasthello)`: BASE_RESET at once, DONE in 121 s |
+| F9 | fw-base | open | `no_angle_sensor` |
+| F10 | jetson | fixed on branch | `no_angle_sensor`: "PREFLIGHT failed: AS5600 sees no magnet (status magnet NONE)" |
+| F11 | jetson | re-test | |
+| F12 | jetson | fixed on branch (one leftover) | C1 order matches 10.1 except a bench `set host_timeout_s` (allowed) |
+| F13 | fw-base | open | |
+| F14 | fw-base, docs | fixed on branch | CALIBRATION.md: two-point `k_n_per_a` + `tension_offset_n` |
+| F15 | fw-base | claimed fixed in 3ff1a86 | re-test `ref_power_wrap`, `power_aim` (this batch) |
+| F16 | fw-base | re-test | |
+| F17 | fw-base | open | |
+| F18 | jetson | fixed on branch | no 60 s TOW waits in this batch |
+| F19 | fw-base | retrieve at the park now refused (WRAPS_ON); max_n 80 untested behind F20 | `ref_refusals` |
+| F20 | fw-base (D41) | OPEN, acceptance test ready | `ref_nominal`, `ref_tow_stiff`, `tow_stiff`, `nominal`: OVERCURRENT 3.0 A at the fly-in |
+
 ## F1 (fw-base) `cal` (and `set`) during the first 60 ms are acknowledged ok, then silently undone by the boot rebuild
 
 - Scenario: fresh base, the host sends `{"id":0,"cmd":"cal","what":"cock_rest"}` 10 ms after power-on.
@@ -275,3 +303,24 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   - `reel {"duty":1,"max_n":80,"until":"tension"}` in REEL -> `ok:true` (D39: tow cap 70 N; the harness stopped it at
     once).
 - The check `every wrong command refused` goes green when D39 is in the firmware.
+
+## F20 (fw-base + spec, D35 order) with a stiff (real Dyneema) line the REEL fly-in after TIDY trips OVERCURRENT every time
+
+- Found after R2-L review item 1: the plant line is now 1 mm Dyneema (EA 20 kN: about 5.6 kN/m at 3.6 m) instead
+  of sim.h's 40 N/m spring. Scenario `ref_nominal` (BASE_SPEC 10.1 exactly, preview fw-base 6472524): the wrap takes
+  the 0.9 m landing slack, the dart anchors, `tidy` -> TIDIED (dart side taut), `mode REEL` (fly-in) ->
+  `FAULT OVERCURRENT "wiper over 3.0 A"` and `MODE ok:false DRUM_HELD` within 3 s (plant peak line tension during
+  the fly-in 37.4 N, peak wiper 4.2 A); four retries, the same.
+- Why: the fly-in creeps the wiper FORWARD until the collar drops into REEL (config.h:147, `jogTripA` 3.0 A at
+  config.h:65). Once the dogs bite, every further wiper degree winds the capstan (1.667 capstan turns per wiper turn,
+  r 20.5 mm: about 0.6 mm of line per wiper degree). On a taut Dyneema line 10 deg of creep is about 6 mm, about 33 N:
+  far over the 3 A trip (about 14 N of line with the calibrated constants). With sim.h's soft spring the same 6 mm is
+  0.24 N, which is why every earlier run passed.
+- The order is binding (BASE_SPEC 10.1 steps 11-12): TIDY leaves the dart side taut at FIRM 5 N by design, so the
+  fly-in always starts against a taut line in the field.
+- Options for fw-base / coordinator: stop the fly-in creep the moment SW_DOG_R (or the collar position) says engaged
+  and do not count wind-in current as a fault during the fly-in (treat it as the tow start: `LIMIT` at the tow cap);
+  or fly in BEFORE the tidy and tidy through the engaged capstan (the take-up still runs in REEL); or leave a
+  defined slack after the tidy (tidy by length). The harness check stays: fly-in on a taut 5.6 kN/m line.
+- Note: the stiffness assumption (EA 20 kN) is mine from the line spec (667 N break, about 3.5 % at break); real
+  braid has some bedding-in stretch, which makes it softer at first. Even at EA 5 kN (1.4 kN/m) 6 mm is about 8 N.

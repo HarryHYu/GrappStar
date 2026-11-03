@@ -34,8 +34,9 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
    `decock` with `force` if SW_HOME lies). Safer than trusting a contact.
 4. A drum code change with the drum still near the wrap window makes the wrap count doubtful: only `unwrap` (with
    the take-up) until NEUTRAL.
-5. Tow trip (D34): max(tow_trip_a 6.5 A, (limit + 10.4) / 17 + I_free + 1 A), capped at 17 A; the tension estimate
-   (averaged 200 ms, D33) is the real tow limit.
+5. Tow (D33 / D34 / D39): limit at most 70 N; trip = (max_n + 10.4) / 17 + I_free + 1 A (at least 5 A, at most 17 A);
+   the tow holds on the 200 ms average OR on the raw estimate held 60 ms at the limit (stiff lines); a re-sent tow at
+   the limit stays in HOLD; constants cannot change while moving or holding.
 6. Fly-in at 25 percent duty (asked about 20) so the 3 A trip reads real current (IS scaling needs duty 60 or more).
 7. Final approach time limit: max(20 s, 10 s + 1.5 x line_m / slowest take-up speed at the duty), 30 s with line_m
    unknown, `max_s` 5..600. The coordinator asked 5..180; physics shows 20 m at duty 0.3 needs about 500 s.
@@ -54,11 +55,80 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
 - Known gap: SW_HOME stuck closed AND the saved angle lost AND the train about 300 deg into a cock: a recovery
   `cock` can still reach the release (its reset allowance of 157 deg overlaps). Every other combination is refused.
   The test starts this case at 270 deg.
+- Tow on a very stiff short line (about 3000 N/m) at full duty can overshoot a 40 N limit by about 50 percent before
+  the current catches up (worm holds; 5 N m shear pin above). Lower duty for low limits.
+- `cal cock_rest` with `force:true` trusts the operator: on a drawn spring the next forward jog or cock can fire.
+- Two contacts failing together (a drum code bit AND SW_ARM, or SW_HOME AND SW_GAP with the record lost) defeat the
+  cross-checks; single contact failures are caught (fuzzed with faults injected during motion).
 - The sim cannot produce a dog friction-locked under load, contact bounce bursts, VBAT ripple or AS5600 nonlinearity
   (review notes in this report's history); bench tests in BENCH_TEST.md cover them by hand.
 - Spec text that disagrees with params / decisions (reported to the coordinator): BASE_SPEC 30 deg unload jog
   (params 8), take-up "about 30 percent" (firmware 40, I4 cap), D31 309 / D32 -6 (superseded by 314 / -10.4).
 
-## What Harry must measure
+## Review rounds (independent agents; every finding proved with a probe, fixed with a regression test)
+
+- Docs cross-check (13 code findings: aim trip, cock after a shift, two clears, silent decock, mode ok without collar, cock and SW_SEATED, decock and SW_GAP, ...): 256a71c.
+- Drum and mission safety (drum into WRAP after a cut, jog dog checks, fly-in current scaling, D34 tow trip): fe22a96.
+- Protocol, persistence, glue (estop with a bad id, key slots, status length, cal ranges, flash wear): 103eb0d.
+- Launch side (index-mode missed bump fired, stop dropped the drawn hint, decock to REST, index aim): b352cbc.
+- Sim fidelity (AS5600 dropouts lost cock travel and fired; IS sampling; inertia added to the sim): 7b7c367, 629ce02.
+- PROTOCOL.md line by line against the code (18 doc mismatches, UNWRAPPED without MODE): 3ff1a86, 3ed2044.
+- Adversarial hunt (cock jog with a failing collar contact fired; tow overshoot on stiff lines and ratchet from HOLD; frozen load cell; constants changed mid-tow; lying drum codes unwinding without take-up; tip-to-tip centering into sprag #2): 4bb87cc, 8353486.
+- Earlier review reports r1_D and r1_G, re-checked item by item:
+
+| report | # | finding (short) | status | evidence | commit |
+|---|---|---|---|---|---|
+| r1_D | 1 | PROTOCOL old drum order, 4 wraps, NOT_IN_REEL, no slip | FIXED | PROTOCOL.md sections 2 and 5 (wrap to WRAPPED 314, 7 turns, mode REEL only from N_TO_R) | 8f41b6f, ee60e0c |
+| r1_D | 2 | Tow law 8 N/A, fixed 5 A trip ends every tow in OVERCURRENT | FIXED | config.h tension model 17 / -10.4 from params; towTrip() max(6.5 A, need + 1 A); 200 ms average; default-constant tow probe holds at 50 N | 01f1fe0, fe22a96 |
+| r1_D | 3 | SW_DOG_L/R not checked during drum moves | FIXED | tickDrumMove stages 0/1 and drum jogs check both | 01f1fe0, fe22a96 |
+| r1_D | 4 | No WRAPPED park; tidy only in NEUTRAL | FIXED | targetDeg WRAPPED 314; wrap parks there; tidy also at the park below 318 | 01f1fe0 |
+| r1_D | 5 | pins.h contradicts params.SWITCHES | FIXED | pins.h matches params SWITCHES; SLP not wired | 55dd476 |
+| r1_D | 6 | Fault in REEL/N_TO_R holds instead of going to WRAPPED | NOT APPLICABLE | params 1.2.5 fault_rules: the drum HOLDS with the wraps on; firmware holds | 7b7c367 |
+| r1_D | 7 | Same as #6 for estop | NOT APPLICABLE | as #6 | 7b7c367 |
+| r1_D | 8 | aim inherits the previous trip | FIXED | homing leg and planAim set tripA 5 A; probe 5.00 A through S_AIM | 01f1fe0 |
+| r1_D | 9 | Drum jog end-stop guard: untrusted estimate, wrong end stops | FIXED (see below) | guard at end stops -4/352 with 2 deg margin; refused when the angle is not trusted | 3ed2044 |
+| r1_D | 10 | No SW_GAP check: fire/rest/decock | FIXED | fire/arm, decock end, reset end; cock from REST and cal cock_rest now also need SW_GAP | 55dd476, 256a71c, 3ed2044 |
+| r1_D | 11 | config bit map vs pin table | FIXED | swBit = pins.h = WIRING = BENCH | 55dd476, 8f41b6f |
+| r1_D | 12 | Tow limit not averaged 200 ms | FIXED | tensionAvgMs 200 | a453ed3 |
+| r1_D | 13 | SW_GAP not checked by fire, arm, decock | FIXED | as #10 | 55dd476, 256a71c |
+| r1_D | 14 | Wiper backward jog allowed outside LAUNCH | FIXED | cmdJog: BACKSTOP outside LAUNCH for backward | 3ed2044 |
+| r1_D | 15 | Drum jog through WRAP unwraps without take-up | FIXED | WRAPS_ON in WRAP; running jog stops at the WRAP edge | fe22a96, b352cbc |
+| r1_D | 16 | wrapsFull = 4 | FIXED | P_DRUM_WRAP_TURNS 7 | 55dd476, fe22a96 |
+| r1_D | 17 | Current not scaled below duty 60 | FIXED | all helper duties >= 60 (fly-in 64); IS sampled across the PWM period | fe22a96, 629ce02 |
+| r1_G | 1 | BENCH contact table wrong GPIOs, D key | FIXED | BENCH_TEST contact table = SW_TEL keys and pins.h | 8f41b6f |
+| r1_G | 2 | BENCH step 2 drum walk cannot pass | FIXED | walk order valid for the Gray codes; one clear after the walk | 256a71c, 8f41b6f, fe22a96 |
+| r1_G | 3 | Old single SW_DOG layout | FIXED | 12 contacts in swBit order | 8f41b6f |
+| r1_G | 4 | Same plus PROTOCOL sw keys | FIXED | key table = SW_TEL | 8f41b6f |
+| r1_G | 11 | Walk faults on row 1, reboot needed | FIXED | as #2 | 256a71c, fe22a96 |
+| r1_G | 12 | CALIBRATION mode REEL from NEUTRAL | FIXED | wrap, then mode REEL | 8f41b6f, fe22a96 |
+| r1_G | 13 | k_n_per_a by jog against the 3 A jog trip | FIXED | reel against a luggage scale (5 A / tow trips) | fe22a96 |
+| r1_G | 14 | WIRING SLP on GPIO21 | FIXED | SLP unconnected, 3V3 fallback | 8f41b6f |
+| r1_G | 15 | SLP contradictions | FIXED | as #14 | 8f41b6f |
+| r1_G | 16 | No 2 A buck fuse | FIXED | WIRING resistor/fuse table and Part B | 8f41b6f, ee60e0c |
+| r1_G | 17 | Same as #16 | FIXED | as #16 | 8f41b6f, ee60e0c |
+| r1_G | 18 | aim_home_deg range note | FIXED | -7200..7200 | 8f41b6f |
+| r1_G | 19 | README trips 17/15 A | FIXED | README trip list = config | ee60e0c, d11549f |
+| r1_G | 20 | WIRING says buy an MP1584 | FIXED | MP1584 #2 is the dart spare | ee60e0c |
+
+## What Harry must measure (bench, then CALIBRATION.md)
+
+1. Wiper direction: which way RPWM turns the shaft, and that FORWARD cocks (CALIBRATION g); AS5600 `enc_sign`.
+2. Wiper current: IS scale `amps_per_volt` at low duty with a meter in series, `offset_a` with the motor off, free current
+   `free_a` while reeling slack (`cal free`).
+3. Tension: `k_n_per_a` and `tension_offset_n` with a luggage scale at 3 loads (defaults 17 and -10.4 are physics
+   estimates). Hard prerequisite of the first tow.
+4. Drum speed (`drum_dps`, learned automatically between code edges; default 8.1 deg/s) and the end stops.
+5. Aim: `aim_home_deg` (SW_RAIL_LOW position) and `aim_offset` against a phone inclinometer on the rail.
+6. Launch train angles: SW_HOME opening (first tooth, about 4 deg), release (432.7), SW_GAP closing (about 520):
+   compare telemetry `cock` with what you see.
+7. Spring rate and preload (hang test), battery sag under the cock peak, AS5600 magnet (status "magnet":"OK").
+8. DRV8833 SLP: if the drum does nothing, battery unplugged, SLP to 3V3 (never VM).
+9. Take-up line speed at duty 0.3 (physics 0.058 to 0.073 m/s) for the retrieve time limit.
 
 ## Requests to other workers
+
+- Coordinator / spec: DECISIONS D31 still says faults go to WRAPPED (params says hold); BASE_SPEC 10.1 step 7 sends a
+  no-go from LAUNCH straight to retrieve (needs `mode NEUTRAL` first); params SWITCHES.SW_ARM says "closed at home"
+  but cad-reel says it opens at home (firmware follows cad-reel); physics suggested a 6 A reel-in trip (firmware
+  keeps 5 A per D33).
+- Jetson: follow PROTOCOL.md section 10 (40 items); test against w/fw-base, not the older base-1.2 snapshot.

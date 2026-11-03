@@ -176,12 +176,12 @@ Jetson sends, what ends the wait. Everything else in C1 stays as PROTOCOL.md doc
 | 4 | `arm` | reply with `token` | valid 3 s |
 | 5 | `fire` token | `FIRED`, then `RESET` | |
 | 6 | dart LANDED: `set` line_m | reply | from the landing distance |
-| 7 | (Jetson landing-zone verdict) | | NO_GO: skip 9 to 13, go to 14 (reel in on the capstan if wrapped, else 16) |
+| 7 | (Jetson landing-zone verdict) | | NO_GO before the wrap: `mode` NEUTRAL (step 8), then straight to step 17 (take-up retrieve). NO_GO after a wrap: steps 12 and 15 to 17 (fly-in, capstan reel-in, unwrap, retrieve) |
 | 8 | `mode` NEUTRAL | `MODE` ok | may be skipped: `wrap` also starts from LAUNCH |
 | 9 | `wrap` | `WRAPPED` | the drum parks at WRAPPED 314: cup locked, collar NEUTRAL, clutch FIRM. No `MODE` REEL here. Allow 90 s (about 42 s from LAUNCH at 8.1 deg/s) |
 | 10 | dart `/auto` | dart phase ANCHORED | |
 | 11 | `tidy` {ms, duty} | `TIDIED` | take-up only, by time (default 3000 ms, duty 0.3). `reel` until `slip` stays as an alternative |
-| 12 | `mode` REEL | `MODE` ok (REEL) | the REEL fly-in from the park |
+| 12 | `mode` REEL | `MODE` ok (REEL) | the REEL fly-in from the park; the creep stops at the dog bite and any wind-in after it is tension limited (D41) |
 | 13 | `reel` {duty 1, max_n, until `tension`} | `LIMIT` holding | the tow; max_n at most 70 N (D39) |
 | 14 | `stop`, then dart `/release` | `ABORTED`, then dart phase RELEASING and out of ANCHORED | the worm holds the line while the dart lets go |
 | 15 | `reel` {until `stop`}, then `stop` at line_m about 1.5 | `ABORTED` | capstan reel-in |
@@ -196,9 +196,15 @@ WRAP sector or the park) HOLDS the drum where it is (D27): the Jetson reads the 
 
 ## 11. Physics summary (owner: physics; base/physics/FINDINGS.md)
 
-About 13 J stored, about 7.5 m/s, about 4.5 m at 35 deg with the 0.5 N brake (4 to 5 m band); a second spring pair
-gives about 8 to 9 m. Cocking peak about 3 N m at the wiper. Tow 50 N at about 2.3 N m. The tether keeps the dart
-nose first. The ballistics table for the Jetson is base/out/ballistics.json (contract C3).
+Physics on params 1.2.9 (D36 rear line guide, carriage 85.8 g as built, two springs): 12.06 J stored, 6.80 m/s at the
+muzzle, best range from the ground point under the rail pivot 4.14 / 3.72 / 3.34 m at 34 deg for a 0.5 / 0.75 / 1.0 N
+payout brake (about 4.3 m with a 70 g carriage), about 2.7 m at 6 deg; flight about 0.8 s, apex about 1.1 m. The
+carriage stop peaks at about 295 N on the 19 mm PLA flexure (D26 limit 300 N; 265 N at 70 g). Tow sensing (D42): line
+N = 17.0 x (I - I_free) - 3.0; a 50 N tow is 2.83 N m at the wiper, about 4.6 A; the 6.5 A tow trip is about 83 N; the
+train can pull 72 N before the trip or 0.8 x the shear pin, so the 70 N cap (D39) holds. Every backward run in LAUNCH
+trips at 3 A (D40) and the aim gears print in PPA-CF. The second spring pair is not supported in v1 (D38). The
+ballistics table for the Jetson is base/out/ballistics.json (contract C3); the first test shots calibrate it
+(calib.py range, then ballistics.py --v-scale).
 
 ## 12. Changing this spec
 

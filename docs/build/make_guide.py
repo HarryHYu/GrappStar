@@ -737,7 +737,7 @@ line with, a towing line.
 | `{"cmd":"mode","to":"LAUNCH"}` | drum to LAUNCH, NEUTRAL or REEL |
 | `{"cmd":"aim","deg":30}` | rail to 30 degrees (only with the carriage home) |
 | `python3 -m grappstar base fire` (Jetson CLI) | arm and fire in one go after you type FIRE. Tether on, area clear |
-| `{"cmd":"cal","what":"decock"}` | unload a cocked carriage slowly |
+| `{"cmd":"decock"}` | unload a cocked carriage slowly (`"force":true` if SW_HOME is broken) |
 | `{"cmd":"wrap"}` | lay 7 wraps, right after landing (from LAUNCH or NEUTRAL; parks at WRAPPED) |
 | `{"cmd":"tidy"}` | take up the slack after the dart anchors |
 | `{"cmd":"unwrap"}` | remove the wraps (after reeling in to about 1.5 m) |

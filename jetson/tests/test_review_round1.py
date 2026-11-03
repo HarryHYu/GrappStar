@@ -103,7 +103,7 @@ def test_release_and_reshoot_release_failure_is_retryable(tmp_path):
     dart = FakeDart(phase="FAULT", release_raises=True)
     base = FakeBase()
     m = _mission(base, dart, tmp_path)
-    for n in ("preflight", "aim", "cock", "arm", "fire", "wait_landing", "base_neutral"):
+    for n in ("preflight", "aim", "cock", "arm", "fire", "wait_landing", "base_neutral", "bring_home", "wrap"):
         setattr(m, n, lambda: None)
     m.base_mode = lambda to: None
     m.landing_zone = lambda: "anchor"

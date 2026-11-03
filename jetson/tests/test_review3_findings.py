@@ -42,7 +42,9 @@ def test_final_approach_uses_takeup_not_a_second_wrap(tmp_path):
         cmds = [o.get("cmd") for d, o in log if d == "tx" and o.get("cmd") not in ("ping", "status")]
         i_unwrap = cmds.index("unwrap")
         after = cmds[i_unwrap + 1:]
-        assert "retrieve" not in after, f"sent a command base-1.0 does not have: {after}"
+        # BASE_SPEC 10.1: the final approach is "retrieve" on the take-up in NEUTRAL (base-1.2 faults DART_STUCK
+        # after a fixed 20 s on a long line, so one Retry may appear; base-1.2.1 honours max_s)
+        assert "retrieve" in after, after
         assert "wrap" not in after, f"re-wrapped after UNWRAP (D22 final approach is on the take-up): {after}"
     finally:
         r.close()
@@ -144,6 +146,9 @@ def test_reshoot_limit_still_retrieves_the_dart(tmp_path):
     r.policy["Landing zone"] = "Retrieve and reshoot"
     try:
         m = r.run()
-        assert "RETRIEVE" in r.steps(), (m.state, m.error, r.steps())
+        # 10.1: a NO GO before the wrap comes home on the take-up (FINAL_APPROACH); the capstan RETRIEVE is only
+        # used when wrapped
+        assert "FINAL_APPROACH" in r.steps(), (m.state, m.error, r.steps())
+        assert r.base.tel["sw"].get("S"), "dart must be seated before the reshoot limit ends the mission"
     finally:
         r.close()

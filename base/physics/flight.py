@@ -44,7 +44,8 @@ def simulate(p: Params, v0: float, pitch_deg: float, brake_n: float | None = Non
     if muzzle_xz is None and L.get("pivot_h") is not None:
         # spec geometry: the line leaves over the pulley at the rail pivot (D14); the dart CG leaves at release_u along
         # the rail, dart_w above it. Range is measured from the pivot's ground point (fixed for every pitch).
-        eye = np.array([0.0, L["pivot_h"]])
+        gu, gw = L.get("line_guide_u", 0.0), L.get("line_guide_w", 0.0)
+        eye = np.array([gu * math.cos(th) - gw * math.sin(th), L["pivot_h"] + gu * math.sin(th) + gw * math.cos(th)])
         muzzle = np.array([L["release_u"] * math.cos(th) - L["dart_w"] * math.sin(th),
                            L["pivot_h"] + L["release_u"] * math.sin(th) + L["dart_w"] * math.cos(th)])
         origin_x = 0.0

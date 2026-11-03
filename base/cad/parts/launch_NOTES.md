@@ -12,7 +12,7 @@ sizing summary.
 - The BIG GEAR rides on the rail on its own pin (82.6 from the axis). Two layers on one hub:
   - sector layer (y 134..146, the rack plane): 27 of 40 teeth, Harry's release teeth (last one cut to the pitch line,
     the one before 30 percent taller);
-  - full 40T layer (y 147.5..154.5) that the drive gear meshes all the way round. (One sector layer would leave the
+  - full 40T layer (y 147.5..158.5, face 11) that the drive gear meshes all the way round. (One sector layer would leave the
     drive in the toothless gap for 117 deg of every turn: found in review round 1.)
 - One big gear turn (553.8 forward wiper deg) = cock, release, reset to rest. Backward wiper turns freewheel in
   sprag #1. The sprag drag can carry the big gear up to about 127 deg BACKWARD from rest before its relieved last
@@ -30,23 +30,24 @@ sizing summary.
 
 | item | value |
 |---|---|
-| params version | 1.2.3 |
+| params version | 1.2.9 |
 | springs | 2 x Century C-243 (5/8 x 6-1/2 in x 0.054 in wire), k 0.125 N/mm, F0 7.0 N each, max_ext 265.0 mm |
 | stroke (travel at release / peak) | 240.2 / 240.9 mm (design value 240.9) |
 | preload at HOME / extension at full cock | 23.8 / 264.7 mm |
 | force at HOME / full cock (both springs) | 19.9 / 80.2 N |
 | energy released | 12.06 J |
 | hook pin distance HOME / cocked | 188.9 / 429.8 mm |
-| big gear | m2.5 40T: sector layer 27 teeth (gap 117 deg) + full 40T layer |
-| drive gear | 26T, centre distance 82.6 |
+| big gear | m2.5 40T: sector layer 27 teeth (gap 117 deg, face 12 on a 9 mm rack) + full 40T layer (face 11) |
+| drive gear | 26T, face 11 (full layer y 147.5..158.5 world; physics SF 1.55 at the 5 N m pin), centre distance 82.6 |
 | wiper deg per shot / release at | 553.8 / 432.7 forward wiper deg from rest |
 | torque at full cock: big gear / wiper | 4.01 / 2.61 N m |
-| moving mass (carriage body + arms + seat parts) | 101.6 g (dart 279 g) |
+| moving mass (carriage body + yoke + roller + seat parts) | 80.5 g (dart 279 g) |
 | carriage rear face HOME / cocked (u) | 70.6 / -170.3 |
 | rail span (u) / splits | -178.3 .. 273.5 / (-30.0, 140.0) |
 | spring anchors (u, y, w) | 263.5, +-38 (provision +-56), 60 |
 | tether pulleys (rail frame) | top (-200.9, 0.0, 78.1), bottom (-200.9, 0.0, 30.0), pivot (0.0, -21.0, -44.0) |
 | aim | pitch 6.01 .. 47.06 deg, 10 wiper deg per crank deg, worm lead 4.76 deg |
+| dart speed / range at 34 deg (physics, 80 g carriage) | 6.85 m/s; 4.19 / 3.76 / 3.39 m at 0.5 / 0.75 / 1.0 N line drag; about 2.7 J into the stop |
 
 1:1 springs (a pulley trades force for stroke and multiplies the moving spring mass by the ratio squared). Preload =
 SPRING.max_ext - stroke (spec D30: max_ext 265, so 23.8 mm). The stroke is fixed by the 27-tooth sector.

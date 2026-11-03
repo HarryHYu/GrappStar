@@ -31,7 +31,7 @@ from . import _frame_util as U
 BOARD = dict(
     esp32=dict(pcb=(25.40, 62.87, 1.6), ant=6.33, usb_x=(6.0, 19.4), top_h=3.3, pin_down=8.5,
                src="Espressif ESP32-S3-DevKitC-1 user guide v1.1 + DXF"),
-    bts7960=dict(pcb=(49.66, 49.40, 1.6), holes=[(3.0, 4.8), (43.0, 4.8), (3.0, 44.6), (43.0, 44.6)], hole_d=3.2,
+    bts7960=dict(pcb=(49.66, 49.40, 1.6), holes=[(4.83, 4.7), (44.83, 4.7), (4.83, 44.7), (44.83, 44.7)], hole_d=3.2,   # centred 40 x 40
                  hs=(36.0, 30.0, 22.0), top_h=19.4, src="Handsontec BTS7960 datasheet drawing"),
     as5600=dict(pcb=(25.4, 17.78, 1.6), holes=[(2.54, 2.54), (22.86, 2.54), (2.54, 15.24), (22.86, 15.24)],
                 hole_d=2.5, chip=(12.7, 8.89), src="Adafruit-AS5600-Magnetic-Angle-Sensor-PCB (Eagle)"),
@@ -51,7 +51,10 @@ PADS = [(110.0, 20.0), (110.0, 50.0), (8.0, 82.0), (53.0, 116.0)]
 ESP_Z = FLOOR + 27.0            # ESP32 PCB underside: room for DuPont housings on the downward pins
 BTS_Z = FLOOR + 24.0            # BTS7960 PCB underside (heatsink below it)
 ESP_CLAMP_Z = ESP_Z + 1.6 + 3.1  # top of the WROOM module = clamp underside
-USB_OPEN = (12.5, 9.5)          # native USB opening (fits a Micro-USB or USB-C plug overmold)
+USB_OPEN = (13.5, 10.0)          # native USB opening (fits a Micro-USB or USB-C plug overmold)
+PERF = (55.0, 31.0, 1.6)        # perfboard Harry cuts from stock: 55 x 31, two 3.2 holes 41 apart
+PERF_HOLES = [(51.0, 40.0), (92.0, 40.0)]   # (x, z) of its M3 screws on the y = 0 wall bosses
+PERF_STAND = 6.0                # boss height off the wall (solder joints behind the board)
 EXIT_MOTOR = (33.0, 45.0)       # x range of the 14 AWG wiper pair window in the y = W wall
 EXIT_SENS = (14.0, 30.0)        # x range of the sensor window in the y = W wall
 
@@ -115,6 +118,10 @@ def bay_box():
     ux = ex + BOARD["esp32"]["usb_x"][1]
     cuts.append(prim.box(ux - USB_OPEN[0] / 2, ux + USB_OPEN[0] / 2, -1, WALL + 1, ESP_Z + bt + 1.6 - USB_OPEN[1] / 2,
                          ESP_Z + bt + 1.6 + USB_OPEN[1] / 2))
+    # perfboard on the y = 0 wall (dividers, pull-downs, 3V3 and GND buses from WIRING.md): 2 bosses with inserts
+    for (px_, pz_) in PERF_HOLES:
+        adds.append(prim.box(px_ - 4, px_ + 4, WALL - 0.01, WALL + PERF_STAND, pz_ - 4, pz_ + 4))
+        cuts.append(prim.place(U.insert_hole(0, 0, 0.0), tf.T(px_, WALL + PERF_STAND, pz_) @ tf.Rx(-90)))
     # BTS7960 standoffs with inserts
     bx, by, _ = PLACE["bts7960"]
     for (hx, hy) in BOARD["bts7960"]["holes"]:
@@ -156,7 +163,7 @@ def bay_box():
 
 
 def bay_lid():
-    """Lid: 4 mm plate with a lip, grille over the BTS7960 heatsink and board, 4 x M3 x 10 into the corner bosses."""
+    """Lid: 4 mm plate with a lip, grille over the BTS7960 and the gaps round it, 4 x M3 x 6 into the corner bosses."""
     t = 4.0
     lid = prim.box(0, L, 0, W, H, H + t)
     lip = prim.box(WALL + 0.3, L - WALL - 0.3, WALL + 0.3, W - WALL - 0.3, H - 3.0, H + 0.01) \
@@ -168,8 +175,10 @@ def bay_lid():
     for (x, y) in ((WALL + 4.5, WALL + 4.5), (L - WALL - 4.5, WALL + 4.5), (WALL + 4.5, W - WALL - 4.5), (L - WALL - 4.5, W - WALL - 4.5)):
         cuts.append(U.clear_hole(x, y, H - 1, H + t + 1, head_top=H + t + 0.01, head_h=2.0))
     bx, by, _ = PLACE["bts7960"]
-    for i in range(8):
-        cuts.append(prim.box(bx + 4, bx + 46, by + 2 + i * 6.0, by + 5.0 + i * 6.0, H - 1, H + t + 1))
+    for i in range(10):                                   # over the board and the hot-air gaps beside it
+        y_ = by - 4 + i * 6.0
+        if y_ + 3 < W - WALL - 9.5:
+            cuts.append(prim.box(bx - 4, min(bx + 54, L - WALL - 10), y_, y_ + 3.0, H - 1, H + t + 1))
     return prim.diff(lid, cuts)
 
 
@@ -209,6 +218,11 @@ def board_models():
         sx, sy, st = BOARD[nm]["pcb"]
         out[f"frame_pcb_{nm}"] = prim.box(x, x + sx, y, y + sy, FLOOR, FLOOR + st) + \
             prim.box(x + 3, x + sx - 3, y + 3, y + sy - 3, FLOOR + st - 0.01, FLOOR + st + BOARD[nm]["top_h"])
+    xc_ = (PERF_HOLES[0][0] + PERF_HOLES[1][0]) / 2
+    zc_ = PERF_HOLES[0][1]
+    out["frame_perfboard"] = prim.box(xc_ - PERF[0] / 2, xc_ + PERF[0] / 2, WALL + PERF_STAND, WALL + PERF_STAND + PERF[2],
+                                      zc_ - PERF[1] / 2, zc_ + PERF[1] / 2) \
+        - prim.union([prim.cylY(1.6, WALL, WALL + PERF_STAND + 3, hx, hz) for hx, hz in PERF_HOLES])
     fx, fy, _ = PLACE["fuse"]
     fl, fw_, fh = BOARD["fuse"]["body"]
     out["frame_fuse_20a"] = prim.box(fx, fx + fl, fy, fy + fw_, FLOOR + 2.0, FLOOR + 2.0 + fh)
@@ -364,7 +378,8 @@ def build(P, C, info, parts_so_far):
                     notes="ESP32 hold-down over the module end, 2 x M3 x 8 into the cradle posts"))
     refs = dict(frame_pcb_esp32="Espressif ESP32-S3-DevKitC-1-N8", frame_pcb_bts7960="BTS7960 43 A module (IBT-2)",
                 frame_pcb_mp1584="MP1584EN buck module, set to 9.0 V", frame_pcb_drv8833="Pololu DRV8833 2130 (headers off)",
-                frame_pcb_hx711="HX711 load cell amplifier (optional)", frame_fuse_20a="inline ATO fuse holder + 20 A fuse")
+                frame_pcb_hx711="HX711 load cell amplifier (optional)",
+                frame_perfboard="perfboard 55 x 31 (dividers, pull-downs, 3V3 and GND buses), 2 x M3 x 10 on wall bosses", frame_fuse_20a="inline ATO fuse holder + 20 A fuse")
     for nm, sol in board_models().items():
         out.append(Part(nm, sol, "bought", place=Mbay, color="#2b6e3f" if "pcb" in nm else "#c03030", bought_ref=refs[nm],
                         notes=refs[nm]))

@@ -1,13 +1,21 @@
 # Day-one risk coupons: test sheet
 
-Print these before the big parts. Each coupon is made from the same geometry functions and numbers as the real part, so a pass here is a pass there. Print as exported, no supports, 0.4 nozzle, 0.2 layers, 4 walls; PLA plate and PPA-CF plate as marked. Let parts cool 10 minutes before testing. Change one number at a time, then rerun `python -m tools.risk_coupon` (from `base/`) and reprint only that coupon.
+Print these before the big parts. Each coupon is made from the same geometry functions and numbers as the real part, so a pass here is a pass there. Let parts cool 10 minutes before testing. The fit coupon (tolerance tiles A to H, base/pack/fit_coupon/COUPON.md) is printed alongside.
+
+## Settings
+
+PLA: 0.4 mm nozzle, 0.2 mm layers, 4 walls, 40 % gyroid infill unless noted, 5 top and 5 bottom layers, hole and XY compensation 0, no supports. PPA-CF: hardened steel nozzle (never brass), filament dried (80 C, 8 h) and fed from a dry box, 0.2 mm layers, 6 walls, 60 % gyroid infill, 6 top and 6 bottom layers, hole and XY compensation 0, no supports. The 3MF files carry geometry only: set the material and these settings in Bambu Studio.
+
+## If a coupon fails
+
+To change a number: on the Mac, after bash kedge/setup_mac.sh, run kedge/.venv/bin/python -m tools.risk_coupon from base/ (it rewrites base/pack/coupons and base/pack/fit_coupon). Easier: give the failing result to a Claude session and let it change the numbers. Change one number at a time and reprint only that coupon.
 
 ## Plates
 
 | plate | material | objects |
 |---|---|---|
-| risk_plate_1.3mf | PLA | 19 |
-| risk_plate_2.3mf | PPA-CF | 26 |
+| risk_plate_1_PLA.3mf | PLA | 19 |
+| risk_plate_2_PPA-CF.3mf | PPA-CF | 26 |
 
 ## Tests
 
@@ -25,7 +33,7 @@ Print these before the big parts. Each coupon is made from the same geometry fun
 - Parts: rc2_switch_base, rc2_switch_lever
 - Bought: M3x10 SHCS ISO 4762 + M3 jam nut, M3 nut, 2x M3x10 self tapping (pan or SHCS) through the lever root into the pad, at most M3x11.7, 2 wires, multimeter
 - Do: Nut into the pillar trap (drop of glue), lever clamped with 2 M3 self tappers, contact screw head down through the lever, set the head 0.9 mm above the nut (0.5 mm per turn), lock the jam nut. Meter on beep between screw and nut. Press the lever tip 100 times.
-- Pass: Beeps after about 1.2 mm of tip travel, silent when let go, tip stops on the hard stop without cracking, lever back flat, same after 100 presses.
+- Pass: Measure the tip travel with calipers (depth rod from the lever tip down to the base top, note the reading at rest, press until it beeps, read again): beep within 0.9 to 1.5 mm of tip travel (design 1.24), silent when let go, tip stops on the hard stop without cracking, lever back flat, same after 100 presses.
 - If it fails, change: cad/lib/switch.py contact_switch args travel, overtravel, t, b; STRAIN_LIMIT, NUT_PRESS (loose nut), SCREW_LENGTHS.
 - Made from: cad.lib.switch.contact_switch(lever_len=30) with the library defaults (travel 0.8, overtravel 0.6, beam t 1.4): gap 0.93, pretravel at the tip 1.24, close force 1.10 N, strain 0.0078
 
@@ -41,12 +49,11 @@ Print these before the big parts. Each coupon is made from the same geometry fun
 ### 4. Face slip clutch with the flexure spring
 
 - Parts: rc4_hub_plate, rc4_friction_disc, rc4_pressure_plate, rc4_flexure, rc4_adjuster_plate
-- Bought: 3 x M3x20 SHCS, 3 x M3 nut, string, luggage scale
-- Do: Stack on the key stub: hub plate (counterbores down), friction disc, pressure plate (pads up), flexure (beam down, tabs on the screws), adjuster plate (traps up); 3 screws from below, nuts on top. Run the nuts down until the flexure just touches, then turn each nut 1/2 turn at a time (0.25 mm). Clamp the stub, tie a string to a disc lug (r 28.5 mm), pull along the rim with the luggage scale while it slips steadily.
-- Pass: Smooth steady slip, no judder; the reading repeats within 20 percent and rises with each half turn, close to the table below (kg on the scale at the lug); the nuts never bottom the flexure before the last row.
+- Bought: 3 x M3x20 SHCS, 3 x M3 nut, string, coins in a small bag, kitchen scale
+- Do: Stack on the key stub: hub plate (counterbores down), friction disc, pressure plate (pads up), flexure (beam down, tabs on the screws), adjuster plate (traps up); 3 screws from below, nuts on top. Run the nuts down until the flexure just touches (zero), then turn all 3 nuts the same, 1/4 turn (0.125 mm) at a time. Clamp the stub level in a vice, tie a string to a disc lug (r 28.5 mm), lay it over the rim and hang a bag of coins weighed on a kitchen scale. Add or take coins to find the hold and slip weights at each setting.
+- Pass: At each setting the lower weight must not pull the disc round and the higher one must (smooth steady slip, no judder); same result 3 times; the flexure never bottoms before 1 turn. Bands: 1/4 turn: 35 g holds, 60 g slips (design 48 g, 0.013 N m); 1/2 turn: 70 g holds, 120 g slips (design 95 g, 0.027 N m); 3/4 turn: 105 g holds, 180 g slips (design 143 g, 0.040 N m); 1 turn: 140 g holds, 240 g slips (design 190 g, 0.053 N m).
 - If it fails, change: cad/lib/clutch.py: slip_clutch args flex_t, flex_gap, flex_ro, r_in, r_out, n_grooves; MU_PLA_PLA, E_PLA, SIGMA_FLEX_PLA_SUSTAINED (creep: if the torque falls overnight).
 - Made from: cad.lib.clutch.slip_clutch() defaults (reel does not use it: its clutch is the spool face plus the PETG rocker): shaft d20 key 6, friction r 18.5..27, mu 0.3, flexure t 0.8 gap 0.5, 0.106 N m per mm, travel 0.50; on the shared keyed stub of coupon 7
-- Expected slip (nut travel: torque, scale reading at r 28.5): 0.00 mm: 0.000 N m, 0.00 kg; 0.12 mm: 0.013 N m, 0.05 kg; 0.25 mm: 0.027 N m, 0.10 kg; 0.38 mm: 0.040 N m, 0.14 kg; 0.50 mm: 0.053 N m, 0.19 kg
 
 ### 5. Bearing seats
 
@@ -54,7 +61,7 @@ Print these before the big parts. Each coupon is made from the same geometry fun
 - Bought: 608ZZ, F693ZZ, 693ZZ, CSK20PP
 - Do: Press each bearing in square with a flat block or a vice (tile left to right: 608, F693ZZ, 693ZZ); CSK20PP into the round boss with its outer keyway on the printed key.
 - Pass: Firm press, seated flat on the lip, stays in when tapped upside down, spins as freely as before; the CSK20PP key slides in without force, it still freewheels one way and locks the other.
-- If it fails, change: fits.py BRG_RIB_INTERF, BRG_RIB_BORE (all seats); bearings.py CSK20_KEY_RCLEAR, CSK20_OKEY_W (key), KEY_CLEAR in fits.py. Print the fit coupon tile A if the 608 is off.
+- If it fails, change: fits.py BRG_RIB_INTERF, BRG_RIB_BORE (all seats); bearings.py CSK20_KEY_RCLEAR, CSK20_OKEY_W (key), KEY_CLEAR in fits.py. If the 608 is off, print tile A of the fit coupon (base/pack/fit_coupon, COUPON.md).
 - Made from: cad.lib.bearings.seat_608(bottom lip, lip_d 14) as reel, seat_f693(), seat_693(), seat_csk20(key_deg 90) as the reel capstan block (wall 4); fits BRG_RIB_INTERF 0.15, BRG_RIB_BORE 0.3, CSK20_KEY_RCLEAR 0.2
 
 ### 6. M3 holes
@@ -63,7 +70,7 @@ Print these before the big parts. Each coupon is made from the same geometry fun
 - Bought: M3x4x5 heat-set insert, M3 nut, 2 x M3x10
 - Do: Left to right: heat-set the insert (220 C), press the nut in, push a screw through, self-tap a screw in.
 - Pass: Insert flush and does not spin when the screw is tightened; nut presses in and holds; screw drops through the clearance hole; the tap hole cuts a thread and holds a hard pull without splitting.
-- If it fails, change: fits.py M3_INSERT_D, M3_NUT_AF, M3_CLEAR_D, M3_TAP_D (the fit coupon tiles C, D, E bracket them).
+- If it fails, change: fits.py M3_INSERT_D, M3_NUT_AF, M3_CLEAR_D, M3_TAP_D (tiles C, D, E of the fit coupon in base/pack/fit_coupon bracket them).
 - Made from: cad.lib.fasteners.m3_insert (d 4.0), m3_nut_trap (AF 5.8), m3_clear (d 3.4), m3_tap (d 2.6)
 
 ### 7. Key rib and spigot
@@ -71,7 +78,7 @@ Print these before the big parts. Each coupon is made from the same geometry fun
 - Parts: rc7_key_stub, rc7_key_bore, rc7_spigot, rc7_bushing
 - Bought: CSK20PP from coupon 5 (inner keyway)
 - Do: Slide the key stub into the keyed tile and into the CSK20PP inner race (the real interface). Push the spigot into the sleeve slice and turn it.
-- Pass: Stub slides in by hand, key in the keyway, no visible rock, under 1 deg of play when turned; the spigot turns freely with no wobble.
+- Pass: Stub slides in by hand, key in the keyway, no visible rock. Play: clamp the tile, tape a ruler to the stub end, mark the ruler 60 mm from the axis, rock the stub both ways: the mark moves under 1 mm (about 1 deg). The spigot turns freely; rocked at its free end it moves under 0.5 mm.
 - If it fails, change: fits.py KEY_CLEAR, SHAFT_IN_BORE; shafts.py KEY20_H, SHAFT_PRINT_UNDERSIZE; launch.py SPIGOT_BORE (now 12.35); drum.py GEOM spig_d.
 - Made from: cad.lib.shafts.keyed_shaft(d 20, key_w 6, key_h 2.6) and keyed_bore (clear 0.3); drum.main_shaft (spig_d 12); launch.sleeve_solid (SPIGOT_BORE 12.35)
 
@@ -89,7 +96,7 @@ Print these before the big parts. Each coupon is made from the same geometry fun
 - Parts: rc9_hub_lever, rc9_outer_lever, rc9_shear_pin x3
 - Bought: string or a strap, luggage scale
 - Do: Hub slice into the outer slice, pin through both holes (head outside). Clamp the hub lever, hang the luggage scale on the outer lever hole (r 60 mm) at right angles and pull slowly until the pin shears. Break all 3 pins. Torque = kg x 9.81 x 0.06 N m.
-- Pass: Clean single shear at about 8.3 kg (4.9 N m), the 3 pins within 20 percent, both slices undamaged (holes still round); a fresh pin goes in by hand.
+- Pass: Each pin shears cleanly between 5.9 and 10.2 kg on the scale (3.5 to 6 N m, drum_NOTES; design 4.9 N m = 8.3 kg), the 3 pins within 20 percent of each other, both slices undamaged (holes still round); a fresh pin goes in by hand.
 - If it fails, change: drum.py GEOM shear_d (torque goes with d squared), hub_od (radius), shear_s; fits for the hole: drum.coupler shear hole (shear_d + 0.1) and shear_pin (shear_d - 0.04). Spec D8 / D26 limit 5 N m.
 - Made from: drum.coupler_hub and drum.coupler (sliced s 3.5..16.5), drum.shear_pin: d4 PLA in single shear at r 13 (shear_s 11.5); 4.9 N m at 30 MPa
 

@@ -75,7 +75,8 @@ Required:
 def parts(P) -> list[Part]: ...
 def joints(P) -> list[Joint]: ...
 def kin(P, S: dict) -> dict[str, float]: ...   # joint name -> value for master state S; missing joints use
-                                               # Joint.gear, else 0
+                                               # Joint.gear, else 0. Must be cheap (called for every audited
+                                               # state): no geometry, cache anything that depends only on P
 ```
 
 Optional (picked up if present):

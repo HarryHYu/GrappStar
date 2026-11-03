@@ -390,7 +390,8 @@ int main() {
   { fresh(); K.key('2', 5000, NOW); K.key('4', 5000, NOW); run(2000);
     CHECK(P.mdir[KICK] == 1 && P.mdir[FOOT] == 1, "manual kick + foot both working (no stall): both keep running"); }
   { fresh(); ACC = [](uint32_t t) { if (t < 1000) return 1.0f; uint32_t d = t - 1000; if (d < 30) return 8.0f; if (d < 900) return 1.4f + 0.3f * sinf(d * 0.1f);   // tumbling: never under 0.6 g
-      if (d < 915) return 8.0f; return 1.0f; };
+      if (d < 915) return 8.0f;
+      return 1.0f; };
     K.arm(true, true, NOW); run(3500); CHECK(K.landed && std::string(K.flight.how) == "impact" && ph() == "ANCHORING", "tumbling flight (1.1 to 1.7 g): impact landing, auto starts"); }
 
   { fresh(); for (int i = 0; i < 4; i++) { K.key('3', 350, NOW); run(150); } P.railV = 5.0f; for (int i = 0; i < 8; i++) { K.key('3', 350, NOW); run(150); }

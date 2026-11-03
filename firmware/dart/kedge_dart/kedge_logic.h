@@ -273,6 +273,7 @@ struct Kedge {
   // turning, so a stopped screw never fakes a stall. Returns bit 1 = main stalled, bit 2 = other stalled
   // (2 readings in a row each).
   int pairCheck(int main, int other, float mainLim, float otherLim, uint32_t now) {
+    (void)other;                                      // the other motor keeps running; only its reading is used
     uint32_t ph = now - pulseT;
     if (!paused) {
       if (ph >= 380 && ph < 400) bothMa = fMa;

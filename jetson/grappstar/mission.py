@@ -942,7 +942,14 @@ class Mission:
                     pass
         self.log.info(f"analysing {len(frames)} dart frames")
         off = self.dart.clock_offset() if hasattr(self.dart, "clock_offset") else None
-        res = self.analyse(frames, fl, self.run_dir, t_fire=t_fire, log=self.log.warn, clock_offset_s=off)
+        kw = dict(t_fire=t_fire, log=self.log.warn, clock_offset_s=off)
+        try:      # jetson-vision: the commanded pitch and the clutch drag are strong priors for the range
+            res = self.analyse(frames, fl, self.run_dir, aim_pitch_deg=self.shot.get("pitch_actual") or
+                               self.shot.get("pitch_deg"), drag_n=self.cfg.drag_n, **kw)
+        except TypeError as e:
+            if "aim_pitch_deg" not in str(e) and "drag_n" not in str(e):
+                raise
+            res = self.analyse(frames, fl, self.run_dir, **kw)
         if c is not None and hasattr(c, "release_hold"):
             c.release_hold()
         self.results = res

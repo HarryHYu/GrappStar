@@ -26,6 +26,20 @@ Directions used below (firmware convention, +1 in `/status` `motors`):
 If a motor turns the wrong way: **battery unplugged**, swap that motor's two thin input wires at its driver
 (deploy: DRV#1 AIN1/AIN2, kick: DRV#1 BIN1/BIN2, drills: DRV#2 AIN1/AIN2, foot: DRV#2 BIN1/BIN2). Then check again.
 
+## Power: bench supply or battery
+
+The loose-motor steps (0 to 2, and the direction and free-current parts of 3 to 6) usually run before the cells and the
+power loop socket are fitted. Then power comes from the **bench supply**: the spare MP1584 (#2) set to **8.0 V**, fed
+by the 3S LiPo on XT60 lead #1 (10 A fuse), as in run sheet step 7.5.
+
+- Connect it with the LiPo unplugged: bench MP1584 OUT+ to the dart's **INA219 VIN+** pad, bench MP1584 OUT- to the
+  dart's **main ground** (the dart MP1584 IN- pad). Use small clip leads, or two temporary wires soldered to those pads.
+  Check the polarity twice: red to VIN+, black to ground.
+- "Insert the power loop plug" below then means: plug the LiPo into the bench MP1584. "Pull the plug" means: unplug
+  the LiPo. "The battery voltage" means: the bench supply voltage, metered at INA219 VIN+ to ground (about 8.0 V).
+- **USB out** while the bench supply is connected, exactly as with the battery.
+- The assembled steps (end-stop stalls in 3 to 6, then 7 to 10) use the real cells and the power loop plug.
+
 ## Step 0. Set up
 
 1. **Battery unplugged.** Wiring done and meter-checked (WIRING.md step A7 or B10). Firmware flashed (README.md).
@@ -36,12 +50,14 @@ If a motor turns the wrong way: **battery unplugged**, swap that motor's two thi
 
 ## Step 1. Power and current sensor
 
-1. Meter the battery at the power loop socket. Compare with `rail` on the page: within 0.15 V. Write both down.
+1. Meter the supply: the battery at the power loop socket, or the bench supply at INA219 VIN+ to ground. Compare with
+   `rail` on the page: within 0.15 V (the INA219 reads after its shunt, so `rail` can be a few tens of mV lower). Write
+   both down.
 2. With nothing running, `current` reads 0 to 5 mA (the INA219 sees the motor rail only).
 3. Press `i` on the page: it prints rail, current, and the peak since the last `i`.
 
 Pass: INA219 ok, rail agrees with the meter. If `INA219 MISSING`: battery unplugged, check D4/D5 and 3V3/GND to the
-INA219. Then, with the power loop plug still out, plug in USB: Serial Monitor `z` must list 0x40.
+INA219. Then, with the power off (plug out or LiPo unplugged), plug in USB: Serial Monitor `z` must list 0x40.
 
 ## Step 2. BNO085 and attitude
 

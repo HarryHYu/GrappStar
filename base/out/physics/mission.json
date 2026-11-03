@@ -1,0 +1,90 @@
+{
+ "params_source": "base/spec/params.py v1.0",
+ "steps": [
+  {
+   "step": "aim (worst case full 6 to 47 deg)",
+   "time_s": 6.594168547941541,
+   "wh": 0.03288309349795941,
+   "note": ""
+  },
+  {
+   "step": "drum to LAUNCH",
+   "time_s": 3.0,
+   "wh": 0.001125,
+   "note": "N20 ASSUMED"
+  },
+  {
+   "step": "cock + fire + reset",
+   "time_s": 2.6919239471588705,
+   "wh": 0.02961383602856947,
+   "note": ""
+  },
+  {
+   "step": "flight",
+   "time_s": 1.0,
+   "wh": 0.0,
+   "note": ""
+  },
+  {
+   "step": "dart anchors",
+   "time_s": 60.0,
+   "wh": 0.0,
+   "note": "dart battery"
+  },
+  {
+   "step": "drum LAUNCH -> NEUTRAL -> WRAP (7 wraps)",
+   "time_s": 24.0,
+   "wh": 0.009,
+   "note": ""
+  },
+  {
+   "step": "drum to REEL",
+   "time_s": 3.0,
+   "wh": 0.001125,
+   "note": ""
+  },
+  {
+   "step": "tow the rover 3.0 m at 30.0 N",
+   "time_s": 18.332439513068337,
+   "wh": 0.20010994606245217,
+   "note": ""
+  },
+  {
+   "step": "dart release",
+   "time_s": 20.0,
+   "wh": 0.0,
+   "note": "dart battery"
+  },
+  {
+   "step": "unwrap + drum back to REEL (reel-in on the capstan or take-up)",
+   "time_s": 21.0,
+   "wh": 0.007875,
+   "note": ""
+  },
+  {
+   "step": "reel the dart home 5 m",
+   "time_s": 26.793425611576385,
+   "wh": 0.1663540024924467,
+   "note": ""
+  },
+  {
+   "step": "drum to LAUNCH (ready)",
+   "time_s": 3.0,
+   "wh": 0.001125,
+   "note": ""
+  }
+ ],
+ "total_s": 189.41195761974512,
+ "total_wh": 0.6596686087700334,
+ "idle_wh": 0.21045773068860568,
+ "missions_per_pack": 69.9987833074188,
+ "assumed": {
+  "drum_shift_s": 3.0,
+  "drum_a": 0.15,
+  "wrap_s": 18.0,
+  "anchor_s": 60.0,
+  "release_s": 20.0,
+  "idle_w": 4.0,
+  "pack_wh": 57.72
+ }
+}

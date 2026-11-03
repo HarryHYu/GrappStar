@@ -3,8 +3,12 @@
 #   bash run_all.sh [demo|base] [OUT]
 # demo = only the demo subsystem (default OUT out/demo), base = every subsystem except demo (default OUT out/base).
 # The audit must be CLEAN or the chain stops (FORCE=1 carries on). PY overrides the python
-# (default ../kedge/.venv/bin/python when present, else python3). The print pack goes to OUT/pack.
+# (default ../kedge/.venv/bin/python when present, else python3). JOBS sets the worker processes of the audit and
+# the STEP export (default 2: memory). The print pack goes to OUT/pack.
+# Every run first removes the downstream outputs of an earlier run from OUT (guide, BOM, pack, step, pages, shots,
+# sheets), so a run that stops early never leaves stale files behind. OUT must be under this folder or /tmp.
 # Tools that are not there yet (render, sim, steps) are skipped with a note.
+# Works with the bash 3.2 of macOS (empty arrays under set -u are written ${A[@]+"${A[@]}"}).
 set -u
 cd "$(dirname "$0")"
 
@@ -16,10 +20,36 @@ case "$MODE" in
 esac
 OUT="${2:-out/$MODE}"
 PACK="$OUT/pack"
+JOBS="${JOBS:-2}"
 if [ -z "${PY:-}" ]; then
   if [ -x ../kedge/.venv/bin/python ]; then PY=../kedge/.venv/bin/python; else PY=python3; fi
 fi
-mkdir -p "$OUT"
+
+# ---- clean the downstream outputs of an earlier run, only inside a safe OUT
+if [ -z "$OUT" ]; then echo "STOP: OUT is empty."; exit 2; fi
+mkdir -p "$OUT" || exit 2
+HERE="$(pwd -P)"
+OUTABS="$(cd "$OUT" && pwd -P)" || { echo "STOP: cannot enter OUT $OUT"; exit 2; }
+TMPABS="$(cd /tmp && pwd -P)"
+case "$OUTABS" in
+  "$HERE"/*|"$TMPABS"/*|/tmp/*) ;;
+  *) echo "STOP: OUT $OUT ($OUTABS) is not under $HERE or /tmp; refusing to clean it."; exit 2 ;;
+esac
+if [ "$OUTABS" = "/" ] || [ "$OUTABS" = "$HERE" ] || [ "$OUTABS" = "$TMPABS" ] || [ "$OUTABS" = "/tmp" ]; then
+  echo "STOP: OUT $OUT ($OUTABS) is not a dedicated output folder; refusing to clean it."
+  exit 2
+fi
+case "$OUTABS" in
+  "$HERE"/tools|"$HERE"/tools/*|"$HERE"/cad|"$HERE"/cad/*|"$HERE"/physics|"$HERE"/physics/*|"$HERE"/spec|"$HERE"/spec/*)
+    echo "STOP: OUT $OUT is inside the sources; refusing to clean it."; exit 2 ;;
+esac
+if [ -e "$OUTABS/.git" ]; then echo "STOP: OUT $OUT is a git checkout; refusing to clean it."; exit 2; fi
+for f in guide.pdf BOM.csv BOM.md pack step sim.html sim_body.html assembly.html assembly_body.html shots \
+         audit.txt audit.json audit_sheet.png sections.png views web; do
+  rm -rf "${OUTABS:?}/$f"
+done
+rm -f "${OUTABS:?}"/sim*.html "${OUTABS:?}"/assembly*.html "${OUTABS:?}"/BOM.*
+
 FAILED=()
 T0=$(date +%s)
 
@@ -51,12 +81,12 @@ optional() {   # optional <tool> <args...>: run tools/<tool>.py when it exists
   fi
 }
 
-echo "GrappStar CAD chain: mode $MODE, OUT $OUT, python $PY"
-step "assembly export" 1 "$PY" -m tools.assembly "$OUT" "${ONLY[@]}"
+echo "GrappStar CAD chain: mode $MODE, OUT $OUT, python $PY, jobs $JOBS"
+step "assembly export" 1 "$PY" -m tools.assembly "$OUT" ${ONLY[@]+"${ONLY[@]}"}
 
 echo
 echo "=== audit"
-"$PY" -m tools.audit "$OUT" "${ONLY[@]}"
+"$PY" -m tools.audit "$OUT" ${ONLY[@]+"${ONLY[@]}"} --jobs "$JOBS"
 ARC=$?
 if [ $ARC -ne 0 ]; then
   if [ "${FORCE:-0}" = 1 ]; then
@@ -71,13 +101,13 @@ else
   echo "--- audit: CLEAN"
 fi
 
-optional render "$OUT" "${ONLY[@]}"
-optional sim "$OUT" "${ONLY[@]}"
-optional steps "$OUT" "${ONLY[@]}" --shots
-step "pack" 0 "$PY" -m tools.pack "$OUT" "$PACK" "${ONLY[@]}"
-step "step export" 0 "$PY" -m tools.step_export "$OUT" "${ONLY[@]}"
-step "bom" 0 "$PY" -m tools.bom "$OUT" "${ONLY[@]}"
-step "guide" 0 "$PY" -m tools.guide "$OUT" "${ONLY[@]}" --pack "$PACK"
+optional render "$OUT" ${ONLY[@]+"${ONLY[@]}"}
+optional sim "$OUT" ${ONLY[@]+"${ONLY[@]}"}
+optional steps "$OUT" ${ONLY[@]+"${ONLY[@]}"} --shots
+step "pack" 0 "$PY" -m tools.pack "$OUT" "$PACK" ${ONLY[@]+"${ONLY[@]}"}
+step "step export" 0 "$PY" -m tools.step_export "$OUT" ${ONLY[@]+"${ONLY[@]}"} --jobs "$JOBS"
+step "bom" 0 "$PY" -m tools.bom "$OUT" ${ONLY[@]+"${ONLY[@]}"}
+step "guide" 0 "$PY" -m tools.guide "$OUT" ${ONLY[@]+"${ONLY[@]}"} --pack "$PACK"
 
 echo
 echo "=== done in $(( $(date +%s) - T0 )) s: $OUT"
@@ -86,7 +116,7 @@ for f in audit.txt audit_sheet.png sections.png sim.html assembly.html BOM.md gu
 done
 if [ ${#FAILED[@]} -gt 0 ]; then
   echo "Problems:"
-  for f in "${FAILED[@]}"; do echo "  $f"; done
+  for f in ${FAILED[@]+"${FAILED[@]}"}; do echo "  $f"; done
   exit 1
 fi
 exit 0

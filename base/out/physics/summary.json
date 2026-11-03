@@ -1,5 +1,5 @@
 {
- "source": "base/spec/params.py v0.1-stub (still defaults for LAUNCH, AIM, REEL, LAYOUT)",
+ "source": "base/spec/params.py v1.0.1",
  "sections": [
   [
    "Spring (each, A228, SF 1.2 on Shigley static limits)",
@@ -22,7 +22,7 @@
     ],
     [
      "Safe extension (wire) / spec cap",
-     "293 / 250 mm"
+     "293 / 280 mm"
     ],
     [
      "Surge (fixed-fixed)",
@@ -51,23 +51,23 @@
     ],
     [
      "Muzzle speed",
-     "7.61 m/s"
+     "7.78 m/s"
     ],
     [
      "Peak acceleration, stroke time",
-     "21 g, 55 ms"
+     "22 g, 54 ms"
     ],
     [
      "Efficiency (dart KE / stored)",
-     "62 %"
+     "65 %"
     ],
     [
      "Carriage KE at stop, pad peak",
-     "2.32 J, 434 N (15 mm pad)"
+     "1.82 J, 370 N (15 mm pad)"
     ],
     [
      "Spring KE at stop, coil clash",
-     "0.94 J, 8.3 m/s"
+     "0.96 J, 8.2 m/s"
     ]
    ]
   ],
@@ -76,48 +76,48 @@
    [
     [
      "Range at 0.5 / 0.75 / 1.0 N brake",
-     "4.93 / 4.46 / 4.04 m (pitch 36)"
+     "5.24 / 4.75 / 4.32 m (pitch 36)"
     ],
     [
      "Same shot, no tether",
-     "5.93 m"
+     "6.38 m"
     ],
     [
      "Flight time, apex (0.75 N)",
-     "0.89 s, 1.24 m"
+     "0.91 s, 1.36 m"
     ],
     [
      "Impact speed, angle (0.75 N)",
-     "6.2 m/s, 54 deg down"
+     "6.4 m/s, 54 deg down"
     ],
     [
      "Ballistics table",
-     "6 to 47 deg, best 36.0 deg: 4.45 m"
+     "6 to 47 deg, best 36.0 deg: 4.75 m"
     ]
    ]
   ],
   [
-   "Storage reel payout (0.75 N at full reel)",
+   "Storage reel payout (LIGHT 0.5 N at full reel)",
    [
     [
      "Reel empty mass, inertia full",
-     "35 g, 19.4 kg mm2"
+     "43 g, 27.6 kg mm2"
     ],
     [
      "Line radius full / core",
-     "27.4 / 20.0 mm (brake +37 % at core)"
+     "30.7 / 25.0 mm (brake +23 % at core)"
     ],
     [
      "Line pull in the stroke (spin-up)",
-     "4.37 N"
+     "4.73 N"
     ],
     [
      "Reel rpm max",
-     "2652 rpm"
+     "2418 rpm"
     ],
     [
      "Overrun after landing",
-     "0.25 m in 0.13 s"
+     "0.61 m in 0.25 s"
     ]
    ]
   ],
@@ -126,23 +126,27 @@
    [
     [
      "Wraps for tow limit (mu 0.15)",
-     "3.3 raw, 5 design"
+     "3.0 raw, 5 design"
     ],
     [
      "Take-up needed (design wraps)",
-     "0.45 N"
+     "0.07 N"
     ],
     [
      "Tow at limit: torque, speed, current",
-     "2.02 N m, 0.119 m/s, 3.72 A"
+     "3.01 N m, 0.147 m/s, 4.81 A"
     ],
     [
      "Line pull at limiter (5 N m) (12.6 V)",
-     "127 N (break 667 N)"
+     "88 N (break 667 N)"
     ],
     [
      "Line pull, motor stall (no limiter, 12.6 V)",
-     "358 N"
+     "257 N"
+    ],
+    [
+     "Tow sensing: line N per wiper amp above free",
+     "17.0 N/A (line = 17.0 x (I - I_free) - 6.2 N)"
     ]
    ]
   ],
@@ -151,7 +155,7 @@
    [
     [
      "aim: peak torque, current, time",
-     "0.33 N m, 1.9 A, 7 s"
+     "0.32 N m, 1.9 A, 7 s"
     ],
     [
      "cock: peak torque, current, time",
@@ -159,11 +163,11 @@
     ],
     [
      "reel: peak torque, current, time",
-     "0.17 N m, 1.7 A, 142 s"
+     "0.49 N m, 2.0 A, 107 s"
     ],
     [
      "tow: peak torque, current, time",
-     "2.02 N m, 3.7 A, 42 s"
+     "3.01 N m, 4.8 A, 34 s"
     ],
     [
      "Wiper at limiter (5 N m), 12.6 V (with sag)",

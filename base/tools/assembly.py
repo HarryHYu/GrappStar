@@ -167,6 +167,20 @@ class Assembly:
         JW = self.joint_world(S)
         return {n: JW.get(p.joint, np.eye(4)) @ p.place for n, p in self.parts.items()}
 
+    def line(self, S: dict) -> list:
+        """Tether polyline in world mm for state S: the points of every subsystem's optional line_path(P, S), joined
+        in subsystem order (reel first, then launch, then the rest), duplicates at the joins dropped. [] if none."""
+        order = sorted(self.modules, key=lambda n: (n != "reel", n != "launch", n))
+        pts = []
+        for sub in order:
+            mod = self.modules[sub]
+            if hasattr(mod, "line_path"):
+                for p in mod.line_path(self.P, S) or []:
+                    p = [float(v) for v in p]
+                    if not pts or max(abs(a - b) for a, b in zip(p, pts[-1])) > 1e-6:
+                        pts.append(p)
+        return pts
+
     def posed(self, name: str, S: dict, W=None):
         W = W or self.world(S)
         return prim.place(self.parts[name].solid, W[name])

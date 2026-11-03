@@ -28,6 +28,16 @@ Sim S;
 
 namespace {
 
+// Two generations of the firmware + sim are supported (the sources differ by branch):
+//   D16 (fw-base from 93bfb1c): drum LAUNCH / NEUTRAL / WRAP / REEL, dog window, take-up; sim.h has Sim::slack
+//   v1  (base-v1 39badb1):      drum LAUNCH / NEUTRAL / REEL / WRAPPED
+// Detected at compile time from sim.h, so one basesim.cpp builds against either.
+template <class T> auto slackOf(T& s, int) -> decltype(&s.slack) { return &s.slack; }
+template <class T> double* slackOf(T&, long) { return nullptr; }
+const bool kD16 = slackOf(S, 0) != nullptr;
+double noSlack = 0;
+double* slackPtr() { double* p = slackOf(S, 0); return p ? p : &noSlack; }
+
 gb::Base B;
 int outFd = 1;
 bool ptyMode = false;
@@ -74,7 +84,7 @@ struct Field { const char* name; char kind; void* p; };   // kind: d double, b b
 std::vector<Field> fields() {
   return {
       {"lineOut", 'd', &S.lineOut}, {"anchorTautAt", 'd', &S.anchorTautAt}, {"anchorK", 'd', &S.anchorK},
-      {"seatAtLine", 'd', &S.seatAtLine}, {"lineOutAfterShot", 'd', &S.lineOutAfterShot}, {"slack", 'd', &S.slack},
+      {"seatAtLine", 'd', &S.seatAtLine}, {"lineOutAfterShot", 'd', &S.lineOutAfterShot}, {"slack", 'd', slackPtr()},
       {"drumJam", 'b', &S.drumJam}, {"drumJamAbove", 'd', &S.drumJamAbove}, {"toothOnTooth", 'b', &S.toothOnTooth},
       {"toothNeedWiper", 'd', &S.toothNeedWiper}, {"extraLoadNm", 'd', &S.extraLoadNm}, {"searBroken", 'b', &S.searBroken},
       {"encMissing", 'b', &S.encMissing}, {"encGlitchEvery", 'i', &S.encGlitchEvery}, {"magnetWeak", 'b', &S.magnetWeak},
@@ -109,9 +119,9 @@ void dump() {
   snprintf(b, sizeof b,
            "{\"sim\":{\"t\":%u,\"line_out\":%.3f,\"anchor_taut_at\":%.3f,\"seat_at\":%.3f,\"seated\":%s,\"tension_n\":%.2f,"
            "\"shots\":%d,\"drum_deg\":%.2f,\"wiper_deg\":%.1f,\"aim_ph\":%.1f,\"cock_ph\":%.1f,\"wraps\":%d,"
-           "\"slack\":%.3f,\"dry_fires\":%d,\"dropped\":%lu}}",
+           "\"slack\":%.3f,\"dry_fires\":%d,\"dropped\":%lu,\"drum_order\":\"%s\"}}",
            (unsigned)S.t, S.lineOut, S.anchorTautAt, S.seatAtLine, S.seated() ? "true" : "false", S.tension(), S.shots,
-           S.drumDeg, S.wiperDeg, S.aimPh, S.cockPh, S.wrapsTrue(), S.slack, dryFiresTotal, dropped);
+           S.drumDeg, S.wiperDeg, S.aimPh, S.cockPh, S.wrapsTrue(), *slackPtr(), dryFiresTotal, dropped, kD16 ? "D16" : "v1");
   writeLine(b);
 }
 
@@ -207,8 +217,10 @@ int main(int argc, char** argv) {
   B.saveAck = true;
   B.w.c.ampsPerVolt = (float)S.isAmpsPerVolt;
   // a calibrated bench (CALIBRATION.md): the tension estimate constants match the simulated motor (as test_base.cpp tow)
-  B.c.kNperA = (float)(1.0 / (S.capstanR * S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA));
-  B.c.freeA = 1.5f + (float)((S.reelFreeNm + 0.3) / S.stallNm * (S.stallA - S.freeA));
+  // (the two sim generations model the capstan ratio and the take-up load differently)
+  double nmPerN = kD16 ? S.capstanR * S.c.capstanPerWiper : S.capstanR / S.c.capstanPerWiper;
+  B.c.kNperA = (float)(1.0 / nmPerN * S.stallNm / (S.stallA - S.freeA));
+  B.c.freeA = 1.5f + (float)((S.reelFreeNm + (kD16 ? 0.3 : 0.2)) / S.stallNm * (S.stallA - S.freeA));
   B.begin(S.t);
   B.restore(nullptr);
   {

@@ -62,6 +62,8 @@ def launch(p: Params | None = None, pitch_deg: float | None = None, model: str =
     res = dict(pitch_deg=math.degrees(th), stroke_m=S, pulley_ratio=r, preload_ext_mm=e0 * 1000, ext_full_mm=e_full * 1000,
                ext_safe_mm=lim["ext_safe_mm"], ext_cap_mm=cap_mm, over_safe=e_full * 1000 > cap_mm + 1e-6,
                f_spring_full_n=sp.force(e_full), f_spring_rest_n=sp.force(e0),
+               over_catalogue_load=sp.force(e_full) > sp.catalogue_max_n,
+               over_catalogue_defl=e_full * 1000 > sp.catalogue_max_defl_mm,
                f_carriage_full_n=ns * sp.force(e_full) * eta / r,
                energy_stored_j=ns * (sp.energy(e_full) - sp.energy(e0)), model=model)
 
@@ -261,7 +263,7 @@ def main(argv=None):
     print(f"spring safe: {lim['f_safe_n']:.1f} N ({lim['governed_by']}), extension {lim['ext_safe_mm']:.0f} mm, "
           f"Sut {lim['sut_mpa']:.0f} MPa")
     for k in ("pitch_deg", "stroke_m", "pulley_ratio", "ext_full_mm", "over_safe", "f_carriage_full_n", "energy_stored_j",
-              "v_muzzle", "t_stroke_ms", "a_peak_g", "ke_dart_j", "efficiency", "ke_carriage_j", "f_stop_peak_n",
+              "f_spring_full_n", "over_catalogue_load", "over_catalogue_defl", "v_muzzle", "t_stroke_ms", "a_peak_g", "ke_dart_j", "efficiency", "ke_carriage_j", "f_stop_peak_n",
               "ke_spring_j", "f_cord_peak_after_stop_n", "coil_clash_v", "fail"):
         if k in res:
             v = res[k]

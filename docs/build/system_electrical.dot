@@ -29,7 +29,7 @@ digraph G {
     wiper [label="12 V wiper motor\n(2 wires)"];
     n20   [label="Selector drum N20\n(worm, self-locking)"];
     as5600[label="AS5600 (STEMMA QT)\nmain shaft end, 0x36"];
-    sw    [label="Printed contacts\nSW_DRUM_A/B, SW_SEATED,\nSW_HOME, SW_RAIL_LOW, ...\n(M3 screw on M3 nut)"];
+    sw    [label="Printed contacts (M3 screw on M3 nut)\nSW_DRUM_A/B/C, SW_DOG, SW_N20, SW_INDEX,\nSW_HOME, SW_GAP, SW_RAIL_LOW, SW_SEATED, SW_ARM"];
   }
 
   subgraph cluster_jetson {
@@ -70,7 +70,7 @@ digraph G {
   div   -> esp    [label="GPIO 2", style=dashed];
   esp   -> drv    [label="AIN1 17, AIN2 18, GND", style=dashed];
   esp   -> as5600 [label="I2C SDA 8, SCL 9, 3V3, GND", style=dashed, dir=both];
-  sw    -> esp    [label="GPIO 11-14, 39-42\n(pull-up, closed = LOW)", style=dashed];
+  sw    -> esp    [label="GPIOs per WIRING.md\n(pull-up, closed = LOW)", style=dashed];
   hx    -> esp    [label="DT 16, SCK 15", style=dashed];
 
   dbat  -> xiao   [label="5 V buck"];

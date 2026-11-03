@@ -5,8 +5,11 @@ firmware sources: firmware/base or the fw-base extract, see jetson/tools/basesim
 SPEED times real time; firmware timings below are in simulated seconds and converted with T().
 
 The tests run in file order on one simulator (one mission). They use only BaseClient.cmd / wait_event / wait_tel.
-Written against the firmware actually built (fw-base WIP, drum order LAUNCH / NEUTRAL / WRAP / REEL): mode REEL needs
-the wraps on, "wrap" goes NEUTRAL -> REEL, "unwrap" goes back to NEUTRAL.
+Two firmware generations are covered, detected from the first telemetry (SW_DOG_L "DL" closed at LAUNCH = D16):
+  D16 (fw-base 93bfb1c WIP): drum LAUNCH / NEUTRAL / WRAP / REEL. mode REEL needs the wraps on (NOT_WRAPPED), "wrap"
+       goes NEUTRAL -> REEL (collar engaged, 4 wraps), "unwrap" goes back to NEUTRAL.
+  v1  (base-v1 39badb1):     drum LAUNCH / NEUTRAL / REEL / WRAPPED. mode REEL, then "wrap" to WRAPPED, "unwrap" back
+       to REEL.
 """
 import os
 import subprocess
@@ -26,6 +29,13 @@ TEL_KEYS = ["state", "mode", "drum_deg", "drum_pos", "wiper_deg", "rpm", "amps",
             "line_m", "tension_n", "sw", "fault", "vbat"]
 
 
+FW = {"d16": None}
+
+
+def d16():
+    return FW["d16"]
+
+
 def T(sim_s):
     """Wall seconds for sim_s simulated seconds, with slack for a loaded machine."""
     return sim_s / SPEED * 1.5 + 2.0
@@ -34,6 +44,7 @@ def T(sim_s):
 @pytest.fixture(scope="module")
 def base():
     proc, c = start_basesim(BIN, speed=SPEED, line_out=0.0, seat_at=0.0)   # dart seated in the cradle
+    FW["d16"] = "DL" in c.wait_tel(lambda t: True, 2)["sw"]
     yield c
     c.close()
     assert proc.poll() is not None
@@ -70,7 +81,7 @@ def test_telemetry_shape_and_rate(base):
     assert list(t.keys()) == TEL_KEYS
     assert t["state"] == "IDLE" and t["mode"] == "LAUNCH" and t["drum_pos"] == "LAUNCH" and t["fault"] is None
     assert t["cock"] == 0 and t["wraps"] == 0 and t["tension_n"] is None and t["vbat"] > 12
-    assert t["sw"].get("S") == 1 and t["sw"].get("H") == 1 and t["sw"].get("DL") == 1
+    assert t["sw"].get("S") == 1 and t["sw"].get("H") == 1
     n = [0]
     base.add_tel_callback(lambda _t: n.__setitem__(0, n[0] + 1))
     t0 = time.monotonic()
@@ -101,9 +112,10 @@ def test_cock(base):
 
 
 def test_arm_bad_token_then_fire(base):
-    # FIRMWARE ISSUE (fw-base WIP): fire runs the last part of the draw under trip_a (5 A default) while the draw peaks
-    # at about 5.1 A, so every shot ends in OVERCURRENT. A higher trip_a over the protocol works around it.
-    base.cmd("set", key="trip_a", val=7)
+    # FIRMWARE ISSUE (fw-base D16 WIP): fire runs the last part of the draw under trip_a (5 A default) while the draw
+    # peaks at about 5.1 A, so every shot ends in OVERCURRENT. A higher trip_a over the protocol works around it.
+    if base.cmd("get", key="trip_a")["val"] < 7:
+        base.cmd("set", key="trip_a", val=7)
     tok = base.cmd("arm")["token"]
     assert isinstance(tok, int) and 100000 <= tok <= 999999
     assert refused(base, "fire", token=tok + 1 if tok < 999999 else tok - 1) == "BAD_TOKEN"
@@ -128,17 +140,26 @@ def test_set_line(base):
 
 # ------------------------------------------------------------------------------------------------ reel side
 def test_neutral_refusals(base):
-    e = run(base, "mode", "MODE", 10, to="NEUTRAL")
+    e = run(base, "mode", "MODE", 15, to="NEUTRAL")
     assert e["ok"] and e["mode"] == "NEUTRAL" and e["drum_pos"] == "NEUTRAL"
     assert refused(base, "aim", deg=30) == "NOT_IN_LAUNCH"
-    assert refused(base, "mode", to="REEL") == "NOT_WRAPPED"  # this firmware: REEL only with the wraps on (D16)
+    if d16():
+        assert refused(base, "mode", to="REEL") == "NOT_WRAPPED"   # D16: REEL only with the wraps on
+    else:
+        assert refused(base, "wrap") == "NOT_IN_REEL"
+        e = run(base, "mode", "MODE", 15, to="REEL")
+        assert e["ok"] and e["drum_pos"] == "REEL"
+        assert refused(base, "reel", duty=0.5) == "NOT_WRAPPED"
 
 
 def test_wrap(base):
-    e = run(base, "wrap", "WRAPPED", 30)
+    e = run(base, "wrap", "WRAPPED", 60)
     assert e["ok"] and e["wraps"] == 4
     t = idle(base)
-    assert t["mode"] == "REEL" and t["wraps"] == 4 and t["sw"].get("DR") == 1
+    assert t["mode"] == "REEL" and t["wraps"] == 4
+    assert t["drum_pos"] == ("REEL" if d16() else "WRAPPED")
+    if d16():
+        assert t["sw"].get("DR") == 1                      # collar engaged in REEL (SW_DOG_R)
     assert refused(base, "mode", to="LAUNCH") == "WRAPS_ON"
 
 
@@ -164,11 +185,11 @@ def test_reel_until_seated(base):
 
 
 def test_unwrap_and_back_to_launch(base):
-    e = run(base, "unwrap", "UNWRAPPED", 30)
+    e = run(base, "unwrap", "UNWRAPPED", 60)
     assert e["ok"]
     t = idle(base)
-    assert t["wraps"] == 0 and t["drum_pos"] == "NEUTRAL"
-    e = run(base, "mode", "MODE", 10, to="LAUNCH")
+    assert t["wraps"] == 0 and t["drum_pos"] == ("NEUTRAL" if d16() else "REEL")
+    e = run(base, "mode", "MODE", 20, to="LAUNCH")
     assert e["ok"] and e["mode"] == "LAUNCH"
 
 
@@ -176,10 +197,10 @@ def test_unwrap_and_back_to_launch(base):
 def test_estop_goes_to_neutral(base):
     mark = base.event_mark()
     base.cmd("estop")
-    e = base.wait_event("MODE", T(10), since=mark)
+    e = base.wait_event("MODE", T(15), since=mark)
     assert e["ok"] and e["drum_pos"] == "NEUTRAL"
     idle(base)
-    run(base, "mode", "MODE", 10, to="LAUNCH")
+    run(base, "mode", "MODE", 15, to="LAUNCH")
 
 
 def test_injected_fault_safing_and_clear(base):
@@ -190,7 +211,7 @@ def test_injected_fault_safing_and_clear(base):
     f = base.wait_event("FAULT", T(2), since=mark)
     assert f["code"] == "ANGLE_SENSOR"
     base.wait_tel(lambda t: t["state"] == "SAFING", T(2), what="SAFING", fail_on_fault=False)
-    m = base.wait_event("MODE", T(10), since=mark, fail_on_fault=False)
+    m = base.wait_event("MODE", T(15), since=mark, fail_on_fault=False)
     assert m["ok"] and m["drum_pos"] == "NEUTRAL"         # launch train at rest: safed to NEUTRAL
     t = base.wait_tel(lambda t: t["state"] == "FAULT", 2, what="FAULT", fail_on_fault=False)
     assert t["fault"] == "ANGLE_SENSOR"
@@ -204,7 +225,7 @@ def test_injected_fault_safing_and_clear(base):
 
 
 def test_drum_jam_fault_holds(base):
-    run(base, "mode", "MODE", 10, to="LAUNCH")
+    run(base, "mode", "MODE", 15, to="LAUNCH")
     base.transport.sim("fault drumJam 1")                 # the selector drum N20 does not turn
     mark = base.event_mark()
     base.cmd("mode", to="NEUTRAL")

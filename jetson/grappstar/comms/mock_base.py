@@ -206,6 +206,7 @@ class MockBase:
         self.dog_tip = False                # test hook: SW_DOG closed (dogs tip to tip)
         self.last_rx_t = 0.0                # sim time of the last line from the host (host watchdog)
         self.commands = self._commands()
+        self._defer: Optional[list] = None  # events raised while a command is handled, sent after its reply
         self.op: Dict[str, Any] = {}
         self._seat_prev = self.seated()
         # ---- test hooks
@@ -301,12 +302,17 @@ class MockBase:
             if not line:
                 continue
             with self.lock:
+                # PROTOCOL.md: the reply to a command is written before any event that command caused
+                self._defer = []
                 try:
                     reply = self.handle_line(line)
                 except Exception as e:  # never crash the mock
                     reply = _dump({"id": None, "ok": False, "err": "BAD_ARG", "msg": str(e)[:60]})
-            if reply is not None:
-                self._send_line(reply)
+                deferred, self._defer = self._defer, None
+                if reply is not None:
+                    self._send_line(reply)
+                for ev in deferred:
+                    self._send_line(ev)
 
     def _sim_loop(self) -> None:
         dt_real = 0.02
@@ -414,7 +420,11 @@ class MockBase:
         d = {"evt": name, "t": self.now_ms()}
         d.update(kw)
         s = _dump(d)
-        self._send_line(s if len(s) <= MAX_LINE else '{"evt":"OVERFLOW"}')
+        s = s if len(s) <= MAX_LINE else '{"evt":"OVERFLOW"}'
+        if self._defer is not None:
+            self._defer.append(s)
+        else:
+            self._send_line(s)
 
     def _ev_mode(self, ok: bool, err: Optional[str] = None, why: Optional[str] = None) -> None:
         kw: Dict[str, Any] = {"ok": ok, "mode": self.mode, "drum_pos": self.drum_pos()}
@@ -455,6 +465,10 @@ class MockBase:
                       "BAD_STATE": "bad state"}.get(code, code)
         self.fault, self.fault_why = code, why[:47]
         self.token = None
+        if self.state == "FIRE" and self.phase == "FIRING":
+            # stopped before the release: recover with clear, then fire (cocked or at rest) or cal decock
+            self.phase = ("COCKED" if self.cock_deg >= COCK_END_DEG - 1 else "REST" if self.home_closed()
+                          else "COCKING")
         self.evt("FAULT", code=code, why=self.fault_why)
         if code == "STALL":
             self.evt("STALL")

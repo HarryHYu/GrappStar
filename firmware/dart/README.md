@@ -28,6 +28,18 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
 5. Open `firmware/dart/kedge_dart/kedge_dart.ino` (the folder name must stay `kedge_dart`; `kedge_logic.h` sits next to
    it and opens as a second tab).
 
+## Tested versions (3 Nov 2026, `arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32S3 --warnings all`)
+
+| esp32 core | Result | Flash | RAM |
+|---|---|---|---|
+| 3.3.12 (latest) | OK, no warnings from the sketch | 1,011,135 B (30 %) | 70,316 B (21 %) |
+| 3.3.2 | OK, no warnings from the sketch | 1,015,763 B (30 %) | 68,344 B (20 %) |
+| 2.0.17 | OK, no warnings from the sketch | 801,985 B (23 %) | 66,784 B (20 %) |
+
+Libraries: Adafruit BNO08x 1.2.7, Adafruit BusIO 1.17.4 (installed with it). arduino-cli 1.5.2.
+Note for arduino-cli users: on this board the menu value for "USB CDC On Boot: Enabled" is `CDCOnBoot=default` and
+`CDCOnBoot=cdc` means Disabled (the sketch then refuses to compile, on purpose).
+
 ## Board settings
 
 - Tools > Board > esp32 > **XIAO_ESP32S3**.

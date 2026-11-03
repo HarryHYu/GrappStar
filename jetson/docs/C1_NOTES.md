@@ -38,6 +38,8 @@ PROTOCOL.md at `93bfb1c` (2026-11-03).
   `fault_present`, `time_scale`, `received`, `world` (World: dart seated / flying / free / anchored, `slack_m`,
   `flight`, `on_fire`), `connected_pair`, `serve_pty`. New: `fresh=True` (new build: phase UNKNOWN, aim unknown),
   `code_bad` (invalid drum code), `dog_tip` (SW_DOG closed), `seat_ends_any_reel`.
+- A fault during `fire` before the release leaves the phase COCKED (or REST if it had not started drawing), so
+  `clear` then `fire` or `cal decock` recovers, as PROTOCOL.md section 6 says.
 - Simplified: no dog wiggle (the 3 deg unload is applied to `wiper_deg`), the aim table is the firmware placeholder
   (pitch 15..60 over a 360 deg cycle, home at phase 0, `aim_home_deg` is stored but not used), the line speed is a
   placeholder (0.35 m/s at full duty), the tension model is the World model (anchored: slack then a steep rise).
@@ -103,3 +105,6 @@ PROTOCOL.md at `93bfb1c` (2026-11-03).
 13. `LIMIT` has no `line_m` (read telemetry); `status()` has no `tel` (read `base.tel`).
 14. Preflight: `status()["phase"]` REST (UNKNOWN: decock or cock recovery; COCKED: decock), drum_pos not UNKNOWN,
     `wraps == 0`, no fault, `sw.S` closed.
+15. The reply comes BEFORE the events a command causes (MockBase does the same). After a `stop` that aborts a running
+    action, the `ABORTED` event arrives just after `stop()` returns: wait for it (or take the next `event_mark()` only
+    after it), else the next `wait_event` raises ABORTED for the old action.

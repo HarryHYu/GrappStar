@@ -42,6 +42,13 @@ Status: in progress. Final version at 18:30 Sydney.
 8. DRV8833 #3 SLP: coordinator ruled unwired (11:15); firmware/base/WIRING.md at 11:33 still wires it to GPIO21. Sent
    to fw-base. My docs follow the coordinator, with a "wire SLP to 3V3" fallback for non-Pololu boards.
 9. fw-base WIRING.md said both MP1584s are in the dart and to buy another; the dart uses one. Sent to fw-base.
+10. Spec v1.0 section 4 lists 11 contacts (SW_DRUM_A/B/C, SW_DOG_L/R, SW_N20, SW_INDEX, SW_HOME, SW_GAP, SW_RAIL_LOW,
+    SW_SEATED, SW_ARM); pins.h at 12:10 has 8 switch GPIOs and PROTOCOL.md still has the pre-v1.0 drum order
+    (wrap from REEL). fw-base to update; the guide includes their files live, and TEST_PLAN points at PROTOCOL.md for
+    the wrap/REEL command order.
+11. physics: base/physics/SUMMARY.md on base-v1 (12:10) is still the v0.1-stub run; asked physics to regenerate.
+12. fw-base: firmware defaults disagree with the decisions: `limit_n` 20 (D3: 50 N), `trip_a` 17 / `cock_trip_a` 15
+    (D8: 5 A and 6.5 A). MEASURE_LIST G10 tells Harry to set `limit_n` 50 until the defaults change.
 
 ## Review rounds
 
@@ -58,3 +65,21 @@ Status: in progress. Final version at 18:30 Sydney.
   SLP pull-up procedure, release order (pods up before kick back), one payout brake number (0.5 to 0.75 N),
   spring 4 kg limit 160 mm, INA219 library dropped. Sent to fw-dart (their files): antenna before power, B2 order,
   BENCH_TEST step order and Jetson-only steps, B4/B5 overlap. "No jetson CLI" was stale (it is on w/jetson).
+- Round 3 (fresh agent, cross-document consistency against spec v1.0 and DECISIONS): 13 groups. Fixed in docs/build:
+  FORWARD defined physically, `require_seated false` for the no-dart dry cycles, estop exceptions (DRUM_HELD when
+  cocked or wrapped), no plug pulled with the battery in (AS5600 fault test by moving the board; barrel plugged in
+  with the battery out), magnet required until the firmware has the D12 index mode, jog duty in the stall test,
+  tow limit 50 N default, CALIBRATION (f) moved to stage 4, `reel` then `stop`, contact reading on USB only,
+  bench-built motors may stay connected for the rover power-on. Sent 11 items to fw-base (D16 order, 11 contacts,
+  D9 SLP, D12, D8 trips, limit_n 20 vs 50, STEMMA plug rule, MP1584, aim range, 2 A fuse, FORWARD).
+- Round 4 (fresh agent, every number and name against params 1.0.1, BASE_SPEC v1.0, DECISIONS, FINDINGS, NOTES):
+  17 findings, fixed: torque limiter is a shear pin (break-test, no preload), drum hand lever 14 AF, drum gear 12:1,
+  CSK20PP outer keyway 1.5, wiper orientation decided (D20), no steel key (integral rib, D13), stop pad 300 N rule,
+  tension per amp about 22 N/A, limit_n set to 50, 608 uses (reel 2, aim pedestal 4), magnet gap 1 to 2 mm, green
+  park wire never wired, D9 exception to "WIRING.md wins", fault exceptions, dart SLP beep check, D17 final approach.
+- Round 5 (learner-eyes, fresh agent following FIRST_DAY and the order of work): 16 findings. Fixed: one power-up
+  order everywhere (USB in first, battery last), Mac clone step, exact pipeline commands and a "Claude Code does it"
+  route, MEASURE_RESULTS.md/.pdf fill-in sheet generated from MEASURE_LIST, dart Path B step split around the BMS,
+  bench-supply reading of BENCH_TEST steps 0 to 2, hole compensation location, spring measured with a rule and real
+  weights, dart plates do not wait for base coupons, kickContactMa wording, part references. Sent to fw-dart: bench
+  supply version of BENCH_TEST 0 to 2. fw-base items (SLP, MP1584, 2 A fuse) already sent; guide notes cover them.

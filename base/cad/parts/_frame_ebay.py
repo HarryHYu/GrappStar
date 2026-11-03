@@ -257,7 +257,9 @@ def as5600_parts(P, C, info):
     holes = []
     for sy in (-1, 1):
         zz = plate_z0 + pt - reach
-        br = br - U.clear_hole(0, sy * leg_off, zz - 1, plate_z0 + pt + 1, head_top=plate_z0 + pt + 0.01)
+        # long counterbore down the leg: 6 mm of leg under the head, so an M3 x 10 reaches the cheek insert
+        br = br - U.clear_hole(0, sy * leg_off, zz - 1, plate_z0 + pt + 1, head_top=plate_z0 + pt + 0.01,
+                               head_h=reach - 6.0)
         holes.append((mo[0], mo[2] + sy * leg_off))
     # chip clearance: hole in the plate is not needed (PCB sits on the pegs' shoulders = plate face)
     Mbr = Mpcb
@@ -342,7 +344,7 @@ def build(P, C, info, parts_so_far):
                     notes="bay lid: grille over the BTS7960, 4 x M3 into the corner bosses"))
     cl = esp_clamp()
     out.append(Part("frame_ebay_esp_clamp", cl, "PLA", place=Mbay, print_tf=U.print_flat(cl), color="#c9d1d9",
-                    notes="ESP32 hold-down over the module end, 2 x M3 x 10 into the cradle posts"))
+                    notes="ESP32 hold-down over the module end, 2 x M3 x 8 into the cradle posts"))
     refs = dict(frame_pcb_esp32="Espressif ESP32-S3-DevKitC-1-N8", frame_pcb_bts7960="BTS7960 43 A module (IBT-2)",
                 frame_pcb_mp1584="MP1584EN buck module, set to 9.0 V", frame_pcb_drv8833="Pololu DRV8833 2130 (headers off)",
                 frame_pcb_hx711="HX711 load cell amplifier (optional)", frame_fuse_20a="inline ATO fuse holder + 20 A fuse")

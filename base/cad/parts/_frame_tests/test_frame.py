@@ -270,3 +270,12 @@ def test_adapter_ring_screws_line_up(P, rot):
         for c in ck:
             assert (rod ^ c).volume() < 1e-6, (rot, i, "cheek")
     assert frame.checks(Q) == []
+
+
+def test_block_screws_m3x8_engage(P, B):
+    for sp in B["info"]["supports"]:
+        b = sp["block"]
+        grip = b["tb"] - b["cb"]
+        thread = 8.0 - grip
+        assert 3.5 <= thread <= U.INS_L - 0.2, (sp["shaft"], grip)
+        assert b["cb"] >= U.HEAD_H - 1e-9

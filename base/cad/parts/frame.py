@@ -149,11 +149,12 @@ def block_geom(P, sh, fw):
     else:
         od, w, _ = U.brg_dims(P, sh["brg"])
     spig = od + 6.0
-    rs = spig / 2 + U.INS_D / 2 + 2.5           # insert centre radius on the cheek
+    rs = spig / 2 + U.INS_D / 2 + 3.5           # insert centre radius on the cheek (3.3 mm wall to the hole)
     half = rs / math.sqrt(2) + U.INS_D / 2 + 3.0
     half = max(half, spig / 2 + 2.0)
     tb = max(fw["block_t"], w - (fw["cheek_t"] - 0.5) + 3.0)
-    return dict(od=od, w=w, spig=spig, rs=rs, half=half, tb=tb, hole=spig + 0.4)
+    cb = max(U.HEAD_H, tb - 4.0)                 # counterbore: 2.8 to 4 mm under the head, so every block takes M3 x 8
+    return dict(od=od, w=w, spig=spig, rs=rs, half=half, tb=tb, hole=spig + 0.4, cb=cb)
 
 
 def block_solid(P, sh, fw):
@@ -175,7 +176,7 @@ def block_solid(P, sh, fw):
     for i in range(4):
         a = math.radians(45 + 90 * i)
         x, y = b["rs"] * math.cos(a), b["rs"] * math.sin(a)
-        cuts.append(U.clear_hole(x, y, -1, b["tb"] + 1, head_top=b["tb"] + 0.01))
+        cuts.append(U.clear_hole(x, y, -1, b["tb"] + 1, head_top=b["tb"] + 0.01, head_h=b["cb"] + 0.01))
     return prim.diff(blk, cuts), b
 
 
@@ -319,7 +320,7 @@ def build(P):
                 xf = q + (8.0 if xf >= q else -8.0)
             yf = yo + s * (fw["foot_w"] / 2 + 1.0)
             feet.append((xf, yf))
-            cuts.append(U.clear_hole(xf, yf, -1, fw["foot_t"] + 1, head_top=fw["foot_t"] + 0.01))
+            cuts.append(U.clear_hole(xf, yf, -1, fw["foot_t"] + 1))     # M3 x 10, head on the foot top
         info["deck_holes"] += feet
         # cable-tie points between foot screws: two slots through the foot and a 2 mm tunnel under it joining them
         ties_ = []
@@ -434,7 +435,7 @@ def build(P):
         mat = "PPA-CF" if sh["brg"] == "sprag" else "PLA"      # bushings stay PLA (PPA-CF shaft in a PLA bush)
         nm = f"frame_blk_{n}_{'l' if s > 0 else 'r'}"
         parts.append(Part(nm, prim.place(sol, M), mat, print_tf=None, color="#c9b27a" if mat == "PPA-CF" else "#b8c2cc",
-                          notes=f"bearing block, {n} shaft ({sh['brg']}), 4 x M3 x 16 into cheek inserts"))
+                          notes=f"bearing block, {n} shaft ({sh['brg']}), 4 x M3 x 8 into cheek inserts"))
         p = parts[-1]
         p.print_tf = U.print_flat(p.solid, tf.Rx(-90) if s > 0 else tf.Rx(90))  # flange outer face down, spigot up
         sp["part"] = nm
@@ -711,10 +712,25 @@ def steps(P):
                   "inserts. The 44 mm hole with the 6-insert ring is the wiper axis.",
              parts=[n for n in has("frame_cheek_r" if info["cfg"]["fw"]["motor_side"] < 0 else "frame_cheek_l")]),
         dict(title="Motor-side bearing blocks",
-             text="Push each block's spigot into its cheek hole from outside (flange outside), 4 x M3 x 16 into the "
+             text="Push each block's spigot into its cheek hole from outside (flange outside), 4 x M3 x 8 into the "
                   "cheek inserts. The blocks on this side go on now; the shaft bearings drop into their pockets from "
                   "inside when the shafts go in.",
              parts=[sp["part"] for sp in info["supports"] if sp["side"] == info["cfg"]["fw"]["motor_side"]]),
+    ]
+    if "frame_motor_adapter" in names:
+        st.append(dict(title="Wiper motor on its adapter (bench)",
+                       text="Battery unplugged. Put the M6 bolts through the adapter slots from the cheek side (heads sit "
+                            "in the slot counterbores), into the motor bosses (threaded bosses, or a nut behind each boss "
+                            "ear). Slide the motor so its shaft is centred in the hub hole (a 10 mm drill shank in the "
+                            "coupler bore helps), then tighten.",
+                       parts=["frame_motor_adapter", "frame_wiper_motor", "frame_wiper_shaft"]))
+        st.append(dict(title="Motor onto the cheek",
+                       text="Before any shaft goes in: offer the motor and adapter to the motor-side cheek, spigot into "
+                            "the 44 mm hole. From INSIDE the cheek box, 6 x M3 x 12 through the cheek into the inserts in "
+                            "the adapter hub. Strap the can into the saddle (cable tie or hose clamp), saddle "
+                            "4 x M3 x 10 into the deck.",
+                       parts=["frame_motor_adapter"] + has("frame_motor_saddle")))
+    st += [
         dict(title="Shafts and trains (other subsystems)",
              text="Now the drum, launch and reel subsystems put their shaft assemblies in (bearings already pressed on "
                   "the shafts), each bearing into its block pocket on this cheek. Follow their steps, then come back.",
@@ -724,7 +740,7 @@ def steps(P):
                   "into the deck. Then the cheek ties: M3 x 12 through each cheek into the tie inserts.",
              parts=[n for n in has("frame_cheek_l" if info["cfg"]["fw"]["motor_side"] < 0 else "frame_cheek_r")] + has("frame_tie")),
         dict(title="Second-side bearing blocks",
-             text="Slide each block over its bearing from outside, 4 x M3 x 16. Turn every shaft by hand: it must spin "
+             text="Slide each block over its bearing from outside, 4 x M3 x 8. Turn every shaft by hand: it must spin "
                   "free with no tight spot. If one binds, loosen its two blocks, turn the shaft, retighten.",
              parts=[sp["part"] for sp in info["supports"] if sp["side"] != info["cfg"]["fw"]["motor_side"]]),
     ]
@@ -739,20 +755,11 @@ def steps(P):
                        text="Press the 608s into the pedestal seats (vice with soft jaws, push on the outer race only). "
                             "Thread the shaft through, stand the pedestals on the deck, M3 x 10 into the inserts.",
                        parts=has("frame_ped")))
-    if "frame_motor_adapter" in names:
-        st.append(dict(title="Wiper motor",
-                       text="Battery unplugged. Drop an M6 nut into each slot channel on the cheek side of the adapter. "
-                            "Bolt the adapter to the cheek ring: 6 x M3 x %d from the motor face into the ring inserts. "
-                            "Offer the motor up (its shaft through the hub hole into the coupler from cad-drum), M6 bolts "
-                            "through the bosses into the nuts, slide each to centre the shaft, tighten. Strap the can "
-                            "into the saddle (cable tie or hose clamp), saddle 4 x M3 x 10 into the deck."
-                            % int(round(MOT.PLATE_T + info.get("adapter_standoff", 0) - U.HEAD_H + 5)),
-                       parts=["frame_motor_adapter", "frame_wiper_motor", "frame_wiper_shaft"] + has("frame_motor_saddle")))
     st += [
         dict(title="Electronics bay",
              text="Battery unplugged. Bay on the deck, 4 x M3 x 10 through the tabs. Boards in: BTS7960 on its 4 standoffs "
                   "(M3 x 6), heatsink down; ESP32 DevKitC pins down into the cradle, USB end into the wall slot, clamp "
-                  "with 2 x M3 x 10; DRV8833, MP1584 and HX711 into their pockets with a cable tie through the floor slots "
+                  "with 2 x M3 x 8; DRV8833, MP1584 and HX711 into their pockets with a cable tie through the floor slots "
                   "or a drop of hot glue. Fuse holder in its cradle with a cable tie.",
              parts=has("frame_ebay") + has("frame_pcb") + has("frame_fuse")),
         dict(title="Set the buck BEFORE wiring the DRV8833",
@@ -769,7 +776,7 @@ def steps(P):
         dict(title="Wiring and lid",
              text="Battery unplugged. Follow firmware/base/WIRING.md. Every wire leaving the bay goes through its wall "
                   "exit and is cable-tied to the anchor beside it (strain relief). 14 AWG for battery, fuse, BTS7960 "
-                  "and motor. Lid on, 4 x M3 x 8. USB cable from the ESP32 native USB port to the Jetson.",
+                  "and motor. Lid on, 4 x M3 x 6. USB cable from the ESP32 native USB port to the Jetson.",
              parts=["frame_ebay_lid"]),
     ]
     return st

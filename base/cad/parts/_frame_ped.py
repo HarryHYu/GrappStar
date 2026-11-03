@@ -59,7 +59,7 @@ def pedestals(P, n, sh, fw):
             cuts.append(prim.place(seat, tf.T(0, 0, c[2]) @ tf.Rx(-90)))
             fh = [(-(half + 7), t / 2 + 4.0), (half + 7, t / 2 + 4.0)]
             for (fx, fy) in fh:
-                cuts.append(U.clear_hole(fx, fy, -1, 7, head_top=6.01))
+                cuts.append(U.clear_hole(fx, fy, -1, 7))       # M3 x 10, head on the foot
             sol = prim.diff(sol, cuts)
             yaw = math.degrees(math.atan2(a[1], a[0])) - 90.0      # local y -> axis direction
             M = tf.T(c[0], c[1], 0.0) @ tf.Rz(yaw)
@@ -91,7 +91,7 @@ def pedestals(P, n, sh, fw):
             cuts.append(seat)
         fh = [(-back_gap + 9, -half - 5), (-back_gap + 9, half + 5)]
         for fx, fy in fh:
-            cuts.append(U.clear_hole(fx, fy, -1, 7, head_top=6.01))
+            cuts.append(U.clear_hole(fx, fy, -1, 7))       # M3 x 10, head on the foot
         sol = prim.diff(sol, cuts)
         yaw = float(sh.get("ped_yaw", 0.0))
         M = tf.T(o[0], o[1], 0.0) @ tf.Rz(yaw)

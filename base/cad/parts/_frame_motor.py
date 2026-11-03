@@ -210,7 +210,7 @@ def saddle(w, M_world, deck_top=0.0):
     for sx in (-1, 1):
         for sy in (-1, 1):
             fx, fy = sx * (width / 2 + 5), sy * (r + 2)
-            cuts.append(U.clear_hole(fx, fy, -1, 7, head_top=6.01))
+            cuts.append(U.clear_hole(fx, fy, -1, 7))        # M3 x 10, head on the foot
             feet.append((fx, fy))
     blk = prim.diff(blk, cuts)
     M = tf.T(c0[0], c0[1], deck_top) @ tf.Rz(yaw)

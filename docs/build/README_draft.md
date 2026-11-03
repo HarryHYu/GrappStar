@@ -23,7 +23,7 @@ system it drives.
 
 608 bearings, 10 (search "608ZZ bearing 8x22x7"). Possibly also a 6 x 2.5 mm diametric magnet for the AS5600 if
 there is none in the box. Everything else is already in hand or printed (Bambu X2D, PLA; PPA-CF for loaded gears and
-keyed shafts). Range is about 4 to 5 m with the two launch springs; a second pair of the same springs gives 8 to 9 m.
+keyed shafts). Range is about 5 m with the two launch springs; a second pair of the same springs gives about 8.5 m.
 
 ## Layout
 

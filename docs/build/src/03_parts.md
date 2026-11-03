@@ -16,7 +16,7 @@ looking in the box.
   (old speakers, fridge magnets with a neodymium disc). Decision D12 plans a no-magnet mode (a printed 6-bump index
   cam read by the contact SW_INDEX); until firmware/base/README.md says it exists, the magnet is needed.
 - **Optional, for range:** a second pair of the same launch springs (Bunnings I/N 0487961). The two springs give
-  about 4 to 5 m; four give about 8 to 9 m. The base has the mounting provision built in.
+  about 5 m; four give about 8.5 m. The base has the mounting provision built in.
 
 ## Base station and rover
 

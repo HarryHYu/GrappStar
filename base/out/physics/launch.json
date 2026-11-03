@@ -1,5 +1,5 @@
 {
- "params_source": "base/spec/params.py v1.2.9",
+ "params_source": "base/spec/params.py v1.3.0",
  "spring": {
   "k_n_mm": 0.125,
   "rate_formula_n_mm": 0.11655763894105459,

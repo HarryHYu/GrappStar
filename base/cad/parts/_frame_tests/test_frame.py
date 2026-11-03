@@ -34,7 +34,9 @@ def test_api(P):
     assert all(j.name.startswith("frame_") for j in js)
     k = frame.kin(P, {"wiper_deg": 123.0})
     assert k["frame_wiper"] == 123.0
-    assert frame.kin(P, {})["frame_wiper"] == 0.0
+    # without wiper_deg the stub follows cad-drum's main shaft (the same shaft; in LAUNCH that is cad-launch's sleeve)
+    from cad.parts import drum
+    assert frame.kin(P, {})["frame_wiper"] == drum.kin(P, {})["drum_main"]
 
 
 def test_every_part_valid_and_printable(P):

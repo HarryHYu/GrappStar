@@ -41,6 +41,8 @@ WIPER_DEFAULT = dict(
     bolt_nut_h=5.0,
     slot=4.0,                # slot half-length either way: every hole can sit +-4 mm off its nominal place
     mass_kg=1.3,
+    boss_face_y=-10.0,       # D48: world y of the boss face = the motor plate's rear face (params WIPER boss_face_y);
+                             # cad-drum's coupler hub reads it too (drum.G), so the shaft and the hub move together
 )
 
 # Fixed frame interface (on the motor-side cheek): never changes when the motor is measured.
@@ -272,8 +274,9 @@ def can_stay(w, M_motor, plate_y_face, side, z_plate_top, frac=0.6):
 
 
 # ------------------------------------------------------------------------------------------------ v1.x puck adapter
-# BASE_SPEC section 2: world y = 0 is the adapter plate FRONT face; the motor sits behind it (-y) and its shaft reaches
-# cad-drum's coupler hub at y 0.5. The adapter is a PUCK that fills a window in the frame's motor plate (both y -10..0),
+# BASE_SPEC section 2: world y = 0 is the adapter plate FRONT face; the motor sits behind it (-y), its boss face on the
+# puck's rear face (y -10 = WIPER boss_face_y, D48), and cad-drum's coupler hub reaches into the puck bore for its
+# shaft. The adapter is a PUCK that fills a window in the frame's motor plate (both y -10..0),
 # keyed by a lip behind the plate and held by M3 from the front at r RIM_R (outside the drum and reel zone, r < 51).
 PUCK_R = 88.0                 # puck radius = plate window radius - 0.25
 LIP_R = 97.0                  # rear lip outer radius (behind the plate)

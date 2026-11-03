@@ -48,9 +48,15 @@ BASE_SPEC section 2: world y = 0 is the adapter plate FRONT face, the motor sits
 (`frame_cheek_r`) occupies y -10..0 with a window r 88. The adapter is a PUCK (`frame_motor_adapter`, PPA-CF) that
 fills the window (y -10..0), with a rear lip out to r 97 (y -16..-10) that keys it, held by 8 x M3 x 12 from the
 plate front face at r 92.5 into lip inserts (the frame uses the ones with both plate and lip material, at least 4,
-checked). The motor bosses bear on the puck's rear face (y -10), the M6 bolts go in from the front (heads in the slot
-counterbores) on the bench. The puck front face carries 2 inserts for cad-drum's SW_INDEX block (params
-DRUM.sw_index_mount). Puck and plate are carved round the reel cup and capstan behind the plate.
+checked). The motor bosses bear on the puck's rear face (y -10 = params WIPER boss_face_y, D48: the one datum the
+frame places the motor from and cad-drum places its coupler hub from), the M6 bolts go in from the front (heads in the
+slot counterbores) on the bench. cad-drum's SW_INDEX block sits on the strut of its idler post 2 (params
+DRUM.sw_index_mount), so the puck front face has no inserts for it (the frame adds them only if sw_index_mount gives
+(x, z) points). Puck and plate are carved round the reel cup and capstan behind the plate. Two tether channels (r 3,
+cad_support-1, from cad-reel's line_path at wraps 0 and full wraps) are cut out to the puck's edge: the guide eye to
+cup ring run (wraps 0) opens into the capstan opening, so the line swings into it when the wrap starts and can be laid
+in from there; the pulley 1 to pulley 2 run is a notch at the rim, closed by the plate once fitted (the line is pushed
+through from behind, like pulley 2's swivel tube).
 
 Motor frame: origin on the output shaft axis in the plane of the boss faces, +Z along the shaft (into the frame),
 +X along the gearbox towards the can. Keys read from `params.WIPER` (any non-None value overrides the default):
@@ -66,10 +72,11 @@ Motor frame: origin on the output shaft axis in the plane of the boss faces, +Z 
 | `bolt_d`, `bolt_head_d`, `bolt_nut_af`, `bolt_nut_h` | 6, 10, 10, 5 | boss bolts (head in the adapter slot) and nuts |
 | `slot` | 4 | every hole may sit +-4 mm from nominal (radial slots) |
 | `orient_deg` (params) / `rot_deg` | 90 | turns the motor about its shaft: 90 = gearbox and can above the axis (D20); only the slots turn, the ring stays |
+| `boss_face_y` (params, D48) | -10 | world y of the boss face; must be the motor plate's rear face (checked). cad-drum's coupler hub reads it with the shaft numbers |
 
-Checks (`frame.checks`): slots inside the puck and clear of the bore and of the SW_INDEX inserts, at least 4 usable
-rim screws, every printed part watertight as an STL. The can stay (`frame_can_stay`) is sized from the can numbers too:
-reprint it with the puck.
+Checks (`frame.checks`): slots inside the puck and clear of the bore and of any SW_INDEX inserts, at least 4 usable
+rim screws, boss face on the plate's rear face (D48), every printed part watertight as an STL. The can stay
+(`frame_can_stay`) is sized from the can numbers too: reprint it with the puck.
 
 ## 4. Electronics bay
 
@@ -119,8 +126,8 @@ timeline states, grown 4 mm) that the motor plate, bridge, leg and the bay keep 
 
 - Everyone: feet on the deck top (z = LAYOUT.deck_top_z) with M3 clearance holes; inserts come automatically.
 - cad-drum: keep the SW_INDEX block and lever, and anything else, outside r 51 of the main axis for y below 25 (the
-  adapter hub ring); coupler hub bore = the WIPER shaft (D-flat 10 / 8) with a recess for the output boss (r 12.5 x 4.5)
-  and room for the M8 nut, or start it at y 4.5. The coupler may grow to r 32.5 before it touches the 67 bore.
+  adapter hub ring). Coupler hub: done (D48, final cross-check): it reaches into the puck bore (r 15) from y -5 and
+  takes the flats (y -4..10) and the M8 thread (y 10..22) of the WIPER shaft, placed from params WIPER boss_face_y.
 - cad-reel: the sprag #2 hub clear of r 51 of the main axis for y below 25.
 - cad-launch: M3 insert holes in the rail wall outer faces at the spring guard fixing points
   (`frame_guards.fix_points(P)`, 2 per guard piece per side, horizontal along y).

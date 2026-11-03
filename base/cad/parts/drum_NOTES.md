@@ -55,7 +55,7 @@ A state without wiper_deg: the main shaft follows the launch sleeve in LAUNCH, r
 
 | s | part | notes |
 |---|---|---|
-| 4.5..27.5 | `drum_coupler_hub` PPA-CF OD 26 | starts clear of the wiper boss (y 4). Wiper shaft per cad-frame's model (not measured): round d10 to s 6, flats 8 to s 20, M8 thread s 20..32. Round bore to s 6.5, D bore to s 19.8, M8 nut at s 20.8..27.3 in a round pocket (13 mm socket) |
+| -5..27.5 | `drum_coupler_hub` PPA-CF OD 26 | D48: placed from params WIPER boss_face_y (-10) and the shaft numbers (drum.G, cad-frame's motor model defaults), so the measurements move the shaft and the hub together. Wiper shaft per cad-frame's model (not measured): output boss top s -6, round d10 to s -4, flats 8 to s 10, M8 thread s 10..22. The hub starts 1.0 above the boss (0.5 once the nut pulls it onto the end of the flats), inside the puck bore (r 15). Round bore to s -3.5, D bore to s 10.5 (13.5 mm on the flats), M8 nut at s 13..19.5 in a round pocket (13 mm socket, 8 mm down) |
 | 0.5..62 | `drum_coupler` PPA-CF | OD 40 to s 27.5, 45 deg cone to the index cam (r 26), 45 deg cone to r 28.5, bus gear. Stays under r 28.5 for s < 40 (cad-reel's wall top edge is 29.6 under the axis). Prints hub end down; tree support under the bus gear ring (r 28.5..39) |
 | | (coupler) shear pin | `drum_shear_pin` d4, radial at s 9, single shear at r 13 (about 4.9 N m) |
 | | (coupler) socket | hex 22 AF from s 28; the shaft end is bored d9.6 for the wiper thread end |

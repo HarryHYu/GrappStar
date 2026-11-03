@@ -261,6 +261,69 @@ def _swept_no_axis(C, axis_xz, margin=3.0):
     return prim.union(hs)
 
 
+TETHER_R = 3.0          # tether channel radius round the 1 mm line (cad_support-1): 2.5 mm clear of the line
+
+
+def tether_paths(P, C):
+    """Tether polylines in the deck frame from cad-reel's line_path at wraps 0 (load, flight, approach) and at full
+    wraps (wrap to unwrap); [] when cad-reel is not there."""
+    try:
+        from . import reel
+        paths = [reel.line_path(P, dict(wraps=0.0)), reel.line_path(P, dict(wraps=float(reel.WRAPS)))]
+    except Exception:
+        return []
+    Minv = tf.inv(C["to_world"])
+    return [tf.apply(Minv, np.asarray(pts, float)) for pts in paths]
+
+
+def _outer(cs):
+    """Largest outer outline (shapely Polygon, no holes) of a CrossSection, or None."""
+    rings = [Polygon(np.asarray(g)).buffer(0) for g in cs.to_polygons() if len(g) > 2]
+    rings = [g for g in rings if not g.is_empty]
+    if not rings:
+        return None
+    g = max(rings, key=lambda q: q.area)
+    g = max(g.geoms, key=lambda q: q.area) if g.geom_type != "Polygon" else g
+    return Polygon(g.exterior)
+
+
+def tether_cutter(solid, paths, M, r=TETHER_R, z_mid=0.0):
+    """Cutter (in the frame of `solid`, placed by M in the deck frame) that takes the tether out of a plate.
+    Spans of the paths that leave the same point (an eye) are one piece, the hull of all of them: the line swings
+    between them while a wrap starts and ends (the reel model jumps there). Every piece that crosses the plate is cut
+    with radius r; where its cut is still closed round at the plate's mid plane (local z = z_mid), a slot runs it out
+    sideways (local XY) to the nearest edge of the plate's outline seen along its normal (its rim, or an opening cut
+    into the rim), so the line can be laid in. None when no span crosses the solid."""
+    from manifold3d import Manifold
+    Minv = tf.inv(M)
+    sph = Manifold.sphere(r, 24)
+    pieces = {}
+    for q in paths:
+        q = tf.apply(Minv, q)
+        for a, b in zip(q[:-1], q[1:]):
+            if np.linalg.norm(b - a) > 1e-6:
+                pieces.setdefault(tuple(np.round(a, 3)), [a]).append(b)
+    cuts, edge = [], None
+    for pts in pieces.values():
+        cut = Manifold.batch_hull([sph.translate(tuple(c)) for c in pts])
+        if (cut ^ solid).volume() < 1e-3:
+            continue
+        a, b = pts[0], pts[1]
+        t = (z_mid - a[2]) / (b[2] - a[2]) if abs(b[2] - a[2]) > 1e-9 else 0.5
+        p = a + min(1.0, max(0.0, t)) * (b - a)
+        mid = _outer((solid - cut).slice(z_mid))
+        if mid is not None and mid.contains(Point(p[0], p[1])):          # closed round: run it out to the edge
+            if edge is None:
+                edge = _outer(solid.project()).exterior
+            e = edge.interpolate(edge.project(Point(p[0], p[1])))
+            v = np.array([e.x - p[0], e.y - p[1], 0.0])
+            n = float(np.linalg.norm(v))
+            v = v / max(n, 1e-9) * (n + r + 2.0)                         # past the edge
+            cut = cut + Manifold.batch_hull([sph.translate(tuple(c)) for c in (a, b, a + v, b + v)])
+        cuts.append(cut)
+    return prim.union(cuts) if cuts else None
+
+
 def motor_support_v1(P, C, info, mo):
     """BASE_SPEC v1.x motor end. The motor plate occupies y -10..0 (front face = world y 0, the spec's adapter plate
     face); a window r PUCK_R takes the puck adapter, keyed by the puck's rear lip and held by 8 x M3 from the front at
@@ -720,7 +783,7 @@ def build(P):
         # M frame: origin at the boss face plane (adapter face away from the cheek), +Z towards the frame (= -ms * Y)
         zdir = np.array([0.0, -ms, 0.0])
         xh = np.array([-1.0, 0.0, 0.0])
-        y_boss = (C["y_out"][ms]) if C["v1"] else (yo + ms * MOT.PLATE_T)   # v1: boss face on the plate rear (y -10)
+        y_boss = float(w["boss_face_y"]) if C["v1"] else (yo + ms * MOT.PLATE_T)   # v1 (D48): params WIPER boss_face_y
         Mm = tf.frame((mo[0], y_boss, mo[2]), zdir, xh) @ tf.Rz(w["rot_deg"])
         info["M_motor"] = Mm
         body = MOT.motor_body(w)
@@ -770,10 +833,30 @@ def build(P):
                             if (probe ^ cut_local).volume() > 0.5:
                                 info["warnings"].append(f"adapter carve reaches the SW_INDEX insert at ({x:.0f}, {y:.0f})")
                     ad_rot = U.carve_healed(ad_rot, cut_local)
+        if C["v1"]:
+            # cad_support-1: the tether crosses the puck (guide eye to cup ring at wraps 0, pulley 1 to pulley 2 always):
+            # a channel round each span (with the guide eye span's swing onto the capstan), out to the puck's edge
+            tcut = tether_cutter(ad_rot, tether_paths(P, C), Mad, z_mid=MOT.PLATE_T / 2)
+            if tcut is not None:
+                for (hx, hy, hd) in MOT.holes_rot(w):
+                    probe = prim.cyl(w["bolt_head_d"] / 2 + 2.0, MOT.PLATE_T, hx, hy, 0.0)
+                    if (probe ^ tcut).volume() > 1.0:
+                        info["warnings"].append(f"tether cut reaches the motor hole at ({hx:.0f}, {hy:.0f})")
+                ok = []
+                for i in info.get("puck_rim_ok", range(MOT.RIM_N)):
+                    rx, ry = MOT.rim_xy(i)
+                    if (prim.cyl(U.INS_D / 2 + 2.0, MOT.LIP_T, rx, ry, -MOT.LIP_T) ^ tcut).volume() < 0.5:
+                        ok.append(i)
+                info["puck_rim_ok"] = ok
+                info["tether_cut_mm3"] = round(ad_rot.volume() - (ad_rot - tcut).volume(), 1)
+                ad_rot = U.carve_healed(ad_rot, tcut)
+        nidx = len(info.get("index_inserts", []))
         parts.append(Part("frame_motor_adapter", ad_rot, "PPA-CF", place=Mad, print_tf=U.print_flat(ad_rot, tf.Rx(180) if C["v1"] else None),
                           color="#c9b27a",
                           notes=("puck adapter: slotted M6 holes (+-%.0f mm) for the motor bosses, rear lip with 8 M3 inserts "
-                                 "for the rim screws, 2 inserts for cad-drum's SW_INDEX block; reprint when the motor is measured"
+                                 "for the rim screws" + (", %d inserts for cad-drum's SW_INDEX block" % nidx if nidx else "")
+                                 + (", tether channels open to the edge" if info.get("tether_cut_mm3") else "")
+                                 + "; reprint when the motor is measured"
                                  if C["v1"] else
                                  "wiper adapter plate: slotted M6 holes (+-%.0f mm) for the motor bosses, 6 x M3 to the cheek ring; reprint when the motor is measured") % w["slot"]))
         info["M_adapter"] = Mad
@@ -1046,6 +1129,11 @@ def checks(P, asm=None):
     info = B["info"]
     C = info["cfg"]
     fails = list(MOT.adapter_checks(C["wiper"]))
+    if C["v1"]:
+        ms = C["fw"]["motor_side"]
+        if abs(float(C["wiper"]["boss_face_y"]) - C["y_out"][ms]) > 1e-6:
+            fails.append(f"params WIPER boss_face_y {C['wiper']['boss_face_y']} is not the motor plate's rear face "
+                         f"(y {C['y_out'][ms]:.1f}, D48): the puck lip would not sit on the plate")
     bed = getattr(P, "BED", (256.0, 256.0, 260.0))
     for p in B["parts"]:
         if p.print_tf is not None:
@@ -1085,14 +1173,15 @@ def steps_v1(P):
     deck = has("frame_deck")
     both = sorted(set(info.get("plate_rim_ok", range(MOT.RIM_N))) & set(info.get("puck_rim_ok", range(MOT.RIM_N))))
     nrim = len(both)
+    nidx = len(info.get("index_inserts", []))
+    puck_ins = "%d in the rear lip" % MOT.RIM_N + (", %d on the front face for cad-drum's SW_INDEX block" % nidx if nidx else "")
     st = [
         dict(title="Heat-set inserts",
              text="Soldering iron with an insert tip, about 220 C for PLA and about 280 C for the PPA-CF puck. Press every "
                   "M3 x 4 x 5 insert square into its 4.0 mm hole until flush: deck (%d), motor plate (2 for the leg bridge, "
-                  "2 for the can stay, %d for the gear hood), puck adapter (%d in the rear lip, %d on the front face for "
-                  "cad-drum's SW_INDEX block), bay (corner bosses, standoffs, clamp posts, perfboard bosses). Let each "
-                  "cool before the next one nearby."
-                  % (len(info["deck_holes"]), len(info.get("guard_pins", [])), MOT.RIM_N, len(info.get("index_inserts", []))),
+                  "2 for the can stay, %d for the gear hood), puck adapter (%s), bay (corner bosses, standoffs, clamp "
+                  "posts, perfboard bosses). Let each cool before the next one nearby."
+                  % (len(info["deck_holes"]), len(info.get("guard_pins", [])), puck_ins),
              parts=deck + has("frame_cheek") + ["frame_motor_adapter", "frame_ebay"]),
         dict(title="Drill the rover",
              text="Lay the deck on the rover top plate where it will live (launch direction forward). Mark through the "
@@ -1127,9 +1216,14 @@ def steps_v1(P):
                             "round the motor can through the two cradle slots, firm but not crushing.",
                        parts=has("frame_can_stay")))
     st.append(dict(title="Shafts and trains (other subsystems)",
-                   text="Now cad-drum (coupler on the wiper shaft, SW_INDEX block on the puck front face: 2 x M3 into the "
-                        "puck inserts), cad-reel and cad-launch install their trains and aim housing. Follow their steps, "
-                        "then come back.", parts=[]))
+                   text="Now cad-drum (coupler on the wiper shaft, SW_INDEX block on the strut of idler post 2: drum step "
+                        "\"Main shaft: index contact\"), cad-reel and cad-launch install their trains and aim housing. "
+                        "Follow their steps, then come back."
+                        + (" The tether crosses the puck twice, in channels cut out to the puck's edge: from the guide eye "
+                           "to the cup ring it runs in the channel that opens into the capstan opening (lay it in from "
+                           "there); from pulley 1 forward to pulley 2 it runs in the notch near the rim, which the plate "
+                           "closes (push the line end through it from behind)." if info.get("tether_cut_mm3") else ""),
+                   parts=[]))
     if has("frame_guard_hood") or has("frame_guard_front"):
         st.append(dict(title="Gear guards",
                        text="After every train has been turned by hand: the hood goes over the gears in front of the motor "

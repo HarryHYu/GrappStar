@@ -43,7 +43,9 @@ table: `drum_table.json`.
   - SW_INDEX moved to y 33.5..38.5 with its block on idler post 2 (the frame cheek is auto-carved round drum
     parts, so nothing of mine bolts to it);
   - code contacts on the drum back (cad-reel's pulley 2 post fills the front);
-  - coupler hub follows cad-frame's wiper shaft model (round to y 6, flats to y 20, M8 thread to y 32).
+  - coupler hub follows cad-frame's wiper shaft model from the D48 boss face datum (params WIPER boss_face_y -10:
+    output boss to y -6, round to y -4, flats to y 10, M8 thread to y 22): the hub reaches into the puck bore from
+    y -5, D bore on 13.5 mm of flats, M8 nut at y 13..19.5 on the thread (final cross-check cad_power-1).
 - Review rounds 5 and 6 (14:00 to 15:00):
   - no shaft retention screw (its hole was inside the frame cheek): the shaft is captured by the magnet cap and
     the launch sleeve;

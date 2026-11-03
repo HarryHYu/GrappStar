@@ -2,7 +2,8 @@
 N20 selector drum with groove 1 (fork), track 2 (reel brake preload cam), Gray code bands, wrap segment gear with
 locking arc, wrap idler, compliant fork, shift rail, brackets, switch levers, N20 cradle, hand lever.
 
-Local frame L (joint drum_base): z along the main axis (world +Y, s = distance from the wiper boss face),
+Local frame L (joint drum_base): z along the main axis (world +Y, s = world y from the motor plate front face; the
+wiper boss face is at s = params WIPER boss_face_y, -10, D48),
 x = world +X (forward), y = world -Z (DOWN). The drum axis is at L (0, DRUM_OFF, z). Timing, codes and loads are in
 _drum_kin.py (shared with firmware docs and tests). Notes: drum_NOTES.md.
 """
@@ -26,9 +27,12 @@ GEOM = dict(
     cap_xy=(-18.66, 69.64),        # cad-reel capstan axis in L (for the wrap idler mesh)
     # coupler (D8 shear pin limiter, D15 bus gear)
     cpl_s=(0.5, 62.0), cpl_od=40.0, sock_s=28.0,      # the outer coupler carries the REEL gear journal (s 50..62)
-    wiper_face_s=4.0,        # wiper output boss top (frame_wiper_motor reaches y 4.0): round shaft to 6, flats to
-                             # WIPER.shaft_len (y 20), then the M8 thread to y 32 (cad-frame motor model, not measured)
-    hub_od=26.0, hub_s=(4.5, 27.5), nut_s=20.8, shear_s=9.0, shear_d=4.0,   # M8 nut on the thread (20.8..27.3)
+    # coupler hub on the wiper shaft (D48): G() derives wiper_face_s, flat_end_s, hub_s[0] and nut_s from params WIPER
+    # (boss_face_y and the shaft numbers, cad-frame motor model defaults, not measured); these are the default values:
+    # boss face y -10, output boss top y -6, round shaft to -4, flats to 10, M8 thread 10..22
+    wiper_face_s=-6.0,       # wiper output boss top (boss face + hub_h); the hub starts 1.0 above it, in the puck bore
+    flat_end_s=10.0,         # end of the flats (boss face + shaft_len): the D bore runs to 0.5 past it
+    hub_od=26.0, hub_s=(-5.0, 27.5), nut_s=13.0, shear_s=9.0, shear_d=4.0,   # M8 nut on the thread (13..19.5)
     bus_m=1.5, bus_z=50, bus_s=(40.0, 48.0),
     cpl_rmax=28.5,           # coupler radius below s 40: reel_wall top edge is 29.6 under the axis (s 3..40)
     idx_s=(33.5, 38.5), idx_r0=26.0, idx_bump=2.5, idx_n=6, idx_w=24.0, idx_ramp=4.0,   # D12 SW_INDEX cam
@@ -78,6 +82,27 @@ def _circ2(p0, r0, p1, r1, side):
     return (p0[0] + a * ux + side * h * uy, p0[1] + a * uy - side * h * ux)
 
 
+NUT_M8_H = 6.5                # M8 nut height (DIN 934)
+
+
+def _hub_on_wiper(g, P):
+    """D48: the coupler hub follows the wiper shaft. params WIPER boss_face_y is the boss face (world y); hub_h,
+    shaft_len and thread_len come from params WIPER with cad-frame's motor model defaults (the function the frame
+    builds frame_wiper_shaft from), so Harry's measurements move the shaft and the hub together. The hub stands 1.0
+    above the output boss (0.5 once the nut has pulled it onto the end of the flats), the D bore runs from 2.5 above
+    the boss to 0.5 past the flats, the M8 nut sits on the thread with two pitches of thread above it, at least 2 mm
+    above the D bore end and inside the hub."""
+    from cad.parts import _frame_motor as FM
+    w = FM.wiper_cfg(P)
+    boss = float(w["boss_face_y"]) - float(g["main_origin"][1])
+    top = boss + float(w["hub_h"])
+    flat_end = boss + float(w["shaft_len"])
+    thread_end = flat_end + float(w["thread_len"])
+    h1 = g["hub_s"][1]
+    g["wiper_face_s"], g["flat_end_s"], g["hub_s"] = top, flat_end, (top + 1.0, h1)
+    g["nut_s"] = min(max(flat_end + 2.5, thread_end - NUT_M8_H - 2.5), h1 - NUT_M8_H)
+
+
 def G(P=None):
     g = dict(GEOM)
     d = getattr(P, "DRUM", None) if P is not None else None
@@ -106,6 +131,7 @@ def G(P=None):
             g["cap_xy"] = (float(co[0]) - ox, -(float(co[2]) - oz))
         if lay.get("deck_top_z") is not None:
             g["deck_y"] = -(float(lay["deck_top_z"]) - oz)
+    _hub_on_wiper(g, P)
     c = K.cfg(P)
     dx, dy = g["drum_xy"]
     g["phi_pin"] = math.degrees(math.atan2(-dy, -dx))
@@ -270,13 +296,14 @@ def dog_teeth(c, s_root, facing, phase_deg):
 
 # ------------------------------------------------------------------------------------------------ main shaft group
 def coupler_hub(g, P):
-    """Inner coupler hub (PPA-CF): wiper shaft bore (parametric WIPER), M8 nut pocket, half of the shear pin hole."""
+    """Inner coupler hub (PPA-CF): wiper shaft bore (parametric WIPER, placed from the boss face datum by G, D48),
+    M8 nut pocket, half of the shear pin hole."""
     W = getattr(P, "WIPER", {}) or {}
-    d = float(W.get("shaft_d", 10.0)); fl = float(W.get("shaft_flat", 8.0)); L = float(W.get("shaft_len", 20.0))
+    d = float(W.get("shaft_d", 10.0)); fl = float(W.get("shaft_flat", 8.0))
     h0, h1 = g["hub_s"]
     body = cyl(g["hub_od"] / 2, h0, h1)
     f0 = g["wiper_face_s"] + 2.5                                        # round shaft below, flats above
-    f1 = L + 0.5                     # flats end at WIPER.shaft_len from the motor frame origin (y 0), M8 thread beyond
+    f1 = g["flat_end_s"] + 0.5       # flats end at WIPER.shaft_len from the boss face (D48), M8 thread beyond
     dd = prim.extrude(prim.shapely_cs(Point(0, 0).buffer((d + fits.HOLE_SLIDE) / 2, 64)
                                       .intersection(Polygon([(-20, -(fl + 0.2) / 2), (20, -(fl + 0.2) / 2),
                                                              (20, (fl + 0.2) / 2), (-20, (fl + 0.2) / 2)]))),
@@ -1309,6 +1336,7 @@ def grounded(P):
 
 def steps(P):
     """Assembly steps, in order, plain language, hardware per step."""
+    g = G(P)
     return [
         dict(title="Drum: bracket A, axle, drum A", stage=130,
              text="Bolt bracket A to the deck (2 x M3 x 12). Press the drum axle into it (flat facing forward). Slide "
@@ -1328,13 +1356,15 @@ def steps(P):
                   "(flat facing forward).",
              parts=["drum_rail"]),
         dict(title="Main shaft: coupler and limiter", stage=146,
-             text="Push the coupler hub onto the wiper output shaft (flats in line). Drop the M8 nut on the thread and "
-                  "tighten it with a 13 mm socket (1/4 inch drive). Slide the outer coupler over the hub, line up the "
+             text="Push the coupler hub onto the wiper output shaft (flats in line) until it stops on the end of the "
+                  "flats; its lower end goes into the puck bore, just clear of the motor's output boss. Drop the M8 nut "
+                  "into the hub pocket onto the thread (it sits about %.0f mm down the pocket) and tighten it with a 13 mm "
+                  "socket (1/4 inch drive). Slide the outer coupler over the hub, line up the "
                   "holes, push a shear pin in (head outside, its flat facing the outboard end) and put a piece of tape "
                   "round the coupler over the head. Print the pins lying on their flat (D44: shear across the layers). Keep the 5 spare pins with the base. A broken pin stub comes out with an "
                   "M3 screw turned into it. Then slide the REEL gear onto the coupler journal (plain face first) and screw "
                   "the retaining washer to the journal end (2 x M3 x 6): the gear must spin free (it cannot go on once "
-                  "the dog post is fitted).",
+                  "the dog post is fitted)." % (g["hub_s"][1] - g["nut_s"] - NUT_M8_H),
              parts=["drum_coupler_hub", "drum_coupler", "drum_shear_pin", "drum_gear_reel", "drum_reel_washer"]),
         dict(title="Main shaft: index contact", stage=147,
              text="Press an M3 nut into the index block pocket, screw the index lever foot to the block (M3 x 12), "

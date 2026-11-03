@@ -6,12 +6,12 @@ result of each stage in a notebook (or `docs/build/test_log.md`).
 How to fire: `python3 -m grappstar base fire` on the Jetson. It shows mode, pitch, cock and seated, asks you to type
 FIRE, then sends `arm` and `fire` with the token at once (the token is only valid 3 s, too short to type by hand).
 
-How to send base commands: the operator page on the Jetson (jetson/README.md) has buttons for most of these. From a
-terminal on the Jetson, in `~/GrappStar/jetson`, send any command (firmware/base/PROTOCOL.md) with
-`python3 -m grappstar base cmd '{"cmd": "jog", "motor": "wiper", "dir": 1, "ms": 300}'`. Only one program may hold the
-base's serial port at a time: do not run `base monitor`, the operator page (`serve`) or the grappstar service while
-you use `base cmd`; read the result with `python3 -m grappstar base status` afterwards. `'{"cmd": "estop"}'` stops
-everything and is always safe to send.
+How to send base commands: on the Jetson, in `~/GrappStar/jetson`, run `python3 -m grappstar base console`. It shows
+telemetry twice a second and every event, and sends what you type: a JSON line from firmware/base/PROTOCOL.md (for
+example `{"cmd":"jog","motor":"wiper","dir":1,"ms":300}`), a word with key=value pairs (`mode to=REEL`), or a bare
+`stop` / `estop` / `status`. `estop` stops everything and is always safe to send. Only one program may hold the
+base's serial port: quit the console before `base fire` or the operator page, and stop the grappstar service
+first if installed.
 
 Rules that catch people out:
 - Aim before every shot: every `FIRED` and every `decock` clears the aim, and `base fire` refuses `NOT_AIMED`.

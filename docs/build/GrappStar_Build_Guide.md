@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 15:14 Sydney time from commit `99c78e2`.
+Built 2026-11-03 15:18 Sydney time from commit `ae9384d`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -2716,9 +2716,11 @@ jetson/
 # 10. Calibration (base)
 
 Where to type the commands: on the bench (ESP32 on the Mac's USB) in the Arduino Serial Monitor. Once the ESP32 is
-on the Jetson, on the Jetson in `~/GrappStar/jetson`: `python3 -m grappstar base cmd '<the same JSON>'`, with
-`python3 -m grappstar base monitor` in a second terminal for telemetry. If you installed the grappstar service, stop
-it first (`sudo systemctl stop grappstar`): it holds the serial port. Never move the USB plug with the battery in. On the rover, where CALIBRATION.md says "battery unplugged" only so
+on the Jetson: `python3 -m grappstar base console` in `~/GrappStar/jetson`. It shows telemetry twice a second and
+every event, and sends what you type: a JSON line, or a word with key=value pairs (`reel duty=0.3 until=stop`,
+`set key=limit_n val=40`, `mode to=REEL`), or a bare `stop` / `estop` / `status`; `quit` ends. Only one program may
+hold the serial port: stop the operator page and the grappstar service first (`sudo systemctl stop grappstar`).
+Never move the USB plug with the battery in. On the rover, where CALIBRATION.md says "battery unplugged" only so
 you can turn the hand lever or touch a contact while reading `sw`, use the motors-safe state: lead #2's XT60 out
 (motors dead, ESP32 and Jetson still powered).
 
@@ -3093,9 +3095,11 @@ for the dry shots.
 
 This runs on the bench before the base is assembled (order of work step 7): wiper motor clamped in a vice, drum
 N20 loose. Where to type the commands: on the bench (ESP32 on the Mac's USB) in the Arduino Serial Monitor. Once the ESP32 is
-on the Jetson, on the Jetson in `~/GrappStar/jetson`: `python3 -m grappstar base cmd '<the same JSON>'`, with
-`python3 -m grappstar base monitor` in a second terminal for telemetry. If you installed the grappstar service, stop
-it first (`sudo systemctl stop grappstar`): it holds the serial port. Never move the USB plug with the battery in.
+on the Jetson: `python3 -m grappstar base console` in `~/GrappStar/jetson`. It shows telemetry twice a second and
+every event, and sends what you type: a JSON line, or a word with key=value pairs (`reel duty=0.3 until=stop`,
+`set key=limit_n val=40`, `mode to=REEL`), or a bare `stop` / `estop` / `status`; `quit` ends. Only one program may
+hold the serial port: stop the operator page and the grappstar service first (`sudo systemctl stop grappstar`).
+Never move the USB plug with the battery in.
 
 
 
@@ -3387,12 +3391,12 @@ result of each stage in a notebook (or `docs/build/test_log.md`).
 How to fire: `python3 -m grappstar base fire` on the Jetson. It shows mode, pitch, cock and seated, asks you to type
 FIRE, then sends `arm` and `fire` with the token at once (the token is only valid 3 s, too short to type by hand).
 
-How to send base commands: the operator page on the Jetson (jetson/README.md) has buttons for most of these. From a
-terminal on the Jetson, in `~/GrappStar/jetson`, send any command (firmware/base/PROTOCOL.md) with
-`python3 -m grappstar base cmd '{"cmd": "jog", "motor": "wiper", "dir": 1, "ms": 300}'`. Only one program may hold the
-base's serial port at a time: do not run `base monitor`, the operator page (`serve`) or the grappstar service while
-you use `base cmd`; read the result with `python3 -m grappstar base status` afterwards. `'{"cmd": "estop"}'` stops
-everything and is always safe to send.
+How to send base commands: on the Jetson, in `~/GrappStar/jetson`, run `python3 -m grappstar base console`. It shows
+telemetry twice a second and every event, and sends what you type: a JSON line from firmware/base/PROTOCOL.md (for
+example `{"cmd":"jog","motor":"wiper","dir":1,"ms":300}`), a word with key=value pairs (`mode to=REEL`), or a bare
+`stop` / `estop` / `status`. `estop` stops everything and is always safe to send. Only one program may hold the
+base's serial port: quit the console before `base fire` or the operator page, and stop the grappstar service
+first if installed.
 
 Rules that catch people out:
 - Aim before every shot: every `FIRED` and every `decock` clears the aim, and `base fire` refuses `NOT_AIMED`.

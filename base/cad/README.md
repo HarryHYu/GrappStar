@@ -84,6 +84,8 @@ def clearances(P) -> list[Clearance]: ...     # named pairs that must keep a gap
 def audit_states(P) -> list[dict]: ...        # extra states S to audit (joint sweeps, fault states)
 def checks(P, asm) -> list[str]: ...          # own extra checks, return failure strings (empty = pass)
 def steps(P) -> list[dict]: ...               # assembly steps: {"title", "text", "parts": [names]}
+def line_path(P, S) -> list[tuple]: ...       # tether polyline in WORLD mm for state S (exit eye, pulleys, dart
+                                              # tail); the sim draws it; the reel module starts it, launch continues
 def grounded(P) -> list[str]: ...             # parts (fnmatch patterns) that rest on the rover; every other part must
                                               # connect to one through contacts in the rest state
 ```

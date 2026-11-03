@@ -243,3 +243,10 @@ def test_custom_timeline_targets_and_unknown_names():
         state_at(P2, 0.0)
     P3 = _t.SimpleNamespace(DRUM={"angles": {"LAUNCH": 0, "NEUTRAL": 40, "REEL": 80}})
     assert state_at(P3, 0.0)["drum_deg"] == 0
+
+
+def test_line_path_joined_in_order():
+    a = mod([], [], lambda P, S: {}, line_path=lambda P, S: [(0, 0, 0), (1, 0, 0)])
+    b = mod([], [], lambda P, S: {}, line_path=lambda P, S: [(1, 0, 0), (5, 0, S["k"])])
+    asm = Assembly(None, {"launch": b, "reel": a})
+    assert asm.line({"k": 2.0}) == [[0, 0, 0], [1, 0, 0], [5, 0, 2.0]]

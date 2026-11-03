@@ -5,7 +5,7 @@ sim over HTTP, the real Jetson App). Each entry: the exact failing scenario, the
 Line numbers are against `origin/base-v1` at the time of the entry. Status: OPEN until the owner says fixed and the
 harness re-runs green.
 
-## Status (14:40 Sydney)
+## Status (final, 19:35 Sydney; last runs 15:25)
 
 "fixed on branch" = green in the preview runs (`PREVIEW=1 systest/batch.sh`, base-v1 + w/fw-base + w/fw-dart +
 w/jetson; commits in `systest/runs_preview.version` and the logs), or stated fixed by the owner with the commit and
@@ -21,7 +21,7 @@ re-tested where noted. Evidence in `systest/runs_preview/<scenario>/` and `syste
 | F6 | jetson | fixed on branch | prompt says "The drum HELD where it is (...)" |
 | F7 | jetson | fixed on branch | `stall_cock`: Decock and re-aim, mission DONE |
 | F8 | jetson | fixed on branch | `power_unwrap(_fasthello)`: BASE_RESET at once, DONE in about 120 s |
-| F9 | fw-base | fw-base reports an index mode (`indexMode` in cmdAim); not re-tested: the plant has no index cam | |
+| F9 | fw-base | index mode implemented behind config.h (D12); runs up to the shot, then F31 | batch 5 `no_magnet_index`: BOOT angle INDEX, aim, cock, FIRED |
 | F10 | jetson | fixed on branch | `no_angle_sensor` PASS: preflight "AS5600 sees no magnet" |
 | F11 | jetson | not reproduced since F4 (no partial wrap any more) | |
 | F12 | jetson | fixed on branch | C1 order = 10.1 apart from F25 |
@@ -33,13 +33,17 @@ re-tested where noted. Evidence in `systest/runs_preview/<scenario>/` and `syste
 | F18 | jetson | fixed on branch | no 60 s TOW waits |
 | F19 | fw-base | fixed on branch | `ref_refusals`: every wrong command refused (fw-base 6381edd) |
 | F20 | fw-base (D41) | fixed on branch | `ref_nominal` fly-in 14.6 N, no fault (c28396c) |
-| F21 | fw-base | fixed on branch | `ref_tow_stiff` PASS (6381edd): tow limit held on the stiff line |
-| F22 | fw-base / jetson | by design: host sends `stop` then `reel`; PROTOCOL + mission to align | |
-| F23 | fw-base | fixed in firmware 783f3b2 (line_m - 0.88 m after the wrap): the Jetson must not subtract it too | re-test |
+| F21 | fw-base | improved, still OPEN on the 3 m stiff line | 18ab2b2: `ref_tow_stiff` 50.4 N, `tow_stiff` 46.2 N dart-side vs 46.0 bound; `ref_nominal` (3.6 m) 38.6 N PASS |
+| F22 | jetson (host side) | OPEN: firmware by design (host sends `stop` then `reel`); the mission still re-sends `reel` from HOLD | batch 5: LIMIT 40 "already at the limit" on a 19 N line in every tow with rover slack |
+| F23 | fw-base | fixed in firmware 783f3b2 (line_m - 0.88 m after the wrap): the Jetson must not subtract it too | batch 5: base line_m 4.18 after the wrap of a 5.08 m shot |
 | F24 | jetson (low) | open | |
 | F25 | jetson / spec (low) | open (stop-first is safer: suggest the spec adopts it) | |
-| F26 | fw-base | fixed in 4231f46 (owner) | re-test `hand_lever` |
-| F27 | fw-base (low) | fixed in 4231f46 (owner: clamp within aim_tol) | re-test |
+| F26 | fw-base | fixed on branch | batch 5 `hand_lever`: no DRUM_SENSOR at boot, mission DONE |
+| F27 | fw-base (low) | fixed in 4231f46 (owner: clamp within aim_tol); the Jetson sends 6.06 anyway | |
+| F28 | jetson | OPEN: guard keyed on literal factory k; base now has `tension_cal`, the Jetson still also matches values | batch 5 `nominal_uncal` towed without the warning; `tow_stiff` refused a calibrated 16.967 |
+| F29 | jetson vision | speed part fixed on w/jetson-vision 6fc97c8; remaining ~11 % = renderer vs C3 table (by design) | |
+| F30 | fw-base (low) | re-test on 18ab2b2 not done | |
+| F31 | fw-base | OPEN | batch 5 `no_magnet_index`: mode NEUTRAL LAUNCH_BUSY after the low aim in index mode |
 
 ## F1 (fw-base) `cal` (and `set`) during the first 60 ms are acknowledged ok, then silently undone by the boot rebuild
 
@@ -451,3 +455,14 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   within 0.05 of a factory value: scenario `tow_stiff` set `k_n_per_a` 16.967 by calibration (base `tension_cal`
   true) and got "TOW refused: ... still the factory 16.967" (17.0 is in `FACTORY_K_N_PER_A`). When the base reports
   `tension_cal`, trust the flag and drop the value match.
+
+## F31 (fw-base) in D12 index mode (no magnet, SW_INDEX on) `mode NEUTRAL` is refused LAUNCH_BUSY after the D45 low aim
+
+- Batch 5 (fw-base ecc413f, base-1.3.0), scenario `no_magnet_index` (AS5600 absent from power-on, SW_INDEX switched
+  on as `config.h` allows; harness flag `--index-cam`): `BOOT {"angle":"INDEX","phase":"REST"}`, aim, cock, FIRED,
+  RESET, `status` phase REST, then the D45 `aim 6.06` -> AIMED 6.5, then `mode NEUTRAL` -> `LAUNCH_BUSY`, every retry
+  (4x) until the operator aborted. Plant: carriage home, cock phase 1.3 deg (at rest), wiper stopped.
+- `launchExitCheck()` refuses on `maybeLoaded()` or SW_GAP open; in index mode the count after the long backward aim
+  apparently leaves one of them set. The same sequence with the AS5600 (scenario `nominal`) shifts to NEUTRAL fine.
+- Impact: on a no-magnet build the mission cannot leave LAUNCH after the shot (no wrap, no tow, no retrieve).
+  Log: `systest/runs_preview/no_magnet_index/base.log` (local run, reproduce with `systest/run_mission.sh no_magnet_index`).

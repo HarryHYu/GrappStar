@@ -19,7 +19,9 @@ default (buffer_max_mb=None) it is buffer_s x the measured frame rate x the fram
 BUFFER_MAX_MB and at most RAM_HARD_MAX_MB. 720x480 BGR at 30 fps is 31 MB/s, so 15 s needs about 470 MB.
 A hold (hold(t_from), set at fire time from 2 s before the launch) pins the flight frames: they are never dropped
 by age or count. When the RAM cap is reached the oldest held frames are JPEG-compressed in memory (about 10x
-smaller; buffer() decodes them back), so an operator prompt with no timeout cannot lose the launch frames.
+smaller; buffer() decodes them back). A very long hold (an operator prompt with no timeout) thins the packed
+frames AFTER the first HOLD_KEEP_HEAD_S of the hold, so the launch and flight frames are always kept. Read with
+buffer(since=t) so frames before t are never decoded.
 release_hold() ends it (a hold also ends by itself after hold_max_s).
 """
 import collections
@@ -39,7 +41,8 @@ STATS_WINDOW_S = 2.0      # fps and bad fraction are measured over this window
 MAX_BUFFER_FRAMES = 4000  # hard cap so a fast camera cannot eat all the RAM
 BUFFER_MAX_MB = 400.0     # minimum ring RAM cap in MB of image data (720x480 BGR is about 1 MB per frame)
 RAM_HARD_MAX_MB = 1200.0  # automatic cap never goes above this (Orin Nano: 8 GB shared with the GPU)
-HELD_MAX_MB = 400.0       # compressed held frames above this are dropped (about 3 min of 720x480 at 30 fps)
+HELD_MAX_MB = 120.0       # packed held frames above this are thinned (about 1200 to 1800 frames of 720x480)
+HOLD_KEEP_HEAD_S = 8.0    # never thinned: from the hold start (2 s before launch) through launch, flight, landing
 HOLD_MAX_S = 300.0        # a hold nobody released ends by itself after this
 PACK_JPEG_QUALITY = 92
 
@@ -331,9 +334,20 @@ class Camera:
             self._ring_bytes += p.nbytes - _nbytes(f)
             self._packed_bytes += p.nbytes
             self._n_packed += 1
-        # 3. last resort: drop the oldest packed frames
-        while self._packed_bytes > HELD_MAX_MB * 1024 * 1024 and self._n_packed and len(ring) > 1:
-            self._pop_locked()
+        # 3. last resort (a very long hold): drop the oldest packed frames AFTER the protected head (hold start to
+        # hold start + HOLD_KEEP_HEAD_S: launch, flight and landing). The newest frames stay unpacked anyway.
+        cut = self._hold_t + HOLD_KEEP_HEAD_S
+        i = 0
+        while self._packed_bytes > HELD_MAX_MB * 1024 * 1024 and i < self._n_packed:
+            f = ring[i][1]
+            if f.t < cut:
+                i += 1
+                continue
+            del ring[i]
+            n = _nbytes(f)
+            self._ring_bytes -= n
+            self._packed_bytes -= n
+            self._n_packed -= 1
             self._dropped_held += 1
 
     # ------------------------------------------------------------ public API
@@ -394,9 +408,10 @@ class Camera:
                 self._jpeg_cache = (f, data)
             return data
 
-    def buffer(self, seconds: Optional[float] = None) -> list:
+    def buffer(self, seconds: Optional[float] = None, since: Optional[float] = None) -> list:
         """Frames received in the last `seconds` before the newest frame (all if None).
-        Measured from the newest frame, so it still works after the link drops."""
+        Measured from the newest frame, so it still works after the link drops.
+        since: only frames with f.t >= since (filtered BEFORE packed frames are decoded: use it after a hold)."""
         with self._lock:
             if not self._ring:
                 return []
@@ -405,6 +420,8 @@ class Camera:
             else:
                 cutoff = self._ring[-1][0] - seconds
                 items = [f for t, f in self._ring if t >= cutoff]
+        if since is not None:
+            items = [f for f in items if f.t >= since]
         return [_unpack(f) for f in items]       # packed (held) frames are decoded outside the lock
 
     def start_recording(self, path: str, fps: Optional[float] = None, **kw) -> str:

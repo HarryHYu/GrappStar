@@ -153,8 +153,15 @@ def state_at(P, t: float) -> dict:
 
 
 def _state_custom(S, custom, t):
-    """Generic timeline: each phase eases the S keys in its targets from their previous values."""
+    """Generic timeline: each phase eases the S keys in its targets from their previous values. Every key named in
+    any phase starts at its first target value, so no key is ever missing (the first phase holds its own targets)."""
     cur = dict(S)
+    seen = set()
+    for _, _, _, targets in custom:
+        for k, v in (targets or {}).items():
+            if k not in seen:
+                seen.add(k)
+                cur[k] = v
     t0 = 0.0
     for name, dur, _, targets in custom:
         u = (t - t0) / dur if dur else 1.0

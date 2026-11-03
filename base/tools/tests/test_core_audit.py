@@ -301,3 +301,12 @@ def test_line_path_accepts_nested_segments():
     seg = [(np.array([[0.0, 0, 0], [1, 0, 0]]), {"a", "b"}), (np.array([[1.0, 0, 0], [2, 0, 0]]), {"c"})]
     b = mod([], [], lambda P, S: {}, line_path=lambda P, S: seg)
     assert Assembly(None, {"launch": b}).line({}) == [[0, 0, 0], [1, 0, 0], [2, 0, 0]]
+
+
+def test_custom_timeline_keys_defined_from_t0():
+    import types as _t
+    from tools.timeline import state_at
+    P = _t.SimpleNamespace(TIMELINE=[("a", 2.0, "", {"x": 5.0, "mode": "A"}), ("b", 2.0, "", {"y": 3.0, "x": 9.0})])
+    S = state_at(P, 0.0)
+    assert S["x"] == 5.0 and S["mode"] == "A" and S["y"] == 3.0
+    assert state_at(P, 4.0)["x"] == pytest.approx(9.0)

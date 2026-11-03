@@ -224,7 +224,7 @@ int main() {
   { fresh(); for (int i = 0; i < 20; i++) { K.key('@', 350, NOW); run(150); }   // kick already stowed: held into the stop
     CHECK(P.mdir[KICK] == 0 && logged("stalled: kick"), "held key into an end stop: stall stops it although repeats keep coming");
     run(600); CHECK(K.key('@', 350, NOW) == nullptr, "after the key is released it may be tried again");
-    run(100); CHECK(K.key('2', 350, NOW) == nullptr && P.mdir[KICK] == 1, "the other direction is never locked"); }
+    run(100); K.stop(NOW, false); CHECK(K.key('2', 350, NOW) == nullptr && P.mdir[KICK] == 1, "after a stop the other direction is never locked"); }
   { fresh(); P.deploy = 1400; K.key('1', 1500, NOW); run(600); CHECK(P.mdir[DEPLOY] == 0 && logged("stalled: deploy"), "deploy driven into its end: stall stop"); }
   { fresh(); K.key('3', 1500, NOW); K.key('2', 1500, NOW); run(100); K.linkLost(NOW); CHECK(allOff() && logged("WiFi client lost"), "WiFi client lost: manual motors stop at once"); }
   { fresh(); K.startAuto(NOW); run(500); K.linkLost(NOW); CHECK(K.seq == K_SWING && P.mdir[KICK] == 1, "WiFi lost during auto: the sequence carries on"); }
@@ -434,6 +434,22 @@ int main() {
     CHECK(K.landed && std::string(K.flight.how) == "impact" && ph() == "ANCHORING", "impact read at only 5 g (sensor filter): still an impact landing, auto starts");
     std::string st = statusJson(); CHECK(st.find("\"peak_g\":8.00") != std::string::npos, "status peak_g holds the highest |a| since arming"); }
   { fresh(); K.key('3', 1500, NOW); run(100); CHECK(P.duty[DRILLS] == 255, "manual at speed 255 drives full duty (slow decay with a DC input)"); }
+
+  // ===================================================================================================== review round 5 regressions
+  section("review round 5 regressions");
+  { fresh(); K.startAuto(NOW); run(20000); K.startRelease(NOW);
+    K.io.current_mA = []() { return (NOW == 23000) ? NAN : P.total(); }; run(25000);
+    CHECK(K.seq == RELEASED && K.fault == F_NONE, "one failed current read at a step end does not abort the release"); }
+  { fresh(); P.deploy = 1400; for (int i = 0; i < 100; i++) { K.key('1', 350, NOW); K.key('!', 350, NOW); run(150); }
+    int on = 0; for (int i = 0; i < 20; i++) { K.key('1', 350, NOW); K.key('!', 350, NOW); run(150); if (P.mdir[DEPLOY]) on++; }
+    CHECK(on == 0 && logged("both directions held"), "both directions of one motor held: stopped and kept off"); }
+  { fresh(); K.key('-', 0, NOW); for (int i = 0; i < 8; i++) K.key('-', 0, NOW); K.key('2', 1500, NOW); run(1200);   // speed 50
+    CHECK(P.mdir[KICK] == 1 && !logged("stalled"), "lowest speed: a free-running kick is not taken as stalled"); }
+  { fresh(); ACC = [](uint32_t t) { return flightTrace(t, 2000); }; K.arm(true, true, NOW); run(2100);
+    K.key('3', 350, NOW); K.stop(NOW, false); run(3000);   // web page: key refused in flight, then its keyup stop (keep arm)
+    CHECK(ph() == "ANCHORING", "a key tapped in FLIGHT and its keyup stop (disarm=0) do not cancel auto on landing"); }
+  { fresh(); uint32_t t0 = 2000; ACC = [&](uint32_t t) { return flightTrace(t, t0); }; K.arm(true, false, NOW); run(5000);
+    K.key('2', 1500, NOW); run(100); CHECK(ph() == "IDLE", "landed, then a manual motor runs: phase IDLE, not LANDED"); run(1500); CHECK(ph() == "LANDED", "...and LANDED again when it stops"); }
 
   // ===================================================================================================== whole mission
   section("whole mission phases");

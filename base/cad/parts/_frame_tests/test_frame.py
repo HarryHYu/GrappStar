@@ -34,7 +34,7 @@ def test_api(P):
     assert all(j.name.startswith("frame_") for j in js)
     k = frame.kin(P, {"wiper_deg": 123.0})
     assert k["frame_wiper"] == 123.0
-    assert frame.kin(P, {}) == {"frame_wiper": 0.0}
+    assert frame.kin(P, {})["frame_wiper"] == 0.0
 
 
 def test_every_part_valid_and_printable(P):

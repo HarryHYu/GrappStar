@@ -74,7 +74,7 @@ aborted when the upload starts.
 ## Tuning
 
 The current thresholds in `kedge_logic.h` (`struct Tuning`) are from the v29 bench numbers at 8 V. Measure the real
-ones with BENCH_TEST.md steps 3 to 6 and write them in at step 9. Then run the PC tests.
+ones with BENCH_TEST.md steps 3 to 6 and write them in at step 10. Then run the PC tests.
 
 ## PC tests
 

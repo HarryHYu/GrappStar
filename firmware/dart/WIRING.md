@@ -94,15 +94,16 @@ unsure; trim at the end. Work in this order. Every step starts with the battery 
 **Step B1. Battery unplugged. Cells and BMS** (wires 1 to 8). Solder the plate tabs before the plates go in their
 recesses. The series link (wire 2) carries the full current: 22 AWG. Charge socket pins: 1 = B-, 2 = BM, 3 = B+.
 
-**Step B2. Battery unplugged. Set the buck first.** Solder wires 9, 10 and 13 only, so the MP1584 input is fed and
-nothing is on its output. Insert the power loop plug. Meter on DC volts across MP1584 OUT+ and OUT-. Turn the small
-screw until it reads **5.04 V**. Pull the plug. Then fit the capacitor across OUT (long leg OUT+, striped leg OUT-).
+**Step B2. Set the buck before it is wired in** (as in the run sheet step 6.2). The MP1584 on its own: 3S LiPo on
+XT60 lead #1 to MP1584 IN+ / IN-, meter on DC volts across OUT+ and OUT-, turn the small brass screw until it reads
+**5.04 V**. Disconnect the LiPo. Then fit the capacitor across OUT (long leg OUT+, striped leg OUT-).
 
-**Step B3. Battery unplugged. Motor rail** (wires 11, 12, 14, 15; 9, 10 and 13 were done in B2). INA219 VIN- to
-DRV#1 VM, then DRV#1 VM to DRV#2 VM. Grounds: BMS P- to buck IN-, buck IN- to DRV#1 GND,
+**Step B3. Battery unplugged. Motor rail** (wires 9 to 15). Power loop socket pin 2 to INA219 VIN+, the buck IN+ taps
+the same VIN+ pad, INA219 VIN- to DRV#1 VM, then DRV#1 VM to DRV#2 VM. Grounds: BMS P- to buck IN-, buck IN- to DRV#1 GND,
 DRV#1 GND to DRV#2 GND. **The chain ends at DRV#2.** There is no DRV#3.
 
-**Step B4. Battery unplugged. 5 V** (wires 16 to 21). Buck OUT+ to XIAO 5V **through the Schottky diode, stripe
+**Step B4. Battery unplugged. 5 V** (wires 16 to 21). Click the u.FL antenna onto the VTX now: never power a VTX
+without its antenna. Buck OUT+ to XIAO 5V **through the Schottky diode, stripe
 towards the XIAO**. Buck OUT- to XIAO GND. Buck OUT to the VTX, VTX pads on to the camera.
 
 **Step B5. Battery unplugged. Camera video** (wire 22): camera yellow to VTX video in, twisted with the camera ground.
@@ -130,12 +131,13 @@ BIN1, BIN2 (kick). D8, D9 to DRV#2 AIN1, AIN2 (drills). D6, D7 to DRV#2 BIN1, BI
 
 1. **Battery unplugged.** Motors still outside the hull, legs free to turn, nothing touching the augers.
 2. USB only, power loop plug out: flash the firmware (README.md). Serial Monitor at 115200. Type `z`: expect `0x40` and `0x4a`.
-3. Unplug USB. Insert the power loop plug. Nothing should move, nothing should get warm. Join WiFi `KEDGE`.
+3. Antenna on the VTX. Unplug USB. Insert the power loop plug. Nothing should move, nothing should get warm. Join WiFi `KEDGE`.
 4. Open `http://192.168.4.1`. Status line must show `IDLE`, `INA219 ok`, `BNO085 ok`, rail about 7 to 8.4 V.
-5. Go through BENCH_TEST.md (every motor, both directions, before any wire is routed into the hull).
+5. Go through BENCH_TEST.md: steps 0 to 6 (directions, free currents) on the loose motors now, the rest after
+   assembly (the table at the top of BENCH_TEST.md says which).
 
-**Drill direction check** (BENCH_TEST.md step 4): hold "drills in" (key `3`) and look down each auger from its motor
-end towards its tip. The left auger (right-hand thread) must turn **clockwise**, the right auger (left-hand thread)
+**Drill direction check** (BENCH_TEST.md step 4): hold "drills in" (key `3`) and look at each auger from its motor
+end, looking toward the tip. The left auger (right-hand thread) must turn **clockwise**, the right auger (left-hand thread)
 **anticlockwise**: then both screw into the ground.
 - Left auger wrong: battery unplugged, swap the two thin input wires at DRV#2 AIN1 and AIN2 (D8 and D9). This
   reverses both drills. Check again.

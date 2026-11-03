@@ -3,6 +3,14 @@
 Goal: every motor turns the right way and stops on its own, both sensors work, the current thresholds are real
 numbers, and one full anchor + release runs on soil. About 1 hour.
 
+When to run each part:
+
+| Steps | When |
+|---|---|
+| 0 to 2, and the direction + free current parts of 3 to 6 | loose motors on the bench (bench harness, before routing into the hull) |
+| stall at the end stops in 3 to 6, then 7 to 10 | assembled: legs and pods fitted, hull open |
+| 11, and 12 step 4 (camera picture) | after the Jetson, RC832 and capture card are set up (rover section) |
+
 You need: charged 18350 cells (XTAR MC2), multimeter, phone or laptop on WiFi `KEDGE`, a stopwatch, a tray or bucket
 of damp soil at least 10 cm deep, a folded towel, and this sheet to write numbers on.
 
@@ -12,8 +20,8 @@ Directions used below (firmware convention, +1 in `/status` `motors`):
 |---|---|---|
 | `1` | deploy | pods swing **down** |
 | `2` | kick | leg swings **out**, over the nose |
-| `3` | drills | augers turn to **screw in** (left clockwise, right anticlockwise, looking from motor end to tip) |
-| `4` | foot | foot auger turns to **screw in** (look at its thread: a right-hand thread screws in clockwise, looking from motor end to tip) |
+| `3` | drills | augers turn to **screw in**: left clockwise, right anticlockwise, seen from the motor end, looking toward the tip |
+| `4` | foot | foot auger turns to **screw in**: clockwise seen from the motor end, looking toward the tip (right-hand foot auger) |
 
 If a motor turns the wrong way: **battery unplugged**, swap that motor's two thin input wires at its driver
 (deploy: DRV#1 AIN1/AIN2, kick: DRV#1 BIN1/BIN2, drills: DRV#2 AIN1/AIN2, foot: DRV#2 BIN1/BIN2). Then check again.
@@ -22,7 +30,8 @@ If a motor turns the wrong way: **battery unplugged**, swap that motor's two thi
 
 1. **Battery unplugged.** Wiring done and meter-checked (WIRING.md step A7 or B10). Firmware flashed (README.md).
 2. Motors and legs outside the hull or with the hull open, legs free to swing, nothing near the augers. Fingers clear.
-3. Unplug USB. Then insert the power loop plug. Nothing moves, nothing gets warm in 30 s. If anything heats: pull the plug.
+3. The u.FL antenna must be clicked onto the VTX before any power (a VTX without its antenna can burn out). Unplug USB.
+   Then insert the power loop plug. Nothing moves, nothing gets warm in 30 s. If anything heats: pull the plug.
 4. Join `KEDGE`, open `http://192.168.4.1`. The status line must show `IDLE`, `INA219 ok`, `BNO085 ok`.
 
 ## Step 1. Power and current sensor
@@ -90,7 +99,17 @@ is above its real stall current: release, press `i`, and write down the peak it 
    samples. Save it. The towel drop usually reads `landing: "timeout"` or `"still"` (soft), which is correct.
 5. Open `http://192.168.4.1/stop` to disarm.
 
-## Step 9. Write the real thresholds
+## Step 9. Anchor and release on soil (assembled, hull open)
+
+1. Legs stowed. Lay the dart on the damp soil, belly down, nose clear of the tray wall.
+2. Page: press `AUTO anchor`. Watch the status: kick swing, foot touches, kick + foot planting, foot finishing,
+   deploy + drills, drills finishing, `ANCHORED`. Write the time of each event from the event lines on the web page
+   (not the Serial Monitor: no USB while the battery is in). Note the working currents for `loadMa`.
+3. Pull the tether gently by hand: the dart should hold.
+4. Press `RELEASE`: drills out, pods up, foot out, kick back, `released`. The legs end stowed.
+5. If it stops with `FAULT`: write down the fault and the last event, press STOP, and fix the threshold (step 10).
+
+## Step 10. Write the real thresholds
 
 In `kedge_logic.h`, `struct Tuning`, set (all at full speed 255, battery fully charged):
 
@@ -101,24 +120,14 @@ In `kedge_logic.h`, `struct Tuning`, set (all at full speed 255, battery fully c
 | `stallMa[DRILLS]` | 85 % of drill pair stall | 600 |
 | `stallMa[FOOT]` | 80 % of foot stall | 450 |
 | `kickContactMa` | about 2 x kick free, below kick stall / 2 | 60 |
-| `loadMa[...]` | typical working current in soil (step 10) | 40, 70, 420, 130 |
+| `loadMa[...]` | typical working current in soil (step 9) | 40, 70, 420, 130 |
 | `kickMaxMs` | 2 x kick swing time, at least 8000 | 15000 |
 
-Re-run `test/run_tests.sh`, upload, repeat steps 3, 5 and 6 once to see the stops still work.
+Re-run `test/run_tests.sh`, upload, repeat steps 3, 5 and 6 and step 9 once to see the stops still work.
 
-## Step 10. Anchor and release on soil
+## Step 11. Jetson link (after the Jetson is set up)
 
-1. Legs stowed. Lay the dart on the damp soil, belly down, nose clear of the tray wall.
-2. Page: press `AUTO anchor`. Watch the status: kick swing, foot touches, kick + foot planting, foot finishing,
-   deploy + drills, drills finishing, `ANCHORED`. Write the time of each event from the event lines on the web page
-   (not the Serial Monitor: no USB while the battery is in). Note the working currents for `loadMa`.
-3. Pull the tether gently by hand: the dart should hold.
-4. Press `RELEASE`: drills out, pods up, foot out, kick back, `released`. The legs end stowed.
-5. If it stops with `FAULT`: write down the fault and the last event, press STOP, and fix the threshold (step 9).
-
-## Step 11. Jetson link
-
-From the Jetson on `KEDGE`: `python3 kedge/fw/jetson/kedge_client.py status` (or the new client in `jetson/`).
+From the Jetson on `KEDGE`: `python3 -m grappstar dart status` (the jetson package).
 Phase `IDLE`, fields present. Or simply `curl http://192.168.4.1/status`.
 
 ## Step 12. Close the hull
@@ -127,6 +136,6 @@ Phase `IDLE`, fields present. Or simply `curl http://192.168.4.1/status`.
 2. Route the wires: drill wires with a 30 mm loop at each flank hole for the pod swing; the foot pair with a 60 mm
    loop round the kick hub; nothing crossing a hinge; nothing pinched by the hull halves. The DRV#3 pocket stays empty.
 3. Close the hull, insert the plug, and repeat steps 3, 5 and 6 (one swing each way) to make sure no wire catches.
-4. Camera: switch on the RC832 and check the picture.
+4. Camera (after the RC832 is set up): switch on the RC832 and check the picture.
 
-Bring back: the numbers from steps 1 to 7 and 10. They go into `Tuning` and the REPORT.
+Bring back: the numbers from steps 1 to 7 and 9. They go into `Tuning` and the REPORT.

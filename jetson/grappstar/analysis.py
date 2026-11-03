@@ -59,7 +59,10 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
         from .vision import terrain
         att = None
         if fres is not None and getattr(fres, "attitude", None):
-            att = fres.attitude[-1]
+            # the dart lands nose first, so its nose-down pitch is expected and is not ground slope:
+            # pass only the roll (side tilt), which does follow the ground
+            t_, roll_, pitch_, yaw_ = fres.attitude[-1]
+            att = (t_, roll_, 0.0, yaw_)
         try:
             rep = terrain.analyze_landing(land_frames, model=terrain_model, attitude=att)
         except TypeError:

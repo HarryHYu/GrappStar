@@ -200,7 +200,7 @@ class Mission:
             except BaseTimeout:
                 continue
 
-    def wait_tel(self, pred, timeout: float, what: str) -> dict:
+    def wait_tel(self, pred, timeout: float, what: str, fail_on_fault: bool = True) -> dict:
         t_end = time.monotonic() + timeout
         while True:
             self.check_cancel()
@@ -208,7 +208,7 @@ class Mission:
             if left <= 0:
                 raise BaseTimeout(f"base: timed out waiting for {what}")
             try:
-                return self.base.wait_tel(pred, min(0.25, left), what)
+                return self.base.wait_tel(pred, min(0.25, left), what, fail_on_fault=fail_on_fault)
             except BaseTimeout:
                 continue
 
@@ -216,6 +216,9 @@ class Mission:
         t = self.tel()
         if t.get("mode") == to and t.get("drum_pos") == to and t.get("state") in ("IDLE", "HOLD"):
             return
+        # after a fault the drum may still be travelling to NEUTRAL: wait for it to settle first
+        self.wait_tel(lambda t: t.get("state") in ("IDLE", "HOLD", "FAULT"), self.cfg.mode_timeout_s, "base idle",
+                      fail_on_fault=False)
         m = self.base.event_mark()
         self.base.mode(to)
         self.wait_evt("MODE", self.cfg.mode_timeout_s, m, pred=lambda e: e.get("mode", to) == to)
@@ -296,10 +299,12 @@ class Mission:
 
     def _clear_fault(self) -> None:
         try:
-            t = self.tel()
-            if t.get("fault") or t.get("state") == "FAULT":
-                self.base.clear()
-                self.wait_tel(lambda t: not t.get("fault"), 3.0, "fault cleared")
+            # always send clear (harmless without a fault; telemetry may not show a fresh fault yet)
+            t0 = time.time()
+            self.base.clear()
+            # wait for telemetry sent after the clear (older lines may predate the fault)
+            self.wait_tel(lambda t: self.base.tel_t > t0 + 0.02 and not t.get("fault"), 3.0, "fault cleared",
+                          fail_on_fault=False)
         except (BaseError, BaseTimeout, BaseDisconnected) as e:
             self.log.warn(f"clear failed: {e}")
 
@@ -386,6 +391,9 @@ class Mission:
         self.log.info("preflight ok")
 
     def aim(self) -> None:
+        t = self.tel()
+        if t.get("drum_pos") != "LAUNCH":
+            self.base_mode("LAUNCH")
         tgt = self.get_target() or {}
         rng = float(tgt.get("range_m") or 0)
         sol = self.bal.solve(rng, self.cfg.drag_n)
@@ -421,7 +429,30 @@ class Mission:
                 except Exception as e:
                     self.log.warn(f"{name} recording failed: {e}")
 
+    def ensure_launch(self) -> None:
+        """After a fault the base is in NEUTRAL: put it back in LAUNCH and re-aim before firing again."""
+        t = self.tel()
+        if t.get("drum_pos") != "LAUNCH" or t.get("mode") != "LAUNCH":
+            self.log.info("base not in LAUNCH: switching back")
+            self.base_mode("LAUNCH")
+            t = self.tel()
+        p = self.shot.get("pitch_deg")
+        if p is not None and abs((t.get("pitch_deg") or -99) - p) > 0.5:
+            self.log.info(f"re-aiming to {p} deg")
+            m = self.base.event_mark()
+            self.base.aim(p)
+            self.wait_evt("AIMED", self.cfg.aim_timeout_s, m)
+
+    def ensure_reel(self, wrapped: bool = True) -> None:
+        t = self.tel()
+        if t.get("mode") != "REEL" or (t.get("drum_pos") not in ("REEL", "WRAPPED") and (t.get("wraps") or 0) < 0.05):
+            self.log.info("base not in REEL: switching back")
+            self.base_mode("REEL")
+        if wrapped and self.tel().get("drum_pos") != "WRAPPED":
+            self.wrap()
+
     def fire(self) -> None:
+        self.ensure_launch()
         p = self.shot.get("pitch_deg")
         self.ask(f"FIRE at pitch {p} deg toward {self.shot.get('range_m', 0):.1f} m? Area clear, line free, "
                  "everyone behind the launcher?", ["Fire", "Abort"], danger=True)
@@ -555,24 +586,29 @@ class Mission:
         return None
 
     def wrap(self) -> None:
+        self.ensure_reel(wrapped=False)
         t = self.tel()
         if t.get("drum_pos") == "WRAPPED":
             return
         m = self.base.event_mark()
         self.base.wrap()
         self.wait_evt("WRAPPED", self.cfg.mode_timeout_s, m)
+        self.wait_tel(lambda t: t.get("drum_pos") == "WRAPPED", 3.0, "drum at WRAPPED")
 
     def unwrap(self) -> None:
+        self.ensure_reel(wrapped=False)
         t = self.tel()
         if (t.get("wraps") or 0) < 0.05 and t.get("drum_pos") == "REEL":
             return
         m = self.base.event_mark()
         self.base.unwrap()
         self.wait_evt("UNWRAPPED", self.cfg.mode_timeout_s, m)
+        self.wait_tel(lambda t: t.get("drum_pos") == "REEL", 3.0, "drum at REEL")
 
     def anchored_check(self) -> Optional[str]:
         """Pull to check_n. If the line stops coming in, the dart holds. If it keeps coming in at the check tension,
         the dart is dragging."""
+        self.ensure_reel()
         line0 = self.tel().get("line_m") or 0.0
         m = self.base.event_mark()
         self.base.reel(self.cfg.reel_duty * 0.6, max_n=self.cfg.check_n, until="tension")
@@ -602,6 +638,7 @@ class Mission:
         while rounds < self.cfg.tow_max_rounds:
             rounds += 1
             self.check_cancel()
+            self.ensure_reel()
             m = self.base.event_mark()
             self.base.reel(self.cfg.reel_duty, max_n=self.cfg.tow_limit_n, until="tension")
             e = self.wait_evt(("LIMIT", "SEATED"), 60.0, m)
@@ -640,6 +677,7 @@ class Mission:
         t = self.tel()
         if (t.get("sw") or {}).get("seated"):
             return
+        self.ensure_reel()
         line = t.get("line_m") or 10.0
         timeout = 20.0 + line / self.cfg.retrieve_speed_mps
         m = self.base.event_mark()

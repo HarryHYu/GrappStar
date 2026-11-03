@@ -370,7 +370,8 @@ struct Base {
     if (!isnan(hx)) { hxN = (hx - hxOff) * c.hxNPerCount; hxT = now; hxSeen = true; }
     bool winding = w.outDir == c.reelDir && sec == SEC_REEL && now - w.startT > c.tensionIgnoreMs;
     float tc = winding ? (w.amps - c.freeA) * c.kNperA + c.tensOffsetN : 0; if (tc < 0) tc = 0;
-    tCur = winding ? tCur + (tc - tCur) * 0.2f : (state == S_HOLD ? tCur : 0);
+    float al = (float)dt / c.tensionAvgMs; if (al > 1) al = 1;   // D33: tow current averaged over about 200 ms
+    tCur = winding ? tCur + (tc - tCur) * al : (state == S_HOLD ? tCur : 0);
     tensionN = hxLive() ? hxN : tCur;
   }
   bool hxLive() const { return hxSeen && now - hxT < 500; }
@@ -1003,6 +1004,8 @@ struct Base {
       err = cmdReel(a, m, "seated");
     }
     else if (!strcmp(cmd, "decock")) { err = cmdCal("decock", o); }
+    else if (!strcmp(cmd, "cal") && bootPending && !(o.str("what", &s) && !strcmp(s, "drum"))) err = "BOOTING";   // resolveBoot() would undo it
+    else if (!strcmp(cmd, "set") && bootPending) err = "BOOTING";
     else if (!strcmp(cmd, "cal")) { err = o.str("what", &s) ? cmdCal(s, o) : "BAD_ARG"; if (!err) tunDirty = true; }
     else if (!strcmp(cmd, "set")) { bool bv; if (o.str("key", &s) && (o.num("val", &a) || (o.boolean("val", &bv) && ((a = bv ? 1 : 0), true)))) err = cmdSet(s, a); else err = "BAD_ARG"; if (!err) tunDirty = true; }
     else if (!strcmp(cmd, "get")) {

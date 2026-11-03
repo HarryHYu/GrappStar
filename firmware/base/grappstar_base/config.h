@@ -171,6 +171,7 @@ struct Cfg {
   int reelDuty = 220; int reelMinDuty = 70; float taperFrac = 0.30f;
   float kNperA = 17.0f;             // physics v1.2 (FIRM 5 N): line N = 17.0 x (I - I_free) - 10.4. Bench: CALIBRATION.md
   float tensOffsetN = -10.4f;
+  float tensionAvgMs = 200;         // D33: the tension estimate is averaged over this long
   float limitN =
 #ifdef P_REEL_TOW_LIMIT_N
       P_REEL_TOW_LIMIT_N;

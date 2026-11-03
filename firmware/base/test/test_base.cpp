@@ -760,6 +760,12 @@ static void testReview3() {
     CHECK(B2.c.hostTimeoutS == 7 && B2.c.tensOffsetN == -3 && B2.c.towTripA == 7, "host_timeout_s, tension_offset_n, tow_trip_a saved");
     gb::Tun old = t; old.ver = 1; gb::sealTun(&old); gb::Base B3; B3.restoreTun(&old);
     CHECK(B3.c.kNperA == 17.0f && B3.c.tensOffsetN == -10.4f, "a base-1.0 record is ignored: physics v1.2 constants 17 and -10.4"); }
+  { S = Sim(); gb::Base B; B.io = simIo(); B.begin(S.t); B.restore(nullptr); S.step(5); B.tick(S.t += 0);
+    char rep[300]; const char* l = "{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":30}";
+    B.handleLine(l, (int)strlen(l), rep, sizeof rep);
+    CHECK(std::string(rep).find("BOOTING") != std::string::npos, "set in the first 60 ms: BOOTING (resolveBoot would undo it)");
+    const char* l2 = "{\"id\":2,\"cmd\":\"cal\",\"what\":\"cock_rest\"}"; B.handleLine(l2, (int)strlen(l2), rep, sizeof rep);
+    CHECK(std::string(rep).find("BOOTING") != std::string::npos, "cal in the first 60 ms: BOOTING"); }
   { Rig R; R.B.evDrops = 3; std::string r = R.cmd("{\"id\":1,\"cmd\":\"status\"}");
     CHECK(r.find("\"ev_drops\":3") != std::string::npos && r.size() <= 256, "status reports dropped events, within 256 bytes"); }
   { Rig R; R.B.c.freeA = 1.5f; R.B.w.amps = 5.0f;

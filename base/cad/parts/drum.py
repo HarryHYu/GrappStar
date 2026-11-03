@@ -39,8 +39,9 @@ GEOM = dict(
     hex_af=22.0, hex_s=(28.0, 106.0), spig_d=12.0, spig_end=198.5, xpin_s=30.5,
     cap_s=(195.0, 201.5),      # D23: magnet face at y 201.5, outboard of the launch sleeve (y 111..193)
     # REEL sleeve and gear (params.DRUM.reel_output m2 50T face 12, plane 50.5..62.5)
-    rsl_flange=(48.0, 50.3, 40.0), rsl_journal=(50.0, 62.0, 30.0),   # thrust step and REEL journal on the coupler
-    washer=(62.05, 63.5, 12.9, 17.4), washer_screw_r=13.2,             # REEL gear retaining washer, 2 x M3 x 6
+    rsl_flange=(48.0, 50.3, 40.0), rsl_journal=(50.0, 62.0, 32.0),   # thrust step and REEL journal on the coupler
+    washer=(62.05, 63.5, 12.9, 17.4), washer_screw_r=13.8,             # REEL gear retaining washer, 2 x M3 x 6
+    # (hex bore on the shaft: the M3 heads at r 13.8 on the flat lines clear the flats, r 11.05 > 11.0)
     out_m=2.0, out_z=50, out_face=12.0, rgear_s=50.5,
     dog_face_reel=64.5,     # REEL gear dog roots (hub 62.5..64.5); tips at +dog_h
     collar_s=(72.0, 98.0), collar_od=60.0, groove=(82.0, 88.0), groove_r=26.0,
@@ -323,7 +324,7 @@ def coupler(g, P):
 def reel_washer(g):
     """REEL gear retaining washer on the coupler journal end (2 x M3 x 6): holds the gear toward +s."""
     w0, w1, ri, ro = g["washer"]
-    w = ring(ro, ri, w0, w1)
+    w = cyl(ro, w0, w1) - hexprism(g["hex_af"] + fits.HOLE_SLIDE, w0 - 1, w1 + 1)   # keyed on the shaft hex
     for a in (90.0, 270.0):
         x, y = g["washer_screw_r"] * math.cos(math.radians(a)), g["washer_screw_r"] * math.sin(math.radians(a))
         w = w - cyl(1.7, w0 - 1, w1 + 1, x, y, seg=24)
@@ -594,7 +595,7 @@ def fork_planes(g):
 
 def fork(g, c):
     """Fork at NEUTRAL in L. Prints flat on the pad plane sb. The thin yoke (lower half ring round the collar groove,
-    pads at 3 and 9 o'clock) is the spring; a hub under the yoke, an arm to the rail sleeve (30 long against racking),
+    pads at 3 and 9 o'clock) is the spring; a hub under the yoke, an arm to the rail sleeve (66 long against racking),
     an arm to the follower pin block at the drum, pin into groove 1. The yoke tab (+x, nut inside) touches the
     SW_DOG_L / SW_DOG_R screw heads on the fixed dog post only when the collar is fully engaged."""
     F = fork_planes(g)
@@ -615,6 +616,10 @@ def fork(g, c):
     arm1 = shp_extrude(LineString([(0.0, r1 + 3.0), (rx, ry)]).buffer(5.0), sb, sb + hl)
     fs0, fs1 = g["fork_sleeve"]
     sleeve = cyl(g["rail_d"] / 2 + 4.0, sb + fs0, sb + fs1, rx, ry)
+    if sb + fs0 < 57.0:        # necked to r 7.5 up to s 57 (cad-reel's bus gear c1 passes 0.2 from r 9), 45 deg step
+        rn, rw = g["rail_d"] / 2 + 2.5, g["rail_d"] / 2 + 4.0
+        sleeve = prim.union([cyl(rn, sb + fs0, 57.0 + 0.01, rx, ry), prim.cyl(rn, rw - rn, rx, ry, 57.0, r2=rw),
+                             cyl(rw, 57.0 + rw - rn - 0.01, sb + fs1, rx, ry)])
     dx, dy = drum_xy(g)
     ph = math.radians(g["phi_pin"])
     ux, uy = math.cos(ph), math.sin(ph)                 # from the drum axis toward the main axis
@@ -656,9 +661,9 @@ def dog_post(g, c):
     bR = prim.box(r1 + 1.0, bx0 + 0.01, -1.0, 5.0, b0, sR)
     bL = prim.box(r1 + 1.0, bx0 + 0.01, -1.0, 5.0, sL, sL + 6.0)
     d = prim.union([clamp, arm, bar, bR, bL])
-    d = d - cyl((g["rail_d"] + fits.HOLE_PRESS) / 2, p0 - 1, p1 + 1, rx, ry)
+    d = d - cyl((g["rail_d"] + fits.HOLE_SLIDE) / 2, p0 - 1, p1 + 1, rx, ry)
     d = d - cyl(1.25, b0 - 1, sL + 7.0, r1 + 4.0, 2.0, seg=24)       # M3 tapped through both bosses
-    d = d - prim.place(cyl(1.7, -1, 30, seg=24), tf.T(rx + 9.0, ry, 0.5 * (p0 + p1)) @ tf.Ry(90))   # clamp screw
+    d = d - prim.place(cyl(1.25, 0, 12, seg=24), tf.T(rx + 4.0, ry, 0.5 * (p0 + p1)) @ tf.Ry(90))   # clamp screw onto the rail flat
     return d
 
 
@@ -690,16 +695,20 @@ def bracket(g, c, which):
         cuts.append(prim.place(cyl(1.7, -1, 8, seg=24), tf.T(x, yd + 0.5, 0.5 * (s0 + s1)) @ tf.Rx(90)))
     if which == "A":
         nx, ny = n20_xy(g, c)
-        cuts.append(cyl(2.5, s0 - 1, s1 + 1, nx, ny, seg=24))                      # N20 shaft end
+        pv = [q for q in cradle_holes(g, c) if q[2] == "pivot"][0]
+
+        def arc_slot(px, py, r):
+            # arc slot about the pivot, 0..+15 deg: + swings the pinion out of mesh (- would jam it into the drum gear)
+            rr = math.dist((px, py), (pv[0], pv[1]))
+            a0 = math.atan2(py - pv[1], px - pv[0])
+            pts = [cyl(r, s0 - 1, s1 + 1, pv[0] + rr * math.cos(a0 + math.radians(da)),
+                       pv[1] + rr * math.sin(a0 + math.radians(da)), seg=24) for da in np.linspace(0, 15, 7)]
+            return prim.union([prim.union([pts[i], pts[i + 1]]).hull() for i in range(len(pts) - 1)])
+
+        cuts.append(arc_slot(nx, ny, 2.5))                       # N20 shaft end: follows the cradle when swung out
         for (px, py, kind) in cradle_holes(g, c):
             if kind == "slot":
-                # arc slot about the pivot (+-15 deg): the cradle swings the pinion out of mesh
-                pv = [q for q in cradle_holes(g, c) if q[2] == "pivot"][0]
-                rr = math.dist((px, py), (pv[0], pv[1]))
-                a0 = math.atan2(py - pv[1], px - pv[0])
-                pts = [cyl(1.8, s0 - 1, s1 + 1, pv[0] + rr * math.cos(a0 + math.radians(da)),
-                           pv[1] + rr * math.sin(a0 + math.radians(da)), seg=24) for da in np.linspace(-15, 15, 13)]
-                cuts.append(prim.union([prim.union([pts[i], pts[i + 1]]).hull() for i in range(len(pts) - 1)]))
+                cuts.append(arc_slot(px, py, 1.8))
             elif kind == "nut":
                 cuts.append(cyl(1.25, s0 - 1, s1 + 1, px, py, seg=24))          # SW_N20 screw, tapped from the back
             else:
@@ -973,7 +982,7 @@ def parts(P):
     add("drum_coupler_hub", coupler_hub(g, P), "PPA-CF", "drum_main", color="ppa",
         notes="Coupler hub on the wiper shaft (bore parametric: WIPER), M8 nut inside, shear pin hole")
     add("drum_coupler", coupler(g, P), "PPA-CF", "drum_main", color="ppa",
-        notes="Coupler: 5 N m shear pin limiter (D8), bus gear 50T m1.5 (D25), SW_INDEX cam, REEL journal, hex socket; prints bus gear down")
+        notes="Coupler: 5 N m shear pin limiter (D8), bus gear 50T m1.5 (D25), SW_INDEX cam, REEL journal, hex socket; prints hub end down, tree support under the bus gear ring")
     add("drum_shear_pin", shear_pin(g), "PLA", "drum_main", R=tf.Ry(180), color="sw", qty=6,
         infill=1.0, notes="Torque limiter shear pin d4 (about 5 N m), prints lying; print 6, 5 are spares")
     add("drum_shaft", main_shaft(g), "PPA-CF", "drum_main", R=tf.Rx(90) @ tf.Ry(90), color="ppa",
@@ -1238,23 +1247,25 @@ def steps(P):
                   "low part). Battery unplugged: nut to GND, screw to SW_INDEX.",
              parts=["drum_index_block", "drum_index_lever"]),
         dict(title="Drum: fork and dog contacts",
-             text="Press an M3 nut into the hex hole of the yoke tab. Slide the fork sleeve onto the rail, yoke facing "
-                  "the main shaft, then the dog post (its bar reaching back over the yoke tab). Grease the rail. Tighten "
-                  "the dog post clamp screw (M3 x 16) at s 128 to 133. Thread an M3 x 8 into each dog post boss, head "
-                  "toward the tab (M3 x 8: a longer screw reaches the REEL gear). Battery unplugged: nut wire to GND, "
-                  "REEL side screw to SW_DOG_R, LAUNCH side screw to SW_DOG_L.",
+             text="Press an M3 nut into the hex hole of the yoke tab. Thread an M3 x 8 into each dog post boss first, "
+                  "heads toward each other (M3 x 8: a longer screw reaches the REEL gear; no room for a driver later). "
+                  "Slide the fork sleeve onto the rail, yoke facing the main shaft, then the dog post (its bar reaching "
+                  "back over the yoke tab). Grease the rail. Tighten the dog post clamp screw (M3 x 8, tapped) onto the "
+                  "rail flat. Battery unplugged: nut wire to GND, REEL side screw to SW_DOG_R, LAUNCH side screw to "
+                  "SW_DOG_L.",
              parts=["drum_dog_post", "drum_fork"]),
         dict(title="Drum: drum B, hand lever, bracket B",
              text="Swing the fork up on the rail, slide drum B onto the axle (hex socket over the drum A spigot), "
                   "swing the fork down so its pin drops into the groove. Slide the hand lever onto the hex boss. Press "
                   "bracket B onto the axle and rail ends and bolt it down (2 x M3 x 12). The drum turns by hand with "
-                  "under 0.5 mm end play.",
+                  "about 0.6 mm end play.",
              parts=["drum_drum_b", "drum_hand_lever", "drum_bracket_b"]),
         dict(title="Drum: N20",
-             text="Press the pinion onto the N20 output shaft (flat to flat), flush with the shaft end. Slide the N20 "
+             text="Press the pinion onto the N20 output shaft (flat to flat) leaving 1.5 mm of shaft below it (that end runs "
+                  "in the bracket A ear slot). Slide the N20 "
                   "into the cradle from the open end, fit the end plate (2 x M3 x 8). Press an M3 nut into the pocket in "
                   "the cradle bottom face. Screw the cradle to the bracket A ear: pivot screw M3 x 12 in the round hole, "
-                  "swing screw M3 x 12 in the arc slot, pinion meshed with a hair of play. From the back of the ear, turn "
+                  "swing screw M3 x 12 at the inner end of the arc slot (full mesh; the slot only lets it swing out). From the back of the ear, turn "
                   "the SW_N20 screw (M3 x 8) in until its tip just touches the cradle nut. Battery unplugged: nut to "
                   "GND, screw to SW_N20.",
              parts=["drum_n20_pinion", "drum_n20", "drum_n20_cradle", "drum_n20_strap"]),

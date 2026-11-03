@@ -32,8 +32,9 @@ GEOM = dict(
     bus_m=1.5, bus_z=50, bus_s=(40.0, 48.0),
     cpl_rmax=28.5,           # coupler radius below s 40: reel_wall top edge is 29.6 under the axis (s 3..40)
     idx_s=(33.5, 38.5), idx_r0=26.0, idx_bump=2.5, idx_n=6, idx_w=24.0, idx_ramp=4.0,   # D12 SW_INDEX cam
-    idx_psi=-90.0,           # SW_INDEX lever and block above the axis (L angle -90 = world up), block on the cheek face
-    cheek_face_s=32.0,       # inner face of the motor-side cheek (frame_cheek_r y 22..32, coupler hole r 34)
+    idx_psi=0.0,             # SW_INDEX lever and block on the +x side of the cam; block held by a strut on idler post 2
+    cheek_face_s=32.0,       # inner face of the motor-side cheek (frame_cheek_r y 22..32, coupler hole r 34; cad-frame
+                             # carves the cheek round every drum part, so nothing of mine is fixed to it)
     # main shaft
     hex_af=22.0, hex_s=(28.0, 106.0), spig_d=12.0, spig_end=198.5, xpin_s=30.5,
     cap_s=(195.0, 201.5),      # D23: magnet face at y 201.5, outboard of the launch sleeve (y 111..193)
@@ -721,8 +722,12 @@ def bracket_idler(g, c, which="I"):
         outline = unary_union([outline.difference(Polygon([(-100, iy + 13), (xw, iy + 13), (xw, yd + 1), (-100, yd + 1)])),
                                Polygon([(xw, yd - 6), (ix + 34, yd - 6), (ix + 34, yd), (xw, yd)])])
         screws = (ix + 17.0, ix + 29.0)
+        outline = unary_union([outline, idx_strut_poly(g)])
     b = shp_extrude(outline, s0, s1)
     cuts = [cyl((g["idl_j"] + fits.SHAFT_IN_BORE) / 2, s0 - 1, s1 + 1, ix, iy)]
+    if which == "I2":
+        for (x, y) in idx_block_holes(g):           # SW_INDEX block screws, heads on the far (+s) face
+            cuts.append(cyl(1.7, s0 - 1, s1 + 1, x, y, seg=24))
     for x in screws:
         cuts.append(prim.place(cyl(1.7, -1, 8, seg=24), tf.T(x, yd + 0.5, 0.5 * (s0 + s1)) @ tf.Rx(90)))
     return prim.diff(b, cuts)
@@ -808,28 +813,28 @@ def idx_R(g):
 
 
 def idx_block_holes(g):
-    """Block screw positions in the built frame (x radial, y along the lever): 2 x M3 into the cheek face inserts."""
+    """Block screw positions (L x, y): 2 x M3 x 12 from the far face of idler post 2 through its strut, tapped into
+    the block."""
     x0 = lever_x0(g, g["idx_r0"], g["idx_bump"])
-    return [(x0 + 7.0, -6.0), (x0 + 7.0, 30.0)]
+    return [(x0 + 9.0, 30.0), (x0 + 9.0, 52.0)]
 
 
-def idx_block_holes_world(g):
-    """(world x, world z) of the two cheek inserts for the SW_INDEX block (on the cheek inner face, world y 32)."""
-    out = []
-    for (x, y) in idx_block_holes(g):
-        p = idx_R(g) @ np.array([x, y, 0.0, 1.0])
-        out.append((round(float(p[0]), 1), round(float(-p[1]), 1)))
-    return out
+def idx_strut_poly(g):
+    """Idler post 2 strut up to the SW_INDEX block (L x, y): clear of my bus gear (r 39), cad-reel's bus gear and
+    drum A."""
+    x0 = lever_x0(g, g["idx_r0"], g["idx_bump"])
+    return Polygon([(x0 + 3.0, 24.0), (x0 + 15.0, 24.0), (x0 + 15.0, 64.0), (28.0, 100.0), (12.3, 100.0), (36.0, 68.0),
+                    (36.0, 30.0)])                  # passes beside the shift rail and the fork sleeve (25, 58)
 
 
 def index_block(g):
-    """SW_INDEX block above the coupler cam, screwed (2 x M3 x 12) into heat-set inserts in the inner face of the
-    motor-side cheek (world y 32); clearance holes, heads on the bus gear side."""
+    """SW_INDEX block beside the coupler cam (+x), its far face on the idler post 2 strut (2 x M3 x 12 through the
+    post, tapped into the block)."""
     i0, i1 = g["idx_s"]
-    s0, s1 = g["cheek_face_s"], i1 + 1.0
-    b, cuts = contact_block(g, 0.0, 0.0, g["idx_r0"], g["idx_bump"], [g["idx_s"]], -12.0, g["sw_L"] + 12.0, s0, s1)
+    s0, s1 = g["cheek_face_s"] + 0.5, g["brI2"][0]
+    b, cuts = contact_block(g, 0.0, 0.0, g["idx_r0"], g["idx_bump"], [g["idx_s"]], -12.0, g["sw_L"] + 20.0, s0, s1)
     for (x, y) in idx_block_holes(g):
-        cuts.append(cyl(1.7, s0 - 1, s1 + 1, x, y, seg=24))
+        cuts.append(cyl(1.25, s1 - 9.0, s1 + 1, x, y, seg=24))
     return prim.place(prim.diff(b, cuts), idx_R(g))
 
 
@@ -1213,13 +1218,6 @@ def steps(P):
                   "round the coupler over the head. Keep the 5 spare pins with the base. A broken pin stub comes out with an "
                   "M3 screw turned into it.",
              parts=["drum_coupler_hub", "drum_coupler", "drum_shear_pin"]),
-        dict(title="Main shaft: index contact",
-             text="Press an M3 nut into the index block pocket, screw the index lever foot to the block (M3 x 12), "
-                  "thread an M3 x 6 into the lever boss, head toward the nut. Screw the block to the inner face of the "
-                  "motor-side cheek, above the coupler (2 x M3 x 12 into the two cheek inserts), with the nub on the "
-                  "coupler cam. Set the gap so the screw head touches the nut near the top of a bump (about 1.5 mm on a "
-                  "low part). Battery unplugged: nut to GND, screw to SW_INDEX.",
-             parts=["drum_index_block", "drum_index_lever"]),
         dict(title="Drum: bracket A, axle, rail, drum A",
              text="Bolt bracket A to the deck (2 x M3 x 12). Press the drum axle and the shift rail into it (both "
                   "flats facing forward). Slide drum A onto the axle, gear first, and turn it so the gap in its lock "
@@ -1232,6 +1230,13 @@ def steps(P):
                   "teeth, and bolt them down (2 x M3 x 12 each). Turn drum A back to LAUNCH (mark L at the top): the "
                   "flat-sided lock cam must sit in the drum lock ring and the idler can no longer turn by hand.",
              parts=["drum_idler_gear", "drum_idler", "drum_bracket_idler", "drum_bracket_idler2"]),
+        dict(title="Main shaft: index contact",
+             text="Press an M3 nut into the index block pocket, screw the index lever foot to the block (M3 x 12), "
+                  "thread an M3 x 6 into the lever boss, head toward the nut. Screw the block to the inner face of the "
+                  "strut of idler post 2 (2 x M3 x 12 from the far side of the post into the block), with the nub on the "
+                  "coupler cam. Set the gap so the screw head touches the nut near the top of a bump (about 1.5 mm on a "
+                  "low part). Battery unplugged: nut to GND, screw to SW_INDEX.",
+             parts=["drum_index_block", "drum_index_lever"]),
         dict(title="Drum: fork and dog contacts",
              text="Press an M3 nut into the hex hole of the yoke tab. Slide the fork sleeve onto the rail, yoke facing "
                   "the main shaft, then the dog post (its bar reaching back over the yoke tab). Grease the rail. Tighten "

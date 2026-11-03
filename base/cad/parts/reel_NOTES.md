@@ -1,6 +1,8 @@
 # Reel system: interfaces and numbers (worker cad-reel)
 
-Status: Phase 0 (before the spec). Every number here is a recommendation computed in `reel_calc.py`
+Status: v2, 11:35 Sydney (adapted to BASE_SPEC v0.1, cad-drum NOTES and physics FINDINGS: m3 capstan gear
+meshing the drum's m3 24T REEL output gear, 8 wraps from the drum's 4 idler turns, light brake 0.5 N, three brake
+levels). Phase 0 numbers that changed are marked NEW. Every number here is a recommendation computed in `reel_calc.py`
 (`python3 base/cad/parts/reel_calc.py` prints the table). Once `base/spec/params.py` defines `REEL`, the spec wins and
 this file is updated to match. Questions or changes: write them in your REPORT.md, I read every branch.
 
@@ -61,96 +63,110 @@ LAUNCH and at the end of the stroke; I check the line against every part at ever
 - Sense: capstan wind-in = +Z rotation (counter-clockwise looking from the cup toward the wall). Cup WRAP = -Z
   rotation, cup UNWRAP = +Z. Storage reel take-up = +Z (line arrives on the reel top heading -X), payout = -Z.
 
-## 5. Gears (meshes with cad-drum)
+## 5. Gears (meshes with cad-drum) NEW
 
-All gears behind the wall, spur, 20 deg, PPA-CF, centre distances + `fits.GEAR_CENTER_EXTRA` (0.10).
+All spur, 20 deg, PPA-CF, axes parallel to the main shaft. Centre distances from `gears.center_distance` (+0.10).
 
-| gear | on | module | teeth | face | plane Z | centre (R frame X, Y) |
+| gear | on | module | teeth | shift | face | plane (R frame Z) |
 |---|---|---|---|---|---|---|
-| main reel output (cad-drum) | main shaft | 2.0 | 40 (recommended) | 12 | -29 .. -17 | 64.1 from the capstan axis, any angle that clears my idler (below or forward is fine) |
-| capstan gear Gc | C | 2.0 | 24 | 12 | -29 .. -17 | (0, 0) |
-| idler Gi | idler pin | 2.0 | 24 | 12 | -29 .. -17 | (-47.1, -9.7) |
-| reel gear Gr | S | 2.0 | 15 | 12 | -29 .. -17 | (-85, 0) |
-| cup gear Gk | K | 1.5 | 30 | 8 | -43 .. -35 | (0, 0) |
-| wrap pinion (cad-drum) | drum wrap output | 1.5 | yours | 8 | -43 .. -35 | 0.75 x (30 + z) + 0.1 from the capstan axis |
+| REEL output (cad-drum) | main shaft | 3 | 24 | 0 | 14 | = capstan gear plane |
+| capstan gear Gc | C | 3 | 12 | +0.3 | 14 | -43 .. -29 |
+| take-up gear Gt | C | 2 | 24 | 0 | 10 | -27 .. -17 |
+| take-up idler Gi | pin in my wall | 2 | 24 | 0 | 10 | -27 .. -17 |
+| reel gear Gr | S | 2 | 15 | 0 | 10 | -27 .. -17 |
+| cup ring gear Gk | K | 1.5 | 24 | 0 | 8 | -53 .. -45 |
+| wrap idler output (cad-drum) | drum idler | 1.5 | 48 | 0 | 8 | = cup gear plane |
 
-- main 40 : capstan 24 = capstan 1.667 x main. Wiper free 45 rpm -> capstan 75 rpm -> 0.16 m/s line. At wiper stall the
-  line sees 373 N, below the 667 N break, so even a jammed firmware cannot snap the line through the capstan.
-- Take-up: capstan 24 -> idler 24 -> reel 15: reel gear 1.6 x capstan. At the empty core that is 1.56 x the capstan
-  line speed, so the clutch always slips and always takes up.
-- If you need a different main gear, keep module 2, plane Z -29 .. -17 and tell me the tooth count; only the capstan
-  speed changes.
+- Main 24T : capstan 12T = capstan 2.0 x main (physics F7 asked 2.5 to 3; 12T is the smallest m3 gear round the
+  20 mm tube). Wiper free 45 rpm -> capstan 90 rpm -> 0.19 m/s. At wiper stall the line sees 311 N, under the 667 N
+  break: a jammed firmware cannot snap the line through the capstan. 100 N tow = 4.8 N m at the main shaft, 6.8 A.
+- Take-up: capstan 24 -> idler 24 -> reel 15: clutch disk 1.6 x capstan speed, 1.56 x the capstan line speed at the
+  empty core, so the clutch always slips and always takes up.
+- Cup ring 24T on the drum's 48T wrap idler: 4 idler turns = 8 cup turns = 8 WRAPS exactly (a whole number, so the
+  ring ends at the top). Centre distance idler-ring 54.1. Capstan axis therefore sits 54.9 (m3 pair with the +0.3
+  shift, see params when set) from the main shaft AND 54.1 from the wrap idler axis.
+- R frame Z maps to world -Y (R +Z = cup end = world -Y). The gear plane order above (take-up next to the wall,
+  capstan gear, then cup gear furthest back) keeps the take-up gear away from the dog collar (it sits at smaller s,
+  beside the coupler r 20); the cup gear clears the collar (r 30) by 5 mm at 54.9. If LAYOUT needs another order, I
+  move the planes (parameters `GT_Z`, `GC_Z`, `GK_Z`).
+- WRAP sense: cup turns -Z in R = positive about world +Y (right hand). The ring gear turns the same sense as the
+  drum for an even train (drum -> pinion -> idler shaft -> ring: two external meshes), so the drum must turn
+  positive about world +Y while wrapping (drum angle increasing). cad-drum: confirm, else one more idler.
 
-## 6. Slip clutch and the brake lever (interface with the drum brake track)
+## 6. Slip clutch and the brake lever (interface with the drum brake track) NEW
 
-- Face clutch on the reel's rear flange: annulus r 9 .. 17 on the reel against a disk D keyed (sliding) on S. A printed
-  flexure spring at the front end of S presses the reel back onto D through the front 608. A non-rotating thrust ring T
-  behind D is pushed forward by my brake rocker: pushing T forward squeezes the spring = firmer clutch.
-- Settings (line tension at the mid pack radius, empty..full pack in brackets):
-  - LAUNCH and NEUTRAL: 0.75 N (0.90 .. 0.64 N), clutch torque 0.018 N m, axial preload 4.6 N.
-  - REEL and the whole wrap zone: 3.0 N (3.6 .. 2.6 N), 0.072 N m, preload 18.6 N.
-  - Spring rate 3.5 N/mm, 1.3 mm precompressed at LAUNCH. An M3 screw on the spring seat trims both settings together
-    (one turn = 0.5 mm = 1.7 N preload = about 0.07 N at the line in LAUNCH).
-- BRAKE INPUT (what cad-drum drives): my pushrod, d 5, slides along +Z through the wall. Rear end = a flat contact face
-  d 8 at R (-85, -38, -20) in LAUNCH. Push it +Z by 4.0 mm for REEL (track rise 4.0 mm, any slope up to 30 deg).
-  Force at the pushrod: 5 N at LAUNCH (preload) rising to 21 N at REEL, plus the rocker friction: design your follower
-  for 25 N. Fail safe: if the track lets go, the spring pushes the rod back to LAUNCH (light brake, safe for launch).
-  If your track lever is somewhere else, tell me the point and direction and I move my pushrod to meet it.
-- Brake track profile wanted vs drum position: LAUNCH 0, NEUTRAL 0, ramp, REEL 4.0, held at 4.0 through the whole
-  wrap zone (tow happens at WRAPPED).
+- Face clutch: friction annulus r 13 .. 19 on the storage reel's FRONT face against the clutch disk D (the head of
+  the reel shaft S, keyed to the reel gear). The reel is squeezed forward onto D by a thrust ring T on the rear 608
+  inner race. T is pushed by my BRAKE ROCKER, a flexible PETG lever (3 x 10 section): pivot at the top, T contact 37
+  below it, the push point 35 below that. With the clutch stack rigid, the rocker bends: it IS the clutch spring.
+- Levels (line tension at mid pack, axial preload, push force at the rod):
+
+| drum level | lift | line N | preload | push |
+|---|---|---|---|---|
+| LAUNCH, NEUTRAL (light) | 0 | 0.50 (0.60 empty .. 0.43 full) | 2.5 N | 1.3 N |
+| wrapping (mid) | 2.0 mm | 1.75 | 8.8 N | 4.5 N |
+| REEL, WRAPPED, tow (firm) | 4.0 mm | 3.0 (3.6 .. 2.6) | 15.1 N | 7.8 N |
+
+- Light is set mechanically, not by the drum: the push rod has a collar that seats in a counterbore of my wall (the
+  rocker's preload pushes it back there). If the track or the lever ever lets go, the brake stays LIGHT (safe to
+  launch). Printed 0.4 mm shims under T trim the light level.
+- BRAKE INPUT: cad-drum's track is radial (follower at drum angle 180, s 42..56, lift 0/2/4 mm outward). I provide the
+  follower: a bell crank on my wall with a d 6 follower pin on the track and its other arm on my push rod, 1:1.
+  Design force on the track 10 N (7.8 N + friction). The bell crank pivot point is set once LAYOUT places the
+  reel against the drum; until then the push rod rear end at R (-85, -35, -24) is the contact.
 
 ## 7. Wrap cup drive (interface with the drum wrap output)
 
-- Cup turns: WRAP = 7 cup turns in the -Z sense from home; UNWRAP = 7 turns +Z back to home. Home = ring at the top
+- Cup turns: WRAP = 8 cup turns in the -Z sense from home; UNWRAP = 8 turns +Z back to home. NEW Home = ring at the top
   (+Y), where the launch path is straight. WRAPPED must be an exact whole number of turns so the ring is back at the
   top (that is what makes the tow torque on the cup small, below).
 - Cup torque you must supply: laying wraps 0.15 N m (line drawn through the ring and groove at up to 5 N).
 - Cup torque you must HOLD during tow (the line drags the cup): Harry's v7 geometry nearly cancels it. Computed
   -0.11 .. -0.50 N m at 100 N tow (sign -: the WRAP sense), so design the hold for +/- 1.0 N m at the cup gear (both
-  senses, margin for friction scatter), 3 N m short peak at wiper stall. If the drum train cannot hold 1 N m at the cup,
-  say so and I add a cup detent.
+  senses, margin for friction scatter), 3 N m short peak at wiper stall. Your locking arc holds the pinion at
+  WRAPPED: with the 24T ring on the 48T idler that is 2 N m design (6 N m peak) at the idler shaft.
 - The cup gear plane Z -43 .. -35 is behind my capstan gear; your pinion shaft must clear Gc (tip r 26) and the main
   reel output gear.
 
 ## 8. Line, wraps, tensions (for physics and fw-base)
 
-- Wraps 7 (Euler-Eytelwein, Dyneema on PLA): gain e^(mu 2 pi n) = 81 (mu 0.10), 733 (0.15), 60,000 (0.25). With the REEL
+- Wraps 8 NEW (Euler-Eytelwein, Dyneema on PLA): gain e^(mu 2 pi n) = 81 (mu 0.10), 733 (0.15), 60,000 (0.25). With the REEL
   clutch behind (2.6 N at a full reel) 7 wraps hold 208 N at mu 0.10 (2 x a 100 N tow limit) and 1,878 N at mu 0.15.
-  6 wraps fail the margin at mu 0.10 (111 N), so 7.
-- Wrapping lays 0.90 m of line (taken from the dart side, which must be slack: see the sequence).
+  6 wraps fail the margin at mu 0.10 (111 N), 7 is the least; 8 comes free from the drum train (390 N at mu 0.10).
+- Wrapping lays 1.03 m of line (taken from the dart side, which must be slack: see the sequence).
 - Storage reel: core dia 40, flange dia 64, 20 wide. 20 m of 1 mm line packs to dia 56.5 (3.75 mm freeboard).
-- Launch payout (v 11 m/s, 0.30 m stroke): reel reaches 3,700 rpm (608 fine), line pull in the stroke 5.1 N (inertia
-  1.7e-5 kg m2 estimate, refined from the CAD later), 1.3 J of spin. Least brake against overrun in flight: 0.11 N,
-  so 0.75 N never overruns while the dart flies.
-- At landing the dart stops dead and the spinning reel throws slack: 0.91 m at 0.75 N. Fix: a SLACK-LINE SHOE (printed
+- Launch payout (physics F1: 8.6 m/s, range 4 to 5 m): reel reaches 2,900 rpm (608 fine), line pull in the stroke
+  3.1 N. Least brake against overrun in flight: 0.11 N, so 0.5 N never overruns while the dart flies.
+- At landing the dart stops and the spinning reel throws slack: physics F5 says 0.24 m (realistic landing); my
+  worst case (dead stop from 8 m/s at 0.5 N) is 1.4 m. Fix: a SLACK-LINE SHOE (printed
   flexure arm, no spring to buy): the line runs over an eye on the arm between the reel and the guide; any tension above
   about 0.3 N holds the shoe off the reel flange; when the line goes slack the flexure drops the shoe on the flange rim
   (about 6 N) and the reel stops within 0.11 m. It also stops the reel if anything else ever leaves the line slack.
 - Tension vs wiper current (no load cell; linear motor model, eta 0.85, calibrate with a luggage scale):
-  T = (I - 1.5) / 16.5 x 15 x 0.85 / 1.667 / 0.0205 N, i.e. about 22.6 N per amp above 1.5 A free.
+  T = (I - 1.5) / 16.5 x 15 x 0.85 / 2.0 / 0.0205 N, i.e. about 18.8 N per amp above 1.5 A free. NEW
 
 | line tension | main torque | wiper amps | line speed |
 |---|---|---|---|
-| 5 N | 0.20 N m | 1.7 A | 0.159 m/s |
-| 30 N | 1.21 N m | 2.8 A | 0.148 m/s |
-| 50 N | 2.01 N m | 3.7 A | 0.139 m/s |
-| 100 N | 4.02 N m | 5.9 A | 0.118 m/s |
+| 5 N | 0.24 N m | 1.8 A | 0.190 m/s |
+| 30 N | 1.45 N m | 3.1 A | 0.175 m/s |
+| 50 N | 2.41 N m | 4.2 A | 0.162 m/s |
+| 100 N | 4.82 N m | 6.8 A | 0.131 m/s |
 
 ## 9. Mission sequence for the reel (firmware, sim and audit)
 
 1. LAUNCH: drum LAUNCH, cup home, clutch light. Fire. Reel pays out, slack-line shoe stops it at landing.
 2. Dart LANDED (dart reports it; SW_SLACK closing is the base-side cue): drum LAUNCH -> NEUTRAL -> REEL (clutch firm).
    Do NOT reel yet: the line must stay slack on the dart side.
-3. WRAP at once, before the dart anchors: drum through the wrap zone, cup 7 turns -Z (0.90 m drawn from the slack on
+3. WRAP at once, before the dart anchors: drum through the wrap zone, cup 8 turns -Z (1.03 m drawn from the slack on
    the dart side; if the dart side runs out of slack the unanchored dart is tugged under 1 m toward the base, harmless).
-   Drum stops at WRAPPED, ring at the top. SW_CUP_HOME closes once per turn: count 7.
+   Drum stops at WRAPPED, ring at the top. SW_WRAP_HOME closes once per cup turn: count 8.
 4. Dart ANCHORING -> ANCHORED. The capstan is backstopped, so the dart cannot pull line out.
 5. TOW: wiper forward, `reel` with max_n = the tow limit (physics worker; 50 to 100 N, below the anchor holding:
    dry sand 7 N, moist loam 45 N, firm clay 112 N). The capstan takes in the dart-side slack first, then winches.
 6. Dart RELEASING -> released: `reel` with a low max_n (30 N) drags the dart home on the capstan until SEATED
    (cad-launch seat switch, or the current rise).
-7. UNWRAP, interleaved so the seated dart is never pulled hard and never more than 64 mm of loose line: 14 steps of
-   (cup +0.5 turn, then capstan wind-in 0.8 of the released 64 mm = 143 deg of capstan = 86 deg of main shaft). The
+7. UNWRAP, interleaved so the seated dart is never pulled hard and never more than 64 mm of loose line: 16 steps of
+   (cup +0.5 turn, then capstan wind-in 0.8 of the released 64 mm = 143 deg of capstan = 72 deg of main shaft). The
    storage reel takes up behind. Then capstan 1 more turn with 0 wraps: the clutch pulls the last slack in at 3 N.
 8. Drum REEL -> NEUTRAL -> LAUNCH (clutch light, cup home). Ready.
 
@@ -158,7 +174,7 @@ All gears behind the wall, spur, 20 deg, PPA-CF, centre distances + `fits.GEAR_C
 
 | name | what closes it | where (R frame) | use |
 |---|---|---|---|
-| SW_CUP_HOME | a bump on the cup gear rim pushes a printed flex lever, closed for +/- 12 deg about home (ring top) | behind the wall at about (0, +30, -39) | wrap count, home check before LAUNCH |
+| SW_WRAP_HOME (spec name) | a bump on the cup gear rim pushes a printed flex lever, closed for +/- 12 deg about home (ring top) | behind the wall at about (0, +30, -39) | wrap count, home check before LAUNCH |
 | SW_SLACK | the slack-line shoe arm drops (line slack) | on the reel wall near (-60, +34, 10) | landing cue, slack detect during reel |
 
 ## 11. Frame mounting (cad-frame)

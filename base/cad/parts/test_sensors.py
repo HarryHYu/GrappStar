@@ -53,6 +53,9 @@ def test_names_and_contract(parts):
         assert set(st["parts"]) <= names, st["title"]
     stepped = {n for st in SE.steps(P) for n in st["parts"]}
     assert stepped == names                                  # every part has an assembly step
+    st = P.ASSEMBLY_STAGES["sensors"] if hasattr(P, "ASSEMBLY_STAGES") else (210, 219)
+    for step in SE.steps(P):
+        assert st[0] <= step["stage"] <= st[1]
     assert SE.checks(P) == []
 
 

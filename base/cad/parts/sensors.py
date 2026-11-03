@@ -181,12 +181,12 @@ RISER = 4.0                       # SW_GAP: pad on the lever tip so the jam nut 
 _SW = {}
 
 
-def sw_build(riser=0.0):
+def sw_build(riser=0.0, root_len=14.0):
     """cad.lib.switch.contact_switch with the default (coupon 2) geometry. riser > 0 adds a printed pad of that height
     on the rigid lever tip beyond the jam nut (the actuator then touches the pad top); info["top"] = actuator face z."""
-    key = float(riser)
+    key = (float(riser), float(root_len))
     if key not in _SW:
-        d = dict(switch.contact_switch(SW_LEVER))
+        d = dict(switch.contact_switch(SW_LEVER, root_len=root_len))
         i = dict(d["info"])
         top = i["z_lever"] + 5.0                                    # boss_h 5 (contact_switch default)
         if riser > 0:
@@ -196,6 +196,7 @@ def sw_build(riser=0.0):
             top += riser
         i["top"] = top
         i["riser"] = riser
+        i["root_len"] = root_len
         d["info"] = i
         _SW[key] = d
     return _SW[key]
@@ -286,7 +287,7 @@ def swl_deck_screw(P):
 
 def _mount_pilots(M, i, depth=5.5):
     """Self tap pilots in the backing plate under the switch base's 4 mounting holes (switch local -> M)."""
-    d = sw_build(i.get("riser", 0.0))
+    d = sw_build(i.get("riser", 0.0), i.get("root_len", 14.0))
     lo, hi = prim.bbox(d["base"])
     base_w = hi[1] - lo[1]
     root_len = -lo[0] - 2.0
@@ -303,8 +304,11 @@ def gap_geom(P):
     from the gear pin; actuated towards -y."""
     import launch as LN
     n = LN.L(P)
-    i = sw_build(RISER)["info"]
-    u_t, w_t = LN.home_bump_point(P)
+    i = sw_build(RISER, GAP_ROOT)["info"]
+    u_b, w_b = LN.home_bump_point(P)
+    cd = n["cd"]
+    k = (LN.BUMP_R + GAP_R_OFF) / LN.BUMP_R                 # contact point moved along the bump's radius
+    u_t, w_t = cd + (u_b - cd) * k, w_b * k
     y_bump = n["y_sec"][0] - LN.BUMP_H
     y_rest = y_bump + i["pretravel"] + SW_PRESS
     a = math.radians(GAP_DIR)
@@ -313,8 +317,11 @@ def gap_geom(P):
     return dict(M=M, u=u_t, w=w_t, y_bump=y_bump, y_rest=y_rest, cd=n["cd"], y_chA=n["y_chA"], info=i)
 
 
-GAP_DIR = 217.5               # direction (rail u-w, deg) from the bump to the lever root; within 29 deg of the radial
+GAP_R_OFF = -1.0              # lever contact 1 mm inside the bump centre radius (bump flat top r 26.7..32.7)
+GAP_DIR = 213.75              # direction (rail u-w, deg) from the bump to the lever root; within 29 deg of the radial
                               # 225 so the contact screw stays outside the bump's circle
+GAP_ROOT = 10.0               # SW_GAP lever clamp pad length (cad.lib default 14): 4 mm shorter base at the root end,
+                              # clear of cad-reel's pulley 2 post; the flexing beam (coupon 2 geometry) is unchanged
 GAP_BASE_Y = (-17.5, 7.8)     # switch local y kept of the SW_GAP base (no mounting wings needed: it has its arm);
                               # +y (down-forward, towards cad-reel's p2 post) trimmed 1.7 past the wire channel
 GAP_TAB_PILOTS = ((48.0, 2.0), (64.0, 2.0))   # (u, w) M3 self tap d2.6 into the right cheek outer face, 7 deep along +y
@@ -328,7 +335,7 @@ def gap_arm_rail(P):
     M = g["M"]
     yo = g["y_chA"][0]                                    # cheek outer face (-17)
     yb = float(tf.apply(M, np.array([[0.0, 0.0, 0.0]]))[0, 1])                # base bottom (rail y)
-    t = sw_build(RISER)["info"]
+    t = sw_build(RISER, GAP_ROOT)["info"]
     base_t = 3.0
     u0, u1 = GAP_TAB_PILOTS[0][0] - 7.0, GAP_TAB_PILOTS[1][0] + 7.0
     tab = prim.box(u0, u1, yb, yo, -4.0, 8.0)
@@ -344,7 +351,7 @@ def gap_arm_rail(P):
 def gap_base_solid(P):
     """SW_GAP printed base (switch local frame): cad.lib switch base + the arm to the cheek."""
     g = gap_geom(P)
-    d = sw_build(RISER)
+    d = sw_build(RISER, GAP_ROOT)
     lo, hi = prim.bbox(d["base"])
     keep = prim.box(lo[0] - 1, hi[0] + 1, GAP_BASE_Y[0], GAP_BASE_Y[1], lo[2] - 1, hi[2] + 1)
     arm = prim.place(gap_arm_rail(P), tf.inv(g["M"]))
@@ -365,8 +372,9 @@ def _bed(solid, R=None):
     return LN.bed(solid, R)
 
 
-def _switch_parts(tag, M, joint, where, riser=0.0, base=None, base_ref="4 x M3x8 self tap (base to bracket)"):
-    d = sw_build(riser)
+def _switch_parts(tag, M, joint, where, riser=0.0, base=None, base_ref="4 x M3x8 self tap (base to bracket)",
+                  root_len=14.0):
+    d = sw_build(riser, root_len)
     i = d["info"]
     nm = f"{PREFIX}_sw_{tag}"
     up = f"SW_{tag.upper()}"
@@ -426,7 +434,7 @@ def parts(P):
     out += _switch_parts("gap", gg["M"], "launch_rail",
                          "with its arm screwed to the right rail cheek outer face below the big gear, closed by the "
                          "big gear cam bump (gear in its gap)", riser=RISER, base=gap_base_solid(P),
-                         base_ref="2 x M3x12 SHCS (arm into the right cheek)")
+                         base_ref="2 x M3x12 SHCS (arm into the right cheek)", root_len=GAP_ROOT)
     return out
 
 
@@ -463,6 +471,9 @@ def clearances(P):
         Clearance(f"{PREFIX}_as5600", "drum_magnet_cap", 0.4, "JST connectors and chip vs the turning magnet cap"),
         Clearance(f"{PREFIX}_as5600_strip_*", "drum_magnet_cap", 0.4, "clamp strips vs the turning magnet cap"),
         Clearance(f"{PREFIX}_as5600_screw_*", "drum_magnet_cap", 0.4, "clamp screw tips vs the magnet cap"),
+        Clearance(f"{PREFIX}_sw_gap", "reel_p2_post", 2.5, "SW_GAP under the rail vs cad-reel's pulley 2 arm"),
+        Clearance(f"{PREFIX}_sw_gap", "launch_sleeve", 1.5, "SW_GAP vs the launch sleeve flange"),
+        Clearance(f"{PREFIX}_sw_gap", "drum_dog_post", 1.0, "SW_GAP arm vs cad-drum's dog post"),
     ]
 
 
@@ -493,7 +504,7 @@ def steps(P):
     i = sw_build()["info"]
     g = as_geom(P)
     return [
-        dict(title="Sensors 1: build the two contact switches (SW_RAIL_LOW, SW_GAP)",
+        dict(stage=210, title="Sensors 1: build the two contact switches (SW_RAIL_LOW, SW_GAP)",
              text=f"For each switch: press an M3 nut into the hex trap on the base pillar (a drop of glue), solder a "
                   f"wire to the nut through the side slot and lay it in the groove. Screw the lever onto the pad with "
                   f"2 x M3x{i['clamp_screw_len']} self tapping screws. Screw an M3x{i['screw_len']} through the "
@@ -502,7 +513,7 @@ def steps(P):
                   f"(gap about {i['gap']:.1f} mm, 0.5 mm per turn) and lock the jam nut.",
              parts=[f"{PREFIX}_sw_rail_low", f"{PREFIX}_sw_rail_low_lever", f"{PREFIX}_sw_rail_low_screw",
                     f"{PREFIX}_sw_rail_low_jam", f"{PREFIX}_sw_rail_low_nut"]),
-        dict(title="Sensors 2: SW_RAIL_LOW on the aim housing",
+        dict(stage=211, title="Sensors 2: SW_RAIL_LOW on the aim housing",
              text="Screw the switch base to its bracket (4 x M3x8 self tapping), lever pointing to the crank. Set the "
                   "bracket foot on the housing foot extension in front of the crank. Screw it down with an M3x10 "
                   "in the hole nearest the crank (self taps into the housing), and put the housing's 4th deck screw "
@@ -511,14 +522,14 @@ def steps(P):
                   "presses the lever tip and the meter shows the switch closed. Turn the crank about 20 deg either "
                   "side: the switch must open.",
              parts=[f"{PREFIX}_sw_rail_low_bracket"]),
-        dict(title="Sensors 3: SW_GAP on the right rail cheek",
+        dict(stage=212, title="Sensors 3: SW_GAP on the right rail cheek",
              text="Build SW_GAP as in Sensors 1 (its base has its own arm). Hold the arm tab on the outer face of the right rail cheek, below "
                   "the big gear, and screw it on with 2 x M3x12 (heads in the counterbores). With the big gear "
                   "at rest (toothless gap at the rack) the cam bump presses the lever: switch closed. Turn the gear "
                   "20 deg either way: switch open.",
              parts=[f"{PREFIX}_sw_gap", f"{PREFIX}_sw_gap_lever", f"{PREFIX}_sw_gap_screw", f"{PREFIX}_sw_gap_jam",
                     f"{PREFIX}_sw_gap_nut"]),
-        dict(title="Sensors 4: AS5600 board",
+        dict(stage=213, title="Sensors 4: AS5600 board",
              text="Do this after the magnet cap is on the main shaft end (drum steps): the board sits 2 mm in front of "
                   "it. Battery unplugged. Plug the STEMMA QT cable into the board's connector on the +x end (the end "
                   "away from the housing spine). Push the board onto the 4 pegs of the carrier, chip facing out. Drop "

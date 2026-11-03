@@ -248,3 +248,27 @@ Levers: PLA beam 1.6 thick, 30 long, round nub r 1.5, M3 x 6 in a 4 mm boss 8 mm
 - Shear pin break torque (bench).
 - Confirm a spare worm N20 for the drum (D19).
 - AS5600 magnet (D12: optional, SW_INDEX fallback).
+
+## 13. Printing (print_tf in drum.py; the pack tool writes the STLs in this orientation)
+
+| part | material | on the bed | supports |
+|---|---|---|---|
+| drum_coupler | PPA-CF | bus gear face down | none (cam band 2.5 mm step only) |
+| drum_coupler_hub | PPA-CF | motor-side face down | none |
+| drum_shear_pin (x6) | PLA | lying on its 0.4 mm flat (shear across the layers) | none |
+| drum_shaft | PPA-CF | lying on a hex flat | tree supports under the d12 spigot (it hangs 5 mm) |
+| drum_sleeve_reel | PPA-CF | flange down | none |
+| drum_gear_reel | PPA-CF | plain gear face down, dogs up | none (small lip) |
+| drum_collar | PPA-CF | one dog face down | the body bridges 25 mm between the lower dogs (fine on the X2D) |
+| drum_dogring_launch | PPA-CF | back face (slots) down, dogs up | none |
+| drum_drum_a | PLA | N20 gear face down | none: 45 deg cones under every step |
+| drum_drum_b | PLA | barrel face down | the 4 mm groove ceiling prints as short bridges |
+| drum_idler | PPA-CF | pinion end down | none |
+| drum_idler_gear | PPA-CF | flat | none |
+| drum_n20_pinion | PPA-CF | flat | none |
+| drum_fork | PLA | pad plane down (the thin yoke prints flat: it is the spring) | none |
+| drum_dog_post, brackets, posts, blocks, cradle, strap, levers, hand lever, magnet cap | PLA | as modelled, largest flat face down | none |
+| drum_axle, drum_rail | PPA-CF | lying on their 1 mm flat | none |
+
+Infill: 40 percent gyroid default; 100 percent for the shear pins (their strength sets the 5 N m limit), the shaft,
+the collar and the dog ring.

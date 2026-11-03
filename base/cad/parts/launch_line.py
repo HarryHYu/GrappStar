@@ -27,7 +27,7 @@ R_GROOVE = 6.0       # groove bottom
 LINE_D = 1.0
 R_PATH = R_GROOVE + LINE_D / 2
 PUL_W = 5.0
-N_A = 6              # telescoping segments of the pusher -> top pulley run
+N_A = 9              # telescoping segments of the pusher -> top pulley run
 
 
 def geom(n):
@@ -123,13 +123,14 @@ def parts_line(n, bed):
             ax = tf.mul(tf.T(p[0], -PUL_W / 2 - 5.0, p[2]), tf.Rx(-90))
             out.append(Part(f"launch_pulley_{nm}_axle", axle_solid(2 * (PUL_W / 2 + 5.0)), "bought", joint="launch_rail",
                             place=ax, color="#444444", bought_ref="M3x16 SHCS + nut", notes="Pulley axle"))
-    # line: pusher -> top pulley, telescoping with the carriage
-    L_home = (n["u_c_home"]) - g["p_top_front"][0]
-    ls = L_home / N_A
+    # line: pusher -> top pulley, telescoped: N_A segments of the cocked length, spread evenly between the pulley
+    # tangent and the pusher (segment k slides back by k/(N_A-1) of the carriage travel), so none passes either end
+    L_home = n["u_c_home"] - g["p_top_front"][0]
+    ls = L_home - n["stroke"] - 0.05
     for k in range(N_A):
-        a = (g["p_top_front"][0] + k * ls, 0.0, g["w_line"])
-        b = (g["p_top_front"][0] + (k + 1) * ls, 0.0, g["w_line"])
-        out.append(Part(f"launch_line_a{k}", seg(a, b), "bought", joint=f"launch_line_a{k}", color="#f0f0f0",
+        a0 = g["p_top_front"][0] + k * (L_home - ls) / (N_A - 1)
+        out.append(Part(f"launch_line_a{k}", seg((a0, 0.0, g["w_line"]), (a0 + ls, 0.0, g["w_line"])), "bought",
+                        joint=f"launch_line_a{k}", color="#f0f0f0",
                         bought_ref="Dyneema braid 1 mm (LINE)", notes="Tether, pusher to top pulley (telescoped in the model)"))
     out.append(Part("launch_line_p", seg((n["u_c_home"] - 0.01, 0.0, g["w_line"]), (n["u_tail_home"], 0.0, g["w_line"])),
                     "bought", joint="launch_carriage", color="#f0f0f0", notes="Tether through the pusher hole to the tail"))
@@ -147,7 +148,7 @@ def joints_line(n):
         out.append(Joint(f"launch_pulley_{nm}", "launch_rail", "rev", (p[0], yc, p[2]), (0, 1, 0)))
     for k in range(N_A):
         out.append(Joint(f"launch_line_a{k}", "launch_rail", "slide", (0, 0, 0), (-1, 0, 0),
-                         gear=("launch_carriage", (k + 0.5) / N_A, 0.0)))
+                         gear=("launch_carriage", k / (N_A - 1), 0.0)))
     return out
 
 

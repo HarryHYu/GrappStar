@@ -1183,6 +1183,8 @@ def kin(P, S):
         w = float(S["wiper_deg"])
     elif K.mode(th, c) == "LAUNCH":
         w = main_angle(P, S)      # no wiper_deg (cad-launch's own sweeps): the engaged shaft turns with the sleeve
+    elif K.mode(th, c) == "REEL" and S.get("reel_deg") is not None:
+        w = float(S["reel_deg"])  # engaged in REEL: the shaft turns with the REEL gear
     else:
         w = 0.0
     x = K.collar_x(th, c)

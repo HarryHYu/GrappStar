@@ -1410,7 +1410,9 @@ POWER_STATES = [("LAUNCH_MODE", "MODE"), ("AIM", "AIM"), ("COCK", "COCK"), ("BAS
                 ("CHECK", "REEL"), ("TOW", "HOLD"), ("RETRIEVE", "REEL"), ("LAUNCH_READY", "MODE")]
 for _step, _pst in POWER_STATES:
     sc(Scenario(f"power_{_step.lower()}", f"power loss in {_step} (base state {_pst}): kill, restart, mission recovers",
-                triggers=[(f"kill base in {_step}", plant_state(_pst, step=_step, delay=1.0), lambda r: r.restart_base(2.0))],
+                triggers=[(f"kill base in {_step}", plant_state(_pst, step=_step, delay=1.0) if _step != "TOW" else
+                           (lambda r: r.step() == "TOW" and r.plant_last.get("state") in ("REEL", "HOLD") and float(r.plant_last.get("tension") or 0) > 10),
+                           lambda r: r.restart_base(2.0))],
                 policy={"LOADED_UNKNOWN": decock_then_retry, "PHASE_UNKNOWN": decock_then_retry, "phase UNKNOWN": decock_then_retry, "use Decock": decock_then_retry},
                 retry_max=4, start_mode="NEUTRAL" if _step == "LAUNCH_MODE" else None,
                 checks=[("mission DONE after the power loss", c_done), ("no dry fire", c_no_dry),

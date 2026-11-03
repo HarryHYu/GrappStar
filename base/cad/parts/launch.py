@@ -116,10 +116,10 @@ def L(P):
     n["split"] = (-30.0, 140.0)                                # rail piece splits (u)
     # planes across the rail (y): big gear sector layer (rack), full layer (drive gear), hub, cheeks
     n["y_sec"] = (-6.0, 6.0)
-    n["y_full"] = (6.3, 14.3)
-    n["hub_y"] = (-8.5, 19.0)
+    n["y_full"] = (7.5, 14.5)                                  # 1.5 clear of the rack face, 0.5 of the shelf
+    n["hub_y"] = (-8.8, 14.5)                                  # hub flush with the full layer face; washer to cheek B
     n["y_chA"] = (-17.0, -9.0)
-    n["y_chB"] = (19.5, 27.5)
+    n["y_chB"] = (21.0, 28.0)
     # spring arms (they hit the stop pads) and pads
     n["arm_w0"], n["arm_w1"] = 73.2, 80.0             # arm bottom 73.2: the SW feet (1.6) stay above the stop ledges
     n["u_stop"] = n["u_c_home"] + n["pusher_t"]               # arm front faces at HOME
@@ -155,7 +155,8 @@ def switch_frames(P):
 
 BUMP_H = 2.0                  # SW_GAP cam bump height on the big gear web
 BUMP_R = 29.7                 # its radius from the gear pin
-BUMP_DEG = 5.0                # half width (deg)
+BUMP_DEG = 5.0                # half width (deg) of the flat top
+BUMP_RAMP_DEG = 10.0          # ramp length (deg) each side: about 22 deg slope at r 29.7
 
 
 def home_bump_point(P):
@@ -357,7 +358,7 @@ def carriage_solid(P):
     def wedge(a0, a1):
         pts = [(0.0, 0.0)] + [(40 * math.sin(math.radians(a)), -40 * math.cos(math.radians(a))) for a in np.linspace(a0, a1, 8)]
         cs = prim.poly_cs(pts)
-        return prim.place(prim.extrude(cs, 145.0, z=n["pusher_t"] + 1.0), tf.mul(tf.T(0, 0, n["w_dart"]), tf.Ry(90)))
+        return prim.place(prim.extrude(cs, 140.0, z=14.0), tf.mul(tf.T(0, 0, n["w_dart"]), tf.Ry(90)))
     strips = wedge(20.0, 50.0) + wedge(-50.0, -20.0)
     s.append(pipe ^ (rings + strips))
     for uc in RING_U:
@@ -380,50 +381,50 @@ def carriage_solid(P):
         s.append(B(0, n["pusher_t"], *sorted((sg * 12.0, sg * Y_BODY)), n["arm_w0"], ARM_LAP_W))
         yc, yd = sorted((sg * 12.0, sg * (n["y_lip0"] - 0.5)))
         s.append(B(0, n["pusher_t"], yc, yd, n["w_deck0"], ARM_LAP_W))                 # web deck -> stub (inside the lips)
-    # SW_SEATED block behind the left arm: pushrod guide and plunger guide
-    st = seat_geom(P)
-    s.append(B(-16.0, 0.0, 10.0, 20.0, n["arm_w0"], st["w_push"] + 4.0))
     c = prim.union(s)
     c = c ^ B(-100, 400, -Y_BODY, Y_BODY, -100, 300)        # body inside the shoe faces: prints on its side, flat
-    c = c - _carriage_cuts(P)
+    for sg in (1, -1):                                       # keyway slots for the yoke key plates
+        c = c - B(KEY_U[0], KEY_U[1], *sorted((sg * 12.9, sg * 17.6)), 61.5, ARM_LAP_W + 1.0)
     for sg in (1, -1):                                       # arm bolt pilots (M3 self tap, from above)
         c = c - cyl_w(1.3, n["arm_w0"] - 6.0, ARM_LAP_W + 0.5, ARM_BOLT_U, sg * ARM_BOLT_Y)
     return c
 
 
-def _carriage_cuts(P):
-    n = L(P)
-    st = seat_geom(P)
-    c = cyl_u(1.85, st["u_plunger_local"] - 6.0, n["pusher_t"] + 1.0, st["y_push"], st["w_push"])
-    c = c + cyl_w(2.25, n["arm_w0"] - 2.0, st["w_push"], st["u_plunger_local"], st["y_push"])
-    c = c + B(st["u_plunger_local"] - 10.5, st["u_plunger_local"] + 10.5, 12.5, 28.5, n["arm_w0"] - 2.0, n["arm_w0"] + 1.4)
-    return c
-
-
-def carriage_arm_solid(P, sg):
-    """Bolted SPRING ARM (one per side, carriage local frame): outer arm y 21.5..61 (hits the stop, carries the spring
-    pegs at y 38 and the D5 provision peg at 56), upper half-lap tongue over the body stub (2 x M3 down into it).
-    Right arm also carries the rigid SW_HOME foot; left arm guides the SW_SEATED pushrod."""
+def carriage_yoke_solid(P):
+    """Bolted YOKE (one part, carriage local frame) across the carriage rear: both spring arms (they hit the stop units
+    and carry the spring pegs at y +-38 and the D5 provision pegs at +-56), a cross bar behind the pusher (bears on the
+    body's rear faces: spring pull), front keys in front of the body webs (stop impact), tongues over the body stubs
+    (1 x M3 per side down into the webs). Each arm's stop moment balances across the cross bar.
+    Left: SW_SEATED block (pushrod bore, plunger stem bore). Right: rigid SW_HOME foot.
+    Both feet run from local u -30 to -0.5 so the rail lever screw stays covered over the stop overshoot."""
     n = L(P)
     up = n["u_peg_c"]
-    s = [B(0, n["pusher_t"], *sorted((sg * Y_BODY, sg * (Y_SPRING2 + 5))), n["arm_w0"], n["arm_w1"]),
-         B(0, n["pusher_t"], *sorted((sg * 13.0, sg * Y_BODY)), ARM_LAP_W, n["arm_w1"])]
-    # stop design (launch_stop.arm_change): taller to w 83 and a 6 mm rear stiffener, |y| from 20
-    s.append(B(-6.0, n["pusher_t"], *sorted((sg * 20.0, sg * (Y_SPRING2 + 5))), n["arm_w1"] - 0.01, 83.0))
-    s.append(B(-6.0, 0.0, *sorted((sg * 21.5, sg * 50.0)), n["arm_w0"], n["arm_w1"]))
-    for yy in (n["y_spring"], Y_SPRING2):
-        s.append(cyl_w(3.0, n["w_spring"] - 9, n["arm_w0"] + 1, up, sg * yy))
-        s.append(cyl_w(4.5, n["w_spring"] - 11, n["w_spring"] - 9, up, sg * yy))         # keeper flange
     st = seat_geom(P)
-    if sg > 0:
-        s.append(B(0, n["pusher_t"], 11.2, 20.0, n["arm_w1"] - 0.01, st["w_push"] + 4.0))   # pushrod guide lug
-    else:
-        s.append(B(-16.0, 0.01, -28.0, -Y_BODY, n["arm_w0"], ARM_LAP_W))                  # foot carrier
-        s.append(home_foot_solid(P) ^ B(-50, 50, -40, -Y_BODY, -100, 300))
-    a = prim.union(s) - _carriage_cuts(P)
-    a = a - cyl_w(1.7, ARM_LAP_W - 1.0, n["arm_w1"] + 1.0, ARM_BOLT_U, sg * ARM_BOLT_Y)
-    a = a - cyl_w(2.9, n["arm_w1"] - 2.5, n["arm_w1"] + 12.0, ARM_BOLT_U, sg * ARM_BOLT_Y)   # head counterbore
-    return a
+    a0, a1 = n["arm_w0"], n["arm_w1"]
+    s = []
+    for sg in (1, -1):
+        s.append(B(0, n["pusher_t"], *sorted((sg * Y_BODY, sg * (Y_SPRING2 + 5))), a0, a1))          # arm
+        s.append(B(-6.0, n["pusher_t"], *sorted((sg * 20.0, sg * (Y_SPRING2 + 5))), a1 - 0.01, 83.0))  # taller
+        s.append(B(-8.0, 0.01, *sorted((sg * Y_BODY, sg * 50.0)), a0, a1))                       # stiffener
+        s.append(B(0, n["pusher_t"], *sorted((sg * 13.0, sg * Y_BODY)), ARM_LAP_W, a1))           # tongue
+        s.append(B(KEY_U[0] + 0.1, KEY_U[1] - 0.1, *sorted((sg * 13.1, sg * 17.4)), 62.0, ARM_LAP_W + 0.01))  # key
+        for yy in (n["y_spring"], Y_SPRING2):
+            s.append(cyl_w(3.0, n["w_spring"] - 9, a0 + 1, up, sg * yy))
+            s.append(cyl_w(4.5, n["w_spring"] - 11, n["w_spring"] - 9, up, sg * yy))            # keeper flange
+    s.append(B(-8.0, 0.0, -Y_BODY, Y_BODY, a0, a1))                                            # cross bar
+    s.append(B(-14.0, 0.0, 11.0, 21.5, a0, st["w_push"] + 4.0))                                # SW_SEATED block
+    s.append(B(0, n["pusher_t"], 11.2, 20.0, a1 - 0.01, st["w_push"] + 4.0))                   # pushrod lug
+    s.append(B(-32.0, -6.0, -28.0, -Y_BODY, a0, ARM_LAP_W))                                    # right foot carrier
+    y = prim.union(s)
+    y = y - cyl_u(1.85, -15.0, n["pusher_t"] + 1.0, st["y_push"], st["w_push"])               # rod bore
+    y = y - cyl_u(2.7, -15.0, 0.0, st["y_push"], st["w_push"])                                # collar counterbore
+    y = y - cyl_w(2.25, a0 - 2.0, st["w_push"] + 1.5, st["u_plunger_local"], STEM_Y)          # stem bore
+    y = y - cyl_w(1.25, a0 - 2.0, st["w_push"] + 10.0, st["u_plunger_local"], PIN_Y)          # pin bore (through)
+    y = y - B(FOOT_U0 - 0.5, FOOT_U1 + 1.1, 12.5, 28.5, a0 - 2.0, a0 + 1.4)                  # leaf travel recess
+    for sg in (1, -1):
+        y = y - cyl_w(1.7, ARM_LAP_W - 1.0, a1 + 1.0, ARM_BOLT_U, sg * ARM_BOLT_Y)
+        y = y - cyl_w(2.9, a1 - 2.5, a1 + 12.0, ARM_BOLT_U, sg * ARM_BOLT_Y)                  # head counterbore
+    return y + home_foot_solid(P)
 
 
 def big_gear_solid(P):
@@ -447,9 +448,15 @@ def big_gear_solid(P):
     g = g + hub
     # SW_HOME bump (rail angle 225 deg at rest: gear local x = u, y = -w)
     a0 = math.degrees(math.atan2(-math.sin(math.radians(225.0)), math.cos(math.radians(225.0))))
-    arc = prim.place(prim.revolve_pts([(BUMP_R - 3.0, -BUMP_H), (BUMP_R + 3.0, -BUMP_H), (BUMP_R + 3.0, 0.01),
-                                       (BUMP_R - 3.0, 0.01)], deg=2 * BUMP_DEG), tf.Rz(a0 - BUMP_DEG))
-    g = g + arc                                                           # on the z = 0 face, standing out to -z
+    from manifold3d import Manifold
+    pts = []
+    for da, hz in ((-(BUMP_DEG + BUMP_RAMP_DEG), 0.01), (-BUMP_DEG, -BUMP_H), (BUMP_DEG, -BUMP_H),
+                   (BUMP_DEG + BUMP_RAMP_DEG, 0.01)):
+        for rr in (BUMP_R - 3.0, BUMP_R + 3.0):
+            a = math.radians(a0 + da)
+            pts.append((rr * math.cos(a), rr * math.sin(a), hz))
+            pts.append((rr * math.cos(a), rr * math.sin(a), 0.01))
+    g = g + Manifold.hull_points(pts)                                     # cam with 22 deg ramps both ways
     return g - prim.cyl(5.0 + 0.175, 80, z=-40)
 
 
@@ -465,7 +472,22 @@ def drive_gear_solid(P):
     g = g + hub
     g = g - prim.cyl(sp["od"] / 2 + 0.05, 40, z=-20)
     g = g + prim.box(sp["od"] / 2 - 2.8, sp["od"] / 2 + 0.1, -sp["key"] / 2 + 0.1, sp["key"] / 2 - 0.1, -sp["w"] / 2, sp["w"] / 2)
+    # spacer collars to both cheek faces (0.2 clear): the drive gear cannot walk off the sprag rib (review 2)
+    ym = 0.5 * (n["y_full"][0] + n["y_full"][1])
+    za, zb = (n["y_chA"][1] + 0.2) - ym, (n["y_chB"][0] - 0.2) - ym
+    g = g + prim.tube(16.0, 13.4, -(sp["w"] + 2.0) / 2 - za + 0.01, z=za)
+    g = g + prim.tube(sp["od"] / 2 + 0.1, 13.4, 0.8, z=-(sp["w"] + 2.0) / 2)      # lip: ties the collar on, seats the sprag
     return g
+
+
+def drive_washer_solid(P):
+    """Printed washer on the sleeve between the drive gear hub and the left cheek (axial location)."""
+    n = L(P)
+    sp = dict(od=47.0, w=14.0)
+    sp.update(getattr(P, "SPRAG", None) or {})
+    ym = 0.5 * (n["y_full"][0] + n["y_full"][1])
+    y0 = ym + (sp["w"] + 2.0) / 2 + 0.1
+    return prim.tube(16.0, 10.3, (n["y_chB"][0] - 0.2) - y0, z=y0)
 
 
 def sprag_solid(P):
@@ -480,7 +502,15 @@ def gear_pin_solid(P):
     y0 = n["y_chA"][0]
     y1 = n["y_chB"][1]
     pin = prim.cyl(5.0, (y1 + 5.0) - y0, z=y0) + prim.cyl(8.0, 3.0, z=y0 - 3.0)
-    return pin - prim.tube(6.0, 4.0, 1.6, z=y1 + 0.4)
+    pin = pin - prim.tube(6.0, 4.0, 1.6, z=y1 + 0.4)
+    return pin - prim.box(4.5, 20.0, -20.0, 20.0, -100.0, 100.0)       # 0.5 flat: prints lying on its side
+
+
+def gear_washer_solid(P):
+    """Printed spacer washer on the big gear pin between the gear hub (full-layer face) and the left cheek."""
+    n = L(P)
+    y0 = n["hub_y"][1] + 0.1
+    return prim.tube(9.0, 5.2, (n["y_chB"][0] - 0.1) - y0, z=y0)
 
 
 RIB_W, RIB_R = 6.0, 12.8      # integral key rib on the sleeve (D13): 6 wide, top at r 12.8 (sprag keyway depth 2.8)
@@ -542,11 +572,13 @@ def anchor_pin_solid(P):
 N_SEG = 5
 Y_BODY = 21.5         # carriage body half width (shoe faces): body prints on its side on them
 ARM_LAP_W = 76.0      # half-lap joint plane between the body stub and the bolted spring arm
-ARM_BOLT_U, ARM_BOLT_Y = 4.0, 17.5
+ARM_BOLT_U, ARM_BOLT_Y = 6.0, 15.0
+KEY_U = (0.8, 3.2)            # yoke key plates in slots of the body webs (bear both ways in u)
+FOOT_U0, FOOT_U1 = -30.0, -0.5   # SW feet span (carriage local): covers the lever screw over the stop overshoot
 Y_SPRING2 = 56.0      # second spring pair provision (D5): pegs, anchor holes and clear space at y +-56, w 60
 LUG_BOLTS_U = (107.0, 123.0)   # launch_aim lug_solid bolt positions (w 41)
 RACK_BACK = 4.0       # rack body above the tooth roots (carriage mass, review 1)
-RING_U = (9.0, 42.0, 76.0, 110.0, 146.0)   # cradle ring positions (carriage local u)
+RING_U = (14.0, 46.0, 78.0, 110.0, 146.0)   # cradle ring positions (carriage local u)
 FLANGE_W = (36.0, 43.5)  # w of the M3 bolts through the rail split flanges
 PAD_L = 18.0          # carriage stop pad length (physics F3: 15 to 20 mm of TPU or foam)
 _DART = {}
@@ -613,34 +645,80 @@ def seat_nut_solid(P, side="seated"):
     return nut - cyl_w(1.5, st["w_nut0"] - 1, st["w_nut0"] + SW.NUT_T + 1, st["u_tip"], st["y"])
 
 
-def seat_plunger_solid(P):
-    """Plunger + foot (carriage local frame, pressed position)."""
-    n = L(P)
-    st = seat_geom(P)
-    up = st["u_plunger_local"]
-    foot = B(up - 10.0, up + 10.0, 13.0, 28.0, st["w_tip"], st["w_tip"] + 1.6)
-    foot = foot - B(up + 8.0, up + 10.1, 12.9, 28.1, st["w_tip"] - 0.1, st["w_tip"] + 0.8)       # front lead-in step
-    foot = foot - B(up - 10.1, up - 8.0, 12.9, 28.1, st["w_tip"] - 0.1, st["w_tip"] + 0.8)       # rear lead-in step
-    stem = cyl_w(2.0, st["w_tip"] + 1.59, st["w_push"] - 1.6, up, st["y_push"])
-    return foot + stem
+def _uw_extrude(pts, y0, y1):
+    """Prism from a polygon in the (u, w) plane, spanning y0..y1 (carriage local or rail frame)."""
+    cs = prim.poly_cs(pts)
+    sol = prim.extrude(cs, (y1 - y0), z=0.0)                    # x = u, y = w, z
+    return prim.place(sol, tf.mul(tf.T(0, y1, 0), tf.Rx(90)))   # z -> -y: spans y1 .. y0
 
 
-def seat_pushrod_solid(P):
-    """Pushrod d3.2 along u (carriage local), front flush with the pusher face (pressed), rear end over the plunger."""
-    n = L(P)
+def _foot(P, y0, y1):
+    """A switch foot from FOOT_U0 to FOOT_U1 with 27 deg ramps at both ends (the screw tip meets a slope)."""
     st = seat_geom(P)
-    r = cyl_u(1.6, st["u_plunger_local"] - 4.5, n["pusher_t"], st["y_push"], st["w_push"])
-    return r - B(-50, 50, -100, 100, -100, st["w_push"] - 1.2)            # flat underside: prints lying on it
+    wb = st["w_tip"]
+    f = B(FOOT_U0, FOOT_U1, y0, y1, wb, wb + 1.6)
+    f = f - _uw_extrude([(FOOT_U1 + 0.01, wb - 0.01), (FOOT_U1 + 0.01, wb + 1.3), (FOOT_U1 - 3.0, wb - 0.01)], y0 - 0.1, y1 + 0.1)
+    f = f - _uw_extrude([(FOOT_U0 - 0.01, wb - 0.01), (FOOT_U0 + 3.0, wb - 0.01), (FOOT_U0 - 0.01, wb + 1.3)], y0 - 0.1, y1 + 0.1)
+    return f
 
 
 def home_foot_solid(P):
-    """Rigid foot under the right spring arm (carriage local), with lead-in steps; part of the carriage."""
-    st = seat_geom(P, "home")
+    """Rigid SW_HOME foot under the right spring arm (part of the yoke)."""
+    return _foot(P, -28.0, -Y_BODY)
+
+
+def _wedge_half(P, upper=True):
+    """Half space above (upper) or below the 45 deg wedge plane w = w0 - (u - u_p) (carriage local)."""
+    st = seat_geom(P)
+    up, w0 = st["u_plunger_local"], st["w_push"] - 0.8
+    if upper:
+        pts = [(up - 40.0, w0 + 40.0), (up + 40.0, w0 - 40.0), (up + 40.0, w0 + 60.0), (up - 40.0, w0 + 60.0)]
+    else:
+        pts = [(up - 40.0, w0 + 40.0), (up - 40.0, w0 - 60.0), (up + 40.0, w0 - 60.0), (up + 40.0, w0 - 40.0)]
+    return _uw_extrude(pts, -100.0, 100.0)
+
+
+STEM_Y, PIN_Y = 17.0, 18.6     # plunger stem (r 2) sits 2 mm beside the pushrod so a thin pin (r 1) passes it
+
+
+def seat_plunger_solid(P):
+    """SW_SEATED plunger (PPA-CF, carriage local, pressed): foot pad under the left arm, stem (r 2) whose 45 deg chamfer
+    lies under the pushrod's wedge end, and a thin pin (r 1) beside the pushrod up through the yoke block to a head that
+    rests on the block top when the plunger is free (so it cannot drop). Pad, stem and pin print as one part: push the
+    pin up through the yoke block from below, then press the printed head cap onto the pin top."""
+    n = L(P)
+    st = seat_geom(P)
     up = st["u_plunger_local"]
-    foot = B(up - 10.0, up + 10.0, -28.0, -13.0, st["w_tip"], st["w_tip"] + 1.61)
-    foot = foot - B(up + 8.0, up + 10.1, -28.1, -12.9, st["w_tip"] - 0.1, st["w_tip"] + 0.8)
-    foot = foot - B(up - 10.1, up - 8.0, -28.1, -12.9, st["w_tip"] - 0.1, st["w_tip"] + 0.8)
-    return foot
+    pad = _foot(P, 13.0, 28.0)
+    stem = cyl_w(2.0, st["w_tip"] + 1.59, st["w_push"] + 1.0, up, STEM_Y) ^ _wedge_half(P, upper=False)
+    pin = cyl_w(1.0, st["w_tip"] + 1.59, SEAT_HEAD_W, up, PIN_Y)
+    return pad + stem + pin
+
+
+SEAT_HEAD_W = 91.2       # pin top (pressed); the head cap sits on it, 1.2 above the block top (w 90) when pressed
+
+
+def seat_clip_solid(P):
+    """Head cap pressed onto the plunger pin top: rests on the yoke block when the plunger is free."""
+    st = seat_geom(P)
+    c = cyl_w(2.8, SEAT_HEAD_W - 1.2, SEAT_HEAD_W + 1.2, st["u_plunger_local"], PIN_Y)
+    return c - cyl_w(1.0, SEAT_HEAD_W - 1.3, SEAT_HEAD_W, st["u_plunger_local"], PIN_Y)
+
+
+def seat_pushrod_solid(P):
+    """Pushrod d3.2, inserted from the rear of the yoke block BEFORE the plunger: a collar (r 2.4) stops it at the lug
+    step (forward limit, 1.2 mm of free travel), its rear end is the 45 deg wedge over the plunger stem's chamfer (the
+    stem stops it going back). Pressed position: front flush with the pusher face. Top flat for printing."""
+    n = L(P)
+    st = seat_geom(P)
+    up = st["u_plunger_local"]
+    r = cyl_u(1.6, up - 3.0, n["pusher_t"], st["y_push"], st["w_push"])
+    r = r + cyl_u(2.4, SEAT_COLLAR_U[0], SEAT_COLLAR_U[1], st["y_push"], st["w_push"])
+    r = r ^ _wedge_half(P, upper=True)
+    return r - B(-100, 100, -100, 100, st["w_push"] + 1.2, 200)
+
+
+SEAT_COLLAR_U = (-3.0, -1.2)     # pushrod collar (pressed); the lug step is at u 0
 
 
 def parts(P):
@@ -658,20 +736,22 @@ def parts(P):
     out.append(Part("launch_carriage", cs, "PLA", joint="launch_carriage", place=tf.T(n["u_c_home"], 0, 0),
                     print_tf=bed(cs, tf.Rx(90), rz=45.0), color="#d97a00",
                     notes="Carriage: rack, shoes, dart cradle, pusher with tether hole, spring arms and pegs, SW feet"))
-    for sg, side in ((1, "l"), (-1, "r")):
-        arm = carriage_arm_solid(P, sg)
-        out.append(Part(f"launch_carriage_arm_{side}", arm, "PLA", joint="launch_carriage",
-                        place=tf.T(n["u_c_home"], 0, 0), print_tf=best_bed(arm), color="#c86f00",
-                        notes="Bolted spring arm: hits the stop, carries the spring pegs" +
-                              (" and the SW_SEATED pushrod guide" if sg > 0 else " and the rigid SW_HOME foot")))
+    yk = carriage_yoke_solid(P)
+    out.append(Part("launch_carriage_yoke", yk, "PLA", joint="launch_carriage", place=tf.T(n["u_c_home"], 0, 0),
+                    print_tf=best_bed(yk), color="#c86f00",
+                    notes="Bolted yoke: both spring arms (hit the stop, carry the spring pegs), cross bar, keys, "
+                          "SW_SEATED block, rigid SW_HOME foot"))
     bg = big_gear_solid(P)
     out.append(Part("launch_big_gear", bg, "PPA-CF", joint="launch_big_gear",
                     place=tf.mul(tf.T(0, n["y_sec"][0], 0), tf.Rx(-90)), print_tf=bed(bg, tf.Rx(180)), color="#3d7cc9",
                     notes=f"Big gear m2.5: sector layer {n['n_present']} of 40 teeth (rack, v10 release teeth) + full 40T "
                           f"layer (drive), SW_GAP cam bump, on the rail pin"))
+    gw = gear_washer_solid(P)
+    out.append(Part("launch_gear_washer", gw, "PLA", joint="launch_rail", place=tf.mul(tf.T(n["cd"], 0, 0), tf.Rx(-90)),
+                    print_tf=bed(gw), color="#5a5f65", notes="Spacer washer: big gear hub to the left cheek"))
     gp = gear_pin_solid(P)
     out.append(Part("launch_gear_pin", gp, "PPA-CF", joint="launch_rail", place=tf.mul(tf.T(n["cd"], 0, 0), tf.Rx(-90)),
-                    print_tf=bed(gp), color="#3a3f45", notes="Snap pin d10 for the big gear, C clip"))
+                    print_tf=best_bed(gp), color="#3a3f45", notes="Snap pin d10 for the big gear, C clip; prints lying on its flat"))
     out.append(Part("launch_gear_clip", clip_solid(P), "PLA", joint="launch_rail",
                     place=tf.mul(tf.T(n["cd"], 0, 0), tf.Rx(-90)), print_tf=bed(clip_solid(P)), color="#5a5f65",
                     notes="C clip on the big gear pin groove"))
@@ -679,6 +759,9 @@ def parts(P):
     dg = drive_gear_solid(P)
     out.append(Part("launch_drive_gear", dg, "PPA-CF", joint="launch_drive", place=tf.mul(tf.T(0, ym, 0), tf.Rx(-90)),
                     print_tf=bed(dg), color="#2f6db5", notes="Drive gear m2.5 26T, sprag #1 inside on an integral key rib"))
+    dw = drive_washer_solid(P)
+    out.append(Part("launch_drive_washer", dw, "PLA", joint="launch_drive", place=tf.Rx(-90), print_tf=bed(dw),
+                    color="#5a5f65", notes="Spacer washer: drive gear hub to the left cheek"))
     out.append(Part("launch_sprag", sprag_solid(P), "bought", joint="launch_drive", place=tf.mul(tf.T(0, ym, 0), tf.Rx(-90)),
                     color="#777c84", bought_ref="CSK20PP 20x47x14 sprag #1", notes="Sprag #1: forward wiper cocks"))
     sl = sleeve_solid(P)
@@ -727,10 +810,14 @@ def parts(P):
                         color="#444444", bought_ref="M3 nut", notes="Contact nut in the wall, wire under it"))
     pl = seat_plunger_solid(P)
     out.append(Part("launch_seat_plunger", pl, "PPA-CF", joint="launch_carriage", place=tf.T(n["u_c_home"], 0, 0),
-                    print_tf=bed(pl), color="#3a3f45", notes="SW_SEATED plunger with foot (wedge top, pressed by the pushrod)"))
+                    print_tf=best_bed(pl), color="#3a3f45",
+                    notes="SW_SEATED plunger: foot pad + stem with a 45 deg chamfer, clip groove on top"))
     pr = seat_pushrod_solid(P)
     out.append(Part("launch_seat_pushrod", pr, "PPA-CF", joint="launch_carriage", place=tf.T(n["u_c_home"], 0, 0),
-                    print_tf=bed(pr), color="#3a3f45", notes="SW_SEATED pushrod d3.2 with a flat, pressed by the dart tail"))
+                    print_tf=best_bed(pr), color="#3a3f45", notes="SW_SEATED pushrod d3.2 with the stem slot"))
+    cl = seat_clip_solid(P)
+    out.append(Part("launch_seat_clip", cl, "PLA", joint="launch_carriage", place=tf.T(n["u_c_home"], 0, 0),
+                    print_tf=best_bed(cl), color="#5a5f65", notes="Head cap on the plunger pin (rests on the yoke block)"))
     out += LN.parts_line(n, bed)
     out.append(Part("launch_dart", dart_solid(P), "bought", joint="launch_dart_rot",
                     place=tf.mul(tf.T(-(n["u_tail_home"] + 76.0), 0, -n["w_dart"]),
@@ -973,10 +1060,11 @@ def allowed(P):
         Allow("launch_sprag", "launch_sleeve", "sprag inner race on the keyed sleeve"),
         Allow("launch_spring_*_hook_a", "launch_anchor_pin_*", "hook loop round the anchor pin"),
         Allow("launch_anchor_pin_*", "launch_rail_front", "pin in its hole"),
-        Allow("launch_spring_*_hook_c", "launch_carriage_arm_*", "hook loop round the arm peg"),
-        Allow("launch_stop_spring_*", "launch_carriage_arm_*", "arm on the stop pad (contact)"),
+        Allow("launch_spring_*_hook_c", "launch_carriage_yoke", "hook loop round the arm peg"),
+        Allow("launch_stop_spring_*", "launch_carriage_yoke", "arm on the stop pad (contact)"),
         Allow("launch_spring_*", "launch_spring_*", "segmented spring model telescopes when the carriage overshoots"),
         Allow("launch_sw_gap_screw", "launch_sw_gap", "screw threaded into the leaf"),
+        Allow("launch_seat_clip", "launch_seat_plunger", "head cap pressed on the pin"),
         Allow("launch_sw_home_screw", "launch_sw_home", "screw threaded into the lever"),
         Allow("launch_sw_seated_screw", "launch_sw_seated", "screw threaded into the lever"),
         Allow("launch_sw_rail_low_screw", "launch_sw_rail_low", "screw threaded into the leaf"),
@@ -1018,7 +1106,7 @@ def checks(P, asm):
     at full travel."""
     n = L(P)
     fails = []
-    arms = [prim.place(carriage_arm_solid(P, sg), tf.T(n["u_c_home"], 0, 0)) for sg in (1, -1)]
+    arms = [prim.place(carriage_yoke_solid(P), tf.T(n["u_c_home"], 0, 0))]
     body = prim.place(carriage_solid(P), tf.T(n["u_c_home"], 0, 0))
     for d in np.linspace(0.0, ST.TRAVEL, 7):
         mov = [a.translate((d, 0, 0)) for a in arms] + [body.translate((d, 0, 0))]

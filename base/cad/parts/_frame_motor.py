@@ -58,8 +58,10 @@ def wiper_cfg(P):
     src = dict(getattr(P, "WIPER", {}) or {})
     fw = getattr(P, "FRAMEWORK", None) or {}
     src.update(fw.get("wiper", {}) if isinstance(fw, dict) else {})
+    if src.get("orient_deg") is not None and src.get("rot_deg") is None:
+        src["rot_deg"] = float(src["orient_deg"])      # params: motor +X to world +Z at 90 (same sense as rot_deg)
     for k, v in src.items():
-        if v is None or k in ("measured", "wires", "shaft_thread"):
+        if v is None or k in ("measured", "wires", "shaft_thread", "orient_deg"):
             continue
         if k == "body_box" and isinstance(v, dict):
             v = (v["x0"], v["x1"], v["y0"], v["y1"], v["depth"])

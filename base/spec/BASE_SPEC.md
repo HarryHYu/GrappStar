@@ -1,6 +1,6 @@
 # GrappStar base station spec
 
-Status: v1.0 (3 Nov 2026, 12:10 Sydney). Everything here is binding, together with base/spec/DECISIONS.md (D1 onward)
+Status: v1.2 (3 Nov 2026, 12:30 Sydney). Everything here is binding, together with base/spec/DECISIONS.md (D1 onward)
 and base/spec/params.py (the numbers). `params.py` holds every shared number;
 this file explains them. Workers never edit either file: write change requests in your REPORT.md or NOTES.md.
 
@@ -66,7 +66,7 @@ The full list with suggested GPIOs is params.SWITCHES.
 | Name | Owner | Closes when |
 |---|---|---|
 | `SW_DRUM_A`, `SW_DRUM_B`, `SW_DRUM_C` | cad-drum | Gray code of the drum zone (params.DRUM.codes); 000 = broken wire fault |
-| `SW_DOG_L`, `SW_DOG_R` | cad-drum | collar really engaged with the LAUNCH dog ring / the REEL gear |
+| `SW_DOG_L`, `SW_DOG_R` | cad-drum | collar engaged with the LAUNCH dog ring / the REEL gear (checked during every drum move) |
 | `SW_N20` | cad-drum | N20 in mesh (open = hand lever latched out) |
 | `SW_INDEX` | cad-drum | 6-bump index cam on the main shaft (D12 fallback when the AS5600 has no magnet) |
 | `SW_HOME` | cad-launch | carriage on its front stop (uncocked) |
@@ -74,7 +74,7 @@ The full list with suggested GPIOs is params.SWITCHES.
 | `SW_RAIL_LOW` | cad-launch | rail at its minimum pitch (crank low dead point) |
 | `SW_SEATED` | cad-launch | dart tail against the pusher |
 | `SW_ARM` | cad-reel | wrap cup ring at home (one pulse per cup turn) |
-| `AS5600` | cad-drum (magnet cap), cad-frame (board) | wiper angle, multi-turn (magnet: any small disc edge-on, D12) |
+| `AS5600` | cad-drum (magnet cap), cad-launch (bracket on the aim housing) | wiper angle, multi-turn (magnet: any small disc edge-on, D12) |
 | `HX711` (optional) | cad-reel (mount), cad-frame (board) | line tension |
 | BTS7960 IS | cad-frame, fw-base | wiper current |
 
@@ -82,11 +82,13 @@ The full list with suggested GPIOs is params.SWITCHES.
 
 - Main axis = world Y, 165 above the deck top (deck_top_z -165). The wiper motor sits on the -y side of the adapter
   plate with its gearbox and can ABOVE the axis (WIPER.orient_deg 90), so the body stays clear of the wrap cup.
-- Main axis stack (world y): coupler with the 5 N m torque limiter 0.5..46; take-up bus gear 40..50; REEL output gear
-  m2 50T 50.5..62.5 (dogs to 67.5); dog collar 72..98 at NEUTRAL (stroke 7 each way); LAUNCH dog ring 100.5..114
-  keyed to the launch sleeve flange at 111; launch sleeve 111..172 (rail cheek journals, drive gear 26T m2.5 on
-  sprag #1, splitter sun); frame outboard bearing 160..172 with a thrust face; magnet cap 172..180 on the d12 spigot
-  end; AS5600 board at about 182. Owners may move a part inside its band and must report the final numbers.
+- Main axis stack (world y): coupler with the printed shear-pin torque limiter 0.5..46 (D26); take-up bus gear
+  m1.5 50T 40..48 (D25); REEL output gear m2 50T 50.5..62.5 (dogs to 67.5); dog collar 72..98 at NEUTRAL (stroke 7
+  each way); LAUNCH dog ring 100.5..111 bolted to the launch sleeve flange; launch sleeve 111..193 (rail cheeks,
+  two-layer big gear mesh, drive gear 26T m2.5 on sprag #1 at 142.5..158.5, splitter sun 174..182) with its outboard
+  bushing and thrust face in cad-launch's aim housing at 187..193 (D23); d12 spigot through the sleeve to about 200;
+  magnet cap 195..203; AS5600 bracket on the aim housing at about 205. Owners may move a part inside its band and
+  must report the final numbers.
 - Rail mid plane (drive gear, big gear) at y 140; the rail body spans about y 95..185 and stays above w 35 near the
   pivot so it clears the collar and dog ring at every pitch.
 - Capstan axis 72.1 from the main axis at 255 deg (x -18.66, z -69.64): REEL gear 50T meshes the capstan gear 22T
@@ -105,24 +107,27 @@ The full list with suggested GPIOs is params.SWITCHES.
 
 | Interface | Driving side | Driven side | Numbers |
 |---|---|---|---|
-| LAUNCH dog ring to sleeve flange | cad-drum ring | cad-launch sleeve | flange face y 111, 3 x M3 + 3 lugs (drum_NOTES 3b) |
+| LAUNCH dog ring to sleeve flange | cad-drum ring | cad-launch sleeve | flange face y 111, OD 64, 3 x M3 at r 28 + 3 lugs; the ring's joint follows the sleeve |
 | REEL output gear to capstan gear | cad-drum m2 50T | cad-reel m2 22T | centre distance 72.1, plane y 50.5..62.5 |
-| Take-up bus | cad-drum bus gear m1.5 on the main shaft, plane y 40..48 | cad-reel swing idler, compound on the capstan tube, reel gear, clutch | overdrive about 2.5 total, bus drag brake about 0.04 N m (D15) |
-| Wrap train | cad-drum segment gear, pinion, idler output 48T m1.5 | cad-reel cup gear 24T m1.5 | 7 cup turns across drum 62..302, ring at home at both ends; locking arc holds the cup at REEL |
-| Brake track to clutch pushrod | cad-drum track 2 | cad-reel pushrod (fail-safe LIGHT) | LIGHT 0.5 N / FIRM 3.0 N at the line per drum zone (params.DRUM.zones) |
+| Take-up bus | cad-drum bus gear m1.5 50T on the outer coupler, plane y 40..48 | cad-reel c1 m1.5 46T on the capstan tube, swing idler 30T, reel gear 20T, clutch | centre 72.1, clutch disk 2.5 x wiper, no drag brake (D25) |
+| Wrap train | cad-drum segment gear, pinion (4 turns), idler output 42T m1.5 in plane y 68.5..76.5 | cad-reel cup gear 24T m1.5 | centre 49.6; 7 cup turns across drum 62..302, ring at home at both ends; locking arc holds the cup outside the sector |
+| Brake track to clutch pushrod | cad-drum track 2 | cad-reel pushrod (fail-safe LIGHT) | LIGHT 0.5 N / FIRM 5.0 N at the line, reel full, per drum zone (params.DRUM.zones) |
 | Fork to collar | cad-drum | cad-drum | groove y 82..88 at NEUTRAL |
-| Launch sleeve far end to frame | cad-launch journal | cad-frame outboard seat | y 160..172, thrust face (LAUNCH engage pushes outboard) |
+| Launch sleeve far end | cad-launch sleeve journal | cad-launch aim housing bushing (housing on the deck, frame drills 4 x M3) | y 187..193, thrust face (LAUNCH engage pushes outboard) (D23) |
 | Rail pivot pulley and line channel | cad-reel pulleys | cad-launch bosses | D14 |
 | Every bearing seat | shaft owner states bearing and stack | cad-frame builds the seat | shared library seats |
 
-## 7. Drum zones (binding; params.DRUM)
+## 7. Drum zones (binding; params.DRUM = cad-drum drum_NOTES v4)
 
-LAUNCH (-5..8, collar LAUNCH, clutch LIGHT, cup locked) / L_TO_N ramp (8..32) / NEUTRAL (32..50, clutch FIRM) /
+LAUNCH (-4..8, collar LAUNCH, clutch LIGHT, cup locked) / L_TO_N (8..32) / NEUTRAL (32..50, clutch FIRM) /
 WRAP_PREP (50..62, clutch to LIGHT, cup lock releases at 60) / WRAP (62..302, collar NEUTRAL, clutch LIGHT, 7 cup
-turns) / N_TO_R (302..340, cup locked, clutch to FIRM, collar ramps 318..340) / REEL (340..353, collar REEL, clutch
-FIRM). Targets: LAUNCH 0, NEUTRAL 41, WRAP start 62, WRAP end 302, REEL 346. End stops -6 and 354: total travel
-at most 360 deg, with a seam the followers never cross. cad-drum owns the
-exact edges (every dwell at least 12 deg), the N20 ratio (at least 2x margin on the peak drum load) and the stop plan.
+turns = 4 pinion turns x 42/24) / N_TO_R (302..340: cup locked, clutch LIGHT to FIRM 302..312, collar NEUTRAL until
+318 then ramps to REEL) / REEL (340..352, collar REEL, clutch FIRM). Park targets (never on a code edge): LAUNCH 0,
+NEUTRAL 41, WRAP_PREP 56, WRAPPED 314, REEL 347. End stops -4 and 352 (a 4 deg gap keeps the code ramps from
+aliasing). Gray code (A B C): LAUNCH 100, L_TO_N 110, NEUTRAL 010, WRAP_PREP 011, WRAP 001, N_TO_R 101, REEL 111;
+000 = broken common wire. SW_DOG_L / SW_DOG_R are checked during every move (the wrap window is never entered with
+either closed). Unload jog before any shift out: 8 deg. A fault from REEL or N_TO_R goes to WRAPPED (314), never
+NEUTRAL; a boot inside WRAP stops and reports; REEL jogs forward only.
 
 ## 8. Launcher and aim (binding; params.LAUNCH, params.AIM)
 
@@ -136,23 +141,27 @@ HOME. Retrieval funnel and lip roller at the muzzle; never fire without the teth
 ## 9. Reel (binding; params.REEL)
 
 Capstan d 40 with sprag #2 as the backstop (wind-in only), capstan gear 22T (2.27 x wiper), 7 wraps laid by Harry's
-v7 wrap cup driven through a hollow capstan tube. Storage reel (d 50 core, d 66 flanges) on 2 x 608 with a shroud,
-face slip clutch LIGHT 0.5 N / FIRM 3.0 N set by the drum's brake track through a fail-safe pushrod, driven by the
-take-up bus on every forward wiper turn (D15). Line over 693ZZ pulleys (D14). Tow limit default 50 N.
+v7 wrap cup driven through a hollow capstan tube. Storage reel (d 50 core, d 72 flanges, two-piece) on 2 x 608 with a shroud,
+face slip clutch LIGHT 0.5 N / FIRM 5.0 N (line tension with the reel full, D24) set by the drum's brake track
+through a fail-safe pushrod, driven by the take-up bus on every forward wiper turn (D15, D25; no drag brake). Line over 693ZZ pulleys (D14). Tow limit default 50 N.
 
 ## 10. Firmware behaviour (binding; details in firmware/base/PROTOCOL.md)
 
-Sequence (D16, D17): boot and rebuild state -> aim (backward, only at HOME) -> arm and fire (forward one shot; the
-take-up winds the slack) -> flight -> LANDED -> unload jog, drum to NEUTRAL -> wait ANCHORED -> TIDY (forward until
-the take-up slips) -> WRAP (drum 62..302, wiper off) -> REEL fly-in (wiper creeping forward while the drum enters
-REEL until SW_DOG_R) -> TOW (tow current limit) -> dart release -> reel in on the capstan until about 1.5 m remain ->
-unload jog -> drum back to 302 (collar to NEUTRAL) -> UNWRAP (drum 302..62 while the wiper turns forward at about
-30 percent) -> NEUTRAL final approach on the FIRM take-up until SW_SEATED (fault DART_STUCK after 20 s) -> LAUNCH.
+Sequence (D16, D17, D22): boot and rebuild state -> aim (backward, only at HOME) -> arm and fire (forward one shot; the
+take-up winds the slack) -> flight -> LANDED (landing-zone verdict from the Jetson) -> unload jog, drum to NEUTRAL ->
+WRAP at once while the line is slack (drum 62..302, wiper off) -> WRAPPED park (314) -> wait ANCHORED -> TIDY (forward by
+time: the FIRM take-up pulls the slack through the free capstan) -> REEL fly-in (wiper creeping forward while the
+drum enters REEL, then SW_DOG open) -> TOW (tow current limit) -> dart release -> reel in on the capstan until about
+1.5 m remain -> unload jog -> drum back to the WRAPPED park 314 (collar to NEUTRAL) -> UNWRAP (drum
+302..62 while the wiper turns forward at about 30 percent, take-up only) -> NEUTRAL final approach on the FIRM
+take-up until SW_SEATED (fault DART_STUCK after 20 s) -> LAUNCH. A no-go landing retrieves the unanchored dart on
+the take-up (or after a wrap, on the capstan).
 De-cock: from a partial cock run backward until SW_HOME and SW_GAP close. Refusals: no fire unless LAUNCH, SW_HOME,
 SW_GAP, SW_SEATED and a valid token; aim only at HOME; no drum move unless the wiper is stopped; no leaving LAUNCH
 unless SW_HOME; wiper backward refused outside LAUNCH except the 30 deg unload jog. Current trips (D8): ignore 50 ms
 after a start; 5 A for 30 ms in aim, reel and tow; 6.5 A while cocking; tow at free current plus the 50 N equivalent
-averaged over 200 ms. Any fault: wiper off, drum to NEUTRAL, except cocked (de-cock first) and wrapped (hold).
+averaged over 200 ms. Any fault: wiper off, drum to NEUTRAL, except when wraps are on, the spring is drawn, or the drum itself faulted:
+then the drum HOLDS (D27).
 
 ## 11. Physics summary (owner: physics; base/physics/FINDINGS.md)
 

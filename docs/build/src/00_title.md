@@ -10,3 +10,5 @@ says "From `some/file.md`", that text comes straight from the repo, so it is alw
 guide after any change: `python3 docs/build/make_guide.py`.
 
 @@toc
+
+@include docs/build/FIRST_DAY.md

@@ -121,9 +121,14 @@ def derive_aim(P, lines, warn):
         lines.append("// aim table: AIM not set in params.py (firmware placeholder table used)")
         return
     tab = None
-    cyc = float(A.get("cycle_deg", 360.0) or 360.0)
+    cyc = float(A.get("cycle_deg", A.get("wiper_deg_per_aim_cycle", 360.0)) or 360.0)
     if A.get("table"):
         tab = [(float(a), float(b)) for a, b in A["table"]]
+        if tab[-1][0] < cyc - 1e-6:
+            warn.append("AIM.table covers %.0f of the %.0f deg aim cycle (rising stroke only): firmware keeps its built-in "
+                        "full-cycle table from launch_NOTES.md section 7; put the whole cycle in AIM.table to use it" % (tab[-1][0], cyc))
+            lines.append("// aim table: params AIM.table covers only part of the cycle (firmware built-in table used)")
+            return
     elif callable(A.get("pitch_of")):
         n = int(cyc / 2.0)
         tab = [(i * cyc / n, float(A["pitch_of"](i * cyc / n))) for i in range(n + 1)]
@@ -154,10 +159,10 @@ def derive_aim(P, lines, warn):
         warn.append("aim table wiper angles must rise; table skipped")
         return
     lines.append("// aim table (derived): pitch_deg against aim-train wiper angle over one aim cycle of %.1f deg" % cyc)
-    lines.append("#define P_AIM_TABLE_N %d" % len(tab))
-    lines.append("#define P_AIM_CYCLE_DEG %s" % fnum(cyc))
-    lines.append("static const float P_AIM_TABLE_WIPER[] = {%s};" % ", ".join(fnum(round(x, 3)) for x, _ in tab))
-    lines.append("static const float P_AIM_TABLE_PITCH[] = {%s};" % ", ".join(fnum(round(y, 3)) for _, y in tab))
+    lines.append("#define P_AIMTAB_N %d" % len(tab))
+    lines.append("#define P_AIMTAB_CYCLE_DEG %s" % fnum(cyc))
+    lines.append("static const float P_AIMTAB_WIPER[] = {%s};" % ", ".join(fnum(round(x, 3)) for x, _ in tab))
+    lines.append("static const float P_AIMTAB_PITCH[] = {%s};" % ", ".join(fnum(round(y, 3)) for _, y in tab))
 
 
 def generate(inp, out):

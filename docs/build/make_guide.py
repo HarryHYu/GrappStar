@@ -9,6 +9,8 @@ Outputs: docs/build/GrappStar_Build_Guide.md, docs/build/GrappStar_Build_Guide.p
 The section texts live in docs/build/src/NN_*.md. Lines in them that start with '@' are directives:
   @include <repo path> [optional]   insert that file (headings pushed down under the current section)
   @image <repo path> <caption>      insert a picture (PNG or JPG)
+  @includeglob <glob> [first]       insert every file (or the first) matching the glob
+  @imageglob <glob> <caption>       insert every picture matching the glob
   @csv <repo path>                  insert a CSV file as a table
   @wiremap                          dart run sheet wire numbers -> new cut list numbers
   @printlist base | dart            print tables from base/pack and kedge/pack_v30
@@ -41,6 +43,7 @@ SOURCES = [
     ("base/pack", "cad-infra (print pack)"),
     ("base/out", "cad-infra (assembly pipeline)"),
     ("base/guide", "cad-infra (assembly steps)"),
+    ("base/**/coupon/COUPON.md", "cad-infra (risk coupons)"),
     ("kedge/pack_v30/KEDGE_v30_run_sheet.pdf", "dart v30 pack (done)"),
     ("firmware/base/WIRING.md", "fw-base"),
     ("firmware/base/README.md", "fw-base"),
@@ -58,9 +61,9 @@ SOURCES = [
 # ----------------------------------------------------------------------------------------------- text helpers
 def clean(text):
     """House rules: no em dashes. En dashes become plain hyphens. Smart quotes become plain."""
-    text = text.replace(" — ", ", ").replace("—", ", ")
-    text = text.replace("–", "-").replace("‘", "'").replace("’", "'")
-    text = text.replace("“", '"').replace("”", '"')
+    text = text.replace(" \u2014 ", ", ").replace("\u2014", ", ")
+    text = text.replace("\u2013", "-").replace("\u2018", "'").replace("\u2019", "'")
+    text = text.replace("\u201c", '"').replace("\u201d", '"')
     return text
 
 
@@ -69,6 +72,8 @@ def rel(path):
 
 
 def exists(p):
+    if any(ch in p for ch in "*?["):
+        return bool(glob.glob(os.path.join(ROOT, p), recursive=True))
     return os.path.exists(os.path.join(ROOT, p))
 
 
@@ -151,7 +156,8 @@ def printlist_dart():
 
 
 def printlist_base():
-    pack = os.path.join(ROOT, "base/pack")
+    pack = next((os.path.join(ROOT, c) for c in ("base/pack", "base/out/base/pack") if os.path.isdir(os.path.join(ROOT, c))),
+                os.path.join(ROOT, "base/pack"))
     if not os.path.isdir(pack):
         return placeholder("base/pack", "cad-infra (print pack)")
     s = ""
@@ -192,6 +198,23 @@ def printlist_base():
     if stls and not s.strip():
         s += "\nBase STL files:\n\n" + "".join(f"- `{rel(p)}`\n" for p in stls)
     return s or placeholder("base/pack (print list)", "cad-infra (print pack)")
+
+
+def d_includeglob(args, level):
+    """Include every file matching a glob (recursive); placeholder if none."""
+    hits = sorted(glob.glob(os.path.join(ROOT, args[0]), recursive=True))
+    if not hits:
+        return placeholder(args[0], who_writes(args[0]))
+    if "first" in args[1:]:
+        hits = hits[:1]
+    return "".join(d_include([rel(h)], level) for h in hits)
+
+
+def d_imageglob(args, level):
+    """Every picture matching a glob, with the caption given (the file name is added)."""
+    hits = sorted(glob.glob(os.path.join(ROOT, args[0]), recursive=True))
+    caption = " ".join(args[1:])
+    return "".join(f"\n![{caption} ({os.path.basename(h)})]({rel(h)})\n" for h in hits)
 
 
 def d_csv(args, level):
@@ -259,7 +282,7 @@ def d_date(args, level):
     return f"\nBuilt {now.strftime('%Y-%m-%d %H:%M')} Sydney time from commit `{commit}`.\n"
 
 
-DIRECTIVES = {"include": d_include, "csv": d_csv, "wiremap": d_wiremap, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
+DIRECTIVES = {"include": d_include, "includeglob": d_includeglob, "imageglob": d_imageglob, "csv": d_csv, "wiremap": d_wiremap, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
               "status": d_status, "date": d_date}
 
 
@@ -301,7 +324,7 @@ def render_diagram():
 
 
 # ----------------------------------------------------------------------------------------------- PDF
-def build_pdf(md):
+def build_pdf(md, out=None, doc_title=TITLE):
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_LEFT
     from reportlab.lib.pagesizes import A4
@@ -357,14 +380,14 @@ def build_pdf(md):
     class Doc(BaseDocTemplate):
         def __init__(self, fn):
             super().__init__(fn, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=16 * mm,
-                             bottomMargin=16 * mm, title=TITLE, author="", subject="", creator="")
+                             bottomMargin=16 * mm, title=doc_title, author="", subject="", creator="")
             frame = Frame(self.leftMargin, self.bottomMargin, self.width, self.height, id="f")
             self.addPageTemplates([PageTemplate(id="p", frames=[frame], onPage=self.footer)])
 
         def footer(self, c, d):
             c.setFont("Sans", 8)
             c.drawRightString(A4[0] - 18 * mm, 9 * mm, str(d.page))
-            c.drawString(18 * mm, 9 * mm, TITLE)
+            c.drawString(18 * mm, 9 * mm, doc_title)
 
         def afterFlowable(self, f):
             if isinstance(f, Paragraph) and getattr(f, "_toc", 0):
@@ -372,7 +395,8 @@ def build_pdf(md):
                 key = f"h{id(f)}"
                 self.canv.bookmarkPage(key)
                 self.canv.addOutlineEntry(f.getPlainText(), key, level=lvl, closed=lvl > 0)
-                self.notify("TOCEntry", (lvl, f.getPlainText(), self.page, key))
+                if not getattr(f, "_outline_only", False):
+                    self.notify("TOCEntry", (lvl, f.getPlainText(), self.page, key))
 
     def table_flow(rows):
         ncol = max(len(r) for r in rows)
@@ -381,7 +405,10 @@ def build_pdf(md):
             return re.sub(r"[`*]", "", c)
         lens = [max(4, min(60, max(len(plain(r[i])) for r in rows))) for i in range(ncol)]
         # never narrower than the longest word in the column (about 0.55 em per character at 8 pt)
-        mins = [max(len(w) for r in rows for w in (plain(r[i]).split() or [""])) * 4.6 + 8 for i in range(ncol)]
+        def wmin(c):
+            words = plain(c).split() or [""]
+            return max(len(w) for w in words) * (5.0 if "`" in c else 4.6) + 8
+        mins = [max(wmin(r[i]) for r in rows) for i in range(ncol)]
         tot = sum(lens)
         widths = [W * l / tot for l in lens]
         for _ in range(5):
@@ -456,7 +483,9 @@ def build_pdf(md):
             lvl = len(m.group(1))
             txt = m.group(2).strip()
             if lvl == 1 and first_h1:
-                story.append(Paragraph(inline(txt), title))
+                tp = Paragraph(inline(txt), title)
+                tp._toc, tp._outline_only = 1, True
+                story.append(tp)
                 first_h1 = False
             else:
                 if lvl == 1:
@@ -529,7 +558,7 @@ def build_pdf(md):
         i += 1
     flush()
 
-    tmp = OUT_PDF + ".main.pdf"
+    tmp = out or (OUT_PDF + ".main.pdf")
     doc = Doc(tmp)
     doc.multiBuild(story)
     return tmp
@@ -565,8 +594,142 @@ def append_pdfs(main):
     return added
 
 
+def first_table_after(path, heading_regex):
+    """The first Markdown table after the first heading matching heading_regex (or after a line matching it)."""
+    full = os.path.join(ROOT, path)
+    if not os.path.exists(full):
+        return None
+    lines = open(full, encoding="utf-8").read().splitlines()
+    start = next((i for i, l in enumerate(lines) if re.search(heading_regex, l)), None)
+    if start is None:
+        return None
+    out = []
+    for l in lines[start + 1:]:
+        if l.strip().startswith("|"):
+            out.append(l)
+        elif out:
+            break
+    return "\n".join(out) if out else None
+
+
+def build_cheatsheets():
+    """One printable page per board: the pin table from the owner's WIRING.md plus the power and safety lines."""
+    sheets = []
+    base_pins = first_table_after("firmware/base/WIRING.md", r"^## 1\. Pin table")
+    base_md = f"""# Base ESP32-S3 wiring cheat sheet
+
+**Battery unplugged before any wire moves.** ESP32-S3 DevKitC-1-N8, powered only by USB (port marked USB) from the
+Jetson or the Mac. Pins from `firmware/base/WIRING.md` (that file wins if this page is older).
+
+{base_pins or placeholder("firmware/base/WIRING.md", "fw-base")}
+
+Power: 3S LiPo, XT60 lead #2 (20 A fuse), BTS7960 B+ / B- (14 AWG). Wiper on M+ (red) / M- (black), 14 AWG.
+MP1584 #2 from the B+ / B- screws through a 2 A inline fuse, set to 9.0 V BEFORE its output is connected, out to
+DRV8833 VM / GND. DRV8833 #3: only AIN1, AIN2, GND go to the ESP32; SLP is not wired (decision D9).
+
+Resistors: 10 k R_EN to GND, 10 k L_EN to GND, IS: R_IS + L_IS tied, 1 k to GPIO1, 680 R GPIO1 to GND. Battery:
+100 k at the B+ screw to GPIO2, 22 k GPIO2 to GND. Common ground: ESP32 GND, BTS7960 GND, DRV8833 GND, MP1584 OUT-.
+
+Never: the 3S on the DRV8833 VM (10.8 V max); 3V3 on a pad that beeps to VM; a plug pulled with the battery in.
+"""
+    dart_pins = first_table_after("firmware/dart/WIRING.md", r"^Pin map")
+    dart_md = f"""# Dart XIAO ESP32S3 wiring cheat sheet
+
+**Power loop plug out before any wire moves or USB goes in.** Pins from `firmware/dart/WIRING.md` (v4, DRV#3
+removed; that file wins if this page is older). Full wire list: `firmware/dart/wiring/wire_cut_list.csv`.
+
+{dart_pins or placeholder("firmware/dart/WIRING.md", "fw-dart")}
+
+Power: 2 x 18350 in series (2S, 6.0 to 8.4 V), OTOTEC BMS, JST-XH loop plug = ON switch, INA219 VIN+ then the motor
+rail to DRV#1 VM and DRV#2 VM (no buck for motors). MP1584 #1 at 5.04 V taps INA219 VIN+: OUT through a Schottky
+diode (stripe toward the XIAO) to XIAO 5V, and to the VTX and camera. Capacitor across MP1584 OUT (long leg OUT+).
+
+DRV8833: 3V3 only to the SLP / nSLEEP / EEP pad (check it does NOT beep to VM). DRV#2 channel A drives both drills
+(right drill leads swapped); channel B drives the foot. No bridge between pads.
+
+Reverse a motor: swap its two input wires at the driver (drills D8 / D9, foot D6 / D7, deploy D0 / D1, kick
+D2 / D3). One drill wrong only: swap that drill's motor leads. VTX antenna on before any power.
+"""
+    cmd_md = """# Commands cheat sheet
+
+On the Jetson, in `~/GrappStar/jetson`. Full lists: `firmware/base/PROTOCOL.md`, `firmware/dart/API.md`,
+`jetson/README.md`. If a command here and those files disagree, those files win.
+
+## Jetson
+
+| Command | What it does |
+|---|---|
+| `python3 -m grappstar serve` | operator page at http://<jetson>:8080 (`--sim` for no hardware) |
+| `python3 -m grappstar base ping` / `status` / `monitor` | talk to the base; `monitor` shows live telemetry (Ctrl+C stops) |
+| `python3 -m grappstar base cmd '<json>'` | send one base command (below) |
+| `python3 -m grappstar dart status` | one dart status reading |
+| `python3 -m grappstar dart key 2 --hold 1.0` | hold a dart key for 1 s (quote `'!'`, `'#'`, `'$'`) |
+| `python3 -m grappstar dart auto` / `release` / `flightlog` | anchor, release, download the flight log |
+| `python3 -m grappstar cameras` | list the cameras |
+| `sudo shutdown now` | before unplugging the battery |
+
+## Base commands (JSON, for `base cmd`)
+
+| Command | What it does |
+|---|---|
+| `{"cmd":"estop"}` | wiper off, drum to NEUTRAL when safe. Always safe to send |
+| `{"cmd":"stop"}` | wiper off, drum stays |
+| `{"cmd":"clear"}` | clear a fault once its cause is gone |
+| `{"cmd":"mode","to":"LAUNCH"}` | drum to LAUNCH, NEUTRAL or REEL |
+| `{"cmd":"aim","deg":30}` | rail to 30 degrees (only with the carriage home) |
+| `{"cmd":"arm"}` then `{"cmd":"fire","token":123456}` | fire within 3 s of arm. Tether on, area clear |
+| `{"cmd":"cal","what":"decock"}` | unload a cocked carriage slowly |
+| `{"cmd":"wrap"}` / `{"cmd":"unwrap"}` | lay / remove the capstan wraps (order: PROTOCOL.md) |
+| `{"cmd":"reel","duty":0.5,"until":"seated"}` | wind in until the dart seats (`until`: stop, seated, tension) |
+| `{"cmd":"jog","motor":"wiper","dir":1,"ms":300}` | short move; `motor` wiper or drum, `dir` 1 or -1, up to 1500 ms |
+| `{"cmd":"set","key":"limit_n","val":50}` | set a stored value (tow limit 50 N) |
+| `{"cmd":"get","key":"limit_n"}` | read a stored value |
+
+## Dart keys (WiFi KEDGE, password grappstar, http://192.168.4.1, or Serial 115200)
+
+| Key | Motor |
+|---|---|
+| 1 / ! | deploy pods down / up |
+| 2 / @ | kick out / back |
+| 3 / # | drills in / out |
+| 4 / $ | foot in / out |
+| space | STOP everything |
+| a / A | auto anchor now / arm auto-anchor on landing |
+| i / b / z | current / attitude / I2C scan |
+"""
+    for name, md, title in (("Wiring_Cheat_Sheet_Base.pdf", base_md, "Base ESP32-S3 wiring"),
+                            ("Wiring_Cheat_Sheet_Dart.pdf", dart_md, "Dart XIAO wiring"),
+                            ("Commands_Cheat_Sheet.pdf", cmd_md, "Commands")):
+        out = os.path.join(HERE, name)
+        build_pdf(clean(md), out=out, doc_title=title)
+        sheets.append(rel(out))
+    return sheets
+
+
+def build_results_sheet():
+    """MEASURE_RESULTS.md / .pdf: every MEASURE_LIST item with an empty Result column, to print and fill in."""
+    src = os.path.join(HERE, "MEASURE_LIST.md")
+    out_md = os.path.join(HERE, "MEASURE_RESULTS.md")
+    lines = ["# Measure results (fill in)", "",
+             "Write each number with its unit. Photo: the file name of the caliper photo in "
+             "`originals/measure_2026-11/`. Items are explained in MEASURE_LIST.md.", ""]
+    for l in open(src, encoding="utf-8").read().splitlines():
+        if l.startswith("## ") and l[3:4] in "ABCDEFGH":
+            lines += ["", l, "", "| Item | Result (with unit) .................... | Photo file or note ................ |", "|---|---|---|"]
+        m = re.match(r"^\| ([A-H]\d+ [^|]*)\|", l)
+        if m:
+            item = m.group(1).strip()
+            item = item if len(item) < 70 else item[:67].rsplit(" ", 1)[0] + " ..."
+            lines.append(f"| {item} |  |  |")
+    md = "\n".join(lines) + "\n"
+    with open(out_md, "w", encoding="utf-8") as f:
+        f.write(md)
+    build_pdf(clean(md), out=os.path.join(HERE, "MEASURE_RESULTS.pdf"), doc_title="Measure results")
+    return rel(out_md)
+
+
 def lint(md):
-    bad = [n for n, line in enumerate(md.splitlines(), 1) if "—" in line]
+    bad = [n for n, line in enumerate(md.splitlines(), 1) if "\u2014" in line]
     if bad:
         print(f"ERROR: em dash on guide lines {bad[:10]}")
         return False
@@ -575,12 +738,15 @@ def lint(md):
 
 def main():
     render_diagram()
+    print(f"wrote {build_results_sheet()}")
     md = build_markdown()
     ok = lint(md)
     with open(OUT_MD, "w", encoding="utf-8") as f:
         f.write(md.replace("@@toc\n", "").replace("@@pagebreak\n", ""))
     main_pdf = build_pdf(md)
     added = append_pdfs(main_pdf)
+    for sh in build_cheatsheets():
+        print(f"wrote {sh}")
     for p, page in added:
         print(f"appended {p} at page {page}")
     missing = [p for p, _ in SOURCES if not exists(p)]

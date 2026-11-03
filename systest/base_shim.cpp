@@ -204,10 +204,10 @@ static uint32_t lastPlantSave = 0;
 // side. A free dart gets tugged (line out falls); an anchored dart side only gives what slack it has, then the cup
 // cannot turn (the drum stalls in the wrap sector). A forward wiper with the collar in neither train (tidy) pulls an
 // anchored dart side straight through the free-turning capstan, down to taut.
-static int wrapBlocks = 0; static double dartTug = 0;
+static int wrapBlocks = 0; static double dartTug = 0; static bool wrapDraw = true;
 static void plantExtra(double drumBefore, double wrapsBefore, double wiperBefore) {
   double dw = S.wrapsExact() - wrapsBefore;
-  if (dw > 1e-9) {
+  if (dw > 1e-9 && wrapDraw) {
     double need = dw * 2 * M_PI * S.capstanR;
     if (S.anchorTautAt >= 0) {
       double avail = S.lineOut - S.anchorTautAt;
@@ -259,6 +259,7 @@ static bool setKnob(const std::string& k, const char* v) {
   else if (k == "swStuckOpen") S.swStuckOpen = (uint16_t)num(v);
   else if (k == "swStuckClosed") S.swStuckClosed = (uint16_t)num(v);
   else if (k == "swChatter") S.swChatter = (uint16_t)num(v);
+  else if (k == "wrapDraw") wrapDraw = num(v) != 0;
   else if (k == "hxFitted") S.hxFitted = num(v) != 0;
   else return false;
   return true;

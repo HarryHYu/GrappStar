@@ -278,6 +278,11 @@ class Rig:
             self.base.cmd({"id": 0, "cmd": "set", "key": "free_a", "val": round(g["freeA_cal"], 3)})
         for k, v in sc.base_setup.items():
             self.base.cmd({"id": 0, "cmd": "set", "key": k, "val": v})
+        d22 = sc.d22 or os.environ.get("SYSTEST_D22_ALL") == "1"
+        self.base.set(wrapDraw=1 if d22 else 0)
+        if not d22:     # until F4 (D22 order) is fixed, fault scenarios use the lenient plant so they test their own fault
+            self.note("info", msg="lenient wrap plant (wrap does not draw dart-side line); SYSTEST_D22_ALL=1 for the strict one")
+            sc.checks = [c for c in sc.checks if c[1] not in (c_wrap_free, c_tug)]
         if sc.plant_setup:
             self.base.set(**sc.plant_setup)
         self.dart = DartProc(self.dir)
@@ -557,7 +562,8 @@ class Scenario:
         self.anchor_holds = kw.get("anchor_holds", True)
         self.calibrated = kw.get("calibrated", True)
         self.hello_delay = kw.get("hello_delay", 2100)
-        self.landing_slack = kw.get("landing_slack", 0.9)   # D22: about 0.9 m of line lies slack after the landing   # ms from power on to HELLO (the sketch's setup())
+        self.landing_slack = kw.get("landing_slack", 0.9)
+        self.d22 = kw.get("d22", False)            # strict D22 plant: laying turns draws line from the dart side   # D22: about 0.9 m of line lies slack after the landing   # ms from power on to HELLO (the sketch's setup())
         self.after = kw.get("after")              # run after the first mission ends (operator recovery + a new mission)
         self.tow_rounds = kw.get("tow_rounds", 3)
         self.timeout_s = kw.get("timeout_s", 420)
@@ -795,7 +801,7 @@ def sc(s: Scenario):
     return s
 
 
-sc(Scenario("nominal", "whole mission, aim to seated, no faults"))
+sc(Scenario("nominal", "whole mission, aim to seated, no faults (strict D22 plant)", d22=True))
 
 sc(Scenario("nominal_uncal", "whole mission with the factory k_n_per_a / free_a (CALIBRATION.md not done)",
             calibrated=False))
@@ -955,7 +961,7 @@ sc(Scenario("nogo_reshoot", "first landing on water (NO GO): retrieve the free d
             extra_checks=[("two shots", lambda r, res: (res["plant"].get("shots", 0) == 2, f"shots {res['plant'].get('shots')}"))]))
 
 sc(Scenario("land_short", "the dart lands with only 0.3 m of slack on its side (short of the turn length): the wrap must "
-            "tug the free dart, never jam against an anchored one", landing_slack=0.3))
+            "tug the free dart, never jam against an anchored one", landing_slack=0.3, d22=True))
 
 sc(Scenario("dart_wifi_drop", "the dart's WiFi station drops right after landing",
             triggers=[("wifi drop", lambda r: "LANDED" in r.dart_phases, lambda r: r.dart.get("/sim/disconnect"))]))

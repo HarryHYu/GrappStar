@@ -38,11 +38,12 @@ Read this before any hands-on step.
 - **Before you walk up to the base or the dart** (to measure a range, fetch the dart, or touch anything): `estop`;
   lead #2 out; telemetry shows `cock` 0 and `H` (SW_HOME) closed; the line is slack (no tension); the dart reads
   IDLE on the operator page, or its loop plug is out. If the carriage is drawn and `decock` fails: (1) `clear` the fault and send `{"cmd":"mode","to":"LAUNCH"}` if the drum
-  is not in LAUNCH, then `decock` again; (2) if `SW_HOME` is broken or disagrees, `{"cmd":"decock","force":true}`
-  (it runs back by the travel the last angle needs); (3) if the firmware cannot run the wiper at all, unload by hand:
+  is not in LAUNCH, then `decock` again; (2) if it replies `SWITCH_DISAGREE` and you can SEE the carriage is drawn back,
+  `{"cmd":"decock","force":true}` (it runs back by the travel the saved angle needs; it trusts you); (3) if the firmware cannot run the wiper at all, unload by hand:
   battery out (the worm holds the spring where it is), safety glasses on, spring guard on, stand to the side, and
   unhook ONE spring at a time from its anchor pin with a hook tool (a bent coat-hanger wire or a long screwdriver
-  through the hook), never with fingers in the hook. Then the carriage is slack and safe.
+  through the hook), never with fingers in the hook. Then the carriage is slack and safe. Afterwards, with the
+  carriage home: `{"cmd":"cal","what":"cock_rest"}`, then `aim` again before any shot.
 - Never use the hand lever while the carriage is drawn (`cock` above 0 or `SW_HOME` open) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first.
 - The launch springs store energy. Cocked carriage = loaded. Never put a hand in front of the rail or the carriage.
   To unload a cocked base without firing, see troubleshooting. The spring hooks have little margin at full draw

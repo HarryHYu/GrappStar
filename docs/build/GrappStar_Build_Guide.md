@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 13:54 Sydney time from commit `cda09d7`.
+Built 2026-11-03 13:56 Sydney time from commit `043ed77`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -182,11 +182,12 @@ Read this before any hands-on step.
 - **Before you walk up to the base or the dart** (to measure a range, fetch the dart, or touch anything): `estop`;
   lead #2 out; telemetry shows `cock` 0 and `H` (SW_HOME) closed; the line is slack (no tension); the dart reads
   IDLE on the operator page, or its loop plug is out. If the carriage is drawn and `decock` fails: (1) `clear` the fault and send `{"cmd":"mode","to":"LAUNCH"}` if the drum
-  is not in LAUNCH, then `decock` again; (2) if `SW_HOME` is broken or disagrees, `{"cmd":"decock","force":true}`
-  (it runs back by the travel the last angle needs); (3) if the firmware cannot run the wiper at all, unload by hand:
+  is not in LAUNCH, then `decock` again; (2) if it replies `SWITCH_DISAGREE` and you can SEE the carriage is drawn back,
+  `{"cmd":"decock","force":true}` (it runs back by the travel the saved angle needs; it trusts you); (3) if the firmware cannot run the wiper at all, unload by hand:
   battery out (the worm holds the spring where it is), safety glasses on, spring guard on, stand to the side, and
   unhook ONE spring at a time from its anchor pin with a hook tool (a bent coat-hanger wire or a long screwdriver
-  through the hook), never with fingers in the hook. Then the carriage is slack and safe.
+  through the hook), never with fingers in the hook. Then the carriage is slack and safe. Afterwards, with the
+  carriage home: `{"cmd":"cal","what":"cock_rest"}`, then `aim` again before any shot.
 - Never use the hand lever while the carriage is drawn (`cock` above 0 or `SW_HOME` open) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first.
 - The launch springs store energy. Cocked carriage = loaded. Never put a hand in front of the rail or the carriage.
   To unload a cocked base without firing, see troubleshooting. The spring hooks have little margin at full draw
@@ -3521,7 +3522,7 @@ First move for any problem: send `estop` (or pull the battery plug), then read t
 | Fault ANGLE_SENSOR | AS5600 cable out, magnet too far | Re-seat the STEMMA cable; magnet 1 to 3 mm from the chip, centred |
 | `pitch_deg` wrong after a restart | Pitch reference lost | Run the pitch part of the calibration again (section 10) |
 | Drum stuck between positions with the power off | Expected: the worm holds it | Loosen the cradle swing screw, swing the N20 out of mesh, use the hand lever on the drum shaft end, battery unplugged. Never use the hand lever while the carriage is drawn (`cock` above 0 or `SW_HOME` open) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first. |
-| Base cocked and you need to unload without firing | | Send `{"cmd":"cal","what":"decock"}`: the wiper runs backward slowly and the springs unwind under the worm until `SW_HOME` closes. If it fails: `clear`, `mode` LAUNCH, `decock` again; then `{"cmd":"decock","force":true}` if SW_HOME is broken; last resort the manual unload in section 2 (battery out, one spring at a time with a hook tool). Never hand-release the carriage |
+| Base cocked and you need to unload without firing | | Send `{"cmd":"cal","what":"decock"}`: the wiper runs backward slowly and the springs unwind under the worm until `SW_HOME` closes. If it fails: `clear`, `mode` LAUNCH, `decock` again; then, if it says `SWITCH_DISAGREE` and the carriage is visibly drawn, `{"cmd":"decock","force":true}`; last resort the manual unload in section 2 (battery out, one spring at a time with a hook tool). Never hand-release the carriage |
 
 ## Rover and video
 

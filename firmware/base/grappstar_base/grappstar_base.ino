@@ -84,7 +84,7 @@ void hwSave(const gb::Saved& s) { saveBuf = s; saveDue = true; }
 void hwSaveTun(const gb::Tun& t) { tunBuf = t; tunDue = true; }
 void hwOut(const char* line) {
   int next = (ringHead + 1) % RING;
-  if (next == ringTail) { ringDrops++; return; }       // host not reading: drop the newest, never block the tick
+  if (next == ringTail) { ringDrops = ringDrops + 1; return; }       // host not reading: drop the newest, never block the tick
   strncpy(ring[ringHead], line, 259); ring[ringHead][259] = 0; ringHead = next;
 }
 uint32_t hwRand() { return esp_random(); }

@@ -172,7 +172,12 @@ static void testProtocolBasics() {
   CHECK(R.err("{\"id\":4,\"cmd\":\"mode\",\"to\":\"SIDEWAYS\"}") == "BAD_ARG", "bad mode");
   CHECK(R.err("{\"id\":5,\"cmd\":\"mode\"}") == "BAD_ARG", "mode without to");
   std::string st = R.cmd("{\"id\":6,\"cmd\":\"status\"}");
-  CHECK(st.find("\"phase\"") != std::string::npos && st.find("\"enc_ok\":true") != std::string::npos, "status has extra fields");
+  CHECK(st.find("\"phase\"") != std::string::npos && st.find("\"magnet\":\"OK\"") != std::string::npos, "status has extra fields");
+  R.B.fault = gb::F_SWITCH_DISAGREE; strcpy(R.B.faultWhy, "a long fault reason, forty seven chars long ok");
+  st = R.cmd("{\"id\":123456789012,\"cmd\":\"status\"}"); R.B.fault = 0;
+  CHECK(st.size() <= 256 && st.find("\"id\":123456789012") == 1, "status worst case within 256 bytes");
+  st = R.cmd("{\"id\":\"" + std::string(60, 'x') + "\",\"cmd\":\"status\"}");
+  CHECK(st.size() <= 256 && st.find("\"ok\":true") != std::string::npos, "long string id: short reply, still ok");
   CHECK(R.ok("{\"id\":7,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":30}") && R.B.c.limitN == 30, "set limit");
   CHECK(R.err("{\"id\":8,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":900}") == "OUT_OF_RANGE", "set out of range");
   CHECK(R.err("{\"id\":9,\"cmd\":\"set\",\"key\":\"nope\",\"val\":1}") == "BAD_KEY", "bad key");

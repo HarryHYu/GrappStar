@@ -708,6 +708,7 @@ struct Base {
   // ================================================================== protocol
   // one line in, exactly one reply out (into rep). Long actions reply when accepted; completion is an event.
   void handleLine(const char* line, int len, char* rep, int cap) {
+    if (cap > JSON_MAX_LINE + 1) cap = JSON_MAX_LINE + 1;   // C1: a reply is at most 256 bytes too
     JOut r(rep, cap);
     JObj o;
     if (len > JSON_MAX_LINE) { snprintf(rep, cap, "{\"id\":null,\"ok\":false,\"err\":\"TOO_LONG\"}"); return; }
@@ -754,7 +755,14 @@ struct Base {
     if (!err && !strcmp(cmd, "ping")) { r.str("fw", GB_FW_VERSION); r.integer("t", (long)now); }
     if (extra) statusFields(r);
     r.close();
-    if (r.bad) snprintf(rep, cap, "{\"id\":null,\"ok\":false,\"err\":\"REPLY_OVERFLOW\"}");
+    if (r.bad) {                                     // too long (a very long string id): id, ok and err only
+      JOut m(rep, cap); m.open();
+      if (id && id->t == J_STR) { char t[24]; strncpy(t, id->s, 23); t[23] = 0; m.str("id", t); }
+      else if (id && id->t == J_NUM) m.num("id", id->n, 0); else m.null("id");
+      m.boolean("ok", err == nullptr); if (err) m.str("err", err); else if (tokOut) { m.integer("token", (long)tok); }
+      m.close();
+      if (m.bad) snprintf(rep, cap, "{\"id\":null,\"ok\":false,\"err\":\"REPLY_OVERFLOW\"}");
+    }
   }
   bool getKey(const char* k, JOut& r) {
     if (!strcmp(k, "fw")) { r.str("val", GB_FW_VERSION); return true; }
@@ -776,9 +784,10 @@ struct Base {
   void statusFields(JOut& r) {
     r.str("phase", PHASE_NAME[phase]); r.boolean("aimed", aimed); r.boolean("aim_known", aimKnown);
     r.boolean("drum_known", drumKnown); r.boolean("wraps_known", wrapsKnown);
-    r.boolean("enc_ok", enc.ok); r.boolean("magnet_weak", enc.magnetWeak()); r.boolean("magnet_strong", enc.magnetStrong());
-    r.integer("enc_glitches", (long)enc.glitches); r.boolean("hx", hxLive()); r.num("peak_a", w.peakA, 1);
-    if (fault) r.str("fault_why", faultWhy);
+    r.str("magnet", !enc.ok ? "NONE" : enc.magnetWeak() ? "WEAK" : enc.magnetStrong() ? "STRONG" : "OK");
+    r.integer("glitches", (long)(enc.glitches > 99999 ? 99999 : enc.glitches)); r.boolean("hx", hxLive()); r.num("peak_a", w.peakA, 1);
+    r.str("fw", GB_FW_VERSION);
+    if (fault) { char wy[33]; strncpy(wy, faultWhy, 32); wy[32] = 0; r.str("why", wy); }
   }
   void cmdStop(bool estop) {
     w.halt(now, io.wiper); d.halt(now, io.drum); tokenLive = false; homing = false;

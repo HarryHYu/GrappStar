@@ -37,7 +37,8 @@ Last default run (`python -m pytest tests/ -q -o addopts='-m "not slow"'`, commi
 ```
 
 The slow suite (`-m slow`, both real firmwares: basesim with the real base_logic.h and fw-dart's kedge_sim) last
-ran green before the afternoon changes (28 passed); it was not re-run after the weekly limit stopped the day.
+ran before the afternoon changes: 28 passed and 1 harness race (since fixed). It was not re-run after the weekly
+limit stopped the day.
 
 ## Review rounds (fresh agents, all findings fixed, regression tests kept)
 

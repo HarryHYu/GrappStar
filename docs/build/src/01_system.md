@@ -41,10 +41,12 @@ the cradle, unwraps and returns to LAUNCH.
 1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5 and A8), the springs (group B), and the
    parts in H1, H3, H4. Put the
    numbers in `base/spec/params.py` and re-run the base pipeline. The base parts that touch the motor depend on
-   them. A6 and A7 (speed, current, torque) need the base electronics: do them at test stage 1. They change no
+   them. A6 and A7 (speed, current, torque) need the base electronics: do them at test stage 2. They change no
    printed part.
-2. Confirm the parts box (section 14, group C). The only purchase is 608 bearings.
-3. Print the dart fit coupon, then the dart plates (section 4). The dart does not depend on the measurements.
+2. Confirm the parts box (section 14, group C). The only purchase is 608 bearings (and an AS5600 magnet if none
+   is in the box).
+3. Print the dart fit coupon and the base risk coupon plate, and test them (section 4, test stage 0). Then the
+   dart plates (section 4). The dart does not depend on the measurements.
 4. Flash the dart and build it (sections 6 and 8, and the dart run sheet in the appendix).
 5. Print the base (section 4) and assemble it (section 5).
 6. Set up the Jetson on its own wall supply (section 9). Flash the base ESP32 from the Mac or the Jetson, with

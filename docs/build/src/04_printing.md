@@ -3,8 +3,17 @@
 Printer: Bambu X2D (bed 256 x 256 x 260 mm). PLA for everything except loaded gears and keyed shafts, which are
 PPA-CF (the print list says which).
 
-Order: dart fit coupon first (20 minutes, checks your printer's hole sizes), then the dart plates, then the base
-once the wiper and spring numbers are in (section 1, order of work).
+Order: dart fit coupon first (20 minutes, checks your printer's hole sizes), then the base day-one risk coupon
+plate (below, test stage 0), then the dart plates, then the base once the coupons pass and the wiper and spring
+numbers are in (section 1, order of work).
+
+## Day-one risk coupons (print before any big part)
+
+One plate from the base print pack with small test pieces of the riskiest features: swing splitter, printed contact,
+dog clutch, slip clutch, bearing seats, heat-set inserts and nut traps, key rib, gear meshes. Print it, then work
+through its test sheet. Do not print the big base parts until every coupon passes.
+
+@includeglob base/pack/**/*oupon*.md
 
 ## Dart prints
 

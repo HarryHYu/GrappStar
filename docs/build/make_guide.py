@@ -9,6 +9,7 @@ Outputs: docs/build/GrappStar_Build_Guide.md, docs/build/GrappStar_Build_Guide.p
 The section texts live in docs/build/src/NN_*.md. Lines in them that start with '@' are directives:
   @include <repo path> [optional]   insert that file (headings pushed down under the current section)
   @image <repo path> <caption>      insert a picture (PNG or JPG)
+  @includeglob <glob>               insert every file matching the glob
   @csv <repo path>                  insert a CSV file as a table
   @wiremap                          dart run sheet wire numbers -> new cut list numbers
   @printlist base | dart            print tables from base/pack and kedge/pack_v30
@@ -194,6 +195,14 @@ def printlist_base():
     return s or placeholder("base/pack (print list)", "cad-infra (print pack)")
 
 
+def d_includeglob(args, level):
+    """Include every file matching a glob (recursive); placeholder if none."""
+    hits = sorted(glob.glob(os.path.join(ROOT, args[0]), recursive=True))
+    if not hits:
+        return placeholder(args[0], who_writes(args[0]))
+    return "".join(d_include([rel(h)], level) for h in hits)
+
+
 def d_csv(args, level):
     path = args[0]
     full = os.path.join(ROOT, path)
@@ -259,7 +268,7 @@ def d_date(args, level):
     return f"\nBuilt {now.strftime('%Y-%m-%d %H:%M')} Sydney time from commit `{commit}`.\n"
 
 
-DIRECTIVES = {"include": d_include, "csv": d_csv, "wiremap": d_wiremap, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
+DIRECTIVES = {"include": d_include, "includeglob": d_includeglob, "csv": d_csv, "wiremap": d_wiremap, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
               "status": d_status, "date": d_date}
 
 

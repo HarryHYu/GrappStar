@@ -14,7 +14,7 @@ General rules for the base:
 - Bearings: press in square with a flat block, never hammer on the inner race.
 - Keyed shafts: check the key slides in the sprag (CSK20PP) keyway by hand before final assembly.
 - Turn every train by hand (battery unplugged) after each step: it must turn without binding before the next step.
-- Leave the springs off until test stage 4 (section 12).
+- Leave the springs off until test stage 5 (section 12).
 - Motor adapter: bolt the wiper motor to the adapter on the bench first (M6 bolts from the cheek side), then fit the
   6 x M3 x 12 from inside the cheek box, before any shaft goes in.
 - Bearing blocks slide on over bearings that are already on their shaft.

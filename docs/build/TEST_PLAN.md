@@ -12,12 +12,23 @@ to send.
 Safety for every stage:
 - Battery unplugged before you touch any wire.
 - Hands out of the gears, the drum and the rail whenever the battery is plugged in.
-- From stage 4 on: nobody in front of the rail, safety glasses on, the launch area clear for 30 m.
+- From stage 5 on: nobody in front of the rail, safety glasses on, the launch area clear for 30 m.
 - Never fire a dart (dummy or real) without the tether tied on.
 - Emergency stop: `estop`. If that does not stop it, pull lead #2's XT60 (the wiper branch): both motors die and the
   Jetson stays up. Keep a hand near it.
 
-## Stage 0. Power-on (no motors attached)
+## Stage 0. Risk coupons (before any big print)
+
+Print the day-one risk coupon plate from the base print pack first (section 4 of the build guide). It tests, in a
+few hours of printing, the things most likely to go wrong: the swing splitter, a printed contact, the dog clutch,
+the slip clutch, the bearing seats, heat-set inserts and nut traps, the key rib and the gear meshes. Work through
+its coupon test sheet (below, or in `base/pack`).
+
+Pass: every check on the coupon sheet passes.
+If it fails: change the printer setting the sheet names (hole compensation, flow, material) and print that coupon
+again. Do not start the big base parts until the coupons pass.
+
+## Stage 1. Power-on (no motors attached)
 
 Follow SYSTEM_ELECTRICAL.md section 4, the first power-on sequence, steps 1 to 9. Both motors stay disconnected
 from their drivers until step 10.
@@ -27,7 +38,7 @@ of the meter, `fault` is null.
 If it fails: a beep means a short (check the Y harness and the BTS7960 screws first). No reply: check the USB
 cable is a data cable and in the ESP32 port marked USB; see troubleshooting in the build guide.
 
-## Stage 1. Each motor alone, out of the base
+## Stage 2. Each motor alone, out of the base
 
 Battery unplugged. Connect the wiper motor to BTS7960 M+ / M- and clamp the motor to the bench. Connect the drum
 N20 to DRV8833 #3 AOUT1 / AOUT2, loose on the bench. Battery in.
@@ -47,11 +58,11 @@ RPWM / LPWM is not connected. Drum does nothing: check 9.0 V on VM and the AIN1 
 it is (MEASURE_LIST D3): a board that does not pull SLP high by itself cannot be used as wired (decision D9); write
 it in the test log. Wrong direction against CALIBRATION.md: swap that motor's two leads (battery unplugged).
 
-## Stage 2. Sensors alone
+## Stage 3. Sensors alone
 
 1. Battery unplugged, ESP32 on USB only. Before the magnet holder is on the motor, turn the magnet by hand over the
    chip (the wiper worm locks its own shaft, so on the built base use short `jog`s instead): `wiper_deg` changes
-   smoothly, no jumps, and goes up for the FORWARD way (the arrow you drew in stage 1).
+   smoothly, no jumps, and goes up for the FORWARD way (the arrow you drew in stage 2).
 2. Touch each printed contact closed with a finger: its entry in `sw` changes and changes back when released.
 3. Load cell (if fitted): press it, `tension_n` rises.
 
@@ -59,11 +70,11 @@ Pass: every sensor responds and returns. If it fails: AS5600 not found: check SD
 STEMMA cable is pushed in; angle jumps: magnet too far (keep 1 to 3 mm) or off centre. Contact never changes:
 check the GND wire and that the screw head really touches the nut.
 
-## Stage 3. Base assembled, dry cycles, NO springs, no line
+## Stage 4. Base assembled, dry cycles, NO springs, no line
 
-Springs off, no tether, no dart. Run CALIBRATION.md first (zeros and drum positions; part (f) waits for stage 4).
-With no dart, `arm` refuses (`NOT_SEATED`): for this stage and stage 4 send
-`{"cmd":"set","key":"require_seated","val":false}`, and set it back to `true` before stage 5.
+Springs off, no tether, no dart. Run CALIBRATION.md first (zeros and drum positions; part (f) waits for stage 5).
+With no dart, `arm` refuses (`NOT_SEATED`): for this stage and stage 5 send
+`{"cmd":"set","key":"require_seated","val":false}`, and set it back to `true` before stage 6.
 
 1. `mode` LAUNCH, NEUTRAL, LAUNCH: 20 rounds, then every other mode the firmware offers, in the order PROTOCOL.md
    gives. Each change ends with the right `drum_pos`.
@@ -86,7 +97,7 @@ If it fails: a STALL fault means something binds: find it by turning by hand wit
 teeth: check the mesh spacing and the frame screws. Drum stops BETWEEN: re-run the drum calibration; check the drum
 contacts close cleanly.
 
-## Stage 4. Springs on, no dart
+## Stage 5. Springs on, no dart
 
 Fit both springs. Start at the lowest pitch, rail pointing at a clear area.
 
@@ -99,7 +110,7 @@ stall value, the rail holds its pitch while cocking.
 If it fails: cracks at the bumpers: stop and report (no more dry shots). Rail drops while cocking: the aim worm is
 slipping, check its mesh. STALL while cocking: the springs are stronger than planned (redo B2) or something binds.
 
-## Stage 5. Dummy dart WITH the tether, first shots
+## Stage 6. Dummy dart WITH the tether, first shots
 
 Never fire a dart (dummy or real) without the tether tied on. The tether is what keeps it flying nose first; a shot
 with no line can tumble or land tail first.
@@ -120,9 +131,9 @@ If it fails: short range: measure the springs (B2) and the muzzle speed, then re
 check the cradle and the barrel against the dart. Loops on the reel: raise the brake a little (never over 1 N).
 Big range loss with clean payout: the line catches somewhere; watch the slow-motion video.
 
-## Stage 6. Reel cycle with the dummy
+## Stage 7. Reel cycle with the dummy
 
-1. After a stage 5 shot: `wrap` and get into REEL (order as in PROTOCOL.md), then `reel` with `until`
+1. After a stage 6 shot: `wrap` and get into REEL (order as in PROTOCOL.md), then `reel` with `until`
    seated until `SW_SEATED` closes or the dummy is back near the base.
 2. `unwrap`, then `mode` NEUTRAL and `mode` LAUNCH. Check the line runs on the launch path again (not round the capstan).
 3. Fire again at 30 degrees.
@@ -132,7 +143,7 @@ pays out cleanly. Repeat 5 times.
 If it fails: wrap misses the capstan: check the wrap arm position at the end of `wrap`. Line still round the
 capstan after `unwrap`: do not fire; unwrap again and check the drum position.
 
-## Stage 7. The anchor in soil
+## Stage 8. The anchor in soil
 
 The real dart, built and tested to the dart run sheet section 10. Use real soil (moist loam is the target).
 
@@ -149,7 +160,7 @@ If it fails: augers back out: swap that motor's leads (dart run sheet section 10
 firmer soil, and report the force (it sets the reel limit). Base overshoots the limit: redo the current
 calibration (G1).
 
-## Stage 8. Full mission
+## Stage 9. Full mission
 
 From the operator page on the Jetson (jetson/README.md): preflight, pick a target on the Kiyo view, aim, confirm
 the fire prompt, flight video from the dart, landing verdict, anchor, tow, release, reel home.

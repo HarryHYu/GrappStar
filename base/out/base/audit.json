@@ -1,0 +1,7531 @@
+{
+ "n_parts": 235,
+ "n_states": 44678,
+ "errors": [],
+ "static": [
+  {
+   "name": "drum_coupler_hub",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 8992.77,
+   "area_mm2": 3789.56,
+   "mass_g": 9.04,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    26.0,
+    26.0,
+    23.0
+   ],
+   "bed_contact_mm2": 448.4,
+   "overhang_mm2": 37.0,
+   "overhang_frac": 0.0098
+  },
+  {
+   "name": "drum_coupler",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 1998.1 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 79638.48,
+   "area_mm2": 23485.67,
+   "mass_g": 68.0,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    78.0,
+    77.91,
+    61.5
+   ],
+   "bed_contact_mm2": 713.3,
+   "overhang_mm2": 1998.1,
+   "overhang_frac": 0.0851
+  },
+  {
+   "name": "drum_shear_pin",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 147.55,
+   "area_mm2": 186.07,
+   "mass_g": 0.18,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    12.1,
+    5.0,
+    4.1
+   ],
+   "bed_contact_mm2": 29.8,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "drum_shaft",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 922.5 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 42737.85,
+   "area_mm2": 10410.1,
+   "mass_g": 53.42,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    170.3,
+    25.4,
+    22.0
+   ],
+   "bed_contact_mm2": 990.7,
+   "overhang_mm2": 922.5,
+   "overhang_frac": 0.0886
+  },
+  {
+   "name": "drum_reel_washer",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 755.08,
+   "area_mm2": 1344.02,
+   "mass_g": 0.94,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    35.1,
+    35.1,
+    1.45
+   ],
+   "bed_contact_mm2": 520.7,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "drum_gear_reel",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 87884.0,
+   "area_mm2": 23808.0,
+   "mass_g": 72.51,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    104.0,
+    103.88,
+    19.0
+   ],
+   "bed_contact_mm2": 6885.2,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "drum_collar",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 2693.7 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 38548.62,
+   "area_mm2": 11997.03,
+   "mass_g": 48.19,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    60.0,
+    60.0,
+    26.0
+   ],
+   "bed_contact_mm2": 382.5,
+   "overhang_mm2": 2693.7,
+   "overhang_frac": 0.2245
+  },
+  {
+   "name": "drum_dogring_launch",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 122.9 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 15195.6,
+   "area_mm2": 7624.08,
+   "mass_g": 18.99,
+   "shells": 1,
+   "genus": 4,
+   "stl_watertight": true,
+   "print_bbox": [
+    62.0,
+    62.0,
+    10.5
+   ],
+   "bed_contact_mm2": 2308.7,
+   "overhang_mm2": 122.9,
+   "overhang_frac": 0.0161
+  },
+  {
+   "name": "drum_drum_a",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 731.8 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 195596.81,
+   "area_mm2": 39578.92,
+   "mass_g": 144.13,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    97.12,
+    97.12,
+    75.0
+   ],
+   "bed_contact_mm2": 7006.2,
+   "overhang_mm2": 731.8,
+   "overhang_frac": 0.0185
+  },
+  {
+   "name": "drum_drum_b",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 1817.6 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 109133.9,
+   "area_mm2": 19866.08,
+   "mass_g": 77.78,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    60.0,
+    60.0,
+    58.4
+   ],
+   "bed_contact_mm2": 2603.6,
+   "overhang_mm2": 1817.6,
+   "overhang_frac": 0.0915
+  },
+  {
+   "name": "drum_axle",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 10476.27,
+   "area_mm2": 4514.0,
+   "mass_g": 10.65,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    141.0,
+    10.0,
+    9.0
+   ],
+   "bed_contact_mm2": 842.3,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "drum_idler_gear",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 21982.61,
+   "area_mm2": 9185.27,
+   "mass_g": 22.01,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    66.0,
+    65.89,
+    9.3
+   ],
+   "bed_contact_mm2": 2947.6,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "drum_idler",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 331.1 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 6040.56,
+   "area_mm2": 2901.71,
+   "mass_g": 6.5,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    22.0,
+    21.66,
+    46.0
+   ],
+   "bed_contact_mm2": 78.3,
+   "overhang_mm2": 331.1,
+   "overhang_frac": 0.1141
+  },
+  {
+   "name": "drum_n20_pinion",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 364.77,
+   "area_mm2": 531.49,
+   "mass_g": 0.46,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    9.82,
+    9.46,
+    8.0
+   ],
+   "bed_contact_mm2": 42.1,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "drum_n20",
+   "subsystem": "drum",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 3428.87,
+   "area_mm2": 1741.52,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "drum_n20_cradle",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 108.5 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 9607.84,
+   "area_mm2": 5888.02,
+   "mass_g": 11.77,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    32.0,
+    53.5,
+    19.04
+   ],
+   "bed_contact_mm2": 822.1,
+   "overhang_mm2": 108.5,
+   "overhang_frac": 0.0184
+  },
+  {
+   "name": "drum_n20_strap",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2168.01,
+   "area_mm2": 1992.69,
+   "mass_g": 2.69,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    17.93,
+    53.5,
+    3.0
+   ],
+   "bed_contact_mm2": 722.7,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "drum_fork",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 1302.4 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 20972.42,
+   "area_mm2": 12360.32,
+   "mass_g": 25.12,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    87.13,
+    94.06,
+    83.0
+   ],
+   "bed_contact_mm2": 171.9,
+   "overhang_mm2": 1302.4,
+   "overhang_frac": 0.1054
+  },
+  {
+   "name": "drum_dog_post",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 475.5 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 4837.53,
+   "area_mm2": 3712.59,
+   "mass_g": 6.0,
+   "shells": 1,
+   "genus": 4,
+   "stl_watertight": true,
+   "print_bbox": [
+    36.75,
+    71.0,
+    41.7
+   ],
+   "bed_contact_mm2": 276.6,
+   "overhang_mm2": 475.5,
+   "overhang_frac": 0.1281
+  },
+  {
+   "name": "drum_rail",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 10476.27,
+   "area_mm2": 4514.0,
+   "mass_g": 10.65,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    141.0,
+    10.0,
+    9.0
+   ],
+   "bed_contact_mm2": 842.3,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "drum_bracket_a",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 37461.79,
+   "area_mm2": 15334.07,
+   "mass_g": 36.83,
+   "shells": 1,
+   "genus": 7,
+   "stl_watertight": true,
+   "print_bbox": [
+    104.91,
+    117.0,
+    6.7
+   ],
+   "bed_contact_mm2": 5625.9,
+   "overhang_mm2": 32.0,
+   "overhang_frac": 0.0021
+  },
+  {
+   "name": "drum_bracket_b",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 21970.74,
+   "area_mm2": 9992.43,
+   "mass_g": 22.79,
+   "shells": 1,
+   "genus": 4,
+   "stl_watertight": true,
+   "print_bbox": [
+    79.0,
+    117.0,
+    6.0
+   ],
+   "bed_contact_mm2": 3679.7,
+   "overhang_mm2": 32.0,
+   "overhang_frac": 0.0032
+  },
+  {
+   "name": "drum_bracket_idler",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 11805.12,
+   "area_mm2": 5342.04,
+   "mass_g": 12.21,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    52.0,
+    71.12,
+    7.0
+   ],
+   "bed_contact_mm2": 1701.8,
+   "overhang_mm2": 32.0,
+   "overhang_frac": 0.006
+  },
+  {
+   "name": "drum_bracket_idler2",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 13916.45,
+   "area_mm2": 7438.17,
+   "mass_g": 15.76,
+   "shells": 1,
+   "genus": 5,
+   "stl_watertight": true,
+   "print_bbox": [
+    50.07,
+    141.0,
+    6.0
+   ],
+   "bed_contact_mm2": 2337.4,
+   "overhang_mm2": 32.0,
+   "overhang_frac": 0.0043
+  },
+  {
+   "name": "drum_switch_block",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 215.8 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 18070.6,
+   "area_mm2": 6091.55,
+   "mass_g": 16.21,
+   "shells": 1,
+   "genus": 5,
+   "stl_watertight": true,
+   "print_bbox": [
+    26.0,
+    51.0,
+    24.0
+   ],
+   "bed_contact_mm2": 786.0,
+   "overhang_mm2": 215.8,
+   "overhang_frac": 0.0354
+  },
+  {
+   "name": "drum_sw_lever_0",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 784.34,
+   "area_mm2": 1087.2,
+   "mass_g": 0.97,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    13.67,
+    47.5,
+    6.0
+   ],
+   "bed_contact_mm2": 94.9,
+   "overhang_mm2": 96.8,
+   "overhang_frac": 0.089
+  },
+  {
+   "name": "drum_sw_lever_1",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 784.34,
+   "area_mm2": 1087.2,
+   "mass_g": 0.97,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    13.67,
+    47.5,
+    6.0
+   ],
+   "bed_contact_mm2": 94.9,
+   "overhang_mm2": 96.8,
+   "overhang_frac": 0.089
+  },
+  {
+   "name": "drum_sw_lever_2",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 784.34,
+   "area_mm2": 1087.2,
+   "mass_g": 0.97,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    13.67,
+    47.5,
+    6.0
+   ],
+   "bed_contact_mm2": 94.9,
+   "overhang_mm2": 96.8,
+   "overhang_frac": 0.089
+  },
+  {
+   "name": "drum_index_block",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 7303.7,
+   "area_mm2": 3565.85,
+   "mass_g": 7.87,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    14.0,
+    68.0,
+    8.0
+   ],
+   "bed_contact_mm2": 942.3,
+   "overhang_mm2": 61.3,
+   "overhang_frac": 0.0172
+  },
+  {
+   "name": "drum_index_lever",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 739.45,
+   "area_mm2": 1038.93,
+   "mass_g": 0.92,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    12.86,
+    47.5,
+    6.0
+   ],
+   "bed_contact_mm2": 92.4,
+   "overhang_mm2": 94.5,
+   "overhang_frac": 0.0909
+  },
+  {
+   "name": "drum_magnet_cap",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 1542.92,
+   "area_mm2": 1248.5,
+   "mass_g": 1.91,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    20.0,
+    20.0,
+    6.5
+   ],
+   "bed_contact_mm2": 283.9,
+   "overhang_mm2": 39.7,
+   "overhang_frac": 0.0318
+  },
+  {
+   "name": "drum_hand_lever",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 3203.06,
+   "area_mm2": 2209.03,
+   "mass_g": 3.97,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    46.0,
+    23.99,
+    6.5
+   ],
+   "bed_contact_mm2": 492.8,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "frame_motor_leg",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 221.9 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 159952.69,
+   "area_mm2": 30376.94,
+   "mass_g": 115.5,
+   "shells": 1,
+   "genus": 6,
+   "stl_watertight": true,
+   "print_bbox": [
+    49.0,
+    69.0,
+    187.0
+   ],
+   "bed_contact_mm2": 2793.1,
+   "overhang_mm2": 221.9,
+   "overhang_frac": 0.0073
+  },
+  {
+   "name": "frame_cheek_r",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 5226.3 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 213566.57,
+   "area_mm2": 61242.62,
+   "mass_g": 178.83,
+   "shells": 1,
+   "genus": 8,
+   "stl_watertight": true,
+   "print_bbox": [
+    215.0,
+    220.0,
+    30.0
+   ],
+   "bed_contact_mm2": 16029.4,
+   "overhang_mm2": 5226.3,
+   "overhang_frac": 0.0853
+  },
+  {
+   "name": "frame_wiper_motor",
+   "subsystem": "frame",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 805872.78,
+   "area_mm2": 62790.27,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 2
+  },
+  {
+   "name": "frame_motor_adapter",
+   "subsystem": "frame",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 6705.6 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 255542.61,
+   "area_mm2": 68505.0,
+   "mass_g": 209.98,
+   "shells": 1,
+   "genus": 4,
+   "stl_watertight": true,
+   "print_bbox": [
+    194.0,
+    194.0,
+    16.0
+   ],
+   "bed_contact_mm2": 19046.9,
+   "overhang_mm2": 6705.6,
+   "overhang_frac": 0.0979
+  },
+  {
+   "name": "frame_can_stay",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 906.5 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 31042.13,
+   "area_mm2": 10406.26,
+   "mass_g": 27.78,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    55.0,
+    55.0,
+    71.0
+   ],
+   "bed_contact_mm2": 1068.0,
+   "overhang_mm2": 906.5,
+   "overhang_frac": 0.0871
+  },
+  {
+   "name": "frame_ebay",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 878.6 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 141336.39,
+   "area_mm2": 97249.9,
+   "mass_g": 175.26,
+   "shells": 1,
+   "genus": 26,
+   "stl_watertight": true,
+   "print_bbox": [
+    124.0,
+    124.0,
+    58.0
+   ],
+   "bed_contact_mm2": 14806.6,
+   "overhang_mm2": 878.6,
+   "overhang_frac": 0.009
+  },
+  {
+   "name": "frame_ebay_lid",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 57600.7,
+   "area_mm2": 36571.73,
+   "mass_g": 71.42,
+   "shells": 1,
+   "genus": 13,
+   "stl_watertight": true,
+   "print_bbox": [
+    124.0,
+    124.0,
+    7.0
+   ],
+   "bed_contact_mm2": 13758.7,
+   "overhang_mm2": 80.2,
+   "overhang_frac": 0.0022
+  },
+  {
+   "name": "frame_ebay_esp_clamp",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 1257.21,
+   "area_mm2": 1180.18,
+   "mass_g": 1.56,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    43.4,
+    8.0,
+    4.0
+   ],
+   "bed_contact_mm2": 329.2,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "frame_pcb_esp32",
+   "subsystem": "frame",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 7001.7,
+   "area_mm2": 6183.86,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "frame_pcb_bts7960",
+   "subsystem": "frame",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 31606.17,
+   "area_mm2": 9445.6,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 3
+  },
+  {
+   "name": "frame_pcb_mp1584",
+   "subsystem": "frame",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 952.02,
+   "area_mm2": 1001.62,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "frame_pcb_drv8833",
+   "subsystem": "frame",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 556.82,
+   "area_mm2": 684.85,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "frame_pcb_hx711",
+   "subsystem": "frame",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 1965.2,
+   "area_mm2": 1881.4,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "frame_perfboard",
+   "subsystem": "frame",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2702.56,
+   "area_mm2": 3685.47,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 2
+  },
+  {
+   "name": "frame_fuse_20a",
+   "subsystem": "frame",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 22880.0,
+   "area_mm2": 5452.0,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "frame_guard_hood",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 21151.94,
+   "area_mm2": 17344.89,
+   "mass_g": 26.23,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    122.0,
+    60.0,
+    14.4
+   ],
+   "bed_contact_mm2": 7298.7,
+   "overhang_mm2": 84.3,
+   "overhang_frac": 0.0049
+  },
+  {
+   "name": "frame_guard_front",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 30277.92,
+   "area_mm2": 24988.25,
+   "mass_g": 37.54,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    155.0,
+    104.0,
+    16.4
+   ],
+   "bed_contact_mm2": 10091.5,
+   "overhang_mm2": 39.9,
+   "overhang_frac": 0.0016
+  },
+  {
+   "name": "frame_camera_mount",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 672.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 236811.2,
+   "area_mm2": 39262.7,
+   "mass_g": 164.2,
+   "shells": 1,
+   "genus": 4,
+   "stl_watertight": true,
+   "print_bbox": [
+    58.0,
+    72.0,
+    236.39
+   ],
+   "bed_contact_mm2": 3328.1,
+   "overhang_mm2": 672.0,
+   "overhang_frac": 0.0171
+  },
+  {
+   "name": "frame_rc832_holder",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 18368.93,
+   "area_mm2": 12088.71,
+   "mass_g": 22.78,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    97.0,
+    21.6,
+    40.0
+   ],
+   "bed_contact_mm2": 2077.2,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "frame_rc832",
+   "subsystem": "frame",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 78000.0,
+   "area_mm2": 14750.0,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "frame_kiyo_x",
+   "subsystem": "frame",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 194880.0,
+   "area_mm2": 20408.0,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "frame_cable_anchor_1",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 140.8 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 3227.53,
+   "area_mm2": 2119.77,
+   "mass_g": 4.0,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    16.0,
+    24.0,
+    10.0
+   ],
+   "bed_contact_mm2": 375.0,
+   "overhang_mm2": 140.8,
+   "overhang_frac": 0.0664
+  },
+  {
+   "name": "frame_cable_anchor_2",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 140.8 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 3227.53,
+   "area_mm2": 2119.77,
+   "mass_g": 4.0,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    24.0,
+    16.0,
+    10.0
+   ],
+   "bed_contact_mm2": 375.0,
+   "overhang_mm2": 140.8,
+   "overhang_frac": 0.0664
+  },
+  {
+   "name": "frame_deck_1",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 345925.91,
+   "area_mm2": 95486.53,
+   "mass_g": 237.35,
+   "shells": 1,
+   "genus": 9,
+   "stl_watertight": true,
+   "print_bbox": [
+    220.53,
+    211.27,
+    8.0
+   ],
+   "bed_contact_mm2": 43388.4,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "frame_deck_2",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 285579.47,
+   "area_mm2": 80076.97,
+   "mass_g": 197.92,
+   "shells": 1,
+   "genus": 7,
+   "stl_watertight": true,
+   "print_bbox": [
+    220.53,
+    169.27,
+    8.0
+   ],
+   "bed_contact_mm2": 35895.4,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "frame_deck_3",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 356738.96,
+   "area_mm2": 98408.43,
+   "mass_g": 244.67,
+   "shells": 1,
+   "genus": 7,
+   "stl_watertight": true,
+   "print_bbox": [
+    220.53,
+    211.27,
+    8.0
+   ],
+   "bed_contact_mm2": 44743.0,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "frame_deck_4",
+   "subsystem": "frame",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 294294.44,
+   "area_mm2": 82199.28,
+   "mass_g": 203.45,
+   "shells": 1,
+   "genus": 10,
+   "stl_watertight": true,
+   "print_bbox": [
+    220.53,
+    169.27,
+    8.0
+   ],
+   "bed_contact_mm2": 36933.0,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "frame_wiper_shaft",
+   "subsystem": "frame",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2680.83,
+   "area_mm2": 1324.65,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_rail_rear",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 1749.6 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 149960.36,
+   "area_mm2": 49080.67,
+   "mass_g": 132.81,
+   "shells": 1,
+   "genus": 10,
+   "stl_watertight": true,
+   "print_bbox": [
+    67.1,
+    68.0,
+    180.87
+   ],
+   "bed_contact_mm2": 915.3,
+   "overhang_mm2": 1749.6,
+   "overhang_frac": 0.0356
+  },
+  {
+   "name": "launch_rail_mid",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 2613.4 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 205625.74,
+   "area_mm2": 64849.42,
+   "mass_g": 179.19,
+   "shells": 1,
+   "genus": 20,
+   "stl_watertight": true,
+   "print_bbox": [
+    123.5,
+    68.0,
+    170.0
+   ],
+   "bed_contact_mm2": 915.3,
+   "overhang_mm2": 2613.4,
+   "overhang_frac": 0.0403
+  },
+  {
+   "name": "launch_rail_front",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 7889.7 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 146470.42,
+   "area_mm2": 52004.82,
+   "mass_g": 134.56,
+   "shells": 1,
+   "genus": 20,
+   "stl_watertight": true,
+   "print_bbox": [
+    131.5,
+    128.0,
+    48.5
+   ],
+   "bed_contact_mm2": 3392.0,
+   "overhang_mm2": 7889.7,
+   "overhang_frac": 0.1517
+  },
+  {
+   "name": "launch_carriage",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 6453.4 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 48043.16,
+   "area_mm2": 47875.38,
+   "mass_g": 59.57,
+   "shells": 1,
+   "genus": 107,
+   "stl_watertight": true,
+   "print_bbox": [
+    205.23,
+    240.25,
+    43.0
+   ],
+   "bed_contact_mm2": 1451.6,
+   "overhang_mm2": 6453.4,
+   "overhang_frac": 0.1348
+  },
+  {
+   "name": "launch_carriage_yoke",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 1389.4 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 18916.16,
+   "area_mm2": 13301.43,
+   "mass_g": 23.46,
+   "shells": 1,
+   "genus": 15,
+   "stl_watertight": true,
+   "print_bbox": [
+    43.3,
+    126.6,
+    28.0
+   ],
+   "bed_contact_mm2": 482.5,
+   "overhang_mm2": 1389.4,
+   "overhang_frac": 0.1045
+  },
+  {
+   "name": "launch_yoke_peg_l",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 967.98,
+   "area_mm2": 594.48,
+   "mass_g": 1.2,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    20.0,
+    7.98,
+    7.4
+   ],
+   "bed_contact_mm2": 83.5,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_yoke_peg_r",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 967.98,
+   "area_mm2": 594.48,
+   "mass_g": 1.2,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    20.0,
+    7.98,
+    7.4
+   ],
+   "bed_contact_mm2": 83.5,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_big_gear",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 639.2 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 184246.87,
+   "area_mm2": 31319.08,
+   "mass_g": 129.71,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    104.98,
+    104.98,
+    27.3
+   ],
+   "bed_contact_mm2": 7686.7,
+   "overhang_mm2": 639.2,
+   "overhang_frac": 0.0204
+  },
+  {
+   "name": "launch_gear_washer",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 389.9,
+   "area_mm2": 544.19,
+   "mass_g": 0.48,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    18.0,
+    17.99,
+    2.3
+   ],
+   "bed_contact_mm2": 169.5,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_gear_pin",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 4307.71,
+   "area_mm2": 2086.63,
+   "mass_g": 4.66,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    53.0,
+    16.0,
+    12.5
+   ],
+   "bed_contact_mm2": 249.0,
+   "overhang_mm2": 68.0,
+   "overhang_frac": 0.0326
+  },
+  {
+   "name": "launch_gear_clip",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 235.72,
+   "area_mm2": 447.54,
+   "mass_g": 0.29,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    17.34,
+    17.99,
+    1.4
+   ],
+   "bed_contact_mm2": 168.4,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_drive_gear",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 2457.2 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 23917.55,
+   "area_mm2": 15534.13,
+   "mass_g": 29.9,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    70.0,
+    69.68,
+    28.8
+   ],
+   "bed_contact_mm2": 240.1,
+   "overhang_mm2": 2457.2,
+   "overhang_frac": 0.1582
+  },
+  {
+   "name": "launch_drive_washer",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 168.1,
+   "area_mm2": 609.59,
+   "mass_g": 0.21,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    32.0,
+    32.0,
+    0.7
+   ],
+   "bed_contact_mm2": 240.1,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_sprag",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 19768.84,
+   "area_mm2": 5807.07,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_sleeve",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 2907.4 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 39438.79,
+   "area_mm2": 16384.02,
+   "mass_g": 39.38,
+   "shells": 1,
+   "genus": 4,
+   "stl_watertight": true,
+   "print_bbox": [
+    64.0,
+    64.0,
+    85.0
+   ],
+   "bed_contact_mm2": 194.4,
+   "overhang_mm2": 2907.4,
+   "overhang_frac": 0.1775
+  },
+  {
+   "name": "launch_anchor_pin_l",
+   "subsystem": "launch",
+   "material": "steel",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2253.52,
+   "area_mm2": 1230.08,
+   "mass_g": 17.69,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_spring_l_hook_a",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [
+    "2 shells"
+   ],
+   "status": "NoError",
+   "volume_mm3": 393.24,
+   "area_mm2": 703.62,
+   "mass_g": null,
+   "shells": 2,
+   "genus": 1
+  },
+  {
+   "name": "launch_spring_l_hook_c",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [
+    "2 shells"
+   ],
+   "status": "NoError",
+   "volume_mm3": 393.24,
+   "area_mm2": 703.62,
+   "mass_g": null,
+   "shells": 2,
+   "genus": 1
+  },
+  {
+   "name": "launch_spring_l_0",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2076.77,
+   "area_mm2": 3156.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_spring_l_1",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2076.77,
+   "area_mm2": 3156.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_spring_l_2",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2076.77,
+   "area_mm2": 3156.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_spring_l_3",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2076.77,
+   "area_mm2": 3156.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_spring_l_4",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2076.77,
+   "area_mm2": 3156.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_anchor_pin_r",
+   "subsystem": "launch",
+   "material": "steel",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2253.52,
+   "area_mm2": 1230.08,
+   "mass_g": 17.69,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_spring_r_hook_a",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [
+    "2 shells"
+   ],
+   "status": "NoError",
+   "volume_mm3": 393.24,
+   "area_mm2": 703.62,
+   "mass_g": null,
+   "shells": 2,
+   "genus": 1
+  },
+  {
+   "name": "launch_spring_r_hook_c",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [
+    "2 shells"
+   ],
+   "status": "NoError",
+   "volume_mm3": 393.24,
+   "area_mm2": 703.62,
+   "mass_g": null,
+   "shells": 2,
+   "genus": 1
+  },
+  {
+   "name": "launch_spring_r_0",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2076.77,
+   "area_mm2": 3156.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_spring_r_1",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2076.77,
+   "area_mm2": 3156.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_spring_r_2",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2076.77,
+   "area_mm2": 3156.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_spring_r_3",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2076.77,
+   "area_mm2": 3156.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_spring_r_4",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2076.77,
+   "area_mm2": 3156.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_rail_splice_l",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 222.29,
+   "area_mm2": 438.0,
+   "mass_g": 0.28,
+   "shells": 1,
+   "genus": 4,
+   "stl_watertight": true,
+   "print_bbox": [
+    22.0,
+    5.0,
+    3.0
+   ],
+   "bed_contact_mm2": 74.1,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_rail_splice_r",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 222.29,
+   "area_mm2": 438.0,
+   "mass_g": 0.28,
+   "shells": 1,
+   "genus": 4,
+   "stl_watertight": true,
+   "print_bbox": [
+    22.0,
+    5.0,
+    3.0
+   ],
+   "bed_contact_mm2": 74.1,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_stop_spring_l",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 65810.56,
+   "area_mm2": 58107.84,
+   "mass_g": 81.61,
+   "shells": 1,
+   "genus": 16,
+   "stl_watertight": true,
+   "print_bbox": [
+    154.91,
+    51.5,
+    14.0
+   ],
+   "bed_contact_mm2": 4707.4,
+   "overhang_mm2": 57.3,
+   "overhang_frac": 0.001
+  },
+  {
+   "name": "launch_stop_frame_l",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 541.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 26344.69,
+   "area_mm2": 16333.23,
+   "mass_g": 32.51,
+   "shells": 1,
+   "genus": 9,
+   "stl_watertight": true,
+   "print_bbox": [
+    174.55,
+    53.0,
+    55.1
+   ],
+   "bed_contact_mm2": 3073.5,
+   "overhang_mm2": 541.0,
+   "overhang_frac": 0.0331
+  },
+  {
+   "name": "launch_stop_spring_r",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 65810.56,
+   "area_mm2": 58107.84,
+   "mass_g": 81.61,
+   "shells": 1,
+   "genus": 16,
+   "stl_watertight": true,
+   "print_bbox": [
+    154.91,
+    51.5,
+    14.0
+   ],
+   "bed_contact_mm2": 4707.4,
+   "overhang_mm2": 57.3,
+   "overhang_frac": 0.001
+  },
+  {
+   "name": "launch_stop_frame_r",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 541.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 26344.69,
+   "area_mm2": 16333.23,
+   "mass_g": 32.51,
+   "shells": 1,
+   "genus": 9,
+   "stl_watertight": true,
+   "print_bbox": [
+    174.55,
+    53.0,
+    55.1
+   ],
+   "bed_contact_mm2": 3073.5,
+   "overhang_mm2": 541.0,
+   "overhang_frac": 0.0331
+  },
+  {
+   "name": "launch_muzzle_roller",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 423.7,
+   "area_mm2": 594.48,
+   "mass_g": 0.53,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    13.99,
+    14.0,
+    5.0
+   ],
+   "bed_contact_mm2": 87.5,
+   "overhang_mm2": 64.0,
+   "overhang_frac": 0.1076
+  },
+  {
+   "name": "launch_muzzle_roller_brg",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 172.36,
+   "area_mm2": 224.21,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_muzzle_roller_axle",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 182.53,
+   "area_mm2": 249.25,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_muzzle_washer_l",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 13.96,
+   "area_mm2": 67.87,
+   "mass_g": 0.02,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    6.2,
+    6.2,
+    0.9
+   ],
+   "bed_contact_mm2": 21.5,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_muzzle_washer_r",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 13.96,
+   "area_mm2": 67.87,
+   "mass_g": 0.02,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    6.2,
+    6.2,
+    0.9
+   ],
+   "bed_contact_mm2": 21.5,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_guard_l_a",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 52438.1,
+   "area_mm2": 50314.15,
+   "mass_g": 65.02,
+   "shells": 1,
+   "genus": 4,
+   "stl_watertight": true,
+   "print_bbox": [
+    250.0,
+    49.0,
+    40.0
+   ],
+   "bed_contact_mm2": 12000.4,
+   "overhang_mm2": 93.0,
+   "overhang_frac": 0.0018
+  },
+  {
+   "name": "launch_guard_l_b1",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 3627.01,
+   "area_mm2": 3656.43,
+   "mass_g": 4.5,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    11.7,
+    49.0,
+    40.0
+   ],
+   "bed_contact_mm2": 410.9,
+   "overhang_mm2": 22.4,
+   "overhang_frac": 0.0061
+  },
+  {
+   "name": "launch_guard_l_b2",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 14412.53,
+   "area_mm2": 14066.49,
+   "mass_g": 17.87,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    145.3,
+    32.5,
+    40.0
+   ],
+   "bed_contact_mm2": 4618.4,
+   "overhang_mm2": 32.6,
+   "overhang_frac": 0.0023
+  },
+  {
+   "name": "launch_guard_l_c",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 3831.06,
+   "area_mm2": 4290.2,
+   "mass_g": 4.75,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    32.0,
+    54.5,
+    26.0
+   ],
+   "bed_contact_mm2": 1296.0,
+   "overhang_mm2": 2.6,
+   "overhang_frac": 0.0006
+  },
+  {
+   "name": "launch_guard_r_a",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 52438.1,
+   "area_mm2": 50314.15,
+   "mass_g": 65.02,
+   "shells": 1,
+   "genus": 4,
+   "stl_watertight": true,
+   "print_bbox": [
+    250.0,
+    49.0,
+    40.0
+   ],
+   "bed_contact_mm2": 12000.4,
+   "overhang_mm2": 93.0,
+   "overhang_frac": 0.0018
+  },
+  {
+   "name": "launch_guard_r_b1",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 3627.01,
+   "area_mm2": 3656.43,
+   "mass_g": 4.5,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    11.7,
+    49.0,
+    40.0
+   ],
+   "bed_contact_mm2": 410.9,
+   "overhang_mm2": 22.4,
+   "overhang_frac": 0.0061
+  },
+  {
+   "name": "launch_guard_r_b2",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 17574.18,
+   "area_mm2": 16361.15,
+   "mass_g": 21.79,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    145.3,
+    32.5,
+    40.0
+   ],
+   "bed_contact_mm2": 4587.3,
+   "overhang_mm2": 55.8,
+   "overhang_frac": 0.0034
+  },
+  {
+   "name": "launch_guard_r_c",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 3831.06,
+   "area_mm2": 4290.2,
+   "mass_g": 4.75,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    32.0,
+    54.5,
+    26.0
+   ],
+   "bed_contact_mm2": 1296.0,
+   "overhang_mm2": 2.6,
+   "overhang_frac": 0.0006
+  },
+  {
+   "name": "launch_sw_seated",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 660.38,
+   "area_mm2": 937.83,
+   "mass_g": 0.82,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    41.5,
+    8.42,
+    6.0
+   ],
+   "bed_contact_mm2": 122.2,
+   "overhang_mm2": 24.1,
+   "overhang_frac": 0.0257
+  },
+  {
+   "name": "launch_sw_seated_screw",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 112.65,
+   "area_mm2": 155.27,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_sw_seated_nut",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 46.11,
+   "area_mm2": 106.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_sw_home",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 660.38,
+   "area_mm2": 937.83,
+   "mass_g": 0.82,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    41.5,
+    8.42,
+    6.0
+   ],
+   "bed_contact_mm2": 122.2,
+   "overhang_mm2": 24.1,
+   "overhang_frac": 0.0257
+  },
+  {
+   "name": "launch_sw_home_screw",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 112.65,
+   "area_mm2": 155.27,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_sw_home_nut",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 46.11,
+   "area_mm2": 106.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_seat_plunger",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 829.27,
+   "area_mm2": 1190.44,
+   "mass_g": 1.04,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    29.5,
+    15.0,
+    19.6
+   ],
+   "bed_contact_mm2": 353.2,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_seat_pushrod",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 121.32,
+   "area_mm2": 184.36,
+   "mass_g": 0.15,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    16.0,
+    4.79,
+    3.6
+   ],
+   "bed_contact_mm2": 37.0,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_seat_clip",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 54.92,
+   "area_mm2": 98.53,
+   "mass_g": 0.07,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    5.58,
+    5.59,
+    2.4
+   ],
+   "bed_contact_mm2": 24.4,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_pulley_top",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 423.7,
+   "area_mm2": 594.48,
+   "mass_g": 0.53,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    13.99,
+    14.0,
+    5.0
+   ],
+   "bed_contact_mm2": 87.5,
+   "overhang_mm2": 64.0,
+   "overhang_frac": 0.1076
+  },
+  {
+   "name": "launch_pulley_top_brg",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 172.36,
+   "area_mm2": 224.21,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_pulley_top_axle",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 210.48,
+   "area_mm2": 286.84,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_pulley_top_washer_l",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 56.9,
+   "area_mm2": 155.0,
+   "mass_g": 0.07,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    8.8,
+    8.78,
+    1.5
+   ],
+   "bed_contact_mm2": 52.2,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_pulley_top_washer_r",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 56.9,
+   "area_mm2": 155.0,
+   "mass_g": 0.07,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    8.8,
+    8.78,
+    1.5
+   ],
+   "bed_contact_mm2": 52.2,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_pulley_bot",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 423.7,
+   "area_mm2": 594.48,
+   "mass_g": 0.53,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    13.99,
+    14.0,
+    5.0
+   ],
+   "bed_contact_mm2": 87.5,
+   "overhang_mm2": 64.0,
+   "overhang_frac": 0.1076
+  },
+  {
+   "name": "launch_pulley_bot_brg",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 172.36,
+   "area_mm2": 224.21,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_pulley_bot_axle",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 210.48,
+   "area_mm2": 286.84,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_pulley_bot_washer_l",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 56.9,
+   "area_mm2": 155.0,
+   "mass_g": 0.07,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    8.8,
+    8.78,
+    1.5
+   ],
+   "bed_contact_mm2": 52.2,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_pulley_bot_washer_r",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 56.9,
+   "area_mm2": 155.0,
+   "mass_g": 0.07,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    8.8,
+    8.78,
+    1.5
+   ],
+   "bed_contact_mm2": 52.2,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_pulley_piv",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 423.7,
+   "area_mm2": 594.48,
+   "mass_g": 0.53,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    13.99,
+    14.0,
+    5.0
+   ],
+   "bed_contact_mm2": 87.5,
+   "overhang_mm2": 64.0,
+   "overhang_frac": 0.1076
+  },
+  {
+   "name": "launch_pulley_piv_brg",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 172.36,
+   "area_mm2": 224.21,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_pulley_piv_axle",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 210.48,
+   "area_mm2": 286.84,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a0",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 22.91,
+   "area_mm2": 96.38,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a1",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 22.91,
+   "area_mm2": 96.38,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a2",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 22.91,
+   "area_mm2": 96.38,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a3",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 22.91,
+   "area_mm2": 96.38,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a4",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 22.91,
+   "area_mm2": 96.38,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a5",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 22.91,
+   "area_mm2": 96.38,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a6",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 22.91,
+   "area_mm2": 96.38,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a7",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 22.91,
+   "area_mm2": 96.38,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a8",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 22.91,
+   "area_mm2": 96.38,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_p",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 6.01,
+   "area_mm2": 26.38,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_b",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 36.07,
+   "area_mm2": 150.89,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_c",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 159.63,
+   "area_mm2": 662.55,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_dart",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [
+    "19 shells"
+   ],
+   "status": "NoError",
+   "volume_mm3": 245776.92,
+   "area_mm2": 57854.04,
+   "mass_g": null,
+   "shells": 19,
+   "genus": -4
+  },
+  {
+   "name": "launch_aim_sun",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 14600.77,
+   "area_mm2": 6712.59,
+   "mass_g": 15.36,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    48.0,
+    47.83,
+    12.0
+   ],
+   "bed_contact_mm2": 1216.7,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_aim_arm",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 5294.3,
+   "area_mm2": 3732.27,
+   "mass_g": 6.62,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    63.6,
+    41.0,
+    19.3
+   ],
+   "bed_contact_mm2": 1137.6,
+   "overhang_mm2": 13.9,
+   "overhang_frac": 0.0037
+  },
+  {
+   "name": "launch_aim_drag_pad",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 301.35,
+   "area_mm2": 396.85,
+   "mass_g": 0.37,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    8.78,
+    24.46,
+    4.0
+   ],
+   "bed_contact_mm2": 75.3,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_aim_drag_shim",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 88.75,
+   "area_mm2": 135.39,
+   "mass_g": 0.11,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    8.58,
+    7.01,
+    4.0
+   ],
+   "bed_contact_mm2": 22.2,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_aim_idler",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 5976.98,
+   "area_mm2": 3385.82,
+   "mass_g": 7.05,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    30.0,
+    29.69,
+    12.0
+   ],
+   "bed_contact_mm2": 498.1,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_aim_idler_clip",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 61.44,
+   "area_mm2": 154.97,
+   "mass_g": 0.08,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    10.85,
+    10.03,
+    1.45
+   ],
+   "bed_contact_mm2": 42.4,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_aim_output",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 21786.14,
+   "area_mm2": 7858.07,
+   "mass_g": 20.32,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    48.0,
+    47.83,
+    59.5
+   ],
+   "bed_contact_mm2": 1562.3,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_aim_bevel30",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 590.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 7007.23,
+   "area_mm2": 4878.99,
+   "mass_g": 8.76,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    52.6,
+    52.44,
+    9.7
+   ],
+   "bed_contact_mm2": 965.8,
+   "overhang_mm2": 590.0,
+   "overhang_frac": 0.1209
+  },
+  {
+   "name": "launch_aim_worm",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 2778.6 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 17078.51,
+   "area_mm2": 7897.67,
+   "mass_g": 18.02,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    28.0,
+    28.0,
+    54.46
+   ],
+   "bed_contact_mm2": 50.1,
+   "overhang_mm2": 2778.6,
+   "overhang_frac": 0.3518
+  },
+  {
+   "name": "launch_aim_crank",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 984.6 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 28902.98,
+   "area_mm2": 10827.2,
+   "mass_g": 27.44,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    62.32,
+    59.63,
+    38.0
+   ],
+   "bed_contact_mm2": 837.0,
+   "overhang_mm2": 984.6,
+   "overhang_frac": 0.0909
+  },
+  {
+   "name": "launch_aim_conrod",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 11325.26,
+   "area_mm2": 6303.33,
+   "mass_g": 13.23,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    172.99,
+    17.0,
+    6.0
+   ],
+   "bed_contact_mm2": 1887.5,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_aim_crankpin_clip",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 61.44,
+   "area_mm2": 154.97,
+   "mass_g": 0.08,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    10.85,
+    10.03,
+    1.45
+   ],
+   "bed_contact_mm2": 42.4,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_aim_lug",
+   "subsystem": "launch",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 995.2 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 13546.5,
+   "area_mm2": 5899.95,
+   "mass_g": 13.85,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    30.0,
+    58.0,
+    27.78
+   ],
+   "bed_contact_mm2": 462.0,
+   "overhang_mm2": 995.2,
+   "overhang_frac": 0.1687
+  },
+  {
+   "name": "launch_aim_lugpin_clip",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 61.44,
+   "area_mm2": 154.97,
+   "mass_g": 0.08,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    10.85,
+    10.03,
+    1.45
+   ],
+   "bed_contact_mm2": 42.4,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_aim_housing",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 753.3 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 206103.68,
+   "area_mm2": 61313.94,
+   "mass_g": 175.22,
+   "shells": 1,
+   "genus": 4,
+   "stl_watertight": true,
+   "print_bbox": [
+    160.94,
+    50.4,
+    183.0
+   ],
+   "bed_contact_mm2": 5210.5,
+   "overhang_mm2": 753.3,
+   "overhang_frac": 0.0123
+  },
+  {
+   "name": "launch_aim_cap",
+   "subsystem": "launch",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 4228.36,
+   "area_mm2": 3662.9,
+   "mass_g": 5.24,
+   "shells": 1,
+   "genus": 4,
+   "stl_watertight": true,
+   "print_bbox": [
+    45.5,
+    14.0,
+    19.45
+   ],
+   "bed_contact_mm2": 601.1,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "launch_aim_bolt",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 1996.15,
+   "area_mm2": 1151.14,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_aim_nut",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 625.82,
+   "area_mm2": 648.49,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_aim_brg_1",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2309.06,
+   "area_mm2": 1319.24,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "launch_aim_brg_2",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2309.06,
+   "area_mm2": 1319.24,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "reel_wall",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 886.4 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 205088.19,
+   "area_mm2": 82480.42,
+   "mass_g": 199.91,
+   "shells": 1,
+   "genus": 20,
+   "stl_watertight": true,
+   "print_bbox": [
+    169.5,
+    82.0,
+    138.36
+   ],
+   "bed_contact_mm2": 9264.2,
+   "overhang_mm2": 886.4,
+   "overhang_frac": 0.0107
+  },
+  {
+   "name": "reel_sprag_hub",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 1503.8 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 35768.01,
+   "area_mm2": 13970.44,
+   "mass_g": 34.65,
+   "shells": 1,
+   "genus": 5,
+   "stl_watertight": true,
+   "print_bbox": [
+    67.0,
+    62.1,
+    30.2
+   ],
+   "bed_contact_mm2": 520.1,
+   "overhang_mm2": 1503.8,
+   "overhang_frac": 0.1076
+  },
+  {
+   "name": "reel_hub_screws",
+   "subsystem": "reel",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [
+    "4 shells"
+   ],
+   "status": "NoError",
+   "volume_mm3": 506.49,
+   "area_mm2": 712.67,
+   "mass_g": null,
+   "shells": 4,
+   "genus": -3
+  },
+  {
+   "name": "reel_sprag",
+   "subsystem": "reel",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 19305.36,
+   "area_mm2": 5968.28,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "reel_c",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 21982.3,
+   "area_mm2": 9982.18,
+   "mass_g": 22.97,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    28.0,
+    28.0,
+    92.4
+   ],
+   "bed_contact_mm2": 179.7,
+   "overhang_mm2": 74.1,
+   "overhang_frac": 0.0074
+  },
+  {
+   "name": "reel_bus",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 21013.11,
+   "area_mm2": 10143.72,
+   "mass_g": 22.68,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    72.0,
+    71.9,
+    9.5
+   ],
+   "bed_contact_mm2": 3354.1,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_swing_arm",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 4409.88,
+   "area_mm2": 3948.37,
+   "mass_g": 5.51,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    84.09,
+    38.0,
+    8.6
+   ],
+   "bed_contact_mm2": 1422.2,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_gi",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 9076.93,
+   "area_mm2": 4803.13,
+   "mass_g": 10.3,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    48.0,
+    47.83,
+    6.0
+   ],
+   "bed_contact_mm2": 1495.5,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_gc",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 14463.47,
+   "area_mm2": 6441.7,
+   "mass_g": 14.96,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    48.0,
+    47.68,
+    12.8
+   ],
+   "bed_contact_mm2": 1168.1,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_c_clip",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 809.95,
+   "area_mm2": 893.88,
+   "mass_g": 1.0,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    26.91,
+    24.86,
+    3.1
+   ],
+   "bed_contact_mm2": 261.3,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_drum",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 251.1 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 41008.18,
+   "area_mm2": 10879.96,
+   "mass_g": 33.56,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    46.0,
+    46.0,
+    43.0
+   ],
+   "bed_contact_mm2": 915.5,
+   "overhang_mm2": 251.1,
+   "overhang_frac": 0.0231
+  },
+  {
+   "name": "reel_k",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 9432.43,
+   "area_mm2": 4062.17,
+   "mass_g": 9.59,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    10.0,
+    10.0,
+    125.82
+   ],
+   "bed_contact_mm2": 73.1,
+   "overhang_mm2": 31.6,
+   "overhang_frac": 0.0078
+  },
+  {
+   "name": "reel_cup",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 1187.4 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 10235.28,
+   "area_mm2": 8078.62,
+   "mass_g": 12.69,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    48.0,
+    51.9,
+    17.9
+   ],
+   "bed_contact_mm2": 266.4,
+   "overhang_mm2": 1187.4,
+   "overhang_frac": 0.147
+  },
+  {
+   "name": "reel_cup_clip",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 237.22,
+   "area_mm2": 359.13,
+   "mass_g": 0.29,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    13.99,
+    13.73,
+    2.0
+   ],
+   "bed_contact_mm2": 118.6,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_gk",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 668.3 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 7945.36,
+   "area_mm2": 4222.74,
+   "mass_g": 9.04,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    38.86,
+    38.86,
+    10.6
+   ],
+   "bed_contact_mm2": 241.4,
+   "overhang_mm2": 668.3,
+   "overhang_frac": 0.1583
+  },
+  {
+   "name": "reel_k_clip",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 97.22,
+   "area_mm2": 220.81,
+   "mass_g": 0.12,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    13.52,
+    12.51,
+    1.48
+   ],
+   "bed_contact_mm2": 65.9,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_s",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 11633.11,
+   "area_mm2": 7951.94,
+   "mass_g": 14.54,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    62.0,
+    62.0,
+    55.5
+   ],
+   "bed_contact_mm2": 3018.5,
+   "overhang_mm2": 11.2,
+   "overhang_frac": 0.0014
+  },
+  {
+   "name": "reel_spool",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 329.4 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 27630.3,
+   "area_mm2": 18978.18,
+   "mass_g": 34.26,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    80.0,
+    80.0,
+    24.1
+   ],
+   "bed_contact_mm2": 4442.3,
+   "overhang_mm2": 329.4,
+   "overhang_frac": 0.0174
+  },
+  {
+   "name": "reel_spool_flange",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 7987.58,
+   "area_mm2": 10137.66,
+   "mass_g": 9.9,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    80.0,
+    80.0,
+    1.9
+   ],
+   "bed_contact_mm2": 4671.0,
+   "overhang_mm2": 71.3,
+   "overhang_frac": 0.007
+  },
+  {
+   "name": "reel_brg_1",
+   "subsystem": "reel",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2232.48,
+   "area_mm2": 1367.75,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "reel_brg_2",
+   "subsystem": "reel",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2232.48,
+   "area_mm2": 1367.75,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "reel_t",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 1333.34,
+   "area_mm2": 1378.58,
+   "mass_g": 1.65,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    26.0,
+    26.0,
+    4.95
+   ],
+   "bed_contact_mm2": 476.2,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_rocker",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 4917.15,
+   "area_mm2": 4068.78,
+   "mass_g": 6.15,
+   "shells": 1,
+   "genus": 5,
+   "stl_watertight": true,
+   "print_bbox": [
+    29.0,
+    91.7,
+    6.0
+   ],
+   "bed_contact_mm2": 1320.0,
+   "overhang_mm2": 26.6,
+   "overhang_frac": 0.0065
+  },
+  {
+   "name": "reel_rocker_pin",
+   "subsystem": "reel",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 238.43,
+   "area_mm2": 324.43,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "reel_trim_screws",
+   "subsystem": "reel",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [
+    "2 shells"
+   ],
+   "status": "NoError",
+   "volume_mm3": 253.25,
+   "area_mm2": 348.13,
+   "mass_g": null,
+   "shells": 2,
+   "genus": -1
+  },
+  {
+   "name": "reel_crank",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 1656.8,
+   "area_mm2": 1700.32,
+   "mass_g": 2.07,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    21.1,
+    27.98,
+    12.4
+   ],
+   "bed_contact_mm2": 133.6,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_crank_washer",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 124.72,
+   "area_mm2": 265.87,
+   "mass_g": 0.16,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    11.99,
+    12.0,
+    1.2
+   ],
+   "bed_contact_mm2": 103.9,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_crank_screw",
+   "subsystem": "reel",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 210.48,
+   "area_mm2": 286.84,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "reel_firm_screw",
+   "subsystem": "reel",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 187.68,
+   "area_mm2": 255.62,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "reel_bar",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 6315.93,
+   "area_mm2": 4145.47,
+   "mass_g": 7.89,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    153.51,
+    18.64,
+    15.8
+   ],
+   "bed_contact_mm2": 943.8,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_bar_cap_1",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 837.42,
+   "area_mm2": 738.09,
+   "mass_g": 1.04,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    10.0,
+    20.0,
+    4.6
+   ],
+   "bed_contact_mm2": 182.0,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_bar_cap_2",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 837.42,
+   "area_mm2": 738.09,
+   "mass_g": 1.04,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    10.0,
+    20.0,
+    4.6
+   ],
+   "bed_contact_mm2": 182.0,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_bar_screws",
+   "subsystem": "reel",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [
+    "4 shells"
+   ],
+   "status": "NoError",
+   "volume_mm3": 730.11,
+   "area_mm2": 996.99,
+   "mass_g": null,
+   "shells": 4,
+   "genus": -3
+  },
+  {
+   "name": "reel_gr",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 3730.83,
+   "area_mm2": 2640.67,
+   "mass_g": 4.66,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    33.0,
+    33.0,
+    6.4
+   ],
+   "bed_contact_mm2": 603.7,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_s_clip",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 61.44,
+   "area_mm2": 154.97,
+   "mass_g": 0.08,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    10.85,
+    10.03,
+    1.45
+   ],
+   "bed_contact_mm2": 42.4,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_sw_bracket",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 334.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 18650.19,
+   "area_mm2": 9032.7,
+   "mass_g": 20.0,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    39.5,
+    63.0,
+    57.9
+   ],
+   "bed_contact_mm2": 2172.5,
+   "overhang_mm2": 334.0,
+   "overhang_frac": 0.037
+  },
+  {
+   "name": "reel_sw_base",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 5668.94,
+   "area_mm2": 4785.02,
+   "mass_g": 7.03,
+   "shells": 1,
+   "genus": 5,
+   "stl_watertight": true,
+   "print_bbox": [
+    46.0,
+    35.0,
+    11.55
+   ],
+   "bed_contact_mm2": 1565.1,
+   "overhang_mm2": 21.9,
+   "overhang_frac": 0.0046
+  },
+  {
+   "name": "reel_sw_lever",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 1014.17,
+   "area_mm2": 1154.39,
+   "mass_g": 1.26,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    42.0,
+    5.0,
+    8.0
+   ],
+   "bed_contact_mm2": 139.0,
+   "overhang_mm2": 31.5,
+   "overhang_frac": 0.0273
+  },
+  {
+   "name": "reel_sw_hw",
+   "subsystem": "reel",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [
+    "2 shells"
+   ],
+   "status": "NoError",
+   "volume_mm3": 232.34,
+   "area_mm2": 358.21,
+   "mass_g": null,
+   "shells": 2,
+   "genus": 0
+  },
+  {
+   "name": "reel_shroud",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 11730.54,
+   "area_mm2": 12495.9,
+   "mass_g": 14.55,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    81.08,
+    79.54,
+    41.08
+   ],
+   "bed_contact_mm2": 488.9,
+   "overhang_mm2": 91.9,
+   "overhang_frac": 0.0074
+  },
+  {
+   "name": "reel_exit_post",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 207.1 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 67837.6,
+   "area_mm2": 15631.51,
+   "mass_g": 52.68,
+   "shells": 1,
+   "genus": 5,
+   "stl_watertight": true,
+   "print_bbox": [
+    40.0,
+    44.0,
+    125.76
+   ],
+   "bed_contact_mm2": 1724.1,
+   "overhang_mm2": 207.1,
+   "overhang_frac": 0.0133
+  },
+  {
+   "name": "reel_pulley1",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 111.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 931.0,
+   "area_mm2": 997.93,
+   "mass_g": 1.15,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    18.0,
+    18.0,
+    6.0
+   ],
+   "bed_contact_mm2": 201.3,
+   "overhang_mm2": 111.0,
+   "overhang_frac": 0.1112
+  },
+  {
+   "name": "reel_p1_brg",
+   "subsystem": "reel",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 163.38,
+   "area_mm2": 241.75,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "reel_p2_post",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 1280.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 48530.06,
+   "area_mm2": 15867.38,
+   "mass_g": 43.31,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    101.76,
+    28.0,
+    123.0
+   ],
+   "bed_contact_mm2": 557.0,
+   "overhang_mm2": 1280.0,
+   "overhang_frac": 0.0807
+  },
+  {
+   "name": "reel_p2_fork",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 133.3 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 3186.38,
+   "area_mm2": 2644.42,
+   "mass_g": 3.98,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    19.49,
+    13.8,
+    36.0
+   ],
+   "bed_contact_mm2": 49.8,
+   "overhang_mm2": 133.3,
+   "overhang_frac": 0.0504
+  },
+  {
+   "name": "reel_p2_clip",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 170.33,
+   "area_mm2": 319.25,
+   "mass_g": 0.21,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    16.2,
+    14.98,
+    1.8
+   ],
+   "bed_contact_mm2": 94.6,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_pulley2",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 111.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 931.0,
+   "area_mm2": 997.93,
+   "mass_g": 1.15,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    18.0,
+    18.0,
+    6.0
+   ],
+   "bed_contact_mm2": 201.3,
+   "overhang_mm2": 111.0,
+   "overhang_frac": 0.1112
+  },
+  {
+   "name": "reel_p2_brg",
+   "subsystem": "reel",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 163.38,
+   "area_mm2": 241.75,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "reel_p2_axle",
+   "subsystem": "reel",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 210.48,
+   "area_mm2": 286.84,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "reel_p1_axle",
+   "subsystem": "reel",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 210.48,
+   "area_mm2": 286.84,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "sensors_as5600",
+   "subsystem": "sensors",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 895.71,
+   "area_mm2": 1211.85,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 4
+  },
+  {
+   "name": "sensors_as5600_carrier",
+   "subsystem": "sensors",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 12386.32,
+   "area_mm2": 5267.87,
+   "mass_g": 12.41,
+   "shells": 1,
+   "genus": 4,
+   "stl_watertight": true,
+   "print_bbox": [
+    34.0,
+    67.5,
+    11.0
+   ],
+   "bed_contact_mm2": 1459.9,
+   "overhang_mm2": 90.4,
+   "overhang_frac": 0.0172
+  },
+  {
+   "name": "sensors_as5600_strip_top",
+   "subsystem": "sensors",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 771.21,
+   "area_mm2": 831.19,
+   "mass_g": 0.96,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    25.4,
+    11.81,
+    3.1
+   ],
+   "bed_contact_mm2": 282.5,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "sensors_as5600_nut_top",
+   "subsystem": "sensors",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 46.1,
+   "area_mm2": 106.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "sensors_as5600_screw_top",
+   "subsystem": "sensors",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 153.9,
+   "area_mm2": 211.3,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "sensors_as5600_strip_bot",
+   "subsystem": "sensors",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 771.21,
+   "area_mm2": 831.19,
+   "mass_g": 0.96,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    25.4,
+    11.81,
+    3.1
+   ],
+   "bed_contact_mm2": 282.5,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "sensors_as5600_nut_bot",
+   "subsystem": "sensors",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 46.1,
+   "area_mm2": 106.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "sensors_as5600_screw_bot",
+   "subsystem": "sensors",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 153.9,
+   "area_mm2": 211.3,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "sensors_as5600_col_screws",
+   "subsystem": "sensors",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [
+    "2 shells"
+   ],
+   "status": "NoError",
+   "volume_mm3": 363.42,
+   "area_mm2": 497.68,
+   "mass_g": null,
+   "shells": 2,
+   "genus": -1
+  },
+  {
+   "name": "sensors_sw_rail_low",
+   "subsystem": "sensors",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 5864.04,
+   "area_mm2": 4945.03,
+   "mass_g": 7.27,
+   "shells": 1,
+   "genus": 5,
+   "stl_watertight": true,
+   "print_bbox": [
+    48.0,
+    35.0,
+    11.53
+   ],
+   "bed_contact_mm2": 1635.1,
+   "overhang_mm2": 21.9,
+   "overhang_frac": 0.0044
+  },
+  {
+   "name": "sensors_sw_rail_low_lever",
+   "subsystem": "sensors",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 1060.56,
+   "area_mm2": 1194.78,
+   "mass_g": 1.32,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    44.0,
+    5.0,
+    8.0
+   ],
+   "bed_contact_mm2": 144.8,
+   "overhang_mm2": 31.5,
+   "overhang_frac": 0.0264
+  },
+  {
+   "name": "sensors_sw_rail_low_screw",
+   "subsystem": "sensors",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 140.14,
+   "area_mm2": 189.92,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "sensors_sw_rail_low_jam",
+   "subsystem": "sensors",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 46.1,
+   "area_mm2": 106.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "sensors_sw_rail_low_nut",
+   "subsystem": "sensors",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 46.1,
+   "area_mm2": 106.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "sensors_sw_rail_low_bracket",
+   "subsystem": "sensors",
+   "material": "PLA",
+   "printed": true,
+   "fails": [
+    "not watertight as STL (self-touching edges after vertex merge)"
+   ],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 15926.02,
+   "area_mm2": 7730.45,
+   "mass_g": 17.1,
+   "shells": 1,
+   "genus": 5,
+   "stl_watertight": false,
+   "print_bbox": [
+    27.4,
+    48.0,
+    73.96
+   ],
+   "bed_contact_mm2": 205.0,
+   "overhang_mm2": 70.5,
+   "overhang_frac": 0.0091
+  },
+  {
+   "name": "sensors_sw_gap",
+   "subsystem": "sensors",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 7970.98,
+   "area_mm2": 5767.97,
+   "mass_g": 9.88,
+   "shells": 1,
+   "genus": 5,
+   "stl_watertight": true,
+   "print_bbox": [
+    63.45,
+    43.27,
+    11.53
+   ],
+   "bed_contact_mm2": 1624.3,
+   "overhang_mm2": 63.9,
+   "overhang_frac": 0.0111
+  },
+  {
+   "name": "sensors_sw_gap_lever",
+   "subsystem": "sensors",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 1099.74,
+   "area_mm2": 1204.58,
+   "mass_g": 1.36,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    40.0,
+    9.0,
+    8.0
+   ],
+   "bed_contact_mm2": 149.7,
+   "overhang_mm2": 31.5,
+   "overhang_frac": 0.0261
+  },
+  {
+   "name": "sensors_sw_gap_screw",
+   "subsystem": "sensors",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 140.14,
+   "area_mm2": 189.92,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "sensors_sw_gap_jam",
+   "subsystem": "sensors",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 46.1,
+   "area_mm2": 106.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  },
+  {
+   "name": "sensors_sw_gap_nut",
+   "subsystem": "sensors",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 46.1,
+   "area_mm2": 106.7,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 1
+  }
+ ],
+ "limits": [],
+ "collisions": [
+  {
+   "a": "drum_coupler",
+   "b": "drum_index_lever",
+   "max_vol_mm3": 24.517,
+   "n_states": 67,
+   "worst_state": 4169,
+   "phase": "fire",
+   "t": 9.254166666666668
+  },
+  {
+   "a": "launch_aim_sun",
+   "b": "launch_aim_idler",
+   "max_vol_mm3": 55.565,
+   "n_states": 12,
+   "worst_state": 44654,
+   "phase": "sensors_gap_cock",
+   "t": null
+  }
+ ],
+ "allowed_contacts": [
+  {
+   "a": "drum_axle",
+   "b": "drum_bracket_a",
+   "max_vol_mm3": 8.335,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "axle pressed into the brackets"
+  },
+  {
+   "a": "drum_axle",
+   "b": "drum_bracket_b",
+   "max_vol_mm3": 7.464,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "axle pressed into the brackets"
+  },
+  {
+   "a": "drum_n20_pinion",
+   "b": "drum_n20",
+   "max_vol_mm3": 5.158,
+   "n_states": 3415,
+   "worst_state": 37625,
+   "phase": "unwrap",
+   "t": 137.70000000000002,
+   "why": "pinion pressed on the N20 shaft"
+  },
+  {
+   "a": "drum_rail",
+   "b": "drum_bracket_a",
+   "max_vol_mm3": 8.335,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "rail pressed into the brackets"
+  },
+  {
+   "a": "drum_rail",
+   "b": "drum_bracket_b",
+   "max_vol_mm3": 7.464,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "rail pressed into the brackets"
+  },
+  {
+   "a": "launch_aim_crank",
+   "b": "sensors_sw_rail_low_lever",
+   "max_vol_mm3": 50.388,
+   "n_states": 2094,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "crank cam presses the lever tip at the LOW dead point (the lever bends; modelled rigid at rest)"
+  },
+  {
+   "a": "launch_aim_housing",
+   "b": "sensors_as5600_col_screws",
+   "max_vol_mm3": 20.448,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "M3 self tapping into the spine pilots"
+  },
+  {
+   "a": "launch_big_gear",
+   "b": "sensors_sw_gap_lever",
+   "max_vol_mm3": 59.4,
+   "n_states": 2231,
+   "worst_state": 4934,
+   "phase": "flight",
+   "t": 9.5,
+   "why": "big gear cam bump presses the lever tip at rest (the lever bends; modelled rigid at rest)"
+  },
+  {
+   "a": "launch_carriage_yoke",
+   "b": "launch_stop_spring_l",
+   "max_vol_mm3": 2885.424,
+   "n_states": 6,
+   "worst_state": 44578,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "arm on the stop pad (contact)"
+  },
+  {
+   "a": "launch_carriage_yoke",
+   "b": "launch_stop_spring_r",
+   "max_vol_mm3": 2935.377,
+   "n_states": 6,
+   "worst_state": 44578,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "arm on the stop pad (contact)"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a1",
+   "max_vol_mm3": 22.909,
+   "n_states": 2413,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a2",
+   "max_vol_mm3": 22.906,
+   "n_states": 185,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a3",
+   "max_vol_mm3": 22.903,
+   "n_states": 178,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a4",
+   "max_vol_mm3": 22.899,
+   "n_states": 187,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a5",
+   "max_vol_mm3": 22.896,
+   "n_states": 191,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a6",
+   "max_vol_mm3": 22.893,
+   "n_states": 187,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a7",
+   "max_vol_mm3": 22.889,
+   "n_states": 162,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a8",
+   "max_vol_mm3": 22.886,
+   "n_states": 144,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a2",
+   "max_vol_mm3": 22.909,
+   "n_states": 2413,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a3",
+   "max_vol_mm3": 22.906,
+   "n_states": 185,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a4",
+   "max_vol_mm3": 22.903,
+   "n_states": 178,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a5",
+   "max_vol_mm3": 22.899,
+   "n_states": 187,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a6",
+   "max_vol_mm3": 22.896,
+   "n_states": 191,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a7",
+   "max_vol_mm3": 22.893,
+   "n_states": 187,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a8",
+   "max_vol_mm3": 22.889,
+   "n_states": 162,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a3",
+   "max_vol_mm3": 22.909,
+   "n_states": 2413,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a4",
+   "max_vol_mm3": 22.906,
+   "n_states": 185,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a5",
+   "max_vol_mm3": 22.903,
+   "n_states": 178,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a6",
+   "max_vol_mm3": 22.899,
+   "n_states": 187,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a7",
+   "max_vol_mm3": 22.896,
+   "n_states": 191,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a8",
+   "max_vol_mm3": 22.893,
+   "n_states": 187,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a4",
+   "max_vol_mm3": 22.909,
+   "n_states": 2413,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a5",
+   "max_vol_mm3": 22.906,
+   "n_states": 185,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a6",
+   "max_vol_mm3": 22.903,
+   "n_states": 178,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a7",
+   "max_vol_mm3": 22.899,
+   "n_states": 187,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a8",
+   "max_vol_mm3": 22.896,
+   "n_states": 191,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a5",
+   "max_vol_mm3": 22.909,
+   "n_states": 2413,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a6",
+   "max_vol_mm3": 22.906,
+   "n_states": 185,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a7",
+   "max_vol_mm3": 22.903,
+   "n_states": 178,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a8",
+   "max_vol_mm3": 22.899,
+   "n_states": 187,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a6",
+   "max_vol_mm3": 22.909,
+   "n_states": 2413,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a7",
+   "max_vol_mm3": 22.906,
+   "n_states": 185,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a8",
+   "max_vol_mm3": 22.903,
+   "n_states": 178,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a7",
+   "max_vol_mm3": 22.909,
+   "n_states": 2413,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a8",
+   "max_vol_mm3": 22.906,
+   "n_states": 185,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a7",
+   "b": "launch_line_a8",
+   "max_vol_mm3": 22.909,
+   "n_states": 2413,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a7",
+   "b": "launch_line_p",
+   "max_vol_mm3": 0.004,
+   "n_states": 8,
+   "worst_state": 3922,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "same line"
+  },
+  {
+   "a": "launch_line_a8",
+   "b": "launch_line_p",
+   "max_vol_mm3": 0.008,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "same line"
+  },
+  {
+   "a": "launch_muzzle_roller",
+   "b": "launch_muzzle_roller_brg",
+   "max_vol_mm3": 4.762,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "693ZZ pressed in the roller"
+  },
+  {
+   "a": "launch_pulley_bot",
+   "b": "launch_pulley_bot_brg",
+   "max_vol_mm3": 4.762,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "693ZZ pressed in the pulley"
+  },
+  {
+   "a": "launch_pulley_piv",
+   "b": "launch_pulley_piv_brg",
+   "max_vol_mm3": 4.762,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "693ZZ pressed in the pulley"
+  },
+  {
+   "a": "launch_pulley_top",
+   "b": "launch_pulley_top_brg",
+   "max_vol_mm3": 4.762,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "693ZZ pressed in the pulley"
+  },
+  {
+   "a": "launch_sleeve",
+   "b": "launch_aim_drag_pad",
+   "max_vol_mm3": 1.616,
+   "n_states": 5610,
+   "worst_state": 11334,
+   "phase": "rail_low",
+   "t": 12.377884615384616,
+   "why": "flexure pad tip bump bears on the sleeve d20 (0.45 preload interference)"
+  },
+  {
+   "a": "launch_sprag",
+   "b": "launch_sleeve",
+   "max_vol_mm3": 223.789,
+   "n_states": 6964,
+   "worst_state": 11474,
+   "phase": "rail_low",
+   "t": 12.443720930232558,
+   "why": "sprag inner race on the keyed sleeve"
+  },
+  {
+   "a": "launch_spring_l_0",
+   "b": "launch_spring_l_1",
+   "max_vol_mm3": 299.74,
+   "n_states": 6,
+   "worst_state": 44580,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "segmented spring model telescopes when the carriage overshoots"
+  },
+  {
+   "a": "launch_spring_l_1",
+   "b": "launch_spring_l_2",
+   "max_vol_mm3": 299.74,
+   "n_states": 6,
+   "worst_state": 44580,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "segmented spring model telescopes when the carriage overshoots"
+  },
+  {
+   "a": "launch_spring_l_2",
+   "b": "launch_spring_l_3",
+   "max_vol_mm3": 299.74,
+   "n_states": 6,
+   "worst_state": 44580,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "segmented spring model telescopes when the carriage overshoots"
+  },
+  {
+   "a": "launch_spring_l_3",
+   "b": "launch_spring_l_4",
+   "max_vol_mm3": 299.74,
+   "n_states": 6,
+   "worst_state": 44580,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "segmented spring model telescopes when the carriage overshoots"
+  },
+  {
+   "a": "launch_spring_l_hook_a",
+   "b": "launch_spring_l_4",
+   "max_vol_mm3": 125.941,
+   "n_states": 6,
+   "worst_state": 44580,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "segmented spring model telescopes when the carriage overshoots"
+  },
+  {
+   "a": "launch_spring_l_hook_c",
+   "b": "launch_spring_l_0",
+   "max_vol_mm3": 125.941,
+   "n_states": 6,
+   "worst_state": 44580,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "segmented spring model telescopes when the carriage overshoots"
+  },
+  {
+   "a": "launch_spring_r_0",
+   "b": "launch_spring_r_1",
+   "max_vol_mm3": 299.74,
+   "n_states": 6,
+   "worst_state": 44580,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "segmented spring model telescopes when the carriage overshoots"
+  },
+  {
+   "a": "launch_spring_r_1",
+   "b": "launch_spring_r_2",
+   "max_vol_mm3": 299.74,
+   "n_states": 6,
+   "worst_state": 44580,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "segmented spring model telescopes when the carriage overshoots"
+  },
+  {
+   "a": "launch_spring_r_2",
+   "b": "launch_spring_r_3",
+   "max_vol_mm3": 299.74,
+   "n_states": 6,
+   "worst_state": 44580,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "segmented spring model telescopes when the carriage overshoots"
+  },
+  {
+   "a": "launch_spring_r_3",
+   "b": "launch_spring_r_4",
+   "max_vol_mm3": 299.74,
+   "n_states": 6,
+   "worst_state": 44580,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "segmented spring model telescopes when the carriage overshoots"
+  },
+  {
+   "a": "launch_spring_r_hook_a",
+   "b": "launch_spring_r_4",
+   "max_vol_mm3": 125.941,
+   "n_states": 6,
+   "worst_state": 44580,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "segmented spring model telescopes when the carriage overshoots"
+  },
+  {
+   "a": "launch_spring_r_hook_c",
+   "b": "launch_spring_r_0",
+   "max_vol_mm3": 125.941,
+   "n_states": 6,
+   "worst_state": 44580,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "segmented spring model telescopes when the carriage overshoots"
+  },
+  {
+   "a": "launch_stop_spring_l",
+   "b": "launch_seat_plunger",
+   "max_vol_mm3": 53.843,
+   "n_states": 4,
+   "worst_state": 44580,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "overshoot states only: R moves with the arm, the plunger foot stays 9.3 mm behind it"
+  },
+  {
+   "a": "launch_sw_home",
+   "b": "launch_sw_home_screw",
+   "max_vol_mm3": 8.696,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "screw threaded into the lever"
+  },
+  {
+   "a": "launch_sw_seated",
+   "b": "launch_sw_seated_screw",
+   "max_vol_mm3": 8.696,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "screw threaded into the lever"
+  },
+  {
+   "a": "launch_yoke_peg_l",
+   "b": "launch_stop_spring_l",
+   "max_vol_mm3": 288.041,
+   "n_states": 6,
+   "worst_state": 44576,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "overshoot states only: the stop spring is drawn static; its rear bar moves with the arm pad and the peg front (flush with the arm face) stays 0.8 behind it"
+  },
+  {
+   "a": "launch_yoke_peg_r",
+   "b": "launch_stop_spring_r",
+   "max_vol_mm3": 288.041,
+   "n_states": 6,
+   "worst_state": 44576,
+   "phase": "launch_stop_overshoot",
+   "t": null,
+   "why": "overshoot states only: the stop spring is drawn static; its rear bar moves with the arm pad and the peg front (flush with the arm face) stays 0.8 behind it"
+  },
+  {
+   "a": "reel_bus",
+   "b": "reel_swing_arm",
+   "max_vol_mm3": 23.248,
+   "n_states": 17196,
+   "worst_state": 2691,
+   "phase": "aim",
+   "t": 5.444,
+   "why": "split arm ring grips the bus gear hub (drag)"
+  },
+  {
+   "a": "reel_c",
+   "b": "reel_gc",
+   "max_vol_mm3": 2.786,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "D-flat fit"
+  },
+  {
+   "a": "reel_crank",
+   "b": "reel_firm_screw",
+   "max_vol_mm3": 12.774,
+   "n_states": 731,
+   "worst_state": 17196,
+   "phase": "neutral",
+   "t": 22.3,
+   "why": "arm B lifts the screw tip: the leg bends 2.1 mm at FIRM (static rocker in the model)"
+  },
+  {
+   "a": "reel_exit_post",
+   "b": "reel_p1_axle",
+   "max_vol_mm3": 16.853,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "axle through the fork cheeks"
+  },
+  {
+   "a": "reel_gk",
+   "b": "reel_sw_lever",
+   "max_vol_mm3": 11.558,
+   "n_states": 6939,
+   "worst_state": 18461,
+   "phase": "wrap",
+   "t": 43.400000000000006,
+   "why": "the track holds the lever down (contact closed) except at home"
+  },
+  {
+   "a": "reel_p1_brg",
+   "b": "reel_p1_axle",
+   "max_vol_mm3": 0.007,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "axle through the inner race"
+  },
+  {
+   "a": "reel_p2_brg",
+   "b": "reel_p2_axle",
+   "max_vol_mm3": 0.007,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "axle through the inner race"
+  },
+  {
+   "a": "reel_pulley1",
+   "b": "reel_p1_brg",
+   "max_vol_mm3": 1.157,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "693ZZ pressed in the pulley"
+  },
+  {
+   "a": "reel_pulley2",
+   "b": "reel_p2_brg",
+   "max_vol_mm3": 1.157,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "693ZZ pressed in the pulley"
+  },
+  {
+   "a": "reel_rocker",
+   "b": "reel_crank",
+   "max_vol_mm3": 22.155,
+   "n_states": 713,
+   "worst_state": 17194,
+   "phase": "neutral",
+   "t": 22.200000000000003,
+   "why": "arm B rises under the static leg (the real leg moves 2.1 mm away first)"
+  },
+  {
+   "a": "reel_rocker",
+   "b": "reel_firm_screw",
+   "max_vol_mm3": 9.566,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "FIRM screw tapped through the leg, lock nut on its front"
+  },
+  {
+   "a": "reel_rocker",
+   "b": "reel_trim_screws",
+   "max_vol_mm3": 20.871,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "trim screws tapped into the rocker bosses"
+  },
+  {
+   "a": "reel_s",
+   "b": "reel_brg_1",
+   "max_vol_mm3": 0.005,
+   "n_states": 17939,
+   "worst_state": 27145,
+   "phase": "tow",
+   "t": 90.7134328358209,
+   "why": "journal in the inner race"
+  },
+  {
+   "a": "reel_s",
+   "b": "reel_brg_2",
+   "max_vol_mm3": 0.005,
+   "n_states": 17939,
+   "worst_state": 27145,
+   "phase": "tow",
+   "t": 90.7134328358209,
+   "why": "journal in the inner race"
+  },
+  {
+   "a": "reel_spool",
+   "b": "reel_brg_1",
+   "max_vol_mm3": 3.709,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "608 pressed in the reel"
+  },
+  {
+   "a": "reel_spool",
+   "b": "reel_brg_2",
+   "max_vol_mm3": 6.961,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "608 pressed in the reel"
+  },
+  {
+   "a": "reel_sprag",
+   "b": "reel_c",
+   "max_vol_mm3": 180.003,
+   "n_states": 7878,
+   "worst_state": 27127,
+   "phase": "tow",
+   "t": 90.70671641791046,
+   "why": "C rib in the sprag inner keyway, inner race on C (model is one solid)"
+  },
+  {
+   "a": "reel_sprag_hub",
+   "b": "reel_sprag",
+   "max_vol_mm3": 9.898,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "CSK20PP pressed in its crush-rib seat, outer key rib"
+  },
+  {
+   "a": "reel_sw_lever",
+   "b": "reel_sw_hw",
+   "max_vol_mm3": 8.696,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "contact screw in the lever, nut in the base trap"
+  },
+  {
+   "a": "reel_wall",
+   "b": "reel_bar_screws",
+   "max_vol_mm3": 55.309,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "cap screws tapped into the guides"
+  },
+  {
+   "a": "reel_wall",
+   "b": "reel_crank_screw",
+   "max_vol_mm3": 32.698,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "screw tapped into the crank boss"
+  },
+  {
+   "a": "reel_wall",
+   "b": "reel_hub_screws",
+   "max_vol_mm3": 32.509,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "screws through the wall"
+  },
+  {
+   "a": "sensors_as5600_nut_bot",
+   "b": "sensors_as5600_screw_bot",
+   "max_vol_mm3": 0.03,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "clamp screw in its nut"
+  },
+  {
+   "a": "sensors_as5600_nut_top",
+   "b": "sensors_as5600_screw_top",
+   "max_vol_mm3": 0.03,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "clamp screw in its nut"
+  },
+  {
+   "a": "sensors_sw_gap_lever",
+   "b": "sensors_sw_gap_screw",
+   "max_vol_mm3": 8.696,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "contact screw threaded into the lever boss"
+  },
+  {
+   "a": "sensors_sw_rail_low_lever",
+   "b": "sensors_sw_rail_low_screw",
+   "max_vol_mm3": 8.696,
+   "n_states": 2296,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "contact screw threaded into the lever boss"
+  }
+ ],
+ "clearances": [
+  {
+   "a": "drum_drum_a",
+   "b": "drum_idler",
+   "rule": "drum_drum_a / drum_idler",
+   "min_mm": 0.0,
+   "gap": 0.01,
+   "ok": true,
+   "worst_state": 17378,
+   "phase": "wrap",
+   "why": "segment gear, locking arc and wrap pinion",
+   "note": ""
+  },
+  {
+   "a": "drum_drum_a",
+   "b": "drum_idler_gear",
+   "rule": "drum_drum_a / drum_idler_gear",
+   "min_mm": 0.8,
+   "gap": 1.331,
+   "ok": true,
+   "worst_state": 19661,
+   "phase": "wrap",
+   "why": "idler output gear over the drum neck",
+   "note": ""
+  },
+  {
+   "a": "drum_drum_a",
+   "b": "drum_n20_pinion",
+   "rule": "drum_drum_a / drum_n20_pinion",
+   "min_mm": 0.0,
+   "gap": 0.105,
+   "ok": true,
+   "worst_state": 36218,
+   "phase": "unwrap",
+   "why": "N20 mesh",
+   "note": ""
+  },
+  {
+   "a": "drum_drum_b",
+   "b": "drum_fork",
+   "rule": "drum_drum_b / drum_fork",
+   "min_mm": 0.05,
+   "gap": 0.171,
+   "ok": true,
+   "worst_state": 21842,
+   "phase": "reel_engage",
+   "why": "follower pin in groove 1",
+   "note": ""
+  },
+  {
+   "a": "drum_drum_b",
+   "b": "drum_sw_lever_0",
+   "rule": "drum_drum_b / drum_sw_lever_*",
+   "min_mm": 0.0,
+   "gap": 0.284,
+   "ok": true,
+   "worst_state": 20507,
+   "phase": "wrap",
+   "why": "code levers ride the bands",
+   "note": ""
+  },
+  {
+   "a": "drum_gear_reel",
+   "b": "drum_collar",
+   "rule": "drum_collar / drum_gear_reel",
+   "min_mm": 0.0,
+   "gap": 0.49,
+   "ok": true,
+   "worst_state": 21996,
+   "phase": "reel_engage",
+   "why": "dogs",
+   "note": ""
+  },
+  {
+   "a": "drum_collar",
+   "b": "drum_dogring_launch",
+   "rule": "drum_collar / drum_dogring_launch",
+   "min_mm": 0.0,
+   "gap": 0.5,
+   "ok": true,
+   "worst_state": 0,
+   "phase": "load",
+   "why": "dogs",
+   "note": ""
+  },
+  {
+   "a": "drum_fork",
+   "b": "drum_dog_post",
+   "rule": "drum_fork / drum_dog_post",
+   "min_mm": 0.0,
+   "gap": 0.5,
+   "ok": true,
+   "worst_state": 0,
+   "phase": "load",
+   "why": "contact tab between the dog contact bosses",
+   "note": ""
+  },
+  {
+   "a": "frame_motor_adapter",
+   "b": "frame_wiper_shaft",
+   "rule": "frame_wiper_shaft / frame_motor_adapter",
+   "min_mm": 0.5,
+   "gap": 5.0,
+   "ok": true,
+   "worst_state": 0,
+   "phase": "load",
+   "why": "shaft turns free in the adapter",
+   "note": ""
+  },
+  {
+   "a": "frame_cheek_r",
+   "b": "frame_wiper_shaft",
+   "rule": "frame_wiper_shaft / frame_cheek_*",
+   "min_mm": 0.5,
+   "gap": 5.0,
+   "ok": true,
+   "worst_state": 0,
+   "phase": "load",
+   "why": "shaft turns free in the cheek hole",
+   "note": ""
+  },
+  {
+   "a": "launch_rail_rear",
+   "b": "launch_carriage",
+   "rule": "launch_carriage / launch_rail_*",
+   "min_mm": 0.0,
+   "gap": 0.0,
+   "ok": true,
+   "worst_state": 3295,
+   "phase": "cock",
+   "why": "carriage slides in the track",
+   "note": ""
+  },
+  {
+   "a": "launch_big_gear",
+   "b": "launch_drive_gear",
+   "rule": "launch_big_gear / launch_drive_gear",
+   "min_mm": 0.0,
+   "gap": 0.105,
+   "ok": true,
+   "worst_state": 3172,
+   "phase": "cock",
+   "why": "mesh",
+   "note": ""
+  },
+  {
+   "a": "launch_aim_conrod",
+   "b": "launch_aim_housing",
+   "rule": "launch_aim_conrod / launch_aim_housing",
+   "min_mm": 1.0,
+   "gap": 5.0,
+   "ok": true,
+   "worst_state": 0,
+   "phase": "load",
+   "why": "conrod sweeps past the housing inner wall",
+   "note": ""
+  },
+  {
+   "a": "launch_aim_crank",
+   "b": "launch_aim_housing",
+   "rule": "launch_aim_crank / launch_aim_housing",
+   "min_mm": 0.5,
+   "gap": 0.8,
+   "ok": true,
+   "worst_state": 0,
+   "phase": "load",
+   "why": "crank arm / wheel vs housing",
+   "note": ""
+  },
+  {
+   "a": "launch_spring_l_hook_c",
+   "b": "launch_aim_lug",
+   "rule": "launch_aim_lug / launch_spring_*",
+   "min_mm": 1.0,
+   "gap": 4.0,
+   "ok": true,
+   "worst_state": 44578,
+   "phase": "launch_stop_overshoot",
+   "why": "lug bracket under the springs",
+   "note": ""
+  },
+  {
+   "a": "reel_drum",
+   "b": "reel_cup",
+   "rule": "reel_cup / reel_drum",
+   "min_mm": 0.25,
+   "gap": 0.3,
+   "ok": true,
+   "worst_state": 0,
+   "phase": "load",
+   "why": "cup skirt over the drum (v7 0.6 radial)",
+   "note": ""
+  },
+  {
+   "a": "reel_sprag_hub",
+   "b": "reel_drum",
+   "rule": "reel_drum / reel_sprag_hub",
+   "min_mm": 0.5,
+   "gap": 1.0,
+   "ok": true,
+   "worst_state": 22072,
+   "phase": "tow",
+   "why": "drum flange in front of the hub",
+   "note": ""
+  },
+  {
+   "a": "reel_bus",
+   "b": "reel_gi",
+   "rule": "reel_bus / reel_gi",
+   "min_mm": 0.0,
+   "gap": 0.105,
+   "ok": true,
+   "worst_state": 35123,
+   "phase": "unwrap",
+   "why": "mesh",
+   "note": ""
+  },
+  {
+   "a": "reel_gi",
+   "b": "reel_gr",
+   "rule": "reel_gi / reel_gr",
+   "min_mm": 0.0,
+   "gap": 0.105,
+   "ok": true,
+   "worst_state": 12458,
+   "phase": "rail_low",
+   "why": "mesh",
+   "note": ""
+  },
+  {
+   "a": "reel_wall",
+   "b": "reel_spool",
+   "rule": "reel_spool / reel_wall",
+   "min_mm": 0.3,
+   "gap": 5.0,
+   "ok": true,
+   "worst_state": 0,
+   "phase": "load",
+   "why": "reel spins in front of the wall",
+   "note": ""
+  },
+  {
+   "a": "reel_spool",
+   "b": "reel_shroud",
+   "rule": "reel_spool* / reel_shroud",
+   "min_mm": 1.0,
+   "gap": 3.476,
+   "ok": true,
+   "worst_state": 33065,
+   "phase": "reel_in",
+   "why": "reel spins inside the shroud",
+   "note": ""
+  },
+  {
+   "a": "reel_spool",
+   "b": "reel_rocker",
+   "rule": "reel_spool / reel_rocker",
+   "min_mm": 0.3,
+   "gap": 5.0,
+   "ok": true,
+   "worst_state": 0,
+   "phase": "load",
+   "why": "rocker behind the reel",
+   "note": ""
+  },
+  {
+   "a": "drum_magnet_cap",
+   "b": "sensors_as5600",
+   "rule": "sensors_as5600 / drum_magnet_cap",
+   "min_mm": 0.4,
+   "gap": 0.55,
+   "ok": true,
+   "worst_state": 0,
+   "phase": "load",
+   "why": "JST connectors and chip vs the turning magnet cap",
+   "note": ""
+  },
+  {
+   "a": "drum_magnet_cap",
+   "b": "sensors_as5600_strip_top",
+   "rule": "sensors_as5600_strip_* / drum_magnet_cap",
+   "min_mm": 0.4,
+   "gap": 1.7,
+   "ok": true,
+   "worst_state": 0,
+   "phase": "load",
+   "why": "clamp strips vs the turning magnet cap",
+   "note": ""
+  },
+  {
+   "a": "drum_magnet_cap",
+   "b": "sensors_as5600_screw_top",
+   "rule": "sensors_as5600_screw_* / drum_magnet_cap",
+   "min_mm": 0.4,
+   "gap": 1.25,
+   "ok": true,
+   "worst_state": 33605,
+   "phase": "unload",
+   "why": "clamp screw tips vs the magnet cap",
+   "note": ""
+  },
+  {
+   "a": "reel_p2_post",
+   "b": "sensors_sw_gap",
+   "rule": "sensors_sw_gap / reel_p2_post",
+   "min_mm": 2.5,
+   "gap": 7.5,
+   "ok": true,
+   "worst_state": 0,
+   "phase": "load",
+   "why": "SW_GAP under the rail vs cad-reel's pulley 2 arm",
+   "note": ""
+  },
+  {
+   "a": "launch_sleeve",
+   "b": "sensors_sw_gap",
+   "rule": "sensors_sw_gap / launch_sleeve",
+   "min_mm": 1.5,
+   "gap": 1.989,
+   "ok": true,
+   "worst_state": 14146,
+   "phase": "rail_low",
+   "why": "SW_GAP vs the launch sleeve flange",
+   "note": ""
+  },
+  {
+   "a": "drum_dog_post",
+   "b": "sensors_sw_gap",
+   "rule": "sensors_sw_gap / drum_dog_post",
+   "min_mm": 1.0,
+   "gap": 1.503,
+   "ok": true,
+   "worst_state": 0,
+   "phase": "load",
+   "why": "SW_GAP arm vs cad-drum's dog post",
+   "note": ""
+  }
+ ],
+ "floating": [],
+ "checks": [],
+ "warns": [
+  "Allow('drum_shaft', 'drum_coupler') never matched an overlap: remove it or narrow it",
+  "Allow('drum_rail', 'drum_dog_post') never matched an overlap: remove it or narrow it",
+  "Allow('drum_n20', 'drum_n20_cradle') never matched an overlap: remove it or narrow it",
+  "Allow('drum_n20', 'drum_n20_strap') never matched an overlap: remove it or narrow it",
+  "Allow('drum_n20', 'drum_bracket_a') never matched an overlap: remove it or narrow it",
+  "Allow('drum_idler_gear', 'drum_idler') never matched an overlap: remove it or narrow it",
+  "Allow('drum_hand_lever', 'drum_drum_b') never matched an overlap: remove it or narrow it",
+  "Allow('drum_drum_a', 'drum_drum_b') never matched an overlap: remove it or narrow it",
+  "Allow('drum_shear_pin', 'drum_coupler*') never matched an overlap: remove it or narrow it",
+  "Allow('drum_magnet_cap', 'drum_shaft') never matched an overlap: remove it or narrow it",
+  "Allow('frame_wiper_shaft', 'frame_wiper_motor') never matched an overlap: remove it or narrow it",
+  "Allow('frame_blk_*', 'frame_cheek_*') never matched an overlap: remove it or narrow it",
+  "Allow('frame_tie_*', 'frame_cheek_*') never matched an overlap: remove it or narrow it",
+  "Allow('frame_cheek_*', 'frame_deck*') never matched an overlap: remove it or narrow it",
+  "Allow('frame_motor_adapter', 'frame_cheek_*') never matched an overlap: remove it or narrow it",
+  "Allow('frame_motor_adapter', 'frame_wiper_motor') never matched an overlap: remove it or narrow it",
+  "Allow('frame_motor_saddle', 'frame_wiper_motor') never matched an overlap: remove it or narrow it",
+  "Allow('frame_motor_saddle', 'frame_deck*') never matched an overlap: remove it or narrow it",
+  "Allow('frame_deck*', 'frame_deck*') never matched an overlap: remove it or narrow it",
+  "Allow('frame_cheek_*', 'frame_cheek_*') never matched an overlap: remove it or narrow it",
+  "Allow('frame_rc832', 'frame_rc832_holder') never matched an overlap: remove it or narrow it",
+  "Allow('frame_motor_leg', 'frame_cheek_r') never matched an overlap: remove it or narrow it",
+  "Allow('frame_can_stay', 'frame_cheek_r') never matched an overlap: remove it or narrow it",
+  "Allow('frame_guard_hood', 'frame_cheek_r') never matched an overlap: remove it or narrow it",
+  "Allow('frame_can_stay', 'frame_wiper_motor') never matched an overlap: remove it or narrow it",
+  "Allow('frame_kiyo_x', 'frame_camera_mount') never matched an overlap: remove it or narrow it",
+  "Allow('frame_guard_band_*', 'frame_cheek_*') never matched an overlap: remove it or narrow it",
+  "Allow('frame_guard_band_*', 'frame_guard_band_*') never matched an overlap: remove it or narrow it",
+  "Allow('frame_pcb_*', 'frame_ebay*') never matched an overlap: remove it or narrow it",
+  "Allow('frame_fuse_20a', 'frame_ebay') never matched an overlap: remove it or narrow it",
+  "Allow('frame_ebay*', 'frame_ebay*') never matched an overlap: remove it or narrow it",
+  "Allow('frame_ebay', 'frame_deck*') never matched an overlap: remove it or narrow it",
+  "Allow('frame_pcb_as5600', 'frame_as5600_bracket') never matched an overlap: remove it or narrow it",
+  "Allow('frame_as5600_bracket', 'frame_cheek_*') never matched an overlap: remove it or narrow it",
+  "Allow('launch_spring_*_hook_a', 'launch_anchor_pin_*') never matched an overlap: remove it or narrow it",
+  "Allow('launch_anchor_pin_*', 'launch_rail_front') never matched an overlap: remove it or narrow it",
+  "Allow('launch_spring_*_hook_c', 'launch_yoke_peg_*') never matched an overlap: remove it or narrow it",
+  "Allow('launch_seat_clip', 'launch_seat_plunger') never matched an overlap: remove it or narrow it",
+  "Allow('launch_pulley_*_axle', 'launch_pulley_*_brg') never matched an overlap: remove it or narrow it",
+  "Allow('launch_line_*', 'launch_pulley_*') never matched an overlap: remove it or narrow it",
+  "Allow('launch_line_p', 'launch_carriage') never matched an overlap: remove it or narrow it",
+  "Allow('launch_line_p', 'launch_dart') never matched an overlap: remove it or narrow it",
+  "Allow('launch_muzzle_roller_axle', 'launch_muzzle_roller_brg') never matched an overlap: remove it or narrow it",
+  "Allow('launch_muzzle_roller_axle', 'launch_muzzle_washer_*') never matched an overlap: remove it or narrow it",
+  "Allow('launch_line_*', 'launch_muzzle_roller') never matched an overlap: remove it or narrow it",
+  "Allow('reel_hub_screws', 'reel_sprag_hub') never matched an overlap: remove it or narrow it",
+  "Allow('reel_sprag_hub', 'reel_c') never matched an overlap: remove it or narrow it",
+  "Allow('reel_sprag_hub', 'reel_wall') never matched an overlap: remove it or narrow it",
+  "Allow('reel_c', 'reel_c_clip') never matched an overlap: remove it or narrow it",
+  "Allow('reel_c', 'reel_drum') never matched an overlap: remove it or narrow it",
+  "Allow('reel_c', 'reel_bus') never matched an overlap: remove it or narrow it",
+  "Allow('reel_k', 'reel_cup') never matched an overlap: remove it or narrow it",
+  "Allow('reel_k', 'reel_cup_clip') never matched an overlap: remove it or narrow it",
+  "Allow('reel_k', 'reel_gk') never matched an overlap: remove it or narrow it",
+  "Allow('reel_k', 'reel_k_clip') never matched an overlap: remove it or narrow it",
+  "Allow('reel_swing_arm', 'reel_gi') never matched an overlap: remove it or narrow it",
+  "Allow('reel_s', 'reel_gr') never matched an overlap: remove it or narrow it",
+  "Allow('reel_s', 'reel_s_clip') never matched an overlap: remove it or narrow it",
+  "Allow('reel_spool', 'reel_spool_flange') never matched an overlap: remove it or narrow it",
+  "Allow('reel_rocker_pin', 'reel_wall') never matched an overlap: remove it or narrow it",
+  "Allow('reel_rocker_pin', 'reel_rocker') never matched an overlap: remove it or narrow it",
+  "Allow('reel_sw_lever', 'reel_sw_base') never matched an overlap: remove it or narrow it",
+  "Allow('reel_p2_axle', 'reel_p2_fork') never matched an overlap: remove it or narrow it",
+  "Allow('reel_p2_clip', 'reel_p2_fork') never matched an overlap: remove it or narrow it",
+  "Allow('reel_trim_screws', 'reel_t') never matched an overlap: remove it or narrow it",
+  "Allow('reel_crank_washer', 'reel_crank_screw') never matched an overlap: remove it or narrow it",
+  "Allow('reel_bar_screws', 'reel_bar_cap_*') never matched an overlap: remove it or narrow it",
+  "Allow('sensors_sw_rail_low_jam', 'sensors_sw_rail_low_screw') never matched an overlap: remove it or narrow it",
+  "Allow('sensors_sw_rail_low_nut', 'sensors_sw_rail_low') never matched an overlap: remove it or narrow it",
+  "Allow('sensors_sw_gap_jam', 'sensors_sw_gap_screw') never matched an overlap: remove it or narrow it",
+  "Allow('sensors_sw_gap_nut', 'sensors_sw_gap') never matched an overlap: remove it or narrow it",
+  "joint launch_spring_seg_0 is geared to launch_carriage (ratio 0.9) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_spring_seg_1 is geared to launch_carriage (ratio 0.7) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_spring_seg_2 is geared to launch_carriage (ratio 0.5) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_spring_seg_3 is geared to launch_carriage (ratio 0.3) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_spring_seg_4 is geared to launch_carriage (ratio 0.1) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a0 is geared to launch_carriage (ratio 0) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a1 is geared to launch_carriage (ratio 0.125) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a2 is geared to launch_carriage (ratio 0.25) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a3 is geared to launch_carriage (ratio 0.375) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a4 is geared to launch_carriage (ratio 0.5) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a5 is geared to launch_carriage (ratio 0.625) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a6 is geared to launch_carriage (ratio 0.75) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a7 is geared to launch_carriage (ratio 0.875) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_aim_cshaft is geared to launch_aim_crank (ratio -10) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_aim_worm is geared to launch_aim_crank (ratio -20) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked"
+ ],
+ "stats": {
+  "chunked_parts": 17,
+  "chunks": 374,
+  "triangles": 966474,
+  "envelope_cleared_pairs": 335,
+  "cropped_pairs": 96,
+  "substates": 42052,
+  "candidate_pair_states": 3090788,
+  "distinct_poses": 1422523,
+  "exact_items": 1213923,
+  "exact_chunk_pairs": 3128703,
+  "busiest_pairs": [
+   {
+    "a": "launch_aim_worm",
+    "b": "launch_aim_crank",
+    "poses": 8989,
+    "chunk_pairs": 394808
+   },
+   {
+    "a": "launch_aim_worm",
+    "b": "launch_aim_housing",
+    "poses": 8503,
+    "chunk_pairs": 288343
+   },
+   {
+    "a": "launch_aim_worm",
+    "b": "launch_aim_cap",
+    "poses": 8503,
+    "chunk_pairs": 258838
+   },
+   {
+    "a": "drum_coupler",
+    "b": "drum_fork",
+    "poses": 15189,
+    "chunk_pairs": 121512
+   },
+   {
+    "a": "launch_aim_output",
+    "b": "launch_aim_worm",
+    "poses": 10304,
+    "chunk_pairs": 115104
+   },
+   {
+    "a": "drum_coupler",
+    "b": "drum_gear_reel",
+    "poses": 9591,
+    "chunk_pairs": 105606
+   },
+   {
+    "a": "launch_aim_bevel30",
+    "b": "launch_aim_worm",
+    "poses": 10304,
+    "chunk_pairs": 86310
+   },
+   {
+    "a": "reel_c",
+    "b": "reel_bus",
+    "poses": 18312,
+    "chunk_pairs": 73248
+   },
+   {
+    "a": "drum_coupler",
+    "b": "reel_bus",
+    "poses": 15995,
+    "chunk_pairs": 69200
+   },
+   {
+    "a": "reel_bus",
+    "b": "reel_k",
+    "poses": 16290,
+    "chunk_pairs": 65160
+   },
+   {
+    "a": "drum_fork",
+    "b": "reel_bus",
+    "poses": 15515,
+    "chunk_pairs": 62060
+   },
+   {
+    "a": "reel_bus",
+    "b": "reel_swing_arm",
+    "poses": 14267,
+    "chunk_pairs": 57068
+   }
+  ],
+  "clearance_evals": 195158,
+  "given_states": 2296
+ },
+ "contact_graph": {
+  "drum_coupler_hub": [
+   "drum_coupler",
+   "drum_shear_pin",
+   "frame_wiper_shaft"
+  ],
+  "drum_coupler": [
+   "drum_coupler_hub",
+   "drum_gear_reel",
+   "drum_reel_washer",
+   "drum_shaft",
+   "drum_shear_pin",
+   "reel_bus"
+  ],
+  "drum_shear_pin": [
+   "drum_coupler",
+   "drum_coupler_hub"
+  ],
+  "drum_shaft": [
+   "drum_collar",
+   "drum_coupler",
+   "drum_magnet_cap",
+   "drum_reel_washer",
+   "launch_sleeve"
+  ],
+  "drum_reel_washer": [
+   "drum_coupler",
+   "drum_gear_reel",
+   "drum_shaft"
+  ],
+  "drum_gear_reel": [
+   "drum_coupler",
+   "drum_reel_washer",
+   "reel_gc"
+  ],
+  "drum_collar": [
+   "drum_shaft"
+  ],
+  "drum_dogring_launch": [
+   "launch_sleeve"
+  ],
+  "drum_drum_a": [
+   "drum_axle",
+   "drum_drum_b",
+   "drum_n20_pinion"
+  ],
+  "drum_drum_b": [
+   "drum_axle",
+   "drum_drum_a",
+   "drum_hand_lever"
+  ],
+  "drum_axle": [
+   "drum_bracket_a",
+   "drum_bracket_b",
+   "drum_drum_a",
+   "drum_drum_b"
+  ],
+  "drum_idler_gear": [
+   "drum_idler",
+   "reel_gk"
+  ],
+  "drum_idler": [
+   "drum_bracket_idler",
+   "drum_bracket_idler2",
+   "drum_idler_gear"
+  ],
+  "drum_n20_pinion": [
+   "drum_drum_a",
+   "drum_n20"
+  ],
+  "drum_n20": [
+   "drum_n20_cradle",
+   "drum_n20_pinion"
+  ],
+  "drum_n20_cradle": [
+   "drum_bracket_a",
+   "drum_n20",
+   "drum_n20_strap"
+  ],
+  "drum_n20_strap": [
+   "drum_n20_cradle"
+  ],
+  "drum_fork": [
+   "drum_rail"
+  ],
+  "drum_dog_post": [
+   "drum_rail"
+  ],
+  "drum_rail": [
+   "drum_bracket_a",
+   "drum_bracket_b",
+   "drum_dog_post",
+   "drum_fork"
+  ],
+  "drum_bracket_a": [
+   "drum_axle",
+   "drum_n20_cradle",
+   "drum_rail",
+   "frame_deck_2",
+   "frame_deck_4"
+  ],
+  "drum_bracket_b": [
+   "drum_axle",
+   "drum_rail",
+   "frame_deck_1",
+   "frame_deck_3"
+  ],
+  "drum_bracket_idler": [
+   "drum_idler",
+   "frame_deck_3"
+  ],
+  "drum_bracket_idler2": [
+   "drum_idler",
+   "drum_index_block",
+   "frame_deck_1",
+   "frame_deck_3"
+  ],
+  "drum_switch_block": [
+   "drum_sw_lever_0",
+   "drum_sw_lever_1",
+   "drum_sw_lever_2",
+   "frame_deck_3"
+  ],
+  "drum_sw_lever_0": [
+   "drum_switch_block"
+  ],
+  "drum_sw_lever_1": [
+   "drum_switch_block"
+  ],
+  "drum_sw_lever_2": [
+   "drum_switch_block"
+  ],
+  "drum_index_block": [
+   "drum_bracket_idler2",
+   "drum_index_lever"
+  ],
+  "drum_index_lever": [
+   "drum_index_block"
+  ],
+  "drum_magnet_cap": [
+   "drum_shaft"
+  ],
+  "drum_hand_lever": [
+   "drum_drum_b"
+  ],
+  "frame_motor_leg": [
+   "frame_cheek_r",
+   "frame_deck_2"
+  ],
+  "frame_cheek_r": [
+   "frame_can_stay",
+   "frame_motor_adapter",
+   "frame_motor_leg"
+  ],
+  "frame_wiper_motor": [
+   "frame_motor_adapter",
+   "frame_wiper_shaft"
+  ],
+  "frame_motor_adapter": [
+   "frame_cheek_r",
+   "frame_guard_hood",
+   "frame_wiper_motor"
+  ],
+  "frame_can_stay": [
+   "frame_cheek_r"
+  ],
+  "frame_ebay": [
+   "frame_camera_mount",
+   "frame_deck_1",
+   "frame_deck_2",
+   "frame_ebay_esp_clamp",
+   "frame_ebay_lid",
+   "frame_fuse_20a",
+   "frame_pcb_bts7960",
+   "frame_pcb_drv8833",
+   "frame_pcb_esp32",
+   "frame_pcb_hx711",
+   "frame_pcb_mp1584",
+   "frame_perfboard"
+  ],
+  "frame_ebay_lid": [
+   "frame_ebay"
+  ],
+  "frame_ebay_esp_clamp": [
+   "frame_ebay",
+   "frame_pcb_esp32"
+  ],
+  "frame_pcb_esp32": [
+   "frame_ebay",
+   "frame_ebay_esp_clamp"
+  ],
+  "frame_pcb_bts7960": [
+   "frame_ebay"
+  ],
+  "frame_pcb_mp1584": [
+   "frame_ebay"
+  ],
+  "frame_pcb_drv8833": [
+   "frame_ebay"
+  ],
+  "frame_pcb_hx711": [
+   "frame_ebay"
+  ],
+  "frame_perfboard": [
+   "frame_ebay"
+  ],
+  "frame_fuse_20a": [
+   "frame_ebay"
+  ],
+  "frame_guard_hood": [
+   "frame_motor_adapter"
+  ],
+  "frame_guard_front": [
+   "frame_deck_1",
+   "frame_deck_2"
+  ],
+  "frame_camera_mount": [
+   "frame_deck_2",
+   "frame_ebay",
+   "frame_kiyo_x"
+  ],
+  "frame_rc832_holder": [
+   "frame_deck_1",
+   "frame_rc832"
+  ],
+  "frame_rc832": [
+   "frame_rc832_holder"
+  ],
+  "frame_kiyo_x": [
+   "frame_camera_mount"
+  ],
+  "frame_cable_anchor_1": [
+   "frame_deck_2"
+  ],
+  "frame_cable_anchor_2": [
+   "frame_deck_1"
+  ],
+  "frame_deck_1": [
+   "drum_bracket_b",
+   "drum_bracket_idler2",
+   "frame_cable_anchor_2",
+   "frame_deck_2",
+   "frame_ebay",
+   "frame_guard_front",
+   "frame_rc832_holder",
+   "launch_aim_housing",
+   "reel_p2_post"
+  ],
+  "frame_deck_2": [
+   "drum_bracket_a",
+   "frame_cable_anchor_1",
+   "frame_camera_mount",
+   "frame_deck_1",
+   "frame_ebay",
+   "frame_guard_front",
+   "frame_motor_leg",
+   "reel_exit_post"
+  ],
+  "frame_deck_3": [
+   "drum_bracket_b",
+   "drum_bracket_idler",
+   "drum_bracket_idler2",
+   "drum_switch_block",
+   "frame_deck_4",
+   "launch_aim_housing",
+   "reel_wall"
+  ],
+  "frame_deck_4": [
+   "drum_bracket_a",
+   "frame_deck_3",
+   "reel_exit_post",
+   "reel_wall"
+  ],
+  "frame_wiper_shaft": [
+   "drum_coupler_hub",
+   "frame_wiper_motor"
+  ],
+  "launch_rail_rear": [
+   "launch_guard_l_a",
+   "launch_guard_r_a",
+   "launch_pulley_bot_axle",
+   "launch_pulley_bot_washer_l",
+   "launch_pulley_bot_washer_r",
+   "launch_pulley_top_axle",
+   "launch_pulley_top_washer_l",
+   "launch_pulley_top_washer_r",
+   "launch_rail_mid"
+  ],
+  "launch_rail_mid": [
+   "launch_aim_lug",
+   "launch_big_gear",
+   "launch_carriage",
+   "launch_drive_gear",
+   "launch_drive_washer",
+   "launch_gear_pin",
+   "launch_gear_washer",
+   "launch_guard_l_a",
+   "launch_guard_l_b1",
+   "launch_guard_r_a",
+   "launch_guard_r_b1",
+   "launch_guard_r_b2",
+   "launch_pulley_piv_axle",
+   "launch_pulley_piv_brg",
+   "launch_rail_front",
+   "launch_rail_rear",
+   "launch_rail_splice_l",
+   "launch_rail_splice_r",
+   "launch_sleeve",
+   "launch_stop_frame_l",
+   "launch_stop_frame_r",
+   "launch_stop_spring_l",
+   "launch_stop_spring_r",
+   "launch_sw_home_nut",
+   "launch_sw_seated_nut",
+   "sensors_sw_gap"
+  ],
+  "launch_rail_front": [
+   "launch_anchor_pin_l",
+   "launch_anchor_pin_r",
+   "launch_carriage",
+   "launch_guard_l_b2",
+   "launch_guard_l_c",
+   "launch_guard_r_b2",
+   "launch_guard_r_c",
+   "launch_rail_mid",
+   "launch_rail_splice_l",
+   "launch_rail_splice_r",
+   "launch_stop_frame_l",
+   "launch_stop_frame_r"
+  ],
+  "launch_carriage": [
+   "launch_big_gear",
+   "launch_carriage_yoke",
+   "launch_dart",
+   "launch_muzzle_roller_axle",
+   "launch_muzzle_washer_l",
+   "launch_muzzle_washer_r",
+   "launch_rail_front",
+   "launch_rail_mid"
+  ],
+  "launch_carriage_yoke": [
+   "launch_carriage",
+   "launch_dart",
+   "launch_seat_clip",
+   "launch_stop_spring_l",
+   "launch_stop_spring_r",
+   "launch_sw_home",
+   "launch_yoke_peg_l",
+   "launch_yoke_peg_r"
+  ],
+  "launch_yoke_peg_l": [
+   "launch_carriage_yoke",
+   "launch_spring_l_hook_c"
+  ],
+  "launch_yoke_peg_r": [
+   "launch_carriage_yoke",
+   "launch_spring_r_hook_c"
+  ],
+  "launch_big_gear": [
+   "launch_carriage",
+   "launch_drive_gear",
+   "launch_gear_pin",
+   "launch_gear_washer",
+   "launch_rail_mid",
+   "sensors_sw_gap_lever"
+  ],
+  "launch_gear_washer": [
+   "launch_big_gear",
+   "launch_gear_pin",
+   "launch_rail_mid"
+  ],
+  "launch_gear_pin": [
+   "launch_big_gear",
+   "launch_gear_clip",
+   "launch_gear_washer",
+   "launch_rail_mid"
+  ],
+  "launch_gear_clip": [
+   "launch_gear_pin"
+  ],
+  "launch_drive_gear": [
+   "launch_big_gear",
+   "launch_rail_mid",
+   "launch_sprag"
+  ],
+  "launch_drive_washer": [
+   "launch_rail_mid"
+  ],
+  "launch_sprag": [
+   "launch_drive_gear",
+   "launch_sleeve"
+  ],
+  "launch_sleeve": [
+   "drum_dogring_launch",
+   "drum_shaft",
+   "launch_aim_arm",
+   "launch_aim_drag_pad",
+   "launch_aim_housing",
+   "launch_aim_sun",
+   "launch_rail_mid",
+   "launch_sprag"
+  ],
+  "launch_anchor_pin_l": [
+   "launch_rail_front",
+   "launch_spring_l_hook_a"
+  ],
+  "launch_spring_l_hook_a": [
+   "launch_anchor_pin_l",
+   "launch_spring_l_4"
+  ],
+  "launch_spring_l_hook_c": [
+   "launch_spring_l_0",
+   "launch_yoke_peg_l"
+  ],
+  "launch_spring_l_0": [
+   "launch_spring_l_1",
+   "launch_spring_l_hook_c"
+  ],
+  "launch_spring_l_1": [
+   "launch_spring_l_0",
+   "launch_spring_l_2"
+  ],
+  "launch_spring_l_2": [
+   "launch_spring_l_1",
+   "launch_spring_l_3"
+  ],
+  "launch_spring_l_3": [
+   "launch_spring_l_2",
+   "launch_spring_l_4"
+  ],
+  "launch_spring_l_4": [
+   "launch_spring_l_3",
+   "launch_spring_l_hook_a"
+  ],
+  "launch_anchor_pin_r": [
+   "launch_rail_front",
+   "launch_spring_r_hook_a"
+  ],
+  "launch_spring_r_hook_a": [
+   "launch_anchor_pin_r",
+   "launch_spring_r_4"
+  ],
+  "launch_spring_r_hook_c": [
+   "launch_spring_r_0",
+   "launch_yoke_peg_r"
+  ],
+  "launch_spring_r_0": [
+   "launch_spring_r_1",
+   "launch_spring_r_hook_c"
+  ],
+  "launch_spring_r_1": [
+   "launch_spring_r_0",
+   "launch_spring_r_2"
+  ],
+  "launch_spring_r_2": [
+   "launch_spring_r_1",
+   "launch_spring_r_3"
+  ],
+  "launch_spring_r_3": [
+   "launch_spring_r_2",
+   "launch_spring_r_4"
+  ],
+  "launch_spring_r_4": [
+   "launch_spring_r_3",
+   "launch_spring_r_hook_a"
+  ],
+  "launch_rail_splice_l": [
+   "launch_rail_front",
+   "launch_rail_mid"
+  ],
+  "launch_rail_splice_r": [
+   "launch_rail_front",
+   "launch_rail_mid"
+  ],
+  "launch_stop_spring_l": [
+   "launch_carriage_yoke",
+   "launch_rail_mid",
+   "launch_stop_frame_l"
+  ],
+  "launch_stop_frame_l": [
+   "launch_rail_front",
+   "launch_rail_mid",
+   "launch_stop_spring_l"
+  ],
+  "launch_stop_spring_r": [
+   "launch_carriage_yoke",
+   "launch_rail_mid",
+   "launch_stop_frame_r"
+  ],
+  "launch_stop_frame_r": [
+   "launch_rail_front",
+   "launch_rail_mid",
+   "launch_stop_spring_r"
+  ],
+  "launch_muzzle_roller": [
+   "launch_muzzle_roller_brg"
+  ],
+  "launch_muzzle_roller_brg": [
+   "launch_muzzle_roller",
+   "launch_muzzle_roller_axle",
+   "launch_muzzle_washer_l",
+   "launch_muzzle_washer_r"
+  ],
+  "launch_muzzle_roller_axle": [
+   "launch_carriage",
+   "launch_muzzle_roller_brg",
+   "launch_muzzle_washer_l",
+   "launch_muzzle_washer_r"
+  ],
+  "launch_muzzle_washer_l": [
+   "launch_carriage",
+   "launch_muzzle_roller_axle",
+   "launch_muzzle_roller_brg"
+  ],
+  "launch_muzzle_washer_r": [
+   "launch_carriage",
+   "launch_muzzle_roller_axle",
+   "launch_muzzle_roller_brg"
+  ],
+  "launch_guard_l_a": [
+   "launch_rail_mid",
+   "launch_rail_rear"
+  ],
+  "launch_guard_l_b1": [
+   "launch_rail_mid"
+  ],
+  "launch_guard_l_b2": [
+   "launch_rail_front"
+  ],
+  "launch_guard_l_c": [
+   "launch_rail_front"
+  ],
+  "launch_guard_r_a": [
+   "launch_rail_mid",
+   "launch_rail_rear"
+  ],
+  "launch_guard_r_b1": [
+   "launch_rail_mid"
+  ],
+  "launch_guard_r_b2": [
+   "launch_rail_front",
+   "launch_rail_mid"
+  ],
+  "launch_guard_r_c": [
+   "launch_rail_front"
+  ],
+  "launch_sw_seated": [
+   "launch_seat_plunger",
+   "launch_sw_seated_screw"
+  ],
+  "launch_sw_seated_screw": [
+   "launch_sw_seated",
+   "launch_sw_seated_nut"
+  ],
+  "launch_sw_seated_nut": [
+   "launch_rail_mid",
+   "launch_sw_seated_screw"
+  ],
+  "launch_sw_home": [
+   "launch_carriage_yoke",
+   "launch_sw_home_screw"
+  ],
+  "launch_sw_home_screw": [
+   "launch_sw_home",
+   "launch_sw_home_nut"
+  ],
+  "launch_sw_home_nut": [
+   "launch_rail_mid",
+   "launch_sw_home_screw"
+  ],
+  "launch_seat_plunger": [
+   "launch_seat_clip",
+   "launch_seat_pushrod",
+   "launch_sw_seated"
+  ],
+  "launch_seat_pushrod": [
+   "launch_dart",
+   "launch_seat_plunger"
+  ],
+  "launch_seat_clip": [
+   "launch_carriage_yoke",
+   "launch_seat_plunger"
+  ],
+  "launch_pulley_top": [
+   "launch_line_a0",
+   "launch_line_b",
+   "launch_pulley_top_brg",
+   "launch_pulley_top_washer_l",
+   "launch_pulley_top_washer_r"
+  ],
+  "launch_pulley_top_brg": [
+   "launch_pulley_top",
+   "launch_pulley_top_axle",
+   "launch_pulley_top_washer_l",
+   "launch_pulley_top_washer_r"
+  ],
+  "launch_pulley_top_axle": [
+   "launch_pulley_top_brg",
+   "launch_pulley_top_washer_l",
+   "launch_pulley_top_washer_r",
+   "launch_rail_rear"
+  ],
+  "launch_pulley_top_washer_l": [
+   "launch_pulley_top",
+   "launch_pulley_top_axle",
+   "launch_pulley_top_brg",
+   "launch_rail_rear"
+  ],
+  "launch_pulley_top_washer_r": [
+   "launch_pulley_top",
+   "launch_pulley_top_axle",
+   "launch_pulley_top_brg",
+   "launch_rail_rear"
+  ],
+  "launch_pulley_bot": [
+   "launch_line_b",
+   "launch_line_c",
+   "launch_pulley_bot_brg",
+   "launch_pulley_bot_washer_l",
+   "launch_pulley_bot_washer_r"
+  ],
+  "launch_pulley_bot_brg": [
+   "launch_pulley_bot",
+   "launch_pulley_bot_axle",
+   "launch_pulley_bot_washer_l",
+   "launch_pulley_bot_washer_r"
+  ],
+  "launch_pulley_bot_axle": [
+   "launch_pulley_bot_brg",
+   "launch_pulley_bot_washer_l",
+   "launch_pulley_bot_washer_r",
+   "launch_rail_rear"
+  ],
+  "launch_pulley_bot_washer_l": [
+   "launch_pulley_bot",
+   "launch_pulley_bot_axle",
+   "launch_pulley_bot_brg",
+   "launch_rail_rear"
+  ],
+  "launch_pulley_bot_washer_r": [
+   "launch_pulley_bot",
+   "launch_pulley_bot_axle",
+   "launch_pulley_bot_brg",
+   "launch_rail_rear"
+  ],
+  "launch_pulley_piv": [
+   "launch_line_c",
+   "launch_pulley_piv_brg"
+  ],
+  "launch_pulley_piv_brg": [
+   "launch_pulley_piv",
+   "launch_pulley_piv_axle",
+   "launch_rail_mid"
+  ],
+  "launch_pulley_piv_axle": [
+   "launch_pulley_piv_brg",
+   "launch_rail_mid"
+  ],
+  "launch_line_a0": [
+   "launch_line_a1",
+   "launch_pulley_top"
+  ],
+  "launch_line_a1": [
+   "launch_line_a0",
+   "launch_line_a2"
+  ],
+  "launch_line_a2": [
+   "launch_line_a1",
+   "launch_line_a3"
+  ],
+  "launch_line_a3": [
+   "launch_line_a2",
+   "launch_line_a4"
+  ],
+  "launch_line_a4": [
+   "launch_line_a3",
+   "launch_line_a5"
+  ],
+  "launch_line_a5": [
+   "launch_line_a4",
+   "launch_line_a6"
+  ],
+  "launch_line_a6": [
+   "launch_line_a5",
+   "launch_line_a7"
+  ],
+  "launch_line_a7": [
+   "launch_line_a6",
+   "launch_line_a8"
+  ],
+  "launch_line_a8": [
+   "launch_line_a7",
+   "launch_line_p"
+  ],
+  "launch_line_p": [
+   "launch_dart",
+   "launch_line_a8"
+  ],
+  "launch_line_b": [
+   "launch_pulley_bot",
+   "launch_pulley_top"
+  ],
+  "launch_line_c": [
+   "launch_pulley_bot",
+   "launch_pulley_piv"
+  ],
+  "launch_dart": [
+   "launch_carriage",
+   "launch_carriage_yoke",
+   "launch_line_p",
+   "launch_seat_pushrod"
+  ],
+  "launch_aim_sun": [
+   "launch_aim_idler",
+   "launch_sleeve"
+  ],
+  "launch_aim_arm": [
+   "launch_aim_drag_pad",
+   "launch_aim_drag_shim",
+   "launch_aim_idler",
+   "launch_aim_idler_clip",
+   "launch_sleeve"
+  ],
+  "launch_aim_drag_pad": [
+   "launch_aim_arm",
+   "launch_aim_drag_shim",
+   "launch_sleeve"
+  ],
+  "launch_aim_drag_shim": [
+   "launch_aim_arm",
+   "launch_aim_drag_pad"
+  ],
+  "launch_aim_idler": [
+   "launch_aim_arm",
+   "launch_aim_output",
+   "launch_aim_sun"
+  ],
+  "launch_aim_idler_clip": [
+   "launch_aim_arm"
+  ],
+  "launch_aim_output": [
+   "launch_aim_bevel30",
+   "launch_aim_housing",
+   "launch_aim_idler"
+  ],
+  "launch_aim_bevel30": [
+   "launch_aim_output",
+   "launch_aim_worm"
+  ],
+  "launch_aim_worm": [
+   "launch_aim_bevel30",
+   "launch_aim_cap",
+   "launch_aim_crank",
+   "launch_aim_housing"
+  ],
+  "launch_aim_crank": [
+   "launch_aim_brg_1",
+   "launch_aim_brg_2",
+   "launch_aim_conrod",
+   "launch_aim_crankpin_clip",
+   "launch_aim_worm",
+   "sensors_sw_rail_low_lever"
+  ],
+  "launch_aim_conrod": [
+   "launch_aim_crank",
+   "launch_aim_lug"
+  ],
+  "launch_aim_crankpin_clip": [
+   "launch_aim_crank"
+  ],
+  "launch_aim_lug": [
+   "launch_aim_conrod",
+   "launch_aim_lugpin_clip",
+   "launch_rail_mid"
+  ],
+  "launch_aim_lugpin_clip": [
+   "launch_aim_lug"
+  ],
+  "launch_aim_housing": [
+   "frame_deck_1",
+   "frame_deck_3",
+   "launch_aim_bolt",
+   "launch_aim_cap",
+   "launch_aim_nut",
+   "launch_aim_output",
+   "launch_aim_worm",
+   "launch_sleeve",
+   "sensors_as5600_carrier",
+   "sensors_as5600_col_screws",
+   "sensors_sw_rail_low_bracket"
+  ],
+  "launch_aim_cap": [
+   "launch_aim_housing",
+   "launch_aim_worm"
+  ],
+  "launch_aim_bolt": [
+   "launch_aim_brg_1",
+   "launch_aim_brg_2",
+   "launch_aim_housing",
+   "launch_aim_nut"
+  ],
+  "launch_aim_nut": [
+   "launch_aim_bolt",
+   "launch_aim_brg_1",
+   "launch_aim_housing"
+  ],
+  "launch_aim_brg_1": [
+   "launch_aim_bolt",
+   "launch_aim_brg_2",
+   "launch_aim_crank",
+   "launch_aim_nut"
+  ],
+  "launch_aim_brg_2": [
+   "launch_aim_bolt",
+   "launch_aim_brg_1",
+   "launch_aim_crank"
+  ],
+  "reel_wall": [
+   "frame_deck_3",
+   "frame_deck_4",
+   "reel_bar_cap_1",
+   "reel_bar_cap_2",
+   "reel_bar_screws",
+   "reel_crank",
+   "reel_crank_screw",
+   "reel_crank_washer",
+   "reel_gr",
+   "reel_hub_screws",
+   "reel_rocker",
+   "reel_rocker_pin",
+   "reel_shroud",
+   "reel_sprag_hub",
+   "reel_sw_bracket",
+   "reel_swing_arm"
+  ],
+  "reel_sprag_hub": [
+   "reel_c",
+   "reel_hub_screws",
+   "reel_sprag",
+   "reel_wall"
+  ],
+  "reel_hub_screws": [
+   "reel_sprag_hub",
+   "reel_wall"
+  ],
+  "reel_sprag": [
+   "reel_c",
+   "reel_sprag_hub"
+  ],
+  "reel_c": [
+   "reel_bus",
+   "reel_c_clip",
+   "reel_drum",
+   "reel_gc",
+   "reel_k",
+   "reel_sprag",
+   "reel_sprag_hub"
+  ],
+  "reel_bus": [
+   "drum_coupler",
+   "reel_c",
+   "reel_gi",
+   "reel_swing_arm"
+  ],
+  "reel_swing_arm": [
+   "reel_bus",
+   "reel_gi",
+   "reel_wall"
+  ],
+  "reel_gi": [
+   "reel_bus",
+   "reel_gr",
+   "reel_swing_arm"
+  ],
+  "reel_gc": [
+   "drum_gear_reel",
+   "reel_c"
+  ],
+  "reel_c_clip": [
+   "reel_c"
+  ],
+  "reel_drum": [
+   "reel_c"
+  ],
+  "reel_k": [
+   "reel_c",
+   "reel_cup",
+   "reel_cup_clip",
+   "reel_gk",
+   "reel_k_clip"
+  ],
+  "reel_cup": [
+   "reel_k"
+  ],
+  "reel_cup_clip": [
+   "reel_k"
+  ],
+  "reel_gk": [
+   "drum_idler_gear",
+   "reel_k",
+   "reel_sw_lever"
+  ],
+  "reel_k_clip": [
+   "reel_k"
+  ],
+  "reel_s": [
+   "reel_brg_1",
+   "reel_brg_2",
+   "reel_gr",
+   "reel_s_clip",
+   "reel_spool_flange",
+   "reel_t"
+  ],
+  "reel_spool": [
+   "reel_brg_1",
+   "reel_brg_2",
+   "reel_spool_flange"
+  ],
+  "reel_spool_flange": [
+   "reel_brg_2",
+   "reel_s",
+   "reel_spool"
+  ],
+  "reel_brg_1": [
+   "reel_s",
+   "reel_spool",
+   "reel_t"
+  ],
+  "reel_brg_2": [
+   "reel_s",
+   "reel_spool",
+   "reel_spool_flange"
+  ],
+  "reel_t": [
+   "reel_brg_1",
+   "reel_s",
+   "reel_trim_screws"
+  ],
+  "reel_rocker": [
+   "reel_firm_screw",
+   "reel_rocker_pin",
+   "reel_trim_screws",
+   "reel_wall"
+  ],
+  "reel_rocker_pin": [
+   "reel_rocker",
+   "reel_wall"
+  ],
+  "reel_trim_screws": [
+   "reel_rocker",
+   "reel_t"
+  ],
+  "reel_crank": [
+   "reel_bar",
+   "reel_wall"
+  ],
+  "reel_crank_washer": [
+   "reel_crank_screw",
+   "reel_wall"
+  ],
+  "reel_crank_screw": [
+   "reel_crank_washer",
+   "reel_wall"
+  ],
+  "reel_firm_screw": [
+   "reel_rocker"
+  ],
+  "reel_bar": [
+   "reel_crank"
+  ],
+  "reel_bar_cap_1": [
+   "reel_bar_screws",
+   "reel_wall"
+  ],
+  "reel_bar_cap_2": [
+   "reel_bar_screws",
+   "reel_wall"
+  ],
+  "reel_bar_screws": [
+   "reel_bar_cap_1",
+   "reel_bar_cap_2",
+   "reel_wall"
+  ],
+  "reel_gr": [
+   "reel_gi",
+   "reel_s",
+   "reel_wall"
+  ],
+  "reel_s_clip": [
+   "reel_s"
+  ],
+  "reel_sw_bracket": [
+   "reel_sw_base",
+   "reel_wall"
+  ],
+  "reel_sw_base": [
+   "reel_sw_bracket",
+   "reel_sw_hw",
+   "reel_sw_lever"
+  ],
+  "reel_sw_lever": [
+   "reel_gk",
+   "reel_sw_base",
+   "reel_sw_hw"
+  ],
+  "reel_sw_hw": [
+   "reel_sw_base",
+   "reel_sw_lever"
+  ],
+  "reel_shroud": [
+   "reel_wall"
+  ],
+  "reel_exit_post": [
+   "frame_deck_2",
+   "frame_deck_4",
+   "reel_p1_axle",
+   "reel_p1_brg"
+  ],
+  "reel_pulley1": [
+   "reel_p1_brg"
+  ],
+  "reel_p1_brg": [
+   "reel_exit_post",
+   "reel_p1_axle",
+   "reel_pulley1"
+  ],
+  "reel_p2_post": [
+   "frame_deck_1",
+   "reel_p2_fork"
+  ],
+  "reel_p2_fork": [
+   "reel_p2_axle",
+   "reel_p2_brg",
+   "reel_p2_clip",
+   "reel_p2_post"
+  ],
+  "reel_p2_clip": [
+   "reel_p2_fork"
+  ],
+  "reel_pulley2": [
+   "reel_p2_brg"
+  ],
+  "reel_p2_brg": [
+   "reel_p2_axle",
+   "reel_p2_fork",
+   "reel_pulley2"
+  ],
+  "reel_p2_axle": [
+   "reel_p2_brg",
+   "reel_p2_fork"
+  ],
+  "reel_p1_axle": [
+   "reel_exit_post",
+   "reel_p1_brg"
+  ],
+  "sensors_as5600": [
+   "sensors_as5600_carrier",
+   "sensors_as5600_strip_bot",
+   "sensors_as5600_strip_top"
+  ],
+  "sensors_as5600_carrier": [
+   "launch_aim_housing",
+   "sensors_as5600",
+   "sensors_as5600_col_screws",
+   "sensors_as5600_nut_bot",
+   "sensors_as5600_nut_top",
+   "sensors_as5600_screw_bot",
+   "sensors_as5600_screw_top",
+   "sensors_as5600_strip_bot",
+   "sensors_as5600_strip_top"
+  ],
+  "sensors_as5600_strip_top": [
+   "sensors_as5600",
+   "sensors_as5600_carrier",
+   "sensors_as5600_screw_top"
+  ],
+  "sensors_as5600_nut_top": [
+   "sensors_as5600_carrier",
+   "sensors_as5600_screw_top"
+  ],
+  "sensors_as5600_screw_top": [
+   "sensors_as5600_carrier",
+   "sensors_as5600_nut_top",
+   "sensors_as5600_strip_top"
+  ],
+  "sensors_as5600_strip_bot": [
+   "sensors_as5600",
+   "sensors_as5600_carrier",
+   "sensors_as5600_screw_bot"
+  ],
+  "sensors_as5600_nut_bot": [
+   "sensors_as5600_carrier",
+   "sensors_as5600_screw_bot"
+  ],
+  "sensors_as5600_screw_bot": [
+   "sensors_as5600_carrier",
+   "sensors_as5600_nut_bot",
+   "sensors_as5600_strip_bot"
+  ],
+  "sensors_as5600_col_screws": [
+   "launch_aim_housing",
+   "sensors_as5600_carrier"
+  ],
+  "sensors_sw_rail_low": [
+   "sensors_sw_rail_low_bracket",
+   "sensors_sw_rail_low_lever",
+   "sensors_sw_rail_low_nut"
+  ],
+  "sensors_sw_rail_low_lever": [
+   "launch_aim_crank",
+   "sensors_sw_rail_low",
+   "sensors_sw_rail_low_jam",
+   "sensors_sw_rail_low_screw"
+  ],
+  "sensors_sw_rail_low_screw": [
+   "sensors_sw_rail_low_jam",
+   "sensors_sw_rail_low_lever"
+  ],
+  "sensors_sw_rail_low_jam": [
+   "sensors_sw_rail_low_lever",
+   "sensors_sw_rail_low_screw"
+  ],
+  "sensors_sw_rail_low_nut": [
+   "sensors_sw_rail_low"
+  ],
+  "sensors_sw_rail_low_bracket": [
+   "launch_aim_housing",
+   "sensors_sw_rail_low"
+  ],
+  "sensors_sw_gap": [
+   "launch_rail_mid",
+   "sensors_sw_gap_lever",
+   "sensors_sw_gap_nut"
+  ],
+  "sensors_sw_gap_lever": [
+   "launch_big_gear",
+   "sensors_sw_gap",
+   "sensors_sw_gap_jam",
+   "sensors_sw_gap_screw"
+  ],
+  "sensors_sw_gap_screw": [
+   "sensors_sw_gap_jam",
+   "sensors_sw_gap_lever"
+  ],
+  "sensors_sw_gap_jam": [
+   "sensors_sw_gap_lever",
+   "sensors_sw_gap_screw"
+  ],
+  "sensors_sw_gap_nut": [
+   "sensors_sw_gap"
+  ]
+ },
+ "meshes": [
+  {
+   "a": "drum_drum_a",
+   "b": "drum_n20_pinion",
+   "m": 0.8,
+   "z": [
+    120,
+    10
+   ],
+   "kind": "spur",
+   "expected": 52.1,
+   "states": 2296,
+   "ok": true,
+   "fails": []
+  },
+  {
+   "a": "drum_drum_a",
+   "b": "drum_idler",
+   "m": 1.25,
+   "z": [
+    60,
+    10
+   ],
+   "kind": "spur",
+   "expected": 44.331,
+   "states": 1082,
+   "ok": true,
+   "fails": []
+  },
+  {
+   "a": "drum_coupler",
+   "b": "reel_bus",
+   "m": 1.5,
+   "z": [
+    50,
+    46
+   ],
+   "kind": "spur",
+   "expected": 72.1,
+   "states": 2296,
+   "ok": true,
+   "fails": []
+  },
+  {
+   "a": "drum_gear_reel",
+   "b": "reel_gc",
+   "m": 2.0,
+   "z": [
+    50,
+    22
+   ],
+   "kind": "spur",
+   "expected": 72.1,
+   "states": 2296,
+   "ok": true,
+   "fails": []
+  },
+  {
+   "a": "drum_idler_gear",
+   "b": "reel_gk",
+   "m": 1.5,
+   "z": [
+    42,
+    24
+   ],
+   "kind": "spur",
+   "expected": 49.6,
+   "states": 2296,
+   "ok": true,
+   "fails": []
+  }
+ ],
+ "mesh_fails": [],
+ "timing": {
+  "world": 9.45,
+  "chunks": 4.37,
+  "broad": 270.3,
+  "static": 1.11,
+  "exact": 1973.4,
+  "clearance": 460.61,
+  "floating": 2.72,
+  "checks": 8.35,
+  "meshes": 11.96
+ },
+ "static_fails": [
+  {
+   "part": "sensors_sw_rail_low_bracket",
+   "fails": [
+    "not watertight as STL (self-touching edges after vertex merge)"
+   ]
+  }
+ ],
+ "clean": false,
+ "seconds": 2742.4,
+ "settings": {
+  "dt": 0.1,
+  "max_mm": 0.5,
+  "jobs": 2,
+  "refine": "pair"
+ }
+}

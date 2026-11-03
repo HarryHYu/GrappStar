@@ -22,6 +22,27 @@ list, datasheet). Dart viewer https://claude.ai/artifact/Sqt8tF67veTYfxQjUFTZ5f.
 5. **Try the whole mission on any PC first**: `cd jetson && python3 -m grappstar serve --sim`, then open
    http://localhost:8080: the operator page runs every step against the simulated base, dart and cameras.
 
+## Status (3 Nov 2026, end of the build day)
+
+| Area | State |
+|---|---|
+| Base CAD | 5 modules (frame, drum, launch, reel, sensors), about 230 parts, every number from `base/spec/params.py`. Exact-mesh collision audit, 235 parts over 44678 poses of the whole mission: nearly clean (2 small overlaps in passing poses, 24.5 and 55.6 mm3, and 1 bracket STL that is not watertight) |
+| Print pack | `base/out/base/pack`: PLA 108 parts on 13 plates (about 3.8 kg, 103 h), PPA-CF 48 parts on 4 plates (about 1.4 kg, 67 h); test coupons first (`base/pack/coupons`, `base/pack/fit_coupon`) |
+| Sim and steps | HD mission sim (19 phases, tether drawn) and the assembly steps page, on the site and in `base/out/base` |
+| Physics | 12.1 J, 6.85 m/s, about 4.2 m at 34 deg with the 0.5 N brake; ballistics table `base/out/ballistics.json` for the Jetson; 83 tests |
+| Base firmware (ESP32-S3) | 446 PC checks plus fuzzing, compiles for the DevKitC-1 (esp32 core 3.3.x); protocol, wiring, calibration, bench test |
+| Dart firmware (XIAO ESP32S3) | host checks, fuzz, simulator, Jetson-client and web-page tests all pass |
+| Jetson | mission, vision (landing zone, aerial map, targeting), operator page, setup; 397 tests; `serve --sim` runs a whole mission on any PC |
+| System test | the real firmware and the Jetson app together: nominal mission, refusals and 9 power-loss phases pass (`systest/REPORT.md`) |
+| Build guide | `docs/build/GrappStar_Build_Guide.pdf` (plain Arial), measure list, test plan, electrical system |
+
+Open items (details in each REPORT.md):
+- CAD: check these by hand at assembly. The drum coupler brushes the index lever during the fire phase (24.5 mm3); the aim sun gear brushes the aim idler in one sensor test pose (55.6 mm3); the SW_RAIL_LOW bracket STL is not watertight (let the slicer repair it). Details in `base/out/base/audit.txt`.
+- Tow on a very stiff short line can overshoot a 40 N limit by up to about 10 percent (systest F21); calibrate on the bench first (CALIBRATION.md) and keep the first field tows at or under 40 N (D46: the cup ring is a plain eye in v1).
+- Vision thresholds are tuned on synthetic frames; re-learn on real Caddx Ant footage (`jetson/REPORT.md`). Measure the Caddx Ant field of view (fisheye).
+- Rover drive is not driven by the Jetson yet (unknown hardware): the tow asks the operator to drive.
+- Assembly order: three dependency notes remain (bench sub-assemblies); follow the step order on the steps page.
+
 ## What to buy
 
 8 to 10 bearings 608ZZ (search "608ZZ bearing 8x22x7"). Optional: a small neodymium disc magnet for the AS5600 angle
@@ -51,7 +72,7 @@ second pair of springs, but the drive train is not rated for them in v1 (decisio
 ## Rebuild
 
 - Tests: `scripts/check_all.sh` (`--full` also runs the base CAD pipeline).
-- Base CAD pipeline: `cd base && bash run_all.sh base` (assembly, audit must say CLEAN, renders, sim, steps, pack).
+- Base CAD pipeline: `cd base && bash run_all.sh base` (assembly, audit, renders, sim, steps, pack; it stops on a NOT CLEAN audit unless run with `FORCE=1`).
 - Build guide: `python3 docs/build/make_guide.py`.
 - Site: `python3 scripts/make_site.py`.
 

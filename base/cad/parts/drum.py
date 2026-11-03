@@ -968,7 +968,7 @@ def joints(P):
         Joint("drum_out_reel", "drum_base", "rev", (0, 0, 0), (0, 0, 1)),
         Joint("drum_out_launch", "drum_base", "rev", (0, 0, 0), (0, 0, 1), gear=_launch_gear()),
         Joint("drum_collar_slide", "drum_base", "slide", (0, 0, 0), (0, 0, 1), limits=(-c["stroke"] - 0.01, c["stroke"] + 0.01)),
-        Joint("drum_collar", "drum_collar_slide", "rev", (0, 0, 0), (0, 0, 1)),
+        Joint("drum_collar", "drum_collar_slide", "rev", (0, 0, 0), (0, 0, 1), gear=("drum_main", 1.0, 0.0)),
         Joint("drum_fork", "drum_base", "slide", (0, 0, 0), (0, 0, 1), limits=(-c["stroke"] - 0.01, c["stroke"] + 0.01)),
         Joint("drum_drum", "drum_base", "rev", (dx, dy, 0), (0, 0, 1), limits=(c["stop_lo"], c["stop_hi"])),
         Joint("drum_idler", "drum_base", "rev", (ix, iy, 0), (0, 0, 1)),
@@ -995,6 +995,25 @@ def _launch_gear():
     return None
 
 
+_LAUNCH_MOD = []
+
+
+def main_angle(P, S):
+    """Main shaft angle for state S. The LAUNCH dog ring is bolted to cad-launch's sleeve, so when that module is
+    present its own launch_sleeve value is the master (one angle for every part on the main axis); else wiper_deg."""
+    if _launch_gear() is not None:
+        try:
+            if not _LAUNCH_MOD:
+                import importlib
+                _LAUNCH_MOD.append(importlib.import_module("cad.parts.launch"))
+            v = _LAUNCH_MOD[0].kin(P, S).get("launch_sleeve")
+            if v is not None:
+                return float(v)
+        except Exception:                     # launch module broken: fall back to the timeline wiper angle
+            pass
+    return float(S.get("wiper_deg", 0.0) or 0.0)
+
+
 def drum_theta(S, c):
     if "drum_deg" in S and S["drum_deg"] is not None:
         return float(S["drum_deg"])
@@ -1016,13 +1035,12 @@ def idx_lever_deg(wiper, g):
 def kin(P, S):
     g, c = G(P), C(P)
     th = drum_theta(S, c)
-    w = float(S.get("wiper_deg", 0.0))
+    w = main_angle(P, S)
     x = K.collar_x(th, c)
     md = K.mode(th, c)
     v = {
         "drum_drum": th,
         "drum_main": w,
-        "drum_collar": w,
         "drum_collar_slide": -x,
         "drum_fork": -x,
         "drum_idler": pinion_angle(th, g, c),

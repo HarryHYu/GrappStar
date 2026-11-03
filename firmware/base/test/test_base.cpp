@@ -13,7 +13,7 @@ static const char* curTest = "";
 struct Rig {
   gb::Base B;
   explicit Rig(bool fresh = true, std::function<void(gb::Cfg&)> cfgEdit = nullptr) {
-    if (fresh) { S = Sim(); }
+    if (fresh) { S = Sim(); if (getenv("SIM_INERTIA")) S.inertiaMs = atof(getenv("SIM_INERTIA")); }
     if (cfgEdit) cfgEdit(B.c);
     S.c = B.c;
     if (fresh) S.win = fmin(S.win, (double)B.c.dogWindowDeg);   // collar starts against the forward flank

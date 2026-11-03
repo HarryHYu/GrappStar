@@ -45,10 +45,12 @@ def loads(P, info):
 
     # motor reaction: the frame sees the coupler torque (limiter) in service, the full stall torque only if the shear
     # pin is replaced by something stronger
-    used = MOT.ring_used(w)
+    used = (sorted(set(info.get("plate_rim_ok", [])) & set(info.get("puck_rim_ok", range(MOT.RIM_N))))
+            if C.get("v1") else MOT.ring_used(w))
+    ring_r = MOT.RIM_R if C.get("v1") else MOT.RING_R
     for case, Tq in ((f"limiter {limiter_nm:.0f} N m (D8)", limiter_nm), (f"FAULT stall {stall_nm:.0f} N m", stall_nm)):
-        ring = Tq * 1000.0 / (max(1, len(used)) * MOT.RING_R)
-        rows.append((case, f"adapter ring, shear per M3 insert ({len(used)} used)", ring, INSERT_N, ring <= INSERT_N))
+        ring = Tq * 1000.0 / (max(1, len(used)) * ring_r)
+        rows.append((case, f"adapter rim screws, shear per M3 insert ({len(used)} used)", ring, INSERT_N, ring <= INSERT_N))
         rm = min(math.hypot(x, y) for x, y, _ in w["mount_holes"])
         boss = Tq * 1000.0 / (len(w["mount_holes"]) * rm)
         bs = boss / (w["bolt_d"] * MOT.PLATE_T)
@@ -56,8 +58,15 @@ def loads(P, info):
         feet = info.get("motor_leg_feet") or []
         if len(feet) >= 2:
             span = max(abs(a[0] - b[0]) for a in feet for b in feet)
-            F = Tq * 1000.0 / max(span, 1.0)
-            rows.append((case, f"motor leg foot screw pull (span {span:.0f} mm)", F, INSERT_N, F <= INSERT_N))
+            # the motor torque about y reaches the leg foot as a couple across x; 2 screws per side; plus the weight
+            # of motor + plate + puck + stay (about 1.6 kg) acting about 90 mm from the leg in x
+            M = Tq * 1000.0 + 1.6 * 9.81 * 90.0
+            F = M / max(span, 1.0) / 2.0
+            rows.append((case, f"motor leg foot screw pull ({len(feet)} screws, span {span:.0f} mm)", F, INSERT_N, F <= INSERT_N))
+            # foot flange bending under that screw pull, 8 thick, 30 wide, lever 7 mm to the column face (across layers
+            # when printed upright? no: the foot is the first layers, bending is in-layer)
+            sig = F * 7.0 / (30.0 * 8.0 ** 2 / 6.0)
+            rows.append((case, "motor leg foot flange bending (in-layer, MPa)", sig, PLA_IN, sig <= PLA_IN))
             sp = fw["motor_support"]
             bx = sp["leg_x"][1] - sp["leg_x"][0]
             by = sp["leg_y"][1] - sp["leg_y"][0]

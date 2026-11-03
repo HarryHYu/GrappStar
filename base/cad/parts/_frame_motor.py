@@ -44,10 +44,14 @@ WIPER_DEFAULT = dict(
 )
 
 # Fixed frame interface (on the motor-side cheek): never changes when the motor is measured.
-RING_R = 29.0                 # 6 x M3 heat-set inserts on this radius round the main axis
-RING_N = 6
-CHEEK_HOLE_D = 44.0           # cheek through hole round the main axis (coupler room)
-SPIGOT_H = 3.0                # adapter spigot into the cheek hole (keys the plate radially)
+COUPLER_D = 67.0              # clear bore round the main axis (cad-drum coupler with the shear-pin limiter: r 32, y 0.5..46)
+RING_R = 43.0                 # 6 x M3 heat-set inserts on this radius round the main axis
+RING_N = 12                   # 12 clearance holes in the plate (30 deg); the adapter uses those clear of its motor slots
+RING_PHASE = 0.0              # first ring position (deg) in the adapter frame
+RING_MIN = 4                  # at least this many ring screws, no gap over 150 deg
+HUB_R = 49.0                  # adapter hub (standoff ring) outer radius
+CHEEK_HOLE_D = COUPLER_D      # plate through hole round the main axis
+SPIGOT_H = 2.0                # the hub enters a 2 mm counterbore (r HUB_R + 0.3) in the plate face: keyed radially
 PLATE_T = 10.0                # adapter plate thickness (PPA-CF)
 HEAD_SEAT = 5.0               # plastic under the M6 head in the slot (head counterbore from the cheek-side face)
 
@@ -107,14 +111,14 @@ def holes_rot(w):
 
 
 def adapter_outline(w):
-    pts = [Point(0, 0).buffer(RING_R + 8.0, 64)]
+    pts = [Point(0, 0).buffer(HUB_R + 2.0, 64)]
     for (hx, hy, hd) in holes_rot(w):
         pts.append(Point(hx, hy).buffer(w["slot"] + w["bolt_nut_af"] / 2 + 5.5, 48))
     return unary_union(pts).convex_hull
 
 
 def ring_xy(i):
-    a = math.radians(30.0 + i * 360.0 / RING_N)
+    a = math.radians(RING_PHASE + i * 360.0 / RING_N)
     return RING_R * math.cos(a), RING_R * math.sin(a)
 
 
@@ -129,11 +133,10 @@ def adapter_plate(w, standoff=0.0):
     out = adapter_outline(w)
     plate = prim.extrude(prim.shapely_cs(out.buffer(0)), PLATE_T)
     tz = PLATE_T + standoff                    # cheek face (the hub stands the wings off over the block flanges)
-    hub = prim.cyl(RING_R + 6.0, tz, z=0.0)
-    spig = prim.tube(CHEEK_HOLE_D / 2 - 0.25, CHEEK_HOLE_D / 2 - 4.0, SPIGOT_H, z=tz - 0.01)
-    plate = plate + hub + spig
+    hub = prim.cyl(HUB_R, tz + SPIGOT_H, z=0.0)            # standoff ring, its last 2 mm enter the plate counterbore
+    plate = plate + hub
     cut = []
-    cut.append(prim.cyl(w["hub_d"] / 2 + 1.5, tz + SPIGOT_H + 2, z=-1))           # hub and shaft pass through
+    cut.append(prim.cyl(COUPLER_D / 2, tz + SPIGOT_H + 2, z=-1))                   # the coupler turns inside
     for (hx, hy, hd) in holes_rot(w):
         r = math.hypot(hx, hy)
         ux, uy = (hx / r, hy / r) if r > 1e-6 else (1.0, 0.0)
@@ -141,11 +144,11 @@ def adapter_plate(w, standoff=0.0):
         a0 = (hx - ux * s, hy - uy * s); a1 = (hx + ux * s, hy + uy * s)
         bolt = prim.extrude(U.slot_cs(*a0, *a1, w["bolt_d"] + fits.HOLE_CLEAR + 0.2), PLATE_T + 2, z=-1)
         head_w = w["bolt_head_d"] + 0.6
-        chan = prim.extrude(U.slot_cs(*a0, *a1, head_w), PLATE_T - HEAD_SEAT + 0.01, z=HEAD_SEAT)   # head counterbore slot
+        chan = prim.extrude(U.slot_cs(*a0, *a1, head_w), tz + SPIGOT_H + 1 - HEAD_SEAT, z=HEAD_SEAT)   # head slot (open through the hub)
         cut += [bolt, chan]
-    for i in range(RING_N):
+    for i in ring_used(w):
         x, y = ring_xy(i)
-        cut.append(prim.place(U.insert_hole(0, 0, 0.0), tf.T(x, y, tz)))          # inserts in the hub face
+        cut.append(prim.place(U.insert_hole(0, 0, 0.0), tf.T(x, y, tz + SPIGOT_H)))   # inserts in the hub face
     return prim.diff(plate, cut)
 
 
@@ -159,22 +162,38 @@ def ring_inserts_cutter():
     return prim.union(cs)
 
 
+def ring_clear(w, i):
+    """Smallest distance from ring position i to any motor head slot (centre line)."""
+    x, y = ring_xy(i)
+    best = 1e9
+    for (hx, hy, hd) in holes_rot(w):
+        r = math.hypot(hx, hy)
+        ux, uy = (hx / r, hy / r) if r > 1e-6 else (1.0, 0.0)
+        for s_ in np.linspace(-w["slot"], w["slot"], 21):
+            best = min(best, math.hypot(hx + ux * s_ - x, hy + uy * s_ - y))
+    return best
+
+
+def ring_used(w):
+    """Ring positions the adapter takes (an insert each): clear of every head slot."""
+    need = (w["bolt_head_d"] + 0.6) / 2 + U.INS_D / 2 + 2.0
+    return [i for i in range(RING_N) if ring_clear(w, i) >= need]
+
+
 def adapter_checks(w):
     """Interference of the slotted motor holes with the fixed ring screws, plate fits the bed."""
     fails = []
+    used = ring_used(w)
+    if len(used) < RING_MIN:
+        fails.append(f"only {len(used)} ring screws clear the motor slots (need {RING_MIN})")
+    else:
+        angs = sorted(i * 360.0 / RING_N for i in used)
+        gaps = [(angs[(k + 1) % len(angs)] - angs[k]) % 360.0 for k in range(len(angs))]
+        if max(gaps) > 150.0:
+            fails.append(f"ring screws bunched: a {max(gaps):.0f} deg gap")
     for (hx, hy, hd) in holes_rot(w):
-        for i in range(RING_N):
-            x, y = ring_xy(i)
-            r = math.hypot(hx, hy)
-            # closest distance from ring screw to the slot segment
-            ux, uy = (hx / r, hy / r) if r > 1e-6 else (1.0, 0.0)
-            best = 1e9
-            for s in np.linspace(-w["slot"], w["slot"], 21):
-                best = min(best, math.hypot(hx + ux * s - x, hy + uy * s - y))
-            if best < (w["bolt_head_d"] + 0.6) / 2 + U.INS_D / 2 + 2.0:
-                fails.append(f"motor hole ({hx:.1f}, {hy:.1f}) slot comes within {best:.1f} mm of ring screw {i}")
-        if math.hypot(hx, hy) < RING_R + 6.0 + (w["bolt_head_d"] + 0.6) / 2 + 1.0 and math.hypot(hx, hy) > 1e-6:
-            fails.append(f"motor hole ({hx:.1f}, {hy:.1f}) inside the adapter hub (head slot would cut the ring)")
+        if math.hypot(hx, hy) - w["slot"] - (w["bolt_head_d"] + 0.6) / 2 < COUPLER_D / 2 + 1.5:
+            fails.append(f"motor hole ({hx:.1f}, {hy:.1f}): head slot breaks into the coupler bore")
         if math.hypot(hx, hy) < w["hub_d"] / 2 + w["bolt_nut_af"] / 2 + 3:
             fails.append(f"motor hole ({hx:.1f}, {hy:.1f}) too close to the output hub")
     b = adapter_outline(w).bounds

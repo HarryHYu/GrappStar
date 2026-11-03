@@ -655,6 +655,11 @@ D2 / D3). One drill wrong only: swap that drill's motor leads. VTX antenna on be
 On the Jetson, in `~/GrappStar/jetson`. Full lists: `firmware/base/PROTOCOL.md`, `firmware/dart/API.md`,
 `jetson/README.md`. If a command here and those files disagree, those files win.
 
+**Stop:** 1. `estop` (or STOP on the operator page). 2. Pull lead #2's XT60 (motors off). 3. Main battery.
+Cutting power does NOT release a drawn spring or a taut line. **Before walking up:** `estop`, lead #2 out, `cock` 0
+and `H` closed, line slack, dart IDLE or its loop plug out. Never fire without the tether. Stand beside, never in
+line with, a towing line.
+
 ## Jetson
 
 | Command | What it does |

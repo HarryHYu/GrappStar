@@ -431,6 +431,8 @@ def main(argv=None):
     ap.add_argument("--tow", type=float, default=None)
     ap.add_argument("--mu", type=float, default=None)
     a = ap.parse_args(argv)
+    _defaults = vars(ap.parse_args([]))
+    write_ok = vars(a) == _defaults   # odd flags never overwrite the committed output
     r = run(tow=a.tow, mu=a.mu)
     i = r["inputs"]
     print(f"capstan d {i['drum_d']*1000:.0f} mm, ratio {i['ratio']}, eta {i['eta']}, wraps {i['wraps']}, "
@@ -489,7 +491,10 @@ def main(argv=None):
         print("INFO:")
         for x in r["info"]:
             print(" -", x)
-    print("wrote", write_json(r, "capstan.json"))
+    if write_ok:
+        print("wrote", write_json(r, "capstan.json"))
+    else:
+        print("(non-default flags: base/out/physics/capstan.json left unchanged)")
     return r
 
 

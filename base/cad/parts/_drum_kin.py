@@ -23,7 +23,7 @@ DEFAULTS = dict(
     launch=0.0,
     neutral=41.0,
     wrap_start=56.0,        # park before the wrap (params target 62 sits on a code edge; 56 is mid WRAP_PREP)
-    wrapped=309.0,          # wraps done, cup locked, collar NEUTRAL (params target 302 sits on a code edge)
+    wrapped=314.0,          # WRAPPED park: wraps done, cup locked, collar NEUTRAL (ramp from 318), clutch FIRM from 312
     reel=347.0,
     stop_hi=352.0,
     tr_ln=(8.0, 32.0),      # groove 1 transition LAUNCH -> NEUTRAL
@@ -41,9 +41,11 @@ DEFAULTS = dict(
     fork_free=4.5,          # yoke deflection when the dogs land tip to tip (stroke - dog_gap)
     # ---------------------------------------------------------------- track 2 (storage reel slip clutch preload)
     brake_lift=4.0,         # full radial lift (mm) = FIRM; 0 = LIGHT (cad-reel lever, 10 N design force)
-    brake_force=10.0,
+    brake_force=15.0,       # cad-reel pushrod at FIRM 5 N (D24): 7.8 N push at 3 N scaled to 13 N plus friction; cad-reel to confirm
     # (theta0, theta1, frac0, frac1): LAUNCH light, NEUTRAL firm (tidy), WRAP light, WRAPPED and REEL firm
-    brake_ramps=((8.0, 32.0, 0.0, 1.0), (50.0, 62.0, 1.0, 0.0), (302.0, 316.0, 0.0, 1.0)),
+    # FIRM before the WRAPPED park for the tidy: ramp 302..312 (302..309 would need 1.2 N m at FIRM 5 N, margin 1.8 < 2)
+    brake_ramps=((30.0, 40.0, 0.0, 1.0), (50.0, 62.0, 1.0, 0.0), (302.0, 312.0, 0.0, 1.0)),  # first ramp after the collar shift
+    brake_blend=0.2,        # ramp profile: constant slope with harmonic blends over this fraction at each end
     # ---------------------------------------------------------------- wrap drive (segment gear with locking arc)
     seg_m=1.25, seg_z=60,   # drum segment gear: module, tooth count of the full circle it is cut from
     seg_teeth=40,           # window = 40 pitches = 240 deg = 4 pinion turns
@@ -134,6 +136,24 @@ def collar_slope(theta, c=None, h=0.01):
     return (collar_x(theta + h, c) - collar_x(theta - h, c)) / math.radians(2 * h)
 
 
+def _trap(u, b):
+    """0..1 rise with constant slope in the middle and harmonic blends of width b at both ends (peak slope 1/(1-b))."""
+    u = min(1.0, max(0.0, u))
+    if b <= 0:
+        return u
+    v = 1.0 / (1.0 - b)                     # middle slope
+    if u < b:
+        return _blend(u, b, v)
+    if u > 1 - b:
+        return 1.0 - _blend(1.0 - u, b, v)
+    return _blend(b, b, v) + v * (u - b)
+
+
+def _blend(u, b, v):
+    """Distance covered from rest with the slope rising as v sin^2(pi u / (2 b)) over 0..b."""
+    return v * (u / 2 - (b / (2 * math.pi)) * math.sin(math.pi * u / b))
+
+
 def brake_frac(theta, c=None):
     """Track 2 lift fraction 0 (light) .. 1 (firm)."""
     c = c or DEFAULTS
@@ -142,7 +162,7 @@ def brake_frac(theta, c=None):
         if theta >= t1:
             f = f1
         elif theta > t0:
-            return f0 + (f1 - f0) * _harm((theta - t0) / (t1 - t0))
+            return f0 + (f1 - f0) * _trap((theta - t0) / (t1 - t0), c.get("brake_blend", 0.2))
     return f
 
 
@@ -280,7 +300,7 @@ def cam_eta(slope_mm_per_rad, r_mm, mu=0.3):
     return math.tan(phi) / math.tan(min(phi + rho, math.radians(89.0)))
 
 
-def loads(c=None, r_groove=30.0, r_cam=24.0, rack_arm=45.0, sleeve_len=40.0, mu=0.3, residual_nm=0.2):
+def loads(c=None, r_groove=30.0, r_cam=32.0, rack_arm=45.0, sleeve_len=40.0, mu=0.3, residual_nm=0.2):
     """Drum torque budget (N m at the drum) along the travel.
 
     Fork: yoke force at a full tip-to-tip block (fork_k x fork_free) plus 3 N rail friction, times the racking factor

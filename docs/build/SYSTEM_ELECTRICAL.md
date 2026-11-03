@@ -55,7 +55,7 @@ Why it is laid out this way:
 
 | Run | From | To | Gauge | Connector | Note |
 |---|---|---|---|---|---|
-| P1 | LiPo | Y harness | 14 AWG | XT60 | Make the Y from spare XT60s; solder, heat shrink each joint |
+| P1 | LiPo | Y harness | 14 AWG | XT60 | Make the Y from spare XT60s; solder, heat shrink each joint. This short run is the only unfused part: keep the Y's legs under 10 cm so both fuses sit right at the split, sleeve it, and strap it so it cannot rub |
 | P2 | Y harness | BTS7960 B+ / B- | 14 AWG | XT60 lead #2 (20 A fuse), screw terminals at the BTS7960 | Red to B+, black to B-. 10 A blew on wiper inrush before: keep 20 A |
 | P3 | BTS7960 M+ / M- | wiper motor | 14 AWG | screw terminals; spade or solder at the motor | Red wire (+) and black (-) of the rebuilt 2-wire motor |
 | P4 | BTS7960 B+ / B- | MP1584 #2 IN+ / IN- | 22 AWG | under the same screws, 2 A inline fuse in the + wire right at the screw | Set 9.0 V with nothing on the output first |
@@ -82,9 +82,11 @@ Gauges assume runs under 0.5 m. 14 AWG carries the 18 A wiper stall; 18 AWG is f
 Before you start: the pull-down and divider resistors are fitted as in firmware/base/WIRING.md (10 k from R_EN to
 GND, 10 k from L_EN to GND, the IS divider, the battery divider). Both motors are
 disconnected from their drivers for this first power-on, and the DRV8833 VM wire (P5) is soldered to the DRV8833
-but NOT yet to MP1584 #2 OUT (tape its free end). If the base already passed firmware/base/WIRING.md Part D and
-BENCH_TEST.md on the bench, the buck is already set and the motors may stay connected (nothing moves without a
-command): in step 5 only check the buck reads 9.0 V (do not turn the screw), and skip steps 6 and 10. Multimeter ready.
+but NOT yet to MP1584 #2 OUT (tape its free end). If the base electronics already passed firmware/base/WIRING.md
+Part D on the bench (the normal order of work), the buck is already set and the motors may stay connected (nothing
+moves without a command): in step 5 only check the buck reads 9.0 V (do not turn the screw), and skip steps 6 and
+10. If the Jetson is still on its wall supply: in step 7 skip the barrel plug (plug only the ESP32 USB into the
+Jetson, battery out), and in step 8 expect only the RC832 and ESP32 LEDs. Multimeter ready.
 
 1. Battery unplugged. Jetson barrel plug and ESP32 USB cable unplugged. Pull both fuses (20 A and 10 A) and both
    small inline fuses.
@@ -108,7 +110,8 @@ command): in step 5 only check the buck reads 9.0 V (do not turn the screw), and
 9. On the Jetson, in `~/GrappStar/jetson`: `python3 -m grappstar base ping` (expect `"ok": true`), then
    `python3 -m grappstar base monitor`. Check `vbat` in telemetry matches the meter within 0.3 V.
 10. Unplug the battery. Connect the motors (wiper to BTS7960 M+ / M-, drum N20 to AOUT1 / AOUT2). Check the B-
-    screw is tight. Plug the battery in. Nothing moves until a command is sent.
+    screw is tight. Plug the battery in. Nothing moves until a command is sent (a mode change may turn the wiper a
+    few degrees to free the dogs: that is a command too).
 
 Emergency stop: send `estop`. If that does not stop it, pull lead #2's XT60 (or its 20 A fuse): that kills both
 motors and leaves the Jetson running. Pull the main battery plug only if that is not enough.

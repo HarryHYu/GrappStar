@@ -14,8 +14,8 @@ Safety for every stage:
 - Hands out of the gears, the drum and the rail whenever the battery is plugged in.
 - From stage 5 on: nobody in front of the rail, safety glasses on, the launch area clear for 30 m.
 - Never fire a dart (dummy or real) without the tether tied on.
-- Emergency stop: `estop`. If that does not stop it, pull lead #2's XT60 (the wiper branch): both motors die and the
-  Jetson stays up. Keep a hand near it.
+- Stopping and approaching: build guide section 2 (`estop`, then lead #2's XT60, then the battery; and the checklist
+  before you walk up to the base or the dart). Cutting power does not release a drawn spring or a taut line.
 
 ## Stage 0. Risk coupons (before any big print)
 
@@ -122,13 +122,15 @@ electronics go in), taped shut with M8 nuts or sand inside to 279 g including th
 nose bright. Tie the line through the tail cap holes. Route the line as in the base assembly steps (for launch it
 bypasses the capstan). Set the payout brake with hanging weights (G4): 40 g does not pull line off, 50 g does.
 
-1. `aim` 20 degrees. Load the dummy, check `SW_SEATED` is closed. Fire.
+1. Check `require_seated` is back to `true` (`{"cmd":"get","key":"require_seated"}`). `aim` 20 degrees. Load the
+   dummy, check `SW_SEATED` is closed. Fire. Walk out to the dummy only after the approach checklist (section 2).
 2. Film it side-on with the phone in slow motion, tape measure on the ground in view (muzzle speed, G5).
 3. Measure the range. Repeat at 30 and 36 degrees (G6).
 4. Check the line paid out with no loops or overrun on the storage reel.
 
 Pass: clean exit (no rubbing marks on the dummy), it flies nose first, payout is clean, the range is within 30
-percent of the ballistics table at the same pitch (best about 5.2 m at 36 degrees with the two springs and the 0.5 N brake;
+percent of the ballistics table at the same pitch (best about 4.8 m at 36 degrees with the two springs and the 0.5 N brake, measured from the ground
+point under the rail pivot;
 `base/physics/SUMMARY.md` has the current number).
 If it fails: short range: measure the springs (B2) and the muzzle speed, then re-run the physics. Rubbing marks:
 check the cradle and the barrel against the dart. Loops on the reel: raise the brake a little (never over 1 N).
@@ -153,9 +155,11 @@ The real dart, built and tested to the dart run sheet section 10. Use real soil 
 
 1. Place the dart on the soil by hand, tether tied, line slack. Wrap the capstan now, before the dart anchors
    (decision D22). Then send `/auto` from the operator page (or key `a`).
-2. When the dart reports ANCHORED: pull the tether by hand with the luggage scale, slowly, up to 50 N or until
+2. When the dart reports ANCHORED: standing beside the line, not in line with it, glasses on, pull the tether by
+   hand with the luggage scale, slowly, up to 50 N or until
    it moves (G7).
-3. Re-anchor (wrap first, as in step 1). Base in REEL with wraps on: `reel` with `until` tension at a limit 10 N under the hand result.
+3. Do MEASURE_LIST G9 (current to tension) first if not done. Re-anchor (wrap first, as in step 1). Rover chocked,
+   everyone beside the line. Base in REEL with wraps on: `reel` with `until` tension at a limit 10 N under the hand result.
 4. Send release (operator page, or `python3 -m grappstar dart release`): drills out, pods up, foot out, kick back.
    Then reel the dart home.
 

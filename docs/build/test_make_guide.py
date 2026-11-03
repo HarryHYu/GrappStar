@@ -34,7 +34,7 @@ def test_full_build_has_every_section_and_no_em_dash():
     md = mg.build_markdown()
     assert "\u2014" not in md
     heads = re.findall(r"^# (\d+)\.", md, re.M)
-    assert heads == [str(i) for i in range(1, 16)], heads
+    assert heads == [str(i) for i in range(1, 17)], heads
     for must in ("battery unplugged", "608", "20 A fuse", "9.0 V"):
         assert must.lower() in md.lower(), must
 

@@ -262,6 +262,15 @@ class App:
         self.mission.start()
         return {"ok": True, "msg": "mission started", "run_dir": self.run_dir}
 
+    def act_recover(self) -> dict:
+        """Bring the dart home after an aborted mission (review r2_H #4): release if anchored, wrap if needed, reel in,
+        unwrap, take-up retrieve, LAUNCH. Same prompts and fault handling as a mission."""
+        if self._busy():
+            return {"ok": False, "msg": "mission running"}
+        self.mission = self._make_mission()
+        self.mission.start(recover=True)
+        return {"ok": True, "msg": "recovery started", "run_dir": self.run_dir}
+
     def act_preflight(self) -> dict:
         """Run only the preflight checks (no motion)."""
         if self._busy():
@@ -275,10 +284,10 @@ class App:
         except Exception as e:
             return {"ok": False, "msg": f"preflight: {e}"}
 
-    def act_answer(self, prompt_id: str, choice: str) -> dict:
+    def act_answer(self, prompt_id: str, choice: str, text: Optional[str] = None) -> dict:
         if not self.mission:
             return {"ok": False, "msg": "no mission"}
-        ok = self.mission.answer(prompt_id, choice)
+        ok = self.mission.answer(prompt_id, choice, text=text)
         return {"ok": ok, "msg": "ok" if ok else "that prompt is no longer open"}
 
     def act_stop(self) -> dict:
@@ -344,19 +353,22 @@ class App:
         return {"ok": ok, "msg": "dart stop" if ok else "dart not answering"}
 
     def act_set(self, key: str, val: Any) -> dict:
-        """Mission settings from the page: drag_n, tow_limit_n, check_n."""
-        if key in ("drag_n", "tow_limit_n", "check_n", "retrieve_limit_n"):
-            v = float(val)
-            if key.endswith("_n") and key != "drag_n" and not (1 <= v <= 100):
-                return {"ok": False, "msg": "limit must be 1 to 100 N"}
-            if key == "drag_n" and not (self.bal.drag[0] <= v <= self.bal.drag[-1]):
-                return {"ok": False, "msg": f"drag must be {self.bal.drag[0]} to {self.bal.drag[-1]} N (ballistics table)"}
-            setattr(self.cfg.mission, key, v)
-            if self.target:
-                self._update_solution()
-            return {"ok": True, "msg": f"{key} = {v}"}
-        self.base.set(key, val)
-        return {"ok": True, "msg": f"base {key} = {val}"}
+        """Mission settings from the page only (review r2_H #1): drag_n, tow_limit_n (max 70 N, D39), check_n,
+        retrieve_limit_n. Base tuning and calibration stay on the CLI (python3 -m grappstar base cmd ...)."""
+        limits = {"tow_limit_n": (1, 70), "check_n": (1, 70), "retrieve_limit_n": (1, 70)}
+        if key not in ("drag_n",) + tuple(limits):
+            return {"ok": False, "msg": f"unknown setting {key} (base settings: use the CLI)"}
+        if self._busy() and key != "tow_limit_n":
+            return {"ok": False, "msg": "mission running"}
+        v = float(val)
+        if key in limits and not (limits[key][0] <= v <= limits[key][1]):
+            return {"ok": False, "msg": f"{key} must be {limits[key][0]} to {limits[key][1]} N"}
+        if key == "drag_n" and not (self.bal.drag[0] <= v <= self.bal.drag[-1]):
+            return {"ok": False, "msg": f"drag must be {self.bal.drag[0]} to {self.bal.drag[-1]} N (ballistics table)"}
+        setattr(self.cfg.mission, key, v)
+        if self.target:
+            self._update_solution()
+        return {"ok": True, "msg": f"{key} = {v}"}
 
     def act_record(self, on: bool = True) -> dict:
         if on:

@@ -858,3 +858,4 @@ def test_d35_sequence_mock_matches_basesim():
     assert {k: tel_mock.get(k) for k in COMPARE} == {k: tel_real.get(k) for k in COMPARE}
     assert set(tel_mock["sw"]) - {"L"} == set(tel_real["sw"]) - {"L"}
     assert list(tel_mock) == list(tel_real)
+

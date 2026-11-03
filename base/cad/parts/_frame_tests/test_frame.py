@@ -208,3 +208,14 @@ def test_calc_working_loads_ok(P, B):
     for case, item, v, lim, ok in rows:
         if not case.startswith("FAULT"):
             assert ok, (case, item, v, lim)
+
+
+def test_guard_band_closes_box(P, B):
+    bands = [p for p in B["parts"] if p.name.startswith("frame_guard_band")]
+    assert bands
+    C = B["info"]["cfg"]
+    for p in bands:
+        (x0, y0, z0), (x1, y1, z1) = prim.bbox(prim.place(p.solid, p.place))
+        assert y0 > C["y_in"][-1] - 1e-6 and y1 < C["y_in"][1] + 1e-6
+    # every band lug hole has a matching clearance hole in both cheeks
+    assert len(B["info"]["band_holes"]) >= 4 * len(bands)

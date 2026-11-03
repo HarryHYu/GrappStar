@@ -53,7 +53,7 @@ def main():
             s = prim.place(p.solid, W[n])
             if axis == "y":
                 s2 = s.rotate((90, 0, 0))   # world y -> -z ; slice at z = -val
-                cs = s2.slice(-val)
+                cs = s2.slice(val)
             else:
                 s2 = s.rotate((0, -90, 0))
                 cs = s2.slice(val)

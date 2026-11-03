@@ -64,6 +64,8 @@ FRAMEWORK_DEFAULT = dict(
     adapter_standoff=12.0,  # adapter hub height over the cheek (clears block flanges, M6 nuts reachable)
     cheek_y_in=None,        # (right, left) inner cheek face y; None = from the motor face (y = 0) and cheek_gap
     ebay=None,              # electronics bay placement override, see _frame_ebay.py
+    band=True,              # guard band round the cheek box
+    band_cut=True,          # cut openings where the other subsystems pass (swept parts + 4 mm)
 )
 
 # printed bushing for printed shafts in a block (PPA-CF shaft in a PLA bush, see fits.SHAFT_IN_BORE)
@@ -383,6 +385,23 @@ def build(P):
         parts.append(Part(f"frame_tie_{i + 1}", tie, "PLA", print_tf=U.print_flat(tie), color="#9aa4ae",
                           notes="cheek tie: spacer between the cheeks, M3 x 12 through each cheek into an insert at each end"))
 
+    # ---- guard band round the cheek box (openings where other subsystems pass)
+    if fw["band"]:
+        from . import _frame_guard as G
+        both = outlines[-1].intersection(outlines[1])
+        cut = G.swept_cutters(P, C) if fw["band_cut"] else None
+        bands, bholes = G.band_parts(C, both, cut)
+        info["band_holes"] = bholes
+        for i, sol in enumerate(bands):
+            parts.append(Part(f"frame_guard_band_{i + 1}", sol, "PLA", color="#d0d6dc",
+                              print_tf=U.print_flat(sol, tf.Rx(90)),
+                              notes="guard band: closes the cheek box (top, front, back); M3 x 12 through each cheek into its lugs"))
+        for s in (-1, 1):
+            for (hx, hz) in bholes:
+                cheek_world[s] = cheek_world[s] - prim.cylY(U.CLR_D / 2, min(C["y_in"][s], C["y_out"][s]) - 1,
+                                                            max(C["y_in"][s], C["y_out"][s]) + 1, hx, hz) \
+                    - yfeat(prim.cyl(U.HEAD_D / 2, U.HEAD_H + 0.01, z=-U.HEAD_H), hx, hz, C["y_out"][s], -s)
+
     for s in (-1, 1):
         nm = "frame_cheek_r" if s < 0 else "frame_cheek_l"
         M = tf.Rx(-90) if s < 0 else tf.Rx(90)          # print flat: the cheek's outer face down
@@ -615,6 +634,8 @@ def allowed(P):
         Allow("frame_motor_saddle", "frame_deck*", "saddle stands on the deck", max_vol=1.0),
         Allow("frame_deck*", "frame_deck*", "dovetail seam", max_vol=1.0),
         Allow("frame_cheek_*", "frame_cheek_*", "cheek dovetail seam", max_vol=1.0),
+        Allow("frame_guard_band_*", "frame_cheek_*", "band lugs bear on the cheek inner faces", max_vol=1.0),
+        Allow("frame_guard_band_*", "frame_guard_band_*", "band segments butt", max_vol=1.0),
     ]
     from . import _frame_ebay as EB
     a += EB.allowed(P)

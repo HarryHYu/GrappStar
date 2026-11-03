@@ -47,6 +47,7 @@ horizon is approximate.
 from __future__ import annotations
 
 import dataclasses
+import functools
 import math
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -358,6 +359,19 @@ PRIOR_SIGMA = 0.20       # table muzzle speed prior: 20 percent (spring, clutch 
 
 
 def _gamma_track(v0: float, pitch: float, h0: float):
+    """Cached _gamma_track_raw (the pitch fit asks for the same speeds at every pitch); arrays are read-only."""
+    return _gamma_track_cached(round(float(v0), 4), round(float(pitch), 4), round(float(h0), 4))
+
+
+@functools.lru_cache(maxsize=8192)
+def _gamma_track_cached(v0: float, pitch: float, h0: float):
+    out = _gamma_track_raw(v0, pitch, h0)
+    for a in out:
+        a.setflags(write=False)
+    return out
+
+
+def _gamma_track_raw(v0: float, pitch: float, h0: float):
     """(t, x, z, gamma_deg) of the model flight from the rail end (t = 0 at the end of the stroke).
 
     h0 is the camera height at the stroke START; the free flight starts where the dart leaves the rail, half a

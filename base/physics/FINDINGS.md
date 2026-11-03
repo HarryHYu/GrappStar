@@ -24,6 +24,17 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 - Wrap: drum 0.49 to 0.60 N m, N20 61 to 74 N mm.
 - Mission (mission.py): aim, cock, flight, anchor, wrap, tow 3 m at 30 N, release, unwrap, reel 5 m: about 3.2 min,
   0.66 Wh from the base pack (about 70 missions per 3S 5200 mAh, base side only). Drum N20 timings ASSUMED.
+- SPRING CATALOGUE (web check): Bunnings 0487961 is Century C-243, 5/8 in OD x 6-1/2 in x 0.054 in wire (1.37 mm,
+  not 1.4). Century lists max safe load 8.64 lb (38.4 N) and max deflection 11.9 in (302 mm), rated for about 100,000
+  cycles. Our 280 mm full cock is 42 N with the 0.125 N/mm / 7 N estimate: inside the deflection limit but 9 % over
+  the load rating (our A228 static limit with SF 1.2 is 43.6 N at 1.4 mm wire, about 41 N at 1.37 mm). For a few
+  hundred shots this is acceptable; the hang test decides: keep the force at full cock at or under about 40 N
+  (if the spring measures 0.125 N/mm and 7 N: about 265 mm). Each 10 mm less extension costs about 0.15 m of range.
+- Tow current sensing: 17 N of line per amp above free current (line = 17 x (I - I_free) - 6 N, the offset is the
+  take-up drag). A firmware constant of 8 N/A would let the line reach about twice the set limit.
+- Blind cross-check (fresh agent, no access to this code): muzzle speed 7.77 m/s (ours 7.78). Its range was 12 %
+  longer; traced to a taut/slack chatter in its reel logic that applied the brake only about half the time. With the
+  brake applied continuously its approach matches ours within 1 %.
 - Sections F1 to F11 below are the history (numbers from earlier parameter sets).
 
 ## F1. RANGE: the two Century springs cannot reach 15 to 20 m. Expect 4 to 5 m. (biggest issue)

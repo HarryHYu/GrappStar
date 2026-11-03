@@ -75,13 +75,17 @@ def collect(p=None, fast=False):
         ("Overrun after landing", f"{pr['overrun_after_landing_m']:.2f} m in {pr['reel_stop_after_landing_s']:.2f} s"),
     ]))
     c = capstan.run(p)
+    _a, _b = capstan.tow_point(20, p, p.battery.v_nom), capstan.tow_point(60, p, p.battery.v_nom)
+    n_per_a = 40.0 / (_b["current"] - _a["current"])
+    f_off = 20 - n_per_a * (_a["current"] - p.wiper.i_free)
     sec.append(("Capstan and tow", [
         ("Wraps for tow limit (mu 0.15)", f"{c['wraps_needed']['raw']:.1f} raw, {c['wraps_needed']['design']:.0f} design"),
         ("Take-up needed (design wraps)", f"{c['takeup_needed_n']:.2f} N"),
         ("Tow at limit: torque, speed, current", f"{c['at_tow_nom']['t_wiper']:.2f} N m, {c['at_tow_nom']['v_line']:.3f} m/s, {c['at_tow_nom']['current']:.2f} A"),
         (f"Line pull {c['stall']['full']['label']} (12.6 V)", f"{c['stall']['full']['f_line']:.0f} N (break {p.line.breaking:.0f} N)"),
         ("Line pull, motor stall (no limiter, 12.6 V)", f"{c['motor_stall']['full']['f_line']:.0f} N"),
-    ]))
+            ("Tow sensing: line N per wiper amp above free", f"{n_per_a:.1f} N/A (line = {n_per_a:.1f} x (I - I_free) - {-f_off:.1f} N)"),
+]))
     d = drivetrain.run(p)
     rows = []
     for k, f in d["functions"].items():

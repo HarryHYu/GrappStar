@@ -28,6 +28,12 @@ from .record import Recorder
 
 STATS_WINDOW_S = 2.0      # fps and bad fraction are measured over this window
 MAX_BUFFER_FRAMES = 4000  # hard cap so a fast camera cannot eat all the RAM
+BUFFER_MAX_MB = 400.0     # ring buffer cap in MB of image data (720x480 BGR is about 1 MB per frame)
+
+
+def _nbytes(f) -> int:
+    img = getattr(f, "img", None)
+    return int(getattr(img, "nbytes", 0) or 0)
 
 
 class Camera:
@@ -35,12 +41,13 @@ class Camera:
                  deinterlace="none", buffer_s: float = 20.0, jpeg_quality: int = 80,
                  max_fps: Optional[float] = None, start: bool = True,
                  backoff_min: float = 0.5, backoff_max: float = 5.0,
-                 stall_s: float = 3.0, none_limit: int = 100):
+                 stall_s: float = 3.0, none_limit: int = 100, buffer_max_mb: float = BUFFER_MAX_MB):
         self.name = name
         self.source_factory = source_factory
         self.quality_enabled = bool(quality)
         self.deinterlace_mode = normalize_mode(deinterlace)
         self.buffer_s = float(buffer_s)
+        self.buffer_max_bytes = int(float(buffer_max_mb) * 1024 * 1024)
         self.jpeg_quality = int(jpeg_quality)
         self.max_fps = max_fps
         self.backoff_min = backoff_min
@@ -54,15 +61,17 @@ class Camera:
         self._stop = threading.Event()
         self._thread = None
         self._src = None
+        self._src_lock = threading.Lock()   # guards self._src swaps (worker vs. stop / reconnect)
 
         # State below is protected by self._lock.
         self._latest = None             # newest Frame
         self._latest_q = None           # its full quality dict
         self._prev_img = None           # previous image, for freeze detection
         self._ring = collections.deque()   # (receive time, Frame)
+        self._ring_bytes = 0            # image bytes held by the ring
         self._stats = collections.deque()  # (receive time, bad) over STATS_WINDOW_S
         self._last_rx = 0.0             # time.time() of the newest frame
-        self._last_kept = 0.0           # for max_fps throttling
+        self._next_due = 0.0            # max_fps schedule: the next frame is kept from about this time
         self._frames = 0
         self._connected = False
         self._source_info = None
@@ -84,12 +93,16 @@ class Camera:
         self._thread.start()
 
     def stop(self, timeout: float = 3.0) -> None:
+        """Signal the worker and wait for it. The worker closes its own source on exit, so a source is never
+        closed under a read() still running in the thread (a stuck read just finishes later and then closes)."""
         self._stop.set()
         with self._lock:
             self._new_frame.notify_all()
-        if self._thread is not None:
-            self._thread.join(timeout)
-        self._close_source()
+        t = self._thread
+        if t is not None:
+            t.join(timeout)
+        if t is None or not t.is_alive():
+            self._close_source()        # no worker (never started, or finished): nothing else will close it
         self.stop_recording()
 
     def __enter__(self):
@@ -106,7 +119,8 @@ class Camera:
             self._last_error = msg
 
     def _close_source(self) -> None:
-        src, self._src = self._src, None
+        with self._src_lock:
+            src, self._src = self._src, None
         if src is not None:
             try:
                 src.close()
@@ -116,12 +130,20 @@ class Camera:
             self._connected = False
 
     def _run(self) -> None:
+        try:
+            self._loop()
+        finally:
+            self._close_source()        # the worker owns its source: close it here, not from stop()
+
+    def _loop(self) -> None:
         backoff = self.backoff_min
         nones = 0
         opened_at = 0.0
         while not self._stop.is_set():
             # 1. Open the source if we do not have one.
-            if self._src is None:
+            with self._src_lock:
+                src = self._src
+            if src is None:
                 try:
                     src = self.source_factory()
                     if src is None:
@@ -131,7 +153,10 @@ class Camera:
                     self._stop.wait(backoff)
                     backoff = min(self.backoff_max, backoff * 2)
                     continue
-                self._src = src
+                with self._src_lock:
+                    self._src = src
+                if self._stop.is_set():
+                    break
                 nones = 0
                 opened_at = time.time()
                 with self._lock:
@@ -139,7 +164,7 @@ class Camera:
 
             # 2. Read one frame.
             try:
-                f = self._src.read()
+                f = src.read()
             except Exception as e:
                 self._error("read: %s" % e)
                 self._reconnect()
@@ -174,9 +199,14 @@ class Camera:
 
     def _handle(self, f: Frame) -> None:
         now = time.time()
-        if self.max_fps and now - self._last_kept < 1.0 / self.max_fps:
-            return                      # throttled: drop this frame
-        self._last_kept = now
+        if self.max_fps:
+            # schedule, not a minimum gap: with max_fps equal to the source rate a few ms of jitter must not drop
+            # frames. Keep a frame from 20 % of a period before it is due; the next is due one period later
+            # (from now when we fell behind, so a stall does not cause a burst).
+            period = 1.0 / float(self.max_fps)
+            if now < self._next_due - 0.2 * period:
+                return                  # throttled: drop this frame
+            self._next_due = max(self._next_due + period, now)
         if self.deinterlace_mode != "none":
             f.img = _deinterlace(f.img, self.deinterlace_mode)
         q = None
@@ -193,9 +223,11 @@ class Camera:
             self._frames += 1
             self._connected = True
             self._ring.append((now, f))
-            while self._ring and (now - self._ring[0][0] > self.buffer_s
-                                  or len(self._ring) > MAX_BUFFER_FRAMES):
-                self._ring.popleft()
+            self._ring_bytes += _nbytes(f)
+            while len(self._ring) > 1 and (now - self._ring[0][0] > self.buffer_s
+                                           or len(self._ring) > MAX_BUFFER_FRAMES
+                                           or self._ring_bytes > self.buffer_max_bytes):
+                self._ring_bytes -= _nbytes(self._ring.popleft()[1])
             self._stats.append((now, f.bad))
             while self._stats and now - self._stats[0][0] > STATS_WINDOW_S:
                 self._stats.popleft()
@@ -302,6 +334,7 @@ class Camera:
                 "resolution": None if f is None else [int(f.img.shape[1]), int(f.img.shape[0])],
                 "age_s": None if f is None else round(now - self._last_rx, 3),
                 "buffer_frames": len(self._ring),
+                "buffer_mb": round(self._ring_bytes / (1024.0 * 1024.0), 1),
                 "errors": self._errors,
                 "last_error": self._last_error,
                 "reconnects": self._reconnects,

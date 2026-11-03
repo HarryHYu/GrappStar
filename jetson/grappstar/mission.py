@@ -266,7 +266,7 @@ class Mission:
 
     def dart_motion_possible(self) -> bool:
         s = self.dart.last or {}
-        return s.get("phase") in ("ANCHORING", "RELEASING") or bool(s.get("current_mA", 0) > 200)
+        return s.get("phase") in ("ANCHORING", "RELEASING") or bool((s.get("current_mA") or 0) > 200)
 
     def _do(self, name: str, fn: Callable[[], Any]) -> Any:
         """Run one step with fault handling: Retry, Skip (where safe) or Abort."""
@@ -451,7 +451,8 @@ class Mission:
             self.base_mode("LAUNCH")
             t = self.tel()
         p = self.shot.get("pitch_deg")
-        if p is not None and abs((t.get("pitch_deg") or -99) - p) > 0.5:
+        cur = t.get("pitch_deg")
+        if p is not None and (cur is None or abs(cur - p) > 0.5):
             self.log.info(f"re-aiming to {p} deg")
             m = self.base.event_mark()
             self.base.aim(p)
@@ -533,7 +534,7 @@ class Mission:
         self.shot["landing_sources"] = sorted(sources)
         self.shot["line_out_m"] = self.tel().get("line_m")
         if not sources:
-            c = self.ask("Landing not detected (no dart signal, line still moving or no data). Is the dart down?",
+            self.ask("Landing not detected (no dart signal, line still moving or no data). Is the dart down?",
                          ["Dart is down", "Abort"], danger=True)
             self.shot["landing_sources"] = ["operator"]
         self.log.info(f"landed ({', '.join(self.shot['landing_sources'])}), line out {self.shot['line_out_m']} m")
@@ -772,7 +773,7 @@ class Mission:
         self._do("WRAP", self.wrap)
         self._do("RETRIEVE", self.retrieve)
         self._do("UNWRAP", self.unwrap)
-        tgt = self.get_target()
+        self._set_step("AIM")
         self.ask("Dart is home. Check the dart and the line, set the new target if needed, then shoot again.",
                  ["Shoot again", "Abort"])
 

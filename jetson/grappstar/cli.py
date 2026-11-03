@@ -23,6 +23,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 JETSON_DIR = os.path.dirname(HERE)
 DEFAULT_CALIB = os.path.join(JETSON_DIR, "calib", "rovercam.json")
+SETTINGS = os.path.join(JETSON_DIR, "settings.json")
 
 
 def _size(s: str):
@@ -42,6 +43,7 @@ def cmd_serve(a) -> int:
         cfg.runs_dir = a.runs
     cfg.mission.tow_limit_n = a.tow_limit
     cfg.mission.drag_n = a.drag
+    cfg.mission.imu_axes = a.imu_axes
     app = App(cfg).start()
     print(f"GrappStar operator page: http://0.0.0.0:{a.port}/  ({'SIMULATOR' if a.sim else 'hardware'})")
     try:
@@ -293,6 +295,8 @@ def main(argv=None) -> int:
     s.add_argument("--tow-limit", type=float, default=40.0, help="tow tension limit, N")
     s.add_argument("--drag", type=float, default=0.75, help="payout brake setting, N (C3 column)")
     s.add_argument("--runs", help="folder for run logs (default jetson/runs)")
+    s.add_argument("--imu-axes", default="x,y,z",
+                   help="BNO085 chip axes as dart body axes, from the bench test, e.g. 'y,-x,z'")
     s.add_argument("--sim-landing", default="hard_ground")
     s.add_argument("--sim-seed", type=int, default=0)
 
@@ -349,6 +353,15 @@ def main(argv=None) -> int:
     argv = sys.argv[1:] if argv is None else list(argv)
     if argv and argv[0] == "calibrate":
         return cmd_calibrate(None, argv[1:])
+    # site settings: jetson/settings.json holds defaults for serve (keys = option names with _ instead of -),
+    # so the systemd service and the command line agree. Command line options still win.
+    if argv and argv[0] == "serve" and os.path.exists(SETTINGS):
+        try:
+            with open(SETTINGS) as f:
+                sub.choices["serve"].set_defaults(**{k.replace("-", "_"): v for k, v in json.load(f).items()})
+            print(f"settings from {SETTINGS}")
+        except Exception as e:
+            print(f"WARNING: {SETTINGS} ignored: {e}")
     a = ap.parse_args(argv)
     return {"serve": cmd_serve, "cameras": cmd_cameras, "snap": cmd_snap, "base": cmd_base, "dart": cmd_dart,
             "mockbase": cmd_mockbase, "mockdart": cmd_mockdart, "replay": cmd_replay, "solve": cmd_solve,

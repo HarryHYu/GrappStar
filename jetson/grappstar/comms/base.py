@@ -13,6 +13,10 @@ All public methods are thread safe.
   from grappstar.comms.base import BaseClient
   b = BaseClient("/dev/grappstar-base"); b.start()
   b.mode("LAUNCH"); b.wait_event("MODE", timeout=10); b.aim(32.5)
+
+The protocol as the firmware implements it (fw "base-1.0") is in jetson/docs/C1_AS_IMPLEMENTED.md. A shot is:
+mode LAUNCH (MODE), aim (AIMED), cock (COCKED), arm (token), fire (FIRED, then RESET). Completion events with
+"ok": false (MODE, AIMED, COCKED, WRAPPED, UNWRAPPED, RESET) and ABORTED raise BaseError in wait_event.
 """
 from __future__ import annotations
 
@@ -30,10 +34,41 @@ MAX_LINE = 256          # C1: at most 256 bytes per line
 DEFAULT_TIMEOUT = 1.0   # seconds to wait for a reply
 
 MODES = ("LAUNCH", "NEUTRAL", "REEL")
+TEL_MODES = MODES + ("NONE",)              # telemetry "mode" is derived from the drum: NONE between detents
 DRUM_POS = ("LAUNCH", "NEUTRAL", "REEL", "WRAPPED", "BETWEEN", "UNKNOWN")
-EVENTS = ("MODE", "AIMED", "COCKED", "FIRED", "WRAPPED", "UNWRAPPED", "SEATED", "STALL", "LIMIT", "FAULT")
+STATES = ("IDLE", "MODE", "AIM", "COCK", "FIRE", "WRAP", "UNWRAP", "REEL", "HOLD", "JOG", "CAL", "SAFING", "FAULT",
+          "DECOCK")
+PHASES = ("REST", "COCKING", "COCKED", "FIRING", "RESETTING", "UNKNOWN")
+EVENTS = ("HELLO", "BOOT", "MODE", "AIMED", "COCKED", "FIRED", "RESET", "WRAPPED", "UNWRAPPED", "SEATED", "STALL",
+          "LIMIT", "ABORTED", "FAULT", "OVERFLOW")
 FAULTS = ("STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR", "ANGLE_SENSOR", "SWITCH_DISAGREE", "BROWNOUT",
           "BAD_STATE")
+# reply error codes (base_logic.h); events can also carry err (AIMED: OUT_OF_RANGE, AIM_MISS; MODE: DRUM_HELD or a why)
+ERRORS = ("TOO_LONG", "BAD_JSON", "NO_CMD", "UNKNOWN_CMD", "BAD_ARG", "BAD_KEY", "REPLY_OVERFLOW", "FAULTED", "BUSY",
+          "BOOTING", "NO_POWER", "ANGLE_SENSOR", "HOLDING", "POSITION_UNKNOWN", "WRAPS_ON", "SWITCH_DISAGREE",
+          "LAUNCH_BUSY", "NOT_IN_LAUNCH", "PHASE_UNKNOWN", "NOT_AT_REST", "OUT_OF_RANGE", "AIM_UNKNOWN", "NO_SENSOR",
+          "LOADED_UNKNOWN", "NOT_COCKED", "NOT_AIMED", "NOT_SEATED", "NOT_ARMED", "TOKEN_EXPIRED", "BAD_TOKEN",
+          "NOT_IN_REEL", "NOT_WRAPPED", "WOULD_FIRE", "BACKSTOP", "NOT_RUNNING", "STILL_PRESENT")
+# telemetry "sw": closed contacts only (absent = open), one-letter keys (config.h SW_TEL)
+SW_KEYS = {"a": "SW_DRUM_A", "b": "SW_DRUM_B", "c": "SW_DRUM_C", "S": "SW_SEATED", "H": "SW_HOME",
+           "L": "SW_RAIL_LOW", "W": "SW_WRAP_HOME"}
+SW_BY_NAME = {v: k for k, v in SW_KEYS.items()}
+
+
+def tel_contact(tel: Optional[dict], name: str) -> bool:
+    """True if the contact (SW_SEATED, SW_HOME, ... or its letter) is closed in this telemetry."""
+    sw = (tel or {}).get("sw") or {}
+    return bool(sw.get(SW_BY_NAME.get(name, name)))
+
+
+def tel_seated(tel: Optional[dict]) -> bool:
+    """Dart seated in the cradle (SW_SEATED closed)."""
+    return tel_contact(tel, "SW_SEATED")
+
+
+def tel_carriage_home(tel: Optional[dict]) -> bool:
+    """Launch carriage fully forward (SW_HOME closed): at rest, or released."""
+    return tel_contact(tel, "SW_HOME")
 
 
 class BaseError(Exception):
@@ -273,6 +308,12 @@ class BaseClient:
             # a reply (a status reply may also carry a tel object: it is a reply, not the telemetry stream)
             with self._cv:
                 i = obj.get("id")
+                if i is None:
+                    # TOO_LONG / BAD_JSON / REPLY_OVERFLOW come back with id null: the firmware answers in order,
+                    # so it belongs to the oldest command still waiting
+                    waiting = [k for k, v in self._pending.items() if v is None]
+                    if waiting:
+                        i = min(waiting)
                 if i in self._pending and self._pending[i] is None:
                     self._pending[i] = obj
                     self._cv.notify_all()
@@ -366,22 +407,57 @@ class BaseClient:
     def aim(self, deg: float, **kw) -> dict:
         return self.cmd("aim", deg=round(float(deg), 2), **kw)
 
-    def arm(self, **kw) -> str:
-        """Returns the fire token (valid about 3 s)."""
+    def cock(self, **kw) -> dict:
+        """Draw the launch spring (LAUNCH, train at rest, after aim). Completion: COCKED. Already cocked: COCKED now."""
+        return self.cmd("cock", **kw)
+
+    def arm(self, **kw) -> Any:
+        """Returns the fire token (a six digit int, valid_ms 3000). Needs LAUNCH, cocked, aimed and the dart seated."""
         r = self.cmd("arm", **kw)
         if "token" not in r:
             raise BaseError("arm", "NO_TOKEN", r)
         return r["token"]
 
     def fire(self, token: Any, **kw) -> dict:
+        """Fire with the token from arm (single use; a wrong token burns it). FIRED at the release, RESET at rest."""
         return self.cmd("fire", token=token, **kw)
 
+    def decock(self, **kw) -> dict:
+        """cal decock: unwind a drawn spring without a shot (aim must be redone). RESET {how: decock} at rest;
+        the reply alone (no event) when the carriage is already home."""
+        return self.cmd("cal", what="decock", **kw)
+
+    def cal_drum(self, **kw) -> dict:
+        """cal drum: home search toward LAUNCH until a detent code closes. MODE event when found."""
+        return self.cmd("cal", what="drum", **kw)
+
+    def cal_cock_rest(self, **kw) -> dict:
+        """cal cock_rest: declare the launch train at rest (operator checked; SW_HOME must be closed)."""
+        return self.cmd("cal", what="cock_rest", **kw)
+
+    def cal_aim_home(self, **kw) -> dict:
+        """cal aim_home: declare the aim train at its home (pitch minimum)."""
+        return self.cmd("cal", what="aim_home", **kw)
+
+    def cal_aim(self, deg: float, **kw) -> dict:
+        """cal aim: the rail really is at deg now (sets aim_offset)."""
+        return self.cmd("cal", what="aim", deg=round(float(deg), 2), **kw)
+
+    def tare(self, **kw) -> dict:
+        return self.cmd("cal", what="tare", **kw)
+
     def reel(self, duty: float, max_n: Optional[float] = None, until: str = "stop", **kw) -> dict:
+        """Wind the capstan (needs wraps on: drum_pos WRAPPED). duty 0 < d <= 1, max_n > 0 (capped at 150 N, default
+        limit_n). Ends: SEATED (until seated), LIMIT (holding true and state HOLD for until tension, else IDLE),
+        ABORTED (stop or the 240 s timeout)."""
         if until not in ("seated", "tension", "stop"):
             raise ValueError("until must be seated, tension or stop")
-        return self.cmd("reel", duty=round(max(0.0, min(1.0, float(duty))), 3), max_n=max_n, until=until, **kw)
+        duty = round(max(0.0, min(1.0, float(duty))), 3)
+        if duty <= 0:
+            raise ValueError("reel duty must be above 0")
+        return self.cmd("reel", duty=duty, max_n=max_n, until=until, **kw)
 
-    def jog(self, motor: str, direction: int, ms: int, **kw) -> dict:
+    def jog(self, motor: str, direction: int, ms: int = 300, **kw) -> dict:
         if motor not in ("wiper", "drum") or direction not in (1, -1):
             raise ValueError("jog: motor wiper|drum, dir 1|-1")
         return self.cmd("jog", motor=motor, dir=direction, ms=int(ms), **kw)
@@ -411,8 +487,14 @@ class BaseClient:
             return [e for e in self._events if e["_seq"] > since]
 
     def wait_event(self, names, timeout: float, since: Optional[int] = None,
-                   fail_on_fault: bool = True, pred: Optional[Callable[[dict], bool]] = None) -> dict:
-        """Wait for an event named in names (str or tuple) newer than since. A FAULT event raises BaseError."""
+                   fail_on_fault: bool = True, pred: Optional[Callable[[dict], bool]] = None,
+                   fail_on_not_ok: bool = True, fail_on_abort: bool = True) -> dict:
+        """Wait for an event named in names (str or tuple) newer than since.
+
+        Raises BaseError for: a FAULT event (err = fault code), an awaited event with "ok": false (err = its err, for
+        example MODE DRUM_HELD or AIMED AIM_MISS; the event is in .reply), and an ABORTED event (err "ABORTED", the
+        motion was stopped or timed out). Each can be switched off; an event named in names is always returned.
+        """
         if isinstance(names, str):
             names = (names,)
         since = self.event_mark() if since is None else since
@@ -422,10 +504,15 @@ class BaseClient:
                 for e in self._events:
                     if e["_seq"] <= since:
                         continue
-                    if e.get("evt") in names and (pred is None or pred(e)):
+                    name = e.get("evt")
+                    if name in names and (pred is None or pred(e)):
+                        if fail_on_not_ok and e.get("ok") is False:
+                            raise BaseError(str(name), str(e.get("err") or "NOT_OK"), e)
                         return e
-                    if fail_on_fault and e.get("evt") == "FAULT" and "FAULT" not in names:
+                    if fail_on_fault and name == "FAULT" and "FAULT" not in names:
                         raise BaseError("wait", str(e.get("code") or e.get("fault") or "FAULT"), e)
+                    if fail_on_abort and name == "ABORTED" and "ABORTED" not in names:
+                        raise BaseError("wait", "ABORTED", e)
                 left = t_end - time.monotonic()
                 if left <= 0:
                     raise BaseTimeout(f"no {'/'.join(names)} event in {timeout:.1f} s")

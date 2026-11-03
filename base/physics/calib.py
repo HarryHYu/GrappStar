@@ -47,14 +47,18 @@ def fit_v_scale(shots, p=None):
     def err(k):
         return sum((simulate(p, base[th] * k, th, brake_n=b, reel_model=True)["range_m"] - r) ** 2 for th, b, r in shots)
     lo, hi = 0.6, 1.4
-    for _ in range(40):                    # golden-section search
-        m1, m2 = lo + 0.382 * (hi - lo), lo + 0.618 * (hi - lo)
-        if err(m1) < err(m2):
-            hi = m2
+    g = 0.6180339887
+    m1, m2 = hi - g * (hi - lo), lo + g * (hi - lo)
+    e1, e2 = err(m1), err(m2)
+    while hi - lo > 2e-3:                  # golden-section search, one new evaluation per step
+        if e1 < e2:
+            hi, m2, e2 = m2, m1, e1
+            m1 = hi - g * (hi - lo)
+            e1 = err(m1)
         else:
-            lo = m1
-        if hi - lo < 1e-3:
-            break
+            lo, m1, e1 = m1, m2, e2
+            m2 = lo + g * (hi - lo)
+            e2 = err(m2)
     k = 0.5 * (lo + hi)
     rows = [(th, b, r, simulate(p, base[th] * k, th, brake_n=b, reel_model=True)["range_m"]) for th, b, r in shots]
     return dict(v_scale=k, rows=rows, rms_m=(err(k) / len(shots)) ** 0.5)

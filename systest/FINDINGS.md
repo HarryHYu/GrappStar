@@ -308,7 +308,8 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
 - Found after R2-L review item 1: the plant line is now 1 mm Dyneema (EA 20 kN: about 5.6 kN/m at 3.6 m) instead
   of sim.h's 40 N/m spring. Scenario `ref_nominal` (BASE_SPEC 10.1 exactly, preview fw-base 6472524): the wrap takes
   the 0.9 m landing slack, the dart anchors, `tidy` -> TIDIED (dart side taut), `mode REEL` (fly-in) ->
-  `FAULT OVERCURRENT "wiper over 3.0 A"` and `MODE ok:false DRUM_HELD` within 3 s; four retries, the same.
+  `FAULT OVERCURRENT "wiper over 3.0 A"` and `MODE ok:false DRUM_HELD` within 3 s (plant peak line tension during
+  the fly-in 37.4 N, peak wiper 4.2 A); four retries, the same.
 - Why: the fly-in creeps the wiper FORWARD until the collar drops into REEL (config.h:147, `jogTripA` 3.0 A at
   config.h:65). Once the dogs bite, every further wiper degree winds the capstan (1.667 capstan turns per wiper turn,
   r 20.5 mm: about 0.6 mm of line per wiper degree). On a taut Dyneema line 10 deg of creep is about 6 mm, about 33 N:

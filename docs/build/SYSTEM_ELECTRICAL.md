@@ -82,9 +82,11 @@ Gauges assume runs under 0.5 m. 14 AWG carries the 18 A wiper stall; 18 AWG is f
 Before you start: the pull-down and divider resistors are fitted as in firmware/base/WIRING.md (10 k from R_EN to
 GND, 10 k from L_EN to GND, the IS divider, the battery divider). Both motors are
 disconnected from their drivers for this first power-on, and the DRV8833 VM wire (P5) is soldered to the DRV8833
-but NOT yet to MP1584 #2 OUT (tape its free end). If the base already passed firmware/base/WIRING.md Part D and
-BENCH_TEST.md on the bench, the buck is already set and the motors may stay connected (nothing moves without a
-command): in step 5 only check the buck reads 9.0 V (do not turn the screw), and skip steps 6 and 10. Multimeter ready.
+but NOT yet to MP1584 #2 OUT (tape its free end). If the base electronics already passed firmware/base/WIRING.md
+Part D on the bench (the normal order of work), the buck is already set and the motors may stay connected (nothing
+moves without a command): in step 5 only check the buck reads 9.0 V (do not turn the screw), and skip steps 6 and
+10. If the Jetson is still on its wall supply: in step 7 skip the barrel plug (plug only the ESP32 USB into the
+Jetson, battery out), and in step 8 expect only the RC832 and ESP32 LEDs. Multimeter ready.
 
 1. Battery unplugged. Jetson barrel plug and ESP32 USB cable unplugged. Pull both fuses (20 A and 10 A) and both
    small inline fuses.

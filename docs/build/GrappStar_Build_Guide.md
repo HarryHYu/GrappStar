@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 12:24 Sydney time from commit `20db989`.
+Built 2026-11-03 12:25 Sydney time from commit `b218750`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -116,7 +116,7 @@ the cradle, unwraps and returns to LAUNCH.
 1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5 and A8), the springs (group B), and the
    parts in H1, H3, H4. Put the
    numbers in `base/spec/params.py` and re-run the base pipeline. The base parts that touch the motor depend on
-   them. A6 and A7 (speed, current, torque) need the base electronics: do them at test stage 2. They change no
+   them. A6 and A7 (speed, current, torque) need the base electronics: do them at step 7. They change no
    printed part.
 2. Confirm the parts box (section 14, group C). The only purchase is 608 bearings (and an AS5600 magnet if none
    is in the box).
@@ -124,13 +124,16 @@ the cradle, unwraps and returns to LAUNCH.
    plates (section 4) do not wait for the base coupons or the measurements: start them any time after the dart
    fit coupon passes.
 4. Flash the dart and build it (sections 6 and 8, and the dart run sheet in the appendix).
-5. Print the base (section 4) and assemble it (section 5).
-6. Set up the Jetson on its own wall supply (section 9). Flash the base ESP32 from the Mac, with nothing else
-   connected to it (section 8.1).
-7. Wire the base and the rover (section 7) and do the first power-on sequence (7.1, its part 4). While the Jetson
-   is still on its wall supply, leave the barrel plug out in step 7.
-8. Calibrate (section 10) and bench test (section 11).
-9. Run the staged tests, bench to field (section 12).
+5. Set up the Jetson on its own wall supply (section 9, steps 0 to 4 only; the rest comes later).
+6. Flash the base ESP32 from the Mac (section 8.1). Battery out is enough: any wiring already on the board can stay.
+7. Wire the base electronics on the bench, wiper motor clamped in a vice and the drum N20 loose (section 7.2,
+   firmware/base/WIRING.md Parts A to D), then bench test them (section 11.1). Measure A6 and A7 here.
+8. Print the base (section 4, after the coupons pass and the measurements are in) and assemble it with the motor
+   and drum N20 (section 5).
+9. Put the base on the rover and wire the rover (section 7.1), then do the first power-on of everything together
+   (7.1, its part 4).
+10. Calibrate (section 10). Commands go to the base from the Jetson from now on (see section 10).
+11. Run the staged tests, bench to field (section 12).
 
 # 2. Safety
 
@@ -889,8 +892,8 @@ Battery unplugged for every step in this section. Two documents, used in this or
    wire the ESP32, BTS7960, DRV8833, sensors and contacts, run the meter checks, first power with the ESP32 on the
    Mac's USB. Then `firmware/base/BENCH_TEST.md`.
 2. **The whole rover** (7.1, the system page): the XT60 Y harness, the fuses, the Jetson and video, and the first
-   power-on of everything together (its section 4). Do this once the base is on the rover, and again after any
-   rewiring.
+   power-on of everything together (its part 4). Do this once the base is assembled and on the rover (order of
+   work step 9), and again after any rewiring.
 
 One-page printable pin sheets for the bench: `docs/build/Wiring_Cheat_Sheet_Base.pdf` (base ESP32-S3) and
 `docs/build/Wiring_Cheat_Sheet_Dart.pdf` (dart XIAO).
@@ -990,9 +993,11 @@ Gauges assume runs under 0.5 m. 14 AWG carries the 18 A wiper stall; 18 AWG is f
 Before you start: the pull-down and divider resistors are fitted as in firmware/base/WIRING.md (10 k from R_EN to
 GND, 10 k from L_EN to GND, the IS divider, the battery divider). Both motors are
 disconnected from their drivers for this first power-on, and the DRV8833 VM wire (P5) is soldered to the DRV8833
-but NOT yet to MP1584 #2 OUT (tape its free end). If the base already passed firmware/base/WIRING.md Part D and
-BENCH_TEST.md on the bench, the buck is already set and the motors may stay connected (nothing moves without a
-command): in step 5 only check the buck reads 9.0 V (do not turn the screw), and skip steps 6 and 10. Multimeter ready.
+but NOT yet to MP1584 #2 OUT (tape its free end). If the base electronics already passed firmware/base/WIRING.md
+Part D on the bench (the normal order of work), the buck is already set and the motors may stay connected (nothing
+moves without a command): in step 5 only check the buck reads 9.0 V (do not turn the screw), and skip steps 6 and
+10. If the Jetson is still on its wall supply: in step 7 skip the barrel plug (plug only the ESP32 USB into the
+Jetson, battery out), and in step 8 expect only the RC832 and ESP32 LEDs. Multimeter ready.
 
 1. Battery unplugged. Jetson barrel plug and ESP32 USB cable unplugged. Pull both fuses (20 A and 10 A) and both
    small inline fuses.
@@ -2052,7 +2057,13 @@ jetson/
 
 # 10. Calibration (base)
 
-Do it after the base is assembled and wired, springs off, before test stage 4. Part (f), the cock geometry check,
+Where to type the commands: on the bench (ESP32 on the Mac's USB) in the Arduino Serial Monitor. Once the ESP32 is
+on the Jetson, on the Jetson in `~/GrappStar/jetson`: `python3 -m grappstar base cmd '<the same JSON>'`, with
+`python3 -m grappstar base monitor` in a second terminal for telemetry. If you installed the grappstar service, stop
+it first (`sudo systemctl stop grappstar`): it holds the serial port. Never move the USB plug with the battery in.
+
+Do it after the base is assembled and wired, springs off, before test stage 4. The bench test (section 11.1) comes
+first, on the bench (order of work step 7). Part (f), the cock geometry check,
 needs the springs: do it at test stage 5. The values are stored on the ESP32.
 
 
@@ -2261,6 +2272,13 @@ are hooked, so treat it as loaded: no dart, nobody and no hands in front of the 
 # 11. Bench tests
 
 ## 11.1 Base
+
+This runs on the bench before the base is assembled (order of work step 7): wiper motor clamped in a vice, drum
+N20 loose. Where to type the commands: on the bench (ESP32 on the Mac's USB) in the Arduino Serial Monitor. Once the ESP32 is
+on the Jetson, on the Jetson in `~/GrappStar/jetson`: `python3 -m grappstar base cmd '<the same JSON>'`, with
+`python3 -m grappstar base monitor` in a second terminal for telemetry. If you installed the grappstar service, stop
+it first (`sudo systemctl stop grappstar`): it holds the serial port. Never move the USB plug with the battery in.
+
 
 
 *From `firmware/base/BENCH_TEST.md`:*
@@ -2984,27 +3002,34 @@ Other documents in the repo: `kedge/pack_v30/KEDGE_v30_engineering_report.pdf` (
 | Word | Meaning here |
 |---|---|
 | 3S, 2S | Battery cells in series: 3S LiPo = 3 cells, 9.9 to 12.6 V in use; 2S 18350 = 2 cells, 6.0 to 8.4 V |
-| AWG | Wire size: smaller number = thicker wire. 14 AWG for the wiper, 22 to 28 AWG for signals |
 | AS5600 | Magnetic angle sensor: reads a magnet on the end of the main shaft to know the wiper angle |
+| AWG | Wire size: smaller number = thicker wire. 14 AWG for the wiper, 22 to 28 AWG for signals |
+| BASE_SPEC, params.py | The base design description and the file with every shared number (`base/spec/`) |
 | BTS7960 | The big motor driver board that runs the wiper motor in both directions |
 | Buck (MP1584) | Small board that turns a higher voltage into a lower one, set with its brass screw |
 | Capstan | A drum the line wraps round several times; friction from the wraps lets it pull hard |
-| CSK20PP, sprag | One-way bearing: turns freely one way, locks the other |
 | Cock / de-cock | Draw the launch springs back / let them back down slowly without firing |
+| CSK20PP, sprag | One-way bearing: turns freely one way, locks the other |
+| D9, D12, D27 ... | Numbered design decisions in `base/spec/DECISIONS.md`; they override older notes |
+| Deadman | A move that stops by itself unless the same command is sent again in time (the `jog` command) |
 | Dog clutch, collar | A sliding ring with teeth that locks the main shaft to one gear or another |
-| DRV8833 | Small motor driver board for the N20 motors |
 | Drum (selector drum) | The N20-driven barrel with grooves that moves the dog collar and lays the wraps |
+| DRV8833 | Small motor driver board for the N20 motors |
 | estop | Emergency stop command: wiper off, drum to a safe position |
+| Fly-in | Entering REEL with the wiper creeping forward so the dog teeth find their slots |
 | Fuse | Thin link that melts and cuts the power if the current is far too high |
 | Gray code | The three drum contacts read as a 3-digit code that changes one digit at a time |
 | Heat-set insert | Brass M3 thread pressed into a printed hole with a hot soldering iron |
+| IS | The BTS7960's current-sense output, read by the ESP32 to know the wiper current |
 | JSON line | One command or reply as text in curly brackets, for example `{"cmd":"ping"}` |
 | N20 | Small 12 mm gearmotor. "Worm" N20s are right-angle and hold their position unpowered |
 | PPA-CF | Strong carbon-filled nylon filament, for loaded gears and keyed shafts |
 | Printed contact | A switch made from an M3 screw head touching an M3 nut |
+| pty | A pretend serial port on the Jetson, used by the fake base for tests |
 | Pull-down / pull-up | A resistor that holds a pin low (or high) when nothing else drives it |
 | Shear pin | A printed pin that breaks on purpose to protect the gears from the wiper's full torque |
 | Slip clutch | Friction clutch that slips above a set force: the payout brake and the take-up |
+| STEMMA QT | Adafruit's small 4-pin plug and cable (JST SH) for I2C sensors such as the AS5600 |
 | Telemetry | The status line the base sends 10 times a second (`tel`) |
 | Tether | The Dyneema line between the base and the dart |
 | VTX | The dart's video transmitter (5.8 GHz). Never power it without its antenna |

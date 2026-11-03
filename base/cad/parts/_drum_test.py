@@ -83,7 +83,7 @@ def test_brake_levels():
     assert K.brake_frac(C["launch"]) == 0.0
     assert K.brake_frac(C["neutral"]) == pytest.approx(1.0)
     assert K.brake_frac(180.0) == 0.0
-    assert 0.0 < K.brake_frac(C["wrapped"]) < 1.0      # ramping LIGHT to FIRM over 302..316 (params)
+    assert K.brake_frac(C["wrapped"]) == pytest.approx(1.0)   # FIRM at the WRAPPED park for the tidy (D22)
     assert K.brake_frac(C["reel"]) == pytest.approx(1.0)
 
 

@@ -27,11 +27,11 @@ GEOM = dict(
     # coupler (D8 shear pin limiter, D15 bus gear)
     cpl_s=(0.5, 48.0), cpl_od=40.0, sock_s=30.0,
     hub_od=26.0, hub_s=(0.5, 21.0), nut_s=16.0, shear_s=13.0, shear_d=4.0,
-    bus_m=1.5, bus_z=40, bus_s=(40.0, 48.0),
+    bus_m=1.5, bus_z=50, bus_s=(40.0, 48.0),
     idx_s=(3.0, 9.0), idx_r0=20.0, idx_bump=2.5, idx_n=6, idx_w=24.0, idx_ramp=4.0,   # D12 SW_INDEX cam
     # main shaft
-    hex_af=22.0, hex_s=(30.0, 106.0), spig_d=12.0, spig_end=175.5, xpin_s=35.0,
-    cap_s=(172.0, 178.5),
+    hex_af=22.0, hex_s=(30.0, 106.0), spig_d=12.0, spig_end=198.5, xpin_s=35.0,
+    cap_s=(195.0, 201.5),      # D23: magnet face at y 201.5, outboard of the launch sleeve (y 111..193)
     # REEL sleeve and gear (params.DRUM.reel_output m2 50T face 12, plane 50.5..62.5)
     rsl_flange=(48.0, 50.0, 44.0), rsl_journal=(50.0, 62.0, 30.0),
     out_m=2.0, out_z=50, out_face=12.0, rgear_s=50.5,
@@ -42,7 +42,7 @@ GEOM = dict(
     # drum: two printed parts on a fixed d10 axle
     axle_d=10.0, axle_s=(1.0, 142.0), drumA_s=(8.0, 83.0), drumB_s=(77.3, 135.7), spig_af=16.0,
     dgear=(8.0, 16.0), cam=(18.0, 29.0), seg=(52.0, 60.0), lock=(60.0, 66.0), neck_d=20.0, neck_s=(29.0, 77.0),
-    cam_r0=22.0, barrel=(77.3, 106.0), barrel_r=30.0, groove_w=6.4, groove_d=4.0,
+    cam_r0=30.0, barrel=(77.3, 106.0), barrel_r=30.0, groove_w=6.4, groove_d=4.0,
     bands=((108.0, 114.0), (115.0, 121.0), (122.0, 128.0)), band_r0=22.0, bump=3.0, nub_r=1.5,
     hexboss=(128.7, 135.7, 14.0),
     # fork (yoke round the collar groove, long carrier to the drum groove)
@@ -966,7 +966,7 @@ def joints(P):
         Joint("drum_base", None, "fixed", tuple(g["main_origin"]), (0, 0, 1), base=tf.Rx(-90)),
         Joint("drum_main", "drum_base", "rev", (0, 0, 0), (0, 0, 1)),
         Joint("drum_out_reel", "drum_base", "rev", (0, 0, 0), (0, 0, 1)),
-        Joint("drum_out_launch", "drum_base", "rev", (0, 0, 0), (0, 0, 1)),
+        Joint("drum_out_launch", "drum_base", "rev", (0, 0, 0), (0, 0, 1), gear=_launch_gear()),
         Joint("drum_collar_slide", "drum_base", "slide", (0, 0, 0), (0, 0, 1), limits=(-c["stroke"] - 0.01, c["stroke"] + 0.01)),
         Joint("drum_collar", "drum_collar_slide", "rev", (0, 0, 0), (0, 0, 1)),
         Joint("drum_fork", "drum_base", "slide", (0, 0, 0), (0, 0, 1), limits=(-c["stroke"] - 0.01, c["stroke"] + 0.01)),
@@ -981,6 +981,18 @@ def joints(P):
     rx, ry = lever_root(g, 0.0, 0.0, g["idx_r0"])
     js.append(Joint("drum_idx", "drum_base", "rev", (rx, ry, 0), (0, 0, 1), limits=(-0.5, 8.0)))
     return js
+
+
+def _launch_gear():
+    """The LAUNCH dog ring is bolted to cad-launch's launch sleeve: follow its joint when that module is present."""
+    import os
+    fn = os.path.join(os.path.dirname(os.path.abspath(__file__)), "launch.py")
+    try:
+        if '"launch_sleeve"' in open(fn).read():
+            return ("launch_sleeve", 1.0, 0.0)
+    except OSError:
+        pass
+    return None
 
 
 def drum_theta(S, c):
@@ -1021,6 +1033,8 @@ def kin(P, S):
     }
     for i in range(3):
         v[f"drum_sw{i}"] = lever_deg(th, g, c, i)
+    if _launch_gear() is not None:
+        v.pop("drum_out_launch")              # follows launch_sleeve through Joint.gear
     return v
 
 

@@ -1,6 +1,6 @@
 # fw-base report (firmware/base)
 
-Worker `fw-base`, 3 Nov 2026, branch `w/fw-base`. Firmware string `base-1.2.1`, params `1.3.x` (params_gen.h regenerated from base-v1).
+Worker `fw-base`, 3 Nov 2026, branch `w/fw-base`. Firmware string `base-1.3.0`, params `1.3.x` (params_gen.h regenerated from base-v1).
 Nothing here has run on hardware: every claim below is from the PC simulation and the arduino-cli compile.
 
 ## Done

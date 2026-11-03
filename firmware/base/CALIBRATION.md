@@ -1,6 +1,6 @@
 # Base station calibration
 
-Firmware `base-1.2.1`. Do BENCH_TEST.md first. Sections (a) and (b) can be done on the bench. The rest needs the base
+Firmware `base-1.3.0`. Do BENCH_TEST.md first. Sections (a) and (b) can be done on the bench. The rest needs the base
 assembled. Do them in order: (d) needs REEL from (c), and (f) needs (b) and (d).
 
 - Two ways to send the commands below:

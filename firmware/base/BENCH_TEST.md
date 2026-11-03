@@ -1,6 +1,6 @@
 # Base station bench test
 
-No-load checks BEFORE the wiper motor goes into the base, with firmware `base-1.2.1`. Nothing here has run on real
+No-load checks BEFORE the wiper motor goes into the base, with firmware `base-1.3.0`. Nothing here has run on real
 hardware yet, so this is the first time the firmware meets the parts. Go one step at a time.
 
 Each step says what to type, what you should see, and what to do if not. Keep `{"id":9,"cmd":"stop"}` ready to paste.
@@ -43,7 +43,7 @@ Two rules for the whole test:
 Battery unplugged. Plug USB into the port labelled USB. Open the Serial Monitor (or the two Jetson terminals).
 
 - Type: `{"id":1,"cmd":"ping"}`
-- You should see: `{"id":1,"ok":true,"fw":"base-1.2.1","t":...}`, and telemetry lines with `"state":"IDLE"`,
+- You should see: `{"id":1,"ok":true,"fw":"base-1.3.0","t":...}`, and telemetry lines with `"state":"IDLE"`,
   `"mode":"NEUTRAL"`, `"sw":{"b":1,"n":1}` and `vbat` about 0 (no battery).
 - If not: no output at all means wrong port or "USB CDC On Boot: Enabled" not set (README.md). Telemetry but no reply
   means the line ending is not "Newline". `BAD_JSON` means a typo (straight quotes only, no smart quotes). `BOOTING`

@@ -1,14 +1,14 @@
 {
- "params_source": "base/spec/params.py v1.3.0",
+ "params_source": "base/spec/params.py v1.3.1",
  "snatch": {
   "slack_m": 0.245,
   "reel_mass_eff_kg": 0.044964324495882946,
-  "v_taut": 6.79523326769683,
-  "v_no_line_in_stroke": 7.247454424889267,
-  "v_after_snatch": 6.241550787083046,
-  "speed_loss_vs_taut": 0.08148101158585364,
-  "ke_loss_snatch_j": 1.0169885875309115,
-  "line_spike_n_upper": 261.25517721094883,
+  "v_taut": 6.841908290785333,
+  "v_no_line_in_stroke": 7.3027321545392745,
+  "v_after_snatch": 6.289156296104297,
+  "speed_loss_vs_taut": 0.08078915577185986,
+  "ke_loss_snatch_j": 1.032561285237871,
+  "line_spike_n_upper": 263.24782072533037,
   "line_break_n": 667.0
  },
  "wrap": {

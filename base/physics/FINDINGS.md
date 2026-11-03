@@ -1,29 +1,25 @@
 # Physics findings for the spec (worker `physics`)
 
-Status: updated 3 Nov (after review round 1 and cad-launch NOTES), run on base/spec/params.py v0.1-stub (LAUNCH, AIM, REEL still None, so
-launcher/reel geometry below is my placeholder: stroke along the rail, 60 g carriage, 1:1 springs to carriage, reel
-core 40 / flange 64 / width 20 mm, capstan 40 mm). Dart mass 0.279 kg (spec DART.mass_kg; the brief said 0.292 kg:
-coordinator please confirm which). Models: base/physics/*.py, every number reproducible with the CLIs.
+Status: updated through the day; the Current numbers block is the latest. Sections F1 onward are the history of
+the findings (their numbers come from earlier parameter sets). Every number is reproducible with the CLIs.
 
-## Current numbers (spec v1.2, latest run; details in SUMMARY.md, base/out/physics/*.json)
+## Current numbers (spec 1.2.9: D36 rear guide, carriage 85.8 g as built; latest model)
 
-- Launch: 2 x Century C-243, 23.8 mm preload, 265 mm full (40.1 N each, catalogue 38.4 N), 12.1 J, carriage 60 g:
-  7.41 m/s, 21 g, 63 % efficient. 4 springs (provision): 10.2 m/s.
-- Range from the rail pivot's ground point (pivot 0.315 m up: deck 0.15 ASSUMED + 0.165), LIGHT 0.5 / 0.75 / 1.0 N:
-  4.8 / 4.4 / 4.0 m at 36 deg (best). Table 6 to 47 deg in base/out/ballistics.json (C3). 4 springs: 8.5 / 7.7 / 7.0 m.
-- Stop: 2.5 J (carriage 1.65 + springs 0.9): the 19 mm flexure peaks at about 270 N if linear (D26 limit 300 N: OK).
-- Storage reel 50 core / 72 flanges / 22: 46 g, 31.4 kg mm2 full; spin-up adds 4.9 N of line pull in the stroke.
-  Overrun after landing at LIGHT 0.5 N: 0.65 m in 0.28 s (heavier reel; 0.30 m with the 66 mm flanges). Still cleared
-  by the take-up at the start of reel-in; lighter (spoked) flanges would halve it.
-- Capstan 50:22, 7 wraps (4 needed with margin): tow 50 N = 3.2 N m, 5.1 A, 0.14 m/s; 20 m reel-in 110 s. Limiter
-  slipping pulls 84 N (7 A). Tow sensing: line = 17.0 x (I - I_free) - 10.4 N (offset = FIRM take-up drag), so
-  the 50 N tow trip is at measured free current + 3.5 A (it was + 1.3 A with FIRM 3 N and the old ratio: F6 is history).
-- Cock 2.9 N m, 4.7 A, 2.7 s per shot. Aim 0.32 N m, 6.6 s for 6 to 47 deg.
-- Final approach on FIRM 5 N (reel full): 3.85 N at the dart vs 2.1 to 2.6 N needed: margin 1.5 to 1.9. OK.
-- Wrap on LIGHT: ring pull 1.1 to 1.3 N, drum 0.49 to 0.60 N m, drum N20 61 to 74 N mm (30 to 37 % of an ASSUMED
-  0.2 N m usable N20 torque). Taut line at the shot (take-up bus) vs 245 mm slack: slack would be 6.8 % slower.
-- Recoil rock (ASSUMED 4 kg rover): 4.8 deg at 6 deg pitch braked (0.9 rolling), 0.5 deg at 36. No tip.
-- Mission: about 3.2 min, 0.71 Wh from the base pack (about 65 missions per pack).
+- Launch: 2 x Century C-243, 265 mm full cock (40.1 N each), 12.1 J, carriage 85.8 g: 6.80 m/s, line taut.
+- Range from the rail pivot's ground point, LIGHT 0.5 / 0.75 / 1.0 N: 4.13 / 3.72 / 3.35 m at 34 deg (best).
+  Table 6 to 47 deg in base/out/ballistics.json (C3), content-hash checked. 4 springs: not supported in v1 (D38).
+- Stop: 2.0 J carriage + about 0.9 J springs: 295 N on the 19 mm flexure (D26 300 N: just inside; lighter carriage helps).
+- Storage reel 50 / 72 / 22: overrun after landing at LIGHT 0.5 N about 0.6 m. No level wind (F13).
+- Tow, plain printed exit eye and cup groove (REEL.path_gain 1.5, default until the design adds pulleys):
+  50 N AT THE DART = 4.17 N m, 6.09 A, 0.13 m/s, above 0.8 x the 5 N m shear pin and near the 6.5 A trip; the most
+  the train can put on the dart is about 48 N. Sense law at the dart: line = 11.3 x (I - I_free) - 2.0 N
+  (= the spec D42 law 17.0 / -3.0 at the capstan divided by the path gain). With 693 pulleys (gain 1.15): 50 N =
+  3.2 N m, 5.1 A, max about 62 N, law 14.8 / -2.6.
+- Cock 2.9 N m, 4.7 A. Aim 0.33 N m, 1.9 A (D40 aim trip 3 A: splitter sf 1.44 in PPA-CF).
+- Final approach on FIRM 5 N with the real seating path (gain 1.75): margin about 1.0 to 1.3.
+- Wrap on LIGHT: N20 46 to 56 N mm (23 to 28 % of 0.20 N m), about 30 s.
+- Take-up in NEUTRAL: 0.06 / 0.12 / 0.26 to 0.33 m/s at duty 0.3 / 0.5 / 1.0.
+- Recoil rock (ASSUMED 4 kg rover): about 5 deg at 6 deg pitch braked, 0.5 deg at 36. No tip.
 - SPRING CATALOGUE (web check): Bunnings 0487961 is Century C-243, 5/8 in OD x 6-1/2 in x 0.054 in wire (1.37 mm,
   not 1.4). Century lists max safe load 8.64 lb (38.4 N) and max deflection 11.9 in (302 mm), rated for about 100,000
   cycles. The earlier 280 mm full cock was 42 N with the 0.125 N/mm / 7 N estimate: inside the deflection limit but 9 %
@@ -171,3 +167,45 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
   after the exit eye and guides): NOT enough. Need 2.1 to 2.6 N at 5 to 10 deg pitch (gravity + mu 0.3 to 0.4 on the
   cradle + ~1 N to close SW_SEATED). Fix: FIRM about 7 N at the core (1.5 margin), or seat on the capstan (REEL with
   wraps) and use the FIRM clutch only for tidy, or lower the seat contact force to ~0.3 N.
+
+## F12. Adversarial review of the assumptions (ranked by effect on range; 3 Nov afternoon)
+
+1. Carriage mass: cad-launch's carriage_solid is 138.7 cm3 (172 g solid PLA, 100 to 130 g printed) vs the 60 g
+   target. At 100 g: about 0.4 m less range and a stop peak of about 350 N (over D26 300 N). Pocket it / slicer mass.
+2. Line slack at the shot: from the pivot pulley (D14) to the dart tail the path shortens by about 98 mm during the
+   stroke (183 -> 85 -> 116 mm), faster than the take-up bus can follow, so the line snatches after the muzzle:
+   about 7 % slower, about 0.5 m less range, plus a tail jerk. Fix: route the line from a pulley behind the rail end
+   on the dart axis so the path only lengthens. (Sent to the coordinator.)
+3. Line path friction: now modelled as eye gain 1.35 (eyes ~2 rad at mu 0.15, pulleys, the 47 deg pusher-hole bend)
+   instead of 1.15. Static vs kinetic clutch friction can move the brake about 30 %: calibrate with test shots.
+4. Spring initial tension 5 N instead of 7 N: about 0.35 m less (hang test).
+5. Carriage shoe friction from the pusher / spring-line couple: now modelled (about 1 J at full draw, upper bound).
+6. Rover rock during the stroke (pitching ~1.8 rad/s at release with a braked 4 kg rover): -0.1 to -0.3 m at 36 deg.
+   Measure with slow-motion video.
+7. Tow sensing depends on the assumed wiper constants and capstan efficiency: calibrate line pull vs current with a
+   luggage scale at three loads before trusting the 50 N trip.
+8. Terrain: the dart descends at about 54 deg, so ground 0.2 m higher lands about 0.15 m short. ballistics_meta now
+   lists the impact angle per pitch for the Jetson's height correction.
+Small (checked, under 0.1 m): rack release friction, tether drag, 1.5x dart drag, 3 m/s wind, 1 deg aim error above
+15 deg, battery sag while cocking, anchor creep.
+Combined realistic case with items 1, 2, 3 and 5 unfixed: about 3.0 to 3.4 m. Items 3 and 5 are now in the model;
+1 and 2 are design fixes; the test-shot calibration (calib.py range) absorbs the rest.
+
+## F13. Adversarial review of the retrieve side (3 Nov afternoon)
+
+1. Line path friction between the capstan and the dart (plain printed exit eye about 50 deg, cup groove 58 deg,
+   pulleys): capstan tension = dart pull x about 1.5. Now in the model (REEL.path_gain, default 1.5). 50 N at the
+   dart needs 4.2 N m / 6.1 A (above 0.8 x the shear pin, near the 6.5 A trip); the most the train can put on the
+   dart is about 48 N. With 693 pulleys at the exit eye and ring (gain 1.15): 50 N = 3.2 N m / 5.1 A, max about 62 N.
+   Sense law at the dart: about 11 N/A (plain) or 15 N/A (pulleys): calibrate with the load cell at the dart end.
+2. Exit eye heat: 42 to 68 N normal load and 1 to 2.4 W on PLA at 50 to 80 N tow: grooves or melts; Dyneema weakens
+   above about 70 C. A 693 pulley or a ceramic / steel eyelet there and in the cup ring.
+3. Final approach: the seating path gain is 1.5 to 2.0 (now 1.75 in retrieve.py), margin about 1.0 to 1.3 on FIRM 5 N.
+4. No level wind: the line mounds mid-reel; laid 10 to 12 mm wide, 20 m reaches r 35 to 36 mm at a 36 mm flange.
+   payout.py has a lay_width input; measure after a full take-up or add a lay guide.
+5. Shear pin: d4 PLA single shear at r 13 slips at 2.5 to 3.3 N m with a layer line on the shear plane, the same as
+   tow and cock torques. Specify the print direction and break 3 pins on a torque arm.
+6. The current-sense law rests on unmeasured kt, efficiency, BTS sense gain and temperature: 36 to 64 N spread for a
+   "50 N" trip. Calibrate hot and cold at two loads.
+7. Wraps walking along the drum and the 0.6 mm skirt gap trapping a flattened braid; overrun slack near the wrap
+   ring: bench tow test and a filmed shot + wrap.

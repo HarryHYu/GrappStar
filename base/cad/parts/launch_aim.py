@@ -40,6 +40,7 @@ if _HERE not in sys.path:
 from cad.lib import Part, Joint, Allow, Clearance, prim, tf   # noqa: E402
 import launch_kin as K                                         # noqa: E402
 import launch_gears as G                                       # noqa: E402
+import launch_switch as SW                                     # noqa: E402
 
 # ------------------------------------------------------------------------------------------------ numbers
 FIT = 0.35            # diametral clearance pin in bore (gives real contact for the floating check)
@@ -61,6 +62,23 @@ Y_W1 = (187.0, 193.0)          # housing inner wall
 Y_ROD = (187.0, 193.0)         # conrod plane
 Y_CRANK = (193.6, 199.6)       # crank arm plane
 Y_W2 = (221.0, 229.0)          # housing outer wall
+# SW_RAIL_LOW: printed contact on a housing pedestal in front of the crank (screw along world +x at the crank centre
+# height), pressed by a cam lobe on the crank only around the LOW dead point psi_low.
+SWL_RT = 41.5                  # tip (pressed position) radius from the crank centre; free tip at SWL_RT - TRAVEL
+SWL_Y = 197.8                  # switch mid plane (world y), width 8: 193.8..201.8 (crank plane, clear of the conrod)
+SWL_ZS = 9.0                   # screw axis height above the switch base
+SWL_SCREW = 6.0
+SWL_DWELL = 4.0                # cam dwell half angle at SWL_RT (+ tip half width 2.1 deg = closed window ~ +-6 deg)
+SWL_RAMP = 6.0                 # ramp from SWL_RT down to SWL_RT - 2 (beyond the leaf travel)
+SWL_CAM_Y = (193.8, 199.4)
+# Main shaft spigot d12 (cad-drum) runs to y 198.5, its AS5600 magnet cap is y 195..201.5 (magnet face 201.5)
+SPIGOT_CLR = 12.5
+SPIGOT_END = 198.5
+Y_AX_END = 194.5               # housing ends here in the axis region (cap from 195)
+AS_CHIP_Y = 202.6              # chip face 1.1 beyond the magnet face
+AS_BOARD_Y = 203.6             # board inboard face (1.6 thick)
+AS_PLATE = (205.22, 208.2)     # bracket plate behind the board
+AS_HOLES_X = (-10.15, 10.15)   # 2 x M2.5, 20.3 apart (assumed)
 
 
 def bed(solid, R=None, rz=0.0):
@@ -70,8 +88,18 @@ def bed(solid, R=None, rz=0.0):
     return tf.mul(tf.T(-(lo[0] + hi[0]) / 2, -(lo[1] + hi[1]) / 2, -lo[2]), M)
 
 
+_A_CACHE = {}
+
+
 def A(P):
-    """All aim geometry numbers (world mm / deg)."""
+    """All aim geometry numbers (world mm / deg), cached per params object and version (kin calls it per state)."""
+    key = (id(P), getattr(P, "VERSION", None))
+    if key not in _A_CACHE:
+        _A_CACHE[key] = _A(P)
+    return _A_CACHE[key]
+
+
+def _A(P):
     d = K.lp(P)
     g = K.aim_geom(P)
     axis_z = 165.0
@@ -83,6 +111,9 @@ def A(P):
         Y0 = 140.0
     n = dict(axis_z=axis_z, Y0=Y0, m_w=d["m_worm"], z_w=d["worm_wheel_z"], starts=d["worm_starts"],
              pd_w=d["worm_pd"], bevel_up=d["bevel_up"], split=d["split_ratio"])
+    lay = getattr(P, "LAYOUT", None) if P is not None else None
+    dz = lay.get("deck_top_z") if isinstance(lay, dict) else None
+    n["deck_z"] = float(dz) if dz is not None else axis_z - 165.0              # deck top (housing foot)
     n["crank_x"], n["crank_z"] = g["cu"], axis_z + g["cw"]
     n["rc"], n["rod"], n["rl"] = g["rc"], g["rod"], g["rl"]
     n["a_ww"] = G.worm_center_distance(n["m_w"], n["z_w"], n["pd_w"])           # 32.1
@@ -199,9 +230,53 @@ def wheel_solid(P):
     arm = arm + prim.cyl(PIN_R, Y_CRANK[0] - 186.0 + 0.01, x=n["rc"], z=zl(Y_CRANK[0]) - 0.01)
     arm = arm - prim.tube(PIN_R + 1, PIN_R - 0.5, 0.8, z=zl(186.0) - 1.6).translate((n["rc"], 0, 0))
     s = s + prim.place(arm, tf.Rz(-mp))
+    s = s + prim.place(swl_cam_joint(P), tf.inv(_wheel_place(P)))              # SW_RAIL_LOW cam lobe
     s = s - prim.cyl(BRG[0] / 2 + 0.05, zl(206.2) + 1, z=-1)                   # 608 pocket
     s = s - prim.cyl(5.0, 2.0, z=zl(206.2) - 0.01)                              # bolt end
     return s
+
+
+def swl_cam_joint(P):
+    """Cam lobe for SW_RAIL_LOW in the crank joint frame (world oriented at crank value 0, origin on the crank centre,
+    world y). Centred on psi_sw - psi_low + 0 (pin at psi 0 for value 0), so it faces the switch at psi = psi_low."""
+    psi_lo = K.pitch_table(P)["psi_low"]
+    phc = SWL_PSI - psi_lo
+    rt = SWL_RT
+    pts = []
+    half = SWL_DWELL + SWL_RAMP + 2.0
+    for d in np.linspace(-half, half, 121):
+        ad = abs(d)
+        if ad <= SWL_DWELL:
+            r = rt
+        elif ad <= SWL_DWELL + SWL_RAMP:
+            r = rt - 2.0 * (ad - SWL_DWELL) / SWL_RAMP
+        else:
+            r = rt - 2.0 - 3.0 * (ad - SWL_DWELL - SWL_RAMP) / 2.0
+        a = math.radians(phc + d)
+        pts.append((r * math.cos(a), -r * math.sin(a)))                      # 2D (x, -z)
+    for d in (half, -half):
+        a = math.radians(phc + d)
+        pts.append((14.0 * math.cos(a), -14.0 * math.sin(a)))
+    cs = prim.poly_cs(pts)
+    y0, y1 = SWL_CAM_Y
+    return prim.place(prim.extrude(cs, y1 - y0), tf.mul(tf.T(0, y0, 0), tf.Rx(-90)))
+
+
+SWL_PSI = 0.0                  # switch direction from the crank centre (psi sense): straight forward (+x)
+
+
+def swl_frame(P):
+    """SW_RAIL_LOW local -> world (local x = world +x towards the switch, z up)."""
+    n = A(P)
+    tip_local = SW.LEAF_T - SWL_SCREW
+    a = math.radians(SWL_PSI)
+    tx = n["crank_x"] + SWL_RT * math.cos(a) - tip_local
+    tz = n["crank_z"] + SWL_RT * math.sin(a) - SWL_ZS
+    return tf.T(tx, SWL_Y, tz)
+
+
+def swl_body(P):
+    return SW.body(SWL_ZS, SWL_SCREW, -3.0, width=8.0, top=3.5)
 
 
 def conrod_solid(P):
@@ -227,7 +302,9 @@ def lug_solid(P):
     s = s + prim.box(100, 130, yw, yw + 6.0, 32.0, 48.0)                        # bolting plate
     s = s + prim.box(103, 127, yo - 6.0, yo, -2.0, 48.0)                        # outer plate
     s = s + prim.cylY(10.0, yo - 6.0, yo, x=u, z=0.0)
-    s = s + prim.cylY(PIN_R, yo - 0.01, Y_ROD[1] + 1.0 - ln["Y0"], x=u, z=0.0)
+    s = s + prim.cylY(PIN_R, yo - 0.01, Y_ROD[1] + 2.3 - ln["Y0"], x=u, z=0.0)
+    s = s - (prim.cylY(PIN_R + 1, Y_ROD[1] + 0.3 - ln["Y0"], Y_ROD[1] + 1.1 - ln["Y0"], x=u, z=0.0)
+             - prim.cylY(PIN_R - 0.5, Y_ROD[1] - ln["Y0"], Y_ROD[1] + 1.4 - ln["Y0"], x=u, z=0.0))  # C clip groove (DIN 6799 d8)
     for uu in (107.0, 123.0):
         s = s - prim.cylY(1.7, yw - 1, yo + 1, x=uu, z=41.0)
         s = s - prim.cylY(3.2, yw + 6.0, yo + 1, x=uu, z=41.0)                  # screw head / driver access
@@ -235,43 +312,77 @@ def lug_solid(P):
 
 
 def housing_solid(P):
-    """Aim housing (world frame), standing on the deck z = 0."""
+    """Aim housing (world frame), standing on the deck (z = deck_z). Literal heights below are above the deck."""
     n = A(P)
     cx, cz = n["crank_x"], n["crank_z"]
     sx, sz = n["cs_x"], n["cs_z"]
     az = n["axis_z"]
     yw = n["y_w"]
+    d0 = n["deck_z"]
     s = []
     a, b = Y_W1
-    s.append(prim.cylY(18.0, a, b, 0.0, az))
-    s.append(prim.box(-30, 14, a, b, 0, az))
+    s.append(prim.cylY(18.0, a, Y_AX_END, 0.0, az))                             # sleeve bushing + thrust face boss
+    s.append(prim.box(-30, 14, a, b, d0, az))
     s.append(prim.cylY(10.0, a, b, sx, sz))
     s.append(prim.box(0, sx, a, b, sz - 10, sz + 10))
     a, b = Y_W2
-    s.append(prim.box(-30, 86, a, b, 0, 80))
-    s.append(prim.box(-30, sx, a, b, 80, sz + 10))
+    s.append(prim.box(-30, 86, a, b, d0, d0 + 80))
+    s.append(prim.box(-30, sx, a, b, d0 + 80, sz + 10))
     s.append(prim.cylY(10.0, a, b, sx, sz))
     s.append(prim.cylY(7.0, 220.42, b, cx, cz))                                 # washer face on the bearing race
-    s.append(prim.box(-30, 86, Y_W1[0], Y_W2[1], 0, 8))                         # foot
-    s.append(prim.box(-30, -16, Y_W1[0], Y_W2[1], 0, 140))                      # spine
+    s.append(prim.box(-30, 86, Y_W1[0], Y_W2[1], d0, d0 + 8))                   # foot
+    # SW_RAIL_LOW pedestal (switch base on its top, 2 x M3 self tap)
+    Ms = swl_frame(P)
+    sx0 = Ms[0, 3] - 3.0
+    sx1 = Ms[0, 3] + SW.mount_holes(-3.0, SWL_ZS)[0] + 3.5
+    ztop = Ms[2, 3] - 0.02
+    s.append(prim.box(sx0, sx1, SWL_Y - 4.0, SWL_Y + 4.0, d0, ztop))
+    s.append(prim.box(80, sx1, SWL_Y - 4.0, SWL_Y + 4.0, d0, d0 + 8))
+    s.append(prim.box(-30, -16, Y_W1[0], Y_W2[1], d0, d0 + 140))                # spine
+    # AS5600 board bracket: two arms round the magnet cap (|x| >= 13.5) to a plate behind the board
+    for sg in (1, -1):
+        s.append(prim.box(sg * 13.5, sg * 17.5, Y_W1[0] + 1, AS_PLATE[1], az - 6.0, az + 6.0))
+    s.append(prim.box(-17.5, 17.5, AS_PLATE[0], AS_PLATE[1], az - 11.0, az + 11.0))
     for x0, x1 in ((35.0, 41.5), (74.5, 80.5)):                                  # worm saddles (lower halves)
-        s.append(prim.box(x0, x1, yw - 7.2, Y_W2[1], 80.3, sz))
-        s.append(prim.box(x0, x1, Y_W2[0], Y_W2[1], 79.0, 81.0))                 # join to the outer wall
+        s.append(prim.box(x0, x1, yw - 7.2, Y_W2[1], d0 + 80.3, sz))
+        s.append(prim.box(x0, x1, Y_W2[0], Y_W2[1], d0 + 79.0, d0 + 81.0))       # join to the outer wall
     # swing arm stop post (touches the arm's leading face at alpha_d)
     px, py = _stop_post_xy(P)
     s.append(prim.cylY(4.0, Y_ARM0 + 0.1, Y_W1[0] + 0.01, px, az - py))
     h = prim.union(s)
-    h = h - prim.cylY(10.0 + FIT / 2, Y_W1[0] - 1, Y_W1[1] + 1, 0.0, az)
+    h = h - prim.cylY(10.0 + FIT / 2, Y_W1[0] - 1, Y_W1[1], 0.0, az)          # sleeve bushing, thrust face y 193
+    h = h - prim.cylY(SPIGOT_CLR / 2, Y_W1[0] - 1, SPIGOT_END + 1, 0.0, az)     # main shaft spigot clearance
     h = h - prim.cylY(SHAFT_R + FIT / 2, Y_W1[0] - 1, Y_W2[1] + 1, sx, sz)
     h = h - prim.cylY(4.1, 220, Y_W2[1] + 1, cx, cz)
     h = h - prim.cylX(SHAFT_R + FIT / 2, 30, 90, yw, sz)
     for x in (38.25, 77.5):
         for yy in (yw - 5.0, yw + 5.0):
             h = h - prim.cyl(1.25, 12, x=x, y=yy, z=sz - 11)                   # M3 self tap for the cap
-    # deck screws
-    for x, y in ((-24, 190.5), (80, 190.5), (-24, 225.5), (80, 225.5)):
-        h = h - prim.cyl(1.7, 10, x=x, y=y, z=-1)
+    for hx in SW.mount_holes(-3.0, SWL_ZS):
+        h = h - prim.cyl(1.3, 12, x=Ms[0, 3] + hx, y=SWL_Y, z=ztop - 11.99)
+    for hx in AS_HOLES_X:
+        h = h - prim.cylY(1.1, AS_PLATE[0] - 1, AS_PLATE[1] + 1, hx, az)        # M2.5 self tap for the board
+    for x, y in deck_holes(P):
+        h = h - prim.cyl(1.7, 10, x=x, y=y, z=d0 - 1)
     return h
+
+
+def deck_holes(P):
+    """4 x M3 deck screws (world x, y), from below into the housing foot (self tap 2.6 / heat-set in the foot)."""
+    Ms = swl_frame(P)
+    sx1 = Ms[0, 3] + SW.mount_holes(-3.0, SWL_ZS)[0] + 3.5
+    return [(-24.0, 190.5), (-24.0, 225.5), (80.0, 225.5), (round(float(sx1 - 5.0), 2), SWL_Y)]
+
+
+def as5600_solid(P):
+    """Adafruit AS5600 STEMMA QT board as a box (world oriented, centred on the main axis), chip on its inboard face."""
+    n = A(P)
+    az = n["axis_z"]
+    b = prim.box(-12.7, 12.7, AS_BOARD_Y, AS_BOARD_Y + 1.6, az - 8.9, az + 8.9)
+    b = b + prim.box(-2.0, 2.0, AS_CHIP_Y, AS_BOARD_Y + 0.01, az - 2.5, az + 2.5)
+    for hx in AS_HOLES_X:
+        b = b - prim.cylY(1.35, AS_BOARD_Y - 1, AS_BOARD_Y + 3, hx, az)
+    return b
 
 
 def cap_solid(P):
@@ -363,7 +474,7 @@ def parts_aim(P):
         Part("launch_aim_conrod", rod, "PPA-CF", joint="launch_aim_conrod", place=tf.I4,
              print_tf=bed(rod, tf.Rx(90)), color="#d97a00", notes="Conrod 156 between pin centres, e-clips"),
         Part("launch_aim_lug", lug, "PPA-CF", joint="launch_rail", place=tf.I4,
-             print_tf=bed(lug, tf.Rx(-90)), color="#d97a00",
+             print_tf=bed(lug, tf.Rx(90)), color="#d97a00",
              notes="Lug bracket, 2 x M3 into the rail wall, d8 lug pin at (u 115.2, w 0)"),
         Part("launch_aim_housing", hs, "PLA", joint=None, place=tf.I4, print_tf=bed(hs), color="#9aa7b4",
              notes="Aim housing on the deck (4 x M3): sleeve end bushing, countershaft bushings, worm saddles, "
@@ -376,6 +487,16 @@ def parts_aim(P):
         Part("launch_aim_brg_1", brg, "bought", joint=None,
              place=tf.mul(tf.T(n["crank_x"], 213.4, n["crank_z"]), tf.Rx(-90)), color="#b0b5bb",
              bought_ref="608ZZ 8x22x7", notes="Worm wheel bearing (outboard)"),
+        Part("launch_sw_rail_low", swl_body(P), "PLA", joint=None, place=swl_frame(P), print_tf=bed(swl_body(P)),
+             color="#5fae5f", notes="SW_RAIL_LOW printed contact on the aim housing pedestal, closed by the crank cam "
+                                    "within about +-6 deg of the LOW dead point (pitch 6.0)"),
+        Part("launch_sw_rail_low_screw", SW.screw(SWL_SCREW, SWL_ZS), "bought", joint=None, place=swl_frame(P),
+             color="#444444", bought_ref=f"M3x{SWL_SCREW:g} SHCS", notes="Contact screw, threaded through the leaf"),
+        Part("launch_sw_rail_low_nut", SW.nut(SWL_ZS), "bought", joint=None, place=swl_frame(P),
+             color="#444444", bought_ref="M3 nut", notes="Contact nut in its trap, wire under it"),
+        Part("launch_aim_as5600", as5600_solid(P), "bought", joint=None, place=tf.I4, color="#1a5fb4",
+             bought_ref="Adafruit AS5600 STEMMA QT (25.4 x 17.8 x 1.6), 2 x M2.5 x 6",
+             notes="Main shaft angle sensor, chip on the axis 1.1 mm beyond the magnet face"),
         Part("launch_aim_brg_2", brg, "bought", joint=None,
              place=tf.mul(tf.T(n["crank_x"], 206.4, n["crank_z"]), tf.Rx(-90)), color="#b0b5bb",
              bought_ref="608ZZ 8x22x7", notes="Worm wheel bearing (inboard)"),
@@ -447,7 +568,7 @@ def kin_aim(P, S, pitch):
 
 
 def allowed_aim(P):
-    return []
+    return [Allow("launch_sw_rail_low_screw", "launch_sw_rail_low", "screw threaded into the leaf")]
 
 
 def clearances_aim(P):
@@ -467,6 +588,9 @@ def audit_states_aim(P):
     for d in np.arange(t["crank_rise_deg"] + 10.0, 360.0, 15.0):              # falling stroke (worm-controlled)
         pv = float(K.pitch_of_psi(P, t["psi_low"] - d, +1))
         S.append(dict(aim_deg=pv, aim_psi_from_low=float(d), cock=0.0, phase="aim_fall"))
+    for d in np.arange(-10.0, 10.01, 2.0):                                     # SW_RAIL_LOW cam passing the tip
+        pv = float(K.pitch_of_psi(P, t["psi_low"] - d, +1))
+        S.append(dict(aim_deg=pv, aim_psi_from_low=float(d), cock=0.0, phase="aim_sw_low"))
     for p, wd in ((6.02, 0.0), (20.0, 37.0), (35.0, 101.0), (47.0, 233.0)):
         S.append(dict(aim_deg=p, cock=0.5, wiper_deg=wd, aim_split="out", phase="aim_split_out"))
     return S

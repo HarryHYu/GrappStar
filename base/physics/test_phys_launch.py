@@ -66,3 +66,19 @@ def test_flags_over_safe_extension():
     p = Params()
     assert launch(p, 35, stroke=0.40)["over_safe"]
     assert not launch(p, 35, stroke=0.20)["over_safe"]
+
+
+def test_line_slack_geometry():
+    from launcher import effective_muzzle, line_slack
+    p = Params()
+    p.launch.update(stroke=0.2412, line_guide_u=0.0, line_guide_w=0.0, tail_home_u=0.0756, dart_w=0.085)
+    s = line_slack(p)
+    # cocked tail (-0.1656, 0.085) -> 0.186 m; HOME (0.0756, 0.085) -> 0.114 m
+    assert s["path_cocked_m"] == pytest.approx(math.hypot(0.1656, 0.085), rel=1e-6)
+    assert s["slack_at_release_m"] == pytest.approx(math.hypot(0.1656, 0.085) - math.hypot(0.0756, 0.085), rel=1e-6)
+    assert not s["taut"]
+    e = effective_muzzle(p, 36.0)
+    assert e["snatch"] and e["v"] < e["v_muzzle"]
+    p.launch.update(line_guide_u=-0.20, line_guide_w=0.085)    # guide behind the rail end on the dart axis
+    assert line_slack(p)["taut"]
+    assert not effective_muzzle(p, 36.0)["snatch"]

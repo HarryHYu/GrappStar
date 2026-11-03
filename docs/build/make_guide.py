@@ -11,6 +11,8 @@ The section texts live in docs/build/src/NN_*.md. Lines in them that start with 
   @image <repo path> <caption>      insert a picture (PNG or JPG)
   @includeglob <glob> [first]       insert every file (or the first) matching the glob
   @imageglob <glob> <caption>       insert every picture matching the glob
+  @exists <repo path>               a 'present' note, or the placeholder
+  @ballistics                       range numbers from base/out/ballistics.json
   @csv <repo path>                  insert a CSV file as a table
   @wiremap                          dart run sheet wire numbers -> new cut list numbers
   @printlist base | dart            print tables from base/pack and kedge/pack_v30
@@ -42,8 +44,11 @@ SOURCES = [
     ("base/spec/BASE_SPEC.md", "coordinator"),
     ("base/pack", "cad-infra (print pack)"),
     ("base/out", "cad-infra (assembly pipeline)"),
-    ("base/guide", "cad-infra (assembly steps)"),
-    ("base/**/coupon/COUPON.md", "cad-infra (risk coupons)"),
+    ("base/out/base/guide.pdf", "cad-infra (base assembly guide, final run about 18:00)"),
+    ("base/out/base/pack/PRINT_SHEET.md", "cad-infra (base print sheet, final run about 18:00)"),
+    ("base/out/base/BOM.md", "cad-infra (bill of materials)"),
+    ("base/pack/fit_coupon/COUPON.md", "cad-infra (base fit coupon)"),
+    ("base/pack/coupons/COUPON_TEST.md", "cad-infra (risk coupons)"),
     ("kedge/pack_v30/KEDGE_v30_run_sheet.pdf", "dart v30 pack (done)"),
     ("firmware/base/WIRING.md", "fw-base"),
     ("firmware/base/README.md", "fw-base"),
@@ -156,13 +161,15 @@ def printlist_dart():
 
 
 def printlist_base():
-    pack = next((os.path.join(ROOT, c) for c in ("base/pack", "base/out/base/pack") if os.path.isdir(os.path.join(ROOT, c))),
+    pack = next((os.path.join(ROOT, c) for c in ("base/out/base/pack", "base/pack")
+                 if os.path.isdir(os.path.join(ROOT, c)) and any(
+                     f for f in os.listdir(os.path.join(ROOT, c)) if f not in ("coupons", "fit_coupon"))),
                 os.path.join(ROOT, "base/pack"))
     if not os.path.isdir(pack):
         return placeholder("base/pack", "cad-infra (print pack)")
     s = ""
     # A print list table, whatever form the pack writes it in.
-    for name in ("print_list.md", "PRINT_LIST.md", "README.md"):
+    for name in ("PRINT_SHEET.md", "print_list.md", "PRINT_LIST.md", "README.md"):
         p = os.path.join(pack, name)
         if os.path.exists(p):
             s += demote(open(p, encoding="utf-8").read(), 3, pack) + "\n"
@@ -191,10 +198,12 @@ def printlist_base():
                                          v.get("orient", "")))
                     s += _table(rows, ["Base part", "Material", "Plate", "Print pose"]) + "\n"
                     break
-    plates = sorted(glob.glob(os.path.join(pack, "**/*.3mf"), recursive=True))
+    plates = [p for p in sorted(glob.glob(os.path.join(pack, "**/*.3mf"), recursive=True))
+              if os.sep + "coupons" + os.sep not in p]
     if plates:
         s += "\nBase plates:\n\n" + "".join(f"- `{rel(p)}`\n" for p in plates)
-    stls = sorted(glob.glob(os.path.join(pack, "**/*.stl"), recursive=True))
+    stls = [p for p in sorted(glob.glob(os.path.join(pack, "**/*.stl"), recursive=True))
+            if os.sep + "coupons" + os.sep not in p]
     if stls and not s.strip():
         s += "\nBase STL files:\n\n" + "".join(f"- `{rel(p)}`\n" for p in stls)
     return s or placeholder("base/pack (print list)", "cad-infra (print pack)")
@@ -215,6 +224,31 @@ def d_imageglob(args, level):
     hits = sorted(glob.glob(os.path.join(ROOT, args[0]), recursive=True))
     caption = " ".join(args[1:])
     return "".join(f"\n![{caption} ({os.path.basename(h)})]({rel(h)})\n" for h in hits)
+
+
+def d_exists(args, level):
+    """A note that a file is present (and where it is), or the placeholder when it is not."""
+    path = args[0]
+    if exists(path):
+        return f"\nPresent: `{path}`" + (" (attached at the end of this guide)." if path.endswith(".pdf") else ".") + "\n"
+    return placeholder(path, who_writes(path))
+
+
+def d_ballistics(args, level):
+    """One line of range numbers from base/out/ballistics.json (contract C3), so the guide never goes stale."""
+    p = os.path.join(ROOT, "base/out/ballistics.json")
+    if not os.path.exists(p):
+        return placeholder("base/out/ballistics.json", "physics")
+    d = json.load(open(p))
+    rows = [(r["pitch_deg"], r["range_m"][0], r.get("v_muzzle")) for r in d.get("table", [])]
+    if not rows:
+        return "(ballistics table empty)"
+    lo, hi = min(rows, key=lambda r: r[1]), max(rows, key=lambda r: r[1])
+    brake = d.get("drag_n", [0.5])[0]
+    v = f", leaving the rail at about {hi[2]:.1f} m/s" if hi[2] else ""
+    return (f"Range today (from `base/out/ballistics.json`, {brake} N payout brake, measured from the ground point under "
+            f"the rail pivot): best about {hi[1]:.1f} m at {hi[0]:g} degrees, shortest about {lo[1]:.1f} m at {lo[0]:g} "
+            f"degrees{v}. These numbers change after the spring and wiper measurements; rebuild the guide.")
 
 
 def d_csv(args, level):
@@ -282,7 +316,7 @@ def d_date(args, level):
     return f"\nBuilt {now.strftime('%Y-%m-%d %H:%M')} Sydney time from commit `{commit}`.\n"
 
 
-DIRECTIVES = {"include": d_include, "includeglob": d_includeglob, "imageglob": d_imageglob, "csv": d_csv, "wiremap": d_wiremap, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
+DIRECTIVES = {"include": d_include, "ballistics": d_ballistics, "exists": d_exists, "includeglob": d_includeglob, "imageglob": d_imageglob, "csv": d_csv, "wiremap": d_wiremap, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
               "status": d_status, "date": d_date}
 
 
@@ -313,14 +347,32 @@ def build_markdown():
 
 
 # ----------------------------------------------------------------------------------------------- diagram
+PINS_H = os.path.join(ROOT, "firmware/base/grappstar_base/pins.h")
+
+
+def read_pins():
+    """{'PIN_RPWM': 4, ...} from fw-base's pins.h (the GPIO owner)."""
+    pins = {}
+    if os.path.exists(PINS_H):
+        for m in re.finditer(r"^#define\s+(PIN_\w+)\s+(\d+)", open(PINS_H).read(), re.M):
+            pins[m.group(1)] = int(m.group(2))
+    return pins
+
+
 def render_diagram():
     dot = shutil.which("dot")
     src = os.path.join(HERE, "system_electrical.dot")
     if not dot or not os.path.exists(src):
         print("note: graphviz 'dot' not found, keeping the existing diagram files")
         return
-    subprocess.run([dot, "-Tsvg", src, "-o", os.path.join(HERE, "system_electrical.svg")], check=True)
-    subprocess.run([dot, "-Tpng", "-Gdpi=130", src, "-o", os.path.join(HERE, "system_electrical.png")], check=True)
+    pins = read_pins()
+    text = open(src, encoding="utf-8").read()
+    text = re.sub(r"\{(PIN_\w+)\}", lambda m: str(pins.get(m.group(1), "?")), text)
+    filled = os.path.join(HERE, ".system_electrical.filled.dot")
+    with open(filled, "w", encoding="utf-8") as f:
+        f.write(text)
+    subprocess.run([dot, "-Tsvg", filled, "-o", os.path.join(HERE, "system_electrical.svg")], check=True)
+    subprocess.run([dot, "-Tpng", "-Gdpi=130", filled, "-o", os.path.join(HERE, "system_electrical.png")], check=True)
 
 
 # ----------------------------------------------------------------------------------------------- PDF
@@ -566,6 +618,7 @@ def build_pdf(md, out=None, doc_title=TITLE):
 
 APPENDICES = [
     # (repo path or glob, bookmark title). Missing files are skipped.
+    ("base/out/base/guide.pdf", "Appendix: base assembly guide (base pipeline)"),
     ("base/guide/*.pdf", "Appendix: base assembly steps (base pipeline)"),
     ("kedge/pack_v30/KEDGE_v30_run_sheet.pdf", "Appendix: KEDGE v30 dart run sheet"),
 ]
@@ -667,6 +720,7 @@ line with, a towing line.
 | `python3 -m grappstar serve` | operator page at http://<jetson>:8080 (`--sim` for no hardware) |
 | `python3 -m grappstar base ping` / `status` / `monitor` | talk to the base; `monitor` shows live telemetry (Ctrl+C stops) |
 | `python3 -m grappstar base cmd '<json>'` | send one base command (below) |
+| `python3 -m grappstar base mode LAUNCH` / `base aim 30` / `base fire` | shift, aim, fire (fire asks you to type FIRE) |
 | `python3 -m grappstar dart status` | one dart status reading |
 | `python3 -m grappstar dart key 2 --hold 1.0` | hold a dart key for 1 s (quote `'!'`, `'#'`, `'$'`) |
 | `python3 -m grappstar dart auto` / `release` / `flightlog` | anchor, release, download the flight log |
@@ -682,9 +736,12 @@ line with, a towing line.
 | `{"cmd":"clear"}` | clear a fault once its cause is gone |
 | `{"cmd":"mode","to":"LAUNCH"}` | drum to LAUNCH, NEUTRAL or REEL |
 | `{"cmd":"aim","deg":30}` | rail to 30 degrees (only with the carriage home) |
-| `{"cmd":"arm"}` then `{"cmd":"fire","token":123456}` | fire within 3 s of arm. Tether on, area clear |
-| `{"cmd":"cal","what":"decock"}` | unload a cocked carriage slowly |
-| `{"cmd":"wrap"}` / `{"cmd":"unwrap"}` | lay / remove the capstan wraps (order: PROTOCOL.md) |
+| `python3 -m grappstar base fire` (Jetson CLI) | arm and fire in one go after you type FIRE. Tether on, area clear |
+| `{"cmd":"decock"}` | unload a cocked carriage slowly (`"force":true` if SW_HOME is broken) |
+| `{"cmd":"wrap"}` | lay 7 wraps, right after landing (from LAUNCH or NEUTRAL; parks at WRAPPED) |
+| `{"cmd":"tidy"}` | take up the slack after the dart anchors |
+| `{"cmd":"unwrap"}` | remove the wraps (after reeling in to about 1.5 m) |
+| `{"cmd":"retrieve","duty":0.3}` | final approach on the take-up until the dart seats |
 | `{"cmd":"reel","duty":0.5,"until":"seated"}` | wind in until the dart seats (`until`: stop, seated, tension) |
 | `{"cmd":"jog","motor":"wiper","dir":1,"ms":300}` | short move; `motor` wiper or drum, `dir` 1 or -1, up to 1500 ms |
 | `{"cmd":"set","key":"limit_n","val":50}` | set a stored value (tow limit 50 N) |
@@ -747,7 +804,10 @@ def main():
     md = build_markdown()
     ok = lint(md)
     with open(OUT_MD, "w", encoding="utf-8") as f:
-        f.write(md.replace("@@toc\n", "").replace("@@pagebreak\n", ""))
+        # image paths in the Markdown file are relative to docs/build so they show on GitHub
+        md_out = re.sub(r"!\[([^\]]*)\]\((?!http)([^)]+)\)",
+                        lambda m: f"![{m.group(1)}]({os.path.relpath(os.path.join(ROOT, m.group(2)), HERE)})", md)
+        f.write(md_out.replace("@@toc\n", "").replace("@@pagebreak\n", ""))
     main_pdf = build_pdf(md)
     added = append_pdfs(main_pdf)
     for sh in build_cheatsheets():

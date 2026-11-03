@@ -5,6 +5,33 @@ sim over HTTP, the real Jetson App). Each entry: the exact failing scenario, the
 Line numbers are against `origin/base-v1` at the time of the entry. Status: OPEN until the owner says fixed and the
 harness re-runs green.
 
+## Status (14:00 Sydney)
+
+"fixed on branch" = green in `systest/preview.sh` (base-v1 ba121b9 + w/fw-base 6472524 + w/fw-dart 827b290 +
+w/jetson 79e30ed), not yet merged into base-v1. Evidence in `systest/runs_preview/<scenario>/`.
+
+| # | owner | status | evidence |
+|---|---|---|---|
+| F1 | fw-base | open (not re-tested: harness waits for BOOT) | |
+| F2 | fw-base, jetson | FIXED in base-v1 | `tidy` -> TIDIED in every nominal run |
+| F3 | fw-base | partly (jetson reads l r I) | PROTOCOL re-sync pending D35 |
+| F4 | jetson | fixed on branch | preview `nominal` PASS with the strict D22 plant, steps WRAP before ANCHOR |
+| F5 | jetson, docs | fixed on branch | preview `nominal_uncal` PASS (release option, no re-pull above the limit) |
+| F6 | jetson | fixed on branch | prompt now says "The drum HELD where it is (...)" |
+| F7 | jetson | fixed on branch | COCK fault prompt offers "Decock and re-aim" (re-test after the harness timing fix) |
+| F8 | jetson | fixed on branch | preview `power_unwrap`: BASE_RESET reported 1 s after the cut |
+| F9 | fw-base | open | |
+| F10 | jetson | open (re-test) | |
+| F11 | jetson | re-test | |
+| F12 | jetson | fixed on branch | preview `nominal` C1 order = BASE_SPEC 10.1 |
+| F13 | fw-base | open | |
+| F14 | fw-base, docs | OPEN | preview `ref_doc_cal`: plant 50.5 N at LIMIT 40 |
+| F15 | fw-base | open (escape path works, re-cocks) | `ref_power_wrap` |
+| F16 | fw-base | re-test | |
+| F17 | fw-base | open | |
+| F18 | jetson | OPEN | preview `nominal`, `power_unwrap`: TOW 60 s timeouts |
+| F19 | fw-base | OPEN (D39 new) | preview `ref_refusals` |
+
 ## F1 (fw-base) `cal` (and `set`) during the first 60 ms are acknowledged ok, then silently undone by the boot rebuild
 
 - Scenario: fresh base, the host sends `{"id":0,"cmd":"cal","what":"cock_rest"}` 10 ms after power-on.
@@ -21,7 +48,7 @@ harness re-runs green.
   (PROTOCOL.md section 2 lists `BOOTING` as a common refusal for actions only).
 - Harness workaround: waits for `BOOT` before bench setup.
 
-## F2 (fw-base + jetson) TIDY never runs: the Jetson sends `tidy`, the firmware only knows `reel until:"slip"`
+## F2 (fw-base + jetson) [FIXED in base-v1 d15129e: firmware has `tidy` / TIDIED, harness sees TIDY run] TIDY never runs: the Jetson sends `tidy`, the firmware only knows `reel until:"slip"`
 
 - Scenario `nominal` (every run): mission step TIDY logs "base has no tidy command: skipped". The base replied
   `UNKNOWN_CMD` to `{"cmd":"tidy"}`. The firmware has a tidy, but as `reel` with `until:"slip"`
@@ -50,8 +77,11 @@ harness re-runs green.
 - Scenario `nominal`: steps `... LANDING_ZONE, BASE_NEUTRAL, ANCHOR, TIDY, WRAP, CHECK, TOW ...`
   (`jetson/grappstar/mission.py:325-347` `_sequence`). D22 (spec v1.1): LANDED -> NEUTRAL -> WRAP -> WRAPPED ->
   anchor -> TIDY -> REEL fly-in -> TOW (laying turns against a taut dart side needs about 360 N at the ring).
-- In the sim plant the wrap still works after anchoring because sim.h models the anchored line with 0.3 m of slack;
-  the real capstan would jam or tug the anchor. The harness will flag the order once the plant models D22 (pending).
+- CONFIRMED with the D22 plant (13:40 run, base-v1 merged at d15129e). The harness plant now makes every laid turn
+  draw one capstan circumference (d 40 + line: 0.129 m) from the dart side; an anchored dart side gives only its slack.
+  Scenario `nominal`: dart lands with 0.9 m slack, ANCHOR, TIDY (3 s) pulls 0.19 m, WRAP lays 5.5 of 7 turns using the
+  remaining 0.71 m, then the cup cannot turn: `FAULT DRUM_TIMEOUT "drum not turning (no code edge)"`, drum HELD
+  at 250 deg (BETWEEN, wraps 5.48). This is the D22 jam, now reproduced end to end. Fix = the D22 order in `_sequence`.
 
 ## F5 (jetson + docs) the tow limit is only as good as CALIBRATION.md, and a tow fault has no way out
 
@@ -112,5 +142,184 @@ harness re-runs green.
 - Suggest: treat a link drop as a session break: in `_run`'s `finally`, append a synthetic `{"evt":"HELLO","_lost":
   true}` (or bump a session counter that `wait_event` / `wait_tel` / `cmd` check) so every pending wait raises
   `BASE_RESET` at once; optionally confirm with `ping` (`t` smaller than before = reset).
+- Same in `usb_unplug_tow` (USB out 3 s while the base held the tow at 40 N): "TOW failed: no ('LIMIT', 'SEATED')
+  event from the base in 60 s", then Retry towed again and the mission finished. The line held at 40 N throughout
+  (sprag #2 + worm), so it is safe, but the operator waits a minute with no explanation.
 - The harness now models the sketch's 2.1 s setup delay by default (`power_unwrap`) and keeps the immediate-HELLO
   race as `power_unwrap_fasthello`.
+
+## F9 (fw-base) D12 degraded mode (SW_INDEX index cam, no AS5600 magnet) is not implemented
+
+- Scenario `no_angle_sensor` (AS5600 reads fail from power on): every wiper action is refused `ANGLE_SENSOR`
+  (`aim` in the log; `status` says `magnet` `NONE`). The mission cannot get past AIM.
+- D12 (`base/spec/DECISIONS.md:20`): "Fallback with no magnet: a 6-bump INDEX CAM on the main shaft read by SW_INDEX;
+  firmware degraded mode counts turns and sixths with time interpolation and re-zeroes on SW_HOME, SW_RAIL_LOW ...".
+  Firmware: `config.h:37` maps SW_INDEX to bit -1 (not read), and `base_logic.h` has no use of SW_INDEX at all
+  (grep). PROTOCOL.md does not mention a degraded mode either.
+- Either implement it (and the sim.h plant needs an index-cam contact so the host tests and this harness can run it),
+  or record in the spec that D12's fallback is dropped and a magnet is mandatory (then MEASURE_LIST / BENCH_TEST:
+  "fit the magnet before the first power-up").
+
+## F10 (jetson) preflight passes with the angle sensor dead; refusals are reported as faults
+
+- Same scenario: PREFLIGHT reports only the video warning and passes, although the base said `"as5600":false` in
+  HELLO and `"magnet":"NONE"` in the `status` reply that preflight itself fetched (`jetson/grappstar/mission.py`
+  `preflight()`, it never reads `magnet`). The operator finds out at AIM, after the target and the confirmations.
+- The AIM refusal (`{"ok":false,"err":"ANGLE_SENSOR"}`, a refusal: nothing moved, no fault latched) is shown as
+  "AIM failed: base refused aim: ANGLE_SENSOR. The base is in FAULT and went to NEUTRAL." (`mission.py:323-327`
+  treats any err string that equals a fault code as a fault). Retry then repeats it 3 times without any new information.
+- Suggest: preflight problem "angle sensor not reading (magnet NONE): fit the magnet / check the AS5600 wires" when
+  `magnet` is `NONE` (warning for `WEAK` / `STRONG`); only add the FAULT sentence when telemetry `fault` is set.
+
+## F11 (jetson) `is_wrapped` still uses the 4-wrap threshold: a half-laid 7-turn wrap counts as wrapped, Retry skips the wrap
+
+- Scenario `nominal` after the F4 jam: the wrap stopped at 5.48 turns (telemetry `wraps` 5.48, `drum_pos` BETWEEN).
+  The operator chose Retry: `wrap()` returned at once because `is_wrapped()` is true for `wraps >= 3.5`, the mission
+  went on to CHECK, and `reel` was refused `NOT_WRAPPED` three times (Retry / Skip / Abort loop) until Abort.
+- Where: `jetson/grappstar/mission.py:565-566` (`wraps >= 3.5`, from the 4-wrap firmware). The firmware now lays 7
+  (`config.h:131 wrapsFull`, D16).
+- Fix: wrapped only when `drum_pos == "WRAPPED"` (the drum code is absolute), or `wraps >= wrapsFull` read from the
+  base; never from a partial estimate. Same test is used by `ensure_reel()` and `unwrap()`.
+
+## F12 (jetson) the mission's C1 command order differs from BASE_SPEC 10.1 (D35) in four places
+
+Checked by `systest/c1_order.py` (commands taken from the Jetson's own `mission.jsonl`, base_tx and dart_tx lines,
+retries collapsed) against the 10.1 order. Batch 1 (base-v1 before d15129e), scenario `dog_tip` (completed DONE):
+
+`aim > cock > arm > fire > set line_m > mode NEUTRAL > dart auto > tidy > wrap > reel tension > dart release > reel seated > unwrap > mode LAUNCH`
+
+10.1 wants: `... set line_m > (mode NEUTRAL) > wrap > dart auto > tidy > mode REEL > reel tension ... > dart release > (reel stop) > unwrap > retrieve > mode LAUNCH`
+
+1. `dart auto` before `wrap` (F4, D22).
+2. No `mode REEL` fly-in after the tidy: the Jetson relies on `wrap` leaving the collar in REEL (old firmware).
+   With the D35 park at WRAPPED 314 (collar NEUTRAL), `reel` would be refused or pull nothing.
+3. `reel until seated` on the capstan (`mission.py` `retrieve()` falls to `until="seated"` whenever `line_m` is at or
+   under approach_m + 0.3, which is the normal case after three tow rounds). 10.1 step 17: "Never seat on the capstan".
+4. Final approach: when `retrieve` was UNKNOWN_CMD the fallback wrapped again and seated on the capstan
+   (`power_unwrap`, `usb_unplug_tow`: `... unwrap > retrieve > wrap > reel seated > unwrap`). The firmware now has
+   `retrieve` (base_logic.h:986), so drop the fallback.
+The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it goes green when the order matches.
+
+## F13 (fw-base) `reel until tension` at the WRAPPED park is refused `NOT_WRAPPED` although the wraps are on
+
+- Scenario `nominal_uncal`, batch 2 (base-v1 d15129e): `wrap` -> `WRAPPED {"wraps":7}` (park 314, collar NEUTRAL),
+  then the Jetson's check pull `{"cmd":"reel","duty":0.48,"max_n":15.0,"until":"tension"}` -> `NOT_WRAPPED`, four times.
+  The real cause is F12 item 2 (the Jetson does not send `mode REEL` first), but the code sends the operator the
+  wrong way: telemetry says `drum_pos` WRAPPED and the prompt says "NOT_WRAPPED".
+- Where: `firmware/base/grappstar_base/base_logic.h:791-792` (`!collarReel() && !neutral` and `neutral && un ==
+  U_TENSION` both return `NOT_WRAPPED`).
+- Suggest: `NOT_IN_REEL` (send `mode REEL`) when the wraps are on but the collar is in NEUTRAL; keep `NOT_WRAPPED`
+  for no wraps. Document it in PROTOCOL.md.
+
+## F14 (fw-base, CALIBRATION.md) following CALIBRATION.md leaves the -10.4 N `tension_offset_n`: the tow overshoots by 10 N
+
+- Scenario `ref_nominal` (BASE_SPEC 10.1 driven directly, base-v1 d15129e), bench calibrated exactly as
+  CALIBRATION.md (e) says (`free_a`, `k_n_per_a` matched to the motor): tow `reel until tension max_n 40` stopped with
+  `LIMIT {"tension_n":40}` three rounds running while the plant line tension was 50.4 N (+26 %). Same at duty 0.8
+  (`ref_tow_duty08`), so it is not duty related.
+- Cause: the estimate is `(amps - free_a) * k_n_per_a + tension_offset_n` (`base_logic.h:368`), default offset
+  -10.4 N (`config.h:173`, physics v1.2). CALIBRATION.md (e) computes `k_n_per_a = 20 / (amps - free_a)`, which is
+  only right with a zero offset, and never mentions `tension_offset_n`. PROTOCOL.md's `set` table does not list it
+  either. Whoever follows the doc tows 10.4 N above the limit (60 N at the default 50 N limit).
+- Also in CALIBRATION.md (e) step 2: after `wrap` the drum now parks at WRAPPED with the collar in NEUTRAL (D35), so
+  the step 3 jog only turns the take-up; a `mode REEL` is needed before the capstan pulls.
+- Fix: either compute both from two scale readings (for example 10 N and 30 N: `k = 20 / (a30 - a10)`, `offset = 10 -
+  k (a10 - free_a)`) and set both, or set `tension_offset_n` 0 in the procedure; add `mode REEL` after the wrap;
+  list `tension_offset_n` in PROTOCOL.md section 5.
+- Harness: the calibrated bench now sets `tension_offset_n` 0 as a correct two-point calibration would;
+  `ref_doc_cal` keeps the doc-literal calibration and shows the overshoot.
+
+## F15 (fw-base) power loss during the drum part of `wrap` (after the shot) leaves the phase UNKNOWN; `wrap` and `decock` are then both refused
+
+- Scenario `ref_power_wrap` (BASE_SPEC 10.1, base-v1 d15129e): after FIRED and RESET, `wrap` from LAUNCH (D22: wrap
+  straight from LAUNCH); the base is killed 1 s into the drum move (drum in L_TO_N, the wiper had finished its 3 deg
+  unload jog and was stopped), restarted 2 s later.
+  `BOOT {"record":true,"was_moving":true,"phase":"UNKNOWN","drum_known":true}`. Carriage home (`sw.H`).
+  Then: `wrap` -> `LAUNCH_BUSY` (every retry), `cal decock` / `decock` -> `NOT_IN_LAUNCH` (drum BETWEEN).
+- Where: `base_logic.h` `cmdWrap` -> `launchExitCheck()` (`:641-645`, `maybeLoaded()` true for UNKNOWN) while
+  `cmdCal("decock")` needs `detentClosed() == DP_LAUNCH` (`:880`). The moving record is written with the wiper bit at
+  the unload jog and only cleared when everything stops (`markMoving` / `persist`), so a cut during the drum-only part
+  still says the wiper was moving, and resolveBoot makes the phase UNKNOWN although the AS5600 angle is valid and
+  SW_HOME is closed.
+- The only escape is `mode LAUNCH`, `cock` (creeps to SW_HOME open, re-zeroes and DRAWS THE SPRING again while the dart
+  is out on its line), then `decock`, then `aim` again; or the bench-only `cal cock_rest`. The harness now tries that
+  path and records whether it works.
+- Suggest: clear the wiper moving bit when the wiper stops (persist with `movingBits & ~MV_WIPER` once `w` is idle),
+  so a drum-only cut keeps the shot phase; and/or after a shot with SW_HOME and SW_GAP closed and a valid AS5600 angle,
+  rebuild the phase as REST (the carriage cannot be drawn with SW_HOME closed unless SW_HOME lies, which
+  `SWITCH_DISAGREE` covers). Also let `decock` run with the drum out of LAUNCH when the carriage is home (it would
+  only need to report RESET).
+
+## F16 (fw-base) `tension_offset_n` and `host_timeout_s` are not saved: lost at every power cycle
+
+- Scenario `ref_power_wrap`: bench set `k_n_per_a`, `free_a` and `tension_offset_n 0` (two-point calibration), then a
+  power loss and restart. After the restart the tow stopped at `LIMIT 40` with the plant line at 50.4 N: the offset was
+  back at the -10.4 N default while `k_n_per_a` / `free_a` survived.
+- Where: `firmware/base/grappstar_base/persist.h:53-58` (`struct Tun` has no field for `tensOffsetN` or
+  `hostTimeoutS`), `base_logic.h:110-124` (`tunNow` / `restoreTun`). The `set` table (`base_logic.h` `keys()`) lists
+  both, and PROTOCOL.md section 5 says "all saved in flash, kept over a power cycle".
+- Consequence: every power cycle silently changes the tow limit by 10 N (F14) and switches the host watchdog off.
+- Fix: add both to `Tun` (bump `ver` to 2 and accept a v1 record with defaults), add a host test that sets every key,
+  power cycles and reads them back.
+
+- F15 also for a cut during AIM (scenario `power_aim`, batch 2): aim runs the wiper BACKWARD with the carriage home
+  (sprag #1 freewheels, the cock train cannot move), yet after the restart `BOOT "phase":"UNKNOWN"` and every `aim`
+  is refused `PHASE_UNKNOWN`. PROTOCOL.md section 7 lists only "cocking, firing or resetting" as making the phase
+  UNKNOWN. A backward run should keep the shot phase (REST), and only forget the aim.
+
+## F17 (fw-base) `decock` with the carriage home and the phase UNKNOWN answers ok but does nothing and sends no RESET
+
+- Scenario `power_aim` follow-up: phase UNKNOWN, `sw.H` closed. PROTOCOL.md section 5: "`RESET` event with
+  `how:"decock"` (immediately if the carriage is already home)". Firmware `base_logic.h:886`:
+  `if (phase == PH_UNKNOWN && !(phaseHint ...)) return nullptr;` replies `ok:true`, starts nothing, emits no event
+  and leaves the phase UNKNOWN. A host that waits for RESET (the Jetson's Decock button, the D35 recovery "decock,
+  wait RESET, then aim") hangs until its own timeout, and `aim` is still refused PHASE_UNKNOWN afterwards.
+- Suggest: with the carriage home and no evidence of a drawn spring, `decock` sets the phase REST and sends
+  `RESET {"how":"decock"}` (or refuses with a code that says "use cock to re-zero"), and PROTOCOL.md says which.
+
+## F18 (jetson, on w/jetson 16a4c6c, not yet in base-v1) TOW waits 60 s per round: a stale telemetry `state` makes it think the base winds by itself
+
+- Preview run (`systest/preview.sh`: base-v1 ba121b9 + w/fw-base 7b7c367 + w/fw-dart e47da79 + w/jetson 16a4c6c),
+  scenario `nominal`, no load cell. Round 1: `reel ... until tension` -> `LIMIT 40 holding` (plant 40.2 N, good). The
+  rover hook returns "slack". Round 2: the mission logs "base is already winding (slack taken up by itself)", sends
+  nothing, and `wait_evt(LIMIT)` times out after 60 s ("TOW failed: no ('LIMIT', 'SEATED') event from the base in 60 s").
+  Retry sends `reel` again and that round works; the same happens every round. The mission still ends DONE, 2 min late.
+- Cause: `jetson/grappstar/mission.py:1013` (w/jetson) checks `self.tel().get("state") == "REEL"` right after the
+  LIMIT event; the latest telemetry line was written just before the LIMIT and still says REEL (the HOLD telemetry
+  arrives up to 50 ms later). Also, without a load cell (`tension_n` null) the firmware never winds again by itself
+  (PROTOCOL.md: only "with a load cell"), so that branch can only be right when `tension_n` is a number.
+- Fix: take the "already winding" branch only with a load cell and only on telemetry newer than the LIMIT event
+  (`self.base.tel_t > e["_t"]`), or simply send `reel` and treat a `BUSY` reply as "already winding" (the code already
+  handles BUSY).
+
+## F19 (fw-base, new spec 1.2.7 / D39, expected to be in progress) `retrieve` at the WRAPPED park and `reel max_n 80` are accepted
+
+- Scenario `ref_refusals` (preview: base-v1 ba121b9 + w/fw-base 6472524): wrong commands thrown into the 10.1
+  sequence. Refused as they should be: `aim 85` OUT_OF_RANGE, `fire` without arm NOT_ARMED, `wrap` while cocked
+  LAUNCH_BUSY, `reel until seated` with the wraps on WRAPS_ON. Accepted (D39 says refuse):
+  - `retrieve {"duty":0.3}` at the WRAPPED park (drum 314, wraps on) -> `ok:true` (D39: retrieve only in NEUTRAL with
+    the wraps off);
+  - `reel {"duty":1,"max_n":80,"until":"tension"}` in REEL -> `ok:true` (D39: tow cap 70 N; the harness stopped it at
+    once).
+- The check `every wrong command refused` goes green when D39 is in the firmware.
+
+## F20 (fw-base + spec, D35 order) with a stiff (real Dyneema) line the REEL fly-in after TIDY trips OVERCURRENT every time
+
+- Found after R2-L review item 1: the plant line is now 1 mm Dyneema (EA 20 kN: about 5.6 kN/m at 3.6 m) instead
+  of sim.h's 40 N/m spring. Scenario `ref_nominal` (BASE_SPEC 10.1 exactly, preview fw-base 6472524): the wrap takes
+  the 0.9 m landing slack, the dart anchors, `tidy` -> TIDIED (dart side taut), `mode REEL` (fly-in) ->
+  `FAULT OVERCURRENT "wiper over 3.0 A"` and `MODE ok:false DRUM_HELD` within 3 s (plant peak line tension during
+  the fly-in 37.4 N, peak wiper 4.2 A); four retries, the same.
+- Why: the fly-in creeps the wiper FORWARD until the collar drops into REEL (config.h:147, `jogTripA` 3.0 A at
+  config.h:65). Once the dogs bite, every further wiper degree winds the capstan (1.667 capstan turns per wiper turn,
+  r 20.5 mm: about 0.6 mm of line per wiper degree). On a taut Dyneema line 10 deg of creep is about 6 mm, about 33 N:
+  far over the 3 A trip (about 14 N of line with the calibrated constants). With sim.h's soft spring the same 6 mm is
+  0.24 N, which is why every earlier run passed.
+- The order is binding (BASE_SPEC 10.1 steps 11-12): TIDY leaves the dart side taut at FIRM 5 N by design, so the
+  fly-in always starts against a taut line in the field.
+- Options for fw-base / coordinator: stop the fly-in creep the moment SW_DOG_R (or the collar position) says engaged
+  and do not count wind-in current as a fault during the fly-in (treat it as the tow start: `LIMIT` at the tow cap);
+  or fly in BEFORE the tidy and tidy through the engaged capstan (the take-up still runs in REEL); or leave a
+  defined slack after the tidy (tidy by length). The harness check stays: fly-in on a taut 5.6 kN/m line.
+- Note: the stiffness assumption (EA 20 kN) is mine from the line spec (667 N break, about 3.5 % at break); real
+  braid has some bedding-in stretch, which makes it softer at first. Even at EA 5 kN (1.4 kN/m) 6 mm is about 8 N.

@@ -48,7 +48,8 @@ def test_joints_and_kin_cover_each_other():
         assert p.joint in js
 
 
-def test_forward_wiper_turns_bus_in_take_up_sense():
+def test_forward_wiper_turns_bus_in_take_up_sense(monkeypatch):
+    monkeypatch.setattr(reel, "_drum_vals", lambda P, S: None)        # my own S-key path (no cad-drum kin)
     a = reel.kin(P, dict(wiper_deg=0.0))
     b = reel.kin(P, dict(wiper_deg=36.0))
     assert b["reel_bus"] - a["reel_bus"] == pytest.approx(36.0 * reel.Z_BUSMAIN / reel.Z_C1)
@@ -86,7 +87,7 @@ def test_line_path_clear():
 
 
 def test_launch_line_bypasses_capstan():
-    spans = reel.line_path(P, 0.0)
+    spans = reel._line_points(P, 0.0)
     pts = np.vstack([s[0] for s in spans])
     drum = reel._local_posed(P, {})["reel_drum"]
     assert line.line_hits(pts, {"d": drum})["d"] < 1e-6
@@ -113,3 +114,32 @@ def test_steps_name_real_parts(parts):
             assert n in parts, n
             seen.add(n)
     assert seen == set(parts)
+
+
+def test_line_path_world_contract():
+    pts = reel.line_path(P, dict(wraps=0.0, line_out_m=4.6))
+    assert len(pts) > 5 and all(len(p) == 3 for p in pts)
+    assert pts[-1][1] == pytest.approx(reel.P2_WORLD_Y, abs=0.5)
+    gaps = [np.linalg.norm(np.subtract(a, b)) for a, b in zip(pts[:-1], pts[1:])]
+    assert max(gaps) < 400.0 and len(pts) < 250
+    pts7 = reel.line_path(P, dict(wraps=7.0))
+    assert len(pts7) > len(pts)
+
+
+def test_clear_of_main_axis_stack():
+    assert reel.main_axis_check(P) == []
+
+
+def test_cup_follows_drum_idler_seven_turns():
+    if reel._drum_vals(P, {}) is None:
+        pytest.skip("cad-drum module absent")
+    assert reel.kin(P, dict(drum_deg=0.0))["reel_cup"] == pytest.approx(0.0, abs=1e-6)
+    assert reel.kin(P, dict(drum_deg=302.0))["reel_cup"] == pytest.approx(-7 * 360.0, abs=1e-3)
+
+
+def test_printed_parts_watertight_after_vertex_merge(parts):
+    for n, p in parts.items():
+        if p.printed:
+            m = prim.to_trimesh(p.solid)
+            m.merge_vertices()
+            assert m.is_watertight, n

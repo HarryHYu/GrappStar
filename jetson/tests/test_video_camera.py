@@ -182,3 +182,110 @@ def test_recording_round_trip(tmp_path):
     assert len(back) == 15
     for a, b in zip(seen, back):
         assert abs(a.t - b.t) < 1e-3 and b.quality == pytest.approx(a.quality, abs=1e-3)
+
+
+# ---------------------------------------------------------------- ring sizing and the flight hold (review R1-C #4)
+
+DART_W, DART_H, DART_FPS = 720, 480, 30.0      # the real DIGITNOW capture (C4), BGR after the GStreamer sink
+
+
+def _feed(cam, img, t0, seconds, start_idx=0):
+    n = int(round(seconds * DART_FPS))
+    for i in range(n):
+        t = t0 + (start_idx + i) / DART_FPS
+        cam._handle(Frame(img=img, t=t, idx=start_idx + i), now=t)
+    return start_idx + n
+
+
+def _dart_img():
+    return synth.textured(DART_H, DART_W, seed=3)
+
+
+def test_ring_keeps_buffer_s_at_the_real_capture_rate():
+    """The default (automatic) RAM cap follows buffer_s: 15 s of 720x480 at 30 fps is about 470 MB, above the old
+    fixed 400 MB that held only 13.5 s."""
+    cam = Camera("dart", lambda: None, quality=False, buffer_s=15, start=False)
+    t0 = 1_800_000_000.0
+    _feed(cam, _dart_img(), t0, 25)
+    st = cam.status()
+    assert st["buffer_s"] >= 14.9, st
+    assert 440 < st["buffer_mb"] < 520 and st["packed_frames"] == 0
+    # fixed cap (old behaviour) still available: 400 MB is about 13.5 s
+    cam2 = Camera("dart", lambda: None, quality=False, buffer_s=15, start=False, buffer_max_mb=400)
+    _feed(cam2, _dart_img(), t0, 25)
+    assert 13.0 < cam2.status()["buffer_s"] < 14.0
+
+
+def test_hold_keeps_launch_frames_through_a_long_landing_wait():
+    """Fire at t_fire, hold from t_fire - 2 s; the landing wait (10 s), settle (2 s) and an operator prompt with no
+    timeout (30 s more) must not lose a single frame from 2 s before the launch."""
+    cam = Camera("dart", lambda: None, quality=False, buffer_s=15, start=False)
+    img = _dart_img()
+    t0 = 1_800_000_000.0
+    k = _feed(cam, img, t0, 20)                      # sitting on the rail
+    t_fire = t0 + k / DART_FPS
+    cam.hold(t_fire - 2.0)
+    k = _feed(cam, img, t0, 2 + 10 + 30, start_idx=k)
+    held = cam.held()
+    assert held[0].t == pytest.approx(t_fire - 2.0, abs=1.0 / DART_FPS)
+    assert len(held) >= int((2 + 2 + 10 + 30) * DART_FPS) - 1
+    idx = [f.idx for f in held]
+    assert idx == list(range(idx[0], idx[0] + len(idx)))        # no gaps
+    st = cam.status()
+    assert st["packed_frames"] > 0 and st["dropped_held"] == 0
+    assert st["buffer_mb"] < 1200 * 1.05
+    # packed frames come back as full images, close to the original
+    f = held[0]
+    assert f.img.shape == (DART_H, DART_W, 3)
+    assert float(np.abs(f.img.astype(int) - img.astype(int)).mean()) < 4.0
+    # the analysis reads the same frames through buffer()
+    frames = [f for f in cam.buffer() if f.t >= t_fire - 2.0]
+    assert len(frames) == len(held)
+    # release: back to the normal time window on the next frames
+    cam.release_hold()
+    _feed(cam, img, t0, 1, start_idx=k)
+    st = cam.status()
+    assert st["buffer_s"] <= 15.0 + 1e-6 and st["hold"] is None and cam.held() == []
+
+
+def test_hold_with_fixed_cap_packs_instead_of_dropping():
+    cam = Camera("dart", lambda: None, quality=False, buffer_s=15, start=False, buffer_max_mb=100)
+    img = _dart_img()
+    t0 = 1_800_000_000.0
+    k = _feed(cam, img, t0, 3)
+    cam.hold(t0 + 1.0)
+    _feed(cam, img, t0, 20, start_idx=k)
+    held = cam.held()
+    assert len(held) == int((3 - 1.0 + 20) * DART_FPS)
+    assert cam.status()["buffer_mb"] <= 101
+
+
+def test_forgotten_hold_expires():
+    cam = Camera("dart", lambda: None, quality=False, buffer_s=2, start=False, hold_max_s=0.0)
+    cam.hold(0.0)
+    _feed(cam, synth.textured(48, 64, seed=1), time.time() + 1.0, 4)
+    st = cam.status()
+    assert st["hold"] is None and st["buffer_s"] <= 2.0 + 1e-6
+    assert st["hold_expired"] == 1 and "hold expired" in st["last_error"]
+
+
+def test_very_long_hold_thins_after_the_head_and_keeps_launch(monkeypatch):
+    import grappstar.video.camera as camera_mod
+    monkeypatch.setattr(camera_mod, "HELD_MAX_MB", 8.0)
+    cam = Camera("dart", lambda: None, quality=False, buffer_s=3, start=False, buffer_max_mb=100)
+    img = _dart_img()
+    t0 = 1_800_000_000.0
+    k = _feed(cam, img, t0, 3)
+    t_hold = t0 + 1.0
+    cam.hold(t_hold)
+    k = _feed(cam, img, t0, 60, start_idx=k)
+    st = cam.status()
+    assert st["dropped_held"] > 0
+    held = cam.held()
+    head = [f for f in held if f.t < t_hold + camera_mod.HOLD_KEEP_HEAD_S]
+    assert len(head) == int(camera_mod.HOLD_KEEP_HEAD_S * DART_FPS)          # launch, flight, landing all kept
+    assert held[-1].idx == k - 1                                              # and the newest frames
+    # since= filters before decoding and gives the same frames
+    late = cam.buffer(since=t_hold + 30.0)
+    assert late and all(f.t >= t_hold + 30.0 for f in late)
+    assert [f.idx for f in late] == [f.idx for f in held if f.t >= t_hold + 30.0]

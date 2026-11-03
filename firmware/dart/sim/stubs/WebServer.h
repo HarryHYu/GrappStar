@@ -6,6 +6,7 @@
 // The port is not the one in the sketch (80): it comes from simSetHttpPort() (the simulator's --port option).
 // Paths starting with /sim/ go to the simulator's control hook BEFORE the sketch's handlers.
 #pragma once
+#include <sys/socket.h>
 #include <functional>
 #include <string>
 #include <vector>
@@ -43,6 +44,9 @@ class WebServer {
   void setContentLength(size_t len) { contentLength_ = len; }
   void sendContent(const String& s) { sendContent(s.c_str(), s.length()); }
   void sendContent(const char* data, size_t len);
+  // web.client().stop(): the sketch cuts off a client that stopped reading; here it shuts the socket down
+  struct ClientRef { WebServer* w; void stop() { if (w->client_ >= 0) ::shutdown(w->client_, 2); } };
+  ClientRef client() { return ClientRef{this}; }
 
  private:
   struct Route { std::string uri; THandlerFunction fn; };

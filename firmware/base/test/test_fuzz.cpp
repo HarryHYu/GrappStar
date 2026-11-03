@@ -84,6 +84,7 @@ void scanEvents() {
   if (S.out.size() > 64) { S.out.clear(); outSeen = 0; }
 }
 
+double rd(double a, double b);
 // ------------------------------------------------------------------------------------------------ invariants per tick
 bool fireAuth = false;                    // the base is in FIRE because a fire command with a valid token was accepted
 void checkStates(const char* where) {
@@ -96,13 +97,22 @@ void tick() {
   int shots0 = S.shots;
   S.step(5);
   // the drive inputs in force during this step were set by the base in prevState
-  if (S.shots > shots0 && prevState != S_FIRE)
+  // a shot within the coast after an accepted fire was stopped (wiper inertia) is the operator's own shot
+  static uint32_t fireEndT = 0; if (prevState == S_FIRE) fireEndT = S.t;
+  if (S.shots > shots0 && prevState != S_FIRE && !(fireEndT && S.t - fireEndT < 400 && S.inertiaMs > 0))
     violation("SHOT_OUTSIDE_FIRE", std::string("sim fired while the base was in ") + STATE_NAME[prevState]);
   if (S.dryFires) { violation("DRY_FIRE", "the collar left the LAUNCH dwell with the spring drawn"); S.dryFires = 0; }
+  // unwrapping without the take-up leaves loose line between the reel and the capstan
+  if (S.slack > 0.15) { violation("UNWRAP_SLACK", "loose line " + std::to_string(S.slack) + " m (unwrap without take-up)"); S.slack = 0; }
   // backward with the REEL dogs engaged is only wrong once the collar presses the backward flank (sprag #2 holds the
   // capstan): the centering jog moves inside the free dog window by design
   if (S.wDir == -S.c.reelDir && S.wDuty > 0 && S.inReel() && S.win <= 1e-6)
     violation("BACKWARD_IN_REEL", "wiper driven backward with the REEL dogs engaged (true drum " + std::to_string(S.drumDeg) + ")");
+  static double towStartN = 0; static int lastSt = 0;
+  if (prevState == S_REEL && lastSt != S_REEL) towStartN = S.tension();   // a line already over the limit is not the tow's doing
+  lastSt = prevState;
+  if (getenv("TOWCHK") && (prevState == S_REEL || prevState == S_HOLD) && !B->takeupOnly && S.anchorTautAt >= 0 && S.tension() > fmax(1.3 * B->maxN, towStartN) + 3)
+    { violation("TOW_OVER_LIMIT", "true tension " + std::to_string(S.tension()) + " N, max_n " + std::to_string(B->maxN)); S.anchorTautAt = -1; }
   B->tick(S.t);
   if (S.saveSeq != B->saveDoneSeq && (int32_t)(S.t - S.saveT) >= 20) B->saveDoneSeq = S.saveSeq;   // NVS write done
   int st = B->state;
@@ -119,7 +129,8 @@ void tick() {
 }
 void run(uint32_t ms) { for (uint32_t i = 0; i < ms; i += 5) tick(); }
 bool resting() { return B->state == S_IDLE || B->state == S_FAULT || B->state == S_HOLD; }
-bool waitRest(uint32_t maxMs) { for (uint32_t i = 0; i < maxMs; i += 5) { tick(); if (resting()) return true; } return false; }
+double midRate = 0; void injectFault();
+bool waitRest(uint32_t maxMs) { for (uint32_t i = 0; i < maxMs; i += 5) { tick(); if (midRate > 0 && rd(0,1) < midRate) injectFault(); if (resting()) return true; } return false; }
 
 // ------------------------------------------------------------------------------------------------ commands
 const std::vector<std::string> calibKeys = {"amps_per_volt", "offset_a", "hx_n_per_count", "drum_dps", "aim_home_deg", "trip_a", "enc_sign"};
@@ -181,6 +192,7 @@ bool replyOk() { return lastReply.find("\"ok\":true") != std::string::npos; }
 
 // ------------------------------------------------------------------------------------------------ random helpers
 int ri(int a, int b) { return std::uniform_int_distribution<int>(a, b)(rng); }
+double rd(double a, double b);
 double rd(double a, double b) { return std::uniform_real_distribution<double>(a, b)(rng); }
 bool pr(double p) { return rd(0, 1) < p; }
 template <class T> const T& pick(const std::vector<T>& v) { return v[ri(0, (int)v.size() - 1)]; }
@@ -362,7 +374,7 @@ void powerCut() {
 }
 bool indexSeed = false;
 void freshRig() {
-  S = Sim(); S.encMissing = indexSeed; tunHas = false; logRing.clear(); tags.clear(); outSeen = 0; haveToken = false; idCounter = 0; pendingAdvance = 0;
+  S = Sim(); S.encMissing = indexSeed; S.inertiaMs = seedNow % 3 == 1 ? 40 : seedNow % 3 == 2 ? 100 : 0; /* wiper inertia and coast in 2 of 3 seeds */ tunHas = false; logRing.clear(); tags.clear(); outSeen = 0; haveToken = false; idCounter = 0; pendingAdvance = 0;
   buildBase();
   run(100);
   cmd("{\"id\":0,\"cmd\":\"cal\",\"what\":\"cock_rest\"}");   // a new build starts at rest
@@ -389,7 +401,7 @@ void injectFault() {
     case 8: S.vbatOverride = pick(std::vector<double>{-1, -1, 12.0, 9.5, 8.0, 5.0, 0.3}); d = "vbatOverride=" + fmtShort(S.vbatOverride); break;
     case 9: S.toothOnTooth = !S.toothOnTooth; S.toothNeedWiper = pr(0.8) ? rd(2, 30) : 1e9; d = std::string("toothOnTooth=") + (S.toothOnTooth ? "1" : "0") + " need " + fmtShort(S.toothNeedWiper); break;
     case 10: if (pr(0.5)) { S.lineOut = 0; S.seatAtLine = 0; S.anchorTautAt = -1; d = "dart seated"; } else { S.lineOut = rd(0.5, 15); S.seatAtLine = 0; S.anchorTautAt = -1; d = "dart out " + fmtShort(S.lineOut); } break;
-    case 11: S.anchorTautAt = S.lineOut - rd(0, 1); S.anchorK = rd(20, 100); d = "tow anchor taut at " + fmtShort(S.anchorTautAt); break;
+    case 11: S.anchorTautAt = S.lineOut - rd(0, 1); S.anchorK = rd(20, getenv("KMAX") ? atof(getenv("KMAX")) : 100); d = "tow anchor taut at " + fmtShort(S.anchorTautAt); break;
     case 12: S.hxFitted = !S.hxFitted; d = std::string("hxFitted=") + (S.hxFitted ? "1" : "0"); break;
     case 13: S.handLatched = !S.handLatched; d = std::string("handLatched=") + (S.handLatched ? "1" : "0"); break;
     default: S.searBroken = pr(0.5); d = std::string("searBroken=") + (S.searBroken ? "1" : "0"); break;
@@ -441,7 +453,7 @@ void missionReel() {
     if (pr(0.1)) { run(ri(100, 5000)); cmd("{\"id\":" + idn() + ",\"cmd\":\"estop\"}"); }
     waitRest(30000);
   }
-  if (pr(0.4)) { S.lineOut = rd(2, 15); S.anchorTautAt = S.lineOut - rd(0.1, 1); S.anchorK = rd(20, 100); flushAdvance(); logl("inject: tow anchor"); }
+  if (pr(0.4)) { S.lineOut = rd(2, 15); S.anchorTautAt = S.lineOut - rd(0.1, 1); S.anchorK = rd(20, getenv("KMAX") ? atof(getenv("KMAX")) : 100); flushAdvance(); logl("inject: tow anchor"); }
   else { S.lineOut = rd(0.5, 6); S.seatAtLine = 0; S.anchorTautAt = -1; flushAdvance(); logl("inject: dart out, slack line"); }
   std::string u = pick(std::vector<std::string>{"stop", "seated", "tension"});
   cmd("{\"id\":" + idn() + ",\"cmd\":\"reel\",\"duty\":" + fmtShort(rd(0.2, 1)) + ",\"max_n\":" + fmtShort(rd(5, 60)) + ",\"until\":\"" + u + "\"}");
@@ -452,11 +464,22 @@ void missionReel() {
     if (pr(0.6)) { S.lineOut = rd(0, 2); S.anchorTautAt = pr(0.2) ? S.lineOut - 0.2 : -1; cmd("{\"id\":" + idn() + ",\"cmd\":\"reel\",\"duty\":0.3,\"until\":\"seated\"}"); run(ri(500, 25000)); } }
 }
 
+void missionJog() {
+  flushAdvance(); logl("-- mission jog");
+  if (B->state == S_FAULT) cmd("{\"id\":" + idn() + ",\"cmd\":\"clear\"}");
+  if (pr(0.5)) { cmd("{\"id\":" + idn() + ",\"cmd\":\"mode\",\"to\":\"" + pick(std::vector<std::string>{"LAUNCH","NEUTRAL","REEL"}) + "\"}"); waitRest(40000); }
+  std::string m = pr(0.8) ? "wiper" : "drum"; int d = pr(0.5) ? 1 : -1; int n = ri(1, 40); int per = ri(50, 400);
+  std::string j = "{\"id\":" + idn() + ",\"cmd\":\"jog\",\"motor\":\"" + m + "\",\"dir\":" + std::to_string(d) + ",\"ms\":" + std::to_string(per + 200) + "}";
+  int injAt = pr(0.6) ? ri(0, n) : -1;
+  for (int i = 0; i < n; i++) { cmd(j); if (i == injAt) injectFault(); run(per); }
+  waitRest(3000);
+}
 // ------------------------------------------------------------------------------------------------ one seed
 void runSeed(uint32_t seed, int steps) {
   seedNow = seed; rng.seed(seed * 0x9E3779B97F4A7C15ull + 1);
   indexSeed = seed % 5 == 0;                // every fifth seed runs without the AS5600 magnet (SW_INDEX mode, D12)
   freshRig();
+  midRate = getenv("MID") ? atof(getenv("MID")) : 0; double jogRate = getenv("JOG") ? atof(getenv("JOG")) : 0;
   double faultRate = pick(std::vector<double>{0.0, 0.02, 0.05, 0.12});
   for (stepNow = 0; stepNow < steps; stepNow++) {
     double x = rd(0, 1);
@@ -472,6 +495,7 @@ void runSeed(uint32_t seed, int steps) {
     else if ((x -= 0.04) < 0) missionLaunch();
     else if ((x -= 0.015) < 0) missionReel();
     else if ((x -= 0.02) < 0) waitRest(30000);
+    else if ((x -= jogRate) < 0) missionJog();
     else { pendingAdvance += 5; run(5); }
     if (S.out.size() > 64) { S.out.clear(); outSeen = 0; }
   }

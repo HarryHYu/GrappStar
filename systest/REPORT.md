@@ -28,6 +28,36 @@ standalone, runs the whole App (vision, analysis, recording) with the real dart 
 with NVS persistence, USB unplug / replug, raw serial injection and per-scenario fault triggers, which basesim does
 not have. Nothing under jetson/ or firmware/ was changed.
 
+## How to run
+
+```
+systest/run_mission.sh --list            all scenarios
+systest/run_mission.sh                   nominal mission (about 2 min)
+systest/run_mission.sh all               everything (about 1.5 h)
+systest/run_mission.sh power_wrap,ref_power_wrap
+systest/preview.sh [scenario|all]        same, on base-v1 + w/fw-base + w/fw-dart + w/jetson (before a merge)
+python3 systest/c1_order.py              the C1 command order each recorded run used, against BASE_SPEC 10.1
+```
+Each run leaves `systest/runs/<scenario>/`: `timeline.jsonl` (steps, prompts and answers, events, dart phases, plant
+snapshots, injections, checks), `summary.json`, `base.log` (every serial line both ways with sim time), `dart.log`,
+`jetson/<run>/mission.jsonl` (the App's own log) and recorded videos.
+
+## Scenarios
+
+Two drivers: `mission` (the real `jetson/grappstar/mission.py` through the App, with a scripted operator) and `ref`
+(BASE_SPEC 10.1 step by step with the Jetson's own `BaseClient` / `Dart` clients, plus operator-style recovery). The
+`ref_*` scenarios test the firmware and dart against the binding sequence even while the mission lags behind it.
+
+Plant: sim.h plus the D22 additions in the shim: every laid turn draws a capstan circumference from the dart side
+(a free dart is tugged, an anchored one jams the cup), and tidy pulls an anchored line taut. Strict for `nominal`,
+`land_short` and all `ref_*`; lenient for the mission fault scenarios until F4/F12 land (`SYSTEST_D22_ALL=1` for strict).
+
+Checks per scenario (plant truth where possible): mission DONE, aim reached, fired, landed, anchored, tidy ran,
+wrapped (plant wraps), REEL engaged and pulling, tow limit respected (peak plant tension per 5 ms tick, limit +15 %),
+dart released, reeled in, unwrapped, seated (plant and SW_SEATED), back to LAUNCH, no dry fire (the plant counts the
+collar leaving LAUNCH with the spring drawn), wraps laid without jamming, free dart tugged under 1 m, C1 command order
+= BASE_SPEC 10.1, every injected fault actually fired, plus scenario specific ones.
+
 ## Results
 
 (pasted from the last run below)
@@ -35,3 +65,22 @@ not have. Nothing under jetson/ or firmware/ was changed.
 ## Findings
 
 See `systest/FINDINGS.md` (F1 onward), routed by the coordinator.
+
+## Review R2-L (review/r2_L_systest.md): what changed
+
+| # | Fix |
+|---|---|
+| 1 | Anchored line = 1 mm Dyneema, `anchorK = EA / d` with EA 20 kN (`line_ea_n`), re-sent whenever the anchor point moves (rover, snag). Strict in `nominal`, `ref_nominal`, `ref_refusals`, `tow_stiff`, `ref_tow_stiff`; the fault scenarios keep sim.h's 40 N/m until F20 is fixed (`SYSTEST_STRICT_ALL=1` for all). It found F20 at once |
+| 2 | `c_aim` uses the plant's real rail pitch (`pitchTrue`: the plant aim phase through the factory aim table, exported by the shim) at the AIMED event; the shot's line out is set from the range at the real pitch |
+| 3 | `c_reeled` is two-sided (approach_m - 0.4 .. + 0.3 at UNWRAP, not seated), new `c_seat_neutral` (the plant records collar and wraps when SW_SEATED first closes: must be out of REEL, wraps 0); `retrieve` mandatory in the C1 check unless the unwrap take-up already seated the dart in NEUTRAL |
+| 4 | Scenarios without injected faults also check: no FAULT event, no failure prompt, no Retry |
+| 5 | Drag / creep anchor: `slipN` (the anchor point follows the line when the tension passes it). `dart_never_anchors` drags at 6 N, new `dart_drags20` (above the 15 N check pull) |
+| 6, 7 | Shim TX buffer 2048 bytes like `Serial.setTxBufferSize(2048)` (FIONREAD on the pty), replies wait up to 1 s, events 20 ms, telemetry dropped (`telDrops` in `get`); event ring 23 |
+| 8 | Accepted: in the D22 order `land_short` is a regression guard (tug metric now measures the dart's own movement, not the slack taken) |
+| 9 | Reference driver only ignores a timeout on RESET, not a FAULT |
+| 10 | C1 check requires `dart release > stop` (step 14) |
+| 11 | `tidy ran` now needs the dart side within 0.1 m of taut after TIDY (plant) |
+| 12 | `dart_never_anchors`: TOW allowed only after the failed check's RELEASE |
+| 13 | `LIMIT seen in RETRIEVE` counts only LIMIT events raised during the RETRIEVE step |
+| 14 | `no_angle_sensor`: DONE in SW_INDEX mode OR a refusal at PREFLIGHT before any motion |
+| 15 | `nogo_reshoot` checks the C1 order of the last shot (`c1_from_last_aim`) |

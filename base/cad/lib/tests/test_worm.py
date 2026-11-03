@@ -29,6 +29,20 @@ def test_info():
     assert worm.worm_pitch_d(1.5, bore=8) >= 8 + 2 * (1.25 * 1.5 + 1.6)
 
 
+def test_self_locking_matches_back_efficiency():
+    """Review R2-I #5: self_locking uses the effective friction angle atan(mu / cos pa), like back_efficiency."""
+    inf = worm.worm_info(2, 15.5, starts=2)          # lead 14.47 deg: between atan(mu) 14.04 and 14.90 deg
+    assert inf["back_efficiency"] < 0 and inf["self_locking"]
+    assert abs(inf["friction_angle"] - math.degrees(math.atan(worm.MU_PLA / math.cos(math.radians(20))))) < 1e-9
+    assert abs(inf["friction_angle_axial"] - math.degrees(math.atan(worm.MU_PLA))) < 1e-9
+    for m in (0.5, 1.0, 1.5, 2.0, 3.0):
+        for d1 in (6.0, 10.0, 15.5, 18.0, 30.0):
+            for starts in (1, 2, 3, 4):
+                for mu in (0.05, 0.15, 0.25, 0.4):
+                    i = worm.worm_info(m, d1, starts=starts, mu=mu)
+                    assert i["self_locking"] == (i["back_efficiency"] <= 0), (m, d1, starts, mu)
+
+
 @pytest.fixture(scope="module")
 def wheel():
     return worm.worm_wheel(M, Z, FACE, D1, bore=6, throated=True)

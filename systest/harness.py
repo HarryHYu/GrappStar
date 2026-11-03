@@ -34,12 +34,12 @@ import urllib.request
 from typing import Any, Callable, Dict, List, Optional
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(HERE)
+ROOT = os.environ.get("SYSTEST_ROOT") or os.path.dirname(HERE)   # SYSTEST_ROOT: test another checkout (preview of branches)
 sys.path.insert(0, os.path.join(ROOT, "jetson"))
 
-SHIM = os.path.join(HERE, "build", "base_shim")
+SHIM = os.path.join(ROOT if os.environ.get("SYSTEST_ROOT") else HERE, "systest" if os.environ.get("SYSTEST_ROOT") else "", "build", "base_shim")
 DART_SIM = os.path.join(ROOT, "firmware", "dart", "sim", "kedge_sim")
-RUNS = os.path.join(HERE, "runs")
+RUNS = os.environ.get("SYSTEST_RUNS") or os.path.join(HERE, "runs")
 
 
 def free_port() -> int:
@@ -247,6 +247,8 @@ class Rig:
         self.fault_injected: List[str] = []
         self.done_triggers = set()
         self.base_seen_off = False
+        self.probe_results: List[dict] = []
+        self.dart_d: Optional[float] = None       # dart distance along the line from the base (m)
 
     # -------------------------------------------------------------- logging
     def note(self, kind: str, **kw) -> None:
@@ -275,8 +277,17 @@ class Rig:
             g = self.base.get()
             self.base.cmd({"id": 0, "cmd": "set", "key": "k_n_per_a", "val": round(g["kNperA_cal"], 3)})
             self.base.cmd({"id": 0, "cmd": "set", "key": "free_a", "val": round(g["freeA_cal"], 3)})
+            if not sc.doc_cal:      # a two-point calibration also zeroes the offset (FINDINGS F14)
+                self.base.cmd({"id": 0, "cmd": "set", "key": "tension_offset_n", "val": 0})
         for k, v in sc.base_setup.items():
             self.base.cmd({"id": 0, "cmd": "set", "key": k, "val": v})
+        d22 = sc.d22 or os.environ.get("SYSTEST_D22_ALL") == "1" or os.environ.get("SYSTEST_STRICT_ALL") == "1"
+        self.base.set(wrapDraw=1 if d22 else 0)
+        if not d22:     # until F4 (D22 order) is fixed, fault scenarios use the lenient plant so they test their own fault
+            self.note("info", msg="lenient wrap plant (wrap does not draw dart-side line); SYSTEST_D22_ALL=1 for the strict one")
+            sc.checks = [c for c in sc.checks if c[1] not in (c_wrap_free, c_tug)]
+        if sc.slip_n:
+            self.base.set(slipN=sc.slip_n)
         if sc.plant_setup:
             self.base.set(**sc.plant_setup)
         self.dart = DartProc(self.dir)
@@ -312,15 +323,18 @@ class Rig:
 
     def _on_evt(self, e: dict) -> None:
         e2 = {k: v for k, v in e.items() if not k.startswith("_")}
+        if e2.get("evt") == "AIMED":
+            self.aimed_plant = self.base.get()       # the rail's real pitch when the firmware says it is aimed
+        e2["_step"] = self.step()
         self.events.append(dict(e2, _wall=time.time()))
-        self.note("evt", e=json.dumps(e2))
+        self.note("evt", e=json.dumps({k: v for k, v in e2.items() if k != "_step"}))
 
     # -------------------------------------------------------------- world coupler
     def _world(self) -> None:
         last_shots, last_phase, last_step = 0, None, None
         anchored = False
         while not self.stop_ev.is_set():
-            step = self.app.mission.step if self.app.mission else ""
+            step = self.step()
             p = self.base.ctl("peakreset")            # plant truth; peaks are tracked every 5 ms tick inside the shim
             if p and "t" in p:
                 self.plant_last = p
@@ -336,8 +350,24 @@ class Rig:
                     self.note("plant", step=step, **{k: p.get(k) for k in ("state", "drumDeg", "lineOut", "wraps",
                                                                            "tension", "seated", "inLaunch", "inReel")})
                     last_step = step
+                if p.get("seated") and not getattr(self, "_was_seated", True) and self.fired_seen:
+                    self.seat_rec = {k: p.get(k) for k in ("inReel", "inLaunch", "wraps", "drumDeg", "state")}
+                    self.seat_rec["step"] = step
+                    self.note("info", msg=f"dart seated: {self.seat_rec}")
+                self._was_seated = bool(p.get("seated"))
+                if not anchored and self.dart_d is not None and p.get("lineOut") is not None:
+                    self.dart_d = min(self.dart_d, float(p["lineOut"]))   # a free dart is tugged along by a short line
                 if p.get("shots", 0) > last_shots:
                     last_shots = p["shots"]
+                    pt = p.get("pitchTrue")
+                    if isinstance(pt, (int, float)) and pt == pt:   # the dart flies from the rail's REAL pitch
+                        rr = self.app.bal.at_pitch(float(pt), self.app.cfg.mission.drag_n).get("range_m")
+                        if rr:
+                            self.base.set(lineOut=round(rr * 1.05 + 0.3, 3))
+                            p["lineOut"] = round(rr * 1.05 + 0.3, 3)
+                            self.note("info", msg=f"real pitch {pt:.2f} deg: range {rr:.2f} m, line out {p['lineOut']} m")
+                    self.dart_d = float(p.get("lineOut") or 0) - self.sc.landing_slack   # landing slack on the dart side
+                    self.dart_d0 = self.dart_d
                     self.fired_seen = last_shots
                     self.video.t_fire = time.time()
                     fms = int(self.video.flight_s() * 1000)
@@ -354,7 +384,10 @@ class Rig:
                     self.note("dart", phase=ph, seq=ds.get("seq"), ev=ds.get("event"))
                     if ph == "ANCHORED" and (self.sc.anchor_holds or getattr(self, "anchor_ok", False)):
                         lo = float(self.base.get().get("lineOut") or 0)
-                        self.base.set(anchorTautAt=round(max(0.0, lo - 0.3), 3))
+                        d = min(self.dart_d if self.dart_d is not None else lo, lo)   # the dart lies at d: taut at d
+                        self.anchor_at(d)
+                        self.dart_d_anchor = d
+                        self.note("info", msg=f"dart anchored at {d:.2f} m, line out {lo:.2f} m (dart-side slack {lo - d:.2f} m)")
                         anchored = True
                     elif anchored and ph in ("RELEASING", "IDLE", "FAULT"):
                         self.base.set(anchorTautAt=-1)
@@ -422,17 +455,27 @@ class Rig:
         self.video.render(sol.pitch_deg if sol.reachable else 35.0, float(sol.to_dict().get("v_muzzle") or 7.1))
         self.note("info", msg=f"solution {self.solution}")
         time.sleep(4.0)                        # let the camera quality window fill with real frames
+        if self.sc.driver == "ref":
+            self.ref = RefMission(self)
+            self.ref.start()
+            self.note("info", msg="reference driver (BASE_SPEC 10.1) started")
+            deadline = time.time() + self.sc.timeout_s
+            while self.ref.thread.is_alive() and time.time() < deadline:
+                time.sleep(0.2)
+            time.sleep(1.0)
+            return self.collect(self.ref.thread.is_alive())
         r = app.action("start")
         self.note("info", msg=f"start: {r}")
         deadline = time.time() + self.sc.timeout_s
         while app.mission and app.mission.running() and time.time() < deadline:
             time.sleep(0.2)
         hung = bool(app.mission and app.mission.running())
-        if not hung and self.sc.after:
+        after = self.sc.after or (decock_and_restart if getattr(self, "wants_decock_restart", False) else None)
+        if not hung and after:
             self.first_mission = {"state": app.mission.state, "error": app.mission.error,
                                   "steps": [h["state"] for h in app.mission.history]}
             self.note("info", msg=f"first mission ended {self.first_mission['state']}: {self.first_mission['error']}")
-            self.sc.after(self)
+            after(self)
             deadline = time.time() + self.sc.timeout_s
             while app.mission and app.mission.running() and time.time() < deadline:
                 time.sleep(0.2)
@@ -446,7 +489,7 @@ class Rig:
 
     def collect(self, hung: bool) -> dict:
         app = self.app
-        m = app.mission
+        m = getattr(self, "ref", None) or app.mission
         steps = [h["state"] for h in (m.history if m else [])]
         tel = dict(app.base.tel or {})
         plant = self.base.get()
@@ -465,7 +508,10 @@ class Rig:
         for tid, _c, _a in self.sc.triggers:
             chk(f"fault injected: {tid}", tid in self.done_triggers, "trigger fired" if tid in self.done_triggers else "NEVER FIRED (scenario did not test what it says)")
         chk("harness: plant link alive to the end", bool(plant) and "t" in plant and time.time() - getattr(self, "ctl_ok", 0) < 5, "ctl")
-        for name, fn in self.sc.checks:
+        extra = []
+        if not self.sc.triggers and not self.sc.expect_faults:
+            extra = [("no FAULT events (no fault scenario)", c_no_fault), ("no failure prompts or retries", c_no_retry)]
+        for name, fn in list(self.sc.checks) + extra:
             try:
                 ok, det = fn(self, res)
             except Exception as e:
@@ -494,10 +540,18 @@ class Rig:
 
     # -------------------------------------------------------------- helpers for scenarios
     def step(self) -> str:
-        return self.app.mission.step if self.app.mission else ""
+        m = getattr(self, "ref", None) or self.app.mission
+        return m.step if m else ""
 
     def evt_names(self) -> List[str]:
         return [e.get("evt") for e in self.events]
+
+    def anchor_at(self, d: float) -> None:
+        """The line goes taut at d m out, with the stiffness of d m of 1 mm Dyneema (R2-L 1: EA about 20 kN)."""
+        d = max(0.0, float(d))
+        stiff = self.sc.stiff or os.environ.get("SYSTEST_STRICT_ALL") == "1"
+        k = self.sc.line_ea_n / max(d, 0.5) if stiff else 40.0     # 40 N/m = sim.h default (lenient, until F20)
+        self.base.set(anchorTautAt=round(d, 3), anchorK=round(k, 1))
 
     def restart_base(self, off_s: float = 2.0) -> None:
         threading.Thread(target=self._restart_base, args=(off_s,), daemon=True).start()
@@ -508,6 +562,242 @@ class Rig:
         time.sleep(off_s)
         self.base.start(fresh=False)
         self.note("info", msg="base process restarted (plant + NVS kept)")
+
+
+from grappstar.comms.base import BaseTimeout as BaseTimeoutErr  # noqa: E402
+
+
+class RefMission:
+    """BASE_SPEC 10.1 (D35) driven step by step with the Jetson's own clients (comms/base.py BaseClient, comms/dart.py
+    Dart), no mission.py. It checks the firmware, the dart and the plant against the binding sequence, independent of
+    the mission's own order. Step names match mission.py so the same checks apply."""
+
+    def __init__(self, rig: Rig):
+        self.rig, self.b, self.d = rig, rig.app.base, rig.app.dart
+        self.history: List[dict] = []
+        self.step = ""
+        self.state, self.error, self.shot = "RUNNING", "", {}
+        self.thread = threading.Thread(target=self._run, name="ref", daemon=True)
+        self.tokens: List[str] = []
+        self.probed = set()
+
+    def start(self):
+        self.thread.start()
+
+    def _set(self, name):
+        self.step = name
+        self.history.append({"state": name, "t": round(time.time(), 2)})
+        self.rig.note("step", name=name)
+
+    def tx(self, name, **args):
+        self.tokens.append(name + (f" {args.get('to') or args.get('until') or ''}".rstrip() if args else ""))
+        return self.b.cmd(name, timeout=2.0, **args)
+
+    def wait(self, names, timeout, m, pred=None):
+        return self.b.wait_event(names, timeout, since=m, pred=pred)
+
+    def act(self, name, timeout, wait_for, pred=None, **args):
+        m = self.b.event_mark()
+        self.tx(name, **args)
+        return self.wait(wait_for, timeout, m, pred=pred)
+
+    # ---------------------------------------------------------------- steps (BASE_SPEC 10.1)
+    def s_launch(self):
+        if (self.b.tel or {}).get("drum_pos") != "LAUNCH":
+            self.act("mode", 60, "MODE", to="LAUNCH")
+
+    def s_aim(self):
+        self.act("aim", 90, "AIMED", deg=self.rig.solution["pitch_deg"])
+
+    def s_cock(self):
+        if ((self.b.tel or {}).get("cock") or 0) < 0.999:
+            self.act("cock", 40, "COCKED")
+
+    def s_fire(self):
+        b, d = self.b, self.d
+        if self.rig.base.get().get("shots", 0) >= 1:
+            return                              # already out (the FIRED event may have been lost)
+        try:
+            d.arm(True, auto=False)
+        except Exception as e:
+            self.rig.note("info", msg=f"dart arm failed: {e}")
+        tok = self.tx("arm").get("token")
+        m = b.event_mark()
+        self.tx("fire", token=tok)
+        self.wait("FIRED", 30, m)
+        self.fire_mark = m
+
+    def s_flight(self):
+        self.d.wait_phase(("LANDED", "ANCHORING", "ANCHORED"), 20)
+        try:
+            self.wait("RESET", 30, getattr(self, "fire_mark", 0))
+        except BaseTimeoutErr:
+            pass
+
+    def s_line(self):
+        self.tx("set", key="line_m", val=round(self.rig.sc.target[0] * 1.05 + 0.3, 2))
+
+    def s_wrap(self):
+        if (self.b.tel or {}).get("drum_pos") != "WRAPPED":
+            self.act("wrap", 60, "WRAPPED")
+
+    def s_anchor(self):
+        st = self.d.status()
+        if st.get("phase") != "ANCHORED":
+            self.tokens.append("dart auto")
+            if st.get("phase") != "ANCHORING":
+                self.d.auto()
+            self.d.wait_phase(("ANCHORED",), 60)
+
+    def s_tidy(self):
+        self.act("tidy", 20, "TIDIED", ms=3000, duty=0.3)
+
+    def s_flyin(self):
+        if (self.b.tel or {}).get("drum_pos") != "REEL":
+            self.act("mode", 60, "MODE", pred=lambda e: e.get("mode") == "REEL", to="REEL")
+
+    def s_tow(self):
+        rig = self.rig
+        lim = rig.app.cfg.mission.tow_limit_n
+        while rig.tow_rounds < rig.sc.tow_rounds:
+            if (self.b.tel or {}).get("drum_pos") != "REEL":
+                self.s_flyin()                  # a fault in REEL parks the drum at WRAPPED (D35 recovery)
+            e = self.act("reel", 60, ("LIMIT", "SEATED"), duty=rig.sc.tow_duty, max_n=lim, until="tension")
+            if e.get("evt") != "LIMIT":
+                raise RuntimeError(f"tow: {e}")
+            rig.tow_rounds += 1
+            p = rig.base.get()
+            rig.note("info", msg=f"ref tow round {rig.tow_rounds}: LIMIT {e.get('tension_n')} N, plant {p.get('tension')} N")
+            if rig.tow_rounds < rig.sc.tow_rounds and float(p.get("anchorTautAt", -1)) >= 0:
+                rig.anchor_at(float(p["anchorTautAt"]) - 0.6)
+
+    def s_release(self):
+        st = self.d.status()
+        if st.get("phase") == "IDLE" and st.get("seq") == "released":
+            return
+        self.tokens.append("dart release")
+        if st.get("phase") != "RELEASING":
+            self.d.release()
+        self.b.cmd("stop", timeout=2.0)
+        self.d.wait_phase(("IDLE",), 40, want_seq="released")
+
+    def s_retrieve(self):
+        b = self.b
+        line = (b.tel or {}).get("line_m")
+        if line is not None and line > 1.8:
+            if (b.tel or {}).get("drum_pos") != "REEL":
+                self.s_flyin()
+            m = b.event_mark()
+            self.tx("reel", duty=0.6, max_n=30, until="stop")
+            t_end = time.time() + 120
+            while ((b.tel or {}).get("line_m") or 0) > 1.5 and time.time() < t_end:
+                ev = [e for e in b.events(m) if e.get("evt") in ("LIMIT", "FAULT", "ABORTED", "HELLO")]
+                if ev:
+                    raise RuntimeError(f"reel-in ended: {ev[0]}")
+                time.sleep(0.05)
+            b.cmd("stop", timeout=2.0)
+
+    def s_unwrap(self):
+        t = self.b.tel or {}
+        if t.get("drum_pos") in ("WRAPPED", "REEL", "BETWEEN") or (t.get("wraps") or 0) > 0:
+            m = self.b.event_mark()
+            self.tx("unwrap")
+            self.wait("UNWRAPPED", 60, m)
+
+    def s_final(self):
+        if not (self.b.tel or {}).get("sw", {}).get("S"):
+            self.act("retrieve", 90, "SEATED", duty=0.3)
+
+    def s_end(self):
+        self.act("mode", 60, "MODE", pred=lambda e: e.get("mode") == "LAUNCH", to="LAUNCH")
+
+    STEPS = [("LAUNCH_MODE", "s_launch"), ("AIM", "s_aim"), ("COCK", "s_cock"), ("FIRE", "s_fire"), ("FLIGHT", "s_flight"),
+             ("LANDING_ZONE", "s_line"), ("WRAP", "s_wrap"), ("ANCHOR", "s_anchor"), ("TIDY", "s_tidy"),
+             ("REEL_FLYIN", "s_flyin"), ("TOW", "s_tow"), ("RELEASE", "s_release"), ("RETRIEVE", "s_retrieve"),
+             ("UNWRAP", "s_unwrap"), ("FINAL_APPROACH", "s_final"), ("LAUNCH_READY", "s_end")]
+
+    def recover(self, step, err):
+        """The operator: wait for the base, clear the fault, decock a carriage left drawn (then re-aim), retry."""
+        rig, b = self.rig, self.b
+        rig.note("info", msg=f"ref: {step} failed ({err}); recovering")
+        t0 = time.time()
+        while not b.link().get("connected") and time.time() - t0 < 15:
+            time.sleep(0.2)
+        time.sleep(0.5)
+        for _ in range(3):
+            try:
+                b.cmd("clear", timeout=2.0)
+                break
+            except Exception as e:
+                rig.note("info", msg=f"ref: clear: {e}")
+                time.sleep(1.0)
+        time.sleep(0.5)
+        try:
+            st = b.cmd("status", timeout=2.0)
+        except Exception:
+            st = {}
+        tel = b.tel or {}
+        if "LAUNCH_BUSY" in err and st.get("phase") == "UNKNOWN" and (tel.get("sw") or {}).get("H"):
+            # carriage home but the phase unknown, drum out of LAUNCH: the only firmware path back to REST is
+            # mode LAUNCH, cock (creeps to SW_HOME, re-zeroes, draws the spring), decock (FINDINGS F15)
+            rig.note("info", msg="ref: phase UNKNOWN with the carriage home outside LAUNCH: mode LAUNCH, cock, decock")
+            self.act("mode", 60, "MODE", pred=lambda e: e.get("mode") == "LAUNCH", to="LAUNCH")
+            self.act("cock", 60, "COCKED")
+            m = b.event_mark()
+            self.tx("decock")
+            self.wait("RESET", 90, m)
+            self.redo_aim = True
+            return
+        if st.get("phase") in ("UNKNOWN", "COCKING") and not (tel.get("sw") or {}).get("H"):
+            rig.note("info", msg="ref: carriage drawn with the phase unknown: decock")
+            m = b.event_mark()
+            self.tx("decock")
+            self.wait("RESET", 90, m)
+            self.redo_aim = True
+
+    def _run(self):
+        rig = self.rig
+        i = 0
+        tries = 0
+        try:
+            while i < len(self.STEPS):
+                name, fn = self.STEPS[i]
+                if getattr(self, "redo_aim", False) and name in ("COCK", "FIRE"):
+                    self.redo_aim = False
+                    self._set("AIM")
+                    self.s_aim()
+                self._set(name)
+                for pst, pcmd, pargs in rig.sc.probes:
+                    if pst == name and (pst, pcmd) not in self.probed:
+                        self.probed.add((pst, pcmd))
+                        try:
+                            r = self.b.cmd(pcmd, timeout=2.0, check=False, **pargs)
+                        except Exception as e:
+                            r = {"ok": None, "err": f"{type(e).__name__}: {e}"}
+                        rig.probe_results.append({"step": pst, "cmd": pcmd, "args": pargs, "reply": r})
+                        rig.note("info", msg=f"probe at {pst}: {pcmd} {pargs} -> {r}")
+                        if r.get("ok"):
+                            self.b.cmd("stop", timeout=2.0)      # it started: stop it again
+                            time.sleep(1.0)
+                try:
+                    getattr(self, fn)()
+                    i += 1
+                    tries = 0
+                except Exception as e:
+                    tries += 1
+                    rig.prompts.append({"step": name, "text": f"{name} failed: {type(e).__name__}: {e}", "choices": ["Retry"], "answer": "Retry"})
+                    if tries > rig.sc.retry_max:
+                        raise
+                    self.recover(name, f"{type(e).__name__}: {e}")
+            self.state = "DONE"
+            self._set("DONE")
+        except Exception as e:
+            self.state, self.error = "FAILED", f"{type(e).__name__}: {e}"
+            rig.note("info", msg=f"ref driver failed at {self.step}: {self.error}")
+            try:
+                self.b.safe_stop()
+            except Exception:
+                pass
 
 
 class ScriptRover:
@@ -533,7 +823,7 @@ class ScriptRover:
             return "done"
         p = r.base.get()
         if float(p.get("anchorTautAt", -1)) >= 0:
-            r.base.set(anchorTautAt=round(float(p["anchorTautAt"]) - 0.6, 3))   # rover 0.6 m closer: slack
+            r.anchor_at(float(p["anchorTautAt"]) - 0.6)   # rover 0.6 m closer: slack
         return "slack"
 
 
@@ -550,7 +840,18 @@ class Scenario:
         self.triggers = kw.get("triggers", [])
         self.anchor_holds = kw.get("anchor_holds", True)
         self.calibrated = kw.get("calibrated", True)
-        self.hello_delay = kw.get("hello_delay", 2100)   # ms from power on to HELLO (the sketch's setup())
+        self.hello_delay = kw.get("hello_delay", 2100)
+        self.landing_slack = kw.get("landing_slack", 0.9)
+        self.line_ea_n = kw.get("line_ea_n", 20000.0)   # 1 mm Dyneema: about 3.5 % at 667 N
+        self.slip_n = kw.get("slip_n", 0.0)
+        self.stiff = kw.get("stiff", False)          # strict line: 1 mm Dyneema stiffness (else the sim.h 40 N/m spring)             # the anchor (or a dragging dart) slides above this tension
+        self.c1_from_last_aim = kw.get("c1_from_last_aim", False)
+        self.expect_faults = kw.get("expect_faults", False)
+        self.d22 = kw.get("d22", False)
+        self.driver = kw.get("driver", "mission")
+        self.tow_duty = kw.get("tow_duty", 1.0)
+        self.doc_cal = kw.get("doc_cal", False)
+        self.probes = kw.get("probes", [])         # ref driver: (step, cmd, args) sent at the start of step; must be refused     # calibrate literally as CALIBRATION.md says (offset left at default)     # BASE_SPEC 10.1 step 13: duty 1  # "mission" = jetson mission.py; "ref" = RefMission (BASE_SPEC 10.1)            # strict D22 plant: laying turns draws line from the dart side   # D22: about 0.9 m of line lies slack after the landing   # ms from power on to HELLO (the sketch's setup())
         self.after = kw.get("after")              # run after the first mission ends (operator recovery + a new mission)
         self.tow_rounds = kw.get("tow_rounds", 3)
         self.timeout_s = kw.get("timeout_s", 420)
@@ -562,6 +863,8 @@ class Scenario:
         self._retries = 0
 
     def answer(self, rig: Rig, step: str, text: str, choices: List[str]) -> str:
+        if "failed" in text.lower() or "FAULT" in text:
+            time.sleep(2.0)                   # the operator reads the fault and looks at the base first
         for sub, ans in self.policy.items():
             if sub in text:
                 if callable(ans):
@@ -570,15 +873,22 @@ class Scenario:
                         return a
                 elif ans in choices:
                     return ans
-        prefer = ["Continue", "Aim", "Fire", "FIRE NOW", "Anchor", "Anchor anyway", "Shoot again", "Dart is down",
+        prefer = ["Continue", "Base may move", "Aim", "Fire", "FIRE NOW", "Anchor", "Anchor anyway", "Shoot again", "Dart is down",
                   "Release the dart"]
         for p in prefer:
             if p in choices:
                 return p
+        if step != getattr(self, "_retry_step", None):   # the retry budget is per step
+            self._retry_step, self._retries = step, 0
         if "Retry" in choices and self._retries < self.retry_max:
             self._retries += 1
             time.sleep(1.0)
             return "Retry"
+        if "Retry" not in choices:          # a prompt the script does not know: go on with the first choice that is not Abort
+            for c in choices:
+                if c not in ("Abort", "Skip"):
+                    rig.note("info", msg=f"operator: unknown prompt, chose {c!r}")
+                    return c
         return "Abort" if "Abort" in choices else choices[0]
 
 
@@ -602,13 +912,15 @@ def c_steps(*names):
 
 
 def c_aim(rig, res):
+    """The rail's REAL pitch (plant aim phase through the factory table) when AIMED came, against the solution."""
     ev = [e for e in rig.events if e.get("evt") == "AIMED"]
     if not ev:
         return False, "no AIMED"
     e = ev[-1]
     sol = (res.get("solution") or {}).get("pitch_deg")
-    ok = e.get("ok") and sol is not None and abs(e.get("pitch_deg", 0) - sol) <= 1.0
-    return ok, f"AIMED {e.get('pitch_deg')} target {e.get('target_deg')} solution {sol}"
+    pt = (getattr(rig, "aimed_plant", None) or {}).get("pitchTrue")
+    ok = bool(e.get("ok")) and sol is not None and isinstance(pt, (int, float)) and abs(pt - sol) <= 1.0
+    return ok, f"plant pitch {pt} at AIMED (firmware says {e.get('pitch_deg')}), solution {sol}"
 
 
 def c_fired(rig, res):
@@ -624,11 +936,18 @@ def c_anchored(rig, res):
 
 
 def c_tidy(rig, res):
-    """Spec D16/D22: TIDY after anchoring (take-up winds the slack). Pass when the TIDY step ran and the base did it."""
-    msgs = [l for l in _mission_log(rig) if "tidy" in l.lower()]
-    ran = "TIDY" in res["steps"]
-    skipped = any("no tidy" in m for m in msgs)
-    return ran and not skipped, ("skipped: " + msgs[0]) if skipped else f"TIDY step {'ran' if ran else 'missing'}"
+    """TIDY ran and the take-up left the dart side taut (plant line out minus the taut length under 0.1 m)."""
+    st = res["steps"]
+    if "TIDY" not in st:
+        return False, "TIDY step missing"
+    if not (rig.sc.d22 or os.environ.get("SYSTEST_D22_ALL") == "1" or os.environ.get("SYSTEST_STRICT_ALL") == "1"):
+        return True, "TIDY ran (slack not judged: lenient wrap plant leaves the landing slack the wrap would take)"
+    nxt = st[st.index("TIDY") + 1] if st.index("TIDY") + 1 < len(st) else None
+    p = rig.step_plant.get(nxt) or {}
+    if p.get("anchorTautAt") is None or float(p["anchorTautAt"]) < 0:
+        return False, f"no anchored snapshot after TIDY ({nxt})"
+    slack = float(p["lineOut"]) - float(p["anchorTautAt"])
+    return slack <= 0.1, f"dart-side slack after TIDY {slack:.2f} m (at {nxt})"
 
 
 def c_wrapped(rig, res):
@@ -654,11 +973,25 @@ def c_released(rig, res):
 
 
 def c_reeled(rig, res):
-    """Reel in on the capstan (wraps on) to the approach distance or all the way to seated."""
+    """10.1 step 15: the capstan reel-in stops with about approach_m left (never seats on the capstan)."""
     p = rig.step_plant.get("UNWRAP") or {}
     r = rig.step_plant.get("RETRIEVE") or {}
-    return p.get("lineOut") is not None and float(p["lineOut"]) <= rig.app.cfg.mission.approach_m + 0.3, \
-        f"line out {r.get('lineOut')} m at RETRIEVE start, {p.get('lineOut')} m at UNWRAP"
+    a = rig.app.cfg.mission.approach_m
+    lo = p.get("lineOut")
+    if lo is None:
+        return False, "no UNWRAP snapshot"
+    started_short = r.get("lineOut") is not None and float(r["lineOut"]) <= a + 0.3   # nothing to reel on the capstan
+    ok = (started_short or a - 0.4 <= float(lo) <= a + 0.3) and not p.get("seated")
+    return ok, f"line out {r.get('lineOut')} m at RETRIEVE start, {lo} m at UNWRAP (want {a - 0.4:.1f}..{a + 0.3:.1f}), seated {p.get('seated')}"
+
+
+def c_seat_neutral(rig, res):
+    """10.1 step 17 / D39: the dart seats on the take-up in NEUTRAL with the wraps off, never on the capstan."""
+    sr = getattr(rig, "seat_rec", None)
+    if not sr:
+        return False, "never seated after the shot"
+    ok = (not sr.get("inReel")) and (float(sr.get("wraps") or 0) < 0.05 or sr.get("step") == "UNWRAP")
+    return ok, f"seated with {sr} (seating by the take-up during the unwrap, collar NEUTRAL, counts as take-up)"
 
 
 def c_unwrapped(rig, res):
@@ -701,7 +1034,98 @@ def nominal_checks():
             ("anchored (dart)", c_anchored), ("tidy ran", c_tidy), ("wrapped (4+ wraps on the capstan)", c_wrapped),
             ("REEL engaged, tow pulled", c_reel_engaged), ("tow limit respected", c_tow_limit),
             ("dart released", c_released), ("reeled in to the approach", c_reeled), ("unwrapped", c_unwrapped),
-            ("seated", c_seated), ("back to LAUNCH", c_launch), ("no dry fire", c_no_dry)]
+            ("seated", c_seated), ("back to LAUNCH", c_launch), ("no dry fire", c_no_dry),
+            ("wraps laid without jamming (D22 slack)", c_wrap_free), ("free dart tugged under 1 m by the wrap", c_tug),
+            ("C1 command order = BASE_SPEC 10.1 (D35)", c_c1_sequence),
+            ("seated on the take-up in NEUTRAL, wraps off (10.1 step 17)", c_seat_neutral)]
+
+
+def c_no_fault(rig, res):
+    f = [e for e in rig.events if e.get("evt") == "FAULT"]
+    return not f, f"FAULT events: {[(e.get('code'), e.get('_step')) for e in f]}"
+
+
+def c_no_retry(rig, res):
+    bad = [p for p in res["prompts"] if "failed" in p["text"].lower() or p["answer"] == "Retry"]
+    return not bad, f"failure prompts / retries: {[p['text'][:60] for p in bad]}"
+
+
+import re as _re
+
+C1_SEQ = (r"^(mode LAUNCH > )?aim > (cock > )?arm > fire > set line_m > (mode NEUTRAL > )?wrap > dart auto > tidy > "
+          r"mode REEL > (reel tension > )+dart release > stop > (reel stop > )?unwrap > RETRIEVE(retrieve > )mode LAUNCH$")
+
+
+def c1_tokens(rig) -> List[str]:
+    """The commands the Jetson sent, in order, from its own mission log (base_tx and dart_tx lines)."""
+    d = rig.app.run_dir
+    out = []
+    if not d or not os.path.exists(os.path.join(d, "mission.jsonl")):
+        return out
+    for l in open(os.path.join(d, "mission.jsonl")):
+        try:
+            r = json.loads(l)
+        except ValueError:
+            continue
+        o = r.get("obj") or {}
+        if r.get("kind") == "base_tx":
+            c = o.get("cmd")
+            if c in ("ping", "status", "get", "clear", "estop", None):
+                continue
+            if c == "mode":
+                c = f"mode {o.get('to')}"
+            elif c == "reel":
+                c = f"reel {o.get('until', 'stop')}"
+            elif c == "set":
+                if o.get("key") != "line_m":
+                    continue                     # bench settings (host_timeout_s ...) are not part of 10.1
+                c = "set line_m"
+            elif c == "cal":
+                c = "decock" if o.get("what") == "decock" else f"cal {o.get('what')}"
+            out.append(c)
+        elif r.get("kind") == "dart_tx":
+            if o.get("auto") is True and "arm" not in o:
+                out.append("dart auto")
+            elif o.get("release"):
+                out.append("dart release")
+    coll = []
+    for t in out:                       # a retry repeats the same command: collapse runs
+        if not coll or coll[-1] != t:
+            coll.append(t)
+    return coll
+
+
+def c_c1_sequence(rig, res):
+    """BASE_SPEC 10.1 (D35): the one C1 command sequence. `stop` counts only right after `dart release` (step 14:
+    release, then stop); `retrieve` may only be missing when the unwrap take-up already seated the dart in NEUTRAL."""
+    ref = getattr(rig, "ref", None)
+    toks = c1_tokens(rig) if ref is None else ["set line_m" if t.startswith("set") else t for t in ref.tokens
+                                               if not t.startswith("set") or "line" in t or t == "set"]
+    keep = []
+    for i, t in enumerate(toks):
+        if t == "stop" and not (keep and keep[-1] == "dart release"):
+            continue
+        if not keep or keep[-1] != t:
+            keep.append(t)
+    if rig.sc.c1_from_last_aim and "aim" in keep:
+        keep = keep[len(keep) - 1 - keep[::-1].index("aim"):]
+    seq = " > ".join(keep)
+    sr = getattr(rig, "seat_rec", None) or {}
+    seated_neutral = sr and not sr.get("inReel") and float(sr.get("wraps") or 0) < 0.05 and sr.get("step") in ("UNWRAP",)
+    pat = C1_SEQ.replace("RETRIEVE(retrieve > )", "(retrieve > )?" if seated_neutral else "retrieve > ")
+    return bool(_re.match(pat, seq)), seq
+
+
+def c_wrap_free(rig, res):
+    n = res["plant"].get("wrapBlocks", -1)
+    return n == 0, f"wrap cup blocked for {n} ticks (taut dart side while laying turns)"
+
+
+def c_tug(rig, res):
+    d0, d = getattr(rig, "dart_d0", None), getattr(rig, "dart_d_anchor", None)
+    if d0 is None or d is None:
+        return False, "no shot"
+    return d0 - d < 1.0, f"free dart dragged {d0 - d:.2f} m toward the base before it anchored (line taken by the wrap {res['plant'].get('dartTug', 0):.2f} m)"
 
 
 # triggers: (id, condition(rig), action(rig))
@@ -756,7 +1180,7 @@ def decock_and_restart(rig):
     r = app.action("decock")
     rig.note("info", msg=f"operator: decock -> {r}")
     t0 = time.time()
-    while time.time() - t0 < 90 and not any(e.get("evt") in ("RESET", "FAULT", "ABORTED") for e in rig.events[mark:]):
+    while time.time() - t0 < 30 and not any(e.get("evt") in ("RESET", "FAULT", "ABORTED") for e in rig.events[mark:]):
         time.sleep(0.2)
     rig.note("info", msg=f"after decock: {[e.get('evt') for e in rig.events[mark:]]}, tel {app.base.tel}")
     rig.sc._retries = 0
@@ -777,10 +1201,45 @@ def sc(s: Scenario):
     return s
 
 
-sc(Scenario("nominal", "whole mission, aim to seated, no faults"))
+sc(Scenario("nominal", "whole mission, aim to seated, no faults (strict D22 plant)", d22=True))
 
-sc(Scenario("nominal_uncal", "whole mission with the factory k_n_per_a / free_a (CALIBRATION.md not done)",
-            calibrated=False))
+sc(Scenario("ref_nominal", "BASE_SPEC 10.1 sequence driven directly (no mission.py): firmware + dart + D22 plant",
+            driver="ref", d22=True,
+            checks=[c for c in nominal_checks() if c[0] not in ("tidy ran",)] + [("D22 order: WRAP step before ANCHOR step", lambda r, res: c_d22_order(r, res))]))
+
+def c_probes_refused(rig, res):
+    pr = rig.probe_results
+    bad = [p for p in pr if p["reply"].get("ok") is not False]
+    return bool(pr) and not bad and len(pr) == len(rig.sc.probes), [(p["step"], p["cmd"], p["reply"].get("err")) for p in pr]
+
+
+sc(Scenario("ref_refusals", "BASE_SPEC 10.1 with wrong commands thrown in: retrieve at the WRAPPED park (D39: NEUTRAL with the "
+            "wraps off only), tow max_n 80 (D39 cap 70), reel seated on the capstan, wrap while cocked, fire without arm, aim out of range",
+            driver="ref", d22=True,
+            probes=[("FIRE", "fire", {"token": 123456}), ("COCK", "aim", {"deg": 85}),
+                    ("FIRE", "wrap", {}),
+                    ("TIDY", "retrieve", {"duty": 0.3}), ("TOW", "reel", {"duty": 1.0, "max_n": 80, "until": "tension"}),
+                    ("RETRIEVE", "reel", {"duty": 0.6, "max_n": 30, "until": "seated"})],
+            checks=[("every wrong command refused", c_probes_refused), ("mission DONE", c_done),
+                    ("tow limit respected", c_tow_limit), ("no dry fire", c_no_dry)]))
+
+sc(Scenario("ref_tow_duty08", "as ref_nominal with the tow at duty 0.8 (the mission's reel_duty): is the tow limit duty dependent?",
+            driver="ref", d22=True, tow_duty=0.8,
+            checks=[("mission DONE", c_done), ("tow limit respected", c_tow_limit)]))
+
+sc(Scenario("nominal_uncal", "whole mission with the factory k_n_per_a / free_a (CALIBRATION.md not done): the Jetson must "
+            "refuse the tow (F5) and bring the dart home", calibrated=False, expect_faults=True,
+            policy={"TOW refused": "Release the dart"},
+            checks=[("TOW refused without calibration", lambda r, res: (any("refused" in p["text"] and "TOW" in p["text"] for p in res["prompts"]),
+                                                                        [p["text"][:70] for p in res["prompts"] if "TOW" in p["text"]])),
+                    ("never pulled over the limit", c_tow_limit), ("mission DONE", c_done), ("dart released", c_released),
+                    ("seated", c_seated), ("back to LAUNCH", c_launch), ("no dry fire", c_no_dry)]))
+
+sc(Scenario("tow_stiff", "short stiff tow: 3 m of 1 mm Dyneema (EA 20 kN, about 7 kN/m): does the tow stop within the limit?",
+            target=(3.0, 0.0), d22=True))
+
+sc(Scenario("ref_tow_stiff", "tow_stiff with the BASE_SPEC 10.1 reference driver, tow at duty 1", target=(3.0, 0.0), d22=True, driver="ref",
+            checks=[("mission DONE", c_done), ("tow limit respected", c_tow_limit), ("no dry fire", c_no_dry)]))
 
 sc(Scenario("drum_timeout", "drum N20 jams on the way to NEUTRAL after the shot: DRUM_TIMEOUT, operator frees it, Retry",
             triggers=[("jam drum", plant_state("MODE", step="BASE_NEUTRAL", delay=0.3),
@@ -795,7 +1254,7 @@ sc(Scenario("dog_tip", "dog teeth land tip to tip on every engagement: the firmw
 sc(Scenario("stall_cock", "the wiper stalls while cocking (STALL), load removed, Retry: no dry fire, mission completes",
             triggers=[("stall load", plant_state("COCK", delay=0.6),
                        lambda r: r.base.set(extraLoadNm=20)),
-                      ("load removed", on_evt("FAULT", after=1.0), lambda r: r.base.set(extraLoadNm=0))],
+                      ("load removed", on_evt("FAULT", after=0.3), lambda r: r.base.set(extraLoadNm=0))],
             after=decock_and_restart, timeout_s=400,
             extra_checks=[("first mission ended, operator recovered with Decock", c_first_aborted_cleanly),
                           ("STALL or OVERCURRENT raised", lambda r, res: (any(e.get("code") in ("STALL", "OVERCURRENT") for e in r.events),
@@ -826,28 +1285,41 @@ def unjam_dart_retry(rig, text, choices):
 
 sc(Scenario("dart_never_anchors", "the dart's drills are jammed: /auto still says ANCHORED (stall = stone), the dart does not hold; "
             "the check pull must catch it, release (jammed: operator frees it) and reshoot",
-            dart_setup=["drill_jam=1"], anchor_holds=False, timeout_s=700,
+            dart_setup=["drill_jam=1"], slip_n=6.0, timeout_s=700, expect_faults=True,
             policy={"did not anchor": "Release and reshoot", "refused auto": "Release and reshoot",
                     "dragging": "Release and reshoot", "did not hold": "Release and reshoot", "slipping": "Release and reshoot",
                     "release did not finish": unjam_dart_retry},
             checks=[("mission DONE (dart retrieved after the failed check)", c_done),
                     ("check pull caught the non-holding anchor", lambda r, res: (any(("dragging" in p["text"] or "did not hold" in p["text"] or "home during the check" in p["text"])
                                                                                  for p in res["prompts"]), [p["text"][:80] for p in res["prompts"] if "failed" in p["text"]])),
-                    ("no TOW on the dragging dart", lambda r, res: ("TOW" not in res["steps"], res["steps"])),
+                    ("no TOW before the failed check is resolved", lambda r, res: ("TOW" not in res["steps"] or ("RELEASE" in res["steps"] and res["steps"].index("RELEASE") < res["steps"].index("TOW")), res["steps"])),
                     ("seated", c_seated), ("back to LAUNCH", c_launch), ("no dry fire", c_no_dry)]))
+
+sc(Scenario("dart_drags20", "the dart drags at 20 N (above the 15 N check pull): the check passes, the tow must find the dart "
+            "coming in at 20 N and never claim the rover is held", dart_setup=[], slip_n=20.0, timeout_s=700, expect_faults=True,
+            policy={"dragging": "Release and reshoot", "did not hold": "Release and reshoot", "slipping": "Release and reshoot",
+                    "came home": "Release and bring home", "pulled out": "Release and bring home"},
+            checks=[("mission ends (not hung)", lambda r, res: (not res["hung"], res["mission_state"])),
+                    ("dragging reported to the operator", lambda r, res: (any(k in p["text"].lower() for p in res["prompts"] for k in ("drag", "slip", "pulled out", "came home", "not hold", "limit")),
+                                                                          [p["text"][:80] for p in res["prompts"] if "failed" in p["text"].lower()])),
+                    ("tow limit respected", c_tow_limit), ("no dry fire", c_no_dry)]))
 
 sc(Scenario("snag_retrieve", "line snags while reeling in: LIMIT, operator frees it, Retry",
             triggers=[("snag", lambda r: r.step() == "RETRIEVE" and float(r.plant_last.get("lineOut") or 0) < 3.0
                        and r.plant_last.get("state") == "REEL",
-                       lambda r: (r.base.set(anchorTautAt=round(float(r.base.get()["lineOut"]) - 0.15, 3)),
+                       lambda r: (r.anchor_at(float(r.base.get()["lineOut"]) - 0.15),
                                   later(8, lambda r2: r2.base.set(anchorTautAt=-1))(r)))],
             extra_checks=[("snag held under the retrieve limit", lambda r, res: (r.plant_max.get("RETRIEVE:tension", 0) <= r.app.cfg.mission.retrieve_limit_n * 1.2,
                                                                                 f"max {r.plant_max.get('RETRIEVE:tension')} N")),
-                          ("LIMIT seen in RETRIEVE", c_evt("LIMIT"))]))
+                          ("LIMIT seen in RETRIEVE", lambda r, res: (any(e.get("evt") == "LIMIT" and e.get("_step") == "RETRIEVE" for e in r.events),
+                                                                      [e.get("_step") for e in r.events if e.get("evt") == "LIMIT"]))]))
 
 sc(Scenario("no_angle_sensor", "AS5600 magnet missing from boot (D12: SW_INDEX fallback): the mission must run or refuse clearly",
             plant_setup={"encMissing": 1}, timeout_s=200,
-            checks=[("mission DONE in SW_INDEX mode", c_done),
+            expect_faults=True,
+            checks=[("DONE in SW_INDEX mode (D12), or refused at PREFLIGHT before any motion (F9 / F10)",
+                     lambda r, res: (c_done(r, res)[0] or (res["steps"][-1:] == ["PREFLIGHT"] and any(k in str(res["error"]).lower() + " ".join(p["text"].lower() for p in res["prompts"]) for k in ("angle sensor", "magnet"))),
+                                     f"{res['mission_state']} at {res['steps'][-1:]}: {res['error']}")),
                     ("refusal is explicit (ANGLE_SENSOR)", lambda r, res: (any("ANGLE_SENSOR" in (p["text"]) for p in res["prompts"]) or "ANGLE_SENSOR" in str(res["error"]),
                                                                             res["error"])),
                     ("no dry fire", c_no_dry)]))
@@ -873,6 +1345,9 @@ def decock_then_retry(rig, text, choices):
     """Operator presses Decock on the page (carriage drawn with the angle unknown), waits for RESET, then Retry."""
     r = rig.app.action("decock")
     rig.note("info", msg=f"operator: decock -> {r}")
+    if not r.get("ok"):          # the page refuses Decock while the mission runs (F7): Abort, then Decock, then Start
+        rig.wants_decock_restart = True
+        return "Abort"
     t0 = time.time()
     while time.time() - t0 < 60 and "RESET" not in [e.get("evt") for e in rig.events[-5:]]:
         time.sleep(0.2)
@@ -891,15 +1366,15 @@ def c_d22_order(rig, res):
     return st.index("WRAP") < st.index("ANCHOR"), f"WRAP at {st.index('WRAP')}, ANCHOR at {st.index('ANCHOR')}"
 
 
-SCENARIOS["nominal"].checks.append(("D22 order: WRAP before ANCHOR", c_d22_order))
+SCENARIOS["nominal"].checks.append(("D22 order: WRAP step before ANCHOR step", c_d22_order))
 
 POWER_STATES = [("LAUNCH_MODE", "MODE"), ("AIM", "AIM"), ("COCK", "COCK"), ("BASE_NEUTRAL", "MODE"), ("WRAP", "WRAP"),
                 ("CHECK", "REEL"), ("TOW", "HOLD"), ("RETRIEVE", "REEL"), ("LAUNCH_READY", "MODE")]
 for _step, _pst in POWER_STATES:
     sc(Scenario(f"power_{_step.lower()}", f"power loss in {_step} (base state {_pst}): kill, restart, mission recovers",
                 triggers=[(f"kill base in {_step}", plant_state(_pst, step=_step, delay=1.0), lambda r: r.restart_base(2.0))],
-                policy={"LOADED_UNKNOWN": decock_then_retry, "phase UNKNOWN": decock_then_retry, "Decock": decock_then_retry},
-                retry_max=4,
+                policy={"LOADED_UNKNOWN": decock_then_retry, "PHASE_UNKNOWN": decock_then_retry, "phase UNKNOWN": decock_then_retry, "Decock": decock_then_retry},
+                retry_max=4, plant_setup={"drumDeg": 41} if _step == "LAUNCH_MODE" else {},
                 checks=[("mission DONE after the power loss", c_done), ("no dry fire", c_no_dry),
                         ("seated", c_seated), ("back to LAUNCH", c_launch), ("tow limit respected", c_tow_limit)]))
 
@@ -933,8 +1408,11 @@ def nogo_policy(rig, text, choices):
 
 
 sc(Scenario("nogo_reshoot", "first landing on water (NO GO): retrieve the free dart and reshoot, second lands on hard ground",
-            landing_class="water_void", policy={"Landing zone": nogo_policy}, timeout_s=600,
+            landing_class="water_void", policy={"Landing zone": nogo_policy}, timeout_s=600, c1_from_last_aim=True,
             extra_checks=[("two shots", lambda r, res: (res["plant"].get("shots", 0) == 2, f"shots {res['plant'].get('shots')}"))]))
+
+sc(Scenario("land_short", "the dart lands with only 0.3 m of slack on its side (short of the turn length): the wrap must "
+            "tug the free dart, never jam against an anchored one", landing_slack=0.3, d22=True))
 
 sc(Scenario("dart_wifi_drop", "the dart's WiFi station drops right after landing",
             triggers=[("wifi drop", lambda r: "LANDED" in r.dart_phases, lambda r: r.dart.get("/sim/disconnect"))]))
@@ -949,15 +1427,55 @@ sc(Scenario("encoder_glitch", "AS5600 returns a garbage angle every 50 reads for
             plant_setup={"encGlitchEvery": 50}))
 
 
+# ---------------------------------------------------------------- the same faults along BASE_SPEC 10.1 (reference driver)
+import copy as _copy
+
+_REF_STEP = {"BASE_NEUTRAL": "WRAP", "CHECK": "TOW"}     # mission step names that the reference driver does not have
+for _n in [n for n in list(SCENARIOS) if n.startswith("power_") or n in (
+        "drum_timeout", "dog_tip", "stall_cock", "snag_retrieve", "usb_unplug_tow", "usb_glitch_reel", "serial_garbage",
+        "brownout_tow", "encoder_glitch", "land_short", "dart_wifi_drop")]:
+    _s = SCENARIOS[_n]
+    if _n in ("power_base_neutral", "power_check"):
+        continue
+    _r = _copy.copy(_s)
+    _r.name, _r.desc, _r.driver, _r.d22 = "ref_" + _n, _s.desc + " [BASE_SPEC 10.1 reference driver]", "ref", True
+    _r.after = None
+    _r.checks = [c for c in _s.checks if c[1] not in (c_tidy,)]
+    if not any(c[1] is c_done for c in _r.checks):
+        _r.checks = [("mission DONE", c_done)] + _r.checks
+    _r.checks = [c for c in _r.checks if c[0] not in ("first mission ended, operator recovered with Decock",
+                                                       "Jetson notices the reset within 10 s (no full 60 s wait)")]
+    if _n == "drum_timeout":     # 10.1 has no mode NEUTRAL: jam the drum on its way to the WRAPPED park instead
+        _r.triggers = [("jam drum", plant_state("WRAP", step="WRAP", delay=2.0), lambda r: r.base.set(drumJam=1)),
+                       ("operator frees the drum", on_evt("FAULT", after=1.0), lambda r: r.base.set(drumJam=0))]
+    if _n in ("snag_retrieve", "usb_glitch_reel", "power_retrieve"):
+        _r.tow_rounds = 1        # leave enough line out for a capstan reel-in
+    if _n == "snag_retrieve":
+        _r.triggers = [("snag", plant_state("REEL", step="RETRIEVE", delay=0.5),
+                        lambda r: (r.anchor_at(float(r.base.get()["lineOut"]) - 0.15),
+                                   later(8, lambda r2: r2.base.set(anchorTautAt=-1))(r)))]
+    SCENARIOS[_r.name] = _r
+
+
+for _n in ("nominal", "ref_nominal", "tow_stiff", "ref_tow_stiff", "ref_refusals"):
+    SCENARIOS[_n].stiff = True      # strict plant: real Dyneema stiffness (F20 shows up here first)
+
+
 # ====================================================================================================== main
 def build() -> None:
     src = os.path.join(HERE, "base_shim.cpp")
+    if os.environ.get("SYSTEST_ROOT"):          # the shim includes ../firmware/base relative to itself: copy it into the tree
+        os.makedirs(os.path.join(ROOT, "systest"), exist_ok=True)
+        shutil.copy(src, os.path.join(ROOT, "systest", "base_shim.cpp"))
+        src = os.path.join(ROOT, "systest", "base_shim.cpp")
     hdrs = [os.path.join(ROOT, "firmware", "base", "grappstar_base", f) for f in os.listdir(os.path.join(ROOT, "firmware", "base", "grappstar_base"))]
     hdrs.append(os.path.join(ROOT, "firmware", "base", "test", "sim.h"))
     if not os.path.exists(SHIM) or any(os.path.getmtime(h) > os.path.getmtime(SHIM) for h in hdrs + [src]):
         os.makedirs(os.path.dirname(SHIM), exist_ok=True)
+        tmp = SHIM + f".tmp{os.getpid()}"          # build aside, then rename: a running shim keeps its old binary
         subprocess.check_call(["g++", "-std=c++17", "-O2", "-Wno-unused-parameter", "-Wno-misleading-indentation",
-                               "-o", SHIM, src])
+                               "-o", tmp, src])
+        os.replace(tmp, SHIM)
     subprocess.check_call(["make", "-s", "-C", os.path.dirname(DART_SIM)], stdout=subprocess.DEVNULL)
 
 
@@ -966,6 +1484,7 @@ def main() -> int:
     ap.add_argument("--scenario", default="nominal")
     ap.add_argument("--speed", type=float, default=float(os.environ.get("SYSTEST_SPEED", "2")))
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--shard", default="", help="i/n: run every n-th scenario starting at i (parallel batches)")
     a = ap.parse_args()
     if a.list:
         for s in SCENARIOS.values():
@@ -973,6 +1492,10 @@ def main() -> int:
         return 0
     build()
     names = list(SCENARIOS) if a.scenario == "all" else a.scenario.split(",")
+    tag = ""
+    if a.shard:
+        i, n = (int(x) for x in a.shard.split("/"))
+        names, tag = names[i::n], f"_shard{i}"
     results = []
     for n in names:
         s = SCENARIOS[n]
@@ -990,7 +1513,7 @@ def main() -> int:
         for c in res.get("checks", []):
             print(f"    {'ok  ' if c['ok'] else 'FAIL'} {c['check']}: {c['detail']}")
     os.makedirs(RUNS, exist_ok=True)
-    with open(os.path.join(RUNS, "results.json"), "w") as f:
+    with open(os.path.join(RUNS, f"results{tag}.json"), "w") as f:
         json.dump([{k: r.get(k) for k in ("scenario", "pass", "mission_state", "error", "duration_s", "checks", "steps")}
                    for r in results], f, indent=1, default=str)
     print("\nSUMMARY")

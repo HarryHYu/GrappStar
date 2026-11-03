@@ -45,6 +45,8 @@ WebServer web(80);
 kedge::Kedge K;
 volatile float railCache = -1;
 volatile bool linkLostFlag = false;
+volatile uint32_t loopBeat = 0; volatile bool otaActive = false;   // web loop heartbeat (watched by the safety task)
+uint32_t i2cBad = 0, lastBusFix = 0;                                // consecutive failed INA219 reads, last bus recovery
 const char* resetName = "";
 String reply;
 SemaphoreHandle_t mtx;                                 // guards K, I2C and the log ring
@@ -81,7 +83,8 @@ bool inaRead(uint8_t reg, uint16_t& v) {
 bool inaInit() { return inaWrite(0x00, INA_CONFIG) && inaWrite(0x05, INA_CAL); }
 float hwCurrent() {                                  // tick task, mtx held: NAN = read failed, 9999 = overflow (trips)
   uint16_t bus, r;
-  if (!inaRead(0x02, bus) || !inaRead(0x04, r)) { railCache = -1; return NAN; }
+  if (!inaRead(0x02, bus) || !inaRead(0x04, r)) { railCache = -1; i2cBad++; return NAN; }
+  i2cBad = 0;
   railCache = (bus >> 3) * 0.004f;
   if (bus & 1) return 9999;                          // OVF: shunt over its 3.2 A range, the current register is meaningless
   return (int16_t)r / 10.0f;
@@ -90,6 +93,17 @@ float hwRail() { return railCache; }
 void inaCheckCal() {                                 // 10 Hz: an INA219 that browned out comes back uncalibrated (reads 0 mA)
   uint16_t cal;
   if (inaRead(0x05, cal) && cal != INA_CAL) { inaInit(); hwLog("INA219 lost its setup: re-initialised"); }
+}
+
+// A device holding SDA low (reset mid transfer) blocks the bus until power is cycled: clock SCL 9 times and restart
+// Wire. Done when the INA219 has failed for 1 s and the BNO085 is silent too, at most every 3 s. About 1 ms.
+void busRecover() {
+  Wire.end();
+  pinMode(kedge::PIN_SDA_GPIO, INPUT_PULLUP);
+  pinMode(kedge::PIN_SCL_GPIO, OUTPUT_OPEN_DRAIN);
+  for (int i = 0; i < 9; i++) { digitalWrite(kedge::PIN_SCL_GPIO, LOW); delayMicroseconds(5); digitalWrite(kedge::PIN_SCL_GPIO, HIGH); delayMicroseconds(5); }
+  Wire.begin(kedge::PIN_SDA_GPIO, kedge::PIN_SCL_GPIO); Wire.setClock(400000); Wire.setTimeOut(20);
+  inaInit();
 }
 
 void hwLog(const char* s) {                          // called with mtx held; drained to Serial / web by loop()
@@ -189,6 +203,9 @@ void tickTask(void*) {                                 // 5 ms: IMU, flight, cur
     if (now - lastV >= 100) { lastV = now; inaCheckCal(); }   // also sets up an INA219 that was missing at boot
     if (linkLostFlag) { linkLostFlag = false; K.linkLost(now); }
     K.tick(now);
+    if (i2cBad >= 200 && !K.imuOk && now - lastBusFix > 3000) { lastBusFix = now; busRecover(); hwLog("I2C bus stuck: recovered (9 clocks, Wire restart)"); if (bnoPresent) enableImuReports(); }
+    // web loop hung for 10 s (and nothing moving, no OTA): restart; motors coast through the reset
+    if (!otaActive && (int32_t)(now - loopBeat) > 30000 && !K.running() && !K.seqRunning() && !K.armed && !K.flight.flying()) { hwLog("web loop stuck 30 s: restarting"); Serial.flush(); esp_restart(); }
     xSemaphoreGive(mtx);
     esp_task_wdt_reset();
     vTaskDelayUntil(&last, pdMS_TO_TICKS(5));
@@ -266,7 +283,12 @@ void handleFlightlog() {                               // streamed from a snapsh
   web.setContentLength(CONTENT_LENGTH_UNKNOWN);
   web.send(200, "application/json", "");
   static char buf[1400]; int n;
-  while ((n = w.chunk(buf, sizeof buf)) > 0) web.sendContent(buf, n);
+  uint32_t t0 = millis();
+  while ((n = w.chunk(buf, sizeof buf)) > 0) {
+    web.sendContent(buf, n);
+    loopBeat = millis();                               // a slow client is not a hung loop
+    if (millis() - t0 > 8000) { web.client().stop(); break; }   // give up on a client that stopped reading
+  }
   web.sendContent("");
   free(snap);
 }
@@ -295,7 +317,7 @@ void setup() {
   if (bnoPresent) { sh2_setSensorCallback(imuEvent, nullptr); enableImuReports(); }
   else Serial.println("BNO085 not found: no attitude, no flight log, arming refused");
   K.imuOk = bnoPresent; lastImuMs = millis();
-  K.boot(rf, millis());
+  K.boot(rf, millis(), esp_reset_reason() == ESP_RST_POWERON);   // only a power-on means "legs stowed"
   Serial.printf("reset reason: %s\n", resetName);
   WiFi.mode(WIFI_AP);
   WiFi.softAP("KEDGE", "grappstar");
@@ -320,20 +342,20 @@ void setup() {
     if (ms > (long)K.tu.wifiMaxRunMs) ms = K.tu.wifiMaxRunMs;
     if (!c.length()) { web.send(400, "text/plain", "missing c\n"); return; }
     if ((c == " " || c == "s") && web.arg("keep") == "1") {   // key release on the page: stop motors, keep the arm
-      xSemaphoreTake(mtx, portMAX_DELAY); K.stop(millis(), false); xSemaphoreGive(mtx); drainLog(); sendResult(nullptr); return;
+      uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); K.stop(t, false); xSemaphoreGive(mtx); drainLog(); sendResult(nullptr); return;
     }
     sendResult(handleKey(c[0], (uint32_t)ms));
   });
   web.on("/stop", []() {
     reply = "";
-    if (web.hasArg("disarm") && web.arg("disarm") == "0") { xSemaphoreTake(mtx, portMAX_DELAY); K.stop(millis(), false); xSemaphoreGive(mtx); drainLog(); sendResult(nullptr); }
+    if (web.hasArg("disarm") && web.arg("disarm") == "0") { uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); K.stop(t, false); xSemaphoreGive(mtx); drainLog(); sendResult(nullptr); }
     else sendResult(handleKey(' ', 0));
   });
   web.on("/auto", []() { reply = ""; sendResult(handleKey('a', 0)); });
   web.on("/release", []() { reply = ""; sendResult(handleKey('r', 0)); });
   web.on("/arm", []() {
     reply = ""; bool on = !web.hasArg("on") || web.arg("on") != "0"; bool withAuto = !web.hasArg("auto") || web.arg("auto") != "0";
-    xSemaphoreTake(mtx, portMAX_DELAY); const char* why = K.arm(on, withAuto, millis()); xSemaphoreGive(mtx);
+    uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); const char* why = K.arm(on, withAuto, t); xSemaphoreGive(mtx);
     drainLog(); sendResult(why);
   });
   web.on("/status", []() { char b[1024]; xSemaphoreTake(mtx, portMAX_DELAY); K.status(b, sizeof b, roll, pitch, millis(), railCache, resetName); xSemaphoreGive(mtx); web.send(200, "application/json", b); });
@@ -341,15 +363,18 @@ void setup() {
   web.onNotFound([]() { web.send(404, "text/plain", "not found\n"); });
   web.begin();
   ArduinoOTA.setHostname("kedge");
-  ArduinoOTA.onStart([]() { xSemaphoreTake(mtx, portMAX_DELAY); K.stop(millis()); xSemaphoreGive(mtx); });   // abort any sequence and disarm
+  ArduinoOTA.onStart([]() { otaActive = true; uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); K.stop(t); xSemaphoreGive(mtx); });   // abort any sequence and disarm
+  ArduinoOTA.onError([](ota_error_t) { otaActive = false; });
   ArduinoOTA.begin();
   setupWatchdog();
+  loopBeat = millis();
   xTaskCreatePinnedToCore(tickTask, "kedge_tick", 6144, nullptr, 3, nullptr, 1);
   help();
   Serial.print("WiFi: join KEDGE, open http://"); Serial.println(WiFi.softAPIP());
 }
 
 void loop() {
+  loopBeat = millis();
   if (Serial.available()) { char c = Serial.read(); if (c != '\n' && c != '\r') { reply = ""; handleKey(c, K.tu.serialRunMs); } }
   web.handleClient();
   ArduinoOTA.handle();

@@ -240,6 +240,12 @@ def test_steps_page(out):
     names = [n for s in D["steps"] for n in s["parts"]]
     assert sorted(names) == sorted(p["name"] for p in D["parts"])      # every part exactly once
     assert D["steps"][0]["title"] == "Press in the bearings"
+    assert all(s["warnings"] == [] for s in D["steps"])
+    # the plan is written back to asm.json (guide plans from it without geometry), the authored steps are kept
+    man = json.load(open(os.path.join(out, "asm.json")))
+    assert [s["title"] for s in man["steps"]] == [s["title"] for s in D["steps"]]
+    assert [s["title"] for s in man["steps_authored"]] == ["Press in the bearings", "Fit the shafts and gears"]
+    assert "s.parts.length);" not in open(os.path.join(HERE, "web", "assembly_app.js")).read()   # text steps shown
 
 
 def test_body_fragments(out):

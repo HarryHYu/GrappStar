@@ -29,3 +29,10 @@ def test_no_pep701_fstrings():
             if pat.search(line):
                 bad.append(f"{os.path.basename(fn)}:{i}")
     assert not bad, bad
+
+
+def test_run_all_lists_every_cli():
+    src = open(os.path.join(HERE, "run_all.sh")).read()
+    for name in ("launcher.py", "flight.py", "payout.py", "capstan.py", "drivetrain.py", "sensitivity.py",
+                 "attitude.py", "recoil.py", "retrieve.py", "mission.py", "ballistics.py", "summary.py", "plots.py"):
+        assert name in src, name

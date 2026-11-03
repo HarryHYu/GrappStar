@@ -30,6 +30,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
@@ -48,6 +49,7 @@ static std::deque<std::string> evq;                  // the sketch's event ring
 static uint64_t evDrops = 0, telDrops = 0, linesIn = 0, linesOut = 0;
 static bool nvsPending = false; static gb::Saved nvsBuf; static uint32_t nvsT = 0;
 static uint32_t bootCount = 0;
+static float tabW[200], tabP[200]; static int tabN = 0; static double tabCycle = 3600;
 static int dryTotal = 0; static double peakTension = 0, peakAmps = 0; static bool plantGeomSet = false;
 static FILE* lgf = stdout;
 
@@ -107,9 +109,12 @@ static void closePty() {
   unlink(linkPath.c_str());
 }
 // whole line or nothing (like writeLine in the sketch). Returns false when there is no room.
-static bool writeLine(const char* s) {
+static const int TX_BUF = 2048;          // the sketch: Serial.setTxBufferSize(2048)
+static int txQueued() { int n = 0; if (slaveKeepFd >= 0 && ioctl(slaveKeepFd, FIONREAD, &n) == 0) return n; return 0; }
+static bool writeLine(const char* s, int waitMs = 0) {
   if (masterFd < 0) return false;
   std::string l = std::string(s) + "\n";
+  for (int w = 0; txQueued() + (int)l.size() > TX_BUF; w++) { if (w >= waitMs) return false; usleep(1000); }   // like availableForWrite()
   // room check: a pty buffer holds a few kB; a partial write is completed with a short blocking retry
   ssize_t n = write(masterFd, l.data(), l.size());
   if (n < 0) return false;
@@ -125,12 +130,12 @@ static bool writeLine(const char* s) {
 static void shimSave(const gb::Saved& s) { if (!nvsPending) nvsT = S.t; nvsBuf = s; nvsPending = true; S.saves++; S.saveSeq = s.seq; S.saveT = S.t; }
 static void shimSaveTun(const gb::Tun& t) { writeFile(sp("tun.bin"), &t, sizeof t); }
 static void shimOut(const char* l) {
-  if (evq.size() >= 24) { evDrops++; return; }      // the sketch's ring (RING 24): drop the newest
+  if (evq.size() >= 23) { evDrops++; return; }      // the sketch's ring (RING 24, head/tail: 23 usable): drop the newest
   evq.push_back(l);
   fprintf(lgf, "[%8u] EVT %s\n", (unsigned)S.t, l);
 }
 static void drainEvents() {
-  while (!evq.empty()) { if (!writeLine(evq.front().c_str())) break; evq.pop_front(); }
+  while (!evq.empty()) { if (!writeLine(evq.front().c_str(), 20)) break; evq.pop_front(); }
 }
 
 static bool running = false; static uint32_t setupEnd = 0; static uint32_t helloDelayMs = 2100;
@@ -160,7 +165,7 @@ static void finishSetup() {
   char hello[200];
   snprintf(hello, sizeof hello, "{\"evt\":\"HELLO\",\"fw\":\"%s\",\"reset\":\"POWERON\",\"hx711\":%s,\"as5600\":%s,\"pwm\":true}",
            GB_FW_VERSION, S.hxFitted ? "true" : "false", S.encMissing ? "false" : "true");
-  writeLine(hello);
+  writeLine(hello, 100);
   fprintf(lgf, "[%8u] BOOT #%u (nvs %s, tun %s)\n", (unsigned)S.t, bootCount, haveRec ? "yes" : "no", haveTun ? "yes" : "no");
 }
 static void powerOff() {
@@ -188,7 +193,7 @@ static void serviceSerial() {
           if (rxOver) snprintf(rep, sizeof rep, "{\"id\":null,\"ok\":false,\"err\":\"TOO_LONG\"}");
           else B->handleLine(rxLine.c_str(), (int)rxLine.size(), rep, sizeof rep);
           fprintf(lgf, "[%8u] RX  %s\n[%8u] TX  %s\n", (unsigned)S.t, rxLine.c_str(), (unsigned)S.t, rep);
-          writeLine(rep);
+          writeLine(rep, 1000);
           drainEvents();
         }
         rxLine.clear(); rxOver = false;
@@ -200,8 +205,43 @@ static void serviceSerial() {
 }
 
 static uint32_t lastPlantSave = 0;
+// Plant additions on top of sim.h (D22): laying a capstan turn draws one capstan circumference of line from the dart
+// side. A free dart gets tugged (line out falls); an anchored dart side only gives what slack it has, then the cup
+// cannot turn (the drum stalls in the wrap sector). A forward wiper with the collar in neither train (tidy) pulls an
+// anchored dart side straight through the free-turning capstan, down to taut.
+// the rail's real pitch: the factory aim table (params) applied to the plant's own aim-train phase. The firmware's
+// aimPhase is defined the same way (aimHomeDeg where SW_RAIL_LOW closes), so a correct firmware reports the same.
+static double pitchTrue() {
+  if (tabN < 2) return NAN;
+  double x = fmod(S.aimPh, tabCycle); if (x < 0) x += tabCycle;
+  if (x <= tabW[0]) return tabP[0];
+  for (int i = 1; i < tabN; i++) if (x <= tabW[i]) { double f = (x - tabW[i - 1]) / (tabW[i] - tabW[i - 1]); return tabP[i - 1] + (tabP[i] - tabP[i - 1]) * f; }
+  return tabP[tabN - 1];
+}
+static double slipN = 0;      // an anchored (or dragging) dart slides toward the base when the line pulls harder than this
+static int wrapBlocks = 0; static double dartTug = 0; static bool wrapDraw = true;
+static void plantExtra(double drumBefore, double wrapsBefore, double wiperBefore) {
+  double dw = S.wrapsExact() - wrapsBefore;
+  if (dw > 1e-9 && wrapDraw) {
+    double need = dw * 2 * M_PI * S.capstanR;
+    if (S.anchorTautAt >= 0) {
+      double avail = S.lineOut - S.anchorTautAt;
+      if (need > avail + 1e-9) { S.drumDeg = drumBefore; wrapBlocks++; }
+      else S.lineOut -= need;
+    } else { S.lineOut = fmax(0.0, S.lineOut - need); dartTug += need; }
+  }
+  if (slipN > 0 && S.anchorTautAt >= 0 && S.tension() > slipN) {
+    S.anchorTautAt = fmax(0.0, S.lineOut + slipN / S.anchorK);   // the dart drags or the anchor creeps out
+  }
+  double ad = fabs(S.wiperDeg - wiperBefore);
+  if (S.wDir > 0 && ad > 0 && !S.inLaunch() && !S.inReel() && S.anchorTautAt >= 0 && S.lineOut > S.anchorTautAt)
+    S.lineOut = fmax(S.anchorTautAt, S.lineOut - ad / 360.0 * 0.322);
+}
+
 static void tickOnce() {
+  double drumBefore = S.drumDeg, wrapsBefore = S.wrapsExact(), wiperBefore = S.wiperDeg;
   S.step(5);
+  plantExtra(drumBefore, wrapsBefore, wiperBefore);
   if (powered && !running && (int32_t)(S.t - setupEnd) >= 0) finishSetup();
   if (S.dryFires) { dryTotal += S.dryFires; S.dryFires = 0; }
   peakTension = fmax(peakTension, S.tension()); peakAmps = fmax(peakAmps, S.amps);
@@ -237,6 +277,9 @@ static bool setKnob(const std::string& k, const char* v) {
   else if (k == "swStuckOpen") S.swStuckOpen = (uint16_t)num(v);
   else if (k == "swStuckClosed") S.swStuckClosed = (uint16_t)num(v);
   else if (k == "swChatter") S.swChatter = (uint16_t)num(v);
+  else if (k == "slipN") slipN = num(v);
+  else if (k == "drumDeg") S.drumDeg = num(v);              // bench: drum turned by hand (manual lever) before the run
+  else if (k == "wrapDraw") wrapDraw = num(v) != 0;
   else if (k == "hxFitted") S.hxFitted = num(v) != 0;
   else return false;
   return true;
@@ -250,13 +293,13 @@ static std::string getJson() {
            "\"tension\":%.2f,\"seated\":%s,\"drumDeg\":%.2f,\"wiperDeg\":%.1f,\"aimPh\":%.1f,\"cockPh\":%.1f,\"wraps\":%.2f,"
            "\"inLaunch\":%s,\"inReel\":%s,\"dogTip\":%s,\"anchorTautAt\":%.3f,\"slack\":%.3f,\"maxSlack\":%.3f,\"amps\":%.2f,"
            "\"wDir\":%d,\"wDuty\":%d,\"dDir\":%d,\"dryFires\":%d,\"evDrops\":%llu,\"linesIn\":%llu,\"linesOut\":%llu,\"evq\":%zu,"
-           "\"pty\":%s,\"saves\":%d,\"kNperA_cal\":%.4f,\"freeA_cal\":%.4f,\"peakTension\":%.2f,\"peakAmps\":%.2f}",
+           "\"pty\":%s,\"saves\":%d,\"kNperA_cal\":%.4f,\"freeA_cal\":%.4f,\"peakTension\":%.2f,\"peakAmps\":%.2f,\"wrapBlocks\":%d,\"dartTug\":%.3f,\"pitchTrue\":%.3f,\"telDrops\":%llu}",
            (unsigned)S.t, powered ? "true" : "false", bootCount, st, running ? B->fault : -1, S.shots, S.fired ? "true" : "false",
            S.lineOut, S.tension(), S.seated() ? "true" : "false", S.drumDeg, S.wiperDeg, S.aimPh, S.cockPh, S.wrapsExact(),
            S.inLaunch() ? "true" : "false", S.inReel() ? "true" : "false", S.dogTip ? "true" : "false", S.anchorTautAt, S.slack,
            S.maxSlack, S.amps, S.wDir, S.wDuty, S.dDir, dryTotal, (unsigned long long)evDrops, (unsigned long long)linesIn,
            (unsigned long long)linesOut, evq.size(), masterFd >= 0 ? "true" : "false", S.saves,
-           1.0 / (S.capstanR * S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA), S.freeA + (S.reelFreeNm + 0.3) / S.stallNm * (S.stallA - S.freeA), peakTension, peakAmps);
+           1.0 / (S.capstanR * S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA), S.freeA + (S.reelFreeNm + 0.3) / S.stallNm * (S.stallA - S.freeA), peakTension, peakAmps, wrapBlocks, dartTug, pitchTrue(), (unsigned long long)telDrops);
   return b;
 }
 static bool quitReq = false;
@@ -332,7 +375,9 @@ int main(int argc, char** argv) {
   setvbuf(stdout, nullptr, _IOLBF, 0);
   mkdir(stateDir.c_str(), 0755);
   S = Sim();
-  { gb::Base tmp; tmp.begin(0); S.c = tmp.c; plantGeomSet = true; }   // factory geometry (begin loads the aim table)
+  { gb::Base tmp; tmp.begin(0); S.c = tmp.c; plantGeomSet = true;   // factory geometry (begin loads the aim table)
+    tabN = tmp.aimN < 200 ? tmp.aimN : 200; for (int i = 0; i < tabN; i++) { tabW[i] = tmp.aimW[i]; tabP[i] = tmp.aimP[i]; }
+    tabCycle = tmp.c.aimCycleDeg; }
   S.lineOut = 0; S.seatAtLine = 0;                     // a new build: dart seated on the launcher
   if (fresh) { unlink(sp("nvs.bin").c_str()); unlink(sp("tun.bin").c_str()); unlink(sp("plant.bin").c_str()); }
   else if (loadPlant()) fprintf(lgf, "[shim] plant state restored (process restart = power loss)\n");

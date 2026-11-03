@@ -80,7 +80,8 @@ def test_kin_values_rest_and_cocked():
 
 @pytest.mark.parametrize("name", ["launch_carriage", "launch_big_gear", "launch_drive_gear", "launch_sleeve",
                                   "launch_rail_rear", "launch_rail_mid", "launch_rail_front", "launch_sw_home",
-                                  "launch_sw_seated", "launch_gear_pin", "launch_anchor_pin_l"])
+                                  "launch_sw_seated", "launch_gear_pin", "launch_gear_clip",
+                                  "launch_seat_plunger", "launch_seat_pushrod", "launch_pulley_top"])
 def test_parts_valid_single_body_and_fit_bed(name):
     parts = {p.name: p for p in L.parts(P)}
     p = parts[name]
@@ -96,5 +97,45 @@ def test_parts_valid_single_body_and_fit_bed(name):
 
 
 def test_switch_positions_exist():
-    f = L.switch_frames(P)
-    assert set(f) >= {"home", "seated"}
+    names = {p.name for p in L.parts(P)}
+    for sw in ("launch_sw_home", "launch_sw_seated"):
+        assert sw in names
+
+
+def test_big_gear_full_layer_has_all_teeth():
+    """Review 1: the drive gear must mesh a FULL 40T layer (the sector layer has a 117 deg gap)."""
+    n = L.L(P)
+    g = L.big_gear_solid(P)
+    ym = 0.5 * (n["y_full"][0] + n["y_full"][1]) - n["y_sec"][0]        # local z of the full-layer mid plane
+    cs = g.slice(ym)
+    ang = np.linspace(0, 2 * np.pi, 3600, endpoint=False)
+    r_test = n["rb"] + 0.5 * n["m"]                                     # between pitch and tip radius
+    from manifold3d import CrossSection
+    hits = 0
+    prev = False
+    pts = [(r_test * np.cos(a), r_test * np.sin(a)) for a in ang]
+    inside = [cs.contains(p) if hasattr(cs, "contains") else None for p in pts[:1]]
+    # count tooth crossings by intersecting thin wedges
+    for k in range(40):
+        a = 2 * np.pi * k / 40
+        x, y = r_test * np.cos(a), r_test * np.sin(a)
+        dot = CrossSection.circle(0.3, 8).translate((x, y))
+        hits += (cs ^ dot).area() > 0.05
+    assert hits == 40
+
+
+def test_timeline_continuity():
+    """No backward jumps of the big gear, drive gear or sleeve between timeline states (review 1)."""
+    from tools.timeline import timeline
+    prev = None
+    for S in timeline(P, 0.25):
+        v = L.kin(P, S)
+        if prev is not None:
+            assert v["launch_big_gear"] <= prev["launch_big_gear"] + 1e-6, S.get("phase")
+            assert v["launch_drive"] - prev["launch_drive"] > -60.0, S.get("phase")   # pitch changes move it a little
+        prev = v
+
+
+def test_kin_tolerates_none_and_missing():
+    for S in ({}, {"aim_deg": None}, {"cock": None}, {"fired": None, "wiper_deg": None}, {"aim_psi_from_low": 120}):
+        L.kin(P, S)

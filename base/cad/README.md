@@ -75,7 +75,8 @@ Required:
 def parts(P) -> list[Part]: ...
 def joints(P) -> list[Joint]: ...
 def kin(P, S: dict) -> dict[str, float]: ...   # joint name -> value for master state S; missing joints use
-                                               # Joint.gear, else 0
+                                               # Joint.gear, else 0. Must be cheap (called for every audited
+                                               # state): no geometry, cache anything that depends only on P
 ```
 
 Optional (picked up if present):
@@ -83,9 +84,18 @@ Optional (picked up if present):
 ```python
 def allowed(P) -> list[Allow]: ...            # contacts that are meant to be there (press fits, shaft in bore)
 def clearances(P) -> list[Clearance]: ...     # named pairs that must keep a gap (gear tips, rotating vs fixed)
+def meshes(P) -> list[Mesh]: ...              # gear meshes, any owners: Mesh(gear_a, gear_b, m, z_a, z_b, x_a, x_b,
+                                              # kind="spur"|"internal"|"rack", face_a, face_b, frame_a, frame_b,
+                                              # when=None). The audit checks centre distance (gears.center_distance
+                                              # etc. within tol 0.15), parallel axes, face overlap >= 80 % and the
+                                              # Joint.gear ratio; a fail is NOT CLEAN. Gear axis = part-local +Z
+                                              # (frame_* moves it); when(S) limits the check to engaged states
 def audit_states(P) -> list[dict]: ...        # extra states S to audit (joint sweeps, fault states)
 def checks(P, asm) -> list[str]: ...          # own extra checks, return failure strings (empty = pass)
-def steps(P) -> list[dict]: ...               # assembly steps: {"title", "text", "parts": [names]}
+def steps(P) -> list[dict]: ...               # assembly steps: {"title", "text", "parts": [names], "stage": int}
+                                              # (stage optional: lower first across subsystems; otherwise steps
+                                              # are ordered so new parts sit on parts already placed. Steps are
+                                              # never dropped; parts fitted earlier show as "also handle")
 def line_path(P, S) -> list[tuple]: ...       # tether polyline in WORLD mm for state S (exit eye, pulleys, dart
                                               # tail); the sim draws it; the reel module starts it, launch continues
 def grounded(P) -> list[str]: ...             # parts (fnmatch patterns) that rest on the rover; every other part must

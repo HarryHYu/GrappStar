@@ -1,6 +1,6 @@
 # First session back: what to do, in order
 
-Everything else waits until these are done. About one afternoon.
+Everything else waits until these are done. The measuring takes an afternoon; the coupons wait for the 608s to arrive.
 
 ## 1. Read (15 minutes)
 
@@ -21,7 +21,8 @@ Write each number into `docs/build/MEASURE_RESULTS.md` (a fill-in sheet; print i
    weaker spring's numbers.
 3. Small parts (H1, H3, H4): drum N20 shaft, CSK20PP keyway depths, BTS7960 heatsink height and hole spacing.
 4. Count the parts box (group C): worm N20s (4 needed), the spare MP1584, 8 mm rod or M8 bolts, 693ZZ / F693ZZ left
-   after the dart, resistors (2 x 10 k, 1 k, 680 R, 100 k, 22 k), a small magnet for the AS5600, spare XT60s.
+   after the dart, resistors (2 x 10 k, 1 k, 680 R, 100 k, 22 k), a small magnet for the AS5600, spare XT60s, and
+   the coupon extras (MEASURE_LIST C21).
 5. Update the design with the numbers (build guide section 14, "After you measure"): the easy way is to open
    Claude Code in the repo, give it MEASURE_RESULTS.md and ask it to enter the numbers in params.py and re-run the
    base pipeline. By hand: the commands are in that section.
@@ -35,8 +36,10 @@ Write each number into `docs/build/MEASURE_RESULTS.md` (a fill-in sheet; print i
 ## 4. Print first (test pieces only)
 
 1. The dart fit coupon (`kedge/pack_v30/fit_coupon.stl`, 20 minutes). Check it against run sheet section 4.
-2. The base day-one risk coupon plate from the base print pack and its test sheet (test stage 0). Every check
-   must pass before the big base parts.
+2. The base fit coupon (`base/pack/fit_coupon/coupon_plate_1.3mf`, PLA; checks in its COUPON.md; tile A uses three
+   608s) and the two base risk coupon plates (`base/pack/coupons/risk_plate_1_PLA.3mf` PLA, `risk_plate_2_PPA-CF.3mf` PPA-CF: hardened
+   nozzle, dry spool) and the test sheet `COUPON_TEST.pdf` (test stage 0). Every check must pass before the big
+   base parts. The coupons need a few bought parts (C21) and one each of 608, F693ZZ, 693ZZ and a CSK20PP.
 3. The dart plates A and B do not wait for the base coupon or the measurements: start them once the dart fit
    coupon passes.
 

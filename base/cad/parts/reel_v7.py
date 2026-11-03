@@ -47,7 +47,7 @@ def _revolve(pts, seg=None):
     return prim.revolve_pts(pts, seg=seg or 160)
 
 
-def drum(c_bore_d=20.3, key_w=6.4, key_depth=2.8, k_hole_r=5.4, web_t=2.4):
+def drum(c_bore_d=20.3, key_w=6.4, key_depth=2.8, k_hole_r=5.4, web_t=2.4, mouth=None):
     """Capstan drum (PLA). Base flange cone r 23 -> 20 over 3, body r 20 to z 43, 1.2 round on the nose edge, 0.8
     chamfer at the flange back. Keyed bore for C (key on +X) from the back to the web, web with a hole for K,
     nose recess for the cup hub."""
@@ -63,7 +63,10 @@ def drum(c_bore_d=20.3, key_w=6.4, key_depth=2.8, k_hole_r=5.4, web_t=2.4):
     z_web0 = zt - RECESS_D - web_t
     bore = prim.cyl(c_bore_d / 2, z_web0 + 1, z=-1)
     key = prim.box(0, c_bore_d / 2 + key_depth, -key_w / 2, key_w / 2, -1, z_web0)
-    mouth = prim.cyl(c_bore_d / 2 + 0.8, 0.8, z=-0.01, r2=c_bore_d / 2)
+    if mouth is None:                                                   # v7 0.8 chamfer
+        mouth = prim.cyl(c_bore_d / 2 + 0.8, 0.8, z=-0.01, r2=c_bore_d / 2)
+    else:                                                               # (r at the back face, depth) 45 deg cone
+        mouth = prim.cyl(mouth[0], mouth[1], z=-0.01, r2=mouth[0] - mouth[1])
     recess = prim.cyl(RECESS_R, RECESS_D + 1, z=zt - RECESS_D)
     rmouth = prim.cyl(RECESS_R, 0.81, z=zt - 0.8, r2=RECESS_R + 0.8)
     khole = prim.cyl(k_hole_r, web_t + 2, z=z_web0 - 1)

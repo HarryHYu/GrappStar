@@ -124,6 +124,11 @@ class Ballistics:
         ap = self._col("apex_m", drag_n)
         vs = [r.get("v_muzzle", 0.0) for r in self.rows]
         ok_idx = [i for i, p in enumerate(ps) if self.pitch_min - 1e-9 <= p <= self.pitch_max + 1e-9]
+        if len(ok_idx) < 2:
+            return Solution(False, None, None, None, None, None, range_m=float(range_m), drag_n=float(drag_n),
+                            range_min_m=0.0, range_max_m=0.0, source=os.path.basename(self.source),
+                            note="table has fewer than 2 rows inside the pitch window %g..%g deg"
+                                 % (self.pitch_min, self.pitch_max))
         rmin = min(rng[i] for i in ok_idx)
         rmax = max(rng[i] for i in ok_idx)
         base = dict(range_m=float(range_m), drag_n=float(drag_n), range_min_m=round(rmin, 2), range_max_m=round(rmax, 2),

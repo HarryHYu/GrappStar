@@ -6,6 +6,7 @@ the operator decides.
 from __future__ import annotations
 
 import json
+import math
 import os
 import time
 import traceback
@@ -98,8 +99,14 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
     fres = None
     try:
         from .vision import flight
-        if flightlog is not None and clock_offset_s is None:
+        if flightlog is not None and clock_offset_s is None and isinstance(flightlog, dict):
             clock_offset_s = flightlog.get("clock_offset_s")
+        try:
+            clock_offset_s = None if clock_offset_s is None else float(clock_offset_s)
+            if clock_offset_s is not None and not math.isfinite(clock_offset_s):
+                clock_offset_s = None
+        except (TypeError, ValueError):
+            clock_offset_s = None
         bal = ballistics
         if isinstance(bal, str) and bal == "auto":
             bal = None
@@ -138,7 +145,8 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
         t_l = None
         if fres is not None:
             t_l = getattr(fres, "t_landed", None) or getattr(fres, "t_impact", None)
-        window = [f for f in frames if t_l is not None and f.t >= t_l + 0.05][-45:] or frames[-30:]
+        # the FIRST frames after landing: a link that dies later with the dart on good ground must not hide them
+        window = [f for f in frames if t_l is not None and f.t >= t_l + 0.05][:45] or frames[-30:]
         if window and terrain._dark_landing(terrain._as_items(window)) is not None:
             land_frames = window
             note("most landed frames are black: passing the whole landed window to the terrain check")

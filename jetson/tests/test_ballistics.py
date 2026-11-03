@@ -149,3 +149,11 @@ def test_range_on_a_table_row_is_one_solution():
     s = bl.solve(4.95)
     assert s.pitch_deg == pytest.approx(38.0) and "branch" not in s.note
     assert "high branch" in bl.solve(4.8).note
+
+
+def test_table_with_no_rows_in_the_window_is_unreachable_not_a_crash():
+    rows = [{"pitch_deg": float(p), "v_muzzle": 7.0, "range_m": [r, r], "t_flight_s": [0.5, 0.5], "apex_m": [1, 1]}
+            for p, r in ((5, 2.5), (50, 4.5))]
+    bl = Ballistics({"version": 1, "pitch_min": 6, "pitch_max": 47, "drag_n": [0.5, 1.0], "table": rows})
+    s = bl.solve(3.5)
+    assert not s.reachable and "fewer than 2 rows" in s.note

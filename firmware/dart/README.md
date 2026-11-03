@@ -12,6 +12,7 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
 | `WIRING.md`, `wiring/` | wire cut list, change list from v29, diagram |
 | `BENCH_TEST.md` | how to check every motor and sensor before closing the hull |
 | `tools/wires_v4.py` | regenerates `wiring/` |
+| `sim/` | host simulator: the real sketch compiled on Linux with stub Arduino headers, serving the real HTTP API (`make && python3 test_sim.py`) |
 | `REPORT.md` | build-day report |
 
 ## Arduino IDE setup (once)
@@ -83,6 +84,15 @@ cd firmware/dart/test && ./run_tests.sh
 ```
 
 Needs g++ and python3 (Mac: run `xcode-select --install` once for g++). Prints every check and `ALL PASS`, then checks the JSON files the tests wrote.
+
+## Simulator (Linux, optional)
+
+```
+cd firmware/dart/sim && make && python3 test_sim.py      # 11 HTTP tests against the real sketch
+./kedge_sim --port 8790                                  # then open http://localhost:8790 (the real web page)
+```
+
+`/sim/launch`, `/sim/state` and `/sim/set?k=v` drive the simulated hardware (see `sim/sim_main.cpp`).
 
 ## Compile check without the IDE (optional)
 

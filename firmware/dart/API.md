@@ -73,12 +73,16 @@ Manual key, same keys as the web page and Serial Monitor.
   repeat it every 150 ms with `ms=350`; when the repeats stop, the motor stops within 350 ms.
 - A hold (one key repeated without a gap) is capped at 8 s in total, 2 s when the INA219 is missing. After the cap
   the key is refused until it has been released.
-- Stall stop: a motor driven into an end stop stops after 0.25 s start-up + 0.2 s over its stall current. The stall
-  currents scale with `speed`. With several motors held at once the limit is "one motor stalled, the others working
-  normally", so one stalled motor is caught while the others run.
+- Stall stop: one motor driven into an end stop stops after 0.25 s start-up + 0.2 s over its stall current. Repeats
+  inside the 500 ms window continue the same hold, so slow repeats do not restart the start-up time or the hold cap.
+- Two motors held at once: the worm of the pair is paused for 150 ms every 550 ms and the other is read alone; a
+  stalled motor of the pair is stopped after two stall readings (about 1.1 s) while the other keeps running. Three or
+  four at once: the limit is "one stalled while the others work normally".
+- Stall currents are bench values at 8.0 V and scale with the rail voltage (0.6 to 1.15 x) and, for manual keys,
+  with `speed`.
 - Other keys: space or `s` stop (same as `/stop`), `a` auto (same as `/auto`), `r` release (same as `/release`),
   `A` arm toggle (prefer `/arm`), `+` / `-` speed, `i` current, `b` attitude, `p` status line, `f` flight log summary,
-  `z` I2C scan (stops motors first), `h` help.
+  `z` I2C scan (does a full `/stop` first: motors off, disarm), `h` help. An OTA upload also does a full `/stop`.
 - Optional `n`: a request counter (the web page uses it so a run key that was sent before a stop cannot arrive after it).
 - Refused (409) while a sequence runs (`busy`), during `FLIGHT`, and after a stall or the hold cap until the key has
   been released for 0.5 s (`stalled: release the key first`). The opposite direction is never locked.
@@ -99,8 +103,10 @@ spinning, drills finishing, `anchored`.
 - Refused in `FLIGHT` (decision below), while releasing (`busy`), when already anchored, and without the INA219.
 - A repeated `/auto` while anchoring is accepted and does not restart it (safe to retry after a timeout).
 - Accepted from `IDLE`, `ARMED`, `LANDED` and `FAULT` (it clears the fault).
-- Stall handling inside the sequence: the main motor is read alone by pausing the helper for 150 ms every 550 ms; the
-  helper (foot while the kick plants, drills while the pods swing) is stopped if it stalls, and the sequence carries on.
+- Stall handling inside the sequence: while two motors run (kick + foot, pods + drills), the worm (kick or deploy)
+  pauses 150 ms every 550 ms. It self-locks and holds position while the auger keeps turning and is read alone; the
+  worm's current is (both) - (auger alone). A stalled auger is stopped (anchor) or faults (release). An end-stop stall
+  is only believed after a minimum travel time (pods 0.7 s, kick back 1.5 s).
 
 ### GET /release
 
@@ -132,7 +138,8 @@ of `/auto` (pods up before the kick comes back), because the kick goes down firs
 ### GET /flightlog
 
 The BNO085 log, streamed as JSON (chunked, up to about 40 kB). The server is busy for about 0.3 s while it sends,
-so it is refused (409 `busy (motors running)`) while any motor runs.
+so it is refused (409 `busy (motors running, armed or in flight)`) while any motor runs, while armed and in FLIGHT.
+Fetch it after landing (phase `LANDED` or `ANCHORED`).
 
 ```json
 {"hz":50,"frozen":true,"phase":"ANCHORED","t_launch_ms":3000,"t_land_ms":4010,"landing":"impact","n":301,
@@ -179,7 +186,7 @@ Worked out in this priority order (the first that applies):
 | `ANCHORED` | anchor sequence finished (`seq` `anchored`) |
 | `LANDED` | landed and nothing running (log-only arm, fallback landing, auto refused, or auto stopped by hand) |
 | `ARMED` | landing detector armed, waiting for the launch |
-| `IDLE` | none of the above (also after `/stop` aborts a sequence: `seq` `aborted`, no fault) |
+| `IDLE` | none of the above (also after `/stop` aborts a sequence before any landing: `seq` `aborted`, no fault; after a landing it shows `LANDED`) |
 
 Normal mission: `IDLE > ARMED > FLIGHT > ANCHORING > ANCHORED > RELEASING > IDLE` (tested). With auto on landing the
 dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED` must also give up on `FAULT` and on
@@ -190,7 +197,7 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 | Code | Cause | What the dart did |
 |---|---|---|
 | `OVERCURRENT` | motor current over 2000 mA for 10 ms (or the INA219 range overflowed) | all motors off |
-| `KICK_TIMEOUT` | kick found no ground in 15 s (anchor) or no stow stop in 15 s (release) | all off |
+| `KICK_TIMEOUT` | kick swing plus plant not finished in 15.5 s (anchor), or no stow stop in 15 s (release) | all off |
 | `SEQ_TIMEOUT` | anchor or release sequence over 35 s | all off |
 | `DRILL_JAM`, `FOOT_JAM` | stalled while unscrewing in release | all off |
 | `CURRENT_SENSOR` | 3 failed INA219 reads in a row during a sequence | all off; manual keys still work on timers |
@@ -203,7 +210,8 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 - Launch: \|a\| over 4 g continuously for 20 ms, **only while armed**. Launch time = start of those 20 ms.
   In practice the samples over 4 g must span at least 15 ms (one 5 ms sample period of slack), so a 20 ms push is seen
   and a 15 ms knock is not.
-- Landing: once the dart has been in free fall (\|a\| under 0.6 g for 60 ms in total) and at least 150 ms after launch,
+- Landing: once the dart has been in free fall (\|a\| under 0.6 g for 60 ms in total, or, for a tumbling dart that
+  never reads that low, 400 ms after launch with \|a\| back under 4 g) and at least 150 ms after launch,
   an impact over 6 g, then \|a\| between 0.85 and 1.15 g for 1 s. Each new impact restarts the stillness timer;
   landing time = the last impact. The free-fall rule stops a bump on the bench from counting as a flight.
 - Fallbacks: no impact seen but still for 2 s after free fall (soft landing in grass: `still`); no decision 15 s after

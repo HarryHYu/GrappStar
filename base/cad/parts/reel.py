@@ -507,7 +507,9 @@ def brake_mm(S):
 def kin(P, S):
     d = _d(P)
     cap = float(S.get("capstan_deg", 0.0))
-    bus = float(S.get("bus_deg", -(Z_BUS / Z_C1) * float(S.get("wiper_deg", 0.0))))
+    # wiper FORWARD turns the main shaft negative about R +Z (R +Z = world -Y, forward = + about world +Y), so the
+    # bus pair (one external mesh) turns positive about R +Z: the wind-in and take-up sense
+    bus = float(S.get("bus_deg", (Z_BUS / Z_C1) * float(S.get("wiper_deg", 0.0))))
     swing = 0.0 if float(S.get("wiper_dir", 1.0)) >= 0 else -SWING_OUT_DEG
     _, th_i, th_r = gear_angles(bus, swing)
     wraps = float(S.get("wraps", 0.0))

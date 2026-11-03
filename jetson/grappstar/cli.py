@@ -24,6 +24,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 JETSON_DIR = os.path.dirname(HERE)
 DEFAULT_CALIB = os.path.join(JETSON_DIR, "calib", "rovercam.json")
 SETTINGS = os.path.join(JETSON_DIR, "settings.json")
+DEFAULT_DRAG_N = 0.5   # same value as grappstar.mission.DEFAULT_DRAG_N (kept here so --help needs no imports)
 
 
 def _size(s: str):
@@ -323,7 +324,7 @@ def main(argv=None) -> int:
     s.add_argument("--model", help="ONNX terrain classifier (optional)")
     s.add_argument("--ballistics", help="ballistics.json (default base/out/ballistics.json, else placeholder)")
     s.add_argument("--tow-limit", type=float, default=40.0, help="tow tension limit, N")
-    s.add_argument("--drag", type=float, default=0.75, help="payout brake setting, N (C3 column)")
+    s.add_argument("--drag", type=float, default=DEFAULT_DRAG_N, help="payout brake setting, N (C3 column, LIGHT 0.5)")
     s.add_argument("--runs", help="folder for run logs (default jetson/runs)")
     s.add_argument("--deck-height", type=float, default=0.15,
                    help="base deck top above the ground on the rover, m (measure it: sets the camera height)")
@@ -377,7 +378,7 @@ def main(argv=None) -> int:
 
     s = sub.add_parser("solve", help="pitch for a range")
     s.add_argument("range", type=float)
-    s.add_argument("--drag", type=float, default=0.75)
+    s.add_argument("--drag", type=float, default=DEFAULT_DRAG_N)
     s.add_argument("--low", action="store_true", help="the flatter low branch (default: the higher pitch, D29)")
     s.add_argument("--table")
 

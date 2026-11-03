@@ -311,7 +311,7 @@ def gap_bracket_solid(P):
     M = g["M"]
     yo = g["y_chA"][0]                                    # cheek outer face (-17)
     lo, hi = prim.bbox(d["base"])
-    plate = prim.place(prim.box(lo[0], hi[0], lo[1], hi[1], -5.0, 0.01), M)   # backing plate under the base
+    plate = prim.place(prim.box(lo[0], hi[0], lo[1], hi[1], -5.0, 0.0), M)   # backing plate under the base
     yb = float(tf.apply(M, np.array([[0.0, 0.0, 0.0]]))[0, 1])                # base bottom (rail y)
     u0, u1 = GAP_TAB_PILOTS[0][0] - 7.0, GAP_TAB_PILOTS[1][0] + 7.0
     tab = prim.box(u0, u1, yb - 5.0, yo, -4.0, 8.0)

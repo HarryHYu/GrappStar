@@ -67,6 +67,12 @@ See FINDINGS.md "Current numbers" and SUMMARY.md (final values pasted below at t
    -10.4. Also: flight eye at the D36 guide, taut detection from the peak slack, trips from the spec.
 12. Coordinator review F2 (round 2): tow limit cap check (72 N available vs the 70 N D39 cap), validate() and end
    rows in the staleness test, and the spec headline kept within 10 % of the model by a test.
+13. Retrieve-side critic: the line path friction between the capstan and the dart (plain printed eyes), exit eye heat,
+   no level wind, the shear pin print direction, the sense-law spread. These led to D43 (pulleys, path_gain 1.15, tow
+   law at the dart) and D44 (pin printed lying down, bench tow test, lay guide). Now in the model: path_gain, the
+   seating gain, lay_width.
+14. Round 7: dart-side and capstan-side tension were mixed in the capstan drum stresses, wraps, break check and
+   take-up slip. Fixed. Drum hoop stress at the shear-pin slip is 11.6 of 12 MPa, so the drum should be PPA-CF.
 
 ## Open items / requests
 

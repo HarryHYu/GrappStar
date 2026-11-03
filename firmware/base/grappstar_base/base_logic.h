@@ -118,12 +118,13 @@ struct Base {
   // the sketch calls this before begin() with what saveTun() stored (or nullptr)
   void restoreTun(const Tun* t) {
     if (!t || !validTun(t)) return;
+    lastTun = *t;
     enc.sign = c.wiperSign = t->encSign ? 1 : -1; c.requireSeated = t->requireSeated & 1; c.vbatWired = !(t->requireSeated & 2); w.c.ampsPerVolt = t->ampsPerVolt; w.c.offsetA = t->offsetA;
     c.freeA = t->freeA; c.kNperA = t->kNperA; c.hxNPerCount = t->hxNPerCount; hxOff = t->hxOff; c.limitN = t->limitN; c.drumDps = t->drumDps;
     aimOffset = t->aimOffset; c.aimTolDeg = t->aimTol; c.tripA = t->tripA; c.cockTripA = t->cockTripA; c.vbatLow = t->vbatLow; c.aimHomeDeg = t->aimHomeDeg;
     c.tensOffsetN = t->tensOffsetN; c.towTripA = t->towTripA; c.hostTimeoutS = t->hostTimeoutS;
   }
-  bool tunDirty = false;
+  bool tunDirty = false; Tun lastTun;              // lastTun: what flash holds (restoreTun / last save)
   uint32_t evDrops = 0;                              // set by the sketch: events dropped by the USB ring (status ev_drops)
   // the sketch calls this before the first tick with what save() stored (or nullptr)
   void restore(const Saved* s) { if (s && validSaved(s)) { boot = *s; bootValid = true; } else bootValid = false; }
@@ -886,17 +887,21 @@ struct Base {
     if (!what) return "BAD_ARG";
     if (!strcmp(what, "current")) {
       if (w.running()) return "BUSY";
-      w.c.offsetA += w.amps; if (w.c.offsetA < 0) w.c.offsetA = 0; w.amps = 0; return nullptr;
+      float off = w.c.offsetA + w.amps; if (off < 0 || off > 5) return "OUT_OF_RANGE";   // same range as set offset_a
+      w.c.offsetA = off; w.amps = 0; return nullptr;
     }
     if (!strcmp(what, "tare")) { if (!hxSeen) return "NO_SENSOR"; hxOff += hxN / c.hxNPerCount; hxN = 0; return nullptr; }
     if (!strcmp(what, "free")) {
       if (!w.running() || now - w.startT < 800) return "NOT_RUNNING";
+      if (w.amps > 10) return "OUT_OF_RANGE";   // same range as set free_a
       c.freeA = w.amps; return nullptr;
     }
     if (!strcmp(what, "aim")) {
       double m; if (!o.num("deg", &m)) return "BAD_ARG";
       if (!aimKnown) return "AIM_UNKNOWN";
-      float tab = pitchAt(aimPhase) - aimOffset; aimOffset = (float)m - tab; aimed = false; return nullptr;
+      float tab = pitchAt(aimPhase) - aimOffset; float off = (float)m - tab;
+      if (!(off >= -20 && off <= 20)) return "OUT_OF_RANGE";   // same range as set aim_offset
+      aimOffset = off; aimed = false; return nullptr;
     }
     if (!strcmp(what, "aim_home")) {                  // declare the aim train at its home (operator checked)
       if (moving()) return "BUSY";
@@ -987,7 +992,11 @@ struct Base {
     const JVal* id = o.find("id");
     if (!id || id->t == J_NULL || id->t == J_SKIP || id->t == J_BOOL) r.null("id");
     else if (id->t == J_NUM) {
-      if (!(id->n == floor(id->n) && fabs(id->n) < 9007199254740992.0)) { snprintf(rep, cap, "{\"id\":null,\"ok\":false,\"err\":\"BAD_ID\"}"); return; }
+      if (!(id->n == floor(id->n) && fabs(id->n) < 9007199254740992.0)) {
+        const char* c0 = nullptr;                    // a stop is always obeyed, whatever the id looks like
+        if (o.str("cmd", &c0) && (!strcmp(c0, "stop") || !strcmp(c0, "estop"))) cmdStop(!strcmp(c0, "estop"));
+        snprintf(rep, cap, "{\"id\":null,\"ok\":false,\"err\":\"BAD_ID\"}"); return;
+      }
       char t[24]; snprintf(t, sizeof t, "%.0f", id->n); r.keyRaw("id"); r.raw(t);
     }
     else r.str("id", id->s);
@@ -1019,7 +1028,8 @@ struct Base {
       if (!o.num("ms", &b)) b = c.tidyMs; if (!o.num("duty", &a)) a = 0.3;
       bool neutral = (sec == SEC_NEUTRAL || (sec == SEC_LOCK && drumDeg < c.collarNdeg)) && !closed(SW_DOG_L) && !closed(SW_DOG_R);
       if (!(b > 0 && b <= 60000)) err = "BAD_ARG";
-      else if (!neutral) err = sec == SEC_INVALID ? "POSITION_UNKNOWN" : "NOT_IN_NEUTRAL";
+      else if (sec == SEC_INVALID || secBad) err = "POSITION_UNKNOWN";
+      else if (!neutral) err = "NOT_IN_NEUTRAL";
       else { err = cmdReel(a, c.limitN, "stop"); if (!err) { until = U_TIME; tidyUntil = now + (uint32_t)b; } }
     }
     else if (!strcmp(cmd, "retrieve")) {           // final approach until SW_SEATED on the take-up (D35: refused with the wraps on)
@@ -1047,7 +1057,12 @@ struct Base {
       if (id && id->t == J_STR) { char t[24]; strncpy(t, id->s, 23); t[23] = 0; m.str("id", t); }
       else if (id && id->t == J_NUM) m.num("id", id->n, 0); else m.null("id");
       m.boolean("ok", err == nullptr); if (err) m.str("err", err); else if (tokOut) { m.integer("token", (long)tok); }
+      if (extra && !err) statusFields(m, false);     // status without the fault text first
       m.close();
+      if (m.bad && extra) { JOut q(rep, cap); q.open();
+        if (id && id->t == J_STR) { char t[24]; strncpy(t, id->s, 23); t[23] = 0; q.str("id", t); }
+        else if (id && id->t == J_NUM) q.num("id", id->n, 0); else q.null("id");
+        q.boolean("ok", true); q.close(); m.bad = q.bad; }
       if (m.bad) snprintf(rep, cap, "{\"id\":null,\"ok\":false,\"err\":\"REPLY_OVERFLOW\"}");
     }
   }
@@ -1066,16 +1081,16 @@ struct Base {
     if (!strcmp(k, "enc_sign")) { r.integer("val", enc.sign); return true; }
     if (!strcmp(k, "pitch_range")) { r.num("min", fmaxf(c.pitchMin, pitchRange(false)), 2); r.num("max", fminf(c.pitchMax, pitchRange(true)), 2); return true; }
     Key ks[20]; int n = keys(ks);
-    for (int i = 0; i < n; i++) if (!strcmp(ks[i].k, k)) { r.num("val", *ks[i].f, 6); return true; }
+    for (int i = 0; i < n; i++) if (!strcmp(ks[i].k, k)) { char t[24]; snprintf(t, sizeof t, "%.7g", (double)*ks[i].f); r.keyRaw("val"); r.raw(t); return true; }
     return false;
   }
-  void statusFields(JOut& r) {
+  void statusFields(JOut& r, bool full = true) {
     r.str("phase", PHASE_NAME[phase]); r.boolean("aimed", aimed); r.boolean("aim_known", aimKnown);
     r.boolean("drum_known", drumKnown); r.boolean("wraps_known", wrapsKnown);
     r.str("magnet", indexMode ? "INDEX" : !enc.ok ? "NONE" : enc.magnetWeak() ? "WEAK" : enc.magnetStrong() ? "STRONG" : "OK");
     r.integer("glitches", (long)(enc.glitches > 99999 ? 99999 : enc.glitches)); r.boolean("hx", hxLive()); r.num("peak_a", w.peakA, 1);
     r.str("fw", GB_FW_VERSION); r.integer("ev_drops", (long)(evDrops > 99999 ? 99999 : evDrops));   // events lost (host not reading)
-    if (fault) { char wy[33]; strncpy(wy, faultWhy, 32); wy[32] = 0; r.str("why", wy); }
+    if (fault && full) { char wy[33]; strncpy(wy, faultWhy, 32); wy[32] = 0; r.str("why", wy); }
   }
   void cmdStop(bool estop) {
     w.halt(now, io.wiper); d.halt(now, io.drum); tokenLive = false; homing = false;
@@ -1190,7 +1205,8 @@ struct Base {
     bool still = !w.running() && !d.running() && (state == S_IDLE || state == S_HOLD || state == S_FAULT);
     if (!still) quietT = now;
     if (still && now - quietT >= 300 && (movingBits || dirty)) { movingBits = 0; dirty = false; persist(0); }
-    if (still && tunDirty) { tunDirty = false; if (io.saveTun) io.saveTun(tunNow()); }
+    if (still && tunDirty) { tunDirty = false; Tun t = tunNow();   // write only what changed (flash wear)
+      if (memcmp(&t, &lastTun, sizeof t) != 0) { lastTun = t; if (io.saveTun) io.saveTun(t); } }
   }
 
   void tickDrumState() {

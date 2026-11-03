@@ -816,6 +816,28 @@ static void testReview4() {
     CHECK(Q.err("{\"id\":3,\"cmd\":\"jog\",\"motor\":\"drum\",\"dir\":1,\"ms\":300}") == "WRAPS_ON", "no drum jog inside the wrap window"); }
 }
 
+static void testReview5() {
+  T("review round 5 (protocol) regressions");
+  { Rig R; R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); R.run(200);
+    CHECK(R.err("{\"id\":1.5,\"cmd\":\"estop\"}") == "BAD_ID" && S.dDir == 0, "estop with a bad id still stops the drum");
+    R.until([&] { return R.idle(); }, 20000); }
+  { Rig R; R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); R.run(200);
+    std::string l = "{\"a\":1,\"b\":1,\"c\":1,\"d\":1,\"e\":1,\"f\":1,\"g\":1,\"h\":1,\"i\":1,\"j\":1,\"k\":1,\"m\":1,\"id\":7,\"cmd\":\"stop\"}";
+    CHECK(R.ok(l) && S.dDir == 0, "id and cmd win a slot after 12 unknown keys: stop obeyed"); }
+  { Rig R; R.B.raise(gb::F_BAD_STATE, "a fault text of exactly thirty-two"); R.run(100); R.B.enc.glitches = 99999; R.B.evDrops = 99999; R.B.w.peakA = 19.9f;
+    std::string r = R.cmd("{\"id\":\"abcdefghijklmnopq\",\"cmd\":\"status\"}");
+    CHECK(r.size() <= 256 && r.find("\"phase\"") != std::string::npos, "status with a 17-char id keeps its fields (fault text dropped first)"); }
+  { Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":3,\"cmd\":\"aim\",\"deg\":30}"); R.until([&] { return R.idle(); }, 60000);
+    CHECK(R.err("{\"id\":1,\"cmd\":\"cal\",\"what\":\"aim\",\"deg\":1000}") == "OUT_OF_RANGE", "cal aim clamped like set aim_offset"); }
+  { Rig R; R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"hx_n_per_count\",\"val\":4e-7}");
+    std::string r = R.cmd("{\"id\":1,\"cmd\":\"get\",\"key\":\"hx_n_per_count\"}");
+    CHECK(r.find("\"val\":4e-07") != std::string::npos, "get keeps 7 significant digits"); }
+  { Rig R; int n0 = S.saves; (void)n0; static int tunSaves; tunSaves = 0; R.B.io.saveTun = [](const gb::Tun&) { tunSaves++; };
+    R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":44}"); R.run(300);
+    for (int i = 0; i < 5; i++) { R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":44}"); R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"drum\"}"); R.run(300); }
+    CHECK(tunSaves == 1, "tuning written to flash only when it changed"); }
+}
+
 // params.TIMELINE (the mission the HD sim plays) as a scenario: each step's end state must be reachable in order
 static void testTimeline() {
   T("params.TIMELINE scenario");
@@ -901,12 +923,12 @@ static void testFullMission() {
 
 int main(int argc, char** argv) {
   if (argc > 1) { std::string w = argv[1];
-    if (w == "cock") testCockFireReset(); else if (w == "aim") testAim(); else if (w == "wrap") testWrapReelUnwrap(); else if (w == "jog") testJog(); else if (w == "drum") testDrumFaults(); else if (w == "power") testPowerLoss(); else if (w == "stall") testStallOvercurrent(); else if (w == "enc") testAngleSensorFault(); else if (w == "tow") testTow(); else if (w == "rev1") testReview1(); else if (w == "rev2") testReview2(); else if (w == "v1") testSpecV1Contacts(); else if (w == "tl") testTimeline(); else if (w == "idx") testIndexMode(); else if (w == "mission") testFullMission(); else if (w == "stop") testStopEstop(); else if (w == "rev3") testReview3(); else if (w == "rev4") testReview4(); else if (w == "modes") testModeChanges(); else if (w == "hx") testTowHx();
+    if (w == "cock") testCockFireReset(); else if (w == "aim") testAim(); else if (w == "wrap") testWrapReelUnwrap(); else if (w == "jog") testJog(); else if (w == "drum") testDrumFaults(); else if (w == "power") testPowerLoss(); else if (w == "stall") testStallOvercurrent(); else if (w == "enc") testAngleSensorFault(); else if (w == "tow") testTow(); else if (w == "rev1") testReview1(); else if (w == "rev2") testReview2(); else if (w == "v1") testSpecV1Contacts(); else if (w == "tl") testTimeline(); else if (w == "idx") testIndexMode(); else if (w == "mission") testFullMission(); else if (w == "stop") testStopEstop(); else if (w == "rev3") testReview3(); else if (w == "rev4") testReview4(); else if (w == "rev5") testReview5(); else if (w == "modes") testModeChanges(); else if (w == "hx") testTowHx();
     printf("%d passed, %d failed\n", pass, fail); return fail ? 1 : 0; }
   testJson(); testSwitches(); testAngle(); testWiperDrive(); testPersist();
   testProtocolBasics(); testTelemetryWorstCase(); testModeChanges(); testDrumFaults(); testAim(); testCockFireReset(); testFireRefusals();
   testNoRelease(); testWrapReelUnwrap(); testTow(); testTowHx(); testStallOvercurrent(); testAngleSensorFault(); testBrownout();
-  testStopEstop(); testJog(); testPowerLoss(); testSaveGate(); testPersistWear(); testTelemetryRate(); testHostTimeout(); testReview1(); testReview2(); testSpecV1Contacts(); testReview3(); testReview4(); testIndexMode(); testTimeline(); testFullMission();
+  testStopEstop(); testJog(); testPowerLoss(); testSaveGate(); testPersistWear(); testTelemetryRate(); testHostTimeout(); testReview1(); testReview2(); testSpecV1Contacts(); testReview3(); testReview4(); testReview5(); testIndexMode(); testTimeline(); testFullMission();
   curTest = "all"; CHECK(Rig::dryTotal == 0, "no test ever moved the collar out of LAUNCH with the spring drawn");
   printf("\n%d checks, %d passed, %d failed: %s\n", pass + fail, pass, fail, fail ? "FAILURES" : "ALL PASS");
   return fail ? 1 : 0;

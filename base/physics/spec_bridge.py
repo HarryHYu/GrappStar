@@ -106,6 +106,9 @@ def apply(p, path=None):
             setattr(p.battery, pk, float(b[sk]))
     _overlay(p, getattr(mod, "LAUNCH", None), LAUNCH_MAP, used)
     lt = getattr(mod, "LAUNCH", None) or {}
+    if lt.get("carriage_mass_target_g") is not None:          # D36 (wins over the older _kg key)
+        p.launch["carriage_mass"] = float(lt["carriage_mass_target_g"]) * 1e-3
+        used.append("LAUNCH.carriage_mass_target_g")
     if isinstance(lt.get("stop"), dict) and lt["stop"].get("travel_min") is not None:
         p.launch["stop_pad_travel"] = float(lt["stop"]["travel_min"]) * 1e-3
         used.append("LAUNCH.stop.travel_min")

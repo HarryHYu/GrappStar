@@ -43,8 +43,9 @@ CAP_GEAR = dict(module=2.0, face=12.0, z_driver=50)  # REEL gear 40 T on the wip
 # recommended firmware current trip (all modes)
 TAKEUP_OVERSPEED = 2.5    # take-up bus overdrive (spec D15, DRUM.bus.overdrive_total)
 TRIP_BLANK_MS = 50       # ignore current after start (inrush)
-TRIP_HARD_A = 5.0        # hard trip, motor current (aim)
-TRIP_REEL_A = 6.0        # hard trip in REEL (reel-in and tow): above the 50 N tow trip (~5 A), below limiter slip (7 A)
+TRIP_HARD_A = 5.0        # hard trip, motor current: reel-in (D33)
+TRIP_AIM_A = 3.0         # recommended for aim: the real splitter m1.5 z30 face 8 fails Lewis at 5 A (aim peak 1.9 A)
+TRIP_REEL_A = 6.5        # hard trip while towing (D33, firmware has it): above the 50 N tow trip (~5 A), below limiter slip (7 A)
 TRIP_COCK_A = 6.5        # hard trip while cocking (launch mode forward): cock peak is ~4.6 A
 TRIP_HARD_MS = 30
 TRIP_TOW_AVG_MS = 200
@@ -234,8 +235,8 @@ def fw_trip(p: Params, tow_limit: float | None = None, overspeed: float | None =
         tow_trip_delta_a=cl["delta_over_free"], tow_trip_avg_ms=TRIP_TOW_AVG_MS,
         tow_trip_rule=f"measured free current + {cl['delta_over_free']:.2f} A, averaged over {TRIP_TOW_AVG_MS} ms",
         notes=[
-            f"ignore current for {TRIP_BLANK_MS} ms after start; hard trip for {TRIP_HARD_MS} ms at {TRIP_HARD_A} A in aim, "
-            f"{TRIP_REEL_A} A in REEL ({t_hard:.2f} N m at the wiper), {TRIP_COCK_A} A while cocking "
+            f"ignore current for {TRIP_BLANK_MS} ms after start; hard trip for {TRIP_HARD_MS} ms at {TRIP_HARD_A} A in reel-in "
+            f"(D33; {TRIP_AIM_A} A recommended in aim), {TRIP_REEL_A} A towing ({t_hard:.2f} N m at the wiper), {TRIP_COCK_A} A while cocking "
             f"({p.wiper.kt * (TRIP_COCK_A - p.wiper.i_free):.2f} N m)",
             prot,
             fuse,

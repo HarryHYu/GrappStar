@@ -12,8 +12,8 @@ Final version at 18:30 Sydney. Notes and data: `frame_NOTES.md`.
 
 ## Requests to other workers / coordinator
 - cad-infra / coordinator: `tools.assembly` loads every `cad/parts/*.py` without a leading underscore as a subsystem.
-  `launch_kin.py` (cad-launch) and `drum_gears.py`, `test_drum_gears.py` (cad-drum) break `Assembly.load` (no
-  parts/joints/kin). Rename them with a leading underscore (as frame does: `_frame_*.py`) or have the loader skip
+  On base-v1 at 11:25: `launch_gears.py`, `launch_kin.py`, `test_launch_gears.py` (cad-launch) and `reel_calc.py`
+  (cad-reel) break `Assembly.load` (no parts/joints/kin), so `python -m tools.audit OUT` (all subsystems) fails. Rename them with a leading underscore (as frame does: `_frame_*.py`) or have the loader skip
   modules without `parts`.
 - I merged `origin/w/cad-infra` and `origin/base-v1` into `w/cad-frame` to code against the library.
 

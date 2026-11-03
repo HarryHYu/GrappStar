@@ -7,7 +7,7 @@ Meaning of the numbers (also written to base/out/ballistics_meta.json, which the
 - drag_n: slip-clutch setting, expressed as the line pull at the reel exit with the reel FULL (20 m on). The coupled
   reel model (inertia, clutch torque, guide eye, line weight and drag) is used, so the real pull on the dart differs.
 - range_m: level ground, from the muzzle's ground point to the dart's first ground contact.
-- v_muzzle: from launch.py at that pitch (gravity and friction along the rail change it slightly).
+- v_muzzle: from launcher.py at that pitch (gravity and friction along the rail change it slightly).
 - t_flight_s: muzzle to ground contact. apex_m: highest point of the dart above the ground.
 
 python ballistics.py [--step 2.5] [--out ../out/ballistics.json]
@@ -20,7 +20,7 @@ import os
 
 from common import load_params
 from flight import simulate
-from launch import launch
+from launcher import launch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "out", "ballistics.json")

@@ -283,7 +283,7 @@ def test_get_defaults_without_p():
     assert d == rc.DEFAULTS
     assert d is not rc.DEFAULTS
     d["wraps"] = 99
-    assert rc.DEFAULTS["wraps"] == 8
+    assert rc.DEFAULTS["wraps"] == 7
 
 
 def test_get_overlays_fake_p():
@@ -299,7 +299,7 @@ def test_get_overlays_fake_p():
     assert "not_a_key" not in d
     assert (d["line_d"], d["line_len_m"], d["line_break_n"]) == (1.2, 25.0, 900.0)
     assert (d["wiper_n0_rpm"], d["wiper_stall_nm"], d["wiper_i_stall"], d["wiper_i_free"]) == (50.0, 20.0, 22.0, 2.0)
-    assert rc.DEFAULTS["wraps"] == 8
+    assert rc.DEFAULTS["wraps"] == 7
 
 
 def test_get_partial_line_and_ignores_non_dicts():
@@ -318,8 +318,8 @@ def test_summary_runs():
 
 
 def test_unwrap_schedule_partial_last_step():
-    d = reel_calc.get()
+    d = rc.get()
     for st in (0.3, 0.7, 3.0):
-        steps = reel_calc.unwrap_schedule(d, st)
+        steps = rc.unwrap_schedule(d, st)
         assert abs(sum(s[0] for s in steps) - d["wraps"]) < 1e-9
         assert all(0 < s[0] <= st + 1e-12 for s in steps)

@@ -17,6 +17,8 @@ from typing import Optional
 import cv2
 import numpy as np
 
+from .frame import ensure_bgr
+
 BAD_BELOW = 0.4
 TARGET_W = 160
 
@@ -38,6 +40,9 @@ def _ramp(x: float, lo: float, hi: float) -> float:
 
 
 def frame_quality(img: np.ndarray, prev: Optional[np.ndarray] = None) -> dict:
+    img = ensure_bgr(img)
+    if prev is not None:
+        prev = ensure_bgr(prev)
     g = _small_grey(img)
     gi = g.astype(np.int16)
 

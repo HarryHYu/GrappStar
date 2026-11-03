@@ -150,8 +150,9 @@ static void testWiperDrive() {
   CHECK(fabsf(s.amps - 4.0f) < 0.1f, "IS reading scaled back by the duty");
   gb::WiperDrive o; o.want(1, 255); for (int i = 0; i < 70; i++) o.tick(t += 5, 5, 10.0 / 12.5 * o.outDuty / 255, 100, hw);
   CHECK(!o.overcurrent, "10 A during the ramp: no trip");
-  o.tick(t += 5, 5, 20.0 / 12.5, 100, hw); CHECK(!o.overcurrent, "one sample over is not a trip");
-  o.tick(t += 5, 5, 20.0 / 12.5, 100, hw); CHECK(o.overcurrent && hd == 0, "two samples over: trip, motor off");
+  o.c.tripA = 5; for (int i = 0; i < 5; i++) o.tick(t += 5, 5, 6.0 / 12.5, 100, hw);
+  CHECK(!o.overcurrent, "25 ms over the trip is not a trip");
+  o.tick(t += 5, 5, 6.0 / 12.5, 100, hw); CHECK(o.overcurrent && hd == 0, "30 ms over: trip, motor off (D8)");
   o.want(1, 255); o.tick(t += 5, 5, 0, 100, hw); CHECK(hd == 0, "stays off until the latch is cleared");
   gb::WiperDrive st; st.want(1, 255); for (int i = 0; i < 70; i++) st.tick(t += 5, 5, 0.3, 100, hw);
   for (int i = 0; i < 90; i++) st.tick(t += 5, 5, 0.3, 0, hw);
@@ -193,7 +194,7 @@ static void testProtocolBasics() {
   char tel[300]; R.B.telemetry(tel, sizeof tel);
   CHECK(std::string(tel).find("{\"tel\":{\"state\":\"IDLE\"") == 0, tel);
   CHECK(strlen(tel) <= 256, "telemetry within 256 bytes");
-  CHECK(std::string(tel).find("\"sw\":{\"a\":1,\"H\":1,\"W\":1}") != std::string::npos, tel);   // drum code 001, carriage home, wrap arm home
+  CHECK(std::string(tel).find("\"sw\":{\"a\":1,\"l\":1,\"H\":1,\"W\":1}") != std::string::npos, tel);   // drum code 001, carriage home, wrap arm home
 }
 
 static void testTelemetryWorstCase() {
@@ -202,8 +203,8 @@ static void testTelemetryWorstCase() {
   // longest realistic line: moving, every value long, the contacts a running system can have closed at once
   R.B.drumKnown = true; R.B.drumDeg = -1234.5f; R.B.enc.count = -4096000; R.B.enc.rateDps = -400; R.B.state = gb::S_UNWRAP;
   R.B.wrapsKnown = true; R.B.wraps = 12; R.B.lineM = 99.99f; R.B.amps = 19.9f; R.B.aimKnown = true; R.B.phase = gb::PH_COCKING; R.B.cockPhase = 300;
-  R.B.hxSeen = true; R.B.hxT = R.B.now; R.B.hxN = -1234.5f; R.B.vbat = 12.6f;
-  S.swStuckClosed = 0xF9; R.B.c.vbatLow = 0; R.run(30); R.B.state = gb::S_UNWRAP; R.B.hxT = R.B.now; R.B.enc.rateDps = -400; R.B.secBad = false;
+  R.B.hxSeen = true; R.B.hxT = R.B.now; R.B.hxN = 149.5f; R.B.vbat = 12.6f;
+  S.swStuckClosed = 0x1EB; R.B.c.vbatLow = 0; R.run(30); R.B.state = gb::S_UNWRAP; R.B.hxT = R.B.now; R.B.enc.rateDps = -400; R.B.secBad = false;
   char tel[400]; R.B.telemetry(tel, 400);
   { char big[700]; R.B.telBuild(big, 700, false); printf("    realistic worst case %zu bytes: %s\n", strlen(big), big); }
   CHECK(strlen(tel) <= 256 && std::string(tel).find("\"trunc\"") == std::string::npos, tel);
@@ -215,32 +216,37 @@ static void testTelemetryWorstCase() {
 }
 
 static void testModeChanges() {
-  T("mode: LAUNCH / NEUTRAL / REEL with verification");
+  T("mode: LAUNCH / NEUTRAL with verification; REEL only with the wraps on");
   Rig R;                                   // sim drum starts at 0 = LAUNCH
-  CHECK(R.B.drumPos() == gb::DP_LAUNCH && R.B.drumKnown, "boots at LAUNCH from the contact");
-  CHECK(R.toMode("REEL"), "LAUNCH -> REEL");
-  CHECK(R.B.drumPos() == gb::DP_REEL && fabs(S.drumDeg - 80) < 4, "drum stopped at 80 (REEL stop point)");
+  CHECK(R.B.drumPos() == gb::DP_LAUNCH && R.B.drumKnown && R.B.collarLaunch(), "boots at LAUNCH (code + SW_DOG_L)");
+  CHECK(R.err("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}") == "NOT_WRAPPED", "REEL refused without wraps (use wrap)");
+  double w0 = S.wiperDeg;
+  CHECK(R.toMode("NEUTRAL"), "LAUNCH -> NEUTRAL");
+  CHECK(S.wiperDeg < w0 - 20, "centering jog: the wiper turned backward first");
+  CHECK(fabs(S.aimPh) < 1e-6 || S.aimPh > 0, "aim train untouched by the centering jog (dog window)");
+  CHECK(R.B.drumPos() == gb::DP_NEUTRAL && fabs(S.drumDeg - 41) < 4, "drum stopped at the NEUTRAL stop point");
   CHECK(R.evt("MODE") && R.lastEvt("MODE").find("\"ok\":true") != std::string::npos, "MODE event ok");
-  CHECK(fabs(R.B.c.drumDps - 10) < 1.5, "drum speed learned from the edge timing");
-  CHECK(R.toMode("NEUTRAL"), "REEL -> NEUTRAL");
+  CHECK(fabs(R.B.c.drumDps - 22) < 3, "drum speed learned from the edge timing");
   CHECK(R.toMode("LAUNCH"), "NEUTRAL -> LAUNCH");
+  CHECK(R.B.collarLaunch() && !R.B.aimKnown, "collar confirmed by SW_DOG_L; aim to re-home");
   S.out.clear(); CHECK(R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"LAUNCH\"}") && R.evt("MODE"), "already there: ok + MODE at once");
-  CHECK(R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}"), "start a move");
+  CHECK(R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"), "start a move");
   CHECK(R.err("{\"id\":2,\"cmd\":\"mode\",\"to\":\"LAUNCH\"}") == "BUSY", "second move while moving: BUSY");
   CHECK(R.err("{\"id\":2,\"cmd\":\"aim\",\"deg\":30}") == "BUSY", "aim while moving: BUSY");
   R.until([&] { return R.idle(); }, 20000);
-  CHECK(R.B.drumPos() == gb::DP_REEL, "arrived");
+  CHECK(R.B.drumPos() == gb::DP_NEUTRAL, "arrived");
+  CHECK(R.err("{\"id\":2,\"cmd\":\"unwrap\"}") == "" && R.evt("UNWRAPPED"), "unwrap in NEUTRAL: ok at once");
 }
 
 static void testDrumFaults() {
   T("drum faults: jam, wire off, sector jump, wrong direction, tooth on tooth, chatter");
   { Rig R; S.drumJam = true;
-    R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}");
+    R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}");
     R.until([&] { return R.B.state == gb::S_FAULT; }, 30000);
     CHECK(R.B.fault == gb::F_DRUM_TIMEOUT, "jammed drum: DRUM_TIMEOUT"); CHECK(S.wDir == 0 && S.dDir == 0, "everything off");
     CHECK(R.B.drumPos() == gb::DP_LAUNCH, "drum_pos still LAUNCH (estimate stays inside the sector)"); }
   { Rig R; S.swStuckOpen = 1 << 1;             // SW_DRUM_B wire off: NEUTRAL shows 000
-    R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}");
+    R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}");
     R.until([&] { return R.B.state == gb::S_FAULT; }, 30000);
     CHECK(R.B.fault == gb::F_DRUM_SENSOR, "wire off: DRUM_SENSOR (code 000)"); }
   { Rig R; S.swStuckClosed = 1 << 2; R.run(400);  // SW_DRUM_C stuck closed at LAUNCH: 101 = jump to WRAPPING
@@ -249,18 +255,19 @@ static void testDrumFaults() {
     S.swStuckClosed = 0; R.run(100);
     CHECK(R.ok("{\"id\":1,\"cmd\":\"clear\"}") && R.idle(), "clear once fixed"); }
   { Rig R; R.B.c.drumSign = -1;                  // N20 wired the other way round
-    R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}");
+    R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}");
     R.until([&] { return R.B.state == gb::S_FAULT; }, 30000);
     CHECK(R.B.fault == gb::F_DRUM_SENSOR || R.B.fault == gb::F_DRUM_TIMEOUT, "drum_sign wrong: stopped with a drum fault"); }
   { Rig R; R.toMode("NEUTRAL"); S.toothOnTooth = true; S.out.clear();
     CHECK(R.toMode("LAUNCH"), "tooth on tooth: SW_DOG wiggle lets the dogs drop in");
     CHECK(!S.dogTip && S.wDir == 0, "dogs engaged, wiper stopped");
     CHECK(!R.B.aimKnown, "wiggle into LAUNCH forgets the aim (re-home)");
-    S.toothOnTooth = true; CHECK(R.toMode("REEL"), "tooth on tooth into REEL: forward wiggle"); }
+    S.toothOnTooth = true; R.toMode("NEUTRAL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000);
+    CHECK(R.B.collarReel(), "tooth on tooth into REEL: fly-in drops the dogs in"); }
   { Rig R; S.toothOnTooth = true; S.toothNeedWiper = 1e9; R.toMode("NEUTRAL"); R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"LAUNCH\"}");
     R.until([&] { return R.B.state == gb::S_FAULT; }, 30000);
     CHECK(R.B.fault == gb::F_DRUM_TIMEOUT, "dogs never drop in: DRUM_TIMEOUT after 60 deg of wiggle"); }
-  { Rig R; S.swChatter = 1 << 1; R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}");
+  { Rig R; S.swChatter = 1 << 1; R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}");
     R.until([&] { return R.B.state == gb::S_FAULT; }, 10000);
     CHECK(R.B.fault == gb::F_SWITCH_DISAGREE || R.B.fault == gb::F_DRUM_SENSOR, "chattering code contact during a move: fault"); }
 }
@@ -356,39 +363,52 @@ static void testNoRelease() {
 }
 
 static void testWrapReelUnwrap() {
-  T("wrap, reel until seated, unwrap");
-  Rig R; R.toMode("REEL");
-  S.lineOut = 6; S.seatAtLine = 0;
-  CHECK(R.err("{\"id\":1,\"cmd\":\"reel\",\"until\":\"seated\"}") == "NOT_WRAPPED", "reel refused without wraps");
+  T("tidy, wrap (NEUTRAL collar, then REEL fly-in), reel in, unwrap with take-up, final approach until seated");
+  Rig R; R.toMode("NEUTRAL");
+  S.lineOut = 6; S.seatAtLine = 0; S.anchorTautAt = -1;
+  CHECK(R.err("{\"id\":1,\"cmd\":\"reel\",\"until\":\"tension\"}") == "NOT_WRAPPED", "no tension reel without the capstan");
+  CHECK(R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":0.2,\"until\":\"slip\"}"), "tidy (take-up until it slips)");
+  S.anchorTautAt = 5.9;                         // the anchored dart: the take-up slips once the line is straight
+  R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 20000);
+  CHECK(R.lastEvt("LIMIT").find("tidy done") != std::string::npos, "tidy done");
+  S.anchorTautAt = -1;
   CHECK(R.ok("{\"id\":1,\"cmd\":\"wrap\"}"), "wrap");
   CHECK(R.err("{\"id\":2,\"cmd\":\"mode\",\"to\":\"LAUNCH\"}") == "BUSY", "busy while wrapping");
   R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000);
-  CHECK(R.evt("WRAPPED") && R.B.wraps == R.B.c.wrapsFull, "WRAPPED with 4 wraps");
-  CHECK(fabs(S.drumDeg - 338) < 6, "drum at the WRAPPED stop point");
+  CHECK(R.evt("WRAPPED") && R.B.wraps == R.B.c.wrapsFull, "WRAPPED with the full count");
+  CHECK(fabs(S.drumDeg - 347.5) < 5 && R.B.collarReel(), "drum at REEL, collar engaged (SW_DOG_R)");
   CHECK(S.wrapsTrue() == R.B.c.wrapsFull, "true wraps match");
-  CHECK(R.B.drumPos() == gb::DP_WRAPPED, "drum_pos WRAPPED");
   CHECK(R.err("{\"id\":2,\"cmd\":\"mode\",\"to\":\"LAUNCH\"}") == "WRAPS_ON", "no mode change with wraps on");
   S.out.clear(); CHECK(R.ok("{\"id\":2,\"cmd\":\"wrap\"}") && R.evt("WRAPPED"), "wrap when wrapped: ok at once");
   CHECK(R.err("{\"id\":3,\"cmd\":\"reel\",\"duty\":1.5}") == "BAD_ARG", "duty over 1");
   CHECK(R.err("{\"id\":3,\"cmd\":\"reel\",\"until\":\"forever\"}") == "BAD_ARG", "bad until");
-  R.B.lineM = 6; R.B.lineKnown = true;
-  CHECK(R.ok("{\"id\":3,\"cmd\":\"reel\",\"duty\":0.9,\"max_n\":30,\"until\":\"seated\"}"), "reel until seated");
-  R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 400000);
-  CHECK(R.evt("SEATED") && S.seated(), "SEATED");
-  CHECK(R.B.lineM == 0, "line_m zeroed at seat");
+  R.B.lineM = 6; R.B.lineKnown = true; S.seatAtLine = 0;
+  R.ok("{\"id\":3,\"cmd\":\"reel\",\"duty\":0.9,\"max_n\":30,\"until\":\"stop\"}");   // capstan reels in
+  R.until([&] { return S.lineOut < 1.5; }, 400000); R.ok("{\"id\":4,\"cmd\":\"stop\"}");
+  CHECK(S.lineOut < 1.5 && fabs(R.B.lineM - S.lineOut) < 0.4, "line count follows the capstan");
+  S.slack = 0; S.maxSlack = 0;
   CHECK(R.ok("{\"id\":4,\"cmd\":\"unwrap\"}"), "unwrap");
   R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000);
-  CHECK(R.evt("UNWRAPPED") && R.B.wraps == 0 && R.B.drumPos() == gb::DP_REEL, "UNWRAPPED at REEL");
+  CHECK(R.evt("UNWRAPPED") && R.B.wraps == 0 && R.B.drumPos() == gb::DP_NEUTRAL, "UNWRAPPED at NEUTRAL");
   CHECK(S.wrapsTrue() == 0, "true wraps 0");
+  CHECK(S.slack < 0.05, "take-up kept the freed line in (no slack)");
+  CHECK(R.ok("{\"id\":5,\"cmd\":\"reel\",\"duty\":0.3,\"until\":\"seated\"}"), "final approach on the take-up");
+  R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
+  CHECK(R.evt("SEATED") && S.seated() && R.B.lineM == 0, "SEATED, line_m zeroed");
   CHECK(R.toMode("LAUNCH"), "then LAUNCH is allowed");
+  { Rig Q; Q.toMode("NEUTRAL"); S.lineOut = 3; S.anchorTautAt = 2.5;   // dart snagged: no seat
+    Q.ok("{\"id\":5,\"cmd\":\"reel\",\"duty\":0.3,\"until\":\"seated\"}");
+    Q.until([&] { return Q.B.state == gb::S_FAULT; }, 30000);
+    CHECK(Q.B.fault == gb::F_DART_STUCK, "final approach without SW_SEATED in 20 s: DART_STUCK"); }
 }
 
 static void testTow() {
   T("tow: tension limit by current, hold");
-  Rig R; R.toMode("REEL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle(); }, 60000);
+  Rig R; R.toMode("NEUTRAL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle(); }, 60000);
+  R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":40}");
   S.lineOut = 8; S.anchorTautAt = 7.5; S.anchorK = 60;
-  R.B.c.kNperA = (float)(1.0 / (S.capstanR / S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA));   // matched constants
-  R.B.c.freeA = 1.5f + (float)((S.reelFreeNm + 0.2) / S.stallNm * (S.stallA - S.freeA));
+  R.B.c.kNperA = (float)(1.0 / (S.capstanR * S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA));   // matched constants
+  R.B.c.freeA = 1.5f + (float)((S.reelFreeNm + 0.3) / S.stallNm * (S.stallA - S.freeA));
   CHECK(R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":40,\"until\":\"tension\"}"), "tow to 40 N");
   R.until([&] { return R.B.state == gb::S_HOLD || R.B.state == gb::S_FAULT; }, 400000);
   CHECK(R.B.state == gb::S_HOLD && R.evt("LIMIT"), "holding at the limit");
@@ -403,7 +423,7 @@ static void testTowHx() {
   T("tow with the HX711: limit, resume when the line slackens");
   Rig R; S.hxFitted = true; R.run(100);
   R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"tare\"}");
-  R.toMode("REEL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle(); }, 60000);
+  R.toMode("NEUTRAL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle(); }, 60000);
   S.lineOut = 8; S.anchorTautAt = 7.8; S.anchorK = 80;
   R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":30,\"until\":\"tension\"}");
   R.until([&] { return R.B.state == gb::S_HOLD || R.B.state == gb::S_FAULT; }, 400000);
@@ -425,11 +445,11 @@ static void testStallOvercurrent() {
     CHECK(R.B.fault == gb::F_STALL || R.B.fault == gb::F_OVERCURRENT, "jammed launch train: STALL or OVERCURRENT");
     CHECK(R.evt("FAULT") && S.wDir == 0, "FAULT event, wiper off");
     CHECK(R.B.drumPos() == gb::DP_LAUNCH, "partly cocked: the drum holds LAUNCH"); }
-  { Rig R; R.toMode("REEL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle(); }, 60000);
+  { Rig R; R.toMode("NEUTRAL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle(); }, 60000);
     S.extraLoadNm = 14.5; R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":100,\"until\":\"seated\"}");
     R.until([&] { return R.B.state == gb::S_FAULT || R.B.state == gb::S_IDLE; }, 10000);
     CHECK(R.B.state == gb::S_FAULT, "stalled retrieve: fault");
-    CHECK(R.B.drumPos() == gb::DP_WRAPPED, "wraps on: the drum holds (capstan keeps the line)"); }
+    CHECK(R.B.drumPos() == gb::DP_REEL, "wraps on: the drum holds (capstan keeps the line)"); }
 }
 
 static void testAngleSensorFault() {
@@ -457,22 +477,22 @@ static void testBrownout() {
     R.until([&] { return R.B.state == gb::S_FAULT; }, 3000);
     CHECK(R.B.fault == gb::F_BROWNOUT, "BROWNOUT under load"); }
   { Rig R; S.vbatOverride = 0.3; R.run(50);
-    CHECK(R.err("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}") == "NO_POWER", "no battery: refused"); }
+    CHECK(R.err("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}") == "NO_POWER", "no battery: refused"); }
 }
 
 static void testStopEstop() {
   T("stop and estop");
-  { Rig R; R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}"); R.run(2500);
+  { Rig R; R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); R.until([&] { return R.B.sec == gb::SEC_LN; }, 5000); R.run(200);
     CHECK(R.ok("{\"id\":2,\"cmd\":\"stop\"}") && S.dDir == 0 && R.idle(), "stop: drum holds where it is");
     CHECK(R.B.drumPos() == gb::DP_BETWEEN, "between detents");
     CHECK(R.evt("ABORTED"), "ABORTED event");
-    CHECK(R.toMode("REEL"), "can continue from between"); }
-  { Rig R; R.toMode("REEL"); R.ok("{\"id\":2,\"cmd\":\"estop\"}");
+    CHECK(R.toMode("NEUTRAL"), "can continue from between"); }
+  { Rig R; R.ok("{\"id\":2,\"cmd\":\"estop\"}");
     R.until([&] { return R.idle(); }, 20000);
     CHECK(R.B.drumPos() == gb::DP_NEUTRAL, "estop: drum to NEUTRAL"); }
-  { Rig R; R.toMode("REEL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle(); }, 60000);
+  { Rig R; R.toMode("NEUTRAL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle(); }, 60000);
     R.ok("{\"id\":2,\"cmd\":\"estop\"}"); R.run(500);
-    CHECK(R.B.drumPos() == gb::DP_WRAPPED && R.lastEvt("MODE").find("DRUM_HELD") != std::string::npos, "estop with wraps on: drum held"); }
+    CHECK(R.B.drumPos() == gb::DP_REEL && R.lastEvt("MODE").find("DRUM_HELD") != std::string::npos, "estop with wraps on: drum held"); }
 }
 
 static void testJog() {
@@ -498,14 +518,14 @@ static void testJog() {
 static void testPowerLoss() {
   T("power loss mid-phase: recovery");
   // 1: power cut while the drum moves -> the code says the sector, the move can be repeated
-  { Rig R; R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}"); R.run(2500);
+  { Rig R; R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); R.until([&] { return R.B.sec == gb::SEC_LN; }, 5000); R.run(200);
     CHECK(S.nvsHas && (S.nvs.moving & 2), "record says moving during the drum move");
     S.out.clear(); S.dDir = 0; S.wDir = 0;
     Rig R2(false);
     CHECK(R2.B.drumKnown && R2.B.drumPos() == gb::DP_BETWEEN, "drum sector known from the code after the cut");
-    CHECK(R2.err("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}") == "LAUNCH_BUSY", "launch phase unknown near LAUNCH: no shift away");
+    CHECK(R2.err("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}") == "LAUNCH_BUSY", "launch phase unknown near LAUNCH: no shift away");
     CHECK(R2.toMode("LAUNCH"), "back to LAUNCH is allowed");
-    CHECK(R2.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"cock_rest\"}") && R2.toMode("REEL"), "carriage seen home: the move completes"); }
+    CHECK(R2.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"cock_rest\"}") && R2.toMode("NEUTRAL"), "carriage seen home: the move completes"); }
   // 2: power cut mid-cock -> phase UNKNOWN, cock runs until the sear closes
   { Rig R; R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"cock_rest\"}"); R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"cock\"}"); R.run(2500);
     double ph = S.cockPh; S.wDir = 0;
@@ -524,7 +544,7 @@ static void testPowerLoss() {
     Rig R2(false);
     CHECK(R2.B.phase == gb::PH_UNKNOWN, "phase UNKNOWN");
     CHECK(R2.ok("{\"id\":1,\"cmd\":\"cock\"}"), "cock (recovery creep)");
-    R2.until([&] { return R2.idle() || R2.B.state == gb::S_FAULT; }, 40000);
+    for (int i = 0; i < 8000 && !(R2.idle() || R2.B.state == gb::S_FAULT); i++) { R2.tick(); if (getenv("SIMLOG") && i % 20 == 0) printf("      sim %.1f home %d fw %.1f ph %d st %d\n", S.cockPh, (int)R2.B.closed(gb::SW_HOME), R2.B.cockPhase, R2.B.phase, R2.B.state); }
     CHECK(R2.B.phase == gb::PH_COCKED && fabs(S.cockPh - R2.B.c.cockEndDeg) < 8 && S.shots == 0, "cocked at the right angle, no shot"); }
   // 3: power cut while cocked and idle -> stays known (record + sear contact)
   { Rig R; R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"cock_rest\"}"); R.homeAimAndCock(); R.run(500);
@@ -537,13 +557,13 @@ static void testPowerLoss() {
     Rig R2(false);
     CHECK(!R2.B.aimKnown, "wiper moved while off: aim unknown"); }
   // 5: cut mid-wrap -> sector WRAPPING known, wraps estimated, mode refused, unwrap works
-  { Rig R; R.toMode("REEL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.run(12000); S.dDir = 0;
+  { Rig R; R.toMode("NEUTRAL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.run(12000); S.dDir = 0;
     Rig R2(false);
-    CHECK(R2.B.wrapsKnown && R2.B.sec == gb::SEC_WRAPPING, "WRAPPING sector after the cut");
+    CHECK(!R2.B.wrapsKnown && R2.B.sec == gb::SEC_WRAP, "WRAP sector after the cut, count unknown (lens B 7.4)");
     CHECK(R2.err("{\"id\":1,\"cmd\":\"mode\",\"to\":\"LAUNCH\"}") == "WRAPS_ON", "mode refused");
     CHECK(R2.ok("{\"id\":1,\"cmd\":\"unwrap\"}"), "unwrap");
     R2.until([&] { return R2.idle() || R2.B.state == gb::S_FAULT; }, 60000);
-    CHECK(R2.B.drumPos() == gb::DP_REEL && R2.B.wraps == 0 && S.wrapsTrue() == 0, "back at REEL, no wraps"); }
+    CHECK(R2.B.drumPos() == gb::DP_NEUTRAL && R2.B.wraps == 0 && S.wrapsTrue() == 0 && R2.B.wrapsKnown, "unwrap is safe at any count: back at NEUTRAL, no wraps"); }
   // 6: corrupt record -> nothing trusted
   { Rig R; R.run(200); S.nvs.crc ^= 1; Rig R2(false);
     CHECK(R2.B.phase == gb::PH_UNKNOWN && R2.evt("BOOT"), "corrupt record ignored"); }
@@ -552,7 +572,7 @@ static void testPowerLoss() {
 static void testSaveGate() {
   T("motion waits for the moving record to reach flash (the flash write stalls the tick)");
   Rig R;
-  R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}"); S.saveT = S.t + 100000;   // the flash write "never" finishes
+  R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); S.saveT = S.t + 100000;   // the flash write "never" finishes
   R.run(300);
   CHECK(S.wDir == 0 && S.dDir == 0, "no motor starts before the record is written");
   S.saveT = S.t - 20; R.run(300);
@@ -563,12 +583,12 @@ static void testPersistWear() {
   T("persistence: no flash writes while idle");
   Rig R; R.run(1000); int s0 = S.saves; R.run(5000);
   CHECK(S.saves == s0, "idle: zero writes");
-  R.toMode("REEL"); CHECK(S.saves - s0 <= 3, "one move: at most 3 writes");
+  R.toMode("NEUTRAL"); CHECK(S.saves - s0 <= 3, "one move: at most 3 writes");
 }
 
 static void testHostTimeout() {
   T("host watchdog (opt in)");
-  Rig R; R.toMode("REEL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle(); }, 60000);
+  Rig R; R.toMode("NEUTRAL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle(); }, 60000);
   R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"host_timeout_s\",\"val\":2}");
   S.lineOut = 10; R.ok("{\"id\":2,\"cmd\":\"reel\",\"until\":\"stop\"}");
   R.run(1500); CHECK(S.wDir == 1, "running while the host is quiet for 1.5 s");
@@ -582,20 +602,23 @@ static void testReview1() {
     char b[80]; snprintf(b, sizeof b, "{\"id\":2,\"cmd\":\"aim\",\"deg\":%.2f}", R.B.pitch() + 0.5);
     R.ok(b); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000); R.run(3000);
     CHECK(S.wDir == 0 && R.B.aimed && fabs(R.B.pitch() - (R.B.aimTarget)) < 1, "second close aim stops the wiper (stale sub-state)"); }
-  { Rig R; R.toMode("LAUNCH"); S.cockPh = 300; S.swStuckClosed = 1 << 5; R.B.phase = gb::PH_UNKNOWN; R.run(50);
+  { Rig R; R.toMode("LAUNCH"); S.cockPh = 300; S.swStuckClosed = 1 << 6; R.B.phase = gb::PH_UNKNOWN; R.run(50);
     R.ok("{\"id\":1,\"cmd\":\"cock\"}"); R.until([&] { return R.B.state == gb::S_FAULT || R.idle(); }, 30000);
     CHECK(S.shots == 0 && R.B.fault == gb::F_BAD_STATE, "SW_HOME stuck closed: the creep stops before the release tooth"); }
   { Rig R; R.homeAimAndCock(); S.swStuckOpen = 1 << 0; R.run(300);
     CHECK(R.err("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}") != "", "cocked + drum code bit failed: no shift"); }
-  { Rig R; R.toMode("REEL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.run(10000); R.ok("{\"id\":2,\"cmd\":\"stop\"}");
-    CHECK(R.err("{\"id\":3,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":-1}") == "BACKSTOP", "backward jog refused mid-wrap (REEL train coupled)"); }
+  { Rig R; R.toMode("NEUTRAL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle(); }, 60000);
+    CHECK(R.err("{\"id\":3,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":-1}") == "BACKSTOP", "backward jog refused in REEL");
+    R.ok("{\"id\":4,\"cmd\":\"unwrap\"}"); R.until([&] { return R.B.sec == gb::SEC_WRAP; }, 20000); R.ok("{\"id\":5,\"cmd\":\"stop\"}");
+    { std::string e = R.err("{\"id\":6,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":1,\"ms\":300}"); if (e != "") printf("    jog err %s state %d sec %d\n", e.c_str(), R.B.state, R.B.sec);
+      CHECK(e == "" && R.B.w.wantDuty <= R.B.c.takeupMaxDuty, "forward jog in the WRAP sector: take-up only, at most 40 percent"); } }
   // (a drum stopped anywhere in the LAUNCH code sector, -10..4 deg, is inside the collar's LAUNCH dwell -10..6: engaged)
-  { Rig R; R.toMode("REEL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle(); }, 60000);
+  { Rig R; R.toMode("NEUTRAL"); R.ok("{\"id\":1,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle(); }, 60000);
     S.extraLoadNm = 14.5; S.hxFitted = true; R.run(50);
     R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":30,\"until\":\"tension\"}");
     R.until([&] { return R.B.state == gb::S_FAULT; }, 20000);
     CHECK(R.B.fault == gb::F_STALL || R.B.fault == gb::F_OVERCURRENT, "jammed reel in a tow: a fault, not a hold loop"); }
-  { Rig R; R.toMode("REEL"); R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); R.run(500);
+  { Rig R; R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); R.run(500);
     S.drumJam = true; R.B.raise(gb::F_BAD_STATE, "test"); R.run(200); S.vbatOverride = 8.0; R.B.c.vbatLow = 9.9f;
     R.B.raise(gb::F_BROWNOUT, "second"); R.run(50);
     CHECK(R.B.state == gb::S_FAULT && S.dDir == 0, "a second fault during SAFING stops the drum"); }
@@ -605,46 +628,97 @@ static void testReview1() {
     CHECK(S.wDir == 0, "guard: no motor runs in IDLE"); }
 }
 
+static void testReview2() {
+  T("review round 2 regressions");
+  // f1: code wire C shorted while off, launcher cocked: no jog, no shift, no shot
+  { Rig R; R.homeAimAndCock(); R.run(500); S.swStuckClosed = 1 << 2;
+    Rig R2(false);
+    int shots0 = S.shots; R2.run(200);
+    R2.cmd("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":1,\"ms\":1500}"); R2.run(1600);
+    R2.cmd("{\"id\":2,\"cmd\":\"jog\",\"motor\":\"drum\",\"dir\":1,\"ms\":1500}"); R2.run(1600);
+    R2.cmd("{\"id\":3,\"cmd\":\"wrap\"}"); R2.run(3000);
+    CHECK(S.shots == shots0 && Rig::dryTotal == 0, "shorted code bit while cocked: no shot, no dry fire");
+    CHECK(R2.B.state == gb::S_FAULT, "and a fault says why"); }
+  // f2c: SW_HOME stuck closed, forward jogs from rest: never REST with the carriage drawn
+  { Rig R; R.toMode("LAUNCH"); S.swStuckClosed = 1 << 6; R.run(50);
+    for (int i = 0; i < 3; i++) { R.cmd("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":1,\"ms\":1500}"); R.run(1600); }
+    R.cmd("{\"id\":2,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); R.run(5000);
+    CHECK(Rig::dryTotal == 0 && (R.B.state == gb::S_FAULT || R.B.phase != gb::PH_REST), "stuck SW_HOME + forward jogs: no shift under load"); }
+  // f3: cocked, power cycle, SW_HOME stuck closed: cock refused, no shot; decock by travel with force
+  { Rig R; R.homeAimAndCock(); R.run(500); S.swStuckClosed = 1 << 6;
+    Rig R2(false); int shots0 = S.shots;
+    CHECK(R2.err("{\"id\":1,\"cmd\":\"cock\"}") == "LOADED_UNKNOWN", "cock refused: the switch disagrees with the saved angle");
+    CHECK(R2.err("{\"id\":2,\"cmd\":\"cal\",\"what\":\"decock\"}") == "SWITCH_DISAGREE", "decock needs force");
+    CHECK(R2.ok("{\"id\":3,\"cmd\":\"cal\",\"what\":\"decock\",\"force\":true}"), "forced decock by travel");
+    R2.until([&] { return R2.idle() || R2.B.state == gb::S_FAULT; }, 20000);
+    CHECK(S.shots == shots0 && S.cockPh < S.c.homeOpenDeg && R2.B.phase == gb::PH_REST, "decocked by travel, no shot"); }
+  // f3b: stop mid-fire before the release, then cock with SW_HOME stuck closed: refused
+  { Rig R; R.homeAimAndCock(); S.lineOut = 0; R.run(50);
+    std::string a = R.cmd("{\"id\":2,\"cmd\":\"arm\"}"); long tok = atol(a.c_str() + a.find("\"token\":") + 8);
+    R.ok("{\"id\":4,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}"); R.until([&] { return S.cockPh > 445; }, 5000);
+    R.ok("{\"id\":5,\"cmd\":\"stop\"}"); S.swStuckClosed = 1 << 6; R.run(100);
+    CHECK(R.err("{\"id\":6,\"cmd\":\"cock\"}") == "LOADED_UNKNOWN" && S.shots == 0, "stop mid-fire + stuck SW_HOME: cock refused"); }
+  // f4: SW_HOME bounces during decock: no REST until steadily closed
+  { Rig R; R.homeAimAndCock(); R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"decock\"}");
+    R.until([&] { return S.cockPh < 390; }, 10000); S.swStuckClosed = 1 << 6; R.run(40); S.swStuckClosed = 0;
+    R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 20000);
+    CHECK(S.cockPh < S.c.homeOpenDeg + 1 || R.B.phase != gb::PH_REST, "a bounce does not end the decock early"); }
+  // f4b: stop a forward jog right at the first tooth: not REST any more
+  { Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":1,\"ms\":1500}");
+    R.until([&] { return S.cockPh > 3.1; }, 5000); R.ok("{\"id\":2,\"cmd\":\"stop\"}"); R.run(100);
+    CHECK(R.B.phase != gb::PH_REST, "carriage off its stop: phase no longer REST");
+    CHECK(R.err("{\"id\":3,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}") == "LAUNCH_BUSY", "and no shift"); }
+  // r2f: a fault mid-decock: phase UNKNOWN, not COCKED
+  { Rig R; R.homeAimAndCock(); R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"decock\"}"); R.run(600);
+    R.B.raise(gb::F_STALL, "test"); CHECK(R.B.phase == gb::PH_UNKNOWN, "fault mid-decock: phase UNKNOWN"); }
+  // ids: non-integer or huge ids refused
+  { Rig R; CHECK(R.err("{\"id\":1e35,\"cmd\":\"ping\"}") == "BAD_ID" && R.err("{\"id\":1.5,\"cmd\":\"ping\"}") == "BAD_ID", "inexact ids: BAD_ID"); }
+}
+
 static void testTelemetryRate() {
   T("telemetry rate");
   Rig R; int n = 0; for (uint32_t t = 0; t < 1000; t += 5) { R.tick(); if (R.B.telDue(S.t)) n++; }
   CHECK(n >= 9 && n <= 11, "10 Hz idle");
-  R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}"); n = 0;
+  R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); n = 0;
   for (uint32_t t = 0; t < 1000; t += 5) { R.tick(); if (R.B.telDue(S.t)) n++; }
   CHECK(n >= 19 && n <= 21, "20 Hz moving");
 }
 
 static void testFullMission() {
-  T("full mission: launch, payout, reel mode, wrap, tow, retrieve, unwrap, launch again");
-  Rig R; R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"cock_rest\"}");
+  T("full mission (lens B 7.2): aim, fire, NEUTRAL, tidy, wrap + REEL, tow, reel in, unwrap, approach, LAUNCH, again");
+  Rig R;
   S.lineOut = 0; S.seatAtLine = 0;
-  CHECK(R.homeAimAndCock(), "cocked and aimed");
-  std::string a = R.cmd("{\"id\":2,\"cmd\":\"arm\"}"); long tok = atol(a.c_str() + a.find("\"token\":") + 8);
-  R.ok("{\"id\":4,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}");
+  CHECK(R.toMode("LAUNCH"), "LAUNCH");
+  R.ok("{\"id\":2,\"cmd\":\"aim\",\"deg\":35}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000);
+  CHECK(R.B.aimed, "aimed");
+  std::string a = R.cmd("{\"id\":3,\"cmd\":\"arm\"}"); long tok = atol(a.c_str() + a.find("\"token\":") + 8);
+  CHECK(R.ok("{\"id\":4,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}"), "fire from rest (whole cycle)");
   R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
-  CHECK(S.shots == 1 && R.B.phase == gb::PH_REST, "shot and reset");
-  CHECK(R.toMode("REEL"), "to REEL");
-  R.ok("{\"id\":5,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000);
-  CHECK(R.B.wraps == R.B.c.wrapsFull, "wrapped");
-  R.ok("{\"id\":6,\"cmd\":\"set\",\"key\":\"line_m\",\"val\":8}");
-  S.anchorTautAt = 7.6; S.anchorK = 50;
-  R.B.c.kNperA = (float)(1.0 / (S.capstanR / S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA));
-  R.B.c.freeA = 1.5f + (float)((S.reelFreeNm + 0.2) / S.stallNm * (S.stallA - S.freeA));
-  R.ok("{\"id\":7,\"cmd\":\"reel\",\"duty\":1,\"max_n\":30,\"until\":\"tension\"}");
+  CHECK(S.shots == 1 && R.B.phase == gb::PH_REST && R.evt("FIRED") && R.evt("RESET"), "shot and reset");
+  CHECK(fabs(S.cockPh) < 8, "train back at rest");
+  CHECK(R.toMode("NEUTRAL"), "to NEUTRAL (dart landed)");
+  S.anchorTautAt = 7.7; S.anchorK = 50;         // dart anchored at about 7.7 m
+  R.ok("{\"id\":5,\"cmd\":\"reel\",\"duty\":0.2,\"until\":\"slip\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 20000);
+  R.ok("{\"id\":6,\"cmd\":\"wrap\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000);
+  CHECK(R.B.wraps == R.B.c.wrapsFull && R.B.collarReel(), "wrapped and in REEL");
+  R.ok("{\"id\":7,\"cmd\":\"set\",\"key\":\"line_m\",\"val\":8}");
+  R.B.c.kNperA = (float)(1.0 / (S.capstanR * S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA));
+  R.B.c.freeA = 1.5f + (float)((S.reelFreeNm + 0.3) / S.stallNm * (S.stallA - S.freeA));
+  R.ok("{\"id\":8,\"cmd\":\"reel\",\"duty\":1,\"max_n\":40,\"until\":\"tension\"}");
   R.until([&] { return R.B.state == gb::S_HOLD || R.B.state == gb::S_FAULT; }, 400000);
   CHECK(R.B.state == gb::S_HOLD, "towed to the limit");
-  R.ok("{\"id\":8,\"cmd\":\"stop\"}");
-  S.anchorTautAt = -1; S.seatAtLine = 0;       // dart released
-  R.ok("{\"id\":9,\"cmd\":\"reel\",\"duty\":0.8,\"max_n\":30,\"until\":\"seated\"}");
-  R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 400000);
-  CHECK(R.evt("SEATED"), "retrieved and seated");
-  R.ok("{\"id\":10,\"cmd\":\"unwrap\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000);
-  CHECK(R.B.wraps == 0, "unwrapped");
+  R.ok("{\"id\":9,\"cmd\":\"stop\"}");
+  S.anchorTautAt = -1;                          // dart released
+  R.ok("{\"id\":10,\"cmd\":\"reel\",\"duty\":0.8,\"until\":\"stop\"}");
+  R.until([&] { return S.lineOut < 1.5 || R.B.state == gb::S_FAULT; }, 400000); R.ok("{\"id\":11,\"cmd\":\"stop\"}");
+  R.ok("{\"id\":12,\"cmd\":\"unwrap\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000);
+  CHECK(R.B.wraps == 0 && R.B.drumPos() == gb::DP_NEUTRAL, "unwrapped to NEUTRAL");
+  R.ok("{\"id\":13,\"cmd\":\"reel\",\"duty\":0.3,\"until\":\"seated\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
+  CHECK(R.evt("SEATED"), "final approach: seated");
   CHECK(R.toMode("LAUNCH"), "back to LAUNCH");
-  printf("    before 2nd cock: fw cock %.1f sim cock %.1f fired %d\n", R.B.cockPhase, S.cockPh, S.fired);
-  R.ok("{\"id\":11,\"cmd\":\"cock\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
-  printf("    after: fw cock %.1f sim cock %.1f\n", R.B.cockPhase, S.cockPh);
-  CHECK(R.B.phase == gb::PH_COCKED, "cocked again for the next shot");
+  R.ok("{\"id\":14,\"cmd\":\"aim\",\"deg\":30}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000);
+  R.ok("{\"id\":15,\"cmd\":\"cock\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);
+  CHECK(R.B.phase == gb::PH_COCKED && R.B.aimed, "aimed and cocked for the next shot");
   CHECK(R.B.fault == gb::F_NONE, "no fault in the whole mission");
   size_t maxLen = 0; for (auto& l : S.out) maxLen = l.size() > maxLen ? l.size() : maxLen;
   CHECK(maxLen <= 256, "every event line within 256 bytes");
@@ -652,12 +726,12 @@ static void testFullMission() {
 
 int main(int argc, char** argv) {
   if (argc > 1) { std::string w = argv[1];
-    if (w == "cock") testCockFireReset(); else if (w == "aim") testAim(); else if (w == "wrap") testWrapReelUnwrap(); else if (w == "jog") testJog(); else if (w == "drum") testDrumFaults(); else if (w == "power") testPowerLoss(); else if (w == "stall") testStallOvercurrent(); else if (w == "enc") testAngleSensorFault(); else if (w == "tow") testTow(); else if (w == "mission") testFullMission();
+    if (w == "cock") testCockFireReset(); else if (w == "aim") testAim(); else if (w == "wrap") testWrapReelUnwrap(); else if (w == "jog") testJog(); else if (w == "drum") testDrumFaults(); else if (w == "power") testPowerLoss(); else if (w == "stall") testStallOvercurrent(); else if (w == "enc") testAngleSensorFault(); else if (w == "tow") testTow(); else if (w == "rev1") testReview1(); else if (w == "rev2") testReview2(); else if (w == "mission") testFullMission();
     printf("%d passed, %d failed\n", pass, fail); return fail ? 1 : 0; }
   testJson(); testSwitches(); testAngle(); testWiperDrive(); testPersist();
   testProtocolBasics(); testTelemetryWorstCase(); testModeChanges(); testDrumFaults(); testAim(); testCockFireReset(); testFireRefusals();
   testNoRelease(); testWrapReelUnwrap(); testTow(); testTowHx(); testStallOvercurrent(); testAngleSensorFault(); testBrownout();
-  testStopEstop(); testJog(); testPowerLoss(); testSaveGate(); testPersistWear(); testTelemetryRate(); testHostTimeout(); testReview1(); testFullMission();
+  testStopEstop(); testJog(); testPowerLoss(); testSaveGate(); testPersistWear(); testTelemetryRate(); testHostTimeout(); testReview1(); testReview2(); testFullMission();
   curTest = "all"; CHECK(Rig::dryTotal == 0, "no test ever moved the collar out of LAUNCH with the spring drawn");
   printf("\n%d checks, %d passed, %d failed: %s\n", pass + fail, pass, fail, fail ? "FAILURES" : "ALL PASS");
   return fail ? 1 : 0;

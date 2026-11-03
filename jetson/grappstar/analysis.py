@@ -43,10 +43,7 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
         from .vision import flight
         if flightlog is not None and clock_offset_s is None:
             clock_offset_s = flightlog.get("clock_offset_s")
-        try:
-            fres = flight.analyze_flight(frames, flightlog, clock_offset_s=clock_offset_s)
-        except TypeError:
-            fres = flight.analyze_flight(frames, flightlog)
+        fres = flight.analyze_flight(frames, flightlog, clock_offset_s=clock_offset_s)
         out["flight"] = fres.to_dict()
     except Exception as e:
         note(f"flight analysis failed: {type(e).__name__}: {e}")
@@ -64,15 +61,15 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
     try:
         from .vision import terrain
         att = None
-        if fres is not None and getattr(fres, "attitude", None):
-            # the dart lands nose first, so its nose-down pitch is expected and is not ground slope:
-            # pass only the roll (side tilt), which does follow the ground
-            t_, roll_, pitch_, yaw_ = fres.attitude[-1]
-            att = (t_, roll_, 0.0, yaw_)
-        try:
-            rep = terrain.analyze_landing(land_frames, model=terrain_model, attitude=att)
-        except TypeError:
-            rep = terrain.analyze_landing(land_frames, model=terrain_model)
+        if fres is not None and getattr(fres, "attitude", None) and getattr(fres, "t_landed", None):
+            # only the resting attitude says anything about the ground (a horizon-based attitude stops before
+            # landing, so it may be missing). The dart lands nose first, so its nose-down pitch is expected and is
+            # not ground slope: pass only the roll (side tilt), which does follow the ground.
+            rest = [a for a in fres.attitude if a[0] >= fres.t_landed]
+            if rest:
+                t_, roll_, pitch_, yaw_ = rest[-1]
+                att = (t_, roll_, 0.0, yaw_)
+        rep = terrain.analyze_landing(land_frames, model=terrain_model, attitude=att)
         out["terrain"] = rep.to_dict()
         if outdir and getattr(rep, "image", None) is not None:
             p = _save_png(os.path.join(outdir, "landing.png"), rep.image)
@@ -86,7 +83,11 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
         try:
             from .vision import mosaic
             lt = fres.t_impact if fres is not None and getattr(fres, "t_impact", None) else None
-            m = mosaic.build_mosaic(frames, landing_t=lt)
+            import inspect
+            if "flight" in inspect.signature(mosaic.build_mosaic).parameters:
+                m = mosaic.build_mosaic(frames, landing_t=lt, flight=fres)
+            else:
+                m = mosaic.build_mosaic(frames, landing_t=lt)
             out["mosaic"] = m.to_dict()
             if outdir and getattr(m, "image", None) is not None:
                 p = _save_png(os.path.join(outdir, "mosaic.png"), m.image)

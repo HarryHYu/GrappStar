@@ -51,7 +51,9 @@ int& pin(int gpio) { static int junk; return gpio >= 0 && gpio < 64 ? duty[gpio]
 // direction and duty of one DRV8833 channel: PWM on one input = run, both low = coast, both high = brake (stopped)
 void drive(int m, int& dir, int& d) {
   int a = pin(PIN_A[m]), b = pin(PIN_B[m]);
-  if (a && !b) { dir = +1; d = a; } else if (b && !a) { dir = -1; d = b; } else { dir = 0; d = 0; }
+  // slow decay (firmware v4): one input high, the other PWM inverted; the old one-input PWM is still understood
+  if (a == 255 && b < 255) { dir = +1; d = 255 - b; } else if (b == 255 && a < 255) { dir = -1; d = 255 - a; }
+  else if (a && !b) { dir = +1; d = a; } else if (b && !a) { dir = -1; d = b; } else { dir = 0; d = 0; }
 }
 // move the legs for the time since the last call, with the drive that was in force during that time
 void advance() {
@@ -81,7 +83,7 @@ double motorMa(int m) {
     case DRILLS: ma = K.drillJam ? DRILL_JAM : dir < 0 ? DRILL_REV : (deployPos >= DEPLOY_DIG ? DRILL_DIG : DRILL_AIR); break;
     case FOOT: ma = K.footJam ? FOOT_JAM : dir < 0 ? FOOT_REV : (kickPos >= KICK_CONTACT ? FOOT_PLANT : FOOT_AIR); break;
   }
-  return ma * d / 255.0;
+  return ma * (d / 255.0) * (d / 255.0);   // slow decay: supply current ~ duty squared
 }
 double totalMa() { advance(); double s = 0; for (int m = 0; m < NMOT; m++) s += motorMa(m); return s; }
 

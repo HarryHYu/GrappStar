@@ -22,6 +22,7 @@ import sys
 import time
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
+import cv2
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -34,6 +35,35 @@ PRED_NAMES = list(terrain.CLASSES) + ["unknown"]
 SIZES = ((720, 480), (480, 320))
 
 
+def _gamma(img, g):
+    return np.clip(255.0 * (img / 255.0) ** g, 0, 255).astype(np.uint8)
+
+
+# Robustness checks (--perturb): applied to every frame before the analysis, like a different camera would be.
+PERTURB = {
+    "none": lambda img, rng: img,
+    "blur": lambda img, rng: cv2.GaussianBlur(img, (0, 0), 1.5),
+    "noise": lambda img, rng: np.clip(img + rng.normal(0, 10, img.shape), 0, 255).astype(np.uint8),
+    "dark": lambda img, rng: np.clip(img * 0.65, 0, 255).astype(np.uint8),
+    "bright": lambda img, rng: _gamma(img, 0.7),
+    "zoom": lambda img, rng: cv2.resize(img[img.shape[0] // 4:3 * img.shape[0] // 4,
+                                            img.shape[1] // 4:3 * img.shape[1] // 4],
+                                        (img.shape[1], img.shape[0]), interpolation=cv2.INTER_LINEAR),
+    "lowres": lambda img, rng: cv2.resize(cv2.resize(img, (img.shape[1] // 2, img.shape[0] // 2),
+                                                     interpolation=cv2.INTER_AREA),
+                                          (img.shape[1], img.shape[0]), interpolation=cv2.INTER_LINEAR),
+}
+
+
+def perturb_frames(frames: Sequence, kind: str, seed: int = 0) -> list:
+    if kind == "none":
+        return list(frames)
+    from grappstar.video.frame import Frame
+    rng = np.random.default_rng(seed)
+    fn = PERTURB[kind]
+    return [Frame(fn(f.img, rng), f.t, f.idx, f.quality, f.bad) for f in frames]
+
+
 def _attitude(fres) -> Optional[tuple]:
     """Same attitude hand-off as analysis.run_post_flight (roll only, nose-down pitch is not slope)."""
     if fres is not None and getattr(fres, "attitude", None):
@@ -42,8 +72,12 @@ def _attitude(fres) -> Optional[tuple]:
     return None
 
 
-def landing_report(frames: Sequence, flightlog: Optional[dict], model=None, make_image: bool = False):
-    """analysis.run_post_flight's terrain step. Returns (TerrainReport, landing frames)."""
+def landing_report(frames: Sequence, flightlog: Optional[dict], model=None, make_image: bool = False,
+                   use_attitude: bool = True):
+    """analysis.run_post_flight's terrain step. Returns (TerrainReport, landing frames).
+
+    use_attitude=False skips the attitude hand-off (diagnostic: shows how much the roll based tilt penalty
+    changes the verdicts)."""
     fres = None
     try:
         fres = flight.analyze_flight(frames, flightlog)
@@ -57,21 +91,23 @@ def landing_report(frames: Sequence, flightlog: Optional[dict], model=None, make
         land = []
     if not land:
         land = [f for f in frames if not getattr(f, "bad", False)][-15:]
-    rep = terrain.analyze_landing(land, model=model, attitude=_attitude(fres), make_image=make_image)
+    att = _attitude(fres) if use_attitude else None
+    rep = terrain.analyze_landing(land, model=model, attitude=att, make_image=make_image)
     return rep, land
 
 
-def run_case(cls: str, seed: int, size: Tuple[int, int], flightlog_modes: Iterable[bool] = (False, True)
-             ) -> List[dict]:
+def run_case(cls: str, seed: int, size: Tuple[int, int], flightlog_modes: Iterable[bool] = (False, True),
+             use_attitude: bool = True, perturb: str = "none") -> List[dict]:
     """Render one flight and analyse it once per flightlog mode. Returns one row per mode."""
     frames, truth = render_flight(seed=int(seed), landing_class=cls, size=tuple(size), dropouts=True)
+    frames = perturb_frames(frames, perturb, seed)
     rows = []
     for use_log in flightlog_modes:
         t0 = time.perf_counter()
-        rep, land = landing_report(frames, truth["flightlog"] if use_log else None)
+        rep, land = landing_report(frames, truth["flightlog"] if use_log else None, use_attitude=use_attitude)
         rows.append({"truth": cls, "seed": int(seed), "size": "%dx%d" % tuple(size), "flightlog": bool(use_log),
                      "pred": rep.cls, "verdict": rep.verdict, "score": int(rep.score),
-                     "conf": float(rep.confidence), "n_land": len(land),
+                     "conf": float(rep.confidence), "n_land": len(land), "slope_deg": rep.slope_deg,
                      "probs": {k: round(float(v), 3) for k, v in rep.probs.items()},
                      "t_terrain_s": time.perf_counter() - t0})
     return rows
@@ -112,8 +148,8 @@ def unsafe_go(rows: Sequence[dict]) -> List[dict]:
 
 def evaluate(classes: Sequence[str] = CLASSES, seeds: Sequence[int] = range(6),
              sizes: Sequence[Tuple[int, int]] = SIZES, flightlog_modes: Sequence[bool] = (False, True),
-             jobs: int = 1, verbose: bool = True) -> dict:
-    tasks = [(c, s, tuple(sz), tuple(flightlog_modes)) for sz in sizes for c in classes for s in seeds]
+             jobs: int = 1, verbose: bool = True, use_attitude: bool = True, perturb: str = "none") -> dict:
+    tasks = [(c, s, tuple(sz), tuple(flightlog_modes), use_attitude, perturb) for sz in sizes for c in classes for s in seeds]
     t0 = time.time()
     if jobs > 1:
         import multiprocessing as mp
@@ -135,9 +171,10 @@ def evaluate(classes: Sequence[str] = CLASSES, seeds: Sequence[int] = range(6),
 def report_text(out: dict) -> str:
     lines = []
     for r in out["rows"]:
-        lines.append("%-11s seed %2d %-7s log=%d -> %-11s %-6s score %3d conf %.2f (%d frames, pipeline %.0f ms)"
+        slope = "-" if r["slope_deg"] is None else "%.0f" % r["slope_deg"]
+        lines.append("%-11s seed %2d %-7s log=%d -> %-11s %-6s score %3d conf %.2f tilt %s (%d frames, pipeline %.0f ms)"
                      % (r["truth"], r["seed"], r["size"], r["flightlog"], r["pred"], r["verdict"], r["score"],
-                        r["conf"], r["n_land"], 1000 * r["t_terrain_s"]))
+                        r["conf"], slope, r["n_land"], 1000 * r["t_terrain_s"]))
     for key, d in out["by_size"].items():
         lines.append("")
         lines.append(format_confusion(d["cm"], "confusion matrix %s (rows = truth, cols = predicted)" % key))
@@ -163,10 +200,15 @@ def main(argv=None) -> int:
     ap.add_argument("--classes", nargs="*", default=list(CLASSES))
     ap.add_argument("--sizes", type=_parse_size, nargs="*", default=list(SIZES))
     ap.add_argument("--no-flightlog", action="store_true", help="only run without the truth flightlog")
+    ap.add_argument("--no-attitude", action="store_true",
+                    help="diagnostic: do not pass the landed attitude (no tilt penalty)")
+    ap.add_argument("--perturb", default="none", choices=sorted(PERTURB),
+                    help="robustness check: alter every frame (blur, noise, exposure, zoom, resolution)")
     ap.add_argument("--jobs", type=int, default=max(1, min(4, os.cpu_count() or 1)))
     a = ap.parse_args(argv)
     modes = (False,) if a.no_flightlog else (False, True)
-    evaluate(a.classes, a.seeds, a.sizes, modes, jobs=a.jobs)
+    evaluate(a.classes, a.seeds, a.sizes, modes, jobs=a.jobs, use_attitude=not a.no_attitude,
+             perturb=a.perturb)
     return 0
 
 

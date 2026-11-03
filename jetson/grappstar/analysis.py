@@ -75,8 +75,13 @@ def _save_png(path: str, img) -> Optional[str]:
 
 def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Optional[str], t_fire: Optional[float] = None,
                     terrain_model=None, do_mosaic: bool = True, log=None,
-                    clock_offset_s: Optional[float] = None) -> Dict[str, Any]:
-    """Returns {"flight": dict|None, "terrain": dict, "mosaic": dict|None, "files": {...}, "errors": [...]}."""
+                    clock_offset_s: Optional[float] = None, aim_pitch_deg: Optional[float] = None,
+                    drag_n: Optional[float] = None, ballistics: Any = "auto") -> Dict[str, Any]:
+    """Returns {"flight": dict|None, "terrain": dict, "mosaic": dict|None, "files": {...}, "errors": [...]}.
+
+    aim_pitch_deg: the commanded rail pitch of this shot; drag_n: the launch clutch drag (default LIGHT 0.5 N);
+    ballistics: a Ballistics table, None for none, or "auto" (base/out/ballistics.json, else the placeholder;
+    a placeholder table is not used as a prior). They make the video-only range usable (review R1-C #6)."""
     out: Dict[str, Any] = {"flight": None, "terrain": None, "mosaic": None, "files": {}, "errors": []}
     if outdir:
         os.makedirs(outdir, exist_ok=True)
@@ -93,7 +98,19 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
         from .vision import flight
         if flightlog is not None and clock_offset_s is None:
             clock_offset_s = flightlog.get("clock_offset_s")
-        fres = flight.analyze_flight(frames, flightlog, clock_offset_s=clock_offset_s)
+        bal = ballistics
+        if isinstance(bal, str) and bal == "auto":
+            bal = None
+            try:
+                from .ballistics import Ballistics
+                b = Ballistics.load()
+                bal = None if b.placeholder else b
+            except Exception as e:
+                note(f"no ballistics table for the flight prior: {e}")
+        from .ballistics import LIGHT_DRAG_N
+        fres = flight.analyze_flight(frames, flightlog, clock_offset_s=clock_offset_s, ballistics=bal,
+                                     drag_n=LIGHT_DRAG_N if drag_n is None else float(drag_n),
+                                     aim_pitch_deg=aim_pitch_deg)
         out["flight"] = fres.to_dict()
     except Exception as e:
         note(f"flight analysis failed: {type(e).__name__}: {e}")

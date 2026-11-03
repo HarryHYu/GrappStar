@@ -219,3 +219,13 @@ def test_guard_band_closes_box(P, B):
         assert y0 > C["y_in"][-1] - 1e-6 and y1 < C["y_in"][1] + 1e-6
     # every band lug hole has a matching clearance hole in both cheeks
     assert len(B["info"]["band_holes"]) >= 4 * len(bands)
+
+
+def test_swept_cutters_from_another_subsystem(P):
+    """The band openings come from other subsystems' parts swept over the timeline (demo subsystem as a stand-in)."""
+    from cad.parts import _frame_guard as G
+    C = frame.cfg(P)
+    c = G.swept_cutters(P, C, others=("demo",), n_states=6)
+    assert not c.is_empty()
+    (x0, y0, z0), (x1, y1, z1) = prim.bbox(c)
+    assert x1 - x0 > 8.0           # grown by the margin

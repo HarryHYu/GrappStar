@@ -69,14 +69,12 @@ def kin(P, S):
 def allowed(P):
     return [Allow("demo_brg_*", "demo_plate", "608 press fit in the seat"),
             Allow("demo_shaft_1", "demo_brg_1", "journal in the inner race"),
-            Allow("demo_shaft_2", "demo_brg_2", "journal in the inner race"),
-            Allow("demo_shaft_1", "demo_gear_1", "keyed fit"),
-            Allow("demo_shaft_2", "demo_gear_2", "keyed fit")]
+            Allow("demo_shaft_2", "demo_brg_2", "journal in the inner race")]
 
 
 def clearances(P):
     return [Clearance("demo_gear_*", "demo_plate", 1.0, "gears clear the plate"),
-            Clearance("demo_gear_1", "demo_gear_2", 0.0, "gear mesh without interference")]
+            Clearance("demo_gear_1", "demo_gear_2", 0.05, "gear mesh keeps backlash")]
 
 
 def audit_states(P):

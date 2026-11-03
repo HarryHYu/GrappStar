@@ -78,6 +78,20 @@ class Assembly:
             if p.joint is not None and p.joint not in self.joints:
                 self.errors.append(f"part {p.name}: unknown joint {p.joint}")
         self._check_cycles()
+        for j in self.joints.values():          # gear cycles
+            seen, k = [], j.name
+            while k in self.joints and self.joints[k].gear is not None:
+                if k in seen:
+                    self.errors.append(f"gear cycle through {j.name}")
+                    break
+                seen.append(k); k = self.joints[k].gear[0]
+        for p in self.parts.values():
+            for nm, M in (("place", p.place), ("print_tf", p.print_tf)):
+                if M is not None and not _rigid(M):
+                    self.errors.append(f"part {p.name}: {nm} is not a rigid transform (mirror or scale)")
+        for j in self.joints.values():
+            if j.base is not None and not _rigid(j.base):
+                self.errors.append(f"joint {j.name}: base is not a rigid transform")
 
     # ------------------------------------------------------------------ loading
     @classmethod
@@ -104,24 +118,32 @@ class Assembly:
 
     # ------------------------------------------------------------------ kinematics
     def values(self, S: dict) -> dict[str, float]:
-        """Joint values for state S (kin() of every subsystem, then gear links, else 0)."""
-        v = {}
+        """Joint values for state S: kin() of every subsystem; joints kin does not give follow Joint.gear (a missing
+        master counts as its own value, recursively, else 0); everything else 0."""
+        v, src = {}, {}
         for sub, mod in self.modules.items():
             for k, x in (mod.kin(self.P, S) or {}).items():
                 if k not in self.joints:
                     raise KeyError(f"{sub}.kin returned unknown joint {k}")
-                v[k] = float(x)
-        for _ in range(len(self.joints)):           # resolve gear chains in any order
-            changed = False
-            for j in self.joints.values():
-                if j.name not in v and j.gear is not None and j.gear[0] in v:
-                    other, ratio, *off = j.gear
-                    v[j.name] = ratio * v[other] + (off[0] if off else 0.0)
-                    changed = True
-            if not changed:
-                break
+                if k in src and src[k] != sub:
+                    raise ValueError(f"joint {k} driven by both {src[k]}.kin and {sub}.kin")
+                v[k] = float(x); src[k] = sub
+
+        def resolve(name, stack=()):
+            if name in v:
+                return v[name]
+            j = self.joints[name]
+            if j.gear is None or j.gear[0] not in self.joints:
+                v[name] = 0.0
+                return 0.0
+            if name in stack:
+                raise ValueError(f"gear cycle through {name}")
+            other, ratio, *off = j.gear
+            v[name] = ratio * resolve(other, stack + (name,)) + (off[0] if off else 0.0)
+            return v[name]
+
         for j in self.joints:
-            v.setdefault(j, 0.0)
+            resolve(j)
         return v
 
     def joint_world(self, S: dict, values=None) -> dict[str, np.ndarray]:
@@ -132,6 +154,7 @@ class Assembly:
             if name in out:
                 return out[name]
             j = self.joints[name]
+            out[name] = np.eye(4)                 # cycle guard (cycles are reported in self.errors)
             Mp = np.eye(4) if j.parent not in self.joints else get(j.parent)
             out[name] = Mp @ j.local(v[name])
             return out[name]
@@ -172,7 +195,7 @@ class Assembly:
             v, f = prim.mesh_of(p.solid)
             np.savez_compressed(os.path.join(out, "meshes", f"{n}.npz"), v=v.astype(np.float32), f=f.astype(np.uint32))
         with open(os.path.join(out, "asm.json"), "w") as fh:
-            json.dump(self.manifest(), fh, indent=1)
+            json.dump(self.manifest(), fh, indent=1, default=_np_default)
         return out
 
     def tracks(self, states: list[dict]) -> dict:
@@ -188,6 +211,21 @@ class Assembly:
             out[n] = lst[:1] if all(m == lst[0] for m in lst) else lst
         return dict(t=[S.get("t", i) for i, S in enumerate(states)], phase=[S.get("phase", "") for S in states],
                     states=[{k: v for k, v in S.items() if _jsonable(v)} for S in states], parts=out)
+
+
+def _np_default(o):
+    if isinstance(o, np.ndarray):
+        return o.tolist()
+    if isinstance(o, np.generic):
+        return o.item()
+    return str(o)
+
+
+def _rigid(M, tol=1e-6):
+    M = np.asarray(M, float)
+    R = M[:3, :3]
+    return (M.shape == (4, 4) and np.allclose(M[3], [0, 0, 0, 1], atol=tol) and np.allclose(R.T @ R, np.eye(3), atol=1e-5)
+            and np.linalg.det(R) > 0)
 
 
 def _jsonable(x):

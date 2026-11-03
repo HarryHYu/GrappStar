@@ -33,7 +33,7 @@ class Joint:
     parent: str | None = None       # parent joint name (any subsystem) or None = world
     kind: str = "fixed"             # "rev" (value in deg about axis), "slide" (value in mm along axis), "fixed"
     origin: tuple = (0, 0, 0)       # joint origin in the parent joint frame (mm)
-    axis: tuple = (0, 0, 1)         # unit axis in the parent joint frame
+    axis: tuple = (0, 0, 1)         # unit axis in the frame after origin and base (= parent frame if no base)
     base: np.ndarray | None = None  # optional extra 4x4 applied after origin, before the motion (frame orientation)
     limits: tuple | None = None     # (lo, hi) of the value, checked by the audit
     gear: tuple | None = None       # optional (other_joint, ratio, offset): value = ratio * value(other) + offset

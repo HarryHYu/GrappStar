@@ -64,7 +64,7 @@ them in your REPORT.md or message the coordinator.
 | S reel shaft | PPA-CF (8 mm steel rod also fits) | 8 | wall bushing + boss (9.5 long); 2 x 608 in the reel; head = clutch disk D r 31 |
 | swing arm | PPA-CF | split C ring on the bus gear hub r 13 | stop pins on the wall rear face at the engaged and parked ends of its 12 deg swing |
 
-Bought: CSK20PP, 2 x 608, 693ZZ (pulley 1), M3: 8 deck screws, 4 x M3x8 hub, 3 x M3x8 shroud, 2 x M3x8 trim,
+Bought: CSK20PP, 2 x 608, 693ZZ (pulley 1), M3: 7 deck screws, 4 x M3x8 hub, 3 x M3x8 shroud, 2 x M3x8 trim,
 M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post, brake: M3x10 crank screw and
 4 x M3x16 guide caps.
 

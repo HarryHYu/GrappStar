@@ -96,6 +96,10 @@ Review round 4 (fresh subagent on the newest code; 668c7d7, f6e3fce), all fixed 
 - Speed model tracks are cached: an analysis without a known pitch takes 0.7 s on this PC (0.5 s with the
   commanded pitch).
 
+Mutation check (one fix reverted at a time, then the matching tests run): 10 of 10 mutants killed: camera
+lateral offset sign, rest tilt axis, high/low branch swap, 0.75 N default drag, hold head protection, hold pinning,
+clock offset bias, table range scale, dark window taken from the end, launch without rest.
+
 Terrain verdicts with the roll-invariant tilt (eval_terrain_flight, seeds 0 to 2, 480x320, with and without the
 flightlog): accuracy 1.000 (36/36), unsafe GO (sand or water judged GO): 0.
 

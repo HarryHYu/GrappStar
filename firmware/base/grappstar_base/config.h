@@ -207,6 +207,7 @@ struct Cfg {
   float tensOffsetN = P_REEL_TOW_TENSION_MODEL_OFFSET_N;
   float towSlackFrac = 0.25f;       // tow: above this fraction of max_n the duty stays at the minimum (taut line)
   int towRampPerTick = 2;           // tow: duty ramp while the line is slack (min to full in about 0.5 s)
+  float tensionLeadMs = 60;         // tow: cut when the raw estimate plus its rise rate x this reaches max_n (stiff lines)
   uint32_t rawHoldMs = 30;          // the unfiltered tension estimate at or over max_n this long holds the tow
   float tensionAvgMs = 200;         // D33: the tension estimate is averaged over this long
   float limitN =

@@ -251,6 +251,9 @@ firmware assumes (`aim_home_deg`, the aim-train angle where `SW_RAIL_LOW` closes
 **Do not tow before `free_a` (section d), `k_n_per_a` and `tension_offset_n` are calibrated.** Without a load cell
 the firmware stops a tow on its tension ESTIMATE, not on a measured force. With the defaults on an uncalibrated base
 the PC system test reached 61 N against a 40 N limit. The current trip (5 to 6.9 A, set from `max_n`) is only a backstop.
+The Jetson refuses a tow while `tension_cal` is false (systest F28; see it with `{"id":1,"cmd":"get","key":"tension_cal"}`
+or in `status`). Setting `k_n_per_a` or `tension_offset_n` in this section sets it to true (saved in flash).
+`{"id":1,"cmd":"cal","what":"factory"}` puts every bench value back to its default and clears it again.
 
 ### `k_n_per_a` and `tension_offset_n` (used without a load cell)
 

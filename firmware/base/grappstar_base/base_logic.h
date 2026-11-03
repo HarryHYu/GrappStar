@@ -400,11 +400,13 @@ struct Base {
     tCur = winding ? tCur + (tc - tCur) * al : ((state == S_HOLD || state == S_REEL || (sec == SEC_REEL && !hxLive())) ? tCur : 0);   // sprag #2 keeps the line loaded after a stop
     tRaw = winding ? tc : 0;
     if (winding && tc < pullMinN) pullMinN = tc;
+    if (winding && windPrev2) { float r = (tc - tRawPrev) * 1000.f / (dt > 0 ? dt : 5); tRate += (r - tRate) * 0.3f; } else tRate = 0;
+    tRawPrev = tc; windPrev2 = winding;
     if (sec != SEC_REEL) atLimitPulls = 0;                          // unfiltered: a stiff line rises faster than the 200 ms average
     tensionN = hxLive() ? fmaxf(hxN, tCur) : tCur;    // a frozen or unplugged load cell never hides the current estimate
   }
   bool hxLive() const { return hxSeen && now - hxT < 500; }
-  int atLimitPulls = 0; float pullMinN = 1e9f, limitPullN = 0; bool holdByHx = false; float tRaw = 0; bool windPrev = false; uint32_t rawOverT = 0; int towDuty = 0;
+  float tRate = 0, tRawPrev = 0; bool windPrev2 = false; int atLimitPulls = 0; float pullMinN = 1e9f, limitPullN = 0; bool holdByHx = false; float tRaw = 0; bool windPrev = false; uint32_t rawOverT = 0; int towDuty = 0;
 
   // wiper motion -> trains. Only while running or just stopped (coast). The collar dogs have a free window
   // (dogWindowDeg): after a reversal the wiper first crosses the window and drives nothing. win = 0 touching the
@@ -1584,14 +1586,15 @@ struct Base {
       return;
     }
     // the 200 ms average (D33) or the raw estimate held at the limit for rawHoldMs (a stiff line rises in tens of ms)
-    if (tRaw < maxN) rawOverT = now;
+    // systest F21: a stiff line rises faster than the current lag: also cut on tension + rise rate x lead time
+    if (tRaw < maxN && tRaw + fmaxf(tRate, 0.f) * c.tensionLeadMs / 1000.f < maxN) rawOverT = now;
     float frac = maxN > 0 ? fmaxf(tensionN, tRaw) / maxN : 0;
     bool over = tensionN >= maxN || now - rawOverT >= c.rawHoldMs;
     if (over && now - w.startT > c.tensionIgnoreMs && now - stT > c.tensionIgnoreMs) { w.halt(now, io.wiper); enterHold("tension limit"); return; }
     int duty = reelDutyCmd;
     if (until == U_TENSION) {                         // tow: start slow and speed up only while the line is still slack (a
       // tidied Dyneema line gains about 4.5 N per wiper degree once taut: the current must see it before the limit)
-      if (frac > c.towSlackFrac) towDuty = c.reelMinDuty;
+      if (frac > c.towSlackFrac || now - stT < c.tensionIgnoreMs + 60) towDuty = c.reelMinDuty;   // no ramp before the first tension samples
       else towDuty = towDuty + c.towRampPerTick > reelDutyCmd ? reelDutyCmd : towDuty + c.towRampPerTick;
       if (duty > towDuty) duty = towDuty;
     }

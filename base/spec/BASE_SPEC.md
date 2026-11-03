@@ -209,7 +209,7 @@ payout brake, about 2.7 m at 6 deg; flight about 0.8 s, apex about 1.1 m. The ca
 5 N m shear pin. Tow sensing (D42, D43, D46): line N = 17.0 x (I - I_free) - 3.0 at the capstan; with pulleys at the exit
 eye and the storage guide and the cup ring as a plain eye (path gain 1.30) the DART side is 13.1 x (I - I_free) - 2.3,
 and the tow limit means the dart side. A 50 N pull at the dart is about 5.5 A; the train can pull about 55 N at the
-dart before 0.8 x the shear pin, so the cap is 55 N. Every backward run in LAUNCH trips at 3 A (D40) and the aim gears
+dart before 0.8 x the shear pin, so the cap is 55 N. The take-up final approach (FIRM 5 N, seating path gain about 1.17) gives the dart about 4.3 N against 2.1 to 2.6 N needed: margin about 1.7 or more. Every backward run in LAUNCH trips at 3 A (D40) and the aim gears
 print in PPA-CF. The second spring pair is not supported in v1 (D38). The ballistics table for the Jetson is
 base/out/ballistics.json (contract C3); the first test shots calibrate it (calib.py range, then ballistics.py
 --v-scale).

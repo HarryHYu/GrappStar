@@ -2,7 +2,7 @@
 
 Units: mm, deg, N, N m, s, kg unless a name says otherwise.
 Owner: the coordinator. Workers read it and never edit it; request changes in your REPORT.md or NOTES.md.
-STATUS: v1.3.5 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed; 1.3.3 unload jog 6 deg; 1.3.4 ASSEMBLY_STAGES; 1.3.5 TIMELINE rail_low after the flight (D45), no lower at the end). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
+STATUS: v1.3.6 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed; 1.3.3 unload jog 6 deg; 1.3.4 ASSEMBLY_STAGES; 1.3.5 TIMELINE rail_low after the flight (D45), no lower at the end; 1.3.6 drum stage bands per cad-drum). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
 The architecture blocks below hold the INTERFACE numbers (where two owners must agree) and the module placements.
 Each owner keeps its internal geometry in its own module and maps these numbers explicitly (read with defaults).
 Code against the names; never hard-code a shared number anywhere else.
@@ -10,7 +10,7 @@ Code against the names; never hard-code a shared number anywhere else.
 
 import math
 
-VERSION = "1.3.5"
+VERSION = "1.3.6"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
@@ -284,9 +284,9 @@ SWITCHES = dict(
 ASSEMBLY_STAGES = dict(
     deck=(100, 109, "cad-frame", "drill the rover, deck tiles, rover mount, heat-set inserts"),
     motor=(110, 119, "cad-frame", "wiper motor on its adapter (bench), motor-side cheek, motor onto the cheek"),
-    main_shaft=(120, 129, "cad-drum", "coupler hub on the wiper shaft, shear pin, outer coupler, REEL gear and washer"),
-    drum_core=(130, 139, "cad-drum", "bracket A, axle, rail, drum A, index contact"),
-    drum_idler=(140, 149, "cad-drum", "wrap idler group (before the reel bus gear c1, SW_ARM bracket and cup gear)"),
+    drum_core=(130, 139, "cad-drum", "bracket A, axle, drum A"),
+    drum_idler=(140, 144, "cad-drum", "wrap idler group (the idler posts drop in before the shift rail and the coupler bus gear block them)"),
+    main_shaft=(145, 149, "cad-drum", "shift rail, coupler hub on the wiper shaft, shear pin, outer coupler with the REEL gear and washer, index contact (before the reel bus gear c1 and the dog post)"),
     reel_capstan=(150, 159, "cad-reel", "reel wall, sprag hub and sprag, capstan tube, bus gear c1, swing idler, capstan gear, capstan drum, cup shaft, cup, cup gear, SW_ARM"),
     drum_shift=(160, 169, "cad-drum", "fork and dog contacts, drum B (keyed), hand lever, bracket B, N20, code switches"),
     main_stack=(170, 179, "cad-drum", "LAUNCH dog ring, magnet cap, dog post (before the reel pulley 2)"),

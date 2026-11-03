@@ -157,9 +157,12 @@ def build(out, branch, checks_file):
             shutil.copy(full, dst)
             files[f"{name}.html"] = True
     shots = sorted(glob.glob(os.path.join(ROOT, "base/out/base/shots/sim_t*.png")))
+    hero_png = os.path.join(ROOT, "base/out/base/shots/sim_hero.png")
+    if os.path.exists(hero_png):
+        shots = [hero_png]
     hero = ""
     if shots:
-        close = [f for f in shots if "t004" in f] or shots
+        close = [f for f in shots if "t004" in f or "hero" in f] or shots
         shutil.copy(close[0], os.path.join(out, "hero.png"))
         files["hero.png"] = True
         hero = "hero.png"

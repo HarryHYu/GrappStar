@@ -119,8 +119,9 @@ The full list with suggested GPIOs is params.SWITCHES.
 
 LAUNCH (-5..8, collar LAUNCH, clutch LIGHT, cup locked) / L_TO_N ramp (8..32) / NEUTRAL (32..50, clutch FIRM) /
 WRAP_PREP (50..62, clutch to LIGHT, cup lock releases at 60) / WRAP (62..302, collar NEUTRAL, clutch LIGHT, 7 cup
-turns) / N_TO_R (302..340, cup locked, clutch to FIRM, collar ramps 318..340) / REEL (340..355, collar REEL, clutch
-FIRM). Targets: LAUNCH 0, NEUTRAL 41, WRAP start 62, WRAP end 302, REEL 347. End stops -8 and 358. cad-drum owns the
+turns) / N_TO_R (302..340, cup locked, clutch to FIRM, collar ramps 318..340) / REEL (340..353, collar REEL, clutch
+FIRM). Targets: LAUNCH 0, NEUTRAL 41, WRAP start 62, WRAP end 302, REEL 346. End stops -6 and 354: total travel
+at most 360 deg, with a seam the followers never cross. cad-drum owns the
 exact edges (every dwell at least 12 deg), the N20 ratio (at least 2x margin on the peak drum load) and the stop plan.
 
 ## 8. Launcher and aim (binding; params.LAUNCH, params.AIM)

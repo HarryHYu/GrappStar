@@ -36,6 +36,13 @@ Status: in progress. Final version at 18:30 Sydney.
 6. fw-base: MEASURE_LIST A6/A7 use `amps` telemetry after the current-sense calibration (the meter's 10 A range cannot
    take the wiper start or stall). CALIBRATION.md should calibrate IS at low duty with the meter in series.
 
+7. Spring preload: launch_NOTES (11:30) says 5 mm preload and 250 mm full cock; the coordinator's message and
+   physics FINDINGS F10 say 35 mm and 280 mm. MEASURE_LIST B4 defers to the base assembly steps. cad-launch and the
+   coordinator: make them agree.
+8. DRV8833 #3 SLP: coordinator ruled unwired (11:15); firmware/base/WIRING.md at 11:33 still wires it to GPIO21. Sent
+   to fw-base. My docs follow the coordinator, with a "wire SLP to 3V3" fallback for non-Pololu boards.
+9. fw-base WIRING.md said both MP1584s are in the dart and to buy another; the dart uses one. Sent to fw-base.
+
 ## Review rounds
 
 - Round 1 (electrical reviewer, fresh agent, saw the docs and pins.h/params.py): 12 findings, all fixed: inline 2 A

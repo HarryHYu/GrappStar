@@ -10,7 +10,7 @@ Code against the names; never hard-code a shared number anywhere else.
 
 import math
 
-VERSION = "1.0"
+VERSION = "1.0.1"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
@@ -133,10 +133,11 @@ DRUM = dict(
         dict(name="WRAP_PREP", deg=(50.0, 62.0), collar="NEUTRAL", clutch="FIRM to LIGHT", cup="lock releases at 60"),
         dict(name="WRAP", deg=(62.0, 302.0), collar="NEUTRAL", clutch="LIGHT", cup="7 turns, ends at home"),
         dict(name="N_TO_R", deg=(302.0, 340.0), collar="ramp 318..340", clutch="LIGHT to FIRM 302..316", cup="locked home"),
-        dict(name="REEL", deg=(340.0, 355.0), collar="REEL", clutch="FIRM", cup="locked"),
+        dict(name="REEL", deg=(340.0, 353.0), collar="REEL", clutch="FIRM", cup="locked"),
     ],
-    targets=dict(LAUNCH=0.0, NEUTRAL=41.0, WRAP_START=62.0, WRAP_END=302.0, REEL=347.0),
-    end_stops=(-8.0, 358.0),
+    targets=dict(LAUNCH=0.0, NEUTRAL=41.0, WRAP_START=62.0, WRAP_END=302.0, REEL=346.0),
+    end_stops=(-6.0, 354.0),   # total travel 360 deg at most: the radial brake track and the code bumps have a seam at
+                               # -6 / 354 that the follower never crosses (the groove ends are the end stops)
     wrap_turns=7,               # D4 / D16: exactly 7 cup turns across 62..302, ring back at home
     cup_turns_per_drum_deg=7.0 / 240.0,
     n20_ratio_min_margin=2.0,   # N20 to drum ratio: at least 2x margin on the peak drum load (cad-drum sizes it)
@@ -249,7 +250,7 @@ TIMELINE = [
     ("wrap", 6.0, "Drum through the wrap sector: the cup lays 7 turns on the capstan.",
      dict(drum_deg=302.0, wraps=7)),
     ("reel_engage", 2.0, "Drum into REEL while the wiper creeps forward: the collar drops into the REEL dogs.",
-     dict(drum_deg=347.0, wiper_deg=-186.2 + 60.0)),
+     dict(drum_deg=346.0, wiper_deg=-186.2 + 60.0)),
     ("tow", 5.0, "Capstan winches the rover toward the anchored dart; sprag #2 holds the load.",
      dict(wiper_deg=-126.2 + 3600.0, line_out_m=1.5)),
     ("release", 2.0, "The dart unscrews its drills and lets go.", dict()),

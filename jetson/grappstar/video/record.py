@@ -25,6 +25,9 @@ import cv2
 from .frame import Frame
 
 
+SIDECAR_FLUSH_EVERY = 30   # sidecar lines between flushes (1 s at 30 fps)
+
+
 def sidecar_path(path: str) -> str:
     return path + ".frames.jsonl"
 
@@ -86,6 +89,8 @@ class Recorder:
                    "bad": bool(frame.bad)}
             self._side.write(json.dumps(rec) + "\n")
             self.count += 1
+            if self.count % SIDECAR_FLUSH_EVERY == 0:
+                self._side.flush()      # a crash or power cut keeps all but the last few timestamps
 
     def close(self) -> Optional[str]:
         """Finish the files. Returns the path written (None if no frame came)."""

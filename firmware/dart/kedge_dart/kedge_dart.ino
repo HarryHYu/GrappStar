@@ -13,7 +13,7 @@
 //        space or s  STOP ALL   + / -  speed   i  current   b  attitude   z  I2C scan   p  status   f  flight log
 //        a  auto-anchor now     r  release now     A  arm / disarm (auto-anchor on landing)     h  help
 // Board: "XIAO_ESP32S3", Tools > USB CDC On Boot: Enabled. Pull the power loop plug before plugging in USB.
-// Safety (trip, stall, deadman timers, sequences, flight detection) and all I2C run in their own FreeRTOS task every
+// Safety (trip, stall, deadman timers, sequences, flight detection) and all I2C (except the z scan) run in their own FreeRTOS task every
 // 5 ms under a task watchdog, so a slow web client or a stuck Serial port cannot stop the motors from being stopped.
 // Wireless upload: Arduino IDE > Port > network port "kedge" while joined to KEDGE.
 #include <Wire.h>
@@ -58,9 +58,12 @@ void pwmAttach(int pin, int ch) { ledcSetup(ch, PWM_HZ, PWM_BITS); ledcAttachPin
 void pwmWrite(int pin, int ch, int duty) { (void)pin; ledcWrite(ch, duty); }
 #endif
 
-void hwSetMotor(int m, int dir, int duty) {          // DRV8833: PWM one input, other low; both low = coast
-  pwmWrite(PINS[m].gpioA, 2 * m, dir > 0 ? duty : 0);
-  pwmWrite(PINS[m].gpioB, 2 * m + 1, dir < 0 ? duty : 0);
+// DRV8833 slow decay: one input high, the other PWM inverted, so the bridge alternates drive and brake. Supply current
+// then goes as duty squared at stall (the logic scales its thresholds that way). Duty 255 = plain DC. Both low = coast.
+void hwSetMotor(int m, int dir, int duty) {
+  if (duty < 0) duty = 0; if (duty > 255) duty = 255;
+  pwmWrite(PINS[m].gpioA, 2 * m, dir > 0 ? 255 : dir < 0 ? 255 - duty : 0);
+  pwmWrite(PINS[m].gpioB, 2 * m + 1, dir < 0 ? 255 : dir > 0 ? 255 - duty : 0);
 }
 
 // ---- INA219, read directly so a failed read is seen (the library returns stale numbers silently).
@@ -145,7 +148,7 @@ void scanI2C() {
     xSemaphoreTake(mtx, portMAX_DELAY); Wire.beginTransmission(a); bool ok = Wire.endTransmission() == 0; xSemaphoreGive(mtx);
     if (ok) { say("I2C device at 0x" + String(a, HEX)); n++; }
   }
-  say(String(n) + " device(s). Expect 0x40 (INA219) and 0x4a (BNO085).");
+  say(String(n) + " device(s). Expect 0x40 (INA219) and 0x4a or 0x4b (BNO085).");
 }
 void help() {
   say("KEDGE v4 ready. 1/! deploy down/up  2/@ kick out/back  3/# drills in/out  4/$ foot in/out");
@@ -232,13 +235,13 @@ function release(id){if(!held.has(id))return;held.delete(id);if(!held.size)send(
 const RUN='1!2@3#4$';
 addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter')e.preventDefault();const c=e.key===' '?' ':e.key;if(RUN.includes(c)){e.preventDefault();hold(e.code,c)}else if(e.key==='Shift'||e.key==='Enter'){}else if(!e.repeat&&c.length===1){if(c===' ')held.clear();send(c)}});
 addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter')e.preventDefault();if(held.has(e.code))release(e.code)});   // keyed by physical key: Shift order does not matter
-function lost(){if(held.size){held.clear();send(' ')}}
+function lost(){if(held.size){held.clear();fetch('/key?c=%20&ms=0&n='+(++N)+'&p='+P,{keepalive:true}).catch(()=>{})}}   // keepalive: survives the page closing
 addEventListener('blur',lost);addEventListener('pagehide',lost);document.addEventListener('visibilitychange',()=>{if(document.hidden)lost()});
 addEventListener('contextmenu',e=>e.preventDefault());
 const L=[['1','deploy down'],['!','deploy up'],['2','kick out'],['@','kick back'],['3','drills in'],['#','drills out'],['4','foot in'],['$','foot out']];
 const B=document.getElementById('b');for(const [c,n] of L){const x=document.createElement('button');x.textContent=n;
 x.tabIndex=-1;const id='btn'+c;x.onpointerdown=()=>hold(id,c);x.onpointerup=()=>release(id);x.onpointerleave=()=>release(id);x.onpointercancel=()=>release(id);B.appendChild(x)}
-for(const [c,n] of [[' ','STOP'],['a','AUTO anchor'],['r','RELEASE'],['A','arm / disarm'],['i','current'],['b','attitude']]){const x=document.createElement('button');x.textContent=n;x.tabIndex=-1;x.onclick=()=>{send(c);x.blur()};B.appendChild(x)}
+for(const [c,n] of [[' ','STOP'],['a','AUTO anchor'],['r','RELEASE'],['A','arm / disarm'],['i','current'],['b','attitude']]){const x=document.createElement('button');x.textContent=n;x.tabIndex=-1;x.onclick=()=>{if(c===' ')held.clear();send(c);x.blur()};B.appendChild(x)}
 setInterval(()=>fetch('/status').then(r=>r.json()).then(j=>{S.textContent=`${j.phase}${j.fault?' '+j.fault:''}   ${j.seq}\nrail ${j.rail_V} V  ${j.current_mA} mA (peak ${j.peak_mA})  roll ${j.roll}  pitch ${j.pitch}  ${j.accel_g} g\nINA219 ${j.ina_ok?'ok':'MISSING'}  BNO085 ${j.imu_ok?'ok':'MISSING'}  ${j.armed?'ARMED':''}  last: ${j.event}`}).catch(()=>{}),400);
 </script></body></html>)HTML";
 
@@ -300,10 +303,18 @@ void setup() {
   web.on("/key", []() {
     reply = "";
     String c = web.arg("c"); long ms = web.hasArg("ms") ? web.arg("ms").toInt() : K.tu.wifiDeadmanMs;
-    static long lastStopN = -1; static String lastPage; long n = web.hasArg("n") ? web.arg("n").toInt() : -1;   // the page numbers every request
-    String pg = web.arg("p"); if (pg != lastPage) { lastPage = pg; lastStopN = -1; }   // a reloaded page starts counting again
-    if (c == " " || c == "s") { if (n > lastStopN) lastStopN = n; }
-    else if (n >= 0 && n < lastStopN) { web.send(200, "text/plain", ""); return; }      // a run key that left before the stop: drop it
+    // each open page numbers its requests (n) and has its own id (p); a run key sent before that page's STOP is dropped.
+    // The last 4 page ids are remembered, so a phone and a laptop do not reset each other's counter.
+    static String pages[4]; static long stopN[4] = {-1, -1, -1, -1}; static int nextSlot = 0;
+    long n = web.hasArg("n") ? web.arg("n").toInt() : -1; String pg = web.arg("p"); int slot = -1;
+    if (pg.length()) {
+      for (int i = 0; i < 4; i++) if (pages[i] == pg) slot = i;
+      if (slot < 0) { slot = nextSlot; nextSlot = (nextSlot + 1) % 4; pages[slot] = pg; stopN[slot] = -1; }   // a new or reloaded page
+    }
+    if (slot >= 0 && n >= 0) {
+      if (c == " " || c == "s") { if (n > stopN[slot]) stopN[slot] = n; }
+      else if (n < stopN[slot]) { web.send(200, "text/plain", ""); return; }   // a run key that left before the stop: drop it
+    }
     if (ms < 50) ms = 50;
     if (ms > (long)K.tu.wifiMaxRunMs) ms = K.tu.wifiMaxRunMs;
     if (!c.length()) { web.send(400, "text/plain", "missing c\n"); return; }

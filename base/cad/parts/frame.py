@@ -718,6 +718,12 @@ def steps(P):
                   "free with no tight spot. If one binds, loosen its two blocks, turn the shaft, retighten.",
              parts=[sp["part"] for sp in info["supports"] if sp["side"] != info["cfg"]["fw"]["motor_side"]]),
     ]
+    if has("frame_guard_band"):
+        st.append(dict(title="Guard band",
+                       text="When every shaft turns free and the trains are tested by hand: slide the band segments in "
+                            "between the cheeks along the cheek edges (front, top, back), M3 x 12 through each cheek into "
+                            "the band lugs. The openings are where the rail and the line pass.",
+                       parts=has("frame_guard_band")))
     if has("frame_ped"):
         st.append(dict(title="Pedestals",
                        text="Press the 608s into the pedestal seats (vice with soft jaws, push on the outer race only). "

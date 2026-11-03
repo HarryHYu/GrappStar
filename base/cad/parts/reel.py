@@ -49,16 +49,18 @@ PUSH_D = 5.0
 BRAKE_STROKE = 4.0            # drum pushes the rod +Z this far for REEL
 PUSH_COLLAR_R, PUSH_COLLAR_T, PUSH_CB = 4.5, 1.5, 5.0   # collar on the rod, counterbore depth in the wall front
 
-GEAR_Z = (-29.0, -17.0)       # capstan / idler / reel gear plane, face 12
-CUPGEAR_Z = (-45.0, -37.0)    # cup gear plane, face 8
-M_CAP, Z_CAPG, Z_IDL, Z_REELG = 2.0, 24, 24, 15
-M_CUPG, Z_CUPG = 1.5, 30
+GEAR_Z = (-27.0, -17.0)       # take-up plane (take-up gear on C, idler, reel gear), face 10
+GC_Z = (-43.0, -29.0)         # capstan gear plane (meshes the drum's m3 24T REEL output gear), face 14
+CUPGEAR_Z = (-56.5, -48.5)    # cup ring gear plane (meshes the drum's m1.5 48T wrap idler), face 8
+M_CAP, Z_CAPG, X_CAPG = 3.0, 12, 0.3                    # capstan gear
+M_TAKE, Z_TAKE, Z_IDL, Z_REELG = 2.0, 24, 24, 15         # take-up train
+M_CUPG, Z_CUPG = 1.5, 24
 
 C_D, K_D, S_D = 20.0, 10.0, 8.0
 C_BORE = K_D + fits.SHAFT_IN_BORE
-C_Z = (-34.5, None)           # C rear end; front end set from the drum web
-K_Z = (-48.5, None)
-S_Z0 = -32.5
+C_Z = (-47.6, None)           # C rear end; front end set from the drum web
+K_Z = (-60.0, None)
+S_Z0 = -30.5
 
 COL = dict(wall="#b9c2cc", ppa="#3a3f45", gear="#d97a00", drum="#2e9c86", cup="#7f77dd", spool="#7f77dd",
            clip="#9a94e8", brg="#8a8f96", rocker="#e0b040", post="#4a5058")
@@ -70,8 +72,8 @@ def _d(P):
 
 def idler_xy():
     """Idler centre: meshes the capstan gear (at 0, 0) and the reel gear (at X_REEL, 0), below the line between them."""
-    c1 = gears.center_distance(M_CAP, Z_CAPG, Z_IDL)
-    c2 = gears.center_distance(M_CAP, Z_IDL, Z_REELG)
+    c1 = gears.center_distance(M_TAKE, Z_TAKE, Z_IDL)
+    c2 = gears.center_distance(M_TAKE, Z_IDL, Z_REELG)
     d = abs(X_REEL)
     x = (c1 ** 2 - c2 ** 2 + d ** 2) / (2 * d)
     y = -math.sqrt(max(c1 ** 2 - x ** 2, 0.0))
@@ -105,7 +107,12 @@ def _wall():
     # rocker pivot ears (M3 pin along X)
     px, py, pz = ROCKER_PIVOT
     ears = [prim.box(px + s * 5.4, px + s * 9.4, py - 6, py + 6, 0.0, 5.7) for s in (-1, 1)]
-    body = prim.union([foot, wall, block, post] + ears)
+    # arm and pad on the deck carrying the exit eye post (the tow load stays inside the reel frame)
+    ex, _, ez = EXIT
+    arm = prim.union([prim.box(8.0, 36.0, Y_DECK, Y_DECK + FOOT_T, Z_FOOT[1] - 1.0, ez - 9.0),
+                      prim.box(ex - 17, ex + 17, Y_DECK, Y_DECK + FOOT_T, ez - 12, ez + 12),
+                      prim.box(8.0, ex - 16, Y_DECK, Y_DECK + FOOT_T, ez - 12, ez - 2)])
+    body = prim.union([foot, wall, block, post, arm] + ears)
     cut = []
     # sprag seat (outer key rib on +Y), mouth at the block front face
     cut.append(prim.place(bearings.seat_csk20(key_deg=90.0), tf.T(0, 0, Z_BLOCK)))
@@ -126,6 +133,8 @@ def _wall():
     # rocker pivot hole (M3 clearance along X through both ears)
     cut.append(prim.cylX(fits.M3_CLEAR_D / 2, px - 12, px + 12, y=py, z=pz))
     # mount holes: M3 clearance down through the foot, counterbored from the top
+    for x in (ex - 11, ex + 11):        # the exit post's two M3 go through the pad into the deck
+        cut.append(prim.cylY(fits.M3_CLEAR_D / 2, Y_DECK - 1, Y_DECK + FOOT_T + 1, x=x, z=ez))
     for (x, z) in MOUNT_HOLES:
         cut.append(prim.cylY(fits.M3_CLEAR_D / 2, Y_DECK - 1, Y_DECK + FOOT_T + 1, x=x, z=z))
         cut.append(prim.cylY(fits.M3_HEAD_D / 2, Y_DECK + FOOT_T - fits.M3_HEAD_H - 0.2, Y_DECK + FOOT_T + 30,
@@ -148,8 +157,8 @@ def _c_tube():
     collar = prim.cyl(12.6, Z_DRUM - Z_BLOCK, z=Z_BLOCK, r2=14.0)
     body = prim.union([body, collar])
     g = clips.groove_dims(C_D)
-    flat = prim.box(C_D / 2 - 2.0, C_D, -C_D, C_D, GEAR_Z[0] - 0.5, GEAR_Z[1] + 0.6)
-    groove = clips.clip_groove_cutter(C_D, z=GEAR_Z[0] - 0.3 - g["width"])
+    flat = prim.box(C_D / 2 - 2.0, C_D, -C_D, C_D, GC_Z[0] - 0.5, GEAR_Z[1] + 0.6)
+    groove = clips.clip_groove_cutter(C_D, z=GC_Z[0] - 0.3 - g["width"])
     bore = prim.cyl(C_BORE / 2, z1 - z0 + 2, z=z0 - 1)
     return body - prim.union([flat, groove, bore])
 
@@ -179,8 +188,8 @@ def _s_shaft():
     return body - prim.union([flat, groove])
 
 
-def _gear(m, z, face, bore_d, flat, hub=None):
-    g = gears.spur_gear(m, z, face, hub=hub)
+def _gear(m, z, face, bore_d, flat, hub=None, shift=0.0):
+    g = gears.spur_gear(m, z, face, hub=hub, shift=shift)
     rb = (bore_d + fits.SHAFT_IN_BORE) / 2
     cut = prim.cyl(rb, 100, z=-10) - prim.box(rb - flat, rb + 5, -rb - 5, rb + 5, -20, 120)
     return g - cut
@@ -239,18 +248,19 @@ def _exit_post():
     """Exit eye post (PPA-CF): own foot with 2 x M3, v7 column 10 x 10, 6 mm top with the eye along X at the line
     height, 45 deg gussets fore and aft."""
     ex, ey, ez = EXIT
-    foot = prim.box(ex - 15, ex + 15, Y_DECK, Y_DECK + FOOT_T, ez - 10, ez + 10)
-    col = prim.box(ex - 5, ex + 5, Y_DECK, ey - 8, ez - 5, ez + 5)
+    y0 = Y_DECK + FOOT_T                 # sits on the wall's pad
+    foot = prim.box(ex - 15, ex + 15, y0, y0 + FOOT_T, ez - 10, ez + 10)
+    col = prim.box(ex - 5, ex + 5, y0, ey - 8, ez - 5, ez + 5)
     top = prim.box(ex - 3, ex + 3, ey - 8.01, ey + 6, ez - 5, ez + 5)
     gus = []
     for s in (-1, 1):
-        pts = [(ex + s * 5, Y_DECK), (ex + s * 13, Y_DECK), (ex + s * 5, Y_DECK + 20)]
+        pts = [(ex + s * 5, y0), (ex + s * 13, y0), (ex + s * 5, y0 + 20)]
         cs = prim.poly_cs(pts)
         gus.append(prim.extrude(cs, 10.0, z=ez - 5))
     body = prim.union([foot, col, top] + gus)
     cut = [prim.place(line.eye_cutter(6.0), tf.T(ex - 3, ey, ez) @ tf.Ry(90))]
     for x in (ex - 11, ex + 11):
-        cut.append(prim.cylY(fits.M3_CLEAR_D / 2, Y_DECK - 1, Y_DECK + FOOT_T + 1, x=x, z=ez))
+        cut.append(prim.cylY(fits.M3_CLEAR_D / 2, y0 - 1, y0 + FOOT_T + 1, x=x, z=ez))
     return body - prim.union(cut)
 
 
@@ -290,12 +300,15 @@ def parts(P):
     # capstan group
     add("reel_c", _c_tube(), "PPA-CF", joint="reel_capstan", color=COL["ppa"], step=3,
         notes="Capstan tube: key rib in the sprag and drum, D flat for the capstan gear. Print standing")
-    add("reel_gc", _gear(M_CAP, Z_CAPG, GEAR_Z[1] - GEAR_Z[0], C_D, 2.0, hub=(30.0, 0.9)), "PPA-CF",
+    add("reel_gt", _gear(M_TAKE, Z_TAKE, GEAR_Z[1] - GEAR_Z[0], C_D, 2.0, hub=(30.0, 0.9)), "PPA-CF",
         joint="reel_capstan", place=tf.T(0, 0, GEAR_Z[0]), color=COL["gear"], step=4,
-        notes=f"Capstan gear m{M_CAP:g} z{Z_CAPG}: meshes the drum's reel output gear and the idler")
+        notes=f"Take-up gear m{M_TAKE:g} z{Z_TAKE}: drives the storage reel clutch through the idler")
+    add("reel_gc", _gear(M_CAP, Z_CAPG, GC_Z[1] - GC_Z[0], C_D, 2.0, shift=X_CAPG, hub=(28.0, GEAR_Z[0] - GC_Z[1] - 0.2)),
+        "PPA-CF", joint="reel_capstan", place=tf.T(0, 0, GC_Z[0]), color=COL["gear"], step=4,
+        notes=f"Capstan gear m{M_CAP:g} z{Z_CAPG} x+{X_CAPG}: driven by the drum's REEL output gear")
     add("reel_c_clip", clips.c_clip(C_D), "PLA", joint="reel_capstan",
-        place=tf.T(0, 0, GEAR_Z[0] + _clip_z(C_D)), color=COL["clip"], step=4,
-        notes="C-clip holding the capstan gear on the tube")
+        place=tf.T(0, 0, GC_Z[0] + _clip_z(C_D)), color=COL["clip"], step=4,
+        notes="C-clip holding both gears on the capstan tube")
     add("reel_drum", v7.drum(), "PLA", joint="reel_capstan", place=tf.T(0, 0, Z_DRUM), color=COL["drum"], step=5,
         notes="Capstan drum dia 40 x 40 (Harry v7), keyed on the tube. Print flange down")
     # cup group
@@ -318,19 +331,19 @@ def parts(P):
     pin = prim.cyl(4.0, -WALL_T + 10.0 - pin_z0, z=pin_z0) - clips.clip_groove_cutter(8.0, z=gz)
     add("reel_idler_pin", pin, "PPA-CF", joint="reel_base", place=tf.T(ix, iy, 0), color=COL["ppa"], step=8,
         notes="Idler pin, pressed into the wall from behind. Print standing")
-    add("reel_gi", gears.spur_gear(M_CAP, Z_IDL, GEAR_Z[1] - GEAR_Z[0], bore=8.0 + fits.SHAFT_IN_BORE,
+    add("reel_gi", gears.spur_gear(M_TAKE, Z_IDL, GEAR_Z[1] - GEAR_Z[0], bore=8.0 + fits.SHAFT_IN_BORE,
                                    hub=(16.0, 0.9)), "PPA-CF",
         joint="reel_idler", place=tf.T(0, 0, GEAR_Z[0]), color=COL["gear"], step=8,
-        notes=f"Idler m{M_CAP:g} z{Z_IDL}: capstan gear to reel gear, keeps the take-up sense")
+        notes=f"Idler m{M_TAKE:g} z{Z_IDL}: capstan gear to reel gear, keeps the take-up sense")
     add("reel_gi_clip", clips.c_clip(8.0), "PLA", joint="reel_base",
         place=tf.T(ix, iy, GEAR_Z[0] + _clip_z(8.0)), color=COL["clip"], step=8,
         notes="C-clip holding the idler on its pin")
     # reel shaft, gear, spool, clutch, brake
     add("reel_s", _s_shaft(), "PPA-CF", tf.Rx(180), joint="reel_shaft", color=COL["ppa"], step=9,
         notes="Reel shaft: 608 journals, head = clutch disk, D flat for the reel gear. Print head down")
-    add("reel_gr", _gear(M_CAP, Z_REELG, GEAR_Z[1] - GEAR_Z[0], S_D, 1.0, hub=(14.0, 0.9)), "PPA-CF",
+    add("reel_gr", _gear(M_TAKE, Z_REELG, GEAR_Z[1] - GEAR_Z[0], S_D, 1.0, hub=(14.0, 0.9)), "PPA-CF",
         joint="reel_shaft", place=tf.T(0, 0, GEAR_Z[0]), color=COL["gear"], step=10,
-        notes=f"Reel gear m{M_CAP:g} z{Z_REELG}: turns the clutch disk 1.6 x capstan speed")
+        notes=f"Reel gear m{M_TAKE:g} z{Z_REELG}: turns the clutch disk 1.6 x capstan speed")
     add("reel_s_clip", clips.c_clip(S_D), "PLA", joint="reel_shaft",
         place=tf.T(0, 0, GEAR_Z[0] + _clip_z(S_D)), color=COL["clip"], step=10, notes="C-clip holding the reel gear")
     sp, _ = _spool(d)
@@ -393,7 +406,7 @@ def gear_angles(cap_deg):
     """Capstan, idler and reel gear angles (deg) for a capstan angle (gear tooth 0 on +X at angle 0)."""
     ix, iy = idler_xy()
     a1 = math.degrees(math.atan2(iy, ix))
-    th_i = -(Z_CAPG / Z_IDL) * cap_deg + mesh_offset(a1, Z_CAPG, Z_IDL)
+    th_i = -(Z_TAKE / Z_IDL) * cap_deg + mesh_offset(a1, Z_TAKE, Z_IDL)
     a2 = math.degrees(math.atan2(-iy, X_REEL - ix))
     # the idler plays gear 1 for the second mesh: its tooth 0 sits at th_i, so shift by th_i
     th_r = -(Z_IDL / Z_REELG) * th_i + mesh_offset(a2, Z_IDL, Z_REELG)
@@ -426,6 +439,7 @@ def allowed(P):
         Allow("reel_sprag", "reel_wall", "CSK20PP pressed in its crush-rib seat, outer key rib"),
         Allow("reel_sprag", "reel_c", "C rib in the sprag inner keyway, inner race on C (model is one solid)"),
         Allow("reel_c", "reel_gc", "D-flat fit"),
+        Allow("reel_c", "reel_gt", "D-flat fit"),
         Allow("reel_c", "reel_c_clip", "clip in the groove"),
         Allow("reel_c", "reel_drum", "keyed fit"),
         Allow("reel_k", "reel_cup", "D fit"),
@@ -450,7 +464,7 @@ def clearances(P):
     return [
         Clearance("reel_cup", "reel_drum", 0.25, "cup skirt over the drum (v7 0.6 radial)"),
         Clearance("reel_drum", "reel_wall", 0.5, "drum flange in front of the block"),
-        Clearance("reel_gc", "reel_gi", 0.0, "mesh"),
+        Clearance("reel_gt", "reel_gi", 0.0, "mesh"),
         Clearance("reel_gi", "reel_gr", 0.0, "mesh"),
         Clearance("reel_spool", "reel_wall", 0.3, "spool spins in front of the wall"),
         Clearance("reel_spool", "reel_rocker", 0.3, "rocker behind the spool"),
@@ -458,13 +472,13 @@ def clearances(P):
 
 
 def grounded(P):
-    return ["reel_wall", "reel_exit_post"]
+    return ["reel_wall"]
 
 
 def audit_states(P):
     out = []
     for k in range(6):                          # one capstan tooth pitch, gear mesh sweep
-        out.append(dict(phase="reel_mesh", t=0.0, mode="REEL", capstan_deg=k * 15.0 / 5))
+        out.append(dict(phase="reel_mesh", t=0.0, mode="REEL", capstan_deg=k * 360.0 / Z_TAKE / 5))
     for w in (0.0, 0.25, 0.5, 0.75, 1.0, 3.5, 7.0):
         out.append(dict(phase="reel_wrap", t=0.0, mode="REEL", wraps=w))
     out.append(dict(phase="reel_launch", t=0.0, mode="LAUNCH", line_out_m=3.0))

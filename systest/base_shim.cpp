@@ -232,12 +232,13 @@ static std::string getJson() {
            "\"tension\":%.2f,\"seated\":%s,\"drumDeg\":%.2f,\"wiperDeg\":%.1f,\"aimPh\":%.1f,\"cockPh\":%.1f,\"wraps\":%.2f,"
            "\"inLaunch\":%s,\"inReel\":%s,\"dogTip\":%s,\"anchorTautAt\":%.3f,\"slack\":%.3f,\"maxSlack\":%.3f,\"amps\":%.2f,"
            "\"wDir\":%d,\"wDuty\":%d,\"dDir\":%d,\"dryFires\":%d,\"evDrops\":%llu,\"linesIn\":%llu,\"linesOut\":%llu,\"evq\":%zu,"
-           "\"pty\":%s,\"saves\":%d}",
+           "\"pty\":%s,\"saves\":%d,\"kNperA_cal\":%.4f,\"freeA_cal\":%.4f}",
            (unsigned)S.t, powered ? "true" : "false", bootCount, st, powered ? B->fault : -1, S.shots, S.fired ? "true" : "false",
            S.lineOut, S.tension(), S.seated() ? "true" : "false", S.drumDeg, S.wiperDeg, S.aimPh, S.cockPh, S.wrapsExact(),
            S.inLaunch() ? "true" : "false", S.inReel() ? "true" : "false", S.dogTip ? "true" : "false", S.anchorTautAt, S.slack,
            S.maxSlack, S.amps, S.wDir, S.wDuty, S.dDir, S.dryFires, (unsigned long long)evDrops, (unsigned long long)linesIn,
-           (unsigned long long)linesOut, evq.size(), masterFd >= 0 ? "true" : "false", S.saves);
+           (unsigned long long)linesOut, evq.size(), masterFd >= 0 ? "true" : "false", S.saves,
+           1.0 / (S.capstanR * S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA), S.freeA + (S.reelFreeNm + 0.3) / S.stallNm * (S.stallA - S.freeA));
   return b;
 }
 static bool quitReq = false;

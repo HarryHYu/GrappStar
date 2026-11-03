@@ -262,6 +262,10 @@ class Rig:
             time.sleep(0.02)
         # a new build on the bench (BENCH_TEST / CALIBRATION): carriage declared at rest, motor constants as calibrated
         self.base.cmd({"id": 0, "cmd": "cal", "what": "cock_rest"})
+        if sc.calibrated:   # CALIBRATION.md done on the bench: k_n_per_a and free_a match the motor (here: the plant model)
+            g = self.base.get()
+            self.base.cmd({"id": 0, "cmd": "set", "key": "k_n_per_a", "val": round(g["kNperA_cal"], 3)})
+            self.base.cmd({"id": 0, "cmd": "set", "key": "free_a", "val": round(g["freeA_cal"], 3)})
         for k, v in sc.base_setup.items():
             self.base.cmd({"id": 0, "cmd": "set", "key": k, "val": v})
         if sc.plant_setup:
@@ -299,7 +303,7 @@ class Rig:
     def _on_evt(self, e: dict) -> None:
         e2 = {k: v for k, v in e.items() if not k.startswith("_")}
         self.events.append(dict(e2, _wall=time.time()))
-        self.note("evt", **e2)
+        self.note("evt", e=json.dumps(e2))
 
     # -------------------------------------------------------------- world coupler
     def _world(self) -> None:
@@ -517,6 +521,7 @@ class Scenario:
         self.mission_cfg = dict(dict(settle_s=1.0), **kw.get("mission_cfg", {}))
         self.triggers = kw.get("triggers", [])
         self.anchor_holds = kw.get("anchor_holds", True)
+        self.calibrated = kw.get("calibrated", True)
         self.tow_rounds = kw.get("tow_rounds", 3)
         self.timeout_s = kw.get("timeout_s", 420)
         self.policy = kw.get("policy", {})        # substring of prompt text -> answer (first match wins)
@@ -614,9 +619,11 @@ def c_released(rig, res):
 
 
 def c_reeled(rig, res):
+    """Reel in on the capstan (wraps on) to the approach distance or all the way to seated."""
     p = rig.step_plant.get("UNWRAP") or {}
+    r = rig.step_plant.get("RETRIEVE") or {}
     return p.get("lineOut") is not None and float(p["lineOut"]) <= rig.app.cfg.mission.approach_m + 0.3, \
-        f"line out at UNWRAP {p.get('lineOut')} m"
+        f"line out {r.get('lineOut')} m at RETRIEVE start, {p.get('lineOut')} m at UNWRAP"
 
 
 def c_unwrapped(rig, res):
@@ -711,6 +718,9 @@ def sc(s: Scenario):
 
 
 sc(Scenario("nominal", "whole mission, aim to seated, no faults"))
+
+sc(Scenario("nominal_uncal", "whole mission with the factory k_n_per_a / free_a (CALIBRATION.md not done)",
+            calibrated=False))
 
 sc(Scenario("drum_timeout", "drum N20 jams on the way to NEUTRAL after the shot: DRUM_TIMEOUT, operator frees it, Retry",
             triggers=[("jam drum", plant_state("MODE", step="BASE_NEUTRAL", delay=0.3),

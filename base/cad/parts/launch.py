@@ -431,7 +431,7 @@ def carriage_solid(P):
             u0 = a + k * (lw + 2.0)
             shoe = shoe - Bs(u0, u0 + lw, yo - 1.0, n["y_shoe1"] + 1.0, n["shoe_w0"] + 1.6, n["shoe_w1"] - 1.6)
     s.append(shoe)
-    # cradle: five rings (full half pipe up to 5 below the dart axis) and two longitudinal strips 20..50 deg either side
+    # cradle: three rings (full half pipe up to 5 below the dart axis) and two longitudinal strips 20..50 deg either side
     # of the bottom, so the belly sits in a V of two lines (light, self-centring). Ribs from each ring to the shoes.
     rc_in, rc_out = n["r_hull"] + 0.4, n["r_hull"] + 2.4
     pipe = (cyl_u(rc_out, 0, 152, 0, n["w_dart"]) - cyl_u(rc_in, -1, 153, 0, n["w_dart"])) ^ \
@@ -461,7 +461,7 @@ def carriage_solid(P):
     # hollow: a slot through y (vertical as printed) leaves a 2.5 mm front plate (dart tail, 45 N) and a 2 mm rear
     # plate (yoke cross bar), tied by the top, the lower block and a tube round the tether hole. Front plate spans
     # w (in the layers) between the tube and the top / bottom, about 11 mm: 45 / 2 * 5.5 / (20 * 2.5^2 / 6) = 6 MPa.
-    pu = pu - (B(-6.0, -2.5, -12, 12, n["w_dart"] - 12.0, n["w_dart"] + 18.0) - cyl_u(9.5, -9, 1, 0, n["w_dart"]))
+    pu = pu - (B(-6.0, -2.5, -12, 12, n["w_dart"] - 12.0, n["w_dart"] + 15.0) - cyl_u(9.5, -9, 1, 0, n["w_dart"]))
     s.append(pu.translate((n["pusher_t"], 0, 0)))
     # arm stubs (lower half of a half-lap joint with the bolted SPRING ARMS, see carriage_arm_solid) and webs
     for sg in (1, -1):
@@ -497,11 +497,11 @@ def carriage_yoke_solid(P):
         # 13 mm -> 1924 Nmm. Chords 3 x 9.8 at u 6.5 and 2.5 x 9.8 at u -6.75 (diagonals ignored): centroid u 0.5,
         # I = 29.4 * 6.0^2 + 24.5 * 7.25^2 + 9.8 * (27 + 15.6) / 12 = 2380 mm4, c = 8.5 -> Z = 280 mm3 -> 6.9 MPa
         # (cross bar side, y 21.5: 148 * 15.5 / 280 = 8.2 MPa) << 30 MPa, stress along y in the layers (prints w up).
+        # Sliced model check: Z 276..302 mm3 through the windows (y 25..44), 373 at the root post (y 22).
         # Pad face chord between truss nodes (span about 12, backed by the peg boss over y 32.5..43.5): 148 * 12 / 8
         # / (9.8 * 3^2 / 6) = 15 MPa worst case.
         arm = B(0, n["pusher_t"], *sorted((sg * Y_BODY, sg * (Y_SPRING2 + 5))), a0, a1)
         arm = arm + B(-6.0, n["pusher_t"], *sorted((sg * 20.0, sg * 50.0)), a1 - 0.01, 83.0)              # taller
-        arm = arm + B(0.0, n["pusher_t"], *sorted((sg * 49.0, sg * (Y_SPRING2 + 5))), a1 - 0.01, 83.0)
         arm = arm + B(-8.0, 0.01, *sorted((sg * Y_BODY, sg * 50.0)), a0, a1)                       # stiffener
         arm = arm + B(-8.0, -5.9, *sorted((sg * Y_BODY, sg * 50.0)), a1 - 0.01, 83.0)              # rear chord top
         win = _truss_windows(*sorted((sg * Y_BODY, sg * 50.0)), -5.5, 5.0, a0 - 1.0, 84.0, 2.5, plane="yu")
@@ -521,9 +521,13 @@ def carriage_yoke_solid(P):
     y = y - cyl_u(2.7, -15.0, 0.0, st["y_push"], st["w_push"])                                # collar counterbore
     y = y - cyl_w(2.25, a0 - 2.0, st["w_push"] + 1.5, st["u_plunger_local"], STEM_Y)          # stem bore
     y = y - cyl_w(1.25, a0 - 2.0, st["w_push"] + 10.0, st["u_plunger_local"], PIN_Y)          # pin bore (through)
-    for sg in (1, -1):                       # spring pegs hollow (d3 blind from the flange end): lighter, and an optional
-        for yy in (n["y_spring"], Y_SPRING2):    # d3 steel pin pressed in carries the hook load across the layers
-            y = y - cyl_w(1.5, n["w_spring"] - 12.0, a0 + 4.0, up, sg * yy)
+    # spring pegs hollow (d2 blind bore from the flange end, 2 mm wall): peg bending Z drops 1 % (r 1 vs r 3), the wall
+    # as a ring under the 40 N hook: 0.318 * 40 * 2.0 = 25 Nmm on about 5 x 2 -> 8 MPa (in the layers). The peg root
+    # itself (40 N at w 60, 14 mm below the arm, Z 21 mm3) sees about 26 MPa ACROSS the layers, unchanged by this
+    # review: a d2 steel pin pressed into the bore is a cheap reinforcement if the pegs ever crack.
+    for sg in (1, -1):
+        for yy in (n["y_spring"], Y_SPRING2):
+            y = y - cyl_w(1.0, n["w_spring"] - 12.0, a0 + 4.0, up, sg * yy)
     y = y - B(FOOT_U0 - 0.5, FOOT_U1 + 1.1, 12.5, 28.5, a0 - 2.0, a0 + 1.4)                  # leaf travel recess
     for sg in (1, -1):
         y = y - cyl_w(1.7, ARM_LAP_W - 1.0, a1 + 1.0, ARM_BOLT_U, sg * ARM_BOLT_Y)
@@ -1306,11 +1310,9 @@ def steps(P):
                   "2 x M3 x 20 with nuts through each flange pair (8 in total). Tighten evenly; file any step inside the "
                   "track where the pieces meet so the carriage shoes slide over it.",
              parts=["launch_rail_rear", "launch_rail_mid", "launch_rail_front"]),
-        dict(title="Launcher 2b: splice straps and spring guards",
-             text="Screw a splice strap on each wall top across the front joint (4 x M3 x 10 self tap each). Screw the "
-                  "spring guard plates to the rail walls and anchor posts (M3 self tap into the pilots, see the print "
-                  "sheet), three per side: rear, middle (under the stop units), front. Fit them before the springs.",
-             parts=["launch_rail_splice_l", "launch_rail_splice_r"] + [p for p in GD_PART_NAMES(P)]),
+        dict(title="Launcher 2b: splice straps",
+             text="Screw a splice strap on each wall top across the front joint (4 x M3 x 10 self tap each).",
+             parts=["launch_rail_splice_l", "launch_rail_splice_r"]),
         dict(title="Launcher 3: big gear",
              text="Hold the big gear between the two cheeks of the mid piece, the toothed sector towards the drum side "
                   "(right) and the full ring of teeth towards the left, with the spacer washer between the gear and the "
@@ -1341,13 +1343,21 @@ def steps(P):
                   "nyloc nut; it must spin freely. The tether runs over it in tow and "
                   "retrieval, and the dart's tail slides in over it through the funnel onto the cradle.",
              parts=MZ_PART_NAMES(P)),
-        dict(title="Launcher 6: carriage stops",
-             text="For each side: put the stop spring on its ledges over the main spring position, rear bar towards the "
-                  "carriage arm. Fit the stop frame over it: 2 x M3 x 12 through the rear foot into the rail wall and "
-                  "2 x M3 x 16 through the front foot into the rail front plate. Then pull the spring onto the frame's "
-                  "front wall with the 2 x M3 x 20 draw screws, a turn each in turn, until it sits on the wall (4.4 mm of "
-                  "preload). The rear bar must rest on both ledges.",
-             parts=["launch_stop_spring_l", "launch_stop_spring_r", "launch_stop_frame_l", "launch_stop_frame_r"]),
+        dict(title="Launcher 6: carriage stop frames",
+             text="For each side, before any spring: set the stop frame on the rail. 2 x M3 x 12 through the rear foot "
+                  "into the rail wall, and 2 x M3 x 16 down through the front foot into the rail front plate, driven "
+                  "through the access holes in the frame's front wall.",
+             parts=["launch_stop_frame_l", "launch_stop_frame_r"]),
+        dict(title="Launcher 6b: spring guards",
+             text="Screw the spring guard plates to the rail walls and anchor posts (M3 self tap into the pilots, see the "
+                  "print sheet), three per side: rear, middle (drops in from above inside the stop frame), front. "
+                  "Never cock with a guard off.",
+             parts=[p for p in GD_PART_NAMES(P)]),
+        dict(title="Launcher 6c: stop springs",
+             text="Put each stop spring on its ledges inside its frame, rear bar towards the yoke arm, and pull it onto "
+                  "the frame's front wall with the 2 x M3 x 20 draw screws (heads on the front wall), a turn each in "
+                  "turn, until it sits on the wall (6.6 mm of preload). The rear bar must rest on both ledges.",
+             parts=["launch_stop_spring_l", "launch_stop_spring_r"]),
         dict(title="Launcher 7: contacts",
              text="SW_HOME (right lip) and SW_SEATED (left lip): drop an M3 nut into the slot in the rail wall with a "
                   "stripped wire end under it. Screw an M3 x 6 up through the lever's leaf, head down, then screw the "

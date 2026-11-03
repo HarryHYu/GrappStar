@@ -843,6 +843,8 @@ class Scenario:
         for p in prefer:
             if p in choices:
                 return p
+        if step != getattr(self, "_retry_step", None):   # the retry budget is per step
+            self._retry_step, self._retries = step, 0
         if "Retry" in choices and self._retries < self.retry_max:
             self._retries += 1
             time.sleep(1.0)

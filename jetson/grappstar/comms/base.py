@@ -466,8 +466,8 @@ class BaseClient:
         """Wind the capstan (needs drum_pos WRAPPED; also accepted in HOLD). duty 0 < d <= 1 (firmware default 0.86,
         floor 0.27), max_n > 0 (default limit_n 20, capped at 150). Ends: SEATED (until seated), LIMIT (holding true
         and state HOLD for until tension, else IDLE), ABORTED (stop, timeout, host watchdog)."""
-        if until not in ("seated", "tension", "stop"):
-            raise ValueError("until must be seated, tension or stop")
+        if until not in ("seated", "tension", "stop", "slip"):
+            raise ValueError("until must be seated, tension, stop or slip")
         duty = round(max(0.0, min(1.0, float(duty))), 3)
         if duty <= 0:
             raise ValueError("reel duty must be above 0")

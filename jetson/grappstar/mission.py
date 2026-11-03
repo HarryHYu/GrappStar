@@ -47,6 +47,8 @@ STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LA
          "ANCHOR", "TIDY", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
 RESHOOT_STEPS = ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
 SKIPPABLE = {"CHECK", "LANDING_ZONE", "TIDY", "COCK"}
+BASE_FAULTS = ("STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR", "ANGLE_SENSOR", "SWITCH_DISAGREE", "BROWNOUT",
+               "BAD_STATE", "FAULT", "FAULTED", "DART_STUCK")
 
 
 def sw_closed(tel: dict, key: str) -> Optional[bool]:
@@ -291,8 +293,17 @@ class Mission:
             self._safe_stop()
         finally:
             self.prompt = None
-            if self.state in ("ABORTED", "FAILED") and self.shot.get("cocked") and not self.shot.get("fire_sent"):
-                msg = "Launcher is still COCKED: press Decock on the page before touching the launcher."
+            phase = None
+            if self.state in ("ABORTED", "FAILED"):
+                try:
+                    phase = self.base.status(timeout=1.0).get("phase")
+                except Exception:
+                    pass
+            drawn = phase in ("COCKING", "COCKED", "FIRING", "UNKNOWN") or (
+                phase is None and self.shot.get("cocked") and not self.shot.get("fire_sent"))
+            if self.state in ("ABORTED", "FAILED") and drawn:
+                msg = (f"Launcher spring may be DRAWN (phase {phase or 'cocked'}): press Decock on the page before "
+                       "touching the launcher.")
                 self.error = (self.error + ". " if self.error else "") + msg
                 self.log.warn(msg)
             for c in self.cams.values():
@@ -323,8 +334,15 @@ class Mission:
                 msg = f"{name} failed: {e}"
                 self.error = msg
                 self.log.error(msg)
-                if not isinstance(e, BaseDisconnected):
-                    self.base.safe_stop()
+                is_fault = isinstance(e, BaseError) and e.err in BASE_FAULTS
+                st = self.tel().get("state")
+                if not isinstance(e, BaseDisconnected) and not is_fault and st not in ("SAFING", "FAULT"):
+                    self.base.safe_stop()      # a fault: the firmware is already safing; a stop would halt its drum
+                if is_fault or st in ("SAFING", "FAULT"):
+                    try:                       # let the safing move finish so the message is true
+                        self.wait_tel(lambda t: t.get("state") != "SAFING", 15.0, "safing done", fail_on_fault=False)
+                    except (BaseTimeout, Aborted):
+                        pass
                 if self.dart_motion_possible():      # whatever failed, never leave dart motors running
                     self.dart.safe_stop()
                 choices = ["Retry", "Abort"]
@@ -333,13 +351,12 @@ class Mission:
                 extra = getattr(e, "choices", None)
                 if extra:
                     choices = list(extra) + ["Abort"]
-                if isinstance(e, BaseError) and e.err in ("STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR",
-                                                           "ANGLE_SENSOR", "SWITCH_DISAGREE", "BROWNOUT", "BAD_STATE",
-                                                           "FAULT", "FAULTED", "DART_STUCK"):
+                if is_fault:
                     held = [ev for ev in self.base.events(max(0, self.base.event_mark() - 10))
                             if ev.get("evt") == "MODE" and ev.get("err") == "DRUM_HELD"]
+                    pos = self.tel().get("drum_pos")
                     msg += (". The base is in FAULT. " + (f"The drum HELD where it is ({held[-1].get('why')}). "
-                            if held else "The drum went to NEUTRAL. ") + "Check it, then Retry clears the fault.")
+                            if held else f"Drum now at {pos}. ") + "Check it, then Retry clears the fault.")
                 if isinstance(e, BaseError) and e.err in ("LOADED_UNKNOWN", "PHASE_UNKNOWN", "NOT_AT_REST", "LAUNCH_BUSY"):
                     msg += ". The launcher spring may be drawn: use Decock (Manual section), then Retry."
                 if isinstance(e, BaseError) and e.err == "BASE_RESET":
@@ -426,7 +443,9 @@ class Mission:
             problems.append("launcher shot phase UNKNOWN (power lost mid-cycle): use Decock on the page")
         if t.get("drum_pos") in ("UNKNOWN", "BETWEEN"):
             problems.append(f"drum position {t.get('drum_pos')} (run cal or jog the drum)")
-        if (t.get("wraps") or 0) > 0.05:
+        if t.get("wraps") is None and "wraps" in t:
+            problems.append("capstan wraps unknown (after a restart): run unwrap from the page, then Retry")
+        elif (t.get("wraps") or 0) > 0.05:
             problems.append("capstan still wrapped (unwrap first)")
         if sw_closed(t, "S") is False:
             problems.append("dart not seated on the launcher (seated contact open)")
@@ -498,7 +517,7 @@ class Mission:
 
     def base_neutral(self) -> None:
         """After the shot: wait for the launcher RESET (mode refuses LAUNCH_BUSY until it is at rest), then NEUTRAL."""
-        m0 = self.shot.get("fire_mark")
+        m0 = self.shot.pop("fire_mark", None)      # only the first attempt may look back to the shot
         t = self.tel()
         if t.get("mode") == "LAUNCH" and not (t.get("cock") == 0 and t.get("state") == "IDLE"):
             try:
@@ -509,17 +528,25 @@ class Mission:
         self.base_mode("NEUTRAL")
 
     def tidy(self) -> None:
-        """Wind the slack onto the storage reel until the line is straight (firmware with "tidy" only)."""
+        """Wind the slack onto the storage reel until the line is straight. base-1.0: reel until "slip" (take-up until
+        the slip clutch slips); older firmware: a "tidy" command; neither: skipped (the CHECK pull takes the slack)."""
         m = self.base.event_mark()
         try:
-            self.base.cmd("tidy", timeout=2.0)
-        except BaseError as e:
-            if e.err == "UNKNOWN_CMD":
-                self.log.info("base has no tidy command: skipped")
+            self.base.reel(self.cfg.retrieve_duty * 0.5, max_n=self.cfg.check_n, until="slip")
+        except (BaseError, ValueError) as e:
+            err = getattr(e, "err", "")
+            if err in ("NOT_IN_NEUTRAL", "BAD_ARG", "NOT_WRAPPED") or isinstance(e, ValueError):
+                self.log.info(f"tidy not possible here ({err or e}): the check pull takes up the slack")
                 return
             raise
-        e = self.wait_evt(("TIDY", "TIDIED", "LIMIT"), self.cfg.wrap_timeout_s, m)
-        self.log.info(f"line tidied ({e.get('evt')})")
+        try:
+            self.wait_evt(("LIMIT", "SEATED", "TIDIED"), self.cfg.wrap_timeout_s, m)
+        except BaseTimeout:
+            pass
+        self.wait_tel(lambda t: t.get("state") in ("IDLE", "HOLD"), 10.0, "tidy done")
+        if self.tel().get("state") == "HOLD":
+            self.stop_settle()
+        self.log.info("line tidied")
 
     def arm(self) -> None:
         """Arm the dart landing detector right before the shot (/stop disarms it). By default auto=0: the dart only
@@ -638,7 +665,10 @@ class Mission:
                 elif line > 1.0 and time.time() - line_t >= self.cfg.still_s:
                     sources.add("line")
             try:
-                ds = self.dart.status()
+                if time.time() - getattr(self.dart, "last_t", 0) >= 0.25:   # C2: never poll faster than 5 Hz overall
+                    ds = self.dart.status()
+                else:
+                    ds = self.dart.last or self.dart.status()
                 if ds["phase"] == "FLIGHT":
                     seen_flight = True
                 t_arm = self.shot.get("dart_t_ms_at_arm")
@@ -692,6 +722,15 @@ class Mission:
                 self.log.warn(f"no dart frames: {e}")
         fl = None
         try:
+            # /flightlog is refused (409) while armed or in FLIGHT: give the dart its landing decision first
+            t_end = time.time() + 17.0
+            while time.time() < t_end:
+                try:
+                    if self.dart.status()["phase"] not in ("FLIGHT", "ARMED"):
+                        break
+                except DartError:
+                    pass
+                self.sleep(0.3)
             fl = self.dart.flightlog()
             if not fl.get("samples"):
                 self.log.warn("flight log is empty (dart was not armed or saw no launch)")
@@ -804,8 +843,8 @@ class Mission:
         if self.tel().get("state") == "HOLD":
             self.stop_settle()
         t = self.tel()
-        if not self.is_wrapped(t) and (t.get("wraps") or 0) == 0:
-            return
+        if not self.is_wrapped(t) and t.get("wraps") == 0:
+            return                          # wraps None (unknown) still unwraps: the firmware knows the sector
         m = self.base.event_mark()
         self.base.unwrap()
         self.wait_evt("UNWRAPPED", self.cfg.wrap_timeout_s, m)
@@ -854,12 +893,21 @@ class Mission:
             self.check_cancel()
             self.ensure_reel()
             m = self.base.event_mark()
-            self.base.reel(self.cfg.reel_duty, max_n=self.cfg.tow_limit_n, until="tension")
+            if self.tel().get("state") == "REEL":
+                # load cell: the firmware already winds again by itself when the held line slackens; just wait
+                self.log.info("base is already winding (slack taken up by itself)")
+            else:
+                try:
+                    self.base.reel(self.cfg.reel_duty, max_n=self.cfg.tow_limit_n, until="tension")
+                except BaseError as be:
+                    if be.err != "BUSY":
+                        raise
+                    self.log.info("base busy winding by itself: waiting for its LIMIT")
             e = self.wait_evt(("LIMIT", "SEATED"), 60.0, m)
             if e.get("evt") == "SEATED" or sw_closed(self.tel(), "S"):
                 self.stop_settle()
                 raise StepFailed("the dart came home during the tow: the anchor pulled out",
-                                 choices=["Retry"])
+                                 choices=["Release and bring home"])
             tn = e.get("tension_n", self.tel().get("tension_n"))
             self.log.info(f"tow round {rounds}: holding at {tn} N, line {self.tel().get('line_m')} m")
             r = self.rover.tow_assist(self, tn)
@@ -951,8 +999,9 @@ class Mission:
         self.log.info("dart seated")
 
     def final_approach(self) -> None:
-        """Last metre on the storage take-up until the seated contact closes (firmware "retrieve"). Firmware without
-        it: wrap again and reel until seated on the capstan."""
+        """Last metre on the storage take-up, wraps off, until the seated contact closes. base-1.0: reel until
+        "seated" in NEUTRAL is take-up only (DART_STUCK fault after 20 s without the seat). A firmware "retrieve"
+        command is used when it exists. Firmware that only reels on the capstan: wrap again as a last resort."""
         if self.shot.pop("seated_in_retrieve", False) or sw_closed(self.tel(), "S"):
             return
         m = self.base.event_mark()
@@ -961,24 +1010,35 @@ class Mission:
         except BaseError as e:
             if e.err != "UNKNOWN_CMD":
                 raise
-            self.log.info("base has no retrieve command: finishing on the capstan")
-            self.wrap()
             m = self.base.event_mark()
-            self.base.reel(self.cfg.retrieve_duty * 0.6, max_n=self.cfg.retrieve_limit_n, until="seated")
-            e2 = self.wait_evt(("SEATED", "LIMIT"), self.cfg.final_timeout_s, m)
-            if e2.get("evt") == "LIMIT":
-                raise StepFailed(f"snag on the final approach ({e2.get('tension_n')} N)")
-            self.unwrap()
-            return
-        e = self.wait_evt(("SEATED", "LIMIT"), self.cfg.final_timeout_s, m)
+            try:
+                self.base.reel(self.cfg.retrieve_duty * 0.6, max_n=self.cfg.retrieve_limit_n, until="seated")
+            except BaseError as e2:
+                if e2.err not in ("NOT_WRAPPED", "NOT_IN_REEL"):
+                    raise
+                self.log.info("base reels only on the capstan: wrapping again for the last metre")
+                self.wrap()
+                m = self.base.event_mark()
+                self.base.reel(self.cfg.retrieve_duty * 0.6, max_n=self.cfg.retrieve_limit_n, until="seated")
+                self._wait_seated(m)
+                self.unwrap()
+                return
+        self._wait_seated(m)
+
+    def _wait_seated(self, m: int) -> None:
+        try:
+            e = self.wait_evt(("SEATED", "LIMIT"), self.cfg.final_timeout_s, m)
+        except BaseError as be:
+            if be.err == "DART_STUCK":
+                raise StepFailed("the dart did not seat (DART_STUCK): check the cradle and the line, then Retry")
+            raise
         if e.get("evt") == "LIMIT":
+            self.stop_settle()
             raise StepFailed(f"snag on the final approach ({e.get('tension_n')} N): check the cradle")
         self.log.info("dart seated")
 
     def reshoot(self) -> None:
         self.reshoots += 1
-        if self.reshoots > self.cfg.max_reshoots:
-            raise Aborted("too many reshoots")
         self.log.info(f"retrieving for reshoot {self.reshoots}")
         try:
             ph = self.dart.status()["phase"]
@@ -989,6 +1049,9 @@ class Mission:
             self._do("RELEASE", self.release_dart)
         self._do("WRAP", self.wrap)
         self.bring_home()
+        if self.reshoots > self.cfg.max_reshoots:
+            self._do("LAUNCH_READY", lambda: self.base_mode(self.cfg.end_mode))
+            raise Aborted(f"dart retrieved; reshoot limit ({self.cfg.max_reshoots}) reached")
         self._set_step("AIM")
         self.ask("Dart is home. Check the dart and the line, set the new target if needed, then shoot again.",
                  ["Shoot again", "Abort"])

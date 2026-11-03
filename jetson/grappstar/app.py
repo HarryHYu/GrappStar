@@ -292,7 +292,7 @@ class App:
             self.mission.abort("operator ESTOP")
         try:
             self.base.estop(timeout=0.5)       # base first, never delayed by a slow dart link
-            r = {"ok": True, "msg": "ESTOP: wiper off, drum to NEUTRAL"}
+            r = {"ok": True, "msg": "ESTOP: wiper off, drum to NEUTRAL if safe"}
         except Exception as e:
             r = {"ok": False, "msg": f"ESTOP not acknowledged: {e}"}
         threading.Thread(target=self.dart.safe_stop, kwargs={"fast": True}, daemon=True).start()

@@ -1,6 +1,6 @@
 # Round 2 E: base CAD parts and assembly
 
-Reviewed at base-v1 commit c21a2d4. Method: independent finder subagents, one per lens; every finding of
+Reviewed at base-v1 commit 0bfd59a (started 12:20; later base-v1 commits may already fix some items). Method: independent finder subagents, one per lens; every finding of
 medium severity or above was checked by two skeptic subagents told to refute it; kept only if fewer than
 two refuted it. Low findings are listed unverified. Severity is the finder's, lowered when both skeptics
 agreed it is real but rated it lower.

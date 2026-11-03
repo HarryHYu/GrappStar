@@ -1477,6 +1477,7 @@ def main() -> int:
     ap.add_argument("--scenario", default="nominal")
     ap.add_argument("--speed", type=float, default=float(os.environ.get("SYSTEST_SPEED", "2")))
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--shard", default="", help="i/n: run every n-th scenario starting at i (parallel batches)")
     a = ap.parse_args()
     if a.list:
         for s in SCENARIOS.values():
@@ -1484,6 +1485,10 @@ def main() -> int:
         return 0
     build()
     names = list(SCENARIOS) if a.scenario == "all" else a.scenario.split(",")
+    tag = ""
+    if a.shard:
+        i, n = (int(x) for x in a.shard.split("/"))
+        names, tag = names[i::n], f"_shard{i}"
     results = []
     for n in names:
         s = SCENARIOS[n]
@@ -1501,7 +1506,7 @@ def main() -> int:
         for c in res.get("checks", []):
             print(f"    {'ok  ' if c['ok'] else 'FAIL'} {c['check']}: {c['detail']}")
     os.makedirs(RUNS, exist_ok=True)
-    with open(os.path.join(RUNS, "results.json"), "w") as f:
+    with open(os.path.join(RUNS, f"results{tag}.json"), "w") as f:
         json.dump([{k: r.get(k) for k in ("scenario", "pass", "mission_state", "error", "duration_s", "checks", "steps")}
                    for r in results], f, indent=1, default=str)
     print("\nSUMMARY")

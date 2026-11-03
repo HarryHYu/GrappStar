@@ -266,8 +266,33 @@ struct Base {
   static const uint8_t MV_WIPER = 1, MV_DRUM = 2;
 
   // first tick after the switches and AS5600 settled: decide what is known
+  // ---- D12 degraded angle source: SW_INDEX closes 6 times per shaft turn (every 60 deg). Between bumps the angle is
+  // interpolated from the last measured bump-to-bump rate (nominal speed before that), never more than 59 deg past
+  // the last bump; each bump snaps the angle to the nearest multiple of 60. Direction = the commanded drive.
+  bool indexMode = false; float idxDeg = 0, idxRate = 0, idxLast = 0; uint32_t idxEdgeT = 0; int idxDir = 0;
+  void indexTick(uint32_t dt) {
+    int dir = w.outDir ? w.outDir : (w.lastDir && now - w.stopT < 120 ? w.lastDir : 0);   // short coast after a stop
+    if (dir && rose(SW_INDEX)) {
+      float k = roundf(idxDeg / 60.f); float snapped = k * 60.f;
+      if (idxDir == dir && idxEdgeT && now > idxEdgeT) { float r = 60000.f / (float)(now - idxEdgeT); if (r > 20 && r < 600) idxRate = r; }
+      idxDeg = snapped; idxLast = snapped; idxEdgeT = now; idxDir = dir;
+    } else if (dir) {
+      // err high: the larger of the measured bump rate and the nominal speed at this duty (stops early, never late)
+      float nominal = c.n0Rpm * 6.f * (w.outDuty > 0 ? w.outDuty : 128) / 255.f;
+      float rate = idxRate > 0 && idxDir == dir ? fmaxf(idxRate, nominal) : nominal;
+      if (!w.outDir) rate *= 0.5f;                    // coasting
+      float nd = idxDeg + dir * rate * dt / 1000.f;
+      if (fabsf(nd - idxLast) <= 59.f) idxDeg = nd;
+    }
+    enc.ok = true; enc.have = true; enc.status = AS_MD;
+    enc.count = (int32_t)lroundf(idxDeg * 4096.f / 360.f);
+    enc.rateDps = w.outDir ? w.outDir * (idxRate > 0 ? idxRate : c.n0Rpm * 6.f * w.outDuty / 255.f) : 0;
+  }
   void resolveBoot() {
     bootPending = false; booted = true;
+    if (!enc.ok && fitted(SW_INDEX)) {                 // no magnet: degraded angle source, coarser checks
+      indexMode = true; idxDeg = 0; enc.count = 0; c.homeWinDeg += 60;
+    }
     const Saved* s = bootValid ? &boot : nullptr;
     bool wiperTrust = s && !(s->moving & MV_WIPER) && s->wiperKnown;
     bool drumTrust = s && !(s->moving & MV_DRUM);
@@ -286,7 +311,7 @@ struct Base {
     if (s && s->lineM >= 0) { lineM = s->lineM; lineKnown = true; } else { lineKnown = false; }
     // wiper: the AS5600 knows the angle inside one turn; the record knows the turns, if nothing moved since
     bool wiperOk = false;
-    if (enc.ok && wiperTrust) {
+    if (enc.ok && wiperTrust && !indexMode) {
       float diff = wrap180(enc.absDeg() - wrap360(s->wiperDeg));
       if (fabsf(diff) < 3.0f) { enc.setDeg(s->wiperDeg + diff); wiperOk = true; }
     }
@@ -309,15 +334,20 @@ struct Base {
     }
     JOut o(evBuf, sizeof evBuf); evBegin(o, "BOOT"); o.str("fw", GB_FW_VERSION); o.boolean("record", s != nullptr);
     o.boolean("was_moving", s && s->moving); o.boolean("drum_known", drumKnown); o.boolean("wraps_known", wrapsKnown);
-    o.boolean("aim_known", aimKnown); o.str("phase", PHASE_NAME[phase]); evEnd(o);
+    o.boolean("aim_known", aimKnown); o.str("phase", PHASE_NAME[phase]); o.str("angle", indexMode ? "INDEX" : enc.ok ? "AS5600" : "NONE"); evEnd(o);
     movingBits = 0; persist(0);
   }
 
   // ================================================================== sensors
   void readSensors(uint32_t dt) {
-    uint8_t st = 0; int raw = io.angle ? io.angle(&st) : -1;
-    enc.feed(raw, st, dt);
-    sw.update(io.switches ? io.switches() : 0, now, enc.deg());
+    if (indexMode) {                                 // D12: no magnet, the 6-bump index cam stands in for the AS5600
+      sw.update(io.switches ? io.switches() : 0, now, enc.deg());
+      indexTick(dt);
+    } else {
+      uint8_t st = 0; int raw = io.angle ? io.angle(&st) : -1;
+      enc.feed(raw, st, dt);
+      sw.update(io.switches ? io.switches() : 0, now, enc.deg());
+    }
     updateSector();
     float isv = io.wiperIsVolts ? io.wiperIsVolts() : 0;
     w.tick(now, dt, isv, enc.ok ? enc.rateDps : NAN, io.wiper, startOk());   // ramp, gap, current, stall latches
@@ -426,7 +456,7 @@ struct Base {
     // a launch action needs the collar in LAUNCH all the time
     if ((state == S_AIM || state == S_COCK || state == S_FIRE || state == S_DECOCK) && !collarLaunch()) { raise(F_BAD_STATE, "collar left LAUNCH during a launch action"); return; }
     // AS5600 plausibility while the wiper is driven hard: many rejected samples, or counting the wrong way (enc_sign)
-    if (w.running() && w.outDuty > 100 && now - w.startT > 400 && enc.ok) {
+    if (w.running() && w.outDuty > 100 && now - w.startT > 400 && enc.ok && !indexMode) {
       if (enc.rateDps * w.outDir < -30) { if (!encWrongT) encWrongT = now; else if (now - encWrongT > 200) { raise(F_ANGLE_SENSOR, "AS5600 counts against the drive (enc_sign?)"); return; } }
       else encWrongT = 0;
     } else encWrongT = 0;
@@ -968,7 +998,7 @@ struct Base {
   void statusFields(JOut& r) {
     r.str("phase", PHASE_NAME[phase]); r.boolean("aimed", aimed); r.boolean("aim_known", aimKnown);
     r.boolean("drum_known", drumKnown); r.boolean("wraps_known", wrapsKnown);
-    r.str("magnet", !enc.ok ? "NONE" : enc.magnetWeak() ? "WEAK" : enc.magnetStrong() ? "STRONG" : "OK");
+    r.str("magnet", indexMode ? "INDEX" : !enc.ok ? "NONE" : enc.magnetWeak() ? "WEAK" : enc.magnetStrong() ? "STRONG" : "OK");
     r.integer("glitches", (long)(enc.glitches > 99999 ? 99999 : enc.glitches)); r.boolean("hx", hxLive()); r.num("peak_a", w.peakA, 1);
     r.str("fw", GB_FW_VERSION);
     if (fault) { char wy[33]; strncpy(wy, faultWhy, 32); wy[32] = 0; r.str("why", wy); }
@@ -1171,12 +1201,15 @@ struct Base {
         releaseSeen = true; phase = PH_RESETTING; aimed = false; lineKnown = false;
         JOut o(evBuf, sizeof evBuf); evBegin(o, "FIRED"); float p = pitch(); if (isnan(p)) o.null("pitch_deg"); else o.num("pitch_deg", p, 2);
         o.num("cock_deg", at, 1); evEnd(o);
-        if (fabsf(at - c.releaseDeg) > c.releaseWinDeg * 2) { raise(F_BAD_STATE, "release at the wrong angle"); return; }
+        if (fabsf(at - c.releaseDeg) > c.releaseWinDeg * 2 + (indexMode ? 60 : 0)) { raise(F_BAD_STATE, "release at the wrong angle"); return; }
+        if (indexMode) cockPhase = c.releaseDeg + sinceEdge(SW_HOME, cockDir());   // re-zero on the release
         w.c.tripA = c.tripA; w.want(cockDir(), c.resetDuty);
         return;
       }
-      if (cockPhase > c.releaseDeg + c.releaseWinDeg) { raise(F_BAD_STATE, "no release seen (SW_HOME did not close)"); return; }
+      // index mode counts in 60 deg steps and errs high (a cock then stops early, never late): allow one more step
+      if (cockPhase > c.releaseDeg + c.releaseWinDeg + (indexMode ? 60 : 0)) { raise(F_BAD_STATE, "no release seen (SW_HOME did not close)"); return; }
     } else if (phase == PH_RESETTING) {
+      if (rose(SW_GAP) && cockPhase > c.releaseDeg) cockPhase = c.gapCloseDeg + sinceEdge(SW_GAP, cockDir());   // re-zero entering the gap
       if (!closed(SW_HOME) && cockPhase < c.cycleDeg + c.homeOpenDeg - c.homeWinDeg) { raise(F_BAD_STATE, "SW_HOME opened while resetting"); return; }
       if (cockPhase >= c.cycleDeg - c.aimCoastDeg) {
         if (fitted(SW_HOME) && !closed(SW_HOME)) { raise(F_BAD_STATE, "reset ended with the carriage off its stop"); return; }

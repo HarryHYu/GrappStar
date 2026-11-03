@@ -80,6 +80,7 @@ struct Sim {
     setb(gb::SW_DOG_L, inLaunch()); setb(gb::SW_DOG_R, inReel());
     double wf = wrapsExact() - floor(wrapsExact());
     setb(gb::SW_ARM, wf < 0.03 || wf > 0.97);
+    { double m = fmod(wiperDeg, 60.0); if (m < 0) m += 60; setb(gb::SW_INDEX, m < 10); }   // 6-bump index cam
     setb(gb::SW_N20, !handLatched);
     double g = fmod(cockPh, c.cycleDeg); if (g < 0) g += c.cycleDeg;
     setb(gb::SW_GAP, !fired ? (g >= c.gapCloseDeg || g < c.homeOpenDeg) : (cockPh >= c.gapCloseDeg));

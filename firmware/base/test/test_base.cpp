@@ -694,6 +694,27 @@ static void testSpecV1Contacts() {
     CHECK(R.B.armPulses == 7 && R.B.fault == gb::F_NONE, "and the unwrap too"); }
 }
 
+static void testIndexMode() {
+  T("D12: no magnet, SW_INDEX degraded angle source");
+  Rig::restRig = true;
+  Rig R(true, [](gb::Cfg& c) { c.swBit[gb::SW_INDEX] = 11; });
+  S.encMissing = true;                       // (set after the rig boots: re-boot to enter index mode)
+  Rig R2(false, [](gb::Cfg& c) { c.swBit[gb::SW_INDEX] = 11; });
+  R2.cmd("{\"id\":0,\"cmd\":\"cal\",\"what\":\"cock_rest\"}");
+  CHECK(R2.B.indexMode && R2.cmd("{\"id\":1,\"cmd\":\"status\"}").find("\"magnet\":\"INDEX\"") != std::string::npos, "index mode at boot");
+  S.lineOut = 0; S.seatAtLine = 0;
+  CHECK(R2.toMode("LAUNCH"), "LAUNCH");
+  R2.ok("{\"id\":2,\"cmd\":\"aim\",\"deg\":30}"); R2.until([&] { return R2.idle() || R2.B.state == gb::S_FAULT; }, 60000);
+  double tp = R2.B.pitchAt((float)S.aimPh) - R2.B.aimOffset;
+  CHECK(R2.B.aimed && fabs(tp - 30) < 3, "aim within 3 deg of pitch on the index alone");
+  R2.ok("{\"id\":3,\"cmd\":\"cock\"}"); R2.until([&] { return R2.idle() || R2.B.state == gb::S_FAULT; }, 30000);
+  printf("    index cock: fw %.1f true %.1f\n", R2.B.cockPhase, S.cockPh);
+  CHECK(R2.B.phase == gb::PH_COCKED && S.shots == 0 && S.cockPh < S.c.releaseDeg - 3, "cocked short of the release tooth");
+  std::string a = R2.cmd("{\"id\":4,\"cmd\":\"arm\"}"); long tok = atol(a.c_str() + a.find("\"token\":") + 8);
+  R2.ok("{\"id\":5,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}"); R2.until([&] { return R2.idle() || R2.B.state == gb::S_FAULT; }, 30000);
+  CHECK(S.shots == 1 && R2.B.phase == gb::PH_REST && R2.B.fault == gb::F_NONE, "fired and reset on the index alone");
+}
+
 // params.TIMELINE (the mission the HD sim plays) as a scenario: each step's end state must be reachable in order
 static void testTimeline() {
   T("params.TIMELINE scenario");
@@ -776,12 +797,12 @@ static void testFullMission() {
 
 int main(int argc, char** argv) {
   if (argc > 1) { std::string w = argv[1];
-    if (w == "cock") testCockFireReset(); else if (w == "aim") testAim(); else if (w == "wrap") testWrapReelUnwrap(); else if (w == "jog") testJog(); else if (w == "drum") testDrumFaults(); else if (w == "power") testPowerLoss(); else if (w == "stall") testStallOvercurrent(); else if (w == "enc") testAngleSensorFault(); else if (w == "tow") testTow(); else if (w == "rev1") testReview1(); else if (w == "rev2") testReview2(); else if (w == "v1") testSpecV1Contacts(); else if (w == "tl") testTimeline(); else if (w == "mission") testFullMission();
+    if (w == "cock") testCockFireReset(); else if (w == "aim") testAim(); else if (w == "wrap") testWrapReelUnwrap(); else if (w == "jog") testJog(); else if (w == "drum") testDrumFaults(); else if (w == "power") testPowerLoss(); else if (w == "stall") testStallOvercurrent(); else if (w == "enc") testAngleSensorFault(); else if (w == "tow") testTow(); else if (w == "rev1") testReview1(); else if (w == "rev2") testReview2(); else if (w == "v1") testSpecV1Contacts(); else if (w == "tl") testTimeline(); else if (w == "idx") testIndexMode(); else if (w == "mission") testFullMission();
     printf("%d passed, %d failed\n", pass, fail); return fail ? 1 : 0; }
   testJson(); testSwitches(); testAngle(); testWiperDrive(); testPersist();
   testProtocolBasics(); testTelemetryWorstCase(); testModeChanges(); testDrumFaults(); testAim(); testCockFireReset(); testFireRefusals();
   testNoRelease(); testWrapReelUnwrap(); testTow(); testTowHx(); testStallOvercurrent(); testAngleSensorFault(); testBrownout();
-  testStopEstop(); testJog(); testPowerLoss(); testSaveGate(); testPersistWear(); testTelemetryRate(); testHostTimeout(); testReview1(); testReview2(); testSpecV1Contacts(); testTimeline(); testFullMission();
+  testStopEstop(); testJog(); testPowerLoss(); testSaveGate(); testPersistWear(); testTelemetryRate(); testHostTimeout(); testReview1(); testReview2(); testSpecV1Contacts(); testIndexMode(); testTimeline(); testFullMission();
   curTest = "all"; CHECK(Rig::dryTotal == 0, "no test ever moved the collar out of LAUNCH with the spring drawn");
   printf("\n%d checks, %d passed, %d failed: %s\n", pass + fail, pass, fail, fail ? "FAILURES" : "ALL PASS");
   return fail ? 1 : 0;

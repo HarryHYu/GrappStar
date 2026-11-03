@@ -281,7 +281,7 @@ class Rig:
                 self.base.cmd({"id": 0, "cmd": "set", "key": "tension_offset_n", "val": 0})
         for k, v in sc.base_setup.items():
             self.base.cmd({"id": 0, "cmd": "set", "key": k, "val": v})
-        d22 = sc.d22 or os.environ.get("SYSTEST_D22_ALL") == "1"
+        d22 = sc.d22 or os.environ.get("SYSTEST_D22_ALL") == "1" or os.environ.get("SYSTEST_STRICT_ALL") == "1"
         self.base.set(wrapDraw=1 if d22 else 0)
         if not d22:     # until F4 (D22 order) is fixed, fault scenarios use the lenient plant so they test their own fault
             self.note("info", msg="lenient wrap plant (wrap does not draw dart-side line); SYSTEST_D22_ALL=1 for the strict one")
@@ -549,7 +549,9 @@ class Rig:
     def anchor_at(self, d: float) -> None:
         """The line goes taut at d m out, with the stiffness of d m of 1 mm Dyneema (R2-L 1: EA about 20 kN)."""
         d = max(0.0, float(d))
-        self.base.set(anchorTautAt=round(d, 3), anchorK=round(self.sc.line_ea_n / max(d, 0.5), 1))
+        stiff = self.sc.stiff or os.environ.get("SYSTEST_STRICT_ALL") == "1"
+        k = self.sc.line_ea_n / max(d, 0.5) if stiff else 40.0     # 40 N/m = sim.h default (lenient, until F20)
+        self.base.set(anchorTautAt=round(d, 3), anchorK=round(k, 1))
 
     def restart_base(self, off_s: float = 2.0) -> None:
         threading.Thread(target=self._restart_base, args=(off_s,), daemon=True).start()
@@ -841,7 +843,8 @@ class Scenario:
         self.hello_delay = kw.get("hello_delay", 2100)
         self.landing_slack = kw.get("landing_slack", 0.9)
         self.line_ea_n = kw.get("line_ea_n", 20000.0)   # 1 mm Dyneema: about 3.5 % at 667 N
-        self.slip_n = kw.get("slip_n", 0.0)             # the anchor (or a dragging dart) slides above this tension
+        self.slip_n = kw.get("slip_n", 0.0)
+        self.stiff = kw.get("stiff", False)          # strict line: 1 mm Dyneema stiffness (else the sim.h 40 N/m spring)             # the anchor (or a dragging dart) slides above this tension
         self.c1_from_last_aim = kw.get("c1_from_last_aim", False)
         self.expect_faults = kw.get("expect_faults", False)
         self.d22 = kw.get("d22", False)
@@ -1445,6 +1448,10 @@ for _n in [n for n in list(SCENARIOS) if n.startswith("power_") or n in (
                         lambda r: (r.anchor_at(float(r.base.get()["lineOut"]) - 0.15),
                                    later(8, lambda r2: r2.base.set(anchorTautAt=-1))(r)))]
     SCENARIOS[_r.name] = _r
+
+
+for _n in ("nominal", "ref_nominal", "tow_stiff", "ref_tow_stiff", "ref_refusals"):
+    SCENARIOS[_n].stiff = True      # strict plant: real Dyneema stiffness (F20 shows up here first)
 
 
 # ====================================================================================================== main

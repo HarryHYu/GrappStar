@@ -56,7 +56,7 @@ struct Switches {
 enum { AS_MH = 0x08, AS_ML = 0x10, AS_MD = 0x20 };
 
 struct AngleTracker {
-  int sign = +1;                // +1 if the raw count rises while the wiper runs dir +1 (CALIBRATION.md step 3)
+  int sign = +1;                // +1 if the raw count rises while the wiper runs dir +1 (CALIBRATION.md step a)
   float maxStepDeg = 12;        // per tick (5 ms): 12 deg in 5 ms = 400 rpm, about 9 x the wiper's free speed
   int missLimit = 4;            // this many bad reads in a row = sensor lost
   int32_t count = 0;            // multi-turn, 4096 per output turn, sign applied

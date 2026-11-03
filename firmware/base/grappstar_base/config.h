@@ -54,7 +54,7 @@ struct Cfg {
 #endif
   float tripA = 17.0f;             // over-current trip (fuse is 20 A, wiper stall about 18 A)
   float cockTripA = 15.0f;         // while cocking (spring loading): tighter
-  int wiperSign = +1;              // AS5600 count direction (CALIBRATION.md step 3)
+  int wiperSign = +1;              // AS5600 count direction (CALIBRATION.md step a)
 
   // which wiper direction does what (BASE_SPEC section 1; wiper +1 = FORWARD = RPWM). LAUNCH: FORWARD cocks, fires and
   // resets through sprag #1; BACKWARD aims through the swing-arm splitter and the aim worm. REEL: FORWARD winds the

@@ -17,6 +17,7 @@ struct Rig {
     if (cfgEdit) cfgEdit(B.c);
     S.c = B.c;
     B.io = simIo();
+    B.saveAck = true;                       // like the sketch: motors wait for the flash write (acked 20 ms later in tick())
     B.w.c.ampsPerVolt = (float)S.isAmpsPerVolt;
     B.begin(S.t);
     B.restore(S.nvsHas ? &S.nvs : nullptr);
@@ -24,7 +25,12 @@ struct Rig {
     if (fresh && restRig) cmd("{\"id\":0,\"cmd\":\"cal\",\"what\":\"cock_rest\"}");   // a new build starts at rest
   }
   static bool restRig;
-  void tick() { S.step(5); B.tick(S.t); }
+  void tick() {
+    S.step(5); B.tick(S.t);
+    if (S.saveSeq != B.saveDoneSeq && (int32_t)(S.t - S.saveT) >= 20) B.saveDoneSeq = S.saveSeq;   // NVS write done
+    if (S.dryFires) { dryTotal += S.dryFires; S.dryFires = 0; }
+  }
+  static int dryTotal;
   void run(uint32_t ms) { for (uint32_t i = 0; i < ms; i += 5) tick(); }
   bool until(std::function<bool()> p, uint32_t maxMs) { for (uint32_t i = 0; i < maxMs; i += 5) { tick(); if (p()) return true; } return false; }
   std::string cmd(const std::string& j) { char rep[300]; B.handleLine(j.c_str(), (int)j.size(), rep, sizeof rep); return rep; }
@@ -45,6 +51,7 @@ struct Rig {
 };
 
 bool Rig::restRig = true;
+int Rig::dryTotal = 0;
 
 static void T(const char* n) { curTest = n; printf("%s\n", n); }
 
@@ -544,10 +551,11 @@ static void testPowerLoss() {
 
 static void testSaveGate() {
   T("motion waits for the moving record to reach flash (the flash write stalls the tick)");
-  Rig R; R.B.saveAck = true; R.B.saveDoneSeq = R.B.last.seq;
-  R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}"); R.run(300);
+  Rig R;
+  R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"REEL\"}"); S.saveT = S.t + 100000;   // the flash write "never" finishes
+  R.run(300);
   CHECK(S.wDir == 0 && S.dDir == 0, "no motor starts before the record is written");
-  R.B.saveDoneSeq = R.B.last.seq; R.run(300);
+  S.saveT = S.t - 20; R.run(300);
   CHECK(S.wDir != 0 || S.dDir != 0, "starts once the sketch confirms the write");
 }
 
@@ -650,6 +658,7 @@ int main(int argc, char** argv) {
   testProtocolBasics(); testTelemetryWorstCase(); testModeChanges(); testDrumFaults(); testAim(); testCockFireReset(); testFireRefusals();
   testNoRelease(); testWrapReelUnwrap(); testTow(); testTowHx(); testStallOvercurrent(); testAngleSensorFault(); testBrownout();
   testStopEstop(); testJog(); testPowerLoss(); testSaveGate(); testPersistWear(); testTelemetryRate(); testHostTimeout(); testReview1(); testFullMission();
+  curTest = "all"; CHECK(Rig::dryTotal == 0, "no test ever moved the collar out of LAUNCH with the spring drawn");
   printf("\n%d checks, %d passed, %d failed: %s\n", pass + fail, pass, fail, fail ? "FAILURES" : "ALL PASS");
   return fail ? 1 : 0;
 }

@@ -45,7 +45,7 @@ struct Sim {
   bool searBroken = false;         // the relieved tooth never lets go (no release)
   // ---- log
   std::vector<std::string> out;
-  gb::Saved nvs; bool nvsHas = false; int saves = 0;
+  gb::Saved nvs; bool nvsHas = false; int saves = 0; uint32_t saveSeq = 0, saveT = 0;
   uint32_t t = 0;
 
   // collar dwells (drum_NOTES.md section 6): LAUNCH engaged -10..6, REEL engaged 74..346; a tip to tip landing
@@ -54,7 +54,10 @@ struct Sim {
   bool inReel() const { return drumDeg >= 74 && !dogTip; }
   double wrapsExact() const { if (drumDeg <= c.wrapFromDeg) return 0; if (drumDeg >= c.wrapToDeg) return c.wrapsFull; return c.wrapsFull * (drumDeg - c.wrapFromDeg) / (c.wrapToDeg - c.wrapFromDeg); }
   int wrapsTrue() const { return (int)floor(wrapsExact() + 0.15); }
-  int sectorTrue() const { int k = 0; while (k < gb::SEC_COUNT - 1 && drumDeg >= c.edgeDeg[k]) k++; return k; }
+  // each code edge switches a little off its nominal angle (printed bumps): fixed offsets up to +-edgeJitter deg
+  double edgeJitter = 1.5; double edgeOff[8] = {0.9, -1.2, 0.4, -0.7, 1.4, -0.3, 0.6, -1.0};
+  int sectorTrue() const { int k = 0; while (k < gb::SEC_COUNT - 1 && drumDeg >= c.edgeDeg[k] + edgeOff[k] * edgeJitter / 1.5) k++; return k; }
+  int dryFires = 0;               // the collar left the LAUNCH dwell with the spring drawn (must never happen)
   bool dogTip = false;
   double cockLoad() const {        // the rack is engaged from homeOpenDeg to the release tooth
     if (fired || cockPh < c.homeOpenDeg) return 0.5;
@@ -130,6 +133,7 @@ struct Sim {
       // the collar lands tip to tip on the way into a dwell (when toothOnTooth is set): once per entry
       if (toothOnTooth && ((drumDeg > 6 && nd <= 6) || (drumDeg < 74 && nd >= 74))) { dogTip = true; toothWiperAcc = 0; }
       if (nd > 6 && nd < 74) dogTip = false;
+      if (drumDeg <= 6 && nd > 6 && !fired && cockPh > c.homeOpenDeg + 1 && cockPh < c.releaseDeg) { dryFires++; cockPh = 0; }
       drumDeg = nd;
     }
     t += dt;
@@ -159,7 +163,7 @@ inline float simIs() {
 inline float simVbat() { return S.vbatWired ? (float)S.vbat() : NAN; }
 inline uint8_t simSw() { return S.contactsRaw(); }
 inline float simHx() { return S.hxFitted ? (float)(S.hxOffset + S.tension() * S.hxCountsPerN) : NAN; }
-inline void simSave(const gb::Saved& s) { S.nvs = s; S.nvsHas = true; S.saves++; }
+inline void simSave(const gb::Saved& s) { S.nvs = s; S.nvsHas = true; S.saves++; S.saveSeq = s.seq; S.saveT = S.t; }
 inline void simOut(const char* l) { S.out.push_back(l); if (getenv("SIMLOG")) printf("      [%6u] %s\n", (unsigned)S.t, l); }
 inline uint32_t simRand() { static uint32_t x = 12345; x = x * 1664525u + 1013904223u; return x; }
 

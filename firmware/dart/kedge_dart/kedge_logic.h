@@ -235,7 +235,7 @@ struct Kedge {
   uint32_t heldStart[NMOT] = {0, 0, 0, 0};             // when the current manual hold began
   int lastKeyDir[NMOT] = {0, 0, 0, 0}; bool bothLock[NMOT] = {false, false, false, false};                 // direction of the last accepted key per motor (hold continuity)
   // pair check state (two motors share the INA219, see pairCheck)
-  uint32_t pulseT = 0; bool paused = false, readDone = false; int pz = -1, hitsMain = 0, hitsOther = 0, pairKey = -1;
+  uint32_t pulseT = 0; bool paused = false, readDone = false; int pz = -1, hitsMain = 0, hitsOther = 0, hitsNoRise = 0, pairKey = -1;
   float bothMa = -1, soloMa = -1, bothMin = -1, railV = -1; bool needRise = false;
   uint32_t lastRunMs[NMOT] = {0, 0, 0, 0};
   Flight flight; Log log;
@@ -291,6 +291,10 @@ struct Kedge {
         // current changing while the worm pauses, which biases both - alone)
         bool rose = !needRise || (bothMin >= 0 && bothMa - bothMin > tu.riseFrac * (mainLim - lim(tu.freeMa[main])));
         hitsMain = (bothMa - soloMa > mainLim && rose) ? hitsMain + 1 : 0;
+        // a worm already at its stop when the step starts never shows a rise: 3 of the last 4 readings over the line
+        // also count (one noisy reading does not reset it; an auger change of up to about 100 mA cannot fake this)
+        hitsNoRise = ((hitsNoRise << 1) | (bothMa - soloMa > mainLim ? 1 : 0)) & 0xF;
+        if (__builtin_popcount(hitsNoRise) >= 3) hitsMain = 2;
         if (bothMin < 0 || bothMa < bothMin) bothMin = bothMa;
       }
       hitsOther = soloMa > otherLim ? hitsOther + 1 : 0;
@@ -301,7 +305,7 @@ struct Kedge {
     return r;
   }
   void endPause() { if (paused && pz >= 0 && dir[pz]) io.setMotor(pz, dir[pz], duty()); paused = false; pz = -1; bothMa = -1; }
-  void pairReset(uint32_t now) { endPause(); pulseT = now; readDone = false; hitsMain = hitsOther = 0; soloMa = -1; bothMin = -1; condT = 0; }
+  void pairReset(uint32_t now) { endPause(); pulseT = now; readDone = false; hitsMain = hitsOther = hitsNoRise = 0; soloMa = -1; bothMin = -1; condT = 0; }
   // stall of main (and of other while it runs): pair check while both run, plain threshold once other has stopped
   int stallPair(int main, int other, uint32_t now) {
     if (dir[other] && dir[main]) { needRise = true; return pairCheck(main, other, stallLim(main), stallLim(other), now); }
@@ -465,6 +469,7 @@ struct Kedge {
 
     bool run = running();
     if (!curOk) {                                     // no reading this tick: timers only, current checks wait for the next
+      if (paused && now - pulseT >= 150) { endPause(); pulseT = now; }   // never hold a worm paused longer than 150 ms
       // a step timer that ends now is a normal step end: the motor stops and the sequence moves on at the next good
       // read; only the kick's limits are faults (as with a good reading)
       for (int m = 0; m < NMOT; m++) if (dir[m] && (int32_t)(now - until[m]) >= 0) {
@@ -529,7 +534,11 @@ struct Kedge {
     uint32_t t = now - seqT0;
     switch (seq) {
       case K_SWING:
-        if (t > tu.surgeIgnoreMs && held(fMa > lim(tu.kickContactMa), tu.contactHoldMs, now)) {
+        if (t > tu.surgeIgnoreMs && held(fMa > lim(tu.kickContactMa), tu.contactHoldMs, now) && fMa > stallLim(KICK)) {
+          // already at stall level at the first contact: the kick was down already (a retried /auto); plant the foot alone
+          drive(KICK, 0, 0, now); drive(FOOT, +1, tu.footAfterMs * 2, now); seq = F_AFTER; seqT0 = now; condT = 0; pairReset(now);
+          ev("auto: kick already down, foot planting");
+        } else if (t > tu.surgeIgnoreMs && condT && now - condT >= tu.contactHoldMs) {
           drive(KICK, +1, tu.kickPlantMaxMs + 500, now); drive(FOOT, +1, tu.kickPlantMaxMs + 500, now); seq = K_PLANT; seqT0 = now; pairReset(now); ev("auto: foot touches, foot auger on");
         }
         break;

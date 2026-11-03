@@ -4,12 +4,12 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 20:33 Sydney time from commit `9402aa0`.
+Built 2026-11-04 06:14 Sydney time from commit `45a2e61`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
 says "From `some/file.md`", that text comes straight from the repo, so it is always the latest version. Re-build the
-guide after any change: `python3 docs/build/make_guide.py`.
+guide after any change, from the repo folder: `kedge/.venv/bin/python docs/build/make_guide.py`.
 
 
 
@@ -34,15 +34,16 @@ Write each number into `docs/build/MEASURE_RESULTS.md` (a fill-in sheet; print i
 2. Launch springs (B1 to B3), safety glasses on while a loaded spring hangs: free length with a steel rule or
    tape (the spring is longer than a caliper), then hang about 1, 2 and 3 kg of water bottles (weigh each load:
    W1, W2, W3 in kg) from ONE spring and measure hook to hook each time (L1, L2, L3 in mm). Both springs.
-   `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` gives the rate and initial tension. Enter the
-   weaker spring's numbers.
+   `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` gives the rate, the initial tension and the force
+   at full cock, for each spring. Enter the mean of the two springs' rate and initial tension; the STRONGER
+   spring's force at full cock decides the spring anchor holes (MEASURE_LIST B4: over 38.4 N, hole set F).
 3. Small parts (H1, H3, H4): drum N20 shaft, CSK20PP keyway depths, BTS7960 heatsink height and hole spacing.
 4. Count the parts box (group C): worm N20s (4 needed), the spare MP1584, 8 mm rod or M8 bolts, 693ZZ / F693ZZ left
-   after the dart, resistors (2 x 10 k, 1 k, 680 R, 100 k, 22 k), a small magnet for the AS5600, spare XT60s, and
-   the coupon extras (MEASURE_LIST C21).
+   after the dart (the base needs 6 x 693ZZ), resistors (2 x 10 k, 1 k, 680 R, 100 k, 22 k), a small magnet for
+   the AS5600, spare XT60s, and the coupon extras (MEASURE_LIST C21).
 5. Update the design with the numbers (build guide section 14, "After you measure"): the easy way is to open
    Claude Code in the repo, give it MEASURE_RESULTS.md and ask it to enter the numbers in params.py and re-run the
-   base pipeline. By hand: the commands are in that section.
+   base pipeline and the physics. By hand: the commands are in that section.
 
 ### 3. Buy
 
@@ -63,7 +64,7 @@ Write each number into `docs/build/MEASURE_RESULTS.md` (a fill-in sheet; print i
 ### 5. Do NOT do yet
 
 - Do not print the big base parts until the coupons pass AND the measurements are in params.py and the pipeline
-  has been re-run (the motor adapter, saddle and couplers depend on them).
+  has been re-run (the motor adapter, can stay and wiper shaft coupler depend on them).
 - Do not connect the LiPo to anything new. No wiring with a battery plugged in, ever.
 - Do not fit the launch springs (they go on at test stage 5).
 - Do not fire anything. When the time comes: never without the tether tied on.
@@ -121,7 +122,8 @@ Range today (from `base/out/ballistics.json`, 0.5 N payout brake, measured from 
    base-v1`. `git pull` updates it later.
 1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5 and A8), the springs (group B), and the
    parts in H1, H3, H4. Put the
-   numbers in `base/spec/params.py` and re-run the base pipeline. The base parts that touch the motor depend on
+   numbers in `base/spec/params.py` and re-run the base pipeline and the physics (section 14, "After you measure").
+   The base parts that touch the motor depend on
    them. A6 (speed, current) needs the base electronics: do it at step 7. A7 is optional. They change no
    printed part.
 2. Confirm the parts box (section 14, group C). The only purchase is 608 bearings (and an AS5600 magnet if none
@@ -195,7 +197,7 @@ Read this before any hands-on step.
   (about 40 N each at full cock against the 38.4 N rating of the Century C-243, decision D30, until the
   springs are measured): during shots stand beside the base,
   not behind or in front of the springs, and fit the printed spring guard if the pack has one. After B2, if the
-  force at full cock is over the rating, use the fallback hole set (MEASURE_LIST B4).
+  stronger spring's force at full cock is over the rating, use the fallback hole set (MEASURE_LIST B4).
 - **Line under tension:** the capstan never turns back (one-way bearing), so a towing line cannot be let off at the
   base. During any pull (hand test or tow) stand beside or behind the rover, never in line with the dart, glasses
   on. To slacken it, release the dart (`release`) or drive the rover toward the dart. Calibrate the current-to-
@@ -224,7 +226,7 @@ looking in the box.
 
 - Search: "608ZZ bearing 8x22x7" (or "608-2RS", sealed). Buy 10. Skateboard bearings are 608s and fine.
 - Specs: 8 mm bore, 22 mm outside, 7 mm wide, rated well over 10,000 rpm.
-- Uses: the base CAD uses 5 (storage reel and aim pedestal); the coupons borrow some for testing; the rest are spares. Axles: M8 bolt or 8 mm rod (check the box).
+- Uses: the base CAD uses 4 (2 in the aim crank, 2 in the storage reel); the coupons borrow some for testing; the rest are spares. Axles: M8 bolt or 8 mm rod (check the box).
 
 ## Possible extra purchases
 
@@ -246,7 +248,7 @@ looking in the box.
 | DRV8833 carrier | 1 | DRV8833 #3, freed from the dart by the new dart pin map |
 | MP1584 buck | 1 | MP1584 #2 from the dart build, set to 9.0 V |
 | N20 right-angle worm motor | 1 | Selector drum (count your N20s: section 14 C3) |
-| 693ZZ / F693ZZ bearings | as many as are left after the dart | Line pulleys (the dart uses 5 F693ZZ; count what is left, section 14 C20) |
+| 693ZZ bearings (3 x 8 x 4) | 6 | Lip roller, 3 rail pulleys, reel pulleys 1 and 2 (the dart uses 5 F693ZZ; count what is left, section 14 C20) |
 | CSK20PP one-way bearings (20 x 47 x 14) | 2 | #1 spring cock and fire, #2 capstan backstop |
 | Century 16 x 165.1 x 1.4 mm extension springs | 2 | Launch springs (Bunnings 0487961). Measure them (section 14 B) |
 | 608 bearings | 10 | The purchase |
@@ -259,6 +261,7 @@ looking in the box.
 | Lockmaner RC832 receiver, DIGITNOW USB capture, RCA lead | 1 each | Dart video in |
 | Razer Kiyo X | 1 | Rover camera |
 | Resistors 10 k x 2, 1 k, 680 R, 100 k, 22 k | | Pull-downs and dividers (firmware/base/WIRING.md) |
+| Perfboard about 55 x 31 mm | 1, optional | Two bay bosses take one (2 x M3 x 10) for the dividers and the 3V3 / GND buses; WIRING.md works without it (section 14 C22) |
 | M3 screws, M3 nuts, M3 brass heat-set inserts | | Frame joints and printed contacts |
 | Dupont jumpers, 14 / 18 / 22 / 26 AWG wire, heat shrink | | |
 
@@ -311,14 +314,14 @@ heat shrink and heat gun, caliper, hex keys, tweezers, kitchen scale, luggage sc
 | frame_camera_mount | frame | PLA | 1 | 166.5 | 166.5 | Kiyo X mount: its own clip grips the 16 mm edge plate (or a 1/4-20 screw), 4 x M3 x 10 into the deck |
 | frame_can_stay | frame | PLA | 1 | 28.4 | 28.4 | can stay: post on the motor plate (2 x M3 x 12 into plate inserts), cable tie or hose clamp round the can through the cradle slots; reprint with the adapter |
 | frame_cheek_r | frame | PLA | 1 | 182.5 | 182.5 | motor plate (y -10..0, front face = the spec's y 0): window for the puck adapter, 8 rim holes (M3 x 12 from the front into the puck lip), bridge to the motor leg (2 x M3 x 12), can stay and hood inserts; carved round the other subsystems |
-| frame_deck_1 | frame | PLA | 1 | 290.9 | 290.9 | deck: M3 inserts for every frame foot; 9 x M3 rover holes (it is its own drill template) |
+| frame_deck_1 | frame | PLA | 1 | 291.2 | 291.2 | deck: M3 inserts for every frame foot; 9 x M3 rover holes (it is its own drill template) |
 | frame_deck_2 | frame | PLA | 1 | 241.7 | 241.7 | deck: M3 inserts for every frame foot; 7 x M3 rover holes (it is its own drill template) |
-| frame_deck_3 | frame | PLA | 1 | 299.9 | 299.9 | deck: M3 inserts for every frame foot; 7 x M3 rover holes (it is its own drill template) |
+| frame_deck_3 | frame | PLA | 1 | 300.1 | 300.1 | deck: M3 inserts for every frame foot; 6 x M3 rover holes (it is its own drill template) |
 | frame_deck_4 | frame | PLA | 1 | 248.7 | 248.7 | deck: M3 inserts for every frame foot; 10 x M3 rover holes (it is its own drill template) |
 | frame_ebay | frame | PLA | 1 | 175.3 | 175.3 | electronics bay: ESP32-S3 cradle (USB slot), BTS7960 on standoffs with vents, DRV8833, MP1584, HX711 pockets, fuse cradle, wire exits with tie anchors |
 | frame_ebay_esp_clamp | frame | PLA | 1 | 1.6 | 1.6 | ESP32 hold-down over the module end, 2 x M3 x 8 into the cradle posts |
 | frame_ebay_lid | frame | PLA | 1 | 71.4 | 71.4 | bay lid: grille over the BTS7960, 4 x M3 into the corner bosses |
-| frame_guard_front | frame | PLA | 1 | 37.5 | 37.5 | front gear guard between the drum gears and the bay, M3 x 10 into the deck |
+| frame_guard_front | frame | PLA | 1 | 37.1 | 37.1 | front gear guard between the drum gears and the bay, M3 x 10 into the deck |
 | frame_guard_hood | frame | PLA | 1 | 26.2 | 26.2 | gear hood over the reel and bus gears, M3 x 10 through its lugs into the motor plate |
 | frame_motor_leg | frame | PLA | 1 | 117.3 | 117.3 | motor support leg (prints upright): 4 x M3 x 10 into the deck, 2 x M3 x 12 along y into the bridge behind the motor plate |
 | frame_rc832_holder | frame | PLA | 1 | 22.8 | 22.8 | RC832 holder: receiver stands antenna-end up in the slot, leads out low, 2 x M3 x 10 |
@@ -326,7 +329,7 @@ heat shrink and heat gun, caliper, hex keys, tweezers, kitchen scale, luggage sc
 | launch_aim_crankpin_clip | launch | PLA | 1 | 0.1 | 0.1 | Printed C clip on the crank pin, inboard of the conrod |
 | launch_aim_drag_pad | launch | PLA | 1 | 0.4 | 0.4 | Flexure drag pad: cantilever finger t 2, tip bump 0.45 into the sleeve d20 (strain 0.43 %, about 2.3 N), root block pushed axially into the arm hub pocket |
 | launch_aim_drag_shim | launch | PLA | 1 | 0.1 | 0.1 | Preload shim behind the drag pad root block (nominal; print up to 0.25 thicker for more drag, strain stays under 0.7 %) |
-| launch_aim_housing | launch | PLA | 1 | 178.9 | 178.9 | Aim housing on the deck (4 x M3): sleeve end bushing, countershaft bushings, worm saddles, M8 wheel bolt (head on the outer boss, nut in the inner face hex pocket), swing arm stop post |
+| launch_aim_housing | launch | PLA | 1 | 185.4 | 185.4 | Aim housing on the deck (4 x M3 x 10 from the top through its counterbored foot flanges into the deck inserts): sleeve end bushing, countershaft bushings, worm saddles, M8 wheel bolt (head on the outer boss, nut in the inner face hex pocket), engaged and swung-out swing arm stop posts |
 | launch_aim_idler_clip | launch | PLA | 1 | 0.1 | 0.1 | Printed C clip on the arm pin, holds the idler |
 | launch_aim_lugpin_clip | launch | PLA | 1 | 0.1 | 0.1 | Printed C clip on the lug pin, outboard of the conrod |
 | launch_carriage | launch | PLA | 1 | 59.6 | 59.6 | Carriage: rack, shoes, dart cradle, pusher with tether hole, spring arms and pegs, SW feet |
@@ -378,8 +381,8 @@ heat shrink and heat gun, caliper, hex keys, tweezers, kitchen scale, luggage sc
 | reel_spool | reel | PLA | 1 | 34.3 | 34.3 | Storage reel body: 20 m of 1 mm Dyneema on a dia 50 core, two 608s. Print rear flange down |
 | reel_spool_flange | reel | PLA | 1 | 9.9 | 9.9 | Front flange disc: keeps the front 608 in, carries the clutch friction ring. Print flat |
 | reel_sw_base | reel | PLA | 1 | 7.0 | 7.0 | SW_ARM contact base (printed switch, M3 head on M3 nut) |
-| reel_sw_bracket | reel | PLA | 1 | 20.5 | 20.5 | SW_ARM bracket: screwed to the wall below the gears. Print flat |
-| reel_sw_lever | reel | PLA | 1 | 1.3 | 1.3 | SW_ARM lever: the cup gear's bump presses its tip at home. Print on its side |
+| reel_sw_bracket | reel | PLA | 1 | 20.6 | 20.6 | SW_ARM bracket: screwed to the wall below the gears. Print flat |
+| reel_sw_lever | reel | PLA | 1 | 1.3 | 1.3 | SW_ARM lever: rides the cup gear's raised track (contact closed) and drops into its home notch (open). Print on its side |
 | reel_t | reel | PLA | 1 | 1.7 | 1.7 | Thrust ring: the rocker pushes it onto the rear 608 inner race |
 | reel_wall | reel | PLA | 1 | 204.8 | 204.8 | Reel wall: foot, guide eye post, rocker ears, stop pins, brake guides and crank boss. Print on its foot |
 | sensors_as5600_carrier | sensors | PLA | 1 | 12.7 | 12.7 | AS5600 carrier: plate with 4 pegs through the board holes, column screwed to the aim housing spine |
@@ -388,12 +391,12 @@ heat shrink and heat gun, caliper, hex keys, tweezers, kitchen scale, luggage sc
 | sensors_sw_gap | sensors | PLA | 1 | 9.9 | 9.9 | SW_GAP printed contact base (cad.lib.switch, coupon 2 geometry): with its arm screwed to the right rail cheek outer face below the big gear, closed by the big gear cam bump (gear in its gap) |
 | sensors_sw_gap_lever | sensors | PLA | 1 | 1.4 | 1.4 | SW_GAP lever, t 1.4 mm, print on its side so layers run along the beam |
 | sensors_sw_rail_low | sensors | PLA | 1 | 7.3 | 7.3 | SW_RAIL_LOW printed contact base (cad.lib.switch, coupon 2 geometry): on its bracket on the aim housing foot, closed by the crank cam at the LOW dead point |
-| sensors_sw_rail_low_bracket | sensors | PLA | 1 | 17.6 | 17.6 | SW_RAIL_LOW bracket on the aim housing foot extension; the housing's 4th deck screw (M3x20 from below instead of the shorter one) goes on up into its foot |
+| sensors_sw_rail_low_bracket | sensors | PLA | 1 | 17.8 | 17.8 | SW_RAIL_LOW bracket on the aim housing foot extension: an M3x10 into the extension and its own deck screw, an M3x16 from the top through the counterbored foot and the extension into a deck insert |
 | sensors_sw_rail_low_lever | sensors | PLA | 1 | 1.3 | 1.3 | SW_RAIL_LOW lever, t 1.4 mm, print on its side so layers run along the beam |
 | drum_axle | drum | PPA-CF | 1 | 13.1 | 13.1 | Fixed drum axle d10, pressed into brackets A and B |
 | drum_collar | drum | PPA-CF | 1 | 44.0 | 44.0 | Dog collar: hex bore, 4 back-cut roofed dogs each face, fork groove (bridges over the lower dogs) |
 | drum_coupler | drum | PPA-CF | 1 | 89.3 | 89.3 | Coupler: 5 N m shear pin limiter (D8), bus gear 50T m1.5 (D25), SW_INDEX cam, REEL journal, hex socket; prints hub end down, tree support under the bus gear ring |
-| drum_coupler_hub | drum | PPA-CF | 1 | 11.2 | 11.2 | Coupler hub on the wiper shaft (bore parametric: WIPER), M8 nut inside, shear pin hole |
+| drum_coupler_hub | drum | PPA-CF | 1 | 14.6 | 14.6 | Coupler hub on the wiper shaft (bore parametric: WIPER), M8 nut inside, shear pin hole |
 | drum_dogring_launch | drum | PPA-CF | 1 | 19.0 | 19.0 | LAUNCH dog ring: 3 slots for the launch sleeve lugs, 3 x M3 from the sleeve side |
 | drum_gear_reel | drum | PPA-CF | 1 | 95.9 | 95.9 | REEL output gear m2 50T face 12 (D20), free on its sleeve, dog face toward the collar |
 | drum_idler | drum | PPA-CF | 1 | 7.6 | 7.6 | Wrap idler shaft: pinion 10T m1.25 (locked at home by the drum lock arc), lock cam, two journals |
@@ -402,7 +405,7 @@ heat shrink and heat gun, caliper, hex keys, tweezers, kitchen scale, luggage sc
 | drum_rail | drum | PPA-CF | 1 | 13.1 | 13.1 | Shift rail d10, pressed into brackets A and B |
 | drum_reel_washer | drum | PPA-CF | 1 | 0.9 | 0.9 | REEL gear retaining washer on the coupler journal end, 2 x M3 x 6 |
 | drum_shaft | drum | PPA-CF | 1 | 45.2 | 45.2 | Main shaft: hex 22 AF, d12 spigot into the launch sleeve; prints on a hex flat (support under the spigot) |
-| frame_motor_adapter | frame | PPA-CF | 1 | 278.0 | 278.0 | puck adapter: slotted M6 holes (+-4 mm) for the motor bosses, rear lip with 8 M3 inserts for the rim screws, 2 inserts for cad-drum's SW_INDEX block; reprint when the motor is measured |
+| frame_motor_adapter | frame | PPA-CF | 1 | 276.3 | 276.3 | puck adapter: slotted M6 holes (+-4 mm) for the motor bosses, rear lip with 8 M3 inserts for the rim screws, tether channels open to the edge; reprint when the motor is measured |
 | launch_aim_arm | launch | PPA-CF | 1 | 6.6 | 6.6 | Swing arm on the sleeve, dragged by the printed PLA flexure pad in its hub; printed idler pin with a printed C clip groove |
 | launch_aim_bevel30 | launch | PPA-CF | 1 | 8.8 | 8.8 | Bevel m1.5 z30 on the countershaft D flat, drives the z15 2:1 |
 | launch_aim_conrod | launch | PPA-CF | 1 | 14.2 | 14.2 | Conrod 156 between pin centres (PPA-CF), printed C clips on both pins |
@@ -429,11 +432,11 @@ heat shrink and heat gun, caliper, hex keys, tweezers, kitchen scale, luggage sc
 | reel_exit_post | reel | PPA-CF | 1 | 70.6 | 70.6 | Exit eye post with the pulley 1 fork: carries the full tow load, so PPA-CF. Print on its foot |
 | reel_gc | reel | PPA-CF | 1 | 18.1 | 18.1 | Capstan gear m2 z22: driven by the drum's REEL output gear (50T) |
 | reel_gi | reel | PPA-CF | 1 | 11.3 | 11.3 | Swing idler m1.5 z30: meshes the reel gear only on forward wiper turns |
-| reel_gk | reel | PPA-CF | 1 | 9.9 | 9.9 | Cup gear m1.5 z24: driven by the drum's wrap idler; the bump on its back trips SW_ARM |
+| reel_gk | reel | PPA-CF | 1 | 9.9 | 9.9 | Cup gear m1.5 z24: driven by the drum's wrap idler; the raised track on its back holds SW_ARM closed, the notch at home lets it open |
 | reel_gr | reel | PPA-CF | 1 | 4.7 | 4.7 | Reel gear m1.5 z20: turns the clutch disk 2.5 x wiper speed |
 | reel_k | reel | PPA-CF | 1 | 11.8 | 11.8 | Cup shaft: runs inside the capstan tube, cup in front, cup gear behind. Print standing |
 | reel_p2_fork | reel | PPA-CF | 1 | 4.0 | 4.0 | Pulley 2 swivel fork: turns about the incoming line so the groove follows the line to the rail |
-| reel_p2_post | reel | PPA-CF | 1 | 56.4 | 56.4 | Pulley 2 post: stands on the deck beside the drum, turns the line into the rail pivot pulley's plane |
+| reel_p2_post | reel | PPA-CF | 1 | 57.4 | 57.4 | Pulley 2 post: stands on the deck beside the drum, turns the line into the rail pivot pulley's plane |
 | reel_rocker | reel | PPA-CF | 1 | 6.1 | 6.1 | Brake rocker: flexible PPA-CF lever = clutch spring, pushed by the crank. Print flat |
 | reel_s | reel | PPA-CF | 1 | 14.5 | 14.5 | Reel shaft: 608 journals, head = clutch disk, D flat for the reel gear. Print head down |
 | reel_sprag_hub | reel | PPA-CF | 1 | 44.4 | 44.4 | Sprag hub: holds the CSK20PP backstop and bushes the capstan tube. Print front face down |
@@ -443,8 +446,8 @@ heat shrink and heat gun, caliper, hex keys, tweezers, kitchen scale, luggage sc
 
 | material | parts | mass g | filament m (1.75 mm) |
 |---|---|---|---|
-| PLA | 108 | 3828 | 1283.5 |
-| PPA-CF | 48 | 1432 | 476.3 |
+| PLA | 108 | 3835 | 1285.8 |
+| PPA-CF | 48 | 1435 | 477.2 |
 
 #### Bought parts
 
@@ -466,7 +469,7 @@ heat shrink and heat gun, caliper, hex keys, tweezers, kitchen scale, luggage sc
 | M3 nut (jam) | 2 | sensors_sw_rail_low_screw, sensors_sw_gap_screw |
 | M3 nyloc nut | 1 | launch_muzzle_roller_axle |
 | M3x10 self tap | 2 | launch_guard_l_b2, launch_guard_r_b2 |
-| M3x10 self tap (lever clamp) | 4 | sensors_sw_rail_low_lever, sensors_sw_gap_lever |
+| M3x10 self tap (lever clamp) | 6 | reel_sw_lever, sensors_sw_rail_low_lever, sensors_sw_gap_lever |
 | M3x10 SHCS | 2 | sensors_sw_rail_low_screw, sensors_sw_gap_screw |
 | M3x10 SHCS (foot into the housing) | 1 | sensors_sw_rail_low_bracket |
 | M3x10 SHCS + 2 M3 nuts | 1 | reel_sw_hw |
@@ -475,13 +478,14 @@ heat shrink and heat gun, caliper, hex keys, tweezers, kitchen scale, luggage sc
 | M3x12 SHCS | 2 | sensors_as5600_strip_top, sensors_as5600_strip_bot |
 | M3x12 SHCS (arm into the right cheek) | 2 | sensors_sw_gap |
 | M3x16 SHCS | 5 | launch_muzzle_roller_axle, reel_bar_screws |
+| M3x16 SHCS (deck screw) | 1 | sensors_sw_rail_low_bracket |
 | M3x16 SHCS (into the housing spine) | 2 | sensors_as5600_carrier |
 | M3x20 SHCS | 2 | reel_crank_screw, reel_p1_axle |
 | M3x20 SHCS + nyloc nut | 4 | launch_pulley_top_axle, launch_pulley_bot_axle, launch_pulley_piv_axle, reel_p2_axle |
 | M3x25 SHCS + M3 nut | 1 | reel_rocker_pin |
 | M3x6 SHCS | 2 | launch_sw_seated_screw, launch_sw_home_screw |
-| M3x8 self tap (base to bracket) | 4 | sensors_sw_rail_low |
-| M3x8 SHCS | 6 | reel_hub_screws, reel_trim_screws |
+| M3x8 self tap (base to bracket) | 8 | reel_sw_base, sensors_sw_rail_low |
+| M3x8 SHCS | 8 | reel_hub_screws, reel_trim_screws, reel_sw_bracket |
 | M8 hex nut ISO 4032 | 1 | launch_aim_nut |
 | M8x25 hex bolt ISO 4017 | 1 | launch_aim_bolt |
 | STEMMA QT JST SH 4 pin cable | 1 | sensors_as5600 |
@@ -553,7 +557,11 @@ Print settings (the 3MF files carry geometry only: set material and settings in 
 | Base plates, PLA | PLA | 0.2 mm | 4 | 40% gyroid | 5 / 5 | 0, unless the coupons showed a fit off |
 | Base plates, PPA-CF | PPA-CF | 0.2 mm | 6 | 60% gyroid | 6 / 6 | 0, unless the coupons showed a fit off |
 
-No supports on any plate. The base print sheet (below) has the final word for each part.
+Supports: none on the coupon plates and the dart plates. The base plates do need them: the base print sheet
+(below) has a supports column, and on every plate that holds a part marked "yes, tree supports from the plate",
+turn supports on in Bambu Studio (type tree, "On build plate only"). The two carriage stop flexures
+(`launch_stop_spring_l` and `launch_stop_spring_r`) also need 100 % infill (all perimeters), set on that object.
+The base print sheet has the final word for each part.
 
 Hole compensation is a process setting in Bambu Studio, "X-Y hole compensation" (Process, Quality tab; the name may
 move between versions). It is saved with each project, so check it on every plate.
@@ -573,7 +581,7 @@ Two plates from the base print pack with small test pieces of the riskiest featu
 contact, dog clutch, slip clutch, bearing seats, heat-set inserts and nut traps, key rib, gear meshes, shear pin.
 Print them, then work through the test sheet. Do not print the big base parts until every coupon passes.
 
-Plates: `base/pack/coupons/risk_plate_1_PLA.3mf` (PLA, 23 pieces) and `risk_plate_2_PPA-CF.3mf` (PPA-CF, 26 pieces). Each
+Plates: `base/pack/coupons/risk_plate_1_PLA.3mf` (PLA, 24 pieces) and `risk_plate_2_PPA-CF.3mf` (PPA-CF, 26 pieces). Each
 piece is also there on its own (`base/pack/coupons/rcN_*.stl`) for a reprint. A printable copy of the test sheet is
 `base/pack/coupons/COUPON_TEST.pdf`. The coupons need a few bought parts (MEASURE_LIST C21): M3 screws and a jam
 nut, heat-set inserts, one each of 608ZZ, F693ZZ and 693ZZ, a CSK20PP.
@@ -610,19 +618,19 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 
 | plate | material | objects |
 |---|---|---|
-| risk_plate_1_PLA.3mf | PLA | 23 |
+| risk_plate_1_PLA.3mf | PLA | 24 |
 | risk_plate_2_PPA-CF.3mf | PPA-CF | 26 |
 
 #### Tests
 
 ##### 1. Swing-arm direction splitter
 
-- Parts: rc1_plate, rc1_sleeve, rc1_sun, rc1_arm, rc1_drag_pad, rc1_drag_shim, rc1_idler_clip, rc1_idler, rc1_output, rc1_crank, rc1_stop
-- Bought: 2 x M3x16 (stop finger); everything else printed
-- Do: Push the drag pad root block and the shim into the arm hub pocket (finger in its recess). On the plate: sleeve on the centre pin, sun on its rib, arm on the sleeve above the sun with its pin down through the idler, printed C clip into the pin groove, output on its pin, crank on top, stop finger on the column (2 x M3x16). Turn the crank 10 turns each way.
-- Pass: Clockwise seen from above: the arm swings the idler into the output at once and the output turns, no skipped teeth. Anticlockwise: the arm swings out to the finger within about 20 deg of crank, the idler runs free and the output stays still. No jam at engagement. The pad drags the arm reliably both ways and the clip stays on.
-- If it fails, change: launch_aim.py: FIT (pin and bore play), DRAG_INT and DRAG_SHIM_ADJ (drag: or print a thicker shim), clips.py for the C clip, A() alpha_d = alpha_e + 20 (swing out), _stop_post_xy; launch_gears.py center_distance extra / spur backlash (mesh).
-- Made from: launch_aim.sun_solid, arm_solid, idler_solid (m1.5 z30/18/30, face 12, FIT 0.35), launch_gears.spur for the output, launch_aim.A: centre distances 36.10 / 36.10, output at (11.7, 68.4), engaged arm 96.2 deg, stop 116.2 deg (launch_aim._stop_post_xy), sleeve rib launch.RIB_W 6 / RIB_R 12.8; drag_pad_solid, drag_shim_solid (DRAG_INT 0.45, shim up to +0.25), pin_clip_solid
+- Parts: rc1_plate, rc1_sleeve, rc1_sun, rc1_arm, rc1_drag_pad, rc1_drag_shim, rc1_idler_clip, rc1_idler, rc1_output, rc1_crank, rc1_stop, rc1_stop_e
+- Bought: 4 x M3x16 (two stop fingers); everything else printed
+- Do: Push the drag pad root block and the shim into the arm hub pocket (finger in its recess). On the plate: sleeve on the centre pin, sun on its rib, arm on the sleeve above the sun with its pin down through the idler, printed C clip into the pin groove, output on its pin, crank on top, the two stop fingers on their columns (2 x M3x16 each). Turn the crank 10 turns each way.
+- Pass: Clockwise seen from above: the arm swings the idler into the output at once and comes to rest on the engaged stop finger, the output turns, no skipped teeth. Brake the output lightly with a finger and keep turning: the arm stays on that finger (the idler is held at full depth, never pulled in deeper) and the crank still turns smoothly, no binding. Anticlockwise: the arm swings out to the other finger within about 20 deg of crank, the idler runs free and the output stays still. No jam at engagement. The pad drags the arm reliably both ways and the clip stays on.
+- If it fails, change: launch_aim.py: FIT (pin and bore play), DRAG_INT and DRAG_SHIM_ADJ (drag: or print a thicker shim), clips.py for the C clip, A() alpha_d = alpha_e + 20 (swing out), _stop_post_xy (swung-out stop), _stop_post_e_xy (engaged stop: binding with the output braked means it lets the idler in too deep); launch_gears.py center_distance extra / spur backlash (mesh).
+- Made from: launch_aim.sun_solid, arm_solid, idler_solid (m1.5 z30/18/30, face 12, FIT 0.35), launch_gears.spur for the output, launch_aim.A: centre distances 36.10 / 36.10, output at (11.7, 68.4), engaged arm 96.2 deg on the engaged stop (launch_aim._stop_post_e_xy), swung out 116.2 deg on the other stop (launch_aim._stop_post_xy), sleeve rib launch.RIB_W 5.8 / RIB_R 12.6; drag_pad_solid, drag_shim_solid (DRAG_INT 0.45, shim up to +0.25), pin_clip_solid
 
 ##### 2. Printed contact switch
 
@@ -709,7 +717,7 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 
 | part | material | qty | print bbox mm | what |
 |---|---|---|---|---|
-| rc1_plate | PLA | 1 | 83.3 x 83.2 x 33.1 | Splitter base: centre pin d8, output pin d8, stop finger column (2 x M3 tap) |
+| rc1_plate | PLA | 1 | 110.1 x 82.2 x 33.1 | Splitter base: centre pin d8, output pin d8, two stop finger columns (2 x M3 tap each) |
 | rc1_sleeve | PPA-CF | 1 | 26.0 x 26.0 x 29.3 | Sleeve stub d20 with the integral key rib (launch.RIB_W, RIB_R) under the sun and the crank |
 | rc1_sun | PPA-CF | 1 | 47.8 x 48.0 x 12.0 | launch_aim.sun_solid: sun m1.5 z30 as built |
 | rc1_arm | PPA-CF | 1 | 61.4 x 41.0 x 19.3 | launch_aim.arm_solid: swing arm as built (drag pad pocket, d8 pin, clip groove) |
@@ -719,7 +727,8 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 | rc1_idler | PPA-CF | 1 | 30.0 x 29.7 x 12.0 | launch_aim.idler_solid: idler m1.5 z18 as built |
 | rc1_output | PPA-CF | 1 | 47.8 x 48.0 x 12.0 | Output m1.5 z30 (launch_gears.spur, face 12) on a d8 pin |
 | rc1_crank | PPA-CF | 1 | 48.2 x 30.3 x 20.0 | Hand crank, keyed on the sleeve rib like the sun |
-| rc1_stop | PLA | 1 | 47.1 x 10.0 x 6.4 | Stop finger: rounded end at the as-built stop post position |
+| rc1_stop | PLA | 1 | 47.1 x 10.0 x 6.4 | Stop finger: rounded end at the as-built swung-out stop post position |
+| rc1_stop_e | PLA | 1 | 64.4 x 10.0 x 6.4 | Engaged stop finger: rounded end at the as-built engaged stop post position (launch_aim._stop_post_e_xy) |
 | rc2_switch_base | PLA | 1 | 54.0 x 35.0 x 11.5 | contact_switch base: pad, nut pillar, hard stop, wire channel |
 | rc2_switch_lever | PLA | 1 | 50.0 x 5.0 x 8.0 | contact_switch lever, printed on its side (Y up) |
 | rc3_base | PLA | 1 | 40.0 x 91.5 x 97.5 | Base: d30 journal (REEL sleeve) and hex 22 AF (main shaft), rail hole (press) |
@@ -931,11 +940,10 @@ the plates as 3MF, and the material for each part.
 
 ### Print sheet
 
-Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times are rough estimates: walls and infill per material from the settings below, volume at a typical print rate plus 5 s per 0.2 mm layer, the layer time counted once per plate.
+Generated 2026-11-03 15:57. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times are rough estimates: walls and infill per material from the settings below, volume at a typical print rate plus 5 s per 0.2 mm layer, the layer time counted once per plate.
 
 #### Warnings
 
-- sensors_sw_rail_low_bracket: STL is not watertight once coincident vertices are merged (the mesh touches itself along an edge or point); slicers may flag it, fix the model
 - launch_guard_l_a: print bbox 250.0 x 49.0 fits the bed but not inside the 5 mm margin; printed alone, centred on its own plate
 - launch_guard_r_a: print bbox 250.0 x 49.0 fits the bed but not inside the 5 mm margin; printed alone, centred on its own plate
 
@@ -943,13 +951,13 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 
 | part | material | qty | print bbox mm | volume cm3 | mass g (each) | time h (each, alone) | overhang mm2 | supports |
 |---|---|---|---|---|---|---|---|---|
-| frame_deck_3 | PLA | 1 | 220.5 x 211.3 x 8.0 | 356.7 | 299.9 | 7.52 | 0 | no |
-| frame_deck_1 | PLA | 1 | 220.5 x 211.3 x 8.0 | 345.9 | 290.9 | 7.30 | 0 | no |
+| frame_deck_3 | PLA | 1 | 220.5 x 211.3 x 8.0 | 356.6 | 300.1 | 7.52 | 0 | no |
+| frame_deck_1 | PLA | 1 | 220.5 x 211.3 x 8.0 | 345.5 | 291.2 | 7.30 | 0 | no |
 | frame_deck_4 | PLA | 1 | 220.5 x 169.3 x 8.0 | 294.3 | 248.7 | 6.25 | 0 | no |
 | frame_deck_2 | PLA | 1 | 220.5 x 169.3 x 8.0 | 285.6 | 241.7 | 6.07 | 0 | no |
 | frame_camera_mount | PLA | 1 | 58.0 x 72.0 x 236.4 | 236.8 | 166.5 | 5.79 | 672 | yes, tree supports from the plate (672 mm2 over 45 deg) |
 | frame_cheek_r | PLA | 1 | 215.0 x 220.0 x 30.0 | 213.6 | 182.5 | 4.75 | 5227 | yes, tree supports from the plate (5227 mm2 over 45 deg) |
-| launch_aim_housing | PLA | 1 | 160.9 x 50.4 x 183.0 | 206.1 | 178.9 | 5.72 | 753 | yes, tree supports from the plate (753 mm2 over 45 deg) |
+| launch_aim_housing | PLA | 1 | 176.5 x 59.0 x 183.0 | 212.8 | 185.4 | 5.89 | 761 | yes, tree supports from the plate (761 mm2 over 45 deg) |
 | launch_rail_mid | PLA | 1 | 123.5 x 68.0 x 170.0 | 205.6 | 183.0 | 5.74 | 2613 | yes, tree supports from the plate (2613 mm2 over 45 deg) |
 | reel_wall | PLA | 1 | 169.5 x 82.0 x 138.4 | 205.1 | 204.8 | 6.06 | 604 | yes, tree supports from the plate (604 mm2 over 45 deg) |
 | drum_drum_a | PLA | 1 | 97.1 x 97.1 x 75.0 | 195.6 | 146.5 | 4.17 | 732 | yes, tree supports from the plate (732 mm2 over 45 deg) |
@@ -966,7 +974,7 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 | launch_carriage | PLA | 1 | 205.2 x 240.2 x 43.0 | 48.0 | 59.6 | 1.78 | 6453 | yes, tree supports from the plate (6453 mm2 over 45 deg) |
 | drum_bracket_a | PLA | 1 | 104.9 x 117.0 x 6.7 | 37.5 | 37.7 | 0.99 | 32 | no |
 | frame_can_stay | PLA | 1 | 55.0 x 55.0 x 71.0 | 31.0 | 28.4 | 1.20 | 906 | yes, tree supports from the plate (906 mm2 over 45 deg) |
-| frame_guard_front | PLA | 1 | 155.0 x 104.0 x 16.4 | 30.3 | 37.5 | 1.05 | 40 | no |
+| frame_guard_front | PLA | 1 | 155.0 x 104.0 x 16.4 | 29.9 | 37.1 | 1.04 | 40 | no |
 | reel_spool | PLA | 1 | 80.0 x 80.0 x 24.1 | 27.6 | 34.3 | 1.02 | 329 | yes, tree supports from the plate (329 mm2 over 45 deg) |
 | launch_stop_frame_l | PLA | 1 | 174.6 x 53.0 x 55.1 | 26.3 | 32.7 | 1.20 | 541 | yes, tree supports from the plate (541 mm2 over 45 deg) |
 | launch_stop_frame_r | PLA | 1 | 174.6 x 53.0 x 55.1 | 26.3 | 32.7 | 1.20 | 541 | yes, tree supports from the plate (541 mm2 over 45 deg) |
@@ -974,11 +982,11 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 | frame_guard_hood | PLA | 1 | 122.0 x 60.0 x 14.4 | 21.1 | 26.2 | 0.75 | 84 | no |
 | drum_fork | PLA | 1 | 87.1 x 94.1 x 83.0 | 21.0 | 25.9 | 1.22 | 1302 | yes, tree supports from the plate (1302 mm2 over 45 deg) |
 | launch_carriage_yoke | PLA | 1 | 43.3 x 126.6 x 28.0 | 18.9 | 23.5 | 0.78 | 1406 | yes, tree supports from the plate (1406 mm2 over 45 deg) |
-| reel_sw_bracket | PLA | 1 | 39.5 x 63.0 x 57.9 | 18.6 | 20.5 | 0.91 | 334 | yes, tree supports from the plate (334 mm2 over 45 deg) |
+| reel_sw_bracket | PLA | 1 | 39.5 x 63.0 x 57.9 | 18.6 | 20.6 | 0.92 | 334 | yes, tree supports from the plate (334 mm2 over 45 deg) |
 | frame_rc832_holder | PLA | 1 | 97.0 x 21.6 x 40.0 | 18.4 | 22.8 | 0.84 | 0 | no |
 | drum_switch_block | PLA | 1 | 26.0 x 51.0 x 24.0 | 18.1 | 16.6 | 0.58 | 216 | yes, tree supports from the plate (216 mm2 over 45 deg) |
 | launch_guard_r_b2 | PLA | 1 | 145.3 x 32.5 x 40.0 | 17.6 | 21.8 | 0.82 | 56 | no |
-| sensors_sw_rail_low_bracket | PLA | 1 | 27.4 x 48.0 x 74.0 | 15.9 | 17.6 | 0.95 | 70 | no |
+| sensors_sw_rail_low_bracket | PLA | 1 | 31.0 x 48.0 x 74.0 | 16.1 | 17.8 | 0.96 | 65 | no |
 | launch_guard_l_b2 | PLA | 1 | 145.3 x 32.5 x 40.0 | 14.4 | 17.9 | 0.72 | 33 | no |
 | drum_bracket_idler2 | PLA | 1 | 50.1 x 141.0 x 6.0 | 13.9 | 16.2 | 0.44 | 32 | no |
 | sensors_as5600_carrier | PLA | 1 | 34.0 x 67.5 x 11.0 | 12.4 | 12.7 | 0.39 | 90 | no |
@@ -1046,12 +1054,12 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 | launch_seat_clip | PLA | 1 | 5.6 x 5.6 x 2.4 | 0.1 | 0.1 | 0.02 | 0 | no |
 | launch_muzzle_washer_l | PLA | 1 | 6.2 x 6.2 x 0.9 | 0.0 | 0.0 | 0.01 | 0 | no |
 | launch_muzzle_washer_r | PLA | 1 | 6.2 x 6.2 x 0.9 | 0.0 | 0.0 | 0.01 | 0 | no |
-| frame_motor_adapter | PPA-CF | 1 | 194.0 x 194.0 x 16.0 | 255.5 | 278.0 | 12.47 | 6706 | yes, tree supports from the plate (6706 mm2 over 45 deg) |
+| frame_motor_adapter | PPA-CF | 1 | 194.0 x 194.0 x 16.0 | 252.9 | 276.3 | 12.39 | 6734 | yes, tree supports from the plate (6734 mm2 over 45 deg) |
 | launch_big_gear | PPA-CF | 1 | 105.0 x 105.0 x 27.3 | 184.2 | 177.6 | 8.09 | 639 | yes, tree supports from the plate (639 mm2 over 45 deg) |
 | drum_gear_reel | PPA-CF | 1 | 104.0 x 103.9 x 19.0 | 87.9 | 95.9 | 4.39 | 0 | no |
 | drum_coupler | PPA-CF | 1 | 78.0 x 77.9 x 61.5 | 79.6 | 89.3 | 4.40 | 1998 | yes, tree supports from the plate (1998 mm2 over 45 deg) |
 | reel_exit_post | PPA-CF | 1 | 40.0 x 44.0 x 125.8 | 67.8 | 70.6 | 4.01 | 207 | yes, tree supports from the plate (207 mm2 over 45 deg) |
-| reel_p2_post | PPA-CF | 1 | 101.8 x 28.0 x 123.0 | 48.5 | 56.4 | 3.36 | 1280 | yes, tree supports from the plate (1280 mm2 over 45 deg) |
+| reel_p2_post | PPA-CF | 1 | 101.8 x 29.0 x 125.0 | 50.5 | 57.4 | 3.42 | 1198 | yes, tree supports from the plate (1198 mm2 over 45 deg) |
 | drum_shaft | PPA-CF | 1 | 170.3 x 25.4 x 22.0 | 42.7 | 45.2 | 2.16 | 922 | yes, tree supports from the plate (922 mm2 over 45 deg) |
 | reel_drum | PPA-CF | 1 | 46.0 x 46.0 x 43.0 | 41.0 | 44.5 | 2.27 | 251 | yes, tree supports from the plate (251 mm2 over 45 deg) |
 | launch_sleeve | PPA-CF | 1 | 64.0 x 64.0 x 85.0 | 39.4 | 49.3 | 2.78 | 2907 | yes, tree supports from the plate (2907 mm2 over 45 deg) |
@@ -1068,13 +1076,13 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 | launch_aim_sun | PPA-CF | 1 | 48.0 x 47.8 x 12.0 | 14.6 | 18.3 | 0.89 | 0 | no |
 | reel_gc | PPA-CF | 1 | 48.0 x 47.7 x 12.8 | 14.5 | 18.1 | 0.89 | 0 | no |
 | launch_aim_lug | PPA-CF | 1 | 30.0 x 58.0 x 27.8 | 13.6 | 16.9 | 0.95 | 995 | yes, tree supports from the plate (995 mm2 over 45 deg) |
+| drum_coupler_hub | PPA-CF | 1 | 26.0 x 26.0 x 32.5 | 11.7 | 14.6 | 0.88 | 37 | no |
 | reel_s | PPA-CF | 1 | 62.0 x 62.0 x 55.5 | 11.6 | 14.5 | 1.03 | 11 | no |
 | launch_aim_conrod | PPA-CF | 1 | 173.0 x 17.0 x 6.0 | 11.3 | 14.2 | 0.67 | 0 | no |
 | drum_axle | PPA-CF | 1 | 141.0 x 10.0 x 9.0 | 10.5 | 13.1 | 0.64 | 0 | no |
 | drum_rail | PPA-CF | 1 | 141.0 x 10.0 x 9.0 | 10.5 | 13.1 | 0.64 | 0 | no |
 | reel_k | PPA-CF | 1 | 10.0 x 10.0 x 125.8 | 9.4 | 11.8 | 1.40 | 32 | no |
 | reel_gi | PPA-CF | 1 | 48.0 x 47.8 x 6.0 | 9.1 | 11.3 | 0.55 | 0 | no |
-| drum_coupler_hub | PPA-CF | 1 | 26.0 x 26.0 x 23.0 | 9.0 | 11.2 | 0.66 | 37 | no |
 | reel_gk | PPA-CF | 1 | 38.9 x 38.9 x 10.6 | 8.0 | 9.9 | 0.52 | 668 | yes, tree supports from the plate (668 mm2 over 45 deg) |
 | launch_aim_bevel30 | PPA-CF | 1 | 52.6 x 52.4 x 9.7 | 7.0 | 8.8 | 0.46 | 590 | yes, tree supports from the plate (590 mm2 over 45 deg) |
 | reel_bar | PPA-CF | 1 | 153.5 x 18.6 x 15.8 | 6.3 | 7.9 | 0.46 | 0 | no |
@@ -1095,13 +1103,13 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 | launch_seat_pushrod | PPA-CF | 1 | 16.0 x 4.8 x 3.6 | 0.1 | 0.2 | 0.03 | 0 | no |
 | reel_crank_washer | PPA-CF | 1 | 12.0 x 12.0 x 1.2 | 0.1 | 0.2 | 0.02 | 0 | no |
 
-- **frame_deck_3**: As modelled, bottom face on the bed. deck: M3 inserts for every frame foot; 7 x M3 rover holes (it is its own drill template)
+- **frame_deck_3**: As modelled, bottom face on the bed. deck: M3 inserts for every frame foot; 6 x M3 rover holes (it is its own drill template)
 - **frame_deck_1**: As modelled, bottom face on the bed. deck: M3 inserts for every frame foot; 9 x M3 rover holes (it is its own drill template)
 - **frame_deck_4**: As modelled, bottom face on the bed. deck: M3 inserts for every frame foot; 10 x M3 rover holes (it is its own drill template)
 - **frame_deck_2**: As modelled, bottom face on the bed. deck: M3 inserts for every frame foot; 7 x M3 rover holes (it is its own drill template)
 - **frame_camera_mount**: As modelled, bottom face on the bed. Kiyo X mount: its own clip grips the 16 mm edge plate (or a 1/4-20 screw), 4 x M3 x 10 into the deck
 - **frame_cheek_r**: Rotated: the part's -y axis points up. motor plate (y -10..0, front face = the spec's y 0): window for the puck adapter, 8 rim holes (M3 x 12 from the front into the puck lip), bridge to the motor leg (2 x M3 x 12), can stay and hood inserts; carved round the other subsystems
-- **launch_aim_housing**: As modelled, bottom face on the bed. Aim housing on the deck (4 x M3): sleeve end bushing, countershaft bushings, worm saddles, M8 wheel bolt (head on the outer boss, nut in the inner face hex pocket), swing arm stop post
+- **launch_aim_housing**: As modelled, bottom face on the bed. Aim housing on the deck (4 x M3 x 10 from the top through its counterbored foot flanges into the deck inserts): sleeve end bushing, countershaft bushings, worm saddles, M8 wheel bolt (head on the outer boss, nut in the inner face hex pocket), engaged and swung-out swing arm stop posts
 - **launch_rail_mid**: Rotated: the part's -x axis points up. Rail mid piece: shoe track, cheeks on the sleeve, big gear pin bosses, lever seats, SW_GAP bracket pilots
 - **reel_wall**: Rotated: the part's +y axis points up. Reel wall: foot, guide eye post, rocker ears, stop pins, brake guides and crank boss. Print on its foot
 - **drum_drum_a**: As modelled, bottom face on the bed. Drum A: N20 gear 120T m0.8, brake cam, wrap segment gear + locking arc, hex spigot
@@ -1130,7 +1138,7 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 - **frame_rc832_holder**: As modelled, bottom face on the bed. RC832 holder: receiver stands antenna-end up in the slot, leads out low, 2 x M3 x 10
 - **drum_switch_block**: As modelled, bottom face on the bed. Code switch block: 3 lever feet, 3 M3 nut contacts (SW_DRUM_A, B, C)
 - **launch_guard_r_b2**: Rotated: the part's +y axis points up. Spring guard right mid under the stop spring (D33): 2 mm side plate outside both spring pairs, 2 wall brackets (M3x12 self tap into the rail wall) and a foot on the front plate (M3x10 self tap down); fit by moving it inward
-- **sensors_sw_rail_low_bracket**: As modelled, bottom face on the bed. SW_RAIL_LOW bracket on the aim housing foot extension; the housing's 4th deck screw (M3x20 from below instead of the shorter one) goes on up into its foot
+- **sensors_sw_rail_low_bracket**: As modelled, bottom face on the bed. SW_RAIL_LOW bracket on the aim housing foot extension: an M3x10 into the extension and its own deck screw, an M3x16 from the top through the counterbored foot and the extension into a deck insert
 - **launch_guard_l_b2**: Rotated: the part's -y axis points up. Spring guard left mid under the stop spring (D33): 2 mm side plate outside both spring pairs, 1 wall bracket (M3x12 self tap into the rail wall) and a foot on the front plate (M3x10 self tap down); fit by moving it inward
 - **drum_bracket_idler2**: As modelled, bottom face on the bed. Wrap idler second journal post (motor end), 2 x M3 to the deck
 - **sensors_as5600_carrier**: Rotated: the part's -y axis points up. AS5600 carrier: plate with 4 pegs through the board holes, column screwed to the aim housing spine
@@ -1158,7 +1166,7 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 - **frame_ebay_esp_clamp**: As modelled, bottom face on the bed. ESP32 hold-down over the module end, 2 x M3 x 8 into the cradle posts
 - **sensors_sw_gap_lever**: Rotated: the part's +y axis points up. SW_GAP lever, t 1.4 mm, print on its side so layers run along the beam
 - **sensors_sw_rail_low_lever**: Rotated: the part's +y axis points up. SW_RAIL_LOW lever, t 1.4 mm, print on its side so layers run along the beam
-- **reel_sw_lever**: Rotated: the part's +y axis points up. SW_ARM lever: the cup gear's bump presses its tip at home. Print on its side
+- **reel_sw_lever**: Rotated: the part's +y axis points up. SW_ARM lever: rides the cup gear's raised track (contact closed) and drops into its home notch (open). Print on its side
 - **reel_pulley1**: As modelled, bottom face on the bed. Pulley 1: turns the line from the exit eye toward the rail (D14)
 - **reel_pulley2**: As modelled, bottom face on the bed. Pulley 2: feeds the line to cad-launch's rail pivot pulley (D34)
 - **reel_bar_cap_1**: Rotated: the part's -y axis points up. Bar guide cap: closes the U guide over the bar. Print flat
@@ -1198,7 +1206,7 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 - **launch_seat_clip**: Rotated: the part's -z axis points up. Head cap on the plunger pin (rests on the yoke block)
 - **launch_muzzle_washer_l**: Rotated: the part's -z axis points up. Lip roller thrust washer (0.9 thick, flange on the cheek side) between the bearing inner race and the cheek: put both in the roller bore, then drop roller and washers into the fork slot
 - **launch_muzzle_washer_r**: Rotated: the part's -z axis points up. Lip roller thrust washer (0.9 thick, flange on the cheek side) between the bearing inner race and the cheek: put both in the roller bore, then drop roller and washers into the fork slot
-- **frame_motor_adapter**: Rotated: the part's -z axis points up. puck adapter: slotted M6 holes (+-4 mm) for the motor bosses, rear lip with 8 M3 inserts for the rim screws, 2 inserts for cad-drum's SW_INDEX block; reprint when the motor is measured
+- **frame_motor_adapter**: Rotated: the part's -z axis points up. puck adapter: slotted M6 holes (+-4 mm) for the motor bosses, rear lip with 8 M3 inserts for the rim screws, tether channels open to the edge; reprint when the motor is measured
 - **launch_big_gear**: Rotated: the part's -z axis points up. Big gear m2.5: sector layer 27 of 40 teeth (rack, v10 release teeth) + full 40T layer (drive), SW_GAP cam bump, on the rail pin
 - **drum_gear_reel**: As modelled, bottom face on the bed. REEL output gear m2 50T face 12 (D20), free on its sleeve, dog face toward the collar
 - **drum_coupler**: As modelled, bottom face on the bed. Coupler: 5 N m shear pin limiter (D8), bus gear 50T m1.5 (D25), SW_INDEX cam, REEL journal, hex socket; prints hub end down, tree support under the bus gear ring
@@ -1220,14 +1228,14 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 - **launch_aim_sun**: As modelled, bottom face on the bed. Splitter sun m1.5 z30 face 12, keyed on the launch sleeve
 - **reel_gc**: As modelled, bottom face on the bed. Capstan gear m2 z22: driven by the drum's REEL output gear (50T)
 - **launch_aim_lug**: Rotated: the part's +y axis points up. Lug bracket (PPA-CF), 2 x M3 into the rail wall, d8 lug pin at (u 115.2, w 0)
+- **drum_coupler_hub**: As modelled, bottom face on the bed. Coupler hub on the wiper shaft (bore parametric: WIPER), M8 nut inside, shear pin hole
 - **reel_s**: Rotated: the part's -z axis points up. Reel shaft: 608 journals, head = clutch disk, D flat for the reel gear. Print head down
 - **launch_aim_conrod**: Rotated: the part's +y axis points up. Conrod 156 between pin centres (PPA-CF), printed C clips on both pins
 - **drum_axle**: Rotated: the part's -x axis points up. Fixed drum axle d10, pressed into brackets A and B
 - **drum_rail**: Rotated: the part's -x axis points up. Shift rail d10, pressed into brackets A and B
 - **reel_k**: As modelled, bottom face on the bed. Cup shaft: runs inside the capstan tube, cup in front, cup gear behind. Print standing
 - **reel_gi**: As modelled, bottom face on the bed. Swing idler m1.5 z30: meshes the reel gear only on forward wiper turns
-- **drum_coupler_hub**: As modelled, bottom face on the bed. Coupler hub on the wiper shaft (bore parametric: WIPER), M8 nut inside, shear pin hole
-- **reel_gk**: As modelled, bottom face on the bed. Cup gear m1.5 z24: driven by the drum's wrap idler; the bump on its back trips SW_ARM
+- **reel_gk**: As modelled, bottom face on the bed. Cup gear m1.5 z24: driven by the drum's wrap idler; the raised track on its back holds SW_ARM closed, the notch at home lets it open
 - **launch_aim_bevel30**: As modelled, bottom face on the bed. Bevel m1.5 z30 on the countershaft D flat, drives the z15 2:1
 - **reel_bar**: As modelled, bottom face on the bed. Brake bar: cad-drum's track 2 cam pushes its nose, its left end turns the crank. Print flat
 - **drum_idler**: As modelled, bottom face on the bed. Wrap idler shaft: pinion 10T m1.25 (locked at home by the drum lock arc), lock cam, two journals
@@ -1252,27 +1260,27 @@ Generated 2026-11-03 08:39. Bed 256 x 256 x 260 mm (Bambu X2D). Masses and times
 | plate | material | objects | mass g | time h |
 |---|---|---|---|---|
 | plate_1_PLA.3mf | PLA | 3: launch_carriage, launch_guard_l_b2, sensors_as5600_carrier | 90 | 2.5 |
-| plate_2_PLA.3mf | PLA | 7: drum_hand_lever, drum_switch_block, frame_cheek_r, reel_c_clip, reel_t, sensors_as5600_strip_bot, sensors_as5600_strip_top | 208 | 5.4 |
-| plate_3_PLA.3mf | PLA | 11: drum_magnet_cap, drum_n20_strap, frame_deck_3, launch_gear_clip, launch_gear_washer, reel_bar_cap_1, reel_bar_cap_2, reel_p2_clip, reel_pulley1, reel_pulley2, sensors_sw_rail_low_bracket | 328 | 8.7 |
-| plate_4_PLA.3mf | PLA | 3: frame_deck_1, launch_pulley_bot, launch_pulley_piv | 292 | 7.3 |
-| plate_5_PLA.3mf | PLA | 15: drum_bracket_idler, drum_sw_lever_0, drum_sw_lever_1, drum_sw_lever_2, frame_deck_4, frame_ebay_esp_clamp, launch_aim_drag_pad, launch_aim_lugpin_clip, launch_pulley_top_washer_l, launch_pulley_top_washer_r, launch_seat_clip, launch_stop_frame_l, launch_sw_home, launch_sw_seated, sensors_sw_gap_lever | 302 | 7.9 |
-| plate_6_PLA.3mf | PLA | 8: drum_drum_b, drum_index_lever, frame_deck_2, launch_muzzle_washer_l, launch_muzzle_washer_r, launch_pulley_bot_washer_r, launch_stop_frame_r, reel_s_clip | 354 | 9.2 |
-| plate_7_PLA.3mf | PLA | 9: frame_guard_front, frame_rc832_holder, launch_pulley_bot_washer_l, launch_rail_front, launch_rail_rear, launch_rail_splice_l, launch_rail_splice_r, reel_cup_clip, reel_wall | 540 | 14.7 |
-| plate_8_PLA.3mf | PLA | 9: drum_bracket_a, drum_bracket_b, drum_bracket_idler2, drum_drum_a, frame_ebay, launch_aim_cap, launch_aim_drag_shim, launch_muzzle_roller, launch_pulley_top | 405 | 10.6 |
-| plate_9_PLA.3mf | PLA | 13: drum_shear_pin__c1, drum_shear_pin__c2, drum_shear_pin__c3, drum_shear_pin__c4, frame_ebay_lid, launch_aim_housing, launch_guard_l_c, launch_rail_mid, launch_stop_spring_l, reel_shroud, reel_sw_lever, sensors_sw_gap, sensors_sw_rail_low_lever | 548 | 14.9 |
-| plate_10_PLA.3mf | PLA | 14: drum_fork, drum_shear_pin__c5, drum_shear_pin__c6, frame_cable_anchor_1, frame_cable_anchor_2, frame_camera_mount, frame_guard_hood, frame_motor_leg, launch_aim_crankpin_clip, launch_aim_idler_clip, launch_guard_r_b2, launch_stop_spring_r, reel_spool, reel_spool_flange | 492 | 13.9 |
-| plate_11_PLA.3mf | PLA | 14: drum_dog_post, drum_index_block, drum_n20_cradle, frame_can_stay, launch_carriage_yoke, launch_drive_washer, launch_guard_l_b1, launch_guard_r_b1, launch_guard_r_c, reel_cup, reel_k_clip, reel_sw_base, reel_sw_bracket, sensors_sw_rail_low | 140 | 4.0 |
+| plate_2_PLA.3mf | PLA | 6: drum_switch_block, frame_cable_anchor_2, frame_cheek_r, reel_t, sensors_as5600_strip_bot, sensors_as5600_strip_top | 207 | 5.4 |
+| plate_3_PLA.3mf | PLA | 12: drum_magnet_cap, frame_deck_3, launch_gear_clip, launch_gear_washer, launch_pulley_bot, launch_pulley_piv, launch_pulley_top, reel_bar_cap_1, reel_bar_cap_2, reel_p2_clip, reel_pulley1, reel_pulley2 | 309 | 7.7 |
+| plate_4_PLA.3mf | PLA | 2: frame_deck_1, reel_k_clip | 291 | 7.3 |
+| plate_5_PLA.3mf | PLA | 3: drum_bracket_idler, frame_deck_4, launch_aim_housing | 447 | 12.4 |
+| plate_6_PLA.3mf | PLA | 18: drum_shear_pin__c4, drum_shear_pin__c5, drum_shear_pin__c6, drum_sw_lever_0, drum_sw_lever_1, drum_sw_lever_2, frame_can_stay, frame_deck_2, launch_aim_drag_pad, launch_guard_l_b1, launch_muzzle_washer_l, launch_muzzle_washer_r, launch_pulley_top_washer_l, launch_pulley_top_washer_r, launch_seat_clip, launch_stop_frame_l, reel_s_clip, reel_sw_lever | 313 | 8.3 |
+| plate_7_PLA.3mf | PLA | 10: drum_index_lever, frame_guard_front, frame_rc832_holder, launch_pulley_bot_washer_r, launch_rail_front, launch_rail_rear, launch_rail_splice_l, launch_rail_splice_r, reel_cup_clip, reel_wall | 540 | 14.7 |
+| plate_8_PLA.3mf | PLA | 8: drum_bracket_a, drum_bracket_b, drum_bracket_idler2, drum_drum_a, drum_index_block, drum_shear_pin__c1, frame_ebay, launch_muzzle_roller | 408 | 10.7 |
+| plate_9_PLA.3mf | PLA | 10: frame_camera_mount, frame_ebay_lid, launch_aim_drag_shim, launch_carriage_yoke, launch_pulley_bot_washer_l, launch_rail_mid, launch_stop_frame_r, launch_stop_spring_l, sensors_sw_gap, sensors_sw_gap_lever | 570 | 15.8 |
+| plate_10_PLA.3mf | PLA | 13: drum_drum_b, drum_fork, drum_shear_pin__c2, drum_shear_pin__c3, frame_guard_hood, frame_motor_leg, launch_aim_crankpin_clip, launch_aim_lugpin_clip, launch_guard_r_b2, launch_stop_spring_r, reel_shroud, reel_spool, sensors_sw_rail_low_lever | 402 | 11.3 |
+| plate_11_PLA.3mf | PLA | 21: drum_dog_post, drum_hand_lever, drum_n20_cradle, drum_n20_strap, frame_cable_anchor_1, frame_ebay_esp_clamp, launch_aim_cap, launch_aim_idler_clip, launch_drive_washer, launch_guard_l_c, launch_guard_r_b1, launch_guard_r_c, launch_sw_home, launch_sw_seated, reel_c_clip, reel_cup, reel_spool_flange, reel_sw_base, reel_sw_bracket, sensors_sw_rail_low, sensors_sw_rail_low_bracket | 128 | 3.7 |
 | plate_12_PLA.3mf | PLA | 1: launch_guard_l_a | 65 | 1.9 |
 | plate_13_PLA.3mf | PLA | 1: launch_guard_r_a | 65 | 1.9 |
-| plate_14_PPA-CF.3mf | PPA-CF | 9: drum_axle, drum_reel_washer, frame_motor_adapter, reel_bar, reel_drum, reel_exit_post, reel_gr, reel_p2_fork, reel_swing_arm | 429 | 19.9 |
-| plate_15_PPA-CF.3mf | PPA-CF | 17: drum_coupler, drum_coupler_hub, drum_gear_reel, drum_n20_pinion, launch_aim_bevel30, launch_aim_conrod, launch_aim_output, launch_aim_sun, launch_big_gear, launch_gear_pin, launch_seat_pushrod, launch_yoke_peg_l, launch_yoke_peg_r, reel_bus, reel_crank, reel_gi, reel_k | 502 | 23.2 |
-| plate_16_PPA-CF.3mf | PPA-CF | 15: drum_collar, drum_dogring_launch, drum_idler_gear, drum_shaft, launch_aim_arm, launch_aim_crank, launch_aim_lug, launch_drive_gear, launch_seat_plunger, launch_sleeve, reel_gk, reel_p2_post, reel_rocker, reel_s, reel_sprag_hub | 406 | 18.9 |
+| plate_14_PPA-CF.3mf | PPA-CF | 9: drum_axle, drum_reel_washer, frame_motor_adapter, reel_bar, reel_drum, reel_exit_post, reel_gr, reel_p2_fork, reel_swing_arm | 428 | 19.9 |
+| plate_15_PPA-CF.3mf | PPA-CF | 17: drum_coupler, drum_coupler_hub, drum_gear_reel, drum_n20_pinion, launch_aim_bevel30, launch_aim_conrod, launch_aim_output, launch_aim_sun, launch_big_gear, launch_gear_pin, launch_seat_pushrod, launch_yoke_peg_l, launch_yoke_peg_r, reel_bus, reel_crank, reel_gi, reel_k | 505 | 23.3 |
+| plate_16_PPA-CF.3mf | PPA-CF | 15: drum_collar, drum_dogring_launch, drum_idler_gear, drum_shaft, launch_aim_arm, launch_aim_crank, launch_aim_lug, launch_drive_gear, launch_seat_plunger, launch_sleeve, reel_gk, reel_p2_post, reel_rocker, reel_s, reel_sprag_hub | 407 | 19.0 |
 | plate_17_PPA-CF.3mf | PPA-CF | 7: drum_idler, drum_rail, launch_aim_idler, launch_aim_worm, reel_c, reel_crank_washer, reel_gc | 95 | 4.9 |
 
 #### Totals on the plates
 
-- PLA: 108 objects on 13 plates, 3828 g, about 1283.5 m of 1.75 mm filament, 102.9 h
-- PPA-CF: 48 objects on 4 plates, 1432 g, about 476.3 m of 1.75 mm filament, 66.9 h
+- PLA: 108 objects on 13 plates, 3835 g, about 1285.8 m of 1.75 mm filament, 103.6 h
+- PPA-CF: 48 objects on 4 plates, 1435 g, about 477.2 m of 1.75 mm filament, 67.0 h
 
 #### Recommended settings
 
@@ -1316,7 +1324,8 @@ Base plates:
 
 Before printing the base:
 
-1. The wiper and spring numbers are in params.py and the pipeline was re-run (the audit said CLEAN).
+1. The wiper and spring numbers are in params.py, and the base pipeline and the physics were re-run (section 14,
+   "After you measure"); the audit listed only the known items (README.md, "Open items").
 2. Print one test part from the pack in PPA-CF and check a 608 drops into its seat with a firm thumb press, and an
    M3 heat-set insert sets straight. Keep hole compensation at 0 for base parts: base fits are
    tuned in the CAD through the coupons, not in the slicer.
@@ -1337,17 +1346,20 @@ Present: `base/out/base/guide.pdf` (attached at the end of this guide).
 
 General rules for the base:
 
-- Heat-set inserts: soldering iron at about 220 C with the insert tip, press straight in, let it cool before loading.
+- Heat-set inserts: soldering iron with the insert tip, about 220 C in PLA and about 280 C in the PPA-CF motor
+  puck; press straight in, let it cool before loading.
 - Bearings: press in square with a flat block, never hammer on the inner race.
 - Keyed shafts: check the key slides in the sprag (CSK20PP) keyway by hand before final assembly.
 - Turn every train by hand (battery unplugged) after each step: it must turn without binding before the next step.
 - Leave the springs off until test stage 5 (section 12).
-- Motor adapter: bolt the wiper motor to the adapter on the bench first (M6 bolts from the cheek side), then from the
-  frame side of the plate fit M3 x 10 through the cheek plate into every insert in the adapter hub (10 of the 12
-  holes line up; the frame step "Motor onto the cheek" lists them), before any shaft goes in.
-- Bearing blocks slide on over bearings that are already on their shaft.
-- Drum coupler: drop the M8 nut through the socket, then the M3 cross screw.
-- AS5600: heat-stake the board onto its printed pegs (soldering iron tip, gently); glue the magnet in its cap.
+- Motor puck: bolt the wiper motor to the puck adapter on the bench first (M6 bolts through the puck slots from the
+  front, step "Wiper motor on the puck"), then feed the puck into the motor plate window from behind and fit
+  M3 x 12 from the front through the plate into the lip inserts (step "Puck into the plate" says which rim holes),
+  before any shaft goes in.
+- Drum coupler: coupler hub onto the wiper shaft (flats in line), the M8 nut on the thread, then the outer coupler
+  over the hub and a printed shear pin through both (step "Main shaft: coupler and limiter").
+- AS5600: push the board onto the 4 carrier pegs and clamp it with the two printed strips (M3 x 12 into nuts in the
+  carrier back); no heat staking. Glue the magnet in its cap.
 - Wires: leave a 150 mm loop at the rail pivot for SW_SEATED and SW_HOME. Never route a wire across a moving part.
 - Contacts: set each gap by turning the screw (MEASURE_LIST G12).
 - Manual drum fallback: loosen the cradle swing screw (M3, in the slot), swing the N20 out of mesh until `n`
@@ -2119,7 +2131,7 @@ unplug the battery.
 
 ### Base station wiring
 
-Board: ESP32-S3 DevKitC-1-N8. Pins come from `grappstar_base/pins.h` (firmware `base-1.3.0`). Nothing here has been
+Board: ESP32-S3 DevKitC-1-N8. Pins come from `grappstar_base/pins.h` (firmware `base-1.3.1`). Nothing here has been
 wired and tested on real hardware yet: check every step with the multimeter.
 
 **The rule: battery unplugged whenever a wire or plug moves. Plug the battery in last, after the checks. Never pull a
@@ -2378,8 +2390,8 @@ cable. Flash the dart XIAO before it goes into the hull (run sheet section 5).
 
 ### GrappStar base station firmware
 
-Firmware `base-1.3.0` for the ESP32-S3 DevKitC-1-N8 in the base station. It follows BASE_SPEC v1.2,
-`base/spec/params.py` 1.2.1 and the mission order of decision D22.
+Firmware `base-1.3.1` for the ESP32-S3 DevKitC-1-N8 in the base station. It follows BASE_SPEC v1.2,
+`base/spec/params.py` 1.3.8 (generated into `params_gen.h`) and the C1 sequence of BASE_SPEC 10.1 (D22, D35, D45).
 
 Nothing in this folder has run on real hardware yet. The logic passes the PC tests (a simulation). Go slowly the first
 time and follow BENCH_TEST.md before the wiper motor goes into the base.
@@ -2410,8 +2422,9 @@ Printed contacts (12 of them) tell the firmware where everything is.
 The Jetson sends commands over USB as JSON lines. The base answers every command, sends telemetry 10 times a second
 (20 while something moves) and sends an event when an action ends. Full details: PROTOCOL.md.
 
-A mission in short (D22): `mode LAUNCH`, `aim`, (`cock`), `arm`, `fire`, flight, `wrap` right after landing (straight
-from LAUNCH, ends at the WRAPPED park), wait for the dart to anchor, `tidy` (take-up for a few seconds), `mode REEL`
+A mission in short (BASE_SPEC 10.1): `mode LAUNCH`, `aim`, (`cock`), `arm`, `fire`, flight, `set line_m` (the landing
+distance), `aim 6` if the rail is above 15 deg (D45: the tow runs with the rail low), `wrap` right after landing
+(straight from LAUNCH, ends at the WRAPPED park), wait for the dart to anchor, `tidy` (take-up for a few seconds), `mode REEL`
 (fly-in), tow (`reel` until tension), release, reel in, `unwrap` (back to NEUTRAL with the take-up running), final
 approach (`retrieve`, until the dart is seated), `mode LAUNCH`.
 
@@ -2477,8 +2490,8 @@ firmware/base/grappstar_base` from the repository folder. It should report about
 3. Tap RESET on the board. You should see a `HELLO` line, then a `BOOT` line, then telemetry lines:
 
    ```
-   {"evt":"HELLO","fw":"base-1.3.0","reset":"POWERON","hx711":false,"as5600":true,"pwm":true}
-   {"evt":"BOOT","t":60,"fw":"base-1.3.0","record":false,"was_moving":false,"drum_moved":false,"drum_known":true,"wraps_known":true,"aim_known":false,"phase":"UNKNOWN","angle":"AS5600"}
+   {"evt":"HELLO","fw":"base-1.3.1","reset":"POWERON","hx711":false,"as5600":true,"pwm":true}
+   {"evt":"BOOT","t":60,"fw":"base-1.3.1","record":false,"was_moving":false,"drum_moved":false,"drum_known":true,"wraps_known":true,"aim_known":false,"phase":"UNKNOWN","angle":"AS5600"}
    {"tel":{"state":"IDLE","mode":"NEUTRAL","drum_deg":41,"drum_pos":"NEUTRAL",...,"sw":{"b":1,"n":1},"fault":null,"vbat":0}}
    ```
 
@@ -2491,7 +2504,7 @@ firmware/base/grappstar_base` from the repository folder. It should report about
    {"id":1,"cmd":"ping"}
    ```
 
-   You should get `{"id":1,"ok":true,"fw":"base-1.3.0","t":...}` somewhere between the telemetry lines.
+   You should get `{"id":1,"ok":true,"fw":"base-1.3.1","t":...}` somewhere between the telemetry lines.
 5. Telemetry scrolls fast. Untick "Autoscroll" to read a line, tick it again to follow.
 6. Also try `{"id":2,"cmd":"status"}`. It shows `"magnet"`: `OK`, `WEAK`, `STRONG` or `NONE`.
 7. Telemetry `sw` lists the closed contacts with one letter each: `a` `b` `c` (drum code), `l` (`SW_DOG_L`), `r`
@@ -2578,7 +2591,9 @@ a power cycle and over a new upload of the same firmware version.
   coarser angle (PROTOCOL.md section 9).
 - Battery below 9.9 V for 300 ms while a motor runs: fault `BROWNOUT`.
 - Fire needs a fresh 6-digit token from `arm`, valid 3 s, used once, plus the dart seated. `cock` also needs the dart
-  seated.
+  seated. The seated contact can only read the dart with the carriage home (the carriage plunger presses it there), so
+  `cock` checks it before the draw and that reading counts for `arm` and `fire` while cocked (until a fire, a decock, a
+  fault or a restart).
 - Both worm gears self-lock, so the mechanism stays where it stopped when the power goes. The position is saved in
   flash, and after a power cut mid-motion the base only trusts what its sensors can prove.
 - After a fault, fix the cause, then send `{"id":1,"cmd":"clear"}`.
@@ -3168,8 +3183,9 @@ Run every command from this folder (`jetson/`). Files go into `calib/`. Every co
    It uses `calib/intrinsics.json` from the step above automatically (it prints "using intrinsics"). If it
    prints a WARNING about an uncalibrated camera instead, do the Intrinsics part first.
 4. It saves camera height, pitch and roll to `calib/rovercam.json`. Check the height against a tape measure.
-5. Check: put an orange object at a distance you measured with a tape (for example 5.0 m), click it on the page,
-   and compare the range the page shows. Within about 5 percent is good.
+5. Check: put an orange object at a distance you measured with a tape (for example 5.0 m) from the ground point
+   under the rail pivot (the launcher's main axis, D29), click it on the page, and compare the range the page shows
+   (it adds the camera offset to the pivot by itself). Within about 5 percent is good.
 
 ### 8. Operator page tour and a full dry mission in sim
 
@@ -3196,9 +3212,13 @@ What is on the page (layout may differ a little from this list):
 - **LAUNCHER LOADED** (red banner at the top): the spring is drawn. Hands off the rail. Press **Decock** in the
   banner to unwind it before you touch the launcher.
 - **Target**: range and bearing of the clicked or auto found target, and the ballistic solution (pitch, flight time).
+  A typed range is measured from the ground point under the rail pivot (D29), not from the camera or the rover nose;
+  tapped targets get the camera offset added automatically.
 - **Results**: after a flight, the landing zone verdict (GO, NO_GO or UNSURE with reasons), the landing image, the
   aerial map built from the dart video, and the flight analysis.
-- **Manual**: jog the wiper and drum motors, dart keys, record on or off.
+- **Manual**: jog the wiper and drum motors, dart keys, record on or off; **Unwrap** brings the drum back through the
+  wrap window to NEUTRAL with the take-up running (the way out when the drum stopped inside the window: there `mode`
+  and drum jogs are refused).
 - **STOP** (wiper off now) and **ESTOP** (wiper off and drum to neutral). Always visible at the top. Keyboard:
   **Esc** is STOP from anywhere on the page (Space too, when you are not typing). Holding STOP for 1 s is ESTOP.
   Know where they are before you press anything else.
@@ -3335,7 +3355,7 @@ jetson/
     app.py               owns the base, dart, cameras and mission; what the page talks to
     mission.py           the mission steps and operator prompts
     rover.py             rover side helpers
-    config.py            settings and defaults
+                         (defaults: mission.MissionConfig, app.AppConfig, cli.py)
     jlog.py              mission logs
     ballistics.py        aim solution from the ballistics table
     data/                placeholder ballistics table
@@ -3368,7 +3388,7 @@ needs the springs: do it at test stage 5. The values are stored on the ESP32.
 
 ## Base station calibration
 
-Firmware `base-1.3.0`. Do BENCH_TEST.md first. Sections (a) and (b) can be done on the bench. The rest needs the base
+Firmware `base-1.3.1`. Do BENCH_TEST.md first. Sections (a) and (b) can be done on the bench. The rest needs the base
 assembled. Do them in order: (d) needs REEL from (c), and (f) needs (b) and (d).
 
 - Two ways to send the commands below:
@@ -3378,10 +3398,11 @@ assembled. Do them in order: (d) needs REEL from (c), and (f) needs (b) and (d).
     words (for example `reel duty=0.3 until=stop`) or a bare `stop`, `estop` or `status`; `quit` ends it.
 - Any whole `id` number works.
 - Every value you `set` or learn with `cal` is **saved in flash automatically** (once everything has stopped) and is
-  kept over a power cycle and over a new upload of base-1.3.0. Read a value back with `get`, for example
+  kept over a power cycle and over a new upload of base-1.3.1. Read a value back with `get`, for example
   `{"id":1,"cmd":"get","key":"amps_per_volt"}`.
-- **Coming from base-1.0:** the old saved bench values are ignored by base-1.3.0 (new record format since base-1.2). Everything is back
-  at its default after the upload: redo or re-enter every value below.
+- **Coming from an older build (base-1.0 to base-1.3.0):** the old saved bench values are ignored by base-1.3.1 (record
+  version 3: it gained `gap_close_deg`). Everything is back at its default after the upload: redo or re-enter every
+  value below.
 - In the first 60 ms after a start-up commands are refused with `BOOTING`: just send again.
 - If something faults, read the `FAULT` line (`code` and `why`), fix the cause, then send `{"id":1,"cmd":"clear"}`.
 - `stop` is always there: `{"id":1,"cmd":"stop"}`. Keep it pasted in the box, ready to send.
@@ -3555,7 +3576,7 @@ about 8 deg per second.
    closes when the collar is engaged. `SWITCH_DISAGREE` "collar contact disagrees with the drum code" means `l` or
    `r` was closed where the collar cannot be engaged (both are checked during every drum move).
 10. If you get `SW_ARM counted n of 7 cup turns` (`DRUM_SENSOR`): the `SW_ARM` contact (`W`) is closed while the cup
-    is away from home and must OPEN for about +-5 deg at home (cad-reel); the firmware counts one cup turn per
+    is away from home and must OPEN for about -6 to +8 deg at home (cad-reel); the firmware counts one cup turn per
     opening. Check it with the drum still: `W` must disappear from `sw` while the cup is at home.
 11. The drum speed (`drum_dps`, default 8.1) is learned by itself between code edges. See it with
     `{"id":11,"cmd":"get","key":"drum_dps"}`. Nothing to do.
@@ -3608,8 +3629,9 @@ firmware assumes (`aim_home_deg`, the aim-train angle where `SW_RAIL_LOW` closes
    - Telemetry reached 30 AFTER the phone did: the firmware is behind. New `aim_home_deg` = old + D.
    - Telemetry reached 30 BEFORE the phone did: new `aim_home_deg` = old minus D.
 
-   Get the old value with `{"id":2,"cmd":"get","key":"aim_home_deg"}` (default 3365), then set the new one, for
-   example `{"id":3,"cmd":"set","key":"aim_home_deg","val":3340}`. The allowed range is -7200 to +7200.
+   Get the old value with `{"id":2,"cmd":"get","key":"aim_home_deg"}` (default 3502: where cad-sensors' contact closes,
+   about 10 crank deg before the low dead point), then set the new one, for example
+   `{"id":3,"cmd":"set","key":"aim_home_deg","val":3480}`. The allowed range is -7200 to +7200.
 3. Changing `aim_home_deg` does not re-home by itself. Send `{"id":4,"cmd":"cal","what":"aim_forget"}`: the next
    `aim` homes again on `SW_RAIL_LOW`.
 4. Redo steps 5 to 7 above.
@@ -3726,6 +3748,30 @@ for the dry shots.
    LAUNCH is refused (`SWITCH_DISAGREE`) while `G` is open.
 9. `{"id":7,"cmd":"set","key":"require_seated","val":true}`.
 
+### (h) SW_GAP closing angle (`gap_close_deg`)
+
+The reset after every shot runs FORWARD until the big gear is back in its gap: the firmware re-zeroes the shot angle at
+the moment `SW_GAP` (`G`) closes and runs on to the rest point from there. So it must know where `G` closes:
+`gap_close_deg`, the angle in the 553.8 deg shot cycle. Default 531: cad-sensors' contact on the bump of the big gear is
+closed within about 15 big-gear deg (23 wiper deg) either side of rest. If the real contact closes later than the
+setting, the reset runs into the first tooth and draws the carriage: `FAULT` `BAD_STATE` "reset ended with the carriage
+off its stop" after a shot. If it closes earlier, the reset stops short of rest.
+
+The bump is symmetric about rest, so the firmware measures the other side for you: during every `cock` it notes where
+`G` opens on the draw, counted from the first tooth like every shot angle, and reports it as `gap_deg` in the `COCKED`
+event. Do this once, together with (g):
+
+1. Do (g) up to and including step 6 (springs hooked, no dart, `require_seated` false, nobody and no hands in front of
+   the carriage or the rail).
+2. Read `gap_deg` in the `COCKED` event, for example
+   `{"evt":"COCKED","t":51230,"ok":true,"cock_deg":415.2,"gap_deg":22.6}`. Expected about 23. No `gap_deg` means `G`
+   never opened during the cock: the contact sits wrong or is stuck closed. Fix it before any shot.
+3. `gap_close_deg` = 553.8 minus `gap_deg` (here 531.2). Send it once the wiper has stopped:
+   `{"id":4,"cmd":"set","key":"gap_close_deg","val":531.2}` (allowed 480 to 553; `BUSY` while a motor runs). It is
+   saved like every bench value; `cal factory` puts 531 back.
+4. Go on with (g) step 8 (`decock`, wait for `RESET`) and step 9 (`require_seated` true again).
+5. The first dry shots of the build guide check it: after `FIRED` the `RESET` event must come, with `H` and `G` closed.
+
 
 # 11. Bench tests
 
@@ -3745,7 +3791,7 @@ Never move the USB plug with the battery in.
 
 ### Base station bench test
 
-No-load checks BEFORE the wiper motor goes into the base, with firmware `base-1.3.0`. Nothing here has run on real
+No-load checks BEFORE the wiper motor goes into the base, with firmware `base-1.3.1`. Nothing here has run on real
 hardware yet, so this is the first time the firmware meets the parts. Go one step at a time.
 
 Each step says what to type, what you should see, and what to do if not. Keep `{"id":9,"cmd":"stop"}` ready to paste.
@@ -3790,7 +3836,7 @@ Two rules for the whole test:
 Battery unplugged. Plug USB into the port labelled USB. Open the Serial Monitor (or the two Jetson terminals).
 
 - Type: `{"id":1,"cmd":"ping"}`
-- You should see: `{"id":1,"ok":true,"fw":"base-1.3.0","t":...}`, and telemetry lines with `"state":"IDLE"`,
+- You should see: `{"id":1,"ok":true,"fw":"base-1.3.1","t":...}`, and telemetry lines with `"state":"IDLE"`,
   `"mode":"NEUTRAL"`, `"sw":{"b":1,"n":1}` and `vbat` about 0 (no battery).
 - If not: no output at all means wrong port or "USB CDC On Boot: Enabled" not set (README.md). Telemetry but no reply
   means the line ending is not "Newline". `BAD_JSON` means a typo (straight quotes only, no smart quotes). `BOOTING`
@@ -3853,7 +3899,7 @@ Then walk back the same way (rows 8, 7, 6, 5) and finish with only `b` closed.
 The `mode` field also needs the collar contacts: at row 3 it says `NONE` until you also close `SW_DOG_L` (GPIO13):
 then `LAUNCH`. At row 9 it says `NONE` until you close `SW_DOG_R` (GPIO14): then `REEL`. At rows 6, 7 and 8 it says
 `NEUTRAL` (the collar stays in NEUTRAL there); on the way back from REEL, row 8 (`a` `c`) says `NONE`, because the
-angle is then taken as 340, past the 318 collar point. Take any extra jumper off again before the next row.
+angle is then taken as 342 (the code edge), past the 318 collar point. Take any extra jumper off again before the next row.
 
 At the end, only `b` (and the `n` jumper) closed, send `{"id":3,"cmd":"clear"}`. You should see `"ok":true` and
 `"state":"IDLE"`. One `clear` is enough. `STILL_PRESENT` means the code is not valid (000, or you changed two contacts
@@ -4185,11 +4231,14 @@ bypasses the capstan). Set the payout brake with hanging weights (G4): 40 g does
    `{"cmd":"retrieve","duty":0.3}` until `SEATED`, then `mode` LAUNCH and `aim` for the next shot (no wraps needed
    for a slack line; the full wrap sequence is stage 7).
 5. Range calibration, after 2 or 3 shots on level ground: measure each range from the ground point under the rail
-   pivot, then on the Mac or Jetson in `~/GrappStar/base/physics`:
+   pivot, then on the Jetson in `~/GrappStar/base/physics`:
    `python3 calib.py range 20:0.5:3.6 36:0.5:4.2` (pitch:brake N:measured range m, your numbers) fits a
    muzzle-speed factor; `python3 ballistics.py --v-scale <factor>` rewrites `base/out/ballistics.json`, which the
-   Jetson uses to aim (base/physics/README.md has the details). Run it on the Jetson (`cd ~/GrappStar/base/physics`),
-   or run it on the Mac and copy the file across: `scp base/out/ballistics.json <user>@GrappStar.local:GrappStar/base/out/`.
+   Jetson uses to aim (base/physics/README.md has the details). On the Mac the same two commands need the repo's
+   Python (the Mac's own python3 has no numpy): `../../kedge/.venv/bin/python calib.py range ...` and
+   `../../kedge/.venv/bin/python ballistics.py --v-scale <factor>`; then copy the file across from `~/GrappStar`:
+   `scp base/out/ballistics.json <user>@GrappStar.local:GrappStar/base/out/`. Also put the factor in
+   `base/spec/params.py` as `LAUNCH` `v_scale`, so a later physics run keeps it.
 
 Pass: clean exit (no rubbing marks on the dummy), it flies nose first, payout is clean, the range is within 30
 percent of the ballistics table at the same pitch (measured from the ground point under the rail pivot; the table is `base/out/ballistics.json`, shown on the
@@ -4224,8 +4273,9 @@ you; by hand it is (each line: what you send, what to wait for):
 Pass: the wrap lays 7 turns on the capstan, reel-in works, unwrap returns the line to the launch path, the dummy
 seats, and the next shot pays out cleanly. Repeat 5 times.
 If it fails: wrap misses the capstan: check the wrap cup position at the end of `wrap`. Line still round the
-capstan after `unwrap`: do not fire; unwrap again and check the drum position. `DART_STUCK` after 20 s of
-`retrieve`: the dummy snagged; clear it by hand after the approach checklist (section 2).
+capstan after `unwrap`: do not fire; unwrap again and check the drum position. `DART_STUCK` when `retrieve`
+passes its time limit (about 50 s from 1.5 m of line at duty 0.3, longer with more line out; `max_s` sets it):
+the dummy snagged; clear it by hand after the approach checklist (section 2).
 
 ### Stage 7b. Bench tow (before the first field tow)
 
@@ -4299,7 +4349,7 @@ and wiper numbers and re-run the physics, they update.
 
 ### Base station physics: summary
 
-Params: base/spec/params.py v1.3.2. Generated by base/physics/summary.py.
+Params: base/spec/params.py v1.3.8. Generated by base/physics/summary.py.
 
 #### Spring (each, A228, SF 1.2 on Shigley static limits)
 
@@ -4369,10 +4419,10 @@ Params: base/spec/params.py v1.3.2. Generated by base/physics/summary.py.
 
 #### To measure (then edit base/spec/params.py and run ./run_all.sh)
 
-1. Spring hang test: hang 1, 2, 3 kg from one spring and measure the length each time (hooks included). python calib.py spring FREE_MM 1:MM 2:MM 3:MM, then SPRING k_n_per_mm and F0_n. Every range number scales with the stored energy.
-2. Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall current. python calib.py wiper --v 12 --rpm .. --i-free .. --stall-kg .. --arm-mm .. --i-stall .., then WIPER n0_rpm, stall_nm, stall_a, free_a.
+1. Spring hang test, each spring: hang 1, 2, 3 kg and measure the length each time (hooks included). python calib.py spring FREE_MM 1:MM 2:MM 3:MM, then SPRING k_n_per_mm and F0_n (mean of the two); the stronger spring decides the anchor holes (MEASURE_LIST B4). Every range number scales with the stored energy.
+2. Wiper (MEASURE_LIST A6): free speed and current from a 40 % bench jog in telemetry, then WIPER n0_rpm = jog rpm x 2.5 (never the raw jog rpm) and free_a = amps. The stall cannot be read (jogs trip at 2.5 to 3 A, A7): keep stall_nm and stall_a.
 3. Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg), then DART mass_kg.
-4. Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 5 N (REEL clutch).
+4. Payout brake (MEASURE_LIST G4, hanging weights: a luggage scale cannot read this low): in LAUNCH 40 g on the line must not pull line off and 50 g must (LIGHT 0.5 N); in NEUTRAL the FIRM clutch (5 N) lets line off at about 0.5 kg on the luggage scale.
 5. First shots on level ground: python calib.py range pitch:brake:range ..., then LAUNCH v_scale = FACTOR.
 
 
@@ -4393,9 +4443,9 @@ read the `fault` field in telemetry. The operator page STOP button sends a plain
 | 20 A fuse blows | Stall into a hard stop, short on the wiper leads | Find the bind by turning by hand; never fit a bigger fuse |
 | Wiper runs but nothing turns, after a jam | The coupler shear pin broke (it is the torque limiter, about 5 N m, decision D26) | Battery unplugged. Find and clear the jam first. Push the pieces of the old pin out of the coupler with a 3 mm rod, push a spare printed pin (d 4, six in the print pack) in until flush, then jog gently. Print more spares from the pack if you use them up. Never replace it with a metal pin: it protects the printed gears |
 | Fault STALL or OVERCURRENT | Something binds, springs stronger than planned | Battery unplugged, turn the train by hand, find the tight spot; redo the spring measurement |
-| Fault DRUM_TIMEOUT | Drum N20 not turning: no 9 V, board asleep, gear slipping | Meter on DRV8833 VM (9.0 V); check AIN1 / AIN2 / GND; check the board make (MEASURE_LIST D3); check the N20 gear set screw |
+| Fault DRUM_TIMEOUT | Drum N20 not turning: no 9 V, board asleep, gear slipping | Meter on DRV8833 VM (9.0 V); check AIN1 / AIN2 / GND; check the board make (MEASURE_LIST D3); check the printed pinion is still pressed on the N20's D shaft (no set screw: a loose one needs a reprint) |
 | Fault DRUM_SENSOR or SWITCH_DISAGREE | A drum contact does not close or stays closed | Battery unplugged, ESP32 on USB only (contacts read on USB power): watch `sw` while turning the drum by the hand lever; bend or re-screw the contact |
-| Fault ANGLE_SENSOR | AS5600 cable out, magnet too far | Re-seat the STEMMA cable; magnet 1 to 2 mm from the chip, centred |
+| Fault ANGLE_SENSOR | AS5600 cable out, magnet too far | Re-seat the STEMMA cable; check the magnet cap is fully on the shaft end and the board sits on its carrier pegs (the carrier sets the 2 mm gap: never shim it closer, MEASURE_LIST G13) |
 | `pitch_deg` wrong after a restart | Pitch reference lost | Run the pitch part of the calibration again (section 10) |
 | Drum stuck between positions with the power off | Expected: the worm holds it | Loosen the cradle swing screw, swing the N20 out of mesh, use the hand lever on the drum shaft end, battery unplugged. Never use the hand lever while the carriage is drawn (`cock` above 0 or `SW_HOME` open) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first. |
 | Base cocked and you need to unload without firing | | Send `{"cmd":"cal","what":"decock"}`: the wiper runs backward slowly and the springs unwind under the worm until `SW_HOME` closes. If it fails: `clear`, `mode` LAUNCH, `decock` again; then, if it says `SWITCH_DISAGREE` and the carriage is visibly drawn, `{"cmd":"decock","force":true}`; last resort the manual unload in section 2 (battery out, one spring at a time with a hook tool). Never hand-release the carriage |
@@ -4428,7 +4478,7 @@ read the `fault` field in telemetry. The operator page STOP button sends a plain
 
 Everything nobody could know from here. Before printing the base, do A1 to A5, A8, group B, and H1, H3, H4 (all
 caliper and hang tests, no electronics needed): the base parts that depend on them should not be printed until
-those numbers are in `base/spec/params.py` and the pipeline has been re-run (see "After you
+those numbers are in `base/spec/params.py` and the base pipeline and the physics have been re-run (see "After you
 measure" at the end). Tools: caliper, multimeter, kitchen scale, luggage scale, phone camera, tape measure.
 
 Photo rule: for every caliper reading, take a photo with the caliper on the part and the reading visible. Put the
@@ -4441,11 +4491,11 @@ photos in `originals/measure_2026-11/` so the numbers can be checked later.
 | A1 Output shaft diameter | Caliper across the round part of the shaft, 3 places, take the smallest | `WIPER.shaft_d` | Wiper shaft coupler (drum parts) |
 | A2 Shaft flats or spline | Flats: caliper across the flats (`shaft_flat`). Spline: count the teeth, caliper the outside and root diameter, photo end-on | `WIPER.shaft_flat` (note a spline in REPORT) | Wiper shaft coupler |
 | A3 Shaft end thread and length | Thread a nut you know (M6, M8) onto it. Caliper the shaft length from the housing face to the tip | `WIPER.shaft_thread`, `WIPER.shaft_len` | Wiper shaft coupler |
-| A4 Mount hole pattern | Lay the motor face down on paper, press so the holes mark it (or trace with a pencil). Then caliper each hole centre from the shaft centre along two square directions and each hole diameter. Photo of the paper with a ruler | `WIPER.mount_holes` as (x, y, dia) from the shaft axis | `frame_motor_adapter` and `frame_motor_saddle` |
+| A4 Mount hole pattern | Lay the motor face down on paper, press so the holes mark it (or trace with a pencil). Then caliper each hole centre from the shaft centre along two square directions and each hole diameter. Photo of the paper with a ruler | `WIPER.mount_holes` as (x, y, dia) from the shaft axis | `frame_motor_adapter` and `frame_can_stay` |
 | A5 Housing size | Caliper the gearbox box (length, width, height) and the motor can (diameter, length), and how far the shaft sits from each edge | `WIPER.body_box` | Frame cheeks and guard if they clash (the audit says) |
 | A6 Free speed and free current | After CALIBRATION.md (a) magnet and (b) current scale (G1). Motor clamped, nothing on the shaft, AS5600 magnet on the shaft. A forward bench jog runs at only 40 percent power (take-up duty, 102 of 255): send `{"cmd":"jog","motor":"wiper","dir":1,"ms":1500}` and paste it again every second for about 10 s. Read `rpm`, `amps` and `vbat` in telemetry while it runs steady. Free speed scales with power: write n0_rpm = measured rpm x 2.5 (= 255 / 102), never the raw jog rpm. Check rpm by eye too: tape flag, turns in 10 s x 6. (Not with the meter in series for this run) | `WIPER.n0_rpm` (scaled), `WIPER.free_a` | Nothing; re-run physics |
 | A7 Stall torque (optional) | The firmware trips jogs at 2.5 to 3 A, far below the 18 A stall, so the true stall current cannot be read and is not needed (the trips protect the printed parts). Optional torque check: 300 mm bar on the shaft, luggage scale anchored at 90 degrees, jog until it trips and read the peak: torque at the trip = kg x 9.81 x 0.30 | `WIPER.stall_nm` only as a lower bound | Nothing |
-| A8 Mounting boss and hub details | Caliper the boss round the output shaft (diameter `boss_d`, height `boss_h`), the hub (`hub_d`, `hub_h`), the threaded length (`thread_len`), where the motor can starts from the shaft (`can_x0`), and the bolt head and nut sizes the motor takes (`bolt_*`, M6 assumed: head 10, nut 10 AF x 5). The motor sits gearbox above the main axis (decision D20, `WIPER.orient_deg` 90): check the can clears the frame in that position | `WIPER.boss_d`, `boss_h`, `hub_d`, `hub_h`, `thread_len`, `can_x0`, `bolt_*` | `frame_motor_adapter`, `frame_motor_saddle` |
+| A8 Mounting boss and hub details | Caliper the boss round the output shaft (diameter `boss_d`, height `boss_h`), the hub (`hub_d`, `hub_h`), the threaded length (`thread_len`), where the motor can starts from the shaft (`can_x0`), and the bolt head and nut sizes the motor takes (`bolt_*`, M6 assumed: head 10, nut 10 AF x 5). The motor sits gearbox above the main axis (decision D20, `WIPER.orient_deg` 90): check the can clears the frame in that position | `WIPER.boss_d`, `boss_h`, `hub_d`, `hub_h`, `thread_len`, `can_x0`, `bolt_*` | `frame_motor_adapter`, `frame_can_stay` |
 
 ### B. Launch springs (params.py `SPRING`, set `measured=True` when done)
 
@@ -4455,15 +4505,15 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | Item | How | Changes | Reprint |
 |---|---|---|---|
 | B1 Free length L0 | Steel rule or tape, hook to hook (inside of the hooks), no load (the spring is longer than a caliper) | `SPRING.free_len` | Nothing |
-| B2 Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 3.5 kg load (never more: 4 kg is over the 38.4 N rating), but only if L3 - L0 is under 160 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm. Or let the computer fit it: `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` (kg:mm pairs) prints the rate and initial tension | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
+| B2 Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 3.5 kg load (never more: 4 kg is over the 38.4 N rating), but only if L3 - L0 is under 160 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm. Or let the computer fit it: `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` (kg:mm pairs) prints the rate, the initial tension and the force at full cock. Enter the mean of the two springs in params; the stronger spring decides B4 | `SPRING.k_n_per_mm`, `SPRING.F0_n` (mean of the two springs) | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
 | B3 Wire and outside diameter | Caliper | `SPRING.wire`, `SPRING.od` | Spring anchors only if OD differs by more than 0.5 mm |
-| B4 Which preload hole | Decision D30: the springs are Century C-243, rated 38.4 N maximum safe load. Full cock is 265 mm extension (about 40 N each with the estimated rate; preload 23.8 mm, stroke 241.2 mm). A fallback anchor hole set F, 8.5 mm rearward, gives 256.5 mm at full cock. After B2, re-run the physics: if the force at full cock is over 38.4 N, use the fallback hole set | assembly choice (spring anchor holes) | Nothing |
+| B4 Which preload hole | Decision D30: the springs are Century C-243, rated 38.4 N maximum safe load. Full cock is 265 mm extension (about 40 N each with the estimated rate; preload 23.8 mm, stroke 240.9 mm). A fallback anchor hole set F, 8.5 mm rearward, gives 256.5 mm at full cock. After B2, `calib.py spring` prints each spring's force at full cock: if the STRONGER spring is over 38.4 N, use the fallback hole set (the springs pull side by side, so each hook carries its own spring's force) | assembly choice (spring anchor holes) | Nothing |
 
 ### C. Parts box: confirm you have these (no new purchases)
 
 | Item | How | Changes | Reprint |
 |---|---|---|---|
-| C1 608 bearings (buy 10) | Look in the parts box. Needed for: the CAD uses 5 (storage reel 2, aim pedestal and others); the coupons borrow some (fit coupon tile A 3, risk coupon 1) and give them back | If not: the only purchase: search "608ZZ bearing 8x22x7" | |
+| C1 608 bearings (buy 10) | Look in the parts box. Needed for: the CAD uses 4 (aim crank 2, storage reel 2); the coupons borrow some (fit coupon tile A 3, risk coupon 1) and give them back | If not: the only purchase: search "608ZZ bearing 8x22x7" | |
 | C2 One M8 x 25 bolt and nut (the CAD's bought list), and any M8 bolts or 8 mm steel rod | Look in the parts box. Needed for: an axle through 608s; rod is optional elsewhere | If not: printed PPA-CF axles (tell the coordinator, it is a params switch) | |
 | C3 Worm N20 count: you need 4 (dart kick, deploy, foot, and the base selector drum) | Look in the parts box. Needed for: dart and base | If not: The kedge notes said 2 in hand and one to buy; the August order listed 8 worm N20s. Count them |  |
 | C4 MP1584 #2 (the spare from the dart build; confirm it, decision D19) | Look in the parts box. Needed for: drum N20 supply at 9.0 V | If not: No other way to run the DRV8833 from the 3S: tell the coordinator |  |
@@ -4482,8 +4532,9 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | C17 JST SH 4-pin (STEMMA QT) cable 400 mm or longer for the AS5600 | Look in the parts box. Needed for: the 200 mm one is too short | If not: Extend with 4 soldered wires and heat shrink |  |
 | C18 Carriage stop | Nothing to find: it is a printed PLA flexure with about 19 mm travel (decision D26). TPU pads are an optional upgrade if you get TPU | none | |
 | C19 No PETG needed: the brake rocker prints in PPA-CF with an adjustable FIRM screw | Nothing to find | none |  |
-| C20 How many 693ZZ / F693ZZ bearings are left after the dart (the dart uses 5 F693ZZ) | Look in the parts box. Needed for: line pulleys on the base | If not: Tell the coordinator the count |  |
+| C20 How many 693ZZ / F693ZZ bearings are left after the dart (the dart uses 5 F693ZZ). The base needs 6 x 693ZZ (lip roller, 3 rail pulleys, reel pulleys 1 and 2); the coupons borrow one 693ZZ and one F693ZZ and give them back | Look in the parts box. Needed for: line pulleys and the lip roller on the base | If fewer than 6 x 693ZZ: Tell the coordinator the count |  |
 | C21 Coupon extras, exactly as the coupon sheets list them (base/pack/coupons/COUPON_TEST.md and base/pack/fit_coupon/COUPON.md): today M3 screws x 10, 12, 16 and 20, M3 nuts and a jam nut, M3 heat-set inserts, string, and 2 x M3 x 16 for the swing splitter coupon (its drag pad and idler clip are printed, no O-ring or e-clip) | Look in the parts box. Needed for: the day-one coupons | If not: ask before buying (the only planned purchase is 608s) | |
+| C22 Perfboard about 55 x 31 mm (optional) | Look in the parts box. Needed for: nothing essential. The bay has two bosses for one (2 x M3 x 10) to carry the dividers, the pull-downs and the 3V3 and GND buses, but firmware/base/WIRING.md solders the resistors at the boards and shares one GND wire | If not: leave the two bosses empty | |
 
 ### D. Electrical labels to read
 
@@ -4524,12 +4575,12 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | G3 AS5600 zero and drum positions | firmware/base/CALIBRATION.md | stored on the ESP32 |  |
 | G4 Storage reel payout drag | A luggage scale cannot read this low: use hanging weights in LAUNCH mode. Tie 40 g (coins in a bag, weighed) to the line end over the edge of the bench: it must NOT pull line off. 50 g must pull line off slowly. That sets the brake at 0.5 N (the design value). Above 1 N costs range, 3 N ruins the flight. Then in NEUTRAL the clutch is FIRM, 5 N (decision D24): with the luggage scale, line pulls off at about 0.5 kg | slip clutch preload (reel parts) |  |
 | G5 Muzzle speed | Phone slow-motion video side-on, tape measure laid in the flight line (same distance from the phone as the dart). Count the frames the nose takes to cross 0.5 m; speed m/s = 0.5 x slow-motion fps (240 or 120) / frames | physics model, ballistics table |  |
-| G6 Range at three pitches | Tape measure from the base to the dart at 3 pitches, tether on, brake unchanged | ballistics table check (jetson uses it) |  |
+| G6 Range at three pitches | Tape measure from the ground point under the rail pivot (the main shaft) to where the dart first touched down, at 3 pitches, tether on, brake unchanged | ballistics table check (jetson uses it) |  |
 | G9 Line tension per amp (dart-side tension, decision D43) | CALIBRATION.md (f): `wrap`, `mode` REEL, the line END (where the dart would be) tied to a luggage scale on a post, stand beside the line. `{"cmd":"reel","duty":0.3,"until":"stop"}`, send `stop` at about 10, 20 and 30 N (the worm holds between), read `amps` each time; stay under 40 N. Fit the slope and offset. Default law: line N = 13.1 x (amps - free amps) - 2.3. It is a model, so this check matters before any tow | firmware `k_n_per_a`, `tension_offset_n` | |
 | G10 Tow limit (choose) | The limit is the tension at the dart (D43). The firmware ships `limit_n` 50 N and refuses anything above 55 N at the dart (D46). Keep the first field tows at 40 N or less until the wrap cup ring has been checked for wear (D46). Lower it with `{"cmd":"set","key":"limit_n","val":40}`; keep it below the holding force from G7 | firmware `limit_n` | |
 | G11 Payout brake trim | If G4 is off: turn the 2 x M3 trim screws through the reel gear and the wall (reel assembly steps), a quarter turn at a time, until 40 g on the line does not pay out and 50 g just pays out (no shims) | reel trim screws | |
-| G12 Contact gaps | Set each contact to the gap its assembly step gives, then check in telemetry `sw` that it opens and closes at the right place: SW_HOME and SW_SEATED screw head to the nut then back half a turn (0.25 mm); SW_INDEX about 1.5 mm on a low part of the cam; drum code contacts about 1.8 mm with the nub low. The coupon contact (risk coupon 2) is set to 0.9 mm and is only a test piece. Half a turn of an M3 screw is 0.25 mm | nothing | |
-| G13 AS5600 air gap | Magnet face to chip: 1.0 mm design, 1 to 2 mm is the target (params), 0.5 to 3 mm still reads. Feeler: a stack of paper | nothing |  |
+| G12 Contact gaps | Set each contact to the gap its assembly step gives, then check in telemetry `sw` that it opens and closes at the right place: SW_HOME and SW_SEATED screw head to the nut then back off one full turn (0.5 mm); SW_INDEX about 1.5 mm on a low part of the cam; drum code contacts about 1.8 mm with the nub low. The coupon contact (risk coupon 2) is set to 0.9 mm and is only a test piece. One full turn of an M3 screw is 0.5 mm | nothing | |
+| G13 AS5600 air gap | Magnet face to chip: 2.0 mm design, fixed by the carrier (Sensors 4 step); 0.5 to 3 mm still reads. Do not shim the board closer: its connectors would touch the turning cap. Feeler: a stack of paper | nothing |  |
 | G14 Wiper coupler shear pin (before the first powered cock, decision D44) | The torque limiter is a printed PLA pin (d 4), printed LYING DOWN, that shears at about 5 N m (3.5 to 6 N m). Break THREE spare pins on a torque arm: pin in the coupler, hub held in a vice, 300 mm bar on the output side, luggage scale at 90 degrees. N m = kg x 9.81 x 0.30 (about 1.2 to 2.0 kg). They must agree within 20 percent (risk coupon 9 is the same test) | pin diameter if outside 3.5 to 6 N m (tell the coordinator) | spare shear pins |
 | G7 Soil holding force | Dart anchored, luggage scale on the tether, pull slowly up to 50 N, note where it moves | reel tension limit |  |
 | G8 Rail friction | Before the rail is mounted: lay the rail part on a flat board, dart in the cradle, lift one end of the board slowly until the dart slides; phone level app on the board. Friction = tan(angle) | physics (launch efficiency) |  |
@@ -4548,17 +4599,28 @@ one weight is not enough. Use three loads. Every range number scales with the en
 
 1. Fill in `docs/build/MEASURE_RESULTS.md` and put the photos in `originals/measure_2026-11/` (create the folder).
 2. Easy way: open Claude Code in the repo and ask it to enter MEASURE_RESULTS.md into `base/spec/params.py`
-   (`measured=True` in `WIPER` and `SPRING`), re-run the base pipeline and regenerate the firmware numbers.
+   (`measured=True` in `WIPER` and `SPRING`), re-run the base pipeline and the physics, regenerate the firmware
+   numbers and rebuild this guide (the commands in step 3).
 3. By hand, in Terminal on the Mac:
 
    ```
    cd ~/GrappStar
    bash kedge/setup_mac.sh                      # once: builds kedge/.venv (Python and the CAD libraries)
    # edit base/spec/params.py: the WIPER and SPRING blocks, measured=True
-   bash base/run_all.sh base                    # assembly, audit (must end CLEAN), print pack in base/out/base/pack
+   FORCE=1 bash base/run_all.sh base            # assembly, audit, print pack in base/out/base/pack, assembly guide
+   sh base/physics/run_all.sh                   # physics: ballistics table for the Jetson, SUMMARY, tests
    kedge/.venv/bin/python firmware/base/tools/gen_params.py   # firmware numbers, then re-flash the base ESP32
-   python3 docs/build/make_guide.py             # rebuild this guide
+   kedge/.venv/bin/python docs/build/make_guide.py            # rebuild this guide
    ```
+
+   The audit is expected to end NOT CLEAN with only the known items (README.md, "Open items", CAD), so the base
+   run needs `FORCE=1` to build the pack and the assembly guide, and it ends with "Problems: audit NOT CLEAN
+   (forced on)". Check `base/out/base/audit.txt`: if it lists a failure beyond the known items (a new COLLISION,
+   STATIC, CLEARANCE FAIL, ERROR or other line above the `warn` lines), do not print; give the file to the Claude
+   session. The physics run's last line says PASS, or FAIL with the steps that failed (give
+   that output to the Claude session). It rewrites `base/out/ballistics.json`, the table the Jetson aims with:
+   copy it to the Jetson or commit it and `git pull` there. The copy, from `~/GrappStar`:
+   `scp base/out/ballistics.json <user>@GrappStar.local:GrappStar/base/out/`.
 
    Fields params.py does not have yet (wiper boss and hub, N20 shaft, keyway depths, BTS7960 heatsink) go to the
    CAD owners through MEASURE_RESULTS.md; the Claude session maps them.
@@ -4568,7 +4630,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 ## Numbers still assumed in params.py right now
 
 
-params.py version: `1.3.7`.
+params.py version: `1.3.8`.
 
 | params.py name | State | Who fixes it |
 |---|---|---|

@@ -50,6 +50,7 @@ Write each number with its unit. Photo: the file name of the caliper photo in `o
 | C19 No PETG needed: the brake rocker prints in PPA-CF with an ... |  |  |
 | C20 How many 693ZZ / F693ZZ bearings are left after the dart (the ... |  |  |
 | C21 Coupon extras, exactly as the coupon sheets list them ... |  |  |
+| C22 Perfboard about 55 x 31 mm (optional) |  |  |
 
 ## D. Electrical labels to read
 

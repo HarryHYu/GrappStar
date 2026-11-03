@@ -34,7 +34,7 @@ list, datasheet). Dart viewer https://claude.ai/artifact/Sqt8tF67veTYfxQjUFTZ5f.
 | Base firmware (ESP32-S3) | base-1.3.1: 470 PC checks plus fuzzing (esp32 core 3.3.x, DevKitC-1; 1.3.1 was not compiled for the board in this session, see open items); protocol, wiring, calibration, bench test |
 | Dart firmware (XIAO ESP32S3) | host checks, fuzz, simulator, Jetson-client and web-page tests all pass |
 | Jetson | mission, vision (landing zone, aerial map, targeting), operator page, setup; 430 tests; `serve --sim` runs a whole mission on any PC |
-| System test | the real firmware and the Jetson app together: nominal mission, refusals and 9 power-loss phases pass (`systest/REPORT.md`) |
+| System test | the real firmware and the Jetson app together: 49 of 55 scenarios pass, including the nominal mission, the refusals and every power-loss phase; open: F21 (stiff-line tow) and 4 scenarios that never reach their injected fault (`systest/REPORT.md`) |
 | Build guide | `docs/build/GrappStar_Build_Guide.pdf` (plain Arial), measure list, test plan, electrical system |
 | Final cross-check | every shared number and command checked across firmware, Jetson, docs and CAD, and every mating CAD part checked for real engagement; 36 confirmed defects fixed (SW_GAP and SW_RAIL_LOW angles, SW_SEATED at arm, drum code edges, the coupler hub on the wiper shaft (D48), the tether through the motor plate, aim housing and pulley post screws, the aim splitter stop, index-mode tow) |
 

@@ -406,3 +406,12 @@ def test_irregular_sampling_v0():
     ev = imu_events(fl)
     a, b = (ev0["v0"] or ev0["v0_min"]), (ev["v0"] or ev["v0_min"])
     assert b == pytest.approx(a, rel=0.25)
+
+
+def test_no_t_launch_ms_impact_after_free_fall_is_not_a_launch():
+    """Review round 4: a log without t_launch_ms that starts in free fall: the impact is not a launch."""
+    s = [[t, 1, 0, 0, 0, 0.0, 0.0, 0.5] for t in range(500, 1200, 20)]
+    s += [[t, 1, 0, 0, 0, 0.0, 0.0, 50.0] for t in range(1200, 1280, 20)]
+    s += [[t, 1, 0, 0, 0, 0.0, 0.0, 9.81] for t in range(1280, 3000, 20)]
+    ev = imu_events({"hz": 50, "samples": s})
+    assert ev["launch"] is None and ev["rail_rpy"] is None and ev["v0"] is None

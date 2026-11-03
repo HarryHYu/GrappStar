@@ -543,7 +543,11 @@ def imu_events(fl: dict) -> dict:
     elif run is None:
         need = max(2, int(round(0.02 / dt)) + 1)       # samples spanning 20 ms (2 at 50 Hz)
         # a launch has the rail before it: at least 0.3 s of log (the firmware keeps 2 s)
-        long_runs = [r for r in runs4 if r[1] - r[0] + 1 >= need and t[r[0]] - t[0] >= 0.3]
+        # and the dart sat still on it (about 1 g) just before the push; an impact follows free fall instead
+        def rested(r):
+            pre = (t >= t[r[0]] - 0.3) & (t < t[r[0]] - 0.02)
+            return bool(pre.any()) and 0.85 * G < float(np.median(acc[pre])) < 1.15 * G
+        long_runs = [r for r in runs4 if r[1] - r[0] + 1 >= need and t[r[0]] - t[0] >= 0.3 and rested(r)]
         if long_runs:
             run = long_runs[0]
     if run is None and not no_push:
@@ -756,6 +760,12 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
     if imu is not None and imu.get("no_push"):
         res.notes.append("flightlog has no push at t_launch_ms (log starts late?): no IMU rail attitude or speed")
     offset = clock_offset_s
+    try:
+        offset = None if offset is None else float(offset)
+        if offset is not None and not math.isfinite(offset):
+            offset = None
+    except (TypeError, ValueError):
+        offset = None
     if imu is not None:
         res.imu_times = {k: imu.get(k) for k in ("launch", "launch_end", "impact", "landed")}
         if offset is None:

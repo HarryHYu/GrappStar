@@ -80,3 +80,19 @@ harness re-runs green.
   drum is HELD where it is (<why>)", and only say NEUTRAL when telemetry shows `drum_pos` NEUTRAL.
 - Also: Retry right after DRUM_TIMEOUT re-sends the same `mode` at once (3 retries in 9 s in the log); the prompt
   could say what to check (N20 wires, drum free to turn, SW_N20 lever) before Retry.
+
+## F7 (jetson) a fault while cocking traps the operator: Retry loops on LOADED_UNKNOWN, Decock is refused mid-mission
+
+- Scenario `stall_cock`: extra 20 N m on the wiper 0.6 s into `cock`. Base: `FAULT OVERCURRENT` ("wiper over 6 A"),
+  `MODE ok:false err:DRUM_HELD` (launch train not at rest: correct, D27). Shot phase becomes UNKNOWN with the carriage
+  drawn (PROTOCOL.md: a stop during cock makes the phase UNKNOWN).
+  Jetson: prompt "COCK failed ... went to NEUTRAL" (see F6), choices Retry / Skip / Abort. Retry: `clear` then `cock`
+  -> `LOADED_UNKNOWN`, three times, the only way out is Abort (or Skip, which goes on to ARM with a half-drawn spring;
+  arm then refuses NOT_COCKED, but Skip should not be offered here).
+  The operator cannot press Decock while the mission runs: `jetson/grappstar/app.py:330` refuses with "mission running".
+- Where: `jetson/grappstar/mission.py:300-332` (`_do`), `SKIPPABLE` contains COCK (`mission.py:48`), `app.py:328-333`.
+- Suggest: when the base answers `LOADED_UNKNOWN` (or the phase is UNKNOWN with `SW_HOME` open), offer "Decock and
+  re-aim" in the prompt (cal decock, wait RESET, then AIM again since decock turns the aim train), and do not offer
+  Skip for COCK in that state.
+- Harness: the scenario now models what the operator must do today (Abort, Clear, Decock, Start again) and checks
+  that the second mission completes.

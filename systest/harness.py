@@ -417,6 +417,15 @@ class Rig:
         while app.mission and app.mission.running() and time.time() < deadline:
             time.sleep(0.2)
         hung = bool(app.mission and app.mission.running())
+        if not hung and self.sc.after:
+            self.first_mission = {"state": app.mission.state, "error": app.mission.error,
+                                  "steps": [h["state"] for h in app.mission.history]}
+            self.note("info", msg=f"first mission ended {self.first_mission['state']}: {self.first_mission['error']}")
+            self.sc.after(self)
+            deadline = time.time() + self.sc.timeout_s
+            while app.mission and app.mission.running() and time.time() < deadline:
+                time.sleep(0.2)
+            hung = bool(app.mission and app.mission.running())
         if hung:
             self.note("info", msg="mission still running at the scenario timeout: STOP")
             app.action("stop")
@@ -524,6 +533,7 @@ class Scenario:
         self.triggers = kw.get("triggers", [])
         self.anchor_holds = kw.get("anchor_holds", True)
         self.calibrated = kw.get("calibrated", True)
+        self.after = kw.get("after")              # run after the first mission ends (operator recovery + a new mission)
         self.tow_rounds = kw.get("tow_rounds", 3)
         self.timeout_s = kw.get("timeout_s", 420)
         self.policy = kw.get("policy", {})        # substring of prompt text -> answer (first match wins)
@@ -716,6 +726,29 @@ def later(dt, then):
     return act
 
 
+def decock_and_restart(rig):
+    """What the operator does after an aborted mission with the launcher in an unknown state: Clear, Decock (wait
+    RESET), then Start again."""
+    app = rig.app
+    rig.note("info", msg=f"operator: clear -> {app.action('clear')}")
+    time.sleep(0.5)
+    mark = len(rig.events)
+    r = app.action("decock")
+    rig.note("info", msg=f"operator: decock -> {r}")
+    t0 = time.time()
+    while time.time() - t0 < 90 and not any(e.get("evt") in ("RESET", "FAULT", "ABORTED") for e in rig.events[mark:]):
+        time.sleep(0.2)
+    rig.note("info", msg=f"after decock: {[e.get('evt') for e in rig.events[mark:]]}, tel {app.base.tel}")
+    rig.sc._retries = 0
+    rig.note("info", msg=f"operator: start again -> {app.action('start')}")
+
+
+def c_first_aborted_cleanly(rig, res):
+    fm = getattr(rig, "first_mission", None)
+    return fm is not None, f"first mission: {fm}"
+
+
+
 SCENARIOS: Dict[str, Scenario] = {}
 
 
@@ -743,7 +776,9 @@ sc(Scenario("stall_cock", "the wiper stalls while cocking (STALL), load removed,
             triggers=[("stall load", plant_state("COCK", delay=0.6),
                        lambda r: r.base.set(extraLoadNm=20)),
                       ("load removed", on_evt("FAULT", after=1.0), lambda r: r.base.set(extraLoadNm=0))],
-            extra_checks=[("STALL or OVERCURRENT raised", lambda r, res: (any(e.get("code") in ("STALL", "OVERCURRENT") for e in r.events),
+            after=decock_and_restart, timeout_s=400,
+            extra_checks=[("first mission ended, operator recovered with Decock", c_first_aborted_cleanly),
+                          ("STALL or OVERCURRENT raised", lambda r, res: (any(e.get("code") in ("STALL", "OVERCURRENT") for e in r.events),
                                                                           [e for e in r.events if e.get("evt") == "FAULT"]))]))
 
 sc(Scenario("power_unwrap", "power loss mid-unwrap: kill the base process, restart it, the mission recovers",

@@ -150,7 +150,10 @@ struct Cfg {
       7;                                                              // D4 / D16: 7 cup turns
 #endif
   float lnEngageDeg = 12, nrEngageDeg = 336;                          // collar still engaged in LAUNCH below / in REEL above
-  float drumDps = 8.1f;             // drum speed estimate (deg/s, cad-drum's N20 drive); re-learned between every two edges
+#ifndef P_DRUM_N20_DRUM_DEG_PER_S
+#define P_DRUM_N20_DRUM_DEG_PER_S 8.1f
+#endif
+  float drumDps = P_DRUM_N20_DRUM_DEG_PER_S;             // drum speed estimate (deg/s, cad-drum's N20 drive); re-learned between every two edges
   int drumSign = +1;                // DRV8833 direction that turns the drum toward REEL (BENCH_TEST.md)
   float drumTimeFactor = 1.5f; uint32_t drumTimeMarginMs = 1500;   // lens B I6: 1.5 x nominal (+ margin for the first moves)
   float drumEarlyFrac = 0.25f;      // reaching the target edge faster than this fraction of expected = bad contact
@@ -167,7 +170,9 @@ struct Cfg {
   // take-up while unwrapping (lens B step 13): wiper forward at 40 percent while the drum is in the WRAP sector
   int takeupDuty = 102; int takeupMaxDuty = 102;   // 40 percent (I4: forward in NEUTRAL or WRAP at most 40 percent)
   uint32_t approachMaxMs = 30000;   // final approach until SW_SEATED with line_m unknown, else DART_STUCK (max_s overrides)
-  float takeupMps = 0.08f;          // take-up line speed at 30 percent in NEUTRAL (coordinator estimate 0.08 to 0.1 m/s)
+  // take-up line speed in NEUTRAL, slowest case (most line out), physics retrieve.json: 0.058 m/s at duty 0.3, 0.113 at 0.5,
+  // 0.26 at 1.0; modelled as takeupMpsPerDuty x duty - takeupMpsOff
+  float takeupMpsPerDuty = 0.29f, takeupMpsOff = 0.03f;
   uint32_t tidySteadyMs = 2000; uint32_t tidyMaxMs = 15000;   // reel until slip: forward until the take-up slips steadily
   uint32_t tidyMs = 3000;           // "tidy" default run time (D22: tidy by time)
 

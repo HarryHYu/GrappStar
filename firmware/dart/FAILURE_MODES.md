@@ -239,13 +239,13 @@ Failure modes where the firmware does nothing useful, or the docs and the code d
 
 | Gap | Status |
 |---|---|
-| 1. Deploy never checked | FIXED: each pods step starts with the deploy worm alone for 0.3 s (open wire faults `NO_CURRENT`, already at the stop skips the step). A backwards deploy is still not detectable by current. |
+| 1. Deploy never checked | FIXED: the anchor's pods step starts with the deploy worm alone for 0.3 s (open wire faults `NO_CURRENT`). The "already at the stop" shortcut was removed after review round 8 (non-spinning augers in soil could fake it). A backwards deploy is still not detectable by current. |
 | 2. Kick jam misread | FIXED: kick travel bookkeeping; `KICK_JAM` instead of "already down" or "stowed". |
 | 3. `ANCHORED` hides a weak anchor | FIXED: `warnings` list in `/status`. |
 | 4. One dead drill, backwards drills or foot | OPEN: not detectable from the shared current; BENCH_TEST checks directions. A pre-shot self-test is a possible later addition. |
 | 5. STOP across clients | FIXED: a stop locks run keys that any client is still repeating until released. |
-| 6. `/auto` accepted while `ARMED` | FIXED: refused. |
-| 7. Launch fooled by a drop; arm never expires | FIXED: launch needs 300 ms still before the push; arm expires after 15 min. |
+| 6. `/auto` accepted while `ARMED` | CHANGED after review round 8: `/auto` while armed disarms first and starts (a refusal left the Jetson stuck when the launch was missed). The Jetson only sends `/auto` after its own landing decision. |
+| 7. Launch fooled by a drop; arm never expires | FIXED: a push within 400 ms after free fall is not a launch (the first version, 300 ms of stillness, rejected real shots on a vibrating rail and was replaced); arm expires after 15 min. |
 | 8. Arming on a flat battery | FIXED: refused under 6.6 V at rest. |
 | 9. IMU silent while armed; BNO085 not retried | PARTLY: reports are re-enabled every 2 s; the Jetson should not fire while `imu_ok` is false (asked). A full re-begin while idle is not done (it blocks the bus for up to a second). |
 | 10. No DRV8833 nFAULT input | OPEN (wiring): optional wire from both nFAULT pads to D10. |

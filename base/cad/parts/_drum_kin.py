@@ -17,14 +17,17 @@ import math
 DEFAULTS = dict(
     # ---------------------------------------------------------------- drum angles (deg). Order (BASE_SPEC D16):
     # LAUNCH, NEUTRAL, WRAP (collar stays in NEUTRAL), WRAPPED (still NEUTRAL, cup locked), then REEL.
-    stop_lo=-2.0,           # groove end (hard stop) below LAUNCH
+    # zones per params.DRUM (BASE_SPEC v1.0). End stops: params asks (-8, 358) = 366 deg, impossible on a single turn
+    # with an absolute code; the groove ends are at -4 and 352 (4 deg unreachable gap for the code ramps).
+    stop_lo=-4.0,           # groove end (hard stop) below LAUNCH
     launch=0.0,
     neutral=41.0,
-    wrapped=316.0,
-    reel=348.5,
-    stop_hi=351.0,          # groove end past REEL. stop_hi - stop_lo < 360 - 6 so the code disc is unique
+    wrap_start=56.0,        # park before the wrap (params target 62 sits on a code edge; 56 is mid WRAP_PREP)
+    wrapped=309.0,          # wraps done, cup locked, collar NEUTRAL (params target 302 sits on a code edge)
+    reel=347.0,
+    stop_hi=352.0,
     tr_ln=(8.0, 32.0),      # groove 1 transition LAUNCH -> NEUTRAL
-    tr_nr=(328.0, 346.0),   # groove 1 transition NEUTRAL -> REEL (after the last wrap and the re-lock)
+    tr_nr=(318.0, 340.0),   # groove 1 transition NEUTRAL -> REEL (after the last wrap and the re-lock)
     # ---------------------------------------------------------------- dog clutch
     stroke=7.0,             # collar travel from NEUTRAL to either side (mm) = neutral gap + engagement
     dog_h=5.0,              # dog height on each face (mm)
@@ -35,12 +38,12 @@ DEFAULTS = dict(
     dog_roof=1.2,           # tip chamfer (mm) on each side of the crest
     dog_r_in=18.0, dog_r_out=26.0,
     fork_k=1.6,             # fork yoke rate (N/mm): compliant when the dogs land tip to tip
-    fork_free=5.5,          # yoke travel to its hard stops (mm)
+    fork_free=4.5,          # yoke deflection when the dogs land tip to tip (stroke - dog_gap)
     # ---------------------------------------------------------------- track 2 (storage reel slip clutch preload)
     brake_lift=4.0,         # full radial lift (mm) = FIRM; 0 = LIGHT (cad-reel lever, 10 N design force)
     brake_force=10.0,
     # (theta0, theta1, frac0, frac1): LAUNCH light, NEUTRAL firm (tidy), WRAP light, WRAPPED and REEL firm
-    brake_ramps=((8.0, 32.0, 0.0, 1.0), (50.0, 62.0, 1.0, 0.0), (302.0, 310.0, 0.0, 1.0)),
+    brake_ramps=((8.0, 32.0, 0.0, 1.0), (50.0, 62.0, 1.0, 0.0), (302.0, 316.0, 0.0, 1.0)),
     # ---------------------------------------------------------------- wrap drive (segment gear with locking arc)
     seg_m=1.25, seg_z=60,   # drum segment gear: module, tooth count of the full circle it is cut from
     seg_teeth=40,           # window = 40 pitches = 240 deg = 4 pinion turns
@@ -55,26 +58,32 @@ DEFAULTS = dict(
     n20_stall_nm_9v=0.20,               # estimate, see stall_estimate()
     n20_work_frac=0.35,                 # keep the working load under this fraction of stall
     # ---------------------------------------------------------------- switch code (Gray code, bit = contact closed)
+    # params.DRUM.codes (A B C): LAUNCH 100, L_TO_N 110, NEUTRAL 010, WRAP_PREP 011, WRAP 001, N_TO_R 101, REEL 111
     code_arcs={
-        "b0": ((-6.0, 34.0), (302.0, 346.0)),
-        "b1": ((6.0, 328.0),),
-        "b2": ((56.0, 355.0),),
+        "b0": ((-8.0, 34.0), (302.0, 362.0)),     # A
+        "b1": ((6.0, 62.0), (342.0, 354.0)),      # B
+        "b2": ((50.0, 354.0),),                   # C
     },
-    code_ramp=3.0,          # bump ramp half width (deg): nub centre lift 50 percent at the arc edge
+    code_ramp=2.0,          # bump ramp half width (deg): nub centre lift 50 percent at the arc edge
     sw_tol=1.5,             # expected edge tolerance (deg)
 )
 
 # code (b2 b1 b0 as an int) -> sector name. 0 = all open = wire off or no bump: never valid.
-CODE_TABLE = {
+CODE_TABLE = {               # int = b2 b1 b0 = C B A; names = params.DRUM zones
     0b001: "LAUNCH",
-    0b011: "LN",            # between LAUNCH and NEUTRAL
+    0b011: "L_TO_N",
     0b010: "NEUTRAL",
-    0b110: "WRAPPING",      # wrap window (collar in NEUTRAL, cup turning or about to)
-    0b111: "WRAPPED",       # wraps done, cup locked, collar still in NEUTRAL, brake going firm
-    0b101: "NR",            # collar moving NEUTRAL -> REEL
-    0b100: "REEL",
+    0b110: "WRAP_PREP",
+    0b100: "WRAP",
+    0b101: "N_TO_R",
+    0b111: "REEL",
     0b000: "INVALID",
 }
+
+
+def code_abc(code_int):
+    """params.DRUM.codes string (bits A B C) for a code int (b2 b1 b0 = C B A)."""
+    return "".join("1" if code_int >> b & 1 else "0" for b in (0, 1, 2))
 
 
 def cfg(P=None):
@@ -83,6 +92,16 @@ def cfg(P=None):
     over = getattr(P, "DRUM", None) if P is not None else None
     if isinstance(over, dict):
         d.update({k: v for k, v in over.items() if k in d})
+        ang = over.get("angles")
+        if isinstance(ang, dict):
+            for k in ("LAUNCH", "NEUTRAL", "WRAPPED", "REEL"):
+                if ang.get(k) is not None:
+                    d[k.lower()] = float(ang[k])
+        tg = over.get("targets")
+        if isinstance(tg, dict):           # params v1.0 targets; the two on code edges are kept off the edges
+            for k, kk in (("LAUNCH", "launch"), ("NEUTRAL", "neutral"), ("REEL", "reel")):
+                if tg.get(k) is not None:
+                    d[kk] = float(tg[k])
     return d
 
 
@@ -191,7 +210,16 @@ def edges(c=None):
 def drum_pos(theta, c=None):
     """Telemetry drum_pos name (contract C1) at an exact angle."""
     s = sector(theta, c)
-    return {"LAUNCH": "LAUNCH", "NEUTRAL": "NEUTRAL", "REEL": "REEL", "WRAPPED": "WRAPPED"}.get(s, "BETWEEN")
+    if s in ("LAUNCH", "NEUTRAL", "REEL"):
+        return s
+    if s == "N_TO_R" and K_wrapped_flat(theta, c):
+        return "WRAPPED"
+    return "BETWEEN"
+
+
+def K_wrapped_flat(theta, c=None):
+    c = c or DEFAULTS
+    return c["seg_start"] + seg_span(c) <= theta <= c["tr_nr"][0]
 
 
 def code_lift(theta, bit, c=None):
@@ -296,6 +324,7 @@ def timing(c=None):
         dps=v,
         launch_to_neutral=(c["neutral"] - c["launch"]) / v,
         neutral_to_wrapped=(c["wrapped"] - c["neutral"]) / v,
+        wrap_window=seg_span(c) / v,
         wrapped_to_reel=(c["reel"] - c["wrapped"]) / v,
         launch_to_reel=(c["reel"] - c["launch"]) / v,
         full_travel=(c["stop_hi"] - c["stop_lo"]) / v,
@@ -307,7 +336,7 @@ def stop_plan(c=None):
     c = c or DEFAULTS
     es = edges(c)
     plans = []
-    for name in ("launch", "neutral", "wrapped", "reel"):
+    for name in ("launch", "neutral", "wrap_start", "wrapped", "reel"):
         tgt = c[name]
         below = [e for e in es if e[0] < tgt]
         above = [e for e in es if e[0] > tgt]
@@ -317,8 +346,13 @@ def stop_plan(c=None):
                               extra_deg=tgt - e[0]))
         if above:
             e = above[0]
-            plans.append(dict(target=name.upper(), dir=-1, edge=e[0], code_from=e[2], code_to=e[1],
-                              extra_deg=e[0] - tgt))
+            p = dict(target=name.upper(), dir=-1, edge=e[0], code_from=e[2], code_to=e[1], extra_deg=e[0] - tgt)
+            if p["extra_deg"] > 20.0 and below:
+                # too far to run by time: pass the target down to the edge below it, then come back up
+                eb = below[-1]
+                p = dict(target=name.upper(), dir=-1, method="pass_and_return", edge=eb[0], code_from=eb[2],
+                         code_to=eb[1], extra_deg=tgt - eb[0], note="drive - until the edge, then + by extra_deg")
+            plans.append(p)
     return plans
 
 
@@ -349,13 +383,13 @@ def firmware_table(c=None):
     """Everything fw-base needs, JSON-ready (written to drum_table.json by `python _drum_kin.py --json`)."""
     c = c or DEFAULTS
     return dict(
-        version="drum v3 (BASE_SPEC D16)",
-        positions={k.upper(): c[k] for k in ("launch", "neutral", "wrapped", "reel")},
+        version="drum v4 (BASE_SPEC v1.0)",
+        positions={k.upper(): c[k] for k in ("launch", "neutral", "wrap_start", "wrapped", "reel")},
         stops=[c["stop_lo"], c["stop_hi"]],
-        code_table={format(k, "03b"): v for k, v in CODE_TABLE.items()},
+        code_table_ABC={code_abc(k): v for k, v in CODE_TABLE.items()},
         code_bits={"SW_DRUM_A": "b0", "SW_DRUM_B": "b1", "SW_DRUM_C": "b2"},
         code_arcs={k: [list(a) for a in v] for k, v in c["code_arcs"].items()},
-        edges=[dict(deg=e[0], below=format(e[1], "03b"), above=format(e[2], "03b")) for e in edges(c)],
+        edges=[dict(deg=e[0], below=code_abc(e[1]), above=code_abc(e[2])) for e in edges(c)],
         stop_plan=stop_plan(c),
         timing_s=timing(c),
         dps_nominal=drum_dps(c),

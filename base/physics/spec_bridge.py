@@ -116,6 +116,10 @@ def apply(p, path=None):
     if lt.get("carriage_mass_g") is not None:                 # as built / slicer mass: wins over the target
         p.launch["carriage_mass"] = float(lt["carriage_mass_g"]) * 1e-3
         used.append("LAUNCH.carriage_mass_g")
+    if isinstance(lt.get("v_scale"), (int, float)) and not isinstance(lt.get("v_scale"), bool):
+        # muzzle speed factor from test shots (calib.py range); only ballistics.py and summary.py flight rows apply it
+        p.launch["v_scale"] = float(lt["v_scale"])
+        used.append("LAUNCH.v_scale")
     if isinstance(lt.get("stop"), dict) and lt["stop"].get("travel_min") is not None:
         p.launch["stop_pad_travel"] = float(lt["stop"]["travel_min"]) * 1e-3
         used.append("LAUNCH.stop.travel_min")

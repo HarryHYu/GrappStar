@@ -5,33 +5,41 @@ sim over HTTP, the real Jetson App). Each entry: the exact failing scenario, the
 Line numbers are against `origin/base-v1` at the time of the entry. Status: OPEN until the owner says fixed and the
 harness re-runs green.
 
-## Status (14:20 Sydney)
+## Status (14:40 Sydney)
 
-"fixed on branch" = green in the preview (`PREVIEW=1 systest/batch.sh`: base-v1 9a3bdf9 + w/fw-base 1027c3f +
-w/fw-dart 71c45ab + w/jetson c80c0f1), not yet merged into base-v1. Evidence in `systest/runs_preview/<scenario>/`.
+"fixed on branch" = green in the preview runs (`PREVIEW=1 systest/batch.sh`, base-v1 + w/fw-base + w/fw-dart +
+w/jetson; commits in `systest/runs_preview.version` and the logs), or stated fixed by the owner with the commit and
+re-tested where noted. Evidence in `systest/runs_preview/<scenario>/` and `systest/runs_fw87/`.
 
 | # | owner | status | evidence |
 |---|---|---|---|
 | F1 | fw-base | open (not re-tested: the harness waits for BOOT) | |
 | F2 | fw-base, jetson | FIXED in base-v1 | `tidy` -> TIDIED in every run |
 | F3 | fw-base | partly (Jetson reads l r I) | PROTOCOL re-sync |
-| F4 | jetson | fixed on branch | preview: WRAP before ANCHOR in every mission |
-| F5 | jetson, docs | fixed on branch | `nominal_uncal`: "TOW refused: no load cell and k_n_per_a is still ..." |
+| F4 | jetson | fixed on branch | WRAP before ANCHOR in every mission run |
+| F5 | jetson, docs | fixed on branch | `nominal_uncal` PASS: TOW refused, dart brought home |
 | F6 | jetson | fixed on branch | prompt says "The drum HELD where it is (...)" |
-| F7 | jetson | fixed on branch | `stall_cock`: "Decock and re-aim", then COCKED, FIRE, mission DONE |
-| F8 | jetson | fixed on branch | `power_unwrap(_fasthello)`: BASE_RESET at once, DONE in 121 s |
-| F9 | fw-base | open | `no_angle_sensor` |
-| F10 | jetson | fixed on branch | `no_angle_sensor`: "PREFLIGHT failed: AS5600 sees no magnet (status magnet NONE)" |
-| F11 | jetson | re-test | |
-| F12 | jetson | fixed on branch (one leftover) | C1 order matches 10.1 except a bench `set host_timeout_s` (allowed) |
-| F13 | fw-base | open | |
-| F14 | fw-base, docs | fixed on branch | CALIBRATION.md: two-point `k_n_per_a` + `tension_offset_n` |
-| F15 | fw-base | claimed fixed in 3ff1a86 | re-test `ref_power_wrap`, `power_aim` (this batch) |
-| F16 | fw-base | re-test | |
-| F17 | fw-base | open | |
-| F18 | jetson | fixed on branch | no 60 s TOW waits in this batch |
-| F19 | fw-base | retrieve at the park now refused (WRAPS_ON); max_n 80 untested behind F20 | `ref_refusals` |
-| F20 | fw-base (D41) | OPEN, acceptance test ready | `ref_nominal`, `ref_tow_stiff`, `tow_stiff`, `nominal`: OVERCURRENT 3.0 A at the fly-in |
+| F7 | jetson | fixed on branch | `stall_cock`: Decock and re-aim, mission DONE |
+| F8 | jetson | fixed on branch | `power_unwrap(_fasthello)`: BASE_RESET at once, DONE in about 120 s |
+| F9 | fw-base | fw-base reports an index mode (`indexMode` in cmdAim); not re-tested: the plant has no index cam | |
+| F10 | jetson | fixed on branch | `no_angle_sensor` PASS: preflight "AS5600 sees no magnet" |
+| F11 | jetson | not reproduced since F4 (no partial wrap any more) | |
+| F12 | jetson | fixed on branch | C1 order = 10.1 apart from F25 |
+| F13 | fw-base | fixed on branch (fw-base) | retrieve at the park WRAPS_ON |
+| F14 | fw-base, docs | fixed on branch | CALIBRATION.md two-point fit with offset (D42 default -3.0) |
+| F15 | fw-base | fixed on branch | `ref_power_wrap`, `power_aim`, `ref_power_aim` PASS |
+| F16 | fw-base | fixed on branch (fw-base: tension_offset_n saved; host_timeout_s deliberately not) | |
+| F17 | fw-base | fixed on branch (fw-base 87c48b3) | |
+| F18 | jetson | fixed on branch | no 60 s TOW waits |
+| F19 | fw-base | fixed on branch | `ref_refusals`: every wrong command refused (fw-base 6381edd) |
+| F20 | fw-base (D41) | fixed on branch | `ref_nominal` fly-in 14.6 N, no fault (c28396c) |
+| F21 | fw-base | fixed on branch | `ref_tow_stiff` PASS (6381edd): tow limit held on the stiff line |
+| F22 | fw-base / jetson | by design: host sends `stop` then `reel`; PROTOCOL + mission to align | |
+| F23 | fw-base | fixed in firmware 783f3b2 (line_m - 0.88 m after the wrap): the Jetson must not subtract it too | re-test |
+| F24 | jetson (low) | open | |
+| F25 | jetson / spec (low) | open (stop-first is safer: suggest the spec adopts it) | |
+| F26 | fw-base | fixed in 4231f46 (owner) | re-test `hand_lever` |
+| F27 | fw-base (low) | fixed in 4231f46 (owner: clamp within aim_tol) | re-test |
 
 ## F1 (fw-base) `cal` (and `set`) during the first 60 ms are acknowledged ok, then silently undone by the boot rebuild
 

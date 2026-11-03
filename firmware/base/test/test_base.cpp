@@ -858,6 +858,14 @@ static void testReview4() {
     CHECK(R.ok("{\"id\":3,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}"), "fire during the gap run is queued");
     R.until([&] { return (R.idle() && S.shots) || R.B.state == gb::S_FAULT; }, 30000);
     CHECK(S.shots == 1 && R.B.fault == gb::F_NONE, "queued fire runs after the gap closed"); }
+  { Rig R; R.toMode("NEUTRAL"); R.run(500); S.wDir = 0; S.drumDeg = 20;   // board off, drum turned by hand to L_TO_N (systest F26)
+    Rig R2(false); R2.run(500);
+    CHECK(R2.B.fault == gb::F_NONE && R2.lastEvt("BOOT").find("\"drum_moved\":true") != std::string::npos && !R2.B.degTrusted, "drum turned by hand while off: no fault, BOOT drum_moved, angle a guess");
+    R2.cmd("{\"id\":0,\"cmd\":\"cal\",\"what\":\"cock_rest\"}");
+    CHECK(R2.toMode("NEUTRAL") && fabs(S.drumDeg - 41) < 6, "then mode NEUTRAL works"); }
+  { Rig R; R.toMode("LAUNCH");
+    CHECK(R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":6}"), "aim 6 (just under the table minimum 6.01) accepted and clamped (systest F27)");
+    R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000); CHECK(R.B.aimed, "aimed at the minimum"); }
   for (int every : {200, 100, 40}) {             // bursts of 3 failed I2C reads during a cock (review: travel was lost)
     Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":2,\"cmd\":\"aim\",\"deg\":30}"); R.until([&] { return R.idle(); }, 60000);
     S.encDropEvery = every; R.ok("{\"id\":3,\"cmd\":\"cock\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);

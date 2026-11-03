@@ -21,15 +21,47 @@ speed. The horizon track does not depend on the impact time, so it fixes that.
 
 ## Verified
 
-PASTE_TESTS
+Venv: Python 3.13 with numpy<2, opencv-python-headless, pyserial, pytest (the code itself keeps to 3.10 syntax).
+
+My files (vision, video, analysis, campose, ballistics tests), at 95b6dec plus the report:
+
+    $ python -m pytest -c pytest.ini --rootdir . tests/test_flight.py tests/test_sim_flight.py tests/test_terrain.py
+      tests/test_terrain_flight.py tests/test_target.py tests/test_mosaic.py tests/test_campose.py tests/test_ballistics.py
+      tests/test_textures.py tests/test_video_*.py
+    ======================= 205 passed in 139.65s (0:02:19) ========================
+
+Whole jetson suite (same tree):
+
+    $ python -m pytest -c pytest.ini --rootdir . -rf tests
+    FAILED tests/test_comms_base.py::test_d35_sequence_mock_matches_basesim - AssertionError: assert 'base-1.2.1' == 'base-1.2'
+    1 failed, 377 passed, 29 deselected in 544.86s (0:09:04)
+
+The one failure is the mock base's firmware version string against the real base firmware: jetson comms / fw-base,
+not my files.
+
+Simulator accuracy of the new video-only range (sim speeds 6, 7, 8 m/s; seeds 2, 5, 7 not used for tuning):
+with the commanded pitch the error is -5 to +10 percent at 8, 20 and 40 deg; without it -12 to +13 percent.
+The old estimator was +18 to +79 percent at these speeds.
+
+Independent review (fresh subagent, code only): 4 confirmed findings, all fixed in 1676e45. (1) A long hold could
+decode GBs and dropped the launch frames first. Now buffer(since=) is used and only frames after the first 8 s of
+the hold are thinned. (2) The speed model started the flight half a stroke low. Now it starts at the rail exit,
+like the range model. (3) The aim pitch was not passed from the mission: the jetson worker wired it. (4) A range
+exactly on a table row gave a false "two solutions" note. Then coordinator R2-C2 (80b6441): the speed is searched
+only in 0.6 to 1.4 x the table v_muzzle, the default speed comes from the table, and an expired hold warns. The
+placeholder table now uses the real 6..47 deg window (95b6dec). With the high branch, the mission tests' 60 deg
+placeholder asked the base for 59.6 deg, which the base refuses.
 
 ## Open items
 
-- The jetson worker still has to pass `aim_pitch_deg` and `drag_n` from mission.py to run_post_flight (exact line
-  sent). Without it, the pitch comes from the rail horizon or the flight time; the sim results stay within 15
-  percent, but the commanded pitch is the better prior.
-- sim/flight_video.py (jetson's) still draws 9..11 m/s and 25..45 deg by default. The new real-speed tests pass
-  pitch and speed explicitly. Suggested: draw from the C3 table.
+- mission.py now passes aim_pitch_deg, drag_n and buffer(since=), and calls hold / release_hold (jetson worker, on
+  w/jetson with fallbacks). Check them after the coordinator merges both branches.
+- sim/flight_video.py (jetson's) still draws 9..11 m/s and 25..45 deg by default. The --sim world passes the aimed
+  pitch and the table speed; the real-speed tests pass both explicitly.
+- test_comms_base version string (above): jetson / fw-base.
+- Running pytest from the repo root collects firmware/base/test/test_gen_params.py, which calls sys.exit at import
+  and stops the run. Run from jetson/ with `-c pytest.ini --rootdir .` (fw-base could guard that file with
+  `if __name__ == "__main__"`).
 - The real Caddx Ant is a fisheye (about 150 deg). The horizon pitch uses a pinhole model with hfov 100 deg. Once
   the camera is calibrated, pass its effective hfov to analyze_flight.
 - `REST_POSES_DEG` (0 and -60 deg) is an assumption: check it on real landings and edit the tuple.

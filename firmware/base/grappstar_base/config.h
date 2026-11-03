@@ -166,7 +166,7 @@ struct Cfg {
   // centering jog (lens B 3.7): before every shift the wiper turns this far BACKWARD so the collar sits in the middle of
   // its free dog window and touches no flank (in REEL sprag #2 holds the line meanwhile)
   float dogWindowDeg = 16;          // free play of the collar dogs (unload jog = half of it)
-  float centerDeg = 6;              // unload (centering) jog: drum_NOTES 7.3 (dog play +-8); params still says 8
+  float centerDeg = P_DRUM_UNLOAD_JOG_DEG;   // unload (centering) jog: params 1.3.3 drum unload_jog_deg (dog play +-8)
   // fly-in (lens B 7.2 steps 8, 15): the wiper creeps forward while the collar drops into REEL; into LAUNCH the collar
   // dropping in is checked with SW_DOG_L and, if needed, the wiper is turned BACKWARD (never forward: that would cock)
   int flyDuty = 64;                 // 25 percent (about 20 percent asked; at least minScaleDuty 60 so the 3 A trip sees the real current)

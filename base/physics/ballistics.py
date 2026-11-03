@@ -112,6 +112,8 @@ def main(argv=None):
     ap.add_argument("--step", type=float, default=2.5)
     ap.add_argument("--out", default=OUT)
     a = ap.parse_args(argv)
+    if a.step <= 0:
+        raise SystemExit("--step must be > 0")
     p = load_params()
     doc, meta = build(p, a.step)
     errs = validate(doc)

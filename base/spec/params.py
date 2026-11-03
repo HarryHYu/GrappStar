@@ -147,7 +147,7 @@ DRUM = dict(
     dog_contacts=("SW_DOG_L", "SW_DOG_R"),   # collar engaged LAUNCH / REEL; checked during every move: the wrap window is
                                             # never entered with either closed
     unload_jog_deg=8.0,        # before any shift out of LAUNCH or REEL
-    fault_rules=dict(from_REEL_or_N_TO_R="go to WRAPPED (314), never NEUTRAL (that would run back through the wrap window and unwrap under tow)",
+    fault_rules=dict(from_REEL_or_N_TO_R="the drum HOLDS where it is (D27, MODE err DRUM_HELD), never NEUTRAL (that would run back through the wrap window and unwrap under tow); the operator unwraps when safe",
                      boot_in_WRAP="stop and report", REEL_jog="forward only (sprag #2)"),
     wrap_turns=7,
     wrap_train=dict(segment_pinion_turns=4, idler_out=dict(module=1.5, teeth=42, face=8.0), cup_gear=dict(module=1.5, teeth=24),

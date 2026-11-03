@@ -44,7 +44,7 @@
    {
     "f_line": 5,
     "t_wiper": 0.4267378498163882,
-    "t_drum": 0.15959995583132916,
+    "t_drum": 0.0,
     "rpm_wiper": 45.56202392409545,
     "rpm_drum": 103.55005437294422,
     "v_line": 0.21687472673124344,
@@ -57,7 +57,7 @@
    {
     "f_line": 10,
     "t_wiper": 0.6941175289607733,
-    "t_drum": 0.25959995583132917,
+    "t_drum": 0.1,
     "rpm_wiper": 44.6684410363949,
     "rpm_drum": 101.5191841736248,
     "v_line": 0.21262128213219256,
@@ -70,7 +70,7 @@
    {
     "f_line": 20,
     "t_wiper": 1.2288768872495435,
-    "t_drum": 0.4595999558313292,
+    "t_drum": 0.3,
     "rpm_wiper": 42.88127526099384,
     "rpm_drum": 97.457443774986,
     "v_line": 0.20411439293409092,
@@ -83,7 +83,7 @@
    {
     "f_line": 30,
     "t_wiper": 1.7636362455383137,
-    "t_drum": 0.6595999558313292,
+    "t_drum": 0.5000000000000001,
     "rpm_wiper": 41.09410948559277,
     "rpm_drum": 93.39570337634721,
     "v_line": 0.19560750373598923,
@@ -96,7 +96,7 @@
    {
     "f_line": 45,
     "t_wiper": 2.5657752829714693,
-    "t_drum": 0.9595999558313294,
+    "t_drum": 0.8000000000000003,
     "rpm_wiper": 38.41336082249116,
     "rpm_drum": 87.303092778389,
     "v_line": 0.1828471699388367,
@@ -109,7 +109,7 @@
    {
     "f_line": 50,
     "t_wiper": 2.8331549621158536,
-    "t_drum": 1.0595999558313292,
+    "t_drum": 0.9,
     "rpm_wiper": 37.51977793479063,
     "rpm_drum": 85.27222257906963,
     "v_line": 0.1785937253397859,
@@ -122,7 +122,7 @@
    {
     "f_line": 75,
     "t_wiper": 4.170053357837779,
-    "t_drum": 1.5595999558313294,
+    "t_drum": 1.4000000000000001,
     "rpm_wiper": 33.05186349628795,
     "rpm_drum": 75.11787158247262,
     "v_line": 0.15732650234453166,
@@ -135,7 +135,7 @@
    {
     "f_line": 100,
     "t_wiper": 5.506951753559704,
-    "t_drum": 2.059599955831329,
+    "t_drum": 1.9,
     "rpm_wiper": 28.58394905778528,
     "rpm_drum": 64.96352058587564,
     "v_line": 0.13605927934927747,
@@ -148,7 +148,7 @@
    {
     "f_line": 112,
     "t_wiper": 6.148662983506229,
-    "t_drum": 2.2995999558313294,
+    "t_drum": 2.14,
     "rpm_wiper": 26.439350127304,
     "rpm_drum": 60.0894321075091,
     "v_line": 0.1258510123115555,
@@ -163,7 +163,7 @@
    {
     "f_line": 5,
     "t_wiper": 0.4267378498163882,
-    "t_drum": 0.15959995583132916,
+    "t_drum": 0.0,
     "rpm_wiper": 39.42566028773181,
     "rpm_drum": 89.60377338120867,
     "v_line": 0.18766570412555322,
@@ -176,7 +176,7 @@
    {
     "f_line": 10,
     "t_wiper": 0.6941175289607733,
-    "t_drum": 0.25959995583132917,
+    "t_drum": 0.1,
     "rpm_wiper": 38.53207740003127,
     "rpm_drum": 87.57290318188926,
     "v_line": 0.18341225952650234,
@@ -189,7 +189,7 @@
    {
     "f_line": 20,
     "t_wiper": 1.2288768872495435,
-    "t_drum": 0.4595999558313292,
+    "t_drum": 0.3,
     "rpm_wiper": 36.7449116246302,
     "rpm_drum": 83.51116278325046,
     "v_line": 0.17490537032840067,
@@ -202,7 +202,7 @@
    {
     "f_line": 30,
     "t_wiper": 1.7636362455383137,
-    "t_drum": 0.6595999558313292,
+    "t_drum": 0.5000000000000001,
     "rpm_wiper": 34.957745849229134,
     "rpm_drum": 79.44942238461168,
     "v_line": 0.16639848113029898,
@@ -215,7 +215,7 @@
    {
     "f_line": 45,
     "t_wiper": 2.5657752829714693,
-    "t_drum": 0.9595999558313294,
+    "t_drum": 0.8000000000000003,
     "rpm_wiper": 32.27699718612753,
     "rpm_drum": 73.3568117866535,
     "v_line": 0.15363814733314649,
@@ -228,7 +228,7 @@
    {
     "f_line": 50,
     "t_wiper": 2.8331549621158536,
-    "t_drum": 1.0595999558313292,
+    "t_drum": 0.9,
     "rpm_wiper": 31.383414298427,
     "rpm_drum": 71.3259415873341,
     "v_line": 0.14938470273409565,
@@ -241,7 +241,7 @@
    {
     "f_line": 75,
     "t_wiper": 4.170053357837779,
-    "t_drum": 1.5595999558313294,
+    "t_drum": 1.4000000000000001,
     "rpm_wiper": 26.915499859924314,
     "rpm_drum": 61.17159059073708,
     "v_line": 0.12811747973884144,
@@ -254,7 +254,7 @@
    {
     "f_line": 100,
     "t_wiper": 5.506951753559704,
-    "t_drum": 2.059599955831329,
+    "t_drum": 1.9,
     "rpm_wiper": 22.447585421421646,
     "rpm_drum": 51.01723959414011,
     "v_line": 0.10685025674358727,
@@ -267,7 +267,7 @@
    {
     "f_line": 112,
     "t_wiper": 6.148662983506229,
-    "t_drum": 2.2995999558313294,
+    "t_drum": 2.14,
     "rpm_wiper": 20.302986490940363,
     "rpm_drum": 46.143151115773556,
     "v_line": 0.09664198970586525,
@@ -282,7 +282,7 @@
  "at_tow_nom": {
   "f_line": 50.0,
   "t_wiper": 2.8331549621158536,
-  "t_drum": 1.0595999558313292,
+  "t_drum": 0.9,
   "rpm_wiper": 31.383414298427,
   "rpm_drum": 71.3259415873341,
   "v_line": 0.14938470273409565,
@@ -312,13 +312,13 @@
   "hard_torque": 4.545454545454545,
   "hard_gear_sf": 2.1846,
   "hard_gear_pass": true,
-  "hard_drum_torque": 1.6999999999999995,
+  "hard_drum_torque": 1.5404000441686705,
   "hard_line_n": 83.1650272457895,
   "tow_trip_delta_a": 3.049116044365322,
   "tow_trip_avg_ms": 200,
   "tow_trip_rule": "measured free current + 3.05 A, averaged over 200 ms",
   "notes": [
-   "ignore current for 50 ms after start; hard trip for 30 ms at 5.0 A in reel-in (D33; 3.0 A recommended in aim), 6.5 A towing (4.55 N m at the wiper), 6.5 A while cocking (4.55 N m)",
+   "ignore current for 50 ms after start; hard trip for 30 ms at 5.0 A in reel-in, 5.0 A in aim (physics recommends 3.0 A: aim splitter), 6.5 A towing (4.55 N m at the wiper), 6.5 A while cocking (4.55 N m)",
    "the 5 N m torque limiter in the wiper coupler caps the train at 5 N m (motor current while it slips 7.0 A); sprag #2 plus the self-locking worm still lock in the line tension after a trip, so the trip must stop the motor before the limiter slips for long (heat, wear)",
    "the 20 A fuse holds a 17 A motor stall (no limiter) and the 7.0 A limiter slip indefinitely: it is wiring protection only",
    "BTS7960 IS reads the high side only (zero in the PWM off-time): sample in the on-time or scale by duty"
@@ -401,7 +401,7 @@
   "current_slip": 7.0,
   "f_line_empty_reel": 91.66502724578952,
   "f_line_full_reel": 90.52000220843352,
-  "t_drum": 1.8699999999999997,
+  "t_drum": 1.7104000441686704,
   "dart_hold": {
    "sand": 7.0,
    "loam": 45.0,
@@ -417,14 +417,16 @@
   "wraps_slip_first": false,
   "holds_max": 366303.3539440175,
   "tow_frac": 0.5666309924231707,
-  "slips_at_tow": false
+  "slips_at_tow": false,
+  "f_tow_max_n": 71.82000220843352,
+  "tow_limit_max_spec_n": 70.0
  },
  "reel": {
   "length": 20.0,
   "light": {
    "f_line": 3.0,
    "t_wiper": 0.4267378498163882,
-   "t_drum": 0.15959995583132916,
+   "t_drum": 0.0,
    "rpm_wiper": 39.42566028773181,
    "rpm_drum": 89.60377338120867,
    "v_line": 0.18766570412555322,
@@ -438,61 +440,61 @@
  },
  "parts_at_tow": {
   "f_line": 50.0,
-  "t_drum": 1.0595999558313292,
+  "t_drum": 0.9,
   "shaft": {
-   "torque_nm": 1.0595999558313292,
-   "tau_nom_mpa": 0.6745622826820399,
-   "tau_peak_mpa": 1.3491245653640798,
+   "torque_nm": 0.9,
+   "tau_nom_mpa": 0.5729577951308231,
+   "tau_peak_mpa": 1.1459155902616462,
    "kt": 2.0,
    "kt_endmill": 3.0,
    "t_allow": 12.0,
    "t_allow_kt": 9.424777960769381,
    "t_allow_endmill": 6.283185307179587,
-   "sf": 11.325028784646536,
+   "sf": 13.333333333333332,
    "strict_pass": true,
    "endmill_pass": true,
    "pass": true
   },
   "key": {
-   "torque_nm": 1.0595999558313292,
+   "torque_nm": 0.9,
    "length_mm": 14.0,
-   "force_n": 105.95999558313291,
+   "force_n": 90.0,
    "key_material": "steel",
    "hub_printed": true,
    "ligament_shaft_mm": 4.1414284285428495,
    "modes": {
     "bearing_shaft": {
-     "stress_mpa": 2.5228570376936403,
+     "stress_mpa": 2.142857142857143,
      "allow_mpa": 25.0,
-     "sf": 9.90940018656572
+     "sf": 11.666666666666668
     },
     "shear_shaft": {
-     "stress_mpa": 1.8275267202296923,
+     "stress_mpa": 1.5522594533483955,
      "allow_mpa": 12.0,
-     "sf": 6.566251462792174
+     "sf": 7.730666399946652
     },
     "bearing_hub": {
-     "stress_mpa": 2.5228570376936403,
+     "stress_mpa": 2.142857142857143,
      "allow_mpa": 25.0,
-     "sf": 9.90940018656572
+     "sf": 11.666666666666668
     },
     "shear_hub": {
-     "stress_mpa": 0.6204415999135064,
+     "stress_mpa": 0.5269889233659458,
      "allow_mpa": 12.0,
-     "sf": 19.34106288435991
+     "sf": 22.77087708666524
     }
    },
    "governing": "shear_shaft",
-   "sf": 6.566251462792174,
-   "t_max": 6.957599759951988,
+   "sf": 7.730666399946652,
+   "t_max": 6.957599759951987,
    "pass": true
   },
   "sprag": {
-   "torque_nm": 1.0595999558313292,
+   "torque_nm": 0.9,
    "rpm": 71.3259415873341,
    "t_rated": 50.0,
    "n_max_rpm": 6000.0,
-   "sf": 47.18761993602723,
+   "sf": 55.55555555555556,
    "pass": true
   },
   "line_pressure_mpa": 2.5,
@@ -514,61 +516,61 @@
  },
  "parts_at_stall": {
   "f_line": 91.66502724578952,
-  "t_drum": 1.8699999999999997,
+  "t_drum": 1.7104000441686704,
   "shaft": {
-   "torque_nm": 1.8699999999999997,
-   "tau_nom_mpa": 1.1904789743273767,
-   "tau_peak_mpa": 2.3809579486547534,
+   "torque_nm": 1.7104000441686704,
+   "tau_nom_mpa": 1.08887448677616,
+   "tau_peak_mpa": 2.17774897355232,
    "kt": 2.0,
    "kt_endmill": 3.0,
    "t_allow": 12.0,
    "t_allow_kt": 9.424777960769381,
    "t_allow_endmill": 6.283185307179587,
-   "sf": 6.417112299465241,
+   "sf": 7.015902531639917,
    "strict_pass": true,
    "endmill_pass": true,
    "pass": true
   },
   "key": {
-   "torque_nm": 1.8699999999999997,
+   "torque_nm": 1.7104000441686704,
    "length_mm": 14.0,
-   "force_n": 186.99999999999997,
+   "force_n": 171.04000441686705,
    "key_material": "steel",
    "hub_printed": true,
    "ligament_shaft_mm": 4.1414284285428495,
    "modes": {
     "bearing_shaft": {
-     "stress_mpa": 4.452380952380952,
+     "stress_mpa": 4.072381057544453,
      "allow_mpa": 25.0,
-     "sf": 5.614973262032087
+     "sf": 6.138914715184928
     },
     "shear_shaft": {
-     "stress_mpa": 3.225250197512777,
+     "stress_mpa": 2.94998293063148,
      "allow_mpa": 12.0,
-     "sf": 3.720641582862026
+     "sf": 4.0678201474987015
     },
     "bearing_hub": {
-     "stress_mpa": 4.452380952380952,
+     "stress_mpa": 4.072381057544453,
      "allow_mpa": 25.0,
-     "sf": 5.614973262032087
+     "sf": 6.138914715184928
     },
     "shear_hub": {
-     "stress_mpa": 1.0949658741047983,
+     "stress_mpa": 1.0015131975572376,
      "allow_mpa": 12.0,
-     "sf": 10.959245656683807
+     "sf": 11.981869064999701
     }
    },
    "governing": "shear_shaft",
-   "sf": 3.720641582862026,
+   "sf": 4.0678201474987015,
    "t_max": 6.957599759951987,
    "pass": true
   },
   "sprag": {
-   "torque_nm": 1.8699999999999997,
+   "torque_nm": 1.7104000441686704,
    "rpm": 0.0,
    "t_rated": 50.0,
    "n_max_rpm": 6000.0,
-   "sf": 26.737967914438507,
+   "sf": 29.23292721516632,
    "pass": true
   },
   "line_pressure_mpa": 4.5832513622894755,
@@ -590,61 +592,61 @@
  },
  "parts_at_motor_stall": {
   "f_line": 261.08513496571766,
-  "t_drum": 5.258402154398563,
+  "t_drum": 5.098802198567234,
   "shaft": {
-   "torque_nm": 5.258402154398563,
-   "tau_nom_mpa": 3.3476027825504118,
-   "tau_peak_mpa": 6.6952055651008235,
+   "torque_nm": 5.098802198567234,
+   "tau_nom_mpa": 3.2459982949991955,
+   "tau_peak_mpa": 6.491996589998391,
    "kt": 2.0,
    "kt_endmill": 3.0,
    "t_allow": 12.0,
    "t_allow_kt": 9.424777960769381,
    "t_allow_endmill": 6.283185307179587,
-   "sf": 2.2820620499636393,
+   "sf": 2.3534939251756044,
    "strict_pass": true,
    "endmill_pass": true,
    "pass": true
   },
   "key": {
-   "torque_nm": 5.258402154398563,
+   "torque_nm": 5.098802198567234,
    "length_mm": 14.0,
-   "force_n": 525.8402154398563,
+   "force_n": 509.8802198567234,
    "key_material": "steel",
    "hub_printed": true,
    "ligament_shaft_mm": 4.1414284285428495,
    "modes": {
     "bearing_shaft": {
-     "stress_mpa": 12.520005129520387,
+     "stress_mpa": 12.140005234683889,
      "allow_mpa": 25.0,
-     "sf": 1.9968042937181842
+     "sf": 2.059307184528654
     },
     "shear_shaft": {
-     "stress_mpa": 9.069338281858599,
+     "stress_mpa": 8.794071014977302,
      "allow_mpa": 12.0,
-     "sf": 1.323139530918546
+     "sf": 1.3645557307375202
     },
     "bearing_hub": {
-     "stress_mpa": 12.520005129520387,
+     "stress_mpa": 12.140005234683889,
      "allow_mpa": 25.0,
-     "sf": 1.9968042937181842
+     "sf": 2.059307184528654
     },
     "shear_hub": {
-     "stress_mpa": 3.079021877746298,
+     "stress_mpa": 2.9855692011987376,
      "allow_mpa": 12.0,
-     "sf": 3.8973415832899008
+     "sf": 4.019334067079026
     }
    },
    "governing": "shear_shaft",
-   "sf": 1.323139530918546,
-   "t_max": 6.957599759951986,
+   "sf": 1.3645557307375202,
+   "t_max": 6.957599759951987,
    "pass": true
   },
   "sprag": {
-   "torque_nm": 5.258402154398563,
+   "torque_nm": 5.098802198567234,
    "rpm": 0.0,
    "t_rated": 50.0,
    "n_max_rpm": 6000.0,
-   "sf": 9.508591874848497,
+   "sf": 9.806224688231685,
    "pass": true
   },
   "line_pressure_mpa": 13.054256748285882,
@@ -667,7 +669,7 @@
  "info": [
   "motor stall (no limiter) at 12.6 V: 14.06 N m, 17.0 A, line 261 N (above dart holding in sand, loam, clay)",
   "motor stall (no limiter) at 11.1 V: 12.22 N m, 14.9 A, line 227 N (above dart holding in sand, loam, clay)",
-  "parts at motor stall (no limiter): drum T 5.26 N m, all pass; only reached if the limiter seizes"
+  "parts at motor stall (no limiter): drum T 5.10 N m, all pass; only reached if the limiter seizes"
  ],
  "warnings": [
   "at limiter (5 N m): line pull 92 N (empty reel; 91 N full reel): above dart holding in sand, loam",

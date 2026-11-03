@@ -86,6 +86,16 @@ Review round 3 (fresh subagent on flight.py phases, IMU, clock; 6fc97c8), all fi
   comes from positive steps and the integral uses the per-sample time steps.
 - LOW: the launch shift found by the speed fit is now recorded as launch_fit_t (phases keep the observed launch).
 
+Review round 4 (fresh subagent on the newest code; 668c7d7, f6e3fce), all fixed with tests:
+- MEDIUM: the round 2 dark check used the LAST 45 landed frames, so a link dying 2.7 s after a good landing turned
+  GO into NO_GO. It now uses the FIRST frames after landing (a void at landing is still caught).
+- LOW: a flightlog without t_launch_ms that starts in free fall took the impact for the launch. A launch now
+  needs about 1 g at rest just before the push.
+- LOW: a non-numeric or NaN clock_offset_s in the flightlog lost the flight result; it is now ignored.
+- LOW: Ballistics.solve crashed when no table row lies inside the pitch window; now unreachable with a note.
+- Speed model tracks are cached: an analysis without a known pitch takes 0.7 s on this PC (0.5 s with the
+  commanded pitch).
+
 Terrain verdicts with the roll-invariant tilt (eval_terrain_flight, seeds 0 to 2, 480x320, with and without the
 flightlog): accuracy 1.000 (36/36), unsafe GO (sand or water judged GO): 0.
 

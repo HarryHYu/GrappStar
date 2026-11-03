@@ -7,7 +7,7 @@ from grappstar.mission import MissionConfig
 from mission_harness import Rig, FakeCam
 
 HAPPY = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "BASE_NEUTRAL", "WRAP",
-         "ANCHOR", "TIDY", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
+         "ANCHOR", "TIDY", "FLY_IN", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
 
 
 @pytest.fixture
@@ -44,10 +44,11 @@ def test_no_go_reshoot_then_go(tmp_path):
         m = r.run(90)
         assert m.state == "DONE", m.error
         s = r.steps()
-        assert s.count("FIRE") == 2 and s.count("RETRIEVE") == 2 and m.reshoots == 1
+        assert s.count("FIRE") == 2 and s.count("FINAL_APPROACH") == 2 and m.reshoots == 1
         i = s.index("LANDING_ZONE")
-        assert s[i + 1:i + 6] == ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
-        assert "LAUNCH_MODE" in s[i + 6:]
+        # 10.1: a NO GO comes before the wrap, so the unanchored dart comes home on the take-up only
+        assert s[i + 1:i + 3] == ["BASE_NEUTRAL", "FINAL_APPROACH"]
+        assert "LAUNCH_MODE" in s[i + 3:]
     finally:
         r.close()
 

@@ -216,6 +216,7 @@ class BaseClient:
         self.tel_t = 0.0                # time.time() of the latest telemetry
         self.rx_t = 0.0                 # time.time() of the latest line of any kind
         self.connected = False
+        self.session = 0                # increments at every link drop (and HELLO)
         self.errors = 0                 # bad lines seen
         self.reconnects = 0
         self.last_error = ""
@@ -249,6 +250,7 @@ class BaseClient:
     def _set_connected(self, up: bool) -> None:
         with self._cv:
             if self.connected and not up:
+                self.session += 1          # systest F8: a link drop is a session break for every pending wait
                 # fail every waiting command now instead of letting each one time out
                 for k in list(self._pending):
                     if self._pending[k] is None:
@@ -504,7 +506,8 @@ class BaseClient:
 
     def wait_event(self, names, timeout: float, since: Optional[int] = None,
                    fail_on_fault: bool = True, pred: Optional[Callable[[dict], bool]] = None,
-                   fail_on_not_ok: bool = True, fail_on_abort: bool = True) -> dict:
+                   fail_on_not_ok: bool = True, fail_on_abort: bool = True,
+                   session: Optional[int] = None) -> dict:
         """Wait for an event named in names (str or tuple) newer than since.
 
         Raises BaseError for: a FAULT event (err = fault code), an awaited event with "ok": false (err = its err, for
@@ -515,9 +518,12 @@ class BaseClient:
         if isinstance(names, str):
             names = (names,)
         since = self.event_mark() if since is None else since
+        session = self.session if session is None else session
         t_end = time.monotonic() + timeout
         with self._cv:
             while True:
+                if not self.connected or self.session != session:
+                    raise BaseError("wait", "BASE_RESET", {"why": "link dropped while waiting"})
                 for e in self._events:
                     if e["_seq"] <= since:
                         continue
@@ -538,11 +544,14 @@ class BaseClient:
                 self._cv.wait(min(left, 0.5))
 
     def wait_tel(self, pred: Callable[[dict], bool], timeout: float, what: str = "condition",
-                 fail_on_fault: bool = True) -> dict:
-        """Wait until pred(telemetry) is true. A telemetry fault raises BaseError."""
+                 fail_on_fault: bool = True, session: Optional[int] = None) -> dict:
+        """Wait until pred(telemetry) is true. A telemetry fault raises BaseError; a link drop raises BASE_RESET."""
+        session = self.session if session is None else session
         t_end = time.monotonic() + timeout
         with self._cv:
             while True:
+                if not self.connected or self.session != session:
+                    raise BaseError("wait", "BASE_RESET", {"why": "link dropped while waiting"})
                 t = self.tel
                 if t is not None:
                     if pred(t):

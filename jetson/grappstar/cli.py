@@ -176,7 +176,8 @@ def cmd_dart(a) -> int:
             print(d.wait_phase(("ANCHORED",), 90, log=print)["phase"])
         elif a.what == "release":
             d.release()
-            print(d.wait_phase(("IDLE",), 90, log=print)["phase"])
+            s = d.wait_phase(("IDLE",), 90, log=print, want_seq="released")   # a /stop gives IDLE + "aborted"
+            print("released" if s.get("seq") == "released" else s["phase"])
         elif a.what == "flightlog":
             fl = d.flightlog()
             if a.out:
@@ -261,7 +262,10 @@ def cmd_replay(a) -> int:
 def cmd_solve(a) -> int:
     from .ballistics import Ballistics
     b = Ballistics.load(a.table)
-    s = b.solve(a.range, a.drag, lob=a.lob)
+    try:
+        s = b.solve(a.range, a.drag, low=True) if a.low else b.solve(a.range, a.drag)
+    except TypeError:                          # older ballistics without the low flag
+        s = b.solve(a.range, a.drag, lob=not a.low)
     print(json.dumps(s.to_dict(), indent=1))
     return 0 if s.reachable else 1
 
@@ -348,7 +352,7 @@ def main(argv=None) -> int:
     s = sub.add_parser("solve", help="pitch for a range")
     s.add_argument("range", type=float)
     s.add_argument("--drag", type=float, default=0.75)
-    s.add_argument("--lob", action="store_true")
+    s.add_argument("--low", action="store_true", help="the flatter low branch (default: the higher pitch, D29)")
     s.add_argument("--table")
 
     sub.add_parser("selftest", help="no-hardware checks")

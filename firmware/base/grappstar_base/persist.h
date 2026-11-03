@@ -51,13 +51,14 @@ static bool sameSaved(const Saved& a, const Saved& b) {   // ignoring seq / crc
 // Bench settings changed with "set" or learned with "cal" (kept apart from the position record, written rarely)
 static const uint32_t TUN_MAGIC = 0x47535431;   // "GST1"
 struct Tun {
-  uint32_t magic = TUN_MAGIC; uint16_t ver = 1; uint8_t encSign = 1; uint8_t requireSeated = 1;
+  uint32_t magic = TUN_MAGIC; uint16_t ver = 2; uint8_t encSign = 1; uint8_t requireSeated = 1;
   float ampsPerVolt = 0, offsetA = 0, freeA = 0, kNperA = 0, hxNPerCount = 0, hxOff = 0, limitN = 0, drumDps = 0;
   float aimOffset = 0, aimTol = 0, tripA = 0, cockTripA = 0, vbatLow = 0, aimHomeDeg = 0;
+  float tensOffsetN = 0, towTripA = 0, hostTimeoutS = 0;   // ver 2 (base-1.2): a ver 1 record is ignored (defaults)
   uint32_t crc = 0;
 };
-static_assert(sizeof(Tun) == 68, "Tun layout changed: bump ver");
+static_assert(sizeof(Tun) == 80, "Tun layout changed: bump ver");
 static void sealTun(Tun* t) { t->magic = TUN_MAGIC; t->crc = crc32((const uint8_t*)t, (int)(sizeof(Tun) - 4)); }
-static bool validTun(const Tun* t) { return t->magic == TUN_MAGIC && t->ver == 1 && t->crc == crc32((const uint8_t*)t, (int)(sizeof(Tun) - 4)); }
+static bool validTun(const Tun* t) { return t->magic == TUN_MAGIC && t->ver == 2 && t->crc == crc32((const uint8_t*)t, (int)(sizeof(Tun) - 4)); }
 
 }  // namespace gb

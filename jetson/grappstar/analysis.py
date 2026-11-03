@@ -124,7 +124,10 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
     except Exception as e:
         note(f"landing frame pick failed: {e}")
     if not land_frames:
-        land_frames = good[-15:]
+        # landing frames whatever their bad flag (a black void or buried camera is marked bad by the link check,
+        # and analyze_landing handles dark frames itself); never in-flight frames
+        t_l = getattr(fres, "t_landed", None) if fres is not None else None
+        land_frames = [f for f in frames if t_l is not None and f.t >= t_l][-15:] or frames[-15:]
     try:
         from .vision import terrain
         # Tilt cue from the IMU: never the Euler roll (spin about the nose, arbitrary for a dart), only the

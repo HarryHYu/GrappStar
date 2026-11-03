@@ -24,6 +24,7 @@ import os
 import sys
 import time
 from fnmatch import fnmatchcase
+from fractions import Fraction
 
 import numpy as np
 import manifold3d as m3
@@ -373,7 +374,11 @@ def _env_solid(kind, u, travel=(0.0, 0.0)):
 
 
 # ---------------------------------------------------------------------------------------------- main audit
-def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print) -> dict:
+def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print, pair_refine: int = 0, max_mm: float = MAX_STEP_MM,
+        cap: int = 100000) -> dict:
+    """Audit asm over states. pair_refine = n: states[:n] are a timeline whose consecutive states each pair refines
+    for itself (sub-states where its relative pose moves a point of either part by more than max_mm, at most cap per
+    interval); the other states are audited as given. 0 audits exactly the given states."""
     global _ASM, _CTX
     _ASM = asm
     t_start = time.time()
@@ -392,41 +397,121 @@ def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print) -> dict:
     NP, NS = len(names), len(states)
     pool = _Pool(jobs)
     try:
-        _run(asm, states, rep, names, NP, NS, bed, pool, log, lap)
+        _run(asm, states, rep, names, NP, NS, bed, pool, log, lap, min(int(pair_refine), NS), max_mm, cap)
     finally:
         pool.close()
         _CTX = {}
+    # gear meshes across owners (declared Mesh pairs): centre distance, parallel axes, face overlap, ratio
+    from tools import meshcheck
+    t0 = time.time()
+    mres = meshcheck.run(asm, states)
+    rep["meshes"] = mres["meshes"]
+    rep["mesh_fails"] = mres["fails"]
+    rep["warns"] += mres["warns"]
+    timing["meshes"] = round(time.time() - t0, 2)
     rep["timing"] = timing
     # verdict
     static_fails = [dict(part=r["name"], fails=r["fails"]) for r in rep["static"] if r["fails"]]
     rep["static_fails"] = static_fails
     bad = (rep["errors"] or static_fails or rep["limits"] or rep["collisions"] or rep["floating"] or rep["checks"]
-           or [c for c in rep["clearances"] if not c["ok"]])
+           or [c for c in rep["clearances"] if not c["ok"]] or rep["mesh_fails"])
     rep["clean"] = not bad
     rep["seconds"] = round(time.time() - t_start, 1)
     return rep
 
 
-def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
+def _interp(A, B, u):
+    """State between A and B at fraction u: numeric (not bool) values linear, everything else from A."""
+    S = dict(A)
+    for key, x in B.items():
+        y = A.get(key)
+        if isinstance(x, (int, float)) and not isinstance(x, bool) and isinstance(y, (int, float)) \
+                and not isinstance(y, bool):
+            S[key] = y + (x - y) * u
+    return S
+
+
+def _inv(M):
+    """Inverse of a stack of rigid transforms (K, 4, 4)."""
+    out = np.zeros_like(M)
+    Rt = np.transpose(M[:, :3, :3], (0, 2, 1))
+    out[:, :3, :3] = Rt
+    out[:, :3, 3] = -np.einsum("kij,kj->ki", Rt, M[:, :3, 3])
+    out[:, 3, 3] = 1.0
+    return out
+
+
+def _move(r1, r2, c, rho):
+    """Upper bound of how far a point within rho of c (frame of the moving body, posed by r1) moves from pose r1 to
+    pose r2 (stacks (K, 4, 4))."""
+    D = r2 @ _inv(r1)
+    cosphi = np.clip((np.trace(D[:, :3, :3], axis1=1, axis2=2) - 1) / 2, -1.0, 1.0)
+    q = np.einsum("kij,j->ki", r1[:, :3, :3], c) + r1[:, :3, 3]
+    dq = np.einsum("kij,kj->ki", D[:, :3, :3], q) + D[:, :3, 3] - q
+    return np.sqrt(np.maximum(0.0, 2 - 2 * cosphi)) * rho + np.linalg.norm(dq, axis=1)
+
+
+class _States:
+    """Audited states: the given ones (rows 0..NB-1) plus sub-states inserted between consecutive timeline states for
+    the pairs that need them (rows appended; ord gives the time order). JW holds the joint world transforms."""
+
+    def __init__(self, asm, states, jcol, rep):
+        self.asm, self.jcol, self.rep = asm, jcol, rep
+        self.S = list(states)
+        self.ord = [float(k) for k in range(len(states))]
+        self.idx = {}
+        self.JW = np.empty((max(256, 2 * len(states)), len(jcol) + 1, 4, 4))
+        self.JW[:, 0] = np.eye(4)
+        self.V = np.zeros((len(states), len(jcol)))          # joint values at the given states
+        for k, S in enumerate(states):
+            self._fill(k, S)
+
+    def _fill(self, row, S):
+        asm = self.asm
+        vals = asm.values(S)
+        for jn, j in asm.joints.items():
+            if j.limits is not None and not (j.limits[0] - 1e-6 <= vals[jn] <= j.limits[1] + 1e-6):
+                self.rep["limits"].append(dict(joint=jn, value=vals[jn], limits=list(j.limits), state=row,
+                                               phase=S.get("phase")))
+        jw = asm.joint_world(S, vals)
+        for jn, k in self.jcol.items():
+            self.JW[row, k] = jw[jn]
+            if row < len(self.V):
+                self.V[row, k - 1] = vals[jn]
+
+    def sub(self, k, fr):
+        """Row of the state at fraction fr (Fraction in (0, 1)) between states k and k + 1."""
+        r = self.idx.get((k, fr))
+        if r is None:
+            r = len(self.S)
+            if r >= len(self.JW):
+                grow = np.empty((len(self.JW), self.JW.shape[1], 4, 4))
+                grow[:, 0] = np.eye(4)
+                self.JW = np.concatenate([self.JW, grow])
+            u = float(fr)
+            S = _interp(self.S[k], self.S[k + 1], u)
+            # joints are interpolated directly, so a joint driven by a string / flag key (mode, phase) or a stepped
+            # int (wraps) still sweeps evenly through the interval instead of jumping at its end
+            vals = self.V[k] * (1 - u) + self.V[k + 1] * u
+            S["_joints"] = {jn: float(vals[c - 1]) for jn, c in self.jcol.items()}
+            self.S.append(S)
+            self.ord.append(k + float(fr))
+            self.idx[(k, fr)] = r
+            self._fill(r, S)
+        return r
+
+
+def _run(asm, states, rep, names, NP, NB, bed, pool, log, lap, T, max_mm, cap):
     stats = rep["stats"] = {}
     # 2 world transforms per state (per joint), joint limits
     jnames = list(asm.joints)
     jcol = {j: k + 1 for k, j in enumerate(jnames)}
-    JW = np.empty((NS, len(jnames) + 1, 4, 4))
-    JW[:, 0] = np.eye(4)
-    for i, S in enumerate(states):
-        vals = asm.values(S)
-        for jn, j in asm.joints.items():
-            if j.limits is not None and not (j.limits[0] - 1e-6 <= vals[jn] <= j.limits[1] + 1e-6):
-                rep["limits"].append(dict(joint=jn, value=vals[jn], limits=list(j.limits), state=i, phase=S.get("phase")))
-        jw = asm.joint_world(S, vals)
-        for jn, k in jcol.items():
-            JW[i, k] = jw[jn]
+    SS = _States(asm, states, jcol, rep)
     body = np.array([jcol.get(asm.parts[n].joint, 0) for n in names], int)
     place = np.array([np.asarray(asm.parts[n].place, float) for n in names]).reshape(NP, 4, 4)
 
     def W(p, sel=slice(None)):
-        return JW[sel, body[p]] @ place[p]
+        return SS.JW[sel, body[p]] @ place[p]
 
     lap("world")
     # chunks and boxes (local frames)
@@ -442,14 +527,24 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
     stats["chunked_parts"] = sum(1 for lst in _CTX["ch"] if len(lst) > 1)
     stats["chunks"] = sum(len(lst) for lst in _CTX["ch"])
     stats["triangles"] = int(sum(t.sum() for t in ntri))
+    cen = [(b[0] + b[1]) / 2 if np.all(np.isfinite(b)) else np.zeros(3) for b in _CTX["box"]]
+    rho = [float(np.linalg.norm(b[1] - b[0]) / 2) if np.all(np.isfinite(b)) else 0.0 for b in _CTX["box"]]
     lap("chunks")
-    # world AABBs of every part at every state (loose: local box under the world transform)
-    LO = np.empty((NP, NS, 3))
-    HI = np.empty((NP, NS, 3))
-    for p in range(NP):
-        Wp = W(p)
+    # world AABBs of every part at every given state (loose: local box under the world transform)
+    base = np.arange(NB)
+
+    def boxes(p, rows):
+        Wp = W(p, rows)
         lo, hi = _xbox(_CTX["box"][p][None], Wp[:, :3, :3], Wp[:, :3, 3])
-        LO[p], HI[p] = lo[:, 0], hi[:, 0]
+        return lo[:, 0], hi[:, 0]
+
+    LO = np.empty((NP, NB, 3))
+    HI = np.empty((NP, NB, 3))
+    CEN = np.empty((NP, NB, 3))
+    for p in range(NP):
+        LO[p], HI[p] = boxes(p, base)
+        Wp = W(p, base)
+        CEN[p] = np.einsum("kij,j->ki", Wp[:, :3, :3], cen[p]) + Wp[:, :3, 3]
     # 3 collisions: candidates by AABB, grouped by the rounded relative pose, chunk pairs culled by boxes
     allow_sets = _matcher(asm.allowed, names)
     allow_of = {}
@@ -459,10 +554,91 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
             # the most restrictive matching Allow decides (None = unlimited), independent of module order
             allow_of[(a, b)] = min(al, key=lambda x: math.inf if x.max_vol is None else x.max_vol) if al else None
 
-    def groups(a, b, mask_states):
-        """Distinct rounded relative poses of a, b over the given states: (rep states, rel matrices, state lists)."""
-        Wa, Wb = W(a, mask_states), W(b, mask_states)
-        rel = _rel(Wa, Wb)
+    def cr(p):
+        """Bounding sphere (centre, radius) of part p (or of a cropped stand-in) in its local frame."""
+        while len(cen) <= p:
+            bx = _CTX["box"][len(cen)]
+            ok = np.all(np.isfinite(bx))
+            cen.append((bx[0] + bx[1]) / 2 if ok else np.zeros(3))
+            rho.append(float(np.linalg.norm(bx[1] - bx[0]) / 2) if ok else 0.0)
+        return cen[p], rho[p]
+
+    # joints that move each part (its joint and that joint's parents) and their step limits
+    lim = np.array([MAX_STEP_DEG if asm.joints[j].kind == "rev" else MAX_STEP_MM if asm.joints[j].kind == "slide"
+                    else np.inf for j in jnames])
+
+    def chain(p):
+        out, j, seen = [], asm.parts[names[p]].joint, set()
+        while j in asm.joints and j not in seen:
+            seen.add(j)
+            out.append(jcol[j] - 1)
+            j = asm.joints[j].parent
+        return out
+
+    def joint_steps(a, b):
+        """Per timeline interval: splits needed so no joint moving a or b steps more than 1 deg / 0.5 mm."""
+        js = sorted(set(chain(a) + chain(b)))
+        if not js or T < 2:
+            return np.ones(max(0, T - 1))
+        d = np.abs(np.diff(SS.V[:T, js], axis=0)) / lim[js]
+        return np.maximum(1.0, d.max(axis=1))
+
+    def pair_scan(a, b, pad, use=None):
+        """Given states where the boxes of a and b are within pad, and the timeline intervals in which their relative
+        pose moves some point of a or b by more than max_mm while the boxes are within pad + that motion."""
+        d0 = _boxdist(LO[a], HI[a], LO[b], HI[b])
+        rows = np.nonzero(d0 <= pad)[0]
+        if T < 2:
+            return rows, None, None
+        rel = _rel(W(a, base[:T]), W(b, base[:T]))
+        (ca, ra), (cb, rb) = cr(use[0] if use else a), cr(use[1] if use else b)     # a crop moves less
+        dk = np.minimum(_move(rel[:-1], rel[1:], cb, rb), _move(_inv(rel[:-1]), _inv(rel[1:]), ca, ra))
+        # never finer than the old per-joint rule (1 deg / 0.5 mm for the joints that move a or b): sub-states are
+        # needed where a point moves more than max_mm AND a joint of the pair steps more than its limit
+        dk = np.minimum(dk, joint_steps(a, b) * max_mm)
+        # bounding spheres: a part turning about its centre stays in its sphere, so the gap between the spheres can
+        # close only by the motion of the centres
+        cmove = np.minimum(_move(rel[:-1], rel[1:], cb, 0.0), _move(_inv(rel[:-1]), _inv(rel[1:]), ca, 0.0))
+        gap = np.linalg.norm(CEN[a, :T] - CEN[b, :T], axis=1) - rho[a] - rho[b]
+        reach = np.maximum(np.minimum(d0[:T - 1], d0[1:T]), np.minimum(gap[:-1], gap[1:]))
+        need = np.nonzero((dk > max_mm) & (reach <= pad + cmove))[0]
+        return rows, need, dk
+
+    # the shared grid: interval k splits into nglob[k] steps by the old global rule (no joint more than 1 deg /
+    # 0.5 mm); a pair uses every stride-th grid point, so pairs share sub-states and never exceed the global count
+    nraw = np.ceil(np.abs(np.diff(SS.V[:T], axis=0)) / lim).max(axis=1, initial=1.0) \
+        if T >= 2 and len(lim) else np.ones(max(0, T - 1))
+    for k in np.nonzero(nraw > cap)[0]:
+        rep["errors"].append(f"refinement capped: a joint moves {int(nraw[k])} steps between states {k} and {k + 1} "
+                             f"(phase {states[k].get('phase')}); raise cap or split the interval")
+    nglob = np.minimum(cap, nraw).astype(int)
+
+    def substates(a, b, pad, need, dk, use=None):
+        """Rows of the sub-states pair (a, b) needs (no point of a or b moves more than max_mm relative to the other
+        per step, on the shared grid) where its boxes are within pad."""
+        out = []
+        for k in need:
+            ng = max(1, int(nglob[k]))
+            n = min(ng, int(math.ceil(dk[k] / max_mm)))
+            if n <= 1:
+                continue
+            stride = max(1, ng // n)
+            out += [SS.sub(k, Fraction(i, ng)) for i in range(stride, ng, stride)]
+        if not out:
+            return np.zeros(0, int)
+        out = np.unique(np.array(out, int))
+        lo_a, hi_a = boxes(a, out)
+        lo_b, hi_b = boxes(b, out)
+        return out[_boxdist(lo_a, hi_a, lo_b, hi_b) <= pad]
+
+    def timeorder(rows):
+        o = np.asarray(SS.ord)[rows]
+        return rows[np.argsort(o, kind="stable")]
+
+    def groups(a, b, rows):
+        """Distinct rounded relative poses of a, b over the given rows (time order): (rep rows, rel matrices, row
+        lists)."""
+        rel = _rel(W(a, rows), W(b, rows))
         key = np.round(rel[:, :3, :].reshape(len(rel), 12), 4) + 0.0
         _, first, inv = np.unique(key, axis=0, return_index=True, return_inverse=True)
         inv = inv.reshape(-1)
@@ -472,8 +648,8 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
         g = rank[inv]
         srt = np.argsort(g, kind="stable")
         bounds = np.searchsorted(g[srt], np.arange(len(order) + 1))
-        lists = [mask_states[srt[bounds[k]:bounds[k + 1]]] for k in range(len(order))]
-        return mask_states[first[order]], rel[first[order]], lists
+        lists = [rows[srt[bounds[k]:bounds[k + 1]]] for k in range(len(order))]
+        return rows[first[order]], rel[first[order]], lists
 
     # motion envelopes: a part is static (same world pose at every state), or moves on a rev / slide joint whose
     # frame before the joint motion is the same at every state (then its every pose lies in a known prism), or None
@@ -482,17 +658,21 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
 
     envc = {}
 
+    def pre_frame(p, rows):
+        j = asm.joints.get(asm.parts[names[p]].joint)
+        return SS.JW[rows, jcol.get(j.parent, 0)] @ j.local(0.0)
+
     def envelope(p):
         if p in envc:
             return envc[p]
         out = None
-        Wp = W(p)
+        Wp = W(p, base)
         if const(Wp):
             out = ("static", Wp[0], None, None)
         else:
             j = asm.joints.get(asm.parts[names[p]].joint)
             if j is not None and j.kind in ("rev", "slide"):
-                Fpre = JW[:, jcol.get(j.parent, 0)] @ j.local(0.0)
+                Fpre = pre_frame(p, base)
                 if const(Fpre):
                     Q = tf.frame((0, 0, 0), j.axis)
                     F = Fpre[0] @ Q
@@ -500,11 +680,11 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
                     u = tf.apply(G, _verts(asm.parts[names[p]].solid))
                     travel = (0.0, 0.0)
                     if j.kind == "slide":
-                        d = np.einsum("i,ki->k", np.asarray(j.axis), (tf.inv(Fpre[0]) @ JW[:, body[p]])[:, :3, 3])
+                        d = np.einsum("i,ki->k", np.asarray(j.axis), (tf.inv(Fpre[0]) @ SS.JW[base, body[p]])[:, :3, 3])
                         travel = (float(d.min()), float(d.max()))
                     E = _env_solid(j.kind, u, travel)
                     if E is not None:
-                        out = (j.kind, F, G, E)
+                        out = (j.kind, F, G, E, travel)
         envc[p] = out
         return out
 
@@ -528,14 +708,16 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
         return len(_CTX["ch"]) - 1
 
     n_proved = n_crop = 0
+    env_used = set()
 
-    def envelope_stage(a, b, n_poses):
+    def envelope_stage(a, b):
         """'clear' when the motion envelopes prove vol <= HIT_VOL at every state, else the (possibly cropped) part
         indices to use for a and b."""
         nonlocal n_proved, n_crop
         ea, eb = envelope(a), envelope(b)
         if ea is None or eb is None or (ea[0] == "static" and eb[0] == "static"):
             return a, b
+        env_used.update((a, b))
         if ea[0] != "static" and eb[0] != "static":
             Ea, Eb = prim.place(ea[3], ea[1]), prim.place(eb[3], eb[1])
             if (Ea ^ Eb).volume() <= HIT_VOL:
@@ -550,58 +732,47 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
         if sum(x.volume() for x in sp) <= HIT_VOL:
             n_proved += 1
             return "clear"
-        if n_poses < CROP_MIN_POSES:
-            return a, b
         # moving part cut to an envelope of the cut static part that its own motion leaves invariant
         u = np.concatenate([tf.apply(tf.inv(Ms), _verts(x)) for x in sp])
         C = _env_solid("rev" if em[0] == "rev" else "zprism", u)
         mp = pieces(m_, tf.inv(em[2]), C)
         n_crop += 1
-        vs, vm = add_virtual(sp), add_virtual(mp) if mp else None
-        if vm is None:
+        if not mp:
             n_proved += 1
             return "clear"
+        vs, vm = add_virtual(sp), add_virtual(mp)
         return (vm, vs) if flip else (vs, vm)
 
-    items = []                 # (a, b, rep state, rel, chunk pairs (m, 2), states)
-    n_cand = n_pose = 0
-    allst = np.arange(NS)
+    # pass 1: candidate pairs, envelope proofs and crops, per-pair sub-states (before the pool forks)
+    todo = []
+    n_cand = 0
     for a in range(NP - 1):
         bs = np.arange(a + 1, NP)
-        m = np.all(LO[a][None] <= HI[bs], axis=2) & np.all(LO[bs] <= HI[a][None], axis=2)      # (len(bs), NS)
-        for b in bs[m.any(axis=1)]:
-            st = allst[m[b - a - 1]]
-            n_cand += len(st)
-            reps, rels, lists = groups(a, b, st)
-            n_pose += len(reps)
-            if len(reps) > 1:
-                use = envelope_stage(a, b, len(reps))
-                if use == "clear":
-                    continue
-            else:
-                use = (a, b)
-            k, i, j, _ = _cull(use[0], use[1], rels, BOX_PAD)
-            if not len(k):
+        dmin = np.array([float(_boxdist(LO[a], HI[a], LO[b], HI[b]).min()) for b in bs]) if T >= 2 else None
+        if T < 2:
+            m = np.all(LO[a][None] <= HI[bs], axis=2) & np.all(LO[bs] <= HI[a][None], axis=2)
+            near = bs[m.any(axis=1)]
+        else:
+            near = bs                        # moving pairs may need sub-states even when apart at every given state
+        for b in near:
+            if T >= 2 and dmin[b - a - 1] > 0 and body[a] == body[b]:
+                continue                      # same body, apart at every state
+            rows, need, dk = pair_scan(a, b, BOX_PAD)
+            if not len(rows) and (need is None or not len(need)):
                 continue
-            srt = np.argsort(k, kind="stable")
-            k, i, j = k[srt], i[srt], j[srt]
-            cuts = np.searchsorted(k, np.arange(len(reps) + 1))
-            for g in range(len(reps)):
-                if cuts[g + 1] > cuts[g]:
-                    pairs = np.stack([i[cuts[g]:cuts[g + 1]], j[cuts[g]:cuts[g + 1]]], axis=1)
-                    items.append((a, b, int(reps[g]), rels[g], pairs, lists[g], use))
-    stats.update(envelope_cleared_pairs=n_proved, cropped_pairs=n_crop)
-    stats.update(candidate_pair_states=int(n_cand), distinct_poses=int(n_pose), exact_items=len(items),
-                 exact_chunk_pairs=int(sum(len(it[4]) for it in items)))
-    per = {}
-    for it in items:
-        x = per.setdefault((names[it[0]], names[it[1]]), [0, 0])
-        x[0] += 1
-        x[1] += len(it[4])
-    stats["busiest_pairs"] = [dict(a=a, b=b, poses=x[0], chunk_pairs=x[1])
-                              for (a, b), x in sorted(per.items(), key=lambda kv: -kv[1][1])[:12]]
-    log(f"audit: {NP} parts, {NS} states, {n_pose} distinct pair poses, {len(items)} exact pair checks "
-        f"({stats['exact_chunk_pairs']} chunk booleans)")
+            use = envelope_stage(a, b) if (len(rows) > 1 or (need is not None and len(need))) else (a, b)
+            if use == "clear":
+                continue
+            if use != (a, b) and need is not None and len(need):
+                rows, need, dk = pair_scan(a, b, BOX_PAD, use)
+            if need is not None and len(need):
+                rows = np.concatenate([rows, substates(a, b, BOX_PAD, need, dk, use)])
+            if len(rows):
+                rows = timeorder(rows)
+                n_cand += len(rows)
+                todo.append((a, b, use, rows))
+    stats.update(envelope_cleared_pairs=n_proved, cropped_pairs=n_crop, substates=len(SS.S) - NB)
+    log(f"audit: {NP} parts, {NB} states + {len(SS.S) - NB} pair sub-states, {len(todo)} pairs to check exactly")
     lap("broad")
     ntri += [np.array([x.num_tri() for x in lst]) for lst in _CTX["ch"][len(ntri):]]
     # 1 static (in the pool; same order as names)
@@ -610,45 +781,59 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
         res.update(out)
     rep["static"] = [res[k] for k in range(NP)]
     lap("static")
-    vols = [0.0] * len(items)
 
     def vcost(it):
         a, b, pairs = it[1], it[2], it[4]
         return int(ntri[a][pairs[:, 0]].sum() + ntri[b][pairs[:, 1]].sum()) + 500 * len(pairs)
 
-    work = [(n, u[0], u[1], rel, pairs) for n, (a, b, _, rel, pairs, _, u) in enumerate(items)]
-    prog, done = _Progress(log, "exact checks", len(work)), 0
-    for out in pool.imap(_w_volume, _batches(work, vcost)):
-        for iid, v in out:
-            vols[iid] = v
-        done += len(out)
-        prog.step(done)
-    hits = {}           # (a, b) -> list of (state, vol)
-    for (a, b, _, _, _, lst, _), v in zip(items, vols):
-        if v > HIT_VOL:
-            hits.setdefault((names[a], names[b]), []).extend((int(i), v) for i in lst)
-    del work, items
-    for (a, b), lst in sorted(hits.items()):
-        vmax = max(v for _, v in lst)
-        imax = max(lst, key=lambda x: x[1])[0]
-        al = allow_of[(a, b)]
-        entry = dict(a=a, b=b, max_vol_mm3=round(vmax, 3), n_states=len(lst), worst_state=imax,
-                     phase=states[imax].get("phase"), t=states[imax].get("t"))
-        if al is not None and (al.max_vol is None or vmax <= al.max_vol):
-            entry["why"] = al.why
-            rep["allowed_contacts"].append(entry)
-        else:
-            if al is not None:
-                entry["note"] = f"allowed up to {al.max_vol} mm3 ({al.why})"
-            rep["collisions"].append(entry)
-    used = {id(allow_of[(e["a"], e["b"])]) for e in rep["allowed_contacts"] + rep["collisions"] if allow_of.get((e["a"], e["b"]))}
-    for al in asm.allowed:
-        if id(al) not in used:
-            rep["warns"].append(f"Allow({al.a!r}, {al.b!r}) never matched an overlap: remove it or narrow it")
+    # pass 2: exact checks, streamed in rounds so memory stays bounded
+    hits = {}           # (a, b) -> list of (row, vol)
+    n_pose = n_items = n_cp = 0
+    per = {}
+    prog = _Progress(log, "exact pairs", len(todo))
+    items = []
+
+    def flush():
+        work = [(n, u[0], u[1], rel, pairs) for n, (a, b, _, rel, pairs, _, u) in enumerate(items)]
+        for out in pool.imap(_w_volume, _batches(work, vcost)):
+            for iid, v in out:
+                if v > HIT_VOL:
+                    a, b, lst = items[iid][0], items[iid][1], items[iid][5]
+                    hits.setdefault((a, b), []).extend((int(i), v) for i in lst)
+        items.clear()
+
+    for t_i, (a, b, use, rows) in enumerate(todo):
+        reps, rels, lists = groups(a, b, rows)
+        n_pose += len(reps)
+        k, i, j, _ = _cull(use[0], use[1], rels, BOX_PAD)
+        if len(k):
+            srt = np.argsort(k, kind="stable")
+            k, i, j = k[srt], i[srt], j[srt]
+            cuts = np.searchsorted(k, np.arange(len(reps) + 1))
+            x = per.setdefault((names[a], names[b]), [0, 0])
+            for g in range(len(reps)):
+                if cuts[g + 1] > cuts[g]:
+                    pairs = np.stack([i[cuts[g]:cuts[g + 1]], j[cuts[g]:cuts[g + 1]]], axis=1)
+                    items.append((a, b, int(reps[g]), rels[g], pairs, lists[g], use))
+                    n_items += 1
+                    n_cp += len(pairs)
+                    x[0] += 1
+                    x[1] += len(pairs)
+        if len(items) >= 20000:
+            flush()
+        prog.step(t_i + 1)
+    if items:
+        flush()
+    stats.update(candidate_pair_states=int(n_cand), distinct_poses=int(n_pose), exact_items=n_items,
+                 exact_chunk_pairs=n_cp)
+    stats["busiest_pairs"] = [dict(a=a, b=b, poses=x[0], chunk_pairs=x[1])
+                              for (a, b), x in sorted(per.items(), key=lambda kv: -kv[1][1])[:12]]
+    hits = {(names[a], names[b]): lst for (a, b), lst in hits.items()}
     lap("exact")
     # 4 clearances: exact minimum over all states by branch and bound
     idx = {n: k for k, n in enumerate(names)}
     n_gap = 0
+    clear_rows = {}
     for c, (CA, CB) in zip(asm.clearances, _matcher(asm.clearances, names)):
         pairs = [(a, b) for ia, a in enumerate(names) for b in names[ia + 1:] if (a in CA and b in CB) or (b in CA and a in CB)]
         if not pairs:
@@ -659,11 +844,12 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
         cand = []          # (lower bound, order, a, b, rel, chunk pairs, lower bounds)
         for pi, (an, bn) in enumerate(pairs):
             a, b = idx[an], idx[bn]
-            near = _boxdist(LO[a], HI[a], LO[b], HI[b]) <= search
-            st = allst[near]
+            st, need, dk = pair_scan(a, b, search)
+            if need is not None and len(need):
+                st = np.concatenate([st, substates(a, b, search, need, dk)])
             if not len(st):
                 continue           # farther than search at every state: min_gap would return search
-            reps, rels, _ = groups(a, b, st)
+            reps, rels, _ = groups(a, b, timeorder(st))
             k, i, j, lb = _cull(a, b, rels, search)
             srt = np.lexsort((lb, k))
             k, i, j, lb = k[srt], i[srt], j[srt], lb[srt]
@@ -671,11 +857,11 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
             for g in range(len(reps)):
                 s0, s1 = cuts[g], cuts[g + 1]
                 if s1 > s0:
-                    cand.append((float(lb[s0:s1].min()), (pi, int(reps[g])), a, b, rels[g],
+                    cand.append((float(lb[s0:s1].min()), (pi, SS.ord[int(reps[g])], int(reps[g])), a, b, rels[g],
                                  np.stack([i[s0:s1], j[s0:s1]], axis=1), lb[s0:s1]))
         # lower bound first (ties within 1e-6 by state order, so equal gaps report the earliest state)
         cand.sort(key=lambda x: (round(x[0], 6), x[1]))
-        best_g, best_o = search, (0, 0)       # what min_gap returns for pairs farther than search
+        best_g, best_o = search, (0, 0.0, 0)       # what min_gap returns for pairs farther than search
         pos, step = 0, max(4, 4 * pool.jobs)
         prog = _Progress(log, f"clearance {c.a} / {c.b}", len(cand))
         while pos < len(cand) and round(cand[pos][0], 6) - 2e-6 < best_g:      # later bounds are all >= best_g
@@ -688,23 +874,73 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
             if not batch:
                 continue
             n_gap += len(batch)
-            per = max(1, len(batch) // max(1, pool.jobs))
-            for out in pool.imap(_w_gap, [batch[x:x + per] for x in range(0, len(batch), per)]):
+            per_ = max(1, len(batch) // max(1, pool.jobs))
+            for out in pool.imap(_w_gap, [batch[x:x + per_] for x in range(0, len(batch), per_)]):
                 for q, g in out:
                     o = cand[q][1]
                     if g < best_g - 1e-12 or (g <= best_g + 1e-12 and o < best_o):
                         best_g, best_o = g, o
             prog.step(pos)
-        g, (pi, i) = best_g, best_o
+        g, (pi, _, i) = best_g, best_o
         a, b = pairs[pi]
         hit = [(x, y) for x, y in pairs if (x, y) in hits or (y, x) in hits]
         if hit:
             g, (a, b) = 0.0, hit[0]
         rep["clearances"].append(dict(a=a, b=b, rule=f"{c.a} / {c.b}", min_mm=c.min_mm, gap=round(g, 3),
-                                      ok=(g >= c.min_mm and not hit), worst_state=i, phase=states[i].get("phase"),
+                                      ok=(g >= c.min_mm and not hit), worst_state=i, phase=SS.S[i].get("phase"),
                                       why=c.why, note="parts intersect" if hit else ""))
     stats["clearance_evals"] = n_gap
     lap("clearance")
+    # every audited state in time order; rows -> report indices
+    order = np.argsort(np.asarray(SS.ord), kind="stable")
+    ix = np.empty(len(order), int)
+    ix[order] = np.arange(len(order))
+    rep["n_states"] = len(SS.S)
+    stats["given_states"] = NB
+    for e in rep["limits"]:
+        e["state"] = int(ix[e["state"]])
+    rep["limits"].sort(key=lambda e: e["state"])
+    for e in rep["clearances"]:
+        if e.get("worst_state") is not None:
+            e["worst_state"] = int(ix[e["worst_state"]])
+    for key in hits:
+        hits[key] = sorted(((int(ix[r]), v) for r, v in hits[key]), key=lambda x: x[0])
+    # the envelope proofs assumed a constant joint frame over the given states: confirm at the sub-states
+    if len(SS.S) > NB:
+        sub = np.arange(NB, len(SS.S))
+        for p in sorted(env_used):
+            e = envc.get(p)
+            if e is None:
+                continue
+            bad = (not np.allclose(W(p, sub), e[1], atol=1e-6)) if e[0] == "static" else \
+                (not np.allclose(pre_frame(p, sub) @ tf.frame((0, 0, 0), asm.joints[asm.parts[names[p]].joint].axis),
+                                 e[1], atol=1e-6))
+            if not bad and e[0] == "slide":
+                j = asm.joints[asm.parts[names[p]].joint]
+                d = np.einsum("i,ki->k", np.asarray(j.axis), (tf.inv(e[1] @ tf.inv(tf.frame((0, 0, 0), j.axis)))
+                                                               @ SS.JW[sub, body[p]])[:, :3, 3])
+                bad = d.min() < e[4][0] - 1e-6 or d.max() > e[4][1] + 1e-6
+            if bad:
+                rep["errors"].append(f"audit: motion envelope of {names[p]} does not hold at interpolated states; "
+                                     f"rerun with --global-refine")
+    for (a, b), lst in sorted(hits.items()):
+        vmax = max(v for _, v in lst)
+        imax = max(lst, key=lambda x: x[1])[0]
+        al = allow_of[(a, b)]
+        S_ = SS.S[int(order[imax])]
+        entry = dict(a=a, b=b, max_vol_mm3=round(vmax, 3), n_states=len(lst), worst_state=imax,
+                     phase=S_.get("phase"), t=S_.get("t"))
+        if al is not None and (al.max_vol is None or vmax <= al.max_vol):
+            entry["why"] = al.why
+            rep["allowed_contacts"].append(entry)
+        else:
+            if al is not None:
+                entry["note"] = f"allowed up to {al.max_vol} mm3 ({al.why})"
+            rep["collisions"].append(entry)
+    used = {id(allow_of[(e["a"], e["b"])]) for e in rep["allowed_contacts"] + rep["collisions"] if allow_of.get((e["a"], e["b"]))}
+    for al in asm.allowed:
+        if id(al) not in used:
+            rep["warns"].append(f"Allow({al.a!r}, {al.b!r}) never matched an overlap: remove it or narrow it")
     # 5 floating (rest state = first state)
     adj = {n: set() for n in names}
     fwork, fmeta = [], []
@@ -762,9 +998,10 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
     lap("checks")
 
 
-def refine(asm: Assembly, states: list[dict], max_deg=MAX_STEP_DEG, max_mm=MAX_STEP_MM, cap=720) -> list[dict]:
+def refine(asm: Assembly, states: list[dict], max_deg=MAX_STEP_DEG, max_mm=MAX_STEP_MM, cap=100000) -> list[dict]:
     """Insert interpolated states so that no joint moves more than max_deg (rev) or max_mm (slide) between
-    consecutive states. Numeric S values are interpolated linearly, others are taken from the earlier state."""
+    consecutive states. Joint values are interpolated directly (S["_joints"]); numeric S values linearly, others
+    from the earlier state (for display). Raises ValueError if an interval needs more than cap steps."""
     if len(states) < 2:
         return list(states)
     vals = [asm.values(S) for S in states]
@@ -776,15 +1013,12 @@ def refine(asm: Assembly, states: list[dict], max_deg=MAX_STEP_DEG, max_mm=MAX_S
             d = abs(vb[jn] - va[jn])
             lim = max_deg if j.kind == "rev" else max_mm if j.kind == "slide" else math.inf
             n = max(n, int(math.ceil(d / lim)))
-        n = min(n, cap)
+        if n > cap:
+            raise ValueError(f"refine: {n} steps needed between states {k - 1} and {k} (cap {cap})")
         for i in range(1, n):
             u = i / n
-            S = dict(A)
-            for key, x in B.items():
-                y = A.get(key)
-                if isinstance(x, (int, float)) and not isinstance(x, bool) and isinstance(y, (int, float)) \
-                        and not isinstance(y, bool):
-                    S[key] = y + (x - y) * u
+            S = _interp(A, B, u)
+            S["_joints"] = {jn: va[jn] + (vb[jn] - va[jn]) * u for jn in asm.joints}
             out.append(S)
         out.append(B)
     return out
@@ -809,6 +1043,10 @@ def summary(rep: dict) -> str:
         L.append(f"  FLOATING {f['part']}: {f['why']}")
     for c in rep["checks"]:
         L.append(f"  CHECK {c['subsystem']}: {c['fail']}")
+    for f in rep.get("mesh_fails", []):
+        L.append(f"  MESH {f}")
+    if rep.get("meshes"):
+        L.append(f"  gear meshes checked: {len(rep['meshes'])}, failing: {sum(not m['ok'] for m in rep['meshes'])}")
     for w in rep.get("warns", []):
         L.append(f"  warn {w}")
     for r in rep["static"]:
@@ -826,14 +1064,19 @@ def main(argv=None):
     ap.add_argument("--dt", type=float, default=0.1)
     ap.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
     ap.add_argument("--no-refine", action="store_true", help="audit the raw timeline samples only")
+    ap.add_argument("--global-refine", action="store_true",
+                    help="refine the whole timeline (no joint more than 1 deg / 0.5 mm a step) instead of per pair")
     a = ap.parse_args(argv)
     P = load_params()
     asm = Assembly.load(P, [s for s in a.only.split(",") if s] or None)
     states = timeline(P, a.dt)
-    if not a.no_refine:
+    n_tl = 0
+    if a.global_refine and not a.no_refine:
         states = refine(asm, states)
+    elif not a.no_refine:
+        n_tl = len(states)          # each pair refines the timeline for itself (sub-states only where it moves)
     states += asm.extra_states
-    rep = run(asm, states, a.jobs)
+    rep = run(asm, states, a.jobs, pair_refine=n_tl)
     os.makedirs(a.out, exist_ok=True)
     with open(os.path.join(a.out, "audit.json"), "w") as fh:
         json.dump(rep, fh, indent=1, default=str)

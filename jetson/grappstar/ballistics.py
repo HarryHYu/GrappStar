@@ -25,6 +25,7 @@ import os
 from dataclasses import asdict, dataclass, field
 from typing import List, Optional
 
+PREFER_HIGH = True   # D29 (3 Nov): prefer the higher pitch when two solutions exist
 HERE = os.path.dirname(os.path.abspath(__file__))
 PLACEHOLDER = os.path.join(HERE, "data", "ballistics_placeholder.json")
 LIGHT_DRAG_N = 0.5   # launch clutch LIGHT (D24), the C3 column the real shots use
@@ -111,10 +112,12 @@ class Ballistics:
               line_margin: float = 1.10, low: bool = False) -> Solution:
         """Pitch for a target range_m (from the ground under the rail pivot).
 
-        Two solutions: the higher pitch unless low=True (D29). lob is the old flag name: lob=True asks for the high
-        branch, which is already the default; lob=False/None keeps the default (it never forces the low branch)."""
-        if lob:
-            low = False
+        Two solutions: the higher pitch (PREFER_HIGH, D29) unless low=True. lob is the older flag: lob=None keeps
+        the default, lob=True asks for the high branch, lob=False for the low branch."""
+        if lob is not None:
+            low = not lob
+        elif not PREFER_HIGH:
+            low = True
         ps = [r["pitch_deg"] for r in self.rows]
         rng = self._col("range_m", drag_n)
         tf = self._col("t_flight_s", drag_n)

@@ -19,7 +19,6 @@ def test_solve_round_trip(b):
     for drag in (0.5, 0.75, 1.0):
         for p in (17.0, 22.5, 30.0, 33.0):
             r = b.at_pitch(p, drag)["range_m"]
-            s = b.solve(r, drag)
             s = b.solve(r, drag, low=True)          # these pitches are on the rising branch
             assert s.reachable and abs(s.pitch_deg - p) < 0.6, (drag, p, s)
             assert s.t_flight_s > 0
@@ -35,9 +34,10 @@ def test_high_branch_default_low_optional(b):
     assert lo.pitch_deg < 40 < h.pitch_deg
     assert h.t_flight_s > lo.t_flight_s
     assert "high branch" in h.note and "low branch" in lo.note
-    # the old lob flag still asks for the high branch and never forces the low one
+    # the older lob flag: None = default (high), True = high, False = low
+    assert b.solve(8.0, 0.75, lob=None).pitch_deg == h.pitch_deg
     assert b.solve(8.0, 0.75, lob=True).pitch_deg == h.pitch_deg
-    assert b.solve(8.0, 0.75, lob=False).pitch_deg == h.pitch_deg
+    assert b.solve(8.0, 0.75, lob=False).pitch_deg == lo.pitch_deg
 
 
 def test_default_drag_is_light_clutch(b):

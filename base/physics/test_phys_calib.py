@@ -20,3 +20,18 @@ def test_fit_drops_unopened_points():
 def test_wiper_block():
     w = wiper_block(12.0, 44, 1.4, 3.0, 100, 17)
     assert w["t_stall"] == pytest.approx(2.943)
+
+
+def test_fit_v_scale_recovers_factor():
+    from calib import fit_v_scale
+    from common import Params
+    from flight import simulate
+    from launcher import launch
+    p = Params()
+    k = 0.92
+    shots = []
+    for th in (20.0, 36.0):
+        v = launch(p, th)["v_muzzle"] * k
+        shots.append((th, 0.5, simulate(p, v, th, brake_n=0.5, reel_model=True)["range_m"]))
+    r = fit_v_scale(shots, p)
+    assert abs(r["v_scale"] - k) < 0.005

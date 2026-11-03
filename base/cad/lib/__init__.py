@@ -1,7 +1,7 @@
 """Shared CAD library for the GrappStar base (API v1, see base/cad/README.md)."""
 import importlib
 
-from .core import Part, Joint, Allow, Clearance, MATERIALS
+from .core import Part, Joint, Allow, Clearance, Mesh, MATERIALS
 from . import tf, prim, fits
 
 _LAZY = ("gears", "worm", "screw", "clutch", "bearings", "shafts", "fasteners", "clips", "switch", "motors",
@@ -16,4 +16,4 @@ def __getattr__(name):
     raise AttributeError(name)
 
 
-__all__ = ["Part", "Joint", "Allow", "Clearance", "MATERIALS", "tf", "prim", "fits", *_LAZY]
+__all__ = ["Part", "Joint", "Allow", "Clearance", "Mesh", "MATERIALS", "tf", "prim", "fits", *_LAZY]

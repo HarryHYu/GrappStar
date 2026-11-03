@@ -136,6 +136,9 @@ static bool jsonParse(const char* line, int len, JObj* o) {
     bool dup = false;
     for (int i = 0; i < o->count; i++) if (!strcmp(o->v[i].key, key)) { o->v[i] = tmp; dup = true; }   // last one wins
     if (!dup && o->count < JSON_MAX_KEYS) o->v[o->count++] = tmp;
+    else if (!dup && (!strcmp(key, "id") || !strcmp(key, "cmd"))) {   // full: id and cmd win a slot over an unknown key
+      for (int i = o->count - 1; i >= 0; i--) if (strcmp(o->v[i].key, "id") && strcmp(o->v[i].key, "cmd")) { o->v[i] = tmp; break; }
+    }
     P.skipWs(); if (P.p >= P.e) return false;
     if (*P.p == ',') { P.p++; continue; }
     if (*P.p == '}') { P.p++; break; }

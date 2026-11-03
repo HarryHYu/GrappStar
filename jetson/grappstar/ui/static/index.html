@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
+<meta name="grappstar-token" content="">
 <title>GrappStar operator</title>
 <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -17,8 +18,9 @@
     <span class="pill" id="ln-dartcam">DART CAM</span>
   </div>
   <div class="stops">
-    <button id="btn-stop" class="stop" title="Stop all motion. Hold 1 s for ESTOP. Keyboard: Space">STOP</button>
+    <button id="btn-stop" class="stop" title="Stop all motion. Hold 1 s for ESTOP. Keyboard: Esc (works anywhere) or Space">STOP</button>
     <button id="btn-estop" class="estop" title="Emergency stop (latched)">ESTOP</button>
+    <span class="keyhint" id="stop-keyhint">Keyboard STOP: Esc (anywhere) or Space</span>
   </div>
 </header>
 <div id="linklost" class="banner hidden" role="alert">LINK LOST: retrying. Everything below is OLD data.</div>
@@ -33,6 +35,11 @@
       <div id="m-extra" class="lbl"></div>
     </div>
     <div id="m-error" class="err hidden"></div>
+    <div id="m-recover" class="recover hidden" role="alert">
+      <div><b>The dart is still out.</b> Recover it before a new mission: release if needed, wrap, reel in,
+        unwrap, take up the line, back to launch.</div>
+      <button data-action="recover" id="btn-recover-m" class="primary" data-confirm="Recover the dart now? The base releases if needed, wraps, reels the dart in, unwraps, takes up the line and goes back to launch. Keep clear of the line.">Recover dart</button>
+    </div>
     <ol id="m-steps" class="steps"></ol>
     <div class="row">
       <button data-action="preflight">Preflight</button>
@@ -69,11 +76,11 @@
     </div>
     <div class="hint">Bearing: + is right of the rover nose, - is left.</div>
     <div class="row">
-      <label>Tow limit N <input id="in-tow" type="number" inputmode="decimal" min="1" max="100" step="1" data-key="tow_limit_n"></label>
+      <label>Tow limit N (1 to 70) <input id="in-tow" type="number" inputmode="decimal" min="1" max="70" step="1" data-key="tow_limit_n"></label>
       <button data-set="tow_limit_n">Set tow limit</button>
     </div>
     <div class="row">
-      <label>Drag N <input id="in-drag" type="number" inputmode="decimal" min="0.1" max="5" step="0.05" data-key="drag_n"></label>
+      <label>Drag N (0.1 to 5) <input id="in-drag" type="number" inputmode="decimal" min="0.1" max="5" step="0.05" data-key="drag_n"></label>
       <button data-set="drag_n">Set drag</button>
     </div>
     <div id="cfg-info" class="hint"></div>
@@ -122,6 +129,7 @@
         <button data-action="neutral">Neutral</button>
         <button data-action="clear">Clear fault</button>
         <button data-action="decock" data-confirm="Decock: unwind the launcher spring slowly. The aim becomes unknown. Continue?">Decock</button>
+        <button data-action="recover" class="warn" data-confirm="Recover the dart now? The base releases if needed, wraps, reels the dart in, unwraps, takes up the line and goes back to launch. Keep clear of the line.">Recover dart</button>
         <button data-action="record" data-args='{"on": true}'>Record on</button>
         <button data-action="record" data-args='{"on": false}'>Record off</button>
       </div>

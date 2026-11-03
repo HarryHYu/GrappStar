@@ -148,7 +148,6 @@ python3 -m grappstar mockbase --pty           # terminal 1: prints a path like /
 python3 -m grappstar base ping --base /dev/pts/5    # terminal 2, using the path it printed
 ```
 
-(The `--base` option on the `base` subcommand is assumed to match `serve`; check `python3 -m grappstar base --help`.)
 
 ## 4. Plug in the base
 
@@ -169,6 +168,7 @@ the 3S LiPo, the BTS7960 or the motors yet.
 3. Talk to it:
 
    ```bash
+   sudo systemctl stop grappstar       # only if you installed the service: it holds the port and the cameras
    python3 -m grappstar base ping      # expect a reply with "ok": true
    python3 -m grappstar base status
    python3 -m grappstar base monitor   # telemetry lines about 10 per second, Ctrl+C stops
@@ -188,7 +188,8 @@ the dart's Caddx Ant VTX before powering them: a VTX powered without an antenna 
 1. Plug in the Kiyo X and the DIGITNOW capture dongle (USB). Connect the RC832 video out (yellow) to the dongle's
    video in. Battery unplugged while you wire the RC832 power; power it as its label says (NOT VERIFIED which
    supply on the rover).
-2. List the cameras:
+2. If the boot service is installed, stop it first (it holds the cameras): `sudo systemctl stop grappstar`.
+   List the cameras:
 
    ```bash
    python3 -m grappstar cameras
@@ -387,7 +388,9 @@ What is on the page (layout may differ a little from this list):
 - **Base panel**: link, state, mode, drum position, aim angle, current, battery, fault.
 - **Dart panel**: link, phase (IDLE, ARMED, FLIGHT, LANDED, ANCHORING, ANCHORED, RELEASING, FAULT), battery.
 - **Mission panel**: current step, history, and the **prompt** box. Before anything dangerous (firing, reeling)
-  the mission stops and asks you to confirm, e.g. "Fire" or "Cancel". Nothing dangerous happens without your click.
+  the mission stops and asks you to confirm, e.g. "Fire" or "Abort". After the first confirmation ("Base may move")
+  the base is LIVE: drum shifts, aiming and small wiper turns during a mode change happen between prompts. Cocking and
+  firing each have their own confirmation.
 - **Target**: range and bearing of the clicked or auto found target, and the ballistic solution (pitch, flight time).
 - **Results**: after a flight, the landing zone verdict (GO, NO_GO or UNSURE with reasons), the landing image, the
   aerial map built from the dart video, and the flight analysis.
@@ -399,25 +402,28 @@ The mission steps, in order (the page highlights the current one):
 
 | Step | What happens | You do |
 |---|---|---|
-| PREFLIGHT | links, faults, dart seated, battery, videos, a target set | fix what it lists, then Retry |
+| PREFLIGHT | links, faults, dart seated, battery, videos, a target set | fix what it lists, then Retry; then confirm "Base may move" |
 | LAUNCH_MODE | drum to LAUNCH (about 4 s per drum step) | |
 | AIM | pitch from the ballistics table; the page says how far to turn the rover | turn the rover, press Aim |
-| COCK | the base draws the spring (up to about 20 s) | |
+| COCK | the base draws the spring (up to about 20 s) | confirm Cock |
 | ARM | the dart's landing detector is armed (it only records; you decide on anchoring) | |
-| FIRE | two confirmations, then the shot | Fire, then FIRE NOW |
+| FIRE | two confirmations, then the shot (FIRED, then the launcher RESET) | Fire, then FIRE NOW |
 | FLIGHT | waits for the dart to say LANDED (or the dart video to go still) | |
 | LANDING_ZONE | landing report, map, verdict; the base is told how much line is out | Anchor, or Retrieve and reshoot |
-| BASE_NEUTRAL | launcher back at rest, drum to NEUTRAL | |
-| ANCHOR | the dart digs in (kick, foot, drills) | |
-| TIDY | slack wound onto the storage reel (if the base firmware has it) | |
-| WRAP | the capstan wraps go on (about 24 s) | |
+| BASE_NEUTRAL | launcher at rest, drum to NEUTRAL | |
+| WRAP | the capstan wraps go on while the line is still slack; the drum parks at WRAPPED (about 24 s) | |
+| ANCHOR | the dart digs in (kick, foot, drills) | if it reports warnings, choose Tow anyway or Release and reshoot |
+| TIDY | slack wound onto the storage reel for a few seconds | |
+| FLY_IN | drum on to REEL: the capstan is now driven | |
 | CHECK | a gentle test pull must reach the check tension and hold it | |
 | TOW | reel to the tension limit and hold | drive the rover gently, then Take up slack or Rover free |
-| RELEASE | the dart unscrews and folds | |
+| RELEASE | base stops (the worm holds the line), then the dart unscrews and folds | |
 | RETRIEVE | capstan reels in until about 1.5 m is left | |
-| UNWRAP | capstan wraps come off | |
-| FINAL_APPROACH | the last metre until the dart is seated | |
+| UNWRAP | capstan wraps come off, drum back to NEUTRAL | |
+| FINAL_APPROACH | the storage take-up pulls the last metre until the dart is seated (slow, about 0.08 m/s) | |
 | LAUNCH_READY | drum back to LAUNCH for the next shot | |
+
+A NO GO verdict comes before the wrap: the dart is not anchored, so it comes home on the take-up alone.
 
 If you abort after COCK and before FIRE, the spring stays drawn: press **Decock** in the Manual section before you
 touch the launcher.
@@ -449,12 +455,21 @@ Before the first real launch:
       target too. Everyone knows the shout for stop.
 - [ ] Line attached at both ends (dart and reel) and laid so it cannot snag on the rover, feet or wires.
 - [ ] Tension limit set to a low value for the first runs (the base `set` key, or the page) and you know what it is.
-- [ ] STOP button: you can see it on the page, and your hand is on it during every motion. Know that E-STOP sends the
-      drum to neutral. Know where the battery connector is so you can unplug it fast.
+- [ ] Know the stop rule (the same in every GrappStar document):
+      1. ESTOP or the page's STOP button.
+      2. Pull lead #2's XT60 (motors off, the Jetson stays up).
+      3. The main battery.
+      Cutting power FREEZES a drawn spring and a taut line (the worm drives hold them); it does not release them.
+      Treat a cocked launcher and a loaded line as live until Decock and unwrap.
+- [ ] The base is live from the "Base may move" confirmation until DONE.
 - [ ] Battery charged (3S full is 12.6 V), 20 A fuse fitted. Battery unplugged while you check any wiring.
 - [ ] Antennas on the VTX and RC832 before power. Dart view clean on the page.
 - [ ] Dart status OK (`python3 -m grappstar dart status`), base ping OK, preflight all green.
 - [ ] Recording on, so you can replay it.
+- [ ] HARD PREREQUISITE before any tow: `free_a` and `k_n_per_a` calibrated (firmware/base/CALIBRATION.md steps (b)
+      and (e)) and `limit_n` set. Reason: without a load cell the tension limit is estimated from the wiper current;
+      with factory constants a simulated tow reached 61 N against a 40 N limit. The mission refuses the TOW step
+      while `k_n_per_a` is still a factory value (8 or 17) and there is no load cell.
 - [ ] Start with a short shot at low pitch.
 - [ ] The real launcher reaches only about 3 to 4.4 m (base/out/ballistics.json). The page says "not reachable"
       for anything outside that: move the rover instead.

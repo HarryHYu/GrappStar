@@ -54,12 +54,12 @@ def range_plot(path):
 
 def trajectory_plot(path, pitches=(10.0, 25.0, 36.0, 47.0)):
     from flight import simulate
-    from launcher import launch
+    from launcher import effective_muzzle
     p = load_params()
     fig, ax = plt.subplots(figsize=(6.0, 3.0))
     greys = ["#000000", "#444444", "#777777", "#aaaaaa"]
     for g, th in zip(greys, pitches):
-        v = launch(p, th)["v_muzzle"]
+        v = effective_muzzle(p, th)["v"]
         r = simulate(p, v, th, reel_model=True, record=True)
         xs = [h[1] for h in r["history"]]
         zs = [h[2] for h in r["history"]]

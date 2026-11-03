@@ -12,11 +12,11 @@ const DART_MS = 350;
 const ESTOP_HOLD_MS = 1000;
 
 // Default mission steps (used when status.mission.steps is not provided by the App).
-const DEFAULT_STEPS = [
-  "PREFLIGHT", "LAUNCH_MODE", "AIM", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "ANCHOR",
-  "REEL_MODE", "WRAP", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "NEUTRAL", "DONE",
+const DEFAULT_STEPS = [   // used only until the first status arrives (status.mission.steps is the truth)
+  "PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "BASE_NEUTRAL", "WRAP",
+  "ANCHOR", "TIDY", "FLY_IN", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE",
 ];
-// [key, label]; "seated" is read from base.sw.seated
+// [key, label]; "seated" comes from the App (telemetry sw letter S)
 const BASE_FIELDS = [["state", "State"], ["mode", "Mode"], ["drum_pos", "Drum"], ["pitch_deg", "Pitch deg"],
   ["cock", "Cock"], ["wraps", "Wraps"], ["line_m", "Line out m"], ["tension_n", "Tension N"], ["amps", "Current A"],
   ["vbat", "Battery V"], ["seated", "Dart seated"], ["fault", "Fault"]];
@@ -29,6 +29,9 @@ const SAFE_CHOICE = /^(cancel|abort|no|back|stop|wait|hold|safe|retrieve|release
 // Which picture helps the operator decide each prompt: media shown inside the card, or a video scrolled into view.
 const PROMPT_VIEW = { AIM: "rover", FIRE: "rover", TOW: "rover", FLIGHT: "dart", ANCHOR: "dart", CHECK: "dart",
   RELEASE: "dart" };
+
+// Per-process session token the server writes into index.html; sent on every POST (review r2_H #8).
+const TOKEN = (document.querySelector('meta[name="grappstar-token"]') || {}).content || "";
 
 let status = null;
 let pendingTap = null;          // {u, v} of a tap not yet confirmed by status.target
@@ -81,10 +84,17 @@ $("toast").addEventListener("click", () => $("toast").classList.add("hidden"));
 async function action(name, args, quiet) {
   try {
     const r = await fetch("/api/action/" + encodeURIComponent(name), {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(args || {}),
+      method: "POST", headers: { "Content-Type": "application/json", "X-GrappStar-Token": TOKEN },
+      body: JSON.stringify(args || {}), credentials: "same-origin",
     });
     let j;
     try { j = await r.json(); } catch (e) { j = { ok: false, msg: "HTTP " + r.status }; }
+    if (r.status === 401) { location.reload(); return j; }
+    if (r.status === 403 && j.reload) {      // server restarted: this page holds an old session token
+      toast((j.msg || "page session expired") + ". Reloading...", true);
+      setTimeout(() => location.reload(), 1500);
+      return j;
+    }
     if (!j.ok) toast(words(name) + ": " + (j.msg || "failed"), true);
     else if (!quiet && j.msg) toast(j.msg, false);
     return j;
@@ -162,6 +172,10 @@ document.querySelectorAll("button[data-set]").forEach((b) => {
     const inp = document.querySelector('input[data-key="' + key + '"]');
     const v = parseFloat(inp.value);
     if (!isFinite(v) || v <= 0) return toast("Enter a number for " + words(key), true);
+    const lo = parseFloat(inp.min), hi = parseFloat(inp.max);
+    if ((isFinite(lo) && v < lo) || (isFinite(hi) && v > hi)) {
+      return toast(words(key) + " must be " + inp.min + " to " + inp.max, true);
+    }
     const r = await action("set", { key: key, val: v });
     if (r.ok) delete inp.dataset.dirty;
   });
@@ -239,8 +253,13 @@ function typing(e) {
   return t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
 }
 addEventListener("keydown", (e) => {
+  // STOP: Escape from anywhere (even with focus in a field), Space when not typing (a typed space stays a space).
+  if (e.key === "Escape" || e.key === "Esc" || (e.key === " " && !typing(e))) {
+    e.preventDefault();
+    if (!e.repeat) { stopHolds(); action("stop", {}); }
+    return;
+  }
   if (typing(e)) return;
-  if (e.key === " ") { e.preventDefault(); if (!e.repeat) { stopHolds(); action("stop", {}); } return; }
   if ($("manual").open && DART_KEYS.some(([c]) => c === e.key)) {
     e.preventDefault();
     startHold("key" + e.code, { kind: "dart", args: { c: e.key, ms: DART_MS } });    // keyed by physical key
@@ -409,7 +428,8 @@ function renderPrompt(p) {
       if (dangerous && !confirm("Are you sure: " + choice + "?\n\n" + (p.text || ""))) return;
       answered = p.id;
       box.querySelectorAll("button").forEach((x) => (x.disabled = true));
-      const r = await action("answer", { prompt_id: p.id, choice: choice }, true);
+      // the text sent back is the text shown: the mission refuses it if the open prompt reads differently
+      const r = await action("answer", { prompt_id: p.id, choice: choice, text: p.text || "" }, true);
       if (!r.ok) { answered = null; box.querySelectorAll("button").forEach((x) => (x.disabled = false)); }
     });
     box.appendChild(b);
@@ -498,6 +518,11 @@ function renderMission(m) {
     li.classList.toggle("done", (S !== cur || m.state === "DONE") && done.has(S));
   });
   const running = m.state === "RUNNING";
+  // the dart is out after an abort or failure: offer the recovery right in the mission panel
+  const base = (status && status.base) || {};
+  const wraps = pick(base, "wraps");
+  const dartOut = pick(base, "seated") === false || (typeof wraps === "number" && wraps > 0);
+  $("m-recover").classList.toggle("hidden", !((m.state === "ABORTED" || m.state === "FAILED") && dartOut));
   document.querySelectorAll('button[data-action="start"], button[data-action="preflight"]').forEach((b) => (b.disabled = running));
   renderPrompt(m.prompt || null);
 }

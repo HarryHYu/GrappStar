@@ -8,6 +8,8 @@ import pytest
 from grappstar.app import App, AppConfig
 from grappstar import cli
 
+pytestmark = pytest.mark.slow    # a whole simulated mission in real time
+
 
 @pytest.fixture(scope="module")
 def app(tmp_path_factory):
@@ -54,7 +56,7 @@ def test_full_mission_via_actions_then_replay(app):
     assert r["ok"], r
     assert not app.action("start", {})["ok"]          # already running
     seen, t0 = set(), time.time()
-    while time.time() - t0 < 150:
+    while time.time() - t0 < 420:
         m = app.status()["mission"]
         p = m["prompt"]
         if p and p["id"] not in seen:

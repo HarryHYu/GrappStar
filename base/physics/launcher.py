@@ -68,6 +68,16 @@ def launch(p: Params | None = None, pitch_deg: float | None = None, model: str =
                energy_stored_j=ns * (sp.energy(e_full) - sp.energy(e0)), model=model)
 
     # friction + gravity per unit mass sliding on the rail (dart and carriage both slide)
+    # carriage pitching moment: the springs pull at spring_w, the pusher pushes the dart at push_w above the shoes;
+    # the couple F x dw is taken by the two shoe ends (engaged length shrinking over the stroke): extra normal force
+    # 2 F dw / L_shoe, friction mu times that (review: about 0.6 J at full draw)
+    dw = abs(L.get("push_w", 0.085) - L.get("spring_w", 0.060))
+    sh0, sh1 = L.get("shoe_len_cocked", 0.263), L.get("shoe_len_home", 0.111)
+
+    def f_moment(F_drive, x):
+        Lsh = max(0.03, sh0 + (sh1 - sh0) * min(max(x / S, 0.0), 1.0))
+        return mu * 2.0 * F_drive * dw / Lsh
+
     def resist(m):
         return m * G * (sth + mu * cth)
 
@@ -79,7 +89,8 @@ def launch(p: Params | None = None, pitch_deg: float | None = None, model: str =
         a_pk = 0.0
         while x < S:
             e = e0 + (S - x) / r
-            F = ns * sp.force(e) * eta / r - resist(m_c + m_d) - f_line
+            Fd = ns * sp.force(e) * eta / r
+            F = Fd - resist(m_c + m_d) - f_line - f_moment(Fd, x)
             a = F / m_tot
             a_pk = max(a_pk, a)
             v += a * dt
@@ -158,7 +169,8 @@ def launch(p: Params | None = None, pitch_deg: float | None = None, model: str =
             # carriage (+ dart while pushing)
             if not stopped:
                 m = m_c + (m_d + m_line if md_attached else 0.0)
-                Fc = ns * cord_t * eta / r - resist(m_c) - (resist(m_d) + f_line if md_attached else 0.0)
+                Fdr = ns * cord_t * eta / r
+                Fc = Fdr - resist(m_c) - (resist(m_d) + f_line + f_moment(Fdr, xc) if md_attached else 0.0)
                 ac = Fc / m
                 if md_attached:
                     a_pk = max(a_pk, ac)
@@ -217,6 +229,41 @@ def launch(p: Params | None = None, pitch_deg: float | None = None, model: str =
     return res
 
 
+def line_slack(p: Params, n: int = 200) -> dict:
+    """Slack the line path makes during the stroke: path length from the last guide to the dart tail as the tail
+    moves from cocked to HOME. Where the path shortens the line goes slack (the take-up bus is far too slow to
+    follow in ~50 ms). Slack at release = longest path so far - path at release."""
+    L = p.launch
+    gu, gw = L.get("line_guide_u", 0.0), L.get("line_guide_w", 0.0)
+    w = L.get("dart_w", 0.085)
+    u1 = L.get("tail_home_u", 0.0756)
+    u0 = u1 - L["stroke"]
+    longest = 0.0
+    lens = []
+    for i in range(n + 1):
+        u = u0 + (u1 - u0) * i / n
+        d = math.hypot(u - gu, w - gw)
+        lens.append(d)
+        longest = max(longest, d)
+    slack = longest - lens[-1]
+    peak = max(max(lens[:i + 1]) - lens[i] for i in range(len(lens)))
+    return dict(slack_at_release_m=slack, slack_peak_m=peak, path_cocked_m=lens[0], path_home_m=lens[-1],
+                path_min_m=min(lens), taut=peak < 0.005)
+
+
+def effective_muzzle(p: Params, pitch_deg: float, **over) -> dict:
+    """Muzzle speed the flight model should start from. Taut line: the reel spins up in the stroke (launch()).
+    Slack line: no line load in the stroke, then a plastic snatch with the reel's effective mass after the muzzle."""
+    ls = line_slack(p)
+    if ls["taut"]:
+        r = launch(p, pitch_deg, **over)
+        return dict(v=r["v_muzzle"], v_muzzle=r["v_muzzle"], snatch=False, slack_m=ls["slack_at_release_m"])
+    r = launch(p, pitch_deg, line_load=(0.0, 0.0), **over)
+    _, m_eff = reel_line_load(p)
+    v1 = r["v_muzzle"] * p.dart.mass / (p.dart.mass + m_eff)
+    return dict(v=v1, v_muzzle=r["v_muzzle"], snatch=True, slack_m=ls["slack_at_release_m"])
+
+
 def ratio_sweep(p: Params, stroke: float, ratios=(0.5, 0.75, 1.0, 1.5, 2.0, 3.0), pitch=35.0, cap_safe=True):
     """For a fixed carriage stroke, what pulley ratio gives the fastest shot without exceeding the safe extension?"""
     rows = []
@@ -249,7 +296,9 @@ def main(argv=None):
     ap.add_argument("--json", default=os.path.join(OUT_DIR, "launch.json"))
     a = ap.parse_args(argv)
     _defaults = vars(ap.parse_args([]))
-    write_ok = a.json != _defaults["json"] or vars(a) == _defaults   # odd flags never overwrite the committed output
+    _cur = {k: v for k, v in vars(a).items() if k != "sweep"}
+    _defaults.pop("sweep", None)
+    write_ok = a.json != _defaults["json"] or _cur == _defaults   # odd flags never overwrite the committed output
     p = load_params()
     over = {}
     if a.stroke is not None:

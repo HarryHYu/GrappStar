@@ -1,0 +1,84 @@
+# cad-launch REPORT (launcher + aim train)
+
+Worker cad-launch, branch `w/cad-launch`. Harry's v10 launcher, sized to KEDGE v30, on BASE_SPEC v1.2.x.
+Files (all in `base/cad/parts/`): `launch.py` (module contract: parts, joints, kin, allowed, clearances,
+audit_states, checks, grounded, steps, line_path, line_entry), `launch_kin.py` (sizing, crank-rocker, aim table),
+`launch_gears.py` (involute spur, sector with v10 release teeth, rack, worm, wheel, bevel), `launch_aim.py` (aim train),
+`launch_stop.py` (PLA flexure carriage stop), `launch_line.py` (tether pulleys on the rail), `launch_muzzle.py`
+(lip roller, retrieval funnel), `launch_guard.py` (spring guards), `launch_switch.py` (printed contact),
+`launch_numbers.py` (numbers table), `launch_view.py` (side views and sections), `launch_dartmesh.py` +
+`launch_dart_v30*.npz` (the folded dart as a keep-out part), tests `test_launch*.py`, `launch_NOTES.md`.
+
+## 1. Done
+
+- Mechanism (v10): rail pivots on the main axis; launch sleeve (D13 integral ribs) coaxial on cad-drum's d12 spigot;
+  sprag #1 inside the 26T drive gear; TWO-LAYER big gear on the rail pin (27-tooth sector with the v10 relieved last
+  tooth and 30 percent taller tooth for the rack, plus a full 40T layer for the drive: one sector layer would leave
+  the drive in the toothless gap); one big gear turn = cock, release, reset (553.8 wiper deg).
+- Tooth timing from a real 2D contact sweep (`release_table`): tooth 0 sits 3 pitches before the mesh centre at rest
+  (a turning gear cannot enter a stationary rack at the mesh centre); release at big gear -281.25 deg, 432.7 forward
+  wiper deg from rest; carriage travel 240.9 mm.
+- Springs 1:1, preload from params (23.8 at max_ext 265), D5 second-pair provision (pegs + anchor holes at y +-56),
+  6 mm steel anchor pins in double shear (post + strap).
+- Carriage: body prints on its side (shoe faces), light V cradle (5 rings + 2 strips), pusher with tether hole,
+  lip roller and retrieval funnel at the front; one bolted YOKE across the rear carries both spring arms (keys in the
+  body webs, cross bar: each arm's stop moment balances across the carriage).
+- Carriage stop: printed PLA flexure units (D26, no TPU), preloaded, with a hard stop; overshoot checked by
+  `launch.checks` against the moving yoke and body.
+- Contacts (printed, M3 screw head on M3 nut): SW_HOME (right rail lip lever, rigid ramped foot under the yoke),
+  SW_SEATED (left rail lip lever, captive plunger pushed down by a 45 deg wedge pushrod that the dart tail presses: no
+  wires on the carriage), SW_GAP (cam on the big gear at rest), SW_RAIL_LOW (cam on the aim crank).
+- Aim train: v10 crank-rocker scaled 0.6 (pitch 6.01..47.06 deg), swing-arm splitter (pawl-free) on backward turns,
+  2:1 bevel, self-locking worm (lead 4.76 deg), worm wheel = crank, 10 wiper turns per cycle; aim housing on the deck
+  is also the sleeve's outboard bushing with the thrust face (D23), AS5600 bracket at the magnet.
+- Tether (D14/D34): pivot pulley 44 below the axis on the right cheek, bottom and top pulleys on a fork behind the
+  rail, line along the axis to the pusher; `line_entry` / `line_path` hand over to cad-reel.
+- Spring guards (D33), splice straps over the front rail joint, rail clear of the sleeve flange and dog ring.
+- Kin for every timeline key (aim_deg, cock, fired, dart_flight, dart_return, sleeve_deg, phase "lower" runs the crank
+  over the top and down the falling stroke), None-safe; dart flight arc from params.LAUNCH.flight; return along the
+  line and the rail axis.
+- Assembly steps (15, ordered, hardware per step), print orientation per part (`print_tf`, chosen for the largest
+  flat face), notes for fw-base (aim table, switch windows).
+
+## 2. Verified
+
+(pasted at the end of the day, see section 6)
+
+## 3. Decisions I made (Harry away)
+
+1. Two-layer big gear (review 1 found the single sector gear could not be driven through its gap).
+2. 27 teeth present, not 33: with the 3-pitch lead-in, 33 would stretch the springs far past max_ext.
+3. Stops on the spring arms with PLA flexures; no switch in any load path.
+4. SW_SEATED on the rail through a carriage plunger: a wire on a carriage that hits 16 g and stops hard would fail.
+5. Carriage body + bolted yoke (the carriage could not print flat with the arms on).
+6. Pivot pulley 44 below the axis (the flange r 32 and cad-drum's fork rail at r 56.6 bound it); the feed length
+   changes by about 25 mm over the aim range (take-up handles it).
+7. Worm in the aim train although v10's notes say "no worm gear": the system plan and coordinator asked for a printed
+   self-locking stage; it is pawl-free.
+
+## 4. Open items and risks
+
+- PLA stop returns most of the energy: the carriage rebounds up to about 100 mm before friction and the springs settle
+  it. The gear is in its gap then (audited); firmware should wait 0.5 s after the release before trusting SW_HOME.
+- In tow, the line over the lip roller pushes the carriage back by T (1 - cos a): lower the rail to minimum before
+  going to REEL (a about 9 deg: 4 N at 270 N) so the carriage stays on its stop.
+- Moving mass about 122 g (target 60 in D6): the rack must be one stroke long; mass cuts and the stop retune are in
+  progress (section 6).
+- Sleeve wall over the spigot is 3.83 mm (D13 asks 4): bore 12.35 is cad-drum's bushing size on a d20 sprag bore.
+  Fine for 2.7 N m (about 2 MPa); flagged to the coordinator.
+- params LAUNCH still lists big_gear present 33 and drive face 12/16; the model has 27 + full layer, face 7.
+- Overhang warnings (supports needed): rail pieces, big gear sector side, worm, crank, aim housing. Listed on the print
+  sheet by the pipeline.
+
+## 5. What Harry must measure
+
+1. Springs: hang test (rate and initial tension) and whether 165.1 mm is the length outside or inside the hooks; then
+   set SPRING.k_n_per_mm, F0_n, free_len, max_ext. Preload follows automatically.
+2. Stop flexure: after printing, a press test (force at 10 mm) to confirm the stiffness.
+3. Fit coupon for the 0.2 mm running clearances (sleeve journals 20.4 in the cheeks, gear pin 10.35).
+4. The sprag direction before assembly (inner race must freewheel the BACKWARD wiper way).
+5. The aim table zero: run backward until SW_RAIL_LOW closes; record the AS5600 angle at the closing edge.
+
+## 6. Verification output
+
+(filled in below)

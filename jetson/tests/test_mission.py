@@ -6,8 +6,8 @@ from grappstar import jlog
 from grappstar.mission import MissionConfig
 from mission_harness import Rig, FakeCam
 
-HAPPY = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "BASE_NEUTRAL", "ANCHOR",
-         "TIDY", "WRAP", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
+HAPPY = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "BASE_NEUTRAL", "WRAP",
+         "ANCHOR", "TIDY", "FLY_IN", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
 
 
 @pytest.fixture
@@ -44,10 +44,11 @@ def test_no_go_reshoot_then_go(tmp_path):
         m = r.run(90)
         assert m.state == "DONE", m.error
         s = r.steps()
-        assert s.count("FIRE") == 2 and s.count("RETRIEVE") == 2 and m.reshoots == 1
+        assert s.count("FIRE") == 2 and s.count("FINAL_APPROACH") == 2 and m.reshoots == 1
         i = s.index("LANDING_ZONE")
-        assert s[i + 1:i + 6] == ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
-        assert "LAUNCH_MODE" in s[i + 6:]
+        # 10.1: a NO GO comes before the wrap, so the unanchored dart comes home on the take-up only
+        assert s[i + 1:i + 3] == ["BASE_NEUTRAL", "FINAL_APPROACH"]
+        assert "LAUNCH_MODE" in s[i + 3:]
     finally:
         r.close()
 
@@ -158,7 +159,11 @@ def test_landing_not_detected_operator_confirms(tmp_path):
         r.world.flight = lambda t: 7.0 * min(1.0, t / 1.1) + (0.5 * t if t > 1.1 else 0)  # line keeps creeping
     r.world.on_fire = fire
     try:
-        r.policy["Landing not detected"] = "Dart is down"
+        def down(p):
+            r.world.dart = "free"          # it is lying on the ground; only the detector missed it
+            r.world.flight = lambda t: 7.0
+            return "Dart is down"
+        r.policy["Landing not detected"] = down
         r.policy["Landing zone"] = "Retrieve and reshoot"
         r.policy["Dart is home"] = "Abort"
         m = r.run()
@@ -294,3 +299,36 @@ def test_dart_reboot_at_impact_counts_as_landing(tmp_path):
         assert "dart" in m.shot.get("landing_sources", [])
     finally:
         r.close()
+
+
+def test_tow_refused_without_load_cell_and_factory_constants(tmp_path):
+    r = Rig(tmp_path)
+    r.mb.load_cell = False                       # tension_n null; k_n_per_a still a factory value
+    r.policy["TOW refused"] = "Release the dart"
+    try:
+        m = r.run(120)
+        assert any("TOW refused" in a[0] for a in r.answers)
+        assert m.state == "DONE"                 # released and brought home instead
+        assert "RELEASE" in r.steps()
+    finally:
+        r.close()
+
+
+def test_line_out_uses_video_range_only_with_imu(tmp_path):
+    """R2-C2: a video-only range (9.2 m) must not become line_m; the solver's line out is used, capped by the table."""
+    from grappstar.mission import Mission
+    sent = {}
+
+    class B:
+        def set(self, k, v):
+            sent[k] = v
+    m = Mission(B(), None, {}, None, type("L", (), {"info": lambda *a, **k: None, "warn": lambda *a, **k: None,
+                                                     "write": lambda *a, **k: None})(),
+                analyse=lambda *a, **k: {})
+    m.shot = {"solution": {"line_out_m": 4.6, "range_max_m": 4.9}}
+    m.tell_line_out({"flight": {"range_m": 9.2, "source": "video"}})
+    assert sent["line_m"] == 4.6
+    m.tell_line_out({"flight": {"range_m": 4.2, "source": "video+imu"}})
+    assert abs(sent["line_m"] - (4.2 * 1.05 + 0.3)) < 0.01
+    m.tell_line_out({"flight": {"range_m": 12.0, "source": "imu"}})
+    assert sent["line_m"] <= 4.9 * 1.1 + 0.5

@@ -216,3 +216,11 @@ footer { text-align: center; font-size: 14px; font-weight: 600; padding: 6px 0 2
   .prompt-choices button { flex-basis: 120px; font-size: 18px; min-height: 56px; }
   .prompt-media img { max-height: 30vh; }
 }
+
+/* dart recovery offer in the mission panel (shown after ABORTED / FAILED with the dart out) */
+.recover { background: var(--warn); border: 3px solid #000; border-radius: 6px; padding: 10px; margin: 8px 0;
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-weight: 700; }
+.recover > div { flex: 1 1 240px; }
+.recover button { font-size: 20px; }
+.keyhint { font-size: 12px; font-weight: 600; align-self: center; max-width: 9em; line-height: 1.2; }
+@media (hover: none) { .keyhint { display: none; } }   /* touch screens have no keyboard */

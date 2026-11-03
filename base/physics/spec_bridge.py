@@ -22,6 +22,9 @@ LAUNCH_MAP = {
     "mu_rail": ("launch", "mu_rail", 1.0),
     "stop_pad_travel": ("launch", "stop_pad_travel", 1e-3),
     "spring_preload": ("launch", "preload_ext", 1e-3),
+    "line_guide_u": ("launch", "line_guide_u", 1e-3),
+    "line_guide_w": ("launch", "line_guide_w", 1e-3),
+    "tail_home_u": ("launch", "tail_home_u", 1e-3),
     "carriage_mass_target_kg": ("launch", "carriage_mass", 1.0),
     "muzzle_height": ("launch", "muzzle_height", 1e-3),
 }
@@ -103,6 +106,12 @@ def apply(p, path=None):
             setattr(p.battery, pk, float(b[sk]))
     _overlay(p, getattr(mod, "LAUNCH", None), LAUNCH_MAP, used)
     lt = getattr(mod, "LAUNCH", None) or {}
+    if lt.get("carriage_mass_target_g") is not None:          # D36 (wins over the older _kg key)
+        p.launch["carriage_mass"] = float(lt["carriage_mass_target_g"]) * 1e-3
+        used.append("LAUNCH.carriage_mass_target_g")
+    if lt.get("carriage_mass_g") is not None:                 # as built / slicer mass: wins over the target
+        p.launch["carriage_mass"] = float(lt["carriage_mass_g"]) * 1e-3
+        used.append("LAUNCH.carriage_mass_g")
     if isinstance(lt.get("stop"), dict) and lt["stop"].get("travel_min") is not None:
         p.launch["stop_pad_travel"] = float(lt["stop"]["travel_min"]) * 1e-3
         used.append("LAUNCH.stop.travel_min")
@@ -134,6 +143,11 @@ def apply(p, path=None):
         if cl.get("FIRM_line_n") is not None:
             p.capstan["takeup_n"] = float(cl["FIRM_line_n"])
             used.append("REEL.clutch.FIRM_line_n")
+        if isinstance(rl.get("current_trips_a"), dict):
+            p.capstan["trips"] = {k: float(v) for k, v in rl["current_trips_a"].items() if isinstance(v, (int, float))}
+            used.append("REEL.current_trips_a")
+        if rl.get("tow_limit_max_n") is not None:
+            p.capstan["tow_limit_max_n"] = float(rl["tow_limit_max_n"])
         if rl.get("tow_limit_n") is not None:
             p.capstan["tow_limit_n"] = float(rl["tow_limit_n"])
     dr = getattr(mod, "DRUM", None) or {}

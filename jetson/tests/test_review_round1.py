@@ -103,7 +103,7 @@ def test_release_and_reshoot_release_failure_is_retryable(tmp_path):
     dart = FakeDart(phase="FAULT", release_raises=True)
     base = FakeBase()
     m = _mission(base, dart, tmp_path)
-    for n in ("preflight", "aim", "arm", "fire", "wait_landing"):
+    for n in ("preflight", "aim", "cock", "arm", "fire", "wait_landing", "base_neutral", "bring_home", "wrap"):
         setattr(m, n, lambda: None)
     m.base_mode = lambda to: None
     m.landing_zone = lambda: "anchor"
@@ -191,14 +191,14 @@ def test_stop_after_arm_prevents_fire(tmp_path):
     c.wait_tel(lambda t: t.get("drum_pos") == "LAUNCH", 2)
     m = _mission(c, FakeDart(phase="IDLE"), tmp_path)
     m.ask = lambda text, choices, **k: choices[0]
-    orig_arm = c.arm
+    m.ensure_launch = lambda: None          # the base preconditions are not what this test is about
+    m.cfg.cock_first = False
 
     def arm(**kw):
-        tok = orig_arm(**kw)
         # operator presses STOP right now (app.act_stop)
         m.cancel.set()
         c.safe_stop()
-        return tok
+        return 123456
     c.arm = arm
     try:
         m.fire()

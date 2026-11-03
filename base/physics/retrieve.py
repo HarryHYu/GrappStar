@@ -60,7 +60,32 @@ def snatch(p, pitch=36.0, slack=0.245, seg_len=0.5):
                 line_spike_n_upper=t_peak, line_break_n=p.line.breaking)
 
 
-def wrap_loads(p, w=WRAP, light_n=None):
+def wrap_params(base=WRAP):
+    """WRAP defaults overlaid with the spec (DRUM.n20, DRUM wrap window and cup turns) when params.py has them."""
+    w = dict(base)
+    try:
+        import spec_bridge
+        mod = spec_bridge.load_spec_module()
+    except Exception:
+        mod = None
+    dr = getattr(mod, "DRUM", None) if mod is not None else None
+    if isinstance(dr, dict):
+        n = dr.get("n20") or {}
+        for sk, wk in (("ratio", "n20_ratio"), ("stall_nm_design", "n20_torque_nm"), ("drum_deg_per_s", "drum_deg_per_s"),
+                       ("peak_drum_load_nm", "peak_drum_load_nm")):
+            if n.get(sk) is not None:
+                w[wk] = float(n[sk])
+        if dr.get("wrap_turns") is not None:
+            w["cup_turns"] = float(dr["wrap_turns"])
+        if dr.get("cup_turns_per_drum_deg") is not None:
+            w["cup_per_drum"] = float(dr["cup_turns_per_drum_deg"]) * 360.0
+            w["drum_sector_deg"] = w["cup_turns"] / float(dr["cup_turns_per_drum_deg"])
+        w["source"] = "spec DRUM"
+    return w
+
+
+def wrap_loads(p, w=None, light_n=None):
+    w = wrap_params() if w is None else w
     light = p.flight["brake_n"] if light_n is None else light_n
     rp = reel_props(p)
     torque = light * rp["r_full"]                             # light clutch set at the full reel
@@ -74,7 +99,10 @@ def wrap_loads(p, w=WRAP, light_n=None):
         rows.append(dict(line_on_reel_m=left, t_reel_n=t_reel, t_ring_n=t_ring, t_cup_nm=t_cup, t_drum_nm=t_drum,
                          t_n20_nm=t_n20, n20_frac=t_n20 / w["n20_torque_nm"]))
     drum_turns = w["drum_sector_deg"] / 360
-    t_wrap_s = drum_turns * w["n20_ratio"] / (20.0 / 60)      # N20 about 20 rpm at 9 V
+    if w.get("drum_deg_per_s"):
+        t_wrap_s = w["drum_sector_deg"] / w["drum_deg_per_s"]  # cad-drum as built (spec DRUM.n20)
+    else:
+        t_wrap_s = drum_turns * w["n20_ratio"] / (20.0 / 60)  # N20 about 20 rpm at 9 V
     cup_turns_check = drum_turns * w["cup_per_drum"]
     line_drawn = w["cup_turns"] * 2 * math.pi * (p.capstan["d"] / 2 + p.line.d / 2)
     return dict(params=w, light_n=light, rows=rows, wrap_time_s=t_wrap_s, cup_turns_in_sector=cup_turns_check,
@@ -98,9 +126,41 @@ def approach(p, a=APPROACH):
                 firm_setting_for_1p5_margin_n_full_reel=t_for_margin)
 
 
+GRASS = dict(mu_low=0.5, mu_high=1.0, snag_factor=2.0)   # dart body (legs stowed) dragged over grass: ASSUMED
+
+
+def takeup_speed(p, duties=(0.3, 0.5, 1.0), overdrive=None, eta_bus=0.9):
+    """NEUTRAL, wiper forward: the take-up bus drives the storage reel (overdrive about 2.5 reel turns per wiper turn)
+    through the FIRM clutch. While the line pull is below the clutch slip tension the reel turns with the bus and
+    line speed = wiper speed x overdrive x line radius. Above it the clutch slips and the line stops (dart stuck)."""
+    od = p.capstan.get("overspeed", 2.5) if overdrive is None else overdrive
+    rp = reel_props(p)
+    t_clutch = p.capstan["takeup_n"] * rp["r_full"]           # FIRM, set as tension with the reel full
+    w_drag = p.dart.mass * G
+    drag = dict(grass_low=GRASS["mu_low"] * w_drag, grass_high=GRASS["mu_high"] * w_drag,
+                snag=GRASS["mu_high"] * w_drag * GRASS["snag_factor"])
+    rows = []
+    for pack, left in (("empty (line out, r core)", 0.0), ("full (20 m in)", p.reel["line_stored"])):
+        r = line_radius(p, left)
+        slip_n = t_clutch / r
+        for dn, f in drag.items():
+            for d in duties:
+                if f >= slip_n:
+                    rows.append(dict(pack=pack, r_mm=r * 1000, drag=dn, drag_n=f, duty=d, slips=True, v_line=0.0,
+                                     current=None, slip_tension_n=slip_n))
+                    continue
+                t_w = f * r * od / eta_bus
+                op = p.wiper.operate(t_w, p.battery, p.battery.v_nom, duty=d)
+                v = op["speed"] * od * r
+                rows.append(dict(pack=pack, r_mm=r * 1000, drag=dn, drag_n=f, duty=d, slips=False, v_line=v,
+                                 current=op["current"], i_batt=op["i_batt"], wiper_rpm=op["rpm"], slip_tension_n=slip_n))
+    return dict(overdrive=od, clutch_torque_nm=t_clutch, drag_n=drag, grass=GRASS, rows=rows,
+                note="line stops when the drag exceeds the FIRM slip tension (5 N at the full reel, 6.1 N at the core)")
+
+
 def main(argv=None):
     p = load_params()
-    out = dict(params_source=p.source, snatch=snatch(p), wrap=wrap_loads(p), approach=approach(p))
+    out = dict(params_source=p.source, snatch=snatch(p), wrap=wrap_loads(p), approach=approach(p), takeup=takeup_speed(p))
     s = out["snatch"]
     print(f"params: {p.source}")
     print(f"1. snatch: taut line {s['v_taut']:.2f} m/s; with {s['slack_m'] * 1000:.0f} mm slack: {s['v_no_line_in_stroke']:.2f} m/s "
@@ -117,6 +177,14 @@ def main(argv=None):
     for r in a["rows"]:
         print(f"   pitch {r['pitch_deg']:.0f}, mu {r['mu']}: need {r['need_n']:.2f} N, margin {r['margin']:.2f}")
     print(f"   FIRM setting for a 1.5 margin: {a['firm_setting_for_1p5_margin_n_full_reel']:.1f} N with the reel full")
+    tk = out["takeup"]
+    print(f"4. take-up in NEUTRAL (bus overdrive {tk['overdrive']}, FIRM {p.capstan['takeup_n']} N): dart drag on grass "
+          + ", ".join(f"{k} {v:.2f} N" for k, v in tk["drag_n"].items()))
+    for row in tk["rows"]:
+        if row["slips"]:
+            print(f"   {row['pack']:26s} {row['drag']:10s} duty {row['duty']:.1f}: CLUTCH SLIPS (needs > {row['slip_tension_n']:.1f} N), line stops")
+        else:
+            print(f"   {row['pack']:26s} {row['drag']:10s} duty {row['duty']:.1f}: {row['v_line']:.3f} m/s, motor {row['current']:.2f} A, wiper {row['wiper_rpm']:.0f} rpm")
     os.makedirs(OUT_DIR, exist_ok=True)
     json.dump(out, open(os.path.join(OUT_DIR, "retrieve.json"), "w"), indent=1)
     return out

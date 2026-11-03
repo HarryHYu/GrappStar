@@ -319,11 +319,19 @@ class Params:
         pivot_h=None,          # m rail pivot (main axis) above the ground: deck_h + 0.165 from spec LAYOUT (set by spec_bridge)
         release_u=0.149,       # m dart CG along the rail from the pivot when it leaves the cradle (cad-launch NOTES: tail 75.6 at HOME + 79 to the CG)
         dart_w=0.085,          # m dart axis above the rail pivot line (cad-launch NOTES)
+        push_w=0.085,          # m pusher (dart axis) line; with spring_w it makes a couple on the carriage shoes (review)
+        spring_w=0.060,        # m spring line (cad-launch NOTES)
+        shoe_len_cocked=0.263, # m carriage shoe engagement when cocked and at HOME (review of cad-launch geometry)
+        shoe_len_home=0.111,
+        line_guide_u=0.0,      # m last line guide before the dart, rail coords (D14: pulley on the pivot axis)
+        line_guide_w=0.0,
+        tail_home_u=0.0756,    # m dart tail (line attachment) at HOME along the rail (cad-launch NOTES)
     ))
     # flight
     flight: dict = field(default_factory=lambda: dict(
         brake_n=0.50,          # N payout brake at the reel exit, full reel (spec D7: 0.5 N in LAUNCH)
-        eye_gain=1.15,         # tension gain through the guide eye(s): exp(mu theta), ceramic or smooth PLA
+        eye_gain=1.35,         # line path gain reel -> dart: guide and exit eyes (~2 rad at mu 0.15) x pulleys x the 47 deg
+                               # bend at the pusher hole (panel B budget 1.39; review); calibrate with test shots
         reel_height=0.25,      # m above ground
         pitch_min=6.0, pitch_max=47.0,  # cad-launch crank-rocker range (6.0 to 47.1)
     ))
@@ -354,6 +362,16 @@ def load_params(spec_path: str | None = None) -> Params:
         except ImportError:
             return p
     return spec_bridge.apply(p, spec_path)
+
+
+def params_hash(p: "Params") -> str:
+    """Hash of every effective physics input (after the spec overlay), without the version string: changes only
+    when something the models use changes. Stored in ballistics_meta.json for the staleness test."""
+    import hashlib
+    import json as _json
+    d = asdict(p)
+    d.pop("source", None)
+    return hashlib.sha256(_json.dumps(d, sort_keys=True, default=str).encode()).hexdigest()[:16]
 
 
 def fmt(x, n=2):

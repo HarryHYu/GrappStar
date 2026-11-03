@@ -19,14 +19,14 @@ DEFAULTS = dict(
     cap_r=20.0, cap_len=40.0, cap_flange_r=23.0, cap_flange_h=3.0,
     wraps=7, mu_min=0.10, mu_lo=0.15, mu_hi=0.25,
     # storage reel
-    core_r=20.0, flange_r=32.0, width=20.0, flange_t=2.0, pack_fill=0.80,
-    # slip clutch line tension targets at the mid pack radius
-    brake_launch_n=0.5, brake_mid_n=1.75, brake_reel_n=3.0, mu_face=0.30, face_r_in=13.0, face_r_out=19.0,
-    brake_stroke=4.0, rocker_l=37.0, rocker_a=35.0,
-    # gears (module, teeth): main reel output (cad-drum, m3 24T) -> capstan gear (m3 12T, x +0.3);
-    # take-up gear on the capstan tube (m2 24T) -> idler (m2 24T) -> reel gear (m2 15T); cup ring gear m1.5 24T
-    m_cap=2.0, z_main=40, z_cap=24, x_cap=0.0, m_take=2.0, z_bus=40, z_c1=24, z_take=24, z_idler=24, z_reel=16,
-    m_cup=1.5, z_cup=24, z_wrap_idler=48, wrap_idler_turns=3.5,
+    core_r=25.0, flange_r=36.0, width=22.0, flange_t=2.0, pack_fill=0.80,          # params v1.2 REEL.storage
+    # slip clutch line tension targets with the reel FULL (D24): LIGHT 0.5 N, FIRM 5.0 N
+    brake_launch_n=0.5, brake_mid_n=1.75, brake_reel_n=5.0, mu_face=0.30, face_r_in=20.0, face_r_out=30.0,
+    brake_stroke=4.0, rocker_l=37.0, rocker_a=33.0, rocker_b=15.0,
+    # gears (module, teeth), params v1.2: REEL output 50T -> capstan gear 22T (m2, D20);
+    # take-up bus (D25): bus 50T m1.5 (cad-drum) -> c1 46T -> swing idler 30T -> reel gear 20T; cup ring m1.5 24T
+    m_cap=2.0, z_main=50, z_cap=22, x_cap=0.0, m_take=1.5, z_bus=50, z_c1=46, z_take=46, z_idler=30, z_reel=20,
+    m_cup=1.5, z_cup=24, z_wrap_idler=42, wrap_idler_turns=4.0,
     # wiper (linear model, physics worker block); firmware tow limit
     wiper_n0_rpm=45.0, wiper_stall_nm=15.0, wiper_i_stall=18.0, wiper_i_free=1.5, eta_train=0.85,
     tow_limit_n=100.0,
@@ -131,7 +131,7 @@ def min_brake_no_overrun(d, I=None):
 # ------------------------------------------------------------------------------------------------ slip clutch
 def clutch(d):
     """Friction torque and axial preload for both settings (annular face, uniform wear)."""
-    r_mid = 0.5 * (d["core_r"] + pack_r(d, d["line_len_m"])) / 1000
+    r_mid = pack_r(d, d["line_len_m"]) / 1000           # D24 convention: line tension with the reel FULL
     r_eff = 0.5 * (d["face_r_in"] + d["face_r_out"]) / 1000
     out = {}
     for k in ("launch", "mid", "reel"):
@@ -151,10 +151,11 @@ def clutch(d):
     return out
 
 
-def rocker(d, E=2100.0, b=10.0):
+def rocker(d, E=2100.0, b=None):
     """Flexible rocker as the clutch spring: pivot at the top, clutch stack (rigid) L below, drum push a further
     below. The plate bends as an overhung beam: input deflection delta = P a^2 (L + a) / (3 E I). Returns the plate
     thickness t that gives the REEL - LAUNCH preload change over the brake stroke, and the peak bending stress."""
+    b = d.get("rocker_b", 15.0) if b is None else b
     cl = clutch(d)
     L, a = d["rocker_l"], d["rocker_a"]
     dF = cl["reel"]["preload_n"] - cl["launch"]["preload_n"]
@@ -171,13 +172,13 @@ def rocker(d, E=2100.0, b=10.0):
 def train(d):
     """Speeds, torques and line speed for the reel train. Main = drum worker's reel output gear on the main shaft."""
     up = d["z_main"] / d["z_cap"]                         # capstan rpm / main rpm
-    # take-up bus (D15): wiper -> bus 40 -> c1 24 (free on the capstan tube) | c2 24 -> swing idler 24 -> reel 16.
-    # The bus pair turns exactly like the capstan when REEL is engaged (same 40:24), so per capstan turn:
-    take = d["z_take"] / d["z_reel"]                      # reel gear rpm / capstan rpm in REEL
+    # take-up bus (D25): wiper -> bus 50 -> c1 46 (free on the capstan tube) -> swing idler -> reel 20: 2.5 x wiper
+    take = (d["z_bus"] / d["z_reel"]) / (d["z_main"] / d["z_cap"])   # reel gear rpm / capstan rpm in REEL
     rl = line_r_cap(d) / 1000
     out = dict(cap_per_main=up, reel_per_cap=take,
                c_main_cap=0.5 * d["m_cap"] * (d["z_main"] + d["z_cap"]),
                c_take_idler=0.5 * d["m_take"] * (d["z_take"] + d["z_idler"]),
+               c_bus=0.5 * d["m_take"] * (d["z_bus"] + d["z_c1"]),
                c_idler_reel=0.5 * d["m_take"] * (d["z_idler"] + d["z_reel"]),
                wraps_from_drum=d["wrap_idler_turns"] * d["z_wrap_idler"] / d["z_cup"],
                reel_per_wiper=d["z_bus"] / d["z_c1"] * d["z_take"] / d["z_reel"])
@@ -213,16 +214,23 @@ def amps_for_tension(d, T):
 
 
 # ------------------------------------------------------------------------------------------------ cup (wrap arm)
-def cup_torque(d, T, mu=0.20):
+def cup_torque(d, T, mu=0.20, lever=None):
     """Holding torque on the wrap cup during tow (N m, + = wind-in sense = unwrap sense).
-    Dart line enters the ring (top, radius ring_r) from the exit eye (eye_dx forward, eye_dz axial); the line runs
-    groove_wrap_deg round the groove and leaves the rim tangentially onto the capstan in the wind-in sense.
-    Tension falls through the groove by exp(-mu * wrap) while the line slides toward the capstan."""
+    The dart line enters the ring (top, radius ring_r) from the exit eye (eye_dx forward, eye_dz axial) and pulls the
+    ring along the -wind-in tangent. The line runs groove_wrap_deg round the groove and leaves tangent to the capstan
+    line circle (lever 17.8 .. 20.5 mm with the segment's inclination) in the wind-in sense. In active tow the
+    capstan is the pulling side, so the tension RISES through the groove: T exp(+mu wrap) (independent review)."""
     L = math.hypot(d["eye_dx"], d["eye_dz"])
-    tang_in = d["eye_dx"] / L                      # component of the dart pull along the tangent at the ring
-    t_out = T * math.exp(-mu * math.radians(d["groove_wrap_deg"]))
-    # dart pull: along -wind-in tangent at the ring (pulls the ring forward, the wraps run backward over the top)
-    return (-T * tang_in * d["ring_r"] + t_out * d["groove_r"]) / 1000
+    tang_in = d["eye_dx"] / L
+    lev = (d["cap_r"] + d["line_d"] / 2) if lever is None else lever
+    t_out = T * math.exp(mu * math.radians(d["groove_wrap_deg"]))
+    return (-T * tang_in * d["ring_r"] + t_out * lev) / 1000
+
+
+def cup_torque_range(d, T):
+    """(min, max) cup torque over mu 0.10 .. 0.30 and the 17.8 .. 20.5 mm lever."""
+    v = [cup_torque(d, T, mu, lev) for mu in (0.10, 0.20, 0.30) for lev in (17.8, 20.5)]
+    return min(v), max(v)
 
 
 def unwrap_schedule(d, step_turns=0.5, feed=0.8):
@@ -285,15 +293,16 @@ def summary(P=None):
     add("take-up margin at the empty core", round(tr["takeup_margin"], 3))
     add("centre main-capstan (no shift)", tr["c_main_cap"], "mm")
     add("centre take-up-idler", tr["c_take_idler"], "mm")
-    add("wraps from the drum (4 idler turns x 48 / ring)", tr["wraps_from_drum"])
+    add("wraps from the drum (idler turns x idler teeth / ring)", tr["wraps_from_drum"])
+    add("clutch disk rpm / wiper rpm (bus)", tr["reel_per_wiper"])
     add("centre idler-reel", tr["c_idler_reel"], "mm")
     add("line tension at wiper stall", round(tr["line_n_at_stall"], 0), "N")
     for T, a in tr["at"].items():
         add(f"at {T:.0f} N: main torque / amps / line speed",
             f"{a['tau_main']:.2f} N m / {a['amps']:.1f} A / {a['v_m_s']:.3f} m/s")
     for T in (50.0, 100.0):
-        add(f"cup holding torque at {T:.0f} N tow (mu 0.1..0.3)",
-            f"{cup_torque(d, T, 0.1):+.2f}..{cup_torque(d, T, 0.3):+.2f}", "N m")
+        lo, hi = cup_torque_range(d, T)
+        add(f"cup holding torque at {T:.0f} N tow (mu 0.1..0.3, lever 17.8..20.5)", f"{lo:+.2f}..{hi:+.2f}", "N m")
     return rows
 
 

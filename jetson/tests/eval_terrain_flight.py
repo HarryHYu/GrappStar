@@ -5,7 +5,8 @@ then the landing verdict is computed exactly as analysis.run_post_flight does it
 
     fres = flight.analyze_flight(frames, flightlog)        # once without and once with the truth flightlog
     land = flight.landing_frames(frames, fres, n=15)       # fallback: the last 15 good frames
-    rep = terrain.analyze_landing(land, attitude=(t, roll, 0, yaw) of the last attitude sample)
+    tilt = analysis.rest_tilt(flightlog, fres)           # roll-invariant rest tilt (None without a flightlog)
+    rep = terrain.analyze_landing(land, imu_roll_deg=tilt and tilt["tilt_deg"], imu_pitch_deg=tilt and 0.0)
 
 Usage (from jetson/):
     python tests/eval_terrain_flight.py                       # seeds 0..5, 720x480 and 480x320
@@ -64,20 +65,19 @@ def perturb_frames(frames: Sequence, kind: str, seed: int = 0) -> list:
     return [Frame(fn(f.img, rng), f.t, f.idx, f.quality, f.bad) for f in frames]
 
 
-def _attitude(fres) -> Optional[tuple]:
-    """Same attitude hand-off as analysis.run_post_flight (roll only, nose-down pitch is not slope)."""
-    if fres is not None and getattr(fres, "attitude", None):
-        t_, roll_, _pitch, yaw_ = fres.attitude[-1]
-        return (t_, roll_, 0.0, yaw_)
-    return None
+def _tilt(flightlog, fres) -> Optional[float]:
+    """Same IMU tilt hand-off as analysis.run_post_flight: the roll-invariant rest tilt, never the Euler roll."""
+    from grappstar import analysis
+    t = analysis.rest_tilt(flightlog, fres)
+    return None if t is None else t["tilt_deg"]
 
 
 def landing_report(frames: Sequence, flightlog: Optional[dict], model=None, make_image: bool = False,
                    use_attitude: bool = True):
     """analysis.run_post_flight's terrain step. Returns (TerrainReport, landing frames).
 
-    use_attitude=False skips the attitude hand-off (diagnostic: shows how much the roll based tilt penalty
-    changes the verdicts)."""
+    use_attitude=False skips the IMU tilt hand-off (diagnostic: shows how much the tilt penalty changes the
+    verdicts)."""
     fres = None
     try:
         fres = flight.analyze_flight(frames, flightlog)
@@ -91,8 +91,11 @@ def landing_report(frames: Sequence, flightlog: Optional[dict], model=None, make
         land = []
     if not land:
         land = [f for f in frames if not getattr(f, "bad", False)][-15:]
-    att = _attitude(fres) if use_attitude else None
-    rep = terrain.analyze_landing(land, model=model, attitude=att, make_image=make_image)
+    tilt = _tilt(flightlog, fres) if use_attitude else None
+    if tilt is not None:
+        rep = terrain.analyze_landing(land, model=model, imu_roll_deg=tilt, imu_pitch_deg=0.0, make_image=make_image)
+    else:
+        rep = terrain.analyze_landing(land, model=model, make_image=make_image)
     return rep, land
 
 

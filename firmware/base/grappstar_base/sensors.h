@@ -61,6 +61,8 @@ struct AngleTracker {
   int missLimit = 4;            // this many bad reads in a row = sensor lost
   int32_t count = 0;            // multi-turn, 4096 per output turn, sign applied
   int lastRaw = 0; bool have = false, ok = false; int miss = 0, glitchRun = 0;
+  uint32_t sinceMs = 0;          // time since the last counted sample (missed reads and rejected glitches add up)
+  uint32_t resyncs = 0;          // a persistent jump was taken uncounted: travel may be lost (the logic decides)
   uint32_t glitches = 0, misses = 0; uint8_t status = 0;
   float rateDps = 0;            // filtered deg/s
   int32_t rateRef = 0; uint32_t rateAcc = 0;
@@ -69,6 +71,7 @@ struct AngleTracker {
   void feed(int raw, uint8_t st, uint32_t dtMs) {
     if (raw >= 0) status = st;
     bool magnet = raw >= 0 && (st & AS_MD);
+    sinceMs += dtMs;
     if (!magnet) {
       misses++;
       if (++miss >= missLimit) { ok = false; rateDps = 0; }
@@ -76,18 +79,20 @@ struct AngleTracker {
     }
     miss = 0;
     if (!have || !ok) {                                      // first reading or back after a loss: take it as is
-      lastRaw = raw & 4095; have = true; ok = true; glitchRun = 0; rateRef = count; rateAcc = 0; return;
+      lastRaw = raw & 4095; have = true; ok = true; glitchRun = 0; rateRef = count; rateAcc = 0; sinceMs = 0; return;
     }
     int d = (raw & 4095) - lastRaw;
     if (d > 2047) d -= 4096;
     if (d < -2048) d += 4096;
     float stepDeg = fabsf(d * 360.f / 4096.f);
-    if (stepDeg > maxStepDeg) {                              // glitch: ignore, unless it persists (then resync, uncounted)
+    // the step allowed grows with the time since the last counted sample (missed reads, a late tick)
+    float allow = maxStepDeg * (sinceMs > 5 ? sinceMs / 5.f : 1.f); if (allow > 170) allow = 170;
+    if (stepDeg > allow) {                                   // glitch: ignore, unless it persists (then resync, uncounted)
       glitches++;
       if (++glitchRun < 3) return;
-      lastRaw = raw & 4095; glitchRun = 0; return;
+      lastRaw = raw & 4095; glitchRun = 0; sinceMs = 0; resyncs++; return;
     }
-    glitchRun = 0;
+    glitchRun = 0; sinceMs = 0;
     lastRaw = raw & 4095;
     count += d * sign;
     rateAcc += dtMs;

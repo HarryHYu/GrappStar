@@ -24,6 +24,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 JETSON_DIR = os.path.dirname(HERE)
 DEFAULT_CALIB = os.path.join(JETSON_DIR, "calib", "rovercam.json")
 SETTINGS = os.path.join(JETSON_DIR, "settings.json")
+DEFAULT_DRAG_N = 0.5   # same value as grappstar.mission.DEFAULT_DRAG_N (kept here so --help needs no imports)
 
 
 def _size(s: str):
@@ -121,6 +122,31 @@ def cmd_base(a) -> int:
             c.add_evt_callback(lambda e: print("EVENT", json.dumps({k: v for k, v in e.items() if k[0] != "_"})))
             while True:
                 time.sleep(1)
+        if a.what == "fire":
+            # bench test: one connection, confirm, arm, fire at once with the token, print FIRED and RESET
+            t = c.wait_tel(lambda t: True, 3.0)
+            print(f"mode {t.get('mode')}  pitch {t.get('pitch_deg')}  cock {t.get('cock')}  seated "
+                  f"{'yes' if (t.get('sw') or {}).get('S') else 'NO'}")
+            if input("Area clear, line free, nobody in front of the rail? Type FIRE to confirm: ").strip() != "FIRE":
+                print("not fired")
+                return 1
+            m = c.event_mark()
+            r = c.cmd("arm", check=False)
+            if not r.get("ok"):
+                print(json.dumps(r))
+                return 1
+            r = c.cmd("fire", token=r["token"], check=False)
+            print(json.dumps(r))
+            if not r.get("ok"):
+                return 1
+            for name in ("FIRED", "RESET"):
+                try:
+                    e = c.wait_event(name, 40.0, since=m, fail_on_not_ok=False)
+                    print(name, json.dumps({k: v for k, v in e.items() if not k.startswith("_")}))
+                except Exception as e:
+                    print(f"no {name}: {e}")
+                    return 1
+            return 0
         if a.what == "cmd":
             obj = json.loads(a.args[0])
             name = obj.pop("cmd")
@@ -176,7 +202,8 @@ def cmd_dart(a) -> int:
             print(d.wait_phase(("ANCHORED",), 90, log=print)["phase"])
         elif a.what == "release":
             d.release()
-            print(d.wait_phase(("IDLE",), 90, log=print)["phase"])
+            s = d.wait_phase(("IDLE",), 90, log=print, want_seq="released")   # a /stop gives IDLE + "aborted"
+            print("released" if s.get("seq") == "released" else s["phase"])
         elif a.what == "flightlog":
             fl = d.flightlog()
             if a.out:
@@ -261,7 +288,10 @@ def cmd_replay(a) -> int:
 def cmd_solve(a) -> int:
     from .ballistics import Ballistics
     b = Ballistics.load(a.table)
-    s = b.solve(a.range, a.drag, lob=a.lob)
+    try:
+        s = b.solve(a.range, a.drag, low=True) if a.low else b.solve(a.range, a.drag)
+    except TypeError:                          # older ballistics without the low flag
+        s = b.solve(a.range, a.drag, lob=not a.low)
     print(json.dumps(s.to_dict(), indent=1))
     return 0 if s.reachable else 1
 
@@ -294,7 +324,7 @@ def main(argv=None) -> int:
     s.add_argument("--model", help="ONNX terrain classifier (optional)")
     s.add_argument("--ballistics", help="ballistics.json (default base/out/ballistics.json, else placeholder)")
     s.add_argument("--tow-limit", type=float, default=40.0, help="tow tension limit, N")
-    s.add_argument("--drag", type=float, default=0.75, help="payout brake setting, N (C3 column)")
+    s.add_argument("--drag", type=float, default=DEFAULT_DRAG_N, help="payout brake setting, N (C3 column, LIGHT 0.5)")
     s.add_argument("--runs", help="folder for run logs (default jetson/runs)")
     s.add_argument("--deck-height", type=float, default=0.15,
                    help="base deck top above the ground on the rover, m (measure it: sets the camera height)")
@@ -316,7 +346,8 @@ def main(argv=None) -> int:
 
     s = sub.add_parser("base", help="talk to the base")
     s.add_argument("what", choices=["status", "ping", "monitor", "cmd", "mode", "aim", "stop", "estop", "clear",
-                                    "wrap", "unwrap", "reel"])
+                                    "wrap", "unwrap", "reel", "fire"],
+                   help="fire: confirm, then arm and fire on one connection (the token lives 3 s)")
     s.add_argument("args", nargs="*")
     s.add_argument("--port", "--base", dest="port", default="/dev/grappstar-base")
     s.add_argument("--timeout", type=float, default=2.0)
@@ -347,8 +378,8 @@ def main(argv=None) -> int:
 
     s = sub.add_parser("solve", help="pitch for a range")
     s.add_argument("range", type=float)
-    s.add_argument("--drag", type=float, default=0.75)
-    s.add_argument("--lob", action="store_true")
+    s.add_argument("--drag", type=float, default=DEFAULT_DRAG_N)
+    s.add_argument("--low", action="store_true", help="the flatter low branch (default: the higher pitch, D29)")
     s.add_argument("--table")
 
     sub.add_parser("selftest", help="no-hardware checks")

@@ -152,7 +152,7 @@ def run(out, only=None, title=None, pack_dir=None, log=print) -> str:
     from tools.params import load_params
     P = load_params()
     man = load_out(out, only)
-    bom = bom_tool.build(man)
+    bom = bom_tool.build(man, out)
     pack_dir = pack_dir or os.path.join(out, "pack")
     pr = load_json(os.path.join(pack_dir, "print_report.json"))
     au = load_json(os.path.join(out, "audit.json"))

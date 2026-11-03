@@ -1077,7 +1077,7 @@ def c_no_retry(rig, res):
 import re as _re
 
 C1_SEQ = (r"^(mode LAUNCH > )?aim > (cock > )?arm > fire > set line_m > AIM6(mode NEUTRAL > )?wrap > dart auto > tidy > "
-          r"mode REEL > (reel tension > )+dart release > stop > (reel stop > )?unwrap > RETRIEVE(retrieve > )mode LAUNCH$")
+          r"mode REEL > (reel tension > )+((stop > dart release)|(dart release > stop)) > (stop > )?(reel stop > )?unwrap > RETRIEVE(retrieve > )mode LAUNCH$")
 
 
 def c1_tokens(rig) -> List[str]:
@@ -1127,7 +1127,8 @@ def c_c1_sequence(rig, res):
                                                if not t.startswith("set") or "line" in t or t == "set"]
     keep = []
     for i, t in enumerate(toks):
-        if t == "stop" and not (keep and keep[-1] == "dart release"):
+        nxt = toks[i + 1] if i + 1 < len(toks) else None
+        if t == "stop" and not ((keep and keep[-1] == "dart release") or nxt == "dart release"):
             continue
         if not keep or keep[-1] != t:
             keep.append(t)

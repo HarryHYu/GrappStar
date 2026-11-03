@@ -365,3 +365,11 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   the landing analysis (GC or a busy GIL can take that).
 - Suggest: ping from a dedicated thread at 0.3 s, or set the watchdog to 3 s; log the largest ping gap.
 - Harness: the final batch runs the base at real time (`SYSTEST_SPEED=1`).
+
+## F25 (jetson + spec, low) step 14 order: the mission stops the base before `/release`; 10.1 says release, then stop
+
+- Preview `dog_tip`, `drum_timeout`, `nominal`: `... reel tension > stop > dart release > reel stop ...`
+  (`mission.py` `release_dart`: `self.base.safe_stop()` then `self.dart.release()`). BASE_SPEC 10.1 step 14:
+  "dart `/release`, then `stop`".
+- Stop first is the safer order (the capstan never pulls against a releasing dart; the worm holds the line either way),
+  so I suggest the spec adopts it. The C1 check accepts both orders meanwhile.

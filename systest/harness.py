@@ -276,6 +276,8 @@ class Rig:
             g = self.base.get()
             self.base.cmd({"id": 0, "cmd": "set", "key": "k_n_per_a", "val": round(g["kNperA_cal"], 3)})
             self.base.cmd({"id": 0, "cmd": "set", "key": "free_a", "val": round(g["freeA_cal"], 3)})
+            if not sc.doc_cal:      # a two-point calibration also zeroes the offset (FINDINGS F14)
+                self.base.cmd({"id": 0, "cmd": "set", "key": "tension_offset_n", "val": 0})
         for k, v in sc.base_setup.items():
             self.base.cmd({"id": 0, "cmd": "set", "key": k, "val": v})
         d22 = sc.d22 or os.environ.get("SYSTEST_D22_ALL") == "1"
@@ -326,7 +328,7 @@ class Rig:
         last_shots, last_phase, last_step = 0, None, None
         anchored = False
         while not self.stop_ev.is_set():
-            step = self.app.mission.step if self.app.mission else ""
+            step = self.step()
             p = self.base.ctl("peakreset")            # plant truth; peaks are tracked every 5 ms tick inside the shim
             if p and "t" in p:
                 self.plant_last = p
@@ -347,6 +349,7 @@ class Rig:
                 if p.get("shots", 0) > last_shots:
                     last_shots = p["shots"]
                     self.dart_d = float(p.get("lineOut") or 0) - self.sc.landing_slack   # landing slack on the dart side
+                    self.dart_d0 = self.dart_d
                     self.fired_seen = last_shots
                     self.video.t_fire = time.time()
                     fms = int(self.video.flight_s() * 1000)
@@ -365,6 +368,7 @@ class Rig:
                         lo = float(self.base.get().get("lineOut") or 0)
                         d = min(self.dart_d if self.dart_d is not None else lo, lo)   # the dart lies at d: taut at d
                         self.base.set(anchorTautAt=round(max(0.0, d), 3))
+                        self.dart_d_anchor = d
                         self.note("info", msg=f"dart anchored at {d:.2f} m, line out {lo:.2f} m (dart-side slack {lo - d:.2f} m)")
                         anchored = True
                     elif anchored and ph in ("RELEASING", "IDLE", "FAULT"):
@@ -433,6 +437,15 @@ class Rig:
         self.video.render(sol.pitch_deg if sol.reachable else 35.0, float(sol.to_dict().get("v_muzzle") or 7.1))
         self.note("info", msg=f"solution {self.solution}")
         time.sleep(4.0)                        # let the camera quality window fill with real frames
+        if self.sc.driver == "ref":
+            self.ref = RefMission(self)
+            self.ref.start()
+            self.note("info", msg="reference driver (BASE_SPEC 10.1) started")
+            deadline = time.time() + self.sc.timeout_s
+            while self.ref.thread.is_alive() and time.time() < deadline:
+                time.sleep(0.2)
+            time.sleep(1.0)
+            return self.collect(self.ref.thread.is_alive())
         r = app.action("start")
         self.note("info", msg=f"start: {r}")
         deadline = time.time() + self.sc.timeout_s
@@ -457,7 +470,7 @@ class Rig:
 
     def collect(self, hung: bool) -> dict:
         app = self.app
-        m = app.mission
+        m = getattr(self, "ref", None) or app.mission
         steps = [h["state"] for h in (m.history if m else [])]
         tel = dict(app.base.tel or {})
         plant = self.base.get()
@@ -505,7 +518,8 @@ class Rig:
 
     # -------------------------------------------------------------- helpers for scenarios
     def step(self) -> str:
-        return self.app.mission.step if self.app.mission else ""
+        m = getattr(self, "ref", None) or self.app.mission
+        return m.step if m else ""
 
     def evt_names(self) -> List[str]:
         return [e.get("evt") for e in self.events]
@@ -519,6 +533,116 @@ class Rig:
         time.sleep(off_s)
         self.base.start(fresh=False)
         self.note("info", msg="base process restarted (plant + NVS kept)")
+
+
+class RefMission:
+    """BASE_SPEC 10.1 (D35) driven step by step with the Jetson's own clients (comms/base.py BaseClient, comms/dart.py
+    Dart), no mission.py. It checks the firmware, the dart and the plant against the binding sequence, independent of
+    the mission's own order. Step names match mission.py so the same checks apply."""
+
+    def __init__(self, rig: Rig):
+        self.rig, self.b, self.d = rig, rig.app.base, rig.app.dart
+        self.history: List[dict] = []
+        self.step = ""
+        self.state, self.error, self.shot = "RUNNING", "", {}
+        self.thread = threading.Thread(target=self._run, name="ref", daemon=True)
+        self.tokens: List[str] = []
+
+    def start(self):
+        self.thread.start()
+
+    def _set(self, name):
+        self.step = name
+        self.history.append({"state": name, "t": round(time.time(), 2)})
+        self.rig.note("step", name=name)
+
+    def tx(self, name, **args):
+        self.tokens.append(name + (f" {args.get('to') or args.get('until') or ''}".rstrip() if args else ""))
+        return self.b.cmd(name, timeout=2.0, **args)
+
+    def wait(self, names, timeout, m, pred=None):
+        return self.b.wait_event(names, timeout, since=m, pred=pred)
+
+    def act(self, name, timeout, wait_for, pred=None, **args):
+        m = self.b.event_mark()
+        self.tx(name, **args)
+        return self.wait(wait_for, timeout, m, pred=pred)
+
+    def _run(self):
+        b, d, rig = self.b, self.d, self.rig
+        try:
+            sol = rig.solution
+            self._set("LAUNCH_MODE")
+            if (b.tel or {}).get("drum_pos") != "LAUNCH":
+                self.act("mode", 60, "MODE", to="LAUNCH")
+            self._set("AIM")
+            self.act("aim", 90, "AIMED", deg=sol["pitch_deg"])
+            self._set("COCK")
+            self.act("cock", 40, "COCKED")
+            self._set("ARM")
+            d.arm(True, auto=False)
+            tok = self.tx("arm").get("token")
+            self._set("FIRE")
+            m = b.event_mark()
+            self.tx("fire", token=tok)
+            self.wait("FIRED", 30, m)
+            self._set("FLIGHT")
+            d.wait_phase(("LANDED",), 20)
+            self.wait("RESET", 30, m)
+            self._set("LANDING_ZONE")
+            self.tx("set", key="line_m", val=round(rig.sc.target[0] * 1.05 + 0.3, 2))
+            self._set("WRAP")
+            self.act("wrap", 60, "WRAPPED")
+            self._set("ANCHOR")
+            self.tokens.append("dart auto")
+            d.auto()
+            d.wait_phase(("ANCHORED",), 60)
+            self._set("TIDY")
+            self.act("tidy", 20, "TIDIED", ms=3000, duty=0.3)
+            self._set("REEL_FLYIN")
+            self.act("mode", 60, "MODE", pred=lambda e: e.get("mode") == "REEL", to="REEL")
+            self._set("TOW")
+            lim = rig.app.cfg.mission.tow_limit_n
+            for rnd in range(rig.sc.tow_rounds):
+                e = self.act("reel", 60, ("LIMIT", "SEATED"), duty=rig.sc.tow_duty, max_n=lim, until="tension")
+                if e.get("evt") != "LIMIT":
+                    raise RuntimeError(f"tow: {e}")
+                rig.tow_rounds += 1
+                p = rig.base.get()
+                rig.note("info", msg=f"ref tow round {rnd + 1}: LIMIT {e.get('tension_n')} N, plant {p.get('tension')} N")
+                if rnd + 1 < rig.sc.tow_rounds and float(p.get("anchorTautAt", -1)) >= 0:
+                    rig.base.set(anchorTautAt=round(float(p["anchorTautAt"]) - 0.6, 3))
+            self._set("RELEASE")
+            self.tokens.append("dart release")
+            d.release()
+            self.b.cmd("stop", timeout=2.0)
+            d.wait_phase(("IDLE",), 40, want_seq="released")
+            self._set("RETRIEVE")
+            line = (b.tel or {}).get("line_m")
+            if line is not None and line > 1.8:
+                m = b.event_mark()
+                self.tx("reel", duty=0.6, max_n=30, until="stop")
+                t_end = time.time() + 120
+                while (b.tel or {}).get("line_m", 0) > 1.5 and time.time() < t_end:
+                    time.sleep(0.05)
+                self.b.cmd("stop", timeout=2.0)
+            self._set("UNWRAP")
+            m = b.event_mark()
+            self.tx("unwrap")
+            self.wait("UNWRAPPED", 60, m)
+            self._set("FINAL_APPROACH")
+            self.act("retrieve", 90, "SEATED", duty=0.3)
+            self._set("LAUNCH_READY")
+            self.act("mode", 60, "MODE", pred=lambda e: e.get("mode") == "LAUNCH", to="LAUNCH")
+            self.state = "DONE"
+            self._set("DONE")
+        except Exception as e:
+            self.state, self.error = "FAILED", f"{type(e).__name__}: {e}"
+            rig.note("info", msg=f"ref driver failed at {self.step}: {self.error}")
+            try:
+                self.b.safe_stop()
+            except Exception:
+                pass
 
 
 class ScriptRover:
@@ -563,7 +687,10 @@ class Scenario:
         self.calibrated = kw.get("calibrated", True)
         self.hello_delay = kw.get("hello_delay", 2100)
         self.landing_slack = kw.get("landing_slack", 0.9)
-        self.d22 = kw.get("d22", False)            # strict D22 plant: laying turns draws line from the dart side   # D22: about 0.9 m of line lies slack after the landing   # ms from power on to HELLO (the sketch's setup())
+        self.d22 = kw.get("d22", False)
+        self.driver = kw.get("driver", "mission")
+        self.tow_duty = kw.get("tow_duty", 1.0)
+        self.doc_cal = kw.get("doc_cal", False)     # calibrate literally as CALIBRATION.md says (offset left at default)     # BASE_SPEC 10.1 step 13: duty 1  # "mission" = jetson mission.py; "ref" = RefMission (BASE_SPEC 10.1)            # strict D22 plant: laying turns draws line from the dart side   # D22: about 0.9 m of line lies slack after the landing   # ms from power on to HELLO (the sketch's setup())
         self.after = kw.get("after")              # run after the first mission ends (operator recovery + a new mission)
         self.tow_rounds = kw.get("tow_rounds", 3)
         self.timeout_s = kw.get("timeout_s", 420)
@@ -764,7 +891,13 @@ def c1_tokens(rig) -> List[str]:
 
 def c_c1_sequence(rig, res):
     """BASE_SPEC 10.1 (D35): the one C1 command sequence."""
-    seq = " > ".join(c1_tokens(rig))
+    ref = getattr(rig, "ref", None)
+    toks = c1_tokens(rig) if ref is None else [t for i, t in enumerate(ref.tokens) if t not in ("arm x",)]
+    if ref is not None:
+        toks = [t for t in toks if not t.startswith("set ")] if False else toks
+        toks = ["set line_m" if t.startswith("set") else t for t in toks]
+        toks = [t for k, t in enumerate(toks) if k == 0 or toks[k - 1] != t]
+    seq = " > ".join(toks)
     return bool(_re.match(C1_SEQ, seq)), seq
 
 
@@ -774,8 +907,10 @@ def c_wrap_free(rig, res):
 
 
 def c_tug(rig, res):
-    t = res["plant"].get("dartTug", 9)
-    return t < 1.0, f"free dart pulled {t:.2f} m by the wrap"
+    d0, d = getattr(rig, "dart_d0", None), getattr(rig, "dart_d_anchor", None)
+    if d0 is None or d is None:
+        return False, "no shot"
+    return d0 - d < 1.0, f"free dart dragged {d0 - d:.2f} m toward the base before it anchored (line taken by the wrap {res['plant'].get('dartTug', 0):.2f} m)"
 
 
 # triggers: (id, condition(rig), action(rig))
@@ -852,6 +987,18 @@ def sc(s: Scenario):
 
 
 sc(Scenario("nominal", "whole mission, aim to seated, no faults (strict D22 plant)", d22=True))
+
+sc(Scenario("ref_nominal", "BASE_SPEC 10.1 sequence driven directly (no mission.py): firmware + dart + D22 plant",
+            driver="ref", d22=True,
+            checks=[c for c in nominal_checks() if c[0] not in ("tidy ran",)] + [("D22 order: WRAP step before ANCHOR step", lambda r, res: c_d22_order(r, res))]))
+
+sc(Scenario("ref_doc_cal", "ref_nominal calibrated literally as CALIBRATION.md (e): tension_offset_n left at the default",
+            driver="ref", d22=True, doc_cal=True,
+            checks=[("mission DONE", c_done), ("tow limit respected", c_tow_limit)]))
+
+sc(Scenario("ref_tow_duty08", "as ref_nominal with the tow at duty 0.8 (the mission's reel_duty): is the tow limit duty dependent?",
+            driver="ref", d22=True, tow_duty=0.8,
+            checks=[("mission DONE", c_done), ("tow limit respected", c_tow_limit)]))
 
 sc(Scenario("nominal_uncal", "whole mission with the factory k_n_per_a / free_a (CALIBRATION.md not done)",
             calibrated=False))

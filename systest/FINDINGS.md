@@ -183,3 +183,21 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   U_TENSION` both return `NOT_WRAPPED`).
 - Suggest: `NOT_IN_REEL` (send `mode REEL`) when the wraps are on but the collar is in NEUTRAL; keep `NOT_WRAPPED`
   for no wraps. Document it in PROTOCOL.md.
+
+## F14 (fw-base, CALIBRATION.md) following CALIBRATION.md leaves the -10.4 N `tension_offset_n`: the tow overshoots by 10 N
+
+- Scenario `ref_nominal` (BASE_SPEC 10.1 driven directly, base-v1 d15129e), bench calibrated exactly as
+  CALIBRATION.md (e) says (`free_a`, `k_n_per_a` matched to the motor): tow `reel until tension max_n 40` stopped with
+  `LIMIT {"tension_n":40}` three rounds running while the plant line tension was 50.4 N (+26 %). Same at duty 0.8
+  (`ref_tow_duty08`), so it is not duty related.
+- Cause: the estimate is `(amps - free_a) * k_n_per_a + tension_offset_n` (`base_logic.h:368`), default offset
+  -10.4 N (`config.h:173`, physics v1.2). CALIBRATION.md (e) computes `k_n_per_a = 20 / (amps - free_a)`, which is
+  only right with a zero offset, and never mentions `tension_offset_n`. PROTOCOL.md's `set` table does not list it
+  either. Whoever follows the doc tows 10.4 N above the limit (60 N at the default 50 N limit).
+- Also in CALIBRATION.md (e) step 2: after `wrap` the drum now parks at WRAPPED with the collar in NEUTRAL (D35), so
+  the step 3 jog only turns the take-up; a `mode REEL` is needed before the capstan pulls.
+- Fix: either compute both from two scale readings (for example 10 N and 30 N: `k = 20 / (a30 - a10)`, `offset = 10 -
+  k (a10 - free_a)`) and set both, or set `tension_offset_n` 0 in the procedure; add `mode REEL` after the wrap;
+  list `tension_offset_n` in PROTOCOL.md section 5.
+- Harness: the calibrated bench now sets `tension_offset_n` 0 as a correct two-point calibration would;
+  `ref_doc_cal` keeps the doc-literal calibration and shows the overshoot.

@@ -274,7 +274,7 @@
 <title>sw</title>
 <polygon fill="none" stroke="black" points="327.5,-358 16.5,-358 16.5,-317 327.5,-317 327.5,-358"/>
 <text text-anchor="middle" x="172" y="-346" font-family="Liberation Sans" font-size="10.00">Printed contacts (M3 screw on M3 nut)</text>
-<text text-anchor="middle" x="172" y="-335" font-family="Liberation Sans" font-size="10.00">SW_DRUM_A/B/C, SW_DOG, SW_N20, SW_INDEX,</text>
+<text text-anchor="middle" x="172" y="-335" font-family="Liberation Sans" font-size="10.00">SW_DRUM_A/B/C, SW_DOG_L/R, SW_N20, SW_INDEX,</text>
 <text text-anchor="middle" x="172" y="-324" font-family="Liberation Sans" font-size="10.00">SW_HOME, SW_GAP, SW_RAIL_LOW, SW_SEATED, SW_ARM</text>
 </g>
 <!-- sw&#45;&gt;esp -->

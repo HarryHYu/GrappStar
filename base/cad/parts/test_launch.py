@@ -139,3 +139,41 @@ def test_timeline_continuity():
 def test_kin_tolerates_none_and_missing():
     for S in ({}, {"aim_deg": None}, {"cock": None}, {"fired": None, "wiper_deg": None}, {"aim_psi_from_low": 120}):
         L.kin(P, S)
+
+
+def test_sprag_outer_key_rib_fits_keyway():
+    """Review r3 P #1: the drive gear rib must fit the CSK20 OUTER keyway (1.5 deep), not the 2.8 inner depth."""
+    from cad.lib import bearings as BR, prim, tf
+    dg = L.drive_gear_solid(P)
+    sp = L.sprag_solid(P)
+    assert (dg ^ sp).volume() < 1e-3
+    real = prim.place(BR.bearing_csk20(okey_deg=0.0), tf.T(0, 0, 7.0))       # catalogue model, z -7..7
+    assert (dg ^ real).volume() < 1e-3
+
+
+def test_lip_levers_rest_gap_open_and_strain_ok():
+    """SW_HOME / SW_SEATED levers are modelled at rest: the screw head stands the contact gap above the nut; the
+    lever strain (cad/lib/switch.py beam model, closing, overtravel and screw backed off) stays under 0.8 percent;
+    kin presses the lever only with the carriage at HOME (head then on the nut), and leaves it at rest when cocked."""
+    from cad.lib import prim, tf
+    import launch_switch as SW
+    for side in ("seated", "home"):
+        st = L.seat_geom(P, side)
+        li = st["lever"]
+        assert li["strain_max"] < 0.008 and li["strain_ok"]
+        assert 0.3 <= li["gap"] <= 1.0 and li["overtravel"] > 0.1
+        screw = prim.place(L.seat_screw_solid(P, side), st["M"])        # rest pose, rail frame
+        nut = L.seat_nut_solid(P, side)
+        assert (screw ^ nut).volume() < 1e-6
+        assert abs(screw.min_gap(nut, 5.0) - li["gap"]) < 0.02           # contact open by the gap
+        # pad above the HOME foot bottom by pretravel + overtravel at rest
+        lo, hi = prim.bbox(prim.place(L.seat_lever_solid(P, side), st["M"]))
+        assert abs(hi[2] - (st["w_tip"] + li["pretravel"] + li["overtravel"])) < 0.01
+        # pressed pose (kin at HOME): head on the nut (closed), cocked: rest
+        v_home = L.kin(P, dict(aim_deg=20.0, cock=0.0))[f"launch_sw_{side}_lever"]
+        v_cock = L.kin(P, dict(aim_deg=20.0, cock=0.5))[f"launch_sw_{side}_lever"]
+        assert v_cock == 0.0 and v_home > 0.0
+        pv = st["pivot"]
+        Mp = tf.mul(tf.T(pv), tf.R((0, 1, 0), v_home), tf.T(-pv[0], -pv[1], -pv[2]), st["M"])
+        sp = prim.place(L.seat_screw_solid(P, side), Mp)
+        assert (sp ^ nut).volume() < 1e-3 and sp.min_gap(nut, 5.0) < 0.01

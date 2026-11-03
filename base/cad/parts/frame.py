@@ -80,6 +80,7 @@ def _get(P, name, default):
 def cfg(P):
     """Resolved frame configuration: dict(fw=..., layout=..., wiper=..., derived numbers)."""
     fw = dict(FRAMEWORK_DEFAULT)
+    fw["_raw"] = {}
     src = _get(P, "FRAMEWORK", {})
     if isinstance(src, dict):
         fw.update({k: v for k, v in src.items() if v is not None and k in FRAMEWORK_DEFAULT})
@@ -112,7 +113,7 @@ def cfg(P):
                     e[k] = s_[k]
             layout[n] = e
     else:                                   # placeholder: built in deck coordinates, main axis at world z = 0
-        deck_z = -LAYOUT_DEFAULT["main"]["origin"][2]
+        deck_z = -LAYOUT_DEFAULT["main"]["origin"][2] if not fw["_raw"].get("deck_z") else float(fw["deck_z"])
         for n, v in LAYOUT_DEFAULT.items():
             e = dict(v)
             o = v["origin"]
@@ -228,7 +229,7 @@ _CACHE = {}
 
 def build(P):
     """Build every frame solid once per params module (cached). Returns dict with parts list and metadata."""
-    key = id(P)
+    key = repr([getattr(P, k, None) for k in ("LAYOUT", "FRAMEWORK", "WIPER", "B608", "SPRAG", "BED", "DRUM")])
     if key in _CACHE:
         return _CACHE[key]
     C = cfg(P)
@@ -309,8 +310,13 @@ def build(P):
         feet = []
         for i in range(nf):
             xf = fx0 + 8 + i * (fx1 - fx0 - 16) / (nf - 1)
-            if gx and min(abs(xf - q) for q in gx) < 6.0:      # dodge the gussets
-                xf += 7.0 if xf < (fx0 + fx1) / 2 else -7.0
+            for _ in range(4):                                  # dodge the gussets (away from the nearest one)
+                if not gx:
+                    break
+                q = min(gx, key=lambda g: abs(xf - g))
+                if abs(xf - q) >= 8.0:
+                    break
+                xf = q + (8.0 if xf >= q else -8.0)
             yf = yo + s * (fw["foot_w"] / 2 + 1.0)
             feet.append((xf, yf))
             cuts.append(U.clear_hole(xf, yf, -1, fw["foot_t"] + 1, head_top=fw["foot_t"] + 0.01))
@@ -341,7 +347,11 @@ def build(P):
             cuts.append(prim.cylY(MOT.CHEEK_HOLE_D / 2, min(yo, C["y_in"][s]) - 1, max(yo, C["y_in"][s]) + 1, mo[0], mo[2]))
             for i in range(MOT.RING_N):
                 rx, rz = MOT.ring_xy(i)
-                cuts.append(yfeat(U.insert_hole(0, 0, 0.0), mo[0] + rx, mo[2] + rz, yo, -s))
+                # adapter frame x -> world -x (x_hint), y -> world z (for motor_side -1); mirror for +1
+                wx, wz = mo[0] - rx, mo[2] + (rz if ms < 0 else -rz)
+                yin = C["y_in"][s]
+                cuts.append(prim.cylY(U.CLR_D / 2, min(yo, yin) - 1, max(yo, yin) + 1, wx, wz))
+                cuts.append(yfeat(prim.cyl(U.HEAD_D / 2, U.HEAD_H + 0.01, z=-U.HEAD_H), wx, wz, yin, s))   # head on the inner face
         cheek_world[s] = prim.diff(sol, cuts)
 
     # ---- ties between the cheeks (auto: near the top of the overlap of both outlines, clear of every block)
@@ -421,12 +431,12 @@ def build(P):
         ox, _, oz = sh["origin"]
         # block local +Z = outward = s * Y
         M = tf.T(ox, C["y_out"][s], oz) @ (tf.Rx(-90) if s > 0 else tf.Rx(90))
-        mat = "PPA-CF" if n in ("capstan", "launch", "main") else "PLA"
+        mat = "PPA-CF" if sh["brg"] == "sprag" else "PLA"      # bushings stay PLA (PPA-CF shaft in a PLA bush)
         nm = f"frame_blk_{n}_{'l' if s > 0 else 'r'}"
         parts.append(Part(nm, prim.place(sol, M), mat, print_tf=None, color="#c9b27a" if mat == "PPA-CF" else "#b8c2cc",
                           notes=f"bearing block, {n} shaft ({sh['brg']}), 4 x M3 x 16 into cheek inserts"))
         p = parts[-1]
-        p.print_tf = U.print_flat(p.solid, tf.Rx(90) if s > 0 else tf.Rx(-90))  # flange face down
+        p.print_tf = U.print_flat(p.solid, tf.Rx(-90) if s > 0 else tf.Rx(90))  # flange outer face down, spigot up
         sp["part"] = nm
 
     # ---- pedestals for shafts not along Y
@@ -461,7 +471,7 @@ def build(P):
                           notes="wiper motor ENVELOPE (assumed, not measured): edit params.WIPER and reprint the adapter"))
         ad = MOT.adapter_plate(w, standoff)
         Mad = tf.frame((mo[0], yo + ms * MOT.PLATE_T, mo[2]), zdir, xh)    # the ring is fixed; rot only moves the slots
-        ad_rot = prim.place(ad, tf.Rz(w["rot_deg"]))
+        ad_rot = ad                                   # slots already turned by rot_deg; the ring stays fixed
         parts.append(Part("frame_motor_adapter", ad_rot, "PPA-CF", place=Mad, print_tf=U.print_flat(ad_rot),
                           color="#c9b27a",
                           notes="wiper adapter plate: slotted M6 holes (+-%.0f mm) for the motor bosses, 6 x M3 to the cheek ring; reprint when the motor is measured" % w["slot"]))

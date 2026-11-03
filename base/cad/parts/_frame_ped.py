@@ -50,14 +50,14 @@ def pedestals(P, n, sh, fw):
             # local: z = up, x across (in the plate), y along the shaft axis (plate thickness), bearing centre at
             # (0, 0, c_z); plate from y -t/2..t/2
             plate = prim.box(-half, half, -t / 2, t / 2, 0, c[2]) + prim.cylY(half, -t / 2, t / 2, 0.0, c[2])
-            foot = prim.box(-half - 14, half + 14, -t / 2 - 8, t / 2 + 8, 0, 6)
+            foot = prim.box(-half - 14, half + 14, -t / 2, t / 2 + 12, 0, 6)       # one-sided: the -y face stays flat
             sol = plate + foot
             cuts = []
             # seat along local Y
             seat = U.bearing_seat_cutter(od, w, -t / 2 - 0.0, lip_id=U.lip_for(od, sh["d"])) if sh["brg"] != "bush" \
                 else prim.cyl((sh["d"] + fits.SHAFT_IN_BORE) / 2, 200, z=-100)
             cuts.append(prim.place(seat, tf.T(0, 0, c[2]) @ tf.Rx(-90)))
-            fh = [(-(half + 7), 0.0), (half + 7, 0.0)]
+            fh = [(-(half + 7), t / 2 + 4.0), (half + 7, t / 2 + 4.0)]
             for (fx, fy) in fh:
                 cuts.append(U.clear_hole(fx, fy, -1, 7, head_top=6.01))
             sol = prim.diff(sol, cuts)
@@ -66,7 +66,7 @@ def pedestals(P, n, sh, fw):
             nm = f"frame_ped_{n}_{k + 1}"
             p = Part(nm, prim.place(sol, M), "PLA", color="#b8c2cc",
                      notes=f"pedestal for the {n} shaft ({sh['brg']}), 2 x M3 into deck inserts")
-            p.print_tf = U.print_flat(p.solid, tf.Rz(-yaw) @ tf.Rx(90))   # plate face down
+            p.print_tf = U.print_flat(p.solid, tf.Rx(90) @ tf.Rz(-yaw))   # flat -y plate face down
             parts.append(p)
             holes += [tuple(tf.apply(M, [(fx, fy, 0)])[0][:2]) for fx, fy in fh]
     if vertical and _offsets(sh):
@@ -77,7 +77,7 @@ def pedestals(P, n, sh, fw):
         back_gap = od / 2 + 10.0           # back plate this far from the axis (towards -x local)
         zmax = zs[-1] + t / 2
         sol = prim.box(-back_gap - 8, -back_gap, -half, half, 0, zmax)
-        sol = sol + prim.box(-back_gap - 24, -back_gap + 12, -half - 10, half + 10, 0, 6)
+        sol = sol + prim.box(-back_gap - 8, -back_gap + 16, -half - 10, half + 10, 0, 6)   # one-sided foot
         cuts = []
         for z in zs:
             arm = prim.box(-back_gap - 0.01, half, -half, half, z - t / 2, z + t / 2) + prim.cyl(half, t, 0, 0, z - t / 2) \
@@ -89,7 +89,7 @@ def pedestals(P, n, sh, fw):
             seat = U.bearing_seat_cutter(od, w, z - t / 2, lip_id=U.lip_for(od, sh["d"])) if sh["brg"] != "bush" \
                 else prim.cyl((sh["d"] + fits.SHAFT_IN_BORE) / 2, 200, z=z - 100)
             cuts.append(seat)
-        fh = [(-back_gap - 16, -half - 4), (-back_gap - 16, half + 4)]
+        fh = [(-back_gap + 9, -half - 5), (-back_gap + 9, half + 5)]
         for fx, fy in fh:
             cuts.append(U.clear_hole(fx, fy, -1, 7, head_top=6.01))
         sol = prim.diff(sol, cuts)
@@ -98,7 +98,7 @@ def pedestals(P, n, sh, fw):
         nm = f"frame_ped_{n}"
         p = Part(nm, prim.place(sol, M), "PLA", color="#b8c2cc",
                  notes=f"C bracket for the vertical {n} shaft ({sh['brg']}), 2 x M3 into deck inserts")
-        p.print_tf = U.print_flat(p.solid, tf.Ry(90) @ tf.Rz(-yaw))     # back plate face down
+        p.print_tf = U.print_flat(p.solid, tf.Ry(-90) @ tf.Rz(-yaw))    # back plate outer face down, arms up
         parts.append(p)
         holes += [tuple(tf.apply(M, [(fx, fy, 0)])[0][:2]) for fx, fy in fh]
     return parts, holes, warns

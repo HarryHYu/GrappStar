@@ -129,12 +129,29 @@ def test_ebay_boards_inside_box():
 
 
 def test_esp32_usb_slot_open():
-    """A USB plug body 12 x 8 in front of the native port must pass through the wall slot."""
+    """A plug body 11 x 8 in front of the native USB port passes through the wall; the PCB cannot follow it out."""
     box, _ = EB.bay_box()
     ex, ey, _ = EB.PLACE["esp32"]
-    for ux in EB.BOARD["esp32"]["usb_x"]:
-        plug = prim.box(ex + ux - 5.5, ex + ux + 5.5, -10, ey, EB.ESP_Z + 1.6 - 2.5, EB.ESP_Z + 1.6 + 5.5)
-        assert (box ^ plug).volume() < 1e-6, ux
+    ux = EB.BOARD["esp32"]["usb_x"][1]
+    zc = EB.ESP_Z + 1.6 + 1.6
+    plug = prim.box(ex + ux - 5.5, ex + ux + 5.5, -10, ey, zc - 4.0, zc + 4.0)
+    assert (box ^ plug).volume() < 1e-6
+    pcb_out = prim.box(ex, ex + 12.0, ey - 1.0, ey, EB.ESP_Z, EB.ESP_Z + 1.6)   # UART-side edge moved 1 mm out
+    assert (box ^ pcb_out).volume() > 1.0
+
+
+def test_bay_usb_faces_free_space(P, B):
+    """45 mm in front of the native USB opening is free of every other frame part (the Jetson plug)."""
+    C = B["info"]["cfg"]
+    Mb = C["to_world"] @ B["info"]["ebay"]["M_bay"]
+    ex, ey, _ = EB.PLACE["esp32"]
+    ux = ex + EB.BOARD["esp32"]["usb_x"][1]
+    zc = EB.ESP_Z + 3.2
+    zone = prim.place(prim.box(ux - 8, ux + 8, -45.0, -0.5, zc - 6, zc + 6), Mb)
+    for p in B["parts"]:
+        if p.name.startswith("frame_ebay") or p.joint:
+            continue
+        assert (zone ^ prim.place(p.solid, p.place)).volume() < 1e-6, p.name
 
 
 def test_as5600_on_axis(P, B):
@@ -229,3 +246,27 @@ def test_swept_cutters_from_another_subsystem(P):
     assert not c.is_empty()
     (x0, y0, z0), (x1, y1, z1) = prim.bbox(c)
     assert x1 - x0 > 8.0           # grown by the margin
+
+
+@pytest.mark.parametrize("rot", [0.0, 30.0])
+def test_adapter_ring_screws_line_up(P, rot):
+    """An M3 screw from the cheek inner face through the cheek into each hub insert meets no plastic."""
+    Q = types.SimpleNamespace(**{k: getattr(P, k) for k in dir(P) if k.isupper()})
+    Q.WIPER = dict(getattr(P, "WIPER", {}) or {}, rot_deg=rot)
+    Bq = frame.build(Q)
+    C = Bq["info"]["cfg"]
+    ms = C["fw"]["motor_side"]
+    parts_ = {p.name: p for p in Bq["parts"]}
+    ad = prim.place(parts_["frame_motor_adapter"].solid, parts_["frame_motor_adapter"].place)
+    ck = [prim.place(p.solid, p.place) for n, p in parts_.items() if n.startswith("frame_cheek_" + ("r" if ms < 0 else "l"))]
+    Mad = C["to_world"] @ Bq["info"]["M_adapter"]
+    tz = MOT.PLATE_T + C["fw"]["adapter_standoff"]
+    for i in range(MOT.RING_N):
+        x, y = MOT.ring_xy(i)
+        a = tf.apply(Mad, [(x, y, tz + 10.0 + 3.0)])[0]    # past the cheek inner face
+        b = tf.apply(Mad, [(x, y, tz - 5.5)])[0]           # insert bottom
+        rod = prim.cylY(1.4, min(a[1], b[1]), max(a[1], b[1]), a[0], a[2])
+        assert (rod ^ ad).volume() < 1e-6, (rot, i, "adapter")
+        for c in ck:
+            assert (rod ^ c).volume() < 1e-6, (rot, i, "cheek")
+    assert frame.checks(Q) == []

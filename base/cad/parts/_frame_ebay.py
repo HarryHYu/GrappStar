@@ -37,7 +37,7 @@ BOARD = dict(
                 hole_d=2.5, chip=(12.7, 8.89), src="Adafruit-AS5600-Magnetic-Angle-Sensor-PCB (Eagle)"),
     drv8833=dict(pcb=(20.32, 12.70, 1.6), top_h=1.5, src="Pololu 2130 product page"),
     mp1584=dict(pcb=(22.26, 16.96, 1.2), top_h=2.8, src="Harry's calipers (22.26 x 16.96 x 3.98)"),
-    hx711=dict(pcb=(34.0, 21.0, 1.6), top_h=1.5, src="seller data (SparkFun 13879: 30.48 x 22.86)"),
+    hx711=dict(pcb=(34.0, 23.0, 1.6), top_h=1.5, src="seller data (SparkFun 13879: 30.48 x 22.86)"),
     fuse=dict(body=(55.0, 26.0, 16.0), src="typical inline ATO holder"),
     xt60=dict(body=(15.7, 8.1, 16.0), cut=(16.5, 9.0)),
 )
@@ -46,9 +46,11 @@ MAGNET = dict(d=6.0, h=2.5, gap=1.0)          # diametric NdFeB, air gap to the 
 # bay box
 L, W, H = 182.0, 92.0, 58.0
 WALL, FLOOR = 2.4, 3.0
-TAB_W, TAB_T = 12.0, 5.0
+TAB_W, TAB_T = 12.0, 6.0
 ESP_Z = FLOOR + 27.0            # ESP32 PCB underside: room for DuPont housings on the downward pins
 BTS_Z = FLOOR + 24.0            # BTS7960 PCB underside (heatsink below it)
+ESP_CLAMP_Z = ESP_Z + 1.6 + 3.1  # top of the WROOM module = clamp underside
+USB_OPEN = (12.5, 9.5)          # native USB opening (fits a Micro-USB or USB-C plug overmold)
 
 # component placement (bay frame, board corner, rotation of the board about z in deg)
 PLACE = dict(
@@ -67,7 +69,15 @@ def _rect_pocket(x, y, sx, sy, depth, relief=True):
     z0 = FLOOR
     c = [prim.box(x - 0.3, x + sx + 0.3, y - 0.3, y + sy + 0.3, z0 - 0.01, z0 + depth + 5)]
     if relief:
-        c.append(prim.box(x + 1.0, x + sx - 1.0, y + 1.0, y + sy - 1.0, z0 - 1.6, z0 + 0.1))
+        c.append(prim.box(x + 1.0, x + sx - 1.0, y + 1.0, y + sy - 1.0, z0 - 1.0, z0 + 0.1))
+    return c
+
+
+def _tie_pair(xc, ya, yb):
+    """Cable-tie hold-down: two slots through the floor at ya and yb and a 1.2 mm tunnel under the floor joining
+    them (the tie goes down one slot, under, up the other, over the part)."""
+    c = [prim.box(xc - 2.2, xc + 2.2, yy - 1.2, yy + 1.2, -1, FLOOR + 3) for yy in (ya, yb)]
+    c.append(prim.box(xc - 2.2, xc + 2.2, ya - 1.2, yb + 1.2, -1, 1.2))
     return c
 
 
@@ -80,12 +90,13 @@ def bay_box():
     # corner bosses for the lid inserts
     for (x, y) in ((WALL, WALL), (L - WALL - 9, WALL), (WALL, W - WALL - 9), (L - WALL - 9, W - WALL - 9)):
         adds.append(prim.box(x, x + 9, y, y + 9, FLOOR - 0.01, H))
+        cuts.append(U.insert_hole(x + 4.5, y + 4.5, H))
     # floor tabs (outside the long walls) with M3 holes down into deck inserts
     tabs = []
     for xt in (16.0, L - 16.0):
         for (y0, y1, yh) in ((-TAB_W, 0.01, -TAB_W / 2), (W - 0.01, W + TAB_W, W + TAB_W / 2)):
             adds.append(prim.box(xt - 9, xt + 9, y0, y1, 0, TAB_T))
-            cuts.append(U.clear_hole(xt, yh, -1, TAB_T + 1, head_top=TAB_T + 0.01))
+            cuts.append(U.clear_hole(xt, yh, -1, TAB_T + 1))          # head on the tab top (6 mm under it)
             tabs.append((xt, yh))
     # ESP32 cradle: pillar under the USB end between the two connectors, pillar + stop under the module overhang,
     # two insert posts for the hold-down clamp
@@ -93,16 +104,19 @@ def bay_box():
     bw, bl, bt = BOARD["esp32"]["pcb"]
     adds.append(prim.box(ex + 9.5, ex + 15.5, ey + 0.6, ey + 5.6, FLOOR - 0.01, ESP_Z))
     adds.append(prim.box(ex + 4.5, ex + 21.0, ey + bl + 0.6, ey + bl + 5.8, FLOOR - 0.01, ESP_Z + bt))
-    adds.append(prim.box(ex + 4.5, ex + 21.0, ey + bl + 6.6, ey + bl + 9.0, FLOOR - 0.01, ESP_Z + 5.2))
+    adds.append(prim.box(ex + 4.5, ex + 21.0, ey + bl + 6.6, ey + bl + 9.0, FLOOR - 0.01, ESP_CLAMP_Z))
     for px in (ex - 5.0, ex + bw + 5.0):
-        adds.append(prim.box(px - 4, px + 4, ey + bl + 0.0, ey + bl + 8.0, FLOOR - 0.01, ESP_Z + 5.2))
-        cuts.append(U.insert_hole(px, ey + bl + 4.0, ESP_Z + 5.2))
-    # USB slot (both ports) in the y = 0 wall, from just under the PCB to 13 above it
-    cuts.append(prim.box(ex - 2.0, ex + bw + 2.0, -1, WALL + 1, ESP_Z - 2.0, ESP_Z + 13.0))
+        adds.append(prim.box(px - 4, px + 4, ey + bl + 0.0, ey + bl + 8.0, FLOOR - 0.01, ESP_CLAMP_Z))
+        cuts.append(U.insert_hole(px, ey + bl + 4.0, ESP_CLAMP_Z))
+    # USB opening for the native "USB" port only (the Jetson cable; it also flashes the board). The PCB edge either
+    # side of it bears on the wall, so a cable pull cannot drag the board out. The UART port stays inside.
+    ux = ex + BOARD["esp32"]["usb_x"][1]
+    cuts.append(prim.box(ux - USB_OPEN[0] / 2, ux + USB_OPEN[0] / 2, -1, WALL + 1, ESP_Z + bt + 1.6 - USB_OPEN[1] / 2,
+                         ESP_Z + bt + 1.6 + USB_OPEN[1] / 2))
     # BTS7960 standoffs with inserts
     bx, by, _ = PLACE["bts7960"]
     for (hx, hy) in BOARD["bts7960"]["holes"]:
-        adds.append(prim.cyl(3.5, BTS_Z - FLOOR + 0.01, bx + hx, by + hy, FLOOR - 0.01))
+        adds.append(prim.cyl(4.0, BTS_Z - FLOOR + 0.01, bx + hx, by + hy, FLOOR - 0.01))
         cuts.append(U.insert_hole(bx + hx, by + hy, BTS_Z))
     # heatsink vents: slots in both long walls beside the heatsink, plus the lid grille
     for i in range(6):
@@ -115,11 +129,13 @@ def bay_box():
         sx, sy, _ = BOARD[nm]["pcb"]
         adds.append(prim.box(x - 2.5, x + sx + 2.5, y - 2.5, y + sy + 2.5, FLOOR - 0.01, FLOOR + 1.8))
         cuts += _rect_pocket(x, y, sx, sy, 1.8)
+        cuts += _tie_pair(x + sx / 2, y - 4.0, y + sy + 4.0)
     # fuse holder cradle: two low walls and a tie slot
     fx, fy, _ = PLACE["fuse"]
     fl, fw_, fh = BOARD["fuse"]["body"]
     for xx in (fx + 8, fx + fl - 12):
         adds.append(prim.box(xx, xx + 4, fy - 2, fy + fw_ + 2, FLOOR - 0.01, FLOOR + 6) - prim.box(xx - 1, xx + 5, fy, fy + fw_, FLOOR + 2, FLOOR + 7))
+    cuts += _tie_pair(fx + fl / 2, fy - 4.5, fy + fw_ + 4.5)
     # wire exits: 14 AWG motor pair and XT60 (x = L wall), sensor bundle (x = 0 wall), each with a tie anchor inside
     cuts.append(prim.box(L - WALL - 1, L + 1, 22.0, 36.0, FLOOR + 2.0, FLOOR + 10.0))       # wiper motor 14 AWG pair
     xc = BOARD["xt60"]["cut"]
@@ -136,8 +152,8 @@ def bay_box():
 
 
 def bay_lid():
-    """Lid: 3 mm plate with a lip, grille over the BTS7960 heatsink and board, 4 x M3 into the corner bosses."""
-    t = 3.0
+    """Lid: 4 mm plate with a lip, grille over the BTS7960 heatsink and board, 4 x M3 x 10 into the corner bosses."""
+    t = 4.0
     lid = prim.box(0, L, 0, W, H, H + t)
     lip = prim.box(WALL + 0.3, L - WALL - 0.3, WALL + 0.3, W - WALL - 0.3, H - 3.0, H + 0.01) \
         - prim.box(WALL + 2.3, L - WALL - 2.3, WALL + 2.3, W - WALL - 2.3, H - 4, H + 1)
@@ -146,7 +162,7 @@ def bay_lid():
     lid = lid + lip
     cuts = []
     for (x, y) in ((WALL + 4.5, WALL + 4.5), (L - WALL - 4.5, WALL + 4.5), (WALL + 4.5, W - WALL - 4.5), (L - WALL - 4.5, W - WALL - 4.5)):
-        cuts.append(U.clear_hole(x, y, H - 1, H + t + 1, head_top=H + t + 0.01, head_h=1.8))
+        cuts.append(U.clear_hole(x, y, H - 1, H + t + 1, head_top=H + t + 0.01, head_h=2.0))
     bx, by, _ = PLACE["bts7960"]
     for i in range(8):
         cuts.append(prim.box(bx + 2, bx + 48, by + 2 + i * 6.0, by + 5.0 + i * 6.0, H - 1, H + t + 1))
@@ -156,9 +172,8 @@ def bay_lid():
 def esp_clamp():
     ex, ey, _ = PLACE["esp32"]
     bw, bl, _ = BOARD["esp32"]["pcb"]
-    zc = ESP_Z + 5.2
+    zc = ESP_CLAMP_Z                      # clamp underside = module top: presses the module end down
     c = prim.box(ex - 9, ex + bw + 9, ey + bl + 0.0, ey + bl + 8.0, zc, zc + 4.0)
-    c = c - prim.box(ex + 3.5, ex + 22.0, ey + bl - 1, ey + bl + 9, zc - 1, zc + 0.6)   # relief over the module
     for px in (ex - 5.0, ex + bw + 5.0):
         c = c - U.clear_hole(px, ey + bl + 4.0, zc - 1, zc + 5, head_top=zc + 4.01, head_h=1.5)
     return c
@@ -265,15 +280,23 @@ def _footprints(parts):
     return unary_union(polys)
 
 
-def place_bay(C, parts, override=None):
-    """Choose the bay pose on the deck: smallest deck rectangle, clear of every footprint, then closest to the
-    main shaft (short sensor cables). Returns 4x4 bay -> world."""
+def place_bay(C, parts, override=None, info=None):
+    """Choose the bay pose on the deck. Hard rules: clear of every footprint; 45 mm free in front of the native USB
+    opening (the Jetson plug and its bend). Score: deck rectangle area + 3 x (motor lead + sensor lead lengths).
+    Returns 4x4 bay -> deck frame."""
     if override:
         return tf.T(override["x"], override["y"], 0) @ tf.Rz(override.get("yaw", 0.0))
     fp = _footprints(parts)
     fpb = fp.buffer(4.0)
     x0, y0, x1, y1 = fp.bounds
     mo = C["layout"][C["main"]]["origin"] if C["main"] in C["layout"] else (0, 0, 0)
+    motor_xy = None
+    if info is not None and "M_motor" in info:
+        w = C["wiper"]
+        motor_xy = tf.apply(info["M_motor"], [(w["body_box"][0], 0.0, -w["boss_h"])])[0][:2]
+    sensor_xy = np.array([mo[0], C["y_out"][-C["fw"]["motor_side"]]])
+    ux = PLACE["esp32"][0] + BOARD["esp32"]["usb_x"][1]
+    usb_zone = [(ux - 12, -45.0), (ux + 12, -45.0), (ux + 12, 0.0), (ux - 12, 0.0)]
     best = None
     for yaw in (0.0, 90.0, 180.0, 270.0):
         M0 = tf.Rz(yaw)
@@ -286,15 +309,22 @@ def place_bay(C, parts, override=None):
                 bb = sbox(gx, gy, gx + sx, gy + sy)
                 if bb.intersects(fpb):
                     continue
+                M = tf.T(gx - cx0, gy - cy0, 0) @ M0
+                uz = Polygon([tuple(tf.apply(M, [(u, v, 0)])[0][:2]) for u, v in usb_zone])
+                if uz.intersects(fp):
+                    continue
                 ux0, uy0 = min(x0, gx), min(y0, gy)
                 ux1, uy1 = max(x1, gx + sx), max(y1, gy + sy)
                 area = (ux1 - ux0) * (uy1 - uy0)
-                dist = math.hypot(gx + sx / 2 - mo[0], gy + sy / 2 - mo[1])
-                score = area + 20.0 * dist
+                mot_exit = tf.apply(M, [(L, 29.0, 0)])[0][:2]
+                sen_exit = tf.apply(M, [(0.0, 78.0, 0)])[0][:2]
+                lead = np.abs(sen_exit - sensor_xy).sum()
+                if motor_xy is not None:
+                    lead += np.abs(mot_exit - motor_xy).sum()
+                score = area + 30.0 * lead          # 1 mm of lead counts like 30 mm2 of deck
                 if best is None or score < best[0]:
-                    best = (score, gx - cx0, gy - cy0, yaw)
-    _, tx, ty, yaw = best
-    return tf.T(tx, ty, 0) @ tf.Rz(yaw)
+                    best = (score, M)
+    return best[1]
 
 
 def build(P, C, info, parts_so_far):
@@ -302,7 +332,7 @@ def build(P, C, info, parts_so_far):
     out = []
     asp, ainfo = as5600_parts(P, C, info)
     extra = [Part(nm, sol, "bought") for nm, sol, kw in asp]
-    Mbay = place_bay(C, list(parts_so_far) + extra, fw.get("ebay"))
+    Mbay = place_bay(C, list(parts_so_far) + extra, fw.get("ebay"), info)
     box, tabs = bay_box()
     deck_holes = [tuple(tf.apply(Mbay, [(x, y, 0)])[0][:2]) for x, y in tabs]
     out.append(Part("frame_ebay", box, "PLA", place=Mbay, print_tf=U.print_flat(box), color="#9aa4ae",
@@ -328,7 +358,7 @@ def build(P, C, info, parts_so_far):
             p.joint = "frame_wiper"
             p.place = tf.T(-np.asarray(C["layout"][C["main"]]["origin"], float))
         if p.printed:
-            p.print_tf = U.print_flat(sol, tf.Rx(90) if ainfo["side"] > 0 else tf.Rx(-90))
+            p.print_tf = U.print_flat(sol, tf.Rx(-90) if ainfo["side"] > 0 else tf.Rx(90))   # plate outer face down
         out.append(p)
     return out, dict(M_bay=Mbay, deck_holes=deck_holes, as5600=ainfo)
 

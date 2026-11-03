@@ -35,8 +35,9 @@ WIPER_DEFAULT = dict(
     can_len=95.0,
     can_x0=84.0,
     rot_deg=0.0,             # rotation of the whole motor about its shaft in the adapter (0: can points to -X world)
-    bolt_d=6.0,              # boss bolt (M6) and its nut
-    bolt_nut_af=10.0,
+    bolt_d=6.0,              # boss bolt (M6), head on the cheek side of the adapter wing
+    bolt_head_d=10.0,        # M6 SHCS head (hex head AF 10 fits the same slot)
+    bolt_nut_af=10.0,        # nut behind a boss ear if the boss is not threaded
     bolt_nut_h=5.0,
     slot=4.0,                # slot half-length either way: every hole can sit +-4 mm off its nominal place
     mass_kg=1.3,
@@ -47,7 +48,8 @@ RING_R = 29.0                 # 6 x M3 heat-set inserts on this radius round the
 RING_N = 6
 CHEEK_HOLE_D = 44.0           # cheek through hole round the main axis (coupler room)
 SPIGOT_H = 3.0                # adapter spigot into the cheek hole (keys the plate radially)
-PLATE_T = 10.0                # adapter plate thickness (PPA-CF): M6 nut channel 5 + 5 under the head
+PLATE_T = 10.0                # adapter plate thickness (PPA-CF)
+HEAD_SEAT = 5.0               # plastic under the M6 head in the slot (head counterbore from the cheek-side face)
 
 
 def wiper_cfg(P):
@@ -95,9 +97,16 @@ def motor_shaft(w):
 
 
 # ------------------------------------------------------------------------------------------------ adapter plate
+def holes_rot(w):
+    """Motor boss holes in the adapter frame: the motor's own pattern turned by rot_deg (the cheek ring stays fixed)."""
+    a = math.radians(w["rot_deg"])
+    c, s_ = math.cos(a), math.sin(a)
+    return [(c * x - s_ * y, s_ * x + c * y, d) for (x, y, d) in w["mount_holes"]]
+
+
 def adapter_outline(w):
     pts = [Point(0, 0).buffer(RING_R + 8.0, 64)]
-    for (hx, hy, hd) in w["mount_holes"]:
+    for (hx, hy, hd) in holes_rot(w):
         pts.append(Point(hx, hy).buffer(w["slot"] + w["bolt_nut_af"] / 2 + 5.5, 48))
     return unary_union(pts).convex_hull
 
@@ -108,10 +117,13 @@ def ring_xy(i):
 
 
 def adapter_plate(w, standoff=0.0):
-    """Adapter plate in the M frame: z 0..PLATE_T (motor bosses on z = 0, cheek on z = PLATE_T), plus the spigot
-    from PLATE_T to PLATE_T + SPIGOT_H into the cheek hole. Slotted motor holes with M6 nut channels open to the
-    cheek face (nuts slide in before the plate goes on); 6 x M3 counterbored from the motor face into the cheek
-    inserts. Rotated by rot_deg as a whole by the caller (the ring pattern is 60 deg symmetric)."""
+    """Adapter plate in the adapter frame (M frame of the motor at rot_deg = 0): wings z 0..PLATE_T (motor bosses on
+    z = 0), hub z 0..PLATE_T + standoff (cheek face), spigot beyond it into the cheek hole.
+
+    Assembly (bench first): the M6 bolts go in from the cheek side of the wings, heads in the slot channels, through
+    the slots into the motor bosses (threaded bosses, or a nut behind a boss ear). Slide to centre, tighten. Then the
+    motor + adapter go onto the cheek: 6 x M3 from INSIDE the cheek box through the cheek into heat-set inserts in the
+    hub face. Nothing is screwed behind the gearbox."""
     out = adapter_outline(w)
     plate = prim.extrude(prim.shapely_cs(out.buffer(0)), PLATE_T)
     tz = PLATE_T + standoff                    # cheek face (the hub stands the wings off over the block flanges)
@@ -120,18 +132,18 @@ def adapter_plate(w, standoff=0.0):
     plate = plate + hub + spig
     cut = []
     cut.append(prim.cyl(w["hub_d"] / 2 + 1.5, tz + SPIGOT_H + 2, z=-1))           # hub and shaft pass through
-    for (hx, hy, hd) in w["mount_holes"]:
+    for (hx, hy, hd) in holes_rot(w):
         r = math.hypot(hx, hy)
         ux, uy = (hx / r, hy / r) if r > 1e-6 else (1.0, 0.0)
         s = w["slot"]
         a0 = (hx - ux * s, hy - uy * s); a1 = (hx + ux * s, hy + uy * s)
         bolt = prim.extrude(U.slot_cs(*a0, *a1, w["bolt_d"] + fits.HOLE_CLEAR + 0.2), PLATE_T + 2, z=-1)
-        nut_w = w["bolt_nut_af"] + 0.4
-        chan = prim.extrude(U.slot_cs(*a0, *a1, nut_w), w["bolt_nut_h"] + 0.4 + 0.01, z=PLATE_T - w["bolt_nut_h"] - 0.4)
+        head_w = w["bolt_head_d"] + 0.6
+        chan = prim.extrude(U.slot_cs(*a0, *a1, head_w), PLATE_T - HEAD_SEAT + 0.01, z=HEAD_SEAT)   # head counterbore slot
         cut += [bolt, chan]
     for i in range(RING_N):
         x, y = ring_xy(i)
-        cut.append(U.clear_hole(x, y, -1, tz + 1, head_top=U.HEAD_H))
+        cut.append(prim.place(U.insert_hole(0, 0, 0.0), tf.T(x, y, tz)))          # inserts in the hub face
     return prim.diff(plate, cut)
 
 
@@ -148,7 +160,7 @@ def ring_inserts_cutter():
 def adapter_checks(w):
     """Interference of the slotted motor holes with the fixed ring screws, plate fits the bed."""
     fails = []
-    for (hx, hy, hd) in w["mount_holes"]:
+    for (hx, hy, hd) in holes_rot(w):
         for i in range(RING_N):
             x, y = ring_xy(i)
             r = math.hypot(hx, hy)
@@ -157,8 +169,10 @@ def adapter_checks(w):
             best = 1e9
             for s in np.linspace(-w["slot"], w["slot"], 21):
                 best = min(best, math.hypot(hx + ux * s - x, hy + uy * s - y))
-            if best < (w["bolt_nut_af"] + 0.4) / 2 + U.HEAD_D / 2 + 1.0:
+            if best < (w["bolt_head_d"] + 0.6) / 2 + U.INS_D / 2 + 2.0:
                 fails.append(f"motor hole ({hx:.1f}, {hy:.1f}) slot comes within {best:.1f} mm of ring screw {i}")
+        if math.hypot(hx, hy) < RING_R + 6.0 + (w["bolt_head_d"] + 0.6) / 2 + 1.0 and math.hypot(hx, hy) > 1e-6:
+            fails.append(f"motor hole ({hx:.1f}, {hy:.1f}) inside the adapter hub (head slot would cut the ring)")
         if math.hypot(hx, hy) < w["hub_d"] / 2 + w["bolt_nut_af"] / 2 + 3:
             fails.append(f"motor hole ({hx:.1f}, {hy:.1f}) too close to the output hub")
     b = adapter_outline(w).bounds

@@ -276,6 +276,21 @@ python3 -m grappstar dart flightlog         # download the last flight log
 Dart keys: `1` deploy down, `!` deploy up, `2` kick out, `@` kick back, `3` drills in, `#` drills out, `4` foot in,
 `$` foot out. Quote the symbols in the shell, e.g. `dart key '!' --hold 1.0`.
 
+### Tell the Jetson how the IMU sits in the dart
+
+The dart's flight log is in the BNO085 chip's own axes. The bench test in `firmware/dart/BENCH_TEST.md` (step 7)
+finds how the chip sits in the hull. Write it as three entries: which chip axis points along the nose (body x),
+which points left (body y) and which points up when the dart lies level (body z), with a minus sign where the chip
+axis points the other way. Examples: `x,y,z` (chip matches the dart), `y,-x,z` (chip turned 90 degrees). Put it in
+`settings.json` (below) as `"imu_axes": "y,-x,z"`, or pass `--imu-axes y,-x,z` to `serve`. A mirrored entry (for
+example `y,x,z`) is refused: one sign is wrong.
+
+### Settings file
+
+Copy `settings.example.json` to `settings.json` in this folder and edit it once. `serve` (and the boot service)
+read it, so you do not have to type options. Options typed on the command line still win. Keys: `base`, `dart`,
+`rover_cam`, `dart_cam`, `fourcc`, `rover_fourcc`, `rover_size`, `dart_size`, `tow_limit`, `drag`, `imu_axes`.
+
 ### Option A: the operator joins KEDGE too
 
 1. On the Jetson, find its KEDGE address:
@@ -414,6 +429,8 @@ Before the first real launch:
 - [ ] Dart status OK (`python3 -m grappstar dart status`), base ping OK, preflight all green.
 - [ ] Recording on, so you can replay it.
 - [ ] Start with a short shot at low pitch.
+- [ ] The real launcher reaches only about 3 to 4.4 m (base/out/ballistics.json). The page says "not reachable"
+      for anything outside that: move the rover instead.
 
 ## 10. Troubleshooting
 

@@ -41,8 +41,8 @@ pitch = nose elevation (positive up), roll about the nose (positive = right side
 R = Rz(yaw) Ry(-pitch) Rx(roll).
 
 Camera model: pinhole with horizontal FOV hfov_deg (default 100 deg, the simulator's value). For the real
-Caddx Ant (about 150 deg diagonal, fisheye) pass its effective FOV; horizon angles stay valid, pitch from the
-horizon is approximate.
+Caddx Ant (about 150 deg diagonal, fisheye) pass lens="fisheye" (equidistant model, angle = r / f) and its
+measured horizontal FOV; horizon angles stay valid, pitch from the horizon is good near the image centre.
 """
 from __future__ import annotations
 
@@ -260,7 +260,7 @@ def sky_mask(img: np.ndarray) -> np.ndarray:
     return out
 
 
-def detect_horizon(img: np.ndarray, hfov_deg: float = 100.0) -> dict:
+def detect_horizon(img: np.ndarray, hfov_deg: float = 100.0, lens: str = "pinhole") -> dict:
     """Horizon of one BGR frame: dict(angle_deg, pitch_deg, sky_ratio, line=(x0, y0, dx, dy) in full res px).
 
     angle_deg / pitch_deg are None when no horizon line is visible (all sky, all ground or a messy boundary)."""
@@ -296,6 +296,12 @@ def detect_horizon(img: np.ndarray, hfov_deg: float = 100.0) -> dict:
     # signed distance of the image centre from the line, positive on the sky side
     cxi, cyi = (w - 1) / 2.0, (h - 1) / 2.0
     d = ((cxi - x0) * dy + (cyi - y0) * (-dx)) * s
+    if lens == "fisheye":
+        # equidistant fisheye: angle from the optical axis = r / f, f = (W/2) / (hfov/2 in radians). Near the image
+        # centre the distance of the centre from the (curved) horizon is d, so the pitch is d / f.
+        f = (W0 / 2.0) / (math.radians(hfov_deg) / 2.0)
+        out.update(angle_deg=angle, pitch_deg=math.degrees(d / f), line=(x0 * s, y0 * s, dx, dy))
+        return out
     f = (W0 / 2.0) / math.tan(math.radians(hfov_deg) / 2.0)
     out.update(angle_deg=angle, pitch_deg=math.degrees(math.atan2(d, f)),
                line=(x0 * s, y0 * s, dx, dy))
@@ -715,6 +721,7 @@ def _bgr_frame(f):
 
 def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_offset_s: Optional[float] = None,
                    hfov_deg: float = 100.0, v0_default: Optional[float] = None, h0: float = RAIL_H,
+                   lens: str = "pinhole",
                    ballistics=None, drag_n: float = 0.5, aim_pitch_deg: Optional[float] = None,
                    calibrate_range: bool = True) -> FlightResult:
     """Analyse a dart flight video (list of Frame) with an optional C2 flightlog. Never raises on bad input.
@@ -745,7 +752,7 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
             res.horizon.append((f.t, None, None))
             continue
         res.good.append(f.idx)
-        hz = detect_horizon(f.img, hfov_deg)
+        hz = detect_horizon(f.img, hfov_deg, lens)
         hor_by_idx[i] = hz
         res.horizon.append((f.t, hz["angle_deg"], hz["sky_ratio"]))
         g = cv2.cvtColor(_small(f.img), cv2.COLOR_BGR2GRAY)
@@ -915,7 +922,10 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
             # field of view: the launch pitch is at least that
             if sky_rail:
                 hh, ww = frames[0].img.shape[:2]
-                half_v = math.degrees(math.atan(math.tan(math.radians(hfov_deg) / 2.0) * hh / float(ww)))
+                if lens == "fisheye":
+                    half_v = hfov_deg / 2.0 * hh / float(ww)
+                else:
+                    half_v = math.degrees(math.atan(math.tan(math.radians(hfov_deg) / 2.0) * hh / float(ww)))
                 if half_v - 1.0 < hi_p:
                     lo_p = max(lo_p, half_v - 1.0)
                     res.notes.append("rail view all sky: launch pitch at least %.0f deg" % (half_v - 1.0))

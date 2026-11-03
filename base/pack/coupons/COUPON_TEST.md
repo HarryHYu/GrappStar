@@ -44,7 +44,7 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 - Do: Press the rail into the base. REEL face on the journal (dogs up), collar on the hex (dogs down), fork pads in the collar groove and its sleeve on the rail, dog post clamped on the rail below the fork, SW_DOG screws in the post set 0.5 mm short of the tab nut at full engagement. Push the fork 7 mm down with the dogs tip to tip, then turn the REEL face until they drop in. Turn the face hard both ways, then pull the fork back. Meter on beep between the lower screw and the tab nut.
 - Pass: Yoke flexes when tip to tip (no jam, roofs slide off), dogs drop in within a quarter turn, under hand torque the dogs pull in, never walk out, a light pull on the fork releases them, the yoke springs back flat; the meter beeps only with the dogs fully in, never tip to tip.
 - If it fails, change: _drum_kin.py DEFAULTS dog_backcut, dog_roof, dog_deg, dog_gap, fork_k; drum.py GEOM fork_t, yoke_r, groove, dog_touch, dogpost_s; fits.py SHAFT_IN_BORE (collar on the hex, face on the journal), HOLE_SLIDE (fork on the rail).
-- Made from: drum.dog_teeth (dog_n 4, dog_h 5, dog_deg 36, backcut 4, roof 1.2, r 18..26), drum.fork, drum.dog_post (dog_touch 0.5), drum.rail, drum.hexprism, GEOM journal d32, groove (82.0, 88.0), stroke 7, neutral gap 2.5
+- Made from: drum.dog_teeth (dog_n 4, dog_h 5, dog_deg 36, backcut 4, roof 1.2, r 18..26), drum.fork, drum.dog_post (dog_touch 0.5), drum.rail, drum.hexprism, GEOM journal d33, groove (82.0, 88.0), stroke 7, neutral gap 2.5
 
 ### 4. Face slip clutch with the flexure spring
 
@@ -103,8 +103,8 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 ### 10. AS5600 magnet cap (bench test)
 
 - Parts: rc10_magnet_cap
-- Bought: 6 x 2.5 mm diametric magnet (comes with the AS5600 board), M3x6, superglue
-- Do: Glue the magnet into the end pocket (flush, any way round), push the cap on the shaft end (flat to the flat), M3x6 onto the flat. For the bench: AS5600 chip on the shaft axis, 1 to 2 mm from the magnet face.
+- Bought: magnet: not included with the board, see MEASURE_LIST C13 (any small neodymium disc edge-on, or 6 x 2.5 diametric), M3x6, superglue
+- Do: Glue the magnet into the end pocket (flush, any way round), push the cap on the shaft end (flat to the flat), M3x6 onto the flat. It fits the d12 main shaft spigot of the base (for the bare-motor bench test, tape the magnet to the wiper shaft end instead). AS5600 chip on the shaft axis, 1 to 2 mm from the magnet face.
 - Pass: Cap does not wobble or slip on the shaft; the AS5600 angle follows the shaft smoothly through full turns (no jumps), magnet status OK (not too weak, not too strong) at 1 to 2 mm.
 - If it fails, change: drum.py GEOM cap_s, spig_d; magnet_holder pocket d6.2 x 2.6 (magnet loose or tight); fits.py HOLE_SLIDE (cap on the spigot).
 - Made from: drum.magnet_holder (spig_d 12 with its flat, cap_s (195.0, 201.5), magnet pocket d6.2 x 2.6), printed as drum prints it

@@ -36,7 +36,7 @@ def geom(n):
     u_t = n["u_track0"] - 22.6                        # top / bottom pulley u (behind the cocked SW_SEATED body)
     top = (u_t, 0.0, w_line - R_PATH)
     bot = (u_t, 0.0, 30.0)
-    piv = (0.0, -21.0, -24.0)
+    piv = (0.0, -21.0, -44.0)            # below the sleeve flange (r 32) and dog ring (r 31)
     return dict(w_line=w_line, top=top, bot=bot, piv=piv,
                 p_top_front=(u_t, 0.0, w_line), p_top_rear=(u_t - R_PATH, 0.0, top[2]),
                 p_bot_rear=(u_t - R_PATH, 0.0, bot[2]), p_bot_low=(u_t, 0.0, bot[2] - R_PATH),

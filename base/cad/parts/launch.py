@@ -815,6 +815,9 @@ def kin(P, S):
         pitch = float(np.clip(_f(S, "aim_deg", pmin), pmin, pmax))
     lp = _lower_progress(S)
     S_aim = dict(S)
+    sleeve_cmd = S.get("sleeve_deg")
+    if sleeve_cmd is not None:
+        lp = None
     if lp is not None:                                   # over the top and down the falling stroke
         u, a0 = lp
         psi_up = AIM.psi_of_pitch(P, a0) if AIM is not None and hasattr(AIM, "psi_of_pitch") else None
@@ -839,6 +842,21 @@ def kin(P, S):
     else:
         gdeg = gear_angle_for_travel(P, travel)
     drive_rel = -gdeg * g["ratio"]
+    if sleeve_cmd is not None and AIM is not None and hasattr(AIM, "kin_aim"):
+        # spec v1.2: the sleeve angle is given. Backward sleeve travel from the LOW dead point (sleeve 0 at LOW) =
+        # -sleeve + the forward travel spent cocking; the crank turns 1/10 of it. Lock the crank to the sun teeth
+        # (12 deg pitch) so the splitter mesh stays phased, then the pitch follows from the crank.
+        sl = float(sleeve_cmd)
+        wb = max(0.0, -sl + drive_rel)
+        d = wb / K.wiper_per_crank(P)
+        def s_eng(dd):
+            return AIM.kin_aim(P, {"aim_psi_from_low": dd % 360.0}, float(K.pitch_of_psi(P, (t["psi_low"] - dd) % 360.0)))["launch_sleeve"]
+        K0 = s_eng(0.0)
+        kk = round((K0 - sl - 10.0 * d) / 12.0)
+        d = max(0.0, (K0 - sl - 12.0 * kk) / 10.0)
+        pitch = float(np.clip(K.pitch_of_psi(P, (t["psi_low"] - d) % 360.0), pmin, pmax))
+        S_aim = {k: v for k, v in S.items() if k != "aim_deg"}
+        S_aim["aim_psi_from_low"] = d % 360.0
     out = {"launch_rail": pitch, "launch_carriage": travel, "launch_big_gear": gdeg,
            "launch_drive": drive_rel - pitch + _drive_phase(P)}
     # dart: on the sled, in flight (dart_flight 0..1 along the LAUNCH.flight arc), coming home (dart_return 0..1)
@@ -853,7 +871,11 @@ def kin(P, S):
         out.update(eng)
         s_eng = eng.get("launch_sleeve", 0.0)
         cocking = cock > 0.0 or (fired and phase in ("fire",))
-        if cocking:
+        if sleeve_cmd is not None:
+            if cocking:
+                out.update(AIM.kin_aim(P, dict(S_aim, aim_split="out", wiper_deg=float(sleeve_cmd)), pitch))
+            out["launch_sleeve"] = float(sleeve_cmd) if cocking else s_eng
+        elif cocking:
             S_out = dict(S_aim, aim_split="out", wiper_deg=s_eng + drive_rel)
             out.update(AIM.kin_aim(P, S_out, pitch))
             out["launch_sleeve"] = s_eng + drive_rel
@@ -1019,3 +1041,50 @@ def steps(P):
                   "rack or the gears. Each switch: one wire to its ESP32 pin, the other to GND.",
              parts=[]),
     ]
+
+
+def _rail_to_world(P, pitch):
+    n = L(P)
+    return tf.mul(tf.T(0.0, n["Y0"], n["axis_z"]), tf.R((0, -1, 0), pitch))
+
+
+def line_entry(P, S=None):
+    """World point where the tether arrives at the rail: the far side of the pivot pulley (cad-reel's line ends here).
+    The pulley is 24 mm below the main axis, so this point moves only a little with pitch."""
+    S = S or {}
+    n = L(P)
+    pitch = kin(P, S)["launch_rail"]
+    g = LN.geom(n)
+    pv = g["piv"]
+    p = (pv[0] - LN.R_PATH, pv[1], pv[2])                      # rear side of the pivot pulley, rail frame
+    return tf.apply(_rail_to_world(P, pitch), np.array([p]))[0]
+
+
+def line_path(P, S=None):
+    """Tether centre polyline on the launcher, WORLD frame, as [(points N x 3, allowed part names)] spans:
+    pivot pulley -> under the rail -> bottom and top pulleys behind the rail -> forward along the axis to the pusher
+    -> dart tail (on the sled, in flight or coming home). Continues cad-reel's path from line_entry(P, S)."""
+    S = S or {}
+    n = L(P)
+    v = kin(P, S)
+    pitch, travel = v["launch_rail"], v["launch_carriage"]
+    g = LN.geom(n)
+    W = _rail_to_world(P, pitch)
+    pv = g["piv"]
+    arc = []
+    for a in np.linspace(180.0, 90.0, 7):                         # wrap over the pivot pulley (rear to top)
+        t = math.radians(a)
+        arc.append((pv[0] + LN.R_PATH * math.cos(t), pv[1], pv[2] + LN.R_PATH * math.sin(t)))
+    bt, tp = g["bot"], g["top"]
+    bot = [(bt[0] + LN.R_PATH * math.cos(math.radians(a)), 0.0, bt[2] + LN.R_PATH * math.sin(math.radians(a)))
+           for a in np.linspace(270.0, 180.0, 5)]
+    top = [(tp[0] + LN.R_PATH * math.cos(math.radians(a)), 0.0, tp[2] + LN.R_PATH * math.sin(math.radians(a)))
+           for a in np.linspace(180.0, 90.0, 5)]
+    pusher = (n["u_c_home"] - travel, 0.0, g["w_line"])
+    tail_seat = np.array((n["u_tail_home"] - travel, 0.0, g["w_line"]))
+    du, dw = v.get("launch_dart", 0.0), v.get("launch_dart_w", 0.0)
+    tail = tail_seat + np.array((du, 0.0, dw))
+    rail_pts = np.array(arc + [g["p_bot_low"]] + bot + top + [pusher])
+    spans = [(tf.apply(W, rail_pts), {"launch_pulley_piv", "launch_pulley_bot", "launch_pulley_top", "launch_rail_rear"}),
+             (tf.apply(W, np.array([pusher, tail])), {"launch_carriage", "launch_dart", "launch_line_p"})]
+    return spans

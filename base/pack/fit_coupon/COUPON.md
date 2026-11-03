@@ -6,7 +6,9 @@ supports. Let the parts cool fully (10 minutes) before testing. The first charac
 tile letter below; the rest is the value that tile was made with.
 
 How to change a fit: open `base/cad/lib/fits.py`, change the one number named in the step, save, then rerun
-`python -m tools.coupon out` (from `base/`) and the audit of your subsystem. Change one number at a time.
+`../kedge/.venv/bin/python -m tools.risk_coupon` from `base/` (on the Mac after `bash kedge/setup_mac.sh`;
+it rewrites this fit coupon in base/pack/fit_coupon and the risk coupons in base/pack/coupons), then the
+audit of your subsystem. Change one number at a time.
 If none of the variants is right, pick the closest one, move the number one more step in that direction
 and print only that tile again.
 

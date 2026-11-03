@@ -143,6 +143,12 @@ class Ballistics:
             return Solution(False, None, None, None, None, None,
                             note=f"{why}: reachable {rmin:.1f} to {rmax:.1f} m at drag {drag_n:g} N", **base)
         cands.sort(key=lambda c: c[0])
+        # a range exactly on a table row matches both neighbouring segments: one solution, not two
+        uniq = [cands[0]]
+        for c in cands[1:]:
+            if abs(c[0] - uniq[-1][0]) > 1e-6:
+                uniq.append(c)
+        cands = uniq
         p, t, apex, v = cands[0] if low else cands[-1]
         sag = 8.0 * (apex * 0.25) ** 2 / (3.0 * max(range_m, 0.1))   # small extra for the line's arc
         line = (math.hypot(range_m, 0.0) + sag) * line_margin

@@ -248,7 +248,7 @@ def line_slack(p: Params, n: int = 200) -> dict:
     slack = longest - lens[-1]
     peak = max(max(lens[:i + 1]) - lens[i] for i in range(len(lens)))
     return dict(slack_at_release_m=slack, slack_peak_m=peak, path_cocked_m=lens[0], path_home_m=lens[-1],
-                path_min_m=min(lens), taut=slack < 0.005)
+                path_min_m=min(lens), taut=peak < 0.005)
 
 
 def effective_muzzle(p: Params, pitch_deg: float, **over) -> dict:

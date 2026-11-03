@@ -35,7 +35,7 @@ plug while the battery is in.**
 | 17 | `PIN_HX_DT` | HX711 DT (DOUT) | optional load cell |
 | 18 | `PIN_HX_SCK` | HX711 SCK | optional load cell |
 | 3V3 | | AS5600 VIN, BTS7960 VCC, HX711 VCC | logic supply |
-| GND | | common ground (see section 2) | |
+| GND | | common ground (see section 3) | |
 
 The DRV8833 SLP pin is **not wired** to any GPIO (decision D9: the Pololu board pulls it high by itself). Its FLT pin
 is not used either. GPIO21 is `SW_HOME`, not SLP.

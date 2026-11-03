@@ -264,4 +264,28 @@ def test_forgotten_hold_expires():
     cam = Camera("dart", lambda: None, quality=False, buffer_s=2, start=False, hold_max_s=0.0)
     cam.hold(0.0)
     _feed(cam, synth.textured(48, 64, seed=1), time.time() + 1.0, 4)
-    assert cam.status()["hold"] is None and cam.status()["buffer_s"] <= 2.0 + 1e-6
+    st = cam.status()
+    assert st["hold"] is None and st["buffer_s"] <= 2.0 + 1e-6
+    assert st["hold_expired"] == 1 and "hold expired" in st["last_error"]
+
+
+def test_very_long_hold_thins_after_the_head_and_keeps_launch(monkeypatch):
+    import grappstar.video.camera as camera_mod
+    monkeypatch.setattr(camera_mod, "HELD_MAX_MB", 8.0)
+    cam = Camera("dart", lambda: None, quality=False, buffer_s=3, start=False, buffer_max_mb=100)
+    img = _dart_img()
+    t0 = 1_800_000_000.0
+    k = _feed(cam, img, t0, 3)
+    t_hold = t0 + 1.0
+    cam.hold(t_hold)
+    k = _feed(cam, img, t0, 60, start_idx=k)
+    st = cam.status()
+    assert st["dropped_held"] > 0
+    held = cam.held()
+    head = [f for f in held if f.t < t_hold + camera_mod.HOLD_KEEP_HEAD_S]
+    assert len(head) == int(camera_mod.HOLD_KEEP_HEAD_S * DART_FPS)          # launch, flight, landing all kept
+    assert held[-1].idx == k - 1                                              # and the newest frames
+    # since= filters before decoding and gives the same frames
+    late = cam.buffer(since=t_hold + 30.0)
+    assert late and all(f.t >= t_hold + 30.0 for f in late)
+    assert [f.idx for f in late] == [f.idx for f in held if f.t >= t_hold + 30.0]

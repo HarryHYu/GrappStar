@@ -59,7 +59,7 @@ from ..video.frame import Frame, ensure_bgr
 G = 9.81
 BAD_BELOW = 0.4
 SMALL_W = 160
-DEFAULT_V0 = 10.0
+DEFAULT_V0 = 7.0         # m/s, fallback only (no C3 table): physics v1.2 muzzle speed is about 7.0 to 7.4
 DEFAULT_PITCH = 35.0
 RAIL_H = 0.5
 STROKE_S = 0.06
@@ -356,8 +356,11 @@ PRIOR_SIGMA = 0.20       # table muzzle speed prior: 20 percent (spring, clutch 
 
 
 def _gamma_track(v0: float, pitch: float, h0: float):
-    """(t, x, z, gamma_deg) of the model flight from the rail end (t = 0 at the end of the stroke)."""
-    ts, xs, zs = ballistic(v0, pitch, h0, dt=0.005)
+    """(t, x, z, gamma_deg) of the model flight from the rail end (t = 0 at the end of the stroke).
+
+    h0 is the camera height at the stroke START; the free flight starts where the dart leaves the rail, half a
+    stroke further along the rail (the same start as analyze_flight's tf() and the range model)."""
+    ts, xs, zs = ballistic(v0, pitch, h0 + v0 * STROKE_S / 2.0 * math.sin(math.radians(pitch)), dt=0.005)
     if len(ts) < 3:
         return ts, xs, zs, np.full(len(ts), pitch)
     gam = np.degrees(np.arctan2(np.gradient(zs, ts), np.gradient(xs, ts)))
@@ -645,7 +648,7 @@ def _bgr_frame(f):
 
 
 def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_offset_s: Optional[float] = None,
-                   hfov_deg: float = 100.0, v0_default: float = DEFAULT_V0, h0: float = RAIL_H,
+                   hfov_deg: float = 100.0, v0_default: Optional[float] = None, h0: float = RAIL_H,
                    ballistics=None, drag_n: float = 0.5, aim_pitch_deg: Optional[float] = None) -> FlightResult:
     """Analyse a dart flight video (list of Frame) with an optional C2 flightlog. Never raises on bad input.
 
@@ -785,6 +788,12 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
             pitch = float(aim_pitch_deg)
             res.notes.append("launch pitch from the commanded rail pitch %.1f deg" % pitch)
         bal = _table(ballistics)
+        if v0_default is None:      # the fallback speed comes from the C3 table when there is one
+            try:
+                v0_default = float(np.median([r["v_muzzle"] for r in bal.rows if r.get("v_muzzle")])) if bal else None
+            except Exception:
+                v0_default = None
+            v0_default = v0_default or DEFAULT_V0
 
         def v_tab(p):
             if bal is None or p is None or not (bal.pitch_min - 3 <= p <= bal.pitch_max + 3):
@@ -821,7 +830,10 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
             v0_min = imu.get("v0_min") if imu else None
             v_f, cues = fuse_speed(pitch, h0, T_obs=T, T_sigma=None if video_T else 0.02,
                                    T_min=None if t_sky is None else t_sky - t_start, track=track,
-                                   v_prior=vp, v_min=v0_min, launch_free=video_T)
+                                   v_prior=vp, v_min=v0_min, launch_free=video_T,
+                                   # with a table the speed is searched only inside a band around it (a noisy
+                                   # flight time can never give a 2 or 30 m/s launcher)
+                                   lo=0.6 * vp if vp else 3.0, hi=1.4 * vp if vp else 16.0)
             if v_f is not None:
                 v0 = v_f
                 used = [n for n, ok in (("flight time", True), ("sky track", bool(track)),

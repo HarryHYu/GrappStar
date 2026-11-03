@@ -106,6 +106,18 @@ def req(port, method, path, body=None, headers=None):
     return r, data
 
 
+def post(s, port, path, body=b"{}", headers=None):
+    """POST like the page does: with the session token header (and a same-origin Origin)."""
+    h = {"X-GrappStar-Token": s.session_token, "Origin": f"http://127.0.0.1:{port}"}
+    h.update(headers or {})
+    c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+    c.request("POST", path, body=body, headers=h)
+    r = c.getresponse()
+    data = r.read()
+    c.close()
+    return r, data
+
+
 def test_index_and_static(srv):
     _, _, port = srv()
     r, data = req(port, "GET", "/")
@@ -136,29 +148,29 @@ def test_status_json(srv):
 
 
 def test_action_routes_args(srv):
-    _, app, port = srv()
-    r, data = req(port, "POST", "/api/action/target_click", json.dumps({"cam": "rover", "u": 0.5, "v": 0.25}),
-                  {"Content-Type": "application/json"})
+    s, app, port = srv()
+    r, data = post(s, port, "/api/action/target_click", json.dumps({"cam": "rover", "u": 0.5, "v": 0.25}),
+                   {"Content-Type": "application/json"})
     assert r.status == 200
     j = json.loads(data)
     assert j["ok"] is True and j["echo"] == {"cam": "rover", "u": 0.5, "v": 0.25}
     assert app.calls[-1] == ("target_click", {"cam": "rover", "u": 0.5, "v": 0.25})
-    r, data = req(port, "POST", "/api/action/stop", b"")       # empty body = no args
+    r, data = post(s, port, "/api/action/stop", b"")       # empty body = no args
     assert r.status == 200 and app.calls[-1] == ("stop", {})
 
 
 def test_action_bad_json(srv):
-    _, app, port = srv()
-    r, data = req(port, "POST", "/api/action/aim", b"{not json")
+    s, app, port = srv()
+    r, data = post(s, port, "/api/action/aim", b"{not json")
     assert r.status == 400 and json.loads(data)["ok"] is False
-    r, data = req(port, "POST", "/api/action/aim", b"[1, 2]")
+    r, data = post(s, port, "/api/action/aim", b"[1, 2]")
     assert r.status == 400
     assert app.calls == []
 
 
 def test_action_exception(srv):
-    _, _, port = srv()
-    r, data = req(port, "POST", "/api/action/boom", b"{}")
+    s, _, port = srv()
+    r, data = post(s, port, "/api/action/boom", b"{}")
     j = json.loads(data)
     assert j["ok"] is False and "kaboom" in j["msg"]
 
@@ -227,7 +239,7 @@ def test_artifacts_and_log(srv):
 
 
 def test_token_protection(srv):
-    _, app, port = srv(token="s3cret")
+    s, app, port = srv(token="s3cret")
     r, _ = req(port, "GET", "/api/status")
     assert r.status == 401
     r, data = req(port, "GET", "/")
@@ -244,8 +256,15 @@ def test_token_protection(srv):
     assert cookie and "grappstar_token=s3cret" in cookie
     r, _ = req(port, "GET", "/api/status", headers={"Cookie": "other=1; grappstar_token=s3cret"})
     assert r.status == 200
-    r, _ = req(port, "POST", "/api/action/stop?token=s3cret", b"{}")
+    r, _ = post(s, port, "/api/action/stop?token=s3cret", b"{}")
     assert r.status == 200 and app.calls[-1][0] == "stop"
+    # the shared password alone is not enough: the session token is still required on POST
+    n = len(app.calls)
+    r, _ = req(port, "POST", "/api/action/stop?token=s3cret", b"{}")
+    assert r.status == 403 and len(app.calls) == n
+    # and the session token alone does not get past the shared password
+    r, _ = post(s, port, "/api/action/stop", b"{}")
+    assert r.status == 401 and len(app.calls) == n
 
 
 def test_no_token_when_empty(srv):
@@ -265,3 +284,105 @@ def test_no_em_or_en_dashes_in_ui():
             text = f.read()
         assert chr(0x2014) not in text, path
         assert chr(0x2013) not in text, path
+
+
+# ---- action API protection (review r2_H #8) ------------------------------------------------------------------
+def test_session_token_injected_into_page(srv):
+    s, _, port = srv()
+    tok = s.session_token
+    assert len(tok) >= 20
+    r, data = req(port, "GET", "/")
+    page = data.decode()
+    assert r.status == 200
+    assert f'<meta name="grappstar-token" content="{tok}">' in page
+    assert page.count("grappstar-token") == 1
+    # a second server (another process start) gets another token
+    s2, _, port2 = srv()
+    assert s2.session_token != tok
+    assert s2.session_token in req(port2, "GET", "/index.html")[1].decode()
+
+
+def test_post_requires_session_token(srv):
+    s, app, port = srv()
+    for headers in ({}, {"X-GrappStar-Token": ""}, {"X-GrappStar-Token": "wrong"},
+                    {"X-GrappStar-Token": s.session_token + "x"}):
+        r, data = req(port, "POST", "/api/action/answer",
+                      json.dumps({"prompt_id": "p1", "choice": "FIRE NOW", "text": "x"}), headers)
+        j = json.loads(data)
+        assert r.status == 403 and j["ok"] is False and j["reload"] is True, headers
+        assert r.getheader("Content-Type") == "application/json"
+    assert app.calls == []
+    r, data = req(port, "POST", "/api/action/stop", b"{}", {"X-GrappStar-Token": s.session_token})
+    assert r.status == 200 and app.calls == [("stop", {})]      # no Origin/Referer (curl): token is enough
+
+
+@pytest.mark.parametrize("hdr", [
+    {"Origin": "http://evil.example"},
+    {"Origin": "http://evil.example:{port}"},
+    {"Origin": "http://127.0.0.1:1"},
+    {"Origin": "null"},
+    {"Origin": "file://"},
+    {"Referer": "http://evil.example/page.html"},
+    {"Referer": "http://127.0.0.1:1/"},
+])
+def test_post_wrong_origin_rejected(srv, hdr):
+    s, app, port = srv()
+    hdr = {k: v.format(port=port) for k, v in hdr.items()}
+    r, data = req(port, "POST", "/api/action/stop", b"{}", dict(hdr, **{"X-GrappStar-Token": s.session_token}))
+    assert r.status == 403 and json.loads(data)["ok"] is False
+    assert "origin" in json.loads(data)["msg"]
+    assert app.calls == []
+
+
+def test_post_right_origin_and_token_accepted(srv):
+    s, app, port = srv()
+    tok = {"X-GrappStar-Token": s.session_token}
+    for hdr in ({"Origin": f"http://127.0.0.1:{port}"}, {"Origin": f"http://LOCALHOST:{port}", "Host": f"localhost:{port}"},
+                {"Referer": f"http://127.0.0.1:{port}/"},
+                # a phone on another address: Host is whatever it typed, and Origin matches it
+                {"Host": f"192.168.4.1:{port}", "Origin": f"http://192.168.4.1:{port}"},
+                {"Host": "rover.local", "Origin": "http://rover.local"},
+                {"Host": "rover.local:80", "Origin": "http://rover.local"},
+                {"Host": f"[fe80::1]:{port}", "Origin": f"http://[fe80::1]:{port}"}):
+        r, data = req(port, "POST", "/api/action/answer",
+                      json.dumps({"prompt_id": "p7", "choice": "Fire", "text": "FIRE at 30 deg?"}), dict(hdr, **tok))
+        assert r.status == 200, hdr
+        assert json.loads(data)["echo"] == {"prompt_id": "p7", "choice": "Fire", "text": "FIRE at 30 deg?"}
+    assert len(app.calls) == 7
+    r, _ = req(port, "POST", "/api/action/stop", b"{}",
+               dict(tok, Host=f"192.168.4.1:{port}", Origin=f"http://127.0.0.1:{port}"))
+    assert r.status == 403 and len(app.calls) == 7         # Origin must match the Host the browser used
+
+
+def test_get_stays_open_without_session_token(srv):
+    _, app, port = srv()
+    for path in ("/api/status", "/snapshot/rover.jpg", "/artifact/landing.png", "/api/log"):
+        r, _ = req(port, "GET", path, headers={"Origin": "http://evil.example"})
+        assert r.status == 200, path
+    r, _ = req(port, "GET", "/api/action/stop")
+    assert r.status == 404 and app.calls == []                # GET never runs an action
+
+
+def test_post_refused_for_foreign_host_name(tmp_path):
+    """DNS rebinding: a POST whose Host is some other DNS name is refused even with the token and a matching Origin."""
+    import http.client
+    app = FakeApp(tmp_path)
+    srv = ui_server.make_server(app, host="127.0.0.1", port=0)
+    import threading
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        port = srv.server_address[1]
+        c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        c.request("POST", "/api/action/stop", body="{}", headers={
+            "Host": f"evil.example:{port}", "Origin": f"http://evil.example:{port}",
+            "X-GrappStar-Token": srv.session_token, "Content-Type": "application/json"})
+        r = c.getresponse()
+        assert r.status == 403
+        c.close()
+        c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        c.request("POST", "/api/action/stop", body="{}", headers={
+            "Host": f"127.0.0.1:{port}", "Origin": f"http://127.0.0.1:{port}",
+            "X-GrappStar-Token": srv.session_token, "Content-Type": "application/json"})
+        assert c.getresponse().status == 200
+    finally:
+        srv.shutdown()

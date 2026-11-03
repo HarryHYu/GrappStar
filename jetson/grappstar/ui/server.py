@@ -453,8 +453,31 @@ class Handler(BaseHTTPRequestHandler):
         host = self.headers.get("Host") or ""
         return bool(host) and self._hostport(parts.netloc, parts.scheme) == self._hostport(host)
 
+    def _host_allowed(self) -> bool:
+        """DNS rebinding guard (review round 4 #7): the Host must be an IP literal, localhost or this machine's own
+        name, never an arbitrary DNS name that could be rebound to the rover."""
+        import ipaddress
+        import socket
+        host = (self.headers.get("Host") or "").strip()
+        if not host:
+            return True                      # HTTP/1.0 clients without Host: still need the token
+        name = host.rsplit(":", 1)[0] if not host.startswith("[") else host[1:host.find("]")]
+        try:
+            ipaddress.ip_address(name)
+            return True
+        except ValueError:
+            pass
+        n = name.lower().rstrip(".")
+        me = socket.gethostname().lower()
+        # IP literals, localhost, this machine, mDNS names (*.local, only resolvable on the local link) and bare
+        # single-label names (the rover's own hostname, for example GrappStar); public DNS names are refused
+        return n in ("localhost", me) or n.endswith(".local") or "." not in n
+
     def _check_post(self) -> bool:
         """Same origin plus the per-process session token. False = refused (403 already sent)."""
+        if not self._host_allowed():
+            self._json(403, {"ok": False, "msg": "unknown host name: open the page by its IP address"})
+            return False
         if not self._same_origin():
             self._json(403, {"ok": False, "msg": "cross-origin request refused"})
             return False

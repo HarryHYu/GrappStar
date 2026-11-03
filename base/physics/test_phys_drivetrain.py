@@ -36,6 +36,7 @@ def test_cock_hand():
 
 def test_run():
     p = Params()
+    p.capstan["path_gain"] = 1.15          # pulleys at the exit eye and ring
     r = drivetrain.run(p)
     f = r["functions"]
     t_m, _ = capstan.motor_stall_sag(p, p.battery.v_nom)

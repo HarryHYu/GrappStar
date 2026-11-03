@@ -115,3 +115,14 @@ def test_c3_file_format(tmp_path):
     p.write_text(json.dumps(d))
     with pytest.raises(ValueError):
         Ballistics.load(str(p))
+
+
+def test_range_on_a_table_row_is_one_solution():
+    rows = [{"pitch_deg": float(a), "v_muzzle": 7.0, "range_m": [r, r], "t_flight_s": [0.5, 0.5], "apex_m": [1, 1]}
+            for a, r in ((6, 2.7), (20, 4.0), (38, 4.95), (47, 4.7))]
+    bl = Ballistics({"version": 1, "pitch_min": 6, "pitch_max": 47, "drag_n": [0.5, 1.0], "table": rows})
+    s = bl.solve(4.0)
+    assert s.pitch_deg == pytest.approx(20.0) and "branch" not in s.note
+    s = bl.solve(4.95)
+    assert s.pitch_deg == pytest.approx(38.0) and "branch" not in s.note
+    assert "high branch" in bl.solve(4.8).note

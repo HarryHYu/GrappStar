@@ -120,7 +120,8 @@ Fork:
 Rail and dog post:
 - `drum_rail` d10 at world (25, z -58), s 1..142.
 - `drum_dog_post` clamps the rail at s 106.5..111.5, clear of the launch rail cheeks (y 123..131). Its bar runs back
-  to s 69.8; REEL boss to s 72.8, LAUNCH boss from s 94.6.
+  to s 69.8; REEL boss to s 72.8, LAUNCH boss from s 94.2. Clamp: slide fit on the rail, M3 x 8 tapped onto the
+  rail flat. The two boss screws go in before the post goes on (no driver room later).
 
 Wrap idler:
 - `drum_idler` shaft: d10 journals in two posts (s 40.5..46.5 and 78..85), d12 between them (the shoulders locate it

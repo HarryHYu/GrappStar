@@ -1,57 +1,57 @@
 {
- "params_source": "base/spec/params.py v1.2.7",
- "params_hash": "cd6884897df6abd6",
+ "params_source": "base/spec/params.py v1.2.8",
+ "params_hash": "34127464c4d8f094",
  "dart_mass_kg": 0.279,
  "dart_cda_m2": 0.0026,
  "pivot_height_m": 0.315,
  "release_u_m": 0.149,
  "dart_w_m": 0.085,
  "range_origin": "ground point under the rail pivot (main axis)",
- "stroke_m": 0.2412,
+ "stroke_m": 0.2409,
  "wind_sensitivity": [
   {
    "pitch_deg": 10.0,
-   "range_headwind3": 2.6885198685642817,
-   "range_calm": 2.706521537882005,
-   "range_tailwind3": 2.7174863840324845,
-   "dr_per_mps": 0.004827752578033806
+   "range_headwind3": 2.809472514491551,
+   "range_calm": 2.8296681463865894,
+   "range_tailwind3": 2.8422687535240816,
+   "dr_per_mps": 0.005466039838755081
   },
   {
    "pitch_deg": 20.0,
-   "range_headwind3": 3.314023604001292,
-   "range_calm": 3.348213060693862,
-   "range_tailwind3": 3.369443870812208,
-   "dr_per_mps": 0.009236711135152712
+   "range_headwind3": 3.441330389223882,
+   "range_calm": 3.478984406532765,
+   "range_tailwind3": 3.5023404699715104,
+   "dr_per_mps": 0.010168346791271432
   },
   {
    "pitch_deg": 36.0,
-   "range_headwind3": 3.6852921231617457,
-   "range_calm": 3.7477077763068296,
-   "range_tailwind3": 3.7835640753233286,
-   "dr_per_mps": 0.016378658693597153
+   "range_headwind3": 3.780936305437922,
+   "range_calm": 3.84701789186047,
+   "range_tailwind3": 3.884589930399909,
+   "dr_per_mps": 0.017275604160331175
   },
   {
    "pitch_deg": 45.0,
-   "range_headwind3": 3.50294099599666,
-   "range_calm": 3.5775499493911402,
-   "range_tailwind3": 3.6171629743323477,
-   "dr_per_mps": 0.019036996389281285
+   "range_headwind3": 3.567826724402197,
+   "range_calm": 3.6458412189854714,
+   "range_tailwind3": 3.687607558508917,
+   "dr_per_mps": 0.01996347235112002
   }
  ],
  "v_scale": 1.0,
  "line_slack": {
   "slack_at_release_m": 0.0,
   "slack_peak_m": 0.0,
-  "path_cocked_m": 0.034400000000000014,
+  "path_cocked_m": 0.03470000000000001,
   "path_home_m": 0.2756,
-  "path_min_m": 0.034400000000000014,
+  "path_min_m": 0.03470000000000001,
   "taut": true
  },
  "v_muzzle_note": "v_muzzle is the speed the flight starts from: after the snatch when the line path goes slack in the stroke",
  "impact": [
   {
    "pitch_deg": 6.0,
-   "impact_angle_deg_mid_drag": 27.2,
+   "impact_angle_deg_mid_drag": 27.0,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
@@ -61,82 +61,82 @@
   },
   {
    "pitch_deg": 11.0,
-   "impact_angle_deg_mid_drag": 30.5,
+   "impact_angle_deg_mid_drag": 30.6,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 13.5,
-   "impact_angle_deg_mid_drag": 32.5,
+   "impact_angle_deg_mid_drag": 32.7,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 16.0,
-   "impact_angle_deg_mid_drag": 34.8,
+   "impact_angle_deg_mid_drag": 35.1,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 18.5,
-   "impact_angle_deg_mid_drag": 37.2,
+   "impact_angle_deg_mid_drag": 37.7,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 21.0,
-   "impact_angle_deg_mid_drag": 39.8,
+   "impact_angle_deg_mid_drag": 40.4,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 23.5,
-   "impact_angle_deg_mid_drag": 42.6,
+   "impact_angle_deg_mid_drag": 43.2,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 26.0,
-   "impact_angle_deg_mid_drag": 45.5,
+   "impact_angle_deg_mid_drag": 46.1,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 28.5,
-   "impact_angle_deg_mid_drag": 48.4,
+   "impact_angle_deg_mid_drag": 49.1,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 31.0,
-   "impact_angle_deg_mid_drag": 51.4,
+   "impact_angle_deg_mid_drag": 52.2,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 33.5,
-   "impact_angle_deg_mid_drag": 54.4,
+   "impact_angle_deg_mid_drag": 55.2,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 36.0,
-   "impact_angle_deg_mid_drag": 57.4,
+   "impact_angle_deg_mid_drag": 58.2,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 38.5,
-   "impact_angle_deg_mid_drag": 60.4,
+   "impact_angle_deg_mid_drag": 61.2,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 41.0,
-   "impact_angle_deg_mid_drag": 63.3,
+   "impact_angle_deg_mid_drag": 64.1,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 43.5,
-   "impact_angle_deg_mid_drag": 66.1,
+   "impact_angle_deg_mid_drag": 67.0,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 46.0,
-   "impact_angle_deg_mid_drag": 68.9,
+   "impact_angle_deg_mid_drag": 69.7,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   },
   {
    "pitch_deg": 47.0,
-   "impact_angle_deg_mid_drag": 70.0,
+   "impact_angle_deg_mid_drag": 70.8,
    "note": "target dh higher -> about dh / tan(angle) shorter"
   }
  ],

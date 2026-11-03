@@ -634,9 +634,11 @@ def coupon_10(P):
         key="10", title=TITLES["10"], parts=parts, asm=[], mesh=[],
         uses=(f"drum.magnet_holder (spig_d {g['spig_d']:g} with its flat, cap_s {g['cap_s']}, magnet pocket d6.2 x 2.6), "
               f"printed as drum prints it"),
-        bought="6 x 2.5 mm diametric magnet (comes with the AS5600 board), M3x6, superglue",
+        bought=("magnet: not included with the board, see MEASURE_LIST C13 (any small neodymium disc edge-on, or 6 x 2.5 "
+                "diametric), M3x6, superglue"),
         do=("Glue the magnet into the end pocket (flush, any way round), push the cap on the shaft end (flat to the "
-            "flat), M3x6 onto the flat. For the bench: AS5600 chip on the shaft axis, 1 to 2 mm from the magnet face."),
+            "flat), M3x6 onto the flat. It fits the d12 main shaft spigot of the base (for the bare-motor bench test, tape the magnet "
+            "to the wiper shaft end instead). AS5600 chip on the shaft axis, 1 to 2 mm from the magnet face."),
         ok=("Cap does not wobble or slip on the shaft; the AS5600 angle follows the shaft smoothly through full turns "
             "(no jumps), magnet status OK (not too weak, not too strong) at 1 to 2 mm."),
         fail=("drum.py GEOM cap_s, spig_d; magnet_holder pocket d6.2 x 2.6 (magnet loose or tight); fits.py HOLE_SLIDE "

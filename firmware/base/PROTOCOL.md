@@ -76,7 +76,7 @@ argument checks (`reel` `duty`, `until`, `max_n`) come after them.
 | cmd | args | does | refusals (besides the common ones) |
 |---|---|---|---|
 | `ping` | | reply carries `fw` and `t` (ms since boot) | none |
-| `status` | | reply carries `phase` (section 3), `aimed`, `aim_known`, `drum_known`, `wraps_known`, `magnet` (`OK`, `WEAK`, `STRONG`, `NONE`, `INDEX`), `glitches` (AS5600 rejected samples, capped at 99999), `hx` (load cell live), `peak_a` (highest wiper current of the last run), `fw`, `ev_drops` (events dropped because the host did not read, capped at 99999), and while a fault is latched `why` (first 32 characters of the fault reason). These are flat fields of the reply, not a `tel` object | none |
+| `status` | | reply carries `phase` (section 3), `aimed`, `aim_known`, `drum_known`, `wraps_known`, `magnet` (`OK`, `WEAK`, `STRONG`, `NONE`, `INDEX`), `glitches` (AS5600 rejected samples, capped at 99999), `hx` (load cell live), `peak_a` (highest wiper current of the last run), `tension_cal` (true once the operator set `k_n_per_a` or `tension_offset_n`), `fw`, `ev_drops` (events dropped because the host did not read, capped at 99999), and while a fault is latched `why` (first 32 characters of the fault reason). These are flat fields of the reply, not a `tel` object | none |
 | `stop` | | wiper off now, drum stops where it is (both worms hold). Aborts the running action with an `ABORTED` event. A stop during `cock`, `fire` or `decock` makes the shot phase `UNKNOWN`. A stop while faulted (also during `SAFING`) stops the drum and stays in `FAULT` | never refused |
 | `estop` | | like `stop`, then (when not faulted) the drum goes to NEUTRAL 41 if that is safe (section 6; with the wraps on it always holds): state `MODE`, a `MODE` event at the end, immediately if already there. If it is not safe the drum holds and a `MODE` event with `ok:false`, `err:"DRUM_HELD"` and `why` says why (exactly at the WRAPPED park: `MODE` `ok:true`). The estop move never turns the wiper (no centering jog). A failed estop move raises a drum fault | never refused |
 | `clear` | | clears a latched fault, back to `IDLE`. Not faulted: `ok`, no change | `BUSY` (still `SAFING`), `STILL_PRESENT` (the cause is still there: AS5600 not reading after `ANGLE_SENSOR`, drum code invalid after `DRUM_SENSOR`, battery under `vbat_low` after `BROWNOUT`) |
@@ -111,11 +111,13 @@ In REEL (capstan, wiper FORWARD):
   a live load cell the tension used is the larger of the load cell and the current estimate (a frozen load cell cannot
   hide the current). The speed tapers over the last 30 % of `max_n`, using the larger of the averaged and the
   unaveraged estimate.
-- Tow speed (`until:"tension"`): it starts at the minimum duty (0.27) and ramps up to the commanded `duty` (about
-  0.5 s) only while the tension estimate is under 25 % of `max_n`; above that it stays at the minimum duty. A tidied
+- Tow speed (`until:"tension"`): it starts at the minimum duty (0.27) and keeps it until the first tension samples are
+  in (the 80 ms blanking plus 60 ms). Then it ramps up to the commanded `duty` (about 0.5 s) only while the tension estimate is under 25 % of `max_n`; above that it stays at the minimum duty. A tidied
   Dyneema line gains about 4.5 N per wiper degree once taut, so the current must see the rise before the limit.
 - The tow stops at `max_n` when the 200 ms average reaches it OR the unaveraged estimate stays at or above it for
-  30 ms (config `rawHoldMs`; a stiff line rises faster than the average). It sends `LIMIT` (`why:"tension limit"`,
+  30 ms (config `rawHoldMs`; a stiff line rises faster than the average), OR the unaveraged estimate plus its rise
+  rate x 60 ms (config `tensionLeadMs`) stays at or above it for those 30 ms (a stiff line going taut rises faster than
+  the current lags). It sends `LIMIT` (`why:"tension limit"`,
   `tension_n` the higher of the two estimates). With `until:"tension"` the base then HOLDS (state `HOLD`,
   `holding:true`, the worm and sprag #2 hold the line); it winds again by itself (after at least 1 s) when the load
   cell reads under 60 % of `max_n`, but only when the load cell itself caused the hold: a hold from the current
@@ -474,6 +476,7 @@ false unless the saved angle was trusted); the operator decides (section 9).
 | `cock_rest` | `force` (optional, true: `SW_HOME` known broken, checked by eye) | declare the launcher at rest (carriage forward). For a new build, or after checking by eye. `force:true` trusts the operator completely: a wrong force on a drawn spring can FIRE on the next forward jog or `cock` | `BUSY`, `SWITCH_DISAGREE` (`SW_HOME` open, or `SW_GAP` fitted and open, and no `force`; `force:true` overrides both) |
 | `decock` (also the command `decock`) | `force` (optional) | lets a drawn carriage down without firing: runs the wiper BACKWARD slowly (47 %, trip 3 A, D40) so the spring unwinds under the worm, until `SW_HOME` has stayed closed for 15 deg more and `SW_GAP` is closed too. If the big gear dragged back past its gap (`SW_GAP` still open 20 deg later), the gap run closes it going forward before `RESET`. Turns the aim train too: the aim becomes unknown. `RESET` event with `how:"decock"`. Carriage already home: phase `REST` gives an immediate `RESET`; phase `UNKNOWN` with no sign of a draw replies `ok` and moves nothing: with `SW_GAP` closed too the phase becomes `REST` and it sends `RESET` with `ok:true`, `how:"decock"`, `why:"SW_HOME and SW_GAP closed: at rest"`; with `SW_GAP` open it runs nothing forward and sends `RESET` with `ok:false`, `how:"decock"`, `why:"SW_GAP open: check the carriage by eye, then cal cock_rest force"` (a lying `SW_HOME` could hide a drawn spring; check by eye, then `cal cock_rest` with `force:true`); without a `SW_GAP` contact the why is "carriage home: nothing to decock, cock finds the angle". `SW_HOME` closed while the last known angle says drawn: refused with `SWITCH_DISAGREE`, unless `force:true`: then it runs back by the travel that angle needs and calls it rest (`how:"decock by travel"`) | common (`ANGLE_SENSOR` included), `NOT_IN_LAUNCH` (drum code not LAUNCH), `NO_SENSOR` (no `SW_HOME`), `SWITCH_DISAGREE` |
 | `drum` | | the drum code is absolute: this only reports, with a `MODE` event | `POSITION_UNKNOWN` |
+| `factory` | | puts the bench settings back to the params defaults: `k_n_per_a`, `tension_offset_n`, `free_a`, `limit_n`, `drum_dps`, `aim_tol`, `trip_a`, `cock_trip_a`, `tow_trip_a`, `vbat_low`, `aim_home_deg`, `hx_n_per_count`, `amps_per_volt`, `offset_a`, and `aim_offset` 0; `tension_cal` becomes false. Saved in flash like any `cal` | `BUSY` (moving or holding) |
 
 `set` / `get` keys. Saved in flash once everything has stopped (only when a value really changed), kept over a power cycle and a new upload, except where
 the table says otherwise:
@@ -500,6 +503,7 @@ the table says otherwise:
 | `vbat_wired` | true | true / false | the battery divider is fitted; false turns off `NO_POWER` and `BROWNOUT` and makes `vbat` null. Back to true at every start-up (never kept off) |
 | `enc_sign` | 1 | 1 / -1 | AS5600 count direction (set while stopped) |
 | `host_timeout_s` | 0 (off) | 0..600 | host watchdog: no line from the Jetson for this long while a motor runs = `stop` (two `ABORTED` events, the second `what:"HOST"`, `why:"host silent"`). Send `ping` to keep long runs alive (a `wrap` or `unwrap` takes about 40 s). NOT saved: 0 after every start-up |
+| `tension_cal` | false | get only | true once `k_n_per_a` or `tension_offset_n` was set by the operator; saved in flash with the bench settings (a bit in the same record, no format change); cleared by `cal factory` |
 | `fw`, `params`, `pitch_range` | | get only | firmware version (`base-1.3.0`), params.py version (`1.3.2`, the version `params_gen.h` was generated from), `min` / `max` pitch (6.01 / 47 with the built-in table) |
 
 The take-up trip (2.5 A) and the jog trip (3 A) are fixed in `config.h`, not `set` keys.
@@ -770,3 +774,8 @@ What the Jetson worker must change (against the base-1.0 version of this file):
     jog 6 deg, stopped early on a 0.8 A rise; boot cross-check of the code against the dog and cup contacts (new
     `SWITCH_DISAGREE` whys), repeated when the N20 swings back into mesh (angle a guess, wraps doubtful near the window).
 71. Fly-in: the creep stops as soon as `SW_DOG_R` closes, even while the code still reads N_TO_R.
+72. New read-only `get` key `tension_cal` and `status` field `tension_cal`: true once the operator set `k_n_per_a` or
+    `tension_offset_n` (saved in flash). The Jetson must refuse a tow (`reel` until `tension`) while it is false
+    (systest F28). New `cal factory` puts the bench settings back to the params defaults and clears `tension_cal`.
+73. Tow: the minimum duty is kept until the first tension samples are in (80 ms + 60 ms), and the tow also holds when
+    the unaveraged estimate plus its rise rate x 60 ms reaches `max_n` (stiff line going taut).

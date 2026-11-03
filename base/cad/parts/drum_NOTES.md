@@ -1,228 +1,238 @@
 # Drum subsystem notes (worker cad-drum): main shaft, dog clutch, N20 selector drum
 
-Status: v2, 3 Nov 2026 11:15 Sydney. It follows BASE_SPEC v0.1 and the coordinator's main-axis decision (coaxial
-launch sleeve, LAUNCH dog ring, d12 spigot, main axis 165 above the deck).
+Status: v3, 3 Nov 2026 11:45 Sydney. It follows BASE_SPEC v0.1 plus these coordinator decisions:
+- coaxial launch sleeve with the LAUNCH dog ring, d12 spigot, main axis 165 above the deck;
+- D16: drum order LAUNCH / NEUTRAL / WRAP / REEL;
+- D15: take-up bus gear;
+- D8: 5 N m torque limiter in the coupler;
+- REEL output m2 40T.
 
 Every number lives in code:
-- `_drum_kin.py` DEFAULTS: timing, code table, loads. It has no CAD imports, so firmware and physics can use it too.
+- `_drum_kin.py` DEFAULTS: timing, code table, loads. It has no CAD imports, so firmware and physics can use it.
 - `drum.py` GEOM: geometry.
 
 Both read overrides from `params.DRUM`: timing keys at the top level, geometry under `DRUM["geom"]`. The main axis
-origin comes from `LAYOUT["main"]["origin"]`.
-
-Units: mm, deg, N, N m.
+origin comes from `LAYOUT["main"]["origin"]`. Units: mm, deg, N, N m.
 
 ## 1. What it does
 
-- One 12 V wiper motor turns the MAIN SHAFT, which is coaxial with the wiper output.
-- REEL output gear (motor side): m3 24T. It turns free on a keyed sleeve.
-- LAUNCH dog ring (outboard): it bolts onto the cad-launch launch sleeve, which is coaxial and holds the drive gear
-  with sprag #1 and the rail pivot journals.
-- DOG COLLAR: keyed to the main shaft hex. It slides between the REEL gear and the LAUNCH dog ring.
-- SELECTOR DRUM: one self-locking right-angle N20 turns it through a 10:90 spur pair. It holds any angle unpowered.
-  It carries:
+- One 12 V wiper motor turns the MAIN SHAFT through a coupler with a shear pin torque limiter (about 5 N m).
+- The outer coupler carries the take-up BUS GEAR, which always turns with the wiper.
+- REEL output gear (m2 40T): turns free on a keyed sleeve.
+- LAUNCH dog ring: bolts to the cad-launch launch sleeve, which is coaxial.
+- DOG COLLAR: keyed to the shaft hex, it couples the shaft to one of them or to neither.
+- SELECTOR DRUM: two printed parts turning on a fixed d10 axle. A self-locking right-angle N20 drives it through a
+  10:120 spur pair, and it holds any angle unpowered. It carries:
   - groove 1: moves the collar through a COMPLIANT FORK;
-  - track 2: a cam for the cad-reel slip clutch preload lever;
-  - a segment gear with a locking arc: turns the WRAP IDLER, and so the cad-reel wrap ring, only past REEL;
+  - track 2: a cam for the cad-reel slip clutch lever;
+  - a segment gear with a locking arc: turns the WRAP IDLER, and through it the cad-reel cup ring, only inside the
+    wrap window;
   - three Gray code bands read by printed contacts SW_DRUM_A/B/C.
-- Proposed extra contact SW_DOG on the fork: dogs landed tip to tip.
-- Hand fallback: slide the N20 cradle out of mesh, then turn the hand lever on the drum's outboard hex.
-- The order is physical: there are no wraps outside REEL, and the collar cannot leave REEL until the drum has turned
-  back through the whole unwrap. Fault means NEUTRAL.
+- SW_DOG on the fork (REQUIRED): reports a collar that did not reach its position (dogs tip to tip, or held engaged
+  under load).
+- Hand fallback: slide the N20 out of mesh, then turn the hand lever on the drum.
+- Order (D16): the cup turns only with the collar in NEUTRAL; REEL engages only after the last wrap and the re-lock.
+  Unwrapping runs in NEUTRAL with the wiper forward: the bus gear takes the line up and the capstan stays free.
+  Fault means NEUTRAL.
 
 ## 2. Frames
 
-- Local frame L, joint `drum_base`: z along the main axis, `s` = mm from the wiper boss face (= the adapter plate
-  face, world origin). x = world +X. y = world DOWN. Default: main axis at world z 165, s = 0 at world y 0, main axis
-  along world +Y. If LAYOUT flips the motor to point along -Y, only `drum_base` changes.
+- Local frame L, joint `drum_base`: z along the main axis, `s` = mm from the wiper boss face (= world origin plane).
+  x = world +X. y = world DOWN. Default: main axis at world z 165, s = 0 at world y 0, axis along world +Y.
 - Drum axis: parallel, 72 below the main axis (93 above the deck).
-- Angles around the drum axis below are in the L xy plane (0 = +X forward, -90 = up toward the main shaft, 180 = back).
-- Envelope: x -90..+80, s 6..168 (main shaft to s 160 + magnet cap), from the main axis (+31) down to the deck (-165).
+- Angles around the drum axis are in the L xy plane: 0 = +X forward, -90 = up toward the main shaft, 90 = down,
+  180 = back.
 
 ## 3. Main axis stack (s from the wiper boss face)
 
 | s | part | notes |
 |---|---|---|
-| 0.5..36 | `drum_coupler` PPA-CF, OD 40 | wiper bore parametric from `WIPER` (d 10, flats 8, length 20, M8 end thread). M8 nut in a 13.4 AF pocket clamps it on the shaft (fit the nut through the socket). Hex 22 AF socket s 22..36. M3 cross screw at s 29 |
-| 22..96 | `drum_shaft` hex 22 AF, PPA-CF | 15 N m stall: 7.5 MPa torsion |
-| 96..160 | `drum_shaft` d12 spigot | runs in a d 12.35 bushing inside the launch sleeve. Spigot end: M3 cross hole at s 154 for the magnet cap |
-| 36..55 | `drum_sleeve_reel` PPA-CF | hex bore, journal OD 30 s 40..55, flange OD 44 s 36..40 thrusts on the coupler |
-| 40.5..59.5 | `drum_gear_reel` m3 24T, face 14 at 40.5..54.5, dogs 54.5..59.5 | free on the sleeve journal (bore 30.3). Lewis 29 MPa at 15 N m stall |
-| 62..88 | `drum_collar` at NEUTRAL | dogs 62..67 and 83..88, body OD 60, fork groove 72..78 to r 26. It moves -7 toward REEL (s 55..81) and +7 toward LAUNCH (69..95) |
-| 90.5..104 | `drum_dogring_launch` | dogs 90.5..95.5, body 95.5..101 (OD 62, ID 27), 3 lugs 101..104 |
-| 101.. | cad-launch launch sleeve | see 3b |
-| 156..164 | `drum_magnet_cap` | 6 x 2.5 diametric magnet in the end face (s 161.4..164). AS5600 chip about 2 mm beyond, frame bracket |
+| 0.5..21 | `drum_coupler_hub` PPA-CF, OD 26 | wiper bore parametric from `WIPER` (d 10, flats 8, length 20, M8 thread). Round pocket d 19.2 from s 14.5 for the M8 nut and a 13 mm socket |
+| 0.5..36 | `drum_coupler` PPA-CF, OD 40 | runs on the hub. Driven only through `drum_shear_pin` (PLA d4, radial, s 11.5, single shear at r 13: about 5 N m). Hex 22 AF socket s 22..36; M3 cross screw s 29 |
+| 1..9 | bus gear on `drum_coupler` | D15: 40T m1.5, face 8, pitch r 30, tip r 31.5. After the limiter |
+| 22..96 | `drum_shaft` hex 22 AF PPA-CF | |
+| 96..160 | `drum_shaft` d12 spigot | inside the launch sleeve bushing; M3 cross hole at s 154 for the magnet cap |
+| 36..54.5 | `drum_sleeve_reel` | hex bore, journal OD 30 (s 40..54.5), flange OD 44 (s 36..40) on the coupler face |
+| 40.5..59.5 | `drum_gear_reel` m2 40T, face 14 at 40.5..54.5, dogs 54.5..59.5 | free on the sleeve. An inner lip (r 13..17.5) sits on the sleeve end, so the gear is held both ways |
+| 62..88 | `drum_collar` at NEUTRAL | dogs both faces, groove 72..78 (root r 26). It moves -7 to REEL and +7 to LAUNCH |
+| 90.5..101 | `drum_dogring_launch` | dogs 90.5..95.5; prints flat on its back face |
+| 156..164 | `drum_magnet_cap` | 6 x 2.5 diametric magnet in the end face. AS5600 chip about 2 mm beyond (frame bracket) |
 
-### 3b. LAUNCH dog ring to launch sleeve interface (proposed to cad-launch)
+### 3b. LAUNCH dog ring to launch sleeve (cad-launch)
 
-- The sleeve end flange faces the motor at s = 101.0. It is OD 64 and at least 8 thick.
-- Screws: 3 x M3 clearance holes at r 28 (0, 120, 240 deg, measured from dog 0 + 45 deg), with M3 nut traps on the
-  outboard side. The screws go in from my side; the ring has counterbores d 6 x 3.2 outside its dog ring.
-- Lugs: 3 slots, 6.4 wide x 3.2 deep axially, spanning r 15..21, at 60, 180 and 300 deg. My lugs are 6.0 x 3.0.
-- Bore: at least 12.6 at the flange, with a d 12.35 bushing for the spigot further in.
-- Thrust: engaging LAUNCH pushes the ring and sleeve outboard, so the frame outboard seat needs a thrust face.
-  Engaging REEL closes through my REEL sleeve into the coupler and the M3 cross screw.
+- The sleeve flange faces the motor at s 101.0. It is OD 64 and at least 8 thick.
+- Lugs: 3 lugs 6.0 wide x 3.0 tall at r 15..21, at 60, 180 and 300 deg (dog 0 + 45 deg is 0). They go into my
+  slots, which are 6.4 x 3.2.
+- Screws: 3 x M3 holes at r 28, 0 / 120 / 240 deg, with nut traps on the outboard side. My ring has head
+  counterbores.
+- Bore at least 12.6, plus a d12.35 spigot bushing.
+- Thrust both ways: the frame outboard seat must locate the sleeve axially in both directions. Engaging LAUNCH pushes
+  it outboard; disengaging drags it toward the motor by about 8 N.
 
-## 4. Dog clutch (both directions drive: aim and cock on LAUNCH, wind on REEL)
+## 4. Dog clutch (both directions drive)
 
-- 4 dogs per face, ring r 18..26, height 5, root width 30 deg.
-- Both flanks back-cut 4 deg (dovetail): torque pulls the dogs together in either direction, so they cannot walk
-  out under load.
-- Tips roofed (1.2 mm chamfers on both flanks).
-- Neutral tip gap 2.5 each side; stroke 7; engagement 4.5 with 0.5 tip-to-root clearance. Engaged play about
-  +-14 deg (big entry window, about 30 percent fall straight in).
-- Dog bearing stress at 15 N m: 190 N per dog, 3.8 MPa.
-- To shift OUT under a held train torque, the firmware first unloads: wiper jog 3 deg against the load, then move the
-  drum.
-- Tip to tip: the drum finishes its move anyway, because the thin fork yoke (2.8 thick, flat printed PLA,
-  out-of-plane curved spring) takes it at about 1.6 N/mm up to 5.5 mm. Then SW_DOG closes. Firmware jogs the wiper
-  +15 / -15 deg (up to 60 deg total, 30 percent duty) until SW_DOG opens.
+- 4 dogs per face, r 18..26, height 5, root width 36 deg. Engaged play about +-8 deg.
+- Both flanks back-cut 4 deg. This resists walking out under load; it does not pull the dogs in, because
+  tan 4 deg is less than the friction.
+- Tips roofed (1.2 mm).
+- Neutral tip gap 2.5; stroke 7; engagement 4.5; 0.5 tip to root.
+- The groove commands 0.25 mm overtravel in every dwell, so the yoke holds the collar home with about 0.4 N.
+- Tip to tip: the yoke (2.8 thick flat PLA, curved out-of-plane spring, about 1.6 N/mm) takes the drum's move up to
+  its hard stops at 5.5 mm. SW_DOG closes at 3 mm deflection.
+- Firmware:
+  - After EVERY drum arrival (LAUNCH, NEUTRAL, REEL), check SW_DOG.
+  - If it is closed after arriving in LAUNCH or REEL, jog the wiper +-15 deg (up to 60 deg, 30 percent duty) until it
+    opens.
+  - If it is closed after arriving in NEUTRAL, the collar is held engaged by train torque. Jog the wiper about 14 deg
+    (half the dog play, AS5600) against the last load direction and recheck. Raise SWITCH_DISAGREE after 3 tries.
+  - Before leaving LAUNCH or REEL under load, do the unload jog (about 14 deg) first.
 
-## 5. Drum (part `drum_drum`, PLA, one piece, prints standing on journal A with a brim)
+## 5. Drum (two printed parts on the fixed axle `drum_axle` d10, s 7..131, pressed into brackets A and B)
+
+`drum_drum_a` (PLA, prints gear face down, every step goes inward):
 
 | s | feature |
 |---|---|
-| 6..16 | journal A d16 in `drum_bracket_a` (s 7..14) |
-| 16..24 | drum gear 90T m1 x -0.3 (tip r 45.7). N20 pinion 10T m1 x +0.3 at 50.1 from the drum axis, angle +30 (front, below) |
-| 25..33 | segment gear m1.25 cut from 64T (tip r 41.25): 39 teeth present over the 225 deg wrap window |
-| 33..39 | locking arc layer: ring r 38 cut to r 35.5 where the wrap pinion's lock cam (r 11) sweeps |
-| 39..52 | neck d14 (the idler output gear passes over it at 1.3 mm) |
-| 52..62 | track 2 brake cam: base r 22, lift 0 / 2 / 4 mm (light / mid / firm). Follower contact at angle 200 (back, a little below) |
-| 62..90 | groove 1 barrel r 30, groove 6.4 wide x 4 deep. Follower pin d6 at angle -90 (top), fork plane s 75 at NEUTRAL |
-| 91..111 | code bands (base r 22, bump r 25, 2 deg ramps): A (b0) 91..97, B (b1) 98..104, C (b2) 105..111. Contacts at angle 0 (+X) |
-| 116..125 | journal B d16 in `drum_bracket_b` (s 117..124) |
-| 125..133 | hex boss 12 AF for `drum_hand_lever` (30 mm arm with a knob; short so it clears the launch drive gear) |
+| 16..24 | drum gear 120T m0.8 x -0.3 (tip r 48.6). N20 pinion 10T m0.8 x +0.3, centre 52.1 from the drum axis at angle +30 (front, below) |
+| 25..33 | segment gear m1.25 cut from 60T (tip r 38.75): 39 teeth over the 240 deg window |
+| 33.3..39 | locking arc layer: ring r 38, cut where the pinion's lock cam (r 11) sweeps |
+| 41..52 | track 2 brake cam: base r 22, lift 0 (LIGHT) or 4 mm (FIRM). Follower contact at angle 200 (back, a little up) |
+| 52..66 | neck r 10 (the idler output gear passes over it at 1.3 mm) |
+| 66..72 | hex spigot 18 AF into drum B |
 
-Other drum subsystem parts:
-- Shift rail `drum_rail`: d10 PPA-CF with a 1 mm print flat, at L (45, 38) (45 forward, 38 below the main axis),
-  s 7..124. It is pressed into brackets A and B.
-- `drum_fork`: carrier with a rail sleeve, an arm to the hub under the collar, and a follower pin.
-- `drum_idler`: one PPA-CF part, axis at L (-46.83, 72) (behind the drum, level with it).
-  - Pinion 10T m1.25 x +0.4 at s 25..33.
-  - Lock cam r 11 at s 33..39.
-  - Output gear 48T m1.5 at s 40..48.
-  - Journal d10 s 48..56 in `drum_bracket_idler` (s 49..55).
-- `drum_n20` sits in `drum_n20_cradle` (M3 thumb screw slot). `drum_switch_block` carries 3 x `drum_sw_lever_*`.
+`drum_drum_b` (PLA, prints barrel face down):
 
-## 6. Drum angle table (firmware and audit)
+| s | feature |
+|---|---|
+| 66..96 | groove 1 barrel r 30, groove 6.4 x 4. Follower pin d6 at angle -90 (top), pin plane s 81.8 at NEUTRAL |
+| 97..103 / 104..110 / 111..117 | code bands A / B / C: base r 22, nub centre lift 3 mm. The band is the inner envelope of a round nub (r 1.5), so the lever follows exactly. Ramp 6 deg, 50 percent point at the edge |
+| 117..123.7 | hex boss 14 AF for `drum_hand_lever` (28 mm arm with a finger hole) |
 
-| drum deg | name | collar | brake track | wraps | code C B A |
+Other parts:
+- `drum_rail`: d10, at L (45, 38), s 7..131.
+- `drum_fork` plus `drum_fork_stop`: the fork prints flat on the pad plane s 72.3.
+- Wrap idler:
+  - `drum_idler`: pinion 10T m1.25 x +0.4 at s 25..33, lock cam at s 33..39, shaft d10 to s 70 with a D flat at
+    s 52..62.
+  - `drum_idler_gear`: 42T m1.5, face 8, at s 54..62, keyed on the flat.
+  - Axis at L (-44.33, 72). Journal s 62..70 in `drum_bracket_idler` (s 63..69).
+- `drum_n20` in `drum_n20_cradle` (M3 thumb screw slot, slide 4 mm in +x to unmesh) with `drum_n20_strap` (2 x M3).
+- Code switches: `drum_switch_block` (s 94..117) with 3 x `drum_sw_lever_*`.
+
+## 6. Drum angle table (firmware, audit, sim)
+
+| drum deg | name | collar | brake track | cup turns | code C B A |
 |---|---|---|---|---|---|
-| -10 | hard stop (groove end) | LAUNCH | 0 | 0 | 001 |
-| 0 | LAUNCH (dwell -10..6) | LAUNCH engaged | light (0) | 0 | 001 |
-| 6..34 | shift L to N | moving | 0 | 0 | 011 from 4 |
-| 40 | NEUTRAL (dwell 34..46) | centred | 0 | 0 | 010 (36..44) |
-| 46..74 | shift N to R | moving | ramps 0 to mid over 46..98 | 0 | 110 (44..76) |
-| 87 | REEL (dwell 74..346) | REEL engaged | about 0.45 of full | 0 | 111 (76..98) |
-| 100..325 | wrap window | REEL | mid (0.5) | 0 to 4, linear | 101 (98..327) |
-| 326..337 | brake ramp mid to firm | REEL | ramps to 1 | 4 | 100 from 327 |
-| 338 | WRAPPED (dwell 327..346) | REEL | firm (1.0) | 4 | 100 |
-| 346 | hard stop (groove end) | REEL | 1 | 4 | 100 |
+| -2 | hard stop | LAUNCH | LIGHT | 0 | 001 |
+| 0 | LAUNCH (dwell -2..8) | LAUNCH | LIGHT | 0 | 001 (to 6) |
+| 8..32 | shift L to N | moving | ramps to FIRM | 0 | 011 (6..34) |
+| 41 | NEUTRAL (dwell 32..328) | NEUTRAL | FIRM (tidy) to 50, ramps to LIGHT 50..62 | 0 | 010 (34..56) |
+| 62..302 | WRAP window | NEUTRAL | LIGHT | 0 to 7, linear | 110 (56..302) |
+| 316 | WRAPPED | NEUTRAL | FIRM from 310 (ramp 302..310) | 7, locked | 111 (302..328) |
+| 328..346 | shift N to R | moving | FIRM | 7 | 101 (328..346) |
+| 348.5 | REEL (dwell 346..351) | REEL | FIRM | 7 | 100 |
+| 351 | hard stop | REEL | FIRM | 7 | 100 |
 
-- Code 000 never occurs in travel (wire off or bump missing): fault DRUM_SENSOR.
-- The codes are Gray: adjacent sectors differ by one bit, so a slow contact can only show the neighbour.
-- Bit arcs (contact closed inside):
-  - A (b0): [-10, 36) and [76, 327)
-  - B (b1): [4, 98)
-  - C (b2): [44, 346]
-- Code (C B A) to sector: 001 LAUNCH, 011 LN, 010 NEUTRAL, 110 NR, 111 REEL, 101 WRAPPING, 100 WRAPPED, 000 INVALID.
-- Edge tolerance about 1.5 deg.
+- Bit arcs (closed inside):
+  - A (b0): [-6, 34) and [302, 346)
+  - B (b1): [6, 328)
+  - C (b2): [56, 355]
+- Code 000 never occurs in travel: fault DRUM_SENSOR.
+- Gray code: adjacent sectors differ by one bit, so a slow contact can only show the neighbour.
+- At both hard stops every band is fully up or fully down (tested).
 
-Why the brake is only "mid" while wrapping:
-- Wrapping pulls about 0.5 m of line off the storage reel against its slip clutch, and the wrap train gears the ring
-  torque up 6.4x onto the drum.
-- At firm preload the wrap would need about 1.5 N m at the drum, which is over the N20 budget, so firm comes after the
-  last wrap (326..337).
-- cad-reel: the lever sees lift 0 (light), 2 mm (mid) and 4 mm (firm). Tell me the forces and the levels you want;
-  the follower angle (200) and the base radius are parameters.
-
-## 7. Stop plan (firmware: run until the edge, then run the extra angle by time)
+## 7. Stop plan (run to the edge, then the extra angle by time)
 
 | target | dir | watch edge | code change | extra |
 |---|---|---|---|---|
-| LAUNCH | -1 | 4 | 011 to 001 | 4 deg |
-| NEUTRAL | +1 | 36 | 011 to 010 | 4 deg |
-| NEUTRAL | -1 | 44 | 110 to 010 | 4 deg |
-| REEL | +1 | 76 | 110 to 111 | 11 deg |
-| REEL (unwrap) | -1 | 98 | 101 to 111 | 11 deg |
-| WRAPPED | +1 | 327 | 101 to 100 | 11 deg |
+| LAUNCH | -1 | 6 | 011 to 001 | 6 deg |
+| NEUTRAL | +1 | 34 | 011 to 010 | 7 deg |
+| NEUTRAL | -1 | 56 | 110 to 010 | 15 deg |
+| WRAPPED | +1 | 302 | 110 to 111 | 14 deg |
+| WRAPPED | -1 | 328 | 101 to 111 | 12 deg |
+| REEL | +1 | 346 | 101 to 100 | 2.5 deg (or run on to the groove end at 351 at low duty) |
 
 Rate and timing:
-- Calibrate the rate every move from the time between two known edges: 4 to 36 or 44 to 76 (32 deg), or 98 to 327
-  (229 deg).
-- Nominal 10.8 deg/s: N20 27 rpm at 12 V, about 20 rpm at 9 V, 20 percent load droop, 9:1.
-- Every dwell is at least 12 deg wide, so a 30 percent rate error still stops inside it.
-- Nominal times: LAUNCH to NEUTRAL 3.7 s, NEUTRAL to REEL 4.4 s, REEL to WRAPPED 23 s, full travel 33 s.
+- Nominal 8.1 deg/s: N20 about 20 rpm at 9 V with 20 percent droop, 12:1.
+- Calibrate the rate every move from the time between known edges (6 to 34, 56 to 302, or 302 to 328).
+- A 30 percent rate error still lands in the right sector (tested).
+- Nominal times: LAUNCH to NEUTRAL 5.1 s, NEUTRAL to WRAPPED 34 s, WRAPPED to REEL 4 s, full travel 44 s.
 - Timeout = 2 x nominal + 2 s. Then raise DRUM_TIMEOUT, stop, and try NEUTRAL once.
-- Never drive into the hard stops on purpose (the groove ends are the end stops).
 
 Rules:
-- Unknown position at boot: read the code. If it is a transition code, move toward NEUTRAL (LN: +, NR: -).
-  If WRAPPING or WRAPPED, unwrap to REEL first, then go to NEUTRAL.
-- Swap rule: wiper stopped (rpm 0) before any drum move.
-- After moving into LAUNCH or REEL, check SW_DOG (jog the wiper if it is closed).
-- Positive drum = N20 forward (DRV8833 #3 IN1 high).
+- Wiper stopped before any drum move, except the fly-in into REEL, where the firmware creeps the wiper forward while
+  the drum crosses 328..346 so the dogs drop in.
+- Boot: read the code. Transition codes: move toward NEUTRAL (LN: +). WRAPPING, WRAPPED, NR, REEL: unwrap means
+  going back to NEUTRAL (-) with the wiper creeping forward (bus take-up).
+- Positive drum = N20 forward (DRV8833 #3 IN1 high) = wrap direction. The cup wrap sense matches cad-reel
+  (positive about world +Y).
 
 ## 8. Contacts (printed: M3 screw head touching an M3 nut, ESP32 pull-up, closed = LOW = bit 1)
 
-| name (spec) | where | closes when |
+| name | where | closes when |
 |---|---|---|
-| SW_DRUM_A (bit b0) | lever 0 on band A, s 94, drum angle position 0 (+X) | bump under the nub |
-| SW_DRUM_B (bit b1) | lever 1, s 101 | bump under the nub |
-| SW_DRUM_C (bit b2) | lever 2, s 108 | bump under the nub |
-| SW_DOG (proposed, optional) | fork carrier, both sides of the yoke tab, wired in parallel | yoke deflected over 3 mm (dogs tip to tip, or a jammed shift) |
+| SW_DRUM_A (b0) | lever 0, band s 97..103, drum angle 0 (+X) | nub on a bump (lift over 1.5 of 3 mm) |
+| SW_DRUM_B (b1) | lever 1, band s 104..110 | same |
+| SW_DRUM_C (b2) | lever 2, band s 111..117 | same |
+| SW_DOG (required) | fork: nut in the yoke tab, a screw in each prong (wired together) | yoke deflected over 3 mm either way |
 
-- Each lever is a PLA flexure 30 long, rooted at the switch block foot.
-- Bump lift 3 mm at the nub. The M3 screw head sits 1.1 mm from the nut, so it closes at about half the bump height.
-- Every nut wire goes to GND and every screw wire to its GPIO (fw-base assigns pins). Debounce 20 ms.
+- Levers: PLA flexure 30 long, round nub r 1.5. An M3 screw goes through the beam 8 mm below the nub; its head sits
+  1.1 mm from the block nut at rest.
+- Wiring: nuts to GND, screws to GPIO (fw-base assigns pins). Debounce 20 ms.
 
-## 9. N20 torque check
+## 9. Torque and strength
 
-- N20 stall estimate: 0.22 N m at 9 V.
-  - Bench data: 0.18 A stall, 0.025 A free at 8 V.
-  - Assumed: 15,000 rpm motor, 556:1, worm train efficiency 0.30.
-- Drum capacity at 9:1 with 0.9 mesh efficiency: stall 1.6 N m, working (35 percent) 0.57 N m.
-- Drum peak loads (N m):
+- N20 stall: estimate 0.22 N m at 9 V (0.20 used). Basis: bench 0.18 A stall and 0.025 A free at 8 V; assumed
+  15,000 rpm motor, 556:1, efficiency 0.30. Bench-test before printing (50 mm lever, kitchen scale).
+- Drum capacity at 12:1 with 0.9 mesh efficiency: stall 2.16 N m, working (35 percent) 0.76 N m.
 
-| load | peak | basis |
+| drum load | peak N m | basis |
 |---|---|---|
-| fork shift | 0.41 | 12.6 N fork at full block, groove slope 22.5 mm/rad, groove efficiency 0.7 |
-| disengage | 0.37 | under 0.5 N m of train torque |
-| brake ramps | 0.26 (first), 0.58 (second, alone) | second ramp is 11 deg |
-| wrap | 0.60 | 1 N line at 36 mm plus 0.04 N m friction, geared up 6.4x |
-| peak combined | 0.60 | 37 percent of the stall estimate |
+| wrap | 0.78 | cup 0.06 N m at LIGHT brake x 10.5 gear-up / 0.81 |
+| fork shift | 0.59 | 11.8 N fork, groove slope 35 mm/rad, efficiency 0.7 |
+| brake ramp | 0.64 | 10 N follower (cad-reel design force) |
 
-- If the bench shows a weaker N20, go to a 10:100 drum gear (it changes only the drum and the cradle position).
-- Supply: DRV8833 #3 behind an MP1584 buck at 9 V (DRV8833 VM max is 10.8 V).
+  The loads do not overlap. Peak 0.78 is 36 percent of stall.
+- cad-reel quoted 0.15 N m at the cup with 5 N of line. With the brake LIGHT during the wrap (D16) the line is about
+  0.5 N; if the cup needs more than 0.07 N m, go to fewer wraps or a 10:150 drum gear.
+- Shaft and gears at the 5 N m limiter:
+  - hex torsion 2.5 MPa;
+  - REEL gear Lewis 11.5 MPa (34 MPa even at 15 N m stall);
+  - dog bearing 1.4 MPa;
+  - bus gear Lewis 14 MPa at 2 N m.
+- Shear pin: 30 MPa assumed for printed PLA in shear, so the limit could be 3.5 to 6 N m. Harry: break one on the
+  bench with a lever if possible.
 
 ## 10. Wrap train (to cad-reel)
 
-- The segment gear turns the wrap pinion exactly 4 turns across drum 100..325.
-- The lock cam holds the pinion at home below 100 and at 4 turns above 325 (lock play about +-3.5 deg at the pinion).
-- Idler output gear: m1.5, 48T (pitch dia 72, tip r 37.5), face 8, at s 40..48. Axis at L (-46.83, 72), that is
-  46.83 behind the drum axis and 72 below the main axis, parallel to the main axis.
-- Joint `drum_idler`: its angle is the wrap pinion angle (it decreases as the drum turns forward). Gear the ring
-  joint off it: ring = -48/ring_z x idler.
-- Wraps = 4 x 48 / ring_z. A 48T m1.5 ring gives 4 wraps, centre 72.1 from the idler axis, at any angle round it
-  that suits the capstan (s 40..48 plane).
-- Ring torque budget: 0.08 N m at mid brake.
-- cad-reel: tell me ring_z and where the ring centre must be. I can move the idler (`phi_idler`) and the output gear
-  axially.
+- Segment gear: 40 pitches of 60T m1.25 = 240 deg of drum = 4 pinion turns (drum 62..302).
+- Lock: locked below 62 and above 302 at whole turns, so the cup is at home or exactly 7 turns.
+- Idler output gear 42T m1.5, face 8, at s 54..62, axis L (-44.33, 72).
+- Joint `drum_idler`: its angle is the pinion angle (it decreases as the drum turns forward). Ring = -42/24 x idler.
+- Cup ring 24T m1.5: centre 49.6 from the idler axis, any angle round it; 7 turns per wrap stroke.
+- Cup hold torque in tow: the locking arc holds the pinion directly (cup 1 N m = pinion 0.57 N m).
+- Brake follower: angle 200, s 41..52, lift 0 or 4 mm, 10 N.
 
 ## 11. Frame interfaces (to cad-frame)
 
-- Drum brackets A (s 7..14) and B (s 117..124), idler bracket (s 49..55), N20 cradle (s 22..37), switch block
-  (s 88..114):
-  - all stand on the deck (L y 165 = world z 0);
-  - 2 x M3 per foot (A and B: x +-26 from the drum axis).
-  - cad-frame: give me the deck insert pattern you prefer and I align the feet.
-- Wiper adapter plate at s <= 0: the coupler starts at s 0.5.
-- Launch sleeve outboard bearing and thrust face: frame. My spigot ends at s 160 (magnet cap to 164). The AS5600
-  board faces the cap end at s 166, on the main axis.
+| part | s | deck fixing |
+|---|---|---|
+| bracket A | 7..15.7 | 2 x M3, x +-26 from the drum axis |
+| bracket B | 124..131 | 2 x M3, x +-26 from the drum axis |
+| idler bracket | 63..69 | 2 x M3, x -65 and -23 |
+| N20 cradle | about 15..45, at x about 30..60 | M3 thumb screw in a 4 mm slot |
+| switch block | 94..117 | 2 x M3, front face x 31.6 from the drum axis |
+
+- All stand on the deck (L y 165 = world z 0).
+- Wiper adapter plate at s <= 0.
+- Launch sleeve outboard bearing: two-way thrust.
+- AS5600 board faces the magnet cap end at s about 166, on the main axis.
 
 ## 12. Open items and measurements for Harry
 
-- Wiper output shaft not measured: the coupler is fully parametric (`WIPER` shaft_d, shaft_flat, shaft_len).
-- N20 output shaft is not in the caliper data. It is modelled d3 with a D flat; please measure the diameter and flat.
-- N20 stall torque is an estimate: a bench stall test with a 50 mm lever and a kitchen scale would confirm it.
-- AS5600 magnet: assumed 6 x 2.5 mm diametric (check what came with the board).
+- Wiper output shaft: the coupler hub is fully parametric (`WIPER`).
+- N20 output shaft diameter and flat (modelled d3, D flat).
+- N20 stall torque (bench test).
+- Shear pin break torque (bench test, 3 spare pins).
+- Spare worm N20: kedge/CLAUDE.md lists one more to buy for the dart. Confirm a third worm N20 exists for the drum.
+- AS5600 magnet size (6 x 2.5 assumed).

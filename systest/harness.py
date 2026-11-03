@@ -731,7 +731,8 @@ sc(Scenario("nominal_uncal", "whole mission with the factory k_n_per_a / free_a 
 
 sc(Scenario("drum_timeout", "drum N20 jams on the way to NEUTRAL after the shot: DRUM_TIMEOUT, operator frees it, Retry",
             triggers=[("jam drum", plant_state("MODE", step="BASE_NEUTRAL", delay=0.3),
-                       lambda r: (r.base.set(drumJam=1), later(25, lambda r2: r2.base.set(drumJam=0))(r)))],
+                       lambda r: r.base.set(drumJam=1)),
+                      ("operator frees the drum", on_evt("FAULT", after=1.0), lambda r: r.base.set(drumJam=0))],
             extra_checks=[("DRUM_TIMEOUT raised", lambda r, res: (any(e.get("code") == "DRUM_TIMEOUT" for e in r.events),
                                                                   [e for e in r.events if e.get("evt") == "FAULT"]))]))
 
@@ -740,7 +741,8 @@ sc(Scenario("dog_tip", "dog teeth land tip to tip on every engagement: the firmw
 
 sc(Scenario("stall_cock", "the wiper stalls while cocking (STALL), load removed, Retry: no dry fire, mission completes",
             triggers=[("stall load", plant_state("COCK", delay=0.6),
-                       lambda r: (r.base.set(extraLoadNm=20), later(6, lambda r2: r2.base.set(extraLoadNm=0))(r)))],
+                       lambda r: r.base.set(extraLoadNm=20)),
+                      ("load removed", on_evt("FAULT", after=1.0), lambda r: r.base.set(extraLoadNm=0))],
             extra_checks=[("STALL or OVERCURRENT raised", lambda r, res: (any(e.get("code") in ("STALL", "OVERCURRENT") for e in r.events),
                                                                           [e for e in r.events if e.get("evt") == "FAULT"]))]))
 
@@ -778,8 +780,13 @@ sc(Scenario("no_angle_sensor", "AS5600 magnet missing from boot (D12: SW_INDEX f
 
 sc(Scenario("usb_unplug_tow", "USB unplugged for 3 s while the base holds the tow (board loses power), replugged",
             triggers=[("unplug", lambda r: r.step() == "TOW" and r.plant_last.get("state") in ("HOLD", "REEL"),
-                       lambda r: (r.base.ctl("unplug"), later(3.0, lambda r2: r2.base.ctl("replug"))(r)))],
-            extra_checks=[("motors stopped while unplugged", lambda r, res: (True, "see timeline")),
+                       lambda r: (r.base.ctl("unplug"), later(1.0, lambda r2: setattr(r2, "unplugged_plant", r2.base.get()))(r),
+                                  later(3.0, lambda r2: r2.base.ctl("replug"))(r),
+                                  later(4.5, lambda r2: setattr(r2, "replug_plant", r2.base.get()))(r)))],
+            extra_checks=[("motors off while unplugged, no motion by itself after replug",
+                           lambda r, res: (getattr(r, "unplugged_plant", {}).get("wDir") == 0 and getattr(r, "replug_plant", {}).get("wDir") == 0
+                                           and getattr(r, "replug_plant", {}).get("dDir") == 0,
+                                           f"unplugged {getattr(r, 'unplugged_plant', {}).get('wDir')}, after replug state {getattr(r, 'replug_plant', {}).get('state')} wDir {getattr(r, 'replug_plant', {}).get('wDir')}")),
                           ("tow limit respected", c_tow_limit)]))
 
 sc(Scenario("usb_glitch_reel", "USB re-enumerates (no reset) while reeling in: the link recovers",

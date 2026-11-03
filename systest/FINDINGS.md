@@ -67,3 +67,16 @@ harness re-runs green.
   is still the factory 8.0 and there is no load cell; (fw-base / docs) BENCH_TEST or the first-mission checklist
   should make CALIBRATION.md of `free_a` and `k_n_per_a` a hard prerequisite of the first tow.
 - With the calibrated bench (scenario `nominal`) the tow holds at 40.0 N exactly (plant truth 40.03 N).
+
+## F6 (jetson) fault prompt says "went to NEUTRAL" when the base said DRUM_HELD
+
+- Scenario `drum_timeout` (drum N20 jammed during `mode NEUTRAL` after the shot): the base raised DRUM_TIMEOUT and
+  sent `{"evt":"MODE","ok":false,"mode":"LAUNCH","drum_pos":"LAUNCH","err":"DRUM_HELD","why":"drum fault"}`
+  (correct per PROTOCOL.md section 6 / D27: a drum fault holds the drum). The operator prompt read "BASE_NEUTRAL
+  failed: base refused wait: DRUM_TIMEOUT. The base is in FAULT and went to NEUTRAL."
+- Where: `jetson/grappstar/mission.py:327` appends the NEUTRAL sentence for every fault code.
+- Why it matters: the operator is told the collar is out of LAUNCH when it is still in LAUNCH (and in the cocked or
+  wrapped cases the drum is deliberately held). Suggest: read the last MODE event; with `err:"DRUM_HELD"` say "the
+  drum is HELD where it is (<why>)", and only say NEUTRAL when telemetry shows `drum_pos` NEUTRAL.
+- Also: Retry right after DRUM_TIMEOUT re-sends the same `mode` at once (3 retries in 9 s in the log); the prompt
+  could say what to check (N20 wires, drum free to turn, SW_N20 lever) before Retry.

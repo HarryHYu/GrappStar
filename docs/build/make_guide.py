@@ -329,14 +329,32 @@ def build_markdown():
 
 
 # ----------------------------------------------------------------------------------------------- diagram
+PINS_H = os.path.join(ROOT, "firmware/base/grappstar_base/pins.h")
+
+
+def read_pins():
+    """{'PIN_RPWM': 4, ...} from fw-base's pins.h (the GPIO owner)."""
+    pins = {}
+    if os.path.exists(PINS_H):
+        for m in re.finditer(r"^#define\s+(PIN_\w+)\s+(\d+)", open(PINS_H).read(), re.M):
+            pins[m.group(1)] = int(m.group(2))
+    return pins
+
+
 def render_diagram():
     dot = shutil.which("dot")
     src = os.path.join(HERE, "system_electrical.dot")
     if not dot or not os.path.exists(src):
         print("note: graphviz 'dot' not found, keeping the existing diagram files")
         return
-    subprocess.run([dot, "-Tsvg", src, "-o", os.path.join(HERE, "system_electrical.svg")], check=True)
-    subprocess.run([dot, "-Tpng", "-Gdpi=130", src, "-o", os.path.join(HERE, "system_electrical.png")], check=True)
+    pins = read_pins()
+    text = open(src, encoding="utf-8").read()
+    text = re.sub(r"\{(PIN_\w+)\}", lambda m: str(pins.get(m.group(1), "?")), text)
+    filled = os.path.join(HERE, ".system_electrical.filled.dot")
+    with open(filled, "w", encoding="utf-8") as f:
+        f.write(text)
+    subprocess.run([dot, "-Tsvg", filled, "-o", os.path.join(HERE, "system_electrical.svg")], check=True)
+    subprocess.run([dot, "-Tpng", "-Gdpi=130", filled, "-o", os.path.join(HERE, "system_electrical.png")], check=True)
 
 
 # ----------------------------------------------------------------------------------------------- PDF

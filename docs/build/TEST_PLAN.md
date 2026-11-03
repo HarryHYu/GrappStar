@@ -84,8 +84,12 @@ With no dart, `arm` refuses (`NOT_SEATED`): for this stage and stage 5 send
    gives. Each change ends with the right `drum_pos`.
 2. `aim` 15, 30, 45, then the minimum and maximum pitch: 5 rounds. Rail reaches each angle within 1 degree
    (`pitch_deg`) and holds with the motor off.
-3. Cock and fire with no springs: `arm`, then `fire` with the token. The carriage travels back, releases, and the
-   big gear re-engages: 10 cycles.
+3. Cock and fire with stand-in springs: without springs nothing returns the carriage after the release, so the
+   firmware would fault every cycle. Hook two strong rubber bands (or loops of bicycle inner tube) from the spring
+   anchor pins to the carriage hooks instead: enough to pull the carriage home, far too weak to throw anything.
+   Then `cock`, `{"cmd":"decock"}` (the carriage creeps home, `SW_HOME` closes): 5 cycles. Then `arm`, `fire` with
+   the token: the carriage travels back, releases, the bands pull it home, and the big gear re-engages: 10 cycles.
+   Take the bands off afterwards.
 4. Wrap and unwrap, with a spare line through the capstan path and slack: from LAUNCH, `wrap`, `tidy`, `mode`
    REEL, then `unwrap` and `mode` LAUNCH (the stage 7 table without the shot): 10 cycles. Once wrapped and in REEL,
    send `reel` with duty 0.3, wait 3 s, send `stop`.

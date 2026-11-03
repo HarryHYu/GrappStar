@@ -1,43 +1,25 @@
-......................................................................FF [100%]
+......................................................................F. [100%]
 =================================== FAILURES ===================================
 _____________________ test_committed_ballistics_not_stale ______________________
 
-p = Params(battery=Battery(v_full=12.6, v_nom=11.1, v_empty=10.5, r_int=0.04, r_wiring=0.02, r_driver=0.016, fuse_a=20.0),... 'eta': 0.85, 'wraps': 7, 'takeup_n': 5.0, 'tow_limit_n': 50.0, 'overspeed': 2.5}, source='base/spec/params.py v1.2.5')
+p = Params(battery=Battery(v_full=12.6, v_nom=11.1, v_empty=10.5, r_int=0.04, r_wiring=0.02, r_driver=0.016, fuse_a=20.0),... 'eta': 0.85, 'wraps': 7, 'takeup_n': 5.0, 'tow_limit_n': 50.0, 'overspeed': 2.5}, source='base/spec/params.py v1.2.7')
 
     def test_committed_ballistics_not_stale(p):
         meta = json.load(open(META))
->       assert meta["params_source"] == p.source, "ballistics.json was built from other params: run python ballistics.py"
-E       AssertionError: ballistics.json was built from other params: run python ballistics.py
-E       assert 'base/spec/params.py v1.2.3' == 'base/spec/params.py v1.2.5'
+        from common import params_hash
+>       assert meta.get("params_hash") == params_hash(p), "ballistics.json was built from other physics inputs: run python ballistics.py"
+E       AssertionError: ballistics.json was built from other physics inputs: run python ballistics.py
+E       assert '422df832d96e263e' == 'cd6884897df6abd6'
 E         
-E         - base/spec/params.py v1.2.5
-E         ?                          ^
-E         + base/spec/params.py v1.2.3
-E         ?                          ^
+E         - cd6884897df6abd6
+E         + 422df832d96e263e
 
-test_phys_spec.py:79: AssertionError
-___________________________ test_wrap_time_from_spec ___________________________
-
-p = Params(battery=Battery(v_full=12.6, v_nom=11.1, v_empty=10.5, r_int=0.04, r_wiring=0.02, r_driver=0.016, fuse_a=20.0),... 'eta': 0.85, 'wraps': 7, 'takeup_n': 5.0, 'tow_limit_n': 50.0, 'overspeed': 2.5}, source='base/spec/params.py v1.2.5')
-
-    def test_wrap_time_from_spec(p):
-        from retrieve import wrap_loads
-        s = _spec()
-        n = s.DRUM.get("n20") or {}
-        if not n.get("drum_deg_per_s"):
-            pytest.skip("spec has no DRUM.n20.drum_deg_per_s")
-        w = wrap_loads(p)
->       sector = s.DRUM["wrap_turns"] / s.DRUM["cup_turns_per_drum_deg"]
-                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       KeyError: 'cup_turns_per_drum_deg'
-
-test_phys_spec.py:96: KeyError
+test_phys_spec.py:80: AssertionError
 =========================== short test summary info ============================
 FAILED test_phys_spec.py::test_committed_ballistics_not_stale - AssertionErro...
-FAILED test_phys_spec.py::test_wrap_time_from_spec - KeyError: 'cup_turns_per...
-2 failed, 70 passed in 50.02s
+1 failed, 71 passed in 51.96s
 TESTS FAILED (models still run)
-params: base/spec/params.py v1.2.5
+params: base/spec/params.py v1.2.7
 spring: k 0.125 N/mm (formula 0.117), Fi 7.0 N, body coils 98.2, mass 53.0 g, surge 23.6 Hz
 spring safe: 40.9 N (hook torsion), extension 271 mm, Sut 2112 MPa
   pitch_deg            35.000
@@ -50,43 +32,43 @@ spring safe: 40.9 N (hook torsion), extension 271 mm, Sut 2112 MPa
   f_spring_full_n      40.125
   over_catalogue_load  True
   over_catalogue_defl  False
-  v_muzzle             7.041
-  t_stroke_ms          57.250
-  a_peak_g             19.187
-  ke_dart_j            6.916
-  efficiency           0.572
-  ke_carriage_j        1.487
-  f_stop_peak_n        245.415
-  ke_spring_j          0.844
-  f_cord_peak_after_stop_n 398.565
-  coil_clash_v         8.724
+  v_muzzle             6.947
+  t_stroke_ms          57.970
+  a_peak_g             18.680
+  ke_dart_j            6.733
+  efficiency           0.557
+  ke_carriage_j        1.689
+  f_stop_peak_n        265.729
+  ke_spring_j          0.835
+  f_cord_peak_after_stop_n 392.931
+  coil_clash_v         8.297
 ratio sweep at stroke 0.2412
-   {'ratio': 0.5, 'stroke_used_m': 0.121, 'ext_full_mm': 265.0, 'v_muzzle': np.float64(6.027), 'energy_j': 12.084, 'efficiency': np.float64(0.419), 'f_carriage_full_n': 160.5}
-   {'ratio': 0.75, 'stroke_used_m': 0.181, 'ext_full_mm': 265.0, 'v_muzzle': np.float64(6.953), 'energy_j': 12.084, 'efficiency': np.float64(0.558), 'f_carriage_full_n': 107.0}
-   {'ratio': 1.0, 'stroke_used_m': 0.241, 'ext_full_mm': 265.0, 'v_muzzle': np.float64(7.041), 'energy_j': 12.084, 'efficiency': np.float64(0.572), 'f_carriage_full_n': 80.25}
-   {'ratio': 1.5, 'stroke_used_m': 0.241, 'ext_full_mm': 184.6, 'v_muzzle': np.float64(5.058), 'energy_j': 6.44, 'efficiency': np.float64(0.554), 'f_carriage_full_n': 40.1}
-   {'ratio': 2.0, 'stroke_used_m': 0.241, 'ext_full_mm': 144.4, 'v_muzzle': np.float64(3.952), 'energy_j': 4.224, 'efficiency': np.float64(0.516), 'f_carriage_full_n': 25.05}
-   {'ratio': 3.0, 'stroke_used_m': 0.241, 'ext_full_mm': 104.2, 'v_muzzle': np.float64(2.683), 'energy_j': 2.412, 'efficiency': np.float64(0.416), 'f_carriage_full_n': 13.35}
-params: base/spec/params.py v1.2.5
-pitch 40.0 v0 7.03: range 4.07 m, apex 1.36 m, t 0.91 s, impact 6.18 m/s at 57.4 deg, line out 4.1 m, max line pull on dart 0.71 N
-  same shot without tether 5.42 m, vacuum 5.53 m
+   {'ratio': 0.5, 'stroke_used_m': 0.121, 'ext_full_mm': 265.0, 'v_muzzle': np.float64(5.984), 'energy_j': 12.084, 'efficiency': np.float64(0.413), 'f_carriage_full_n': 160.5}
+   {'ratio': 0.75, 'stroke_used_m': 0.181, 'ext_full_mm': 265.0, 'v_muzzle': np.float64(6.877), 'energy_j': 12.084, 'efficiency': np.float64(0.546), 'f_carriage_full_n': 107.0}
+   {'ratio': 1.0, 'stroke_used_m': 0.241, 'ext_full_mm': 265.0, 'v_muzzle': np.float64(6.947), 'energy_j': 12.084, 'efficiency': np.float64(0.557), 'f_carriage_full_n': 80.25}
+   {'ratio': 1.5, 'stroke_used_m': 0.241, 'ext_full_mm': 184.6, 'v_muzzle': np.float64(4.989), 'energy_j': 6.44, 'efficiency': np.float64(0.539), 'f_carriage_full_n': 40.1}
+   {'ratio': 2.0, 'stroke_used_m': 0.241, 'ext_full_mm': 144.4, 'v_muzzle': np.float64(3.89), 'energy_j': 4.224, 'efficiency': np.float64(0.5), 'f_carriage_full_n': 25.05}
+   {'ratio': 3.0, 'stroke_used_m': 0.241, 'ext_full_mm': 104.2, 'v_muzzle': np.float64(2.631), 'energy_j': 2.412, 'efficiency': np.float64(0.4), 'f_carriage_full_n': 13.35}
+params: base/spec/params.py v1.2.7
+pitch 40.0 v0 6.93: range 3.97 m, apex 1.33 m, t 0.90 s, impact 6.11 m/s at 57.5 deg, line out 4.0 m, max line pull on dart 0.71 N
+  same shot without tether 5.29 m, vacuum 5.40 m
 pitch  v0    range@0.5/0.75/1.0 N      t_flight   apex   impact v / angle (0.75 N)
-    6  7.16   2.59  2.48  2.38    0.36   0.44   6.43 /  26.9
-   11  7.14   3.01  2.86  2.71    0.44   0.51   6.20 /  30.5
-   16  7.11   3.40  3.18  2.98    0.52   0.61   5.99 /  35.0
-   21  7.09   3.73  3.44  3.17    0.60   0.73   5.82 /  40.5
-   26  7.07   3.96  3.60  3.28    0.68   0.86   5.71 /  46.4
-   31  7.05   4.09  3.67  3.29    0.75   1.01   5.66 /  52.6
-   36  7.04   4.12  3.64  3.22    0.81   1.17   5.67 /  58.8
-   41  7.02   4.04  3.52  3.08    0.87   1.33   5.74 /  64.8
-   46  7.01   3.87  3.32  2.87    0.92   1.49   5.86 /  70.4
-brake sensitivity at pitch 31: 0.0 N 5.14 m, 0.5 N 4.09 m, 0.75 N 3.67 m, 1.0 N 3.29 m, 1.5 N 2.68 m, 2.0 N 2.19 m, 3.0 N 1.52 m
-CdA sensitivity: 2370 mm2 4.10 m, 2860 mm2 4.09 m
-params: base/spec/params.py v1.2.5
+    6  7.07   2.54  2.44  2.34    0.36   0.44   6.35 /  27.2
+   11  7.04   2.96  2.80  2.66    0.44   0.51   6.12 /  30.8
+   16  7.02   3.34  3.12  2.92    0.52   0.60   5.92 /  35.3
+   21  7.00   3.65  3.36  3.10    0.59   0.72   5.76 /  40.7
+   26  6.98   3.87  3.52  3.20    0.67   0.85   5.65 /  46.6
+   31  6.96   4.00  3.58  3.22    0.74   1.00   5.60 /  52.8
+   36  6.94   4.02  3.55  3.15    0.80   1.15   5.62 /  59.0
+   41  6.93   3.95  3.44  3.00    0.86   1.31   5.69 /  64.9
+   46  6.92   3.77  3.24  2.80    0.91   1.46   5.80 /  70.5
+brake sensitivity at pitch 31: 0.0 N 5.03 m, 0.5 N 4.00 m, 0.75 N 3.58 m, 1.0 N 3.22 m, 1.5 N 2.61 m, 2.0 N 2.14 m, 3.0 N 1.49 m
+CdA sensitivity: 2370 mm2 4.00 m, 2860 mm2 3.99 m
+params: base/spec/params.py v1.2.7
 reel: empty 46.1 g, I empty 22.03 kg mm2, full 31.44 kg mm2, r full 30.7 mm, capacity 42.1 m, flange margin 5.3 mm
-shoes=False: v0 7.03 m/s, range 3.80 m, rpm max 2184, line at dart max 1.59 N, spin-up in stroke 5.61 N, slack in flight 0.00 m, overrun after landing 0.21 m in 0.13 s, bird's nest risk low
-shoes=True: v0 7.03 m/s, range 3.41 m, rpm max 2184, line at dart max 2.05 N, spin-up in stroke 5.61 N, slack in flight 0.00 m, overrun after landing 0.16 m in 0.12 s, bird's nest risk low
-capstan d 40 mm, ratio 0.43999999999999995, eta 0.85, wraps 7, take-up 5.0 N, mu 0.15, tow 50.0 N  [base/spec/params.py v1.2.5]
+shoes=False: v0 6.93 m/s, range 3.71 m, rpm max 2154, line at dart max 1.56 N, spin-up in stroke 5.49 N, slack in flight 0.00 m, overrun after landing 0.21 m in 0.13 s, bird's nest risk low
+shoes=True: v0 6.93 m/s, range 3.33 m, rpm max 2154, line at dart max 2.03 N, spin-up in stroke 5.49 N, slack in flight 0.00 m, overrun after landing 0.16 m in 0.11 s, bird's nest risk low
+capstan d 40 mm, ratio 0.43999999999999995, eta 0.85, wraps 7, take-up 5.0 N, mu 0.15, tow 50.0 N  [base/spec/params.py v1.2.7]
 wraps needed: raw 2.44, design 4 (x1.5)   e^(2 pi mu n) = 733.1
 take-up clutch 153.6 N mm: hold 5.00 to 6.15 N, overspeed 2.50 to 3.07 over 0 to 20 m on the reel
 max hold with 7 wraps: 3666 N (mu low, full reel), 4505 N (mu low, empty), 366303 N (mu high); take-up needed for tow: 0.07 N
@@ -113,7 +95,7 @@ reel 20 m at 3.0 N: 0.181 m/s, 110 s
 parts at tow: drum T 1.21 N m, line p 2.5 MPa, hoop 6.3 MPa, 608 radial 28 N (s0 49.8)
 parts at limiter (5 N m): drum T 1.87 N m (shaft True, key True, sprag True), line p 4.2 MPa
 
-FIRMWARE TRIP: ignore current for 50 ms after start; hard trip for 30 ms at 5.0 A in aim, 6.0 A in REEL (4.09 N m at the wiper), 6.5 A while cocking (4.55 N m); capstan gear sf at that torque 2.43, line 67 N; tow trip = measured free current + 3.48 A, averaged over 200 ms
+FIRMWARE TRIP: ignore current for 50 ms after start; hard trip for 30 ms at 5.0 A in reel-in (D33; 3.0 A recommended in aim), 6.5 A towing (4.55 N m at the wiper), 6.5 A while cocking (4.55 N m); capstan gear sf at that torque 2.18, line 76 N; tow trip = measured free current + 3.48 A, averaged over 200 ms
  note: the 5 N m torque limiter in the wiper coupler caps the train at 5 N m (motor current while it slips 7.0 A); sprag #2 plus the self-locking worm still lock in the line tension after a trip, so the trip must stop the motor before the limiter slips for long (heat, wear)
  note: the 20 A fuse holds a 17 A motor stall (no limiter) and the 7.0 A limiter slip indefinitely: it is wiring protection only
  note: BTS7960 IS reads the high side only (zero in the PWM off-time): sample in the on-time or scale by duty
@@ -121,41 +103,41 @@ FIRMWARE TRIP: ignore current for 50 ms after start; hard trip for 30 ms at 5.0 
 WARNINGS:
  - at limiter (5 N m): line pull 84 N (empty reel; 83 N full reel): above dart holding in sand, loam
  - at limiter (5 N m): wraps hold 366303 N at mu high, the line does not slip on the drum: the firmware current limit must protect the dart and line
- - 6.0 A hard trip still allows 67 N on the line (above sand, loam): the tow trip must act first
+ - 6.5 A hard trip still allows 76 N on the line (above sand, loam): the tow trip must act first
 INFO:
  - motor stall (no limiter) at 12.6 V: 14.06 N m, 17.0 A, line 254 N (above dart holding in sand, loam, clay)
  - motor stall (no limiter) at 11.1 V: 12.22 N m, 14.9 A, line 219 N (above dart holding in sand, loam, clay)
  - parts at motor stall (no limiter): drum T 5.26 N m, all pass; only reached if the limiter seizes
 wrote /home/user/GrappStar/base/out/physics/capstan.json
-[base/spec/params.py v1.2.5]  motor stall (no limiter) 14.06 N m / 17.0 A at 12.6 V, 12.22 N m / 14.9 A at 11.1 V; free 47.0 rpm at 12.6 V
+[base/spec/params.py v1.2.7]  motor stall (no limiter) 14.06 N m / 17.0 A at 12.6 V, 12.22 N m / 14.9 A at 11.1 V; free 47.0 rpm at 12.6 V
   at limiter (5 N m): 5.00 N m, 7.0 A while slipping (this is what every train sees)
 fn       Tpk  Tmean   rpm   Ipk Imean %stall  %lim  time s     Wh shaftNm gear sf
-aim     0.32   0.12  40.4  1.86  1.64    2.6   6.5     6.6  0.033    0.72   13.16
-cock    2.93   1.84  34.7  4.73  3.53   24.0  58.7     2.7  0.028    4.06    2.83
+aim     0.33   0.12  40.4  1.86  1.64    2.7   6.5     6.6  0.033    0.72    5.90
+cock    2.93   1.85  34.7  4.73  3.53   24.0  58.7     2.7  0.028    4.06    2.82
 reel    0.82   0.82  38.1  2.40  2.40    6.7  16.4   110.3  0.804    0.31   11.70
 tow     3.23   3.23  30.1  5.05  5.05   26.4  64.6    34.9  0.525    1.21    3.00
   %stall = peak / motor stall (no limiter, 11.1 V); %lim = peak / limiter (flag above 80 %)
 tow 3.23 N m at 50 N: 5.05 A, 30.1 wiper rpm; limiter slip line force 84 N (empty reel) / 83 N (full reel) vs dart holding sand 7, loam 45, clay 112 N, line break 667 N
-aim: mass 1.24 kg, screw eff 0.23, self-locking True, crank torque 0.716 N m raising / 0.501 gravity-assisted, worm turns per crank turn 20
-cock: spring ext 265 mm (safe 271), springs 80.2 N, carriage peak 81.2 N
+aim: mass 1.25 kg, screw eff 0.23, self-locking True, crank torque 0.722 N m raising / 0.505 gravity-assisted, worm turns per crank turn 20
+cock: spring ext 265 mm (safe 271), springs 80.2 N, carriage peak 81.3 N
 total energy 1.390 Wh
 
-FIRMWARE TRIP: ignore current for 50 ms after start; hard trip for 30 ms at 5.0 A in aim, 6.0 A in REEL (4.09 N m at the wiper), 6.5 A while cocking (4.55 N m); tow trip = measured free current + 3.48 A, averaged over 200 ms
-  gear sf at the hard trip: aim 1.37, cock 1.86, reel 2.43, tow 2.43; shaft at trip: aim 7.09, cock 6.29, reel 1.53, tow 1.53 N m
+FIRMWARE TRIP: ignore current for 50 ms after start; hard trip for 30 ms at 5.0 A in reel-in (D33; 3.0 A recommended in aim), 6.5 A towing (4.55 N m at the wiper), 6.5 A while cocking (4.55 N m); tow trip = measured free current + 3.48 A, averaged over 200 ms
+  gear sf at the hard trip: aim 1.44, cock 1.86, reel 3.12, tow 2.18; shaft at trip: aim 3.04, cock 6.29, reel 1.19, tow 1.70 N m
   note: the 5 N m torque limiter in the wiper coupler caps the train at 5 N m (motor current while it slips 7.0 A); sprag #2 plus the self-locking worm still lock in the line tension after a trip, so the trip must stop the motor before the limiter slips for long (heat, wear)
   note: the 20 A fuse holds a 17 A motor stall (no limiter) and the 7.0 A limiter slip indefinitely: it is wiring protection only
   note: BTS7960 IS reads the high side only (zero in the PWM off-time): sample in the on-time or scale by duty
 
 FLAGS:
  - aim (at limiter (5 N m)): keyed shaft 11.1 N m over the Kt 2 limit 9.4 N m
- - aim (at limiter (5 N m)): gear fails (sf 0.87); relies on the trip
+ - aim (at limiter (5 N m)): gear fails (sf 0.39); relies on the trip
  - 20 A blade survives 18 A for minutes and holds a 17.0 A motor stall (no limiter) indefinitely: the firmware current trip is the only stall protection (motor and BTS heating)
  - at limiter (5 N m): line pull 84 N (empty reel; 83 N full reel): above dart holding in sand, loam
  - at limiter (5 N m): wraps hold 366303 N at mu high, the line does not slip on the drum: the firmware current limit must protect the dart and line
- - 6.0 A hard trip still allows 67 N on the line (above sand, loam): the tow trip must act first
+ - 6.5 A hard trip still allows 76 N on the line (above sand, loam): the tow trip must act first
 
 INFO:
- - aim: motor stall (no limiter) 14.06 N m: shaft 31.3 N m (fail), gear sf 0.31; only if the limiter seizes
+ - aim: motor stall (no limiter) 14.06 N m: shaft 31.3 N m (fail), gear sf 0.14; only if the limiter seizes
  - cock: motor stall (no limiter) 14.06 N m: shaft 19.5 N m (fail), gear sf 0.60; only if the limiter seizes
  - reel: motor stall (no limiter) 14.06 N m: shaft 5.3 N m (ok), gear sf 0.71; only if the limiter seizes
  - tow: motor stall (no limiter) 14.06 N m: shaft 5.3 N m (ok), gear sf 0.71; only if the limiter seizes
@@ -164,18 +146,18 @@ INFO:
  - motor stall (no limiter) at 11.1 V: 12.22 N m, 14.9 A, line 219 N (above dart holding in sand, loam, clay)
  - parts at motor stall (no limiter): drum T 5.26 N m, all pass; only reached if the limiter seizes
 wrote /home/user/GrappStar/base/out/physics/drivetrain.json
-params: base/spec/params.py v1.2.5; base: v 7.04 m/s, range 4.28 m at 35.0 deg
+params: base/spec/params.py v1.2.7; base: v 6.95 m/s, range 4.18 m at 35.0 deg
 input                              low      high  range low / high   swing
-reel brake N                       0.5         1   4.28 /  3.41   0.87 m
-spring initial tension N             5        10   3.94 /  4.77   0.83 m
-spring rate N/mm (each)           0.11      0.14   3.93 /  4.62   0.69 m
+reel brake N                       0.5         1   4.18 /  3.33   0.85 m
+spring initial tension N             5        10   3.85 /  4.66   0.81 m
+spring rate N/mm (each)           0.11      0.14   3.84 /  4.51   0.67 m
 carriage mass kg                  0.03      0.08   4.60 /  4.08   0.52 m
-guide eye gain                       1       1.4   4.63 /  4.23   0.40 m
-rail friction mu                  0.15       0.4   4.48 /  4.14   0.33 m
-dart mass kg                     0.265       0.3   4.38 /  4.13   0.25 m
-line mass kg/m                  0.0005   0.00075   4.29 /  4.26   0.03 m
-dart CdA m2                    0.00237   0.00286   4.28 /  4.27   0.01 m
-muzzle height m                    0.3       0.5   4.28 /  4.28   0.00 m
+guide eye gain                       1       1.4   4.52 /  4.13   0.39 m
+rail friction mu                  0.15       0.4   4.37 /  4.05   0.33 m
+dart mass kg                     0.265       0.3   4.27 /  4.04   0.23 m
+line mass kg/m                  0.0005   0.00075   4.19 /  4.16   0.03 m
+dart CdA m2                    0.00237   0.00286   4.18 /  4.17   0.01 m
+muzzle height m                    0.3       0.5   4.18 /  4.18   0.00 m
 bal  v0  pitch  T_N  tumb  nose1st  max|a|>0.3s  theta_imp      alpha_imp      range_m
  15    6    10  0.00   3/9    4/9     140.4    -96.9..116.1   -73.2..140.4   2.1..2.3
  15    6    10  0.50   0/9    9/9      30.2    -56.0..-7.9    -30.2..19.6    2.1..2.2
@@ -328,21 +310,21 @@ bal  v0  pitch  T_N  tumb  nose1st  max|a|>0.3s  theta_imp      alpha_imp      r
  }
 }
 wrote /home/user/GrappStar/base/out/physics/attitude.json and attitude.png
-params: base/spec/params.py v1.2.5
+params: base/spec/params.py v1.2.7
 pitch  F peak  back-tip moment / resisting (margin)   stop KE  pad peak lin/const  front-tip margin
-    6   80.2 N  27.50 /  5.89 N m (0.2)   2.40 J  252 / 126 N  0.06
-   20   80.2 N  23.32 /  5.89 N m (0.3)   2.36 J  249 / 124 N  0.06
-   36   80.2 N  17.22 /  5.89 N m (0.3)   2.33 J  245 / 123 N  0.06
-   47   80.2 N  12.43 /  5.89 N m (0.5)   2.31 J  243 / 122 N  0.06
-  pitch 6: net pulse (stroke - stop): back rock 5.8 deg braked, 1.1 deg rolling free (tips False), front rock 0.0 deg
-  pitch 20: net pulse (stroke - stop): back rock 3.0 deg braked, 0.8 deg rolling free (tips False), front rock 0.0 deg
-  pitch 36: net pulse (stroke - stop): back rock 0.6 deg braked, 0.2 deg rolling free (tips False), front rock 0.0 deg
+    6   80.2 N  27.50 /  5.89 N m (0.2)   2.60 J  273 / 137 N  0.06
+   20   80.2 N  23.32 /  5.89 N m (0.3)   2.56 J  269 / 135 N  0.06
+   36   80.2 N  17.22 /  5.89 N m (0.3)   2.52 J  265 / 133 N  0.06
+   47   80.2 N  12.43 /  5.89 N m (0.5)   2.50 J  264 / 132 N  0.06
+  pitch 6: net pulse (stroke - stop): back rock 5.3 deg braked, 1.0 deg rolling free (tips False), front rock 0.0 deg
+  pitch 20: net pulse (stroke - stop): back rock 2.8 deg braked, 0.6 deg rolling free (tips False), front rock 0.0 deg
+  pitch 36: net pulse (stroke - stop): back rock 0.5 deg braked, 0.1 deg rolling free (tips False), front rock 0.0 deg
   pitch 47: net pulse (stroke - stop): back rock 0.0 deg braked, 0.0 deg rolling free (tips False), front rock 0.0 deg
-stop travel for a 300 N peak with a linear pad: 16 mm; dart impulse 1.96 N s
-2 springs: 12.1 J, v 7.04 m/s, eff 0.57, carriage force 80 N, 19 g, stop KE 2.33 J, range 0.5/0.75/1.0 N: 4.29 / 3.84 / 3.44
-4 springs: 24.2 J, v 9.77 m/s, eff 0.55, carriage force 160 N, 39 g, stop KE 6.09 J, range 0.5/0.75/1.0 N: 7.69 / 6.89 / 6.20
-params: base/spec/params.py v1.2.5
-1. snatch: taut line 7.04 m/s; with 245 mm slack: 7.54 m/s at the muzzle, 6.49 after the snatch (7.8 % slower than taut, 1.10 J lost), line spike up to 272 N (undamped bound)
+stop travel for a 300 N peak with a linear pad: 17 mm; dart impulse 1.94 N s
+2 springs: 12.1 J, v 6.94 m/s, eff 0.56, carriage force 80 N, 19 g, stop KE 2.52 J, range 0.5/0.75/1.0 N: 4.19 / 3.75 / 3.36
+4 springs (NOT SUPPORTED IN v1, D38: cocking needs 5.8 N m, above the shear pin): 24.2 J, v 9.68 m/s, eff 0.54, carriage force 160 N, 38 g, stop KE 6.37 J, range 0.5/0.75/1.0 N: 7.55 / 6.77 / 6.09
+params: base/spec/params.py v1.2.7
+1. snatch: taut line 6.94 m/s; with 245 mm slack: 7.42 m/s at the muzzle, 6.39 after the snatch (7.9 % slower than taut, 1.07 J lost), line spike up to 268 N (undamped bound)
 2. wrap (7.0 cup turns in 240 deg of drum, light clutch 0.5 N, 0.90 m drawn, ~30 s):
    20.0 m on reel: ring pull 1.10 N, cup 33 N mm, drum 0.493 N m, N20 46 N mm (23 % of 0.2 N m)
     5.0 m on reel: ring pull 1.27 N, cup 38 N mm, drum 0.571 N m, N20 53 N mm (26 % of 0.2 N m)
@@ -372,7 +354,7 @@ params: base/spec/params.py v1.2.5
    full (20 m in)             snag       duty 0.3: CLUTCH SLIPS (needs > 5.0 N), line stops
    full (20 m in)             snag       duty 0.5: CLUTCH SLIPS (needs > 5.0 N), line stops
    full (20 m in)             snag       duty 1.0: CLUTCH SLIPS (needs > 5.0 N), line stops
-params: base/spec/params.py v1.2.5
+params: base/spec/params.py v1.2.7
   aim (worst case full 6 to 47 deg)                             6.6 s    32.9 mWh  
   drum to LAUNCH                                                3.0 s     1.1 mWh  N20 ASSUMED
   cock + fire + reset                                           2.7 s    28.3 mWh  
@@ -386,26 +368,26 @@ params: base/spec/params.py v1.2.5
   reel the dart home 5 m                                       27.6 s   200.9 mWh  
   drum to LAUNCH (ready)                                        3.0 s     1.1 mWh  
 total 214 s (3.6 min), 0.75 Wh incl. 0.24 Wh idle; about 62 missions per 3S 5200 mAh pack (80 % usable, base side only)
-params: base/spec/params.py v1.2.5
+params: base/spec/params.py v1.2.7
 pitch  v0     range 0.5/0.75/1.0 N     t_flight      apex
-  6.0  6.60   2.30  2.21  2.13  0.36 0.35 0.35  0.43 0.43 0.43
-  8.5  6.59   2.48  2.38  2.28  0.39 0.39 0.38  0.46 0.46 0.46
- 11.0  6.58   2.65  2.53  2.41  0.43 0.42 0.42  0.49 0.49 0.49
- 13.5  6.57   2.83  2.68  2.54  0.47 0.46 0.45  0.54 0.53 0.53
- 16.0  6.56   2.99  2.82  2.65  0.51 0.50 0.49  0.58 0.57 0.57
- 18.5  6.55   3.14  2.94  2.75  0.55 0.53 0.52  0.63 0.62 0.62
- 21.0  6.54   3.28  3.05  2.84  0.58 0.57 0.56  0.69 0.68 0.67
- 23.5  6.53   3.40  3.14  2.91  0.62 0.61 0.59  0.75 0.74 0.72
- 26.0  6.52   3.50  3.22  2.96  0.66 0.64 0.62  0.82 0.80 0.78
- 28.5  6.51   3.59  3.27  2.99  0.70 0.68 0.66  0.89 0.86 0.84
- 31.0  6.50   3.65  3.31  3.01  0.74 0.71 0.69  0.96 0.93 0.91
- 33.5  6.50   3.70  3.33  3.01  0.78 0.74 0.72  1.03 1.00 0.97
- 36.0  6.49   3.72  3.33  2.99  0.81 0.78 0.75  1.11 1.07 1.04
- 38.5  6.48   3.73  3.31  2.95  0.85 0.81 0.78  1.19 1.15 1.11
- 41.0  6.48   3.71  3.27  2.90  0.88 0.84 0.80  1.27 1.22 1.18
- 43.5  6.47   3.67  3.21  2.83  0.91 0.87 0.83  1.35 1.30 1.25
- 46.0  6.46   3.60  3.14  2.74  0.94 0.90 0.85  1.43 1.37 1.31
- 47.0  6.46   3.57  3.10  2.71  0.96 0.91 0.86  1.47 1.40 1.34
+  6.0  7.07   2.49  2.40  2.32  0.36 0.36 0.36  0.44 0.44 0.44
+  8.5  7.05   2.70  2.60  2.49  0.40 0.40 0.39  0.47 0.47 0.46
+ 11.0  7.04   2.91  2.78  2.65  0.44 0.43 0.43  0.51 0.50 0.50
+ 13.5  7.03   3.11  2.96  2.81  0.48 0.47 0.47  0.55 0.55 0.54
+ 16.0  7.02   3.31  3.12  2.94  0.52 0.51 0.50  0.60 0.60 0.59
+ 18.5  7.01   3.49  3.27  3.06  0.57 0.55 0.54  0.66 0.65 0.64
+ 21.0  7.00   3.65  3.40  3.17  0.61 0.59 0.58  0.72 0.71 0.70
+ 23.5  6.99   3.79  3.51  3.25  0.65 0.63 0.62  0.80 0.78 0.76
+ 26.0  6.98   3.92  3.60  3.32  0.69 0.67 0.65  0.87 0.85 0.83
+ 28.5  6.97   4.02  3.67  3.36  0.73 0.71 0.69  0.95 0.92 0.90
+ 31.0  6.96   4.10  3.72  3.38  0.78 0.75 0.72  1.03 1.00 0.97
+ 33.5  6.95   4.16  3.75  3.38  0.81 0.78 0.76  1.12 1.08 1.05
+ 36.0  6.94   4.19  3.75  3.36  0.85 0.82 0.79  1.21 1.16 1.12
+ 38.5  6.94   4.19  3.73  3.33  0.89 0.85 0.82  1.29 1.25 1.20
+ 41.0  6.93   4.18  3.69  3.27  0.93 0.89 0.85  1.39 1.33 1.28
+ 43.5  6.92   4.13  3.62  3.19  0.96 0.92 0.87  1.48 1.41 1.36
+ 46.0  6.92   4.07  3.54  3.10  1.00 0.95 0.90  1.57 1.50 1.43
+ 47.0  6.91   4.03  3.50  3.06  1.01 0.96 0.91  1.61 1.53 1.46
 wrote /home/user/GrappStar/base/out/ballistics.json
 Spring (each, A228, SF 1.2 on Shigley static limits)
   Rate used / by formula                   0.125 / 0.117 N/mm
@@ -419,24 +401,24 @@ Launch (chain spring model)
   Spring extension full / rest             265 / 24 mm
   Stored energy (2 springs)                12.1 J
   Carriage force at full draw              80 N
-  Muzzle speed                             7.04 m/s
-  Peak acceleration, stroke time           19 g, 57 ms
-  Efficiency (dart KE / stored)            57 %
-  Carriage KE at stop, pad peak            1.49 J, 245 N (19 mm pad)
-  Spring KE at stop, coil clash            0.84 J, 8.7 m/s
+  Muzzle speed                             6.95 m/s
+  Peak acceleration, stroke time           19 g, 58 ms
+  Efficiency (dart KE / stored)            56 %
+  Carriage KE at stop, pad peak            1.69 J, 266 N (19 mm pad)
+  Spring KE at stop, coil clash            0.84 J, 8.3 m/s
 Flight (bead-chain tether + reel model, level ground)
-  Line path at the shot                    slack 72 mm: snatch, flight starts at 6.50 m/s
-  Range at 0.5 / 0.75 / 1.0 N brake        3.70 / 3.33 / 3.01 m (pitch 34)
-  Same shot, no tether                     4.58 m
-  Flight time, apex (0.75 N)               0.75 s, 1.00 m
-  Impact speed, angle (0.75 N)             5.4 m/s, 55 deg down
-  Ballistics table                         6 to 47 deg, best 33.5 deg: 3.33 m
+  Line path at the shot                    taut (path only lengthens)
+  Range at 0.5 / 0.75 / 1.0 N brake        4.19 / 3.75 / 3.36 m (pitch 36)
+  Same shot, no tether                     5.22 m
+  Flight time, apex (0.75 N)               0.82 s, 1.16 m
+  Impact speed, angle (0.75 N)             5.7 m/s, 57 deg down
+  Ballistics table                         6 to 47 deg, best 36.0 deg: 3.75 m
 Storage reel payout (LIGHT 0.5 N at full reel)
   Reel empty mass, inertia full            46 g, 31.4 kg mm2
   Line radius full / core                  30.7 / 25.0 mm (brake +23 % at core)
-  Line pull in the stroke (spin-up)        4.61 N
-  Reel rpm max                             2019 rpm
-  Overrun after landing                    0.53 m in 0.26 s
+  Line pull in the stroke (spin-up)        5.17 N
+  Reel rpm max                             2158 rpm
+  Overrun after landing                    0.54 m in 0.26 s
 Capstan and tow
   Wraps for tow limit (mu 0.15)            2.4 raw, 4 design
   Take-up needed (design wraps)            0.07 N
@@ -445,7 +427,7 @@ Capstan and tow
   Line pull, motor stall (no limiter, 12.6 V) 254 N
   Tow sensing: line N per wiper amp above free 17.0 N/A (line = 17.0 x (I - I_free) - 10.4 N)
 Drivetrain (wiper at 11.1 V with sag)
-  aim: peak torque, current, time          0.32 N m, 1.9 A, 7 s
+  aim: peak torque, current, time          0.33 N m, 1.9 A, 7 s
   cock: peak torque, current, time         2.93 N m, 4.7 A, 3 s
   reel: peak torque, current, time         0.82 N m, 2.4 A, 110 s
   tow: peak torque, current, time          3.23 N m, 5.1 A, 35 s

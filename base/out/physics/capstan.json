@@ -13,7 +13,7 @@
   "eta": 0.85,
   "overspeed": 2.5,
   "light_n": 3.0,
-  "source": "base/spec/params.py v1.2.5"
+  "source": "base/spec/params.py v1.2.7"
  },
  "takeup": {
   "clutch_torque": 0.15362562593389975,
@@ -307,18 +307,18 @@
  },
  "fw_trip": {
   "blank_ms": 50,
-  "hard_a": 6.0,
+  "hard_a": 6.5,
   "hard_ms": 30,
-  "hard_torque": 4.090909090909091,
-  "hard_gear_sf": 2.4273333333333333,
+  "hard_torque": 4.545454545454545,
+  "hard_gear_sf": 2.1846,
   "hard_gear_pass": true,
-  "hard_drum_torque": 1.5299999999999998,
-  "hard_line_n": 67.28246244396601,
+  "hard_drum_torque": 1.6999999999999995,
+  "hard_line_n": 75.78246244396598,
   "tow_trip_delta_a": 3.483384562119647,
   "tow_trip_avg_ms": 200,
   "tow_trip_rule": "measured free current + 3.48 A, averaged over 200 ms",
   "notes": [
-   "ignore current for 50 ms after start; hard trip for 30 ms at 5.0 A in aim, 6.0 A in REEL (4.09 N m at the wiper), 6.5 A while cocking (4.55 N m)",
+   "ignore current for 50 ms after start; hard trip for 30 ms at 5.0 A in reel-in (D33; 3.0 A recommended in aim), 6.5 A towing (4.55 N m at the wiper), 6.5 A while cocking (4.55 N m)",
    "the 5 N m torque limiter in the wiper coupler caps the train at 5 N m (motor current while it slips 7.0 A); sprag #2 plus the self-locking worm still lock in the line tension after a trip, so the trip must stop the motor before the limiter slips for long (heat, wear)",
    "the 20 A fuse holds a 17 A motor stall (no limiter) and the 7.0 A limiter slip indefinitely: it is wiring protection only",
    "BTS7960 IS reads the high side only (zero in the PWM off-time): sample in the on-time or scale by duty"
@@ -672,6 +672,6 @@
  "warnings": [
   "at limiter (5 N m): line pull 84 N (empty reel; 83 N full reel): above dart holding in sand, loam",
   "at limiter (5 N m): wraps hold 366303 N at mu high, the line does not slip on the drum: the firmware current limit must protect the dart and line",
-  "6.0 A hard trip still allows 67 N on the line (above sand, loam): the tow trip must act first"
+  "6.5 A hard trip still allows 76 N on the line (above sand, loam): the tow trip must act first"
  ]
 }

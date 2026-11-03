@@ -119,6 +119,10 @@ def write_md(rep, subs, args, git_rev, secs):
         L.append(f"## Joint limits ({len(lim)})")
         L += [f"- {x}" for x in lim]
         L.append("")
+    notes = os.path.join(os.path.dirname(os.path.abspath(__file__)), "integration_notes.md")
+    if os.path.exists(notes):
+        L.append(open(notes).read().strip())
+        L.append("")
     L.append("Method: exact manifold intersection of every part pair over the mission timeline plus each subsystem's "
              "audit_states; pairs that never change relative pose are checked once. Allowed contacts are not listed.")
     with open(OUT_MD, "w") as fh:

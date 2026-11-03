@@ -71,6 +71,7 @@ FRAMEWORK_DEFAULT = dict(
                        bridge_z=(-22.0, 22.0)),   # v1.x motor plate, bridge and leg (relative to the main axis, y world)
     plate_back=75.0,        # v1.0 plates: start as a rectangle this far behind the main axis ...
     plate_front=105.0,      # ... and this far in front, deck to above the axis, then carved round the others
+    adapter_carve=False,    # carve the adapter round the others (off: the adapter zone r 49, y 0..24 must stay clear)
     band=True,              # guard band round the cheek box
     band_cut=True,          # cut openings where the other subsystems pass (swept parts + 4 mm)
 )
@@ -259,7 +260,7 @@ def motor_support_v1(P, C, info, mo):
     sp = fw["motor_support"]
     plate = prim.box(mx + sp["plate_x"][0], mx + sp["plate_x"][1], y0, y1, mz + sp["plate_z"][0], mz + sp["plate_z"][1])
     bx0, bx1 = mx + sp["leg_x"][0], mx + sp["leg_x"][1]
-    bridge = prim.box(bx0, bx1, sp["leg_y"][1] - 0.01, y0 + 0.01, mz + sp["bridge_z"][0], mz + sp["bridge_z"][1])
+    bridge = prim.box(bx0, bx1, sp["leg_y"][1], y0 + 0.01, mz + sp["bridge_z"][0], mz + sp["bridge_z"][1])
     plate = plate + bridge
     cuts = [prim.cylY(MOT.CHEEK_HOLE_D / 2, y0 - 1, y1 + 1, mx, mz),
             prim.cylY(MOT.HUB_R + 0.3, min(yo, yo - s * MOT.SPIGOT_H) - 0.01, max(yo, yo - s * MOT.SPIGOT_H) + 0.01, mx, mz)]
@@ -682,6 +683,27 @@ def build(P):
         ad = MOT.adapter_plate(w, standoff)
         Mad = tf.frame((mo[0], yo + ms * MOT.PLATE_T, mo[2]), zdir, xh)    # the ring is fixed; rot only moves the slots
         ad_rot = ad                                   # slots already turned by rot_deg; the ring stays fixed
+        if C["v1"] and fw["adapter_carve"]:
+            # carve the adapter wings round the other subsystems (drum index block, reel sprag hub) in the adapter
+            # frame; the slots and the ring inserts must survive (checked)
+            carve = _swept_no_axis(C, (mo[0], mo[2]))
+            if not carve.is_empty():
+                Minv = tf.inv(Mad)
+                cut_local = prim.place(carve, Minv)
+                ad_c = ad_rot - cut_local
+                lost = ad_rot.volume() - ad_c.volume()
+                if lost > 1.0:
+                    info.setdefault("adapter_carved_mm3", lost)
+                    for (hx, hy, hd) in MOT.holes_rot(w):
+                        probe = prim.cyl(w["bolt_head_d"] / 2 + 2.0, MOT.PLATE_T, hx, hy, 0.0)
+                        if (probe ^ cut_local).volume() > 1.0:
+                            info["warnings"].append(f"adapter carve reaches the motor hole at ({hx:.0f}, {hy:.0f})")
+                    for i in MOT.ring_used(w):
+                        rx, ry = MOT.ring_xy(i)
+                        probe = prim.cyl(U.INS_D / 2 + 2.0, 10.0, rx, ry, MOT.PLATE_T)
+                        if (probe ^ cut_local).volume() > 1.0:
+                            info["warnings"].append(f"adapter carve reaches ring insert {i}")
+                    ad_rot = sorted(ad_c.decompose(), key=lambda m: -m.volume())[0]
         parts.append(Part("frame_motor_adapter", ad_rot, "PPA-CF", place=Mad, print_tf=U.print_flat(ad_rot),
                           color="#c9b27a",
                           notes="wiper adapter plate: slotted M6 holes (+-%.0f mm) for the motor bosses, 6 x M3 to the cheek ring; reprint when the motor is measured" % w["slot"]))
@@ -887,6 +909,7 @@ def allowed(P):
         Allow("frame_deck*", "frame_deck*", "dovetail seam", max_vol=1.0),
         Allow("frame_cheek_*", "frame_cheek_*", "cheek dovetail seam", max_vol=1.0),
         Allow("frame_rc832", "frame_rc832_holder", "receiver in its slot", max_vol=1.0),
+        Allow("frame_motor_leg", "frame_cheek_r", "leg bolted to the bridge face", max_vol=1.0),
         Allow("frame_kiyo_x", "frame_camera_mount", "camera clip on the edge plate", max_vol=50.0),
         Allow("frame_guard_band_*", "frame_cheek_*", "band lugs bear on the cheek inner faces", max_vol=1.0),
         Allow("frame_guard_band_*", "frame_guard_band_*", "band segments butt", max_vol=1.0),

@@ -1,6 +1,6 @@
 # Drum subsystem notes (worker cad-drum): main shaft, dog clutch, N20 selector drum
 
-Status: v6, 3 Nov 2026 13:00 Sydney. Conforms to params.py v1.2.3. Deviations are in section 0.
+Status: v6, 3 Nov 2026 13:05 Sydney. Conforms to params.py v1.2.6. Deviations are in section 0.
 
 Every number lives in code:
 - `_drum_kin.py` DEFAULTS: angles, groove and clutch profiles, Gray code, stop plan, timing, loads. It has no CAD
@@ -114,13 +114,13 @@ A state without wiper_deg takes cad-launch's sleeve angle.
 
 Fork:
 - pads in the collar groove (s 82.3..87.7), yoke 82.3..84.7;
-- sleeve on the rail s 62.3..120.5 (58 long, grease it);
+- sleeve on the rail s 32.3..98.3 at NEUTRAL (66 long, grease it);
 - follower pin d6 at s 91.8, entering the barrel from the main-axis side.
 
 Rail and dog post:
 - `drum_rail` d10 at world (25, z -58), s 1..142.
-- `drum_dog_post` clamps the rail at s 128..133. Its bar runs back to s 69.8; REEL boss to s 72.8, LAUNCH boss from
-  s 94.6.
+- `drum_dog_post` clamps the rail at s 106.5..111.5, clear of the launch rail cheeks (y 123..131). Its bar runs back
+  to s 69.8; REEL boss to s 72.8, LAUNCH boss from s 94.6.
 
 Wrap idler:
 - `drum_idler` shaft: d10 journals in two posts (s 40.5..46.5 and 78..85), d12 between them (the shoulders locate it
@@ -190,13 +190,15 @@ Timing:
    - in REEL: creep forward only (sprag #2 blocks backward).
 
    Leaving LAUNCH or REEL under load: unload jog 8 deg first. SWITCH_DISAGREE after 3 tries.
-4. Fault in LAUNCH or L_TO_N: HOLD the drum unless SW_HOME is closed (spring not drawn), then NEUTRAL (D27). Fault
-   from REEL or N_TO_R: WRAPPED (314) by time from edge 342, never back through the wrap window.
+4. Faults (D27, params 1.2.6):
+   - In LAUNCH or L_TO_N: HOLD the drum unless SW_HOME is closed (spring not drawn), then NEUTRAL.
+   - With the wraps on (WRAP, N_TO_R, REEL): HOLD where it is (DRUM_HELD), never NEUTRAL; the operator unwraps when
+     safe.
+   - REEL to WRAPPED (on operator command): by time from edge 342, never back into the wrap window.
 5. Boot:
    - LAUNCH or L_TO_N: hold until SW_HOME, then NEUTRAL;
    - NEUTRAL or WRAP_PREP: go to NEUTRAL;
-   - WRAP: stop and report;
-   - N_TO_R or REEL: go to WRAPPED.
+   - WRAP, N_TO_R or REEL: hold and report.
 6. SW_N20 open means the hand fallback is active: no drum moves.
 7. SW_INDEX: 6 pulses per wiper turn (degraded mode without the AS5600 magnet).
 8. Positive drum = N20 forward (DRV8833 #3 AIN1 high) = wrap direction.
@@ -218,11 +220,11 @@ Timing:
 ## 9. Loads and strength
 
 - N20 stall estimate 0.22 N m at 9 V (0.20 used). Drum stall capacity 2.16 N m at 12:1.
-- Peak drum load 0.93 N m, margin 2.3 (params rule: at least 2). Peaks per load:
+- Peak drum load 0.92 N m, margin 2.34 (params rule: at least 2). Peaks per load:
 
 | load | peak N m | basis |
 |---|---|---|
-| fork | 0.86 | yoke block force 4.3 N plus 3 N friction, x 2.25 racking: (1 + 2 mu 63.2/58.2) / (1 - 2 mu 36.5/58.2), mu 0.25 greased rail; groove 44 deg |
+| fork | 0.86 | yoke block force 4.3 N plus 3 N friction, x 2.04 racking: (1 + 2 mu 63.2/66) / (1 - 2 mu 36.5/66), mu 0.25 greased rail; groove 44 deg |
 | clutch ramps | 0.78 | 15 N pushrod at FIRM 5 N (cad-reel: 10.8 N at 4 mm, design 15) |
 | wrap | 0.78 | 0.06 N m at the cup x 10.5 / 0.81 |
 

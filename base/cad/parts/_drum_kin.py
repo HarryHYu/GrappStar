@@ -99,6 +99,14 @@ def cfg(P=None):
             for k in ("LAUNCH", "NEUTRAL", "WRAPPED", "REEL"):
                 if ang.get(k) is not None:
                     d[k.lower()] = float(ang[k])
+        n20 = over.get("n20")
+        if isinstance(n20, dict):              # params 1.2.5 interface numbers for the N20 train
+            pin, dg = n20.get("pinion") or {}, n20.get("drum_gear") or {}
+            d["n20_z"] = int(pin.get("teeth", d["n20_z"]))
+            d["drum_gear_m"] = float(dg.get("module", pin.get("module", d["drum_gear_m"])))
+            d["drum_gear_z"] = int(dg.get("teeth", d["drum_gear_z"]))
+            d["n20_stall_nm_9v"] = float(n20.get("stall_nm_design", d["n20_stall_nm_9v"]))
+            d["n20_v"] = float(n20.get("supply_v", d["n20_v"]))
         tg = over.get("targets")
         if isinstance(tg, dict):           # params v1.0 targets; the two on code edges are kept off the edges
             for k, kk in (("LAUNCH", "launch"), ("NEUTRAL", "neutral"), ("REEL", "reel")):
@@ -301,7 +309,7 @@ def cam_eta(slope_mm_per_rad, r_mm, mu=0.3):
     return math.tan(phi) / math.tan(min(phi + rho, math.radians(89.0)))
 
 
-def loads(c=None, r_groove=30.0, r_cam=32.0, arm_pin=36.5, arm_yoke=63.2, sleeve_len=58.2, mu=0.3, mu_rail=0.25,
+def loads(c=None, r_groove=30.0, r_cam=32.0, arm_pin=36.5, arm_yoke=63.2, sleeve_len=66.0, mu=0.3, mu_rail=0.25,
           residual_nm=0.2):
     """Drum torque budget (N m at the drum) along the travel.
 
@@ -312,7 +320,7 @@ def loads(c=None, r_groove=30.0, r_cam=32.0, arm_pin=36.5, arm_yoke=63.2, sleeve
     c = c or DEFAULTS
     eta_gear = 0.9
     # racking of the long fork carrier: pin force / yoke force = (1 + 2 mu a / L) / (1 - 2 mu b / L) with the yoke
-    # reaction a = 63.2 and the pin b = 36.5 from the rail, sleeve L = 58.2, mu 0.25 on a greased rail
+    # reaction a = 63.2 and the pin b = 36.5 from the rail, sleeve L = 66, mu 0.25 on a greased rail
     rack = (1.0 + 2.0 * mu_rail * arm_yoke / sleeve_len) / (1.0 - 2.0 * mu_rail * arm_pin / sleeve_len)
     f_fork = (c["fork_k"] * c["fork_free"] + 3.0) * rack
     r_dog = 0.5 * (c["dog_r_in"] + c["dog_r_out"]) / 1000.0
@@ -413,7 +421,7 @@ def firmware_table(c=None):
     """Everything fw-base needs, JSON-ready (written to drum_table.json by `python _drum_kin.py --json`)."""
     c = c or DEFAULTS
     return dict(
-        version="drum v6 (params v1.2.3)",
+        version="drum v6 (params v1.2.6)",
         positions={k.upper(): c[k] for k in ("launch", "neutral", "wrap_start", "wrapped", "reel")},
         stops=[c["stop_lo"], c["stop_hi"]],
         code_table_ABC={code_abc(k): v for k, v in CODE_TABLE.items()},
@@ -437,9 +445,11 @@ def firmware_table(c=None):
             "Dog not closed in LAUNCH: jog the wiper +-8 deg; in REEL: creep forward only (sprag #2 blocks backward).",
             "Leaving LAUNCH or REEL under load: unload jog 8 deg against the last load first. SWITCH_DISAGREE after 3 tries.",
             "Fault in LAUNCH or L_TO_N: HOLD the drum unless SW_HOME is closed (spring not drawn), then NEUTRAL (BASE_SPEC D27).",
-            "Fault from REEL or N_TO_R: go to WRAPPED (314) by time from edge 342, never back through the wrap window.",
-            "Boot: LAUNCH / L_TO_N -> hold until SW_HOME, then NEUTRAL; NEUTRAL / WRAP_PREP -> NEUTRAL; WRAP -> stop and "
-            "report; N_TO_R / REEL -> WRAPPED.",
+            "Fault with the wraps on (WRAP, N_TO_R, REEL): the drum HOLDS where it is (D27, MODE err DRUM_HELD), never "
+            "NEUTRAL (that would unwrap under tow); the operator unwraps when safe.",
+            "Boot: LAUNCH / L_TO_N -> hold until SW_HOME, then NEUTRAL; NEUTRAL / WRAP_PREP -> NEUTRAL; WRAP / N_TO_R / "
+            "REEL -> hold and report.",
+            "Going from REEL to WRAPPED (operator): by time from edge 342 (28 deg), never back into the wrap window.",
             "SW_N20 open = hand fallback active: no drum moves.",
             "Code 000 = DRUM_SENSOR fault. Timeout = 2 x nominal + 2 s: DRUM_TIMEOUT.",
             "SW_INDEX: 6 pulses per wiper turn (degraded mode without the AS5600 magnet).",

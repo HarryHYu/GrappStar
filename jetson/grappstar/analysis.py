@@ -57,18 +57,15 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
     except Exception as e:
         note(f"landing frame pick failed: {e}")
     if not land_frames:
-        land_frames = good[-15:]
+        # landing frames whatever their bad flag (a black void or buried camera is marked bad by the link check,
+        # and analyze_landing handles dark frames itself); never in-flight frames
+        t_l = getattr(fres, "t_landed", None) if fres is not None else None
+        land_frames = [f for f in frames if t_l is not None and f.t >= t_l][-15:] or frames[-15:]
     try:
         from .vision import terrain
+        # No attitude hand-off: the dart rests nose down, so neither its pitch nor its roll about that long axis
+        # says anything reliable about the ground slope (review: it turned good hard ground into NO GO).
         att = None
-        if fres is not None and getattr(fres, "attitude", None) and getattr(fres, "t_landed", None):
-            # only the resting attitude says anything about the ground (a horizon-based attitude stops before
-            # landing, so it may be missing). The dart lands nose first, so its nose-down pitch is expected and is
-            # not ground slope: pass only the roll (side tilt), which does follow the ground.
-            rest = [a for a in fres.attitude if a[0] >= fres.t_landed]
-            if rest:
-                t_, roll_, pitch_, yaw_ = rest[-1]
-                att = (t_, roll_, 0.0, yaw_)
         rep = terrain.analyze_landing(land_frames, model=terrain_model, attitude=att)
         out["terrain"] = rep.to_dict()
         if outdir and getattr(rep, "image", None) is not None:

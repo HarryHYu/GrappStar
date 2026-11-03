@@ -99,6 +99,8 @@ void tick() {
   if (S.shots > shots0 && prevState != S_FIRE)
     violation("SHOT_OUTSIDE_FIRE", std::string("sim fired while the base was in ") + STATE_NAME[prevState]);
   if (S.dryFires) { violation("DRY_FIRE", "the collar left the LAUNCH dwell with the spring drawn"); S.dryFires = 0; }
+  // unwrapping without the take-up leaves loose line between the reel and the capstan
+  if (S.slack > 0.15) { violation("UNWRAP_SLACK", "loose line " + std::to_string(S.slack) + " m (unwrap without take-up)"); S.slack = 0; }
   // backward with the REEL dogs engaged is only wrong once the collar presses the backward flank (sprag #2 holds the
   // capstan): the centering jog moves inside the free dog window by design
   if (S.wDir == -S.c.reelDir && S.wDuty > 0 && S.inReel() && S.win <= 1e-6)
@@ -362,7 +364,7 @@ void powerCut() {
 }
 bool indexSeed = false;
 void freshRig() {
-  S = Sim(); S.encMissing = indexSeed; tunHas = false; logRing.clear(); tags.clear(); outSeen = 0; haveToken = false; idCounter = 0; pendingAdvance = 0;
+  S = Sim(); S.encMissing = indexSeed; S.inertiaMs = seedNow % 3 == 1 ? 40 : seedNow % 3 == 2 ? 100 : 0; /* wiper inertia and coast in 2 of 3 seeds */ tunHas = false; logRing.clear(); tags.clear(); outSeen = 0; haveToken = false; idCounter = 0; pendingAdvance = 0;
   buildBase();
   run(100);
   cmd("{\"id\":0,\"cmd\":\"cal\",\"what\":\"cock_rest\"}");   // a new build starts at rest

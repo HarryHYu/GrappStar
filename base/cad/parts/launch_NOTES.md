@@ -1,170 +1,112 @@
-# Launcher + aim train: notes for the spec (worker cad-launch)
+# Launcher + aim train: notes (worker cad-launch)
 
-Status: Phase 0/1. Coordinator's binding stack decision (11:00) applied: sleeve flange at world y 96, main axis 165 above the deck, rail plane y 140. Update 11:50: real tooth-contact release (see section 3). Numbers come from `launch_kin.py` (run it: `python launch_kin.py`). All are
-proposals for `params.py` LAUNCH / AIM; the code reads them from P when the spec lands.
+Current state for BASE_SPEC v1.1 (D23: sleeve y 111..193, two-layer big gear, sleeve outboard bushing in the aim
+housing). Every number below comes from the code: `launch_kin.py` (sizing), `launch.py` (geometry, kin, contacts),
+`launch_aim.py` (aim train), `launch_line.py` (tether on the rail). Run `python cad/parts/launch_kin.py` for the
+sizing summary.
 
-## 1. Concept (Harry's v10, sized to KEDGE v30)
+## 1. How it works (Harry's v10, sized to KEDGE v30)
 
-- Rail pivots on the MAIN AXIS (coaxial with the wiper output, as in v10).
-- Drive gear on the main axis, sprag #1 (CSK20PP) inside it: forward wiper cocks and fires, backward freewheels.
-- Big gear rides ON the rail on its own pin, meshes the drive gear and the rack under the carriage. Teeth present over
-  part of the circle; last tooth relieved to the pitch line, the one before 30 percent taller (v10 release).
-  One big gear turn = cock + fire + reset. Rest ("HOME") = carriage on the front stop with tooth 1 just engaged, so a
-  backward wiper turn (aim) pushes the carriage into its stop and sprag #1 slips: the spring is never decocked by aiming.
-- Order in a shot: AIM first (backward turns, carriage at HOME, spring slack), then FIRE (forward turns: cock, release,
-  reset to HOME in one run). Aiming with the spring cocked is not allowed (backward turns would let the spring unwind
-  through sprag #1 under control; firmware rule: `aim` only in HOME).
-- Carriage = long sled (its rack has to be one stroke long anyway), so the dart rides in a cradle ON the carriage and
-  moves with it while cocking. Cradle is a half pipe under the belly, top and flanks open for the legs (KEDGE v30 has
-  nothing below the hull midline outside the d42 cylinder: checked on the folded mesh, `launch_dart_v30.npz`).
-- Aim: v10 crank-rocker scaled by 0.6 (pitch table identical to v10: 6.0 to 47.1 deg), rotated -90 deg about the pivot
-  so the crank sits low and forward. Driven only by BACKWARD wiper turns: swing-arm direction splitter (pawl-free: an
-  idler on a friction-dragged arm swings into mesh one way, out the other) -> 2:1 bevel -> self-locking worm (single
-  start, m2, pd 24, lead angle 4.8 deg) -> worm wheel 20T = crank gear. The worm holds the pitch while cocking and at
-  the shot. No third sprag.
-- Conflict to note: v10 handover says "no worm gear, no printed pawls". The coordinator asked for a printed
-  self-locking worm in the aim train (system plan section 3), so I follow that; it is pawl-free.
+- The rail pivots on the main axis. The LAUNCH SLEEVE (coaxial on the main shaft's d12 spigot, driven by cad-drum's
+  LAUNCH dog ring at its flange, y 111) carries sprag #1 inside the 26T drive gear.
+- The BIG GEAR rides on the rail on its own pin (82.6 from the axis). Two layers on one hub:
+  - sector layer (y 134..146, the rack plane): 27 of 40 teeth, Harry's release teeth (last one cut to the pitch line,
+    the one before 30 percent taller);
+  - full 40T layer (y 146..154) that the drive gear meshes all the way round. (One sector layer would leave the
+    drive in the toothless gap for 117 deg of every turn: found in review round 1.)
+- One big gear turn (553.8 forward wiper deg) = cock, release, reset to rest. Backward wiper turns freewheel in
+  sprag #1; with the carriage on its stop the gear cannot follow, so aiming never decocks.
+- Firmware rule: aim only at HOME (spring slack). Aim, then fire in one forward run.
+- The carriage is a long sled (the rack must be one stroke long). The dart rides on it in a light V cradle (5 rings
+  and 2 strips), tail on the pusher; the tether leaves through the pusher hole on the axis.
+- Aim: v10 crank-rocker scaled 0.6, rotated -90 deg about the pivot (pitch table identical to v10, 6.0 to 47.1 deg),
+  driven only by BACKWARD wiper turns: swing-arm splitter (pawl-free) -> 2:1 bevel -> self-locking worm (lead
+  4.8 deg) -> worm wheel 20T = crank. 10 wiper turns per aim cycle. The worm holds the pitch while cocking and at the
+  shot.
 
-## 2. Springs, stroke, energy (direct 1:1, no pulley)
+## 2. Current numbers (generated: `PYTHONPATH=. python cad/parts/launch_numbers.py`)
 
 | item | value |
 |---|---|
-| springs | 2 x Century 16 x 165.1 x 1.4, k 0.125 N/mm, F0 7 N each (P.SPRING) |
-| preload at HOME | 5 mm extension (15.3 N total holds the carriage on the stop) |
-| full cock | extension = SPRING.max_ext = 250 mm |
-| stroke | 241.2 mm (carriage travel at release, from the 2D tooth sweep) |
-| peak force | 75.5 N total at release (spring extension 246.2 mm, under the 250 limit) |
-| stored energy released | 10.9 J |
-| spring length | 170.1 at HOME, 411.3 cocked (hook pin to hook pin) |
+| params version | 1.2.3 |
+| springs | 2 x Century C-243 (5/8 x 6-1/2 in x 0.054 in wire), k 0.125 N/mm, F0 7.0 N each, max_ext 265.0 mm |
+| stroke (travel at release / peak) | 240.2 / 240.9 mm (design value 240.9) |
+| preload at HOME / extension at full cock | 23.8 / 264.7 mm |
+| force at HOME / full cock (both springs) | 19.9 / 80.2 N |
+| energy released | 12.06 J |
+| hook pin distance HOME / cocked | 188.9 / 429.8 mm |
+| big gear | m2.5 40T: sector layer 27 teeth (gap 117 deg) + full 40T layer |
+| drive gear | 26T, centre distance 82.6 |
+| wiper deg per shot / release at | 553.8 / 432.7 forward wiper deg from rest |
+| torque at full cock: big gear / wiper | 4.01 / 2.61 N m |
+| moving mass (carriage body + arms + seat parts) | 101.6 g (dart 279 g) |
+| carriage rear face HOME / cocked (u) | 70.6 / -170.3 |
+| rail span (u) / splits | -178.3 .. 273.5 / (-30.0, 140.0) |
+| spring anchors (u, y, w) | 263.5, +-38 (provision +-56), 60 |
+| tether pulleys (rail frame) | top (-200.9, 0.0, 78.1), bottom (-200.9, 0.0, 30.0), pivot (0.0, -21.0, -44.0) |
+| aim | pitch 6.01 .. 47.06 deg, 10 wiper deg per crank deg, worm lead 4.76 deg |
 
-Why 1:1: energy is capped by the spring extension (11.2 J at 250 mm) whatever the ratio. A pulley only trades force
-for stroke, and the moving spring mass grows with the ratio squared (each spring about 56 g, about 19 g effective at the
-hook). 2:1 doubles the rack and carriage length (heavier carriage); 1:2 multiplies spring effective mass by 4. 1:1 gives
-the most dart energy. Estimated moving mass: dart 279 g + carriage about 80 g + springs about 37 g effective, so about
-70 percent of the energy goes to the dart before losses: roughly 7 m/s. Physics worker: please confirm with your model and
-the real carriage mass from my CAD (I will put it in `launch_REPORT.md`). If the hang test allows more than 250 mm, only
-`SPRING.max_ext` changes and everything follows.
+1:1 springs (a pulley trades force for stroke and multiplies the moving spring mass by the ratio squared). Preload =
+SPRING.max_ext - stroke (spec D30: max_ext 265, so 23.8 mm). The stroke is fixed by the 27-tooth sector.
 
-## 3. Gears (all PPA-CF, face 12)
+## 3. Tooth timing
 
-| gear | value |
+`launch.release_table` (real 2D tooth contact): at rest tooth 0 is 3 pitches (27 deg) before the mesh centre so it is
+the first tooth to touch rack tooth 0 while the carriage sits on its stop (a turning gear cannot enter a stationary rack
+at the mesh centre). Release at big gear -281.25 deg. The gear then runs on through its 117 deg gap to rest (-360).
+Audited with the gear lagging up to 12 deg behind during the shot; carriage rebound positions off the stop are inside
+those shot states.
+
+## 4. Geometry (rail frame: origin on the main axis at y 140, u along the rail to the muzzle, w up, y = world y - 140)
+
+World: x = u cos p - w sin p, z = u sin p + w cos p (p = pitch); world origin on the main axis (LAYOUT v1.0).
+
+| item | value |
 |---|---|
-| rack / big gear module | 2.5 |
-| big gear | 40T full (pitch d 100), 27 teeth present, gap 13 teeth (117 deg) |
-| drive gear (main axis) | 26T (pitch d 65, root d 58.75: holds the 47 OD sprag with a 5.9 wall), keyway 6 |
-| centre distance | 82.6 (big gear pin is 82.6 from the main axis, on the rail) |
-| wiper turns per shot | 40/26 = 1.538 (553.8 wiper deg) |
-| torque: big gear / wiper and sprag #1 | 3.8 / 2.5 N m at full cock (sprag rated 50) |
-| shot time | about 2.1 s at 45 rpm free speed, plus the stop |
+| rack pitch line / dart axis | w 50.1 / w 85 (dart rests 0.4 low on the cradle) |
+| shoe track (rail walls y +-22..28) | u -178.3 to 190 |
+| spring anchors | 6 mm steel pins in post + strap (double shear); second-pair holes at y +-56 (D5) |
+| rail | 3 printed pieces split at u -30 and 140 (2 x M3 x 16 per flange pair) |
+| tether pulleys | 693ZZ in printed pulleys (groove r 6); positions in section 2 |
+| carriage | body (|y| <= 21.5, prints on its side) + 2 bolted spring arms (half lap, 2 x M3 each) |
+| sleeve (world y) | flange 111..119 (dog ring, 3 x M3 r 28, lug slots), cheek journals 123..131 and 159.5..167.5, sprag rib 142.5..157.5, sun rib 174..182, end 193 in the aim housing bushing |
+| aim crank centre | world (58.0, about 202, -100.5) |
 
-Tooth timing (found with a 2D contact sweep, `launch.release_table`): with the carriage held on its stop, a turning gear
-cannot enter the rack at the mesh centre (teeth within about 25 deg of it would cut the stationary rack). So at rest tooth 0
-sits 3 pitches (27 deg) before the mesh centre and is the FIRST tooth to touch rack tooth 0; contact starts about 2.5 deg
-after rest. Carriage travel per big gear degree is 0.873 mm through the stroke. Release (last tooth lets go and the rack
-can run home clear of every tooth) at big gear -281.25 deg = 432.7 forward wiper deg from HOME, travel 241.2 mm.
-Reset: the gear turns on through the 117 deg gap back to rest (553.8 wiper deg per shot in total). During the shot (about
-60 ms) the wiper keeps turning (about 10 deg of big gear): audited with the gear lagging up to 12 deg, clean.
-Firmware: forward run from HOME, release at about 433 wiper deg (cock telemetry = travel/241.2), stop at the SW_HOME
-closing edge after about 554 deg (reset), or by angle.
+Swept envelope: rail rear dips to about z -150 at 47 deg (fork bottom about 22 above the deck); muzzle about +260 up.
 
-## 4. Rail frame and envelope
+## 5. Contacts (printed: M3 screw head on an M3 nut, internal pull-up; no wire rides on the carriage)
 
-Rail frame: origin on the main axis, u along the rail to the muzzle, w up, y left (same y as world). World:
-x = u cos p - w sin p, z = u sin p + w cos p, p = pitch.
-
-| item | rail coords (u, w) / y |
-|---|---|
-| main axis (pivot) | (0, 0) |
-| big gear pin | (82.6, 0), y 0 plane |
-| rack pitch line | w = 50 |
-| dart axis | w = 85 (belly w 64), dart nose forward |
-| carriage pusher face at HOME / cocked | u 78.6 / u -162.6 (carriage rear face u 70.6 at HOME) |
-| dart tail at HOME, nose at HOME | u 78.6, u 230.6 (augers reach back to u 62 at |y| 22.7..39.5, w 88..103) |
-| shoe track (rail walls) | u -182.4 to 190 |
-| spring anchor pins (d6, front posts) | u 246.7, y +-38, spring axis w 60 |
-| springs | y +-38, w 60, under the dart flanks (the flank legs are all above w 85) |
-| rail length | u -182.4 to 256.7 (439 mm, printed in 3 pieces split at u -30 and 112, bolted M3) |
-| aim lug on the rail | (115.2, 0) at y about +55 (outboard of the rail) |
-| crank (worm wheel) centre | world (58.0, -100.5) relative to the pivot, y about +55 |
-| crank radius / conrod | 30 / 156 |
-
-Swept envelope: the rail rear end dips to about 150 below the main axis at 47 deg; the muzzle rises to about 260
-above it. So the MAIN AXIS must be at least about 160 above the deck (or the deck cut away behind the axis). Front of the
-envelope about 260 forward of the axis at 6 deg; rear about 190 behind. Width y -40 to +75 (aim stack on +y).
-
-## 5. Interfaces I need from the spec
-
-1. MAIN AXIS position and axis direction (LAYOUT["main"]): along world y.
-2. Launch input: preferred = coaxial. The dog clutch's launch-side driven member continues as a "launch sleeve",
-   20 mm OD with a 6 mm key for 14 mm (sprag #1 inner race) plus a keyed seat for the splitter sun gear (about 12 mm) and
-   two plain journal sections (d 30, 10 long each) for the rail cheek bushings. Axial span needed on the main axis:
-   (as built, world y): flange 96..100, rail cheeks on plain d20 journals 123..131 and 149..157, drive gear + sprag #1
-   132..148, sun keyway 173..183, outboard end 192 (journal d20 in the aim housing bushing, which I own). The sleeve bore
-   takes the d12 main shaft spigot for 24 mm only (12.4 bore, inboard end); beyond that it is solid so the 6 mm keyways
-   keep their wall. Who owns the sleeve: I propose I
-   do (`launch_sleeve`, PPA-CF), with the drum worker's dog face on its end, dog geometry from the drum worker. If the
-   spec instead puts the launch drive on a gear (drum worker's "launch output gear"), I need its module, tooth count,
-   face width and position: then my drive gear sits on its own launch shaft, and the rail still pivots on the main axis.
-3. Rail rest: frame stop / pivot support. The rail cheeks ride on the launch sleeve journals (printed bushing, slow
-   relative rotation). Frame supports the sleeve on both sides of the rail (bearing seats by the drum/frame worker).
-4. Aim pedestal on the frame at world (58, -100.5) from the main axis, plane y about +55: worm wheel axle (8 mm, two 608
-   bearings) and the worm shaft (vertical, two 608s). Splitter countershaft parallel to the main axis.
-5. Frame mounting: the rail is carried only by the main axis and the conrod. Frame worker: a 608-pair pedestal block
-   (I can supply its bolt pattern: 4 x M3 into heat-set inserts or self-tap).
-6. Physics (w/physics): spring numbers above, carriage mass (to come), pitch 6 to 47 deg (tune AIM_K/AIM_ROT/rod if the
-   range table wants another range).
-
-## 6. Switches (printed contacts: M3 screw head on an M3 nut, internal pull-up)
-
-| name | where (rail coords) | closes when |
+| name | where | closes when |
 |---|---|---|
-| SW_SEATED | under the cradle at the pusher, u = pusher face + 3 | dart tail within 3 mm of the pusher (flex tongue pressed by the belly) |
-| SW_HOME | rail, at the carriage front stop | carriage on the front stop (HOME) |
-| SW_LOW | frame, under the rail near the rear | rail pitch below 7 deg (at the LOW dead point, 6.0) |
+| SW_HOME | flex lever on the RIGHT rail lip at u 40..69, y -25 | a rigid 20 mm foot under the right spring arm sits on its screw: carriage within about +-10 mm of the stop. Overshoot into the stop just slides the foot (never a load path) |
+| SW_SEATED | flex lever on the LEFT rail lip, mirrored | the dart tail pushes a pushrod in the pusher (y 15, w 86) back 1.5 mm; its wedge pushes a plunger whose foot presses the lever screw. Only meaningful at HOME |
+| SW_GAP | generic contact on the right cheek ledge (u 61.6, w -21) | a 2 mm cam bump on the big gear web passes its tip: gear within about +-5 deg of rest (in its gap) |
+| SW_RAIL_LOW | on the aim housing, cam on the crank | crank within the window around the LOW dead point (see launch_aim) |
 
-Positions get exact numbers in the CAD (REPORT). Firmware uses SW_HOME as the shot reference (AS5600 angle at the
-closing edge = HOME), and SW_LOW to zero the aim crank (closing edge on the backward run near the low dead point).
+Firmware: shot reference = SW_GAP closing edge at the end of the forward run (or AS5600 angle); SW_HOME confirms the
+carriage really came home; SW_RAIL_LOW zeroes the aim crank on the backward run.
 
-## 7. Aim table for fw-base (backward wiper degrees from the LOW dead point; 10 wiper turns per full aim cycle)
+## 6. Carriage stop (`launch_stop.py`, D26: no TPU)
 
-Rising stroke: 0 to 1596 wiper deg (6.0 to 47.1 deg). Then the rail falls back to 6.0 over the next 2004 wiper deg
-(the worm controls the fall: no drop). Forward wiper turns never move the aim (splitter disengaged, worm holds).
-| crank deg from LOW | backward wiper deg | pitch deg |
-|---|---|---|
-| 0 | 0 | 6.01 |
-| 10 | 100 | 6.24 |
-| 20 | 200 | 6.93 |
-| 30 | 300 | 8.12 |
-| 40 | 400 | 9.83 |
-| 50 | 500 | 12.10 |
-| 60 | 600 | 14.93 |
-| 70 | 700 | 18.32 |
-| 80 | 800 | 22.22 |
-| 90 | 900 | 26.50 |
-| 100 | 1000 | 30.98 |
-| 110 | 1100 | 35.39 |
-| 120 | 1200 | 39.42 |
-| 130 | 1300 | 42.76 |
-| 140 | 1400 | 45.19 |
-| 150 | 1500 | 46.62 |
-| 160 | 1600 | 47.06 |
-| 170 | 1700 | 46.59 |
-| 180 | 1800 | 45.37 |
-| 190 | 1900 | 43.52 |
-| 200 | 2000 | 41.20 |
-| 210 | 2100 | 38.54 |
-| 220 | 2200 | 35.64 |
-| 230 | 2300 | 32.59 |
-| 240 | 2400 | 29.49 |
-| 250 | 2500 | 26.39 |
-| 260 | 2600 | 23.36 |
-| 270 | 2700 | 20.46 |
-| 280 | 2800 | 17.72 |
-| 290 | 2900 | 15.19 |
-| 300 | 3000 | 12.91 |
-| 310 | 3100 | 10.91 |
-| 320 | 3200 | 9.21 |
-| 330 | 3300 | 7.85 |
-| 340 | 3400 | 6.85 |
-| 350 | 3500 | 6.23 |
-| 360 | 3600 | 6.01 |
+Printed PLA flexure per side: 16 closed loops (31 tapered leaves, 2.93 to 1.2 mm thick, 14 tall) lying over the main
+spring, in a bolted frame, preloaded 4.4 mm (54 N, more than the 20 N spring pull, so the carriage rests exactly at
+u_stop). Both sides: 12.4 N/mm, 3.26 J at 19 mm, peak 290 N, leaf stress 34 MPa. Hard stop on the rail at 19 mm.
+PLA returns most of the energy: the carriage rebounds up to about 100 mm before the springs and friction settle it; the
+gear is in its gap then (audited). Firmware: wait 0.5 s after the release before reading SW_HOME. TPU pads would damp
+better if Harry ever gets TPU.
+
+## 7. Aim table for fw-base
+
+P.AIM.table holds the full cycle (backward wiper deg from the LOW dead point vs pitch). Rising stroke 0..1596 wiper deg
+(6.0 to 47.1 deg), falling stroke 1596..3600 (back to 6.0, controlled by the worm, no drop).
+
+## 8. Interfaces
+
+- cad-drum: dog ring keys to the sleeve flange at y 111 (3 x M3 at r 28, nut traps outboard, 3 lug slots 6.4 x 3.2);
+  its joint follows launch_sleeve. Spigot d12 runs through the 12.35 sleeve bore to the magnet cap at y 195..203.
+- cad-frame: the aim housing stands on the deck (4 x M3, footprint in launch_aim); AS5600 bracket on the housing
+  outer side at about y 205. Keep out of the rail sweep (LAYOUT keep_out).
+- cad-reel: the tether arrives at the rear of the pivot pulley, `launch.line_entry(P, S)` (world); `launch.line_path(P, S)`
+  continues it over the rail pulleys to the pusher and the dart tail.
+- Timeline keys used by kin: aim_deg, cock, fired, dart_flight, dart_return, phase ("lower" runs the crank over the
+  top and down the falling stroke).

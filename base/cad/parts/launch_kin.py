@@ -58,7 +58,11 @@ def lp(P=None):
     d["n_teeth"] = n
     d["stroke"] = (n - 1 + d["n_lead"]) * pitch + REL_EXTRA
     if d["preload"] is None:
-        d["preload"] = max(5.0, max_ext - d["stroke"])
+        spec_pre = (getattr(P, "LAUNCH", None) or {}).get("spring_preload") if P is not None else None
+        if spec_pre is not None and spec_pre + d["stroke"] <= max_ext:
+            d["preload"] = float(spec_pre)                    # BASE_SPEC D5 preload
+        else:
+            d["preload"] = max(5.0, max_ext - d["stroke"])
     return d
 
 
@@ -193,9 +197,19 @@ def transmission_angle(P, psi_deg, branch=+1):
     return np.array(out)
 
 
+_PT_CACHE = {}
+
+
 def pitch_table(P, step_deg=5.0):
-    """Firmware table: backward wiper degrees from the LOW dead point (pitch minimum) vs pitch, over the rising
-    stroke, then the falling stroke. Wiper backward -> crank psi decreases (v10 sense, clockwise)."""
+    """Firmware table (cached on the geometry): backward wiper degrees from the LOW dead point (pitch minimum) vs
+    pitch, over the rising stroke, then the falling stroke. Wiper backward -> crank psi decreases (v10 sense)."""
+    key = (tuple(sorted(aim_geom(P).items())), wiper_per_crank(P), step_deg)
+    if key not in _PT_CACHE:
+        _PT_CACHE[key] = _pitch_table(P, step_deg)
+    return _PT_CACHE[key]
+
+
+def _pitch_table(P, step_deg=5.0):
     psi, p = aim_sweep(P, 3601)
     i_lo = int(np.argmin(p))
     i_hi = int(np.argmax(p))

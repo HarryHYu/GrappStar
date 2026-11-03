@@ -1,5 +1,6 @@
 // Host implementation of the FreeRTOS, task watchdog and reset reason stubs.
 #include <stdio.h>
+#include <stdlib.h>
 #include <chrono>
 #include <map>
 #include <mutex>
@@ -79,3 +80,4 @@ esp_err_t esp_task_wdt_reset() {
 // ---------------------------------------------------------------------------------------------------------------- reset reason
 esp_reset_reason_t simResetReason = ESP_RST_POWERON;   // set by sim_main (--reset)
 esp_reset_reason_t esp_reset_reason() { return simResetReason; }
+void esp_restart() { fprintf(stderr, "SIM: esp_restart() called (firmware asked for a reboot)\n"); fflush(stderr); _Exit(3); }

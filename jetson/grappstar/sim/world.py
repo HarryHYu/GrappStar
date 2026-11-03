@@ -202,7 +202,7 @@ class SimWorld:
                 last = ph
             # re-render when the base has aimed at a new pitch (cocking takes long enough for the 2 s render)
             mb = self.mock_base
-            tgt = getattr(mb, "pitch_target", None)
+            tgt = getattr(mb, "aim_target", None)
             if tgt is None:
                 tgt = getattr(mb, "pitch", 35.0)
                 tgt = tgt() if callable(tgt) else tgt

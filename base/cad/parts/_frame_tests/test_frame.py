@@ -158,6 +158,8 @@ def test_bay_usb_faces_free_space(P, B):
 def test_as5600_on_axis(P, B):
     C = B["info"]["cfg"]
     mo = np.asarray(C["layout"][C["main"]]["origin"])
+    if not any(p.name == "frame_pcb_as5600" for p in B["parts"]):
+        pytest.skip("v1.1 (D23): the AS5600 bracket belongs to cad-launch")
     pcb = next(p for p in B["parts"] if p.name == "frame_pcb_as5600")
     return  # magnet now owned by cad-drum (checked in the full assembly)
     (x0, y0, z0), (x1, y1, z1) = prim.bbox(pcb.solid)

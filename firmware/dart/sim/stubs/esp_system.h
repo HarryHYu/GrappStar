@@ -7,3 +7,4 @@ typedef enum {
 } esp_reset_reason_t;
 
 esp_reset_reason_t esp_reset_reason();
+void esp_restart();   // simulator: prints and exits (a watchdog restart is a test failure)

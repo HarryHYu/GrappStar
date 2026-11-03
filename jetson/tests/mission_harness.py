@@ -11,7 +11,7 @@ from grappstar.jlog import JLog
 from grappstar.mission import Mission, MissionConfig
 from grappstar.rover import RoverDrive
 
-SCALE = 8.0
+SCALE = 20.0
 
 
 class FakeCam:
@@ -53,6 +53,7 @@ class Rig:
         self.analyse_calls = 0
         c = cfg or MissionConfig()
         c.settle_s = 0.1
+        c.host_timeout_s = 0          # the mock runs 20x fast: a 1.5 s watchdog would be 75 ms of wall time
         c.still_s = 0.3
         c.mode_timeout_s = 5
         c.anchor_timeout_s = 10
@@ -136,7 +137,7 @@ class ScriptRover(RoverDrive):
         self.calls += 1
         if self.calls >= self.rounds:
             return "done"
-        self.rig.world.slack_m += 0.3       # rover drove 0.3 m toward the dart
-        self.rig.mb.tension = 1.0
-        self.rig.mb.state = "IDLE"          # hold released by the slack
+        with self.rig.mb.lock:
+            self.rig.world.slack_m += 0.3   # rover drove 0.3 m toward the dart: the held line goes slack
+            self.rig.mb.tension = 1.0       # (with a load cell the base winds again by itself, like the firmware)
         return "slack"

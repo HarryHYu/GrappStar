@@ -162,13 +162,13 @@ def test_clutch_push_equals_preload_times_lever(d):
 def test_clutch_torque_and_line_tension_consistent(d):
     cl = rc.clutch(d)
     r_eff = 0.5 * (d["face_r_in"] + d["face_r_out"]) / 1000
-    assert d["core_r"] < cl["r_mid_mm"] < rc.pack_r(d, d["line_len_m"])
+    assert cl["r_mid_mm"] == pytest.approx(rc.pack_r(d, d["line_len_m"]))   # D24: targets with the reel FULL
     for k in ("launch", "mid", "reel"):
         c = cl[k]
         assert c["torque_nm"] == pytest.approx(d["mu_face"] * c["preload_n"] * r_eff)
         assert c["line_n_empty"] > c["line_n_full"]
-        # brake target is met at the mid pack radius, so it lies between empty and full
-        assert c["line_n_full"] < d[f"brake_{k}_n"] < c["line_n_empty"]
+        # D24: the brake target is met with the reel full; the core sees more
+        assert c["line_n_full"] == pytest.approx(d[f"brake_{k}_n"])
     assert cl["spring_rate_n_mm"] > 0
     assert cl["precompress_mm"] > 0
     assert cl["launch"]["preload_n"] + cl["spring_rate_n_mm"] * d["brake_stroke"] == pytest.approx(
@@ -194,7 +194,8 @@ def test_train_takeup_margin(d):
     tr = rc.train(d)
     assert tr["takeup_margin"] > 1.2
     assert tr["cap_per_main"] == pytest.approx(d["z_main"] / d["z_cap"])
-    assert tr["reel_per_cap"] == pytest.approx(d["z_take"] / d["z_reel"])
+    assert tr["reel_per_cap"] == pytest.approx((d["z_bus"] / d["z_reel"]) / (d["z_main"] / d["z_cap"]))
+    assert tr["reel_per_wiper"] == pytest.approx(2.5)
 
 
 def test_train_stall_tension_below_break(d):

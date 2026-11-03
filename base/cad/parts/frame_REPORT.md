@@ -1,21 +1,35 @@
 # frame_REPORT (worker cad-frame) - interim, updated through the day
 
-Final version at 18:30 Sydney. Notes and data: `frame_NOTES.md`.
+Final version at 18:30 Sydney. Data and interfaces: `frame_NOTES.md`. Whole-base audit: `frame_INTEGRATION.md`.
 
-## Done so far
-- Parametric frame from params (LAYOUT, FRAMEWORK, WIPER): deck (dovetail tiles over the bed size, own drill template
-  for the rover), cheeks (dovetail split over the bed size), bearing blocks (608 / CSK20PP / printed bushing seats from
-  cad.lib.bearings), cheek ties, pedestals for shafts not along Y, wiper motor adapter (slotted, separately printed,
-  standoff hub) and saddle, electronics bay (ESP32-S3 cradle with USB slot, BTS7960 standoffs and vents, DRV8833,
-  MP1584, HX711 pockets, fuse cradle, wire exits with tie anchors), AS5600 board bracket, cable-tie points on the feet.
-- Assembly steps (whole-base order), load hand calcs, PC tests, quick-look render script.
+## Scope as built (BASE_SPEC v1.2.x)
+
+- Motor plate (`frame_cheek_r`): the only plate after D23. Carries the fixed motor interface (67 mm coupler bore, a
+  2 mm counterbore that keys the adapter hub, 12 x M3 clearance holes on R 43). Its outline starts as a rectangle from
+  the deck to above the main axis and is CARVED round every other subsystem's swept volume in its y slab (one convex
+  hull per part per 6 timeline states, 4 mm margin), keeping the piece that holds the axis; feet go wherever the
+  carved outline still stands on the deck.
+- Wiper adapter (`frame_motor_adapter`, PPA-CF): separately printed, every motor number from `params.WIPER`; slotted
+  M6 holes (heads from the plate side, bench-assembled); hub ring keyed in the plate counterbore; inserts only at the
+  ring positions clear of the motor's head slots (at least 4, no gap over 150 deg, checked).
+- Deck: covers the params target footprint plus every foot of every subsystem (detected from the rest-state slice
+  0.5 mm above the deck), an M3 insert under every round 2.9 to 4.1 mm hole found in another subsystem's foot, seams
+  kept 14 mm off every deck hole, 1:1 drill template PDF + CSV for the rover.
+- Electronics bay 124 x 124 in the params region (x 110..240, y -70..60), USB to +X (outward), exits to -X.
+- Rover kit (D18): Kiyo X edge-plate mount (its own clip, or a 1/4-20 screw), RC832 holder (antenna up), cable anchors.
+- Steps, load calcs, PC tests, render script, integration script.
+
+## Integration auditor role
+
+`cad/parts/_frame_tests/integration.py` runs `tools.audit` over every subsystem module and writes
+`frame_INTEGRATION.md` (origin check, collisions with owners and worst states, clearances, floating, static fails).
 
 ## Requests to other workers / coordinator
-- cad-infra / coordinator: `tools.assembly` loads every `cad/parts/*.py` without a leading underscore as a subsystem.
-  On base-v1 at 11:25: `launch_gears.py`, `launch_kin.py`, `test_launch_gears.py` (cad-launch) and `reel_calc.py`
-  (cad-reel) break `Assembly.load` (no parts/joints/kin), so `python -m tools.audit OUT` (all subsystems) fails. Rename them with a leading underscore (as frame does: `_frame_*.py`) or have the loader skip
-  modules without `parts`.
-- I merged `origin/w/cad-infra` and `origin/base-v1` into `w/cad-frame` to code against the library.
+- Every subsystem: put feet on the deck top (world z = LAYOUT.deck_top_z) with M3 clearance holes (3.4); the frame adds
+  the inserts automatically. Optional `deck_holes(P)` for explicit holes.
+- `tools.assembly` loads every `cad/parts/*.py` without a leading underscore as a subsystem: helper modules such as
+  `launch_gears.py`, `launch_kin.py`, `reel_calc.py`, `test_*.py` make `Assembly.load()` (no `--only`) fail.
+- cad-drum: the coupler is r 32 over y 0.5..36 (frame bore 67 sized for it). Tell me if it grows.
 
 ## Open items
-- Conform to BASE_SPEC v1.0 / params LAYOUT when it lands; guards over gears and the spring path; full-assembly audit.
+- Guards over gears and the spring path (after the others' geometry settles), CG/stability with the full assembly.

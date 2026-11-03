@@ -47,7 +47,7 @@ GEOM = dict(
     # brackets (s)
     brA=(7.0, 14.0), brB=(117.0, 124.0), brI=(49.0, 55.0),
     idl=(25.0, 56.0), idl_gear=(40.0, 48.0), idl_j=10.0,
-    lock_RL=38.0, lock_rl=11.0, lock_c=0.4,
+    lock_RL=38.0, lock_rl=11.0, lock_c=0.25,
     sw_L=30.0,
 )
 
@@ -101,7 +101,7 @@ def n20_xy(g, c):
 def seg_phase(g, c):
     """Rotation (deg) of the segment gear on the drum so its teeth sit on the right indices."""
     pitch = 360.0 / c["seg_z"]
-    a0 = g["phi_idler"] - c["seg_start"] - pitch / 2       # local angle of the first present tooth
+    a0 = g["phi_idler"] - c["seg_start"] - pitch           # local angle of the first present tooth
     return a0 % pitch
 
 
@@ -109,8 +109,10 @@ def seg_present(g, c):
     pitch = 360.0 / c["seg_z"]
     d = seg_phase(g, c)
     out = []
-    for j in range(c["seg_teeth"]):
-        a = g["phi_idler"] - c["seg_start"] - (j + 0.5) * pitch     # local angle of tooth j
+    # seg_teeth pitches span the window (4 pinion turns); one tooth fewer is cut so that the first tooth only
+    # starts contact at seg_start and the last one leaves at the window end (contact ratio about 1.4)
+    for j in range(c["seg_teeth"] - 1):
+        a = g["phi_idler"] - c["seg_start"] - (j + 1) * pitch     # local angle of tooth j
         out.append(int(round((a - d) / pitch)) % c["seg_z"])
     return out
 
@@ -440,8 +442,10 @@ def fork(g, c):
 
 
 def rail(g):
+    """Shift rail d10 with a 1 mm flat on the outboard side (+x) to print on; the fork sleeve rides the round."""
     rx, ry = g["rail_xy"]
-    return cyl(g["rail_d"] / 2, g["rail_s"][0], g["rail_s"][1], rx, ry)
+    r = cyl(g["rail_d"] / 2, g["rail_s"][0], g["rail_s"][1], rx, ry)
+    return r - prim.box(rx + g["rail_d"] / 2 - 1.0, rx + 10, ry - 10, ry + 10, g["rail_s"][0] - 1, g["rail_s"][1] + 1)
 
 
 def bracket(g, c, which):
@@ -526,19 +530,22 @@ def n20_model(g, c, P):
 
 
 def n20_cradle(g, c, P):
-    """Holds the N20 box; slotted foot (M3 thumb screw) slides the pinion out of mesh for the hand lever."""
+    """Lower half shell round the N20 envelope plus a post to the deck. Slotted foot (M3 thumb screw) lets the
+    pinion slide out of mesh for the hand lever."""
     nx, ny = n20_xy(g, c)
-    N = getattr(P, "N20_WORM", {}) or {}
-    bw = float(N.get("box_w", 9.94)); bh = float(N.get("box_h", 11.93))
-    zc = g["dgear"][1] + 0.5 + bw / 2
+    env = prim.place(n20_model(g, c, P), tf.T(nx, ny, 0) @ tf.Rz(g["phi_n20"]))
+    b = env.bounding_box()
     yd = deck_y(g)
-    p = math.radians(g["phi_n20"])
-    # cradle: a saddle under the box and motor, in N20 joint axes rotated by phi_n20
-    sad = prim.box(-8.0, 28.0, bh / 2 + 0.1, bh / 2 + 4.0, zc - bw / 2 - 2.5, zc + bw / 2 + 2.5)
-    sad = prim.place(sad, tf.T(nx, ny, 0) @ tf.Rz(g["phi_n20"]))
-    lo = np.array(sad.bounding_box())
-    post = prim.box(lo[0], lo[3], lo[1] + 2.0, yd, zc - bw / 2 - 2.5, zc + bw / 2 + 2.5)
-    return prim.union([sad, post])
+    ymid = 0.5 * (b[1] + b[4])
+    shell = prim.box(b[0] - 3.0, b[3] + 3.0, ymid, yd, b[2] + 0.6, b[5] - 0.6)
+    cuts = [env,
+            cyl(gears.spur_info(c["drum_gear_m"], c["drum_gear_z"], c["drum_gear_x"])["r_tip"] + 1.5,
+                -1, 200, 0.0, g["drum_off"]),
+            cyl(gears.spur_info(c["drum_gear_m"], c["n20_z"], c["n20_x"])["r_tip"] + 1.0, b[2] - 1,
+                g["dgear"][1] + 0.5, nx, ny)]
+    cr = prim.diff(shell, cuts)
+    parts = cr.decompose()
+    return max(parts, key=lambda m: m.volume())
 
 
 # ------------------------------------------------------------------------------------------------ module contract
@@ -643,7 +650,8 @@ def drum_theta(S, c):
 def lever_deg(theta, g, c, i):
     """Code lever deflection: lift under the nub (deg) about its root."""
     phi = g["phi_sw"]
-    r = band_radius(g, c, i, phi - theta)
+    span = math.degrees(2.6 / g["band_r0"])          # nub half width 2 mm plus margin, as an angle
+    r = max(band_radius(g, c, i, phi - theta + k * span / 4) for k in range(-4, 5))
     lift = r - g["band_r0"]
     return math.degrees(math.atan2(lift, g["sw_L"]))
 
@@ -675,7 +683,7 @@ def allowed(P):
         Allow("drum_shaft", "drum_coupler", "hex spigot in the coupler socket (sliding fit)", max_vol=1.0),
         Allow("drum_rail", "drum_bracket_*", "rail pressed into the brackets"),
         Allow("drum_n20_pinion", "drum_n20", "pinion pressed on the N20 shaft"),
-        Allow("drum_n20", "drum_n20_cradle", "N20 seated in its cradle", max_vol=5.0),
+        Allow("drum_n20", "drum_n20_cradle", "N20 seated in its cradle", max_vol=1.0),
         Allow("drum_sw_lever_*", "drum_switch_block", "lever foot clamped to the block (M3)"),
         Allow("drum_hand_lever", "drum_drum", "lever on the hex boss", max_vol=1.0),
     ]

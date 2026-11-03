@@ -29,8 +29,8 @@ shot phase is `UNKNOWN`. Then `aim` is refused (`PHASE_UNKNOWN`) and leaving LAU
 because only the wiper worm holds the spring and the firmware will not shift while the spring might be drawn.
 
 Look at the launcher: carriage fully forward on its stop (`H` in telemetry `sw`) and the big gear in its gap (`G`).
-Then send `{"id":1,"cmd":"cal","what":"cock_rest"}`. `SWITCH_DISAGREE` means `SW_HOME` is open: the carriage is not
-home, or the contact is not touching.
+Then send `{"id":1,"cmd":"cal","what":"cock_rest"}`. `SWITCH_DISAGREE` means `SW_HOME` or `SW_GAP` is open: the carriage is not
+home or the big gear is not in its gap, or a contact is not touching.
 
 ## (a) AS5600 magnet and direction
 
@@ -43,19 +43,20 @@ home, or the contact is not touching.
    it is glued, hold it over the chip at 1 to 2 mm and turn it slowly (or turn the AS5600 board round the magnet).
    Watch `wiper_deg` in telemetry: it must change smoothly, about 360 per turn. Then fix the magnet in its cap.
 4. Direction (needs the battery; done once in BENCH_TEST.md step 4, check it again in the base). Battery unplugged:
-   check nobody's hands are near the shaft. Plug the battery in. Drum in NEUTRAL. Send:
+   check nobody's hands are near the shaft. Plug the battery in. Drum in NEUTRAL. Send a FORWARD jog (a backward jog is only allowed at
+   the LAUNCH park, `BACKSTOP` elsewhere):
 
    ```
-   {"id":2,"cmd":"jog","motor":"wiper","dir":-1,"ms":500}
+   {"id":2,"cmd":"jog","motor":"wiper","dir":1,"ms":500}
    ```
 
-   Dir -1 is BACKWARD. `wiper_deg` must go DOWN. If it goes UP, wait until it has stopped, then send:
+   Dir 1 is FORWARD. `wiper_deg` must go UP. If it goes DOWN, wait until it has stopped, then send:
 
    ```
    {"id":3,"cmd":"set","key":"enc_sign","val":-1}
    ```
 
-   Jog again: now it must go down. (`BUSY` means it was still moving: send again.) The firmware also catches a wrong
+   Jog again: now it must go up. (`BUSY` means it was still moving: send again.) The firmware also catches a wrong
    sign by itself while driving hard: `FAULT` `ANGLE_SENSOR` "AS5600 counts against the drive (enc_sign?)".
 5. In `status`, `glitches` counts rejected AS5600 readings. A few are fine. If it climbs fast while the motor runs,
    route the AS5600 cable away from the motor wires.

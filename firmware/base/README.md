@@ -1,6 +1,6 @@
 # GrappStar base station firmware
 
-Firmware `base-1.3.0` (the base-1.2 line) for the ESP32-S3 DevKitC-1-N8 in the base station. It follows BASE_SPEC v1.2,
+Firmware `base-1.3.0` for the ESP32-S3 DevKitC-1-N8 in the base station. It follows BASE_SPEC v1.2,
 `base/spec/params.py` 1.2.1 and the mission order of decision D22.
 
 Nothing in this folder has run on real hardware yet. The logic passes the PC tests (a simulation). Go slowly the first
@@ -82,7 +82,7 @@ approach (`retrieve`, until the dart is seated), `mode LAUNCH`.
    again. After an upload done this way, tap RESET once.
 
 Coming from base-1.0: the saved bench settings (current scale, free current, N per amp and so on) are stored in a new
-format in base-1.2. The old ones are ignored after the upload, so every bench value is back at its default. Enter
+format since base-1.2. The old ones are ignored after the upload, so every bench value is back at its default. Enter
 them again (CALIBRATION.md).
 
 Command line instead of the IDE (same settings): `arduino-cli compile --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc
@@ -100,7 +100,7 @@ firmware/base/grappstar_base` from the repository folder. It should report about
 
    ```
    {"evt":"HELLO","fw":"base-1.3.0","reset":"POWERON","hx711":false,"as5600":true,"pwm":true}
-   {"evt":"BOOT","t":60,"fw":"base-1.3.0","record":false,"was_moving":false,"drum_known":true,"wraps_known":true,"aim_known":false,"phase":"UNKNOWN","angle":"AS5600"}
+   {"evt":"BOOT","t":60,"fw":"base-1.3.0","record":false,"was_moving":false,"drum_moved":false,"drum_known":true,"wraps_known":true,"aim_known":false,"phase":"UNKNOWN","angle":"AS5600"}
    {"tel":{"state":"IDLE","mode":"NEUTRAL","drum_deg":41,"drum_pos":"NEUTRAL",...,"sw":{"b":1,"n":1},"fault":null,"vbat":0}}
    ```
 

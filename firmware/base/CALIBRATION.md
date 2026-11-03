@@ -10,9 +10,9 @@ assembled. Do them in order: (d) needs REEL from (c), and (f) needs (b) and (d).
     `python3 -m grappstar base cmd '<json>'`, for example `python3 -m grappstar base cmd '{"id":1,"cmd":"status"}'`.
 - Any whole `id` number works.
 - Every value you `set` or learn with `cal` is **saved in flash automatically** (once everything has stopped) and is
-  kept over a power cycle and over a new upload of base-1.2. Read a value back with `get`, for example
+  kept over a power cycle and over a new upload of base-1.3.0. Read a value back with `get`, for example
   `{"id":1,"cmd":"get","key":"amps_per_volt"}`.
-- **Coming from base-1.0:** the old saved bench values are ignored by base-1.2 (new record format). Everything is back
+- **Coming from base-1.0:** the old saved bench values are ignored by base-1.3.0 (new record format since base-1.2). Everything is back
   at its default after the upload: redo or re-enter every value below.
 - In the first 60 ms after a start-up commands are refused with `BOOTING`: just send again.
 - If something faults, read the `FAULT` line (`code` and `why`), fix the cause, then send `{"id":1,"cmd":"clear"}`.

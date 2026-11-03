@@ -755,8 +755,9 @@ static void testReview3() {
     CHECK(R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"decock\"}") && R.lastEvt("RESET").find("\"ok\":true") != std::string::npos && R.B.phase == gb::PH_REST,
           "decock with the phase unknown, SW_HOME and SW_GAP closed: RESET ok:true, at rest (BASE_SPEC 10.1 decock, RESET, aim)"); }
   { Rig::restRig = false; Rig R; Rig::restRig = true; S.swStuckOpen = 1 << 7; R.run(50); S.out.clear();   // no SW_GAP reading
-    CHECK(R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"decock\"}") && R.lastEvt("RESET").find("\"ok\":false") != std::string::npos && R.B.phase == gb::PH_UNKNOWN,
-          "without SW_GAP closed: RESET ok:false (never silent), phase stays unknown"); }
+    CHECK(R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"decock\"}"), "decock with SW_GAP reading open: the forward gap run starts");
+    R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 20000);
+    CHECK(R.B.state == gb::S_FAULT && S.shots == 0 && S.cockPh < 20, "SW_GAP lying open: the gap run stops at the first tooth (fault, no shot)"); }
   { Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}"); R.run(200);
     CHECK(fabsf(R.B.w.c.tripA - R.B.c.aimTripA) < 1e-3 && fabsf(R.B.c.aimTripA - 3.0f) < 1e-3, "aim runs on its own 3 A trip (D40)"); R.ok("{\"id\":2,\"cmd\":\"stop\"}"); }
   { Rig R; R.toMode("NEUTRAL"); R.wrapToReel(); S.lineOut = 8; S.anchorTautAt = 7.5; R.run(50);
@@ -866,6 +867,13 @@ static void testReview4() {
   { Rig R; R.toMode("LAUNCH");
     CHECK(R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":6}"), "aim 6 (just under the table minimum 6.01) accepted and clamped (systest F27)");
     R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 60000); CHECK(R.B.aimed, "aimed at the minimum"); }
+  { Rig R; S.aimDragDeg = 127; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}");
+    R.until([&] { return R.B.gapRun || R.idle() || R.B.state == gb::S_FAULT; }, 60000); R.run(200); R.ok("{\"id\":2,\"cmd\":\"stop\"}");
+    CHECK(!R.B.gapRun && !R.B.gapThenArm && !R.B.firePending, "stop clears the gap run and any queued fire"); }
+  { Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"aim\",\"deg\":30}"); R.run(400);
+    S.swStuckOpen |= 1 << 3; R.run(50); S.swStuckOpen = 0;   // 50 ms SW_DOG_L dropout during the homing
+    R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 70000);
+    CHECK(R.idle() && R.B.aimed, "a short collar dropout during aim homing: the wiper waits and resumes, AIMED"); }
   for (int every : {200, 100, 40}) {             // bursts of 3 failed I2C reads during a cock (review: travel was lost)
     Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":2,\"cmd\":\"aim\",\"deg\":30}"); R.until([&] { return R.idle(); }, 60000);
     S.encDropEvery = every; R.ok("{\"id\":3,\"cmd\":\"cock\"}"); R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 30000);

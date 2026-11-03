@@ -163,6 +163,7 @@ def _state_custom(S, custom, t):
                 seen.add(k)
                 if k not in cur:          # keys the base state lacks start at their first target
                     cur[k] = v
+    cur.update(custom[0][3] or {})        # the first phase is the starting state: its targets hold from t = 0
     t0 = 0.0
     for name, dur, _, targets in custom:
         u = (t - t0) / dur if dur else 1.0

@@ -1,0 +1,679 @@
+"""Day-one risk coupons: small prints of the risky printed mechanisms of the base, made from the SAME geometry
+functions and numbers the subsystems use, so a pass on the coupon means a pass on the part.
+
+python -m tools.risk_coupon [PACKDIR]          (default base/pack/coupons, run from base/)
+
+Writes into PACKDIR
+  rc<k>_<part>.stl        one per printed part, print orientation, min corner at (0, 0, 0)
+  risk_plate_<n>.3mf      the parts packed on the 256 x 256 bed, one plate per material (tools.pack helpers)
+  risk_plate_<n>.png      top-down preview of that plate
+  COUPON_TEST.md / .pdf   the one-page test sheet: what to do, what pass looks like, what to change if it fails
+
+Coupons (k):
+  1 swing-arm direction splitter (launch_aim: sun, arm, idler as built; output spur on a pin)
+  2 printed contact switch (cad.lib.switch.contact_switch)
+  3 dog clutch: REEL face, thin collar, compliant fork, fork stop, short rail (drum.py functions)
+  4 face slip clutch with the flexure spring pack (cad.lib.clutch.slip_clutch) on a keyed stub
+  5 bearing seats: 608, F693ZZ, 693ZZ tile and the CSK20PP keyed seat (cad.lib.bearings, reel numbers)
+  6 M3 heat-set, nut trap, clearance and tap holes (cad.lib.fasteners)
+  7 20 mm key rib in a keyed bore tile (cad.lib.shafts), d12 spigot slice in a launch sleeve slice
+  8 gear meshes m1.25, m1.5, m2 (cad.lib.gears) and m2.5 (launch_gears) on pins at their centre distances
+  9 shear-pin torque limiter (drum.py coupler_hub / coupler slices with levers, drum.shear_pin)
+
+Only this file owns the coupons; no subsystem file is edited. Every part passes tools.audit.static_part.
+
+    from tools.risk_coupon import coupons
+    cs = coupons()      # list of dicts: key, title, parts (cad.lib.Part), asm (list of {name: 4x4}), sheet text
+"""
+from __future__ import annotations
+
+import argparse
+import glob
+import math
+import os
+import sys
+
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PARTS_DIR = os.path.join(BASE, "cad", "parts")
+for _p in (BASE, PARTS_DIR):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+import numpy as np  # noqa: E402
+from shapely.geometry import LineString, Point, Polygon  # noqa: E402
+from shapely.ops import unary_union  # noqa: E402
+
+from cad.lib import Part, prim, tf, fits, gears, bearings, shafts, fasteners, clutch, switch  # noqa: E402
+from tools.coupon import label  # noqa: E402  (the fit coupon's stroke font)
+
+SUB = "risk_coupon"
+COL = {"PLA": "#e8e2c8", "PPA-CF": "#3a3f45"}
+DEFAULT_OUT = os.path.join(BASE, "pack", "coupons")
+GEAR_FACE = 6.0            # coupon gear face (the real faces are 8 to 14; the tooth geometry is the same)
+
+
+# ---------------------------------------------------------------------------------------------- helpers
+def bed(solid, R=None):
+    """print_tf: rotate by R, then put the part on z = 0 centred in x y."""
+    M = R if R is not None else tf.I4
+    lo, hi = prim.bbox(prim.place(solid, M))
+    return tf.mul(tf.T(-(lo[0] + hi[0]) / 2, -(lo[1] + hi[1]) / 2, -lo[2]), M)
+
+
+def stl_watertight(solid):
+    tm = prim.to_trimesh(solid)
+    tm.merge_vertices()
+    return bool(tm.is_watertight)
+
+
+def stl_clean(solid):
+    """Snap vertices to a 0.1 um grid and collapse the resulting zero-length edges (manifold simplify). Some library
+    solids (clutch.flexure_ring) carry vertex pairs 1e-6 mm apart: a valid manifold, but an STL reader merging
+    vertices sees self-touching edges. The volume changes by under 0.001 mm3. Only used when the STL check fails."""
+    if stl_watertight(solid):
+        return solid
+    return solid.warp_batch(lambda p: np.round(p, 4)).simplify(1e-6)
+
+
+def mk(name, solid, mat, notes, R=None, qty=1):
+    solid = stl_clean(solid)
+    return Part(name, solid, mat, qty=qty, print_tf=bed(solid, R), color=COL[mat], subsystem=SUB, notes=notes)
+
+
+def hull_plate(circles, z0, z1):
+    poly = unary_union([Point(x, y).buffer(r, 64) for x, y, r in circles]).convex_hull
+    return prim.extrude(prim.shapely_cs(poly), z1 - z0, z=z0)
+
+
+def P_default():
+    from tools.params import load_params
+    return load_params()
+
+
+def pin_post(r, h, boss_r, boss_h, x=0.0, y=0.0):
+    """Printed pin standing on a plate top (z = 0): shoulder boss, pin with a 0.5 top chamfer."""
+    pin = prim.revolve_pts([(0, 0), (r, 0), (r, h - 0.5), (r - 0.5, h), (0, h)])
+    if boss_h > 0:
+        pin = pin + prim.cyl(boss_r, boss_h)
+    return pin.translate((x, y, -0.01))
+
+
+# ---------------------------------------------------------------------------------------------- 1 splitter
+def coupon_1(P):
+    import launch_aim as LA
+    import launch_gears as LG
+    import launch as LN
+    n = LA.A(P)
+    zs = 3.0                                          # sun / idler / output bottom above the plate
+    za = zs + (LA.Y_ARM0 - LA.Y_SUN)                  # arm bottom (11.5)
+    zc = za + (LA.Y_ARM1 - LA.Y_ARM0) + 3.0           # crank bottom (18.5)
+    ct = 6.0
+    ztop = zc + ct
+    zf0, zf1 = za + 0.1, zc - 0.5                     # stop finger in the arm plane
+    rp, fit, face = LA.PIN_R, LA.FIT, LA.FACE_S
+    ox, oy = n["cs_x"], -(n["cs_z"] - n["axis_z"])    # output axis in the alpha frame (as built)
+    px, py = LA._stop_post_xy(P)                      # stop post centre (as built)
+    phi = math.atan2(py, px)
+    ux, uy = math.cos(phi), math.sin(phi)
+    cx, cy = 62.0 * ux, 62.0 * uy                     # finger column, outside the idler swing
+    holes = [(cx - 5 * ux, cy - 5 * uy), (cx + 5 * ux, cy + 5 * uy)]
+    # base plate (PLA) with the centre pin, the output pin and the finger column
+    col = prim.place(prim.box(-9, 9, -5, 5, 0, zf0), tf.mul(tf.T(cx, cy, 0), tf.Rz(math.degrees(phi))))
+    plate = prim.union([hull_plate([(0, 0, 15), (ox, oy, 9), (cx, cy, 11)], -4.0, 0.0),
+                        pin_post(rp, ztop - 0.2, rp, 0.0),
+                        pin_post(rp, zs + face + 1.5, 7.0, zs, ox, oy), col.translate((0, 0, -0.01))])
+    plate = plate - prim.union([fasteners.m3_tap(8.0).translate((x, y, zf0)) for x, y in holes])
+    plate = plate + label("1", 0.5 * cx, 0.5 * cy, 0.0)
+    # sleeve stub (PPA-CF): d20 with the as-built integral rib (launch.RIB_W, RIB_R) under the sun and the crank
+    sl = prim.cyl(13.0, zs) + prim.cyl(10.0, ztop)
+    sl = sl + prim.box(9.0, LN.RIB_R, -LN.RIB_W / 2, LN.RIB_W / 2, zs - 0.01, zs + face)
+    sl = sl + prim.box(9.0, LN.RIB_R, -LN.RIB_W / 2, LN.RIB_W / 2, zc, ztop)
+    sl = sl - prim.cyl(rp + fit / 2, ztop + 2, z=-1)
+    sun, arm, idl = LA.sun_solid(P), LA.arm_solid(P), LA.idler_solid(P)
+    out = LG.spur(LA.M_S, LA.Z_OUT, face, bore=2 * rp + fit)
+    # crank (PLA): hub with the sun's keyway cut, bar, knob
+    cr = prim.union([prim.cyl(15.0, ct), prim.box(0, 30, -5, 5, 0, ct), prim.cyl(5.0, ct, x=30),
+                     prim.cyl(4.0, 14.0, x=30, z=ct - 0.01)])
+    cr = cr - prim.cyl(10.0 + fit / 2, ct + 2, z=-1) - prim.box(9.0, 13.2, -3.2, 3.2, -1, ct + 1)
+    # stop finger (PLA): rounded end r 4 at the as-built stop post, two M3 into the column
+    fpoly = unary_union([LineString([(px, py), (cx, cy)]).buffer(4.0, 32),
+                         Polygon([(cx + a * 9 * ux - b * 5 * uy, cy + a * 9 * uy + b * 5 * ux)
+                                  for a, b in ((-1, -1), (1, -1), (1, 1), (-1, 1))])])
+    fg = prim.extrude(prim.shapely_cs(fpoly), zf1 - zf0, z=zf0)
+    fg = fg - prim.union([fasteners.m3_clear(zf1 - zf0 + 1).translate((x, y, zf1)) for x, y in holes])
+    parts = [
+        mk("rc1_plate", plate, "PLA", "Splitter base: centre pin d8, output pin d8, stop finger column (2 x M3 tap)"),
+        mk("rc1_sleeve", sl, "PPA-CF", "Sleeve stub d20 with the integral key rib (launch.RIB_W, RIB_R) under the sun and the crank"),
+        mk("rc1_sun", sun, "PPA-CF", "launch_aim.sun_solid: sun m1.5 z30 as built"),
+        mk("rc1_arm", arm, "PPA-CF", "launch_aim.arm_solid: swing arm as built (O-ring groove, d8 pin, clip groove)",
+           R=tf.Rx(180)),
+        mk("rc1_idler", idl, "PPA-CF", "launch_aim.idler_solid: idler m1.5 z18 as built"),
+        mk("rc1_output", out, "PPA-CF", "Output m1.5 z30 (launch_gears.spur, face 8) on a d8 pin"),
+        mk("rc1_crank", cr, "PPA-CF", "Hand crank, keyed on the sleeve rib like the sun"),
+        mk("rc1_stop", fg, "PLA", "Stop finger: rounded end at the as-built stop post position",
+           R=tf.Rz(-math.degrees(phi))),
+    ]
+
+    def state(alpha):
+        Ra = tf.Rz(alpha)
+        return {"rc1_plate": tf.I4, "rc1_sleeve": tf.I4, "rc1_sun": tf.T(0, 0, zs),
+                "rc1_arm": tf.mul(Ra, tf.T(0, 0, za)), "rc1_idler": tf.mul(Ra, tf.T(n["cd_si"], 0, zs)),
+                "rc1_output": tf.T(ox, oy, zs), "rc1_crank": tf.T(0, 0, zc), "rc1_stop": tf.I4}
+    return dict(
+        key="1", title="Swing-arm direction splitter", parts=parts,
+        asm=[state(n["alpha_e"]), state(n["alpha_d"])],
+        mesh=[("rc1_sun", "rc1_idler"), ("rc1_idler", "rc1_output")],
+        uses=(f"launch_aim.sun_solid, arm_solid, idler_solid (m{LA.M_S:g} z{LA.Z_SUN}/{LA.Z_IDL}/{LA.Z_OUT}, face "
+              f"{face:g}, FIT {fit}), launch_gears.spur for the output, launch_aim.A: centre distances "
+              f"{n['cd_si']:.2f} / {n['cd_io']:.2f}, output at ({ox:.1f}, {oy:.1f}), engaged arm "
+              f"{n['alpha_e']:.1f} deg, stop {n['alpha_d']:.1f} deg (launch_aim._stop_post_xy), sleeve rib "
+              f"launch.RIB_W {LN.RIB_W:g} / RIB_R {LN.RIB_R:g}"),
+        bought="O-ring 20 x 1.5 (arm hub groove), e-clip for the d8 arm pin, 2 x M3x16",
+        do=("O-ring into the arm hub groove. On the plate: sleeve on the centre pin, sun on its rib, arm on the sleeve "
+            "above the sun with its pin down through the idler, e-clip on the pin, output on its pin, crank on top, stop "
+            "finger on the column (2 x M3x16). Turn the crank 10 turns each way."),
+        ok=("Clockwise seen from above: the arm swings the idler into the output at once and the output turns, no "
+            "skipped teeth. Anticlockwise: the arm swings out to the finger within about 20 deg of crank, the idler "
+            "runs free and the output stays still. No jam at engagement."),
+        fail=("launch_aim.py: FIT (pin and bore play), arm_solid O-ring groove (drag), A() alpha_d = alpha_e + 20 "
+              "(swing out), _stop_post_xy; launch_gears.py center_distance extra / spur backlash (mesh)."),
+    )
+
+
+# ---------------------------------------------------------------------------------------------- 2 contact switch
+SW_LEVER_LEN = 30.0        # drum GEOM sw_L (code switch lever length); no subsystem calls contact_switch yet
+
+
+def coupon_2(P):
+    from cad.parts import drum
+    L = drum.G(P).get("sw_L", SW_LEVER_LEN)
+    sw = switch.contact_switch(L)
+    i = sw["info"]
+    parts = [mk("rc2_switch_base", sw["base"], "PLA", "contact_switch base: pad, nut pillar, hard stop, wire channel"),
+             mk("rc2_switch_lever", sw["lever"], "PLA", "contact_switch lever, printed on its side (Y up)",
+                R=tf.Rx(90))]
+    return dict(
+        key="2", title="Printed contact switch", parts=parts, asm=[{"rc2_switch_base": tf.I4, "rc2_switch_lever": tf.I4}],
+        mesh=[],
+        uses=(f"cad.lib.switch.contact_switch(lever_len={L:g}) with the library defaults (travel {i['travel']:g}, "
+              f"overtravel {i['overtravel']:g}, beam t {i['t']:g}): gap {i['gap']:.2f}, pretravel at the tip "
+              f"{i['pretravel']:.2f}, close force {i['force_close_N']:.2f} N, strain {i['strain_max']:.4f}"),
+        bought=f"{i['screw']}, M3 nut, {i['clamp_screw']}, 2 wires, multimeter",
+        do=(f"Nut into the pillar trap (drop of glue), lever clamped with 2 M3 self tappers, contact screw head down "
+            f"through the lever, set the head {i['gap']:.1f} mm above the nut (0.5 mm per turn), lock the jam nut. "
+            f"Meter on beep between screw and nut. Press the lever tip 100 times."),
+        ok=(f"Beeps after about {i['pretravel']:.1f} mm of tip travel, silent when let go, tip stops on the hard stop "
+            "without cracking, lever back flat, same after 100 presses."),
+        fail=("cad/lib/switch.py contact_switch args travel, overtravel, t, b; STRAIN_LIMIT, NUT_PRESS (loose nut), "
+              "SCREW_LENGTHS."),
+    )
+
+
+# ---------------------------------------------------------------------------------------------- 3 dog clutch
+def coupon_3(P):
+    from cad.parts import drum
+    g, c = drum.G(P), drum.C(P)
+    h = c["dog_h"]
+    S0, S1 = 45.0, 50.0                                   # base plate s range (L frame kept, s = z)
+    jr = g["rsl_journal"][2] / 2
+    rx, ry = g["rail_xy"]
+    hex_top = 90.0
+    base = prim.union([hull_plate([(0, 0, 20), (rx, ry, 9)], S0, S1),
+                       drum.cyl(jr, S1 - 0.01, g["dog_face_reel"]),
+                       drum.hexprism(g["hex_af"], g["dog_face_reel"] - 0.01, hex_top)])
+    base = base - drum.cyl((g["rail_d"] + fits.HOLE_PRESS) / 2, S0 - 1, S1 + 1, rx, ry)
+    base = base + label("3", 35.9, 30.3, S1)            # outside the face handle sweep
+    # REEL face: the REEL gear's dog face (ring r dog_r_out + 1, bore journal + SHAFT_IN_BORE) with a turning handle
+    fb = prim.union([drum.ring(c["dog_r_out"] + 1.0, (2 * jr + fits.SHAFT_IN_BORE) / 2, S1, g["dog_face_reel"]),
+                     prim.box(-44, -20, -6, 6, S1, S1 + 3.0) - drum.cyl(jr + 1, S1 - 1, S1 + 4),
+                     drum.dog_teeth(c, g["dog_face_reel"], +1, 45.0)])
+    # thin collar: the collar's lower half (dogs facing the REEL face, fork groove, hex bore)
+    s0 = g["collar_s"][0]
+    b0, b1 = s0 + h, g["groove"][1] + 2.0
+    co = drum.cyl(g["collar_od"] / 2, b0, b1)
+    co = co - drum.ring(g["collar_od"] / 2 + 1, g["groove_r"], g["groove"][0], g["groove"][1])
+    co = prim.union([co, drum.dog_teeth(c, b0, -1, 0.0)])
+    co = co - drum.hexprism(g["hex_af"] + fits.SHAFT_IN_BORE, s0 - 1, b1 + 1)
+    fk, fs = drum.fork(g, c), drum.fork_stop(g, c)
+    rl = drum.rail(dict(g, rail_s=(S0, 102.0)))
+    parts = [
+        mk("rc3_base", base, "PLA", "Base: d30 journal (REEL sleeve) and hex 22 AF (main shaft), rail hole (press)"),
+        mk("rc3_reel_face", fb, "PPA-CF", "REEL gear dog face (drum.dog_teeth, phase 45) with a handle"),
+        mk("rc3_collar", co, "PPA-CF", "Collar lower half: drum.dog_teeth facing down, fork groove, hex bore",
+           R=tf.Rx(180)),
+        mk("rc3_fork", fk, "PLA", "drum.fork as built: compliant yoke, follower pin, M3 nut in the tab"),
+        mk("rc3_fork_stop", fs, "PLA", "drum.fork_stop as built", R=tf.Ry(90)),
+        mk("rc3_rail", rl, "PPA-CF", "drum.rail profile d10 with the print flat, cut to 57 long", R=tf.Ry(90)),
+    ]
+    st = c["stroke"]
+
+    def state(e):
+        d = tf.T(0, 0, -e)
+        return {"rc3_base": tf.I4, "rc3_reel_face": tf.I4, "rc3_collar": d, "rc3_fork": d, "rc3_fork_stop": d,
+                "rc3_rail": tf.I4}
+    return dict(
+        key="3", title="Dog clutch and compliant fork", parts=parts, asm=[state(0.0), state(st)], mesh=[],
+        allow=[("rc3_base", "rc3_rail")],
+        uses=(f"drum.dog_teeth (dog_n {c['dog_n']}, dog_h {h:g}, dog_deg {c['dog_deg']:g}, backcut "
+              f"{c['dog_backcut']:g}, roof {c['dog_roof']:g}, r {c['dog_r_in']:g}..{c['dog_r_out']:g}), drum.fork, "
+              f"drum.fork_stop, drum.rail, drum.hexprism, GEOM journal d{2 * jr:g}, groove {g['groove']}, stroke {st:g}, "
+              f"neutral gap {c['dog_gap']:g}"),
+        bought="1 x M3x12 (fork stop), M3 nut (tab), 2 x M3 screws (SW_DOG prongs, optional)",
+        do=("Press the rail into the base. REEL face on the journal (dogs up), collar on the hex (dogs down), fork pads "
+            "in the collar groove and its sleeve on the rail, fork stop on (M3). Push the fork 7 mm down with the dogs "
+            "tip to tip, then turn the REEL face until they drop in. Turn the face hard both ways, then pull the fork back."),
+        ok=("Yoke flexes when tip to tip (no jam, roofs slide off), dogs drop in within a quarter turn, under hand torque "
+            "the dogs pull in, never walk out, a light pull on the fork releases them, the yoke springs back flat."),
+        fail=("_drum_kin.py DEFAULTS dog_backcut, dog_roof, dog_deg, dog_gap, fork_k; drum.py GEOM fork_t, yoke_r, "
+              "groove; fits.py SHAFT_IN_BORE (collar on the hex, face on the journal), HOLE_SLIDE (fork on the rail)."),
+    )
+
+
+# ---------------------------------------------------------------------------------------------- 4 slip clutch
+def key_stub_len(sc):
+    return float(math.ceil(sc["info"]["height"]) + 12.0)
+
+
+def coupon_4(P, sc=None):
+    sc = sc or clutch.slip_clutch()
+    info = sc["info"]
+    names = ("hub_plate", "friction_disc", "pressure_plate", "flexure", "adjuster_plate")
+    parts = [mk(f"rc4_{nm}", sc["parts"][nm], "PLA", f"clutch.slip_clutch {nm} (library defaults)") for nm in names]
+    asm = {f"rc4_{nm}": sc["place"][nm] for nm in names}
+    asm["rc7_key_stub"] = tf.T(0, 0, -12.0)
+    r_lug = info["r_out"] + 1.5
+    tab = []
+    for d, F, T, s in info["table"]:
+        tab.append(f"{d:.2f} mm: {T:.3f} N m, {T / (r_lug / 1000) / 9.81:.2f} kg")
+    return dict(
+        key="4", title="Face slip clutch with the flexure spring", parts=parts, asm=[asm], mesh=[],
+        uses=(f"cad.lib.clutch.slip_clutch() defaults (reel does not use it: its clutch is the spool face plus the "
+              f"PETG rocker): shaft d{info['shaft_d']:g} key {info['key_w']:g}, friction r {info['r_in']:g}.."
+              f"{info['r_out']:g}, mu {info['mu']}, flexure t {info['flex_geom']['t']:g} gap "
+              f"{info['flex_geom']['gap']:g}, {info['torque_per_mm']:.3f} N m per mm, travel {info['travel']:.2f}; on the "
+              f"shared keyed stub of coupon 7"),
+        bought=f"3 x M3x{info['screw_len']} SHCS, 3 x M3 nut, string, luggage scale",
+        table=tab, r_lug=r_lug,
+        do=("Stack on the key stub: hub plate (counterbores down), friction disc, pressure plate (pads up), flexure (beam "
+            "down, tabs on the screws), adjuster plate (traps up); 3 screws from below, nuts on top. Run the nuts down "
+            "until the flexure just touches, then turn each nut 1/2 turn at a time (0.25 mm). Clamp the stub, tie a string "
+            f"to a disc lug (r {r_lug:.1f} mm), pull along the rim with the luggage scale while it slips steadily."),
+        ok=("Smooth steady slip, no judder; the reading repeats within 20 percent and rises with each half turn, close to "
+            "the table below (kg on the scale at the lug); the nuts never bottom the flexure before the last row."),
+        fail=("cad/lib/clutch.py: slip_clutch args flex_t, flex_gap, flex_ro, r_in, r_out, n_grooves; MU_PLA_PLA, E_PLA, "
+              "SIGMA_FLEX_PLA_SUSTAINED (creep: if the torque falls overnight)."),
+    )
+
+
+# ---------------------------------------------------------------------------------------------- 5 bearing seats
+def coupon_5(P):
+    from tools.coupon import tile
+    s608 = bearings.seat_608(bottom="lip", lip_d=14.0)               # reel spool seat
+    t = prim.place(tile(60, 28, bearings.B608_W + 2.0,
+                        [(s608, -15.5, 0), (bearings.seat_f693(), 3.5, 0), (bearings.seat_693(), 15.5, 0)],
+                        [("5", 25.5, 0)]), tf.I4)
+    rb = bearings.CSK20_OD / 2 + bearings.BRG_RIB_BORE / 2 + 4.0      # reel capstan block wall
+    hb = bearings.CSK20_W + 2.0
+    ck = prim.cyl(rb, hb) - prim.place(bearings.seat_csk20(key_deg=90.0), tf.T(0, 0, hb))
+    parts = [mk("rc5_seats_608_693", t, "PLA", "608 (reel spool seat), F693ZZ and 693ZZ crush-rib seats"),
+             mk("rc5_csk20_seat", ck, "PLA", "CSK20PP seat with the printed key (reel capstan block, key_deg 90)")]
+    return dict(
+        key="5", title="Bearing seats", parts=parts, asm=[], mesh=[],
+        uses=(f"cad.lib.bearings.seat_608(bottom lip, lip_d 14) as reel, seat_f693(), seat_693(), seat_csk20(key_deg 90) "
+              f"as the reel capstan block (wall 4); fits BRG_RIB_INTERF {fits.BRG_RIB_INTERF}, BRG_RIB_BORE "
+              f"{fits.BRG_RIB_BORE}, CSK20_KEY_RCLEAR {bearings.CSK20_KEY_RCLEAR}"),
+        bought="608ZZ, F693ZZ, 693ZZ, CSK20PP",
+        do=("Press each bearing in square with a flat block or a vice (tile left to right: 608, F693ZZ, 693ZZ); CSK20PP "
+            "into the round boss with its outer keyway on the printed key."),
+        ok=("Firm press, seated flat on the lip, stays in when tapped upside down, spins as freely as before; the CSK20PP "
+            "key slides in without force, it still freewheels one way and locks the other."),
+        fail=("fits.py BRG_RIB_INTERF, BRG_RIB_BORE (all seats); bearings.py CSK20_KEY_RCLEAR, CSK20_OKEY_W (key), "
+              "KEY_CLEAR in fits.py. Print the fit coupon tile A if the 608 is off."),
+    )
+
+
+# ---------------------------------------------------------------------------------------------- 6 fasteners
+def coupon_6(P):
+    from tools.coupon import tile
+    t = tile(54, 18, 8.0, [(fasteners.m3_insert(), -12, 1.5), (fasteners.m3_nut_trap(bolt_len=9.0), 0, 1.5),
+                           (fasteners.m3_clear(9.0), 11, 1.5), (fasteners.m3_tap(9.0), 20.5, 1.5)], [("6", -22.5, 0)])
+    parts = [mk("rc6_m3_tile", t, "PLA", "M3 heat-set hole, nut trap, clearance and tap holes (fits.py values)")]
+    return dict(
+        key="6", title="M3 holes", parts=parts, asm=[], mesh=[],
+        uses=(f"cad.lib.fasteners.m3_insert (d {fits.M3_INSERT_D}), m3_nut_trap (AF {fits.M3_NUT_AF:.1f}), m3_clear "
+              f"(d {fits.M3_CLEAR_D}), m3_tap (d {fits.M3_TAP_D})"),
+        bought="M3x4x5 heat-set insert, M3 nut, 2 x M3x10",
+        do="Left to right: heat-set the insert (220 C), press the nut in, push a screw through, self-tap a screw in.",
+        ok=("Insert flush and does not spin when the screw is tightened; nut presses in and holds; screw drops through "
+            "the clearance hole; the tap hole cuts a thread and holds a hard pull without splitting."),
+        fail="fits.py M3_INSERT_D, M3_NUT_AF, M3_CLEAR_D, M3_TAP_D (the fit coupon tiles C, D, E bracket them).",
+    )
+
+
+# ---------------------------------------------------------------------------------------------- 7 key and spigot
+def coupon_7(P, sc=None):
+    from tools.coupon import tile
+    from cad.parts import drum, reel as RL
+    import launch as LN
+    sc = sc or clutch.slip_clutch()
+    L = key_stub_len(sc)
+    stub = shafts.keyed_shaft(L, d=RL.C_D, key_w=shafts.KEY20_W, key_h=shafts.KEY20_H, chamfer=0.8)
+    kb = tile(36, 36, 8.0, [(shafts.keyed_bore(8.0, d=RL.C_D, key_w=shafts.KEY20_W), -1.5, 3)], [("7", 0, -15.5)])
+    g = drum.G(P)
+    h1 = g["hex_s"][1]
+    sp = drum.main_shaft(g) ^ prim.box(-20, 20, -20, 20, h1 - 8.0, h1 + 20.0)
+    sv = LN.sleeve_solid(P) ^ prim.cyl(16.0, 16.0)
+    parts = [mk("rc7_key_stub", stub, "PPA-CF", f"shafts.keyed_shaft d{RL.C_D:g} key {shafts.KEY20_W:g} (reel capstan "
+                f"tube numbers), {L:g} long, also the coupon 4 clutch shaft"),
+             mk("rc7_key_bore", kb, "PPA-CF", "shafts.keyed_bore d20 key 6, 8 long (keyed hubs on the sleeve rib are PPA-CF)"),
+             mk("rc7_spigot", sp, "PPA-CF", "drum.main_shaft slice: hex 8 long + d12 spigot 20 long, on a hex flat",
+                R=tf.mul(tf.Rx(90), tf.Ry(90))),
+             mk("rc7_bushing", sv, "PPA-CF", f"launch.sleeve_solid slice 16 long: spigot bore d{LN.SPIGOT_BORE:g}")]
+    return dict(
+        key="7", title="Key rib and spigot", parts=parts, asm=[], mesh=[],
+        uses=(f"cad.lib.shafts.keyed_shaft(d {RL.C_D:g}, key_w {shafts.KEY20_W:g}, key_h {shafts.KEY20_H:.1f}) and "
+              f"keyed_bore (clear {fits.SHAFT_IN_BORE}); drum.main_shaft (spig_d {g['spig_d']:g}); launch.sleeve_solid "
+              f"(SPIGOT_BORE {LN.SPIGOT_BORE:g})"),
+        bought="CSK20PP from coupon 5 (inner keyway)",
+        do=("Slide the key stub into the keyed tile and into the CSK20PP inner race (the real interface). Push the spigot "
+            "into the sleeve slice and turn it."),
+        ok=("Stub slides in by hand, key in the keyway, no visible rock, under 1 deg of play when turned; the spigot "
+            "turns freely with no wobble."),
+        fail=(f"fits.py KEY_CLEAR, SHAFT_IN_BORE; shafts.py KEY20_H, SHAFT_PRINT_UNDERSIZE; launch.py SPIGOT_BORE "
+              f"(now {LN.SPIGOT_BORE:g}); drum.py GEOM spig_d."),
+    )
+
+
+# ---------------------------------------------------------------------------------------------- 8 gear meshes
+def sector(solid, r_tip, center_deg, span_deg, hub_r, bore_d, face, to_deg):
+    """Keep the teeth within span_deg about center_deg plus a hub, cut the bore, turn center_deg to to_deg."""
+    a = np.radians(np.linspace(center_deg - span_deg / 2, center_deg + span_deg / 2, 48))
+    R = r_tip + 2.0
+    poly = unary_union([Polygon([(0, 0)] + [(R * math.cos(t), R * math.sin(t)) for t in a]),
+                        Point(0, 0).buffer(hub_r, 64)])
+    s = (solid ^ prim.extrude(prim.shapely_cs(poly), face + 2, z=-1)) - prim.cyl(bore_d / 2, face + 2, z=-1)
+    return prim.place(s, tf.Rz(to_deg - center_deg))
+
+
+def gear_plate(tag, cd, pins, face):
+    """Plate z -3..0 (PPA-CF: the pins are the gear shafts, PPA-CF in the subsystems) with two pins (d, x) at 0 and cd, label tag."""
+    s = [hull_plate([(0, 0, 9), (cd, 0, 9)], -3.0, 0.0)]
+    for d, x in pins:
+        s.append(pin_post(d / 2, face + 2.0, d / 2 + 2.5, 1.0, x, 0.0))
+    return prim.union(s) + label(tag, cd / 2, 0.0, 0.0)
+
+
+def coupon_8(P):
+    from cad.parts import drum, reel as RL
+    import launch as LN
+    import launch_gears as LG
+    c = drum.C(P)
+    F = GEAR_FACE
+    parts, asm, uses = [], {}, []
+    b4, b5 = 4.0 + fits.SHAFT_IN_BORE, 5.0 + fits.SHAFT_IN_BORE
+
+    def add(name, solid, mat, notes, M):
+        parts.append(mk(name, solid, mat, notes))
+        asm[name] = M
+
+    # m1.25: drum wrap pinion z10 x0.4 (PPA-CF) on the drum segment gear z60 (PLA)
+    m, zp, xp, zs = c["seg_m"], c["pin_z"], c["pin_x"], c["seg_z"]
+    cd = gears.center_distance(m, zs, zp, 0.0, xp)
+    seg = sector(gears.spur_gear(m, zs, F), m * zs / 2 + m, 0.0, 66.0, 8.0, b5, F, 0.0)
+    pin = gears.spur_gear(m, zp, F, shift=xp, bore=b4)
+    y0 = 0.0
+    add("rc8_m125_plate", gear_plate("1.25", cd, [(5.0, 0.0), (4.0, cd)], F), "PPA-CF", f"Pins at {cd:.2f}",
+        tf.T(0, y0, 0))
+    add("rc8_m125_seg", seg, "PLA", f"drum segment gear m{m:g} z{zs} sector", tf.T(0, y0, 1.0))
+    add("rc8_m125_pinion", pin, "PPA-CF", f"drum wrap pinion m{m:g} z{zp} x{xp:g}", tf.T(cd, y0, 1.0))
+    uses.append(f"m{m:g}: gears.spur_gear z{zs} sector / z{zp} shift {xp:g}, cd {cd:.2f} (drum.a_seg)")
+    # m1.5: drum idler output z42 (PPA-CF) on the reel cup ring gear z24 (PPA-CF)
+    m, z1, z2 = c["idl_m"], c["idl_z"], RL.Z_CUPG
+    cd = gears.center_distance(m, z1, z2)
+    y0 = 120.0
+    add("rc8_m15_plate", gear_plate("1.5", cd, [(5.0, 0.0), (5.0, cd)], F), "PPA-CF", f"Pins at {cd:.2f}", tf.T(0, y0, 0))
+    add("rc8_m15_z42", sector(gears.spur_gear(m, z1, F), m * z1 / 2 + m, 0.0, 70.0, 8.0, b5, F, 0.0), "PPA-CF",
+        f"drum wrap idler output m{m:g} z{z1} sector", tf.T(0, y0, 1.0))
+    add("rc8_m15_z24", gears.spur_gear(m, z2, F, bore=b5), "PPA-CF", f"reel cup ring gear m{m:g} z{z2}",
+        tf.T(cd, y0, 1.0))
+    uses.append(f"m{m:g}: gears.spur_gear z{z1} sector / z{z2}, cd {cd:.2f}")
+    # m2: reel take-up idler z24 on the reel gear z16 (both PPA-CF)
+    m, z1, z2 = RL.M_TAKE, RL.Z_IDL, RL.Z_REELG
+    cd = gears.center_distance(m, z1, z2)
+    y0 = 240.0
+    add("rc8_m2_plate", gear_plate("2", cd, [(5.0, 0.0), (5.0, cd)], F), "PPA-CF", f"Pins at {cd:.2f}", tf.T(0, y0, 0))
+    add("rc8_m2_z24", gears.spur_gear(m, z1, F, bore=b5), "PPA-CF", f"reel take-up idler m{m:g} z{z1}",
+        tf.T(0, y0, 1.0))
+    add("rc8_m2_z16", gears.spur_gear(m, z2, F, bore=b5), "PPA-CF", f"reel gear m{m:g} z{z2}", tf.T(cd, y0, 1.0))
+    uses.append(f"m{m:g}: gears.spur_gear z{z1} / z{z2}, cd {cd:.2f} (reel take-up)")
+    # m2.5: launch big gear (sector_gear_2d: tall tooth, relieved last tooth) on the drive gear z26 (launch_gears)
+    n = LN.L(P)
+    m, zb, zd, cd = n["m"], n["z_big"], n["z_drive"], n["cd"]
+    pitch = 360.0 / zb
+    k0, k1 = n["n_present"] - 6, n["n_present"]            # last 6 present teeth and the first gap
+    big = prim.extrude(LG.sector_gear_2d(m, zb, n["n_present"], first_tooth_angle=n["fta"]), F)
+    big = sector(big, m * zb / 2 + 1.3 * m, n["fta"] + 0.5 * (k0 + k1) * pitch, (k1 - k0 + 1) * pitch + 4.0, 9.0,
+                 b5, F, 0.0)
+    drv = sector(LG.spur(m, zd, F), m * zd / 2 + m, 180.0, 110.0, 9.0, b5, F, 180.0)
+    y0 = 360.0
+    add("rc8_m25_plate", gear_plate("2.5", cd, [(5.0, 0.0), (5.0, cd)], F), "PPA-CF", f"Pins at {cd:.2f}", tf.T(0, y0, 0))
+    add("rc8_m25_big", big, "PPA-CF", f"launch big gear m{m:g} z{zb} sector: teeth {k0}..{k1 - 1} (tall, relieved)",
+        tf.T(0, y0, 1.0))
+    add("rc8_m25_drive", drv, "PPA-CF", f"launch drive gear m{m:g} z{zd} sector", tf.T(cd, y0, 1.0))
+    uses.append(f"m{m:g}: launch_gears.sector_gear_2d z{zb} (n_present {n['n_present']}, last 6 + gap) / "
+                f"launch_gears.spur z{zd}, cd {cd:.2f} (launch L)")
+    mesh = [("rc8_m125_seg", "rc8_m125_pinion"), ("rc8_m15_z42", "rc8_m15_z24"), ("rc8_m2_z24", "rc8_m2_z16"),
+            ("rc8_m25_big", "rc8_m25_drive")]
+    return dict(
+        key="8", title="Gear meshes m1.25, m1.5, m2, m2.5", parts=parts, asm=[asm], mesh=mesh,
+        uses="; ".join(uses) + f"; coupon face {F:g}, fits GEAR_BACKLASH {fits.GEAR_BACKLASH}, GEAR_CENTER_EXTRA "
+                               f"{fits.GEAR_CENTER_EXTRA}",
+        bought="none",
+        do="Each pair on its plate (label = module), flat faces down; turn or rock through every tooth.",
+        ok=("Smooth, no tight spot, a little play when rocked; m2.5: the tall tooth and the cut-down last tooth pass "
+            "without catching, then the mesh lets go at the gap."),
+        fail=("fits.py GEAR_BACKLASH, GEAR_CENTER_EXTRA (m1.25, m1.5, m2); launch_gears.py center_distance extra, "
+              "spur backlash, sector_gear_2d tall_factor (m2.5); _drum_kin.py pin_x (m1.25 pinion)."),
+    )
+
+
+# ---------------------------------------------------------------------------------------------- 9 shear pin
+LEVER_R = 60.0             # string hole radius on both levers
+
+
+def coupon_9(P):
+    from cad.parts import drum
+    g = drum.G(P)
+    s_lo, s_mid, s_hi = 3.5, 9.5, 16.5
+    hub = drum.coupler_hub(g, P) ^ drum.cyl(30.0, s_lo, s_hi)
+    lev = prim.box(11.0, LEVER_R + 6, -10, 10, s_lo, s_mid - 0.2) - drum.cyl(2.2, s_lo - 1, s_mid, LEVER_R, 0.0)
+    hub = hub + lev
+    outer = drum.coupler(g, P) ^ drum.cyl(30.0, s_mid, s_hi)
+    lev2 = prim.box(-(LEVER_R + 6), -19.0, -10, 10, s_mid, s_hi) - drum.cyl(2.2, s_mid - 1, s_hi + 1, -LEVER_R, 0.0)
+    outer = outer + lev2
+    pin = drum.shear_pin(g)
+    r = g["hub_od"] / 2
+    sig = 30.0
+    t_est = sig * math.pi * (g["shear_d"] / 2) ** 2 * r / 1000.0
+    kg = t_est / (LEVER_R / 1000.0) / 9.81
+    parts = [mk("rc9_hub_lever", hub, "PPA-CF", "drum.coupler_hub slice (shear pin hole) "
+                f"with a lever, string hole at r {LEVER_R:g}"),
+             mk("rc9_outer_lever", outer, "PPA-CF", "drum.coupler slice (shear pin hole) "
+                f"with a lever, string hole at r {LEVER_R:g}"),
+             mk("rc9_shear_pin", pin, "PLA", "drum.shear_pin as built (d4 PLA)", R=tf.Ry(90), qty=3)]
+    return dict(
+        key="9", title="Shear-pin torque limiter", parts=parts,
+        asm=[{"rc9_hub_lever": tf.I4, "rc9_outer_lever": tf.I4, "rc9_shear_pin": tf.I4}], mesh=[],
+        allow=[("rc9_hub_lever", "rc9_shear_pin"), ("rc9_outer_lever", "rc9_shear_pin")],
+        uses=(f"drum.coupler_hub and drum.coupler (sliced s {s_lo:g}..{s_hi:g}), drum.shear_pin: d{g['shear_d']:g} PLA "
+              f"in single shear at r {r:g} (shear_s {g['shear_s']:g}); {t_est:.1f} N m at {sig:g} MPa"),
+        bought="string or a strap, luggage scale",
+        t_est=t_est, kg=kg,
+        do=(f"Hub slice into the outer slice, pin through both holes (head outside). Clamp the hub lever, hang the "
+            f"luggage scale on the outer lever hole (r {LEVER_R:g} mm) at right angles and pull slowly until the pin "
+            f"shears. Break all 3 pins. Torque = kg x 9.81 x {LEVER_R / 1000:g} N m."),
+        ok=(f"Clean single shear at about {kg:.1f} kg ({t_est:.1f} N m), the 3 pins within 20 percent, both slices "
+            "undamaged (holes still round); a fresh pin goes in by hand."),
+        fail=("drum.py GEOM shear_d (torque goes with d squared), hub_od (radius), shear_s; fits for the hole: "
+              "drum.coupler shear hole (shear_d + 0.1) and shear_pin (shear_d - 0.04). Spec D8 / D26 limit 5 N m."),
+    )
+
+
+# ---------------------------------------------------------------------------------------------- all
+def coupons(P=None):
+    P = P or P_default()
+    sc = clutch.slip_clutch()
+    return [coupon_1(P), coupon_2(P), coupon_3(P), coupon_4(P, sc), coupon_5(P), coupon_6(P), coupon_7(P, sc),
+            coupon_8(P), coupon_9(P)]
+
+
+def all_parts(cs):
+    return [p for c in cs for p in c["parts"]]
+
+
+def interferences(cs, tol=0.05):
+    """Overlap volume of every part pair (except meshing gears and listed press fits) in every assembly state of each coupon: [(coupon, a, b, vol)]."""
+    out = []
+    for c in cs:
+        by = {p.name: p for p in all_parts(cs)}
+        skip = {frozenset(x) for x in c["mesh"] + c.get("allow", [])}
+        for st in c["asm"]:
+            names = sorted(st)
+            posed = {nm: prim.place(by[nm].solid, st[nm]) for nm in names}
+            for i, a in enumerate(names):
+                for b in names[i + 1:]:
+                    if frozenset((a, b)) in skip:
+                        continue
+                    v = (posed[a] ^ posed[b]).volume()
+                    if v > tol:
+                        out.append((c["key"], a, b, round(v, 3)))
+    return out
+
+
+# ---------------------------------------------------------------------------------------------- sheet
+def _clean(s):
+    from tools.pack import clean
+    return clean(s)
+
+
+def sheet_md(cs, plates) -> str:
+    L = ["# Day-one risk coupons: test sheet", "",
+         "Print these before the big parts. Each coupon is made from the same geometry functions and numbers as the "
+         "real part, so a pass here is a pass there. Print as exported, no supports, 0.4 nozzle, 0.2 layers, 4 walls; "
+         "PLA plate and PPA-CF plate as marked. Let parts cool 10 minutes before testing. Change one number at a time, "
+         "then rerun `python -m tools.risk_coupon` (from `base/`) and reprint only that coupon.", "",
+         "## Plates", "", "| plate | material | objects |", "|---|---|---|"]
+    for pl in plates:
+        L.append(f"| {pl['file']} | {pl['material']} | {pl['objects']} |")
+    L += ["", "## Tests", ""]
+    for c in cs:
+        L += [f"### {c['key']}. {c['title']}", "",
+              f"- Parts: {', '.join(p.name + (f' x{p.qty}' if p.qty > 1 else '') for p in c['parts'])}",
+              f"- Bought: {c['bought']}",
+              f"- Do: {c['do']}",
+              f"- Pass: {c['ok']}",
+              f"- If it fails, change: {c['fail']}",
+              f"- Made from: {c['uses']}"]
+        if "table" in c:
+            L.append(f"- Expected slip (nut travel: torque, scale reading at r {c['r_lug']:.1f}): " + "; ".join(c["table"]))
+        L.append("")
+    L += ["## Parts", "", "| part | material | qty | print bbox mm | what |", "|---|---|---|---|---|"]
+    for p in all_parts(cs):
+        lo, hi = prim.bbox(prim.place(p.solid, p.print_tf))
+        L.append(f"| {p.name} | {p.material} | {p.qty} | {' x '.join(f'{hi[i] - lo[i]:.1f}' for i in range(3))} | "
+                 f"{p.notes} |")
+    L.append("")
+    return _clean("\n".join(L))
+
+
+def sheet_pdf(fn, cs, plates, fs=6.6):
+    from reportlab.lib.units import mm
+    from tools import pack
+    st, Pp, tbl, note = pack.pdf_kit()
+    S = [Pp("Day-one risk coupons: test sheet", "H2"),
+         Pp("Print before the big parts; every coupon uses the real part's geometry functions and numbers. As exported, "
+            "no supports, 0.4 nozzle, 0.2 layers, 4 walls. Plates: " + ", ".join(
+                f"{pl['file']} ({pl['material']}, {pl['objects']})" for pl in plates)
+            + ". Change one number at a time, rerun python -m tools.risk_coupon, reprint that coupon.", "SM")]
+    rows = [["#", "do", "pass", "if it fails, change (file: name)"]]
+    for c in cs:
+        ok = c["ok"]
+        if "table" in c:
+            ok += " Expected: " + "; ".join(c["table"][1:]) + "."
+        rows.append([f"{c['key']} {c['title']}. Bought: {c['bought']}", c["do"], ok, c["fail"]])
+    S.append(tbl(rows, [30, 58, 48, 46], fs=fs))
+    if note:
+        S.append(Pp(note, "SM"))
+    doc = pack.doc_template(fn, "Risk coupon test sheet", leftMargin=8 * mm, rightMargin=8 * mm, topMargin=8 * mm,
+                            bottomMargin=8 * mm)
+    doc.build(S, canvasmaker=pack.canvasmaker())
+
+
+def pdf_pages(fn) -> int:
+    import re
+    with open(fn, "rb") as fh:
+        return len(re.findall(rb"/Type\s*/Page[^s]", fh.read()))
+
+
+# ---------------------------------------------------------------------------------------------- main
+def write(out_dir: str = DEFAULT_OUT, P=None, log=print) -> dict:
+    from tools import pack
+    os.makedirs(out_dir, exist_ok=True)
+    for pat in ("rc[0-9]_*.stl", "risk_plate_*", "COUPON_TEST.*"):
+        for f in glob.glob(os.path.join(out_dir, pat)):
+            os.remove(f)
+    cs = coupons(P)
+    parts = all_parts(cs)
+    meshes, items = {}, []
+    for p in parts:
+        m = prim.to_trimesh(prim.place(p.solid, p.print_tf))
+        m.apply_translation(-m.bounds[0])
+        m.export(os.path.join(out_dir, f"{p.name}.stl"))
+        meshes[p.name] = m
+        items.append(dict(name=p.name, material=p.material, dims=[float(x) for x in m.extents], qty=p.qty))
+    rep = dict(parts=len(parts), plates=[], errors=[], warnings=[])
+    plates, errs = pack.pack_plates(items, pack.BED, 5.0, 5.0, rep["warnings"])
+    rep["errors"] += errs
+    qty = {p.name: p.qty for p in parts}
+    for i, pl in enumerate(plates, 1):
+        names = pack.object_names(pl["items"], qty)
+        objs = [(on, pack.place_on_plate(meshes[it["name"]], it)) for on, it in zip(names, pl["items"])]
+        fn = os.path.join(out_dir, f"risk_plate_{i}.3mf")
+        pack.write_3mf(fn, objs)
+        nb = pack.count_3mf_items(fn)
+        if nb != len(objs):
+            rep["errors"].append(f"risk_plate_{i}.3mf reopens with {nb} build items, expected {len(objs)}")
+        pack.plate_png(os.path.join(out_dir, f"risk_plate_{i}.png"),
+                       f"risk coupon plate {i}, {pl['material']} ({len(objs)} objects)", objs, pack.BED)
+        lo = np.min([m.bounds[0] for _, m in objs], axis=0)
+        hi = np.max([m.bounds[1] for _, m in objs], axis=0)
+        rep["plates"].append(dict(file=os.path.basename(fn), material=pl["material"], objects=len(objs),
+                                  build_items=nb, lo=lo.tolist(), hi=hi.tolist()))
+    with open(os.path.join(out_dir, "COUPON_TEST.md"), "w") as fh:
+        fh.write(sheet_md(cs, rep["plates"]))
+    pdf = os.path.join(out_dir, "COUPON_TEST.pdf")
+    for fs in (6.6, 6.2, 5.8, 5.4):
+        sheet_pdf(pdf, cs, rep["plates"], fs)
+        if pdf_pages(pdf) == 1:
+            break
+    rep["pdf_pages"] = pdf_pages(pdf)
+    log(f"risk coupon: {len(parts)} parts, {len(rep['plates'])} plate(s) -> {out_dir}")
+    for pl in rep["plates"]:
+        log(f"  {pl['file']}: {pl['material']}, {pl['objects']} objects")
+    for w in rep["warnings"]:
+        log(f"  WARN {w}")
+    for e in rep["errors"]:
+        log(f"  ERROR {e}")
+    return rep
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description="Write the day-one risk coupons (STL, 3MF, PNG, COUPON_TEST.md/.pdf)")
+    ap.add_argument("out", nargs="?", default=DEFAULT_OUT)
+    a = ap.parse_args(argv)
+    rep = write(a.out)
+    return 2 if rep["errors"] else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

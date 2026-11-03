@@ -260,7 +260,7 @@ def flexure_ring(ri, ro, n=3, t=0.8, gap=0.5, bump_w=4.0, up_extra=0.4, phase_de
     L = 2 * math.pi * r_m / n - bump_w
     geom = dict(n=n, L=L, b=ro - ri, t=t, gap=gap, height=zb + t + gap + up_extra, r_m=r_m, z_beam=zb,
                 phase_deg=phase_deg, bump_w=bump_w, lower_bumps=lower_bumps)
-    return s, geom
+    return prim.clean(s), geom
 
 
 def flexure_travel(geom, E=E_PLA, sigma=SIGMA_FLEX_PLA_SUSTAINED):

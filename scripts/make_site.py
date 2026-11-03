@@ -140,7 +140,8 @@ def build(out, branch, checks_file):
     shots = sorted(glob.glob(os.path.join(ROOT, "base/out/base/shots/sim_t*.png")))
     hero = ""
     if shots:
-        shutil.copy(shots[len(shots) // 2], os.path.join(out, "hero.png"))
+        close = [f for f in shots if "t004" in f] or shots
+        shutil.copy(close[0], os.path.join(out, "hero.png"))
         files["hero.png"] = True
         hero = "hero.png"
 

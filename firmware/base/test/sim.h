@@ -27,9 +27,9 @@ struct Sim {
   // ---- motor model
   double n0rpm = 45, stallNm = 15, stallA = 18, freeA = 1.5, vbat0 = 12.4, rint = 0.05;
   double amps = 0, wRateDps = 0;
-  double drumDpsTrue = 22.0;       // a little slower than the firmware's 24 estimate
+  double drumDpsTrue = 7.5;        // a little slower than the firmware 8.1 estimate
   double aimLoadNm = 0.5, cockMaxNm = 2.5, reelFreeNm = 0.4;
-  double capstanR = 0.02465;       // m (49.3 mm diameter)
+  double capstanR = 0.0205;        // m (capstan d 40 + line)
   // ---- sensors
   int encSign = +1; bool encMissing = false; int encGlitchEvery = 0; uint32_t encReads = 0; bool magnetWeak = false;
   double isAmpsPerVolt = 12.5;     // must match the firmware's WiperCfg
@@ -60,7 +60,7 @@ struct Sim {
   double edgeJitter = 1.5; double edgeOff[8] = {0.9, -1.2, 0.4, -0.7, 1.4, -0.3, 0.6, -1.0};
   int sectorTrue() const { int k = 0; while (k < gb::SEC_COUNT - 1 && drumDeg >= c.edgeDeg[k] + edgeOff[k] * edgeJitter / 1.5) k++; return k; }
   int dryFires = 0;               // the collar left the LAUNCH dwell with the spring drawn (must never happen)
-  bool dogTip = false;
+  bool dogTip = false; bool handLatched = false;
   double cockLoad() const {        // the rack is engaged from homeOpenDeg to the release tooth
     if (fired || cockPh < c.homeOpenDeg) return 0.5;
     double f = (cockPh - c.homeOpenDeg) / (c.releaseDeg - c.homeOpenDeg); if (f > 1) f = 1;
@@ -79,7 +79,11 @@ struct Sim {
     setb(gb::SW_DRUM_A, code & 1); setb(gb::SW_DRUM_B, code & 2); setb(gb::SW_DRUM_C, code & 4);
     setb(gb::SW_DOG_L, inLaunch()); setb(gb::SW_DOG_R, inReel());
     double wf = wrapsExact() - floor(wrapsExact());
-    setb(gb::SW_WRAP_HOME, wf < 0.03 || wf > 0.97);
+    setb(gb::SW_ARM, wf < 0.03 || wf > 0.97);
+    { double m = fmod(wiperDeg, 60.0); if (m < 0) m += 60; setb(gb::SW_INDEX, m < 10); }   // 6-bump index cam
+    setb(gb::SW_N20, !handLatched);
+    double g = fmod(cockPh, c.cycleDeg); if (g < 0) g += c.cycleDeg;
+    setb(gb::SW_GAP, !fired ? (g >= c.gapCloseDeg || g < c.homeOpenDeg) : (cockPh >= c.gapCloseDeg));
     setb(gb::SW_SEATED, seated());
     setb(gb::SW_HOME, fired || cockPh < c.homeOpenDeg);
     double am = fmod(aimPh - c.aimHomeDeg, c.aimCycleDeg); if (am < 0) am += c.aimCycleDeg;
@@ -116,12 +120,12 @@ struct Sim {
     wiperDeg += dDeg;
     double ad = fabs(dDeg);
     if (ad > 0) {
-      if (wDir > 0) { double t = ad / 360.0 * 0.322; slack = fmax(0, slack - t); }   // take-up winds slack in (clutch slips beyond)
+      if (wDir > 0) { double t = ad / 360.0 * 0.39; slack = fmax(0, slack - t); }   // take-up: 2.5 x a 50 mm core per turn   // take-up winds slack in (clutch slips beyond)
       if (dogTip) { toothWiperAcc += ad; if (toothWiperAcc >= toothNeedWiper) { dogTip = false; toothWiperAcc = 0; } }
       else if (engaged) {
         double drive = 0;                                            // travel beyond the window
-        if (wDir > 0) { double room = c.dogWindowDeg - win; double u = fmin(room, ad); win += u; drive = ad - u; }
-        else { double room = win; double u = fmin(room, ad); win -= u; drive = ad - u; }
+        if (wDir > 0) { double room = fmax(0.0, c.dogWindowDeg - win); double u = fmin(room, ad); win += u; drive = ad - u; }
+        else { double room = fmax(0.0, win); double u = fmin(room, ad); win -= u; drive = ad - u; }
         if (drive > 0 && inLaunch()) {
           if (wDir == c.aimDir) {
             aimPh = fmod(aimPh + drive, c.aimCycleDeg);
@@ -135,7 +139,7 @@ struct Sim {
           lineOut -= drive / 360.0 * c.capstanPerWiper * 2 * M_PI * capstanR; if (lineOut < 0) lineOut = 0;
         }
       } else if (wDir > 0 && anchorTautAt < 0 && lineOut > seatAtLine) {   // NEUTRAL: take-up pulls a free dart home
-        lineOut = fmax(seatAtLine, lineOut - ad / 360.0 * 0.322);
+        lineOut = fmax(seatAtLine, lineOut - ad / 360.0 * 0.39);
       }
     }
     // ---- drum

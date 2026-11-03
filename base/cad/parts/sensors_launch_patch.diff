@@ -1,5 +1,5 @@
 diff --git a/base/cad/parts/launch.py b/base/cad/parts/launch.py
-index d060a33..621c2f2 100644
+index 71931b5..6880fb6 100644
 --- a/base/cad/parts/launch.py
 +++ b/base/cad/parts/launch.py
 @@ -148,8 +148,8 @@ def switch_frames(P):
@@ -8,7 +8,7 @@ index d060a33..621c2f2 100644
      M = tf.mul(tf.T(u_t, y_leaf, w_base), tf.Rz(-90))
 -    out["gap"] = dict(M=M, joint="launch_rail", z_s=zs, screw=6.0, x0=-3.0, width=None, top=5.0,
 -                       where="right rail cheek, pressed by a cam bump on the big gear at its rest angle (gear in its gap)")
-+    # SW_GAP moved to cad-sensors (sensors.py: cad.lib contact switch on its own bracket); geometry kept for reference
++    # SW_GAP moved to cad-sensors (sensors.py: cad.lib contact switch with its own arm); frame kept for reference
 +    _ = dict(M=M, joint="launch_rail", z_s=zs, screw=6.0, x0=-3.0, width=None, top=5.0)
      return out
  
@@ -19,7 +19,7 @@ index d060a33..621c2f2 100644
      yA0 = n["y_chA"][0]
 -    s.append(B(u_t - 13, u_t + 13, yA0, n["y_chA"][1], w_t - 13.0, -7.9))
 -    s.append(B(u_t - 6.5, u_t + 6.5, -40.0, n["y_chA"][1], w_t - 13.0, w_t - 7.0))
-+    # (SW_GAP ledge removed: cad-sensors' bracket screws to the cheek outer face, pilots below)
++    # (SW_GAP ledge removed: cad-sensors' switch arm screws to the cheek outer face, pilots below)
      # front anchor posts (raised to the hook, with a top strap: the pin is held in double shear) and the muzzle tie
      ua = n["u_anchor"]
      ys, wsp = n["y_spring"], n["w_spring"]
@@ -33,13 +33,13 @@ index d060a33..621c2f2 100644
 -    for hx in SW.mount_holes(f["x0"], f["z_s"]):
 -        q = tf.apply(f["M"], np.array([[hx, 0.0, 0.0]]))[0]
 -        solid = solid - cyl_w(1.3, q[2] - 6.5, q[2] + 1.0, q[0], q[1])
-+    # cad-sensors SW_GAP bracket: 2 x M3 self tap pilots d2.6, 7 deep, along +y into the right cheek outer face
++    # cad-sensors SW_GAP arm: 2 x M3 self tap pilots d2.6, 7 deep, along +y into the right cheek outer face
 +    for (uu, ww) in ((48.0, 2.0), (64.0, 2.0)):
 +        solid = solid - cyl_y(1.3, n["y_chA"][0] - 1.0, n["y_chA"][0] + 7.0, uu, ww)
      # SW_SEATED (left lip) and SW_HOME (right lip) lever seats: head pocket, nut pocket with an outboard slot, root pilot
      for side in ("seated", "home"):
          st = seat_geom(P, side)
-@@ -1063,11 +1059,9 @@ def allowed(P):
+@@ -1095,11 +1091,9 @@ def allowed(P):
          Allow("launch_spring_*_hook_c", "launch_carriage_yoke", "hook loop round the arm peg"),
          Allow("launch_stop_spring_*", "launch_carriage_yoke", "arm on the stop pad (contact)"),
          Allow("launch_spring_*", "launch_spring_*", "segmented spring model telescopes when the carriage overshoots"),
@@ -48,10 +48,10 @@ index d060a33..621c2f2 100644
          Allow("launch_sw_home_screw", "launch_sw_home", "screw threaded into the lever"),
          Allow("launch_sw_seated_screw", "launch_sw_seated", "screw threaded into the lever"),
 -        Allow("launch_sw_rail_low_screw", "launch_sw_rail_low", "screw threaded into the leaf"),
-     ] + LN.allowed_line() + ST.stop_allowed() + _aim("allowed_aim", P)
+     ] + LN.allowed_line() + ST.stop_allowed() + MZ.muzzle_allowed() + GD.guard_allowed() + _aim("allowed_aim", P)
  
  
-@@ -1188,8 +1182,7 @@ def steps(P):
+@@ -1243,8 +1237,7 @@ def steps(P):
                    "sled. SW_GAP: build the switch body with an M3 x 6 and a nut, screw it to the right cheek ledge "
                    "(2 x M3 x 10); its tip must touch the cam bump on the big gear at rest.",
               parts=["launch_sw_home", "launch_sw_home_screw", "launch_sw_home_nut", "launch_sw_seated",
@@ -61,7 +61,7 @@ index d060a33..621c2f2 100644
          dict(title="Launcher 9: time the big gear (fingers clear)",
               text="With the carriage on its stop, turn the drive gear FORWARD by hand until the first tooth after the "
                    "toothless gap just touches the rearmost rack tooth: this is HOME and SW_GAP closes. Turning on pulls the "
-@@ -1213,8 +1206,7 @@ def steps(P):
+@@ -1268,8 +1261,7 @@ def steps(P):
                    "onto the M8 bolt through the housing outer wall; fit the nut. Lay the worm shaft with the small bevel in "
                    "its saddles and screw the cap on. Fit the countershaft with the output gear and the big bevel.",
               parts=["launch_aim_housing", "launch_aim_cap", "launch_aim_worm", "launch_aim_crank", "launch_aim_bolt",
@@ -72,10 +72,10 @@ index d060a33..621c2f2 100644
               text="Slide the sun onto the sleeve's outer rib. Put the O-ring in the swing arm hub groove, slide the arm on "
                    "next to the sun, fit the idler on the arm pin with its clip. Turn the sleeve backward by hand: the arm "
 diff --git a/base/cad/parts/launch_aim.py b/base/cad/parts/launch_aim.py
-index 81f9c96..c671ab7 100644
+index ff661f7..7a6abd4 100644
 --- a/base/cad/parts/launch_aim.py
 +++ b/base/cad/parts/launch_aim.py
-@@ -334,13 +334,10 @@ def housing_solid(P):
+@@ -336,13 +336,10 @@ def housing_solid(P):
      sx0 = Ms[0, 3] - 3.0
      sx1 = Ms[0, 3] + SW.mount_holes(-3.0, SWL_ZS)[0] + 3.5
      ztop = Ms[2, 3] - 0.02
@@ -91,7 +91,7 @@ index 81f9c96..c671ab7 100644
      for x0, x1 in ((35.0, 41.5), (74.5, 80.5)):                                  # worm saddles (lower halves)
          s.append(prim.box(x0, x1, yw - 7.2, Y_W2[1], d0 + 80.3, sz))
          s.append(prim.box(x0, x1, Y_W2[0], Y_W2[1], d0 + 79.0, d0 + 81.0))       # join to the outer wall
-@@ -356,10 +353,10 @@ def housing_solid(P):
+@@ -358,10 +355,10 @@ def housing_solid(P):
      for x in (38.25, 77.5):
          for yy in (yw - 5.0, yw + 5.0):
              h = h - prim.cyl(1.25, 12, x=x, y=yy, z=sz - 11)                   # M3 self tap for the cap
@@ -106,7 +106,7 @@ index 81f9c96..c671ab7 100644
      for x, y in deck_holes(P):
          h = h - prim.cyl(1.7, 10, x=x, y=y, z=d0 - 1)
      return h
-@@ -485,16 +482,6 @@ def parts_aim(P):
+@@ -487,16 +484,6 @@ def parts_aim(P):
          Part("launch_aim_brg_1", brg, "bought", joint=None,
               place=tf.mul(tf.T(n["crank_x"], 213.4, n["crank_z"]), tf.Rx(-90)), color="#b0b5bb",
               bought_ref="608ZZ 8x22x7", notes="Worm wheel bearing (outboard)"),
@@ -123,7 +123,7 @@ index 81f9c96..c671ab7 100644
          Part("launch_aim_brg_2", brg, "bought", joint=None,
               place=tf.mul(tf.T(n["crank_x"], 206.4, n["crank_z"]), tf.Rx(-90)), color="#b0b5bb",
               bought_ref="608ZZ 8x22x7", notes="Worm wheel bearing (inboard)"),
-@@ -566,7 +553,7 @@ def kin_aim(P, S, pitch):
+@@ -568,7 +555,7 @@ def kin_aim(P, S, pitch):
  
  
  def allowed_aim(P):

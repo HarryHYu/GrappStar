@@ -96,3 +96,30 @@ def test_tow_allowed_on_older_firmware_with_a_calibrated_k(tmp_path):
         assert not any("TOW refused" in a[0] for a in r.answers)
     finally:
         r.close()
+
+
+def test_f22_tow_rounds_stop_before_a_new_reel_without_load_cell(tmp_path):
+    """systest F22: without a load cell the HOLD keeps its held estimate at the limit; a tow re-sent from HOLD
+    answers LIMIT "already at the limit" and never takes up the rover's slack. Each later round must send stop
+    (and see ABORTED) before its new reel, and must not skip the pull because of the held estimate."""
+    from mission_harness import ScriptRover
+    r = _tow_rig(tmp_path, set_k=11.3)                 # calibrated: the tow is allowed
+    r.m.rover = ScriptRover(r, rounds=3)
+    sent = []
+    real = r.base.cmd
+    def cmd(name, *a, **kw):
+        if name in ("stop", "reel"):
+            sent.append((name, kw.get("until")))
+        return real(name, *a, **kw)
+    r.base.cmd = cmd
+    try:
+        m = r.run(120)
+        assert m.state == "DONE", m.error
+        hist = r.steps()
+        assert "TOW" in hist
+        tows = [i for i, x in enumerate(sent) if x == ("reel", "tension")]
+        assert len(tows) >= 3, sent                     # every round pulls (none skipped on the held estimate)
+        for i in tows[1:]:
+            assert sent[i - 1][0] == "stop", sent       # stop right before each later tow reel
+    finally:
+        r.close()

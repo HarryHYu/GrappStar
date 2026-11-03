@@ -12,7 +12,7 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then echo "working t
 git fetch -q origin base-v1 || { echo "fetch base-v1 failed"; exit 2; }
 git merge -q --ff-only origin/base-v1 2>/dev/null || true
 for w in "${ORDER[@]}"; do
-    git fetch -q origin "w/$w" 2>/dev/null || { echo "SKIP  $w (no branch)"; continue; }
+    git fetch -q origin "+refs/heads/w/$w:refs/remotes/origin/w/$w" 2>/dev/null || { echo "SKIP  $w (no branch)"; continue; }
     n=$(git rev-list --count HEAD..origin/w/$w)
     if [ "$n" = "0" ]; then echo "UP    $w (nothing new)"; continue; fi
     if git merge -q --no-edit -m "Merge w/$w into base-v1" "origin/w/$w" >/dev/null 2>&1; then

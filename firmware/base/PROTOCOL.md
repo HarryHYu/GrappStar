@@ -1,6 +1,6 @@
 # GrappStar base station protocol (contract C1)
 
-Firmware `base-1.2.1` (`firmware/base/grappstar_base`, the base-1.2 line), mechanism BASE_SPEC v1.2 (with the C1 sequence of section 10.1, D35) and `base/spec/params.py` 1.3.0 (as built into `params_gen.h`: drum, trips, tension model and the aim table) (drum
+Firmware `base-1.3.0` (`firmware/base/grappstar_base`, the base-1.2 line), mechanism BASE_SPEC v1.2 (with the C1 sequence of section 10.1, D35) and `base/spec/params.py` 1.3.0 (as built into `params_gen.h`: drum, trips, tension model and the aim table) (drum
 order LAUNCH / NEUTRAL / WRAP / REEL with the WRAPPED park inside N_TO_R, decisions D16, D22 and D31; mission order
 D22). This file is the contract the Jetson implements against. Changes are additive where possible (new fields, new
 events, new error codes); section 10 lists everything the Jetson worker must change for base-1.2.
@@ -264,7 +264,7 @@ fields it does not know.
 
 | evt | fields | when |
 |---|---|---|
-| `HELLO` | `fw` (`base-1.2.1`), `reset` (`POWERON`, `BROWNOUT`, `PANIC`, `WATCHDOG`, `SOFTWARE`, `USB`, `EXTERNAL`, `DEEPSLEEP`, `OTHER`), `hx711`, `as5600`, `pwm` (false: a PWM pin failed and the wiper bridge stays disabled: do not run) | once at start-up. Treat it as a new session |
+| `HELLO` | `fw` (`base-1.3.0`), `reset` (`POWERON`, `BROWNOUT`, `PANIC`, `WATCHDOG`, `SOFTWARE`, `USB`, `EXTERNAL`, `DEEPSLEEP`, `OTHER`), `hx711`, `as5600`, `pwm` (false: a PWM pin failed and the wiper bridge stays disabled: do not run) | once at start-up. Treat it as a new session |
 | `BOOT` | `fw`, `record` (a saved state was found), `was_moving` (power was lost mid-motion), `drum_known`, `wraps_known`, `aim_known`, `phase`, `angle` (`AS5600`, `INDEX` or `NONE`: which angle source the base uses) | 60 ms after start-up, once the sensors settled (section 9) |
 | `MODE` | `ok`, `mode`, `drum_pos`; with `ok:false` also `err` (`DRUM_HELD`, or the fault code of a failed drum move after a fault) and `why` (text) | a drum move ended (`mode`; `unwrap` after its `UNWRAPPED`; `estop`; safing after a fault); also right after `estop` or a fault when the drum is already at its safe park; and as the reply event of `cal drum`. NOT sent after `wrap`. `err:"DRUM_HELD"`: the drum deliberately did not move to its safe park |
 | `AIMED` | `ok`, `pitch_deg` (null if unknown), `target_deg` (the target after the quarter-tolerance move at the table ends); `err` (`AIM_MISS` after 3 tries, `OUT_OF_RANGE`) when `ok:false` | aim ended |
@@ -487,7 +487,7 @@ the table says otherwise:
 | `vbat_wired` | true | true / false | the battery divider is fitted; false turns off `NO_POWER` and `BROWNOUT` and makes `vbat` null. Back to true at every start-up (never kept off) |
 | `enc_sign` | 1 | 1 / -1 | AS5600 count direction (set while stopped) |
 | `host_timeout_s` | 0 (off) | 0..600 | host watchdog: no line from the Jetson for this long while a motor runs = `stop` (two `ABORTED` events, the second `what:"HOST"`, `why:"host silent"`). Send `ping` to keep long runs alive (a `wrap` or `unwrap` takes about 40 s). NOT saved: 0 after every start-up |
-| `fw`, `params`, `pitch_range` | | get only | firmware version (`base-1.2.1`), params.py version (`1.3.0`, the version `params_gen.h` was generated from), `min` / `max` pitch (6.01 / 47 with the built-in table) |
+| `fw`, `params`, `pitch_range` | | get only | firmware version (`base-1.3.0`), params.py version (`1.3.0`, the version `params_gen.h` was generated from), `min` / `max` pitch (6.01 / 47 with the built-in table) |
 
 The take-up trip (2.5 A) and the jog trip (3 A) are fixed in `config.h`, not `set` keys.
 
@@ -609,7 +609,7 @@ about 0.7 deg there is flagged as uncounted travel. A lasting jump that had to b
 
 What the Jetson worker must change (against the base-1.0 version of this file):
 
-1. Version strings: `HELLO`, `BOOT`, `ping`, `status` and `get fw` say `base-1.2.1`; `get params` says `1.3.0`.
+1. Version strings: `HELLO`, `BOOT`, `ping`, `status` and `get fw` say `base-1.3.0`; `get params` says `1.3.0`.
 2. Mission order (D22): after `FIRED` and `RESET` and a go landing verdict, send `wrap` straight away, in LAUNCH (no
    `mode NEUTRAL` first; `wrap` does the centering jog and the launch-exit checks itself). Then wait for ANCHORED,
    send `tidy`, then `mode REEL`, then the tow. The old order (`mode NEUTRAL`, `reel until slip`, `wrap`) is gone.

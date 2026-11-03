@@ -1,6 +1,6 @@
 # GrappStar base station firmware
 
-Firmware `base-1.2.1` (the base-1.2 line) for the ESP32-S3 DevKitC-1-N8 in the base station. It follows BASE_SPEC v1.2,
+Firmware `base-1.3.0` (the base-1.2 line) for the ESP32-S3 DevKitC-1-N8 in the base station. It follows BASE_SPEC v1.2,
 `base/spec/params.py` 1.2.1 and the mission order of decision D22.
 
 Nothing in this folder has run on real hardware yet. The logic passes the PC tests (a simulation). Go slowly the first
@@ -99,8 +99,8 @@ firmware/base/grappstar_base` from the repository folder. It should report about
 3. Tap RESET on the board. You should see a `HELLO` line, then a `BOOT` line, then telemetry lines:
 
    ```
-   {"evt":"HELLO","fw":"base-1.2.1","reset":"POWERON","hx711":false,"as5600":true,"pwm":true}
-   {"evt":"BOOT","t":60,"fw":"base-1.2.1","record":false,"was_moving":false,"drum_known":true,"wraps_known":true,"aim_known":false,"phase":"UNKNOWN","angle":"AS5600"}
+   {"evt":"HELLO","fw":"base-1.3.0","reset":"POWERON","hx711":false,"as5600":true,"pwm":true}
+   {"evt":"BOOT","t":60,"fw":"base-1.3.0","record":false,"was_moving":false,"drum_known":true,"wraps_known":true,"aim_known":false,"phase":"UNKNOWN","angle":"AS5600"}
    {"tel":{"state":"IDLE","mode":"NEUTRAL","drum_deg":41,"drum_pos":"NEUTRAL",...,"sw":{"b":1,"n":1},"fault":null,"vbat":0}}
    ```
 
@@ -113,7 +113,7 @@ firmware/base/grappstar_base` from the repository folder. It should report about
    {"id":1,"cmd":"ping"}
    ```
 
-   You should get `{"id":1,"ok":true,"fw":"base-1.2.1","t":...}` somewhere between the telemetry lines.
+   You should get `{"id":1,"ok":true,"fw":"base-1.3.0","t":...}` somewhere between the telemetry lines.
 5. Telemetry scrolls fast. Untick "Autoscroll" to read a line, tick it again to follow.
 6. Also try `{"id":2,"cmd":"status"}`. It shows `"magnet"`: `OK`, `WEAK`, `STRONG` or `NONE`.
 7. Telemetry `sw` lists the closed contacts with one letter each: `a` `b` `c` (drum code), `l` (`SW_DOG_L`), `r`

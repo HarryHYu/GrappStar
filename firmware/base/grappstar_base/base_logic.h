@@ -20,7 +20,7 @@
 
 namespace gb {
 
-#define GB_FW_VERSION "base-1.2.1"
+#define GB_FW_VERSION "base-1.3.0"
 
 enum Fault { F_NONE, F_STALL, F_OVERCURRENT, F_DRUM_TIMEOUT, F_DRUM_SENSOR, F_ANGLE_SENSOR, F_SWITCH_DISAGREE, F_BROWNOUT, F_BAD_STATE, F_DART_STUCK };
 static const char* const FAULT_NAME[] = {nullptr, "STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR", "ANGLE_SENSOR",
@@ -510,7 +510,8 @@ struct Base {
     if (!isnan(vbat) && running && vbatF < c.vbatLow) {
       if (!lowRun) { lowRun = true; lowT = now; } else if (now - lowT >= c.vbatLowMs) { raise(F_BROWNOUT, "battery sagged under load"); return; }
     } else lowRun = false;
-    if (tokenLive && now - tokenT > c.armMs) { tokenLive = false; tokenExpired = true; }
+    // the token runs only once the gap run is done
+    if (tokenLive && !gapThenArm && now - tokenT > c.armMs) { tokenLive = false; tokenExpired = true; }
     // the drum cannot move by itself (worm): a code change with the N20 off for 300 ms means a lying contact
     if (sec == quietSec) quietDiffT = 0;
     else if (d.running() || now - d.stopT <= 300 || (state == S_JOG && jogMotor == 2)) { quietSec = sec; quietDiffT = 0; }
@@ -886,7 +887,7 @@ struct Base {
   }
   const char* cmdFire(double tok) {
     if (!tokenLive) return tokenExpired ? "TOKEN_EXPIRED" : "NOT_ARMED";
-    if (now - tokenT > c.armMs) { tokenLive = false; tokenExpired = false; return "TOKEN_EXPIRED"; }
+    if (!gapThenArm && now - tokenT > c.armMs) { tokenLive = false; tokenExpired = false; return "TOKEN_EXPIRED"; }
     tokenExpired = false;
     if (tok != (double)token) { tokenLive = false; return "BAD_TOKEN"; }   // a wrong token burns the arm
     tokenLive = false;

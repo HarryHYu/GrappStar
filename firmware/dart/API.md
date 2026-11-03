@@ -17,7 +17,7 @@ and never poll `/status` faster than 5 Hz (held-key repeats every 150 ms are the
 Refusal reasons: `in flight`, `busy` (a sequence owns the motors), `already anchored, release first`,
 `no current sensor` (INA219 missing or lost), `no IMU` (BNO085 missing or silent), `stalled: release the key first`, `hold limit: release the key first`,
 `fault latched: send stop first`, `both directions held`, `sent before a stop`,
-`battery low`, `anchored: release first`, `unknown key`, and for `/flightlog` `busy (motors running, armed or in flight)`.
+`battery low`, `anchored: release first`, `unknown key`, and for `/flightlog` `busy (motors running)`, `armed (disarm first)`, `in flight`.
 
 **One request at a time.** If a client opens a connection and never sends a request (a browser tab closing mid
 request can do this), the ESP32 web server waits up to 5 s for it before serving anyone else. Motors are not affected
@@ -226,12 +226,13 @@ of `/auto` (pods up before the kick comes back), because the kick goes down firs
   still allowed).
 - An arm expires after 15 min without a launch (event `arm expired`).
 - Idempotent: use this instead of the `A` toggle. Arm right before the shot, because `/stop` disarms.
-- Arming from `ANCHORED`, `aborted` or `released` starts a new shot (`seq` back to `idle`).
+- Arming after `aborted` or `released` starts a new shot (`seq` back to `idle`). From `ANCHORED` it is refused (above).
 
 ### GET /flightlog
 
 The BNO085 log, streamed as JSON (chunked, up to about 40 kB). The server is busy for about 0.3 s while it sends,
-so it is refused (409 `busy (motors running, armed or in flight)`) while any motor runs, while armed and in FLIGHT.
+so it is refused while any motor runs (409 `busy (motors running)`: retry, auto-anchor may be running), while armed
+(`armed (disarm first)`) and in FLIGHT (`in flight`).
 A client that stops reading is cut off after 8 s.
 Fetch it after landing (phase `LANDED` or `ANCHORED`).
 

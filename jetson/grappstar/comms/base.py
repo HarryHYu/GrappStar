@@ -41,9 +41,9 @@ STATES = ("IDLE", "MODE", "AIM", "COCK", "FIRE", "WRAP", "UNWRAP", "REEL", "HOLD
           "FAULT")
 PHASES = ("REST", "COCKING", "COCKED", "FIRING", "RESETTING", "UNKNOWN")
 EVENTS = ("HELLO", "BOOT", "MODE", "AIMED", "COCKED", "FIRED", "RESET", "WRAPPED", "UNWRAPPED", "SEATED", "STALL",
-          "LIMIT", "ABORTED", "FAULT", "OVERFLOW")
+          "LIMIT", "ABORTED", "FAULT", "OVERFLOW", "TIDIED")
 FAULTS = ("STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR", "ANGLE_SENSOR", "SWITCH_DISAGREE", "BROWNOUT",
-          "BAD_STATE")
+          "BAD_STATE", "DART_STUCK")
 # reply error codes (base_logic.h); events can also carry err (AIMED: OUT_OF_RANGE, AIM_MISS; MODE: DRUM_HELD or a why)
 ERRORS = ("TOO_LONG", "BAD_JSON", "NO_CMD", "UNKNOWN_CMD", "BAD_ARG", "BAD_KEY", "REPLY_OVERFLOW", "FAULTED", "BUSY",
           "BOOTING", "NO_POWER", "ANGLE_SENSOR", "HOLDING", "POSITION_UNKNOWN", "WRAPS_ON", "SWITCH_DISAGREE",
@@ -482,9 +482,10 @@ class BaseClient:
         return self.cmd("cal", what="tare", **kw)
 
     def reel(self, duty: float, max_n: Optional[float] = None, until: str = "stop", **kw) -> dict:
-        """Wind the capstan (needs drum_pos WRAPPED; also accepted in HOLD). duty 0 < d <= 1 (firmware default 0.86,
-        floor 0.27), max_n > 0 (default limit_n 20, capped at 150). Ends: SEATED (until seated), LIMIT (holding true
-        and state HOLD for until tension, else IDLE), ABORTED (stop, timeout, host watchdog)."""
+        """Wind the capstan (wraps on and the collar in REEL; also accepted in HOLD). duty 0 < d <= 1 (firmware
+        default 0.86, floor 0.27), max_n > 0: the tension at the DART (spec 1.3.0, D43), default limit_n, capped at
+        60 N. until: stop, tension (holds at max_n), slip (take-up tidy), seated (NEUTRAL take-up only, D35).
+        Ends: SEATED, LIMIT (holding true and state HOLD for until tension), ABORTED (stop, timeout, host watchdog)."""
         if until not in ("seated", "tension", "stop", "slip"):
             raise ValueError("until must be seated, tension, stop or slip")
         duty = round(max(0.0, min(1.0, float(duty))), 3)

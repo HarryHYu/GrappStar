@@ -345,32 +345,53 @@ Do not run the hotspot on the built-in WiFi: that radio is on KEDGE.
 The rover aims the base at things it sees, so it must know how its camera maps pixels to angles (intrinsics) and
 how the camera sits on the rover (mount: height and tilt).
 
-The exact options of the `calibrate` commands are set by the code: run `python3 -m grappstar calibrate intrinsics
---help` and `python3 -m grappstar calibrate mount --help` first. The steps below are the method.
+You need: the rover camera plugged in (`/dev/grappstar-rovercam`, step 5) and a printed checkerboard.
+Run every command from this folder (`jetson/`). Files go into `calib/`. Every command has `--help`.
 
 ### Print the checkerboard
 
 - **9 by 6 inner corners** (that is 10 by 7 squares), **25 mm squares**. A generator such as calib.io
   ("Checkerboard", 10 columns, 7 rows of squares, 25 mm) or OpenCV's `pattern.png` works.
-- Print at 100 percent ("actual size", no "fit to page"). Measure a square with calipers. If it is not 25.0 mm,
-  give the measured size to the command (see `--help`).
+- Print at 100 percent ("actual size", no "fit to page"). Measure a square with calipers.
+- `--square` is in **metres**: 25 mm is `--square 0.025`. If you measured 25.3 mm, type `--square 0.0253`
+  (not 25.3: that would be 1000 times too big).
 - Tape it flat on something stiff (cardboard, a clipboard). A bent board gives bad results.
 
 ### Intrinsics
 
-1. Stop the operator page if it is running (it holds the camera).
-2. Run `python3 -m grappstar calibrate intrinsics` (with `--help` options for the camera and square size).
-3. Hold the board in front of the camera and move it: near and far, left, right, top, bottom corners, and tilted.
-   Aim for 20 or more good views. Keep it still for each capture and avoid glare.
-4. It prints the result (and an error number: under 0.5 pixels is good, over 1 means redo it) and where it saved
-   the file.
+1. Stop the operator page if it is running (it holds the camera): `sudo systemctl stop grappstar`.
+2. Take 20 pictures of the board:
+
+   ```bash
+   python3 -m grappstar snap --n 20
+   ```
+
+   Before each picture, hold the board in a new place: near and far, left, right, top, bottom corners, and
+   tilted. Keep it still, avoid glare, then press Enter. The pictures are saved as `calib/images/snap_00.png`
+   to `snap_19.png`.
+3. Work out the intrinsics from them:
+
+   ```bash
+   python3 -m grappstar calibrate intrinsics --images calib/images/*.png --square 0.025
+   ```
+
+4. It prints the result and saves `calib/intrinsics.json`. Check `rms` (the error in pixels): under 0.5 is good,
+   over 1 means take the pictures again. `n_used` is how many pictures it could use.
 
 ### Mount
 
 1. Fix the camera in its final position on the rover. If it moves later, redo this part.
-2. Rover on flat ground. Lay the board flat on the ground in front of it, in view.
-3. Run `python3 -m grappstar calibrate mount` and follow what it asks (measured distances, see `--help`).
-4. It saves camera height and pitch.
+2. Rover on flat ground. Lay the board flat on the ground in front of it, all of it in view.
+3. Take one picture, then work out the mount:
+
+   ```bash
+   python3 -m grappstar snap --n 1 --out calib/ground
+   python3 -m grappstar calibrate mount --image calib/ground/snap_00.png --square 0.025
+   ```
+
+   It uses `calib/intrinsics.json` from the step above automatically (it prints "using intrinsics"). If it
+   prints a WARNING about an uncalibrated camera instead, do the Intrinsics part first.
+4. It saves camera height, pitch and roll to `calib/rovercam.json`. Check the height against a tape measure.
 5. Check: put an orange object at a distance you measured with a tape (for example 5.0 m), click it on the page,
    and compare the range the page shows. Within about 5 percent is good.
 
@@ -384,19 +405,34 @@ python3 -m grappstar serve --sim
 
 What is on the page (layout may differ a little from this list):
 
-- **Camera views**: rover camera and dart camera, live. Click on the rover view to mark a target.
+- **Camera views**: rover camera and dart camera, live. Tap (or click) the rover view to mark a target, or press
+  **Auto target**.
 - **Base panel**: link, state, mode, drum position, aim angle, current, battery, fault.
 - **Dart panel**: link, phase (IDLE, ARMED, FLIGHT, LANDED, ANCHORING, ANCHORED, RELEASING, FAULT), battery.
-- **Mission panel**: current step, history, and the **prompt** box. Before anything dangerous (firing, reeling)
-  the mission stops and asks you to confirm, e.g. "Fire" or "Abort". After the first confirmation ("Base may move")
-  the base is LIVE: drum shifts, aiming and small wiper turns during a mode change happen between prompts. Cocking and
-  firing each have their own confirmation.
+- **Mission panel**: current step, history, **Preflight**, **Start mission**, **Abort**, and the **prompt** box.
+  The mission stops and asks you before each big move. The confirmations, in order: **Base may move**, **Aim**,
+  **Cock**, **Fire** then **FIRE NOW** (two presses), and the landing verdict (**Anchor** or **Retrieve and
+  reshoot**). After "Base may move" the base is LIVE: drum shifts, aiming and small wiper turns happen between
+  prompts.
+- **Recover dart**: if a mission is aborted while the dart is still out, the Mission panel shows "The dart is still
+  out" with a **Recover dart** button. It releases if needed, wraps, reels the dart in, unwraps and goes back to
+  launch. Keep clear of the line.
+- **LAUNCHER LOADED** (red banner at the top): the spring is drawn. Hands off the rail. Press **Decock** in the
+  banner to unwind it before you touch the launcher.
 - **Target**: range and bearing of the clicked or auto found target, and the ballistic solution (pitch, flight time).
 - **Results**: after a flight, the landing zone verdict (GO, NO_GO or UNSURE with reasons), the landing image, the
   aerial map built from the dart video, and the flight analysis.
 - **Manual**: jog the wiper and drum motors, dart keys, record on or off.
-- **STOP** (wiper off now) and **E-STOP** (wiper off and drum to neutral). Always visible. Know where they are
-  before you press anything else.
+- **STOP** (wiper off now) and **ESTOP** (wiper off and drum to neutral). Always visible at the top. Keyboard:
+  **Esc** is STOP from anywhere on the page (Space too, when you are not typing). Holding STOP for 1 s is ESTOP.
+  Know where they are before you press anything else.
+
+Security note: the page needs no setup. The server puts a fresh session token into the page each time it
+starts, and every button press must carry it, so another web site cannot press buttons for you. After a server
+restart the page reloads itself to get the new token. Anyone on the same WiFi can still open the page, so for a
+password add `--token SOMEPASSWORD` to `serve` and open `http://<jetson>:8080/?token=SOMEPASSWORD` once on each
+phone or laptop (it remembers it). This is plain HTTP, not encryption. STOP and ESTOP always work from the page,
+with or without a token.
 
 The mission steps, in order (the page highlights the current one):
 
@@ -421,22 +457,25 @@ The mission steps, in order (the page highlights the current one):
 | RETRIEVE | capstan reels in until about 1.5 m is left | |
 | UNWRAP | capstan wraps come off, drum back to NEUTRAL | |
 | FINAL_APPROACH | the storage take-up pulls the last metre until the dart is seated (slow, about 0.08 m/s) | |
-| LAUNCH_READY | drum back to LAUNCH for the next shot | |
+| LAUNCH_READY | drum back to LAUNCH for the next shot | Shoot again, or Abort to finish |
+| DONE | mission over; the log folder is shown | |
 
 A NO GO verdict comes before the wrap: the dart is not anchored, so it comes home on the take-up alone.
 
-If you abort after COCK and before FIRE, the spring stays drawn: press **Decock** in the Manual section before you
-touch the launcher.
+If you abort after COCK and before FIRE, the spring stays drawn and the red **LAUNCHER LOADED** banner shows:
+press **Decock** (in the banner or the Manual section) before you touch the launcher.
 
 Dry mission in sim, step by step:
 
-1. Press **Preflight**. Everything should go green (base link, dart link, cameras).
-2. Click a target on the rover view (or press auto target). Check the range and solution.
-3. Press **Start**. Answer each prompt. At the fire prompt press **Fire**.
+1. Set the target first: tap it on the rover view, or press **Auto target**. Check the range and solution.
+2. Press **Preflight**. Everything should go green (base link, dart link, cameras, target). If it lists a
+   problem, fix it and press Preflight again.
+3. Press **Start mission**. Answer each prompt: Base may move, Aim, Cock, Fire, then FIRE NOW.
 4. Watch the dart view: the simulated flight, impact and landing.
-5. Read the landing verdict and look at the map.
+5. Read the landing verdict and look at the map. Press Anchor (or Retrieve and reshoot).
 6. Follow the prompts through anchoring, tensioning, release and reeling in.
-7. Try **STOP** and **E-STOP** in the middle of a second run and check the mission stops and says why.
+7. Try **STOP** (or press Esc) and **ESTOP** in the middle of a second run and check the mission stops and says
+   why. If the dart is still out, press **Recover dart**. If the banner says LAUNCHER LOADED, press **Decock**.
 8. Replay the recorded mission's vision:
 
    ```bash

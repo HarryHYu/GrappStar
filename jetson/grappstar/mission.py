@@ -75,7 +75,7 @@ class Aborted(Exception):
 @dataclass
 class MissionConfig:
     drag_n: float = DEFAULT_DRAG_N  # payout brake setting (C3 column): LIGHT 0.5 N (coordinator)
-    tow_limit_n: float = 40.0       # at most 70 N (D39)       # line tension limit while towing (base firmware caps it too)
+    tow_limit_n: float = 40.0       # tension at the dart, at most 60 N (spec 1.3.0, D43)       # line tension limit while towing (base firmware caps it too)
     check_n: float = 15.0           # anchored check pull
     check_hold_s: float = 2.0       # hold at the check tension this long
     check_keep_frac: float = 0.7    # tension must stay above this fraction of the limit (load cell only)
@@ -796,7 +796,8 @@ class Mission:
         if t.get("state") in ("WRAP", "UNWRAP"):
             return False
         w = t.get("wraps")
-        return t.get("drum_pos") in ("WRAPPED", "REEL") or (isinstance(w, (int, float)) and w >= 3.5)
+        # A2: all 7 wraps and the drum at the park or in REEL; a hold partway through the wrap is NOT wrapped
+        return t.get("drum_pos") in ("WRAPPED", "REEL") and (w is None or (isinstance(w, (int, float)) and w >= 7))
 
     def ensure_reel(self, wrapped: bool = True) -> None:
         """Before a reel on the capstan: wraps on and the collar in REEL (fly-in). A fault in REEL parks the drum at
@@ -1244,6 +1245,11 @@ class Mission:
             if sw_closed(tt, "S"):
                 self.stop_settle()
                 self.log.warn("dart reached the cradle on the capstan (line_m estimate too long)")
+                # D16 hazard: unwrapping with the dart pulled into the cradle can snatch it; let the operator slacken
+                self.ask("The dart reached the cradle on the CAPSTAN (the line estimate was too long). Pay out a "
+                         "little line by hand so it is slack at the cradle, then press Unwrap.",
+                         ["Line slack: unwrap", "Abort"], danger=True)
+                self.shot["seated_in_retrieve"] = True
                 return
             if cur is not None and cur <= self.cfg.approach_m:
                 self.stop_settle()

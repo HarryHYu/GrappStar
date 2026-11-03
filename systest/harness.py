@@ -413,6 +413,7 @@ class Rig:
                     self.plant_max[k] = max(self.plant_max.get(k, 0.0), v)
                 self.plant_max["dryFires"] = max(self.plant_max.get("dryFires", 0), p.get("dryFires", 0))
                 if step != last_step:
+                    p = dict(p, tel_line_m=(self.app.base.tel or {}).get("line_m"))
                     self.step_plant[step] = p
                     self.note("plant", step=step, **{k: p.get(k) for k in ("state", "drumDeg", "lineOut", "wraps",
                                                                            "tension", "seated", "inLaunch", "inReel")})
@@ -438,6 +439,7 @@ class Rig:
                             rr = float(vt) + (rr - r0)
                         if rr:
                             self.base.set(lineOut=round(rr * 1.05 + 0.3, 3))
+                            self.landing_line = round(rr * 1.05 + 0.3, 3)
                             p["lineOut"] = round(rr * 1.05 + 0.3, 3)
                             self.note("info", msg=f"real pitch {pt:.2f} deg: range {rr:.2f} m, line out {p['lineOut']} m")
                     self.dart_d = float(p.get("lineOut") or 0) - self.sc.landing_slack   # landing slack on the dart side
@@ -1099,16 +1101,44 @@ def c_released(rig, res):
 
 
 def c_reeled(rig, res):
-    """10.1 step 15: the capstan reel-in stops with about approach_m left (never seats on the capstan)."""
+    """10.1 step 15: the capstan reel-in stops at line_m about approach_m (the base's own estimate) and never seats the
+    dart on the capstan. The plant line out is reported too: the gap is the landing estimate error (F29: the sim
+    renderer and the C3 table disagree by about 13 %, so it is informational)."""
     p = rig.step_plant.get("UNWRAP") or {}
     r = rig.step_plant.get("RETRIEVE") or {}
     a = rig.app.cfg.mission.approach_m
-    lo = p.get("lineOut")
+    tl, lo = p.get("tel_line_m"), p.get("lineOut")
     if lo is None:
         return False, "no UNWRAP snapshot"
-    started_short = r.get("lineOut") is not None and float(r["lineOut"]) <= a + 0.3   # nothing to reel on the capstan
-    ok = (started_short or a - 0.4 <= float(lo) <= a + 0.3) and not p.get("seated")
-    return ok, f"line out {r.get('lineOut')} m at RETRIEVE start, {lo} m at UNWRAP (want {a - 0.4:.1f}..{a + 0.3:.1f}), seated {p.get('seated')}"
+    started_short = r.get("tel_line_m") is not None and float(r["tel_line_m"]) <= a + 0.3
+    ok = (started_short or (tl is not None and float(tl) <= a + 0.3)) and not p.get("seated")
+    return ok, (f"base line_m {r.get('tel_line_m')} -> {tl} (stop at {a}), plant line out {r.get('lineOut')} -> {lo} m, "
+                f"seated {p.get('seated')}")
+
+
+def c_landing_estimate(rig, res):
+    """Informational: the line out the Jetson told the base against the plant's line out at the landing."""
+    told = [e for e in c1_raw_sets(rig) if e[0] == "line_m"]
+    true_lo = getattr(rig, "landing_line", None)
+    if not told or true_lo is None:
+        return True, "n/a"
+    est = told[0][1]
+    return True, f"told {est} m, real {true_lo:.2f} m ({100 * (est - true_lo) / true_lo:+.0f} %)"
+
+
+def c1_raw_sets(rig):
+    d = rig.app.run_dir
+    out = []
+    if d and os.path.exists(os.path.join(d, "mission.jsonl")):
+        for l in open(os.path.join(d, "mission.jsonl")):
+            try:
+                r = json.loads(l)
+            except ValueError:
+                continue
+            o = r.get("obj") or {}
+            if r.get("kind") == "base_tx" and o.get("cmd") == "set":
+                out.append((o.get("key"), o.get("val")))
+    return out
 
 
 def c_seat_neutral(rig, res):
@@ -1160,6 +1190,7 @@ def nominal_checks():
             ("anchored (dart)", c_anchored), ("tidy ran", c_tidy), ("wrapped (4+ wraps on the capstan)", c_wrapped),
             ("REEL engaged, tow pulled", c_reel_engaged), ("tow limit respected", c_tow_limit),
             ("LIMIT reports the dart-side tension (D43/D46)", c_limit_dart_side),
+            ("landing estimate (informational)", c_landing_estimate),
             ("dart released", c_released), ("reeled in to the approach", c_reeled), ("unwrapped", c_unwrapped),
             ("seated", c_seated), ("back to LAUNCH", c_launch), ("no dry fire", c_no_dry),
             ("wraps laid without jamming (D22 slack)", c_wrap_free), ("free dart tugged under 1 m by the wrap", c_tug),

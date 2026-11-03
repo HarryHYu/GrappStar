@@ -223,6 +223,15 @@ def build(out, branch, checks_file):
     mrows_box = [r for r in _all if r and r[0][:1] == "C" and r[0][1:2].isdigit()]
     if not mrows_first:
         mrows_first = _all[:15]
+    operator_html = ""
+    if os.path.exists(os.path.join(out, "operator.png")):
+        files["operator.png"] = True
+        operator_html = ('<section><h2>Jetson operator page <small>full dry mission in the simulator</small></h2>'
+                         '<figure class="hero"><img src="operator.png" alt="Jetson operator page after a full dry mission: '
+                         'every step done, landing zone GO, aerial map from the dart camera"></figure>'
+                         '<p class="note">python3 -m grappstar serve --sim on any PC runs the whole mission against the '
+                         'simulated base, dart and cameras: rover view with the target and ballistic solution, the 23 mission '
+                         'steps, the landing-zone verdict and the aerial map stitched from the dart video.</p></section>')
     body = f"""<title>GrappStar Base Station</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -299,6 +308,7 @@ ul.files a {{ color: var(--ink); text-decoration-color: var(--accent); text-unde
 </tbody></table></div>
 <p class="warn">Never fire without the tether attached: at these speeds the tether keeps the dart nose first.</p></section>
 <section><h2>Mission <small>one full cycle</small></h2><ol class="seq">{li(mission)}</ol></section>
+{operator_html}
 <section><h2>Checks</h2><div class="scroll"><table><thead><tr><th>Suite</th><th>Result</th><th>Detail</th></tr></thead><tbody>
 {''.join(f'<tr><td>{esc(n)}</td><td class="{"pass" if s == "PASS" else "fail"}">{esc(s)}</td><td class="num">{esc(d)}</td></tr>' for s, n, d in checks) or '<tr><td colspan="3">Run scripts/check_all.sh and pass --checks.</td></tr>'}
 </tbody></table></div></section>

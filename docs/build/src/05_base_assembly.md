@@ -11,17 +11,20 @@ collision audit, with a picture per step. They are in `base/out/base/guide.pdf` 
 
 General rules for the base:
 
-- Heat-set inserts: soldering iron at about 220 C with the insert tip, press straight in, let it cool before loading.
+- Heat-set inserts: soldering iron with the insert tip, about 220 C in PLA and about 280 C in the PPA-CF motor
+  puck; press straight in, let it cool before loading.
 - Bearings: press in square with a flat block, never hammer on the inner race.
 - Keyed shafts: check the key slides in the sprag (CSK20PP) keyway by hand before final assembly.
 - Turn every train by hand (battery unplugged) after each step: it must turn without binding before the next step.
 - Leave the springs off until test stage 5 (section 12).
-- Motor adapter: bolt the wiper motor to the adapter on the bench first (M6 bolts from the cheek side), then from the
-  frame side of the plate fit M3 x 10 through the cheek plate into every insert in the adapter hub (10 of the 12
-  holes line up; the frame step "Motor onto the cheek" lists them), before any shaft goes in.
-- Bearing blocks slide on over bearings that are already on their shaft.
-- Drum coupler: drop the M8 nut through the socket, then the M3 cross screw.
-- AS5600: heat-stake the board onto its printed pegs (soldering iron tip, gently); glue the magnet in its cap.
+- Motor puck: bolt the wiper motor to the puck adapter on the bench first (M6 bolts through the puck slots from the
+  front, step "Wiper motor on the puck"), then feed the puck into the motor plate window from behind and fit
+  M3 x 12 from the front through the plate into the lip inserts (step "Puck into the plate" says which rim holes),
+  before any shaft goes in.
+- Drum coupler: coupler hub onto the wiper shaft (flats in line), the M8 nut on the thread, then the outer coupler
+  over the hub and a printed shear pin through both (step "Main shaft: coupler and limiter").
+- AS5600: push the board onto the 4 carrier pegs and clamp it with the two printed strips (M3 x 12 into nuts in the
+  carrier back); no heat staking. Glue the magnet in its cap.
 - Wires: leave a 150 mm loop at the rail pivot for SW_SEATED and SW_HOME. Never route a wire across a moving part.
 - Contacts: set each gap by turning the screw (MEASURE_LIST G12).
 - Manual drum fallback: loosen the cradle swing screw (M3, in the slot), swing the N20 out of mesh until `n`

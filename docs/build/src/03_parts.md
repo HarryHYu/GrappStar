@@ -7,7 +7,7 @@ looking in the box.
 
 - Search: "608ZZ bearing 8x22x7" (or "608-2RS", sealed). Buy 10. Skateboard bearings are 608s and fine.
 - Specs: 8 mm bore, 22 mm outside, 7 mm wide, rated well over 10,000 rpm.
-- Uses: the base CAD uses 5 (storage reel and aim pedestal); the coupons borrow some for testing; the rest are spares. Axles: M8 bolt or 8 mm rod (check the box).
+- Uses: the base CAD uses 4 (2 in the aim crank, 2 in the storage reel); the coupons borrow some for testing; the rest are spares. Axles: M8 bolt or 8 mm rod (check the box).
 
 ## Possible extra purchases
 
@@ -29,7 +29,7 @@ looking in the box.
 | DRV8833 carrier | 1 | DRV8833 #3, freed from the dart by the new dart pin map |
 | MP1584 buck | 1 | MP1584 #2 from the dart build, set to 9.0 V |
 | N20 right-angle worm motor | 1 | Selector drum (count your N20s: section 14 C3) |
-| 693ZZ / F693ZZ bearings | as many as are left after the dart | Line pulleys (the dart uses 5 F693ZZ; count what is left, section 14 C20) |
+| 693ZZ bearings (3 x 8 x 4) | 6 | Lip roller, 3 rail pulleys, reel pulleys 1 and 2 (the dart uses 5 F693ZZ; count what is left, section 14 C20) |
 | CSK20PP one-way bearings (20 x 47 x 14) | 2 | #1 spring cock and fire, #2 capstan backstop |
 | Century 16 x 165.1 x 1.4 mm extension springs | 2 | Launch springs (Bunnings 0487961). Measure them (section 14 B) |
 | 608 bearings | 10 | The purchase |
@@ -42,6 +42,7 @@ looking in the box.
 | Lockmaner RC832 receiver, DIGITNOW USB capture, RCA lead | 1 each | Dart video in |
 | Razer Kiyo X | 1 | Rover camera |
 | Resistors 10 k x 2, 1 k, 680 R, 100 k, 22 k | | Pull-downs and dividers (firmware/base/WIRING.md) |
+| Perfboard about 55 x 31 mm | 1, optional | Two bay bosses take one (2 x M3 x 10) for the dividers and the 3V3 / GND buses; WIRING.md works without it (section 14 C22) |
 | M3 screws, M3 nuts, M3 brass heat-set inserts | | Frame joints and printed contacts |
 | Dupont jumpers, 14 / 18 / 22 / 26 AWG wire, heat shrink | | |
 

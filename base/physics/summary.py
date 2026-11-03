@@ -126,15 +126,16 @@ def collect(p=None, fast=False):
             rows.append((f"{k}: peak torque, current, time", f"{f['t_peak']:.2f} N m, {f['i_peak']:.1f} A, {f['time_s']:.0f} s"))
     sec.append(("Drivetrain (wiper at 11.1 V with sag)", rows))
     measure = [
-        "Spring hang test: hang 1, 2, 3 kg from one spring and measure the length each time (hooks included). "
-        "python calib.py spring FREE_MM 1:MM 2:MM 3:MM, then SPRING k_n_per_mm and F0_n. "
-        "Every range number scales with the stored energy.",
-        "Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall "
-        "current. python calib.py wiper --v 12 --rpm .. --i-free .. --stall-kg .. --arm-mm .. --i-stall .., "
-        "then WIPER n0_rpm, stall_nm, stall_a, free_a.",
+        "Spring hang test, each spring: hang 1, 2, 3 kg and measure the length each time (hooks included). "
+        "python calib.py spring FREE_MM 1:MM 2:MM 3:MM, then SPRING k_n_per_mm and F0_n (mean of the two); "
+        "the stronger spring decides the anchor holes (MEASURE_LIST B4). Every range number scales with the stored energy.",
+        "Wiper (MEASURE_LIST A6): free speed and current from a 40 % bench jog in telemetry, then WIPER "
+        "n0_rpm = jog rpm x 2.5 (never the raw jog rpm) and free_a = amps. The stall cannot be read (jogs trip at "
+        "2.5 to 3 A, A7): keep stall_nm and stall_a.",
         f"Dart mass on a kitchen scale with ballast and tether knot (spec {p.dart.mass:.3f} kg), then DART mass_kg.",
-        f"Slip clutch: luggage scale on the line with the reel full: LIGHT {p.flight['brake_n']:g} N, "
-        f"FIRM {p.capstan['takeup_n']:g} N (REEL clutch).",
+        f"Payout brake (MEASURE_LIST G4, hanging weights: a luggage scale cannot read this low): in LAUNCH 40 g on the "
+        f"line must not pull line off and 50 g must (LIGHT {p.flight['brake_n']:g} N); in NEUTRAL the FIRM clutch "
+        f"({p.capstan['takeup_n']:g} N) lets line off at about {p.capstan['takeup_n'] / 9.81:.1f} kg on the luggage scale.",
         "First shots on level ground: python calib.py range pitch:brake:range ..., then LAUNCH v_scale = FACTOR.",
     ]
     return dict(source=p.source, sections=sec, measure=measure)
@@ -148,7 +149,7 @@ def write_md(s, path):
         lines.append("")
     lines += [f"## {MEASURE_TITLE}", ""] + [f"{i}. {m}" for i, m in enumerate(s["measure"], 1)] + [""]
     txt = "\n".join(lines)
-    assert "—" not in txt
+    assert "\u2014" not in txt
     open(path, "w").write(txt)
 
 

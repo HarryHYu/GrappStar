@@ -22,22 +22,28 @@ missing: `cd kedge && python3 -m venv .venv && .venv/bin/pip install -r requirem
 ## After the spring hang test
 
 1. Hang 1 kg, 2 kg and 3 kg from ONE spring (water bottles in a bag are fine). Measure the length each time, from
-   the outside of one hook to the outside of the other, in mm. Also measure it with nothing hanging.
-2. Run, with your numbers: `python calib.py spring 165.1 1:187 2:265.5 3:344`
+   the outside of one hook to the outside of the other, in mm. Also measure it with nothing hanging. Then do the
+   other spring the same way (MEASURE_LIST B2).
+2. Run, with your numbers, once per spring: `python calib.py spring 165.1 1:187 2:265.5 3:344`
    (first the free length, then kg:mm for each weight).
-3. It prints the rate (N/mm), the initial tension (N) and the force at full cock with a verdict.
-4. Edit `base/spec/params.py` yourself: in `SPRING` set `k_n_per_mm`, `F0_n` and `measured=True`.
-   If the verdict says "too high", use the 250 mm anchor holes (`max_ext` 250).
+3. It prints the rate (N/mm), the initial tension (N) and the force per spring at full cock (265 mm extension)
+   against the 38.4 N catalogue rating.
+4. Edit `base/spec/params.py` yourself: in `SPRING` set `k_n_per_mm` and `F0_n` (the mean of the two springs)
+   and `measured=True`. If the STRONGER spring's force at full cock is over 38.4 N, fit the springs on hole set F
+   (8.5 mm rearward, 256.5 mm at full cock; MEASURE_LIST B4). Go by that force, not by the verdict words.
 5. `./run_all.sh`
 
 ## After measuring the wiper motor
 
-1. Battery unplugged while you connect anything. Then free speed: count the output turns in 30 s at 12.0 V
-   (rpm = turns x 2) and read the current.
-2. Stall: a 100 mm arm on the output, a luggage scale at the end, power for 1 second only, read kg and amps.
-3. `python calib.py wiper --v 12.0 --rpm 44 --i-free 1.4 --stall-kg 3.1 --arm-mm 100 --i-stall 17` (your numbers).
-4. Edit `WIPER` in `base/spec/params.py` with the printed values (`n0_rpm`, `stall_nm`, `stall_a`, `free_a`) and set
-   `measured=True`, then `./run_all.sh`. If the summary shows "STALL" for a function, the wiper is too weak for it.
+The wiper is measured through the base firmware on the bench, as MEASURE_LIST A6 and A7 say (after CALIBRATION.md
+(a) and (b)). Never put the meter in series at full power or in a stall: its 10 A range cannot take a start surge.
+
+1. A6, free speed and free current: a forward bench jog runs at 40 percent power. Read `rpm` and `amps` in
+   telemetry while it runs steady. `n0_rpm` = jog rpm x 2.5 (never the raw jog rpm); `free_a` = the `amps` reading.
+2. A7 (optional): the firmware trips jogs at 2.5 to 3 A, so the stall current cannot be read and is not needed. The
+   torque at the trip (300 mm bar, luggage scale) is only a lower bound for `stall_nm`.
+3. Edit `WIPER` in `base/spec/params.py`: `n0_rpm`, `free_a` and `measured=True`; keep `stall_nm` and `stall_a`.
+   Then `./run_all.sh`. If the summary shows "STALL" for a function, the wiper is too weak for it.
 
 ## After the first real shots (the best calibration of all)
 
@@ -51,7 +57,9 @@ missing: `cd kedge && python3 -m venv .venv && .venv/bin/pip install -r requirem
 ## Other numbers worth measuring
 
 - Dart mass on a kitchen scale with the ballast and tether knot (0.279 kg assumed).
-- Slip clutch: luggage scale on the line with the reel full. LIGHT should read 0.5 N, FIRM 5 N.
+- Payout brake (MEASURE_LIST G4): hanging weights, since a luggage scale cannot read 0.5 N. In LAUNCH, 40 g on the
+  line must not pull line off and 50 g must (LIGHT 0.5 N); in NEUTRAL the FIRM clutch (5 N) lets line off at
+  about 0.5 kg on the luggage scale.
 - Rail friction: tilt the rail with the dart on it until it slides. mu = tan(angle).
 - Rover mass, wheelbase and deck height (for recoil and launch height): edit `ROVER` in `recoil.py` and
   `deck_h` in `common.py`.

@@ -17,15 +17,16 @@ Write each number into `docs/build/MEASURE_RESULTS.md` (a fill-in sheet; print i
 2. Launch springs (B1 to B3), safety glasses on while a loaded spring hangs: free length with a steel rule or
    tape (the spring is longer than a caliper), then hang about 1, 2 and 3 kg of water bottles (weigh each load:
    W1, W2, W3 in kg) from ONE spring and measure hook to hook each time (L1, L2, L3 in mm). Both springs.
-   `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` gives the rate and initial tension. Enter the
-   weaker spring's numbers.
+   `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` gives the rate, the initial tension and the force
+   at full cock, for each spring. Enter the mean of the two springs' rate and initial tension; the STRONGER
+   spring's force at full cock decides the spring anchor holes (MEASURE_LIST B4: over 38.4 N, hole set F).
 3. Small parts (H1, H3, H4): drum N20 shaft, CSK20PP keyway depths, BTS7960 heatsink height and hole spacing.
 4. Count the parts box (group C): worm N20s (4 needed), the spare MP1584, 8 mm rod or M8 bolts, 693ZZ / F693ZZ left
-   after the dart, resistors (2 x 10 k, 1 k, 680 R, 100 k, 22 k), a small magnet for the AS5600, spare XT60s, and
-   the coupon extras (MEASURE_LIST C21).
+   after the dart (the base needs 6 x 693ZZ), resistors (2 x 10 k, 1 k, 680 R, 100 k, 22 k), a small magnet for
+   the AS5600, spare XT60s, and the coupon extras (MEASURE_LIST C21).
 5. Update the design with the numbers (build guide section 14, "After you measure"): the easy way is to open
    Claude Code in the repo, give it MEASURE_RESULTS.md and ask it to enter the numbers in params.py and re-run the
-   base pipeline. By hand: the commands are in that section.
+   base pipeline and the physics. By hand: the commands are in that section.
 
 ## 3. Buy
 
@@ -46,7 +47,7 @@ Write each number into `docs/build/MEASURE_RESULTS.md` (a fill-in sheet; print i
 ## 5. Do NOT do yet
 
 - Do not print the big base parts until the coupons pass AND the measurements are in params.py and the pipeline
-  has been re-run (the motor adapter, saddle and couplers depend on them).
+  has been re-run (the motor adapter, can stay and wiper shaft coupler depend on them).
 - Do not connect the LiPo to anything new. No wiring with a battery plugged in, ever.
 - Do not fit the launch springs (they go on at test stage 5).
 - Do not fire anything. When the time comes: never without the tether tied on.

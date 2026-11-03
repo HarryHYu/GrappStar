@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Build the GrappStar build guide (Markdown + PDF) from the docs in the repo.
 
-Run from anywhere:  python3 docs/build/make_guide.py
-Needs: reportlab (PDF), pypdf (appendices, optional), graphviz `dot` (diagram, optional).
+Run from the repo folder:  kedge/.venv/bin/python docs/build/make_guide.py  (or any python3 with reportlab and pypdf)
+Needs: reportlab (PDF), pypdf (appendices; both in kedge/requirements.txt), graphviz `dot` (diagram, optional),
+Liberation Sans (Linux) or Arial (macOS) for the PDF fonts.
 Outputs: docs/build/GrappStar_Build_Guide.md, docs/build/GrappStar_Build_Guide.pdf,
          docs/build/system_electrical.svg / .png.
 
@@ -393,10 +394,14 @@ def build_pdf(md, out=None, doc_title=TITLE):
     from reportlab.platypus.doctemplate import BaseDocTemplate, Frame, PageTemplate
     from reportlab.platypus.tableofcontents import TableOfContents
 
-    fdir = "/usr/share/fonts/truetype/liberation"
-    for name, fn in (("Sans", "LiberationSans-Regular.ttf"), ("Sans-Bold", "LiberationSans-Bold.ttf"),
-                     ("Sans-Italic", "LiberationSans-Italic.ttf"), ("Sans-BoldItalic", "LiberationSans-BoldItalic.ttf"),
-                     ("Mono", "LiberationMono-Regular.ttf")):
+    # Liberation Sans and Mono on Linux, Arial and Courier New on macOS (the same metrics: plain Arial either way)
+    mac = ("Arial.ttf", "Arial Bold.ttf", "Arial Italic.ttf", "Arial Bold Italic.ttf", "Courier New.ttf")
+    font_sets = [("/usr/share/fonts/truetype/liberation",
+                  ("LiberationSans-Regular.ttf", "LiberationSans-Bold.ttf", "LiberationSans-Italic.ttf",
+                   "LiberationSans-BoldItalic.ttf", "LiberationMono-Regular.ttf")),
+                 ("/System/Library/Fonts/Supplemental", mac), ("/Library/Fonts", mac)]
+    fdir, fns = next((s for s in font_sets if all(os.path.exists(os.path.join(s[0], f)) for f in s[1])), font_sets[0])
+    for name, fn in zip(("Sans", "Sans-Bold", "Sans-Italic", "Sans-BoldItalic", "Mono"), fns):
         pdfmetrics.registerFont(TTFont(name, os.path.join(fdir, fn)))
     from reportlab.pdfbase.pdfmetrics import registerFontFamily
     registerFontFamily("Sans", normal="Sans", bold="Sans-Bold", italic="Sans-Italic", boldItalic="Sans-BoldItalic")

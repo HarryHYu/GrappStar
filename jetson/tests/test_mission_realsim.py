@@ -16,7 +16,7 @@ from grappstar.mission import Mission, MissionConfig
 from grappstar.rover import RoverDrive
 
 SPEED = float(os.environ.get("GRAPPSTAR_BASESIM_SPEED", "8"))
-pytestmark = pytest.mark.skipif(find_basesim() is None, reason="basesim not built")
+pytestmark = [pytest.mark.slow, pytest.mark.skipif(find_basesim() is None, reason="basesim not built")]
 
 
 class Rover(RoverDrive):

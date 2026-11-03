@@ -18,7 +18,8 @@ for name in MINE:
     if m is not None and not os.path.abspath(getattr(m, "__file__", "") or "").startswith(HERE):
         del sys.modules[name]
 
-WATCH = [os.path.join(ROOT, "base", "out"), os.path.join(ROOT, "kedge", "out30")]
+WATCH = [os.path.join(ROOT, "base", "out", "physics"), os.path.join(ROOT, "kedge", "out30")]
+WATCH_FILES = [os.path.join(ROOT, "base", "out", "ballistics.json"), os.path.join(ROOT, "base", "out", "ballistics_meta.json")]
 
 
 def _snapshot():
@@ -31,6 +32,9 @@ def _snapshot():
                     snap[p] = os.stat(p).st_mtime_ns
                 except OSError:
                     pass
+    for p in WATCH_FILES:
+        if os.path.exists(p):
+            snap[p] = os.stat(p).st_mtime_ns
     return snap
 
 

@@ -13,8 +13,8 @@ looking in the box.
 
 - **AS5600 magnet** (optional): the Adafruit board does not include one. The magnet cap takes any small neodymium
   disc (6 to 10 mm across, 2 to 3 mm thick) mounted edge-on, or a 6 x 2.5 mm diametric disc. Look in the box first
-  (old speakers, fridge magnets with a neodymium disc). Decision D12 plans a no-magnet mode (a printed 6-bump index
-  cam read by the contact SW_INDEX); until firmware/base/README.md says it exists, the magnet is needed.
+  (old speakers, fridge magnets with a neodymium disc). Without a magnet the firmware has a less precise fallback (decision D12):
+  a printed 6-bump index cam read by the contact SW_INDEX on GPIO35, switched on in firmware/base config.h.
 - **Optional, for range:** a second pair of the same launch springs (Bunnings I/N 0487961). The two springs give
   about 5 m; four give about 8.5 m. The base has the mounting provision built in.
 
@@ -57,3 +57,7 @@ Schottky diode, capacitor, M3 hardware, 15 g nose ballast.
 Soldering iron and solder, flux, multimeter, wire strippers, flush cutters, small flat screwdriver (MP1584 trimmer),
 heat shrink and heat gun, caliper, hex keys, tweezers, kitchen scale, luggage scale, tape measure, safety glasses,
 5-minute epoxy, threadlocker, zip ties, foam tape.
+
+## Base bill of materials (from the model)
+
+@include base/out/base/BOM.md

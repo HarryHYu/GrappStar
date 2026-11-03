@@ -244,7 +244,9 @@ def main(argv=None):
     ap.add_argument("--json", default=os.path.join(OUT_DIR, "flight.json"))
     a = ap.parse_args(argv)
     _defaults = vars(ap.parse_args([]))
-    write_ok = a.json != _defaults["json"] or vars(a) == _defaults   # odd flags never overwrite the committed output
+    _cur = {k: v for k, v in vars(a).items() if k != "sweep"}
+    _defaults.pop("sweep", None)
+    write_ok = a.json != _defaults["json"] or _cur == _defaults   # odd flags never overwrite the committed output
     p = load_params()
     from launcher import launch
     vcache = {}

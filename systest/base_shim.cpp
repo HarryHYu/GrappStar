@@ -200,8 +200,30 @@ static void serviceSerial() {
 }
 
 static uint32_t lastPlantSave = 0;
+// Plant additions on top of sim.h (D22): laying a capstan turn draws one capstan circumference of line from the dart
+// side. A free dart gets tugged (line out falls); an anchored dart side only gives what slack it has, then the cup
+// cannot turn (the drum stalls in the wrap sector). A forward wiper with the collar in neither train (tidy) pulls an
+// anchored dart side straight through the free-turning capstan, down to taut.
+static int wrapBlocks = 0; static double dartTug = 0; static bool wrapDraw = true;
+static void plantExtra(double drumBefore, double wrapsBefore, double wiperBefore) {
+  double dw = S.wrapsExact() - wrapsBefore;
+  if (dw > 1e-9 && wrapDraw) {
+    double need = dw * 2 * M_PI * S.capstanR;
+    if (S.anchorTautAt >= 0) {
+      double avail = S.lineOut - S.anchorTautAt;
+      if (need > avail + 1e-9) { S.drumDeg = drumBefore; wrapBlocks++; }
+      else S.lineOut -= need;
+    } else { S.lineOut = fmax(0.0, S.lineOut - need); dartTug += need; }
+  }
+  double ad = fabs(S.wiperDeg - wiperBefore);
+  if (S.wDir > 0 && ad > 0 && !S.inLaunch() && !S.inReel() && S.anchorTautAt >= 0 && S.lineOut > S.anchorTautAt)
+    S.lineOut = fmax(S.anchorTautAt, S.lineOut - ad / 360.0 * 0.322);
+}
+
 static void tickOnce() {
+  double drumBefore = S.drumDeg, wrapsBefore = S.wrapsExact(), wiperBefore = S.wiperDeg;
   S.step(5);
+  plantExtra(drumBefore, wrapsBefore, wiperBefore);
   if (powered && !running && (int32_t)(S.t - setupEnd) >= 0) finishSetup();
   if (S.dryFires) { dryTotal += S.dryFires; S.dryFires = 0; }
   peakTension = fmax(peakTension, S.tension()); peakAmps = fmax(peakAmps, S.amps);
@@ -237,6 +259,8 @@ static bool setKnob(const std::string& k, const char* v) {
   else if (k == "swStuckOpen") S.swStuckOpen = (uint16_t)num(v);
   else if (k == "swStuckClosed") S.swStuckClosed = (uint16_t)num(v);
   else if (k == "swChatter") S.swChatter = (uint16_t)num(v);
+  else if (k == "drumDeg") S.drumDeg = num(v);              // bench: drum turned by hand (manual lever) before the run
+  else if (k == "wrapDraw") wrapDraw = num(v) != 0;
   else if (k == "hxFitted") S.hxFitted = num(v) != 0;
   else return false;
   return true;
@@ -250,13 +274,13 @@ static std::string getJson() {
            "\"tension\":%.2f,\"seated\":%s,\"drumDeg\":%.2f,\"wiperDeg\":%.1f,\"aimPh\":%.1f,\"cockPh\":%.1f,\"wraps\":%.2f,"
            "\"inLaunch\":%s,\"inReel\":%s,\"dogTip\":%s,\"anchorTautAt\":%.3f,\"slack\":%.3f,\"maxSlack\":%.3f,\"amps\":%.2f,"
            "\"wDir\":%d,\"wDuty\":%d,\"dDir\":%d,\"dryFires\":%d,\"evDrops\":%llu,\"linesIn\":%llu,\"linesOut\":%llu,\"evq\":%zu,"
-           "\"pty\":%s,\"saves\":%d,\"kNperA_cal\":%.4f,\"freeA_cal\":%.4f,\"peakTension\":%.2f,\"peakAmps\":%.2f}",
+           "\"pty\":%s,\"saves\":%d,\"kNperA_cal\":%.4f,\"freeA_cal\":%.4f,\"peakTension\":%.2f,\"peakAmps\":%.2f,\"wrapBlocks\":%d,\"dartTug\":%.3f}",
            (unsigned)S.t, powered ? "true" : "false", bootCount, st, running ? B->fault : -1, S.shots, S.fired ? "true" : "false",
            S.lineOut, S.tension(), S.seated() ? "true" : "false", S.drumDeg, S.wiperDeg, S.aimPh, S.cockPh, S.wrapsExact(),
            S.inLaunch() ? "true" : "false", S.inReel() ? "true" : "false", S.dogTip ? "true" : "false", S.anchorTautAt, S.slack,
            S.maxSlack, S.amps, S.wDir, S.wDuty, S.dDir, dryTotal, (unsigned long long)evDrops, (unsigned long long)linesIn,
            (unsigned long long)linesOut, evq.size(), masterFd >= 0 ? "true" : "false", S.saves,
-           1.0 / (S.capstanR * S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA), S.freeA + (S.reelFreeNm + 0.3) / S.stallNm * (S.stallA - S.freeA), peakTension, peakAmps);
+           1.0 / (S.capstanR * S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA), S.freeA + (S.reelFreeNm + 0.3) / S.stallNm * (S.stallA - S.freeA), peakTension, peakAmps, wrapBlocks, dartTug);
   return b;
 }
 static bool quitReq = false;

@@ -34,11 +34,11 @@ Three parts:
 How they talk: the Jetson talks to the base over USB serial (JSON lines, `firmware/base/PROTOCOL.md`) and to the dart
 over WiFi (HTTP at 192.168.4.1, `firmware/dart/API.md`). Video is analog 5.8 GHz into the USB capture.
 
-A mission: pick a target on the rover camera view, the Jetson looks up the pitch in the ballistics table, the base
-aims, cocks and fires on your confirmation, the dart video is analysed for the landing zone, the dart anchors, the
-base wraps the capstan right after landing (while the line is still slack, decision D22), the
-dart anchors, the base tidies the slack, engages REEL and tows, the dart releases, the base reels it home onto
-the cradle, unwraps and returns to LAUNCH.
+A mission (the fixed sequence in BASE_SPEC section 10.1): pick a target on the rover camera view; the Jetson looks
+up the pitch; the base aims, cocks and fires on your confirmation; the dart video is checked for the landing zone;
+the base wraps the capstan at once while the line is still slack (the drum parks at WRAPPED); the dart anchors; the
+base tidies the slack, shifts into REEL and tows; the dart releases; the base reels in to about 1.5 m, unwraps, and
+brings the dart home on the take-up until it seats; back to LAUNCH.
 
 ## Order of work
 

@@ -684,7 +684,10 @@ line with, a towing line.
 | `{"cmd":"aim","deg":30}` | rail to 30 degrees (only with the carriage home) |
 | `{"cmd":"arm"}` then `{"cmd":"fire","token":123456}` | fire within 3 s of arm. Tether on, area clear |
 | `{"cmd":"cal","what":"decock"}` | unload a cocked carriage slowly |
-| `{"cmd":"wrap"}` / `{"cmd":"unwrap"}` | lay / remove the capstan wraps (order: PROTOCOL.md) |
+| `{"cmd":"wrap"}` | lay 7 wraps, right after landing (from LAUNCH or NEUTRAL; parks at WRAPPED) |
+| `{"cmd":"tidy"}` | take up the slack after the dart anchors |
+| `{"cmd":"unwrap"}` | remove the wraps (after reeling in to about 1.5 m) |
+| `{"cmd":"retrieve","duty":0.3}` | final approach on the take-up until the dart seats |
 | `{"cmd":"reel","duty":0.5,"until":"seated"}` | wind in until the dart seats (`until`: stop, seated, tension) |
 | `{"cmd":"jog","motor":"wiper","dir":1,"ms":300}` | short move; `motor` wiper or drum, `dir` 1 or -1, up to 1500 ms |
 | `{"cmd":"set","key":"limit_n","val":50}` | set a stored value (tow limit 50 N) |

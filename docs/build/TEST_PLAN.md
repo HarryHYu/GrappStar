@@ -82,10 +82,9 @@ With no dart, `arm` refuses (`NOT_SEATED`): for this stage and stage 5 send
    (`pitch_deg`) and holds with the motor off.
 3. Cock and fire with no springs: `arm`, then `fire` with the token. The carriage travels back, releases, and the
    big gear re-engages: 10 cycles.
-4. Wrap and unwrap, with a spare line through the capstan path and slack: `wrap`, get into REEL, then `unwrap` and
-   back to NEUTRAL, using the order in PROTOCOL.md (the `wrap`, `unwrap` and `mode` rows; the firmware tells you
-   with `NOT_IN_REEL` or `WRAPS_ON` if the order is wrong): 10 cycles. Once wrapped and in REEL, send `reel` with
-   duty 0.3, wait 3 s, send `stop`.
+4. Wrap and unwrap, with a spare line through the capstan path and slack: from LAUNCH, `wrap`, `tidy`, `mode`
+   REEL, then `unwrap` and `mode` LAUNCH (the stage 7 table without the shot): 10 cycles. Once wrapped and in REEL,
+   send `reel` with duty 0.3, wait 3 s, send `stop`.
 5. Send `estop` in the middle of each kind of move once. The wiper stops at once and the drum goes to NEUTRAL,
    except when the spring is drawn, the wraps are on or the drum itself faulted: then the drum holds (`DRUM_HELD`),
    which is correct (decision D27).
@@ -127,6 +126,11 @@ bypasses the capstan). Set the payout brake with hanging weights (G4): 40 g does
 2. Film it side-on with the phone in slow motion, tape measure on the ground in view (muzzle speed, G5).
 3. Measure the range. Repeat at 30 and 36 degrees (G6).
 4. Check the line paid out with no loops or overrun on the storage reel.
+5. Range calibration, after 2 or 3 shots on level ground: measure each range from the ground point under the rail
+   pivot, then on the Mac or Jetson in `~/GrappStar/base/physics`:
+   `python3 calib.py range 20:0.5:3.6 36:0.5:4.2` (pitch:brake N:measured range m, your numbers) fits a
+   muzzle-speed factor; `python3 ballistics.py --v-scale <factor>` rewrites `base/out/ballistics.json`, which the
+   Jetson uses to aim (base/physics/README.md has the details).
 
 Pass: clean exit (no rubbing marks on the dummy), it flies nose first, payout is clean, the range is within 30
 percent of the ballistics table at the same pitch (best about 4.8 m at 36 degrees with the two springs and the 0.5 N brake, measured from the ground
@@ -138,32 +142,48 @@ Big range loss with clean payout: the line catches somewhere; watch the slow-mot
 
 ## Stage 7. Reel cycle with the dummy
 
-1. After a stage 6 shot, while the line is still slack: wrap (decision D22: wrap right after landing), get into
-   REEL, reel in, then bring the dummy home, all in the order PROTOCOL.md gives (spec D17: reel until about 1.5 m
-   remain, unwrap, then the final approach in NEUTRAL until `SW_SEATED`).
-2. `unwrap`, then `mode` NEUTRAL and `mode` LAUNCH. Check the line runs on the launch path again (not round the capstan).
-3. Fire again at 30 degrees.
+The base follows one fixed command sequence (BASE_SPEC section 10.1, decision D35). The operator page runs it for
+you; by hand it is (each line: what you send, what to wait for):
 
-Pass: the wrap lays on the capstan, reel-in works, unwrap returns the line to the launch path, and the next shot
-pays out cleanly. Repeat 5 times.
-If it fails: wrap misses the capstan: check the wrap arm position at the end of `wrap`. Line still round the
-capstan after `unwrap`: do not fire; unwrap again and check the drum position.
+| Step | Send | Wait for |
+|---|---|---|
+| after the shot | `{"cmd":"set","key":"line_m","val":4.5}` (the measured distance) | reply |
+| wrap at once, line still slack | `{"cmd":"wrap"}` (from LAUNCH or NEUTRAL) | `WRAPPED` (up to 60 s; the drum parks at 314: cup locked, collar NEUTRAL, clutch FIRM) |
+| (real dart only: anchor) | dart `auto` | dart ANCHORED |
+| tidy the slack | `{"cmd":"tidy"}` | `TIDIED` |
+| into REEL | `{"cmd":"mode","to":"REEL"}` | `MODE` ok (REEL) |
+| tow (stage 8 only) | `{"cmd":"reel","duty":1,"until":"tension"}` | `LIMIT` holding |
+| (real dart: release) | dart `release`, then `{"cmd":"stop"}` | `ABORTED` |
+| reel in | `{"cmd":"reel","until":"stop"}`, then `{"cmd":"stop"}` when `line_m` reads about 1.5 | `ABORTED` |
+| unwrap | `{"cmd":"unwrap"}` | `UNWRAPPED`, then `MODE` NEUTRAL |
+| final approach | `{"cmd":"retrieve","duty":0.3}` | `SEATED` (never seat it on the capstan) |
+| back to launch | `{"cmd":"mode","to":"LAUNCH"}` | `MODE` ok |
+
+1. After a stage 6 shot, run the table top to bottom, skipping the anchor, tow and release rows.
+2. Check the line runs on the launch path again (not round the capstan). Fire again at 30 degrees.
+
+Pass: the wrap lays 7 turns on the capstan, reel-in works, unwrap returns the line to the launch path, the dummy
+seats, and the next shot pays out cleanly. Repeat 5 times.
+If it fails: wrap misses the capstan: check the wrap cup position at the end of `wrap`. Line still round the
+capstan after `unwrap`: do not fire; unwrap again and check the drum position. `DART_STUCK` after 20 s of
+`retrieve`: the dummy snagged; clear it by hand after the approach checklist (section 2).
 
 ## Stage 8. The anchor in soil
 
 The real dart, built and tested to the dart run sheet section 10. Use real soil (moist loam is the target).
 
-1. Place the dart on the soil by hand, tether tied, line slack. Wrap the capstan now, before the dart anchors
-   (decision D22). Then send `/auto` from the operator page (or key `a`).
+1. Place the dart on the soil by hand, tether tied, line slack. `wrap` now, before the dart anchors (decision D22,
+   the stage 7 table). Then send `/auto` from the operator page (or key `a`).
 2. When the dart reports ANCHORED: standing beside the line, not in line with it, glasses on, pull the tether by
    hand with the luggage scale, slowly, up to 50 N or until
    it moves (G7).
 3. HARD PREREQUISITE for any tow: CALIBRATION.md (b) free running current (`free_a`) and (e) newtons per amp
    (`k_n_per_a`, MEASURE_LIST G9) are done. Why: with the factory values a simulated tow reached 61 N against a
-   40 N limit. Re-anchor (wrap first, as in step 1). Rover chocked,
-   everyone beside the line. Base in REEL with wraps on: `reel` with `until` tension at a limit 10 N under the hand result.
+   40 N limit. Re-anchor (wrap first, as in step 1). Rover chocked, everyone beside the line. Then the stage 7 table
+   from `tidy` on: `tidy`, `mode` REEL, then the tow with `max_n` 10 N under the hand result:
+   `{"cmd":"reel","duty":1,"max_n":40,"until":"tension"}`.
 4. Send release (operator page, or `python3 -m grappstar dart release`): drills out, pods up, foot out, kick back.
-   Then reel the dart home.
+   Then finish the stage 7 table: `stop`, reel in to about 1.5 m, `unwrap`, `retrieve`, `mode` LAUNCH.
 
 Pass: the dart anchors on its own, holds at least 20 N in loam, the base stops at its tension limit, the release
 sequence frees the dart, it reels home.

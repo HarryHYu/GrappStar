@@ -79,14 +79,16 @@ def collect(p=None, fast=False):
         ("Wraps for tow limit (mu 0.15)", f"{c['wraps_needed']['raw']:.1f} raw, {c['wraps_needed']['design']:.0f} design"),
         ("Take-up needed (design wraps)", f"{c['takeup_needed_n']:.2f} N"),
         ("Tow at limit: torque, speed, current", f"{c['at_tow_nom']['t_wiper']:.2f} N m, {c['at_tow_nom']['v_line']:.3f} m/s, {c['at_tow_nom']['current']:.2f} A"),
-        ("Line pull at wiper stall (12.6 V)", f"{c['stall']['full']['f_line']:.0f} N (break {p.line.breaking:.0f} N)"),
+        (f"Line pull {c['stall']['full']['label']} (12.6 V)", f"{c['stall']['full']['f_line']:.0f} N (break {p.line.breaking:.0f} N)"),
+        ("Line pull, motor stall (no limiter, 12.6 V)", f"{c['motor_stall']['full']['f_line']:.0f} N"),
     ]))
     d = drivetrain.run(p)
     rows = []
     for k, f in d["functions"].items():
         rows.append((f"{k}: peak torque, current, time", f"{f['t_peak']:.2f} N m, {f['i_peak']:.1f} A, {f['time_s']:.0f} s"))
     e = d["electrical"]
-    rows.append(("Wiper stall 12.6 V (with sag)", f"{e['stall_full']['torque']:.1f} N m, {e['stall_full']['current']:.1f} A"))
+    rows.append((f"Wiper {e['stall_label']}, 12.6 V (with sag)", f"{e['stall_full']['torque']:.1f} N m, {e['stall_full']['current']:.1f} A"))
+    rows.append(("Wiper motor stall (no limiter), 12.6 V (with sag)", f"{e['motor_stall_full']['torque']:.1f} N m, {e['motor_stall_full']['current']:.1f} A"))
     sec.append(("Drivetrain (wiper at 11.1 V with sag)", rows))
     measure = [
         "Spring hang test: hang 1, 2, 3 kg from one spring, measure the length each time. Slope = rate, intercept = "

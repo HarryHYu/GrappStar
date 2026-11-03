@@ -123,3 +123,17 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
   less accurate. Rover mass, wheelbase and CG are needed: recoil.py ROVER block.
 - With the 5 N m limiter the stall cases in drivetrain/capstan are evaluated at the limiter torque (motor current
   ~7 A while it slips, caught by the 5 A trip).
+
+## F11. Take-up bus, wrap and final approach (coordinator changes, 3 Nov; retrieve.py)
+
+- Taut line at the shot (take-up bus) vs 245 mm of slack: taut gives 7.61 m/s. With slack the dart leaves at 7.95 m/s
+  but the snatch shares its momentum with the reel (26 g effective x eye gain): 7.19 m/s after it, 5.5 % slower than
+  taut (0.85 J lost), plus a line spike up to ~240 N (undamped bound) yanking the dart tail. Taut is right.
+- Wrap: 7 cup turns in 240 deg of drum. Line drawn off the reel against the LIGHT clutch (0.5 N at the full reel),
+  through ~180 deg of guides (mu 0.25): ring pull 1.1 to 1.5 N, cup 33 to 45 N mm, drum 0.49 to 0.67 N m, drum N20
+  61 to 83 N mm (30 to 41 % of an ASSUMED 0.2 N m usable N20 worm torque at 9 V: MEASURE the N20). About 18 s per wrap
+  at 20 rpm. 0.9 m of line is drawn.
+- Final approach onto the cradle on the FIRM clutch alone (3 N at the core = 2.2 N at the full reel, 1.7 N at the dart
+  after the exit eye and guides): NOT enough. Need 2.1 to 2.6 N at 5 to 10 deg pitch (gravity + mu 0.3 to 0.4 on the
+  cradle + ~1 N to close SW_SEATED). Fix: FIRM about 7 N at the core (1.5 margin), or seat on the capstan (REEL with
+  wraps) and use the FIRM clutch only for tidy, or lower the seat contact force to ~0.3 N.

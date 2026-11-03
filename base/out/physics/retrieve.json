@@ -1,0 +1,110 @@
+{
+ "params_source": "base/spec/params.py v0.1-stub (still defaults for LAUNCH, AIM, REEL, LAYOUT)",
+ "snatch": {
+  "slack_m": 0.245,
+  "reel_mass_eff_kg": 0.029664208456267344,
+  "v_taut": 7.608706528382579,
+  "v_no_line_in_stroke": 7.9519587144782635,
+  "v_after_snatch": 7.1877348281985025,
+  "speed_loss_vs_taut": 0.055327630079269774,
+  "ke_loss_snatch_j": 0.8477522125279142,
+  "line_spike_n_upper": 238.52907924646985,
+  "line_break_n": 667.0
+ },
+ "wrap": {
+  "params": {
+   "cup_turns": 7.0,
+   "drum_sector_deg": 240.0,
+   "cup_per_drum": 10.5,
+   "ring_r": 0.03,
+   "guide_wrap_rad": 3.141592653589793,
+   "mu_guide": 0.25,
+   "eta_wrap": 0.7,
+   "n20_ratio": 9.0,
+   "eta_n20_mesh": 0.9,
+   "n20_torque_nm": 0.2,
+   "n20_rpm": 27.0
+  },
+  "light_n": 0.5,
+  "rows": [
+   {
+    "line_on_reel_m": 20.0,
+    "t_reel_n": 0.5,
+    "t_ring_n": 1.0966400253690076,
+    "t_cup_nm": 0.032899200761070224,
+    "t_drum_nm": 0.4934880114160534,
+    "t_n20_nm": 0.06092444585383376,
+    "n20_frac": 0.30462222926916876
+   },
+   {
+    "line_on_reel_m": 5.0,
+    "t_reel_n": 0.6204118247530844,
+    "t_ring_n": 1.3607368784729097,
+    "t_cup_nm": 0.04082210635418729,
+    "t_drum_nm": 0.6123315953128093,
+    "t_n20_nm": 0.07559649324849499,
+    "n20_frac": 0.37798246624247495
+   },
+   {
+    "line_on_reel_m": 0.5,
+    "t_reel_n": 0.6776888376704004,
+    "t_ring_n": 1.4863614082703225,
+    "t_cup_nm": 0.04459084224810967,
+    "t_drum_nm": 0.6688626337216451,
+    "t_n20_nm": 0.0825756337927957,
+    "n20_frac": 0.4128781689639785
+   }
+  ],
+  "wrap_time_s": 18.0,
+  "cup_turns_in_sector": 7.0,
+  "line_drawn_m": 0.9016370915802706
+ },
+ "approach": {
+  "params": {
+   "pitch_deg": [
+    5.0,
+    10.0
+   ],
+   "mu_cradle": [
+    0.3,
+    0.4
+   ],
+   "seat_force": 1.0,
+   "eye_gain": 1.3
+  },
+  "clutch_torque_nm": 0.06,
+  "avail_at_reel_n": 2.18952344590045,
+  "avail_at_dart_n": 1.6842488045388075,
+  "rows": [
+   {
+    "pitch_deg": 5.0,
+    "mu": 0.3,
+    "need_n": 2.056516874361951,
+    "avail_n": 1.6842488045388075,
+    "margin": 0.8189812714575258
+   },
+   {
+    "pitch_deg": 5.0,
+    "mu": 0.4,
+    "need_n": 2.3291743670349643,
+    "avail_n": 1.6842488045388075,
+    "margin": 0.7231097973497166
+   },
+   {
+    "pitch_deg": 10.0,
+    "mu": 0.3,
+    "need_n": 2.2838960173676766,
+    "avail_n": 1.6842488045388075,
+    "margin": 0.737445484265086
+   },
+   {
+    "pitch_deg": 10.0,
+    "mu": 0.4,
+    "need_n": 2.5534369145593656,
+    "avail_n": 1.6842488045388075,
+    "margin": 0.6596007110790322
+   }
+  ],
+  "firm_setting_for_1p5_margin_n_at_core": 6.822309200726162
+ }
+}

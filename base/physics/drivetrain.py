@@ -10,8 +10,13 @@ Driver limits: BTS7960 module 43 A peak (datasheet current limit) but heat limit
 is used as the conservative number. Fuse: 20 A blade on lead #2. A 20 A blade carries 18 A for minutes, so a wiper
 stall (about 17 A at 12.6 V with sag) will NOT blow it; it holds a 17 A stall indefinitely. The firmware current trip
 (capstan.fw_trip: 50 ms blanking, 5 A hard trip for 30 ms (6.5 A while cocking), tow trip at free + tow current over 200 ms)
-is the only stall protection, and a mechanical slip clutch of about 3 N m on the REEL output gear is recommended.
-Shaft verdicts at stall: over the agreed 12 N m is a fail, over the Kt 2 value (9.4 N m) a warning.
+is the only stall protection for the motor and driver. The printed torque limiter in the wiper coupler
+(p.wiper.limiter_nm, 5 N m) caps the torque every train can see; while it slips the motor draws about 7 A.
+"(at limiter (5 N m))" checks use the limiter torque when it is set; the raw motor stall (no limiter) is reported as
+info. Without a limiter the same checks run "(motor stall (no limiter))".
+frac_stall = peak torque / raw motor stall torque (11.1 V, sag); frac_limiter = peak torque / limiter, flagged above
+LIMITER_FRAC_MAX (the limiter would slip in normal use).
+Shaft verdicts at stall/limiter: over the agreed 12 N m is a fail, over the Kt 2 value (9.4 N m) a warning.
 
 Times use 11.1 V nominal with sag (slow case); stall currents use 12.6 V full (worst case).
 Geometry not yet in the spec is keyword arguments with defaults below (marked ASSUMED).
@@ -27,6 +32,7 @@ import capstan
 import gears
 
 STALL_FRAC_MAX = 0.6
+LIMITER_FRAC_MAX = capstan.LIMITER_FRAC_MAX
 BTS_PEAK_A = 43.0
 BTS_CONT_A = 15.0
 
@@ -61,7 +67,13 @@ CAP_GEAR = capstan.CAP_GEAR
 
 
 def stall(p: Params, v_oc: float):
+    """Torque the train can see (limiter when set) and the motor current then."""
     return capstan.stall_torque_sag(p, v_oc)
+
+
+def motor_stall(p: Params, v_oc: float):
+    """Raw motor stall, no limiter."""
+    return capstan.motor_stall_sag(p, v_oc)
 
 
 def _point(p: Params, t_w: float, v_oc: float) -> dict:
@@ -152,8 +164,11 @@ def cap_fn(p: Params, f_line: float, length: float, overspeed: float = 1.2) -> d
 
 # ------------------------------------------------------------------ evaluate one function
 def evaluate(p: Params, name: str, fn: dict, v_oc: float) -> dict:
-    t_s, i_s = stall(p, v_oc)
-    t_s_full, i_s_full = stall(p, p.battery.v_full)
+    t_s, i_s = motor_stall(p, v_oc)                      # raw motor stall (frac_stall)
+    t_s_full, i_s_full = stall(p, p.battery.v_full)      # what the train sees: at the limiter when set
+    t_m_full, _ = motor_stall(p, p.battery.v_full)       # raw, for info
+    lab = capstan.stall_label(p)
+    lim = capstan.limiter_nm(p)
     pk = _point(p, fn["t_peak"], v_oc)
     mn = _point(p, fn["t_mean"], v_oc)
     rpm_mean = mn["rpm"]
@@ -175,9 +190,13 @@ def evaluate(p: Params, name: str, fn: dict, v_oc: float) -> dict:
         rpm_out = pk["rpm"] / fn.get("sprag_ratio", fn["gear_ratio"])
         sp = gears.sprag(fn["sprag_torque"], rpm_out, p.sprag)
     frac = fn["t_peak"] / t_s
-    flags, stall_warn = [], []
+    frac_lim = fn["t_peak"] / lim if lim is not None else None
+    flags, stall_warn, info = [], [], []
     if frac > STALL_FRAC_MAX:
-        flags.append(f"peak torque {frac:.2f} of stall > {STALL_FRAC_MAX}")
+        flags.append(f"peak torque {frac:.2f} of motor stall > {STALL_FRAC_MAX}")
+    if frac_lim is not None and frac_lim > LIMITER_FRAC_MAX:
+        flags.append(f"peak torque {fn['t_peak']:.2f} N m is {frac_lim:.2f} of the {lim:g} N m limiter > "
+                     f"{LIMITER_FRAC_MAX}: the limiter would slip in normal use")
     if not shaft_pk["pass"]:
         flags.append(f"keyed shaft {fn['shaft_torque']:.1f} N m > {p.shaft.t_allow} N m")
     elif not shaft_pk["strict_pass"]:
@@ -191,17 +210,27 @@ def evaluate(p: Params, name: str, fn: dict, v_oc: float) -> dict:
     if not mesh_tr["pass"]:
         flags.append(f"gear (Lewis) fails at the {trip_a} A hard trip, sf {mesh_tr['sf']:.2f}")
     if not st_chk["pass"]:
-        flags.append(f"(at stall) keyed shaft {shaft_st:.1f} N m > {p.shaft.t_allow} N m")
+        flags.append(f"({lab}) keyed shaft {shaft_st:.1f} N m > {p.shaft.t_allow} N m")
     elif not st_chk["strict_pass"]:
         stall_warn.append(f"keyed shaft {shaft_st:.1f} N m over the Kt 2 limit {st_chk['t_allow_kt']:.1f} N m")
     if not mesh_st["pass"]:
-        stall_warn.append(f"gear fails at wiper stall (sf {mesh_st['sf']:.2f}); relies on the trip / slip clutch")
+        stall_warn.append(f"gear fails (sf {mesh_st['sf']:.2f}); relies on the trip")
+    # raw motor stall (no limiter): informational when the limiter caps the train
+    shaft_mst = fn["shaft_k"] * t_m_full
+    mesh_mst = gears.mesh(t_m_full, fn["gear_ratio"], g["module"], g["z_driver"], g["face"], PPA_CF, 0.0)
+    if t_m_full > t_s_full:
+        m_chk = gears.shaft_torsion(shaft_mst, p.shaft)
+        verdict = "fail" if not m_chk["pass"] else ("over Kt 2" if not m_chk["strict_pass"] else "ok")
+        info.append(f"motor stall (no limiter) {t_m_full:.2f} N m: shaft {shaft_mst:.1f} N m ({verdict}), gear sf "
+                    f"{mesh_mst['sf']:.2f}; only if the limiter seizes")
     return dict(name=name, t_peak=fn["t_peak"], t_mean=fn["t_mean"], rpm_peak=pk["rpm"], rpm_mean=rpm_mean,
                 i_peak=pk["current"], i_mean=mn["current"], v_batt_peak=pk["v_batt"], frac_stall=frac,
-                stall_torque=t_s, time_s=time, energy_wh=energy_wh, shaft_torque=fn["shaft_torque"],
-                shaft_torque_at_stall=shaft_st, shaft_stall=st_chk, t_trip=t_trip,
+                frac_limiter=frac_lim, limiter_nm=lim, stall_label=lab, stall_torque=t_s,
+                torque_at_limiter=t_s_full, time_s=time, energy_wh=energy_wh, shaft_torque=fn["shaft_torque"],
+                shaft_torque_at_stall=shaft_st, shaft_stall=st_chk, shaft_torque_at_motor_stall=shaft_mst,
+                gear_sf_motor_stall=mesh_mst["sf"], t_trip=t_trip,
                 gear_sf_trip=mesh_tr["sf"], shaft_torque_at_trip=shaft_tr, gear_sf_peak=mesh_pk["sf"], gear_sf_stall=mesh_st["sf"],
-                sprag=sp, flags=flags, stall_warnings=stall_warn)
+                sprag=sp, flags=flags, stall_warnings=stall_warn, info=info)
 
 
 def run(p: Params | None = None, aim_kw=None, cock_kw=None, light_n=3.0, reel_len=20.0, tow_len=5.0) -> dict:
@@ -214,17 +243,27 @@ def run(p: Params | None = None, aim_kw=None, cock_kw=None, light_n=3.0, reel_le
     rows = {k: evaluate(p, k, v, b.v_nom) for k, v in fns.items()}
     t_s_full, i_s_full = stall(p, b.v_full)
     t_s_nom, i_s_nom = stall(p, b.v_nom)
+    t_m_full, i_m_full = motor_stall(p, b.v_full)
+    t_m_nom, i_m_nom = motor_stall(p, b.v_nom)
+    lab = capstan.stall_label(p)
     elec = dict(stall_full=dict(torque=t_s_full, current=i_s_full), stall_nom=dict(torque=t_s_nom, current=i_s_nom),
+                stall_label=lab, limiter_nm=capstan.limiter_nm(p),
+                motor_stall_full=dict(torque=t_m_full, current=i_m_full),
+                motor_stall_nom=dict(torque=t_m_nom, current=i_m_nom),
                 free_rpm_full=p.wiper.operate(0.0, b, b.v_full)["rpm"],
                 bts_peak_a=BTS_PEAK_A, bts_cont_a=BTS_CONT_A, fuse_a=b.fuse_a,
-                fuse_blows_on_stall=i_s_full > b.fuse_a,
-                note=("20 A blade survives 18 A for minutes and holds a %.1f A stall indefinitely: the firmware "
-                      "current trip is the only stall protection (motor and BTS heating)" % i_s_full))
-    general = []
+                fuse_blows_on_stall=i_m_full > b.fuse_a,
+                note=("20 A blade survives 18 A for minutes and holds a %.1f A motor stall (no limiter) indefinitely: "
+                      "the firmware current trip is the only stall protection (motor and BTS heating)" % i_m_full))
+    general, info = [], []
     if not elec["fuse_blows_on_stall"]:
         general.append(elec["note"])
     if i_s_full > BTS_CONT_A:
-        general.append(f"stall current {i_s_full:.1f} A > BTS7960 {BTS_CONT_A} A continuous (no heatsink)")
+        general.append(f"{lab}: current {i_s_full:.1f} A > BTS7960 {BTS_CONT_A} A continuous (no heatsink)")
+    if t_m_full > t_s_full:
+        info.append(f"{lab}: motor draws {i_s_full:.1f} A while the limiter slips (12.6 V); motor stall (no limiter) "
+                    f"{t_m_full:.2f} N m / {i_m_full:.1f} A"
+                    + (f" > BTS7960 {BTS_CONT_A} A continuous" if i_m_full > BTS_CONT_A else ""))
     if not c["spring_ok"]:
         general.append(f"spring extension {c['ext_full_mm']:.0f} mm > safe {c['spring_safe_ext_mm']:.0f} mm")
     if not a["self_locking"]:
@@ -232,7 +271,8 @@ def run(p: Params | None = None, aim_kw=None, cock_kw=None, light_n=3.0, reel_le
     cap = capstan.run(p, light_n=light_n, reel_len=reel_len)
     return dict(source=p.source, aim=dict({k: v for k, v in a.items()}), cock={k: v for k, v in c.items()
                 if k != "profile"}, cock_profile=c["profile"], functions=rows, electrical=elec,
-                general_flags=general, capstan_warnings=cap["warnings"], capstan_current_limit=cap["current_limit"],
+                general_flags=general, info=info + cap["info"], capstan_warnings=cap["warnings"],
+                capstan_limiter=cap["limiter"], capstan_current_limit=cap["current_limit"],
                 fw_trip=cap["fw_trip"], takeup=cap["takeup"],
                 total_energy_wh=sum(r["energy_wh"] for r in rows.values()))
 
@@ -240,16 +280,29 @@ def run(p: Params | None = None, aim_kw=None, cock_kw=None, light_n=3.0, reel_le
 def main():
     r = run()
     e = r["electrical"]
-    print(f"[{r['source']}]  wiper stall {e['stall_full']['torque']:.2f} N m / {e['stall_full']['current']:.1f} A "
-          f"at 12.6 V, {e['stall_nom']['torque']:.2f} N m / {e['stall_nom']['current']:.1f} A at 11.1 V; "
-          f"free {e['free_rpm_full']:.1f} rpm at 12.6 V")
-    hdr = f"{'fn':5} {'Tpk':>6} {'Tmean':>6} {'rpm':>5} {'Ipk':>5} {'Imean':>5} {'%stall':>6} {'time s':>7} " \
-          f"{'Wh':>6} {'shaftNm':>7} {'gear sf':>7}"
+    print(f"[{r['source']}]  motor stall (no limiter) {e['motor_stall_full']['torque']:.2f} N m / "
+          f"{e['motor_stall_full']['current']:.1f} A at 12.6 V, {e['motor_stall_nom']['torque']:.2f} N m / "
+          f"{e['motor_stall_nom']['current']:.1f} A at 11.1 V; free {e['free_rpm_full']:.1f} rpm at 12.6 V")
+    if e["limiter_nm"] is not None:
+        print(f"  {e['stall_label']}: {e['stall_full']['torque']:.2f} N m, {e['stall_full']['current']:.1f} A while "
+              "slipping (this is what every train sees)")
+    hdr = f"{'fn':5} {'Tpk':>6} {'Tmean':>6} {'rpm':>5} {'Ipk':>5} {'Imean':>5} {'%stall':>6} {'%lim':>5} " \
+          f"{'time s':>7} {'Wh':>6} {'shaftNm':>7} {'gear sf':>7}"
     print(hdr)
     for k, f in r["functions"].items():
+        fl = f"{100*f['frac_limiter']:5.1f}" if f["frac_limiter"] is not None else f"{'-':>5}"
         print(f"{k:5} {f['t_peak']:6.2f} {f['t_mean']:6.2f} {f['rpm_mean']:5.1f} {f['i_peak']:5.2f} {f['i_mean']:5.2f} "
-              f"{100*f['frac_stall']:6.1f} {f['time_s']:7.1f} {f['energy_wh']:6.3f} {f['shaft_torque']:7.2f} "
+              f"{100*f['frac_stall']:6.1f} {fl} {f['time_s']:7.1f} {f['energy_wh']:6.3f} {f['shaft_torque']:7.2f} "
               f"{f['gear_sf_peak']:7.2f}")
+    print(f"  %stall = peak / motor stall (no limiter, 11.1 V); %lim = peak / limiter (flag above "
+          f"{100*LIMITER_FRAC_MAX:.0f} %)")
+    lm = r["capstan_limiter"]
+    if lm is not None:
+        tw = r["functions"]["tow"]
+        print(f"tow {r['functions']['tow']['t_peak']:.2f} N m at 50 N: {tw['i_peak']:.2f} A, {tw['rpm_mean']:.1f} wiper rpm; "
+              f"limiter slip line force {lm['f_line_empty_reel']:.0f} N (empty reel) / {lm['f_line_full_reel']:.0f} N "
+              f"(full reel) vs dart holding " + ", ".join(f"{k} {v:.0f}" for k, v in lm["dart_hold"].items())
+              + f" N, line break {lm['line_breaking']:.0f} N")
     a, c = r["aim"], r["cock"]
     print(f"aim: mass {a['mass']:.2f} kg, screw eff {a['screw_eff']:.2f}, self-locking {a['self_locking']}, "
           f"crank torque {a["t_screw_peak"]:.3f} N m raising / {a["t_screw_lower_peak"]:.3f} gravity-assisted, worm turns per crank turn {a["params"]["wheel_z"]}")
@@ -268,8 +321,14 @@ def main():
         for x in f["flags"]:
             print(f" - {k}: {x}")
         for x in f["stall_warnings"]:
-            print(f" - {k} (at stall): {x}")
+            print(f" - {k} ({f['stall_label']}): {x}")
     for x in r["general_flags"] + r["capstan_warnings"]:
+        print(" -", x)
+    print("\nINFO:")
+    for k, f in r["functions"].items():
+        for x in f["info"]:
+            print(f" - {k}: {x}")
+    for x in r["info"]:
         print(" -", x)
     print("wrote", capstan.write_json(r, "drivetrain.json"))
     return r

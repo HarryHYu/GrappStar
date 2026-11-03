@@ -18,24 +18,24 @@ Params: base/spec/params.py v0.1-stub (still defaults for LAUNCH, AIM, REEL, LAY
 | Item | Value |
 |---|---|
 | Stroke, ratio, pitch | 245 mm, 1.0:1, 35 deg |
-| Spring extension full / rest | 250 / 5 mm |
-| Stored energy (2 springs) | 11.2 J |
-| Carriage force at full draw | 76 N |
-| Muzzle speed | 6.92 m/s |
-| Peak acceleration, stroke time | 19 g, 58 ms |
-| Efficiency (dart KE / stored) | 59 % |
-| Carriage KE at stop, pad peak | 1.92 J, 1426 N (4 mm pad) |
-| Spring KE at stop, coil clash | 0.93 J, 9.7 m/s |
+| Spring extension full / rest | 280 / 35 mm |
+| Stored energy (2 springs) | 13.1 J |
+| Carriage force at full draw | 84 N |
+| Muzzle speed | 7.61 m/s |
+| Peak acceleration, stroke time | 21 g, 55 ms |
+| Efficiency (dart KE / stored) | 62 % |
+| Carriage KE at stop, pad peak | 2.32 J, 434 N (15 mm pad) |
+| Spring KE at stop, coil clash | 0.94 J, 8.3 m/s |
 
-## Flight (bead-chain tether, level ground)
+## Flight (bead-chain tether + reel model, level ground)
 
 | Item | Value |
 |---|---|
-| Range at 0.5 / 0.75 / 1.0 N brake | 3.98 / 3.58 / 3.22 m (pitch 35) |
-| Same shot, no tether | 4.95 m |
-| Flight time, apex (0.75 N) | 0.79 s, 1.03 m |
-| Impact speed, angle (0.75 N) | 5.6 m/s, 54 deg down |
-| Ballistics table | 6 to 47 deg, best 36.0 deg: 3.74 m |
+| Range at 0.5 / 0.75 / 1.0 N brake | 4.93 / 4.46 / 4.04 m (pitch 36) |
+| Same shot, no tether | 5.93 m |
+| Flight time, apex (0.75 N) | 0.89 s, 1.24 m |
+| Impact speed, angle (0.75 N) | 6.2 m/s, 54 deg down |
+| Ballistics table | 6 to 47 deg, best 36.0 deg: 4.45 m |
 
 ## Storage reel payout (0.75 N at full reel)
 
@@ -43,33 +43,35 @@ Params: base/spec/params.py v0.1-stub (still defaults for LAUNCH, AIM, REEL, LAY
 |---|---|
 | Reel empty mass, inertia full | 35 g, 19.4 kg mm2 |
 | Line radius full / core | 27.4 / 20.0 mm (brake +37 % at core) |
-| Line pull in the stroke (spin-up) | 3.76 N |
-| Reel rpm max | 2412 rpm |
-| Overrun after landing | 0.22 m in 0.12 s |
+| Line pull in the stroke (spin-up) | 4.37 N |
+| Reel rpm max | 2652 rpm |
+| Overrun after landing | 0.25 m in 0.13 s |
 
 ## Capstan and tow
 
 | Item | Value |
 |---|---|
-| Wraps for tow limit (mu 0.15) | 3.7 raw, 6 design |
+| Wraps for tow limit (mu 0.15) | 3.3 raw, 5 design |
 | Take-up needed (design wraps) | 0.45 N |
-| Tow at limit: torque, speed, current | 1.20 N m, 0.077 m/s, 2.82 A |
-| Line pull at wiper stall (12.6 V) | 597 N (break 667 N) |
+| Tow at limit: torque, speed, current | 2.02 N m, 0.119 m/s, 3.72 A |
+| Line pull at limiter (5 N m) (12.6 V) | 127 N (break 667 N) |
+| Line pull, motor stall (no limiter, 12.6 V) | 358 N |
 
 ## Drivetrain (wiper at 11.1 V with sag)
 
 | Item | Value |
 |---|---|
-| aim: peak torque, current, time | 0.19 N m, 1.7 A, 5 s |
-| cock: peak torque, current, time | 2.80 N m, 4.6 A, 2 s |
-| reel: peak torque, current, time | 0.09 N m, 1.6 A, 236 s |
-| tow: peak torque, current, time | 1.20 N m, 2.8 A, 65 s |
-| Wiper stall 12.6 V (with sag) | 14.1 N m, 17.0 A |
+| aim: peak torque, current, time | 0.33 N m, 1.9 A, 7 s |
+| cock: peak torque, current, time | 3.07 N m, 4.9 A, 3 s |
+| reel: peak torque, current, time | 0.17 N m, 1.7 A, 142 s |
+| tow: peak torque, current, time | 2.02 N m, 3.7 A, 42 s |
+| Wiper at limiter (5 N m), 12.6 V (with sag) | 5.0 N m, 7.0 A |
+| Wiper motor stall (no limiter), 12.6 V (with sag) | 14.1 N m, 17.0 A |
 
 ## Harry must measure
 
 - Spring hang test: hang 1, 2, 3 kg from one spring, measure the length each time. Slope = rate, intercept = initial tension. Every range number scales with the stored energy.
 - Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall current. Edit common.Wiper or spec WIPER.
 - Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg).
-- Slip clutch: pull the line off the reel with a luggage scale; set 0.5 to 0.75 N.
+- Slip clutch: pull the line off the full reel with a luggage scale; set 0.4 to 0.5 N (FINDINGS F5).
 - Rail friction: tilt the rail with the dart on it until it slides (mu = tan angle).

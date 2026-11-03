@@ -35,13 +35,18 @@ def test_cock_hand():
 
 
 def test_run():
-    r = drivetrain.run(Params())
+    p = Params()
+    r = drivetrain.run(p)
     f = r["functions"]
+    t_m, _ = capstan.motor_stall_sag(p, p.battery.v_nom)
     for k in ("aim", "cock", "reel", "tow"):
+        assert f[k]["frac_stall"] == pytest.approx(f[k]["t_peak"] / t_m)      # raw motor stall
         assert f[k]["frac_stall"] < drivetrain.STALL_FRAC_MAX
+        assert f[k]["frac_limiter"] == pytest.approx(f[k]["t_peak"] / p.wiper.limiter_nm)
+        assert f[k]["frac_limiter"] < drivetrain.LIMITER_FRAC_MAX
         assert f[k]["time_s"] > 0 and f[k]["energy_wh"] > 0
     assert not r["electrical"]["fuse_blows_on_stall"]
-    p = Params()
+    assert r["electrical"]["stall_full"]["torque"] == pytest.approx(p.wiper.limiter_nm)
     assert f["tow"]["t_peak"] == pytest.approx(capstan.wiper_torque_for(50, p))
     # tow shaft at stall matches capstan.py
     cap = capstan.run(p)
@@ -49,5 +54,18 @@ def test_run():
     for k in f:
         assert f[k]["gear_sf_trip"] > 1.0
     for k in f:
+        # "(at stall)" checks run at the limiter torque
+        assert f[k]["shaft_torque_at_stall"] < f[k]["shaft_torque_at_motor_stall"]
         over = f[k]["shaft_torque_at_stall"] > p.shaft.t_allow
-        assert over == any("(at stall) keyed shaft" in x for x in f[k]["flags"])
+        assert over == any("(at limiter (5 N m)) keyed shaft" in x for x in f[k]["flags"])
+
+
+def test_run_no_limiter():
+    p = Params()
+    p.wiper.limiter_nm = None
+    f = drivetrain.run(p)["functions"]
+    for k in f:
+        assert f[k]["frac_limiter"] is None and f[k]["info"] == []
+        assert f[k]["shaft_torque_at_stall"] == pytest.approx(f[k]["shaft_torque_at_motor_stall"])
+        over = f[k]["shaft_torque_at_stall"] > p.shaft.t_allow
+        assert over == any("(motor stall (no limiter)) keyed shaft" in x for x in f[k]["flags"])

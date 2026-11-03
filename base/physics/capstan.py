@@ -16,6 +16,9 @@ Drum keyed shaft torque = wiper torque x ratio x eta (it carries the take-up bra
 Wrap margin: design wraps = ceil(1.5 x raw wraps), at mu low and the lowest hold tension. 1.5x on wraps is the same
 as mu dropping by a third (wet or dusty line).
 
+Torque limiter: p.wiper.limiter_nm (printed limiter in the wiper coupler). When set, "stall" and the stall checks are
+"at limiter" (the most the train can see), and the raw motor stall (no limiter) is reported as info (motor_stall).
+
 python capstan.py [--tow 50] [--mu 0.15]   -> table + base/out/physics/capstan.json
 """
 from __future__ import annotations
@@ -34,7 +37,8 @@ OUT_DIR = os.path.join(HERE, "..", "out", "physics")
 
 WRAP_MARGIN = 1.5
 DART_HOLD = dict(sand=7.0, loam=45.0, clay=112.0)   # N, Broms short pile (kedge CLAUDE.md)
-CAP_GEAR = dict(module=2.0, face=12.0, z_driver=20)  # ASSUMED wiper to capstan mesh, PPA-CF
+CAP_GEAR = dict(module=2.0, face=12.0, z_driver=40)  # REEL gear 40 T on the wiper drives the capstan 24 T (ratio 0.6);
+                                                     # module and face ASSUMED, PPA-CF
 
 # recommended firmware current trip (all modes)
 TRIP_BLANK_MS = 50       # ignore current after start (inrush)
@@ -42,7 +46,8 @@ TRIP_HARD_A = 5.0        # hard trip, motor current (aim, reel, tow)
 TRIP_COCK_A = 6.5        # hard trip while cocking (launch mode forward): cock peak is ~4.6 A
 TRIP_HARD_MS = 30
 TRIP_TOW_AVG_MS = 200
-CLUTCH_REEL_NM = 3.0     # recommended mechanical slip clutch on the REEL output gear
+CLUTCH_REEL_NM = 3.0     # recommended mechanical slip clutch on the REEL output gear when there is no wiper limiter
+LIMITER_FRAC_MAX = 0.8   # a function peak above this fraction of the limiter torque would slip it in normal use
 
 
 # ------------------------------------------------------------------ Euler-Eytelwein
@@ -129,15 +134,36 @@ def drum_shaft_torque(t_wiper: float, p: Params) -> float:
     return t_wiper * k * eta
 
 
-def stall_torque_sag(p: Params, v_oc: float):
+def motor_stall_sag(p: Params, v_oc: float):
+    """Raw wiper motor stall (no limiter): torque at the output and current, battery at v_oc with sag."""
     w, b = p.wiper, p.battery
     i_s = v_oc / (w.r_winding + b.r_source)
-    t_s = w.kt * (i_s - w.i_free)
-    lim = getattr(w, "limiter_nm", None)
+    return w.kt * (i_s - w.i_free), i_s
+
+
+def limiter_nm(p: Params):
+    return getattr(p.wiper, "limiter_nm", None)
+
+
+def stall_torque_sag(p: Params, v_oc: float):
+    """Largest torque the train can see and the motor current then: the limiter torque (and the current while it
+    slips) when the limiter is set and below the motor stall, otherwise the raw motor stall."""
+    w = p.wiper
+    t_s, i_s = motor_stall_sag(p, v_oc)
+    lim = limiter_nm(p)
     if lim is not None and t_s > lim:
         # the torque limiter slips: the train sees the limiter torque, the motor keeps turning at that load
         return lim, w.i_free + lim / w.kt
     return t_s, i_s
+
+
+def stall_label(p: Params, v_oc: float | None = None) -> str:
+    """'at limiter (5 N m)' when the limiter caps the train torque, else 'motor stall (no limiter)'."""
+    lim = limiter_nm(p)
+    v = p.battery.v_full if v_oc is None else v_oc
+    if lim is not None and motor_stall_sag(p, v)[0] > lim:
+        return f"at limiter ({lim:g} N m)"
+    return "motor stall (no limiter)"
 
 
 def tow_point(f_line: float, p: Params, v_oc: float, overspeed: float = 1.2, line_left: float | None = None) -> dict:
@@ -170,6 +196,19 @@ def fw_trip(p: Params, tow_limit: float | None = None, overspeed: float = 1.2, g
     t_hard = p.wiper.kt * (TRIP_HARD_A - p.wiper.i_free)
     m = gears.mesh(t_hard, p.capstan["ratio"], g["module"], g["z_driver"], g["face"], PPA_CF, 0.0)
     cl = current_limit_for(tow_limit, p, overspeed)
+    lim = limiter_nm(p)
+    t_m, i_m = motor_stall_sag(p, p.battery.v_full)
+    if lim is not None and t_m > lim:
+        i_slip = p.wiper.i_free + lim / p.wiper.kt
+        prot = (f"the {lim:g} N m torque limiter in the wiper coupler caps the train at {lim:g} N m (motor current while "
+                f"it slips {i_slip:.1f} A); sprag #2 plus the self-locking worm still lock in the line tension after a "
+                "trip, so the trip must stop the motor before the limiter slips for long (heat, wear)")
+        fuse = (f"the 20 A fuse holds a {i_m:.0f} A motor stall (no limiter) and the {i_slip:.1f} A limiter slip "
+                "indefinitely: it is wiring protection only")
+    else:
+        prot = ("sprag #2 (capstan backstop) plus the self-locking worm lock in the stall tension after a trip: add a "
+                f"mechanical slip clutch of about {CLUTCH_REEL_NM:.0f} N m on the REEL output gear")
+        fuse = f"the 20 A fuse holds a {i_m:.0f} A stall indefinitely: it is wiring protection only"
     return dict(
         blank_ms=TRIP_BLANK_MS, hard_a=TRIP_HARD_A, hard_ms=TRIP_HARD_MS, hard_torque=t_hard,
         hard_gear_sf=m["sf"], hard_gear_pass=m["pass"], hard_drum_torque=drum_shaft_torque(t_hard, p),
@@ -180,9 +219,8 @@ def fw_trip(p: Params, tow_limit: float | None = None, overspeed: float = 1.2, g
             f"ignore current for {TRIP_BLANK_MS} ms after start; hard trip at {TRIP_HARD_A} A for {TRIP_HARD_MS} ms in "
             f"aim, reel and tow ({t_hard:.2f} N m at the wiper), {TRIP_COCK_A} A while cocking "
             f"({p.wiper.kt * (TRIP_COCK_A - p.wiper.i_free):.2f} N m)",
-            "sprag #2 (capstan backstop) plus the self-locking worm lock in the stall tension after a trip: add a "
-            f"mechanical slip clutch of about {CLUTCH_REEL_NM:.0f} N m on the REEL output gear",
-            "the 20 A fuse holds a 17 A stall indefinitely: it is wiring protection only",
+            prot,
+            fuse,
             "BTS7960 IS reads the high side only (zero in the PWM off-time): sample in the on-time or scale by duty",
         ])
 
@@ -237,20 +275,38 @@ def run(p: Params | None = None, tow: float | None = None, mu: float | None = No
     for name, v in (("full", b.v_full), ("nom", b.v_nom)):
         table[name] = [tow_point(f, p, v, overspeed) for f in loads]
 
-    stall = {}
-    for name, v in (("full", b.v_full), ("nom", b.v_nom)):
-        t_s, i_s = stall_torque_sag(p, v)
+    def _stall_entry(v, t_s, i_s, label):
         f_s = line_from_wiper(t_s, p, overspeed)      # empty reel: highest
-        stall[name] = dict(v_oc=v, t_wiper=t_s, current=i_s, f_line=f_s,
-                           exceeds_dart={k: f_s > hv for k, hv in DART_HOLD.items()},
-                           exceeds_break=f_s > p.line.breaking, line_breaking=p.line.breaking,
-                           wraps_slip_first=slips(f_s, wraps, th_max, mu_hi),
-                           holds_max=max_hold(wraps, th_max, mu_hi))
+        return dict(v_oc=v, t_wiper=t_s, current=i_s, f_line=f_s, label=label,
+                    f_line_full_reel=line_from_wiper(t_s, p, overspeed, line_left=_full(p)),
+                    exceeds_dart={k: f_s > hv for k, hv in DART_HOLD.items()},
+                    exceeds_break=f_s > p.line.breaking, line_breaking=p.line.breaking,
+                    wraps_slip_first=slips(f_s, wraps, th_max, mu_hi),
+                    holds_max=max_hold(wraps, th_max, mu_hi))
+
+    # stall = what the train actually sees (at the limiter when it is set); motor_stall = raw motor, no limiter
+    stall, motor_stall = {}, {}
+    for name, v in (("full", b.v_full), ("nom", b.v_nom)):
+        stall[name] = _stall_entry(v, *stall_torque_sag(p, v), stall_label(p, v))
+        motor_stall[name] = _stall_entry(v, *motor_stall_sag(p, v), "motor stall (no limiter)")
+    lim = limiter_nm(p)
+    limiter = None
+    if lim is not None:
+        f_lim = line_from_wiper(lim, p, overspeed)
+        t_tow = wiper_torque_for(tow, p, overspeed)       # full reel: most torque for the tow limit
+        limiter = dict(torque=lim, current_slip=p.wiper.i_free + lim / p.wiper.kt,
+                       f_line_empty_reel=f_lim, f_line_full_reel=line_from_wiper(lim, p, overspeed, line_left=_full(p)),
+                       t_drum=drum_shaft_torque(lim, p), dart_hold=dict(DART_HOLD), line_breaking=p.line.breaking,
+                       exceeds_dart={k: f_lim > hv for k, hv in DART_HOLD.items()},
+                       exceeds_break=f_lim > p.line.breaking,
+                       wraps_slip_first=slips(f_lim, wraps, th_max, mu_hi), holds_max=max_hold(wraps, th_max, mu_hi),
+                       tow_frac=t_tow / lim, slips_at_tow=t_tow > LIMITER_FRAC_MAX * lim)
 
     light = tow_point(light_n, p, b.v_nom, overspeed)
     t_reel = reel_len / light["v_line"] if light["v_line"] > 0 else math.inf
     at_tow = tow_point(tow, p, b.v_nom, overspeed)
     s_full = stall["full"]
+    m_full = motor_stall["full"]
 
     res = dict(
         inputs=dict(tow=tow, mu=mu, mu_range=(mu_lo, mu_hi), takeup_n=c["takeup_n"], wraps=wraps, drum_d=c["d"],
@@ -268,10 +324,14 @@ def run(p: Params | None = None, tow: float | None = None, mu: float | None = No
         current_limit_dart=dict({k: current_limit_for(v, p, overspeed)["current"] for k, v in DART_HOLD.items()}),
         fw_trip=fw_trip(p, tow, overspeed),
         stall=stall,
+        motor_stall=motor_stall,
+        limiter=limiter,
         reel=dict(length=reel_len, light=light, time_s=t_reel),
         parts_at_tow=part_stresses(tow, at_tow["t_wiper"], p, wraps, at_tow["rpm_drum"], th_min),
         parts_at_stall=part_stresses(s_full["f_line"], s_full["t_wiper"], p, wraps, 0.0, th_max),
+        parts_at_motor_stall=part_stresses(m_full["f_line"], m_full["t_wiper"], p, wraps, 0.0, th_max),
     )
+    res["info"] = info(res)
     res["warnings"] = warnings(res)
     return res
 
@@ -279,14 +339,20 @@ def run(p: Params | None = None, tow: float | None = None, mu: float | None = No
 def warnings(r: dict) -> list:
     w = []
     s = r["stall"]["full"]
+    lab = s["label"]
     over = [k for k, v in s["exceeds_dart"].items() if v]
     if over:
-        w.append(f"wiper stall pulls {s['f_line']:.0f} N on the line: above dart holding in {', '.join(over)}")
+        w.append(f"{lab}: line pull {s['f_line']:.0f} N (empty reel; {s['f_line_full_reel']:.0f} N full reel): above "
+                 f"dart holding in {', '.join(over)}")
     if s["exceeds_break"]:
-        w.append(f"wiper stall line tension {s['f_line']:.0f} N exceeds line breaking {s['line_breaking']:.0f} N")
+        w.append(f"{lab}: line tension {s['f_line']:.0f} N exceeds line breaking {s['line_breaking']:.0f} N")
     if not s["wraps_slip_first"]:
-        w.append(f"wraps hold {s['holds_max']:.0f} N at mu high: the capstan is no torque limiter, firmware current "
-                 "limit (or a slip clutch) must protect the dart and line")
+        w.append(f"{lab}: wraps hold {s['holds_max']:.0f} N at mu high, the line does not slip on the drum: the "
+                 "firmware current limit must protect the dart and line")
+    lm = r.get("limiter")
+    if lm is not None and lm["slips_at_tow"]:
+        w.append(f"tow at {r['inputs']['tow']:.0f} N needs {lm['tow_frac']:.2f} of the {lm['torque']:g} N m limiter "
+                 f"(> {LIMITER_FRAC_MAX}): the limiter would slip in normal towing")
     if r["slips_at_tow"]:
         w.append("line slips on the drum at the tow limit (mu low, full reel)")
     if r["inputs"]["wraps"] < r["wraps_needed"]["design"]:
@@ -302,8 +368,8 @@ def warnings(r: dict) -> list:
     if over:
         w.append(f"{ft['hard_a']} A hard trip still allows {ft['hard_line_n']:.0f} N on the line (above {', '.join(over)}):"
                  " the tow trip must act first")
-    for tag in ("parts_at_tow", "parts_at_stall"):
-        ps = r[tag]
+    for key, tag in (("parts_at_tow", "parts at tow"), ("parts_at_stall", f"parts {lab}")):
+        ps = r[key]
         for k in ("shaft", "key", "sprag", "bearing608"):
             if not ps[k]["pass"]:
                 w.append(f"{tag}: {k} fails")
@@ -313,6 +379,25 @@ def warnings(r: dict) -> list:
             w.append(f"{tag}: drum line pressure {ps['line_pressure_mpa']:.1f} / hoop {ps['hoop_mpa']:.1f} MPa over "
                      f"{ps['p_allow_mpa']:.0f} MPa")
     return w
+
+
+def info(r: dict) -> list:
+    """Informational lines: the raw motor stall when the limiter caps the train (not a flag)."""
+    out = []
+    lm = r.get("limiter")
+    if lm is None:
+        return out
+    for k, m in r["motor_stall"].items():
+        over = [d for d, v in m["exceeds_dart"].items() if v]
+        extra = ([f"above dart holding in {', '.join(over)}"] if over else []) + \
+            ([f"above line break {m['line_breaking']:.0f} N"] if m["exceeds_break"] else [])
+        out.append(f"motor stall (no limiter) at {m['v_oc']} V: {m['t_wiper']:.2f} N m, {m['current']:.1f} A, line "
+                   f"{m['f_line']:.0f} N" + (f" ({'; '.join(extra)})" if extra else ""))
+    pm = r["parts_at_motor_stall"]
+    bad = [k for k in ("shaft", "key", "sprag", "bearing608") if not pm[k]["pass"]]
+    out.append(f"parts at motor stall (no limiter): drum T {pm['t_drum']:.2f} N m"
+               + (f", fails: {', '.join(bad)}" if bad else ", all pass") + "; only reached if the limiter seizes")
+    return out
 
 
 def write_json(res: dict, name: str) -> str:
@@ -342,11 +427,26 @@ def main(argv=None):
     print(f"max hold with {i['wraps']} wraps: {mh['mu_low_worst']:.0f} N (mu low, full reel), {mh['mu_low_best']:.0f} N "
           f"(mu low, empty), {mh['mu_high']:.0f} N (mu high); take-up needed for tow: {r['takeup_needed_n']:.2f} N")
     print(f"\n{'F N':>6} {'T_w Nm':>7} {'rpm':>6} {'v m/s':>6} {'I A':>6} {'Vbat':>6}   (11.1 V nominal, sag)")
+    lm = r["limiter"]
     for row in r["tow_table"]["nom"]:
+        slip = lm is not None and row["t_wiper"] > lm["torque"]
         print(f"{row['f_line']:6.0f} {row['t_wiper']:7.2f} {row['rpm_wiper']:6.1f} {row['v_line']:6.3f} "
-              f"{row['current']:6.2f} {row['v_batt']:6.2f}{'  STALL' if row['stalled'] else ''}")
+              f"{row['current']:6.2f} {row['v_batt']:6.2f}{'  STALL' if row['stalled'] else ''}"
+              f"{'  LIMITER SLIPS' if slip else ''}")
     for k, s in r["stall"].items():
-        print(f"stall at {s['v_oc']} V: {s['t_wiper']:.2f} N m, {s['current']:.1f} A, line {s['f_line']:.0f} N")
+        print(f"{s['label']} at {s['v_oc']} V: {s['t_wiper']:.2f} N m, {s['current']:.1f} A, line {s['f_line']:.0f} N "
+              f"(empty reel), {s['f_line_full_reel']:.0f} N (full reel)")
+    if lm is not None:
+        for k, s in r["motor_stall"].items():
+            print(f"motor stall (no limiter) at {s['v_oc']} V: {s['t_wiper']:.2f} N m, {s['current']:.1f} A, line "
+                  f"{s['f_line']:.0f} N  [info]")
+        dh = ", ".join(f"{k} {v:.0f}" for k, v in lm["dart_hold"].items())
+        print(f"LIMITER SLIP ({lm['torque']:g} N m, {lm['current_slip']:.1f} A): line {lm['f_line_empty_reel']:.0f} N "
+              f"(empty reel) / {lm['f_line_full_reel']:.0f} N (full reel), drum {lm['t_drum']:.2f} N m; dart holding "
+              f"{dh} N, line break {lm['line_breaking']:.0f} N; above dart in "
+              f"{', '.join(k for k, v in lm['exceeds_dart'].items() if v) or 'none'}, above break {lm['exceeds_break']}; "
+              f"wraps slip first {lm['wraps_slip_first']} (hold {lm['holds_max']:.0f} N at mu high)")
+        print(f"tow {i['tow']:.0f} N: {lm['tow_frac']:.2f} of limiter (flag above {LIMITER_FRAC_MAX})")
     cl = r["current_limit"]
     print(f"firmware current limit for {cl['f_limit']:.0f} N: {cl['current']:.2f} A motor current "
           f"({cl['t_wiper']:.2f} N m wiper)")
@@ -357,7 +457,7 @@ def main(argv=None):
     print(f"parts at tow: drum T {pt['t_drum']:.2f} N m, line p {pt['line_pressure_mpa']:.1f} MPa, hoop "
           f"{pt['hoop_mpa']:.1f} MPa, 608 radial {pt['bearing608']['radial_n']:.0f} N (s0 {pt['bearing608']['s0']:.1f})")
     ps = r["parts_at_stall"]
-    print(f"parts at stall: drum T {ps['t_drum']:.2f} N m (shaft {ps['shaft']['pass']}, key {ps['key']['pass']}, "
+    print(f"parts {r['stall']['full']['label']}: drum T {ps['t_drum']:.2f} N m (shaft {ps['shaft']['pass']}, key {ps['key']['pass']}, "
           f"sprag {ps['sprag']['pass']}), line p {ps['line_pressure_mpa']:.1f} MPa")
     ft = r["fw_trip"]
     print(f"\nFIRMWARE TRIP: {ft['notes'][0]}; capstan gear sf at that torque {ft['hard_gear_sf']:.2f}, "
@@ -367,6 +467,10 @@ def main(argv=None):
     print("\nWARNINGS:")
     for w in r["warnings"]:
         print(" -", w)
+    if r["info"]:
+        print("INFO:")
+        for x in r["info"]:
+            print(" -", x)
     print("wrote", write_json(r, "capstan.json"))
     return r
 

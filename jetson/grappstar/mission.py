@@ -47,6 +47,7 @@ STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LA
          "ANCHOR", "TIDY", "FLY_IN", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
 RESHOOT_STEPS = ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
 SKIPPABLE = {"CHECK", "LANDING_ZONE", "TIDY", "COCK"}
+FACTORY_K_N_PER_A = (8.0, 17.0)   # firmware defaults (base-1.0, base-1.2 physics model): not bench calibrated
 BASE_FAULTS = ("STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR", "ANGLE_SENSOR", "SWITCH_DISAGREE", "BROWNOUT",
                "BAD_STATE", "FAULT", "FAULTED", "DART_STUCK")
 
@@ -628,8 +629,8 @@ class Mission:
         if t.get("tension_n") is None:
             try:
                 k = self.base.get("k_n_per_a").get("val")
-                if k is not None and abs(float(k) - 8.0) < 1e-6:
-                    warnings.append("no load cell and the tension constant k_n_per_a is still the default 8: "
+                if k is not None and any(abs(float(k) - f) < 1e-4 for f in FACTORY_K_N_PER_A):
+                    warnings.append(f"no load cell and the tension constant k_n_per_a is still the factory {k}: "
                                     "the tow limit is a rough current estimate (calibrate, see firmware/base/"
                                     "CALIBRATION.md)")
             except (BaseError, BaseTimeout, BaseDisconnected, ValueError, TypeError):
@@ -1105,8 +1106,9 @@ class Mission:
                 k = self.base.get("k_n_per_a").get("val")
             except (BaseError, BaseTimeout):
                 k = None
-            if k is not None and abs(float(k) - 8.0) < 1e-6 and not self.cfg.allow_uncalibrated_tow:
-                raise StepFailed("TOW refused: no load cell and k_n_per_a is still the factory 8, so the tension limit "
+            if k is not None and any(abs(float(k) - f) < 1e-4 for f in FACTORY_K_N_PER_A) \
+                    and not self.cfg.allow_uncalibrated_tow:
+                raise StepFailed(f"TOW refused: no load cell and k_n_per_a is still the factory {k}, so the tension limit "
                                  "cannot be trusted (a test reached 61 N against 40 N). Calibrate free_a and k_n_per_a "
                                  "(firmware/base/CALIBRATION.md b and e), then Retry; or release the dart.",
                                  choices=["Retry", "Release the dart"])

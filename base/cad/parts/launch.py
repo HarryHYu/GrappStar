@@ -116,8 +116,9 @@ def L(P):
     n["split"] = (-30.0, 140.0)                                # rail piece splits (u)
     # planes across the rail (y): big gear sector layer (rack), full layer (drive gear), hub, cheeks
     n["y_sec"] = (-6.0, 6.0)
-    n["y_full"] = (7.5, 14.5)                                  # 1.5 clear of the rack face, 0.5 of the shelf
-    n["hub_y"] = (-8.8, 14.5)                                  # hub flush with the full layer face; washer to cheek B
+    n["y_full"] = (7.5, 18.5)                                  # face 11 (physics: SF 1.5 at the 5 N m pin); 1.5 clear of the rack
+    n["hub_y"] = (-8.8, 18.5)                                  # hub flush with the full layer face; washer to cheek B
+    n["y_dc"] = 12.0                                           # sprag #1 / drive gear hub centre (1 mm hub clear of cheek B)
     n["y_chA"] = (-17.0, -9.0)
     n["y_chB"] = (21.0, 28.0)
     # spring arms (they hit the stop pads) and pads
@@ -298,6 +299,12 @@ def rail_solid(P):
         for (du0, du1, dy0, dy1) in ((-3.0, 3.0, -2.0, -0.8), (2.2, 3.0, -2.0, 2.0), (-0.4, 0.4, -2.0, 1.2)):
             solid = solid - B(uf + du0, uf + du1, yf + dy0, yf + dy1, wt - 0.6, wt + 1)
     solid = solid - ST.stop_rail_cut(n, P)
+    # face 11 gears (y 7.5..18.5) pass the inner shelf strip (y 15..19) and the cheek webs: clearance circles around
+    # both gear axes; the shoes keep the outer 3 mm of shelf (y 19..22) there, the lips hold them down
+    rt_big = n["rb"] + n["m"] + 1.0
+    rt_drv = n["rd"] + n["m"] + 1.0
+    yc0, yc1 = 14.6, n["y_full"][1] + 0.5                       # only the band added by the face 11 change
+    solid = solid - cyl_y(rt_big, yc0, yc1, n["cd"], 0.0) - cyl_y(rt_drv, yc0, yc1, 0.0, 0.0)
     # clear the sleeve flange (r 32, world y 111..119) and the dog ring: nothing of the rail within r 33.5 there
     solid = solid - cyl_y(33.5, -60.0, n["y_flange"] + 8.5 - n["Y0"], 0.0, 0.0)
     # cad-sensors SW_GAP bracket: 2 x M3 self tap pilots d2.6, 7 deep, along +y into the right cheek outer face
@@ -385,33 +392,36 @@ def carriage_solid(P):
     u_first = n["u_mesh"] - n["u_c_home"] + (n["n_lead"] - 0.5) * math.pi * m   # local u of rack tooth 0 (rearmost)
     if G is not None:
         rk = G.rack_2d(m, rack_n, back=RACK_BACK, dedendum=1.45)
-        rk = prim.extrude(rk, 12.0)
-        rk = prim.place(rk, tf.mul(tf.T(u_first, 6.0, n["w_rp"]), tf.Rx(90)))       # 2D x -> u, 2D y -> w, z -> -y
+        rk = prim.extrude(rk, RACK_B)
+        rk = prim.place(rk, tf.mul(tf.T(u_first, RACK_B / 2, n["w_rp"]), tf.Rx(90)))  # 2D x -> u, 2D y -> w, z -> -y
         s.append(rk)
     else:
-        s.append(B(u_first - 4, u_first + rack_n * math.pi * m, -6, 6, n["w_rtip"], n["w_deck1"]))
-    # Rack back stress (RACK_BACK 3.0, review: carriage mass): tooth force 80 N + 30 % shock = 104 N tangential at the
-    # pitch line, 38 N radial (20 deg). Rack back 12 x 3 (teeth ignored): Z = 12 * 3^2 / 6 = 18 mm3, A = 36 mm2. Worst
-    # clear span between deck ribs 29 mm, fixed-fixed: radial 38 * 29 / 8 = 138 Nmm; tangential force 5.1 mm below the
-    # back centroid, couple 104 * 5.1 = 530 Nmm at mid span -> 265 Nmm; axial 104 / 36 = 2.9 MPa. Total
-    # (138 + 265) / 18 + 2.9 = 25 MPa < 30 MPa (bending along u, in the layers: the body prints on its side), and the
-    # teeth (6 mm deep over half the length) make the real section stiffer. Tooth root (Lewis, Y 0.3): 104 / (12 * 2.5
-    # * 0.3) = 12 MPa.
+        s.append(B(u_first - 4, u_first + rack_n * math.pi * m, -RACK_B / 2, RACK_B / 2, n["w_rtip"], n["w_deck1"]))
+    # Rack face RACK_B 9 inside the 12 wide sector layer (y -6..6): the sector teeth overhang 1.5 mm each side, where
+    # nothing of the carriage reaches below the tooth roots (ribs, spine and gussets start at w_deck0 = w_rroot), so
+    # only the rack flanks touch the gear. Rack back stress (RACK_BACK 3.5): tooth force 80 N + 30 % shock = 104 N
+    # tangential at the pitch line, 38 N radial (20 deg). Back 9 x 3.5 (teeth ignored): Z = 9 * 3.5^2 / 6 = 18.4 mm3,
+    # A = 31.5 mm2. Worst clear span between deck ribs 29 mm, fixed-fixed: radial 38 * 29 / 8 = 138 Nmm; tangential
+    # force 5.4 mm below the back centroid, couple 104 * 5.4 = 559 Nmm at mid span -> 280 Nmm; axial 104 / 31.5 =
+    # 3.3 MPa. Total (138 + 280) / 18.4 + 3.3 = 26 MPa < 30 MPa (bending along u, in the layers: the body prints on its
+    # side), and the teeth (6 mm deep over half the length) make the real section stiffer. (9 x 3.0 would be 34 MPa.)
+    # Tooth root (Lewis, Y 0.3): 104 / (9 * 2.5 * 0.3) = 15 MPa.
     rib_top = n["w_rroot"] + DECK_T
     yo = n["y_lip0"] - 0.5
-    s.append(B(0, u_first, -6, 6, n["w_deck0"], n["w_rroot"] + RACK_BACK))           # spine behind the rack teeth
+    s.append(B(0, u_first, -RACK_B / 2, RACK_B / 2, n["w_deck0"], n["w_rroot"] + RACK_BACK))   # spine behind the rack
     # light deck: cross ribs (under the cradle between the ring ribs, every 30 mm in front of it): rack spans <= 29 mm.
-    # Each rib has gussets beside the rack (4 mm higher at |y| 6..8, down to the plain top at the shoes): the rack
+    # Each rib has gussets beside the rack (4 mm higher at |y| 4.5..8, down to the plain top at the shoes): the rack
     # pushes up (radial tooth force), the lips hold the shoes down, so the rib bends in y, ACROSS the layers. Worst
-    # rib (19 N, half the radial force; 2 mm thick): 19 / 2 * (19.5 - 6) = 128 Nmm at the rack edge, depth 8 ->
-    # Z = 2 * 8^2 / 6 = 21 mm3 -> 6 MPa across the layers (the plain 3 x 4 rib would see 16 MPa).
+    # rib (19 N, half the radial force; 2 mm thick): 19 / 2 * (19.5 - 4.5) = 143 Nmm at the rack edge, depth 8 ->
+    # Z = 2 * 8^2 / 6 = 21 mm3 -> 7 MPa across the layers (the plain 3 x 4 rib would see 18 MPa).
     deck_u = [(46.0, 2.0), (103.0, 2.0), (125.0, 2.0)] + \
         [(float(uc), 3.0) for uc in np.arange(160.0, Lc - 3.0, 30.0)] + [(Lc - 3.0, 3.0)]
     for uc, t in deck_u:
         s.append(B(uc, uc + t, -yo, yo, n["w_deck0"], rib_top))
         for sg in (1, -1):
-            g = prim.poly_cs([(sg * 5.9, rib_top - 1.3), (sg * (yo - 0.3), rib_top - 1.3), (sg * (yo - 0.3), rib_top - 0.3),
-                              (sg * 8.0, rib_top + 4.0), (sg * 5.9, rib_top + 4.0)])
+            g = prim.poly_cs([(sg * (RACK_B / 2 - 0.1), rib_top - 1.3), (sg * (yo - 0.3), rib_top - 1.3),
+                              (sg * (yo - 0.3), rib_top - 0.3), (sg * 8.0, rib_top + 4.0),
+                              (sg * (RACK_B / 2 - 0.1), rib_top + 4.0)])
             s.append(prim.place(prim.extrude(g, t), np.array([[0.0, 0.0, 1.0, uc], [1.0, 0.0, 0.0, 0.0],
                                                                [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]])))
     # shoes (full length: the carriage is guided over its whole length) with windows through them (y, vertical as
@@ -575,13 +585,13 @@ def drive_gear_solid(P):
     sp = dict(od=47.0, w=14.0, key=6.0)
     sp.update(getattr(P, "SPRAG", None) or {})
     fw = n["y_full"][1] - n["y_full"][0]
-    g = _spur(n["m"], n["z_drive"], fw).translate((0, 0, -fw / 2))
+    g = _spur(n["m"], n["z_drive"], fw).translate((0, 0, n["y_full"][0] - n["y_dc"]))      # local z 0 = sprag centre
     hub = prim.cyl(sp["od"] / 2 + 4.0, sp["w"] + 2.0, z=-(sp["w"] + 2.0) / 2)
     g = g + hub
     g = g - prim.cyl(sp["od"] / 2 + 0.05, 40, z=-20)
     g = g + prim.box(sp["od"] / 2 - 2.8, sp["od"] / 2 + 0.1, -sp["key"] / 2 + 0.1, sp["key"] / 2 - 0.1, -sp["w"] / 2, sp["w"] / 2)
     # spacer collars to both cheek faces (0.2 clear): the drive gear cannot walk off the sprag rib (review 2)
-    ym = 0.5 * (n["y_full"][0] + n["y_full"][1])
+    ym = n["y_dc"]
     za, zb = (n["y_chA"][1] + 0.2) - ym, (n["y_chB"][0] - 0.2) - ym
     g = g + prim.tube(16.0, 13.4, -(sp["w"] + 2.0) / 2 - za + 0.01, z=za)
     g = g + prim.tube(sp["od"] / 2 + 0.1, 13.4, 0.8, z=-(sp["w"] + 2.0) / 2)      # lip: ties the collar on, seats the sprag
@@ -593,7 +603,7 @@ def drive_washer_solid(P):
     n = L(P)
     sp = dict(od=47.0, w=14.0)
     sp.update(getattr(P, "SPRAG", None) or {})
-    ym = 0.5 * (n["y_full"][0] + n["y_full"][1])
+    ym = n["y_dc"]
     y0 = ym + (sp["w"] + 2.0) / 2 + 0.1
     return prim.tube(16.0, 13.4, (n["y_chB"][0] - 0.2) - y0, z=y0)        # bore passes the sun rib (r 12.8)
 
@@ -632,7 +642,7 @@ def sleeve_solid(P):
     n = L(P)
     z_end = n["Y0"] + 53.0 - n["y_flange"]
     s = prim.cyl(10.0, z_end) + prim.cyl(32.0, 8.0)
-    zg = n["Y0"] + 0.5 * (n["y_full"][0] + n["y_full"][1]) - n["y_flange"]
+    zg = n["Y0"] + n["y_dc"] - n["y_flange"]
     z_sun1 = n["Y0"] + 42.0 - n["y_flange"]
     # two rib lengths: under sprag #1 (between the rail cheeks) and under the sun; never inside a cheek bore
     s = s + prim.box(9.0, RIB_R, -RIB_W / 2, RIB_W / 2, zg - 7.5, zg + 7.5)
@@ -690,7 +700,8 @@ FOOT_U0, FOOT_U1 = -30.0, -0.5   # SW feet span (carriage local): covers the lev
 SPLICE_Y = 25.5      # top splice strap centre line (on the wall top / lip)
 Y_SPRING2 = 56.0      # second spring pair provision (D5): pegs, anchor holes and clear space at y +-56, w 60
 LUG_BOLTS_U = (107.0, 123.0)   # launch_aim lug_solid bolt positions (w 41)
-RACK_BACK = 3.0       # rack body above the tooth roots (carriage mass: stress check in carriage_solid)
+RACK_BACK = 3.5       # rack body above the tooth roots (carriage mass: stress check in carriage_solid)
+RACK_B = 9.0          # rack face width, centred on the sector layer plane y 0 (sector y -6..6 overhangs 1.5 each side)
 DECK_T = 4.0          # deck rib tops above the tooth roots (= launch_muzzle.RACK_BACK_MZ: the fork and funnel sit on them)
 RING_U = (14.0, 78.0, 148.0)  # cradle rings (carriage local u): rear, middle, front; the V strips run between them
 RING_T, RIB_T = 3.0, 3.0      # cradle ring width and ring-to-shoe rib thickness along u (carriage mass)
@@ -870,7 +881,7 @@ def parts(P):
     out.append(Part("launch_gear_clip", clip_solid(P), "PLA", joint="launch_rail",
                     place=tf.mul(tf.T(n["cd"], 0, 0), tf.Rx(-90)), print_tf=bed(clip_solid(P)), color="#5a5f65",
                     notes="C clip on the big gear pin groove"))
-    ym = 0.5 * (n["y_full"][0] + n["y_full"][1])
+    ym = n["y_dc"]
     dg = drive_gear_solid(P)
     out.append(Part("launch_drive_gear", dg, "PPA-CF", joint="launch_drive", place=tf.mul(tf.T(0, ym, 0), tf.Rx(-90)),
                     print_tf=bed(dg), color="#2f6db5", notes="Drive gear m2.5 26T, sprag #1 inside on an integral key rib"))

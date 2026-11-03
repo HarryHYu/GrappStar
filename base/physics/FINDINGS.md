@@ -16,7 +16,8 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
   Overrun after landing at LIGHT 0.5 N: 0.65 m in 0.28 s (heavier reel; 0.30 m with the 66 mm flanges). Still cleared
   by the take-up at the start of reel-in; lighter (spoked) flanges would halve it.
 - Capstan 50:22, 7 wraps (4 needed with margin): tow 50 N = 3.2 N m, 5.1 A, 0.14 m/s; 20 m reel-in 110 s. Limiter
-  slipping pulls 84 N (7 A). Tow sensing: line = 17.0 x (I - I_free) - 10.4 N (offset = FIRM take-up drag).
+  slipping pulls 84 N (7 A). Tow sensing: line = 17.0 x (I - I_free) - 10.4 N (offset = FIRM take-up drag), so
+  the 50 N tow trip is at measured free current + 3.5 A (it was + 1.3 A with FIRM 3 N and the old ratio: F6 is history).
 - Cock 2.9 N m, 4.7 A, 2.7 s per shot. Aim 0.32 N m, 6.6 s for 6 to 47 deg.
 - Final approach on FIRM 5 N (reel full): 3.85 N at the dart vs 2.1 to 2.6 N needed: margin 1.5 to 1.9. OK.
 - Wrap on LIGHT: ring pull 1.1 to 1.3 N, drum 0.49 to 0.60 N m, drum N20 61 to 74 N mm (30 to 37 % of an ASSUMED
@@ -25,13 +26,13 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 - Mission: about 3.2 min, 0.71 Wh from the base pack (about 65 missions per pack).
 - SPRING CATALOGUE (web check): Bunnings 0487961 is Century C-243, 5/8 in OD x 6-1/2 in x 0.054 in wire (1.37 mm,
   not 1.4). Century lists max safe load 8.64 lb (38.4 N) and max deflection 11.9 in (302 mm), rated for about 100,000
-  cycles. Our 280 mm full cock is 42 N with the 0.125 N/mm / 7 N estimate: inside the deflection limit but 9 % over
-  the load rating (our A228 static limit with SF 1.2 is 43.6 N at 1.4 mm wire, about 41 N at 1.37 mm). For a few
+  cycles. The earlier 280 mm full cock was 42 N with the 0.125 N/mm / 7 N estimate: inside the deflection limit but 9 %
+  over the load rating (spec v1.2 now uses 265 mm, 40 N) (our A228 static limit with SF 1.2 is 43.6 N at 1.4 mm wire, about 41 N at 1.37 mm). For a few
   hundred shots this is acceptable; the hang test decides: keep the force at full cock at or under about 40 N
   (if the spring measures 0.125 N/mm and 7 N: about 265 mm). Each 10 mm less extension costs about 0.15 m of range.
-- Tow current sensing: 17 N of line per amp above free current (line = 17 x (I - I_free) - 6 N, the offset is the
-  take-up drag). A firmware constant of 8 N/A would let the line reach about twice the set limit.
-- Blind cross-check (fresh agent, no access to this code): muzzle speed 7.77 m/s (ours 7.78). Its range was 12 %
+- Tow current sensing: 17 N of line per amp above free current; the offset is the FIRM take-up drag (10.4 N at
+  FIRM 5 N, see Current numbers). A firmware constant of 8 N/A would let the line reach about twice the set limit.
+- Blind cross-check (fresh agent, no access to this code): muzzle speed 7.77 m/s (ours 7.78 on the same inputs, spec v1.0). Its range was 12 %
   longer; traced to a taut/slack chatter in its reel logic that applied the brake only about half the time. With the
   brake applied continuously its approach matches ours within 1 %.
 - Sections F1 to F11 below are the history (numbers from earlier parameter sets).

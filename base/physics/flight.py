@@ -243,6 +243,8 @@ def main(argv=None):
     ap.add_argument("--sweep", action="store_true", help="pitch sweep and brake sensitivity")
     ap.add_argument("--json", default=os.path.join(OUT_DIR, "flight.json"))
     a = ap.parse_args(argv)
+    _defaults = vars(ap.parse_args([]))
+    write_ok = a.json != _defaults["json"] or vars(a) == _defaults   # odd flags never overwrite the committed output
     p = load_params()
     from launcher import launch
     vcache = {}
@@ -289,7 +291,10 @@ def main(argv=None):
         out["cda_sensitivity"] = cs
         print("CdA sensitivity: " + ", ".join(f"{c['cda'] * 1e6:.0f} mm2 {c['range_m']:.2f} m" for c in cs))
     os.makedirs(os.path.dirname(a.json), exist_ok=True)
-    json.dump(out, open(a.json, "w"), indent=1)
+    if write_ok:
+        json.dump(out, open(a.json, "w"), indent=1)
+    else:
+        print("(non-default flags: output JSON left unchanged; pass --json PATH to save)")
     return out
 
 

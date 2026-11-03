@@ -86,17 +86,18 @@ def shots(out: str, n: int, which=None) -> list[str]:
     url = "file://" + os.path.abspath(os.path.join(out, "assembly.html"))
     which = which or sorted({0, n // 2, n - 1})
     job, files = [], []
+    # every shot is posed at a fixed animation fraction and frozen (no timing dependence on the renderer speed)
     for i in which:
         f = os.path.join(sd, f"assembly_step{i + 1:02d}.png")
-        job.append(dict(file=f, ops=[["ASM_GO", i, True]], delay_ms=600))
+        job.append(dict(file=f, ops=[["ASM_GO", i, True], ["ASM_FREEZE", 1.0]]))
         files.append(f)
     f = os.path.join(sd, f"assembly_step{n:02d}_flyin.png")
-    job.append(dict(file=f, ops=[["ASM_GO", n - 1]], delay_ms=350))
+    job.append(dict(file=f, ops=[["ASM_GO", n - 1], ["ASM_FREEZE", 0.45]]))
     files.append(f)
     res = run_shots(dict(url=url, width=1400, height=880, ready="window.READY === true", shots=job))
     f = os.path.join(sd, "assembly_dark_phone.png")
     res2 = run_shots(dict(url=url, width=400, height=820, scale=2, color_scheme="dark", ready="window.READY === true",
-                          shots=[dict(file=f, ops=[["ASM_GO", n - 1, True]], delay_ms=600)]))
+                          shots=[dict(file=f, ops=[["ASM_GO", n - 1, True], ["ASM_FREEZE", 1.0]])]))
     files.append(f)
     for e in res.get("errors", []) + res2.get("errors", []):
         print("page:", e)

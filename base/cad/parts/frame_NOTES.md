@@ -92,12 +92,20 @@ BTS terminal, as the old station did) ; MP1584 OUT 9 V -> DRV8833 VIN; ESP32 fro
 BTS7960 logic VCC from the ESP32 3V3 (WIRING.md, fw-base owns the pin and wire table; 3V3 VCC keeps the IBT-2 input
 buffer thresholds below the ESP32 output high).
 
-## 5. Cable routes
+## 5. Cable routes (bundle by bundle; pins and gauges: firmware/base/WIRING.md)
 
-Bay exits: motor 14 AWG pair and the sensor bundle through the bay's y = W wall (world -x, towards the drum and the
-motor at the main axis), XT60 battery lead through the x = L wall, the Jetson USB through the native-USB opening (world
-+x, outward, 45 mm clear). Wires never cross a moving part; the wires to parts on the rail leave the frame at the main
-axis (least travel) with a 150 mm loop. Camera USB and the receiver AV lead are tied to the deck cable anchors.
+Battery unplugged for every step. Bay orientation: native-USB wall to world +x, motor and sensor windows on the wall
+facing world -x (towards the leg and the drum), battery lead through the wall facing world +y.
+
+| Bundle | From | Route | To | Strain relief |
+|---|---|---|---|---|
+| Battery (14 AWG, XT60 lead #2 with the inline 20 A fuse) | rover 3S | along the deck to the bay +y wall, fuse holder in its cradle just inside | BTS7960 B+ / B-; MP1584 IN from the BTS terminals | tie anchor inside the battery exit |
+| Wiper pair (14 AWG) | BTS7960 M+ / M- | motor window (world x 113, y -17..-5), across 5 mm to the leg, up the leg column and over the bridge to the plate rear face, then along the can stay to the motor terminals | wiper motor (2-wire rebuild; park wire taped off) | tie anchor inside the window; cable ties round the leg column (32 x 25) and the stay post |
+| Sensors (twisted, 26 AWG) | ESP32 / perfboard | sensor window (world y 21..37) to the drum switch block and the drum N20 (drum axis x 60, z -112) along the deck; the AS5600 and the aim contacts continue along the deck to cad-launch's aim housing (y about 205); rail contacts (SW_SEATED, SW_HOME) leave at the main axis with a 150 mm loop | contacts, N20 (DRV8833 outputs), AS5600 (I2C, keep the run under about 1 m), HX711 | tie anchor inside the window; ties on the drum bracket feet |
+| Jetson USB | ESP32 native USB | out of the +x wall, 45 mm free in front | Jetson | tie to the deck edge |
+| Camera, receiver | Kiyo X, RC832 | down the camera column / out of the RC832 notch to the deck cable anchors | Jetson USB, DIGITNOW capture | `frame_cable_anchor_1..2` |
+
+Never route a wire across a moving part: the rail sweep (y 95..185), the drum, the reel cup and the wrap ring all move.
 
 ## 5b. Other subsystems' feet on the deck (automatic)
 

@@ -313,6 +313,17 @@ def build(P):
             feet.append((xf, yf))
             cuts.append(U.clear_hole(xf, yf, -1, fw["foot_t"] + 1, head_top=fw["foot_t"] + 0.01))
         info["deck_holes"] += feet
+        # cable-tie points between foot screws: two slots through the foot and a 2 mm tunnel under it joining them
+        ties_ = []
+        for (xa, _), (xb, _) in zip(feet[:-1], feet[1:]):
+            xm = (xa + xb) / 2
+            if (not gx or min(abs(xm - q) for q in gx) > 8.0) and all(abs(xm - q[0]) > 7.0 for q in feet):
+                yc_ = yo + s * (fw["foot_w"] / 2 + 1.0)
+                for sy_ in (-1, 1):
+                    cuts.append(prim.box(xm - 2.5, xm + 2.5, yc_ + sy_ * 5.5 - 1.2, yc_ + sy_ * 5.5 + 1.2, -1, fw["foot_t"] + 1))
+                cuts.append(prim.box(xm - 2.5, xm + 2.5, yc_ - 6.7, yc_ + 6.7, -1, 2.0))
+                ties_.append((xm, yc_))
+        info.setdefault("cable_ties", {})[s] = ties_
         info["feet"].append(dict(x0=fx0, x1=fx1, y0=min(yo, yo + s * fw["foot_w"]) - 0.5, y1=max(yo, yo + s * fw["foot_w"]) + 0.5))
         # shaft holes + block inserts
         for n, sh in supports[s]:

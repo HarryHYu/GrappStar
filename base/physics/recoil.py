@@ -135,7 +135,7 @@ def main(argv=None):
               f"carriage force {c['f_carriage_full_n']:.0f} N, {c['a_peak_g']:.0f} g, stop KE {c['ke_stop_j']:.2f} J, "
               f"range 0.5/0.75/1.0 N: " + " / ".join(f"{x:.2f}" for x in c["range_m"]))
     os.makedirs(OUT_DIR, exist_ok=True)
-    json.dump(out, open(os.path.join(OUT_DIR, "recoil.json"), "w"), indent=1)
+    json.dump(out, open(os.path.join(OUT_DIR, "recoil.json"), "w"), indent=1, default=lambda o: o.item() if hasattr(o, "item") else str(o))
     return out
 
 

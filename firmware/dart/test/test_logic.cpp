@@ -167,6 +167,7 @@ int main() {
     CHECK(K.startAuto(NOW) != nullptr && std::string(K.startAuto(NOW)) == "already anchored, release first", "auto refused when already anchored"); }
   { fresh(); K.startAuto(NOW); run(1000); CHECK(K.key('1', 1500, NOW) != nullptr && P.mdir[DEPLOY] == 0, "manual keys refused while auto runs");
     CHECK(K.startRelease(NOW) != nullptr, "release refused while auto runs (busy)");
+    uint32_t s0 = K.seqStart; run(100); CHECK(K.startAuto(NOW) == nullptr && K.seqStart == s0 && K.seq == K_SWING, "repeated /auto while anchoring: accepted, not restarted");
     K.key(' ', 0, NOW); run(10); CHECK(allOff() && K.seq == ABORTED && ph() == "IDLE", "space aborts the auto sequence, everything off"); }
   { fresh(); P.drillStallFwd = false; K.startAuto(NOW); run(9000); P.drillStallFwd = true; run(4000);
     CHECK(K.seq == DONE && logged("drills stalled"), "drills stalling in the finishing phase stop early and count as anchored"); }
@@ -178,6 +179,7 @@ int main() {
   { fresh(); K.startAuto(NOW); run(20000); LOG.clear(); PHASES.clear();
     uint32_t t0 = NOW; CHECK(K.startRelease(NOW) == nullptr, "release accepted from ANCHORED");
     run(100); CHECK(P.mdir[DRILLS] == -1 && P.mdir[DEPLOY] == 0 && P.mdir[KICK] == 0 && P.mdir[FOOT] == 0, "release step 1: drills unscrew alone");
+    CHECK(K.startRelease(NOW) == nullptr && K.seqStart == t0 && K.startAuto(NOW) != nullptr, "repeated /release accepted without restart; /auto refused while releasing");
     run(3000); CHECK(P.mdir[DRILLS] == -1 && P.mdir[DEPLOY] == -1, "release step 2: pods lift while the drills keep unscrewing");
     runWatch(20000);
     dumpLog();
@@ -284,6 +286,7 @@ int main() {
     CHECK(K.landed && std::string(K.flight.how) == "timeout" && ph() == "LANDED", "IMU silent in flight: landing assumed after the 15 s flight timeout"); }
   { fresh(); ACC = [](uint32_t t) { return t < 1000 ? 1.0f : t < 1100 ? 8.0f : 0.5f; }; K.arm(true, true, NOW); run(1500);
     CHECK(ph() == "FLIGHT", "long saturated push (100 ms) is not taken as the impact");
+    K.stop(NOW, false); CHECK(ph() == "FLIGHT" && K.armed, "stop with disarm=0 keeps flight tracking and the arm");
     K.stop(NOW); CHECK(ph() != "FLIGHT" && !K.armed && std::string(K.flight.how) == "stop", "stop during FLIGHT ends flight tracking and disarms");
     run(3100); CHECK(K.log.frozen, "...and the log freezes 3 s later"); CHECK(K.key('2', 350, NOW) == nullptr, "manual keys work again after stop"); }
   { fresh(); for (int i = 0; i < 2000; i++) { NOW += 5; float a = 1.0f + ((i % 37) == 0 ? 2.5f : 0) + ((i % 11) == 0 ? -0.3f : 0); K.onAccel(a, NOW); K.tick(NOW); }

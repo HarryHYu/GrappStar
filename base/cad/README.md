@@ -63,6 +63,10 @@ World pose of a part in state `S`: `M_world(joint) @ part.place`, where
 
 ## 3. Subsystem module contract (`base/cad/parts/<name>.py`)
 
+Only modules whose name has no underscore are subsystems (`launch.py`, `reel.py`, `drum.py`, `frame.py`, `demo.py`).
+Put helpers in `<subsystem>_*.py` (for example `launch_kin.py`): the assembly never imports them directly. Other
+files in `cad/parts/` (NOTES.md, json, npz) are ignored.
+
 Required:
 
 ```python

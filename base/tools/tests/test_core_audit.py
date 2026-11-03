@@ -128,3 +128,12 @@ def test_timeline():
     assert {S["phase"] for S in st} <= set(names)
     assert max(S["line_out_m"] for S in st) > 0 and st[-1]["drum_deg"] == P.DRUM_POS["LAUNCH"]
     assert any(S["fired"] for S in st)
+
+
+def test_subsystem_names_skip_helpers(tmp_path, monkeypatch):
+    import cad.parts as pk
+    from tools.assembly import subsystem_names
+    for n in ("alpha.py", "alpha_kin.py", "NOTES.md", "data.json"):
+        (tmp_path / n).write_text("")
+    monkeypatch.setattr(pk, "__path__", [str(tmp_path)])
+    assert subsystem_names() == ["alpha"]

@@ -1385,6 +1385,7 @@ class Mission:
                     self.stop_settle()
                     m = self.base.event_mark()
                 try:
+                    self.shot["towed"] = True        # the tow shortens the line by an amount the landing estimate does not know
                     self.go.reel(self.cfg.reel_duty, max_n=self.cfg.tow_limit_n, until="tension")
                 except BaseError as be:
                     if be.err != "BUSY":
@@ -1446,10 +1447,12 @@ class Mission:
         if sw_closed(t, "S"):
             return
         line = t.get("line_m")
-        if line is None:
-            line = self.shot.get("line_est_m")
+        if line is None and not self.shot.get("towed"):
+            line = self.shot.get("line_est_m")   # no tow yet: the landing estimate still holds
         if line is None or line <= self.cfg.approach_m + 0.3:
-            self.log.info("capstan reel-in skipped (line out unknown or already short)")
+            # after a tow with line_m lost (base reset), the landing estimate is too long: reeling on the capstan
+            # by it would pull the dart into the cradle on the capstan (D16), so the take-up does all of it
+            self.log.info("capstan reel-in skipped (line out unknown, or already short)")
             return
         self.ensure_reel()
         timeout = 30.0 + line / self.cfg.retrieve_speed_mps

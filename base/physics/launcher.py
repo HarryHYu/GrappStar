@@ -62,6 +62,8 @@ def launch(p: Params | None = None, pitch_deg: float | None = None, model: str =
     res = dict(pitch_deg=math.degrees(th), stroke_m=S, pulley_ratio=r, preload_ext_mm=e0 * 1000, ext_full_mm=e_full * 1000,
                ext_safe_mm=lim["ext_safe_mm"], ext_cap_mm=cap_mm, over_safe=e_full * 1000 > cap_mm + 1e-6,
                f_spring_full_n=sp.force(e_full), f_spring_rest_n=sp.force(e0),
+               over_catalogue_load=sp.force(e_full) > sp.catalogue_max_n,
+               over_catalogue_defl=e_full * 1000 > sp.catalogue_max_defl_mm,
                f_carriage_full_n=ns * sp.force(e_full) * eta / r,
                energy_stored_j=ns * (sp.energy(e_full) - sp.energy(e0)), model=model)
 
@@ -246,6 +248,8 @@ def main(argv=None):
     ap.add_argument("--sweep", action="store_true", help="pulley ratio sweep at the given stroke")
     ap.add_argument("--json", default=os.path.join(OUT_DIR, "launch.json"))
     a = ap.parse_args(argv)
+    _defaults = vars(ap.parse_args([]))
+    write_ok = a.json != _defaults["json"] or vars(a) == _defaults   # odd flags never overwrite the committed output
     p = load_params()
     over = {}
     if a.stroke is not None:
@@ -256,12 +260,14 @@ def main(argv=None):
     sp = p.spring
     lim = sp.limits()
     print(f"params: {p.source}")
+    if res.get("over_safe"):
+        print(f"WARNING: spring extension {res['ext_full_mm']:.0f} mm is over the limit {res['ext_cap_mm']:.0f} mm: the speed below is not safe to use")
     print(f"spring: k {sp.k / 1000:.3f} N/mm (formula {sp.rate_formula:.3f}), Fi {sp.f_init} N, body coils {sp.n_body:.1f}, "
           f"mass {sp.mass * 1000:.1f} g, surge {sp.surge()['f_fixed_fixed_hz']:.1f} Hz")
     print(f"spring safe: {lim['f_safe_n']:.1f} N ({lim['governed_by']}), extension {lim['ext_safe_mm']:.0f} mm, "
           f"Sut {lim['sut_mpa']:.0f} MPa")
     for k in ("pitch_deg", "stroke_m", "pulley_ratio", "ext_full_mm", "over_safe", "f_carriage_full_n", "energy_stored_j",
-              "v_muzzle", "t_stroke_ms", "a_peak_g", "ke_dart_j", "efficiency", "ke_carriage_j", "f_stop_peak_n",
+              "f_spring_full_n", "over_catalogue_load", "over_catalogue_defl", "v_muzzle", "t_stroke_ms", "a_peak_g", "ke_dart_j", "efficiency", "ke_carriage_j", "f_stop_peak_n",
               "ke_spring_j", "f_cord_peak_after_stop_n", "coil_clash_v", "fail"):
         if k in res:
             v = res[k]
@@ -275,7 +281,10 @@ def main(argv=None):
         for row in out["ratio_sweep"]:
             print("  ", {k: (round(v, 3) if isinstance(v, float) else v) for k, v in row.items()})
     os.makedirs(os.path.dirname(a.json), exist_ok=True)
-    json.dump(out, open(a.json, "w"), indent=1)
+    if write_ok:
+        json.dump(out, open(a.json, "w"), indent=1)
+    else:
+        print("(non-default flags: output JSON left unchanged; pass --json PATH to save)")
     return out
 
 

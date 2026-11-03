@@ -151,7 +151,7 @@ def cock(p: Params, **kw) -> dict:
 
 
 # ------------------------------------------------------------------ reel and tow (capstan train)
-def cap_fn(p: Params, f_line: float, length: float, overspeed: float = 1.2) -> dict:
+def cap_fn(p: Params, f_line: float, length: float, overspeed: float | None = None) -> dict:
     c = p.capstan
     t_w = capstan.wiper_torque_for(f_line, p, overspeed)
     r = c["d"] / 2
@@ -277,7 +277,9 @@ def run(p: Params | None = None, aim_kw=None, cock_kw=None, light_n=3.0, reel_le
                 total_energy_wh=sum(r["energy_wh"] for r in rows.values()))
 
 
-def main():
+def main(argv=None):
+    import argparse
+    argparse.ArgumentParser(description=__doc__.splitlines()[0]).parse_args(argv)
     r = run()
     e = r["electrical"]
     print(f"[{r['source']}]  motor stall (no limiter) {e['motor_stall_full']['torque']:.2f} N m / "
@@ -305,7 +307,7 @@ def main():
               + f" N, line break {lm['line_breaking']:.0f} N")
     a, c = r["aim"], r["cock"]
     print(f"aim: mass {a['mass']:.2f} kg, screw eff {a['screw_eff']:.2f}, self-locking {a['self_locking']}, "
-          f"crank torque {a["t_screw_peak"]:.3f} N m raising / {a["t_screw_lower_peak"]:.3f} gravity-assisted, worm turns per crank turn {a["params"]["wheel_z"]}")
+          f"crank torque {a['t_screw_peak']:.3f} N m raising / {a['t_screw_lower_peak']:.3f} gravity-assisted, worm turns per crank turn {a['params']['wheel_z']}")
     print(f"cock: spring ext {c['ext_full_mm']:.0f} mm (safe {c['spring_safe_ext_mm']:.0f}), "
           f"springs {c['f_spring_full']:.1f} N, carriage peak {c['f_peak']:.1f} N")
     print(f"total energy {r['total_energy_wh']:.3f} Wh")

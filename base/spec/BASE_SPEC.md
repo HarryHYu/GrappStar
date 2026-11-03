@@ -1,6 +1,6 @@
 # GrappStar base station spec
 
-Status: v1.1 (3 Nov 2026, 12:25 Sydney). Everything here is binding, together with base/spec/DECISIONS.md (D1 onward)
+Status: v1.2 (3 Nov 2026, 12:30 Sydney). Everything here is binding, together with base/spec/DECISIONS.md (D1 onward)
 and base/spec/params.py (the numbers). `params.py` holds every shared number;
 this file explains them. Workers never edit either file: write change requests in your REPORT.md or NOTES.md.
 
@@ -66,7 +66,7 @@ The full list with suggested GPIOs is params.SWITCHES.
 | Name | Owner | Closes when |
 |---|---|---|
 | `SW_DRUM_A`, `SW_DRUM_B`, `SW_DRUM_C` | cad-drum | Gray code of the drum zone (params.DRUM.codes); 000 = broken wire fault |
-| `SW_DOG` | cad-drum | fork yoke deflected over 3 mm: dogs tip to tip or a jammed shift (checked after every drum arrival) |
+| `SW_DOG_L`, `SW_DOG_R` | cad-drum | collar engaged with the LAUNCH dog ring / the REEL gear (checked during every drum move) |
 | `SW_N20` | cad-drum | N20 in mesh (open = hand lever latched out) |
 | `SW_INDEX` | cad-drum | 6-bump index cam on the main shaft (D12 fallback when the AS5600 has no magnet) |
 | `SW_HOME` | cad-launch | carriage on its front stop (uncocked) |
@@ -117,15 +117,17 @@ The full list with suggested GPIOs is params.SWITCHES.
 | Rail pivot pulley and line channel | cad-reel pulleys | cad-launch bosses | D14 |
 | Every bearing seat | shaft owner states bearing and stack | cad-frame builds the seat | shared library seats |
 
-## 7. Drum zones (binding; params.DRUM, from cad-drum)
+## 7. Drum zones (binding; params.DRUM = cad-drum drum_NOTES v4)
 
-LAUNCH (-2..8, collar LAUNCH, clutch LIGHT, cup locked) / L_TO_N (8..32) / NEUTRAL (32..62, clutch FIRM 32..50 then
-ramp to LIGHT, cup lock releases at 62) / WRAP (62..302, collar NEUTRAL, clutch LIGHT, 7 cup turns = 4 pinion turns x
-42/24) / WRAPPED (302..328, cup locked, collar NEUTRAL, clutch FIRM from 310) / N_TO_R (328..346) / REEL (346..351,
-collar REEL, clutch FIRM). Targets: LAUNCH 0, NEUTRAL 41, WRAP 62..302, WRAPPED 316, REEL 348.5. End stops -2 and
-351 (the seam is never crossed). Gray code (C B A): LAUNCH 001, L_TO_N 011, NEUTRAL 010, WRAP 110, WRAPPED 111,
-N_TO_R 101, REEL 100; edges 6, 34, 56, 302, 328, 346. N20 drive 10:120 (8.1 deg/s). Unload jog before any shift
-out: about 14 deg. SW_DOG is checked after every drum arrival.
+LAUNCH (-4..8, collar LAUNCH, clutch LIGHT, cup locked) / L_TO_N (8..32) / NEUTRAL (32..50, clutch FIRM) /
+WRAP_PREP (50..62, clutch to LIGHT, cup lock releases at 60) / WRAP (62..302, collar NEUTRAL, clutch LIGHT, 7 cup
+turns = 4 pinion turns x 42/24) / N_TO_R (302..340: cup locked, clutch LIGHT to FIRM 302..312, collar NEUTRAL until
+318 then ramps to REEL) / REEL (340..352, collar REEL, clutch FIRM). Park targets (never on a code edge): LAUNCH 0,
+NEUTRAL 41, WRAP_PREP 56, WRAPPED 314, REEL 347. End stops -4 and 352 (a 4 deg gap keeps the code ramps from
+aliasing). Gray code (A B C): LAUNCH 100, L_TO_N 110, NEUTRAL 010, WRAP_PREP 011, WRAP 001, N_TO_R 101, REEL 111;
+000 = broken common wire. SW_DOG_L / SW_DOG_R are checked during every move (the wrap window is never entered with
+either closed). Unload jog before any shift out: 8 deg. A fault from REEL or N_TO_R goes to WRAPPED (314), never
+NEUTRAL; a boot inside WRAP stops and reports; REEL jogs forward only.
 
 ## 8. Launcher and aim (binding; params.LAUNCH, params.AIM)
 
@@ -147,10 +149,10 @@ through a fail-safe pushrod, driven by the take-up bus on every forward wiper tu
 
 Sequence (D16, D17, D22): boot and rebuild state -> aim (backward, only at HOME) -> arm and fire (forward one shot; the
 take-up winds the slack) -> flight -> LANDED (landing-zone verdict from the Jetson) -> unload jog, drum to NEUTRAL ->
-WRAP at once while the line is slack (drum 62..302, wiper off) -> WRAPPED (316) -> wait ANCHORED -> TIDY (forward by
+WRAP at once while the line is slack (drum 62..302, wiper off) -> WRAPPED park (314) -> wait ANCHORED -> TIDY (forward by
 time: the FIRM take-up pulls the slack through the free capstan) -> REEL fly-in (wiper creeping forward while the
 drum enters REEL, then SW_DOG open) -> TOW (tow current limit) -> dart release -> reel in on the capstan until about
-1.5 m remain -> unload jog -> drum back through N_TO_R and WRAPPED to 302 (collar to NEUTRAL) -> UNWRAP (drum
+1.5 m remain -> unload jog -> drum back to the WRAPPED park 314 (collar to NEUTRAL) -> UNWRAP (drum
 302..62 while the wiper turns forward at about 30 percent, take-up only) -> NEUTRAL final approach on the FIRM
 take-up until SW_SEATED (fault DART_STUCK after 20 s) -> LAUNCH. A no-go landing retrieves the unanchored dart on
 the take-up (or after a wrap, on the capstan).
@@ -160,6 +162,37 @@ unless SW_HOME; wiper backward refused outside LAUNCH except the 30 deg unload j
 after a start; 5 A for 30 ms in aim, reel and tow; 6.5 A while cocking; tow at free current plus the 50 N equivalent
 averaged over 200 ms. Any fault: wiper off, drum to NEUTRAL, except when wraps are on, the spring is drawn, or the drum itself faulted:
 then the drum HOLDS (D27).
+
+### 10.1 C1 command sequence (binding, D35)
+
+One sequence for the firmware, PROTOCOL.md, the Jetson mission, the mock base and the system test. Each line: what the
+Jetson sends, what ends the wait. Everything else in C1 stays as PROTOCOL.md documents it.
+
+| Step | Jetson sends | Wait for | Notes |
+|---|---|---|---|
+| 1 | `mode` LAUNCH | `MODE` ok | after every shift into LAUNCH the aim is forgotten |
+| 2 | `aim` deg | `AIMED` | homes on SW_RAIL_LOW first |
+| 3 | `cock` (optional) | `COCKED` | |
+| 4 | `arm` | reply with `token` | valid 3 s |
+| 5 | `fire` token | `FIRED`, then `RESET` | |
+| 6 | dart LANDED: `set` line_m | reply | from the landing distance |
+| 7 | (Jetson landing-zone verdict) | | NO_GO: skip 9 to 13, go to 14 (reel in on the capstan if wrapped, else 16) |
+| 8 | `mode` NEUTRAL | `MODE` ok | may be skipped: `wrap` also starts from LAUNCH |
+| 9 | `wrap` | `WRAPPED` | the drum parks at WRAPPED 314: cup locked, collar NEUTRAL, clutch FIRM. No `MODE` REEL here. Allow 60 s |
+| 10 | dart `/auto` | dart phase ANCHORED | |
+| 11 | `tidy` {ms, duty} | `TIDIED` | take-up only, by time (default 3000 ms, duty 0.3). `reel` until `slip` stays as an alternative |
+| 12 | `mode` REEL | `MODE` ok (REEL) | the REEL fly-in from the park |
+| 13 | `reel` {duty 1, max_n, until `tension`} | `LIMIT` holding | the tow |
+| 14 | `stop`, then dart `/release` | `ABORTED`, then dart phase RELEASING and out of ANCHORED | the worm holds the line while the dart lets go |
+| 15 | `reel` {until `stop`}, then `stop` at line_m about 1.5 | `ABORTED` | capstan reel-in |
+| 16 | `unwrap` | `UNWRAPPED`, then `MODE` NEUTRAL | skipped when never wrapped |
+| 17 | `retrieve` {duty 0.3, max_s} | `SEATED` | take-up final approach in NEUTRAL only (FAULT `DART_STUCK` after max_s: default 20 + line_m / 0.08 s, the take-up is slow). Never seat on the capstan |
+| 18 | `mode` LAUNCH | `MODE` ok | back to 2 |
+
+Recovery: a fault or stop while cocking leaves the phase UNKNOWN: `decock` (same as `cal decock`), wait `RESET`, then
+`aim` again (the decock turns the aim train). A fault in the tow or the check pull offers "Release the dart" (step 14
+on), and a retry never restarts a pull that is already over the limit. A fault with the wraps on (REEL, N_TO_R, the
+WRAP sector or the park) HOLDS the drum where it is (D27): the Jetson reads the `MODE` event (`DRUM_HELD` with the reason) and offers unwrap or retry.
 
 ## 11. Physics summary (owner: physics; base/physics/FINDINGS.md)
 

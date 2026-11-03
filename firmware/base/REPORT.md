@@ -146,6 +146,10 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
 
 - Nuisance-fault review (checks likely to false-trip on real contacts): 89872c8.
 - systest ref_nominal on its stiff Dyneema plant: D41 fly-in and the tow limit pass since 87c48b3; the two remaining failures are Jetson-side (line_m set, command order).
+- Round 7, tow path (the taper past 70 % of max_n set the duty back to about 0.95 on a taut line, which explains the
+  systest first-pull overshoot; fly-in limit blind when the drum code is not REEL): 6dd2cf3.
+- Round 7, launch side (a fault or estop with SW_GAP open shifted the drum out of LAUNCH; mode / cock / decock that
+  moved nothing kept the arm token; decock could not recover a stopped gap run): 6153e8f, docs 0f2fada.
 
 ## What Harry must measure (bench, then CALIBRATION.md)
 

@@ -383,7 +383,8 @@ until `SW_GAP` closes: at the end of an `aim` before `AIMED`, at the end of a de
 finds such a gap (see `arm`). Faults: `BAD_STATE` "SW_GAP did not close in the forward gap run" (after 150 deg or 8 s)
 and "carriage left home while closing the gear gap" (`SW_HOME` opened). A `stop`, `estop` or any fault during a gap run
 ends it: the phase becomes `UNKNOWN` (the gear is somewhere in its gap, not drawn, so no warning angle is kept), and a
-queued `fire` and the arm token are dropped. Recovery: `decock`, or `cal cock_rest` after checking by eye.
+queued `fire` and the arm token are dropped. Recovery: `decock` runs the gap run again (same limits; `RESET` `ok:true`
+when `SW_GAP` closes), or `cal cock_rest` after checking by eye. This works until the next reboot.
 
 ### Current and stall protection (decision D8)
 
@@ -761,7 +762,7 @@ What the Jetson worker must change (against the base-1.0 version of this file):
 64. `aim` targets within `aim_tol` of the table ends are clamped inside instead of refused (`aim 6` works).
 65. A `stop`, `estop` or fault during a gap run leaves the phase `UNKNOWN` and drops a queued `fire` and the token:
     `decock` (or `cal cock_rest` after checking by eye).
-66. `decock` with the phase `UNKNOWN`, the carriage home and `SW_GAP` open runs nothing and sends `RESET` `ok:false`
+66. Other than right after a stopped gap run (item 65), `decock` with the phase `UNKNOWN`, the carriage home and `SW_GAP` open runs nothing and sends `RESET` `ok:false`
     "SW_GAP open: check the carriage by eye, then cal cock_rest force". A forward wiper jog in LAUNCH with `SW_GAP`
     open is `SWITCH_DISAGREE`.
 67. A `SW_DOG_L` dropout pauses aim homing, fire and decock and they resume within 100 ms; new `BAD_STATE` whys
@@ -779,3 +780,8 @@ What the Jetson worker must change (against the base-1.0 version of this file):
     (systest F28). New `cal factory` puts the bench settings back to the params defaults and clears `tension_cal`.
 73. Tow: the minimum duty is kept until the first tension samples are in (80 ms + 60 ms), and the tow also holds when
     the unaveraged estimate plus its rise rate x 60 ms reaches `max_n` (stiff line going taut).
+74. `mode`, `cock` and `decock` cancel the arm token even when they move nothing (already there, already cocked,
+    already at rest).
+75. A fault or `estop` while the drum is in LAUNCH (or L_TO_N) with `SW_GAP` open holds the drum (`MODE` `ok:false`
+    `DRUM_HELD`, "big gear out of its gap"): `decock` first, then `mode`.
+76. Tow: past 70 % of `max_n` the taper only lowers the duty; it no longer lifts it back above the minimum tow duty.

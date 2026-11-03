@@ -216,7 +216,11 @@ struct Base {
     JOut o(evBuf, sizeof evBuf); evBegin(o, "ABORTED"); o.str("what", what); o.str("why", why); evEnd(o);
   }
 
-  void gapAbort() { if (gapRun) { phase = PH_UNKNOWN; phaseHint = -1; cockPhase = 0; dirty = true; } gapRun = false; gapThenArm = false; firePending = false; }
+  bool gapResume = false;                            // a gap run was cut short: decock may run it again (it started at REST, carriage home)
+  void gapAbort() {
+    if (gapRun) { phase = PH_UNKNOWN; phaseHint = -1; cockPhase = 0; dirty = true; gapResume = true; }
+    gapRun = false; gapThenArm = false; firePending = false;
+  }
   void raise(int f, const char* why) {
     w.halt(now, io.wiper); bool wasGap = gapRun; gapAbort();
     if (state == S_SAFING) { d.halt(now, io.drum); state = S_FAULT; stT = now; evHeld(why); dirty = true; return; }   // a second fault stops the safing move
@@ -256,6 +260,7 @@ struct Base {
     if (handMode()) return "N20 latched out (hand mode)";
     if (!wrapsKnown) return "wraps unknown";
     if (sec >= SEC_WRAP) return "wraps on: the drum holds, the operator unwraps when safe";   // params.DRUM.fault_rules (D27)
+    if (sec <= SEC_LN && fitted(SW_GAP) && !closed(SW_GAP)) return "big gear out of its gap (SW_GAP open): decock first";   // lens B I1, like launchExitCheck
     if (loadedKnown() || (sec <= SEC_LN && maybeLoaded()))
       return "launch train not at rest: the wiper worm holds the spring (a shift under load could dry fire)";
     return nullptr;
@@ -817,6 +822,7 @@ struct Base {
     int t = !strcmp(to, "LAUNCH") ? DP_LAUNCH : !strcmp(to, "NEUTRAL") ? DP_NEUTRAL : !strcmp(to, "REEL") ? DP_REEL : -1;
     if (t < 0) return "BAD_ARG";
     if (const char* e = idleCheck(false)) return e;
+    tokenLive = false; tokenExpired = false;          // PROTOCOL: mode cancels the arm token, even when nothing moves
     if (state == S_HOLD) return "HOLDING";
     if (sec == SEC_INVALID || secBad) return "POSITION_UNKNOWN";
     if (handMode()) return "HAND_MODE";
@@ -875,6 +881,7 @@ struct Base {
   }
   const char* cmdCock() {
     if (const char* e = idleCheck(true)) return e;
+    tokenLive = false; tokenExpired = false;          // PROTOCOL: cock cancels the arm token, even when already cocked
     if (state == S_HOLD) return "HOLDING";
     if (!launchCentred()) return "NOT_IN_LAUNCH";
     if (!fitted(SW_HOME)) return "NO_SENSOR";
@@ -1114,10 +1121,11 @@ struct Base {
       bool force = false; o.boolean("force", &force);  // force: SW_HOME known broken, the operator checked by eye
       if (fitted(SW_HOME) && !closed(SW_HOME) && !force) return "SWITCH_DISAGREE";
       if (fitted(SW_GAP) && !closed(SW_GAP) && !force) return "SWITCH_DISAGREE";   // big gear must sit in its gap
-      phase = PH_REST; cockPhase = 0; phaseHint = -1; dirty = true; return nullptr;
+      phase = PH_REST; cockPhase = 0; phaseHint = -1; gapResume = false; dirty = true; return nullptr;
     }
     if (!strcmp(what, "decock")) {                    // carriage drawn with the angle unknown (or a cocked shot called off):
       if (const char* e = idleCheck(true)) return e;  // run BACKWARD so the spring unwinds under the worm until SW_HOME closes.
+      tokenLive = false; tokenExpired = false;        // decock cancels the arm token, even when nothing moves
       if (detentClosed() != DP_LAUNCH) return "NOT_IN_LAUNCH";   // backward also turns the aim train: aim must be redone
       if (!fitted(SW_HOME)) return "NO_SENSOR";
       bool force = false; o.boolean("force", &force);
@@ -1129,6 +1137,10 @@ struct Base {
           if (fitted(SW_GAP) && closed(SW_GAP)) {      // carriage home and the big gear in its gap: the springs are relaxed
             phase = PH_REST; cockPhase = 0; phaseHint = -1; dirty = true;
             JOut e(evBuf, sizeof evBuf); evBegin(e, "RESET"); e.boolean("ok", true); e.str("how", "decock"); e.str("why", "SW_HOME and SW_GAP closed: at rest"); evEnd(e); return nullptr;
+          }
+          if (gapResume && fitted(SW_GAP) && !closed(SW_GAP) && launchCentred()) {   // a cut-short gap run: run it again (slow, 3 A,
+            gapResume = false; tokenLive = false; aimKnown = false; aimed = false;     // SW_HOME must stay closed, 150 deg cap)
+            phase = PH_REST; phaseHint = -1; startGapRun(); state = S_DECOCK; stT = opT = now; return nullptr;
           }
           if (fitted(SW_GAP) && !closed(SW_GAP)) {     // home but out of its gap with the phase unknown: a forward run could be
             JOut e(evBuf, sizeof evBuf); evBegin(e, "RESET"); e.boolean("ok", false); e.str("how", "decock");   // a lying SW_HOME on a drawn
@@ -1441,7 +1453,7 @@ struct Base {
     w.c.tripA = c.jogTripA; w.want(cockDir(), c.nudgeDuty); markMoving(MV_WIPER); }
   int tickGapRun() {                                 // 0 running, 1 gap closed, -1 fault raised
     if (!closed(SW_HOME)) { raise(F_BAD_STATE, "carriage left home while closing the gear gap"); return -1; }
-    if (closed(SW_GAP)) { w.halt(now, io.wiper); gapRun = false; cockPhase = c.gapCloseDeg - c.cycleDeg + sinceEdge(SW_GAP, cockDir()); dirty = true; return 1; }
+    if (closed(SW_GAP)) { w.halt(now, io.wiper); gapRun = false; gapResume = false; cockPhase = c.gapCloseDeg - c.cycleDeg + sinceEdge(SW_GAP, cockDir()); dirty = true; return 1; }
     if ((enc.deg() - gapFrom) * cockDir() > c.gapRunMaxDeg || now - gapT > 8000) { raise(F_BAD_STATE, "SW_GAP did not close in the forward gap run"); return -1; }
     w.want(cockDir(), c.nudgeDuty);
     return 0;

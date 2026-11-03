@@ -68,7 +68,7 @@ def L(P):
         axis_z = float(main["origin"][2])
     n = dict(
         axis_z=axis_z,
-        y_flange=_get(P, "LAUNCH", "sleeve_y0", 96.0),       # world y of the sleeve flange (inboard face)
+        y_flange=_get(P, "LAUNCH", "sleeve_y0", 101.0),      # world y of the sleeve flange face (drum_NOTES 3b)
         Y0=_get(P, "LAUNCH", "rail_y", 140.0),               # world y of the rail / dart centre plane
         m=g["m"], rb=g["r_big"], rd=g["r_drive"], cd=g["cd"], face=d["face"],
         z_big=d["z_big"], z_drive=d["z_drive"], n_present=g["n_present"],
@@ -219,6 +219,8 @@ def rail_solid(P):
     solid = prim.union(s)
     # bores: sleeve journals (d20 + running clearance) and the big gear pin
     solid = solid - cyl_y(10.0 + 0.2, -30, 30, 0.0, 0.0) - cyl_y(5.0 + 0.2, -30, 30, n["cd"], 0.0)
+    # slot in both cheek bores so the sleeve's key rib passes when the sleeve is pushed in (plain bearing otherwise)
+    solid = solid - B(-(RIB_W + 0.6) / 2, (RIB_W + 0.6) / 2, -30, 30, -(RIB_R + 0.5), -8.0)
     # anchor pins (steel 6 mm or printed): vertical holes through the posts
     for sg in (1, -1):
         solid = solid - cyl_w(3.1, n["w_floor0"] - 1, wsp, ua, sg * ys)
@@ -334,18 +336,32 @@ def gear_pin_solid(P):
     return pin
 
 
+RIB_W, RIB_R = 6.0, 12.8      # integral key rib on the sleeve (D13): 6 wide, top at r 12.8 (sprag keyway depth 2.8)
+SPIGOT_BORE = 12.35           # cad-drum d12 spigot runs in this bore the whole sleeve length
+
+
 def sleeve_solid(P):
-    """Launch sleeve along +z from z = 0 (flange face, world y_flange) to the outboard end. d20 with keyways."""
+    """Launch sleeve along +z from z = 0 (flange face towards the motor, world y_flange) to the outboard end.
+    d20 journals, integral key rib (no keyway cut: D13) for sprag #1 and the splitter sun, flange for the drum's
+    LAUNCH dog ring (drum_NOTES 3b: OD 64 x 8, 3 x M3 at r 28 with nut traps outboard, 3 lug slots 6.4 x 3.2)."""
     n = L(P)
     z_end = n["Y0"] + 52.0 - n["y_flange"]
-    s = prim.cyl(10.0, z_end) + prim.cyl(20.0, 4.0)
-    s = s - prim.cyl(6.2, 24.0, z=-1)                           # main shaft d12 spigot bushing bore
+    s = prim.cyl(10.0, z_end) + prim.cyl(32.0, 8.0)
     zg = n["Y0"] - n["y_flange"]
-    s = s - prim.box(10.0 - 3.0, 11, -3.1, 3.1, zg - 8.0, zg + 8.0)             # sprag key
-    s = s - prim.box(10.0 - 3.0, 11, -3.1, 3.1, zg + 33.0, zg + 43.0)           # sun gear key
+    z_sun1 = n["Y0"] + 42.0 - n["y_flange"]
+    # two rib lengths: under sprag #1 (between the rail cheeks) and under the sun; never inside a cheek bore
+    s = s + prim.box(9.0, RIB_R, -RIB_W / 2, RIB_W / 2, zg - 7.5, zg + 7.5)
+    s = s + prim.box(9.0, RIB_R, -RIB_W / 2, RIB_W / 2, z_sun1 - 8.0, z_sun1)
+    s = s - prim.cyl(SPIGOT_BORE / 2, z_end + 2, z=-1)
     for k in range(3):
-        a = math.radians(120 * k + 60)
-        s = s - prim.cyl(1.7, 6, x=15 * math.cos(a), y=15 * math.sin(a), z=-1)
+        a = math.radians(45 + 120 * k)
+        x, y = 28 * math.cos(a), 28 * math.sin(a)
+        s = s - prim.cyl(1.7, 10, x=x, y=y, z=-1)
+        hexr = 5.8 / 2 / 0.866
+        s = s - prim.cyl(hexr, 3.0, x=x, y=y, z=8.0 - 3.0 + 0.01, seg=6)
+        b = math.radians(60 + 120 * k)
+        slot = prim.box(15.0, 21.5, -3.2, 3.2, -0.01, 3.2)
+        s = s - prim.place(slot, tf.Rz(math.degrees(b)))
     return s
 
 

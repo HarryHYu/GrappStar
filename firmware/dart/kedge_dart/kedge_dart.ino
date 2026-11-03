@@ -204,8 +204,8 @@ void tickTask(void*) {                                 // 5 ms: IMU, flight, cur
     if (linkLostFlag) { linkLostFlag = false; K.linkLost(now); }
     K.tick(now);
     if (i2cBad >= 200 && !K.imuOk && now - lastBusFix > 3000) { lastBusFix = now; busRecover(); hwLog("I2C bus stuck: recovered (9 clocks, Wire restart)"); if (bnoPresent) enableImuReports(); }
-    // web loop hung for 10 s (and nothing moving, no OTA): restart; motors coast through the reset
-    if (!otaActive && (int32_t)(now - loopBeat) > 10000 && !K.running() && !K.seqRunning() && !K.armed && !K.flight.flying()) { hwLog("web loop stuck 10 s: restarting"); Serial.flush(); esp_restart(); }
+    // web loop hung for 30 s (and nothing moving, no OTA): restart; motors coast through the reset
+    if (!otaActive && (int32_t)(now - loopBeat) > 30000 && !K.running() && !K.seqRunning() && !K.armed && !K.flight.flying()) { hwLog("web loop stuck 30 s: restarting"); Serial.flush(); esp_restart(); }
     xSemaphoreGive(mtx);
     esp_task_wdt_reset();
     vTaskDelayUntil(&last, pdMS_TO_TICKS(5));

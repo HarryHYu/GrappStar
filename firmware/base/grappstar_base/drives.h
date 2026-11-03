@@ -47,7 +47,7 @@ struct WiperDrive {
   void tick(uint32_t now, uint32_t dt, float isVolts, float rateDps, void (*hw)(int, int), bool allowStart = true) {
     // current: the IS pin only reports while the high side conducts, so its average is I x duty. Scale back.
     float a = isVolts * c.ampsPerVolt - c.offsetA; if (a < 0) a = 0;
-    if (outDir && outDuty >= c.minScaleDuty) a *= 255.f / outDuty;
+    if (outDir && outDuty > 0) a *= 255.f / (float)(outDuty < 16 ? 16 : outDuty);   // every driven sample (below duty 16 the floor makes it read low, inside the start blanking)
     ampsRaw = a;
     amps += (a - amps) * 0.3f;
     if (outDir) {

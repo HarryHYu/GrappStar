@@ -40,7 +40,9 @@ APPROACH = dict(
     pitch_deg=(5.0, 10.0),
     mu_cradle=(0.30, 0.40), # dart belly on the PLA cradle
     seat_force=1.0,         # N to close SW_SEATED (printed flex tongue; ASSUMED)
-    eye_gain=1.3,           # exit eye + guides between the reel and the dart (line pulled in through them)
+    eye_gain=None,          # None: seating_gain(p) (1.3 with the D43 pulleys, 1.75 with plain holes)
+    eye_gain_plain=1.75,    # reel -> dart path when seating: guide eye 50 + ring 27 + exit eye 50 deg plain printed holes,
+                            # pulleys (review: 1.47 to 2.03); about 1.3 with 693 pulleys at the eyes
 )
 
 
@@ -109,19 +111,27 @@ def wrap_loads(p, w=None, light_n=None):
                 line_drawn_m=line_drawn)
 
 
+def seating_gain(p, a=APPROACH):
+    """Reel -> dart tension gain when seating (line pulled in through the storage guide, cup ring and exit eye)."""
+    if a.get("eye_gain"):
+        return a["eye_gain"]
+    return 1.3 if p.capstan.get("path_gain", 1.5) <= 1.2 else a["eye_gain_plain"]
+
+
 def approach(p, a=APPROACH):
     rp = reel_props(p)
     torque = p.capstan["takeup_n"] * rp["r_full"]             # FIRM clutch: line tension with the reel full
     r_end = rp["r_full"]                                       # reel nearly full at the end of retrieve
     avail_reel = torque / r_end
-    avail_dart = avail_reel / a["eye_gain"]
+    gain = seating_gain(p, a)
+    avail_dart = avail_reel / gain
     rows = []
     for th in a["pitch_deg"]:
         for mu in a["mu_cradle"]:
             t = math.radians(th)
             need = p.dart.mass * G * (math.sin(t) + mu * math.cos(t)) + a["seat_force"]
             rows.append(dict(pitch_deg=th, mu=mu, need_n=need, avail_n=avail_dart, margin=avail_dart / need))
-    t_for_margin = max(r["need_n"] for r in rows) * 1.5 * a["eye_gain"]
+    t_for_margin = max(r["need_n"] for r in rows) * 1.5 * gain
     return dict(params=a, clutch_torque_nm=torque, avail_at_reel_n=avail_reel, avail_at_dart_n=avail_dart, rows=rows,
                 firm_setting_for_1p5_margin_n_full_reel=t_for_margin)
 
@@ -132,8 +142,10 @@ GRASS = dict(mu_low=0.5, mu_high=1.0, snag_factor=2.0)   # dart body (legs stowe
 def takeup_speed(p, duties=(0.3, 0.5, 1.0), overdrive=None, eta_bus=0.9):
     """NEUTRAL, wiper forward: the take-up bus drives the storage reel (overdrive about 2.5 reel turns per wiper turn)
     through the FIRM clutch. While the line pull is below the clutch slip tension the reel turns with the bus and
-    line speed = wiper speed x overdrive x line radius. Above it the clutch slips and the line stops (dart stuck)."""
+    line speed = wiper speed x overdrive x line radius. Above it the clutch slips and the line stops (dart stuck).
+    The drag is at the dart; the reel sees drag x APPROACH eye_gain (guide, ring and exit eye), as in approach()."""
     od = p.capstan.get("overspeed", 2.5) if overdrive is None else overdrive
+    gain = seating_gain(p)                                    # dart pull -> reel-side tension
     rp = reel_props(p)
     t_clutch = p.capstan["takeup_n"] * rp["r_full"]           # FIRM, set as tension with the reel full
     w_drag = p.dart.mass * G
@@ -144,18 +156,22 @@ def takeup_speed(p, duties=(0.3, 0.5, 1.0), overdrive=None, eta_bus=0.9):
         r = line_radius(p, left)
         slip_n = t_clutch / r
         for dn, f in drag.items():
+            f_reel = f * gain
             for d in duties:
-                if f >= slip_n:
-                    rows.append(dict(pack=pack, r_mm=r * 1000, drag=dn, drag_n=f, duty=d, slips=True, v_line=0.0,
-                                     current=None, slip_tension_n=slip_n))
+                if f_reel >= slip_n:
+                    rows.append(dict(pack=pack, r_mm=r * 1000, drag=dn, drag_n=f, drag_at_reel_n=f_reel, duty=d,
+                                     slips=True, v_line=0.0, current=None, slip_tension_n=slip_n))
                     continue
-                t_w = f * r * od / eta_bus
+                t_w = f_reel * r * od / eta_bus
                 op = p.wiper.operate(t_w, p.battery, p.battery.v_nom, duty=d)
                 v = op["speed"] * od * r
-                rows.append(dict(pack=pack, r_mm=r * 1000, drag=dn, drag_n=f, duty=d, slips=False, v_line=v,
+                rows.append(dict(pack=pack, r_mm=r * 1000, drag=dn, drag_n=f, drag_at_reel_n=f_reel, duty=d,
+                                 slips=False, v_line=v,
                                  current=op["current"], i_batt=op["i_batt"], wiper_rpm=op["rpm"], slip_tension_n=slip_n))
-    return dict(overdrive=od, clutch_torque_nm=t_clutch, drag_n=drag, grass=GRASS, rows=rows,
-                note="line stops when the drag exceeds the FIRM slip tension (5 N at the full reel, 6.1 N at the core)")
+    return dict(overdrive=od, clutch_torque_nm=t_clutch, drag_n=drag, eye_gain=gain, grass=GRASS, rows=rows,
+                note=(f"line stops when the drag x eye gain {gain} exceeds the FIRM slip tension "
+                      f"({t_clutch / line_radius(p, p.reel['line_stored']):.1f} N at the full reel, "
+                      f"{t_clutch / line_radius(p, 0.0):.1f} N at the core)"))
 
 
 def main(argv=None):
@@ -182,7 +198,7 @@ def main(argv=None):
           + ", ".join(f"{k} {v:.2f} N" for k, v in tk["drag_n"].items()))
     for row in tk["rows"]:
         if row["slips"]:
-            print(f"   {row['pack']:26s} {row['drag']:10s} duty {row['duty']:.1f}: CLUTCH SLIPS (needs > {row['slip_tension_n']:.1f} N), line stops")
+            print(f"   {row['pack']:26s} {row['drag']:10s} duty {row['duty']:.1f}: CLUTCH SLIPS ({row['drag_at_reel_n']:.1f} N at the reel > {row['slip_tension_n']:.1f} N), line stops")
         else:
             print(f"   {row['pack']:26s} {row['drag']:10s} duty {row['duty']:.1f}: {row['v_line']:.3f} m/s, motor {row['current']:.2f} A, wiper {row['wiper_rpm']:.0f} rpm")
     os.makedirs(OUT_DIR, exist_ok=True)

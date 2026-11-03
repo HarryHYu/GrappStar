@@ -269,3 +269,60 @@ def can_stay(w, M_motor, plate_y_face, side, z_plate_top, frac=0.6):
         sol = sol - prim.cylY(U.CLR_D / 2, py0 - 1, py1 + 1, x, z) \
             - prim.cylY(U.HEAD_D / 2, (py0 - 1) if side < 0 else (py1 - U.HEAD_H), (py0 + U.HEAD_H) if side < 0 else (py1 + 1), x, z)
     return sol, pts
+
+
+# ------------------------------------------------------------------------------------------------ v1.x puck adapter
+# BASE_SPEC section 2: world y = 0 is the adapter plate FRONT face; the motor sits behind it (-y) and its shaft reaches
+# cad-drum's coupler hub at y 0.5. The adapter is a PUCK that fills a window in the frame's motor plate (both y -10..0),
+# keyed by a lip behind the plate and held by M3 from the front at r RIM_R (outside the drum and reel zone, r < 51).
+PUCK_R = 88.0                 # puck radius = plate window radius - 0.25
+LIP_R = 97.0                  # rear lip outer radius (behind the plate)
+LIP_T = 6.0                   # lip thickness (y -16..-10): clear of the gearbox face at y -18
+RIM_R = 92.5                  # 8 x M3 from the plate front face into lip inserts
+RIM_N = 8
+BORE_R = 15.0                 # output boss r 12 + 3
+
+
+def rim_xy(i):
+    a = math.radians(22.5 + i * 360.0 / RIM_N)
+    return RIM_R * math.cos(a), RIM_R * math.sin(a)
+
+
+def puck(w, extra_inserts=()):
+    """Puck adapter in the M frame (origin on the boss face plane, +Z to the front): body z 0..PLATE_T (front face =
+    world y 0), lip z -LIP_T..0 from r PUCK_R - 6 to LIP_R. Motor slots with the M6 head counterbores open to the
+    front (bench: bolt the motor on, heads from the front, into threaded bosses or nuts behind boss ears). Rim inserts
+    in the lip; extra_inserts: (x, y) in the M frame on the front face (cad-drum's SW_INDEX block)."""
+    t = PLATE_T
+    body = prim.cyl(PUCK_R, t, z=0.0) + prim.tube(LIP_R, PUCK_R - 6.0, LIP_T, z=-LIP_T)
+    cut = [prim.cyl(BORE_R, t + LIP_T + 2, z=-LIP_T - 1)]
+    for (hx, hy, hd) in holes_rot(w):
+        r = math.hypot(hx, hy)
+        ux, uy = (hx / r, hy / r) if r > 1e-6 else (1.0, 0.0)
+        s = w["slot"]
+        a0 = (hx - ux * s, hy - uy * s); a1 = (hx + ux * s, hy + uy * s)
+        cut.append(prim.extrude(U.slot_cs(*a0, *a1, w["bolt_d"] + fits.HOLE_CLEAR + 0.2), t + 2, z=-1))
+        cut.append(prim.extrude(U.slot_cs(*a0, *a1, w["bolt_head_d"] + 0.6), t - HEAD_SEAT + 0.01, z=HEAD_SEAT))
+    for i in range(RIM_N):
+        x, y = rim_xy(i)
+        cut.append(prim.place(U.insert_hole(0, 0, 0.0, depth=LIP_T - 0.6), tf.T(x, y, 0.0)))
+    for (x, y) in extra_inserts:
+        cut.append(prim.place(U.insert_hole(0, 0, 0.0), tf.T(x, y, t)))
+    return prim.diff(body, cut)
+
+
+def puck_checks(w, extra_inserts=()):
+    fails = []
+    head = (w["bolt_head_d"] + 0.6) / 2
+    for (hx, hy, hd) in holes_rot(w):
+        r = math.hypot(hx, hy)
+        if r + w["slot"] + head + 3.0 > PUCK_R:
+            fails.append(f"motor hole ({hx:.0f}, {hy:.0f}): slot reaches the puck rim (r {r + w['slot'] + head:.0f} > {PUCK_R - 8:.0f})")
+        if r - w["slot"] - head < BORE_R + 2.0:
+            fails.append(f"motor hole ({hx:.0f}, {hy:.0f}): head slot breaks into the bore")
+        for (x, y) in extra_inserts:
+            ux, uy = (hx / r, hy / r) if r > 1e-6 else (1.0, 0.0)
+            d = min(math.hypot(hx + ux * s_ - x, hy + uy * s_ - y) for s_ in np.linspace(-w["slot"], w["slot"], 21))
+            if d < head + U.INS_D / 2 + 2.0:
+                fails.append(f"SW_INDEX insert ({x:.1f}, {y:.1f}) within {d:.1f} mm of the motor slot ({hx:.0f}, {hy:.0f})")
+    return fails

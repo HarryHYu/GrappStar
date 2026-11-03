@@ -23,5 +23,24 @@ def test_serial_open_sets_lines_low_before_open(monkeypatch):
     t.open()
     names = [e[0] for e in log]
     assert names.index("rts") < names.index("open") and names.index("dtr") < names.index("open")
-    assert names.index("rts") < names.index("dtr")
-    assert all(e[1] is False for e in log if e[0] in ("rts", "dtr"))
+    vals = {e[0]: e[1] for e in log if e[0] in ("rts", "dtr")}
+    assert vals == {"dtr": True, "rts": False}       # never DTR low with RTS high (the reset state)
+
+
+def test_link_up_only_after_a_c1_line():
+    """r3_N #7: a board that never speaks C1 (the dart's XIAO has the same USB id) never counts as the base, so no
+    command is ever written to it."""
+    from grappstar.comms.base import BaseClient, BaseDisconnected, pipe_pair
+    import pytest
+    a, b = pipe_pair()
+    c = BaseClient(b, reconnect_s=0.05).start()
+    try:
+        a.write(b"ESP-ROM:esp32s3-20210327\nkedge dart v4 ready\n{\"hello\": 1}\n")   # not C1
+        assert not c.wait_connected(0.5)
+        with pytest.raises(BaseDisconnected):
+            c.ping(timeout=0.2)
+        assert not a.rx                                     # nothing was sent to the wrong board
+        a.write(b'{"tel":{"state":"IDLE"}}\n')
+        assert c.wait_connected(1.0)
+    finally:
+        c.close()

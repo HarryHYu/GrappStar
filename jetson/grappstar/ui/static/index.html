@@ -24,6 +24,8 @@
   </div>
 </header>
 <div id="linklost" class="banner hidden" role="alert">LINK LOST: retrying. Everything below is OLD data.</div>
+<div id="loaded" class="banner hidden" role="alert"><span id="loaded-text">LAUNCHER LOADED</span>
+  <button data-action="decock" data-confirm="Decock: unwind the launcher spring slowly. The aim becomes unknown. Continue?">Decock</button></div>
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
 <main>
@@ -76,7 +78,7 @@
     </div>
     <div class="hint">Bearing: + is right of the rover nose, - is left.</div>
     <div class="row">
-      <label>Tow limit N (1 to 70) <input id="in-tow" type="number" inputmode="decimal" min="1" max="70" step="1" data-key="tow_limit_n"></label>
+      <label>Tow limit N at the dart (1 to 60) <input id="in-tow" type="number" inputmode="decimal" min="1" max="60" step="1" data-key="tow_limit_n"></label>
       <button data-set="tow_limit_n">Set tow limit</button>
     </div>
     <div class="row">

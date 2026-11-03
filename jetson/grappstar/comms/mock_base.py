@@ -523,8 +523,8 @@ class MockBase:
             return "drum fault"
         if self.code_bad:
             return "drum code invalid"
-        if self.zone() == "WRAP":
-            return "inside the wrap window: the operator decides (unwrap)"
+        if self.zi() >= ZI["WRAP"]:          # base-1.2.1 safeToNeutral: wraps on -> the drum holds (D27)
+            return "wraps on: the drum holds, the operator unwraps when safe"
         if self.loaded_known() or (self.zi() <= ZI["L_TO_N"] and self.maybe_loaded()):
             return HOLD_LAUNCH
         return None

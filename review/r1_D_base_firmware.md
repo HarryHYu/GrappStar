@@ -7,27 +7,31 @@ agreed it is real but rated it lower.
 
 Confirmed: 17. Refuted and dropped: 1.
 
-| # | Sev | File:line | Owner | Finding |
-|---|---|---|---|---|
-| 1 | high | `firmware/base/PROTOCOL.md:54` | fw-base | PROTOCOL.md (contract C1) describes the old drum order: a Jetson built from it cannot complete a mission |
-| 2 | high | `firmware/base/grappstar_base/base_logic.h:327` | fw-base | Default tow tension law contradicts D32, and the fixed 5 A reel trip ends every default tow in an OVERCURRENT fault instead of LIMIT/HOLD |
-| 3 | high | `firmware/base/grappstar_base/base_logic.h:479` | fw-base | SW_DOG_L/SW_DOG_R are not checked during drum moves: the wrap window is entered, and the unwrap take-up runs, with the collar still engaged |
-| 4 | high | `firmware/base/grappstar_base/base_logic.h:695` | fw-base | No WRAPPED park (309): wrap runs straight into the REEL fly-in, and tidy only works in NEUTRAL before the wrap (BASE_SPEC 10 / D22 order not implemented) |
-| 5 | high | `firmware/base/grappstar_base/pins.h:24` | fw-base | pins.h contradicts the shared contract params.SWITCHES on nearly every GPIO: GPIO21 is a contact input in the spec but a driven output in firmware, DRV8833 and HX711 pins are swapped, and SW_GAP / SW_N20 / SW_ARM are missing |
-| 6 | medium | `firmware/base/grappstar_base/base_logic.h:244` | fw-base | A fault in REEL or N_TO_R holds the drum in place instead of going to the WRAPPED park (309) as D31 / BASE_SPEC 7 require |
-| 7 | medium | `firmware/base/grappstar_base/base_logic.h:244` | fw-base | A fault or estop in REEL/N_TO_R holds the drum instead of going to WRAPPED 309 (D31 fault rule) |
-| 8 | medium | `firmware/base/grappstar_base/base_logic.h:619` | fw-base | aim never sets its own current trip: it runs with whatever trip the last motion left (2.5 A take-up, 3 A jog, or 6.5 A cocking) instead of D8's 5 A |
-| 9 | medium | `firmware/base/grappstar_base/base_logic.h:1216` | fw-base | Drum jog end-stop guard uses an untrusted mid-sector estimate and wrong end stops: after boot it drives past -4 / 352 |
-| 10 | medium | `firmware/base/grappstar_base/config.h:14` | fw-base | SW_GAP does not exist in the firmware: fire and rest are accepted, and decock ends, without the big gear in its gap |
-| 11 | medium | `firmware/base/grappstar_base/config.h:37` | fw-base | Contact bit map in config.h does not match the WIRING.md / BENCH_TEST.md pin table: from GPIO39 up, every contact is read as a different switch |
-| 12 | low | `firmware/base/grappstar_base/base_logic.h:328` | fw-base | Tow limit is not averaged over 200 ms: about 25 ms EMA plus a single-tick trigger |
-| 13 | low | `firmware/base/grappstar_base/base_logic.h:662` | fw-base | SW_GAP is not implemented: fire, arm and decock never check the big gear is in its toothless gap |
-| 14 | low | `firmware/base/grappstar_base/base_logic.h:767` | fw-base | Wiper backward jog is allowed in NEUTRAL/WRAP_PREP/WRAP (unlimited travel), but the spec allows backward outside LAUNCH only for the unload jog |
-| 15 | low | `firmware/base/grappstar_base/base_logic.h:775` | fw-base | Drum jog backward through the WRAP sector unwraps with the wiper stopped, bypassing the unwrap take-up interlock (D16) |
-| 16 | low | `firmware/base/grappstar_base/config.h:104` | fw-base | wrapsFull = 4, but the cup lays 7 wraps: telemetry and the WRAPPED event report the wrong count |
-| 17 | low | `firmware/base/grappstar_base/drives.h:96` | fw-base | Wiper current is not scaled below duty 60, so the 3 A jog trip and the 17 A hard trip are blind at flyDuty 51 (fly-in, REEL centering jog, LAUNCH wiggle) |
+Re-checked 14:10 Sydney against base-v1 863d58d, one checker subagent per finding: see the Now column.
+
+| # | Sev | File:line | Owner | Finding | Now (863d58d) |
+|---|---|---|---|---|---|
+| 1 | high | `firmware/base/PROTOCOL.md:54` | fw-base | PROTOCOL.md (contract C1) describes the old drum order: a Jetson built from it cannot complete a mission | fixed |
+| 2 | high | `firmware/base/grappstar_base/base_logic.h:327` | fw-base | Default tow tension law contradicts D32, and the fixed 5 A reel trip ends every default tow in an OVERCURRENT fault instead of LIMIT/HOLD | fixed |
+| 3 | high | `firmware/base/grappstar_base/base_logic.h:479` | fw-base | SW_DOG_L/SW_DOG_R are not checked during drum moves: the wrap window is entered, and the unwrap take-up runs, with the collar still engaged | fixed |
+| 4 | high | `firmware/base/grappstar_base/base_logic.h:695` | fw-base | No WRAPPED park (309): wrap runs straight into the REEL fly-in, and tidy only works in NEUTRAL before the wrap (BASE_SPEC 10 / D22 order not implemented) | fixed |
+| 5 | high | `firmware/base/grappstar_base/pins.h:24` | fw-base | pins.h contradicts the shared contract params.SWITCHES on nearly every GPIO: GPIO21 is a contact input in the spec but a driven output in firmware, DRV8833 and HX711 pins are swapped, and SW_GAP / SW_N20 / SW_ARM are missing | fixed |
+| 6 | medium | `firmware/base/grappstar_base/base_logic.h:244` | fw-base | A fault in REEL or N_TO_R holds the drum in place instead of going to the WRAPPED park (309) as D31 / BASE_SPEC 7 require | moot |
+| 7 | medium | `firmware/base/grappstar_base/base_logic.h:244` | fw-base | A fault or estop in REEL/N_TO_R holds the drum instead of going to WRAPPED 309 (D31 fault rule) | moot |
+| 8 | medium | `firmware/base/grappstar_base/base_logic.h:619` | fw-base | aim never sets its own current trip: it runs with whatever trip the last motion left (2.5 A take-up, 3 A jog, or 6.5 A cocking) instead of D8's 5 A | fixed |
+| 9 | medium | `firmware/base/grappstar_base/base_logic.h:1216` | fw-base | Drum jog end-stop guard uses an untrusted mid-sector estimate and wrong end stops: after boot it drives past -4 / 352 | fixed |
+| 10 | medium | `firmware/base/grappstar_base/config.h:14` | fw-base | SW_GAP does not exist in the firmware: fire and rest are accepted, and decock ends, without the big gear in its gap | fixed |
+| 11 | medium | `firmware/base/grappstar_base/config.h:37` | fw-base | Contact bit map in config.h does not match the WIRING.md / BENCH_TEST.md pin table: from GPIO39 up, every contact is read as a different switch | fixed |
+| 12 | low | `firmware/base/grappstar_base/base_logic.h:328` | fw-base | Tow limit is not averaged over 200 ms: about 25 ms EMA plus a single-tick trigger | fixed |
+| 13 | low | `firmware/base/grappstar_base/base_logic.h:662` | fw-base | SW_GAP is not implemented: fire, arm and decock never check the big gear is in its toothless gap | fixed |
+| 14 | low | `firmware/base/grappstar_base/base_logic.h:767` | fw-base | Wiper backward jog is allowed in NEUTRAL/WRAP_PREP/WRAP (unlimited travel), but the spec allows backward outside LAUNCH only for the unload jog | fixed |
+| 15 | low | `firmware/base/grappstar_base/base_logic.h:775` | fw-base | Drum jog backward through the WRAP sector unwraps with the wiper stopped, bypassing the unwrap take-up interlock (D16) | partly fixed |
+| 16 | low | `firmware/base/grappstar_base/config.h:104` | fw-base | wrapsFull = 4, but the cup lays 7 wraps: telemetry and the WRAPPED event report the wrong count | fixed |
+| 17 | low | `firmware/base/grappstar_base/drives.h:96` | fw-base | Wiper current is not scaled below duty 60, so the 3 A jog trip and the 17 A hard trip are blind at flyDuty 51 (fly-in, REEL centering jog, LAUNCH wiggle) | fixed |
 
 ## 1. PROTOCOL.md (contract C1) describes the old drum order: a Jetson built from it cannot complete a mission
+
+- Now (863d58d): **fixed** at `firmware/base/PROTOCOL.md:84`. PROTOCOL.md has been rewritten to follow the D35 sequence. `mode REEL` now runs only from N_TO_R/WRAPPED, and `wrap` goes NEUTRAL to the WRAPPED park 314 with 7 SW_ARM pulses. `unwrap` ends at NEUTRAL 41, `tidy` and `until:"slip"` are documented, and NOT_IN_REEL along with the old 40/80/338 stop points is gone; the parks 0/41/56/314/347 match BASE_SPEC.md:126 and config.h:142.
 
 - File: `firmware/base/PROTOCOL.md:54`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -60,6 +64,8 @@ Mismatches I confirmed in the code:
 
 ## 2. Default tow tension law contradicts D32, and the fixed 5 A reel trip ends every default tow in an OVERCURRENT fault instead of LIMIT/HOLD
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:857`. The defaults now match the review's fix. kNperA is 17 (config.h:193), and there is a settable tension_offset_n (tensOffsetN = -10.4) that is saved in Tun and used in tc at line 385. On a tension reel the trip is now set by towTrip(), which takes max(towTripA 6.5 A, (maxN - offset)/kNperA + freeA + 1 A) and caps it at hardTripA 17 A (lines 857 and 876). It is recomputed whenever a constant changes (line 1025), so the LIMIT/HOLD acts before the over-current fault. With the defaults, a 50 N tow needs about 5.05 A against a 6.5 A trip. One small part is still open: some sim tow tests still override kNperA and freeA (test_base.cpp:420, 931, 977). New tests do cover the default constants (test_base.cpp:777, 787) and the 70 N trip scaling (test_base.cpp:816).
+
 - File: `firmware/base/grappstar_base/base_logic.h:327`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -88,6 +94,8 @@ What the code does:
 
 ## 3. SW_DOG_L/SW_DOG_R are not checked during drum moves: the wrap window is entered, and the unwrap take-up runs, with the collar still engaged
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:599-602`. tickDrumMove now checks the dogs every stage-0/1 tick, before mvWiperRule runs. It fails with SWITCH_DISAGREE when DOG_L is closed and sec > SEC_LN, or when DOG_R is closed and sec < SEC_LOCK. Case 1: the unwrap fails on its first WRAP-sector tick, before the take-up can start. Case 2: a wrap from NEUTRAL with DOG_L closed fails on its first move tick. What remains is small: cmdWrap still accepts the command and fails one tick later instead of refusing it, and in case 1 the drum may coast slightly into the WRAP code before it stops, but the wiper is never driven.
+
 - File: `firmware/base/grappstar_base/base_logic.h:479`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -107,6 +115,8 @@ Fix: In tickDrumMove stages 0 and 1, run a check every tick. If (sec==SEC_PREP |
 >
 
 ## 4. No WRAPPED park (309): wrap runs straight into the REEL fly-in, and tidy only works in NEUTRAL before the wrap (BASE_SPEC 10 / D22 order not implemented)
+
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:822`. cmdWrap now runs startDrumMove(DP_WRAPPED, false) to stop at the WRAPPED park (314) with the collar still in NEUTRAL; the REEL fly-in only happens on a later "mode REEL". A dedicated "tidy" command (line 1076) accepts the WRAPPED park when drumDeg < collarNdeg and both dogs are open. The full-mission test (test_base.cpp:957-987: wrap, parked at WRAPPED, tidy, then REEL) passes, along with all 384 checks; "mode WRAPPED" is still BAD_ARG, but the spec does not require it.
 
 - File: `firmware/base/grappstar_base/base_logic.h:695`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -131,6 +141,8 @@ Code (base_logic.h):
 
 ## 5. pins.h contradicts the shared contract params.SWITCHES on nearly every GPIO: GPIO21 is a contact input in the spec but a driven output in firmware, DRV8833 and HX711 pins are swapped, and SW_GAP / SW_N20 / SW_ARM are missing
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/pins.h:21-46`. This is fixed on the newest tree. pins.h now matches params.SWITCHES (base/spec/params.py:248): DRUM_A/B/C on 10/11/12, DOG_L/R on 13/14, N20 47, HOME 21 (input), GAP 39, RAIL_LOW 40, SEATED 41, ARM 42, INDEX 35, DRV8833 on 15/16 and HX711 on 17/18. PIN_DRUM_SLP and PIN_DRUM_FLT are gone, and SwId in config.h:15 now includes SW_N20, SW_GAP and SW_ARM. The fire guard (base_logic.h:693) and the de-cock path (base_logic.h:959 and 1441) both check SW_GAP.
+
 - File: `firmware/base/grappstar_base/pins.h:24`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -147,6 +159,8 @@ Fix: Bring pins.h, config.h SwId/swBit and WIRING.md onto params.SWITCHES (SW_DR
 >
 
 ## 6. A fault in REEL or N_TO_R holds the drum in place instead of going to the WRAPPED park (309) as D31 / BASE_SPEC 7 require
+
+- Now (863d58d): **moot** at `firmware/base/grappstar_base/base_logic.h:255`. The fault rule has changed: base/spec/params.py:150 (DRUM.fault_rules.from_REEL_or_N_TO_R) and base/spec/BASE_SPEC.md:195 now say a fault with the wraps on (REEL, N_TO_R, WRAP or the park) HOLDS the drum with MODE err DRUM_HELD and never goes to NEUTRAL; the old D31 "go to WRAPPED" rule no longer applies. The firmware does exactly this in safeToNeutral() at base_logic.h:255. DP_WRAPPED now exists (targetSec maps to SEC_LOCK, park 314), and safeTarget() at line 242 keeps the WRAPPED branch only as a guard in case the rule changes back.
 
 - File: `firmware/base/grappstar_base/base_logic.h:244`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -170,6 +184,8 @@ The sp
 
 ## 7. A fault or estop in REEL/N_TO_R holds the drum instead of going to WRAPPED 309 (D31 fault rule)
 
+- Now (863d58d): **moot** at `/tmp/claude-0/review-wt/base-v1/base/spec/params.py:150 (code: firmware/base/grappstar_base/base_logic.h:256)`. The firmware still holds the drum in REEL/N_TO_R after a fault or estop. safeToNeutral returns "wraps on" at base_logic.h:256, and raise() and cmdStop() at lines 231 and 1155 never move the drum to WRAPPED. That matches the current spec, though. Spec commit a388984 rewrote params.py:150 fault_rules.from_REEL_or_N_TO_R to "the drum HOLDS where it is (D27, MODE err DRUM_HELD), never NEUTRAL", and BASE_SPEC.md:195 says the same, so the D31 "go to WRAPPED" rule no longer applies.
+
 - File: `firmware/base/grappstar_base/base_logic.h:244`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -192,6 +208,8 @@ The code (base_logic.h):
 
 ## 8. aim never sets its own current trip: it runs with whatever trip the last motion left (2.5 A take-up, 3 A jog, or 6.5 A cocking) instead of D8's 5 A
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:740,753`. Both ways an aim can drive the motor now set `w.c.tripA = c.tripA` before `w.want`: the homing branch of cmdAim at line 740, and planAim at line 753, which handles the first leg, the leg after homing and each retry. In the only branch that skips it (planAim with opTravel=0), tickAim halts the motor straight away without driving it, so the 5 A trip from D8 always applies to an aim and a stale 2.5 A or 6.5 A trip can no longer carry over.
+
 - File: `firmware/base/grappstar_base/base_logic.h:619`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -208,6 +226,8 @@ Fix: In cmdAim, just before markMoving (line 624), add `w.c.tripA = c.tripA;`. A
 >
 
 ## 9. Drum jog end-stop guard uses an untrusted mid-sector estimate and wrong end stops: after boot it drives past -4 / 352
+
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:922 (also :1416, config.h:137-142)`. A drum jog toward an end stop is now refused with POSITION_UNKNOWN when the angle is untrusted (sector LAUNCH with dd<0, or REEL with dd>0), see base_logic.h:922. The jog guard at :1416 now stops 2 deg before secLoDeg/secHiDeg, and config.h now sets those to the spec values -4/352, with targets {0,41,347,314} taken from params.DRUM.
 
 - File: `firmware/base/grappstar_base/base_logic.h:1216`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -235,6 +255,8 @@ trac
 
 ## 10. SW_GAP does not exist in the firmware: fire and rest are accepted, and decock ends, without the big gear in its gap
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:784`. SW_GAP is now a real input: SwId, swBit bit 7, and pins.h:36 on GPIO 39. fireCheck (base_logic.h:784-785), cock from REST (:769), cal cock_rest unless force (:959), the tickDecock end condition (:1441) and resolveBoot (:354/:358) all require SW_GAP closed. The tests that check this, at test_base.cpp:850-851 and :769-771, pass (384/384).
+
 - File: `firmware/base/grappstar_base/config.h:14`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -254,6 +276,8 @@ The firmware has no SW_GAP anywhere. A grep of firmware/base finds no match. con
 >
 
 ## 11. Contact bit map in config.h does not match the WIRING.md / BENCH_TEST.md pin table: from GPIO39 up, every contact is read as a different switch
+
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/config.h:15`. The firmware, docs and params now give the same pin for every contact. config.h:15/38 maps SwId in order to PIN_SW_A..L, and pins.h:29-40 gives GPIO 10,11,12,13,14,47,21,39,40,41,42,35. WIRING.md:23-34 and :145-156, BENCH_TEST.md:66-72 and params.py SWITCHES:251-262 all list the same pins and telemetry keys (for example SW_HOME on 21 'H', SW_SEATED on 41 'S', SW_RAIL_LOW on 40 'L'), so wiring to the docs no longer swaps any contacts.
 
 - File: `firmware/base/grappstar_base/config.h:37`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
@@ -276,6 +300,8 @@ firmware/base/WIRING.md section 1 (lines 27-31 and 37-39) still describes the ol
 
 ## 12. Tow limit is not averaged over 200 ms: about 25 ms EMA plus a single-tick trigger
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:386`. The tow tension filter now uses alpha = dt / c.tensionAvgMs, where tensionAvgMs = 200 (config.h:195). That gives a 200 ms time constant, so a 30-50 ms spike lifts tCur by only about 15-22% of its height. LIMIT still triggers on a single tick (line 1390), but only on the filtered value, so a short spike no longer ends the tow.
+
 - File: `firmware/base/grappstar_base/base_logic.h:328`
 - Severity: low (claimed low); unverified (low)
 - Owner: fw-base
@@ -288,6 +314,8 @@ Fix: Use a 200 ms average: `float a = dt / 200.f; tCur += (tc - tCur) * a;` (pas
 
 
 ## 13. SW_GAP is not implemented: fire, arm and decock never check the big gear is in its toothless gap
+
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:784`. SW_GAP now exists and is fitted by default (config.h:15, swBit bit 7, pins.h:36). fireCheck needs it closed at REST and open when COCKED (base_logic.h:784-785), so arm and fire check it. Cocking refuses REST with the gear out of its gap (769), decock finishes only on SW_HOME plus SW_GAP (972, 1441), and boot demotes REST if the gap is open (354, 358). One small gap is left: cmdAim (726) does not read SW_GAP itself. It relies on phase==REST, and that phase can still be forced.
 
 - File: `firmware/base/grappstar_base/base_logic.h:662`
 - Severity: low (claimed medium); 2 of 2 skeptics confirmed
@@ -310,6 +338,8 @@ Confirmed:
 
 ## 14. Wiper backward jog is allowed in NEUTRAL/WRAP_PREP/WRAP (unlimited travel), but the spec allows backward outside LAUNCH only for the unload jog
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/base_logic.h:911`. cmdJog's wiper branch now has `if (p != DP_LAUNCH && dd != c.reelDir) return "BACKSTOP";`. drumPos() returns DP_NEUTRAL in NEUTRAL and DP_BETWEEN in WRAP_PREP/WRAP, so a backward wiper jog is refused everywhere outside LAUNCH.
+
 - File: `firmware/base/grappstar_base/base_logic.h:767`
 - Severity: low (claimed low); unverified (low)
 - Owner: fw-base
@@ -322,6 +352,8 @@ Fix: In cmdJog (wiper branch) add `if (p != DP_LAUNCH && !closed(SW_DOG_L) && dd
 
 
 ## 15. Drum jog backward through the WRAP sector unwraps with the wiper stopped, bypassing the unwrap take-up interlock (D16)
+
+- Now (863d58d): **partly fixed** at `firmware/base/grappstar_base/base_logic.h:920-921,1421`. Fixed: a drum jog started in SEC_WRAP (or while wrapsDoubt) is now refused with WRAPS_ON (line 921), and tickJog halts any drum jog the moment it enters the wrap window (line 1421). A backward jog can therefore no longer unwrap with the wiper stopped. Still open: a backward drum jog that starts in SEC_LOCK with SW_DOG_R closed is accepted, because line 920 refuses only sec == SEC_REEL. It ramps the collar R toward N with no centering jog until it reaches WRAP and halts. That is the shift-without-centering-jog part of the finding.
 
 - File: `firmware/base/grappstar_base/base_logic.h:775`
 - Severity: low (claimed low); unverified (low)
@@ -336,6 +368,8 @@ Fix: Change line 775 to `if (dd < 0 && (sec >= SEC_PREP || closed(SW_DOG_R))) re
 
 ## 16. wrapsFull = 4, but the cup lays 7 wraps: telemetry and the WRAPPED event report the wrong count
 
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/config.h:146`. wrapsFull is now set from P_DRUM_WRAP_TURNS, which params_gen.h:188 defines as 7 (gen_params.py emits it), and it falls back to 7 if that is missing. wrapsAt(), the WRAPPED event and the SW_ARM pulse check therefore all use 7, and PROTOCOL.md:88-89 now say 7 turns.
+
 - File: `firmware/base/grappstar_base/config.h:104`
 - Severity: low (claimed low); unverified (low)
 - Owner: fw-base
@@ -348,6 +382,8 @@ Fix: Set wrapsFull = 7 (emit P_DRUM_WRAP_TURNS from gen_params.py and use it). U
 
 
 ## 17. Wiper current is not scaled below duty 60, so the 3 A jog trip and the 17 A hard trip are blind at flyDuty 51 (fly-in, REEL centering jog, LAUNCH wiggle)
+
+- Now (863d58d): **fixed** at `firmware/base/grappstar_base/config.h:167`. flyDuty is now 64. That is above minScaleDuty 60 (drives.h:17,50), so the fly-in, REEL centering jog and LAUNCH wiggle (base_logic.h:560,576,662) now get the 255/duty correction and the 3 A and 17 A trips see the real current. The other helper duties are all at least 60 as well (nudge 90, decock 120, takeup 102, jog 150, reelMin 70); the only thing left undone is the suggested startup assert that would keep a future config change from dropping below minScaleDuty.
 
 - File: `firmware/base/grappstar_base/drives.h:96`
 - Severity: low (claimed medium); 2 of 2 skeptics confirmed

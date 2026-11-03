@@ -70,7 +70,7 @@ class RealRig:
             if ph != last:
                 if ph == "ANCHORED":
                     self.base.transport.sim(f"anchor {self.line_out - self.slack}")
-                elif ph == "IDLE" and last == "RELEASING":
+                elif ph == "RELEASING" or (ph == "IDLE" and last == "RELEASING"):   # the dart lets go
                     self.base.transport.sim("free")
                 last = ph
             time.sleep(0.02)
@@ -106,7 +106,7 @@ def test_full_mission_against_real_base_firmware(tmp_path):
         assert r.m.state == "DONE", (r.m.error, steps, r.answers[-4:])
         t = r.base.tel
         assert t["mode"] == "LAUNCH" and (t.get("sw") or {}).get("S") and not t.get("fault")
-        for s in ("COCK", "FIRE", "BASE_NEUTRAL", "WRAP", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP"):
+        for s in ("COCK", "FIRE", "RAIL_LOW", "BASE_NEUTRAL", "WRAP", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP"):
             assert s in steps, s
         failed = [a for a in r.answers if "failed" in a[1]]
         assert not failed, failed
@@ -159,7 +159,7 @@ def test_full_mission_both_real_firmwares(tmp_path):
             if ph != last:
                 if ph == "ANCHORED":
                     r.base.transport.sim(f"anchor {r.line_out - r.slack}")
-                elif ph == "IDLE" and last == "RELEASING":
+                elif ph == "RELEASING" or (ph == "IDLE" and last == "RELEASING"):   # the dart lets go
                     r.base.transport.sim("free")
                 last = ph
             time.sleep(0.2)

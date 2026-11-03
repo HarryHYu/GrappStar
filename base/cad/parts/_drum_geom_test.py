@@ -89,3 +89,13 @@ def test_index_lever_follows_cam(asm):
         lv = posed(asm, "drum_index_lever", S)
         assert (cp ^ lv).volume() < 1e-3, w
         assert cp.min_gap(lv, 2.0) < 0.7, w
+
+
+@pytest.mark.parametrize("th", [0, 41, 347])
+def test_post2_strut_clear(asm, th):
+    """Idler post 2 and its SW_INDEX strut stay clear of the fork, rail, bus gear, drum A and the index lever."""
+    S = dict(drum_deg=float(th), wiper_deg=0.0)
+    for b in ("drum_fork", "drum_rail", "drum_coupler", "drum_drum_a", "drum_index_lever", "drum_idler_gear"):
+        assert overlap(asm, "drum_bracket_idler2", b, S) < 1e-3, (th, b)
+    for b in ("drum_fork", "drum_coupler", "drum_index_lever"):
+        assert overlap(asm, "drum_index_block", b, S) < 1e-3, (th, b)

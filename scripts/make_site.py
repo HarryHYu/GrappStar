@@ -85,7 +85,7 @@ def measure_rows():
                  "params.WIPER", "motor adapter, coupler"],
                 ["Springs", "hang a full 1 L bottle on one spring, length before and after", "params.SPRING",
                  "spring anchor holes"]]
-    return rows[:40]
+    return rows
 
 
 def build(out, branch, checks_file):
@@ -199,6 +199,12 @@ def build(out, branch, checks_file):
         nav.append('<a class="go alt" href="assembly.html">Assembly steps</a>')
     status = f"Built {esc(git_head())}" + (f" &middot; collision audit {esc(audit_state)}" if audit_state else "")
 
+    _all = measure_rows()
+    _first_ids = ("A1", "A2", "A3", "A4", "A5", "A8", "B1", "B2", "B3", "B4", "H1", "H2", "H3", "H4", "H5")
+    mrows_first = [r for r in _all if r and r[0].split(" ")[0] in _first_ids]
+    mrows_box = [r for r in _all if r and r[0][:1] == "C" and r[0][1:2].isdigit()]
+    if not mrows_first:
+        mrows_first = _all[:15]
     body = f"""<title>GrappStar Base Station</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -234,6 +240,7 @@ a.go.alt {{ background: transparent; color: var(--ink); border: 1px solid var(--
 a.go:focus-visible, a:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
 h2 {{ font: 600 1.35rem/1.2 var(--display); margin: 0 0 14px; letter-spacing: 0.02em; text-wrap: balance; }}
 h2 small {{ font: 0.75rem var(--mono); color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-left: 8px; }}
+.note {{ color: var(--muted); font-size: 0.9rem; margin: 10px 0 0; }}
 ol.work {{ margin: 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 10px; }}
 ol.work li {{ counter-increment: s; display: grid; grid-template-columns: 2.2rem 1fr; gap: 10px; min-width: 0; }}
 ol.work li::before {{ content: counter(s); font: 500 0.9rem var(--mono); color: var(--accent); padding-top: 2px; }}
@@ -261,10 +268,14 @@ ul.files a {{ color: var(--ink); text-decoration-color: var(--accent); text-unde
 <section>{hero_html}<div class="actions" style="margin-top:14px">{''.join(nav)}</div></section>
 <section><h2>What to do next <small>in order</small></h2>
 <ol class="work">{''.join(f'<li><span><b>{esc(a)}</b> {esc(b)}</span></li>' for a, b in steps)}</ol></section>
-<section><h2>Measure these first <small>assumed until measured</small></h2><div class="scroll"><table>
+<section><h2>Measure before printing the base <small>assumed until measured</small></h2><div class="scroll"><table>
 <thead><tr><th>Item</th><th>How</th><th>Changes</th><th>Reprint</th></tr></thead><tbody>
-{''.join('<tr>' + ''.join(f'<td>{esc(c)}</td>' for c in (r + ['', '', '', ''])[:4]) + '</tr>' for r in measure_rows())}
+{''.join('<tr>' + ''.join(f'<td>{esc(c)}</td>' for c in (r + ['', '', '', ''])[:4]) + '</tr>' for r in mrows_first)}
 </tbody></table></div></section>
+<section><h2>Confirm in the parts box <small>no new purchases except 608s</small></h2><div class="scroll"><table>
+<thead><tr><th>Item</th><th>How</th><th>If not</th></tr></thead><tbody>
+{''.join('<tr>' + ''.join(f'<td>{esc(c)}</td>' for c in [r[0], r[1], (r + ['', '', ''])[2]]) + '</tr>' for r in mrows_box)}
+</tbody></table></div><p class="note">Bench and field numbers (current sense, tension per amp, payout brake, range shots) come later, in the order of the test plan: see the full measure list.</p></section>
 <section><h2>Datasheet</h2><div class="scroll"><table><tbody>
 {''.join(f'<tr><td>{esc(k)}</td><td class="num">{esc(val)}</td></tr>' for k, val in data)}
 </tbody></table></div>

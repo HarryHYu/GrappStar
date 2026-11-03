@@ -7,33 +7,37 @@ agreed it is real but rated it lower.
 
 Confirmed: 23. Refuted and dropped: 2.
 
-| # | Sev | File:line | Owner | Finding |
-|---|---|---|---|---|
-| 1 | critical | `base/cad/parts/launch.py:310` | cad-launch | Big gear is a single-layer 27-tooth sector: the drive gear sits in the 117 deg toothless gap at rest, so cocking can never start (D23 two-layer gear missing) |
-| 2 | critical | `base/cad/parts/reel.py:456` | cad-reel | Reel module ignores LAYOUT.reel_frame_R: capstan placed 126.5 mm from the main axis, gear planes at world y 189..215, so no REEL, bus or cup mesh exists |
-| 3 | high | `base/cad/parts/drum.py:31` | cad-drum | Drum REEL output gear 40T and bus gear 40T (spec 50T/50T) on the wrong planes; wrap idler output gear in plane y 54..62 instead of 68.5..76.5 |
-| 4 | high | `base/cad/parts/drum.py:469` | cad-drum | The N20 pinion bore is a round 3.1 mm hole with no D flat, so the pinion spins on the N20 D-shaft |
-| 5 | high | `base/cad/parts/drum.py:815` | cad-drum | Selector drum, wrap idler and N20 placed at drum axis (0,-72) with idler at 180 deg and N20 below; LAYOUT says drum (60,-112), idler (16.24,-104.88), N20 (99.9,-78.5) |
-| 6 | high | `base/cad/parts/frame.py:106` | cad-frame | frame.cfg iterates the whole LAYOUT dict as if it were the axes table: Assembly.load crashes, so no assembly, audit or mesh check runs |
-| 7 | high | `base/cad/parts/launch.py:299` | cad-launch | Carriage stop: one 8 x 5.3 mm PLA tab takes the whole stop impact (SF 0.34 at the 300 N D6 peak) |
-| 8 | high | `base/cad/parts/launch.py:330` | cad-launch | Sprag #1 has no key into the drive gear: the gear has a keyway but no key part exists, and the bore is a 47.1 clearance fit |
-| 9 | high | `base/cad/parts/launch.py:364` | cad-launch | The launch sleeve flange does not match the dog ring: screw holes are 45 deg off and both parts have slots, so neither has lugs |
-| 10 | high | `base/cad/parts/reel.py:60` | cad-reel | Reel gear train still on superseded D3: capstan 24T (spec 22T), take-up m2 40/24/24/24/16 (spec m1.5 50/46, idler 30, reel 20); capstan ratio 1.667 instead of 2.27 |
-| 11 | medium | `base/cad/parts/drum.py:311` | cad-drum | The dog ring screw counterbore is tangent to the ring OD: zero wall, non-watertight STL, audit static FAIL |
-| 12 | medium | `base/cad/parts/launch.py:291` | cad-launch | Carriage spring pegs are d6 PLA cantilevers with no hook locator: SF 1.38 at the modelled hook height, 0.52 once the hook drops onto the keeper flange |
-| 13 | medium | `base/cad/parts/launch.py:318` | cad-launch | The big gear and the drive gear have symmetric hubs thicker than the face, so the PPA-CF tooth rims print 2 to 2.5 mm above the bed |
-| 14 | medium | `base/cad/parts/launch.py:429` | cad-launch | The launch rail rear and mid pieces print standing on the 6 mm split-flange plates, with the whole side wall in the air |
-| 15 | medium | `base/cad/parts/launch.py:433` | cad-launch | The launch carriage has no flat face to print on: in its print_tf it stands on the 8 x 13.5 end of one spring arm |
-| 16 | medium | `base/cad/parts/launch_aim.py:46` | cad-launch | Aim splitter and bevel built at m1.5 face 8, which physics says fails at the 5 A trip (sun SF 0.76, idler 0.66, bevel z15 about 0.45; 0.42 at the 5 N m limiter) |
-| 17 | medium | `base/cad/parts/launch_aim.py:366` | cad-launch | The aim lug prints standing on the end of its d8 pin (50 mm2), and the audit fails it |
-| 18 | medium | `base/tools/audit.py:1` | cad-infra | Audit has no cross-owner gear-mesh check: gears 60+ mm apart or on different modules pass CLEAN |
-| 19 | low | `base/cad/parts/drum.py:446` | cad-drum | Wrap pinion (m1.25 z10 x0.4) and N20 pinion (m0.8 z10 x0.3) have pointed teeth below the printable tip land |
-| 20 | low | `base/cad/parts/drum.py:468` | cad-drum | The wrap pinion and the N20 pinion have pointed teeth (tip land 0.27 and 0.20 mm) that a 0.4 nozzle cannot print |
-| 21 | low | `base/cad/parts/drum.py:743` | cad-drum | Drum gear 120T m0.8 face 8 printed in PLA (drum A): SF 0.77 at the N20 stall it is sized against |
-| 22 | low | `base/cad/parts/reel.py:431` | cad-reel | The storage reel prints 'front face down' on its 0.3 mm raised clutch annulus, so the front flange and 608 seat floor hang in the air |
-| 23 | low | `base/cad/parts/reel.py:509` | cad-reel | Reel kinematics never turn the capstan from the wiper: REEL/tow states show the drum REEL gear turning while the capstan gear stays at 0 |
+Re-checked 14:10 Sydney against base-v1 863d58d, one checker subagent per finding: see the Now column.
+
+| # | Sev | File:line | Owner | Finding | Now (863d58d) |
+|---|---|---|---|---|---|
+| 1 | critical | `base/cad/parts/launch.py:310` | cad-launch | Big gear is a single-layer 27-tooth sector: the drive gear sits in the 117 deg toothless gap at rest, so cocking can never start (D23 two-layer gear missing) | fixed |
+| 2 | critical | `base/cad/parts/reel.py:456` | cad-reel | Reel module ignores LAYOUT.reel_frame_R: capstan placed 126.5 mm from the main axis, gear planes at world y 189..215, so no REEL, bus or cup mesh exists | fixed |
+| 3 | high | `base/cad/parts/drum.py:31` | cad-drum | Drum REEL output gear 40T and bus gear 40T (spec 50T/50T) on the wrong planes; wrap idler output gear in plane y 54..62 instead of 68.5..76.5 | fixed |
+| 4 | high | `base/cad/parts/drum.py:469` | cad-drum | The N20 pinion bore is a round 3.1 mm hole with no D flat, so the pinion spins on the N20 D-shaft | fixed |
+| 5 | high | `base/cad/parts/drum.py:815` | cad-drum | Selector drum, wrap idler and N20 placed at drum axis (0,-72) with idler at 180 deg and N20 below; LAYOUT says drum (60,-112), idler (16.24,-104.88), N20 (99.9,-78.5) | fixed |
+| 6 | high | `base/cad/parts/frame.py:106` | cad-frame | frame.cfg iterates the whole LAYOUT dict as if it were the axes table: Assembly.load crashes, so no assembly, audit or mesh check runs | fixed |
+| 7 | high | `base/cad/parts/launch.py:299` | cad-launch | Carriage stop: one 8 x 5.3 mm PLA tab takes the whole stop impact (SF 0.34 at the 300 N D6 peak) | fixed |
+| 8 | high | `base/cad/parts/launch.py:330` | cad-launch | Sprag #1 has no key into the drive gear: the gear has a keyway but no key part exists, and the bore is a 47.1 clearance fit | partly fixed |
+| 9 | high | `base/cad/parts/launch.py:364` | cad-launch | The launch sleeve flange does not match the dog ring: screw holes are 45 deg off and both parts have slots, so neither has lugs | still open |
+| 10 | high | `base/cad/parts/reel.py:60` | cad-reel | Reel gear train still on superseded D3: capstan 24T (spec 22T), take-up m2 40/24/24/24/16 (spec m1.5 50/46, idler 30, reel 20); capstan ratio 1.667 instead of 2.27 | fixed |
+| 11 | medium | `base/cad/parts/drum.py:311` | cad-drum | The dog ring screw counterbore is tangent to the ring OD: zero wall, non-watertight STL, audit static FAIL | fixed |
+| 12 | medium | `base/cad/parts/launch.py:291` | cad-launch | Carriage spring pegs are d6 PLA cantilevers with no hook locator: SF 1.38 at the modelled hook height, 0.52 once the hook drops onto the keeper flange | still open |
+| 13 | medium | `base/cad/parts/launch.py:318` | cad-launch | The big gear and the drive gear have symmetric hubs thicker than the face, so the PPA-CF tooth rims print 2 to 2.5 mm above the bed | partly fixed |
+| 14 | medium | `base/cad/parts/launch.py:429` | cad-launch | The launch rail rear and mid pieces print standing on the 6 mm split-flange plates, with the whole side wall in the air | fixed |
+| 15 | medium | `base/cad/parts/launch.py:433` | cad-launch | The launch carriage has no flat face to print on: in its print_tf it stands on the 8 x 13.5 end of one spring arm | fixed |
+| 16 | medium | `base/cad/parts/launch_aim.py:46` | cad-launch | Aim splitter and bevel built at m1.5 face 8, which physics says fails at the 5 A trip (sun SF 0.76, idler 0.66, bevel z15 about 0.45; 0.42 at the 5 N m limiter) | still open |
+| 17 | medium | `base/cad/parts/launch_aim.py:366` | cad-launch | The aim lug prints standing on the end of its d8 pin (50 mm2), and the audit fails it | fixed |
+| 18 | medium | `base/tools/audit.py:1` | cad-infra | Audit has no cross-owner gear-mesh check: gears 60+ mm apart or on different modules pass CLEAN | partly fixed |
+| 19 | low | `base/cad/parts/drum.py:446` | cad-drum | Wrap pinion (m1.25 z10 x0.4) and N20 pinion (m0.8 z10 x0.3) have pointed teeth below the printable tip land | fixed |
+| 20 | low | `base/cad/parts/drum.py:468` | cad-drum | The wrap pinion and the N20 pinion have pointed teeth (tip land 0.27 and 0.20 mm) that a 0.4 nozzle cannot print | fixed |
+| 21 | low | `base/cad/parts/drum.py:743` | cad-drum | Drum gear 120T m0.8 face 8 printed in PLA (drum A): SF 0.77 at the N20 stall it is sized against | still open |
+| 22 | low | `base/cad/parts/reel.py:431` | cad-reel | The storage reel prints 'front face down' on its 0.3 mm raised clutch annulus, so the front flange and 608 seat floor hang in the air | fixed |
+| 23 | low | `base/cad/parts/reel.py:509` | cad-reel | Reel kinematics never turn the capstan from the wiper: REEL/tow states show the drum REEL gear turning while the capstan gear stays at 0 | fixed |
 
 ## 1. Big gear is a single-layer 27-tooth sector: the drive gear sits in the 117 deg toothless gap at rest, so cocking can never start (D23 two-layer gear missing)
+
+- Now (863d58d): **fixed** at `base/cad/parts/launch.py:430-447`. big_gear_solid now joins the 27-tooth sector layer (y -6..6) to a full 40T spur layer (y_full 7.5..14.5, line 119). drive_gear_solid and its placement (lines 463-470, 758-760) put the 26T drive gear only in the y_full plane, so it always has full-layer teeth to mesh with at every big-gear angle. No test checks a tooth at every angle, which the suggested fix also asked for, but the defect itself is gone.
 
 - File: `base/cad/parts/launch.py:310`
 - Severity: critical (claimed critical); 2 of 2 skeptics confirmed
@@ -57,6 +61,8 @@ Fix: In big_gear_solid, union the sector extrusion over world y 134..146 (rack p
 >
 
 ## 2. Reel module ignores LAYOUT.reel_frame_R: capstan placed 126.5 mm from the main axis, gear planes at world y 189..215, so no REEL, bus or cup mesh exists
+
+- Now (863d58d): **fixed** at `base/cad/parts/reel.py:29 (_spec reads LAYOUT['reel_frame_R']), :99-103 (BUS_Z/GC_Z/CUPGEAR_Z), :800 (reel_base joint uses that origin and axes)`. I loaded the reel and drum modules with tools/assembly.py and checked where the gears end up. reel_gc is now centred at world x -18.65, z -69.6, which is 72.1 mm from the main axis at 255 deg. Its gear plane is at y 50.5..62.5, the same as drum_gear_reel's. reel_bus sits at y 40..46 inside the drum bus plane (40..48), and reel_gk at y 68.5..76.5 matches drum_idler_gear, so all three gear pairs line up in y and centre distance.
 
 - File: `base/cad/parts/reel.py:456`
 - Severity: critical (claimed critical); 2 of 2 skeptics confirmed
@@ -84,6 +90,8 @@ What the code does:
 
 ## 3. Drum REEL output gear 40T and bus gear 40T (spec 50T/50T) on the wrong planes; wrap idler output gear in plane y 54..62 instead of 68.5..76.5
 
+- Now (863d58d): **fixed** at `base/cad/parts/drum.py:30`. GEOM now uses bus_z=50 with bus_s=(40,48) (line 30) and cpl_s extended to 62. The REEL gear is out_z=50, out_face=12, rgear_s=50.5, and G() reads it from P.DRUM['reel_output'] (lines 38, 79-85). The idler output gear is at idl_gear=(68.5,76.5) (line 59). These match the spec values the finding gave.
+
 - File: `base/cad/parts/drum.py:31`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: cad-drum
@@ -109,6 +117,8 @@ Nothing overrides them. G() only applies P.DRUM['geom']
 
 ## 4. The N20 pinion bore is a round 3.1 mm hole with no D flat, so the pinion spins on the N20 D-shaft
 
+- Now (863d58d): **fixed** at `base/cad/parts/drum.py:564`. n20_pinion now cuts a D bore: an r 1.55 circle with everything past x = 1.05 removed, so 3.1 mm round with a 2.6 mm across-flat. That keys the pinion to the N20's 3 mm shaft with its 2.5 mm flat, so it can no longer spin on the shaft. The fit is about 0.05 mm clearance rather than the light press the fix asked for, so axial hold relies on the 'flush with the shaft end' assembly step.
+
 - File: `base/cad/parts/drum.py:469`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: cad-drum
@@ -129,6 +139,8 @@ The notes contradict the geometry. Line 759 says "pressed on the N20 D shaft", s
 >
 
 ## 5. Selector drum, wrap idler and N20 placed at drum axis (0,-72) with idler at 180 deg and N20 below; LAYOUT says drum (60,-112), idler (16.24,-104.88), N20 (99.9,-78.5)
+
+- Now (863d58d): **fixed** at `base/cad/parts/drum.py:24 (drum_xy default), :93-107 (G reads LAYOUT drum/capstan, derives phi_idler), :55 (phi_n20=-40)`. G() now reads the drum axis from LAYOUT.axes.drum.origin, giving drum_xy (60,112). It derives phi_idler from the capstan mesh (-170.76 deg) and sets phi_n20=-40. With spec/params, idler_xy comes out at (16.24,104.88) and n20_xy at (99.91,78.51), which match LAYOUT. The fork pin direction (phi_pin) and the axle/bracket positions are now computed from drum_xy.
 
 - File: `base/cad/parts/drum.py:815`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -157,6 +169,8 @@ The contract says otherwise. params LAYOUT.axes.drum.origin is (60, 0, -112), an
 
 ## 6. frame.cfg iterates the whole LAYOUT dict as if it were the axes table: Assembly.load crashes, so no assembly, audit or mesh check runs
 
+- Now (863d58d): **fixed** at `base/cad/parts/frame.py:132`. frame.cfg now loops over lay_src["axes"] only. That path runs only when LAYOUT is a dict with an "axes" key, and deck_top_z is read on its own line. On HEAD, Assembly.load(load_params()) succeeds, and frame.cfg returns v1=True with layout keys main, drum, capstan and aim_crank.
+
 - File: `base/cad/parts/frame.py:106`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: cad-frame
@@ -173,6 +187,8 @@ Fix: Use lay_src = (_get(P, "LAYOUT", {}) or {}).get("axes") at frame.py:88, ski
 >
 
 ## 7. Carriage stop: one 8 x 5.3 mm PLA tab takes the whole stop impact (SF 0.34 at the 300 N D6 peak)
+
+- Now (863d58d): **fixed** at `base/cad/parts/launch.py:393 (carriage_yoke_solid) and base/cad/parts/launch_stop.py:1-18`. The stop has been redesigned. The single -y deck tab and pad are gone. A bolted yoke now has two spring arms, one on each side (the `for sg in (1, -1)` loop), and each arm hits its own preloaded PLA flexure stop unit (launch_stop.py, mirrored left and right, with a hard stop at 19 mm travel). So the impact is shared by both sides and is softened by the flexure, not taken by one 8 x 5.3 mm cantilever.
 
 - File: `base/cad/parts/launch.py:299`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -200,6 +216,8 @@ Geometry, all confirmed:
 
 ## 8. Sprag #1 has no key into the drive gear: the gear has a keyway but no key part exists, and the bore is a 47.1 clearance fit
 
+- Now (863d58d): **partly fixed** at `base/cad/parts/launch.py:474`. The open slot is gone. drive_gear_solid now adds an integral key rib (5.8 wide), and assembly step 6 (launch.py:1156) refers to that rib, so the gear does key the sprag. But the rib reaches down to r = 23.5 - 2.8 = 20.7, and bearings.py:35 gives the CSK20PP outer keyway as only 1.5 deep (keyway floor at r 22.0, or 22.2 with the 0.2 clearance used by seat_csk20). The rib therefore runs 1.3 to 1.5 mm into the outer race metal and the bought sprag cannot slide in. The CAD checks miss this because sprag_solid is a plain tube and launch.py:1059 Allow-lists the whole sprag/gear overlap. The rib should rise CSK20_OKEY_D - CSK20_KEY_RCLEAR = 1.3, or the bore should be cut with bearings.seat_csk20.
+
 - File: `base/cad/parts/launch.py:330`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: cad-launch
@@ -219,6 +237,8 @@ Fix: Replace the slot cut with an integral key rib, the way reel.py seats sprag 
 >
 
 ## 9. The launch sleeve flange does not match the dog ring: screw holes are 45 deg off and both parts have slots, so neither has lugs
+
+- Now (863d58d): **still open** at `base/cad/parts/launch.py:533-541`. sleeve_solid still puts the M3 holes and nut traps at 45+120k deg on r 28. dog_ring in drum.py:389-396 puts its holes at 120k deg on ring_screw_r 28.5, so the screws still cannot line up. Both parts still cut slots at 60+120k (the sleeve uses `s - slot`), so there are still no lugs to carry torque. The hex trap (circumradius about 3.35 at r 28 in the r 32 flange) still leaves only 0.65 mm of wall.
 
 - File: `base/cad/parts/launch.py:364`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -247,6 +267,8 @@ What the code does:
 
 ## 10. Reel gear train still on superseded D3: capstan 24T (spec 22T), take-up m2 40/24/24/24/16 (spec m1.5 50/46, idler 30, reel 20); capstan ratio 1.667 instead of 2.27
 
+- Now (863d58d): **fixed** at `base/cad/parts/reel.py:110`. The gear numbers now come from the spec. Importing reel gives Z_MAIN 50, Z_CAPG 22 (m2), M_BUS 1.5, bus 50, c1 46, idler 30 and reel gear 20 (taken from params). reel_calc.DEFAULTS (reel_calc.py:28) uses z_main 50, z_cap 22, m_take 1.5 and z_take 46, so up = 50/22 = 2.27.
+
 - File: `base/cad/parts/reel.py:60`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: cad-reel
@@ -270,6 +292,8 @@ Fix: Set Z_MAIN=50 and Z_CAPG=22 (m2). Set M_TAKE=1.5, Z_BUS=50, Z_C1=46, Z_IDL=
 >
 
 ## 11. The dog ring screw counterbore is tangent to the ring OD: zero wall, non-watertight STL, audit static FAIL
+
+- Now (863d58d): **fixed** at `base/cad/parts/drum.py:396`. The dog ring no longer has r 3.0 counterbores. It now has M3 tapped holes of r 1.25 at ring_screw_r 28.5 (line 42), with ring_od 62. That leaves 31.0 - 29.75 = 1.25 mm of wall, so the hole no longer touches the outer diameter and the zero-wall break-through is gone.
 
 - File: `base/cad/parts/drum.py:311`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -298,6 +322,8 @@ I reproduced the audit's own check from tools/audit
 
 ## 12. Carriage spring pegs are d6 PLA cantilevers with no hook locator: SF 1.38 at the modelled hook height, 0.52 once the hook drops onto the keeper flange
 
+- Now (863d58d): **still open** at `base/cad/parts/launch.py:411-413`. The carriage yoke pegs are still d6 PLA cantilevers (cyl_w(3.0, w_spring-9, a0+1)) with only the keeper flange at w 49..51 and no groove to hold the hook at w 60. The arm bottom is now at a0=73.2 instead of 64.6, so the levers are longer than the review assumed: about 13 mm with the hook at w 60 and about 21 mm with the hook resting on the flange. That makes the bending stress worse than the original finding.
+
 - File: `base/cad/parts/launch.py:291`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: cad-launch
@@ -322,6 +348,8 @@ Geometry (cyl_w(r, w0, w1, u, y)):
 
 ## 13. The big gear and the drive gear have symmetric hubs thicker than the face, so the PPA-CF tooth rims print 2 to 2.5 mm above the bed
 
+- Now (863d58d): **partly fixed** at `base/cad/parts/launch.py:471`. Fixed for the big gear: hub_y is now (-8.8, 14.5), flush with the full-layer face (y_full[1] = 14.5, line 120), so after print_tf=bed(bg, Rx(180)) the full 40T layer's tooth face sits on the bed. Still open for the drive gear: the hub is still symmetric (16 mm tall on a 7 mm face, lines 470-471), and a collar (r16/13.4) now extends down to z = -19.8. With print_tf=bed(dg) unrotated (line 761), only that collar ring touches the bed. The hub annulus from r16 to 27.5 starts 11.8 mm up and the teeth 16.3 mm up, all as overhang, so the drive gear is worse than in the original report.
+
 - File: `base/cad/parts/launch.py:318`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: cad-launch
@@ -340,6 +368,8 @@ The drive gear (line 327) has the same problem. Its hub is 16 mm tall (w+2), cen
 >
 
 ## 14. The launch rail rear and mid pieces print standing on the 6 mm split-flange plates, with the whole side wall in the air
+
+- Now (863d58d): **fixed** at `base/cad/parts/launch.py:734`. The rail pieces now get print_tf=best_bed(sol) instead of a fixed Rx(90). The split flanges still stick out past the outer wall (line 277), and Rx(90) still touches the bed with only 108.5 mm2 (rear) and 78/217 mm2 (mid), but best_bed no longer picks that orientation: rear and mid both get Ry(90), standing on the 915 mm2 split end face. A new concern replaces the old one: the rear piece stands 181 mm tall and the mid piece 170 mm tall on that small footprint, so they could tip during the print.
 
 - File: `base/cad/parts/launch.py:429`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -369,6 +399,8 @@ The code says what the reviewer quotes:
 
 ## 15. The launch carriage has no flat face to print on: in its print_tf it stands on the 8 x 13.5 end of one spring arm
 
+- Now (863d58d): **fixed** at `base/cad/parts/launch.py:385 (body clipped to |y| <= Y_BODY = 21.5), :737 (print_tf bed(cs, Rx(90), rz=45)), :393 (spring arms and pegs moved to the bolted carriage_yoke_solid)`. The spring arms and pegs are now a separate bolt-on yoke, and the carriage body is clipped to the shoe faces at y = +-21.5. I ran audit.print_check on the current carriage: bed contact is 2035.7 mm2 (it was 108), the part is 43 mm tall, and it has no fails. The audit still warns about 8326 mm2 of overhang (the cradle and rack printed on their side), and the yoke has 253.7 mm2 of bed contact with no fails.
+
 - File: `base/cad/parts/launch.py:433`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: cad-launch
@@ -389,6 +421,8 @@ Fix: Make the spring arms and pegs (launch.py:287-295) a separate bolt-on part (
 >
 
 ## 16. Aim splitter and bevel built at m1.5 face 8, which physics says fails at the 5 A trip (sun SF 0.76, idler 0.66, bevel z15 about 0.45; 0.42 at the 5 N m limiter)
+
+- Now (863d58d): **still open** at `base/cad/parts/launch_aim.py:47`. The splitter is still M_S = 1.5 with FACE_S = 8.0 (lines 47-49), and the bevel pair is still M_B 1.5, z30/z15, face 8 (line 50). The sun still keys onto only 8 mm of the sleeve rib (line 164), so the strength factors below 1 at the 5 A trip are unchanged. No spec decision overrides the physics sizing; BASE_SPEC still gives the splitter sun only 8 mm (y 174..182), so making the sun hub longer would also mean reworking that envelope.
 
 - File: `base/cad/parts/launch_aim.py:46`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -416,6 +450,8 @@ Fix: Set M_S = 2.0 and FACE_S = 10.0 (sun z30, idler z18, output z30; idler SF a
 >
 
 ## 17. The aim lug prints standing on the end of its d8 pin (50 mm2), and the audit fails it
+
+- Now (863d58d): **fixed** at `base/cad/parts/launch_aim.py:475`. The lug part now uses `print_tf=bed(lug, tf.Rx(90))`. In lug_solid (lines 292-309) the lowest-y face is the bolting plate at y_rel 28 (yw) and the d8 pin points toward +y, so Rx(90) puts the plate face on the bed and the pin points up, which is the fix the review proposed. I checked this by reading the code and did not re-run the audit.
 
 - File: `base/cad/parts/launch_aim.py:366`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -445,6 +481,8 @@ I ran base/tools/audit.print_check on the actual parts_aim(P) lug, using the rep
 >
 
 ## 18. Audit has no cross-owner gear-mesh check: gears 60+ mm apart or on different modules pass CLEAN
+
+- Now (863d58d): **partly fixed** at `base/tools/audit.py:404 (meshcheck wired in); base/cad/parts/demo.py:80 is the only meshes(P) — drum.py/reel.py/launch.py declare none`. The audit now runs tools/meshcheck.py (centre distance, parallel axes, face overlap, ratio), but only demo.py declares a Mesh. REEL/capstan, bus/c1 and drive/big gear pairs are not declared and have no cross-owner Clearance, so a misplaced or wrong-module cross-owner gear pair still passes CLEAN. Undeclared geared joints only warn.
 
 - File: `base/tools/audit.py:1`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -480,6 +518,8 @@ Nothing reads module, tooth count, axis distance or face y-planes for any pair o
 
 ## 19. Wrap pinion (m1.25 z10 x0.4) and N20 pinion (m0.8 z10 x0.3) have pointed teeth below the printable tip land
 
+- Now (863d58d): **fixed** at `base/cad/parts/drum.py:537-538, 564-565 (tip_short_for at drum.py:146)`. Both pinions now pass tip_short=tip_short_for(...): the wrap pinion gets k=0.08 for a 0.444 mm tip land and the N20 pinion gets k=0.16 for 0.418 mm, so both meet the 0.4 mm and 0.25 m rule and the warning should no longer fire. I recomputed the contact ratio with the shortened tips in a scratch run: 1.378 for the 10T/60T segment mesh and 1.339 for the 10T/120T N20 mesh, both still at least 1.2.
+
 - File: `base/cad/parts/drum.py:446`
 - Severity: low (claimed low); unverified (low)
 - Owner: cad-drum
@@ -493,6 +533,8 @@ Fix: Pass tip_short to spur_gear for both pinions so the tip land is >= 0.4 mm, 
 
 ## 20. The wrap pinion and the N20 pinion have pointed teeth (tip land 0.27 and 0.20 mm) that a 0.4 nozzle cannot print
 
+- Now (863d58d): **fixed** at `base/cad/parts/drum.py:146-155, 537-538, 564-565`. A new tip_short_for() helper finds the smallest tip shortening that leaves a land of at least max(0.4, 0.25m), and both 10T pinions (drum_idler and drum_n20_pinion) now pass it. A scratch run gave k=0.08 and s_tip=0.44 mm for m1.25 z10 x0.4, and k=0.16 and s_tip=0.42 mm for m0.8 z10 x0.3. The cradle cut at line 872 still uses the unshortened r_tip, so the clearance is a little larger than needed, which does no harm.
+
 - File: `base/cad/parts/drum.py:468`
 - Severity: low (claimed low); unverified (low)
 - Owner: cad-drum
@@ -505,6 +547,8 @@ Fix: Pass tip shortening so the land is at least 0.4 mm: `gears.spur_gear(c["dru
 
 
 ## 21. Drum gear 120T m0.8 face 8 printed in PLA (drum A): SF 0.77 at the N20 stall it is sized against
+
+- Now (863d58d): **still open** at `base/cad/parts/drum.py:933`. drum_drum_a is still printed in "PLA". The drum gear is still 120T m0.8 with x -0.3 and face 8 (dgear=(8.0, 16.0) at drum.py:45), against a 10T pinion. params.py still gives stall_nm_design 0.20 at 12:1, and drum_NOTES still gives drum stall capacity as 2.16 N m, so the Lewis SF of about 0.77 at N20 stall is unchanged.
 
 - File: `base/cad/parts/drum.py:743`
 - Severity: low (claimed medium); 1 of 2 skeptics confirmed
@@ -530,6 +574,8 @@ What checks out:
 
 ## 22. The storage reel prints 'front face down' on its 0.3 mm raised clutch annulus, so the front flange and 608 seat floor hang in the air
 
+- Now (863d58d): **fixed** at `base/cad/parts/reel.py:731-736 (also 382-411)`. The reel is now two parts. The body (_spool_body) prints with no rotation, rear flange flat on the bed. The raised annulus has moved to a separate front flange disc (_spool_flange), which also prints with no rotation: its flat rear face sits on the bed and the 0.3 mm annulus is on the top face. Nothing now prints face down on the raised annulus.
+
 - File: `base/cad/parts/reel.py:431`
 - Severity: low (claimed low); unverified (low)
 - Owner: cad-reel
@@ -542,6 +588,8 @@ Fix: Turn the annulus into a recess so the flange face stays the bed face: in th
 
 
 ## 23. Reel kinematics never turn the capstan from the wiper: REEL/tow states show the drum REEL gear turning while the capstan gear stays at 0
+
+- Now (863d58d): **fixed** at `base/cad/parts/reel.py:883-899`. reel.kin now sets the capstan angle from reel_deg, and when drum.kin is available it uses cap = (Z_MAIN/Z_CAPG)*drum_out_reel + CAP_PHASE_D (7.91 deg). I ran the cumulative TIMELINE: in the tow state drum_out_reel is 3600 and the capstan is 8189.73 deg, and in reel_in it is 4200 and 9553.36 deg. That is a 50/22 ratio (2.27), and the capstan stays put in the NEUTRAL/unload states, so it no longer stays at 0.**
 
 - File: `base/cad/parts/reel.py:509`
 - Severity: low (claimed medium); 2 of 2 skeptics confirmed

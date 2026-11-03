@@ -7,38 +7,42 @@ agreed it is real but rated it lower.
 
 Confirmed: 28. Refuted and dropped: 0.
 
-| # | Sev | File:line | Owner | Finding |
-|---|---|---|---|---|
-| 1 | high | `base/cad/parts/launch.py:121` | cad-launch | SW_RAIL_LOW contact has no part: the assembly step installs three parts that do not exist, and the pack has no switch body for it |
-| 2 | high | `base/cad/parts/launch.py:233` | cad-launch | Spring fallback anchor hole set and spring guard referenced for safety do not exist in the launcher CAD |
-| 3 | high | `base/cad/parts/launch.py:467` | cad-launch | Carriage stop is a rigid TPU block, not the D26 PLA flexure; Harry has no TPU, and the step's fallback (solid PLA block) gives almost no travel |
-| 4 | high | `base/cad/parts/launch.py:684` | cad-launch | Assembly steps fit the launch springs and hand-time the big gear with springs on, against the guide's 'springs off until stage 5' |
-| 5 | high | `base/cad/parts/launch.py:697` | cad-launch | SW_GAP and SW_RAIL_LOW contacts and the AS5600 bracket have no CAD part and no build step, but the firmware treats them as fitted by default |
-| 6 | high | `base/cad/parts/reel.py:878` | cad-reel | SW_ARM (wrap cup at home) has no part and no build step, so every wrap faults |
-| 7 | high | `base/spec/params.py:111` | cad-launch | AS5600 board has no mount anywhere in the model (no bracket, no pegs, no BOM line), but the guide says to heat-stake it onto printed pegs |
-| 8 | high | `base/tools/steps.py:31` | cad-infra | plan_steps silently drops 10 assembly steps, among them buck setting, motor-to-cheek and big-gear timing |
-| 9 | high | `base/tools/steps.py:52` | cad-infra | Generated assembly order fits the drum before the deck, wiper motor and motor adapter exist |
-| 10 | high | `docs/build/GrappStar_Build_Guide.md:1073` | docs | Committed Build Guide, its PDF and the base wiring cheat sheet carry an old pin map that does not match pins.h (drum, HX711, contacts, SLP) |
-| 11 | high | `jetson/grappstar/comms/base.py:105` | jetson | Jetson serial open drops DTR while RTS is still asserted: the ESP32-S3 USB-Serial-JTAG resets on every port open |
-| 12 | medium | `base/cad/parts/drum.py:1147` | cad-drum | Drum B fits on drum A's plain hex in 6 orientations and the step gives no index, so code bands and fork groove can end up out of phase with the brake cam, wrap segment and lock |
-| 13 | medium | `base/cad/parts/frame.py:846` | cad-frame | BOM fastener totals are about 10 screws, and the frame steps alone need 37+ heat-set inserts, 49 M3x25 + nylocs + washers and M6 motor bolts |
-| 14 | medium | `base/cad/parts/launch.py:674` | cad-launch | Launcher steps need clips and an O-ring that are neither printed parts nor bought items, and Harry does not have them |
-| 15 | medium | `base/cad/parts/launch.py:712` | cad-launch | Aim 3 cannot be done in the generated order: the launch sleeve has to slide axially over the fixed main-shaft spigot and into the bolted aim-housing bushing |
-| 16 | medium | `docs/build/MEASURE_LIST.md:20` | docs | MEASURE_LIST A6 records wiper free speed from a 40 % duty take-up jog as WIPER.n0_rpm |
-| 17 | medium | `docs/build/MEASURE_LIST.md:103` | cad-reel | Payout brake / clutch trim refers to shims in the 'reel assembly steps' that neither the steps nor the part list contain |
-| 18 | medium | `docs/build/TEST_PLAN.md:83` | docs | Test stage 4 'cock and fire with no springs' cannot pass: with no springs the carriage never returns, so the firmware faults every cycle |
-| 19 | low | `base/cad/parts/launch.py:460` | cad-launch | BOM lists 12 phantom bought items (spring segments and carriage-end hooks with no bought_ref) |
-| 20 | low | `base/cad/parts/launch.py:648` | cad-launch | Launcher 1 print list gives conrod and lug as PLA, but the model and pack print them in PPA-CF |
-| 21 | low | `base/cad/parts/reel.py:569` | cad-reel | Brake rocker is PETG, which Harry does not have; the clutch spring thickness is computed for PETG stiffness, so a PLA or PPA-CF print overloads the payout brake |
-| 22 | low | `docs/build/MEASURE_LIST.md:104` | docs | Contact gap numbers disagree: G12 says 1.1 mm for every contact, the steps say 0.25, 1.5 and 1.8 mm |
-| 23 | low | `docs/build/SYSTEM_ELECTRICAL.md:126` | docs | SYSTEM_ELECTRICAL points to a 'flash from the Jetson' procedure that does not exist |
-| 24 | low | `docs/build/src/03_parts.md:57` | docs | Tool list misses the drill and 3.4 mm bit, the heat-set insert tip and the 13 mm socket that the steps require |
-| 25 | low | `docs/build/src/04_printing.md:22` | docs | Guide never picks up the risk coupon test sheet: its include glob names a folder and file that do not exist, so the day-one coupon section stays 'NOT IN THE REPO YET' |
-| 26 | low | `docs/build/src/04_printing.md:22` | docs | Guide's risk-coupon section stays 'NOT IN THE REPO YET' even after rebuilding, because make_guide looks for the wrong file names |
-| 27 | low | `docs/build/src/05_base_assembly.md:19` | docs | Guide's motor-adapter screw rule (6 x M3 x 12) disagrees with the frame step (M3 x 10, 10 of 12 holes) |
-| 28 | low | `firmware/base/CALIBRATION.md:101` | docs | Drum manual release is described three different ways (thumb screw, swing screw, hand latch), and no latch exists |
+Re-checked 14:10 Sydney against base-v1 863d58d, one checker subagent per finding: see the Now column.
+
+| # | Sev | File:line | Owner | Finding | Now (863d58d) |
+|---|---|---|---|---|---|
+| 1 | high | `base/cad/parts/launch.py:121` | cad-launch | SW_RAIL_LOW contact has no part: the assembly step installs three parts that do not exist, and the pack has no switch body for it | fixed |
+| 2 | high | `base/cad/parts/launch.py:233` | cad-launch | Spring fallback anchor hole set and spring guard referenced for safety do not exist in the launcher CAD | partly fixed |
+| 3 | high | `base/cad/parts/launch.py:467` | cad-launch | Carriage stop is a rigid TPU block, not the D26 PLA flexure; Harry has no TPU, and the step's fallback (solid PLA block) gives almost no travel | fixed |
+| 4 | high | `base/cad/parts/launch.py:684` | cad-launch | Assembly steps fit the launch springs and hand-time the big gear with springs on, against the guide's 'springs off until stage 5' | still open |
+| 5 | high | `base/cad/parts/launch.py:697` | cad-launch | SW_GAP and SW_RAIL_LOW contacts and the AS5600 bracket have no CAD part and no build step, but the firmware treats them as fitted by default | fixed |
+| 6 | high | `base/cad/parts/reel.py:878` | cad-reel | SW_ARM (wrap cup at home) has no part and no build step, so every wrap faults | partly fixed |
+| 7 | high | `base/spec/params.py:111` | cad-launch | AS5600 board has no mount anywhere in the model (no bracket, no pegs, no BOM line), but the guide says to heat-stake it onto printed pegs | partly fixed |
+| 8 | high | `base/tools/steps.py:31` | cad-infra | plan_steps silently drops 10 assembly steps, among them buck setting, motor-to-cheek and big-gear timing | fixed |
+| 9 | high | `base/tools/steps.py:52` | cad-infra | Generated assembly order fits the drum before the deck, wiper motor and motor adapter exist | still open |
+| 10 | high | `docs/build/GrappStar_Build_Guide.md:1073` | docs | Committed Build Guide, its PDF and the base wiring cheat sheet carry an old pin map that does not match pins.h (drum, HX711, contacts, SLP) | fixed |
+| 11 | high | `jetson/grappstar/comms/base.py:105` | jetson | Jetson serial open drops DTR while RTS is still asserted: the ESP32-S3 USB-Serial-JTAG resets on every port open | still open |
+| 12 | medium | `base/cad/parts/drum.py:1147` | cad-drum | Drum B fits on drum A's plain hex in 6 orientations and the step gives no index, so code bands and fork groove can end up out of phase with the brake cam, wrap segment and lock | still open |
+| 13 | medium | `base/cad/parts/frame.py:846` | cad-frame | BOM fastener totals are about 10 screws, and the frame steps alone need 37+ heat-set inserts, 49 M3x25 + nylocs + washers and M6 motor bolts | still open |
+| 14 | medium | `base/cad/parts/launch.py:674` | cad-launch | Launcher steps need clips and an O-ring that are neither printed parts nor bought items, and Harry does not have them | partly fixed |
+| 15 | medium | `base/cad/parts/launch.py:712` | cad-launch | Aim 3 cannot be done in the generated order: the launch sleeve has to slide axially over the fixed main-shaft spigot and into the bolted aim-housing bushing | partly fixed |
+| 16 | medium | `docs/build/MEASURE_LIST.md:20` | docs | MEASURE_LIST A6 records wiper free speed from a 40 % duty take-up jog as WIPER.n0_rpm | fixed |
+| 17 | medium | `docs/build/MEASURE_LIST.md:103` | cad-reel | Payout brake / clutch trim refers to shims in the 'reel assembly steps' that neither the steps nor the part list contain | partly fixed |
+| 18 | medium | `docs/build/TEST_PLAN.md:83` | docs | Test stage 4 'cock and fire with no springs' cannot pass: with no springs the carriage never returns, so the firmware faults every cycle | fixed |
+| 19 | low | `base/cad/parts/launch.py:460` | cad-launch | BOM lists 12 phantom bought items (spring segments and carriage-end hooks with no bought_ref) | still open |
+| 20 | low | `base/cad/parts/launch.py:648` | cad-launch | Launcher 1 print list gives conrod and lug as PLA, but the model and pack print them in PPA-CF | still open |
+| 21 | low | `base/cad/parts/reel.py:569` | cad-reel | Brake rocker is PETG, which Harry does not have; the clutch spring thickness is computed for PETG stiffness, so a PLA or PPA-CF print overloads the payout brake | still open |
+| 22 | low | `docs/build/MEASURE_LIST.md:104` | docs | Contact gap numbers disagree: G12 says 1.1 mm for every contact, the steps say 0.25, 1.5 and 1.8 mm | fixed |
+| 23 | low | `docs/build/SYSTEM_ELECTRICAL.md:126` | docs | SYSTEM_ELECTRICAL points to a 'flash from the Jetson' procedure that does not exist | fixed |
+| 24 | low | `docs/build/src/03_parts.md:57` | docs | Tool list misses the drill and 3.4 mm bit, the heat-set insert tip and the 13 mm socket that the steps require | fixed |
+| 25 | low | `docs/build/src/04_printing.md:22` | docs | Guide never picks up the risk coupon test sheet: its include glob names a folder and file that do not exist, so the day-one coupon section stays 'NOT IN THE REPO YET' | fixed |
+| 26 | low | `docs/build/src/04_printing.md:22` | docs | Guide's risk-coupon section stays 'NOT IN THE REPO YET' even after rebuilding, because make_guide looks for the wrong file names | fixed |
+| 27 | low | `docs/build/src/05_base_assembly.md:19` | docs | Guide's motor-adapter screw rule (6 x M3 x 12) disagrees with the frame step (M3 x 10, 10 of 12 holes) | fixed |
+| 28 | low | `firmware/base/CALIBRATION.md:101` | docs | Drum manual release is described three different ways (thumb screw, swing screw, hand latch), and no latch exists | partly fixed |
 
 ## 1. SW_RAIL_LOW contact has no part: the assembly step installs three parts that do not exist, and the pack has no switch body for it
+
+- Now (863d58d): **fixed** at `base/cad/parts/launch_aim.py:488`. launch_aim.parts_aim now creates launch_sw_rail_low, launch_sw_rail_low_screw and launch_sw_rail_low_nut, placed on a pedestal of the aim housing (lines 332-338, pilot holes cut at 359-360). launch.parts(params) now returns all three, so the 'Aim 1' step's part list (launch.py:1222) matches real parts.
 
 - File: `base/cad/parts/launch.py:121`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -56,6 +60,8 @@ Fix: In switch_frames(), add out["rail_low"] with a frame on launch_aim_housing 
 >
 
 ## 2. Spring fallback anchor hole set and spring guard referenced for safety do not exist in the launcher CAD
+
+- Now (863d58d): **partly fixed** at `base/cad/parts/launch.py:288-291`. The spring guard is now built: frame.py:903 adds the frame_spring_guard_* C-channels from _frame_rguard.py. The fallback anchor hole set is still missing. The anchor-pin loop cuts holes only at u_anchor, one at y_spring and one at the Y_SPRING2 provision, so there is no rearward hole for spring_preload_fallback (params.py:184). B4 in base/site/index.html and BASE_SPEC.md:136 still tell the builder to use that hole set.
 
 - File: `base/cad/parts/launch.py:233`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -83,6 +89,8 @@ Fix: In launch.py add a second anchor hole per side at u_anchor - (spring_preloa
 
 ## 3. Carriage stop is a rigid TPU block, not the D26 PLA flexure; Harry has no TPU, and the step's fallback (solid PLA block) gives almost no travel
 
+- Now (863d58d): **fixed** at `base/cad/parts/launch_stop.py:265`. launch_stop_pad_r is gone. launch.py:792 now adds ST.stop_parts, which gives two PLA flexure springs and frames (launch_stop_spring_l/r and launch_stop_frame_l/r, TRAVEL 19.0), and Launcher 1 (launch.py:1136) now says the stop springs print at 100% infill. test_launch_stop.py:42-43 checks the 19 mm travel and an energy of at least 3 J. The only TPU traces left are an unused comment on PAD_L (launch.py:583) and a 15 mm default for stop_pad_travel in physics/common.py:316, which spec_bridge overrides.
+
 - File: `base/cad/parts/launch.py:467`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: cad-launch
@@ -102,6 +110,8 @@ The spec says otherwise in two places, and nothing later override
 
 ## 4. Assembly steps fit the launch springs and hand-time the big gear with springs on, against the guide's 'springs off until stage 5'
 
+- Now (863d58d): **still open** at `base/cad/parts/launch.py:1179`. The step generator still includes "Launcher 7: springs" at launch.py:1179, which hooks both springs on with the anchor pins. "Launcher 9" at launch.py:1199-1202 still says to turn the drive gear by hand until "at full cock the cut last tooth lets go". Both contradict GrappStar_Build_Guide.md:691 and FIRST_DAY.md:51, which say the springs stay off until test stage 5. TEST_PLAN.md stage 4 now uses rubber-band stand-ins (lines 91-92), but stage 5 at line 115 still only says "Fit both springs", with no procedure for battery out, HOME check or anchor-hole choice.
+
 - File: `base/cad/parts/launch.py:684`
 - Severity: high (claimed critical); 2 of 2 skeptics confirmed
 - Owner: cad-launch
@@ -120,6 +130,8 @@ These steps are not dead text. base/tools/assembly.py:70-72
 >
 
 ## 5. SW_GAP and SW_RAIL_LOW contacts and the AS5600 bracket have no CAD part and no build step, but the firmware treats them as fitted by default
+
+- Now (863d58d): **fixed** at `base/cad/parts/launch.py:793 (SW_GAP part loop), launch.py:449 (cam bump on big gear), launch_aim.py:233 and 239 (SW_RAIL_LOW cam lobe on crank), launch_aim.py:488-495 (launch_sw_rail_low, screw, nut, launch_aim_as5600), launch_aim.py:340 (AS5600 bracket on housing), launch.py:1193 and 1215 (build steps)`. The newest tree builds launch_sw_gap with its screw and nut, adds a cam bump to the big gear, and adds launch_sw_rail_low with a screw, a nut and a cam lobe on the crank. It also has an AS5600 board and a bracket on the aim housing (plus a frame AS5600 bracket in _frame_ebay.py). The build steps now cover each of these, so the firmware's default of treating every switch as fitted matches the hardware.
 
 - File: `base/cad/parts/launch.py:697`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -143,6 +155,8 @@ Fix: Add parts and steps: launch_sw_gap (switch body, screw, nut on the right ch
 >
 
 ## 6. SW_ARM (wrap cup at home) has no part and no build step, so every wrap faults
+
+- Now (863d58d): **partly fixed** at `base/cad/parts/reel.py:1272`. The main defect is fixed. reel.py now builds the SW_ARM parts: a bracket, a switch base, a lever and the screw and nuts, all at step 14 (lines 757-767). The cup gear reel_gk now has a raised track with a notch at home (_cup_gear_track, line 624), and there is a new build step called "SW_ARM contact". Two problems remain. First, the step text at line 1272 and the part notes at 726 and 765 describe the old polarity: the bump presses the lever at home, and the builder is told to set the screw so it "just closes there and opens 15 degrees either side". The geometry (track docstring at line 625), reel_NOTES section 10 and the firmware (config.h armHomeOpen=true) all say the reverse: the contact is closed on the track and open in the notch at home for about ±5°. Second, the step still gives no wiring (nut to GND, screw to GPIO42).
 
 - File: `base/cad/parts/reel.py:878`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -168,6 +182,8 @@ CAD side:
 >
 
 ## 7. AS5600 board has no mount anywhere in the model (no bracket, no pegs, no BOM line), but the guide says to heat-stake it onto printed pegs
+
+- Now (863d58d): **partly fixed** at `docs/build/src/05_base_assembly.md:24 (and base/cad/parts/frame.py:984); mount now at base/cad/parts/launch_aim.py:340-343,495`. The main defect is fixed. cad-launch now builds an AS5600 bracket into launch_aim_housing (two arms and a plate with M2.5 self-tap holes, launch_aim.py:340-343 and :365-366), adds the bought part launch_aim_as5600 (launch_aim.py:495, chip 1.1 mm past the magnet face), and the "Aim 1" step mounts it (launch.py:1215-1222). Two text problems remain. The build guide still says "heat-stake the board onto its printed pegs" (05_base_assembly.md:24, GrappStar_Build_Guide.md:697), but the new bracket has no pegs and uses 2 x M2.5 x 6 screws. The frame heat-set step text (frame.py:984) still lists a "sensor bracket" that frame no longer builds.
 
 - File: `base/spec/params.py:111`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -195,6 +211,8 @@ Fix: cad-launch: add a launch_as5600_bracket (PLA) on the aim housing outer side
 
 ## 8. plan_steps silently drops 10 assembly steps, among them buck setting, motor-to-cheek and big-gear timing
 
+- Now (863d58d): **fixed** at `base/tools/steps.py:129-153`. plan_steps now keeps every authored step. A part that was already fitted goes to `handle`, and a step left with no parts becomes a text step. The real-base test (base/tools/tests/test_steps_plan.py:146) asserts len(res) == len(asm.steps) + auto steps, and that assertion passes; the buck, motor-to-cheek, big-gear timing and wiring steps all appear in the output. The test still fails, but for a different reason: ordering warnings. A text step with no parts and no handle is always ready, so 'Launcher 9: time the big gear' is moved ahead of 'Launcher 3: big gear'. That is an ordering defect, not a dropped step.
+
 - File: `base/tools/steps.py:31`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: cad-infra
@@ -213,6 +231,8 @@ I ran plan_steps on the full Assembly (script at /tmp/claude-0/review-scratch-J/
 >
 
 ## 9. Generated assembly order fits the drum before the deck, wiper motor and motor adapter exist
+
+- Now (863d58d): **still open** at `base/tools/steps.py:233-264`. I ran plan_steps on the real Assembly.load() in the current tree, which now uses a contact and stage planner. It still puts the drum steps first: step 0 is 'Main shaft: coupler and limiter' and step 2 is 'Drum: bracket A...'. The reel step 'Screw the reel wall to the deck' comes at step 11, while 'Wiper motor on its adapter' (19), 'Heat-set inserts' (20) and 'Deck on the rover' (22) only come later, and the planner raises its own 'moved ahead of' warnings about this. Nothing gives the frame base steps a stage or an order ahead of the other subsystems.
 
 - File: `base/tools/steps.py:52`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -234,6 +254,8 @@ Fix: In plan_steps, put the steps together in base order instead of module order
 >
 
 ## 10. Committed Build Guide, its PDF and the base wiring cheat sheet carry an old pin map that does not match pins.h (drum, HX711, contacts, SLP)
+
+- Now (863d58d): **fixed** at `docs/build/GrappStar_Build_Guide.md:1417-1442`. The committed guide, its PDF and Wiring_Cheat_Sheet_Base.pdf now carry the pins.h map: drum 15/16, HX711 17/18, SW_HOME 21, SW_SEATED 41, SW_N20 47 and no SLP wire. The bench chapter now says GPIO11 for NEUTRAL and GPIO47 for SW_N20 (lines 1569-1570, 2913-2916, 3063), and a regeneration differs only in prose, with no GPIO changes. test_make_guide.py now has test_every_gpio_in_the_guide_matches_pins_h, but it checks build_markdown() output, not the committed snapshot, so the full anti-staleness guard suggested in the fix is still missing.
 
 - File: `docs/build/GrappStar_Build_Guide.md:1073`
 - Severity: high (claimed critical); 2 of 2 skeptics confirmed
@@ -263,6 +285,8 @@ The committed docs/build/GrappStar_Build_Guide.md says "Built ... from commit b2
 
 ## 11. Jetson serial open drops DTR while RTS is still asserted: the ESP32-S3 USB-Serial-JTAG resets on every port open
 
+- Now (863d58d): **still open** at `jetson/grappstar/comms/base.py:105-115`. The fix was only half applied. open() now sets rts=False and dtr=False on an unopened Serial and then calls ser.open(). But on an unopened port pyserial only stores those values. Inside open() (serialposix.py:322-338) it calls os.open, which raises both DTR and RTS on Linux cdc-acm. It then applies _update_dtr_state() before _update_rts_state(), so the lines still pass through RTS=1/DTR=0, the reset state. The RTS-first clear after open that the fix asked for is missing, and the docstring wrongly says the order is RTS before DTR.
+
 - File: `jetson/grappstar/comms/base.py:105`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: jetson
@@ -287,6 +311,8 @@ How the lines move on Linux:
 >
 
 ## 12. Drum B fits on drum A's plain hex in 6 orientations and the step gives no index, so code bands and fork groove can end up out of phase with the brake cam, wrap segment and lock
+
+- Now (863d58d): **still open** at `base/cad/parts/drum.py:498 and base/cad/parts/drum.py:521 (assembly step text at drum.py:1176-1179)`. The drum A spigot is still a plain regular hexprism(spig_af) and the drum B socket is a plain hexprism(spig_af + HOLE_SLIDE). There is no key, flat, rib or pin, so drum B still fits on in 6 orientations. The "Drum: drum B, hand lever, bracket B" step still says only "hex socket over the drum A spigot" and gives no L mark or alignment instruction.
 
 - File: `base/cad/parts/drum.py:1147`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -313,6 +339,8 @@ So
 
 ## 13. BOM fastener totals are about 10 screws, and the frame steps alone need 37+ heat-set inserts, 49 M3x25 + nylocs + washers and M6 motor bolts
 
+- Now (863d58d): **still open** at `base/cad/parts/frame.py:840`. On HEAD, tools/bom.py still counts only what parts list in bought_ref, and no printed frame part lists any hardware. The deck Part at frame.py:840-841 mentions inserts and rover holes only in its notes. The only bought_ref values in frame.py are the wiper motor (681) and its shaft (893), so the BOM still leaves out the heat-set inserts, the M3x25 bolts with nylocs and washers, the M3x10/x12/x8 screws and the M6 motor bolts that the assembly steps call for (lines 983-1038). Some launch parts (launch_line, launch_muzzle, launch_guard) now list their screws, which only fixes a small part of the problem outside frame.py.
+
 - File: `base/cad/parts/frame.py:846`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: cad-frame
@@ -338,6 +366,8 @@ Fix: Put the hardware into bought_ref on each frame part in the bom.py syntax. f
 
 ## 14. Launcher steps need clips and an O-ring that are neither printed parts nor bought items, and Harry does not have them
 
+- Now (863d58d): **partly fixed** at `base/cad/parts/launch_aim.py:457-473 (and launch.py:1224-1235)`. Launcher 5 is fixed: the big gear pin now has a printed launch_gear_clip, and the step lists it (launch.py:755, 1154). The rest is still open. Aim 2 still says "Put the O-ring in the swing arm hub groove" and "fit the idler on the arm pin with its clip". The conrod is still described as "e-clips", and Aim 3 says "Join the conrod". No printed clip or bought_ref exists for the idler clip, the two conrod clips or the 20x1.5 O-ring. The Build Guide still lists the O-ring and e-clip as "Bought" (GrappStar_Build_Guide.md:362).
+
 - File: `base/cad/parts/launch.py:674`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: cad-launch
@@ -360,6 +390,8 @@ I grepped base/cad/parts/launch*.py. No clips.c_clip part is made there and no b
 >
 
 ## 15. Aim 3 cannot be done in the generated order: the launch sleeve has to slide axially over the fixed main-shaft spigot and into the bolted aim-housing bushing
+
+- Now (863d58d): **partly fixed** at `base/cad/parts/launch.py:1229-1236 (vs base/cad/parts/drum.py:1199-1202)`. Fixed: Aim 3 now slides the sleeve along the axis onto the d12 spigot from the outboard side. The aim housing goes on after the sleeve (Aim 1 now says "goes onto the base later"), and the magnet cap is fitted last, so the impossible sideways lowering is gone. Still open: Aim 3 still treats the LAUNCH dog ring as already on the drum ("until its flange meets the drum's LAUNCH dog ring") and says to fit the 3 x M3 "from the drum side into the flange nut traps". The drum step says the ring is fitted to the sleeve flange first, before the sleeve goes on the spigot, with the screws "from the sleeve side into the ring". So the two steps still contradict each other, and the drum-side screw direction (blocked by the 2.5 mm gap to the collar) has not been removed.
 
 - File: `base/cad/parts/launch.py:712`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
@@ -388,6 +420,8 @@ Launch
 
 ## 16. MEASURE_LIST A6 records wiper free speed from a 40 % duty take-up jog as WIPER.n0_rpm
 
+- Now (863d58d): **fixed** at `docs/build/MEASURE_LIST.md:20`. A6 now says the forward jog runs at 102/255 duty and tells the builder to record n0_rpm = measured rpm x 2.5, never the raw jog rpm. The Build Guide copy (GrappStar_Build_Guide.md:3513) has the same wording. The A7 calib.py --rpm line the finding referred to is gone, and A7 is now an optional stall-torque check.
+
 - File: `docs/build/MEASURE_LIST.md:20`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: docs
@@ -406,6 +440,8 @@ Fix: In A6, either use dir -1 (jogDuty 150/255) and record n0_rpm = measured rpm
 >
 
 ## 17. Payout brake / clutch trim refers to shims in the 'reel assembly steps' that neither the steps nor the part list contain
+
+- Now (863d58d): **partly fixed** at `docs/build/MEASURE_LIST.md:104`. The design has changed: LIGHT preload is now set by two M3 trim screws in the brake rocker (reel.py:749 says "1/8 turn = 0.4 N", and the 'Brake rocker and push rod' step gives a starting point of tips 0.5 mm proud). But G11 at MEASURE_LIST.md:104 (and GrappStar_Build_Guide.md:3597) still says "add or remove printed 0.4 mm shims under thrust ring T" and lists "reel shims (print more)". No shim part exists, and no step tells the builder to turn the trim screws when G4 fails.
 
 - File: `docs/build/MEASURE_LIST.md:103`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -426,6 +462,8 @@ Fix: Add a reel_shim part (0.4 mm ring for the reel shaft, print 4) and put a nu
 >
 
 ## 18. Test stage 4 'cock and fire with no springs' cannot pass: with no springs the carriage never returns, so the firmware faults every cycle
+
+- Now (863d58d): **fixed** at `docs/build/TEST_PLAN.md:91`. Stage 4 item 3 now notes that with no springs the firmware would fault on every cycle. It has the builder hook rubber bands (or inner-tube loops) from the spring anchor pins to the carriage hooks as stand-in springs, which pull the carriage home so SW_HOME closes. It also adds cock/decock cycles before the 10 fire cycles and says to take the bands off afterwards.
 
 - File: `docs/build/TEST_PLAN.md:83`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
@@ -448,6 +486,8 @@ Fix: Replace stage 4 item 3 with a cycle that works without springs: `arm` (part
 
 ## 19. BOM lists 12 phantom bought items (spring segments and carriage-end hooks with no bought_ref)
 
+- Now (863d58d): **still open** at `base/cad/parts/launch.py:784-791`. On HEAD, launch_spring_{l,r}_hook_c and the 5 coil segments per side (N_SEG=5) are still "bought" parts with no bought_ref. base/tools/bom.py:109-112 still adds a "<name> (bought, no bought_ref)" line for each one, so the BOM still shows 12 phantom 'Other' items.
+
 - File: `base/cad/parts/launch.py:460`
 - Severity: low (claimed low); unverified (low)
 - Owner: cad-launch
@@ -461,6 +501,8 @@ Fix: Give those parts bought_ref="(part of the Century spring)" as frame.py:764 
 
 ## 20. Launcher 1 print list gives conrod and lug as PLA, but the model and pack print them in PPA-CF
 
+- Now (863d58d): **still open** at `base/cad/parts/launch.py:1136`. The Launcher 1 text no longer has an explicit "PLA: ... conrod, lug" list. It now says "All PLA unless named" and then lists the PPA-CF parts, and that list leaves out the conrod and the lug. So the step still sends both to PLA. launch_aim.py:472-474 makes launch_aim_conrod and launch_aim_lug in PPA-CF.
+
 - File: `base/cad/parts/launch.py:648`
 - Severity: low (claimed low); unverified (low)
 - Owner: cad-launch
@@ -473,6 +515,8 @@ Fix: Move 'conrod, lug' from the PLA list to the PPA-CF list in the Launcher 1 t
 
 
 ## 21. Brake rocker is PETG, which Harry does not have; the clutch spring thickness is computed for PETG stiffness, so a PLA or PPA-CF print overloads the payout brake
+
+- Now (863d58d): **still open** at `base/cad/parts/reel.py:742`. The rocker is still added as "PETG" (reel.py:742), and reel_calc.rocker still defaults to E=2100.0 (reel_calc.py:154), with the report line labelled "(PETG, 10 wide)" at reel_calc.py:287. The spec has no PETG source or fallback, so a PLA or PPA-CF print still over-stiffens the LAUNCH brake.
 
 - File: `base/cad/parts/reel.py:569`
 - Severity: low (claimed medium); 1 of 2 skeptics confirmed
@@ -496,6 +540,8 @@ Confirmed in the code:
 
 ## 22. Contact gap numbers disagree: G12 says 1.1 mm for every contact, the steps say 0.25, 1.5 and 1.8 mm
 
+- Now (863d58d): **fixed** at `docs/build/MEASURE_LIST.md:105`. G12 now points to the gap each assembly step gives: SW_HOME/SW_SEATED 0.25 mm, SW_INDEX about 1.5 mm, drum code about 1.8 mm, then a check in telemetry `sw`. The generic 1.1 mm and 3 mm bump figures are no longer in the build docs, and the compiled guide copy at GrappStar_Build_Guide.md:3598 has the same new text.
+
 - File: `docs/build/MEASURE_LIST.md:104`
 - Severity: low (claimed low); unverified (low)
 - Owner: docs
@@ -508,6 +554,8 @@ Fix: Rewrite G12 to: 'Set each contact to the gap its assembly step gives (SW_HO
 
 
 ## 23. SYSTEM_ELECTRICAL points to a 'flash from the Jetson' procedure that does not exist
+
+- Now (863d58d): **fixed** at `docs/build/SYSTEM_ELECTRICAL.md:125`. The rule now says "Flash from the Mac; battery out is enough, the wiring can stay on the board (firmware/base/README.md)". The pointer to a "flash from the Jetson" procedure that did not exist is gone. The README's Mac IDE and arduino-cli steps match this rule.
 
 - File: `docs/build/SYSTEM_ELECTRICAL.md:126`
 - Severity: low (claimed low); unverified (low)
@@ -522,6 +570,8 @@ Fix: Either delete 'or flash from the Jetson (firmware/base/README.md)', or add 
 
 ## 24. Tool list misses the drill and 3.4 mm bit, the heat-set insert tip and the 13 mm socket that the steps require
 
+- Now (863d58d): **fixed** at `docs/build/src/03_parts.md:57`. I checked the Tools list on the newest tree. It now includes a drill with 3 mm and 3.4 mm bits and a deburring tool for the rover deck holes, an M3 heat-set insert tip for the soldering iron, and a 13 mm socket with a 1/4 inch driver for the coupler M8 nut.
+
 - File: `docs/build/src/03_parts.md:57`
 - Severity: low (claimed low); unverified (low)
 - Owner: docs
@@ -534,6 +584,8 @@ Fix: Add to the Tools list: "drill with 3 mm and 3.4 mm bits and a deburring too
 
 
 ## 25. Guide never picks up the risk coupon test sheet: its include glob names a folder and file that do not exist, so the day-one coupon section stays 'NOT IN THE REPO YET'
+
+- Now (863d58d): **fixed** at `docs/build/src/04_printing.md:54`. On the newest tree the guide uses `@includeglob base/pack/coupons/COUPON_TEST.md first` and `@imageglob base/pack/coupons/*.png` (lines 52-54), and make_guide.py:51 lists base/pack/coupons/COUPON_TEST.md. Both files exist, so the risk-coupon test sheet is now included in the guide instead of the "not in the repo" placeholder.
 
 - File: `docs/build/src/04_printing.md:22`
 - Severity: low (claimed low); unverified (low)
@@ -548,6 +600,8 @@ Fix: Change the glob in 04_printing.md:20 and :22 and in make_guide.py:46 to bas
 
 ## 26. Guide's risk-coupon section stays 'NOT IN THE REPO YET' even after rebuilding, because make_guide looks for the wrong file names
 
+- Now (863d58d): **fixed** at `docs/build/src/04_printing.md:52`. The guide source now uses `@imageglob base/pack/coupons/*.png` and `@includeglob base/pack/coupons/COUPON_TEST.md` (lines 52 and 54). make_guide.py SOURCES at line 51 lists base/pack/coupons/COUPON_TEST.md. The rebuilt GrappStar_Build_Guide.md has the risk plate images at lines 330-332 and pulls in COUPON_TEST.md at line 336, with no placeholder in that section.
+
 - File: `docs/build/src/04_printing.md:22`
 - Severity: low (claimed low); unverified (low)
 - Owner: docs
@@ -561,6 +615,8 @@ Fix: Change the globs to `base/pack/coupons/risk_plate_*.png` and `base/pack/cou
 
 ## 27. Guide's motor-adapter screw rule (6 x M3 x 12) disagrees with the frame step (M3 x 10, 10 of 12 holes)
 
+- Now (863d58d): **fixed** at `docs/build/src/05_base_assembly.md:19-21`. The guide rule now says "fit M3 x 10 through the cheek plate into every insert in the adapter hub (10 of the 12 holes line up; the frame step 'Motor onto the cheek' lists them)". That matches the frame.py step at base/cad/parts/frame.py:1012, and the old "6 x M3 x 12" text is gone.
+
 - File: `docs/build/src/05_base_assembly.md:19`
 - Severity: low (claimed low); unverified (low)
 - Owner: docs
@@ -573,6 +629,8 @@ Fix: Change the guide rule to 'then fit M3 x 10 through the cheek plate into eve
 
 
 ## 28. Drum manual release is described three different ways (thumb screw, swing screw, hand latch), and no latch exists
+
+- Now (863d58d): **partly fixed** at `docs/build/GrappStar_Build_Guide.md:2662`. Both sources now use the swing-screw wording: firmware/base/CALIBRATION.md:111-113 and docs/build/src/05_base_assembly.md:27-28. The generated guide was not rebuilt after the CALIBRATION.md change, so docs/build/GrappStar_Build_Guide.md:2662 (and presumably the PDF built from it) still says "flip the hand latch ... latch the N20 back in", even though line 700 of the same file uses the swing-screw wording. Rerunning make_guide.py should fix it.
 
 - File: `firmware/base/CALIBRATION.md:101`
 - Severity: low (claimed low); unverified (low)

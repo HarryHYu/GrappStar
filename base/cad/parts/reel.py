@@ -235,7 +235,7 @@ def stop_angles():
 MOUNT_HOLES = [(-120.0, 14.0), (-120.0, 36.0), (-56.0, 36.0), (-30.0, 36.0), (22.0, 36.0), (-120.0, -32.0),
                (-56.0, -32.0), (22.0, -32.0)]
 SHROUD_SCREW_R = SHROUD_R[1] + 3.5
-SHROUD_SCREW_DEG = (160.0, 230.0, 300.0)
+SHROUD_SCREW_DEG = (145.0, 240.0, 305.0)
 
 
 def _wall():
@@ -402,8 +402,16 @@ def _shroud():
               [(X_REEL + r_in * math.cos(t), r_in * math.sin(t)) for t in an[::-1]]
         return prim.poly_cs(pts)
     shell = prim.extrude(ring(*SHROUD_R), Z_D + D_T + 1.0 - 1.0, z=1.0)
-    flange = prim.extrude(ring(SHROUD_R[0] + 0.5, SHROUD_R[1] + 7.0, inset=1.5), 3.0, z=0.02)
-    body = prim.union([shell, flange])
+    flange = prim.extrude(ring(SHROUD_R[0] + 0.5, SHROUD_R[1] + 1.5, inset=1.5), 3.0, z=0.02)
+    tabs = []
+    for a in SHROUD_SCREW_DEG:                    # screw tabs only (a full flange would reach into the rail sweep)
+        x = X_REEL + SHROUD_SCREW_R * math.cos(math.radians(a))
+        y = SHROUD_SCREW_R * math.sin(math.radians(a))
+        tabs.append(prim.cyl(4.5, 3.0, x=x, y=y, z=0.02))
+        tabs.append(prim.place(prim.box(-1.0, SHROUD_SCREW_R - SHROUD_R[0] - 1.0, -4.5, 4.5, 0.02, 3.02),
+                               tf.T(X_REEL + (SHROUD_R[0] + 0.5) * math.cos(math.radians(a)),
+                                    (SHROUD_R[0] + 0.5) * math.sin(math.radians(a)), 0) @ tf.Rz(a)))
+    body = prim.union([shell, flange] + tabs)
     cut = []
     for a in SHROUD_SCREW_DEG:
         x = X_REEL + SHROUD_SCREW_R * math.cos(math.radians(a))

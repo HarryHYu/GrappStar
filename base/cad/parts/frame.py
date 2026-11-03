@@ -104,9 +104,11 @@ def cfg(P):
     tt = {-1: t, 1: t}
     v1 = isinstance(lay_src, dict) and "axes" in lay_src
     c["v1"] = v1
+    seat_e = None
     if v1:                                  # BASE_SPEC v1.0: the frame carries the main shaft only
-        seat = next((e["y"] for e in lay_src.get("stack", []) if e.get("owner") == "cad-frame" and "outboard" in e.get("part", "")),
-                    (160.0, 172.0))
+        seat_e = next((e["y"] for e in lay_src.get("stack", []) if e.get("owner") == "cad-frame" and "outboard" in e.get("part", "")),
+                      None)
+        seat = seat_e or (160.0, 172.0)
         yi_m = -ms * (MOT.PLATE_T + fw["adapter_standoff"] + t)
         if ms < 0:
             y_in = {-1: yi_m, 1: float(seat[0])}
@@ -115,6 +117,9 @@ def cfg(P):
             y_in = {1: yi_m, -1: float(seat[1])}
             tt = {1: t, -1: float(seat[1] - seat[0])}
     c["t"] = tt
+    c["sides"] = (ms, -ms) if (not v1 or seat_e) else (ms,)      # v1.1 (D23): only the motor plate
+    stack = lay_src.get("stack", []) if v1 else []
+    c["as5600_frame"] = not any("AS5600 board" in e.get("part", "") and e.get("owner") != "cad-frame" for e in stack)
     c["y_in"] = y_in
     c["y_out"] = {s_: y_in[s_] + s_ * tt[s_] for s_ in (-1, 1)}
     yc = (y_in[-1] + y_in[1]) / 2
@@ -126,7 +131,7 @@ def cfg(P):
             e = dict(origin=(ow[0], ow[1], ow[2] - deck_z), origin_w=ow, axis=tuple(map(float, a_["axis"])),
                      d=20.0, brg="seat", cheeks=(), frame=False, owner=a_.get("owner", ""))
             if n == "main":
-                e.update(cheeks=(-ms,), frame=True, brg="seat", d=float(fw.get("seat_d", 20.0)))
+                e.update(cheeks=((-ms,) if seat_e else ()), frame=True, brg="seat", d=float(fw.get("seat_d", 20.0)))
             layout[n] = e
     elif lay_src:
         deck_z = float(fw["deck_z"])
@@ -352,7 +357,7 @@ def build(P):
     xs = [p.bounds[0] for s in (-1, 1) for p in feats[s]] + [p.bounds[2] for s in (-1, 1) for p in feats[s]]
     x0c, x1c = min(xs), max(xs)
     outlines = {}
-    for s in (-1, 1):
+    for s in C["sides"]:
         base = sbox(x0c, 0.0, x1c, 24.0)
         poly = unary_union(feats[s] + [base]).convex_hull
         poly = poly.intersection(sbox(-1e4, 0.0, 1e4, 1e4))
@@ -362,13 +367,13 @@ def build(P):
             poly = unary_union([poly, sbox(mo[0] - fw["plate_back"], 0.0, mo[0] + fw["plate_front"], top)])
             poly = carve_plate(poly, C, s, info, (mo[0], mo[2]))
         outlines[s] = poly
-    xs = [outlines[s].bounds[0] for s in (-1, 1)] + [outlines[s].bounds[2] for s in (-1, 1)]
+    xs = [outlines[s].bounds[0] for s in C["sides"]] + [outlines[s].bounds[2] for s in C["sides"]]
     x0c, x1c = min(xs), max(xs)
     info["cheek_x"] = (x0c, x1c)
 
     # ---- cheek solids
     cheek_world = {}
-    for s in (-1, 1):
+    for s in C["sides"]:
         cs = prim.shapely_cs(outlines[s])
         # extrude along local Z then Rx(90): local (X, Y, Z) -> world (X, -Z, Y); y from y_ref to y_ref - t
         y_ref = C["y_in"][s] if s < 0 else C["y_out"][s]
@@ -530,7 +535,7 @@ def build(P):
                                                             max(C["y_in"][s], C["y_out"][s]) + 1, hx, hz) \
                     - yfeat(prim.cyl(U.HEAD_D / 2, U.HEAD_H + 0.01, z=-U.HEAD_H), hx, hz, C["y_out"][s], -s)
 
-    for s in (-1, 1):
+    for s in C["sides"]:
         nm = "frame_cheek_r" if s < 0 else "frame_cheek_l"
         M = tf.Rx(-90) if s < 0 else tf.Rx(90)          # print flat: the cheek's outer face down
         note = (("right" if s < 0 else "left") + " cheek (looking forward): carries the bearing blocks"
@@ -631,6 +636,11 @@ def build(P):
     for pg in info["others_foot"]:
         bx0, by0, bx1, by1 = pg.bounds
         foot_pts += [(bx0, by0), (bx1, by1)]
+    lsrc = getattr(P, "LAYOUT", None)
+    if isinstance(lsrc, dict) and isinstance(lsrc.get("footprint"), dict):   # the coordinator's target footprint
+        fpx, fpy = lsrc["footprint"]["x"], lsrc["footprint"]["y"]
+        m_ = fw["deck_margin"]
+        foot_pts += [(fpx[0] + m_, fpy[0] + m_), (fpx[1] - m_, fpy[1] - m_)]
     fp = np.array([q for q in foot_pts if np.all(np.isfinite(q))])
     foot_polys = []                     # exact contact footprints: slice every part 0.5 mm above the deck top
     for p in parts:
@@ -862,19 +872,20 @@ def steps(P):
              text="Now the drum, launch and reel subsystems put their shaft assemblies in (bearings already pressed on "
                   "the shafts), each bearing into its block pocket on this cheek. Follow their steps, then come back.",
              parts=[]),
-        dict(title="Outboard plate" if info["cfg"]["v1"] else "Second cheek",
+        dict(title="Second-side bearing blocks",
+             text="Slide each block over its bearing from outside, 4 x M3 x 8. Turn every shaft by hand: it must spin "
+                  "free with no tight spot. If one binds, loosen its two blocks, turn the shaft, retighten.",
+             parts=[sp["part"] for sp in info["supports"] if sp["side"] != info["cfg"]["fw"]["motor_side"] and sp.get("part")]),
+    ]
+    if len(info["cfg"]["sides"]) == 2:
+        st.insert(len(st) - 1, dict(title="Outboard plate" if info["cfg"]["v1"] else "Second cheek",
              text=("Slide the outboard plate onto the far end of the launch sleeve: the d20 journal goes into the plate "
                    "bore until the sleeve shoulder meets the thrust lip, the d12 spigot pokes through the lip. Foot "
                    "outboard, M3 x 10 into the deck inserts. Turn the main shaft by hand: free, no tight spot."
                    if info["cfg"]["v1"] else
                    "Lower the other cheek over the shaft ends (each bearing enters its hole), foot outboard, M3 x 10 "
                    "into the deck. Then the cheek ties: M3 x 12 through each cheek into the tie inserts."),
-             parts=[n for n in has("frame_cheek_l" if info["cfg"]["fw"]["motor_side"] < 0 else "frame_cheek_r")] + has("frame_tie")),
-        dict(title="Second-side bearing blocks",
-             text="Slide each block over its bearing from outside, 4 x M3 x 8. Turn every shaft by hand: it must spin "
-                  "free with no tight spot. If one binds, loosen its two blocks, turn the shaft, retighten.",
-             parts=[sp["part"] for sp in info["supports"] if sp["side"] != info["cfg"]["fw"]["motor_side"] and sp.get("part")]),
-    ]
+             parts=[n for n in has("frame_cheek_l" if info["cfg"]["fw"]["motor_side"] < 0 else "frame_cheek_r")] + has("frame_tie")))
     if has("frame_guard_band"):
         st.append(dict(title="Guard band",
                        text="When every shaft turns free and the trains are tested by hand: slide the band segments in "
@@ -898,16 +909,17 @@ def steps(P):
                   "meter on the buck output, turn the trimpot until it reads 9.0 V. Unplug the battery. Only then wire "
                   "buck output to DRV8833 VIN (the DRV8833 dies above 10.8 V).",
              parts=["frame_pcb_mp1584", "frame_pcb_drv8833"]),
-        dict(title="AS5600 board",
-             text="Battery unplugged, USB unplugged. Board on the bracket pegs (chip side towards the magnet), melt each "
-                  "peg tip flat with the soldering iron (heat stake). Bracket to the cheek: 2 x M3 x 10. The chip is "
-                  "1 mm from the magnet face: check with a 1 mm feeler (or a folded business card). STEMMA QT cable to "
-                  "the bay sensor window.",
-             parts=["frame_as5600_bracket", "frame_pcb_as5600"]),
         dict(title="Wiring and lid",
              text="Battery unplugged. Follow firmware/base/WIRING.md. Every wire leaving the bay goes through its wall "
                   "exit and is cable-tied to the anchor beside it (strain relief). 14 AWG for battery, fuse, BTS7960 "
                   "and motor. Lid on, 4 x M3 x 6. USB cable from the ESP32 native USB port to the Jetson.",
              parts=["frame_ebay_lid"]),
     ]
-    return st
+    if "frame_as5600_bracket" in names:
+        st.insert(len(st) - 1, dict(title="AS5600 board",
+             text="Battery unplugged, USB unplugged. Board on the bracket pegs (chip side towards the magnet), melt each "
+                  "peg tip flat with the soldering iron (heat stake). Bracket to the cheek: 2 x M3 x 10. The chip is "
+                  "1 mm from the magnet face: check with a 1 mm feeler (or a folded business card). STEMMA QT cable to "
+                  "the bay sensor window.",
+             parts=["frame_as5600_bracket", "frame_pcb_as5600"]))
+    return [x for x in st if x["parts"] or "Shafts" in x["title"]]

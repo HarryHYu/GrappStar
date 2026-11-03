@@ -349,7 +349,7 @@ def place_bay(C, parts, override=None, info=None):
 def build(P, C, info, parts_so_far):
     fw = C["fw"]
     out = []
-    asp, ainfo = as5600_parts(P, C, info)
+    asp, ainfo = as5600_parts(P, C, info) if C.get("as5600_frame", True) else ([], {})
     extra = [Part(nm, sol, "bought") for nm, sol, kw in asp]
     Mbay = place_bay(C, list(parts_so_far) + extra, fw.get("ebay"), info)
     box, tabs = bay_box()

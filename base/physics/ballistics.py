@@ -41,6 +41,8 @@ def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = N
     for th in pitches:
         v = launch(p, th, **(launch_over or {}))["v_muzzle"]
         rows = [simulate(p, v, th, brake_n=b, reel_model=True) for b in drag_n]
+        if not all(r["landed"] for r in rows):
+            raise RuntimeError(f"a shot at pitch {th} did not land within the time limit")
         table.append(dict(pitch_deg=th, v_muzzle=round(v, 3),
                           range_m=[round(r["range_m"], 3) for r in rows],
                           t_flight_s=[round(r["t_flight_s"], 3) for r in rows],
@@ -59,13 +61,25 @@ def validate(doc: dict) -> list:
     keys = {"version", "pitch_min", "pitch_max", "drag_n", "table"}
     if set(doc) != keys:
         errs.append(f"top-level keys {sorted(doc)} != {sorted(keys)}")
+    if list(doc.get("drag_n", [])) != [0.5, 0.75, 1.0]:
+        errs.append("drag_n must be [0.5, 0.75, 1.0] (contract C3)")
     if doc.get("version") != 1:
         errs.append("version must be 1")
     n = len(doc.get("drag_n", []))
     last = -1e9
+    import math as _m
+    if not doc.get("table"):
+        errs.append("empty table")
     for row in doc.get("table", []):
         if set(row) != {"pitch_deg", "v_muzzle", "range_m", "t_flight_s", "apex_m"}:
             errs.append(f"row keys {sorted(row)}")
+            continue
+        vals = [row["pitch_deg"], row["v_muzzle"]] + list(row["range_m"]) + list(row["t_flight_s"]) + list(row["apex_m"])
+        if any(not isinstance(v, (int, float)) or not _m.isfinite(v) for v in vals):
+            errs.append(f"non-finite value at pitch {row['pitch_deg']}")
+            continue
+        if any(v <= 0 for v in row["range_m"] + row["t_flight_s"]):
+            errs.append(f"non-positive range or time at pitch {row['pitch_deg']}")
         for k in ("range_m", "t_flight_s", "apex_m"):
             if len(row.get(k, [])) != n:
                 errs.append(f"{k} length != drag_n length at pitch {row.get('pitch_deg')}")
@@ -74,7 +88,7 @@ def validate(doc: dict) -> list:
         last = row["pitch_deg"]
         if not (doc["pitch_min"] - 1e-9 <= row["pitch_deg"] <= doc["pitch_max"] + 1e-9):
             errs.append("pitch outside [pitch_min, pitch_max]")
-    if doc.get("table"):
+    if doc.get("table") and all("pitch_deg" in r for r in doc["table"]):
         if abs(doc["table"][0]["pitch_deg"] - doc["pitch_min"]) > 1e-9 or abs(doc["table"][-1]["pitch_deg"] - doc["pitch_max"]) > 1e-9:
             errs.append("table must span pitch_min to pitch_max")
     return errs

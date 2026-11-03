@@ -1035,7 +1035,10 @@ def idx_lever_deg(wiper, g):
 def kin(P, S):
     g, c = G(P), C(P)
     th = drum_theta(S, c)
-    w = main_angle(P, S)
+    # params v1.2.3: wiper_deg drives the main shaft, coupler, bus gear and collar; sleeve_deg the launch sleeve and the
+    # LAUNCH dog ring (through Joint.gear on launch_sleeve); reel_deg the REEL output gear. States without wiper_deg
+    # (cad-launch's own sweeps) take the launch sleeve angle so the engaged dogs stay consistent.
+    w = float(S["wiper_deg"]) if S.get("wiper_deg") is not None else main_angle(P, S)
     x = K.collar_x(th, c)
     md = K.mode(th, c)
     v = {
@@ -1045,14 +1048,14 @@ def kin(P, S):
         "drum_fork": -x,
         "drum_idler": pinion_angle(th, g, c),
         "drum_n20": n20_angle(th, g, c),
-        "drum_out_reel": w if md == "REEL" else float(S.get("reel_out_deg", w)),
-        "drum_out_launch": w if md == "LAUNCH" else float(S.get("launch_out_deg", w)),
+        "drum_out_reel": float(S["reel_deg"]) if S.get("reel_deg") is not None else (w if md == "REEL" else 0.0),
+        "drum_out_launch": float(S["sleeve_deg"]) if S.get("sleeve_deg") is not None else (w if md == "LAUNCH" else 0.0),
         "drum_idx": idx_lever_deg(w, g),
     }
     for i in range(3):
         v[f"drum_sw{i}"] = lever_deg(th, g, c, i)
-    if _launch_gear() is not None:
-        v.pop("drum_out_launch")              # follows launch_sleeve through Joint.gear
+    if _launch_gear() is not None and S.get("sleeve_deg") is None:
+        v.pop("drum_out_launch")              # no sleeve_deg in S: follow launch_sleeve through Joint.gear
     return v
 
 

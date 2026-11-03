@@ -486,7 +486,7 @@ def drum_a(g, c):
     parts.append(dg.translate((0, 0, g["dgear"][0])))
     sg = gears.spur_gear(c["seg_m"], c["seg_z"], g["seg"][1] - g["seg"][0], present=seg_present(g, c))
     parts.append(prim.place(sg, tf.T(0, 0, g["seg"][0] - 0.01) @ tf.Rz(seg_phase(g, c))))
-    parts.append(shp_extrude(lock_layer_poly(g, c), g["seg"][1] + 0.05, g["lock"][1]))
+    parts.append(shp_extrude(lock_layer_poly(g, c), g["seg"][1] - 0.05, g["lock"][1]))
     parts.append(shp_extrude(polar_profile(lambda a: cam_radius(g, c, a)), g["cam"][0] - 0.01, g["cam"][1]))
     parts.append(hexprism(g["spig_af"], g["neck_s"][1] - 0.01, a1))
     # 45 deg cones under every outward step (prints without support when standing on the gear face)
@@ -526,7 +526,7 @@ def axle(g):
 def idler(g, c):
     """Wrap pinion + lock cam + idler output gear + journal, one printed part (frame: idler axis, s along z)."""
     s0, s1 = g["idl"]
-    face = g["seg"][1] - g["seg"][0]
+    face = g["seg"][1] - g["seg"][0] - 0.3          # 0.3 below the drum lock layer, which sits on the segment gear
     pin = gears.spur_gear(c["seg_m"], c["pin_z"], face, shift=c["pin_x"],
                           tip_short=tip_short_for(c["seg_m"], c["pin_z"], c["pin_x"])).translate((0, 0, g["seg"][0]))
     cam = shp_extrude(lock_cam_poly(g, c), g["lock"][0] + 0.3, g["lock"][1])

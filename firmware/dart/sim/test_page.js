@@ -363,7 +363,7 @@ async function check6(note) {
   await sleep(50);
   const dStale = await dirs();
   note(`old page p=${oldP}: STOP sent with n=${await page.evaluate('N')}; a run key with n=10 from it -> HTTP ${stale.code} "${stale.body.trim()}", kick dir ${dStale.kick} (dropped)`);
-  assert(stale.code === 200 && stale.body === '' && dStale.kick === 0, 'the stop counter did not drop a stale run key; the reload check would prove nothing');
+  assert(stale.code === 409 && stale.body.includes('sent before a stop') && dStale.kick === 0, 'the stop counter did not drop a stale run key; the reload check would prove nothing');
   await sleep(600);
   await page.reload();
   await page.waitForSelector('#b button');

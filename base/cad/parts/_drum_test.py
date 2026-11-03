@@ -31,7 +31,9 @@ def test_codes_gray_and_valid():
 def test_named_positions():
     assert K.sector(C["launch"]) == "LAUNCH"
     assert K.sector(C["neutral"]) == "NEUTRAL"
-    assert K.sector(C["wrapped"]) == "WRAPPED"
+    assert K.sector(C["wrap_start"]) == "WRAP_PREP"
+    assert K.sector(C["wrapped"]) == "N_TO_R"
+    assert K.drum_pos(C["wrapped"]) == "WRAPPED"
     assert K.sector(C["reel"]) == "REEL"
     assert K.mode(C["launch"]) == "LAUNCH"
     assert K.mode(C["neutral"]) == "NEUTRAL"
@@ -47,7 +49,7 @@ def test_code_inside_groove_dwells():
         x = K.collar_x(th)
         if s == "LAUNCH":
             assert x == -C["stroke"]
-        if s in ("NEUTRAL", "WRAPPING", "WRAPPED"):
+        if s in ("NEUTRAL", "WRAP_PREP", "WRAP"):
             assert x == 0.0
         if s == "REEL":
             assert x == C["stroke"]
@@ -81,7 +83,7 @@ def test_brake_levels():
     assert K.brake_frac(C["launch"]) == 0.0
     assert K.brake_frac(C["neutral"]) == pytest.approx(1.0)
     assert K.brake_frac(180.0) == 0.0
-    assert K.brake_frac(C["wrapped"]) == pytest.approx(1.0)
+    assert K.brake_frac(C["wrapped"]) == pytest.approx(1.0)   # FIRM at the WRAPPED park for the tidy (D22)
     assert K.brake_frac(C["reel"]) == pytest.approx(1.0)
 
 
@@ -103,19 +105,20 @@ def test_stops_clear_of_ramps():
 
 def test_stop_plan_extra_inside_dwell():
     plans = K.stop_plan()
-    assert len(plans) == 6
+    assert len(plans) == 8
     for p in plans:
         tgt = C[p["target"].lower()]
-        assert p["edge"] + (-p["extra_deg"] if p["dir"] < 0 else p["extra_deg"]) == pytest.approx(tgt)
+        d = +1 if p.get("method") == "pass_and_return" else p["dir"]
+        assert p["edge"] + d * p["extra_deg"] == pytest.approx(tgt)
         # 30 percent rate error must still land with the same code as the target
         for err in (0.7, 1.3):
-            th = p["edge"] + p["dir"] * p["extra_deg"] * err
+            th = p["edge"] + d * p["extra_deg"] * err
             assert K.sector(th) == K.sector(tgt), (p, err)
 
 
 def test_torque_budget():
     L = K.loads()
-    assert L["worst"] <= L["cap_stall"] * 0.4, L
+    assert L["margin"] >= 2.0, L          # params.DRUM.n20_ratio_min_margin
 
 
 def test_timing_positive():
@@ -126,3 +129,14 @@ def test_timing_positive():
 
 def test_stall_estimate_reasonable():
     assert 0.1 < K.stall_estimate(9.0) < 0.5
+
+
+def test_params_codes_match():
+    """Gray codes per zone equal params.DRUM.codes (bits A B C)."""
+    want = dict(LAUNCH="100", L_TO_N="110", NEUTRAL="010", WRAP_PREP="011", WRAP="001", N_TO_R="101", REEL="111")
+    for k, v in K.CODE_TABLE.items():
+        if v in want:
+            assert K.code_abc(k) == want[v], v
+    mids = dict(LAUNCH=0, L_TO_N=20, NEUTRAL=41, WRAP_PREP=56, WRAP=180, N_TO_R=320, REEL=347)
+    for zone, th in mids.items():
+        assert K.sector(th) == zone, (zone, th)

@@ -51,7 +51,7 @@ def test_joints_and_kin_cover_each_other():
 def test_forward_wiper_turns_bus_in_take_up_sense():
     a = reel.kin(P, dict(wiper_deg=0.0))
     b = reel.kin(P, dict(wiper_deg=36.0))
-    assert b["reel_bus"] - a["reel_bus"] == pytest.approx(36.0 * 40 / 24)
+    assert b["reel_bus"] - a["reel_bus"] == pytest.approx(36.0 * reel.Z_BUSMAIN / reel.Z_C1)
     # reel shaft (clutch disk) turns + too, 2.5 x wiper
     assert b["reel_shaft"] - a["reel_shaft"] == pytest.approx(36.0 * 2.5, rel=1e-9)
 
@@ -66,11 +66,11 @@ def test_wraps_map_to_cup_minus_z():
 
 
 def test_take_up_meshes_clear_at_many_angles():
-    """c2 / idler / reel gear: no tooth overlap at 13 bus angles over two tooth pitches, idler engaged."""
+    """bus gear / swing idler / reel gear: no tooth overlap at 13 bus angles over two tooth pitches, idler engaged."""
     for k in range(13):
         S = dict(bus_deg=k * 30.0 / 13.0)
         sol = reel._local_posed(P, S)
-        assert (sol["reel_c2"] ^ sol["reel_gi"]).volume() < 1e-3
+        assert (sol["reel_bus"] ^ sol["reel_gi"]).volume() < 1e-3
         assert (sol["reel_gi"] ^ sol["reel_gr"]).volume() < 1e-3
 
 
@@ -78,7 +78,7 @@ def test_parked_idler_is_out_of_mesh():
     sol = reel._local_posed(P, dict(wiper_dir=-1))
     from manifold3d import Manifold
     gap = sol["reel_gi"].min_gap(sol["reel_gr"], 5.0)
-    assert gap > 0.5
+    assert gap > 1.0
 
 
 def test_line_path_clear():

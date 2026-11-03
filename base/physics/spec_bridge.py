@@ -106,6 +106,10 @@ def apply(p, path=None):
             setattr(p.battery, pk, float(b[sk]))
     _overlay(p, getattr(mod, "LAUNCH", None), LAUNCH_MAP, used)
     lt = getattr(mod, "LAUNCH", None) or {}
+    dg = lt.get("drive_gear") if isinstance(lt.get("drive_gear"), dict) else {}
+    if dg.get("face") is not None:
+        p.launch["cock_gear"] = dict(module=float(dg.get("module", 2.5)), face=float(dg["face"]), z_driver=int(dg.get("teeth", 26)))
+        used.append("LAUNCH.drive_gear")
     if lt.get("carriage_mass_target_g") is not None:          # D36 (wins over the older _kg key)
         p.launch["carriage_mass"] = float(lt["carriage_mass_target_g"]) * 1e-3
         used.append("LAUNCH.carriage_mass_target_g")

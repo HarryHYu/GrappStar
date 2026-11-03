@@ -227,7 +227,7 @@
    "eta": 0.9,
    "gear": {
     "module": 2.5,
-    "face": 12.0,
+    "face": 7.0,
     "z_driver": 26
    }
   },
@@ -245,7 +245,7 @@
   "sprag_ratio": 1.0,
   "gear": {
    "module": 2.5,
-   "face": 12.0,
+   "face": 7.0,
    "z_driver": 26
   },
   "gear_ratio": 1.5384615384615385,
@@ -401,12 +401,12 @@
     "pass": true
    },
    "shaft_torque_at_motor_stall": 19.467552196457046,
-   "gear_sf_motor_stall": 0.599844288699286,
+   "gear_sf_motor_stall": 0.3499091684079169,
    "t_trip": 4.545454545454545,
-   "gear_sf_trip": 1.855425,
+   "gear_sf_trip": 1.0823312500000002,
    "shaft_torque_at_trip": 6.293706293706294,
-   "gear_sf_peak": 2.8257702424930593,
-   "gear_sf_stall": 1.68675,
+   "gear_sf_peak": 1.6483659747876183,
+   "gear_sf_stall": 0.9839375000000001,
    "sprag": {
     "torque_nm": 2.933765072037493,
     "rpm": 31.047175311068877,
@@ -416,9 +416,11 @@
     "pass": true
    },
    "flags": [],
-   "stall_warnings": [],
+   "stall_warnings": [
+    "gear fails (sf 0.98); relies on the trip"
+   ],
    "info": [
-    "motor stall (no limiter) 14.06 N m: shaft 19.5 N m (fail), gear sf 0.60; only if the limiter seizes"
+    "motor stall (no limiter) 14.06 N m: shaft 19.5 N m (fail), gear sf 0.35; only if the limiter seizes"
    ]
   },
   "reel": {

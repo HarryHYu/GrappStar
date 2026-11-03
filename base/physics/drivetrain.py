@@ -125,6 +125,8 @@ def aim(p: Params, **kw) -> dict:
 # ------------------------------------------------------------------ cock
 def cock(p: Params, **kw) -> dict:
     c = dict(COCK_DEFAULTS, **kw)
+    if p.launch.get("cock_gear") and "gear" not in kw:
+        c["gear"] = dict(p.launch["cock_gear"])            # as built (spec LAUNCH.drive_gear)
     L = p.launch
     pr = L["pulley_ratio"]
     ext0 = L["preload_ext"]

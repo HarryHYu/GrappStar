@@ -96,7 +96,7 @@ Manual key, same keys as the web page and Serial Monitor.
 - Both directions of one motor held at once (`1` and `!`): the motor stops and both are refused (`both directions held`)
   until neither has been pressed for a window. To reverse, release (the page then sends a stop) and press the other.
 - At low `speed` the stall line never drops below 1.5 x the motor's free current, so normal running is not taken for a
-  stall; below about speed 100 a stall may then only be stopped by the 8 s hold cap.
+  stall; below about speed 70 a stall may then only be stopped by the 8 s hold cap.
 - Other keys: space or `s` stop (same as `/stop`; with `keep=1` it stops the motors but keeps the arm, like
   `/stop?disarm=0`: the web page sends this when the last held key is released or the page loses focus), `a` auto (same as `/auto`), `r` release (same as `/release`),
   `A` arm toggle (prefer `/arm`), `+` / `-` speed, `i` current, `b` attitude, `p` status line, `f` flight log summary,

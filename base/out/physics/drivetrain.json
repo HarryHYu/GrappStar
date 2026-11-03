@@ -458,7 +458,7 @@
    "gear_sf_motor_stall": 0.7062639735329967,
    "t_trip": 3.1818181818181817,
    "gear_sf_trip": 3.120857142857143,
-   "shaft_torque_at_trip": 1.1899999999999997,
+   "shaft_torque_at_trip": 1.0304000441686707,
    "gear_sf_peak": 22.50785883738344,
    "gear_sf_stall": 1.9859999999999998,
    "sprag": {
@@ -512,7 +512,7 @@
    "gear_sf_motor_stall": 0.7062639735329967,
    "t_trip": 4.545454545454545,
    "gear_sf_trip": 2.1846,
-   "shaft_torque_at_trip": 1.6999999999999995,
+   "shaft_torque_at_trip": 1.5404000441686705,
    "gear_sf_peak": 2.327492090474072,
    "gear_sf_stall": 1.9859999999999998,
    "sprag": {
@@ -578,6 +578,7 @@
   "torque": 5.0,
   "current_slip": 7.0,
   "f_line_empty_reel": 61.11001816385968,
+  "f_capstan_empty_reel": 91.66502724578952,
   "f_line_full_reel": 60.346668138955685,
   "t_drum": 1.7104000441686704,
   "dart_hold": {

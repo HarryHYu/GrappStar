@@ -129,12 +129,12 @@
    "Capstan and tow",
    [
     [
-     "Wraps for tow limit (mu 0.15)",
-     "2.4 raw, 4 design"
+     "Wraps for tow limit at the capstan (75 N, mu 0.15)",
+     "2.9 raw, 5 design"
     ],
     [
-     "Take-up needed (design wraps)",
-     "0.07 N"
+     "Take-up needed for the tow at the actual wraps (7)",
+     "0.10 N"
     ],
     [
      "Tow at limit: torque, speed, current",
@@ -149,8 +149,12 @@
      "174 N"
     ],
     [
-     "Tow sensing: line N per wiper amp above free",
-     "11.3 N/A (line = 11.3 x (I - I_free) - 2.0 N)"
+     "Tow sensing at the dart: N per wiper amp above free",
+     "11.3 N/A (dart = 11.3 x (I - I_free) - 2.0 N)"
+    ],
+    [
+     "Tow sensing at the capstan (x1.5): N per wiper amp above free",
+     "17.0 N/A (capstan = 17.0 x (I - I_free) - 3.0 N)"
     ]
    ]
   ],

@@ -201,6 +201,7 @@ def test_snag_on_retrieve_then_retry(tmp_path):
     def retrieve():
         if state["n"] == 0:
             state["n"] = 1
+            import time; time.sleep(0.1)     # let the rig's phase sync settle first
             r.world.dart = "anchored"; r.world.slack_m = 0.0     # line caught on a rock
             try:
                 return orig()

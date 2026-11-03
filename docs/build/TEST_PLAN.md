@@ -19,14 +19,17 @@ Safety for every stage:
 
 ## Stage 0. Risk coupons (before any big print)
 
-Print the day-one risk coupon plate from the base print pack first (section 4 of the build guide). It tests, in a
-few hours of printing, the things most likely to go wrong: the swing splitter, a printed contact, the dog clutch,
-the slip clutch, the bearing seats, heat-set inserts and nut traps, the key rib and the gear meshes. Work through
-its coupon test sheet (below, or in `base/pack`).
+Print the two day-one risk coupon plates first (`base/pack/coupons/risk_plate_1.3mf` PLA and `risk_plate_2.3mf`
+PPA-CF; settings in section 4 of the build guide). They test, in a few hours of printing, the things most likely to
+go wrong: the swing splitter, a printed contact, the dog clutch, the slip clutch, the bearing seats, heat-set
+inserts and nut traps, the key rib, the gear meshes and the shear pin. Work through the test sheet
+(`base/pack/coupons/COUPON_TEST.md` or `.pdf`).
 
 Pass: every check on the coupon sheet passes.
-If it fails: change the printer setting the sheet names (hole compensation, flow, material) and print that coupon
-again. Do not start the big base parts until the coupons pass.
+If it fails: write down the test and what you saw. First check the print itself (right material, settings as in
+section 4, spool dry). If the print is right, the design number the sheet names must change: ask a Claude Code
+session in the repo to change it and re-run the coupons, then reprint only that piece (`rcN_*.stl`). Do not start
+the big base parts until the coupons pass.
 
 ## Stage 1. Power-on (no motors attached)
 

@@ -42,7 +42,8 @@ brings the dart home on the take-up until it seats; back to LAUNCH.
 
 ## Order of work
 
-0. Get the repo onto the Mac (Terminal): `cd ~ && GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/HarryHYu/GrappStar.git`
+0. Get the repo onto the Mac (Terminal; if macOS asks to install the command line developer tools for `git`,
+   say Install and run the command again): `cd ~ && GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/HarryHYu/GrappStar.git`
    (skips the 145 MB photo PDF). `cd ~/GrappStar && git pull` updates it later.
 1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5 and A8), the springs (group B), and the
    parts in H1, H3, H4. Put the

@@ -752,7 +752,10 @@ def main():
     md = build_markdown()
     ok = lint(md)
     with open(OUT_MD, "w", encoding="utf-8") as f:
-        f.write(md.replace("@@toc\n", "").replace("@@pagebreak\n", ""))
+        # image paths in the Markdown file are relative to docs/build so they show on GitHub
+        md_out = re.sub(r"!\[([^\]]*)\]\((?!http)([^)]+)\)",
+                        lambda m: f"![{m.group(1)}]({os.path.relpath(os.path.join(ROOT, m.group(2)), HERE)})", md)
+        f.write(md_out.replace("@@toc\n", "").replace("@@pagebreak\n", ""))
     main_pdf = build_pdf(md)
     added = append_pdfs(main_pdf)
     for sh in build_cheatsheets():

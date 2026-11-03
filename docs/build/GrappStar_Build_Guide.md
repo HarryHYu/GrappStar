@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 12:46 Sydney time from commit `24a6cf6`.
+Built 2026-11-03 12:50 Sydney time from commit `eda209a`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -17,7 +17,7 @@ guide after any change: `python3 docs/build/make_guide.py`.
 
 ## First session back: what to do, in order
 
-Everything else waits until these are done. About one afternoon.
+Everything else waits until these are done. The measuring takes an afternoon; the coupons wait for the 608s to arrive.
 
 ### 1. Read (15 minutes)
 
@@ -38,7 +38,8 @@ Write each number into `docs/build/MEASURE_RESULTS.md` (a fill-in sheet; print i
    weaker spring's numbers.
 3. Small parts (H1, H3, H4): drum N20 shaft, CSK20PP keyway depths, BTS7960 heatsink height and hole spacing.
 4. Count the parts box (group C): worm N20s (4 needed), the spare MP1584, 8 mm rod or M8 bolts, 693ZZ / F693ZZ left
-   after the dart, resistors (2 x 10 k, 1 k, 680 R, 100 k, 22 k), a small magnet for the AS5600, spare XT60s.
+   after the dart, resistors (2 x 10 k, 1 k, 680 R, 100 k, 22 k), a small magnet for the AS5600, spare XT60s, and
+   the coupon extras (C21: O-ring 20 x 1.5, e-clip for 8 mm, M3 x 16 and x 20, jam nut, heat-set inserts).
 5. Update the design with the numbers (build guide section 14, "After you measure"): the easy way is to open
    Claude Code in the repo, give it MEASURE_RESULTS.md and ask it to enter the numbers in params.py and re-run the
    base pipeline. By hand: the commands are in that section.
@@ -46,14 +47,17 @@ Write each number into `docs/build/MEASURE_RESULTS.md` (a fill-in sheet; print i
 ### 3. Buy
 
 - 608 bearings, 10 (search "608ZZ bearing 8x22x7").
+- Only if not in the box after counting (C21): the O-ring 20 x 1.5 and the 8 mm e-clip the coupons and the aim
+  splitter use. Ask a Claude session first whether a printed substitute exists.
 - Only if not in the box: a small neodymium disc magnet for the AS5600 (6 to 10 mm across, 2 to 3 mm thick, or
   a 6 x 2.5 mm diametric disc).
 
 ### 4. Print first (test pieces only)
 
 1. The dart fit coupon (`kedge/pack_v30/fit_coupon.stl`, 20 minutes). Check it against run sheet section 4.
-2. The base day-one risk coupon plate from the base print pack and its test sheet (test stage 0). Every check
-   must pass before the big base parts.
+2. The two base risk coupon plates (`base/pack/coupons/risk_plate_1.3mf` PLA, `risk_plate_2.3mf` PPA-CF: hardened
+   nozzle, dry spool) and the test sheet `COUPON_TEST.pdf` (test stage 0). Every check must pass before the big
+   base parts. The coupons need a few bought parts (C21) and one each of 608, F693ZZ, 693ZZ and a CSK20PP.
 3. The dart plates A and B do not wait for the base coupon or the measurements: start them once the dart fit
    coupon passes.
 
@@ -111,7 +115,8 @@ brings the dart home on the take-up until it seats; back to LAUNCH.
 
 ## Order of work
 
-0. Get the repo onto the Mac (Terminal): `cd ~ && GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/HarryHYu/GrappStar.git`
+0. Get the repo onto the Mac (Terminal; if macOS asks to install the command line developer tools for `git`,
+   say Install and run the command again): `cd ~ && GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/HarryHYu/GrappStar.git`
    (skips the 145 MB photo PDF). `cd ~/GrappStar && git pull` updates it later.
 1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5 and A8), the springs (group B), and the
    parts in H1, H3, H4. Put the
@@ -203,7 +208,8 @@ Read this before any hands-on step.
 
 # 3. Parts
 
-Everything below is already in hand except the 608 bearings (and possibly the AS5600 magnet). Section 14 group C lists the items to confirm by
+Everything below is already in hand except the 608 bearings (and possibly the AS5600 magnet, and the O-ring and
+e-clip the risk coupons list; section 14 C21). Section 14 group C lists the items to confirm by
 looking in the box.
 
 ## The only purchase: 608 bearings
@@ -266,27 +272,48 @@ heat shrink and heat gun, caliper, hex keys, tweezers, kitchen scale, luggage sc
 Printer: Bambu X2D (bed 256 x 256 x 260 mm). PLA for everything except loaded gears and keyed shafts, which are
 PPA-CF (the print list says which).
 
-Hole compensation (used by both coupons): in Bambu Studio it is a process setting, "X-Y hole compensation"
-(Process, Quality tab; the name may move between versions). Set it before slicing each plate; it is saved with the
-project, so set it on both dart plates and every base plate.
+Print settings (the 3MF files carry geometry only: set material and settings in Bambu Studio for each plate):
 
-Order: dart fit coupon first (20 minutes, checks your printer's hole sizes), then the base day-one risk coupon
-plate (below, test stage 0), then the dart plates, then the base once the coupons pass and the wiper and spring
-numbers are in (section 1, order of work).
+| Plate | Material | Layer | Walls | Infill | Top / bottom | Hole compensation |
+|---|---|---|---|---|---|---|
+| Dart fit coupon, dart plates A and B | PLA | 0.16 mm | 4 | 40% gyroid | 5 / 5 | start at 0; adjust from the dart fit coupon (run sheet section 4) |
+| Risk plate 1 | PLA | 0.2 mm | 4 | per the base print list (40% gyroid if it says nothing) | 5 / 5 | 0 ("print as exported") |
+| Risk plate 2 | PPA-CF | 0.2 mm | 4 | as above | 5 / 5 | 0 |
+| Base plates | PLA or PPA-CF as the print list says | as the base print list says (0.2 mm if it says nothing) | 4 | as above | 5 / 5 | 0, unless the coupons showed a fit off |
+
+Hole compensation is a process setting in Bambu Studio, "X-Y hole compensation" (Process, Quality tab; the name may
+move between versions). It is saved with each project, so check it on every plate.
+
+PPA-CF (risk plate 2 and the loaded base parts): hardened steel nozzle only (CF wears a brass nozzle quickly).
+Dry the spool first (about 80 C for 8 hours in a filament dryer, or the printer's own drying if it has one; it
+absorbs water and prints weak and stringy otherwise). Use the Bambu PPA-CF profile for temperatures. Print with the
+room ventilated, and wear a dust mask when sanding or trimming CF parts.
+
+Order: dart fit coupon first (20 minutes, checks your printer's hole sizes), then the two base risk coupon plates
+(below, test stage 0), then the dart plates, then the base once the coupons pass and the wiper and spring numbers
+are in (section 1, order of work).
 
 ## Day-one risk coupons (print before any big part)
 
-One plate from the base print pack with small test pieces of the riskiest features: swing splitter, printed contact,
-dog clutch, slip clutch, bearing seats, heat-set inserts and nut traps, key rib, gear meshes. Print it, then work
-through its test sheet. Do not print the big base parts until every coupon passes.
+Two plates from the base print pack with small test pieces of the riskiest features: swing splitter, printed
+contact, dog clutch, slip clutch, bearing seats, heat-set inserts and nut traps, key rib, gear meshes, shear pin.
+Print them, then work through the test sheet. Do not print the big base parts until every coupon passes.
 
-Plates: `base/pack/coupons/risk_plate_1.3mf` (PLA) and `risk_plate_2.3mf` (PPA-CF). A printable copy of the test
-sheet is `base/pack/coupons/COUPON_TEST.pdf`.
+Plates: `base/pack/coupons/risk_plate_1.3mf` (PLA, 19 pieces) and `risk_plate_2.3mf` (PPA-CF, 26 pieces). Each
+piece is also there on its own (`base/pack/coupons/rcN_*.stl`) for a reprint. A printable copy of the test sheet is
+`base/pack/coupons/COUPON_TEST.pdf`. The coupons need a few bought parts (MEASURE_LIST C21): O-ring 20 x 1.5,
+e-clip for an 8 mm pin, M3 screws and a jam nut, heat-set inserts, one each of 608ZZ, F693ZZ and 693ZZ, a CSK20PP.
+Take the CSK20PP and bearings back out of the coupons after testing: they go into the base.
+
+If a coupon fails: write down which test and what you saw, and do not change the CAD yourself. The sheet names the
+design numbers to change; give the result to a Claude Code session in the repo and ask it to change them and re-run
+the coupons (`kedge/.venv/bin/python -m tools.risk_coupon`, run in `base/`, after `bash kedge/setup_mac.sh` once).
+Then reprint only that piece from its `rcN_*.stl`.
 
 
-![Risk coupon plate (risk_plate_1.png)](base/pack/coupons/risk_plate_1.png)
+![Risk coupon plate (risk_plate_1.png)](../../base/pack/coupons/risk_plate_1.png)
 
-![Risk coupon plate (risk_plate_2.png)](base/pack/coupons/risk_plate_2.png)
+![Risk coupon plate (risk_plate_2.png)](../../base/pack/coupons/risk_plate_2.png)
 
 
 
@@ -740,7 +767,7 @@ end, looking toward the tip. The left auger (right-hand thread) must turn **cloc
 
 
 
-![Dart wiring v4 (numbers match the new cut list). To zoom in, open firmware/dart/wiring/wiring.svg on a screen.](firmware/dart/wiring/wiring.png)
+![Dart wiring v4 (numbers match the new cut list). To zoom in, open firmware/dart/wiring/wiring.svg on a screen.](../../firmware/dart/wiring/wiring.png)
 
 
 ### Run sheet wire numbers
@@ -1203,7 +1230,7 @@ unplug the battery.
 - The VTX on the dart must have its antenna on before it is powered.
 
 
-![Whole system electrical diagram (bold = battery power, dashed = signal, dotted = radio)](docs/build/system_electrical.png)
+![Whole system electrical diagram (bold = battery power, dashed = signal, dotted = radio)](system_electrical.png)
 
 ## 7.2 Base ESP32 wiring (pin by pin)
 
@@ -2809,14 +2836,17 @@ Safety for every stage:
 
 ### Stage 0. Risk coupons (before any big print)
 
-Print the day-one risk coupon plate from the base print pack first (section 4 of the build guide). It tests, in a
-few hours of printing, the things most likely to go wrong: the swing splitter, a printed contact, the dog clutch,
-the slip clutch, the bearing seats, heat-set inserts and nut traps, the key rib and the gear meshes. Work through
-its coupon test sheet (below, or in `base/pack`).
+Print the two day-one risk coupon plates first (`base/pack/coupons/risk_plate_1.3mf` PLA and `risk_plate_2.3mf`
+PPA-CF; settings in section 4 of the build guide). They test, in a few hours of printing, the things most likely to
+go wrong: the swing splitter, a printed contact, the dog clutch, the slip clutch, the bearing seats, heat-set
+inserts and nut traps, the key rib, the gear meshes and the shear pin. Work through the test sheet
+(`base/pack/coupons/COUPON_TEST.md` or `.pdf`).
 
 Pass: every check on the coupon sheet passes.
-If it fails: change the printer setting the sheet names (hole compensation, flow, material) and print that coupon
-again. Do not start the big base parts until the coupons pass.
+If it fails: write down the test and what you saw. First check the print itself (right material, settings as in
+section 4, spool dry). If the print is right, the design number the sheet names must change: ask a Claude Code
+session in the repo to change it and re-run the coupons, then reprint only that piece (`rcN_*.stl`). Do not start
+the big base parts until the coupons pass.
 
 ### Stage 1. Power-on (no motors attached)
 
@@ -3162,7 +3192,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 
 | Item | How | Changes | Reprint |
 |---|---|---|---|
-| B1 Free length L0 | Caliper the spring hook to hook (inside of the hooks), no load | `SPRING.free_len` | Nothing |
+| B1 Free length L0 | Steel rule or tape, hook to hook (inside of the hooks), no load (the spring is longer than a caliper) | `SPRING.free_len` | Nothing |
 | B2 Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load, but only if L3 - L0 is under 160 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm. Or let the computer fit it: `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` (kg:mm pairs) prints the rate and initial tension | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
 | B3 Wire and outside diameter | Caliper | `SPRING.wire`, `SPRING.od` | Spring anchors only if OD differs by more than 0.5 mm |
 | B4 Which preload hole | Decision D30: the springs are Century C-243, rated 38.4 N maximum safe load. Full cock is 265 mm extension (about 40 N each with the estimated rate; preload 23.8 mm, stroke 241.2 mm). A fallback anchor hole set gives 250 mm at full cock. After B2, re-run the physics: if the force at full cock is over 38.4 N, use the fallback hole set | assembly choice (spring anchor holes) | Nothing |
@@ -3236,7 +3266,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | G9 Line tension per amp | Line hooked to the luggage scale anchored to a post, base in REEL, `reel` slowly: note scale newtons and `amps` at 3 loads. The firmware ships the physics model (decision D33): line N = 17.0 x (amps - free amps) - 10.4, so a 50 N tow draws about 5.05 A (hard trip 6.5 A). The 17 is a model, so this check matters before any tow | firmware `k_n_per_a` and its offset (CALIBRATION.md (e)) | |
 | G10 Tow limit (choose) | The firmware ships `limit_n` 50 N (decision D3). Lower it with `{"cmd":"set","key":"limit_n","val":40}`; raise it only if G7 shows the anchor holds well above it (keep it below the holding force) | firmware `limit_n` | |
 | G11 Payout brake trim | If G4 is off: add or remove printed 0.4 mm shims under thrust ring T (reel assembly steps) | reel shims (print more) |  |
-| G12 Contact gaps | Each printed contact: the M3 screw head sits about 1.1 mm from the nut and must close halfway up its 3 mm bump. Turn the screw to set it, watch `sw` in telemetry | nothing |  |
+| G12 Contact gaps | Each printed contact: the M3 screw head sits about 0.9 mm above the nut (risk coupon 2; half a turn of an M3 screw is 0.25 mm) and must close halfway up its 3 mm bump. Turn the screw to set it, watch `sw` in telemetry | nothing |  |
 | G13 AS5600 air gap | Magnet face to chip: 1.0 mm design, 1 to 2 mm is the target (params), 0.5 to 3 mm still reads. Feeler: a stack of paper | nothing |  |
 | G14 Wiper coupler shear pin | The coupler's torque limiter is a printed PLA pin (d 4) that SHEARS at about 5 N m (3.5 to 6 N m expected). Break one spare pin on the bench: pin in the coupler, coupler held in a vice by the hub, 300 mm bar on the output side, luggage scale at 90 degrees to the bar. Note the peak: N m = kg x 9.81 x 0.30. Six spare pins are in the print pack (decision D26) | pin diameter if it breaks well outside 3.5 to 6 N m (tell the coordinator) | spare shear pins |
 | G7 Soil holding force | Dart anchored, luggage scale on the tether, pull slowly up to 50 N, note where it moves | reel tension limit |  |
@@ -3325,31 +3355,40 @@ Other documents in the repo: `kedge/pack_v30/KEDGE_v30_engineering_report.pdf` (
 | Word | Meaning here |
 |---|---|
 | 3S, 2S | Battery cells in series: 3S LiPo = 3 cells, 9.9 to 12.6 V in use; 2S 18350 = 2 cells, 6.0 to 8.4 V |
+| AF | Across flats: the spanner size of a nut or hex (M3 nut 5.5 AF) |
 | AS5600 | Magnetic angle sensor: reads a magnet on the end of the main shaft to know the wiper angle |
 | AWG | Wire size: smaller number = thicker wire. 14 AWG for the wiper, 22 to 28 AWG for signals |
+| Backlash | The small free play between two gears in mesh |
 | BASE_SPEC, params.py | The base design description and the file with every shared number (`base/spec/`) |
 | BTS7960 | The big motor driver board that runs the wiper motor in both directions |
 | Buck (MP1584) | Small board that turns a higher voltage into a lower one, set with its brass screw |
 | Capstan | A drum the line wraps round several times; friction from the wraps lets it pull hard |
 | Cock / de-cock | Draw the launch springs back / let them back down slowly without firing |
+| Crush rib | A thin printed rib that squashes to hold a bearing firmly in its seat |
 | CSK20PP, sprag | One-way bearing: turns freely one way, locks the other |
 | D9, D12, D27 ... | Numbered design decisions in `base/spec/DECISIONS.md`; they override older notes |
 | Deadman | A move that stops by itself unless the same command is sent again in time (the `jog` command) |
 | Dog clutch, collar | A sliding ring with teeth that locks the main shaft to one gear or another |
 | Drum (selector drum) | The N20-driven barrel with grooves that moves the dog collar and lays the wraps |
 | DRV8833 | Small motor driver board for the N20 motors |
+| E-clip | A small spring-steel clip that snaps into a groove on a pin to stop it sliding out |
 | estop | Emergency stop command: wiper off, drum to a safe position |
 | Fly-in | Entering REEL with the wiper creeping forward so the dog teeth find their slots |
 | Fuse | Thin link that melts and cuts the power if the current is far too high |
 | Gray code | The three drum contacts read as a 3-digit code that changes one digit at a time |
 | Heat-set insert | Brass M3 thread pressed into a printed hole with a hot soldering iron |
+| Hole compensation | Bambu Studio setting that makes printed holes slightly bigger or smaller |
 | IS | The BTS7960's current-sense output, read by the ESP32 to know the wiper current |
+| Jam nut | A second nut tightened against the first so a screw cannot turn |
 | JSON line | One command or reply as text in curly brackets, for example `{"cmd":"ping"}` |
+| Module (m1.5, m2) | Gear tooth size: pitch diameter = module x number of teeth |
 | N20 | Small 12 mm gearmotor. "Worm" N20s are right-angle and hold their position unpowered |
 | PPA-CF | Strong carbon-filled nylon filament, for loaded gears and keyed shafts |
 | Printed contact | A switch made from an M3 screw head touching an M3 nut |
 | pty | A pretend serial port on the Jetson, used by the fake base for tests |
 | Pull-down / pull-up | A resistor that holds a pin low (or high) when nothing else drives it |
+| Self-tapper | A screw that cuts its own thread into plastic |
+| SHCS | Socket head cap screw (hex key head), ISO 4762 |
 | Shear pin | A printed pin that breaks on purpose to protect the gears from the wiper's full torque |
 | Slip clutch | Friction clutch that slips above a set force: the payout brake and the take-up |
 | STEMMA QT | Adafruit's small 4-pin plug and cable (JST SH) for I2C sensors such as the AS5600 |

@@ -140,6 +140,11 @@ def apply(p, path=None):
         if cl.get("FIRM_line_n") is not None:
             p.capstan["takeup_n"] = float(cl["FIRM_line_n"])
             used.append("REEL.clutch.FIRM_line_n")
+        if isinstance(rl.get("current_trips_a"), dict):
+            p.capstan["trips"] = {k: float(v) for k, v in rl["current_trips_a"].items() if isinstance(v, (int, float))}
+            used.append("REEL.current_trips_a")
+        if rl.get("tow_limit_max_n") is not None:
+            p.capstan["tow_limit_max_n"] = float(rl["tow_limit_max_n"])
         if rl.get("tow_limit_n") is not None:
             p.capstan["tow_limit_n"] = float(rl["tow_limit_n"])
     dr = getattr(mod, "DRUM", None) or {}

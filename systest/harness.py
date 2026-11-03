@@ -704,6 +704,17 @@ class RefMission:
         except Exception:
             st = {}
         tel = b.tel or {}
+        if "LAUNCH_BUSY" in err and st.get("phase") == "UNKNOWN" and (tel.get("sw") or {}).get("H"):
+            # carriage home but the phase unknown, drum out of LAUNCH: the only firmware path back to REST is
+            # mode LAUNCH, cock (creeps to SW_HOME, re-zeroes, draws the spring), decock (FINDINGS F15)
+            rig.note("info", msg="ref: phase UNKNOWN with the carriage home outside LAUNCH: mode LAUNCH, cock, decock")
+            self.act("mode", 60, "MODE", pred=lambda e: e.get("mode") == "LAUNCH", to="LAUNCH")
+            self.act("cock", 60, "COCKED")
+            m = b.event_mark()
+            self.tx("decock")
+            self.wait("RESET", 90, m)
+            self.redo_aim = True
+            return
         if st.get("phase") in ("UNKNOWN", "COCKING") and not (tel.get("sw") or {}).get("H"):
             rig.note("info", msg="ref: carriage drawn with the phase unknown: decock")
             m = b.event_mark()
@@ -948,7 +959,7 @@ def nominal_checks():
 import re as _re
 
 C1_SEQ = (r"^(mode LAUNCH > )?aim > (cock > )?arm > fire > set line_m > (mode NEUTRAL > )?wrap > dart auto > tidy > "
-          r"mode REEL > (reel tension > )+dart release > (reel stop > )?unwrap > retrieve > mode LAUNCH$")
+          r"mode REEL > (reel tension > )+dart release > (reel stop > )?unwrap > (retrieve > )?mode LAUNCH$")
 
 
 def c1_tokens(rig) -> List[str]:

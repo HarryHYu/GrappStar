@@ -201,3 +201,24 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   list `tension_offset_n` in PROTOCOL.md section 5.
 - Harness: the calibrated bench now sets `tension_offset_n` 0 as a correct two-point calibration would;
   `ref_doc_cal` keeps the doc-literal calibration and shows the overshoot.
+
+## F15 (fw-base) power loss during the drum part of `wrap` (after the shot) leaves the phase UNKNOWN; `wrap` and `decock` are then both refused
+
+- Scenario `ref_power_wrap` (BASE_SPEC 10.1, base-v1 d15129e): after FIRED and RESET, `wrap` from LAUNCH (D22: wrap
+  straight from LAUNCH); the base is killed 1 s into the drum move (drum in L_TO_N, the wiper had finished its 3 deg
+  unload jog and was stopped), restarted 2 s later.
+  `BOOT {"record":true,"was_moving":true,"phase":"UNKNOWN","drum_known":true}`. Carriage home (`sw.H`).
+  Then: `wrap` -> `LAUNCH_BUSY` (every retry), `cal decock` / `decock` -> `NOT_IN_LAUNCH` (drum BETWEEN).
+- Where: `base_logic.h` `cmdWrap` -> `launchExitCheck()` (`:641-645`, `maybeLoaded()` true for UNKNOWN) while
+  `cmdCal("decock")` needs `detentClosed() == DP_LAUNCH` (`:880`). The moving record is written with the wiper bit at
+  the unload jog and only cleared when everything stops (`markMoving` / `persist`), so a cut during the drum-only part
+  still says the wiper was moving, and resolveBoot makes the phase UNKNOWN although the AS5600 angle is valid and
+  SW_HOME is closed.
+- The only escape is `mode LAUNCH`, `cock` (creeps to SW_HOME open, re-zeroes and DRAWS THE SPRING again while the dart
+  is out on its line), then `decock`, then `aim` again; or the bench-only `cal cock_rest`. The harness now tries that
+  path and records whether it works.
+- Suggest: clear the wiper moving bit when the wiper stops (persist with `movingBits & ~MV_WIPER` once `w` is idle),
+  so a drum-only cut keeps the shot phase; and/or after a shot with SW_HOME and SW_GAP closed and a valid AS5600 angle,
+  rebuild the phase as REST (the carriage cannot be drawn with SW_HOME closed unless SW_HOME lies, which
+  `SWITCH_DISAGREE` covers). Also let `decock` run with the drum out of LAUNCH when the carriage is home (it would
+  only need to report RESET).

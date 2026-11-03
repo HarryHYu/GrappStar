@@ -183,16 +183,16 @@ Jetson sends, what ends the wait. Everything else in C1 stays as PROTOCOL.md doc
 | 11 | `tidy` {ms, duty} | `TIDIED` | take-up only, by time (default 3000 ms, duty 0.3). `reel` until `slip` stays as an alternative |
 | 12 | `mode` REEL | `MODE` ok (REEL) | the REEL fly-in from the park |
 | 13 | `reel` {duty 1, max_n, until `tension`} | `LIMIT` holding | the tow |
-| 14 | dart `/release`, then `stop` | `ABORTED` | |
+| 14 | `stop`, then dart `/release` | `ABORTED`, then dart phase RELEASING and out of ANCHORED | the worm holds the line while the dart lets go |
 | 15 | `reel` {until `stop`}, then `stop` at line_m about 1.5 | `ABORTED` | capstan reel-in |
 | 16 | `unwrap` | `UNWRAPPED`, then `MODE` NEUTRAL | skipped when never wrapped |
-| 17 | `retrieve` {duty 0.3} | `SEATED` | take-up final approach in NEUTRAL only (FAULT `DART_STUCK` after 20 s). Never seat on the capstan |
+| 17 | `retrieve` {duty 0.3, max_s} | `SEATED` | take-up final approach in NEUTRAL only (FAULT `DART_STUCK` after max_s: default 20 + line_m / 0.08 s, the take-up is slow). Never seat on the capstan |
 | 18 | `mode` LAUNCH | `MODE` ok | back to 2 |
 
 Recovery: a fault or stop while cocking leaves the phase UNKNOWN: `decock` (same as `cal decock`), wait `RESET`, then
 `aim` again (the decock turns the aim train). A fault in the tow or the check pull offers "Release the dart" (step 14
-on), and a retry never restarts a pull that is already over the limit. A fault in REEL or N_TO_R parks the drum at
-WRAPPED 314 (fault_rules): the Jetson reads the `MODE` event (`DRUM_HELD` means the drum holds where it is).
+on), and a retry never restarts a pull that is already over the limit. A fault with the wraps on (REEL, N_TO_R, the
+WRAP sector or the park) HOLDS the drum where it is (D27): the Jetson reads the `MODE` event (`DRUM_HELD` with the reason) and offers unwrap or retry.
 
 ## 11. Physics summary (owner: physics; base/physics/FINDINGS.md)
 

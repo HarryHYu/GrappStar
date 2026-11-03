@@ -155,17 +155,22 @@ def build(out, branch, checks_file):
         ("Flash", "the base ESP32-S3 and the dart XIAO; install the Jetson software."),
         ("Test", "in the stages of TEST_PLAN, bench first. Never fire without the tether attached."),
     ]
-    mission = ["Aim: the wiper turns backward and the crank-rocker lifts the rail; a self-locking worm holds it.",
-               "Fire: the wiper turns forward one and a half turns: the big gear cocks the sled, lets go at the relieved "
-               "tooth and resets. The take-up winds the slack while cocking.",
-               "Flight: the line pays off the storage reel against a 0.5 N slip clutch; the dart films its flight.",
-               "Landing: the Jetson scores the landing zone from the nose camera and the flight log.",
-               "Anchor: the dart plants its foot and screws in its two drills.",
-               "Tidy and wrap: the base winds the slack, then the drum turns the wrap cup round the capstan 7 times "
-               "and engages REEL.",
-               "Tow: the capstan winches the rover toward the dart; sprag #2 holds the load in any state.",
-               "Release and retrieve: the dart unscrews, the capstan reels it in, the drum unwraps with take-up "
-               "running, and the take-up pulls the dart onto the sled until it is seated."]
+    # mission: one line per params.TIMELINE phase (the same 19 phases the sim and the firmware tests use)
+    names = {"load": "Load", "aim": "Aim", "cock": "Cock", "fire": "Fire", "flight": "Flight", "neutral": "Neutral",
+             "wrap": "Wrap", "wrapped": "Wrapped park", "anchor": "Anchor", "tidy": "Tidy", "reel_engage": "Reel engage",
+             "tow": "Tow", "release": "Release", "reel_in": "Reel in", "unload": "Unload", "unwrap": "Unwrap",
+             "approach": "Final approach", "to_launch": "Back to LAUNCH", "lower": "Lower"}
+    mission = []
+    for ph in getattr(P, "TIMELINE", None) or []:
+        try:
+            key, desc = ph[0], ph[2]
+        except Exception:
+            continue
+        mission.append(f"{names.get(key, key.replace('_', ' ').capitalize())}: {desc}")
+    if not mission:
+        mission = ["Aim, cock and fire on the wiper; the line pays off against a 0.5 N slip clutch.",
+                   "Right after landing the drum wraps the line 7 times round the capstan, then the dart anchors.",
+                   "Tidy, engage REEL, tow, release, reel in, unwrap, final approach until the dart is seated."]
     links = [
         ("Build guide (PDF)", "docs/build/GrappStar_Build_Guide.pdf"),
         ("Measure list", "docs/build/MEASURE_LIST.md"),

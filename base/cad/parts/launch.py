@@ -148,8 +148,8 @@ def switch_frames(P):
     w_base = w_t - zs
     y_leaf = n["y_sec"][0] - BUMP_H - 4.8                     # tip (x -4.8) pressed at the bump top, y = -8
     M = tf.mul(tf.T(u_t, y_leaf, w_base), tf.Rz(-90))
-    out["gap"] = dict(M=M, joint="launch_rail", z_s=zs, screw=6.0, x0=-3.0, width=None, top=5.0,
-                       where="right rail cheek, pressed by a cam bump on the big gear at its rest angle (gear in its gap)")
+    # SW_GAP moved to cad-sensors (sensors.py: cad.lib contact switch on its own bracket); geometry kept for reference
+    _ = dict(M=M, joint="launch_rail", z_s=zs, screw=6.0, x0=-3.0, width=None, top=5.0)
     return out
 
 
@@ -253,8 +253,7 @@ def rail_solid(P):
     # SW_GAP ledge and web on the right cheek
     u_t, w_t = home_bump_point(P)
     yA0 = n["y_chA"][0]
-    s.append(B(u_t - 13, u_t + 13, yA0, n["y_chA"][1], w_t - 13.0, -7.9))
-    s.append(B(u_t - 6.5, u_t + 6.5, -40.0, n["y_chA"][1], w_t - 13.0, w_t - 7.0))
+    # (SW_GAP ledge removed: cad-sensors' bracket screws to the cheek outer face, pilots below)
     # front anchor posts (raised to the hook, with a top strap: the pin is held in double shear) and the muzzle tie
     ua = n["u_anchor"]
     ys, wsp = n["y_spring"], n["w_spring"]
@@ -267,6 +266,11 @@ def rail_solid(P):
         s.append(B(ua - 8, ua + 8, yi2, yo2, wsp + 5.0, wsp + 11.0))               # top strap over the hook
         for yc in (0.5 * (n["y_spring"] + Y_SPRING2), yout - 1.5):                 # strap side walls between hooks
             s.append(B(ua + 2, ua + 8, *sorted((sg * (yc - 1.5), sg * (yc + 1.5))), n["w_floor0"], wsp + 11.0))
+        # fallback hole set F, ANCHOR_F rearward (params SPRING fallback asks 15; the stop frame front wall ends at
+        # u 248.15 so 8.5 is the most there is room for): the coils of a hook on the main hole pass here, so the slot
+        # is the coil size (w +-8.5) and the strap sits higher
+        s.append(B(248.3, ua - 7.99, yi2, yo2, n["w_floor0"] + 10.0 - 0.01, wsp - 8.5))
+        s.append(B(248.3, ua - 7.99, yi2, yo2, wsp + 8.5, wsp + 11.0 + 1.5))
     s.append(B(ua - 8, ua + 8, -yout, yout, n["w_floor0"] - 6, n["w_floor0"]))
     # carriage stop: printed PLA flexure units (launch_stop.py): rail ledges and hard stops
     s.append(ST.stop_rail_add(n))
@@ -288,16 +292,18 @@ def rail_solid(P):
     # anchor pins: vertical holes through post and strap
     for sg in (1, -1):
         for yy in (ys, Y_SPRING2):                                                 # second set: provision, not fitted
-            solid = solid - cyl_w(3.1, n["w_floor0"] - 1, wsp + 12.0, ua, sg * yy)
+            for uu in (ua, ua - ANCHOR_F):
+                solid = solid - cyl_w(ANCHOR_D / 2 + 0.1, n["w_floor0"] - 1, wsp + 14.0, uu, sg * yy)
+        # letter F on the fallback strap top (0.6 deep)
+        uf, yf, wt = ua - ANCHOR_F, sg * (ys + 9.0), wsp + 12.5
+        for (du0, du1, dy0, dy1) in ((-3.0, 3.0, -2.0, -0.8), (2.2, 3.0, -2.0, 2.0), (-0.4, 0.4, -2.0, 1.2)):
+            solid = solid - B(uf + du0, uf + du1, yf + dy0, yf + dy1, wt - 0.6, wt + 1)
     solid = solid - ST.stop_rail_cut(n, P)
     # clear the sleeve flange (r 32, world y 111..119) and the dog ring: nothing of the rail within r 33.5 there
     solid = solid - cyl_y(33.5, -60.0, n["y_flange"] + 8.5 - n["Y0"], 0.0, 0.0)
-    # SW_GAP pocket in the right cheek + mounting pilots
-    f = switch_frames(P)["gap"]
-    solid = solid - B(u_t - 6.0, u_t + 6.0, -30.0, n["y_chA"][1] + 0.01, w_t - 7.01, w_t + 6.0)
-    for hx in SW.mount_holes(f["x0"], f["z_s"]):
-        q = tf.apply(f["M"], np.array([[hx, 0.0, 0.0]]))[0]
-        solid = solid - cyl_w(1.3, q[2] - 6.5, q[2] + 1.0, q[0], q[1])
+    # cad-sensors SW_GAP bracket: 2 x M3 self tap pilots d2.6, 7 deep, along +y into the right cheek outer face
+    for (uu, ww) in ((48.0, 2.0), (64.0, 2.0)):
+        solid = solid - cyl_y(1.3, n["y_chA"][0] - 1.0, n["y_chA"][0] + 7.0, uu, ww)
     # SW_SEATED (left lip) and SW_HOME (right lip) lever seats: head pocket, nut pocket with an outboard slot, root pilot
     for side in ("seated", "home"):
         st = seat_geom(P, side)
@@ -537,7 +543,7 @@ SPIGOT_BORE = 12.35           # cad-drum d12 spigot runs in this bore the whole 
 def sleeve_solid(P):
     """Launch sleeve along +z from z = 0 (flange face towards the motor, world y_flange) to the outboard end.
     d20 journals, integral key rib (no keyway cut: D13) for sprag #1 and the splitter sun, flange for the drum's
-    LAUNCH dog ring (drum_NOTES 3b: OD 64 x 8, 3 x M3 at r 28 with nut traps outboard, 3 lug slots 6.4 x 3.2)."""
+    LAUNCH dog ring (D37: 3 lugs 6 x 3 on the flange face into the ring slots, 3 x M3 at r 28.5 into the tapped ring)."""
     n = L(P)
     z_end = n["Y0"] + 53.0 - n["y_flange"]
     s = prim.cyl(10.0, z_end) + prim.cyl(32.0, 8.0)
@@ -547,15 +553,15 @@ def sleeve_solid(P):
     s = s + prim.box(9.0, RIB_R, -RIB_W / 2, RIB_W / 2, zg - 7.5, zg + 7.5)
     s = s + prim.box(9.0, RIB_R, -RIB_W / 2, RIB_W / 2, z_sun1 - 8.0, z_sun1)
     s = s - prim.cyl(SPIGOT_BORE / 2, z_end + 2, z=-1)
+    # D37: 3 lugs 6.0 wide x 3.0 tall on the flange face (r 15..21, at 60/180/300 deg) into cad-drum's ring slots,
+    # 3 x M3 clearance holes at r 28.5 (0/120/240 deg), screws from this side (counterbored heads) into the tapped ring
     for k in range(3):
-        a = math.radians(45 + 120 * k)
-        x, y = 28 * math.cos(a), 28 * math.sin(a)
+        a = math.radians(120 * k)
+        x, y = 28.5 * math.cos(a), 28.5 * math.sin(a)
         s = s - prim.cyl(1.7, 10, x=x, y=y, z=-1)
-        hexr = 5.8 / 2 / 0.866
-        s = s - prim.cyl(hexr, 3.0, x=x, y=y, z=8.0 - 3.0 + 0.01, seg=6)
-        b = math.radians(60 + 120 * k)
-        slot = prim.box(15.0, 21.5, -3.2, 3.2, -0.01, 3.2)
-        s = s - prim.place(slot, tf.Rz(math.degrees(b)))
+        s = s - prim.cyl(3.0, 3.0, x=x, y=y, z=8.0 - 3.0 + 0.01)
+        lug = prim.box(15.0, 21.0, -3.0, 3.0, -3.0, 0.01)
+        s = s + prim.place(lug, tf.Rz(60 + 120 * k))
     return s
 
 
@@ -569,21 +575,25 @@ HOOK_L = 12.0     # pin centre to the first coil
 
 
 def hook_solid(P, sign=1):
-    """Spring hook loop round a d6 pin (ring about w) with a neck to the coils (towards +u for sign 1)."""
+    """Spring hook loop round a d8 pin (ring about w) with a neck to the coils (towards +u for sign 1)."""
     n = L(P)
     r = n["spring_wire"]
-    ring = prim.tube(3.0 + 2 * r, 3.0 + 0.05, r * 2, z=-r)
-    neck = prim.box(3.0, HOOK_L + 0.01, -r, r, -r, r)
+    ring = prim.tube(ANCHOR_D / 2 + 2 * r, ANCHOR_D / 2 + 0.05, r * 2, z=-r)
+    neck = prim.box(ANCHOR_D / 2, HOOK_L + 0.01, -r, r, -r, r)
     neck = neck + prim.cylX(n["spring_od"] / 2, HOOK_L - 2.0, HOOK_L) - prim.cylX(n["spring_od"] / 2 - r, HOOK_L - 3, HOOK_L + 1)
     h = ring + neck
     return h if sign > 0 else prim.place(h, tf.Rz(180))
 
 
+ANCHOR_D = 8.0     # spring anchor pins: 8 mm steel rod (Harry's stock), vertical, double shear (post + strap)
+ANCHOR_F = 8.5     # fallback hole set F rearward of the main holes (the stop frame front ends at u 248.15: 8.5 max)
+
+
 def anchor_pin_solid(P):
-    """6 mm steel pin (vertical) through post, hook and strap (double shear), head on top."""
+    """8 mm steel rod (vertical) through post, hook and strap (double shear), flush with the strap top + 1.5."""
     n = L(P)
-    h = n["w_spring"] + 12.0 - (n["w_floor0"] - 1.0)
-    return prim.cyl(3.0, h) + prim.cyl(5.0, 2.5, z=h)
+    h = n["w_spring"] + 12.5 + 1.5 - (n["w_floor0"] - 1.0)
+    return prim.cyl(ANCHOR_D / 2, h)
 
 
 N_SEG = 5
@@ -784,7 +794,7 @@ def parts(P):
                     color="#777c84", bought_ref="CSK20PP 20x47x14 sprag #1", notes="Sprag #1: forward wiper cocks"))
     sl = sleeve_solid(P)
     out.append(Part("launch_sleeve", sl, "PPA-CF", joint="launch_sleeve",
-                    place=tf.mul(tf.T(0, n["y_flange"] - n["Y0"], 0), tf.Rx(-90)), print_tf=bed(sl), color="#3a3f45",
+                    place=tf.mul(tf.T(0, n["y_flange"] - n["Y0"], 0), tf.Rx(-90)), print_tf=bed(sl, tf.Rx(180)), color="#3a3f45",
                     notes="Launch sleeve d20: dog ring flange, integral key ribs (sprag #1, splitter sun), journals"))
     # springs: hooks + coil segments that spread as the carriage moves
     seg_len = (n["L_home"] - 2 * HOOK_L) / N_SEG
@@ -794,7 +804,7 @@ def parts(P):
         ap = anchor_pin_solid(P)
         out.append(Part(f"launch_anchor_pin_{side}", ap, "steel", joint="launch_rail",
                         place=tf.T(n["u_anchor"], y, n["w_floor0"] - 1.0), color="#3a3f45",
-                        bought_ref="6 mm steel dowel or M6 bolt shank, 45 long (printed PPA-CF only as a stopgap)",
+                        bought_ref="8 mm steel rod, cut to length (see note), ends deburred",
                         notes="Spring anchor pin through post and strap (double shear)"))
         out.append(Part(f"launch_spring_{side}_hook_a", hook_solid(P, -1), "bought", joint="launch_rail",
                         place=tf.T(n["u_anchor"], y, n["w_spring"]), color="#b0b5bb", bought_ref=spref,
@@ -984,6 +994,9 @@ def kin(P, S):
     lp = _lower_progress(S)
     S_aim = dict(S)
     sleeve_cmd = S.get("sleeve_deg")
+    if sleeve_cmd is None and S.get("wiper_deg") is not None and not any(
+            S.get(k) is not None for k in ("aim_deg", "aim_psi_from_low", "aim_split", "cock", "phase_aim")):
+        sleeve_cmd = S["wiper_deg"]      # cad-drum's states (wiper only): in LAUNCH its dog ring turns with the wiper
     if sleeve_cmd is not None:
         lp = None
     if lp is not None:                                   # over the top and down the falling stroke
@@ -1042,13 +1055,25 @@ def kin(P, S):
         if sleeve_cmd is not None:
             if cocking:
                 out.update(AIM.kin_aim(P, dict(S_aim, aim_split="out", wiper_deg=float(sleeve_cmd)), pitch))
-            out["launch_sleeve"] = float(sleeve_cmd) if cocking else s_eng
+            off = (s_eng - float(sleeve_cmd) + 6.0) % 12.0 - 6.0
+            if not cocking and abs(off) > 0.5:
+                # sleeve off the 12 deg sun phase (forward of LOW): the splitter arm swings out, the crank holds
+                out.update(AIM.kin_aim(P, dict(S_aim, aim_split="out", wiper_deg=float(sleeve_cmd)), pitch))
+            # the sleeve follows sleeve_deg exactly: cad-drum's LAUNCH dog ring is bolted to it (D37 lugs)
+            out["launch_sleeve"] = float(sleeve_cmd)
         elif cocking:
             S_out = dict(S_aim, aim_split="out", wiper_deg=s_eng + drive_rel)
             out.update(AIM.kin_aim(P, S_out, pitch))
             out["launch_sleeve"] = s_eng + drive_rel
         elif fired:
             out["launch_sleeve"] = s_eng + 12.0 * round(drive_rel / 12.0)      # keeps the sun phased with the idler
+        if sleeve_cmd is None and not cocking and S.get("wiper_deg") is not None:
+            # timeline states with wiper_deg but no sleeve_deg (load): cad-drum's dog ring sits at wiper_deg, and it is
+            # bolted to the sleeve (D37), so the sleeve does too; off the sun phase the splitter arm is out
+            wv = float(S["wiper_deg"])
+            if abs((out["launch_sleeve"] - wv + 6.0) % 12.0 - 6.0) > 0.5:
+                out.update(AIM.kin_aim(P, dict(S_aim, aim_split="out", wiper_deg=wv), pitch))
+            out["launch_sleeve"] = wv
     else:
         out["launch_sleeve"] = _f(S, "wiper_deg", 0.0)
     return out
@@ -1062,6 +1087,9 @@ def dart_offsets(P, S, pitch, travel):
     fl = _f(S, "dart_flight", 0.0)
     rt = _f(S, "dart_return", 0.0)
     if fl <= 0.0 or travel > 0.0:
+        return 0.0, 0.0, 0.0
+    if S.get("phase") == "to_launch" or rt >= 1.0:
+        # home on the sled: to_launch winds dart_flight and dart_return back to 0 together (a reset, not a flight)
         return 0.0, 0.0, 0.0
     lf = dict(range_m=4.5, apex_m=1.0, t_flight_s=1.0)
     lf.update((getattr(P, "LAUNCH", None) or {}).get("flight", {}) or {})
@@ -1095,11 +1123,9 @@ def allowed(P):
         Allow("launch_spring_*_hook_c", "launch_carriage_yoke", "hook loop round the arm peg"),
         Allow("launch_stop_spring_*", "launch_carriage_yoke", "arm on the stop pad (contact)"),
         Allow("launch_spring_*", "launch_spring_*", "segmented spring model telescopes when the carriage overshoots"),
-        Allow("launch_sw_gap_screw", "launch_sw_gap", "screw threaded into the leaf"),
         Allow("launch_seat_clip", "launch_seat_plunger", "head cap pressed on the pin"),
         Allow("launch_sw_home_screw", "launch_sw_home", "screw threaded into the lever"),
         Allow("launch_sw_seated_screw", "launch_sw_seated", "screw threaded into the lever"),
-        Allow("launch_sw_rail_low_screw", "launch_sw_rail_low", "screw threaded into the leaf"),
     ] + LN.allowed_line() + ST.stop_allowed() + MZ.muzzle_allowed() + GD.guard_allowed() + _aim("allowed_aim", P)
 
 
@@ -1128,7 +1154,10 @@ def audit_states(P):
         for d in np.arange(0.0, 320.0, 20.0):
             S.append(dict(aim_deg=p, launch_travel=0.0, launch_dart_fly=float(d), phase="launch_flight"))
     S += ST.stop_audit_states(P)
-    S += _aim("audit_states_aim", P)
+    for st in _aim("audit_states_aim", P):
+        if st.get("aim_split") == "out" and st.get("wiper_deg") is not None and st.get("sleeve_deg") is None:
+            st = dict(st, sleeve_deg=st["wiper_deg"])        # cad-drum's dog ring follows sleeve_deg (D37 lugs)
+        S.append(st)
     return S
 
 
@@ -1178,7 +1207,7 @@ def steps(P):
                   "from the print sheet: the carriage body lies on its side across the bed diagonal; the stop springs "
                   "print upside down at 100 percent infill (all perimeters); rail pieces lie on their largest flat face. "
                   "0.2 mm layers, 4 walls on every loaded part. Hardware: M3 screws (x6, x10, x12, x16, x20) and nuts, "
-                  "2 x 6 mm steel pins 45 long (or M6 bolt shanks) for the spring anchors, 3 x 693ZZ for the tether "
+                  "2 x 8 mm steel rod pins (cut to the length on the print sheet) for the spring anchors, 3 x 693ZZ for the tether "
                   "pulleys, sprag #1 (CSK20PP), the two springs.",
              parts=[]),
         dict(title="Launcher 2: join the rail",
@@ -1226,29 +1255,21 @@ def steps(P):
                   "front wall with the 2 x M3 x 20 draw screws, a turn each in turn, until it sits on the wall (4.4 mm of "
                   "preload). The rear bar must rest on both ledges.",
              parts=["launch_stop_spring_l", "launch_stop_spring_r", "launch_stop_frame_l", "launch_stop_frame_r"]),
-        dict(title="Launcher 7: springs",
-             text="Hook the back end of each spring over the inner peg of the yoke arm. Put the front hook between post "
-                  "and strap, lined up with the inner hole, and push the 6 mm steel anchor pin down through strap, hook "
-                  "and post (the outer holes are for a second pair of springs later). The springs are slightly stretched "
-                  "and hold the carriage against the stop. A drop of glue or a printed cap on the pin top stops it "
-                  "working up.",
-             parts=["launch_anchor_pin_l", "launch_anchor_pin_r", "launch_spring_l_hook_a", "launch_spring_r_hook_a",
-                    "launch_spring_l_hook_c", "launch_spring_r_hook_c"] + sw),
         dict(title="Launcher 8: contacts",
              text="SW_HOME (right lip) and SW_SEATED (left lip): drop an M3 nut into the slot in the rail wall with a "
                   "stripped wire end under it. Screw an M3 x 6 up through the lever's leaf, head down, then screw the "
                   "lever root to the lip with one M3 x 10 (self tap). With the carriage on its stop, the right foot presses "
                   "SW_HOME closed; set the screw so the head just touches the nut, then back it off a quarter turn and "
                   "check it closes with the carriage home and opens 10 mm back. SW_SEATED closes only with a dart on the "
-                  "sled. SW_GAP: build the switch body with an M3 x 6 and a nut, screw it to the right cheek ledge "
-                  "(2 x M3 x 10); its tip must touch the cam bump on the big gear at rest.",
+                  "sled (no springs yet: hold the carriage on its stop by hand to check). SW_GAP, SW_RAIL_LOW and the "
+                  "AS5600 carrier are fitted in the Sensors steps (cad-sensors).",
              parts=["launch_sw_home", "launch_sw_home_screw", "launch_sw_home_nut", "launch_sw_seated",
-                    "launch_sw_seated_screw", "launch_sw_seated_nut", "launch_sw_gap", "launch_sw_gap_screw",
-                    "launch_sw_gap_nut"]),
+                    "launch_sw_seated_screw", "launch_sw_seated_nut"]),
         dict(title="Launcher 9: time the big gear (fingers clear)",
-             text="With the carriage on its stop, turn the drive gear FORWARD by hand until the first tooth after the "
-                  "toothless gap just touches the rearmost rack tooth: this is HOME and SW_GAP closes. Turning on pulls the "
-                  "carriage back smoothly; at full cock the cut last tooth lets go. Hold the drive gear from the side and "
+             text="No springs fitted yet. Hold the carriage on its stop by hand and turn the drive gear FORWARD until the "
+                  "first tooth after the toothless gap just touches the rearmost rack tooth: this is HOME and SW_GAP "
+                  "closes. Turning on pulls the carriage back smoothly; at full cock the cut last tooth lets go (push "
+                  "the carriage home by hand). Hold the drive gear from the side and "
                   "never put a hand in front of the carriage.",
              parts=[]),
         dict(title="Launcher 10: tether pulleys",
@@ -1268,8 +1289,7 @@ def steps(P):
                   "onto the M8 bolt through the housing outer wall; fit the nut. Lay the worm shaft with the small bevel in "
                   "its saddles and screw the cap on. Fit the countershaft with the output gear and the big bevel.",
              parts=["launch_aim_housing", "launch_aim_cap", "launch_aim_worm", "launch_aim_crank", "launch_aim_bolt",
-                    "launch_aim_brg_1", "launch_aim_brg_2", "launch_aim_output", "launch_aim_bevel30",
-                    "launch_sw_rail_low", "launch_sw_rail_low_screw", "launch_sw_rail_low_nut", "launch_aim_as5600"]),
+                    "launch_aim_brg_1", "launch_aim_brg_2", "launch_aim_output", "launch_aim_bevel30"]),
         dict(title="Aim 2: splitter",
              text="Slide the sun onto the sleeve's outer rib. Put the O-ring in the swing arm hub groove, slide the arm on "
                   "next to the sun, fit the idler on the arm pin with its clip. Turn the sleeve backward by hand: the arm "
@@ -1290,6 +1310,16 @@ def steps(P):
                   "one wire to its ESP32 pin (SW_HOME 21, SW_GAP 39, SW_RAIL_LOW 40, SW_SEATED 41, as params.SWITCHES), "
                   "the other to GND.",
              parts=[]),
+        dict(title="Test stage 5 only: springs (NOT during assembly)",
+             text="The springs go on at test stage 5, after the big gear timing, the contacts and the aim train have been "
+                  "checked without them. Spring guards on first (never cock with a guard off) and never fire without the "
+                  "tether attached (D11). Hook the back end of each spring over the inner peg of the yoke arm. Put the "
+                  "front hook between post and strap, lined up with the main hole, and push the 8 mm steel rod pin down "
+                  "through strap, hook and post. Hole set F, 8.5 mm rearward, is the fallback if the hang test shows the "
+                  "spring needs less stretch. The outer holes are spare. The springs are slightly stretched and hold the "
+                  "carriage against the stop. A drop of glue on the pin top stops it working up.",
+             parts=["launch_anchor_pin_l", "launch_anchor_pin_r", "launch_spring_l_hook_a", "launch_spring_r_hook_a",
+                    "launch_spring_l_hook_c", "launch_spring_r_hook_c"] + sw, stage=99),
     ]
 
 

@@ -33,19 +33,19 @@ def parts():
 
 @pytest.fixture(scope="module")
 def carriage():
-    """Carriage solid with the proposed arm change, carriage local frame."""
-    return LA.carriage_solid(P) + S.arm_solid_local()
+    """Carriage body + bolted arm yoke, carriage local frame."""
+    return LA.carriage_solid(P) + LA.carriage_yoke_solid(P)
 
 
 def test_calc_meets_spec():
     c = S.stop_calc(P)
-    assert c["travel_mm"] <= 19.0
-    assert c["energy_j_at_travel"] >= 3.0
+    assert c["travel_mm"] <= 24.0
+    assert c["energy_j_at_travel"] >= 4.2
     assert c["peak_force_n"] <= 300.0
     assert c["peak_stress_mpa"] <= 35.0
     assert c["shear_mpa"] < 10.0
-    # carriage settles on the ledges at u_stop: preload beats the main spring pull (25 N, about 50 N with the D5 pair)
-    assert c["preload_force_n"] >= 50.0
+    # carriage settles on the ledges at u_stop: preload beats the main spring pull (about 20 N)
+    assert c["preload_force_n"] >= 40.0
     assert 20.0 < c["volume_cm3"] < 80.0
 
 
@@ -66,6 +66,8 @@ def test_gaps_never_close_before_hard_stop():
     lay = S._stack_layout(N)
     assert len(lay["voids"]) == S.n_leaves() + 1
     assert min(float(np.min(hi - lo)) for lo, hi, _ in lay["voids"]) >= S.G_MIN - 1e-9
+    # every gap is at least the closure at TRAVEL (solid stack exactly there, not before)
+    assert lay["u_front"] <= S.U_FW
 
 
 def test_keepouts_static(parts):
@@ -73,6 +75,7 @@ def test_keepouts_static(parts):
     keep = []
     for sg in (1, -1):
         keep.append(("spring", LA.cyl_u(8.0, 70.0, 290.0, sg * N["y_spring"], N["w_spring"])))
+        keep.append(("D5 spring", LA.cyl_u(8.0, 70.0, 290.0, sg * 56.0, N["w_spring"])))
         keep.append(("D5 band", LA.B(70.0, 290.0, *sorted((sg * 47.0, sg * 65.0)), 51.0, 69.0)))
         keep.append(("dart flank", LA.B(60.0, 400.0, *sorted((sg * 21.5, sg * 120.0)), 84.0, 200.0)))
         keep.append(("rail strap", LA.B(N["u_anchor"] - 8, N["u_anchor"] + 8, *sorted((sg * 30.0, sg * 47.0)), 30.0, 75.0)))
@@ -81,8 +84,7 @@ def test_keepouts_static(parts):
         for nm, k in keep:
             assert _ov(p.solid, k) < TOL, (p.name, nm)
     # rail (old TPU pad brackets removed) + stop add: only face contacts
-    rail = LA.rail_solid(P) - LA.Bs(us + LA.PAD_L - 0.1, us + LA.PAD_L + 14.1, 24.9, 46.0, N["lip_w1"] + 0.05, 90.0)
-    rail = rail + S.stop_rail_add(N) - S.stop_rail_cut(N)
+    rail = LA.rail_solid(P)
     for p in parts:
         assert _ov(p.solid, rail) < TOL, p.name
     sp = [p.solid for p in parts if "spring" in p.name]
@@ -93,8 +95,8 @@ def test_keepouts_static(parts):
 
 
 def test_overshoot_arm_touches_only_contact_face(carriage):
-    """Carriage at HOME + d (d = 0..19): no volume overlap with any stop solid; the arm touches the pad of R
-    (moved with it) and, at d = 19, the hard stop."""
+    """Carriage at HOME + d (d = 0..TRAVEL): no volume overlap with any stop solid; the arm touches the pad of R
+    (moved with it)."""
     for d in np.linspace(0.0, S.TRAVEL, 7):
         c = carriage.translate((N["u_c_home"] + d, 0, 0))
         for nm, sol, role in S.stop_overshoot_solids(P, N, d):
@@ -103,11 +105,17 @@ def test_overshoot_arm_touches_only_contact_face(carriage):
                 # touching: a 0.05 mm forward shift of the carriage must bite into the pad only
                 bite = _ov(c.translate((0.05, 0, 0)), sol)
                 assert bite > 0.0, (d, nm)
-        if d == S.TRAVEL:
-            hs = [sol for nm, sol, role in S.stop_overshoot_solids(P, N, d) if role == "hardstop"]
-            assert all(_ov(c.translate((0.05, 0, 0)), h) > 0.0 for h in hs)
+
+
+def test_plunger_stays_behind_moving_R():
+    """Carriage parts other than the yoke (SW_SEATED plunger foot) never reach R, which moves with the arm."""
+    pl = [p for p in LA.parts(P) if p.name == "launch_seat_plunger"][0]
+    pls = prim.place(pl.solid, pl.place)
+    for d in np.linspace(0.0, S.TRAVEL, 7):
+        for nm, sol, role in S.stop_overshoot_solids(P, N, d):
+            assert _ov(pls.translate((d, 0, 0)), sol) < TOL, (d, nm)
 
 
 def test_audit_states_shape():
     st = S.stop_audit_states(P)
-    assert st[0]["launch_travel"] == 0.0 and abs(st[-1]["launch_travel"] + 19.0) < 1e-9
+    assert st[0]["launch_travel"] == 0.0 and abs(st[-1]["launch_travel"] + S.TRAVEL) < 1e-9

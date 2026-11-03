@@ -1042,84 +1042,107 @@ def grounded(P):
 def steps(P):
     """Assembly steps for the launcher and aim train (plain language, hardware per step)."""
     n = L(P)
+    sw = [f"launch_spring_{sd}_{i}" for sd in "lr" for i in range(N_SEG)]
     return [
         dict(title="Launcher 1: print the parts",
-             text="PPA-CF: big gear (flat), drive gear (flat), launch sleeve (standing on its flange), big gear pin and "
-                  "spring anchor pins (standing on the head), aim sun, idler, output gear, bevel, worm, crank. "
-                  "PLA: rail rear, mid and front pieces (on their side), carriage (on its side, turned 45 deg on the bed), "
-                  "the three switch bodies (flat), conrod, lug, aim housing and cap. TPU 95A: the carriage stop pad "
-                  "(if you have no TPU, print it in PLA at 15 percent gyroid and replace it when it cracks). "
-                  "0.2 mm layers, 4 walls on every loaded part.",
+             text="All PLA unless named. PPA-CF: big gear, drive gear, launch sleeve, big gear pin, SW_SEATED plunger and "
+                  "pushrod, and the aim gears (sun, idler, output, bevel, worm, crank). Use each part's print orientation "
+                  "from the print sheet: the carriage body lies on its side across the bed diagonal; the stop springs "
+                  "print upside down at 100 percent infill (all perimeters); rail pieces lie on their largest flat face. "
+                  "0.2 mm layers, 4 walls on every loaded part. Hardware: M3 screws (x6, x10, x12, x16, x20) and nuts, "
+                  "2 x 6 mm steel pins 45 long (or M6 bolt shanks) for the spring anchors, 3 x 693ZZ for the tether "
+                  "pulleys, sprag #1 (CSK20PP), the two springs.",
              parts=[]),
         dict(title="Launcher 2: join the rail",
-             text="Lay the rear, mid and front rail pieces in a line on a flat table, wall faces down. Push each joint "
-                  "together and fit 2 x M3 x 16 bolts with nuts through each flange pair (4 per joint, 8 in total). "
-                  "Tighten evenly; the inside of the track must be smooth where the pieces meet (file any step).",
+             text="Lay the rear, mid and front rail pieces in a line on a flat table. Push each joint together and fit "
+                  "2 x M3 x 16 with nuts through each flange pair (8 in total). Tighten evenly; file any step inside the "
+                  "track where the pieces meet so the carriage shoes slide over it.",
              parts=["launch_rail_rear", "launch_rail_mid", "launch_rail_front"]),
-        dict(title="Launcher 3: carriage stop pad and SW_HOME",
-             text="Press the stop pad into its pocket on the right side of the mid piece, just in front of the big gear "
-                  "pin. Build SW_HOME: drop an M3 nut into the nut trap of the switch body, slide the stripped end of one "
-                  "wire into the slot under it. Screw an M3 x 6 through the thin leaf from the tip side until the head "
-                  "just touches the nut, then back it off half a turn (0.25 mm gap). Wrap the second wire under the "
-                  "screw head side before tightening. Screw the switch onto the mid piece left of the gear with 2 x M3 x 10 "
-                  "self-tapping into the pilot holes, leaf facing back.",
-             parts=["launch_stop_pad_r", "launch_sw_home", "launch_sw_home_screw", "launch_sw_home_nut"]),
-        dict(title="Launcher 4: carriage and SW_SEATED",
-             text="Build SW_SEATED the same way with an M3 x 12 (its tip passes through the hole in the pusher and sits "
-                  "flush with the pusher face when pressed). Screw it onto the shelf behind the pusher with 2 x M3 x 10. "
-                  "Run its two wires (thin silicone wire) forward along the carriage and leave a 300 mm loop: the carriage "
-                  "moves 241 mm. Slide the carriage into the rail track from the rear end, rack teeth down.",
-             parts=["launch_carriage", "launch_sw_seated", "launch_sw_seated_screw", "launch_sw_seated_nut"]),
-        dict(title="Launcher 5: big gear",
-             text="Hold the big gear between the rail cheeks, long tooth and short (cut) tooth together, and push the "
-                  "big gear pin through cheek, gear, cheek. Snap the C clip on the groove. Turn the gear by hand: it must "
-                  "spin freely. Do not mesh it with the rack yet.",
-             parts=["launch_big_gear", "launch_gear_pin"]),
-        dict(title="Launcher 6: drive gear, sprag #1 and the launch sleeve",
-             text="Press sprag #1 into the drive gear with its outer key in the gear slot. Check the direction: holding the "
-                  "gear, the inner race must turn freely one way only, the way that is BACKWARD for the wiper. Hold the "
-                  "drive gear between the rail cheeks, the rib slots in both cheek bores pointing down. Push the launch "
-                  "sleeve in from the motor side, outboard end first: line up its short rib with the cheek slots and the "
-                  "sprag keyway, push until the rib sits inside the sprag. The drive gear must mesh with the big gear.",
+        dict(title="Launcher 3: big gear",
+             text="Hold the big gear between the two cheeks of the mid piece, the toothed sector towards the drum side "
+                  "(right) and the full ring of teeth towards the left. Push the big gear pin through cheek, gear, cheek "
+                  "from the right and snap the C clip into its groove. The gear must spin freely.",
+             parts=["launch_big_gear", "launch_gear_pin", "launch_gear_clip"]),
+        dict(title="Launcher 4: drive gear, sprag #1 and the launch sleeve",
+             text="Slide sprag #1 into the drive gear so its outer keyway takes the rib inside the gear. Check the "
+                  "direction: holding the gear, the inner race must turn freely only the BACKWARD wiper way. Hold the drive "
+                  "gear between the cheeks, meshing the big gear's full ring of teeth. Turn the cheek bores so their slots "
+                  "point down, then push the launch sleeve in from the motor side, outboard end first, ribs lined up with "
+                  "the slots and the sprag keyway, until the short rib sits inside the sprag.",
              parts=["launch_drive_gear", "launch_sprag", "launch_sleeve"]),
+        dict(title="Launcher 5: carriage",
+             text="Push the SW_SEATED pushrod into its hole in the carriage block (flat side down) and drop the plunger "
+                  "into its vertical hole from below, foot under the left arm. Bolt each spring arm onto the carriage body "
+                  "(half lap joint) with 2 x M3 x 12 from the top. Slide the carriage into the rail track from the rear end, "
+                  "rack teeth down.",
+             parts=["launch_carriage", "launch_carriage_arm_l", "launch_carriage_arm_r", "launch_seat_plunger",
+                    "launch_seat_pushrod"]),
+        dict(title="Launcher 6: carriage stops",
+             text="For each side: put the stop spring on its ledges over the main spring position, rear bar towards the "
+                  "carriage arm. Fit the stop frame over it: 2 x M3 x 12 through the rear foot into the rail wall and "
+                  "2 x M3 x 16 through the front foot into the rail front plate. Then pull the spring onto the frame's "
+                  "front wall with the 2 x M3 x 20 draw screws, a turn each in turn, until it sits on the wall (4.4 mm of "
+                  "preload). The rear bar must rest on both ledges.",
+             parts=["launch_stop_spring_l", "launch_stop_spring_r", "launch_stop_frame_l", "launch_stop_frame_r"]),
         dict(title="Launcher 7: springs",
-             text="Push each spring anchor pin down through its front post. Hook the front end of each spring over its "
-                  "anchor pin and the back end over the carriage peg (the carriage sits on its stop pad). The springs are "
-                  "slightly stretched (preload) and pull the carriage onto the pad.",
+             text="Push the spring anchor pins (6 mm steel) down through the front posts and straps, inner holes "
+                  "(the outer holes are for a second pair of springs later). Hook the front end of each spring over its "
+                  "pin between post and strap, and the back end over the inner peg of the carriage arm. The springs are "
+                  "slightly stretched and hold the carriage against the stop.",
              parts=["launch_anchor_pin_l", "launch_anchor_pin_r", "launch_spring_l_hook_a", "launch_spring_r_hook_a",
-                    "launch_spring_l_hook_c", "launch_spring_r_hook_c"]
-                   + [f"launch_spring_{sd}_{i}" for sd in "lr" for i in range(N_SEG)]),
-        dict(title="Launcher 8: time the big gear",
-             text="With the carriage on its pad, turn the drive gear FORWARD by hand (cocking direction) until the first "
-                  "big gear tooth (the one after the toothless gap) just touches the rearmost rack tooth. This is HOME. "
-                  "Turning on must pull the carriage back smoothly; at full cock the cut last tooth lets go. Never put "
-                  "fingers in front of the carriage: hold the drive gear from the side and let the carriage run home.",
+                    "launch_spring_l_hook_c", "launch_spring_r_hook_c"] + sw),
+        dict(title="Launcher 8: contacts",
+             text="SW_HOME (right lip) and SW_SEATED (left lip): drop an M3 nut into the slot in the rail wall with a "
+                  "stripped wire end under it. Screw an M3 x 6 up through the lever's leaf, head down, then screw the "
+                  "lever root to the lip with one M3 x 10 (self tap). With the carriage on its stop, the right foot presses "
+                  "SW_HOME closed; set the screw so the head just touches the nut, then back it off a quarter turn and "
+                  "check it closes with the carriage home and opens 10 mm back. SW_SEATED closes only with a dart on the "
+                  "sled. SW_GAP: build the switch body with an M3 x 6 and a nut, screw it to the right cheek ledge "
+                  "(2 x M3 x 10); its tip must touch the cam bump on the big gear at rest.",
+             parts=["launch_sw_home", "launch_sw_home_screw", "launch_sw_home_nut", "launch_sw_seated",
+                    "launch_sw_seated_screw", "launch_sw_seated_nut", "launch_sw_gap", "launch_sw_gap_screw",
+                    "launch_sw_gap_nut"]),
+        dict(title="Launcher 9: time the big gear (fingers clear)",
+             text="With the carriage on its stop, turn the drive gear FORWARD by hand until the first tooth after the "
+                  "toothless gap just touches the rearmost rack tooth: this is HOME and SW_GAP closes. Turning on pulls the "
+                  "carriage back smoothly; at full cock the cut last tooth lets go. Hold the drive gear from the side and "
+                  "never put a hand in front of the carriage.",
              parts=[]),
+        dict(title="Launcher 10: tether pulleys",
+             text="Press a 693ZZ into each printed pulley. Fit the top and bottom pulleys in the fork behind the rail "
+                  "(M3 x 16 axle, nut) and the pivot pulley on the right cheek lug under the axis (M3 x 16 from inside). "
+                  "Thread the line from the reel side under the pivot pulley, back under the rail to the bottom pulley, up "
+                  "over the top pulley and forward through the pusher hole to the dart's tail cap. Never fire without the "
+                  "tether.",
+             parts=["launch_pulley_top", "launch_pulley_top_brg", "launch_pulley_top_axle", "launch_pulley_bot",
+                    "launch_pulley_bot_brg", "launch_pulley_bot_axle", "launch_pulley_piv", "launch_pulley_piv_brg",
+                    "launch_pulley_piv_axle", "launch_line_b", "launch_line_c", "launch_line_p"]
+                   + [f"launch_line_a{k}" for k in range(LN.N_A)]),
         dict(title="Aim 1: aim housing, worm, wheel, crank",
-             text="Screw the aim housing to the deck (4 x M3). Build SW_RAIL_LOW like SW_HOME and screw it to the "
-                  "housing where the crank bump presses it. Fit the two 608 bearings into the crank (worm wheel) hub "
-                  "and slide it onto the M8 bolt through the housing outer wall; fit the nut. Lay the worm shaft with the "
-                  "small bevel in its saddles and screw the cap on. Fit the countershaft with the output gear and the big "
-                  "bevel; the bevels must mesh with a little play.",
+             text="Screw the aim housing to the deck (4 x M3). Mount the AS5600 board on the housing's outer bracket, "
+                  "chip facing the magnet on the main shaft end. Build SW_RAIL_LOW like SW_GAP and screw it to the housing "
+                  "where the crank cam presses it. Fit the two 608 bearings into the crank (worm wheel) hub and slide it "
+                  "onto the M8 bolt through the housing outer wall; fit the nut. Lay the worm shaft with the small bevel in "
+                  "its saddles and screw the cap on. Fit the countershaft with the output gear and the big bevel.",
              parts=["launch_aim_housing", "launch_aim_cap", "launch_aim_worm", "launch_aim_crank", "launch_aim_bolt",
                     "launch_aim_brg_1", "launch_aim_brg_2", "launch_aim_output", "launch_aim_bevel30",
-                    "launch_sw_rail_low", "launch_sw_rail_low_screw", "launch_sw_rail_low_nut"]),
+                    "launch_sw_rail_low", "launch_sw_rail_low_screw", "launch_sw_rail_low_nut", "launch_aim_as5600"]),
         dict(title="Aim 2: splitter",
-             text="Slide the sun onto the sleeve rib. Put the O-ring in the swing arm hub groove, slide the arm onto the "
-                  "sleeve next to the sun, fit the idler on the arm pin with its e-clip. Turn the sleeve backward by hand: "
-                  "the arm must swing the idler into the output gear and drive it; forward, the arm must swing out onto "
-                  "its stop and the output gear must stay still.",
+             text="Slide the sun onto the sleeve's outer rib. Put the O-ring in the swing arm hub groove, slide the arm on "
+                  "next to the sun, fit the idler on the arm pin with its clip. Turn the sleeve backward by hand: the arm "
+                  "swings the idler into the output gear and drives it; forward, the arm swings out onto its stop and the "
+                  "output gear stays still.",
              parts=["launch_aim_sun", "launch_aim_arm", "launch_aim_idler"]),
-        dict(title="Aim 3: lug and conrod, rail onto the frame",
-             text="Bolt the lug to the right rail wall (M3). Lower the rail assembly so the launch sleeve's outboard end "
-                  "enters the aim housing bushing and the flange meets the drum's LAUNCH dog ring (3 x M3 from the drum "
-                  "side, nuts in the sleeve flange traps). Join the conrod to the crank pin and the lug pin with C clips. "
-                  "Turn the wiper backward slowly: the rail rises to 47 deg, then lowers to 6 deg.",
+        dict(title="Aim 3: lug, conrod, rail onto the base",
+             text="Bolt the lug to the left rail wall (2 x M3 self tap). Lower the rail assembly so the sleeve's outboard "
+                  "end enters the aim housing bushing and its flange meets the drum's LAUNCH dog ring (3 x M3 from the drum "
+                  "side into the flange nut traps). Join the conrod to the crank pin and the lug pin. Turn the wiper "
+                  "backward slowly: the rail rises to 47 deg, then lowers to 6 deg.",
              parts=["launch_aim_lug", "launch_aim_conrod"]),
-        dict(title="Launcher 9: wiring (battery unplugged)",
-             text="Battery unplugged. Run the SW_HOME and SW_SEATED wires along the rail to the pivot and leave a 150 mm "
-                  "loop at the main axis before they go to the frame. SW_SEATED's loop on the carriage must not reach the "
-                  "rack or the gears. Each switch: one wire to its ESP32 pin, the other to GND.",
+        dict(title="Launcher 11: wiring (battery unplugged)",
+             text="Battery unplugged. Run the SW_HOME, SW_SEATED and SW_GAP wires along the rail to the pivot and leave a "
+                  "150 mm loop at the main axis before they go to the frame. No wire goes onto the carriage. Each contact: "
+                  "one wire to its ESP32 pin (SW_HOME 38, SW_GAP 39, SW_RAIL_LOW 40, SW_SEATED 41), the other to GND.",
              parts=[]),
     ]
 

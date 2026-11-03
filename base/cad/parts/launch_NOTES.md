@@ -24,34 +24,38 @@ sizing summary.
   4.8 deg) -> worm wheel 20T = crank. 10 wiper turns per aim cycle. The worm holds the pitch while cocking and at the
   shot.
 
-## 2. Springs, stroke, energy (direct 1:1)
+## 2. Current numbers (generated: `PYTHONPATH=. python cad/parts/launch_numbers.py`)
 
 | item | value |
 |---|---|
-| springs | 2 x Century 16 x 165.1 x 1.4, k 0.125 N/mm, F0 7 N each (P.SPRING) |
-| stroke (carriage travel at release, 2D tooth sweep) | 240.9 mm (release travel 240.2, peak 240.9) |
-| preload at HOME | 38.8 mm (P.LAUNCH.spring_preload, = max_ext 280 - stroke); fallback hole set 8.8 for 250 |
-| spring extension at full cock | 279.7 mm (limit 280) |
-| force at HOME / full cock | 23.7 N / 83.9 N total |
-| energy released | 12.7 J |
-| spring hook pin distance | 203.9 at HOME, 444.8 cocked |
+| params version | 1.2.3 |
+| springs | 2 x Century C-243 (5/8 x 6-1/2 in x 0.054 in wire), k 0.125 N/mm, F0 7.0 N each, max_ext 265.0 mm |
+| stroke (travel at release / peak) | 240.2 / 240.9 mm (design value 240.9) |
+| preload at HOME / extension at full cock | 23.8 / 264.7 mm |
+| force at HOME / full cock (both springs) | 19.9 / 80.2 N |
+| energy released | 12.06 J |
+| hook pin distance HOME / cocked | 188.9 / 429.8 mm |
+| big gear | m2.5 40T: sector layer 27 teeth (gap 117 deg) + full 40T layer |
+| drive gear | 26T, centre distance 82.6 |
+| wiper deg per shot / release at | 553.8 / 432.7 forward wiper deg from rest |
+| torque at full cock: big gear / wiper | 4.01 / 2.61 N m |
+| moving mass (carriage body + arms + seat parts) | 101.6 g (dart 279 g) |
+| carriage rear face HOME / cocked (u) | 70.6 / -170.3 |
+| rail span (u) / splits | -178.3 .. 273.5 / (-30.0, 140.0) |
+| spring anchors (u, y, w) | 263.5, +-38 (provision +-56), 60 |
+| tether pulleys (rail frame) | top (-200.9, 0.0, 78.1), bottom (-200.9, 0.0, 30.0), pivot (0.0, -21.0, -44.0) |
+| aim | pitch 6.01 .. 47.06 deg, 10 wiper deg per crank deg, worm lead 4.76 deg |
 
-1:1 is best (a pulley trades force for stroke and multiplies the moving spring mass by the ratio squared).
+1:1 springs (a pulley trades force for stroke and multiplies the moving spring mass by the ratio squared). Preload =
+SPRING.max_ext - stroke (spec D30: max_ext 265, so 23.8 mm). The stroke is fixed by the 27-tooth sector.
 
-## 3. Gears and timing
+## 3. Tooth timing
 
-| gear | value |
-|---|---|
-| rack / big gear | m 2.5; big gear 40T (pitch d 100): sector layer 27 teeth present (gap 13 teeth, 117 deg) + full layer 40T |
-| drive gear | 26T m2.5, face 8 (full-layer plane), hub holds sprag #1 on an integral outer key rib |
-| centre distance | 82.6 |
-| wiper turns per shot | 1.538 (553.8 deg) |
-| torque at full cock | big gear 4.1 N m, wiper / sprag #1 2.7 N m |
-
-Tooth timing (`launch.release_table`, real 2D contact): at rest tooth 0 is 3 pitches (27 deg) before the mesh centre
-so it is the first tooth to touch rack tooth 0 while the carriage sits on its stop (a turning gear cannot enter a
-stationary rack at the mesh centre). Release at big gear -281.25 deg = 432.7 forward wiper deg from rest. The gear then
-runs on through its gap to rest (-360). Audited with the gear lagging up to 12 deg behind during the shot.
+`launch.release_table` (real 2D tooth contact): at rest tooth 0 is 3 pitches (27 deg) before the mesh centre so it is
+the first tooth to touch rack tooth 0 while the carriage sits on its stop (a turning gear cannot enter a stationary rack
+at the mesh centre). Release at big gear -281.25 deg. The gear then runs on through its 117 deg gap to rest (-360).
+Audited with the gear lagging up to 12 deg behind during the shot; carriage rebound positions off the stop are inside
+those shot states.
 
 ## 4. Geometry (rail frame: origin on the main axis at y 140, u along the rail to the muzzle, w up, y = world y - 140)
 
@@ -60,11 +64,11 @@ World: x = u cos p - w sin p, z = u sin p + w cos p (p = pitch); world origin on
 | item | value |
 |---|---|
 | rack pitch line / dart axis | w 50.1 / w 85 (dart rests 0.4 low on the cradle) |
-| carriage rear face at HOME / cocked | u 70.6 / u -170.3 (pusher face, dart tail at HOME: u 78.6) |
 | shoe track (rail walls y +-22..28) | u -178.3 to 190 |
-| spring anchors (6 mm steel pins, double shear in post + strap) | u 276.7, y +-38, spring axis w 60 |
-| rail | u -178.3 to 286.7, 3 printed pieces split at u -30 and 140 (2 x M3 x 16 per flange pair) |
-| tether pulleys (693ZZ, printed groove r 6) | top (u -200.9, w 78.1), bottom (u -200.9, w 30), pivot (u 0, y -21, w -24) |
+| spring anchors | 6 mm steel pins in post + strap (double shear); second-pair holes at y +-56 (D5) |
+| rail | 3 printed pieces split at u -30 and 140 (2 x M3 x 16 per flange pair) |
+| tether pulleys | 693ZZ in printed pulleys (groove r 6); positions in section 2 |
+| carriage | body (|y| <= 21.5, prints on its side) + 2 bolted spring arms (half lap, 2 x M3 each) |
 | sleeve (world y) | flange 111..119 (dog ring, 3 x M3 r 28, lug slots), cheek journals 123..131 and 159.5..167.5, sprag rib 142.5..157.5, sun rib 174..182, end 193 in the aim housing bushing |
 | aim crank centre | world (58.0, about 202, -100.5) |
 
@@ -82,11 +86,14 @@ Swept envelope: rail rear dips to about z -150 at 47 deg (fork bottom about 22 a
 Firmware: shot reference = SW_GAP closing edge at the end of the forward run (or AS5600 angle); SW_HOME confirms the
 carriage really came home; SW_RAIL_LOW zeroes the aim crank on the backward run.
 
-## 6. Carriage stop
+## 6. Carriage stop (`launch_stop.py`, D26: no TPU)
 
-The spring arms (w 72..80) hit stop units on brackets over the springs at u 78.6. Harry has no TPU (D26): a printed
-PLA flexure stop (about 19 mm travel, peak under 300 N, 2.8 to 3.3 J) is being designed (`launch_stop.py`). TPU pads
-remain an optional upgrade.
+Printed PLA flexure per side: 16 closed loops (31 tapered leaves, 2.93 to 1.2 mm thick, 14 tall) lying over the main
+spring, in a bolted frame, preloaded 4.4 mm (54 N, more than the 20 N spring pull, so the carriage rests exactly at
+u_stop). Both sides: 12.4 N/mm, 3.26 J at 19 mm, peak 290 N, leaf stress 34 MPa. Hard stop on the rail at 19 mm.
+PLA returns most of the energy: the carriage rebounds up to about 100 mm before the springs and friction settle it; the
+gear is in its gap then (audited). Firmware: wait 0.5 s after the release before reading SW_HOME. TPU pads would damp
+better if Harry ever gets TPU.
 
 ## 7. Aim table for fw-base
 

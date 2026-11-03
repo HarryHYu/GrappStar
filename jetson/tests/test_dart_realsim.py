@@ -18,7 +18,7 @@ CANDIDATES = [os.environ.get("GRAPPSTAR_DART_SIM", ""),
               os.path.normpath(os.path.join(HERE, "..", "..", "firmware", "dart", "sim", "kedge_sim")),
               "/tmp/claude-0/dartsim/firmware/dart/sim/kedge_sim"]
 SIM = next((p for p in CANDIDATES if p and os.path.exists(p)), None)
-pytestmark = pytest.mark.skipif(SIM is None, reason="dart firmware simulator not built")
+pytestmark = [pytest.mark.slow, pytest.mark.skipif(SIM is None, reason="dart firmware simulator not built")]
 
 
 def _free_port():

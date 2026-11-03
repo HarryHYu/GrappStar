@@ -1,3 +1,4 @@
+import math
 import json
 
 import pytest
@@ -27,17 +28,39 @@ def test_solve_round_trip(b):
             assert b.solve(r, drag, low=True, line_margin=1.0).line_out_m == pytest.approx(r + sag, abs=0.02)
 
 
-def test_high_branch_default_low_optional(b):
+def test_placeholder_stays_in_the_rail_window(b):
+    """The placeholder uses the real rail window 6..47 (the base refuses aims outside it)."""
+    assert b.pitch_min == 6.0 and b.pitch_max == 47.0
+    for r in (4.0, 6.0, 7.5, 9.0):
+        s = b.solve(r)
+        assert s.reachable and 6.0 <= s.pitch_deg <= 47.0
+
+
+def _wide_table():
+    """Vacuum-like table over 15..60 deg so the range peaks (45 deg) inside the window: two solutions."""
+    t = []
+    for pitch in range(15, 61, 5):
+        s2 = math.sin(math.radians(2 * pitch))
+        sp = math.sin(math.radians(pitch))
+        t.append({"pitch_deg": float(pitch), "v_muzzle": 10.7,
+                  "range_m": [10.7 ** 2 * s2 / 9.81 * (1 - 0.05 * dn) for dn in (0.5, 0.75, 1.0)],
+                  "t_flight_s": [2 * 10.7 * sp / 9.81] * 3, "apex_m": [(10.7 * sp) ** 2 / 19.62] * 3})
+    return Ballistics({"version": 1, "pitch_min": 15.0, "pitch_max": 60.0, "drag_n": [0.5, 0.75, 1.0], "table": t},
+                      source="wide.json")
+
+
+def test_high_branch_default_low_optional():
     """D29 / params AIM.solver: prefer the higher pitch when two solutions exist."""
-    h = b.solve(8.0, 0.75)
-    lo = b.solve(8.0, 0.75, low=True)
-    assert lo.pitch_deg < 40 < h.pitch_deg
+    b = _wide_table()
+    h = b.solve(10.5, 0.75)
+    lo = b.solve(10.5, 0.75, low=True)
+    assert lo.pitch_deg < 45 < h.pitch_deg
     assert h.t_flight_s > lo.t_flight_s
     assert "high branch" in h.note and "low branch" in lo.note
     # the older lob flag: None = default (high), True = high, False = low
-    assert b.solve(8.0, 0.75, lob=None).pitch_deg == h.pitch_deg
-    assert b.solve(8.0, 0.75, lob=True).pitch_deg == h.pitch_deg
-    assert b.solve(8.0, 0.75, lob=False).pitch_deg == lo.pitch_deg
+    assert b.solve(10.5, 0.75, lob=None).pitch_deg == h.pitch_deg
+    assert b.solve(10.5, 0.75, lob=True).pitch_deg == h.pitch_deg
+    assert b.solve(10.5, 0.75, lob=False).pitch_deg == lo.pitch_deg
 
 
 def test_default_drag_is_light_clutch(b):

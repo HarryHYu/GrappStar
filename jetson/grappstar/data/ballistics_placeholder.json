@@ -2,14 +2,52 @@
  "version": 1,
  "placeholder": true,
  "note": "Placeholder from grappstar.ballistics.make_placeholder (point mass, v0 10.7 m/s, 0.279 kg). Replace with base/out/ballistics.json from the base physics model.",
- "pitch_min": 15.0,
- "pitch_max": 60.0,
+ "pitch_min": 6.0,
+ "pitch_max": 47.0,
  "drag_n": [
   0.5,
   0.75,
   1.0
  ],
  "table": [
+  {
+   "pitch_deg": 6.0,
+   "v_muzzle": 10.7,
+   "range_m": [
+    3.772,
+    3.712,
+    3.661
+   ],
+   "t_flight_s": [
+    0.367,
+    0.367,
+    0.368
+   ],
+   "apex_m": [
+    0.312,
+    0.312,
+    0.312
+   ]
+  },
+  {
+   "pitch_deg": 10.0,
+   "v_muzzle": 10.7,
+   "range_m": [
+    4.85,
+    4.737,
+    4.635
+   ],
+   "t_flight_s": [
+    0.482,
+    0.481,
+    0.481
+   ],
+   "apex_m": [
+    0.421,
+    0.419,
+    0.417
+   ]
+  },
   {
    "pitch_deg": 15.0,
    "v_muzzle": 10.7,
@@ -144,60 +182,22 @@
    ]
   },
   {
-   "pitch_deg": 50.0,
+   "pitch_deg": 47.0,
    "v_muzzle": 10.7,
    "range_m": [
-    9.066,
-    8.036,
-    7.114
+    9.363,
+    8.379,
+    7.486
    ],
    "t_flight_s": [
-    1.619,
-    1.591,
-    1.571
+    1.552,
+    1.527,
+    1.508
    ],
    "apex_m": [
-    3.303,
-    3.155,
-    3.019
-   ]
-  },
-  {
-   "pitch_deg": 55.0,
-   "v_muzzle": 10.7,
-   "range_m": [
-    8.356,
-    7.293,
-    6.353
-   ],
-   "t_flight_s": [
-    1.719,
-    1.689,
-    1.668
-   ],
-   "apex_m": [
-    3.705,
-    3.523,
-    3.356
-   ]
-  },
-  {
-   "pitch_deg": 60.0,
-   "v_muzzle": 10.7,
-   "range_m": [
-    7.422,
-    6.364,
-    5.45
-   ],
-   "t_flight_s": [
-    1.807,
-    1.774,
-    1.753
-   ],
-   "apex_m": [
-    4.072,
-    3.856,
-    3.659
+    3.051,
+    2.922,
+    2.803
    ]
   }
  ]

@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 13:48 Sydney time from commit `222d812`.
+Built 2026-11-03 13:59 Sydney time from commit `1e65de1`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -150,9 +150,9 @@ Read this before any hands-on step.
 
 - **Battery unplugged before you touch, add or move any wire.** On the dart that means the power loop plug out. The
   first XIAO died from wiring with the battery live.
-- Order for every power-up: USB cables in first, battery last. Power-down: battery out first. A board may stay on
+- Order for every power-up: USB cables in first, battery last. Power-down: battery out first. The base ESP32 may stay on
   the Mac's USB while the battery goes in (firmware/base/WIRING.md Part D does this), but never plug the USB in
-  while the battery is in.
+  while the battery is in. The dart: never USB and the power loop plug in at the same time.
 - Check for shorts with the meter on beep before the first power-on of anything you wired: red to black must not beep.
 - The 3S LiPo can deliver over 100 A into a short. Keep the 20 A and 10 A fuses in their leads. Never bypass them.
 - LiPo care: charge on the iMax B6 in balance mode at 1C (5.2 A) or less, on a non-flammable surface (tile,
@@ -182,11 +182,12 @@ Read this before any hands-on step.
 - **Before you walk up to the base or the dart** (to measure a range, fetch the dart, or touch anything): `estop`;
   lead #2 out; telemetry shows `cock` 0 and `H` (SW_HOME) closed; the line is slack (no tension); the dart reads
   IDLE on the operator page, or its loop plug is out. If the carriage is drawn and `decock` fails: (1) `clear` the fault and send `{"cmd":"mode","to":"LAUNCH"}` if the drum
-  is not in LAUNCH, then `decock` again; (2) if `SW_HOME` is broken or disagrees, `{"cmd":"decock","force":true}`
-  (it runs back by the travel the last angle needs); (3) if the firmware cannot run the wiper at all, unload by hand:
+  is not in LAUNCH, then `decock` again; (2) if it replies `SWITCH_DISAGREE` and you can SEE the carriage is drawn back,
+  `{"cmd":"decock","force":true}` (it runs back by the travel the saved angle needs; it trusts you); (3) if the firmware cannot run the wiper at all, unload by hand:
   battery out (the worm holds the spring where it is), safety glasses on, spring guard on, stand to the side, and
   unhook ONE spring at a time from its anchor pin with a hook tool (a bent coat-hanger wire or a long screwdriver
-  through the hook), never with fingers in the hook. Then the carriage is slack and safe.
+  through the hook), never with fingers in the hook. Then the carriage is slack and safe. Afterwards, with the
+  carriage home: `{"cmd":"cal","what":"cock_rest"}`, then `aim` again before any shot.
 - Never use the hand lever while the carriage is drawn (`cock` above 0 or `SW_HOME` open) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first.
 - The launch springs store energy. Cocked carriage = loaded. Never put a hand in front of the rail or the carriage.
   To unload a cocked base without firing, see troubleshooting. The spring hooks have little margin at full draw
@@ -738,7 +739,11 @@ The dart is built from three documents. This section says which to use for what,
   deploy = D0 / D1 at DRV#1 AIN1 / AIN2, kick = D2 / D3 at DRV#1 BIN1 / BIN2. Exception: if only ONE drill turns
   the wrong way, swap that drill's motor leads.
 - **Wire numbers changed.** The tape flags carry the NEW numbers from the new cut list. Wherever the run sheet names
-  a wire number (sections 7.6, 8b, 8d, 8e, 8f and 10), look it up in the table "Run sheet wire numbers" below.
+  a wire number (sections 2 (parts table, "in wire 18"), 6.4, 6.5, 7.1, 7.6, 8b, 8d, 8e, 8f and 10), look it up in
+  the table "Run sheet wire numbers" below. The two that matter most: run sheet 6.4 "3V3 wires (25 to 27) go only
+  to the SLP pad" means NEW wires 23 and 24; run sheet 6.5 "wire 18 has a Schottky diode" means NEW wire 16.
+- The old cut list, `wires.json` and `wiring.png` in `kedge/pack_v30/` are the 53-wire v29 files: replaced by
+  `firmware/dart/wiring/` (wire_cut_list.csv, wiring.png).
 - Use the firmware in `firmware/dart/`, not the copy inside the v30 pack. Ignore the run sheet's `firmware/reel`
   sketch: `firmware/base/` replaces it. The Adafruit INA219 library is no longer needed (BNO08x still is).
 - Run sheet section 10, "Put them in kedge_logic.h (kickContactMa, kickStallMa, deployStallMa)": kickContactMa is
@@ -756,15 +761,17 @@ The dart is built from three documents. This section says which to use for what,
    list below, not the run sheet's section 9). Set MP1584 #1 to 5.04 V and MP1584 #2 to 8.0 V
    from the 3S LiPo on XT60 lead #1 (run sheet 6.2), before either buck is soldered to anything. (This replaces
    WIRING.md step B2.) MP1584 #2 later becomes the base drum supply at 9.0 V.
+   Then fit the one capacitor (470 to 1000 uF, 10 V or more) across MP1584 #1's output: long leg OUT+, striped leg
+   OUT- (run sheet 7.1; this is the capacitor WIRING.md B2 fits).
 4. Run sheet section 6 step 4: find the SLP pad on DRV#1 and DRV#2 (WIRING.md step B6). Meter on ohms (not beep: beep only catches a dead short): SLP to VM must read over 50 ohms (a Pololu pull-up of
    tens of kilohms is fine). Under 50 ohms means the pad is the motor supply: do not put 3V3 on it.
 5. Battery unplugged. Solder the bench harness with WIRING.md Path B, steps B3 to B10 (B2 is replaced by step 3
    above), on the bench, outside the hull, motor leads left free at their far ends. B1 (cells and BMS) and every
-   wire end that goes to the BMS (P+, P-) wait for step 9.
+   wire end that goes to the BMS (P+, P-) wait for step 9. Heat-shrink or tape every free wire end (wire 9 at its
+   socket end, wire 13 at its BMS end): they are live during the bench power-up.
 6. Battery unplugged. **Click the u.FL antenna onto the VTX** (never power the VTX without it). Bench power-up: the
    8.0 V MP1584 #2 on the LiPo feeds the INA219 VIN+ pad and main ground, exactly as run sheet 7.5. Check the
-   readings there (about 4.7 V at the XIAO 5V pad, VTX LED on; the `z` I2C check (0x40 and 0x4a) is typed over USB, so do
-   it with the bench supply off and USB only, as WIRING.md's power-on check does). USB unplugged whenever the
+   readings there (about 4.7 V at the XIAO 5V pad, VTX LED on; on the KEDGE WiFi page key `z` finds 0x40 and 0x4a). USB unplugged whenever the
    bench supply is connected. BENCH_TEST.md section "Power: bench supply or battery" says how the bench supply
    stands in for the battery.
 7. Motor directions on the bench (BENCH_TEST.md, the steps that need only a loose motor; run sheet 7.6 with the
@@ -1876,7 +1883,7 @@ a power cycle and over a new upload of the same firmware version.
 - Soft start: the wiper ramps up over 300 ms (inrush once blew a 10 A fuse). It always stops for 200 ms before it
   changes direction.
 - Current trips per job (each for 30 ms, ignored for 50 ms after a start): aim and reel in 5 A, cock and fire 6.5 A,
-  tow 6.5 A or more for a high `max_n` (the tension estimate is the real tow limit), take-up 2.5 A, jogs, centering and fly-in 3 A; 17 A at any
+  tow 5 to 7.2 A, set from `max_n` (the tension estimate is the real tow limit), take-up 2.5 A, jogs, centering and fly-in 3 A; 17 A at any
   time. Stall: the shaft slower than 12 deg/s for 200 ms while driving.
 - AS5600 lost while the wiper runs, or its angle jumps so travel is lost: fault `ANGLE_SENSOR`. If the AS5600 is not reading, wiper actions and the drum
   moves that need the centering jog or the fly-in are refused (`ANGLE_SENSOR`). Exception: a build with no magnet can
@@ -1897,7 +1904,8 @@ never pull a plug while the battery is in.
 
 Arduino IDE: board XIAO_ESP32S3, Tools > USB CDC On Boot: Enabled (the sketch refuses to compile otherwise).
 Library: Adafruit BNO08x (the INA219 library is no longer needed). Open `firmware/dart/kedge_dart/kedge_dart.ino`. After the first USB
-upload you can upload over WiFi (port "kedge").
+upload you can upload over WiFi (port "kedge"). On a bare XIAO the `z` scan finds nothing: 0x40 and 0x4a only
+appear once the INA219 and BNO085 are wired.
 
 
 *From `firmware/dart/README.md`:*
@@ -2607,7 +2615,9 @@ shot phase is `UNKNOWN`. Then `aim` is refused (`PHASE_UNKNOWN`) and leaving LAU
 because only the wiper worm holds the spring and the firmware will not shift while the spring might be drawn.
 
 Look at the launcher: carriage fully forward on its stop (`H` in telemetry `sw`) and the big gear in its gap (`G`).
-Then send `{"id":1,"cmd":"cal","what":"cock_rest"}`. `SWITCH_DISAGREE` means `SW_HOME` or `SW_GAP` is open: the carriage is not
+Then send `{"id":1,"cmd":"cal","what":"cock_rest"}`. Use `"force":true` only when you have SEEN the carriage on
+its stop and a contact is known broken: the firmware then trusts you completely, and a wrong force on a drawn spring
+can FIRE on the next forward jog or `cock`. `SWITCH_DISAGREE` means `SW_HOME` or `SW_GAP` is open: the carriage is not
 home or the big gear is not in its gap, or a contact is not touching.
 
 ### (a) AS5600 magnet and direction
@@ -2857,8 +2867,10 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
 9. `{"id":8,"cmd":"unwrap"}` when done.
 
 A `FAULT` `OVERCURRENT` "wiper over 5.0 A" during a pull means the load went too high or the line jammed: `clear`
-and use lower loads. In the tow itself the trip is the larger of `tow_trip_a` (default 6.5; leave it there) and the
-current `max_n` needs plus 1 A (D34).
+and use lower loads. In the tow itself the trip is the current `max_n` needs plus 1 A, at least 5 A (D34; the
+old `tow_trip_a` setting is no longer used). These constants cannot be set while a motor runs or the reel holds
+(`BUSY`): `stop` first. On a very stiff, short line a full-speed tow can overshoot a low limit by about half; for
+low limits tow on a long line or at a lower duty.
 
 #### HX711 load cell (only if fitted)
 
@@ -3417,7 +3429,7 @@ and wiper numbers and re-run the physics, they update.
 
 ### Base station physics: summary
 
-Params: base/spec/params.py v1.2.7. Generated by base/physics/summary.py.
+Params: base/spec/params.py v1.2.8. Generated by base/physics/summary.py.
 
 #### Spring (each, A228, SF 1.2 on Shigley static limits)
 
@@ -3438,22 +3450,22 @@ Params: base/spec/params.py v1.2.7. Generated by base/physics/summary.py.
 | Spring extension full / rest | 265 / 24 mm |
 | Stored energy (2 springs) | 12.1 J |
 | Carriage force at full draw | 80 N |
-| Muzzle speed | 6.95 m/s |
+| Muzzle speed | 6.94 m/s |
 | Peak acceleration, stroke time | 19 g, 58 ms |
 | Efficiency (dart KE / stored) | 56 % |
-| Carriage KE at stop, pad peak | 1.69 J, 266 N (19 mm pad) |
-| Spring KE at stop, coil clash | 0.84 J, 8.3 m/s |
+| Carriage KE at stop, pad peak | 1.69 J, 265 N (19 mm pad) |
+| Spring KE at stop, coil clash | 0.83 J, 8.7 m/s |
 
 #### Flight (bead-chain tether + reel model, level ground)
 
 | Item | Value |
 |---|---|
 | Line path at the shot | taut (path only lengthens) |
-| Range at 0.5 / 0.75 / 1.0 N brake | 4.29 / 3.86 / 3.48 m (pitch 34) |
-| Same shot, no tether | 5.14 m |
+| Range at 0.5 / 0.75 / 1.0 N brake | 4.28 / 3.85 / 3.47 m (pitch 34) |
+| Same shot, no tether | 5.13 m |
 | Flight time, apex (0.75 N) | 0.81 s, 1.12 m |
 | Impact speed, angle (0.75 N) | 5.8 m/s, 55 deg down |
-| Ballistics table | 6 to 47 deg, best 33.5 deg: 3.86 m |
+| Ballistics table | 6 to 47 deg, best 33.5 deg: 3.85 m |
 
 #### Storage reel payout (LIGHT 0.5 N at full reel)
 
@@ -3462,7 +3474,7 @@ Params: base/spec/params.py v1.2.7. Generated by base/physics/summary.py.
 | Reel empty mass, inertia full | 46 g, 31.4 kg mm2 |
 | Line radius full / core | 30.7 / 25.0 mm (brake +23 % at core) |
 | Line pull in the stroke (spin-up) | 5.18 N |
-| Reel rpm max | 2161 rpm |
+| Reel rpm max | 2158 rpm |
 | Overrun after landing | 0.58 m in 0.27 s |
 
 #### Capstan and tow
@@ -3471,10 +3483,10 @@ Params: base/spec/params.py v1.2.7. Generated by base/physics/summary.py.
 |---|---|
 | Wraps for tow limit (mu 0.15) | 2.4 raw, 4 design |
 | Take-up needed (design wraps) | 0.07 N |
-| Tow at limit: torque, speed, current | 2.83 N m, 0.149 m/s, 4.62 A |
-| Line pull at limiter (5 N m) (12.6 V) | 92 N (break 667 N) |
-| Line pull, motor stall (no limiter, 12.6 V) | 261 N |
-| Tow sensing: line N per wiper amp above free | 17.0 N/A (line = 17.0 x (I - I_free) - 3.0 N) |
+| Tow at limit: torque, speed, current | 4.17 N m, 0.128 m/s, 6.09 A |
+| Line pull at limiter (5 N m) (12.6 V) | 61 N (break 667 N) |
+| Line pull, motor stall (no limiter, 12.6 V) | 174 N |
+| Tow sensing: line N per wiper amp above free | 11.3 N/A (line = 11.3 x (I - I_free) - 2.0 N) |
 
 #### Drivetrain (wiper at 11.1 V with sag)
 
@@ -3483,7 +3495,7 @@ Params: base/spec/params.py v1.2.7. Generated by base/physics/summary.py.
 | aim: peak torque, current, time | 0.33 N m, 1.9 A, 7 s |
 | cock: peak torque, current, time | 2.93 N m, 4.7 A, 3 s |
 | reel: peak torque, current, time | 0.43 N m, 2.0 A, 107 s |
-| tow: peak torque, current, time | 2.83 N m, 4.6 A, 33 s |
+| tow: peak torque, current, time | 4.17 N m, 6.1 A, 39 s |
 | Wiper at limiter (5 N m), 12.6 V (with sag) | 5.0 N m, 7.0 A |
 | Wiper motor stall (no limiter), 12.6 V (with sag) | 14.1 N m, 17.0 A |
 
@@ -3517,7 +3529,7 @@ First move for any problem: send `estop` (or pull the battery plug), then read t
 | Fault ANGLE_SENSOR | AS5600 cable out, magnet too far | Re-seat the STEMMA cable; magnet 1 to 3 mm from the chip, centred |
 | `pitch_deg` wrong after a restart | Pitch reference lost | Run the pitch part of the calibration again (section 10) |
 | Drum stuck between positions with the power off | Expected: the worm holds it | Loosen the cradle swing screw, swing the N20 out of mesh, use the hand lever on the drum shaft end, battery unplugged. Never use the hand lever while the carriage is drawn (`cock` above 0 or `SW_HOME` open) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first. |
-| Base cocked and you need to unload without firing | | Send `{"cmd":"cal","what":"decock"}`: the wiper runs backward slowly and the springs unwind under the worm until `SW_HOME` closes. If it fails: `clear`, `mode` LAUNCH, `decock` again; then `{"cmd":"decock","force":true}` if SW_HOME is broken; last resort the manual unload in section 2 (battery out, one spring at a time with a hook tool). Never hand-release the carriage |
+| Base cocked and you need to unload without firing | | Send `{"cmd":"cal","what":"decock"}`: the wiper runs backward slowly and the springs unwind under the worm until `SW_HOME` closes. If it fails: `clear`, `mode` LAUNCH, `decock` again; then, if it says `SWITCH_DISAGREE` and the carriage is visibly drawn, `{"cmd":"decock","force":true}`; last resort the manual unload in section 2 (battery out, one spring at a time with a hook tool). Never hand-release the carriage |
 
 ## Rover and video
 
@@ -3532,9 +3544,9 @@ First move for any problem: send `estop` (or pull the battery plug), then read t
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Serial Monitor blank | USB CDC On Boot disabled | Tools > USB CDC On Boot: Enabled, re-upload |
+| Serial Monitor blank | Wrong port, monitor not at 115200, or the board needs a reset | Check Tools > Port, 115200 baud, press the XIAO reset button once (the sketch will not even compile with USB CDC On Boot disabled) |
 | No KEDGE WiFi | XIAO not powered or crashed | Loop plug in? 5 V at the XIAO? Press reset |
-| A motor turns the wrong way | Leads reversed | Loop plug out, swap that motor's pair (run sheet section 10) |
+| A motor turns the wrong way | Leads reversed | Loop plug out, swap that motor's two thin input wires at its driver (section 6, "Reverse a motor"); only if just one drill is wrong, swap that drill's motor leads |
 | Current trip during anchoring | Stall on a stone, or the trip set too low | Re-measure stall currents (section 14 F3) and update the tuning |
 | INA219 or BNO085 not found | I2C wiring | `z` key scans; SDA and SCL must not be swapped |
 
@@ -3630,7 +3642,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 |---|---|---|---|
 | F1 Dart v30 is the one being built | Confirm | print pack choice |  |
 | F2 Bought part weights and the finished dart weight | Kitchen scale | `DART.mass_kg`, dart physics |  |
-| F3 Stall current of each dart motor at 2S | The dart `i` key while holding the shaft with pliers for 1 s | firmware/dart tuning values (see firmware/dart/README.md) |  |
+| F3 Stall current of each dart motor at 2S | The dart `i` key while braking the output for 1 s with a printed stick against the auger or pliers on the coupler (never a cloth or fingers), as BENCH_TEST.md says | firmware/dart tuning values (see firmware/dart/README.md) |  |
 | F4 OTOTEC BMS size and F693ZZ flange | Caliper (pocket is 40.8 x 8 x 2.1 plus 0.5 each way) | dart geometry if it does not fit |  |
 | F5 Nose ballast | Weigh it: 15 g | flight stability |  |
 

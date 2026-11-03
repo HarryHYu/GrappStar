@@ -1435,7 +1435,7 @@ def inject_garbage(rig):
 
 sc(Scenario("serial_garbage", "malformed and wrong lines on the serial link (boot text, bad JSON, a stale reply, split, bad UTF-8, unknown event, 300 bytes) during AIM and TOW",
             triggers=[("garbage in AIM", plant_state("AIM", delay=1.0), inject_garbage),
-                      ("garbage in TOW", plant_state("HOLD", step="TOW", delay=0.5), inject_garbage)]))
+                      ("garbage in TOW", lambda r: r.step() == "TOW" and r.plant_last.get("state") in ("REEL", "HOLD"), inject_garbage)]))
 
 
 def nogo_policy(rig, text, choices):

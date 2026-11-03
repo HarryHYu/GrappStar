@@ -154,3 +154,30 @@ def bbox_size(solid, M=None):
     s = solid if M is None else prim.place(solid, M)
     lo, hi = prim.bbox(s)
     return tuple(h - l for l, h in zip(lo, hi))
+
+
+def stl_ok(solid):
+    """True if the mesh stays watertight after merging coincident vertices (what a slicer sees)."""
+    tm = prim.to_trimesh(solid)
+    tm.merge_vertices()
+    return bool(tm.is_watertight)
+
+
+def carve_healed(solid, cut, keep_largest=True):
+    """solid - cut, keeping the largest piece; if the result is not watertight as an STL (two faces meeting along an
+    edge where a cut feature lands exactly on a solid feature), nudge the solid by a few hundredths before the
+    subtraction and shift the result back (cheap: one boolean per try)."""
+    def run(sol):
+        r = sol - cut
+        if keep_largest:
+            comps = sorted(r.decompose(), key=lambda m: -m.volume())
+            r = comps[0] if comps else r
+        return r
+    out = run(solid)
+    if stl_ok(out):
+        return out
+    for e in ((0.013, 0.007, 0.011), (-0.021, 0.017, -0.009), (0.05, -0.03, 0.04), (-0.11, 0.07, 0.09)):
+        o2 = run(solid.translate(e)).translate(tuple(-v for v in e))
+        if stl_ok(o2):
+            return o2
+    return out

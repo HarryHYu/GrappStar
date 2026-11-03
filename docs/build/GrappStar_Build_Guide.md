@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 13:59 Sydney time from commit `1e65de1`.
+Built 2026-11-03 14:48 Sydney time from commit `279d4a4`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -107,11 +107,11 @@ over WiFi (HTTP at 192.168.4.1, `firmware/dart/API.md`). Video is analog 5.8 GHz
 
 A mission (the fixed sequence in BASE_SPEC section 10.1): pick a target on the rover camera view; the Jetson looks
 up the pitch; the base aims, cocks and fires on your confirmation; the dart video is checked for the landing zone;
-the base wraps the capstan at once while the line is still slack (the drum parks at WRAPPED); the dart anchors; the
-base tidies the slack, shifts into REEL and tows; the dart releases; the base reels in to about 1.5 m, unwraps, and
+the base lowers the rail to 6 degrees, then wraps the capstan at once while the line is still slack (the drum parks at WRAPPED); the dart anchors; the
+base tidies the slack, shifts into REEL and tows; the base stops, then the dart releases; the base reels in to about 1.5 m, unwraps, and
 brings the dart home on the take-up until it seats; back to LAUNCH.
 
-Range today (from `base/out/ballistics.json`, 0.5 N payout brake, measured from the ground point under the rail pivot): best about 4.3 m at 38.5 degrees, shortest about 2.6 m at 6 degrees, leaving the rail at about 6.9 m/s. These numbers change after the spring and wiper measurements; rebuild the guide.
+Range today (from `base/out/ballistics.json`, 0.5 N payout brake, measured from the ground point under the rail pivot): best about 4.2 m at 36 degrees, shortest about 2.6 m at 6 degrees, leaving the rail at about 6.8 m/s. These numbers change after the spring and wiper measurements; rebuild the guide.
 
 ## Order of work
 
@@ -129,7 +129,7 @@ Range today (from `base/out/ballistics.json`, 0.5 N payout brake, measured from 
 3. Print the dart fit coupon, the base fit coupon and the two base risk coupon plates, and test them (section 4, test stage 0). The dart
    plates (section 4) do not wait for the base coupons or the measurements: start them any time after the dart
    fit coupon passes.
-4. Flash the dart and build it (sections 6 and 8, and the dart run sheet in the appendix).
+4. Flash the dart and build it (sections 6 and 8, and the dart run sheet `kedge/pack_v30/KEDGE_v30_run_sheet.pdf`: print it separately).
 5. Set up the Jetson on its own wall supply (section 9, steps 0 to 3 only; its step 4, plugging in the base, comes
    after step 6).
 6. Flash the base ESP32 from the Mac (section 8.1). Battery out is enough: any wiring already on the board can stay.
@@ -138,7 +138,8 @@ Range today (from `base/out/ballistics.json`, 0.5 N payout brake, measured from 
 8. Print the base (section 4, after the coupons pass and the measurements are in) and assemble it with the motor
    and drum N20 (section 5).
 9. Put the base on the rover and wire the rover (section 7.1), then do the first power-on of everything together
-   (7.1, its part 4).
+   (7.1, its part 4). Then finish the Jetson setup (section 9, steps 4 to 7: the base port, cameras, dart WiFi,
+   rover camera calibration), now with the base wired and powered.
 10. Calibrate (section 10). Commands go to the base from the Jetson from now on (see section 10).
 11. Run the staged tests from stage 4 on (section 12; stages 0 to 3 were done in steps 3, 7 and 9).
 
@@ -174,7 +175,7 @@ Read this before any hands-on step.
 
 - The wiper motor is strong (about 15 N m) and self-locking. Hands out of the gears, drum and rail while the battery
   is plugged in.
-- **Stopping (the same everywhere):** 1. send `estop` (or the STOP button on the operator page). 2. If anything
+- **Stopping (the same everywhere):** 1. send `estop` (the operator page STOP button sends a plain `stop`: wiper off, drum stays). 2. If anything
   still moves, pull lead #2's XT60: both motors lose power, the Jetson stays up. Keep that plug within arm's reach
   whenever the base is powered; it is the physical kill switch. 3. Only then the main battery plug.
 - **Cutting power freezes stored energy, it does not release it.** Both worms self-lock, so a drawn spring and a
@@ -188,7 +189,7 @@ Read this before any hands-on step.
   unhook ONE spring at a time from its anchor pin with a hook tool (a bent coat-hanger wire or a long screwdriver
   through the hook), never with fingers in the hook. Then the carriage is slack and safe. Afterwards, with the
   carriage home: `{"cmd":"cal","what":"cock_rest"}`, then `aim` again before any shot.
-- Never use the hand lever while the carriage is drawn (`cock` above 0 or `SW_HOME` open) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first.
+- Never use the hand lever while the carriage is drawn (unless `cock` is 0 AND `SW_HOME` is closed) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first.
 - The launch springs store energy. Cocked carriage = loaded. Never put a hand in front of the rail or the carriage.
   To unload a cocked base without firing, see troubleshooting. The spring hooks have little margin at full draw
   (about 40 N each at full cock against the 38.4 N rating of the Century C-243, decision D30, until the
@@ -206,8 +207,8 @@ Read this before any hands-on step.
   From the first spring test on: safety glasses on, nobody in front of the rail or within 2 m to either side, and
   the area in front clear for 30 m (four times the longest expected range, for a misfire at a wrong pitch).
 - Before every shot: look along the rail, call "firing" out loud, keep hands off the rail and carriage.
-- A cocked carriage stays loaded until it fires or is de-cocked (`cal decock`). Treat the base as loaded whenever
-  `cock` in telemetry is above 0.
+- A cocked carriage stays loaded until it fires or is de-cocked (`decock`). Treat the base as LOADED unless
+  telemetry shows `cock` 0 AND `H` (SW_HOME) closed in `sw`. Unknown (`cock` null) counts as loaded.
 - **Never fire a dart, dummy or real, without the tether tied on.** The tether keeps it nose first; without it the
   dart can tumble or come down tail first.
 - Augers and drills are sharp and turn with force. Hold the dart by the hull, never near a pod or the foot.
@@ -262,7 +263,7 @@ looking in the box.
 
 ## Dart (KEDGE v30)
 
-The full dart list with quantities is in the dart run sheet, section 2 (appendix). In short: XIAO ESP32S3, 2 x
+The full dart list with quantities is in the dart run sheet, section 2 (`kedge/pack_v30/KEDGE_v30_run_sheet.pdf`). In short: XIAO ESP32S3, 2 x
 DRV8833 (the third goes to the base), INA219, BNO085, MP1584 #1 (5.04 V), OTOTEC 2S BMS, 2 x 18350 cells, 3 worm
 N20s (kick, deploy, foot), 2 drill gearmotors, 5 x F693ZZ, Caddx Ant, Zeus VTX and antenna, JST-XH sockets,
 Schottky diode, capacitor, M3 hardware, 15 g nose ballast.
@@ -357,19 +358,19 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 
 | plate | material | objects |
 |---|---|---|
-| risk_plate_1_PLA.3mf | PLA | 20 |
+| risk_plate_1_PLA.3mf | PLA | 23 |
 | risk_plate_2_PPA-CF.3mf | PPA-CF | 26 |
 
 #### Tests
 
 ##### 1. Swing-arm direction splitter
 
-- Parts: rc1_plate, rc1_sleeve, rc1_sun, rc1_arm, rc1_idler, rc1_output, rc1_crank, rc1_stop
-- Bought: O-ring 20 x 1.5 (arm hub groove), e-clip for the d8 arm pin, 2 x M3x16
-- Do: O-ring into the arm hub groove. On the plate: sleeve on the centre pin, sun on its rib, arm on the sleeve above the sun with its pin down through the idler, e-clip on the pin, output on its pin, crank on top, stop finger on the column (2 x M3x16). Turn the crank 10 turns each way.
-- Pass: Clockwise seen from above: the arm swings the idler into the output at once and the output turns, no skipped teeth. Anticlockwise: the arm swings out to the finger within about 20 deg of crank, the idler runs free and the output stays still. No jam at engagement.
-- If it fails, change: launch_aim.py: FIT (pin and bore play), arm_solid O-ring groove (drag), A() alpha_d = alpha_e + 20 (swing out), _stop_post_xy; launch_gears.py center_distance extra / spur backlash (mesh).
-- Made from: launch_aim.sun_solid, arm_solid, idler_solid (m1.5 z30/18/30, face 8, FIT 0.35), launch_gears.spur for the output, launch_aim.A: centre distances 36.10 / 36.10, output at (11.7, 68.4), engaged arm 96.2 deg, stop 116.2 deg (launch_aim._stop_post_xy), sleeve rib launch.RIB_W 6 / RIB_R 12.8
+- Parts: rc1_plate, rc1_sleeve, rc1_sun, rc1_arm, rc1_drag_pad, rc1_drag_shim, rc1_idler_clip, rc1_idler, rc1_output, rc1_crank, rc1_stop
+- Bought: 2 x M3x16 (stop finger); everything else printed
+- Do: Push the drag pad root block and the shim into the arm hub pocket (finger in its recess). On the plate: sleeve on the centre pin, sun on its rib, arm on the sleeve above the sun with its pin down through the idler, printed C clip into the pin groove, output on its pin, crank on top, stop finger on the column (2 x M3x16). Turn the crank 10 turns each way.
+- Pass: Clockwise seen from above: the arm swings the idler into the output at once and the output turns, no skipped teeth. Anticlockwise: the arm swings out to the finger within about 20 deg of crank, the idler runs free and the output stays still. No jam at engagement. The pad drags the arm reliably both ways and the clip stays on.
+- If it fails, change: launch_aim.py: FIT (pin and bore play), DRAG_INT and DRAG_SHIM_ADJ (drag: or print a thicker shim), clips.py for the C clip, A() alpha_d = alpha_e + 20 (swing out), _stop_post_xy; launch_gears.py center_distance extra / spur backlash (mesh).
+- Made from: launch_aim.sun_solid, arm_solid, idler_solid (m1.5 z30/18/30, face 12, FIT 0.35), launch_gears.spur for the output, launch_aim.A: centre distances 36.10 / 36.10, output at (11.7, 68.4), engaged arm 96.2 deg, stop 116.2 deg (launch_aim._stop_post_xy), sleeve rib launch.RIB_W 6 / RIB_R 12.8; drag_pad_solid, drag_shim_solid (DRAG_INT 0.45, shim up to +0.25), pin_clip_solid
 
 ##### 2. Printed contact switch
 
@@ -387,7 +388,7 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 - Do: Press the rail into the base. REEL face on the journal (dogs up), collar on the hex (dogs down), fork pads in the collar groove and its sleeve on the rail, dog post clamped on the rail below the fork, SW_DOG screws in the post set 0.5 mm short of the tab nut at full engagement. Push the fork 7 mm down with the dogs tip to tip, then turn the REEL face until they drop in. Turn the face hard both ways, then pull the fork back. Meter on beep between the lower screw and the tab nut.
 - Pass: Yoke flexes when tip to tip (no jam, roofs slide off), dogs drop in within a quarter turn, under hand torque the dogs pull in, never walk out, a light pull on the fork releases them, the yoke springs back flat; the meter beeps only with the dogs fully in, never tip to tip.
 - If it fails, change: _drum_kin.py DEFAULTS dog_backcut, dog_roof, dog_deg, dog_gap, fork_k; drum.py GEOM fork_t, yoke_r, groove, dog_touch, dogpost_s; fits.py SHAFT_IN_BORE (collar on the hex, face on the journal), HOLE_SLIDE (fork on the rail).
-- Made from: drum.dog_teeth (dog_n 4, dog_h 5, dog_deg 36, backcut 4, roof 1.2, r 18..26), drum.fork, drum.dog_post (dog_touch 0.5), drum.rail, drum.hexprism, GEOM journal d30, groove (82.0, 88.0), stroke 7, neutral gap 2.5
+- Made from: drum.dog_teeth (dog_n 4, dog_h 5, dog_deg 36, backcut 4, roof 1.2, r 18..26), drum.fork, drum.dog_post (dog_touch 0.5), drum.rail, drum.hexprism, GEOM journal d32, groove (82.0, 88.0), stroke 7, neutral gap 2.5
 
 ##### 4. Face slip clutch with the flexure spring
 
@@ -438,10 +439,10 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 
 - Parts: rc9_hub_lever, rc9_outer_lever, rc9_shear_pin x3
 - Bought: string or a strap, luggage scale
-- Do: Hub slice into the outer slice, pin through both holes (head outside). Clamp the hub lever, hang the luggage scale on the outer lever hole (r 60 mm) at right angles and pull slowly until the pin shears. Break all 3 pins. Torque = kg x 9.81 x 0.06 N m.
+- Do: Print the pins lying down on their flat, as exported (D44: shear plane across the layers; never stand them up). Hub slice into the outer slice, pin through both holes (head outside). Clamp the hub lever, hang the luggage scale on the outer lever hole (r 60 mm) at right angles and pull slowly until the pin shears. Break all 3 pins. Torque = kg x 9.81 x 0.06 N m.
 - Pass: Each pin shears cleanly between 5.9 and 10.2 kg on the scale (3.5 to 6 N m, drum_NOTES; design 4.9 N m = 8.3 kg), the 3 pins within 20 percent of each other, both slices undamaged (holes still round); a fresh pin goes in by hand.
 - If it fails, change: drum.py GEOM shear_d (torque goes with d squared), hub_od (radius), shear_s; fits for the hole: drum.coupler shear hole (shear_d + 0.1) and shear_pin (shear_d - 0.04). Spec D8 / D26 limit 5 N m.
-- Made from: drum.coupler_hub and drum.coupler (sliced s 4..20), drum.shear_pin: d4 PLA in single shear at r 13 (shear_s 9); 4.9 N m at 30 MPa
+- Made from: drum.coupler_hub and drum.coupler (sliced s 4.5..20), drum.shear_pin: d4 PLA in single shear at r 13 (shear_s 9); 4.9 N m at 30 MPa
 
 ##### 10. AS5600 magnet cap (bench test)
 
@@ -456,22 +457,25 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 
 | part | material | qty | print bbox mm | what |
 |---|---|---|---|---|
-| rc1_plate | PLA | 1 | 83.3 x 83.2 x 28.3 | Splitter base: centre pin d8, output pin d8, stop finger column (2 x M3 tap) |
-| rc1_sleeve | PPA-CF | 1 | 26.0 x 26.0 x 24.5 | Sleeve stub d20 with the integral key rib (launch.RIB_W, RIB_R) under the sun and the crank |
-| rc1_sun | PPA-CF | 1 | 47.8 x 48.0 x 8.0 | launch_aim.sun_solid: sun m1.5 z30 as built |
-| rc1_arm | PPA-CF | 1 | 57.9 x 32.3 x 14.0 | launch_aim.arm_solid: swing arm as built (O-ring groove, d8 pin, clip groove) |
-| rc1_idler | PPA-CF | 1 | 30.0 x 29.7 x 8.0 | launch_aim.idler_solid: idler m1.5 z18 as built |
-| rc1_output | PPA-CF | 1 | 47.8 x 48.0 x 8.0 | Output m1.5 z30 (launch_gears.spur, face 8) on a d8 pin |
+| rc1_plate | PLA | 1 | 83.3 x 83.2 x 33.1 | Splitter base: centre pin d8, output pin d8, stop finger column (2 x M3 tap) |
+| rc1_sleeve | PPA-CF | 1 | 26.0 x 26.0 x 29.3 | Sleeve stub d20 with the integral key rib (launch.RIB_W, RIB_R) under the sun and the crank |
+| rc1_sun | PPA-CF | 1 | 47.8 x 48.0 x 12.0 | launch_aim.sun_solid: sun m1.5 z30 as built |
+| rc1_arm | PPA-CF | 1 | 61.4 x 41.0 x 19.3 | launch_aim.arm_solid: swing arm as built (drag pad pocket, d8 pin, clip groove) |
+| rc1_drag_pad | PLA | 1 | 24.6 x 8.7 x 4.0 | launch_aim.drag_pad_solid: printed flexure drag pad as built |
+| rc1_drag_shim | PLA | 1 | 9.4 x 3.0 x 4.0 | launch_aim.drag_shim_solid: nominal preload shim as built |
+| rc1_idler_clip | PLA | 1 | 10.8 x 10.0 x 1.5 | launch_aim.pin_clip_solid: printed C clip for the d8 idler pin |
+| rc1_idler | PPA-CF | 1 | 30.0 x 29.7 x 12.0 | launch_aim.idler_solid: idler m1.5 z18 as built |
+| rc1_output | PPA-CF | 1 | 47.8 x 48.0 x 12.0 | Output m1.5 z30 (launch_gears.spur, face 12) on a d8 pin |
 | rc1_crank | PPA-CF | 1 | 48.2 x 30.3 x 20.0 | Hand crank, keyed on the sleeve rib like the sun |
 | rc1_stop | PLA | 1 | 47.1 x 10.0 x 6.4 | Stop finger: rounded end at the as-built stop post position |
 | rc2_switch_base | PLA | 1 | 54.0 x 35.0 x 11.5 | contact_switch base: pad, nut pillar, hard stop, wire channel |
 | rc2_switch_lever | PLA | 1 | 50.0 x 5.0 x 8.0 | contact_switch lever, printed on its side (Y up) |
-| rc3_base | PLA | 1 | 40.0 x 91.5 x 80.7 | Base: d30 journal (REEL sleeve) and hex 22 AF (main shaft), rail hole (press) |
+| rc3_base | PLA | 1 | 40.0 x 91.5 x 97.5 | Base: d30 journal (REEL sleeve) and hex 22 AF (main shaft), rail hole (press) |
 | rc3_reel_face | PPA-CF | 1 | 61.6 x 54.0 x 9.5 | REEL gear dog face (drum.dog_teeth, phase 45) with a handle |
 | rc3_collar | PPA-CF | 1 | 60.0 x 60.0 x 18.0 | Collar lower half: drum.dog_teeth facing down, fork groove, hex bore |
-| rc3_fork | PLA | 1 | 80.9 x 100.8 x 66.0 | drum.fork as built: compliant yoke, rail sleeve, follower pin, M3 nut in the tab |
-| rc3_dog_post | PLA | 1 | 20.0 x 75.5 x 41.7 | drum.dog_post as built: SW_DOG_L / SW_DOG_R screw bosses, clamps on the rail |
-| rc3_rail | PPA-CF | 1 | 93.2 x 10.0 x 9.0 | drum.rail profile d10 with the print flat, cut to 93 long |
+| rc3_fork | PLA | 1 | 87.1 x 94.1 x 83.0 | drum.fork as built: compliant yoke, rail sleeve, follower pin, M3 nut in the tab |
+| rc3_dog_post | PLA | 1 | 20.0 x 75.9 x 41.7 | drum.dog_post as built: SW_DOG_L / SW_DOG_R screw bosses, clamps on the rail |
+| rc3_rail | PPA-CF | 1 | 110.0 x 10.0 x 9.0 | drum.rail profile d10 with the print flat, cut to 110 long |
 | rc4_hub_plate | PLA | 1 | 54.0 x 54.0 x 6.0 | clutch.slip_clutch hub_plate (library defaults) |
 | rc4_friction_disc | PLA | 1 | 57.0 x 55.0 x 3.0 | clutch.slip_clutch friction_disc (library defaults) |
 | rc4_pressure_plate | PLA | 1 | 54.0 x 54.0 x 3.5 | clutch.slip_clutch pressure_plate (library defaults) |
@@ -496,9 +500,9 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 | rc8_m25_plate | PPA-CF | 1 | 100.6 x 18.0 x 11.0 | Pins at 82.60 |
 | rc8_m25_big | PPA-CF | 1 | 61.5 x 49.0 x 6.0 | launch big gear m2.5 z40 sector: teeth 21..26 (tall, relieved) |
 | rc8_m25_drive | PPA-CF | 1 | 42.5 x 44.0 x 6.0 | launch drive gear m2.5 z26 sector |
-| rc9_hub_lever | PPA-CF | 1 | 79.0 x 26.0 x 16.0 | drum.coupler_hub slice (shear pin hole) with a lever, string hole at r 60 |
-| rc9_outer_lever | PPA-CF | 1 | 86.6 x 45.0 x 10.0 | drum.coupler slice (shear pin hole) with a lever, string hole at r 60 |
-| rc9_shear_pin | PLA | 3 | 12.1 x 5.0 x 4.1 | drum.shear_pin as built (d4 PLA), lying on its flat as drum prints it |
+| rc9_hub_lever | PPA-CF | 1 | 79.0 x 26.0 x 15.5 | drum.coupler_hub slice (shear pin hole) with a lever, string hole at r 60 |
+| rc9_outer_lever | PPA-CF | 1 | 86.0 x 40.0 x 9.5 | drum.coupler slice (shear pin hole) with a lever, string hole at r 60 |
+| rc9_shear_pin | PLA | 3 | 12.1 x 5.0 x 4.1 | drum.shear_pin as built (d4 PLA), printed LYING on its 0.4 mm flat as drum prints it (D44): the shear plane runs across the layers |
 | rc10_magnet_cap | PLA | 1 | 20.0 x 20.0 x 6.5 | drum.magnet_holder as built: AS5600 magnet cap on the d12 spigot end |
 
 
@@ -723,7 +727,8 @@ General rules for the base:
 
 The dart is built from three documents. This section says which to use for what, and in what order.
 
-- **KEDGE v30 run sheet** (appendix at the end, also `kedge/pack_v30/KEDGE_v30_run_sheet.pdf`): printing, board
+- **KEDGE v30 run sheet** (`kedge/pack_v30/KEDGE_v30_run_sheet.pdf`, a separate 10-page PDF from the dart project: print it
+  alongside this guide): printing, board
   prep, mechanical assembly, function test. Its own section numbers are used below.
 - **`firmware/dart/WIRING.md`** (below): the new wiring. It replaces the run sheet's wiring (its sections 7 and 9 and
   its wiring picture).
@@ -792,8 +797,9 @@ The dart is built from three documents. This section says which to use for what,
 
 ### KEDGE dart wiring v4 (DRV8833 #3 removed)
 
-This replaces Appendix A of `kedge/CLAUDE.md` (the v29 list of 53 wires). The new list has 50 wires:
-`wiring/wire_cut_list.csv`. Diagram: `wiring/wiring.svg` / `wiring/wiring.png`. Changes only: `wiring/changes_from_v29.csv`.
+This replaces Appendix A of `kedge/CLAUDE.md` (the v29 list of 53 wires) and the old 53-wire files in `kedge/pack_v30/`.
+The new list has 50 wires: `firmware/dart/wiring/wire_cut_list.csv`. Diagram: `firmware/dart/wiring/wiring.svg` /
+`wiring.png`. Changes only: `firmware/dart/wiring/changes_from_v29.csv`.
 Regenerate everything with `python3 firmware/dart/tools/wires_v4.py` (lengths from the v30 model, same rule as before).
 
 What changed:
@@ -833,7 +839,8 @@ Do these steps in order. Wire numbers in brackets are the v29 numbers, then the 
 - [13] DRV#2 VM to DRV#3 VM (red, 22 AWG)
 - [17] DRV#2 GND to DRV#3 GND (black, 22 AWG)
 - [27] DRV#2 SLP to DRV#3 SLP (red/white, 28 AWG)
-Wires 13 and 17 share the DRV#2 VM and GND pads with wires 12 and 15: leave 12 and 15 in place and tug them after.
+Wires [13] and [17] share the DRV#2 VM and GND pads with wires [12] and [16] (new 12 and 15): leave those in place and
+tug them after.
 Also unsolder the foot motor wires [52] [53] from DRV#3, and remove the XIAO D6 / D7 wires [42] [43] completely
 (desolder them at the XIAO end too and throw them away). Lift DRV#3 out of the sled and put it in a labelled bag for
 the base station. The pocket stays empty.
@@ -841,14 +848,14 @@ the base station. The pocket stays empty.
 **Step A3. Battery unplugged. Cut the bridge on DRV#2.** In v29 the D8 wire went to AIN1 *and* BIN1 (bridged), and the
 D9 wire to AIN2 *and* BIN2. Desolder the jumper wire or solder blob that joins AIN1 to BIN1 and AIN2 to BIN2
 (desoldering braid). The 45 mm D8 and D9 wires stay. After this:
-- D8 goes to **AIN1 only** (new wire 37)
-- D9 goes to **AIN2 only** (new wire 38)
+- D8 goes to **AIN1 only** ([40], new wire 37)
+- D9 goes to **AIN2 only** ([41], new wire 38)
 Check with the meter on beep: AIN1 to BIN1 must NOT beep. AIN2 to BIN2 must NOT beep.
 
 **Step A4. Battery unplugged. Move the right drill to channel A.** Unsolder the right drill wires from BOUT1 / BOUT2 and
 solder them to the channel A pads, keeping the swap:
-- right drill **black** to **AOUT1** (the same pad as the left drill red) (new wire 47)
-- right drill **red** to **AOUT2** (the same pad as the left drill black) (new wire 48)
+- right drill **black** to **AOUT1** (the same pad as the left drill red) ([50], new wire 47)
+- right drill **red** to **AOUT2** (the same pad as the left drill black) ([51], new wire 48)
 Two wires in one pad hole, one pad at a time: desolder the left drill red from AOUT1 (braid or pump). Strip 3 mm of
 it and of the right drill black, twist the two bare ends together, tin them, push them through the hole, solder. Trim
 the ends flush on the far side. Check with a magnifier that no strand touches the next pad. Tug both. Then the same on
@@ -862,8 +869,8 @@ AOUT2 with the left drill black and the right drill red.
 bay behind the cells, not in the sled. Cut two new 330 mm silicone 26 AWG wires (red and black). Run them forward
 along the top of the hull through the disc notches (with the camera wires), out the skin hole, a 60 mm loop round the
 kick hub, then down the pole channel:
-- DRV#2 **BOUT1** to foot N20 **+ (red)** (new wire 49)
-- DRV#2 **BOUT2** to foot N20 **- (black)** (new wire 50)
+- DRV#2 **BOUT1** to foot N20 **+ (red)** ([52], new wire 49)
+- DRV#2 **BOUT2** to foot N20 **- (black)** ([53], new wire 50)
 If the old 255 mm foot wires are already through the pole channel, you may instead solder an 80 mm extension at the
 DRV#2 end: joint inside the hull, heat shrunk, never in the hub loop.
 
@@ -873,6 +880,7 @@ DRV#2 end: joint inside the hull, heat shrunk, never in the hub loop.
 - DRV#2 BOUT1 beeps to the foot red, BOUT2 to the foot black.
 - No beep between any AOUT pad and any BOUT pad.
 - No beep between XIAO D6, D7, D8, D9 (each pair).
+- DRV#2 GND beeps to DRV#1 GND, and DRV#2 VM beeps to DRV#1 VM (the pads reheated in step A2).
 - Meter on ohms (not beep): AOUT1 to AOUT2 and BOUT1 to BOUT2 read a few ohms or more (that is the motor winding),
   never 0.0.
 - VM to GND: a short chirp is a capacitor charging and is fine; a steady beep is a short: find it before power.
@@ -880,11 +888,12 @@ Then go to "Power-on check" below.
 
 #### Path B: fresh build (the whole harness)
 
-Use `wiring/wire_cut_list.csv` for colours, gauges and cut lengths. Cut every wire 10 mm longer than listed if you are
+Use `firmware/dart/wiring/wire_cut_list.csv` for colours, gauges and cut lengths. Cut every wire 10 mm longer than listed if you are
 unsure; trim at the end. Work in this order. Every step starts with the battery unplugged.
 
 **Step B1. Battery unplugged. Cells and BMS** (wires 1 to 8). Solder the plate tabs before the plates go in their
 recesses. The series link (wire 2) carries the full current: 22 AWG. Charge socket pins: 1 = B-, 2 = BM, 3 = B+.
+Wire 8: BMS P+ to power loop socket pin 1 (red, 22 AWG).
 
 **Step B2. Battery unplugged. Set the buck before it is wired in** (as in the run sheet step 6.2). With the LiPo
 unplugged, clip or solder the MP1584 IN+ / IN- to the fused side of XT60 lead #1 (red to IN+, black to IN-), nothing on
@@ -922,9 +931,10 @@ BIN1, BIN2 (kick). D8, D9 to DRV#2 AIN1, AIN2 (drills). D6, D7 to DRV#2 BIN1, BI
 - DRV#2 BOUT1 / BOUT2 to foot red / black (330 mm silicone).
 
 **Step B10. Battery unplugged. Meter checks:** the list in step A7, plus 5V to GND and 3V3 to GND: no steady beep.
+The motors are not connected yet on this path, so AOUT1 to AOUT2 and BOUT1 to BOUT2 read open (`OL`): that is correct.
 
-**Optional, if you have them (recommended):**
-- 470 to 1000 uF, 10 V or more, across the XIAO 5V and GND pins, on the XIAO side of the Schottky diode (long leg to 5V).
+**Optional, if you have them (recommended). Battery unplugged, USB unplugged before you solder them:**
+- 470 to 1000 uF, 10 V or more, across the MP1584 output (long leg to OUT+, short leg to OUT-), as in the build guide.
   It keeps the XIAO running through a short power break at impact (the JST plug is the only power path), so the
   flight state survives. Glue or tape the power loop plug so it cannot shake loose.
 - 100 uF, 16 V, across DRV#1 VM and GND (long leg to VM): bulk capacitor for the motor rail (TI asks for 10 uF or more).
@@ -1088,7 +1098,7 @@ When the run sheet names a wire number, use the new number from this table.
 
 *From `firmware/dart/BENCH_TEST.md`:*
 
-### KEDGE dart bench test (before closing the hull)
+### KEDGE dart bench test
 
 Goal: every motor turns the right way and stops on its own, both sensors work, the current thresholds are real
 numbers, and one full anchor + release runs on soil. About 1 hour.
@@ -1098,7 +1108,7 @@ When to run each part:
 | Steps | When |
 |---|---|
 | 0 to 2, and the direction + free current parts of 3 to 6 | loose motors on the bench (bench harness, before routing into the hull) |
-| stall at the end stops in 3 to 6, then 7 to 10 | assembled: legs and pods fitted, hull open |
+| stall at the end stops in 3 to 6, then 7 to 10 | assembled: hull closed, legs and pods fitted (run sheet 8e and 8f done) |
 | 11, and 12 step 4 (camera picture) | after the Jetson, RC832 and capture card are set up (rover section) |
 
 You need: charged 18350 cells (XTAR MC2), multimeter, phone or laptop on WiFi `KEDGE`, a stopwatch, a tray or bucket
@@ -1129,11 +1139,14 @@ by the 3S LiPo on XT60 lead #1 (10 A fuse), as in run sheet step 7.5.
   the LiPo. "The battery voltage" means: the bench supply voltage, metered at INA219 VIN+ to ground (about 8.0 V).
 - **USB out** while the bench supply is connected, exactly as with the battery.
 - The assembled steps (end-stop stalls in 3 to 6, then 7 to 10) use the real cells and the power loop plug.
+- **Before the cells go in: LiPo unplugged, remove the bench leads** (unclip, or desolder the two temporary wires from
+  INA219 VIN+ and the MP1584 IN- pad). Nothing of the bench supply may stay inside the hull.
 
 #### Step 0. Set up
 
 1. **Battery unplugged.** Wiring done and meter-checked (WIRING.md step A7 or B10). Firmware flashed (README.md).
-2. Motors and legs outside the hull or with the hull open, legs free to swing, nothing near the augers. Fingers clear.
+2. Loose motors on the bench, or the assembled dart (hull closed, run sheet 8e and 8f done) with the legs free to
+   swing. Nothing near the augers. Fingers clear.
 3. The u.FL antenna must be clicked onto the VTX before any power (a VTX without its antenna can burn out). Unplug USB.
    Then insert the power loop plug. Nothing moves, nothing gets warm in 30 s. If anything heats: pull the plug.
 4. Join `KEDGE`, open `http://192.168.4.1`. The status line must show `IDLE`, `INA219 ok`, `BNO085 ok`.
@@ -1144,6 +1157,8 @@ by the 3S LiPo on XT60 lead #1 (10 A fuse), as in run sheet step 7.5.
    `rail` on the page: within 0.15 V (the INA219 reads after its shunt, so `rail` can be a few tens of mV lower). Write
    both down.
 2. With nothing running, `current` reads 0 to 5 mA (the INA219 sees the motor rail only).
+   When a motor runs (step 3) the current must read **positive**. A negative current means INA219 VIN+ and VIN- are
+   swapped: the firmware then treats the sensor as failed (`INA219 MISSING`). Battery unplugged and swap them.
 3. Press `i` on the page: it prints rail, current, and the peak since the last `i`.
 
 Pass: INA219 ok, rail agrees with the meter. If `INA219 MISSING`: battery unplugged, check D4/D5 and 3V3/GND to the
@@ -1152,7 +1167,8 @@ INA219. Then, with the power off (plug out or LiPo unplugged), plug in USB: Seri
 #### Step 2. BNO085 and attitude
 
 1. Press `b`: roll, pitch and |a| about 1.00 g with the dart still.
-2. Tilt the dart nose up: pitch changes by about 90. Roll it on its side: roll changes by about 90.
+2. Status `IDLE`, no key pressed, hands off the legs. Tilt the dart nose up: roll or pitch changes by about 90 (which
+   one depends on how the chip sits; step 7 maps the axes). Roll it on its side: the other one changes by about 90.
 3. If `BNO085 MISSING`: battery unplugged, check wires. Then, plug still out, plug in USB: Serial `z` must list 0x4a (or 0x4b).
    If the Serial Monitor stays blank: right port, 115200 baud, tap R on the XIAO.
 
@@ -1183,10 +1199,19 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
 #### Step 5. Kick (DRV#1 B)
 
 1. Hold `kick out` (`2`): the leg swings **out over the nose**. Wrong way: fix as above.
-2. Time a full swing from stowed to the ground with the stopwatch: **kick swing = ____ s**. It must be well under 15 s
-   (the auto limit). Hold `kick back` (`@`) until it stows and stops by itself: **kick stall = ____ mA**.
-3. **Kick free = ____ mA** while swinging.
-4. Note: a hold is capped at 8 s. A swing longer than that needs two holds (release, press again).
+2. Assembled (kick leg fitted). **Battery unplugged.** Lay the dart on its back with the kick free to swing in air,
+   legs stowed. Plug in (power on with the legs stowed: the firmware counts the kick's travel from here). Speed 255.
+   Hold `kick out` (`2`) until the leg stops by itself at its outer end stop (a hold is capped at 8 s: if it is not
+   there yet, release and hold again). While it swings, read `current` on the status line: **kick free = ____ mA**.
+   When it stops, the event line says `kick travel from stowed NNNN ms (at 8.0 V)`: **kick swing in air = ____ ms**.
+   This number goes into `kickSwingMs` (step 10). The firmware measures it, so no stopwatch is needed. It must be well
+   under 15000 (the auto limit).
+3. Hold `kick back` (`@`) until it stows and stops by itself: **kick stall = ____ mA** (the `stalled: kick at ...`
+   event). Repeat steps 2 and 3 twice more and use the middle value of the three swings.
+4. STOP, then **battery unplugged**. Turn the dart belly down on a flat board, legs stowed. Plug in. Hold `2` until
+   the housing rests on the board and the kick stops by itself: the event gives **kick to ground = ____ ms**. It must
+   be under 0.8 x the swing in air, or `/auto` can call flat ground `NO_GROUND` (tell whoever owns the firmware).
+   Bring it back with `@`, STOP, battery unplugged.
 
 #### Step 6. Foot (DRV#2 B)
 
@@ -1197,6 +1222,9 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
 3. Hold `foot out` (`$`): it reverses.
 
 #### Step 7. BNO085 axes (for the Jetson flight analysis)
+
+This step needs power for the IMU while you turn the dart by hand: status `IDLE` (not armed), nobody else on the
+page or the Jetson, no key pressed, hands off the legs and augers.
 
 1. Lay the dart flat, belly down. Open `http://192.168.4.1/flightlog` and look at the last sample: `ax, ay, az`.
    The axis reading about +9.8 points **up**.
@@ -1217,9 +1245,9 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
 `RELEASING` (`IDLE`, `LANDED` or `ANCHORED` is fine), pull the power loop plug (or unplug the bench LiPo), and only then pick the dart up or touch a leg. An
 armed dart can start the auto sequence by itself after a knock.
 
-#### Step 9. Anchor and release on soil (assembled, hull open)
+#### Step 9. Anchor and release on soil (assembled, hull closed)
 
-1. Legs stowed. Lay the dart on the damp soil, belly down, nose clear of the tray wall.
+1. **Battery unplugged.** Legs stowed. Lay the dart on the damp soil, belly down, nose clear of the tray wall. Plug in.
 2. Page: press `AUTO anchor`. Watch the status: kick swing, foot touches, kick + foot planting, foot finishing,
    deploy + drills, drills finishing, `ANCHORED`. Write the time of each event from the event lines on the web page
    (not the Serial Monitor: no USB while the battery is in). Note the working currents for `loadMa`.
@@ -1227,10 +1255,22 @@ armed dart can start the auto sequence by itself after a knock.
 4. Press `RELEASE`: drills out, pods up, foot out, kick back, `released`. The legs end stowed. Before lifting the dart
    out of the soil: STOP, status `IDLE`, plug out (the "safe to touch" rule in step 8).
 5. If it stops with `FAULT`: write down the fault and the last event, press STOP, and fix the threshold (step 10).
+6. Foot current drop (for the kick stall check). Press `AUTO anchor` again and wait for `ANCHORED`. Hands clear. Hold
+   `foot in` (`4`) alone for 1 s and read `current` on the status line while holding (not `i`: its peak includes the
+   start-up surge): **foot alone in soil = ____ mA**. Then hold `kick out` (`2`) and `4` together for 1 s:
+   **kick + foot = ____ mA**. If (foot alone) is more than 80 mA below (kick + foot minus the kick's
+   working current), the kick's end stop can be faked while planting: tell whoever owns the firmware. STOP after each.
+7. No ground check. Press `RELEASE` and wait for `released` (legs stowed). STOP, **battery unplugged**. Lay the dart on
+   its back on the bench, nothing within reach of the kick or the augers. Plug in. Press `AUTO anchor`: the kick swings
+   through air to its end stop and the dart reports `FAULT` `NO_GROUND`; foot, pods and drills must not turn.
+   Then press `RELEASE` to bring the kick back. **Release spins the drills (3 s), swings the pods and turns the foot
+   too, with the dart on its back: hands and cloth well clear.** Then STOP, battery unplugged.
 
 #### Step 10. Write the real thresholds
 
-In `kedge_logic.h`, `struct Tuning`, set (all at full speed 255, battery fully charged):
+In `firmware/dart/kedge_dart/kedge_logic.h`, `struct Tuning`, set (all at full speed 255, battery fully charged).
+The four-motor arrays are in the order {deploy, kick, drills, foot}: `stallMa[0]` is deploy, `stallMa[1]` kick,
+`stallMa[2]` drills, `stallMa[3]` foot. `impactG` is the one exception: it is in `struct Flight`, not `Tuning`.
 
 | Setting | Rule | Default |
 |---|---|---|
@@ -1241,9 +1281,15 @@ In `kedge_logic.h`, `struct Tuning`, set (all at full speed 255, battery fully c
 | `kickContactMa` | about 2 x kick free, below kick stall / 2 | 60 |
 | `freeMa[...]` | measured free currents (steps 3 to 6) | 30, 30, 70, 45 |
 | `loadMa[...]` | typical working current in soil (step 9) | 40, 70, 420, 130 |
-| `kickSwingMs` | kick swing time from step 5, in ms | 4300 |
+| `kickSwingMs` | kick swing in air from step 5 (the firmware's own `kick travel` number), in ms | 4300 |
 | `impactG` | under the `peak_g` of a real landing (step 8 and the first shots), over 2 g | 3.5 |
 | `kickMaxMs` | 2 x kick swing time, at least 8000 | 15000 |
+
+The PC tests use a motor model with the v29 stall currents (deploy and kick 185 mA, drills 700, foot 550: `Plant` in
+`test/test_logic.cpp`, and the `kStall`, `dStall`, `drStall`, `fStall` ranges in `test/fuzz_logic.cpp`). If a stall you
+measured is higher, raise the model's number to your measured stall first, or `run_tests.sh` fails (for example
+`stallMa[2]` over 700 fails "drill stall threshold below it"). The drill pair stall must stay under 1200 mA (one
+DRV8833 channel).
 
 Re-run `test/run_tests.sh`, upload, repeat steps 3, 5 and 6 and step 9 once to see the stops still work.
 
@@ -1252,12 +1298,13 @@ Re-run `test/run_tests.sh`, upload, repeat steps 3, 5 and 6 and step 9 once to s
 From the Jetson on `KEDGE`: `python3 -m grappstar dart status` (the jetson package).
 Phase `IDLE`, fields present. Or simply `curl http://192.168.4.1/status`.
 
-#### Step 12. Close the hull
+#### Step 12. Re-check the wiring inside the closed hull
 
+The run sheet (8e) closes the hull before the legs go on. This step is a re-check after all the tests.
 1. **Battery unplugged.**
-2. Route the wires: drill wires with a 30 mm loop at each flank hole for the pod swing; the foot pair with a 60 mm
+2. Check the routing: drill wires with a 30 mm loop at each flank hole for the pod swing; the foot pair with a 60 mm
    loop round the kick hub; nothing crossing a hinge; nothing pinched by the hull halves. The DRV#3 pocket stays empty.
-3. Close the hull, insert the plug, and repeat steps 3, 5 and 6 (one swing each way) to make sure no wire catches.
+3. Insert the plug and repeat steps 3, 5 and 6 (one swing each way) to make sure no wire catches.
 4. Camera (after the RC832 is set up): switch on the RC832 and check the picture.
 
 Bring back: the numbers from steps 1 to 7 and 9. They go into `Tuning` and the REPORT.
@@ -1440,11 +1487,12 @@ unplug the battery.
 
 ### Base station wiring
 
-Board: ESP32-S3 DevKitC-1-N8. Pins come from `grappstar_base/pins.h` (firmware `base-1.2.1`). Nothing here has been
+Board: ESP32-S3 DevKitC-1-N8. Pins come from `grappstar_base/pins.h` (firmware `base-1.3.0`). Nothing here has been
 wired and tested on real hardware yet: check every step with the multimeter.
 
 **The rule: battery unplugged whenever a wire or plug moves. Plug the battery in last, after the checks. Never pull a
-plug while the battery is in.**
+plug while the battery is in.** The one exception: lead #2's XT60 is the physical motor kill switch and may be pulled
+at any time (the build guide's motors-safe state).
 
 #### 1. Pin table
 
@@ -1495,7 +1543,7 @@ newer boards, so `SW_HOME` is on GPIO21 instead.
 | 10 k | BTS7960 L_EN | GND (BTS7960 header) | same | any value from 4.7 k to 47 k |
 | 1 k | R_IS + L_IS (tied) | GPIO1 | series protection for the pin | any value from 1 k to 4.7 k |
 | 680 R | GPIO1 | GND | turns the IS current into a voltage (sets `amps_per_volt` = 8500 / 680 = 12.5) | any value from 470 R to 1 k, then `set amps_per_volt` to 8500 / your value (1 k: 8.5) |
-| 100 k | BTS7960 B+ screw (soldered right at the screw) | the long wire to GPIO2 | battery divider top: the long wire then carries only the divided voltage, never the full 12.6 V | leave the divider out (both resistors) and send `{"id":1,"cmd":"set","key":"vbat_wired","val":false}`: no `vbat`, no battery checks |
+| 100 k | BTS7960 B+ screw (soldered right at the screw) | the long wire to GPIO2 | battery divider top: the long wire then carries only the divided voltage, never the full 12.6 V | leave the divider out (both resistors) and send `{"id":1,"cmd":"set","key":"vbat_wired","val":false}` after every start-up (it is not kept): no `vbat`, no battery checks, and no `NO_POWER` protection |
 | 1 uF capacitor (strongly recommended) | GPIO1 (at the ESP32 end of the IS wire) | GND | smooths the IS pulses. The sketch already averages 16 reads spread across the 20 kHz PWM period, so the reading is right without it; the capacitor is belt and braces against noise and timing slips | 1 uF to 2.2 uF, ceramic best (an electrolytic: striped leg to GND). Without one the firmware still works; fit it when you can |
 | 22 k | GPIO2 | GND | battery divider bottom (12.6 V reads 2.27 V) | as above: the firmware assumes exactly 100 k / 22 k, so do not swap in other values |
 | 2 A inline fuse | BTS7960 B+ screw | MP1584 IN+ | a short in the buck or the DRV8833 blows this, not the thin wires | no small fuse: use 18 AWG wire for that lead and keep it short (under 10 cm) |
@@ -1535,7 +1583,8 @@ ESP32 power: USB from the Jetson (from the Mac on the bench)
   GND. 12.6 V reads 2.27 V on the pin. It feeds `vbat` in telemetry and the battery checks (`NO_POWER` under 6 V,
   `BROWNOUT` under 9.9 V while a motor runs). With the battery unplugged `vbat` reads about 0. If you leave the divider
   out, send `{"id":1,"cmd":"set","key":"vbat_wired","val":false}` (then `vbat` is `null` and there is no battery
-  check).
+  check). It goes back to true at every start-up, so send it again after each power-up; without it every motor command
+  is refused with `NO_POWER`.
 
 #### 4. BTS7960 details
 
@@ -1653,7 +1702,10 @@ is wired to it.
    telemetry `sw` (BENCH_TEST.md step 2). Unplug USB.
 10. Battery unplugged. DRV8833: AIN1 GPIO15, AIN2 GPIO16, GND to ESP32 GND. SLP and FLT stay unconnected.
     AOUT1 and AOUT2 to the drum N20.
-11. Battery unplugged. Buck output (already set to 9.0 V in Part A): OUT+ to DRV8833 VM, OUT- to DRV8833 GND.
+11. Battery unplugged. Check the buck on its own once more before it touches the DRV8833: connect only its input to
+    the fused XT60 lead as in Part A (nothing on the output, meter on OUT+ / OUT-), plug the battery in, read 9.0 V
+    with no load, unplug the battery and disconnect the input again. Only then, battery still unplugged: OUT+ to
+    DRV8833 VM, OUT- to DRV8833 GND.
 12. Battery unplugged. Buck input: the 2 A inline fuse goes right at the BTS7960 B+ screw, then the IN+ lead to the
     buck IN+ (no fuse: 18 AWG, kept under 10 cm). IN- to BTS7960 B-.
 13. Battery unplugged. Power: fused XT60 lead + to BTS7960 B+, - to B-. Use 14 AWG. The 20 A fuse in the + lead.
@@ -1693,7 +1745,7 @@ cable. Flash the dart XIAO before it goes into the hull (run sheet section 5).
 
 ### GrappStar base station firmware
 
-Firmware `base-1.2.1` (the base-1.2 line) for the ESP32-S3 DevKitC-1-N8 in the base station. It follows BASE_SPEC v1.2,
+Firmware `base-1.3.0` for the ESP32-S3 DevKitC-1-N8 in the base station. It follows BASE_SPEC v1.2,
 `base/spec/params.py` 1.2.1 and the mission order of decision D22.
 
 Nothing in this folder has run on real hardware yet. The logic passes the PC tests (a simulation). Go slowly the first
@@ -1775,7 +1827,7 @@ approach (`retrieve`, until the dart is seated), `mode LAUNCH`.
    again. After an upload done this way, tap RESET once.
 
 Coming from base-1.0: the saved bench settings (current scale, free current, N per amp and so on) are stored in a new
-format in base-1.2. The old ones are ignored after the upload, so every bench value is back at its default. Enter
+format since base-1.2. The old ones are ignored after the upload, so every bench value is back at its default. Enter
 them again (CALIBRATION.md).
 
 Command line instead of the IDE (same settings): `arduino-cli compile --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc
@@ -1792,8 +1844,8 @@ firmware/base/grappstar_base` from the repository folder. It should report about
 3. Tap RESET on the board. You should see a `HELLO` line, then a `BOOT` line, then telemetry lines:
 
    ```
-   {"evt":"HELLO","fw":"base-1.2.1","reset":"POWERON","hx711":false,"as5600":true,"pwm":true}
-   {"evt":"BOOT","t":60,"fw":"base-1.2.1","record":false,"was_moving":false,"drum_known":true,"wraps_known":true,"aim_known":false,"phase":"UNKNOWN","angle":"AS5600"}
+   {"evt":"HELLO","fw":"base-1.3.0","reset":"POWERON","hx711":false,"as5600":true,"pwm":true}
+   {"evt":"BOOT","t":60,"fw":"base-1.3.0","record":false,"was_moving":false,"drum_moved":false,"drum_known":true,"wraps_known":true,"aim_known":false,"phase":"UNKNOWN","angle":"AS5600"}
    {"tel":{"state":"IDLE","mode":"NEUTRAL","drum_deg":41,"drum_pos":"NEUTRAL",...,"sw":{"b":1,"n":1},"fault":null,"vbat":0}}
    ```
 
@@ -1806,7 +1858,7 @@ firmware/base/grappstar_base` from the repository folder. It should report about
    {"id":1,"cmd":"ping"}
    ```
 
-   You should get `{"id":1,"ok":true,"fw":"base-1.2.1","t":...}` somewhere between the telemetry lines.
+   You should get `{"id":1,"ok":true,"fw":"base-1.3.0","t":...}` somewhere between the telemetry lines.
 5. Telemetry scrolls fast. Untick "Autoscroll" to read a line, tick it again to follow.
 6. Also try `{"id":2,"cmd":"status"}`. It shows `"magnet"`: `OK`, `WEAK`, `STRONG` or `NONE`.
 7. Telemetry `sw` lists the closed contacts with one letter each: `a` `b` `c` (drum code), `l` (`SW_DOG_L`), `r`
@@ -1882,8 +1934,9 @@ a power cycle and over a new upload of the same firmware version.
   The collar contacts `SW_DOG_L` and `SW_DOG_R` are checked during every drum move.
 - Soft start: the wiper ramps up over 300 ms (inrush once blew a 10 A fuse). It always stops for 200 ms before it
   changes direction.
-- Current trips per job (each for 30 ms, ignored for 50 ms after a start): aim and reel in 5 A, cock and fire 6.5 A,
-  tow 5 to 7.2 A, set from `max_n` (the tension estimate is the real tow limit), take-up 2.5 A, jogs, centering and fly-in 3 A; 17 A at any
+- Current trips per job (each for 30 ms, ignored for 50 ms after a start): every backward run in LAUNCH (aim, decock,
+  backward and centering jogs) 3 A, reel in 5 A, cock and fire 6.5 A, tow 5 to 6.7 A set from `max_n` (at most 60 N, D43) (the tension
+  estimate is the real tow limit), take-up 2.5 A, jogs and fly-in 3 A; 17 A at any
   time. Stall: the shaft slower than 12 deg/s for 200 ms while driving.
 - AS5600 lost while the wiper runs, or its angle jumps so travel is lost: fault `ANGLE_SENSOR`. If the AS5600 is not reading, wiper actions and the drum
   moves that need the centering jog or the fly-in are refused (`ANGLE_SENSOR`). Exception: a build with no magnet can
@@ -1897,7 +1950,8 @@ a power cycle and over a new upload of the same firmware version.
 - After a fault, fix the cause, then send `{"id":1,"cmd":"clear"}`.
 
 And the rule that matters most: **battery unplugged whenever a wire or plug moves.** Plug the battery in last, and
-never pull a plug while the battery is in.
+never pull a plug while the battery is in. The one exception: lead #2's XT60 is the physical motor kill switch and
+may be pulled at any time (motors dead, the ESP32 and the Jetson stay up: the build guide's motors-safe state).
 
 
 ## 8.2 Dart: XIAO ESP32S3
@@ -1923,7 +1977,7 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
 | `API.md` | the HTTP API for the Jetson (contract C2) |
 | `WIRING.md`, `wiring/` | wire cut list, change list from v29, diagram |
 | `BENCH_TEST.md` | how to check every motor and sensor before closing the hull |
-| `tools/wires_v4.py` | regenerates `wiring/` |
+| `tools/wires_v4.py` | regenerates `wiring/` (run from the repo root; needs python3 with numpy, graphviz `dot`, and `kedge/out30`. Another graphviz version gives harmless image differences) |
 | `sim/` | host simulator: the real sketch compiled on Linux with stub Arduino headers, serving the real HTTP API (`make && python3 test_sim.py`) |
 | `REPORT.md` | build-day report |
 
@@ -1944,11 +1998,12 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
 
 | esp32 core | Result | Flash | RAM |
 |---|---|---|---|
-| 3.3.12 (latest) | OK, no warnings from the sketch | 1,011,135 B (30 %) | 70,316 B (21 %) |
-| 3.3.2 | OK, no warnings from the sketch | 1,015,763 B (30 %) | 68,344 B (20 %) |
-| 2.0.17 | OK, no warnings from the sketch | 801,985 B (23 %) | 66,784 B (20 %) |
+| 3.3.12 (latest) | OK, no warnings from the sketch | 1,014,379 B (30 %) | 70,500 B (21 %) |
+| 3.3.2 | OK, no warnings from the sketch | 1,018,875 B (30 %) | 68,512 B (20 %) |
+| 2.0.17 | OK, no warnings from the sketch | 805,405 B (24 %) | 66,968 B (20 %) |
 
-Libraries: Adafruit BNO08x 1.2.7, Adafruit BusIO 1.17.4 (installed with it). arduino-cli 1.5.2.
+Libraries: Adafruit BNO08x 1.2.7, plus Adafruit BusIO 1.17.4 and Adafruit Unified Sensor 1.1.15 (installed with it).
+arduino-cli 1.5.2-rc.1.
 Note for arduino-cli users: on this board the menu value for "USB CDC On Boot: Enabled" is `CDCOnBoot=default` and
 `CDCOnBoot=cdc` means Disabled (the sketch then refuses to compile, on purpose).
 
@@ -1962,7 +2017,7 @@ Note for arduino-cli users: on this board the menu value for "USB CDC On Boot: E
 
 1. **Battery unplugged** (power loop plug out). Never have the battery plug and USB in together while you work.
 2. Plug the XIAO into the Mac with a USB-C data cable.
-3. Tools > Port: pick the one that appears (`/dev/cu.usbmodem...`).
+3. Tools > Port: pick the one that appears (Mac `/dev/cu.usbmodem...`, Linux `/dev/ttyACM0`, Windows `COM3` or similar).
 4. Click Upload (arrow). Wait for "Hard resetting via RTS pin" / "Done uploading".
    If the port does not appear or the upload fails: hold the XIAO's **B** (boot) button, tap **R** (reset), release
    B, then upload again. After such an upload, tap R once.
@@ -1995,7 +2050,7 @@ aborted and the dart disarms when the upload starts.
 - All safety runs in its own task every 5 ms with a 2 s watchdog; a stuck web client or Serial port cannot block it.
 - After a brownout or watchdog reset the dart boots with motors off and reports `FAULT` until `/stop`, `/auto`, `/release` or `/arm`.
 - INA219 missing: manual keys only (on timers), auto and release refused. BNO085 missing: no arming, no flight log.
-- A stuck I2C bus is recovered (9 clocks and a Wire restart). If the web loop hangs for 10 s while nothing moves, the
+- A stuck I2C bus is recovered (9 clocks and a Wire restart). If the web loop hangs for 30 s while nothing moves, the
   dart is not armed or in flight, and no OTA upload runs, it restarts itself.
 - **Power on with the legs stowed.** The firmware keeps track of the kick's travel from power-on to tell a jammed kick
   from one that is already down or stowed.
@@ -2011,14 +2066,23 @@ ones with BENCH_TEST.md steps 3 to 6 and write them in at step 10. Then run the 
 cd firmware/dart/test && ./run_tests.sh
 ```
 
-Needs g++ and python3 (Mac: run `xcode-select --install` once for g++). Prints every check and `ALL PASS`, then checks the JSON files the tests wrote.
+Needs g++ and python3 (Mac: run `xcode-select --install` once for g++). Prints every check and `ALL PASS`, runs the
+fuzz test, then checks the JSON files the tests wrote (into `test/out/`).
+
+If `make` is found it also runs the whole simulator suite below (about 2 minutes). That part needs Linux, make,
+node 18 or newer and Playwright with Chromium (`npm i playwright && npx playwright install chromium`). Without node the
+browser check is skipped; node without Playwright makes the run fail. `./run_tests.sh --quick` runs only the logic
+and fuzz checks (seconds, any OS).
 
 #### Simulator (Linux, optional)
 
+Needs Linux, g++, make, pthread, python3, and for the page check node 18+ with Playwright and Chromium
+(`npm i playwright && npx playwright install chromium`).
+
 ```
-cd firmware/dart/sim && make && python3 test_sim.py      # 11 HTTP tests against the real sketch
-python3 test_jetson_client.py                            # the Jetson's own dart client against the real sketch (C2)
-node test_page.js                                        # the web page in headless Chromium
+cd firmware/dart/sim && make && python3 test_sim.py      # 12 HTTP tests against the real sketch
+python3 test_jetson_client.py                            # 9 tests: the Jetson's own dart client against the real sketch (C2)
+node test_page.js                                        # 11 checks of the web page in headless Chromium (one logged 409 is expected)
 ./kedge_sim --port 8790                                  # then open http://localhost:8790 (the real web page)
 ```
 
@@ -2026,10 +2090,12 @@ node test_page.js                                        # the web page in headl
 
 #### Compile check without the IDE (optional)
 
+Run from the repo root:
+
 ```
 arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
 arduino-cli lib install "Adafruit BNO08x"
-arduino-cli compile -b esp32:esp32:XIAO_ESP32S3 firmware/dart/kedge_dart
+arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32S3 --warnings all firmware/dart/kedge_dart
 ```
 
 
@@ -2135,6 +2201,7 @@ It asks for your password (sudo). What it does, in order:
 4. Adds you to the groups `dialout` (serial ports) and `video` (cameras).
 5. Installs `setup/99-grappstar.rules` so the devices get fixed names:
    `/dev/grappstar-base`, `/dev/grappstar-base-uart`, `/dev/grappstar-rovercam`, `/dev/grappstar-dartcam`.
+   `/dev/grappstar-base` needs the base's USB serial number: step 4 sets it. Until then that name is missing.
 6. Runs `setup/check_env.py` and prints a report.
 
 Then **log out and back in** (or `sudo reboot`) so the new groups work.
@@ -2195,20 +2262,43 @@ python3 -m grappstar base ping --base /dev/pts/5    # terminal 2, using the path
 ### 4. Plug in the base
 
 **Battery unplugged.** For this step the base runs from USB only: the Jetson's USB powers the DevKitC. Do not connect
-the 3S LiPo, the BTS7960 or the motors yet.
+the 3S LiPo, the BTS7960 or the motors yet. Any time you change wiring, unplug the battery first.
 
-1. Battery unplugged. Plug a USB cable from the Jetson into the DevKitC port marked **USB** (the ESP32-S3 native
-   port), not the one marked UART or COM.
-2. Check the name appeared:
+Why this step matters: the base (ESP32-S3 DevKitC) and the dart (XIAO ESP32S3) show up on USB with the same ID,
+303a:1001. To tell them apart, the Jetson remembers the base's own USB serial number (each board has a different
+one, it looks like `F4:12:FA:12:34:56`). Then `/dev/grappstar-base` only ever points at the base.
+
+1. Battery unplugged. Unplug the dart's USB cable from the Jetson if it is plugged in. Only the base may be plugged
+   in by USB for this step.
+2. Plug a USB cable from the Jetson into the DevKitC port marked **USB** (the ESP32-S3 native port), not the one
+   marked UART or COM. Check it is seen:
+
+   ```bash
+   lsusb                              # expect a line with 303a:1001 (Espressif)
+   ls /dev/ttyACM*                    # expect /dev/ttyACM0
+   ```
+
+3. Save the base's serial number:
+
+   ```bash
+   bash setup/install.sh --no-apt
+   ```
+
+   It prints `ESP32-S3 board on /dev/ttyACM0, serial ...` and asks "Is only the base plugged in?". Answer `y`.
+   It writes the serial into the installed rule and prints `base serial ...`.
+   If it says more than one board is plugged in, unplug the dart and run it again.
+   By hand instead: `udevadm info -q property -n /dev/ttyACM0 | grep ID_SERIAL_SHORT`, then
+   `bash setup/install.sh --no-apt --base-serial <that value>`. Running install.sh again later keeps the saved
+   serial. New base board? Run it again with `--base-serial <new value>`.
+4. Unplug the base's USB cable and plug it back in. Check the name appeared:
 
    ```bash
    ls -l /dev/grappstar-base
-   lsusb                              # expect a line with 303a:1001 (Espressif)
    ```
 
    `/dev/grappstar-base -> ttyACM0` means it worked. If you used the UART port instead you get
    `/dev/grappstar-base-uart`; move the cable to the USB port.
-3. Talk to it:
+5. Talk to it:
 
    ```bash
    sudo systemctl stop grappstar       # only if you installed the service: it holds the port and the cameras
@@ -2217,8 +2307,12 @@ the 3S LiPo, the BTS7960 or the motors yet.
    python3 -m grappstar base monitor   # telemetry lines about 10 per second, Ctrl+C stops
    ```
 
-4. Only after this works, and following the base build guide: battery unplugged, wire the power side, then
+6. Only after this works, and following the base build guide: battery unplugged, wire the power side, then
    connect the battery last.
+
+Now the dart may be plugged into the Jetson by USB too: it never gets the base's name. As a second guard, the
+software only treats a port as the base once a valid base reply (a C1 JSON line) arrives, so it never sends base
+commands to the dart.
 
 The base firmware must use the native USB CDC (Arduino IDE: "USB CDC On Boot: Enabled", "USB Mode: Hardware CDC and
 JTAG"). The base talks JSON lines (contract C1, `firmware/base/PROTOCOL.md`).
@@ -2354,9 +2448,12 @@ read it, so you do not have to type options. Options typed on the command line s
 2. Start the hotspot (it also starts at every boot from now on):
 
    ```bash
-   bash setup/hotspot.sh up                 # picks the free WiFi interface
+   bash setup/hotspot.sh up                 # picks the USB WiFi adapter
    bash setup/hotspot.sh up wlx00c0ca123456 # or name it
    ```
+
+   It only ever uses a USB adapter. It refuses the built-in WiFi and the interface the `kedge` connection uses,
+   and says "No USB WiFi adapter found" if none is plugged in.
 
    This runs `nmcli device wifi hotspot ifname <adapter> con-name grappstar-hotspot ssid GRAPPSTAR-ROVER
    password grappstar`.
@@ -2388,32 +2485,53 @@ Do not run the hotspot on the built-in WiFi: that radio is on KEDGE.
 The rover aims the base at things it sees, so it must know how its camera maps pixels to angles (intrinsics) and
 how the camera sits on the rover (mount: height and tilt).
 
-The exact options of the `calibrate` commands are set by the code: run `python3 -m grappstar calibrate intrinsics
---help` and `python3 -m grappstar calibrate mount --help` first. The steps below are the method.
+You need: the rover camera plugged in (`/dev/grappstar-rovercam`, step 5) and a printed checkerboard.
+Run every command from this folder (`jetson/`). Files go into `calib/`. Every command has `--help`.
 
 #### Print the checkerboard
 
 - **9 by 6 inner corners** (that is 10 by 7 squares), **25 mm squares**. A generator such as calib.io
   ("Checkerboard", 10 columns, 7 rows of squares, 25 mm) or OpenCV's `pattern.png` works.
-- Print at 100 percent ("actual size", no "fit to page"). Measure a square with calipers. If it is not 25.0 mm,
-  give the measured size to the command (see `--help`).
+- Print at 100 percent ("actual size", no "fit to page"). Measure a square with calipers.
+- `--square` is in **metres**: 25 mm is `--square 0.025`. If you measured 25.3 mm, type `--square 0.0253`
+  (not 25.3: that would be 1000 times too big).
 - Tape it flat on something stiff (cardboard, a clipboard). A bent board gives bad results.
 
 #### Intrinsics
 
-1. Stop the operator page if it is running (it holds the camera).
-2. Run `python3 -m grappstar calibrate intrinsics` (with `--help` options for the camera and square size).
-3. Hold the board in front of the camera and move it: near and far, left, right, top, bottom corners, and tilted.
-   Aim for 20 or more good views. Keep it still for each capture and avoid glare.
-4. It prints the result (and an error number: under 0.5 pixels is good, over 1 means redo it) and where it saved
-   the file.
+1. Stop the operator page if it is running (it holds the camera): `sudo systemctl stop grappstar`.
+2. Take 20 pictures of the board:
+
+   ```bash
+   python3 -m grappstar snap --n 20
+   ```
+
+   Before each picture, hold the board in a new place: near and far, left, right, top, bottom corners, and
+   tilted. Keep it still, avoid glare, then press Enter. The pictures are saved as `calib/images/snap_00.png`
+   to `snap_19.png`.
+3. Work out the intrinsics from them:
+
+   ```bash
+   python3 -m grappstar calibrate intrinsics --images calib/images/*.png --square 0.025
+   ```
+
+4. It prints the result and saves `calib/intrinsics.json`. Check `rms` (the error in pixels): under 0.5 is good,
+   over 1 means take the pictures again. `n_used` is how many pictures it could use.
 
 #### Mount
 
 1. Fix the camera in its final position on the rover. If it moves later, redo this part.
-2. Rover on flat ground. Lay the board flat on the ground in front of it, in view.
-3. Run `python3 -m grappstar calibrate mount` and follow what it asks (measured distances, see `--help`).
-4. It saves camera height and pitch.
+2. Rover on flat ground. Lay the board flat on the ground in front of it, all of it in view.
+3. Take one picture, then work out the mount:
+
+   ```bash
+   python3 -m grappstar snap --n 1 --out calib/ground
+   python3 -m grappstar calibrate mount --image calib/ground/snap_00.png --square 0.025
+   ```
+
+   It uses `calib/intrinsics.json` from the step above automatically (it prints "using intrinsics"). If it
+   prints a WARNING about an uncalibrated camera instead, do the Intrinsics part first.
+4. It saves camera height, pitch and roll to `calib/rovercam.json`. Check the height against a tape measure.
 5. Check: put an orange object at a distance you measured with a tape (for example 5.0 m), click it on the page,
    and compare the range the page shows. Within about 5 percent is good.
 
@@ -2427,19 +2545,34 @@ python3 -m grappstar serve --sim
 
 What is on the page (layout may differ a little from this list):
 
-- **Camera views**: rover camera and dart camera, live. Click on the rover view to mark a target.
+- **Camera views**: rover camera and dart camera, live. Tap (or click) the rover view to mark a target, or press
+  **Auto target**.
 - **Base panel**: link, state, mode, drum position, aim angle, current, battery, fault.
 - **Dart panel**: link, phase (IDLE, ARMED, FLIGHT, LANDED, ANCHORING, ANCHORED, RELEASING, FAULT), battery.
-- **Mission panel**: current step, history, and the **prompt** box. Before anything dangerous (firing, reeling)
-  the mission stops and asks you to confirm, e.g. "Fire" or "Abort". After the first confirmation ("Base may move")
-  the base is LIVE: drum shifts, aiming and small wiper turns during a mode change happen between prompts. Cocking and
-  firing each have their own confirmation.
+- **Mission panel**: current step, history, **Preflight**, **Start mission**, **Abort**, and the **prompt** box.
+  The mission stops and asks you before each big move. The confirmations, in order: **Base may move**, **Aim**,
+  **Cock**, **Fire** then **FIRE NOW** (two presses), and the landing verdict (**Anchor** or **Retrieve and
+  reshoot**). After "Base may move" the base is LIVE: drum shifts, aiming and small wiper turns happen between
+  prompts.
+- **Recover dart**: if a mission is aborted while the dart is still out, the Mission panel shows "The dart is still
+  out" with a **Recover dart** button. It releases if needed, wraps, reels the dart in, unwraps and goes back to
+  launch. Keep clear of the line.
+- **LAUNCHER LOADED** (red banner at the top): the spring is drawn. Hands off the rail. Press **Decock** in the
+  banner to unwind it before you touch the launcher.
 - **Target**: range and bearing of the clicked or auto found target, and the ballistic solution (pitch, flight time).
 - **Results**: after a flight, the landing zone verdict (GO, NO_GO or UNSURE with reasons), the landing image, the
   aerial map built from the dart video, and the flight analysis.
 - **Manual**: jog the wiper and drum motors, dart keys, record on or off.
-- **STOP** (wiper off now) and **E-STOP** (wiper off and drum to neutral). Always visible. Know where they are
-  before you press anything else.
+- **STOP** (wiper off now) and **ESTOP** (wiper off and drum to neutral). Always visible at the top. Keyboard:
+  **Esc** is STOP from anywhere on the page (Space too, when you are not typing). Holding STOP for 1 s is ESTOP.
+  Know where they are before you press anything else.
+
+Security note: the page needs no setup. The server puts a fresh session token into the page each time it
+starts, and every button press must carry it, so another web site cannot press buttons for you. After a server
+restart the page reloads itself to get the new token. Anyone on the same WiFi can still open the page, so for a
+password add `--token SOMEPASSWORD` to `serve` and open `http://<jetson>:8080/?token=SOMEPASSWORD` once on each
+phone or laptop (it remembers it). This is plain HTTP, not encryption. STOP and ESTOP always work from the page,
+with or without a token.
 
 The mission steps, in order (the page highlights the current one):
 
@@ -2453,6 +2586,7 @@ The mission steps, in order (the page highlights the current one):
 | FIRE | two confirmations, then the shot (FIRED, then the launcher RESET) | Fire, then FIRE NOW |
 | FLIGHT | waits for the dart to say LANDED (or the dart video to go still) | |
 | LANDING_ZONE | landing report, map, verdict; the base is told how much line is out | Anchor, or Retrieve and reshoot |
+| RAIL_LOW | if the rail is above 15 degrees, it is lowered to its minimum pitch before the tow (skipped on a reshoot) | |
 | BASE_NEUTRAL | launcher at rest, drum to NEUTRAL | |
 | WRAP | the capstan wraps go on while the line is still slack; the drum parks at WRAPPED (about 24 s) | |
 | ANCHOR | the dart digs in (kick, foot, drills) | if it reports warnings, choose Tow anyway or Release and reshoot |
@@ -2464,22 +2598,25 @@ The mission steps, in order (the page highlights the current one):
 | RETRIEVE | capstan reels in until about 1.5 m is left | |
 | UNWRAP | capstan wraps come off, drum back to NEUTRAL | |
 | FINAL_APPROACH | the storage take-up pulls the last metre until the dart is seated (slow, about 0.08 m/s) | |
-| LAUNCH_READY | drum back to LAUNCH for the next shot | |
+| LAUNCH_READY | drum back to LAUNCH for the next shot | Shoot again, or Abort to finish |
+| DONE | mission over; the log folder is shown | |
 
 A NO GO verdict comes before the wrap: the dart is not anchored, so it comes home on the take-up alone.
 
-If you abort after COCK and before FIRE, the spring stays drawn: press **Decock** in the Manual section before you
-touch the launcher.
+If you abort after COCK and before FIRE, the spring stays drawn and the red **LAUNCHER LOADED** banner shows:
+press **Decock** (in the banner or the Manual section) before you touch the launcher.
 
 Dry mission in sim, step by step:
 
-1. Press **Preflight**. Everything should go green (base link, dart link, cameras).
-2. Click a target on the rover view (or press auto target). Check the range and solution.
-3. Press **Start**. Answer each prompt. At the fire prompt press **Fire**.
+1. Set the target first: tap it on the rover view, or press **Auto target**. Check the range and solution.
+2. Press **Preflight**. Everything should go green (base link, dart link, cameras, target). If it lists a
+   problem, fix it and press Preflight again.
+3. Press **Start mission**. Answer each prompt: Base may move, Aim, Cock, Fire, then FIRE NOW.
 4. Watch the dart view: the simulated flight, impact and landing.
-5. Read the landing verdict and look at the map.
+5. Read the landing verdict and look at the map. Press Anchor (or Retrieve and reshoot).
 6. Follow the prompts through anchoring, tensioning, release and reeling in.
-7. Try **STOP** and **E-STOP** in the middle of a second run and check the mission stops and says why.
+7. Try **STOP** (or press Esc) and **ESTOP** in the middle of a second run and check the mission stops and says
+   why. If the dart is still out, press **Recover dart**. If the banner says LAUNCHER LOADED, press **Decock**.
 8. Replay the recorded mission's vision:
 
    ```bash
@@ -2521,7 +2658,7 @@ Before the first real launch:
 
 | Problem | Likely cause | Fix |
 |---|---|---|
-| No `/dev/grappstar-base` | rules not installed, cable in the UART port, charge-only cable, or a different USB ID | `ls /dev/ttyACM* /dev/ttyUSB*`, `lsusb` (expect 303a:1001). Use the DevKitC port marked USB and a data cable. Rerun `bash setup/install.sh --no-apt` and replug. If lsusb shows another ID, edit `setup/99-grappstar.rules` |
+| No `/dev/grappstar-base` | base serial not saved yet, rules not installed, cable in the UART port, charge-only cable, or a different USB ID | `ls /dev/ttyACM* /dev/ttyUSB*`, `lsusb` (expect 303a:1001). Use the DevKitC port marked USB and a data cable. With only the base plugged in, rerun `bash setup/install.sh --no-apt`, answer `y`, and replug (step 4). If lsusb shows another ID, edit `setup/99-grappstar.rules` |
 | Only `/dev/grappstar-base-uart` | cable in the UART/COM port | move it to the port marked USB |
 | `/dev/ttyUSB0` appears then vanishes (CH340) | brltty grabs it | `bash setup/install.sh --remove-brltty` |
 | `Permission denied` on the serial port or camera | not in groups dialout or video yet | `groups` should list both. If not, `bash setup/install.sh --no-apt`, then log out and in (or reboot) |
@@ -2575,7 +2712,9 @@ jetson/
 Where to type the commands: on the bench (ESP32 on the Mac's USB) in the Arduino Serial Monitor. Once the ESP32 is
 on the Jetson, on the Jetson in `~/GrappStar/jetson`: `python3 -m grappstar base cmd '<the same JSON>'`, with
 `python3 -m grappstar base monitor` in a second terminal for telemetry. If you installed the grappstar service, stop
-it first (`sudo systemctl stop grappstar`): it holds the serial port. Never move the USB plug with the battery in.
+it first (`sudo systemctl stop grappstar`): it holds the serial port. Never move the USB plug with the battery in. On the rover, where CALIBRATION.md says "battery unplugged" only so
+you can turn the hand lever or touch a contact while reading `sw`, use the motors-safe state: lead #2's XT60 out
+(motors dead, ESP32 and Jetson still powered).
 
 Do it after the base is assembled and wired, springs off, before test stage 4. The bench test (section 11.1) comes
 first, on the bench (order of work step 7). Part (g), the cock geometry check,
@@ -2586,7 +2725,7 @@ needs the springs: do it at test stage 5. The values are stored on the ESP32.
 
 ## Base station calibration
 
-Firmware `base-1.2.1`. Do BENCH_TEST.md first. Sections (a) and (b) can be done on the bench. The rest needs the base
+Firmware `base-1.3.0`. Do BENCH_TEST.md first. Sections (a) and (b) can be done on the bench. The rest needs the base
 assembled. Do them in order: (d) needs REEL from (c), and (f) needs (b) and (d).
 
 - Two ways to send the commands below:
@@ -2596,15 +2735,19 @@ assembled. Do them in order: (d) needs REEL from (c), and (f) needs (b) and (d).
     `python3 -m grappstar base cmd '<json>'`, for example `python3 -m grappstar base cmd '{"id":1,"cmd":"status"}'`.
 - Any whole `id` number works.
 - Every value you `set` or learn with `cal` is **saved in flash automatically** (once everything has stopped) and is
-  kept over a power cycle and over a new upload of base-1.2. Read a value back with `get`, for example
+  kept over a power cycle and over a new upload of base-1.3.0. Read a value back with `get`, for example
   `{"id":1,"cmd":"get","key":"amps_per_volt"}`.
-- **Coming from base-1.0:** the old saved bench values are ignored by base-1.2 (new record format). Everything is back
+- **Coming from base-1.0:** the old saved bench values are ignored by base-1.3.0 (new record format since base-1.2). Everything is back
   at its default after the upload: redo or re-enter every value below.
 - In the first 60 ms after a start-up commands are refused with `BOOTING`: just send again.
 - If something faults, read the `FAULT` line (`code` and `why`), fix the cause, then send `{"id":1,"cmd":"clear"}`.
 - `stop` is always there: `{"id":1,"cmd":"stop"}`. Keep it pasted in the box, ready to send.
-- **Battery unplugged** before you touch any wire, plug, contact or the meter leads. Never pull a plug while the
-  battery is in.
+- **Battery unplugged** before you move any wire, plug, contact or the meter leads. Never pull a plug while the
+  battery is in. The one exception: lead #2's XT60 is the physical motor kill switch and may be pulled at any time.
+- **Motors-safe state** (the build guide's term): lead #2's XT60 out. The motors are dead, but the ESP32 and the
+  Jetson stay up (on the rover they run from the same LiPo, so unplugging the battery would turn the ESP32 off too).
+  Use it for every step that only looks, turns something by hand or reads `sw`. On the bench, with the ESP32 on USB
+  from the Mac, "battery unplugged" is the same thing. **Motors on** = lead #2's XT60 (and the battery) in.
 
 Nothing here has been tried on the real base yet. Expect to adjust.
 
@@ -2622,7 +2765,7 @@ home or the big gear is not in its gap, or a contact is not touching.
 
 ### (a) AS5600 magnet and direction
 
-1. Battery unplugged. USB only. Magnet in its cap on the shaft end, 1 to 2 mm from the chip, centred. Any small
+1. Motors-safe state. Magnet in its cap on the shaft end, 1 to 2 mm from the chip, centred. Any small
    neodymium disc mounted edge-on works (decision D12), or a 6 x 2.5 mm diametric disc.
 2. Send `{"id":1,"cmd":"status"}`. You want `"magnet":"OK"`.
    - `NONE`: no magnet seen or no I2C. Check the STEMMA QT cable and the magnet.
@@ -2630,8 +2773,8 @@ home or the big gear is not in its gap, or a contact is not touching.
 3. The wiper output cannot be turned by hand (its worm locks it). So for this check turn the magnet instead: before
    it is glued, hold it over the chip at 1 to 2 mm and turn it slowly (or turn the AS5600 board round the magnet).
    Watch `wiper_deg` in telemetry: it must change smoothly, about 360 per turn. Then fix the magnet in its cap.
-4. Direction (needs the battery; done once in BENCH_TEST.md step 4, check it again in the base). Battery unplugged:
-   check nobody's hands are near the shaft. Plug the battery in. Drum in NEUTRAL. Send a FORWARD jog (a backward jog is only allowed at
+4. Direction (needs the motors on; done once in BENCH_TEST.md step 4, check it again in the base). Motors-safe state:
+   check nobody's hands are near the shaft. Motors on. Drum in NEUTRAL. Send a FORWARD jog (a backward jog is only allowed at
    the LAUNCH park, `BACKSTOP` elsewhere):
 
    ```
@@ -2653,7 +2796,7 @@ home or the big gear is not in its gap, or a contact is not touching.
 
 #### Current zero
 
-1. Battery plugged in, wiper stopped (`"amps"` should be near 0 anyway).
+1. Motors on, wiper stopped (`"amps"` should be near 0 anyway).
 2. Send `{"id":1,"cmd":"cal","what":"current"}`. `amps` now reads 0.0 when stopped. `OUT_OF_RANGE` means the zero
    would be over 5 A: something is wrong with the IS wiring (WIRING.md section 4).
 
@@ -2669,7 +2812,7 @@ bench: the bare motor with the GPIO11 jumper on). Never in LAUNCH or REEL with t
 
 1. Battery unplugged. Put the meter in series with the motor + wire (BTS7960 M+ to the meter 10 A jack, meter COM to
    the motor red wire). In the MOTOR wire, not the battery wire. Meter on the 10 A DC range.
-2. Plug the battery in. Drum in NEUTRAL. Jog forward for 1.5 s:
+2. Battery in, motors on. Drum in NEUTRAL. Jog forward for 1.5 s:
 
    ```
    {"id":2,"cmd":"jog","motor":"wiper","dir":1,"ms":1500}
@@ -2689,20 +2832,20 @@ The drum position comes from three code contacts (a Gray code, BENCH_TEST.md ste
 is no home search: the base always knows which sector the drum is in, even after a power cut. The drum turns slowly,
 about 8 deg per second.
 
-1. Battery unplugged. The drum N20 is in place and in mesh (`n` in telemetry `sw`), the three drum code contacts are
+1. Motors-safe state. The drum N20 is in place and in mesh (`n` in telemetry `sw`), the three drum code contacts are
    wired (the bench jumpers are OFF), and the line is slack.
 2. On a new build send `{"id":1,"cmd":"cal","what":"cock_rest"}` first (carriage forward, `H` and `G` closed: see
    "New build" above). Without it every drum move out of LAUNCH or L_TO_N is refused with `LAUNCH_BUSY`.
-3. USB plugged in, battery still unplugged. `{"id":2,"cmd":"cal","what":"drum"}` replies `"ok":true` and sends a
+3. Still in the motors-safe state (the ESP32 stays up). `{"id":2,"cmd":"cal","what":"drum"}` replies `"ok":true` and sends a
    `MODE` event with the `drum_pos` the code shows. `POSITION_UNKNOWN` means the code is invalid (000, or a jump):
    check the code contacts (BENCH_TEST.md step 2).
 4. Get the drum to NEUTRAL (`drum_pos` `NEUTRAL`, only `b` of the code closed) by hand, because the motor direction
-   is not checked yet. Battery still unplugged: loosen the cradle swing screw (M3, in the slot), swing the N20 out of mesh
+   is not checked yet. Still in the motors-safe state: loosen the cradle swing screw (M3, in the slot), swing the N20 out of mesh
    until `n` disappears from `sw`, turn the hand lever until only `b` is closed, swing the N20 back and tighten the
    screw (`n` closed). Turning the drum while the board runs
    gives `FAULT` `DRUM_SENSOR` "drum code changed with the drum still": expected, send `{"id":3,"cmd":"clear"}` once
    the drum is still (one `clear` is enough).
-5. Direction check. Plug the battery in. Drum at NEUTRAL. Send a drum jog toward REEL (the longest jog, 1.5 s, is
+5. Direction check. Motors on. Drum at NEUTRAL. Send a drum jog toward REEL (the longest jog, 1.5 s, is
    about 12 deg):
 
    ```
@@ -2713,7 +2856,7 @@ about 8 deg per second.
    `drum_pos` `BETWEEN`. Then go back with `{"id":5,"cmd":"jog","motor":"drum","dir":-1,"ms":1500}`: only `b` again.
 6. If instead `sw` shows `a` and `b` (code 1 1 0, L_TO_N, toward LAUNCH), the drum turned the wrong way: battery
    unplugged, swap the two N20 wires at AOUT1 and AOUT2. Bring the drum back to NEUTRAL with the hand lever as in
-   step 4, plug the battery in and repeat step 5.
+   step 4, battery in, motors on, and repeat step 5.
 7. Now try the modes and wait for each `MODE` event with `"ok":true` (about 5 s each):
 
    ```
@@ -2753,13 +2896,15 @@ about 8 deg per second.
 9. The wiper turns a little during these moves. Keep clear:
    - leaving LAUNCH it first turns 8 deg BACKWARD (the centering jog) so the dogs carry no load;
    - leaving REEL (start of `unwrap`) it first turns forward a little (up to 16 deg), then 8 deg back;
-   - entering REEL it creeps forward slowly from drum 318 deg until `r` closes (the fly-in);
+   - entering REEL it creeps forward slowly from drum 318 deg until the dogs bite (`r` closes, or the current rises
+     0.8 A); if `r` is still open at the park it winds in 5 deg at a time, stopping at an estimated 20 N (the fly-in);
    - entering LAUNCH, if `l` does not close, it turns BACKWARD slowly (up to 40 deg) until the dogs drop in;
    - during `unwrap` it turns forward at 40 % while the drum is in WRAP and WRAP_PREP (the take-up winds the freed
      line).
 
    These moves need the AS5600: without it `mode`, `wrap` and `unwrap` are refused with `ANGLE_SENSOR`. If the dogs
-   never drop in: `FAULT` `DRUM_TIMEOUT` "dogs did not engage (collar contact open)". Check the `l` / `r` contact
+   never drop in: `FAULT` `DRUM_TIMEOUT` "dogs did not engage (collar contact open)" (or "... line tension reached the
+   fly-in limit" when the line is taut). Check the `l` / `r` contact
    closes when the collar is engaged. `SWITCH_DISAGREE` "collar contact disagrees with the drum code" means `l` or
    `r` was closed where the collar cannot be engaged (both are checked during every drum move).
 10. If you get `SW_ARM counted n of 7 cup turns` (`DRUM_SENSOR`): the `SW_ARM` contact (`W`) is closed while the cup
@@ -2767,7 +2912,7 @@ about 8 deg per second.
     opening. Check it with the drum still: `W` must disappear from `sw` while the cup is at home.
 11. The drum speed (`drum_dps`, default 8.1) is learned by itself between code edges. See it with
     `{"id":11,"cmd":"get","key":"drum_dps"}`. Nothing to do.
-12. If you get `DRUM_TIMEOUT` or `DRUM_SENSOR`: read the `why`. Battery unplugged, check the code contacts close and
+12. If you get `DRUM_TIMEOUT` or `DRUM_SENSOR`: read the `why`. Motors-safe state, check the code contacts close and
     open cleanly as the drum turns (N20 swung out of mesh, `n` open, turn the hand lever), then `clear` and try again.
 
 ### (d) Free running current
@@ -2786,14 +2931,17 @@ The tension estimate uses the current above free running in REEL. Learn it with 
 You need a phone inclinometer app (any "level" app that shows degrees). Base assembled, no dart, nobody in front of
 the rail.
 
-1. Battery unplugged. Fix the phone flat on the rail (tape or a rubber band), along the rail.
-2. Plug the battery in. `{"id":1,"cmd":"mode","to":"LAUNCH"}`.
+1. Motors-safe state. Fix the phone flat on the rail (tape or a rubber band), along the rail.
+2. Motors on. `{"id":1,"cmd":"mode","to":"LAUNCH"}`.
 3. The launcher must be at rest: carriage fully forward, `H` and `G` in telemetry `sw`. On a new build, declare it
    (top of this file).
 4. See the allowed range: `{"id":3,"cmd":"get","key":"pitch_range"}` (it replies `min` and `max`, about 6 and 47).
 5. Aim at a middle pitch: `{"id":4,"cmd":"aim","deg":30}`. After every shift into LAUNCH the aim is unknown, so it
    first turns backward until `SW_RAIL_LOW` closes (home), then goes to 30. That can take up to about half a minute:
    one aim cycle is 10 wiper turns. Wait for the `AIMED` event with `"ok":true`.
+   At the end the wiper may turn FORWARD slowly for a moment: the backward aim run can drag the big gear back out of
+   its gap (`G` opens), and the gap run closes it again before `AIMED`. `BAD_STATE` "SW_GAP did not close in the forward
+   gap run" means check the `SW_GAP` contact.
 6. Read the phone. Say it shows 33.4. Send `{"id":5,"cmd":"cal","what":"aim","deg":33.4}`. This sets `aim_offset` so
    the reported pitch matches the phone.
 7. Check at 3 pitches: aim at a low, middle and high pitch inside the range (for example 15, 30, 42). At each, compare
@@ -2823,19 +2971,20 @@ firmware assumes (`aim_home_deg`, the aim-train angle where `SW_RAIL_LOW` closes
 
 **Do not tow before `free_a` (section d), `k_n_per_a` and `tension_offset_n` are calibrated.** Without a load cell
 the firmware stops a tow on its tension ESTIMATE, not on a measured force. With the defaults on an uncalibrated base
-the PC system test reached 61 N against a 40 N limit. The current trip (6.5 A) is only a backstop.
+the PC system test reached 61 N against a 40 N limit. The current trip (5 to 6.7 A, set from `max_n`) is only a backstop.
 
 #### `k_n_per_a` and `tension_offset_n` (used without a load cell)
 
-The estimate is: line N = `k_n_per_a` x (`amps` - `free_a`) + `tension_offset_n`. Defaults 17.0 and -10.4 (physics
-v1.2, clutch FIRM 5 N). Pulls against a luggage scale at three loads give both numbers (this matches MEASURE_LIST G9).
+The estimate is: line N = `k_n_per_a` x (`amps` - `free_a`) + `tension_offset_n`. Defaults 14.8 and -2.6 (D43). Since D43 these constants give the DART-side line tension (the tow limit is
+the tension at the dart); the luggage scale at the line end measures exactly that side, so fit them straight from the
+scale. Pulls against a luggage scale at three loads give both numbers (this matches MEASURE_LIST G9).
 Do not use jogs for this: a jog trips at 3 A, about 15 N.
 
 You need a luggage scale and a solid post. Do (b) and (d) first and do not change `free_a` afterwards. If a load cell
 is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip this part.
 
-1. Battery unplugged. Tie the line end to the luggage scale. Hook the scale to the post. Line slack.
-2. Plug the battery in. Drum in REEL with the wraps on: `{"id":1,"cmd":"wrap"}`, wait for `WRAPPED` (the wrap only
+1. Motors-safe state. Tie the line end to the luggage scale. Hook the scale to the post. Line slack.
+2. Motors on. Drum in REEL with the wraps on: `{"id":1,"cmd":"wrap"}`, wait for `WRAPPED` (the wrap only
    parks at the WRAPPED park), then `{"id":2,"cmd":"mode","to":"REEL"}` and wait for `MODE` REEL. The capstan only
    pulls in REEL.
 3. Stand to the side of the line, never in line with it. Wind in slowly:
@@ -2856,9 +3005,9 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
    Check the middle load: N2 should be close to new `k_n_per_a` x (I2 - `free_a`) + new `tension_offset_n`. If it is
    off by more than 3 N, repeat the pulls.
 
-   Example with `free_a` 1.5: N1 10 at I1 2.7, N3 30 at I3 3.9. k = 20 / 1.2 = 16.7. Offset = 10 - 16.7 x 1.2 = -10.0.
-6. Set them: `{"id":5,"cmd":"set","key":"k_n_per_a","val":16.7}` and
-   `{"id":6,"cmd":"set","key":"tension_offset_n","val":-10.0}` (your numbers; the offset range is -50 to 50). Both are
+   Example with `free_a` 1.5: N1 10 at I1 2.35, N3 30 at I3 3.7. k = 20 / 1.35 = 14.8. Offset = 10 - 14.8 x 0.85 = -2.6.
+6. Set them: `{"id":5,"cmd":"set","key":"k_n_per_a","val":14.8}` and
+   `{"id":6,"cmd":"set","key":"tension_offset_n","val":-2.6}` (your numbers; the offset range is -50 to 50). Both are
    saved in flash.
 7. To release the line: unhook the scale from the post by hand, slowly (30 N is about 3 kg: hold it firmly). The
    capstan never turns back (sprag #2).
@@ -2869,8 +3018,8 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
 A `FAULT` `OVERCURRENT` "wiper over 5.0 A" during a pull means the load went too high or the line jammed: `clear`
 and use lower loads. In the tow itself the trip is the current `max_n` needs plus 1 A, at least 5 A (D34; the
 old `tow_trip_a` setting is no longer used). These constants cannot be set while a motor runs or the reel holds
-(`BUSY`): `stop` first. On a very stiff, short line a full-speed tow can overshoot a low limit by about half; for
-low limits tow on a long line or at a lower duty.
+(`BUSY`): `stop` first. On a very stiff line the tow now starts slow; residual overshoot in the simulation was under
+10 percent of a 40 N limit at 3000 N/m.
 
 #### HX711 load cell (only if fitted)
 
@@ -2885,14 +3034,15 @@ low limits tow on a long line or at a lower duty.
 
 This checks that FORWARD really cocks, that `SW_HOME` opens where the firmware expects, and that cocking stops before
 the release tooth. The springs are hooked, so treat it as loaded: no dart, nobody and no hands in front of the
-carriage or the rail.
+carriage or the rail. The build guide runs this as TEST_PLAN stage 5 step 0, then sets `require_seated` false again
+for the dry shots.
 
-1. Battery unplugged. Springs hooked, no dart. Carriage fully forward.
-2. Plug the battery in. `{"id":1,"cmd":"mode","to":"LAUNCH"}`. Check `H` and `G` are in telemetry `sw`.
+1. Motors-safe state. Springs hooked, no dart. Carriage fully forward.
+2. Motors on. `{"id":1,"cmd":"mode","to":"LAUNCH"}`. Check `H` and `G` are in telemetry `sw`.
 3. On a new build: `{"id":2,"cmd":"cal","what":"cock_rest"}`.
 4. `cock` needs the dart seated. For this check without a dart send
-   `{"id":3,"cmd":"set","key":"require_seated","val":false}`. **Set it back to true at the end** (it is saved in
-   flash).
+   `{"id":3,"cmd":"set","key":"require_seated","val":false}`. It is NOT saved: it comes back true at every start-up, so
+   send it again after every power-up in the no-dart stages. Set it back to true at the end.
 5. Aim first: `{"id":4,"cmd":"aim","deg":30}` and wait for `AIMED`. (After a shift into LAUNCH only an aim run tells
    the firmware where the dogs sit. Cocking straight after a shift can fault with `BAD_STATE` "carriage not drawn".)
 6. `{"id":5,"cmd":"cock"}`. Watch the carriage and telemetry:
@@ -2901,15 +3051,29 @@ carriage or the rail.
      (a) step 4 (`enc_sign`) and this step.
    - `H` must disappear almost at once: the first tooth takes the rack a few degrees after rest. If it opens too far
      from there you get `FAULT` `SWITCH_DISAGREE` "SW_HOME opened at the wrong angle": the contact sits in the wrong
-     place, or the number in `config.h` needs changing (tell the firmware author).
+     place, the dog window is much wider than 16 deg (measure it), or the number in `config.h` needs changing (tell
+     the firmware author).
    - `cock` rises to 1 and a `COCKED` event comes. `H` stays open.
 7. Look: the carriage is drawn back and the last tooth still holds it, with clear margin before the relieved tooth. If
    it stops too early or too late, write down how many degrees and tell the firmware author (`cockEndDeg` in
    `config.h`; it is not a `set` key).
 8. Let it down without firing: `{"id":6,"cmd":"decock"}` (the same as `cal decock`). The wiper runs BACKWARD slowly
    and the spring unwinds under the worm until `H` and `G` are both closed. A `RESET` event with `"how":"decock"`
-   comes. This also turns the aim train, so the aim is unknown afterwards (the next `aim` homes again). `FAULT`
-   `BAD_STATE` "decock: SW_GAP never closed" means `H` closed but `G` did not: check the `SW_GAP` contact.
+   comes. This also turns the aim train, so the aim is unknown afterwards (the next `aim` homes again). The decock trips at
+   3 A (D40). `FAULT` `BAD_STATE` "decock: SW_GAP never closed" means `H` closed but `G` did not: check the `SW_GAP`
+   contact.
+
+   If a decock fails: `clear`, `{"id":8,"cmd":"mode","to":"LAUNCH"}`, then `decock` again (backward at 3 A until `H`
+   and `G` close). `SWITCH_DISAGREE` while the carriage is visibly drawn: `{"id":9,"cmd":"decock","force":true}`
+   (decock by travel). If the decock faults again there is no powered way out (a backward jog is `NOT_AT_REST`, and
+   `fire` needs `COCKED`, the dart seated, an aim and a token): battery unplugged, unload the springs by hand as the
+   build guide says, then `{"id":10,"cmd":"cal","what":"cock_rest"}`, then `aim`.
+
+   A `RESET` with `"ok":false` and `"why":"SW_GAP open: check the carriage by eye, then cal cock_rest force"` means the
+   carriage reads home but the big gear is out of its gap (for example after a `stop` during a gap run): nothing moved.
+   Look: if the carriage is really forward on its stop and the springs are slack, send
+   `{"id":11,"cmd":"cal","what":"cock_rest","force":true}`, then `aim` (its gap run closes the gap). A forward jog in
+   LAUNCH is refused (`SWITCH_DISAGREE`) while `G` is open.
 9. `{"id":7,"cmd":"set","key":"require_seated","val":true}`.
 
 
@@ -2929,7 +3093,7 @@ it first (`sudo systemctl stop grappstar`): it holds the serial port. Never move
 
 ### Base station bench test
 
-No-load checks BEFORE the wiper motor goes into the base, with firmware `base-1.2.1`. Nothing here has run on real
+No-load checks BEFORE the wiper motor goes into the base, with firmware `base-1.3.0`. Nothing here has run on real
 hardware yet, so this is the first time the firmware meets the parts. Go one step at a time.
 
 Each step says what to type, what you should see, and what to do if not. Keep `{"id":9,"cmd":"stop"}` ready to paste.
@@ -2944,7 +3108,8 @@ Two ways to send the commands:
 Two rules for the whole test:
 
 - **Battery unplugged** before you touch any wire, jumper or plug. Never pull a plug (not even the small sensor
-  cable) while the battery is in.
+  cable) while the battery is in. The one exception: lead #2's XT60 is the physical motor kill switch and may be
+  pulled at any time.
 - Never hold a turning shaft, and never put a hand near a spinning shaft.
 
 #### Set-up
@@ -2972,7 +3137,7 @@ Two rules for the whole test:
 Battery unplugged. Plug USB into the port labelled USB. Open the Serial Monitor (or the two Jetson terminals).
 
 - Type: `{"id":1,"cmd":"ping"}`
-- You should see: `{"id":1,"ok":true,"fw":"base-1.2.1","t":...}`, and telemetry lines with `"state":"IDLE"`,
+- You should see: `{"id":1,"ok":true,"fw":"base-1.3.0","t":...}`, and telemetry lines with `"state":"IDLE"`,
   `"mode":"NEUTRAL"`, `"sw":{"b":1,"n":1}` and `vbat` about 0 (no battery).
 - If not: no output at all means wrong port or "USB CDC On Boot: Enabled" not set (README.md). Telemetry but no reply
   means the line ending is not "Newline". `BAD_JSON` means a typo (straight quotes only, no smart quotes). `BOOTING`
@@ -3044,6 +3209,11 @@ at once): check the jumpers and send `clear` again.
 - If a contact never shows: check its wire goes to the right GPIO and the other side to GND.
 - If it shows when open: the two sides touch, or the GPIO wire touches GND somewhere.
 - If it flickers on and off while held closed: the screw and nut do not touch firmly. Clean or tighten them.
+- Printed contacts that rattle can still trip faults in the base later: `SWITCH_DISAGREE` "drum code contact
+  chattering" if a code contact keeps fuzzing for more than about 1 s during a drum move, and "SW_HOME opened at the
+  wrong angle" if the real dog window (the free play of the collar dogs) is much wider than the 16 deg the firmware
+  assumes. Measure the dog window when the base is built (turn the collar by hand between its two flanks, read
+  `wiper_deg`) and tell the firmware author if it is far from 16 deg.
 
 #### Step 3: battery in, current zero
 
@@ -3103,19 +3273,21 @@ Reverse pause:
 1. Battery unplugged, and USB unplugged too (the board must be off while the drum code changes, or it faults with
    "drum code jumped over a sector"). Move the GPIO11 jumper to GPIO10 (code `a` = LAUNCH), and add jumpers from
    GPIO13 (`SW_DOG_L`, collar in LAUNCH), GPIO21 (`SW_HOME`) and GPIO39 (`SW_GAP`) to GND. Keep GPIO47.
-2. Battery unplugged. Plug USB in. If a `FAULT` `DRUM_SENSOR` "drum code disagrees with the saved drum angle" comes
-   (the saved angle was NEUTRAL), send `{"id":12,"cmd":"clear"}` once. Telemetry: `"mode":"LAUNCH"`,
+2. Battery unplugged. Plug USB in. The `BOOT` line says `"drum_moved":true` (the saved angle was NEUTRAL); that is
+   expected and not a fault. Telemetry: `"mode":"LAUNCH"`,
    `"drum_pos":"LAUNCH"`, `sw` with `a`, `l`, `n`, `H`, `G`.
 3. Plug the battery in. Declare the launcher at rest: `{"id":13,"cmd":"cal","what":"cock_rest"}` (it needs `H` and
    `G` closed).
 4. Type: `{"id":14,"cmd":"jog","motor":"wiper","dir":-1,"ms":500}`
-5. You should see: the shaft turns the other way (about 60 % power, trip 3 A). `wiper_deg` goes DOWN.
+5. You should see: the shaft turns the other way (about 60 % power). `wiper_deg` goes DOWN. Every backward run in
+   LAUNCH trips at 3 A (D40): a `FAULT` `OVERCURRENT` "wiper over 3.0 A" on the bare motor means write down `peak_a`,
+   `clear` and tell the firmware author.
    `NOT_IN_LAUNCH`: `l` is missing. `NOT_AT_REST`: send the `cock_rest` of step 3 again.
 6. Do not jog forward in this set-up: with `SW_HOME` jumpered closed a forward jog in LAUNCH faults ("SW_HOME still
    closed past the first tooth").
 7. Back to NEUTRAL: battery unplugged, USB unplugged. Take the GPIO10, GPIO13, GPIO21 and GPIO39 jumpers off and put
-   the GPIO11 jumper back. Plug USB in, `clear` once if the same `DRUM_SENSOR` "disagrees with the saved drum angle"
-   comes, then plug the battery in. Telemetry shows `"mode":"NEUTRAL"` again.
+   the GPIO11 jumper back. Plug USB in (`BOOT` says `"drum_moved":true` again, no fault),
+   then plug the battery in. Telemetry shows `"mode":"NEUTRAL"` again.
 
 #### Step 5: jog the drum N20
 
@@ -3206,9 +3378,19 @@ FIRE, then sends `arm` and `fire` with the token at once (the token is only vali
 
 How to send base commands: the operator page on the Jetson (jetson/README.md) has buttons for most of these. From a
 terminal on the Jetson, in `~/GrappStar/jetson`, send any command (firmware/base/PROTOCOL.md) with
-`python3 -m grappstar base cmd '{"cmd": "jog", "motor": "wiper", "dir": 1, "ms": 300}'` and watch telemetry with
-`python3 -m grappstar base monitor` in a second terminal. `'{"cmd": "estop"}'` stops everything and is always safe
-to send.
+`python3 -m grappstar base cmd '{"cmd": "jog", "motor": "wiper", "dir": 1, "ms": 300}'`. Only one program may hold the
+base's serial port at a time: do not run `base monitor`, the operator page (`serve`) or the grappstar service while
+you use `base cmd`; read the result with `python3 -m grappstar base status` afterwards. `'{"cmd": "estop"}'` stops
+everything and is always safe to send.
+
+Rules that catch people out:
+- Aim before every shot: every `FIRED` and every `decock` clears the aim, and `base fire` refuses `NOT_AIMED`.
+  Send `aim` before every `cock` and every fire.
+- `require_seated` goes back to `true` at every start-up. In stages 4 and 5 (no dart) re-send
+  `{"cmd":"set","key":"require_seated","val":false}` after every power-up.
+- On the rover the ESP32 and the Jetson run from the same LiPo. When a step says "battery unplugged" only so your
+  hands can touch the mechanism while you still read `sw`, use the motors-safe state instead: lead #2's XT60 out
+  (both motors dead, ESP32 and Jetson still up). For any WIRING change: the whole battery out.
 
 Safety for every stage:
 - Battery unplugged before you touch any wire.
@@ -3277,31 +3459,35 @@ Pass: every sensor responds and returns. If it fails: AS5600 not found: check SD
 STEMMA cable is pushed in; angle jumps: magnet too far (keep 1 to 2 mm) or off centre. Contact never changes:
 check the GND wire and that the screw head really touches the nut.
 
-### Stage 4. Base assembled, dry cycles, NO springs, no line
+### Stage 4. Base assembled, dry cycles, NO springs, no launch line
 
+Before the first powered cock: break three spare shear pins on the torque arm (MEASURE_LIST G14, decision D44).
 Springs off, no tether, no dart. Run CALIBRATION.md first (zeros and drum positions; part (g), the cock geometry check, waits for stage 5).
 With no dart, `arm` refuses (`NOT_SEATED`): for this stage and stage 5 send
-`{"cmd":"set","key":"require_seated","val":false}`, and set it back to `true` before stage 6.
+`{"cmd":"set","key":"require_seated","val":false}` (again after every power-up); it is `true` again by itself at
+the next start-up, so power-cycle (or set it `true`) before stage 6.
 
-1. `mode` LAUNCH, NEUTRAL, LAUNCH: 20 rounds, then every other mode the firmware offers, in the order PROTOCOL.md
-   gives. Each change ends with the right `drum_pos`.
+1. `mode` LAUNCH, `mode` NEUTRAL, `mode` LAUNCH: 20 rounds. Each change ends with the right `drum_pos`. (REEL is
+   only reachable with the wraps on: step 4.)
 2. `aim` 15, 30, 45, then the minimum and maximum pitch: 5 rounds. Rail reaches each angle within 1 degree
    (`pitch_deg`) and holds with the motor off.
 3. Cock and fire with stand-in springs: without springs nothing returns the carriage after the release, so the
    firmware would fault every cycle. Hook two strong rubber bands (or loops of bicycle inner tube) from the spring
    anchor pins to the carriage hooks instead: enough to pull the carriage home, far too weak to throw anything.
-   Then `cock`, `{"cmd":"decock"}` (the carriage creeps home, `SW_HOME` closes): 5 cycles. Then fire with
+   Then `aim` 20, `cock`, `{"cmd":"decock"}` (the carriage creeps home, `SW_HOME` closes): 5 cycles. Then, with
+   `aim` 20 before each one, fire with
    `python3 -m grappstar base fire` (it arms and fires in one go, inside the 3 s token life, after you type FIRE):
    the carriage travels back, releases, the bands pull it home, and the big gear re-engages: 10 cycles.
    Take the bands off afterwards.
-4. Wrap and unwrap, with a spare line through the capstan path and slack: from LAUNCH, `wrap`, `tidy`, `mode`
+4. Wrap and unwrap, with a spare line (not the launch tether) through the capstan path and slack: from LAUNCH, `wrap`, `tidy`, `mode`
    REEL, then `unwrap` and `mode` LAUNCH (the stage 7 table without the shot): 10 cycles. Once wrapped and in REEL,
    send `reel` with duty 0.3, wait 3 s, send `stop`.
 5. Send `estop` in the middle of each kind of move once. The wiper stops at once and the drum goes to NEUTRAL,
    except when the spring is drawn, the wraps are on or the drum itself faulted: then the drum holds (`DRUM_HELD`),
    which is correct (decision D27).
-6. Fault test: with nothing moving, slide the AS5600 board away from its magnet (do not unplug anything). The base
-   reports the magnet missing and refuses to move. Put it back, `clear`.
+6. Fault test: `estop` first, then with nothing moving, slide only the AS5600 sensor board away from its magnet
+   (do not unplug anything, touch nothing else). `base status` shows `"magnet":"NONE"` and a wiper jog is refused
+   with `ANGLE_SENSOR`. Put it back, `clear`.
 
 Pass: all cycles complete with no fault, no clicking or skipping teeth, no part warm to the touch, the drum never
 stops BETWEEN positions.
@@ -3311,15 +3497,17 @@ contacts close cleanly.
 
 ### Stage 5. Springs on, no dart
 
-Fit both springs. Start at the lowest pitch, rail pointing at a clear area.
+Fit both springs and the spring guard. Rail pointing at a clear area.
 
+0. CALIBRATION.md (g), the cock geometry check, comes first: it needs the springs. It ends by setting
+   `require_seated` true: set it false again for the rest of this stage.
 1. `aim` to the lowest pitch. Fire once with `python3 -m grappstar base fire`. Look at every part of the launch train after the shot.
-2. Five more shots. Check the stop bumpers, the carriage, the rack teeth and the big gear's last tooth after each.
+2. Five more shots, `aim` before each. Check the stop bumpers, the carriage, the rack teeth and the big gear's last tooth after each.
 3. Watch `amps` while cocking: note the peak (the physics expects about 5 A; decision D8 trips at 6.5 A while
    cocking).
 
-Pass: the carriage stops on the bumpers, nothing cracks or loosens over 6 shots, cocking current stays under the
-stall value, the rail holds its pitch while cocking.
+Pass: the carriage stops on the bumpers, nothing cracks or loosens over 6 shots, the cocking current peaks under
+6.5 A (about 5 A expected), the rail holds its pitch while cocking.
 If it fails: cracks at the bumpers: stop and report (no more dry shots). Rail drops while cocking: the aim worm is
 slipping, check its mesh. STALL while cocking: the springs are stronger than planned (redo B2) or something binds.
 
@@ -3338,11 +3526,15 @@ bypasses the capstan). Set the payout brake with hanging weights (G4): 40 g does
 2. Film it side-on with the phone in slow motion, tape measure on the ground in view (muzzle speed, G5).
 3. Measure the range. Repeat at 30 and 36 degrees (G6).
 4. Check the line paid out with no loops or overrun on the storage reel.
+   Between shots, bring the dummy home: `{"cmd":"set","key":"line_m","val":<measured m>}`, `mode` NEUTRAL,
+   `{"cmd":"retrieve","duty":0.3}` until `SEATED`, then `mode` LAUNCH and `aim` for the next shot (no wraps needed
+   for a slack line; the full wrap sequence is stage 7).
 5. Range calibration, after 2 or 3 shots on level ground: measure each range from the ground point under the rail
    pivot, then on the Mac or Jetson in `~/GrappStar/base/physics`:
    `python3 calib.py range 20:0.5:3.6 36:0.5:4.2` (pitch:brake N:measured range m, your numbers) fits a
    muzzle-speed factor; `python3 ballistics.py --v-scale <factor>` rewrites `base/out/ballistics.json`, which the
-   Jetson uses to aim (base/physics/README.md has the details).
+   Jetson uses to aim (base/physics/README.md has the details). Run it on the Jetson (`cd ~/GrappStar/base/physics`),
+   or run it on the Mac and copy the file across: `scp base/out/ballistics.json <user>@GrappStar.local:GrappStar/base/out/`.
 
 Pass: clean exit (no rubbing marks on the dummy), it flies nose first, payout is clean, the range is within 30
 percent of the ballistics table at the same pitch (measured from the ground point under the rail pivot; the table is `base/out/ballistics.json`, shown on the
@@ -3359,25 +3551,43 @@ you; by hand it is (each line: what you send, what to wait for):
 | Step | Send | Wait for |
 |---|---|---|
 | after the shot | `{"cmd":"set","key":"line_m","val":4.5}` (the measured distance) | reply |
-| wrap at once, line still slack | `{"cmd":"wrap"}` (from LAUNCH or NEUTRAL) | `WRAPPED` (up to 60 s; the drum parks at 314: cup locked, collar NEUTRAL, clutch FIRM) |
+| rail down first if above 15 degrees (decision D45) | `{"cmd":"aim","deg":6}` | `AIMED` |
+| wrap at once, line still slack | `{"cmd":"wrap"}` (from LAUNCH or NEUTRAL) | `WRAPPED` (allow 90 s; the drum parks at 314: cup locked, collar NEUTRAL, clutch FIRM) |
 | (real dart only: anchor) | dart `auto` | dart ANCHORED |
 | tidy the slack | `{"cmd":"tidy"}` | `TIDIED` |
 | into REEL | `{"cmd":"mode","to":"REEL"}` | `MODE` ok (REEL) |
 | tow (stage 8 only) | `{"cmd":"reel","duty":1,"until":"tension"}` | `LIMIT` holding |
-| (real dart: release) | dart `release`, then `{"cmd":"stop"}` | `ABORTED` |
+| (real dart: release) | `{"cmd":"stop"}` FIRST (`ABORTED`), then dart `release` | dart released (operator page) |
 | reel in | `{"cmd":"reel","until":"stop"}`, then `{"cmd":"stop"}` when `line_m` reads about 1.5 | `ABORTED` |
 | unwrap | `{"cmd":"unwrap"}` | `UNWRAPPED`, then `MODE` NEUTRAL |
 | final approach | `{"cmd":"retrieve","duty":0.3}` | `SEATED` (never seat it on the capstan) |
 | back to launch | `{"cmd":"mode","to":"LAUNCH"}` | `MODE` ok |
 
 1. After a stage 6 shot, run the table top to bottom, skipping the anchor, tow and release rows.
-2. Check the line runs on the launch path again (not round the capstan). Fire again at 30 degrees.
+2. Check the line runs on the launch path again (not round the capstan). `aim` 30, fire again.
 
 Pass: the wrap lays 7 turns on the capstan, reel-in works, unwrap returns the line to the launch path, the dummy
 seats, and the next shot pays out cleanly. Repeat 5 times.
 If it fails: wrap misses the capstan: check the wrap cup position at the end of `wrap`. Line still round the
 capstan after `unwrap`: do not fire; unwrap again and check the drum position. `DART_STUCK` after 20 s of
 `retrieve`: the dummy snagged; clear it by hand after the approach checklist (section 2).
+
+### Stage 7b. Bench tow (before the first field tow)
+
+Rover chocked, base wrapped and in REEL (stage 7 table), the line end tied to the luggage scale on a post at least
+5 m away (a short stiff line overshoots the limit by up to half); everyone beside the line, glasses on. Free current
+and tension calibrated (CALIBRATION.md (d) and (f)).
+
+1. First pull: `{"cmd":"reel","duty":0.5,"max_n":30,"until":"tension"}`. Slacken (below), then the real one:
+   `{"cmd":"reel","duty":0.5,"max_n":50,"until":"tension"}`.
+2. Watch the 7 wraps on the capstan the whole time: they must not walk along the capstan, and the line must not get
+   trapped in the gap at the capstan skirt.
+3. Read the scale when the base holds (`LIMIT`): it should read about 50 N (within 10 N).
+
+Pass: the wraps stay in place, no line trapped, the base holds at about 50 N.
+To slacken afterwards (and if it fails: `estop` first): the
+capstan cannot let line out, so walk the scale end slowly toward the base, standing beside the line. If it failed: wraps walking or trapped line: check the
+wrap cup position and the capstan skirt; wrong tension: redo CALIBRATION.md (f).
 
 ### Stage 8. The anchor in soil
 
@@ -3388,24 +3598,29 @@ The real dart, built and tested to the dart run sheet section 10. Use real soil 
 2. When the dart reports ANCHORED: standing beside the line, not in line with it, glasses on, pull the tether by
    hand with the luggage scale, slowly, up to 50 N or until
    it moves (G7).
-3. HARD PREREQUISITE for any tow: CALIBRATION.md (d) free running current (`free_a`) and (f) tension (`k_n_per_a`
-   (`k_n_per_a`, MEASURE_LIST G9) are done. Why: with the factory values a simulated tow reached 61 N against a
-   40 N limit. Re-anchor (wrap first, as in step 1). Rover chocked, everyone beside the line. Then the stage 7 table
-   from `tidy` on: `tidy`, `mode` REEL, then the tow with `max_n` 10 N under the hand result:
-   `{"cmd":"reel","duty":1,"max_n":40,"until":"tension"}`.
-4. Send release (operator page, or `python3 -m grappstar dart release`): drills out, pods up, foot out, kick back.
-   Then finish the stage 7 table: `stop`, reel in to about 1.5 m, `unwrap`, `retrieve`, `mode` LAUNCH.
+3. HARD PREREQUISITE for any tow: CALIBRATION.md (d) free running current (`free_a`) and (f) tension
+   (`k_n_per_a`, MEASURE_LIST G9) are done, and stage 7b passed. Why: with the factory values a simulated tow
+   reached 61 N against a 40 N limit. The tow limit rule: the hand result from step 2 minus 10 N, and never above 40 N for the first field tows, until
+   the wrap cup ring has been checked for wear (decision D46; the firmware cap is 55 N).
+   Example: the dart held 45 N by hand, so the limit is 35 N. Set it in the firmware
+   (`{"cmd":"set","key":"limit_n","val":35}`) and as the operator page's tow limit (jetson/README.md, settings).
+   Re-anchor (wrap first, as in step 1). Rover chocked, everyone beside the line. Then the stage 7 table from
+   `tidy` on: `tidy`, `mode` REEL, then the tow: `{"cmd":"reel","duty":1,"max_n":35,"until":"tension"}` (your
+   limit).
+4. `stop` the tow first, then send release (operator page, or `python3 -m grappstar dart release`): drills out,
+   pods up, foot out, kick back. Then finish the stage 7 table: reel in to about 1.5 m, `unwrap`, `retrieve`, `mode` LAUNCH.
 
 Pass: the dart anchors on its own, holds at least 20 N in loam, the base stops at its tension limit, the release
 sequence frees the dart, it reels home.
 If it fails: augers back out: swap that motor's leads (dart run sheet section 10). Pulls out at low force: try
-firmer soil, and report the force (it sets the reel limit). Base overshoots the limit: redo the current
-calibration (G1).
+firmer soil, and report the force (it sets the reel limit). Base overshoots the limit: redo CALIBRATION.md (f)
+(MEASURE_LIST G9).
 
 ### Stage 9. Full mission
 
-Before the first mission: `free_a` and `k_n_per_a` are calibrated (stage 8 step 3), `limit_n` is set (50 N), and
-`require_seated` is `true`.
+Before the first mission: `free_a` and `k_n_per_a` are calibrated (CALIBRATION.md (d) and (f)), the tow limit is
+set by the stage 8 rule in both the firmware (`limit_n`) and the operator page, `require_seated` is `true`, and the
+Jetson README steps 5 to 7 are done (cameras, dart WiFi, rover camera calibration: targeting needs it).
 
 From the operator page on the Jetson (jetson/README.md): preflight, pick a target on the Kiyo view, aim, confirm
 the fire prompt, flight video from the dart, landing verdict, anchor, tow, release, reel home.
@@ -3429,7 +3644,7 @@ and wiper numbers and re-run the physics, they update.
 
 ### Base station physics: summary
 
-Params: base/spec/params.py v1.2.8. Generated by base/physics/summary.py.
+Params: base/spec/params.py v1.3.1. Generated by base/physics/summary.py.
 
 #### Spring (each, A228, SF 1.2 on Shigley static limits)
 
@@ -3450,22 +3665,22 @@ Params: base/spec/params.py v1.2.8. Generated by base/physics/summary.py.
 | Spring extension full / rest | 265 / 24 mm |
 | Stored energy (2 springs) | 12.1 J |
 | Carriage force at full draw | 80 N |
-| Muzzle speed | 6.94 m/s |
-| Peak acceleration, stroke time | 19 g, 58 ms |
-| Efficiency (dart KE / stored) | 56 % |
-| Carriage KE at stop, pad peak | 1.69 J, 265 N (19 mm pad) |
-| Spring KE at stop, coil clash | 0.83 J, 8.7 m/s |
+| Muzzle speed | 6.85 m/s |
+| Peak acceleration, stroke time | 18 g, 59 ms |
+| Efficiency (dart KE / stored) | 54 % |
+| Carriage KE at stop, pad peak | 1.89 J, 285 N (19 mm pad) |
+| Spring KE at stop, coil clash | 0.82 J, 8.0 m/s |
 
 #### Flight (bead-chain tether + reel model, level ground)
 
 | Item | Value |
 |---|---|
 | Line path at the shot | taut (path only lengthens) |
-| Range at 0.5 / 0.75 / 1.0 N brake | 4.28 / 3.85 / 3.47 m (pitch 34) |
-| Same shot, no tether | 5.13 m |
-| Flight time, apex (0.75 N) | 0.81 s, 1.12 m |
-| Impact speed, angle (0.75 N) | 5.8 m/s, 55 deg down |
-| Ballistics table | 6 to 47 deg, best 33.5 deg: 3.85 m |
+| Range at 0.5 / 0.75 / 1.0 N brake | 4.18 / 3.76 / 3.39 m (pitch 34) |
+| Same shot, no tether | 5.01 m |
+| Flight time, apex (0.75 N) | 0.80 s, 1.11 m |
+| Impact speed, angle (0.75 N) | 5.7 m/s, 55 deg down |
+| Ballistics table | 6 to 47 deg, best 33.5 deg: 3.76 m |
 
 #### Storage reel payout (LIGHT 0.5 N at full reel)
 
@@ -3473,20 +3688,20 @@ Params: base/spec/params.py v1.2.8. Generated by base/physics/summary.py.
 |---|---|
 | Reel empty mass, inertia full | 46 g, 31.4 kg mm2 |
 | Line radius full / core | 30.7 / 25.0 mm (brake +23 % at core) |
-| Line pull in the stroke (spin-up) | 5.18 N |
-| Reel rpm max | 2158 rpm |
-| Overrun after landing | 0.58 m in 0.27 s |
+| Line pull in the stroke (spin-up) | 5.05 N |
+| Reel rpm max | 2129 rpm |
+| Overrun after landing | 0.56 m in 0.27 s |
 
 #### Capstan and tow
 
 | Item | Value |
 |---|---|
-| Wraps for tow limit (mu 0.15) | 2.4 raw, 4 design |
-| Take-up needed (design wraps) | 0.07 N |
-| Tow at limit: torque, speed, current | 4.17 N m, 0.128 m/s, 6.09 A |
-| Line pull at limiter (5 N m) (12.6 V) | 61 N (break 667 N) |
-| Line pull, motor stall (no limiter, 12.6 V) | 174 N |
-| Tow sensing: line N per wiper amp above free | 11.3 N/A (line = 11.3 x (I - I_free) - 2.0 N) |
+| Wraps for tow limit at the capstan (57 N, mu 0.15) | 2.6 raw, 4 design |
+| Take-up needed for the tow at the actual wraps (7) | 0.08 N |
+| Tow at limit: torque, speed, current | 3.23 N m, 0.143 m/s, 5.06 A |
+| Wiper at limiter (5 N m), 12.6 V: torque, current, line pull | 5.0 N m, 7.0 A, 80 N (break 667 N) |
+| Wiper motor stall (no limiter), 12.6 V: torque, current, line pull | 14.1 N m, 17.0 A, 227 N |
+| Tow sensing at the dart: N per wiper amp above free | dart = 14.8 x (I - I_free) - 2.6 N (capstan side x1.15) |
 
 #### Drivetrain (wiper at 11.1 V with sag)
 
@@ -3495,23 +3710,22 @@ Params: base/spec/params.py v1.2.8. Generated by base/physics/summary.py.
 | aim: peak torque, current, time | 0.33 N m, 1.9 A, 7 s |
 | cock: peak torque, current, time | 2.93 N m, 4.7 A, 3 s |
 | reel: peak torque, current, time | 0.43 N m, 2.0 A, 107 s |
-| tow: peak torque, current, time | 4.17 N m, 6.1 A, 39 s |
-| Wiper at limiter (5 N m), 12.6 V (with sag) | 5.0 N m, 7.0 A |
-| Wiper motor stall (no limiter), 12.6 V (with sag) | 14.1 N m, 17.0 A |
+| tow: peak torque, current, time | 3.23 N m, 5.1 A, 35 s |
 
-#### Harry must measure
+#### To measure (then edit base/spec/params.py and run ./run_all.sh)
 
-- Spring hang test: hang 1, 2, 3 kg from one spring, measure the length each time. Slope = rate, intercept = initial tension. Every range number scales with the stored energy.
-- Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall current. Edit common.Wiper or spec WIPER.
-- Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg).
-- Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 5 N.
-- After the first shots: python calib.py range pitch:brake:range ... then python ballistics.py --v-scale <factor>.
-- Rail friction: tilt the rail with the dart on it until it slides (mu = tan angle).
+1. Spring hang test: hang 1, 2, 3 kg from one spring and measure the length each time (hooks included). python calib.py spring FREE_MM 1:MM 2:MM 3:MM, then SPRING k_n_per_mm and F0_n. Every range number scales with the stored energy.
+2. Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall current. python calib.py wiper --v 12 --rpm .. --i-free .. --stall-kg .. --arm-mm .. --i-stall .., then WIPER n0_rpm, stall_nm, stall_a, free_a.
+3. Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg), then DART mass_kg.
+4. Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 5 N (REEL clutch).
+5. First shots on level ground: python calib.py range pitch:brake:range ..., then LAUNCH v_scale = FACTOR.
 
 
 # 13. Troubleshooting
 
-First move for any problem: send `estop` (or pull the battery plug), then read the `fault` field in telemetry.
+First move for any problem: send `estop`; if anything still moves, pull lead #2's XT60 (section 2, Stopping). Then
+read the `fault` field in telemetry. The operator page STOP button sends a plain `stop` (wiper off, drum stays);
+`estop` also moves the drum to NEUTRAL when safe.
 
 ## Base
 
@@ -3526,7 +3740,7 @@ First move for any problem: send `estop` (or pull the battery plug), then read t
 | Fault STALL or OVERCURRENT | Something binds, springs stronger than planned | Battery unplugged, turn the train by hand, find the tight spot; redo the spring measurement |
 | Fault DRUM_TIMEOUT | Drum N20 not turning: no 9 V, board asleep, gear slipping | Meter on DRV8833 VM (9.0 V); check AIN1 / AIN2 / GND; check the board make (MEASURE_LIST D3); check the N20 gear set screw |
 | Fault DRUM_SENSOR or SWITCH_DISAGREE | A drum contact does not close or stays closed | Battery unplugged, ESP32 on USB only (contacts read on USB power): watch `sw` while turning the drum by the hand lever; bend or re-screw the contact |
-| Fault ANGLE_SENSOR | AS5600 cable out, magnet too far | Re-seat the STEMMA cable; magnet 1 to 3 mm from the chip, centred |
+| Fault ANGLE_SENSOR | AS5600 cable out, magnet too far | Re-seat the STEMMA cable; magnet 1 to 2 mm from the chip, centred |
 | `pitch_deg` wrong after a restart | Pitch reference lost | Run the pitch part of the calibration again (section 10) |
 | Drum stuck between positions with the power off | Expected: the worm holds it | Loosen the cradle swing screw, swing the N20 out of mesh, use the hand lever on the drum shaft end, battery unplugged. Never use the hand lever while the carriage is drawn (`cock` above 0 or `SW_HOME` open) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first. |
 | Base cocked and you need to unload without firing | | Send `{"cmd":"cal","what":"decock"}`: the wiper runs backward slowly and the springs unwind under the worm until `SW_HOME` closes. If it fails: `clear`, `mode` LAUNCH, `decock` again; then, if it says `SWITCH_DISAGREE` and the carriage is visibly drawn, `{"cmd":"decock","force":true}`; last resort the manual unload in section 2 (battery out, one spring at a time with a hook tool). Never hand-release the carriage |
@@ -3588,7 +3802,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | B1 Free length L0 | Steel rule or tape, hook to hook (inside of the hooks), no load (the spring is longer than a caliper) | `SPRING.free_len` | Nothing |
 | B2 Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load, but only if L3 - L0 is under 160 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm. Or let the computer fit it: `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` (kg:mm pairs) prints the rate and initial tension | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
 | B3 Wire and outside diameter | Caliper | `SPRING.wire`, `SPRING.od` | Spring anchors only if OD differs by more than 0.5 mm |
-| B4 Which preload hole | Decision D30: the springs are Century C-243, rated 38.4 N maximum safe load. Full cock is 265 mm extension (about 40 N each with the estimated rate; preload 23.8 mm, stroke 241.2 mm). A fallback anchor hole set gives 250 mm at full cock. After B2, re-run the physics: if the force at full cock is over 38.4 N, use the fallback hole set | assembly choice (spring anchor holes) | Nothing |
+| B4 Which preload hole | Decision D30: the springs are Century C-243, rated 38.4 N maximum safe load. Full cock is 265 mm extension (about 40 N each with the estimated rate; preload 23.8 mm, stroke 241.2 mm). A fallback anchor hole set F, 8.5 mm rearward, gives 256.5 mm at full cock. After B2, re-run the physics: if the force at full cock is over 38.4 N, use the fallback hole set | assembly choice (spring anchor holes) | Nothing |
 
 ### C. Parts box: confirm you have these (no new purchases)
 
@@ -3600,7 +3814,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | C4 MP1584 #2 (the spare from the dart build; confirm it, decision D19) | Look in the parts box. Needed for: drum N20 supply at 9.0 V | If not: No other way to run the DRV8833 from the 3S: tell the coordinator |  |
 | C5 DRV8833 #3 (freed from the dart by the new pin map) | Look in the parts box. Needed for: drum N20 |  |  |
 | C6 100 kg load cell + HX711 (August order) | Look in the parts box. Needed for: optional line tension reading | If not: Leave it out: the firmware uses wiper current instead |  |
-| C7 Resistors: 2 x 10 k, 1 x 1 k, 1 x 680 R, 1 x 100 k, 1 x 22 k | Look in the parts box. Needed for: BTS7960 enable pull-downs, IS divider, battery divider (firmware/base/WIRING.md) | If not: Any value within 20 percent works for the pull-downs; tell fw-base if the dividers differ |  |
+| C7 Resistors: 2 x 10 k, 1 x 1 k, 1 x 680 R, 1 x 100 k, 1 x 22 k | Look in the parts box. Needed for: BTS7960 enable pull-downs, IS divider, battery divider (firmware/base/WIRING.md) | If not: Any value within 20 percent works for the pull-downs; tell fw-base if the dividers differ. Without the battery divider at all, send `{"cmd":"set","key":"vbat_wired","val":false}` after every start-up (it comes back true at boot, and the base then refuses with NO_POWER) |  |
 | C8 Spare XT60 plugs, 14 AWG wire, two small inline fuse holders with a 2 A and a 1 A fuse | Look in the parts box. Needed for: XT60 Y harness; fuses for the MP1584 and RC832 taps | If not: Without the small fuses: use 18 AWG for those taps and keep them under 10 cm |  |
 | C9 Barrel plug 5.5 x 2.5 mm with lead | Look in the parts box. Needed for: Jetson from the LiPo | If not: Run the Jetson from its own supply on the bench; the rover needs one |  |
 | C10 Yellow RCA lead | Look in the parts box. Needed for: RC832 AV out to the DIGITNOW |  |  |
@@ -3656,12 +3870,12 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | G4 Storage reel payout drag | A luggage scale cannot read this low: use hanging weights in LAUNCH mode. Tie 40 g (coins in a bag, weighed) to the line end over the edge of the bench: it must NOT pull line off. 50 g must pull line off slowly. That sets the brake at 0.5 N (the design value). Above 1 N costs range, 3 N ruins the flight. Then in NEUTRAL the clutch is FIRM, 5 N (decision D24): with the luggage scale, line pulls off at about 0.5 kg | slip clutch preload (reel parts) |  |
 | G5 Muzzle speed | Phone slow-motion video side-on, tape measure laid in the flight line (same distance from the phone as the dart). Count the frames the nose takes to cross 0.5 m; speed m/s = 0.5 x slow-motion fps (240 or 120) / frames | physics model, ballistics table |  |
 | G6 Range at three pitches | Tape measure from the base to the dart at 3 pitches, tether on, brake unchanged | ballistics table check (jetson uses it) |  |
-| G9 Line tension per amp | CALIBRATION.md (f): `wrap`, `mode` REEL, line tied to a luggage scale on a post, stand beside the line. `{"cmd":"reel","duty":0.3,"until":"stop"}`, send `stop` at about 10, 20 and 30 N (the worm holds between), read `amps` each time; stay under 40 N. Fit the slope and offset. The firmware ships the physics model (decision D33): line N = 17.0 x (amps - free amps) - 10.4, a 50 N tow draws about 5.05 A (hard trip 6.5 A). The 17 is a model, so this check matters before any tow | firmware `k_n_per_a`, `tension_offset_n` | |
-| G10 Tow limit (choose) | The firmware ships `limit_n` 50 N (decision D3) and refuses anything above 70 N (decision D39). Lower it with `{"cmd":"set","key":"limit_n","val":40}`; raise it (70 N at most) only if G7 shows the anchor holds well above it (keep it below the holding force) | firmware `limit_n` | |
-| G11 Payout brake trim | If G4 is off: add or remove printed 0.4 mm shims under thrust ring T (reel assembly steps) | reel shims (print more) |  |
+| G9 Line tension per amp (dart-side tension, decision D43) | CALIBRATION.md (f): `wrap`, `mode` REEL, the line END (where the dart would be) tied to a luggage scale on a post, stand beside the line. `{"cmd":"reel","duty":0.3,"until":"stop"}`, send `stop` at about 10, 20 and 30 N (the worm holds between), read `amps` each time; stay under 40 N. Fit the slope and offset. Default law: line N = 13.1 x (amps - free amps) - 2.3. It is a model, so this check matters before any tow | firmware `k_n_per_a`, `tension_offset_n` | |
+| G10 Tow limit (choose) | The limit is the tension at the dart (D43). The firmware ships `limit_n` 50 N and refuses anything above 55 N at the dart (D46). Keep the first field tows at 40 N or less until the wrap cup ring has been checked for wear (D46). Lower it with `{"cmd":"set","key":"limit_n","val":40}`; keep it below the holding force from G7 | firmware `limit_n` | |
+| G11 Payout brake trim | If G4 is off: turn the 2 x M3 trim screws through the reel gear and the wall (reel assembly steps), a quarter turn at a time, until 40 g on the line does not pay out and 50 g just pays out (no shims) | reel trim screws | |
 | G12 Contact gaps | Set each contact to the gap its assembly step gives, then check in telemetry `sw` that it opens and closes at the right place: SW_HOME and SW_SEATED screw head to the nut then back half a turn (0.25 mm); SW_INDEX about 1.5 mm on a low part of the cam; drum code contacts about 1.8 mm with the nub low. The coupon contact (risk coupon 2) is set to 0.9 mm and is only a test piece. Half a turn of an M3 screw is 0.25 mm | nothing | |
 | G13 AS5600 air gap | Magnet face to chip: 1.0 mm design, 1 to 2 mm is the target (params), 0.5 to 3 mm still reads. Feeler: a stack of paper | nothing |  |
-| G14 Wiper coupler shear pin | The coupler's torque limiter is a printed PLA pin (d 4) that SHEARS at about 5 N m (3.5 to 6 N m expected). Break one spare pin on the bench: pin in the coupler, coupler held in a vice by the hub, 300 mm bar on the output side, luggage scale at 90 degrees to the bar. Note the peak: N m = kg x 9.81 x 0.30. Six spare pins are in the print pack (decision D26) | pin diameter if it breaks well outside 3.5 to 6 N m (tell the coordinator) | spare shear pins |
+| G14 Wiper coupler shear pin (before the first powered cock, decision D44) | The torque limiter is a printed PLA pin (d 4), printed LYING DOWN, that shears at about 5 N m (3.5 to 6 N m). Break THREE spare pins on a torque arm: pin in the coupler, hub held in a vice, 300 mm bar on the output side, luggage scale at 90 degrees. N m = kg x 9.81 x 0.30 (about 1.2 to 2.0 kg). They must agree within 20 percent (risk coupon 9 is the same test) | pin diameter if outside 3.5 to 6 N m (tell the coordinator) | spare shear pins |
 | G7 Soil holding force | Dart anchored, luggage scale on the tether, pull slowly up to 50 N, note where it moves | reel tension limit |  |
 | G8 Rail friction | Before the rail is mounted: lay the rail part on a flat board, dart in the cradle, lift one end of the board slowly until the dart slides; phone level app on the board. Friction = tan(angle) | physics (launch efficiency) |  |
 
@@ -3670,7 +3884,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | Item | How | Changes | Reprint |
 |---|---|---|---|
 | H1 Drum N20 output shaft | Caliper the diameter (3 mm assumed) and the D flat depth | drum N20 pinion (drum_NOTES) | `drum` N20 pinion |
-| H2 Drum N20 stall torque at 9 V | 50 mm lever on the shaft, pressing on the kitchen scale; jog the drum for at most 1 s. Torque N m = kg x 9.81 x 0.05. Estimate 0.22 N m (the drum gear is 12:1 for 2.16 N m at the drum). Important: laying the wraps uses 30 to 37 percent of an assumed 0.2 N m, so a weak N20 shows up here first | drum gear ratio if it is much weaker (tell the coordinator) | `drum_drum`, `drum_n20_cradle` if the ratio changes |
+| H2 Drum N20 stall torque at 9 V | 50 mm lever on the shaft, pressing on the kitchen scale; jog the drum for at most 1 s. Torque N m = kg x 9.81 x 0.05. It must stall at 0.171 N m or more at 9 V (the drum design's margin; estimate 0.22 N m). Laying the wraps is the hardest job for it, so a weak N20 shows up there first | drum gear ratio if it is much weaker (tell the coordinator) | `drum_drum`, `drum_n20_cradle` if the ratio changes |
 | H3 CSK20PP keyway depths | Caliper the inner keyway (2.8 assumed) and outer keyway (1.5 assumed) depths | capstan tube key rib, capstan block rib (reel_NOTES) | capstan tube and block |
 | H4 BTS7960 module | Height of the heatsink under the board (22 assumed) and the 4 mounting hole spacing (40 x 40 assumed) | `frame_ebay` standoffs | electronics bay |
 | H5 DevKitC USB socket | Micro-USB (official board) or USB-C (clone). The slot fits both: just confirm, and have the right cable | nothing | nothing |
@@ -3699,7 +3913,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 ## Numbers still assumed in params.py right now
 
 
-params.py version: `1.2.9`.
+params.py version: `1.3.2`.
 
 | params.py name | State | Who fixes it |
 |---|---|---|
@@ -3736,8 +3950,8 @@ shows a placeholder; re-run the script after it lands.
 | `jetson/README.md` | jetson | yes |
 
 
-Appendices attached after this page (when present): the base assembly steps PDF from `base/guide`, then the KEDGE
-v30 dart run sheet. In the run sheet, follow section 6 of this guide for the new dart pin map.
+Appendix attached after this page (when present): the base assembly guide `base/out/base/guide.pdf`. Print
+separately: the KEDGE v30 dart run sheet `kedge/pack_v30/KEDGE_v30_run_sheet.pdf` (follow section 6 of this guide for the new dart pin map).
 
 Printable one-pagers next to this guide: `docs/build/FIRST_DAY.md`, `Wiring_Cheat_Sheet_Base.pdf`,
 `Wiring_Cheat_Sheet_Dart.pdf`, `Commands_Cheat_Sheet.pdf`, `MEASURE_RESULTS.pdf` (fill-in).

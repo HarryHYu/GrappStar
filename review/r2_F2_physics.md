@@ -7,16 +7,20 @@ agreed it is real but rated it lower.
 
 Confirmed: 6. Refuted and dropped: 4.
 
-| # | Sev | File:line | Owner | Finding |
-|---|---|---|---|---|
-| 1 | medium | `base/physics/capstan.py:322` | physics | Tow limit is only checked at the 50 N default: any allowed setting above about 75 N reaches the shear-pin torque together with the 6.5 A tow trip, and nothing flags it (r2_K #7, not fixed) |
-| 2 | medium | `base/physics/drivetrain.py:58` | physics | Aim gear check still models a gear that was never built (m2 face 10, splitter only); the built m1.5 face 8 splitter/bevel and the m2 z20 worm wheel fail at the 5 A aim trip (r2_K #5, physics part, not fixed) |
-| 3 | medium | `base/physics/recoil.py:109` | physics | D5 second spring pair is still reported as an 8 to 9 m option with no cock-torque check; with 4 springs every cock needs 5.83 N m, above the shear pin and the 6.5 A cock trip (r2_K #6, not fixed) |
-| 4 | low | `base/physics/capstan.py:47` | physics | Physics hard-trip model uses 6.0 A for both reel-in and tow; the spec trips are reel_in 5.0 A and tow 6.5 A, so the trip line force and the trip gear and shaft checks in drivetrain.json/capstan.json disagree with the firmware |
-| 5 | low | `base/physics/test_phys_spec.py:74` | physics | Section 11 launch numbers are still not pinned by any test (R1 #9 not fixed) and no longer match the model: 13 J / 7.5 m/s / 4.5 m at 35 deg in the spec vs 12.1 J / 7.04 (6.49 after the snatch) / 3.72 m |
-| 6 | low | `base/physics/test_phys_spec.py:81` | physics | test_committed_ballistics_not_stale checks one cell (36 deg, middle drag) and never runs validate() on the committed C3 file: corrupted or out-of-order rows still pass |
+Re-checked 14:10 Sydney against base-v1 863d58d, one checker subagent per finding: see the Now column.
+
+| # | Sev | File:line | Owner | Finding | Now (863d58d) |
+|---|---|---|---|---|---|
+| 1 | medium | `base/physics/capstan.py:322` | physics | Tow limit is only checked at the 50 N default: any allowed setting above about 75 N reaches the shear-pin torque together with the 6.5 A tow trip, and nothing flags it (r2_K #7, not fixed) | moot |
+| 2 | medium | `base/physics/drivetrain.py:58` | physics | Aim gear check still models a gear that was never built (m2 face 10, splitter only); the built m1.5 face 8 splitter/bevel and the m2 z20 worm wheel fail at the 5 A aim trip (r2_K #5, physics part, not fixed) | partly fixed |
+| 3 | medium | `base/physics/recoil.py:109` | physics | D5 second spring pair is still reported as an 8 to 9 m option with no cock-torque check; with 4 springs every cock needs 5.83 N m, above the shear pin and the 6.5 A cock trip (r2_K #6, not fixed) | moot |
+| 4 | low | `base/physics/capstan.py:47` | physics | Physics hard-trip model uses 6.0 A for both reel-in and tow; the spec trips are reel_in 5.0 A and tow 6.5 A, so the trip line force and the trip gear and shaft checks in drivetrain.json/capstan.json disagree with the firmware | fixed |
+| 5 | low | `base/physics/test_phys_spec.py:74` | physics | Section 11 launch numbers are still not pinned by any test (R1 #9 not fixed) and no longer match the model: 13 J / 7.5 m/s / 4.5 m at 35 deg in the spec vs 12.1 J / 7.04 (6.49 after the snatch) / 3.72 m | still open |
+| 6 | low | `base/physics/test_phys_spec.py:81` | physics | test_committed_ballistics_not_stale checks one cell (36 deg, middle drag) and never runs validate() on the committed C3 file: corrupted or out-of-order rows still pass | still open |
 
 ## 1. Tow limit is only checked at the 50 N default: any allowed setting above about 75 N reaches the shear-pin torque together with the 6.5 A tow trip, and nothing flags it (r2_K #7, not fixed)
+
+- Now (863d58d): **moot** at `base/spec/DECISIONS.md:47`. D39 now caps the tow limit at 70 N (params.py:228 has tow_limit_max_n=70.0, and the firmware refuses higher max_n or tow_limit_n). The 100 N clay setting in the scenario, near the pin and trip at about 75 N, can no longer be chosen. capstan.run (capstan.py:318-323) still only checks the 50 N default and never reads tow_limit_max_n, so nothing in physics confirms that 70 N clears the 0.8 x limiter margin.
 
 - File: `base/physics/capstan.py:322`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -44,6 +48,8 @@ What I confirmed:
 
 ## 2. Aim gear check still models a gear that was never built (m2 face 10, splitter only); the built m1.5 face 8 splitter/bevel and the m2 z20 worm wheel fail at the 5 A aim trip (r2_K #5, physics part, not fixed)
 
+- Now (863d58d): **partly fixed** at `base/physics/drivetrain.py:58 and :184; base/physics/capstan.py:47; firmware/base/grappstar_base/params_gen.h:324`. Fixed: AIM_DEFAULTS.gear is now the built splitter (m1.5 z30 face 8). Still open: the aim check runs at TRIP_AIM_A = 3.0 A, which is only a "recommended" value. The firmware (P_REEL_CURRENT_TRIPS_A_AIM 5.0f) and spec D8/D33 still trip at 5 A, so drivetrain.json reports aim gear_sf_trip 1.44 with no flags. The bevel (m1.5 z30->z15) and the m2 z20 worm wheel are still never checked, so at the real 5 A trip the teeth strip (sf about 0.6 to 0.76) while the report says the train is safe.
+
 - File: `base/physics/drivetrain.py:58`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: physics
@@ -64,6 +70,8 @@ Fix: In drivetrain.AIM_DEFAULTS, set the stages to the built geometry: splitter 
 >
 
 ## 3. D5 second spring pair is still reported as an 8 to 9 m option with no cock-torque check; with 4 springs every cock needs 5.83 N m, above the shear pin and the 6.5 A cock trip (r2_K #6, not fixed)
+
+- Now (863d58d): **moot** at `base/spec/DECISIONS.md:46 (D38); base/physics/recoil.py:144; base/physics/FINDINGS.md:15`. D38 now says v1 supports only two launch springs because the second pair needs about 5.83 N m per cock, above the 5 N m pin and the 6.5 A trip. recoil.py:144 and FINDINGS.md:15 both mark 4 springs as NOT SUPPORTED. spring_count_case still never calls drivetrain.cock, and the old F10 section (FINDINGS.md:148) still lists the 8.7/7.9/7.2 m figures with no caveat, but no document now offers the 4-spring option.
 
 - File: `base/physics/recoil.py:109`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -93,6 +101,8 @@ What I ran: from base/physics I called `drivetrain.cock` on a deepcopy of the pa
 
 ## 4. Physics hard-trip model uses 6.0 A for both reel-in and tow; the spec trips are reel_in 5.0 A and tow 6.5 A, so the trip line force and the trip gear and shaft checks in drivetrain.json/capstan.json disagree with the firmware
 
+- Now (863d58d): **fixed** at `base/physics/capstan.py:46-48; base/physics/drivetrain.py:184`. The constants now match the spec: TRIP_HARD_A is 5.0 (reel-in) and TRIP_REEL_A is 6.5 (tow). drivetrain.evaluate uses 5.0 A for reel and 6.5 A for tow, and capstan.fw_trip uses 6.5 A. The regenerated capstan.json shows hard_a 6.5, 4.55 N m at the wiper and hard_line_n 75.8 N. The physics code still keeps its own constants and does not read REEL.current_trips_a, so the two can drift apart again, but today the values agree.
+
 - File: `base/physics/capstan.py:47`
 - Severity: low (claimed low); unverified (low)
 - Owner: physics
@@ -105,6 +115,8 @@ Fix: In spec_bridge.apply, read REEL.current_trips_a into p.trips (aim, reel_in,
 
 
 ## 5. Section 11 launch numbers are still not pinned by any test (R1 #9 not fixed) and no longer match the model: 13 J / 7.5 m/s / 4.5 m at 35 deg in the spec vs 12.1 J / 7.04 (6.49 after the snatch) / 3.72 m
+
+- Now (863d58d): **still open** at `base/physics/test_phys_spec.py:71`. The defect is still there on HEAD. test_headline_launch_band still only checks 6.5 < v_muzzle < 7.8 on raw launch(), and no test pins energy, effective muzzle speed or range, so a carriage mass or spring rate error would still pass. BASE_SPEC.md:199 still says "about 13 J, about 7.5 m/s, about 4.5 m", and params.py:192 LAUNCH.flight still says 4.8 m / 7.41 m/s.
 
 - File: `base/physics/test_phys_spec.py:74`
 - Severity: low (claimed medium); 1 of 2 skeptics confirmed
@@ -130,6 +142,8 @@ Part of the claim holds on base-v1, which uses params VERSION 1.2.7 (the claim s
 >
 
 ## 6. test_committed_ballistics_not_stale checks one cell (36 deg, middle drag) and never runs validate() on the committed C3 file: corrupted or out-of-order rows still pass
+
+- Now (863d58d): **still open** at `base/physics/test_phys_spec.py:77-87`. On the newest tree, test_committed_ballistics_not_stale has not changed. It checks the params hash, then one row near 36 deg: v_muzzle, plus range_m only in the middle drag column. It never runs validate() on the committed base/out/ballistics.json and never checks the other pitches, the other drag columns, t_flight_s or apex_m. The only validate() calls are in test_phys_ballistics.py, and they check a freshly built table, not the committed file, so a corrupted or out-of-order committed table still passes.
 
 - File: `base/physics/test_phys_spec.py:81`
 - Severity: low (claimed medium); 2 of 2 skeptics confirmed

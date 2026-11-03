@@ -27,7 +27,7 @@ them in your REPORT.md or message the coordinator.
 
 - params.LAYOUT.reel_frame_R: origin world (-18.661, 33.5, -69.643) = capstan axis on the front face of my reel wall;
   R +X = world +X, R +Y = world +Z, R +Z = world -Y. Deck top = R Y -95.36.
-- R = Harry's v7 world frame shifted by (0, -44, +46): every v7 line rule carries over unchanged.
+- R is a pure translation of Harry's v7 world frame: every v7 line rule carries over unchanged.
 - Senses about R +Z: capstan wind-in +, storage reel take-up +, bus gear under a FORWARD wiper +, cup WRAP -,
   cup UNWRAP +.
 
@@ -35,8 +35,8 @@ them in your REPORT.md or message the coordinator.
 
 | item | X | Y | Z | world y |
 |---|---|---|---|---|
-| whole reel unit | -136.5 .. +93 | -95.4 .. +43 | -46.5 .. +124 | 80 .. -90.5 |
-| reel wall (PLA, 6 mm, foot and exit pad) | -128 .. +90 | -95.4 .. +43 | -40 .. +124 | |
+| whole reel unit (without pulley 2's post) | -131 .. +93 | -95.4 .. +43 | -64 .. +124 | 97.5 .. -90.5 |
+| reel wall (PLA, 6 mm, foot, guides, crank boss) | -128 .. +30 | -95.4 .. +43 | -40 .. +42 | |
 | sprag hub (PPA-CF) | -33.5 .. +33.5 | -33.5 .. +33.5 | -6 .. +25 | |
 | storage reel (flange d 72) | -124 .. -52 | -36 .. +36 | 12 .. 37.5 | |
 | shroud | -131 .. -57 | -43.5 .. +30 | 0 .. 42 | |
@@ -47,7 +47,8 @@ them in your REPORT.md or message the coordinator.
 | pulley 1 centre (axis R Y) | +84 | +23.5 | 101 | -67.5 |
 | pulley 2 centre (axis world Z), own post | +84 | +9.6 | -78.5 | 112 (world (65.3, 112, -60)) |
 | pulley 2 post | +140 .. +173 | -95.4 .. +34.6 | -93 .. -64 | 97 .. 126 |
-| gears behind the wall | -105 .. +36 | -36 .. +36 | -46.5 .. -6 | 40 .. 80 |
+| gears and SW_ARM behind the wall | -104.5 .. +36 | -75.7 .. +41 | -64 .. -6 | 39.5 .. 97.5 |
+| brake bar, crank, guide caps, rocker | -104 .. +48.5 | -58 .. +40 | -2.5 .. +20 | 13.5 .. 36 |
 
 - My checks() test every reel part against the main-axis stack (coupler r 27 y 0.5..46, bus r 41, REEL gear r 54,
   collar r 32, dog ring r 33, shaft r 15) and the drum (r 44): clear.
@@ -63,7 +64,7 @@ them in your REPORT.md or message the coordinator.
 | S reel shaft | PPA-CF (8 mm steel rod also fits) | 8 | wall bushing + boss (9.5 long); 2 x 608 in the reel; head = clutch disk D r 31 |
 | swing arm | PPA-CF | split C ring on the bus gear hub r 13 | stop pins on the wall rear face at the engaged and parked ends of its 12 deg swing |
 
-Bought: CSK20PP, 2 x 608, 693ZZ (pulley 1), M3: 8 deck screws, 4 x M3x8 hub, 3 x M3x8 shroud, 2 x M3x8 trim,
+Bought: CSK20PP, 2 x 608, 693ZZ (pulley 1), M3: 7 deck screws, 4 x M3x8 hub, 3 x M3x8 shroud, 2 x M3x8 trim,
 M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post, brake: M3x10 crank screw and
 4 x M3x16 guide caps.
 
@@ -94,7 +95,7 @@ M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post, brake: M3
 
 - Face clutch: annulus r 20 .. 30 (r_eff 25) on the storage reel's front flange disc against the clutch disk D (head
   of S). The thrust ring T presses the rear 608 inner race, so the reel onto D. T is pushed by two M3 TRIM SCREWS in
-  my BRAKE ROCKER (PETG plate 3.0 thick, 15 wide, ring r 14.5 round S; pivot M3 at the top, R Y 37; screws at Y 0;
+  my BRAKE ROCKER (PPA-CF plate 3.0 thick, printed flat, E about 5 GPa: Harry has no PETG, 15 wide, ring r 14.5 round S; pivot M3 at the top, R Y 37; screws at Y 0;
   a stiff leg 10 x 5.5 runs down to Y -51.7, past the shroud through a window). The clutch stack is rigid, so the
   plate bends: it is the FIRM spring. LIGHT is set by the trim screws (hex key through two holes in the wall from
   behind): 1/8 turn is about 0.4 N of axial preload.
@@ -102,24 +103,25 @@ M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post, brake: M3
   pushes my BRAKE BAR (PPA-CF, 6 x 6) along R -X. Its round nose (r 3, R Z 9.2 .. 15.2 = world y 18.3 .. 24.3) sits
   0.2 mm off the cam base circle at LIGHT, at R (48.66 - 0.2, -42.36). The bar runs in front of the wall, doglegs
   down at R X -30 .. -10 to R Y -55 (under the shroud and under the guide post, which now ends at R Y -51), in two U
-  guides (wall jaw + printed cap, 2 x M3 x 16 each). Its left end turns a BELL CRANK (PPA-CF, axis R Y, on a d 5
-  boss at R (-99.83, Z 2), printed washer + M3 x 10): arm A (tip circle 10.2 above the pivot) on the bar end, arm B
-  (12.8 along +X, in a 3 mm recess in the wall front) under the rocker leg. Bar 3.8 mm -> crank 21.9 deg -> leg
-  +5.0 mm at R Y -48.7.
-- Spring sizing with the real section (reel_calc.rocker_section, unit-load integration, review 2 found the old 4 mm
-  at Y -33 about 80 percent too stiff): 5.0 mm at the leg contact gives exactly LIGHT -> FIRM.
+  guides (wall jaw + printed cap, 2 x M3 x 16 each). A lug on its left end (up to R Z 25) turns a BELL CRANK
+  (PPA-CF, axis R Y, on a d 5 boss at R (-97.8, Z 2), printed washer + M3 x 10): arm A (tip circle 20 above the
+  pivot) on the lug, arm B (10.8 along +X, in a 3 mm recess in the wall front) under the rocker leg. Bar 3.8 mm ->
+  crank 11.0 deg -> leg +2.1 mm at R Y -48.7.
+- Spring sizing with the real section (reel_calc.rocker_section, unit-load integration, E 5 GPa; review 2 found the
+  old 4 mm at Y -33 far too stiff): 2.1 mm at the leg contact gives exactly LIGHT -> FIRM. FIRM scales with the real
+  E of Harry's PPA-CF: check it with the luggage scale (section 9).
 - Levels (line tension with the reel full, D24):
 
 | level | bar slide | line N (full .. empty) | torque | axial | leg force | bar force (cam) |
 |---|---|---|---|---|---|---|
 | LIGHT (LAUNCH, WRAP) | 0 (0.2 gap at the nose) | 0.50 .. 0.63 | 15.7 N mm | 2.1 N | 0.9 N (trim preload) | 0 |
-| FIRM (NEUTRAL, WRAPPED, REEL) | 3.8 mm | 5.0 .. 6.3 | 157 N mm | 20.9 N | 9.1 N | 11.9 N + friction (design 15) |
+| FIRM (NEUTRAL, WRAPPED, REEL) | 3.8 mm | 5.0 .. 6.3 | 157 N mm | 20.9 N | 9.0 N | 5.0 N + friction (design 15) |
 
 - The bar follows the nose's envelope on the real cam (kin bar_mm): on the ramps the round nose touches higher up the
   ramp than the follower line, so the bar leads the lift by up to 1.5 mm there. Note for cad-drum: past the LAUNCH
   stop (drum -4 .. -2) the nose already sees the gap blend toward FIRM (bar 2.5 mm at -4).
 - Fail-safe: if the track or follower lets go, the rocker spring pushes the leg, crank and bar back: LIGHT.
-- Peak plate stress at FIRM about 17 MPa beside the S hole (PETG); creep would lower FIRM first, which the firmware
+- Peak plate stress at FIRM about 17 MPa beside the S hole (PPA-CF, about 15 percent of its strength); creep would lower FIRM first, which the firmware
   sees as a softer tidy, never as a dry LAUNCH brake because LIGHT is set by the screws.
 
 ## 7. Wrap cup

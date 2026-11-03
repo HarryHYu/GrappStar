@@ -19,7 +19,7 @@ DEFAULTS = dict(
     cap_r=20.0, cap_len=40.0, cap_flange_r=23.0, cap_flange_h=3.0,
     wraps=7, mu_min=0.10, mu_lo=0.15, mu_hi=0.25,
     # storage reel
-    core_r=25.0, flange_r=36.0, width=22.0, flange_t=2.0, pack_fill=0.80,          # params v1.2 REEL.storage
+    core_r=25.0, flange_r=40.0, width=22.0, flange_t=2.0, pack_fill=0.80,          # params v1.2 REEL.storage
     # slip clutch line tension targets with the reel FULL (D24): LIGHT 0.5 N, FIRM 5.0 N
     brake_launch_n=0.5, brake_mid_n=1.75, brake_reel_n=5.0, mu_face=0.30, face_r_in=20.0, face_r_out=30.0,
     brake_stroke=4.0, rocker_l=37.0, rocker_a=33.0, rocker_b=15.0,
@@ -168,8 +168,8 @@ def rocker(d, E=2100.0, b=None):
     return dict(t=t, EI=EI, sigma_max=sigma, precompress_input=delta0, E=E, b=b)
 
 
-def rocker_section(d, y_load=-48.6, t=3.0, t_leg=5.5, y_leg=-30.0, E=2100.0, n=4000):
-    """Rocker spring with its real section (review 2): pin at R Y 37, trim screws on the clutch stack at Y 0, load at
+def rocker_section(d, y_load=-48.7, t=3.0, t_leg=5.5, y_leg=-30.0, E=5000.0, n=4000):
+    """Rocker spring with its real section (review 2), PPA-CF printed flat (E about 5 GPa: Harry has no PETG): pin at R Y 37, trim screws on the clutch stack at Y 0, load at
     y_load on the stiff leg. Plate t (top 10 wide, ring r 14.5 with the S hole r 6, trim bosses r 4 x 6 thick at
     Y 0, 15 wide below), leg 10 wide x t_leg below y_leg. Unit-load integration of M^2 / EI.
     Returns the input stroke at y_load for the LAUNCH -> REEL preload change, the push forces and the peak stress."""
@@ -320,12 +320,10 @@ def summary(P=None):
         add(f"clutch {k}: axial preload", round(cl[k]["preload_n"], 1), "N")
         add(f"clutch {k}: line N empty..full", f"{cl[k]['line_n_empty']:.2f}..{cl[k]['line_n_full']:.2f}", "N")
     add("clutch mid (wrapping): preload", round(cl["mid"]["preload_n"], 1), "N")
-    for k in ("launch", "mid", "reel"):
-        add(f"drum push on the brake rod, {k}", round(cl[k]["push_n"], 2), "N")
-    rk = rocker(d)
-    add("rocker plate thickness (PETG, 10 wide)", round(rk["t"], 2), "mm")
-    add("rocker peak bending stress at REEL", round(rk["sigma_max"], 1), "MPa")
-    add("rocker input precompression at LAUNCH", round(rk["precompress_input"], 2), "mm")
+    rs = rocker_section(d)
+    add("rocker (PPA-CF, real section, t 3.0): leg stroke LIGHT -> FIRM", round(rs["stroke"], 2), "mm")
+    add("rocker leg push at FIRM / LIGHT", f"{rs['push_firm']:.1f} / {rs['push_light']:.1f}", "N")
+    add("rocker peak bending stress at FIRM", round(rs["sigma_max"], 1), "MPa")
     tr = train(d)
     add("capstan rpm / main rpm", round(tr["cap_per_main"], 3))
     add("reel gear rpm / capstan rpm", round(tr["reel_per_cap"], 3))

@@ -43,11 +43,22 @@ from .comms.base import BaseDisconnected, BaseError, BaseTimeout
 from .comms.dart import DartError, DartRefused, remap_flightlog
 from .rover import OperatorRover, RoverDrive
 
-STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "BASE_NEUTRAL", "WRAP",
+STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "RAIL_LOW", "BASE_NEUTRAL",
+         "WRAP",
          "ANCHOR", "TIDY", "FLY_IN", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
 RESHOOT_STEPS = ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
 SKIPPABLE = {"CHECK", "LANDING_ZONE", "TIDY", "COCK"}
 DEFAULT_DRAG_N = 0.5             # the LIGHT clutch: the one default for the CLI, settings and the App
+def approach_max_s(line_m: float, duty: float) -> float:
+    """Final approach time limit, mirroring base-1.2.1 approachLimit(): 10 s + 1.5 x line_m / v, at least 20 s, at
+    most 600 s, where v is the slowest take-up speed at the duty from the physics (config.h takeupMpsPerDuty 0.29 x
+    duty - takeupMpsOff 0.03, duty clamped to reelMinDuty 70/255 .. takeupMaxDuty 102/255, v at least 0.02 m/s).
+    About 0.057 m/s at duty 0.3."""
+    d = min(max(float(duty), 70 / 255.0), 102 / 255.0)
+    v = max(0.02, 0.29 * d - 0.03)
+    return round(min(600.0, max(20.0, 10.0 + 1.5 * max(0.0, float(line_m)) / v)), 1)
+
+
 FACTORY_K_N_PER_A = (8.0, 17.0)   # firmware defaults (base-1.0, base-1.2 physics model): not bench calibrated
 BASE_FAULTS = ("STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR", "ANGLE_SENSOR", "SWITCH_DISAGREE", "BROWNOUT",
                "BAD_STATE", "FAULT", "FAULTED", "DART_STUCK")
@@ -60,7 +71,7 @@ def sw_closed(tel: dict, key: str) -> Optional[bool]:
     if not isinstance(sw, dict):
         return None
     # base-1.2 (D31): l, r = SW_DOG_L, SW_DOG_R; I = SW_INDEX; S seated; H carriage home; L rail low; W wrap home
-    long = {"S": "seated", "H": "home", "L": "rail_low", "W": "wrap_home", "l": "dog_l", "r": "dog_r", "I": "index"}
+    long = {"S": "seated", "H": "home", "L": "rail_low", "W": "cup_away", "l": "dog_l", "r": "dog_r", "I": "index"}
     if key in sw:
         return bool(sw[key])
     if long.get(key) in sw:
@@ -75,7 +86,7 @@ class Aborted(Exception):
 @dataclass
 class MissionConfig:
     drag_n: float = DEFAULT_DRAG_N  # payout brake setting (C3 column): LIGHT 0.5 N (coordinator)
-    tow_limit_n: float = 40.0       # at most 70 N (D39)       # line tension limit while towing (base firmware caps it too)
+    tow_limit_n: float = 40.0       # tension at the dart, at most 60 N (spec 1.3.0, D43)       # line tension limit while towing (base firmware caps it too)
     check_n: float = 15.0           # anchored check pull
     check_hold_s: float = 2.0       # hold at the check tension this long
     check_keep_frac: float = 0.7    # tension must stay above this fraction of the limit (load cell only)
@@ -94,6 +105,7 @@ class MissionConfig:
     final_timeout_s: float = 90.0
     takeup_duty: float = 0.3        # 10.1 steps 11 and 17: take-up duty
     tidy_ms: int = 3000
+    rail_low_above_deg: float = 15.0   # D45
     end_mode: str = "LAUNCH"        # drum position at the end (coordinator: LAUNCH, ready for the next shot)
     land_timeout_s: float = 10.0
     still_s: float = 1.0            # line out unchanged this long = landed
@@ -488,6 +500,8 @@ class Mission:
             self._do("FIRE", self.fire)
             self._do("FLIGHT", self.wait_landing)
             choice = self._do("LANDING_ZONE", self.landing_zone)
+            if choice != "reshoot":
+                self._do("RAIL_LOW", self.rail_low)   # D45: tow with the rail at its minimum
             self._do("BASE_NEUTRAL", self.base_neutral)
             if choice == "reshoot":
                 self.reshoot()                  # NO_GO before the wrap: retrieve on the take-up
@@ -706,16 +720,44 @@ class Mission:
         self.shot["cocked"] = True
         self.log.info("cocked")
 
-    def base_neutral(self) -> None:
-        """After the shot: wait for the launcher RESET (mode refuses LAUNCH_BUSY until it is at rest), then NEUTRAL."""
+    def wait_launcher_rest(self) -> None:
+        """After the shot: wait for the launcher RESET (mode and aim refuse until it is at rest)."""
         m0 = self.shot.pop("fire_mark", None)      # only the first attempt may look back to the shot
         t = self.tel()
         if t.get("mode") == "LAUNCH" and not (t.get("cock") == 0 and t.get("state") == "IDLE"):
-            try:
-                self.wait_evt("RESET", self.cfg.reset_timeout_s, m0 if m0 is not None else self.base.event_mark())
-            except BaseTimeout:
-                self.wait_tel(lambda t: t.get("state") == "IDLE" and t.get("cock") in (0, 0.0, None), 5.0,
-                              "launcher at rest")
+            if m0 is not None:
+                try:
+                    self.wait_evt("RESET", self.cfg.reset_timeout_s, m0)
+                    return
+                except BaseTimeout:
+                    pass
+            # no shot mark (a later step, or the RESET missed): the telemetry says when the launcher is at rest.
+            # Waiting for a new RESET here would wait out the whole timeout for an event that already came.
+            self.wait_tel(lambda t: t.get("state") == "IDLE" and t.get("cock") in (0, 0.0, None),
+                          self.cfg.reset_timeout_s if m0 is None else 5.0, "launcher at rest")
+
+    def rail_low(self) -> None:
+        """BASE_SPEC 10.1 step 7b (D45): before the wrap, bring the rail to its minimum pitch when it is above
+        15 deg, so the tow over the lip roller does not push the carriage back against the spring preload."""
+        self.wait_launcher_rest()
+        t = self.tel()
+        p = t.get("pitch_deg")
+        if t.get("mode") != "LAUNCH" or p is None or p <= self.cfg.rail_low_above_deg:
+            return
+        lo = 6.0
+        try:
+            r = self.base.get("pitch_range")
+            lo = max(lo, float(r.get("min", lo)))
+        except (BaseError, BaseTimeout, BaseDisconnected, TypeError, ValueError):
+            pass
+        m = self.base.event_mark()
+        self.go.aim(round(lo + 0.05, 2))
+        self.wait_evt("AIMED", self.cfg.aim_timeout_s, m)
+        self.log.info(f"rail low for the tow ({lo:.1f} deg)")
+
+    def base_neutral(self) -> None:
+        """Launcher at rest, then the drum to NEUTRAL."""
+        self.wait_launcher_rest()
         self.base_mode("NEUTRAL")
 
     def tidy(self) -> None:
@@ -749,12 +791,25 @@ class Mission:
         except DartError:
             pass
         try:
-            s = self.dart.arm(True, auto=self.cfg.auto_anchor_on_landing)
+            try:
+                s = self.dart.arm(True, auto=self.cfg.auto_anchor_on_landing)
+            except DartRefused as e:
+                if not e.reason.startswith("anchored"):
+                    raise
+                # API v4: /arm is refused while ANCHORED (legs out). Never fire a dart with its legs out:
+                # release it (legs and kick stowed), then arm again.
+                self.ask(f"The dart is ANCHORED ({e.reason}): its legs are out and it must not be fired like that. "
+                         "Release it (stows the legs), then arm?", ["Release the dart", "Abort"], danger=True)
+                self.dart_anchored = True
+                self.release_dart()
+                s = self.dart.arm(True, auto=self.cfg.auto_anchor_on_landing)
             self.shot["dart_phase_at_arm"] = s["phase"]
             self.shot["dart_t_ms_at_arm"] = s.get("t_ms")
             if not s.get("armed"):
                 raise StepFailed("dart did not arm")
         except DartRefused as e:
+            if e.reason.startswith("anchored"):
+                raise StepFailed(f"dart still anchored after the release ({e.reason}): use the manual dart keys")
             c = self.ask(f"Dart refused to arm ({e.reason}). Without it there is no flight log and landing comes "
                          "from the line and video only. Continue?", ["Continue without", "Retry", "Abort"])
             if c == "Retry":
@@ -796,7 +851,8 @@ class Mission:
         if t.get("state") in ("WRAP", "UNWRAP"):
             return False
         w = t.get("wraps")
-        return t.get("drum_pos") in ("WRAPPED", "REEL") or (isinstance(w, (int, float)) and w >= 3.5)
+        # A2: all 7 wraps and the drum at the park or in REEL; a hold partway through the wrap is NOT wrapped
+        return t.get("drum_pos") in ("WRAPPED", "REEL") and (w is None or (isinstance(w, (int, float)) and w >= 7))
 
     def ensure_reel(self, wrapped: bool = True) -> None:
         """Before a reel on the capstan: wraps on and the collar in REEL (fly-in). A fault in REEL parks the drum at
@@ -1055,6 +1111,11 @@ class Mission:
         except DartError as e:
             if "cancelled" in str(e):
                 raise Aborted("operator STOP")
+            if "NO_GROUND" in str(e):
+                # the kick swung through air: the dart lies on its back or side. A new /auto faults again; /release
+                # stows the kick, then the dart comes home for a new shot.
+                raise StepFailed(f"dart on its back or side (NO_GROUND: {e}). Retrying the anchor faults again: "
+                                 "release it and reshoot", choices=["Release and reshoot"])
             raise StepFailed(f"dart did not anchor: {e}", choices=["Retry", "Release and reshoot"])
         self.dart_anchored = True
         warn = [w for w in (s.get("warnings") or []) if w]
@@ -1204,8 +1265,9 @@ class Mission:
         try:
             self.dart.release()
         except DartRefused as e:
-            if e.reason.startswith("busy") or e.reason.startswith("in flight"):
-                # an anchor sequence still running, or the dart still in FLIGHT: /stop ends both (the log is kept)
+            if e.reason.startswith("busy") or e.reason.startswith("in flight") or e.reason.startswith("fault latched"):
+                # an anchor sequence still running, the dart still in FLIGHT or a latched fault: /stop ends or
+                # clears them (the log is kept)
                 self.dart.stop()
                 self.dart.release()
             else:
@@ -1244,6 +1306,11 @@ class Mission:
             if sw_closed(tt, "S"):
                 self.stop_settle()
                 self.log.warn("dart reached the cradle on the capstan (line_m estimate too long)")
+                # D16 hazard: unwrapping with the dart pulled into the cradle can snatch it; let the operator slacken
+                self.ask("The dart reached the cradle on the CAPSTAN (the line estimate was too long). Pay out a "
+                         "little line by hand so it is slack at the cradle, then press Unwrap.",
+                         ["Line slack: unwrap", "Abort"], danger=True)
+                self.shot["seated_in_retrieve"] = True
                 return
             if cur is not None and cur <= self.cfg.approach_m:
                 self.stop_settle()
@@ -1264,7 +1331,8 @@ class Mission:
 
     def final_approach(self) -> None:
         """10.1 step 17: retrieve {duty 0.3, max_s} on the take-up in NEUTRAL until SEATED (FAULT DART_STUCK after
-        max_s). The take-up is slow (about 0.08 m/s): max_s = 20 + line_m / 0.08. Never seat on the capstan."""
+        max_s). The take-up is slow (about 0.057 m/s at duty 0.3): max_s from approach_max_s(), the firmware's own
+        default formula. Never seat on the capstan."""
         t = self.tel()
         if sw_closed(t, "S"):
             return
@@ -1273,7 +1341,7 @@ class Mission:
         line = self.tel().get("line_m")
         if line is None:
             line = self.shot.get("line_est_m") or self.cfg.approach_m
-        max_s = min(600.0, max(5.0, round(20.0 + float(line) / 0.08, 1)))   # firmware range 5..600
+        max_s = approach_max_s(float(line), self.cfg.takeup_duty)   # the firmware default formula, sent explicitly
         m = self.base.event_mark()
         self.go.cmd("retrieve", duty=self.cfg.takeup_duty, max_n=self.cfg.retrieve_limit_n, max_s=max_s)
         self._wait_seated(m, max_s + 10.0)

@@ -41,9 +41,9 @@ STATES = ("IDLE", "MODE", "AIM", "COCK", "FIRE", "WRAP", "UNWRAP", "REEL", "HOLD
           "FAULT")
 PHASES = ("REST", "COCKING", "COCKED", "FIRING", "RESETTING", "UNKNOWN")
 EVENTS = ("HELLO", "BOOT", "MODE", "AIMED", "COCKED", "FIRED", "RESET", "WRAPPED", "UNWRAPPED", "SEATED", "STALL",
-          "LIMIT", "ABORTED", "FAULT", "OVERFLOW")
+          "LIMIT", "ABORTED", "FAULT", "OVERFLOW", "TIDIED")
 FAULTS = ("STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR", "ANGLE_SENSOR", "SWITCH_DISAGREE", "BROWNOUT",
-          "BAD_STATE")
+          "BAD_STATE", "DART_STUCK")
 # reply error codes (base_logic.h); events can also carry err (AIMED: OUT_OF_RANGE, AIM_MISS; MODE: DRUM_HELD or a why)
 ERRORS = ("TOO_LONG", "BAD_JSON", "NO_CMD", "UNKNOWN_CMD", "BAD_ARG", "BAD_KEY", "REPLY_OVERFLOW", "FAULTED", "BUSY",
           "BOOTING", "NO_POWER", "ANGLE_SENSOR", "HOLDING", "POSITION_UNKNOWN", "WRAPS_ON", "SWITCH_DISAGREE",
@@ -52,7 +52,7 @@ ERRORS = ("TOO_LONG", "BAD_JSON", "NO_CMD", "UNKNOWN_CMD", "BAD_ARG", "BAD_KEY",
           "NOT_IN_REEL", "NOT_WRAPPED", "WOULD_FIRE", "BACKSTOP", "NOT_RUNNING", "STILL_PRESENT")
 # telemetry "sw": closed contacts only (absent = open), one-letter keys (PROTOCOL.md section 3)
 SW_KEYS = {"a": "SW_DRUM_A", "b": "SW_DRUM_B", "c": "SW_DRUM_C", "D": "SW_DOG", "S": "SW_SEATED", "H": "SW_HOME",
-           "L": "SW_RAIL_LOW", "W": "SW_WRAP_HOME"}
+           "L": "SW_RAIL_LOW", "W": "SW_ARM"}
 SW_BY_NAME = {v: k for k, v in SW_KEYS.items()}
 
 
@@ -224,6 +224,7 @@ class BaseClient:
         self.tel_t = 0.0                # time.time() of the latest telemetry
         self.rx_t = 0.0                 # time.time() of the latest line of any kind
         self.connected = False
+        self.port_open = False
         self.session = 0                # increments at every link drop (and HELLO)
         self.errors = 0                 # bad lines seen
         self.reconnects = 0
@@ -270,8 +271,10 @@ class BaseClient:
         while not self._stop.is_set():
             try:
                 self.transport.open()
-                self._set_connected(True)
-                log.info("base link up on %s", self.port_name)
+                self.port_open = True
+                # the link counts as up only after a valid C1 JSON line arrives (r3_N #7): a wrong board on the port
+                # (the dart's XIAO has the same USB id) never gets a command
+                log.info("port %s open, waiting for the base to speak C1", self.port_name)
                 while not self._stop.is_set():
                     line = self.transport.readline(0.2)
                     if line is not None:
@@ -282,6 +285,7 @@ class BaseClient:
                     log.warning("base link down: %s", self.last_error)
             finally:
                 was = self.connected
+                self.port_open = False
                 self._set_connected(False)
                 try:
                     self.transport.close()
@@ -305,9 +309,14 @@ class BaseClient:
             obj = json.loads(text)
             if not isinstance(obj, dict):
                 raise ValueError("not an object")
+            if not ("tel" in obj or "evt" in obj or "id" in obj):
+                raise ValueError("not a C1 line")
         except Exception:
             self.errors += 1
             return
+        if not self.connected:
+            self._set_connected(True)
+            log.info("base link up on %s", self.port_name)
         if len(raw) > MAX_LINE:
             log.debug("base line over %d bytes (%d)", MAX_LINE, len(raw))
         if self.on_line:
@@ -473,9 +482,10 @@ class BaseClient:
         return self.cmd("cal", what="tare", **kw)
 
     def reel(self, duty: float, max_n: Optional[float] = None, until: str = "stop", **kw) -> dict:
-        """Wind the capstan (needs drum_pos WRAPPED; also accepted in HOLD). duty 0 < d <= 1 (firmware default 0.86,
-        floor 0.27), max_n > 0 (default limit_n 20, capped at 150). Ends: SEATED (until seated), LIMIT (holding true
-        and state HOLD for until tension, else IDLE), ABORTED (stop, timeout, host watchdog)."""
+        """Wind the capstan (wraps on and the collar in REEL; also accepted in HOLD). duty 0 < d <= 1 (firmware
+        default 0.86, floor 0.27), max_n > 0: the tension at the DART (spec 1.3.0, D43), default limit_n, capped at
+        60 N. until: stop, tension (holds at max_n), slip (take-up tidy), seated (NEUTRAL take-up only, D35).
+        Ends: SEATED, LIMIT (holding true and state HOLD for until tension), ABORTED (stop, timeout, host watchdog)."""
         if until not in ("seated", "tension", "stop", "slip"):
             raise ValueError("until must be seated, tension, stop or slip")
         duty = round(max(0.0, min(1.0, float(duty))), 3)

@@ -148,6 +148,15 @@ def check_serial():
         line(p, "-> " + os.path.realpath(p), access_note(p))
     if not named:
         line("/dev/grappstar-base", "not present", "(fine with no base plugged in)")
+    rules = read_text("/etc/udev/rules.d/99-grappstar.rules")
+    if rules is None:
+        line("udev rules", "not installed", "(run bash setup/install.sh)")
+    elif 'ATTRS{serial}=="REPLACE_WITH_BASE_SERIAL"' in rules:
+        line("base serial", "not set", "(README step 4: only the base plugged in, then bash setup/install.sh --no-apt)")
+    elif not any("ATTRS{serial}" in r and 'SYMLINK+="grappstar-base"' in r for r in rules.splitlines()):
+        line("base serial", "old rule", "(matches the dart too: rerun bash setup/install.sh --no-apt, README step 4)")
+    else:
+        line("base serial", "set in the udev rule")
     others = sorted(glob.glob("/dev/ttyACM*") + glob.glob("/dev/ttyUSB*"))
     for p in others:
         line(p, usb_name(p), access_note(p))

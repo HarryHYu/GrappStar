@@ -3,34 +3,32 @@
 Status: updated through the day; the Current numbers block is the latest. Sections F1 onward are the history of
 the findings (their numbers come from earlier parameter sets). Every number is reproducible with the CLIs.
 
-## Current numbers (spec 1.2.9: D36 rear guide, carriage 85.8 g as built; latest model)
+## Current numbers (spec 1.3.1: D36 rear guide, carriage 80.5 g as built, cock gears face 11; latest model)
 
-- Launch: 2 x Century C-243, 265 mm full cock (40.1 N each), 12.1 J, carriage 85.8 g: 6.80 m/s, line taut.
-- Range from the rail pivot's ground point, LIGHT 0.5 / 0.75 / 1.0 N: 4.13 / 3.72 / 3.35 m at 34 deg (best).
+- Launch: 2 x Century C-243, 265 mm full cock (40.1 N each), 12.1 J, carriage 80.5 g: 6.85 m/s, line taut.
+- Range from the rail pivot's ground point, LIGHT 0.5 / 0.75 / 1.0 N: 4.18 / 3.76 / 3.39 m at 34 deg (best).
   Table 6 to 47 deg in base/out/ballistics.json (C3), content-hash checked. 4 springs: not supported in v1 (D38).
-- Stop: 2.0 J carriage + 0.8 J springs: 295 N on the 19 mm flexure (D26 300 N: just inside; lighter carriage helps).
+- Stop: 1.9 J carriage + 0.8 J springs: about 285 N on a linear 19 mm flexure; cad-launch's stop holds 4.25 J at 293 N.
+- Cock gears face 11 (PPA-CF): SF 1.55 / 1.74 at the 5 N m shear pin.
 - Storage reel 50 / 72 / 22: overrun after landing at LIGHT 0.5 N about 0.6 m. No level wind (F13).
-- Tow, plain printed exit eye and cup groove (REEL.path_gain 1.5, default until the design adds pulleys):
-  50 N AT THE DART = 4.17 N m, 6.09 A, 0.13 m/s, above 0.8 x the 5 N m shear pin and near the 6.5 A trip; the most
-  the train can put on the dart is about 48 N. Sense law at the dart: line = 11.3 x (I - I_free) - 2.0 N
-  (= the spec D42 law 17.0 / -3.0 at the capstan divided by the path gain). With 693 pulleys (gain 1.15): 50 N =
-  3.2 N m, 5.1 A, max about 62 N, law 14.8 / -2.6.
-- Capstan drum (capstan-side tension = dart pull x 1.5): wraps 2.9 raw / 5 design (7 fitted). Hoop stress 9.5 MPa at
-  the 50 N tow and 11.6 MPa when the shear pin slips, against 12 MPa allowed for PLA: print the drum in PPA-CF or
-  thicken the wall. Most loaded 608: 40 to 49 N (fine).
+- Tow, cup ring left as a plain eye (27 deg) with pulleys at the exit eye and storage guide: path gain about 1.30
+  (1.15 with a ring roller; params still say 1.15 until the coordinator sets it). At the DART with 1.30: 50 N =
+  3.64 N m, 5.50 A, 0.14 m/s; max pull before 0.8 x the shear pin 55 N (cap should be 55); law 13.1 x (I - I_free)
+  - 2.3 N. Ring heat at 50 N: about 24 N normal, 0.9 W on PLA: line the ring with a smooth steel surface.
+- Capstan drum (capstan-side tension = dart pull x 1.15): hoop stress 7.3 MPa at the 50 N tow and 11.6 MPa when the
+  shear pin slips (92 N at the capstan), against 12 MPa allowed for PLA: print the drum in PPA-CF or thicken the wall.
+  608 radial 63 to 98 N (fine).
 - Cock 2.9 N m, 4.7 A. Aim 0.33 N m, 1.9 A (D40 aim trip 3 A: splitter sf 1.44 in PPA-CF).
-- Final approach on FIRM 5 N with the real seating path (gain 1.75): margin 1.1 to 1.4.
+- Final approach on FIRM 5 N with the D43 pulleys (seating gain 1.3): 3.85 N at the dart, margin 1.5 to 1.9.
 - Wrap on LIGHT: N20 46 to 56 N mm (23 to 28 % of 0.20 N m), about 30 s.
 - Take-up in NEUTRAL: 0.06 / 0.12 / 0.26 to 0.33 m/s at duty 0.3 / 0.5 / 1.0.
 - Recoil rock (ASSUMED 4 kg rover): about 5 deg at 6 deg pitch braked, 0.5 deg at 36. No tip.
 - SPRING CATALOGUE (web check): Bunnings 0487961 is Century C-243, 5/8 in OD x 6-1/2 in x 0.054 in wire (1.37 mm,
   not 1.4). Century lists max safe load 8.64 lb (38.4 N) and max deflection 11.9 in (302 mm), rated for about 100,000
   cycles. The earlier 280 mm full cock was 42 N with the 0.125 N/mm / 7 N estimate: inside the deflection limit but 9 %
-  over the load rating (spec v1.2 now uses 265 mm, 40 N) (our A228 static limit with SF 1.2 is 43.6 N at 1.4 mm wire, about 41 N at 1.37 mm). For a few
+  over the load rating (spec v1.2 and later use 265 mm, 40 N) (our A228 static limit with SF 1.2 is 43.6 N at 1.4 mm wire, about 41 N at 1.37 mm). For a few
   hundred shots this is acceptable; the hang test decides: keep the force at full cock at or under about 40 N
-  (if the spring measures 0.125 N/mm and 7 N: about 265 mm). Each 10 mm less extension costs about 0.15 m of range.
-- Tow current sensing: see Current numbers (at the capstan 17.0 x (I - I_free) - 3.0 N, at the dart 11.3 / -2.0 with
-  the plain printed exit eye). A firmware constant of 8 N/A would let the line reach about twice the set limit.
+  (if the spring measures 0.125 N/mm and 7 N: about 265 mm, 40.1 N). Each 10 mm less extension costs about 0.15 m of range.
 - Blind cross-check (fresh agent, no access to this code): muzzle speed 7.77 m/s (ours 7.78 on the same inputs, spec v1.0). Its range was 12 %
   longer; traced to a taut/slack chatter in its reel logic that applied the brake only about half the time. With the
   brake applied continuously its approach matches ours within 1 %.

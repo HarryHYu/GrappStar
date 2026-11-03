@@ -7,18 +7,22 @@ agreed it is real but rated it lower.
 
 Confirmed: 8. Refuted and dropped: 0.
 
-| # | Sev | File:line | Owner | Finding |
-|---|---|---|---|---|
-| 1 | high | `base/cad/parts/launch.py:329` | cad-launch | Sprag #1 outer race has no key: the drive gear bore is a plain 47.1 slip fit with an empty slot, so the cocking torque has no load path |
-| 2 | high | `base/cad/parts/launch.py:395` | cad-launch | Spring anchor pins: printed d6 PPA-CF, printed upright, with the hook 12 mm above the post. Bending runs across the layer lines at about 23 MPa at full cock |
-| 3 | high | `base/cad/parts/reel_NOTES.md:100` | cad-reel | Brake track 2 drives nothing: no follower or bell crank links the drum's radial cam to the reel push rod, so the clutch is always LIGHT and FIRM 5 N is never reached |
-| 4 | medium | `base/cad/parts/_drum_kin.py:312` | cad-drum | Fork racking model is first-order and ignores the yoke-side offset; with a long arm on a 40 mm PLA sleeve the drum torque is underestimated and the N20 stalls at mu >= 0.35 |
-| 5 | medium | `base/cad/parts/launch_aim.py:46` | cad-launch | Every gear in the aim train is weaker than the 5 A trip and the shear pin, so a blocked rail strips the aim gears before anything protects them |
-| 6 | medium | `base/spec/params.py:179` | physics | The provision for a second spring pair (D5) cannot work: with 4 springs every cock needs 5.83 N m, above both the shear pin and the 6.5 A cock trip |
-| 7 | medium | `base/spec/params.py:221` | physics | Tow limits above about 75 N are accepted, but the shear pin breaks at the same torque as the 6.5 A tow trip (4.55 to 4.57 N m), so a high tow setting shears the pin |
-| 8 | low | `base/cad/parts/launch_aim.py:264` | cad-launch | D23 thrust face missing: the launch sleeve has no axial stop in the aim housing, so it can drift up to 9.5 mm inboard and pull out of its bushing and both key ribs |
+Re-checked 14:10 Sydney against base-v1 863d58d, one checker subagent per finding: see the Now column.
+
+| # | Sev | File:line | Owner | Finding | Now (863d58d) |
+|---|---|---|---|---|---|
+| 1 | high | `base/cad/parts/launch.py:329` | cad-launch | Sprag #1 outer race has no key: the drive gear bore is a plain 47.1 slip fit with an empty slot, so the cocking torque has no load path | partly fixed |
+| 2 | high | `base/cad/parts/launch.py:395` | cad-launch | Spring anchor pins: printed d6 PPA-CF, printed upright, with the hook 12 mm above the post. Bending runs across the layer lines at about 23 MPa at full cock | fixed |
+| 3 | high | `base/cad/parts/reel_NOTES.md:100` | cad-reel | Brake track 2 drives nothing: no follower or bell crank links the drum's radial cam to the reel push rod, so the clutch is always LIGHT and FIRM 5 N is never reached | still open |
+| 4 | medium | `base/cad/parts/_drum_kin.py:312` | cad-drum | Fork racking model is first-order and ignores the yoke-side offset; with a long arm on a 40 mm PLA sleeve the drum torque is underestimated and the N20 stalls at mu >= 0.35 | partly fixed |
+| 5 | medium | `base/cad/parts/launch_aim.py:46` | cad-launch | Every gear in the aim train is weaker than the 5 A trip and the shear pin, so a blocked rail strips the aim gears before anything protects them | still open |
+| 6 | medium | `base/spec/params.py:179` | physics | The provision for a second spring pair (D5) cannot work: with 4 springs every cock needs 5.83 N m, above both the shear pin and the 6.5 A cock trip | partly fixed |
+| 7 | medium | `base/spec/params.py:221` | physics | Tow limits above about 75 N are accepted, but the shear pin breaks at the same torque as the 6.5 A tow trip (4.55 to 4.57 N m), so a high tow setting shears the pin | partly fixed |
+| 8 | low | `base/cad/parts/launch_aim.py:264` | cad-launch | D23 thrust face missing: the launch sleeve has no axial stop in the aim housing, so it can drift up to 9.5 mm inboard and pull out of its bushing and both key ribs | partly fixed |
 
 ## 1. Sprag #1 outer race has no key: the drive gear bore is a plain 47.1 slip fit with an empty slot, so the cocking torque has no load path
+
+- Now (863d58d): **partly fixed** at `base/cad/parts/launch.py:474`. drive_gear_solid no longer leaves the slot empty: it now adds an integral outer key rib, so the load path exists. But the rib crest sits at r = od/2 - 2.8 = 20.7, using the inner keyway depth of 2.8, while the CSK20PP outer keyway is only 1.5 deep (bearings.py CSK20_OKEY_D, floor at r 22.0). The rib therefore cuts 1.3 mm into the outer race and the bought sprag cannot be inserted. The interference is hidden because sprag_solid is a plain tube and Allow("launch_sprag","launch_drive_gear") at line 1059 suppresses the clash. The bore is also still a plain 47.1 with no crush ribs; seat_csk20, as the original fix proposed, would give the correct crest at r 22.2 and the ribs.
 
 - File: `base/cad/parts/launch.py:329`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -45,6 +49,8 @@ Fix: Replace the bore and slot cuts in drive_gear_solid with the library seat: `
 
 ## 2. Spring anchor pins: printed d6 PPA-CF, printed upright, with the hook 12 mm above the post. Bending runs across the layer lines at about 23 MPa at full cock
 
+- Now (863d58d): **fixed** at `base/cad/parts/launch.py:258-267,565-569,776-780`. The anchor pin is now listed as a bought steel part ("6 mm steel dowel or M6 bolt shank, 45 long"), so it is no longer a printed PPA-CF part. It also has no cantilever any more. The post now rises to wsp-5 and a top strap at wsp+5..+11 sits over the hook, so the pin runs through the post, the hook and the strap and carries the load in double shear with only 5 mm of span either side of the hook.
+
 - File: `base/cad/parts/launch.py:395`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: cad-launch
@@ -70,6 +76,8 @@ Fix: Make the anchor pin a bought 6 mm steel dowel or an M6 bolt. The comment at
 
 ## 3. Brake track 2 drives nothing: no follower or bell crank links the drum's radial cam to the reel push rod, so the clutch is always LIGHT and FIRM 5 N is never reached
 
+- Now (863d58d): **still open** at `base/cad/parts/reel.py:839`. On the new tree there is still no follower, bell crank or link part between the drum's track-2 cam (drum.py phi_brake=180) and the reel push rod, whose rear face is still at R(-88,-33,-24) (reel_NOTES.md:111). The reel_push joint is set from the drum zone table by brake_mm() rather than through any contact, and drum_REPORT.md:56 still lists "brake follower at drum L angle 180" as an open item for cad-reel. _drum_kin brake_force=15 is still an assumed value, and nothing has replaced the missing linkage.
+
 - File: `base/cad/parts/reel_NOTES.md:100`
 - Severity: high (claimed critical); 2 of 2 skeptics confirmed
 - Owner: cad-reel
@@ -90,6 +98,8 @@ Fix: Add the brake follower linkage as a real part with joints and clearances. U
 >
 
 ## 4. Fork racking model is first-order and ignores the yoke-side offset; with a long arm on a 40 mm PLA sleeve the drum torque is underestimated and the N20 stalls at mu >= 0.35
+
+- Now (863d58d): **partly fixed** at `base/cad/parts/_drum_kin.py:324`. loads() now uses the exact equilibrium racking formula, (1+2mu*63.2/L)/(1-2mu*36.5/L), and the sleeve is 66 mm (drum.py:53). The N20 no longer stalls: at mu_rail 0.4 the worst torque is 1.22 N m against a 2.16 N m stall. What remains: the code assumes a greased rail at mu_rail 0.25. At mu_rail 0.4 the margin drops to 1.78 (1.43 with groove mu 0.4), which breaks the >=2 rule, and nothing tests mu 0.4. Groove 1 was not flattened and its pressure angle is still 43.7 deg.
 
 - File: `base/cad/parts/_drum_kin.py:312`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -115,6 +125,8 @@ Fix: In loads(), replace the multiplier with the equilibrium form: f_fork = (R*(
 >
 
 ## 5. Every gear in the aim train is weaker than the 5 A trip and the shear pin, so a blocked rail strips the aim gears before anything protects them
+
+- Now (863d58d): **still open** at `base/cad/parts/launch_aim.py:47`. The aim gears are the same as before: splitter m1.5 face 8 at lines 47-49, bevel m1.5 z30/z15 face 8 at line 50, and the worm wheel with face 12 at line 53. The aim branch still has no torque limiter of its own; the diff since ba121b9 adds only the SW_RAIL_LOW cam/switch, the AS5600 bracket and the deck_z offset. DECISIONS D8/D26/D33 still set a 5 A aim trip and the roughly 5 N m coupler shear pin, so a jammed rail still strips the aim gears first. Also, physics/drivetrain.py aim() still has no Lewis check on the worm wheel (AIM_DEFAULTS, line 47).
 
 - File: `base/cad/parts/launch_aim.py:46`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
@@ -143,6 +155,8 @@ What I checked:
 
 ## 6. The provision for a second spring pair (D5) cannot work: with 4 springs every cock needs 5.83 N m, above both the shear pin and the 6.5 A cock trip
 
+- Now (863d58d): **partly fixed** at `base/spec/BASE_SPEC.md:199`. Decision D38 (base/spec/DECISIONS.md:46) drops 4-spring support in v1, and recoil.py:144, FINDINGS.md:15 and the build docs now mark 4 springs as not supported. The spec still has leftovers: BASE_SPEC.md:199-200 says "a second spring pair gives about 8 to 9 m", which breaks D38's "documents must not promise the 4-spring range". params.py:185 also still labels second_pair_provision as "# D5" with no D38 note.`
+
 - File: `base/spec/params.py:179`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: physics
@@ -165,6 +179,8 @@ The limits it has to stay under:
 >
 
 ## 7. Tow limits above about 75 N are accepted, but the shear pin breaks at the same torque as the 6.5 A tow trip (4.55 to 4.57 N m), so a high tow setting shears the pin
+
+- Now (863d58d): **partly fixed** at `base/spec/params.py:228 (tow_limit_max_n=70.0, D39); base/spec/params.py:162 (torque_limiter_nm=5.0); base/physics/capstan.py:284,323`. D39 now caps the tow limit at 70 N in params, firmware (base_logic.h:869) and the UI (max 70). wiper_torque_for(70) is 4.30 N m, below the pin's ~4.57 N m geometric break (that torque is reached near 76 N), so a 100 N setting can no longer shear the pin. What remains: the cap is 70 N, not the ~59 N that 0.8 x 4.57 allows. Physics still models the pin as 5.0 N m and still checks only the 50 N default. Run at tow=70, it sets slips_at_tow=True (tow_frac 0.86), but nothing runs that check against tow_limit_max_n, and a 70 N tow uses about 94% of the pin's real strength.
 
 - File: `base/spec/params.py:221`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -194,6 +210,8 @@ Fix: physics: model the limiter at the torque its geometry gives (about 4.57 N m
 >
 
 ## 8. D23 thrust face missing: the launch sleeve has no axial stop in the aim housing, so it can drift up to 9.5 mm inboard and pull out of its bushing and both key ribs
+
+- Now (863d58d): **partly fixed** at `base/cad/parts/launch_aim.py:322,351 (housing boss to y 194.5, d20.35 bore stops at y 193, d12.5 beyond it) and base/cad/parts/launch.py:526 (sleeve z_end = Y0+53-y_flange, end at y 193, no groove, clip or shoulder)`. The outboard thrust is fixed. The housing now has a lip at y 193: past that point the bore narrows to d12.5, and the sleeve, which now ends at y 193, butts against it. test_launch_aim.py:200 checks this, so the LAUNCH push no longer loads the swing arm. The inboard stop is still missing: the sleeve is a plain d20 with no C-clip groove or shoulder, nothing is fixed to it axially, and the flange still sits 4 mm clear of cheek A (119 vs 123). The sleeve can still drift inboard until the dog ring meets the collar, so it leaves the 187..193 bushing after 6 mm and the sun rib (174..182) walks out of the sun.
 
 - File: `base/cad/parts/launch_aim.py:264`
 - Severity: low (claimed medium); 1 of 2 skeptics confirmed

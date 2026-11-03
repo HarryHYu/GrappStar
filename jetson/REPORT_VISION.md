@@ -21,15 +21,78 @@ speed. The horizon track does not depend on the impact time, so it fixes that.
 
 ## Verified
 
-PASTE_TESTS
+Venv: Python 3.13 with numpy<2, opencv-python-headless, pyserial, pytest (the code itself keeps to 3.10 syntax).
+
+My files (vision, video, analysis, campose, ballistics tests), at 95b6dec plus the report:
+
+    $ python -m pytest -c pytest.ini --rootdir . tests/test_flight.py tests/test_sim_flight.py tests/test_terrain.py
+      tests/test_terrain_flight.py tests/test_target.py tests/test_mosaic.py tests/test_campose.py tests/test_ballistics.py
+      tests/test_textures.py tests/test_video_*.py
+    ======================= 205 passed in 139.65s (0:02:19) ========================
+
+Whole jetson suite (same tree):
+
+    $ python -m pytest -c pytest.ini --rootdir . -rf tests
+    FAILED tests/test_comms_base.py::test_d35_sequence_mock_matches_basesim - AssertionError: assert 'base-1.2.1' == 'base-1.2'
+    1 failed, 377 passed, 29 deselected in 544.86s (0:09:04)
+
+The one failure is the mock base's firmware version string against the real base firmware: jetson comms / fw-base,
+not my files.
+
+Simulator accuracy of the new video-only range (sim speeds 6, 7, 8 m/s; seeds 2, 5, 7 not used for tuning):
+with the commanded pitch the error is -5 to +10 percent at 8, 20 and 40 deg; without it -12 to +13 percent.
+The old estimator was +18 to +79 percent at these speeds.
+
+Independent review (fresh subagent, code only): 4 confirmed findings, all fixed in 1676e45. (1) A long hold could
+decode GBs and dropped the launch frames first. Now buffer(since=) is used and only frames after the first 8 s of
+the hold are thinned. (2) The speed model started the flight half a stroke low. Now it starts at the rail exit,
+like the range model. (3) The aim pitch was not passed from the mission: the jetson worker wired it. (4) A range
+exactly on a table row gave a false "two solutions" note. Then coordinator R2-C2 (80b6441): the speed is searched
+only in 0.6 to 1.4 x the table v_muzzle, the default speed comes from the table, and an expired hold warns. The
+placeholder table now uses the real 6..47 deg window (95b6dec). With the high branch, the mission tests' 60 deg
+placeholder asked the base for 59.6 deg, which the base refuses.
+
+Review round 2 (fresh subagent on mosaic, target, terrain, calibrate, video/*, analysis; 448571a):
+- HIGH, fixed: a void (14 black landed frames flagged bad by the link check) plus one lit rim frame reached terrain
+  as a single clean frame and got GO, because landing_frames() drops bad frames before terrain's own dark check.
+  run_post_flight now runs terrain's dark check on the whole landed window first. The regression test
+  (test_void_with_one_lit_frame_is_not_go) fails on the old code and passes now.
+- Fixed: grey or HxWx1 images crashed analyze_landing (now converted to BGR); the analysis-failed fallback said
+  score 0 with UNSURE (now 45, which is UNSURE); the mosaic degenerate test passed even with a crashing mosaic; the
+  capture test could not tell read-back from requested values (now a stubborn fake driver).
+- Also in this round: with no known pitch, the video-only path fits pitch and speed together to the horizon track,
+  and a rail view that is all sky bounds the pitch from below (half the vertical field of view).
+
+Review round 3 (fresh subagent on flight.py phases, IMU, clock; 6fc97c8), all fixed with tests:
+- HIGH: the clock offset averaged the launch and impact matches; the video impact runs late, so the IMU-timed range
+  came out 8 to 18 percent short at 6 deg and 6 m/s. Now the offset comes from the launch match alone; the
+  impact match is used only without a video launch, corrected by 35 ms.
+- HIGH: a NaN, null, string or short row in the flightlog, or a string t_launch_ms, made analyze_flight raise
+  and lose the whole flight result. Rows are now sanitised (finite numbers only, sorted, duplicate times dropped),
+  and a garbage log falls back to video only.
+- MEDIUM-HIGH: a log that starts after the launch took the impact spike for the launch (range 0.37 m against 8.2 m).
+  Now t_launch_ms is trusted, with no rail attitude or speed from the IMU, and a note is added.
+- MEDIUM: duplicate timestamps gave dt = 0 (v0 10x too small); dropped samples biased the push integral. Now dt
+  comes from positive steps and the integral uses the per-sample time steps.
+- LOW: the launch shift found by the speed fit is now recorded as launch_fit_t (phases keep the observed launch).
+
+Terrain verdicts with the roll-invariant tilt (eval_terrain_flight, seeds 0 to 2, 480x320, with and without the
+flightlog): accuracy 1.000 (36/36), unsafe GO (sand or water judged GO): 0.
 
 ## Open items
 
-- The jetson worker still has to pass `aim_pitch_deg` and `drag_n` from mission.py to run_post_flight (exact line
-  sent). Without it, the pitch comes from the rail horizon or the flight time; the sim results stay within 15
-  percent, but the commanded pitch is the better prior.
-- sim/flight_video.py (jetson's) still draws 9..11 m/s and 25..45 deg by default. The new real-speed tests pass
-  pitch and speed explicitly. Suggested: draw from the C3 table.
+- Without a commanded pitch, video-only shots above about 40 deg read 5 to 11 percent short in the sim (one case at
+  46 deg: 18 percent). The launch is hard to see against plain sky and the pitch fit lands low. With the commanded
+  pitch (now passed by the mission) they are within 0 to 6 percent.
+
+- mission.py now passes aim_pitch_deg, drag_n and buffer(since=), and calls hold / release_hold (jetson worker, on
+  w/jetson with fallbacks). Check them after the coordinator merges both branches.
+- sim/flight_video.py (jetson's) still draws 9..11 m/s and 25..45 deg by default. The --sim world passes the aimed
+  pitch and the table speed; the real-speed tests pass both explicitly.
+- test_comms_base version string (above): jetson / fw-base.
+- Running pytest from the repo root collects firmware/base/test/test_gen_params.py, which calls sys.exit at import
+  and stops the run. Run from jetson/ with `-c pytest.ini --rootdir .` (fw-base could guard that file with
+  `if __name__ == "__main__"`).
 - The real Caddx Ant is a fisheye (about 150 deg). The horizon pitch uses a pinhole model with hfov 100 deg. Once
   the camera is calibrated, pass its effective hfov to analyze_flight.
 - `REST_POSES_DEG` (0 and -60 deg) is an assumption: check it on real landings and edit the tuple.

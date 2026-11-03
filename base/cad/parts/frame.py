@@ -67,12 +67,12 @@ FRAMEWORK_DEFAULT = dict(
     adapter_standoff=12.0,  # adapter hub height over the cheek (clears block flanges, M6 nuts reachable)
     cheek_y_in=None,        # (right, left) inner cheek face y; None = from the motor face (y = 0) and cheek_gap
     ebay=None,              # electronics bay placement override, see _frame_ebay.py
-    motor_support=dict(plate_x=(-55.0, 108.0), plate_z=(-40.0, 62.0), leg_x=(76.0, 108.0), leg_y=(-55.0, -30.0),
+    motor_support=dict(plate_x=(-104.0, 111.0), plate_z=(-100.0, 120.0), leg_x=(78.0, 108.0), leg_y=(-55.0, -30.0),
                        bridge_z=(-22.0, 22.0)),   # v1.x motor plate, bridge and leg (relative to the main axis, y world)
     plate_back=75.0,        # v1.0 plates: start as a rectangle this far behind the main axis ...
     plate_front=105.0,      # ... and this far in front, deck to above the axis, then carved round the others
     guards=dict(hood_x=(-60.0, 62.0), hood_len=60.0, hood_z=56.0, front_x=104.0, front_len=106.0, front_top=-10.0),
-    adapter_carve=False,    # carve the adapter round the others (off: the adapter zone r 49, y 0..24 must stay clear)
+    adapter_carve=True,     # carve the puck round the others (reel cup and capstan pass behind the plate below the axis)
     band=True,              # guard band round the cheek box
     band_cut=True,          # cut openings where the other subsystems pass (swept parts + 4 mm)
 )
@@ -113,7 +113,7 @@ def cfg(P):
         seat_e = next((e["y"] for e in lay_src.get("stack", []) if e.get("owner") == "cad-frame" and "outboard" in e.get("part", "")),
                       None)
         seat = seat_e or (160.0, 172.0)
-        yi_m = -ms * (MOT.PLATE_T + fw["adapter_standoff"] + t)
+        yi_m = 0.0                          # v1.x: the motor plate front face IS the spec's y = 0 (adapter plate face)
         if ms < 0:
             y_in = {-1: yi_m, 1: float(seat[0])}
             tt = {-1: t, 1: float(seat[1] - seat[0])}
@@ -232,6 +232,20 @@ def contact_intervals(outline, min_len=12.0):
     return out
 
 
+def index_inserts(P, C, mo, ms):
+    """cad-drum's SW_INDEX block screws (params DRUM.sw_index_mount, world (x, z) on the adapter front face) in the
+    adapter frame (x -> world -x, y -> world z for the motor on -y)."""
+    import re
+    txt = str((getattr(P, "DRUM", {}) or {}).get("sw_index_mount", ""))
+    pts = re.findall(r"\(x\s*([-+]?\d+(?:\.\d+)?),\s*z\s*([-+]?\d+(?:\.\d+)?)\)", txt)
+    out = []
+    for xs, zs in pts:
+        x, z = float(xs), float(zs)
+        zw = mo[2] + C["deck_z"]                 # main axis world z
+        out.append((-(x - mo[0]), (z - zw) if ms < 0 else -(z - zw)))
+    return out
+
+
 def _swept_no_axis(C, axis_xz, margin=3.0):
     """3D union of the other subsystems' swept hulls (deck frame) except those that contain the main axis (shafts,
     sleeves, coupler: the frame bores take them)."""
@@ -248,61 +262,86 @@ def _swept_no_axis(C, axis_xz, margin=3.0):
 
 
 def motor_support_v1(P, C, info, mo):
-    """BASE_SPEC v1.x: the motor plate (y slab of the motor-side cheek) with the coupler bore, the keyed counterbore
-    and the 12-hole ring, a bridge forward of the drum brackets towards -y, and a separate leg down to the deck in the
-    free corner between the reel cup and the electronics bay. Everything is carved in 3D round the other subsystems'
-    swept volumes; the plate keeps the piece that holds the ring. Returns dict(plate=solid, parts=[...])."""
+    """BASE_SPEC v1.x motor end. The motor plate occupies y -10..0 (front face = world y 0, the spec's adapter plate
+    face); a window r PUCK_R takes the puck adapter, keyed by the puck's rear lip and held by 8 x M3 from the front at
+    r RIM_R. A bridge behind the lip (y -30..-18, plus a connector beyond the lip radius) carries the plate to a leg in
+    the free corner between the reel cup and the bay; the leg stands on a two-sided gusseted foot (4 x M3).
+    Everything is carved in 3D round the other subsystems' sweeps; the plate keeps the piece round the window.
+    Returns dict(plate=solid, parts=[...])."""
     fw = C["fw"]
     ms = fw["motor_side"]
     s = ms
-    yo, yi = C["y_out"][s], C["y_in"][s]
-    y0, y1 = sorted((yo, yi))
+    yf, yr = C["y_in"][s], C["y_out"][s]                 # front (frame side, y 0) and rear (motor side, y -10)
+    y0, y1 = sorted((yf, yr))
     mx, mz = mo[0], mo[2]
     sp = fw["motor_support"]
     plate = prim.box(mx + sp["plate_x"][0], mx + sp["plate_x"][1], y0, y1, mz + sp["plate_z"][0], mz + sp["plate_z"][1])
-    bx0, bx1 = mx + sp["leg_x"][0], mx + sp["leg_x"][1]
-    bridge = prim.box(bx0, bx1, sp["leg_y"][1], y0 + 0.01, mz + sp["bridge_z"][0], mz + sp["bridge_z"][1])
-    plate = plate + bridge
-    cuts = [prim.cylY(MOT.CHEEK_HOLE_D / 2, y0 - 1, y1 + 1, mx, mz),
-            prim.cylY(MOT.HUB_R + 0.3, min(yo, yo - s * MOT.SPIGOT_H) - 0.01, max(yo, yo - s * MOT.SPIGOT_H) + 0.01, mx, mz)]
-    for i in range(MOT.RING_N):
-        rx, rz = MOT.ring_xy(i)
+    lx0, lx1 = mx + sp["leg_x"][0], mx + sp["leg_x"][1]
+    ly0, ly1 = sp["leg_y"]
+    by1 = yr - s * 0.0                                  # bridge meets the plate's rear face
+    lip_back = yr + s * MOT.LIP_T                        # y of the lip's back face (-16)
+    bz0, bz1 = mz + sp["bridge_z"][0], mz + sp["bridge_z"][1]
+    bridge = prim.box(lx0, lx1, ly1, min(lip_back, yr) - 2.0, bz0, bz1)          # behind the lip, y -30..-18
+    xc0 = mx + MOT.LIP_R + 2.0                                                   # connector beyond the lip radius
+    conn = prim.box(xc0, mx + sp["plate_x"][1], ly1, yr + 0.01, bz0, bz1)
+    plate = prim.union([plate, bridge, conn])
+    cuts = [prim.cylY(MOT.PUCK_R + 0.25, y0 - 1, y1 + 1, mx, mz)]
+    for i in range(MOT.RIM_N):
+        rx, rz = MOT.rim_xy(i)
         wx, wz = mx - rx, mz + (rz if ms < 0 else -rz)
         cuts.append(prim.cylY(U.CLR_D / 2, y0 - 1, y1 + 1, wx, wz))
-        cuts.append(yfeat(prim.cyl(U.HEAD_D / 2, U.HEAD_H + 0.01, z=-U.HEAD_H), wx, wz, yi, s))
-    # leg: column from the deck to the bridge side, foot flange towards -y, 2 x M3 along y into the bridge
-    ly0, ly1 = sp["leg_y"]
-    ztop = mz + sp["bridge_z"][1]
-    leg = prim.box(bx0, bx1, ly0, ly1, 0.0, ztop) + prim.box(bx0, bx1, ly0 - 22.0, ly1, 0.0, 6.0)
-    jz = [mz + sp["bridge_z"][0] + 10.0, mz + sp["bridge_z"][1] - 10.0]
-    xc = (bx0 + bx1) / 2
+        cuts.append(yfeat(prim.cyl(U.HEAD_D / 2, U.HEAD_H + 0.01, z=-U.HEAD_H), wx, wz, yf, s))   # head on the front face
+    # leg: column, two-sided foot with gussets, 2 x M3 along y into the bridge (long counterbore: 8 mm grip)
+    ztop = bz1
+    leg = prim.box(lx0, lx1, ly0, ly1, 0.0, ztop)
+    fy0, fy1 = ly0 - 22.0, ly1 + 22.0
+    leg = leg + prim.box(lx0, lx1, fy0, fy1, 0.0, 6.0)
+    for xg in (lx0 + 2.0, lx1 - 6.0):
+        for (ya, yb) in ((fy0, ly0), (ly1, fy1)):
+            g_ = prim.extrude(prim.poly_cs([(0, 0), (abs(yb - ya), 0), (0, 40.0)]), 4.0)
+            # local x along -y or +y away from the column face, local y up; extrude along world x
+            if ya < ly0:       # -y side: from the column face at ly0 outwards (occupies x xg..xg+4)
+                M = tf.T(xg + 4.0, ly0, 0) @ tf.Rz(-90) @ tf.Rx(90)
+            else:              # +y side (occupies x xg..xg+4)
+                M = tf.T(xg, ly1, 0) @ tf.Rz(90) @ tf.Rx(90)
+            leg = leg + prim.place(g_, M)
+    jz = [bz0 + 10.0, bz1 - 10.0]
+    xc = (lx0 + lx1) / 2
     for z in jz:
-        leg = leg - prim.cylY(U.CLR_D / 2, ly0 - 1, ly1 + 1, xc, z) - prim.cylY(U.HEAD_D / 2, ly0 - 1, ly0 + U.HEAD_H, xc, z)
+        leg = leg - prim.cylY(U.CLR_D / 2, ly0 - 1, ly1 + 1, xc, z) - prim.cylY(U.HEAD_D / 2, ly0 - 1, ly1 - 8.0, xc, z)
         cuts.append(yfeat(U.insert_hole(0, 0, 0.0), xc, z, ly1, 1))
-    feet = [(bx0 + 7.0, ly0 - 11.0), (bx1 - 7.0, ly0 - 11.0)]
+    feet = [(lx0 + 8.0, fy0 + 8.0), (lx1 - 8.0, fy0 + 8.0), (lx0 + 8.0, fy1 - 8.0), (lx1 - 8.0, fy1 - 8.0)]
     for fx, fy in feet:
         leg = leg - U.clear_hole(fx, fy, -1, 7)
     plate = prim.diff(plate, cuts)
     carve = _swept_no_axis(C, (mx, mz))
     if not carve.is_empty():
-        plate = plate - carve
-        leg_c = leg - carve
+        plate = U.carve_healed(plate, carve, keep_largest=False)
+        leg_c = U.carve_healed(leg, carve)
         if abs(leg_c.volume() - leg.volume()) > 1.0:
             info["warnings"].append(f"motor leg cut by {leg.volume() - leg_c.volume():.0f} mm3 of another subsystem's sweep")
         leg = leg_c
     comps = plate.decompose()
-    ring_pt = prim.box(mx + MOT.RING_R - 1, mx + MOT.RING_R + 1, y0 + 1, y1 - 1, mz - 1, mz + 1)
-    keep = [c for c in comps if not (c ^ prim.box(mx - 60, mx + 60, y0 - 1, y1 + 1, mz - 60, mz + 60)).is_empty()]
+    keep = [c for c in comps if not (c ^ prim.box(mx - MOT.PUCK_R - 8, mx + MOT.PUCK_R + 8, y0 - 1, y1 + 1, mz - 12, mz + 12)).is_empty()]
     plate = max(keep or comps, key=lambda c: c.volume())
     if (plate ^ bridge).volume() < 0.5 * bridge.volume():
         info["warnings"].append("motor plate: the carve separated the plate from its bridge")
-    legs = sorted(leg.decompose(), key=lambda c: -c.volume())
-    leg = legs[0]
+    rim_ok = 0
+    for i in range(MOT.RIM_N):
+        rx, rz = MOT.rim_xy(i)
+        wx, wz = mx - rx, mz + (rz if ms < 0 else -rz)
+        ring_ = prim.cylY(4.5, y0 + 0.5, y1 - 0.5, wx, wz) - prim.cylY(2.0, y0, y1, wx, wz)
+        if (plate ^ ring_).volume() > 0.8 * ring_.volume():
+            rim_ok += 1
+            info.setdefault("plate_rim_ok", []).append(i)
+    info["rim_screws_ok"] = rim_ok
+    if rim_ok < 5:
+        info["warnings"].append(f"only {rim_ok} of {MOT.RIM_N} puck rim screws have plate behind them")
     info["deck_holes"] += feet
     info["motor_leg_feet"] = feet
-    parts = [Part("frame_motor_leg", leg, "PLA", print_tf=U.print_flat(leg, tf.Rx(90)), color="#aab4be",
-                  notes="motor support leg: stands on the deck beside the bay, 2 x M3 x 10 into the deck, 2 x M3 x 16 "
-                        "along y into the bridge of the motor plate")]
+    parts = [Part("frame_motor_leg", leg, "PLA", print_tf=U.print_flat(leg), color="#aab4be",
+                  notes="motor support leg (prints upright): 4 x M3 x 10 into the deck, 2 x M3 x 12 along y into the "
+                        "bridge behind the motor plate")]
     return dict(plate=plate, parts=parts)
 
 
@@ -675,14 +714,21 @@ def build(P):
         # M frame: origin at the boss face plane (adapter face away from the cheek), +Z towards the frame (= -ms * Y)
         zdir = np.array([0.0, -ms, 0.0])
         xh = np.array([-1.0, 0.0, 0.0])
-        Mm = tf.frame((mo[0], yo + ms * MOT.PLATE_T, mo[2]), zdir, xh) @ tf.Rz(w["rot_deg"])
+        y_boss = (C["y_out"][ms]) if C["v1"] else (yo + ms * MOT.PLATE_T)   # v1: boss face on the plate rear (y -10)
+        Mm = tf.frame((mo[0], y_boss, mo[2]), zdir, xh) @ tf.Rz(w["rot_deg"])
         info["M_motor"] = Mm
         body = MOT.motor_body(w)
         parts.append(Part("frame_wiper_motor", body, "bought", place=Mm, color="#3c4248",
                           bought_ref="12 V car wiper motor (self-locking worm), 2-wire rebuild",
                           notes="wiper motor ENVELOPE (assumed, not measured): edit params.WIPER and reprint the adapter"))
-        ad = MOT.adapter_plate(w, standoff)
-        Mad = tf.frame((mo[0], yo + ms * MOT.PLATE_T, mo[2]), zdir, xh)    # the ring is fixed; rot only moves the slots
+        Mad = tf.frame((mo[0], y_boss, mo[2]), zdir, xh)    # the ring is fixed; rot only moves the slots
+        if C["v1"]:
+            extra = index_inserts(P, C, mo, ms)
+            info["index_inserts"] = extra
+            ad = MOT.puck(w, extra)
+            info["warnings"] += MOT.puck_checks(w, extra)
+        else:
+            ad = MOT.adapter_plate(w, standoff)
         ad_rot = ad                                   # slots already turned by rot_deg; the ring stays fixed
         if C["v1"] and fw["adapter_carve"]:
             # carve the adapter wings round the other subsystems (drum index block, reel sprag hub) in the adapter
@@ -699,12 +745,25 @@ def build(P):
                         probe = prim.cyl(w["bolt_head_d"] / 2 + 2.0, MOT.PLATE_T, hx, hy, 0.0)
                         if (probe ^ cut_local).volume() > 1.0:
                             info["warnings"].append(f"adapter carve reaches the motor hole at ({hx:.0f}, {hy:.0f})")
-                    for i in MOT.ring_used(w):
-                        rx, ry = MOT.ring_xy(i)
-                        probe = prim.cyl(U.INS_D / 2 + 2.0, 10.0, rx, ry, MOT.PLATE_T)
-                        if (probe ^ cut_local).volume() > 1.0:
-                            info["warnings"].append(f"adapter carve reaches ring insert {i}")
-                    ad_rot = sorted(ad_c.decompose(), key=lambda m: -m.volume())[0]
+                    if not C["v1"]:
+                        for i in MOT.ring_used(w):
+                            rx, ry = MOT.ring_xy(i)
+                            probe = prim.cyl(U.INS_D / 2 + 2.0, 10.0, rx, ry, MOT.PLATE_T)
+                            if (probe ^ cut_local).volume() > 1.0:
+                                info["warnings"].append(f"adapter carve reaches ring insert {i}")
+                    else:
+                        ok = []
+                        for i in range(MOT.RIM_N):
+                            rx, ry = MOT.rim_xy(i)
+                            probe = prim.cyl(U.INS_D / 2 + 2.0, MOT.LIP_T, rx, ry, -MOT.LIP_T)
+                            if (probe ^ cut_local).volume() < 0.5:
+                                ok.append(i)
+                        info["puck_rim_ok"] = ok
+                        for (x, y) in info.get("index_inserts", []):
+                            probe = prim.cyl(U.INS_D / 2 + 2.0, 6.0, x, y, MOT.PLATE_T - 6.0)
+                            if (probe ^ cut_local).volume() > 0.5:
+                                info["warnings"].append(f"adapter carve reaches the SW_INDEX insert at ({x:.0f}, {y:.0f})")
+                    ad_rot = U.carve_healed(ad_rot, cut_local)
         parts.append(Part("frame_motor_adapter", ad_rot, "PPA-CF", place=Mad, print_tf=U.print_flat(ad_rot),
                           color="#c9b27a",
                           notes="wiper adapter plate: slotted M6 holes (+-%.0f mm) for the motor bosses, 6 x M3 to the cheek ring; reprint when the motor is measured" % w["slot"]))
@@ -714,7 +773,7 @@ def build(P):
             stay, stay_pts = MOT.can_stay(w, Mm, C["y_out"][ms], ms, mo[2] + sp_["plate_z"][1])
             if stay is not None:
                 parts.append(Part("frame_can_stay", stay, "PLA", print_tf=U.print_flat(stay, tf.Rx(-90)), color="#aab4be",
-                                  notes="can stay: post on the motor plate (2 x M3 x 16 into plate inserts), cable tie or "
+                                  notes="can stay: post on the motor plate (2 x M3 x 12 into plate inserts), cable tie or "
                                         "hose clamp round the can through the cradle slots; reprint with the adapter"))
                 info["can_stay_pts"] = stay_pts
         sad, sad_holes = MOT.saddle(w, Mm)
@@ -829,9 +888,13 @@ def build(P):
         n = max(4, int(math.ceil(L / fw["rover_hole_pitch"])))
         for i in range(n):
             q = ring.interpolate(i * L / n)
-            if all(math.hypot(q.x - hx, q.y - hy) > 9.0 for hx, hy in info["deck_holes"]):
+            under = any(pg.buffer(4.0).contains(q) for pg in info["others_foot"] + foot_polys)
+            if not under and all(math.hypot(q.x - hx, q.y - hy) > 9.0 for hx, hy in info["deck_holes"]):
                 rover.append((q.x, q.y, k))
     info["rover_holes"] = [(round(x, 1), round(y, 1)) for x, y, _ in rover]
+    for k in range(len(pieces)):
+        if sum(1 for r in rover if r[2] == k) < 3:
+            info["warnings"].append(f"deck tile {k + 1} has fewer than 3 rover holes (feet cover its edge)")
     for k, pc in enumerate(pieces):
         sol = prim.extrude(prim.shapely_cs(pc), t, z=-t)
         cuts = []
@@ -886,9 +949,7 @@ def parts(P):
 def joints(P):
     C = cfg(P)
     js = []
-    if C["v1"]:
-        from . import _frame_rguard as RG
-        js += RG.joints(P)
+
     if C["main"] in C["layout"]:
         ms = C["fw"]["motor_side"]
         mo = C["layout"][C["main"]]["origin_w"]
@@ -899,9 +960,7 @@ def joints(P):
 def kin(P, S):
     # wiper_deg: + = motor forward. The motor shaft points into the frame along -motor_side * Y.
     out = {"frame_wiper": float(S.get("wiper_deg", 0.0))}
-    if cfg(P)["v1"]:
-        from . import _frame_rguard as RG
-        out.update(RG.kin(P, S))
+
     return out
 
 
@@ -925,10 +984,7 @@ def parts(P):  # noqa: F811  (adds the moving shaft stub to the static list)
     lst = list(_parts_plain(P))
     if cfg(P)["main"] in cfg(P)["layout"] and not any(p.name == "frame_wiper_shaft" for p in lst):
         lst.append(_shaft_part(P))
-    if cfg(P)["v1"] and not any(p.name.startswith("frame_spring_guard") for p in lst):
-        from . import _frame_rguard as RG
-        if RG.joints(P):
-            lst += RG.parts(P)
+
     return lst
 
 
@@ -955,8 +1011,7 @@ def allowed(P):
     ]
     from . import _frame_ebay as EB
     a += EB.allowed(P)
-    from . import _frame_rguard as RG
-    a += RG.allowed(P)
+
     return a
 
 
@@ -966,8 +1021,7 @@ def grounded(P):
 
 
 def clearances(P):
-    from . import _frame_rguard as RG
-    return RG.clearances(P) + [Clearance("frame_wiper_shaft", "frame_motor_adapter", 0.5, "shaft turns free in the adapter"),
+    return [Clearance("frame_wiper_shaft", "frame_motor_adapter", 0.5, "shaft turns free in the adapter"),
             Clearance("frame_wiper_shaft", "frame_cheek_*", 0.5, "shaft turns free in the cheek hole")]
 
 
@@ -982,6 +1036,13 @@ def checks(P, asm=None):
             sx, sy, sz = U.bbox_size(p.solid, p.print_tf)
             if sx > bed[0] - 2 or sy > bed[1] - 2 or sz > bed[2]:
                 fails.append(f"{p.name}: {sx:.0f} x {sy:.0f} x {sz:.0f} does not fit the bed")
+    for p in B["parts"]:
+        if p.printed and not U.stl_ok(p.solid):
+            fails.append(f"{p.name}: not watertight as an STL after vertex merge")
+    if info["cfg"]["v1"]:
+        both = set(info.get("plate_rim_ok", [])) & set(info.get("puck_rim_ok", range(MOT.RIM_N)))
+        if len(both) < 4:
+            fails.append(f"only {len(both)} puck rim screws have both plate and lip material (need 4)")
     # blocks on the same cheek must not overlap
     sup = info["supports"]
     for i in range(len(sup)):
@@ -996,7 +1057,80 @@ def checks(P, asm=None):
     return fails
 
 
+def steps_v1(P):
+    """Assembly steps for the BASE_SPEC v1.x frame, in the whole-base order."""
+    B = build(P)
+    names = [p.name for p in parts(P)]
+    info = B["info"]
+
+    def has(prefix):
+        return [n for n in names if n.startswith(prefix)]
+
+    deck = has("frame_deck")
+    both = sorted(set(info.get("plate_rim_ok", range(MOT.RIM_N))) & set(info.get("puck_rim_ok", range(MOT.RIM_N))))
+    nrim = len(both)
+    st = [
+        dict(title="Heat-set inserts",
+             text="Soldering iron with an insert tip, about 220 C for PLA and about 280 C for the PPA-CF puck. Press every "
+                  "M3 x 4 x 5 insert square into its 4.0 mm hole until flush: deck (%d), motor plate (2 for the leg bridge, "
+                  "2 for the can stay, %d for the gear hood), puck adapter (%d in the rear lip, %d on the front face for "
+                  "cad-drum's SW_INDEX block), bay (corner bosses, standoffs, clamp posts, perfboard bosses). Let each "
+                  "cool before the next one nearby."
+                  % (len(info["deck_holes"]), len(info.get("guard_pins", [])), MOT.RIM_N, len(info.get("index_inserts", []))),
+             parts=deck + has("frame_cheek") + ["frame_motor_adapter", "frame_ebay"]),
+        dict(title="Drill the rover",
+             text="Lay the deck on the rover top plate where it will live (launch direction forward). Mark through the "
+                  "%d perimeter holes with a 3 mm drill or a scriber (or tape down the 1:1 PDF template from "
+                  "cad/parts/_frame_tests/drill_template.py), take the deck off, drill 3.4 mm. Deburr." % len(info["rover_holes"]),
+             parts=deck),
+        dict(title="Deck on the rover",
+             text="Slide the tiles together on the dovetails (from above). M3 x 25 SHCS down through every perimeter "
+                  "hole, washer and nyloc under the rover plate. Snug, not crushed. Do this before the other subsystems "
+                  "put their feet down: some rover bolts sit under their feet.", parts=deck),
+        dict(title="Motor leg",
+             text="Stand the leg on the deck in the corner between the reel and the bay, foot along y. 4 x M3 x 10 down "
+                  "through the foot into the deck inserts.", parts=has("frame_motor_leg")),
+        dict(title="Motor plate",
+             text="Hold the motor plate upright (front face, the side without the bridge, towards +y) with its bridge "
+                  "against the top of the leg. 2 x M3 x 12 along y through the leg's long counterbores into the bridge "
+                  "inserts.", parts=has("frame_cheek")),
+        dict(title="Wiper motor on the puck (bench)",
+             text="Battery unplugged. Put the M6 bolts through the puck slots from the front (heads sit in the slot "
+                  "counterbores), into the motor bosses (threaded bosses, or a nut behind each boss ear). Slide the motor "
+                  "so its shaft is centred in the bore (a 10 mm drill shank in the coupler bore helps), then tighten.",
+             parts=["frame_motor_adapter", "frame_wiper_motor", "frame_wiper_shaft"]),
+        dict(title="Puck into the plate",
+             text="Feed the puck into the plate window from behind (the motor side) until its lip sits on the plate's rear "
+                  "face. From the front, M3 x 12 through the plate into the lip inserts (%d of the 8 rim holes have both "
+                  "plate and lip; use those)." % nrim,
+             parts=["frame_motor_adapter"]),
+    ]
+    if has("frame_can_stay"):
+        st.append(dict(title="Can stay",
+                       text="Post against the plate's rear face, 2 x M3 x 12 into the plate inserts. Cable tie or hose clamp "
+                            "round the motor can through the two cradle slots, firm but not crushing.",
+                       parts=has("frame_can_stay")))
+    st.append(dict(title="Shafts and trains (other subsystems)",
+                   text="Now cad-drum (coupler on the wiper shaft, SW_INDEX block on the puck front face: 2 x M3 into the "
+                        "puck inserts), cad-reel and cad-launch install their trains and aim housing. Follow their steps, "
+                        "then come back.", parts=[]))
+    if has("frame_guard_hood") or has("frame_guard_front"):
+        st.append(dict(title="Gear guards",
+                       text="After every train has been turned by hand: the hood goes over the gears in front of the motor "
+                            "plate, M3 x 10 through each lug into the plate inserts; the front guard stands on the deck "
+                            "between the drum gears and the bay, M3 x 10 into the deck inserts. Turn the wiper by hand once: "
+                            "nothing rubs.", parts=has("frame_guard_hood") + has("frame_guard_front")))
+    old = steps_legacy(P)
+    keep = ("Electronics bay", "Set the buck", "Camera, receiver", "Wiring and lid")
+    st += [x for x in old if x["title"].startswith(keep)]
+    return [x for x in st if x["parts"] or "Shafts" in x["title"]]
+
+
 def steps(P):
+    return steps_v1(P) if cfg(P)["v1"] else steps_legacy(P)
+
+
+def steps_legacy(P):
     """Frame assembly steps, in the whole-base order (other subsystems slot in where named)."""
     B = build(P)
     names = [p.name for p in parts(P)]
@@ -1117,8 +1251,6 @@ def steps(P):
                   "1 mm from the magnet face: check with a 1 mm feeler (or a folded business card). STEMMA QT cable to "
                   "the bay sensor window.",
              parts=["frame_as5600_bracket", "frame_pcb_as5600"]))
-    from . import _frame_rguard as RG
-    st += RG.steps(P)
     return [x for x in st if x["parts"] or "Shafts" in x["title"]]
 
 
@@ -1150,12 +1282,12 @@ def guards_v1(P, C, info, mo):
                         (yi + s_in * 8.0 + 0.01) if s_in > 0 else (yi + s_in * 8.0 + U.HEAD_H), x, hz - 5.0)
         lugs.append(lug)
         pins.append((float(x), float(hz - 5.0)))
-    roof = prim.union([roof] + lugs) - carve
-    comps = sorted(roof.decompose(), key=lambda c: -c.volume())
+    roof = U.carve_healed(prim.union([roof] + lugs), carve)
+    comps = [roof]
     if comps and comps[0].volume() > 2000:
         roof = comps[0]
         parts.append(Part("frame_guard_hood", roof, "PLA", print_tf=U.print_flat(roof), color="#d0d6dc",
-                          notes="gear hood over the reel and bus gears, 3 x M3 x 12 through its lugs into the motor plate"))
+                          notes="gear hood over the reel and bus gears, M3 x 10 through its lugs into the motor plate"))
         # keep only the lug pins that survived the carve
         pins = [(x, z) for (x, z) in pins if not (roof ^ prim.cylY(3.0, min(yi, yi + s_in * 8) + 0.5,
                                                                      max(yi, yi + s_in * 8) - 0.5, x, z)).is_empty()]
@@ -1170,8 +1302,8 @@ def guards_v1(P, C, info, mo):
     panel = panel + foot
     for x, y in fh:
         panel = panel - U.clear_hole(x, y, -1, 6)
-    panel = panel - carve
-    comps = sorted(panel.decompose(), key=lambda c: -c.volume())
+    panel = U.carve_healed(panel, carve)
+    comps = [panel]
     if comps and comps[0].volume() > 2000:
         panel = comps[0]
         keep = [(x, y) for (x, y) in fh if not (panel ^ prim.cyl(4.5, 4.0, x, y, 0.5) - prim.cyl(2.0, 6, x, y, -1)).is_empty()]

@@ -9,7 +9,7 @@ Every number runs on `base/spec/params.py` through `spec_bridge.py` (the only fi
 | File | What |
 |---|---|
 | common.py | every assumption in one place: battery sag, wiper (one block, linear, 5 N m limiter), A228 extension spring (rate, hook and body limits, mass, surge), line, dart, 608, sprag, shaft, launcher/reel/capstan defaults |
-| spec_bridge.py | overlays base/spec/params.py (v1.2) onto the defaults, lists what it used in `p.spec_used` |
+| spec_bridge.py | overlays base/spec/params.py (v1.3) onto the defaults, lists what it used in `p.spec_used` |
 | launcher.py | spring launcher: chain (surge) and lumped spring models, pulley ratio, friction, reel inertia in the stroke, stop impact, coil clash |
 | flight.py | dart point mass with drag + bead-chain tether (line weight, cross-flow and skin drag, ground contact), ideal brake or coupled reel; spec geometry (pivot pulley, release point), range from the pivot ground point |
 | payout.py | storage reel geometry and inertia, slip clutch (constant torque, set as line tension with the reel full), centrifugal shoes, spin-up, overrun, bird's nest risk |
@@ -26,7 +26,7 @@ Every number runs on `base/spec/params.py` through `spec_bridge.py` (the only fi
 | summary.py, plots.py | SUMMARY.md + base/out/physics/physics_summary.pdf (one page, Liberation Sans, black) + two plain plots |
 | FINDINGS.md | problems and numbers for the spec (pushed from 11:15, kept current) |
 
-## Numbers (spec v1.2)
+## Numbers (spec v1.3)
 
 See FINDINGS.md "Current numbers" and SUMMARY.md (final values pasted below at the 18:20 push).
 
@@ -67,6 +67,12 @@ See FINDINGS.md "Current numbers" and SUMMARY.md (final values pasted below at t
    -10.4. Also: flight eye at the D36 guide, taut detection from the peak slack, trips from the spec.
 12. Coordinator review F2 (round 2): tow limit cap check (72 N available vs the 70 N D39 cap), validate() and end
    rows in the staleness test, and the spec headline kept within 10 % of the model by a test.
+13. Retrieve-side critic: the line path friction between the capstan and the dart (plain printed eyes), exit eye heat,
+   no level wind, the shear pin print direction, the sense-law spread. These led to D43 (pulleys, path_gain 1.15, tow
+   law at the dart) and D44 (pin printed lying down, bench tow test, lay guide). Now in the model: path_gain, the
+   seating gain, lay_width.
+14. Round 7: dart-side and capstan-side tension were mixed in the capstan drum stresses, wraps, break check and
+   take-up slip. Fixed. Drum hoop stress at the shear-pin slip is 11.6 of 12 MPa, so the drum should be PPA-CF.
 
 ## Open items / requests
 
@@ -75,7 +81,7 @@ See FINDINGS.md "Current numbers" and SUMMARY.md (final values pasted below at t
   are assumed (4 kg, 0.30 m, 0.15 m).
 - Jetson: range_m is from the pivot ground point; the camera is 150 mm ahead of the pivot, so add the offset. Clamp
   to AIM.launch_pitch_range or ask me to narrow the table.
-- fw-base: trips (50 ms blank; 30 ms hard trips at 5 A in aim, 6 A in REEL, 6.5 A cocking; tow trip at measured free current + 3.5 A for 50 N over 200 ms: line = 17 x (I - I_free) - 10.4 N at FIRM 5 N), and
+- fw-base: trips (50 ms blank; 30 ms hard trips at 5 A in aim, 6 A in REEL, 6.5 A cocking; tow trip at measured free current + 3.5 A for 50 N over 200 ms: line at the dart = 14.8 x (I - I_free) - 2.6 N, D43), and
   sample the BTS7960 IS pin in the PWM on-time.
 
 ## Harry must measure
@@ -88,3 +94,4 @@ See FINDINGS.md "Current numbers" and SUMMARY.md (final values pasted below at t
 4. Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 5 N.
 5. Rail friction (tilt test) and the drum N20 torque.
 6. Rover: mass, wheelbase, deck height (recoil and launch height).
+7. After the first shots: `python calib.py range ...`, put LAUNCH v_scale in the spec, `./run_all.sh`.

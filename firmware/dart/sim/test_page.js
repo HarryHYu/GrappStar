@@ -12,6 +12,8 @@
 // shows: remove the xfail mark). The exit code is 1 if any check FAILs or XPASSes, else 0.
 'use strict';
 const { chromium } = require('playwright');
+// the dart's event for the page's key-release stop (/key?c=%20&keep=1): stops manual motors only (kedge_logic.h keyRelease)
+const KEY_STOP_EV = 'keys released, motors stopped';
 const { spawn, execFileSync } = require('child_process');
 const fs = require('fs');
 const net = require('net');
@@ -150,7 +152,7 @@ async function check1(note) {
   const tOff = await waitDirs((d) => d.kick === 0, 500, 'kick to stop after pointerup');
   const ev = (await status()).event;
   note(`kick stopped ${tOff} ms after pointerup; last event "${ev}"`);
-  assert(ev === 'stop', `release did not send STOP (event "${ev}"): the kick only stopped on the deadman`);
+  assert(ev === KEY_STOP_EV, `release did not send the key-release stop (event "${ev}"): the kick only stopped on the deadman`);
   await holdsFor(allStopped, 500, 'all stopped after release');
   assert((await heldSize()) === 0, 'page still thinks something is held');
 }
@@ -199,7 +201,7 @@ async function check2(note) {
   const tAll = await waitDirs(allStopped, 500, 'all to stop after releasing 4');
   const ev = (await status()).event;
   note(`all stopped ${tAll} ms after releasing 4; last event "${ev}"`);
-  assert(ev === 'stop', `releasing the last key did not send STOP (event "${ev}")`);
+  assert(ev === KEY_STOP_EV, `releasing the last key did not send the key-release stop (event "${ev}")`);
   await holdsFor(allStopped, 500, 'all stopped after releasing 4');
 }
 
@@ -317,7 +319,7 @@ async function check4d(note) {
     await settle(null);
     await openPage();
   }
-  const got = trials.filter((t) => t.ev === 'stop').length;
+  const got = trials.filter((t) => t.ev === KEY_STOP_EV).length;
   const slow = trials.filter((t) => t.http > 1000);
   note(`STOP arrived after ${got} of ${trials.length} navigations (events: ${trials.map((t) => t.ev).join(', ')})`);
   note(`first HTTP answer after the navigation took: ${trials.map((t) => t.http + ' ms').join(', ')}`);

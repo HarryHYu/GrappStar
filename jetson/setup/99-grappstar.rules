@@ -21,9 +21,22 @@
 # Base station: ESP32-S3 DevKitC-1, native USB port (the port labelled "USB").
 # Espressif USB JTAG/serial: 303a:1001. Firmware must use the hardware USB CDC
 # (Arduino IDE: "USB CDC On Boot: Enabled", "USB Mode: Hardware CDC and JTAG").
-# Note: the dart's XIAO ESP32S3 has the same IDs. Do not plug the dart into the
-# Jetson by USB while the base is plugged in, or the name can point at the wrong board.
-SUBSYSTEM=="tty", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", SYMLINK+="grappstar-base", MODE="0660", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
+#
+# The dart's XIAO ESP32S3 has the SAME IDs (303a:1001), so the base is matched by
+# its USB serial number too (every ESP32-S3 has its own, it looks like a MAC address,
+# for example F4:12:FA:12:34:56). REPLACE_WITH_BASE_SERIAL below is a placeholder:
+# until it is replaced, /dev/grappstar-base does not appear at all (safe: the
+# software can never open the dart by mistake).
+#
+# Easiest: plug in ONLY the base by USB (dart unplugged), then run
+#   bash setup/install.sh --no-apt
+# It finds the serial and offers to write it into the installed rule. Or by hand:
+#   udevadm info -q property -n /dev/ttyACM0 | grep ID_SERIAL_SHORT
+# then run: bash setup/install.sh --no-apt --base-serial <that value>
+# The copy in this folder keeps the placeholder; install.sh fills in the copy in /etc/udev/rules.d/.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", ATTRS{serial}=="REPLACE_WITH_BASE_SERIAL", SYMLINK+="grappstar-base", MODE="0660", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
+# Any other 303a:1001 board (for example the dart's XIAO): serial access only, no grappstar name.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", MODE="0660", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
 
 # Base station, the other DevKitC port (labelled "UART" or "COM"): a USB to UART
 # bridge chip. Which chip depends on the board batch, so all three are listed.

@@ -9,7 +9,7 @@ and never poll `/status` faster than 5 Hz (held-key repeats every 150 ms are the
 | HTTP code | Meaning | Body |
 |---|---|---|
 | 200 | accepted | `text/plain` event lines (often empty), or JSON for `/status` and `/flightlog` |
-| 409 | refused, nothing changed | `refused: <reason>` on the first line |
+| 409 | refused, nothing changed (one exception: `both directions held` also stops that motor) | `refused: <reason>` on the first line |
 | 400 | missing parameter | text |
 | 404 | unknown path | text |
 | 503 | `/flightlog` could not get memory, try again | text |
@@ -95,11 +95,13 @@ Manual key, same keys as the web page and Serial Monitor.
   reading); only both stalled is detected.
 - Both directions of one motor held at once (`1` and `!` both being repeated): the motor stops and both are refused
   (`both directions held`) until neither has been pressed for a window. A single switch from one key to the other
-  (release one, press the other, with or without a stop between) just reverses the motor.
+  (release one, press the other, with or without a stop between) just reverses the motor. The 8 s hold cap counts
+  per motor, so switching direction does not restart it.
 - At low `speed` the stall line never drops below 1.5 x the motor's free current, so normal running is not taken for a
   stall; below about speed 70 a stall may then only be stopped by the 8 s hold cap.
-- Other keys: space or `s` stop (same as `/stop`; with `keep=1` it stops the motors but keeps the arm, like
-  `/stop?disarm=0`: the web page sends this when the last held key is released or the page loses focus), `a` auto (same as `/auto`), `r` release (same as `/release`),
+- Other keys: space or `s` stop (same as `/stop`; with `keep=1` it only stops manual (key) motors: no
+  sequence abort, no fault clear, no disarm, no lock; the web page sends this when the last held key is released or the
+  page loses focus), `a` auto (same as `/auto`), `r` release (same as `/release`),
   `A` arm toggle (prefer `/arm`), `+` / `-` speed, `i` current, `b` attitude, `p` status line, `f` flight log summary,
   `z` I2C scan (does a full `/stop` first: motors off, disarm), `h` help. An OTA upload also does a full `/stop`.
 - Optional `n` and `p`: a request counter and a page id (the web page uses them so a run key sent before that page's
@@ -151,13 +153,15 @@ spinning, drills finishing, `anchored`.
 - A single motor that draws no current faults the sequence (`NO_CURRENT`). The anchor's pods step starts with the
   deploy worm alone for 0.3 s to check it draws current (open wire: `NO_CURRENT`). In the release the drills keep
   unscrewing from the start of the pods lift (the augers may still be in soil).
-- Kick travel bookkeeping: the firmware adds up how long the kick has been driven out and back (at full duty) and
+- Kick travel bookkeeping: the firmware adds up how long the kick has been driven out and back (at full duty, scaled
+  by rail voltage / 8.0 V) and
   assumes it was **stowed at power-on**. A kick that stalls near stowed at the start of `/auto` is a jam or wired
   backwards (`KICK_JAM`), not "already down"; in `/release` a kick that stalls before its real travel back covers
   60 % of the estimated travel out is `KICK_JAM`, not "stowed" (a jam in the last part of the return looks like the
   stowed stop). Travel is not counted while the kick is stalled (either way) or planting. After any reset other than a
   power-on (brownout, crash, OTA) the position is unknown and these checks wait until the next completed release.
-  `kickSwingMs` (4.3 s) is the bench swing time (BENCH_TEST step 5).
+  `kickSwingMs` (4.3 s) is the kick's swing in air at 8.0 V. The firmware measures it: a kick driven out by hand from
+  stowed until it stalls logs `kick travel from stowed NNNN ms (at 8.0 V)` (BENCH_TEST step 5).
 - Stall handling inside the sequence: while two motors run (kick + foot, pods + drills), the worm (kick or deploy)
   pauses 150 ms every 550 ms. It self-locks and holds position while the auger keeps turning and is read alone; the
   worm's current is (both) - (auger alone). A worm stall must also show as a rise of the total current over the
@@ -171,9 +175,17 @@ spinning, drills finishing, `anchored`.
   (about 80 mA for the kick while planting, about 100 mA for the pods) fakes an end stop from the start of the step;
   the step then ends early with no warning (weak anchor). BENCH_TEST step 9.6 measures this drop. Known limit: if the pods jam in soil mid-travel and the drills' current rises during each
   pause by more than the margin, the jam is only ended by the 6 s pods limit. A retried
-  `/auto` whose kick is already down skips the planting step (event `kick already down, foot planting`). A kick
-  that swings at least 85 % of its full travel and stalls without a contact phase hit its own end stop in air (dart on
-  its back or side): fault `NO_GROUND`, foot, pods and drills are not driven.
+  `/auto` whose kick is already planted (an earlier anchor got past the swing, or the kick was driven out by hand
+  until it stalled) skips the planting step (event `kick already down, foot planting`).
+- `NO_GROUND`: the kick stalls in the swing step with no contact phase while it is at 90 % or more of `kickSwingMs`
+  (its swing in air) and has not been planted since the last release. That is its own end stop in air (dart on its
+  back or side): fault, foot, pods and drills are not driven. A retry, or a swing stopped part way and retried, gives
+  `NO_GROUND` again: send `/release`, set the dart right, then `/auto`. After a reset (travel unknown) only the travel
+  of this swing counts. Geometry assumption, checked in BENCH_TEST step 5: on flat ground the kick's housing lands
+  before 80 % of its swing in air (90 % is the line, 10 % margin for the travel estimate). Known limit: a kick driven out by hand in air until it stalls, then `/auto`, is
+  taken as planted.
+- Kick travel is also marked unknown (event `kick travel unknown`) when the kick is driven by hand together with two
+  other motors, or paired with the pods, until the next completed release.
 - One failed current read at the moment a step ends does not fault: the step ends and the next good read moves on.
 
 ### GET /release

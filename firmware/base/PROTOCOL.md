@@ -85,9 +85,9 @@ Checked first by every action that moves something (in this order):
 | `wrap` | | from LAUNCH (D22: straight after the shot; the same checks as leaving LAUNCH, then the centering jog), L_TO_N, NEUTRAL, WRAP_PREP or inside WRAP: drum forward through the WRAP window (62 to 302: the cup lays 7 turns on the capstan with the collar in NEUTRAL and the wiper off) to the WRAPPED park 314 in N_TO_R (cup locked, collar still NEUTRAL). `SW_ARM` must pulse 7 times across the window. `WRAPPED` event at the park; no `MODE` event follows. About 35 s from NEUTRAL, 40 s from LAUNCH: use a timeout of 90 s. Already in N_TO_R or REEL: `ok` and an immediate `WRAPPED` (nothing moves) | `POSITION_UNKNOWN`, `LAUNCH_BUSY` (launcher not at rest, or `SW_GAP` open, when leaving LAUNCH or L_TO_N; or the spring known drawn), `HAND_MODE`, `BUSY` (wiper running), `ANGLE_SENSOR` (from LAUNCH without the AS5600: the centering jog needs it) |
 | `unwrap` | | from REEL, N_TO_R (the WRAPPED park included), WRAP or WRAP_PREP: from REEL first the centering jog (forward at 25 % until the 16 deg dog window is taken up or 3 s, then 8 deg back), then the drum backward to NEUTRAL 41. While the drum is in WRAP and WRAP_PREP the wiper turns forward at 40 % (take-up only, trip 2.5 A: the capstan is not driven, the take-up winds the freed line). After a full pass `SW_ARM` must have pulsed 7 times. `UNWRAPPED` event, then `MODE` (NEUTRAL). About 40 s from REEL. Safe at any wrap count (also after a power cut mid-wrap). Already at NEUTRAL: `ok` and an immediate `UNWRAPPED` | `POSITION_UNKNOWN`, `NOT_WRAPPED` (drum in LAUNCH or L_TO_N), `BUSY` (wiper running), `ANGLE_SENSOR` (the take-up needs the wiper), `HAND_MODE`, `LAUNCH_BUSY` (spring known drawn) |
 | `tidy` | `ms` (default 3000 = config `tidyMs`, over 0 up to 60000), `duty` (default 0.3) | D22 tidy by time: take-up only, wiper FORWARD for `ms` (trip 2.5 A). Allowed at the WRAPPED park (N_TO_R below 318) or in NEUTRAL, both dog contacts open. `duty` over 0 up to 1; below 0.27 it runs at 0.27, above 0.40 it is capped at 0.40. `TIDIED` event at the end. Telemetry `state` is `REEL` meanwhile; `stop` ends it with `ABORTED` `what:"REEL"` | `BAD_ARG` (`ms` out of range, bad `duty`), `NOT_IN_NEUTRAL` (anywhere else, or a dog contact closed), `POSITION_UNKNOWN` (drum code invalid). These come before the common refusals |
-| `retrieve` | `duty` (default 0.3), `max_n` (default `limit_n`) | final approach on the take-up: the same as `reel` with `until:"seated"`. In NEUTRAL (or at the WRAPPED park, below 318 deg) the take-up pulls the dart in (trip 2.5 A, fault `DART_STUCK` after 20 s without `SW_SEATED`). Never on the capstan (D35): in REEL it is refused. `SEATED` event. Already seated: `ok` and an immediate `SEATED` | as `reel`, so in REEL `WRAPS_ON` (`unwrap` first) |
+| `retrieve` | `duty` (default 0.3), `max_n` (default `limit_n`), `max_s` (optional, 5 to 180) | final approach on the take-up: the same as `reel` with `until:"seated"`. In NEUTRAL (or at the WRAPPED park, below 318 deg) the take-up pulls the dart in (trip 2.5 A). No `SW_SEATED` within the time limit: fault `DART_STUCK`. The limit is `max_s`, else 20 s + `line_m` / 0.08 m/s when `line_m` is known, else 30 s, never over 180 s (see the `reel` detail). Never on the capstan (D35): in REEL it is refused. `SEATED` event. Already seated: `ok` and an immediate `SEATED` | as `reel`, so in REEL `WRAPS_ON` (`unwrap` first); `BAD_ARG` for `max_s` outside 5..180 |
 | `decock` | `force` (optional) | the same as `cal decock` (section 7) | as `cal decock` |
-| `reel` | `duty` over 0 up to 1 (default 0.86; below 0.27 it runs at 0.27), `max_n` (default `limit_n`, capped at 110), `until`: `stop` (default) \| `seated` \| `tension` \| `slip` | REEL (collar confirmed): the capstan winds in (tow, reel in), see below. NEUTRAL or the WRAPPED park (N_TO_R below 318), both dog contacts open: take-up only, see below. Also accepted while holding (state `HOLD`): winds again | `BAD_ARG` (bad `until`, `duty` not in (0, 1], `max_n` not over 0, `slip` in REEL), `NOT_WRAPPED` (neither REEL nor take-up position, or `tension` without the capstan), `WRAPS_ON` (`seated` in REEL: never seat the dart on the capstan, D35), `NO_SENSOR` (`seated` without `SW_SEATED`) |
+| `reel` | `duty` over 0 up to 1 (default 0.86; below 0.27 it runs at 0.27), `max_n` (default `limit_n`, capped at 110), `until`: `stop` (default) \| `seated` \| `tension` \| `slip`, `max_s` (optional, 5 to 180: time limit of `until:"seated"`) | REEL (collar confirmed): the capstan winds in (tow, reel in), see below. NEUTRAL or the WRAPPED park (N_TO_R below 318), both dog contacts open: take-up only, see below. Also accepted while holding (state `HOLD`): winds again | `BAD_ARG` (bad `until`, `duty` not in (0, 1], `max_n` not over 0, `slip` in REEL), `NOT_WRAPPED` (neither REEL nor take-up position, or `tension` without the capstan), `WRAPS_ON` (`seated` in REEL: never seat the dart on the capstan, D35), `NO_SENSOR` (`seated` without `SW_SEATED`), `BAD_ARG` also for `max_s` outside 5..180 (checked on every `reel`) |
 | `jog` | `motor`: `wiper` \| `drum`, `dir`: 1 \| -1, `ms` (default 300, capped at 1500) | runs one motor for `ms`. Deadman: the same jog (same motor and dir) sent again before it ends extends it. Wiper dir 1 = FORWARD, drum dir 1 = toward REEL. Ends silently (state back to `IDLE`), see below for the limits | see below |
 | `cal` | `what`, see section 7 | calibration actions | per action (section 7), `BAD_ARG` for an unknown `what` |
 | `set` | `key`, `val` (number or `true` / `false`) | sets a value (section 7) | `BAD_ARG` (no key or val), `BAD_KEY`, `OUT_OF_RANGE`, for `enc_sign`: `BAD_ARG` unless 1 or -1, `BUSY` while moving |
@@ -119,8 +119,13 @@ In NEUTRAL or at the WRAPPED park (take-up only, decision D15 / lens B I4: wiper
 2.5 A; the capstan is not driven, so there is no tension limit and `line_m` does not change):
 
 - `until:"seated"` (or `retrieve`): the final approach. Stops at `SW_SEATED` (`SEATED` event, `line_m` set to 0).
-  Already seated: `ok` and an immediate `SEATED`. No `SW_SEATED` within 20 s:
-  fault `DART_STUCK`.
+  Already seated: `ok` and an immediate `SEATED`. No `SW_SEATED` within the time limit: fault `DART_STUCK`
+  "final approach: no SW_SEATED in N s". The limit is `max_s` when given (5 to 180 s); otherwise 20 s +
+  `line_m` / 0.08 m/s (config `takeupMps`, the take-up line speed at 30 %) when `line_m` is known, 30 s when it is
+  unknown, at most 180 s. `line_m` is not tracked while only the take-up runs (only the capstan in REEL counts it), so
+  it still holds the value from the last capstan reel-in or `set line_m`; it is unknown after a shot until the Jetson
+  sends `set line_m`, and it is set to 0 on `SEATED`. In the simulation a 5 m take-up retrieval took about 62 s: send
+  `set line_m` (or `max_s`) before a long take-up retrieval.
 - `until:"slip"`: an older tidy, kept but no longer used by the mission (use `tidy`). Runs until the current has been
   steady (within 0.3 A) for 2 s: `LIMIT` with `tension_n:null`, `why:"tidy done (take-up slipping)"`,
   `holding:false`. Not done within 15 s: `ABORTED` (`what:"REEL"`, `why:"timeout"`).
@@ -352,7 +357,7 @@ drum, see below).
 | `SWITCH_DISAGREE` | `SW_DOG_L and SW_DOG_R both closed` (200 ms, or at the end of a move); `collar contact disagrees with the drum code` (during a drum move or a drum jog); `drum code contact chattering` during a drum move; `collar still engaged at NEUTRAL` (also at the WRAPPED park); `SW_HOME opened at the wrong angle`; `SW_HOME still closed past the first tooth`; `SW_HOME chattering during decock` |
 | `BROWNOUT` | `battery sagged under load`: under `vbat_low` for 300 ms while a motor runs |
 | `BAD_STATE` | the mechanism did not do what the angle says: `collar left LAUNCH during a launch action`, `drum code away from LAUNCH but the spring is drawn`, `LAUNCH collar not confirmed with the spring possibly drawn`, `SW_RAIL_LOW never closed in an aim cycle`, `aim ran too far`, `carriage not drawn (SW_HOME still closed): rack or dog not engaged`, `carriage slipped home while cocking`, `SW_HOME closed at the end of cocking`, `SW_HOME never opened (stuck closed?)`, `release at the wrong angle` (after `FIRED`), `no release seen (SW_HOME did not close)`, `SW_HOME opened while resetting`, `reset ended with the carriage off its stop`, `reset ended with the big gear out of its gap`, `decock: SW_HOME never closed`, `decock: SW_GAP never closed`, and the time limits (`cocking took too long`, `cock recovery took too long`, `fire cycle took too long`, `decock by travel took too long`) |
-| `DART_STUCK` | `final approach: no SW_SEATED in 20 s` |
+| `DART_STUCK` | `final approach: no SW_SEATED in N s` (N = the time limit in force, section 2 `reel`) |
 
 A fault during any launch-train motion makes the shot phase `UNKNOWN` (the last angle is kept as the phase hint,
 section 9). Any fault cancels the arm token.
@@ -449,10 +454,10 @@ base-1.2 every bench value is back at its default: enter them again (CALIBRATION
 {"id":8,"cmd":"tidy"}                      -> TIDIED               (take-up by time, 3 s by default)
 {"id":9,"cmd":"mode","to":"REEL"}          -> MODE ok REEL         (fly-in, about 5 s)
 {"id":10,"cmd":"reel","duty":1,"max_n":50,"until":"tension"}       -> LIMIT holding        (tow)
-{"id":11,"cmd":"stop"}                     -> ABORTED HOLD         (the dart releases)
+{"id":11,"cmd":"stop"}                     -> ABORTED HOLD         (stop first: the worm holds the line; then the dart /release)
 {"id":12,"cmd":"reel","duty":0.8,"until":"stop"}   ... line_m about 1.5 ... {"id":13,"cmd":"stop"} -> ABORTED REEL
 {"id":14,"cmd":"unwrap"}                   -> UNWRAPPED, MODE NEUTRAL   (back through the window with the take-up: about 40 s)
-{"id":15,"cmd":"retrieve"}                 -> SEATED               (take-up; FAULT DART_STUCK after 20 s)
+{"id":15,"cmd":"retrieve"}                 -> SEATED               (take-up; FAULT DART_STUCK after the time limit)
 {"id":16,"cmd":"mode","to":"LAUNCH"}       -> MODE ok              (then back to aim)
 ```
 
@@ -541,7 +546,7 @@ What the Jetson worker must change (against the base-1.0 version of this file):
 4. `mode REEL` is now the normal step after `tidy` (fly-in from the WRAPPED park, `MODE` ok REEL). It is still refused
    with `NOT_WRAPPED` below N_TO_R.
 5. New commands: `tidy` (`ms`, `duty`; event `TIDIED`; refusals `BAD_ARG`, `NOT_IN_NEUTRAL`, `POSITION_UNKNOWN`),
-   `retrieve` (`duty`, `max_n`; event `SEATED`; fault `DART_STUCK`), `decock` (= `cal decock`; event `RESET`).
+   `retrieve` (`duty`, `max_n`, `max_s`; event `SEATED`; fault `DART_STUCK`), `decock` (= `cal decock`; event `RESET`).
 6. `reel`, `tidy` and `retrieve` at the WRAPPED park run the take-up only, as in NEUTRAL. A wiper `jog` there is
    refused with `SHIFTING`.
 7. Faults and `estop` from REEL or N_TO_R now send the drum to the WRAPPED park (`MODE` `ok:true`, `drum_pos`
@@ -585,3 +590,7 @@ What the Jetson worker must change (against the base-1.0 version of this file):
 26. Fly-in, LAUNCH wiggle and the REEL take-up of the centering jog run at 25 % (was 20 %).
 27. `stop` / `estop` with a bad numeric id are still carried out (reply `BAD_ID`, `id` null). `cal current`, `cal free`
     and `cal aim` reply `OUT_OF_RANGE` beyond the `set` key ranges. `get` gives up to 7 significant digits.
+28. `retrieve` and `reel` until `seated` take an optional `max_s` (5 to 180 s, `BAD_ARG` outside). The default time
+    limit is 20 s + `line_m` / 0.08 m/s (30 s with `line_m` unknown, at most 180 s), and the `DART_STUCK` why says
+    the seconds: "final approach: no SW_SEATED in N s". `line_m` does not count during take-up-only running.
+29. Mission step 14 (BASE_SPEC 10.1): send `stop` first (`ABORTED`, the worm holds the line), then the dart release.

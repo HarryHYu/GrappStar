@@ -237,8 +237,8 @@ struct Base {
     else if (atPark(st)) evMode(true);               // already safe
     dirty = true;
   }
-  // safe drum target after a fault (cad-drum fault rules): from REEL or N_TO_R the WRAPPED park (314, collar NEUTRAL,
-  // never back through the wrap window), otherwise NEUTRAL
+  // safe drum target after a fault: NEUTRAL (with the wraps on the drum holds instead, safeToNeutral; the WRAPPED
+  // branch stays as a guard should the rule change back)
   int safeTarget() const { return (sec == SEC_REEL || sec == SEC_LOCK) ? DP_WRAPPED : DP_NEUTRAL; }
   bool atPark(int t) const { return sec == targetSec(t) && fabsf(drumDeg - c.targetDeg[t]) < 4 && !d.running(); }
   void evHeld(const char* why) {
@@ -252,7 +252,7 @@ struct Base {
     if (sec == SEC_INVALID || secBad) return "drum code invalid";
     if (handMode()) return "N20 latched out (hand mode)";
     if (!wrapsKnown) return "wraps unknown";
-    if (sec == SEC_WRAP) return "inside the wrap window: the operator decides (unwrap)";   // REEL / N_TO_R go to WRAPPED
+    if (sec >= SEC_WRAP) return "wraps on: the drum holds, the operator unwraps when safe";   // params.DRUM.fault_rules (D27)
     if (loadedKnown() || (sec <= SEC_LN && maybeLoaded()))
       return "launch train not at rest: the wiper worm holds the spring (a shift under load could dry fire)";
     return nullptr;
@@ -479,6 +479,12 @@ struct Base {
       if (enc.rateDps * w.outDir < -30) { if (!encWrongT) encWrongT = now; else if (now - encWrongT > 200) { raise(F_ANGLE_SENSOR, "AS5600 counts against the drive (enc_sign?)"); return; } }
       else encWrongT = 0;
     } else encWrongT = 0;
+    if (enc.resyncs != resyncRef) {                   // a jump taken uncounted: the travel is unknown
+      resyncRef = enc.resyncs;
+      if (w.running() || state == S_AIM || state == S_COCK || state == S_FIRE || state == S_DECOCK) { raise(F_ANGLE_SENSOR, "AS5600 angle jumped while turning (travel lost)"); return; }
+      aimKnown = false; aimed = false;               // idle (hand turned?): the aim must be re-homed
+      if (phase == PH_COCKED || phase == PH_COCKING) { phaseHint = c.cockEndDeg; phase = PH_UNKNOWN; }
+    }
     if (enc.glitches != glitchRef) { uint32_t n = enc.glitches - glitchRef; glitchRef = enc.glitches; glitchWin += n; }
     if (now - glitchT >= 1000) { if (glitchWin > 20 && w.running()) { glitchWin = 0; glitchT = now; raise(F_ANGLE_SENSOR, "AS5600 glitching (over 20 bad samples a second)"); return; } glitchWin = 0; glitchT = now; }
     // launch train invariants, every tick:
@@ -499,7 +505,7 @@ struct Base {
   }
   uint32_t hostT = 0;
   int armPulses = 0, armFrom = SEC_INVALID; bool armBad = false, armCounting = false;
-  int quietSec = SEC_INVALID; uint32_t encWrongT = 0, glitchRef = 0, glitchWin = 0, glitchT = 0;
+  int quietSec = SEC_INVALID; uint32_t resyncRef = 0; uint32_t encWrongT = 0, glitchRef = 0, glitchWin = 0, glitchT = 0;
   uint32_t lastMultiOk = 0, dogBothT = 0; bool bootDrumMismatch = false; bool degTrusted = true;
   void onOvercurrent(const char* why) { raise(F_OVERCURRENT, why); }   // always a fault (also in a tow: the limit acts first)
   void onStall() { raise(F_STALL, "wiper stalled"); }
@@ -810,12 +816,14 @@ struct Base {
   // reel: in REEL the capstan winds (tow, retrieve). In NEUTRAL only the take-up turns (forward, at most 40 percent):
   // the final approach until SW_SEATED (DART_STUCK after 20 s) or the tidy before wrapping (until "slip").
   bool takeupOnly = false; uint32_t approachMs = 20000;
-  // final approach time limit (DART_STUCK): "max_s" 5..180, default 20 s + line_m / 0.08 m/s (the take-up at 30 percent),
-  // or 30 s with line_m unknown; at most 180 s
-  bool approachLimit(const JObj& o) {
+  // final approach time limit (DART_STUCK; a snag cannot be seen in the current, physics): "max_s" 5..600, default
+  // 10 s + 1.5 x line_m / slowest take-up speed at the duty (physics), at least 20 s; 30 s with line_m unknown; at most 600 s
+  bool approachLimit(const JObj& o, double duty) {
     double ms;
-    if (o.num("max_s", &ms)) { if (!(ms >= 5 && ms <= 180)) return false; approachMs = (uint32_t)(ms * 1000); return true; }
-    float sec = lineKnown ? 20.f + lineM / c.takeupMps : c.approachMaxMs / 1000.f; if (sec > 180) sec = 180;
+    if (o.num("max_s", &ms)) { if (!(ms >= 5 && ms <= 600)) return false; approachMs = (uint32_t)(ms * 1000); return true; }
+    float d = (float)duty; if (d * 255 < c.reelMinDuty) d = c.reelMinDuty / 255.f; if (d * 255 > c.takeupMaxDuty) d = c.takeupMaxDuty / 255.f;
+    float v = c.takeupMpsPerDuty * d - c.takeupMpsOff; if (v < 0.02f) v = 0.02f;
+    float sec = lineKnown ? fmaxf(20.f, 10.f + 1.5f * lineM / v) : c.approachMaxMs / 1000.f; if (sec > 600) sec = 600;
     approachMs = (uint32_t)(sec * 1000); return true;
   }
   // D34: the tow trip sits above the current the limit needs, I = (limit + 10.4) / 17 + I_free, with a 1 A margin;
@@ -1029,7 +1037,7 @@ struct Base {
       if (!o.num("duty", &a)) a = c.reelDuty / 255.0;
       if (!o.num("max_n", &m)) m = c.limitN;
       o.str("until", &s2);
-      if (!approachLimit(o)) err = "BAD_ARG"; else err = cmdReel(a, m, s2);
+      if (!approachLimit(o, a)) err = "BAD_ARG"; else err = cmdReel(a, m, s2);
     }
     else if (!strcmp(cmd, "jog")) { if (!o.num("ms", &b)) b = 300; err = (o.str("motor", &s) && o.num("dir", &a)) ? cmdJog(s, a, b) : "BAD_ARG"; }
     else if (!strcmp(cmd, "tidy")) {               // D22: take-up only, forward by time (collar NEUTRAL)
@@ -1042,7 +1050,7 @@ struct Base {
     }
     else if (!strcmp(cmd, "retrieve")) {           // final approach until SW_SEATED on the take-up (D35: refused with the wraps on)
       if (!o.num("duty", &a)) a = 0.3; if (!o.num("max_n", &m)) m = c.limitN;
-      err = approachLimit(o) ? cmdReel(a, m, "seated") : "BAD_ARG";
+      err = approachLimit(o, a) ? cmdReel(a, m, "seated") : "BAD_ARG";
     }
     else if (!strcmp(cmd, "decock")) { err = cmdCal("decock", o); }
     else if (!strcmp(cmd, "cal") && bootPending && !(o.str("what", &s) && !strcmp(s, "drum"))) err = "BOOTING";   // resolveBoot() would undo it

@@ -117,8 +117,9 @@ flightlog): accuracy 1.000 (36/36), unsafe GO (sand or water judged GO): 0.
 - Running pytest from the repo root collects firmware/base/test/test_gen_params.py, which calls sys.exit at import
   and stops the run. Run from jetson/ with `-c pytest.ini --rootdir .` (fw-base could guard that file with
   `if __name__ == "__main__"`).
-- The real Caddx Ant is a fisheye (about 150 deg). The horizon pitch uses a pinhole model with hfov 100 deg. Once
-  the camera is calibrated, pass its effective hfov to analyze_flight.
+- The real Caddx Ant is a fisheye (about 150 deg diagonal). detect_horizon, analyze_flight and run_post_flight now
+  take lens="fisheye" (equidistant model) and hfov_deg. Harry: measure the horizontal FOV, and the jetson worker
+  passes both from settings (defaults: pinhole, 100 deg, as in the simulator).
 - `REST_POSES_DEG` (0 and -60 deg) is an assumption: check it on real landings and edit the tuple.
 
 ## Assumptions

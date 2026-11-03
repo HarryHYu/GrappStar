@@ -78,13 +78,16 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
                     terrain_model=None, do_mosaic: bool = True, log=None,
                     clock_offset_s: Optional[float] = None, aim_pitch_deg: Optional[float] = None,
                     drag_n: Optional[float] = None, ballistics: Any = "auto",
-                    calibrate_range: bool = True) -> Dict[str, Any]:
+                    calibrate_range: bool = True, hfov_deg: float = 100.0,
+                    lens: str = "pinhole") -> Dict[str, Any]:
     """Returns {"flight": dict|None, "terrain": dict, "mosaic": dict|None, "files": {...}, "errors": [...]}.
 
     aim_pitch_deg: the commanded rail pitch of this shot; drag_n: the launch clutch drag (default LIGHT 0.5 N);
     ballistics: a Ballistics table, None for none, or "auto" (base/out/ballistics.json, else the placeholder;
     a placeholder table is not used as a prior). They make the video-only range usable (review R1-C #6).
-    calibrate_range=False: no scaling of the range to the C3 table (simulator worlds with their own physics)."""
+    calibrate_range=False: no scaling of the range to the C3 table (simulator worlds with their own physics).
+    hfov_deg, lens: the dart camera's horizontal field of view and lens model ("pinhole" as in the simulator, or
+    "fisheye" for the Caddx Ant, about 150 deg diagonal: measure its horizontal FOV and set both)."""
     out: Dict[str, Any] = {"flight": None, "terrain": None, "mosaic": None, "files": {}, "errors": []}
     if outdir:
         os.makedirs(outdir, exist_ok=True)
@@ -119,7 +122,8 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
         from .ballistics import LIGHT_DRAG_N
         fres = flight.analyze_flight(frames, flightlog, clock_offset_s=clock_offset_s, ballistics=bal,
                                      drag_n=LIGHT_DRAG_N if drag_n is None else float(drag_n),
-                                     aim_pitch_deg=aim_pitch_deg, calibrate_range=calibrate_range)
+                                     aim_pitch_deg=aim_pitch_deg, calibrate_range=calibrate_range,
+                                     hfov_deg=hfov_deg, lens=lens)
         out["flight"] = fres.to_dict()
     except Exception as e:
         note(f"flight analysis failed: {type(e).__name__}: {e}")

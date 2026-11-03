@@ -2,6 +2,7 @@
 import json
 import math
 
+import cv2
 import numpy as np
 import pytest
 
@@ -415,3 +416,27 @@ def test_no_t_launch_ms_impact_after_free_fall_is_not_a_launch():
     s += [[t, 1, 0, 0, 0, 0.0, 0.0, 9.81] for t in range(1280, 3000, 20)]
     ev = imu_events({"hz": 50, "samples": s})
     assert ev["launch"] is None and ev["rail_rpy"] is None and ev["v0"] is None
+
+
+def test_fisheye_horizon_pitch():
+    """Equidistant fisheye: a horizon d px from the centre means pitch = d / f with f = (W/2) / (hfov/2 rad)."""
+    W, H, hfov = 720, 480, 150.0
+    f = (W / 2) / math.radians(hfov / 2)
+    for pitch in (-10.0, 0.0, 12.0):
+        row = int(round((H - 1) / 2 + math.radians(pitch) * f))   # sky above the row when looking up
+        img = np.zeros((H, W, 3), np.uint8)
+        img[:row] = (235, 200, 150)          # sky (BGR, bright blue)
+        img[row:] = (40, 90, 60)             # ground
+        img = cv2.GaussianBlur(img, (5, 5), 0)
+        hz = detect_horizon(img, hfov, lens="fisheye")
+        assert hz["pitch_deg"] == pytest.approx(pitch, abs=4.0), (pitch, hz)     # sky mask edge: a few px
+        x0, y0, dx, dy = hz["line"]
+        y_c = y0 + ((W - 1) / 2.0 - x0) * dy / dx      # line row at the image centre column
+        # centre above the line (in the sky) = looking up = positive pitch
+        assert hz["pitch_deg"] == pytest.approx(math.degrees((y_c - (H - 1) / 2.0) / f), abs=0.3)
+        assert abs(hz["angle_deg"]) < 1.0
+        # same horizon line, both lens models: pinhole tan(p) * f_pin == fisheye p * f_fish (the same distance d)
+        hp = detect_horizon(img, hfov)
+        f_pin = (W / 2) / math.tan(math.radians(hfov / 2))
+        d_pin = math.tan(math.radians(hp["pitch_deg"])) * f_pin
+        assert math.radians(hz["pitch_deg"]) * f == pytest.approx(d_pin, abs=0.5)

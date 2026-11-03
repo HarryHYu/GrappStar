@@ -23,5 +23,7 @@ Read this before any hands-on step.
 - The launch springs store energy. Cocked carriage = loaded. Never put a hand in front of the rail or the carriage.
   To unload a cocked base without firing, see troubleshooting.
 - From the first spring test on: safety glasses, nobody in front of the rail, the area clear for 30 m.
+- **Never fire a dart, dummy or real, without the tether tied on.** The tether keeps it nose first; without it the
+  dart can tumble or come down tail first.
 - Augers and drills are sharp and turn with force. Hold the dart by the hull, never near a pod or the foot.
 - Soldering: iron on its stand, fan on for fumes, 3 s at most per joint near PLA. Heat gun on low, no lighter near PLA.

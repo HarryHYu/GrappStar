@@ -12,7 +12,8 @@ to send.
 Safety for every stage:
 - Battery unplugged before you touch any wire.
 - Hands out of the gears, the drum and the rail whenever the battery is plugged in.
-- From stage 5 on: nobody in front of the rail, safety glasses on, the launch area clear for 30 m.
+- From stage 4 on: nobody in front of the rail, safety glasses on, the launch area clear for 30 m.
+- Never fire a dart (dummy or real) without the tether tied on.
 - Emergency stop: `estop`. If that does not stop it, pull lead #2's XT60 (the wiper branch): both motors die and the
   Jetson stays up. Keep a hand near it.
 
@@ -89,38 +90,37 @@ stall value, the rail holds its pitch while cocking.
 If it fails: cracks at the bumpers: stop and report (no more dry shots). Rail drops while cocking: the aim worm is
 slipping, check its mesh. STALL while cocking: the springs are stronger than planned (redo B2) or something binds.
 
-## Stage 5. Dummy dart, no tether
+## Stage 5. Dummy dart WITH the tether, first shots
+
+Never fire a dart (dummy or real) without the tether tied on. The tether is what keeps it flying nose first; a shot
+with no line can tumble or land tail first.
 
 Make the dummy: the plate A hull top and bottom, nose and tail cap (spare prints or the dart shells before the
-electronics go in), taped shut with M8 nuts or sand inside to 280 g. Paint the nose bright.
+electronics go in), taped shut with M8 nuts or sand inside to 280 g including the 15 g nose ballast. Paint the
+nose bright. Tie the line through the tail cap holes. Route the line as in the base assembly steps (for launch it
+bypasses the capstan). Set the payout brake with hanging weights (G4): 40 g does not pull line off, 50 g does.
 
 1. `aim` 20 degrees. Load the dummy, check `SW_SEATED` is closed. Fire.
 2. Film it side-on with the phone in slow motion, tape measure on the ground in view (muzzle speed, G5).
-3. Measure the range. Repeat at 30 and 45 degrees (G6).
+3. Measure the range. Repeat at 30 and 35 degrees (G6).
+4. Check the line paid out with no loops or overrun on the storage reel.
 
-Pass: clean exit (no rubbing marks on the dummy), it flies nose first, range within 30 percent of the physics
-model's no-tether range (`base/physics/SUMMARY.md`, "Same shot, no tether": 5.2 m at 35 degrees before the springs
-were measured).
-If it fails: tumbles: check the nose ballast is in the dummy too (it must match the real dart). Short range:
-measure the spring (B2) and the muzzle speed, then re-run the physics. Rubbing marks: check the cradle and the
-barrel against the dart.
+Pass: clean exit (no rubbing marks on the dummy), it flies nose first, payout is clean, the range is within 30
+percent of the ballistics table at the same pitch (about 4 to 5 m at 35 degrees with the two springs).
+If it fails: short range: measure the springs (B2) and the muzzle speed, then re-run the physics. Rubbing marks:
+check the cradle and the barrel against the dart. Loops on the reel: raise the brake a little (never over 1 N).
+Big range loss with clean payout: the line catches somewhere; watch the slow-motion video.
 
-## Stage 6. Tether on
+## Stage 6. Reel cycle with the dummy
 
-Tie the line through the dummy's tail cap holes. Line routed as in the base assembly steps (it bypasses the
-capstan for launch). Storage reel brake set with hanging weights (G4): 50 g does not pull line off, 75 g does.
+1. After a stage 5 shot: `mode` REEL, `wrap`, then `reel` until `SW_SEATED` or the dummy is back near the base.
+2. `unwrap`, `mode` LAUNCH. Check the line runs on the launch path again (not round the capstan).
+3. Fire again at 30 degrees.
 
-1. Fire at 30 degrees.
-2. Check the line paid out with no loops or overrun on the reel.
-3. `mode` REEL, `wrap`, then `reel` until `SW_SEATED` or the dummy is back near the base.
-4. `unwrap`, `mode` LAUNCH. Check the line runs on the launch path again.
-
-Pass: payout is clean, the range is at least 65 percent of stage 5 at the same pitch (the physics model expects
-about 72 percent: 3.8 m against 5.2 m at 35 degrees), the wrap lays on the capstan, reel-in
-works, unwrap returns the line to the launch path. Repeat 5 times.
-If it fails: backlash loops on the reel: raise the payout drag a little (do not exceed 1 N). Big range loss: the
-drag is too high or the line catches; watch the slow-motion video. Wrap misses the capstan: check the wrap arm
-position at the end of `wrap`.
+Pass: the wrap lays on the capstan, reel-in works, unwrap returns the line to the launch path, and the next shot
+pays out cleanly. Repeat 5 times.
+If it fails: wrap misses the capstan: check the wrap arm position at the end of `wrap`. Line still round the
+capstan after `unwrap`: do not fire; unwrap again and check the drum position.
 
 ## Stage 7. The anchor in soil
 

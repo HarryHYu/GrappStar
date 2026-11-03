@@ -29,6 +29,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | B1 | Free length L0 | Caliper the spring hook to hook (inside of the hooks), no load | `SPRING.free_len` | Nothing |
 | B2 | Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load, but only if L3 - L0 is under 160 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm. Or let the computer fit it: `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` (kg:mm pairs) prints the rate and initial tension | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
 | B3 | Wire and outside diameter | Caliper | `SPRING.wire`, `SPRING.od` | Spring anchors only if OD differs by more than 0.5 mm |
+| B4 | Which preload hole | The design stretches each spring 35 mm at rest and 280 mm at full cock. If B2 shows a weaker spring than assumed (0.125 N/mm), re-run the physics: it says whether to use the alternate preload hole set in the spring anchors (base assembly steps) | assembly choice | Nothing |
 
 ## C. Parts box: confirm you have these (no new purchases)
 
@@ -46,6 +47,8 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | C10 | Yellow RCA lead | RC832 AV out to the DIGITNOW | |
 | C11 | USB data cable for the DevKitC, STEMMA QT to Dupont cable | base ESP32, AS5600 | |
 | C12 | M3 screws (lengths from the base print list), M3 nuts, M3 heat-set inserts | printed contacts, frame joints | |
+| C13 | AS5600 magnet: 6 x 2.5 mm DIAMETRIC (magnetised across the diameter). The Adafruit board does not include one | main shaft angle | The one possible purchase besides the 608s: search "6x2.5mm diametric magnet AS5600" |
+| C14 | Optional: a second pair of the launch springs (Bunnings I/N 0487961) | range: about 4 to 5 m with two springs, 8 to 9 m with four | Two springs work; the base has the provision built in |
 
 ## D. Electrical labels to read
 
@@ -83,9 +86,9 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | G1 | BTS7960 current sense scale | firmware/base/CALIBRATION.md (meter in series at low duty, compare with `amps`) | firmware `set` key (stored on the ESP32) |
 | G2 | Battery voltage reading | Meter on the LiPo vs `vbat` telemetry | firmware `set` key |
 | G3 | AS5600 zero and drum positions | firmware/base/CALIBRATION.md | stored on the ESP32 |
-| G4 | Storage reel payout drag | A luggage scale cannot read this low: use hanging weights in LAUNCH mode. Tie 50 g (coins in a bag, weighed) to the line end over the edge of the bench: it must NOT pull line off. 75 g must pull line off slowly. That is 0.5 to 0.75 N. Above 1 N costs range, 3 N ruins the flight | slip clutch preload (reel parts) |
+| G4 | Storage reel payout drag | A luggage scale cannot read this low: use hanging weights in LAUNCH mode. Tie 40 g (coins in a bag, weighed) to the line end over the edge of the bench: it must NOT pull line off. 50 g must pull line off slowly. That sets the brake at 0.5 N (the design value). Above 1 N costs range, 3 N ruins the flight | slip clutch preload (reel parts) |
 | G5 | Muzzle speed | Phone slow-motion video side-on, tape measure laid in the flight line (same distance from the phone as the dart). Count the frames the nose takes to cross 0.5 m; speed m/s = 0.5 x slow-motion fps (240 or 120) / frames | physics model, ballistics table |
-| G6 | Range at three pitches | Tape measure from the base to the dart at 3 pitches, no tether brake changes | ballistics table check (jetson uses it) |
+| G6 | Range at three pitches | Tape measure from the base to the dart at 3 pitches, tether on, brake unchanged | ballistics table check (jetson uses it) |
 | G7 | Soil holding force | Dart anchored, luggage scale on the tether, pull slowly up to 50 N, note where it moves | reel tension limit |
 | G8 | Rail friction | Before the rail is mounted: lay the rail part on a flat board, dart in the cradle, lift one end of the board slowly until the dart slides; phone level app on the board. Friction = tan(angle) | physics (launch efficiency) |
 

@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 11:15 Sydney time from commit `a2e4693`.
+Built 2026-11-03 11:17 Sydney time from commit `35baf60`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -29,7 +29,7 @@ Three parts:
   - LAUNCH, wiper backward: tilts the rail up and down to aim. A self-locking worm holds the angle.
   - REEL, wiper forward: the capstan winds in; the storage reel takes up the slack through a slip clutch.
   - Payout at launch: the line skips the capstan and pulls off the free-spinning storage reel against a light
-    payout brake (set 0.5 to 0.75 N; over 1 N costs range).
+    payout brake (set 0.5 N; over 1 N costs range).
   - Any fault: wiper off, drum to NEUTRAL. There is a hand lever on the drum shaft end.
   - Brain: an ESP32-S3 DevKitC on USB from the Jetson, with an AS5600 angle sensor on the main shaft and printed
     contact switches (an M3 screw head touching an M3 nut).
@@ -86,12 +86,14 @@ Read this before any hands-on step.
 - The launch springs store energy. Cocked carriage = loaded. Never put a hand in front of the rail or the carriage.
   To unload a cocked base without firing, see troubleshooting.
 - From the first spring test on: safety glasses, nobody in front of the rail, the area clear for 30 m.
+- **Never fire a dart, dummy or real, without the tether tied on.** The tether keeps it nose first; without it the
+  dart can tumble or come down tail first.
 - Augers and drills are sharp and turn with force. Hold the dart by the hull, never near a pod or the foot.
 - Soldering: iron on its stand, fan on for fumes, 3 s at most per joint near PLA. Heat gun on low, no lighter near PLA.
 
 # 3. Parts
 
-Everything below is already in hand except the 608 bearings. Section 14 group C lists the items to confirm by
+Everything below is already in hand except the 608 bearings (and possibly the AS5600 magnet). Section 14 group C lists the items to confirm by
 looking in the box.
 
 ## The only purchase: 608 bearings
@@ -100,6 +102,14 @@ looking in the box.
 - Specs: 8 mm bore, 22 mm outside, 7 mm wide, rated well over 10,000 rpm.
 - Uses: storage reel (2), capstan or wrap arm (2), rollers and spares. Axles: M8 bolt or 8 mm rod (check the box).
 
+## Possible extra purchases
+
+- **AS5600 magnet**, only if it is not in the box: the Adafruit AS5600 board does not include one. It needs a
+  6 x 2.5 mm DIAMETRIC magnet (magnetised across the diameter, not through the thickness). Search "6x2.5mm diametric
+  magnet AS5600". A normal disc magnet does not work.
+- **Optional, for range:** a second pair of the same launch springs (Bunnings I/N 0487961). The two springs give
+  about 4 to 5 m; four give about 8 to 9 m. The base has the mounting provision built in.
+
 ## Base station and rover
 
 | Part | Qty | Note |
@@ -107,7 +117,7 @@ looking in the box.
 | 12 V wiper motor, self-locking worm | 1 | Rebuilt to 2 wires, park linkage removed. Measure it first (section 14 A) |
 | BTS7960 motor driver module | 1 | Drives the wiper |
 | ESP32-S3 DevKitC-1-N8 | 1 | Base brain, USB to the Jetson |
-| Adafruit AS5600 (STEMMA QT) + diametric magnet | 1 | Main shaft angle |
+| Adafruit AS5600 (STEMMA QT) | 1 | Main shaft angle. Needs a 6 x 2.5 mm diametric magnet (see above) |
 | DRV8833 carrier | 1 | DRV8833 #3, freed from the dart by the new dart pin map |
 | MP1584 buck | 1 | MP1584 #2 from the dart build, set to 9.0 V |
 | N20 right-angle worm motor | 1 | Selector drum (count your N20s: section 14 C3) |
@@ -1086,7 +1096,8 @@ to send.
 Safety for every stage:
 - Battery unplugged before you touch any wire.
 - Hands out of the gears, the drum and the rail whenever the battery is plugged in.
-- From stage 5 on: nobody in front of the rail, safety glasses on, the launch area clear for 30 m.
+- From stage 4 on: nobody in front of the rail, safety glasses on, the launch area clear for 30 m.
+- Never fire a dart (dummy or real) without the tether tied on.
 - Emergency stop: `estop`. If that does not stop it, pull lead #2's XT60 (the wiper branch): both motors die and the
   Jetson stays up. Keep a hand near it.
 
@@ -1163,38 +1174,37 @@ stall value, the rail holds its pitch while cocking.
 If it fails: cracks at the bumpers: stop and report (no more dry shots). Rail drops while cocking: the aim worm is
 slipping, check its mesh. STALL while cocking: the springs are stronger than planned (redo B2) or something binds.
 
-### Stage 5. Dummy dart, no tether
+### Stage 5. Dummy dart WITH the tether, first shots
+
+Never fire a dart (dummy or real) without the tether tied on. The tether is what keeps it flying nose first; a shot
+with no line can tumble or land tail first.
 
 Make the dummy: the plate A hull top and bottom, nose and tail cap (spare prints or the dart shells before the
-electronics go in), taped shut with M8 nuts or sand inside to 280 g. Paint the nose bright.
+electronics go in), taped shut with M8 nuts or sand inside to 280 g including the 15 g nose ballast. Paint the
+nose bright. Tie the line through the tail cap holes. Route the line as in the base assembly steps (for launch it
+bypasses the capstan). Set the payout brake with hanging weights (G4): 40 g does not pull line off, 50 g does.
 
 1. `aim` 20 degrees. Load the dummy, check `SW_SEATED` is closed. Fire.
 2. Film it side-on with the phone in slow motion, tape measure on the ground in view (muzzle speed, G5).
-3. Measure the range. Repeat at 30 and 45 degrees (G6).
+3. Measure the range. Repeat at 30 and 35 degrees (G6).
+4. Check the line paid out with no loops or overrun on the storage reel.
 
-Pass: clean exit (no rubbing marks on the dummy), it flies nose first, range within 30 percent of the physics
-model's no-tether range (`base/physics/SUMMARY.md`, "Same shot, no tether": 5.2 m at 35 degrees before the springs
-were measured).
-If it fails: tumbles: check the nose ballast is in the dummy too (it must match the real dart). Short range:
-measure the spring (B2) and the muzzle speed, then re-run the physics. Rubbing marks: check the cradle and the
-barrel against the dart.
+Pass: clean exit (no rubbing marks on the dummy), it flies nose first, payout is clean, the range is within 30
+percent of the ballistics table at the same pitch (about 4 to 5 m at 35 degrees with the two springs).
+If it fails: short range: measure the springs (B2) and the muzzle speed, then re-run the physics. Rubbing marks:
+check the cradle and the barrel against the dart. Loops on the reel: raise the brake a little (never over 1 N).
+Big range loss with clean payout: the line catches somewhere; watch the slow-motion video.
 
-### Stage 6. Tether on
+### Stage 6. Reel cycle with the dummy
 
-Tie the line through the dummy's tail cap holes. Line routed as in the base assembly steps (it bypasses the
-capstan for launch). Storage reel brake set with hanging weights (G4): 50 g does not pull line off, 75 g does.
+1. After a stage 5 shot: `mode` REEL, `wrap`, then `reel` until `SW_SEATED` or the dummy is back near the base.
+2. `unwrap`, `mode` LAUNCH. Check the line runs on the launch path again (not round the capstan).
+3. Fire again at 30 degrees.
 
-1. Fire at 30 degrees.
-2. Check the line paid out with no loops or overrun on the reel.
-3. `mode` REEL, `wrap`, then `reel` until `SW_SEATED` or the dummy is back near the base.
-4. `unwrap`, `mode` LAUNCH. Check the line runs on the launch path again.
-
-Pass: payout is clean, the range is at least 65 percent of stage 5 at the same pitch (the physics model expects
-about 72 percent: 3.8 m against 5.2 m at 35 degrees), the wrap lays on the capstan, reel-in
-works, unwrap returns the line to the launch path. Repeat 5 times.
-If it fails: backlash loops on the reel: raise the payout drag a little (do not exceed 1 N). Big range loss: the
-drag is too high or the line catches; watch the slow-motion video. Wrap misses the capstan: check the wrap arm
-position at the end of `wrap`.
+Pass: the wrap lays on the capstan, reel-in works, unwrap returns the line to the launch path, and the next shot
+pays out cleanly. Repeat 5 times.
+If it fails: wrap misses the capstan: check the wrap arm position at the end of `wrap`. Line still round the
+capstan after `unwrap`: do not fire; unwrap again and check the drum position.
 
 ### Stage 7. The anchor in soil
 
@@ -1389,6 +1399,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | B1 | Free length L0 | Caliper the spring hook to hook (inside of the hooks), no load | `SPRING.free_len` | Nothing |
 | B2 | Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load, but only if L3 - L0 is under 160 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm. Or let the computer fit it: `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` (kg:mm pairs) prints the rate and initial tension | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
 | B3 | Wire and outside diameter | Caliper | `SPRING.wire`, `SPRING.od` | Spring anchors only if OD differs by more than 0.5 mm |
+| B4 | Which preload hole | The design stretches each spring 35 mm at rest and 280 mm at full cock. If B2 shows a weaker spring than assumed (0.125 N/mm), re-run the physics: it says whether to use the alternate preload hole set in the spring anchors (base assembly steps) | assembly choice | Nothing |
 
 ### C. Parts box: confirm you have these (no new purchases)
 
@@ -1406,6 +1417,8 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | C10 | Yellow RCA lead | RC832 AV out to the DIGITNOW | |
 | C11 | USB data cable for the DevKitC, STEMMA QT to Dupont cable | base ESP32, AS5600 | |
 | C12 | M3 screws (lengths from the base print list), M3 nuts, M3 heat-set inserts | printed contacts, frame joints | |
+| C13 | AS5600 magnet: 6 x 2.5 mm DIAMETRIC (magnetised across the diameter). The Adafruit board does not include one | main shaft angle | The one possible purchase besides the 608s: search "6x2.5mm diametric magnet AS5600" |
+| C14 | Optional: a second pair of the launch springs (Bunnings I/N 0487961) | range: about 4 to 5 m with two springs, 8 to 9 m with four | Two springs work; the base has the provision built in |
 
 ### D. Electrical labels to read
 
@@ -1443,9 +1456,9 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | G1 | BTS7960 current sense scale | firmware/base/CALIBRATION.md (meter in series at low duty, compare with `amps`) | firmware `set` key (stored on the ESP32) |
 | G2 | Battery voltage reading | Meter on the LiPo vs `vbat` telemetry | firmware `set` key |
 | G3 | AS5600 zero and drum positions | firmware/base/CALIBRATION.md | stored on the ESP32 |
-| G4 | Storage reel payout drag | A luggage scale cannot read this low: use hanging weights in LAUNCH mode. Tie 50 g (coins in a bag, weighed) to the line end over the edge of the bench: it must NOT pull line off. 75 g must pull line off slowly. That is 0.5 to 0.75 N. Above 1 N costs range, 3 N ruins the flight | slip clutch preload (reel parts) |
+| G4 | Storage reel payout drag | A luggage scale cannot read this low: use hanging weights in LAUNCH mode. Tie 40 g (coins in a bag, weighed) to the line end over the edge of the bench: it must NOT pull line off. 50 g must pull line off slowly. That sets the brake at 0.5 N (the design value). Above 1 N costs range, 3 N ruins the flight | slip clutch preload (reel parts) |
 | G5 | Muzzle speed | Phone slow-motion video side-on, tape measure laid in the flight line (same distance from the phone as the dart). Count the frames the nose takes to cross 0.5 m; speed m/s = 0.5 x slow-motion fps (240 or 120) / frames | physics model, ballistics table |
-| G6 | Range at three pitches | Tape measure from the base to the dart at 3 pitches, no tether brake changes | ballistics table check (jetson uses it) |
+| G6 | Range at three pitches | Tape measure from the base to the dart at 3 pitches, tether on, brake unchanged | ballistics table check (jetson uses it) |
 | G7 | Soil holding force | Dart anchored, luggage scale on the tether, pull slowly up to 50 N, note where it moves | reel tension limit |
 | G8 | Rail friction | Before the rail is mounted: lay the rail part on a flat board, dart in the cradle, lift one end of the board slowly until the dart slides; phone level app on the board. Friction = tan(angle) | physics (launch efficiency) |
 

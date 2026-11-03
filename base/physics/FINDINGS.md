@@ -1,6 +1,6 @@
 # Physics findings for the spec (worker `physics`)
 
-Status: updated 3 Nov (after review round 1 and cad-launch NOTES), run on base/spec/params.py v0.1-stub (LAUNCH, AIM, REEL still None, so
+Status: updated through the day; the Current numbers block is the latest (older sections are history) (LAUNCH, AIM, REEL still None, so
 launcher/reel geometry below is my placeholder: stroke along the rail, 60 g carriage, 1:1 springs to carriage, reel
 core 40 / flange 64 / width 20 mm, capstan 40 mm). Dart mass 0.279 kg (spec DART.mass_kg; the brief said 0.292 kg:
 coordinator please confirm which). Models: base/physics/*.py, every number reproducible with the CLIs.
@@ -10,13 +10,16 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 - Launch: 2 x Century C-243, 23.8 mm preload, 265 mm full (40.1 N each), 12.1 J, carriage 70 g: 6.95 m/s at 35 deg,
   19 g, 56 % efficient. Line path taut (D36 guide at u -200, w 85: the path only lengthens), no snatch.
 - Range from the rail pivot's ground point (pivot 0.315 m up: deck 0.15 ASSUMED + 0.165), LIGHT 0.5 / 0.75 / 1.0 N:
-  4.19 / 3.75 / 3.36 m at 36 deg (best). Table 6 to 47 deg in base/out/ballistics.json (C3), content hash, impact
+  4.29 / 3.86 / 3.48 m at 34 deg (best; the line now leaves from the D36 guide in flight too). Table 6 to 47 deg in base/out/ballistics.json (C3), content hash, impact
   angles and wind sensitivity in the meta. Test shots then `calib.py range` refine it.
 - 4 springs: NOT SUPPORTED IN v1 (D38: cocking needs 5.8 N m, above the shear pin). For reference 7.6 / 6.8 / 6.1 m.
 - Stop: 2.5 J (carriage 1.7 + springs 0.8): the 19 mm flexure peaks at about 266 N if linear (D26 300 N: OK).
 - Storage reel 50 / 72 / 22: 46 g, 31.4 kg mm2 full; overrun after landing at LIGHT 0.5 N about 0.55 m.
-- Capstan 50:22, 7 wraps: tow 50 N = 3.2 N m, 5.05 A, 0.14 m/s; 20 m reel-in 110 s. Shear pin slipping: 84 N, 7 A.
-  Tow sensing: line = 17.0 x (I - I_free) - 10.4 N; tow trip at free + 3.5 A; tow hard trip 6.5 A (D33) = about 75 N.
+- Capstan 50:22, 7 wraps: tow 50 N = 2.83 N m, 4.62 A, 0.15 m/s. Shear pin slipping: about 92 N, 7 A.
+  TAKE-UP DRAG CORRECTED (review round 6): the bus turns the clutch disk at 2.5 x the WIPER (D25), so the FIRM drag is
+  0.43 N m at the wiper, not 0.82. Tow sensing: line = 17.0 x (I - I_free) - 3.0 N (was -10.4); tow trip at free
+  + 3.05 A. Tow hard trip 6.5 A (D33) = about 83 N. Highest tow limit before the trip / 0.8 x shear pin: 72 N (D39 cap
+  70 N: OK).
 - Cock 2.9 N m, 4.7 A, 2.7 s per shot. Aim 0.33 N m peak, 1.9 A, 6.6 s for 6 to 47 deg.
 - AIM GEAR (review R2-K, cad-launch as built): splitter sun m1.5 z30 face 8. At the aim peak sf 5.9 (PPA-CF). At a
   5 A trip (3.2 N m) it fails Lewis (sf 0.62 PPA-CF, 0.30 PLA). Recommend the aim hard trip at 3 A (1.36 N m,

@@ -85,6 +85,25 @@ def test_committed_ballistics_not_stale(p):
     assert row["v_muzzle"] == pytest.approx(v, rel=0.005)
     rng = simulate(p, v, row["pitch_deg"], brake_n=doc["drag_n"][1], reel_model=True)["range_m"]
     assert row["range_m"][1] == pytest.approx(rng, rel=0.01)
+    from ballistics import validate
+    assert validate(doc) == []
+    for r_ in (doc["table"][0], doc["table"][-1]):                # the ends too, all three drags
+        v_ = effective_muzzle(p, r_["pitch_deg"])["v"] * meta.get("v_scale", 1.0)
+        for j, b in enumerate(doc["drag_n"]):
+            got = simulate(p, v_, r_["pitch_deg"], brake_n=b, reel_model=True)["range_m"]
+            assert r_["range_m"][j] == pytest.approx(got, rel=0.01)
+
+
+def test_spec_launch_headline_matches_model(p):
+    """BASE_SPEC section 11 / LAUNCH.flight quotes the range for the sim: keep it within 10 % of the model."""
+    fl = (_spec().LAUNCH or {}).get("flight") or {}
+    if fl.get("range_m") is None:
+        pytest.skip("no LAUNCH.flight.range_m in the spec")
+    from launcher import effective_muzzle
+    th = fl.get("pitch_deg", 36.0)
+    v = effective_muzzle(p, th)["v"]
+    rng = simulate(p, v, th, brake_n=p.flight["brake_n"], reel_model=True)["range_m"]
+    assert fl["range_m"] == pytest.approx(rng, rel=0.10), f"spec says {fl['range_m']} m, model {rng:.2f} m at {th} deg"
 
 
 def test_wrap_time_from_spec(p):

@@ -335,6 +335,10 @@ def run(p: Params | None = None, tow: float | None = None, mu: float | None = No
                        exceeds_break=f_lim > p.line.breaking,
                        wraps_slip_first=slips(f_lim, wraps, th_max, mu_hi), holds_max=max_hold(wraps, th_max, mu_hi),
                        tow_frac=t_tow / lim, slips_at_tow=t_tow > LIMITER_FRAC_MAX * lim)
+        # highest tow limit the firmware may allow: below both the tow hard trip and 0.8 x the shear pin
+        t_cap = min(LIMITER_FRAC_MAX * lim, p.wiper.kt * (trip_a(p, "tow") - p.wiper.i_free))
+        limiter["f_tow_max_n"] = line_from_wiper(t_cap, p, overspeed, line_left=_full(p))
+        limiter["tow_limit_max_spec_n"] = c.get("tow_limit_max_n")
 
     light = tow_point(light_n, p, b.v_nom, overspeed)
     t_reel = reel_len / light["v_line"] if light["v_line"] > 0 else math.inf
@@ -372,6 +376,11 @@ def run(p: Params | None = None, tow: float | None = None, mu: float | None = No
 
 def warnings(r: dict) -> list:
     w = []
+    lm = r.get("limiter") or {}
+    if lm.get("f_tow_max_n") is not None and lm.get("tow_limit_max_spec_n") is not None \
+            and lm["tow_limit_max_spec_n"] > lm["f_tow_max_n"]:
+        w.append(f"tow limit cap {lm['tow_limit_max_spec_n']:.0f} N is above what the train can pull before the tow trip / "
+                 f"0.8 x shear pin: {lm['f_tow_max_n']:.0f} N (clamp the firmware tow limit to this)")
     s = r["stall"]["full"]
     lab = s["label"]
     over = [k for k, v in s["exceeds_dart"].items() if v]

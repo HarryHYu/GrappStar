@@ -153,3 +153,22 @@ harness re-runs green.
   (`config.h:131 wrapsFull`, D16).
 - Fix: wrapped only when `drum_pos == "WRAPPED"` (the drum code is absolute), or `wraps >= wrapsFull` read from the
   base; never from a partial estimate. Same test is used by `ensure_reel()` and `unwrap()`.
+
+## F12 (jetson) the mission's C1 command order differs from BASE_SPEC 10.1 (D35) in four places
+
+Checked by `systest/c1_order.py` (commands taken from the Jetson's own `mission.jsonl`, base_tx and dart_tx lines,
+retries collapsed) against the 10.1 order. Batch 1 (base-v1 before d15129e), scenario `dog_tip` (completed DONE):
+
+`aim > cock > arm > fire > set line_m > mode NEUTRAL > dart auto > tidy > wrap > reel tension > dart release > reel seated > unwrap > mode LAUNCH`
+
+10.1 wants: `... set line_m > (mode NEUTRAL) > wrap > dart auto > tidy > mode REEL > reel tension ... > dart release > (reel stop) > unwrap > retrieve > mode LAUNCH`
+
+1. `dart auto` before `wrap` (F4, D22).
+2. No `mode REEL` fly-in after the tidy: the Jetson relies on `wrap` leaving the collar in REEL (old firmware).
+   With the D35 park at WRAPPED 314 (collar NEUTRAL), `reel` would be refused or pull nothing.
+3. `reel until seated` on the capstan (`mission.py` `retrieve()` falls to `until="seated"` whenever `line_m` is at or
+   under approach_m + 0.3, which is the normal case after three tow rounds). 10.1 step 17: "Never seat on the capstan".
+4. Final approach: when `retrieve` was UNKNOWN_CMD the fallback wrapped again and seated on the capstan
+   (`power_unwrap`, `usb_unplug_tow`: `... unwrap > retrieve > wrap > reel seated > unwrap`). The firmware now has
+   `retrieve` (base_logic.h:986), so drop the fallback.
+The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it goes green when the order matches.

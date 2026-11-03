@@ -1,6 +1,6 @@
 # GrappStar base station firmware
 
-Firmware `base-1.2` for the ESP32-S3 DevKitC-1-N8 in the base station. It follows BASE_SPEC v1.2,
+Firmware `base-1.2.1` (the base-1.2 line) for the ESP32-S3 DevKitC-1-N8 in the base station. It follows BASE_SPEC v1.2,
 `base/spec/params.py` 1.2.1 and the mission order of decision D22.
 
 Nothing in this folder has run on real hardware yet. The logic passes the PC tests (a simulation). Go slowly the first
@@ -63,9 +63,10 @@ approach (`retrieve`, until the dart is seated), `mode LAUNCH`.
 2. Arduino IDE > Settings. In "Additional boards manager URLs" add
    `https://espressif.github.io/arduino-esp32/package_esp32_index.json` (skip if it is already there).
 3. Tools > Board > Boards Manager. Search `esp32`. Install **esp32 by Espressif Systems**, version **3.3.12**.
-   The sketch is written for the 3.x versions; 2.0.17 should also work (the sketch handles both) but is untested.
-4. Tools > Manage Libraries. Search `HX711`. Install **HX711 by Rob Tillaart**. You need it even without a load cell
-   (the sketch includes it and finds out at boot whether one is fitted).
+   The sketch compiles with this version (checked with arduino-cli 1.5.1). 2.0.17 should also work (the sketch
+   handles both) but was not compiled.
+4. Tools > Manage Libraries. Search `HX711`. Install **HX711 by Rob Tillaart**, version **0.6.6** (not the one by
+   bogde). You need it even without a load cell (the sketch includes it and finds out at boot whether one is fitted).
 5. File > Open: `firmware/base/grappstar_base/grappstar_base.ino`. All the `.h` files open as tabs next to it.
 6. In the Tools menu set exactly these:
    - Board "ESP32S3 Dev Module"
@@ -84,6 +85,10 @@ Coming from base-1.0: the saved bench settings (current scale, free current, N p
 format in base-1.2. The old ones are ignored after the upload, so every bench value is back at its default. Enter
 them again (CALIBRATION.md).
 
+Command line instead of the IDE (same settings): `arduino-cli compile --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc
+firmware/base/grappstar_base` from the repository folder. It should report about 398 kB of program (30 %) and about
+35 kB of global variables (10 %). A compile only shows the code builds; it says nothing about the hardware.
+
 ## First contact
 
 1. Battery unplugged. USB only. If the contacts are not wired yet, put two jumper wires on the board first:
@@ -94,8 +99,8 @@ them again (CALIBRATION.md).
 3. Tap RESET on the board. You should see a `HELLO` line, then a `BOOT` line, then telemetry lines:
 
    ```
-   {"evt":"HELLO","fw":"base-1.2","reset":"POWERON","hx711":false,"as5600":true,"pwm":true}
-   {"evt":"BOOT","t":60,"fw":"base-1.2","record":false,"was_moving":false,"drum_known":true,"wraps_known":true,"aim_known":false,"phase":"UNKNOWN","angle":"AS5600"}
+   {"evt":"HELLO","fw":"base-1.2.1","reset":"POWERON","hx711":false,"as5600":true,"pwm":true}
+   {"evt":"BOOT","t":60,"fw":"base-1.2.1","record":false,"was_moving":false,"drum_known":true,"wraps_known":true,"aim_known":false,"phase":"UNKNOWN","angle":"AS5600"}
    {"tel":{"state":"IDLE","mode":"NEUTRAL","drum_deg":41,"drum_pos":"NEUTRAL",...,"sw":{"b":1,"n":1},"fault":null,"vbat":0}}
    ```
 
@@ -108,14 +113,14 @@ them again (CALIBRATION.md).
    {"id":1,"cmd":"ping"}
    ```
 
-   You should get `{"id":1,"ok":true,"fw":"base-1.2","t":...}` somewhere between the telemetry lines.
+   You should get `{"id":1,"ok":true,"fw":"base-1.2.1","t":...}` somewhere between the telemetry lines.
 5. Telemetry scrolls fast. Untick "Autoscroll" to read a line, tick it again to follow.
 6. Also try `{"id":2,"cmd":"status"}`. It shows `"magnet"`: `OK`, `WEAK`, `STRONG` or `NONE`.
 7. Telemetry `sw` lists the closed contacts with one letter each: `a` `b` `c` (drum code), `l` (`SW_DOG_L`), `r`
    (`SW_DOG_R`), `n` (`SW_N20`), `H` (`SW_HOME`), `G` (`SW_GAP`), `L` (`SW_RAIL_LOW`), `S` (`SW_SEATED`), `W`
    (`SW_ARM`), `I` (`SW_INDEX`, only on a no-magnet build).
 
-In the first 60 ms after a start-up motor commands are refused with `BOOTING`.
+In the first 60 ms after a start-up motor commands, `set` and `cal` are refused with `BOOTING`: send again.
 
 On the Jetson the same commands go through the GrappStar program instead of the Serial Monitor. Stop the service
 first (`sudo systemctl stop grappstar`), then in one terminal `python3 -m grappstar base monitor` (shows telemetry and

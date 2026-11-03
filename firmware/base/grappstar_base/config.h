@@ -58,9 +58,24 @@ struct Cfg {
       45.0f;
 #endif
   // current trips per state (decision D8, lens B I5); a printed torque limiter in the coupler slips at about 5 N m
-  float tripA = 5.0f;              // aim, reel, tow
-  float cockTripA = 6.5f;          // cock and fire (peak about 5.1 A)
-  float towTripA = 6.5f;           // tow (reel until tension): a 50 N tow draws about 5.1 A; the tension estimate is the limit
+#ifndef P_REEL_CURRENT_TRIPS_A_AIM
+#define P_REEL_CURRENT_TRIPS_A_AIM 5.0f
+#endif
+#ifndef P_REEL_CURRENT_TRIPS_A_COCK
+#define P_REEL_CURRENT_TRIPS_A_COCK 6.5f
+#endif
+#ifndef P_REEL_CURRENT_TRIPS_A_TOW
+#define P_REEL_CURRENT_TRIPS_A_TOW 6.5f
+#endif
+#ifndef P_REEL_TOW_TENSION_MODEL_N_PER_A
+#define P_REEL_TOW_TENSION_MODEL_N_PER_A 17.0f
+#endif
+#ifndef P_REEL_TOW_TENSION_MODEL_OFFSET_N
+#define P_REEL_TOW_TENSION_MODEL_OFFSET_N -10.4f
+#endif
+  float tripA = P_REEL_CURRENT_TRIPS_A_AIM;     // aim, reel-in (params.REEL.current_trips_a, D8 / D33)
+  float cockTripA = P_REEL_CURRENT_TRIPS_A_COCK;          // cock and fire (peak about 5.1 A)
+  float towTripA = P_REEL_CURRENT_TRIPS_A_TOW;           // tow (reel until tension): a 50 N tow draws about 5.1 A; the tension estimate is the limit
   float takeupTripA = 2.5f;        // take-up only (NEUTRAL / WRAP)
   float jogTripA = 3.0f;           // jogs, centering jog, fly-in
   float hardTripA = 17.0f;         // never exceeded in any state (fuse 20 A)
@@ -146,7 +161,7 @@ struct Cfg {
   float centerDeg = 8;              // unload (centering) jog, params.DRUM.unload_jog_deg
   // fly-in (lens B 7.2 steps 8, 15): the wiper creeps forward while the collar drops into REEL; into LAUNCH the collar
   // dropping in is checked with SW_DOG_L and, if needed, the wiper is turned BACKWARD (never forward: that would cock)
-  int flyDuty = 51;                 // 20 percent
+  int flyDuty = 64;                 // 25 percent (about 20 percent asked; at least minScaleDuty 60 so the 3 A trip sees the real current)
   float flyMaxDeg = 120;            // at most this much wiper travel for the dogs to drop in
   float flyLaunchMaxDeg = 40;
   // take-up while unwrapping (lens B step 13): wiper forward at 40 percent while the drum is in the WRAP sector
@@ -169,8 +184,8 @@ struct Cfg {
       50.0f / 22.0f;
 #endif
   int reelDuty = 220; int reelMinDuty = 70; float taperFrac = 0.30f;
-  float kNperA = 17.0f;             // physics v1.2 (FIRM 5 N): line N = 17.0 x (I - I_free) - 10.4. Bench: CALIBRATION.md
-  float tensOffsetN = -10.4f;
+  float kNperA = P_REEL_TOW_TENSION_MODEL_N_PER_A;             // physics v1.2 (FIRM 5 N): line N = 17.0 x (I - I_free) - 10.4. Bench: CALIBRATION.md
+  float tensOffsetN = P_REEL_TOW_TENSION_MODEL_OFFSET_N;
   float tensionAvgMs = 200;         // D33: the tension estimate is averaged over this long
   float limitN =
 #ifdef P_REEL_TOW_LIMIT_N

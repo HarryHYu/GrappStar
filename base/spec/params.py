@@ -2,7 +2,7 @@
 
 Units: mm, deg, N, N m, s, kg unless a name says otherwise.
 Owner: the coordinator. Workers read it and never edit it; request changes in your REPORT.md or NOTES.md.
-STATUS: v1.3.0 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
+STATUS: v1.3.1 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
 The architecture blocks below hold the INTERFACE numbers (where two owners must agree) and the module placements.
 Each owner keeps its internal geometry in its own module and maps these numbers explicitly (read with defaults).
 Code against the names; never hard-code a shared number anywhere else.
@@ -10,7 +10,7 @@ Code against the names; never hard-code a shared number anywhere else.
 
 import math
 
-VERSION = "1.3.0"
+VERSION = "1.3.1"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
@@ -174,9 +174,9 @@ LAUNCH = dict(
     line_guide_u=-200.0,  # D36: last line guide BEHIND the rail rear end on the dart axis (rail coords mm: u along the rail, 0 at the pivot)
     line_guide_w=85.0,    # D36: so the pulley-to-tail path only gets longer during the stroke (no slack, no snatch)
     carriage_mass_target_g=70.0,  # D36: printed carriage at most 70 g (physics: 100 g costs about 0.4 m and overloads the stop)
-    carriage_mass_g=85.8,         # as built (cad-launch 13:40); physics uses this over the target; lower it when the carriage gets lighter
-    drive_gear=dict(module=2.5, teeth=26, face=7.0, y=(147.5, 154.5), note="on sprag #1 (inside), coaxial on the launch sleeve; face 7 as built (rail-relative 7.5..14.5, cad-launch 13:30)"),
-    big_gear=dict(module=2.5, teeth=40, present=27, centre_from_pivot=82.6, as_built="sector layer 27 teeth + full 40T layer, face 7 each (cad-launch 13:30)", layers=dict(sector=(134.0, 146.0), full=(146.0, 154.0)),
+    carriage_mass_g=80.5,         # as built (cad-launch 14:28, printed set); physics uses this over the target
+    drive_gear=dict(module=2.5, teeth=26, face=11.0, y=(147.5, 158.5), sprag_centre_y=152.0, note="on sprag #1 (inside, keyed), coaxial on the launch sleeve; face 11 for SF 1.5 at the 5 N m shear pin (physics, cad-launch 14:28)"),
+    big_gear=dict(module=2.5, teeth=40, present=27, centre_from_pivot=82.6, as_built="sector layer 27 teeth (rack) + full 40T layer face 11 (drive gear), cad-launch 14:28", layers=dict(sector=(134.0, 146.0), full=(146.0, 154.0)),
                   note="two layers: a sector layer meshes the rack (last tooth relieved, the one before 30 percent taller), a full "
                        "40T layer meshes the drive gear so every cock can start (D23)"),
     wiper_turns_per_shot=40.0 / 26.0,

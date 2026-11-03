@@ -28,7 +28,8 @@ def test_approach_need_hand():
 def test_takeup_speed_uses_eye_gain():
     p = Params()
     t = takeup_speed(p)
-    g = APPROACH["eye_gain"]
+    from retrieve import seating_gain
+    g = seating_gain(p)
     assert t["eye_gain"] == g
     for r in t["rows"]:
         assert math.isclose(r["drag_at_reel_n"], r["drag_n"] * g, rel_tol=1e-12)

@@ -1,5 +1,5 @@
 {
- "params_source": "base/spec/params.py v1.2.9",
+ "params_source": "base/spec/params.py v1.3.0",
  "steps": [
   {
    "step": "aim (worst case full 6 to 47 deg)",
@@ -45,8 +45,8 @@
   },
   {
    "step": "tow the rover 3.0 m at 30.0 N",
-   "time_s": 19.52640052014457,
-   "wh": 0.2525318377549995,
+   "time_s": 18.453545976270146,
+   "wh": 0.2054450991711005,
    "note": ""
   },
   {
@@ -74,10 +74,10 @@
    "note": ""
   }
  ],
- "total_s": 213.68595044522775,
- "total_wh": 0.7397609697386502,
- "idle_wh": 0.23742883382803082,
- "missions_per_pack": 62.42016257807369,
+ "total_s": 212.61309590135332,
+ "total_wh": 0.6914821705504464,
+ "idle_wh": 0.2362367732237259,
+ "missions_per_pack": 66.77829446165204,
  "assumed": {
   "drum_shift_s": 3.0,
   "drum_a": 0.15,

@@ -72,3 +72,20 @@ def test_every_gpio_in_the_guide_matches_pins_h():
     assert not re.search(r"(RPWM|LPWM|R_EN|L_EN|AIN1|AIN2|SDA|SCL|DT|SCK) \d", dot), "hard-coded GPIO in the diagram"
     for name in re.findall(r"\{(PIN_\w+)\}", dot):
         assert name in mg.read_pins(), name
+
+
+def test_no_personal_names_and_only_embedded_fonts():
+    md = mg.build_markdown()
+    assert not re.search(r"\bHarry\b(?!HYu)", md), "a personal name in the guide"
+    import subprocess
+    def helv(path):
+        out = subprocess.run(["pdffonts", path], capture_output=True, text=True).stdout
+        return sum(1 for line in out.splitlines() if line.startswith("Helvetica"))
+    for pdf in ("Wiring_Cheat_Sheet_Base.pdf", "Wiring_Cheat_Sheet_Dart.pdf", "Commands_Cheat_Sheet.pdf",
+                "MEASURE_RESULTS.pdf"):
+        path = os.path.join(HERE, pdf)
+        if os.path.exists(path):
+            assert helv(path) == 0, f"non-embedded Helvetica in {pdf}"
+    guide = os.path.join(HERE, "GrappStar_Build_Guide.pdf")
+    if os.path.exists(guide):
+        assert helv(guide) == 0, "non-embedded Helvetica in the build guide"

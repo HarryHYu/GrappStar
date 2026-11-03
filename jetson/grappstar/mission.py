@@ -43,7 +43,8 @@ from .comms.base import BaseDisconnected, BaseError, BaseTimeout
 from .comms.dart import DartError, DartRefused, remap_flightlog
 from .rover import OperatorRover, RoverDrive
 
-STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "BASE_NEUTRAL", "WRAP",
+STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "RAIL_LOW", "BASE_NEUTRAL",
+         "WRAP",
          "ANCHOR", "TIDY", "FLY_IN", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
 RESHOOT_STEPS = ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
 SKIPPABLE = {"CHECK", "LANDING_ZONE", "TIDY", "COCK"}
@@ -75,7 +76,7 @@ class Aborted(Exception):
 @dataclass
 class MissionConfig:
     drag_n: float = DEFAULT_DRAG_N  # payout brake setting (C3 column): LIGHT 0.5 N (coordinator)
-    tow_limit_n: float = 40.0       # at most 70 N (D39)       # line tension limit while towing (base firmware caps it too)
+    tow_limit_n: float = 40.0       # tension at the dart, at most 60 N (spec 1.3.0, D43)       # line tension limit while towing (base firmware caps it too)
     check_n: float = 15.0           # anchored check pull
     check_hold_s: float = 2.0       # hold at the check tension this long
     check_keep_frac: float = 0.7    # tension must stay above this fraction of the limit (load cell only)
@@ -94,6 +95,7 @@ class MissionConfig:
     final_timeout_s: float = 90.0
     takeup_duty: float = 0.3        # 10.1 steps 11 and 17: take-up duty
     tidy_ms: int = 3000
+    rail_low_above_deg: float = 15.0   # D45
     end_mode: str = "LAUNCH"        # drum position at the end (coordinator: LAUNCH, ready for the next shot)
     land_timeout_s: float = 10.0
     still_s: float = 1.0            # line out unchanged this long = landed
@@ -488,6 +490,8 @@ class Mission:
             self._do("FIRE", self.fire)
             self._do("FLIGHT", self.wait_landing)
             choice = self._do("LANDING_ZONE", self.landing_zone)
+            if choice != "reshoot":
+                self._do("RAIL_LOW", self.rail_low)   # D45: tow with the rail at its minimum
             self._do("BASE_NEUTRAL", self.base_neutral)
             if choice == "reshoot":
                 self.reshoot()                  # NO_GO before the wrap: retrieve on the take-up
@@ -706,8 +710,8 @@ class Mission:
         self.shot["cocked"] = True
         self.log.info("cocked")
 
-    def base_neutral(self) -> None:
-        """After the shot: wait for the launcher RESET (mode refuses LAUNCH_BUSY until it is at rest), then NEUTRAL."""
+    def wait_launcher_rest(self) -> None:
+        """After the shot: wait for the launcher RESET (mode and aim refuse until it is at rest)."""
         m0 = self.shot.pop("fire_mark", None)      # only the first attempt may look back to the shot
         t = self.tel()
         if t.get("mode") == "LAUNCH" and not (t.get("cock") == 0 and t.get("state") == "IDLE"):
@@ -716,6 +720,29 @@ class Mission:
             except BaseTimeout:
                 self.wait_tel(lambda t: t.get("state") == "IDLE" and t.get("cock") in (0, 0.0, None), 5.0,
                               "launcher at rest")
+
+    def rail_low(self) -> None:
+        """BASE_SPEC 10.1 step 7b (D45): before the wrap, bring the rail to its minimum pitch when it is above
+        15 deg, so the tow over the lip roller does not push the carriage back against the spring preload."""
+        self.wait_launcher_rest()
+        t = self.tel()
+        p = t.get("pitch_deg")
+        if t.get("mode") != "LAUNCH" or p is None or p <= self.cfg.rail_low_above_deg:
+            return
+        lo = 6.0
+        try:
+            r = self.base.get("pitch_range")
+            lo = max(lo, float(r.get("min", lo)))
+        except (BaseError, BaseTimeout, BaseDisconnected, TypeError, ValueError):
+            pass
+        m = self.base.event_mark()
+        self.go.aim(round(lo + 0.05, 2))
+        self.wait_evt("AIMED", self.cfg.aim_timeout_s, m)
+        self.log.info(f"rail low for the tow ({lo:.1f} deg)")
+
+    def base_neutral(self) -> None:
+        """Launcher at rest, then the drum to NEUTRAL."""
+        self.wait_launcher_rest()
         self.base_mode("NEUTRAL")
 
     def tidy(self) -> None:
@@ -796,7 +823,8 @@ class Mission:
         if t.get("state") in ("WRAP", "UNWRAP"):
             return False
         w = t.get("wraps")
-        return t.get("drum_pos") in ("WRAPPED", "REEL") or (isinstance(w, (int, float)) and w >= 3.5)
+        # A2: all 7 wraps and the drum at the park or in REEL; a hold partway through the wrap is NOT wrapped
+        return t.get("drum_pos") in ("WRAPPED", "REEL") and (w is None or (isinstance(w, (int, float)) and w >= 7))
 
     def ensure_reel(self, wrapped: bool = True) -> None:
         """Before a reel on the capstan: wraps on and the collar in REEL (fly-in). A fault in REEL parks the drum at
@@ -1244,6 +1272,11 @@ class Mission:
             if sw_closed(tt, "S"):
                 self.stop_settle()
                 self.log.warn("dart reached the cradle on the capstan (line_m estimate too long)")
+                # D16 hazard: unwrapping with the dart pulled into the cradle can snatch it; let the operator slacken
+                self.ask("The dart reached the cradle on the CAPSTAN (the line estimate was too long). Pay out a "
+                         "little line by hand so it is slack at the cradle, then press Unwrap.",
+                         ["Line slack: unwrap", "Abort"], danger=True)
+                self.shot["seated_in_retrieve"] = True
                 return
             if cur is not None and cur <= self.cfg.approach_m:
                 self.stop_settle()

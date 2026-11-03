@@ -11,7 +11,7 @@ Meaning of the numbers (also written to base/out/ballistics_meta.json, which the
 - v_muzzle: from launcher.py at that pitch (gravity and friction along the rail change it slightly).
 - t_flight_s: muzzle to ground contact. apex_m: highest point of the dart above the ground.
 
-python ballistics.py [--step 2.5] [--out ../out/ballistics.json]
+python ballistics.py [--step 2.5] [--out ../out/ballistics.json] [--v-scale k (default spec LAUNCH v_scale)]
 """
 from __future__ import annotations
 
@@ -29,9 +29,11 @@ DRAG_N = [0.5, 0.75, 1.0]
 
 
 def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = None, with_wind: bool = True,
-          v_scale: float = 1.0):
-    """v_scale: muzzle speed factor fitted from test shots (calib.py range); 1.0 = pure model."""
+          v_scale: float | None = None):
+    """v_scale: muzzle speed factor fitted from test shots (calib.py range). None = spec LAUNCH.v_scale (1.0 = pure model)."""
     p = p or load_params()
+    if v_scale is None:
+        v_scale = float(p.launch.get("v_scale", 1.0))
     lo, hi = float(p.flight["pitch_min"]), float(p.flight["pitch_max"])
     pitches = []
     x = lo
@@ -118,7 +120,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--step", type=float, default=2.5)
     ap.add_argument("--out", default=OUT)
-    ap.add_argument("--v-scale", type=float, default=1.0, help="muzzle speed factor from test shots (python calib.py range ...)")
+    ap.add_argument("--v-scale", type=float, default=None,
+                    help="muzzle speed factor from test shots (python calib.py range ...); default: spec LAUNCH v_scale, else 1.0")
     a = ap.parse_args(argv)
     if a.step <= 0:
         raise SystemExit("--step must be > 0")
@@ -130,7 +133,7 @@ def main(argv=None):
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     json.dump(doc, open(a.out, "w"), indent=1)
     json.dump(meta, open(os.path.join(os.path.dirname(os.path.abspath(a.out)), "ballistics_meta.json"), "w"), indent=1)
-    print(f"params: {p.source}")
+    print(f"params: {p.source}, v_scale {meta['v_scale']:.3f}")
     print("pitch  v0     range 0.5/0.75/1.0 N     t_flight      apex")
     for r in doc["table"]:
         print(f"{r['pitch_deg']:5.1f} {r['v_muzzle']:5.2f}  " + " ".join(f"{x:5.2f}" for x in r["range_m"]) + "  " +

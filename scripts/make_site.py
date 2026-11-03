@@ -13,6 +13,7 @@ No em dashes anywhere in the text.
 from __future__ import annotations
 
 import argparse
+import re
 import base64
 import glob
 import html
@@ -131,13 +132,30 @@ def build(out, branch, checks_file):
                 checks.append((st, name.strip(), detail.strip()))
     audit_state = audit.get("result") or audit.get("status") or ("CLEAN" if audit.get("clean") else "")
 
-    # copy generated pages
+    # copy generated pages. Prefer the publishing variants (<name>_body.html plus web/*.json data files): each file
+    # must stay under the 16 MB artifact limit, and the standalone sim.html inlines everything (about 20 MB).
     files = {}
-    for src, dst in [("base/out/base/sim.html", "sim.html"), ("base/out/base/assembly.html", "assembly.html")]:
-        s = os.path.join(ROOT, src)
-        if os.path.exists(s):
-            shutil.copy(s, os.path.join(out, dst))
-            files[dst] = True
+    head = ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width,initial-scale=1"></head><body>\n')
+    for name in ("sim", "assembly"):
+        body = os.path.join(ROOT, f"base/out/base/{name}_body.html")
+        full = os.path.join(ROOT, f"base/out/base/{name}.html")
+        dst = os.path.join(out, f"{name}.html")
+        if os.path.exists(body):
+            with open(body, encoding="utf-8") as f:
+                txt = f.read()
+            with open(dst, "w", encoding="utf-8") as f:
+                f.write(head + txt + "\n</body></html>\n")
+            files[f"{name}.html"] = True
+            for ref in sorted(set(re.findall(r"web/[A-Za-z0-9_.-]+\.(?:json|js|bin)", txt))):
+                srcf = os.path.join(ROOT, "base/out/base", ref)
+                if os.path.exists(srcf):
+                    os.makedirs(os.path.join(out, "web"), exist_ok=True)
+                    shutil.copy(srcf, os.path.join(out, ref))
+                    files[ref] = True
+        elif os.path.exists(full) and os.path.getsize(full) < 15_500_000:
+            shutil.copy(full, dst)
+            files[f"{name}.html"] = True
     shots = sorted(glob.glob(os.path.join(ROOT, "base/out/base/shots/sim_t*.png")))
     hero = ""
     if shots:
@@ -205,6 +223,15 @@ def build(out, branch, checks_file):
     mrows_box = [r for r in _all if r and r[0][:1] == "C" and r[0][1:2].isdigit()]
     if not mrows_first:
         mrows_first = _all[:15]
+    operator_html = ""
+    if os.path.exists(os.path.join(out, "operator.png")):
+        files["operator.png"] = True
+        operator_html = ('<section><h2>Jetson operator page <small>full dry mission in the simulator</small></h2>'
+                         '<figure class="hero"><img src="operator.png" alt="Jetson operator page after a full dry mission: '
+                         'every step done, landing zone GO, aerial map from the dart camera"></figure>'
+                         '<p class="note">python3 -m grappstar serve --sim on any PC runs the whole mission against the '
+                         'simulated base, dart and cameras: rover view with the target and ballistic solution, the 23 mission '
+                         'steps, the landing-zone verdict and the aerial map stitched from the dart video.</p></section>')
     body = f"""<title>GrappStar Base Station</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -281,6 +308,7 @@ ul.files a {{ color: var(--ink); text-decoration-color: var(--accent); text-unde
 </tbody></table></div>
 <p class="warn">Never fire without the tether attached: at these speeds the tether keeps the dart nose first.</p></section>
 <section><h2>Mission <small>one full cycle</small></h2><ol class="seq">{li(mission)}</ol></section>
+{operator_html}
 <section><h2>Checks</h2><div class="scroll"><table><thead><tr><th>Suite</th><th>Result</th><th>Detail</th></tr></thead><tbody>
 {''.join(f'<tr><td>{esc(n)}</td><td class="{"pass" if s == "PASS" else "fail"}">{esc(s)}</td><td class="num">{esc(d)}</td></tr>' for s, n, d in checks) or '<tr><td colspan="3">Run scripts/check_all.sh and pass --checks.</td></tr>'}
 </tbody></table></div></section>

@@ -11,4 +11,4 @@ git worktree add -q --detach "$WT" origin/base-v1
 ( cd "$WT" && git checkout -q origin/w/fw-base -- firmware/base && git checkout -q origin/w/fw-dart -- firmware/dart \
   && git checkout -q origin/w/jetson -- jetson )
 echo "preview: base-v1 $(git rev-parse --short origin/base-v1), fw-base $(git rev-parse --short origin/w/fw-base), fw-dart $(git rev-parse --short origin/w/fw-dart), jetson $(git rev-parse --short origin/w/jetson)"
-SYSTEST_ROOT="$WT" SYSTEST_RUNS="$(pwd)/systest/runs_preview" exec python3 systest/harness.py --scenario "${1:-nominal}"
+SYSTEST_ROOT="$WT" SYSTEST_RUNS="${SYSTEST_RUNS:-$(pwd)/systest/runs_preview}" exec python3 systest/harness.py --scenario "${1:-nominal}"

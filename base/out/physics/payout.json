@@ -1,5 +1,5 @@
 {
- "params_source": "base/spec/params.py v1.2.9",
+ "params_source": "base/spec/params.py v1.3.0",
  "reel": {
   "mass_empty": 0.04607302348557946,
   "inertia_empty": 2.2028630044602932e-05,

@@ -8,9 +8,19 @@ FIRE, then sends `arm` and `fire` with the token at once (the token is only vali
 
 How to send base commands: the operator page on the Jetson (jetson/README.md) has buttons for most of these. From a
 terminal on the Jetson, in `~/GrappStar/jetson`, send any command (firmware/base/PROTOCOL.md) with
-`python3 -m grappstar base cmd '{"cmd": "jog", "motor": "wiper", "dir": 1, "ms": 300}'` and watch telemetry with
-`python3 -m grappstar base monitor` in a second terminal. `'{"cmd": "estop"}'` stops everything and is always safe
-to send.
+`python3 -m grappstar base cmd '{"cmd": "jog", "motor": "wiper", "dir": 1, "ms": 300}'`. Only one program may hold the
+base's serial port at a time: do not run `base monitor`, the operator page (`serve`) or the grappstar service while
+you use `base cmd`; read the result with `python3 -m grappstar base status` afterwards. `'{"cmd": "estop"}'` stops
+everything and is always safe to send.
+
+Rules that catch people out:
+- Aim before every shot: every `FIRED` and every `decock` clears the aim, and `base fire` refuses `NOT_AIMED`.
+  Send `aim` before every `cock` and every fire.
+- `require_seated` goes back to `true` at every start-up. In stages 4 and 5 (no dart) re-send
+  `{"cmd":"set","key":"require_seated","val":false}` after every power-up.
+- On the rover the ESP32 and the Jetson run from the same LiPo. When a step says "battery unplugged" only so your
+  hands can touch the mechanism while you still read `sw`, use the motors-safe state instead: lead #2's XT60 out
+  (both motors dead, ESP32 and Jetson still up). For any WIRING change: the whole battery out.
 
 Safety for every stage:
 - Battery unplugged before you touch any wire.
@@ -79,31 +89,35 @@ Pass: every sensor responds and returns. If it fails: AS5600 not found: check SD
 STEMMA cable is pushed in; angle jumps: magnet too far (keep 1 to 2 mm) or off centre. Contact never changes:
 check the GND wire and that the screw head really touches the nut.
 
-## Stage 4. Base assembled, dry cycles, NO springs, no line
+## Stage 4. Base assembled, dry cycles, NO springs, no launch line
 
+Before the first powered cock: break three spare shear pins on the torque arm (MEASURE_LIST G14, decision D44).
 Springs off, no tether, no dart. Run CALIBRATION.md first (zeros and drum positions; part (g), the cock geometry check, waits for stage 5).
 With no dart, `arm` refuses (`NOT_SEATED`): for this stage and stage 5 send
-`{"cmd":"set","key":"require_seated","val":false}`, and set it back to `true` before stage 6.
+`{"cmd":"set","key":"require_seated","val":false}` (again after every power-up); it is `true` again by itself at
+the next start-up, so power-cycle (or set it `true`) before stage 6.
 
-1. `mode` LAUNCH, NEUTRAL, LAUNCH: 20 rounds, then every other mode the firmware offers, in the order PROTOCOL.md
-   gives. Each change ends with the right `drum_pos`.
+1. `mode` LAUNCH, `mode` NEUTRAL, `mode` LAUNCH: 20 rounds. Each change ends with the right `drum_pos`. (REEL is
+   only reachable with the wraps on: step 4.)
 2. `aim` 15, 30, 45, then the minimum and maximum pitch: 5 rounds. Rail reaches each angle within 1 degree
    (`pitch_deg`) and holds with the motor off.
 3. Cock and fire with stand-in springs: without springs nothing returns the carriage after the release, so the
    firmware would fault every cycle. Hook two strong rubber bands (or loops of bicycle inner tube) from the spring
    anchor pins to the carriage hooks instead: enough to pull the carriage home, far too weak to throw anything.
-   Then `cock`, `{"cmd":"decock"}` (the carriage creeps home, `SW_HOME` closes): 5 cycles. Then fire with
+   Then `aim` 20, `cock`, `{"cmd":"decock"}` (the carriage creeps home, `SW_HOME` closes): 5 cycles. Then, with
+   `aim` 20 before each one, fire with
    `python3 -m grappstar base fire` (it arms and fires in one go, inside the 3 s token life, after you type FIRE):
    the carriage travels back, releases, the bands pull it home, and the big gear re-engages: 10 cycles.
    Take the bands off afterwards.
-4. Wrap and unwrap, with a spare line through the capstan path and slack: from LAUNCH, `wrap`, `tidy`, `mode`
+4. Wrap and unwrap, with a spare line (not the launch tether) through the capstan path and slack: from LAUNCH, `wrap`, `tidy`, `mode`
    REEL, then `unwrap` and `mode` LAUNCH (the stage 7 table without the shot): 10 cycles. Once wrapped and in REEL,
    send `reel` with duty 0.3, wait 3 s, send `stop`.
 5. Send `estop` in the middle of each kind of move once. The wiper stops at once and the drum goes to NEUTRAL,
    except when the spring is drawn, the wraps are on or the drum itself faulted: then the drum holds (`DRUM_HELD`),
    which is correct (decision D27).
-6. Fault test: with nothing moving, slide the AS5600 board away from its magnet (do not unplug anything). The base
-   reports the magnet missing and refuses to move. Put it back, `clear`.
+6. Fault test: `estop` first, then with nothing moving, slide only the AS5600 sensor board away from its magnet
+   (do not unplug anything, touch nothing else). `base status` shows `"magnet":"NONE"` and a wiper jog is refused
+   with `ANGLE_SENSOR`. Put it back, `clear`.
 
 Pass: all cycles complete with no fault, no clicking or skipping teeth, no part warm to the touch, the drum never
 stops BETWEEN positions.
@@ -113,15 +127,17 @@ contacts close cleanly.
 
 ## Stage 5. Springs on, no dart
 
-Fit both springs. Start at the lowest pitch, rail pointing at a clear area.
+Fit both springs and the spring guard. Rail pointing at a clear area.
 
+0. CALIBRATION.md (g), the cock geometry check, comes first: it needs the springs. It ends by setting
+   `require_seated` true: set it false again for the rest of this stage.
 1. `aim` to the lowest pitch. Fire once with `python3 -m grappstar base fire`. Look at every part of the launch train after the shot.
-2. Five more shots. Check the stop bumpers, the carriage, the rack teeth and the big gear's last tooth after each.
+2. Five more shots, `aim` before each. Check the stop bumpers, the carriage, the rack teeth and the big gear's last tooth after each.
 3. Watch `amps` while cocking: note the peak (the physics expects about 5 A; decision D8 trips at 6.5 A while
    cocking).
 
-Pass: the carriage stops on the bumpers, nothing cracks or loosens over 6 shots, cocking current stays under the
-stall value, the rail holds its pitch while cocking.
+Pass: the carriage stops on the bumpers, nothing cracks or loosens over 6 shots, the cocking current peaks under
+6.5 A (about 5 A expected), the rail holds its pitch while cocking.
 If it fails: cracks at the bumpers: stop and report (no more dry shots). Rail drops while cocking: the aim worm is
 slipping, check its mesh. STALL while cocking: the springs are stronger than planned (redo B2) or something binds.
 
@@ -140,11 +156,15 @@ bypasses the capstan). Set the payout brake with hanging weights (G4): 40 g does
 2. Film it side-on with the phone in slow motion, tape measure on the ground in view (muzzle speed, G5).
 3. Measure the range. Repeat at 30 and 36 degrees (G6).
 4. Check the line paid out with no loops or overrun on the storage reel.
+   Between shots, bring the dummy home: `{"cmd":"set","key":"line_m","val":<measured m>}`, `mode` NEUTRAL,
+   `{"cmd":"retrieve","duty":0.3}` until `SEATED`, then `mode` LAUNCH and `aim` for the next shot (no wraps needed
+   for a slack line; the full wrap sequence is stage 7).
 5. Range calibration, after 2 or 3 shots on level ground: measure each range from the ground point under the rail
    pivot, then on the Mac or Jetson in `~/GrappStar/base/physics`:
    `python3 calib.py range 20:0.5:3.6 36:0.5:4.2` (pitch:brake N:measured range m, your numbers) fits a
    muzzle-speed factor; `python3 ballistics.py --v-scale <factor>` rewrites `base/out/ballistics.json`, which the
-   Jetson uses to aim (base/physics/README.md has the details).
+   Jetson uses to aim (base/physics/README.md has the details). Run it on the Jetson (`cd ~/GrappStar/base/physics`),
+   or run it on the Mac and copy the file across: `scp base/out/ballistics.json <user>@GrappStar.local:GrappStar/base/out/`.
 
 Pass: clean exit (no rubbing marks on the dummy), it flies nose first, payout is clean, the range is within 30
 percent of the ballistics table at the same pitch (measured from the ground point under the rail pivot; the table is `base/out/ballistics.json`, shown on the
@@ -161,25 +181,43 @@ you; by hand it is (each line: what you send, what to wait for):
 | Step | Send | Wait for |
 |---|---|---|
 | after the shot | `{"cmd":"set","key":"line_m","val":4.5}` (the measured distance) | reply |
-| wrap at once, line still slack | `{"cmd":"wrap"}` (from LAUNCH or NEUTRAL) | `WRAPPED` (up to 60 s; the drum parks at 314: cup locked, collar NEUTRAL, clutch FIRM) |
+| rail down first if above 15 degrees (decision D45) | `{"cmd":"aim","deg":6}` | `AIMED` |
+| wrap at once, line still slack | `{"cmd":"wrap"}` (from LAUNCH or NEUTRAL) | `WRAPPED` (allow 90 s; the drum parks at 314: cup locked, collar NEUTRAL, clutch FIRM) |
 | (real dart only: anchor) | dart `auto` | dart ANCHORED |
 | tidy the slack | `{"cmd":"tidy"}` | `TIDIED` |
 | into REEL | `{"cmd":"mode","to":"REEL"}` | `MODE` ok (REEL) |
 | tow (stage 8 only) | `{"cmd":"reel","duty":1,"until":"tension"}` | `LIMIT` holding |
-| (real dart: release) | dart `release`, then `{"cmd":"stop"}` | `ABORTED` |
+| (real dart: release) | `{"cmd":"stop"}` FIRST (`ABORTED`), then dart `release` | dart released (operator page) |
 | reel in | `{"cmd":"reel","until":"stop"}`, then `{"cmd":"stop"}` when `line_m` reads about 1.5 | `ABORTED` |
 | unwrap | `{"cmd":"unwrap"}` | `UNWRAPPED`, then `MODE` NEUTRAL |
 | final approach | `{"cmd":"retrieve","duty":0.3}` | `SEATED` (never seat it on the capstan) |
 | back to launch | `{"cmd":"mode","to":"LAUNCH"}` | `MODE` ok |
 
 1. After a stage 6 shot, run the table top to bottom, skipping the anchor, tow and release rows.
-2. Check the line runs on the launch path again (not round the capstan). Fire again at 30 degrees.
+2. Check the line runs on the launch path again (not round the capstan). `aim` 30, fire again.
 
 Pass: the wrap lays 7 turns on the capstan, reel-in works, unwrap returns the line to the launch path, the dummy
 seats, and the next shot pays out cleanly. Repeat 5 times.
 If it fails: wrap misses the capstan: check the wrap cup position at the end of `wrap`. Line still round the
 capstan after `unwrap`: do not fire; unwrap again and check the drum position. `DART_STUCK` after 20 s of
 `retrieve`: the dummy snagged; clear it by hand after the approach checklist (section 2).
+
+## Stage 7b. Bench tow (before the first field tow)
+
+Rover chocked, base wrapped and in REEL (stage 7 table), the line end tied to the luggage scale on a post at least
+5 m away (a short stiff line overshoots the limit by up to half); everyone beside the line, glasses on. Free current
+and tension calibrated (CALIBRATION.md (d) and (f)).
+
+1. First pull: `{"cmd":"reel","duty":0.5,"max_n":30,"until":"tension"}`. Slacken (below), then the real one:
+   `{"cmd":"reel","duty":0.5,"max_n":50,"until":"tension"}`.
+2. Watch the 7 wraps on the capstan the whole time: they must not walk along the capstan, and the line must not get
+   trapped in the gap at the capstan skirt.
+3. Read the scale when the base holds (`LIMIT`): it should read about 50 N (within 10 N).
+
+Pass: the wraps stay in place, no line trapped, the base holds at about 50 N.
+To slacken afterwards (and if it fails: `estop` first): the
+capstan cannot let line out, so walk the scale end slowly toward the base, standing beside the line. If it failed: wraps walking or trapped line: check the
+wrap cup position and the capstan skirt; wrong tension: redo CALIBRATION.md (f).
 
 ## Stage 8. The anchor in soil
 
@@ -190,24 +228,28 @@ The real dart, built and tested to the dart run sheet section 10. Use real soil 
 2. When the dart reports ANCHORED: standing beside the line, not in line with it, glasses on, pull the tether by
    hand with the luggage scale, slowly, up to 50 N or until
    it moves (G7).
-3. HARD PREREQUISITE for any tow: CALIBRATION.md (d) free running current (`free_a`) and (f) tension (`k_n_per_a`
-   (`k_n_per_a`, MEASURE_LIST G9) are done. Why: with the factory values a simulated tow reached 61 N against a
-   40 N limit. Re-anchor (wrap first, as in step 1). Rover chocked, everyone beside the line. Then the stage 7 table
-   from `tidy` on: `tidy`, `mode` REEL, then the tow with `max_n` 10 N under the hand result:
-   `{"cmd":"reel","duty":1,"max_n":40,"until":"tension"}`.
-4. Send release (operator page, or `python3 -m grappstar dart release`): drills out, pods up, foot out, kick back.
-   Then finish the stage 7 table: `stop`, reel in to about 1.5 m, `unwrap`, `retrieve`, `mode` LAUNCH.
+3. HARD PREREQUISITE for any tow: CALIBRATION.md (d) free running current (`free_a`) and (f) tension
+   (`k_n_per_a`, MEASURE_LIST G9) are done, and stage 7b passed. Why: with the factory values a simulated tow
+   reached 61 N against a 40 N limit. The tow limit rule: the hand result from step 2 minus 10 N, never above 50 N.
+   Example: the dart held 45 N by hand, so the limit is 35 N. Set it in the firmware
+   (`{"cmd":"set","key":"limit_n","val":35}`) and as the operator page's tow limit (jetson/README.md, settings).
+   Re-anchor (wrap first, as in step 1). Rover chocked, everyone beside the line. Then the stage 7 table from
+   `tidy` on: `tidy`, `mode` REEL, then the tow: `{"cmd":"reel","duty":1,"max_n":35,"until":"tension"}` (your
+   limit).
+4. `stop` the tow first, then send release (operator page, or `python3 -m grappstar dart release`): drills out,
+   pods up, foot out, kick back. Then finish the stage 7 table: reel in to about 1.5 m, `unwrap`, `retrieve`, `mode` LAUNCH.
 
 Pass: the dart anchors on its own, holds at least 20 N in loam, the base stops at its tension limit, the release
 sequence frees the dart, it reels home.
 If it fails: augers back out: swap that motor's leads (dart run sheet section 10). Pulls out at low force: try
-firmer soil, and report the force (it sets the reel limit). Base overshoots the limit: redo the current
-calibration (G1).
+firmer soil, and report the force (it sets the reel limit). Base overshoots the limit: redo CALIBRATION.md (f)
+(MEASURE_LIST G9).
 
 ## Stage 9. Full mission
 
-Before the first mission: `free_a` and `k_n_per_a` are calibrated (stage 8 step 3), `limit_n` is set (50 N), and
-`require_seated` is `true`.
+Before the first mission: `free_a` and `k_n_per_a` are calibrated (CALIBRATION.md (d) and (f)), the tow limit is
+set by the stage 8 rule in both the firmware (`limit_n`) and the operator page, `require_seated` is `true`, and the
+Jetson README steps 5 to 7 are done (cameras, dart WiFi, rover camera calibration: targeting needs it).
 
 From the operator page on the Jetson (jetson/README.md): preflight, pick a target on the Kiyo view, aim, confirm
 the fire prompt, flight video from the dart, landing verdict, anchor, tow, release, reel home.

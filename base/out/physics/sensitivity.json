@@ -1,5 +1,5 @@
 {
- "params_source": "base/spec/params.py v1.2.9",
+ "params_source": "base/spec/params.py v1.3.0",
  "pitch_deg": 35.0,
  "brake_n": 0.5,
  "v_base": 6.79854180843633,

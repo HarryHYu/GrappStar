@@ -91,12 +91,12 @@ Write each number with its unit. Photo: the file name of the caliper photo in `o
 | G4 Storage reel payout drag |  |  |
 | G5 Muzzle speed |  |  |
 | G6 Range at three pitches |  |  |
-| G9 Line tension per amp |  |  |
+| G9 Line tension per amp (dart-side tension, decision D43) |  |  |
 | G10 Tow limit (choose) |  |  |
 | G11 Payout brake trim |  |  |
 | G12 Contact gaps |  |  |
 | G13 AS5600 air gap |  |  |
-| G14 Wiper coupler shear pin |  |  |
+| G14 Wiper coupler shear pin (before the first powered cock, ... |  |  |
 | G7 Soil holding force |  |  |
 | G8 Rail friction |  |  |
 

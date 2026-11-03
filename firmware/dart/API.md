@@ -16,7 +16,7 @@ and never poll `/status` faster than 5 Hz (held-key repeats every 150 ms are the
 
 Refusal reasons: `in flight`, `busy` (a sequence owns the motors), `already anchored, release first`,
 `no current sensor` (INA219 missing or lost), `no IMU` (BNO085 missing or silent), `stalled: release the key first`,
-`fault latched: send stop first`, `unknown key`, and for `/flightlog` `busy (motors running, armed or in flight)`.
+`fault latched: send stop first`, `both directions held`, `sent before a stop`, `unknown key`, and for `/flightlog` `busy (motors running, armed or in flight)`.
 
 **One request at a time.** If a client opens a connection and never sends a request (a browser tab closing mid
 request can do this), the ESP32 web server waits up to 5 s for it before serving anyone else. Motors are not affected
@@ -91,11 +91,17 @@ Manual key, same keys as the web page and Serial Monitor.
   protection keeps chopping) is stopped with the event `<motor> draws no current: wire open or shorted`.
 - One stalled drill while the other turns cannot be told from normal drilling (both share one channel and one current
   reading); only both stalled is detected.
-- Other keys: space or `s` stop (same as `/stop`), `a` auto (same as `/auto`), `r` release (same as `/release`),
+- Both directions of one motor held at once (`1` and `!`): the motor stops and both are refused (`both directions held`)
+  until neither has been pressed for a window. To reverse, release (the page then sends a stop) and press the other.
+- At low `speed` the stall line never drops below 1.5 x the motor's free current, so normal running is not taken for a
+  stall; below about speed 100 a stall may then only be stopped by the 8 s hold cap.
+- Other keys: space or `s` stop (same as `/stop`; with `keep=1` it stops the motors but keeps the arm, like
+  `/stop?disarm=0`: the web page sends this when the last held key is released or the page loses focus), `a` auto (same as `/auto`), `r` release (same as `/release`),
   `A` arm toggle (prefer `/arm`), `+` / `-` speed, `i` current, `b` attitude, `p` status line, `f` flight log summary,
   `z` I2C scan (does a full `/stop` first: motors off, disarm), `h` help. An OTA upload also does a full `/stop`.
 - Optional `n` and `p`: a request counter and a page id (the web page uses them so a run key sent before that page's
-  stop cannot arrive after it; `n` only counts together with `p`, and the last 4 page ids are remembered).
+  stop cannot arrive after it, answered 409 `sent before a stop`; `n` only counts together with `p`, and the last 4
+  page ids are remembered).
 - Refused (409) while a sequence runs (`busy`), during `FLIGHT`, while a fault is latched (`fault latched: send stop
   first`), and after a stall or the hold cap until the key has been released (`stalled: release the key first`).
   "Released" means no press for max(last `ms`, 350) + 250 ms. The opposite direction is never locked.
@@ -128,6 +134,10 @@ spinning, drills finishing, `anchored`.
   phase's lowest reading, so an auger whose current changes during the pause cannot fake one. A stalled auger is
   stopped (anchor) or faults (release). An end-stop stall is only believed after a minimum travel time (pods 0.7 s,
   kick back 1.5 s). If the kick's housing stall is never seen, planting carries on after 6 s (`kick plant time limit`).
+  A worm already at its end stop when such a step starts shows no rise, so it is stopped by the step time limit (pods
+  6 s: event `deploy time limit (down or stalled)` or `pods time limit (stowed or stalled)`); a 6 s stall of an N20
+  worm is harmless.
+- One failed current read at the moment a step ends does not fault: the step ends and the next good read moves on.
 
 ### GET /release
 
@@ -207,7 +217,7 @@ Worked out in this priority order (the first that applies):
 | `ANCHORING` | anchor sequence running |
 | `FLIGHT` | launch detected, landing not yet decided |
 | `ANCHORED` | anchor sequence finished (`seq` `anchored`) |
-| `LANDED` | landed and nothing running (log-only arm, fallback landing, auto refused, or auto stopped by hand) |
+| `LANDED` | landed and no motor running (log-only arm, fallback landing, auto refused, or auto stopped by hand); a manual motor running after a landing shows `IDLE` |
 | `ARMED` | landing detector armed, waiting for the launch |
 | `IDLE` | none of the above (also after `/stop` aborts a sequence before any landing: `seq` `aborted`, no fault; after a landing it shows `LANDED`) |
 

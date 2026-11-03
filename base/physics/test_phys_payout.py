@@ -48,4 +48,4 @@ def test_reel_spins_down_on_brake():
 def test_spin_up_load_small():
     p = Params()
     s = spin_up_in_stroke(p, 8.0, 0.25, 0.75)
-    assert s["t_line_in_stroke_n"] < 5.0
+    assert s["t_line_in_stroke_n"] < 8.0

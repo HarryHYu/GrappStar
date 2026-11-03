@@ -21,6 +21,8 @@ LAUNCH_MAP = {
     "carriage_mass": ("launch", "carriage_mass", 1.0),
     "mu_rail": ("launch", "mu_rail", 1.0),
     "stop_pad_travel": ("launch", "stop_pad_travel", 1e-3),
+    "spring_preload": ("launch", "preload_ext", 1e-3),
+    "carriage_mass_target_kg": ("launch", "carriage_mass", 1.0),
     "muzzle_height": ("launch", "muzzle_height", 1e-3),
 }
 AIM_MAP = {
@@ -35,8 +37,6 @@ REEL_MAP = {
     "flange_t": ("reel", "flange_t", 1e-3),
     "hub_mass": ("reel", "hub_mass", 1.0),
     "capstan_d": ("capstan", "d", 1e-3),
-    "capstan_ratio": ("capstan", "ratio", 1.0),
-    "wraps": ("capstan", "wraps", 1.0),
     "takeup_n": ("capstan", "takeup_n", 1.0),
     "tow_limit_n": ("capstan", "tow_limit_n", 1.0),
     "brake_n": ("flight", "brake_n", 1.0),
@@ -102,6 +102,47 @@ def apply(p, path=None):
         if b.get(sk) is not None:
             setattr(p.battery, pk, float(b[sk]))
     _overlay(p, getattr(mod, "LAUNCH", None), LAUNCH_MAP, used)
+    lt = getattr(mod, "LAUNCH", None) or {}
+    if isinstance(lt.get("stop"), dict) and lt["stop"].get("travel_min") is not None:
+        p.launch["stop_pad_travel"] = float(lt["stop"]["travel_min"]) * 1e-3
+        used.append("LAUNCH.stop.travel_min")
+    lay = getattr(mod, "LAYOUT", None) or {}
+    if lay.get("deck_top_z") is not None:
+        # main axis (rail pivot) height above the ground = deck height on the rover (ASSUMED) + spec axis height
+        p.launch["pivot_h"] = p.launch.get("deck_h", 0.15) - float(lay["deck_top_z"]) * 1e-3
+        used.append("LAYOUT.deck_top_z")
+    rl = getattr(mod, "REEL", None) or {}
+    if rl:
+        st = rl.get("storage") or {}
+        for sk, pk in (("core_d", "core_d"), ("flange_d", "flange_d"), ("width", "width")):
+            if st.get(sk) is not None:
+                p.reel[pk] = float(st[sk]) * 1e-3
+                used.append("REEL.storage." + sk)
+        cp = rl.get("capstan") or {}
+        if cp.get("d") is not None:
+            p.capstan["d"] = float(cp["d"]) * 1e-3
+            used.append("REEL.capstan.d")
+        if rl.get("capstan_ratio"):
+            p.capstan["ratio"] = 1.0 / float(rl["capstan_ratio"])      # spec: capstan turns per main shaft turn
+            used.append("REEL.capstan_ratio")
+        if rl.get("wraps") is not None:
+            p.capstan["wraps"] = int(rl["wraps"])
+        cl = rl.get("clutch") or {}
+        if cl.get("LIGHT_line_n") is not None:
+            p.flight["brake_n"] = float(cl["LIGHT_line_n"])
+            used.append("REEL.clutch.LIGHT_line_n")
+        if cl.get("FIRM_line_n") is not None:
+            p.capstan["takeup_n"] = float(cl["FIRM_line_n"])
+            used.append("REEL.clutch.FIRM_line_n")
+        if rl.get("tow_limit_n") is not None:
+            p.capstan["tow_limit_n"] = float(rl["tow_limit_n"])
+    dr = getattr(mod, "DRUM", None) or {}
+    if isinstance(dr, dict) and isinstance(dr.get("bus"), dict) and dr["bus"].get("overdrive_total") is not None:
+        p.capstan["overspeed"] = float(dr["bus"]["overdrive_total"])
+        used.append("DRUM.bus.overdrive_total")
+    if isinstance(dr, dict) and dr.get("torque_limiter_nm") is not None:
+        p.wiper.limiter_nm = float(dr["torque_limiter_nm"])
+        used.append("DRUM.torque_limiter_nm")
     # SPRING.max_ext only caps (launch.py flags over_safe); the stroke comes from LAUNCH or the D5 defaults
     _overlay(p, getattr(mod, "AIM", None), AIM_MAP, used)
     _overlay(p, getattr(mod, "REEL", None), REEL_MAP, used)

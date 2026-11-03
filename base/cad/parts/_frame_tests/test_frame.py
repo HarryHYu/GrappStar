@@ -229,6 +229,8 @@ def test_calc_working_loads_ok(P, B):
 
 def test_guard_band_closes_box(P, B):
     bands = [p for p in B["parts"] if p.name.startswith("frame_guard_band")]
+    if B["info"]["cfg"]["v1"]:
+        pytest.skip("v1.0 layout: no cheek box, guards are separate covers")
     assert bands
     C = B["info"]["cfg"]
     for p in bands:
@@ -275,6 +277,8 @@ def test_adapter_ring_screws_line_up(P, rot):
 def test_block_screws_m3x8_engage(P, B):
     for sp in B["info"]["supports"]:
         b = sp["block"]
+        if b.get("seat"):
+            continue
         grip = b["tb"] - b["cb"]
         thread = 8.0 - grip
         assert 3.5 <= thread <= U.INS_L - 0.2, (sp["shaft"], grip)

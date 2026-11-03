@@ -53,7 +53,9 @@ class Part:
     color: str = "#c8ccd2"
     subsystem: str = ""             # filled in by the assembly from the module name
     notes: str = ""                 # one line: what it is and why (shows in BOM, guide, sim tooltips)
-    bought_ref: str = ""            # for bought parts: "608ZZ 8x22x7", "M3x10 SHCS ISO 4762"
+    bought_ref: str = ""            # bought items, ";" separated, optional count "<n> x <item>" (multiplied by qty):
+                                    # "608ZZ 8x22x7", "4 x M3x10 SHCS; 4 x M3 heat-set insert", "2xM3x8 BHCS".
+                                    # A plain number after the x is a size ("8 x 120 mm rod" = 1 rod).
     infill: float = 0.4             # for the mass estimate
     step: int | None = None         # assembly step number (assembly page and guide), None = auto by subsystem
 ```

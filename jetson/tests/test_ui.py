@@ -361,3 +361,28 @@ def test_get_stays_open_without_session_token(srv):
         assert r.status == 200, path
     r, _ = req(port, "GET", "/api/action/stop")
     assert r.status == 404 and app.calls == []                # GET never runs an action
+
+
+def test_post_refused_for_foreign_host_name(tmp_path):
+    """DNS rebinding: a POST whose Host is some other DNS name is refused even with the token and a matching Origin."""
+    import http.client
+    app = FakeApp(tmp_path)
+    srv = ui_server.make_server(app, host="127.0.0.1", port=0)
+    import threading
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        port = srv.server_address[1]
+        c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        c.request("POST", "/api/action/stop", body="{}", headers={
+            "Host": f"evil.example:{port}", "Origin": f"http://evil.example:{port}",
+            "X-GrappStar-Token": srv.session_token, "Content-Type": "application/json"})
+        r = c.getresponse()
+        assert r.status == 403
+        c.close()
+        c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        c.request("POST", "/api/action/stop", body="{}", headers={
+            "Host": f"127.0.0.1:{port}", "Origin": f"http://127.0.0.1:{port}",
+            "X-GrappStar-Token": srv.session_token, "Content-Type": "application/json"})
+        assert c.getresponse().status == 200
+    finally:
+        srv.shutdown()

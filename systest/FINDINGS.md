@@ -114,3 +114,26 @@ harness re-runs green.
   `BASE_RESET` at once; optionally confirm with `ping` (`t` smaller than before = reset).
 - The harness now models the sketch's 2.1 s setup delay by default (`power_unwrap`) and keeps the immediate-HELLO
   race as `power_unwrap_fasthello`.
+
+## F9 (fw-base) D12 degraded mode (SW_INDEX index cam, no AS5600 magnet) is not implemented
+
+- Scenario `no_angle_sensor` (AS5600 reads fail from power on): every wiper action is refused `ANGLE_SENSOR`
+  (`aim` in the log; `status` says `magnet` `NONE`). The mission cannot get past AIM.
+- D12 (`base/spec/DECISIONS.md:20`): "Fallback with no magnet: a 6-bump INDEX CAM on the main shaft read by SW_INDEX;
+  firmware degraded mode counts turns and sixths with time interpolation and re-zeroes on SW_HOME, SW_RAIL_LOW ...".
+  Firmware: `config.h:37` maps SW_INDEX to bit -1 (not read), and `base_logic.h` has no use of SW_INDEX at all
+  (grep). PROTOCOL.md does not mention a degraded mode either.
+- Either implement it (and the sim.h plant needs an index-cam contact so the host tests and this harness can run it),
+  or record in the spec that D12's fallback is dropped and a magnet is mandatory (then MEASURE_LIST / BENCH_TEST:
+  "fit the magnet before the first power-up").
+
+## F10 (jetson) preflight passes with the angle sensor dead; refusals are reported as faults
+
+- Same scenario: PREFLIGHT reports only the video warning and passes, although the base said `"as5600":false` in
+  HELLO and `"magnet":"NONE"` in the `status` reply that preflight itself fetched (`jetson/grappstar/mission.py`
+  `preflight()`, it never reads `magnet`). The operator finds out at AIM, after the target and the confirmations.
+- The AIM refusal (`{"ok":false,"err":"ANGLE_SENSOR"}`, a refusal: nothing moved, no fault latched) is shown as
+  "AIM failed: base refused aim: ANGLE_SENSOR. The base is in FAULT and went to NEUTRAL." (`mission.py:323-327`
+  treats any err string that equals a fault code as a fault). Retry then repeats it 3 times without any new information.
+- Suggest: preflight problem "angle sensor not reading (magnet NONE): fit the magnet / check the AS5600 wires" when
+  `magnet` is `NONE` (warning for `WEAK` / `STRONG`); only add the FAULT sentence when telemetry `fault` is set.

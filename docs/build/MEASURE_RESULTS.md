@@ -41,7 +41,7 @@ Write each number with its unit. Photo: the file name of the caliper photo in `o
 | C10 Yellow RCA lead |  |  |
 | C11 USB data cable for the DevKitC, STEMMA QT to Dupont cable |  |  |
 | C12 M3 screws (lengths from the base print list), M3 nuts, M3 ... |  |  |
-| C13 AS5600 magnet: any small neodymium disc (6 to 10 mm, 2 to 3 mm ... |  |  |
+| C13 AS5600 magnet (recommended): any small neodymium disc (6 to 10 ... |  |  |
 | C14 Optional: a second pair of the launch springs (Bunnings I/N ... |  |  |
 | C15 8 mm steel rod (or M8 bolts) for: reel shaft S, aim worm wheel ... |  |  |
 | C16 Hardware the CAD assumes: M3 x 4 x 5 heat-set inserts; M3 ... |  |  |

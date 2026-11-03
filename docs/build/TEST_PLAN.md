@@ -133,9 +133,8 @@ bypasses the capstan). Set the payout brake with hanging weights (G4): 40 g does
    Jetson uses to aim (base/physics/README.md has the details).
 
 Pass: clean exit (no rubbing marks on the dummy), it flies nose first, payout is clean, the range is within 30
-percent of the ballistics table at the same pitch (best about 4.8 m at 36 degrees with the two springs and the 0.5 N brake, measured from the ground
-point under the rail pivot;
-`base/physics/SUMMARY.md` has the current number).
+percent of the ballistics table at the same pitch (measured from the ground point under the rail pivot; the table is `base/out/ballistics.json`, shown on the
+operator page; best is about 5 m with the two springs and the 0.5 N brake).
 If it fails: short range: measure the springs (B2) and the muzzle speed, then re-run the physics. Rubbing marks:
 check the cradle and the barrel against the dart. Loops on the reel: raise the brake a little (never over 1 N).
 Big range loss with clean payout: the line catches somewhere; watch the slow-motion video.

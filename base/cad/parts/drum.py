@@ -1153,15 +1153,54 @@ def drum_theta(S, c):
     return {"LAUNCH": c["launch"], "NEUTRAL": c["neutral"], "REEL": c["reel"], "WRAPPED": c["wrapped"]}.get(m, c["launch"])
 
 
+def _lever_solve(f, lo=-0.5, hi=8.0):
+    """Lever angle (deg) where f(a) = nub centre radius - designed path radius crosses 0 (f grows with a)."""
+    if f(lo) >= 0.0:
+        return lo
+    if f(hi) <= 0.0:
+        return hi
+    for _ in range(40):
+        m = 0.5 * (lo + hi)
+        if f(m) < 0.0:
+            lo = m
+        else:
+            hi = m
+    return 0.5 * (lo + hi)
+
+
+def _nub(root, L, a):
+    """Nub centre after turning the lever by a (deg) about its root, in the frame it was built in."""
+    ca, sa = math.cos(math.radians(a)), math.sin(math.radians(a))
+    return root[0] + (-1.0 * ca + L * sa), root[1] + (-1.0 * sa - L * ca)
+
+
 def lever_deg(theta, g, c, i):
-    """Code lever deflection (deg about its root): the nub centre follows nub_centre_r exactly."""
-    lift = nub_centre_r(g, c, i, g["phi_sw"] - theta) - (g["band_r0"] + g["nub_r"] + 0.3)
-    return math.degrees(math.asin(min(1.0, lift / g["sw_L"])))
+    """Code lever angle (deg about its root): solved so the nub centre sits exactly on the designed path (the nub
+    swings on an arc, so a plain asin(lift / L) is off by up to 0.5 mm on the steep code ramps)."""
+    dx, dy = drum_xy(g)
+    root = lever_root(g, dx, dy, g["band_r0"])
+    L = g["sw_L"]
+
+    def f(a):
+        bx, by = _nub(root, L, a)
+        px, py = 2 * dx - bx, by                       # mirrored to the drum back
+        beta = math.degrees(math.atan2(py - dy, px - dx))
+        return math.hypot(px - dx, py - dy) - nub_centre_r(g, c, i, beta - theta)
+    return _lever_solve(f)
 
 
 def idx_lever_deg(wiper, g):
-    lift = idx_centre_r(g, g["idx_psi"] - wiper) - (g["idx_r0"] + g["nub_r"] + 0.3)
-    return math.degrees(math.asin(min(1.0, lift / g["sw_L"])))
+    """SW_INDEX lever angle, solved like lever_deg (nub exactly on the designed path)."""
+    root = lever_root(g, 0.0, 0.0, g["idx_r0"])
+    L = g["sw_L"]
+    R = idx_R(g)
+
+    def f(a):
+        bx, by = _nub(root, L, a)
+        p = R @ np.array([bx, by, 0.0, 1.0])
+        beta = math.degrees(math.atan2(p[1], p[0]))
+        return math.hypot(p[0], p[1]) - idx_centre_r(g, beta - wiper)
+    return _lever_solve(f)
 
 
 # Tooth phase of the cad-reel gears that mesh mine (measured with the exact meshes at params 1.2.6; centre of the

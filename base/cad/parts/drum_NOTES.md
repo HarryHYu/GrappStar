@@ -184,42 +184,38 @@ Timing:
 - 8.1 deg/s nominal. LAUNCH to NEUTRAL 5.1 s, wrap window 29.6 s, WRAPPED to REEL 4.1 s, full travel 44 s.
 - Timeout = 1.3 x nominal + 1 s up to the expected edge.
 
-## 7. Firmware rules (drum_table.json "rules" has the same)
+## 7. Firmware rules (fw-base c740e46 is the reference for behaviour; drum_table.json "rules" are my inputs to it)
 
 1. Wiper stopped before drum moves, with two exceptions:
    - the fly-in into REEL (D41): creep the wiper forward over 318..340; stop the creep when SW_DOG_R closes or the
      wiper current rises 0.8 A, then jog at most 5 deg at a time;
-   - the unwrap: WRAPPED back to NEUTRAL with the wiper creeping forward for the bus take-up.
-   (params TIMELINE still turns the wiper during some drum moves: see the requests in drum_REPORT.md.)
+   - the unwrap: REEL or WRAPPED back to NEUTRAL with the wiper creeping forward for the bus take-up.
 2. Check SW_DOG_L / SW_DOG_R during and after every move:
    - LAUNCH needs DOG_L closed;
    - REEL needs DOG_R closed;
    - NEUTRAL, WRAP_PREP, WRAP and WRAPPED need both open;
    - never enter the wrap window with either closed.
-3. Dog not closed in LAUNCH: jog the wiper +-8 deg. Leaving LAUNCH or REEL under load: unload jog 6 deg first (the
-   dog play is +-8), stop the jog early on a current rise. SWITCH_DISAGREE after 3 tries.
+3. Dog not closed in LAUNCH: backward wiggle of the wiper within a 40 deg / 6 s budget. Leaving LAUNCH or REEL under
+   load: unload jog 6 deg (params unload_jog_deg), stopped early on a 0.8 A rise.
 4. During every move:
-   - any code other than the current zone or the next one in the travel direction: stop, SWITCH_DISAGREE;
-   - each code must last at least 70 percent of its span / dps before the next is accepted;
-   - timeout 1.3 x nominal + 1 s up to the expected edge: stop, DRUM_TIMEOUT;
-   - SW_ARM opening (cup leaves home) in a move that is not a wrap or unwrap: stop, DRUM_SENSOR;
-   - contacts debounced 5 ms (two equal reads).
+   - a code that is not the current zone or the next one in the travel direction: stop, DRUM_SENSOR;
+   - an intermediate code must last at least 70 percent of its span / dps;
+   - timeout 1.3 x nominal + 1 s: stop, DRUM_TIMEOUT;
+   - SW_ARM opening (cup leaves home) outside a wrap or unwrap: fault;
+   - contacts debounced 20 ms with chatter detection (0.16 deg of drum at 8.1 deg/s).
    All 7 nonzero codes are valid zones, so one failed contact reads as a wrong zone: these rules and the dog
    cross-checks catch it.
 5. Faults (D27):
    - In LAUNCH or L_TO_N: HOLD the drum unless SW_HOME is closed (spring not drawn), then NEUTRAL.
-   - In NEUTRAL or WRAP_PREP: stop the wiper, drum to NEUTRAL if not there, hold.
+   - In NEUTRAL or WRAP_PREP: stop the wiper and hold.
    - With the wraps on (WRAP, N_TO_R, REEL): HOLD where it is (DRUM_HELD), never NEUTRAL; the operator unwraps when
-     safe.
-   - REEL to WRAPPED (on operator command): by time from edge 342, never back into the wrap window.
-6. Boot:
-   - accept the code only if the other switches agree: LAUNCH needs DOG_L closed; REEL needs DOG_R closed; NEUTRAL
-     and WRAP_PREP need both dogs open and SW_ARM closed (cup home); otherwise hold and report;
-   - LAUNCH or L_TO_N: hold until SW_HOME, then NEUTRAL;
-   - NEUTRAL or WRAP_PREP: go to NEUTRAL through a known edge (forward to edge 50, then back 9 deg);
-   - WRAP, N_TO_R or REEL: hold and report;
-   - code 000: DRUM_SENSOR, hold.
-7. SW_N20 open means the hand fallback is active: no drum moves. When it closes again, run the boot rules.
+     safe. There is no REEL to WRAPPED command: the unwrap goes REEL to NEUTRAL with the take-up.
+6. Boot: no automatic drum moves (the host commands them).
+   - Cross-check the code with the other switches: LAUNCH needs DOG_L closed; REEL needs DOG_R closed; NEUTRAL and
+     WRAP_PREP need both dogs open and SW_ARM closed (cup home); otherwise report.
+   - The first commanded move from a guessed angle re-references on a real code edge.
+   - Code 000: DRUM_SENSOR.
+7. SW_N20 open means the hand fallback is active: no drum moves. When it closes again, the boot rules run again.
 8. SW_INDEX: 6 pulses per wiper turn (degraded mode without the AS5600 magnet).
 9. Positive drum = N20 forward (DRV8833 #3 AIN1 high) = wrap direction.
 

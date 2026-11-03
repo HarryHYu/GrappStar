@@ -809,7 +809,15 @@ struct Base {
   }
   // reel: in REEL the capstan winds (tow, retrieve). In NEUTRAL only the take-up turns (forward, at most 40 percent):
   // the final approach until SW_SEATED (DART_STUCK after 20 s) or the tidy before wrapping (until "slip").
-  bool takeupOnly = false;
+  bool takeupOnly = false; uint32_t approachMs = 20000;
+  // final approach time limit (DART_STUCK): "max_s" 5..180, default 20 s + line_m / 0.08 m/s (the take-up at 30 percent),
+  // or 30 s with line_m unknown; at most 180 s
+  bool approachLimit(const JObj& o) {
+    double ms;
+    if (o.num("max_s", &ms)) { if (!(ms >= 5 && ms <= 180)) return false; approachMs = (uint32_t)(ms * 1000); return true; }
+    float sec = lineKnown ? 20.f + lineM / c.takeupMps : c.approachMaxMs / 1000.f; if (sec > 180) sec = 180;
+    approachMs = (uint32_t)(sec * 1000); return true;
+  }
   // D34: the tow trip sits above the current the limit needs, I = (limit + 10.4) / 17 + I_free, with a 1 A margin;
   // never below tow_trip_a (6.5 A, D33) and never above the hard trip
   float towTrip() const { float need = (maxN - c.tensOffsetN) / c.kNperA + c.freeA + 1.0f; float t = fmaxf(c.towTripA, need); return fminf(t, c.hardTripA); }
@@ -1021,7 +1029,7 @@ struct Base {
       if (!o.num("duty", &a)) a = c.reelDuty / 255.0;
       if (!o.num("max_n", &m)) m = c.limitN;
       o.str("until", &s2);
-      err = cmdReel(a, m, s2);
+      if (!approachLimit(o)) err = "BAD_ARG"; else err = cmdReel(a, m, s2);
     }
     else if (!strcmp(cmd, "jog")) { if (!o.num("ms", &b)) b = 300; err = (o.str("motor", &s) && o.num("dir", &a)) ? cmdJog(s, a, b) : "BAD_ARG"; }
     else if (!strcmp(cmd, "tidy")) {               // D22: take-up only, forward by time (collar NEUTRAL)
@@ -1034,7 +1042,7 @@ struct Base {
     }
     else if (!strcmp(cmd, "retrieve")) {           // final approach until SW_SEATED on the take-up (D35: refused with the wraps on)
       if (!o.num("duty", &a)) a = 0.3; if (!o.num("max_n", &m)) m = c.limitN;
-      err = cmdReel(a, m, "seated");
+      err = approachLimit(o) ? cmdReel(a, m, "seated") : "BAD_ARG";
     }
     else if (!strcmp(cmd, "decock")) { err = cmdCal("decock", o); }
     else if (!strcmp(cmd, "cal") && bootPending && !(o.str("what", &s) && !strcmp(s, "drum"))) err = "BOOTING";   // resolveBoot() would undo it
@@ -1323,7 +1331,7 @@ struct Base {
   void tickReel() {
     if (until == U_SEATED && rose(SW_SEATED)) { w.halt(now, io.wiper); state = S_IDLE; stT = now; evSeated(); return; }
     if (takeupOnly) {                                // NEUTRAL: take-up only
-      if (until == U_SEATED && now - opT > c.approachMaxMs) { raise(F_DART_STUCK, "final approach: no SW_SEATED in 20 s"); return; }
+      if (until == U_SEATED && now - opT > approachMs) { char b[48]; snprintf(b, sizeof b, "final approach: no SW_SEATED in %u s", (unsigned)(approachMs / 1000)); raise(F_DART_STUCK, b); return; }
       if (until == U_TIME && (int32_t)(now - tidyUntil) >= 0) {
         w.halt(now, io.wiper); state = S_IDLE; stT = now; JOut o(evBuf, sizeof evBuf); evBegin(o, "TIDIED"); o.boolean("ok", true); evEnd(o); dirty = true; return;
       }

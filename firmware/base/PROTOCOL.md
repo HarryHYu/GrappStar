@@ -1,6 +1,6 @@
 # GrappStar base station protocol (contract C1)
 
-Firmware `base-1.2.1` (`firmware/base/grappstar_base`, the base-1.2 line), mechanism BASE_SPEC v1.2 (with the C1 sequence of section 10.1, D35) and `base/spec/params.py` 1.2.1 (as built into `params_gen.h`) (drum
+Firmware `base-1.2.1` (`firmware/base/grappstar_base`, the base-1.2 line), mechanism BASE_SPEC v1.2 (with the C1 sequence of section 10.1, D35) and `base/spec/params.py` 1.2.4 (built into `params_gen.h`: drum, trips, tension model and the aim table) (drum
 order LAUNCH / NEUTRAL / WRAP / REEL with the WRAPPED park inside N_TO_R, decisions D16, D22 and D31; mission order
 D22). This file is the contract the Jetson implements against. Changes are additive where possible (new fields, new
 events, new error codes); section 10 lists everything the Jetson worker must change for base-1.2.
@@ -36,13 +36,15 @@ Every command line gets exactly one reply line, in order:
 
 - `id`: echoed first. An integer (echoed as an integer, up to 2^53) or a string. Missing, `null` or a boolean gives
   `"id":null`. A number that is not an exact integer (`1.5`, `1e35`) is refused with
-  `{"id":null,"ok":false,"err":"BAD_ID"}`. Strings are cut to 63 bytes; keep them under 24 bytes, because if the whole
+  `{"id":null,"ok":false,"err":"BAD_ID"}` (a `stop` or `estop` with such an id is still carried out). Strings are cut to 63 bytes; keep them under 24 bytes, because if the whole
   reply would pass 256 bytes it is rebuilt with only `id` (cut to 23), `ok`, `err` (and `token` for `arm`). If even
-  that does not fit: `{"id":null,"ok":false,"err":"REPLY_OVERFLOW"}`. Use unique increasing integers.
+  that does not fit: `{"id":null,"ok":false,"err":"REPLY_OVERFLOW"}`. A `status` reply that is too long drops the
+  fault `why` first, then all its other fields (only `id` and `ok` left). Use unique increasing integers.
 - Field order in a reply: `id`, then any `val` / `min` / `max` from `get`, then `ok`, then `err` or the extra fields.
 - A line that is not valid JSON: `{"id":null,"ok":false,"err":"BAD_JSON"}`. A line over 256 bytes:
   `{"id":null,"ok":false,"err":"TOO_LONG"}`. No `cmd`: `NO_CMD`. Unknown `cmd`: `UNKNOWN_CMD`.
-- Keys are at most 15 characters, at most 12 keys per object are read (more are ignored), a repeated key takes the
+- Keys are at most 15 characters, at most 12 keys per object are read (more are ignored, but `id` and `cmd` always
+  take a slot from an unknown key), a repeated key takes the
   last value, unknown keys are ignored, nested objects or arrays as values are skipped.
 - Long actions (`mode`, `aim`, `cock`, `fire`, `wrap`, `unwrap`, `reel`, `tidy`, `retrieve`, `decock` and
   `cal decock`, `estop`) reply `ok:true` as soon as they START. Completion is an event (section 4). `jog` ends silently
@@ -81,7 +83,7 @@ Checked first by every action that moves something (in this order):
 | `arm` | | checks everything `fire` needs and replies `"token":<6-digit integer>,"valid_ms":3000`. A new `arm` replaces the old token. `mode`, `aim`, `cock`, `wrap`, `jog`, `decock`, `stop`, `estop` and any fault cancel it | `NOT_IN_LAUNCH`, `WRAPS_ON` (wraps not 0 or unknown), `NO_SENSOR` (no `SW_HOME`, or no `SW_SEATED` while `require_seated`), `NOT_COCKED` (neither `COCKED` with `SW_HOME` open and `SW_GAP` open, nor `REST` with `SW_HOME` closed and `SW_GAP` closed), `NOT_AIMED` (not aimed since the last shift, shot or aim-train move, or the pitch is more than `aim_tol` off the target), `NOT_SEATED` |
 | `fire` | `token`: the integer from `arm` (a numeric string is accepted) | checks the token, then everything again, then runs the wiper FORWARD (trip 6.5 A up to the release, 5 A for the reset): from `COCKED` straight past the release tooth (about 1 s to `RESET`), from `REST` the whole cycle in one run (draw, release, reset: about 3 s). `FIRED` when `SW_HOME` closes (carriage released), `RESET` when the big gear is back in its gap with `SW_HOME` and `SW_GAP` closed. The token is single use; a wrong token cancels the arm | `BAD_ARG` (no `token`), `NOT_ARMED`, `TOKEN_EXPIRED` (over 3 s), `BAD_TOKEN`, then the common refusals and the `arm` refusals |
 | `wrap` | | from LAUNCH (D22: straight after the shot; the same checks as leaving LAUNCH, then the centering jog), L_TO_N, NEUTRAL, WRAP_PREP or inside WRAP: drum forward through the WRAP window (62 to 302: the cup lays 7 turns on the capstan with the collar in NEUTRAL and the wiper off) to the WRAPPED park 314 in N_TO_R (cup locked, collar still NEUTRAL). `SW_ARM` must pulse 7 times across the window. `WRAPPED` event at the park; no `MODE` event follows. About 35 s from NEUTRAL, 40 s from LAUNCH: use a timeout of 90 s. Already in N_TO_R or REEL: `ok` and an immediate `WRAPPED` (nothing moves) | `POSITION_UNKNOWN`, `LAUNCH_BUSY` (launcher not at rest, or `SW_GAP` open, when leaving LAUNCH or L_TO_N; or the spring known drawn), `HAND_MODE`, `BUSY` (wiper running), `ANGLE_SENSOR` (from LAUNCH without the AS5600: the centering jog needs it) |
-| `unwrap` | | from REEL, N_TO_R (the WRAPPED park included), WRAP or WRAP_PREP: from REEL first the centering jog (forward at 20 % until the 16 deg dog window is taken up or 3 s, then 8 deg back), then the drum backward to NEUTRAL 41. While the drum is in WRAP and WRAP_PREP the wiper turns forward at 40 % (take-up only, trip 2.5 A: the capstan is not driven, the take-up winds the freed line). After a full pass `SW_ARM` must have pulsed 7 times. `UNWRAPPED` event, then `MODE` (NEUTRAL). About 40 s from REEL. Safe at any wrap count (also after a power cut mid-wrap). Already at NEUTRAL: `ok` and an immediate `UNWRAPPED` | `POSITION_UNKNOWN`, `NOT_WRAPPED` (drum in LAUNCH or L_TO_N), `BUSY` (wiper running), `ANGLE_SENSOR` (the take-up needs the wiper), `HAND_MODE`, `LAUNCH_BUSY` (spring known drawn) |
+| `unwrap` | | from REEL, N_TO_R (the WRAPPED park included), WRAP or WRAP_PREP: from REEL first the centering jog (forward at 25 % until the 16 deg dog window is taken up or 3 s, then 8 deg back), then the drum backward to NEUTRAL 41. While the drum is in WRAP and WRAP_PREP the wiper turns forward at 40 % (take-up only, trip 2.5 A: the capstan is not driven, the take-up winds the freed line). After a full pass `SW_ARM` must have pulsed 7 times. `UNWRAPPED` event, then `MODE` (NEUTRAL). About 40 s from REEL. Safe at any wrap count (also after a power cut mid-wrap). Already at NEUTRAL: `ok` and an immediate `UNWRAPPED` | `POSITION_UNKNOWN`, `NOT_WRAPPED` (drum in LAUNCH or L_TO_N), `BUSY` (wiper running), `ANGLE_SENSOR` (the take-up needs the wiper), `HAND_MODE`, `LAUNCH_BUSY` (spring known drawn) |
 | `tidy` | `ms` (default 3000 = config `tidyMs`, over 0 up to 60000), `duty` (default 0.3) | D22 tidy by time: take-up only, wiper FORWARD for `ms` (trip 2.5 A). Allowed at the WRAPPED park (N_TO_R below 318) or in NEUTRAL, both dog contacts open. `duty` over 0 up to 1; below 0.27 it runs at 0.27, above 0.40 it is capped at 0.40. `TIDIED` event at the end. Telemetry `state` is `REEL` meanwhile; `stop` ends it with `ABORTED` `what:"REEL"` | `BAD_ARG` (`ms` out of range, bad `duty`), `NOT_IN_NEUTRAL` (anywhere else, or a dog contact closed), `POSITION_UNKNOWN` (drum code invalid). These come before the common refusals |
 | `retrieve` | `duty` (default 0.3), `max_n` (default `limit_n`) | final approach on the take-up: the same as `reel` with `until:"seated"`. In NEUTRAL (or at the WRAPPED park, below 318 deg) the take-up pulls the dart in (trip 2.5 A, fault `DART_STUCK` after 20 s without `SW_SEATED`). Never on the capstan (D35): in REEL it is refused. `SEATED` event. Already seated: `ok` and an immediate `SEATED` | as `reel`, so in REEL `WRAPS_ON` (`unwrap` first) |
 | `decock` | `force` (optional) | the same as `cal decock` (section 7) | as `cal decock` |
@@ -89,14 +91,17 @@ Checked first by every action that moves something (in this order):
 | `jog` | `motor`: `wiper` \| `drum`, `dir`: 1 \| -1, `ms` (default 300, capped at 1500) | runs one motor for `ms`. Deadman: the same jog (same motor and dir) sent again before it ends extends it. Wiper dir 1 = FORWARD, drum dir 1 = toward REEL. Ends silently (state back to `IDLE`), see below for the limits | see below |
 | `cal` | `what`, see section 7 | calibration actions | per action (section 7), `BAD_ARG` for an unknown `what` |
 | `set` | `key`, `val` (number or `true` / `false`) | sets a value (section 7) | `BAD_ARG` (no key or val), `BAD_KEY`, `OUT_OF_RANGE`, for `enc_sign`: `BAD_ARG` unless 1 or -1, `BUSY` while moving |
-| `get` | `key` | reply carries `val` (or `min` and `max` for `pitch_range`) | `BAD_ARG` (no key), `BAD_KEY` |
+| `get` | `key` | reply carries `val` (numbers with up to 7 significant digits; `min` and `max` for `pitch_range`) | `BAD_ARG` (no key), `BAD_KEY` |
 
 #### `reel` in detail
 
 In REEL (capstan, wiper FORWARD):
 
-- Trip: `tow_trip_a` (6.5 A) with `until:"tension"` (the tow: a 50 N tow draws about 5.1 A, so the tension estimate
-  is the real limit), `trip_a` (5 A) with any other `until`.
+- Trip with `until:"tension"` (the tow, D34): the larger of `tow_trip_a` (6.5 A) and the current the limit needs plus
+  1 A, that is `(max_n - tension_offset_n) / k_n_per_a + free_a + 1`, never above the hard 17 A. With the defaults
+  and `max_n` 50 that is 6.5 A (a 50 N tow draws about 5.1 A, so the tension estimate is the real limit); with
+  `max_n` 110 about 10.1 A. A `set` of any of these values during a tow moves the trip at once. Any other `until`:
+  `trip_a` (5 A).
 - Tension = load cell when one is live, else the estimate
   `k_n_per_a x (amps - free_a) + tension_offset_n` (defaults 17.0 and -10.4: physics v1.2 with the clutch FIRM at 5 N;
   never below 0, averaged over about 200 ms (D33); the first 350 ms of a run are ignored). The speed tapers over the last 30 % of `max_n`.
@@ -143,7 +148,7 @@ A forward jog in LAUNCH from rest draws the carriage (phase `COCKING` once `SW_H
 the release tooth with `ABORTED` (`what:"JOG"`, `why:"would pass the release tooth"`). A backward jog in LAUNCH turns
 the aim train and clears `aimed`.
 
-Drum jog (full speed, no centering jog, no checks of the target, no dog contact check):
+Drum jog (full speed, no centering jog, no checks of the target):
 
 | err | when |
 |---|---|
@@ -151,11 +156,14 @@ Drum jog (full speed, no centering jog, no checks of the target, no dog contact 
 | `POSITION_UNKNOWN` | drum code invalid |
 | `HAND_MODE` | `SW_N20` open |
 | `LAUNCH_BUSY` | drum in LAUNCH or L_TO_N (or the spring known drawn) and the launcher not at rest; dir -1 inside LAUNCH is allowed |
-| `WRAPS_ON` | dir -1 in REEL (leaving REEL needs the centering jog: use `unwrap`) |
+| `WRAPS_ON` | dir -1 in REEL (leaving REEL needs the centering jog: use `unwrap`), or any jog inside WRAP (only `wrap` and `unwrap` cross the window) |
+| `SWITCH_DISAGREE` | a dog contact disagrees with the drum code (`SW_DOG_L` closed past L_TO_N, or `SW_DOG_R` closed before N_TO_R) |
 
 A drum jog stops by itself when the angle estimate reaches 4 deg past the LAUNCH park (-4 deg, which is the end stop
-itself) or the REEL park (351 deg) (`ABORTED`, `what:"JOG"`, `why:"drum end stop"`). Any jog clears `aimed` (drum)
-and cancels an arm token.
+itself) or the REEL park (351 deg) (`ABORTED`, `what:"JOG"`, `why:"drum end stop"`). It also stops when it enters WRAP
+(`ABORTED`, `what:"JOG"`, `why:"wrap window: use wrap or unwrap"`). A dog contact that disagrees with the drum code
+during the jog is `FAULT` `SWITCH_DISAGREE` "collar contact disagrees with the drum code". Any jog clears `aimed`
+(drum) and cancels an arm token.
 
 ## 3. Telemetry
 
@@ -236,7 +244,7 @@ fields it does not know.
 | `LIMIT` | `tension_n` (null for the slip tidy), `max_n`, `why` (`tension limit` or `tidy done (take-up slipping)`), `holding` | the reel reached `max_n` (holding when `until:"tension"`), or the slip tidy finished |
 | `STALL` | | the wiper stalled (sent right after the `FAULT` with code `STALL`) |
 | `FAULT` | `code`, `why` (up to 47 characters) | a fault latched (section 6) |
-| `ABORTED` | `what` (the state that was running: `MODE`, `AIM`, `COCK`, `FIRE`, `WRAP`, `UNWRAP`, `REEL` (also `tidy` and `retrieve`), `HOLD`, `JOG`, `DECOCK`; or `HOST`), `why` (`stop`, `estop`, `timeout`, `would pass the release tooth`, `drum end stop`, `host silent`) | an action ended without completing. Treat it as the failure of whatever you were waiting for (a `stop` you sent yourself also gives one). The host watchdog sends two: the stopped state with `why:"stop"`, then `what:"HOST"` |
+| `ABORTED` | `what` (the state that was running: `MODE`, `AIM`, `COCK`, `FIRE`, `WRAP`, `UNWRAP`, `REEL` (also `tidy` and `retrieve`), `HOLD`, `JOG`, `DECOCK`; or `HOST`), `why` (`stop`, `estop`, `timeout`, `would pass the release tooth`, `drum end stop`, `wrap window: use wrap or unwrap`, `host silent`) | an action ended without completing. Treat it as the failure of whatever you were waiting for (a `stop` you sent yourself also gives one). The host watchdog sends two: the stopped state with `why:"stop"`, then `what:"HOST"` |
 | `OVERFLOW` | (no `t`) | an event did not fit 256 bytes (should never happen) |
 
 Example sequences (simulation):
@@ -270,16 +278,16 @@ How a drum move runs (for `mode`, `wrap`, `unwrap`, `estop` and safing):
 1. Checks (section 2 and 6). The record "moving" goes to flash.
 2. Centering jog, only when leaving an engaged collar (LAUNCH or REEL), not for `estop` or safing (`mode`, `wrap` and
    `unwrap` refuse with `ANGLE_SENSOR` when it would be needed and the AS5600 is not reading): in LAUNCH the wiper turns 8 deg BACKWARD (half the 16 deg dog window, so the collar touches no flank;
-   never forward, that would cock). In REEL it first turns FORWARD at 20 % until the 16 deg window is taken up (or
+   never forward, that would cock). In REEL it first turns FORWARD at 25 % until the 16 deg window is taken up (or
    3 s), then 8 deg back (sprag #2 holds the line meanwhile). Trip 3 A. The 8 deg leg is also capped in time (1.5 x
    its free-speed time), so a noisy angle cannot carry it past the window.
 3. The N20 runs to the target sector's code edge, then on by time to the park.
 4. During the run `SW_DOG_L` must stay open once the drum is past L_TO_N, and `SW_DOG_R` must stay open until N_TO_R
    (so the WRAP window is never entered with either closed); otherwise `SWITCH_DISAGREE` "collar contact disagrees
    with the drum code". While unwrapping, the wiper turns forward at 40 % in WRAP and WRAP_PREP (take-up, trip
-   2.5 A). Toward REEL the fly-in starts at 318 deg: wiper forward at 20 % (trip 3 A).
+   2.5 A). Toward REEL the fly-in starts at 318 deg: wiper forward at 25 % (trip 3 A; 25 % so the trip sees the true current).
 5. At the park the dog contacts must confirm the collar: REEL needs `SW_DOG_R` (fly-in continues for at most 120 deg
-   of wiper or 6 s); LAUNCH needs `SW_DOG_L` (if not yet, the wiper is turned BACKWARD at 20 % for at most 40 deg,
+   of wiper or 6 s); LAUNCH needs `SW_DOG_L` (if not yet, the wiper is turned BACKWARD at 25 % for at most 40 deg,
    never forward; with the spring possibly drawn this is a fault instead); NEUTRAL and the WRAPPED park need both
    open after 100 ms. After arriving in LAUNCH the aim is forgotten (`aim_known` false): the next `aim` re-homes.
 6. The end event: `MODE` (`mode`, `estop`, safing), `WRAPPED` (`wrap`), `UNWRAPPED` then `MODE` (`unwrap`).
@@ -289,6 +297,11 @@ count as 20 deg), or the whole move over 1.5 x the expected time plus 1.5 s: `DR
 in under a quarter of the expected time to the target code's edge (only when that time is over 1.5 s, and only when
 the start angle is trusted, that is a code edge was seen or a saved angle agreed at boot): `DRUM_SENSOR` "target code
 came far too early".
+
+If the drum leaves the target sector before the park (an untrusted start angle, or `drum_dps` wrong), it stops, comes
+back to the edge it just crossed and runs on from there. A second overshoot in the same move is `DRUM_SENSOR` "drum
+overshot the target sector"; not back within the time of 10 deg plus 1.5 s is `DRUM_TIMEOUT` "drum did not come back
+to the target sector". So after a power cut in N_TO_R the move to the WRAPPED park never runs on into WRAP.
 
 ## 6. Faults and safety
 
@@ -315,7 +328,7 @@ came far too early".
 |---|---|
 | aim, reel in (`reel` until `stop` in REEL), decock, the reset after a release (`trip_a`) | 5 A |
 | cock, fire up to the release, forward jog in LAUNCH (`cock_trip_a`) | 6.5 A |
-| tow (`reel` with `until:"tension"`, `tow_trip_a`). A 50 N tow draws about 5.1 A: the tension estimate is the real tow limit | 6.5 A |
+| tow (`reel` with `until:"tension"`): the larger of `tow_trip_a` and `(max_n - tension_offset_n) / k_n_per_a + free_a + 1` (D34). A 50 N tow draws about 5.1 A: the tension estimate is the real tow limit | 6.5 A with the defaults, at most 17 A |
 | take-up only (`reel`, `tidy`, `retrieve` in NEUTRAL or at the WRAPPED park, take-up during `unwrap`, forward jog in NEUTRAL, WRAP_PREP or WRAP) | 2.5 A |
 | jogs, centering jog, fly-in, the LAUNCH collar wiggle | 3 A |
 | any state, never ignored | 17 A |
@@ -333,10 +346,10 @@ drum, see below).
 |---|---|
 | `OVERCURRENT` | wiper current over the state trip for 30 ms (`wiper over 6.5 A`: the trip in force, one decimal) |
 | `STALL` | `wiper stalled` (also sends a `STALL` event) |
-| `DRUM_TIMEOUT` | `drum not turning (no code edge)`, `drum did not reach the target in time`, `dogs did not engage (collar contact open)` |
-| `DRUM_SENSOR` | `drum code 000 (wire off or bump missing)` or `drum code jumped over a sector` for 150 ms; `drum turned the wrong way (drum_sign?)` (N20 wires swapped); `target code came far too early`; `drum overshot the target sector`; `drum code changed with the drum still` (the worm cannot be back-driven: a contact is lying, or the drum was turned by hand while the base runs; one `clear` is enough once the drum is still); `N20 latched out during a drum move`; `SW_ARM counted n of 7 cup turns`; `drum code disagrees with the saved drum angle` (at boot) |
+| `DRUM_TIMEOUT` | `drum not turning (no code edge)`, `drum did not reach the target in time`, `drum did not come back to the target sector`, `dogs did not engage (collar contact open)` |
+| `DRUM_SENSOR` | `drum code 000 (wire off or bump missing)` or `drum code jumped over a sector` for 150 ms; `drum turned the wrong way (drum_sign?)` (N20 wires swapped); `target code came far too early`; `drum overshot the target sector` (a second time in one move); `drum code changed with the drum still` (the worm cannot be back-driven: a contact is lying, or the drum was turned by hand while the base runs; one `clear` is enough once the drum is still); `N20 latched out during a drum move`; `SW_ARM counted n of 7 cup turns` (checked only for a whole pass: entered at one end and left at the other in one `wrap` or `unwrap` move); `drum code disagrees with the saved drum angle` (at boot) |
 | `ANGLE_SENSOR` | `AS5600 lost while the wiper runs` (4 bad reads, or no magnet); `AS5600 counts against the drive (enc_sign?)`; `AS5600 glitching (over 20 bad samples a second)`; in index mode `SW_INDEX bump overdue (index cam or contact)` |
-| `SWITCH_DISAGREE` | `SW_DOG_L and SW_DOG_R both closed` (200 ms, or at the end of a move); `collar contact disagrees with the drum code` (during a drum move); `drum code contact chattering` during a drum move; `collar still engaged at NEUTRAL` (also at the WRAPPED park); `SW_HOME opened at the wrong angle`; `SW_HOME still closed past the first tooth`; `SW_HOME chattering during decock` |
+| `SWITCH_DISAGREE` | `SW_DOG_L and SW_DOG_R both closed` (200 ms, or at the end of a move); `collar contact disagrees with the drum code` (during a drum move or a drum jog); `drum code contact chattering` during a drum move; `collar still engaged at NEUTRAL` (also at the WRAPPED park); `SW_HOME opened at the wrong angle`; `SW_HOME still closed past the first tooth`; `SW_HOME chattering during decock` |
 | `BROWNOUT` | `battery sagged under load`: under `vbat_low` for 300 ms while a motor runs |
 | `BAD_STATE` | the mechanism did not do what the angle says: `collar left LAUNCH during a launch action`, `drum code away from LAUNCH but the spring is drawn`, `LAUNCH collar not confirmed with the spring possibly drawn`, `SW_RAIL_LOW never closed in an aim cycle`, `aim ran too far`, `carriage not drawn (SW_HOME still closed): rack or dog not engaged`, `carriage slipped home while cocking`, `SW_HOME closed at the end of cocking`, `SW_HOME never opened (stuck closed?)`, `release at the wrong angle` (after `FIRED`), `no release seen (SW_HOME did not close)`, `SW_HOME opened while resetting`, `reset ended with the carriage off its stop`, `reset ended with the big gear out of its gap`, `decock: SW_HOME never closed`, `decock: SW_GAP never closed`, and the time limits (`cocking took too long`, `cock recovery took too long`, `fire cycle took too long`, `decock by travel took too long`) |
 | `DART_STUCK` | `final approach: no SW_SEATED in 20 s` |
@@ -378,17 +391,17 @@ false unless the saved angle was trusted); the operator decides (section 9).
 
 | what | args | does | refusals |
 |---|---|---|---|
-| `current` | | zero the wiper current reading (motor stopped) | `BUSY` (running) |
-| `free` | | learn the free-running current from the run in progress (after 0.8 s of running) | `NOT_RUNNING` |
+| `current` | | zero the wiper current reading (motor stopped) | `BUSY` (running), `OUT_OF_RANGE` (the new offset would be outside 0..5 A) |
+| `free` | | learn the free-running current from the run in progress (after 0.8 s of running) | `NOT_RUNNING`, `OUT_OF_RANGE` (over 10 A) |
 | `tare` | | zero the load cell | `NO_SENSOR` |
-| `aim` | `deg`: pitch measured with a phone inclinometer | sets `aim_offset` so the reported pitch matches | `BAD_ARG` (no `deg`), `AIM_UNKNOWN` |
+| `aim` | `deg`: pitch measured with a phone inclinometer | sets `aim_offset` so the reported pitch matches | `BAD_ARG` (no `deg`), `AIM_UNKNOWN`, `OUT_OF_RANGE` (the offset would be outside -20..20) |
 | `aim_home` | | declare the aim train at its home (where `SW_RAIL_LOW` closes on the backward run) | `BUSY` (moving) |
 | `aim_forget` | | forget the aim: the next `aim` re-homes | `BUSY` |
 | `cock_rest` | `force` (optional, true: `SW_HOME` known broken, checked by eye) | declare the launcher at rest (carriage forward). For a new build, or after checking by eye | `BUSY`, `SWITCH_DISAGREE` (`SW_HOME` open and no `force`) |
 | `decock` (also the command `decock`) | `force` (optional) | lets a drawn carriage down without firing: runs the wiper BACKWARD slowly (47 %, trip 5 A) so the spring unwinds under the worm, until `SW_HOME` has stayed closed for 15 deg more and `SW_GAP` is closed too. Turns the aim train too: the aim becomes unknown. `RESET` event with `how:"decock"`. Carriage already home: phase `REST` gives an immediate `RESET`; phase `UNKNOWN` with no sign of a draw replies `ok`, moves nothing and sends `RESET` with `ok:false`, `how:"decock"`, `why:"carriage home: nothing to decock, cock finds the angle"` (then use `cock` or `cal cock_rest`). `SW_HOME` closed while the last known angle says drawn: refused with `SWITCH_DISAGREE`, unless `force:true`: then it runs back by the travel that angle needs and calls it rest (`how:"decock by travel"`) | common (`ANGLE_SENSOR` included), `NOT_IN_LAUNCH` (drum code not LAUNCH), `NO_SENSOR` (no `SW_HOME`), `SWITCH_DISAGREE` |
 | `drum` | | the drum code is absolute: this only reports, with a `MODE` event | `POSITION_UNKNOWN` |
 
-`set` / `get` keys. Saved in flash once everything has stopped, kept over a power cycle and a new upload, except where
+`set` / `get` keys. Saved in flash once everything has stopped (only when a value really changed), kept over a power cycle and a new upload, except where
 the table says otherwise:
 
 | key | default | range | meaning |
@@ -413,7 +426,7 @@ the table says otherwise:
 | `vbat_wired` | true | true / false | the battery divider is fitted; false turns off `NO_POWER` and `BROWNOUT` and makes `vbat` null |
 | `enc_sign` | 1 | 1 / -1 | AS5600 count direction (set while stopped) |
 | `host_timeout_s` | 0 (off) | 0..600 | host watchdog: no line from the Jetson for this long while a motor runs = `stop` (two `ABORTED` events, the second `what:"HOST"`, `why:"host silent"`). Send `ping` to keep long runs alive (a `wrap` or `unwrap` takes about 40 s) |
-| `fw`, `params`, `pitch_range` | | get only | firmware version (`base-1.2.1`), params.py version (`1.2.1`), `min` / `max` pitch (6.01 / 47 with the built-in table) |
+| `fw`, `params`, `pitch_range` | | get only | firmware version (`base-1.2.1`), params.py version (`1.2.4`), `min` / `max` pitch (6.01 / 47 with the built-in table) |
 
 The take-up trip (2.5 A) and the jog trip (3 A) are fixed in `config.h`, not `set` keys.
 
@@ -475,7 +488,9 @@ says what is known:
   `wrap` or `unwrap`; `unwrap` is safe at any wrap count.
 - Wiper: the AS5600 angle inside one turn is checked against the saved angle. If the wiper was moving, or the shaft
   was turned while off (over 3 deg), the aim becomes unknown (re-homed by the next `aim`) and the shot phase `UNKNOWN`.
-- A launch train stopped mid-cycle (`COCKING`, `FIRING`, `RESETTING`) is never trusted: `UNKNOWN`.
+- A launch train stopped mid-cycle (`COCKING`, `FIRING`, `RESETTING`) is never trusted: `UNKNOWN`. The record was
+  written as that motion started, so for a cut while cocking or firing the base assumes the worst: the phase hint
+  becomes the cock end angle (carriage drawn). `cock` then replies `LOADED_UNKNOWN`.
 - `SW_HOME` and `SW_GAP` must agree with the record: `REST` needs both closed, `COCKED` needs `SW_HOME` open; anything
   else gives `UNKNOWN`.
 - `line_m` comes back from the record (null if it was unknown or there is no record).
@@ -494,16 +509,16 @@ Recovery after `BOOT` (lens B 7.4):
 |---|---|
 | `mode` LAUNCH, `H` and `G` closed, phase `REST` | none |
 | phase `UNKNOWN`, `H` open (carriage drawn) | `decock`, then `aim`, then `cock` / `fire` |
-| phase `UNKNOWN`, `H` closed | `cock` (creeps until `SW_HOME` opens, then cocks), or `cal cock_rest` after checking by eye. `LOADED_UNKNOWN`: check by eye, then `decock` with `force:true` or `cal cock_rest` |
+| phase `UNKNOWN`, `H` closed, power cut while cocking or firing (`cock` gives `LOADED_UNKNOWN`) | check by eye, then `decock` with `"force":true` (decock by travel, `RESET` `how:"decock by travel"`), then `aim` and `cock`; or `cal cock_rest` if the carriage is seen at rest |
+| phase `UNKNOWN`, `H` closed, no sign of a draw | `cock` (creeps until `SW_HOME` opens, then cocks), or `cal cock_rest` after checking by eye |
 | `drum_pos` REEL, `r` closed | wrapped, line held: resume the tow or reel in, or `unwrap` |
 | `drum_pos` WRAPPED (N_TO_R) | at the 314 park: `tidy`, `mode REEL`, `retrieve` or `unwrap`. Elsewhere in N_TO_R: `mode REEL` or `unwrap` |
 | WRAP, `wraps` null | stopped and reported: `unwrap` (take-up running), or `wrap` on to the WRAPPED park |
 | `drum_pos` BETWEEN in L_TO_N, phase `UNKNOWN` | only `mode LAUNCH` is allowed (`LAUNCH_BUSY` otherwise) until the launcher is seen at rest |
 | `drum_pos` UNKNOWN | `FAULT` `DRUM_SENSOR`: check the code contacts; hand lever |
 
-Known firmware issue (simulation): reversing inside the WRAP window (an `unwrap` stopped halfway, then `wrap`) can
-miscount the cup turns and fault with `DRUM_SENSOR` "SW_ARM counted 8 of 7 cup turns" at the far end. After such a
-stop prefer to finish the `unwrap`.
+The `SW_ARM` cup count is only checked for a whole pass. A `wrap` or `unwrap` that starts inside WRAP (after a stop or
+a power cut) is not counted.
 
 Without the AS5600 magnet (decision D12): if `SW_INDEX` is switched on in `config.h` (it is off by default) and the
 AS5600 does not read at start-up, the base uses the 6-bump index cam instead (`BOOT` `angle:"INDEX"`, `status`
@@ -516,7 +531,7 @@ only at start-up.
 
 What the Jetson worker must change (against the base-1.0 version of this file):
 
-1. Version strings: `HELLO`, `BOOT`, `ping`, `status` and `get fw` say `base-1.2.1`; `get params` says `1.2.1`.
+1. Version strings: `HELLO`, `BOOT`, `ping`, `status` and `get fw` say `base-1.2.1`; `get params` says `1.2.4`.
 2. Mission order (D22): after `FIRED` and `RESET` and a go landing verdict, send `wrap` straight away, in LAUNCH (no
    `mode NEUTRAL` first; `wrap` does the centering jog and the launch-exit checks itself). Then wait for ANCHORED,
    send `tidy`, then `mode REEL`, then the tow. The old order (`mode NEUTRAL`, `reel until slip`, `wrap`) is gone.
@@ -541,7 +556,7 @@ What the Jetson worker must change (against the base-1.0 version of this file):
     move); "collar still engaged at NEUTRAL" also at the WRAPPED park. "target code came far too early" now only
     with a trusted start angle.
 11. Current trips (D8): aim now has its own 5 A trip; the tow (`until:"tension"`) trips at 6.5 A (was 5 A), new
-    `set` key `tow_trip_a`. The
+    `set` key `tow_trip_a`; since D34 the tow trip also rises with `max_n` (section 2, `reel`). The
     `OVERCURRENT` `why` has one decimal: `wiper over 6.5 A`, `wiper over 5.0 A`, `wiper over 2.5 A`.
 12. Tension estimate: `k_n_per_a x (amps - free_a) + tension_offset_n`, defaults 17.0 and -10.4 (was 8 and no
     offset), so `LIMIT` `tension_n` values change. New `set` / `get` key `tension_offset_n` (-50..50).
@@ -560,3 +575,13 @@ What the Jetson worker must change (against the base-1.0 version of this file):
 21. The tension estimate is averaged over about 200 ms (D33), so `LIMIT` comes a little later than with base-1.0.
 22. D35: `retrieve` and `reel` with `until:"seated"` are refused in REEL with `WRAPS_ON` (never seat the dart on the
     capstan): reel in to about 1.5 m, `unwrap`, then `retrieve` in NEUTRAL.
+23. Drum jog: refused with `WRAPS_ON` inside WRAP and with `SWITCH_DISAGREE` when a dog contact disagrees; a running
+    drum jog stops on entering WRAP (`ABORTED` `why:"wrap window: use wrap or unwrap"`) and faults on a disagreeing
+    dog contact.
+24. A drum move that overshoots its target sector comes back to the edge once (new `DRUM_TIMEOUT` text "drum did not
+    come back to the target sector").
+25. After a power cut while cocking or firing, `cock` replies `LOADED_UNKNOWN`: recover with `decock` and
+    `"force":true` once the carriage is checked (section 9).
+26. Fly-in, LAUNCH wiggle and the REEL take-up of the centering jog run at 25 % (was 20 %).
+27. `stop` / `estop` with a bad numeric id are still carried out (reply `BAD_ID`, `id` null). `cal current`, `cal free`
+    and `cal aim` reply `OUT_OF_RANGE` beyond the `set` key ranges. `get` gives up to 7 significant digits.

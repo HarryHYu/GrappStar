@@ -408,8 +408,8 @@ static void testWrapReelUnwrap() {
   CHECK(R.toMode("LAUNCH"), "then LAUNCH is allowed");
   { Rig Q; Q.toMode("NEUTRAL"); S.lineOut = 3; S.anchorTautAt = 2.5; Q.run(50);   // dart snagged: no seat
     Q.ok("{\"id\":5,\"cmd\":\"reel\",\"duty\":0.3,\"until\":\"seated\"}");
-    Q.until([&] { return Q.B.state == gb::S_FAULT; }, 30000);
-    CHECK(Q.B.fault == gb::F_DART_STUCK, "final approach without SW_SEATED in 20 s: DART_STUCK"); }
+    Q.until([&] { return Q.B.state == gb::S_FAULT; }, 45000);
+    CHECK(Q.B.fault == gb::F_DART_STUCK, "final approach without SW_SEATED in the time limit (30 s, line_m unknown): DART_STUCK"); }
 }
 
 static void testTow() {
@@ -832,6 +832,17 @@ static void testReview5() {
   { Rig R; R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"hx_n_per_count\",\"val\":4e-7}");
     std::string r = R.cmd("{\"id\":1,\"cmd\":\"get\",\"key\":\"hx_n_per_count\"}");
     CHECK(r.find("\"val\":4e-07") != std::string::npos, "get keeps 7 significant digits"); }
+  { Rig R; R.toMode("NEUTRAL"); S.lineOut = 5; S.seatAtLine = 0; S.anchorTautAt = -1; R.run(50);   // NO_GO: unanchored dart 5 m out
+    R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"line_m\",\"val\":5}");
+    CHECK(R.ok("{\"id\":2,\"cmd\":\"retrieve\"}"), "retrieve 5 m on the take-up");
+    uint32_t t0 = S.t; R.until([&] { return R.idle() || R.B.state == gb::S_FAULT; }, 200000);
+    printf("    5 m take-up retrieval took %.1f s (limit %.1f s)\n", (S.t - t0) / 1000.0, R.B.approachMs / 1000.0);
+    CHECK(R.evt("SEATED") && R.B.fault == gb::F_NONE, "5 m retrieval seats (time limit from line_m)");
+    CHECK(R.err("{\"id\":3,\"cmd\":\"retrieve\",\"max_s\":2}") == "BAD_ARG" && R.err("{\"id\":3,\"cmd\":\"retrieve\",\"max_s\":181}") == "BAD_ARG", "max_s range 5..180"); }
+  { Rig R; R.toMode("NEUTRAL"); S.lineOut = 3; S.anchorTautAt = 2.5; R.run(50);
+    R.ok("{\"id\":2,\"cmd\":\"retrieve\",\"max_s\":6}"); uint32_t t0 = S.t;
+    R.until([&] { return R.B.state == gb::S_FAULT; }, 30000);
+    CHECK(R.B.fault == gb::F_DART_STUCK && S.t - t0 < 7000, "max_s sets the DART_STUCK time"); }
   { Rig R; int n0 = S.saves; (void)n0; static int tunSaves; tunSaves = 0; R.B.io.saveTun = [](const gb::Tun&) { tunSaves++; };
     R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":44}"); R.run(300);
     for (int i = 0; i < 5; i++) { R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":44}"); R.ok("{\"id\":1,\"cmd\":\"cal\",\"what\":\"drum\"}"); R.run(300); }

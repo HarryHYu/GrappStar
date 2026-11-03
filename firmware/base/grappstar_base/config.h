@@ -166,7 +166,8 @@ struct Cfg {
   float flyLaunchMaxDeg = 40;
   // take-up while unwrapping (lens B step 13): wiper forward at 40 percent while the drum is in the WRAP sector
   int takeupDuty = 102; int takeupMaxDuty = 102;   // 40 percent (I4: forward in NEUTRAL or WRAP at most 40 percent)
-  uint32_t approachMaxMs = 20000;   // final approach on the take-up until SW_SEATED, else DART_STUCK (lens B step 14)
+  uint32_t approachMaxMs = 30000;   // final approach until SW_SEATED with line_m unknown, else DART_STUCK (max_s overrides)
+  float takeupMps = 0.08f;          // take-up line speed at 30 percent in NEUTRAL (coordinator estimate 0.08 to 0.1 m/s)
   uint32_t tidySteadyMs = 2000; uint32_t tidyMaxMs = 15000;   // reel until slip: forward until the take-up slips steadily
   uint32_t tidyMs = 3000;           // "tidy" default run time (D22: tidy by time)
 

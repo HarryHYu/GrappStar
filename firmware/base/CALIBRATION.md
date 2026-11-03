@@ -65,7 +65,8 @@ home, or the contact is not touching.
 ### Current zero
 
 1. Battery plugged in, wiper stopped (`"amps"` should be near 0 anyway).
-2. Send `{"id":1,"cmd":"cal","what":"current"}`. `amps` now reads 0.0 when stopped.
+2. Send `{"id":1,"cmd":"cal","what":"current"}`. `amps` now reads 0.0 when stopped. `OUT_OF_RANGE` means the zero
+   would be over 5 A: something is wrong with the IS wiring (WIRING.md section 4).
 
 ### Current scale (multimeter with a 10 A range, low duty only)
 
@@ -154,8 +155,9 @@ about 8 deg per second.
    Wait for `UNWRAPPED` and `MODE` with `"mode":"NEUTRAL"` (about 40 s). `wraps` back to 0.
 
    `mode REEL` is refused (`NOT_WRAPPED`) unless the drum is past the wrap window: always `wrap` first. And with the
-   wraps on, `mode LAUNCH` or `mode NEUTRAL` is refused (`WRAPS_ON`): always use `unwrap`. If you stop an `unwrap`
-   halfway, finish it with `unwrap` (a `wrap` from the middle of the window can miscount the cup turns).
+   wraps on, `mode LAUNCH` or `mode NEUTRAL` is refused (`WRAPS_ON`): always use `unwrap`. A drum `jog` is refused
+   inside the wrap window (`WRAPS_ON`) and a running drum jog stops when it enters it: only `wrap` and `unwrap` cross
+   it.
 9. The wiper turns a little during these moves. Keep clear:
    - leaving LAUNCH it first turns 8 deg BACKWARD (the centering jog) so the dogs carry no load;
    - leaving REEL (start of `unwrap`) it first turns forward a little (up to 16 deg), then 8 deg back;
@@ -268,7 +270,8 @@ cell is fitted and live (`status` `"hx":true`), the firmware uses it instead: sk
 9. `{"id":7,"cmd":"unwrap"}` when done.
 
 A `FAULT` `OVERCURRENT` "wiper over 6.5 A" during a pull means the line is jammed or the estimate is far off: `clear`
-and check `free_a`. The tow trip is the `set` key `tow_trip_a` (default 6.5); leave it there.
+and check `free_a`. The tow trip is the larger of `tow_trip_a` (default 6.5; leave it there) and the current the
+`max_n` needs plus 1 A (D34), so at 10 N and 30 N it is 6.5 A.
 
 ### HX711 load cell (only if fitted)
 

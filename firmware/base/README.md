@@ -179,14 +179,15 @@ a power cycle and over a new upload of the same firmware version.
   - the drum itself faulted, its position or the wraps are unknown, or the N20 is latched out (hand mode).
 
   It then sends a `MODE` event with `"err":"DRUM_HELD"` and a `"why"` that says which.
-- After a power cut the base never moves by itself. Inside the wrap window it stops and reports.
+- After a power cut the base never moves by itself. Inside the wrap window it stops and reports. A cut while cocking or
+  firing is treated as a drawn spring: `cock` is refused (`LOADED_UNKNOWN`) until a `decock` (PROTOCOL.md section 9).
 - `stop`: wiper off now, drum stops. `estop`: the same, then the drum goes to its safe park when that is safe.
 - Before every shift out of LAUNCH or REEL the wiper makes a small centering jog (8 deg) so the collar is not loaded.
   The collar contacts `SW_DOG_L` and `SW_DOG_R` are checked during every drum move.
 - Soft start: the wiper ramps up over 300 ms (inrush once blew a 10 A fuse). It always stops for 200 ms before it
   changes direction.
 - Current trips per job (each for 30 ms, ignored for 50 ms after a start): aim and reel in 5 A, cock and fire 6.5 A,
-  tow 6.5 A (the tension estimate is the real tow limit), take-up 2.5 A, jogs, centering and fly-in 3 A; 17 A at any
+  tow 6.5 A or more for a high `max_n` (the tension estimate is the real tow limit), take-up 2.5 A, jogs, centering and fly-in 3 A; 17 A at any
   time. Stall: the shaft slower than 12 deg/s for 200 ms while driving.
 - AS5600 lost while the wiper runs: fault `ANGLE_SENSOR`. If the AS5600 is not reading, wiper actions and the drum
   moves that need the centering jog or the fly-in are refused (`ANGLE_SENSOR`). Exception: a build with no magnet can

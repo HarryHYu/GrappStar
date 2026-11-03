@@ -76,10 +76,10 @@ def wrapped_park(c):
 def test_ping_status_and_telemetry(pair):
     mb, c = pair
     r = c.ping()
-    assert r["ok"] and r["fw"] == "base-1.2" and isinstance(r["t"], int)
+    assert r["ok"] and r["fw"] == "base-1.3.0" and isinstance(r["t"], int)
     assert any(e["evt"] == "HELLO" and e["fw"] == FW for e in c.events())
     boot = next(e for e in c.events() if e["evt"] == "BOOT")
-    assert boot["fw"] == "base-1.2" and boot["angle"] == "AS5600" and boot["phase"] == "REST"
+    assert boot["fw"] == "base-1.3.0" and boot["angle"] == "AS5600" and boot["phase"] == "REST"
     t = c.wait_tel(lambda t: True, 2)
     assert tuple(t) == TEL_KEYS
     assert t["mode"] == "NEUTRAL" and t["drum_pos"] == "NEUTRAL" and t["drum_deg"] == 41 and t["state"] == "IDLE"
@@ -92,7 +92,7 @@ def test_ping_status_and_telemetry(pair):
     s = c.status()
     assert list(s)[2:] == ["phase", "aimed", "aim_known", "drum_known", "wraps_known", "magnet", "glitches", "hx",
                            "peak_a", "fw", "ev_drops"]
-    assert s["phase"] == "REST" and s["aimed"] is False and s["ev_drops"] == 0 and s["fw"] == "base-1.2"
+    assert s["phase"] == "REST" and s["aimed"] is False and s["ev_drops"] == 0 and s["fw"] == "base-1.3.0"
 
 
 def test_line_length_limit_ids_and_parse_errors(pair):
@@ -632,7 +632,7 @@ def test_jog_and_settings(pair):
     assert err_of(c.set, "limit_n", 900) == "OUT_OF_RANGE"
     assert err_of(c.set, "tension_offset_n", 60) == "OUT_OF_RANGE"
     assert err_of(c.set, "nope", 1) == "BAD_KEY"
-    assert c.get("fw")["val"] == "base-1.2"
+    assert c.get("fw")["val"] == "base-1.3.0"
     c.set("line_m", 7.5)
     assert c.get("line_m")["val"] == 7.5
     c.set("require_seated", False)

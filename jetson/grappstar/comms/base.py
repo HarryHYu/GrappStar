@@ -89,6 +89,10 @@ class BaseDisconnected(Exception):
 
 
 # ---------------------------------------------------------------- transports
+class PortBusy(OSError):
+    """The serial port is held (exclusively) by another process."""
+
+
 class SerialTransport:
     """pyserial on a device path (/dev/grappstar-base, /dev/ttyACM0, or a pty from the mock base)."""
 
@@ -113,7 +117,17 @@ class SerialTransport:
             ser.rts = False
         except Exception:
             pass
-        ser.open()
+        try:
+            ser.exclusive = True        # flock: a second serve / base monitor / base cmd would split the lines
+        except Exception:
+            pass
+        try:
+            ser.open()
+        except Exception as e:
+            if "lock" in str(e).lower():
+                raise PortBusy(f"port {self.port} busy: another grappstar process (serve, base monitor or base cmd) "
+                               "has it open. Run only one at a time: stop the other one first") from e
+            raise
         self.ser = ser
         self._buf = b""
 

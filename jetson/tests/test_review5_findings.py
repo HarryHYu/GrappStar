@@ -29,3 +29,15 @@ def test_base_neutral_does_not_wait_for_a_reset_that_already_came(tmp_path):
         assert t["WRAP"] - t["BASE_NEUTRAL"] < 8.0, t["WRAP"] - t["BASE_NEUTRAL"]
     finally:
         r.close()
+
+
+def test_factory_k_matches_every_firmware_default():
+    """systest F28: D43 moved the firmware default to 14.8 (params 1.3.2: 13.1); the literal match on 8 and 17 no
+    longer refused an uncalibrated tow."""
+    from grappstar.mission import k_is_factory
+    for k in (8.0, 17.0, 14.8, 13.1, 14.80001, "13.1"):
+        assert k_is_factory(k), k
+    for k in (None, 11.2, 15.6, "x"):
+        assert not k_is_factory(k), k
+    assert not k_is_factory(14.8, {"tension_cal": True})      # a base flag, when one exists, wins
+    assert k_is_factory(11.2, {"tension_cal": False})

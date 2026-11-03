@@ -158,8 +158,8 @@ def test_recover_button_and_offer():
     assert re.search(r'pick\(base, "seated"\) === false', JS) and re.search(r'wraps > 0', JS)
 
 
-def test_tow_limit_max_60():
-    """spec 1.3.0 (D43): the tow limit is the tension at the dart, capped at 60 N."""
+def test_tow_limit_max_55():
+    """D46 (spec 1.3.2): the tow limit is the tension at the dart, capped at 55 N."""
     m = re.search(r'<label>([^<]*)<input[^>]*data-key="tow_limit_n"[^>]*>', HTML)
-    assert m and "60" in m.group(1)
-    assert 'max="60"' in m.group(0)
+    assert m and "55" in m.group(1)
+    assert 'max="55"' in m.group(0)

@@ -62,7 +62,7 @@ def idle(c, sim_s=2, fail_on_fault=True, pred=lambda t: True):
 # ------------------------------------------------------------------------------------------------ link
 def test_ping_status(base):
     r = base.cmd("ping")
-    assert r["ok"] and r["fw"] == "base-1.2" and isinstance(r["t"], int)
+    assert r["ok"] and r["fw"].startswith("base-1.") and isinstance(r["t"], int)
     s = base.cmd("status")
     assert s["phase"] == "REST" and s["drum_known"] and s["magnet"] == "OK" and s["hx"] is True
     assert any(e["evt"] == "HELLO" for e in base.events()) and any(e["evt"] == "BOOT" for e in base.events())
@@ -270,7 +270,7 @@ def test_pty_mode_with_load_cell():
         c = BaseClient(path, timeout=1.0).start()
         try:
             assert c.wait_connected(5)
-            assert c.cmd("ping")["fw"] == "base-1.2"
+            assert c.cmd("ping")["fw"].startswith("base-1.")
             assert c.cmd("status")["hx"] is True
             t = c.wait_tel(lambda t: t["tension_n"] is not None, 3, what="load cell tension")
             assert list(t.keys()) == TEL_KEYS

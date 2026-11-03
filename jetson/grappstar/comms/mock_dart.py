@@ -241,7 +241,7 @@ class MockDart:
                     elif busy:
                         code, body = refuse("busy")
                     else:
-                        self.keys.append((time.time(), c, max(50, min(1500, ms))))
+                        self.keys.append((time.time(), c, max(50, min(500, ms))))
                         if self.seq in ("anchored", "released", "aborted"):
                             self.seq = "idle"
                 elif c == "A":
@@ -300,6 +300,10 @@ class MockDart:
                     self.armed = False
                     self._start_seq("release")
                     body = "release"
+            elif u.path == "/flightlog" and (self.armed or ph == "FLIGHT"):
+                code, body = refuse("armed" if self.armed and ph != "FLIGHT" else "in flight")
+            elif u.path == "/flightlog" and busy:
+                code, body = refuse("busy")
             elif u.path == "/flightlog":
                 fl = self._flightlog or (self.flightlog_provider() if self.flightlog_provider else None)
                 if fl is None:

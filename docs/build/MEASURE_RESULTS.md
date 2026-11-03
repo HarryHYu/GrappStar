@@ -30,7 +30,7 @@ Write each number with its unit. Photo: the file name of the caliper photo in `o
 | Item | Result (with unit) .................... | Photo file or note ................ |
 |---|---|---|
 | C1 608 bearings (buy 10) |  |  |
-| C2 M8 bolts or 8 mm steel rod, and their lengths |  |  |
+| C2 One M8 x 25 bolt and nut (the CAD's bought list), and any M8 ... |  |  |
 | C3 Worm N20 count: you need 4 (dart kick, deploy, foot, and the ... |  |  |
 | C4 MP1584 #2 (the spare from the dart build; confirm it, decision ... |  |  |
 | C5 DRV8833 #3 (freed from the dart by the new pin map) |  |  |
@@ -49,7 +49,7 @@ Write each number with its unit. Photo: the file name of the caliper photo in `o
 | C18 Carriage stop |  |  |
 | C19 PETG filament (brake rocker) |  |  |
 | C20 How many 693ZZ / F693ZZ bearings are left after the dart (the ... |  |  |
-| C21 Risk coupon extras (base/pack/coupons/COUPON_TEST.md): an ... |  |  |
+| C21 Risk coupon extras listed in base/pack/coupons/COUPON_TEST.md: ... |  |  |
 
 ## D. Electrical labels to read
 

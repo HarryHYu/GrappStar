@@ -37,8 +37,8 @@ one weight is not enough. Use three loads. Every range number scales with the en
 
 | Item | How | Changes | Reprint |
 |---|---|---|---|
-| C1 608 bearings (buy 10) | Look in the parts box. Needed for: storage reel (2), aim pedestal worm wheel and worm shaft (4), 4 spares | If not: The only purchase: search "608ZZ bearing 8x22x7" |  |
-| C2 M8 bolts or 8 mm steel rod, and their lengths | Look in the parts box. Needed for: axles through the 608s | If not: Printed PPA-CF axles (tell the coordinator, it is a params switch) |  |
+| C1 608 bearings (buy 10) | Look in the parts box. Needed for: the CAD uses 5 (storage reel 2, aim pedestal and others), plus one for the risk coupon and spares | If not: the only purchase: search "608ZZ bearing 8x22x7" | |
+| C2 One M8 x 25 bolt and nut (the CAD's bought list), and any M8 bolts or 8 mm steel rod | Look in the parts box. Needed for: an axle through 608s; rod is optional elsewhere | If not: printed PPA-CF axles (tell the coordinator, it is a params switch) | |
 | C3 Worm N20 count: you need 4 (dart kick, deploy, foot, and the base selector drum) | Look in the parts box. Needed for: dart and base | If not: The kedge notes said 2 in hand and one to buy; the August order listed 8 worm N20s. Count them |  |
 | C4 MP1584 #2 (the spare from the dart build; confirm it, decision D19) | Look in the parts box. Needed for: drum N20 supply at 9.0 V | If not: No other way to run the DRV8833 from the 3S: tell the coordinator |  |
 | C5 DRV8833 #3 (freed from the dart by the new pin map) | Look in the parts box. Needed for: drum N20 |  |  |
@@ -52,12 +52,12 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | C13 AS5600 magnet (recommended): any small neodymium disc (6 to 10 mm, 2 to 3 mm thick, mounted edge-on) or a 6 x 2.5 mm diametric disc. The Adafruit board does not include one | Look in the parts box. Needed for: main shaft angle | If not: the firmware has a no-magnet mode (decision D12): print the 6-bump index cam, fit the SW_INDEX contact on GPIO35, switch SW_INDEX on in firmware/base config.h (WIRING.md section 1) and re-flash. It is less precise; a magnet is better | |
 | C14 Optional: a second pair of the launch springs (Bunnings I/N 0487961) | Look in the parts box. Needed for: range: about 5 m with two springs, about 8.5 m with four | If not: Two springs work; the base has the provision built in |  |
 | C15 8 mm steel rod (or M8 bolts) for: reel shaft S, aim worm wheel axle, storage reel axle | Look in the parts box. Needed for: reel and aim | If not: Printed PPA-CF shafts (the reel worker's fallback); tell the coordinator |  |
-| C16 Hardware the CAD assumes: M3 x 4 x 5 heat-set inserts; M3 screws x 6, 8, 10, 12 mm (frame) and M3 x 25 cap screws + nylocs (rover mount); M6 bolts and nuts for the wiper (head 10, nut 10 AF); one M8 nut (drum coupler); 6 mm pins (spring anchors); a C-clip (reel cup head); cable ties, a hose clamp, glue (magnet) | Look in the parts box. Needed for: frame, drum, launch, reel | If not: Exact counts in the base print pack / assembly steps |  |
+| C16 Hardware the CAD assumes: M3 x 4 x 5 heat-set inserts; M3 screws x 6, 8, 10, 12 mm (frame) and M3 x 25 cap screws + nylocs (rover mount); M6 bolts and nuts for the wiper (head 10, nut 10 AF); one M8 nut (drum coupler); cable ties, a hose clamp, glue (magnet). Printed, nothing to find: the 6 mm spring anchor pins (PPA-CF; steel 6 mm optional) and the reel cup C-clips (the v7 clip design) | Look in the parts box. Needed for: frame, drum, launch, reel | If not: Exact counts in the base print pack / assembly steps |  |
 | C17 JST SH 4-pin (STEMMA QT) cable 400 mm or longer for the AS5600 | Look in the parts box. Needed for: the 200 mm one is too short | If not: Extend with 4 soldered wires and heat shrink |  |
 | C18 Carriage stop | Nothing to find: it is a printed PLA flexure with about 19 mm travel (decision D26). TPU pads are an optional upgrade if you get TPU | none | |
 | C19 PETG filament (brake rocker) | Look in the parts box. Needed for: reel | If not: PLA works for the first tests |  |
 | C20 How many 693ZZ / F693ZZ bearings are left after the dart (the dart uses 5 F693ZZ) | Look in the parts box. Needed for: line pulleys on the base | If not: Tell the coordinator the count |  |
-| C21 Risk coupon extras (base/pack/coupons/COUPON_TEST.md): an O-ring 20 x 1.5 (swing splitter arm hub), an e-clip for an 8 mm pin, M3 screws x 10, 12, 16, 20, a jam nut, string | Look in the parts box. Needed for: the day-one coupons and the same parts in the base | If not: tell the coordinator (the O-ring gives the splitter arm its drag; a rubber band wrap may stand in for the coupon test) | |
+| C21 Risk coupon extras listed in base/pack/coupons/COUPON_TEST.md: M3 screws x 10, 12, 16, 20, a jam nut, string. Earlier versions also listed an O-ring 20 x 1.5 and an e-clip for the aim swing arm: cad-launch is replacing both with printed parts, so skip them if the sheet no longer lists them | Look in the parts box. Needed for: the day-one coupons | If not: tell the coordinator | |
 
 ## D. Electrical labels to read
 

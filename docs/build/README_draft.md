@@ -15,7 +15,9 @@ system it drives.
 3. **`docs/build/TEST_PLAN.md`**: the staged first tests, bench to field, with pass criteria.
 4. **`docs/build/SYSTEM_ELECTRICAL.md`**: the whole rover electrical system, wire gauges, first power-on sequence.
 5. **`docs/build/FIRST_DAY.md`**: the first session back on one page.
-6. **`docs/build/Wiring_Cheat_Sheet_Base.pdf`**, **`Wiring_Cheat_Sheet_Dart.pdf`**: one printable pin sheet per board.
+6. **`docs/build/Wiring_Cheat_Sheet_Base.pdf`**, **`Wiring_Cheat_Sheet_Dart.pdf`**, **`Commands_Cheat_Sheet.pdf`**: one
+   printable page each (pins per board, and the commands you will type).
+7. **`docs/build/MEASURE_RESULTS.pdf`**: the fill-in sheet for the measurements.
 
 ## What to buy
 

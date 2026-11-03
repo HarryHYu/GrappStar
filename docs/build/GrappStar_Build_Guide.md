@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 12:14 Sydney time from commit `c89c569`.
+Built 2026-11-03 12:15 Sydney time from commit `31f9323`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -2912,6 +2912,9 @@ shows a placeholder; re-run the script after it lands.
 
 Appendices attached after this page (when present): the base assembly steps PDF from `base/guide`, then the KEDGE
 v30 dart run sheet. In the run sheet, follow section 6 of this guide for the new dart pin map.
+
+Printable one-pagers next to this guide: `docs/build/FIRST_DAY.md`, `Wiring_Cheat_Sheet_Base.pdf`,
+`Wiring_Cheat_Sheet_Dart.pdf`, `Commands_Cheat_Sheet.pdf`, `MEASURE_RESULTS.pdf` (fill-in).
 
 Other documents in the repo: `kedge/pack_v30/KEDGE_v30_engineering_report.pdf` (dart physics and loads),
 `base/spec/BASE_SPEC.md` and `base/spec/DECISIONS.md` (base design and the decisions behind it), `firmware/base/PROTOCOL.md` (base serial protocol), `firmware/dart/API.md`

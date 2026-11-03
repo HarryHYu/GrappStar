@@ -650,8 +650,56 @@ DRV8833: 3V3 only to the SLP / nSLEEP / EEP pad (check it does NOT beep to VM). 
 Reverse a motor: swap its two input wires at the driver (drills D8 / D9, foot D6 / D7, deploy D0 / D1, kick
 D2 / D3). One drill wrong only: swap that drill's motor leads. VTX antenna on before any power.
 """
+    cmd_md = """# Commands cheat sheet
+
+On the Jetson, in `~/GrappStar/jetson`. Full lists: `firmware/base/PROTOCOL.md`, `firmware/dart/API.md`,
+`jetson/README.md`. If a command here and those files disagree, those files win.
+
+## Jetson
+
+| Command | What it does |
+|---|---|
+| `python3 -m grappstar serve` | operator page at http://<jetson>:8080 (`--sim` for no hardware) |
+| `python3 -m grappstar base ping` / `status` / `monitor` | talk to the base; `monitor` shows live telemetry (Ctrl+C stops) |
+| `python3 -m grappstar base cmd '<json>'` | send one base command (below) |
+| `python3 -m grappstar dart status` | one dart status reading |
+| `python3 -m grappstar dart key 2 --hold 1.0` | hold a dart key for 1 s (quote `'!'`, `'#'`, `'$'`) |
+| `python3 -m grappstar dart auto` / `release` / `flightlog` | anchor, release, download the flight log |
+| `python3 -m grappstar cameras` | list the cameras |
+| `sudo shutdown now` | before unplugging the battery |
+
+## Base commands (JSON, for `base cmd`)
+
+| Command | What it does |
+|---|---|
+| `{"cmd":"estop"}` | wiper off, drum to NEUTRAL when safe. Always safe to send |
+| `{"cmd":"stop"}` | wiper off, drum stays |
+| `{"cmd":"clear"}` | clear a fault once its cause is gone |
+| `{"cmd":"mode","to":"LAUNCH"}` | drum to LAUNCH, NEUTRAL or REEL |
+| `{"cmd":"aim","deg":30}` | rail to 30 degrees (only with the carriage home) |
+| `{"cmd":"arm"}` then `{"cmd":"fire","token":123456}` | fire within 3 s of arm. Tether on, area clear |
+| `{"cmd":"cal","what":"decock"}` | unload a cocked carriage slowly |
+| `{"cmd":"wrap"}` / `{"cmd":"unwrap"}` | lay / remove the capstan wraps (order: PROTOCOL.md) |
+| `{"cmd":"reel","duty":0.5,"until":"seated"}` | wind in until the dart seats (`until`: stop, seated, tension) |
+| `{"cmd":"jog","motor":"wiper","dir":1,"ms":300}` | short move; `motor` wiper or drum, `dir` 1 or -1, up to 1500 ms |
+| `{"cmd":"set","key":"limit_n","val":50}` | set a stored value (tow limit 50 N) |
+| `{"cmd":"get","key":"limit_n"}` | read a stored value |
+
+## Dart keys (WiFi KEDGE, password grappstar, http://192.168.4.1, or Serial 115200)
+
+| Key | Motor |
+|---|---|
+| 1 / ! | deploy pods down / up |
+| 2 / @ | kick out / back |
+| 3 / # | drills in / out |
+| 4 / $ | foot in / out |
+| space | STOP everything |
+| a / A | auto anchor now / arm auto-anchor on landing |
+| i / b / z | current / attitude / I2C scan |
+"""
     for name, md, title in (("Wiring_Cheat_Sheet_Base.pdf", base_md, "Base ESP32-S3 wiring"),
-                            ("Wiring_Cheat_Sheet_Dart.pdf", dart_md, "Dart XIAO wiring")):
+                            ("Wiring_Cheat_Sheet_Dart.pdf", dart_md, "Dart XIAO wiring"),
+                            ("Commands_Cheat_Sheet.pdf", cmd_md, "Commands")):
         out = os.path.join(HERE, name)
         build_pdf(clean(md), out=out, doc_title=title)
         sheets.append(rel(out))

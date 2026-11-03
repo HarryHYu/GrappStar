@@ -85,12 +85,24 @@ class JetsonClientTest(unittest.TestCase):
         s = self.d.arm(True, auto=False)
         self.assertTrue(s["armed"]); self.assertFalse(s["auto_on_landing"]); self.assertEqual(s["phase"], "ARMED")
         with self.assertRaises(self.m.DartRefused) as cm:
-            self.d.auto()
-        self.assertTrue(cm.exception.reason.startswith("armed"), cm.exception.reason)
-        with self.assertRaises(self.m.DartRefused) as cm:
             self.d.flightlog(timeout=2.0, tries=1)
         self.assertTrue(cm.exception.reason.startswith("busy"), cm.exception.reason)
         self.assertTrue(self.d.link()["connected"], "a 409 must not count as a link failure")
+
+    def test_02b_auto_while_armed_disarms_first(self):
+        # the launch was never seen: the Jetson's /auto disarms and starts (no deadlock), then we stop and re-arm
+        self.d.auto()
+        s = self.d.status()
+        self.assertFalse(s["armed"]); self.assertEqual(s["phase"], "ANCHORING")
+        self.d.stop()
+        time.sleep(0.3)
+        try:
+            self.d.hold("@", 1.0)                # bring the kick back (ends with a "stalled" refusal at the stop)
+        except self.m.DartRefused as e:
+            self.assertTrue(e.reason.startswith("stalled"), e.reason)
+        self.assertEqual(self.sim("/sim/state")["kick_pos"], 0)
+        s = self.d.arm(True, auto=False)
+        self.assertTrue(s["armed"])
 
     def test_03_launch_landing_flightlog(self):
         time.sleep(2.5)                          # the dart sits armed on the launcher for a while

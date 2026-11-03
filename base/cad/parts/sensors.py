@@ -227,7 +227,9 @@ def swl_geom(P):
 
 
 SWL_FOOT = dict(x=(103.0, 130.4), y=(193.8, 201.8))   # = cad-launch housing foot extension x 80..130.9 (top at deck+8)
-SWL_FOOT_PILOTS = ((107.0, 197.8), (116.0, 197.8))     # M3 self tap d2.6 x 7 deep into the foot extension top
+SWL_FOOT_PILOTS = ((107.0, 197.8),)   # M3 self tap d2.6 x 7 deep into the foot extension top (cad-launch also cut
+                                      # one at x 116: it sits under the bracket column, unused); the second fixing
+                                      # is the housing's 4th deck screw from below into the bracket foot
 
 
 def _local_box_world(M, lo, hi):
@@ -252,6 +254,12 @@ def swl_bracket_solid(P):
                       z_top_foot + 6.0))                                                      # foot
     s.append(prim.box(xb - 6.0, xb + 0.01, SWL_FOOT["y"][0], SWL_FOOT["y"][1], z_top_foot + 5.99,
                       z_top_foot + 14.0))                                                     # gusset
+    # web (about 48 deg) under the cantilevered plate (stiffness, no overhang when printed foot down)
+    y0, y1 = SWL_FOOT["y"][1] - 0.01, whi[1] - 4.0
+    zt = wlo[2] + 0.01
+    web = prim.poly_cs([(y0, z_top_foot), (y0, zt), (y1, zt)])
+    web = prim.place(prim.extrude(web, 5.0), np.array([[0, 0, 1.0, xb], [1.0, 0, 0, 0], [0, 1.0, 0, 0], [0, 0, 0, 1.0]]))
+    s.append(web)
     b = prim.union(s)
     for x, y in SWL_FOOT_PILOTS:
         b = b - prim.cyl(fits.M3_CLEAR_D / 2, 10.0, x=x, y=y, z=z_top_foot - 1)
@@ -404,7 +412,7 @@ def parts(P):
     out += _switch_parts("rail_low", gl["M"], None,
                          "on its bracket on the aim housing foot, closed by the crank cam at the LOW dead point")
     out.append(Part(f"{PREFIX}_sw_rail_low_bracket", br, "PLA", joint=None, place=tf.I4, print_tf=_bed(br),
-                    color="#9aa7b4", bought_ref="2 x M3x10 SHCS (foot into the housing)",
+                    color="#9aa7b4", bought_ref="M3x10 SHCS (foot into the housing)",
                     notes="SW_RAIL_LOW bracket on the aim housing foot extension; the housing's 4th deck screw also "
                           "bites into its foot"))
     # SW_GAP
@@ -491,7 +499,8 @@ def steps(P):
                     f"{PREFIX}_sw_gap_screw", f"{PREFIX}_sw_gap_jam", f"{PREFIX}_sw_gap_nut"]),
         dict(title="Sensors 2: SW_RAIL_LOW on the aim housing",
              text="Screw the switch base to its bracket (4 x M3x8 self tapping), lever pointing to the crank. Set the "
-                  "bracket foot on the housing foot extension in front of the crank and screw it down with 2 x M3x10. "
+                  "bracket foot on the housing foot extension in front of the crank and screw it down with 1 x M3x10 "
+                  "(front hole). "
                   "The housing's front deck screw goes up through the foot extension into the bracket foot. Turn the "
                   "crank by hand (wiper backwards) to the lowest rail position: the cam lobe must press the lever "
                   "tip and the meter must show the switch closed; 10 deg either side it must open.",

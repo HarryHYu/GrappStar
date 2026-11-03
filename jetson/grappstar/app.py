@@ -98,6 +98,8 @@ class App:
         self.base.on_line = self._base_line
         self.base.start()
         self.dart_poller = DartPoller(self.dart).start()
+        self.base_status: dict = {}
+        threading.Thread(target=self._poll_base_status, name="base-status", daemon=True).start()
         self._load_cam_model()
         self._start_cameras()
         if c.terrain_model:
@@ -170,6 +172,31 @@ class App:
         if self.sim:
             self.sim.close()
 
+    def _poll_base_status(self) -> None:
+        """The shot phase is only in the status reply, not in telemetry: poll it once a second for the page."""
+        while True:
+            time.sleep(1.0)
+            try:
+                if self.base.connected:
+                    r = self.base.cmd("status", timeout=1.0, check=False)
+                    self.base_status = {k: v for k, v in r.items() if k not in ("id", "ok")}
+            except Exception:
+                pass
+
+    @staticmethod
+    def launcher_state(tel: dict, phase) -> str:
+        """LOADED (spring drawn: Decock before touching), NOT_KNOWN_SAFE (phase unknown, carriage home), REST, or
+        UNKNOWN (no data). r3_M #1: phase UNKNOWN with the carriage contact H open counts as LOADED."""
+        if not tel and phase is None:
+            return "UNKNOWN"
+        home = bool((tel.get("sw") or {}).get("H"))
+        cock = tel.get("cock")
+        if phase in ("COCKING", "COCKED", "FIRING", "RESETTING") or (isinstance(cock, (int, float)) and cock > 0.01):
+            return "LOADED"
+        if phase == "UNKNOWN" or cock is None:
+            return "NOT_KNOWN_SAFE" if home else "LOADED"
+        return "REST"
+
     def _base_line(self, direction: str, obj: dict) -> None:
         lg = self.mlog
         if lg is not None:
@@ -186,7 +213,9 @@ class App:
             "t": time.time(),
             "sim": bool(self.sim),
             "base": dict(tel, link=self.base.link(),
-                         seated=bool((tel.get("sw") or {}).get("S")) if tel else None),   # PROTOCOL: sw letter S
+                         seated=bool((tel.get("sw") or {}).get("S")) if tel else None,   # PROTOCOL: sw letter S
+                         phase=getattr(self, "base_status", {}).get("phase"),
+                         launcher=self.launcher_state(tel, getattr(self, "base_status", {}).get("phase"))),
             "dart": dict(ds, link=self.dart.link()),
             "mission": m,
             "cams": {k: v.status() for k, v in self.cams.items()},
@@ -301,7 +330,7 @@ class App:
 
     def act_estop(self) -> dict:
         if self.mission:
-            self.mission.abort("operator ESTOP")
+            self.mission.abort("operator ESTOP", base_stop=False)   # the mission must not stop after the estop
         try:
             self.base.estop(timeout=0.5)       # base first, never delayed by a slow dart link
             r = {"ok": True, "msg": "ESTOP: wiper off, drum to NEUTRAL if safe"}
@@ -355,7 +384,7 @@ class App:
     def act_set(self, key: str, val: Any) -> dict:
         """Mission settings from the page only (review r2_H #1): drag_n, tow_limit_n (max 70 N, D39), check_n,
         retrieve_limit_n. Base tuning and calibration stay on the CLI (python3 -m grappstar base cmd ...)."""
-        limits = {"tow_limit_n": (1, 70), "check_n": (1, 70), "retrieve_limit_n": (1, 70)}
+        limits = {"tow_limit_n": (1, 60), "check_n": (1, 60), "retrieve_limit_n": (1, 60)}   # dart-side cap (D43)
         if key not in ("drag_n",) + tuple(limits):
             return {"ok": False, "msg": f"unknown setting {key} (base settings: use the CLI)"}
         if self._busy() and key != "tow_limit_n":

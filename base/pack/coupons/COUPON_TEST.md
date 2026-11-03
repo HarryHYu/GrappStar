@@ -14,19 +14,19 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 
 | plate | material | objects |
 |---|---|---|
-| risk_plate_1_PLA.3mf | PLA | 20 |
+| risk_plate_1_PLA.3mf | PLA | 23 |
 | risk_plate_2_PPA-CF.3mf | PPA-CF | 26 |
 
 ## Tests
 
 ### 1. Swing-arm direction splitter
 
-- Parts: rc1_plate, rc1_sleeve, rc1_sun, rc1_arm, rc1_idler, rc1_output, rc1_crank, rc1_stop
-- Bought: O-ring 20 x 1.5 (arm hub groove), e-clip for the d8 arm pin, 2 x M3x16
-- Do: O-ring into the arm hub groove. On the plate: sleeve on the centre pin, sun on its rib, arm on the sleeve above the sun with its pin down through the idler, e-clip on the pin, output on its pin, crank on top, stop finger on the column (2 x M3x16). Turn the crank 10 turns each way.
-- Pass: Clockwise seen from above: the arm swings the idler into the output at once and the output turns, no skipped teeth. Anticlockwise: the arm swings out to the finger within about 20 deg of crank, the idler runs free and the output stays still. No jam at engagement.
-- If it fails, change: launch_aim.py: FIT (pin and bore play), arm_solid O-ring groove (drag), A() alpha_d = alpha_e + 20 (swing out), _stop_post_xy; launch_gears.py center_distance extra / spur backlash (mesh).
-- Made from: launch_aim.sun_solid, arm_solid, idler_solid (m1.5 z30/18/30, face 8, FIT 0.35), launch_gears.spur for the output, launch_aim.A: centre distances 36.10 / 36.10, output at (11.7, 68.4), engaged arm 96.2 deg, stop 116.2 deg (launch_aim._stop_post_xy), sleeve rib launch.RIB_W 6 / RIB_R 12.8
+- Parts: rc1_plate, rc1_sleeve, rc1_sun, rc1_arm, rc1_drag_pad, rc1_drag_shim, rc1_idler_clip, rc1_idler, rc1_output, rc1_crank, rc1_stop
+- Bought: 2 x M3x16 (stop finger); everything else printed
+- Do: Push the drag pad root block and the shim into the arm hub pocket (finger in its recess). On the plate: sleeve on the centre pin, sun on its rib, arm on the sleeve above the sun with its pin down through the idler, printed C clip into the pin groove, output on its pin, crank on top, stop finger on the column (2 x M3x16). Turn the crank 10 turns each way.
+- Pass: Clockwise seen from above: the arm swings the idler into the output at once and the output turns, no skipped teeth. Anticlockwise: the arm swings out to the finger within about 20 deg of crank, the idler runs free and the output stays still. No jam at engagement. The pad drags the arm reliably both ways and the clip stays on.
+- If it fails, change: launch_aim.py: FIT (pin and bore play), DRAG_INT and DRAG_SHIM_ADJ (drag: or print a thicker shim), clips.py for the C clip, A() alpha_d = alpha_e + 20 (swing out), _stop_post_xy; launch_gears.py center_distance extra / spur backlash (mesh).
+- Made from: launch_aim.sun_solid, arm_solid, idler_solid (m1.5 z30/18/30, face 12, FIT 0.35), launch_gears.spur for the output, launch_aim.A: centre distances 36.10 / 36.10, output at (11.7, 68.4), engaged arm 96.2 deg, stop 116.2 deg (launch_aim._stop_post_xy), sleeve rib launch.RIB_W 6 / RIB_R 12.8; drag_pad_solid, drag_shim_solid (DRAG_INT 0.45, shim up to +0.25), pin_clip_solid
 
 ### 2. Printed contact switch
 
@@ -44,7 +44,7 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 - Do: Press the rail into the base. REEL face on the journal (dogs up), collar on the hex (dogs down), fork pads in the collar groove and its sleeve on the rail, dog post clamped on the rail below the fork, SW_DOG screws in the post set 0.5 mm short of the tab nut at full engagement. Push the fork 7 mm down with the dogs tip to tip, then turn the REEL face until they drop in. Turn the face hard both ways, then pull the fork back. Meter on beep between the lower screw and the tab nut.
 - Pass: Yoke flexes when tip to tip (no jam, roofs slide off), dogs drop in within a quarter turn, under hand torque the dogs pull in, never walk out, a light pull on the fork releases them, the yoke springs back flat; the meter beeps only with the dogs fully in, never tip to tip.
 - If it fails, change: _drum_kin.py DEFAULTS dog_backcut, dog_roof, dog_deg, dog_gap, fork_k; drum.py GEOM fork_t, yoke_r, groove, dog_touch, dogpost_s; fits.py SHAFT_IN_BORE (collar on the hex, face on the journal), HOLE_SLIDE (fork on the rail).
-- Made from: drum.dog_teeth (dog_n 4, dog_h 5, dog_deg 36, backcut 4, roof 1.2, r 18..26), drum.fork, drum.dog_post (dog_touch 0.5), drum.rail, drum.hexprism, GEOM journal d30, groove (82.0, 88.0), stroke 7, neutral gap 2.5
+- Made from: drum.dog_teeth (dog_n 4, dog_h 5, dog_deg 36, backcut 4, roof 1.2, r 18..26), drum.fork, drum.dog_post (dog_touch 0.5), drum.rail, drum.hexprism, GEOM journal d32, groove (82.0, 88.0), stroke 7, neutral gap 2.5
 
 ### 4. Face slip clutch with the flexure spring
 
@@ -95,10 +95,10 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 
 - Parts: rc9_hub_lever, rc9_outer_lever, rc9_shear_pin x3
 - Bought: string or a strap, luggage scale
-- Do: Hub slice into the outer slice, pin through both holes (head outside). Clamp the hub lever, hang the luggage scale on the outer lever hole (r 60 mm) at right angles and pull slowly until the pin shears. Break all 3 pins. Torque = kg x 9.81 x 0.06 N m.
+- Do: Print the pins lying down on their flat, as exported (D44: shear plane across the layers; never stand them up). Hub slice into the outer slice, pin through both holes (head outside). Clamp the hub lever, hang the luggage scale on the outer lever hole (r 60 mm) at right angles and pull slowly until the pin shears. Break all 3 pins. Torque = kg x 9.81 x 0.06 N m.
 - Pass: Each pin shears cleanly between 5.9 and 10.2 kg on the scale (3.5 to 6 N m, drum_NOTES; design 4.9 N m = 8.3 kg), the 3 pins within 20 percent of each other, both slices undamaged (holes still round); a fresh pin goes in by hand.
 - If it fails, change: drum.py GEOM shear_d (torque goes with d squared), hub_od (radius), shear_s; fits for the hole: drum.coupler shear hole (shear_d + 0.1) and shear_pin (shear_d - 0.04). Spec D8 / D26 limit 5 N m.
-- Made from: drum.coupler_hub and drum.coupler (sliced s 4..20), drum.shear_pin: d4 PLA in single shear at r 13 (shear_s 9); 4.9 N m at 30 MPa
+- Made from: drum.coupler_hub and drum.coupler (sliced s 4.5..20), drum.shear_pin: d4 PLA in single shear at r 13 (shear_s 9); 4.9 N m at 30 MPa
 
 ### 10. AS5600 magnet cap (bench test)
 
@@ -113,22 +113,25 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 
 | part | material | qty | print bbox mm | what |
 |---|---|---|---|---|
-| rc1_plate | PLA | 1 | 83.3 x 83.2 x 28.3 | Splitter base: centre pin d8, output pin d8, stop finger column (2 x M3 tap) |
-| rc1_sleeve | PPA-CF | 1 | 26.0 x 26.0 x 24.5 | Sleeve stub d20 with the integral key rib (launch.RIB_W, RIB_R) under the sun and the crank |
-| rc1_sun | PPA-CF | 1 | 47.8 x 48.0 x 8.0 | launch_aim.sun_solid: sun m1.5 z30 as built |
-| rc1_arm | PPA-CF | 1 | 57.9 x 32.3 x 14.0 | launch_aim.arm_solid: swing arm as built (O-ring groove, d8 pin, clip groove) |
-| rc1_idler | PPA-CF | 1 | 30.0 x 29.7 x 8.0 | launch_aim.idler_solid: idler m1.5 z18 as built |
-| rc1_output | PPA-CF | 1 | 47.8 x 48.0 x 8.0 | Output m1.5 z30 (launch_gears.spur, face 8) on a d8 pin |
+| rc1_plate | PLA | 1 | 83.3 x 83.2 x 33.1 | Splitter base: centre pin d8, output pin d8, stop finger column (2 x M3 tap) |
+| rc1_sleeve | PPA-CF | 1 | 26.0 x 26.0 x 29.3 | Sleeve stub d20 with the integral key rib (launch.RIB_W, RIB_R) under the sun and the crank |
+| rc1_sun | PPA-CF | 1 | 47.8 x 48.0 x 12.0 | launch_aim.sun_solid: sun m1.5 z30 as built |
+| rc1_arm | PPA-CF | 1 | 61.4 x 41.0 x 19.3 | launch_aim.arm_solid: swing arm as built (drag pad pocket, d8 pin, clip groove) |
+| rc1_drag_pad | PLA | 1 | 24.6 x 8.7 x 4.0 | launch_aim.drag_pad_solid: printed flexure drag pad as built |
+| rc1_drag_shim | PLA | 1 | 9.4 x 3.0 x 4.0 | launch_aim.drag_shim_solid: nominal preload shim as built |
+| rc1_idler_clip | PLA | 1 | 10.8 x 10.0 x 1.5 | launch_aim.pin_clip_solid: printed C clip for the d8 idler pin |
+| rc1_idler | PPA-CF | 1 | 30.0 x 29.7 x 12.0 | launch_aim.idler_solid: idler m1.5 z18 as built |
+| rc1_output | PPA-CF | 1 | 47.8 x 48.0 x 12.0 | Output m1.5 z30 (launch_gears.spur, face 12) on a d8 pin |
 | rc1_crank | PPA-CF | 1 | 48.2 x 30.3 x 20.0 | Hand crank, keyed on the sleeve rib like the sun |
 | rc1_stop | PLA | 1 | 47.1 x 10.0 x 6.4 | Stop finger: rounded end at the as-built stop post position |
 | rc2_switch_base | PLA | 1 | 54.0 x 35.0 x 11.5 | contact_switch base: pad, nut pillar, hard stop, wire channel |
 | rc2_switch_lever | PLA | 1 | 50.0 x 5.0 x 8.0 | contact_switch lever, printed on its side (Y up) |
-| rc3_base | PLA | 1 | 40.0 x 91.5 x 80.7 | Base: d30 journal (REEL sleeve) and hex 22 AF (main shaft), rail hole (press) |
+| rc3_base | PLA | 1 | 40.0 x 91.5 x 97.5 | Base: d30 journal (REEL sleeve) and hex 22 AF (main shaft), rail hole (press) |
 | rc3_reel_face | PPA-CF | 1 | 61.6 x 54.0 x 9.5 | REEL gear dog face (drum.dog_teeth, phase 45) with a handle |
 | rc3_collar | PPA-CF | 1 | 60.0 x 60.0 x 18.0 | Collar lower half: drum.dog_teeth facing down, fork groove, hex bore |
-| rc3_fork | PLA | 1 | 80.9 x 100.8 x 66.0 | drum.fork as built: compliant yoke, rail sleeve, follower pin, M3 nut in the tab |
-| rc3_dog_post | PLA | 1 | 20.0 x 75.5 x 41.7 | drum.dog_post as built: SW_DOG_L / SW_DOG_R screw bosses, clamps on the rail |
-| rc3_rail | PPA-CF | 1 | 93.2 x 10.0 x 9.0 | drum.rail profile d10 with the print flat, cut to 93 long |
+| rc3_fork | PLA | 1 | 87.1 x 94.1 x 83.0 | drum.fork as built: compliant yoke, rail sleeve, follower pin, M3 nut in the tab |
+| rc3_dog_post | PLA | 1 | 20.0 x 75.9 x 41.7 | drum.dog_post as built: SW_DOG_L / SW_DOG_R screw bosses, clamps on the rail |
+| rc3_rail | PPA-CF | 1 | 110.0 x 10.0 x 9.0 | drum.rail profile d10 with the print flat, cut to 110 long |
 | rc4_hub_plate | PLA | 1 | 54.0 x 54.0 x 6.0 | clutch.slip_clutch hub_plate (library defaults) |
 | rc4_friction_disc | PLA | 1 | 57.0 x 55.0 x 3.0 | clutch.slip_clutch friction_disc (library defaults) |
 | rc4_pressure_plate | PLA | 1 | 54.0 x 54.0 x 3.5 | clutch.slip_clutch pressure_plate (library defaults) |
@@ -153,7 +156,7 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo roo
 | rc8_m25_plate | PPA-CF | 1 | 100.6 x 18.0 x 11.0 | Pins at 82.60 |
 | rc8_m25_big | PPA-CF | 1 | 61.5 x 49.0 x 6.0 | launch big gear m2.5 z40 sector: teeth 21..26 (tall, relieved) |
 | rc8_m25_drive | PPA-CF | 1 | 42.5 x 44.0 x 6.0 | launch drive gear m2.5 z26 sector |
-| rc9_hub_lever | PPA-CF | 1 | 79.0 x 26.0 x 16.0 | drum.coupler_hub slice (shear pin hole) with a lever, string hole at r 60 |
-| rc9_outer_lever | PPA-CF | 1 | 86.6 x 45.0 x 10.0 | drum.coupler slice (shear pin hole) with a lever, string hole at r 60 |
-| rc9_shear_pin | PLA | 3 | 12.1 x 5.0 x 4.1 | drum.shear_pin as built (d4 PLA), lying on its flat as drum prints it |
+| rc9_hub_lever | PPA-CF | 1 | 79.0 x 26.0 x 15.5 | drum.coupler_hub slice (shear pin hole) with a lever, string hole at r 60 |
+| rc9_outer_lever | PPA-CF | 1 | 86.0 x 40.0 x 9.5 | drum.coupler slice (shear pin hole) with a lever, string hole at r 60 |
+| rc9_shear_pin | PLA | 3 | 12.1 x 5.0 x 4.1 | drum.shear_pin as built (d4 PLA), printed LYING on its 0.4 mm flat as drum prints it (D44): the shear plane runs across the layers |
 | rc10_magnet_cap | PLA | 1 | 20.0 x 20.0 x 6.5 | drum.magnet_holder as built: AS5600 magnet cap on the d12 spigot end |

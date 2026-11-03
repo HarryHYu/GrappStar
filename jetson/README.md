@@ -92,6 +92,7 @@ It asks for your password (sudo). What it does, in order:
 4. Adds you to the groups `dialout` (serial ports) and `video` (cameras).
 5. Installs `setup/99-grappstar.rules` so the devices get fixed names:
    `/dev/grappstar-base`, `/dev/grappstar-base-uart`, `/dev/grappstar-rovercam`, `/dev/grappstar-dartcam`.
+   `/dev/grappstar-base` needs the base's USB serial number: step 4 sets it. Until then that name is missing.
 6. Runs `setup/check_env.py` and prints a report.
 
 Then **log out and back in** (or `sudo reboot`) so the new groups work.
@@ -152,20 +153,43 @@ python3 -m grappstar base ping --base /dev/pts/5    # terminal 2, using the path
 ## 4. Plug in the base
 
 **Battery unplugged.** For this step the base runs from USB only: the Jetson's USB powers the DevKitC. Do not connect
-the 3S LiPo, the BTS7960 or the motors yet.
+the 3S LiPo, the BTS7960 or the motors yet. Any time you change wiring, unplug the battery first.
 
-1. Battery unplugged. Plug a USB cable from the Jetson into the DevKitC port marked **USB** (the ESP32-S3 native
-   port), not the one marked UART or COM.
-2. Check the name appeared:
+Why this step matters: the base (ESP32-S3 DevKitC) and the dart (XIAO ESP32S3) show up on USB with the same ID,
+303a:1001. To tell them apart, the Jetson remembers the base's own USB serial number (each board has a different
+one, it looks like `F4:12:FA:12:34:56`). Then `/dev/grappstar-base` only ever points at the base.
+
+1. Battery unplugged. Unplug the dart's USB cable from the Jetson if it is plugged in. Only the base may be plugged
+   in by USB for this step.
+2. Plug a USB cable from the Jetson into the DevKitC port marked **USB** (the ESP32-S3 native port), not the one
+   marked UART or COM. Check it is seen:
+
+   ```bash
+   lsusb                              # expect a line with 303a:1001 (Espressif)
+   ls /dev/ttyACM*                    # expect /dev/ttyACM0
+   ```
+
+3. Save the base's serial number:
+
+   ```bash
+   bash setup/install.sh --no-apt
+   ```
+
+   It prints `ESP32-S3 board on /dev/ttyACM0, serial ...` and asks "Is only the base plugged in?". Answer `y`.
+   It writes the serial into the installed rule and prints `base serial ...`.
+   If it says more than one board is plugged in, unplug the dart and run it again.
+   By hand instead: `udevadm info -q property -n /dev/ttyACM0 | grep ID_SERIAL_SHORT`, then
+   `bash setup/install.sh --no-apt --base-serial <that value>`. Running install.sh again later keeps the saved
+   serial. New base board? Run it again with `--base-serial <new value>`.
+4. Unplug the base's USB cable and plug it back in. Check the name appeared:
 
    ```bash
    ls -l /dev/grappstar-base
-   lsusb                              # expect a line with 303a:1001 (Espressif)
    ```
 
    `/dev/grappstar-base -> ttyACM0` means it worked. If you used the UART port instead you get
    `/dev/grappstar-base-uart`; move the cable to the USB port.
-3. Talk to it:
+5. Talk to it:
 
    ```bash
    sudo systemctl stop grappstar       # only if you installed the service: it holds the port and the cameras
@@ -174,8 +198,12 @@ the 3S LiPo, the BTS7960 or the motors yet.
    python3 -m grappstar base monitor   # telemetry lines about 10 per second, Ctrl+C stops
    ```
 
-4. Only after this works, and following the base build guide: battery unplugged, wire the power side, then
+6. Only after this works, and following the base build guide: battery unplugged, wire the power side, then
    connect the battery last.
+
+Now the dart may be plugged into the Jetson by USB too: it never gets the base's name. As a second guard, the
+software only treats a port as the base once a valid base reply (a C1 JSON line) arrives, so it never sends base
+commands to the dart.
 
 The base firmware must use the native USB CDC (Arduino IDE: "USB CDC On Boot: Enabled", "USB Mode: Hardware CDC and
 JTAG"). The base talks JSON lines (contract C1, `firmware/base/PROTOCOL.md`).
@@ -311,9 +339,12 @@ read it, so you do not have to type options. Options typed on the command line s
 2. Start the hotspot (it also starts at every boot from now on):
 
    ```bash
-   bash setup/hotspot.sh up                 # picks the free WiFi interface
+   bash setup/hotspot.sh up                 # picks the USB WiFi adapter
    bash setup/hotspot.sh up wlx00c0ca123456 # or name it
    ```
+
+   It only ever uses a USB adapter. It refuses the built-in WiFi and the interface the `kedge` connection uses,
+   and says "No USB WiFi adapter found" if none is plugged in.
 
    This runs `nmcli device wifi hotspot ifname <adapter> con-name grappstar-hotspot ssid GRAPPSTAR-ROVER
    password grappstar`.
@@ -345,32 +376,53 @@ Do not run the hotspot on the built-in WiFi: that radio is on KEDGE.
 The rover aims the base at things it sees, so it must know how its camera maps pixels to angles (intrinsics) and
 how the camera sits on the rover (mount: height and tilt).
 
-The exact options of the `calibrate` commands are set by the code: run `python3 -m grappstar calibrate intrinsics
---help` and `python3 -m grappstar calibrate mount --help` first. The steps below are the method.
+You need: the rover camera plugged in (`/dev/grappstar-rovercam`, step 5) and a printed checkerboard.
+Run every command from this folder (`jetson/`). Files go into `calib/`. Every command has `--help`.
 
 ### Print the checkerboard
 
 - **9 by 6 inner corners** (that is 10 by 7 squares), **25 mm squares**. A generator such as calib.io
   ("Checkerboard", 10 columns, 7 rows of squares, 25 mm) or OpenCV's `pattern.png` works.
-- Print at 100 percent ("actual size", no "fit to page"). Measure a square with calipers. If it is not 25.0 mm,
-  give the measured size to the command (see `--help`).
+- Print at 100 percent ("actual size", no "fit to page"). Measure a square with calipers.
+- `--square` is in **metres**: 25 mm is `--square 0.025`. If you measured 25.3 mm, type `--square 0.0253`
+  (not 25.3: that would be 1000 times too big).
 - Tape it flat on something stiff (cardboard, a clipboard). A bent board gives bad results.
 
 ### Intrinsics
 
-1. Stop the operator page if it is running (it holds the camera).
-2. Run `python3 -m grappstar calibrate intrinsics` (with `--help` options for the camera and square size).
-3. Hold the board in front of the camera and move it: near and far, left, right, top, bottom corners, and tilted.
-   Aim for 20 or more good views. Keep it still for each capture and avoid glare.
-4. It prints the result (and an error number: under 0.5 pixels is good, over 1 means redo it) and where it saved
-   the file.
+1. Stop the operator page if it is running (it holds the camera): `sudo systemctl stop grappstar`.
+2. Take 20 pictures of the board:
+
+   ```bash
+   python3 -m grappstar snap --n 20
+   ```
+
+   Before each picture, hold the board in a new place: near and far, left, right, top, bottom corners, and
+   tilted. Keep it still, avoid glare, then press Enter. The pictures are saved as `calib/images/snap_00.png`
+   to `snap_19.png`.
+3. Work out the intrinsics from them:
+
+   ```bash
+   python3 -m grappstar calibrate intrinsics --images calib/images/*.png --square 0.025
+   ```
+
+4. It prints the result and saves `calib/intrinsics.json`. Check `rms` (the error in pixels): under 0.5 is good,
+   over 1 means take the pictures again. `n_used` is how many pictures it could use.
 
 ### Mount
 
 1. Fix the camera in its final position on the rover. If it moves later, redo this part.
-2. Rover on flat ground. Lay the board flat on the ground in front of it, in view.
-3. Run `python3 -m grappstar calibrate mount` and follow what it asks (measured distances, see `--help`).
-4. It saves camera height and pitch.
+2. Rover on flat ground. Lay the board flat on the ground in front of it, all of it in view.
+3. Take one picture, then work out the mount:
+
+   ```bash
+   python3 -m grappstar snap --n 1 --out calib/ground
+   python3 -m grappstar calibrate mount --image calib/ground/snap_00.png --square 0.025
+   ```
+
+   It uses `calib/intrinsics.json` from the step above automatically (it prints "using intrinsics"). If it
+   prints a WARNING about an uncalibrated camera instead, do the Intrinsics part first.
+4. It saves camera height, pitch and roll to `calib/rovercam.json`. Check the height against a tape measure.
 5. Check: put an orange object at a distance you measured with a tape (for example 5.0 m), click it on the page,
    and compare the range the page shows. Within about 5 percent is good.
 
@@ -384,19 +436,34 @@ python3 -m grappstar serve --sim
 
 What is on the page (layout may differ a little from this list):
 
-- **Camera views**: rover camera and dart camera, live. Click on the rover view to mark a target.
+- **Camera views**: rover camera and dart camera, live. Tap (or click) the rover view to mark a target, or press
+  **Auto target**.
 - **Base panel**: link, state, mode, drum position, aim angle, current, battery, fault.
 - **Dart panel**: link, phase (IDLE, ARMED, FLIGHT, LANDED, ANCHORING, ANCHORED, RELEASING, FAULT), battery.
-- **Mission panel**: current step, history, and the **prompt** box. Before anything dangerous (firing, reeling)
-  the mission stops and asks you to confirm, e.g. "Fire" or "Abort". After the first confirmation ("Base may move")
-  the base is LIVE: drum shifts, aiming and small wiper turns during a mode change happen between prompts. Cocking and
-  firing each have their own confirmation.
+- **Mission panel**: current step, history, **Preflight**, **Start mission**, **Abort**, and the **prompt** box.
+  The mission stops and asks you before each big move. The confirmations, in order: **Base may move**, **Aim**,
+  **Cock**, **Fire** then **FIRE NOW** (two presses), and the landing verdict (**Anchor** or **Retrieve and
+  reshoot**). After "Base may move" the base is LIVE: drum shifts, aiming and small wiper turns happen between
+  prompts.
+- **Recover dart**: if a mission is aborted while the dart is still out, the Mission panel shows "The dart is still
+  out" with a **Recover dart** button. It releases if needed, wraps, reels the dart in, unwraps and goes back to
+  launch. Keep clear of the line.
+- **LAUNCHER LOADED** (red banner at the top): the spring is drawn. Hands off the rail. Press **Decock** in the
+  banner to unwind it before you touch the launcher.
 - **Target**: range and bearing of the clicked or auto found target, and the ballistic solution (pitch, flight time).
 - **Results**: after a flight, the landing zone verdict (GO, NO_GO or UNSURE with reasons), the landing image, the
   aerial map built from the dart video, and the flight analysis.
 - **Manual**: jog the wiper and drum motors, dart keys, record on or off.
-- **STOP** (wiper off now) and **E-STOP** (wiper off and drum to neutral). Always visible. Know where they are
-  before you press anything else.
+- **STOP** (wiper off now) and **ESTOP** (wiper off and drum to neutral). Always visible at the top. Keyboard:
+  **Esc** is STOP from anywhere on the page (Space too, when you are not typing). Holding STOP for 1 s is ESTOP.
+  Know where they are before you press anything else.
+
+Security note: the page needs no setup. The server puts a fresh session token into the page each time it
+starts, and every button press must carry it, so another web site cannot press buttons for you. After a server
+restart the page reloads itself to get the new token. Anyone on the same WiFi can still open the page, so for a
+password add `--token SOMEPASSWORD` to `serve` and open `http://<jetson>:8080/?token=SOMEPASSWORD` once on each
+phone or laptop (it remembers it). This is plain HTTP, not encryption. STOP and ESTOP always work from the page,
+with or without a token.
 
 The mission steps, in order (the page highlights the current one):
 
@@ -410,6 +477,7 @@ The mission steps, in order (the page highlights the current one):
 | FIRE | two confirmations, then the shot (FIRED, then the launcher RESET) | Fire, then FIRE NOW |
 | FLIGHT | waits for the dart to say LANDED (or the dart video to go still) | |
 | LANDING_ZONE | landing report, map, verdict; the base is told how much line is out | Anchor, or Retrieve and reshoot |
+| RAIL_LOW | if the rail is above 15 degrees, it is lowered to its minimum pitch before the tow (skipped on a reshoot) | |
 | BASE_NEUTRAL | launcher at rest, drum to NEUTRAL | |
 | WRAP | the capstan wraps go on while the line is still slack; the drum parks at WRAPPED (about 24 s) | |
 | ANCHOR | the dart digs in (kick, foot, drills) | if it reports warnings, choose Tow anyway or Release and reshoot |
@@ -421,22 +489,25 @@ The mission steps, in order (the page highlights the current one):
 | RETRIEVE | capstan reels in until about 1.5 m is left | |
 | UNWRAP | capstan wraps come off, drum back to NEUTRAL | |
 | FINAL_APPROACH | the storage take-up pulls the last metre until the dart is seated (slow, about 0.08 m/s) | |
-| LAUNCH_READY | drum back to LAUNCH for the next shot | |
+| LAUNCH_READY | drum back to LAUNCH for the next shot | Shoot again, or Abort to finish |
+| DONE | mission over; the log folder is shown | |
 
 A NO GO verdict comes before the wrap: the dart is not anchored, so it comes home on the take-up alone.
 
-If you abort after COCK and before FIRE, the spring stays drawn: press **Decock** in the Manual section before you
-touch the launcher.
+If you abort after COCK and before FIRE, the spring stays drawn and the red **LAUNCHER LOADED** banner shows:
+press **Decock** (in the banner or the Manual section) before you touch the launcher.
 
 Dry mission in sim, step by step:
 
-1. Press **Preflight**. Everything should go green (base link, dart link, cameras).
-2. Click a target on the rover view (or press auto target). Check the range and solution.
-3. Press **Start**. Answer each prompt. At the fire prompt press **Fire**.
+1. Set the target first: tap it on the rover view, or press **Auto target**. Check the range and solution.
+2. Press **Preflight**. Everything should go green (base link, dart link, cameras, target). If it lists a
+   problem, fix it and press Preflight again.
+3. Press **Start mission**. Answer each prompt: Base may move, Aim, Cock, Fire, then FIRE NOW.
 4. Watch the dart view: the simulated flight, impact and landing.
-5. Read the landing verdict and look at the map.
+5. Read the landing verdict and look at the map. Press Anchor (or Retrieve and reshoot).
 6. Follow the prompts through anchoring, tensioning, release and reeling in.
-7. Try **STOP** and **E-STOP** in the middle of a second run and check the mission stops and says why.
+7. Try **STOP** (or press Esc) and **ESTOP** in the middle of a second run and check the mission stops and says
+   why. If the dart is still out, press **Recover dart**. If the banner says LAUNCHER LOADED, press **Decock**.
 8. Replay the recorded mission's vision:
 
    ```bash
@@ -478,7 +549,7 @@ Before the first real launch:
 
 | Problem | Likely cause | Fix |
 |---|---|---|
-| No `/dev/grappstar-base` | rules not installed, cable in the UART port, charge-only cable, or a different USB ID | `ls /dev/ttyACM* /dev/ttyUSB*`, `lsusb` (expect 303a:1001). Use the DevKitC port marked USB and a data cable. Rerun `bash setup/install.sh --no-apt` and replug. If lsusb shows another ID, edit `setup/99-grappstar.rules` |
+| No `/dev/grappstar-base` | base serial not saved yet, rules not installed, cable in the UART port, charge-only cable, or a different USB ID | `ls /dev/ttyACM* /dev/ttyUSB*`, `lsusb` (expect 303a:1001). Use the DevKitC port marked USB and a data cable. With only the base plugged in, rerun `bash setup/install.sh --no-apt`, answer `y`, and replug (step 4). If lsusb shows another ID, edit `setup/99-grappstar.rules` |
 | Only `/dev/grappstar-base-uart` | cable in the UART/COM port | move it to the port marked USB |
 | `/dev/ttyUSB0` appears then vanishes (CH340) | brltty grabs it | `bash setup/install.sh --remove-brltty` |
 | `Permission denied` on the serial port or camera | not in groups dialout or video yet | `groups` should list both. If not, `bash setup/install.sh --no-apt`, then log out and in (or reboot) |

@@ -23,8 +23,8 @@ list, datasheet). Dart viewer https://claude.ai/artifact/Sqt8tF67veTYfxQjUFTZ5f.
 
 8 to 10 bearings 608ZZ (search "608ZZ bearing 8x22x7"). Optional: a small neodymium disc magnet for the AS5600 angle
 sensor (the Adafruit board ships without one; the base also runs without it on a printed index contact). Everything
-else is in hand or printed (Bambu X2D, PLA; PPA-CF for loaded gears and keyed shafts). Range is about 4 m with the two
-launch springs (physics model, 0.5 N payout brake; the first test shots calibrate it). The rail has holes for a
+else is in hand or printed (Bambu X2D, PLA; PPA-CF for loaded gears and keyed shafts). Range is about 4.2 m at 34 deg
+with the two launch springs (physics model: 12.1 J, 6.85 m/s, 0.5 N payout brake; the first test shots calibrate it). The rail has holes for a
 second pair of springs, but the drive train is not rated for them in v1 (decision D38).
 
 ## Layout

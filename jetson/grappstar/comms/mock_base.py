@@ -21,7 +21,7 @@ mechanics are simplified:
   (553.8 = one big gear turn). Fire from REST runs the whole cycle.
 - Wiper in REEL (collar engaged, wraps on): winds the capstan (about 0.22 m/s at duty 1). In NEUTRAL or at the WRAPPED
   park only the take-up turns (forward, duty 0.27..0.4, about 0.3 m/s per unit duty, slips at about 5 N): "tidy" (by
-  time, TIDIED), "retrieve" (until SW_SEATED, SEATED; FAULT DART_STUCK after max_s, default 20 + line_m / 0.08), "reel"
+  time, TIDIED), "retrieve" (until SW_SEATED, SEATED; FAULT DART_STUCK after max_s 5..600, default as approachLimit()), "reel"
   until stop / slip / seated. The line tension comes from the attached World (dart seated, flying, free, anchored).
   Telemetry tension_n is the load cell (null when load_cell is False).
 - Faults: inject_fault(code) or arm one with fail_next[cmd] = code (raised part way through that command's motion).
@@ -106,8 +106,17 @@ REEL_MIN_DUTY = 70.0 / 255.0
 TAKEUP_MAX_DUTY = 102.0 / 255.0
 TIDY_MS = 3000
 TIDY_STEADY_S, TIDY_MAX_S = 2.0, 15.0
-APPROACH_S = 20.0         # reel until seated on the take-up: DART_STUCK after this
-TAKEUP_MPS_NOMINAL = 0.08  # 10.1 step 17: retrieve max_s default = 20 + line_m / 0.08
+APPROACH_S = 30.0         # retrieve with line_m unknown: DART_STUCK after this (config.h approachMaxMs)
+TAKEUP_MPS_PER_DUTY, TAKEUP_MPS_OFF = 0.29, 0.03   # config.h: slowest take-up speed = 0.29 x duty - 0.03 m/s
+
+
+def approach_s(line_m: Optional[float], duty: float) -> float:
+    """base-1.2.1 approachLimit(): 10 + 1.5 x line_m / v, at least 20 s, at most 600 s; 30 s with line_m unknown."""
+    if line_m is None:
+        return APPROACH_S
+    d = min(max(duty, REEL_MIN_DUTY), TAKEUP_MAX_DUTY)
+    v = max(0.02, TAKEUP_MPS_PER_DUTY * d - TAKEUP_MPS_OFF)
+    return min(600.0, max(20.0, 10.0 + 1.5 * line_m / v))
 REEL_MAX_S = 240.0
 TRIP_A, COCK_TRIP_A, TOW_TRIP_A, TAKEUP_TRIP_A, HARD_TRIP_A = 5.0, 6.5, 6.5, 2.5, 17.0
 # ---- power, protocol
@@ -388,8 +397,9 @@ class MockBase:
             out["L"] = 1                     # rail at its low dead point (aim home)
         if self.seated():
             out["S"] = 1
-        if z != "WRAP" or ((self.drum_deg - WRAP_FROM) / WRAP_DEG) % 1.0 < 0.05:
-            out["W"] = 1                     # wrap cup ring at home (one pulse per cup turn in the WRAP sector)
+        wf = ((self.drum_deg - WRAP_FROM) / WRAP_DEG) % 1.0
+        if z == "WRAP" and 0.014 <= wf <= 0.986:
+            out["W"] = 1                     # cad-reel: SW_ARM closed while the cup is away, opens about +-5 deg at home
         return {k2: out[k2] for k2 in SW_KEYS if k2 in out}
 
     def moving(self) -> bool:
@@ -523,8 +533,8 @@ class MockBase:
             return "drum fault"
         if self.code_bad:
             return "drum code invalid"
-        if self.zone() == "WRAP":
-            return "inside the wrap window: the operator decides (unwrap)"
+        if self.zi() >= ZI["WRAP"]:          # base-1.2.1 safeToNeutral: wraps on -> the drum holds (D27)
+            return "wraps on: the drum holds, the operator unwraps when safe"
         if self.loaded_known() or (self.zi() <= ZI["L_TO_N"] and self.maybe_loaded()):
             return HOLD_LAUNCH
         return None
@@ -549,7 +559,7 @@ class MockBase:
                       "drum code jumped over a sector", "ANGLE_SENSOR": "AS5600 lost while the wiper runs",
                       "SWITCH_DISAGREE": "SW_DOG_L and SW_DOG_R both closed", "BROWNOUT":
                       "battery sagged under load", "BAD_STATE": "bad state", "DART_STUCK":
-                      "final approach: no SW_SEATED in 20 s"}.get(code, code)
+                      "final approach: no SW_SEATED in time"}.get(code, code)
         if self.state == "SAFING":           # a second fault stops the safing move
             self.op = {}
             self.drum_running = False
@@ -1179,14 +1189,14 @@ class MockBase:
         return e
 
     def _c_retrieve(self, m: dict, extra: dict) -> Optional[str]:
-        """10.1 step 17: take-up until SW_SEATED in NEUTRAL only; DART_STUCK after max_s (20 + line_m / 0.08)."""
+        """10.1 step 17: take-up until SW_SEATED in NEUTRAL only; DART_STUCK after max_s (approach_s())."""
         duty = self._num(m, "duty")
         max_n = self._num(m, "max_n")
         max_s = self._num(m, "max_s")
-        if max_s is not None and not max_s > 0:
+        if max_s is not None and not 5 <= max_s <= 600:
             return "BAD_ARG"
         if max_s is None:
-            max_s = APPROACH_S + (self.line_est / TAKEUP_MPS_NOMINAL if self.line_known else 0.0)
+            max_s = approach_s(self.line_est if self.line_known else None, 0.3 if duty is None else duty)
         return self._cmd_reel(0.3 if duty is None else duty, self.settings["limit_n"] if max_n is None else max_n,
                               "seated", "retrieve", max_s)
 

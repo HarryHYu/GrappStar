@@ -130,9 +130,7 @@ def parts(P):
                 sol = sol - prim.cylY(U.CLR_D / 2, min(sg * n["y_wall1"], sg * (d["y_out"] + T)) - 1,
                                       max(sg * n["y_wall1"], sg * (d["y_out"] + T)) + 1, u, d["w_fl"] + 6.0)
             if cut is not None and not cut.is_empty():
-                sol = sol - cut
-                comps = sorted(sol.decompose(), key=lambda m: -m.volume())
-                sol = comps[0]
+                sol = U.carve_healed(sol, cut)
             nm = f"frame_spring_guard_{side}_{k + 1}"
             out.append(Part(nm, sol, "PLA", joint="frame_rail_guard", print_tf=U.print_flat(sol, tf.Ry(-90)), color="#d0d6dc",
                             notes="spring guard (C-channel over the launch spring), 2 x M3 x 10 into the rail wall"))

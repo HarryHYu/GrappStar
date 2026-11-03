@@ -143,3 +143,41 @@ def test_printed_parts_watertight_after_vertex_merge(parts):
             m = prim.to_trimesh(p.solid)
             m.merge_vertices()
             assert m.is_watertight, n
+
+
+def test_brake_linkage_gives_the_rocker_stroke():
+    """cam lift 4 less the 0.2 gap turns the crank so arm B lifts the leg by the stroke the real rocker section
+    needs for LIGHT -> FIRM (reel_calc.rocker_section), within 3 percent."""
+    from cad.parts import reel_calc
+    y_contact = reel.FIRM_SCREW[1]                                     # arm B lifts the FIRM screw
+    need = reel_calc.rocker_section(dict(reel_calc.DEFAULTS), y_load=y_contact)["stroke"]
+    got = reel.leg_push_mm(reel.BRAKE_STROKE - reel.BAR_GAP) - reel.FIRM_GAP
+    assert got == pytest.approx(need, rel=0.03)
+    assert reel.leg_push_mm(0.0) == pytest.approx(0.0, abs=1e-9)
+    # FIRM adjustable over E 4 .. 9 GPa: g from 0 to 2.0 covers the needed stroke
+    for E in (4000.0, 9000.0):
+        st = reel_calc.rocker_section(dict(reel_calc.DEFAULTS), y_load=y_contact, E=E)["stroke"]
+        assert 0.0 <= reel.leg_push_mm(reel.BRAKE_STROKE - reel.BAR_GAP) - st <= 2.0
+
+
+def test_bar_follows_the_drum_cam():
+    assert reel.bar_mm(P, dict(drum_deg=0.0)) == 0.0                       # LAUNCH: LIGHT
+    assert reel.bar_mm(P, dict(drum_deg=347.0)) == pytest.approx(reel.BRAKE_STROKE - reel.BAR_GAP)   # REEL: FIRM
+    cx, cy = reel.cam_contact(P)
+    (x0, y0, z0), (x1, y1, z1) = prim.bbox(reel._bar())
+    assert x1 == pytest.approx(cx - reel.BAR_GAP, abs=1e-3)
+    assert y0 < cy < y1
+
+
+def test_brake_parts_clear_through_the_stroke():
+    """bar, crank and the wall (guides, boss, recess) never overlap from LIGHT to FIRM; arm A stays on the bar end."""
+    from cad.lib import tf as _tf
+    wall = {p.name: p for p in reel.parts(P)}["reel_wall"].solid
+    crank0, bar0 = reel._crank(), reel._bar()
+    for s in (0.0, 1.0, 2.0, 3.0, reel.BRAKE_STROKE - reel.BAR_GAP):
+        cr = prim.place(crank0, _tf.T(reel.CRANK_X, 0, reel.CRANK_Z) @ _tf.R((0, 1, 0), reel.crank_deg(s)))
+        br = bar0.translate((-s, 0, 0))
+        assert (cr ^ wall).volume() < 1e-3, s
+        assert (br ^ wall).volume() < 1e-3, s
+        assert (cr ^ br).volume() < 0.1, s          # tip circle facets
+        assert cr.min_gap(br, 1.0) < 0.1, s

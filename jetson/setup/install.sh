@@ -6,6 +6,8 @@
 #   --service        install and enable the systemd service (grappstar.service)
 #   --no-apt         skip apt (no internet, or packages already there)
 #   --remove-brltty  remove brltty (it grabs CH340 serial ports on Ubuntu 22.04)
+#   --base-serial S  the base DevKitC's USB serial number for /dev/grappstar-base
+#                    (without it, plug in ONLY the base by USB and it offers to find it)
 #   -h, --help       show this help
 # Safe to run again: every step checks first.
 set -euo pipefail
@@ -13,15 +15,27 @@ set -euo pipefail
 SERVICE=0
 DO_APT=1
 REMOVE_BRLTTY=0
-for arg in "$@"; do
-    case "$arg" in
+BASE_SERIAL=""
+while [ $# -gt 0 ]; do
+    case "$1" in
         --service) SERVICE=1 ;;
         --no-apt) DO_APT=0 ;;
         --remove-brltty) REMOVE_BRLTTY=1 ;;
-        -h|--help) sed -n '2,10p' "$0"; exit 0 ;;
-        *) echo "Unknown option: $arg (try --help)" >&2; exit 2 ;;
+        --base-serial)
+            if [ $# -lt 2 ]; then echo "--base-serial needs a value" >&2; exit 2; fi
+            BASE_SERIAL="$2"; shift ;;
+        --base-serial=*) BASE_SERIAL="${1#--base-serial=}" ;;
+        -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
+        *) echo "Unknown option: $1 (try --help)" >&2; exit 2 ;;
     esac
+    shift
 done
+PLACEHOLDER="REPLACE_WITH_BASE_SERIAL"
+valid_serial() { [[ "$1" =~ ^[A-Za-z0-9:._-]+$ ]] && [ "$1" != "$PLACEHOLDER" ]; }
+if [ -n "$BASE_SERIAL" ] && ! valid_serial "$BASE_SERIAL"; then
+    echo "--base-serial: '$BASE_SERIAL' does not look like a serial number (letters, digits, : . _ - only)" >&2
+    exit 2
+fi
 
 SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 JETSON_DIR="$(dirname "$SETUP_DIR")"
@@ -93,10 +107,67 @@ done
 
 # ---------------------------------------------------------------------------
 step "Installing udev rules (/dev/grappstar-base, /dev/grappstar-rovercam, /dev/grappstar-dartcam)"
-sudo install -m 0644 "$SETUP_DIR/99-grappstar.rules" /etc/udev/rules.d/99-grappstar.rules
+RULES_DST=/etc/udev/rules.d/99-grappstar.rules
+
+# The base and the dart's XIAO are both 303a:1001, so the base is matched by its USB serial number.
+# Order: --base-serial, then the serial already in the installed rule, then offer the one board plugged in.
+SERIAL_SRC=""
+if [ -n "$BASE_SERIAL" ]; then
+    SERIAL_SRC="from --base-serial"
+elif [ -f "$RULES_DST" ]; then
+    old="$(grep -o 'ATTRS{serial}=="[^"]*", SYMLINK+="grappstar-base"' "$RULES_DST" | head -n 1 | cut -d'"' -f2 || true)"
+    if [ -n "$old" ] && valid_serial "$old"; then
+        BASE_SERIAL="$old"
+        SERIAL_SRC="kept from the installed rule"
+    fi
+fi
+# List every 303a:1001 serial port (ESP32-S3 boards) with its serial number.
+CANDIDATES=()
+for dev in /dev/ttyACM*; do
+    [ -e "$dev" ] || continue
+    props="$(udevadm info -q property -n "$dev" 2>/dev/null || true)"
+    if grep -qx 'ID_VENDOR_ID=303a' <<<"$props" && grep -qx 'ID_MODEL_ID=1001' <<<"$props"; then
+        ser="$(grep '^ID_SERIAL_SHORT=' <<<"$props" | cut -d= -f2- || true)"
+        if [ -n "$ser" ]; then
+            CANDIDATES+=("$ser")
+            ok "ESP32-S3 board on $dev, serial $ser"
+        fi
+    fi
+done
+if [ -z "$BASE_SERIAL" ]; then
+    if [ "${#CANDIDATES[@]}" -eq 1 ] && valid_serial "${CANDIDATES[0]}"; then
+        echo "   Found one ESP32-S3 board (303a:1001), serial ${CANDIDATES[0]}."
+        echo "   Use it as the BASE only if the base is the ONLY board plugged in by USB (the dart unplugged)."
+        ans=""
+        if [ -t 0 ]; then
+            read -r -p "   Is only the base plugged in? Write this serial into the rule? [y/N] " ans || ans=""
+        fi
+        if [[ "$ans" =~ ^[Yy] ]]; then
+            BASE_SERIAL="${CANDIDATES[0]}"
+            SERIAL_SRC="found on USB"
+        fi
+    elif [ "${#CANDIDATES[@]}" -gt 1 ]; then
+        warn "more than one ESP32-S3 board is plugged in (base and dart look the same). Unplug the dart, keep only"
+        warn "the base plugged in by USB and run this again, or pass --base-serial SERIAL."
+    fi
+fi
+tmp_rules="$(mktemp)"
+if [ -n "$BASE_SERIAL" ]; then
+    sed -e "s|$PLACEHOLDER|$BASE_SERIAL|" "$SETUP_DIR/99-grappstar.rules" > "$tmp_rules"
+else
+    cp "$SETUP_DIR/99-grappstar.rules" "$tmp_rules"
+fi
+sudo install -m 0644 "$tmp_rules" "$RULES_DST"
+rm -f "$tmp_rules"
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 ok "rules installed. Unplug and replug USB devices if the names do not appear."
+if [ -n "$BASE_SERIAL" ]; then
+    ok "base serial $BASE_SERIAL ($SERIAL_SRC): /dev/grappstar-base points at that board only"
+else
+    warn "base serial not set, so /dev/grappstar-base will not appear. Battery unplugged, plug in ONLY the base"
+    warn "by USB (dart unplugged), then run: bash setup/install.sh --no-apt   (README step 4)"
+fi
 
 # ---------------------------------------------------------------------------
 if dpkg -s brltty >/dev/null 2>&1; then

@@ -9,7 +9,8 @@ Status: in progress. Final version at 18:30 Sydney.
   imageglob, csv, printlist (base pack in any of csv/json/md form, from base/pack or base/out/base/pack; dart from
   kedge/pack_v30), wiremap (run sheet v29 wire numbers to the new dart numbers), assumed (params measured=False and
   None blocks), status, date. Missing sources become placeholders naming the owner, so it always builds. Appends
-  `base/guide/*.pdf` and the KEDGE v30 run sheet as PDF appendices with bookmarks. Renders the system diagram with
+  the base assembly guide (`base/out/base/guide.pdf`) as a PDF appendix with a bookmark; the KEDGE v30 run sheet
+  is pointed to, not appended (coordinator decision: it is kedge's own document and carries Helvetica). Renders the system diagram with
   graphviz (wide pictures get their own rotated page). Lints for em dashes. Also writes the one-pagers:
   `Wiring_Cheat_Sheet_Base.pdf`, `Wiring_Cheat_Sheet_Dart.pdf`, `Commands_Cheat_Sheet.pdf`, and
   `MEASURE_RESULTS.md/.pdf` (fill-in sheet generated from MEASURE_LIST).
@@ -123,3 +124,18 @@ Still open (owner):
   base/, C21 exactly as the sheets list, WIRING section numbers, flashing with wiring left on, step 11 starts at
   stage 4. `grappstar base fire` is on w/jetson (merge pending). Sent: cad-infra (coupon commands, magnet cap),
   fw-base (FORWARD on the bench, README section ref).
+- Round 11 (coordinator r3_M safety items, then a learner round on the dart build): polarity at the bare lead ends
+  first, the exact decock failure path from fw-base (force only on SWITCH_DISAGREE with the carriage visibly drawn,
+  then a manual one-spring-at-a-time unload and `cal cock_rest`), buck re-measured before VM; dart: run sheet 6.4 /
+  6.5 wire numbers spelled out (old 25 to 27 means new 23 and 24; old 18 means new 16), old pack cut list marked
+  replaced, the capacitor fitted in step 3, live free ends insulated, dart never USB plus loop plug, `z` on the WiFi
+  page, troubleshooting reversal rule. Sent to fw-dart: hull open vs closed, impactG struct, stallMa test limit,
+  capacitor location, B10 open reading, full cut list path.
+- Round 12 (coordinator items, then a learner round on the rover, Jetson and mission path): run sheet no longer
+  appended (pointed to; no Helvetica in any PDF, tested), stop before release, rail to 6 deg before the wrap (D45);
+  a motors-safe state (lead #2 out, ESP32 and Jetson up) for hand checks on the rover, one program on the serial
+  port at a time, aim before every shot, require_seated re-sent after every power-up, CALIBRATION (g) before the
+  spring shots, recovery between dummy shots (retrieve in NEUTRAL), stage 7b gentler first pull on a 5 m line, one
+  tow limit rule (hand result minus 10 N, never above 50 N, in firmware and operator page), Jetson README steps
+  4 to 7 scheduled after the rover power-on, STOP vs estop wording, references fixed. Sent to jetson (port lock,
+  tow limit rule, README refs and range) and fw-base (motors-safe wording, require_seated persistence).

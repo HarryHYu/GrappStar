@@ -69,6 +69,10 @@ def clean(text):
     text = text.replace(" \u2014 ", ", ").replace("\u2014", ", ")
     text = text.replace("\u2013", "-").replace("\u2018", "'").replace("\u2019", "'")
     text = text.replace("\u201c", '"').replace("\u201d", '"')
+    # no names on documents (the GitHub account in a URL is an address, not a name)
+    text = text.replace("Harry must measure", "What to measure").replace("Harry must confirm", "To confirm")
+    text = re.sub(r"\bHarry's\b", "your", text)
+    text = re.sub(r"\bHarry\b(?!HYu)", "you", text)
     return text
 
 
@@ -396,9 +400,11 @@ def build_pdf(md, out=None, doc_title=TITLE):
         pdfmetrics.registerFont(TTFont(name, os.path.join(fdir, fn)))
     from reportlab.pdfbase.pdfmetrics import registerFontFamily
     registerFontFamily("Sans", normal="Sans", bold="Sans-Bold", italic="Sans-Italic", boldItalic="Sans-BoldItalic")
+    from reportlab import rl_config
+    rl_config.canvas_basefontname = "Sans"     # no non-embedded Helvetica anywhere in the PDFs
 
     k = colors.black
-    body = ParagraphStyle("body", fontName="Sans", fontSize=9.5, leading=12.5, textColor=k, spaceAfter=4,
+    body = ParagraphStyle("body", fontName="Sans", bulletFontName="Sans", fontSize=9.5, leading=12.5, textColor=k, spaceAfter=4,
                           alignment=TA_LEFT)
     small = ParagraphStyle("small", parent=body, fontSize=8, leading=10, spaceAfter=0)
     small_b = ParagraphStyle("small_b", parent=small, fontName="Sans-Bold")
@@ -480,7 +486,7 @@ def build_pdf(md, out=None, doc_title=TITLE):
                 widths[i] = mins[i]
         data = [[Paragraph(inline(c), small_b if ri == 0 else small) for c in r] for ri, r in enumerate(rows)]
         t = Table(data, colWidths=widths, repeatRows=1)
-        t.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.4, k), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        t.setStyle(TableStyle([("FONTNAME", (0, 0), (-1, -1), "Sans"), ("GRID", (0, 0), (-1, -1), 0.4, k), ("VALIGN", (0, 0), (-1, -1), "TOP"),
                                ("LEFTPADDING", (0, 0), (-1, -1), 3), ("RIGHTPADDING", (0, 0), (-1, -1), 3),
                                ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2)]))
         return t
@@ -508,6 +514,8 @@ def build_pdf(md, out=None, doc_title=TITLE):
     story = []
     toc = TableOfContents()
     toc.levelStyles = toc_styles
+    toc.tableStyle = TableStyle([("FONTNAME", (0, 0), (-1, -1), "Sans"), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                                 ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)])
     lines = md.splitlines()
     i, para, first_h1 = 0, [], True
 
@@ -612,7 +620,12 @@ def build_pdf(md, out=None, doc_title=TITLE):
 
     tmp = out or (OUT_PDF + ".main.pdf")
     doc = Doc(tmp)
-    doc.multiBuild(story)
+    from reportlab.pdfgen.canvas import Canvas
+
+    def sans_canvas(*a, **k):
+        k.setdefault("initialFontName", "Sans")   # reportlab starts each page in Helvetica otherwise (not embedded)
+        return Canvas(*a, **k)
+    doc.multiBuild(story, canvasmaker=sans_canvas)
     return tmp
 
 
@@ -620,7 +633,6 @@ APPENDICES = [
     # (repo path or glob, bookmark title). Missing files are skipped.
     ("base/out/base/guide.pdf", "Appendix: base assembly guide (base pipeline)"),
     ("base/guide/*.pdf", "Appendix: base assembly steps (base pipeline)"),
-    ("kedge/pack_v30/KEDGE_v30_run_sheet.pdf", "Appendix: KEDGE v30 dart run sheet"),
 ]
 
 
@@ -744,7 +756,7 @@ line with, a towing line.
 | `{"cmd":"retrieve","duty":0.3}` | final approach on the take-up until the dart seats |
 | `{"cmd":"reel","duty":0.5,"until":"seated"}` | wind in until the dart seats (`until`: stop, seated, tension) |
 | `{"cmd":"jog","motor":"wiper","dir":1,"ms":300}` | short move; `motor` wiper or drum, `dir` 1 or -1, up to 1500 ms |
-| `{"cmd":"set","key":"limit_n","val":50}` | set a stored value (tow limit 50 N) |
+| `{"cmd":"set","key":"limit_n","val":40}` | set a stored value (tow limit; 40 N or less for the first field tows) |
 | `{"cmd":"get","key":"limit_n"}` | read a stored value |
 
 ## Dart keys (WiFi KEDGE, password grappstar, http://192.168.4.1, or Serial 115200)

@@ -55,29 +55,40 @@ so at the dwell the cam pushes 0.3 mm past first contact (overtravel to the hard
 sit at y 200.7..207, outside the crank plane.
 
 Bracket (PLA): backing plate behind the switch base (world x 114.5..119.5), a column down to cad-launch's housing foot
-extension (x 80..130.9, y 193.8..201.8, top at deck + 8) and a foot on it: 2 x M3x10 down into pilots at (107, 197.8)
-and (116, 197.8); the housing's 4th deck screw (from below, 125.9, 197.8) bites into a d2.6 pilot in the foot. The
-switch base screws to the plate with 4 x M3x8 self tap.
+extension (x 80..130.9, y 193.8..201.8, top at deck + 8), a foot on it and a web (about 48 deg) under the cantilevered
+plate. Fixing: 1 x M3x10 down into the pilot at (107, 197.8), and the housing's 4th deck screw (from below, x 125.9)
+bites into a d2.6 pilot in the bracket foot. cad-launch also cut a pilot at x 116: it lies under the bracket column and
+is not used. The switch base screws to the plate with 4 x M3x8 self tap. Print foot down.
 
 ## 3. SW_GAP (GPIO 39)
 
 Read by the big gear cam bump (launch.big_gear_solid: r 29.7 at 225 deg in the rail frame when the gear rests in its
 toothless gap, 2 mm tall, +-5 deg flat top, 10 deg ramps) on the sector web's right face (rail y_rel -6). The lever
-runs from the bump outwards along the 225 deg ray from the gear pin, actuated towards -y. The jam nut would stand into
-the gear web, so the lever tip carries a 4.5 mm printed riser (part of the lever, beyond the jam nut, rigid): the
-actuator face is the riser top, at rest 0.46 mm off the web face, and the screw end stays 0.9 mm under it.
+tip sits on the bump; the lever runs from it towards its root at 217.5 deg (rail u-w plane, 7.5 deg off the radial):
+within 29 deg of the radial the contact screw stays outside the circle the bump sweeps. Actuated towards -y.
+The jam nut would stand into the gear web, so the lever tip carries a 4 mm printed riser (part of the lever, beyond
+the jam nut, rigid): the actuator face is the riser top, at rest 0.46 mm off the web face; the screw end stays 0.5 mm
+under the web face and outside the bump circle.
 
-Bracket (PLA): backing plate under the switch base, a web up to a tab on the right cheek's outer face (y_rel -17),
-2 x M3x12 along +y into cheek pilots d2.6 at (u 48, w 2) and (u 64, w 2). Everything hangs below the rail in the
-space under the right cheek, outside the sleeve flange clear zone (r 33.5).
+One printed part: the cad.lib switch base (its low +y side trimmed 1.7 mm past the wire channel, mounting wings not
+needed) fused with an arm: a web in the base plane up to a tab on the right cheek's outer face (rail y_rel -17),
+2 x M3x12 along +y into cheek pilots d2.6 at (u 48, w 2) and (u 64, w 2), heads in counterbores. No backing plate:
+cad-drum's dog post sits at world y < 111.5 and the base bottom is at world y 112.5. The angle and trim were swept
+against the merged tips of launch, drum, reel and frame: 215 to 220 deg is clear of reel_p2_post (top z -34.6) and
+the launch sleeve over pitch 6 to 47.
+
+Closure windows (lever push vs angle, closed when the push reaches the pretravel 1.24 mm): SW_GAP closed for the gear
+within about +-14 deg of rest; SW_RAIL_LOW closed within about +-9 deg of crank from the LOW dead point (pitch 6.0 to
+6.2), touching up to about +-13 deg.
 
 ## 4. Spring guard
 
-Left with cad-launch: `launch_guard.py` exists (6 segments, side plates outside both springs, M3 brackets on the rail
-walls). At 1d668d6 it is not called from `launch.parts()`; cad-launch was asked to wire it (3 lines).
+Not in this module: cad-frame builds the spring guards (frame_guards.py, joint following launch_rail, in base-v1).
+The sensors audit runs with frame loaded, so the switches are checked against the guards.
 
 ## Assumptions (Harry: check)
 
 - The AS5600 board is used with the STEMMA QT cable only (no header pins soldered).
 - Air gap 2.0 mm (see 1).
 - Contact gap set by turning: 0.93 mm, 0.5 mm per turn (the step text says back off 1.9 turns from touching).
+- The STEMMA cable plugs into the +x connector; a JST SH plug needs about 6 mm beyond the board edge (kept free).

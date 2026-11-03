@@ -72,9 +72,11 @@ def test_mosaic_degenerate_inputs():
     black = [Frame(img=np.zeros((240, 360, 3), np.uint8), t=i / 30.0, idx=i) for i in range(40)]
     m = build_mosaic(black, landing_t=1.0)
     assert m.used == [] and m.landing_xy is None and m.image is not None
+    assert not any(str(n).startswith("error") for n in m.notes), m.notes      # a real "no usable frames" result
     flagged = [Frame(img=np.full((240, 360, 3), 128, np.uint8), t=i / 30.0, idx=i, bad=True) for i in range(10)]
     m = build_mosaic(flagged)
     assert m.used == [] and m.notes
+    assert not any(str(n).startswith("error") for n in m.notes), m.notes
     frames, truth = render_flight(seed=0, size=SMALL)
     few = [f for f in frames if truth["t_impact"] - 0.2 < f.t < truth["t_impact"]][:2]
     m = build_mosaic(few, landing_t=truth["t_impact"])

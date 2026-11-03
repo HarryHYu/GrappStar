@@ -47,7 +47,7 @@ MAGNET = dict(d=6.0, h=2.5, gap=1.0)          # diametric NdFeB, air gap to the 
 L, W, H = 124.0, 124.0, 58.0       # fits the params region (130 x 130) with the deck screws inside
 WALL, FLOOR = 2.4, 3.0
 TAB_W, TAB_T = 0.0, 6.0             # no outside tabs: 4 floor pads inside take the deck screws
-PADS = [(110.0, 20.0), (110.0, 50.0), (8.0, 82.0), (53.0, 116.0)]
+PADS = [(110.0, 20.0), (110.0, 50.0), (8.0, 82.0), (40.0, 116.0)]
 ESP_Z = FLOOR + 27.0            # ESP32 PCB underside: room for DuPont housings on the downward pins
 BTS_Z = FLOOR + 24.0            # BTS7960 PCB underside (heatsink below it)
 ESP_CLAMP_Z = ESP_Z + 1.6 + 3.1  # top of the WROOM module = clamp underside
@@ -55,8 +55,8 @@ USB_OPEN = (13.5, 10.0)          # native USB opening (fits a Micro-USB or USB-C
 PERF = (55.0, 31.0, 1.6)        # perfboard Harry cuts from stock: 55 x 31, two 3.2 holes 41 apart
 PERF_HOLES = [(51.0, 40.0), (92.0, 40.0)]   # (x, z) of its M3 screws on the y = 0 wall bosses
 PERF_STAND = 6.0                # boss height off the wall (solder joints behind the board)
-EXIT_MOTOR = (33.0, 45.0)       # x range of the 14 AWG wiper pair window in the y = W wall
-EXIT_SENS = (14.0, 30.0)        # x range of the sensor window in the y = W wall
+EXIT_MOTOR = (50.0, 62.0)       # x range of the 14 AWG wiper pair window in the y = W wall (world y -17..-5)
+EXIT_SENS = (88.0, 104.0)       # x range of the sensor window in the y = W wall (world y 21..37, towards the sensors)
 
 # component placement (bay frame, board corner, rotation of the board about z in deg)
 PLACE = dict(
@@ -129,7 +129,6 @@ def bay_box():
         cuts.append(U.insert_hole(bx + hx, by + hy, BTS_Z))
     # heatsink vents: slots in both long walls beside the heatsink, plus the lid grille
     for i in range(6):
-        cuts.append(prim.box(bx + 4 + i * 7.5, bx + 8 + i * 7.5, W - WALL - 1, W + 1, FLOOR + 4.0, BTS_Z - 1.0))
         cuts.append(prim.box(L - WALL - 1, L + 1, by + 4 + i * 7.5, by + 8 + i * 7.5, FLOOR + 4.0, BTS_Z - 1.0))
     # small board pockets
     for nm in ("mp1584", "drv8833", "hx711"):
@@ -151,7 +150,7 @@ def bay_box():
     cuts.append(prim.box(EXIT_SENS[0], EXIT_SENS[1], W - WALL - 1, W + 1, FLOOR + 2.0, FLOOR + 12.0))
     xc = BOARD["xt60"]["cut"]
     cuts.append(prim.box(L - WALL - 1, L + 1, 38.0 - xc[0] / 2, 38.0 + xc[0] / 2, FLOOR + 6.0, FLOOR + 6.0 + xc[1]))
-    anchors = [((EXIT_MOTOR[0] + EXIT_MOTOR[1]) / 2, W - WALL - 7.0), ((EXIT_SENS[0] + EXIT_SENS[1]) / 2, W - WALL - 7.0),
+    anchors = [((EXIT_MOTOR[0] + EXIT_MOTOR[1]) / 2, W - WALL - 7.0), (EXIT_SENS[0] + 7.0, W - WALL - 7.0),
                (L - WALL - 6.0, 26.0), (ex + bw / 2, ey + 14.0)]
     for (ax_, ay_) in anchors:
         a = prim.box(ax_ - 3, ax_ + 3, ay_ - 5, ay_ + 5, FLOOR - 0.01, FLOOR + 6.0)

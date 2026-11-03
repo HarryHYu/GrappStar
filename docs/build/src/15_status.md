@@ -5,8 +5,8 @@ shows a placeholder; re-run the script after it lands.
 
 @status
 
-Appendices attached after this page (when present): the base assembly steps PDF from `base/guide`, then the KEDGE
-v30 dart run sheet. In the run sheet, follow section 6 of this guide for the new dart pin map.
+Appendix attached after this page (when present): the base assembly guide `base/out/base/guide.pdf`. Print
+separately: the KEDGE v30 dart run sheet `kedge/pack_v30/KEDGE_v30_run_sheet.pdf` (follow section 6 of this guide for the new dart pin map).
 
 Printable one-pagers next to this guide: `docs/build/FIRST_DAY.md`, `Wiring_Cheat_Sheet_Base.pdf`,
 `Wiring_Cheat_Sheet_Dart.pdf`, `Commands_Cheat_Sheet.pdf`, `MEASURE_RESULTS.pdf` (fill-in).

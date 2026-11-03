@@ -3,7 +3,9 @@
 Kiyo X (Razer RZ19-04170): body about 70 x 58 x 48 (retail), 80.85 x 85.05 x 64.5 with the clip folded (Razer spec
 sheet), monitor clip plus a 1/4"-20 tripod thread (Razer support "At a Glance"). The mount is a printed MONITOR
 EDGE: a 16 mm thick plate the camera's own clip grips (no screws, nothing to buy), with a 1/4" (6.6) hole through the
-top so a tripod screw also works. The plate top is tilted to the params pitch so the camera looks along +X.
+top so a tripod screw also works. The plate top is tilted to the params pitch (-10 deg) so the camera, sat flat on
+it, looks along +X with a repeatable bore-sight. The column may move off the bay: the final pose is in
+build()["info"]["camera_pos"] and in frame_REPORT.md (the Jetson needs it).
 RC832 receiver: 80 x 65 x 15 (datasheet), SMA antenna on a short end. It stands on its long edge in a slotted holder,
 antenna up, clear of the metal wiper motor.
 """
@@ -34,7 +36,7 @@ def camera_mount(cam_world, pitch_deg, deck_z):
     t = KIYO["edge_t"]
     plate = prim.box(-t / 2, t / 2, -36.0, 36.0, -30.0, 0.0)
     plate = plate - prim.cyl(3.3, 20, 0, 0, -10)        # 1/4" tripod screw hole from the top
-    plate = prim.place(plate, tf.T(x, y, ze))           # level: the Kiyo X clip hinge sets the -10 deg pitch
+    plate = prim.place(plate, tf.T(x, y, ze) @ tf.Ry(-pitch_deg))   # top tilted to the params pitch: repeatable bore-sight
     neck = prim.box(x - COL / 2, x + COL / 2, y - COL / 2, y + COL / 2, h_col - 3.0, ze - 22.0)
     sol = prim.union([col, foot, plate, neck])
     for hx, hy in holes:
@@ -100,8 +102,9 @@ def build(P, C, info):
     bx_, by_, bz_ = KIYO["body"]
     x, y, z = pos
     edge_top = z - C["deck_z"] - KIYO["optic_above_edge"]
-    # body envelope sitting on the edge plate (the clip arm hangs behind the plate; envelope only)
-    cam_sol = prim.box(x - by_ / 2, x + by_ / 2, y - bx_ / 2, y + bx_ / 2, edge_top + 0.05, edge_top + 0.05 + bz_)
+    # body envelope sitting on the tilted edge plate (same tilt; the clip arm hangs behind the plate)
+    cam_sol = prim.place(prim.box(-by_ / 2, by_ / 2, -bx_ / 2, bx_ / 2, 0.05, 0.05 + bz_),
+                         tf.T(x, y, edge_top) @ tf.Ry(-float(cam.get("pitch_deg", -10.0))))
     parts.append(Part("frame_kiyo_x", cam_sol, "bought", color="#202020", bought_ref="Razer Kiyo X webcam",
                       notes="rover camera (body envelope), looks along +X"))
     # cable anchors: Jetson USB from the bay, capture dongle and receiver leads

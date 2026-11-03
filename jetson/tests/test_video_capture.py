@@ -166,3 +166,20 @@ def test_list_source_from_images():
     a, b = src.read(), src.read()
     assert a.img.shape == (4, 4, 3)
     assert abs((b.t - a.t) - 0.1) < 1e-6
+
+
+def test_v4l2_info_reads_back_what_the_driver_gave(monkeypatch):
+    """C4: the driver may not honour the request (a PAL dongle gives 720x576, a camera falls back to YUYV); info
+    must show what it actually delivers, not what was asked."""
+    class Stubborn(FakeCapture):
+        def set(self, prop, value):
+            super().set(prop, value)
+            if prop == cv2.CAP_PROP_FOURCC:
+                self.props[prop] = cv2.VideoWriter_fourcc(*"YUYV")
+            elif prop == cv2.CAP_PROP_FRAME_HEIGHT:
+                self.props[prop] = 576
+            return True
+    FakeCapture.instances = []
+    monkeypatch.setattr(capture.cv2, "VideoCapture", Stubborn)
+    src = V4L2Source(0, fourcc="MJPG", width=720, height=480, fps=30)
+    assert src.info["fourcc"] == "YUYV" and src.info["height"] == 576 and src.info["width"] == 720

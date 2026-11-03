@@ -6,7 +6,8 @@ from grappstar import jlog
 from grappstar.mission import MissionConfig
 from mission_harness import Rig, FakeCam
 
-HAPPY = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "BASE_NEUTRAL", "WRAP",
+HAPPY = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "RAIL_LOW", "BASE_NEUTRAL",
+         "WRAP",
          "ANCHOR", "TIDY", "FLY_IN", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
 
 
@@ -332,3 +333,24 @@ def test_line_out_uses_video_range_only_with_imu(tmp_path):
     assert abs(sent["line_m"] - (4.2 * 1.05 + 0.3)) < 0.01
     m.tell_line_out({"flight": {"range_m": 12.0, "source": "imu"}})
     assert sent["line_m"] <= 4.9 * 1.1 + 0.5
+
+
+def test_estop_is_not_followed_by_a_mission_stop(tmp_path):
+    """r3_M #2: the ESTOP's drum-to-NEUTRAL safing must not be cancelled by the aborting mission's own stop."""
+    import time
+    r = Rig(tmp_path)
+    r.policy["Aim now"] = lambda p: (time.sleep(0.3), "Aim")[1]
+    try:
+        r.m.start()
+        t0 = time.time()
+        while r.m.step != "AIM" and time.time() - t0 < 30:
+            time.sleep(0.01)
+        r.m.abort("operator ESTOP", base_stop=False)
+        r.base.estop(timeout=1.0)
+        r.m.thread.join(10)
+        cmds = [c["cmd"] for c in r.mb.received]
+        i = len(cmds) - 1 - cmds[::-1].index("estop")
+        assert "stop" not in cmds[i + 1:], cmds[i:]
+        assert r.m.state == "ABORTED"
+    finally:
+        r.close()

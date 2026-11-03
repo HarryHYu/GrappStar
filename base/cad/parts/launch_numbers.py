@@ -26,7 +26,7 @@ def rows(P):
     pre = d["preload"]
     ext = pre + s["stroke"]
     ps = {p.name: p for p in L.parts(P)}
-    moving = ["launch_carriage", "launch_carriage_arm_l", "launch_carriage_arm_r", "launch_seat_plunger",
+    moving = ["launch_carriage", "launch_carriage_yoke", "launch_muzzle_roller", "launch_seat_plunger", "launch_seat_clip",
               "launch_seat_pushrod"]
     m_mov = sum(ps[k].mass_g() for k in moving if k in ps)
     lg = LN.geom(n)
@@ -42,7 +42,7 @@ def rows(P):
         ("drive gear", f"{n['z_drive']}T, centre distance {g['cd']:.1f}"),
         ("wiper deg per shot / release at", f"{g['ratio'] * 360:.1f} / {-t['theta_release'] * g['ratio']:.1f} forward wiper deg from rest"),
         ("torque at full cock: big gear / wiper", f"{g['torque_big']:.2f} / {g['torque_wiper']:.2f} N m"),
-        ("moving mass (carriage body + arms + seat parts)", f"{m_mov:.1f} g (dart 279 g)"),
+        ("moving mass (carriage body + yoke + roller + seat parts)", f"{m_mov:.1f} g (dart 279 g)"),
         ("carriage rear face HOME / cocked (u)", f"{n['u_c_home']:.1f} / {n['u_c_home'] - s['stroke']:.1f}"),
         ("rail span (u) / splits", f"{n['u_track0']:.1f} .. {n['u_rail1']:.1f} / {n['split']}"),
         ("spring anchors (u, y, w)", f"{n['u_anchor']:.1f}, +-{n['y_spring']:.0f} (provision +-{L.Y_SPRING2:.0f}), {n['w_spring']:.0f}"),

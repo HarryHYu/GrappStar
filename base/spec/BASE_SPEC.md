@@ -186,7 +186,7 @@ Jetson sends, what ends the wait. Everything else in C1 stays as PROTOCOL.md doc
 | 14 | `stop`, then dart `/release` | `ABORTED`, then dart phase RELEASING and out of ANCHORED | the worm holds the line while the dart lets go |
 | 15 | `reel` {until `stop`}, then `stop` at line_m about 1.5 | `ABORTED` | capstan reel-in |
 | 16 | `unwrap` | `UNWRAPPED`, then `MODE` NEUTRAL | skipped when never wrapped |
-| 17 | `retrieve` {duty 0.3} | `SEATED` | take-up final approach in NEUTRAL only (FAULT `DART_STUCK` after 20 s). Never seat on the capstan |
+| 17 | `retrieve` {duty 0.3, max_s} | `SEATED` | take-up final approach in NEUTRAL only (FAULT `DART_STUCK` after max_s: default 20 + line_m / 0.08 s, the take-up is slow). Never seat on the capstan |
 | 18 | `mode` LAUNCH | `MODE` ok | back to 2 |
 
 Recovery: a fault or stop while cocking leaves the phase UNKNOWN: `decock` (same as `cal decock`), wait `RESET`, then

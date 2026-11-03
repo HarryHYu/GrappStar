@@ -28,6 +28,7 @@ if _HERE not in sys.path:
 
 from cad.lib import Part, Joint, Allow, Clearance, prim, tf   # noqa: E402
 import launch_kin as K                                         # noqa: E402
+import launch_switch as SW                                     # noqa: E402
 
 try:
     import launch_gears as G                                   # noqa: E402
@@ -116,6 +117,25 @@ def L(P):
     return n
 
 
+def switch_frames(P):
+    """Printed contact switches: name -> dict(M = switch local -> carrier joint frame, carrier joint, z_s, screw)."""
+    n = L(P)
+    out = {}
+    # SW_HOME on the right rail lip, pressed by the right spring arm when the carriage is on its stop
+    u_tip = n["u_c_home"] + n["pusher_t"]                    # stop tab front face at HOME
+    w_base = n["w_floor0"] + 1.0
+    zs = (n["tab_w0"] + 5.0) - w_base
+    out["home"] = dict(M=tf.T(u_tip - SW.LEAF_T + 6.0, n["y_shoe0"] - 0.5 - 4.0, w_base),
+                       joint="launch_rail", z_s=zs, screw=6.0, x0=-3.0, width=8.0, top=3.5,
+                       where="rail mid piece, left of the big gear, pressed by the carriage stop tab at HOME")
+    # SW_SEATED on the carriage shelf behind the pusher, tip flush with the pusher face, pressed by the dart tail
+    zs2 = 70.0 - n["w_deck1"]
+    M2 = tf.mul(tf.T(n["u_c_home"] - 2.8 + 0.0, 0, n["w_deck1"]), tf.Rz(180))
+    out["seated"] = dict(M=M2, joint="launch_carriage", z_s=zs2, screw=12.0, x0=-2.8, width=None, top=5.0,
+                         where="carriage shelf behind the pusher, pressed by the dart tail cap")
+    return out
+
+
 # ------------------------------------------------------------------------------------------------ helpers
 def bed(solid, R=None, rz=0.0):
     """print_tf: rotate by R (4x4), then about z by rz deg, then translate so the part sits at z = 0 centred."""
@@ -192,7 +212,8 @@ def rail_solid(P):
     s.append(B(ua - 8, ua + 8, -46, 46, n["w_floor0"] - 6, n["w_floor0"]))
     # carriage front stop blocks (the carriage stop tab hits their rear face at HOME)
     ust = n["u_c_home"] + 8.0
-    s.append(Bs(ust, ust + 27.0, n["stop_y0"] - 0.5, n["y_shoe0"], n["w_floor0"], n["tab_w0"] + 6))
+    s.append(B(ust, ust + 27.0, -n["y_shoe0"], -(n["stop_y0"] - 0.5), n["w_floor0"], n["tab_w0"] + 6))
+    s.append(B(n["cd"], 111.0, 9.0, 17.0, 18.0, n["w_floor0"] + 1.0))          # SW_HOME seat (left)
     # mid piece cross tie (behind the drive gear, under the carriage tab path)
     s.append(B(n["split"][0] + 1.0, n["split"][0] + 10.0, -n["y_wall1"], n["y_wall1"], n["w_floor0"] + 6, n["tab_w0"] - 0.5))
     solid = prim.union(s)
@@ -201,8 +222,13 @@ def rail_solid(P):
     # anchor pins (steel 6 mm or printed): vertical holes through the posts
     for sg in (1, -1):
         solid = solid - cyl_w(3.1, n["w_floor0"] - 1, wsp, ua, sg * ys)
+    # SW_HOME mounting pilots (M3 self tap)
+    f = switch_frames(P)["home"]
+    for hx in SW.mount_holes(f["x0"], f["z_s"]):
+        q = tf.apply(f["M"], np.array([[hx, 0.0, 0.0]]))[0]
+        solid = solid - cyl_w(1.3, q[2] - 10.0, q[2] + 1.0, q[0], q[1])
     # stop pad pockets
-    solid = solid - Bs(ust - 1.0, ust + 10.0, n["stop_y0"], n["y_shoe0"] - 0.5, n["tab_w0"] - 8, n["tab_w0"] + 6.1)
+    solid = solid - B(ust - 1.0, ust + 10.0, -(n["y_shoe0"] - 0.5), -n["stop_y0"], n["tab_w0"] - 8, n["tab_w0"] + 6.1)
     return solid
 
 
@@ -258,9 +284,18 @@ def carriage_solid(P):
         # web from deck up to the arm at the rear (clears the lip: |y| < y_lip0)
         s.append(B(0, n["pusher_t"], 12.0 if sg > 0 else -n["y_lip0"] + 0.5, n["y_lip0"] - 0.5 if sg > 0 else -12.0,
                    n["w_deck0"], n["lip_w1"] + 14.0))
+    # SW_SEATED shelf behind the pusher, shank hole through the pusher (below the tether hole), pilots
+    s.append(B(-30.0, 0.5, -6.0, 6.0, n["w_deck0"], n["w_deck1"]))
     # stop tab under the rear (hits the rail stop pads at HOME)
     s.append(Bs(0, 8, n["stop_y0"], n["y_shoe0"] - 0.7, n["tab_w0"], n["w_deck0"] + 0.1))
-    return prim.union(s)
+    c = prim.union(s)
+    c = c - cyl_u(1.8, -1.0, n["pusher_t"] + 1.0, 0.0, 70.0)
+    f = switch_frames(P)["seated"]
+    Mloc = tf.mul(tf.T(-n["u_c_home"], 0, 0), f["M"])
+    for hx in SW.mount_holes(f["x0"], f["z_s"]):
+        q = tf.apply(Mloc, np.array([[hx, 0.0, 0.0]]))[0]
+        c = c - cyl_w(1.3, q[2] - 6.5, q[2] + 1.0, q[0], q[1])
+    return c
 
 
 def big_gear_solid(P):
@@ -404,12 +439,17 @@ def parts(P):
             out.append(Part(f"launch_spring_{side}_{i}", spring_segment_solid(P, seg_len), "bought",
                             joint=f"launch_spring_seg_{i}", place=tf.T(u_seg, y, n["w_spring"]), color="#c2c7cc",
                             notes="Spring coils (shown in segments that spread when stretched)"))
-    out.append(Part("launch_stop_pad_l", B(0, 10, 0, 5.0, 0, 14), "TPU", joint="launch_rail",
-                    place=tf.T(n["u_c_home"] + 8.0, n["stop_y0"], n["tab_w0"] - 8),
-                    print_tf=tf.I4, color="#222222", notes="Carriage stop pad, TPU 95A (PLA honeycomb if no TPU)"))
     out.append(Part("launch_stop_pad_r", B(0, 10, -5.0, 0, 0, 14), "TPU", joint="launch_rail",
                     place=tf.T(n["u_c_home"] + 8.0, -n["stop_y0"], n["tab_w0"] - 8),
                     print_tf=tf.T(0, 5, 0), color="#222222", notes="Carriage stop pad"))
+    for nm, f in switch_frames(P).items():
+        bod = SW.body(f["z_s"], f["screw"], f["x0"], width=f["width"], top=f["top"])
+        out.append(Part(f"launch_sw_{nm}", bod, "PLA", joint=f["joint"], place=f["M"], print_tf=bed(bod),
+                        color="#5fae5f", notes=f"SW_{nm.upper()} printed contact: {f['where']}"))
+        out.append(Part(f"launch_sw_{nm}_screw", SW.screw(f["screw"], f["z_s"]), "bought", joint=f["joint"], place=f["M"],
+                        color="#444444", bought_ref=f"M3x{f['screw']:g} SHCS", notes="Contact screw, threaded through the leaf"))
+        out.append(Part(f"launch_sw_{nm}_nut", SW.nut(f["z_s"]), "bought", joint=f["joint"], place=f["M"],
+                        color="#444444", bought_ref="M3 nut", notes="Contact nut in its trap, wire under it"))
     out.append(Part("launch_dart", dart_solid(P), "bought", joint="launch_dart",
                     place=tf.mul(tf.T(n["u_tail_home"] + 152.0, 0, n["w_dart"] - 0.4), tf.Rz(180)),
                     color="#e8e8e8", bought_ref="KEDGE v30 dart (reference, built separately)",
@@ -539,6 +579,8 @@ def allowed(P):
         Allow("launch_anchor_pin_*", "launch_rail_front", "pin in its hole"),
         Allow("launch_spring_*_hook_c", "launch_carriage", "hook loop round the carriage peg"),
         Allow("launch_stop_pad_*", "launch_rail_mid", "pad in its pocket"),
+        Allow("launch_sw_*_screw", "launch_sw_home", "screw threaded into the leaf"),
+        Allow("launch_sw_*_screw", "launch_sw_seated", "screw threaded into the leaf"),
     ] + _aim("allowed_aim", P)
 
 

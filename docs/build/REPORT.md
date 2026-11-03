@@ -46,6 +46,9 @@ Status: in progress. Final version at 18:30 Sydney.
     SW_SEATED, SW_ARM); pins.h at 12:10 has 8 switch GPIOs and PROTOCOL.md still has the pre-v1.0 drum order
     (wrap from REEL). fw-base to update; the guide includes their files live, and TEST_PLAN points at PROTOCOL.md for
     the wrap/REEL command order.
+11. physics: base/physics/SUMMARY.md on base-v1 (12:10) is still the v0.1-stub run; asked physics to regenerate.
+12. fw-base: firmware defaults disagree with the decisions: `limit_n` 20 (D3: 50 N), `trip_a` 17 / `cock_trip_a` 15
+    (D8: 5 A and 6.5 A). MEASURE_LIST G10 tells Harry to set `limit_n` 50 until the defaults change.
 
 ## Review rounds
 
@@ -69,3 +72,8 @@ Status: in progress. Final version at 18:30 Sydney.
   tow limit 50 N default, CALIBRATION (f) moved to stage 4, `reel` then `stop`, contact reading on USB only,
   bench-built motors may stay connected for the rover power-on. Sent 11 items to fw-base (D16 order, 11 contacts,
   D9 SLP, D12, D8 trips, limit_n 20 vs 50, STEMMA plug rule, MP1584, aim range, 2 A fuse, FORWARD).
+- Round 4 (fresh agent, every number and name against params 1.0.1, BASE_SPEC v1.0, DECISIONS, FINDINGS, NOTES):
+  17 findings, fixed: torque limiter is a shear pin (break-test, no preload), drum hand lever 14 AF, drum gear 12:1,
+  CSK20PP outer keyway 1.5, wiper orientation decided (D20), no steel key (integral rib, D13), stop pad 300 N rule,
+  tension per amp about 22 N/A, limit_n set to 50, 608 uses (reel 2, aim pedestal 4), magnet gap 1 to 2 mm, green
+  park wire never wired, D9 exception to "WIRING.md wins", fault exceptions, dart SLP beep check, D17 final approach.

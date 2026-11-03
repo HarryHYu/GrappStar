@@ -650,6 +650,11 @@ class RefMission:
     def s_line(self):
         self.tx("set", key="line_m", val=round(self.rig.sc.target[0] * 1.05 + 0.3, 2))
 
+    def s_lowaim(self):
+        """D45 (10.1 step 7b): after the landing, above 15 deg, aim 6 before the wrap."""
+        if (self.rig.solution or {}).get("pitch_deg", 0) > 15:
+            self.act("aim", 90, "AIMED", deg=6)
+
     def s_wrap(self):
         if (self.b.tel or {}).get("drum_pos") != "WRAPPED":
             self.act("wrap", 60, "WRAPPED")
@@ -725,7 +730,7 @@ class RefMission:
         self.act("mode", 60, "MODE", pred=lambda e: e.get("mode") == "LAUNCH", to="LAUNCH")
 
     STEPS = [("LAUNCH_MODE", "s_launch"), ("AIM", "s_aim"), ("COCK", "s_cock"), ("FIRE", "s_fire"), ("FLIGHT", "s_flight"),
-             ("LANDING_ZONE", "s_line"), ("WRAP", "s_wrap"), ("ANCHOR", "s_anchor"), ("TIDY", "s_tidy"),
+             ("LANDING_ZONE", "s_line"), ("LOW_AIM", "s_lowaim"), ("WRAP", "s_wrap"), ("ANCHOR", "s_anchor"), ("TIDY", "s_tidy"),
              ("REEL_FLYIN", "s_flyin"), ("TOW", "s_tow"), ("RELEASE", "s_release"), ("RETRIEVE", "s_retrieve"),
              ("UNWRAP", "s_unwrap"), ("FINAL_APPROACH", "s_final"), ("LAUNCH_READY", "s_end")]
 

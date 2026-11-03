@@ -97,20 +97,57 @@ def only_list(only: str | None):
     return [s for s in (only or "").split(",") if s] or None
 
 
-def load_out(out: str, only: str | None = None) -> dict:
-    """The exported manifest (OUT/asm.json), exporting the assembly first if it is missing. With only, the parts of
-    the other subsystems are dropped."""
-    fn = os.path.join(out, "asm.json")
+def _source_mtime() -> float:
+    """Newest modification time of the model sources (cad/parts and cad/lib, tests excluded)."""
+    t = 0.0
+    for sub in ("parts", "lib"):
+        for f in glob.glob(os.path.join(BASE, "cad", sub, "**", "*.py"), recursive=True):
+            if f"{os.sep}tests{os.sep}" not in f:
+                t = max(t, os.path.getmtime(f))
+    return t
+
+
+def export_reason(fn: str, names) -> str | None:
+    """Why OUT/asm.json must be (re)exported for the subsystems in names (None: it can be reused). With names it is
+    re-exported when it is missing, lacks a requested subsystem, or is older than a cad/parts or cad/lib source.
+    Without names only a missing file is exported (a full export is the caller's job, see run_all.sh)."""
     if not os.path.exists(fn):
+        return "missing"
+    if not names:
+        return None
+    with open(fn) as fh:
+        have = set(json.load(fh).get("subsystems") or [])
+    miss = [n for n in names if n not in have]
+    if miss:
+        return f"it lacks subsystem(s) {', '.join(miss)} (has {', '.join(sorted(have)) or 'none'})"
+    if os.path.getmtime(fn) < _source_mtime():
+        return "it is older than the cad/parts or cad/lib sources"
+    return None
+
+
+def load_out(out: str, only: str | None = None, log=None) -> dict:
+    """The exported manifest (OUT/asm.json). With only, the parts and steps of the other subsystems are dropped, and
+    the assembly is re-exported first when asm.json is missing, lacks a requested subsystem or is older than the model
+    sources (export_reason). Raises SystemExit (non-zero, with the reason) when no printed part is left, so pack, bom
+    and guide never write an empty pack or parts list with exit 0."""
+    fn = os.path.join(out, "asm.json")
+    names = only_list(only)
+    why = export_reason(fn, names)
+    if why:
         from tools.assembly import Assembly
         from tools.params import load_params
-        Assembly.load(load_params(), only_list(only)).export(out)
+        (log or (lambda s: print(s, file=sys.stderr)))(f"load_out: exporting the assembly to {out} ({why})")
+        Assembly.load(load_params(), names).export(out)
     with open(fn) as fh:
         man = json.load(fh)
-    names = only_list(only)
     if names:
         man["parts"] = [p for p in man["parts"] if p["subsystem"] in names]
         man["steps"] = [s for s in man.get("steps", []) if s.get("subsystem") in names]
+    if not any(p.get("printed") for p in man["parts"]):
+        raise SystemExit(f"ERROR: no printed parts in {fn}"
+                         + (f" for --only {','.join(names)}" if names else "")
+                         + f" (subsystems in the manifest: {', '.join(man.get('subsystems') or []) or 'none'}); "
+                           f"nothing to pack or list, re-run the assembly export for these subsystems")
     return man
 
 

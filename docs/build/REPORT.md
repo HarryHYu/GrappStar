@@ -114,3 +114,12 @@ Still open (owner):
   under the jog trips), #9 (firing via the new `grappstar base fire`, arm and fire inside the 3 s token life),
   #10 (estop holds), #14/#15 (SLP unwired, no 3V3 fallback). Sent to fw-base: k_n_per_a procedure (4 A vs 3 A jog
   trip), latch wording, WIRING 2 A fuse; fw-dart: B2 battery-unplugged wording.
+- Round 10 (full cold read, steps 0 to 11): 19 findings. Fixed: clone then `git checkout base-v1` if main lacks the
+  docs, Jetson step 4 after flashing, calibration part letters ((d) free current, (f) tension, (g) cock geometry),
+  range numbers now generated from base/out/ballistics.json at build time (best 3.7 m at 38.5 deg today, not the
+  older 5 m), safety energy about 7 J, A7 optional (jog trips far below stall), A6 after CALIBRATION (a) and (b) at
+  step 7, dart SLP check in ohms (over 50 ohms), `z` over USB only, dart wires cut from the new list, a magnet for the
+  bench test, base fit coupon in FIRST_DAY and order, hole compensation 0 for base parts, coupon command path from
+  base/, C21 exactly as the sheets list, WIRING section numbers, flashing with wiring left on, step 11 starts at
+  stage 4. `grappstar base fire` is on w/jetson (merge pending). Sent: cad-infra (coupon commands, magnet cap),
+  fw-base (FORWARD on the bench, README section ref).

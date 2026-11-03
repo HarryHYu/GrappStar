@@ -2,7 +2,7 @@
 
 Battery unplugged for every step in this section. Two documents, used in this order:
 
-1. **Base electronics bay, on the bench** (7.2, `firmware/base/WIRING.md` section 7, Parts A to D): set the buck,
+1. **Base electronics bay, on the bench** (7.2, `firmware/base/WIRING.md` section 8, Parts A to D): set the buck,
    wire the ESP32, BTS7960, DRV8833, sensors and contacts, run the meter checks, first power with the ESP32 on the
    Mac's USB. Then `firmware/base/BENCH_TEST.md`.
 2. **The whole rover** (7.1, the system page): the XT60 Y harness, the fuses, the Jetson and video, and the first

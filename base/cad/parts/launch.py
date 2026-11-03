@@ -1143,28 +1143,32 @@ def steps(P):
              parts=[]),
         dict(title="Launcher 2: join the rail",
              text="Lay the rear, mid and front rail pieces in a line on a flat table. Push each joint together and fit "
-                  "2 x M3 x 16 with nuts through each flange pair (8 in total). Tighten evenly; file any step inside the "
+                  "2 x M3 x 20 with nuts through each flange pair (8 in total). Tighten evenly; file any step inside the "
                   "track where the pieces meet so the carriage shoes slide over it.",
              parts=["launch_rail_rear", "launch_rail_mid", "launch_rail_front"]),
         dict(title="Launcher 3: big gear",
              text="Hold the big gear between the two cheeks of the mid piece, the toothed sector towards the drum side "
-                  "(right) and the full ring of teeth towards the left. Push the big gear pin through cheek, gear, cheek "
-                  "from the right and snap the C clip into its groove. The gear must spin freely.",
-             parts=["launch_big_gear", "launch_gear_pin", "launch_gear_clip"]),
+                  "(right) and the full ring of teeth towards the left, with the spacer washer between the gear and the "
+                  "left cheek. Push the big gear pin through cheek, gear, washer, cheek from the right and snap the C clip "
+                  "into its groove. The gear must spin freely with almost no end play.",
+             parts=["launch_big_gear", "launch_gear_pin", "launch_gear_clip", "launch_gear_washer"]),
         dict(title="Launcher 4: drive gear, sprag #1 and the launch sleeve",
              text="Slide sprag #1 into the drive gear so its outer keyway takes the rib inside the gear. Check the "
                   "direction: holding the gear, the inner race must turn freely only the BACKWARD wiper way. Hold the drive "
-                  "gear between the cheeks, meshing the big gear's full ring of teeth. Turn the cheek bores so their slots "
+                  "gear between the cheeks (collar side right, then the spacer washer on its left), meshing the big gear's "
+                  "full ring of teeth. Turn the cheek bores so their slots "
                   "point down, then push the launch sleeve in from the motor side, outboard end first, ribs lined up with "
                   "the slots and the sprag keyway, until the short rib sits inside the sprag.",
-             parts=["launch_drive_gear", "launch_sprag", "launch_sleeve"]),
+             parts=["launch_drive_gear", "launch_sprag", "launch_sleeve", "launch_drive_washer"]),
         dict(title="Launcher 5: carriage",
-             text="Push the SW_SEATED pushrod into its hole in the carriage block (flat side down) and drop the plunger "
-                  "into its vertical hole from below, foot under the left arm. Bolt each spring arm onto the carriage body "
-                  "(half lap joint) with 2 x M3 x 12 from the top. Slide the carriage into the rail track from the rear end, "
-                  "rack teeth down.",
-             parts=["launch_carriage", "launch_carriage_arm_l", "launch_carriage_arm_r", "launch_seat_plunger",
-                    "launch_seat_pushrod"]),
+             text="Turn the big gear so its toothless gap faces the rack. Slide the carriage BODY into the track from the "
+                  "FRONT end (the tether fork blocks the rear), rack teeth down, until its rear face reaches the stop "
+                  "position. Yoke: push the SW_SEATED pushrod into the block bore from the rear, collar first, then push "
+                  "the plunger's pin up through the block from below (pad under the left arm) and press the head cap on "
+                  "the pin top. Lower the yoke onto the carriage rear so its key plates drop into the slots in the body "
+                  "webs, and fit 1 x M3 x 16 per side through the yoke into the webs.",
+             parts=["launch_carriage", "launch_carriage_yoke", "launch_seat_plunger", "launch_seat_pushrod",
+                    "launch_seat_clip"]),
         dict(title="Launcher 6: carriage stops",
              text="For each side: put the stop spring on its ledges over the main spring position, rear bar towards the "
                   "carriage arm. Fit the stop frame over it: 2 x M3 x 12 through the rear foot into the rail wall and "
@@ -1173,10 +1177,11 @@ def steps(P):
                   "preload). The rear bar must rest on both ledges.",
              parts=["launch_stop_spring_l", "launch_stop_spring_r", "launch_stop_frame_l", "launch_stop_frame_r"]),
         dict(title="Launcher 7: springs",
-             text="Push the spring anchor pins (6 mm steel) down through the front posts and straps, inner holes "
-                  "(the outer holes are for a second pair of springs later). Hook the front end of each spring over its "
-                  "pin between post and strap, and the back end over the inner peg of the carriage arm. The springs are "
-                  "slightly stretched and hold the carriage against the stop.",
+             text="Hook the back end of each spring over the inner peg of the yoke arm. Put the front hook between post "
+                  "and strap, lined up with the inner hole, and push the 6 mm steel anchor pin down through strap, hook "
+                  "and post (the outer holes are for a second pair of springs later). The springs are slightly stretched "
+                  "and hold the carriage against the stop. A drop of glue or a printed cap on the pin top stops it "
+                  "working up.",
              parts=["launch_anchor_pin_l", "launch_anchor_pin_r", "launch_spring_l_hook_a", "launch_spring_r_hook_a",
                     "launch_spring_l_hook_c", "launch_spring_r_hook_c"] + sw),
         dict(title="Launcher 8: contacts",
@@ -1207,9 +1212,9 @@ def steps(P):
                     "launch_pulley_piv_axle", "launch_line_b", "launch_line_c", "launch_line_p"]
                    + [f"launch_line_a{k}" for k in range(LN.N_A)]),
         dict(title="Aim 1: aim housing, worm, wheel, crank",
-             text="Screw the aim housing to the deck (4 x M3). Mount the AS5600 board on the housing's outer bracket, "
-                  "chip facing the magnet on the main shaft end. Build SW_RAIL_LOW like SW_GAP and screw it to the housing "
-                  "where the crank cam presses it. Fit the two 608 bearings into the crank (worm wheel) hub and slide it "
+             text="Build the aim housing on the bench (it goes onto the base later, after the rail). Mount the AS5600 "
+                  "board on the housing's outer bracket, chip facing inwards. Build SW_RAIL_LOW like SW_GAP and screw it "
+                  "to the housing where the crank cam presses it. Fit the two 608 bearings into the crank (worm wheel) hub and slide it "
                   "onto the M8 bolt through the housing outer wall; fit the nut. Lay the worm shaft with the small bevel in "
                   "its saddles and screw the cap on. Fit the countershaft with the output gear and the big bevel.",
              parts=["launch_aim_housing", "launch_aim_cap", "launch_aim_worm", "launch_aim_crank", "launch_aim_bolt",
@@ -1222,15 +1227,18 @@ def steps(P):
                   "output gear stays still.",
              parts=["launch_aim_sun", "launch_aim_arm", "launch_aim_idler"]),
         dict(title="Aim 3: lug, conrod, rail onto the base",
-             text="Bolt the lug to the left rail wall (2 x M3 self tap). Lower the rail assembly so the sleeve's outboard "
-                  "end enters the aim housing bushing and its flange meets the drum's LAUNCH dog ring (3 x M3 from the drum "
-                  "side into the flange nut traps). Join the conrod to the crank pin and the lug pin. Turn the wiper "
+             text="Bolt the lug to the left rail wall (2 x M3 self tap). With the sun and swing arm already on the sleeve, "
+                  "slide the rail assembly's sleeve along the main axis onto the drum's d12 spigot from the outboard side "
+                  "until its flange meets the drum's LAUNCH dog ring; fit the 3 x M3 from the drum side into the flange nut "
+                  "traps. Then slide the aim housing on from the outboard side so the sleeve end enters its bushing, and "
+                  "screw the housing to the deck (4 x M3). Join the conrod to the crank pin and the lug pin. Turn the wiper "
                   "backward slowly: the rail rises to 47 deg, then lowers to 6 deg.",
              parts=["launch_aim_lug", "launch_aim_conrod"]),
         dict(title="Launcher 11: wiring (battery unplugged)",
              text="Battery unplugged. Run the SW_HOME, SW_SEATED and SW_GAP wires along the rail to the pivot and leave a "
                   "150 mm loop at the main axis before they go to the frame. No wire goes onto the carriage. Each contact: "
-                  "one wire to its ESP32 pin (SW_HOME 38, SW_GAP 39, SW_RAIL_LOW 40, SW_SEATED 41), the other to GND.",
+                  "one wire to its ESP32 pin (SW_HOME 21, SW_GAP 39, SW_RAIL_LOW 40, SW_SEATED 41, as params.SWITCHES), "
+                  "the other to GND.",
              parts=[]),
     ]
 
@@ -1240,15 +1248,24 @@ def _rail_to_world(P, pitch):
     return tf.mul(tf.T(0.0, n["Y0"], n["axis_z"]), tf.R((0, -1, 0), pitch))
 
 
+def _tangent_angle(c, r, q, side):
+    """Angle (deg, in the (u, w) plane) of the tangent point on circle (c, r) for a line to point q; side +1 / -1."""
+    dx, dz = q[0] - c[0], q[1] - c[1]
+    d = math.hypot(dx, dz)
+    base = math.degrees(math.atan2(dz, dx))
+    return base + side * math.degrees(math.acos(min(1.0, r / d)))
+
+
 def line_entry(P, S=None):
-    """World point where the tether arrives at the rail: the far side of the pivot pulley (cad-reel's line ends here).
-    The pulley is 24 mm below the main axis, so this point moves only a little with pitch."""
+    """World point where the tether arrives at the rail: the BOTTOM of the pivot pulley (cad-reel's feed comes in
+    from the front at about the same height and the line wraps under the pulley and round its rear). The pulley is
+    53.5 below the main axis and turns with the rail, so the feed length changes by about 30 mm over the aim range
+    (slack on the way down is taken up by the take-up during cocking)."""
     S = S or {}
     n = L(P)
     pitch = kin(P, S)["launch_rail"]
-    g = LN.geom(n)
-    pv = g["piv"]
-    p = (pv[0] - LN.R_PATH, pv[1], pv[2])                      # rear side of the pivot pulley, rail frame
+    pv = LN.geom(n)["piv"]
+    p = (pv[0], pv[1], pv[2] - LN.R_PATH)
     return tf.apply(_rail_to_world(P, pitch), np.array([p]))[0]
 
 
@@ -1263,11 +1280,13 @@ def line_path(P, S=None):
     g = LN.geom(n)
     W = _rail_to_world(P, pitch)
     pv = g["piv"]
+    bt, tp = g["bot"], g["top"]
+    q = (bt[0], bt[2] - LN.R_PATH)                               # bottom pulley's lowest path point
+    a_t = _tangent_angle((pv[0], pv[2]), LN.R_PATH, q, 1.0) % 360.0     # leaves at the bottom-rear towards it
     arc = []
-    for a in np.linspace(180.0, 90.0, 7):                         # wrap over the pivot pulley (rear to top)
+    for a in np.linspace(270.0, min(a_t, 270.0), 5):                  # feed arrives at the bottom, wraps rearwards
         t = math.radians(a)
         arc.append((pv[0] + LN.R_PATH * math.cos(t), pv[1], pv[2] + LN.R_PATH * math.sin(t)))
-    bt, tp = g["bot"], g["top"]
     bot = [(bt[0] + LN.R_PATH * math.cos(math.radians(a)), 0.0, bt[2] + LN.R_PATH * math.sin(math.radians(a)))
            for a in np.linspace(270.0, 180.0, 5)]
     top = [(tp[0] + LN.R_PATH * math.cos(math.radians(a)), 0.0, tp[2] + LN.R_PATH * math.sin(math.radians(a)))
@@ -1276,7 +1295,7 @@ def line_path(P, S=None):
     tail_seat = np.array((n["u_tail_home"] - travel, 0.0, g["w_line"]))
     du, dw = v.get("launch_dart", 0.0), v.get("launch_dart_w", 0.0)
     tail = tail_seat + np.array((du, 0.0, dw))
-    rail_pts = np.array(arc + [g["p_bot_low"]] + bot + top + [pusher])
+    rail_pts = np.array(arc + bot + top + [pusher])
     spans = [(tf.apply(W, rail_pts), {"launch_pulley_piv", "launch_pulley_bot", "launch_pulley_top", "launch_rail_rear"}),
              (tf.apply(W, np.array([pusher, tail])), {"launch_carriage", "launch_dart", "launch_line_p"})]
     return spans

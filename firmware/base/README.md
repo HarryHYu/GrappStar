@@ -176,7 +176,7 @@ a power cycle and over a new upload of the same firmware version.
     unwraps when it is safe (`unwrap`). This applies to `estop` too;
   - the launch spring may be drawn: there is no sear, only the wiper worm holds the spring, and a shift under that
     load could dry fire. Recover with `decock`;
-  - the drum itself faulted, its position or the wraps are unknown, or the N20 is latched out (hand mode). After a
+  - the drum itself faulted, its position or the wraps are unknown, or the N20 is swung out of mesh (hand mode). After a
     drum code that changed with the drum still near the wrap window, only `unwrap` is accepted until NEUTRAL.
 
   It then sends a `MODE` event with `"err":"DRUM_HELD"` and a `"why"` that says which (exactly at the WRAPPED park

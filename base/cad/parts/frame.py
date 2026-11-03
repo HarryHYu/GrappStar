@@ -861,6 +861,9 @@ def parts(P):
 def joints(P):
     C = cfg(P)
     js = []
+    if C["v1"]:
+        from . import _frame_rguard as RG
+        js += RG.joints(P)
     if C["main"] in C["layout"]:
         ms = C["fw"]["motor_side"]
         mo = C["layout"][C["main"]]["origin_w"]
@@ -870,7 +873,11 @@ def joints(P):
 
 def kin(P, S):
     # wiper_deg: + = motor forward. The motor shaft points into the frame along -motor_side * Y.
-    return {"frame_wiper": float(S.get("wiper_deg", 0.0))}
+    out = {"frame_wiper": float(S.get("wiper_deg", 0.0))}
+    if cfg(P)["v1"]:
+        from . import _frame_rguard as RG
+        out.update(RG.kin(P, S))
+    return out
 
 
 def _shaft_part(P):
@@ -893,6 +900,10 @@ def parts(P):  # noqa: F811  (adds the moving shaft stub to the static list)
     lst = list(_parts_plain(P))
     if cfg(P)["main"] in cfg(P)["layout"] and not any(p.name == "frame_wiper_shaft" for p in lst):
         lst.append(_shaft_part(P))
+    if cfg(P)["v1"] and not any(p.name.startswith("frame_spring_guard") for p in lst):
+        from . import _frame_rguard as RG
+        if RG.joints(P):
+            lst += RG.parts(P)
     return lst
 
 
@@ -916,6 +927,8 @@ def allowed(P):
     ]
     from . import _frame_ebay as EB
     a += EB.allowed(P)
+    from . import _frame_rguard as RG
+    a += RG.allowed(P)
     return a
 
 
@@ -925,7 +938,8 @@ def grounded(P):
 
 
 def clearances(P):
-    return [Clearance("frame_wiper_shaft", "frame_motor_adapter", 0.5, "shaft turns free in the adapter"),
+    from . import _frame_rguard as RG
+    return RG.clearances(P) + [Clearance("frame_wiper_shaft", "frame_motor_adapter", 0.5, "shaft turns free in the adapter"),
             Clearance("frame_wiper_shaft", "frame_cheek_*", 0.5, "shaft turns free in the cheek hole")]
 
 
@@ -1068,4 +1082,6 @@ def steps(P):
                   "1 mm from the magnet face: check with a 1 mm feeler (or a folded business card). STEMMA QT cable to "
                   "the bay sensor window.",
              parts=["frame_as5600_bracket", "frame_pcb_as5600"]))
+    from . import _frame_rguard as RG
+    st += RG.steps(P)
     return [x for x in st if x["parts"] or "Shafts" in x["title"]]

@@ -108,6 +108,8 @@ def fork_solid(P=None, n=None):
     # lightening pockets in the prongs (open at the top), axle clearance hole
     f = f - Bs(U_FORK0 + 4.0, U_R - 9.0, 9.5, 15.0, n["w_deck0"] + 2.5, W_FORK1 + 1.0)
     f = f - prim.cylY(1.7, -20.0, 20.0, x=U_R, z=W_R)
+    # counterbores for the screw head (right) and the nyloc nut (left), open through the shoes: fitted from the side
+    f = f - prim.cylY(3.6, Y_CHEEK1, 30.0, x=U_R, z=W_R) - prim.cylY(3.6, -30.0, -Y_CHEEK1, x=U_R, z=W_R)
     return f
 
 

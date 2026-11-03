@@ -127,10 +127,10 @@ def _alpha_xy(alpha, r):
 
 # ------------------------------------------------------------------------------------------------ solids
 def sun_solid(P):
-    """Sun m1.5 z30 face 8 with a key tab in its bore (sleeve keyway at local +x)."""
+    """Sun m1.5 z30 face 8 with a keyway in its bore for the sleeve rib (local +x)."""
     g = G.spur(M_S, Z_SUN, FACE_S)
     g = g - prim.cyl(10.0 + FIT / 2, FACE_S + 2, z=-1)
-    g = g + prim.box(7.4, 10.4, -2.9, 2.9, 0, FACE_S)
+    g = g - prim.box(9.0, 13.2, -3.2, 3.2, -1, FACE_S + 1)           # keyway for the sleeve's integral rib (D13)
     return g
 
 

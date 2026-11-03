@@ -17,7 +17,7 @@ DEFAULTS = dict(
     line_d=1.0, line_len_m=20.0, line_lam_g_m=0.60, line_break_n=667.0,
     # capstan (Harry v7: dia 40 x 40 body, base flange cone 23 -> 20 over 3)
     cap_r=20.0, cap_len=40.0, cap_flange_r=23.0, cap_flange_h=3.0,
-    wraps=8, mu_min=0.10, mu_lo=0.15, mu_hi=0.25,
+    wraps=7, mu_min=0.10, mu_lo=0.15, mu_hi=0.25,
     # storage reel
     core_r=20.0, flange_r=32.0, width=20.0, flange_t=2.0, pack_fill=0.80,
     # slip clutch line tension targets at the mid pack radius
@@ -25,8 +25,8 @@ DEFAULTS = dict(
     brake_stroke=4.0, rocker_l=37.0, rocker_a=35.0,
     # gears (module, teeth): main reel output (cad-drum, m3 24T) -> capstan gear (m3 12T, x +0.3);
     # take-up gear on the capstan tube (m2 24T) -> idler (m2 24T) -> reel gear (m2 15T); cup ring gear m1.5 24T
-    m_cap=3.0, z_main=24, z_cap=12, x_cap=0.3, m_take=2.0, z_take=24, z_idler=24, z_reel=15,
-    m_cup=1.5, z_cup=24, z_wrap_idler=48, wrap_idler_turns=4.0,
+    m_cap=2.0, z_main=40, z_cap=24, x_cap=0.0, m_take=2.0, z_bus=40, z_c1=24, z_take=24, z_idler=24, z_reel=16,
+    m_cup=1.5, z_cup=24, z_wrap_idler=48, wrap_idler_turns=3.5,
     # wiper (linear model, physics worker block); firmware tow limit
     wiper_n0_rpm=45.0, wiper_stall_nm=15.0, wiper_i_stall=18.0, wiper_i_free=1.5, eta_train=0.85,
     tow_limit_n=100.0,
@@ -171,13 +171,16 @@ def rocker(d, E=2100.0, b=10.0):
 def train(d):
     """Speeds, torques and line speed for the reel train. Main = drum worker's reel output gear on the main shaft."""
     up = d["z_main"] / d["z_cap"]                         # capstan rpm / main rpm
-    take = d["z_take"] / d["z_reel"]                      # reel gear rpm / capstan rpm (idler only reverses twice)
+    # take-up bus (D15): wiper -> bus 40 -> c1 24 (free on the capstan tube) | c2 24 -> swing idler 24 -> reel 16.
+    # The bus pair turns exactly like the capstan when REEL is engaged (same 40:24), so per capstan turn:
+    take = d["z_take"] / d["z_reel"]                      # reel gear rpm / capstan rpm in REEL
     rl = line_r_cap(d) / 1000
     out = dict(cap_per_main=up, reel_per_cap=take,
                c_main_cap=0.5 * d["m_cap"] * (d["z_main"] + d["z_cap"]),
                c_take_idler=0.5 * d["m_take"] * (d["z_take"] + d["z_idler"]),
                c_idler_reel=0.5 * d["m_take"] * (d["z_idler"] + d["z_reel"]),
-               wraps_from_drum=d["wrap_idler_turns"] * d["z_wrap_idler"] / d["z_cup"])
+               wraps_from_drum=d["wrap_idler_turns"] * d["z_wrap_idler"] / d["z_cup"],
+               reel_per_wiper=d["z_bus"] / d["z_c1"] * d["z_take"] / d["z_reel"])
     # take-up must outrun the capstan at the smallest pack radius (most line out)
     out["takeup_margin"] = take * d["core_r"] / line_r_cap(d)
     # tension from motor torque: T = tau_main * eta / up / r

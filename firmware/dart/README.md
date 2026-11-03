@@ -43,12 +43,12 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
    If the port does not appear or the upload fails: hold the XIAO's **B** (boot) button, tap **R** (reset), release
    B, then upload again. After such an upload, tap R once.
 5. Tools > Serial Monitor, 115200 baud, "No line ending". You should see `KEDGE v4 ready` and the key list.
-   Type `z` and press Enter: expect `I2C device at 0x40` (INA219) and `0x4a` (BNO085).
+   Type `z` and press Enter: expect `I2C device at 0x40` (INA219) and `0x4a` (BNO085; some boards answer at `0x4b`, also fine).
 
 ## Upload over WiFi (after the first USB upload)
 
-USB unplugged, power loop plug in. Join WiFi `KEDGE` (password `grappstar`). Tools > Port > network port `kedge`. Upload. Motors stop and any sequence is
-aborted when the upload starts.
+USB unplugged, power loop plug in. Join WiFi `KEDGE` (password `grappstar`). Tools > Port > network port `kedge`. Upload. Motors stop, any sequence is
+aborted and the dart disarms when the upload starts.
 
 ## Driving it
 
@@ -69,7 +69,7 @@ aborted when the upload starts.
   has its own limits).
 - Over-current trip 2000 mA, low rail (under 5.6 V while driving), sequence time limits, jam detection in release.
 - All safety runs in its own task every 5 ms with a 2 s watchdog; a stuck web client or Serial port cannot block it.
-- After a brownout or watchdog reset the dart boots with motors off and reports `FAULT` until `/stop`.
+- After a brownout or watchdog reset the dart boots with motors off and reports `FAULT` until `/stop`, `/auto`, `/release` or `/arm`.
 - INA219 missing: manual keys only (on timers), auto and release refused. BNO085 missing: no arming, no flight log.
 
 ## Tuning

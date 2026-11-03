@@ -25,7 +25,7 @@
 #error "Set Tools > USB CDC On Boot: Enabled (the Jetson talks to the native USB port)"
 #endif
 
-static const int SW_PINS[8] = {PIN_SW_A, PIN_SW_B, PIN_SW_C, PIN_SW_D, PIN_SW_E, PIN_SW_F, PIN_SW_G, PIN_SW_H};
+static const int SW_PINS[10] = {PIN_SW_A, PIN_SW_B, PIN_SW_C, PIN_SW_D, PIN_SW_E, PIN_SW_F, PIN_SW_G, PIN_SW_H, PIN_SW_I, PIN_SW_J};
 
 gb::Base B;
 HX711 hx;
@@ -85,7 +85,7 @@ float hwVbat() {
   uint32_t mv = analogReadMilliVolts(PIN_VBAT);
   return mv / 1000.0f * B.c.vbatScale;                 // 0 with the battery unplugged; the logic ignores it if vbat_wired is off
 }
-uint8_t hwSwitches() { uint8_t b = 0; for (int i = 0; i < 8; i++) if (digitalRead(SW_PINS[i]) == LOW) b |= 1 << i; return b; }
+uint16_t hwSwitches() { uint16_t b = 0; for (int i = 0; i < 10; i++) if (digitalRead(SW_PINS[i]) == LOW) b |= (uint16_t)(1u << i); return b; }
 float hwHx() { return hxOk && hx.is_ready() ? (float)hx.read() : NAN; }
 void hwSave(const gb::Saved& s) { saveBuf = s; saveDue = true; }
 void hwSaveTun(const gb::Tun& t) { tunBuf = t; tunDue = true; }
@@ -132,7 +132,7 @@ void setup() {
   pinMode(PIN_DRUM_SLP, OUTPUT); digitalWrite(PIN_DRUM_SLP, LOW);
   pwmOk &= pwmAttach(PIN_DRUM_IN1, 2); pwmOk &= pwmAttach(PIN_DRUM_IN2, 3); hwDrum(0, 0);
   pinMode(PIN_DRUM_FLT, INPUT_PULLUP);
-  for (int i = 0; i < 8; i++) pinMode(SW_PINS[i], INPUT_PULLUP);
+  for (int i = 0; i < 10; i++) pinMode(SW_PINS[i], INPUT_PULLUP);
   analogSetPinAttenuation(PIN_WIPER_IS, ADC_11db);
   analogSetPinAttenuation(PIN_VBAT, ADC_11db);
 

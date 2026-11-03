@@ -66,7 +66,7 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
 - The sim cannot produce a dog friction-locked under load, contact bounce bursts, VBAT ripple or AS5600 nonlinearity
   (review notes in this report's history); bench tests in BENCH_TEST.md cover them by hand.
 - Spec text that disagrees with params / decisions (reported to the coordinator): BASE_SPEC 30 deg unload jog
-  (params 8), take-up "about 30 percent" (firmware 40, I4 cap), D31 309 / D32 -6 (superseded by 314 / -10.4).
+  (params 1.3.3 now 6, firmware uses it), take-up "about 30 percent" (firmware 40, I4 cap), D31 309 / D32 -6 (superseded by 314 / -10.4).
 
 ## Review rounds (independent agents; every finding proved with a probe, fixed with a regression test)
 

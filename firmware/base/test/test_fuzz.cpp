@@ -133,7 +133,7 @@ double midRate = 0; void injectFault();
 bool waitRest(uint32_t maxMs) { for (uint32_t i = 0; i < maxMs; i += 5) { tick(); if (midRate > 0 && rd(0,1) < midRate) injectFault(); if (resting()) return true; } return false; }
 
 // ------------------------------------------------------------------------------------------------ commands
-const std::vector<std::string> calibKeys = {"amps_per_volt", "offset_a", "hx_n_per_count", "drum_dps", "aim_home_deg", "trip_a", "enc_sign"};
+const std::vector<std::string> calibKeys = {"amps_per_volt", "offset_a", "hx_n_per_count", "drum_dps", "aim_home_deg", "trip_a", "enc_sign", "k_n_per_a", "free_a", "tension_offset_n"};
 std::string lastReply;
 uint32_t lastToken = 0; bool haveToken = false;
 std::string cmd(const std::string& line) {
@@ -269,7 +269,7 @@ std::string obj(const std::string& c, std::vector<std::pair<std::string, std::st
   return s;
 }
 
-const std::vector<std::string> benignKeys = {"limit_n", "k_n_per_a", "free_a", "aim_tol", "aim_offset", "line_m", "cock_trip_a",
+const std::vector<std::string> benignKeys = {"limit_n", "aim_tol", "aim_offset", "line_m", "cock_trip_a",
                                              "vbat_low", "host_timeout_s", "require_seated", "vbat_wired"};
 struct Range { double lo, hi; };
 Range keyRange(const std::string& k) {

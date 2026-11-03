@@ -9,15 +9,15 @@ and never poll `/status` faster than 5 Hz (held-key repeats every 150 ms are the
 | HTTP code | Meaning | Body |
 |---|---|---|
 | 200 | accepted | `text/plain` event lines (often empty), or JSON for `/status` and `/flightlog` |
-| 409 | refused, nothing changed | `refused: <reason>` on the first line |
+| 409 | refused, nothing changed (one exception: `both directions held` also stops that motor) | `refused: <reason>` on the first line |
 | 400 | missing parameter | text |
 | 404 | unknown path | text |
 | 503 | `/flightlog` could not get memory, try again | text |
 
 Refusal reasons: `in flight`, `busy` (a sequence owns the motors), `already anchored, release first`,
-`no current sensor` (INA219 missing or lost), `no IMU` (BNO085 missing or silent), `stalled: release the key first`,
+`no current sensor` (INA219 missing or lost), `no IMU` (BNO085 missing or silent), `stalled: release the key first`, `hold limit: release the key first`,
 `fault latched: send stop first`, `both directions held`, `sent before a stop`,
-`battery low`, `anchored: release first`, `unknown key`, and for `/flightlog` `busy (motors running, armed or in flight)`.
+`battery low`, `anchored: release first`, `unknown key`, and for `/flightlog` `busy (motors running)`, `armed (disarm first)`, `in flight`.
 
 **One request at a time.** If a client opens a connection and never sends a request (a browser tab closing mid
 request can do this), the ESP32 web server waits up to 5 s for it before serving anyone else. Motors are not affected
@@ -99,15 +99,17 @@ Manual key, same keys as the web page and Serial Monitor.
   per motor, so switching direction does not restart it.
 - At low `speed` the stall line never drops below 1.5 x the motor's free current, so normal running is not taken for a
   stall; below about speed 70 a stall may then only be stopped by the 8 s hold cap.
-- Other keys: space or `s` stop (same as `/stop`; with `keep=1` it stops the motors but keeps the arm, like
-  `/stop?disarm=0`: the web page sends this when the last held key is released or the page loses focus), `a` auto (same as `/auto`), `r` release (same as `/release`),
+- Other keys: space or `s` stop (same as `/stop`; with `keep=1` it only stops manual (key) motors: no
+  sequence abort, no fault clear, no disarm, no lock; the web page sends this when the last held key is released or the
+  page loses focus), `a` auto (same as `/auto`), `r` release (same as `/release`),
   `A` arm toggle (prefer `/arm`), `+` / `-` speed, `i` current, `b` attitude, `p` status line, `f` flight log summary,
   `z` I2C scan (does a full `/stop` first: motors off, disarm), `h` help. An OTA upload also does a full `/stop`.
 - Optional `n` and `p`: a request counter and a page id (the web page uses them so a run key sent before that page's
   stop cannot arrive after it, answered 409 `sent before a stop`; `n` only counts together with `p`, and the last 4
   page ids are remembered).
 - Refused (409) while a sequence runs (`busy`), during `FLIGHT`, while a fault is latched (`fault latched: send stop
-  first`), and after a stall or the hold cap until the key has been released (`stalled: release the key first`).
+  first`), and after a stall until the key has been released (`stalled: release the key first`), or after the 8 s hold cap
+  (`hold limit: release the key first`; a client can tell it from an end stop).
   "Released" means no press for max(last `ms`, 350) + 250 ms. A stall lock never blocks the opposite direction
   (both directions held is the exception, see above).
 - A launch detected while a manual motor runs stops it (event `launch: motors stopped`).
@@ -131,6 +133,8 @@ How a client holds a run key, for example to bring the kick back (`@`) or push i
 1. Send `/key?c=<key>&ms=350` every 150 ms for as long as the hold should last.
 2. A refusal `stalled: release the key first` is the normal end: the motor hit its end stop and the dart already
    stopped it. Stop repeating; do not treat it as an error.
+   A refusal `hold limit: release the key first` means the 8 s cap (per motor, over direction switches) ended the
+   hold before any end stop: the move is not finished; report it, release, and hold again if needed.
 3. Always finish with `/stop?disarm=0`: every motor off, the arm and flight tracking kept, no key locked.
 4. Effect on the kick motor: it runs only while the repeats keep coming, stops within 350 ms of the last one, and
    stops by itself at a stall. Effect on the arm: none (a hold never disarms; only a plain `/stop` does).
@@ -159,7 +163,8 @@ spinning, drills finishing, `anchored`.
   60 % of the estimated travel out is `KICK_JAM`, not "stowed" (a jam in the last part of the return looks like the
   stowed stop). Travel is not counted while the kick is stalled (either way) or planting. After any reset other than a
   power-on (brownout, crash, OTA) the position is unknown and these checks wait until the next completed release.
-  `kickSwingMs` (4.3 s) is the bench swing time in air at 8.0 V (BENCH_TEST step 5).
+  `kickSwingMs` (4.3 s) is the kick's swing in air at 8.0 V. The firmware measures it: a kick driven out by hand from
+  stowed until it stalls logs `kick travel from stowed NNNN ms (at 8.0 V)` (BENCH_TEST step 5).
 - Stall handling inside the sequence: while two motors run (kick + foot, pods + drills), the worm (kick or deploy)
   pauses 150 ms every 550 ms. It self-locks and holds position while the auger keeps turning and is read alone; the
   worm's current is (both) - (auger alone). A worm stall must also show as a rise of the total current over the
@@ -175,15 +180,20 @@ spinning, drills finishing, `anchored`.
   pause by more than the margin, the jam is only ended by the 6 s pods limit. A retried
   `/auto` whose kick is already planted (an earlier anchor got past the swing, or the kick was driven out by hand
   until it stalled) skips the planting step (event `kick already down, foot planting`).
-- `NO_GROUND`: the kick stalls in the swing step with no contact phase while it is at 95 % or more of `kickSwingMs`
+- `NO_GROUND`: the kick stalls in the swing step with no contact phase while it is at 90 % or more of `kickSwingMs`
   (its swing in air) and has not been planted since the last release. That is its own end stop in air (dart on its
   back or side): fault, foot, pods and drills are not driven. A retry, or a swing stopped part way and retried, gives
   `NO_GROUND` again: send `/release`, set the dart right, then `/auto`. After a reset (travel unknown) only the travel
   of this swing counts. Geometry assumption, checked in BENCH_TEST step 5: on flat ground the kick's housing lands
-  before 95 % of its swing in air. Known limit: a kick driven out by hand in air until it stalls, then `/auto`, is
+  before 80 % of its swing in air (90 % is the line, 10 % margin for the travel estimate). Known limit: a kick driven out by hand in air until it stalls, then `/auto`, is
   taken as planted.
-- Kick travel is also marked unknown (event `kick travel unknown`) when the kick is driven by hand together with two
-  other motors, or paired with the pods, until the next completed release.
+- Kick travel is also marked unknown (event `kick travel unknown`) when the kick is driven by hand together with any
+  other motor, until the next completed release.
+- In the swing step a stall with no contact phase is judged: planted since the last release: already down; at 90 % of
+  `kickSwingMs` or more: `NO_GROUND`; near stowed, or after moving over 10 % of the swing in this step: `KICK_JAM` (a
+  jam in air, or hard ground with no contact phase); otherwise already down. A "contact" at 90 % or more (a soft end
+  stop in air) is also `NO_GROUND`. After `NO_GROUND` the kick's position is its end stop and it does not count as
+  planted until it has come back under half way, so a retry or a `2` tap does not make the next `/auto` anchor in air.
 - One failed current read at the moment a step ends does not fault: the step ends and the next good read moves on.
 
 ### GET /release
@@ -216,12 +226,13 @@ of `/auto` (pods up before the kick comes back), because the kick goes down firs
   still allowed).
 - An arm expires after 15 min without a launch (event `arm expired`).
 - Idempotent: use this instead of the `A` toggle. Arm right before the shot, because `/stop` disarms.
-- Arming from `ANCHORED`, `aborted` or `released` starts a new shot (`seq` back to `idle`).
+- Arming after `aborted` or `released` starts a new shot (`seq` back to `idle`). From `ANCHORED` it is refused (above).
 
 ### GET /flightlog
 
 The BNO085 log, streamed as JSON (chunked, up to about 40 kB). The server is busy for about 0.3 s while it sends,
-so it is refused (409 `busy (motors running, armed or in flight)`) while any motor runs, while armed and in FLIGHT.
+so it is refused while any motor runs (409 `busy (motors running)`: retry, auto-anchor may be running), while armed
+(`armed (disarm first)`) and in FLIGHT (`in flight`).
 A client that stops reading is cut off after 8 s.
 Fetch it after landing (phase `LANDED` or `ANCHORED`).
 
@@ -288,7 +299,7 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 | `DRILL_JAM`, `FOOT_JAM` | stalled while unscrewing in release | all off |
 | `CURRENT_SENSOR` | 3 failed INA219 reads in a row during a sequence | all off; manual keys still work on timers |
 | `LOW_RAIL` | rail under 5.6 V (including a dead 0 V rail) for 0.5 s while a motor runs | all off |
-| `KICK_JAM` | kick stalled near stowed at the start of `/auto`, or in `/release` before its travel back covered 60 % of its travel out | all off |
+| `KICK_JAM` | kick stalled near stowed at the start of `/auto`, or part way out with no contact (jam in air), or in `/release` before its travel back covered 60 % of its travel out | all off |
 | `NO_GROUND` | in `/auto` the kick swung (almost) its whole travel and stalled at its own end stop without touching ground (dart on its back or side) | all off; `/release` stows the kick |
 | `BROWNOUT` | the dart rebooted from a brownout | booted with motors off |
 | `WATCHDOG` | the dart rebooted from a crash or the 2 s safety-task watchdog | booted with motors off |

@@ -149,11 +149,15 @@ def test_brake_linkage_gives_the_rocker_stroke():
     """cam lift 4 less the 0.2 gap turns the crank so arm B lifts the leg by the stroke the real rocker section
     needs for LIGHT -> FIRM (reel_calc.rocker_section), within 3 percent."""
     from cad.parts import reel_calc
-    y_contact = 0.5 * (reel.LEG_Y0 + reel.CRANK_Y[1])                  # arm B touches the leg over this band
+    y_contact = reel.FIRM_SCREW[1]                                     # arm B lifts the FIRM screw
     need = reel_calc.rocker_section(dict(reel_calc.DEFAULTS), y_load=y_contact)["stroke"]
-    got = reel.leg_push_mm(reel.BRAKE_STROKE - reel.BAR_GAP)
+    got = reel.leg_push_mm(reel.BRAKE_STROKE - reel.BAR_GAP) - reel.FIRM_GAP
     assert got == pytest.approx(need, rel=0.03)
     assert reel.leg_push_mm(0.0) == pytest.approx(0.0, abs=1e-9)
+    # FIRM adjustable over E 4 .. 9 GPa: g from 0 to 2.0 covers the needed stroke
+    for E in (4000.0, 9000.0):
+        st = reel_calc.rocker_section(dict(reel_calc.DEFAULTS), y_load=y_contact, E=E)["stroke"]
+        assert 0.0 <= reel.leg_push_mm(reel.BRAKE_STROKE - reel.BAR_GAP) - st <= 2.0
 
 
 def test_bar_follows_the_drum_cam():
@@ -177,3 +181,19 @@ def test_brake_parts_clear_through_the_stroke():
         assert (br ^ wall).volume() < 1e-3, s
         assert (cr ^ br).volume() < 0.1, s          # tip circle facets
         assert cr.min_gap(br, 1.0) < 0.1, s
+
+
+def test_pulley2_swivel_keeps_the_line_in_its_groove():
+    """D43 review: the line leaves pulley 2 toward cad-launch's pivot pulley within 2 deg of the groove plane at every
+    aim (the swivel follows the line)."""
+    o = np.asarray(reel.SP["origin"], float)
+    for aim in (6.0, 20.0, 36.0, 47.0, 60.0):
+        S = dict(wraps=0.0, aim_deg=aim)
+        ph = math.radians(reel.swivel_deg(P, S))
+        axis_r = np.array((-math.sin(ph), math.cos(ph), 0.0))              # pulley 2 axis (R) after the swivel
+        axis_w = np.array((axis_r[0], -axis_r[2], axis_r[1]))
+        pts = np.asarray(reel.line_path(P, S), float)
+        k = [i for i, p in enumerate(pts) if abs(p[1] - reel.P2_WORLD_Y) < 0.6]
+        d = pts[k[1]] - pts[k[0]]
+        d = d / np.linalg.norm(d)
+        assert abs(math.degrees(math.asin(abs(float(np.dot(d, axis_w)))))) < 2.0, aim

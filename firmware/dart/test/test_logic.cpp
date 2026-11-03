@@ -473,6 +473,14 @@ int main() {
     printf("     timeout landing: tLaunch %u tLand %u how %s, log %u..%u\n", K.flight.tLaunch, K.flight.tLand, K.flight.how, K.log.at(0).t, K.log.at(K.log.count - 1).t);
     CHECK(std::string(K.flight.how) == "timeout" && K.log.frozen && K.log.at(0).t <= K.flight.tLaunch - 1980 && K.log.at(K.log.count - 1).t >= K.flight.tLand,
           "timeout landing after an impact: the frozen log still holds 2 s before launch through the impact"); }
+  for (uint32_t fl : {7000u, 8500u, 10000u}) {   // impact landings 7 to 10 s after launch: the freeze cap keeps the launch
+    fresh(); static uint32_t F; F = fl;
+    ACC = [](uint32_t t) { if (t < 5000) return 1.0f; if (t < 5040) return 8.0f; if (t < 5000 + F) return 0.2f; if (t < 5015 + F) return 6.0f; return 1.0f; };
+    K.arm(true, false, NOW); run(5000 + fl + 6000);
+    bool impactIn = false; for (int k = 0; k < K.log.count; k++) if (K.log.at(k).t >= 5000 + fl - 20 && K.log.at(k).t <= 5000 + fl + 40) impactIn = true;
+    char m[140]; snprintf(m, sizeof m, "landing %u ms after launch: frozen log keeps 2 s before launch (first %u, launch %u)%s", fl, K.log.at(0).t, K.flight.tLaunch,
+                          fl <= 9900 ? " and the impact" : "");
+    CHECK(K.landed && K.log.frozen && K.log.at(0).t >= K.flight.tLaunch - 2020 && K.log.at(0).t <= K.flight.tLaunch - 1980 && (impactIn || fl > 9900), m); }
   { fresh(); for (int i = 0; i < 260; i++) { K.key(i % 2 ? '!' : '1', 350, NOW); run(75); }
     CHECK(P.mdir[DEPLOY] == 0 && logged("both directions held"), "R1-B #1: '1' and '!' alternating every 75 ms: stopped, not driven for 20 s"); }
 
@@ -566,6 +574,29 @@ int main() {
   { fresh(); for (int i = 0; i < 6; i++) { K.key('2', 350, NOW); K.key('@', 350, NOW); run(150); }
     CHECK(P.mdir[KICK] == 0 && K.bothLock[KICK], "both kick keys repeated together still lock the motor"); }
   { fresh(); K.startAuto(NOW); run(20000); CHECK(K.seq == DONE && K.arm(true, false, NOW) != nullptr && !K.armed, "arm (even log-only) is refused while ANCHORED"); }
+  // review round 12: the firmware measures the kick swing for BENCH_TEST step 5
+  { fresh(); P.kickContact = P.kickLand = 4300; P.railV = 8.0f; for (int i = 0; i < 60 && !when("kick travel from stowed"); i++) { K.key('2', 350, NOW); run(150); }
+    std::string e; for (auto& l : LOG) if (l.find("kick travel from stowed") != std::string::npos) e = l;
+    float ms = e.empty() ? 0 : atof(e.c_str() + e.find("stowed") + 7); printf("     %s\n", e.c_str());
+    CHECK(ms > 4300 * 0.95f && ms < 4300 * 1.05f, "a kick held out in air to its end stop reports its travel (within 5 % of the real 4300 ms)"); }
+  // review round 12 (logic)
+  auto augerRun = [&](int maxTicks) { bool a = false; for (int i = 0; i < maxTicks && K.seq != IDLE && !K.fault; i++) { run(5); if (P.mdir[FOOT] || P.mdir[DRILLS] || P.mdir[DEPLOY]) a = true; } return a; };
+  { fresh(); P.kickContact = P.kickLand = 1500; K.startAuto(NOW); bool a = augerRun(3000);   // jams in air at 35 % of the swing
+    CHECK(std::string(faultName(K.fault)) == "KICK_JAM" && !a, "a kick jammed part way out in air: KICK_JAM, not 'already down' (augers never run)"); }
+  { fresh(); P.kickContact = P.kickLand = 4300; K.startAuto(NOW); augerRun(3000); K.stop(NOW); run(700);
+    for (int i = 0; i < 3; i++) { K.key('2', 350, NOW); run(150); } run(600); K.startAuto(NOW); bool a = augerRun(3000);
+    CHECK(std::string(faultName(K.fault)) == "NO_GROUND" && !a, "after NO_GROUND, a '2' tap at the end stop does not make the next /auto anchor in air"); }
+  { fresh(); K.boot(F_NONE, NOW, false); P.kickContact = P.kickLand = 4300; K.startAuto(NOW); augerRun(3000); K.stop(NOW); run(700);
+    K.startAuto(NOW); bool a = augerRun(3000);
+    CHECK(std::string(faultName(K.fault)) == "NO_GROUND" && !a, "travel unknown (after a reset): a retry after NO_GROUND is NO_GROUND again"); }
+  { fresh(); for (int i = 0; i < 25; i++) { K.key('@', 350, NOW); run(150); } run(700);   // '@' hold ends stalled, then '2' and '@' again within the cap
+    const char* e = nullptr; for (int i = 0; i < 60 && !e; i++) { e = K.key(i < 30 ? '2' : '@', 350, NOW); run(150); }
+    CHECK(e && std::string(e).rfind("hold limit", 0) == 0, "the 8 s hold cap refuses with 'hold limit', not 'stalled' (a client can tell it from an end stop)"); }
+
+  // coordinator review r2_B2 #5
+  { fresh(); K.startAuto(NOW); run(500); CHECK(K.key('3', 350, NOW) != nullptr, "a run key during ANCHORING is refused (busy)");
+    K.keyRelease(NOW); run(100); CHECK(K.anchoring() && P.mdir[KICK] > 0, "...and the page's key-release stop does not abort the anchor"); }
+  { fresh(); K.key('3', 350, NOW); run(100); K.keyRelease(NOW); CHECK(allOff() && K.seq == IDLE, "the key-release stop stops a manual motor"); }
   // review round 11
   { fresh(); P.kickContact = P.kickLand = 4300; K.startAuto(NOW); run(10000); K.stop(NOW); run(700);   // NO_GROUND, then Retry
     bool augers = false; K.startAuto(NOW);

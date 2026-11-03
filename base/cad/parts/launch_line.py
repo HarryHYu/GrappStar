@@ -137,7 +137,8 @@ def parts_line(n, bed):
         out.append(Part(f"launch_pulley_{nm}_brg", bearing_solid(), "bought", joint=f"launch_pulley_{nm}", place=Ry,
                         color="#777c84", bought_ref="693ZZ 3x8x4", notes="Pulley bearing"))
         if nm == "piv":
-            ax = tf.mul(tf.T(p[0], -9.0, p[2]), tf.Rx(90))         # head on the cheek inner face, along -y
+            # head outside on the bearing inner race (clear of cad-drum's dog post), nyloc on the cheek inner face
+            ax = tf.mul(tf.T(p[0], p[1] - 2.0, p[2]), tf.Rx(-90))
             out.append(Part("launch_pulley_piv_axle", axle_solid(20.0), "bought", joint="launch_rail", place=ax,
                             color="#444444", bought_ref="M3x20 SHCS + nyloc nut", notes="Pivot pulley axle"))
         else:

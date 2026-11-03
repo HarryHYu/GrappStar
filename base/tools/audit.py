@@ -420,6 +420,22 @@ def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print, pair_refine
     return rep
 
 
+def _discrete_change(A, B):
+    """True when a non-numeric value, a bool or a 0/1 flag differs between states A and B (phase and t ignored)."""
+    for key in set(A) | set(B):
+        if key in ("phase", "t", "_joints"):
+            continue
+        x, y = A.get(key), B.get(key)
+        if x == y:
+            continue
+        num = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)
+        if not (num(x) and num(y)):
+            return True
+        if isinstance(x, int) and isinstance(y, int) and {x, y} <= {0, 1}:
+            return True
+    return False
+
+
 def _interp(A, B, u):
     """State between A and B at fraction u: numeric (not bool) values linear, everything else from A."""
     S = dict(A)
@@ -489,11 +505,14 @@ class _States:
                 grow[:, 0] = np.eye(4)
                 self.JW = np.concatenate([self.JW, grow])
             u = float(fr)
-            S = _interp(self.S[k], self.S[k + 1], u)
-            # joints are interpolated directly, so a joint driven by a string / flag key (mode, phase) or a stepped
-            # int (wraps) still sweeps evenly through the interval instead of jumping at its end
-            vals = self.V[k] * (1 - u) + self.V[k + 1] * u
-            S["_joints"] = {jn: float(vals[c - 1]) for jn, c in self.jcol.items()}
+            A, B = self.S[k], self.S[k + 1]
+            S = _interp(A, B, u)
+            if _discrete_change(A, B):
+                # a string / bool / 0-1 flag changes in this interval: kin of the blended state would jump at the
+                # end, so the joints are interpolated directly and sweep evenly instead
+                vals = self.V[k] * (1 - u) + self.V[k + 1] * u
+                S["_joints"] = {jn: float(vals[c - 1]) for jn, c in self.jcol.items()}
+            # otherwise kin is evaluated on the blended state (exact for joints that follow others nonlinearly)
             self.S.append(S)
             self.ord.append(k + float(fr))
             self.idx[(k, fr)] = r
@@ -1018,7 +1037,8 @@ def refine(asm: Assembly, states: list[dict], max_deg=MAX_STEP_DEG, max_mm=MAX_S
         for i in range(1, n):
             u = i / n
             S = _interp(A, B, u)
-            S["_joints"] = {jn: va[jn] + (vb[jn] - va[jn]) * u for jn in asm.joints}
+            if _discrete_change(A, B):
+                S["_joints"] = {jn: va[jn] + (vb[jn] - va[jn]) * u for jn in asm.joints}
             out.append(S)
         out.append(B)
     return out
@@ -1064,6 +1084,8 @@ def main(argv=None):
     ap.add_argument("--dt", type=float, default=0.1)
     ap.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
     ap.add_argument("--no-refine", action="store_true", help="audit the raw timeline samples only")
+    ap.add_argument("--max-mm", type=float, default=MAX_STEP_MM,
+                    help="per-pair refinement: largest point motion between audited states (mm)")
     ap.add_argument("--global-refine", action="store_true",
                     help="refine the whole timeline (no joint more than 1 deg / 0.5 mm a step) instead of per pair")
     a = ap.parse_args(argv)
@@ -1076,7 +1098,9 @@ def main(argv=None):
     elif not a.no_refine:
         n_tl = len(states)          # each pair refines the timeline for itself (sub-states only where it moves)
     states += asm.extra_states
-    rep = run(asm, states, a.jobs, pair_refine=n_tl)
+    rep = run(asm, states, a.jobs, pair_refine=n_tl, max_mm=a.max_mm)
+    rep["settings"] = dict(dt=a.dt, max_mm=a.max_mm, jobs=a.jobs, refine="global" if a.global_refine else
+                           "none" if a.no_refine else "pair")
     os.makedirs(a.out, exist_ok=True)
     with open(os.path.join(a.out, "audit.json"), "w") as fh:
         json.dump(rep, fh, indent=1, default=str)

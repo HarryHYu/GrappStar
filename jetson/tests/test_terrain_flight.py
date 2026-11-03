@@ -126,3 +126,57 @@ def test_rest_tilt_shapes():
     t = analysis.rest_tilt(log(-30.0, 33))
     assert t["tilt_deg"] == pytest.approx(30.0, abs=0.01)                               # neither pose: tilted
     assert analysis.rest_tilt(None) is None and analysis.rest_tilt({"samples": []}) is None
+
+
+def test_void_with_one_lit_frame_is_not_go():
+    """Review round 2: 14 black landed frames (a void, flagged bad by the link check) and 1 lit rim frame must not
+    reach terrain as one clean frame."""
+    from grappstar import analysis
+    from grappstar.sim.flight_video import render_flight
+    from grappstar.video.quality import frame_quality, BAD_BELOW
+    frames, truth = render_flight(seed=2, size=(360, 240), landing_class="hard_ground", pitch_deg=20, v0=7.0)
+    rng = np.random.default_rng(5)
+    t_l = truth["t_landed"]
+    out = []
+    lit_kept = False
+    for f in frames:
+        if f.t >= t_l + 0.1:
+            if not lit_kept:
+                lit_kept = True
+                out.append(f)
+                continue
+            img = np.clip(12 + rng.normal(0, 3, f.img.shape), 0, 255).astype(np.uint8)
+            q = frame_quality(img)
+            out.append(Frame(img=img, t=f.t, idx=f.idx, quality=q["score"], bad=q["score"] < BAD_BELOW))
+        else:
+            out.append(f)
+    res = analysis.run_post_flight(out, None, None, do_mosaic=False)
+    assert res["terrain"]["verdict"] == "NO_GO", res["terrain"]
+
+
+def test_grey_landing_images_do_not_crash():
+    rep = T.analyze_landing([np.full((480, 720), 100, np.uint8), np.zeros((480, 720, 1), np.uint8) + 90])
+    assert rep.verdict != "GO"     # a flat grey picture is never ground to anchor on
+
+
+def test_link_dying_after_good_landed_video_stays_go():
+    """Review round 4: the link dies 2.7 s after landing (black tail). The good landed frames decide."""
+    from grappstar import analysis
+    from grappstar.sim.flight_video import render_flight
+    frames, truth = render_flight(seed=3, size=(360, 240), landing_class="hard_ground", pitch_deg=25, v0=7.0,
+                                  landed_s=4.0)
+    base = analysis.run_post_flight(frames, None, None, do_mosaic=False)["terrain"]["verdict"]
+    cut = [Frame(img=np.zeros_like(f.img), t=f.t, idx=f.idx, quality=0.0, bad=True) if i >= len(frames) - 40 else f
+           for i, f in enumerate(frames)]
+    res = analysis.run_post_flight(cut, None, None, do_mosaic=False)
+    assert res["terrain"]["verdict"] == base == "GO", res["terrain"]
+
+
+def test_bad_clock_offset_in_flightlog_keeps_the_result():
+    from grappstar import analysis
+    from grappstar.sim.flight_video import render_flight
+    frames, truth = render_flight(seed=3, size=(360, 240), pitch_deg=25, v0=7.0)
+    for bad in ("0.5", float("nan"), [1]):
+        fl = dict(truth["flightlog"], clock_offset_s=bad)
+        res = analysis.run_post_flight(frames, fl, None, do_mosaic=False)
+        assert res["flight"] is not None and res["flight"]["range_m"] is not None, (bad, res["errors"])

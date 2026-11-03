@@ -362,7 +362,7 @@ def test_run_all_problems_cleanup_jobs(tmp_path):
     r = subprocess.run(["bash", os.path.join(BASE, "run_all.sh"), "demo", str(out)], capture_output=True, text=True,
                        env=dict(os.environ, PY=py, JOBS="3"))
     assert r.returncode == 1 and "NOT CLEAN" in r.stdout
-    assert sorted(os.listdir(out)) == ["keep.txt"]                   # stale downstream outputs gone, nothing else
+    assert sorted(os.listdir(out)) == ["audit.log", "keep.txt"]      # stale downstream outputs gone, audit log kept
     assert "tools.audit " + str(out) + " --only demo --jobs 3" in log.read_text()
     py, log = _fake_py(tmp_path, {"tools.step_export": 2})
     r = subprocess.run(["bash", os.path.join(BASE, "run_all.sh"), "base", str(out)], capture_output=True, text=True,

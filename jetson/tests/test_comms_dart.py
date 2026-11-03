@@ -118,6 +118,17 @@ def test_hold_deadman_repeats_and_stops(md):
     assert ks[-1] == " "
 
 
+def test_hold_refused_does_not_stop_a_running_sequence(md):
+    """review B3: a hold refused at its first key (an /auto running) must not send /stop, which would abort it."""
+    d = Dart(md.host)
+    d.auto()
+    with pytest.raises(DartRefused):
+        d.hold("2", 0.5)
+    assert not any(path == "/stop" for _, path, _ in md.requests)
+    assert d.status()["phase"] == "ANCHORING"
+    d.wait_phase("ANCHORED", 10, poll=0.05)
+
+
 def test_hold_cancel(md):
     d = Dart(md.host)
     ev = threading.Event()

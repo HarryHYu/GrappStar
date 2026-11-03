@@ -1,7 +1,8 @@
 # KEDGE dart wiring v4 (DRV8833 #3 removed)
 
-This replaces Appendix A of `kedge/CLAUDE.md` (the v29 list of 53 wires). The new list has 50 wires:
-`wiring/wire_cut_list.csv`. Diagram: `wiring/wiring.svg` / `wiring/wiring.png`. Changes only: `wiring/changes_from_v29.csv`.
+This replaces Appendix A of `kedge/CLAUDE.md` (the v29 list of 53 wires) and the old 53-wire files in `kedge/pack_v30/`.
+The new list has 50 wires: `firmware/dart/wiring/wire_cut_list.csv`. Diagram: `firmware/dart/wiring/wiring.svg` /
+`wiring.png`. Changes only: `firmware/dart/wiring/changes_from_v29.csv`.
 Regenerate everything with `python3 firmware/dart/tools/wires_v4.py` (lengths from the v30 model, same rule as before).
 
 What changed:
@@ -41,7 +42,8 @@ Do these steps in order. Wire numbers in brackets are the v29 numbers, then the 
 - [13] DRV#2 VM to DRV#3 VM (red, 22 AWG)
 - [17] DRV#2 GND to DRV#3 GND (black, 22 AWG)
 - [27] DRV#2 SLP to DRV#3 SLP (red/white, 28 AWG)
-Wires 13 and 17 share the DRV#2 VM and GND pads with wires 12 and 15: leave 12 and 15 in place and tug them after.
+Wires [13] and [17] share the DRV#2 VM and GND pads with wires [12] and [16] (new 12 and 15): leave those in place and
+tug them after.
 Also unsolder the foot motor wires [52] [53] from DRV#3, and remove the XIAO D6 / D7 wires [42] [43] completely
 (desolder them at the XIAO end too and throw them away). Lift DRV#3 out of the sled and put it in a labelled bag for
 the base station. The pocket stays empty.
@@ -49,14 +51,14 @@ the base station. The pocket stays empty.
 **Step A3. Battery unplugged. Cut the bridge on DRV#2.** In v29 the D8 wire went to AIN1 *and* BIN1 (bridged), and the
 D9 wire to AIN2 *and* BIN2. Desolder the jumper wire or solder blob that joins AIN1 to BIN1 and AIN2 to BIN2
 (desoldering braid). The 45 mm D8 and D9 wires stay. After this:
-- D8 goes to **AIN1 only** (new wire 37)
-- D9 goes to **AIN2 only** (new wire 38)
+- D8 goes to **AIN1 only** ([40], new wire 37)
+- D9 goes to **AIN2 only** ([41], new wire 38)
 Check with the meter on beep: AIN1 to BIN1 must NOT beep. AIN2 to BIN2 must NOT beep.
 
 **Step A4. Battery unplugged. Move the right drill to channel A.** Unsolder the right drill wires from BOUT1 / BOUT2 and
 solder them to the channel A pads, keeping the swap:
-- right drill **black** to **AOUT1** (the same pad as the left drill red) (new wire 47)
-- right drill **red** to **AOUT2** (the same pad as the left drill black) (new wire 48)
+- right drill **black** to **AOUT1** (the same pad as the left drill red) ([50], new wire 47)
+- right drill **red** to **AOUT2** (the same pad as the left drill black) ([51], new wire 48)
 Two wires in one pad hole, one pad at a time: desolder the left drill red from AOUT1 (braid or pump). Strip 3 mm of
 it and of the right drill black, twist the two bare ends together, tin them, push them through the hole, solder. Trim
 the ends flush on the far side. Check with a magnifier that no strand touches the next pad. Tug both. Then the same on
@@ -70,8 +72,8 @@ AOUT2 with the left drill black and the right drill red.
 bay behind the cells, not in the sled. Cut two new 330 mm silicone 26 AWG wires (red and black). Run them forward
 along the top of the hull through the disc notches (with the camera wires), out the skin hole, a 60 mm loop round the
 kick hub, then down the pole channel:
-- DRV#2 **BOUT1** to foot N20 **+ (red)** (new wire 49)
-- DRV#2 **BOUT2** to foot N20 **- (black)** (new wire 50)
+- DRV#2 **BOUT1** to foot N20 **+ (red)** ([52], new wire 49)
+- DRV#2 **BOUT2** to foot N20 **- (black)** ([53], new wire 50)
 If the old 255 mm foot wires are already through the pole channel, you may instead solder an 80 mm extension at the
 DRV#2 end: joint inside the hull, heat shrunk, never in the hub loop.
 
@@ -81,6 +83,7 @@ DRV#2 end: joint inside the hull, heat shrunk, never in the hub loop.
 - DRV#2 BOUT1 beeps to the foot red, BOUT2 to the foot black.
 - No beep between any AOUT pad and any BOUT pad.
 - No beep between XIAO D6, D7, D8, D9 (each pair).
+- DRV#2 GND beeps to DRV#1 GND, and DRV#2 VM beeps to DRV#1 VM (the pads reheated in step A2).
 - Meter on ohms (not beep): AOUT1 to AOUT2 and BOUT1 to BOUT2 read a few ohms or more (that is the motor winding),
   never 0.0.
 - VM to GND: a short chirp is a capacitor charging and is fine; a steady beep is a short: find it before power.
@@ -88,15 +91,16 @@ Then go to "Power-on check" below.
 
 ## Path B: fresh build (the whole harness)
 
-Use `wiring/wire_cut_list.csv` for colours, gauges and cut lengths. Cut every wire 10 mm longer than listed if you are
+Use `firmware/dart/wiring/wire_cut_list.csv` for colours, gauges and cut lengths. Cut every wire 10 mm longer than listed if you are
 unsure; trim at the end. Work in this order. Every step starts with the battery unplugged.
 
 **Step B1. Battery unplugged. Cells and BMS** (wires 1 to 8). Solder the plate tabs before the plates go in their
 recesses. The series link (wire 2) carries the full current: 22 AWG. Charge socket pins: 1 = B-, 2 = BM, 3 = B+.
+Wire 8: BMS P+ to power loop socket pin 1 (red, 22 AWG).
 
 **Step B2. Battery unplugged. Set the buck before it is wired in** (as in the run sheet step 6.2). With the LiPo
 unplugged, clip or solder the MP1584 IN+ / IN- to the fused side of XT60 lead #1 (red to IN+, black to IN-), nothing on
-the output, free ends insulated. Then plug the LiPo in, put the meter on DC volts across OUT+ and OUT-, turn the small
+the output, free ends insulated. Meter on beep: IN+ to IN- must not beep steadily (a short). Then plug the LiPo in, put the meter on DC volts across OUT+ and OUT-, turn the small
 brass screw until it reads **5.04 V**, and unplug the LiPo. Then fit the capacitor across OUT (long leg OUT+, striped
 leg OUT-; rated 10 V or more).
 
@@ -130,9 +134,10 @@ BIN1, BIN2 (kick). D8, D9 to DRV#2 AIN1, AIN2 (drills). D6, D7 to DRV#2 BIN1, BI
 - DRV#2 BOUT1 / BOUT2 to foot red / black (330 mm silicone).
 
 **Step B10. Battery unplugged. Meter checks:** the list in step A7, plus 5V to GND and 3V3 to GND: no steady beep.
+The motors are not connected yet on this path, so AOUT1 to AOUT2 and BOUT1 to BOUT2 read open (`OL`): that is correct.
 
-**Optional, if you have them (recommended):**
-- 470 to 1000 uF, 10 V or more, across the XIAO 5V and GND pins, on the XIAO side of the Schottky diode (long leg to 5V).
+**Optional, if you have them (recommended). Battery unplugged, USB unplugged before you solder them:**
+- 470 to 1000 uF, 10 V or more, across the MP1584 output (long leg to OUT+, short leg to OUT-), as in the build guide.
   It keeps the XIAO running through a short power break at impact (the JST plug is the only power path), so the
   flight state survives. Glue or tape the power loop plug so it cannot shake loose.
 - 100 uF, 16 V, across DRV#1 VM and GND (long leg to VM): bulk capacitor for the motor rail (TI asks for 10 uF or more).

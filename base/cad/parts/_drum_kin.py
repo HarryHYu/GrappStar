@@ -3,8 +3,8 @@
 Owner: worker cad-drum. Pure Python, no CAD imports, so firmware, physics and tests can use it.
 
 Conventions
-- Drum angle theta (deg): 0 = LAUNCH, about 40 = NEUTRAL, about 80 = REEL, then the wrap sector, then WRAPPED.
-  Positive theta = N20 forward (DRV8833 #3 IN1 high) = toward REEL / WRAP.
+- Drum angle theta (deg): 0 = LAUNCH, 41 = NEUTRAL, 62..302 = WRAP, 314 = WRAPPED, 347 = REEL.
+  Positive theta = N20 forward (DRV8833 #3 AIN1 high) = toward WRAP / REEL.
 - Collar position x (mm) along the main shaft axis: 0 = NEUTRAL (centred), -stroke = LAUNCH gear engaged,
   +stroke = REEL gear engaged.
 - Brake track lift (mm): radial lift of the track-2 cam under the cad-reel lever follower; 0 = light.
@@ -40,8 +40,8 @@ DEFAULTS = dict(
     fork_k=0.95,            # fork yoke rate (2.4 thick yoke) (N/mm): compliant when the dogs land tip to tip
     fork_free=4.5,          # yoke deflection when the dogs land tip to tip (stroke - dog_gap)
     # ---------------------------------------------------------------- track 2 (storage reel slip clutch preload)
-    brake_lift=4.0,         # full radial lift (mm) = FIRM; 0 = LIGHT (cad-reel lever, 10 N design force)
-    brake_force=15.0,       # cad-reel pushrod at FIRM 5 N (D24): 7.8 N push at 3 N scaled to 13 N plus friction; cad-reel to confirm
+    brake_lift=4.0,         # full radial lift (mm) = FIRM; 0 = LIGHT (cad-reel follower)
+    brake_force=15.0,       # design follower force (cad-reel: 10.8 N at 4 mm lift for FIRM 5 N, D24; 15 N design)
     # (theta0, theta1, frac0, frac1): LAUNCH light, NEUTRAL firm (tidy), WRAP light, WRAPPED and REEL firm
     # FIRM before the WRAPPED park for the tidy: ramp 302..312 (302..309 would need 1.2 N m at FIRM 5 N, margin 1.8 < 2)
     brake_ramps=((30.0, 40.0, 0.0, 1.0), (50.0, 62.0, 1.0, 0.0), (302.0, 312.0, 0.0, 1.0)),  # first ramp after the collar shift
@@ -58,7 +58,6 @@ DEFAULTS = dict(
     n20_z=10, n20_x=0.3, drum_gear_z=120, drum_gear_m=0.8, drum_gear_x=-0.3,
     n20_rpm_12v=27.0, n20_v=9.0,        # DRV8833 fed by an MP1584 buck set to 9 V
     n20_stall_nm_9v=0.20,               # estimate, see stall_estimate()
-    n20_work_frac=0.35,                 # keep the working load under this fraction of stall
     # ---------------------------------------------------------------- switch code (Gray code, bit = contact closed)
     # params.DRUM.codes (A B C): LAUNCH 100, L_TO_N 110, NEUTRAL 010, WRAP_PREP 011, WRAP 001, N_TO_R 101, REEL 111
     code_arcs={
@@ -350,7 +349,7 @@ def loads(c=None, r_groove=30.0, r_cam=32.0, arm_pin=36.5, arm_yoke=77.6, sleeve
     return dict(
         fork_shift=pk["fork"], brake_ramp=pk["brake"], wrap=t_wrap,
         worst=worst[1], worst_at=worst[0], margin=cap_stall / worst[1],
-        cap_stall=cap_stall, cap_work=c["n20_work_frac"] * cap_stall,
+        cap_stall=cap_stall,
         f_fork=f_fork, f_disengage=f_dis, groove_slope_mm_per_rad=slope, wrap_gear_up=up,
         groove_pressure_deg=math.degrees(math.atan(slope / r_groove)), racking=rack,
     )
@@ -423,7 +422,7 @@ def firmware_table(c=None):
     """Everything fw-base needs, JSON-ready (written to drum_table.json by `python _drum_kin.py --json`)."""
     c = c or DEFAULTS
     return dict(
-        version="drum v6 (params v1.2.6)",
+        version="drum v7 (params v1.3.0)",
         positions={k.upper(): c[k] for k in ("launch", "neutral", "wrap_start", "wrapped", "reel")},
         stops=[c["stop_lo"], c["stop_hi"]],
         code_table_ABC={code_abc(k): v for k, v in CODE_TABLE.items()},
@@ -439,21 +438,25 @@ def firmware_table(c=None):
         collar_transitions=dict(LN=list(c["tr_ln"]), NR=list(c["tr_nr"])),
         brake_ramps=[list(r) for r in c["brake_ramps"]],
         rules=[
+            "fw-base (c740e46) is the reference for behaviour; these are the drum's requirements.",
             "Positive drum = N20 forward (DRV8833 #3 AIN1 high) = toward REEL = wrap direction.",
-            "Wiper stopped before drum moves, except: the fly-in into REEL (creep forward over 318..340) and the unwrap "
-            "(WRAPPED back to NEUTRAL with the wiper creeping forward for the bus take-up).",
+            "Wiper stopped before drum moves, except: the fly-in into REEL (D41: creep forward over 318..340, stop on "
+            "SW_DOG_R or +0.8 A, then jogs of at most 5 deg) and the unwrap (back to NEUTRAL with the wiper creeping "
+            "forward for the bus take-up).",
             "Check SW_DOG_L / SW_DOG_R during and after every move: LAUNCH needs DOG_L closed, REEL needs DOG_R closed, "
             "NEUTRAL / WRAP_PREP / WRAP / WRAPPED need both open; never enter the wrap window with either closed.",
-            "Dog not closed in LAUNCH: jog the wiper +-8 deg; in REEL: creep forward only (sprag #2 blocks backward).",
-            "Leaving LAUNCH or REEL under load: unload jog 8 deg against the last load first. SWITCH_DISAGREE after 3 tries.",
-            "Fault in LAUNCH or L_TO_N: HOLD the drum unless SW_HOME is closed (spring not drawn), then NEUTRAL (BASE_SPEC D27).",
-            "Fault with the wraps on (WRAP, N_TO_R, REEL): the drum HOLDS where it is (D27, MODE err DRUM_HELD), never "
-            "NEUTRAL (that would unwrap under tow); the operator unwraps when safe.",
-            "Boot: LAUNCH / L_TO_N -> hold until SW_HOME, then NEUTRAL; NEUTRAL / WRAP_PREP -> NEUTRAL; WRAP / N_TO_R / "
-            "REEL -> hold and report.",
-            "Going from REEL to WRAPPED (operator): by time from edge 342 (28 deg), never back into the wrap window.",
-            "SW_N20 open = hand fallback active: no drum moves.",
-            "Code 000 = DRUM_SENSOR fault. Timeout = 2 x nominal + 2 s: DRUM_TIMEOUT.",
+            "Dog not closed in LAUNCH: backward wiper wiggle within 40 deg / 6 s. Leaving LAUNCH or REEL under load: "
+            "unload jog 6 deg (params unload_jog_deg), stopped early on a 0.8 A rise.",
+            "During every move: a code that is not the current or next zone -> stop, DRUM_SENSOR; an intermediate code "
+            "must last 70 percent of span / dps; timeout 1.3 x nominal + 1 s -> DRUM_TIMEOUT; SW_ARM opening outside a "
+            "wrap or unwrap -> fault. Contacts debounced 20 ms with chatter detection.",
+            "Fault in LAUNCH or L_TO_N: HOLD the drum unless SW_HOME is closed (spring not drawn), then NEUTRAL (D27).",
+            "Fault in NEUTRAL or WRAP_PREP: stop the wiper, hold.",
+            "Fault with the wraps on (WRAP, N_TO_R, REEL): the drum HOLDS (DRUM_HELD), never NEUTRAL; the operator "
+            "unwraps when safe (REEL -> NEUTRAL with the take-up; there is no REEL -> WRAPPED command).",
+            "Boot: no automatic drum moves. Cross-check the code with DOG_L / DOG_R / SW_ARM and report a mismatch; the "
+            "first commanded move re-references on a real code edge. Code 000 = DRUM_SENSOR.",
+            "SW_N20 open = hand fallback active: no drum moves. When it closes again, run the boot rules.",
             "SW_INDEX: 6 pulses per wiper turn (degraded mode without the AS5600 magnet).",
         ],
     )

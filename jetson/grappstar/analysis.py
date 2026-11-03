@@ -6,6 +6,7 @@ the operator decides.
 from __future__ import annotations
 
 import json
+import math
 import os
 import time
 import traceback
@@ -76,12 +77,14 @@ def _save_png(path: str, img) -> Optional[str]:
 def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Optional[str], t_fire: Optional[float] = None,
                     terrain_model=None, do_mosaic: bool = True, log=None,
                     clock_offset_s: Optional[float] = None, aim_pitch_deg: Optional[float] = None,
-                    drag_n: Optional[float] = None, ballistics: Any = "auto") -> Dict[str, Any]:
+                    drag_n: Optional[float] = None, ballistics: Any = "auto",
+                    calibrate_range: bool = True) -> Dict[str, Any]:
     """Returns {"flight": dict|None, "terrain": dict, "mosaic": dict|None, "files": {...}, "errors": [...]}.
 
     aim_pitch_deg: the commanded rail pitch of this shot; drag_n: the launch clutch drag (default LIGHT 0.5 N);
     ballistics: a Ballistics table, None for none, or "auto" (base/out/ballistics.json, else the placeholder;
-    a placeholder table is not used as a prior). They make the video-only range usable (review R1-C #6)."""
+    a placeholder table is not used as a prior). They make the video-only range usable (review R1-C #6).
+    calibrate_range=False: no scaling of the range to the C3 table (simulator worlds with their own physics)."""
     out: Dict[str, Any] = {"flight": None, "terrain": None, "mosaic": None, "files": {}, "errors": []}
     if outdir:
         os.makedirs(outdir, exist_ok=True)
@@ -96,8 +99,14 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
     fres = None
     try:
         from .vision import flight
-        if flightlog is not None and clock_offset_s is None:
+        if flightlog is not None and clock_offset_s is None and isinstance(flightlog, dict):
             clock_offset_s = flightlog.get("clock_offset_s")
+        try:
+            clock_offset_s = None if clock_offset_s is None else float(clock_offset_s)
+            if clock_offset_s is not None and not math.isfinite(clock_offset_s):
+                clock_offset_s = None
+        except (TypeError, ValueError):
+            clock_offset_s = None
         bal = ballistics
         if isinstance(bal, str) and bal == "auto":
             bal = None
@@ -110,7 +119,7 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
         from .ballistics import LIGHT_DRAG_N
         fres = flight.analyze_flight(frames, flightlog, clock_offset_s=clock_offset_s, ballistics=bal,
                                      drag_n=LIGHT_DRAG_N if drag_n is None else float(drag_n),
-                                     aim_pitch_deg=aim_pitch_deg)
+                                     aim_pitch_deg=aim_pitch_deg, calibrate_range=calibrate_range)
         out["flight"] = fres.to_dict()
     except Exception as e:
         note(f"flight analysis failed: {type(e).__name__}: {e}")
@@ -128,6 +137,21 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
         # and analyze_landing handles dark frames itself); never in-flight frames
         t_l = getattr(fres, "t_landed", None) if fres is not None else None
         land_frames = [f for f in frames if t_l is not None and f.t >= t_l][-15:] or frames[-15:]
+    # Dark check on the WHOLE landed window, whatever the quality flags (review round 2): landing_frames() keeps
+    # only frames that pass the link check, so 14 black frames of a void plus one lit frame of the rim would reach
+    # terrain as one clean frame and could get GO. terrain's own dark check runs first on what it is given.
+    try:
+        from .vision import terrain
+        t_l = None
+        if fres is not None:
+            t_l = getattr(fres, "t_landed", None) or getattr(fres, "t_impact", None)
+        # the FIRST frames after landing: a link that dies later with the dart on good ground must not hide them
+        window = [f for f in frames if t_l is not None and f.t >= t_l + 0.05][:45] or frames[-30:]
+        if window and terrain._dark_landing(terrain._as_items(window)) is not None:
+            land_frames = window
+            note("most landed frames are black: passing the whole landed window to the terrain check")
+    except Exception as e:
+        note(f"dark window check failed: {e}")
     try:
         from .vision import terrain
         # Tilt cue from the IMU: never the Euler roll (spin about the nose, arbitrary for a dart), only the
@@ -150,7 +174,7 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
                 out["files"]["landing.png"] = p
     except Exception as e:
         note(f"terrain analysis failed: {type(e).__name__}: {e}")
-        out["terrain"] = {"cls": "unknown", "score": 0, "verdict": "UNSURE", "probs": {},
+        out["terrain"] = {"cls": "unknown", "score": 45, "verdict": "UNSURE", "probs": {},
                           "reasons": [f"Landing zone analysis failed ({type(e).__name__}). Look at the video."]}
     if do_mosaic:
         try:

@@ -109,7 +109,7 @@ struct Base {
 #endif
   }
   Tun tunNow() const {
-    Tun t; t.encSign = enc.sign > 0 ? 1 : 0; t.requireSeated = (c.requireSeated ? 1 : 0) | (c.vbatWired ? 0 : 2);
+    Tun t; t.encSign = enc.sign > 0 ? 1 : 0; t.requireSeated = (c.requireSeated ? 1 : 0) | (c.vbatWired ? 0 : 2) | (tensionCal ? 4 : 0);   // bit 2: tension calibrated
     t.ampsPerVolt = w.c.ampsPerVolt; t.offsetA = w.c.offsetA; t.freeA = c.freeA; t.kNperA = c.kNperA; t.hxNPerCount = c.hxNPerCount;
     t.hxOff = hxOff; t.limitN = c.limitN; t.drumDps = c.drumDps; t.aimOffset = aimOffset; t.aimTol = c.aimTolDeg; t.tripA = c.tripA;
     t.cockTripA = c.cockTripA; t.vbatLow = c.vbatLow; t.aimHomeDeg = c.aimHomeDeg;
@@ -120,11 +120,12 @@ struct Base {
   void restoreTun(const Tun* t) {
     if (!t || !validTun(t)) return;
     lastTun = *t;
-    enc.sign = c.wiperSign = t->encSign ? 1 : -1; c.requireSeated = true; c.vbatWired = true;   /* require_seated and vbat_wired are never kept off across a boot (review D2 #19) */ w.c.ampsPerVolt = t->ampsPerVolt; w.c.offsetA = t->offsetA;
+    enc.sign = c.wiperSign = t->encSign ? 1 : -1; c.requireSeated = true; c.vbatWired = true; tensionCal = (t->requireSeated & 4) != 0;   /* require_seated and vbat_wired are never kept off across a boot (review D2 #19) */ w.c.ampsPerVolt = t->ampsPerVolt; w.c.offsetA = t->offsetA;
     c.freeA = t->freeA; c.kNperA = t->kNperA; c.hxNPerCount = t->hxNPerCount; hxOff = t->hxOff; c.limitN = t->limitN; c.drumDps = t->drumDps;
     aimOffset = t->aimOffset; c.aimTolDeg = t->aimTol; c.tripA = t->tripA; c.cockTripA = t->cockTripA; c.vbatLow = t->vbatLow; c.aimHomeDeg = t->aimHomeDeg;
     c.tensOffsetN = t->tensOffsetN; c.towTripA = t->towTripA;
   }
+  bool tensionCal = false;                          // systest F28: k_n_per_a / tension_offset_n set by the operator (saved)
   bool tunDirty = false; Tun lastTun;              // lastTun: what flash holds (restoreTun / last save)
   uint32_t evDrops = 0;                              // set by the sketch: events dropped by the USB ring (status ev_drops)
   // the sketch calls this before the first tick with what save() stored (or nullptr)
@@ -215,14 +216,15 @@ struct Base {
     JOut o(evBuf, sizeof evBuf); evBegin(o, "ABORTED"); o.str("what", what); o.str("why", why); evEnd(o);
   }
 
+  void gapAbort() { if (gapRun) { phase = PH_UNKNOWN; phaseHint = -1; cockPhase = 0; dirty = true; } gapRun = false; gapThenArm = false; firePending = false; }
   void raise(int f, const char* why) {
-    w.halt(now, io.wiper);
+    w.halt(now, io.wiper); bool wasGap = gapRun; gapAbort();
     if (state == S_SAFING) { d.halt(now, io.drum); state = S_FAULT; stT = now; evHeld(why); dirty = true; return; }   // a second fault stops the safing move
     if (state == S_FAULT) { return; }                 // the first fault wins
     fault = f; strncpy(faultWhy, why, sizeof faultWhy - 1); faultWhy[sizeof faultWhy - 1] = 0;
     // a fault during any launch-train motion: the phase is no longer trusted, but the last count is kept as a warning
     if (phase == PH_COCKING || phase == PH_FIRING || phase == PH_RESETTING || state == S_DECOCK || state == S_COCK || state == S_FIRE || (state == S_JOG && jogMotor == 1 && collarLaunch())) {
-      if (phase != PH_UNKNOWN || cockPhase > phaseHint) phaseHint = cockPhase;
+      if (!wasGap && (phase != PH_UNKNOWN || cockPhase > phaseHint)) phaseHint = cockPhase;   // (an aborted gap run: in the gap, not drawn)
       phase = PH_UNKNOWN;
     }
     tokenLive = false; homing = false;
@@ -309,7 +311,7 @@ struct Base {
     enc.rateDps = w.outDir ? w.outDir * (idxRate > 0 ? idxRate : c.n0Rpm * 6.f * w.outDuty / 255.f) : 0;
   }
   void resolveBoot() {
-    bootPending = false; booted = true;
+    bootPending = false; booted = true; crossCheckDue = true; crossCheckT = now;
     if (!enc.ok && fitted(SW_INDEX)) {                 // no magnet: degraded angle source, coarser checks
       indexMode = true; idxDeg = 0; enc.count = 0; c.homeWinDeg += 60;
       c.cockEndDeg = c.releaseDeg - 60; c.cockSlowFrom = c.cockEndDeg - 40;   // the count can be 30 deg out: cock stops a bump early
@@ -383,7 +385,7 @@ struct Base {
     }
     updateSector();
     float isv = io.wiperIsVolts ? io.wiperIsVolts() : 0;
-    w.tick(now, dt, isv, enc.ok ? enc.rateDps : NAN, io.wiper, startOk());   // ramp, gap, current, stall latches
+    w.tick(now, dt, isv, enc.ok ? enc.rateDps : NAN, io.wiper, startOk() && !collarLostT);   // ramp, gap, current, stall latches
     amps = w.amps;
     vbat = io.vbat && c.vbatWired ? io.vbat() : NAN;
     float hx = io.hxRaw ? io.hxRaw() : NAN;
@@ -395,12 +397,16 @@ struct Base {
     // (it only tapers the start); the first measured sample then replaces it
     if (winding && !windPrev) tCur = tc;
     windPrev = winding;
-    tCur = winding ? tCur + (tc - tCur) * al : ((state == S_HOLD || state == S_REEL) ? tCur : 0);
-    tRaw = winding ? tc : 0;                          // unfiltered: a stiff line rises faster than the 200 ms average
+    tCur = winding ? tCur + (tc - tCur) * al : ((state == S_HOLD || state == S_REEL || (sec == SEC_REEL && !hxLive())) ? tCur : 0);   // sprag #2 keeps the line loaded after a stop
+    tRaw = winding ? tc : 0;
+    if (winding && tc < pullMinN) pullMinN = tc;
+    if (winding && windPrev2) { float r = (tc - tRawPrev) * 1000.f / (dt > 0 ? dt : 5); tRate += (r - tRate) * 0.3f; } else tRate = 0;
+    tRawPrev = tc; windPrev2 = winding;
+    if (sec != SEC_REEL) atLimitPulls = 0;                          // unfiltered: a stiff line rises faster than the 200 ms average
     tensionN = hxLive() ? fmaxf(hxN, tCur) : tCur;    // a frozen or unplugged load cell never hides the current estimate
   }
   bool hxLive() const { return hxSeen && now - hxT < 500; }
-  bool holdByHx = false; float tRaw = 0; bool windPrev = false; uint32_t rawOverT = 0; int towDuty = 0;
+  float tRate = 0, tRawPrev = 0; bool windPrev2 = false; int atLimitPulls = 0; float pullMinN = 1e9f, limitPullN = 0; bool holdByHx = false; float tRaw = 0; bool windPrev = false; uint32_t rawOverT = 0; int towDuty = 0;
 
   // wiper motion -> trains. Only while running or just stopped (coast). The collar dogs have a free window
   // (dogWindowDeg): after a reversal the wiper first crosses the window and drives nothing. win = 0 touching the
@@ -503,7 +509,7 @@ struct Base {
     else dogBothT = now;
     bool drumMoveState = state == S_DRUM || state == S_SAFING || state == S_WRAP || state == S_UNWRAP;
     if (drumMoveState && (chat(SW_DRUM_A) || chat(SW_DRUM_B) || chat(SW_DRUM_C))) {   // a bump edge fuzzes for a while at 8 deg/s:
-      if (!codeChatT) codeChatT = now; else if (now - codeChatT > 1000) { raise(F_SWITCH_DISAGREE, "drum code contact chattering"); return; }   // only lasting chatter
+      if (!codeChatT) codeChatT = now; else if (now - codeChatT > sw.chatterQuietMs + 1000) { raise(F_SWITCH_DISAGREE, "drum code contact chattering"); return; }   // only lasting chatter
     } else codeChatT = 0;
     bool running = w.running() || d.running();
     if (!isnan(vbat)) vbatF = isnan(vbatF) ? vbat : vbatF + (vbat - vbatF) * 0.2f;   // one noisy ADC sample neither trips nor resets
@@ -549,7 +555,9 @@ struct Base {
     if (now - glitchT >= 1000) { if (glitchWin > 20 && w.running()) { glitchWin = 0; glitchT = now; raise(F_ANGLE_SENSOR, "AS5600 glitching (over 20 bad samples a second)"); return; } glitchWin = 0; glitchT = now; }
     // launch train invariants, every tick:
     // the carriage left its stop while the phase says rest (a jog or stop inside the switch debounce): not rest any more
-    if (phase == PH_REST && fitted(SW_HOME) && !closed(SW_HOME) && state != S_COCK && state != S_FIRE) { phaseHint = cockPhase > c.homeOpenDeg ? cockPhase : c.homeOpenDeg + 1; phase = PH_UNKNOWN; dirty = true; }
+    if (phase == PH_REST && fitted(SW_HOME) && !closed(SW_HOME) && state != S_COCK && state != S_FIRE) {
+      if (fell(SW_HOME) && w.lastDir == cockDir()) cockPhase = c.homeOpenDeg + sinceEdge(SW_HOME, cockDir());   // re-zero on the first tooth
+      phaseHint = cockPhase > c.homeOpenDeg ? cockPhase : c.homeOpenDeg + 1; phase = PH_UNKNOWN; dirty = true; }
     // forward travel past the first tooth from rest is cocking, whatever the switch says
     if (phase == PH_REST && cockPhase > c.homeOpenDeg + c.homeWinDeg) {
       if (fitted(SW_HOME) && closed(SW_HOME)) { raise(F_SWITCH_DISAGREE, "SW_HOME still closed past the first tooth"); return; }
@@ -564,6 +572,14 @@ struct Base {
     if (sec != SEC_WRAP && sec != SEC_INVALID && !secBad && !armNearEnds && fitted(SW_ARM) && (rose(SW_ARM) || fell(SW_ARM)) && now - secChangeT > 1500) {
       wrapsDoubt = true; wrapsKnown = false;
       raise(F_DRUM_SENSOR, "SW_ARM moved outside the wrap window (drum code contact?)"); return;
+    }
+    if (crossCheckDue && now - crossCheckT >= 300) {   // boot / N20 back in mesh: the code must agree with the other contacts
+      crossCheckDue = false;
+      if (const char* why = drumCrossCheck()) { raise(F_SWITCH_DISAGREE, why); return; }
+    }
+    if (fitted(SW_N20) && rose(SW_N20)) {           // drum_NOTES 7.7: the hand fallback ended: run the boot rules again
+      degTrusted = false; if (sec >= SEC_PREP) { wrapsDoubt = true; wrapsKnown = false; }
+      crossCheckDue = true; crossCheckT = now;
     }
     if (armPending) {
       bool near = (sec == SEC_PREP && drumDeg > c.wrapFromDeg - 4) || (sec == SEC_LOCK && drumDeg < c.wrapToDeg + 4);
@@ -590,10 +606,22 @@ struct Base {
   // the WRAP sector (take-up only); while the collar drops into REEL the wiper creeps forward (fly-in); at the end the
   // dog contacts must confirm the collar (LAUNCH: wiggle BACKWARD if needed, never forward: that would cock).
   int mvTarget = -1, mvDir = 0, mvStage = 0, mvSafing = 0; uint32_t mvT = 0, mvLegT = 0, mvSecT = 0, mvEnd = 0; float mvExpect = 0, mvFrom = 0;
-  bool flyBit = false; uint32_t flyT = 0, flyPauseT = 0; float flyRef = 0, flyLegFrom = 0;
-  int mvLastSec = SEC_INVALID; bool mvTakeup = false; int mvWiper = 0; bool mvTrusted = false; float mvEdgeExpect = 0; bool mvRefind = false; float mvRefEdge = 0; bool mvReref = false;
+  float cenRef = 0; bool flyBit = false; uint32_t flyT = 0, flyPauseT = 0; float flyRef = 0, flyLegFrom = 0;
+  int mvLastSec = SEC_INVALID; bool mvTakeup = false; int mvWiper = 0; bool mvTrusted = false; float mvEdgeExpect = 0; bool mvRefind = false; float mvRefEdge = 0; bool mvReref = false; bool mvSeenEdge = false;
   bool handMode() const { return fitted(SW_N20) && !closed(SW_N20); }   // N20 latched out: the drum is turned by hand
+  // drum_NOTES 7.6: the code is accepted only when the other contacts agree (LAUNCH: DOG_L; REEL: DOG_R; NEUTRAL and
+  // WRAP_PREP: both dogs open and the cup at home); nullptr when they agree
+  const char* drumCrossCheck() const {
+    bool cupHome = !fitted(SW_ARM) || (c.armHomeOpen ? !closed(SW_ARM) : closed(SW_ARM));
+    if (sec == SEC_LAUNCH && fitted(SW_DOG_L) && !closed(SW_DOG_L) && !d.running()) return "LAUNCH code without SW_DOG_L";
+    if (sec == SEC_REEL && fitted(SW_DOG_R) && !closed(SW_DOG_R)) return "REEL code without SW_DOG_R";
+    if ((sec == SEC_NEUTRAL || sec == SEC_PREP) && (closed(SW_DOG_L) || closed(SW_DOG_R))) return "NEUTRAL code with a dog contact closed";
+    if ((sec == SEC_NEUTRAL || sec == SEC_PREP) && !cupHome) return "NEUTRAL code with the wrap cup away from home";
+    return nullptr;
+  }
+  bool crossCheckDue = false; uint32_t crossCheckT = 0;
   bool startDrumMove(int target, bool safing) {
+    mvReref = false;
     if (sec == SEC_INVALID || secBad || handMode()) return false;
     int ts = targetSec(target);
     mvTarget = target; mvSafing = safing; mvDir = ts > sec ? 1 : ts < sec ? -1 : (c.targetDeg[target] >= drumDeg ? 1 : -1);
@@ -601,7 +629,7 @@ struct Base {
     float from = drumDeg;
     if (!degTrusted) from = mvDir > 0 ? fmaxf(secLo(sec), c.secLoDeg) : fminf(secHi(sec), c.secHiDeg);   // worst case inside the sector
     mvExpect = fabsf(c.targetDeg[target] - from) / c.drumDps * 1000.f;
-    mvTrusted = degTrusted; mvRefind = false; flyBit = false; flyT = 0; flyPauseT = 0;        // the 'came too early' check needs a known start angle
+    mvTrusted = degTrusted; mvRefind = false; mvSeenEdge = false; flyBit = false; flyT = 0; flyPauseT = 0;        // the 'came too early' check needs a known start angle
     { int tsec = targetSec(target); float edge = mvDir > 0 ? secLo(tsec) : secHi(tsec);   // where the target code starts
       mvEdgeExpect = (tsec == sec) ? 0 : fabsf(edge - from) / c.drumDps * 1000.f; }
     mvT = mvLegT = mvSecT = now; mvLastSec = sec; mvFrom = enc.deg(); mvWiper = 0;
@@ -615,7 +643,6 @@ struct Base {
       else if (sec == SEC_REEL) { mvStage = 5; wiper(c.reelDir, c.flyDuty, c.jogTripA); return true; }
       else { mvStage = 3; wiper(c.aimDir < 0 ? -1 : 1, c.jogDuty, c.jogTripA); return true; }
     }
-    mvReref = false;
     if (ts == sec && !degTrusted && (sec == SEC_NEUTRAL || sec == SEC_LOCK)) {
       // the angle is a guess (boot after a cut, code back after 000): never stop on it. Run out of the sector to a real
       // code edge (NEUTRAL: up to WRAP_PREP; N_TO_R: down to the WRAP edge with the take-up), come back, run on from there
@@ -638,12 +665,13 @@ struct Base {
     else if (fly) {
       // D41: creep only until the dogs bite (SW_DOG_R closes, or the current rises flyBiteA over the creep's running
       // level: on a straight line about 3.4 N per wiper degree after the bite); after that the drum finishes alone
-      if (!flyBit && collarReel()) flyBit = true;
+      if (!flyBit && closed(SW_DOG_R)) flyBit = true;   // the dogs bite (the code may still read N_TO_R)
       if (!flyBit) {
         if (!flyT || !w.wantDir) { flyT = now; flyRef = 0; }
         wiper(c.reelDir, c.flyDuty, c.jogTripA);
-        if (now - flyT > 250) { flyRef = flyRef == 0 ? w.amps : flyRef + (fminf(w.amps, flyRef + 0.3f) - flyRef) * 0.05f;
-          if (now - flyT > 400 && w.amps > flyRef + c.flyBiteA) flyBit = true; }
+        if (now - flyT > 250 && now - flyT <= 450) flyRef = flyRef == 0 ? w.amps : flyRef + (w.amps - flyRef) * 0.1f;   // running level, then frozen
+        else if (now - flyT > 450 && w.amps < flyRef) flyRef = w.amps;                                                        // (it may still settle down)
+        if (now - flyT > 450 && flyRef > 0 && w.amps > flyRef + c.flyBiteA) flyBit = true;
       }
       if (flyBit && w.wantDir) { w.halt(now, io.wiper); mvWiper = 0; }
     }
@@ -663,7 +691,9 @@ struct Base {
     if (mvStage == 3) {                               // centering jog
       // also bounded in time (1.5 x the free-speed time): a noisy angle must never carry the jog past the window
       uint32_t capMs = (uint32_t)(c.centerDeg / (c.n0Rpm * 6.f * c.jogDuty / 255.f) * 1500.f) + c.drumTimeMarginMs / 10 + 200;
-      if (fabsf(enc.deg() - mvFrom) >= c.centerDeg || now - mvLegT > capMs) {
+      if (now - mvLegT > 150 && !cenRef) cenRef = w.amps;   // running level of the jog
+      if (fabsf(enc.deg() - mvFrom) >= c.centerDeg || now - mvLegT > capMs || (cenRef > 0 && w.amps > cenRef + c.flyBiteA)) {   // stop early on a current rise
+        cenRef = 0;
         w.halt(now, io.wiper); mvWiper = 0; win = c.dogWindowDeg * 0.5f;
         mvStage = 0; mvT = mvLegT = mvSecT = now; d.want(mvDir * c.drumSign);
       }
@@ -676,7 +706,12 @@ struct Base {
     if (mvStage == 0) {
       if (sec != mvLastSec) {
         if ((sec - mvLastSec) * mvDir < 0) { failDrum(safing, F_DRUM_SENSOR, "drum turned the wrong way (drum_sign?)"); return -1; }
-        mvLastSec = sec; mvSecT = now;
+        // a whole code crossed inside this move must have lasted 70 percent of its span (a lying contact flips faster)
+        if (mvSeenEdge && mvLastSec != SEC_LAUNCH && mvLastSec != SEC_REEL) {
+          float span = secHi(mvLastSec) - secLo(mvLastSec);
+          if ((float)(now - mvSecT) < c.drumMinDwellFrac * span / c.drumDps * 1000.f) { failDrum(safing, F_DRUM_SENSOR, "drum code changed too fast"); return -1; }
+        }
+        mvSeenEdge = true; mvLastSec = sec; mvSecT = now;
       }
       mvWiperRule();
       if (sec == ts) {
@@ -703,7 +738,7 @@ struct Base {
       if ((int32_t)(now - mvEnd) < 0) return 0;
       d.halt(now, io.drum);
       if (sec != ts) { failDrum(safing, F_DRUM_SENSOR, "drum overshot the target sector"); return -1; }
-      if (mvReref) { failDrum(safing, F_DRUM_TIMEOUT, "no code edge found while re-referencing the drum"); return -1; }
+      if (mvReref) { failDrum(safing, F_DRUM_TIMEOUT, "no code edge found (re-reference)"); return -1; }
       drumDeg = c.targetDeg[mvTarget];
       mvStage = 4; mvLegT = now; mvFrom = enc.deg();
       return 0;
@@ -736,7 +771,9 @@ struct Base {
       if (ts == SEC_LAUNCH) { wiper(c.aimDir, c.flyDuty, c.jogTripA); return 0; }
       // D41: REEL not confirmed after the drum move: wind in at most 5 deg at a time, limited by the tension estimate
       // (20 N, like a tow start) instead of the 3 A jog trip; pause between legs to read SW_DOG_R
-      if (tRaw >= c.flyMaxN) { w.halt(now, io.wiper); failDrum(safing, F_DRUM_TIMEOUT, "dogs did not engage: line tension reached the fly-in limit"); return -1; }
+      float flyN = tRaw;                                // own estimate too: tRaw needs sec == SEC_REEL, which a LOCK or odd code reading lacks
+      if (w.outDir == c.reelDir && now - w.startT > c.tensionIgnoreMs) flyN = fmaxf(flyN, (w.amps - c.freeA) * c.kNperA + c.tensOffsetN);
+      if (flyN >= c.flyMaxN) { w.halt(now, io.wiper); failDrum(safing, F_DRUM_TIMEOUT, "dogs did not engage: line tension reached the fly-in limit"); return -1; }
       if (w.wantDir) {
         if (fabsf(enc.deg() - flyLegFrom) >= c.flyLegDeg) { w.halt(now, io.wiper); mvWiper = 0; flyPauseT = now; }
       } else if (now - flyPauseT >= 200) {
@@ -816,7 +853,7 @@ struct Base {
     if (!(deg >= lo - c.aimTolDeg && deg <= hi + c.aimTolDeg)) return "OUT_OF_RANGE";   // within aim_tol of the ends: clamped below (systest F27)
     // the table's ends are turning points (no sign change to find): aim a quarter tolerance inside them
     float q = c.aimTolDeg * 0.25f; if (deg < lo + q) deg = lo + q; if (deg > hi - q) deg = hi - q;
-    aimTarget = (float)deg; aimed = false; tokenLive = false; aimTries = 0; sub = 0;
+    aimTarget = (float)deg; aimed = false; tokenLive = false; aimTries = 0; sub = 0; gapRun = false; gapThenArm = false; firePending = false;
     if (indexMode) aimKnown = false;                 // D12: re-zero on SW_RAIL_LOW before every aim (the index count drifts)
     if (!aimKnown) {
       if (!fitted(SW_RAIL_LOW)) return "AIM_UNKNOWN";
@@ -850,7 +887,9 @@ struct Base {
     if (phase == PH_UNKNOWN && phaseHint > c.homeOpenDeg + c.homeWinDeg && phaseHint < c.releaseDeg + c.releaseWinDeg) return "LOADED_UNKNOWN";
     homeSeen = false; tokenLive = false;
     if (phase == PH_UNKNOWN) opFrom = enc.deg();      // recovery: creep forward until SW_HOME opens (first tooth = reference)
-    else { if (phase == PH_REST && fitted(SW_GAP) && !closed(SW_GAP)) return "SWITCH_DISAGREE"; phase = PH_COCKING; }   // REST needs the gear in its gap
+    else { if (phase == PH_REST && fitted(SW_GAP) && !closed(SW_GAP)) return "SWITCH_DISAGREE";
+      if (cockPhase < c.gapCloseDeg - c.cycleDeg) cockPhase = c.gapCloseDeg - c.cycleDeg;   // gap closed: at least at the gap-close angle
+      phase = PH_COCKING; }   // REST needs the gear in its gap
     w.c.tripA = c.cockTripA;
     w.want(cockDir(), phase == PH_UNKNOWN ? c.cockSlowDuty : c.cockDuty);
     markMoving(MV_WIPER); state = S_COCK; stT = opT = now;
@@ -950,8 +989,6 @@ struct Base {
     float sec = lineKnown ? fmaxf(20.f, 10.f + 1.5f * lineM / v) : c.approachMaxMs / 1000.f; if (sec > 600) sec = 600;
     approachMs = (uint32_t)(sec * 1000); return true;
   }
-  // D34: the tow trip sits above the current the limit needs, I = (limit + 10.4) / 17 + I_free, with a 1 A margin;
-  // never below tow_trip_a (6.5 A, D33) and never above the hard trip
   // D34: the tow trip sits 1 A above the current max_n needs, I = (max_n - tension_offset_n) / k_n_per_a + free_a; never
   // below the 5 A reel trip, never above the hard trip
   float towTrip() const { float need = (maxN - c.tensOffsetN) / c.kNperA + c.freeA + 1.0f; return fminf(fmaxf(c.tripA, need), c.hardTripA); }
@@ -970,6 +1007,9 @@ struct Base {
     if (un == U_SEATED && !fitted(SW_SEATED)) return "NO_SENSOR";
     // a tow re-sent while holding at (or near) its limit stays in HOLD: re-pulling from the held line ratchets it up
     if (state == S_HOLD && un == U_TENSION && until == U_TENSION && tensionN >= 0.95f * (float)mxn) { maxN = (float)mxn; enterHold("already at the limit"); return nullptr; }
+    // stop + reel again on a line that never went slack: each blind start adds a little; after 3 such pulls stay held
+    if (un == U_TENSION && atLimitPulls >= 3 && sec == SEC_REEL && !hxLive() && (float)mxn <= limitPullN + 0.5f) { until = U_TENSION; maxN = (float)mxn; enterHold("already at the limit"); return nullptr; }
+    pullMinN = 1e9f;
     takeupOnly = neutral;
     until = un; maxN = (float)mxn; reelDutyCmd = (int)lround(duty * 255); if (reelDutyCmd < c.reelMinDuty) reelDutyCmd = c.reelMinDuty;
     if (takeupOnly && reelDutyCmd > c.takeupMaxDuty) reelDutyCmd = c.takeupMaxDuty;
@@ -984,6 +1024,8 @@ struct Base {
   void enterHold(const char* why) {
     if (tRaw > tCur) { tCur = tRaw; if (!hxLive()) tensionN = tCur; }   // hold the higher estimate (raw cut: the average lags)
     holdByHx = hxLive() && hxN >= 0.95f * maxN;       // only a load-cell hold may resume when the load cell sees slack
+    if (until == U_TENSION && why && strcmp(why, "already at the limit")) {   // a real pull: did the line ever go slack in it?
+      if (pullMinN >= 0.9f * maxN) { atLimitPulls++; limitPullN = maxN; } else atLimitPulls = 0; }
     state = S_HOLD; stT = now; holdLimit = true;
     JOut o(evBuf, sizeof evBuf); evBegin(o, "LIMIT"); o.num("tension_n", tensionN, 1); o.num("max_n", maxN, 1); o.str("why", why);
     o.boolean("holding", until == U_TENSION); evEnd(o);
@@ -1010,6 +1052,7 @@ struct Base {
       if (loadedKnown() && p != DP_LAUNCH) return "LAUNCH_BUSY";   // code says away from LAUNCH but the spring is drawn
       if (p == DP_LAUNCH && dd == cockDir() && (phase == PH_COCKED || phase == PH_UNKNOWN || phase == PH_FIRING || phase == PH_RESETTING)) return "WOULD_FIRE";
       if (p == DP_LAUNCH && dd == cockDir() && !fitted(SW_HOME)) return "NO_SENSOR";
+      if (p == DP_LAUNCH && dd == cockDir() && fitted(SW_GAP) && !closed(SW_GAP)) return "SWITCH_DISAGREE";   // gear out of its gap: decock first (gap run)
       if (p == DP_LAUNCH && dd == c.aimDir && phase != PH_REST) return "NOT_AT_REST";   // the drawn spring would unwind: cal decock
       if ((sec >= SEC_REEL || closed(SW_DOG_R)) && dd != c.reelDir) return "BACKSTOP";  // sprag #2: the capstan never turns out
       if (p != DP_LAUNCH && dd != c.reelDir) return "BACKSTOP";   // BASE_SPEC 10: backward only in LAUNCH (fights the bus one-way)
@@ -1058,6 +1101,13 @@ struct Base {
       if (moving()) return "BUSY";
       aimPhase = c.aimHomeDeg; aimKnown = true; aimed = false; dirty = true; return nullptr;
     }
+    if (!strcmp(what, "factory")) {                   // bench settings back to the params defaults; tension not calibrated
+      if (moving() || state == S_HOLD) return "BUSY";
+      Cfg d0; c.kNperA = d0.kNperA; c.tensOffsetN = d0.tensOffsetN; c.freeA = d0.freeA; c.limitN = d0.limitN; c.drumDps = d0.drumDps;
+      c.aimTolDeg = d0.aimTolDeg; c.tripA = d0.tripA; c.cockTripA = d0.cockTripA; c.towTripA = d0.towTripA; c.vbatLow = d0.vbatLow;
+      c.aimHomeDeg = d0.aimHomeDeg; c.hxNPerCount = d0.hxNPerCount; aimOffset = 0; WiperCfg w0; w.c.ampsPerVolt = w0.ampsPerVolt; w.c.offsetA = w0.offsetA;
+      tensionCal = false; return nullptr;
+    }
     if (!strcmp(what, "aim_forget")) { if (moving()) return "BUSY"; aimKnown = false; aimed = false; dirty = true; return nullptr; }   // next aim re-homes
     if (!strcmp(what, "cock_rest")) {                 // declare the launch train at rest (carriage forward, uncocked)
       if (moving()) return "BUSY";
@@ -1080,13 +1130,16 @@ struct Base {
             phase = PH_REST; cockPhase = 0; phaseHint = -1; dirty = true;
             JOut e(evBuf, sizeof evBuf); evBegin(e, "RESET"); e.boolean("ok", true); e.str("how", "decock"); e.str("why", "SW_HOME and SW_GAP closed: at rest"); evEnd(e); return nullptr;
           }
+          if (fitted(SW_GAP) && !closed(SW_GAP)) {     // home but out of its gap with the phase unknown: a forward run could be
+            JOut e(evBuf, sizeof evBuf); evBegin(e, "RESET"); e.boolean("ok", false); e.str("how", "decock");   // a lying SW_HOME on a drawn
+            e.str("why", "SW_GAP open: check the carriage by eye, then cal cock_rest force"); evEnd(e); return nullptr; }   // spring: the operator decides
           JOut e(evBuf, sizeof evBuf); evBegin(e, "RESET"); e.boolean("ok", false); e.str("how", "decock"); e.str("why", "carriage home: nothing to decock, cock finds the angle"); evEnd(e); return nullptr;
         }
         if (!force) return "SWITCH_DISAGREE";        // the spring should be drawn but SW_HOME says home: lying switch
         decockByTravel = true;                       // forced: run back by the travel the angle says, then call it rest
         decockTravel = (phaseHint > 0 ? phaseHint : c.cockEndDeg) - c.homeOpenDeg + c.dogWindowDeg + 30;   // window, then the train
       }
-      opFrom = enc.deg(); homeSeen = false; homeT = now; aimKnown = false; aimed = false; tokenLive = false;
+      opFrom = enc.deg(); homeSeen = false; homeT = now; aimKnown = false; aimed = false; tokenLive = false; gapRun = false;
       w.c.tripA = c.aimTripA; w.want(c.aimDir, c.decockDuty); markMoving(MV_WIPER); state = S_DECOCK; stT = opT = now; return nullptr;
     }
     if (!strcmp(what, "drum")) {                      // the drum code is absolute: report where it is
@@ -1131,6 +1184,7 @@ struct Base {
       for (const char* l : live) if (!strcmp(k, l) && (moving() || state == S_HOLD)) return "BUSY";
       *ks[i].f = (float)v;
       if (!strcmp(k, "line_m")) { lineKnown = true; dirty = true; }
+      if (!strcmp(k, "k_n_per_a") || !strcmp(k, "tension_offset_n")) tensionCal = true;
       return nullptr;
     }
     return "BAD_KEY";
@@ -1234,6 +1288,7 @@ struct Base {
       return true;
     }
     if (!strcmp(k, "require_seated")) { r.boolean("val", c.requireSeated); return true; }
+    if (!strcmp(k, "tension_cal")) { r.boolean("val", tensionCal); return true; }
     if (!strcmp(k, "vbat_wired")) { r.boolean("val", c.vbatWired); return true; }
     if (!strcmp(k, "enc_sign")) { r.integer("val", enc.sign); return true; }
     if (!strcmp(k, "pitch_range")) { r.num("min", fmaxf(c.pitchMin, pitchRange(false)), 2); r.num("max", fminf(c.pitchMax, pitchRange(true)), 2); return true; }
@@ -1246,11 +1301,12 @@ struct Base {
     r.boolean("drum_known", drumKnown); r.boolean("wraps_known", wrapsKnown);
     r.str("magnet", indexMode ? "INDEX" : !enc.ok ? "NONE" : enc.magnetWeak() ? "WEAK" : enc.magnetStrong() ? "STRONG" : "OK");
     r.integer("glitches", (long)(enc.glitches > 99999 ? 99999 : enc.glitches)); r.boolean("hx", hxLive()); r.num("peak_a", w.peakA, 1);
-    r.str("fw", GB_FW_VERSION); r.integer("ev_drops", (long)(evDrops > 99999 ? 99999 : evDrops));   // events lost (host not reading)
+    r.boolean("tension_cal", tensionCal); r.str("fw", GB_FW_VERSION); r.integer("ev_drops", (long)(evDrops > 99999 ? 99999 : evDrops));   // events lost (host not reading)
     if (fault && full) { char wy[33]; strncpy(wy, faultWhy, 32); wy[32] = 0; r.str("why", wy); }
   }
   void cmdStop(bool estop) {
     w.halt(now, io.wiper); d.halt(now, io.drum); tokenLive = false; homing = false;
+    gapAbort();                                       // a queued fire never survives a stop; an interrupted gap run: angle unknown
     int was = state;
     if (state == S_FAULT || state == S_SAFING) { state = S_FAULT; }
     else {
@@ -1348,7 +1404,7 @@ struct Base {
       case S_DECOCK: tickDecock(); break;
       default: break;
     }
-    if (collarLostT && (w.wantDir || w.running())) w.halt(now, io.wiper);   // collar contact dropout: the wiper waits
+    if (collarLostT && w.running()) w.pause(now, io.wiper);   // collar contact dropout: the wiper waits (its request is kept)
     d.tick(now, dt, io.drum, io.drumSleep, startOk());
     // guard: in a resting state no motor may run (a missed halt anywhere is caught here within one tick)
     if (state == S_IDLE || state == S_HOLD || state == S_FAULT) {
@@ -1405,8 +1461,10 @@ struct Base {
         w.halt(now, io.wiper); aimPhase = wrapCyc(c.aimHomeDeg + sinceEdge(SW_RAIL_LOW, c.aimDir), c.aimCycleDeg); aimKnown = true; win = 0; homing = false; sub = 3; legT = now; return;
       }
       if (trav > c.aimCycleDeg * 1.25f + c.aimLashDeg) { raise(F_BAD_STATE, "SW_RAIL_LOW never closed in an aim cycle"); return; }
+      if (now - opT > c.aimHomeMaxMs) { raise(F_BAD_STATE, "aim homing took too long"); return; }
       return;
     }
+    if (now - opT > c.aimHomeMaxMs * 2) { raise(F_BAD_STATE, "aim took too long"); return; }
     if (sub == 3) {                                  // just homed: wait for the shaft to stop, then plan
       if (now - legT < 150) return;
       sub = 0; if (!planAim()) { w.halt(now, io.wiper); state = S_IDLE; evAimed(false, "OUT_OF_RANGE"); return; }
@@ -1416,7 +1474,7 @@ struct Base {
       if (now - legT < 150) return;
       float err = pitch() - aimTarget;
       if (fabsf(err) <= c.aimTolDeg) {
-        if (gapFixable()) { sub = 5; startGapRun(); return; }   // close the gear gap before reporting AIMED
+        if (gapFixable()) { sub = 5; gapThenArm = false; firePending = false; startGapRun(); return; }   // close the gear gap before reporting AIMED
         aimed = true; state = S_IDLE; stT = now; evAimed(true, nullptr); dirty = true; return; }
       if (++aimTries >= 3) { state = S_IDLE; evAimed(false, "AIM_MISS"); dirty = true; return; }
       sub = 0; if (!planAim()) { state = S_IDLE; evAimed(false, "OUT_OF_RANGE"); return; }
@@ -1528,18 +1586,22 @@ struct Base {
       return;
     }
     // the 200 ms average (D33) or the raw estimate held at the limit for rawHoldMs (a stiff line rises in tens of ms)
-    if (tRaw < maxN) rawOverT = now;
+    // systest F21: a stiff line rises faster than the current lag: also cut on tension + rise rate x lead time
+    if (tRaw < maxN && tRaw + fmaxf(tRate, 0.f) * c.tensionLeadMs / 1000.f < maxN) rawOverT = now;
     float frac = maxN > 0 ? fmaxf(tensionN, tRaw) / maxN : 0;
     bool over = tensionN >= maxN || now - rawOverT >= c.rawHoldMs;
     if (over && now - w.startT > c.tensionIgnoreMs && now - stT > c.tensionIgnoreMs) { w.halt(now, io.wiper); enterHold("tension limit"); return; }
     int duty = reelDutyCmd;
     if (until == U_TENSION) {                         // tow: start slow and speed up only while the line is still slack (a
       // tidied Dyneema line gains about 4.5 N per wiper degree once taut: the current must see it before the limit)
-      if (frac > c.towSlackFrac) towDuty = c.reelMinDuty;
+      if (frac > c.towSlackFrac || now - stT < c.tensionIgnoreMs + 60) towDuty = c.reelMinDuty;   // no ramp before the first tension samples
       else towDuty = towDuty + c.towRampPerTick > reelDutyCmd ? reelDutyCmd : towDuty + c.towRampPerTick;
       if (duty > towDuty) duty = towDuty;
     }
-    if (frac > 1 - c.taperFrac) { int dd = (int)(reelDutyCmd * (1 - frac) / c.taperFrac); duty = dd < c.reelMinDuty ? c.reelMinDuty : dd; }
+    if (frac > 1 - c.taperFrac) {                    // the taper may only lower the duty (it must not undo the tow cap)
+      int dd = (int)(reelDutyCmd * (1 - frac) / c.taperFrac); if (dd < c.reelMinDuty) dd = c.reelMinDuty;
+      if (dd < duty) duty = dd;
+    }
     if (until == U_SEATED && lineKnown && lineM < c.seatSlowM && duty > c.seatSlowDuty) duty = c.seatSlowDuty;
     w.want(c.reelDir, duty);
     if (now - opT > c.reelMaxMs) { w.halt(now, io.wiper); state = S_IDLE; evAborted("REEL", "timeout"); dirty = true; }

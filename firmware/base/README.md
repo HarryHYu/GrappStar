@@ -1,6 +1,6 @@
 # GrappStar base station firmware
 
-Firmware `base-1.3.0` (the base-1.2 line) for the ESP32-S3 DevKitC-1-N8 in the base station. It follows BASE_SPEC v1.2,
+Firmware `base-1.3.0` for the ESP32-S3 DevKitC-1-N8 in the base station. It follows BASE_SPEC v1.2,
 `base/spec/params.py` 1.2.1 and the mission order of decision D22.
 
 Nothing in this folder has run on real hardware yet. The logic passes the PC tests (a simulation). Go slowly the first
@@ -82,7 +82,7 @@ approach (`retrieve`, until the dart is seated), `mode LAUNCH`.
    again. After an upload done this way, tap RESET once.
 
 Coming from base-1.0: the saved bench settings (current scale, free current, N per amp and so on) are stored in a new
-format in base-1.2. The old ones are ignored after the upload, so every bench value is back at its default. Enter
+format since base-1.2. The old ones are ignored after the upload, so every bench value is back at its default. Enter
 them again (CALIBRATION.md).
 
 Command line instead of the IDE (same settings): `arduino-cli compile --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc
@@ -100,7 +100,7 @@ firmware/base/grappstar_base` from the repository folder. It should report about
 
    ```
    {"evt":"HELLO","fw":"base-1.3.0","reset":"POWERON","hx711":false,"as5600":true,"pwm":true}
-   {"evt":"BOOT","t":60,"fw":"base-1.3.0","record":false,"was_moving":false,"drum_known":true,"wraps_known":true,"aim_known":false,"phase":"UNKNOWN","angle":"AS5600"}
+   {"evt":"BOOT","t":60,"fw":"base-1.3.0","record":false,"was_moving":false,"drum_moved":false,"drum_known":true,"wraps_known":true,"aim_known":false,"phase":"UNKNOWN","angle":"AS5600"}
    {"tel":{"state":"IDLE","mode":"NEUTRAL","drum_deg":41,"drum_pos":"NEUTRAL",...,"sw":{"b":1,"n":1},"fault":null,"vbat":0}}
    ```
 
@@ -185,12 +185,12 @@ a power cycle and over a new upload of the same firmware version.
   firing is treated as a drawn spring: `cock` is refused (`LOADED_UNKNOWN`) until a `decock` (PROTOCOL.md section 9).
 - `stop`: wiper off now, drum stops. `estop`: the same, then the drum goes to NEUTRAL when that is safe (never with
   the wraps on).
-- Before every shift out of LAUNCH or REEL the wiper makes a small centering jog (8 deg) so the collar is not loaded.
+- Before every shift out of LAUNCH or REEL the wiper makes a small centering jog (6 deg) so the collar is not loaded.
   The collar contacts `SW_DOG_L` and `SW_DOG_R` are checked during every drum move.
 - Soft start: the wiper ramps up over 300 ms (inrush once blew a 10 A fuse). It always stops for 200 ms before it
   changes direction.
 - Current trips per job (each for 30 ms, ignored for 50 ms after a start): every backward run in LAUNCH (aim, decock,
-  backward and centering jogs) 3 A, reel in 5 A, cock and fire 6.5 A, tow 5 to 6.7 A set from `max_n` (at most 60 N, D43) (the tension
+  backward and centering jogs) 3 A, reel in 5 A, cock and fire 6.5 A, tow 5 to 6.9 A set from `max_n` (at most 55 N, D46) (the tension
   estimate is the real tow limit), take-up 2.5 A, jogs and fly-in 3 A; 17 A at any
   time. Stall: the shaft slower than 12 deg/s for 200 ms while driving.
 - AS5600 lost while the wiper runs, or its angle jumps so travel is lost: fault `ANGLE_SENSOR`. If the AS5600 is not reading, wiper actions and the drum
@@ -205,4 +205,5 @@ a power cycle and over a new upload of the same firmware version.
 - After a fault, fix the cause, then send `{"id":1,"cmd":"clear"}`.
 
 And the rule that matters most: **battery unplugged whenever a wire or plug moves.** Plug the battery in last, and
-never pull a plug while the battery is in.
+never pull a plug while the battery is in. The one exception: lead #2's XT60 is the physical motor kill switch and
+may be pulled at any time (motors dead, the ESP32 and the Jetson stay up: the build guide's motors-safe state).

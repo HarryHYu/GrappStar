@@ -35,8 +35,8 @@ over WiFi (HTTP at 192.168.4.1, `firmware/dart/API.md`). Video is analog 5.8 GHz
 
 A mission (the fixed sequence in BASE_SPEC section 10.1): pick a target on the rover camera view; the Jetson looks
 up the pitch; the base aims, cocks and fires on your confirmation; the dart video is checked for the landing zone;
-the base wraps the capstan at once while the line is still slack (the drum parks at WRAPPED); the dart anchors; the
-base tidies the slack, shifts into REEL and tows; the dart releases; the base reels in to about 1.5 m, unwraps, and
+the base lowers the rail to 6 degrees, then wraps the capstan at once while the line is still slack (the drum parks at WRAPPED); the dart anchors; the
+base tidies the slack, shifts into REEL and tows; the base stops, then the dart releases; the base reels in to about 1.5 m, unwraps, and
 brings the dart home on the take-up until it seats; back to LAUNCH.
 
 @ballistics
@@ -57,15 +57,16 @@ brings the dart home on the take-up until it seats; back to LAUNCH.
 3. Print the dart fit coupon, the base fit coupon and the two base risk coupon plates, and test them (section 4, test stage 0). The dart
    plates (section 4) do not wait for the base coupons or the measurements: start them any time after the dart
    fit coupon passes.
-4. Flash the dart and build it (sections 6 and 8, and the dart run sheet in the appendix).
-5. Set up the Jetson on its own wall supply (section 9, steps 0 to 3 only; its step 4, plugging in the base, comes
-   after step 6).
+4. Flash the dart and build it (sections 6 and 8, and the dart run sheet `kedge/pack_v30/KEDGE_v30_run_sheet.pdf`: print it separately).
+5. Set up the Jetson on its own wall supply (section 9, steps 0 to 3 only; its step 4 comes at the end of step 7).
 6. Flash the base ESP32 from the Mac (section 8.1). Battery out is enough: any wiring already on the board can stay.
 7. Wire the base electronics on the bench, wiper motor clamped in a vice and the drum N20 loose (section 7.2,
-   firmware/base/WIRING.md Parts A to D), then bench test them (section 11.1), then calibration parts (a) and (b) (section 10). Measure A6 here.
+   firmware/base/WIRING.md Parts A to D), then bench test them (section 11.1), then calibration parts (a) and (b) (section 10). Measure A6 here. At the end:
+   battery out, Jetson still on its wall supply, plug the ESP32 into the Jetson and do Jetson section 9 step 4
+   (it creates `/dev/grappstar-base`, which every later `base` command uses).
 8. Print the base (section 4, after the coupons pass and the measurements are in) and assemble it with the motor
    and drum N20 (section 5).
 9. Put the base on the rover and wire the rover (section 7.1), then do the first power-on of everything together
-   (7.1, its part 4).
+   (7.1, its part 4). Then finish the Jetson setup (section 9, steps 5 to 7: cameras, dart WiFi, rover camera calibration).
 10. Calibrate (section 10). Commands go to the base from the Jetson from now on (see section 10).
 11. Run the staged tests from stage 4 on (section 12; stages 0 to 3 were done in steps 3, 7 and 9).

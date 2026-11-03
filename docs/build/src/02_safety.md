@@ -30,7 +30,7 @@ Read this before any hands-on step.
 
 - The wiper motor is strong (about 15 N m) and self-locking. Hands out of the gears, drum and rail while the battery
   is plugged in.
-- **Stopping (the same everywhere):** 1. send `estop` (or the STOP button on the operator page). 2. If anything
+- **Stopping (the same everywhere):** 1. send `estop` (the operator page STOP button sends a plain `stop`: wiper off, drum stays). 2. If anything
   still moves, pull lead #2's XT60: both motors lose power, the Jetson stays up. Keep that plug within arm's reach
   whenever the base is powered; it is the physical kill switch. 3. Only then the main battery plug.
 - **Cutting power freezes stored energy, it does not release it.** Both worms self-lock, so a drawn spring and a
@@ -54,7 +54,8 @@ Read this before any hands-on step.
 - **Line under tension:** the capstan never turns back (one-way bearing), so a towing line cannot be let off at the
   base. During any pull (hand test or tow) stand beside or behind the rover, never in line with the dart, glasses
   on. To slacken it, release the dart (`release`) or drive the rover toward the dart. Calibrate the current-to-
-  tension number (MEASURE_LIST G9) before any tow: the shipped value lets the line reach about twice the limit.
+  tension number (MEASURE_LIST G9) before any tow: with uncalibrated values a simulated tow reached 61 N
+  against a 40 N limit.
 - Chock or brake the rover during every shot and every tow. Strap the LiPo down under a cover on the rover.
 - **Picking up a landed dart:** send dart STOP, check it reads IDLE (an armed dart can start anchoring when moved),
   then pull its loop plug before you touch it.

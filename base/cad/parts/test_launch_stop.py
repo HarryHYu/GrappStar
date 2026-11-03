@@ -123,7 +123,7 @@ def test_draw_screws():
     assert d["wall_behind_pilot"] >= 0.6
 
 
-def test_frame_fasteners_accessible_and_guard_drops_in():
+def test_frame_fasteners_accessible_and_guard_slides_in():
     import launch_guard as GD
     us, uF = N["u_stop"], S.U_FW
     for side, sg in (("l", 1.0), ("r", -1.0)):
@@ -136,11 +136,13 @@ def test_frame_fasteners_accessible_and_guard_drops_in():
         for du, w in S.REAR_BOLTS:
             head = LA.cyl_y(2.75, sg * 34.0, sg * 37.0, us + du, w)
             assert _ov(head, fr) < TOL, (side, w)
-        # guard segment b drops in from above with the frame fitted (stop springs not yet fitted)
-        gb = [p for p in GD.guard_parts(P, N) if p.name == f"launch_guard_{side}_b"][0]
-        g = prim.place(gb.solid, gb.place)
-        for dw in np.linspace(0.0, 60.0, 31):
-            assert _ov(g.translate((0, 0, dw)), fr) < TOL, (side, dw)
+        # guard segments b1 / b2 slide in from the side (inward along y) with the frame fitted
+        gbs = [p for p in GD.guard_parts(P, N) if p.name.startswith(f"launch_guard_{side}_b")]
+        assert gbs
+        for gb in gbs:
+            g = prim.place(gb.solid, gb.place)
+            for dy in np.linspace(0.0, 30.0, 31):
+                assert _ov(g.translate((0, sg * dy, 0)), fr) < TOL, (side, gb.name, dy)
 
 
 def test_audit_states_shape():

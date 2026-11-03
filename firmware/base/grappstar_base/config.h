@@ -159,16 +159,18 @@ struct Cfg {
 #endif
   float drumDps = P_DRUM_N20_DRUM_DEG_PER_S;             // drum speed estimate (deg/s, cad-drum's N20 drive); re-learned between every two edges
   int drumSign = +1;                // DRV8833 direction that turns the drum toward REEL (BENCH_TEST.md)
-  float drumTimeFactor = 1.5f; uint32_t drumTimeMarginMs = 1500;   // lens B I6: 1.5 x nominal (+ margin for the first moves)
+  float drumTimeFactor = 1.3f; uint32_t drumTimeMarginMs = 1000;   // drum_NOTES 7.4: 1.3 x nominal + 1 s
+  float drumMinDwellFrac = 0.7f;    // drum_NOTES 7.4: a code inside a move must last 70 percent of its span / dps
   float drumEarlyFrac = 0.25f;      // reaching the target edge faster than this fraction of expected = bad contact
   uint32_t invalidMs = 150;         // code 000 (or a jump over a sector) for this long = DRUM_SENSOR
   // centering jog (lens B 3.7): before every shift the wiper turns this far BACKWARD so the collar sits in the middle of
   // its free dog window and touches no flank (in REEL sprag #2 holds the line meanwhile)
   float dogWindowDeg = 16;          // free play of the collar dogs (unload jog = half of it)
-  float centerDeg = 8;              // unload (centering) jog, params.DRUM.unload_jog_deg
+  float centerDeg = P_DRUM_UNLOAD_JOG_DEG;   // unload (centering) jog: params 1.3.3 drum unload_jog_deg (dog play +-8)
   // fly-in (lens B 7.2 steps 8, 15): the wiper creeps forward while the collar drops into REEL; into LAUNCH the collar
   // dropping in is checked with SW_DOG_L and, if needed, the wiper is turned BACKWARD (never forward: that would cock)
   int flyDuty = 64;                 // 25 percent (about 20 percent asked; at least minScaleDuty 60 so the 3 A trip sees the real current)
+  uint32_t aimHomeMaxMs = 60000;    // aim homing must find SW_RAIL_LOW within this (an aim leg within twice this)
   uint32_t reboundIgnoreMs = 500;   // D45: SW_HOME ignored this long after the release (the carriage rebounds off the PLA stop)
   float gapRunMaxDeg = 150;         // the forward gap run (after an aim / decock) must see SW_GAP close within this
   float notDrawnExtraDeg = 15;      // "carriage not drawn": debounce travel and a looser dog window beyond the SW_HOME window
@@ -205,6 +207,7 @@ struct Cfg {
   float tensOffsetN = P_REEL_TOW_TENSION_MODEL_OFFSET_N;
   float towSlackFrac = 0.25f;       // tow: above this fraction of max_n the duty stays at the minimum (taut line)
   int towRampPerTick = 2;           // tow: duty ramp while the line is slack (min to full in about 0.5 s)
+  float tensionLeadMs = 60;         // tow: cut when the raw estimate plus its rise rate x this reaches max_n (stiff lines)
   uint32_t rawHoldMs = 30;          // the unfiltered tension estimate at or over max_n this long holds the tow
   float tensionAvgMs = 200;         // D33: the tension estimate is averaged over this long
   float limitN =

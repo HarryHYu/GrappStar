@@ -450,7 +450,8 @@ function renderPrompt(p) {
       scrollTo(0, Math.max(0, top));
     }
   }
-  try { navigator.vibrate && navigator.vibrate(p.danger ? [200, 100, 200] : 120); } catch (e) { /* ignore */ }
+  // vibrate only after a user tap (Chrome blocks and logs it before any user activation)
+  try { const ua = navigator.userActivation; if (navigator.vibrate && (!ua || ua.hasBeenActive)) navigator.vibrate(p.danger ? [200, 100, 200] : 120); } catch (e) { /* ignore */ }
 }
 $("prompt-min").addEventListener("click", () => {
   const sec = $("prompt"), min = !sec.classList.contains("min");

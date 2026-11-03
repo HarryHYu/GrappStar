@@ -31,6 +31,13 @@ refusals, `t_ms` for clock sync, `/release` ending in `seq: released`). Implemen
    the line payout per shot, a `line_m` array per row would replace the Jetson's estimate (straight distance plus sag,
    times 1.1).
 
+## C1 (base), new from systest F28
+
+8. **Tension calibration flag.** Please add `"tension_cal": true|false` to `status` (true once `set k_n_per_a` or
+   `cal` tension has been done on this unit, saved with the bench record). Today the Jetson can only compare
+   `k_n_per_a` against the known defaults (8, 17, 14.8, 13.1), and that list breaks each time the physics default
+   moves (F28). The Jetson already reads the flag when present (`mission.k_is_factory`).
+
 ## Unknowns that need Harry
 
 7. **Rover drive interface** (motor controller, protocol). The mission asks the operator to drive by hand during the

@@ -45,7 +45,7 @@ case "$OUTABS" in
 esac
 if [ -e "$OUTABS/.git" ]; then echo "STOP: OUT $OUT is a git checkout; refusing to clean it."; exit 2; fi
 for f in guide.pdf BOM.csv BOM.md pack step sim.html sim_body.html assembly.html assembly_body.html shots \
-         audit.txt audit.json audit_sheet.png sections.png views web; do
+         audit.txt audit.json audit.log audit_sheet.png sections.png views web; do
   rm -rf "${OUTABS:?}/$f"
 done
 rm -f "${OUTABS:?}"/sim*.html "${OUTABS:?}"/assembly*.html "${OUTABS:?}"/BOM.*
@@ -84,30 +84,42 @@ optional() {   # optional <tool> <args...>: run tools/<tool>.py when it exists
 echo "GrappStar CAD chain: mode $MODE, OUT $OUT, python $PY, jobs $JOBS"
 step "assembly export" 1 "$PY" -m tools.assembly "$OUT" ${ONLY[@]+"${ONLY[@]}"}
 
-echo
-echo "=== audit"
-"$PY" -m tools.audit "$OUT" ${ONLY[@]+"${ONLY[@]}"} --jobs "$JOBS"
-ARC=$?
-if [ $ARC -ne 0 ]; then
-  if [ "${FORCE:-0}" = 1 ]; then
-    echo "--- audit: NOT CLEAN (exit $ARC). FORCE=1, carrying on."
-    FAILED+=("audit NOT CLEAN (forced on)")
-  else
-    echo
-    echo "STOP: the audit is NOT CLEAN (see $OUT/audit.txt). Fix the model, or run with FORCE=1 to build the outputs anyway."
-    exit 1
+# The audit runs in the background while the outputs that do not need it are built (render, sim, steps, pack,
+# STEP, BOM); the guide (which prints the audit result) waits for it. SERIAL=1 runs it first and stops on NOT CLEAN
+# before anything else (FORCE=1 carries on). AUDIT_ARGS adds audit options (for example "--dt 0.2 --max-mm 1.0").
+audit_wait() {
+  wait "$APID"; ARC=$?
+  echo "--- audit: exit $ARC, $(( $(date +%s) - AT0 )) s (log $OUT/audit.log)"
+  tail -n 3 "$OUT/audit.log" | sed 's/^/    /'
+  if [ $ARC -ne 0 ]; then
+    if [ "${FORCE:-0}" = 1 ]; then
+      FAILED+=("audit NOT CLEAN (forced on)")
+    else
+      echo
+      echo "STOP: the audit is NOT CLEAN (see $OUT/audit.txt). Fix the model, or run with FORCE=1 to build the outputs anyway."
+      exit 1
+    fi
   fi
-else
-  echo "--- audit: CLEAN"
-fi
+}
+echo
+echo "=== audit (jobs $JOBS ${AUDIT_ARGS:-})"
+AT0=$(date +%s)
+# shellcheck disable=SC2086
+"$PY" -m tools.audit "$OUT" ${ONLY[@]+"${ONLY[@]}"} --jobs "$JOBS" ${AUDIT_ARGS:-} > "$OUT/audit.log" 2>&1 &
+APID=$!
+if [ "${SERIAL:-0}" = 1 ]; then audit_wait; fi
 
 optional render "$OUT" ${ONLY[@]+"${ONLY[@]}"}
 optional sim "$OUT" ${ONLY[@]+"${ONLY[@]}"}
 optional steps "$OUT" ${ONLY[@]+"${ONLY[@]}"} --shots
 step "pack" 0 "$PY" -m tools.pack "$OUT" "$PACK" ${ONLY[@]+"${ONLY[@]}"}
-step "step export" 0 "$PY" -m tools.step_export "$OUT" ${ONLY[@]+"${ONLY[@]}"} --jobs "$JOBS"
 step "bom" 0 "$PY" -m tools.bom "$OUT" ${ONLY[@]+"${ONLY[@]}"}
+if [ "${SERIAL:-0}" != 1 ]; then echo; echo "=== waiting for the audit"; audit_wait; fi
 step "guide" 0 "$PY" -m tools.guide "$OUT" ${ONLY[@]+"${ONLY[@]}"} --pack "$PACK"
+# STEP export last: the slowest optional output (faceted STEP, about 1 to 2 ms per face). STEP_ARGS adds options,
+# for example "--no-assembly" in a tight window.
+# shellcheck disable=SC2086
+step "step export" 0 "$PY" -m tools.step_export "$OUT" ${ONLY[@]+"${ONLY[@]}"} --jobs "$JOBS" ${STEP_ARGS:-}
 
 echo
 echo "=== done in $(( $(date +%s) - T0 )) s: $OUT"

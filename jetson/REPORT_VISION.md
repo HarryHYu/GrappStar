@@ -30,7 +30,17 @@ My files (vision, video, analysis, campose, ballistics tests), at 95b6dec plus t
       tests/test_textures.py tests/test_video_*.py
     ======================= 205 passed in 139.65s (0:02:19) ========================
 
-Whole jetson suite (same tree):
+Whole jetson suite at bc19732 (round 3 fixes, base-v1 merged at 03:46 UTC):
+
+    $ python -m pytest -c pytest.ini --rootdir . -rf tests
+    FAILED tests/test_comms_base.py::test_fault_in_reel_parks_at_wrapped - BaseTimeout
+    FAILED tests/test_comms_base.py::test_estop_parks_by_fault_rules - BaseError: base refused MODE: DRUM_HELD
+    FAILED tests/test_comms_base.py::test_d35_sequence_mock_matches_basesim - 'base-1.3' == 'base-1.2'
+    3 failed, 392 passed, 29 deselected in 1110.30s (0:18:30)
+
+All three are the mock base against the newer base firmware (jetson comms / fw-base), not my files.
+
+Earlier whole-suite run (95b6dec):
 
     $ python -m pytest -c pytest.ini --rootdir . -rf tests
     FAILED tests/test_comms_base.py::test_d35_sequence_mock_matches_basesim - AssertionError: assert 'base-1.2.1' == 'base-1.2'
@@ -52,7 +62,48 @@ only in 0.6 to 1.4 x the table v_muzzle, the default speed comes from the table,
 placeholder table now uses the real 6..47 deg window (95b6dec). With the high branch, the mission tests' 60 deg
 placeholder asked the base for 59.6 deg, which the base refuses.
 
+Review round 2 (fresh subagent on mosaic, target, terrain, calibrate, video/*, analysis; 448571a):
+- HIGH, fixed: a void (14 black landed frames flagged bad by the link check) plus one lit rim frame reached terrain
+  as a single clean frame and got GO, because landing_frames() drops bad frames before terrain's own dark check.
+  run_post_flight now runs terrain's dark check on the whole landed window first. The regression test
+  (test_void_with_one_lit_frame_is_not_go) fails on the old code and passes now.
+- Fixed: grey or HxWx1 images crashed analyze_landing (now converted to BGR); the analysis-failed fallback said
+  score 0 with UNSURE (now 45, which is UNSURE); the mosaic degenerate test passed even with a crashing mosaic; the
+  capture test could not tell read-back from requested values (now a stubborn fake driver).
+- Also in this round: with no known pitch, the video-only path fits pitch and speed together to the horizon track,
+  and a rail view that is all sky bounds the pitch from below (half the vertical field of view).
+
+Review round 3 (fresh subagent on flight.py phases, IMU, clock; 6fc97c8), all fixed with tests:
+- HIGH: the clock offset averaged the launch and impact matches; the video impact runs late, so the IMU-timed range
+  came out 8 to 18 percent short at 6 deg and 6 m/s. Now the offset comes from the launch match alone; the
+  impact match is used only without a video launch, corrected by 35 ms.
+- HIGH: a NaN, null, string or short row in the flightlog, or a string t_launch_ms, made analyze_flight raise
+  and lose the whole flight result. Rows are now sanitised (finite numbers only, sorted, duplicate times dropped),
+  and a garbage log falls back to video only.
+- MEDIUM-HIGH: a log that starts after the launch took the impact spike for the launch (range 0.37 m against 8.2 m).
+  Now t_launch_ms is trusted, with no rail attitude or speed from the IMU, and a note is added.
+- MEDIUM: duplicate timestamps gave dt = 0 (v0 10x too small); dropped samples biased the push integral. Now dt
+  comes from positive steps and the integral uses the per-sample time steps.
+- LOW: the launch shift found by the speed fit is now recorded as launch_fit_t (phases keep the observed launch).
+
+Review round 4 (fresh subagent on the newest code; 668c7d7, f6e3fce), all fixed with tests:
+- MEDIUM: the round 2 dark check used the LAST 45 landed frames, so a link dying 2.7 s after a good landing turned
+  GO into NO_GO. It now uses the FIRST frames after landing (a void at landing is still caught).
+- LOW: a flightlog without t_launch_ms that starts in free fall took the impact for the launch. A launch now
+  needs about 1 g at rest just before the push.
+- LOW: a non-numeric or NaN clock_offset_s in the flightlog lost the flight result; it is now ignored.
+- LOW: Ballistics.solve crashed when no table row lies inside the pitch window; now unreachable with a note.
+- Speed model tracks are cached: an analysis without a known pitch takes 0.7 s on this PC (0.5 s with the
+  commanded pitch).
+
+Terrain verdicts with the roll-invariant tilt (eval_terrain_flight, seeds 0 to 2, 480x320, with and without the
+flightlog): accuracy 1.000 (36/36), unsafe GO (sand or water judged GO): 0.
+
 ## Open items
+
+- Without a commanded pitch, video-only shots above about 40 deg read 5 to 11 percent short in the sim (one case at
+  46 deg: 18 percent). The launch is hard to see against plain sky and the pitch fit lands low. With the commanded
+  pitch (now passed by the mission) they are within 0 to 6 percent.
 
 - mission.py now passes aim_pitch_deg, drag_n and buffer(since=), and calls hold / release_hold (jetson worker, on
   w/jetson with fallbacks). Check them after the coordinator merges both branches.

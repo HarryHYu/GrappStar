@@ -1,6 +1,6 @@
 # Drum subsystem notes (worker cad-drum): main shaft, dog clutch, N20 selector drum
 
-Status: v6, 3 Nov 2026 13:05 Sydney. Conforms to params.py v1.2.6. Deviations are in section 0.
+Status: v7, 3 Nov 2026 14:50 Sydney. Written against params.py v1.3.0. Deviations are in section 0.
 
 Every number lives in code:
 - `_drum_kin.py` DEFAULTS: angles, groove and clutch profiles, Gray code, stop plan, timing, loads. It has no CAD
@@ -18,10 +18,10 @@ State keys (params 1.2.3):
 - reel_deg drives the REEL gear;
 - drum_deg drives the drum.
 
-A state without wiper_deg has the main shaft at 0. Without sleeve_deg the dog ring follows cad-launch's sleeve joint
+A state without wiper_deg: the main shaft follows the launch sleeve in LAUNCH, reel_deg in REEL, else 0. Without sleeve_deg the dog ring follows cad-launch's sleeve joint
 (it is bolted to it).
 
-## 0. Deviations from the params v1.0 table, all now in params v1.2.3
+## 0. Deviations from the params v1.0 table (most in params; the rest are listed in drum_REPORT.md)
 
 - Single-turn travel: end stops -4 / 352. The original -8 / 358 spanned 366 deg.
 - Park angles off the code edges:
@@ -133,9 +133,12 @@ Wrap idler:
 N20 cradle (on the bracket A ear):
 - pivot M3 at world (111.9, z -89.5); swing screw at world (88.4, z -64.5), 55 mm from the drum axis (clear of the
   drum gear); ear r 20 round the N20;
-- swing M3 in an arc slot, 0..+15 deg only (+ swings the pinion out; it cannot be pushed into the drum gear);
+- swing M3 tapped in the ear, through an arc slot in the cradle plate, 0..+15 deg only (+ swings the pinion out;
+  it cannot be pushed into the drum gear);
 - the N20 shaft end below the pinion runs in a matching arc slot in the ear;
-- SW_N20: nut in the cradle bottom face, screw tip tapped in the ear.
+- SW_N20: nut in a pocket in the ear front face (wire groove), M3 x 8 tapped in the cradle plate from +s, 2.5 mm off
+  the nut centre so the tip lands on a flat; the back of bracket A is only 4 mm from the frame cheek.
+- Strap screws in r 4 lugs at N20-frame x -11.5 and 34.
 
 Contact blocks:
 - `drum_switch_block`: s 105..128, on the back (-x) side of the drum (cad-reel's pulley 2 post fills the front).
@@ -146,15 +149,15 @@ Contact blocks:
 
 ## 5. Drum angle table
 
-| zone | drum deg | collar | clutch | cup | code A B C |
-|---|---|---|---|---|---|
-| LAUNCH | -4..8 (target 0) | LAUNCH | LIGHT | home, locked | 100 |
-| L_TO_N | 8..32 | ramp 8..32 | LIGHT (ramp to FIRM over 30..40) | locked | 110 |
-| NEUTRAL | 32..50 (target 41) | NEUTRAL | FIRM from 40 | locked | 010 |
-| WRAP_PREP | 50..62 (park 56) | NEUTRAL | FIRM to LIGHT 50..62 | locked to 62 | 011 |
-| WRAP | 62..302 | NEUTRAL | LIGHT | 7 turns | 001 |
-| N_TO_R | 302..340 (park WRAPPED 314) | NEUTRAL to 318, ramp 318..340 | LIGHT to FIRM 302..312 | locked at 7 | 101 |
-| REEL | 340..352 (target 347) | REEL | FIRM | locked | 111 |
+| zone | drum deg | collar | clutch | cup | code A B C | code range |
+|---|---|---|---|---|---| --- |
+| LAUNCH | -4..8 (target 0) | LAUNCH | LIGHT | home, locked | 100 | -4..6 |
+| L_TO_N | 8..32 | ramp 8..32 | LIGHT (ramp to FIRM over 30..40) | locked | 110 | 6..34 |
+| NEUTRAL | 32..50 (target 41) | NEUTRAL | FIRM from 40 | locked | 010 | 34..50 |
+| WRAP_PREP | 50..62 (park 56) | NEUTRAL | FIRM to LIGHT 50..62 | locked to 62 | 011 | 50..62 |
+| WRAP | 62..302 | NEUTRAL | LIGHT | 7 turns | 001 | 62..302 |
+| N_TO_R | 302..340 (park WRAPPED 314) | NEUTRAL to 318, ramp 318..340 | LIGHT to FIRM 302..312 | locked at 7 | 101 | 302..342 |
+| REEL | 340..352 (target 347) | REEL | FIRM | locked | 111 | 342..352 |
 
 - Code edges at 6, 34, 50, 62, 302 and 342 are the physical contact closing points: the bump ramps put the
   80 percent lift, where the contact closes, on the edge.
@@ -179,35 +182,42 @@ Contact blocks:
 
 Timing:
 - 8.1 deg/s nominal. LAUNCH to NEUTRAL 5.1 s, wrap window 29.6 s, WRAPPED to REEL 4.1 s, full travel 44 s.
-- Timeout = 2 x nominal + 2 s.
+- Timeout = 1.3 x nominal + 1 s up to the expected edge.
 
-## 7. Firmware rules (drum_table.json "rules" has the same)
+## 7. Firmware rules (fw-base c740e46 is the reference for behaviour; drum_table.json "rules" are my inputs to it)
 
 1. Wiper stopped before drum moves, with two exceptions:
-   - the fly-in into REEL: creep the wiper forward over 318..340;
-   - the unwrap: WRAPPED back to NEUTRAL with the wiper creeping forward for the bus take-up.
+   - the fly-in into REEL (D41): creep the wiper forward over 318..340; stop the creep when SW_DOG_R closes or the
+     wiper current rises 0.8 A, then jog at most 5 deg at a time;
+   - the unwrap: REEL or WRAPPED back to NEUTRAL with the wiper creeping forward for the bus take-up.
 2. Check SW_DOG_L / SW_DOG_R during and after every move:
    - LAUNCH needs DOG_L closed;
    - REEL needs DOG_R closed;
    - NEUTRAL, WRAP_PREP, WRAP and WRAPPED need both open;
    - never enter the wrap window with either closed.
-3. Dog not closed:
-   - in LAUNCH: jog the wiper +-8 deg;
-   - in REEL: creep forward only (sprag #2 blocks backward).
-
-   Leaving LAUNCH or REEL under load: unload jog 8 deg first. SWITCH_DISAGREE after 3 tries.
-4. Faults (D27, params 1.2.6):
+3. Dog not closed in LAUNCH: backward wiggle of the wiper within a 40 deg / 6 s budget. Leaving LAUNCH or REEL under
+   load: unload jog 6 deg (params unload_jog_deg), stopped early on a 0.8 A rise.
+4. During every move:
+   - a code that is not the current zone or the next one in the travel direction: stop, DRUM_SENSOR;
+   - an intermediate code must last at least 70 percent of its span / dps;
+   - timeout 1.3 x nominal + 1 s: stop, DRUM_TIMEOUT;
+   - SW_ARM opening (cup leaves home) outside a wrap or unwrap: fault;
+   - contacts debounced 20 ms with chatter detection (0.16 deg of drum at 8.1 deg/s).
+   All 7 nonzero codes are valid zones, so one failed contact reads as a wrong zone: these rules and the dog
+   cross-checks catch it.
+5. Faults (D27):
    - In LAUNCH or L_TO_N: HOLD the drum unless SW_HOME is closed (spring not drawn), then NEUTRAL.
+   - In NEUTRAL or WRAP_PREP: stop the wiper and hold.
    - With the wraps on (WRAP, N_TO_R, REEL): HOLD where it is (DRUM_HELD), never NEUTRAL; the operator unwraps when
-     safe.
-   - REEL to WRAPPED (on operator command): by time from edge 342, never back into the wrap window.
-5. Boot:
-   - LAUNCH or L_TO_N: hold until SW_HOME, then NEUTRAL;
-   - NEUTRAL or WRAP_PREP: go to NEUTRAL;
-   - WRAP, N_TO_R or REEL: hold and report.
-6. SW_N20 open means the hand fallback is active: no drum moves.
-7. SW_INDEX: 6 pulses per wiper turn (degraded mode without the AS5600 magnet).
-8. Positive drum = N20 forward (DRV8833 #3 AIN1 high) = wrap direction.
+     safe. There is no REEL to WRAPPED command: the unwrap goes REEL to NEUTRAL with the take-up.
+6. Boot: no automatic drum moves (the host commands them).
+   - Cross-check the code with the other switches: LAUNCH needs DOG_L closed; REEL needs DOG_R closed; NEUTRAL and
+     WRAP_PREP need both dogs open and SW_ARM closed (cup home); otherwise report.
+   - The first commanded move from a guessed angle re-references on a real code edge.
+   - Code 000: DRUM_SENSOR.
+7. SW_N20 open means the hand fallback is active: no drum moves. When it closes again, the boot rules run again.
+8. SW_INDEX: 6 pulses per wiper turn (degraded mode without the AS5600 magnet).
+9. Positive drum = N20 forward (DRV8833 #3 AIN1 high) = wrap direction.
 
 ## 8. Contacts (printed: M3 screw head or tip touching an M3 nut, pull-up, closed = LOW)
 
@@ -234,12 +244,15 @@ Timing:
 | clutch ramps | 0.78 | 15 N pushrod at FIRM 5 N (cad-reel: 10.8 N at 4 mm, design 15) |
 | wrap | 0.78 | 0.06 N m at the cup x 10.5 / 0.81 |
 
-  The loads never coincide.
+  The loads never coincide. The 0.92 worst (at 302) includes a follower friction term (force x mu x r) even where
+  the track is LIGHT: conservative; without it the margin is about 2.75.
+- Sensitivity: groove and cam mu 0.4 gives margin 1.91; with rail mu 0.35 as well, 1.83. The 2x margin needs a real
+  stall of at least 0.171 N m at 9 V: Harry measures it. Not in the model: lever and axle drag (small).
 - At the 5 N m limiter:
   - hex torsion 2.5 MPa;
   - REEL gear Lewis 10 MPa;
-  - dogs 1.4 MPa.
-- The 110 N tow maximum gives about 5.1 N m at the main shaft, at the limiter. The 50 N default gives 2.3 N m.
+  - dogs about 2.1 MPa (3.3 mm flat contact after the 1.2 roof, 4.5 mm engaged).
+- The tow cap of 60 N at the dart (D39/D43) gives about 2.8 N m at the main shaft, under the 5 N m limiter.
 
 ## 10. Wrap train (cad-reel)
 
@@ -261,7 +274,7 @@ Timing:
 | switch block | 105..128 | 2 x M3 at world x 5.0 |
 
 - All stand on the deck top (z -165).
-- Index block: on idler post 2, no frame fixing (params DRUM.sw_index_mount is out of date).
+- Index block: on idler post 2, no frame fixing (params DRUM.sw_index_mount says so).
 - Clear the coupler (r 28.5 at s < 40), the index block (s 32.5..40.5, x 39..53, z +12..-56) and the bus gear
   (r 39, s 40..48).
 
@@ -276,20 +289,23 @@ Timing:
 
 ## 13. Printing (print_tf in drum.py; the pack tool writes the STLs this way)
 
-| part | material | on the bed | supports |
+| part | material | on the bed | supports and notes |
 |---|---|---|---|
-| drum_coupler | PPA-CF | hub end down | tree support under the bus gear ring only |
+| drum_coupler | PPA-CF | hub end down | tree support under the bus gear ring only (r 28.5..39 at s 40) |
 | drum_coupler_hub | PPA-CF | motor end down | none |
-| drum_shear_pin (x6) | PLA, 100 percent | lying on its 0.4 mm flat | none |
+| drum_shear_pin (x6) | PLA, 100 percent | lying on its 0.4 mm flat (D44) | 5 mm brim (30 mm2 on the bed) |
 | drum_shaft | PPA-CF, 100 percent | lying on a hex flat | tree supports under the spigot |
 | drum_gear_reel | PPA-CF | plain face down | none |
 | drum_reel_washer | PPA-CF | flat | none |
-| drum_collar | PPA-CF, 100 percent | one dog face down | the body bridges 25 mm between the lower dogs; groove roof 4 mm ledge |
+| drum_collar | PPA-CF, 100 percent | one dog face down | tree support (build plate only) under the body face between the dogs; file the hex entry if it droops |
 | drum_dogring_launch | PPA-CF, 100 percent | slotted back face down | none |
-| drum_drum_a | PLA | gear face down | none |
-| drum_drum_b | PLA | barrel face down | groove roof ledge 4 mm |
-| drum_idler | PPA-CF | pinion end down | none |
-| drum_idler_gear, drum_n20_pinion | PPA-CF | flat | none |
-| drum_fork | PLA | sleeve end down (s 15.5, about 170 mm2) | tree support under the yoke and arms (the yoke spring is about 67 mm up) |
+| drum_drum_a | PLA | gear face down | tree support under the brake cam lobe (4.5 mm ledge) and the segment teeth (3.3 mm) |
+| drum_drum_b | PLA | barrel face down | groove roof ledge 4 mm; band undersides up to 4 mm at the bumps: tree support |
+| drum_idler | PPA-CF | journal end (s 40) down | 5 mm brim (78 mm2 on the bed, 46 mm tall); tree support under the lock cam disc |
+| drum_idler_gear | PPA-CF | flat | none |
+| drum_n20_pinion | PPA-CF | flat | 5 mm brim (42 mm2) |
+| drum_fork | PLA | sleeve end down (s 15.5, about 170 mm2) | brim; tree support under the yoke, arms and the follower pin (its working flanks are top and bottom: check the pin fits the groove, sand if tight) |
+| drum_dog_post | PLA | as print_tf | tree support under the arm bridge and the two bosses |
+| drum_n20_cradle | PLA | plate down | support under the roof over the drum gear cut |
 | drum_axle, drum_rail | PPA-CF | on their 1 mm flat | none |
 | everything else | PLA | largest flat face down | none |

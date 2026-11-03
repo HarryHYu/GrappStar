@@ -2,7 +2,8 @@
 
 The dart is built from three documents. This section says which to use for what, and in what order.
 
-- **KEDGE v30 run sheet** (appendix at the end, also `kedge/pack_v30/KEDGE_v30_run_sheet.pdf`): printing, board
+- **KEDGE v30 run sheet** (`kedge/pack_v30/KEDGE_v30_run_sheet.pdf`, a separate 10-page PDF from the dart project: print it
+  alongside this guide): printing, board
   prep, mechanical assembly, function test. Its own section numbers are used below.
 - **`firmware/dart/WIRING.md`** (below): the new wiring. It replaces the run sheet's wiring (its sections 7 and 9 and
   its wiring picture).

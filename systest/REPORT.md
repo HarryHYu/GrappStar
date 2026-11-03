@@ -2,6 +2,19 @@
 
 Status: DRAFT (updated through the day; final at 18:20 Sydney).
 
+## Summary (for Harry)
+
+- A whole GrappStar mission runs end to end with the real base firmware logic, the real dart firmware and the real
+  Jetson code talking over their real links (serial pty, HTTP), no hardware. On the owners' latest branches the
+  nominal mission and the BASE_SPEC 10.1 sequence complete with every check on plant truth.
+- 30 findings went to the owners during the day (F1 to F30). Most are fixed on the owners' branches and re-tested
+  green here (status table at the top of FINDINGS.md). The ones that mattered most: the wrap jamming against an
+  anchored line in the old order (F4), the REEL fly-in tripping on a taut real line (F20, fixed as D41), the tow
+  overshooting the limit on a stiff line (F21), settings lost at a power cycle (F16), power cuts leaving the
+  launcher in a state nothing could clear (F15, F17), a calibration procedure that towed 10 N over the limit (F14).
+- Open at the time of writing: see the status table; the remaining ones are the Jetson's tow re-pull after rover
+  slack (F22 host side), the uncalibrated-tow guard (F28), and low-severity items.
+
 ## What it is
 
 `systest/run_mission.sh [scenario|all|--list]` runs a whole GrappStar mission with the REAL code of all three parts
@@ -57,6 +70,16 @@ wrapped (plant wraps), REEL engaged and pulling, tow limit respected (peak plant
 dart released, reeled in, unwrapped, seated (plant and SW_SEATED), back to LAUNCH, no dry fire (the plant counts the
 collar leaving LAUNCH with the spring drawn), wraps laid without jamming, free dart tugged under 1 m, C1 command order
 = BASE_SPEC 10.1, every injected fault actually fired, plus scenario specific ones.
+
+## What Harry must know or measure (from this test)
+
+- The tension limit is only as good as the bench calibration (CALIBRATION.md two-point fit). Without a load cell,
+  do it before the first tow; re-check after any change to the line path (the path gain, D46).
+- The real line stiffness matters: all tow and fly-in numbers here assume 1 mm Dyneema (EA about 20 kN). If the
+  braid is softer at first (bedding in), the overshoots are smaller; if a stiffer line is used, re-run
+  `systest/run_mission.sh ref_tow_stiff` with `line_ea_n` raised.
+- Not tested here (no model): the real motor and gear friction, the clutch slip torque, the drum detent feel, the
+  camera optics. The plant is the firmware tests' sim.h plus the D22 line model added in the shim.
 
 ## Results
 

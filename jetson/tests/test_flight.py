@@ -272,6 +272,8 @@ def test_range_calibrated_to_table():
     assert b.range_scale == pytest.approx(0.8, abs=0.01)
     assert b.range_m == pytest.approx(0.8 * a.range_m, rel=0.03)
     assert b.trajectory[-1][1] == pytest.approx(b.range_m)
+    c = analyze_flight(frames, None, ballistics=short, aim_pitch_deg=20, calibrate_range=False)
+    assert c.range_scale == 1.0 and c.range_m == pytest.approx(a.range_m, rel=0.03)
 
 
 def test_fuse_speed_recovers_model_speed():
@@ -328,3 +330,88 @@ def test_video_speed_stays_in_table_band_and_default_from_table():
     frames, truth = real_sim(4, 20, v_nom)
     r = analyze_flight(frames, None, ballistics=tab, aim_pitch_deg=20)
     assert 0.6 * v_nom <= r.v0 <= 1.4 * v_nom
+
+
+# ---------------------------------------------------------------- review round 3 (flight.py IMU and clock)
+
+@pytest.mark.parametrize("seed", [21, 24, 26, 28])
+def test_imu_offset_from_launch_only_low_pitch(seed):
+    """The late video impact must not drag the clock offset (it made the IMU range 8 to 18 percent short)."""
+    v_nom, _, _ = _real_v_muzzle()
+    frames, truth = real_sim(seed, 6, 6.0)
+    r = analyze_flight(frames, truth["flightlog"], ballistics=_sim_table(v_nom))
+    assert abs(r.clock_offset_s - truth["clock_offset_s"]) < 0.035
+    assert abs(r.range_m - truth["range_m"]) < 0.10 * truth["range_m"], (r.range_m, truth["range_m"], r.notes)
+
+
+def _garbage(fl, kind):
+    fl = json.loads(json.dumps(fl))
+    s = fl["samples"]
+    if kind == "nan_t":
+        s[10][0] = float("nan")
+    elif kind == "null":
+        s[11][3] = None
+    elif kind == "string":
+        s[12][5] = "x"
+    elif kind == "short":
+        s.insert(5, [1, 2, 3])
+    elif kind == "dup":
+        fl["samples"] = [r for r in s for _ in (0, 1)]
+    elif kind == "launch_str":
+        fl["t_launch_ms"] = "123"
+    elif kind == "unsorted":
+        fl["samples"] = s[::-1]
+    return fl
+
+
+@pytest.mark.parametrize("kind", ["nan_t", "null", "string", "short", "dup", "launch_str", "unsorted"])
+def test_garbage_flightlog_never_loses_the_result(kind):
+    frames, truth = sim(9, True)
+    fl = _garbage(truth["flightlog"], kind)
+    r = analyze_flight(frames, fl)
+    assert r.t_launch is not None and r.range_m is not None
+    assert abs(r.t_launch - truth["t_launch"]) < PHASE_TOL
+    if kind in ("dup", "unsorted", "short", "null", "string", "nan_t"):
+        assert r.source == "video+imu"
+        assert abs(r.range_m - truth["range_m"]) < 0.10 * truth["range_m"]
+    ev = imu_events(fl)
+    if kind == "dup":
+        assert ev["v0"] is not None or ev["v0_min"] is not None
+        assert abs((ev["v0"] or ev["v0_min"]) - imu_events(truth["flightlog"])["v0" if ev["v0"] else "v0_min"]) < 0.05
+
+
+def test_log_starting_after_launch_does_not_take_the_impact_for_the_launch():
+    frames, truth = sim(9, True)
+    fl = dict(truth["flightlog"])
+    fl["samples"] = [r for r in fl["samples"] if r[0] > fl["t_launch_ms"] + 150]
+    ev = imu_events(fl)
+    assert ev["launch"] == pytest.approx(fl["t_launch_ms"] / 1000.0)
+    assert ev["rail_rpy"] is None and ev["v0"] is None and ev.get("no_push")
+    assert ev["impact"] is not None and ev["impact"] > ev["launch"] + 0.3
+    r = analyze_flight(frames, fl)
+    assert abs(r.range_m - truth["range_m"]) < 0.30 * truth["range_m"], (r.range_m, truth["range_m"], r.notes)
+    assert any("no push" in n for n in r.notes)
+
+
+def test_irregular_sampling_v0():
+    """Dropped samples inside the push: the integral uses the real time steps."""
+    frames, truth = sim(9, True)
+    fl = json.loads(json.dumps(truth["flightlog"]))
+    ev0 = imu_events(fl)
+    s = fl["samples"]
+    tl = fl["t_launch_ms"]
+    push = [i for i, r in enumerate(s) if tl - 5 <= r[0] <= tl + 80]
+    if len(push) >= 3:
+        del s[push[1]]
+    ev = imu_events(fl)
+    a, b = (ev0["v0"] or ev0["v0_min"]), (ev["v0"] or ev["v0_min"])
+    assert b == pytest.approx(a, rel=0.25)
+
+
+def test_no_t_launch_ms_impact_after_free_fall_is_not_a_launch():
+    """Review round 4: a log without t_launch_ms that starts in free fall: the impact is not a launch."""
+    s = [[t, 1, 0, 0, 0, 0.0, 0.0, 0.5] for t in range(500, 1200, 20)]
+    s += [[t, 1, 0, 0, 0, 0.0, 0.0, 50.0] for t in range(1200, 1280, 20)]
+    s += [[t, 1, 0, 0, 0, 0.0, 0.0, 9.81] for t in range(1280, 3000, 20)]
+    ev = imu_events({"hz": 50, "samples": s})
+    assert ev["launch"] is None and ev["rail_rpy"] is None and ev["v0"] is None

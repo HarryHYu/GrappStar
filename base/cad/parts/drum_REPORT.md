@@ -1,6 +1,6 @@
 # Drum subsystem report (worker cad-drum), 3 Nov 2026
 
-Status: draft v3 at 13:55 Sydney; final at 18:20. Design notes: `drum_NOTES.md` (v6, params v1.2.6). Firmware
+Status: draft v4 at 15:00 Sydney; final at 18:20. Design notes: `drum_NOTES.md` (v7, params v1.3.x). Firmware
 table: `drum_table.json`.
 
 ## Done
@@ -44,6 +44,18 @@ table: `drum_table.json`.
     parts, so nothing of mine bolts to it);
   - code contacts on the drum back (cad-reel's pulley 2 post fills the front);
   - coupler hub follows cad-frame's wiper shaft model (round to y 6, flats to y 20, M8 thread to y 32).
+- Review rounds 5 and 6 (14:00 to 15:00):
+  - no shaft retention screw (its hole was inside the frame cheek): the shaft is captured by the magnet cap and
+    the launch sleeve;
+  - fork sleeve 83 long, racking model with the far yoke pad (margin 2.34);
+  - drum B keyed to drum A;
+  - firmware rules tightened: unexpected code stops, short timeouts, boot cross-checks with the dog and arm
+    switches (all 7 nonzero codes are valid zones, so a failed contact reads as a wrong zone);
+  - unload jog 6 deg (the dog play is +-8);
+  - brake track LIGHT across the whole LAUNCH zone (cliff in the unreachable gap);
+  - N20 cradle: swing slot in the cradle, SW_N20 from the front;
+  - assembly order fixed (drum A, idler, rail, coupler with the REEL gear, index block, fork, drum B, N20,
+    contacts, shaft).
 - Main axis angle: wiper_deg drives the shaft group; sleeve_deg the LAUNCH dog ring; reel_deg the REEL gear
   (params 1.2.3). launch_sleeve is only a fallback when S has no wiper_deg.
 - Helpers are named `_drum_*.py`, because tools.assembly imports every non-underscore module as a subsystem.
@@ -54,18 +66,17 @@ table: `drum_table.json`.
 
 ## Requests to other workers (also sent to the coordinator)
 
-- cad-reel: tooth phase of reel_bus, reel_capstan and reel_cup (formulas in NOTES 10 and drum.py REEL_MESH); the cup
-  must follow `drum.reel_cup_deg(P, S)`.
-- cad-infra / coordinator: timeline dog phase in tow (REEL: reel_deg must equal wiper_deg mod 90 while engaged) and
-  lower (LAUNCH: sleeve_deg must equal wiper_deg mod 90).
-- coordinator: params DRUM.sw_index_mount is out of date (the block is on idler post 2).
+- Coordinator (assembly stages): the drum idler group before cad-reel's bus gear, SW_ARM bracket and cup gear; the
+  drum dog post before cad-reel's pulley 2.
+- cad-reel: brake follower tip r <= 2 mm (the FIRM to LIGHT cliff is 3.5 deg from the -4 stop).
+- cad-infra: meshcheck skip for meshes whose other part is not loaded (sent; my 3 cross meshes are on by default).
 
 ## Harry must measure
 
 - Wiper output shaft: diameter, flats, length, thread (the coupler hub is parametric; the model follows cad-frame's
   guess).
 - Worm N20 output shaft diameter and flat (modelled d3 with a 2.5 flat).
-- N20 stall torque at 9 V: 50 mm lever and a kitchen scale.
+- N20 stall torque at 9 V: 50 mm lever and a kitchen scale. The 2x margin needs at least 0.171 N m.
 - Shear pin break torque: lever and scale on a spare pin.
 - Confirm a spare worm N20 for the drum exists (D19).
 - AS5600 magnet, if any (SW_INDEX is the fallback).

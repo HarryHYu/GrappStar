@@ -310,3 +310,14 @@ def test_custom_timeline_keys_defined_from_t0():
     S = state_at(P, 0.0)
     assert S["x"] == 5.0 and S["mode"] == "A" and S["y"] == 3.0
     assert state_at(P, 4.0)["x"] == pytest.approx(9.0)
+
+
+def test_substates_use_kin_for_numeric_changes():
+    import math as _m
+    js = [Joint("a", None, "rev"), Joint("b", None, "slide", axis=(1, 0, 0))]
+    kin = lambda P, S: {"a": S["x"], "b": 10 * _m.sin(_m.radians(S["x"]))}      # nonlinear follower
+    asm = Assembly(None, {"q": mod([], js, kin)})
+    st = audit.refine(asm, [{"x": 0.0}, {"x": 90.0}])
+    mid = st[len(st) // 2]
+    assert "_joints" not in mid
+    assert asm.values(mid)["b"] == pytest.approx(10 * _m.sin(_m.radians(mid["x"])))

@@ -37,7 +37,7 @@ DEFAULTS = dict(
     dog_backcut=4.0,        # flank back-cut (deg), both flanks: torque pulls the dogs together either way
     dog_roof=1.2,           # tip chamfer (mm) on each side of the crest
     dog_r_in=18.0, dog_r_out=26.0,
-    fork_k=1.6,             # fork yoke rate (N/mm): compliant when the dogs land tip to tip
+    fork_k=1.5,             # fork yoke rate (N/mm): compliant when the dogs land tip to tip
     fork_free=4.5,          # yoke deflection when the dogs land tip to tip (stroke - dog_gap)
     # ---------------------------------------------------------------- track 2 (storage reel slip clutch preload)
     brake_lift=4.0,         # full radial lift (mm) = FIRM; 0 = LIGHT (cad-reel lever, 10 N design force)
@@ -271,48 +271,54 @@ def drum_dps(c=None, load_frac=0.2):
     return rpm * 6.0 / ratio(c)
 
 
-def loads(c=None):
-    """Drum torque budget (N m at the drum). Returns dict of named peak loads and the N20 capacity."""
+def cam_eta(slope_mm_per_rad, r_mm, mu=0.3):
+    """Efficiency of a cam (or groove) pushing a sliding follower: tan(phi) / tan(phi + rho), phi = pressure angle."""
+    if slope_mm_per_rad <= 1e-9:
+        return 1.0
+    phi = math.atan(slope_mm_per_rad / r_mm)
+    rho = math.atan(mu)
+    return math.tan(phi) / math.tan(min(phi + rho, math.radians(89.0)))
+
+
+def loads(c=None, r_groove=30.0, r_cam=24.0, rack_arm=45.0, sleeve_len=40.0, mu=0.3, residual_nm=0.2):
+    """Drum torque budget (N m at the drum) along the travel.
+
+    Fork: yoke force at a full tip-to-tip block (fork_k x fork_free) plus 3 N rail friction, times the racking factor
+    of the long carrier (pin 45 mm off the rail, 40 mm sleeve: 1 + 2 mu arm / sleeve), through the groove at its local
+    pressure angle. Disengage: 0.2 N m residual train torque after the firmware unload jog. Brake: cad-reel follower force through the cam at its pressure angle. Wrap: cup torque geared up by
+    the wrap train. Loads at the same angle add. N20 margin rule (params.DRUM.n20_ratio_min_margin): stall / peak >= 2."""
     c = c or DEFAULTS
-    eta_groove = 0.7          # follower pin sliding in a printed groove
-    eta_gear = 0.9            # one printed spur mesh
-    # fork: flexure force at full block (fork_free) plus 3 N rail friction; groove slope peak
-    f_fork = c["fork_k"] * c["fork_free"] + 3.0
-    slope = max(abs(collar_slope(t, c)) for t in range(int(c["stop_lo"]), int(c["stop_hi"])))
-    t_fork = f_fork * slope / 1000.0 / eta_groove
-    # disengaging under a residual train torque (0.5 N m at the dog radius, back-cut 4 deg, mu 0.3)
+    eta_gear = 0.9
+    rack = 1.0 + 2.0 * mu * rack_arm / sleeve_len
+    f_fork = (c["fork_k"] * c["fork_free"] + 3.0) * rack
     r_dog = 0.5 * (c["dog_r_in"] + c["dog_r_out"]) / 1000.0
-    f_tan = 0.5 / r_dog
-    f_dis = f_tan * (0.3 + math.tan(math.radians(c["dog_backcut"]))) + 3.0
-    t_dis = f_dis * slope / 1000.0 / eta_groove
-    # track 2: lever follower force (cad-reel to confirm), 25 N at full lift; cam slope peak
+    f_dis = ((residual_nm / r_dog) * (mu + math.tan(math.radians(c["dog_backcut"]))) + 3.0) * rack
     f_brk = c["brake_force"]
-    bslope = max(abs((brake_lift(t + 0.01, c) - brake_lift(t - 0.01, c)) / math.radians(0.02))
-                 for t in range(int(c["stop_lo"]), int(c["stop_hi"])))
-    t_brk = f_brk * bslope / 1000.0 / eta_groove
-    # wrap: ring torque = line tension from the reel brake at mid lift (1.0 N) at the wrap radius (36 mm) plus
-    # 0.04 N m friction; geared up by the wrap train (ring speed / drum speed)
     up = (c["seg_z"] / c["pin_z"]) * (c["idl_z"] / c["ring_z"])
-    t_ring = c["cup_torque"]
-    t_wrap = t_ring * up / (eta_gear ** 2)
+    t_wrap = c["cup_torque"] * up / (eta_gear ** 2)
     cap_stall = c["n20_stall_nm_9v"] * ratio(c) * eta_gear
-    # combined load along the travel (the loads that act at the same drum angle add up)
     t0 = c["seg_start"]
     t1 = t0 + seg_span(c)
     prof = []
+    pk = dict(fork=0.0, brake=0.0)
     th = c["stop_lo"]
     while th <= c["stop_hi"]:
-        sl = abs(collar_slope(th, c)) / 1000.0
-        bs = abs((brake_lift(th + 0.01, c) - brake_lift(th - 0.01, c)) / math.radians(0.02)) / 1000.0
-        tq = max(f_fork, f_dis) * sl / eta_groove + f_brk * bs / eta_groove + (t_wrap if t0 <= th <= t1 else 0.0)
-        prof.append((th, tq))
+        sl = abs(collar_slope(th, c))
+        bs = abs((brake_lift(th + 0.01, c) - brake_lift(th - 0.01, c)) / math.radians(0.02))
+        tf_ = max(f_fork, f_dis) * sl / 1000.0 / cam_eta(sl, r_groove, mu)
+        tb = f_brk * bs / 1000.0 / cam_eta(bs, r_cam, mu)
+        pk["fork"] = max(pk["fork"], tf_)
+        pk["brake"] = max(pk["brake"], tb)
+        prof.append((th, tf_ + tb + (t_wrap if t0 <= th <= t1 else 0.0)))
         th += 0.5
     worst = max(prof, key=lambda p: p[1])
+    slope = max(abs(collar_slope(t, c)) for t in range(int(c["stop_lo"]), int(c["stop_hi"])))
     return dict(
-        fork_shift=t_fork, fork_disengage=t_dis, brake_ramp=t_brk, wrap=t_wrap,
-        worst=worst[1], worst_at=worst[0],
+        fork_shift=pk["fork"], brake_ramp=pk["brake"], wrap=t_wrap,
+        worst=worst[1], worst_at=worst[0], margin=cap_stall / worst[1],
         cap_stall=cap_stall, cap_work=c["n20_work_frac"] * cap_stall,
         f_fork=f_fork, f_disengage=f_dis, groove_slope_mm_per_rad=slope, wrap_gear_up=up,
+        groove_pressure_deg=math.degrees(math.atan(slope / r_groove)), racking=rack,
     )
 
 
@@ -398,15 +404,18 @@ def firmware_table(c=None):
         collar_transitions=dict(LN=list(c["tr_ln"]), NR=list(c["tr_nr"])),
         brake_ramps=[list(r) for r in c["brake_ramps"]],
         rules=[
-            "Positive drum = N20 forward (DRV8833 #3 IN1 high) = wrap direction.",
-            "Wiper stopped before every drum move, except the fly-in into REEL: creep the wiper forward over NR.",
-            "After every drum arrival check SW_DOG (closed = collar not where the groove put it).",
-            "SW_DOG closed in LAUNCH or REEL: jog the wiper +-15 deg, up to 60 deg, 30 percent duty, until it opens.",
-            "SW_DOG closed in NEUTRAL: jog the wiper about 14 deg against the last load, recheck, SWITCH_DISAGREE after 3.",
-            "Before leaving LAUNCH or REEL under load: unload jog about 14 deg first.",
-            "Unwrap (WRAPPED or WRAPPING back to NEUTRAL): drum negative with the wiper creeping forward (bus take-up).",
-            "Code 000 = DRUM_SENSOR fault. Timeout = 2 x nominal + 2 s: DRUM_TIMEOUT, stop, try NEUTRAL once.",
-            "Boot: LN -> go + to NEUTRAL; WRAPPING / WRAPPED / NR / REEL -> go - to NEUTRAL with the wiper creeping forward.",
+            "Positive drum = N20 forward (DRV8833 #3 AIN1 high) = toward REEL = wrap direction.",
+            "Wiper stopped before every drum move, except the fly-in into REEL: creep the wiper forward over 318..340.",
+            "Check SW_DOG_L / SW_DOG_R during and after every move: LAUNCH needs DOG_L closed, REEL needs DOG_R closed, "
+            "NEUTRAL / WRAP_PREP / WRAP / WRAPPED need both open; never enter the wrap window with either closed.",
+            "Dog not closed in LAUNCH: jog the wiper +-8 deg; in REEL: creep forward only (sprag #2 blocks backward).",
+            "Leaving LAUNCH or REEL under load: unload jog 8 deg against the last load first. SWITCH_DISAGREE after 3 tries.",
+            "Fault from REEL or N_TO_R: go to WRAPPED (309), never back through the wrap window. Fault from LAUNCH or L_TO_N: NEUTRAL.",
+            "Boot: LAUNCH / L_TO_N / NEUTRAL / WRAP_PREP -> NEUTRAL; WRAP -> stop and report; N_TO_R / REEL -> WRAPPED.",
+            "Unwrap (WRAPPED back to NEUTRAL): drum negative with the wiper creeping forward (bus take-up).",
+            "SW_N20 open = hand fallback active: no drum moves.",
+            "Code 000 = DRUM_SENSOR fault. Timeout = 2 x nominal + 2 s: DRUM_TIMEOUT.",
+            "SW_INDEX: 6 pulses per wiper turn (degraded mode without the AS5600 magnet).",
         ],
     )
 

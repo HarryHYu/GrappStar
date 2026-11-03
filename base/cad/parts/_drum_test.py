@@ -118,7 +118,7 @@ def test_stop_plan_extra_inside_dwell():
 
 def test_torque_budget():
     L = K.loads()
-    assert L["worst"] <= L["cap_stall"] * 0.4, L
+    assert L["margin"] >= 2.0, L          # params.DRUM.n20_ratio_min_margin
 
 
 def test_timing_positive():

@@ -26,7 +26,7 @@ GEOM = dict(
     cap_xy=(-18.66, 69.64),        # cad-reel capstan axis in L (for the wrap idler mesh)
     # coupler (D8 shear pin limiter, D15 bus gear)
     cpl_s=(0.5, 48.0), cpl_od=40.0, sock_s=30.0,
-    hub_od=26.0, hub_s=(0.5, 21.0), nut_s=14.5, shear_s=11.5, shear_d=4.0,
+    hub_od=26.0, hub_s=(0.5, 21.0), nut_s=16.0, shear_s=13.0, shear_d=4.0,
     bus_m=1.5, bus_z=40, bus_s=(40.0, 48.0),
     idx_s=(3.0, 9.0), idx_r0=20.0, idx_bump=2.5, idx_n=6, idx_w=24.0, idx_ramp=4.0,   # D12 SW_INDEX cam
     # main shaft
@@ -486,13 +486,12 @@ def drum_a(g, c):
     parts.append(dg.translate((0, 0, g["dgear"][0])))
     sg = gears.spur_gear(c["seg_m"], c["seg_z"], g["seg"][1] - g["seg"][0], present=seg_present(g, c))
     parts.append(prim.place(sg, tf.T(0, 0, g["seg"][0] - 0.01) @ tf.Rz(seg_phase(g, c))))
-    parts.append(shp_extrude(lock_layer_poly(g, c), g["lock"][0] + 0.29, g["lock"][1]))
-    parts.append(cyl(gears.spur_info(c["seg_m"], c["seg_z"])["r_root"] - 0.5, g["seg"][1] - 0.05, g["lock"][0] + 0.35))
+    parts.append(shp_extrude(lock_layer_poly(g, c), g["seg"][1] + 0.05, g["lock"][1]))
     parts.append(shp_extrude(polar_profile(lambda a: cam_radius(g, c, a)), g["cam"][0] - 0.01, g["cam"][1]))
     parts.append(hexprism(g["spig_af"], g["neck_s"][1] - 0.01, a1))
     # 45 deg cones under every outward step (prints without support when standing on the gear face)
     rc = g["cam_r0"]
-    parts.append(prim.cyl(rc - (g["cam"][0] - a0), g["cam"][0] - a0, z=a0, r2=rc))
+    parts.append(prim.cyl(rc - 0.5 - (g["cam"][0] - a0), g["cam"][0] - a0, z=a0, r2=rc - 0.5))
     rs = gears.spur_info(c["seg_m"], c["seg_z"])["r_root"] - 0.5
     h = rs - g["neck_d"] / 2
     parts.append(prim.cyl(g["neck_d"] / 2, h, z=g["seg"][0] - h, r2=rs))
@@ -530,7 +529,7 @@ def idler(g, c):
     face = g["seg"][1] - g["seg"][0]
     pin = gears.spur_gear(c["seg_m"], c["pin_z"], face, shift=c["pin_x"],
                           tip_short=tip_short_for(c["seg_m"], c["pin_z"], c["pin_x"])).translate((0, 0, g["seg"][0]))
-    cam = shp_extrude(lock_cam_poly(g, c), g["lock"][0], g["lock"][1])
+    cam = shp_extrude(lock_cam_poly(g, c), g["lock"][0] + 0.3, g["lock"][1])
     shaft = cyl(g["idl_j"] / 2, s0, s1)
     sh = prim.union([pin, cam, shaft])
     # D flat under the output gear (gear keyed by the flat, pushed against the cam shoulder side)
@@ -587,7 +586,7 @@ def fork(g, c):
     hl = g["hub_len"]
     hub = prim.box(-6, 6, r1 - 1.0, r1 + 7.0, sb, sb + hl)
     arm1 = shp_extrude(LineString([(0.0, r1 + 3.0), (rx, ry)]).buffer(5.0), sb, sb + hl)
-    sleeve = cyl(g["rail_d"] / 2 + 4.0, sb, sb + 30.0, rx, ry)
+    sleeve = cyl(g["rail_d"] / 2 + 4.0, sb, sb + 40.0, rx, ry)
     dx, dy = drum_xy(g)
     ph = math.radians(g["phi_pin"])
     ux, uy = math.cos(ph), math.sin(ph)                 # from the drum axis toward the main axis
@@ -603,7 +602,7 @@ def fork(g, c):
     pin = prim.place(cyl(g["pin_d"] / 2, 0.0, rb0 + 0.5 - rp0, seg=32),
                      tf.T(dx, dy, ps) @ tf.Rz(g["phi_pin"]) @ tf.T(rp0, 0, 0) @ tf.Ry(90))
     f = prim.union([yoke] + pads + [tab, hub, arm1, sleeve, arm2, block, pin])
-    f = f - cyl((g["rail_d"] + fits.HOLE_SLIDE) / 2, sb - 1, sb + 31, rx, ry)
+    f = f - cyl((g["rail_d"] + fits.HOLE_SLIDE) / 2, sb - 1, sb + 41, rx, ry)
     f = f - prim.place(prim.extrude(hex_cs(5.6), yt - sb + 2, z=sb - 1), tf.T(r1 + 4.0, 2.0, 0))     # nut in the tab
     return f
 
@@ -931,7 +930,7 @@ def parts(P):
         notes="End plate closing the N20 cradle, 2 x M3 x 8")
     add("drum_fork", fork(g, c), "PLA", "drum_fork", color="fork",
         notes="Compliant shift fork: thin yoke is the spring (about 1.5 N/mm), follower pin in groove 1, contact tab")
-    add("drum_dog_post", dog_post(g, c), "PLA", "drum_base", R=tf.Ry(90), color="pla",
+    add("drum_dog_post", dog_post(g, c), "PLA", "drum_base", color="pla",
         notes="Dog contact post on the shift rail: SW_DOG_R and SW_DOG_L screws (collar fully engaged)")
     add("drum_rail", rail(g), "PPA-CF", "drum_base", R=tf.Ry(90), color="ppa",
         notes="Shift rail d10, pressed into brackets A and B")
@@ -1081,60 +1080,69 @@ def grounded(P):
 def steps(P):
     """Assembly steps, in order, plain language, hardware per step."""
     return [
-        dict(title="Drum: brackets, axle and rail",
-             text="Bolt bracket A to the deck (2 x M3 x 12). Push the drum axle into bracket A (flat facing forward) and "
-                  "the shift rail into its hole (flat facing forward). Do not fit bracket B yet.",
-             parts=["drum_bracket_a", "drum_axle", "drum_rail"]),
-        dict(title="Drum: fork",
-             text="Press an M3 nut into the hex hole in the yoke tab. Slide the fork sleeve onto the rail, yoke facing "
-                  "the motor side. Screw the fork stop to the fork post (1 x M3 x 16). Thread an M3 x 12 into each "
-                  "prong until its head is 3 mm from the nut (a 3 mm drill shank is the gauge). Battery unplugged: "
-                  "one wire on the nut (GND), one wire joining both screws (SW_DOG).",
-             parts=["drum_fork", "drum_fork_stop"]),
-        dict(title="Drum: idler",
-             text="Push the idler output gear onto the idler shaft flat (gear teeth face away from the pinion). Bolt "
-                  "the idler post to the deck (2 x M3 x 12) and slide the idler journal into it, pinion toward the "
-                  "motor.",
-             parts=["drum_idler_gear", "drum_idler", "drum_bracket_idler"]),
-        dict(title="Drum: drum A and drum B",
-             text="Turn the idler until the flat-sided lock cam faces the drum position. Slide drum A onto the axle, "
-                  "gear first, with mark L at the top: its lock ring must slip into the lock cam scallop (the idler "
-                  "can then no longer turn). Slide drum B on, hex socket over the drum A spigot, so the fork pin "
-                  "drops into the groove. Press bracket B onto the axle and rail ends and bolt it down (2 x M3 x 12). "
-                  "The drum should turn by hand with no axial play over 0.5 mm.",
-             parts=["drum_drum_a", "drum_drum_b", "drum_bracket_b"]),
+        dict(title="Main shaft: coupler and limiter",
+             text="Push the coupler hub onto the wiper output shaft (flats in line). Drop the M8 nut on the thread and "
+                  "tighten it with a 13 mm socket (1/4 inch drive). Slide the outer coupler over the hub, line up the "
+                  "holes, push a shear pin in (flat side toward the motor, head outside) and put a piece of tape round "
+                  "the coupler over the head. Keep the 5 spare pins with the base. A broken pin stub comes out with an "
+                  "M3 screw turned into it.",
+             parts=["drum_coupler_hub", "drum_coupler", "drum_shear_pin"]),
+        dict(title="Main shaft: index contact",
+             text="Press an M3 nut into the index block pocket, screw the index lever foot to the block (M3 x 12), "
+                  "thread an M3 x 6 into the lever boss, head toward the nut. Screw the block to the front face of the "
+                  "motor adapter plate (2 x M3 x 16) with the nub on the coupler cam. Set the gap so the screw head "
+                  "touches the nut near the top of a bump (about 1.5 mm on a low part). Battery unplugged: nut to GND, "
+                  "screw to SW_INDEX.",
+             parts=["drum_index_block", "drum_index_lever"]),
+        dict(title="Drum: bracket A, axle, rail, drum A",
+             text="Bolt bracket A to the deck (2 x M3 x 12). Press the drum axle and the shift rail into it (both "
+                  "flats facing forward). Slide drum A onto the axle, gear first, and turn it so the gap in its lock "
+                  "ring faces back toward the idler position (about drum 180 on the pointer).",
+             parts=["drum_bracket_a", "drum_axle", "drum_rail", "drum_drum_a"]),
+        dict(title="Drum: wrap idler",
+             text="Push the idler output gear onto the idler shaft flat. Push the idler journals into the two idler "
+                  "posts. Lower the posts with the idler onto the deck so the small pinion meshes the drum A segment "
+                  "teeth, and bolt them down (2 x M3 x 12 each). Turn drum A back to LAUNCH (mark L at the top): the "
+                  "flat-sided lock cam must sit in the drum lock ring and the idler can no longer turn by hand.",
+             parts=["drum_idler_gear", "drum_idler", "drum_bracket_idler", "drum_bracket_idler2"]),
+        dict(title="Drum: fork and dog contacts",
+             text="Press an M3 nut into the hex hole of the yoke tab. Slide the dog post onto the rail (bosses toward "
+                  "the motor side of the tab), then the fork sleeve, yoke facing the main shaft. Tighten the dog post "
+                  "clamp screw (M3 x 16) at s 63 to 71. Thread an M3 x 12 into each dog post boss, head toward the tab. "
+                  "Battery unplugged: nut wire to GND, REEL side screw to SW_DOG_R, LAUNCH side screw to SW_DOG_L.",
+             parts=["drum_dog_post", "drum_fork"]),
+        dict(title="Drum: drum B, hand lever, bracket B",
+             text="Swing the fork up on the rail, slide drum B onto the axle (hex socket over the drum A spigot), "
+                  "swing the fork down so its pin drops into the groove. Slide the hand lever onto the hex boss. Press "
+                  "bracket B onto the axle and rail ends and bolt it down (2 x M3 x 12). The drum turns by hand with "
+                  "under 0.5 mm end play.",
+             parts=["drum_drum_b", "drum_hand_lever", "drum_bracket_b"]),
         dict(title="Drum: N20",
-             text="Press the pinion onto the N20 output shaft (flat to flat), flush with the shaft end. Lay the N20 in "
-                  "the cradle, fit the strap (2 x M3 x 16). Put the cradle on the deck with the M3 thumb screw in its "
-                  "slot, push it toward the drum until the pinion meshes with a hair of play, tighten.",
+             text="Press the pinion onto the N20 output shaft (flat to flat), flush with the shaft end. Slide the N20 "
+                  "into the cradle from the open end, fit the end plate (2 x M3 x 8). Screw the cradle to the bracket A "
+                  "ear: pivot screw M3 x 12 in the round hole, swing screw M3 x 12 in the slot, pinion meshed with a "
+                  "hair of play. Thread the SW_N20 screw (M3 x 10) through the cradle so its head touches the ear nut "
+                  "when the cradle is swung in. Battery unplugged: nut to GND, screw to SW_N20.",
              parts=["drum_n20_pinion", "drum_n20", "drum_n20_cradle", "drum_n20_strap"]),
         dict(title="Drum: code switches",
-             text="Press an M3 nut into each of the 3 front pockets of the switch block and bolt the block to the deck "
-                  "(2 x M3 x 12). Screw each lever foot to the block (1 x M3 x 12), nub on its band. Thread an M3 x 8 "
-                  "into each lever, head toward the nut, until the gap is 1.1 mm with the nub on a low part of the "
-                  "band (feeler: a strip of 1 mm card). Battery unplugged: nuts to GND, screws to SW_DRUM_A (nearest "
-                  "the motor), SW_DRUM_B, SW_DRUM_C.",
+             text="Press an M3 nut into each of the 3 front pockets of the switch block and bolt it to the deck "
+                  "(2 x M3 x 12). Screw each lever foot to the block (M3 x 12), nub on its band. Thread an M3 x 6 into "
+                  "each lever boss, head toward the nut, so the head touches the nut near the top of a bump (gap about "
+                  "1.8 mm with the nub low). Battery unplugged: nuts to GND, screws to SW_DRUM_A (nearest the motor), "
+                  "SW_DRUM_B, SW_DRUM_C.",
              parts=["drum_switch_block", "drum_sw_lever_0", "drum_sw_lever_1", "drum_sw_lever_2"]),
-        dict(title="Main shaft: coupler and limiter",
-             text="Push the coupler hub onto the wiper output shaft (flats in line). Drop the M8 nut onto the thread "
-                  "and tighten it with a 13 mm socket. Slide the outer coupler over the hub, line up the holes and "
-                  "push a shear pin in (head outside). Keep the 5 spare pins with the base.",
-             parts=["drum_coupler_hub", "drum_coupler", "drum_shear_pin"]),
         dict(title="Main shaft: stack",
-             text="Push the REEL sleeve into the REEL gear from the gear's plain side (the lip stops it). On the "
-                  "bench, slide onto the main shaft from the spigot end: the sleeve and gear (flange first), then the "
-                  "collar (either way round). Lower the shaft so the collar groove drops between the fork pads, push "
-                  "the hex end into the coupler socket, fit the M3 x 40 cross screw and nyloc. The REEL gear must "
-                  "spin free on its sleeve.",
+             text="Push the REEL sleeve into the REEL gear from the plain side (the lip stops it). On the bench slide "
+                  "onto the main shaft from the spigot end: sleeve and gear (flange first), then the collar. Lower the "
+                  "shaft so the collar groove drops between the fork pads, push the hex end into the coupler socket, "
+                  "fit the M3 x 45 cross screw and nyloc, and screw the sleeve flange to the coupler (2 x M3 x 10). "
+                  "The REEL gear must spin free on its sleeve.",
              parts=["drum_shaft", "drum_collar", "drum_gear_reel", "drum_sleeve_reel"]),
-        dict(title="Main shaft: LAUNCH dog ring",
-             text="Fit the LAUNCH dog ring on the launch sleeve flange (sleeve lugs in the ring slots, 3 x M3 x 12 "
-                  "into the nut traps) before the launch sleeve goes on the spigot (launcher steps).",
-             parts=["drum_dogring_launch"]),
-        dict(title="Main shaft: magnet cap and hand lever",
-             text="Glue the AS5600 magnet into the cap, push the cap on the spigot end, fit the M3 x 25 cross screw. "
-                  "Slide the hand lever onto the drum hex boss. Hand use: battery unplugged, slacken the line, loosen "
-                  "the N20 thumb screw, slide the cradle 4 mm away from the drum, turn the lever to the mark, slide "
-                  "the cradle back and tighten.",
-             parts=["drum_magnet_cap", "drum_hand_lever"]),
+        dict(title="Main shaft: LAUNCH dog ring and magnet cap",
+             text="Fit the LAUNCH dog ring on the launch sleeve flange (sleeve lugs in the ring slots, 3 x M3 x 10 from "
+                  "the sleeve side into the ring) before the launch sleeve goes on the spigot (launcher steps). After "
+                  "the launcher: glue the AS5600 magnet into the cap, push the cap on the spigot end (flat to flat) and "
+                  "fit the M3 x 6 onto the flat. Hand use of the drum: battery unplugged, slacken the line, loosen the "
+                  "swing screw, swing the N20 out, turn the lever, swing back and tighten.",
+             parts=["drum_dogring_launch", "drum_magnet_cap"]),
     ]

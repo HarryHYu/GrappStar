@@ -50,7 +50,7 @@ def rail_add(n):
     u0 = n["u_track0"]
     s = []
     # cross plate behind the rear tie, then the fork plates
-    s.append(prim.box(u_t - 10.0, u0 + 0.01, -n["y_wall1"], n["y_wall1"], n["w_floor0"] - 6.0, n["w_floor0"] + 4.0))
+    s.append(prim.box(u_t + R_PUL + 1.5, u0 + 0.01, -n["y_wall1"], n["y_wall1"], n["w_floor0"] - 6.0, n["w_floor0"] + 4.0))
     for sg in (1, -1):
         y0, y1 = (PUL_W / 2 + 1.0, PUL_W / 2 + 5.0) if sg > 0 else (-PUL_W / 2 - 5.0, -PUL_W / 2 - 1.0)
         s.append(prim.box(u_t - 10.0, u0 + 0.01, y0, y1, g["bot"][2] - 10.0, g["top"][2] + 9.0))
@@ -64,7 +64,7 @@ def rail_cut(n):
     g = geom(n)
     c = []
     for p in (g["top"], g["bot"]):
-        c.append(prim.cylY(1.7, -20, 20, x=p[0], z=p[2]))
+        c.append(prim.cylY(1.7, -PUL_W / 2 - 6.0, PUL_W / 2 + 6.0, x=p[0], z=p[2]))
     pv = g["piv"]
     c.append(prim.cylY(1.7, -30, 0, x=pv[0], z=pv[2]))
     return prim.union(c)

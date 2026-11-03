@@ -258,3 +258,8 @@ def test_custom_timeline_int_flags_step():
     P = _t.SimpleNamespace(TIMELINE=[("a", 1.0, "", {"fired": 0, "x": 0.0}), ("b", 2.0, "", {"fired": 1, "x": 10.0})])
     assert state_at(P, 1.5)["fired"] == 0 and state_at(P, 2.5)["fired"] == 1
     assert 0 < state_at(P, 1.5)["x"] < 10
+
+
+def test_line_path_ignores_other_signatures():
+    a = mod([], [], lambda P, S: {}, line_path=lambda P, wraps=0.0: [(9, 9, 9)])
+    assert Assembly(None, {"reel": a}).line({}) == []

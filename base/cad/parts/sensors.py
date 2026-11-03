@@ -294,12 +294,16 @@ def gap_geom(P):
     u_t, w_t = LN.home_bump_point(P)
     y_bump = n["y_sec"][0] - LN.BUMP_H
     y_rest = y_bump + i["pretravel"] + SW_PRESS
-    a = math.radians(225.0)
-    xdir = (-math.cos(a), 0.0, -math.sin(a))             # root -> tip points from outside towards the gear pin
+    a = math.radians(GAP_DIR)
+    xdir = (-math.cos(a), 0.0, -math.sin(a))             # root -> tip: from the root towards the bump
     M = _sw_frame((u_t, y_rest, w_t), xdir, (0, 1, 0), i)
     return dict(M=M, u=u_t, w=w_t, y_bump=y_bump, y_rest=y_rest, cd=n["cd"], y_chA=n["y_chA"], info=i)
 
 
+GAP_DIR = 217.5               # direction (rail u-w, deg) from the bump to the lever root; within 29 deg of the radial
+                              # 225 so the contact screw stays outside the bump's circle
+GAP_BASE_Y = (-17.5, 7.8)     # switch local y kept of the SW_GAP base (no mounting wings needed: it has its arm);
+                              # +y (down-forward, towards cad-reel's p2 post) trimmed 1.7 past the wire channel
 GAP_TAB_PILOTS = ((48.0, 2.0), (64.0, 2.0))   # (u, w) M3 self tap d2.6 into the right cheek outer face, 7 deep along +y
 
 
@@ -328,8 +332,10 @@ def gap_base_solid(P):
     """SW_GAP printed base (switch local frame): cad.lib switch base + the arm to the cheek."""
     g = gap_geom(P)
     d = sw_build(RISER)
+    lo, hi = prim.bbox(d["base"])
+    keep = prim.box(lo[0] - 1, hi[0] + 1, GAP_BASE_Y[0], GAP_BASE_Y[1], lo[2] - 1, hi[2] + 1)
     arm = prim.place(gap_arm_rail(P), tf.inv(g["M"]))
-    return d["base"] + arm
+    return (d["base"] ^ keep) + arm
 
 
 def gap_cheek_pilots(P):

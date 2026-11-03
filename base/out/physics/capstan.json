@@ -13,7 +13,7 @@
   "eta": 0.85,
   "overspeed": 2.5,
   "light_n": 3.0,
-  "source": "base/spec/params.py v1.2.7"
+  "source": "base/spec/params.py v1.2.8"
  },
  "takeup": {
   "clutch_torque": 0.15362562593389975,
@@ -292,6 +292,19 @@
   "power_in": 49.62312532599623,
   "stalled": false
  },
+ "at_tow_cap": {
+  "f_line": 70.0,
+  "t_wiper": 3.9026736786933944,
+  "t_drum": 1.3000000000000003,
+  "rpm_wiper": 27.809082747624856,
+  "rpm_drum": 63.2024607900565,
+  "v_line": 0.1323709243378923,
+  "current": 5.792941046562734,
+  "i_batt": 5.792941046562734,
+  "v_batt": 10.659736480461232,
+  "power_in": 61.751225003206045,
+  "stalled": false
+ },
  "current_limit": {
   "f_limit": 50.0,
   "t_wiper": 2.7719236766957476,
@@ -318,7 +331,7 @@
   "tow_trip_avg_ms": 200,
   "tow_trip_rule": "measured free current + 3.05 A, averaged over 200 ms",
   "notes": [
-   "ignore current for 50 ms after start; hard trip for 30 ms at 5.0 A in reel-in, 5.0 A in aim (physics recommends 3.0 A: aim splitter), 6.5 A towing (4.55 N m at the wiper), 6.5 A while cocking (4.55 N m)",
+   "ignore current for 50 ms after start; hard trip for 30 ms at 5.0 A in reel-in, 3.0 A in aim (physics recommends 3.0 A: aim splitter), 6.5 A towing (4.55 N m at the wiper), 6.5 A while cocking (4.55 N m)",
    "the 5 N m torque limiter in the wiper coupler caps the train at 5 N m (motor current while it slips 7.0 A); sprag #2 plus the self-locking worm still lock in the line tension after a trip, so the trip must stop the motor before the limiter slips for long (heat, wear)",
    "the 20 A fuse holds a 17 A motor stall (no limiter) and the 7.0 A limiter slip indefinitely: it is wiring protection only",
    "BTS7960 IS reads the high side only (zero in the PWM off-time): sample in the on-time or scale by duty"

@@ -1,45 +1,75 @@
-# Worker `physics`: report (draft, updated through the day)
+# Worker `physics`: report
 
-Branch `w/physics`. Directory `base/physics/` (code) and `base/out/physics/`, `base/out/ballistics.json` (outputs).
-Run everything: `cd base/physics && ./run_all.sh` (pytest, every model, ballistics table, summary PDF).
+Branch `w/physics`. Code in `base/physics/`, outputs in `base/out/physics/` and `base/out/ballistics.json` (+ meta).
+Run everything: `cd base/physics && ./run_all.sh` (pytest, every model, ballistics table, summary PDF, plots; about 3 to 5 min).
+Every number runs on `base/spec/params.py` through `spec_bridge.py` (the only file that knows spec names).
 
 ## Done
 
 | File | What |
 |---|---|
-| common.py | every assumption in one place: battery sag, wiper (linear, one block), A228 extension spring (rate, hook and body limits, mass, surge), line, dart, 608, sprag, shaft |
-| spec_bridge.py | overlays base/spec/params.py onto the defaults (only file that knows spec names) |
-| launcher.py | spring launcher: chain (surge) and lumped spring models, pulley ratio, friction, reel inertia, stop impact, coil clash |
-| flight.py | dart point mass with drag + bead-chain tether (line weight, cross-flow and skin drag, ground contact), ideal brake or coupled reel |
-| payout.py | storage reel geometry and inertia, slip clutch (constant torque), centrifugal shoes, spin-up, overrun, bird's nest risk |
-| capstan.py | Euler-Eytelwein wraps, constant-torque take-up, tow force/speed/current, firmware trip, part stresses |
-| drivetrain.py | wiper torque/current/time/energy per function (aim, cock, reel, tow) vs stall, BTS7960, fuse |
-| printed_gears.py | Lewis (printed allowables), key (steel key in printed shaft), shaft torsion (Kt 1.6 / 2 / 3), 608, sprag |
-| ballistics.py | base/out/ballistics.json exactly per contract C3, with validate() |
+| common.py | every assumption in one place: battery sag, wiper (one block, linear, 5 N m limiter), A228 extension spring (rate, hook and body limits, mass, surge), line, dart, 608, sprag, shaft, launcher/reel/capstan defaults |
+| spec_bridge.py | overlays base/spec/params.py (v1.2) onto the defaults, lists what it used in `p.spec_used` |
+| launcher.py | spring launcher: chain (surge) and lumped spring models, pulley ratio, friction, reel inertia in the stroke, stop impact, coil clash |
+| flight.py | dart point mass with drag + bead-chain tether (line weight, cross-flow and skin drag, ground contact), ideal brake or coupled reel; spec geometry (pivot pulley, release point), range from the pivot ground point |
+| payout.py | storage reel geometry and inertia, slip clutch (constant torque, set as line tension with the reel full), centrifugal shoes, spin-up, overrun, bird's nest risk |
+| capstan.py | Euler-Eytelwein wraps, constant-torque take-up with the 2.5 bus overdrive, tow force/speed/current, limiter, firmware trips, part stresses |
+| drivetrain.py | wiper torque/current/time/energy per function (aim worm + crank-rocker, cock big gear + rack, reel, tow) vs stall, limiter, BTS7960, fuse |
+| printed_gears.py | Lewis (printed allowables), steel key in a printed shaft, shaft torsion (Kt 1.6 / 2 / 3), 608, sprag |
+| attitude.py | pitch-plane 3-DOF dart attitude at 6 to 8 m/s (stability with and without the tether) |
+| recoil.py | recoil on the rover at the shot, rock and tip-over, 2 vs 4 springs |
+| retrieve.py | taut vs slack line at the shot, wrap loads on the cup and drum N20, final approach onto the cradle |
+| mission.py | time and battery budget of one mission |
+| ballistics.py | base/out/ballistics.json exactly per contract C3, validate(), wind sensitivity in the meta |
 | sensitivity.py | range swing for each uncertain input |
 | calib.py | hang test fit (rate, initial tension) and wiper block from bench numbers |
-| summary.py | SUMMARY.md + base/out/physics/physics_summary.pdf (one page, Liberation Sans, black) |
-| FINDINGS.md | problems for the spec (pushed early, kept current) |
+| summary.py, plots.py | SUMMARY.md + base/out/physics/physics_summary.pdf (one page, Liberation Sans, black) + two plain plots |
+| FINDINGS.md | problems and numbers for the spec (pushed from 11:15, kept current) |
 
-## Numbers
+## Numbers (spec v1.2)
 
-(filled at 18:30 from the final run)
+See FINDINGS.md "Current numbers" and SUMMARY.md (final values pasted below at the 18:20 push).
 
-## Reviews
+## Tests
 
-Round 1 (three fresh reviewers, each recomputed the numbers independently):
-- launch/spring: all Shigley numbers and both launch models reproduced; fixed: stop load now includes the spring KE
-  (1.2 kN on a 4 mm pad), chain end node mass, eye gain on the reel inertia, spring length is over the hooks.
-- flight/ballistics: ranges within 0.3 % of an independent model; fixed: reel start speed (line draw rate, not dart
-  speed: low-pitch snap of 4.5 N was an artefact), time step (tension flip), reel peak filtered, stricter C3 validate.
-- payout/capstan/drivetrain: all key numbers reproduced; fixed: payout JSON crash, key failure mode (plastic behind the
-  keyway at ~7 N m), Lame hoop stress, constant-torque take-up, firmware trip, wiper inertia.
+(pasted at the final push)
+
+## Reviews (fresh subagents, each recomputed the numbers independently; every confirmed finding fixed)
+
+1. Round 1, three reviewers.
+   - launch/spring: Shigley numbers and both launch models reproduced. Fixed: the stop load now includes the spring KE,
+     the chain end-node mass, the eye gain on the reel inertia, and the spring length is taken over the hooks.
+   - flight/ballistics: within 0.3 % of an independent model. Fixed: the reel start speed (the 4.5 N snap at low pitch
+     was an artefact), the time-step tension flip, the filtered reel peak, and a stricter C3 validate().
+   - payout/capstan/drivetrain: numbers reproduced. Fixed: the payout JSON crash, the key failure mode (plastic behind
+     the keyway, about 7 N m), Lame hoop stress, the constant-torque take-up, the firmware trips and the wiper inertia.
+2. Round 2: the aim wiper torque was 4x too low, now fixed. Also fixed: sprag #1 torque taken on the wiper axis, full
+   shot time, summary layout and font, sensitivity run on the chain model. attitude.py verdict robust to Cd and tether point.
+3. Round 3: the recoil rock was overstated, because the stop pulse cancels most of the stroke pulse: 5 deg, not 17.
+   retrieve and limiter numbers reproduced.
+4. Round 4 (spec v1.0): mapping confirmed, Jetson solver loads the table. Fixed: the capstan gear (50 T), the overdrive
+   now read from the spec, both clutch settings referenced to the full reel, and a complete spec_used.
+5. Cross-worker: module names launch.py and gears.py clashed with cad-launch / cad lib in a combined pytest run. Renamed
+   them to launcher.py and printed_gears.py, and the tests to test_phys_*.py. conftest.py pins this directory's modules
+   and fails if a test writes under base/out or kedge/out30.
 
 ## Open items / requests
 
-- Coordinator: dart mass 0.279 (spec) vs 0.292 (brief). Spec LAUNCH/AIM/REEL values still None: defaults follow
-  cad-launch NOTES (stroke 245, preload 5 mm, carriage 80 g, pitch 6 to 47).
+- Coordinator: clutch convention (LIGHT and FIRM are line tension with the reel full) into the spec text. The final
+  approach is fine on FIRM 5 N (D24, margin 1.5 to 1.9). The rover mass, wheelbase and deck height
+  are assumed (4 kg, 0.30 m, 0.15 m).
+- Jetson: range_m is from the pivot ground point; the camera is 150 mm ahead of the pivot, so add the offset. Clamp
+  to AIM.launch_pitch_range or ask me to narrow the table.
+- fw-base: trips (50 ms blank, 5 A / 30 ms in aim, reel and tow, 6.5 A cocking, tow trip at measured free current + 3.5 A for 50 N over 200 ms: line = 17 x (I - I_free) - 10.4 N at FIRM 5 N), and
+  sample the BTS7960 IS pin in the PWM on-time.
 
 ## Harry must measure
 
-See SUMMARY.md (spring hang test first: every range number scales with it).
+1. Spring hang test (first: every range number scales with it): hang 1, 2, 3 kg from one spring, measure the length,
+   then run `python calib.py spring 165.1 1:<mm> 2:<mm> 3:<mm>` and put the result in spec SPRING.
+2. Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s only), stall
+   current. `python calib.py wiper ...` gives the block.
+3. Dart mass with ballast and tether knot (0.279 kg assumed).
+4. Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 5 N.
+5. Rail friction (tilt test) and the drum N20 torque.
+6. Rover: mass, wheelbase, deck height (recoil and launch height).

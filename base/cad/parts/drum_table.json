@@ -1,23 +1,24 @@
 {
- "version": "drum v3 (BASE_SPEC D16)",
+ "version": "drum v4 (BASE_SPEC v1.0)",
  "positions": {
   "LAUNCH": 0.0,
   "NEUTRAL": 41.0,
-  "WRAPPED": 316.0,
-  "REEL": 348.5
+  "WRAP_START": 56.0,
+  "WRAPPED": 314.0,
+  "REEL": 347.0
  },
  "stops": [
-  -2.0,
-  351.0
+  -4.0,
+  352.0
  ],
- "code_table": {
-  "001": "LAUNCH",
-  "011": "LN",
+ "code_table_ABC": {
+  "100": "LAUNCH",
+  "110": "L_TO_N",
   "010": "NEUTRAL",
-  "110": "WRAPPING",
-  "111": "WRAPPED",
-  "101": "NR",
-  "100": "REEL",
+  "011": "WRAP_PREP",
+  "001": "WRAP",
+  "101": "N_TO_R",
+  "111": "REEL",
   "000": "INVALID"
  },
  "code_bits": {
@@ -28,57 +29,61 @@
  "code_arcs": {
   "b0": [
    [
-    -6.0,
+    -8.0,
     34.0
    ],
    [
     302.0,
-    346.0
+    362.0
    ]
   ],
   "b1": [
    [
     6.0,
-    328.0
+    62.0
+   ],
+   [
+    342.0,
+    354.0
    ]
   ],
   "b2": [
    [
-    56.0,
-    355.0
+    50.0,
+    354.0
    ]
   ]
  },
  "edges": [
   {
    "deg": 6.0,
-   "below": "001",
-   "above": "011"
-  },
-  {
-   "deg": 34.0,
-   "below": "011",
-   "above": "010"
-  },
-  {
-   "deg": 56.0,
-   "below": "010",
+   "below": "100",
    "above": "110"
   },
   {
-   "deg": 302.0,
+   "deg": 34.0,
    "below": "110",
-   "above": "111"
+   "above": "010"
   },
   {
-   "deg": 328.0,
-   "below": "111",
+   "deg": 50.0,
+   "below": "010",
+   "above": "011"
+  },
+  {
+   "deg": 62.0,
+   "below": "011",
+   "above": "001"
+  },
+  {
+   "deg": 302.0,
+   "below": "001",
    "above": "101"
   },
   {
-   "deg": 346.0,
+   "deg": 342.0,
    "below": "101",
-   "above": "100"
+   "above": "111"
   }
  ],
  "stop_plan": [
@@ -101,43 +106,62 @@
   {
    "target": "NEUTRAL",
    "dir": -1,
-   "edge": 56.0,
+   "edge": 50.0,
    "code_from": 6,
    "code_to": 2,
-   "extra_deg": 15.0
+   "extra_deg": 9.0
+  },
+  {
+   "target": "WRAP_START",
+   "dir": 1,
+   "edge": 50.0,
+   "code_from": 2,
+   "code_to": 6,
+   "extra_deg": 6.0
+  },
+  {
+   "target": "WRAP_START",
+   "dir": -1,
+   "edge": 62.0,
+   "code_from": 4,
+   "code_to": 6,
+   "extra_deg": 6.0
   },
   {
    "target": "WRAPPED",
    "dir": 1,
    "edge": 302.0,
-   "code_from": 6,
-   "code_to": 7,
-   "extra_deg": 14.0
+   "code_from": 4,
+   "code_to": 5,
+   "extra_deg": 12.0
   },
   {
    "target": "WRAPPED",
    "dir": -1,
-   "edge": 328.0,
+   "method": "pass_and_return",
+   "edge": 302.0,
    "code_from": 5,
-   "code_to": 7,
-   "extra_deg": 12.0
+   "code_to": 4,
+   "extra_deg": 12.0,
+   "note": "drive - until the edge, then + by extra_deg"
   },
   {
    "target": "REEL",
    "dir": 1,
-   "edge": 346.0,
+   "edge": 342.0,
    "code_from": 5,
-   "code_to": 4,
-   "extra_deg": 2.5
+   "code_to": 7,
+   "extra_deg": 5.0
   }
  ],
  "timing_s": {
   "dps": 8.1,
   "launch_to_neutral": 5.061728395061729,
-  "neutral_to_wrapped": 33.95061728395062,
-  "wrapped_to_reel": 4.012345679012346,
-  "launch_to_reel": 43.0246913580247,
-  "full_travel": 43.58024691358025
+  "neutral_to_wrapped": 33.7037037037037,
+  "wrap_window": 29.62962962962963,
+  "wrapped_to_reel": 4.074074074074074,
+  "launch_to_reel": 42.839506172839506,
+  "full_travel": 43.95061728395062
  },
  "dps_nominal": 8.1,
  "wrap_window": [
@@ -151,14 +175,14 @@
    32.0
   ],
   "NR": [
-   328.0,
-   346.0
+   318.0,
+   340.0
   ]
  },
  "brake_ramps": [
   [
-   8.0,
-   32.0,
+   30.0,
+   40.0,
    0.0,
    1.0
   ],
@@ -170,20 +194,22 @@
   ],
   [
    302.0,
-   310.0,
+   312.0,
    0.0,
    1.0
   ]
  ],
  "rules": [
-  "Positive drum = N20 forward (DRV8833 #3 IN1 high) = wrap direction.",
-  "Wiper stopped before every drum move, except the fly-in into REEL: creep the wiper forward over NR.",
-  "After every drum arrival check SW_DOG (closed = collar not where the groove put it).",
-  "SW_DOG closed in LAUNCH or REEL: jog the wiper +-15 deg, up to 60 deg, 30 percent duty, until it opens.",
-  "SW_DOG closed in NEUTRAL: jog the wiper about 14 deg against the last load, recheck, SWITCH_DISAGREE after 3.",
-  "Before leaving LAUNCH or REEL under load: unload jog about 14 deg first.",
-  "Unwrap (WRAPPED or WRAPPING back to NEUTRAL): drum negative with the wiper creeping forward (bus take-up).",
-  "Code 000 = DRUM_SENSOR fault. Timeout = 2 x nominal + 2 s: DRUM_TIMEOUT, stop, try NEUTRAL once.",
-  "Boot: LN -> go + to NEUTRAL; WRAPPING / WRAPPED / NR / REEL -> go - to NEUTRAL with the wiper creeping forward."
+  "Positive drum = N20 forward (DRV8833 #3 AIN1 high) = toward REEL = wrap direction.",
+  "Wiper stopped before every drum move, except the fly-in into REEL: creep the wiper forward over 318..340.",
+  "Check SW_DOG_L / SW_DOG_R during and after every move: LAUNCH needs DOG_L closed, REEL needs DOG_R closed, NEUTRAL / WRAP_PREP / WRAP / WRAPPED need both open; never enter the wrap window with either closed.",
+  "Dog not closed in LAUNCH: jog the wiper +-8 deg; in REEL: creep forward only (sprag #2 blocks backward).",
+  "Leaving LAUNCH or REEL under load: unload jog 8 deg against the last load first. SWITCH_DISAGREE after 3 tries.",
+  "Fault from REEL or N_TO_R: go to WRAPPED (309), never back through the wrap window. Fault from LAUNCH or L_TO_N: NEUTRAL.",
+  "Boot: LAUNCH / L_TO_N / NEUTRAL / WRAP_PREP -> NEUTRAL; WRAP -> stop and report; N_TO_R / REEL -> WRAPPED.",
+  "Unwrap (WRAPPED back to NEUTRAL): drum negative with the wiper creeping forward (bus take-up).",
+  "SW_N20 open = hand fallback active: no drum moves.",
+  "Code 000 = DRUM_SENSOR fault. Timeout = 2 x nominal + 2 s: DRUM_TIMEOUT.",
+  "SW_INDEX: 6 pulses per wiper turn (degraded mode without the AS5600 magnet)."
  ]
 }

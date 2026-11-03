@@ -36,6 +36,13 @@ def wiper_block(v: float, rpm: float, i_free: float, stall_kg: float, arm_mm: fl
 
 
 def main(argv=None):
+    try:
+        return _main(argv)
+    except (ValueError, ZeroDivisionError) as e:
+        raise SystemExit(f"calib: {e} (need at least two different loads that open the coils, as kg:mm)")
+
+
+def _main(argv=None):
     ap = argparse.ArgumentParser(description="bench measurements -> parameters")
     sub = ap.add_subparsers(dest="what", required=True)
     s = sub.add_parser("spring")

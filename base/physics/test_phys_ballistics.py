@@ -5,7 +5,7 @@ from common import Params
 def test_contract_c3_shape():
     p = Params()
     p.flight.update(pitch_min=30.0, pitch_max=40.0)
-    doc, meta = build(p, step=5.0, launch_over=dict(stroke=0.24))
+    doc, meta = build(p, step=5.0, launch_over=dict(stroke=0.24), with_wind=False)
     assert validate(doc) == []
     assert [r["pitch_deg"] for r in doc["table"]] == [30.0, 35.0, 40.0]
     for r in doc["table"]:

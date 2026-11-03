@@ -61,7 +61,8 @@ void pwmWrite(int pin, int ch, int duty) { (void)pin; ledcWrite(ch, duty); }
 // DRV8833 slow decay: one input high, the other PWM inverted, so the bridge alternates drive and brake. Supply current
 // then goes as duty squared at stall (the logic scales its thresholds that way). Duty 255 = plain DC. Both low = coast.
 void hwSetMotor(int m, int dir, int duty) {
-  if (duty < 0) duty = 0; if (duty > 255) duty = 255;
+  if (duty < 0) duty = 0;
+  if (duty > 255) duty = 255;
   pwmWrite(PINS[m].gpioA, 2 * m, dir > 0 ? 255 : dir < 0 ? 255 - duty : 0);
   pwmWrite(PINS[m].gpioB, 2 * m + 1, dir < 0 ? 255 : dir > 0 ? 255 - duty : 0);
 }
@@ -227,15 +228,15 @@ const char PAGE[] PROGMEM = R"HTML(<!doctype html><html><head><meta name=viewpor
 const o=document.getElementById('o'),S=document.getElementById('s');const held=new Map();
 function add(x){if(x){o.textContent+=x;o.scrollTop=1e9}}
 let N=0;const busy={};const P=Math.random().toString(36).slice(2,8);
-function send(c){const n=++N;if(c!==' '&&busy[c])return;busy[c]=1;const ac=new AbortController();const to=setTimeout(()=>ac.abort(),300);
-fetch('/key?c='+encodeURIComponent(c)+'&ms=350&n='+n+'&p='+P,{signal:ac.signal}).then(r=>r.text()).then(add).catch(()=>{}).finally(()=>{clearTimeout(to);busy[c]=0})}
+function send(c,keep){const n=++N;if(c!==' '&&busy[c])return;busy[c]=1;const ac=new AbortController();const to=setTimeout(()=>ac.abort(),300);
+fetch('/key?c='+encodeURIComponent(c)+'&ms=350&n='+n+'&p='+P+(keep?'&keep=1':''),{signal:ac.signal}).then(r=>r.text()).then(add).catch(()=>{}).finally(()=>{clearTimeout(to);busy[c]=0})}
 setInterval(()=>{for(const c of held.values())send(c)},150);   // several keys can be held at once (e.g. 2 and 4)
 function hold(id,c){if(held.has(id))return;held.set(id,c);send(c)}
-function release(id){if(!held.has(id))return;held.delete(id);if(!held.size)send(' ')}
+function release(id){if(!held.has(id))return;held.delete(id);if(!held.size)send(' ',1)}   // keep=1: stop the motors, stay armed
 const RUN='1!2@3#4$';
 addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter')e.preventDefault();const c=e.key===' '?' ':e.key;if(RUN.includes(c)){e.preventDefault();hold(e.code,c)}else if(e.key==='Shift'||e.key==='Enter'){}else if(!e.repeat&&c.length===1){if(c===' ')held.clear();send(c)}});
 addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter')e.preventDefault();if(held.has(e.code))release(e.code)});   // keyed by physical key: Shift order does not matter
-function lost(){if(held.size){held.clear();fetch('/key?c=%20&ms=0&n='+(++N)+'&p='+P,{keepalive:true}).catch(()=>{})}}   // keepalive: survives the page closing
+function lost(){if(held.size){held.clear();fetch('/key?c=%20&keep=1&ms=0&n='+(++N)+'&p='+P,{keepalive:true}).catch(()=>{})}}   // keepalive: survives the page closing
 addEventListener('blur',lost);addEventListener('pagehide',lost);document.addEventListener('visibilitychange',()=>{if(document.hidden)lost()});
 addEventListener('contextmenu',e=>e.preventDefault());
 const L=[['1','deploy down'],['!','deploy up'],['2','kick out'],['@','kick back'],['3','drills in'],['#','drills out'],['4','foot in'],['$','foot out']];
@@ -313,11 +314,14 @@ void setup() {
     }
     if (slot >= 0 && n >= 0) {
       if (c == " " || c == "s") { if (n > stopN[slot]) stopN[slot] = n; }
-      else if (n < stopN[slot]) { web.send(200, "text/plain", ""); return; }   // a run key that left before the stop: drop it
+      else if (n < stopN[slot]) { web.send(409, "text/plain", "refused: sent before a stop\n"); return; }   // a run key that left before the stop
     }
     if (ms < 50) ms = 50;
     if (ms > (long)K.tu.wifiMaxRunMs) ms = K.tu.wifiMaxRunMs;
     if (!c.length()) { web.send(400, "text/plain", "missing c\n"); return; }
+    if ((c == " " || c == "s") && web.arg("keep") == "1") {   // key release on the page: stop motors, keep the arm
+      xSemaphoreTake(mtx, portMAX_DELAY); K.stop(millis(), false); xSemaphoreGive(mtx); drainLog(); sendResult(nullptr); return;
+    }
     sendResult(handleKey(c[0], (uint32_t)ms));
   });
   web.on("/stop", []() {

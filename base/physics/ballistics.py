@@ -28,7 +28,9 @@ OUT = os.path.join(HERE, "..", "out", "ballistics.json")
 DRAG_N = [0.5, 0.75, 1.0]
 
 
-def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = None, with_wind: bool = True):
+def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = None, with_wind: bool = True,
+          v_scale: float = 1.0):
+    """v_scale: muzzle speed factor fitted from test shots (calib.py range); 1.0 = pure model."""
     p = p or load_params()
     lo, hi = float(p.flight["pitch_min"]), float(p.flight["pitch_max"])
     pitches = []
@@ -40,7 +42,7 @@ def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = N
         pitches.append(hi)
     table = []
     for th in pitches:
-        v = launch(p, th, **(launch_over or {}))["v_muzzle"]
+        v = launch(p, th, **(launch_over or {}))["v_muzzle"] * v_scale
         rows = [simulate(p, v, th, brake_n=b, reel_model=True) for b in drag_n]
         if not all(r["landed"] for r in rows):
             raise RuntimeError(f"a shot at pitch {th} did not land within the time limit")
@@ -54,7 +56,7 @@ def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = N
     if with_wind:
         for th in (10.0, 20.0, 36.0, 45.0):
             if lo <= th <= hi:
-                v = launch(p, th, **(launch_over or {}))["v_muzzle"]
+                v = launch(p, th, **(launch_over or {}))["v_muzzle"] * v_scale
                 r = [simulate(p, v, th, brake_n=drag_n[1], reel_model=True, wind=w)["range_m"] for w in (-3.0, 0.0, 3.0)]
                 wind.append(dict(pitch_deg=th, range_headwind3=r[0], range_calm=r[1], range_tailwind3=r[2],
                                  dr_per_mps=(r[2] - r[0]) / 6.0))
@@ -62,7 +64,7 @@ def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = N
                 pivot_height_m=p.launch.get("pivot_h"), release_u_m=p.launch.get("release_u"), dart_w_m=p.launch.get("dart_w"),
                 range_origin="ground point under the rail pivot (main axis)" if p.launch.get("pivot_h") else "muzzle ground point",
                 stroke_m=launch_over.get("stroke", p.launch["stroke"]) if launch_over else p.launch["stroke"],
-                wind_sensitivity=wind,
+                wind_sensitivity=wind, v_scale=v_scale,
                 notes=__doc__.split("Meaning of the numbers")[1].split("python ballistics.py")[0].split(":", 1)[1].strip(),
                 launch_pitch_range_spec=(getattr(p, "aim_launch_range", None)))
     return doc, meta
@@ -111,11 +113,12 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--step", type=float, default=2.5)
     ap.add_argument("--out", default=OUT)
+    ap.add_argument("--v-scale", type=float, default=1.0, help="muzzle speed factor from test shots (python calib.py range ...)")
     a = ap.parse_args(argv)
     if a.step <= 0:
         raise SystemExit("--step must be > 0")
     p = load_params()
-    doc, meta = build(p, a.step)
+    doc, meta = build(p, a.step, v_scale=a.v_scale)
     errs = validate(doc)
     if errs:
         raise SystemExit("contract C3 violated: " + "; ".join(errs))

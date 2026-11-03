@@ -163,6 +163,37 @@ after a start; 5 A for 30 ms in aim, reel and tow; 6.5 A while cocking; tow at f
 averaged over 200 ms. Any fault: wiper off, drum to NEUTRAL, except when wraps are on, the spring is drawn, or the drum itself faulted:
 then the drum HOLDS (D27).
 
+### 10.1 C1 command sequence (binding, D35)
+
+One sequence for the firmware, PROTOCOL.md, the Jetson mission, the mock base and the system test. Each line: what the
+Jetson sends, what ends the wait. Everything else in C1 stays as PROTOCOL.md documents it.
+
+| Step | Jetson sends | Wait for | Notes |
+|---|---|---|---|
+| 1 | `mode` LAUNCH | `MODE` ok | after every shift into LAUNCH the aim is forgotten |
+| 2 | `aim` deg | `AIMED` | homes on SW_RAIL_LOW first |
+| 3 | `cock` (optional) | `COCKED` | |
+| 4 | `arm` | reply with `token` | valid 3 s |
+| 5 | `fire` token | `FIRED`, then `RESET` | |
+| 6 | dart LANDED: `set` line_m | reply | from the landing distance |
+| 7 | (Jetson landing-zone verdict) | | NO_GO: skip 9 to 13, go to 14 (reel in on the capstan if wrapped, else 16) |
+| 8 | `mode` NEUTRAL | `MODE` ok | may be skipped: `wrap` also starts from LAUNCH |
+| 9 | `wrap` | `WRAPPED` | the drum parks at WRAPPED 314: cup locked, collar NEUTRAL, clutch FIRM. No `MODE` REEL here. Allow 60 s |
+| 10 | dart `/auto` | dart phase ANCHORED | |
+| 11 | `tidy` {ms, duty} | `TIDIED` | take-up only, by time (default 3000 ms, duty 0.3). `reel` until `slip` stays as an alternative |
+| 12 | `mode` REEL | `MODE` ok (REEL) | the REEL fly-in from the park |
+| 13 | `reel` {duty 1, max_n, until `tension`} | `LIMIT` holding | the tow |
+| 14 | dart `/release`, then `stop` | `ABORTED` | |
+| 15 | `reel` {until `stop`}, then `stop` at line_m about 1.5 | `ABORTED` | capstan reel-in |
+| 16 | `unwrap` | `UNWRAPPED`, then `MODE` NEUTRAL | skipped when never wrapped |
+| 17 | `retrieve` {duty 0.3} | `SEATED` | take-up final approach in NEUTRAL only (FAULT `DART_STUCK` after 20 s). Never seat on the capstan |
+| 18 | `mode` LAUNCH | `MODE` ok | back to 2 |
+
+Recovery: a fault or stop while cocking leaves the phase UNKNOWN: `decock` (same as `cal decock`), wait `RESET`, then
+`aim` again (the decock turns the aim train). A fault in the tow or the check pull offers "Release the dart" (step 14
+on), and a retry never restarts a pull that is already over the limit. A fault in REEL or N_TO_R parks the drum at
+WRAPPED 314 (fault_rules): the Jetson reads the `MODE` event (`DRUM_HELD` means the drum holds where it is).
+
 ## 11. Physics summary (owner: physics; base/physics/FINDINGS.md)
 
 About 13 J stored, about 7.5 m/s, about 4.5 m at 35 deg with the 0.5 N brake (4 to 5 m band); a second spring pair

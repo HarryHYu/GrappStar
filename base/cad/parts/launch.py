@@ -609,4 +609,6 @@ def audit_states(P):
 
 
 def grounded(P):
-    return []
+    """The aim housing stands on the deck; everything else must connect to it (or to other subsystems' grounded
+    parts) through contacts: rail cheeks on the sleeve, sleeve in the housing bushing, conrod to the crank."""
+    return ["launch_aim_housing"]

@@ -224,3 +224,7 @@ footer { text-align: center; font-size: 14px; font-weight: 600; padding: 6px 0 2
 .recover button { font-size: 20px; }
 .keyhint { font-size: 12px; font-weight: 600; align-self: center; max-width: 9em; line-height: 1.2; }
 @media (hover: none) { .keyhint { display: none; } }   /* touch screens have no keyboard */
+
+.banner.danger { background: #b00000; color: #fff; font-weight: 700; }
+.banner.warn { background: #ffd23f; color: #000; font-weight: 700; }
+.banner button { margin-left: 12px; min-height: 44px; }

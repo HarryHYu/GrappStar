@@ -157,8 +157,8 @@ def allowed(P):
 
 
 def clearances(P):
-    return [Clearance("frame_spring_guard_*", "launch_spring_*", 1.0, "coils run free under the guard"),
-            Clearance("frame_spring_guard_*", "launch_carriage", 1.0, "carriage arms pass under the guard top")]
+    return []          # guard vs springs and carriage: the whole-base collision audit covers them (a Clearance naming
+                       # launch parts would fail in a frame-only audit)
 
 
 def steps(P):

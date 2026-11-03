@@ -233,3 +233,25 @@ Failure modes where the firmware does nothing useful, or the docs and the code d
       pause 150 ms every 550 ms. Point those sections at WIRING.md and API.md.
     - WIRING.md calls the 470 uF XIAO capacitor "optional"; API.md relies on the Jetson spotting reboots after impact
       because there is no other power path. See gap 13.
+
+
+## Status of the gaps (fixed on 3 Nov, afternoon)
+
+| Gap | Status |
+|---|---|
+| 1. Deploy never checked | FIXED: each pods step starts with the deploy worm alone for 0.3 s (open wire faults `NO_CURRENT`, already at the stop skips the step). A backwards deploy is still not detectable by current. |
+| 2. Kick jam misread | FIXED: kick travel bookkeeping; `KICK_JAM` instead of "already down" or "stowed". |
+| 3. `ANCHORED` hides a weak anchor | FIXED: `warnings` list in `/status`. |
+| 4. One dead drill, backwards drills or foot | OPEN: not detectable from the shared current; BENCH_TEST checks directions. A pre-shot self-test is a possible later addition. |
+| 5. STOP across clients | FIXED: a stop locks run keys that any client is still repeating until released. |
+| 6. `/auto` accepted while `ARMED` | FIXED: refused. |
+| 7. Launch fooled by a drop; arm never expires | FIXED: launch needs 300 ms still before the push; arm expires after 15 min. |
+| 8. Arming on a flat battery | FIXED: refused under 6.6 V at rest. |
+| 9. IMU silent while armed; BNO085 not retried | PARTLY: reports are re-enabled every 2 s; the Jetson should not fire while `imu_ok` is false (asked). A full re-begin while idle is not done (it blocks the bus for up to a second). |
+| 10. No DRV8833 nFAULT input | OPEN (wiring): optional wire from both nFAULT pads to D10. |
+| 11. No cell-voltage sense | OPEN (hardware). |
+| 12. No I2C bus recovery | FIXED. |
+| 13. A reboot loses the arm and log | PARTLY: the Jetson rule in API.md, and the 470 uF hold-up capacitor (WIRING, recommended). |
+| 14. Nothing watches the web loop | FIXED: restart after 10 s hung with nothing moving (not during OTA). |
+| 15. A dead 0 V rail not flagged | FIXED: counts as `LOW_RAIL`. |
+| 16. Docs disagreements | FIXED in API.md (SEQ_TIMEOUT text, NO_CURRENT for deploy); a launch is only looked for while armed, so "a launch stops a manual motor" applies while armed only. kedge/CLAUDE.md section 4 is marked superseded by the coordinator. |

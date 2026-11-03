@@ -109,7 +109,7 @@ M_CUPG, Z_CUPG = SP["cup_m"], SP["cup_teeth"]
 # gears follow its joint values: mine (about R +Z = world -Y) = +ratio x theirs (about world +Y).
 BUS_PHASE_D = 3.78           # deg, c1 = (50/46) drum_main + this
 CAP_PHASE_D = 7.91           # deg, capstan = (50/22) drum_out_reel + this
-GK_PHASE = 14.92             # deg, cup gear teeth in the cup frame (cup = (42/24) (drum_idler - idler at home))
+GK_PHASE = 8.67              # deg, cup gear teeth in the cup frame (cup = (42/24) (drum_idler - idler at home))
 BUS_PHASE = 1.37             # fallbacks without cad-drum's module (S keys only)
 CAP_PHASE = 3.27
 SWING_OUT_DEG = 12.0          # swing arm travel from engaged to parked (tips clear by about 2 mm)
@@ -970,8 +970,8 @@ def grounded(P):
 def audit_states(P):
     out = []
     for k in range(6):                          # one tooth pitch of each mesh
-        out.append(dict(phase="reel_mesh", t=0.0, drum_deg=347.0, bus_deg=k * 360.0 / Z_C1 / 5,
-                        capstan_deg=k * 360.0 / Z_CAPG / 5))
+        out.append(dict(phase="reel_mesh", t=0.0, drum_deg=347.0, wiper_deg=k * 360.0 / Z_BUSMAIN / 5,
+                        reel_deg=k * 360.0 / Z_MAIN / 5))
     for k in range(3):
         out.append(dict(phase="reel_swing_out", t=0.0, drum_deg=0.0, wiper_dir=-1, bus_deg=k * 5.0))
     for w in (0.0, 0.25, 0.5, 0.75, 1.0, 3.5, float(WRAPS)):

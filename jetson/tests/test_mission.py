@@ -275,6 +275,6 @@ def test_auto_anchor_on_landing_mode(tmp_path):
     try:
         m = r.run()
         assert m.state == "DONE", m.error
-        assert any(k == "A" for _, k, _ in r.md.keys)
+        assert any(path == "/arm" and "auto=1" in q for _, path, q in r.md.requests)
     finally:
         r.close()

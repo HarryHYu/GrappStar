@@ -21,7 +21,8 @@ import numpy as np
 # ------------------------------------------------------------------------------------------------ local defaults
 DEFAULTS = dict(
     # springs (P.SPRING gives k, F0, free length, max extension)
-    preload=5.0,            # mm extension at home (carriage held on the front stop)
+    preload=None,           # mm extension at HOME; None = all spring extension left over after the stroke (min 5)
+    n_teeth=27,             # big gear teeth present (fixes the stroke and the rail length); None = most the springs allow
     n_lead=3,               # rest: tooth 0 this many pitches before the mesh centre (first contact with the carriage on its stop)
     # cocking gears
     m_rack=2.5,             # module of big gear and rack
@@ -48,7 +49,16 @@ def lp(P=None):
     for blk in ("LAUNCH", "AIM"):
         b = getattr(P, blk, None) if P is not None else None
         if isinstance(b, dict):
-            d.update({k: v for k, v in b.items() if k in d})
+            d.update({k: v for k, v in b.items() if k in d and v is not None})
+    # stroke from the tooth count, preload from what is left of the allowed spring extension
+    pitch = math.pi * d["m_rack"]
+    max_ext = spring(P)["max_ext"]
+    n_max = int(math.floor((max_ext - 5.0 - REL_EXTRA) / pitch)) + 1 - d["n_lead"]
+    n = n_max if d["n_teeth"] is None else min(int(d["n_teeth"]), n_max)
+    d["n_teeth"] = n
+    d["stroke"] = (n - 1 + d["n_lead"]) * pitch + REL_EXTRA
+    if d["preload"] is None:
+        d["preload"] = max(5.0, max_ext - d["stroke"])
     return d
 
 
@@ -69,18 +79,13 @@ REL_EXTRA = 13.1     # mm of carriage travel past (n - 1) pitches before the rel
 
 
 def stroke_max(P):
-    """Largest carriage travel the springs allow (mm)."""
-    d = lp(P)
-    return spring(P)["max_ext"] - d["preload"]
+    """Largest carriage travel the springs allow (mm) with the minimum 5 mm preload."""
+    return spring(P)["max_ext"] - 5.0
 
 
 def stroke(P):
-    """Real stroke: carriage travel at release for the chosen tooth count (<= stroke_max)."""
-    d = lp(P)
-    m = d["m_rack"]
-    pitch = math.pi * m
-    n = int(math.floor((stroke_max(P) - REL_EXTRA) / pitch)) + 1 - d["n_lead"]
-    return (n - 1 + d["n_lead"]) * pitch + REL_EXTRA
+    """Real stroke: carriage travel at release for the tooth count (lp n_teeth)."""
+    return lp(P)["stroke"]
 
 
 def spring_energy(P):
@@ -99,11 +104,9 @@ def gears(P):
     m = d["m_rack"]
     rb = m * d["z_big"] / 2
     rd = m * d["z_drive"] / 2
-    S = stroke_max(P)
-    # teeth needed: rack travel while engaged ~ (teeth present - 1) pitches + contact on the last tooth
     pitch = math.pi * m
-    # release travel measured on the real 2D teeth (launch.release_table): (n - 1) pitches + REL_EXTRA
-    n_present = int(math.floor((S - REL_EXTRA) / pitch)) + 1 - d["n_lead"]
+    # release travel measured on the real 2D teeth (launch.release_table): (n - 1 + n_lead) pitches + REL_EXTRA
+    n_present = d["n_teeth"]
     gap_teeth = d["z_big"] - n_present
     return dict(m=m, r_big=rb, r_drive=rd, cd=rb + rd + 0.1, pitch=pitch, n_present=n_present,
                 gap_teeth=gap_teeth, gap_deg=gap_teeth * 360.0 / d["z_big"],

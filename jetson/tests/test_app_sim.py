@@ -36,7 +36,7 @@ def test_targeting_actions(app):
     r = app.action("target_auto", {})
     assert r["ok"], r
     t = r["target"]
-    assert abs(t["range_m"] - 4.0) < 0.5 and abs(t["bearing_deg"] - 5.0) < 1.5
+    assert abs(t["range_m"] - 3.6) < 0.4 and abs(t["bearing_deg"] - 5.0) < 1.5
     assert t["solution"]["reachable"]
     r = app.action("target_click", {"u": 0.5, "v": 0.05})
     assert not r["ok"]                     # sky: above the horizon

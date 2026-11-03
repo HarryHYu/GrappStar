@@ -123,8 +123,13 @@ class Dart:
     # ------------------------------------------------ API
     def status(self) -> dict:
         t0 = time.time()
-        s = json.loads(self._get("/status"))
+        body = self._get("/status")
         t1 = time.time()
+        try:
+            s = json.loads(body)
+        except ValueError as e:
+            self.fails += 1
+            raise DartError(f"dart status is not valid JSON ({len(body)} bytes)") from e
         if not isinstance(s, dict):
             raise DartError("status is not a JSON object")
         s["phase"] = derive_phase(s)
@@ -183,11 +188,11 @@ class Dart:
 
     def auto(self) -> str:
         self._log("dart_tx", {"auto": True})
-        return self._get("/auto")
+        return self._get("/auto", retries=0)      # never send twice blindly; v4 ignores a repeat anyway
 
     def release(self) -> str:
         self._log("dart_tx", {"release": True})
-        return self._get("/release")
+        return self._get("/release", retries=0)
 
     def arm_landing(self, auto: bool = True) -> bool:
         """Arm the landing detector (auto=True: anchor by itself on landing)."""
@@ -198,7 +203,11 @@ class Dart:
         last: Optional[Exception] = None
         for _ in range(tries):
             try:
-                d = json.loads(self._get("/flightlog", timeout=timeout, retries=0))
+                body = self._get("/flightlog", timeout=timeout, retries=0)
+                try:
+                    d = json.loads(body)
+                except ValueError as e:
+                    raise DartError(f"flightlog is not valid JSON ({len(body)} bytes)") from e
                 if not isinstance(d, dict) or "samples" not in d:
                     raise DartError("flightlog missing samples")
                 return d
@@ -209,9 +218,13 @@ class Dart:
                 time.sleep(0.3)
         raise DartError(f"flightlog failed: {last}")
 
-    def safe_stop(self) -> bool:
+    def safe_stop(self, fast: bool = False) -> bool:
+        """Best-effort stop that never raises. fast=True: one short try (for ESTOP paths)."""
         try:
-            self.stop()
+            if fast:
+                self._get("/stop", timeout=0.4, retries=0)
+            else:
+                self.stop()
             return True
         except Exception:
             return False

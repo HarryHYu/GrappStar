@@ -51,7 +51,8 @@ class MissionConfig:
     drag_n: float = 0.75            # payout brake setting (C3 column)
     tow_limit_n: float = 40.0       # line tension limit while towing (base firmware caps it too)
     check_n: float = 15.0           # anchored check pull
-    check_max_line_m: float = 0.15  # line that may come in during the check once taut
+    check_hold_s: float = 2.0       # hold at the check tension this long
+    check_keep_frac: float = 0.7    # tension must stay above this fraction of the limit (load cell only)
     retrieve_limit_n: float = 30.0  # snag limit while retrieving
     reel_duty: float = 0.8
     retrieve_duty: float = 0.6
@@ -112,6 +113,7 @@ class Mission:
         self._pcv = threading.Condition()
         self._pid = 0
         self.cancel = threading.Event()
+        self.fire_lock = threading.Lock()
         self.thread: Optional[threading.Thread] = None
         self.results: Dict[str, Any] = {}
         self.shot: Dict[str, Any] = {}
@@ -135,6 +137,8 @@ class Mission:
             return
         self.log.warn(f"abort requested: {why}")
         self.cancel.set()
+        with self.fire_lock:      # wait out an arm+fire already in progress (a few ms), so STOP comes after it
+            pass
         with self._pcv:
             self._pcv.notify_all()
 
@@ -276,8 +280,9 @@ class Mission:
                 msg = f"{name} failed: {e}"
                 self.error = msg
                 self.log.error(msg)
-                self.base.safe_stop() if not isinstance(e, BaseDisconnected) else None
-                if isinstance(e, DartError) and self.dart_motion_possible():
+                if not isinstance(e, BaseDisconnected):
+                    self.base.safe_stop()
+                if self.dart_motion_possible():      # whatever failed, never leave dart motors running
                     self.dart.safe_stop()
                 choices = ["Retry", "Abort"]
                 if name in SKIPPABLE:
@@ -323,7 +328,8 @@ class Mission:
                 continue
             r = self._do("ANCHOR", self.anchor)
             if r == "Release and reshoot":
-                self.release_dart()
+                self.dart_anchored = True      # it may be partly dug in: always run the release
+                self._do("RELEASE", self.release_dart)
                 self.reshoot()
                 continue
             break
@@ -459,17 +465,37 @@ class Mission:
         if wrapped and self.tel().get("drum_pos") != "WRAPPED":
             self.wrap()
 
+    def dart_is_out(self) -> bool:
+        """True when telemetry says the dart has left the launcher (line out, not seated)."""
+        t = self.tel()
+        return (t.get("line_m") or 0) > 0.3 or (t.get("sw") or {}).get("seated") is False
+
     def fire(self) -> None:
+        if self.shot.get("fire_sent") and self.dart_is_out():
+            # the shot happened but its FIRED event was lost (USB glitch, reset): carry on with the flight
+            self.log.warn("dart already out after the fire command: continuing to FLIGHT")
+            self.shot.setdefault("t_fire", self.shot["fire_sent"])
+            return
         self.ensure_launch()
         p = self.shot.get("pitch_deg")
         self.ask(f"FIRE at pitch {p} deg toward {self.shot.get('range_m', 0):.1f} m? Area clear, line free, "
                  "everyone behind the launcher?", ["Fire", "Abort"], danger=True)
         self.ask("Second confirmation: FIRE NOW?", ["FIRE NOW", "Abort"], danger=True)
-        self.check_cancel()
-        token = self.base.arm()
-        m = self.base.event_mark()
-        self.base.fire(token)
-        e = self.wait_evt("FIRED", self.cfg.fire_timeout_s, m)
+        with self.fire_lock:               # STOP takes this lock too, so it can never slip between arm and fire
+            self.check_cancel()
+            token = self.base.arm()
+            self.check_cancel()
+            m = self.base.event_mark()
+            self.base.fire(token)
+            self.shot["fire_sent"] = time.time()
+        try:
+            e = self.wait_evt("FIRED", self.cfg.fire_timeout_s, m)
+        except (BaseTimeout, BaseDisconnected):
+            if self.dart_is_out():
+                self.log.warn("no FIRED event but the dart is out: continuing to FLIGHT")
+                self.shot["t_fire"] = self.shot["fire_sent"]
+                return
+            raise
         self.shot["t_fire"] = e.get("_t", time.time())
         self.log.info("FIRED")
 
@@ -644,14 +670,21 @@ class Mission:
         if e.get("evt") == "SEATED":
             raise StepFailed("the dart came all the way home during the check (it did not hold)",
                              choices=["Release and reshoot"])
-        line1 = self.tel().get("line_m") or 0.0
-        self.sleep(1.0)
-        line2 = self.tel().get("line_m") or 0.0
+        # Reaching the check tension is itself the main evidence: a dart dragging over the ground pulls only a few N.
+        # The worm self-locks after LIMIT, so line cannot come in during the hold; instead watch the tension
+        # (load cell) for a decay that means the anchor is creeping out.
+        t1 = self.tel()
+        line1 = t1.get("line_m") or 0.0
+        n1 = e.get("tension_n", t1.get("tension_n"))
+        self.sleep(self.cfg.check_hold_s)
         t = self.tel()
-        held = (line1 - line2) < self.cfg.check_max_line_m
-        self.shot["check"] = {"line_in_m": round(line0 - line2, 3), "tension_n": t.get("tension_n"), "held": held}
+        n2 = t.get("tension_n")
+        decayed = (n1 is not None and n2 is not None and n2 < self.cfg.check_keep_frac * float(n1))
+        held = not decayed
+        self.shot["check"] = {"line_in_m": round(line0 - line1, 3), "tension_n": n2, "tension_at_limit_n": n1,
+                              "held": held, "load_cell": n2 is not None}
         if not held:
-            raise StepFailed("line still creeping in at the check tension: the anchor is slipping",
+            raise StepFailed(f"tension fell from {n1} to {n2} N during the hold: the anchor is slipping",
                              choices=["Retry", "Release and reshoot"])
         self.log.info(f"anchor holds at {t.get('tension_n')} N")
         return None
@@ -676,7 +709,11 @@ class Mission:
                 return
             if r == "abort":
                 raise Aborted("operator chose Abort")
-        self.log.warn("tow round limit reached")
+        c = self.ask(f"Tow round limit ({self.cfg.tow_max_rounds}) reached. Release the dart now?",
+                     ["Release the dart", "Keep towing", "Abort"])
+        if c == "Keep towing":
+            self.cfg.tow_max_rounds += 10
+            return self.tow()
 
     def release_dart(self) -> None:
         try:
@@ -724,6 +761,13 @@ class Mission:
         if self.reshoots > self.cfg.max_reshoots:
             raise Aborted("too many reshoots")
         self.log.info(f"retrieving for reshoot {self.reshoots}")
+        try:
+            ph = self.dart.status()["phase"]
+        except DartError:
+            ph = None
+        if ph in ("ANCHORING", "ANCHORED") or self.dart_anchored:
+            self.dart_anchored = True
+            self._do("RELEASE", self.release_dart)
         self._do("REEL_MODE", lambda: self.base_mode("REEL"))
         self._do("WRAP", self.wrap)
         self._do("RETRIEVE", self.retrieve)

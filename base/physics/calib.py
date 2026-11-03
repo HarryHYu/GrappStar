@@ -1,7 +1,7 @@
 """Turn Harry's bench measurements into model parameters.
 
 Spring hang test (one spring, hooks included in the length):
-  python calib.py spring 165.1 1.0:236 2.0:315 3.0:393
+  python calib.py spring 165.1 1.0:187 2.0:265.5 3.0:344
   (free length mm, then mass_kg:length_mm pairs) -> rate N/mm and initial tension N (least squares).
 Wiper:
   python calib.py wiper --v 12.0 --rpm 44 --i-free 1.4 --stall-kg 3.1 --arm-mm 100 --i-stall 17

@@ -48,6 +48,7 @@ class Wiper:
     i_stall: float = 18.0      # A at v_rated
     i_free: float = 1.5        # A at v_rated
     backdrivable: bool = False # worm: holds any load unpowered
+    limiter_nm: float | None = 5.0   # printed torque limiter in the wiper coupler (spec D8); None = no limiter
     inertia: float = 0.04      # kg m2 reflected to the output: armature ~2e-5 kg m2 x (ratio ~50)^2 x 0.8. Rough.
     # note: kt / ke = 0.39 here, i.e. the gearbox (worm) efficiency implied by these numbers is about 39 %
 
@@ -301,20 +302,20 @@ class Params:
     shaft: Shaft = field(default_factory=Shaft)
     # launcher (placeholders until base/spec/params.py lands)
     launch: dict = field(default_factory=lambda: dict(
-        stroke=0.30,           # m carriage travel under spring force (dart acceleration length)
+        stroke=0.245,          # m carriage travel under spring force (spec D5)
         pulley_ratio=1.0,      # carriage travel / spring extension (1 = springs pull the carriage directly)
-        preload_ext=0.005,     # m spring extension at HOME (cad-launch NOTES: 5 mm)
+        preload_ext=0.035,     # m spring extension at HOME (spec D5: 35 mm, 280 mm at full cock; alternate hole 5 mm)
         carriage_mass=0.080,   # kg carriage sled + rack + cradle (cad-launch NOTES estimate, CAD value to come)
         mu_rail=0.30,          # PLA on PLA sliding (dart + carriage on the rail)
         eta_pulley=0.97,       # per pulley turn on a 608 or printed bushing
         n_pulley_turns=0,      # cord turns between spring and carriage (0 when direct)
         pitch_deg=35.0,
-        stop_pad_travel=0.004, # m crush of the stop pad (TPU / foam)
+        stop_pad_travel=0.015, # m travel of the compliant carriage stop (spec D6: at least 15 mm)
         muzzle_height=0.35,    # m above the ground at the muzzle (rover deck + rail)
     ))
     # flight
     flight: dict = field(default_factory=lambda: dict(
-        brake_n=0.75,          # N line tension from the reel brake at the reel exit
+        brake_n=0.50,          # N payout brake at the reel exit, full reel (spec D7: 0.5 N in LAUNCH)
         eye_gain=1.15,         # tension gain through the guide eye(s): exp(mu theta), ceramic or smooth PLA
         reel_height=0.25,      # m above ground
         pitch_min=6.0, pitch_max=47.0,  # cad-launch crank-rocker range (6.0 to 47.1)
@@ -327,7 +328,7 @@ class Params:
     ))
     # capstan
     capstan: dict = field(default_factory=lambda: dict(
-        d=0.040, ratio=1.0, eta=0.85, wraps=5, takeup_n=2.0, tow_limit_n=50.0,
+        d=0.040, ratio=0.6, eta=0.85, wraps=5, takeup_n=3.0, tow_limit_n=50.0,   # ratio = wiper turns per capstan turn (REEL gear 40 T -> capstan 24 T); take-up 3 N in REEL (D7)
     ))
     source: str = "defaults (base/spec/params.py not found)"
 

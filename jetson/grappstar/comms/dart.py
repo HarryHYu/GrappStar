@@ -270,6 +270,8 @@ class Dart:
                     if e.reason.startswith("stalled"):
                         moved = True
                         break           # the motor reached its end stop: the normal end of a hold
+                    if e.reason.startswith("hold limit"):
+                        moved = True    # the 8 s manual cap ended the move UNFINISHED (fw-dart f5487cd): raise
                     raise
                 time.sleep(period)
         finally:

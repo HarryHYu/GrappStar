@@ -91,7 +91,7 @@ carriage really came home; SW_RAIL_LOW zeroes the aim crank on the backward run.
 ## 6. Carriage stop (`launch_stop.py`, D26: no TPU)
 
 Printed PLA flexure per side: 16 closed loops (31 tapered leaves, 3.15 to 1.0 mm thick) lying over the main spring,
-in a bolted frame, preloaded 6.56 mm (64 N per side, far more than the 10 N per side spring pull at HOME, so the carriage rests
+in a bolted frame, preloaded 6.56 mm (32 N per side, 64 N both, far more than the 10 N per side spring pull at HOME, so the carriage rests
 exactly at u_stop). Both sides: 9.76 N/mm, 4.29 J at 23.8 mm, peak 296 N, leaf stress 34.8 MPa. Every gap closes at
 23.8 mm, so the stack goes solid exactly at full travel (no separate hard stop). Sized for the moving mass of the
 first build (about 122 g moving: up to 3.9 J after the dart leaves); the lighter

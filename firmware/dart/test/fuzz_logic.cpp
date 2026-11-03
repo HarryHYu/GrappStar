@@ -54,7 +54,7 @@ struct Rng {
 // the pods pass drillTouch and stall at drillFull (full depth or stone). The foot digs once the kick touches the ground
 // and stalls at footFull. Currents are mA at 8 V and full duty; the INA219 sees sum(I * (duty/255)^2 * V/8).
 struct Plant {
-  float vbat = 7.6f, rint = 0.1f, noise = 0; double readFail = 0;
+  float vbat = 7.6f, rint = 0.1f, noise = 0; double readFail = 0; int maxFailRun = 1000, failRun = 0;   // nominal: isolated failures only
   float kFree = 30, kPush = 80, kStall = 180, dFree = 30, dStall = 180;
   float drFree = 70, drDig = 400, drStall = 700, fFree = 40, fDig = 130, fStall = 550;
   float cDrill = 0, cFoot = 0;                         // auger current change while the worm of its pair is off
@@ -157,9 +157,9 @@ struct ImuProg {
 static Kedge K; static Plant P; static Rng R; static ImuProg IMU;
 static uint32_t ET = 0, BASE = 0;                      // episode time (ms) and the dart clock at episode start
 static inline uint32_t NOWA() { return BASE + ET; }
-static uint64_t SEED = 0; static int EPI = 0; static bool VERBOSE = false;
-static long TICKS = 0, CMDS = 0, EPISODES = 0, NOMINAL = 0; static double SIM_MS = 0;
-static long VIOL[11], CHECKS[11];
+static uint64_t SEED = 0; static int EPI = 0; static bool VERBOSE = false, NOMINAL_EP = false;
+static long TICKS = 0, EP_TICKS = 0, CMDS = 0, EPISODES = 0, NOMINAL = 0; static double SIM_MS = 0;
+static long VIOL[11], VIOLN[11], CHECKS[11];   // VIOLN: violations inside nominal missions
 struct Stats { long launches = 0, impactLandings = 0, fallbackLandings = 0, autoByCmd = 0, autoByLanding = 0, anchored = 0, released = 0,
                nomAnch = 0, nomRel = 0, stallStops = 0, pairPauses = 0, holdsCapped = 0, faults[F_NFAULT] = {}, maxRun[4] = {};
                long pushArmed22 = 0, pushMissed22 = 0, pushArmed30 = 0, pushMissed30 = 0, jsonStatus = 0, jsonLog = 0; } ST;
@@ -190,6 +190,7 @@ static std::map<std::string, SigInfo> SIGS; static bool DUMPED[11]; static int O
 static void violate(int inv, const std::string& sig, const char* fmt, ...) {
   char msg[600]; va_list ap; va_start(ap, fmt); vsnprintf(msg, sizeof msg, fmt, ap); va_end(ap);
   VIOL[inv]++;
+  if (NOMINAL_EP) VIOLN[inv]++;
   char key[300]; snprintf(key, sizeof key, "%02d | %s", inv, sig.c_str());
   auto it = SIGS.find(key);
   if (it != SIGS.end()) { it->second.n++; return; }
@@ -273,8 +274,9 @@ static bool validJson(const char* s, size_t n) { JsonV j{s, s + n}; if (!j.val(0
 static void setM(int m, int d, int duty) { if (m >= 0 && m < NMOT) { P.hwDir[m] = d; P.hwDuty[m] = duty; } }
 static float readCurrent() {
   P.electrical();
-  if (P.inaDead || R.p(P.readFail + P.burstFail)) { P.railCache = -1; return NAN; }
-  P.railCache = P.railNow;
+  bool fail = R.p(P.readFail + P.burstFail) && P.failRun < P.maxFailRun;
+  if (P.inaDead || fail) { P.failRun++; P.railCache = -1; return NAN; }
+  P.failRun = 0; P.railCache = P.railNow;
   if (P.total > 3200) return 9999;                     // INA219 overflow flag, as the sketch reports it
   return P.total + (float)R.r(-P.noise, P.noise);
 }
@@ -289,10 +291,11 @@ struct Track {
   bool seqWas = false, seqAnch = false, seqFlag = false; uint32_t seqT0 = 0;
   // invariant 3: stalls
   bool stallOn[NMOT] = {}, stallGood[NMOT] = {}, stallFlag[NMOT] = {}; int stallDir[NMOT] = {}; uint32_t stallT0[NMOT] = {};
+  int stallNmax[NMOT] = {}, stallNmin[NMOT] = {}, stallSpdMin[NMOT] = {}; bool stallSeq[NMOT] = {};
   // invariant 1: pause
   bool pauseOn = false; int pauseM = -1; uint32_t pauseT0 = 0;
   bool act[11] = {};
-  int lastPhase = -1, lastFault = 0, lastSeqV = IDLE; uint32_t seqChangeT = 0, stallStepT[NMOT] = {}; bool stallAtStart[NMOT] = {};
+  int lastPhase = -1, lastFault = 0, lastSeqV = IDLE; uint32_t seqChangeT = 0;
   float maxAccFlight = 0;
   bool linkLost = false, bno = true; uint32_t lastImu = 0;
   int pendingPushCheck = 0; float pushCheckAt = 0;     // launch detection info check
@@ -408,18 +411,29 @@ static void checkAll(bool afterStop) {
     int d = K.dir[m];
     bool st = d && m != P.openWire && P.stalledDir(m, d);
     if (st) {
-      if (!T.stallOn[m] || T.stallDir[m] != d) {
+      if (!T.stallOn[m] || T.stallDir[m] != d || T.stallSeq[m] != K.seqRunning()) {   // a sequence taking over is a new run
         T.stallOn[m] = true; T.stallDir[m] = d; T.stallT0[m] = ET; T.stallGood[m] = true; T.stallFlag[m] = false; CHECKS[3]++;
-        T.stallAtStart[m] = K.seqRunning() && ET - T.seqChangeT <= 10;   // already at the stop when the step began
+        T.stallSeq[m] = K.seqRunning(); T.stallNmax[m] = 0; T.stallNmin[m] = 9; T.stallSpdMin[m] = 255;
       }
+      { int n = nRunning(); if (n > T.stallNmax[m]) T.stallNmax[m] = n; if (n < T.stallNmin[m]) T.stallNmin[m] = n; if (K.spd < T.stallSpdMin[m]) T.stallSpdMin[m] = K.spd; }
       if (!K.inaOk || P.inaDead || P.burstFail > 0 || P.shortOn) T.stallGood[m] = false;
       if (!T.stallFlag[m] && T.stallGood[m] && ET - T.stallT0[m] > 2500) {
         T.stallFlag[m] = true;
         const char* where = m == KICK ? (d > 0 ? (P.kick >= P.kickLand ? "housing on the ground" : "jammed going out") : (P.kick <= 0 ? "stowed stop" : "jammed going back"))
                           : m == DEPLOY ? (d > 0 ? (P.deploy >= P.deployEnd ? "pods-down stop" : "jammed going down") : "pods-up stop")
                           : m == DRILLS ? (d > 0 ? "full depth / stone" : "jammed unscrewing") : (d > 0 ? "full depth / stone" : "jammed unscrewing");
-        const char* when = !K.seqRunning() ? "" : T.stallAtStart[m] ? " (at the stop when the step began)" : " (reached the stop during the step)";
-        violate(3, std::string(motorName(m)) + " at " + where + ", " + modeCtx() + when, "%s (dir %d) at %s still driven %u ms after it stalled, %s%s, V %.2f, dir %d %d %d %d, coupling drills %+.0f%% foot %+.0f%%",
+        // relative to the step now running: was the worm already stalled when it began, or how soon after
+        int32_t into = (int32_t)(T.stallT0[m] - T.seqChangeT);
+        const char* when = !K.seqRunning() ? "" : into <= 10 ? " (at the stop when the step began)" : into <= 420 ? " (reached the stop in the first 420 ms of the step)" : " (reached the stop later in the step)";
+        std::string ctx;
+        if (K.seqRunning()) ctx = modeCtx() + when;
+        else {
+          char b[120]; int sp = T.stallSpdMin[m];
+          snprintf(b, sizeof b, "manual, %s motor(s) on during the stall, lowest speed %s", T.stallNmin[m] == T.stallNmax[m] ? std::to_string(T.stallNmax[m]).c_str() : (std::to_string(T.stallNmin[m]) + " to " + std::to_string(T.stallNmax[m]) + " (keys pulsing)").c_str(),
+                   sp == 255 ? "255" : sp >= 150 ? "150..230" : "50..125");
+          ctx = b;
+        }
+        violate(3, std::string(motorName(m)) + " at " + where + ", " + ctx, "%s (dir %d) at %s still driven %u ms after it stalled, %s%s, V %.2f, dir %d %d %d %d, coupling drills %+.0f%% foot %+.0f%%",
                 motorName(m), d, where, ET - T.stallT0[m], modeCtx().c_str(), when, P.railNow, K.dir[0], K.dir[1], K.dir[2], K.dir[3], P.cDrill * 100, P.cFoot * 100);
       }
     } else {
@@ -582,7 +596,7 @@ static const int W_PRE[C_N]    = {30, 6,  3,  4,  1,  0,   0,  0,  0,   2,   2, 
 static const int W_BENIGN[C_N] = {0,  0,  0,  0,  0,  0,   3,  2,  2,   1,   1,  1,  2,  2,  2,   1,  6,   1,   0,  3};
 static const int W_GAP[C_N]    = {0,  0,  0,  0,  0,  0,   1,  0,  0,   0,   1,  0,  2,  2,  2,   1,  6,   1,   0,  0};
 static const int W_STATUS[C_N] = {0,  0,  0,  0,  0,  0,   0,  0,  0,   0,   0,  0,  0,  0,  0,   0,  1,   0,   0,  0};
-static int RAND_MODE = M_NONE; static bool NOMINAL_EP = false;
+static int RAND_MODE = M_NONE;
 static uint32_t NEXT_RAND = UINT32_MAX, NEXT_SCRIPT = UINT32_MAX;
 
 static char randRunKey() { static const char k[] = "1!2@3#4$"; return k[R.i(0, 7)]; }
@@ -669,7 +683,7 @@ static void scheduleFaults(uint32_t dur) {
 
 // ------------------------------------------------------------------------------------------------------- tick
 static void doTick(uint32_t dt) {
-  TICKS++;
+  TICKS++; EP_TICKS++;
   uint32_t now = NOWA();
   if (T.bno && !imuSilent((float)ET)) {
     int n = dt >= 6 ? 3 : 2;                           // 400 Hz accelerometer, every sample stamped with the tick time
@@ -693,11 +707,12 @@ static void doTick(uint32_t dt) {
     T.pendingPushCheck = 0;
     if (K.armed || K.flight.launched) {
       bool seen = K.flight.launched; float push = IMU.push;
+      if (!seen) evlog("info: armed launch push of %.0f ms not detected", push);
       if (push >= 22) { ST.pushArmed22++; if (!seen) ST.pushMissed22++; }
       if (push >= 30) { ST.pushArmed30++; if (!seen) ST.pushMissed30++; }
     }
   }
-  if (TICKS % 23 == 0) checkStatus();
+  if (EP_TICKS % 23 == 0) checkStatus();             // per-episode count: a replayed episode draws the same numbers
 }
 
 // ------------------------------------------------------------------------------------------------------- nominal mission script
@@ -765,6 +780,7 @@ static void randomPlant(bool nominal) {
   P.rint = (float)R.r(0.05, 0.2);
   P.noise = (float)R.r(0, 15);
   P.readFail = nominal ? (R.p(0.5) ? 0 : R.r(0, 0.01)) : (R.p(0.4) ? 0 : R.r(0, 0.05));
+  if (nominal) P.maxFailRun = 2;                       // 3 failed reads in a row is a lost sensor (an injected fault)
   P.kFree = (float)R.r(20, 40); P.kStall = (float)R.r(160, 200); P.kPush = (float)R.r(70, 95);
   P.dFree = (float)R.r(20, 40); P.dStall = (float)R.r(160, 200);
   P.drFree = (float)R.r(60, 80); P.drStall = (float)R.r(650, 750); P.drDig = (float)R.r(150, 480);
@@ -781,7 +797,7 @@ static void runEpisode(uint64_t seed, int ep) {
   SEED = seed; EPI = ep;
   R.s = seed * 0x9E3779B97F4A7C15ull ^ ((uint64_t)(ep + 1) * 0xD1B54A32D192ED03ull); R.next(); R.next();
   NOMINAL_EP = R.p(0.35);
-  K = Kedge(); T = Track(); HOLDS.clear(); ACTS = decltype(ACTS)(); EVR.clear(); IMU = ImuProg(); ET = 0;
+  K = Kedge(); T = Track(); EP_TICKS = 0; HOLDS.clear(); ACTS = decltype(ACTS)(); EVR.clear(); IMU = ImuProg(); ET = 0;
   BASE = R.p(0.08) ? 0xFFFFFFFFu - (uint32_t)R.i(0, 60000) : (uint32_t)R.i(0, 200000);   // some episodes cross the millis() wrap
   randomPlant(NOMINAL_EP);
   K.io = {setM, readCurrent, readRail, logCb};
@@ -863,9 +879,9 @@ int main(int argc, char** argv) {
   for (int f = 1; f < F_NFAULT; f++) printf(" %s %ld", faultName(f), ST.faults[f]);
   printf("\nnominal missions: %ld anchored fully, %ld released stowed\n", ST.nomAnch, ST.nomRel);
   printf("info (not an invariant): armed launch pushes >= 22 ms missed %ld of %ld, >= 30 ms missed %ld of %ld\n", ST.pushMissed22, ST.pushArmed22, ST.pushMissed30, ST.pushArmed30);
-  printf("\ninvariant                                          checks   violations\n");
+  printf("\ninvariant                                          checks   violations   (in nominal missions)\n");
   long total = 0;
-  for (int i = 1; i <= 10; i++) { printf("%2d %-44s %10ld %10ld\n", i, INV_NAME[i], CHECKS[i], VIOL[i]); total += VIOL[i]; }
+  for (int i = 1; i <= 10; i++) { printf("%2d %-44s %10ld %10ld   %10ld\n", i, INV_NAME[i], CHECKS[i], VIOL[i], VIOLN[i]); total += VIOL[i]; }
   if (!SIGS.empty()) {
     printf("\nviolation signatures (count, first seed / episode / time):\n");
     for (auto& s : SIGS) printf("  [%s] x%ld  first: seed %llu episode %d t %.3f s\n      %s\n", s.first.c_str(), s.second.n, (unsigned long long)s.second.seed, s.second.ep, s.second.t / 1000.0, s.second.msg.c_str());

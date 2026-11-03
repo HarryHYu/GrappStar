@@ -5,32 +5,33 @@ sim over HTTP, the real Jetson App). Each entry: the exact failing scenario, the
 Line numbers are against `origin/base-v1` at the time of the entry. Status: OPEN until the owner says fixed and the
 harness re-runs green.
 
-## Status (14:00 Sydney)
+## Status (14:20 Sydney)
 
-"fixed on branch" = green in `systest/preview.sh` (base-v1 ba121b9 + w/fw-base 6472524 + w/fw-dart 827b290 +
-w/jetson 79e30ed), not yet merged into base-v1. Evidence in `systest/runs_preview/<scenario>/`.
+"fixed on branch" = green in the preview (`PREVIEW=1 systest/batch.sh`: base-v1 9a3bdf9 + w/fw-base 1027c3f +
+w/fw-dart 71c45ab + w/jetson c80c0f1), not yet merged into base-v1. Evidence in `systest/runs_preview/<scenario>/`.
 
 | # | owner | status | evidence |
 |---|---|---|---|
-| F1 | fw-base | open (not re-tested: harness waits for BOOT) | |
-| F2 | fw-base, jetson | FIXED in base-v1 | `tidy` -> TIDIED in every nominal run |
-| F3 | fw-base | partly (jetson reads l r I) | PROTOCOL re-sync pending D35 |
-| F4 | jetson | fixed on branch | preview `nominal` PASS with the strict D22 plant, steps WRAP before ANCHOR |
-| F5 | jetson, docs | fixed on branch | preview `nominal_uncal` PASS (release option, no re-pull above the limit) |
-| F6 | jetson | fixed on branch | prompt now says "The drum HELD where it is (...)" |
-| F7 | jetson | fixed on branch | COCK fault prompt offers "Decock and re-aim" (re-test after the harness timing fix) |
-| F8 | jetson | fixed on branch | preview `power_unwrap`: BASE_RESET reported 1 s after the cut |
-| F9 | fw-base | open | |
-| F10 | jetson | open (re-test) | |
+| F1 | fw-base | open (not re-tested: the harness waits for BOOT) | |
+| F2 | fw-base, jetson | FIXED in base-v1 | `tidy` -> TIDIED in every run |
+| F3 | fw-base | partly (Jetson reads l r I) | PROTOCOL re-sync |
+| F4 | jetson | fixed on branch | preview: WRAP before ANCHOR in every mission |
+| F5 | jetson, docs | fixed on branch | `nominal_uncal`: "TOW refused: no load cell and k_n_per_a is still ..." |
+| F6 | jetson | fixed on branch | prompt says "The drum HELD where it is (...)" |
+| F7 | jetson | fixed on branch | `stall_cock`: "Decock and re-aim", then COCKED, FIRE, mission DONE |
+| F8 | jetson | fixed on branch | `power_unwrap(_fasthello)`: BASE_RESET at once, DONE in 121 s |
+| F9 | fw-base | open | `no_angle_sensor` |
+| F10 | jetson | re-test | |
 | F11 | jetson | re-test | |
-| F12 | jetson | fixed on branch | preview `nominal` C1 order = BASE_SPEC 10.1 |
+| F12 | jetson | fixed on branch (one leftover) | C1 order matches 10.1 except a bench `set host_timeout_s` (allowed) |
 | F13 | fw-base | open | |
-| F14 | fw-base, docs | OPEN | preview `ref_doc_cal`: plant 50.5 N at LIMIT 40 |
-| F15 | fw-base | open (escape path works, re-cocks) | `ref_power_wrap` |
+| F14 | fw-base, docs | fixed on branch | CALIBRATION.md: two-point `k_n_per_a` + `tension_offset_n` |
+| F15 | fw-base | claimed fixed in 3ff1a86 | re-test `ref_power_wrap`, `power_aim` (this batch) |
 | F16 | fw-base | re-test | |
 | F17 | fw-base | open | |
-| F18 | jetson | OPEN | preview `nominal`, `power_unwrap`: TOW 60 s timeouts |
-| F19 | fw-base | OPEN (D39 new) | preview `ref_refusals` |
+| F18 | jetson | fixed on branch | no 60 s TOW waits in this batch |
+| F19 | fw-base | retrieve at the park now refused (WRAPS_ON); max_n 80 untested behind F20 | `ref_refusals` |
+| F20 | fw-base (D41) | OPEN, acceptance test ready | `ref_nominal`, `ref_tow_stiff`, `tow_stiff`, `nominal`: OVERCURRENT 3.0 A at the fly-in |
 
 ## F1 (fw-base) `cal` (and `set`) during the first 60 ms are acknowledged ok, then silently undone by the boot rebuild
 

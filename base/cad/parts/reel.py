@@ -828,24 +828,29 @@ def brake_mm(P, S):
     return BRAKE_STROKE if mode in ("REEL", "WRAPPED", "TOW", "NEUTRAL") else 0.0
 
 
+def _num(S, k, default=0.0):
+    v = S.get(k, default)
+    return float(default if v is None else v)
+
+
 def kin(P, S):
     d = _d(P)
-    wiper = float(S.get("wiper_deg", 0.0))
+    wiper = _num(S, "wiper_deg")
     # wiper FORWARD turns the main shaft negative about R +Z, so a gear meshing it turns positive (wind-in sense)
     bus = float(S.get("bus_deg", (Z_BUSMAIN / Z_C1) * wiper))
     if "capstan_deg" in S:
         cap = float(S["capstan_deg"])
     else:
         # params 1.2.3: reel_deg = REEL output gear angle (changes only with the collar in REEL), wind-in sense
-        cap = (Z_MAIN / Z_CAPG) * float(S.get("reel_deg", 0.0))
-    swing = 0.0 if float(S.get("wiper_dir", 1.0)) >= 0 else -SWING_OUT_DEG
+        cap = (Z_MAIN / Z_CAPG) * _num(S, "reel_deg")
+    swing = 0.0 if _num(S, "wiper_dir", 1.0) >= 0 else -SWING_OUT_DEG
     _, th_i, th_r = gear_angles(bus, swing)
-    wraps = float(S.get("wraps", 0.0))
+    wraps = _num(S, "wraps")
     if "spool_deg" in S:
         spool = float(S["spool_deg"])
     else:
         r_mid = 0.5 * (d["core_r"] + reel_calc.pack_r(d, d["line_len_m"]))
-        spool = -math.degrees(float(S.get("line_out_m", 0.0)) * 1000.0 / r_mid)
+        spool = -math.degrees(_num(S, "line_out_m") * 1000.0 / r_mid)
     return {"reel_capstan": cap, "reel_cup": -360.0 * wraps, "reel_bus": bus, "reel_swing": swing,
             "reel_idler": th_i, "reel_shaft": th_r, "reel_spool": spool, "reel_t": 0.0, "reel_push": brake_mm(P, S)}
 
@@ -1004,9 +1009,9 @@ def line_path(P, S):
     and cup groove (S["wraps"]) -> ring -> exit eye -> pulley 1 -> along world +Y -> pulley 2 -> into the y 119 plane
     -> round the bottom of cad-launch's pivot pulley to launch.line_entry(P, S). cad-launch continues from there."""
     d = _d(P)
-    stored = max(0.0, d["line_len_m"] - float(S.get("line_out_m", 0.0)))
+    stored = max(0.0, d["line_len_m"] - _num(S, "line_out_m"))
     rp = reel_calc.pack_r(d, stored)
-    w = float(S.get("wraps", 0.0))
+    w = _num(S, "wraps")
     if 0.0 < w < 0.25:              # the turn model starts after the first quarter turn; show the launch path before
         w = 0.0
     pts = []
@@ -1030,7 +1035,7 @@ PIV_R = 6.5                   # cad-launch's pivot pulley line radius
 def _pivot(P, S):
     """(entry point, pulley centre, rail direction u) of cad-launch's pivot pulley, world. Uses launch.line_entry
     when the launch module is present, else the coordinator's numbers (centre (44 sin p, 119, -44 cos p))."""
-    p = math.radians(float(S.get("aim_deg", 6.0)))
+    p = math.radians(_num(S, "aim_deg", 6.0))
     u = np.array((math.cos(p), 0.0, math.sin(p)))
     try:
         from cad.parts import launch as _L

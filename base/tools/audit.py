@@ -347,6 +347,31 @@ def _matcher(rules, names):
     return [({n for n in names if fnmatchcase(n, r.a)}, {n for n in names if fnmatchcase(n, r.b)}) for r in rules]
 
 
+ENV_SEG = 96            # sides of the prism that encloses a rotating part's swept cylinder
+ENV_PAD = 1e-3          # mm added to every motion envelope
+CROP_MIN_POSES = 8      # pairs with at least this many distinct poses are cropped to their envelopes
+
+
+def _verts(solid):
+    return prim.mesh_of(solid)[0] if not solid.is_empty() else np.zeros((0, 3))
+
+
+def _env_solid(kind, u, travel=(0.0, 0.0)):
+    """Solid in the motion frame (z = joint axis) enclosing every pose of points u (N, 3) of that frame:
+    rev: a prism around the whole swept cylinder; slide: the box swept along z by travel; 'zprism': a box in x, y
+    unbounded along z (invariant under the slide)."""
+    if not len(u):
+        return None
+    if kind == "rev":
+        r = float(np.sqrt((u[:, 0] ** 2 + u[:, 1] ** 2).max())) + ENV_PAD
+        z0, z1 = float(u[:, 2].min()) - ENV_PAD, float(u[:, 2].max()) + ENV_PAD
+        return prim.cyl(r / math.cos(math.pi / ENV_SEG), z1 - z0, z=z0, seg=ENV_SEG)
+    lo, hi = u.min(axis=0) - ENV_PAD, u.max(axis=0) + ENV_PAD
+    if kind == "slide":
+        return prim.box(lo[0], hi[0], lo[1], hi[1], lo[2] + travel[0], hi[2] + travel[1])
+    return prim.box(lo[0], hi[0], lo[1], hi[1], lo[2] - 1e5, hi[2] + 1e5)
+
+
 # ---------------------------------------------------------------------------------------------- main audit
 def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print) -> dict:
     global _ASM, _CTX
@@ -418,12 +443,6 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
     stats["chunks"] = sum(len(lst) for lst in _CTX["ch"])
     stats["triangles"] = int(sum(t.sum() for t in ntri))
     lap("chunks")
-    # 1 static (in the pool; same order as names)
-    res = {}
-    for out in pool.imap(_w_static, _batches(list(enumerate(names)), lambda kn: max(2000, int(ntri[kn[0]].sum())))):
-        res.update(out)
-    rep["static"] = [res[k] for k in range(NP)]
-    lap("static")
     # world AABBs of every part at every state (loose: local box under the world transform)
     LO = np.empty((NP, NS, 3))
     HI = np.empty((NP, NS, 3))
@@ -456,6 +475,94 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
         lists = [mask_states[srt[bounds[k]:bounds[k + 1]]] for k in range(len(order))]
         return mask_states[first[order]], rel[first[order]], lists
 
+    # motion envelopes: a part is static (same world pose at every state), or moves on a rev / slide joint whose
+    # frame before the joint motion is the same at every state (then its every pose lies in a known prism), or None
+    def const(M):
+        return bool(np.abs(M - M[:1]).max() <= 1e-9)
+
+    envc = {}
+
+    def envelope(p):
+        if p in envc:
+            return envc[p]
+        out = None
+        Wp = W(p)
+        if const(Wp):
+            out = ("static", Wp[0], None, None)
+        else:
+            j = asm.joints.get(asm.parts[names[p]].joint)
+            if j is not None and j.kind in ("rev", "slide"):
+                Fpre = JW[:, jcol.get(j.parent, 0)] @ j.local(0.0)
+                if const(Fpre):
+                    Q = tf.frame((0, 0, 0), j.axis)
+                    F = Fpre[0] @ Q
+                    G = tf.inv(Q) @ place[p]                  # part frame -> motion frame at joint value 0
+                    u = tf.apply(G, _verts(asm.parts[names[p]].solid))
+                    travel = (0.0, 0.0)
+                    if j.kind == "slide":
+                        d = np.einsum("i,ki->k", np.asarray(j.axis), (tf.inv(Fpre[0]) @ JW[:, body[p]])[:, :3, 3])
+                        travel = (float(d.min()), float(d.max()))
+                    E = _env_solid(j.kind, u, travel)
+                    if E is not None:
+                        out = (j.kind, F, G, E)
+        envc[p] = out
+        return out
+
+    def pieces(p, M, E):
+        """Chunks of part p cut by solid E given in p's frame through M (only chunks whose boxes meet E's)."""
+        Ep = prim.place(E, M)
+        eb = _bounds(Ep)
+        cb = _CTX["cb"][p]
+        sel = np.nonzero(np.all(cb[:, 0] <= eb[1] + BOX_PAD, axis=1) & np.all(eb[0] <= cb[:, 1] + BOX_PAD, axis=1))[0]
+        out = []
+        for i in sel:
+            x = _CTX["ch"][p][i] ^ Ep
+            if not x.is_empty() and x.num_tri():
+                out.append(x)
+        return out
+
+    def add_virtual(lst):
+        _CTX["ch"].append(lst)
+        _CTX["cb"].append(np.array([_bounds(x) for x in lst]).reshape(-1, 2, 3))
+        _CTX["box"].append(np.array([np.min(_CTX["cb"][-1][:, 0], axis=0), np.max(_CTX["cb"][-1][:, 1], axis=0)]))
+        return len(_CTX["ch"]) - 1
+
+    n_proved = n_crop = 0
+
+    def envelope_stage(a, b, n_poses):
+        """'clear' when the motion envelopes prove vol <= HIT_VOL at every state, else the (possibly cropped) part
+        indices to use for a and b."""
+        nonlocal n_proved, n_crop
+        ea, eb = envelope(a), envelope(b)
+        if ea is None or eb is None or (ea[0] == "static" and eb[0] == "static"):
+            return a, b
+        if ea[0] != "static" and eb[0] != "static":
+            Ea, Eb = prim.place(ea[3], ea[1]), prim.place(eb[3], eb[1])
+            if (Ea ^ Eb).volume() <= HIT_VOL:
+                n_proved += 1
+                return "clear"
+            return a, b
+        flip = ea[0] != "static"
+        s_, m_ = (b, a) if flip else (a, b)                 # static part, moving part
+        es, em = envelope(s_), envelope(m_)
+        Ms = tf.inv(es[1]) @ em[1]                          # motion frame -> static part frame
+        sp = pieces(s_, Ms, em[3])                          # static part cut to the moving part's envelope
+        if sum(x.volume() for x in sp) <= HIT_VOL:
+            n_proved += 1
+            return "clear"
+        if n_poses < CROP_MIN_POSES:
+            return a, b
+        # moving part cut to an envelope of the cut static part that its own motion leaves invariant
+        u = np.concatenate([tf.apply(tf.inv(Ms), _verts(x)) for x in sp])
+        C = _env_solid("rev" if em[0] == "rev" else "zprism", u)
+        mp = pieces(m_, tf.inv(em[2]), C)
+        n_crop += 1
+        vs, vm = add_virtual(sp), add_virtual(mp) if mp else None
+        if vm is None:
+            n_proved += 1
+            return "clear"
+        return (vm, vs) if flip else (vs, vm)
+
     items = []                 # (a, b, rep state, rel, chunk pairs (m, 2), states)
     n_cand = n_pose = 0
     allst = np.arange(NS)
@@ -467,7 +574,13 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
             n_cand += len(st)
             reps, rels, lists = groups(a, b, st)
             n_pose += len(reps)
-            k, i, j, _ = _cull(a, b, rels, BOX_PAD)
+            if len(reps) > 1:
+                use = envelope_stage(a, b, len(reps))
+                if use == "clear":
+                    continue
+            else:
+                use = (a, b)
+            k, i, j, _ = _cull(use[0], use[1], rels, BOX_PAD)
             if not len(k):
                 continue
             srt = np.argsort(k, kind="stable")
@@ -476,7 +589,8 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
             for g in range(len(reps)):
                 if cuts[g + 1] > cuts[g]:
                     pairs = np.stack([i[cuts[g]:cuts[g + 1]], j[cuts[g]:cuts[g + 1]]], axis=1)
-                    items.append((a, b, int(reps[g]), rels[g], pairs, lists[g]))
+                    items.append((a, b, int(reps[g]), rels[g], pairs, lists[g], use))
+    stats.update(envelope_cleared_pairs=n_proved, cropped_pairs=n_crop)
     stats.update(candidate_pair_states=int(n_cand), distinct_poses=int(n_pose), exact_items=len(items),
                  exact_chunk_pairs=int(sum(len(it[4]) for it in items)))
     per = {}
@@ -489,13 +603,20 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
     log(f"audit: {NP} parts, {NS} states, {n_pose} distinct pair poses, {len(items)} exact pair checks "
         f"({stats['exact_chunk_pairs']} chunk booleans)")
     lap("broad")
+    ntri += [np.array([x.num_tri() for x in lst]) for lst in _CTX["ch"][len(ntri):]]
+    # 1 static (in the pool; same order as names)
+    res = {}
+    for out in pool.imap(_w_static, _batches(list(enumerate(names)), lambda kn: max(2000, int(ntri[kn[0]].sum())))):
+        res.update(out)
+    rep["static"] = [res[k] for k in range(NP)]
+    lap("static")
     vols = [0.0] * len(items)
 
     def vcost(it):
         a, b, pairs = it[1], it[2], it[4]
         return int(ntri[a][pairs[:, 0]].sum() + ntri[b][pairs[:, 1]].sum()) + 500 * len(pairs)
 
-    work = [(n, a, b, rel, pairs) for n, (a, b, _, rel, pairs, _) in enumerate(items)]
+    work = [(n, u[0], u[1], rel, pairs) for n, (a, b, _, rel, pairs, _, u) in enumerate(items)]
     prog, done = _Progress(log, "exact checks", len(work)), 0
     for out in pool.imap(_w_volume, _batches(work, vcost)):
         for iid, v in out:
@@ -503,7 +624,7 @@ def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
         done += len(out)
         prog.step(done)
     hits = {}           # (a, b) -> list of (state, vol)
-    for (a, b, _, _, _, lst), v in zip(items, vols):
+    for (a, b, _, _, _, lst, _), v in zip(items, vols):
         if v > HIT_VOL:
             hits.setdefault((names[a], names[b]), []).extend((int(i), v) for i in lst)
     del work, items

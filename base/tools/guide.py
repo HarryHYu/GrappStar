@@ -118,6 +118,34 @@ def audit_lines(au):
     return ("CLEAN" if au.get("clean") else "NOT CLEAN"), L
 
 
+COUPON_MD = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "pack", "coupons", "COUPON_TEST.md")
+
+
+def coupon_story(Pp, only=None, md=COUPON_MD):
+    """Flowables for the coupon section from COUPON_TEST.md (headings, bullets, paragraphs; tables become lines)."""
+    import re
+    if only == "demo" or not os.path.exists(md):
+        return [Pp("Print the fit coupon first (python -m tools.coupon OUT) and tune cad/lib/fits.py from it.")]
+    out = [Pp("Print these before any big part. Each coupon uses the same geometry and numbers as the real part. "
+              "Files: base/pack/coupons (3MF plates, STL, COUPON_TEST.pdf). Also print the fit coupon "
+              "(python -m tools.coupon OUT) to tune cad/lib/fits.py.")]
+    for line in open(md, encoding="utf-8").read().splitlines():
+        t = line.strip()
+        if not t or t.startswith("# ") or set(t) <= set("|-: "):
+            continue
+        t = re.sub(r"`([^`]*)`", r"\1", t).replace("**", "")
+        t = t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        if t.startswith("### "):
+            out.append(Pp(clean(t[4:]), "H3"))
+        elif t.startswith("## "):
+            out.append(Pp(clean(t[3:]), "H3"))
+        elif t.startswith("|"):
+            out.append(Pp(clean(" ".join(c.strip() for c in t.strip("|").split("|"))), "SM"))
+        else:
+            out.append(Pp(clean(t)))
+    return out
+
+
 def run(out, only=None, title=None, pack_dir=None, log=print) -> str:
     from reportlab.lib.units import mm
     from reportlab.platypus import KeepTogether, PageBreak, Spacer
@@ -141,8 +169,11 @@ def run(out, only=None, title=None, pack_dir=None, log=print) -> str:
     # safety
     S.append(Pp("1. Safety", "H2"))
     S += [Pp("- " + s) for s in SAFETY]
+    # first print: the day-one risk coupons (base/pack/coupons/COUPON_TEST.md, written by tools.risk_coupon)
+    S.append(Pp("2. First print: test coupons", "H2"))
+    S += coupon_story(Pp, only)
     # parts list
-    S.append(Pp("2. Parts list", "H2"))
+    S.append(Pp("3. Parts list", "H2"))
     S.append(Pp("Printed parts", "H3"))
     rows = [["part", "subsystem", "material", "qty", "mass g", "notes"]]
     rows += [[r["name"], r["subsystem"], r["material"], r["qty"], f"{r['mass_g']:.1f}", r["notes"]] for r in bom["printed"]]
@@ -157,7 +188,7 @@ def run(out, only=None, title=None, pack_dir=None, log=print) -> str:
         rows += [[b["ref"], b["category"], b["count"], ", ".join(b["used_by"])] for b in bom["bought"]]
         S.append(tbl(rows, [55, 22, 13, 92]))
     # print list
-    S.append(Pp("3. Print list", "H2"))
+    S.append(Pp("4. Print list", "H2"))
     if pr:
         S.append(Pp(f"{len(pr['parts'])} printed parts on {len(pr['plates'])} plates. The 3MF plates and STL files are in the print pack."))
         rows = [["part", "material", "qty", "print size mm", "supports"]]
@@ -173,7 +204,7 @@ def run(out, only=None, title=None, pack_dir=None, log=print) -> str:
         S.append(Pp("No print pack found. Run python -m tools.pack OUT PACK first."))
     # steps
     S.append(PageBreak())
-    S.append(Pp("4. Assembly steps", "H2"))
+    S.append(Pp("5. Assembly steps", "H2"))
     steps, notes = guide_steps(man, only)
     for x in notes:
         log(f"  note: {x}")
@@ -192,13 +223,13 @@ def run(out, only=None, title=None, pack_dir=None, log=print) -> str:
         S.append(Spacer(1, 4))
     # audit
     verdict, lines = audit_lines(au)
-    S.append(Pp("5. Audit summary", "H2"))
+    S.append(Pp("6. Audit summary", "H2"))
     S.append(Pp(f"Result: {verdict}"))
     S += [Pp(x) for x in lines]
     # measure
     items = measure_items(P)
     if items:
-        S.append(Pp("6. What must be measured", "H2"))
+        S.append(Pp("7. What must be measured", "H2"))
         S.append(Pp("Measure these before the final print and put the numbers in the params file."))
         for name, txt in items:
             S.append(Pp("- " + (f"{name}: {txt}" if name and txt else name or txt)))

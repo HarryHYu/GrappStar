@@ -22,7 +22,7 @@ static const char* const SW_TEL[SW_COUNT] = {"a", "b", "c", "l", "r", "n", "H", 
 // REEL (wrapped and engaged). The code bumps give the sector absolutely (Gray: adjacent sectors differ by one bit).
 // Code 000 never occurs in travel: a broken common wire or a missing bump.
 enum Sector { SEC_LAUNCH, SEC_LN, SEC_NEUTRAL, SEC_PREP, SEC_WRAP, SEC_LOCK, SEC_REEL, SEC_COUNT, SEC_INVALID = 9 };
-static const char* const SEC_NAME[SEC_COUNT] = {"LAUNCH", "LN", "NEUTRAL", "PREP", "WRAP", "LOCK", "REEL"};
+static const char* const SEC_NAME[SEC_COUNT] = {"LAUNCH", "L_TO_N", "NEUTRAL", "WRAP_PREP", "WRAP", "N_TO_R", "REEL"};
 
 // drum positions reported in telemetry
 enum DrumPos { DP_LAUNCH, DP_NEUTRAL, DP_REEL, DP_WRAPPED, DP_BETWEEN, DP_UNKNOWN };
@@ -60,6 +60,7 @@ struct Cfg {
   // current trips per state (decision D8, lens B I5); a printed torque limiter in the coupler slips at about 5 N m
   float tripA = 5.0f;              // aim, reel, tow
   float cockTripA = 6.5f;          // cock and fire (peak about 5.1 A)
+  float towTripA = 6.5f;           // tow (reel until tension): a 50 N tow draws about 5.1 A; the tension estimate is the limit
   float takeupTripA = 2.5f;        // take-up only (NEUTRAL / WRAP)
   float jogTripA = 3.0f;           // jogs, centering jog, fly-in
   float hardTripA = 17.0f;         // never exceeded in any state (fuse 20 A)
@@ -118,8 +119,14 @@ struct Cfg {
   // ---- drum (N20 worm on DRV8833 #3): lens B table 4.1 (numbers come from params.py DRUM once BASE_SPEC v1.0 has them)
   uint8_t secCode[SEC_COUNT] = {0x1, 0x3, 0x2, 0x6, 0x4, 0x5, 0x7};   // bit0 A, bit1 B, bit2 C: 100 110 010 011 001 101 111 (A B C)
   float edgeDeg[SEC_COUNT - 1] = {8, 32, 50, 62, 302, 340};          // drum deg of the edge between sector i and i+1 (params.DRUM.zones)
-  float secLoDeg = -8, secHiDeg = 358;                                // end stops (params.DRUM.end_stops): never driven into
-  float targetDeg[3] = {0, 41, 347};                                  // stop points (params.DRUM.targets): LAUNCH, NEUTRAL, REEL
+  float secLoDeg = -4, secHiDeg = 352;                                // end stops (params.DRUM.end_stops): never driven into
+  float targetDeg[4] =
+#if defined(P_DRUM_TARGETS_LAUNCH) && defined(P_DRUM_TARGETS_NEUTRAL) && defined(P_DRUM_TARGETS_REEL) && defined(P_DRUM_TARGETS_WRAPPED)
+      {P_DRUM_TARGETS_LAUNCH, P_DRUM_TARGETS_NEUTRAL, P_DRUM_TARGETS_REEL, P_DRUM_TARGETS_WRAPPED};
+#else
+      {0, 41, 347, 314};
+#endif                             // park points (params.DRUM.targets): LAUNCH, NEUTRAL, REEL, WRAPPED
+  float collarNdeg = 318;                                             // in N_TO_R the collar stays NEUTRAL below this
   float wrapFromDeg = 62, wrapToDeg = 302;                            // the cup lays the wraps linearly here
   int wrapsFull =
 #ifdef P_DRUM_WRAP_TURNS
@@ -128,15 +135,15 @@ struct Cfg {
       7;                                                              // D4 / D16: 7 cup turns
 #endif
   float lnEngageDeg = 12, nrEngageDeg = 336;                          // collar still engaged in LAUNCH below / in REEL above
-  float drumDps = 24.0f;            // drum speed estimate (deg/s, lens B: 4 rpm); re-learned between every two edges
+  float drumDps = 8.1f;             // drum speed estimate (deg/s, cad-drum's N20 drive); re-learned between every two edges
   int drumSign = +1;                // DRV8833 direction that turns the drum toward REEL (BENCH_TEST.md)
   float drumTimeFactor = 1.5f; uint32_t drumTimeMarginMs = 1500;   // lens B I6: 1.5 x nominal (+ margin for the first moves)
   float drumEarlyFrac = 0.25f;      // reaching the target edge faster than this fraction of expected = bad contact
   uint32_t invalidMs = 150;         // code 000 (or a jump over a sector) for this long = DRUM_SENSOR
   // centering jog (lens B 3.7): before every shift the wiper turns this far BACKWARD so the collar sits in the middle of
   // its free dog window and touches no flank (in REEL sprag #2 holds the line meanwhile)
-  float dogWindowDeg = 60;          // free play of the collar dogs (lens B: 60 deg window)
-  float centerDeg = 30;             // centering jog
+  float dogWindowDeg = 16;          // free play of the collar dogs (unload jog = half of it)
+  float centerDeg = 8;              // unload (centering) jog, params.DRUM.unload_jog_deg
   // fly-in (lens B 7.2 steps 8, 15): the wiper creeps forward while the collar drops into REEL; into LAUNCH the collar
   // dropping in is checked with SW_DOG_L and, if needed, the wiper is turned BACKWARD (never forward: that would cock)
   int flyDuty = 51;                 // 20 percent
@@ -145,7 +152,8 @@ struct Cfg {
   // take-up while unwrapping (lens B step 13): wiper forward at 30 percent while the drum is in the WRAP sector
   int takeupDuty = 102; int takeupMaxDuty = 102;   // 40 percent (I4: forward in NEUTRAL or WRAP at most 40 percent)
   uint32_t approachMaxMs = 20000;   // final approach on the take-up until SW_SEATED, else DART_STUCK (lens B step 14)
-  uint32_t tidySteadyMs = 2000; uint32_t tidyMaxMs = 15000;   // tidy (step 6): forward until the take-up slips steadily
+  uint32_t tidySteadyMs = 2000; uint32_t tidyMaxMs = 15000;   // reel until slip: forward until the take-up slips steadily
+  uint32_t tidyMs = 3000;           // "tidy" default run time (D22: tidy by time)
 
   // ---- reel (decision D3: capstan 1.667 x wiper; lens B: 258 mm of line per wiper turn)
   float capstanDmm =
@@ -161,7 +169,8 @@ struct Cfg {
       50.0f / 22.0f;
 #endif
   int reelDuty = 220; int reelMinDuty = 70; float taperFrac = 0.30f;
-  float kNperA = 8.0f;              // line N per amp above free running. Bench: CALIBRATION.md
+  float kNperA = 17.0f;             // physics v1.2 (FIRM 5 N): line N = 17.0 x (I - I_free) - 10.4. Bench: CALIBRATION.md
+  float tensOffsetN = -10.4f;
   float limitN =
 #ifdef P_REEL_TOW_LIMIT_N
       P_REEL_TOW_LIMIT_N;

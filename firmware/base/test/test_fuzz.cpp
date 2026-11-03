@@ -112,8 +112,8 @@ void tick() {
     violation("WIPER_AFTER_FAULT", std::string("wiper still driven in ") + STATE_NAME[st]);
   checkStates("tick");
   if (trace && (S.wDir || S.dDir) && S.t % 50 == 0)
-    printf("    trace t=%u %s %s fw: cock %.1f aim %.1f enc %.1f drum %.1f sec %d | sim: cockPh %.1f aimPh %.1f wiper %.1f drum %.2f sw 0x%02x\n", (unsigned)S.t,
-           STATE_NAME[B->state], PHASE_NAME[B->phase], B->cockPhase, B->aimPhase, B->enc.deg(), B->drumDeg, B->sec, S.cockPh, S.aimPh, S.wiperDeg, S.drumDeg, S.contactsRaw());
+    printf("    trace t=%u %s %s fw: cock %.1f aim %.1f enc %.1f drum %.1f sec %d | sim: cockPh %.1f aimPh %.1f wiper %.1f drum %.2f sw 0x%02x win %.1f wDir %d\n", (unsigned)S.t,
+           STATE_NAME[B->state], PHASE_NAME[B->phase], B->cockPhase, B->aimPhase, B->enc.deg(), B->drumDeg, B->sec, S.cockPh, S.aimPh, S.wiperDeg, S.drumDeg, S.contactsRaw(), S.win, S.wDir);
   scanEvents();
   if (B->telDue(S.t)) { char tel[300]; B->telemetry(tel, sizeof tel); validLine(tel, "TELEMETRY", false); }
 }
@@ -290,7 +290,9 @@ std::string randomCommand() {
       else t = numJson(100000, 999999);
       return obj("fire", {{"token", t}});
     }
-    case 11: return obj("wrap", {});
+    case 11: if (pr(0.3)) return obj("tidy", {{"ms", pr(0.5) ? std::string() : numJson(-100, 20000)}});
+             if (pr(0.2)) return obj(pr(0.5) ? "retrieve" : "decock", {});
+             return obj("wrap", {});
     case 12: return obj("unwrap", {});
     case 13: case 14:
       return obj("reel", {{"duty", pr(0.3) ? std::string() : numJson(0, 1)}, {"max_n", pr(0.3) ? std::string() : numJson(0, 150)},
@@ -338,8 +340,10 @@ std::string garbage() {
 }
 
 // ------------------------------------------------------------------------------------------------ rig
+extern bool indexSeed;
 void buildBase() {
   B.reset(new Base());
+  if (indexSeed) B->c.swBit[SW_INDEX] = 11;   // D12: no magnet, the 6-bump index cam is the angle source
   S.c = B->c;
   Io io = simIo(); io.saveTun = fuzzSaveTun; B->io = io;
   B->saveAck = true;                       // like the sketch: motors wait for the flash write (acked 20 ms later in tick())
@@ -356,8 +360,9 @@ void powerCut() {
   buildBase();
   run(100);
 }
+bool indexSeed = false;
 void freshRig() {
-  S = Sim(); tunHas = false; logRing.clear(); tags.clear(); outSeen = 0; haveToken = false; idCounter = 0; pendingAdvance = 0;
+  S = Sim(); S.encMissing = indexSeed; tunHas = false; logRing.clear(); tags.clear(); outSeen = 0; haveToken = false; idCounter = 0; pendingAdvance = 0;
   buildBase();
   run(100);
   cmd("{\"id\":0,\"cmd\":\"cal\",\"what\":\"cock_rest\"}");   // a new build starts at rest
@@ -365,20 +370,20 @@ void freshRig() {
 
 // ------------------------------------------------------------------------------------------------ fault injection
 void healAll() {
-  S.drumJam = false; S.drumJamAbove = 1e9; S.swStuckClosed = 0; S.swStuckOpen = 0; S.swChatter = 0; S.encMissing = false;
-  S.encGlitchEvery = 0; S.magnetWeak = false; S.extraLoadNm = 0; S.vbatOverride = -1; S.toothOnTooth = false; S.searBroken = false;
+  S.drumJam = false; S.drumJamAbove = 1e9; S.swStuckClosed = 0; S.swStuckOpen = 0; S.swChatter = 0; S.encMissing = indexSeed;
+  S.encGlitchEvery = 0; S.magnetWeak = false; S.extraLoadNm = 0; S.vbatOverride = -1; S.toothOnTooth = false; S.searBroken = false; S.handLatched = false;
   tags.erase("stuck_contact");             // (a belief it left behind may survive, but the sensor tells the truth again)
   flushAdvance(); logl("inject: heal all");
 }
 void injectFault() {
-  int k = ri(0, 13); std::string d;
+  int k = ri(0, 14); std::string d;
   switch (k) {
     case 0: S.drumJam = !S.drumJam; d = std::string("drumJam=") + (S.drumJam ? "1" : "0"); break;
     case 1: S.drumJamAbove = pr(0.5) ? 1e9 : rd(0, 340); d = "drumJamAbove=" + fmtShort(S.drumJamAbove); break;
-    case 2: { int b = ri(0, 7); S.swStuckClosed ^= (1 << b); S.swStuckOpen &= ~S.swStuckClosed; d = "swStuckClosed=" + std::to_string(S.swStuckClosed); tags.insert("stuck_contact"); break; }
-    case 3: { int b = ri(0, 7); S.swStuckOpen ^= (1 << b); S.swStuckClosed &= ~S.swStuckOpen; d = "swStuckOpen=" + std::to_string(S.swStuckOpen); tags.insert("stuck_contact"); break; }
-    case 4: { int b = ri(0, 7); S.swChatter ^= (1 << b); d = "swChatter=" + std::to_string(S.swChatter); break; }
-    case 5: S.encMissing = !S.encMissing; d = std::string("encMissing=") + (S.encMissing ? "1" : "0"); break;
+    case 2: { int b = ri(0, 11); S.swStuckClosed ^= (1 << b); S.swStuckOpen &= ~S.swStuckClosed; d = "swStuckClosed=" + std::to_string(S.swStuckClosed); tags.insert("stuck_contact"); break; }
+    case 3: { int b = ri(0, 11); S.swStuckOpen ^= (1 << b); S.swStuckClosed &= ~S.swStuckOpen; d = "swStuckOpen=" + std::to_string(S.swStuckOpen); tags.insert("stuck_contact"); break; }
+    case 4: { int b = ri(0, 11); S.swChatter ^= (1 << b); d = "swChatter=" + std::to_string(S.swChatter); break; }
+    case 5: if (indexSeed) break; S.encMissing = !S.encMissing; d = std::string("encMissing=") + (S.encMissing ? "1" : "0"); break;
     case 6: S.encGlitchEvery = pr(0.5) ? 0 : ri(3, 50); S.magnetWeak = pr(0.3); d = "encGlitchEvery=" + std::to_string(S.encGlitchEvery); break;
     case 7: S.extraLoadNm = pick(std::vector<double>{0, 0, 3, 8, 14.5, 30}); d = "extraLoadNm=" + fmtShort(S.extraLoadNm); break;
     case 8: S.vbatOverride = pick(std::vector<double>{-1, -1, 12.0, 9.5, 8.0, 5.0, 0.3}); d = "vbatOverride=" + fmtShort(S.vbatOverride); break;
@@ -386,6 +391,7 @@ void injectFault() {
     case 10: if (pr(0.5)) { S.lineOut = 0; S.seatAtLine = 0; S.anchorTautAt = -1; d = "dart seated"; } else { S.lineOut = rd(0.5, 15); S.seatAtLine = 0; S.anchorTautAt = -1; d = "dart out " + fmtShort(S.lineOut); } break;
     case 11: S.anchorTautAt = S.lineOut - rd(0, 1); S.anchorK = rd(20, 100); d = "tow anchor taut at " + fmtShort(S.anchorTautAt); break;
     case 12: S.hxFitted = !S.hxFitted; d = std::string("hxFitted=") + (S.hxFitted ? "1" : "0"); break;
+    case 13: S.handLatched = !S.handLatched; d = std::string("handLatched=") + (S.handLatched ? "1" : "0"); break;
     default: S.searBroken = pr(0.5); d = std::string("searBroken=") + (S.searBroken ? "1" : "0"); break;
   }
   flushAdvance(); logl("inject: " + d);
@@ -424,9 +430,16 @@ void missionReel() {
   if (B->state == S_FAULT) cmd("{\"id\":" + idn() + ",\"cmd\":\"clear\"}");
   if (!resting()) { cmd("{\"id\":" + idn() + ",\"cmd\":\"stop\"}"); run(250); }
   if (B->wraps < 1) {
-    cmd("{\"id\":" + idn() + ",\"cmd\":\"mode\",\"to\":\"REEL\"}"); waitRest(30000);
+    if (pr(0.7)) { cmd("{\"id\":" + idn() + ",\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); waitRest(30000); }   // D22: or wrap straight from LAUNCH
+    if (pr(0.3)) { cmd("{\"id\":" + idn() + ",\"cmd\":\"reel\",\"duty\":0.2,\"until\":\"slip\"}"); run(ri(500, 6000)); }
     cmd("{\"id\":" + idn() + ",\"cmd\":\"wrap\"}");
-    if (pr(0.2)) { run(ri(100, 20000)); cmd("{\"id\":" + idn() + ",\"cmd\":\"stop\"}"); } else waitRest(60000);
+    if (pr(0.2)) { run(ri(100, 40000)); cmd("{\"id\":" + idn() + ",\"cmd\":\"" + (pr(0.5) ? "stop" : "estop") + "\"}"); } else waitRest(120000);
+  }
+  if (B->drumPos() == DP_WRAPPED || pr(0.1)) {     // D22: tidy in the WRAPPED park, then the fly-in to REEL
+    if (pr(0.6)) { cmd("{\"id\":" + idn() + ",\"cmd\":\"tidy\"" + (pr(0.5) ? ",\"ms\":" + std::to_string(ri(0, 9000)) : std::string()) + "}"); waitRest(20000); }
+    cmd("{\"id\":" + idn() + ",\"cmd\":\"mode\",\"to\":\"REEL\"}");
+    if (pr(0.1)) { run(ri(100, 5000)); cmd("{\"id\":" + idn() + ",\"cmd\":\"estop\"}"); }
+    waitRest(30000);
   }
   if (pr(0.4)) { S.lineOut = rd(2, 15); S.anchorTautAt = S.lineOut - rd(0.1, 1); S.anchorK = rd(20, 100); flushAdvance(); logl("inject: tow anchor"); }
   else { S.lineOut = rd(0.5, 6); S.seatAtLine = 0; S.anchorTautAt = -1; flushAdvance(); logl("inject: dart out, slack line"); }
@@ -435,12 +448,14 @@ void missionReel() {
   run(ri(500, 15000));
   if (B->state == S_HOLD && pr(0.5)) { S.anchorTautAt = -1; flushAdvance(); logl("inject: dart released"); }
   cmd("{\"id\":" + idn() + ",\"cmd\":\"stop\"}");
-  if (pr(0.7)) { cmd("{\"id\":" + idn() + ",\"cmd\":\"unwrap\"}"); waitRest(60000); }
+  if (pr(0.7)) { cmd("{\"id\":" + idn() + ",\"cmd\":\"unwrap\"}"); waitRest(60000);
+    if (pr(0.6)) { S.lineOut = rd(0, 2); S.anchorTautAt = pr(0.2) ? S.lineOut - 0.2 : -1; cmd("{\"id\":" + idn() + ",\"cmd\":\"reel\",\"duty\":0.3,\"until\":\"seated\"}"); run(ri(500, 25000)); } }
 }
 
 // ------------------------------------------------------------------------------------------------ one seed
 void runSeed(uint32_t seed, int steps) {
   seedNow = seed; rng.seed(seed * 0x9E3779B97F4A7C15ull + 1);
+  indexSeed = seed % 5 == 0;                // every fifth seed runs without the AS5600 magnet (SW_INDEX mode, D12)
   freshRig();
   double faultRate = pick(std::vector<double>{0.0, 0.02, 0.05, 0.12});
   for (stepNow = 0; stepNow < steps; stepNow++) {

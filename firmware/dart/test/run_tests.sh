@@ -4,6 +4,8 @@ set -e
 cd "$(dirname "$0")"
 g++ -std=c++17 -O1 -Wall -Wextra -I../kedge_dart -o test_logic test_logic.cpp
 ./test_logic
+g++ -std=c++17 -O2 -Wall -Wextra -I../kedge_dart -o fuzz_logic fuzz_logic.cpp
+./fuzz_logic --quick | tail -16          # randomized property test, 1000 episodes (full run: ./fuzz_logic)
 python3 - <<'PY'
 import json, glob, sys
 bad = 0

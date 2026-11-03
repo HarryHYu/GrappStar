@@ -5,7 +5,7 @@ files in this folder. They read the shared numbers from `base/spec/params.py`. W
 the measured value in the spec and run everything again; the ballistics table for the Jetson and the summary PDF
 update themselves.
 
-## Run everything (about 6 minutes)
+## Run everything (about 3 to 5 minutes)
 
 1. Open a terminal in the repo.
 2. `cd base/physics`
@@ -36,7 +36,7 @@ update themselves.
 ## Other numbers worth measuring
 
 - Dart mass on a kitchen scale with the ballast and tether knot (0.279 kg assumed).
-- Slip clutch: luggage scale on the line with the reel full. LIGHT should read 0.5 N, FIRM 3 N.
+- Slip clutch: luggage scale on the line with the reel full. LIGHT should read 0.5 N, FIRM 5 N.
 - Rail friction: tilt the rail with the dart on it until it slides. mu = tan(angle).
 - Rover mass, wheelbase and deck height (for recoil and launch height): edit `ROVER` in `recoil.py` and
   `deck_h` in `common.py`.
@@ -47,4 +47,4 @@ See `REPORT.md` (table "Done"). Problems found for the design are in `FINDINGS.m
 
 ## Tests
 
-`python -m pytest -q` in this folder runs every check (about 25 s). They never write to `base/out` or `kedge/`.
+`python -m pytest -q` in this folder runs every check (about 25 s). They never write to `base/out` or `kedge/out30` (the conftest checks it).

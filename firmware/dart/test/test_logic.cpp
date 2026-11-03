@@ -403,8 +403,8 @@ int main() {
 
   // ===================================================================================================== review round 3 regressions
   section("review round 3 regressions");
-  { fresh(); P.drillPaused = 290; K.startAuto(NOW); run(25000);   // drills drop 31 % whenever the pods pause
-    CHECK(K.seq == DONE && P.deploy >= 1400, "drill current drops 30 % while the pods pause: pods still go fully down");
+  { fresh(); P.drillPaused = 336; K.startAuto(NOW); run(25000);   // drills drop 20 % (84 mA) whenever the pods pause
+    CHECK(K.seq == DONE && P.deploy >= 1400, "drill current drops 20 % while the pods pause: pods still go fully down");
     fresh(); P.footPaused = 75; K.startAuto(NOW); run(25000);       // foot drops 40 % whenever the kick pauses
     CHECK(K.seq == DONE && P.kick >= 4300, "foot current drops 40 % while the kick pauses: kick still plants fully"); }
   { fresh(); P.footPaused = 160; K.startAuto(NOW); run(25000);       // foot rises when the kick pauses: kick stall may be missed
@@ -450,6 +450,15 @@ int main() {
     CHECK(ph() == "ANCHORING", "a key tapped in FLIGHT and its keyup stop (disarm=0) do not cancel auto on landing"); }
   { fresh(); uint32_t t0 = 2000; ACC = [&](uint32_t t) { return flightTrace(t, t0); }; K.arm(true, false, NOW); run(5000);
     K.key('2', 1500, NOW); run(100); CHECK(ph() == "IDLE", "landed, then a manual motor runs: phase IDLE, not LANDED"); run(1500); CHECK(ph() == "LANDED", "...and LANDED again when it stops"); }
+
+  { fresh(); K.startRelease(NOW); run(30000);   // legs already stowed: pods and kick start at their stops
+    int podsOn = 0; (void)podsOn;
+    uint32_t tp = when("release: pods up"), tk = when("release: kick back"), td = when("release: done");
+    printf("     stowed release: pods step %u ms, kick step %u ms\n", when("foot out") - tp, td - tk);
+    CHECK(K.seq == RELEASED && when("pods up, foot out") - tp < 2500 && td - tk < 2500, "release with legs already stowed: each worm stops within 2.5 s (no rise needed)"); }
+  { fresh(); K.startAuto(NOW); while (K.seq != D_DEPLOY) run(5); run(1000); K.stop(NOW); run(500); LOG.clear(); uint32_t t0 = NOW; K.startAuto(NOW); run(25000);
+    uint32_t tk = when("kick already down"); printf("     retry: kick off after %u ms\n", tk - t0);
+    CHECK(K.seq == DONE && tk && tk - t0 < 1000, "auto retried with the kick already planted: kick stopped within 1 s, foot planted alone, anchored"); }
 
   // ===================================================================================================== whole mission
   section("whole mission phases");

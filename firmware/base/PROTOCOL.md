@@ -93,30 +93,43 @@ argument checks (`reel` `duty`, `until`, `max_n`) come after them.
 | `reel` | `duty` over 0 up to 1 (default 0.86; below 0.27 it runs at 0.27), `max_n` (default `limit_n`, at most 70: `BAD_ARG` above, D39), `until`: `stop` (default) \| `seated` \| `tension` \| `slip`, `max_s` (optional, 5 to 600: time limit of `until:"seated"`) | REEL (collar confirmed): the capstan winds in (tow, reel in), see below. NEUTRAL or the WRAPPED park (N_TO_R below 318), both dog contacts open: take-up only, see below. Also accepted while holding (state `HOLD`): winds again | `BAD_ARG` (bad `until`, `duty` not in (0, 1], `max_n` not over 0, `slip` in REEL), `NOT_WRAPPED` (neither REEL nor take-up position, or `tension` without the capstan), `WRAPS_ON` (`seated` outside the NEUTRAL sector: never seat the dart on the capstan or with the wraps on, D35 / D39), `BAD_ARG` (`max_n` over 70), `NO_SENSOR` (`seated` without `SW_SEATED`), `BAD_ARG` also for `max_s` outside 5..600 (checked on every `reel`) |
 | `jog` | `motor`: `wiper` \| `drum`, `dir`: 1 \| -1, `ms` (default 300, capped at 1500) | runs one motor for `ms`. Deadman: the same jog (same motor and dir) sent again before it ends extends it. Wiper dir 1 = FORWARD, drum dir 1 = toward REEL. Ends silently (state back to `IDLE`), see below for the limits | see below |
 | `cal` | `what`, see section 7 | calibration actions | per action (section 7), `BAD_ARG` for an unknown `what` |
-| `set` | `key`, `val` (number or `true` / `false`) | sets a value (section 7) | `BAD_ARG` (no key or val), `BAD_KEY`, `OUT_OF_RANGE`, for `enc_sign`: `BAD_ARG` unless 1 or -1 and `BUSY` while moving (every other key is accepted while moving) |
+| `set` | `key`, `val` (number or `true` / `false`) | sets a value (section 7) | `BAD_ARG` (no key or val), `BAD_KEY`, `OUT_OF_RANGE`, for `enc_sign`: `BAD_ARG` unless 1 or -1; `BUSY` for `enc_sign` while moving, and for `k_n_per_a`, `tension_offset_n`, `free_a`, `amps_per_volt`, `offset_a`, `hx_n_per_count`, `trip_a`, `cock_trip_a`, `tow_trip_a` while any motor moves or while holding (the other keys are accepted while moving). Ranges include their end values |
 | `get` | `key` | reply carries `val` (numbers with up to 7 significant digits; `min` and `max` for `pitch_range`) | `BAD_ARG` (no key), `BAD_KEY` |
 
 #### `reel` in detail
 
 In REEL (capstan, wiper FORWARD):
 
-- Trip with `until:"tension"` (the tow, D34): the larger of `tow_trip_a` (6.5 A) and the current the limit needs plus
-  1 A, that is `(max_n - tension_offset_n) / k_n_per_a + free_a + 1`, never above the hard 17 A. With the defaults
-  and `max_n` 50 that is 6.5 A (a 50 N tow draws about 5.1 A, so the tension estimate is the real limit); with
-  `max_n` 70 (the maximum, D39) and `free_a` 1.5 it is (70 + 10.4) / 17 + 1.5 + 1 = 7.2 A. A `set` of any of these values during a tow moves the trip at once. Any other `until`:
-  `trip_a` (5 A).
-- Tension = load cell when one is live, else the estimate
-  `k_n_per_a x (amps - free_a) + tension_offset_n` (defaults 17.0 and -10.4: physics v1.2 with the clutch FIRM at 5 N;
-  never below 0, averaged over about 200 ms (D33); the first 350 ms of a run are ignored). The speed tapers over the last 30 % of `max_n`.
-- Reaching `max_n` stops the wiper and sends `LIMIT`. With `until:"tension"` the base then HOLDS (state `HOLD`,
+- Trip with `until:"tension"` (the tow, D34): the current the limit needs plus 1 A, that is
+  `(max_n - tension_offset_n) / k_n_per_a + free_a + 1`, at least the 5 A reel trip (`trip_a`) and at most the hard
+  17 A. With the defaults: `max_n` 50 gives 6.1 A (a 50 N tow draws about 5.1 A), `max_n` 70 (the maximum, D39) with
+  `free_a` 1.5 gives (70 + 10.4) / 17 + 1.5 + 1 = 7.2 A, `max_n` 20 gives 5 A. `tow_trip_a` is still a saved setting
+  but no longer used in this formula. The constants cannot be changed during a tow (`set` replies `BUSY`). Any other
+  `until`: `trip_a` (5 A).
+- Tension = the estimate `k_n_per_a x (amps - free_a) + tension_offset_n` (defaults 17.0 and -10.4: physics v1.2 with
+  the clutch FIRM at 5 N; never below 0, averaged over about 200 ms, D33; the first 150 ms of a run are ignored). With
+  a live load cell the tension used is the larger of the load cell and the current estimate (a frozen load cell cannot
+  hide the current). The speed tapers over the last 30 % of `max_n`, using the larger of the averaged and the
+  unaveraged estimate.
+- The tow stops at `max_n` when the 200 ms average reaches it OR the unaveraged estimate stays at or above it for
+  60 ms (config `rawHoldMs`; a stiff line rises faster than the average). It sends `LIMIT` (`why:"tension limit"`,
+  `tension_n` the higher of the two estimates). With `until:"tension"` the base then HOLDS (state `HOLD`,
   `holding:true`, the worm and sprag #2 hold the line); with a load cell it winds again by itself when the tension
   falls under 60 % of `max_n`. With any other `until` it goes to `IDLE` (`holding:false`).
+- A `reel` with `until:"tension"` sent while holding at 95 % or more of the new `max_n` stays in HOLD (`LIMIT`
+  `why:"already at the limit"`): re-pulling a held line would ratchet it up.
+- A tow that stalls at 80 % or more of `max_n` holds (`LIMIT` `why:"stalled at the limit"`) instead of a `STALL`
+  fault.
+- Known limit: on a very stiff, short line (about 3000 N/m) a full-speed tow can overshoot by about 50 % of a 40 N
+  limit before the current catches up (the worm holds; the 5 N m shear pin is above that). For low limits tow on a
+  long line or at a lower duty.
 - `until:"seated"` is refused in REEL with `WRAPS_ON` (D35: the dart is never seated on the capstan; reel in to
   about 1.5 m, `unwrap`, then `retrieve` on the take-up in NEUTRAL).
 - `until:"stop"`: runs until `stop` (or the limit). The Jetson stops it at about 1.5 m from the line count or the
   camera.
 - After 240 s any reel stops with `ABORTED` (`what:"REEL"`, `why:"timeout"`).
-- An over-current or stall during a tow is a fault, never a hold.
+- An over-current during a tow is always a fault. A stall is a fault too, unless it happens at 80 % or more of `max_n`
+  (then it holds, see above).
 
 In NEUTRAL or at the WRAPPED park (take-up only, decision D15 / lens B I4: wiper FORWARD at most 40 % duty, trip
 2.5 A; the capstan is not driven, so there is no tension limit and `line_m` does not change):
@@ -254,7 +267,7 @@ fields it does not know.
 | `TIDIED` | `ok` | `tidy` ran its time |
 | `UNWRAPPED` | `ok` | back at NEUTRAL with no wraps; always followed by `MODE`, also in the immediate case |
 | `SEATED` | | `SW_SEATED` closed during `reel until seated` or `retrieve` (`line_m` set to 0) |
-| `LIMIT` | `tension_n` (null for the slip tidy), `max_n`, `why` (`tension limit` or `tidy done (take-up slipping)`), `holding` | the reel reached `max_n` (holding when `until:"tension"`), or the slip tidy finished |
+| `LIMIT` | `tension_n` (null for the slip tidy), `max_n`, `why` (`tension limit`, `already at the limit`, `stalled at the limit` or `tidy done (take-up slipping)`), `holding` | the reel reached `max_n` (holding when `until:"tension"`), or the slip tidy finished |
 | `STALL` | | the wiper stalled (sent right after the `FAULT` with code `STALL`) |
 | `FAULT` | `code`, `why` (the full text, the longest is 66 characters; the latched copy is cut to 47 and `status` `why` to 32) | a fault latched (section 6) |
 | `ABORTED` | `what` (the state that was running: `MODE`, `AIM`, `COCK`, `FIRE`, `WRAP`, `UNWRAP`, `REEL` (also `tidy` and `retrieve`), `HOLD`, `JOG`, `DECOCK`; or `HOST`), `why` (`stop`, `estop`, `timeout`, `would pass the release tooth`, `drum end stop`, `wrap window: use wrap or unwrap`, `host silent`) | an action ended without completing. Treat it as the failure of whatever you were waiting for (a `stop` you sent yourself also gives one). The host watchdog sends two: the stopped state with `why:"stop"`, then `what:"HOST"` |
@@ -342,7 +355,7 @@ to the target sector". So a drum move started from an untrusted angle never runs
 |---|---|
 | aim, reel in (`reel` until `stop` in REEL), decock, the reset after a release (`trip_a`) | 5 A |
 | cock, fire up to the release, forward jog in LAUNCH (`cock_trip_a`) | 6.5 A |
-| tow (`reel` with `until:"tension"`): the larger of `tow_trip_a` and `(max_n - tension_offset_n) / k_n_per_a + free_a + 1` (D34). A 50 N tow draws about 5.1 A: the tension estimate is the real tow limit | 6.5 A with the defaults, at most 17 A |
+| tow (`reel` with `until:"tension"`): `(max_n - tension_offset_n) / k_n_per_a + free_a + 1` (D34), not below `trip_a`. A 50 N tow draws about 5.1 A: the tension estimate is the real tow limit | 6.1 A at 50 N with the defaults, 5 to 17 A |
 | take-up only (`reel`, `tidy`, `retrieve` in NEUTRAL or at the WRAPPED park, take-up during `unwrap`, forward jog in NEUTRAL, WRAP_PREP or WRAP) | 2.5 A |
 | jogs, centering jog, fly-in, the LAUNCH collar wiggle | 3 A |
 | any state, never ignored | 17 A |
@@ -359,7 +372,7 @@ drum, see below).
 | code | causes (`why` texts) |
 |---|---|
 | `OVERCURRENT` | wiper current over the state trip for 30 ms (`wiper over 6.5 A`: the trip in force, one decimal) |
-| `STALL` | `wiper stalled` (also sends a `STALL` event) |
+| `STALL` | `wiper stalled` (also sends a `STALL` event). Not in a tow at 80 % or more of `max_n`: that holds instead |
 | `DRUM_TIMEOUT` | `drum not turning (no code edge)`, `drum did not reach the target in time`, `drum did not come back to the target sector`, `dogs did not engage (collar contact open)` |
 | `DRUM_SENSOR` | `drum code 000 (wire off or bump missing)` or `drum code jumped over a sector` for 150 ms; `drum turned the wrong way (drum_sign?)` (N20 wires swapped); `target code came far too early`; `drum overshot the target sector` (a second time in one move); `drum code changed with the drum still` (the worm cannot be back-driven: a contact is lying, or the drum was turned by hand while the base runs; one `clear` is enough once the drum is still); `N20 latched out during a drum move`; `SW_ARM counted n of 7 cup turns` (checked only for a whole pass: entered at one end and left at the other in one `wrap` or `unwrap` move); `drum code disagrees with the saved drum angle` (at boot) |
 | `ANGLE_SENSOR` | `AS5600 lost while the wiper runs` (4 bad reads, or no magnet); `AS5600 counts against the drive (enc_sign?)`; `AS5600 glitching (over 20 bad samples a second)`; `AS5600 angle jumped while turning (travel lost)` (a lasting jump taken without counting it, while the wiper turns or during aim, cock, fire or decock); in index mode `SW_INDEX bump overdue (index cam or contact)` |
@@ -411,12 +424,12 @@ false unless the saved angle was trusted); the operator decides (section 9).
 | what | args | does | refusals |
 |---|---|---|---|
 | `current` | | zero the wiper current reading (motor stopped) | `BUSY` (running), `OUT_OF_RANGE` (the new offset would be outside 0..5 A) |
-| `free` | | learn the free-running current from the run in progress (after 0.8 s of running) | `NOT_RUNNING`, `OUT_OF_RANGE` (over 10 A) |
-| `tare` | | zero the load cell | `NO_SENSOR` |
+| `free` | | learn the free-running current from the run in progress (after 0.8 s of running, while reeling slack) | `NOT_RUNNING`, `BUSY` (holding, or a tow `until:"tension"`), `OUT_OF_RANGE` (over 10 A) |
+| `tare` | | zero the load cell (line slack, motors stopped) | `NO_SENSOR`, `BUSY` (moving or holding) |
 | `aim` | `deg`: pitch measured with a phone inclinometer | sets `aim_offset` so the reported pitch matches | `BAD_ARG` (no `deg`), `AIM_UNKNOWN`, `OUT_OF_RANGE` (the offset would be outside -20..20) |
 | `aim_home` | | declare the aim train at its home (where `SW_RAIL_LOW` closes on the backward run) | `BUSY` (moving) |
 | `aim_forget` | | forget the aim: the next `aim` re-homes | `BUSY` |
-| `cock_rest` | `force` (optional, true: `SW_HOME` known broken, checked by eye) | declare the launcher at rest (carriage forward). For a new build, or after checking by eye | `BUSY`, `SWITCH_DISAGREE` (`SW_HOME` open, or `SW_GAP` fitted and open, and no `force`; `force:true` overrides both) |
+| `cock_rest` | `force` (optional, true: `SW_HOME` known broken, checked by eye) | declare the launcher at rest (carriage forward). For a new build, or after checking by eye. `force:true` trusts the operator completely: a wrong force on a drawn spring can FIRE on the next forward jog or `cock` | `BUSY`, `SWITCH_DISAGREE` (`SW_HOME` open, or `SW_GAP` fitted and open, and no `force`; `force:true` overrides both) |
 | `decock` (also the command `decock`) | `force` (optional) | lets a drawn carriage down without firing: runs the wiper BACKWARD slowly (47 %, trip 5 A) so the spring unwinds under the worm, until `SW_HOME` has stayed closed for 15 deg more and `SW_GAP` is closed too. Turns the aim train too: the aim becomes unknown. `RESET` event with `how:"decock"`. Carriage already home: phase `REST` gives an immediate `RESET`; phase `UNKNOWN` with no sign of a draw replies `ok` and moves nothing: with `SW_GAP` closed too the phase becomes `REST` and it sends `RESET` with `ok:true`, `how:"decock"`, `why:"SW_HOME and SW_GAP closed: at rest"`; with `SW_GAP` open it sends `RESET` with `ok:false`, `how:"decock"`, `why:"carriage home: nothing to decock, cock finds the angle"` (then use `cock` or `cal cock_rest`). `SW_HOME` closed while the last known angle says drawn: refused with `SWITCH_DISAGREE`, unless `force:true`: then it runs back by the travel that angle needs and calls it rest (`how:"decock by travel"`) | common (`ANGLE_SENSOR` included), `NOT_IN_LAUNCH` (drum code not LAUNCH), `NO_SENSOR` (no `SW_HOME`), `SWITCH_DISAGREE` |
 | `drum` | | the drum code is absolute: this only reports, with a `MODE` event | `POSITION_UNKNOWN` |
 
@@ -439,7 +452,7 @@ the table says otherwise:
 | `line_m` | | 0..100 | line out. Tell the base after a shot (from the landing distance); `get` returns the number even while telemetry shows null. Kept in the position record |
 | `trip_a` | 5 | 3..19 | wiper trip for aim, reel in and decock |
 | `cock_trip_a` | 6.5 | 3..19 | wiper trip for cock and fire |
-| `tow_trip_a` | 6.5 | 3..19 | wiper trip for the tow (`reel` with `until:"tension"`) |
+| `tow_trip_a` | 6.5 | 3..19 | kept and saved, but no longer used: the tow trip comes from `max_n` (D34, section 2 `reel`) |
 | `vbat_low` | 9.9 | 6..12 | BROWNOUT threshold under load |
 | `require_seated` | true | true / false | `arm` and `fire` need `SW_SEATED` |
 | `vbat_wired` | true | true / false | the battery divider is fitted; false turns off `NO_POWER` and `BROWNOUT` and makes `vbat` null |
@@ -533,7 +546,7 @@ Recovery after `BOOT` (lens B 7.4):
 | `mode` LAUNCH, `H` and `G` closed, phase `REST` | none |
 | phase `UNKNOWN`, `H` open (carriage drawn) | `decock`, then `aim`, then `cock` / `fire` |
 | phase `UNKNOWN`, `H` closed, power cut while cocking or firing (`cock` gives `LOADED_UNKNOWN`) | check by eye, then `decock` with `"force":true` (decock by travel, `RESET` `how:"decock by travel"`), then `aim` and `cock`; or `cal cock_rest` if the carriage is seen at rest |
-| phase `UNKNOWN`, `H` closed, no sign of a draw | `cock` (creeps until `SW_HOME` opens, then cocks), or `cal cock_rest` after checking by eye |
+| phase `UNKNOWN`, `H` and `G` closed, no sign of a draw | `cock` (creeps until `SW_HOME` opens, then cocks; with `G` open it replies `LOADED_UNKNOWN`), or `cal cock_rest` after checking by eye |
 | `drum_pos` REEL, `r` closed (also after a fault or `estop` in REEL: the drum held) | wrapped, line held: resume the tow or reel in, or `unwrap` |
 | `drum_pos` WRAPPED (N_TO_R) | at the 314 park: `tidy`, `mode REEL` or `unwrap`. Elsewhere in N_TO_R: `mode REEL` or `unwrap` |
 | WRAP, `wraps` null | stopped and reported: `unwrap` (take-up running), or `wrap` on to the WRAPPED park |

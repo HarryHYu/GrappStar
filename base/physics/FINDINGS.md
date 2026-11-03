@@ -11,15 +11,17 @@ the findings (their numbers come from earlier parameter sets). Every number is r
 - Stop: 1.9 J carriage + 0.8 J springs: about 285 N on a linear 19 mm flexure; cad-launch's stop holds 4.25 J at 293 N.
 - Cock gears face 11 (PPA-CF): SF 1.55 / 1.74 at the 5 N m shear pin.
 - Storage reel 50 / 72 / 22: overrun after landing at LIGHT 0.5 N about 0.6 m. No level wind (F13).
-- Tow, cup ring left as a plain eye (27 deg) with pulleys at the exit eye and storage guide: path gain about 1.30
+- Tow, cup ring left as a plain eye (about 58 deg of wrap in tow, 27 deg when seating) with pulleys at the exit eye
+  and storage guide: path gain about 1.30
   (1.15 with a ring roller; spec 1.3.2 / D46 sets 1.30). At the DART: 50 N =
   3.64 N m, 5.50 A, 0.14 m/s; max pull before 0.8 x the shear pin 55 N (D46 cap 55); law 13.1 x (I - I_free)
   - 2.3 N. Ring heat at 50 N: about 24 N normal, 0.9 W on PLA: line the ring with a smooth steel surface.
-- Capstan drum (capstan-side tension = dart pull x 1.15): hoop stress 7.3 MPa at the 50 N tow and 11.6 MPa when the
-  shear pin slips (92 N at the capstan), against 12 MPa allowed for PLA: print the drum in PPA-CF or thicken the wall.
-  608 radial 63 to 98 N (fine).
+- Capstan drum (capstan-side tension = dart pull x 1.30): hoop stress 8.3 MPa at the 50 N tow and about 11.6 MPa when
+  the shear pin slips, against 12 MPa allowed for PLA: print the drum in PPA-CF or thicken the wall. 608 radial about
+  70 N at the tow (fine).
 - Cock 2.9 N m, 4.7 A. Aim 0.33 N m, 1.9 A (D40 aim trip 3 A: splitter sf 1.44 in PPA-CF).
-- Final approach on FIRM 5 N with the D43 pulleys (seating gain 1.3): 3.85 N at the dart, margin 1.5 to 1.9.
+- Final approach on FIRM 5 N (seating path: guide and exit pulleys, plain cup ring 27 deg: gain 1.17): 4.27 N at the
+  dart, margin 1.7 to 2.1.
 - Wrap on LIGHT: N20 46 to 56 N mm (23 to 28 % of 0.20 N m), about 30 s.
 - Take-up in NEUTRAL: 0.06 / 0.12 / 0.26 to 0.33 m/s at duty 0.3 / 0.5 / 1.0.
 - Recoil rock (ASSUMED 4 kg rover): about 5 deg at 6 deg pitch braked, 0.5 deg at 36. No tip.

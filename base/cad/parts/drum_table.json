@@ -4,7 +4,7 @@
   "LAUNCH": 0.0,
   "NEUTRAL": 41.0,
   "WRAP_START": 56.0,
-  "WRAPPED": 309.0,
+  "WRAPPED": 314.0,
   "REEL": 347.0
  },
  "stops": [
@@ -133,7 +133,7 @@
    "edge": 302.0,
    "code_from": 4,
    "code_to": 5,
-   "extra_deg": 7.0
+   "extra_deg": 12.0
   },
   {
    "target": "WRAPPED",
@@ -142,7 +142,7 @@
    "edge": 302.0,
    "code_from": 5,
    "code_to": 4,
-   "extra_deg": 7.0,
+   "extra_deg": 12.0,
    "note": "drive - until the edge, then + by extra_deg"
   },
   {
@@ -157,9 +157,9 @@
  "timing_s": {
   "dps": 8.1,
   "launch_to_neutral": 5.061728395061729,
-  "neutral_to_wrapped": 33.086419753086425,
+  "neutral_to_wrapped": 33.7037037037037,
   "wrap_window": 29.62962962962963,
-  "wrapped_to_reel": 4.691358024691358,
+  "wrapped_to_reel": 4.074074074074074,
   "launch_to_reel": 42.839506172839506,
   "full_travel": 43.95061728395062
  },
@@ -181,8 +181,8 @@
  },
  "brake_ramps": [
   [
-   8.0,
-   32.0,
+   30.0,
+   40.0,
    0.0,
    1.0
   ],
@@ -194,7 +194,7 @@
   ],
   [
    302.0,
-   316.0,
+   312.0,
    0.0,
    1.0
   ]

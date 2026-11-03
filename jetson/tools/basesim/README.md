@@ -12,7 +12,9 @@ make                                  # FW defaults to ../../../firmware/base, e
 make FW=/path/to/firmware/base        # any checkout or `git archive origin/w/fw-base firmware/base` extract
 ```
 
-Needs g++ (gnu++17). `make` rebuilds when the firmware headers change.
+Needs g++ (gnu++17). `make` rebuilds when the firmware headers change. Both firmware generations build: the D16 drum
+order (fw-base 93bfb1c, LAUNCH / NEUTRAL / WRAP / REEL) and v1 (base-v1, LAUNCH / NEUTRAL / REEL / WRAPPED); the
+harness detects which from sim.h (`#sim dump` reports `drum_order`).
 
 ## Run
 

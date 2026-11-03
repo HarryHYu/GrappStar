@@ -355,3 +355,32 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   `line_m` reached 1.5 (10.1 step 15): plant line out was 0.58 m. The dart then seated during the unwrap.
 - Fix: the firmware subtracts `wrapsFull x pi x (d + line d)` from `line_m` when it lays the wraps (it knows the
   count), or the Jetson re-sends `set line_m` after WRAPPED. Without it, "stop at about 1.5 m" means 0.6 m.
+
+## F24 (jetson, low) host watchdog margin: pings every 0.8 s against `host_timeout_s` 1.5
+
+- Preview `nominal` (base at 2x sim speed, 3 parallel shards on 4 cores): the Jetson sets `host_timeout_s 1.5` and
+  pings about every 0.8 s; one gap of 1.5 s of base time (0.75 s of wall time at 2x) during AIM made the base stop
+  (`ABORTED {"what":"HOST","why":"host silent"}`). Retry recovered. At real speed the same needs a 1.5 s gap, so this
+  is mostly my speed scaling, but the margin is only 0.7 s against a Python process that also runs video, vision and
+  the landing analysis (GC or a busy GIL can take that).
+- Suggest: ping from a dedicated thread at 0.3 s, or set the watchdog to 3 s; log the largest ping gap.
+- Harness: the final batch runs the base at real time (`SYSTEST_SPEED=1`).
+
+## F25 (jetson + spec, low) step 14 order: the mission stops the base before `/release`; 10.1 says release, then stop
+
+- Preview `dog_tip`, `drum_timeout`, `nominal`: `... reel tension > stop > dart release > reel stop ...`
+  (`mission.py` `release_dart`: `self.base.safe_stop()` then `self.dart.release()`). BASE_SPEC 10.1 step 14:
+  "dart `/release`, then `stop`".
+- Stop first is the safer order (the capstan never pulls against a releasing dart; the worm holds the line either way),
+  so I suggest the spec adopts it. The C1 check accepts both orders meanwhile.
+
+## F26 (fw-base) a drum turned by hand while the board is off gives `DRUM_SENSOR` at boot
+
+- Preview (fw-base c28396c), scenario `power_launch_mode` set-up: board off, drum turned from LAUNCH to NEUTRAL
+  (41 deg), board on. `BOOT {"record":true,"was_moving":false,"phase":"UNKNOWN"}` then
+  `FAULT DRUM_SENSOR "drum code disagrees with the saved drum angle"`. The spec makes the drum lever the manual
+  fallback (BASE_SPEC 1: "Manual lever on the drum shaft end as the hand fallback") and PROTOCOL.md section 7 says the
+  sector always comes from the absolute drum code at boot. A clear is needed before anything moves, and the phase is
+  UNKNOWN as well (the `cal cock_rest` 100 ms before the power cut was not in flash yet: the F1 family).
+- Suggest: at boot, a valid code in another sector than the record = the drum was moved by hand: take the code's
+  sector (angle mid-sector), no fault; keep DRUM_SENSOR for invalid codes. New scenario `hand_lever` checks it.

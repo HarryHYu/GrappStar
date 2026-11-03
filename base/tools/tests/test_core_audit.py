@@ -263,3 +263,35 @@ def test_custom_timeline_int_flags_step():
 def test_line_path_ignores_other_signatures():
     a = mod([], [], lambda P, S: {}, line_path=lambda P, wraps=0.0: [(9, 9, 9)])
     assert Assembly(None, {"reel": a}).line({}) == []
+
+
+def test_refine_interpolates_joints_driven_by_strings_and_big_jumps():
+    js = [Joint("s", None, "slide", axis=(1, 0, 0)), Joint("r", None, "rev")]
+    kin = lambda P, S: {"s": 20.0 if S["mode"] == "B" else 0.0, "r": -360.0 * S["wraps"]}
+    asm = Assembly(None, {"x": mod([], js, kin)})
+    st = audit.refine(asm, [{"mode": "A", "wraps": 0}, {"mode": "B", "wraps": 7}])
+    v = [asm.values(S) for S in st]
+    assert max(abs(b["s"] - a["s"]) for a, b in zip(v, v[1:])) <= 0.5 + 1e-9
+    assert max(abs(b["r"] - a["r"]) for a, b in zip(v, v[1:])) <= 1.0 + 1e-9
+    assert len(st) == 2521
+
+
+def test_pair_refine_sweeps_string_driven_joint():
+    from cad.lib import Allow as _A
+    base = Part("base_plate", prim.cbox(40, 40, 5), print_tf=tf.I4)
+    wall = Part("wall", prim.cbox(2, 40, 20, x=10, z=5), print_tf=tf.I4)
+    blk = Part("blk", prim.cbox(4, 4, 4, z=5), joint="sl", print_tf=tf.I4)
+    js = [Joint("sl", None, "slide", axis=(1, 0, 0))]
+    m = mod([base, wall, blk], js, lambda P, S: {"sl": 20.0 if S["mode"] == "B" else 0.0},
+            grounded=lambda P: ["base_plate"])
+    asm = Assembly(load_params(), {"t": m})
+    rep = audit.run(asm, [{"mode": "A"}, {"mode": "B"}], jobs=1, log=lambda *a: None, pair_refine=2)
+    assert any({c["a"], c["b"]} == {"blk", "wall"} for c in rep["collisions"]), audit.summary(rep)
+
+
+def test_custom_timeline_counts_ease_flags_step():
+    import types as _t
+    from tools.timeline import state_at
+    P = _t.SimpleNamespace(TIMELINE=[("a", 1.0, "", {"wraps": 0, "fired": 0}), ("b", 2.0, "", {"wraps": 7, "fired": 1})])
+    w = state_at(P, 2.0)["wraps"]
+    assert 0 < w < 7 and state_at(P, 1.5)["fired"] == 0 and state_at(P, 2.6)["fired"] == 1

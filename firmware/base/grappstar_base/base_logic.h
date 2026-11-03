@@ -310,7 +310,7 @@ struct Base {
     enc.rateDps = w.outDir ? w.outDir * (idxRate > 0 ? idxRate : c.n0Rpm * 6.f * w.outDuty / 255.f) : 0;
   }
   void resolveBoot() {
-    bootPending = false; booted = true;
+    bootPending = false; booted = true; crossCheckDue = true; crossCheckT = now;
     if (!enc.ok && fitted(SW_INDEX)) {                 // no magnet: degraded angle source, coarser checks
       indexMode = true; idxDeg = 0; enc.count = 0; c.homeWinDeg += 60;
       c.cockEndDeg = c.releaseDeg - 60; c.cockSlowFrom = c.cockEndDeg - 40;   // the count can be 30 deg out: cock stops a bump early
@@ -570,6 +570,14 @@ struct Base {
       wrapsDoubt = true; wrapsKnown = false;
       raise(F_DRUM_SENSOR, "SW_ARM moved outside the wrap window (drum code contact?)"); return;
     }
+    if (crossCheckDue && now - crossCheckT >= 300) {   // boot / N20 back in mesh: the code must agree with the other contacts
+      crossCheckDue = false;
+      if (const char* why = drumCrossCheck()) { raise(F_SWITCH_DISAGREE, why); return; }
+    }
+    if (fitted(SW_N20) && rose(SW_N20)) {           // drum_NOTES 7.7: the hand fallback ended: run the boot rules again
+      degTrusted = false; if (sec >= SEC_PREP) { wrapsDoubt = true; wrapsKnown = false; }
+      crossCheckDue = true; crossCheckT = now;
+    }
     if (armPending) {
       bool near = (sec == SEC_PREP && drumDeg > c.wrapFromDeg - 4) || (sec == SEC_LOCK && drumDeg < c.wrapToDeg + 4);
       if (!near || !d.running()) { armPending = false; if (armPulses != c.wrapsFull) armBad = true; }
@@ -595,9 +603,20 @@ struct Base {
   // the WRAP sector (take-up only); while the collar drops into REEL the wiper creeps forward (fly-in); at the end the
   // dog contacts must confirm the collar (LAUNCH: wiggle BACKWARD if needed, never forward: that would cock).
   int mvTarget = -1, mvDir = 0, mvStage = 0, mvSafing = 0; uint32_t mvT = 0, mvLegT = 0, mvSecT = 0, mvEnd = 0; float mvExpect = 0, mvFrom = 0;
-  bool flyBit = false; uint32_t flyT = 0, flyPauseT = 0; float flyRef = 0, flyLegFrom = 0;
-  int mvLastSec = SEC_INVALID; bool mvTakeup = false; int mvWiper = 0; bool mvTrusted = false; float mvEdgeExpect = 0; bool mvRefind = false; float mvRefEdge = 0; bool mvReref = false;
+  float cenRef = 0; bool flyBit = false; uint32_t flyT = 0, flyPauseT = 0; float flyRef = 0, flyLegFrom = 0;
+  int mvLastSec = SEC_INVALID; bool mvTakeup = false; int mvWiper = 0; bool mvTrusted = false; float mvEdgeExpect = 0; bool mvRefind = false; float mvRefEdge = 0; bool mvReref = false; bool mvSeenEdge = false;
   bool handMode() const { return fitted(SW_N20) && !closed(SW_N20); }   // N20 latched out: the drum is turned by hand
+  // drum_NOTES 7.6: the code is accepted only when the other contacts agree (LAUNCH: DOG_L; REEL: DOG_R; NEUTRAL and
+  // WRAP_PREP: both dogs open and the cup at home); nullptr when they agree
+  const char* drumCrossCheck() const {
+    bool cupHome = !fitted(SW_ARM) || (c.armHomeOpen ? !closed(SW_ARM) : closed(SW_ARM));
+    if (sec == SEC_LAUNCH && fitted(SW_DOG_L) && !closed(SW_DOG_L) && !d.running()) return "LAUNCH code without SW_DOG_L";
+    if (sec == SEC_REEL && fitted(SW_DOG_R) && !closed(SW_DOG_R)) return "REEL code without SW_DOG_R";
+    if ((sec == SEC_NEUTRAL || sec == SEC_PREP) && (closed(SW_DOG_L) || closed(SW_DOG_R))) return "NEUTRAL code with a dog contact closed";
+    if ((sec == SEC_NEUTRAL || sec == SEC_PREP) && !cupHome) return "NEUTRAL code with the wrap cup away from home";
+    return nullptr;
+  }
+  bool crossCheckDue = false; uint32_t crossCheckT = 0;
   bool startDrumMove(int target, bool safing) {
     mvReref = false;
     if (sec == SEC_INVALID || secBad || handMode()) return false;
@@ -607,7 +626,7 @@ struct Base {
     float from = drumDeg;
     if (!degTrusted) from = mvDir > 0 ? fmaxf(secLo(sec), c.secLoDeg) : fminf(secHi(sec), c.secHiDeg);   // worst case inside the sector
     mvExpect = fabsf(c.targetDeg[target] - from) / c.drumDps * 1000.f;
-    mvTrusted = degTrusted; mvRefind = false; flyBit = false; flyT = 0; flyPauseT = 0;        // the 'came too early' check needs a known start angle
+    mvTrusted = degTrusted; mvRefind = false; mvSeenEdge = false; flyBit = false; flyT = 0; flyPauseT = 0;        // the 'came too early' check needs a known start angle
     { int tsec = targetSec(target); float edge = mvDir > 0 ? secLo(tsec) : secHi(tsec);   // where the target code starts
       mvEdgeExpect = (tsec == sec) ? 0 : fabsf(edge - from) / c.drumDps * 1000.f; }
     mvT = mvLegT = mvSecT = now; mvLastSec = sec; mvFrom = enc.deg(); mvWiper = 0;
@@ -643,12 +662,13 @@ struct Base {
     else if (fly) {
       // D41: creep only until the dogs bite (SW_DOG_R closes, or the current rises flyBiteA over the creep's running
       // level: on a straight line about 3.4 N per wiper degree after the bite); after that the drum finishes alone
-      if (!flyBit && collarReel()) flyBit = true;
+      if (!flyBit && closed(SW_DOG_R)) flyBit = true;   // the dogs bite (the code may still read N_TO_R)
       if (!flyBit) {
         if (!flyT || !w.wantDir) { flyT = now; flyRef = 0; }
         wiper(c.reelDir, c.flyDuty, c.jogTripA);
-        if (now - flyT > 250) { flyRef = flyRef == 0 ? w.amps : flyRef + (fminf(w.amps, flyRef + 0.3f) - flyRef) * 0.05f;
-          if (now - flyT > 400 && w.amps > flyRef + c.flyBiteA) flyBit = true; }
+        if (now - flyT > 250 && now - flyT <= 450) flyRef = flyRef == 0 ? w.amps : flyRef + (w.amps - flyRef) * 0.1f;   // running level, then frozen
+        else if (now - flyT > 450 && w.amps < flyRef) flyRef = w.amps;                                                        // (it may still settle down)
+        if (now - flyT > 450 && flyRef > 0 && w.amps > flyRef + c.flyBiteA) flyBit = true;
       }
       if (flyBit && w.wantDir) { w.halt(now, io.wiper); mvWiper = 0; }
     }
@@ -668,7 +688,9 @@ struct Base {
     if (mvStage == 3) {                               // centering jog
       // also bounded in time (1.5 x the free-speed time): a noisy angle must never carry the jog past the window
       uint32_t capMs = (uint32_t)(c.centerDeg / (c.n0Rpm * 6.f * c.jogDuty / 255.f) * 1500.f) + c.drumTimeMarginMs / 10 + 200;
-      if (fabsf(enc.deg() - mvFrom) >= c.centerDeg || now - mvLegT > capMs) {
+      if (now - mvLegT > 150 && !cenRef) cenRef = w.amps;   // running level of the jog
+      if (fabsf(enc.deg() - mvFrom) >= c.centerDeg || now - mvLegT > capMs || (cenRef > 0 && w.amps > cenRef + c.flyBiteA)) {   // stop early on a current rise
+        cenRef = 0;
         w.halt(now, io.wiper); mvWiper = 0; win = c.dogWindowDeg * 0.5f;
         mvStage = 0; mvT = mvLegT = mvSecT = now; d.want(mvDir * c.drumSign);
       }
@@ -681,7 +703,12 @@ struct Base {
     if (mvStage == 0) {
       if (sec != mvLastSec) {
         if ((sec - mvLastSec) * mvDir < 0) { failDrum(safing, F_DRUM_SENSOR, "drum turned the wrong way (drum_sign?)"); return -1; }
-        mvLastSec = sec; mvSecT = now;
+        // a whole code crossed inside this move must have lasted 70 percent of its span (a lying contact flips faster)
+        if (mvSeenEdge && mvLastSec != SEC_LAUNCH && mvLastSec != SEC_REEL) {
+          float span = secHi(mvLastSec) - secLo(mvLastSec);
+          if ((float)(now - mvSecT) < c.drumMinDwellFrac * span / c.drumDps * 1000.f) { failDrum(safing, F_DRUM_SENSOR, "drum code changed too fast"); return -1; }
+        }
+        mvSeenEdge = true; mvLastSec = sec; mvSecT = now;
       }
       mvWiperRule();
       if (sec == ts) {

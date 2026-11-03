@@ -4,7 +4,8 @@
 
 Phases (priority as in API.md): FAULT > RELEASING > ANCHORING > FLIGHT > ANCHORED > LANDED > ARMED > IDLE.
 World events from the simulator or tests: launch() (only counted while armed, like the real detector), land().
-Refusals are HTTP 409 with "refused: <reason>". Test hooks: fail_anchor, fail_release, no_landing, no_imu, down
+Refusals are HTTP 409 with "refused: <reason>". Test hooks: fail_anchor, no_ground (/auto faults NO_GROUND: dart on its back or side, every retry too),
+fail_release, no_landing, no_imu, down
 (answer 503 to everything), slow_s (delay every reply), flightlog_provider.
 """
 from __future__ import annotations
@@ -83,6 +84,7 @@ class MockDart:
         self.peak_mA = 0
         # hooks
         self.fail_anchor = False
+        self.no_ground = False
         self.fail_release = False
         self.no_landing = False
         self.no_imu = False
@@ -187,6 +189,10 @@ class MockDart:
             return
         el = (time.time() - self.seq_t0) * self.scale
         if self.seq_kind == "anchor":
+            if self.no_ground and el >= 1.0:
+                self.seq, self.event, self.fault = "aborted", "auto: kick hit its end stop in air", "NO_GROUND"
+                self.seq_t0, self.seq_kind, self.current_mA = None, None, 0
+                return
             if self.fail_anchor and el >= 1.6:
                 self.seq, self.event, self.fault = "aborted", "auto: kick found no ground", "KICK_TIMEOUT"
                 self.seq_t0, self.seq_kind, self.current_mA = None, None, 0
@@ -277,6 +283,8 @@ class MockDart:
                     code, body = refuse("in flight")
                 elif busy:
                     code, body = refuse("busy")
+                elif on and ph == "ANCHORED":
+                    code, body = refuse("anchored: release first")
                 elif on and self.no_imu:
                     code, body = refuse("no IMU")
                 else:

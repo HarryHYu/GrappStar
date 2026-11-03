@@ -19,7 +19,7 @@ DEFAULTS = dict(
     cap_r=20.0, cap_len=40.0, cap_flange_r=23.0, cap_flange_h=3.0,
     wraps=7, mu_min=0.10, mu_lo=0.15, mu_hi=0.25,
     # storage reel
-    core_r=25.0, flange_r=36.0, width=22.0, flange_t=2.0, pack_fill=0.80,          # params v1.2 REEL.storage
+    core_r=25.0, flange_r=40.0, width=22.0, flange_t=2.0, pack_fill=0.80,          # params v1.2 REEL.storage
     # slip clutch line tension targets with the reel FULL (D24): LIGHT 0.5 N, FIRM 5.0 N
     brake_launch_n=0.5, brake_mid_n=1.75, brake_reel_n=5.0, mu_face=0.30, face_r_in=20.0, face_r_out=30.0,
     brake_stroke=4.0, rocker_l=37.0, rocker_a=33.0, rocker_b=15.0,

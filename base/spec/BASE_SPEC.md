@@ -162,7 +162,7 @@ take-up until SW_SEATED (fault DART_STUCK after 20 s) -> LAUNCH. A no-go landing
 the take-up (or after a wrap, on the capstan).
 De-cock: from a partial cock run backward until SW_HOME and SW_GAP close. Refusals: no fire unless LAUNCH, SW_HOME,
 SW_GAP, SW_SEATED and a valid token; aim only at HOME; no drum move unless the wiper is stopped; no leaving LAUNCH
-unless SW_HOME; wiper backward refused outside LAUNCH except the 8 deg unload jog (params DRUM). Current trips (D8): ignore 50 ms
+unless SW_HOME; wiper backward refused outside LAUNCH except the 6 deg unload jog (params DRUM). Current trips (D8): ignore 50 ms
 after a start; 3 A for 30 ms on every backward run in LAUNCH (D40), 5 A in capstan reel-in, 6.5 A while cocking;
 tow limited by the dart-side tension estimate (D43, D46: at most 55 N), with the hard trip above it at the 50 N equivalent
 averaged over 200 ms. Any fault: wiper off, drum to NEUTRAL, except when wraps are on, the spring is drawn, or the drum itself faulted:

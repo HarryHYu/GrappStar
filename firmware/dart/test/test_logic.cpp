@@ -571,6 +571,20 @@ int main() {
     std::string e; for (auto& l : LOG) if (l.find("kick travel from stowed") != std::string::npos) e = l;
     float ms = e.empty() ? 0 : atof(e.c_str() + e.find("stowed") + 7); printf("     %s\n", e.c_str());
     CHECK(ms > 4300 * 0.95f && ms < 4300 * 1.05f, "a kick held out in air to its end stop reports its travel (within 5 % of the real 4300 ms)"); }
+  // review round 12 (logic)
+  auto augerRun = [&](int maxTicks) { bool a = false; for (int i = 0; i < maxTicks && K.seq != IDLE && !K.fault; i++) { run(5); if (P.mdir[FOOT] || P.mdir[DRILLS] || P.mdir[DEPLOY]) a = true; } return a; };
+  { fresh(); P.kickContact = P.kickLand = 1500; K.startAuto(NOW); bool a = augerRun(3000);   // jams in air at 35 % of the swing
+    CHECK(std::string(faultName(K.fault)) == "KICK_JAM" && !a, "a kick jammed part way out in air: KICK_JAM, not 'already down' (augers never run)"); }
+  { fresh(); P.kickContact = P.kickLand = 4300; K.startAuto(NOW); augerRun(3000); K.stop(NOW); run(700);
+    for (int i = 0; i < 3; i++) { K.key('2', 350, NOW); run(150); } run(600); K.startAuto(NOW); bool a = augerRun(3000);
+    CHECK(std::string(faultName(K.fault)) == "NO_GROUND" && !a, "after NO_GROUND, a '2' tap at the end stop does not make the next /auto anchor in air"); }
+  { fresh(); K.boot(F_NONE, NOW, false); P.kickContact = P.kickLand = 4300; K.startAuto(NOW); augerRun(3000); K.stop(NOW); run(700);
+    K.startAuto(NOW); bool a = augerRun(3000);
+    CHECK(std::string(faultName(K.fault)) == "NO_GROUND" && !a, "travel unknown (after a reset): a retry after NO_GROUND is NO_GROUND again"); }
+  { fresh(); for (int i = 0; i < 25; i++) { K.key('@', 350, NOW); run(150); } run(700);   // '@' hold ends stalled, then '2' and '@' again within the cap
+    const char* e = nullptr; for (int i = 0; i < 60 && !e; i++) { e = K.key(i < 30 ? '2' : '@', 350, NOW); run(150); }
+    CHECK(e && std::string(e).rfind("hold limit", 0) == 0, "the 8 s hold cap refuses with 'hold limit', not 'stalled' (a client can tell it from an end stop)"); }
+
   // coordinator review r2_B2 #5
   { fresh(); K.startAuto(NOW); run(500); CHECK(K.key('3', 350, NOW) != nullptr, "a run key during ANCHORING is refused (busy)");
     K.keyRelease(NOW); run(100); CHECK(K.anchoring() && P.mdir[KICK] > 0, "...and the page's key-release stop does not abort the anchor"); }

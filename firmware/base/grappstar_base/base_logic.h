@@ -288,7 +288,7 @@ struct Base {
   // ---- D12 degraded angle source: SW_INDEX closes 6 times per shaft turn (every 60 deg). Between bumps the angle is
   // interpolated from the last measured bump-to-bump rate (nominal speed before that), never more than 59 deg past
   // the last bump; each bump snaps the angle to the nearest multiple of 60. Direction = the commanded drive.
-  int idxDuty = 0; bool indexMode = false, idxOverdue = false; float idxDeg = 0, idxRate = 0, idxLast = 0; uint32_t idxEdgeT = 0; int idxDir = 0;
+  int idxDuty = 0; bool indexMode = false, idxOverdue = false; float idxDeg = 0, idxRate = 0, idxLast = 0; uint32_t idxEdgeT = 0, idxHoldT = 0; int idxDir = 0;
   void indexTick(uint32_t dt) {
     int dir = w.outDir ? w.outDir : (w.lastDir && now - w.stopT < 120 ? w.lastDir : 0);   // short coast after a stop
     if (dir && rose(SW_INDEX)) {
@@ -310,6 +310,16 @@ struct Base {
       uint32_t lim = inRun ? (uint32_t)(1.5f * 60000.f / idxRate * slow)
                            : (uint32_t)((60.f + c.dogWindowDeg) / fmaxf(0.5f * nominal, 30.f) * 1500.f) + 300;
       uint32_t ref = inRun ? idxEdgeT : w.startT;
+      // F32: winding the capstan in REEL against the line (amps above free running), the worm may creep or stop at
+      // the tension limit with no bump due; the tension and current limits stop it there. A failed cam is still found
+      // when the motor runs unloaded and no bump comes (the clock restarts when the load goes). Never relaxed in
+      // LAUNCH: a cock must find a missed bump within about 90 deg.
+      // Winding in REEL also gets 4 x the window: the line taking up load slows the worm by more than the duty says,
+      // and a missed bump there only costs the line estimate (the tension and current limits stop the motor).
+      bool reelWind = sec == SEC_REEL && dir == c.reelDir;
+      if (reelWind) lim *= 4;
+      if (reelWind && w.amps > c.freeA + 0.5f) idxHoldT = now;
+      if (idxHoldT && (int32_t)(idxHoldT - ref) > 0) ref = idxHoldT;
       if (w.outDir && w.outDuty > 60 && now - ref > lim) idxOverdue = true;
     }
     enc.ok = true; enc.have = true; enc.status = AS_MD;

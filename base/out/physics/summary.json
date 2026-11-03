@@ -1,5 +1,5 @@
 {
- "source": "base/spec/params.py v1.3.2",
+ "source": "base/spec/params.py v1.3.8",
  "sections": [
   [
    "Spring (each, A228, SF 1.2 on Shigley static limits)",
@@ -177,10 +177,10 @@
   ]
  ],
  "measure": [
-  "Spring hang test: hang 1, 2, 3 kg from one spring and measure the length each time (hooks included). python calib.py spring FREE_MM 1:MM 2:MM 3:MM, then SPRING k_n_per_mm and F0_n. Every range number scales with the stored energy.",
-  "Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall current. python calib.py wiper --v 12 --rpm .. --i-free .. --stall-kg .. --arm-mm .. --i-stall .., then WIPER n0_rpm, stall_nm, stall_a, free_a.",
+  "Spring hang test, each spring: hang 1, 2, 3 kg and measure the length each time (hooks included). python calib.py spring FREE_MM 1:MM 2:MM 3:MM, then SPRING k_n_per_mm and F0_n (mean of the two); the stronger spring decides the anchor holes (MEASURE_LIST B4). Every range number scales with the stored energy.",
+  "Wiper (MEASURE_LIST A6): free speed and current from a 40 % bench jog in telemetry, then WIPER n0_rpm = jog rpm x 2.5 (never the raw jog rpm) and free_a = amps. The stall cannot be read (jogs trip at 2.5 to 3 A, A7): keep stall_nm and stall_a.",
   "Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg), then DART mass_kg.",
-  "Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 5 N (REEL clutch).",
+  "Payout brake (MEASURE_LIST G4, hanging weights: a luggage scale cannot read this low): in LAUNCH 40 g on the line must not pull line off and 50 g must (LIGHT 0.5 N); in NEUTRAL the FIRM clutch (5 N) lets line off at about 0.5 kg on the luggage scale.",
   "First shots on level ground: python calib.py range pitch:brake:range ..., then LAUNCH v_scale = FACTOR."
  ]
 }

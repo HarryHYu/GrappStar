@@ -15,8 +15,12 @@ from common import load_params
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(HERE, "..", "out", "physics")
 BALL = os.path.join(HERE, "..", "out", "ballistics.json")
-FONT = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
-FONT_B = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+# Liberation Sans on Linux, Arial on macOS (same metrics: plain Arial either way); the first set present wins
+_FONT_SETS = [("/usr/share/fonts/truetype/liberation", "LiberationSans-Regular.ttf", "LiberationSans-Bold.ttf"),
+              ("/System/Library/Fonts/Supplemental", "Arial.ttf", "Arial Bold.ttf"),
+              ("/Library/Fonts", "Arial.ttf", "Arial Bold.ttf")]
+_fs = next((f for f in _FONT_SETS if all(os.path.exists(os.path.join(f[0], n)) for n in f[1:])), _FONT_SETS[0])
+FONT, FONT_B = os.path.join(_fs[0], _fs[1]), os.path.join(_fs[0], _fs[2])
 MEASURE_TITLE = "To measure (then edit base/spec/params.py and run ./run_all.sh)"
 STALL = "STALL: cannot {} with this wiper"
 
@@ -190,6 +194,8 @@ def write_pdf(s, path):
         for a, b in rows:
             cv.setFont("LS", fs)
             cv.drawString(x, y, a)
+            if cv.stringWidth(a, "LS", fs) + cv.stringWidth(b, "LS", fs) + 8 > colw:
+                y -= lh                           # long row: the value goes on its own line, right aligned
             cv.drawRightString(x + colw, y, b)
             y -= lh
         y -= 5

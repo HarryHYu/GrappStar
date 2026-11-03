@@ -188,7 +188,7 @@ about 8 deg per second.
    closes when the collar is engaged. `SWITCH_DISAGREE` "collar contact disagrees with the drum code" means `l` or
    `r` was closed where the collar cannot be engaged (both are checked during every drum move).
 10. If you get `SW_ARM counted n of 7 cup turns` (`DRUM_SENSOR`): the `SW_ARM` contact (`W`) is closed while the cup
-    is away from home and must OPEN for about +-5 deg at home (cad-reel); the firmware counts one cup turn per
+    is away from home and must OPEN for about -6 to +8 deg at home (cad-reel); the firmware counts one cup turn per
     opening. Check it with the drum still: `W` must disappear from `sw` while the cup is at home.
 11. The drum speed (`drum_dps`, default 8.1) is learned by itself between code edges. See it with
     `{"id":11,"cmd":"get","key":"drum_dps"}`. Nothing to do.

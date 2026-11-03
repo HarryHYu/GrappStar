@@ -48,7 +48,7 @@ re-tested where noted. Evidence in `systest/runs_preview/<scenario>/` and `syste
 | F29 | jetson vision | speed part fixed on w/jetson-vision 6fc97c8; remaining ~11 % = renderer vs C3 table (by design) | |
 | F30 | fw-base (low) | re-test on 18ab2b2 not done | |
 | F31 | fw-base | fixed in fw-base a1714b2 (merged eb48f20) | batch 5 `no_magnet_index`: mode NEUTRAL LAUNCH_BUSY after the low aim in index mode; final cross-check run: the index-mode mission now leaves LAUNCH, wraps, anchors and flies in (then F32) |
-| F32 | fw-base (index mode only) | OPEN (new in the final cross-check run) | `no_magnet_index`: the CHECK pull faults ANGLE_SENSOR "SW_INDEX bump overdue" (see F32 below) |
+| F32 | fw-base (index mode only) | fixed after the final cross-check run (indexTick: 4 x window and a load hold while winding in REEL; LAUNCH unchanged); `no_magnet_index` passes | `no_magnet_index`: the CHECK pull faults ANGLE_SENSOR "SW_INDEX bump overdue" (see F32 below) |
 
 ## F1 (fw-base) `cal` (and `set`) during the first 60 ms are acknowledged ok, then silently undone by the boot rebuild
 
@@ -483,5 +483,10 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   gap between index bumps grows by more than the 1.5 x margin of `indexTick()` (`base_logic.h`, the overdue limit is
   1.5 x the last measured bump period, scaled only by the duty drop since that bump). A real tow near its limit slows
   the same way, so an index-mode build cannot tow.
+- Fix (coordinator, after the final cross-check run): in `indexTick()` the overdue window is 4 x longer while the
+  wiper winds the capstan in REEL, and the clock restarts while the current is above free running + 0.5 A (the line
+  is taking up load). A missed bump there only costs the line estimate; the tension and current limits stop the
+  motor. LAUNCH keeps the 1.5 x window, so a cock still finds a missed bump within about 90 deg (the PC check
+  "D12 index mode: SW_INDEX failing while cocking never fires" still passes). `no_magnet_index` now passes.
 - Not seen before because F31 stopped every index-mode mission right after the shot. Reproduce with
   `systest/run_mission.sh no_magnet_index`. Owner: fw-base (index mode is off by default; D12 fallback only).

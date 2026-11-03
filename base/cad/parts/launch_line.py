@@ -36,7 +36,8 @@ def geom(n):
     u_t = n["u_track0"] - 22.6                        # top / bottom pulley u (behind the cocked SW_SEATED body)
     top = (u_t, 0.0, w_line - R_PATH)
     bot = (u_t, 0.0, 30.0)
-    piv = (0.0, -21.0, -53.5)            # the reel feed (about w -60 ahead of it) wraps under it, round the rear
+    piv = (0.0, -21.0, -44.0)            # clear of the sleeve flange (r 32) and cad-drum's fork rail (r >= 56.6); the
+                                         # reel feed arrives at its bottom (w -50.5) and wraps round its rear
     return dict(w_line=w_line, top=top, bot=bot, piv=piv,
                 p_top_front=(u_t, 0.0, w_line), p_top_rear=(u_t - R_PATH, 0.0, top[2]),
                 p_bot_rear=(u_t - R_PATH, 0.0, bot[2]), p_bot_low=(u_t, 0.0, bot[2] - R_PATH),

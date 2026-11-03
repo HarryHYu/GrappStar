@@ -47,7 +47,7 @@ Y_WALL = 28.0                       # rail wall outer face
 # wall brackets (u centre) per segment and side (+1 left / -1 right)
 WALL_BRACKETS = {
     "a": {1: (-160.0, -105.0, -60.0, 50.0), -1: (-160.0, -105.0, -60.0, 50.0)},
-    "b": {1: (76.0, 165.0), -1: (76.0, 115.0, 165.0)},
+    "b": {1: ((76.95, 4.4), 165.0), -1: ((76.95, 4.4), 115.0, 165.0)},
 }
 TAB_HALF = 5.0                      # bracket half length along u
 FOOT_U, FOOT_Y = 215.0, 47.0        # seg b foot on the rail front plate (w 40): M3 down
@@ -65,14 +65,20 @@ def _cyl_y(r, ya, yb, u, w, sg):
     return prim.cylY(r, y0, y1, x=u, z=w)
 
 
-def _bracket(uc, sg):
+def _uh(b):
+    """Bracket entry: u centre or (u centre, half length)."""
+    return (float(b[0]), float(b[1])) if isinstance(b, tuple) else (float(b), TAB_HALF)
+
+
+def _bracket(b, sg):
     """Wall bracket: tab on the wall face (|y| 28..32, w 36.5..47.5), 45 deg gussets onto a web (w 40..44) out to the
     plate. Profile in (|y|, w), extruded along u."""
     pts = [(Y_WALL, 36.5), (Y_WALL + 4.0, 36.5), (Y_WALL + 7.5, 40.0), (Y_IN + 0.01, 40.0), (Y_IN + 0.01, 44.0),
            (Y_WALL + 7.5, 44.0), (Y_WALL + 4.0, 47.5), (Y_WALL, 47.5)]
+    uc, hl = _uh(b)
     cs = prim.poly_cs([(sg * y, w) for (y, w) in pts])     # profile x = signed y, profile y = w
-    s = prim.extrude(cs, 2 * TAB_HALF)                     # z = 0 .. 2 * TAB_HALF
-    M = np.array([[0.0, 0.0, 1.0, uc - TAB_HALF], [1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]])
+    s = prim.extrude(cs, 2 * hl)                            # z = 0 .. 2 * hl
+    M = np.array([[0.0, 0.0, 1.0, uc - hl], [1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]])
     s = prim.place(s, M)                                   # (x, y, z) -> (u = z, y = x, w = y)
     return s
 
@@ -96,8 +102,8 @@ def segment_solid(seg, sg):
         s.append(_bracket(uc, sg))
     g = prim.union(s)
     for uc in WALL_BRACKETS.get(seg, {}).get(sg, ()):
-        g = g - _cyl_y(1.7, Y_WALL - 1.0, Y_WALL + 5.0, uc, W_BOLT, sg)                        # M3 clearance
-        g = g - _cyl_y(3.2, Y_IN - 1.0, Y_OUT + 1.0, uc, W_BOLT, sg)                           # hex key access
+        g = g - _cyl_y(1.7, Y_WALL - 1.0, Y_WALL + 5.0, _uh(uc)[0], W_BOLT, sg)                # M3 clearance
+        g = g - _cyl_y(3.2, Y_IN - 1.0, Y_OUT + 1.0, _uh(uc)[0], W_BOLT, sg)                   # hex key access
     if seg == "b":
         g = g - prim.cyl(1.7, 6.0, x=FOOT_U, y=sg * FOOT_Y, z=39.0)
     if seg == "c":
@@ -114,7 +120,7 @@ def guard_rail_cut(n=None):
     for seg, d in WALL_BRACKETS.items():
         for sg, us in d.items():
             for uc in us:
-                c.append(_cyl_y(1.3, 18.0, Y_WALL + 0.5, uc, W_BOLT, sg))
+                c.append(_cyl_y(1.3, 18.0, Y_WALL + 0.5, _uh(uc)[0], W_BOLT, sg))
     for sg in (1, -1):
         c.append(prim.cyl(1.3, 9.5, x=FOOT_U, y=sg * FOOT_Y, z=31.0))
         for uu in POST_BOLTS_U:
@@ -127,7 +133,7 @@ def pilot_positions():
     out = []
     for seg, d in WALL_BRACKETS.items():
         for sg, us in d.items():
-            out += [(uc, sg * Y_WALL, W_BOLT, "y") for uc in us]
+            out += [(_uh(uc)[0], sg * Y_WALL, W_BOLT, "y") for uc in us]
     for sg in (1, -1):
         out.append((FOOT_U, sg * FOOT_Y, 40.0, "w"))
         out += [(uu, sg * 64.0, W_POST_BOLT, "y") for uu in POST_BOLTS_U]

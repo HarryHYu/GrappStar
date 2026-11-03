@@ -50,7 +50,7 @@ U_FRONT = U_R + R_HUB       # carriage front (286): the body prints across the b
 # funnel
 U_F0, U_F1 = 148.0, 200.0
 R_F0, R_F1 = 21.4, 27.0
-F_WALL = 3.0
+F_WALL = 2.0                # like the cradle pipe
 W_F_TOP = 80.0
 
 
@@ -87,9 +87,10 @@ def funnel_solid(P=None, n=None):
     outer = _cone_u(R_F0 + F_WALL, R_F1 + F_WALL, U_F0, U_F1, wd)
     env = B(U_F0, U_F1, -n["y_shoe1"], n["y_shoe1"], n["w_deck0"], W_F_TOP) - _lip_keepout(n)
     shell = (outer - inner) ^ env
-    # keel onto the rack spine and webs onto the shoes (|y| 14..17.5), under the cone
-    keel = B(U_F0, U_F1, -4.0, 4.0, n["w_rroot"] + 3.5, wd - R_F0) - inner
-    webs = Bs(U_F0 + 4.0, U_F1, 14.0, n["y_lip0"] - 0.5, n["w_deck0"], wd - 15.0) - inner
+    # keel onto the rack spine, webs on the deck cross ribs (u 160, 190) up to the cone
+    keel = B(U_F0 + 10.0, U_F1, -1.5, 1.5, n["w_rroot"] + 3.5, wd - R_F0) - inner
+    webs = prim.union([B(uc, uc + 3.0, -(n["y_lip0"] - 0.5), n["y_lip0"] - 0.5, n["w_rroot"] + 3.5, wd - 12.0)
+                       for uc in (160.0, 190.0)]) - inner - _lip_keepout(n)
     return shell + keel + webs
 
 
@@ -106,7 +107,7 @@ def fork_solid(P=None, n=None):
     s.append(prim.cylY(2.9, 2.05, Y_CHEEK0 + 0.01, x=U_R, z=W_R) + prim.cylY(2.9, -Y_CHEEK0 - 0.01, -2.05, x=U_R, z=W_R))
     f = prim.union(s)
     # lightening pockets in the prongs (open at the top), axle clearance hole
-    f = f - Bs(U_FORK0 + 4.0, U_R - 9.0, 9.5, 15.0, n["w_deck0"] + 2.5, W_FORK1 + 1.0)
+    f = f - Bs(U_FORK0 + 4.0, U_R - 9.0, 9.5, 16.0, n["w_deck0"] + 1.8, W_FORK1 + 1.0)
     f = f - prim.cylY(1.7, -20.0, 20.0, x=U_R, z=W_R)
     # counterbores for the screw head (right) and the nyloc nut (left), open through the shoes: fitted from the side
     f = f - prim.cylY(3.6, Y_CHEEK1, 30.0, x=U_R, z=W_R) - prim.cylY(3.6, -30.0, -Y_CHEEK1, x=U_R, z=W_R)

@@ -1044,8 +1044,17 @@ def dart_offsets(P, S, pitch, travel):
     lf.update((getattr(P, "LAUNCH", None) or {}).get("flight", {}) or {})
     R, H = lf["range_m"] * 1000.0, lf["apex_m"] * 1000.0
     if rt > 0.0:
-        s = 1.0 - rt                                         # straight back along the line from the landing point
-        X, Z, ang = R * s, -165.0 * s, 0.0
+        # reeled home tail first: from the landing point up to the rail axis line well ahead of the muzzle, then
+        # straight along the axis onto the sled (the line runs over the lip roller and through the funnel)
+        u_in = 320.0
+        if rt < 0.7:
+            s = rt / 0.7
+            X0, Z0 = R, -165.0
+            c0, s0 = math.cos(math.radians(pitch)), math.sin(math.radians(pitch))
+            X1, Z1 = u_in * c0, u_in * s0                    # the point u_in ahead on the rail axis (world offsets)
+            X, Z, ang = X0 + (X1 - X0) * s, Z0 + (Z1 - Z0) * s, 0.0
+        else:
+            return u_in * (1.0 - (rt - 0.7) / 0.3), 0.0, 0.0
     else:
         X = R * fl
         Z = 4.0 * H * fl * (1.0 - fl) - 165.0 * fl * fl       # parabola to the ground (deck level) at the landing
@@ -1259,7 +1268,7 @@ def _tangent_angle(c, r, q, side):
 def line_entry(P, S=None):
     """World point where the tether arrives at the rail: the BOTTOM of the pivot pulley (cad-reel's feed comes in
     from the front at about the same height and the line wraps under the pulley and round its rear). The pulley is
-    53.5 below the main axis and turns with the rail, so the feed length changes by about 30 mm over the aim range
+    44 below the main axis and turns with the rail, so the feed length changes by about 25 mm over the aim range
     (slack on the way down is taken up by the take-up during cocking)."""
     S = S or {}
     n = L(P)

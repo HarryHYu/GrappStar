@@ -108,13 +108,17 @@ def swept_cutters(P, C, others=("launch", "reel", "drum"), margin=4.0, n_states=
     """Union of convex hulls (grown by margin) of every part of the other subsystems over the audit timeline, in the
     deck frame. Empty Manifold when the other subsystems are not there yet."""
     from manifold3d import Manifold
+    from . import _frame_others as OTH
     try:
-        from tools.assembly import Assembly, subsystem_names
         from tools.timeline import timeline
-        names = [n for n in subsystem_names() if n in others]
-        if not names:
+        if others is None or set(others) >= {"launch", "reel", "drum"}:
+            asm = OTH.load_others(P)
+        else:
+            from tools.assembly import Assembly, subsystem_names
+            names = [n for n in subsystem_names() if n in others]
+            asm = Assembly.load(P, names) if names else None
+        if asm is None:
             return Manifold()
-        asm = Assembly.load(P, names)
         states = timeline(P, 0.25)
     except Exception:
         return Manifold()
@@ -124,11 +128,34 @@ def swept_cutters(P, C, others=("launch", "reel", "drum"), margin=4.0, n_states=
     shift = tf.T(0, 0, -C["deck_z"])
     hulls = []
     offs = [(margin, 0, 0), (-margin, 0, 0), (0, margin, 0), (0, -margin, 0), (0, 0, margin), (0, 0, -margin)]
-    for S in states:
-        W = asm.world(S)
-        for n, p in asm.parts.items():
-            v, f = prim.mesh_of(p.solid.hull())
-            vw = tf.apply(shift @ W[n], v)
-            grown = np.vstack([vw + np.asarray(o) for o in offs])
+    hv = {}
+    for n, p in asm.parts.items():                  # hull vertices once per part, thinned
+        v = prim.mesh_of(p.solid.hull())[0]
+        hv[n] = v[:: max(1, len(v) // 200)]
+    Ws = [asm.world(S) for S in states]
+    clouds = []
+    chunk = 6                                       # one hull per part per 6 consecutive states (swept, conservative)
+    for n in asm.parts:
+        for k in range(0, len(Ws), chunk):
+            pts = np.vstack([tf.apply(shift @ W[n], hv[n]) for W in Ws[k:k + chunk + 1]])
+            grown = np.vstack([pts + np.asarray(o) for o in offs])
+            clouds.append(grown)
             hulls.append(Manifold.hull_points(grown))
+    LAST_CLOUDS[:] = clouds
     return prim.union(hulls)
+
+
+LAST_CLOUDS = []          # point clouds of the last swept_cutters call (deck frame), for shadow()
+
+
+def shadow(z0, z1, clouds=None):
+    """XY shadow (shapely) of the swept hulls that reach between z0 and z1 (each hull projected whole: conservative)."""
+    from shapely.geometry import MultiPoint
+    from shapely.ops import unary_union
+    cl = LAST_CLOUDS if clouds is None else clouds
+    polys = []
+    for c in cl:
+        if c[:, 2].min() > z1 or c[:, 2].max() < z0:
+            continue
+        polys.append(MultiPoint(c[:, :2]).convex_hull)
+    return unary_union(polys) if polys else None

@@ -133,9 +133,12 @@ Wrap idler:
 N20 cradle (on the bracket A ear):
 - pivot M3 at world (111.9, z -89.5); swing screw at world (88.4, z -64.5), 55 mm from the drum axis (clear of the
   drum gear); ear r 20 round the N20;
-- swing M3 in an arc slot, 0..+15 deg only (+ swings the pinion out; it cannot be pushed into the drum gear);
+- swing M3 tapped in the ear, through an arc slot in the cradle plate, 0..+15 deg only (+ swings the pinion out;
+  it cannot be pushed into the drum gear);
 - the N20 shaft end below the pinion runs in a matching arc slot in the ear;
-- SW_N20: nut in the cradle bottom face, screw tip tapped in the ear.
+- SW_N20: nut in a pocket in the ear front face (wire groove), M3 x 8 tapped in the cradle plate from +s, 2.5 mm off
+  the nut centre so the tip lands on a flat; the back of bracket A is only 4 mm from the frame cheek.
+- Strap screws in r 4 lugs at N20-frame x -11.5 and 34.
 
 Contact blocks:
 - `drum_switch_block`: s 105..128, on the back (-x) side of the drum (cad-reel's pulley 2 post fills the front).
@@ -290,20 +293,23 @@ Timing:
 
 ## 13. Printing (print_tf in drum.py; the pack tool writes the STLs this way)
 
-| part | material | on the bed | supports |
+| part | material | on the bed | supports and notes |
 |---|---|---|---|
-| drum_coupler | PPA-CF | hub end down | tree support under the bus gear ring only |
+| drum_coupler | PPA-CF | hub end down | tree support under the bus gear ring only (r 28.5..39 at s 40) |
 | drum_coupler_hub | PPA-CF | motor end down | none |
-| drum_shear_pin (x6) | PLA, 100 percent | lying on its 0.4 mm flat | none |
+| drum_shear_pin (x6) | PLA, 100 percent | lying on its 0.4 mm flat (D44) | 5 mm brim (30 mm2 on the bed) |
 | drum_shaft | PPA-CF, 100 percent | lying on a hex flat | tree supports under the spigot |
 | drum_gear_reel | PPA-CF | plain face down | none |
 | drum_reel_washer | PPA-CF | flat | none |
-| drum_collar | PPA-CF, 100 percent | one dog face down | the body bridges 25 mm between the lower dogs; groove roof 4 mm ledge |
+| drum_collar | PPA-CF, 100 percent | one dog face down | tree support (build plate only) under the body face between the dogs; file the hex entry if it droops |
 | drum_dogring_launch | PPA-CF, 100 percent | slotted back face down | none |
-| drum_drum_a | PLA | gear face down | none |
-| drum_drum_b | PLA | barrel face down | groove roof ledge 4 mm |
-| drum_idler | PPA-CF | pinion end down | none |
-| drum_idler_gear, drum_n20_pinion | PPA-CF | flat | none |
-| drum_fork | PLA | sleeve end down (s 15.5, about 170 mm2) | tree support under the yoke and arms (the yoke spring is about 67 mm up) |
+| drum_drum_a | PLA | gear face down | tree support under the brake cam lobe (4.5 mm ledge) and the segment teeth (3.3 mm) |
+| drum_drum_b | PLA | barrel face down | groove roof ledge 4 mm; band undersides up to 4 mm at the bumps: tree support |
+| drum_idler | PPA-CF | journal end (s 40) down | 5 mm brim (78 mm2 on the bed, 46 mm tall); tree support under the lock cam disc |
+| drum_idler_gear | PPA-CF | flat | none |
+| drum_n20_pinion | PPA-CF | flat | 5 mm brim (42 mm2) |
+| drum_fork | PLA | sleeve end down (s 15.5, about 170 mm2) | brim; tree support under the yoke, arms and the follower pin (its working flanks are top and bottom: check the pin fits the groove, sand if tight) |
+| drum_dog_post | PLA | as print_tf | tree support under the arm bridge and the two bosses |
+| drum_n20_cradle | PLA | plate down | support under the roof over the drum gear cut |
 | drum_axle, drum_rail | PPA-CF | on their 1 mm flat | none |
 | everything else | PLA | largest flat face down | none |

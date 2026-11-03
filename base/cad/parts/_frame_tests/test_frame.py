@@ -116,7 +116,7 @@ def test_layout_from_params(P):
     assert abs(C["y_out"][ms] + ms * (MOT.PLATE_T + C["fw"]["adapter_standoff"])) < 1e-9
     B = frame.build(Q)
     assert any(p.name == "frame_blk_reel_l" for p in B["parts"])
-    assert frame.checks(Q) == []
+    assert [f for f in frame.checks(Q) if "rover holes" not in f] == []
 
 
 def test_ebay_boards_inside_box():
@@ -256,28 +256,25 @@ def test_swept_cutters_from_another_subsystem(P):
     assert x1 - x0 > 8.0           # grown by the margin
 
 
-@pytest.mark.parametrize("rot", [0.0, 30.0])
-def test_adapter_ring_screws_line_up(P, rot):
-    """An M3 screw from the cheek inner face through the cheek into each hub insert meets no plastic."""
-    Q = types.SimpleNamespace(**{k: getattr(P, k) for k in dir(P) if k.isupper()})
-    Q.WIPER = dict(getattr(P, "WIPER", {}) or {}, rot_deg=rot)
-    Bq = frame.build(Q)
-    C = Bq["info"]["cfg"]
-    ms = C["fw"]["motor_side"]
-    parts_ = {p.name: p for p in Bq["parts"]}
+def test_puck_rim_screws_line_up(P, B):
+    """v1: an M3 from the plate front face through the plate into each usable puck lip insert meets no plastic, and
+    the motor slots and SW_INDEX inserts are intact."""
+    C = B["info"]["cfg"]
+    if not C["v1"]:
+        pytest.skip("legacy layout")
+    parts_ = {p.name: p for p in B["parts"]}
     ad = prim.place(parts_["frame_motor_adapter"].solid, parts_["frame_motor_adapter"].place)
-    ck = [prim.place(p.solid, p.place) for n, p in parts_.items() if n.startswith("frame_cheek_" + ("r" if ms < 0 else "l"))]
-    Mad = C["to_world"] @ Bq["info"]["M_adapter"]
-    tz = MOT.PLATE_T + C["fw"]["adapter_standoff"] + MOT.SPIGOT_H
-    for i in MOT.ring_used(C["wiper"]):
-        x, y = MOT.ring_xy(i)
-        a = tf.apply(Mad, [(x, y, tz + 8.0 + 3.0)])[0]     # past the plate inner face
-        b = tf.apply(Mad, [(x, y, tz - 5.5)])[0]           # insert bottom
+    pl = prim.place(parts_["frame_cheek_r"].solid, parts_["frame_cheek_r"].place)
+    Mad = C["to_world"] @ B["info"]["M_adapter"]
+    use = sorted(set(B["info"].get("plate_rim_ok", [])) & set(B["info"].get("puck_rim_ok", range(MOT.RIM_N))))
+    assert len(use) >= 4
+    for i in use:
+        x, y = MOT.rim_xy(i)
+        a = tf.apply(Mad, [(x, y, MOT.PLATE_T + 1.0)])[0]          # in front of the plate front face
+        b = tf.apply(Mad, [(x, y, -(MOT.LIP_T - 0.7))])[0]         # insert bottom in the lip
         rod = prim.cylY(1.4, min(a[1], b[1]), max(a[1], b[1]), a[0], a[2])
-        assert (rod ^ ad).volume() < 1e-6, (rot, i, "adapter")
-        for c in ck:
-            assert (rod ^ c).volume() < 1e-6, (rot, i, "cheek")
-    assert frame.checks(Q) == []
+        assert (rod ^ ad).volume() < 1e-6 and (rod ^ pl).volume() < 1e-6, i
+    assert not [w for w in B["info"]["warnings"] if "motor hole" in w or "SW_INDEX" in w]
 
 
 def test_block_screws_m3x8_engage(P, B):

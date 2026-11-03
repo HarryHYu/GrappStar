@@ -2,7 +2,7 @@
 
 Units: mm, deg, N, N m, s, kg unless a name says otherwise.
 Owner: the coordinator. Workers read it and never edit it; request changes in your REPORT.md or NOTES.md.
-STATUS: v1.3.2 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
+STATUS: v1.3.4 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed; 1.3.3 unload jog 6 deg; 1.3.4 ASSEMBLY_STAGES). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
 The architecture blocks below hold the INTERFACE numbers (where two owners must agree) and the module placements.
 Each owner keeps its internal geometry in its own module and maps these numbers explicitly (read with defaults).
 Code against the names; never hard-code a shared number anywhere else.
@@ -10,7 +10,7 @@ Code against the names; never hard-code a shared number anywhere else.
 
 import math
 
-VERSION = "1.3.2"
+VERSION = "1.3.4"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
@@ -146,7 +146,7 @@ DRUM = dict(
     # bits A B C, 1 = contact closed; Gray order; 000 = broken common wire (fault DRUM_SENSOR)
     dog_contacts=("SW_DOG_L", "SW_DOG_R"),   # collar engaged LAUNCH / REEL; checked during every move: the wrap window is
                                             # never entered with either closed
-    unload_jog_deg=8.0,        # before any shift out of LAUNCH or REEL
+    unload_jog_deg=6.0,        # before any shift out of LAUNCH or REEL (dog play +-8; stopped early on a 0.8 A current rise)
     fault_rules=dict(from_REEL_or_N_TO_R="the drum HOLDS where it is (D27, MODE err DRUM_HELD), never NEUTRAL (that would run back through the wrap window and unwrap under tow); the operator unwraps when safe",
                      boot_in_WRAP="stop and report", REEL_jog="forward only (sprag #2)"),
     wrap_turns=7,
@@ -278,6 +278,27 @@ SWITCHES = dict(
 # reel_deg (REEL output gear: changes only while the collar is in REEL; capstan = reel_deg x 50/22),
 # drum_deg, aim_deg, cock (0..1), fired (0/1), wraps (0..7),
 # line_out_m, dart_flight (0 on the sled .. 1 landed), dart_return (0 at the landing point .. 1 seated again).
+# ------------------------------------------------------------------------------------------------ assembly order
+# One global order for the generated assembly steps (tools.steps sorts by step["stage"]). Each owner gives every step
+# an int stage inside its band; cross-owner constraints are built into the band order. Test-stage-only steps use 900+.
+ASSEMBLY_STAGES = dict(
+    deck=(100, 109, "cad-frame", "drill the rover, deck tiles, rover mount, heat-set inserts"),
+    motor=(110, 119, "cad-frame", "wiper motor on its adapter (bench), motor-side cheek, motor onto the cheek"),
+    main_shaft=(120, 129, "cad-drum", "coupler hub on the wiper shaft, shear pin, outer coupler, REEL gear and washer"),
+    drum_core=(130, 139, "cad-drum", "bracket A, axle, rail, drum A, index contact"),
+    drum_idler=(140, 149, "cad-drum", "wrap idler group (before the reel bus gear c1, SW_ARM bracket and cup gear)"),
+    reel_capstan=(150, 159, "cad-reel", "reel wall, sprag hub and sprag, capstan tube, bus gear c1, swing idler, capstan gear, capstan drum, cup shaft, cup, cup gear, SW_ARM"),
+    drum_shift=(160, 169, "cad-drum", "fork and dog contacts, drum B (keyed), hand lever, bracket B, N20, code switches"),
+    main_stack=(170, 179, "cad-drum", "LAUNCH dog ring, magnet cap, dog post (before the reel pulley 2)"),
+    reel_storage=(180, 189, "cad-reel", "storage reel, reel shaft, brake crank, rocker and bar, pulley 1, pulley 2, shroud, exit post, line"),
+    launcher=(190, 199, "cad-launch", "rail bench sub-assembly (sleeve first), big gear (timed without springs), drive gear and sprag, carriage, stops, contacts, tether pulleys, lip roller"),
+    aim=(200, 209, "cad-launch", "aim housing, worm, wheel, crank, splitter, lug, conrod"),
+    sensors=(210, 219, "cad-sensors", "SW_RAIL_LOW, SW_GAP, AS5600 board"),
+    electronics=(220, 229, "cad-frame", "electronics bay, set the buck before wiring the DRV8833, wiring (battery unplugged), camera, receiver, cable anchors"),
+    guards=(230, 239, "cad-frame / cad-launch", "gear guards; spring guards go on with the springs at test stage 5"),
+    test_stage_only=(900, 999, "all", "steps done only at a test stage (springs: 999)"),
+)
+
 TIMELINE = [
     ("load", 2.0, "Dart seated on the sled, drum in LAUNCH, rail low, line taut.",
      dict(wiper_deg=0.0, sleeve_deg=0.0, reel_deg=0.0, drum_deg=0.0, aim_deg=6.0, cock=0.0, fired=0, wraps=0, line_out_m=0.0, dart_flight=0.0, dart_return=0.0, anchored=0, mode="LAUNCH", drum_pos="LAUNCH")),
@@ -303,12 +324,12 @@ TIMELINE = [
     ("release", 2.0, "The dart unscrews its drills and lets go.", dict(anchored=0)),
     ("reel_in", 3.0, "Capstan reels the dart in until about 1.5 m remain.",
      dict(wiper_deg=3420.0 + 600.0, reel_deg=3600.0 + 600.0, line_out_m=1.3, dart_return=0.3)),
-    ("unload", 6.5, "Wiper jogs 8 deg back inside the dog window, then the drum goes back to the WRAPPED park (314): the collar leaves the REEL dogs.",
-     dict(wiper_deg=4020.0 - 8.0, drum_deg=314.0, mode="NEUTRAL", drum_pos="WRAPPED")),
+    ("unload", 6.5, "Wiper jogs 6 deg back inside the dog window, then the drum goes back to the WRAPPED park (314): the collar leaves the REEL dogs.",
+     dict(wiper_deg=4020.0 - 6.0, drum_deg=314.0, mode="NEUTRAL", drum_pos="WRAPPED")),
     ("unwrap", 47.0, "Drum from the park back through the wrap sector to 62, collar in NEUTRAL; the wiper turns forward slowly and the take-up winds the freed line.",
-     dict(drum_deg=62.0, wraps=0, wiper_deg=4012.0 + 1800.0, mode="NEUTRAL", drum_pos="BETWEEN")),
+     dict(drum_deg=62.0, wraps=0, wiper_deg=4014.0 + 1800.0, mode="NEUTRAL", drum_pos="BETWEEN")),
     ("approach", 4.0, "Drum to NEUTRAL; the FIRM take-up pulls the dart tail first onto the sled until SW_SEATED.",
-     dict(drum_deg=41.0, line_out_m=0.0, dart_return=1.0, wiper_deg=5812.0 + 1449.8, drum_pos="NEUTRAL")),
+     dict(drum_deg=41.0, line_out_m=0.0, dart_return=1.0, wiper_deg=5814.0 + 1447.8, drum_pos="NEUTRAL")),
     ("to_launch", 8.0, "Drum to LAUNCH: clutch LIGHT, collar into the LAUNCH dogs.",
      dict(drum_deg=0.0, dart_flight=0.0, dart_return=0.0, wiper_deg=7263.8, mode="LAUNCH", drum_pos="LAUNCH")),
     ("lower", 4.0, "Wiper backward through the rest of the aim cycle: the rail comes down to its low stop.",

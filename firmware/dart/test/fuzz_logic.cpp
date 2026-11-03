@@ -173,7 +173,7 @@ static long VIOL[12], VIOLN[12], CHECKS[12];   // VIOLN: violations inside nomin
 struct Stats { long launches = 0, impactLandings = 0, fallbackLandings = 0, autoByCmd = 0, autoByLanding = 0, anchored = 0, released = 0,
                nomAnch = 0, nomRel = 0, stallStops = 0, pairPauses = 0, holdsCapped = 0, faults[F_NFAULT] = {}, maxRun[4] = {};
                long pushArmed = 0, pushMissed = 0, jsonStatus = 0, jsonLog = 0; float pushLongestMissed = 0;
-               long manOutside = 0, manOutsideOver = 0; uint32_t manOutsideMax = 0; long knownPods = 0; uint32_t knownPodsMax = 0; } ST;
+               long manOutside = 0, manOutsideOver = 0; uint32_t manOutsideMax = 0; long knownPods = 0; uint32_t knownPodsMax = 0; long knownLow = 0; } ST;
 
 // event log (ring, repeats folded)
 struct Ev { uint32_t t0, t1; std::string s; int rep; };
@@ -454,6 +454,12 @@ static void checkAll(bool afterStop) {
       // more than the margin are only ended by the pods time limit. Still bounded: deployMaxMs + 0.5 s
       bool knownPods = m == DEPLOY && (K.seq == D_DEPLOY || K.seq == R_PODS) && P.cDrill > 0.05f;
       if (knownPods) limit = K.tu.deployMaxMs + 500;
+      // documented tuning rule (BENCH_TEST step 10): the stall line is 80 % of the measured stall. A plant whose stall is
+      // within 10 % of the line is outside it: coupling and noise can hide the stall. Still bounded by the step limit
+      float plantStall = m == KICK ? P.kStall : m == DEPLOY ? P.dStall : m == DRILLS ? P.drStall : P.fStall;
+      bool knownLow = sq && plantStall < 1.10f * K.tu.stallMa[m];
+      if (knownLow && !knownPods) limit = std::max(K.tu.kickPlantMaxMs, K.tu.deployMaxMs) + 500;
+      if (knownLow && !knownPods && ET - T.stallT0[m] > 3000 && !T.knownFlag[m]) { T.knownFlag[m] = true; ST.knownLow++; }
       if (knownPods && ET - T.stallT0[m] > 3000 && !T.knownFlag[m]) { T.knownFlag[m] = true; ST.knownPods++; }
       if (knownPods && ET - T.stallT0[m] > ST.knownPodsMax) ST.knownPodsMax = ET - T.stallT0[m];
       if (!T.stallFlag[m] && T.stallGood[m] && !covered && ET - T.stallT0[m] > 2500) {
@@ -963,6 +969,8 @@ int main(int argc, char** argv) {
          "          %ld of them driven over 2.5 s, longest %lu ms (bounded by the 8 s hold cap, invariant 2)\n", ST.manOutside, ST.manOutsideOver, (unsigned long)ST.manOutsideMax);
   printf("info (not an invariant): known limit, pods stalled with the drills' current rising in each pause: %ld driven over 3 s,\n"
          "          longest %lu ms (bounded by the 6 s pods limit, checked in invariant 3)\n", ST.knownPods, (unsigned long)ST.knownPodsMax);
+  printf("info (not an invariant): plant stall within 10 %% of the firmware line (outside the 80 %% tuning rule): %ld sequence stalls\n"
+         "          driven over 3 s (bounded by the 6 s step limits, checked in invariant 3)\n", ST.knownLow);
   int sweepTrials = quick ? 300 : 2000;
   int sJit = shortestAlwaysSeen(seed, 4, 7, sweepTrials), s5 = shortestAlwaysSeen(seed, 5, 5, sweepTrials);
   printf("info (not an invariant): launch push always detected from %d ms with 4..7 ms tick jitter, from %d ms with fixed 5 ms ticks\n"

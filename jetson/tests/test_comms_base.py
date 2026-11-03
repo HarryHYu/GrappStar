@@ -84,9 +84,10 @@ def test_ping_status_and_telemetry(pair):
     assert tuple(t) == TEL_KEYS
     assert t["mode"] == "NEUTRAL" and t["drum_pos"] == "NEUTRAL" and t["drum_deg"] == 41 and t["state"] == "IDLE"
     assert t["fault"] is None and t["wraps"] == 0 and t["cock"] == 0
-    # sw: the firmware's one-letter keys in its order, closed contacts only: NEUTRAL code b, N20 n, H, G, S, W
+    # sw: the firmware's one-letter keys in its order, closed contacts only: NEUTRAL code b, N20 n, H, G, S
+    # (W, SW_ARM, cad-reel: closed only while the wrap cup is away from home inside the WRAP window)
     assert list(t["sw"]) == [k for k in SW_KEYS if k in t["sw"]] and all(v == 1 for v in t["sw"].values())
-    assert {"b", "n", "H", "G", "S", "W"} <= set(t["sw"]) and not {"a", "c", "l", "r", "D"} & set(t["sw"])
+    assert {"b", "n", "H", "G", "S"} <= set(t["sw"]) and not {"a", "c", "l", "r", "D", "W"} & set(t["sw"])
     assert tel_seated(t) and tel_carriage_home(t)
     s = c.status()
     assert list(s)[2:] == ["phase", "aimed", "aim_known", "drum_known", "wraps_known", "magnet", "glitches", "hx",
@@ -235,7 +236,7 @@ def test_retrieve_take_up_speed_and_dart_stuck(pair):
         mb.world.dart, mb.line_m = "free", 1.8
     c.set("line_m", 1.8)
     t0 = mb.sim_t
-    e = run(c, "retrieve", "SEATED", 60)                 # defaults: duty 0.3, max_s 20 + 1.8 / 0.08
+    e = run(c, "retrieve", "SEATED", 60)                 # defaults: duty 0.3, max_s from approachLimit()
     v = 1.8 / (mb.sim_t - t0)
     assert 0.07 < v < 0.1, v                            # the take-up is slow: about 0.09 m/s at duty 0.3
     # stuck: the take-up slips on a heavy dart: DART_STUCK after max_s, the drum stays at NEUTRAL (its park)
@@ -249,12 +250,14 @@ def test_retrieve_take_up_speed_and_dart_stuck(pair):
     mode = c.wait_event("MODE", 2, since=m, fail_on_fault=False)
     assert mode["ok"] and mode["drum_pos"] == "NEUTRAL"
     c.clear()
-    # default max_s follows line_m: 20 + 3 / 0.08 = 57.5 s
+    # default max_s follows line_m like base-1.2.1 approachLimit(): 10 + 1.5 x 3 / (0.29 x 0.3 - 0.03) = 88.9 s
     with mb.lock:
         mb.line_est = 3.0
         mb.handle({"cmd": "retrieve"})
-        assert mb.op["max_s"] == pytest.approx(57.5)
+        assert mb.op["max_s"] == pytest.approx(10 + 4.5 / 0.057, abs=0.01)
         mb._cmd_stop(False)
+    assert err_of(c.cmd, "retrieve", max_s=4) == "BAD_ARG"      # firmware range 5..600
+    assert err_of(c.cmd, "retrieve", max_s=601) == "BAD_ARG"
 
 
 def test_retrieve_and_tidy_refusals(pair):
@@ -512,7 +515,8 @@ def test_stop_during_retrieve_raises_aborted_in_wait(pair):
 
 
 # ---------------------------------------------------------------- faults, stop, estop (fault_rules)
-def test_fault_in_reel_parks_at_wrapped(pair):
+def test_fault_in_reel_holds_the_drum(pair):
+    """base-1.2.1 safeToNeutral (D27): with the wraps on (REEL) a fault holds the drum (MODE ok false, DRUM_HELD)."""
     mb, c = pair
     wrapped_park(c)
     to_mode(c, "REEL")
@@ -524,25 +528,19 @@ def test_fault_in_reel_parks_at_wrapped(pair):
     with pytest.raises(BaseError) as ei:
         c.wait_event("LIMIT", W(10), since=m)
     assert ei.value.err == "STALL"
-    c.wait_tel(lambda t: t["state"] == "SAFING", 2, fail_on_fault=False)
-    e = c.wait_event("MODE", W(10), since=m, fail_on_fault=False)
-    assert e["ok"] and e["mode"] == "NEUTRAL" and e["drum_pos"] == "WRAPPED"
+    with pytest.raises(BaseError) as ei:
+        c.wait_event("MODE", 2, since=m, fail_on_fault=False)
+    assert ei.value.err == "DRUM_HELD" and "wraps on" in ei.value.reply["why"]
     assert names_since(c, m) == ["FAULT", "STALL", "MODE"]
     t = c.wait_tel(lambda t: t["state"] == "FAULT", 2, fail_on_fault=False)
-    assert t["drum_deg"] == 314 and t["fault"] == "STALL"
+    assert t["drum_pos"] == "REEL" and t["fault"] == "STALL"
     assert c.status()["why"] == "wiper stalled"
     assert err_of(c.mode, "REEL") == "FAULTED"
     c.clear()
     idle(c)
-    # a fault at the park: MODE ok at once (already safe)
-    m = c.event_mark()
-    mb.inject_fault("OVERCURRENT")
-    e = c.wait_event("MODE", 2, since=m, fail_on_fault=False)
-    assert e["ok"] and e["drum_pos"] == "WRAPPED"
-    c.clear()
 
 
-def test_estop_parks_by_fault_rules(pair):
+def test_estop_follows_the_fault_rules(pair):
     mb, c = pair
     m = c.event_mark()
     c.estop()                                            # at NEUTRAL: MODE ok at once
@@ -552,9 +550,12 @@ def test_estop_parks_by_fault_rules(pair):
     m = c.event_mark()
     c.reel(0.5, until="stop")
     c.estop()
-    e = c.wait_event("MODE", W(15), since=m, fail_on_abort=False)
-    assert e["ok"] and e["mode"] == "NEUTRAL" and e["drum_pos"] == "WRAPPED"
+    with pytest.raises(BaseError) as ei:                 # wraps on (REEL): the drum holds (D27)
+        c.wait_event("MODE", W(15), since=m, fail_on_abort=False)
+    assert ei.value.err == "DRUM_HELD" and "wraps on" in ei.value.reply["why"]
     assert names_since(c, m) == ["ABORTED", "MODE"] and c.events(m)[0]["why"] == "estop"
+    c.clear()
+    idle(c)
     # estop inside the wrap window: the drum holds (DRUM_HELD)
     m = c.event_mark()
     c.unwrap()
@@ -562,7 +563,7 @@ def test_estop_parks_by_fault_rules(pair):
     c.estop()
     with pytest.raises(BaseError) as ei:
         c.wait_event("MODE", 2, since=m, fail_on_abort=False)
-    assert ei.value.err == "DRUM_HELD" and "wrap window" in ei.value.reply["why"]
+    assert ei.value.err == "DRUM_HELD" and "wraps on" in ei.value.reply["why"]
     run(c, "unwrap", "UNWRAPPED", 60)                    # the operator decides: unwrap
 
 

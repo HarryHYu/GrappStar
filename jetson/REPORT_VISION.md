@@ -63,6 +63,19 @@ Review round 2 (fresh subagent on mosaic, target, terrain, calibrate, video/*, a
 - Also in this round: with no known pitch, the video-only path fits pitch and speed together to the horizon track,
   and a rail view that is all sky bounds the pitch from below (half the vertical field of view).
 
+Review round 3 (fresh subagent on flight.py phases, IMU, clock; 6fc97c8), all fixed with tests:
+- HIGH: the clock offset averaged the launch and impact matches; the video impact runs late, so the IMU-timed range
+  came out 8 to 18 percent short at 6 deg and 6 m/s. Now the offset comes from the launch match alone; the
+  impact match is used only without a video launch, corrected by 35 ms.
+- HIGH: a NaN, null, string or short row in the flightlog, or a string t_launch_ms, made analyze_flight raise
+  and lose the whole flight result. Rows are now sanitised (finite numbers only, sorted, duplicate times dropped),
+  and a garbage log falls back to video only.
+- MEDIUM-HIGH: a log that starts after the launch took the impact spike for the launch (range 0.37 m against 8.2 m).
+  Now t_launch_ms is trusted, with no rail attitude or speed from the IMU, and a note is added.
+- MEDIUM: duplicate timestamps gave dt = 0 (v0 10x too small); dropped samples biased the push integral. Now dt
+  comes from positive steps and the integral uses the per-sample time steps.
+- LOW: the launch shift found by the speed fit is now recorded as launch_fit_t (phases keep the observed launch).
+
 Terrain verdicts with the roll-invariant tilt (eval_terrain_flight, seeds 0 to 2, 480x320, with and without the
 flightlog): accuracy 1.000 (36/36), unsafe GO (sand or water judged GO): 0.
 

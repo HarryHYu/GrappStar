@@ -39,6 +39,11 @@ def load_others(P):
             except Exception:
                 continue
             if all(hasattr(m, f) for f in ("parts", "joints", "kin")):
+                try:                                   # a subsystem that does not build must not hide the others
+                    m.parts(P)
+                    m.joints(P)
+                except Exception:
+                    continue
                 mods[n] = m
         if mods:
             asm = Assembly(P, mods)

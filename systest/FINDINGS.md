@@ -416,3 +416,20 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
 - Suggest: let the base say whether the tension constants were set on this unit (for example a `cal_done` flag in
   `status`, set by `set k_n_per_a` / `tension_offset_n`, saved in Tun), and key the warning on that, not on a copy of
   the default value.
+
+## F29 (jetson vision) the fused landing range is 27 % short on a consistent rendered flight
+
+- Batch 5 (jetson 086749a), scenario `nominal`: the dart video and the dart's IMU log come from ONE rendered flight
+  (jetson/grappstar/sim/flight_video.py: pitch 26.5 deg, v0 6.43 m/s, true range 4.08 m; the C3 table says 3.98 m at
+  drag 0.5). `analyze_flight` result: `range_m` 2.99, `v0` 5.76, `flight_time_s` 0.79, `source` video+imu, notes
+  "IMU push saturated: v0 from the flight time", "speed 5.76 m/s fused from flight time, sky track, table prior, IMU
+  lower bound", "range scaled x0.874 to the C3 table at 26.5 deg". The mission then told the base `line_m` 3.44
+  (2.99 x 1.05 + 0.3) against 4.58 m really out, so the capstan reel-in stopped with 2.6 m left instead of 1.5 m.
+- Two things look off in `jetson/grappstar/vision/flight.py` (around lines 800-875): (1) a 0.79 s flight is LONGER
+  than the table's 0.71 s at this pitch, which implies a higher speed than the table's 6.88 m/s, yet the fusion lands
+  at 5.76 m/s (the sky track or the IMU lower bound pulls it down?); (2) the x0.874 table calibration is applied on
+  top of a speed that already came from the measured flight time.
+- Direction is safe (short estimate: the capstan never seats the dart), but the "about 1.5 m" stop of 10.1 step 15
+  becomes 2.6 m and the take-up then carries 2.6 m. Caveat: the renderer's drag model is not the physics table's (it
+  flies about 15 % long at 47 deg for the table speed; the harness scales its v0 to land at the table range), so
+  part of the gap may be the renderer, but the speed going DOWN for a longer flight is inside the fusion.

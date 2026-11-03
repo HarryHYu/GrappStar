@@ -756,7 +756,7 @@ line with, a towing line.
 | `{"cmd":"retrieve","duty":0.3}` | final approach on the take-up until the dart seats |
 | `{"cmd":"reel","duty":0.5,"until":"seated"}` | wind in until the dart seats (`until`: stop, seated, tension) |
 | `{"cmd":"jog","motor":"wiper","dir":1,"ms":300}` | short move; `motor` wiper or drum, `dir` 1 or -1, up to 1500 ms |
-| `{"cmd":"set","key":"limit_n","val":50}` | set a stored value (tow limit 50 N) |
+| `{"cmd":"set","key":"limit_n","val":40}` | set a stored value (tow limit; 40 N or less for the first field tows) |
 | `{"cmd":"get","key":"limit_n"}` | read a stored value |
 
 ## Dart keys (WiFi KEDGE, password grappstar, http://192.168.4.1, or Serial 115200)

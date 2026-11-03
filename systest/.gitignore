@@ -5,3 +5,5 @@ runs_all.log
 runs_preview/
 runs_preview_all.log
 runs_preview2/
+runs_preview_batch.log
+runs_preview.version

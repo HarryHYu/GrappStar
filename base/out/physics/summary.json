@@ -1,5 +1,5 @@
 {
- "source": "base/spec/params.py v1.3.0",
+ "source": "base/spec/params.py v1.3.2",
  "sections": [
   [
    "Spring (each, A228, SF 1.2 on Shigley static limits)",
@@ -51,7 +51,7 @@
     ],
     [
      "Muzzle speed",
-     "6.80 m/s"
+     "6.85 m/s"
     ],
     [
      "Peak acceleration, stroke time",
@@ -59,15 +59,15 @@
     ],
     [
      "Efficiency (dart KE / stored)",
-     "53 %"
+     "54 %"
     ],
     [
      "Carriage KE at stop, pad peak",
-     "1.98 J, 295 N (19 mm pad)"
+     "1.89 J, 285 N (19 mm pad)"
     ],
     [
      "Spring KE at stop, coil clash",
-     "0.82 J, 8.1 m/s"
+     "0.82 J, 8.0 m/s"
     ]
    ]
   ],
@@ -80,23 +80,23 @@
     ],
     [
      "Range at 0.5 / 0.75 / 1.0 N brake",
-     "4.13 / 3.72 / 3.35 m (pitch 34)"
+     "4.18 / 3.76 / 3.39 m (pitch 34)"
     ],
     [
      "Same shot, no tether",
-     "4.95 m"
+     "5.01 m"
     ],
     [
      "Flight time, apex (0.75 N)",
-     "0.79 s, 1.10 m"
+     "0.80 s, 1.11 m"
     ],
     [
      "Impact speed, angle (0.75 N)",
-     "5.7 m/s, 56 deg down"
+     "5.7 m/s, 55 deg down"
     ],
     [
      "Ballistics table",
-     "6 to 47 deg, best 33.5 deg: 3.71 m"
+     "6 to 47 deg, best 33.5 deg: 3.76 m"
     ]
    ]
   ],
@@ -113,15 +113,15 @@
     ],
     [
      "Line pull in the stroke (spin-up)",
-     "5.00 N"
+     "5.05 N"
     ],
     [
      "Reel rpm max",
-     "2115 rpm"
+     "2129 rpm"
     ],
     [
      "Overrun after landing",
-     "0.56 m in 0.26 s"
+     "0.56 m in 0.27 s"
     ]
    ]
   ],
@@ -129,32 +129,28 @@
    "Capstan and tow",
    [
     [
-     "Wraps for tow limit at the capstan (57 N, mu 0.15)",
-     "2.6 raw, 4 design"
+     "Wraps for tow limit at the capstan (65 N, mu 0.15)",
+     "2.7 raw, 5 design"
     ],
     [
      "Take-up needed for the tow at the actual wraps (7)",
-     "0.08 N"
+     "0.09 N"
     ],
     [
      "Tow at limit: torque, speed, current",
-     "3.23 N m, 0.143 m/s, 5.06 A"
+     "3.64 N m, 0.137 m/s, 5.50 A"
     ],
     [
-     "Line pull at limiter (5 N m) (12.6 V)",
-     "80 N (break 667 N)"
+     "Wiper at limiter (5 N m), 12.6 V: torque, current, line pull",
+     "5.0 N m, 7.0 A, 71 N (break 667 N)"
     ],
     [
-     "Line pull, motor stall (no limiter, 12.6 V)",
-     "227 N"
+     "Wiper motor stall (no limiter), 12.6 V: torque, current, line pull",
+     "14.1 N m, 17.0 A, 201 N"
     ],
     [
      "Tow sensing at the dart: N per wiper amp above free",
-     "14.8 N/A (dart = 14.8 x (I - I_free) - 2.6 N)"
-    ],
-    [
-     "Tow sensing at the capstan (x1.15): N per wiper amp above free",
-     "17.0 N/A (capstan = 17.0 x (I - I_free) - 3.0 N)"
+     "dart = 13.1 x (I - I_free) - 2.3 N (capstan side x1.3)"
     ]
    ]
   ],
@@ -175,25 +171,16 @@
     ],
     [
      "tow: peak torque, current, time",
-     "3.23 N m, 5.1 A, 35 s"
-    ],
-    [
-     "Wiper at limiter (5 N m), 12.6 V (with sag)",
-     "5.0 N m, 7.0 A"
-    ],
-    [
-     "Wiper motor stall (no limiter), 12.6 V (with sag)",
-     "14.1 N m, 17.0 A"
+     "3.64 N m, 5.5 A, 37 s"
     ]
    ]
   ]
  ],
  "measure": [
-  "Spring hang test: hang 1, 2, 3 kg from one spring, measure the length each time. Slope = rate, intercept = initial tension. Every range number scales with the stored energy.",
-  "Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall current. Edit common.Wiper or spec WIPER.",
-  "Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg).",
-  "Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 5 N.",
-  "After the first shots: python calib.py range pitch:brake:range ... then python ballistics.py --v-scale <factor>.",
-  "Rail friction: tilt the rail with the dart on it until it slides (mu = tan angle)."
+  "Spring hang test: hang 1, 2, 3 kg from one spring and measure the length each time (hooks included). python calib.py spring FREE_MM 1:MM 2:MM 3:MM, then SPRING k_n_per_mm and F0_n. Every range number scales with the stored energy.",
+  "Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall current. python calib.py wiper --v 12 --rpm .. --i-free .. --stall-kg .. --arm-mm .. --i-stall .., then WIPER n0_rpm, stall_nm, stall_a, free_a.",
+  "Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg), then DART mass_kg.",
+  "Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 5 N (REEL clutch).",
+  "First shots on level ground: python calib.py range pitch:brake:range ..., then LAUNCH v_scale = FACTOR."
  ]
 }

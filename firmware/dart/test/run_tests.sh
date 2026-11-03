@@ -5,7 +5,12 @@ cd "$(dirname "$0")"
 g++ -std=c++17 -O1 -Wall -Wextra -I../kedge_dart -o test_logic test_logic.cpp
 ./test_logic
 g++ -std=c++17 -O2 -Wall -Wextra -I../kedge_dart -o fuzz_logic fuzz_logic.cpp
-./fuzz_logic --quick | tail -16          # randomized property test, 1000 episodes (full run: ./fuzz_logic)
+# randomized property test, 1000 episodes on each of two seeds (full run: ./fuzz_logic [seed]). The output goes to a
+# file first so a failure is not hidden by the pipe to tail.
+mkdir -p out
+for seed in 20261103 1; do
+  if ./fuzz_logic --quick $seed > out/fuzz_$seed.log 2>&1; then tail -18 out/fuzz_$seed.log; else tail -40 out/fuzz_$seed.log; echo "FUZZ FAILED (seed $seed, out/fuzz_$seed.log)"; exit 1; fi
+done
 python3 - <<'PY'
 import json, glob, sys
 bad = 0
@@ -26,7 +31,7 @@ for p in sorted(glob.glob("out/*.json")):
 sys.exit(1 if bad else 0)
 PY
 
-# Host simulator of the real sketch (about 40 s). Skip with: ./run_tests.sh --quick
+# Host simulator of the real sketch, the Jetson client and the web page (about 2.5 min). Skip with: ./run_tests.sh --quick
 if [ "$1" != "--quick" ] && command -v make >/dev/null; then
   if ( cd ../sim && make -s && python3 test_sim.py && python3 test_jetson_client.py && { ! command -v node >/dev/null || node test_page.js; } ) > out/sim.log 2>&1; then
     grep -E "^Ran|^OK|passed, " out/sim.log

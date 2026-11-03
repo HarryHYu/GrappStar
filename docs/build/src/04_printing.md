@@ -18,7 +18,11 @@ Print settings (the 3MF files carry geometry only: set material and settings in 
 | Base plates, PLA | PLA | 0.2 mm | 4 | 40% gyroid | 5 / 5 | 0, unless the coupons showed a fit off |
 | Base plates, PPA-CF | PPA-CF | 0.2 mm | 6 | 60% gyroid | 6 / 6 | 0, unless the coupons showed a fit off |
 
-No supports on any plate. The base print sheet (below) has the final word for each part.
+Supports: none on the coupon plates and the dart plates. The base plates do need them: the base print sheet
+(below) has a supports column, and on every plate that holds a part marked "yes, tree supports from the plate",
+turn supports on in Bambu Studio (type tree, "On build plate only"). The two carriage stop flexures
+(`launch_stop_spring_l` and `launch_stop_spring_r`) also need 100 % infill (all perimeters), set on that object.
+The base print sheet has the final word for each part.
 
 Hole compensation is a process setting in Bambu Studio, "X-Y hole compensation" (Process, Quality tab; the name may
 move between versions). It is saved with each project, so check it on every plate.
@@ -74,7 +78,8 @@ the plates as 3MF, and the material for each part.
 
 Before printing the base:
 
-1. The wiper and spring numbers are in params.py and the pipeline was re-run (the audit said CLEAN).
+1. The wiper and spring numbers are in params.py, and the base pipeline and the physics were re-run (section 14,
+   "After you measure"); the audit listed only the known items (README.md, "Open items").
 2. Print one test part from the pack in PPA-CF and check a 608 drops into its seat with a firm thumb press, and an
    M3 heat-set insert sets straight. Keep hole compensation at 0 for base parts: base fits are
    tuned in the CAD through the coupons, not in the slicer.

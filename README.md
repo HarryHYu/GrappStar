@@ -11,9 +11,10 @@ list, datasheet). Dart viewer https://claude.ai/artifact/Sqt8tF67veTYfxQjUFTZ5f.
 ## Start here
 
 0. **`docs/build/FIRST_DAY.md`**: the first session back, in order (read, measure, buy, print the test coupons).
-1. **`docs/build/MEASURE_LIST.md`**: the few numbers nobody could know yet (the wiper motor, one spring hang test).
-   Put them in `base/spec/params.py` and rerun the base pipeline: the motor adapter, coupler and spring anchors
-   regenerate.
+1. **`docs/build/MEASURE_LIST.md`**: the few numbers nobody could know yet (the wiper motor, a hang test of both
+   springs). Put them in `base/spec/params.py`, then rerun the base pipeline and the physics (the commands are at
+   the end of the list): the motor adapter, coupler and spring anchors regenerate, and so does the ballistics table
+   the Jetson aims with.
 2. **`docs/build/GrappStar_Build_Guide.pdf`**: the one guide, in order: safety, parts, printing, base assembly, dart
    build, wiring, flashing, Jetson setup, calibration, bench tests, first mission, troubleshooting.
 3. **`docs/build/TEST_PLAN.md`**: staged first tests, bench to field, with pass criteria. Never fire without the
@@ -72,8 +73,9 @@ second pair of springs, but the drive train is not rated for them in v1 (decisio
 ## Rebuild
 
 - Tests: `scripts/check_all.sh` (`--full` also runs the base CAD pipeline).
-- Base CAD pipeline: `cd base && bash run_all.sh base` (assembly, audit, renders, sim, steps, pack; it stops on a NOT CLEAN audit unless run with `FORCE=1`).
-- Build guide: `python3 docs/build/make_guide.py`.
+- Base CAD pipeline: `cd base && bash run_all.sh base` (assembly, audit, renders, sim, steps, pack; it stops on a NOT CLEAN audit unless run with `FORCE=1`). The audit lists the CAD open items above, so a rebuild needs `FORCE=1`; then check that `base/out/base/audit.txt` lists nothing new.
+- Physics: `sh base/physics/run_all.sh` (every model, the ballistics table `base/out/ballistics.json` for the Jetson, SUMMARY, tests).
+- Build guide: `kedge/.venv/bin/python docs/build/make_guide.py` (needs reportlab and pypdf: `kedge/requirements.txt`).
 - Site: `python3 scripts/make_site.py`.
 
 ## Rules

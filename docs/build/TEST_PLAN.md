@@ -161,11 +161,14 @@ bypasses the capstan). Set the payout brake with hanging weights (G4): 40 g does
    `{"cmd":"retrieve","duty":0.3}` until `SEATED`, then `mode` LAUNCH and `aim` for the next shot (no wraps needed
    for a slack line; the full wrap sequence is stage 7).
 5. Range calibration, after 2 or 3 shots on level ground: measure each range from the ground point under the rail
-   pivot, then on the Mac or Jetson in `~/GrappStar/base/physics`:
+   pivot, then on the Jetson in `~/GrappStar/base/physics`:
    `python3 calib.py range 20:0.5:3.6 36:0.5:4.2` (pitch:brake N:measured range m, your numbers) fits a
    muzzle-speed factor; `python3 ballistics.py --v-scale <factor>` rewrites `base/out/ballistics.json`, which the
-   Jetson uses to aim (base/physics/README.md has the details). Run it on the Jetson (`cd ~/GrappStar/base/physics`),
-   or run it on the Mac and copy the file across: `scp base/out/ballistics.json <user>@GrappStar.local:GrappStar/base/out/`.
+   Jetson uses to aim (base/physics/README.md has the details). On the Mac the same two commands need the repo's
+   Python (the Mac's own python3 has no numpy): `../../kedge/.venv/bin/python calib.py range ...` and
+   `../../kedge/.venv/bin/python ballistics.py --v-scale <factor>`; then copy the file across from `~/GrappStar`:
+   `scp base/out/ballistics.json <user>@GrappStar.local:GrappStar/base/out/`. Also put the factor in
+   `base/spec/params.py` as `LAUNCH` `v_scale`, so a later physics run keeps it.
 
 Pass: clean exit (no rubbing marks on the dummy), it flies nose first, payout is clean, the range is within 30
 percent of the ballistics table at the same pitch (measured from the ground point under the rail pivot; the table is `base/out/ballistics.json`, shown on the
@@ -200,8 +203,9 @@ you; by hand it is (each line: what you send, what to wait for):
 Pass: the wrap lays 7 turns on the capstan, reel-in works, unwrap returns the line to the launch path, the dummy
 seats, and the next shot pays out cleanly. Repeat 5 times.
 If it fails: wrap misses the capstan: check the wrap cup position at the end of `wrap`. Line still round the
-capstan after `unwrap`: do not fire; unwrap again and check the drum position. `DART_STUCK` after 20 s of
-`retrieve`: the dummy snagged; clear it by hand after the approach checklist (section 2).
+capstan after `unwrap`: do not fire; unwrap again and check the drum position. `DART_STUCK` when `retrieve`
+passes its time limit (about 50 s from 1.5 m of line at duty 0.3, longer with more line out; `max_s` sets it):
+the dummy snagged; clear it by hand after the approach checklist (section 2).
 
 ## Stage 7b. Bench tow (before the first field tow)
 

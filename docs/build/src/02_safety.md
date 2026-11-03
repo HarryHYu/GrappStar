@@ -50,7 +50,7 @@ Read this before any hands-on step.
   (about 40 N each at full cock against the 38.4 N rating of the Century C-243, decision D30, until the
   springs are measured): during shots stand beside the base,
   not behind or in front of the springs, and fit the printed spring guard if the pack has one. After B2, if the
-  force at full cock is over the rating, use the fallback hole set (MEASURE_LIST B4).
+  stronger spring's force at full cock is over the rating, use the fallback hole set (MEASURE_LIST B4).
 - **Line under tension:** the capstan never turns back (one-way bearing), so a towing line cannot be let off at the
   base. During any pull (hand test or tow) stand beside or behind the rover, never in line with the dart, glasses
   on. To slacken it, release the dart (`release`) or drive the rover toward the dart. Calibrate the current-to-

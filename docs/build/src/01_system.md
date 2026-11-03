@@ -49,7 +49,8 @@ brings the dart home on the take-up until it seats; back to LAUNCH.
    base-v1`. `git pull` updates it later.
 1. Measure the wiper motor shaft, mount and housing (section 14, A1 to A5 and A8), the springs (group B), and the
    parts in H1, H3, H4. Put the
-   numbers in `base/spec/params.py` and re-run the base pipeline. The base parts that touch the motor depend on
+   numbers in `base/spec/params.py` and re-run the base pipeline and the physics (section 14, "After you measure").
+   The base parts that touch the motor depend on
    them. A6 (speed, current) needs the base electronics: do it at step 7. A7 is optional. They change no
    printed part.
 2. Confirm the parts box (section 14, group C). The only purchase is 608 bearings (and an AS5600 magnet if none

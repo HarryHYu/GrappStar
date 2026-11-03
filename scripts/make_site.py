@@ -13,6 +13,7 @@ No em dashes anywhere in the text.
 from __future__ import annotations
 
 import argparse
+import ast
 import re
 import base64
 import glob
@@ -68,6 +69,19 @@ def git_head():
                                        text=True).strip()
     except Exception:
         return ""
+
+
+def mission_step_count():
+    """len(STEPS) in jetson/grappstar/mission.py (the operator page lists every one), or None if it cannot be read."""
+    try:
+        with open(os.path.join(ROOT, "jetson", "grappstar", "mission.py"), encoding="utf-8") as f:
+            tree = ast.parse(f.read())
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and any(getattr(t, "id", "") == "STEPS" for t in node.targets):
+                return len(ast.literal_eval(node.value))
+    except Exception:
+        pass
+    return None
 
 
 def measure_rows():
@@ -168,8 +182,9 @@ def build(out, branch, checks_file):
         hero = "hero.png"
 
     steps = [
-        ("Measure", "the wiper motor and one spring (list below). Put the numbers in base/spec/params.py and rerun the "
-                    "base pipeline: the motor adapter, coupler and spring anchors regenerate."),
+        ("Measure", "the wiper motor and both springs (list below). Put the numbers in base/spec/params.py and rerun "
+                    "the base pipeline and the physics: the motor adapter, coupler and spring anchors regenerate, and "
+                    "so does the ballistics table the Jetson aims with."),
         ("Buy", "8 to 10 bearings 608ZZ (8 x 22 x 7). Optional: a small neodymium disc magnet for the angle sensor."),
         ("Print", "the base print pack (plates for the X2D) and the dart v30 pack."),
         ("Build", "the base in the order of the assembly steps, then the dart."),
@@ -201,7 +216,8 @@ def build(out, branch, checks_file):
         ("Base spec", "base/spec/BASE_SPEC.md"),
         ("Decisions log", "base/spec/DECISIONS.md"),
         ("Every shared number", "base/spec/params.py"),
-        ("Base print pack", "base/pack"),
+        ("Base print pack", "base/out/base/pack"),
+        ("Test coupons", "base/pack"),
         ("Base firmware", "firmware/base"),
         ("Dart firmware", "firmware/dart"),
         ("Jetson software", "jetson"),
@@ -229,12 +245,14 @@ def build(out, branch, checks_file):
     operator_html = ""
     if os.path.exists(os.path.join(out, "operator.png")):
         files["operator.png"] = True
+        n_steps = mission_step_count()
+        steps_txt = f"the {n_steps} mission steps" if n_steps else "the mission steps"
         operator_html = ('<section><h2>Jetson operator page <small>full dry mission in the simulator</small></h2>'
                          '<figure class="hero"><img src="operator.png" alt="Jetson operator page after a full dry mission: '
                          'every step done, landing zone GO, aerial map from the dart camera"></figure>'
                          '<p class="note">python3 -m grappstar serve --sim on any PC runs the whole mission against the '
-                         'simulated base, dart and cameras: rover view with the target and ballistic solution, the 23 mission '
-                         'steps, the landing-zone verdict and the aerial map stitched from the dart video.</p></section>')
+                         f'simulated base, dart and cameras: rover view with the target and ballistic solution, {steps_txt}, '
+                         'the landing-zone verdict and the aerial map stitched from the dart video.</p></section>')
     body = f"""<title>GrappStar Base Station</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -320,7 +338,7 @@ ul.files a {{ color: var(--ink); text-decoration-color: var(--accent); text-unde
 </ul></section>
 </div>
 """
-    assert "—" not in body, "em dash in the page"
+    assert "\u2014" not in body, "em dash in the page"
     with open(os.path.join(out, "index_body.html"), "w", encoding="utf-8") as f:
         f.write(body)
     with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:

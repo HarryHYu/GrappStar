@@ -25,7 +25,7 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 - Wrap on LIGHT (DRUM.n20 12:1, 8.1 deg/s): N20 46 to 56 N mm (23 to 28 % of 0.20 N m); about 30 s.
 - Take-up in NEUTRAL: 0.06 / 0.12 / 0.26 to 0.33 m/s at duty 0.3 / 0.5 / 1.0 (retrieve.json "takeup").
 - Recoil rock (ASSUMED 4 kg rover): about 5 deg at 6 deg pitch braked, 0.5 deg at 36. No tip.
-- Mission: about 3.4 min, 0.7 Wh from the base pack.
+- Mission: about 3.6 min, 0.75 Wh from the base pack (about 62 missions per pack).
 - SPRING CATALOGUE (web check): Bunnings 0487961 is Century C-243, 5/8 in OD x 6-1/2 in x 0.054 in wire (1.37 mm,
   not 1.4). Century lists max safe load 8.64 lb (38.4 N) and max deflection 11.9 in (302 mm), rated for about 100,000
   cycles. The earlier 280 mm full cock was 42 N with the 0.125 N/mm / 7 N estimate: inside the deflection limit but 9 %

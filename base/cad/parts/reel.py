@@ -92,6 +92,30 @@ def k_front():
     return Z_CUP + v7.CUP_D       # cup face plane: K's 10 mm body ends here, the clip neck follows
 
 
+def _unit(v):
+    v = np.asarray(v, float)
+    return v / np.linalg.norm(v)
+
+
+def guide_axis():
+    """Guide eye axis: bisects the line from the reel (+X) and the launch line to the ring (v7 keeps the eye along X;
+    the launch line then leaves 50 deg off the axis and grazes the post, so the plain round eye is turned 25 deg)."""
+    ring = np.array((-v7.RING_L, v7.RING_AT, Z_CUP + v7.EZP))
+    return _unit(_unit((1.0, 0.0, 0.0)) + _unit(ring - GUIDE))
+
+
+def exit_axis():
+    """Exit eye axis: bisects the mean incoming dart line (from the cup face centre) and the outgoing +X."""
+    c = np.array((0.0, 0.0, Z_CUP + v7.EZP))
+    return _unit(_unit(EXIT - c) + _unit((1.0, 0.0, 0.0)))
+
+
+def _eye_cut(centre, axis, wall):
+    """Plain round v7 eye (d 4.4, coned to 6.4) through a wall of thickness `wall` along X, axis tilted to `axis`."""
+    L = wall / abs(axis[0])
+    return prim.place(line.eye_cutter(L), tf.frame(tuple(np.asarray(centre) - axis * L / 2), tuple(axis)))
+
+
 # ------------------------------------------------------------------------------------------------ solids
 def _wall():
     x0, x1 = X_WALL
@@ -129,7 +153,7 @@ def _wall():
     # counterbore for the pushrod collar (its rear face is the LAUNCH back-stop)
     cut.append(prim.cyl(PUSH_COLLAR_R + 0.3, PUSH_CB + 1.0, x=X_REEL, y=PUSH_Y, z=-PUSH_CB))
     # guide eye along X
-    cut.append(prim.place(line.eye_cutter(6.0), tf.T(gx - 3, gy, gz) @ tf.Ry(90)))
+    cut.append(_eye_cut(GUIDE, guide_axis(), 6.0))
     # rocker pivot hole (M3 clearance along X through both ears)
     cut.append(prim.cylX(fits.M3_CLEAR_D / 2, px - 12, px + 12, y=py, z=pz))
     # mount holes: M3 clearance down through the foot, counterbored from the top
@@ -258,7 +282,7 @@ def _exit_post():
         cs = prim.poly_cs(pts)
         gus.append(prim.extrude(cs, 10.0, z=ez - 5))
     body = prim.union([foot, col, top] + gus)
-    cut = [prim.place(line.eye_cutter(6.0), tf.T(ex - 3, ey, ez) @ tf.Ry(90))]
+    cut = [_eye_cut(EXIT, exit_axis(), 6.0)]
     for x in (ex - 11, ex + 11):
         cut.append(prim.cylY(fits.M3_CLEAR_D / 2, y0 - 1, y0 + FOOT_T + 1, x=x, z=ez))
     return body - prim.union(cut)
@@ -483,3 +507,148 @@ def audit_states(P):
         out.append(dict(phase="reel_wrap", t=0.0, mode="REEL", wraps=w))
     out.append(dict(phase="reel_launch", t=0.0, mode="LAUNCH", line_out_m=3.0))
     return out
+
+
+# ------------------------------------------------------------------------------------------------ line path
+LINE_R_CAP = v7.DR + 0.5          # line centre radius on the capstan
+
+
+def _tangent_angle(p, r, upper=True):
+    """Angle (deg) of the tangent point on a circle (centre origin, radius r) seen from point p (XY)."""
+    ang = math.degrees(math.atan2(p[1], p[0]))
+    a = math.degrees(math.acos(r / math.hypot(p[0], p[1])))
+    return ang - a if upper else ang + a
+
+
+def _rz(p, deg):
+    c, s = math.cos(math.radians(deg)), math.sin(math.radians(deg))
+    return np.array((c * p[0] - s * p[1], s * p[0] + c * p[1], p[2]))
+
+
+def line_path(P, wraps=0.0, pack_r=None, z_spool=None):
+    """Line centre polyline in the R frame as a list of (points (N x 3), allowed part names) spans:
+    storage reel -> guide eye -> (capstan turns -> groove) -> ring -> exit eye -> 20 mm toward the dart.
+    wraps = cup turns from home (cup angle -360 wraps). Spans with allowed parts may touch those parts only."""
+    d = _d(P)
+    rp = reel_calc.pack_r(d, 3.0) if pack_r is None else pack_r
+    zs = Z_GUIDE if z_spool is None else z_spool
+    g = GUIDE
+    # storage reel: line leaves the pack top toward the guide (take-up sense +Z)
+    gl = np.array((g[0] - X_REEL, g[1]))
+    th = _tangent_angle(gl, rp, upper=False)
+    sp = np.array((X_REEL + rp * math.cos(math.radians(th)), rp * math.sin(math.radians(th)), zs))
+    spans = [(np.array([sp, g]), {"reel_spool", "reel_wall"})]
+    psi = -360.0 * wraps
+    cp = v7.cup_line_points()
+    off = np.array((0, 0, Z_CUP))
+    ring_r = _rz(cp["ring_rear"], psi) + off
+    ring_f = _rz(cp["ring_front"], psi) + off
+    if wraps <= 1e-9:
+        spans.append((np.array([g, ring_r]), {"reel_wall", "reel_cup"}))
+    else:
+        th0 = _tangent_angle(g[:2], LINE_R_CAP, upper=True)
+        th_end = v7.TH_RIM + psi
+        A = th0 - th_end
+        if A <= 0:
+            raise ValueError("wraps too small for the turn model (transition inside the first 70 deg)")
+        n = max(8, int(A / 10))
+        z0, z1 = Z_DRUM + v7.FLANGE_H + 0.8, Z_CUP - 0.6
+        turns = []
+        for k in range(n + 1):
+            t = math.radians(th0 - A * k / n)
+            turns.append((LINE_R_CAP * math.cos(t), LINE_R_CAP * math.sin(t), z0 + (z1 - z0) * k / n))
+        turns = np.array(turns)
+        spans.append((np.array([g, turns[0]]), {"reel_wall", "reel_drum"}))
+        spans.append((turns, {"reel_drum"}))
+        grv = []
+        for k in range(9):
+            tdeg = v7.TH_RIM - (v7.TH_RIM - v7.TH_TOP) * k / 8 + psi
+            z = Z_CUP + v7.CUP_D * k / 8
+            grv.append((v7.ER * math.cos(math.radians(tdeg)), v7.ER * math.sin(math.radians(tdeg)), z))
+        grv = np.array(grv)
+        spans.append((np.vstack([turns[-1:], grv, [ring_r]]), {"reel_drum", "reel_cup"}))
+    spans.append((np.array([ring_r, ring_f]), {"reel_cup"}))
+    spans.append((np.array([ring_f, EXIT]), {"reel_cup", "reel_exit_post"}))
+    spans.append((np.array([EXIT, EXIT + (20.0, 0, 0)]), {"reel_exit_post"}))
+    return spans
+
+
+def _trim(pts, a, b):
+    """Polyline with a mm cut off the start and b mm off the end (straight two-point spans only)."""
+    p0, p1 = pts[0], pts[-1]
+    v = p1 - p0
+    L = np.linalg.norm(v)
+    u = v / L
+    return np.array([p0 + u * a, p1 - u * b])
+
+
+def line_check(P, wraps_list=None, local=None):
+    """Exact check of the line tube (d 1.0) against every reel part. Free spans must clear everything except the
+    contact ends (2.5 mm at a ring or eye); contact spans may touch only their listed parts.
+    local: {part name: Manifold in the R frame} for the posed parts (built here when None).
+    Returns list of failure strings."""
+    if wraps_list is None:
+        wraps_list = [0.0] + [1.0 + k / 24.0 for k in range(24)] + [8.0]
+    fails = []
+    for w in wraps_list:
+        S = dict(wraps=w, mode="REEL")
+        sol = local(S) if callable(local) else _local_posed(P, S)
+        for pts, allow in line_path(P, w):
+            if len(pts) == 2 and np.linalg.norm(pts[-1] - EXIT) < 1e-6:
+                # dart line: rides round the outside of the ring for half of each turn (v7 README) and enters the
+                # exit eye at an angle; it must clear the cup face and everything else
+                q = _trim(pts, 0.0, 0.0)
+                psi = -360.0 * w
+                M = tf.T(0, 0, Z_CUP) @ tf.Rz(psi)
+                rz = prim.place(prim.cylX(v7.RING_R + 0.3, -v7.RING_L - 0.5, v7.RING_L + 0.5, y=v7.RING_AT, z=v7.EZP)
+                                + prim.box(-2.5, 2.5, 21, 28, 5, 15), M)
+                ez = prim.cyl(4.5, 12, z=-6).rotate((0, 90, 0)).translate(tuple(EXIT))
+                sol2 = dict(sol)
+                sol2["reel_cup"] = sol["reel_cup"] - rz
+                sol2["reel_exit_post"] = sol["reel_exit_post"] - ez
+                for name, v in line.line_hits(q, sol2).items():
+                    if v > 1e-3:
+                        fails.append(f"line at {w:.3f} wraps: dart span hits {name} ({v:.3f} mm3)")
+            elif len(pts) == 2:
+                ends = (4.0 if np.linalg.norm(pts[0] - GUIDE) < 1e-6 or np.linalg.norm(pts[0] - EXIT) < 1e-6 else 2.5,
+                        4.0 if np.linalg.norm(pts[-1] - GUIDE) < 1e-6 or np.linalg.norm(pts[-1] - EXIT) < 1e-6 else 2.5)
+                q = _trim(pts, *ends)
+                hits = line.line_hits(q, sol)
+                for name, v in hits.items():
+                    if v > 1e-3:
+                        fails.append(f"line at {w:.3f} wraps: free span {np.round(pts[0], 1)} -> "
+                                     f"{np.round(pts[-1], 1)} hits {name} ({v:.3f} mm3)")
+            else:
+                hits = line.line_hits(pts, {k: s for k, s in sol.items() if k not in allow})
+                for name, v in hits.items():
+                    if v > 1e-3:
+                        fails.append(f"line at {w:.3f} wraps: contact span hits {name} ({v:.3f} mm3)")
+    return fails
+
+
+_PARTS_CACHE = {}
+
+
+def _local_posed(P, S):
+    """Every reel part posed in the R frame for state S (no world placement)."""
+    vals = kin(P, S)
+    js = {j.name: j for j in joints(P)}
+    out = {}
+    key = id(P)
+    if key not in _PARTS_CACHE:
+        _PARTS_CACHE.clear()
+        _PARTS_CACHE[key] = parts(P)
+    for p in _PARTS_CACHE[key]:
+        M = np.eye(4)
+        j = p.joint
+        chain = []
+        while j and j != "reel_base":
+            chain.append(js[j]); j = js[j].parent
+        for jj in reversed(chain):
+            M = M @ jj.local(vals.get(jj.name, 0.0))
+        out[p.name] = prim.place(p.solid, M @ p.place)
+    return out
+
+
+def checks(P, asm=None):
+    return line_check(P)

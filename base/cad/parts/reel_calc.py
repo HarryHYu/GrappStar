@@ -228,11 +228,13 @@ def unwrap_schedule(d, step_turns=0.5, feed=0.8):
     lies loose by more than one step. Returns the list of (cup_turns_delta, capstan_deg_delta, main_deg_delta)."""
     up = d["z_main"] / d["z_cap"]
     steps = []
-    n = int(round(d["wraps"] / step_turns))
-    for _ in range(n):
-        slack = step_turns * 2 * math.pi * line_r_cap(d)
+    left = float(d["wraps"])
+    while left > 1e-9:
+        st = min(step_turns, left)
+        left -= st
+        slack = st * 2 * math.pi * line_r_cap(d)
         cap_rad = feed * slack / line_r_cap(d)
-        steps.append((step_turns, math.degrees(cap_rad), math.degrees(cap_rad) / up))
+        steps.append((st, math.degrees(cap_rad), math.degrees(cap_rad) / up))
     return steps
 
 

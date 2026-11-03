@@ -94,17 +94,17 @@ struct Base {
     loadAimTable();
   }
   void loadAimTable() {
-#ifdef P_AIM_TABLE_N
-    aimN = P_AIM_TABLE_N > AIM_TAB_MAX ? AIM_TAB_MAX : P_AIM_TABLE_N;
-    for (int i = 0; i < aimN; i++) { aimW[i] = P_AIM_TABLE_WIPER[i]; aimP[i] = P_AIM_TABLE_PITCH[i]; }
-    c.aimCycleDeg = P_AIM_CYCLE_DEG;
+#ifdef P_AIMTAB_N
+    aimN = P_AIMTAB_N > AIM_TAB_MAX ? AIM_TAB_MAX : P_AIMTAB_N;
+    for (int i = 0; i < aimN; i++) { aimW[i] = P_AIMTAB_WIPER[i]; aimP[i] = P_AIMTAB_PITCH[i]; }
+    c.aimCycleDeg = P_AIMTAB_CYCLE_DEG;
 #else
-    // placeholder until params.py has AIM: a crank-rocker like curve, pitch min at phase 0, max at half a cycle
-    aimN = 73;
-    for (int i = 0; i < aimN; i++) {
-      float ph = c.aimCycleDeg * i / (aimN - 1);
-      aimW[i] = ph; aimP[i] = c.pitchMin + (c.pitchMax - c.pitchMin) * 0.5f * (1 - cosf(ph * (float)M_PI / 180.f * 360.f / c.aimCycleDeg));
-    }
+    // launch_NOTES.md section 7: pitch every 100 backward wiper deg from the low dead point over one aim cycle (3600)
+    static const float T[37] = {6.01f, 6.24f, 6.93f, 8.12f, 9.83f, 12.10f, 14.93f, 18.32f, 22.22f, 26.50f, 30.98f, 35.39f, 39.42f,
+      42.76f, 45.19f, 46.62f, 47.06f, 46.59f, 45.37f, 43.52f, 41.20f, 38.54f, 35.64f, 32.59f, 29.49f, 26.39f, 23.36f, 20.46f,
+      17.72f, 15.19f, 12.91f, 10.91f, 9.21f, 7.85f, 6.85f, 6.23f, 6.01f};
+    aimN = 37;
+    for (int i = 0; i < aimN; i++) { aimW[i] = c.aimCycleDeg * i / 36.f; aimP[i] = T[i]; }
 #endif
   }
   Tun tunNow() const {
@@ -240,6 +240,7 @@ struct Base {
   const char* safeToNeutral(int f) const {
     if (f == F_DRUM_TIMEOUT || f == F_DRUM_SENSOR) return "drum fault";
     if (sec == SEC_INVALID || secBad) return "drum code invalid";
+    if (handMode()) return "N20 latched out (hand mode)";
     if (!wrapsKnown) return "wraps unknown";
     if (sec >= SEC_WRAP || wraps > 0) return "wraps on: the line must be unwrapped by the operator";
     if (loadedKnown() || (sec <= SEC_LN && maybeLoaded()))
@@ -277,7 +278,8 @@ struct Base {
       if (drumTrust && s->drumKnown && s->drumDeg >= secLo(sec) - 1 && s->drumDeg <= secHi(sec) + 1) { drumDeg = s->drumDeg; degTrusted = true; }
       else {
         if (drumTrust && s->drumKnown) bootDrumMismatch = true;   // the drum cannot move while off (worm): a code contact changed
-        drumDeg = 0.5f * (fmaxf(secLo(sec), c.targetDeg[0]) + fminf(secHi(sec), c.targetDeg[2])); degTrusted = false;
+        int k = detentClosed();
+        drumDeg = k >= 0 ? c.targetDeg[k] : 0.5f * (fmaxf(secLo(sec), c.targetDeg[0]) + fminf(secHi(sec), c.targetDeg[2])); degTrusted = k >= 0;
       }
       wraps = wrapsAt(sec, drumDeg); wrapsKnown = sec != SEC_WRAP || degTrusted;
     } else { drumKnown = false; wrapsKnown = false; wraps = 0; }
@@ -302,7 +304,7 @@ struct Base {
     }
     // SW_HOME (carriage forward) must agree with the record: rest = closed, cocked = open
     if (fitted(SW_HOME)) {
-      if (phase == PH_REST && !closed(SW_HOME)) phase = PH_UNKNOWN;
+      if (phase == PH_REST && (!closed(SW_HOME) || (fitted(SW_GAP) && !closed(SW_GAP)))) phase = PH_UNKNOWN;
       if (phase == PH_COCKED && closed(SW_HOME)) { phaseHint = c.cockEndDeg; phase = PH_UNKNOWN; }   // SW_HOME lying, or a shot happened
     }
     JOut o(evBuf, sizeof evBuf); evBegin(o, "BOOT"); o.str("fw", GB_FW_VERSION); o.boolean("record", s != nullptr);
@@ -376,6 +378,12 @@ struct Base {
       float ms = (float)(te - edgeT);
       if (ms > 100) { float v = fabsf(e - edgeAt) / (ms / 1000.f); if (v > 0.3f * c.drumDps && v < 3 * c.drumDps) c.drumDps = 0.5f * c.drumDps + 0.5f * v; }
     }
+    // SW_ARM: one pulse per cup turn across the WRAP sector; a full pass must count all of them
+    if (s == SEC_WRAP && (was == SEC_PREP || was == SEC_LOCK)) armPulses = 0;
+    if (was == SEC_WRAP && (s == SEC_PREP || s == SEC_LOCK) && fitted(SW_ARM) && d.running() && armCounting) {
+      if (armPulses != c.wrapsFull) armBad = true;
+    }
+    armCounting = s == SEC_WRAP && (was == SEC_PREP || was == SEC_LOCK) ? true : (s == SEC_WRAP ? armCounting : false);
     edgeT = te; edgeAt = e; edgeRun = d.running(); degTrusted = true;
     if (was == SEC_WRAP || s == SEC_WRAP) wrapsKnown = true;   // an edge of the WRAP sector gives the exact angle
     drumDeg = e + dir * c.drumDps * (now - te) / 1000.f; drumKnown = true;
@@ -390,6 +398,7 @@ struct Base {
     if (drumDeg < lo) drumDeg = lo; if (drumDeg > hi) drumDeg = hi;
     wraps = wrapsAt(sec, drumDeg);
     if (sec != SEC_WRAP) wrapsKnown = true;           // outside the WRAP sector the count follows from the sector
+    if (sec == SEC_WRAP && rose(SW_ARM) && d.running()) armPulses++;
   }
 
   // ================================================================== watchdogs (every tick)
@@ -399,6 +408,7 @@ struct Base {
     if (w.stalled) { w.clearLatches(); onStall(); return; }
     if (!enc.ok && (w.running() || state == S_AIM || state == S_COCK || state == S_FIRE || state == S_REEL)) { raise(F_ANGLE_SENSOR, "AS5600 lost while the wiper runs"); return; }
     if (secBad && now - secBadT > c.invalidMs) { secBadT = now; raise(F_DRUM_SENSOR, sectorOf(codeNow()) == SEC_INVALID ? "drum code 000 (wire off or bump missing)" : "drum code jumped over a sector"); return; }
+    if (handMode() && d.running()) { raise(F_DRUM_SENSOR, "N20 latched out during a drum move"); return; }
     if (closed(SW_DOG_L) && closed(SW_DOG_R)) { if (now - dogBothT > 200) { raise(F_SWITCH_DISAGREE, "SW_DOG_L and SW_DOG_R both closed"); return; } }
     else dogBothT = now;
     bool drumMoveState = state == S_DRUM || state == S_SAFING || state == S_WRAP || state == S_UNWRAP;
@@ -432,11 +442,13 @@ struct Base {
     }
     // the drum code says away from LAUNCH while the spring is known drawn: a code contact is lying
     if (loadedKnown() && sec != SEC_INVALID && sec > SEC_LN && booted) { raise(F_BAD_STATE, "drum code away from LAUNCH but the spring is drawn"); return; }
+    if (armBad) { armBad = false; char b[48]; snprintf(b, sizeof b, "SW_ARM counted %d of %d cup turns", armPulses, c.wrapsFull); raise(F_DRUM_SENSOR, b); return; }
     if (bootDrumMismatch) { bootDrumMismatch = false; raise(F_DRUM_SENSOR, "drum code disagrees with the saved drum angle"); return; }
     // optional host watchdog: no line from the Jetson for host_timeout_s while a motor runs = stop (0 = off)
     if (c.hostTimeoutS > 0 && running && now - hostT > (uint32_t)(c.hostTimeoutS * 1000)) { cmdStop(false); evAborted("HOST", "host silent"); hostT = now; }
   }
   uint32_t hostT = 0;
+  int armPulses = 0; bool armBad = false, armCounting = false;
   int quietSec = SEC_INVALID; uint32_t encWrongT = 0, glitchRef = 0, glitchWin = 0, glitchT = 0;
   uint32_t lastMultiOk = 0, dogBothT = 0; bool bootDrumMismatch = false; bool degTrusted = true;
   void onOvercurrent(const char* why) { raise(F_OVERCURRENT, why); }   // always a fault (also in a tow: the limit acts first)
@@ -449,8 +461,9 @@ struct Base {
   // dog contacts must confirm the collar (LAUNCH: wiggle BACKWARD if needed, never forward: that would cock).
   int mvTarget = -1, mvDir = 0, mvStage = 0, mvSafing = 0; uint32_t mvT = 0, mvLegT = 0, mvSecT = 0, mvEnd = 0; float mvExpect = 0, mvFrom = 0;
   int mvLastSec = SEC_INVALID; bool mvTakeup = false; int mvWiper = 0;
+  bool handMode() const { return fitted(SW_N20) && !closed(SW_N20); }   // N20 latched out: the drum is turned by hand
   bool startDrumMove(int target, bool safing) {
-    if (sec == SEC_INVALID || secBad) return false;
+    if (sec == SEC_INVALID || secBad || handMode()) return false;
     int ts = targetSec(target);
     mvTarget = target; mvSafing = safing; mvDir = ts > sec ? 1 : ts < sec ? -1 : (c.targetDeg[target] >= drumDeg ? 1 : -1);
     mvTakeup = mvDir < 0 && sec >= SEC_WRAP;         // unwrapping: take up the freed line
@@ -578,6 +591,7 @@ struct Base {
   // lens B I1: the drum may leave LAUNCH only with the launcher at rest and the carriage home (springs relaxed)
   const char* launchExitCheck() const {
     if (maybeLoaded()) return "LAUNCH_BUSY";
+    if (fitted(SW_GAP) && !closed(SW_GAP)) return "LAUNCH_BUSY";   // big gear must sit in its gap (lens B I1)
     return nullptr;
   }
   const char* cmdMode(const char* to) {
@@ -586,6 +600,7 @@ struct Base {
     if (const char* e = idleCheck(false)) return e;
     if (state == S_HOLD) return "HOLDING";
     if (sec == SEC_INVALID || secBad) return "POSITION_UNKNOWN";
+    if (handMode()) return "HAND_MODE";
     if (t == DP_REEL) {                              // REEL engages only with the wraps on (D16): from LOCK, or use "wrap"
       if (sec == SEC_REEL && collarReel()) { evMode(true); return nullptr; }
       if (sec < SEC_LOCK) return "NOT_WRAPPED";
@@ -659,7 +674,8 @@ struct Base {
     if (!wrapsKnown || wraps > 0) return "WRAPS_ON";
     if (!fitted(SW_HOME)) return "NO_SENSOR";
     // cocked (carriage drawn) or at rest (carriage home: fire then runs the whole cycle: draw, release, reset)
-    if (!((phase == PH_COCKED && !closed(SW_HOME)) || (phase == PH_REST && closed(SW_HOME)))) return "NOT_COCKED";
+    bool gapOk = !fitted(SW_GAP) || (phase == PH_REST ? closed(SW_GAP) : !closed(SW_GAP));
+    if (!((phase == PH_COCKED && !closed(SW_HOME)) || (phase == PH_REST && closed(SW_HOME))) || !gapOk) return "NOT_COCKED";
     if (!aimKnown || !aimed || isnan(aimTarget) || fabsf(pitch() - aimTarget) > c.aimTolDeg) return "NOT_AIMED";
     if (c.requireSeated && !closed(SW_SEATED)) return fitted(SW_SEATED) ? "NOT_SEATED" : "NO_SENSOR";
     return nullptr;
@@ -690,6 +706,7 @@ struct Base {
     if (sec == SEC_REEL && collarReel()) { JOut o(evBuf, sizeof evBuf); evBegin(o, "WRAPPED"); o.boolean("ok", true); o.integer("wraps", wraps); evEnd(o); return nullptr; }
     if (sec == SEC_INVALID || secBad) return "POSITION_UNKNOWN";
     if (sec < SEC_NEUTRAL) return "NOT_IN_NEUTRAL";
+    if (handMode()) return "HAND_MODE";
     if (loadedKnown()) return "LAUNCH_BUSY";
     if (w.running()) return "BUSY";
     if (!startDrumMove(DP_REEL, false)) return "POSITION_UNKNOWN";
@@ -705,6 +722,7 @@ struct Base {
     } else if (sec < SEC_PREP || sec == SEC_INVALID || secBad) return sec == SEC_INVALID || secBad ? "POSITION_UNKNOWN" : "NOT_WRAPPED";
     if (w.running()) return "BUSY";
     if (!enc.ok) return "ANGLE_SENSOR";              // the take-up needs the wiper
+    if (handMode()) return "HAND_MODE";
     if (loadedKnown()) return "LAUNCH_BUSY";
     if (!startDrumMove(DP_NEUTRAL, false)) return "POSITION_UNKNOWN";
     state = S_UNWRAP; stT = now;
@@ -771,6 +789,7 @@ struct Base {
     } else {
       if (w.running()) return "BUSY";
       if (sec == SEC_INVALID || secBad) return "POSITION_UNKNOWN";
+      if (handMode()) return "HAND_MODE";
       if ((sec <= SEC_LN || loadedKnown()) && !(sec == SEC_LAUNCH && dd < 0)) { if (const char* e = launchExitCheck()) return e; }   // never shift under load
       if (sec == SEC_REEL && dd < 0) return "WRAPS_ON";   // leaving REEL needs the centering jog: use unwrap
       d.want(dd * c.drumSign); markMoving(MV_DRUM); aimed = false;
@@ -992,26 +1011,30 @@ struct Base {
     o.str("drum_pos", DRUM_POS_NAME[drumPos()]); if (fault) o.str("fault", FAULT_NAME[fault]); else o.null("fault");
     o.boolean("trunc", true); o.close(); o.close();
   }
+  // lean form (only when the full line would pass 256 bytes): fewer decimals and null fields left out (absent = null)
   bool telBuild(char* buf, int cap, bool lean) {
     int d1 = lean ? 0 : 1, d2 = lean ? 1 : 2;
     JOut o(buf, cap); o.open(); o.obj("tel");
+    auto nul = [&](const char* k) { if (!lean) o.null(k); };
     o.str("state", STATE_NAME[state]); o.str("mode", modeName());
-    if (drumKnown) o.num("drum_deg", drumDeg, d1); else o.null("drum_deg");
+    if (drumKnown) o.num("drum_deg", drumDeg, d1); else nul("drum_deg");
     o.str("drum_pos", DRUM_POS_NAME[drumPos()]);
-    if (enc.ok || wiperInit) o.num("wiper_deg", enc.deg(), d1); else o.null("wiper_deg");
-    o.num("rpm", enc.ok ? enc.rpm() : NAN, d1); o.num("amps", amps, d1);
-    float p = pitch(); if (isnan(p)) o.null("pitch_deg"); else o.num("pitch_deg", p, d2);
+    if (enc.ok || wiperInit) o.num("wiper_deg", enc.deg(), d1); else nul("wiper_deg");
+    if (enc.ok) o.num("rpm", enc.rpm(), d1); else nul("rpm");
+    o.num("amps", amps, d1);
+    float p = pitch(); if (isnan(p)) nul("pitch_deg"); else o.num("pitch_deg", p, d2);
     float ck = phase == PH_REST ? 0 : phase == PH_COCKED || phase == PH_FIRING ? 1 : phase == PH_COCKING ? fminf(1, fmaxf(0, cockPhase / c.cockEndDeg)) :
                phase == PH_RESETTING ? fmaxf(0, 1 - (cockPhase - c.releaseDeg) / fmaxf(1, c.cycleDeg - c.releaseDeg)) : NAN;
-    if (isnan(ck)) o.null("cock"); else o.num("cock", ck, 2);
-    if (wrapsKnown) o.integer("wraps", wraps); else o.null("wraps");
-    if (lineKnown) o.num("line_m", lineM, d2); else o.null("line_m");
-    if (hxLive()) o.num("tension_n", hxN, d1); else o.null("tension_n");
-    o.obj("sw");                                     // closed contacts only (absent = open), one-letter keys: PROTOCOL.md
+    if (isnan(ck)) nul("cock"); else o.num("cock", ck, 2);
+    if (wrapsKnown) o.integer("wraps", wraps); else nul("wraps");
+    if (lineKnown) o.num("line_m", lineM, d2); else nul("line_m");
+    if (hxLive()) o.num("tension_n", hxN, d1); else nul("tension_n");
+    o.obj("sw");                                     // closed contacts only (absent = open), short keys: PROTOCOL.md
     for (int i = 0; i < SW_COUNT; i++) if (closed(i)) o.integer(SW_TEL[i], 1);
     o.close();
-    if (fault) o.str("fault", FAULT_NAME[fault]); else o.null("fault");
-    if (isnan(vbat)) o.null("vbat"); else o.num("vbat", vbat, 1);
+    if (fault) o.str("fault", FAULT_NAME[fault]); else nul("fault");
+    if (isnan(vbat)) nul("vbat"); else o.num("vbat", vbat, 1);
+    if (lean) o.boolean("lean", true);
     o.close(); o.close();
     return !o.bad;
   }
@@ -1157,6 +1180,7 @@ struct Base {
       if (!closed(SW_HOME) && cockPhase < c.cycleDeg + c.homeOpenDeg - c.homeWinDeg) { raise(F_BAD_STATE, "SW_HOME opened while resetting"); return; }
       if (cockPhase >= c.cycleDeg - c.aimCoastDeg) {
         if (fitted(SW_HOME) && !closed(SW_HOME)) { raise(F_BAD_STATE, "reset ended with the carriage off its stop"); return; }
+        if (fitted(SW_GAP) && !closed(SW_GAP)) { raise(F_BAD_STATE, "reset ended with the big gear out of its gap"); return; }
         w.halt(now, io.wiper); cockPhase -= c.cycleDeg; if (cockPhase < 0) cockPhase = 0;
         phase = PH_REST; state = S_IDLE; stT = now;
         JOut o(evBuf, sizeof evBuf); evBegin(o, "RESET"); o.boolean("ok", true); evEnd(o); dirty = true; return;

@@ -194,7 +194,7 @@ static void testProtocolBasics() {
   char tel[300]; R.B.telemetry(tel, sizeof tel);
   CHECK(std::string(tel).find("{\"tel\":{\"state\":\"IDLE\"") == 0, tel);
   CHECK(strlen(tel) <= 256, "telemetry within 256 bytes");
-  CHECK(std::string(tel).find("\"sw\":{\"a\":1,\"l\":1,\"H\":1,\"W\":1}") != std::string::npos, tel);   // drum code 001, carriage home, wrap arm home
+  CHECK(std::string(tel).find("\"sw\":{\"a\":1,\"l\":1,\"n\":1,\"H\":1,\"G\":1,\"W\":1}") != std::string::npos, tel);   // drum code 001, carriage home, wrap arm home
 }
 
 static void testTelemetryWorstCase() {
@@ -204,10 +204,10 @@ static void testTelemetryWorstCase() {
   R.B.drumKnown = true; R.B.drumDeg = -1234.5f; R.B.enc.count = -4096000; R.B.enc.rateDps = -400; R.B.state = gb::S_UNWRAP;
   R.B.wrapsKnown = true; R.B.wraps = 12; R.B.lineM = 99.99f; R.B.amps = 19.9f; R.B.aimKnown = true; R.B.phase = gb::PH_COCKING; R.B.cockPhase = 300;
   R.B.hxSeen = true; R.B.hxT = R.B.now; R.B.hxN = 149.5f; R.B.vbat = 12.6f;
-  S.swStuckClosed = 0x1EB; R.B.c.vbatLow = 0; R.run(30); R.B.state = gb::S_UNWRAP; R.B.hxT = R.B.now; R.B.enc.rateDps = -400; R.B.secBad = false;
+  S.swStuckClosed = 0x6E3; R.B.c.vbatLow = 0; R.run(30); R.B.state = gb::S_UNWRAP; R.B.hxT = R.B.now; R.B.enc.rateDps = -400; R.B.secBad = false;
   char tel[400]; R.B.telemetry(tel, 400);
   { char big[700]; R.B.telBuild(big, 700, false); printf("    realistic worst case %zu bytes: %s\n", strlen(big), big); }
-  CHECK(strlen(tel) <= 256 && std::string(tel).find("\"trunc\"") == std::string::npos, tel);
+  CHECK(strlen(tel) <= 256 && std::string(tel).find("\"trunc\"") == std::string::npos, tel);   // full or lean, never cut
   gb::JObj o; CHECK(gb::jsonParse(tel, (int)strlen(tel), &o), "valid JSON");
   // absurd values: still valid JSON within 256 bytes
   R.B.enc.count = -99999999; R.B.enc.rateDps = -1e8f; R.B.fault = gb::F_SWITCH_DISAGREE; R.B.state = gb::S_FAULT; S.swStuckClosed = 0x7F; R.run(30);
@@ -655,7 +655,7 @@ static void testReview2() {
   // f3b: stop mid-fire before the release, then cock with SW_HOME stuck closed: refused
   { Rig R; R.homeAimAndCock(); S.lineOut = 0; R.run(50);
     std::string a = R.cmd("{\"id\":2,\"cmd\":\"arm\"}"); long tok = atol(a.c_str() + a.find("\"token\":") + 8);
-    R.ok("{\"id\":4,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}"); R.until([&] { return S.cockPh > 445; }, 5000);
+    R.ok("{\"id\":4,\"cmd\":\"fire\",\"token\":" + std::to_string(tok) + "}"); R.until([&] { return S.cockPh > 422; }, 5000);
     R.ok("{\"id\":5,\"cmd\":\"stop\"}"); S.swStuckClosed = 1 << 6; R.run(100);
     CHECK(R.err("{\"id\":6,\"cmd\":\"cock\"}") == "LOADED_UNKNOWN" && S.shots == 0, "stop mid-fire + stuck SW_HOME: cock refused"); }
   // f4: SW_HOME bounces during decock: no REST until steadily closed
@@ -665,7 +665,7 @@ static void testReview2() {
     CHECK(S.cockPh < S.c.homeOpenDeg + 1 || R.B.phase != gb::PH_REST, "a bounce does not end the decock early"); }
   // f4b: stop a forward jog right at the first tooth: not REST any more
   { Rig R; R.toMode("LAUNCH"); R.ok("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":1,\"ms\":1500}");
-    R.until([&] { return S.cockPh > 3.1; }, 5000); R.ok("{\"id\":2,\"cmd\":\"stop\"}"); R.run(100);
+    R.until([&] { return S.cockPh > 4.15; }, 5000); R.ok("{\"id\":2,\"cmd\":\"stop\"}"); R.run(100);
     CHECK(R.B.phase != gb::PH_REST, "carriage off its stop: phase no longer REST");
     CHECK(R.err("{\"id\":3,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}") == "LAUNCH_BUSY", "and no shift"); }
   // r2f: a fault mid-decock: phase UNKNOWN, not COCKED

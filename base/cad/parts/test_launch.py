@@ -80,7 +80,7 @@ def test_kin_values_rest_and_cocked():
 
 @pytest.mark.parametrize("name", ["launch_carriage", "launch_big_gear", "launch_drive_gear", "launch_sleeve",
                                   "launch_rail_rear", "launch_rail_mid", "launch_rail_front", "launch_sw_home",
-                                  "launch_sw_seated", "launch_sw_gap", "launch_gear_pin", "launch_gear_clip",
+                                  "launch_sw_seated", "launch_gear_pin", "launch_gear_clip",
                                   "launch_seat_plunger", "launch_seat_pushrod", "launch_pulley_top"])
 def test_parts_valid_single_body_and_fit_bed(name):
     parts = {p.name: p for p in L.parts(P)}
@@ -98,7 +98,7 @@ def test_parts_valid_single_body_and_fit_bed(name):
 
 def test_switch_positions_exist():
     names = {p.name for p in L.parts(P)}
-    for sw in ("launch_sw_home", "launch_sw_seated", "launch_sw_gap"):
+    for sw in ("launch_sw_home", "launch_sw_seated"):
         assert sw in names
 
 

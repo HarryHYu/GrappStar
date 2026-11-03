@@ -199,7 +199,11 @@ struct Cfg {
 #else
       50.0f;
 #endif
-  float limitMaxN = 110.0f;         // params.REEL: adjustable 2..110
+#ifndef P_REEL_TOW_LIMIT_MAX_N
+#define P_REEL_TOW_LIMIT_MAX_N 70.0f
+#endif
+  float limitMaxN = P_REEL_TOW_LIMIT_MAX_N;   // D39: above 70 N the 6.5 A trip and the shear pin are reached (BAD_ARG beyond)
+  bool armHomeOpen = true;          // cad-reel: SW_ARM is closed while the cup is away and OPENS for about +-5 deg at home
   float resumeFrac = 0.6f;          // holding winds again below this fraction of the limit (load cell only)
   uint32_t tensionIgnoreMs = 350;   // ramp inrush is not tension
   float seatSlowM = 1.0f; int seatSlowDuty = 110;

@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 12:17 Sydney time from commit `aa6faf3`.
+Built 2026-11-03 12:19 Sydney time from commit `ef7d5e3`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -151,17 +151,41 @@ Read this before any hands-on step.
 - LiPo storage: if it will sit for more than a few days, use the B6 "storage" mode (3.8 V per cell), keep it in a
   LiPo bag or metal box, away from heat (never in a hot car). A puffed, dented or hot pack: stop, put it outside on
   concrete, then to battery recycling. Never puncture or short one.
-- 18350 cells: never let both cells touch metal at the same time. Charge out of the dart in the XTAR, or through the
-  tail balance socket with the loop plug out.
+- 18350 cells: never let both cells touch metal at the same time. Charge out of the dart in the XTAR MC2, or through
+  the tail balance socket with the loop plug out: on the B6 choose Li-ion (LiIo) 2S balance, 1.0 A or less (not the
+  LiPo 3S program). Check each cell's direction against the marks in the cell bay and meter the pack (7.2 to 8.4 V)
+  before the loop plug goes in. Look the cells over after a hard landing; a dented cell is scrapped.
+- Setting a buck on the live LiPo (dart step 3, base WIRING Part A): use clip leads or insulate every free lead end
+  first, so nothing loose can touch.
 - Never connect the DRV8833 motor supply (VM) to the LiPo directly: 10.8 V maximum. It runs from the 9.0 V buck.
 - The dart VTX must have its antenna on before it is powered.
 
 ## Mechanical
 
 - The wiper motor is strong (about 15 N m) and self-locking. Hands out of the gears, drum and rail while the battery
-  is plugged in. Pull the battery plug to stop everything.
+  is plugged in.
+- **Stopping (the same everywhere):** 1. send `estop` (or the STOP button on the operator page). 2. If anything
+  still moves, pull lead #2's XT60: both motors lose power, the Jetson stays up. Keep that plug within arm's reach
+  whenever the base is powered; it is the physical kill switch. 3. Only then the main battery plug.
+- **Cutting power freezes stored energy, it does not release it.** Both worms self-lock, so a drawn spring and a
+  line under tension stay loaded with the power off. The dart has its own battery.
+- **Before you walk up to the base or the dart** (to measure a range, fetch the dart, or touch anything): `estop`;
+  lead #2 out; telemetry shows `cock` 0 and `H` (SW_HOME) closed; the line is slack (no tension); the dart reads
+  IDLE on the operator page, or its loop plug is out. If the carriage is drawn and `cal decock` fails: treat the
+  launcher as loaded, keep the rail pointed down range, and fire it with the tethered dummy into the clear zone.
+- Never use the hand lever while the carriage is drawn (`cock` above 0 or `SW_HOME` open) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first.
 - The launch springs store energy. Cocked carriage = loaded. Never put a hand in front of the rail or the carriage.
-  To unload a cocked base without firing, see troubleshooting.
+  To unload a cocked base without firing, see troubleshooting. The spring hooks have little margin at full draw
+  (about 42 N each against a 44 N hook limit until the springs are measured): during shots stand beside the base,
+  not behind or in front of the springs, and fit the printed spring guard if the pack has one. After B2, if the
+  physics shows a margin under 1.5, use the 5 mm preload hole set.
+- **Line under tension:** the capstan never turns back (one-way bearing), so a towing line cannot be let off at the
+  base. During any pull (hand test or tow) stand beside or behind the rover, never in line with the dart, glasses
+  on. To slacken it, release the dart (`release`) or drive the rover toward the dart. Calibrate the current-to-
+  tension number (MEASURE_LIST G9) before any tow: the shipped value lets the line reach about twice the limit.
+- Chock or brake the rover during every shot and every tow. Strap the LiPo down under a cover on the rover.
+- **Picking up a landed dart:** send dart STOP, check it reads IDLE (an armed dart can start anchoring when moved),
+  then pull its loop plug before you touch it.
 - The dart is 279 g leaving the rail at about 8 m/s: about 9 J, like a thrown cricket ball, with sharp augers.
   From the first spring test on: safety glasses on, nobody in front of the rail or within 2 m to either side, and
   the area in front clear for 30 m (four times the longest expected range, for a misfire at a wrong pitch).
@@ -328,7 +352,7 @@ General rules for the base:
 - Wires: leave a 150 mm loop at the rail pivot for SW_SEATED and SW_HOME. Never route a wire across a moving part.
 - Contacts: set each gap by turning the screw (MEASURE_LIST G12).
 - Manual drum fallback: loosen the N20 cradle thumb screw and slide the N20 out of mesh, then turn the drum by the
-  hand lever on its 14 mm hex boss. Battery unplugged.
+  hand lever on its 14 mm hex boss. Battery unplugged. Never use the hand lever while the carriage is drawn (`cock` above 0 or `SW_HOME` open) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first.
 - Aim only with the carriage at HOME (springs slack). Fire low-pitch shots with the rover braked or chocked.
 
 # 6. Dart build
@@ -922,7 +946,7 @@ Why it is laid out this way:
 
 | Run | From | To | Gauge | Connector | Note |
 |---|---|---|---|---|---|
-| P1 | LiPo | Y harness | 14 AWG | XT60 | Make the Y from spare XT60s; solder, heat shrink each joint |
+| P1 | LiPo | Y harness | 14 AWG | XT60 | Make the Y from spare XT60s; solder, heat shrink each joint. This short run is the only unfused part: keep the Y's legs under 10 cm so both fuses sit right at the split, sleeve it, and strap it so it cannot rub |
 | P2 | Y harness | BTS7960 B+ / B- | 14 AWG | XT60 lead #2 (20 A fuse), screw terminals at the BTS7960 | Red to B+, black to B-. 10 A blew on wiper inrush before: keep 20 A |
 | P3 | BTS7960 M+ / M- | wiper motor | 14 AWG | screw terminals; spade or solder at the motor | Red wire (+) and black (-) of the rebuilt 2-wire motor |
 | P4 | BTS7960 B+ / B- | MP1584 #2 IN+ / IN- | 22 AWG | under the same screws, 2 A inline fuse in the + wire right at the screw | Set 9.0 V with nothing on the output first |
@@ -975,7 +999,8 @@ command): in step 5 only check the buck reads 9.0 V (do not turn the screw), and
 9. On the Jetson, in `~/GrappStar/jetson`: `python3 -m grappstar base ping` (expect `"ok": true`), then
    `python3 -m grappstar base monitor`. Check `vbat` in telemetry matches the meter within 0.3 V.
 10. Unplug the battery. Connect the motors (wiper to BTS7960 M+ / M-, drum N20 to AOUT1 / AOUT2). Check the B-
-    screw is tight. Plug the battery in. Nothing moves until a command is sent.
+    screw is tight. Plug the battery in. Nothing moves until a command is sent (a mode change may turn the wiper a
+    few degrees to free the dogs: that is a command too).
 
 Emergency stop: send `estop`. If that does not stop it, pull lead #2's XT60 (or its 20 A fuse): that kills both
 motors and leaves the Jetson running. Pull the main battery plug only if that is not enough.
@@ -2434,8 +2459,8 @@ Safety for every stage:
 - Hands out of the gears, the drum and the rail whenever the battery is plugged in.
 - From stage 5 on: nobody in front of the rail, safety glasses on, the launch area clear for 30 m.
 - Never fire a dart (dummy or real) without the tether tied on.
-- Emergency stop: `estop`. If that does not stop it, pull lead #2's XT60 (the wiper branch): both motors die and the
-  Jetson stays up. Keep a hand near it.
+- Stopping and approaching: build guide section 2 (`estop`, then lead #2's XT60, then the battery; and the checklist
+  before you walk up to the base or the dart). Cutting power does not release a drawn spring or a taut line.
 
 ### Stage 0. Risk coupons (before any big print)
 
@@ -2542,7 +2567,8 @@ electronics go in), taped shut with M8 nuts or sand inside to 279 g including th
 nose bright. Tie the line through the tail cap holes. Route the line as in the base assembly steps (for launch it
 bypasses the capstan). Set the payout brake with hanging weights (G4): 40 g does not pull line off, 50 g does.
 
-1. `aim` 20 degrees. Load the dummy, check `SW_SEATED` is closed. Fire.
+1. Check `require_seated` is back to `true` (`{"cmd":"get","key":"require_seated"}`). `aim` 20 degrees. Load the
+   dummy, check `SW_SEATED` is closed. Fire. Walk out to the dummy only after the approach checklist (section 2).
 2. Film it side-on with the phone in slow motion, tape measure on the ground in view (muzzle speed, G5).
 3. Measure the range. Repeat at 30 and 36 degrees (G6).
 4. Check the line paid out with no loops or overrun on the storage reel.
@@ -2573,9 +2599,11 @@ The real dart, built and tested to the dart run sheet section 10. Use real soil 
 
 1. Place the dart on the soil by hand, tether tied, line slack. Wrap the capstan now, before the dart anchors
    (decision D22). Then send `/auto` from the operator page (or key `a`).
-2. When the dart reports ANCHORED: pull the tether by hand with the luggage scale, slowly, up to 50 N or until
+2. When the dart reports ANCHORED: standing beside the line, not in line with it, glasses on, pull the tether by
+   hand with the luggage scale, slowly, up to 50 N or until
    it moves (G7).
-3. Re-anchor (wrap first, as in step 1). Base in REEL with wraps on: `reel` with `until` tension at a limit 10 N under the hand result.
+3. Do MEASURE_LIST G9 (current to tension) first if not done. Re-anchor (wrap first, as in step 1). Rover chocked,
+   everyone beside the line. Base in REEL with wraps on: `reel` with `until` tension at a limit 10 N under the hand result.
 4. Send release (operator page, or `python3 -m grappstar dart release`): drills out, pods up, foot out, kick back.
    Then reel the dart home.
 
@@ -2706,8 +2734,8 @@ First move for any problem: send `estop` (or pull the battery plug), then read t
 | Fault DRUM_SENSOR or SWITCH_DISAGREE | A drum contact does not close or stays closed | Battery unplugged, ESP32 on USB only (contacts read on USB power): watch `sw` while turning the drum by the hand lever; bend or re-screw the contact |
 | Fault ANGLE_SENSOR | AS5600 cable out, magnet too far | Re-seat the STEMMA cable; magnet 1 to 3 mm from the chip, centred |
 | `pitch_deg` wrong after a restart | Pitch reference lost | Run the pitch part of the calibration again (section 10) |
-| Drum stuck between positions with the power off | Expected: the worm holds it | Use the hand lever on the drum shaft end, battery unplugged |
-| Base cocked and you need to unload without firing | | Send `{"cmd":"cal","what":"decock"}`: the wiper runs backward slowly and the springs unwind under the worm until `SW_HOME` closes. Never fire without the tether, and never hand-release the carriage |
+| Drum stuck between positions with the power off | Expected: the worm holds it | Use the hand lever on the drum shaft end, battery unplugged. Never use the hand lever while the carriage is drawn (`cock` above 0 or `SW_HOME` open) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first. |
+| Base cocked and you need to unload without firing | | Send `{"cmd":"cal","what":"decock"}`: the wiper runs backward slowly and the springs unwind under the worm until `SW_HOME` closes. If it fails: treat the launcher as loaded, rail pointed down range, and fire it with the tethered dummy into the clear zone. Never hand-release the carriage |
 
 ## Rover and video
 
@@ -2752,7 +2780,7 @@ photos in `originals/measure_2026-11/` so the numbers can be checked later.
 | A3 Shaft end thread and length | Thread a nut you know (M6, M8) onto it. Caliper the shaft length from the housing face to the tip | `WIPER.shaft_thread`, `WIPER.shaft_len` | Wiper shaft coupler |
 | A4 Mount hole pattern | Lay the motor face down on paper, press so the holes mark it (or trace with a pencil). Then caliper each hole centre from the shaft centre along two square directions and each hole diameter. Photo of the paper with a ruler | `WIPER.mount_holes` as (x, y, dia) from the shaft axis | `frame_motor_adapter` and `frame_motor_saddle` |
 | A5 Housing size | Caliper the gearbox box (length, width, height) and the motor can (diameter, length), and how far the shaft sits from each edge | `WIPER.body_box` | Frame cheeks and guard if they clash (the audit says) |
-| A6 Free speed and free current | After the first power-on and the current-sense calibration (G1, CALIBRATION.md (b)). Motor clamped, nothing on the shaft, AS5600 magnet on the shaft. Send `{"cmd":"jog","motor":"wiper","dir":1,"ms":1500}` and paste it again every second for about 10 s (each one extends the jog; it stops 1.5 s after the last). Read `rpm`, `amps` and `vbat` in telemetry while it runs steady. Check rpm by eye: tape flag on the shaft, count turns in 10 s, rpm = turns x 6. (Not with the meter in series at start-up: it can pass 10 A and blow the meter fuse) | `WIPER.n0_rpm`, `WIPER.free_a` | Nothing; re-run physics |
+| A6 Free speed and free current | After the first power-on and the current-sense calibration (G1, CALIBRATION.md (b)). Motor clamped, nothing on the shaft, AS5600 magnet on the shaft. Send `{"cmd":"jog","motor":"wiper","dir":1,"ms":1500}` and paste it again every second for about 10 s (each one extends the jog; it stops 1.5 s after the last). Read `rpm`, `amps` and `vbat` in telemetry while it runs steady. Check rpm by eye: tape flag on the shaft, count turns in 10 s, rpm = turns x 6. (Do not use the meter in series for this long run. CALIBRATION.md (b) puts it in series only for single 1.5 s jogs at jog power, which the 10 A range takes; never at full power or in a stall) | `WIPER.n0_rpm`, `WIPER.free_a` | Nothing; re-run physics |
 | A7 Stall current and stall torque | Do NOT use the meter: stall is about 18 A, over the meter's 10 A range. After base calibration (firmware/base/CALIBRATION.md), use the `amps` telemetry. Torque: clamp a 300 mm bar on the shaft, hook the luggage scale at the end, scale pulling at 90 degrees to the bar, scale anchored to the bench. Jog (1.5 s at most, repeated) and read the peak; the firmware stall trip may cut it early: note if it does. A jog runs at reduced power (firmware/base/BENCH_TEST.md step 4 gives the duty); stall torque scales with the drive, so full stall torque is about the reading divided by that duty. Torque N m = kg x 9.81 x 0.30. `python3 base/physics/calib.py wiper --v <vbat> --rpm <A6> --i-free <A6> --stall-kg <kg> --arm-mm 300 --i-stall <amps>` prints the whole WIPER block | `WIPER.stall_a`, `WIPER.stall_nm` | Nothing; re-run physics and the ballistics table |
 | A8 Mounting boss and hub details | Caliper the boss round the output shaft (diameter `boss_d`, height `boss_h`), the hub (`hub_d`, `hub_h`), the threaded length (`thread_len`), where the motor can starts from the shaft (`can_x0`), and the bolt head and nut sizes the motor takes (`bolt_*`, M6 assumed: head 10, nut 10 AF x 5). The motor sits gearbox above the main axis (decision D20, `WIPER.orient_deg` 90): check the can clears the frame in that position | `WIPER.boss_d`, `boss_h`, `hub_d`, `hub_h`, `thread_len`, `can_x0`, `bolt_*` | `frame_motor_adapter`, `frame_motor_saddle` |
 

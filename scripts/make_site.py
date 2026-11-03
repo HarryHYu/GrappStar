@@ -211,7 +211,9 @@ def build(out, branch, checks_file):
 body {{ background: var(--paper); color: var(--ink); font: 16px/1.55 var(--body); }}
 .wrap {{ max-width: 1040px; margin: 0 auto; padding-block: 28px 64px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  display: grid; gap: 40px; }}
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 40px; }}
+.wrap > * {{ min-width: 0; }}
+td code, td {{ overflow-wrap: anywhere; }}
 header h1 {{ font: 600 clamp(2rem, 5vw, 3.1rem)/1.05 var(--display); letter-spacing: 0.01em; margin: 0; text-wrap: balance; }}
 header p {{ margin: 10px 0 0; max-width: 64ch; color: var(--muted); }}
 .status {{ font: 0.8rem var(--mono); color: var(--muted); margin-top: 14px; }}

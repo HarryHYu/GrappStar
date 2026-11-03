@@ -22,7 +22,7 @@ def collect(p=None, fast=False):
     import capstan
     import drivetrain
     from flight import simulate
-    from launch import launch
+    from launcher import launch
     from payout import reel_props, spin_up_in_stroke
     p = p or load_params()
     sp = p.spring

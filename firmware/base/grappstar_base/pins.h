@@ -21,7 +21,7 @@
 // DRV8833 #3 (selector drum N20), channel A only. VM from a buck at about 9 V (DRV8833 VM max 10.8 V)
 #define PIN_DRUM_IN1  17   // AIN1 (PWM)
 #define PIN_DRUM_IN2  18   // AIN2 (PWM)
-#define PIN_DRUM_SLP  21   // nSLEEP / SLP / EEP: high = driver on. 10 k pull-down so it stays off while the ESP32 boots
+#define PIN_DRUM_SLP  21   // NOT WIRED (decision D9: the Pololu 2130 pulls SLP high itself). Driven by the sketch, harmless
 #define PIN_DRUM_FLT  47   // nFAULT if the carrier has the pad (open drain, internal pull-up). Leave open if not
 
 // Printed contact switches: M3 screw head touching an M3 nut, one side to the pin, other side to GND.
@@ -34,6 +34,8 @@
 #define PIN_SW_F      40
 #define PIN_SW_G      41
 #define PIN_SW_H      42
+#define PIN_SW_I      10   // ADC1_CH9 pin used as a digital input
+#define PIN_SW_J      35   // free on the N8 (no PSRAM); only for SW_INDEX (degraded mode without the AS5600 magnet)
 
 // Optional HX711 load cell amplifier (found automatically at boot)
 #define PIN_HX_DT     16

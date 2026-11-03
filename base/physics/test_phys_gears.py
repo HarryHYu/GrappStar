@@ -3,7 +3,7 @@ import math
 import pytest
 
 from common import PLA, PPA_CF
-import gears
+import printed_gears as gears
 
 
 def test_y_table():

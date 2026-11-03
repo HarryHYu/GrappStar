@@ -48,6 +48,7 @@ class AppConfig:
     sim_landing: str = "hard_ground"
     sim_time_scale: float = 1.0
     terrain_model: Optional[str] = None   # path to an ONNX classifier (optional)
+    deck_height_m: float = 0.15           # base deck top above the ground on the rover (MEASURE)
     mission: MissionConfig = field(default_factory=MissionConfig)
 
 
@@ -114,11 +115,15 @@ class App:
             self.cam_model = self.sim.rover_model
             return
         try:
-            from .vision.target import CameraModel
-            self.cam_model = CameraModel.load(self.cfg.calib_path)
-        except Exception:
+            from .campose import camera_model
+            self.cam_model = camera_model(self.cfg.calib_path, tuple(self.cfg.rover_size),
+                                          deck_height_m=self.cfg.deck_height_m)
+            self.syslog.info(f"rover camera pose from {self.cam_model.pose_source}")
+        except Exception as e:
             self.cam_model = default_rover_model(*self.cfg.rover_size)
-            self.syslog.warn("rover camera not calibrated: using default guesses (python3 -m grappstar calibrate)")
+            self.syslog.warn(f"rover camera model: default guesses ({e})")
+        if getattr(self.cam_model, "uncalibrated", False):
+            self.syslog.warn("rover camera intrinsics not calibrated: python3 -m grappstar calibrate intrinsics")
 
     def _start_cameras(self) -> None:
         from .video.camera import Camera
@@ -212,7 +217,7 @@ class App:
         try:
             r = fn(**args)
             return r if isinstance(r, dict) else {"ok": True, "msg": str(r or "ok")}
-        except TypeError as e:
+        except (TypeError, ValueError) as e:
             return {"ok": False, "msg": f"bad arguments for {name}: {e}"}
         except BaseError as e:
             return {"ok": False, "msg": f"base refused: {e.err}"}
@@ -289,7 +294,7 @@ class App:
             self.mission.abort("operator ESTOP")
         try:
             self.base.estop(timeout=0.5)       # base first, never delayed by a slow dart link
-            r = {"ok": True, "msg": "ESTOP: wiper off, drum to NEUTRAL"}
+            r = {"ok": True, "msg": "ESTOP: wiper off, drum to NEUTRAL if safe"}
         except Exception as e:
             r = {"ok": False, "msg": f"ESTOP not acknowledged: {e}"}
         threading.Thread(target=self.dart.safe_stop, kwargs={"fast": True}, daemon=True).start()
@@ -317,8 +322,15 @@ class App:
     def act_jog(self, motor: str, dir: int, ms: int = 300) -> dict:
         if self._busy():
             return {"ok": False, "msg": "mission running"}
-        self.base.jog(motor, int(dir), min(int(ms), 500))
+        self.base.jog(motor, int(dir), min(int(ms), 1500))
         return {"ok": True, "msg": "jog"}
+
+    def act_decock(self) -> dict:
+        """Unwind a cocked or half-cocked spring slowly (base cal decock). The aim becomes unknown."""
+        if self._busy():
+            return {"ok": False, "msg": "mission running"}
+        self.base.cal("decock")
+        return {"ok": True, "msg": "decocking: wait for the RESET event (carriage home)"}
 
     def act_dart_key(self, c: str, ms: int = 350) -> dict:
         if self._busy():
@@ -336,6 +348,8 @@ class App:
             v = float(val)
             if key.endswith("_n") and key != "drag_n" and not (1 <= v <= 100):
                 return {"ok": False, "msg": "limit must be 1 to 100 N"}
+            if key == "drag_n" and not (self.bal.drag[0] <= v <= self.bal.drag[-1]):
+                return {"ok": False, "msg": f"drag must be {self.bal.drag[0]} to {self.bal.drag[-1]} N (ballistics table)"}
             setattr(self.cfg.mission, key, v)
             if self.target:
                 self._update_solution()
@@ -363,6 +377,11 @@ class App:
     def _set_target(self, u: float, v: float, size, source: str) -> dict:
         from .vision.target import target_info
         info = target_info(self.cam_model, u, v, image_size=size)
+        off = float(getattr(self.cam_model, "range_offset_m", 0.0) or 0.0)
+        if info.get("range_m") is not None and off:
+            # ballistics ranges are from the launcher pivot; the camera sits off it along the launch azimuth
+            info["range_cam_m"] = info["range_m"]
+            info["range_m"] = round(info["range_m"] + off, 2)
         info.update(u=u / size[0], v=v / size[1], cam="rover", source=source, t=time.time())
         self.target = info
         self._update_solution()
@@ -398,6 +417,9 @@ class App:
 
     def act_target_range(self, range_m: float, bearing_deg: float = 0.0) -> dict:
         """Type a range by hand (for example measured with a tape)."""
+        import math
+        if not (math.isfinite(float(range_m)) and float(range_m) > 0) or not math.isfinite(float(bearing_deg)):
+            return {"ok": False, "msg": "range must be a positive number of metres"}
         self.target = {"ok": True, "range_m": float(range_m), "bearing_deg": float(bearing_deg), "source": "manual",
                        "msg": f"manual target {float(range_m):.1f} m", "t": time.time()}
         self._update_solution()
@@ -421,14 +443,14 @@ class App:
         from .analysis import run_post_flight
         cam = self.cams.get("dart")
         frames = cam.buffer() if cam else []
+        from .comms.dart import remap_flightlog
         try:
             fl = self.dart.flightlog()
-            if not fl.get("samples"):
-                fl = None
+            fl = remap_flightlog(fl, self.cfg.mission.imu_axes) if fl.get("samples") else None
         except DartError:
             fl = None
         d = self.run_dir or self._new_run()
-        res = run_post_flight(frames, fl, d, terrain_model=self.terrain_model)
+        res = run_post_flight(frames, fl, d, terrain_model=self.terrain_model, clock_offset_s=self.dart.clock_offset())
         self._on_results(res)
         tr = res.get("terrain") or {}
         return {"ok": True, "msg": f"{tr.get('cls')} {tr.get('score')} {tr.get('verdict')}"}

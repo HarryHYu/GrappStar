@@ -60,8 +60,8 @@ def test_replay_without_sidecar_synthesises_time(tmp_path):
     src = FileSource(path, t0=0)
     ts = [f.t for f in src.read_all()]
     assert ts == pytest.approx([0, 0.04, 0.08, 0.12, 0.16])
-    src2 = FileSource(path)                 # default: starts at the file mtime
-    assert abs(src2.read().t - os.path.getmtime(path)) < 1e-6
+    src2 = FileSource(path)                 # default: the file mtime is the END of the recording
+    assert abs(src2.read().t - (os.path.getmtime(path) - len(src2) / src2.fps)) < 1e-6
 
 
 def test_recorder_resizes_and_is_thread_safe(tmp_path):

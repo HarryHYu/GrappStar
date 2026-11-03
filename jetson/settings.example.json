@@ -1,0 +1,14 @@
+{
+  "base": "/dev/grappstar-base",
+  "dart": "192.168.4.1",
+  "rover_cam": "/dev/grappstar-rovercam",
+  "dart_cam": "/dev/grappstar-dartcam",
+  "fourcc": "YUYV",
+  "rover_fourcc": "MJPG",
+  "rover_size": "1280x720",
+  "dart_size": "720x480",
+  "tow_limit": 40.0,
+  "drag": 0.75,
+  "imu_axes": "x,y,z",
+  "deck_height": 0.15
+}

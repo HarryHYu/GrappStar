@@ -15,8 +15,11 @@ How it works
    sustained motion, landed = after the last motion, impact = the end of the large flight motion (the last
    pair above half the peak energy of the final second; after it only a fast decaying shake follows).
 3. IMU (C2 flightlog: t_ms dart millis, quaternion world from body, specific force in body frame m/s^2).
-   Launch = first sample with |a| over 4 g, impact = first sample over 6 g at least 0.3 s later, landed = first
-   time after impact the reading stays at its final resting vector (1 g) for 0.3 s.
+   Launch = the run over 4 g that matches the flightlog's t_launch_ms (else the first run of 20 ms), launch time
+   = the start of the window (firmware convention). Impact = the last run over 3.5 g once the push has ended (under
+   2.5 g) and 150 ms after launch (the one followed by stillness), landed = first time after impact the reading
+   stays at its final resting vector (1 g) for 0.3 s. A saturated push (about 75 m/s^2 or more on an axis) gives
+   only a lower bound on v0, which is then solved from the flight time.
    Clock alignment: video_t = t_ms / 1000 + offset. The offset is either given (clock_offset_s) or estimated by matching the IMU launch spike to the
    video launch onset (and the IMU impact to the video impact when both exist; the median is used). With a
    flightlog, phase times come from the IMU (precise) shifted by the offset.
@@ -43,12 +46,15 @@ horizon is approximate.
 """
 from __future__ import annotations
 
+import dataclasses
 import math
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import cv2
 import numpy as np
+
+from ..video.frame import Frame, ensure_bgr
 
 G = 9.81
 BAD_BELOW = 0.4
@@ -59,6 +65,8 @@ RAIL_H = 0.5
 STROKE_S = 0.06
 DRAG_K = 0.01
 DRAG_C = 1.0
+IMPACT_G = 3.5           # g: firmware landing impact threshold (was 6 g)
+SAT_NEAR = 75.0          # m/s^2: the BNO085 accelerometer saturates near 78 m/s^2 (firmware/dart/API.md)
 PHASES = ("ON_RAIL", "LAUNCH", "FLIGHT", "IMPACT", "LANDED")
 
 
@@ -347,56 +355,132 @@ def _parse_flightlog(fl) -> Optional[np.ndarray]:
     return a
 
 
+def _runs(mask: np.ndarray, lo: int = 0) -> List[Tuple[int, int]]:
+    """(first, last) index pairs of consecutive True runs in mask, starting at index lo."""
+    out, i, n = [], max(0, lo), len(mask)
+    while i < n:
+        if mask[i]:
+            j = i
+            while j + 1 < n and mask[j + 1]:
+                j += 1
+            out.append((i, j))
+            i = j + 1
+        else:
+            i += 1
+    return out
+
+
 def imu_events(fl: dict) -> dict:
-    """IMU phase times in dart seconds: launch, launch_end, impact, landed; plus rail attitude and v0."""
+    """IMU phase times in dart seconds: launch, launch_end, impact, landed; plus rail attitude and v0.
+
+    Follows the firmware detector (firmware/dart/API.md):
+    - launch: the run of samples over 4 g closest to the flightlog's own t_launch_ms (within 60 ms) when it has
+      one, else the first run of at least 20 ms (2 consecutive samples at 50 Hz), so a single glitch sample (latch
+      click, knock while loading) is ignored. Launch time = the START of the window.
+    - impact: searched only after the push has ended (|a| under 2.5 g) and at least 150 ms after launch; an impact
+      is a run of samples over 3.5 g (firmware: the BNO085 clips at 8 g and low-pass filters, so a short impact
+      can read under 6 g), and the landing impact is the LAST one (the one followed by stillness).
+    - v0: integrated push. The accelerometer saturates near 78 m/s^2; when the push touches about 75 m/s^2 on any
+      axis the integral is only a lower bound (v0_min, saturated=True) and v0 stays None so analyze_flight solves
+      it from the flight time and the rail pitch."""
     a = _parse_flightlog(fl)
-    out = {"launch": None, "launch_end": None, "impact": None, "landed": None, "v0": None,
-           "rail_rpy": None}
+    out = {"launch": None, "launch_end": None, "impact": None, "landed": None, "v0": None, "v0_min": None,
+           "saturated": False, "rail_rpy": None}
+    fl_launch = fl.get("t_launch_ms") if isinstance(fl, dict) else None
+    fl_land = fl.get("t_land_ms") if isinstance(fl, dict) else None
     if a is None:
-        if fl and fl.get("t_launch_ms") is not None:
-            out["launch"] = fl["t_launch_ms"] / 1000.0 - 0.02
-        if fl and fl.get("t_land_ms") is not None:
-            out["impact"] = fl["t_land_ms"] / 1000.0
+        if fl_launch is not None:
+            out["launch"] = fl_launch / 1000.0
+        if fl_land is not None:
+            out["impact"] = fl_land / 1000.0
         return out
     t = a[:, 0] / 1000.0
     acc = np.linalg.norm(a[:, 5:8], axis=1)
-    hi4 = np.nonzero(acc > 4 * G)[0]
-    if len(hi4):
-        i0 = int(hi4[0])
-        # the spike started between the previous sample and this one
-        out["launch"] = float(t[i0] - 0.5 * (t[i0] - t[i0 - 1])) if i0 > 0 else float(t[i0])
-        j = i0
-        while j + 1 < len(acc) and acc[j + 1] > 2 * G:
-            j += 1
-        out["launch_end"] = float(t[j] + 0.5 * (t[min(j + 1, len(t) - 1)] - t[j]))
-        # muzzle speed: integrate the axial specific force minus the gravity component along the rail
-        if i0 > 0:
-            q = a[i0 - 1, 1:5]
-            _, pitch, _ = quat_to_rpy(*q)
-            dts = np.diff(t)
-            dt = float(np.median(dts)) if len(dts) else 0.02
-            v0 = float(np.sum(a[i0:j + 1, 5] - G * math.sin(math.radians(pitch))) * dt)
-            if 3.0 < v0 < 30.0:
-                out["v0"] = v0
-            out["rail_rpy"] = quat_to_rpy(*q)
-        hi6 = np.nonzero((acc > 6 * G) & (t > t[i0] + 0.3))[0]
-        if len(hi6):
-            k = int(hi6[0])
-            out["impact"] = float(t[k] - 0.5 * (t[k] - t[k - 1])) if k > 0 else float(t[k])
-            # still: the accelerometer vector stays at its final resting value (within 0.6 m/s^2) and |a| within
-            # 0.05 g of 1 g, for 0.3 s (the vector test also catches sideways shake that hardly changes |a|)
-            rest = np.median(a[-10:, 5:8], axis=0)
-            still = (np.linalg.norm(a[:, 5:8] - rest, axis=1) < 0.6) & (np.abs(acc - G) < 0.05 * G)
-            n_need = max(3, int(round(0.3 / max(1e-3, float(np.median(np.diff(t)))))))
-            for m in range(k + 1, len(acc) - n_need + 1):
-                if still[m:m + n_need].all():
-                    out["landed"] = float(t[m])
-                    break
+    dts = np.diff(t)
+    dt = float(np.median(dts)) if len(dts) else 0.02
+    dt = max(dt, 1e-3)
+    runs4 = _runs(acc > 4 * G)
+    run = None
+    from_fl = False
+    if fl_launch is not None and runs4:
+        tl = fl_launch / 1000.0
+        # distance from t_launch_ms to the run (0 when it lies inside the run's window)
+        def dist(r):
+            t0 = t[r[0]] - dt
+            t1 = t[r[1]]
+            return 0.0 if t0 <= tl <= t1 else min(abs(tl - t0), abs(tl - t1))
+        best = min(runs4, key=dist)
+        if dist(best) <= 0.06:
+            run, from_fl = best, True
+    if run is None:
+        need = max(2, int(round(0.02 / dt)) + 1)       # samples spanning 20 ms (2 at 50 Hz)
+        long_runs = [r for r in runs4 if r[1] - r[0] + 1 >= need]
+        if long_runs:
+            run = long_runs[0]
+    if run is None:
+        if fl_launch is not None:
+            out["launch"] = fl_launch / 1000.0
+        if fl_land is not None:
+            out["impact"] = fl_land / 1000.0
+        return out
+    i0, i_end = run
+    if from_fl:
+        out["launch"] = fl_launch / 1000.0
     else:
-        if fl.get("t_launch_ms") is not None:
-            out["launch"] = fl["t_launch_ms"] / 1000.0 - 0.02
-        if fl.get("t_land_ms") is not None:
-            out["impact"] = fl["t_land_ms"] / 1000.0
+        # the push started between the previous sample and this one
+        out["launch"] = float(t[i0] - 0.5 * (t[i0] - t[i0 - 1])) if i0 > 0 else float(t[i0])
+    t_launch = out["launch"]
+    j = i_end
+    while j + 1 < len(acc) and acc[j + 1] > 2 * G:
+        j += 1
+    out["launch_end"] = float(t[j] + 0.5 * (t[min(j + 1, len(t) - 1)] - t[j]))
+    # muzzle speed: integrate the axial specific force minus the gravity component along the rail
+    if i0 > 0:
+        q = a[i0 - 1, 1:5]
+        _, pitch, _ = quat_to_rpy(*q)
+        push = a[i0:j + 1, 5:8]
+        v0 = float(np.sum(push[:, 0] - G * math.sin(math.radians(pitch))) * dt)
+        if push.size and float(np.abs(push).max()) >= SAT_NEAR:
+            out["saturated"] = True
+            if v0 > 0:
+                out["v0_min"] = v0
+        elif 3.0 < v0 < 30.0:
+            out["v0"] = v0
+        out["rail_rpy"] = quat_to_rpy(*q)
+    # impact search: after the push has ended (under 2.5 g) and at least 150 ms after launch
+    k0 = i_end + 1
+    while k0 < len(acc) and acc[k0] >= 2.5 * G:
+        k0 += 1
+    while k0 < len(acc) and t[k0] < t_launch + 0.15:
+        k0 += 1
+    runs_imp = _runs(acc > IMPACT_G * G, k0)
+    if not runs_imp:
+        return out
+    # the landing impact is the last one: the first impact followed by 1 s of stillness (0.85..1.15 g) before the
+    # next impact; the log may end sooner, then 0.3 s still up to the end counts. No stillness: the last impact.
+    band = (acc > 0.85 * G) & (acc < 1.15 * G)
+    n_fw = max(3, int(round(1.0 / dt)))
+    n_min = max(3, int(round(0.3 / dt)))
+    chosen = runs_imp[-1]
+    for ri, (s0, s1) in enumerate(runs_imp):
+        last = ri + 1 == len(runs_imp)
+        nxt = len(acc) if last else runs_imp[ri + 1][0]
+        quiet = [r for r in _runs(band[:nxt], s1 + 1)
+                 if r[1] - r[0] + 1 >= n_fw or (last and r[1] == len(acc) - 1 and r[1] - r[0] + 1 >= n_min)]
+        if quiet:
+            chosen = (s0, s1)
+            break
+    k, k_end = chosen
+    out["impact"] = float(t[k] - 0.5 * (t[k] - t[k - 1])) if k > 0 else float(t[k])
+    # still: the accelerometer vector stays at its final resting value (within 0.6 m/s^2) and |a| within
+    # 0.05 g of 1 g, for 0.3 s (the vector test also catches sideways shake that hardly changes |a|)
+    rest = np.median(a[-10:, 5:8], axis=0)
+    still = (np.linalg.norm(a[:, 5:8] - rest, axis=1) < 0.6) & (np.abs(acc - G) < 0.05 * G)
+    n_need = max(3, int(round(0.3 / dt)))
+    for m in range(k_end + 1, len(acc) - n_need + 1):
+        if still[m:m + n_need].all():
+            out["landed"] = float(t[m])
+            break
     return out
 
 
@@ -446,11 +530,34 @@ def _video_phases(times: np.ndarray, energy: np.ndarray, fps: float) -> dict:
 
 # ------------------------------------------------------------------ main
 
+def _bgr_frame(f):
+    """The frame with a HxWx3 uint8 image (grey, HxWx1 and BGRA are converted), None when unusable."""
+    img = f.img
+    try:
+        if not isinstance(img, np.ndarray) or img.size == 0 or img.ndim not in (2, 3):
+            return None
+        if img.dtype != np.uint8:
+            img = np.clip(img, 0, 255).astype(np.uint8)
+        b = ensure_bgr(img)
+        if b.ndim != 3 or b.shape[2] != 3:
+            return None
+    except Exception:
+        return None
+    if b is f.img:
+        return f
+    try:
+        return dataclasses.replace(f, img=b)
+    except Exception:
+        return Frame(img=b, t=f.t, idx=getattr(f, "idx", 0), quality=getattr(f, "quality", None),
+                     bad=getattr(f, "bad", False))
+
+
 def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_offset_s: Optional[float] = None,
                    hfov_deg: float = 100.0, v0_default: float = DEFAULT_V0, h0: float = RAIL_H) -> FlightResult:
     """Analyse a dart flight video (list of Frame) with an optional C2 flightlog. Never raises on bad input."""
     res = FlightResult()
-    frames = [f for f in (frames or []) if f is not None and getattr(f, "img", None) is not None]
+    frames = [_bgr_frame(f) for f in (frames or []) if f is not None and getattr(f, "img", None) is not None]
+    frames = [f for f in frames if f is not None]
     frames.sort(key=lambda f: f.t)
     fps = 30.0
     if len(frames) >= 2:
@@ -524,6 +631,8 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
             t_landed = vid.get("landed")
         if imu.get("v0"):
             res.v0 = imu["v0"]
+        elif imu.get("saturated"):
+            res.notes.append("IMU push saturated: v0 from the flight time")
         if imu.get("rail_rpy"):
             res.launch_pitch_deg = imu["rail_rpy"][1]
             res.launch_yaw_deg = imu["rail_rpy"][2]
@@ -578,7 +687,11 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
             return float(ballistic(v, p, h0 + sl_ * math.sin(math.radians(p)))[0][-1])
         if pitch is not None and v0 is None:
             v0 = _bisect(lambda v: tf(v, pitch), 2.0, 30.0, T)
-            if v0 is None:
+            v0_min = imu.get("v0_min") if imu else None
+            if v0 is None and v0_min:
+                v0 = v0_min
+                res.notes.append("speed from the saturated IMU push (lower bound) %.1f m/s" % v0)
+            elif v0 is None:
                 v0 = v0_default
                 res.notes.append("speed default %.1f m/s" % v0)
             else:
@@ -615,7 +728,8 @@ def sharpness(img: np.ndarray) -> float:
 
 def landing_frames(frames: Sequence, result: Optional[FlightResult], n: int = 15) -> list:
     """Up to n good frames after landing, sharpest first. Without a landed time, the last 2 s of video."""
-    frames = [f for f in (frames or []) if f is not None and getattr(f, "img", None) is not None]
+    frames = [_bgr_frame(f) for f in (frames or []) if f is not None and getattr(f, "img", None) is not None]
+    frames = [f for f in frames if f is not None]
     if not frames or n <= 0:
         return []
     t_land = None

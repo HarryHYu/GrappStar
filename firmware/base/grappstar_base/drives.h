@@ -15,10 +15,12 @@ struct WiperCfg {
   float ampsPerVolt = 12.5f;      // BTS7960 IS: 8500 x 1680 / (1680 x 680) with no onboard IS resistor. CALIBRATION.md
   float offsetA = 0;              // learned with "cal current" (motor stopped)
   int minScaleDuty = 60;          // below this duty the IS reading is too short a pulse to scale reliably
-  float tripA = 18; int tripSamples = 2;      // over-current: this many ticks in a row over tripA
-  float stallDutyFrac = 0.30f;    // stall check only while driving above this duty
-  float stallDps = 15;            // shaft slower than this (deg/s) ...
-  uint32_t stallMs = 400;         // ... for this long (after the ramp) = stall
+  float tripA = 18; int tripSamples = 6;      // over-current: 6 ticks (30 ms) in a row over tripA (D8)
+  uint32_t ignoreMs = 50;         // inrush: no trip in the first 50 ms after a start (D8)
+  float hardA = 17;               // except this: never ignored
+  float stallDutyFrac = 0.15f;    // stall check only while driving above this duty
+  float stallDps = 12;            // shaft slower than 2 rpm (lens B I5) ...
+  uint32_t stallMs = 200;         // ... for 200 ms (after the ramp) = stall
 };
 
 struct WiperDrive {
@@ -50,7 +52,8 @@ struct WiperDrive {
     amps += (a - amps) * 0.3f;
     if (outDir) {
       if (amps > peakA) peakA = amps;
-      if (ampsRaw > c.tripA) { if (++tripN >= c.tripSamples) overcurrent = true; } else tripN = 0;
+      bool over = (ampsRaw > c.tripA && now - startT >= c.ignoreMs) || ampsRaw > c.hardA;
+      if (over) { if (++tripN >= c.tripSamples) overcurrent = true; } else tripN = 0;
     } else tripN = 0;
 
     if (outDir && (wantDir != outDir || wantDuty == 0)) {   // stop first; a new direction waits for the gap

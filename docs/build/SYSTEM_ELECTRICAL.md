@@ -1,0 +1,132 @@
+# GrappStar system electrical (rover, base and dart)
+
+Diagram: `system_electrical.svg` / `system_electrical.png` (source `system_electrical.dot`). The ESP32 pin
+table is owned by `firmware/base/WIRING.md` and `firmware/base/grappstar_base/pins.h`; this page shows how the
+whole rover is powered and connected. If this page and WIRING.md ever disagree on a pin, WIRING.md wins.
+
+## 1. What is on the rover
+
+| Block | Part | Powered from |
+|---|---|---|
+| Battery | Zeee 3S LiPo 5200 mAh, XT60 (9.9 V empty in use, 11.1 V nominal, 12.6 V full) | |
+| Wiper branch | XT60 lead #2 with the 20 A fuse, BTS7960 module, 12 V wiper motor (2 wires, park switch taped off) | LiPo |
+| Drum branch | MP1584 #2 buck set to 9.0 V, DRV8833 #3 (the one freed from the dart), selector drum N20 worm | BTS7960 B+ / B- terminals, after the 20 A fuse |
+| Base brain | ESP32-S3 DevKitC-1-N8 | Jetson USB (the port marked USB, not UART) |
+| Sensors on the ESP32 | Adafruit AS5600 (STEMMA QT, I2C 0x36), printed contacts (M3 screw head on an M3 nut), optional HX711 + 100 kg load cell, battery divider | ESP32 3V3 |
+| Jetson | Orin Nano Super dev kit | XT60 lead #1 (10 A fuse) to a 5.5 x 2.5 mm barrel pigtail |
+| Video in | Lockmaner RC832 5.8 GHz receiver, AV (yellow RCA) out to the DIGITNOW USB capture, which plugs into the Jetson | XT60 lead #1 branch (12 V class input) |
+| Rover camera | Razer Kiyo X | Jetson USB |
+| Dart | KEDGE: XIAO ESP32S3, 2 x DRV8833, INA219, BNO085, Caddx Ant, Zeus VTX | its own 2S 18350 pack. No wire to the rover: the tether is Dyneema and carries no power |
+
+## 2. Power tree
+
+```
+3S LiPo (XT60)
+  -> XT60 Y harness (one male in, two female out; made from your spare XT60s, 14 AWG)
+       -> lead #2, 20 A fuse, 14 AWG -> BTS7960 B+ / B-  -> wiper motor (BTS7960 M+ / M-, 14 AWG)
+                                   \-> 2 A inline fuse, 22 AWG from the B+ / B- screws -> MP1584 #2 IN (9.0 V out)
+                                          -> DRV8833 #3 VM / GND -> drum N20 (AOUT1 / AOUT2)
+       -> lead #1, 10 A fuse, 18 AWG -> barrel pigtail -> Jetson DC jack
+                                   \-> 1 A inline fuse, 22 AWG -> RC832 power in
+Jetson USB -> ESP32-S3 DevKitC (5 V from USB; the board makes its own 3V3)
+                ESP32 3V3 -> BTS7960 VCC, DRV8833 SLP (via GPIO), AS5600, HX711
+Jetson USB -> DIGITNOW capture <- RC832 AV out
+Jetson USB -> Kiyo X
+```
+
+Why it is laid out this way:
+- The DRV8833 motor supply (VM) is 10.8 V maximum. The LiPo is 12.6 V full, so the drum N20 runs from MP1584 #2
+  set to 9.0 V. MP1584 #2 is the spare from the dart build (it was the 8.0 V bench supply there): reset it to 9.0 V
+  after the dart bench test.
+- The buck taps the BTS7960 screw terminals, so both motor branches sit behind the 20 A fuse and the Jetson branch
+  stays separate. A wiper stall that blows the 20 A fuse does not reboot the Jetson.
+- The thin taps (MP1584 input, RC832) each get their own small inline fuse (2 A and 1 A) right at the tap. A 22 AWG
+  wire behind only the 20 A or 10 A fuse would burn before that fuse blew if it shorted.
+- The ESP32 takes power only from USB. It never connects to the LiPo directly. Its ground meets battery minus
+  through the BTS7960 and DRV8833 GND wires (needed so the logic signals have a reference). There is a second
+  ground path through USB, the Jetson and its barrel lead, so if the BTS7960 B- screw came loose the wiper current
+  would try to return through the thin GND jumper and the USB cable. Keep the B- screw tight (tug test) and never
+  run the wiper with B- disconnected.
+- The wiper and the Jetson share the pack. A wiper stall (about 18 A) makes the pack voltage sag; with a low pack
+  that sag can brown out the Jetson. Charge the pack when it reads 3.6 V per cell at rest (10.8 V).
+
+## 3. Wires and connectors
+
+| Run | From | To | Gauge | Connector | Note |
+|---|---|---|---|---|---|
+| P1 | LiPo | Y harness | 14 AWG | XT60 | Make the Y from spare XT60s; solder, heat shrink each joint |
+| P2 | Y harness | BTS7960 B+ / B- | 14 AWG | XT60 lead #2 (20 A fuse), screw terminals at the BTS7960 | Red to B+, black to B-. 10 A blew on wiper inrush before: keep 20 A |
+| P3 | BTS7960 M+ / M- | wiper motor | 14 AWG | screw terminals; spade or solder at the motor | Red wire (+) and black (-) of the rebuilt 2-wire motor |
+| P4 | BTS7960 B+ / B- | MP1584 #2 IN+ / IN- | 22 AWG | under the same screws, 2 A inline fuse in the + wire right at the screw | Set 9.0 V with nothing on the output first |
+| P5 | MP1584 #2 OUT+ / OUT- | DRV8833 #3 VM / GND | 22 AWG | solder | Check 9.0 V on the meter before you connect |
+| P6 | DRV8833 #3 AOUT1 / AOUT2 | drum N20 | 26 AWG | solder or JST | Swap the pair if the drum turns the wrong way (see calibration) |
+| P7 | Y harness | Jetson DC jack | 18 AWG | XT60 lead #1 (10 A fuse), 5.5 x 2.5 mm barrel plug (same as the plug on the Jetson supply), centre positive | Check polarity with the meter before the first plug-in |
+| P8 | lead #1 (after the fuse) | RC832 power in | 22 AWG | the RC832 power lead, 1 A inline fuse in the + wire at the tap | Read the RC832 label for its input range first (see MEASURE_LIST) |
+| S1 | Jetson USB-A | ESP32-S3 USB port (native, marked USB) | | USB-C or micro-USB cable to suit the board | Data cable, not charge-only |
+| S2 | Jetson USB-A | DIGITNOW capture | | its own USB plug | |
+| S3 | RC832 AV out | DIGITNOW video in | | yellow RCA | Video only; audio not used |
+| S4 | Jetson USB-A | Kiyo X | | its own USB plug | |
+| L1 | ESP32 pins | BTS7960 RPWM, LPWM, R_EN, L_EN, IS, VCC, GND | 26 to 28 AWG | Dupont jumpers | Pins in firmware/base/WIRING.md |
+| L2 | ESP32 pins | DRV8833 #3 AIN1, AIN2, SLP, GND (nFAULT if present) | 26 to 28 AWG | Dupont | |
+| L3 | ESP32 SDA / SCL / 3V3 / GND | AS5600 | | STEMMA QT to Dupont cable | Magnet 1 to 3 mm from the chip |
+| L4 | ESP32 pins | each printed contact | 26 AWG twisted pair | Dupont at the ESP32, M3 ring or solder at the contact | One wire to the pin, the other to GND |
+| L5 | ESP32 pins | HX711 DT, SCK, VCC, GND (optional) | 26 AWG | Dupont | Load cell 4 wires into HX711 E+, E-, A+, A- |
+| L6 | BTS7960 B+ | ESP32 battery pin through the 100 k / 22 k divider | 26 AWG | solder the 100 k resistor right at the B+ screw (in heat shrink), so the long wire only carries the divided voltage; the 22 k goes from the pin to GND at the ESP32 | 12.6 V reads 2.27 V at the pin |
+
+Gauges assume runs under 0.5 m. 14 AWG carries the 18 A wiper stall; 18 AWG is fine for the Jetson (about 2.5 A at
+10 V); 22 AWG is fine for the drum branch (N20 stall about 0.2 A) and the RC832 (about 0.2 A).
+
+## 4. First power-on sequence (do it in this order, once, after any rewiring)
+
+Before you start: the pull-down and divider resistors are fitted as in firmware/base/WIRING.md (10 k from R_EN to
+GND, 10 k from L_EN to GND, 10 k from DRV8833 SLP to GND, the IS divider, the battery divider). Both motors are
+disconnected from their drivers for this first power-on, and the DRV8833 VM wire (P5) is soldered to the DRV8833
+but NOT yet to MP1584 #2 OUT (tape its free end). Multimeter ready.
+
+1. Battery unplugged. Jetson barrel plug and ESP32 USB cable unplugged. Pull both fuses (20 A and 10 A) and both
+   small inline fuses.
+2. Battery unplugged. Meter on beep, check for shorts: the two pins of the Y harness male XT60; red to black at the
+   BTS7960 B+ / B-; at MP1584 #2 IN and OUT; at DRV8833 VM / GND; at the barrel plug; at the RC832 lead. Nothing may
+   beep steadily. A short chirp that stops is a capacitor charging, not a short. A steady beep is a short: find it
+   before going on.
+3. Battery unplugged. Meter on resistance (not beep): DRV8833 SLP pad to VM must read open (OL or over 1 M). Some
+   DRV8833 boards pull SLP up to the motor supply through a resistor; that would put 9 V into the ESP32. If it reads
+   any value, the board has a pull-up from SLP (or EEP) to VM: look for a small solder jumper or a resistor
+   between the SLP / EEP pad and VM on the board (often marked J2). Cut the trace between the jumper pads with a
+   craft knife, or lift that resistor with the iron, then measure again until it reads open. If you cannot make it
+   read open, do not connect SLP to the ESP32 and leave the drum disconnected: the board cannot be used as is.
+   Write it in the test log; the base then needs a different driver board.
+4. Battery unplugged. Meter on DC volts on the LiPo balance lead: each cell 3.7 to 4.2 V.
+5. Battery unplugged. Fit the 20 A fuse and the 2 A inline fuse. Plug the battery in. Meter on DC volts:
+   - BTS7960 B+ (red probe) to B- (black probe): battery voltage, positive. Negative means reversed: unplug at once.
+   - MP1584 #2 IN+ to IN-: battery voltage, positive.
+   - MP1584 #2 OUT: turn the brass screw until it reads 9.0 V.
+   - DRV8833 SLP to GND: 0 V.
+6. Unplug the battery. Connect the DRV8833 VM wire (P5) to MP1584 #2 OUT.
+7. Battery unplugged. Fit the 10 A fuse and the 1 A inline fuse. Plug the battery in. Meter on the barrel plug
+   (before it goes into the Jetson): centre pin positive, battery voltage. Then plug the barrel into the Jetson: it
+   boots (green LED). The RC832 lights.
+8. Plug the ESP32 USB cable into the Jetson (USB is 5 V and safe to plug live). The ESP32 power LED lights.
+9. On the Jetson, in `~/GrappStar/jetson`: `python3 -m grappstar base ping` (expect `"ok": true`), then
+   `python3 -m grappstar base monitor`. Check `vbat` in telemetry matches the meter within 0.3 V.
+10. Unplug the battery. Connect the motors (wiper to BTS7960 M+ / M-, drum N20 to AOUT1 / AOUT2). Check the B-
+    screw is tight. Plug the battery in. Nothing moves until a command is sent.
+
+Emergency stop: send `estop`. If that does not stop it, pull lead #2's XT60 (or its 20 A fuse): that kills both
+motors and leaves the Jetson running. Pull the main battery plug only if that is not enough.
+
+Shut-down order (every time): `estop`, then `sudo shutdown now` on the Jetson and wait for its LED to go off, then
+unplug the battery.
+
+## 5. Rules
+
+- Battery unplugged before you touch, add or move any wire, or fit a fuse. This killed the first XIAO.
+- Battery unplugged before you plug the ESP32 into the Mac. Flash from the Mac with the ESP32 out of the rover
+  harness, or flash from the Jetson (firmware/base/README.md).
+- Charge the LiPo at 3.6 V per cell at rest (10.8 V). Never run it below 3.3 V per cell under load (9.9 V); the
+  firmware reports `vbat`.
+- Never connect the DRV8833 VM to the LiPo directly (10.8 V maximum; the LiPo is 12.6 V full).
+- Never put 3V3 on a DRV8833 pad called VIN, VCC or VM: on these carriers that is the motor supply. The SLP /
+  nSLEEP / EEP pad is driven by an ESP32 GPIO, and must read open to VM on the resistance range (step 3).
+- Dart: power loop plug out whenever a wire moves or USB is plugged in (the dart run sheet rule).
+- The VTX on the dart must have its antenna on before it is powered.

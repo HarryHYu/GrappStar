@@ -210,6 +210,9 @@ the rail.
 5. Aim at a middle pitch: `{"id":4,"cmd":"aim","deg":30}`. After every shift into LAUNCH the aim is unknown, so it
    first turns backward until `SW_RAIL_LOW` closes (home), then goes to 30. That can take up to about half a minute:
    one aim cycle is 10 wiper turns. Wait for the `AIMED` event with `"ok":true`.
+   At the end the wiper may turn FORWARD slowly for a moment: the backward aim run can drag the big gear back out of
+   its gap (`G` opens), and the gap run closes it again before `AIMED`. `BAD_STATE` "SW_GAP did not close in the forward
+   gap run" means check the `SW_GAP` contact.
 6. Read the phone. Say it shows 33.4. Send `{"id":5,"cmd":"cal","what":"aim","deg":33.4}`. This sets `aim_offset` so
    the reported pitch matches the phone.
 7. Check at 3 pitches: aim at a low, middle and high pitch inside the range (for example 15, 30, 42). At each, compare
@@ -239,11 +242,13 @@ firmware assumes (`aim_home_deg`, the aim-train angle where `SW_RAIL_LOW` closes
 
 **Do not tow before `free_a` (section d), `k_n_per_a` and `tension_offset_n` are calibrated.** Without a load cell
 the firmware stops a tow on its tension ESTIMATE, not on a measured force. With the defaults on an uncalibrated base
-the PC system test reached 61 N against a 40 N limit. The current trip (5 to 6.8 A, set from `max_n`) is only a backstop.
+the PC system test reached 61 N against a 40 N limit. The current trip (5 to 6.7 A, set from `max_n`) is only a backstop.
 
 ### `k_n_per_a` and `tension_offset_n` (used without a load cell)
 
-The estimate is: line N = `k_n_per_a` x (`amps` - `free_a`) + `tension_offset_n`. Defaults 17.0 and -3.0 (D42). Pulls against a luggage scale at three loads give both numbers (this matches MEASURE_LIST G9).
+The estimate is: line N = `k_n_per_a` x (`amps` - `free_a`) + `tension_offset_n`. Defaults 14.8 and -2.6 (D43). Since D43 these constants give the DART-side line tension (the tow limit is
+the tension at the dart); the luggage scale at the line end measures exactly that side, so fit them straight from the
+scale. Pulls against a luggage scale at three loads give both numbers (this matches MEASURE_LIST G9).
 Do not use jogs for this: a jog trips at 3 A, about 15 N.
 
 You need a luggage scale and a solid post. Do (b) and (d) first and do not change `free_a` afterwards. If a load cell
@@ -263,7 +268,7 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
    monitor log shows the last lines), then send `{"id":4,"cmd":"stop"}`. The worm and sprag #2 hold the line. Write
    down the scale reading N1 and the current I1.
 4. Send the same `reel` line again and stop at about 20 N (N2, I2), then again at about 30 N (N3, I3). Keep every load
-   under 40 N: the reel-in trips at 5 A (about 56 N with the default constants) and stops at `limit_n` anyway.
+   under 40 N: the reel-in trips at 5 A (about 49 N with the default constants) and stops at `limit_n` anyway.
 5. Fit the numbers (use the lowest and the highest load):
    - new `k_n_per_a` = (N3 - N1) / (I3 - I1)
    - new `tension_offset_n` = N1 - new `k_n_per_a` x (I1 - `free_a`)
@@ -271,9 +276,9 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
    Check the middle load: N2 should be close to new `k_n_per_a` x (I2 - `free_a`) + new `tension_offset_n`. If it is
    off by more than 3 N, repeat the pulls.
 
-   Example with `free_a` 1.5: N1 10 at I1 2.3, N3 30 at I3 3.5. k = 20 / 1.2 = 16.7. Offset = 10 - 16.7 x 0.8 = -3.4.
-6. Set them: `{"id":5,"cmd":"set","key":"k_n_per_a","val":16.7}` and
-   `{"id":6,"cmd":"set","key":"tension_offset_n","val":-3.4}` (your numbers; the offset range is -50 to 50). Both are
+   Example with `free_a` 1.5: N1 10 at I1 2.35, N3 30 at I3 3.7. k = 20 / 1.35 = 14.8. Offset = 10 - 14.8 x 0.85 = -2.6.
+6. Set them: `{"id":5,"cmd":"set","key":"k_n_per_a","val":14.8}` and
+   `{"id":6,"cmd":"set","key":"tension_offset_n","val":-2.6}` (your numbers; the offset range is -50 to 50). Both are
    saved in flash.
 7. To release the line: unhook the scale from the post by hand, slowly (30 N is about 3 kg: hold it firmly). The
    capstan never turns back (sprag #2).
@@ -284,8 +289,8 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
 A `FAULT` `OVERCURRENT` "wiper over 5.0 A" during a pull means the load went too high or the line jammed: `clear`
 and use lower loads. In the tow itself the trip is the current `max_n` needs plus 1 A, at least 5 A (D34; the
 old `tow_trip_a` setting is no longer used). These constants cannot be set while a motor runs or the reel holds
-(`BUSY`): `stop` first. On a very stiff, short line a full-speed tow can overshoot a low limit by about half; for
-low limits tow on a long line or at a lower duty.
+(`BUSY`): `stop` first. On a very stiff line the tow now starts slow; residual overshoot in the simulation was under
+10 percent of a 40 N limit at 3000 N/m.
 
 ### HX711 load cell (only if fitted)
 

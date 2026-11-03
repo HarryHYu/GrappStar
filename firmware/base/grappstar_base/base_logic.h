@@ -324,11 +324,14 @@ struct Base {
       drumKnown = true;
       if (drumTrust && s->drumKnown && s->drumDeg >= secLo(sec) - 1 && s->drumDeg <= secHi(sec) + 1) { drumDeg = s->drumDeg; degTrusted = true; }
       else {
-        if (drumTrust && s->drumKnown) bootDrumMismatch = true;   // the drum cannot move while off (worm): a code contact changed
+        if (drumTrust && s->drumKnown) {               // systest F26: the drum was turned by hand (lever) while off: the code
+          bootDrumMoved = true;                        // gives the sector, the angle is a guess; near the wrap window the
+          if (s->drumDeg >= c.edgeDeg[SEC_NEUTRAL] || sec >= SEC_PREP) { wrapsDoubt = true; }   // count is doubtful (unwrap)
+        }
         int k = detentClosed();
         drumDeg = k >= 0 ? c.targetDeg[k] : 0.5f * (fmaxf(secLo(sec), c.targetDeg[0]) + fminf(secHi(sec), c.targetDeg[2])); degTrusted = k >= 0 && !(s && (s->moving & MV_DRUM));   // cut mid-move: the park angle is only a guess
       }
-      wraps = wrapsAt(sec, drumDeg); wrapsKnown = sec != SEC_WRAP || degTrusted;
+      wraps = wrapsAt(sec, drumDeg); wrapsKnown = sec != SEC_WRAP || degTrusted; if (wrapsDoubt) wrapsKnown = false;
     } else { drumKnown = false; wrapsKnown = false; wraps = 0; }
     if (s && s->lineM >= 0) { lineM = s->lineM; lineKnown = true; } else { lineKnown = false; }
     // the record is written as a motion starts: a cut while the wiper turned (reel, take-up) leaves line_m stale
@@ -363,7 +366,7 @@ struct Base {
       if (phase == PH_COCKED && closed(SW_HOME)) { phaseHint = c.cockEndDeg; phase = PH_UNKNOWN; }   // SW_HOME lying, or a shot happened
     }
     JOut o(evBuf, sizeof evBuf); evBegin(o, "BOOT"); o.str("fw", GB_FW_VERSION); o.boolean("record", s != nullptr);
-    o.boolean("was_moving", s && s->moving); o.boolean("drum_known", drumKnown); o.boolean("wraps_known", wrapsKnown);
+    o.boolean("was_moving", s && s->moving); o.boolean("drum_moved", bootDrumMoved); o.boolean("drum_known", drumKnown); o.boolean("wraps_known", wrapsKnown);
     o.boolean("aim_known", aimKnown); o.str("phase", PHASE_NAME[phase]); o.str("angle", indexMode ? "INDEX" : enc.ok ? "AS5600" : "NONE"); evEnd(o);
     movingBits = 0; persist(0);
   }
@@ -566,14 +569,13 @@ struct Base {
       if (!near || !d.running()) { armPending = false; if (armPulses != c.wrapsFull) armBad = true; }
     }
     if (armBad) { armBad = false; char b[48]; snprintf(b, sizeof b, "SW_ARM counted %d of %d cup turns", armPulses, c.wrapsFull); raise(F_DRUM_SENSOR, b); return; }
-    if (bootDrumMismatch) { bootDrumMismatch = false; raise(F_DRUM_SENSOR, "drum code disagrees with the saved drum angle"); return; }
     // optional host watchdog: no line from the Jetson for host_timeout_s while a motor runs = stop (0 = off)
     if (c.hostTimeoutS > 0 && running && now - hostT > (uint32_t)(c.hostTimeoutS * 1000)) { cmdStop(false); evAborted("HOST", "host silent"); hostT = now; }
   }
   uint32_t hostT = 0;
   bool armPending = false; uint32_t secChangeT = 0; int armPulses = 0, armFrom = SEC_INVALID; bool armBad = false, armCounting = false;
   int quietSec = SEC_INVALID; uint32_t quietDiffT = 0, codeChatT = 0, collarLostT = 0, homeReopenT = 0; float vbatF = NAN; uint32_t resyncRef = 0; uint32_t encWrongT = 0, glitchRef = 0, glitchWin = 0, glitchT = 0;
-  uint32_t lastMultiOk = 0, dogBothT = 0; bool bootDrumMismatch = false; bool degTrusted = true; bool badSeen = false;
+  uint32_t lastMultiOk = 0, dogBothT = 0; bool bootDrumMoved = false; bool degTrusted = true; bool badSeen = false;
   void onOvercurrent(const char* why) { raise(F_OVERCURRENT, why); }   // always a fault (also in a tow: the limit acts first)
   void onStall() {
     // a tow that stalls close to its limit is at the limit (the motor ran out of torque at the minimum duty): hold
@@ -810,7 +812,7 @@ struct Base {
     if (phase == PH_UNKNOWN) return "PHASE_UNKNOWN";
     if (c.aimNeedsRest && phase != PH_REST) return "NOT_AT_REST";
     float lo = fmaxf(c.pitchMin, pitchRange(false)), hi = fminf(c.pitchMax, pitchRange(true));
-    if (!(deg >= lo - 1e-3 && deg <= hi + 1e-3)) return "OUT_OF_RANGE";
+    if (!(deg >= lo - c.aimTolDeg && deg <= hi + c.aimTolDeg)) return "OUT_OF_RANGE";   // within aim_tol of the ends: clamped below (systest F27)
     // the table's ends are turning points (no sign change to find): aim a quarter tolerance inside them
     float q = c.aimTolDeg * 0.25f; if (deg < lo + q) deg = lo + q; if (deg > hi - q) deg = hi - q;
     aimTarget = (float)deg; aimed = false; tokenLive = false; aimTries = 0; sub = 0;

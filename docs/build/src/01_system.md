@@ -21,7 +21,8 @@ Three parts:
     payout brake (0.5 N; over 1 N costs range).
   - Range: about 4 to 5 m with the two springs, about 8 to 9 m with a second pair.
   - Protection: current trips in the firmware and a printed torque limiter (about 5 N m) in the wiper coupler. Any
-    fault: wiper off, drum to NEUTRAL. A hand lever on the drum is the fallback.
+    fault: wiper off, drum to NEUTRAL (except when cocked or wrapped: then the drum holds). A hand lever on the
+    drum is the fallback.
   - Brain: an ESP32-S3 DevKitC on USB from the Jetson, with an AS5600 angle sensor on the main shaft and printed
     contact switches (an M3 screw head touching an M3 nut).
 - **Dart (KEDGE v30).** 42 mm x 152 mm, its own XIAO ESP32S3, 2S 18350 pack, WiFi access point. After landing a kick

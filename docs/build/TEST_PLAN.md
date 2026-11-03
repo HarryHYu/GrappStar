@@ -67,7 +67,7 @@ it in the test log. Wrong direction against CALIBRATION.md: swap that motor's tw
 3. Load cell (if fitted): press it, `tension_n` rises.
 
 Pass: every sensor responds and returns. If it fails: AS5600 not found: check SDA / SCL are not swapped and the
-STEMMA cable is pushed in; angle jumps: magnet too far (keep 1 to 3 mm) or off centre. Contact never changes:
+STEMMA cable is pushed in; angle jumps: magnet too far (keep 1 to 2 mm) or off centre. Contact never changes:
 check the GND wire and that the screw head really touches the nut.
 
 ## Stage 4. Base assembled, dry cycles, NO springs, no line
@@ -103,7 +103,8 @@ Fit both springs. Start at the lowest pitch, rail pointing at a clear area.
 
 1. `aim` to the lowest pitch. `arm` and `fire` once. Look at every part of the launch train after the shot.
 2. Five more shots. Check the stop bumpers, the carriage, the rack teeth and the big gear's last tooth after each.
-3. Watch `amps` while cocking: note the peak.
+3. Watch `amps` while cocking: note the peak (the physics expects about 5 A; decision D8 trips at 6.5 A while
+   cocking).
 
 Pass: the carriage stops on the bumpers, nothing cracks or loosens over 6 shots, cocking current stays under the
 stall value, the rail holds its pitch while cocking.
@@ -134,8 +135,8 @@ Big range loss with clean payout: the line catches somewhere; watch the slow-mot
 
 ## Stage 7. Reel cycle with the dummy
 
-1. After a stage 6 shot: `wrap` and get into REEL (order as in PROTOCOL.md), then `reel` with `until`
-   seated until `SW_SEATED` closes or the dummy is back near the base.
+1. After a stage 6 shot: wrap and get into REEL, reel in, then bring the dummy home, all in the order PROTOCOL.md
+   gives (spec D17: reel until about 1.5 m remain, unwrap, then the final approach in NEUTRAL until `SW_SEATED`).
 2. `unwrap`, then `mode` NEUTRAL and `mode` LAUNCH. Check the line runs on the launch path again (not round the capstan).
 3. Fire again at 30 degrees.
 

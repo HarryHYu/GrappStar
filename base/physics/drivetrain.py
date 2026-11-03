@@ -151,7 +151,7 @@ def cock(p: Params, **kw) -> dict:
 
 
 # ------------------------------------------------------------------ reel and tow (capstan train)
-def cap_fn(p: Params, f_line: float, length: float, overspeed: float = 1.2) -> dict:
+def cap_fn(p: Params, f_line: float, length: float, overspeed: float = capstan.TAKEUP_OVERSPEED) -> dict:
     c = p.capstan
     t_w = capstan.wiper_torque_for(f_line, p, overspeed)
     r = c["d"] / 2

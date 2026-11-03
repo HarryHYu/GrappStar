@@ -305,13 +305,17 @@ class Params:
         stroke=0.245,          # m carriage travel under spring force (spec D5)
         pulley_ratio=1.0,      # carriage travel / spring extension (1 = springs pull the carriage directly)
         preload_ext=0.035,     # m spring extension at HOME (spec D5: 35 mm, 280 mm at full cock; alternate hole 5 mm)
-        carriage_mass=0.080,   # kg carriage sled + rack + cradle (cad-launch NOTES estimate, CAD value to come)
+        carriage_mass=0.060,   # kg carriage target (spec v1.0 LAUNCH.carriage_mass_target_kg; cad-launch estimated 80 g)
         mu_rail=0.30,          # PLA on PLA sliding (dart + carriage on the rail)
         eta_pulley=0.97,       # per pulley turn on a 608 or printed bushing
         n_pulley_turns=0,      # cord turns between spring and carriage (0 when direct)
         pitch_deg=35.0,
         stop_pad_travel=0.015, # m travel of the compliant carriage stop (spec D6: at least 15 mm)
-        muzzle_height=0.35,    # m above the ground at the muzzle (rover deck + rail)
+        muzzle_height=0.35,    # m above the ground at the muzzle (used only without the spec geometry below)
+        deck_h=0.15,           # m rover deck top above the ground (ASSUMED: Harry to confirm the rover)
+        pivot_h=None,          # m rail pivot (main axis) above the ground: deck_h + 0.165 from spec LAYOUT (set by spec_bridge)
+        release_u=0.149,       # m dart CG along the rail from the pivot when it leaves the cradle (cad-launch NOTES: tail 75.6 at HOME + 79 to the CG)
+        dart_w=0.085,          # m dart axis above the rail pivot line (cad-launch NOTES)
     ))
     # flight
     flight: dict = field(default_factory=lambda: dict(
@@ -322,13 +326,13 @@ class Params:
     ))
     # storage reel
     reel: dict = field(default_factory=lambda: dict(
-        core_d=0.040, flange_d=0.064, width=0.020, wall=0.002, flange_t=0.002,
+        core_d=0.050, flange_d=0.066, width=0.022, wall=0.002, flange_t=0.002,   # spec v1.0 storage reel
         infill=0.40, line_pitch=1.05e-3, hub_mass=0.010,   # hub/clutch plate that spins with the reel
         line_stored=20.0,
     ))
     # capstan
     capstan: dict = field(default_factory=lambda: dict(
-        d=0.040, ratio=0.6, eta=0.85, wraps=5, takeup_n=3.0, tow_limit_n=50.0,   # ratio = wiper turns per capstan turn (REEL gear 40 T -> capstan 24 T); take-up 3 N in REEL (D7)
+        d=0.040, ratio=22 / 50, eta=0.85, wraps=7, takeup_n=3.0, tow_limit_n=50.0,   # ratio = wiper turns per capstan turn (spec v1.0: REEL 50 T -> capstan 22 T); FIRM take-up 3 N (D7)
     ))
     source: str = "defaults (base/spec/params.py not found)"
 

@@ -38,8 +38,20 @@ def simulate(p: Params, v0: float, pitch_deg: float, brake_n: float | None = Non
     cda = p.dart.cda if cda is None else cda
     th = math.radians(pitch_deg)
     # geometry: eye at x 0 (reel side), muzzle ahead of it
-    eye = np.array([0.0, p.flight["reel_height"]])
-    if muzzle_xz is None:
+    L = p.launch
+    origin_x = None
+    if muzzle_xz is None and L.get("pivot_h") is not None:
+        # spec geometry: the line leaves over the pulley at the rail pivot (D14); the dart CG leaves at release_u along
+        # the rail, dart_w above it. Range is measured from the pivot's ground point (fixed for every pitch).
+        eye = np.array([0.0, L["pivot_h"]])
+        muzzle = np.array([L["release_u"] * math.cos(th) - L["dart_w"] * math.sin(th),
+                           L["pivot_h"] + L["release_u"] * math.sin(th) + L["dart_w"] * math.cos(th)])
+        origin_x = 0.0
+    else:
+        eye = np.array([0.0, p.flight["reel_height"]])
+    if origin_x is not None:
+        pass
+    elif muzzle_xz is None:
         muzzle = np.array([0.10, p.launch["muzzle_height"]])
     else:
         muzzle = np.array(muzzle_xz, float)
@@ -181,7 +193,7 @@ def simulate(p: Params, v0: float, pitch_deg: float, brake_n: float | None = Non
             break
     vimp = vel[-1]
     res = dict(v0=v0, pitch_deg=pitch_deg, brake_n=brake if tether else 0.0, tether=tether, reel_model=reel_model,
-               landed=landed, range_m=float(nodes[-1, 0] - muzzle[0]), x_from_eye_m=float(nodes[-1, 0]),
+               landed=landed, range_m=float(nodes[-1, 0] - (muzzle[0] if origin_x is None else origin_x)), range_origin="muzzle" if origin_x is None else "pivot", x_from_eye_m=float(nodes[-1, 0]),
                t_flight_s=t, apex_m=apex, v_impact=float(np.linalg.norm(vimp)),
                impact_angle_deg=float(math.degrees(math.atan2(-vimp[1], vimp[0]))),
                line_paid_m=paid, t_dart_max_n=t_dart_max, t_at_max=t_at_max, line_end_hit=line_end_hit, cda=cda, wind=wind)

@@ -37,7 +37,7 @@ DEFAULTS = dict(
     dog_backcut=4.0,        # flank back-cut (deg), both flanks: torque pulls the dogs together either way
     dog_roof=1.2,           # tip chamfer (mm) on each side of the crest
     dog_r_in=18.0, dog_r_out=26.0,
-    fork_k=1.5,             # fork yoke rate (N/mm): compliant when the dogs land tip to tip
+    fork_k=0.95,            # fork yoke rate (2.4 thick yoke) (N/mm): compliant when the dogs land tip to tip
     fork_free=4.5,          # yoke deflection when the dogs land tip to tip (stroke - dog_gap)
     # ---------------------------------------------------------------- track 2 (storage reel slip clutch preload)
     brake_lift=4.0,         # full radial lift (mm) = FIRM; 0 = LIGHT (cad-reel lever, 10 N design force)
@@ -301,16 +301,19 @@ def cam_eta(slope_mm_per_rad, r_mm, mu=0.3):
     return math.tan(phi) / math.tan(min(phi + rho, math.radians(89.0)))
 
 
-def loads(c=None, r_groove=30.0, r_cam=32.0, rack_arm=45.0, sleeve_len=40.0, mu=0.3, residual_nm=0.2):
+def loads(c=None, r_groove=30.0, r_cam=32.0, arm_pin=36.5, arm_yoke=63.2, sleeve_len=58.2, mu=0.3, mu_rail=0.25,
+          residual_nm=0.2):
     """Drum torque budget (N m at the drum) along the travel.
 
     Fork: yoke force at a full tip-to-tip block (fork_k x fork_free) plus 3 N rail friction, times the racking factor
-    of the long carrier (pin 45 mm off the rail, 40 mm sleeve: 1 + 2 mu arm / sleeve), through the groove at its local
+    of the long carrier (see below), through the groove at its local
     pressure angle. Disengage: 0.2 N m residual train torque after the firmware unload jog. Brake: cad-reel follower force through the cam at its pressure angle. Wrap: cup torque geared up by
     the wrap train. Loads at the same angle add. N20 margin rule (params.DRUM.n20_ratio_min_margin): stall / peak >= 2."""
     c = c or DEFAULTS
     eta_gear = 0.9
-    rack = 1.0 + 2.0 * mu * rack_arm / sleeve_len
+    # racking of the long fork carrier: pin force / yoke force = (1 + 2 mu a / L) / (1 - 2 mu b / L) with the yoke
+    # reaction a = 63.2 and the pin b = 36.5 from the rail, sleeve L = 58.2, mu 0.25 on a greased rail
+    rack = (1.0 + 2.0 * mu_rail * arm_yoke / sleeve_len) / (1.0 - 2.0 * mu_rail * arm_pin / sleeve_len)
     f_fork = (c["fork_k"] * c["fork_free"] + 3.0) * rack
     r_dog = 0.5 * (c["dog_r_in"] + c["dog_r_out"]) / 1000.0
     f_dis = ((residual_nm / r_dog) * (mu + math.tan(math.radians(c["dog_backcut"]))) + 3.0) * rack
@@ -374,7 +377,7 @@ def stop_plan(c=None):
         if above:
             e = above[0]
             p = dict(target=name.upper(), dir=-1, edge=e[0], code_from=e[2], code_to=e[1], extra_deg=e[0] - tgt)
-            if p["extra_deg"] > 20.0 and below:
+            if p["extra_deg"] > 30.0 and below:
                 # too far to run by time: pass the target down to the edge below it, then come back up
                 eb = below[-1]
                 p = dict(target=name.upper(), dir=-1, method="pass_and_return", edge=eb[0], code_from=eb[2],
@@ -410,14 +413,15 @@ def firmware_table(c=None):
     """Everything fw-base needs, JSON-ready (written to drum_table.json by `python _drum_kin.py --json`)."""
     c = c or DEFAULTS
     return dict(
-        version="drum v4 (BASE_SPEC v1.0)",
+        version="drum v6 (params v1.2.3)",
         positions={k.upper(): c[k] for k in ("launch", "neutral", "wrap_start", "wrapped", "reel")},
         stops=[c["stop_lo"], c["stop_hi"]],
         code_table_ABC={code_abc(k): v for k, v in CODE_TABLE.items()},
         code_bits={"SW_DRUM_A": "b0", "SW_DRUM_B": "b1", "SW_DRUM_C": "b2"},
         code_arcs={k: [list(a) for a in v] for k, v in c["code_arcs"].items()},
         edges=[dict(deg=e[0], below=code_abc(e[1]), above=code_abc(e[2])) for e in edges(c)],
-        stop_plan=stop_plan(c),
+        stop_plan=[dict(p, code_from=code_abc(p["code_from"]), code_to=code_abc(p["code_to"])) for p in stop_plan(c)],
+        code_note="all codes are strings of bits A B C (1 = contact closed), as params.DRUM.codes",
         timing_s=timing(c),
         dps_nominal=drum_dps(c),
         wrap_window=[c["seg_start"], c["seg_start"] + seg_span(c)],
@@ -426,14 +430,16 @@ def firmware_table(c=None):
         brake_ramps=[list(r) for r in c["brake_ramps"]],
         rules=[
             "Positive drum = N20 forward (DRV8833 #3 AIN1 high) = toward REEL = wrap direction.",
-            "Wiper stopped before every drum move, except the fly-in into REEL: creep the wiper forward over 318..340.",
+            "Wiper stopped before drum moves, except: the fly-in into REEL (creep forward over 318..340) and the unwrap "
+            "(WRAPPED back to NEUTRAL with the wiper creeping forward for the bus take-up).",
             "Check SW_DOG_L / SW_DOG_R during and after every move: LAUNCH needs DOG_L closed, REEL needs DOG_R closed, "
             "NEUTRAL / WRAP_PREP / WRAP / WRAPPED need both open; never enter the wrap window with either closed.",
             "Dog not closed in LAUNCH: jog the wiper +-8 deg; in REEL: creep forward only (sprag #2 blocks backward).",
             "Leaving LAUNCH or REEL under load: unload jog 8 deg against the last load first. SWITCH_DISAGREE after 3 tries.",
-            "Fault from REEL or N_TO_R: go to WRAPPED (309), never back through the wrap window. Fault from LAUNCH or L_TO_N: NEUTRAL.",
-            "Boot: LAUNCH / L_TO_N / NEUTRAL / WRAP_PREP -> NEUTRAL; WRAP -> stop and report; N_TO_R / REEL -> WRAPPED.",
-            "Unwrap (WRAPPED back to NEUTRAL): drum negative with the wiper creeping forward (bus take-up).",
+            "Fault in LAUNCH or L_TO_N: HOLD the drum unless SW_HOME is closed (spring not drawn), then NEUTRAL (BASE_SPEC D27).",
+            "Fault from REEL or N_TO_R: go to WRAPPED (314) by time from edge 342, never back through the wrap window.",
+            "Boot: LAUNCH / L_TO_N -> hold until SW_HOME, then NEUTRAL; NEUTRAL / WRAP_PREP -> NEUTRAL; WRAP -> stop and "
+            "report; N_TO_R / REEL -> WRAPPED.",
             "SW_N20 open = hand fallback active: no drum moves.",
             "Code 000 = DRUM_SENSOR fault. Timeout = 2 x nominal + 2 s: DRUM_TIMEOUT.",
             "SW_INDEX: 6 pulses per wiper turn (degraded mode without the AS5600 magnet).",

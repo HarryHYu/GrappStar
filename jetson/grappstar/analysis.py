@@ -24,7 +24,8 @@ def _save_png(path: str, img) -> Optional[str]:
 
 
 def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Optional[str], t_fire: Optional[float] = None,
-                    terrain_model=None, do_mosaic: bool = True, log=None) -> Dict[str, Any]:
+                    terrain_model=None, do_mosaic: bool = True, log=None,
+                    clock_offset_s: Optional[float] = None) -> Dict[str, Any]:
     """Returns {"flight": dict|None, "terrain": dict, "mosaic": dict|None, "files": {...}, "errors": [...]}."""
     out: Dict[str, Any] = {"flight": None, "terrain": None, "mosaic": None, "files": {}, "errors": []}
     if outdir:
@@ -40,7 +41,12 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
     fres = None
     try:
         from .vision import flight
-        fres = flight.analyze_flight(frames, flightlog)
+        if flightlog is not None and clock_offset_s is None:
+            clock_offset_s = flightlog.get("clock_offset_s")
+        try:
+            fres = flight.analyze_flight(frames, flightlog, clock_offset_s=clock_offset_s)
+        except TypeError:
+            fres = flight.analyze_flight(frames, flightlog)
         out["flight"] = fres.to_dict()
     except Exception as e:
         note(f"flight analysis failed: {type(e).__name__}: {e}")
@@ -59,7 +65,10 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
         from .vision import terrain
         att = None
         if fres is not None and getattr(fres, "attitude", None):
-            att = fres.attitude[-1]
+            # the dart lands nose first, so its nose-down pitch is expected and is not ground slope:
+            # pass only the roll (side tilt), which does follow the ground
+            t_, roll_, pitch_, yaw_ = fres.attitude[-1]
+            att = (t_, roll_, 0.0, yaw_)
         try:
             rep = terrain.analyze_landing(land_frames, model=terrain_model, attitude=att)
         except TypeError:

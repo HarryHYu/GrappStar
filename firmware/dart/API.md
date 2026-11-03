@@ -45,7 +45,7 @@ JSON, always 200. Example (from the host test, `test/out/status_anchoring.json`)
 | `fault` | string or null | fault code (below), null when none |
 | `rail_V` | number | motor rail volts from the INA219; `-1.00` when unknown |
 | `current_mA` | number | total motor current; 0 when the INA219 is lost (check `ina_ok`) |
-| `peak_mA` | number | highest current since the last `/auto` or `/release` |
+| `peak_mA` | number | highest current since the last `/auto`, `/release` or key `i` |
 | `speed` | int | PWM duty 50..255 (keys `+` / `-`) |
 | `motors` | object | `deploy`, `kick`, `drills`, `foot`: -1, 0 or +1 (+1 = out / in / down, -1 = back / up / unscrew) |
 | `seq` | string | sequence step (below) |
@@ -57,7 +57,7 @@ JSON, always 200. Example (from the host test, `test/out/status_anchoring.json`)
 | `ina_ok`, `imu_ok` | bool | INA219 reading, BNO085 sending data |
 | `t_launch_ms`, `t_land_ms` | int or null | detected launch and landing times, null when none |
 | `log_frozen` | bool | flight log holds a finished flight |
-| `reset` | string | why the dart last booted: `poweron`, `software`, `brownout`, `panic`, `task_wdt`, `int_wdt`, `wdt`, `reset_pin`, `other` (USB upload) |
+| `reset` | string | why the dart last booted: `poweron`, `software`, `brownout`, `panic`, `task_wdt`, `int_wdt`, `wdt`, `reset_pin`, `deepsleep`, `other` (USB upload) |
 | `event` | string | last event line |
 
 `seq` values: `idle`, `kick swing`, `kick + foot planting`, `foot finishing`, `deploy + drills`, `drills finishing`,
@@ -69,14 +69,20 @@ JSON, always 200. Example (from the host test, `test/out/status_anchoring.json`)
 Manual key, same keys as the web page and Serial Monitor.
 
 - Run keys: `1` / `!` deploy pods down / up, `2` / `@` kick out / back, `3` / `#` drills in / out, `4` / `$` foot in / out.
-  `ms` is how long the motor runs if no repeat arrives (deadman). Default 350, clamped to 50..1500. To hold a key,
+  `ms` is how long the motor runs if no repeat arrives (deadman). Default 350, clamped to 50..500. To hold a key,
   repeat it every 150 ms with `ms=350`; when the repeats stop, the motor stops within 350 ms.
+- A hold (one key repeated without a gap) is capped at 8 s in total, 2 s when the INA219 is missing. After the cap
+  the key is refused until it has been released.
+- Stall stop: a motor driven into an end stop stops after 0.25 s start-up + 0.2 s over its stall current. The stall
+  currents scale with `speed`. With several motors held at once the limit is "one motor stalled, the others working
+  normally", so one stalled motor is caught while the others run.
 - Other keys: space or `s` stop (same as `/stop`), `a` auto (same as `/auto`), `r` release (same as `/release`),
   `A` arm toggle (prefer `/arm`), `+` / `-` speed, `i` current, `b` attitude, `p` status line, `f` flight log summary,
   `z` I2C scan (stops motors first), `h` help.
 - Optional `n`: a request counter (the web page uses it so a run key that was sent before a stop cannot arrive after it).
-- Refused (409) while a sequence runs (`busy`), during `FLIGHT`, and after a stall until the key has been released for
-  0.5 s (`stalled: release the key first`). The opposite direction is never locked.
+- Refused (409) while a sequence runs (`busy`), during `FLIGHT`, and after a stall or the hold cap until the key has
+  been released for 0.5 s (`stalled: release the key first`). The opposite direction is never locked.
+- Sequences (`/auto`, `/release`) always run at full duty, whatever `speed` is.
 - A manual run key moves the legs out of a known state, so `seq` `anchored` / `released` / `aborted` becomes `idle`.
 
 ### GET /stop
@@ -93,6 +99,8 @@ spinning, drills finishing, `anchored`.
 - Refused in `FLIGHT` (decision below), while releasing (`busy`), when already anchored, and without the INA219.
 - A repeated `/auto` while anchoring is accepted and does not restart it (safe to retry after a timeout).
 - Accepted from `IDLE`, `ARMED`, `LANDED` and `FAULT` (it clears the fault).
+- Stall handling inside the sequence: the main motor is read alone by pausing the helper for 150 ms every 550 ms; the
+  helper (foot while the kick plants, drills while the pods swing) is stopped if it stalls, and the sequence carries on.
 
 ### GET /release
 
@@ -119,11 +127,12 @@ of `/auto` (pods up before the kick comes back), because the kick goes down firs
 - `on=0`: disarm.
 - Refused without the BNO085 (`no IMU`), with `auto=1` and no INA219, while a sequence runs, and in `FLIGHT`.
 - Idempotent: use this instead of the `A` toggle. Arm right before the shot, because `/stop` disarms.
+- Arming from `ANCHORED`, `aborted` or `released` starts a new shot (`seq` back to `idle`).
 
 ### GET /flightlog
 
-The BNO085 log, streamed as JSON (chunked, up to about 40 kB). The server is busy for about 0.3 s while it sends.
-Do not fetch it while holding a manual key.
+The BNO085 log, streamed as JSON (chunked, up to about 40 kB). The server is busy for about 0.3 s while it sends,
+so it is refused (409 `busy (motors running)`) while any motor runs.
 
 ```json
 {"hz":50,"frozen":true,"phase":"ANCHORED","t_launch_ms":3000,"t_land_ms":4010,"landing":"impact","n":301,
@@ -145,7 +154,7 @@ Do not fetch it while holding a manual key.
 - Acceleration: m/s², 2 decimals, gravity included, BNO085 chip axes. The BNO085 saturates near 8 g (78 m/s²), so the
   launch push and the impact read flat at about 78.
 - Chip axes: how the BNO085 axes sit in the hull is not fixed by the firmware. BENCH_TEST.md step 7 finds them by
-  standing the dart on its nose and on its side and writes them down. Clients must use that mapping, not assume one.
+  standing the dart on its tail (nose up) and on its side and writes them down. Clients must use that mapping, not assume one.
 - Window: when a flight was detected, the log runs from 2 s before launch until 3 s after landing, then freezes
   (`frozen: true`) and stays until the next arm. The ring holds 12 s (600 samples): in a flight longer than about
   7 s the earliest samples are gone and the first sample comes after `t_launch_ms - 2000`. Before any launch the reply
@@ -168,7 +177,7 @@ Worked out in this priority order (the first that applies):
 | `ANCHORING` | anchor sequence running |
 | `FLIGHT` | launch detected, landing not yet decided |
 | `ANCHORED` | anchor sequence finished (`seq` `anchored`) |
-| `LANDED` | landed and nothing started since (log-only arm, or auto on landing refused) |
+| `LANDED` | landed and nothing running (log-only arm, fallback landing, auto refused, or auto stopped by hand) |
 | `ARMED` | landing detector armed, waiting for the launch |
 | `IDLE` | none of the above (also after `/stop` aborts a sequence: `seq` `aborted`, no fault) |
 
@@ -192,10 +201,15 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 ## Flight detection (decision record)
 
 - Launch: \|a\| over 4 g continuously for 20 ms, **only while armed**. Launch time = start of those 20 ms.
-- Landing: once the launch push is over (\|a\| under 2.5 g) and at least 150 ms after launch, an impact over 6 g, then
-  \|a\| between 0.85 and 1.15 g for 1 s. Each new impact restarts the stillness timer; landing time = the last impact.
-- Fallbacks: no impact seen but still for 2 s (soft landing in grass: `still`); no decision 15 s after launch
-  (IMU silent or stuck: `timeout`).
+  In practice the samples over 4 g must span at least 15 ms (one 5 ms sample period of slack), so a 20 ms push is seen
+  and a 15 ms knock is not.
+- Landing: once the dart has been in free fall (\|a\| under 0.6 g for 60 ms in total) and at least 150 ms after launch,
+  an impact over 6 g, then \|a\| between 0.85 and 1.15 g for 1 s. Each new impact restarts the stillness timer;
+  landing time = the last impact. The free-fall rule stops a bump on the bench from counting as a flight.
+- Fallbacks: no impact seen but still for 2 s after free fall (soft landing in grass: `still`); no decision 15 s after
+  launch (IMU silent, or a bump that was never a flight: `timeout`). **A fallback landing does not start the auto
+  sequence** (event `no impact seen: auto not started, send /auto`); the phase is `LANDED` and the Jetson decides from
+  the video.
 - **`/auto` is refused during FLIGHT.** Running motors in the air would swing the legs out, spoil the flight and could
   foul the tether, and the landing detector starts the sequence itself on landing. If detection fails, the 15 s timeout
   ends FLIGHT, and `/stop` ends it at once.
@@ -207,6 +221,6 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
   `auto_on_landing`, `accel_g`, `ina_ok`, `imu_ok`, `t_launch_ms`, `t_land_ms`, `log_frozen`, `reset`.
 - Refusals are now HTTP 409 (v3 silently ignored keys during auto).
 - `/stop` disarms. `armed` means "landing detector armed"; the auto choice is `auto_on_landing`.
-- `/key` `ms` is capped at 1500 (was 5000). A held key that stalls stays off until released.
+- `/key` `ms` is capped at 500 (was 5000); a hold is capped at 8 s. A held key that stalls stays off until released.
 - The release used to be held keys from the Jetson (`#` + `!`, then `$` + `@`). Use `/release` and wait for
   `seq == "released"`; fail on `FAULT` or `aborted`.

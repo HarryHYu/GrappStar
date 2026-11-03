@@ -48,7 +48,8 @@ class Wiper:
     i_stall: float = 18.0      # A at v_rated
     i_free: float = 1.5        # A at v_rated
     backdrivable: bool = False # worm: holds any load unpowered
-    inertia: float = 2.0e-3    # kg m2 reflected to the output (armature ~2e-5 kg m2 x ratio^2 ~ 50^2 x 0.8). Rough.
+    inertia: float = 0.04      # kg m2 reflected to the output: armature ~2e-5 kg m2 x (ratio ~50)^2 x 0.8. Rough.
+    # note: kt / ke = 0.39 here, i.e. the gearbox (worm) efficiency implied by these numbers is about 39 %
 
     @property
     def r_winding(self) -> float:
@@ -140,7 +141,7 @@ class ExtSpring:
     force where the line through the points meets the free length."""
     od_mm: float = 16.0
     wire_mm: float = 1.4
-    length_mm: float = 165.1          # free length inside the hooks
+    length_mm: float = 165.1          # free length over the hooks (outside to outside), as Century lists it
     rate_n_mm: float | None = 0.125   # catalogue / estimate; None -> computed from the coil count
     f_init: float = 7.5               # N, initial tension (5 to 10 N band)
     hook_r2_over_d: float = 2.5       # bend radius at the hook root / wire diameter (Shigley r2, typical 2 to 3)
@@ -156,8 +157,8 @@ class ExtSpring:
         return self.D_mm / self.wire_mm
 
     @property
-    def hook_len_mm(self) -> float:   # one machine hook, inside: about one inner diameter
-        return self.od_mm - 2 * self.wire_mm
+    def hook_len_mm(self) -> float:   # one machine hook, body end to the outside of the loop: about OD - d
+        return self.od_mm - self.wire_mm
 
     @property
     def n_body(self) -> float:        # close-wound body: (Nb + 1) d = body length
@@ -302,8 +303,8 @@ class Params:
     launch: dict = field(default_factory=lambda: dict(
         stroke=0.30,           # m carriage travel under spring force (dart acceleration length)
         pulley_ratio=1.0,      # carriage travel / spring extension (1 = springs pull the carriage directly)
-        preload_ext=0.010,     # m spring extension at the carriage stop (rest), keeps the springs from going slack
-        carriage_mass=0.060,   # kg printed carriage + pins + pulleys riding with it
+        preload_ext=0.005,     # m spring extension at HOME (cad-launch NOTES: 5 mm)
+        carriage_mass=0.080,   # kg carriage sled + rack + cradle (cad-launch NOTES estimate, CAD value to come)
         mu_rail=0.30,          # PLA on PLA sliding (dart + carriage on the rail)
         eta_pulley=0.97,       # per pulley turn on a 608 or printed bushing
         n_pulley_turns=0,      # cord turns between spring and carriage (0 when direct)
@@ -316,7 +317,7 @@ class Params:
         brake_n=0.75,          # N line tension from the reel brake at the reel exit
         eye_gain=1.15,         # tension gain through the guide eye(s): exp(mu theta), ceramic or smooth PLA
         reel_height=0.25,      # m above ground
-        pitch_min=15.0, pitch_max=55.0,
+        pitch_min=6.0, pitch_max=47.0,  # cad-launch crank-rocker range (6.0 to 47.1)
     ))
     # storage reel
     reel: dict = field(default_factory=lambda: dict(

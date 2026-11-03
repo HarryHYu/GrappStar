@@ -114,22 +114,22 @@ struct Flight {
         } else above = false;
         break;
       case FLYING:
-        if (now - tLaunch >= flightTimeoutMs) return land(now, "timeout");
+        if ((int32_t)(now - tLaunch) >= (int32_t)flightTimeoutMs) return land(now, "timeout");
         // a real flight has free fall (|a| well under 1 g, drag and tether only); a bump on the bench does not
         // a tumbling dart may never read under 0.6 g (spin), so 400 ms after launch with the push over also counts
         if (!quiet) {
           uint32_t dt = now - tPrev; tPrev = now;
           if (a < freeFallG) { ffMs += dt > 20 ? 20 : dt; if (ffMs >= freeFallMs) quiet = true; }
-          if (now - tLaunch >= pushOverMs && a < launchG) quiet = true;
+          if ((int32_t)(now - tLaunch) >= (int32_t)pushOverMs && a < launchG) quiet = true;
           if (!quiet) break;
         }
-        if (now - tLaunch < minFlightMs) break;
+        if ((int32_t)(now - tLaunch) < (int32_t)minFlightMs) break;
         if (a > impactG) { st = IMPACTED; tImpact = now; stillOn = false; break; }
         if (a > stillLo && a < stillHi) { if (!stillOn) { stillOn = true; tStill = now; } if (now - tStill >= softStillMs) return land(tStill, "still"); }
         else stillOn = false;
         break;
       case IMPACTED:
-        if (now - tLaunch >= flightTimeoutMs) return land(tImpact, "timeout");
+        if ((int32_t)(now - tLaunch) >= (int32_t)flightTimeoutMs) return land(tImpact, "timeout");
         if (a > impactG) { tImpact = now; stillOn = false; break; }
         if (a > stillLo && a < stillHi) { if (!stillOn) { stillOn = true; tStill = now; } if (now - tStill >= stillMs) return land(tImpact, "impact"); }
         else stillOn = false;
@@ -139,7 +139,7 @@ struct Flight {
     return NONE;
   }
   int poll(uint32_t now) {                    // called every tick: the timeout must fire even with no IMU samples
-    if (flying() && now - tLaunch >= flightTimeoutMs) return land(st == IMPACTED ? tImpact : now, "timeout");
+    if (flying() && (int32_t)(now - tLaunch) >= (int32_t)flightTimeoutMs) return land(st == IMPACTED ? tImpact : now, "timeout");
     return NONE;
   }
 };
@@ -251,7 +251,9 @@ struct Kedge {
   int duty() const { return seqRunning() ? 255 : spd; }   // sequences always run at full duty (stall currents are for 255)
   static float fin(float v) { return v == v && v < 1e9f && v > -1e9f ? v : 0.f; }
   void ev(const char* s) { strncpy(lastEvent, s, sizeof(lastEvent) - 1); lastEvent[sizeof(lastEvent) - 1] = 0; if (io.log) io.log(s); }
-  void setFault(int f, const char* msg, uint32_t now) { stopAll(now); if (seqRunning()) seq = ABORTED; fault = f; ev(msg); }
+  void setFault(int f, const char* msg, uint32_t now) {
+    if (!seqRunning()) for (int m = 0; m < NMOT; m++) if (dir[m]) stallLock[m] = dir[m];   // a held key stays off until released
+    stopAll(now); if (seqRunning()) seq = ABORTED; fault = f; ev(msg); }
 
   // threshold for motor m: bench stall current scaled by rail voltage, and by PWM duty for manual runs
   float vScale() const { if (!(railV > 3.f)) return 1.f; float k = railV / tu.refV; return k < 0.6f ? 0.6f : k > 1.15f ? 1.15f : k; }

@@ -38,7 +38,8 @@ def cmd_serve(a) -> int:
                     dart_fourcc=a.fourcc, rover_fourcc=a.rover_fourcc, rover_size=_size(a.rover_size),
                     dart_size=_size(a.dart_size), gstreamer=a.gst, ui_token=a.token or "",
                     sim_landing=a.sim_landing, sim_seed=a.sim_seed, calib_path=a.calib,
-                    dart_deinterlace=a.deinterlace, terrain_model=a.model, ballistics_path=a.ballistics)
+                    dart_deinterlace=a.deinterlace, terrain_model=a.model, ballistics_path=a.ballistics,
+                    deck_height_m=a.deck_height)
     if a.runs:
         cfg.runs_dir = a.runs
     cfg.mission.tow_limit_n = a.tow_limit
@@ -295,6 +296,8 @@ def main(argv=None) -> int:
     s.add_argument("--tow-limit", type=float, default=40.0, help="tow tension limit, N")
     s.add_argument("--drag", type=float, default=0.75, help="payout brake setting, N (C3 column)")
     s.add_argument("--runs", help="folder for run logs (default jetson/runs)")
+    s.add_argument("--deck-height", type=float, default=0.15,
+                   help="base deck top above the ground on the rover, m (measure it: sets the camera height)")
     s.add_argument("--imu-axes", default="x,y,z",
                    help="BNO085 chip axes as dart body axes, from the bench test, e.g. 'y,-x,z'")
     s.add_argument("--sim-landing", default="hard_ground")

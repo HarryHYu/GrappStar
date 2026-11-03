@@ -41,11 +41,28 @@ def _num(d: dict, *keys) -> Optional[float]:
     return None
 
 
-def find_camera_pose(params) -> Optional[dict]:
+DEFAULT_DECK_HEIGHT_M = 0.15   # base deck top above the ground on the rover: MEASURE (settings.json deck_height_m)
+
+
+def find_camera_pose(params, deck_height_m: float = DEFAULT_DECK_HEIGHT_M) -> Optional[dict]:
     """{height_m, pitch_deg, x_m, pivot_x_m, source} from params.FRAMEWORK, or None."""
     fw = getattr(params, "FRAMEWORK", None) if params is not None else None
     if not isinstance(fw, dict):
         return None
+    cam = fw.get("camera")
+    if isinstance(cam, dict) and isinstance(cam.get("pos"), (tuple, list)) and isinstance(cam.get("pitch_deg"), (int, float)):
+        # base spec v1.0: pos (x, y, z) mm in the world frame whose origin is on the launcher pivot axis
+        # (+X = launch azimuth, Z up); pitch_deg negative = looking down. deck_z = deck top z (mm).
+        x, y, z = (float(v) for v in cam["pos"])
+        deck_z = fw.get("deck_z")
+        if isinstance(deck_z, (int, float)):
+            h = deck_height_m + (z - float(deck_z)) / 1000.0
+            note = f"deck {deck_height_m:.3f} m above ground (setting) + {(z - float(deck_z)):.0f} mm"
+        else:
+            h = deck_height_m + 0.265
+            note = "deck_z missing: assumed 265 mm above the deck"
+        return {"height_m": h, "pitch_deg": -float(cam["pitch_deg"]), "x_m": x / 1000.0, "pivot_x_m": 0.0,
+                "y_m": y / 1000.0, "source": f"params.FRAMEWORK.camera ({note})"}
     cands = []
 
     def walk(d, depth=0):
@@ -80,7 +97,8 @@ def find_camera_pose(params) -> Optional[dict]:
     return None
 
 
-def camera_model(calib_path: Optional[str], size=(1280, 720), params_path: str = PARAMS):
+def camera_model(calib_path: Optional[str], size=(1280, 720), params_path: str = PARAMS,
+                 deck_height_m: float = DEFAULT_DECK_HEIGHT_M):
     """CameraModel plus a note on where its pose came from. Adds .range_offset_m (camera ahead of the pivot)."""
     from .vision.target import CameraModel
     from .sim.world import default_rover_model
@@ -91,7 +109,7 @@ def camera_model(calib_path: Optional[str], size=(1280, 720), params_path: str =
     else:
         m = default_rover_model(*size)
         src = "default guesses"
-    pose = find_camera_pose(load_params(params_path))
+    pose = find_camera_pose(load_params(params_path), deck_height_m)
     offset = 0.0
     if pose:
         if src != "calibration file":

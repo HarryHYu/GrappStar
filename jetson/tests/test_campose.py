@@ -33,3 +33,13 @@ def test_calibration_file_wins(tmp_path):
 
 def test_stub_params_none():
     assert campose.find_camera_pose(type("P", (), {"FRAMEWORK": None})) is None
+
+
+def test_base_spec_v1_camera_entry(tmp_path):
+    p = tmp_path / "params.py"
+    p.write_text('FRAMEWORK = dict(deck_z=-165.0, camera=dict(model="Razer Kiyo X", pos=(150.0, -50.0, 100.0), '
+                 'pitch_deg=-10.0, look="+X"))\n')
+    m = campose.camera_model(None, params_path=str(p), deck_height_m=0.2)
+    assert abs(m.height_m - (0.2 + 0.265)) < 1e-9
+    assert m.pitch_deg == 10.0                       # down positive in CameraModel
+    assert abs(m.range_offset_m - 0.15) < 1e-9

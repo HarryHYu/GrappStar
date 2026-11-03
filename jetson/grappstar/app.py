@@ -48,6 +48,7 @@ class AppConfig:
     sim_landing: str = "hard_ground"
     sim_time_scale: float = 1.0
     terrain_model: Optional[str] = None   # path to an ONNX classifier (optional)
+    deck_height_m: float = 0.15           # base deck top above the ground on the rover (MEASURE)
     mission: MissionConfig = field(default_factory=MissionConfig)
 
 
@@ -115,7 +116,8 @@ class App:
             return
         try:
             from .campose import camera_model
-            self.cam_model = camera_model(self.cfg.calib_path, tuple(self.cfg.rover_size))
+            self.cam_model = camera_model(self.cfg.calib_path, tuple(self.cfg.rover_size),
+                                          deck_height_m=self.cfg.deck_height_m)
             self.syslog.info(f"rover camera pose from {self.cam_model.pose_source}")
         except Exception as e:
             self.cam_model = default_rover_model(*self.cfg.rover_size)

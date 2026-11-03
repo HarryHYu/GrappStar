@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 10:59 Sydney time from commit `4403cab`.
+Built 2026-11-03 11:00 Sydney time from commit `97b54a8`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -287,10 +287,10 @@ whole rover is powered and connected. If this page and WIRING.md ever disagree o
 3S LiPo (XT60)
   -> XT60 Y harness (one male in, two female out; made from your spare XT60s, 14 AWG)
        -> lead #2, 20 A fuse, 14 AWG -> BTS7960 B+ / B-  -> wiper motor (BTS7960 M+ / M-, 14 AWG)
-                                   \-> 22 AWG from the B+ / B- screws -> MP1584 #2 IN (9.0 V out)
+                                   \-> 2 A inline fuse, 22 AWG from the B+ / B- screws -> MP1584 #2 IN (9.0 V out)
                                           -> DRV8833 #3 VM / GND -> drum N20 (AOUT1 / AOUT2)
        -> lead #1, 10 A fuse, 18 AWG -> barrel pigtail -> Jetson DC jack
-                                   \-> 22 AWG -> RC832 power in
+                                   \-> 1 A inline fuse, 22 AWG -> RC832 power in
 Jetson USB -> ESP32-S3 DevKitC (5 V from USB; the board makes its own 3V3)
                 ESP32 3V3 -> BTS7960 VCC, DRV8833 SLP (via GPIO), AS5600, HX711
 Jetson USB -> DIGITNOW capture <- RC832 AV out
@@ -303,8 +303,15 @@ Why it is laid out this way:
   after the dart bench test.
 - The buck taps the BTS7960 screw terminals, so both motor branches sit behind the 20 A fuse and the Jetson branch
   stays separate. A wiper stall that blows the 20 A fuse does not reboot the Jetson.
+- The thin taps (MP1584 input, RC832) each get their own small inline fuse (2 A and 1 A) right at the tap. A 22 AWG
+  wire behind only the 20 A or 10 A fuse would burn before that fuse blew if it shorted.
 - The ESP32 takes power only from USB. It never connects to the LiPo directly. Its ground meets battery minus
-  through the BTS7960 and DRV8833 GND wires (needed so the logic signals have a reference).
+  through the BTS7960 and DRV8833 GND wires (needed so the logic signals have a reference). There is a second
+  ground path through USB, the Jetson and its barrel lead, so if the BTS7960 B- screw came loose the wiper current
+  would try to return through the thin GND jumper and the USB cable. Keep the B- screw tight (tug test) and never
+  run the wiper with B- disconnected.
+- The wiper and the Jetson share the pack. A wiper stall (about 18 A) makes the pack voltage sag; with a low pack
+  that sag can brown out the Jetson. Charge the pack when it reads 3.6 V per cell at rest (10.8 V).
 
 #### 3. Wires and connectors
 
@@ -313,11 +320,11 @@ Why it is laid out this way:
 | P1 | LiPo | Y harness | 14 AWG | XT60 | Make the Y from spare XT60s; solder, heat shrink each joint |
 | P2 | Y harness | BTS7960 B+ / B- | 14 AWG | XT60 lead #2 (20 A fuse), screw terminals at the BTS7960 | Red to B+, black to B-. 10 A blew on wiper inrush before: keep 20 A |
 | P3 | BTS7960 M+ / M- | wiper motor | 14 AWG | screw terminals; spade or solder at the motor | Red wire (+) and black (-) of the rebuilt 2-wire motor |
-| P4 | BTS7960 B+ / B- | MP1584 #2 IN+ / IN- | 22 AWG | under the same screws | Set 9.0 V with nothing on the output first |
+| P4 | BTS7960 B+ / B- | MP1584 #2 IN+ / IN- | 22 AWG | under the same screws, 2 A inline fuse in the + wire right at the screw | Set 9.0 V with nothing on the output first |
 | P5 | MP1584 #2 OUT+ / OUT- | DRV8833 #3 VM / GND | 22 AWG | solder | Check 9.0 V on the meter before you connect |
 | P6 | DRV8833 #3 AOUT1 / AOUT2 | drum N20 | 26 AWG | solder or JST | Swap the pair if the drum turns the wrong way (see calibration) |
 | P7 | Y harness | Jetson DC jack | 18 AWG | XT60 lead #1 (10 A fuse), 5.5 x 2.5 mm barrel plug (same as the plug on the Jetson supply), centre positive | Check polarity with the meter before the first plug-in |
-| P8 | lead #1 (after the fuse) | RC832 power in | 22 AWG | the RC832 power lead | Read the RC832 label for its input range first (see MEASURE_LIST) |
+| P8 | lead #1 (after the fuse) | RC832 power in | 22 AWG | the RC832 power lead, 1 A inline fuse in the + wire at the tap | Read the RC832 label for its input range first (see MEASURE_LIST) |
 | S1 | Jetson USB-A | ESP32-S3 USB port (native, marked USB) | | USB-C or micro-USB cable to suit the board | Data cable, not charge-only |
 | S2 | Jetson USB-A | DIGITNOW capture | | its own USB plug | |
 | S3 | RC832 AV out | DIGITNOW video in | | yellow RCA | Video only; audio not used |
@@ -327,41 +334,58 @@ Why it is laid out this way:
 | L3 | ESP32 SDA / SCL / 3V3 / GND | AS5600 | | STEMMA QT to Dupont cable | Magnet 1 to 3 mm from the chip |
 | L4 | ESP32 pins | each printed contact | 26 AWG twisted pair | Dupont at the ESP32, M3 ring or solder at the contact | One wire to the pin, the other to GND |
 | L5 | ESP32 pins | HX711 DT, SCK, VCC, GND (optional) | 26 AWG | Dupont | Load cell 4 wires into HX711 E+, E-, A+, A- |
-| L6 | BTS7960 B+ | ESP32 battery pin through the 100 k / 22 k divider | 26 AWG | solder at the divider | 12.6 V reads 2.27 V at the pin |
+| L6 | BTS7960 B+ | ESP32 battery pin through the 100 k / 22 k divider | 26 AWG | solder the 100 k resistor right at the B+ screw (in heat shrink), so the long wire only carries the divided voltage; the 22 k goes from the pin to GND at the ESP32 | 12.6 V reads 2.27 V at the pin |
 
 Gauges assume runs under 0.5 m. 14 AWG carries the 18 A wiper stall; 18 AWG is fine for the Jetson (about 2.5 A at
 10 V); 22 AWG is fine for the drum branch (N20 stall about 0.2 A) and the RC832 (about 0.2 A).
 
 #### 4. First power-on sequence (do it in this order, once, after any rewiring)
 
-Battery unplugged for steps 1 to 4. Have the multimeter ready.
+Before you start: the pull-down and divider resistors are fitted as in firmware/base/WIRING.md (10 k from R_EN to
+GND, 10 k from L_EN to GND, 10 k from DRV8833 SLP to GND, the IS divider, the battery divider). Both motors are
+disconnected from their drivers for this first power-on. Multimeter ready.
 
-1. Battery unplugged. Pull both fuses. Meter on beep: touch red and black of every branch (P2 at the BTS7960, P4,
-   P5, P7 at the barrel plug, P8). Nothing may beep. A beep is a short: find it before going on.
-2. Battery unplugged. Meter on beep: barrel plug centre pin to the red wire of lead #1 must beep (centre positive).
-3. Battery unplugged. DRV8833 #3 VM wire disconnected from MP1584 #2 OUT. ESP32 USB cable unplugged.
+1. Battery unplugged. Jetson barrel plug and ESP32 USB cable unplugged. Pull both fuses (20 A and 10 A) and both
+   small inline fuses.
+2. Battery unplugged. Meter on beep, check for shorts: the two pins of the Y harness male XT60; red to black at the
+   BTS7960 B+ / B-; at MP1584 #2 IN and OUT; at DRV8833 VM / GND; at the barrel plug; at the RC832 lead. Nothing may
+   beep steadily. A short chirp that stops is a capacitor charging, not a short. A steady beep is a short: find it
+   before going on.
+3. Battery unplugged. Meter on resistance (not beep): DRV8833 SLP pad to VM must read open (OL or over 1 M). Some
+   DRV8833 boards pull SLP up to the motor supply through a resistor; that would put 9 V into the ESP32. If it reads
+   any value, cut that board's pull-up jumper or use the other pad (ask before going on).
 4. Battery unplugged. Meter on DC volts on the LiPo balance lead: each cell 3.7 to 4.2 V.
-5. Plug the battery in. Fit the 20 A fuse only. Meter on MP1584 #2 OUT: turn the brass screw until it reads 9.0 V.
-   The wiper must not move (the BTS7960 enables are held low by their pull-downs). If it moves: unplug the battery
-   and check R_EN / L_EN.
-6. Unplug the battery. Solder or plug the DRV8833 VM wire (P5) to MP1584 #2 OUT.
-7. Plug the battery in. Fit the 10 A fuse. The Jetson boots (green LED). The RC832 screen or LED lights.
-8. Plug the ESP32 USB cable into the Jetson. The ESP32 power LED lights. Nothing moves (DRV8833 SLP has a pull-down
-   and stays off until the firmware enables it).
+5. Battery unplugged. Fit the 20 A fuse and the 2 A inline fuse. Plug the battery in. Meter on DC volts:
+   - BTS7960 B+ (red probe) to B- (black probe): battery voltage, positive. Negative means reversed: unplug at once.
+   - MP1584 #2 IN+ to IN-: battery voltage, positive.
+   - MP1584 #2 OUT: turn the brass screw until it reads 9.0 V.
+   - DRV8833 SLP to GND: 0 V.
+6. Unplug the battery. Connect the DRV8833 VM wire (P5) to MP1584 #2 OUT.
+7. Battery unplugged. Fit the 10 A fuse and the 1 A inline fuse. Plug the battery in. Meter on the barrel plug
+   (before it goes into the Jetson): centre pin positive, battery voltage. Then plug the barrel into the Jetson: it
+   boots (green LED). The RC832 lights.
+8. Plug the ESP32 USB cable into the Jetson (USB is 5 V and safe to plug live). The ESP32 power LED lights.
 9. On the Jetson, in `~/GrappStar/jetson`: `python3 -m grappstar base ping` (expect `"ok": true`), then
    `python3 -m grappstar base monitor`. Check `vbat` in telemetry matches the meter within 0.3 V.
+10. Unplug the battery. Connect the motors (wiper to BTS7960 M+ / M-, drum N20 to AOUT1 / AOUT2). Check the B-
+    screw is tight. Plug the battery in. Nothing moves until a command is sent.
 
-Unplug order (every time): stop the motors (`estop`), pull the battery, then anything else.
+Emergency stop: send `estop`. If that does not stop it, pull lead #2's XT60 (or its 20 A fuse): that kills both
+motors and leaves the Jetson running. Pull the main battery plug only if that is not enough.
+
+Shut-down order (every time): `estop`, then `sudo shutdown now` on the Jetson and wait for its LED to go off, then
+unplug the battery.
 
 #### 5. Rules
 
-- Battery unplugged before you touch, add or move any wire. This killed the first XIAO.
+- Battery unplugged before you touch, add or move any wire, or fit a fuse. This killed the first XIAO.
 - Battery unplugged before you plug the ESP32 into the Mac. Flash from the Mac with the ESP32 out of the rover
   harness, or flash from the Jetson (firmware/base/README.md).
-- Stop using the LiPo at 3.3 V per cell under load (9.9 V); the firmware reports `vbat` and the Jetson warns.
+- Charge the LiPo at 3.6 V per cell at rest (10.8 V). Never run it below 3.3 V per cell under load (9.9 V); the
+  firmware reports `vbat`.
 - Never connect the DRV8833 VM to the LiPo directly (10.8 V maximum; the LiPo is 12.6 V full).
-- Never put 3V3 on a DRV8833 pad called VIN, VCC or VM: on these carriers that is the motor supply. 3V3 only reaches
-  the SLP / nSLEEP / EEP pad, and here it comes from an ESP32 GPIO.
+- Never put 3V3 on a DRV8833 pad called VIN, VCC or VM: on these carriers that is the motor supply. The SLP /
+  nSLEEP / EEP pad is driven by an ESP32 GPIO, and must read open to VM on the resistance range (step 3).
 - Dart: power loop plug out whenever a wire moves or USB is plugged in (the dart run sheet rule).
 - The VTX on the dart must have its antenna on before it is powered.
 
@@ -448,13 +472,15 @@ Safety for every stage:
 - Battery unplugged before you touch any wire.
 - Hands out of the gears, the drum and the rail whenever the battery is plugged in.
 - From stage 5 on: nobody in front of the rail, safety glasses on, the launch area clear for 30 m.
-- Keep a hand near the battery plug. Pulling it is the real emergency stop.
+- Emergency stop: `estop`. If that does not stop it, pull lead #2's XT60 (the wiper branch): both motors die and the
+  Jetson stays up. Keep a hand near it.
 
 ### Stage 0. Power-on (no motors attached)
 
-Follow SYSTEM_ELECTRICAL.md section 4, the first power-on sequence. Both motor leads disconnected from the drivers.
+Follow SYSTEM_ELECTRICAL.md section 4, the first power-on sequence, steps 1 to 9. Both motors stay disconnected
+from their drivers until step 10.
 
-Pass: no beeps on the short check, MP1584 #2 reads 9.0 V, the Jetson boots, `status` replies, `vbat` within 0.3 V
+Pass: no steady beeps on the short check, SLP reads open to VM, MP1584 #2 reads 9.0 V, the Jetson boots, `ping` replies, `vbat` within 0.3 V
 of the meter, `fault` is null.
 If it fails: a beep means a short (check the Y harness and the BTS7960 screws first). No reply: check the USB
 cable is a data cable and in the ESP32 port marked USB; see troubleshooting in the build guide.
@@ -464,9 +490,11 @@ cable is a data cable and in the ESP32 port marked USB; see troubleshooting in t
 Battery unplugged. Connect the wiper motor to BTS7960 M+ / M- and clamp the motor to the bench. Connect the drum
 N20 to DRV8833 #3 AOUT1 / AOUT2, loose on the bench. Battery in.
 
-1. `jog` wiper dir 1 for 300 ms, then dir -1. Mark which way the shaft turns for dir 1.
+1. `jog` wiper dir 1 for 300 ms, then dir -1. Mark with a pen arrow on the motor which way the shaft turns for
+   dir 1. That is FORWARD (the cock direction); CALIBRATION.md says how to make it match the base.
 2. `jog` drum dir 1 for 500 ms, then dir -1. Mark the shaft direction.
-3. Watch `amps` during each wiper jog.
+3. Do the current-sense calibration now (MEASURE_LIST G1, CALIBRATION.md), then watch `amps` during a 2 s wiper
+   jog.
 
 Pass: each motor turns both ways, stops when the jog ends, wiper free current about 1 to 3 A (A6 in
 MEASURE_LIST.md), no fault.
@@ -477,7 +505,7 @@ CALIBRATION.md: swap that motor's two leads (battery unplugged).
 ### Stage 2. Sensors alone
 
 1. Turn the main shaft (or the magnet) by hand: `wiper_deg` changes smoothly, no jumps, and goes up when the shaft
-   turns the FORWARD way.
+   turns the FORWARD way (the arrow you drew in stage 1).
 2. Touch each printed contact closed with a finger: its entry in `sw` changes and changes back when released.
 3. Load cell (if fitted): press it, `tension_n` rises.
 
@@ -496,8 +524,8 @@ Springs off, no tether, no dart. Run CALIBRATION.md first (zeros and drum positi
    big gear re-engages: 10 cycles.
 4. REEL mode: `wrap`, then `unwrap`: 10 cycles. Then `reel` at duty 0.3 for 3 s with no line.
 5. Send `estop` in the middle of each kind of move once. The wiper stops at once and the drum goes to NEUTRAL.
-6. Fault test: unplug the AS5600 cable while idle (battery can stay in for this one, nothing moves).
-   The base reports `ANGLE_SENSOR` and refuses to move. Plug back in, `clear`.
+6. Fault test: send `estop`, then unplug the AS5600 STEMMA cable (it is 3.3 V from USB; the motor branch is not
+   touched). The base reports `ANGLE_SENSOR` and refuses to move. Plug it back in, `clear`.
 
 Pass: all cycles complete with no fault, no clicking or skipping teeth, no part warm to the touch, the drum never
 stops BETWEEN positions.
@@ -537,7 +565,7 @@ barrel against the dart.
 ### Stage 6. Tether on
 
 Tie the line through the dummy's tail cap holes. Line routed as in the base assembly steps (it bypasses the
-capstan for launch). Storage reel brake set: pull the line by hand with the luggage scale, 50 to 75 g (G4).
+capstan for launch). Storage reel brake set with hanging weights (G4): 50 g does not pull line off, 75 g does.
 
 1. Fire at 30 degrees.
 2. Check the line paid out with no loops or overrun on the reel.
@@ -645,8 +673,8 @@ photos in `originals/measure_2026-11/` so the numbers can be checked later.
 | A3 | Shaft end thread and length | Thread a nut you know (M6, M8) onto it. Caliper the shaft length from the housing face to the tip | `WIPER.shaft_thread`, `WIPER.shaft_len` | Wiper shaft coupler |
 | A4 | Mount hole pattern | Lay the motor face down on paper, press so the holes mark it (or trace with a pencil). Then caliper each hole centre from the shaft centre along two square directions and each hole diameter. Photo of the paper with a ruler | `WIPER.mount_holes` as (x, y, dia) from the shaft axis | Motor adapter plate (frame parts) |
 | A5 | Housing size | Caliper the gearbox box (length, width, height) and the motor can (diameter, length), and how far the shaft sits from each edge | `WIPER.body_box` | Frame cheeks and guard if they clash (the audit says) |
-| A6 | Free speed and free current at 12 V | Motor clamped, nothing on the shaft, LiPo through lead #2 (20 A fuse). Meter on the 10 A range in series with the red wire. Tape flag on the shaft: count turns for 30 s, rpm = turns x 2. Note the amps | `WIPER.n0_rpm`, `WIPER.free_a` | Nothing; re-run physics |
-| A7 | Stall current and stall torque | Do NOT use the meter: stall is about 18 A, over the meter's 10 A range. After base calibration (firmware/base/CALIBRATION.md), use the `amps` telemetry. Torque: clamp a 300 mm bar on the shaft, hook the luggage scale at the end, jog the motor for at most 2 s at full duty and read the peak. Torque N m = kg x 9.81 x 0.30 | `WIPER.stall_a`, `WIPER.stall_nm` | Nothing; re-run physics and the ballistics table |
+| A6 | Free speed and free current | After the first power-on and the current-sense calibration (G1, CALIBRATION.md). Motor clamped, nothing on the shaft. Send a 35 s `jog`. Tape flag on the shaft: count turns for 30 s, rpm = turns x 2. Read `amps` and `vbat` from telemetry. (Not with the meter in series: the start current can pass 10 A and blow the meter fuse) | `WIPER.n0_rpm`, `WIPER.free_a` | Nothing; re-run physics |
+| A7 | Stall current and stall torque | Do NOT use the meter: stall is about 18 A, over the meter's 10 A range. After base calibration (firmware/base/CALIBRATION.md), use the `amps` telemetry. Torque: clamp a 300 mm bar on the shaft, hook the luggage scale at the end, scale pulling at 90 degrees to the bar, scale anchored to the bench. Jog for at most 2 s at full duty and read the peak (the firmware stall trip may cut it early: note if it does). Torque N m = kg x 9.81 x 0.30 | `WIPER.stall_a`, `WIPER.stall_nm` | Nothing; re-run physics and the ballistics table |
 
 ### B. Launch springs (params.py `SPRING`, set `measured=True` when done)
 
@@ -656,7 +684,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | # | What | How | Changes | Reprint after |
 |---|---|---|---|---|
 | B1 | Free length L0 | Caliper the spring hook to hook (inside of the hooks), no load | `SPRING.free_len` | Nothing |
-| B2 | Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load. Do both springs. Never stretch a spring longer than L0 + 250 mm | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
+| B2 | Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load, but only if L3 - L0 is under 180 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
 | B3 | Wire and outside diameter | Caliper | `SPRING.wire`, `SPRING.od` | Spring anchors only if OD differs by more than 0.5 mm |
 
 ### C. Parts box: confirm you have these (no new purchases)
@@ -670,7 +698,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | C5 | DRV8833 #3 (freed from the dart by the new pin map) | drum N20 | |
 | C6 | 100 kg load cell + HX711 (August order) | optional line tension reading | Leave it out: the firmware uses wiper current instead |
 | C7 | Resistors: 3 x 10 k, 1 x 1 k, 1 x 680 R, 1 x 100 k, 1 x 22 k | BTS7960 enable pull-downs, DRV8833 SLP pull-down, IS divider, battery divider (firmware/base/WIRING.md) | Any value within 20 percent works for the pull-downs; tell fw-base if the dividers differ |
-| C8 | Spare XT60 plugs and a fuse holder, 14 AWG wire | XT60 Y harness | |
+| C8 | Spare XT60 plugs, 14 AWG wire, two small inline fuse holders with a 2 A and a 1 A fuse | XT60 Y harness; fuses for the MP1584 and RC832 taps | Without the small fuses: use 18 AWG for those taps and keep them under 10 cm |
 | C9 | Barrel plug 5.5 x 2.5 mm with lead | Jetson from the LiPo | Run the Jetson from its own supply on the bench; the rover needs one |
 | C10 | Yellow RCA lead | RC832 AV out to the DIGITNOW | |
 | C11 | USB data cable for the DevKitC, STEMMA QT to Dupont cable | base ESP32, AS5600 | |
@@ -681,7 +709,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | # | What | How | Changes |
 |---|---|---|---|
 | D1 | RC832 input voltage | Read the label or the listing. Most take 7 to 24 V. If it says 12 V only, it still runs from the 3S (12.6 V full) but report it | SYSTEM_ELECTRICAL.md run P8 |
-| D2 | Jetson DC input range | Label on the Jetson's own supply and the NVIDIA dev kit page. The 3S gives 9.9 to 12.6 V in use | SYSTEM_ELECTRICAL.md run P7 |
+| D2 | Jetson DC input range | Label on the Jetson's own supply and the NVIDIA dev kit page. The 3S gives 9.9 to 12.6 V in use and sags during a wiper stall. If the minimum is above 10 V, charge earlier (3.7 V per cell at rest) | SYSTEM_ELECTRICAL.md run P7 |
 | D3 | DRV8833 carrier pad names | Which pad is SLP / nSLEEP / EEP on your boards. Meter on beep: that pad must NOT beep to VM / VIN | firmware/base/WIRING.md |
 | D4 | DevKitC board version | Printed on the back (v1.0 or v1.1). The RGB LED pin differs; the firmware avoids both | Nothing |
 | D5 | Video standard | When the dart video shows on the Jetson, note the size (720 x 480 = NTSC, 720 x 576 = PAL) | jetson config |
@@ -712,8 +740,8 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | G1 | BTS7960 current sense scale | firmware/base/CALIBRATION.md (meter in series at low duty, compare with `amps`) | firmware `set` key (stored on the ESP32) |
 | G2 | Battery voltage reading | Meter on the LiPo vs `vbat` telemetry | firmware `set` key |
 | G3 | AS5600 zero and drum positions | firmware/base/CALIBRATION.md | stored on the ESP32 |
-| G4 | Storage reel payout drag | Pull the line off the reel slowly with the luggage scale in LAUNCH mode: set 0.5 to 0.75 N (50 to 75 g). Above 1 N costs range, 3 N ruins the flight | slip clutch preload (reel parts) |
-| G5 | Muzzle speed | Phone slow-motion video side-on with a tape measure in view: speed = distance moved / time between frames | physics model, ballistics table |
+| G4 | Storage reel payout drag | A luggage scale cannot read this low: use hanging weights in LAUNCH mode. Tie 50 g (coins in a bag, weighed) to the line end over the edge of the bench: it must NOT pull line off. 75 g must pull line off slowly. That is 0.5 to 0.75 N. Above 1 N costs range, 3 N ruins the flight | slip clutch preload (reel parts) |
+| G5 | Muzzle speed | Phone slow-motion video side-on, tape measure laid in the flight line (same distance from the phone as the dart). Count the frames the nose takes to cross 0.5 m; speed m/s = 0.5 x slow-motion fps (240 or 120) / frames | physics model, ballistics table |
 | G6 | Range at three pitches | Tape measure from the base to the dart at 3 pitches, no tether brake changes | ballistics table check (jetson uses it) |
 | G7 | Soil holding force | Dart anchored, luggage scale on the tether, pull slowly up to 50 N, note where it moves | reel tension limit |
 | G8 | Rail friction | Before the rail is mounted: lay the rail part on a flat board, dart in the cradle, lift one end of the board slowly until the dart slides; phone level app on the board. Friction = tan(angle) | physics (launch efficiency) |

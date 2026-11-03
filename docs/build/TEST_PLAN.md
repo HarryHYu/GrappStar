@@ -13,13 +13,15 @@ Safety for every stage:
 - Battery unplugged before you touch any wire.
 - Hands out of the gears, the drum and the rail whenever the battery is plugged in.
 - From stage 5 on: nobody in front of the rail, safety glasses on, the launch area clear for 30 m.
-- Keep a hand near the battery plug. Pulling it is the real emergency stop.
+- Emergency stop: `estop`. If that does not stop it, pull lead #2's XT60 (the wiper branch): both motors die and the
+  Jetson stays up. Keep a hand near it.
 
 ## Stage 0. Power-on (no motors attached)
 
-Follow SYSTEM_ELECTRICAL.md section 4, the first power-on sequence. Both motor leads disconnected from the drivers.
+Follow SYSTEM_ELECTRICAL.md section 4, the first power-on sequence, steps 1 to 9. Both motors stay disconnected
+from their drivers until step 10.
 
-Pass: no beeps on the short check, MP1584 #2 reads 9.0 V, the Jetson boots, `status` replies, `vbat` within 0.3 V
+Pass: no steady beeps on the short check, SLP reads open to VM, MP1584 #2 reads 9.0 V, the Jetson boots, `ping` replies, `vbat` within 0.3 V
 of the meter, `fault` is null.
 If it fails: a beep means a short (check the Y harness and the BTS7960 screws first). No reply: check the USB
 cable is a data cable and in the ESP32 port marked USB; see troubleshooting in the build guide.
@@ -29,9 +31,11 @@ cable is a data cable and in the ESP32 port marked USB; see troubleshooting in t
 Battery unplugged. Connect the wiper motor to BTS7960 M+ / M- and clamp the motor to the bench. Connect the drum
 N20 to DRV8833 #3 AOUT1 / AOUT2, loose on the bench. Battery in.
 
-1. `jog` wiper dir 1 for 300 ms, then dir -1. Mark which way the shaft turns for dir 1.
+1. `jog` wiper dir 1 for 300 ms, then dir -1. Mark with a pen arrow on the motor which way the shaft turns for
+   dir 1. That is FORWARD (the cock direction); CALIBRATION.md says how to make it match the base.
 2. `jog` drum dir 1 for 500 ms, then dir -1. Mark the shaft direction.
-3. Watch `amps` during each wiper jog.
+3. Do the current-sense calibration now (MEASURE_LIST G1, CALIBRATION.md), then watch `amps` during a 2 s wiper
+   jog.
 
 Pass: each motor turns both ways, stops when the jog ends, wiper free current about 1 to 3 A (A6 in
 MEASURE_LIST.md), no fault.
@@ -42,7 +46,7 @@ CALIBRATION.md: swap that motor's two leads (battery unplugged).
 ## Stage 2. Sensors alone
 
 1. Turn the main shaft (or the magnet) by hand: `wiper_deg` changes smoothly, no jumps, and goes up when the shaft
-   turns the FORWARD way.
+   turns the FORWARD way (the arrow you drew in stage 1).
 2. Touch each printed contact closed with a finger: its entry in `sw` changes and changes back when released.
 3. Load cell (if fitted): press it, `tension_n` rises.
 
@@ -61,8 +65,8 @@ Springs off, no tether, no dart. Run CALIBRATION.md first (zeros and drum positi
    big gear re-engages: 10 cycles.
 4. REEL mode: `wrap`, then `unwrap`: 10 cycles. Then `reel` at duty 0.3 for 3 s with no line.
 5. Send `estop` in the middle of each kind of move once. The wiper stops at once and the drum goes to NEUTRAL.
-6. Fault test: unplug the AS5600 cable while idle (battery can stay in for this one, nothing moves).
-   The base reports `ANGLE_SENSOR` and refuses to move. Plug back in, `clear`.
+6. Fault test: send `estop`, then unplug the AS5600 STEMMA cable (it is 3.3 V from USB; the motor branch is not
+   touched). The base reports `ANGLE_SENSOR` and refuses to move. Plug it back in, `clear`.
 
 Pass: all cycles complete with no fault, no clicking or skipping teeth, no part warm to the touch, the drum never
 stops BETWEEN positions.
@@ -102,7 +106,7 @@ barrel against the dart.
 ## Stage 6. Tether on
 
 Tie the line through the dummy's tail cap holes. Line routed as in the base assembly steps (it bypasses the
-capstan for launch). Storage reel brake set: pull the line by hand with the luggage scale, 50 to 75 g (G4).
+capstan for launch). Storage reel brake set with hanging weights (G4): 50 g does not pull line off, 75 g does.
 
 1. Fire at 30 degrees.
 2. Check the line paid out with no loops or overrun on the reel.

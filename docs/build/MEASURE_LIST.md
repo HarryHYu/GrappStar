@@ -16,8 +16,8 @@ photos in `originals/measure_2026-11/` so the numbers can be checked later.
 | A3 | Shaft end thread and length | Thread a nut you know (M6, M8) onto it. Caliper the shaft length from the housing face to the tip | `WIPER.shaft_thread`, `WIPER.shaft_len` | Wiper shaft coupler |
 | A4 | Mount hole pattern | Lay the motor face down on paper, press so the holes mark it (or trace with a pencil). Then caliper each hole centre from the shaft centre along two square directions and each hole diameter. Photo of the paper with a ruler | `WIPER.mount_holes` as (x, y, dia) from the shaft axis | Motor adapter plate (frame parts) |
 | A5 | Housing size | Caliper the gearbox box (length, width, height) and the motor can (diameter, length), and how far the shaft sits from each edge | `WIPER.body_box` | Frame cheeks and guard if they clash (the audit says) |
-| A6 | Free speed and free current at 12 V | Motor clamped, nothing on the shaft, LiPo through lead #2 (20 A fuse). Meter on the 10 A range in series with the red wire. Tape flag on the shaft: count turns for 30 s, rpm = turns x 2. Note the amps | `WIPER.n0_rpm`, `WIPER.free_a` | Nothing; re-run physics |
-| A7 | Stall current and stall torque | Do NOT use the meter: stall is about 18 A, over the meter's 10 A range. After base calibration (firmware/base/CALIBRATION.md), use the `amps` telemetry. Torque: clamp a 300 mm bar on the shaft, hook the luggage scale at the end, jog the motor for at most 2 s at full duty and read the peak. Torque N m = kg x 9.81 x 0.30 | `WIPER.stall_a`, `WIPER.stall_nm` | Nothing; re-run physics and the ballistics table |
+| A6 | Free speed and free current | After the first power-on and the current-sense calibration (G1, CALIBRATION.md). Motor clamped, nothing on the shaft. Send a 35 s `jog`. Tape flag on the shaft: count turns for 30 s, rpm = turns x 2. Read `amps` and `vbat` from telemetry. (Not with the meter in series: the start current can pass 10 A and blow the meter fuse) | `WIPER.n0_rpm`, `WIPER.free_a` | Nothing; re-run physics |
+| A7 | Stall current and stall torque | Do NOT use the meter: stall is about 18 A, over the meter's 10 A range. After base calibration (firmware/base/CALIBRATION.md), use the `amps` telemetry. Torque: clamp a 300 mm bar on the shaft, hook the luggage scale at the end, scale pulling at 90 degrees to the bar, scale anchored to the bench. Jog for at most 2 s at full duty and read the peak (the firmware stall trip may cut it early: note if it does). Torque N m = kg x 9.81 x 0.30 | `WIPER.stall_a`, `WIPER.stall_nm` | Nothing; re-run physics and the ballistics table |
 
 ## B. Launch springs (params.py `SPRING`, set `measured=True` when done)
 
@@ -27,7 +27,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | # | What | How | Changes | Reprint after |
 |---|---|---|---|---|
 | B1 | Free length L0 | Caliper the spring hook to hook (inside of the hooks), no load | `SPRING.free_len` | Nothing |
-| B2 | Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load. Do both springs. Never stretch a spring longer than L0 + 250 mm | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
+| B2 | Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load, but only if L3 - L0 is under 180 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
 | B3 | Wire and outside diameter | Caliper | `SPRING.wire`, `SPRING.od` | Spring anchors only if OD differs by more than 0.5 mm |
 
 ## C. Parts box: confirm you have these (no new purchases)
@@ -41,7 +41,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | C5 | DRV8833 #3 (freed from the dart by the new pin map) | drum N20 | |
 | C6 | 100 kg load cell + HX711 (August order) | optional line tension reading | Leave it out: the firmware uses wiper current instead |
 | C7 | Resistors: 3 x 10 k, 1 x 1 k, 1 x 680 R, 1 x 100 k, 1 x 22 k | BTS7960 enable pull-downs, DRV8833 SLP pull-down, IS divider, battery divider (firmware/base/WIRING.md) | Any value within 20 percent works for the pull-downs; tell fw-base if the dividers differ |
-| C8 | Spare XT60 plugs and a fuse holder, 14 AWG wire | XT60 Y harness | |
+| C8 | Spare XT60 plugs, 14 AWG wire, two small inline fuse holders with a 2 A and a 1 A fuse | XT60 Y harness; fuses for the MP1584 and RC832 taps | Without the small fuses: use 18 AWG for those taps and keep them under 10 cm |
 | C9 | Barrel plug 5.5 x 2.5 mm with lead | Jetson from the LiPo | Run the Jetson from its own supply on the bench; the rover needs one |
 | C10 | Yellow RCA lead | RC832 AV out to the DIGITNOW | |
 | C11 | USB data cable for the DevKitC, STEMMA QT to Dupont cable | base ESP32, AS5600 | |
@@ -52,7 +52,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | # | What | How | Changes |
 |---|---|---|---|
 | D1 | RC832 input voltage | Read the label or the listing. Most take 7 to 24 V. If it says 12 V only, it still runs from the 3S (12.6 V full) but report it | SYSTEM_ELECTRICAL.md run P8 |
-| D2 | Jetson DC input range | Label on the Jetson's own supply and the NVIDIA dev kit page. The 3S gives 9.9 to 12.6 V in use | SYSTEM_ELECTRICAL.md run P7 |
+| D2 | Jetson DC input range | Label on the Jetson's own supply and the NVIDIA dev kit page. The 3S gives 9.9 to 12.6 V in use and sags during a wiper stall. If the minimum is above 10 V, charge earlier (3.7 V per cell at rest) | SYSTEM_ELECTRICAL.md run P7 |
 | D3 | DRV8833 carrier pad names | Which pad is SLP / nSLEEP / EEP on your boards. Meter on beep: that pad must NOT beep to VM / VIN | firmware/base/WIRING.md |
 | D4 | DevKitC board version | Printed on the back (v1.0 or v1.1). The RGB LED pin differs; the firmware avoids both | Nothing |
 | D5 | Video standard | When the dart video shows on the Jetson, note the size (720 x 480 = NTSC, 720 x 576 = PAL) | jetson config |
@@ -83,8 +83,8 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | G1 | BTS7960 current sense scale | firmware/base/CALIBRATION.md (meter in series at low duty, compare with `amps`) | firmware `set` key (stored on the ESP32) |
 | G2 | Battery voltage reading | Meter on the LiPo vs `vbat` telemetry | firmware `set` key |
 | G3 | AS5600 zero and drum positions | firmware/base/CALIBRATION.md | stored on the ESP32 |
-| G4 | Storage reel payout drag | Pull the line off the reel slowly with the luggage scale in LAUNCH mode: set 0.5 to 0.75 N (50 to 75 g). Above 1 N costs range, 3 N ruins the flight | slip clutch preload (reel parts) |
-| G5 | Muzzle speed | Phone slow-motion video side-on with a tape measure in view: speed = distance moved / time between frames | physics model, ballistics table |
+| G4 | Storage reel payout drag | A luggage scale cannot read this low: use hanging weights in LAUNCH mode. Tie 50 g (coins in a bag, weighed) to the line end over the edge of the bench: it must NOT pull line off. 75 g must pull line off slowly. That is 0.5 to 0.75 N. Above 1 N costs range, 3 N ruins the flight | slip clutch preload (reel parts) |
+| G5 | Muzzle speed | Phone slow-motion video side-on, tape measure laid in the flight line (same distance from the phone as the dart). Count the frames the nose takes to cross 0.5 m; speed m/s = 0.5 x slow-motion fps (240 or 120) / frames | physics model, ballistics table |
 | G6 | Range at three pitches | Tape measure from the base to the dart at 3 pitches, no tether brake changes | ballistics table check (jetson uses it) |
 | G7 | Soil holding force | Dart anchored, luggage scale on the tether, pull slowly up to 50 N, note where it moves | reel tension limit |
 | G8 | Rail friction | Before the rail is mounted: lay the rail part on a flat board, dart in the cradle, lift one end of the board slowly until the dart slides; phone level app on the board. Friction = tan(angle) | physics (launch efficiency) |

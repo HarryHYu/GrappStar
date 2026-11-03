@@ -34,12 +34,12 @@ import urllib.request
 from typing import Any, Callable, Dict, List, Optional
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(HERE)
+ROOT = os.environ.get("SYSTEST_ROOT") or os.path.dirname(HERE)   # SYSTEST_ROOT: test another checkout (preview of branches)
 sys.path.insert(0, os.path.join(ROOT, "jetson"))
 
-SHIM = os.path.join(HERE, "build", "base_shim")
+SHIM = os.path.join(ROOT if os.environ.get("SYSTEST_ROOT") else HERE, "systest" if os.environ.get("SYSTEST_ROOT") else "", "build", "base_shim")
 DART_SIM = os.path.join(ROOT, "firmware", "dart", "sim", "kedge_sim")
-RUNS = os.path.join(HERE, "runs")
+RUNS = os.environ.get("SYSTEST_RUNS") or os.path.join(HERE, "runs")
 
 
 def free_port() -> int:
@@ -1316,6 +1316,10 @@ for _n in [n for n in list(SCENARIOS) if n.startswith("power_") or n in (
 # ====================================================================================================== main
 def build() -> None:
     src = os.path.join(HERE, "base_shim.cpp")
+    if os.environ.get("SYSTEST_ROOT"):          # the shim includes ../firmware/base relative to itself: copy it into the tree
+        os.makedirs(os.path.join(ROOT, "systest"), exist_ok=True)
+        shutil.copy(src, os.path.join(ROOT, "systest", "base_shim.cpp"))
+        src = os.path.join(ROOT, "systest", "base_shim.cpp")
     hdrs = [os.path.join(ROOT, "firmware", "base", "grappstar_base", f) for f in os.listdir(os.path.join(ROOT, "firmware", "base", "grappstar_base"))]
     hdrs.append(os.path.join(ROOT, "firmware", "base", "test", "sim.h"))
     if not os.path.exists(SHIM) or any(os.path.getmtime(h) > os.path.getmtime(SHIM) for h in hdrs + [src]):

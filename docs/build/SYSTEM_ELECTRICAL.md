@@ -81,7 +81,9 @@ Gauges assume runs under 0.5 m. 14 AWG carries the 18 A wiper stall; 18 AWG is f
 Before you start: the pull-down and divider resistors are fitted as in firmware/base/WIRING.md (10 k from R_EN to
 GND, 10 k from L_EN to GND, the IS divider, the battery divider). Both motors are
 disconnected from their drivers for this first power-on, and the DRV8833 VM wire (P5) is soldered to the DRV8833
-but NOT yet to MP1584 #2 OUT (tape its free end). Multimeter ready.
+but NOT yet to MP1584 #2 OUT (tape its free end). If the base already passed firmware/base/WIRING.md Part D and
+BENCH_TEST.md on the bench, the buck is already set and the motors may stay connected (nothing moves without a
+command): in step 5 only check the buck reads 9.0 V (do not turn the screw), and skip steps 6 and 10. Multimeter ready.
 
 1. Battery unplugged. Jetson barrel plug and ESP32 USB cable unplugged. Pull both fuses (20 A and 10 A) and both
    small inline fuses.
@@ -98,8 +100,8 @@ but NOT yet to MP1584 #2 OUT (tape its free end). Multimeter ready.
    - MP1584 #2 OUT: turn the brass screw until it reads 9.0 V.
 6. Unplug the battery. Connect the DRV8833 VM wire (P5) to MP1584 #2 OUT.
 7. Battery unplugged. Fit the 10 A fuse and the 1 A inline fuse. Plug the battery in. Meter on the barrel plug
-   (before it goes into the Jetson): centre pin positive, battery voltage. Then plug the barrel into the Jetson: it
-   boots (green LED). The RC832 lights.
+   (not in the Jetson yet): centre pin positive, battery voltage. Unplug the battery. Push the barrel into the
+   Jetson. Plug the battery in: the Jetson boots (green LED), the RC832 lights.
 8. Plug the ESP32 USB cable into the Jetson (USB is 5 V and safe to plug live). The ESP32 power LED lights.
 9. On the Jetson, in `~/GrappStar/jetson`: `python3 -m grappstar base ping` (expect `"ok": true`), then
    `python3 -m grappstar base monitor`. Check `vbat` in telemetry matches the meter within 0.3 V.

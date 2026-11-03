@@ -33,7 +33,9 @@ Battery unplugged. Connect the wiper motor to BTS7960 M+ / M- and clamp the moto
 N20 to DRV8833 #3 AOUT1 / AOUT2, loose on the bench. Battery in.
 
 1. `jog` wiper dir 1 for 300 ms, then dir -1. Mark with a pen arrow on the motor which way the shaft turns for
-   dir 1. That is FORWARD (the cock direction); CALIBRATION.md says how to make it match the base.
+   dir 1. That is FORWARD: on the built base it is the direction that draws the carriage back (cocks). Before the
+   base exists it is only a label; once assembled, a short forward jog in LAUNCH must move the carriage BACK. If it
+   moves forward, swap the wiper leads at M+ / M- (battery unplugged).
 2. `jog` drum dir 1 for 500 ms, then dir -1. Mark the shaft direction.
 3. Do the current-sense calibration now (MEASURE_LIST G1, CALIBRATION.md), then watch `amps` during a 1.5 s wiper
    jog (jogs are capped at 1.5 s; sending the same jog again extends it).
@@ -41,15 +43,15 @@ N20 to DRV8833 #3 AOUT1 / AOUT2, loose on the bench. Battery in.
 Pass: each motor turns both ways, stops when the jog ends, wiper free current about 1 to 3 A (A6 in
 MEASURE_LIST.md), no fault.
 If it fails: no movement on the wiper: check R_EN / L_EN wiring and the 20 A fuse. Wiper turns only one way: one of
-RPWM / LPWM is not connected. Drum does nothing: check 9.0 V on VM and the AIN1 / AIN2 / GND jumpers. If it still does nothing, the board's
-SLP may not be pulled high on its own (some non-Pololu boards): battery unplugged, add a wire from DRV8833 SLP to
-the ESP32 3V3 pin (never to VM). Wrong direction against
-CALIBRATION.md: swap that motor's two leads (battery unplugged).
+RPWM / LPWM is not connected. Drum does nothing: check 9.0 V on VM and the AIN1 / AIN2 / GND jumpers. If it still does nothing, check which board
+it is (MEASURE_LIST D3): a board that does not pull SLP high by itself cannot be used as wired (decision D9); write
+it in the test log. Wrong direction against CALIBRATION.md: swap that motor's two leads (battery unplugged).
 
 ## Stage 2. Sensors alone
 
-1. Turn the main shaft (or the magnet) by hand: `wiper_deg` changes smoothly, no jumps, and goes up when the shaft
-   turns the FORWARD way (the arrow you drew in stage 1).
+1. Battery unplugged, ESP32 on USB only. Before the magnet holder is on the motor, turn the magnet by hand over the
+   chip (the wiper worm locks its own shaft, so on the built base use short `jog`s instead): `wiper_deg` changes
+   smoothly, no jumps, and goes up for the FORWARD way (the arrow you drew in stage 1).
 2. Touch each printed contact closed with a finger: its entry in `sw` changes and changes back when released.
 3. Load cell (if fitted): press it, `tension_n` rises.
 
@@ -59,20 +61,24 @@ check the GND wire and that the screw head really touches the nut.
 
 ## Stage 3. Base assembled, dry cycles, NO springs, no line
 
-Springs off, no tether, no dart. Run CALIBRATION.md first (zeros and drum positions).
+Springs off, no tether, no dart. Run CALIBRATION.md first (zeros and drum positions; part (f) waits for stage 4).
+With no dart, `arm` refuses (`NOT_SEATED`): for this stage and stage 4 send
+`{"cmd":"set","key":"require_seated","val":false}`, and set it back to `true` before stage 5.
 
-1. `mode` LAUNCH, NEUTRAL, LAUNCH: 20 rounds. Each change ends with the right `drum_pos`. (The drum order is
-   LAUNCH, NEUTRAL, WRAP, REEL: REEL is only reachable with the wraps on, step 4.)
+1. `mode` LAUNCH, NEUTRAL, LAUNCH: 20 rounds, then every other mode the firmware offers, in the order PROTOCOL.md
+   gives. Each change ends with the right `drum_pos`.
 2. `aim` 15, 30, 45, then the minimum and maximum pitch: 5 rounds. Rail reaches each angle within 1 degree
    (`pitch_deg`) and holds with the motor off.
 3. Cock and fire with no springs: `arm`, then `fire` with the token. The carriage travels back, releases, and the
    big gear re-engages: 10 cycles.
-4. Wrap and unwrap, with a spare line through the capstan path and slack: from NEUTRAL, `wrap`, then into REEL, then
-   `unwrap` back to NEUTRAL, in the command order PROTOCOL.md gives: 10 cycles. Once wrapped and in REEL, `reel` at
-   duty 0.3 for 3 s.
-5. Send `estop` in the middle of each kind of move once. The wiper stops at once and the drum goes to NEUTRAL.
-6. Fault test: send `estop`, then unplug the AS5600 STEMMA cable (it is 3.3 V from USB; the motor branch is not
-   touched). The base reports `ANGLE_SENSOR` and refuses to move. Plug it back in, `clear`.
+4. Wrap and unwrap, with a spare line through the capstan path and slack: `wrap`, get into REEL, then `unwrap` and
+   back to NEUTRAL, using the order in PROTOCOL.md (the `wrap`, `unwrap` and `mode` rows; the firmware tells you
+   with `NOT_IN_REEL` or `WRAPS_ON` if the order is wrong): 10 cycles. Once wrapped and in REEL, send `reel` with
+   duty 0.3, wait 3 s, send `stop`.
+5. Send `estop` in the middle of each kind of move once. The wiper stops at once and the drum goes to NEUTRAL,
+   except when the launcher is cocked or the wraps are on: then the drum holds (`DRUM_HELD`), which is correct.
+6. Fault test: with nothing moving, slide the AS5600 board away from its magnet (do not unplug anything). The base
+   reports the magnet missing and refuses to move. Put it back, `clear`.
 
 Pass: all cycles complete with no fault, no clicking or skipping teeth, no part warm to the touch, the drum never
 stops BETWEEN positions.
@@ -116,9 +122,9 @@ Big range loss with clean payout: the line catches somewhere; watch the slow-mot
 
 ## Stage 6. Reel cycle with the dummy
 
-1. After a stage 5 shot: `mode` NEUTRAL, `wrap`, into REEL (order as in PROTOCOL.md), then `reel` with `until`
+1. After a stage 5 shot: `wrap` and get into REEL (order as in PROTOCOL.md), then `reel` with `until`
    seated until `SW_SEATED` closes or the dummy is back near the base.
-2. `unwrap` back to NEUTRAL, `mode` LAUNCH. Check the line runs on the launch path again (not round the capstan).
+2. `unwrap`, then `mode` NEUTRAL and `mode` LAUNCH. Check the line runs on the launch path again (not round the capstan).
 3. Fire again at 30 degrees.
 
 Pass: the wrap lays on the capstan, reel-in works, unwrap returns the line to the launch path, and the next shot

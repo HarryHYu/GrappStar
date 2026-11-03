@@ -48,7 +48,8 @@ the big base parts until the coupons pass.
 ## Stage 1. Power-on (no motors attached)
 
 Follow SYSTEM_ELECTRICAL.md section 4, the first power-on sequence, steps 1 to 9. Both motors stay disconnected
-from their drivers until step 10.
+from their drivers until step 10, unless the base already passed WIRING.md Part D on the bench (then see the note at
+the top of that sequence).
 
 Pass: no steady beeps on the short check, MP1584 #2 reads 9.0 V, the Jetson boots, `ping` replies, `vbat` within 0.3 V
 of the meter, `fault` is null.
@@ -209,12 +210,12 @@ Rover chocked, base wrapped and in REEL (stage 7 table), the line end tied to th
 and tension calibrated (CALIBRATION.md (d) and (f)).
 
 1. First pull: `{"cmd":"reel","duty":0.5,"max_n":30,"until":"tension"}`. Slacken (below), then the real one:
-   `{"cmd":"reel","duty":0.5,"max_n":50,"until":"tension"}`.
+   `{"cmd":"reel","duty":0.5,"max_n":40,"until":"tension"}` (40 N: the first-tows limit, decision D46).
 2. Watch the 7 wraps on the capstan the whole time: they must not walk along the capstan, and the line must not get
    trapped in the gap at the capstan skirt.
-3. Read the scale when the base holds (`LIMIT`): it should read about 50 N (within 10 N).
+3. Read the scale when the base holds (`LIMIT`): it should read 35 to 45 N.
 
-Pass: the wraps stay in place, no line trapped, the base holds at about 50 N.
+Pass: the wraps stay in place, no line trapped, the base holds at 35 to 45 N.
 To slacken afterwards (and if it fails: `estop` first): the
 capstan cannot let line out, so walk the scale end slowly toward the base, standing beside the line. If it failed: wraps walking or trapped line: check the
 wrap cup position and the capstan skirt; wrong tension: redo CALIBRATION.md (f).

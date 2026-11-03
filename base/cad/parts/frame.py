@@ -350,7 +350,7 @@ def build(P):
             feats[s].append(Point(sh["origin"][0], sh["origin"][2]).buffer(b["half"] * math.sqrt(2) + fw["cheek_margin"], 64))
         if C["main"] in lay:
             mo = lay[C["main"]]["origin"]
-            r_ring = MOT.RING_R + U.INS_D / 2 + fw["cheek_margin"] + 2
+            r_ring = MOT.HUB_R + fw["cheek_margin"] + 2
             if s == ms:
                 feats[s].append(Point(mo[0], mo[2]).buffer(r_ring, 64))
             # AS5600 bracket ring on the far cheek: the main block is already there
@@ -363,7 +363,7 @@ def build(P):
         poly = poly.intersection(sbox(-1e4, 0.0, 1e4, 1e4))
         if C["v1"] and C["main"] in lay:      # a plate from the deck up past the main axis, carved round the others
             mo = lay[C["main"]]["origin"]
-            top = mo[2] + (MOT.RING_R + 14.0 if s == ms else fw["seat_d"] / 2 + 22.0)
+            top = mo[2] + (MOT.HUB_R + 10.0 if s == ms else fw["seat_d"] / 2 + 22.0)
             poly = unary_union([poly, sbox(mo[0] - fw["plate_back"], 0.0, mo[0] + fw["plate_front"], top)])
             poly = carve_plate(poly, C, s, info, (mo[0], mo[2]))
         outlines[s] = poly
@@ -466,6 +466,8 @@ def build(P):
         if s == ms and C["main"] in lay:
             mo = lay[C["main"]]["origin"]
             cuts.append(prim.cylY(MOT.CHEEK_HOLE_D / 2, min(yo, C["y_in"][s]) - 1, max(yo, C["y_in"][s]) + 1, mo[0], mo[2]))
+            cuts.append(prim.cylY(MOT.HUB_R + 0.3, min(yo, yo - s * MOT.SPIGOT_H) - 0.01, max(yo, yo - s * MOT.SPIGOT_H) + 0.01,
+                                  mo[0], mo[2]))       # counterbore that keys the adapter hub
             for i in range(MOT.RING_N):
                 rx, rz = MOT.ring_xy(i)
                 # adapter frame x -> world -x (x_hint), y -> world z (for motor_side -1); mirror for +1
@@ -624,6 +626,13 @@ def build(P):
                     for (hx, hz) in a5["cheek_inserts"]:
                         p.solid = p.solid - yfeat(U.insert_hole(0, 0, 0.0), hx, hz, C["y_out"][s5], -s5)
 
+    # ---- rover-side kit (D18): camera mount, RC832 holder, cable anchors
+    if C["v1"]:
+        from . import _frame_kit as KIT
+        kparts, kholes = KIT.build(P, C, info)
+        parts += kparts
+        info["deck_holes"] += kholes
+
     # ---- deck: footprint = hull of everything standing on it, plus margin, as a rounded rectangle
     foot_pts = []
     for p in parts:
@@ -777,6 +786,8 @@ def allowed(P):
         Allow("frame_motor_saddle", "frame_deck*", "saddle stands on the deck", max_vol=1.0),
         Allow("frame_deck*", "frame_deck*", "dovetail seam", max_vol=1.0),
         Allow("frame_cheek_*", "frame_cheek_*", "cheek dovetail seam", max_vol=1.0),
+        Allow("frame_rc832", "frame_rc832_holder", "receiver in its slot", max_vol=1.0),
+        Allow("frame_kiyo_x", "frame_camera_mount", "camera clip on the edge plate", max_vol=50.0),
         Allow("frame_guard_band_*", "frame_cheek_*", "band lugs bear on the cheek inner faces", max_vol=1.0),
         Allow("frame_guard_band_*", "frame_guard_band_*", "band segments butt", max_vol=1.0),
     ]
@@ -863,9 +874,11 @@ def steps(P):
                        parts=["frame_motor_adapter", "frame_wiper_motor", "frame_wiper_shaft"]))
         st.append(dict(title="Motor onto the cheek",
                        text="Before any shaft goes in: offer the motor and adapter to the motor-side cheek, spigot into "
-                            "the 44 mm hole. From INSIDE the cheek box, 6 x M3 x 12 through the cheek into the inserts in "
-                            "the adapter hub. Strap the can into the saddle (cable tie or hose clamp), saddle "
-                            "4 x M3 x 10 into the deck.",
+                            "the plate counterbore. From the frame side of the plate, M3 x 10 through the plate into every "
+                            "insert in the adapter hub (%d of the 12 holes line up with inserts; the others stay empty)."
+                            % len(MOT.ring_used(info["cfg"]["wiper"]))
+                            + (" Strap the can into the saddle (cable tie or hose clamp), saddle 4 x M3 x 10 into the deck."
+                               if has("frame_motor_saddle") else ""),
                        parts=["frame_motor_adapter"] + has("frame_motor_saddle")))
     st += [
         dict(title="Shafts and trains (other subsystems)",

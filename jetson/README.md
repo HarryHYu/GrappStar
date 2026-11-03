@@ -92,6 +92,7 @@ It asks for your password (sudo). What it does, in order:
 4. Adds you to the groups `dialout` (serial ports) and `video` (cameras).
 5. Installs `setup/99-grappstar.rules` so the devices get fixed names:
    `/dev/grappstar-base`, `/dev/grappstar-base-uart`, `/dev/grappstar-rovercam`, `/dev/grappstar-dartcam`.
+   `/dev/grappstar-base` needs the base's USB serial number: step 4 sets it. Until then that name is missing.
 6. Runs `setup/check_env.py` and prints a report.
 
 Then **log out and back in** (or `sudo reboot`) so the new groups work.
@@ -152,20 +153,43 @@ python3 -m grappstar base ping --base /dev/pts/5    # terminal 2, using the path
 ## 4. Plug in the base
 
 **Battery unplugged.** For this step the base runs from USB only: the Jetson's USB powers the DevKitC. Do not connect
-the 3S LiPo, the BTS7960 or the motors yet.
+the 3S LiPo, the BTS7960 or the motors yet. Any time you change wiring, unplug the battery first.
 
-1. Battery unplugged. Plug a USB cable from the Jetson into the DevKitC port marked **USB** (the ESP32-S3 native
-   port), not the one marked UART or COM.
-2. Check the name appeared:
+Why this step matters: the base (ESP32-S3 DevKitC) and the dart (XIAO ESP32S3) show up on USB with the same ID,
+303a:1001. To tell them apart, the Jetson remembers the base's own USB serial number (each board has a different
+one, it looks like `F4:12:FA:12:34:56`). Then `/dev/grappstar-base` only ever points at the base.
+
+1. Battery unplugged. Unplug the dart's USB cable from the Jetson if it is plugged in. Only the base may be plugged
+   in by USB for this step.
+2. Plug a USB cable from the Jetson into the DevKitC port marked **USB** (the ESP32-S3 native port), not the one
+   marked UART or COM. Check it is seen:
+
+   ```bash
+   lsusb                              # expect a line with 303a:1001 (Espressif)
+   ls /dev/ttyACM*                    # expect /dev/ttyACM0
+   ```
+
+3. Save the base's serial number:
+
+   ```bash
+   bash setup/install.sh --no-apt
+   ```
+
+   It prints `ESP32-S3 board on /dev/ttyACM0, serial ...` and asks "Is only the base plugged in?". Answer `y`.
+   It writes the serial into the installed rule and prints `base serial ...`.
+   If it says more than one board is plugged in, unplug the dart and run it again.
+   By hand instead: `udevadm info -q property -n /dev/ttyACM0 | grep ID_SERIAL_SHORT`, then
+   `bash setup/install.sh --no-apt --base-serial <that value>`. Running install.sh again later keeps the saved
+   serial. New base board? Run it again with `--base-serial <new value>`.
+4. Unplug the base's USB cable and plug it back in. Check the name appeared:
 
    ```bash
    ls -l /dev/grappstar-base
-   lsusb                              # expect a line with 303a:1001 (Espressif)
    ```
 
    `/dev/grappstar-base -> ttyACM0` means it worked. If you used the UART port instead you get
    `/dev/grappstar-base-uart`; move the cable to the USB port.
-3. Talk to it:
+5. Talk to it:
 
    ```bash
    sudo systemctl stop grappstar       # only if you installed the service: it holds the port and the cameras
@@ -174,8 +198,12 @@ the 3S LiPo, the BTS7960 or the motors yet.
    python3 -m grappstar base monitor   # telemetry lines about 10 per second, Ctrl+C stops
    ```
 
-4. Only after this works, and following the base build guide: battery unplugged, wire the power side, then
+6. Only after this works, and following the base build guide: battery unplugged, wire the power side, then
    connect the battery last.
+
+Now the dart may be plugged into the Jetson by USB too: it never gets the base's name. As a second guard, the
+software only treats a port as the base once a valid base reply (a C1 JSON line) arrives, so it never sends base
+commands to the dart.
 
 The base firmware must use the native USB CDC (Arduino IDE: "USB CDC On Boot: Enabled", "USB Mode: Hardware CDC and
 JTAG"). The base talks JSON lines (contract C1, `firmware/base/PROTOCOL.md`).
@@ -311,9 +339,12 @@ read it, so you do not have to type options. Options typed on the command line s
 2. Start the hotspot (it also starts at every boot from now on):
 
    ```bash
-   bash setup/hotspot.sh up                 # picks the free WiFi interface
+   bash setup/hotspot.sh up                 # picks the USB WiFi adapter
    bash setup/hotspot.sh up wlx00c0ca123456 # or name it
    ```
+
+   It only ever uses a USB adapter. It refuses the built-in WiFi and the interface the `kedge` connection uses,
+   and says "No USB WiFi adapter found" if none is plugged in.
 
    This runs `nmcli device wifi hotspot ifname <adapter> con-name grappstar-hotspot ssid GRAPPSTAR-ROVER
    password grappstar`.
@@ -517,7 +548,7 @@ Before the first real launch:
 
 | Problem | Likely cause | Fix |
 |---|---|---|
-| No `/dev/grappstar-base` | rules not installed, cable in the UART port, charge-only cable, or a different USB ID | `ls /dev/ttyACM* /dev/ttyUSB*`, `lsusb` (expect 303a:1001). Use the DevKitC port marked USB and a data cable. Rerun `bash setup/install.sh --no-apt` and replug. If lsusb shows another ID, edit `setup/99-grappstar.rules` |
+| No `/dev/grappstar-base` | base serial not saved yet, rules not installed, cable in the UART port, charge-only cable, or a different USB ID | `ls /dev/ttyACM* /dev/ttyUSB*`, `lsusb` (expect 303a:1001). Use the DevKitC port marked USB and a data cable. With only the base plugged in, rerun `bash setup/install.sh --no-apt`, answer `y`, and replug (step 4). If lsusb shows another ID, edit `setup/99-grappstar.rules` |
 | Only `/dev/grappstar-base-uart` | cable in the UART/COM port | move it to the port marked USB |
 | `/dev/ttyUSB0` appears then vanishes (CH340) | brltty grabs it | `bash setup/install.sh --remove-brltty` |
 | `Permission denied` on the serial port or camera | not in groups dialout or video yet | `groups` should list both. If not, `bash setup/install.sh --no-apt`, then log out and in (or reboot) |

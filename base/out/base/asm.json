@@ -1,6 +1,6 @@
 {
  "version": 1,
- "created": "2026-11-03 15:57",
+ "created": "2026-11-03 20:48",
  "subsystems": [
   "drum",
   "frame",
@@ -17822,6 +17822,126 @@
  ],
  "steps": [
   {
+   "title": "Drum: bracket A, axle, drum A",
+   "stage": 130,
+   "text": "Bolt bracket A to the deck (2 x M3 x 12). Press the drum axle into it (flat facing forward). Slide drum A onto the axle, gear first, and turn it so the gap in its lock ring faces back toward the idler position (about drum 180 on the pointer). The shift rail goes in after the idler.",
+   "parts": [
+    "drum_bracket_a",
+    "drum_axle",
+    "drum_drum_a"
+   ],
+   "subsystem": "drum"
+  },
+  {
+   "title": "Drum: wrap idler",
+   "stage": 140,
+   "text": "Push the idler output gear onto the idler shaft flat from the long end. Slide idler post 2 onto the short journal and idler post 1 onto the long journal (the thick middle of the shaft sits between the posts and locates it). Fit this before cad-reel's bus gear, SW_ARM bracket and cup gear. Lower the posts with the idler onto the deck about 4 mm to the back (-x) of their place, then slide them forward so the small pinion meshes the drum A segment teeth, and bolt them down (2 x M3 x 12 each; the front screw of post 2 needs the short arm of the hex key). Turn drum A back to LAUNCH (mark L at the top): the flat-sided lock cam must sit in the drum lock ring and the idler can no longer turn by hand.",
+   "parts": [
+    "drum_idler_gear",
+    "drum_idler",
+    "drum_bracket_idler",
+    "drum_bracket_idler2"
+   ],
+   "subsystem": "drum"
+  },
+  {
+   "title": "Drum: shift rail",
+   "stage": 145,
+   "text": "Slide the shift rail in from the outboard end, over the idler posts, and press it into bracket A (flat facing forward).",
+   "parts": [
+    "drum_rail"
+   ],
+   "subsystem": "drum"
+  },
+  {
+   "title": "Main shaft: coupler and limiter",
+   "stage": 146,
+   "text": "Push the coupler hub onto the wiper output shaft (flats in line) until it stops on the end of the flats; its lower end goes into the puck bore, just clear of the motor's output boss. Drop the M8 nut into the hub pocket onto the thread (it sits about 8 mm down the pocket) and tighten it with a 13 mm socket (1/4 inch drive). Slide the outer coupler over the hub, line up the holes, push a shear pin in (head outside, its flat facing the outboard end) and put a piece of tape round the coupler over the head. Print the pins lying on their flat (D44: shear across the layers). Keep the 5 spare pins with the base. A broken pin stub comes out with an M3 screw turned into it. Then slide the REEL gear onto the coupler journal (plain face first) and screw the retaining washer to the journal end (2 x M3 x 6): the gear must spin free (it cannot go on once the dog post is fitted).",
+   "parts": [
+    "drum_coupler_hub",
+    "drum_coupler",
+    "drum_shear_pin",
+    "drum_gear_reel",
+    "drum_reel_washer"
+   ],
+   "subsystem": "drum"
+  },
+  {
+   "title": "Main shaft: index contact",
+   "stage": 147,
+   "text": "Press an M3 nut into the index block pocket, screw the index lever foot to the block (M3 x 12), thread an M3 x 6 into the lever boss, head toward the nut. Screw the block to the inner face of the strut of idler post 2 (2 x M3 x 12 from the far side of the post into the block), with the nub on the coupler cam. Set the gap so the screw head touches the nut near the top of a bump (about 1.5 mm on a low part). Battery unplugged: nut to GND, screw to SW_INDEX.",
+   "parts": [
+    "drum_index_block",
+    "drum_index_lever"
+   ],
+   "subsystem": "drum"
+  },
+  {
+   "title": "Drum: fork and dog contacts",
+   "stage": 160,
+   "text": "Press an M3 nut into the hex hole of the yoke tab. Thread an M3 x 8 into each dog post boss first, heads toward each other (M3 x 8: a longer screw reaches the REEL gear; no room for a driver later). Turn the drum to about 180. Slide the fork sleeve onto the rail, yoke facing the main shaft, and swing it about 20 deg pin end away from the drum while the dog post slides on (its bar reaching back over the yoke tab; fit it before cad-reel's pulley 2). Grease the rail. Tighten the dog post clamp screw (M3 x 8, tapped) onto the rail flat. Battery unplugged: nut wire to GND, REEL side screw to SW_DOG_R, LAUNCH side screw to SW_DOG_L.",
+   "parts": [
+    "drum_dog_post",
+    "drum_fork"
+   ],
+   "subsystem": "drum"
+  },
+  {
+   "title": "Drum: drum B, hand lever, bracket B",
+   "stage": 161,
+   "text": "Swing the fork up on the rail, slide drum B onto the axle (hex socket over the drum A spigot; it fits one way only, cut corner to filled corner), slide the fork to its middle position and swing it down so its pin drops into the groove (drum near 180). Slide the hand lever onto the hex boss. Press bracket B onto the axle and rail ends and bolt it down (2 x M3 x 12). The drum turns by hand with about 0.6 mm end play.",
+   "parts": [
+    "drum_drum_b",
+    "drum_hand_lever",
+    "drum_bracket_b"
+   ],
+   "subsystem": "drum"
+  },
+  {
+   "title": "Drum: N20",
+   "stage": 162,
+   "text": "Press the pinion onto the N20 output shaft (flat to flat) leaving 1.5 mm of shaft below it (that end runs in the bracket A ear slot). Slide the N20 into the cradle from the open end, fit the end plate (2 x M3 x 8). Press an M3 nut into the pocket in the bracket A ear front face, wire along its groove. Screw the cradle to the ear from the cradle side: pivot screw M3 x 12 through the round hole, swing screw M3 x 12 through the arc slot at its full-mesh end (the slot only lets the cradle swing out), both tapped into the ear. Turn the SW_N20 screw (M3 x 8, tapped in the cradle plate) in until its tip just touches the nut. Battery unplugged: nut to GND, screw to SW_N20.",
+   "parts": [
+    "drum_n20_pinion",
+    "drum_n20",
+    "drum_n20_cradle",
+    "drum_n20_strap"
+   ],
+   "subsystem": "drum"
+  },
+  {
+   "title": "Drum: code switches",
+   "stage": 163,
+   "text": "Press an M3 nut into each of the 3 front pockets of the switch block and bolt it to the deck (2 x M3 x 12). Screw each lever foot to the block (M3 x 12), nub on its band. Thread an M3 x 6 into each lever boss, head toward the nut, so the head touches the nut near the top of a bump (gap about 1.8 mm with the nub low). Battery unplugged: nuts to GND, screws to SW_DRUM_A (nearest the motor), SW_DRUM_B, SW_DRUM_C.",
+   "parts": [
+    "drum_switch_block",
+    "drum_sw_lever_0",
+    "drum_sw_lever_1",
+    "drum_sw_lever_2"
+   ],
+   "subsystem": "drum"
+  },
+  {
+   "title": "Main shaft: stack",
+   "stage": 170,
+   "text": "Slide the collar onto the main shaft from the spigot end. Lower the shaft with its hex end outboard of the REEL gear dogs (beyond s 70) so the collar groove drops between the fork pads, then push it about 42 mm into the coupler socket. The shaft is held endwise later by the launch sleeve and the magnet cap.",
+   "parts": [
+    "drum_shaft",
+    "drum_collar"
+   ],
+   "subsystem": "drum"
+  },
+  {
+   "title": "Main shaft: LAUNCH dog ring and magnet cap",
+   "stage": 171,
+   "text": "Fit the LAUNCH dog ring on the launch sleeve flange (sleeve lugs in the ring slots, 3 x M3 x 10 from the sleeve side into the ring) before the launch sleeve goes on the spigot (launcher steps). After the launcher: glue the AS5600 magnet into the cap, push the cap on the spigot end (flat to flat) and fit the M3 x 6 onto the flat. Hand use of the drum: battery unplugged, slacken the line, loosen the swing screw, swing the N20 out, turn the lever, swing back and tighten.",
+   "parts": [
+    "drum_dogring_launch",
+    "drum_magnet_cap"
+   ],
+   "subsystem": "drum"
+  },
+  {
    "title": "Heat-set inserts",
    "text": "Soldering iron with an insert tip, about 220 C for PLA and about 280 C for the PPA-CF puck. Press every M3 x 4 x 5 insert square into its 4.0 mm hole until flush: deck (49), motor plate (2 for the leg bridge, 2 for the can stay, 3 for the gear hood), puck adapter (8 in the rear lip), bay (corner bosses, standoffs, clamp posts, perfboard bosses). Let each cool before the next one nearby.",
    "parts": [
@@ -17833,122 +17953,29 @@
     "frame_motor_adapter",
     "frame_ebay"
    ],
-   "handle": [],
-   "subsystem": "frame",
-   "auto": false,
-   "stage": 100,
-   "band": "deck",
-   "label": "deck 100",
-   "seq": 0,
-   "warnings": [
-    "frame_cheek_r, frame_motor_adapter rest only on parts placed later (by 'Can stay', 'Gear guards', 'Motor leg', 'Wiper motor on the puck (bench)')"
-   ],
-   "heading": "Step 1 (deck 100): Heat-set inserts"
-  },
-  {
-   "title": "Fit the remaining frame parts",
-   "text": "Parts without an explicit assembly step: frame_perfboard.",
-   "parts": [
-    "frame_perfboard"
-   ],
-   "handle": [],
-   "subsystem": "frame",
-   "auto": true,
-   "stage": null,
-   "band": "",
-   "label": "",
-   "seq": 1,
-   "warnings": [],
-   "heading": "Step 2: Fit the remaining frame parts"
+   "subsystem": "frame"
   },
   {
    "title": "Drill the rover",
    "text": "Lay the deck on the rover top plate where it will live (launch direction forward). Mark through the 32 perimeter holes with a 3 mm drill or a scriber (or tape down the 1:1 PDF template from cad/parts/_frame_tests/drill_template.py), take the deck off, drill 3.4 mm. Deburr.",
-   "parts": [],
-   "handle": [
+   "parts": [
     "frame_deck_1",
     "frame_deck_2",
     "frame_deck_3",
     "frame_deck_4"
    ],
-   "subsystem": "frame",
-   "auto": false,
-   "stage": 101,
-   "band": "deck",
-   "label": "deck 101",
-   "seq": 2,
-   "warnings": [],
-   "heading": "Step 3 (deck 101): Drill the rover"
+   "subsystem": "frame"
   },
   {
    "title": "Deck on the rover",
    "text": "Slide the tiles together on the dovetails (from above). M3 x 25 SHCS down through every perimeter hole, washer and nyloc under the rover plate. Snug, not crushed. Do this before the other subsystems put their feet down: some rover bolts sit under their feet.",
-   "parts": [],
-   "handle": [
+   "parts": [
     "frame_deck_1",
     "frame_deck_2",
     "frame_deck_3",
     "frame_deck_4"
    ],
-   "subsystem": "frame",
-   "auto": false,
-   "stage": 102,
-   "band": "deck",
-   "label": "deck 102",
-   "seq": 3,
-   "warnings": [],
-   "heading": "Step 4 (deck 102): Deck on the rover"
-  },
-  {
-   "title": "Motor plate",
-   "text": "Hold the motor plate upright (front face, the side without the bridge, towards +y) with its bridge against the top of the leg. 2 x M3 x 12 along y through the leg's long counterbores into the bridge inserts.",
-   "parts": [],
-   "handle": [
-    "frame_cheek_r"
-   ],
-   "subsystem": "frame",
-   "auto": false,
-   "stage": 110,
-   "band": "motor",
-   "label": "motor 110",
-   "seq": 4,
-   "warnings": [],
-   "heading": "Step 5 (motor 110): Motor plate"
-  },
-  {
-   "title": "Wiper motor on the puck (bench)",
-   "text": "Battery unplugged. Put the M6 bolts through the puck slots from the front (heads sit in the slot counterbores), into the motor bosses (threaded bosses, or a nut behind each boss ear). Slide the motor so its shaft is centred in the bore (a 10 mm drill shank in the coupler bore helps), then tighten.",
-   "parts": [
-    "frame_wiper_motor",
-    "frame_wiper_shaft"
-   ],
-   "handle": [
-    "frame_motor_adapter"
-   ],
-   "subsystem": "frame",
-   "auto": false,
-   "stage": 111,
-   "band": "motor",
-   "label": "motor 111",
-   "seq": 5,
-   "warnings": [],
-   "heading": "Step 6 (motor 111): Wiper motor on the puck (bench)"
-  },
-  {
-   "title": "Puck into the plate",
-   "text": "Feed the puck into the plate window from behind (the motor side) until its lip sits on the plate's rear face. From the front, M3 x 12 through the plate into the lip inserts (5 of the 8 rim holes have both plate and lip; use those).",
-   "parts": [],
-   "handle": [
-    "frame_motor_adapter"
-   ],
-   "subsystem": "frame",
-   "auto": false,
-   "stage": 112,
-   "band": "motor",
-   "label": "motor 112",
-   "seq": 6,
-   "warnings": [],
-   "heading": "Step 7 (motor 112): Puck into the plate"
+   "subsystem": "frame"
   },
   {
    "title": "Motor leg",
@@ -17956,15 +17983,33 @@
    "parts": [
     "frame_motor_leg"
    ],
-   "handle": [],
-   "subsystem": "frame",
-   "auto": false,
-   "stage": 113,
-   "band": "motor",
-   "label": "motor 113",
-   "seq": 7,
-   "warnings": [],
-   "heading": "Step 8 (motor 113): Motor leg"
+   "subsystem": "frame"
+  },
+  {
+   "title": "Motor plate",
+   "text": "Hold the motor plate upright (front face, the side without the bridge, towards +y) with its bridge against the top of the leg. 2 x M3 x 12 along y through the leg's long counterbores into the bridge inserts.",
+   "parts": [
+    "frame_cheek_r"
+   ],
+   "subsystem": "frame"
+  },
+  {
+   "title": "Wiper motor on the puck (bench)",
+   "text": "Battery unplugged. Put the M6 bolts through the puck slots from the front (heads sit in the slot counterbores), into the motor bosses (threaded bosses, or a nut behind each boss ear). Slide the motor so its shaft is centred in the bore (a 10 mm drill shank in the coupler bore helps), then tighten.",
+   "parts": [
+    "frame_motor_adapter",
+    "frame_wiper_motor",
+    "frame_wiper_shaft"
+   ],
+   "subsystem": "frame"
+  },
+  {
+   "title": "Puck into the plate",
+   "text": "Feed the puck into the plate window from behind (the motor side) until its lip sits on the plate's rear face. From the front, M3 x 12 through the plate into the lip inserts (5 of the 8 rim holes have both plate and lip; use those).",
+   "parts": [
+    "frame_motor_adapter"
+   ],
+   "subsystem": "frame"
   },
   {
    "title": "Can stay",
@@ -17972,517 +18017,75 @@
    "parts": [
     "frame_can_stay"
    ],
-   "handle": [],
-   "subsystem": "frame",
-   "auto": false,
-   "stage": 114,
-   "band": "motor",
-   "label": "motor 114",
-   "seq": 8,
-   "warnings": [],
-   "heading": "Step 9 (motor 114): Can stay"
+   "subsystem": "frame"
   },
   {
    "title": "Shafts and trains (other subsystems)",
    "text": "Now cad-drum (coupler on the wiper shaft, SW_INDEX block on the strut of idler post 2: drum step \"Main shaft: index contact\"), cad-reel and cad-launch install their trains and aim housing. Follow their steps, then come back. The tether crosses the puck twice, in channels cut out to the puck's edge: from the guide eye to the cup ring it runs in the channel that opens into the capstan opening (lay it in from there); from pulley 1 forward to pulley 2 it runs in the notch near the rim, which the plate closes (push the line end through it from behind).",
    "parts": [],
-   "handle": [],
-   "subsystem": "frame",
-   "auto": false,
-   "stage": 119,
-   "band": "motor",
-   "label": "motor 119",
-   "seq": 9,
-   "warnings": [],
-   "heading": "Step 10 (motor 119): Shafts and trains (other subsystems)"
+   "subsystem": "frame"
   },
   {
-   "title": "Drum: bracket A, axle, drum A",
-   "text": "Bolt bracket A to the deck (2 x M3 x 12). Press the drum axle into it (flat facing forward). Slide drum A onto the axle, gear first, and turn it so the gap in its lock ring faces back toward the idler position (about drum 180 on the pointer). The shift rail goes in after the idler.",
+   "title": "Gear guards",
+   "text": "After every train has been turned by hand: the hood goes over the gears in front of the motor plate, M3 x 10 through each lug into the plate inserts; the front guard stands on the deck between the drum gears and the bay, M3 x 10 into the deck inserts. Turn the wiper by hand once: nothing rubs.",
    "parts": [
-    "drum_bracket_a",
-    "drum_axle",
-    "drum_drum_a"
+    "frame_guard_hood",
+    "frame_guard_front"
    ],
-   "handle": [],
-   "subsystem": "drum",
-   "auto": false,
-   "stage": 130,
-   "band": "drum_core",
-   "label": "drum_core 130",
-   "seq": 10,
-   "warnings": [],
-   "heading": "Step 11 (drum_core 130): Drum: bracket A, axle, drum A"
+   "subsystem": "frame"
   },
   {
-   "title": "Drum: wrap idler",
-   "text": "Push the idler output gear onto the idler shaft flat from the long end. Slide idler post 2 onto the short journal and idler post 1 onto the long journal (the thick middle of the shaft sits between the posts and locates it). Fit this before cad-reel's bus gear, SW_ARM bracket and cup gear. Lower the posts with the idler onto the deck about 4 mm to the back (-x) of their place, then slide them forward so the small pinion meshes the drum A segment teeth, and bolt them down (2 x M3 x 12 each; the front screw of post 2 needs the short arm of the hex key). Turn drum A back to LAUNCH (mark L at the top): the flat-sided lock cam must sit in the drum lock ring and the idler can no longer turn by hand.",
+   "title": "Electronics bay",
+   "text": "Battery unplugged. Bay on the deck, 4 x M3 x 10 through the tabs. Boards in: BTS7960 on its 4 standoffs (M3 x 6), heatsink down; ESP32 DevKitC pins down into the cradle, USB end into the wall slot, clamp with 2 x M3 x 8; DRV8833, MP1584 and HX711 into their pockets with a cable tie through the floor slots or a drop of hot glue. Fuse holder in its cradle with a cable tie.",
    "parts": [
-    "drum_idler_gear",
-    "drum_idler",
-    "drum_bracket_idler",
-    "drum_bracket_idler2"
+    "frame_ebay",
+    "frame_ebay_lid",
+    "frame_ebay_esp_clamp",
+    "frame_pcb_esp32",
+    "frame_pcb_bts7960",
+    "frame_pcb_mp1584",
+    "frame_pcb_drv8833",
+    "frame_pcb_hx711",
+    "frame_fuse_20a"
    ],
-   "handle": [],
-   "subsystem": "drum",
-   "auto": false,
-   "stage": 140,
-   "band": "drum_idler",
-   "label": "drum_idler 140",
-   "seq": 11,
-   "warnings": [],
-   "heading": "Step 12 (drum_idler 140): Drum: wrap idler"
+   "subsystem": "frame"
   },
   {
-   "title": "Drum: shift rail",
-   "text": "Slide the shift rail in from the outboard end, over the idler posts, and press it into bracket A (flat facing forward).",
+   "title": "Set the buck BEFORE wiring the DRV8833",
+   "text": "Battery unplugged. Wire only the buck input to the fuse output and ground. Plug the battery in, meter on the buck output, turn the trimpot until it reads 9.0 V. Unplug the battery. Only then wire buck output to DRV8833 VIN (the DRV8833 dies above 10.8 V).",
    "parts": [
-    "drum_rail"
+    "frame_pcb_mp1584",
+    "frame_pcb_drv8833"
    ],
-   "handle": [],
-   "subsystem": "drum",
-   "auto": false,
-   "stage": 145,
-   "band": "main_shaft",
-   "label": "main_shaft 145",
-   "seq": 12,
-   "warnings": [],
-   "heading": "Step 13 (main_shaft 145): Drum: shift rail"
+   "subsystem": "frame"
   },
   {
-   "title": "Main shaft: coupler and limiter",
-   "text": "Push the coupler hub onto the wiper output shaft (flats in line) until it stops on the end of the flats; its lower end goes into the puck bore, just clear of the motor's output boss. Drop the M8 nut into the hub pocket onto the thread (it sits about 8 mm down the pocket) and tighten it with a 13 mm socket (1/4 inch drive). Slide the outer coupler over the hub, line up the holes, push a shear pin in (head outside, its flat facing the outboard end) and put a piece of tape round the coupler over the head. Print the pins lying on their flat (D44: shear across the layers). Keep the 5 spare pins with the base. A broken pin stub comes out with an M3 screw turned into it. Then slide the REEL gear onto the coupler journal (plain face first) and screw the retaining washer to the journal end (2 x M3 x 6): the gear must spin free (it cannot go on once the dog post is fitted).",
+   "title": "Camera, receiver and cable anchors",
+   "text": "Camera column on the deck, 4 x M3 x 10 into the inserts. Clip the Kiyo X onto the 16 mm edge plate like onto a monitor (or use a 1/4-20 tripod screw up through the plate hole); it looks forward along the launch line. RC832: stand it antenna-end up in its holder slot, leads out of the low notch, holder 2 x M3 x 10. Cable anchors 1 x M3 x 12 each; tie the camera USB, the receiver AV lead and the capture dongle lead to them so no plug carries the cable weight.",
    "parts": [
-    "drum_coupler_hub",
-    "drum_coupler",
-    "drum_shear_pin",
-    "drum_gear_reel",
-    "drum_reel_washer"
+    "frame_camera_mount",
+    "frame_rc832_holder",
+    "frame_rc832",
+    "frame_kiyo_x",
+    "frame_cable_anchor_1",
+    "frame_cable_anchor_2"
    ],
-   "handle": [],
-   "subsystem": "drum",
-   "auto": false,
-   "stage": 146,
-   "band": "main_shaft",
-   "label": "main_shaft 146",
-   "seq": 13,
-   "warnings": [],
-   "heading": "Step 14 (main_shaft 146): Main shaft: coupler and limiter"
+   "subsystem": "frame"
   },
   {
-   "title": "Main shaft: index contact",
-   "text": "Press an M3 nut into the index block pocket, screw the index lever foot to the block (M3 x 12), thread an M3 x 6 into the lever boss, head toward the nut. Screw the block to the inner face of the strut of idler post 2 (2 x M3 x 12 from the far side of the post into the block), with the nub on the coupler cam. Set the gap so the screw head touches the nut near the top of a bump (about 1.5 mm on a low part). Battery unplugged: nut to GND, screw to SW_INDEX.",
+   "title": "Wiring and lid",
+   "text": "Battery unplugged. Follow firmware/base/WIRING.md. Every wire leaving the bay goes through its wall exit and is cable-tied to the anchor beside it (strain relief). 14 AWG for battery, fuse, BTS7960 and motor. Lid on, 4 x M3 x 6. USB cable from the ESP32 native USB port to the Jetson.",
    "parts": [
-    "drum_index_block",
-    "drum_index_lever"
+    "frame_ebay_lid"
    ],
-   "handle": [],
-   "subsystem": "drum",
-   "auto": false,
-   "stage": 147,
-   "band": "main_shaft",
-   "label": "main_shaft 147",
-   "seq": 14,
-   "warnings": [],
-   "heading": "Step 15 (main_shaft 147): Main shaft: index contact"
-  },
-  {
-   "title": "Screw the reel wall to the deck",
-   "text": "Stand the reel wall on the deck at its marked place. Put seven M3 screws down through the counterbored foot holes into the deck inserts and tighten. Do this first: the storage reel and the gears later cover some of the holes.",
-   "parts": [
-    "reel_wall"
-   ],
-   "handle": [],
-   "subsystem": "reel",
-   "auto": false,
-   "stage": 150,
-   "band": "reel_capstan",
-   "label": "reel_capstan 150",
-   "seq": 15,
-   "warnings": [],
-   "heading": "Step 16 (reel_capstan 150): Screw the reel wall to the deck"
-  },
-  {
-   "title": "Sprag hub and sprag (CSK20PP)",
-   "text": "Push the sprag hub's round spigot into the big hole in the wall from the front, flange flat on the wall, and screw it on from the front with four M3 x 8 screws (they tap into the wall). Find the key slot on the outside of the CSK20PP and line it up with the printed rib at the top of the hub's seat. Check the arrow on the bearing: seen from the front, the inner ring must turn freely counter-clockwise and lock clockwise. Press it in flat until it sits on the lip.",
-   "parts": [
-    "reel_sprag_hub",
-    "reel_hub_screws",
-    "reel_sprag"
-   ],
-   "handle": [],
-   "subsystem": "reel",
-   "auto": false,
-   "stage": 151,
-   "band": "reel_capstan",
-   "label": "reel_capstan 151",
-   "seq": 16,
-   "warnings": [],
-   "heading": "Step 17 (reel_capstan 151): Sprag hub and sprag (CSK20PP)"
-  },
-  {
-   "title": "Capstan tube",
-   "text": "Slide the capstan tube in from the FRONT, D-flat end first, its key rib lined up with the key slot inside the sprag. Push until the collar sits on the sprag. It turns one way only (counter-clockwise seen from the front).",
-   "parts": [
-    "reel_c"
-   ],
-   "handle": [],
-   "subsystem": "reel",
-   "auto": false,
-   "stage": 152,
-   "band": "reel_capstan",
-   "label": "reel_capstan 152",
-   "seq": 17,
-   "warnings": [],
-   "heading": "Step 18 (reel_capstan 152): Capstan tube"
-  },
-  {
-   "title": "Bus gear, swing arm and swing idler",
-   "text": "From behind the wall slide the 46-tooth bus gear onto the tube, gear face first, hub toward you. Slip the swing arm's ring over the bus gear's hub, idler pin pointing at the wall, and put the 30-tooth swing idler on the pin. The idler is held between the arm and the wall. The arm swings 12 degrees between its two stop pins.",
-   "parts": [
-    "reel_bus",
-    "reel_swing_arm",
-    "reel_gi"
-   ],
-   "handle": [],
-   "subsystem": "reel",
-   "auto": false,
-   "stage": 153,
-   "band": "reel_capstan",
-   "label": "reel_capstan 153",
-   "seq": 18,
-   "warnings": [],
-   "heading": "Step 19 (reel_capstan 153): Bus gear, swing arm and swing idler"
-  },
-  {
-   "title": "Capstan gear",
-   "text": "Slide the 22-tooth capstan gear onto the D-flat behind the bus gear, hub toward the bus gear, and snap the large C-clip into the groove behind it. The bus gear must still turn freely.",
-   "parts": [
-    "reel_gc",
-    "reel_c_clip"
-   ],
-   "handle": [],
-   "subsystem": "reel",
-   "auto": false,
-   "stage": 154,
-   "band": "reel_capstan",
-   "label": "reel_capstan 154",
-   "seq": 19,
-   "warnings": [],
-   "heading": "Step 20 (reel_capstan 154): Capstan gear"
-  },
-  {
-   "title": "Capstan drum",
-   "text": "Slide the green drum onto the front of the tube, flange first, key slot on the rib, until it sits on the collar.",
-   "parts": [
-    "reel_drum"
-   ],
-   "handle": [],
-   "subsystem": "reel",
-   "auto": false,
-   "stage": 155,
-   "band": "reel_capstan",
-   "label": "reel_capstan 155",
-   "seq": 20,
-   "warnings": [],
-   "heading": "Step 21 (reel_capstan 155): Capstan drum"
-  },
-  {
-   "title": "Cup shaft and wrap cup",
-   "text": "Push the cup shaft through the tube from the FRONT, plain end first (the neck end stays in front), until its back end comes out behind the capstan gear. Slide the wrap cup onto the front end (flat in the bore onto the flat of the shaft, ring at the top), over the drum. Push Harry's small C-clip sideways onto the neck in front of the cup.",
-   "parts": [
-    "reel_k",
-    "reel_cup",
-    "reel_cup_clip"
-   ],
-   "handle": [],
-   "subsystem": "reel",
-   "auto": false,
-   "stage": 156,
-   "band": "reel_capstan",
-   "label": "reel_capstan 156",
-   "seq": 21,
-   "warnings": [],
-   "heading": "Step 22 (reel_capstan 156): Cup shaft and wrap cup"
-  },
-  {
-   "title": "Cup gear",
-   "text": "From behind, slide the 24-tooth cup gear onto the D-flat at the back of the cup shaft, hub forward, and snap its C-clip on. The cup must turn freely both ways.",
-   "parts": [
-    "reel_gk",
-    "reel_k_clip"
-   ],
-   "handle": [],
-   "subsystem": "reel",
-   "auto": false,
-   "stage": 157,
-   "band": "reel_capstan",
-   "label": "reel_capstan 157",
-   "seq": 22,
-   "warnings": [],
-   "heading": "Step 23 (reel_capstan 157): Cup gear"
-  },
-  {
-   "title": "SW_ARM contact",
-   "text": "Battery unplugged. Build the printed contact (see the contact switch page): nut pressed in the base trap, lever screwed onto the pad with 2 x M3 x 10 self tapping screws, M3 x 10 contact screw with its jam nut in the lever. Screw the switch base to the bracket with 4 x M3 x 8 self tapping screws (into the pilot holes in the plate), and the bracket to the back of the wall below the gears with two M3 x 8. SW_ARM is closed while the cup is away from home and opens at home: the lever rides a raised track on the back of the cup gear and drops into a notch in it at home. Turn the cup to home (ring at the top): the lever tip sits free in the notch. Turn the contact screw until its head just touches the nut, then back it off 1.9 turns (gap about 0.9 mm, 0.5 mm per turn) and lock the jam nut. Check with the meter: turn the cup about 15 degrees either way, the lever rides up onto the track and the contact closes; back at home it must open, for about 7 degrees either side.",
-   "parts": [
-    "reel_sw_bracket",
-    "reel_sw_base",
-    "reel_sw_lever",
-    "reel_sw_hw"
-   ],
-   "handle": [],
-   "subsystem": "reel",
-   "auto": false,
-   "stage": 158,
-   "band": "reel_capstan",
-   "label": "reel_capstan 158",
-   "seq": 23,
-   "warnings": [],
-   "heading": "Step 24 (reel_capstan 158): SW_ARM contact"
-  },
-  {
-   "title": "Drum: fork and dog contacts",
-   "text": "Press an M3 nut into the hex hole of the yoke tab. Thread an M3 x 8 into each dog post boss first, heads toward each other (M3 x 8: a longer screw reaches the REEL gear; no room for a driver later). Turn the drum to about 180. Slide the fork sleeve onto the rail, yoke facing the main shaft, and swing it about 20 deg pin end away from the drum while the dog post slides on (its bar reaching back over the yoke tab; fit it before cad-reel's pulley 2). Grease the rail. Tighten the dog post clamp screw (M3 x 8, tapped) onto the rail flat. Battery unplugged: nut wire to GND, REEL side screw to SW_DOG_R, LAUNCH side screw to SW_DOG_L.",
-   "parts": [
-    "drum_dog_post",
-    "drum_fork"
-   ],
-   "handle": [],
-   "subsystem": "drum",
-   "auto": false,
-   "stage": 160,
-   "band": "drum_shift",
-   "label": "drum_shift 160",
-   "seq": 24,
-   "warnings": [],
-   "heading": "Step 25 (drum_shift 160): Drum: fork and dog contacts"
-  },
-  {
-   "title": "Drum: drum B, hand lever, bracket B",
-   "text": "Swing the fork up on the rail, slide drum B onto the axle (hex socket over the drum A spigot; it fits one way only, cut corner to filled corner), slide the fork to its middle position and swing it down so its pin drops into the groove (drum near 180). Slide the hand lever onto the hex boss. Press bracket B onto the axle and rail ends and bolt it down (2 x M3 x 12). The drum turns by hand with about 0.6 mm end play.",
-   "parts": [
-    "drum_drum_b",
-    "drum_hand_lever",
-    "drum_bracket_b"
-   ],
-   "handle": [],
-   "subsystem": "drum",
-   "auto": false,
-   "stage": 161,
-   "band": "drum_shift",
-   "label": "drum_shift 161",
-   "seq": 25,
-   "warnings": [],
-   "heading": "Step 26 (drum_shift 161): Drum: drum B, hand lever, bracket B"
-  },
-  {
-   "title": "Drum: N20",
-   "text": "Press the pinion onto the N20 output shaft (flat to flat) leaving 1.5 mm of shaft below it (that end runs in the bracket A ear slot). Slide the N20 into the cradle from the open end, fit the end plate (2 x M3 x 8). Press an M3 nut into the pocket in the bracket A ear front face, wire along its groove. Screw the cradle to the ear from the cradle side: pivot screw M3 x 12 through the round hole, swing screw M3 x 12 through the arc slot at its full-mesh end (the slot only lets the cradle swing out), both tapped into the ear. Turn the SW_N20 screw (M3 x 8, tapped in the cradle plate) in until its tip just touches the nut. Battery unplugged: nut to GND, screw to SW_N20.",
-   "parts": [
-    "drum_n20_pinion",
-    "drum_n20",
-    "drum_n20_cradle",
-    "drum_n20_strap"
-   ],
-   "handle": [],
-   "subsystem": "drum",
-   "auto": false,
-   "stage": 162,
-   "band": "drum_shift",
-   "label": "drum_shift 162",
-   "seq": 26,
-   "warnings": [],
-   "heading": "Step 27 (drum_shift 162): Drum: N20"
-  },
-  {
-   "title": "Drum: code switches",
-   "text": "Press an M3 nut into each of the 3 front pockets of the switch block and bolt it to the deck (2 x M3 x 12). Screw each lever foot to the block (M3 x 12), nub on its band. Thread an M3 x 6 into each lever boss, head toward the nut, so the head touches the nut near the top of a bump (gap about 1.8 mm with the nub low). Battery unplugged: nuts to GND, screws to SW_DRUM_A (nearest the motor), SW_DRUM_B, SW_DRUM_C.",
-   "parts": [
-    "drum_switch_block",
-    "drum_sw_lever_0",
-    "drum_sw_lever_1",
-    "drum_sw_lever_2"
-   ],
-   "handle": [],
-   "subsystem": "drum",
-   "auto": false,
-   "stage": 163,
-   "band": "drum_shift",
-   "label": "drum_shift 163",
-   "seq": 27,
-   "warnings": [],
-   "heading": "Step 28 (drum_shift 163): Drum: code switches"
-  },
-  {
-   "title": "Main shaft: stack",
-   "text": "Slide the collar onto the main shaft from the spigot end. Lower the shaft with its hex end outboard of the REEL gear dogs (beyond s 70) so the collar groove drops between the fork pads, then push it about 42 mm into the coupler socket. The shaft is held endwise later by the launch sleeve and the magnet cap.",
-   "parts": [
-    "drum_shaft",
-    "drum_collar"
-   ],
-   "handle": [],
-   "subsystem": "drum",
-   "auto": false,
-   "stage": 170,
-   "band": "main_stack",
-   "label": "main_stack 170",
-   "seq": 28,
-   "warnings": [],
-   "heading": "Step 29 (main_stack 170): Main shaft: stack"
-  },
-  {
-   "title": "Main shaft: LAUNCH dog ring and magnet cap",
-   "text": "Fit the LAUNCH dog ring on the launch sleeve flange (sleeve lugs in the ring slots, 3 x M3 x 10 from the sleeve side into the ring) before the launch sleeve goes on the spigot (launcher steps). After the launcher: glue the AS5600 magnet into the cap, push the cap on the spigot end (flat to flat) and fit the M3 x 6 onto the flat. Hand use of the drum: battery unplugged, slacken the line, loosen the swing screw, swing the N20 out, turn the lever, swing back and tighten.",
-   "parts": [
-    "drum_dogring_launch",
-    "drum_magnet_cap"
-   ],
-   "handle": [],
-   "subsystem": "drum",
-   "auto": false,
-   "stage": 171,
-   "band": "main_stack",
-   "label": "main_stack 171",
-   "seq": 29,
-   "warnings": [],
-   "heading": "Step 30 (main_stack 171): Main shaft: LAUNCH dog ring and magnet cap"
-  },
-  {
-   "title": "Reel shaft into the wall",
-   "text": "Feed the reel shaft's thin end through the rocker's hole and the wall bushing from the front. From behind, slide the 20-tooth reel gear onto the D-flat, hub toward the wall, and snap its C-clip on. Swing the arm toward the reel gear (to its stop): the idler meshes it. Spin the reel by hand: it should turn with a light, even drag. Set LIGHT (after the line is wound on, drum at LAUNCH): swing the arm to its parked stop (the idler leaves the reel gear), turn the reel shaft until the reel gear's two small holes line up with the wall holes, swing the arm back, reach through with a 2.5 mm hex key and turn both trim screws the same amount until a 50 g weight hung on the line end just pulls line off slowly (0.5 N). 1/8 turn changes it by about 0.4 N of squeeze.",
-   "parts": [
-    "reel_gr",
-    "reel_s_clip"
-   ],
-   "handle": [],
-   "subsystem": "reel",
-   "auto": false,
-   "stage": 180,
-   "band": "reel_storage",
-   "label": "reel_storage 180",
-   "seq": 30,
-   "warnings": [
-    "reel_s_clip rest only on parts placed later (by 'Storage reel')"
-   ],
-   "heading": "Step 31 (reel_storage 180): Reel shaft into the wall"
-  },
-  {
-   "title": "Storage reel",
-   "text": "Press one 608 bearing into each end of the reel body. Push the Dyneema end through the small hole in the core near the back flange into the open pocket, tie a stopper knot (figure eight) and pull it tight. Lay the flat flange disc on the front, its slots on the three lugs, raised ring outward. Slide the reel onto the reel shaft from the shaft's thin end until the disc meets the shaft's round head. Slide the thrust ring onto the shaft behind the reel, small boss toward the bearing.",
-   "parts": [
-    "reel_spool",
-    "reel_spool_flange",
-    "reel_brg_1",
-    "reel_brg_2",
-    "reel_s",
-    "reel_t"
-   ],
-   "handle": [],
-   "subsystem": "reel",
-   "auto": false,
-   "stage": 181,
-   "band": "reel_storage",
-   "label": "reel_storage 181",
-   "seq": 31,
-   "warnings": [],
-   "heading": "Step 32 (reel_storage 181): Storage reel"
-  },
-  {
-   "title": "Brake crank, rocker and bar",
-   "text": "Grease the crank boss low on the left of the wall front. Slide the black bell crank onto it: the short arm lies in the recess in the wall and points right, the long arm sticks straight out from the wall. Put the printed washer on the boss and screw the M3 x 20 into it: the crank must swing freely. Screw the M3 x 10 FIRM screw into the rocker's leg from the front with its nut on the front face, until 0.35 mm of its tip shows at the back. Hang the yellow rocker between the two ears at the top with an M3 x 25 screw and nut (snug, it must swing); its round hole goes over the small boss, its leg rests on the small pad on the wall, the FIRM screw tip just above the crank's short arm. Screw two M3 x 8 screws into the rocker's two bosses from behind, until their tips stand 0.5 mm proud of the front. Lay the brake bar in the two U guides, its raised lug against the crank's long arm, nose toward the drum. Close each guide with its cap and two M3 x 16 screws. Push the nose: the crank swings and the rocker leg moves away from the wall; let go and it all springs back.",
-   "parts": [
-    "reel_crank",
-    "reel_crank_washer",
-    "reel_crank_screw",
-    "reel_firm_screw",
-    "reel_rocker",
-    "reel_rocker_pin",
-    "reel_trim_screws",
-    "reel_bar",
-    "reel_bar_cap_1",
-    "reel_bar_cap_2",
-    "reel_bar_screws"
-   ],
-   "handle": [],
-   "subsystem": "reel",
-   "auto": false,
-   "stage": 182,
-   "band": "reel_storage",
-   "label": "reel_storage 182",
-   "seq": 32,
-   "warnings": [],
-   "heading": "Step 33 (reel_storage 182): Brake crank, rocker and bar"
-  },
-  {
-   "title": "Pulley 1 post and line",
-   "text": "Stand the pulley 1 post on the deck in front of the wall and screw it down with four M3 screws into the deck. Press a 693ZZ into pulley 1 and set it between the post's two cheeks. Wind the line onto the reel (counter-clockwise seen from the front, line over the top), thread it through the guide eye, over the top of the cup and through the cup ring from the back. Lay it over pulley 1 in its groove (it comes up from the ring and turns down toward the deck), then push the M3 x 20 axle down through the top cheek and the pulley and screw it into the post below (threadlocker, no nut). Lead the line down to pulley 2. Set FIRM last, with the drum in REEL (the bar pushed in by the cam): pull the line end with the luggage scale; it must slip at 5.0 N with the reel full. Too low: loosen the lock nut on the rocker leg and turn the FIRM screw in (toward the wall); too high: out. One turn is about 1 N at the line. Lock the nut.",
-   "parts": [
-    "reel_exit_post",
-    "reel_pulley1",
-    "reel_p1_brg",
-    "reel_p1_axle"
-   ],
-   "handle": [],
-   "subsystem": "reel",
-   "auto": false,
-   "stage": 183,
-   "band": "reel_storage",
-   "label": "reel_storage 183",
-   "seq": 33,
-   "warnings": [],
-   "heading": "Step 34 (reel_storage 183): Pulley 1 post and line"
-  },
-  {
-   "title": "Pulley 2 swivel",
-   "text": "Press a 693ZZ into pulley 2, set it between the swivel fork's two cheeks and push the M3 x 20 axle through (nyloc nut on the far side, snug: the pulley must spin). Grease the fork's tube and push it through the bore of the pulley 2 post's block from the pulley side (the tube is level and points toward pulley 1); snap the C-clip into the groove where the tube comes out of the block. The fork must turn freely. Screw the post to the deck beside the drum with four M3 screws into the deck inserts. The line from pulley 1 goes through the tube, round the pulley and out toward the rail pivot pulley; the fork turns itself to follow the line as the rail aims.",
-   "parts": [
-    "reel_p2_post",
-    "reel_p2_fork",
-    "reel_p2_clip",
-    "reel_pulley2",
-    "reel_p2_brg",
-    "reel_p2_axle"
-   ],
-   "handle": [],
-   "subsystem": "reel",
-   "auto": false,
-   "stage": 184,
-   "band": "reel_storage",
-   "label": "reel_storage 184",
-   "seq": 34,
-   "warnings": [],
-   "heading": "Step 35 (reel_storage 184): Pulley 2 swivel"
-  },
-  {
-   "title": "Shroud",
-   "text": "Put the shroud round the reel, its flange on the wall, opening at the top right, and screw it on with three M3 x 8 screws into the wall. The reel must not touch it anywhere.",
-   "parts": [
-    "reel_shroud"
-   ],
-   "handle": [],
-   "subsystem": "reel",
-   "auto": false,
-   "stage": 185,
-   "band": "reel_storage",
-   "label": "reel_storage 185",
-   "seq": 35,
-   "warnings": [],
-   "heading": "Step 36 (reel_storage 185): Shroud"
+   "subsystem": "frame"
   },
   {
    "title": "Launcher 1: print the parts",
    "text": "All PLA unless named. PPA-CF: big gear, drive gear, launch sleeve, big gear pin, SW_SEATED plunger and pushrod, and the aim gears (sun, idler, output, bevel, worm, crank). Use each part's print orientation from the print sheet: the carriage body lies on its side across the bed diagonal; the stop springs print upside down at 100 percent infill (all perimeters); rail pieces lie on their largest flat face. 0.2 mm layers, 4 walls on every loaded part. Hardware (launcher and aim train): M3 screws 2 x 6, 3 x 8, 14 x 10, 23 x 12, 5 x 16, 15 x 20, 4 x 30, plus 4 x 10 for the aim housing to the deck (Aim 3); 10 M3 nuts, 4 M3 nylocs; M8 x 25 bolt and M8 nut; 2 x 608; 4 x 693ZZ (3 tether pulleys, 1 lip roller); 2 x 8 mm steel rod pins (cut to the length on the print sheet) for the spring anchors; sprag #1 (CSK20PP); the two springs.",
    "parts": [],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 190,
-   "band": "launcher",
-   "label": "launcher 190",
-   "seq": 36,
-   "warnings": [],
-   "heading": "Step 37 (launcher 190): Launcher 1: print the parts"
+   "stage": 10,
+   "subsystem": "launch"
   },
   {
    "title": "Launcher 2: join the rail",
@@ -18492,17 +18095,8 @@
     "launch_rail_mid",
     "launch_rail_front"
    ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 191,
-   "band": "launcher",
-   "label": "launcher 191",
-   "seq": 37,
-   "warnings": [
-    "launch_rail_front, launch_rail_mid, launch_rail_rear rest only on parts placed later (by 'Launcher 2b: splice straps and aim lug', 'Launcher 3: big gear', 'Launcher 4: drive gear, sprag #1 and the launch sleeve', 'Launcher 5: carriage' and 7 more)"
-   ],
-   "heading": "Step 38 (launcher 191): Launcher 2: join the rail"
+   "stage": 11,
+   "subsystem": "launch"
   },
   {
    "title": "Launcher 2b: splice straps and aim lug",
@@ -18512,15 +18106,8 @@
     "launch_rail_splice_r",
     "launch_aim_lug"
    ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 192,
-   "band": "launcher",
-   "label": "launcher 192",
-   "seq": 38,
-   "warnings": [],
-   "heading": "Step 39 (launcher 192): Launcher 2b: splice straps and aim lug"
+   "stage": 12,
+   "subsystem": "launch"
   },
   {
    "title": "Launcher 3: big gear",
@@ -18531,15 +18118,8 @@
     "launch_gear_clip",
     "launch_gear_washer"
    ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 193,
-   "band": "launcher",
-   "label": "launcher 193",
-   "seq": 39,
-   "warnings": [],
-   "heading": "Step 40 (launcher 193): Launcher 3: big gear"
+   "stage": 13,
+   "subsystem": "launch"
   },
   {
    "title": "Launcher 4: drive gear, sprag #1 and the launch sleeve",
@@ -18550,15 +18130,8 @@
     "launch_sleeve",
     "launch_drive_washer"
    ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 194,
-   "band": "launcher",
-   "label": "launcher 194",
-   "seq": 40,
-   "warnings": [],
-   "heading": "Step 41 (launcher 194): Launcher 4: drive gear, sprag #1 and the launch sleeve"
+   "stage": 14,
+   "subsystem": "launch"
   },
   {
    "title": "Launcher 5: carriage",
@@ -18572,31 +18145,8 @@
     "launch_yoke_peg_l",
     "launch_yoke_peg_r"
    ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 195,
-   "band": "launcher",
-   "label": "launcher 195",
-   "seq": 41,
-   "warnings": [],
-   "heading": "Step 42 (launcher 195): Launcher 5: carriage"
-  },
-  {
-   "title": "Fit the remaining launch parts",
-   "text": "Parts without an explicit assembly step: launch_dart.",
-   "parts": [
-    "launch_dart"
-   ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": true,
-   "stage": null,
-   "band": "",
-   "label": "",
-   "seq": 42,
-   "warnings": [],
-   "heading": "Step 43: Fit the remaining launch parts"
+   "stage": 15,
+   "subsystem": "launch"
   },
   {
    "title": "Launcher 5b: lip roller",
@@ -18608,15 +18158,8 @@
     "launch_muzzle_washer_l",
     "launch_muzzle_washer_r"
    ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 196,
-   "band": "launcher",
-   "label": "launcher 196",
-   "seq": 43,
-   "warnings": [],
-   "heading": "Step 44 (launcher 196): Launcher 5b: lip roller"
+   "stage": 16,
+   "subsystem": "launch"
   },
   {
    "title": "Launcher 6: carriage stop frames",
@@ -18625,15 +18168,8 @@
     "launch_stop_frame_l",
     "launch_stop_frame_r"
    ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 197,
-   "band": "launcher",
-   "label": "launcher 197",
-   "seq": 44,
-   "warnings": [],
-   "heading": "Step 45 (launcher 197): Launcher 6: carriage stop frames"
+   "stage": 17,
+   "subsystem": "launch"
   },
   {
    "title": "Launcher 6b: spring guards",
@@ -18648,15 +18184,8 @@
     "launch_guard_r_b2",
     "launch_guard_r_c"
    ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 198,
-   "band": "launcher",
-   "label": "launcher 198",
-   "seq": 45,
-   "warnings": [],
-   "heading": "Step 46 (launcher 198): Launcher 6b: spring guards"
+   "stage": 18,
+   "subsystem": "launch"
   },
   {
    "title": "Launcher 6c: stop springs",
@@ -18665,15 +18194,8 @@
     "launch_stop_spring_l",
     "launch_stop_spring_r"
    ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 199,
-   "band": "launcher",
-   "label": "launcher 199",
-   "seq": 46,
-   "warnings": [],
-   "heading": "Step 47 (launcher 199): Launcher 6c: stop springs"
+   "stage": 19,
+   "subsystem": "launch"
   },
   {
    "title": "Launcher 7: contacts",
@@ -18686,29 +18208,15 @@
     "launch_sw_seated_screw",
     "launch_sw_seated_nut"
    ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 200,
-   "band": "launcher",
-   "label": "launcher 200",
-   "seq": 47,
-   "warnings": [],
-   "heading": "Step 48 (launcher 200): Launcher 7: contacts"
+   "stage": 20,
+   "subsystem": "launch"
   },
   {
    "title": "Launcher 8: time the big gear (fingers clear)",
    "text": "No springs fitted yet. Hold the carriage on its stop by hand and turn the drive gear FORWARD until the first tooth after the toothless gap just touches the rearmost rack tooth: this is HOME (SW_GAP is set to it in the Sensors steps). Turning on pulls the carriage back smoothly; at full cock the cut last tooth lets go (push the carriage home by hand). Hold the drive gear from the side and never put a hand in front of the carriage.",
    "parts": [],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 201,
-   "band": "launcher",
-   "label": "launcher 201",
-   "seq": 48,
-   "warnings": [],
-   "heading": "Step 49 (launcher 201): Launcher 8: time the big gear (fingers clear)"
+   "stage": 21,
+   "subsystem": "launch"
   },
   {
    "title": "Launcher 9: tether pulleys",
@@ -18740,15 +18248,8 @@
     "launch_line_a7",
     "launch_line_a8"
    ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 202,
-   "band": "launcher",
-   "label": "launcher 202",
-   "seq": 49,
-   "warnings": [],
-   "heading": "Step 50 (launcher 202): Launcher 9: tether pulleys"
+   "stage": 22,
+   "subsystem": "launch"
   },
   {
    "title": "Aim 1: aim housing, worm, wheel, crank",
@@ -18765,15 +18266,8 @@
     "launch_aim_bevel30",
     "launch_aim_nut"
    ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 205,
-   "band": "aim",
-   "label": "aim 205",
-   "seq": 50,
-   "warnings": [],
-   "heading": "Step 51 (aim 205): Aim 1: aim housing, worm, wheel, crank"
+   "stage": 23,
+   "subsystem": "launch"
   },
   {
    "title": "Aim 2: splitter",
@@ -18786,15 +18280,8 @@
     "launch_aim_drag_shim",
     "launch_aim_idler_clip"
    ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 206,
-   "band": "aim",
-   "label": "aim 206",
-   "seq": 51,
-   "warnings": [],
-   "heading": "Step 52 (aim 206): Aim 2: splitter"
+   "stage": 24,
+   "subsystem": "launch"
   },
   {
    "title": "Aim 3: lug, conrod, rail onto the base",
@@ -18804,205 +18291,15 @@
     "launch_aim_crankpin_clip",
     "launch_aim_lugpin_clip"
    ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 207,
-   "band": "aim",
-   "label": "aim 207",
-   "seq": 52,
-   "warnings": [],
-   "heading": "Step 53 (aim 207): Aim 3: lug, conrod, rail onto the base"
+   "stage": 25,
+   "subsystem": "launch"
   },
   {
    "title": "Launcher 10: wiring (battery unplugged)",
    "text": "Battery unplugged. Run the SW_HOME, SW_SEATED and SW_GAP wires along the rail to the pivot and leave a 150 mm loop at the main axis before they go to the frame. No wire goes onto the carriage. Each contact: one wire to its ESP32 pin (SW_HOME 21, SW_GAP 39, SW_RAIL_LOW 40, SW_SEATED 41, as params.SWITCHES), the other to GND.",
    "parts": [],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
-   "stage": 208,
-   "band": "aim",
-   "label": "aim 208",
-   "seq": 53,
-   "warnings": [],
-   "heading": "Step 54 (aim 208): Launcher 10: wiring (battery unplugged)"
-  },
-  {
-   "title": "Sensors 1: build the two contact switches (SW_RAIL_LOW, SW_GAP)",
-   "text": "For each switch: press an M3 nut into the hex trap on the base pillar (a drop of glue), solder a wire to the nut through the side slot and lay it in the groove. Screw the lever onto the pad with 2 x M3x10 self tapping screws. Screw an M3x10 through the lever boss from the top, head down, with a ring lug and the second wire under a jam nut on top. Turn the screw until the head touches the nut, then back it off 1.9 turns (gap about 0.9 mm, 0.5 mm per turn) and lock the jam nut.",
-   "parts": [
-    "sensors_sw_rail_low",
-    "sensors_sw_rail_low_lever",
-    "sensors_sw_rail_low_screw",
-    "sensors_sw_rail_low_jam",
-    "sensors_sw_rail_low_nut"
-   ],
-   "handle": [],
-   "subsystem": "sensors",
-   "auto": false,
-   "stage": 210,
-   "band": "sensors",
-   "label": "sensors 210",
-   "seq": 54,
-   "warnings": [],
-   "heading": "Step 55 (sensors 210): Sensors 1: build the two contact switches (SW_RAIL_LOW, SW_GAP)"
-  },
-  {
-   "title": "Sensors 2: SW_RAIL_LOW on the aim housing",
-   "text": "Screw the switch base to its bracket (4 x M3x8 self tapping), lever pointing to the crank. Set the bracket foot on the housing foot extension in front of the crank. Screw it down with an M3x10 in the hole nearest the crank (self taps into the housing) and an M3x16 in the counterbored hole at the front end of the foot: down through the foot and the foot extension into the deck insert under it (the bracket's own deck screw). Turn the crank by hand (wiper backwards) to the lowest rail position: the cam lobe presses the lever tip and the meter shows the switch closed. Turn the crank about 20 deg either side: the switch must open.",
-   "parts": [
-    "sensors_sw_rail_low_bracket"
-   ],
-   "handle": [],
-   "subsystem": "sensors",
-   "auto": false,
-   "stage": 211,
-   "band": "sensors",
-   "label": "sensors 211",
-   "seq": 55,
-   "warnings": [],
-   "heading": "Step 56 (sensors 211): Sensors 2: SW_RAIL_LOW on the aim housing"
-  },
-  {
-   "title": "Sensors 3: SW_GAP on the right rail cheek",
-   "text": "Build SW_GAP as in Sensors 1 (its base has its own arm). Hold the arm tab on the outer face of the right rail cheek, below the big gear, and screw it on with 2 x M3x12 (heads in the counterbores). With the big gear at rest (toothless gap at the rack) the cam bump presses the lever: switch closed. Turn the gear 20 deg either way: switch open.",
-   "parts": [
-    "sensors_sw_gap",
-    "sensors_sw_gap_lever",
-    "sensors_sw_gap_screw",
-    "sensors_sw_gap_jam",
-    "sensors_sw_gap_nut"
-   ],
-   "handle": [],
-   "subsystem": "sensors",
-   "auto": false,
-   "stage": 212,
-   "band": "sensors",
-   "label": "sensors 212",
-   "seq": 56,
-   "warnings": [],
-   "heading": "Step 57 (sensors 212): Sensors 3: SW_GAP on the right rail cheek"
-  },
-  {
-   "title": "Sensors 4: AS5600 board",
-   "text": "Do this after the magnet cap is on the main shaft end (drum steps): the board sits 2 mm in front of it. Battery unplugged. Plug the STEMMA QT cable into the board's connector on the +x end (the end away from the housing spine). Push the board onto the 4 pegs of the carrier, chip facing out. Drop an M3 nut into each hex pocket in the carrier back, lay the strips over the board edges (pegs through their holes) and screw each from the strip front with an M3x12 into its nut. Screw the carrier column to the aim housing spine with 2 x M3x16. Check by eye: the chip sits on the shaft axis, about 2.0 mm from the magnet face, and the cap turns free.",
-   "parts": [
-    "sensors_as5600",
-    "sensors_as5600_carrier",
-    "sensors_as5600_strip_top",
-    "sensors_as5600_strip_bot",
-    "sensors_as5600_nut_top",
-    "sensors_as5600_nut_bot",
-    "sensors_as5600_screw_top",
-    "sensors_as5600_screw_bot",
-    "sensors_as5600_col_screws"
-   ],
-   "handle": [],
-   "subsystem": "sensors",
-   "auto": false,
-   "stage": 213,
-   "band": "sensors",
-   "label": "sensors 213",
-   "seq": 57,
-   "warnings": [],
-   "heading": "Step 58 (sensors 213): Sensors 4: AS5600 board"
-  },
-  {
-   "title": "Electronics bay",
-   "text": "Battery unplugged. Bay on the deck, 4 x M3 x 10 through the tabs. Boards in: BTS7960 on its 4 standoffs (M3 x 6), heatsink down; ESP32 DevKitC pins down into the cradle, USB end into the wall slot, clamp with 2 x M3 x 8; DRV8833, MP1584 and HX711 into their pockets with a cable tie through the floor slots or a drop of hot glue. Fuse holder in its cradle with a cable tie.",
-   "parts": [
-    "frame_ebay_lid",
-    "frame_ebay_esp_clamp",
-    "frame_pcb_esp32",
-    "frame_pcb_bts7960",
-    "frame_pcb_mp1584",
-    "frame_pcb_drv8833",
-    "frame_pcb_hx711",
-    "frame_fuse_20a"
-   ],
-   "handle": [
-    "frame_ebay"
-   ],
-   "subsystem": "frame",
-   "auto": false,
-   "stage": 220,
-   "band": "electronics",
-   "label": "electronics 220",
-   "seq": 58,
-   "warnings": [],
-   "heading": "Step 59 (electronics 220): Electronics bay"
-  },
-  {
-   "title": "Set the buck BEFORE wiring the DRV8833",
-   "text": "Battery unplugged. Wire only the buck input to the fuse output and ground. Plug the battery in, meter on the buck output, turn the trimpot until it reads 9.0 V. Unplug the battery. Only then wire buck output to DRV8833 VIN (the DRV8833 dies above 10.8 V).",
-   "parts": [],
-   "handle": [
-    "frame_pcb_mp1584",
-    "frame_pcb_drv8833"
-   ],
-   "subsystem": "frame",
-   "auto": false,
-   "stage": 221,
-   "band": "electronics",
-   "label": "electronics 221",
-   "seq": 59,
-   "warnings": [],
-   "heading": "Step 60 (electronics 221): Set the buck BEFORE wiring the DRV8833"
-  },
-  {
-   "title": "Camera, receiver and cable anchors",
-   "text": "Camera column on the deck, 4 x M3 x 10 into the inserts. Clip the Kiyo X onto the 16 mm edge plate like onto a monitor (or use a 1/4-20 tripod screw up through the plate hole); it looks forward along the launch line. RC832: stand it antenna-end up in its holder slot, leads out of the low notch, holder 2 x M3 x 10. Cable anchors 1 x M3 x 12 each; tie the camera USB, the receiver AV lead and the capture dongle lead to them so no plug carries the cable weight.",
-   "parts": [
-    "frame_camera_mount",
-    "frame_rc832_holder",
-    "frame_rc832",
-    "frame_kiyo_x",
-    "frame_cable_anchor_1",
-    "frame_cable_anchor_2"
-   ],
-   "handle": [],
-   "subsystem": "frame",
-   "auto": false,
-   "stage": 222,
-   "band": "electronics",
-   "label": "electronics 222",
-   "seq": 60,
-   "warnings": [],
-   "heading": "Step 61 (electronics 222): Camera, receiver and cable anchors"
-  },
-  {
-   "title": "Wiring and lid",
-   "text": "Battery unplugged. Follow firmware/base/WIRING.md. Every wire leaving the bay goes through its wall exit and is cable-tied to the anchor beside it (strain relief). 14 AWG for battery, fuse, BTS7960 and motor. Lid on, 4 x M3 x 6. USB cable from the ESP32 native USB port to the Jetson.",
-   "parts": [],
-   "handle": [
-    "frame_ebay_lid"
-   ],
-   "subsystem": "frame",
-   "auto": false,
-   "stage": 223,
-   "band": "electronics",
-   "label": "electronics 223",
-   "seq": 61,
-   "warnings": [],
-   "heading": "Step 62 (electronics 223): Wiring and lid"
-  },
-  {
-   "title": "Gear guards",
-   "text": "After every train has been turned by hand: the hood goes over the gears in front of the motor plate, M3 x 10 through each lug into the plate inserts; the front guard stands on the deck between the drum gears and the bay, M3 x 10 into the deck inserts. Turn the wiper by hand once: nothing rubs.",
-   "parts": [
-    "frame_guard_hood",
-    "frame_guard_front"
-   ],
-   "handle": [],
-   "subsystem": "frame",
-   "auto": false,
-   "stage": 230,
-   "band": "guards",
-   "label": "guards 230",
-   "seq": 62,
-   "warnings": [],
-   "heading": "Step 63 (guards 230): Gear guards"
+   "stage": 26,
+   "subsystem": "launch"
   },
   {
    "title": "Test stage 5 only: springs (NOT during assembly)",
@@ -19025,15 +18322,215 @@
     "launch_spring_r_3",
     "launch_spring_r_4"
    ],
-   "handle": [],
-   "subsystem": "launch",
-   "auto": false,
    "stage": 999,
-   "band": "test_stage_only",
-   "label": "test_stage_only 999",
-   "seq": 63,
-   "warnings": [],
-   "heading": "Step 64 (test_stage_only 999): Test stage 5 only: springs (NOT during assembly)"
+   "subsystem": "launch"
+  },
+  {
+   "title": "Screw the reel wall to the deck",
+   "text": "Stand the reel wall on the deck at its marked place. Put seven M3 screws down through the counterbored foot holes into the deck inserts and tighten. Do this first: the storage reel and the gears later cover some of the holes.",
+   "parts": [
+    "reel_wall"
+   ],
+   "subsystem": "reel"
+  },
+  {
+   "title": "Sprag hub and sprag (CSK20PP)",
+   "text": "Push the sprag hub's round spigot into the big hole in the wall from the front, flange flat on the wall, and screw it on from the front with four M3 x 8 screws (they tap into the wall). Find the key slot on the outside of the CSK20PP and line it up with the printed rib at the top of the hub's seat. Check the arrow on the bearing: seen from the front, the inner ring must turn freely counter-clockwise and lock clockwise. Press it in flat until it sits on the lip.",
+   "parts": [
+    "reel_sprag_hub",
+    "reel_hub_screws",
+    "reel_sprag"
+   ],
+   "subsystem": "reel"
+  },
+  {
+   "title": "Capstan tube",
+   "text": "Slide the capstan tube in from the FRONT, D-flat end first, its key rib lined up with the key slot inside the sprag. Push until the collar sits on the sprag. It turns one way only (counter-clockwise seen from the front).",
+   "parts": [
+    "reel_c"
+   ],
+   "subsystem": "reel"
+  },
+  {
+   "title": "Bus gear, swing arm and swing idler",
+   "text": "From behind the wall slide the 46-tooth bus gear onto the tube, gear face first, hub toward you. Slip the swing arm's ring over the bus gear's hub, idler pin pointing at the wall, and put the 30-tooth swing idler on the pin. The idler is held between the arm and the wall. The arm swings 12 degrees between its two stop pins.",
+   "parts": [
+    "reel_bus",
+    "reel_swing_arm",
+    "reel_gi"
+   ],
+   "subsystem": "reel"
+  },
+  {
+   "title": "Capstan gear",
+   "text": "Slide the 22-tooth capstan gear onto the D-flat behind the bus gear, hub toward the bus gear, and snap the large C-clip into the groove behind it. The bus gear must still turn freely.",
+   "parts": [
+    "reel_gc",
+    "reel_c_clip"
+   ],
+   "subsystem": "reel"
+  },
+  {
+   "title": "Capstan drum",
+   "text": "Slide the green drum onto the front of the tube, flange first, key slot on the rib, until it sits on the collar.",
+   "parts": [
+    "reel_drum"
+   ],
+   "subsystem": "reel"
+  },
+  {
+   "title": "Cup shaft and wrap cup",
+   "text": "Push the cup shaft through the tube from the FRONT, plain end first (the neck end stays in front), until its back end comes out behind the capstan gear. Slide the wrap cup onto the front end (flat in the bore onto the flat of the shaft, ring at the top), over the drum. Push Harry's small C-clip sideways onto the neck in front of the cup.",
+   "parts": [
+    "reel_k",
+    "reel_cup",
+    "reel_cup_clip"
+   ],
+   "subsystem": "reel"
+  },
+  {
+   "title": "Cup gear",
+   "text": "From behind, slide the 24-tooth cup gear onto the D-flat at the back of the cup shaft, hub forward, and snap its C-clip on. The cup must turn freely both ways.",
+   "parts": [
+    "reel_gk",
+    "reel_k_clip"
+   ],
+   "subsystem": "reel"
+  },
+  {
+   "title": "Storage reel",
+   "text": "Press one 608 bearing into each end of the reel body. Push the Dyneema end through the small hole in the core near the back flange into the open pocket, tie a stopper knot (figure eight) and pull it tight. Lay the flat flange disc on the front, its slots on the three lugs, raised ring outward. Slide the reel onto the reel shaft from the shaft's thin end until the disc meets the shaft's round head. Slide the thrust ring onto the shaft behind the reel, small boss toward the bearing.",
+   "parts": [
+    "reel_spool",
+    "reel_spool_flange",
+    "reel_brg_1",
+    "reel_brg_2",
+    "reel_s",
+    "reel_t"
+   ],
+   "subsystem": "reel"
+  },
+  {
+   "title": "Brake crank, rocker and bar",
+   "text": "Grease the crank boss low on the left of the wall front. Slide the black bell crank onto it: the short arm lies in the recess in the wall and points right, the long arm sticks straight out from the wall. Put the printed washer on the boss and screw the M3 x 20 into it: the crank must swing freely. Screw the M3 x 10 FIRM screw into the rocker's leg from the front with its nut on the front face, until 0.35 mm of its tip shows at the back. Hang the yellow rocker between the two ears at the top with an M3 x 25 screw and nut (snug, it must swing); its round hole goes over the small boss, its leg rests on the small pad on the wall, the FIRM screw tip just above the crank's short arm. Screw two M3 x 8 screws into the rocker's two bosses from behind, until their tips stand 0.5 mm proud of the front. Lay the brake bar in the two U guides, its raised lug against the crank's long arm, nose toward the drum. Close each guide with its cap and two M3 x 16 screws. Push the nose: the crank swings and the rocker leg moves away from the wall; let go and it all springs back.",
+   "parts": [
+    "reel_crank",
+    "reel_crank_washer",
+    "reel_crank_screw",
+    "reel_firm_screw",
+    "reel_rocker",
+    "reel_rocker_pin",
+    "reel_trim_screws",
+    "reel_bar",
+    "reel_bar_cap_1",
+    "reel_bar_cap_2",
+    "reel_bar_screws"
+   ],
+   "subsystem": "reel"
+  },
+  {
+   "title": "Reel shaft into the wall",
+   "text": "Feed the reel shaft's thin end through the rocker's hole and the wall bushing from the front. From behind, slide the 20-tooth reel gear onto the D-flat, hub toward the wall, and snap its C-clip on. Swing the arm toward the reel gear (to its stop): the idler meshes it. Spin the reel by hand: it should turn with a light, even drag. Set LIGHT (after the line is wound on, drum at LAUNCH): swing the arm to its parked stop (the idler leaves the reel gear), turn the reel shaft until the reel gear's two small holes line up with the wall holes, swing the arm back, reach through with a 2.5 mm hex key and turn both trim screws the same amount until a 50 g weight hung on the line end just pulls line off slowly (0.5 N). 1/8 turn changes it by about 0.4 N of squeeze.",
+   "parts": [
+    "reel_gr",
+    "reel_s_clip"
+   ],
+   "subsystem": "reel"
+  },
+  {
+   "title": "SW_ARM contact",
+   "text": "Battery unplugged. Build the printed contact (see the contact switch page): nut pressed in the base trap, lever screwed onto the pad with 2 x M3 x 10 self tapping screws, M3 x 10 contact screw with its jam nut in the lever. Screw the switch base to the bracket with 4 x M3 x 8 self tapping screws (into the pilot holes in the plate), and the bracket to the back of the wall below the gears with two M3 x 8. SW_ARM is closed while the cup is away from home and opens at home: the lever rides a raised track on the back of the cup gear and drops into a notch in it at home. Turn the cup to home (ring at the top): the lever tip sits free in the notch. Turn the contact screw until its head just touches the nut, then back it off 1.9 turns (gap about 0.9 mm, 0.5 mm per turn) and lock the jam nut. Check with the meter: turn the cup about 15 degrees either way, the lever rides up onto the track and the contact closes; back at home it must open, for about 7 degrees either side.",
+   "parts": [
+    "reel_sw_bracket",
+    "reel_sw_base",
+    "reel_sw_lever",
+    "reel_sw_hw"
+   ],
+   "subsystem": "reel"
+  },
+  {
+   "title": "Pulley 2 swivel",
+   "text": "Press a 693ZZ into pulley 2, set it between the swivel fork's two cheeks and push the M3 x 20 axle through (nyloc nut on the far side, snug: the pulley must spin). Grease the fork's tube and push it through the bore of the pulley 2 post's block from the pulley side (the tube is level and points toward pulley 1); snap the C-clip into the groove where the tube comes out of the block. The fork must turn freely. Screw the post to the deck beside the drum with four M3 screws into the deck inserts. The line from pulley 1 goes through the tube, round the pulley and out toward the rail pivot pulley; the fork turns itself to follow the line as the rail aims.",
+   "parts": [
+    "reel_p2_post",
+    "reel_p2_fork",
+    "reel_p2_clip",
+    "reel_pulley2",
+    "reel_p2_brg",
+    "reel_p2_axle"
+   ],
+   "subsystem": "reel"
+  },
+  {
+   "title": "Shroud",
+   "text": "Put the shroud round the reel, its flange on the wall, opening at the top right, and screw it on with three M3 x 8 screws into the wall. The reel must not touch it anywhere.",
+   "parts": [
+    "reel_shroud"
+   ],
+   "subsystem": "reel"
+  },
+  {
+   "title": "Pulley 1 post and line",
+   "text": "Stand the pulley 1 post on the deck in front of the wall and screw it down with four M3 screws into the deck. Press a 693ZZ into pulley 1 and set it between the post's two cheeks. Wind the line onto the reel (counter-clockwise seen from the front, line over the top), thread it through the guide eye, over the top of the cup and through the cup ring from the back. Lay it over pulley 1 in its groove (it comes up from the ring and turns down toward the deck), then push the M3 x 20 axle down through the top cheek and the pulley and screw it into the post below (threadlocker, no nut). Lead the line down to pulley 2. Set FIRM last, with the drum in REEL (the bar pushed in by the cam): pull the line end with the luggage scale; it must slip at 5.0 N with the reel full. Too low: loosen the lock nut on the rocker leg and turn the FIRM screw in (toward the wall); too high: out. One turn is about 1 N at the line. Lock the nut.",
+   "parts": [
+    "reel_exit_post",
+    "reel_pulley1",
+    "reel_p1_brg",
+    "reel_p1_axle"
+   ],
+   "subsystem": "reel"
+  },
+  {
+   "stage": 210,
+   "title": "Sensors 1: build the two contact switches (SW_RAIL_LOW, SW_GAP)",
+   "text": "For each switch: press an M3 nut into the hex trap on the base pillar (a drop of glue), solder a wire to the nut through the side slot and lay it in the groove. Screw the lever onto the pad with 2 x M3x10 self tapping screws. Screw an M3x10 through the lever boss from the top, head down, with a ring lug and the second wire under a jam nut on top. Turn the screw until the head touches the nut, then back it off 1.9 turns (gap about 0.9 mm, 0.5 mm per turn) and lock the jam nut.",
+   "parts": [
+    "sensors_sw_rail_low",
+    "sensors_sw_rail_low_lever",
+    "sensors_sw_rail_low_screw",
+    "sensors_sw_rail_low_jam",
+    "sensors_sw_rail_low_nut"
+   ],
+   "subsystem": "sensors"
+  },
+  {
+   "stage": 211,
+   "title": "Sensors 2: SW_RAIL_LOW on the aim housing",
+   "text": "Screw the switch base to its bracket (4 x M3x8 self tapping), lever pointing to the crank. Set the bracket foot on the housing foot extension in front of the crank. Screw it down with an M3x10 in the hole nearest the crank (self taps into the housing) and an M3x16 in the counterbored hole at the front end of the foot: down through the foot and the foot extension into the deck insert under it (the bracket's own deck screw). Turn the crank by hand (wiper backwards) to the lowest rail position: the cam lobe presses the lever tip and the meter shows the switch closed. Turn the crank about 20 deg either side: the switch must open.",
+   "parts": [
+    "sensors_sw_rail_low_bracket"
+   ],
+   "subsystem": "sensors"
+  },
+  {
+   "stage": 212,
+   "title": "Sensors 3: SW_GAP on the right rail cheek",
+   "text": "Build SW_GAP as in Sensors 1 (its base has its own arm). Hold the arm tab on the outer face of the right rail cheek, below the big gear, and screw it on with 2 x M3x12 (heads in the counterbores). With the big gear at rest (toothless gap at the rack) the cam bump presses the lever: switch closed. Turn the gear 20 deg either way: switch open.",
+   "parts": [
+    "sensors_sw_gap",
+    "sensors_sw_gap_lever",
+    "sensors_sw_gap_screw",
+    "sensors_sw_gap_jam",
+    "sensors_sw_gap_nut"
+   ],
+   "subsystem": "sensors"
+  },
+  {
+   "stage": 213,
+   "title": "Sensors 4: AS5600 board",
+   "text": "Do this after the magnet cap is on the main shaft end (drum steps): the board sits 2 mm in front of it. Battery unplugged. Plug the STEMMA QT cable into the board's connector on the +x end (the end away from the housing spine). Push the board onto the 4 pegs of the carrier, chip facing out. Drop an M3 nut into each hex pocket in the carrier back, lay the strips over the board edges (pegs through their holes) and screw each from the strip front with an M3x12 into its nut. Screw the carrier column to the aim housing spine with 2 x M3x16. Check by eye: the chip sits on the shaft axis, about 2.0 mm from the magnet face, and the cap turns free.",
+   "parts": [
+    "sensors_as5600",
+    "sensors_as5600_carrier",
+    "sensors_as5600_strip_top",
+    "sensors_as5600_strip_bot",
+    "sensors_as5600_nut_top",
+    "sensors_as5600_nut_bot",
+    "sensors_as5600_screw_top",
+    "sensors_as5600_screw_bot",
+    "sensors_as5600_col_screws"
+   ],
+   "subsystem": "sensors"
   }
  ],
  "params": {
@@ -20450,718 +19947,5 @@
   "_CAP_X": -18.661,
   "_CAP_Z": -69.643
  },
- "errors": [],
- "steps_authored": [
-  {
-   "title": "Drum: bracket A, axle, drum A",
-   "stage": 130,
-   "text": "Bolt bracket A to the deck (2 x M3 x 12). Press the drum axle into it (flat facing forward). Slide drum A onto the axle, gear first, and turn it so the gap in its lock ring faces back toward the idler position (about drum 180 on the pointer). The shift rail goes in after the idler.",
-   "parts": [
-    "drum_bracket_a",
-    "drum_axle",
-    "drum_drum_a"
-   ],
-   "subsystem": "drum"
-  },
-  {
-   "title": "Drum: wrap idler",
-   "stage": 140,
-   "text": "Push the idler output gear onto the idler shaft flat from the long end. Slide idler post 2 onto the short journal and idler post 1 onto the long journal (the thick middle of the shaft sits between the posts and locates it). Fit this before cad-reel's bus gear, SW_ARM bracket and cup gear. Lower the posts with the idler onto the deck about 4 mm to the back (-x) of their place, then slide them forward so the small pinion meshes the drum A segment teeth, and bolt them down (2 x M3 x 12 each; the front screw of post 2 needs the short arm of the hex key). Turn drum A back to LAUNCH (mark L at the top): the flat-sided lock cam must sit in the drum lock ring and the idler can no longer turn by hand.",
-   "parts": [
-    "drum_idler_gear",
-    "drum_idler",
-    "drum_bracket_idler",
-    "drum_bracket_idler2"
-   ],
-   "subsystem": "drum"
-  },
-  {
-   "title": "Drum: shift rail",
-   "stage": 145,
-   "text": "Slide the shift rail in from the outboard end, over the idler posts, and press it into bracket A (flat facing forward).",
-   "parts": [
-    "drum_rail"
-   ],
-   "subsystem": "drum"
-  },
-  {
-   "title": "Main shaft: coupler and limiter",
-   "stage": 146,
-   "text": "Push the coupler hub onto the wiper output shaft (flats in line) until it stops on the end of the flats; its lower end goes into the puck bore, just clear of the motor's output boss. Drop the M8 nut into the hub pocket onto the thread (it sits about 8 mm down the pocket) and tighten it with a 13 mm socket (1/4 inch drive). Slide the outer coupler over the hub, line up the holes, push a shear pin in (head outside, its flat facing the outboard end) and put a piece of tape round the coupler over the head. Print the pins lying on their flat (D44: shear across the layers). Keep the 5 spare pins with the base. A broken pin stub comes out with an M3 screw turned into it. Then slide the REEL gear onto the coupler journal (plain face first) and screw the retaining washer to the journal end (2 x M3 x 6): the gear must spin free (it cannot go on once the dog post is fitted).",
-   "parts": [
-    "drum_coupler_hub",
-    "drum_coupler",
-    "drum_shear_pin",
-    "drum_gear_reel",
-    "drum_reel_washer"
-   ],
-   "subsystem": "drum"
-  },
-  {
-   "title": "Main shaft: index contact",
-   "stage": 147,
-   "text": "Press an M3 nut into the index block pocket, screw the index lever foot to the block (M3 x 12), thread an M3 x 6 into the lever boss, head toward the nut. Screw the block to the inner face of the strut of idler post 2 (2 x M3 x 12 from the far side of the post into the block), with the nub on the coupler cam. Set the gap so the screw head touches the nut near the top of a bump (about 1.5 mm on a low part). Battery unplugged: nut to GND, screw to SW_INDEX.",
-   "parts": [
-    "drum_index_block",
-    "drum_index_lever"
-   ],
-   "subsystem": "drum"
-  },
-  {
-   "title": "Drum: fork and dog contacts",
-   "stage": 160,
-   "text": "Press an M3 nut into the hex hole of the yoke tab. Thread an M3 x 8 into each dog post boss first, heads toward each other (M3 x 8: a longer screw reaches the REEL gear; no room for a driver later). Turn the drum to about 180. Slide the fork sleeve onto the rail, yoke facing the main shaft, and swing it about 20 deg pin end away from the drum while the dog post slides on (its bar reaching back over the yoke tab; fit it before cad-reel's pulley 2). Grease the rail. Tighten the dog post clamp screw (M3 x 8, tapped) onto the rail flat. Battery unplugged: nut wire to GND, REEL side screw to SW_DOG_R, LAUNCH side screw to SW_DOG_L.",
-   "parts": [
-    "drum_dog_post",
-    "drum_fork"
-   ],
-   "subsystem": "drum"
-  },
-  {
-   "title": "Drum: drum B, hand lever, bracket B",
-   "stage": 161,
-   "text": "Swing the fork up on the rail, slide drum B onto the axle (hex socket over the drum A spigot; it fits one way only, cut corner to filled corner), slide the fork to its middle position and swing it down so its pin drops into the groove (drum near 180). Slide the hand lever onto the hex boss. Press bracket B onto the axle and rail ends and bolt it down (2 x M3 x 12). The drum turns by hand with about 0.6 mm end play.",
-   "parts": [
-    "drum_drum_b",
-    "drum_hand_lever",
-    "drum_bracket_b"
-   ],
-   "subsystem": "drum"
-  },
-  {
-   "title": "Drum: N20",
-   "stage": 162,
-   "text": "Press the pinion onto the N20 output shaft (flat to flat) leaving 1.5 mm of shaft below it (that end runs in the bracket A ear slot). Slide the N20 into the cradle from the open end, fit the end plate (2 x M3 x 8). Press an M3 nut into the pocket in the bracket A ear front face, wire along its groove. Screw the cradle to the ear from the cradle side: pivot screw M3 x 12 through the round hole, swing screw M3 x 12 through the arc slot at its full-mesh end (the slot only lets the cradle swing out), both tapped into the ear. Turn the SW_N20 screw (M3 x 8, tapped in the cradle plate) in until its tip just touches the nut. Battery unplugged: nut to GND, screw to SW_N20.",
-   "parts": [
-    "drum_n20_pinion",
-    "drum_n20",
-    "drum_n20_cradle",
-    "drum_n20_strap"
-   ],
-   "subsystem": "drum"
-  },
-  {
-   "title": "Drum: code switches",
-   "stage": 163,
-   "text": "Press an M3 nut into each of the 3 front pockets of the switch block and bolt it to the deck (2 x M3 x 12). Screw each lever foot to the block (M3 x 12), nub on its band. Thread an M3 x 6 into each lever boss, head toward the nut, so the head touches the nut near the top of a bump (gap about 1.8 mm with the nub low). Battery unplugged: nuts to GND, screws to SW_DRUM_A (nearest the motor), SW_DRUM_B, SW_DRUM_C.",
-   "parts": [
-    "drum_switch_block",
-    "drum_sw_lever_0",
-    "drum_sw_lever_1",
-    "drum_sw_lever_2"
-   ],
-   "subsystem": "drum"
-  },
-  {
-   "title": "Main shaft: stack",
-   "stage": 170,
-   "text": "Slide the collar onto the main shaft from the spigot end. Lower the shaft with its hex end outboard of the REEL gear dogs (beyond s 70) so the collar groove drops between the fork pads, then push it about 42 mm into the coupler socket. The shaft is held endwise later by the launch sleeve and the magnet cap.",
-   "parts": [
-    "drum_shaft",
-    "drum_collar"
-   ],
-   "subsystem": "drum"
-  },
-  {
-   "title": "Main shaft: LAUNCH dog ring and magnet cap",
-   "stage": 171,
-   "text": "Fit the LAUNCH dog ring on the launch sleeve flange (sleeve lugs in the ring slots, 3 x M3 x 10 from the sleeve side into the ring) before the launch sleeve goes on the spigot (launcher steps). After the launcher: glue the AS5600 magnet into the cap, push the cap on the spigot end (flat to flat) and fit the M3 x 6 onto the flat. Hand use of the drum: battery unplugged, slacken the line, loosen the swing screw, swing the N20 out, turn the lever, swing back and tighten.",
-   "parts": [
-    "drum_dogring_launch",
-    "drum_magnet_cap"
-   ],
-   "subsystem": "drum"
-  },
-  {
-   "title": "Heat-set inserts",
-   "text": "Soldering iron with an insert tip, about 220 C for PLA and about 280 C for the PPA-CF puck. Press every M3 x 4 x 5 insert square into its 4.0 mm hole until flush: deck (49), motor plate (2 for the leg bridge, 2 for the can stay, 3 for the gear hood), puck adapter (8 in the rear lip), bay (corner bosses, standoffs, clamp posts, perfboard bosses). Let each cool before the next one nearby.",
-   "parts": [
-    "frame_deck_1",
-    "frame_deck_2",
-    "frame_deck_3",
-    "frame_deck_4",
-    "frame_cheek_r",
-    "frame_motor_adapter",
-    "frame_ebay"
-   ],
-   "subsystem": "frame"
-  },
-  {
-   "title": "Drill the rover",
-   "text": "Lay the deck on the rover top plate where it will live (launch direction forward). Mark through the 32 perimeter holes with a 3 mm drill or a scriber (or tape down the 1:1 PDF template from cad/parts/_frame_tests/drill_template.py), take the deck off, drill 3.4 mm. Deburr.",
-   "parts": [
-    "frame_deck_1",
-    "frame_deck_2",
-    "frame_deck_3",
-    "frame_deck_4"
-   ],
-   "subsystem": "frame"
-  },
-  {
-   "title": "Deck on the rover",
-   "text": "Slide the tiles together on the dovetails (from above). M3 x 25 SHCS down through every perimeter hole, washer and nyloc under the rover plate. Snug, not crushed. Do this before the other subsystems put their feet down: some rover bolts sit under their feet.",
-   "parts": [
-    "frame_deck_1",
-    "frame_deck_2",
-    "frame_deck_3",
-    "frame_deck_4"
-   ],
-   "subsystem": "frame"
-  },
-  {
-   "title": "Motor leg",
-   "text": "Stand the leg on the deck in the corner between the reel and the bay, foot along y. 4 x M3 x 10 down through the foot into the deck inserts.",
-   "parts": [
-    "frame_motor_leg"
-   ],
-   "subsystem": "frame"
-  },
-  {
-   "title": "Motor plate",
-   "text": "Hold the motor plate upright (front face, the side without the bridge, towards +y) with its bridge against the top of the leg. 2 x M3 x 12 along y through the leg's long counterbores into the bridge inserts.",
-   "parts": [
-    "frame_cheek_r"
-   ],
-   "subsystem": "frame"
-  },
-  {
-   "title": "Wiper motor on the puck (bench)",
-   "text": "Battery unplugged. Put the M6 bolts through the puck slots from the front (heads sit in the slot counterbores), into the motor bosses (threaded bosses, or a nut behind each boss ear). Slide the motor so its shaft is centred in the bore (a 10 mm drill shank in the coupler bore helps), then tighten.",
-   "parts": [
-    "frame_motor_adapter",
-    "frame_wiper_motor",
-    "frame_wiper_shaft"
-   ],
-   "subsystem": "frame"
-  },
-  {
-   "title": "Puck into the plate",
-   "text": "Feed the puck into the plate window from behind (the motor side) until its lip sits on the plate's rear face. From the front, M3 x 12 through the plate into the lip inserts (5 of the 8 rim holes have both plate and lip; use those).",
-   "parts": [
-    "frame_motor_adapter"
-   ],
-   "subsystem": "frame"
-  },
-  {
-   "title": "Can stay",
-   "text": "Post against the plate's rear face, 2 x M3 x 12 into the plate inserts. Cable tie or hose clamp round the motor can through the two cradle slots, firm but not crushing.",
-   "parts": [
-    "frame_can_stay"
-   ],
-   "subsystem": "frame"
-  },
-  {
-   "title": "Shafts and trains (other subsystems)",
-   "text": "Now cad-drum (coupler on the wiper shaft, SW_INDEX block on the strut of idler post 2: drum step \"Main shaft: index contact\"), cad-reel and cad-launch install their trains and aim housing. Follow their steps, then come back. The tether crosses the puck twice, in channels cut out to the puck's edge: from the guide eye to the cup ring it runs in the channel that opens into the capstan opening (lay it in from there); from pulley 1 forward to pulley 2 it runs in the notch near the rim, which the plate closes (push the line end through it from behind).",
-   "parts": [],
-   "subsystem": "frame"
-  },
-  {
-   "title": "Gear guards",
-   "text": "After every train has been turned by hand: the hood goes over the gears in front of the motor plate, M3 x 10 through each lug into the plate inserts; the front guard stands on the deck between the drum gears and the bay, M3 x 10 into the deck inserts. Turn the wiper by hand once: nothing rubs.",
-   "parts": [
-    "frame_guard_hood",
-    "frame_guard_front"
-   ],
-   "subsystem": "frame"
-  },
-  {
-   "title": "Electronics bay",
-   "text": "Battery unplugged. Bay on the deck, 4 x M3 x 10 through the tabs. Boards in: BTS7960 on its 4 standoffs (M3 x 6), heatsink down; ESP32 DevKitC pins down into the cradle, USB end into the wall slot, clamp with 2 x M3 x 8; DRV8833, MP1584 and HX711 into their pockets with a cable tie through the floor slots or a drop of hot glue. Fuse holder in its cradle with a cable tie.",
-   "parts": [
-    "frame_ebay",
-    "frame_ebay_lid",
-    "frame_ebay_esp_clamp",
-    "frame_pcb_esp32",
-    "frame_pcb_bts7960",
-    "frame_pcb_mp1584",
-    "frame_pcb_drv8833",
-    "frame_pcb_hx711",
-    "frame_fuse_20a"
-   ],
-   "subsystem": "frame"
-  },
-  {
-   "title": "Set the buck BEFORE wiring the DRV8833",
-   "text": "Battery unplugged. Wire only the buck input to the fuse output and ground. Plug the battery in, meter on the buck output, turn the trimpot until it reads 9.0 V. Unplug the battery. Only then wire buck output to DRV8833 VIN (the DRV8833 dies above 10.8 V).",
-   "parts": [
-    "frame_pcb_mp1584",
-    "frame_pcb_drv8833"
-   ],
-   "subsystem": "frame"
-  },
-  {
-   "title": "Camera, receiver and cable anchors",
-   "text": "Camera column on the deck, 4 x M3 x 10 into the inserts. Clip the Kiyo X onto the 16 mm edge plate like onto a monitor (or use a 1/4-20 tripod screw up through the plate hole); it looks forward along the launch line. RC832: stand it antenna-end up in its holder slot, leads out of the low notch, holder 2 x M3 x 10. Cable anchors 1 x M3 x 12 each; tie the camera USB, the receiver AV lead and the capture dongle lead to them so no plug carries the cable weight.",
-   "parts": [
-    "frame_camera_mount",
-    "frame_rc832_holder",
-    "frame_rc832",
-    "frame_kiyo_x",
-    "frame_cable_anchor_1",
-    "frame_cable_anchor_2"
-   ],
-   "subsystem": "frame"
-  },
-  {
-   "title": "Wiring and lid",
-   "text": "Battery unplugged. Follow firmware/base/WIRING.md. Every wire leaving the bay goes through its wall exit and is cable-tied to the anchor beside it (strain relief). 14 AWG for battery, fuse, BTS7960 and motor. Lid on, 4 x M3 x 6. USB cable from the ESP32 native USB port to the Jetson.",
-   "parts": [
-    "frame_ebay_lid"
-   ],
-   "subsystem": "frame"
-  },
-  {
-   "title": "Launcher 1: print the parts",
-   "text": "All PLA unless named. PPA-CF: big gear, drive gear, launch sleeve, big gear pin, SW_SEATED plunger and pushrod, and the aim gears (sun, idler, output, bevel, worm, crank). Use each part's print orientation from the print sheet: the carriage body lies on its side across the bed diagonal; the stop springs print upside down at 100 percent infill (all perimeters); rail pieces lie on their largest flat face. 0.2 mm layers, 4 walls on every loaded part. Hardware (launcher and aim train): M3 screws 2 x 6, 3 x 8, 14 x 10, 23 x 12, 5 x 16, 15 x 20, 4 x 30, plus 4 x 10 for the aim housing to the deck (Aim 3); 10 M3 nuts, 4 M3 nylocs; M8 x 25 bolt and M8 nut; 2 x 608; 4 x 693ZZ (3 tether pulleys, 1 lip roller); 2 x 8 mm steel rod pins (cut to the length on the print sheet) for the spring anchors; sprag #1 (CSK20PP); the two springs.",
-   "parts": [],
-   "stage": 10,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Launcher 2: join the rail",
-   "text": "Lay the rear, mid and front rail pieces in a line on a flat table. Push each joint together and fit 2 x M3 x 20 with nuts through each flange pair (8 in total). Tighten evenly; file any step inside the track where the pieces meet so the carriage shoes slide over it.",
-   "parts": [
-    "launch_rail_rear",
-    "launch_rail_mid",
-    "launch_rail_front"
-   ],
-   "stage": 11,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Launcher 2b: splice straps and aim lug",
-   "text": "Screw a splice strap on each wall top across the front joint (4 x M3 x 10 self tap each). Bolt the aim lug to the left rail wall now (2 x M3 x 12 self tap): the spring guards cover its screws later.",
-   "parts": [
-    "launch_rail_splice_l",
-    "launch_rail_splice_r",
-    "launch_aim_lug"
-   ],
-   "stage": 12,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Launcher 3: big gear",
-   "text": "Hold the big gear between the two cheeks of the mid piece, the toothed sector towards the drum side (right) and the full ring of teeth towards the left, with the spacer washer between the gear and the left cheek. Push the big gear pin through cheek, gear, washer, cheek from the right and snap the C clip into its groove. The gear must spin freely with almost no end play.",
-   "parts": [
-    "launch_big_gear",
-    "launch_gear_pin",
-    "launch_gear_clip",
-    "launch_gear_washer"
-   ],
-   "stage": 13,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Launcher 4: drive gear, sprag #1 and the launch sleeve",
-   "text": "First bolt cad-drum's LAUNCH dog ring to the sleeve flange: lugs in the ring slots, 3 x M3 x 8 from the flange side into the tapped ring (the heads are out of reach once the sleeve is in the cheeks). Slide sprag #1 into the drive gear so its outer keyway takes the rib inside the gear. Check the direction: look at the gear from its collar side (the side that goes to the right, towards the motor), hold the gear and turn the inner race with a finger. It must turn freely counter-clockwise (BACKWARD) and lock clockwise (FORWARD: clockwise seen from the motor side is the cock direction). If it is the other way round, push the sprag out, turn it over and slide it in other face first. Hold the drive gear between the cheeks (collar side right, then the spacer washer on its left), meshing the big gear's full ring of teeth. Turn the cheek bores so their slots point down, then push the launch sleeve in from the motor side, outboard end first, ribs lined up with the slots and the sprag keyway, until the long (15 mm) rib sits inside the sprag.",
-   "parts": [
-    "launch_drive_gear",
-    "launch_sprag",
-    "launch_sleeve",
-    "launch_drive_washer"
-   ],
-   "stage": 14,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Launcher 5: carriage",
-   "text": "Turn the big gear so its toothless gap faces the rack. Slide the carriage BODY into the track from the FRONT end (the tether fork blocks the rear), rack teeth down, until its rear face reaches the stop position. Yoke: push the SW_SEATED pushrod into the block bore from the rear, collar first, then push the plunger's pin up through the block from below (pad under the left arm) and press the head cap on the pin top. Lower the yoke onto the carriage rear so its key plates drop into the slots in the body webs, and fit 1 x M3 x 10 per side through the yoke into the webs. Press a printed spring peg up into each inner (y 38) peg hole from below, flat to the rear, to the end of the hole.",
-   "parts": [
-    "launch_carriage",
-    "launch_carriage_yoke",
-    "launch_seat_plunger",
-    "launch_seat_pushrod",
-    "launch_seat_clip",
-    "launch_yoke_peg_l",
-    "launch_yoke_peg_r"
-   ],
-   "stage": 15,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Launcher 5b: lip roller",
-   "text": "Press a 693ZZ into the lip roller, put a printed thrust washer each side in its bore (hub to the bearing), drop roller and washers into the fork at the carriage front and fit the M3 x 16 and a nyloc nut; it must spin freely. The tether runs over it in tow and retrieval, and the dart's tail slides in over it through the funnel onto the cradle.",
-   "parts": [
-    "launch_muzzle_roller",
-    "launch_muzzle_roller_brg",
-    "launch_muzzle_roller_axle",
-    "launch_muzzle_washer_l",
-    "launch_muzzle_washer_r"
-   ],
-   "stage": 16,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Launcher 6: carriage stop frames",
-   "text": "For each side, before any spring: slide the stop frame onto the rail from the outboard side (it does not drop straight down past the inboard preload ledge). 2 x M3 x 12 through the rear foot into the rail wall, and 2 x M3 x 16 down through the front foot into the rail front plate, driven through the access holes in the frame's front wall.",
-   "parts": [
-    "launch_stop_frame_l",
-    "launch_stop_frame_r"
-   ],
-   "stage": 17,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Launcher 6b: spring guards",
-   "text": "Screw the spring guard plates to the rail walls and anchor posts (M3 self tap into the pilots, see the print sheet), four per side: a (rear, with the end wall), b1 and b2 (either side of the stop frame's rear leg) and c (front, 2 x M3 x 12 into the front plate edge). Slide each one in from the side, under the stop frame's outboard bar. Wall brackets: M3 x 12 self tap, head and hex key through the hole in the plate; b2 foot: M3 x 10 down. Never cock with a guard off.",
-   "parts": [
-    "launch_guard_l_a",
-    "launch_guard_l_b1",
-    "launch_guard_l_b2",
-    "launch_guard_l_c",
-    "launch_guard_r_a",
-    "launch_guard_r_b1",
-    "launch_guard_r_b2",
-    "launch_guard_r_c"
-   ],
-   "stage": 18,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Launcher 6c: stop springs",
-   "text": "Put each stop spring on its ledges inside its frame, rear bar towards the yoke arm, and pull it onto the frame's front wall with the 2 x M3 x 20 draw screws (heads on the front wall), a turn each in turn, until it sits on the wall (6.6 mm of preload). The rear bar must rest on both ledges.",
-   "parts": [
-    "launch_stop_spring_l",
-    "launch_stop_spring_r"
-   ],
-   "stage": 19,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Launcher 7: contacts",
-   "text": "SW_HOME (right lip) and SW_SEATED (left lip): drop an M3 nut into the slot in the rail wall with a stripped wire end under it. Put a ring lug (or a stripped wire end wrapped once) on an M3 x 6 under its head and screw it up into the lever's boss, head down, until the tip is flush with the boss top (the pad beside it must stay the highest point), then screw the lever root to the lip with one M3 x 10 (self tap). Set the gap with the carriage pushed back at least 10 mm (lever free): turn the screw down until the head just touches the nut (meter beeps), then back it off ONE full turn (0.5 mm gap; a dab of nail varnish on the thread holds it). Carriage on its stop: the right foot presses the pad about 0.95 mm and SW_HOME must read closed; 2 mm back it must read open (if not, a quarter turn at a time). SW_SEATED closes only with a dart on the sled (no springs yet: hold the carriage on its stop by hand to check). SW_GAP, SW_RAIL_LOW and the AS5600 carrier are fitted in the Sensors steps (cad-sensors).",
-   "parts": [
-    "launch_sw_home",
-    "launch_sw_home_screw",
-    "launch_sw_home_nut",
-    "launch_sw_seated",
-    "launch_sw_seated_screw",
-    "launch_sw_seated_nut"
-   ],
-   "stage": 20,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Launcher 8: time the big gear (fingers clear)",
-   "text": "No springs fitted yet. Hold the carriage on its stop by hand and turn the drive gear FORWARD until the first tooth after the toothless gap just touches the rearmost rack tooth: this is HOME (SW_GAP is set to it in the Sensors steps). Turning on pulls the carriage back smoothly; at full cock the cut last tooth lets go (push the carriage home by hand). Hold the drive gear from the side and never put a hand in front of the carriage.",
-   "parts": [],
-   "stage": 21,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Launcher 9: tether pulleys",
-   "text": "Press a 693ZZ into each printed pulley. Fit the top and bottom pulleys in the fork behind the rail (M3 x 20 axle and nyloc nut, a printed top-hat washer each side between plate and bearing, hub towards the bearing) and the pivot pulley on the right cheek lug under the axis (M3 x 20 from outside, head on the bearing, nyloc on the cheek inner face). Thread the line from the reel side under the pivot pulley, back under the rail to the bottom pulley, up over the top pulley and forward through the pusher hole to the dart's tail cap. Never fire without the tether.",
-   "parts": [
-    "launch_pulley_top",
-    "launch_pulley_top_brg",
-    "launch_pulley_top_axle",
-    "launch_pulley_bot",
-    "launch_pulley_bot_brg",
-    "launch_pulley_bot_axle",
-    "launch_pulley_piv",
-    "launch_pulley_piv_brg",
-    "launch_pulley_piv_axle",
-    "launch_pulley_top_washer_l",
-    "launch_pulley_top_washer_r",
-    "launch_pulley_bot_washer_l",
-    "launch_pulley_bot_washer_r",
-    "launch_line_b",
-    "launch_line_c",
-    "launch_line_p",
-    "launch_line_a0",
-    "launch_line_a1",
-    "launch_line_a2",
-    "launch_line_a3",
-    "launch_line_a4",
-    "launch_line_a5",
-    "launch_line_a6",
-    "launch_line_a7",
-    "launch_line_a8"
-   ],
-   "stage": 22,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Aim 1: aim housing, worm, wheel, crank",
-   "text": "Build the aim housing on the bench (it goes onto the base later, after the rail). The AS5600 carrier and SW_RAIL_LOW are cad-sensors parts (Sensors steps), screwed into the pilots on the housing. Push the countershaft in from the inboard side through the inner wall bushing, through the big bevel (D bore, slid on from the outboard end of the shaft) and into the outer wall bushing. Drop the M8 nut into the hex pocket on the inner face of the outer wall, fit the two 608 bearings into the crank (worm wheel) hub, hold the crank in place and push the M8 x 25 bolt in from outboard through the wall, the nut and both bearings; tighten so the head and nut clamp the wall. Lay the worm shaft with the small bevel in its saddles and screw the cap on (4 x M3 x 30 self tap). The housing screws to the deck later (Aim 3), from the top: 4 x M3 x 10 down through the counterbored holes in its foot flanges (two behind the spine, one in front of the outer wall, one on the inboard tab) into the deck's heat-set inserts. The SW_RAIL_LOW bracket on the foot extension has its own deck screw (Sensors 2).",
-   "parts": [
-    "launch_aim_housing",
-    "launch_aim_cap",
-    "launch_aim_worm",
-    "launch_aim_crank",
-    "launch_aim_bolt",
-    "launch_aim_brg_1",
-    "launch_aim_brg_2",
-    "launch_aim_output",
-    "launch_aim_bevel30",
-    "launch_aim_nut"
-   ],
-   "stage": 23,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Aim 2: splitter",
-   "text": "Slide the sun onto the sleeve's outer rib. On the bench: fit the idler on the swing arm pin and snap the printed C clip into the pin groove, and push the printed drag pad into the arm hub pocket with the shim behind its root block (a thicker shim gives more drag). Then slide the arm onto the sleeve next to the sun (there is no room to fit the idler once the arm is on).",
-   "parts": [
-    "launch_aim_sun",
-    "launch_aim_arm",
-    "launch_aim_idler",
-    "launch_aim_drag_pad",
-    "launch_aim_drag_shim",
-    "launch_aim_idler_clip"
-   ],
-   "stage": 24,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Aim 3: lug, conrod, rail onto the base",
-   "text": "With the sun and swing arm already on the sleeve (the lug is on the rail since Launcher 2b), slide the rail assembly's sleeve along the main axis onto the drum's d12 spigot from the outboard side (the LAUNCH dog ring is already bolted to its flange, Launcher 4) until the ring's dogs sit by the drum collar. Hang the conrod's upper eye on the lug pin and snap a printed C clip into that groove. Then slide the aim housing on from the outboard side so the sleeve end enters its bushing and the crank pin enters the conrod's lower eye (hold the swing arm with the idler pointing down and a little to the rear, clear of the output gear, and let the arm go in between the two stop posts on the housing's inner face as they come up to it); snap a printed C clip onto the crank pin and screw the housing to the deck from the top: 4 x M3 x 10 through the counterbored foot flange holes into the deck inserts. Turn the sleeve backward by hand: the arm swings the idler into the output gear, comes to rest on its engaged stop post and drives the gear without binding; forward, the arm swings out onto the other post and the output gear stays still. Then turn the wiper backward slowly: the rail rises to 47 deg, then lowers to 6 deg.",
-   "parts": [
-    "launch_aim_conrod",
-    "launch_aim_crankpin_clip",
-    "launch_aim_lugpin_clip"
-   ],
-   "stage": 25,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Launcher 10: wiring (battery unplugged)",
-   "text": "Battery unplugged. Run the SW_HOME, SW_SEATED and SW_GAP wires along the rail to the pivot and leave a 150 mm loop at the main axis before they go to the frame. No wire goes onto the carriage. Each contact: one wire to its ESP32 pin (SW_HOME 21, SW_GAP 39, SW_RAIL_LOW 40, SW_SEATED 41, as params.SWITCHES), the other to GND.",
-   "parts": [],
-   "stage": 26,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Test stage 5 only: springs (NOT during assembly)",
-   "text": "The springs go on at test stage 5, after the big gear timing, the contacts and the aim train have been checked without them. Spring guards on first (never cock with a guard off) and never fire without the tether attached (D11). Hook the back end of each spring over the inner peg of the yoke arm. Put the front hook between post and strap, lined up with the main hole, and push the 8 mm steel rod pin down through strap, hook and post. Hole set F, 8.5 mm rearward, is the fallback if the hang test shows the spring needs less stretch. The outer holes are spare. The springs are slightly stretched and hold the carriage against the stop. A drop of glue on the pin top stops it working up.",
-   "parts": [
-    "launch_anchor_pin_l",
-    "launch_anchor_pin_r",
-    "launch_spring_l_hook_a",
-    "launch_spring_r_hook_a",
-    "launch_spring_l_hook_c",
-    "launch_spring_r_hook_c",
-    "launch_spring_l_0",
-    "launch_spring_l_1",
-    "launch_spring_l_2",
-    "launch_spring_l_3",
-    "launch_spring_l_4",
-    "launch_spring_r_0",
-    "launch_spring_r_1",
-    "launch_spring_r_2",
-    "launch_spring_r_3",
-    "launch_spring_r_4"
-   ],
-   "stage": 999,
-   "subsystem": "launch"
-  },
-  {
-   "title": "Screw the reel wall to the deck",
-   "text": "Stand the reel wall on the deck at its marked place. Put seven M3 screws down through the counterbored foot holes into the deck inserts and tighten. Do this first: the storage reel and the gears later cover some of the holes.",
-   "parts": [
-    "reel_wall"
-   ],
-   "subsystem": "reel"
-  },
-  {
-   "title": "Sprag hub and sprag (CSK20PP)",
-   "text": "Push the sprag hub's round spigot into the big hole in the wall from the front, flange flat on the wall, and screw it on from the front with four M3 x 8 screws (they tap into the wall). Find the key slot on the outside of the CSK20PP and line it up with the printed rib at the top of the hub's seat. Check the arrow on the bearing: seen from the front, the inner ring must turn freely counter-clockwise and lock clockwise. Press it in flat until it sits on the lip.",
-   "parts": [
-    "reel_sprag_hub",
-    "reel_hub_screws",
-    "reel_sprag"
-   ],
-   "subsystem": "reel"
-  },
-  {
-   "title": "Capstan tube",
-   "text": "Slide the capstan tube in from the FRONT, D-flat end first, its key rib lined up with the key slot inside the sprag. Push until the collar sits on the sprag. It turns one way only (counter-clockwise seen from the front).",
-   "parts": [
-    "reel_c"
-   ],
-   "subsystem": "reel"
-  },
-  {
-   "title": "Bus gear, swing arm and swing idler",
-   "text": "From behind the wall slide the 46-tooth bus gear onto the tube, gear face first, hub toward you. Slip the swing arm's ring over the bus gear's hub, idler pin pointing at the wall, and put the 30-tooth swing idler on the pin. The idler is held between the arm and the wall. The arm swings 12 degrees between its two stop pins.",
-   "parts": [
-    "reel_bus",
-    "reel_swing_arm",
-    "reel_gi"
-   ],
-   "subsystem": "reel"
-  },
-  {
-   "title": "Capstan gear",
-   "text": "Slide the 22-tooth capstan gear onto the D-flat behind the bus gear, hub toward the bus gear, and snap the large C-clip into the groove behind it. The bus gear must still turn freely.",
-   "parts": [
-    "reel_gc",
-    "reel_c_clip"
-   ],
-   "subsystem": "reel"
-  },
-  {
-   "title": "Capstan drum",
-   "text": "Slide the green drum onto the front of the tube, flange first, key slot on the rib, until it sits on the collar.",
-   "parts": [
-    "reel_drum"
-   ],
-   "subsystem": "reel"
-  },
-  {
-   "title": "Cup shaft and wrap cup",
-   "text": "Push the cup shaft through the tube from the FRONT, plain end first (the neck end stays in front), until its back end comes out behind the capstan gear. Slide the wrap cup onto the front end (flat in the bore onto the flat of the shaft, ring at the top), over the drum. Push Harry's small C-clip sideways onto the neck in front of the cup.",
-   "parts": [
-    "reel_k",
-    "reel_cup",
-    "reel_cup_clip"
-   ],
-   "subsystem": "reel"
-  },
-  {
-   "title": "Cup gear",
-   "text": "From behind, slide the 24-tooth cup gear onto the D-flat at the back of the cup shaft, hub forward, and snap its C-clip on. The cup must turn freely both ways.",
-   "parts": [
-    "reel_gk",
-    "reel_k_clip"
-   ],
-   "subsystem": "reel"
-  },
-  {
-   "title": "Storage reel",
-   "text": "Press one 608 bearing into each end of the reel body. Push the Dyneema end through the small hole in the core near the back flange into the open pocket, tie a stopper knot (figure eight) and pull it tight. Lay the flat flange disc on the front, its slots on the three lugs, raised ring outward. Slide the reel onto the reel shaft from the shaft's thin end until the disc meets the shaft's round head. Slide the thrust ring onto the shaft behind the reel, small boss toward the bearing.",
-   "parts": [
-    "reel_spool",
-    "reel_spool_flange",
-    "reel_brg_1",
-    "reel_brg_2",
-    "reel_s",
-    "reel_t"
-   ],
-   "subsystem": "reel"
-  },
-  {
-   "title": "Brake crank, rocker and bar",
-   "text": "Grease the crank boss low on the left of the wall front. Slide the black bell crank onto it: the short arm lies in the recess in the wall and points right, the long arm sticks straight out from the wall. Put the printed washer on the boss and screw the M3 x 20 into it: the crank must swing freely. Screw the M3 x 10 FIRM screw into the rocker's leg from the front with its nut on the front face, until 0.35 mm of its tip shows at the back. Hang the yellow rocker between the two ears at the top with an M3 x 25 screw and nut (snug, it must swing); its round hole goes over the small boss, its leg rests on the small pad on the wall, the FIRM screw tip just above the crank's short arm. Screw two M3 x 8 screws into the rocker's two bosses from behind, until their tips stand 0.5 mm proud of the front. Lay the brake bar in the two U guides, its raised lug against the crank's long arm, nose toward the drum. Close each guide with its cap and two M3 x 16 screws. Push the nose: the crank swings and the rocker leg moves away from the wall; let go and it all springs back.",
-   "parts": [
-    "reel_crank",
-    "reel_crank_washer",
-    "reel_crank_screw",
-    "reel_firm_screw",
-    "reel_rocker",
-    "reel_rocker_pin",
-    "reel_trim_screws",
-    "reel_bar",
-    "reel_bar_cap_1",
-    "reel_bar_cap_2",
-    "reel_bar_screws"
-   ],
-   "subsystem": "reel"
-  },
-  {
-   "title": "Reel shaft into the wall",
-   "text": "Feed the reel shaft's thin end through the rocker's hole and the wall bushing from the front. From behind, slide the 20-tooth reel gear onto the D-flat, hub toward the wall, and snap its C-clip on. Swing the arm toward the reel gear (to its stop): the idler meshes it. Spin the reel by hand: it should turn with a light, even drag. Set LIGHT (after the line is wound on, drum at LAUNCH): swing the arm to its parked stop (the idler leaves the reel gear), turn the reel shaft until the reel gear's two small holes line up with the wall holes, swing the arm back, reach through with a 2.5 mm hex key and turn both trim screws the same amount until a 50 g weight hung on the line end just pulls line off slowly (0.5 N). 1/8 turn changes it by about 0.4 N of squeeze.",
-   "parts": [
-    "reel_gr",
-    "reel_s_clip"
-   ],
-   "subsystem": "reel"
-  },
-  {
-   "title": "SW_ARM contact",
-   "text": "Battery unplugged. Build the printed contact (see the contact switch page): nut pressed in the base trap, lever screwed onto the pad with 2 x M3 x 10 self tapping screws, M3 x 10 contact screw with its jam nut in the lever. Screw the switch base to the bracket with 4 x M3 x 8 self tapping screws (into the pilot holes in the plate), and the bracket to the back of the wall below the gears with two M3 x 8. SW_ARM is closed while the cup is away from home and opens at home: the lever rides a raised track on the back of the cup gear and drops into a notch in it at home. Turn the cup to home (ring at the top): the lever tip sits free in the notch. Turn the contact screw until its head just touches the nut, then back it off 1.9 turns (gap about 0.9 mm, 0.5 mm per turn) and lock the jam nut. Check with the meter: turn the cup about 15 degrees either way, the lever rides up onto the track and the contact closes; back at home it must open, for about 7 degrees either side.",
-   "parts": [
-    "reel_sw_bracket",
-    "reel_sw_base",
-    "reel_sw_lever",
-    "reel_sw_hw"
-   ],
-   "subsystem": "reel"
-  },
-  {
-   "title": "Pulley 2 swivel",
-   "text": "Press a 693ZZ into pulley 2, set it between the swivel fork's two cheeks and push the M3 x 20 axle through (nyloc nut on the far side, snug: the pulley must spin). Grease the fork's tube and push it through the bore of the pulley 2 post's block from the pulley side (the tube is level and points toward pulley 1); snap the C-clip into the groove where the tube comes out of the block. The fork must turn freely. Screw the post to the deck beside the drum with four M3 screws into the deck inserts. The line from pulley 1 goes through the tube, round the pulley and out toward the rail pivot pulley; the fork turns itself to follow the line as the rail aims.",
-   "parts": [
-    "reel_p2_post",
-    "reel_p2_fork",
-    "reel_p2_clip",
-    "reel_pulley2",
-    "reel_p2_brg",
-    "reel_p2_axle"
-   ],
-   "subsystem": "reel"
-  },
-  {
-   "title": "Shroud",
-   "text": "Put the shroud round the reel, its flange on the wall, opening at the top right, and screw it on with three M3 x 8 screws into the wall. The reel must not touch it anywhere.",
-   "parts": [
-    "reel_shroud"
-   ],
-   "subsystem": "reel"
-  },
-  {
-   "title": "Pulley 1 post and line",
-   "text": "Stand the pulley 1 post on the deck in front of the wall and screw it down with four M3 screws into the deck. Press a 693ZZ into pulley 1 and set it between the post's two cheeks. Wind the line onto the reel (counter-clockwise seen from the front, line over the top), thread it through the guide eye, over the top of the cup and through the cup ring from the back. Lay it over pulley 1 in its groove (it comes up from the ring and turns down toward the deck), then push the M3 x 20 axle down through the top cheek and the pulley and screw it into the post below (threadlocker, no nut). Lead the line down to pulley 2. Set FIRM last, with the drum in REEL (the bar pushed in by the cam): pull the line end with the luggage scale; it must slip at 5.0 N with the reel full. Too low: loosen the lock nut on the rocker leg and turn the FIRM screw in (toward the wall); too high: out. One turn is about 1 N at the line. Lock the nut.",
-   "parts": [
-    "reel_exit_post",
-    "reel_pulley1",
-    "reel_p1_brg",
-    "reel_p1_axle"
-   ],
-   "subsystem": "reel"
-  },
-  {
-   "stage": 210,
-   "title": "Sensors 1: build the two contact switches (SW_RAIL_LOW, SW_GAP)",
-   "text": "For each switch: press an M3 nut into the hex trap on the base pillar (a drop of glue), solder a wire to the nut through the side slot and lay it in the groove. Screw the lever onto the pad with 2 x M3x10 self tapping screws. Screw an M3x10 through the lever boss from the top, head down, with a ring lug and the second wire under a jam nut on top. Turn the screw until the head touches the nut, then back it off 1.9 turns (gap about 0.9 mm, 0.5 mm per turn) and lock the jam nut.",
-   "parts": [
-    "sensors_sw_rail_low",
-    "sensors_sw_rail_low_lever",
-    "sensors_sw_rail_low_screw",
-    "sensors_sw_rail_low_jam",
-    "sensors_sw_rail_low_nut"
-   ],
-   "subsystem": "sensors"
-  },
-  {
-   "stage": 211,
-   "title": "Sensors 2: SW_RAIL_LOW on the aim housing",
-   "text": "Screw the switch base to its bracket (4 x M3x8 self tapping), lever pointing to the crank. Set the bracket foot on the housing foot extension in front of the crank. Screw it down with an M3x10 in the hole nearest the crank (self taps into the housing) and an M3x16 in the counterbored hole at the front end of the foot: down through the foot and the foot extension into the deck insert under it (the bracket's own deck screw). Turn the crank by hand (wiper backwards) to the lowest rail position: the cam lobe presses the lever tip and the meter shows the switch closed. Turn the crank about 20 deg either side: the switch must open.",
-   "parts": [
-    "sensors_sw_rail_low_bracket"
-   ],
-   "subsystem": "sensors"
-  },
-  {
-   "stage": 212,
-   "title": "Sensors 3: SW_GAP on the right rail cheek",
-   "text": "Build SW_GAP as in Sensors 1 (its base has its own arm). Hold the arm tab on the outer face of the right rail cheek, below the big gear, and screw it on with 2 x M3x12 (heads in the counterbores). With the big gear at rest (toothless gap at the rack) the cam bump presses the lever: switch closed. Turn the gear 20 deg either way: switch open.",
-   "parts": [
-    "sensors_sw_gap",
-    "sensors_sw_gap_lever",
-    "sensors_sw_gap_screw",
-    "sensors_sw_gap_jam",
-    "sensors_sw_gap_nut"
-   ],
-   "subsystem": "sensors"
-  },
-  {
-   "stage": 213,
-   "title": "Sensors 4: AS5600 board",
-   "text": "Do this after the magnet cap is on the main shaft end (drum steps): the board sits 2 mm in front of it. Battery unplugged. Plug the STEMMA QT cable into the board's connector on the +x end (the end away from the housing spine). Push the board onto the 4 pegs of the carrier, chip facing out. Drop an M3 nut into each hex pocket in the carrier back, lay the strips over the board edges (pegs through their holes) and screw each from the strip front with an M3x12 into its nut. Screw the carrier column to the aim housing spine with 2 x M3x16. Check by eye: the chip sits on the shaft axis, about 2.0 mm from the magnet face, and the cap turns free.",
-   "parts": [
-    "sensors_as5600",
-    "sensors_as5600_carrier",
-    "sensors_as5600_strip_top",
-    "sensors_as5600_strip_bot",
-    "sensors_as5600_nut_top",
-    "sensors_as5600_nut_bot",
-    "sensors_as5600_screw_top",
-    "sensors_as5600_screw_bot",
-    "sensors_as5600_col_screws"
-   ],
-   "subsystem": "sensors"
-  }
- ]
+ "errors": []
 }

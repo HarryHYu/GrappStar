@@ -234,6 +234,8 @@ def build(out, branch, checks_file):
         nav.append('<a class="go" href="sim.html">Open the mission sim</a>')
     if files.get("assembly.html"):
         nav.append('<a class="go alt" href="assembly.html">Assembly steps</a>')
+    if os.path.exists(os.path.join(ROOT, "base/out/base/shots/mech_power.png")):
+        nav.append('<a class="go alt" href="mechanisms.html">Mechanisms one by one</a>')
     status = f"Built {esc(git_head())}" + (f" &middot; collision audit {esc(audit_state)}" if audit_state else "")
 
     _all = measure_rows()
@@ -345,7 +347,95 @@ ul.files a {{ color: var(--ink); text-decoration-color: var(--accent); text-unde
         f.write("<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">"
                 "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">"
                 "</head><body style=\"margin:0\">\n" + body + "</body></html>\n")
+    if build_mechanisms(out, body, branch):
+        files["mechanisms.html"] = True
     print("site:", out, "files:", ", ".join(["index_body.html", "index.html"] + sorted(files)))
+
+
+MECH_CSS = """<style>
+.mech { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 22px; align-items: start; }
+@media (max-width: 760px) { .mech { grid-template-columns: minmax(0, 1fr); } }
+.mech figure { margin: 0; border: 1px solid var(--rule); background: #eef1f4; }
+.mech figure img { display: block; width: 100%; height: auto; }
+.mech dl { margin: 0; display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 6px 14px; }
+.mech dt { font: 600 0.78rem var(--display); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+.mech dd { margin: 0; }
+.mech .tag { font: 0.8rem var(--mono); color: var(--muted); }
+details { margin-top: 12px; }
+summary { cursor: pointer; font: 600 0.9rem var(--display); letter-spacing: 0.03em; }
+ol.flow { margin: 0; padding-left: 1.2rem; display: grid; gap: 6px; }
+a.back { font: 0.9rem var(--mono); color: var(--accent); }
+</style>"""
+
+
+def build_mechanisms(out, index_body, branch):
+    """OUT/mechanisms.html: the base taken apart by mechanism (tools/mechanisms.py), one picture of each mechanism on
+    its own (base/out/base/shots/mech_<key>.png), what it does and drives, its parts, and a link that opens the sim with
+    only that mechanism shown (sim.html#mech=<key>). Returns False when the shots or asm.json are missing."""
+    shots = os.path.join(ROOT, "base/out/base/shots")
+    asm_p = os.path.join(ROOT, "base/out/base/asm.json")
+    if not (os.path.exists(os.path.join(shots, "mech_power.png")) and os.path.exists(asm_p)):
+        return False
+    sys.path.insert(0, os.path.join(ROOT, "base"))
+    from tools import mechanisms as MC
+    asm = jload(asm_p)
+    pmap = {p["name"]: p for p in asm["parts"]}
+    st = MC.stats(asm)
+    gs = MC.groups(list(pmap))
+    os.makedirs(os.path.join(out, "mech"), exist_ok=True)
+    style = re.search(r"<style>.*?</style>", index_body, re.S).group(0)
+    fonts = re.search(r'<link rel="stylesheet"[^>]*>', index_body).group(0)
+    rows, secs = [], []
+    for g in gs:
+        k, s_ = g["key"], st[g["key"]]
+        src = os.path.join(shots, f"mech_{k}.png")
+        img = ""
+        if os.path.exists(src):
+            shutil.copy(src, os.path.join(out, "mech", f"{k}.png"))
+            img = f'<figure><img src="mech/{k}.png" alt="{esc(g["title"])} on its own" loading="lazy"></figure>'
+        count = f'{s_["parts"]} parts: {s_["printed"]} printed, {s_["bought"]} bought; {s_["moving"]} move'
+        rows.append(f'<tr><td><a href="#{k}">{esc(g["title"])}</a></td><td class="num">{s_["parts"]}</td>'
+                    f'<td class="num">{s_["printed"]}</td><td class="num">{s_["bought"]}</td><td class="num">{s_["moving"]}</td></tr>')
+        plist = "".join(f'<tr><td><code>{esc(n)}</code></td><td>{esc(pmap[n]["material"])}</td>'
+                        f'<td>{esc(pmap[n].get("bought_ref") or pmap[n].get("notes") or "")}</td></tr>' for n in g["parts"])
+        dl = "".join(f"<dt>{t}</dt><dd>{esc(g[f])}</dd>" for t, f in (("Job", "job"), ("Driven by", "drive"),
+                                                                       ("Works in", "when"), ("How", "how"), ("Note", "note")) if g.get(f))
+        secs.append(f'<section id="{k}"><h2>{esc(g["title"])} <small>{esc(count)}</small></h2><div class="mech">{img}<div>'
+                    f'<dl>{dl}</dl><p style="margin:14px 0 0"><a class="go alt" href="sim.html#mech={k}">Watch it move on its own</a></p>'
+                    f'<details><summary>Every part ({len(g["parts"])})</summary><div class="scroll"><table><thead><tr><th>Part</th>'
+                    f'<th>Material</th><th>What it is</th></tr></thead><tbody>{plist}</tbody></table></div></details></div></div></section>')
+    flow = [
+        "The wiper motor turns the coupler (shear pin 5 N m) and the hex main shaft. The coupler's bus gear always turns with it.",
+        "Bus gear, forward turns only: the swing idler drops in and the storage reel winds through its clutch (take-up).",
+        "Selector collar in LAUNCH: the main shaft turns the launch sleeve. Forward: sprag #1, drive gear, big gear, rack: cock, then fire. Backward: splitter idler, bevels, worm, crank-rocker: aim.",
+        "Selector collar in NEUTRAL: the main shaft turns nothing but the take-up.",
+        "Selector drum in its WRAP sector (N20 power, wiper off): segment gear, wrap idler, cup gear: 7 wraps round the capstan.",
+        "Selector collar in REEL: REEL gear, capstan gear: tow and reel-in; sprag #2 stops it running back.",
+        "Selector drum cam: pushes the brake bar, storage reel clutch LIGHT (flight) or FIRM (final approach).",
+    ]
+    page = f"""<title>GrappStar Mechanisms</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+{fonts}
+{style}
+{MECH_CSS}
+<div class="wrap">
+<header><p style="margin:0"><a class="back" href="./" onclick="if (history.length > 1) {{ history.back(); return false; }}">Back to the base station</a></p>
+<h1>Mechanisms one by one</h1>
+<p>The base station split into what each mechanism does, not who drew it. Each picture shows one mechanism on its own at a
+moment of the mission where it works; "Watch it move on its own" opens the mission sim with only those parts shown. Counts
+include fasteners and bearings; a part can appear in two groups (the switches are also under Switches and sensors).</p></header>
+<section><h2>Power flow <small>one motor, one selector</small></h2><ol class="flow">{''.join(f'<li>{esc(x)}</li>' for x in flow)}</ol></section>
+<section><h2>Overview</h2><div class="scroll"><table><thead><tr><th>Mechanism</th><th>Parts</th><th>Printed</th><th>Bought</th><th>Moving</th></tr></thead>
+<tbody>{''.join(rows)}</tbody></table></div></section>
+{''.join(secs)}
+</div>
+"""
+    assert "\u2014" not in page, "em dash in the mechanisms page"
+    with open(os.path.join(out, "mechanisms.html"), "w", encoding="utf-8") as f:
+        f.write("<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">"
+                "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">"
+                "</head><body style=\"margin:0\">\n" + page + "</body></html>\n")
+    return True
     return out
 
 

@@ -415,6 +415,7 @@
       renderer, scene, cam, ctl, parts, list, data, nSamples: nS, dark, box0, center: c0, radius: R0, boxTrack: boxT, joints, movers,
       sample, cut, explode, highlight, highlightLevel, show, setOffset, setGround, setTheme, pick, bbox, view, fitDist, render, renderIfNeeded, resize, mark, freeze,
       cam: camSet, camGet, cutState: () => cutState, sampleIndex: () => curS, line: () => linePts.slice(), frozen: () => frozen,
+      showLine: on => { if (line) { line.visible = !!on; needs = true; } },
     };
     return api;
   }

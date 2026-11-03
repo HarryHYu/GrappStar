@@ -94,6 +94,25 @@ CADV.boot(function () {
     followC = null; V.render();
   }
   document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
+
+  // ------------------------------------------------------------------ mechanisms: one mechanism on its own, still moving
+  const MECHS = D.mechs || [], msel = $('#mech');
+  if (msel) {
+    for (const m of MECHS) { const o = document.createElement('option'); o.value = m.key; o.textContent = m.title; msel.appendChild(o); }
+    msel.onchange = () => setMech(msel.value);
+  }
+  function setMech(key) {
+    const m = MECHS.find(x => x.key === key) || null;
+    if (msel) msel.value = m ? m.key : '';
+    const names = m ? m.parts : null, keep = names ? new Set(names) : null;
+    V.show(names);
+    if (V.showLine) V.showLine(!m || m.key === 'tether');
+    document.querySelectorAll('#plist .pi').forEach(d => { const n = d.querySelector('.n'); d.style.display = !keep || (n && keep.has(n.textContent)) ? '' : 'none'; });
+    const mt = $('#mtxt'); if (mt) mt.textContent = m ? m.job : '';
+    if (m) { const fr = names.filter(n => !/_dart$/.test(n)); V.view(-55, 28, 0.85, V.bbox(fr.length ? fr : names)); followC = null; }
+    else setView('iso');
+    V.render();
+  }
   // follow a moving joint group (for example the dart in flight): the camera target moves with its parts
   const fsel = $('#follow'); let follow = null, followC = null;
   for (const m of V.movers) { const o = document.createElement('option'); o.value = m.name; o.textContent = m.name.replace(/_/g, ' ') + ' (' + m.parts.length + ')'; fsel.appendChild(o); }
@@ -157,6 +176,7 @@ CADV.boot(function () {
   }
   V.view(-55, 28, 0.9);
   update(); V.render();
+  { const hm = /mech=([\w-]+)/.exec(location.hash); if (hm) setMech(hm[1]); }
   window.SIM = {
     seek: x => { t = Math.max(T0, Math.min(T_END, +x)); update(); V.render(); },
     pause: () => { playing = false; $('#play').textContent = 'play'; },
@@ -167,6 +187,8 @@ CADV.boot(function () {
     cut: (axis, frac, flip) => { $('#cax').value = axis || 'none'; $('#cut').value = Math.round(1000 * (frac == null ? 0.5 : frac)); $('#cflip').checked = !!flip; applyCut(); V.render(); },
   };
   window.SIM_SEEK = window.SIM.seek; window.SIM_PAUSE = window.SIM.pause; window.SIM_CUT = window.SIM.cut;
+  window.SIM.mech = setMech; window.SIM_MECH = setMech;
+  window.SIM_CLEAN = () => { document.querySelectorAll('.panel').forEach(p => { p.style.display = 'none'; }); V.render(); };   // picture only (shots)
   window.SIM_VIEW = window.SIM.view; window.SIM_FOLLOW = window.SIM.follow; window.SIM_FREEZE = window.SIM.freeze;
   requestAnimationFrame(frame);
   window.READY = true;

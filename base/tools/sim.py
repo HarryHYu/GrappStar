@@ -28,6 +28,8 @@ def build(out: str, names=None, dt: float = 0.05, P=None) -> str:
     states = TL.timeline(P, dt)
     data = build_data(asm, out, states)
     data["phases"] = TL.phases(P)
+    from tools.mechanisms import groups as mech_groups
+    data["mechs"] = [dict(key=g["key"], title=g["title"], job=g["job"], parts=g["parts"]) for g in mech_groups(data["parts"][i]["name"] for i in range(len(data["parts"])))]
     dst, _ = write_pages(out, "sim", "sim_template.html", data, ["viewer_core.js", "sim_app.js"], data["title"] + " mission sim")
     return dst
 

@@ -115,6 +115,9 @@ uint16_t inaReg(uint8_t r) {
 // ---------------------------------------------------------------------------------------------------------------- IMU
 struct Sensor { uint32_t intervalUs = 0; uint64_t nextUs = 0; };
 Sensor accel, grv;
+const size_t IMU_FIFO_MAX = 32;                 // reports the chip holds for the host
+std::vector<ImuReport> fifo;                    // due, not yet read, oldest first
+uint32_t imuDropped = 0;
 bool imuResetPending = false;
 std::vector<TraceStep> trace; uint64_t traceT0Us = 0;
 TraceStep rest = {0, 0, 0, 9.80665, 0, 0};
@@ -209,14 +212,19 @@ bool imuEnable(uint8_t sensor, uint32_t intervalUs) {
   return true;
 }
 bool imuTakeReset() { Lock l(mu); bool r = imuResetPending; imuResetPending = false; return r; }
-std::vector<ImuReport> imuDue() {
+std::vector<ImuReport> imuNextTransfer() {
   Lock l(mu);
   std::vector<ImuReport> out;
   if (!bnoPresent) return out;
   uint64_t now = nowUs();
-  collect(accel, 0x01, now, out);
-  collect(grv, 0x08, now, out);
-  std::stable_sort(out.begin(), out.end(), [](const ImuReport& a, const ImuReport& b) { return a.tUs < b.tUs; });
+  collect(accel, 0x01, now, fifo);
+  collect(grv, 0x08, now, fifo);
+  std::stable_sort(fifo.begin(), fifo.end(), [](const ImuReport& a, const ImuReport& b) { return a.tUs < b.tUs; });
+  if (fifo.size() > IMU_FIFO_MAX) { imuDropped += (uint32_t)(fifo.size() - IMU_FIFO_MAX); fifo.erase(fifo.begin(), fifo.end() - IMU_FIFO_MAX); }
+  size_t n = 0;
+  while (n < fifo.size() && fifo[n].tUs == fifo[0].tUs) n++;
+  out.assign(fifo.begin(), fifo.begin() + n);
+  fifo.erase(fifo.begin(), fifo.begin() + n);
   return out;
 }
 uint32_t imuTransferUs() { Lock l(mu); return K.imuXferUs; }
@@ -283,7 +291,7 @@ bool setKnob(const std::string& key, const std::string& v, std::string& err) {
   }
   if (key == "ina_brownout") { inaPowerOn(); return true; }
   if (key == "imu_dead") { if (!parseBool(v, b)) { err = "imu_dead: want 0 or 1"; return false; } K.imuDead = b; return true; }
-  if (key == "bno_reset") { accel = Sensor(); grv = Sensor(); imuResetPending = true; return true; }
+  if (key == "bno_reset") { accel = Sensor(); grv = Sensor(); fifo.clear(); imuResetPending = true; return true; }
   if (!num) { err = "unknown knob or not a number: " + key + "=" + v; return false; }
   if (key == "rail_v") { K.railV = x; return true; }
   if (key == "kick_pos") { kickPos = std::max(0.0, std::min(KICK_TRAVEL, x)); return true; }
@@ -310,7 +318,8 @@ std::string stateJson() {
        ",\"cal\":" + std::to_string(inaCal) + "}";
   j += ",\"imu\":{\"present\":" + std::string(bnoPresent ? "true" : "false") + ",\"dead\":" + (K.imuDead ? "true" : "false") +
        ",\"accel_interval_us\":" + std::to_string(accel.intervalUs) + ",\"grv_interval_us\":" + std::to_string(grv.intervalUs) +
-       ",\"trace_running\":" + (traceRunning(nowUs()) ? "true" : "false") + ",\"xfer_us\":" + std::to_string(K.imuXferUs) + "}";
+       ",\"trace_running\":" + (traceRunning(nowUs()) ? "true" : "false") + ",\"xfer_us\":" + std::to_string(K.imuXferUs) + ",\"waiting\":" + std::to_string(fifo.size()) +
+       ",\"dropped\":" + std::to_string(imuDropped) + "}";
   j += ",\"knobs\":{\"drill_jam\":" + std::string(K.drillJam ? "true" : "false") + ",\"foot_jam\":" + (K.footJam ? "true" : "false") +
        ",\"kick_jam\":" + (K.kickJam ? "true" : "false") + ",\"deploy_jam\":" + (K.deployJam ? "true" : "false") +
        ",\"accel_noise\":" + fmt("%.3f", K.accelNoise) + "}";

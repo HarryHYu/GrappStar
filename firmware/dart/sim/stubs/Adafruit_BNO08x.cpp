@@ -1,6 +1,7 @@
-// Host implementation of the BNO085 / SH-2 stub. sh2_service() asks the simulated IMU for the reports that fell due
-// since the last call, packs each into SH-2 report bytes and hands them to the registered sensor callback, the same
-// path the real library takes (the callback runs on the caller's thread, inside sh2_service()).
+// Host implementation of the BNO085 / SH-2 stub. Like the real library, each sh2_service() call reads at most one SHTP
+// transfer from the chip (sim::imuNextTransfer), packs its reports into SH-2 report bytes and hands each to the
+// registered sensor callback on the caller's thread, inside sh2_service(). A host that calls it too rarely falls
+// behind and the chip drops reports, as on the hardware.
 #include "Adafruit_BNO08x.h"
 #include <math.h>
 #include <chrono>
@@ -29,7 +30,7 @@ bool Adafruit_BNO08x::wasReset() { return sim::imuTakeReset(); }
 int sh2_setSensorCallback(sh2_SensorCallback_t* cb, void* c) { callback = cb; cookie = c; return SH2_OK; }
 
 void sh2_service(void) {
-  std::vector<sim::ImuReport> due = sim::imuDue();
+  std::vector<sim::ImuReport> due = sim::imuNextTransfer();
   if (due.empty()) return;
   if (uint32_t us = sim::imuTransferUs()) std::this_thread::sleep_for(std::chrono::microseconds(us));   // I2C read time
   for (const sim::ImuReport& r : due) {

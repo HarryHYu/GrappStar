@@ -43,6 +43,7 @@ struct Sim {
   bool drumJam = false;            // drum N20 does not move
   double drumJamAbove = 1e9;       // drum cannot pass above this angle (jam)
   bool toothOnTooth = false; double toothNeedWiper = 10; double toothWiperAcc = 0;   // LAUNCH dog blocked until the wiper turns
+  double aimDragDeg = 0;           // backward aim drags the big gear back up to this far (cad-launch review: up to 127)
   double extraLoadNm = 0;          // stall injection
   bool searBroken = false;         // the relieved tooth never lets go (no release)
   // ---- log
@@ -140,6 +141,7 @@ struct Sim {
           if (mDir == c.aimDir) {
             aimPh = fmod(aimPh + drive, c.aimCycleDeg);
             if (!fired && cockPh > c.homeOpenDeg - 1) cockPh = fmax(c.homeOpenDeg - 1, cockPh - drive);   // drawn spring follows back (decock)
+            else if (!fired && aimDragDeg > 0) cockPh = fmax(-aimDragDeg, cockPh - drive);   // cad-launch: the big gear follows the sprag drag back (gap opens)
           } else {
             double before = cockPh; cockPh += drive;
             if (!fired && !searBroken && before < c.releaseDeg && cockPh >= c.releaseDeg) { fired = true; shots++; lineOut = lineOutAfterShot; }

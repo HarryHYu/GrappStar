@@ -7,18 +7,22 @@ agreed it is real but rated it lower.
 
 Confirmed: 8. Refuted and dropped: 0.
 
-| # | Sev | File:line | Owner | Finding |
-|---|---|---|---|---|
-| 1 | medium | `firmware/dart/kedge_dart/kedge_logic.h:438` | fw-dart | Round 1 #2 is still open: a 'timeout' landing (after an impact, or with no impact at all) freezes the log so late that the launch, the flight and the impact have already been overwritten in the 12 s ring |
-| 2 | medium | `jetson/grappstar/comms/dart.py:214` | jetson | Round 1 #4 is still open: Dart.flightlog gives up for good on the 409 'busy' refusal, so with auto-anchor-on-landing, or when the dart is still in FLIGHT, the shot's IMU log is never fetched |
-| 3 | medium | `jetson/grappstar/comms/dart.py:214` | jetson | R1 #4 not fixed: Jetson drops the flight log for good on the dart's 409 'busy' /flightlog refusal (every shot with auto_anchor_on_landing, and whenever the dart is still in FLIGHT) |
-| 4 | low | `firmware/dart/API.md:236` | fw-dart | API.md fault table still says a step timer ending during a failed current read raises SEQ_TIMEOUT, which the R1 #3 fix removed |
-| 5 | low | `firmware/dart/kedge_dart/kedge_dart.ino:322` | fw-dart | New keep=1 key-release stop aborts a running /auto or /release sequence when a refused key is let go (or the page loses focus) |
-| 6 | low | `firmware/dart/kedge_dart/kedge_logic.h:410` | fw-dart | Round 1 #1 only partly fixed: reversing a motor back and forth still gets round the hold cap and stall detection, so a jammed motor can run with no limit |
-| 7 | low | `firmware/dart/test/fuzz_logic.cpp:27` | fw-dart | Fuzz test checks only JSON syntax for the flight log and a copy of phase() for phases, so the freeze window bug cannot fail it |
-| 8 | low | `jetson/grappstar/cli.py:179` | jetson | R1 #5 not fixed: CLI 'dart release' prints IDLE (success) when the release was aborted by /stop |
+Re-checked 14:10 Sydney against base-v1 863d58d, one checker subagent per finding: see the Now column.
+
+| # | Sev | File:line | Owner | Finding | Now (863d58d) |
+|---|---|---|---|---|---|
+| 1 | medium | `firmware/dart/kedge_dart/kedge_logic.h:438` | fw-dart | Round 1 #2 is still open: a 'timeout' landing (after an impact, or with no impact at all) freezes the log so late that the launch, the flight and the impact have already been overwritten in the 12 s ring | fixed |
+| 2 | medium | `jetson/grappstar/comms/dart.py:214` | jetson | Round 1 #4 is still open: Dart.flightlog gives up for good on the 409 'busy' refusal, so with auto-anchor-on-landing, or when the dart is still in FLIGHT, the shot's IMU log is never fetched | fixed |
+| 3 | medium | `jetson/grappstar/comms/dart.py:214` | jetson | R1 #4 not fixed: Jetson drops the flight log for good on the dart's 409 'busy' /flightlog refusal (every shot with auto_anchor_on_landing, and whenever the dart is still in FLIGHT) | fixed |
+| 4 | low | `firmware/dart/API.md:236` | fw-dart | API.md fault table still says a step timer ending during a failed current read raises SEQ_TIMEOUT, which the R1 #3 fix removed | fixed |
+| 5 | low | `firmware/dart/kedge_dart/kedge_dart.ino:322` | fw-dart | New keep=1 key-release stop aborts a running /auto or /release sequence when a refused key is let go (or the page loses focus) | still open |
+| 6 | low | `firmware/dart/kedge_dart/kedge_logic.h:410` | fw-dart | Round 1 #1 only partly fixed: reversing a motor back and forth still gets round the hold cap and stall detection, so a jammed motor can run with no limit | still open |
+| 7 | low | `firmware/dart/test/fuzz_logic.cpp:27` | fw-dart | Fuzz test checks only JSON syntax for the flight log and a copy of phase() for phases, so the freeze window bug cannot fail it | still open |
+| 8 | low | `jetson/grappstar/cli.py:179` | jetson | R1 #5 not fixed: CLI 'dart release' prints IDLE (success) when the release was aborted by /stop | fixed |
 
 ## 1. Round 1 #2 is still open: a 'timeout' landing (after an impact, or with no impact at all) freezes the log so late that the launch, the flight and the impact have already been overwritten in the 12 s ring
+
+- Now (863d58d): **fixed** at `firmware/dart/kedge_dart/kedge_logic.h:478-489 (stop() path at :382)`. LAUNCH now schedules a freeze at freezeCap() = tLaunch-2000+(LOG_N-1)*20, and the LAND and stop() paths cap their freeze time to the same value, so the ring can no longer overwrite the launch. The new test_logic case for a timeout landing after an impact passes (log 2985..14965, tLaunch 5000), and all 224 checks pass.
 
 - File: `firmware/dart/kedge_dart/kedge_logic.h:438`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -40,6 +44,8 @@ The code: Flight::update and poll (kedge_logic.h:123, :138, :151) only declare a
 >
 
 ## 2. Round 1 #4 is still open: Dart.flightlog gives up for good on the 409 'busy' refusal, so with auto-anchor-on-landing, or when the dart is still in FLIGHT, the shot's IMU log is never fetched
+
+- Now (863d58d): **fixed** at `jetson/grappstar/comms/dart.py:202-215; jetson/grappstar/mission.py:906-917`. Dart.flightlog now retries a DartRefused whose reason starts with "busy" (the firmware sends "refused: busy (motors running, armed or in flight)" at firmware/dart/kedge_dart/kedge_dart.ino:275), backing off for up to 45 s. Before fetching, Mission.landing_zone also calls wait_phase for LANDED/ANCHORED/IDLE/FAULT/ARMED with a 40 s timeout, so a dart that is still in FLIGHT or running auto-anchor is waited out instead of dropping the log.
 
 - File: `jetson/grappstar/comms/dart.py:214`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -69,6 +75,8 @@ Fix: In Dart.flightlog, treat a DartRefused whose reason starts with 'busy' as r
 >
 
 ## 3. R1 #4 not fixed: Jetson drops the flight log for good on the dart's 409 'busy' /flightlog refusal (every shot with auto_anchor_on_landing, and whenever the dart is still in FLIGHT)
+
+- Now (863d58d): **fixed** at `jetson/grappstar/mission.py:909`. Both parts of the fix are now in. landing_zone waits up to 40 s for the dart to reach LANDED, ANCHORED, IDLE, FAULT or ARMED before it calls flightlog(), and it disarms the dart if it is still ARMED. Dart.flightlog (comms/dart.py:202-215) now retries a 409 whose reason starts with "busy" for up to busy_wait_s=45 s, and the reason string is stripped of the "refused: " prefix at dart.py:104, so the check matches the firmware text.
 
 - File: `jetson/grappstar/comms/dart.py:214`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -100,6 +108,8 @@ Case 1 (auto_anchor_on_landing=True):
 
 ## 4. API.md fault table still says a step timer ending during a failed current read raises SEQ_TIMEOUT, which the R1 #3 fix removed
 
+- Now (863d58d): **fixed** at `firmware/dart/API.md:255`. The SEQ_TIMEOUT row now reads only "anchor or release sequence over 35 s", with no failed-current-read clause. KICK_TIMEOUT (line 254) still keeps its kick-timer clause, and line 157 agrees with both.
+
 - File: `firmware/dart/API.md:236`
 - Severity: low (claimed low); unverified (low)
 - Owner: fw-dart
@@ -114,6 +124,8 @@ Fix: API.md:236: change the SEQ_TIMEOUT cause to `anchor or release sequence ove
 
 
 ## 5. New keep=1 key-release stop aborts a running /auto or /release sequence when a refused key is let go (or the page loses focus)
+
+- Now (863d58d): **still open** at `firmware/dart/kedge_dart/kedge_dart.ino:344-345`. The keep=1 key-release branch still calls K.stop(t, false). In kedge_logic.h:367-387 that call still sets seq = ABORTED when a sequence is running and clears fault to F_NONE. The page's release() and lost() at kedge_dart.ino:252/256 still send that request even when the key was refused, and there is no keyRelease-style helper like linkLost (kedge_logic.h:468).
 
 - File: `firmware/dart/kedge_dart/kedge_dart.ino:322`
 - Severity: low (claimed medium); 1 of 2 skeptics confirmed
@@ -138,6 +150,8 @@ Fix: A key release should stop only the manual hold-to-run motors, as linkLost d
 
 ## 6. Round 1 #1 only partly fixed: reversing a motor back and forth still gets round the hold cap and stall detection, so a jammed motor can run with no limit
 
+- Now (863d58d): **still open** at `firmware/dart/kedge_dart/kedge_logic.h:456`. Line 456 still reads `cont = repeat && lastKeyDir[m] == d`, so every reversal resets heldStart and motT0. The bothLock at line 455 only fires while the motor is still moving the other way. I rebuilt the original alt.cpp against the current header (in /tmp/claude-0/review-scratch-stale/s152/) and it gives the same numbers as before: deploy driven 25905 of 30000 ms with no refusals and no stall events, with or without the INA219, and 28185 ms at period 420 with ms=400.
+
 - File: `firmware/dart/kedge_dart/kedge_logic.h:410`
 - Severity: low (claimed medium); 2 of 2 skeptics confirmed
 - Owner: fw-dart
@@ -160,6 +174,8 @@ Fix: Base the hold cap on the motor, not on its direction. In key() change line 
 
 ## 7. Fuzz test checks only JSON syntax for the flight log and a copy of phase() for phases, so the freeze window bug cannot fail it
 
+- Now (863d58d): **still open** at `firmware/dart/test/fuzz_logic.cpp:516`. The only change to fuzz_logic.cpp since ba121b9 is the motor-limit slack and a disarm before /auto. checkLogJson (lines 516-541) still checks only JSON validity, n, field count and time order, with no check of the tLaunch-2000..tLand+3000 window. apiPhase (325-334) still copies phase() line for line, and imuAcc still has no impact-then-nudges or never-still tumbling trace.
+
 - File: `firmware/dart/test/fuzz_logic.cpp:27`
 - Severity: low (claimed low); unverified (low)
 - Owner: fw-dart
@@ -172,6 +188,8 @@ Fix: Add a log window invariant to checkLogJson. When `K.log.frozen && K.flight.
 
 
 ## 8. R1 #5 not fixed: CLI 'dart release' prints IDLE (success) when the release was aborted by /stop
+
+- Now (863d58d): **fixed** at `jetson/grappstar/cli.py:179`. The release command now calls wait_phase(("IDLE",), 90, want_seq="released"). Because want_seq is set, a seq of "aborted" raises DartError (comms/dart.py:303-304), and an IDLE with any other seq is not accepted, so it keeps polling until the 90 s timeout. cmd_dart catches the error and exits with code 2, so a release stopped by /stop no longer prints IDLE as if it had succeeded.
 
 - File: `jetson/grappstar/cli.py:179`
 - Severity: low (claimed low); unverified (low)

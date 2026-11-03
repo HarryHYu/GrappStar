@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 
 from common import load_params
@@ -16,6 +17,8 @@ OUT_DIR = os.path.join(HERE, "..", "out", "physics")
 BALL = os.path.join(HERE, "..", "out", "ballistics.json")
 FONT = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
 FONT_B = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+MEASURE_TITLE = "To measure (then edit base/spec/params.py and run ./run_all.sh)"
+STALL = "STALL: cannot {} with this wiper"
 
 
 def collect(p=None, fast=False):
@@ -55,15 +58,18 @@ def collect(p=None, fast=False):
     from launcher import effective_muzzle, line_slack
     em = effective_muzzle(p, pitch_best)
     ls = line_slack(p)
-    v = em["v"]
+    k_v = float(p.launch.get("v_scale", 1.0))     # test-shot factor (spec LAUNCH v_scale), as ballistics.py applies it
+    v = em["v"] * k_v
     fl = [simulate(p, v, pitch_best, brake_n=b, reel_model=True) for b in (0.5, 0.75, 1.0)]
-    nt = simulate(p, em["v_muzzle"], pitch_best, tether=False)   # no line at all: no load in the stroke, no snatch
+    nt = simulate(p, em["v_muzzle"] * k_v, pitch_best, tether=False)   # no line at all: no load in the stroke, no snatch
     rows = [("Line path at the shot", (f"slack {ls['slack_at_release_m'] * 1000:.0f} mm: snatch, flight starts at {v:.2f} m/s"
                                        if em["snatch"] else "taut (path only lengthens)")),
             ("Range at 0.5 / 0.75 / 1.0 N brake", " / ".join(f"{r['range_m']:.2f}" for r in fl) + f" m (pitch {pitch_best:.0f})"),
             ("Same shot, no tether", f"{nt['range_m']:.2f} m"),
             ("Flight time, apex (0.75 N)", f"{fl[1]['t_flight_s']:.2f} s, {fl[1]['apex_m']:.2f} m"),
             ("Impact speed, angle (0.75 N)", f"{fl[1]['v_impact']:.1f} m/s, {fl[1]['impact_angle_deg']:.0f} deg down")]
+    if k_v != 1.0:
+        rows.insert(0, ("Muzzle speed factor from test shots", f"x{k_v:.3f} (spec LAUNCH v_scale)"))
     if os.path.exists(BALL):
         b = json.load(open(BALL))
         best = max(b["table"], key=lambda r: r["range_m"][1])
@@ -81,33 +87,55 @@ def collect(p=None, fast=False):
     ]))
     c = capstan.run(p)
     _a, _b = capstan.tow_point(20, p, p.battery.v_nom), capstan.tow_point(60, p, p.battery.v_nom)
-    n_per_a = 40.0 / (_b["current"] - _a["current"])
-    f_off = 20 - n_per_a * (_a["current"] - p.wiper.i_free)
-    sec.append(("Capstan and tow", [
-        ("Wraps for tow limit (mu 0.15)", f"{c['wraps_needed']['raw']:.1f} raw, {c['wraps_needed']['design']:.0f} design"),
-        ("Take-up needed (design wraps)", f"{c['takeup_needed_n']:.2f} N"),
-        ("Tow at limit: torque, speed, current", f"{c['at_tow_nom']['t_wiper']:.2f} N m, {c['at_tow_nom']['v_line']:.3f} m/s, {c['at_tow_nom']['current']:.2f} A"),
-        (f"Line pull {c['stall']['full']['label']} (12.6 V)", f"{c['stall']['full']['f_line']:.0f} N (break {p.line.breaking:.0f} N)"),
-        ("Line pull, motor stall (no limiter, 12.6 V)", f"{c['motor_stall']['full']['f_line']:.0f} N"),
-            ("Tow sensing: line N per wiper amp above free", f"{n_per_a:.1f} N/A (line = {n_per_a:.1f} x (I - I_free) - {-f_off:.1f} N)"),
-]))
     d = drivetrain.run(p)
-    rows = []
-    for k, f in d["functions"].items():
-        rows.append((f"{k}: peak torque, current, time", f"{f['t_peak']:.2f} N m, {f['i_peak']:.1f} A, {f['time_s']:.0f} s"))
     e = d["electrical"]
-    rows.append((f"Wiper {e['stall_label']}, 12.6 V (with sag)", f"{e['stall_full']['torque']:.1f} N m, {e['stall_full']['current']:.1f} A"))
-    rows.append(("Wiper motor stall (no limiter), 12.6 V (with sag)", f"{e['motor_stall_full']['torque']:.1f} N m, {e['motor_stall_full']['current']:.1f} A"))
+    tow_ok = not (_a["stalled"] or _b["stalled"]) and _b["current"] > _a["current"]
+    rows = [(f"Wraps for tow limit at the capstan ({c['inputs']['tow_capstan']:.0f} N, mu 0.15)",
+             f"{c['wraps_needed']['raw']:.1f} raw, {c['wraps_needed']['design']:.0f} design"),
+            (f"Take-up needed for the tow at the actual wraps ({c['inputs']['wraps']})", f"{c['takeup_needed_n']:.2f} N")]
+    tn = c["at_tow_nom"]
+    if tn.get("stalled") or tn["v_line"] <= 0 or tn["current"] > capstan.trip_a(p, "tow"):
+        rows.append(("Tow at limit", STALL.format("tow")))
+    else:
+        rows.append(("Tow at limit: torque, speed, current", f"{tn['t_wiper']:.2f} N m, {tn['v_line']:.3f} m/s, {tn['current']:.2f} A"))
+    rows += [(f"Wiper {e['stall_label']}, 12.6 V: torque, current, line pull",
+              f"{e['stall_full']['torque']:.1f} N m, {e['stall_full']['current']:.1f} A, {c['stall']['full']['f_line']:.0f} N "
+              f"(break {p.line.breaking:.0f} N)")]
+    if e["motor_stall_full"]["torque"] > e["stall_full"]["torque"] + 1e-9:     # only when a limiter caps the train
+        rows.append(("Wiper motor stall (no limiter), 12.6 V: torque, current, line pull",
+                     f"{e['motor_stall_full']['torque']:.1f} N m, {e['motor_stall_full']['current']:.1f} A, "
+                     f"{c['motor_stall']['full']['f_line']:.0f} N"))
+    if tow_ok:
+        n_per_a = 40.0 / (_b["current"] - _a["current"])
+        f_off = 20 - n_per_a * (_a["current"] - p.wiper.i_free)
+        g = capstan.path_gain(p)                    # capstan-side tension = dart pull x path_gain
+        rows.append(("Tow sensing at the dart: N per wiper amp above free",
+                     f"dart = {n_per_a:.1f} x (I - I_free) - {-f_off:.1f} N (capstan side x{g:g})"))
+    else:
+        rows.append(("Tow sensing", STALL.format("tow")))
+    sec.append(("Capstan and tow", rows))
+    rows = []
+    trips = dict(cock="cock", reel="reel_in", tow="tow", aim="aim")
+    for k, f in d["functions"].items():
+        trip = capstan.trip_a(p, trips.get(k, "reel_in"))
+        stalled = (not math.isfinite(f["time_s"]) or f["time_s"] <= 0 or f.get("rpm_mean", 1.0) <= 0
+                   or not math.isfinite(f["i_peak"]) or f["i_peak"] > trip)
+        if stalled:
+            rows.append((f"{k}", STALL.format(k)))
+        else:
+            rows.append((f"{k}: peak torque, current, time", f"{f['t_peak']:.2f} N m, {f['i_peak']:.1f} A, {f['time_s']:.0f} s"))
     sec.append(("Drivetrain (wiper at 11.1 V with sag)", rows))
     measure = [
-        "Spring hang test: hang 1, 2, 3 kg from one spring, measure the length each time. Slope = rate, intercept = "
-        "initial tension. Every range number scales with the stored energy.",
+        "Spring hang test: hang 1, 2, 3 kg from one spring and measure the length each time (hooks included). "
+        "python calib.py spring FREE_MM 1:MM 2:MM 3:MM, then SPRING k_n_per_mm and F0_n. "
+        "Every range number scales with the stored energy.",
         "Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall "
-        "current. Edit common.Wiper or spec WIPER.",
-        "Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg).",
-        "Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 5 N.",
-        "After the first shots: python calib.py range pitch:brake:range ... then python ballistics.py --v-scale <factor>.",
-        "Rail friction: tilt the rail with the dart on it until it slides (mu = tan angle).",
+        "current. python calib.py wiper --v 12 --rpm .. --i-free .. --stall-kg .. --arm-mm .. --i-stall .., "
+        "then WIPER n0_rpm, stall_nm, stall_a, free_a.",
+        f"Dart mass on a kitchen scale with ballast and tether knot (spec {p.dart.mass:.3f} kg), then DART mass_kg.",
+        f"Slip clutch: luggage scale on the line with the reel full: LIGHT {p.flight['brake_n']:g} N, "
+        f"FIRM {p.capstan['takeup_n']:g} N (REEL clutch).",
+        "First shots on level ground: python calib.py range pitch:brake:range ..., then LAUNCH v_scale = FACTOR.",
     ]
     return dict(source=p.source, sections=sec, measure=measure)
 
@@ -118,7 +146,7 @@ def write_md(s, path):
         lines += [f"## {title}", "", "| Item | Value |", "|---|---|"]
         lines += [f"| {a} | {b} |" for a, b in rows]
         lines.append("")
-    lines += ["## Harry must measure", ""] + [f"- {m}" for m in s["measure"]] + [""]
+    lines += [f"## {MEASURE_TITLE}", ""] + [f"{i}. {m}" for i, m in enumerate(s["measure"], 1)] + [""]
     txt = "\n".join(lines)
     assert "—" not in txt
     open(path, "w").write(txt)
@@ -167,13 +195,15 @@ def write_pdf(s, path):
     y = min(y, m + 112) if col == 1 else y
     y = m + 110
     cv.setFont("LSB", 8.4)
-    cv.drawString(m, y, "Harry must measure (then edit the parameter block and rerun: python summary.py)")
+    cv.drawString(m, y, MEASURE_TITLE)
     y -= lh + 1
     from reportlab.lib.utils import simpleSplit
-    for t in s["measure"]:
-        for i, ln in enumerate(simpleSplit(t, "LS", fs, W - 2 * m - 10)):
+    for n, t in enumerate(s["measure"], 1):
+        for i, ln in enumerate(simpleSplit(t, "LS", fs, W - 2 * m - 18)):
             cv.setFont("LS", fs)
-            cv.drawString(m + (0 if i == 0 else 8), y, ("- " if i == 0 else "") + ln)
+            if i == 0:
+                cv.drawString(m, y, f"{n}.")
+            cv.drawString(m + 10, y, ln)
             y -= lh
     cv.showPage()
     cv.save()

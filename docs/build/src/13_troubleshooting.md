@@ -1,6 +1,8 @@
 # 13. Troubleshooting
 
-First move for any problem: send `estop` (or pull the battery plug), then read the `fault` field in telemetry.
+First move for any problem: send `estop`; if anything still moves, pull lead #2's XT60 (section 2, Stopping). Then
+read the `fault` field in telemetry. The operator page STOP button sends a plain `stop` (wiper off, drum stays);
+`estop` also moves the drum to NEUTRAL when safe.
 
 ## Base
 
@@ -15,10 +17,10 @@ First move for any problem: send `estop` (or pull the battery plug), then read t
 | Fault STALL or OVERCURRENT | Something binds, springs stronger than planned | Battery unplugged, turn the train by hand, find the tight spot; redo the spring measurement |
 | Fault DRUM_TIMEOUT | Drum N20 not turning: no 9 V, board asleep, gear slipping | Meter on DRV8833 VM (9.0 V); check AIN1 / AIN2 / GND; check the board make (MEASURE_LIST D3); check the N20 gear set screw |
 | Fault DRUM_SENSOR or SWITCH_DISAGREE | A drum contact does not close or stays closed | Battery unplugged, ESP32 on USB only (contacts read on USB power): watch `sw` while turning the drum by the hand lever; bend or re-screw the contact |
-| Fault ANGLE_SENSOR | AS5600 cable out, magnet too far | Re-seat the STEMMA cable; magnet 1 to 3 mm from the chip, centred |
+| Fault ANGLE_SENSOR | AS5600 cable out, magnet too far | Re-seat the STEMMA cable; magnet 1 to 2 mm from the chip, centred |
 | `pitch_deg` wrong after a restart | Pitch reference lost | Run the pitch part of the calibration again (section 10) |
 | Drum stuck between positions with the power off | Expected: the worm holds it | Loosen the cradle swing screw, swing the N20 out of mesh, use the hand lever on the drum shaft end, battery unplugged. Never use the hand lever while the carriage is drawn (`cock` above 0 or `SW_HOME` open) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first. |
-| Base cocked and you need to unload without firing | | Send `{"cmd":"cal","what":"decock"}`: the wiper runs backward slowly and the springs unwind under the worm until `SW_HOME` closes. If it fails: `clear`, `mode` LAUNCH, `decock` again; then `{"cmd":"decock","force":true}` if SW_HOME is broken; last resort the manual unload in section 2 (battery out, one spring at a time with a hook tool). Never hand-release the carriage |
+| Base cocked and you need to unload without firing | | Send `{"cmd":"cal","what":"decock"}`: the wiper runs backward slowly and the springs unwind under the worm until `SW_HOME` closes. If it fails: `clear`, `mode` LAUNCH, `decock` again; then, if it says `SWITCH_DISAGREE` and the carriage is visibly drawn, `{"cmd":"decock","force":true}`; last resort the manual unload in section 2 (battery out, one spring at a time with a hook tool). Never hand-release the carriage |
 
 ## Rover and video
 
@@ -33,8 +35,8 @@ First move for any problem: send `estop` (or pull the battery plug), then read t
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Serial Monitor blank | USB CDC On Boot disabled | Tools > USB CDC On Boot: Enabled, re-upload |
+| Serial Monitor blank | Wrong port, monitor not at 115200, or the board needs a reset | Check Tools > Port, 115200 baud, press the XIAO reset button once (the sketch will not even compile with USB CDC On Boot disabled) |
 | No KEDGE WiFi | XIAO not powered or crashed | Loop plug in? 5 V at the XIAO? Press reset |
-| A motor turns the wrong way | Leads reversed | Loop plug out, swap that motor's pair (run sheet section 10) |
+| A motor turns the wrong way | Leads reversed | Loop plug out, swap that motor's two thin input wires at its driver (section 6, "Reverse a motor"); only if just one drill is wrong, swap that drill's motor leads |
 | Current trip during anchoring | Stall on a stone, or the trip set too low | Re-measure stall currents (section 14 F3) and update the tuning |
 | INA219 or BNO085 not found | I2C wiring | `z` key scans; SDA and SCL must not be swapped |

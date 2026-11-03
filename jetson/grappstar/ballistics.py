@@ -168,7 +168,7 @@ def make_placeholder(path: str = PLACEHOLDER, v0: float = 10.7, mass: float = 0.
     g = 9.81
     drags = [0.5, 0.75, 1.0]
     table = []
-    for pitch in range(15, 61, 5):
+    for pitch in [6] + list(range(10, 46, 5)) + [47]:      # the real rail window 6..47 (D29)
         rs, ts, aps = [], [], []
         for dn in drags:
             th = math.radians(pitch)
@@ -187,7 +187,7 @@ def make_placeholder(path: str = PLACEHOLDER, v0: float = 10.7, mass: float = 0.
     data = {"version": 1, "placeholder": True,
             "note": "Placeholder from grappstar.ballistics.make_placeholder (point mass, v0 10.7 m/s, 0.279 kg). "
                     "Replace with base/out/ballistics.json from the base physics model.",
-            "pitch_min": 15.0, "pitch_max": 60.0, "drag_n": drags, "table": table}
+            "pitch_min": 6.0, "pitch_max": 47.0, "drag_n": drags, "table": table}
     if path:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as f:

@@ -566,6 +566,31 @@ int main() {
   { fresh(); for (int i = 0; i < 6; i++) { K.key('2', 350, NOW); K.key('@', 350, NOW); run(150); }
     CHECK(P.mdir[KICK] == 0 && K.bothLock[KICK], "both kick keys repeated together still lock the motor"); }
   { fresh(); K.startAuto(NOW); run(20000); CHECK(K.seq == DONE && K.arm(true, false, NOW) != nullptr && !K.armed, "arm (even log-only) is refused while ANCHORED"); }
+  // review round 12: the firmware measures the kick swing for BENCH_TEST step 5
+  { fresh(); P.kickContact = P.kickLand = 4300; P.railV = 8.0f; for (int i = 0; i < 60 && !when("kick travel from stowed"); i++) { K.key('2', 350, NOW); run(150); }
+    std::string e; for (auto& l : LOG) if (l.find("kick travel from stowed") != std::string::npos) e = l;
+    float ms = e.empty() ? 0 : atof(e.c_str() + e.find("stowed") + 7); printf("     %s\n", e.c_str());
+    CHECK(ms > 4300 * 0.95f && ms < 4300 * 1.05f, "a kick held out in air to its end stop reports its travel (within 5 % of the real 4300 ms)"); }
+  // coordinator review r2_B2 #5
+  { fresh(); K.startAuto(NOW); run(500); CHECK(K.key('3', 350, NOW) != nullptr, "a run key during ANCHORING is refused (busy)");
+    K.keyRelease(NOW); run(100); CHECK(K.anchoring() && P.mdir[KICK] > 0, "...and the page's key-release stop does not abort the anchor"); }
+  { fresh(); K.key('3', 350, NOW); run(100); K.keyRelease(NOW); CHECK(allOff() && K.seq == IDLE, "the key-release stop stops a manual motor"); }
+  // review round 11
+  { fresh(); P.kickContact = P.kickLand = 4300; K.startAuto(NOW); run(10000); K.stop(NOW); run(700);   // NO_GROUND, then Retry
+    bool augers = false; K.startAuto(NOW);
+    for (int i = 0; i < 2000 && K.seq != IDLE && !K.fault; i++) { run(5); if (P.mdir[FOOT] || P.mdir[DRILLS] || P.mdir[DEPLOY]) augers = true; }
+    CHECK(std::string(faultName(K.fault)) == "NO_GROUND" && !augers, "a retried /auto after NO_GROUND is NO_GROUND again (augers never run in air)"); }
+  { fresh(); P.kickContact = P.kickLand = 4300; K.startAuto(NOW); run(2000); K.stop(NOW); run(700);   // swing stopped half way, then retried
+    bool augers = false; K.startAuto(NOW);
+    for (int i = 0; i < 2000 && K.seq != IDLE && !K.fault; i++) { run(5); if (P.mdir[FOOT] || P.mdir[DRILLS] || P.mdir[DEPLOY]) augers = true; }
+    CHECK(std::string(faultName(K.fault)) == "NO_GROUND" && !augers, "an /auto stopped half way through the air and retried: NO_GROUND"); }
+  { fresh(); K.startAuto(NOW); while (K.seq != D_DEPLOY) run(5); run(1000); K.stop(NOW); run(700); K.startAuto(NOW); run(25000);
+    CHECK(K.seq == DONE && K.fault == F_NONE, "a retried /auto after a real plant still takes 'kick already down' (no false NO_GROUND)"); }
+  { fresh(); P.deploy = P.deployEnd; uint32_t drivenAtStop = 0;   // pods at their down stop, keys alternated every 300 ms
+    for (int i = 0; i < 60; i++) { K.key(i % 2 ? '!' : '1', 350, NOW); for (int k = 0; k < 60; k++) { run(5); if (P.mdir[DEPLOY] > 0) drivenAtStop += 5; } }
+    printf("     alternating 1 / ! for 18 s: driven into the stop %u ms\n", drivenAtStop);
+    CHECK(drivenAtStop <= 8500, "alternating 1 and ! every 300 ms: the hold cap counts per motor, so the stop is not driven without limit"); }
+
 
   // ===================================================================================================== whole mission
   section("whole mission phases");

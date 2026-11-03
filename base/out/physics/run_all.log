@@ -1,26 +1,5 @@
-.......................................................................F [ 97%]
-..                                                                       [100%]
-=================================== FAILURES ===================================
-_____________________ test_committed_ballistics_not_stale ______________________
-
-p = Params(battery=Battery(v_full=12.6, v_nom=11.1, v_empty=10.5, r_int=0.04, r_wiring=0.02, r_driver=0.016, fuse_a=20.0),...5, 'blank_ms': 50.0, 'hold_ms': 30.0}, 'tow_limit_max_n': 70.0, 'overspeed': 2.5}, source='base/spec/params.py v1.2.9')
-
-    def test_committed_ballistics_not_stale(p):
-        meta = json.load(open(META))
-        from common import params_hash
->       assert meta.get("params_hash") == params_hash(p), "ballistics.json was built from other physics inputs: run python ballistics.py"
-E       AssertionError: ballistics.json was built from other physics inputs: run python ballistics.py
-E       assert '34127464c4d8f094' == '20696958fddbe327'
-E         
-E         - 20696958fddbe327
-E         + 34127464c4d8f094
-
-test_phys_spec.py:80: AssertionError
-=========================== short test summary info ============================
-FAILED test_phys_spec.py::test_committed_ballistics_not_stale - AssertionErro...
-1 failed, 73 passed in 51.77s
-TESTS FAILED (models still run)
-params: base/spec/params.py v1.2.9
+== launcher.py --sweep
+params: base/spec/params.py v1.3.0
 spring: k 0.125 N/mm (formula 0.117), Fi 7.0 N, body coils 98.2, mass 53.0 g, surge 23.6 Hz
 spring safe: 40.9 N (hook torsion), extension 271 mm, Sut 2112 MPa
   pitch_deg            35.000
@@ -50,7 +29,8 @@ ratio sweep at stroke 0.2409
    {'ratio': 1.5, 'stroke_used_m': 0.241, 'ext_full_mm': 184.4, 'v_muzzle': np.float64(4.879), 'energy_j': 6.428, 'efficiency': np.float64(0.517), 'f_carriage_full_n': 40.067}
    {'ratio': 2.0, 'stroke_used_m': 0.241, 'ext_full_mm': 144.25, 'v_muzzle': np.float64(3.792), 'energy_j': 4.217, 'efficiency': np.float64(0.476), 'f_carriage_full_n': 25.031}
    {'ratio': 3.0, 'stroke_used_m': 0.241, 'ext_full_mm': 104.1, 'v_muzzle': np.float64(2.549), 'energy_j': 2.408, 'efficiency': np.float64(0.376), 'f_carriage_full_n': 13.342}
-params: base/spec/params.py v1.2.9
+== flight.py --sweep
+params: base/spec/params.py v1.3.0
 pitch 40.0 v0 6.78: range 3.81 m, apex 1.31 m, t 0.89 s, impact 6.01 m/s at 58.4 deg, line out 4.0 m, max line pull on dart 0.72 N
   same shot without tether 5.09 m, vacuum 5.19 m
 pitch  v0    range@0.5/0.75/1.0 N      t_flight   apex   impact v / angle (0.75 N)
@@ -65,69 +45,70 @@ pitch  v0    range@0.5/0.75/1.0 N      t_flight   apex   impact v / angle (0.75 
    46  6.77   3.60  3.06  2.62    0.91   1.44   5.74 /  71.8
 brake sensitivity at pitch 31: 0.0 N 4.85 m, 0.5 N 3.86 m, 0.75 N 3.45 m, 1.0 N 3.09 m, 1.5 N 2.48 m, 2.0 N 1.99 m, 3.0 N 1.38 m
 CdA sensitivity: 2370 mm2 3.87 m, 2860 mm2 3.86 m
-params: base/spec/params.py v1.2.9
+== payout.py
+params: base/spec/params.py v1.3.0
 reel: empty 46.1 g, I empty 22.03 kg mm2, full 31.44 kg mm2, r full 30.7 mm, capacity 42.1 m, flange margin 5.3 mm
 shoes=False: v0 6.78 m/s, range 3.65 m, rpm max 2108, line at dart max 1.18 N, spin-up in stroke 5.31 N, slack in flight 0.00 m, overrun after landing 0.18 m in 0.12 s, bird's nest risk low
 shoes=True: v0 6.78 m/s, range 3.25 m, rpm max 2108, line at dart max 1.45 N, spin-up in stroke 5.31 N, slack in flight 0.00 m, overrun after landing 0.13 m in 0.10 s, bird's nest risk low
-capstan d 40 mm, ratio 0.43999999999999995, eta 0.85, wraps 7, take-up 5.0 N, mu 0.15, tow 50.0 N  [base/spec/params.py v1.2.9]
-tow at the cap 70 N: 5.77 N m, 7.85 A, 0.103 m/s (tow hard trip 6.5 A, shear pin 5.0 N m)
-wraps needed: raw 2.44, design 4 (x1.5)   e^(2 pi mu n) = 733.1
+== capstan.py
+capstan d 40 mm, ratio 0.43999999999999995, eta 0.85, wraps 7, take-up 5.0 N, mu 0.15, tow 50.0 N  [base/spec/params.py v1.3.0]
+tow at the cap 60 N: 3.85 N m, 5.73 A, 0.133 m/s (tow hard trip 6.5 A, shear pin 5.0 N m)
+wraps needed for 57 N at the capstan (50 N dart x 1.15): raw 2.59, design 4 (x1.5)   e^(2 pi mu n) = 733.1
 take-up clutch 153.6 N mm: hold 5.00 to 6.15 N, overspeed 1.37 to 1.69 over 0 to 20 m on the reel
-max hold with 7 wraps: 3666 N (mu low, full reel), 4505 N (mu low, empty), 366303 N (mu high); take-up needed for tow: 0.07 N
+max hold with 7 wraps: 3666 N (mu low, full reel), 4505 N (mu low, empty), 366303 N (mu high) at the capstan; take-up needed for the tow at 7 wraps: 0.08 N
 
    F N  T_w Nm    rpm  v m/s    I A   Vbat   (11.1 V nominal, sag)
-     5    0.56   39.0  0.186   2.12  10.94
-    10    0.96   37.6  0.179   2.56  10.91
-    20    1.76   35.0  0.166   3.44  10.84
-    30    2.57   32.3  0.154   4.32  10.77
-    45    3.77   28.3  0.134   5.65  10.67
-    50    4.17   26.9  0.128   6.09  10.64
-    75    6.18   20.2  0.096   8.29  10.47  LIMITER SLIPS
-   100    8.18   13.5  0.064  10.50  10.30  LIMITER SLIPS
-   112    9.14   10.3  0.049  11.56  10.22  LIMITER SLIPS
-at limiter (5 N m) at 12.6 V: 5.00 N m, 7.0 A, line 61 N (empty reel), 60 N (full reel)
-at limiter (5 N m) at 11.1 V: 5.00 N m, 7.0 A, line 61 N (empty reel), 60 N (full reel)
-motor stall (no limiter) at 12.6 V: 14.06 N m, 17.0 A, line 174 N  [info]
-motor stall (no limiter) at 11.1 V: 12.22 N m, 14.9 A, line 151 N  [info]
-LIMITER SLIP (5 N m, 7.0 A): line 61 N (empty reel) / 60 N (full reel), drum 1.71 N m; dart holding sand 7, loam 45, clay 112 N, line break 667 N; above dart in sand, loam, above break False; wraps slip first False (hold 366303 N at mu high)
-tow 50 N: 0.83 of limiter (flag above 0.8)
-firmware current limit for 50 N: 6.02 A motor current (4.11 N m wiper)
-limits for dart holding: {'sand': 2.23, 'loam': 5.58, 'clay': 11.49} A
+     5    0.47   39.3  0.187   2.01  10.95
+    10    0.77   38.3  0.182   2.35  10.92
+    20    1.39   36.2  0.172   3.03  10.87
+    30    2.00   34.2  0.163   3.70  10.82
+    45    2.93   31.1  0.148   4.72  10.74
+    50    3.23   30.0  0.143   5.06  10.72
+    75    4.77   24.9  0.119   6.75  10.59
+   100    6.31   19.8  0.094   8.44  10.46  LIMITER SLIPS
+   112    7.05   17.3  0.082   9.25  10.40  LIMITER SLIPS
+at limiter (5 N m) at 12.6 V: 5.00 N m, 7.0 A, line 80 N (empty reel), 79 N (full reel)
+at limiter (5 N m) at 11.1 V: 5.00 N m, 7.0 A, line 80 N (empty reel), 79 N (full reel)
+motor stall (no limiter) at 12.6 V: 14.06 N m, 17.0 A, line 227 N  [info]
+motor stall (no limiter) at 11.1 V: 12.22 N m, 14.9 A, line 197 N  [info]
+LIMITER SLIP (5 N m, 7.0 A): line 80 N (empty reel) / 79 N (full reel), drum 1.71 N m; dart holding sand 7, loam 45, clay 112 N, line break 667 N; above dart in sand, loam, above break False; wraps slip first False (hold 366303 N at mu high)
+tow 50 N: 0.65 of limiter (flag above 0.8)
+firmware current limit for 50 N: 4.99 A motor current (3.17 N m wiper)
+limits for dart holding: {'sand': 2.08, 'loam': 4.65, 'clay': 9.18} A
 reel 20 m at 3.0 N: 0.188 m/s, 107 s
-parts at tow: drum T 1.40 N m, line p 2.5 MPa, hoop 6.3 MPa, 608 radial 28 N (s0 49.8)
-parts at limiter (5 N m): drum T 1.71 N m (shaft True, key True, sprag True), line p 3.1 MPa
+parts at tow: drum T 1.05 N m, line p 2.9 MPa, hoop 7.3 MPa, 608 radial 31 N (s0 43.8)
+parts at limiter (5 N m): drum T 1.71 N m (shaft True, key True, sprag True), line p 4.6 MPa
 
-FIRMWARE TRIP: ignore current for 50 ms after start; hard trip for 30 ms at 5.0 A in reel-in, 3.0 A in aim (physics recommends 3.0 A: aim splitter), 6.5 A towing (4.55 N m at the wiper), 6.5 A while cocking (4.55 N m); capstan gear sf at that torque 2.18, line 55 N; tow trip = measured free current + 4.52 A, averaged over 200 ms
+FIRMWARE TRIP: ignore current for 50 ms after start; hard trip for 30 ms at 5.0 A in reel-in, 3.0 A in aim (physics recommends 3.0 A: aim splitter), 6.5 A towing (4.55 N m at the wiper), 6.5 A while cocking (4.55 N m); capstan gear sf at that torque 2.18, line 72 N; tow trip = measured free current + 3.49 A, averaged over 200 ms
  note: the 5 N m torque limiter in the wiper coupler caps the train at 5 N m (motor current while it slips 7.0 A); sprag #2 plus the self-locking worm still lock in the line tension after a trip, so the trip must stop the motor before the limiter slips for long (heat, wear)
  note: the 20 A fuse holds a 17 A motor stall (no limiter) and the 7.0 A limiter slip indefinitely: it is wiring protection only
  note: BTS7960 IS reads the high side only (zero in the PWM off-time): sample in the on-time or scale by duty
 
 WARNINGS:
- - tow limit cap 70 N is above what the train can pull before the tow trip / 0.8 x shear pin: 48 N (clamp the firmware tow limit to this)
- - at limiter (5 N m): line pull 61 N (empty reel; 60 N full reel): above dart holding in sand, loam
+ - at limiter (5 N m): line pull 80 N (empty reel; 79 N full reel): above dart holding in sand, loam
  - at limiter (5 N m): wraps hold 366303 N at mu high, the line does not slip on the drum: the firmware current limit must protect the dart and line
- - tow at 50 N needs 0.83 of the 5 N m limiter (> 0.8): the limiter would slip in normal towing
- - 6.5 A hard trip still allows 55 N on the line (above sand, loam): the tow trip must act first
+ - 6.5 A hard trip still allows 72 N on the line (above sand, loam): the tow trip must act first
 INFO:
- - motor stall (no limiter) at 12.6 V: 14.06 N m, 17.0 A, line 174 N (above dart holding in sand, loam, clay)
- - motor stall (no limiter) at 11.1 V: 12.22 N m, 14.9 A, line 151 N (above dart holding in sand, loam, clay)
+ - motor stall (no limiter) at 12.6 V: 14.06 N m, 17.0 A, line 227 N (above dart holding in sand, loam, clay)
+ - motor stall (no limiter) at 11.1 V: 12.22 N m, 14.9 A, line 197 N (above dart holding in sand, loam, clay)
  - parts at motor stall (no limiter): drum T 5.10 N m, all pass; only reached if the limiter seizes
 wrote /home/user/GrappStar/base/out/physics/capstan.json
-[base/spec/params.py v1.2.9]  motor stall (no limiter) 14.06 N m / 17.0 A at 12.6 V, 12.22 N m / 14.9 A at 11.1 V; free 47.0 rpm at 12.6 V
+== drivetrain.py
+[base/spec/params.py v1.3.0]  motor stall (no limiter) 14.06 N m / 17.0 A at 12.6 V, 12.22 N m / 14.9 A at 11.1 V; free 47.0 rpm at 12.6 V
   at limiter (5 N m): 5.00 N m, 7.0 A while slipping (this is what every train sees)
 fn       Tpk  Tmean   rpm   Ipk Imean %stall  %lim  time s     Wh shaftNm gear sf
 aim     0.33   0.13  40.4  1.86  1.64    2.7   6.6     6.6  0.033    0.73    5.83
-cock    2.93   1.85  34.7  4.73  3.53   24.0  58.7     2.7  0.028    4.06    2.83
+cock    2.93   1.85  34.7  4.73  3.53   24.0  58.7     2.7  0.028    4.06    1.65
 reel    0.43   0.43  39.4  1.97  1.97    3.5   8.5   106.6  0.638    0.00   22.51
-tow     4.17   4.17  26.9  6.09  6.09   34.1  83.4    39.0  0.702    1.40    2.33
+tow     3.23   3.23  30.0  5.06  5.06   26.5  64.7    35.0  0.526    1.05    2.99
   %stall = peak / motor stall (no limiter, 11.1 V); %lim = peak / limiter (flag above 80 %)
-tow 4.17 N m at 50 N: 6.09 A, 26.9 wiper rpm; limiter slip line force 61 N (empty reel) / 60 N (full reel) vs dart holding sand 7, loam 45, clay 112 N, line break 667 N
+tow 3.23 N m at 50 N: 5.06 A, 30.0 wiper rpm; limiter slip line force 80 N (empty reel) / 79 N (full reel) vs dart holding sand 7, loam 45, clay 112 N, line break 667 N
 aim: mass 1.26 kg, screw eff 0.23, self-locking True, crank torque 0.731 N m raising / 0.512 gravity-assisted, worm turns per crank turn 20
 cock: spring ext 265 mm (safe 271), springs 80.2 N, carriage peak 81.2 N
-total energy 1.402 Wh
+total energy 1.226 Wh
 
-FIRMWARE TRIP: ignore current for 50 ms after start; hard trip for 30 ms at 5.0 A in reel-in, 3.0 A in aim (physics recommends 3.0 A: aim splitter), 6.5 A towing (4.55 N m at the wiper), 6.5 A while cocking (4.55 N m); tow trip = measured free current + 4.52 A, averaged over 200 ms
-  gear sf at the hard trip: aim 1.44, cock 1.86, reel 3.12, tow 2.18; shaft at trip: aim 3.04, cock 6.29, reel 1.19, tow 1.70 N m
+FIRMWARE TRIP: ignore current for 50 ms after start; hard trip for 30 ms at 5.0 A in reel-in, 3.0 A in aim (physics recommends 3.0 A: aim splitter), 6.5 A towing (4.55 N m at the wiper), 6.5 A while cocking (4.55 N m); tow trip = measured free current + 3.49 A, averaged over 200 ms
+  gear sf at the hard trip: aim 1.44, cock 1.08, reel 3.12, tow 2.18; shaft at trip: aim 3.04, cock 6.29, reel 1.03, tow 1.54 N m
   note: the 5 N m torque limiter in the wiper coupler caps the train at 5 N m (motor current while it slips 7.0 A); sprag #2 plus the self-locking worm still lock in the line tension after a trip, so the trip must stop the motor before the limiter slips for long (heat, wear)
   note: the 20 A fuse holds a 17 A motor stall (no limiter) and the 7.0 A limiter slip indefinitely: it is wiring protection only
   note: BTS7960 IS reads the high side only (zero in the PWM off-time): sample in the on-time or scale by duty
@@ -135,25 +116,24 @@ FIRMWARE TRIP: ignore current for 50 ms after start; hard trip for 30 ms at 5.0 
 FLAGS:
  - aim (at limiter (5 N m)): keyed shaft 11.1 N m over the Kt 2 limit 9.4 N m
  - aim (at limiter (5 N m)): gear fails (sf 0.39); relies on the trip
- - tow: peak torque 4.17 N m is 0.83 of the 5 N m limiter > 0.8: the limiter would slip in normal use
+ - cock (at limiter (5 N m)): gear fails (sf 0.98); relies on the trip
  - 20 A blade survives 18 A for minutes and holds a 17.0 A motor stall (no limiter) indefinitely: the firmware current trip is the only stall protection (motor and BTS heating)
- - tow limit cap 70 N is above what the train can pull before the tow trip / 0.8 x shear pin: 48 N (clamp the firmware tow limit to this)
- - at limiter (5 N m): line pull 61 N (empty reel; 60 N full reel): above dart holding in sand, loam
+ - at limiter (5 N m): line pull 80 N (empty reel; 79 N full reel): above dart holding in sand, loam
  - at limiter (5 N m): wraps hold 366303 N at mu high, the line does not slip on the drum: the firmware current limit must protect the dart and line
- - tow at 50 N needs 0.83 of the 5 N m limiter (> 0.8): the limiter would slip in normal towing
- - 6.5 A hard trip still allows 55 N on the line (above sand, loam): the tow trip must act first
+ - 6.5 A hard trip still allows 72 N on the line (above sand, loam): the tow trip must act first
 
 INFO:
  - aim: motor stall (no limiter) 14.06 N m: shaft 31.3 N m (fail), gear sf 0.14; only if the limiter seizes
- - cock: motor stall (no limiter) 14.06 N m: shaft 19.5 N m (fail), gear sf 0.60; only if the limiter seizes
+ - cock: motor stall (no limiter) 14.06 N m: shaft 19.5 N m (fail), gear sf 0.35; only if the limiter seizes
  - reel: motor stall (no limiter) 14.06 N m: shaft 5.1 N m (ok), gear sf 0.71; only if the limiter seizes
  - tow: motor stall (no limiter) 14.06 N m: shaft 5.1 N m (ok), gear sf 0.71; only if the limiter seizes
  - at limiter (5 N m): motor draws 7.0 A while the limiter slips (12.6 V); motor stall (no limiter) 14.06 N m / 17.0 A > BTS7960 15.0 A continuous
- - motor stall (no limiter) at 12.6 V: 14.06 N m, 17.0 A, line 174 N (above dart holding in sand, loam, clay)
- - motor stall (no limiter) at 11.1 V: 12.22 N m, 14.9 A, line 151 N (above dart holding in sand, loam, clay)
+ - motor stall (no limiter) at 12.6 V: 14.06 N m, 17.0 A, line 227 N (above dart holding in sand, loam, clay)
+ - motor stall (no limiter) at 11.1 V: 12.22 N m, 14.9 A, line 197 N (above dart holding in sand, loam, clay)
  - parts at motor stall (no limiter): drum T 5.10 N m, all pass; only reached if the limiter seizes
 wrote /home/user/GrappStar/base/out/physics/drivetrain.json
-params: base/spec/params.py v1.2.9; base: v 6.80 m/s, range 4.15 m at 35.0 deg
+== sensitivity.py
+params: base/spec/params.py v1.3.0; base: v 6.80 m/s, range 4.15 m at 35.0 deg
 input                              low      high  range low / high   swing
 reel brake N                       0.5         1   4.15 /  3.28   0.87 m
 spring initial tension N             5        10   3.82 /  4.63   0.81 m
@@ -165,6 +145,7 @@ dart mass kg                     0.265       0.3   4.24 /  4.01   0.23 m
 line mass kg/m                  0.0005   0.00075   4.15 /  4.14   0.01 m
 dart CdA m2                    0.00237   0.00286   4.15 /  4.14   0.01 m
 muzzle height m                    0.3       0.5   4.15 /  4.15   0.00 m
+== attitude.py
 bal  v0  pitch  T_N  tumb  nose1st  max|a|>0.3s  theta_imp      alpha_imp      range_m
  15    6    10  0.00   3/9    4/9     140.4    -96.9..116.1   -73.2..140.4   2.1..2.3
  15    6    10  0.50   0/9    9/9      30.2    -56.0..-7.9    -30.2..19.6    2.1..2.2
@@ -317,7 +298,8 @@ bal  v0  pitch  T_N  tumb  nose1st  max|a|>0.3s  theta_imp      alpha_imp      r
  }
 }
 wrote /home/user/GrappStar/base/out/physics/attitude.json and attitude.png
-params: base/spec/params.py v1.2.9
+== recoil.py
+params: base/spec/params.py v1.3.0
 pitch  F peak  back-tip moment / resisting (margin)   stop KE  pad peak lin/const  front-tip margin
     6   80.2 N  27.47 /  5.89 N m (0.2)   2.89 J  304 / 152 N  0.05
    20   80.2 N  23.30 /  5.89 N m (0.3)   2.84 J  299 / 150 N  0.05
@@ -330,38 +312,40 @@ pitch  F peak  back-tip moment / resisting (margin)   stop KE  pad peak lin/cons
 stop travel for a 300 N peak with a linear pad: 19 mm; dart impulse 1.90 N s
 2 springs: 12.1 J, v 6.80 m/s, eff 0.53, carriage force 80 N, 18 g, stop KE 2.80 J, range 0.5/0.75/1.0 N: 4.15 / 3.71 / 3.32
 4 springs (NOT SUPPORTED IN v1, D38: cocking needs 5.8 N m, above the shear pin): 24.1 J, v 9.52 m/s, eff 0.52, carriage force 160 N, 37 g, stop KE 6.77 J, range 0.5/0.75/1.0 N: 7.58 / 6.78 / 6.09
-params: base/spec/params.py v1.2.9
+== retrieve.py
+params: base/spec/params.py v1.3.0
 1. snatch: taut line 6.80 m/s; with 245 mm slack: 7.25 m/s at the muzzle, 6.24 after the snatch (8.1 % slower than taut, 1.02 J lost), line spike up to 261 N (undamped bound)
 2. wrap (7.0 cup turns in 240 deg of drum, light clutch 0.5 N, 0.90 m drawn, ~30 s):
    20.0 m on reel: ring pull 1.10 N, cup 33 N mm, drum 0.493 N m, N20 46 N mm (23 % of 0.2 N m)
     5.0 m on reel: ring pull 1.27 N, cup 38 N mm, drum 0.571 N m, N20 53 N mm (26 % of 0.2 N m)
     0.5 m on reel: ring pull 1.34 N, cup 40 N mm, drum 0.603 N m, N20 56 N mm (28 % of 0.2 N m)
-3. final approach on the FIRM clutch (5.0 N with the reel full): 2.86 N at the dart
-   pitch 5, mu 0.3: need 2.06 N, margin 1.39
-   pitch 5, mu 0.4: need 2.33 N, margin 1.23
-   pitch 10, mu 0.3: need 2.28 N, margin 1.25
-   pitch 10, mu 0.4: need 2.55 N, margin 1.12
-   FIRM setting for a 1.5 margin: 6.7 N with the reel full
+3. final approach on the FIRM clutch (5.0 N with the reel full): 3.85 N at the dart
+   pitch 5, mu 0.3: need 2.06 N, margin 1.87
+   pitch 5, mu 0.4: need 2.33 N, margin 1.65
+   pitch 10, mu 0.3: need 2.28 N, margin 1.68
+   pitch 10, mu 0.4: need 2.55 N, margin 1.51
+   FIRM setting for a 1.5 margin: 5.0 N with the reel full
 4. take-up in NEUTRAL (bus overdrive 2.5, FIRM 5.0 N): dart drag on grass grass_low 1.37 N, grass_high 2.74 N, snag 5.47 N
-   empty (line out, r core)   grass_low  duty 0.3: 0.060 m/s, motor 1.60 A, wiper 9 rpm
-   empty (line out, r core)   grass_low  duty 0.5: 0.119 m/s, motor 1.60 A, wiper 18 rpm
-   empty (line out, r core)   grass_low  duty 1.0: 0.265 m/s, motor 1.60 A, wiper 41 rpm
-   empty (line out, r core)   grass_high duty 0.3: 0.058 m/s, motor 1.71 A, wiper 9 rpm
-   empty (line out, r core)   grass_high duty 0.5: 0.117 m/s, motor 1.71 A, wiper 18 rpm
-   empty (line out, r core)   grass_high duty 1.0: 0.263 m/s, motor 1.71 A, wiper 40 rpm
-   empty (line out, r core)   snag       duty 0.3: 0.055 m/s, motor 1.92 A, wiper 8 rpm
-   empty (line out, r core)   snag       duty 0.5: 0.113 m/s, motor 1.92 A, wiper 17 rpm
-   empty (line out, r core)   snag       duty 1.0: 0.259 m/s, motor 1.92 A, wiper 40 rpm
-   full (20 m in)             grass_low  duty 0.3: 0.073 m/s, motor 1.63 A, wiper 9 rpm
-   full (20 m in)             grass_low  duty 0.5: 0.146 m/s, motor 1.63 A, wiper 18 rpm
-   full (20 m in)             grass_low  duty 1.0: 0.325 m/s, motor 1.63 A, wiper 40 rpm
-   full (20 m in)             grass_high duty 0.3: 0.071 m/s, motor 1.76 A, wiper 9 rpm
-   full (20 m in)             grass_high duty 0.5: 0.143 m/s, motor 1.76 A, wiper 18 rpm
-   full (20 m in)             grass_high duty 1.0: 0.322 m/s, motor 1.76 A, wiper 40 rpm
-   full (20 m in)             snag       duty 0.3: CLUTCH SLIPS (needs > 5.0 N), line stops
-   full (20 m in)             snag       duty 0.5: CLUTCH SLIPS (needs > 5.0 N), line stops
-   full (20 m in)             snag       duty 1.0: CLUTCH SLIPS (needs > 5.0 N), line stops
-params: base/spec/params.py v1.2.9
+   empty (line out, r core)   grass_low  duty 0.3: 0.060 m/s, motor 1.64 A, wiper 9 rpm
+   empty (line out, r core)   grass_low  duty 0.5: 0.119 m/s, motor 1.64 A, wiper 18 rpm
+   empty (line out, r core)   grass_low  duty 1.0: 0.265 m/s, motor 1.64 A, wiper 40 rpm
+   empty (line out, r core)   grass_high duty 0.3: 0.057 m/s, motor 1.77 A, wiper 9 rpm
+   empty (line out, r core)   grass_high duty 0.5: 0.116 m/s, motor 1.77 A, wiper 18 rpm
+   empty (line out, r core)   grass_high duty 1.0: 0.262 m/s, motor 1.77 A, wiper 40 rpm
+   empty (line out, r core)   snag       duty 0.3: CLUTCH SLIPS (7.1 N at the reel > 6.1 N), line stops
+   empty (line out, r core)   snag       duty 0.5: CLUTCH SLIPS (7.1 N at the reel > 6.1 N), line stops
+   empty (line out, r core)   snag       duty 1.0: CLUTCH SLIPS (7.1 N at the reel > 6.1 N), line stops
+   full (20 m in)             grass_low  duty 0.3: 0.073 m/s, motor 1.67 A, wiper 9 rpm
+   full (20 m in)             grass_low  duty 0.5: 0.145 m/s, motor 1.67 A, wiper 18 rpm
+   full (20 m in)             grass_low  duty 1.0: 0.325 m/s, motor 1.67 A, wiper 40 rpm
+   full (20 m in)             grass_high duty 0.3: 0.069 m/s, motor 1.83 A, wiper 9 rpm
+   full (20 m in)             grass_high duty 0.5: 0.141 m/s, motor 1.83 A, wiper 18 rpm
+   full (20 m in)             grass_high duty 1.0: 0.320 m/s, motor 1.83 A, wiper 40 rpm
+   full (20 m in)             snag       duty 0.3: CLUTCH SLIPS (7.1 N at the reel > 5.0 N), line stops
+   full (20 m in)             snag       duty 0.5: CLUTCH SLIPS (7.1 N at the reel > 5.0 N), line stops
+   full (20 m in)             snag       duty 1.0: CLUTCH SLIPS (7.1 N at the reel > 5.0 N), line stops
+== mission.py
+params: base/spec/params.py v1.3.0
   aim (worst case full 6 to 47 deg)                             6.6 s    32.9 mWh  
   drum to LAUNCH                                                3.0 s     1.1 mWh  N20 ASSUMED
   cock + fire + reset                                           2.7 s    28.3 mWh  
@@ -369,13 +353,14 @@ params: base/spec/params.py v1.2.9
   dart anchors                                                 60.0 s     0.0 mWh  dart battery
   drum LAUNCH -> NEUTRAL -> WRAP (7 wraps)                     35.6 s    13.4 mWh  
   drum to REEL                                                  3.0 s     1.1 mWh  
-  tow the rover 3.0 m at 30.0 N                                19.5 s   252.5 mWh  
+  tow the rover 3.0 m at 30.0 N                                18.5 s   205.4 mWh  
   dart release                                                 20.0 s     0.0 mWh  dart battery
   unwrap + drum back to REEL (reel-in on the capstan or take-up)   32.6 s    12.2 mWh  
   reel the dart home 5 m                                       26.6 s   159.6 mWh  
   drum to LAUNCH (ready)                                        3.0 s     1.1 mWh  
-total 214 s (3.6 min), 0.74 Wh incl. 0.24 Wh idle; about 62 missions per 3S 5200 mAh pack (80 % usable, base side only)
-params: base/spec/params.py v1.2.9
+total 213 s (3.5 min), 0.69 Wh incl. 0.24 Wh idle; about 67 missions per 3S 5200 mAh pack (80 % usable, base side only)
+== ballistics.py
+params: base/spec/params.py v1.3.0, v_scale 1.000
 pitch  v0     range 0.5/0.75/1.0 N     t_flight      apex
   6.0  6.92   2.54  2.46  2.38  0.37 0.37 0.37  0.44 0.44 0.44
   8.5  6.91   2.74  2.64  2.55  0.41 0.41 0.41  0.47 0.47 0.47
@@ -396,6 +381,7 @@ pitch  v0     range 0.5/0.75/1.0 N     t_flight      apex
  46.0  6.77   4.01  3.47  3.02  1.00 0.95 0.91  1.58 1.51 1.45
  47.0  6.76   3.97  3.43  2.97  1.01 0.96 0.92  1.61 1.54 1.48
 wrote /home/user/GrappStar/base/out/ballistics.json
+== summary.py
 Spring (each, A228, SF 1.2 on Shigley static limits)
   Rate used / by formula                   0.125 / 0.117 N/mm
   Initial tension used                     7.0 N
@@ -427,19 +413,24 @@ Storage reel payout (LIGHT 0.5 N at full reel)
   Reel rpm max                             2115 rpm
   Overrun after landing                    0.56 m in 0.26 s
 Capstan and tow
-  Wraps for tow limit (mu 0.15)            2.4 raw, 4 design
-  Take-up needed (design wraps)            0.07 N
-  Tow at limit: torque, speed, current     4.17 N m, 0.128 m/s, 6.09 A
-  Line pull at limiter (5 N m) (12.6 V)    61 N (break 667 N)
-  Line pull, motor stall (no limiter, 12.6 V) 174 N
-  Tow sensing: line N per wiper amp above free 11.3 N/A (line = 11.3 x (I - I_free) - 2.0 N)
+  Wraps for tow limit at the capstan (57 N, mu 0.15) 2.6 raw, 4 design
+  Take-up needed for the tow at the actual wraps (7) 0.08 N
+  Tow at limit: torque, speed, current     3.23 N m, 0.143 m/s, 5.06 A
+  Wiper at limiter (5 N m), 12.6 V: torque, current, line pull 5.0 N m, 7.0 A, 80 N (break 667 N)
+  Wiper motor stall (no limiter), 12.6 V: torque, current, line pull 14.1 N m, 17.0 A, 227 N
+  Tow sensing at the dart: N per wiper amp above free dart = 14.8 x (I - I_free) - 2.6 N (capstan side x1.15)
 Drivetrain (wiper at 11.1 V with sag)
   aim: peak torque, current, time          0.33 N m, 1.9 A, 7 s
   cock: peak torque, current, time         2.93 N m, 4.7 A, 3 s
   reel: peak torque, current, time         0.43 N m, 2.0 A, 107 s
-  tow: peak torque, current, time          4.17 N m, 6.1 A, 39 s
-  Wiper at limiter (5 N m), 12.6 V (with sag) 5.0 N m, 7.0 A
-  Wiper motor stall (no limiter), 12.6 V (with sag) 14.1 N m, 17.0 A
+  tow: peak torque, current, time          3.23 N m, 5.1 A, 35 s
 wrote SUMMARY.md and /home/user/GrappStar/base/physics/../out/physics/physics_summary.pdf
+== plots.py
 wrote range_vs_pitch.png, trajectories.png in /home/user/GrappStar/base/out/physics
+== tests
+........................................................................ [ 87%]
+..........                                                               [100%]
+82 passed in 64.36s (0:01:04)
+
+PASS: all models ran and all tests passed
 EXIT 0

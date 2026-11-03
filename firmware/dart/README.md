@@ -32,9 +32,9 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
 
 | esp32 core | Result | Flash | RAM |
 |---|---|---|---|
-| 3.3.12 (latest) | OK, no warnings from the sketch | 1,013,947 B (30 %) | 70,484 B (21 %) |
-| 3.3.2 | OK, no warnings from the sketch | about 1,016 kB (30 %), measured on an earlier build | about 68 kB (20 %) |
-| 2.0.17 | OK, no warnings from the sketch | about 802 kB (23 %), measured on an earlier build | about 67 kB (20 %) |
+| 3.3.12 (latest) | OK, no warnings from the sketch | 1,014,379 B (30 %) | 70,500 B (21 %) |
+| 3.3.2 | OK, no warnings from the sketch | 1,018,875 B (30 %) | 68,512 B (20 %) |
+| 2.0.17 | OK, no warnings from the sketch | 805,405 B (24 %) | 66,968 B (20 %) |
 
 Libraries: Adafruit BNO08x 1.2.7, plus Adafruit BusIO 1.17.4 and Adafruit Unified Sensor 1.1.15 (installed with it).
 arduino-cli 1.5.2-rc.1.
@@ -114,7 +114,7 @@ Needs Linux, g++, make, pthread, python3, and for the page check node 18+ with P
 (`npm i playwright && npx playwright install chromium`).
 
 ```
-cd firmware/dart/sim && make && python3 test_sim.py      # 11 HTTP tests against the real sketch
+cd firmware/dart/sim && make && python3 test_sim.py      # 12 HTTP tests against the real sketch
 python3 test_jetson_client.py                            # 9 tests: the Jetson's own dart client against the real sketch (C2)
 node test_page.js                                        # 11 checks of the web page in headless Chromium (one logged 409 is expected)
 ./kedge_sim --port 8790                                  # then open http://localhost:8790 (the real web page)

@@ -159,3 +159,19 @@ def test_fit_coupon_written(tmp_path):
     assert r["errors"] == []
     assert os.path.exists(os.path.join(fit, "COUPON.md")) and r["plates"]
     assert not os.path.exists(fit + ".tmp")
+
+
+def test_shear_pin_prints_lying(built):
+    """D44: the shear pin prints lying down (axis horizontal on the bed), like drum prints it."""
+    c = _coupon(built, "9")
+    p = {q.name: q for q in c["parts"]}["rc9_shear_pin"]
+    lo, hi = prim.bbox(prim.place(p.solid, p.print_tf))
+    dx, dy, dz = (hi[i] - lo[i] for i in range(3))
+    assert dz < 6.0 and max(dx, dy) > 10.0, (dx, dy, dz)
+
+
+def test_splitter_has_printed_drag_and_clip(built):
+    c = _coupon(built, "1")
+    names = {p.name for p in c["parts"]}
+    assert {"rc1_drag_pad", "rc1_drag_shim", "rc1_idler_clip"} <= names
+    assert "O-ring" not in c["bought"] + c["do"] and "e-clip" not in c["bought"] + c["do"]

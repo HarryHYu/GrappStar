@@ -130,6 +130,12 @@ def run(asm, states) -> dict:
     res = dict(meshes=[], fails=[], warns=[])
     Ws = [asm.world(S) for S in states]
     for ms in asm.meshes:
+        missing = [g for g in (ms.gear_a, ms.gear_b) if g not in asm.parts]
+        if missing:                      # a cross-owner mesh whose other subsystem is not loaded (--only runs)
+            res["meshes"].append(dict(a=ms.gear_a, b=ms.gear_b, m=ms.m, z=[ms.z_a, ms.z_b], kind=ms.kind, skipped=True,
+                                      ok=True, fails=[], note=f"skipped: {', '.join(missing)} not loaded"))
+            res["warns"].append(f"mesh {ms.gear_a} / {ms.gear_b} skipped: {', '.join(missing)} not loaded")
+            continue
         n, f_all = 0, []
         when = getattr(ms, "when", None)
         for S, W in zip(states, Ws):

@@ -58,8 +58,11 @@ struct Cfg {
       45.0f;
 #endif
   // current trips per state (decision D8, lens B I5); a printed torque limiter in the coupler slips at about 5 N m
-#ifndef P_REEL_CURRENT_TRIPS_A_AIM
-#define P_REEL_CURRENT_TRIPS_A_AIM 5.0f
+#ifndef P_REEL_CURRENT_TRIPS_A_BACKWARD_LAUNCH
+#define P_REEL_CURRENT_TRIPS_A_BACKWARD_LAUNCH 3.0f
+#endif
+#ifndef P_REEL_CURRENT_TRIPS_A_REEL_IN
+#define P_REEL_CURRENT_TRIPS_A_REEL_IN 5.0f
 #endif
 #ifndef P_REEL_CURRENT_TRIPS_A_COCK
 #define P_REEL_CURRENT_TRIPS_A_COCK 6.5f
@@ -71,9 +74,10 @@ struct Cfg {
 #define P_REEL_TOW_TENSION_MODEL_N_PER_A 17.0f
 #endif
 #ifndef P_REEL_TOW_TENSION_MODEL_OFFSET_N
-#define P_REEL_TOW_TENSION_MODEL_OFFSET_N -10.4f
+#define P_REEL_TOW_TENSION_MODEL_OFFSET_N -3.0f
 #endif
-  float tripA = P_REEL_CURRENT_TRIPS_A_AIM;     // aim, reel-in (params.REEL.current_trips_a, D8 / D33)
+  float tripA = P_REEL_CURRENT_TRIPS_A_REEL_IN;  // reel-in and the reset run (params.REEL.current_trips_a, D8 / D33)
+  float aimTripA = P_REEL_CURRENT_TRIPS_A_BACKWARD_LAUNCH;   // D40: every backward run in LAUNCH (aim, decock): the aim gears
   float cockTripA = P_REEL_CURRENT_TRIPS_A_COCK;          // cock and fire (peak about 5.1 A)
   float towTripA = P_REEL_CURRENT_TRIPS_A_TOW;           // tow (reel until tension): a 50 N tow draws about 5.1 A; the tension estimate is the limit
   float takeupTripA = 2.5f;        // take-up only (NEUTRAL / WRAP)
@@ -165,6 +169,14 @@ struct Cfg {
   // fly-in (lens B 7.2 steps 8, 15): the wiper creeps forward while the collar drops into REEL; into LAUNCH the collar
   // dropping in is checked with SW_DOG_L and, if needed, the wiper is turned BACKWARD (never forward: that would cock)
   int flyDuty = 64;                 // 25 percent (about 20 percent asked; at least minScaleDuty 60 so the 3 A trip sees the real current)
+  uint32_t aimHomeMaxMs = 60000;    // aim homing must find SW_RAIL_LOW within this (an aim leg within twice this)
+  uint32_t reboundIgnoreMs = 500;   // D45: SW_HOME ignored this long after the release (the carriage rebounds off the PLA stop)
+  float gapRunMaxDeg = 150;         // the forward gap run (after an aim / decock) must see SW_GAP close within this
+  float notDrawnExtraDeg = 15;      // "carriage not drawn": debounce travel and a looser dog window beyond the SW_HOME window
+  float noReleaseExtraDeg = 20;     // "no release seen": slam bounce and the debounce at near free speed
+  float flyBiteA = 0.8f;            // D41: fly-in creep stops when the current rises this much over its running level
+  float flyMaxN = 20;               // D41: after the bite any wind-in is limited by the tension estimate at this (N)
+  float flyLegDeg = 5;              // D41: wind-in legs of at most this many wiper degrees, SW_DOG_R read between legs
   float flyMaxDeg = 120;            // at most this much wiper travel for the dogs to drop in
   float flyLaunchMaxDeg = 40;
   // take-up while unwrapping (lens B step 13): wiper forward at 40 percent while the drum is in the WRAP sector
@@ -192,7 +204,9 @@ struct Cfg {
   int reelDuty = 220; int reelMinDuty = 70; float taperFrac = 0.30f;
   float kNperA = P_REEL_TOW_TENSION_MODEL_N_PER_A;             // physics v1.2 (FIRM 5 N): line N = 17.0 x (I - I_free) - 10.4. Bench: CALIBRATION.md
   float tensOffsetN = P_REEL_TOW_TENSION_MODEL_OFFSET_N;
-  uint32_t rawHoldMs = 60;          // the unfiltered tension estimate at or over max_n this long holds the tow
+  float towSlackFrac = 0.25f;       // tow: above this fraction of max_n the duty stays at the minimum (taut line)
+  int towRampPerTick = 2;           // tow: duty ramp while the line is slack (min to full in about 0.5 s)
+  uint32_t rawHoldMs = 30;          // the unfiltered tension estimate at or over max_n this long holds the tow
   float tensionAvgMs = 200;         // D33: the tension estimate is averaged over this long
   float limitN =
 #ifdef P_REEL_TOW_LIMIT_N
@@ -206,7 +220,7 @@ struct Cfg {
   float limitMaxN = P_REEL_TOW_LIMIT_MAX_N;   // D39: above 70 N the 6.5 A trip and the shear pin are reached (BAD_ARG beyond)
   bool armHomeOpen = true;          // cad-reel: SW_ARM is closed while the cup is away and OPENS for about +-5 deg at home
   float resumeFrac = 0.6f;          // holding winds again below this fraction of the limit (load cell only)
-  uint32_t tensionIgnoreMs = 150;   // ramp inrush is not tension (the trips ignore 50 ms; a stiff line needs an early look)
+  uint32_t tensionIgnoreMs = 80;    // ramp inrush is not tension (the trips ignore 50 ms; a stiff line needs an early look)
   float seatSlowM = 1.0f; int seatSlowDuty = 110;
   float lineTotalM = 20.0f;
   uint32_t reelMaxMs = 240000;

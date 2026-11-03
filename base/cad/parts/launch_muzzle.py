@@ -44,7 +44,10 @@ W_R = 55.3                  # roller centre w: top 62.3, bottom 48.3
 Y_CHEEK0 = 3.0              # cheek inner faces |y| (pulley 5 wide: 0.5 side clearance)
 Y_CHEEK1 = 5.5              # cheek plate outer faces (2.5 thick; axle head / nut seat)
 R_HUB = 5.0                 # cheek hub radius about the axle (inside the groove bottom r 6: the line never touches)
-AXLE_L = 20.0               # M3 x 20 SHCS + nyloc nut
+AXLE_L = 16.0               # M3 x 16 SHCS + nyloc nut: head at |y| 5.5, nut 5.5..9.5, 1 mm through
+WASHER = (2.3, 1.65, 2.05, 2.95)   # thrust washer hub r, bore r, |y| from..to (the hub bears on the bearing inner
+WASHER_FLANGE = (3.1, 0.5)         # race); flange r / thickness on the cheek side (flat print face), inside the
+                                   # roller bore r 3.95; roller + washers 5.9 wide in the 6.0 slot
 U_FORK0 = 250.0             # fork root (deck rib at u 250)
 W_FORK1 = 61.5              # cheek top (dart belly 63.6 in flight)
 R_PUL_CLEAR = 8.5           # floor ends this far behind the roller centre (pulley r 7)
@@ -120,7 +123,8 @@ def funnel_solid(P=None, n=None):
 
 def fork_solid(P=None, n=None):
     """Thin cheek plates (|y| 3..Y_CHEEK1) from the u 250 deck rib to the roller hub, a floor tying them behind the
-    roller, bearing bosses."""
+    roller. No printed bosses (the roller must drop into the slot): two loose printed thrust washers on the
+    axle take the bearing inner race."""
     n = _n(P, n)
     rib_top = n["w_rroot"] + RACK_BACK_MZ
     s = []
@@ -129,7 +133,6 @@ def fork_solid(P=None, n=None):
              + prim.cylY(R_HUB, -Y_CHEEK1, -Y_CHEEK0, x=U_R, z=W_R, seg=48))             # hubs (rounded front)
     s.append(Bs(U_R - 6.0, U_R, Y_CHEEK0, Y_CHEEK1, W_R - R_HUB, n["w_deck0"] + 0.01))  # hub roots under the deck
     s.append(B(n["c_len"] - 0.5, U_R - R_PUL_CLEAR, -Y_CHEEK1, Y_CHEEK1, n["w_deck0"], rib_top - 1.5))   # floor
-    s.append(prim.cylY(2.9, 2.05, Y_CHEEK0 + 0.01, x=U_R, z=W_R) + prim.cylY(2.9, -Y_CHEEK0 - 0.01, -2.05, x=U_R, z=W_R))
     f = prim.union(s)
     # lightening windows through the cheek plates between the ribs
     f = f - Bs(U_FORK0 + 4.0, n["c_len"] - 4.0, Y_CHEEK0 - 1.0, Y_CHEEK1 + 1.0, rib_top + 1.0, W_FORK1 - 1.5)
@@ -167,13 +170,23 @@ def muzzle_parts(P=None, n=None, bed=None):
                 color="#777c84", bought_ref="693ZZ 3x8x4", notes="Lip roller bearing")]
     Ma = tf.mul(H, tf.T(U_R, -Y_CHEEK1, W_R), tf.Rx(-90))      # head on the right cheek outer face, shank along +y
     out.append(Part("launch_muzzle_roller_axle", LN.axle_solid(AXLE_L), "bought", joint="launch_carriage", place=Ma,
-                    color="#444444", bought_ref="M3x20 SHCS; M3 nyloc nut", notes="Lip roller axle through both cheeks"))
+                    color="#444444", bought_ref="M3x16 SHCS; M3 nyloc nut", notes="Lip roller axle through both cheeks"))
+    ro, ri, y0, y1 = WASHER
+    rf, tfl = WASHER_FLANGE
+    ws = prim.tube(ro, ri, y1 - y0) + prim.tube(rf, ri, tfl, z=(y1 - y0) - tfl)   # z 0 = inner race side
+    for sg, side in ((1, "l"), (-1, "r")):
+        Mw = tf.mul(H, tf.T(U_R, sg * y0, W_R), tf.Rx(-90 if sg > 0 else 90))  # z along +-y from the race face
+        out.append(Part(f"launch_muzzle_washer_{side}", ws, "PLA", joint="launch_carriage", place=Mw,
+                        print_tf=bed(ws, tf.Rx(180)), color="#e0c060",
+                        notes="Lip roller thrust washer (0.9 thick, flange on the cheek side) between the bearing inner race and the cheek: "
+                              "put both in the roller bore, then drop roller and washers into the fork slot"))
     return out
 
 
 def muzzle_allowed():
     return [Allow("launch_muzzle_roller_brg", "launch_muzzle_roller", "693ZZ pressed in the roller"),
             Allow("launch_muzzle_roller_axle", "launch_muzzle_roller_brg", "M3 axle through the bearing bore"),
+            Allow("launch_muzzle_roller_axle", "launch_muzzle_washer_*", "M3 axle through the washer"),
             Allow("launch_line_*", "launch_muzzle_roller", "line in the groove")]
 
 

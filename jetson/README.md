@@ -30,8 +30,9 @@ Command summary:
 |---|---|
 | `python3 -m grappstar serve` | operator page at `http://<jetson>:8080`. Options: `--sim`, `--port 8080`, `--base /dev/grappstar-base`, `--dart 192.168.4.1`, `--rover-cam /dev/grappstar-rovercam`, `--dart-cam /dev/grappstar-dartcam`, `--fourcc YUYV` or `MJPG` |
 | `python3 -m grappstar cameras` | list cameras and the formats they offer |
-| `python3 -m grappstar base status` / `ping` / `monitor` | talk to the base. `monitor` prints telemetry live (Ctrl+C stops) |
+| `python3 -m grappstar base status` / `ping` / `monitor` | talk to the base. `monitor` prints telemetry live (Ctrl+C stops). Only one program can hold the base port at a time (serve, monitor, console, cmd): a second one says "port busy" |
 | `python3 -m grappstar base cmd '<json>'` | send one raw command, e.g. `'{"cmd": "status"}'` |
+| `python3 -m grappstar base console` | one connection that prints telemetry (twice a second) and every event, and sends what you type: a word (`stop`, `estop`, `status`), a word with `key=value` pairs (`reel duty=0.3 max_n=20 until=stop`) or a JSON line. `quit` ends. Use it for calibration (watch the tension, type `stop`) |
 | `python3 -m grappstar dart status` | one dart status reading |
 | `python3 -m grappstar dart key <c> --hold <s>` | hold a dart motor key for s seconds |
 | `python3 -m grappstar dart auto` / `release` / `flightlog` | auto anchor, release sequence, download the flight log |
@@ -480,7 +481,7 @@ The mission steps, in order (the page highlights the current one):
 | LANDING_ZONE | landing report, map, verdict; the base is told how much line is out | Anchor, or Retrieve and reshoot |
 | RAIL_LOW | if the rail is above 15 degrees, it is lowered to its minimum pitch before the tow (skipped on a reshoot) | |
 | BASE_NEUTRAL | launcher at rest, drum to NEUTRAL | |
-| WRAP | the capstan wraps go on while the line is still slack; the drum parks at WRAPPED (about 24 s) | |
+| WRAP | the capstan wraps go on while the line is still slack; the drum parks at WRAPPED (about 35 to 40 s, drum 8.1 deg/s) | |
 | ANCHOR | the dart digs in (kick, foot, drills) | if it reports warnings, choose Tow anyway or Release and reshoot |
 | TIDY | slack wound onto the storage reel for a few seconds | |
 | FLY_IN | drum on to REEL: the capstan is now driven | |
@@ -489,7 +490,7 @@ The mission steps, in order (the page highlights the current one):
 | RELEASE | base stops (the worm holds the line), then the dart unscrews and folds | |
 | RETRIEVE | capstan reels in until about 1.5 m is left | |
 | UNWRAP | capstan wraps come off, drum back to NEUTRAL | |
-| FINAL_APPROACH | the storage take-up pulls the last metre until the dart is seated (slow, about 0.08 m/s) | |
+| FINAL_APPROACH | the storage take-up pulls the last metre until the dart is seated (slow, about 0.058 m/s at duty 0.3) | |
 | LAUNCH_READY | drum back to LAUNCH for the next shot | Shoot again, or Abort to finish |
 | DONE | mission over; the log folder is shown | |
 
@@ -527,7 +528,8 @@ Before the first real launch:
       target too. Everyone knows the shout for stop.
 - [ ] Line attached at both ends (dart and reel) and laid so it cannot snag on the rover, feet or wires.
 - [ ] Tow limit set, and you know what it is. The rule: the dart's hand-pull holding force (TEST_PLAN stage 8 step 2)
-      minus 10 N, never above 50 N (the firmware caps it at 55 N at the dart, D46). Set it in two places: the base
+      minus 10 N, and 40 N for the first field tows until the wrap cup ring has been checked for wear (D46);
+      firmware cap 55 N at the dart. Set it in two places: the base
       (`python3 -m grappstar base cmd '{"cmd": "set", "key": "limit_n", "val": 40}'`) and the Jetson (`settings.json` key `tow_limit`,
       or `serve --tow-limit <N>`, or the page's "Tow limit N at the dart" field). The default 40 N is only a start.
 - [ ] Know the stop rule (the same in every GrappStar document):

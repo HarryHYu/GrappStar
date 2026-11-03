@@ -45,6 +45,10 @@ class FrameSource:           # duck-typed
 - `video.camera.Camera(name, source_factory, quality=True, deinterlace=False)`: background thread, reconnects,
   `latest() -> Optional[Frame]`, `jpeg() -> Optional[bytes]` (latest frame as JPEG for the MJPEG stream),
   `start_recording(path)`, `stop_recording() -> path`, `buffer(seconds) -> list[Frame]` (ring buffer of recent frames),
+  `buffer(seconds=None, since=None)` (since: only frames with f.t >= since, filtered before packed frames are decoded),
+  `hold(t_from)` / `release_hold()` / `held()` (pin the flight frames from t_from; over the RAM cap they are JPEG-packed
+  in memory, a very long hold thins only after its first 8 s, an unreleased hold ends after 300 s with a warning),
+  buffer_max_mb=None = automatic cap from buffer_s x fps x frame size,
   `status() -> dict` (fps, connected, quality, recording).
 - `video.quality.frame_quality(img) -> dict(score, snow, dropout, sync_loss, ...)`; score 0..1, `bad = score < 0.4`.
 - `video.discover.find_cameras() -> list[dict(dev, by_id, name, formats)]`.
@@ -58,10 +62,15 @@ class FrameSource:           # duck-typed
 
 ## vision
 
-- `vision.flight.analyze_flight(frames, flightlog=None) -> FlightResult` (`.phases` list of `(name, t0, t1)` with names
+- `vision.flight.analyze_flight(frames, flightlog=None, clock_offset_s=None, ballistics=None, drag_n=0.5,
+  aim_pitch_deg=None, calibrate_range=True) -> FlightResult` (`.phases` list of `(name, t0, t1)` with names
   ON_RAIL, LAUNCH, FLIGHT, IMPACT, LANDED; `.t_launch`, `.t_impact`, `.t_landed`, `.attitude` list of
   `(t, roll, pitch, yaw)` deg, `.horizon` list of per-frame `(t, angle_deg, sky_ratio)`, `.trajectory` list of
-  `(t, x, y, z)` m, `.to_dict()`), `landing_frames(frames, result, n=15) -> list[Frame]`.
+  `(t, x, y, z)` m, `.range_m`, `.v0`, `.launch_pitch_deg`, `.range_scale`, `.launch_fit_t`, `.notes`, `.to_dict()`),
+  `landing_frames(frames, result, n=15) -> list[Frame]`.
+- `analysis.run_post_flight(frames, flightlog, outdir, t_fire=, terrain_model=, log=, clock_offset_s=,
+  aim_pitch_deg=None, drag_n=None, ballistics='auto', calibrate_range=True) -> dict(flight, terrain, mosaic, rest_tilt,
+  files, errors)`; the IMU tilt cue is the roll-invariant rest tilt (`analysis.rest_tilt`).
 - `vision.terrain.analyze_landing(frames, model=None) -> TerrainReport` (`.cls`, `.probs`, `.slope_deg`, `.score`
   0..100, `.verdict` "GO"|"NO_GO"|"UNSURE", `.reasons` list[str], `.image` BGR report image, `.to_dict()`).
   Classes: `bedrock, hard_ground, loose_soil, sand_dust, vegetation, water_void, unknown`.
@@ -70,14 +79,19 @@ class FrameSource:           # duck-typed
   `.landing_xy` pixel in the map or None, `.to_dict()`).
 - `vision.target`: `CameraModel(fx, fy, cx, cy, height_m, pitch_deg, roll_deg=0)` with `.pixel_to_ground(u, v) ->
   (range_m, bearing_deg)` (bearing positive = target is to the right), `.save(path)`, `CameraModel.load(path)`;
-  `detect_orange(img) -> Optional[(u, v, area_px)]`; calibration helpers.
+  `detect_orange(img) -> Optional[(u, v, area_px)]`; calibration helpers. `campose.camera_model(...)` sets
+  `.range_offset_m` and `.lateral_offset_m` (camera y - rail y, -0.19 m with v1 params); `campose.pivot_target(model,
+  ground_xy)` and `campose.target_info_pivot(model, u, v, image_size)` give range and bearing from the pivot and the
+  launch line.
 
 ## ballistics (C3)
 
 `Ballistics.load(path=None)` (default: `base/out/ballistics.json` if it exists, else the placeholder);
-`.solve(range_m, drag_n=0.75, lob=None) -> Solution(reachable, pitch_deg, t_flight_s, line_out_m, apex_m, v_muzzle,
-note)`. range_m is from the ground point under the rail pivot (D29); the App adds the camera's offset ahead of the
-pivot (params.FRAMEWORK.camera pos x, 150 mm) to the camera range before solving (grappstar/campose.py). lob=None
+`.solve(range_m, drag_n=0.5, lob=None, line_margin=1.10, low=False) -> Solution(reachable, pitch_deg, t_flight_s,
+line_out_m, apex_m, v_muzzle, note)`. Default drag is the LIGHT clutch 0.5 N (D24); lob=None/True the high branch,
+lob=False or low=True the low branch; the placeholder uses the real window 6..47 deg. range_m is from the ground point under the rail pivot (D29); the App adds the camera's offset ahead of the
+pivot: the App converts camera targets to the pivot with campose.target_info_pivot (forward 0.15 m and sideways
+0.19 m). lob=None
 prefers the higher pitch when two solutions exist (D29).
 
 ## app (what the UI talks to)

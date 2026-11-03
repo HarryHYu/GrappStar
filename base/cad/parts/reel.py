@@ -315,7 +315,7 @@ def _wall():
     cut = [_teardrop_z(HUB_SPIGOT_R + 0.2, -WALL_T - 1, 1.0)]
     for a in hub_screw_deg():                      # hub screws tap into the wall from the front (blind, 5 deep)
         x, y = HUB_SCREW_R * math.cos(math.radians(a)), HUB_SCREW_R * math.sin(math.radians(a))
-        cut.append(prim.cyl(fits.M3_TAP_D / 2, 5.0 + 0.01, x=x, y=y, z=-5.0))
+        cut.append(prim.cyl(fits.M3_TAP_D / 2, WALL_T + 0.02, x=x, y=y, z=-WALL_T - 0.01))   # through: no bottoming
     cut.append(prim.cyl((S_D + fits.SHAFT_IN_BORE + fits.HOLE_HORIZ_EXTRA) / 2, WALL_T + Z_T + 2, x=X_REEL,
                         z=-WALL_T - 1))
     cut += _brake_wall_cuts()
@@ -723,7 +723,7 @@ def _p2_post():
     foot = prim.box(xc - 16, xc + 16, Y_DECK, Y_DECK + FOOT_T, pz - 14, pz + 14)
     col = prim.box(xc - 8, xc + 8, Y_DECK, py + gap + 22.0, pz - 8, pz + 8)
     upper = prim.box(px - 8.0, xc, py + gap, py + gap + 3.5, pz - 6, pz + 6)
-    web = prim.box(px - 8.0, xc, py + gap + 3.49, py + gap + 22.0, pz - 4, pz + 4)
+    web = prim.box(px - 8.0, xc, py + gap + 3.49, py + gap + 14.0, pz - 4, pz + 4)   # top under cad-sensors' SW_GAP
     lower = prim.box(px - 8.0, xc, py - gap - 3.5, py - gap, pz - 6, pz + 6)
     gus = [_gusset(xc - 4, xc + 4, pz + s_ * 7.5, pz + s_ * 14.0, Y_DECK + FOOT_T - 1.0, 40.0) for s_ in (-1, 1)]
     body = prim.union([foot, col, upper, web, lower] + gus + _race_bosses(px, py, pz, gap))
@@ -802,15 +802,14 @@ def _cup_gear_track():
     ring = prim.tube(16.0, 13.0, SW_BUMP_H, z=-SW_BUMP_H)
     half = math.radians(SW_BUMP_DEG)
     a_top = half + SW_BUMP_H / SW_BUMP_R                   # 45 deg ramps measured at the lever radius
-    n = 24
-    ang = np.linspace(-a_top, a_top, n)
-    pts = [(0.0, 0.0)]
-    for t in ang:                                          # wedge-shaped notch cutter in the (angle, z) sense
-        pts.append((20.0 * math.cos(t - math.pi / 2), 20.0 * math.sin(t - math.pi / 2)))
-    notch = prim.extrude(prim.poly_cs(pts), SW_BUMP_H + 1.0, z=-SW_BUMP_H - 0.5)
+
+    def wedge(a, z0, h):
+        pts = [(0.0, 0.0)] + [(20.0 * math.cos(t - math.pi / 2), 20.0 * math.sin(t - math.pi / 2))
+                              for t in np.linspace(-a, a, 24)]
+        return prim.extrude(prim.poly_cs(pts), h, z=z0)
+    # ramps: wide at the track's outer face (z -SW_BUMP_H), the plain notch width at the gear face (z 0)
+    notch = Manifold.batch_hull([wedge(a_top + 0.5 / SW_BUMP_R, -SW_BUMP_H - 0.5, 0.5), wedge(half, -0.01, 0.02)])
     notch = prim.place(notch, tf.Rz(sw_tip_deg() + 90.0))       # centred on the lever tip
-    # 45 deg ramps: subtract a slightly smaller notch at full depth and a wider shallow one is approximated by
-    # stepping the notch in three depths
     out = ring - notch
     return out
 
@@ -885,8 +884,8 @@ def parts(P):
         notes=f"Capstan gear m{M_CAP:g} z{Z_CAPG}: driven by the drum's REEL output gear ({Z_MAIN}T)")
     add("reel_c_clip", clips.c_clip(C_D), "PLA", joint="reel_capstan", place=tf.T(0, 0, _clip_z(C_D, GC_Z[0])),
         color=COL["clip"], step=5, notes="C-clip holding the capstan gear on the tube")
-    add("reel_drum", v7.drum(mouth=(14.2, COLLAR_CONE + 0.2)), "PLA", joint="reel_capstan", place=tf.T(0, 0, Z_DRUM), color=COL["drum"], step=6,
-        notes="Capstan drum dia 40 x 40 (Harry v7), keyed on the tube. Print flange down")
+    add("reel_drum", v7.drum(mouth=(14.2, COLLAR_CONE + 0.2)), "PPA-CF", joint="reel_capstan", place=tf.T(0, 0, Z_DRUM), color=COL["drum"], step=6,
+        notes="Capstan drum dia 40 x 40 (Harry v7), keyed on the tube; PPA-CF: hoop stress 11.6 MPa if the shear pin slips. Print flange down")
     add("reel_k", _k_shaft(), "PPA-CF", joint="reel_cup", color=COL["ppa"], step=7,
         notes="Cup shaft: runs inside the capstan tube, cup in front, cup gear behind. Print standing")
     add("reel_cup", v7.cup(), "PLA", joint="reel_cup", place=tf.T(0, 0, Z_CUP), color=COL["cup"], step=7,

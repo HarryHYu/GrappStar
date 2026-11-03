@@ -148,6 +148,9 @@ class ExtSpring:
     hook_r2_over_d: float = 2.5       # bend radius at the hook root / wire diameter (Shigley r2, typical 2 to 3)
     wire: MusicWire = field(default_factory=MusicWire)
     safety: float = 1.2               # extra factor on the static allowables (shot count in the hundreds)
+    catalogue_max_n: float = 38.4     # Century C-243 (= Bunnings 0487961) max safe load, 8.64 lb (about 100k cycles)
+    catalogue_max_defl_mm: float = 302.0   # Century C-243 max deflection, 11.9 in
+    catalogue_wire_mm: float = 1.37   # 0.054 in (the retail label rounds it to 1.4)
 
     @property
     def D_mm(self) -> float:          # mean coil diameter

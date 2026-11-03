@@ -1,5 +1,5 @@
 {
- "params_source": "base/spec/params.py v1.0",
+ "params_source": "base/spec/params.py v1.0.1",
  "spring": {
   "k_n_mm": 0.125,
   "rate_formula_n_mm": 0.13065195731408008,
@@ -38,6 +38,8 @@
   "over_safe": false,
   "f_spring_full_n": 42.0,
   "f_spring_rest_n": 11.375,
+  "over_catalogue_load": true,
+  "over_catalogue_defl": false,
   "f_carriage_full_n": 84.0,
   "energy_stored_j": 13.076875000000001,
   "model": "chain",
@@ -57,61 +59,5 @@
    "force_n": 0.575,
    "mass_eff_kg": 0.03361728278281651
   }
- },
- "ratio_sweep": [
-  {
-   "ratio": 0.5,
-   "stroke_used_m": 0.12250000000000001,
-   "ext_full_mm": 280.0,
-   "v_muzzle": 6.437284575940954,
-   "energy_j": 13.076875000000001,
-   "efficiency": 0.4420543335678286,
-   "f_carriage_full_n": 168.0
-  },
-  {
-   "ratio": 0.75,
-   "stroke_used_m": 0.18375000000000002,
-   "ext_full_mm": 280.0,
-   "v_muzzle": 7.548327605008029,
-   "energy_j": 13.076875000000001,
-   "efficiency": 0.6078154240778023,
-   "f_carriage_full_n": 112.0
-  },
-  {
-   "ratio": 1.0,
-   "stroke_used_m": 0.245,
-   "ext_full_mm": 280.0,
-   "v_muzzle": 7.781098459677982,
-   "energy_j": 13.076875000000001,
-   "efficiency": 0.6458803274382318,
-   "f_carriage_full_n": 84.0
-  },
-  {
-   "ratio": 1.5,
-   "stroke_used_m": 0.245,
-   "ext_full_mm": 198.33333333333334,
-   "v_muzzle": 5.646900930784508,
-   "energy_j": 7.0505555555555555,
-   "efficiency": 0.6309155125410164,
-   "f_carriage_full_n": 42.38888888888889
-  },
-  {
-   "ratio": 2.0,
-   "stroke_used_m": 0.245,
-   "ext_full_mm": 157.5,
-   "v_muzzle": 4.497268200032756,
-   "energy_j": 4.66265625,
-   "efficiency": 0.6051156497312251,
-   "f_carriage_full_n": 26.6875
-  },
-  {
-   "ratio": 3.0,
-   "stroke_used_m": 0.245,
-   "ext_full_mm": 116.66666666666667,
-   "v_muzzle": 3.1628171208919063,
-   "energy_j": 2.691597222222222,
-   "efficiency": 0.518456469652152,
-   "f_carriage_full_n": 14.388888888888891
-  }
- ]
+ }
 }

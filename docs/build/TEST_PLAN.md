@@ -3,6 +3,9 @@
 Do the stages in order. Do not skip ahead when a stage fails: fix it, then repeat the stage. Write the date and the
 result of each stage in a notebook (or `docs/build/test_log.md`).
 
+How to fire: `python3 -m grappstar base fire` on the Jetson. It shows mode, pitch, cock and seated, asks you to type
+FIRE, then sends `arm` and `fire` with the token at once (the token is only valid 3 s, too short to type by hand).
+
 How to send base commands: the operator page on the Jetson (jetson/README.md) has buttons for most of these. From a
 terminal on the Jetson, in `~/GrappStar/jetson`, send any command (firmware/base/PROTOCOL.md) with
 `python3 -m grappstar base cmd '{"cmd": "jog", "motor": "wiper", "dir": 1, "ms": 300}'` and watch telemetry with
@@ -55,8 +58,9 @@ N20 to DRV8833 #3 AOUT1 / AOUT2, loose on the bench. Battery in.
 3. Do the current-sense calibration now (MEASURE_LIST G1, CALIBRATION.md), then watch `amps` during a 1.5 s wiper
    jog (jogs are capped at 1.5 s; sending the same jog again extends it).
 
-Pass: each motor turns both ways, stops when the jog ends, wiper free current about 1 to 3 A (A6 in
-MEASURE_LIST.md), no fault.
+Pass: each motor turns both ways, stops when the jog ends, no fault. Wiper free current at jog power about 1 to
+2 A, safely under the jog trips (2.5 A forward, 3 A backward); a jog that trips on a bare clamped motor means
+something binds or the current scale is off (redo G1).
 If it fails: no movement on the wiper: check R_EN / L_EN wiring and the 20 A fuse. Wiper turns only one way: one of
 RPWM / LPWM is not connected. Drum does nothing: check 9.0 V on VM and the AIN1 / AIN2 / GND jumpers. If it still does nothing, check which board
 it is (MEASURE_LIST D3): a board that does not pull SLP high by itself cannot be used as wired (decision D9); write
@@ -87,8 +91,9 @@ With no dart, `arm` refuses (`NOT_SEATED`): for this stage and stage 5 send
 3. Cock and fire with stand-in springs: without springs nothing returns the carriage after the release, so the
    firmware would fault every cycle. Hook two strong rubber bands (or loops of bicycle inner tube) from the spring
    anchor pins to the carriage hooks instead: enough to pull the carriage home, far too weak to throw anything.
-   Then `cock`, `{"cmd":"decock"}` (the carriage creeps home, `SW_HOME` closes): 5 cycles. Then `arm`, `fire` with
-   the token: the carriage travels back, releases, the bands pull it home, and the big gear re-engages: 10 cycles.
+   Then `cock`, `{"cmd":"decock"}` (the carriage creeps home, `SW_HOME` closes): 5 cycles. Then fire with
+   `python3 -m grappstar base fire` (it arms and fires in one go, inside the 3 s token life, after you type FIRE):
+   the carriage travels back, releases, the bands pull it home, and the big gear re-engages: 10 cycles.
    Take the bands off afterwards.
 4. Wrap and unwrap, with a spare line through the capstan path and slack: from LAUNCH, `wrap`, `tidy`, `mode`
    REEL, then `unwrap` and `mode` LAUNCH (the stage 7 table without the shot): 10 cycles. Once wrapped and in REEL,
@@ -109,7 +114,7 @@ contacts close cleanly.
 
 Fit both springs. Start at the lowest pitch, rail pointing at a clear area.
 
-1. `aim` to the lowest pitch. `arm` and `fire` once. Look at every part of the launch train after the shot.
+1. `aim` to the lowest pitch. Fire once with `python3 -m grappstar base fire`. Look at every part of the launch train after the shot.
 2. Five more shots. Check the stop bumpers, the carriage, the rack teeth and the big gear's last tooth after each.
 3. Watch `amps` while cocking: note the peak (the physics expects about 5 A; decision D8 trips at 6.5 A while
    cocking).

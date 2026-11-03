@@ -702,6 +702,7 @@ line with, a towing line.
 | `python3 -m grappstar serve` | operator page at http://<jetson>:8080 (`--sim` for no hardware) |
 | `python3 -m grappstar base ping` / `status` / `monitor` | talk to the base; `monitor` shows live telemetry (Ctrl+C stops) |
 | `python3 -m grappstar base cmd '<json>'` | send one base command (below) |
+| `python3 -m grappstar base mode LAUNCH` / `base aim 30` / `base fire` | shift, aim, fire (fire asks you to type FIRE) |
 | `python3 -m grappstar dart status` | one dart status reading |
 | `python3 -m grappstar dart key 2 --hold 1.0` | hold a dart key for 1 s (quote `'!'`, `'#'`, `'$'`) |
 | `python3 -m grappstar dart auto` / `release` / `flightlog` | anchor, release, download the flight log |
@@ -717,7 +718,7 @@ line with, a towing line.
 | `{"cmd":"clear"}` | clear a fault once its cause is gone |
 | `{"cmd":"mode","to":"LAUNCH"}` | drum to LAUNCH, NEUTRAL or REEL |
 | `{"cmd":"aim","deg":30}` | rail to 30 degrees (only with the carriage home) |
-| `{"cmd":"arm"}` then `{"cmd":"fire","token":123456}` | fire within 3 s of arm. Tether on, area clear |
+| `python3 -m grappstar base fire` (Jetson CLI) | arm and fire in one go after you type FIRE. Tether on, area clear |
 | `{"cmd":"cal","what":"decock"}` | unload a cocked carriage slowly |
 | `{"cmd":"wrap"}` | lay 7 wraps, right after landing (from LAUNCH or NEUTRAL; parks at WRAPPED) |
 | `{"cmd":"tidy"}` | take up the slack after the dart anchors |

@@ -531,7 +531,18 @@ class Rig:
         self.solution = sol.to_dict()
         rng_true = self.sc.target[0]
         self.base.set(lineOutAfterShot=round(rng_true * 1.05 + 0.3, 2))
-        self.video.render(sol.pitch_deg if sol.reachable else 35.0, float(sol.to_dict().get("v_muzzle") or 7.1))
+        # render the flight so it lands where the physics table (C3) says: the sim renderer's own drag model flies
+        # about 15 % long at 47 deg, so scale the muzzle speed until the rendered range matches the table
+        pitch_r = sol.pitch_deg if sol.reachable else 35.0
+        v0 = float(sol.to_dict().get("v_muzzle") or 7.1)
+        r_tab = app.bal.at_pitch(pitch_r, app.cfg.mission.drag_n).get("range_m")
+        for _ in range(3):
+            self.video.render(pitch_r, v0)
+            r_vid = (self.video.truth or {}).get("range_m")
+            if not (r_tab and r_vid) or abs(r_vid - r_tab) / r_tab < 0.03:
+                break
+            v0 *= (r_tab / r_vid) ** 0.5
+        self.note("info", msg=f"video rendered at {pitch_r:.1f} deg, v0 {v0:.2f}: range {self.video.truth.get('range_m'):.2f} m (table {r_tab})")
         self.note("info", msg=f"solution {self.solution}")
         time.sleep(4.0)                        # let the camera quality window fill with real frames
         if self.sc.driver == "ref":

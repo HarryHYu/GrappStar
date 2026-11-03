@@ -57,7 +57,9 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 - Reel at ~3,000 rpm at 8.6 m/s: 608s are fine. Overrun after landing ~0.24 m (reel stops in ~0.1 s): bird's nest risk
   low, centrifugal shoes not needed at these speeds. Reel inertia (19 kg mm2 full, two thirds of it the 64 mm flanges) adds ~26 g of
   effective mass to the dart during the stroke (line pull ~4 N in the stroke). Spoked or thinner flanges help.
-- Range falls ~0.45 m per +0.25 N of brake. Set the light brake as low as reliably repeatable (0.5 N).
+- Range vs brake at 36 deg (coupled reel): 0.2 N 4.7 m (overrun 1.5 m), 0.3 N 4.5 m (0.9 m), 0.4 N 4.3 m (0.6 m),
+  0.5 N 4.1 m (0.4 m), 0.75 N 3.7 m (0.2 m). Recommend the payout clutch at 0.4 to 0.5 N: under 0.6 m of loose line
+  at the reel after landing, the take-up clears it at the start of reel-in. Below 0.3 N the overrun grows fast.
 
 ## F6. Wiper stall is the dangerous case (drivetrain.py, capstan.py)
 

@@ -288,3 +288,13 @@ def test_other_subsystem_foot_holes_detected():
     polys, holes = O.classify_slice(foot, 0.5)
     assert sorted((round(x), round(y)) for x, y in holes) == [(10, 10), (50, 10)]
     assert len(polys) == 2 and max(p.area for p in polys) > 1000      # outline + the 8 mm hole ring
+
+
+def test_drill_template_writes(tmp_path):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("dt", os.path.join(os.path.dirname(__file__), "drill_template.py"))
+    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+    m.main(str(tmp_path))
+    assert (tmp_path / "rover_drill_template.pdf").stat().st_size > 1000
+    rows = (tmp_path / "rover_drill_template.csv").read_text().strip().splitlines()
+    assert len(rows) > 4

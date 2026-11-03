@@ -714,7 +714,7 @@ def steps(P):
                   % len(info["deck_holes"]), parts=deck + has("frame_cheek") + has("frame_tie") + ["frame_ebay"]),
         dict(title="Drill the rover",
              text="Lay the deck on the rover top plate where it will live (launch direction forward). Mark through the "
-                  "%d perimeter holes with a 3 mm drill or a scriber, take the deck off, drill 3.4 mm. Deburr. "
+                  "%d perimeter holes with a 3 mm drill or a scriber (or tape down the 1:1 PDF template from cad/parts/_frame_tests/drill_template.py), take the deck off, drill 3.4 mm. Deburr. "
                   "If the deck is in tiles, slide the dovetails together first and mark them as one." % len(info["rover_holes"]),
              parts=deck),
         dict(title="Deck on the rover",

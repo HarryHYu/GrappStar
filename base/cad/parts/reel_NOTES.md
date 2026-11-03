@@ -6,8 +6,9 @@ them in your REPORT.md or message the coordinator.
 
 ## 1. What it is (Harry's v7 reel, kept)
 
-- Line path (v7): storage reel -> guide eye -> over the capstan -> groove on the wrap cup -> ring on the cup -> pulley 1 (D43: replaces the exit eye; its groove line is tangent to the ring-to-eye line at the old eye centre)
-  -> pulley 1 (693ZZ) -> along world +Y -> pulley 2 (693ZZ, own post) -> in the y 119 plane round the bottom of
+- Line path (v7): storage reel -> guide eye -> over the capstan -> groove on the wrap cup -> ring on the cup -> pulley 1
+  (693ZZ; D43: replaces the exit eye, its groove line tangent to the ring-to-eye line at the old eye centre) ->
+  along world +Y -> pulley 2 (693ZZ, on a swivel fork on its own post) -> in the y 119 plane round the bottom of
   cad-launch's rail pivot pulley (D14, D34) -> along the rail to the dart. Capstan dia 40 x 40 with the v7
   base flange; v7 cup (ring 0.5 in front of the face and 1 mm outside the wall, U groove 1.2 x 1.0, 30 deg helix,
   58 deg wrap, groove cut last); exit eye 31.5 past the ring; guide eye 1 mm behind the drum flange plane and 2 mm
@@ -61,12 +62,13 @@ them in your REPORT.md or message the coordinator.
 |---|---|---|---|
 | C capstan tube | PPA-CF | 20 OD, 10.3 bore | CSK20PP in the sprag hub (Z 11 .. 25) + the hub bushing (Z -6 .. 11); key rib in the sprag and drum; collar (flat face on the sprag inner race, 45 deg cone into the drum mouth); D flat out the rear end for the capstan gear |
 | K cup shaft | PPA-CF | 10 | inside C; D flats run out at the cup face (hidden under the clip) and under the cup gear; v7 neck + C-clip (dia 14) |
-| S reel shaft | PPA-CF (8 mm steel rod also fits) | 8 | wall bushing + boss (9.5 long); 2 x 608 in the reel; head = clutch disk D r 31 |
+| S reel shaft | PPA-CF (8 mm steel rod also fits) | 8 | wall bushing + boss (12.7 long); 2 x 608 in the reel; head = clutch disk D r 31 |
 | swing arm | PPA-CF | split C ring on the bus gear hub r 13 | stop pins on the wall rear face at the engaged and parked ends of its 12 deg swing |
 
 Bought: CSK20PP, 2 x 608, 2 x 693ZZ (pulleys 1 and 2), M3: 7 deck screws, 4 x M3x8 hub, 3 x M3x8 shroud, 2 x M3x8 trim,
-M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post, brake: M3x10 crank screw and
-4 x M3x16 guide caps.
+M3x25 + nut rocker pivot, pulley 1 axle M3x20 (tapped into its post), pulley 2 axle M3x20 + nyloc, 4 x M3 pulley 1
+post, 4 x M3 pulley 2 post, 2 x M3x8 SW bracket, brake: M3x20 crank screw, M3x10 + nut FIRM screw, 4 x M3x16
+guide caps.
 
 ## 4b. Pulley 2 swivel (review r3_Q, D43)
 
@@ -97,7 +99,7 @@ M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post, brake: M3
 - Stall: at the 15 N m wiper stall the line sees 274 N (eta 0.85), under the 667 N break; the D26 shear pin (5 N m)
   caps it at about 100 N.
 - Swing idler: forward turns drag the arm + into mesh against its stop (tooth forces are self-energising into the
-  stop). Backward turns swing it 12 deg out (tips clear by about 7 mm). Payout back-drives the reel gear with the same
+  stop). Backward turns swing it 12 deg out (tips clear by about 2.2 mm). Payout back-drives the reel gear with the same
   tooth-force sense as take-up, so the idler stays IN during payout and the LIGHT clutch reacts on the self-locking
   wiper worm (no bus drag brake, D25). Gravity alone would keep the arm in (the idler sits above the capstan axis), so
   the arm ring is a split C bored 0.2 under the hub: its grip (target 15 to 30 N mm) swings it. Bench check: turn the
@@ -153,7 +155,7 @@ M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post, brake: M3
   one wrap) when built.
 - Wrapping lays 0.90 m of line from the slack dart side (D22).
 - Storage reel: core d 50, flange d 80 (D44: a mounded 20 m pack reaches r 35 .. 36; reel axis moved to R X -94), 22 wide, two-piece (flat front flange disc on three lugs). 20 m packs to d 62.8
-  (4.6 mm freeboard).
+  (8.6 mm freeboard on the d 80 flange).
 - Launch payout: reel about 2,600 rpm, line pull in the stroke about 3 N, least brake against overrun in flight 0.09 N.
   Landing overrun: physics F5 about 0.24 m; worst case (dead stop at 8 m/s, 0.5 N) 1.15 m, which the shroud keeps on
   the reel.
@@ -179,7 +181,7 @@ M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post, brake: M3
 
 - SW_ARM (GPIO 42, mine): printed contact (cad.lib.switch, strain 0.79 percent) on a bracket behind the wall. Its
   lever rides a raised track on the cup gear's rear face: CLOSED (LOW) everywhere except home, where it drops into a
-  notch and OPENS for about +-5 deg. Firmware: home = SW_ARM high, one open pulse per cup turn (7 per wrap).
+  notch and OPENS for about +-12 deg (SW_BUMP_DEG, 45 deg ramps). Firmware: home = SW_ARM high, one open pulse per cup turn (7 per wrap).
 
 ## 11. Frame mounting
 
@@ -187,9 +189,9 @@ M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post, brake: M3
   wall (stops at R X 3, left of cad-drum's idler bracket). 7 x M3 counterbored into deck inserts at R (X, Z)
   (-120, 14), (-120, 36), (-64, 36), (-64, 14), (-120, -32), (-60, -32), (-8, -32). The guide post hangs from the
   wall 8 mm above the deck (the cheek's foot flange is under it).
-- Exit post: own foot on the deck, 4 x M3 at R (58, 99), (58, 117), (82, 99), (82, 117).
+- Pulley 1 post: own foot on the deck, 4 x M3 at R (X, Z) (53, 89.2), (53, 125.2), (87, 89.2), (87, 125.2).
 - Pulley 2 post: own foot on the deck at world x 138, y 112, 4 x M3 (+-11.5 in x, +-9.5 in y about the column).
-- cad-frame: the motor adapter plate must clear my sprag hub and drum: a notch r 30.5 about world (x -18.66, z -69.64) for y 0..24 (or its lower edge raised to z -38). Also frame_guard_front crosses my pulley 2 post arm (world x 90..106, y 104..120, z -70..-30): a slot there.
+- cad-frame: the motor adapter plate must clear my sprag hub and drum: a notch r 30.5 about world (x -18.66, z -69.64) for y 0..24 (or its lower edge raised to z -38). Since cad-frame's 194 mm plate (y -16..0): a through hole r 30.5 about the same centre, plus a notch at world x 56..67, z -60..-43 for the line run from pulley 1 down to pulley 2 (it crosses the plate at world x 61.3, z about -49).
 
 ## 12. Open items
 

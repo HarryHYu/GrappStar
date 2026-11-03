@@ -11,7 +11,7 @@ Status: DRAFT, updated through the day; final version at 18:30 Sydney.
   funnels); only the bores changed (drum keyed on the capstan tube, cup keyed on the cup shaft with the D hidden).
 - `reel_calc.py`: wraps (Euler-Eytelwein), storage pack, spin-up and overrun, clutch preloads and the rocker spring,
   gear train speeds and torques, current to tension, cup holding torque, unwrap schedule.
-- `reel_NOTES.md`: every interface number for the other workers (v5, brake linkage in section 6).
+- `reel_NOTES.md`: every interface number for the other workers (v6: brake linkage in section 6, pulley 2 swivel in 4b).
 - Brake input linkage (review 2 rebuild): cad-drum's track 2 cam pushes my brake bar, the bar turns a bell crank, the
   crank lifts the rocker's stiff leg. kin follows the round nose's envelope on cad-drum's real cam profile.
 - Rocker spring sized with its real section (`reel_calc.rocker_section`).
@@ -29,27 +29,39 @@ Status: DRAFT, updated through the day; final version at 18:30 Sydney.
   hub (adopted as D25); no bus drag brake (payout keeps the idler engaged; the reaction goes to the self-locking wiper).
 - Clutch: friction ring r 20..30 on a separate flat flange disc; the PPA-CF brake rocker is the FIRM spring; LIGHT is set
   by two M3 trim screws (tolerance-free), and the brake fails to LIGHT if the drum track lets go.
-- Storage reel flange 72 (spec said 66: 1.6 mm freeboard for 20 m), two-piece so it prints without support (D25).
+- Storage reel flange 80 (spec said 66; D44 for the mounded pack), two-piece so it prints without support (D25).
 - No slack-line shoe: physics F5 puts landing overrun at 0.24 m and the shroud keeps loops on the reel.
 - Brake linkage (review 2: the old push rod from behind the wall could not reach cad-drum's cam, which sits in front
   of my wall 137 mm away): a sliding bar in front of the wall, under the shroud and under a shortened guide post, plus
-  a bell crank left of the reel pushing a stiff leg on the rocker from behind (arm B in a 3 mm recess in the wall).
+  a bell crank left of the reel pushing a stiff leg on the rocker from behind (arm B in a 4 mm recess in the wall).
   Chosen over a wedge because a sliding 45 deg wedge needs about 18 N at the cam (cad-drum designed for 15 N); the
   crank needs 5 N plus pin friction.
 - Rocker in PPA-CF, not PETG (Harry has no PETG; PLA would creep at 17 MPa held for minutes). The plate stays
-  3.0 mm (17 MPa at FIRM); the crank ratio (arm B 10.8 / arm A 20) sets the 2.1 mm leg stroke that gives exactly
+  3.0 mm (17 MPa at FIRM); the crank (arm B 14.1 / arm A 20, less the FIRM screw's lost motion) sets the 2.1 mm leg stroke that gives exactly
   LIGHT to FIRM at E 5 GPa. Review 2 showed the old 4 mm at Y -33 would have given FIRM far too high.
 - Wall top cut r 37.5 round the main axis (cad-drum's coupler grew to r 35 in my wall plane).
 - SW_ARM lever tip moved 3 mm toward -X (home notch rotated with it) so its nuts clear cad-drum's wrap idler by 3.5 mm.
+- D44 (no level wind): flange d 80 instead of a lay guide. A fixed fairlead 45 mm from a 22 mm wide pack cannot lay
+  line; a traverse is not cheap. The reel axis moved 6 mm left so the guide eye post still clears the reel; the wall
+  grew 6 mm on the left (free space).
+- D43 exit eye: replaced by pulley 1 itself. Its groove line is tangent to Harry's ring-to-eye line at the old eye
+  centre, so the line leaves the cup exactly as in v7 (31.5 past the ring).
+- D43 storage guide: kept as a plain eye (tail only, at most 5 N; the pack sweeps 22 mm in front of it).
+- Pulley 2 on a swivel fork (review r3_Q): a fixed pulley 2 saw the line leave 5 to 53 deg out of its groove as the
+  rail aims. The fork turns about the incoming run, so the line stays within 2 deg.
+- FIRM made adjustable (review 3): printed PPA-CF stiffness is only known to about 4 to 9 GPa. A FIRM screw in the
+  rocker leg sets the lost motion, and a pad on the wall stops the rocker at LIGHT so the bar is not loaded there.
+- Capstan drum in PPA-CF (physics: hoop stress 11.6 MPa if the shear pin slips, PLA allows 12).
 
 ## 3. Verified (pasted at the final update)
 
 ## 4. Open items
 
 - cad-frame (not mine to change):
-  - frame_motor_adapter cuts through my sprag hub, sprag and capstan drum. Needs a notch r 30.5 about world
-    (x -18.66, z -69.64) for y 0..24, or its lower edge raised to z -38.
-  - frame_guard_front crosses my pulley 2 post arm. Needs a slot at world x 90..106, y 104..120, z -70..-30.
+  - frame_motor_adapter (194 mm plate, world y -16..0) cuts through my capstan drum, C tube and K shaft. Needs a
+    through hole r 30.5 about world (x -18.66, z -69.64).
+  - The same plate is crossed by the line run from pulley 1 down to pulley 2 (world x 61.3, z about -49). Needs a
+    notch at world x 56..67, z -60..-43, y -16..0.
 - D46 (coordinator): the cup ring stays a plain eye; a steel ring liner is left open for Harry. A roller in the ring
   would rebuild Harry's v7 cup, so I did not do it.
 - D43 storage guide eye: kept as a plain eye. It carries only the tail, at most 5 N (FIRM). The pack position sweeps

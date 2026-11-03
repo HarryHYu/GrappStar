@@ -25,11 +25,9 @@ the findings (their numbers come from earlier parameter sets). Every number is r
 - SPRING CATALOGUE (web check): Bunnings 0487961 is Century C-243, 5/8 in OD x 6-1/2 in x 0.054 in wire (1.37 mm,
   not 1.4). Century lists max safe load 8.64 lb (38.4 N) and max deflection 11.9 in (302 mm), rated for about 100,000
   cycles. The earlier 280 mm full cock was 42 N with the 0.125 N/mm / 7 N estimate: inside the deflection limit but 9 %
-  over the load rating (spec v1.2 now uses 265 mm, 40 N) (our A228 static limit with SF 1.2 is 43.6 N at 1.4 mm wire, about 41 N at 1.37 mm). For a few
+  over the load rating (spec v1.2 and later use 265 mm, 40 N) (our A228 static limit with SF 1.2 is 43.6 N at 1.4 mm wire, about 41 N at 1.37 mm). For a few
   hundred shots this is acceptable; the hang test decides: keep the force at full cock at or under about 40 N
   (if the spring measures 0.125 N/mm and 7 N: about 265 mm). Each 10 mm less extension costs about 0.15 m of range.
-- Tow current sensing: see Current numbers (at the capstan 17.0 x (I - I_free) - 3.0 N, at the dart 11.3 / -2.0 with
-  the plain printed exit eye). A firmware constant of 8 N/A would let the line reach about twice the set limit.
 - Blind cross-check (fresh agent, no access to this code): muzzle speed 7.77 m/s (ours 7.78 on the same inputs, spec v1.0). Its range was 12 %
   longer; traced to a taut/slack chatter in its reel logic that applied the brake only about half the time. With the
   brake applied continuously its approach matches ours within 1 %.

@@ -52,3 +52,10 @@ def test_geared_joint_without_mesh_warns():
     asm.meshes = []
     r = meshcheck.run(asm, [{}])
     assert r["warns"] and not r["fails"]
+
+
+def test_mesh_with_unloaded_part_is_skipped_not_failed():
+    asm = pair(CD)
+    asm.meshes = [Mesh("a_gear", "reel_bus", 2, 20, 30)]
+    r = meshcheck.run(asm, [{}])
+    assert not r["fails"] and r["meshes"][0]["skipped"] and any("not loaded" in w for w in r["warns"])

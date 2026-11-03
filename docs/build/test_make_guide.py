@@ -87,7 +87,5 @@ def test_no_personal_names_and_only_embedded_fonts():
         if os.path.exists(path):
             assert helv(path) == 0, f"non-embedded Helvetica in {pdf}"
     guide = os.path.join(HERE, "GrappStar_Build_Guide.pdf")
-    runsheet = os.path.join(mg.ROOT, "kedge/pack_v30/KEDGE_v30_run_sheet.pdf")
     if os.path.exists(guide):
-        # the only Helvetica allowed is the one inside the appended (unchanged) KEDGE run sheet
-        assert helv(guide) <= (helv(runsheet) if os.path.exists(runsheet) else 0)
+        assert helv(guide) == 0, "non-embedded Helvetica in the build guide"

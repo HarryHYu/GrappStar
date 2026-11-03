@@ -4,7 +4,8 @@ Board: ESP32-S3 DevKitC-1-N8. Pins come from `grappstar_base/pins.h` (firmware `
 wired and tested on real hardware yet: check every step with the multimeter.
 
 **The rule: battery unplugged whenever a wire or plug moves. Plug the battery in last, after the checks. Never pull a
-plug while the battery is in.**
+plug while the battery is in.** The one exception: lead #2's XT60 is the physical motor kill switch and may be pulled
+at any time (the build guide's motors-safe state).
 
 ## 1. Pin table
 

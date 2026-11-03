@@ -1,9 +1,9 @@
 # GrappStar base station protocol (contract C1)
 
-Firmware `base-1.3.0` (`firmware/base/grappstar_base`, the base-1.2 line), mechanism BASE_SPEC v1.2 (with the C1 sequence of section 10.1, D35) and `base/spec/params.py` 1.3.0 (as built into `params_gen.h`: drum, trips, tension model and the aim table) (drum
+Firmware `base-1.3.0` (`firmware/base/grappstar_base`), mechanism BASE_SPEC v1.2 (with the C1 sequence of section 10.1, D35) and `base/spec/params.py` 1.3.0 (as built into `params_gen.h`: drum, trips, tension model and the aim table) (drum
 order LAUNCH / NEUTRAL / WRAP / REEL with the WRAPPED park inside N_TO_R, decisions D16, D22 and D31; mission order
 D22). This file is the contract the Jetson implements against. Changes are additive where possible (new fields, new
-events, new error codes); section 10 lists everything the Jetson worker must change for base-1.2.
+events, new error codes); section 10 lists everything the Jetson worker must change for base-1.3.0.
 
 Nothing here has run on real hardware. Every reply and event below comes from the code and the PC simulation
 (`test/run_tests.sh`).
@@ -81,7 +81,7 @@ argument checks (`reel` `duty`, `until`, `max_n`) come after them.
 | `estop` | | like `stop`, then (when not faulted) the drum goes to NEUTRAL 41 if that is safe (section 6; with the wraps on it always holds): state `MODE`, a `MODE` event at the end, immediately if already there. If it is not safe the drum holds and a `MODE` event with `ok:false`, `err:"DRUM_HELD"` and `why` says why (exactly at the WRAPPED park: `MODE` `ok:true`). The estop move never turns the wiper (no centering jog). A failed estop move raises a drum fault | never refused |
 | `clear` | | clears a latched fault, back to `IDLE`. Not faulted: `ok`, no change | `BUSY` (still `SAFING`), `STILL_PRESENT` (the cause is still there: AS5600 not reading after `ANGLE_SENSOR`, drum code invalid after `DRUM_SENSOR`, battery under `vbat_low` after `BROWNOUT`) |
 | `mode` | `to`: `LAUNCH` \| `NEUTRAL` \| `REEL` | moves the drum to that park (LAUNCH 0, NEUTRAL 41, REEL 347 drum deg) and verifies the collar (section 5). Leaving LAUNCH starts with the centering jog. `mode REEL` only runs from N_TO_R (`drum_pos` `WRAPPED`, normally the 314 park after `wrap`): the drum turns forward into REEL with the fly-in. Already there (LAUNCH or NEUTRAL: the sector, the angle within 3 deg, and the collar confirmed, LAUNCH `SW_DOG_L` closed, NEUTRAL both open, and for NEUTRAL a trusted angle (an untrusted one runs the re-reference move of section 5); REEL: the REEL sector with `SW_DOG_R` closed, no angle check): `ok` and an immediate `MODE` event; otherwise the move runs and confirms the collar at the end. Ends with a `MODE` event. LAUNCH to NEUTRAL or back about 5 s, WRAPPED to REEL about 5 s | in this order: `BAD_ARG` (before the common refusals), then the common ones, `HOLDING`, `POSITION_UNKNOWN` (drum code invalid), `HAND_MODE` (`SW_N20` open: the N20 swung out of mesh), `ANGLE_SENSOR` (AS5600 not reading and the move needs the wiper: any `REEL` request (fly-in, so also `mode REEL` from NEUTRAL), or leaving LAUNCH or REEL (centering jog)), `WRAPS_ON` (wraps doubtful), `NOT_WRAPPED` (`REEL` asked below N_TO_R: use `wrap` first), `WRAPS_ON` (`LAUNCH` or `NEUTRAL` asked from WRAP, N_TO_R or REEL: use `unwrap`), `LAUNCH_BUSY` (leaving LAUNCH needs the launcher at rest, section 6), `BUSY` (wiper still running) |
-| `aim` | `deg`: rail pitch | turns the wiper BACKWARD (trip 3 A, D40) until the pitch (from the aim table) is within `aim_tol` of `deg`. If the aim is unknown (always after a shift into LAUNCH, after a power cut, after a decock) it first runs backward until `SW_RAIL_LOW` closes (home), then to the target: up to about 1.25 aim cycles (10 wiper turns per cycle), so allow 60 s. Up to 3 tries. If the aim's backward run has dragged the big gear back so `SW_GAP` opened (carriage still home), a slow forward gap run closes it before `AIMED` (section 6, gap run). `AIMED` event | `BAD_ARG` (no `deg`, before the common refusals), `HOLDING`, `NOT_IN_LAUNCH` (collar not confirmed in LAUNCH, or the drum not stopped within 6 deg of the LAUNCH park), `PHASE_UNKNOWN`, `NOT_AT_REST` (aim only with the launcher at rest: backward drive with the spring drawn would let it unwind), `OUT_OF_RANGE` (see `get pitch_range`), `AIM_UNKNOWN` (aim unknown and no `SW_RAIL_LOW` fitted). A target within a quarter of `aim_tol` of the table's lowest or highest pitch is moved a quarter of `aim_tol` inside, so the `pitch_range` ends are reachable. In index mode every `aim` re-homes on `SW_RAIL_LOW` first |
+| `aim` | `deg`: rail pitch | turns the wiper BACKWARD (trip 3 A, D40) until the pitch (from the aim table) is within `aim_tol` of `deg`. If the aim is unknown (always after a shift into LAUNCH, after a power cut, after a decock) it first runs backward until `SW_RAIL_LOW` closes (home), then to the target: up to about 1.25 aim cycles (10 wiper turns per cycle), so allow 60 s. Up to 3 tries. If the aim's backward run has dragged the big gear back so `SW_GAP` opened (carriage still home), a slow forward gap run closes it before `AIMED` (section 6, gap run). `AIMED` event | `BAD_ARG` (no `deg`, before the common refusals), `HOLDING`, `NOT_IN_LAUNCH` (collar not confirmed in LAUNCH, or the drum not stopped within 6 deg of the LAUNCH park), `PHASE_UNKNOWN`, `NOT_AT_REST` (aim only with the launcher at rest: backward drive with the spring drawn would let it unwind), `OUT_OF_RANGE` (only below `pitch_range` min minus `aim_tol` or above max plus `aim_tol`), `AIM_UNKNOWN` (aim unknown and no `SW_RAIL_LOW` fitted). A target within `aim_tol` of the table's lowest or highest pitch (6.01 / 47) is clamped to a quarter of `aim_tol` inside (systest F27): `aim 6` works. In index mode every `aim` re-homes on `SW_RAIL_LOW` first |
 | `cock` | | optional. Turns the wiper FORWARD (trip 6.5 A) from rest to the cocked angle (carriage drawn, short of the release tooth). `SW_HOME` must open at the first tooth. `COCKED` event. With the phase `UNKNOWN`, the carriage home and `SW_GAP` closed it first creeps until `SW_HOME` opens (that re-zeroes the angle), then cocks. Already cocked (`SW_HOME` open): `ok` and an immediate `COCKED` event. Aim first: see the note under section 8 | `NOT_IN_LAUNCH`, `NO_SENSOR` (no `SW_HOME` fitted; or no `SW_SEATED` while `require_seated`), `SWITCH_DISAGREE` (phase `COCKED` but `SW_HOME` closed, or `REST` but `SW_HOME` open, or `REST` with `SW_GAP` fitted and open), `LOADED_UNKNOWN` (carriage drawn with the angle unknown, or phase `UNKNOWN` with `SW_GAP` fitted and open), `NOT_SEATED` (`SW_SEATED` open while `require_seated`; checked after those phase checks, so an already cocked launcher still answers `COCKED`), then `LOADED_UNKNOWN` (`SW_HOME` closed while the last known angle says drawn: `decock` first) |
 | `arm` | | checks everything `fire` needs and replies `"token":<6-digit integer>,"valid_ms":3000`. With a gap that the gap run can fix (phase `REST`, `SW_HOME` closed, `SW_GAP` open, aimed, seated) it replies ok with the token and starts the gap run (state `AIM`); the token's 3 s then run from the moment the gap closes. A new `arm` replaces the old token. `mode`, `aim`, `cock`, `wrap`, `jog`, `decock`, `stop`, `estop` and any fault cancel it | `NOT_IN_LAUNCH`, `WRAPS_ON` (wraps not 0 or unknown), `NO_SENSOR` (no `SW_HOME`), `NOT_COCKED` (neither `COCKED` with `SW_HOME` open and `SW_GAP` open, nor `REST` with `SW_HOME` closed and `SW_GAP` closed), `NOT_AIMED` (not aimed since the last shift, shot or aim-train move, or the pitch is more than `aim_tol` off the target), then last `NOT_SEATED` or `NO_SENSOR` (the `SW_SEATED` check) |
 | `fire` | `token`: the integer from `arm` (a numeric string is accepted) | checks the token, then everything again, then runs the wiper FORWARD (trip 6.5 A up to the release, `trip_a` 5 A for the reset): from `COCKED` straight past the release tooth (about 1 s to `RESET`), from `REST` the whole cycle in one run (draw, release, reset: about 3 s). `FIRED` when `SW_HOME` closes (carriage released), `RESET` when the big gear is back in its gap with `SW_HOME` and `SW_GAP` closed. The token is single use; a wrong token cancels the arm. A `fire` sent during the gap run replies ok and fires when the gap closes; if the checks fail then, the event is `FIRED` `{"ok":false,"err":...}` | `BAD_ARG` (no `token`), `NOT_ARMED`, `TOKEN_EXPIRED` (over 3 s), `BAD_TOKEN`, then the common refusals and the `arm` refusals |
@@ -124,7 +124,10 @@ In REEL (capstan, wiper FORWARD):
   `why:"already at the limit"`): re-pulling a held line would ratchet it up. This happens even if the line has gone
   slack since (without a load cell the base cannot see slack while holding). To wind again the Jetson sends `stop`,
   then `reel` until `tension`: the new tow starts at the minimum duty and cuts within about 110 ms if the line is
-  still at the limit.
+  still at the limit. After a `stop` in REEL the held tension estimate is kept (sprag #2 keeps the line loaded; without
+  a load cell). After 3 tows in a row that held at the limit without the line ever going below 90 % of `max_n`, a new
+  `reel` until `tension` at the same or a lower `max_n` stays in HOLD (`already at the limit`); a higher `max_n`, a
+  pull that sees slack, or leaving REEL resets that count.
 - A tow that stalls at 80 % or more of `max_n` holds (`LIMIT` `why:"stalled at the limit"`) instead of a `STALL`
   fault.
 - Known limit: on a very stiff line the tow now starts slow; residual overshoot in the simulation was under 10 percent
@@ -166,7 +169,7 @@ Wiper jog (about 60 % duty, trip 3 A; forward in NEUTRAL, WRAP_PREP or WRAP is t
 | `BAD_ARG` | bad `motor` or `dir`, `ms` not over 0 (before the common refusals) |
 | `BUSY` | the drum is running |
 | `SHIFTING` | the drum is in L_TO_N or N_TO_R (dogs half engaged; this includes the WRAPPED park: use `tidy` there), or its code is invalid |
-| `SWITCH_DISAGREE` | both dog contacts closed |
+| `SWITCH_DISAGREE` | both dog contacts closed, or forward in LAUNCH with `SW_GAP` fitted and open (decock or the gap run first) |
 | `NOT_IN_LAUNCH` | drum in the LAUNCH sector, or `SW_DOG_L` closed anywhere, but not at the LAUNCH park with the collar confirmed |
 | `LAUNCH_BUSY` | the spring is known drawn but the drum code is not LAUNCH |
 | `WOULD_FIRE` | forward in LAUNCH with the phase `COCKED`, `UNKNOWN`, `FIRING` or `RESETTING` |
@@ -265,12 +268,12 @@ fields it does not know.
 | evt | fields | when |
 |---|---|---|
 | `HELLO` | `fw` (`base-1.3.0`), `reset` (`POWERON`, `BROWNOUT`, `PANIC`, `WATCHDOG`, `SOFTWARE`, `USB`, `EXTERNAL`, `DEEPSLEEP`, `OTHER`), `hx711`, `as5600`, `pwm` (false: a PWM pin failed and the wiper bridge stays disabled: do not run) | once at start-up. Treat it as a new session |
-| `BOOT` | `fw`, `record` (a saved state was found), `was_moving` (power was lost mid-motion), `drum_known`, `wraps_known`, `aim_known`, `phase`, `angle` (`AS5600`, `INDEX` or `NONE`: which angle source the base uses) | 60 ms after start-up, once the sensors settled (section 9) |
+| `BOOT` | `fw`, `record` (a saved state was found), `was_moving` (power was lost mid-motion), `drum_moved` (the drum code no longer matches the saved angle: turned by hand while off; the angle is then a guess), `drum_known`, `wraps_known`, `aim_known`, `phase`, `angle` (`AS5600`, `INDEX` or `NONE`: which angle source the base uses) | 60 ms after start-up, once the sensors settled (section 9) |
 | `MODE` | `ok`, `mode`, `drum_pos`; with `ok:false` also `err` (`DRUM_HELD`, or the fault code of a failed drum move after a fault) and `why` (text) | a drum move ended (`mode`; `unwrap` after its `UNWRAPPED`; `estop`; safing after a fault); also right after `estop` or a fault when the drum is already at its safe park; and as the reply event of `cal drum`. NOT sent after `wrap`. `err:"DRUM_HELD"`: the drum deliberately did not move to its safe park |
 | `AIMED` | `ok`, `pitch_deg` (null if unknown), `target_deg` (the target after the quarter-tolerance move at the table ends); `err` (`AIM_MISS` after 3 tries, `OUT_OF_RANGE`) when `ok:false` | aim ended |
 | `COCKED` | `ok`, `cock_deg` (wiper deg forward from rest) | cocked |
 | `FIRED` | `pitch_deg`, `cock_deg` (wiper deg of the release); or `ok:false` and `err` | the carriage was released (`SW_HOME` closed). `aimed` is cleared and `line_m` becomes null. `{"ok":false,"err":...}`: a `fire` queued behind a gap run failed its checks when the gap closed (nothing fired) |
-| `RESET` | `ok`; `how` (`decock` or `decock by travel`) after a decock; sometimes `why` | the launcher is back at rest after a shot or a decock. `ok:true`, `how:"decock"`, `why:"SW_HOME and SW_GAP closed: at rest"`: a decock with the phase `UNKNOWN` and both contacts closed (nothing moved, phase now `REST`). `ok:false`, `how:"decock"`, `why:"carriage home: nothing to decock, cock finds the angle"`: a decock with the carriage home and the phase `UNKNOWN` (nothing moved) |
+| `RESET` | `ok`; `how` (`decock` or `decock by travel`) after a decock; sometimes `why` | the launcher is back at rest after a shot or a decock. `ok:true`, `how:"decock"`, `why:"SW_HOME and SW_GAP closed: at rest"`: a decock with the phase `UNKNOWN` and both contacts closed (nothing moved, phase now `REST`). `ok:false`, `how:"decock"`, `why:"SW_GAP open: check the carriage by eye, then cal cock_rest force"`: phase `UNKNOWN`, carriage home but `SW_GAP` open (nothing moved: a lying `SW_HOME` could hide a drawn spring). `ok:false`, `why:"carriage home: nothing to decock, cock finds the angle"`: the same without a `SW_GAP` contact fitted |
 | `WRAPPED` | `ok`, `wraps` | `wrap` reached the WRAPPED park (314, collar NEUTRAL), or at once when the drum is already in N_TO_R or REEL. No `MODE` follows |
 | `TIDIED` | `ok` | `tidy` ran its time |
 | `UNWRAPPED` | `ok` | back at NEUTRAL with no wraps; always followed by `MODE`, also in the immediate case |
@@ -345,7 +348,7 @@ to the target sector". So a drum move started from an untrusted angle never runs
 A move that stays inside one sector while the angle is only a guess (boot after a cut, or the code back after 000,
 also at boot) first re-references on a real code edge: from NEUTRAL it runs up into WRAP_PREP and back, from N_TO_R
 it runs down to the WRAP edge (with the take-up) and back, then on to the park. A second overshoot is `DRUM_SENSOR`;
-no edge found is `DRUM_TIMEOUT` "no code edge found while re-referencing the drum".
+no edge found is `DRUM_TIMEOUT` "no code edge found (re-reference)".
 
 ## 6. Faults and safety
 
@@ -373,7 +376,9 @@ After a backward run in LAUNCH (an aim, a decock) the big gear can follow the sp
 open `SW_GAP` while the carriage stays home. The firmware then closes it with a slow FORWARD run (nudge duty, trip 3 A)
 until `SW_GAP` closes: at the end of an `aim` before `AIMED`, at the end of a decock before `RESET`, and when `arm`
 finds such a gap (see `arm`). Faults: `BAD_STATE` "SW_GAP did not close in the forward gap run" (after 150 deg or 8 s)
-and "carriage left home while closing the gear gap" (`SW_HOME` opened).
+and "carriage left home while closing the gear gap" (`SW_HOME` opened). A `stop`, `estop` or any fault during a gap run
+ends it: the phase becomes `UNKNOWN` (the gear is somewhere in its gap, not drawn, so no warning angle is kept), and a
+queued `fire` and the arm token are dropped. Recovery: `decock`, or `cal cock_rest` after checking by eye.
 
 ### Current and stall protection (decision D8)
 
@@ -401,11 +406,11 @@ drum, see below).
 | `OVERCURRENT` | wiper current over the state trip for 30 ms (`wiper over 6.5 A`: the trip in force, one decimal) |
 | `STALL` | `wiper stalled` (also sends a `STALL` event). Not in a tow at 80 % or more of `max_n`: that holds instead |
 | `DRUM_TIMEOUT` | `drum not turning (no code edge)`, `drum did not reach the target in time`, `drum did not come back to the target sector`, `dogs did not engage (collar contact open)` |
-| `DRUM_SENSOR` | `drum code 000 (wire off or bump missing)` or `drum code jumped over a sector` for 150 ms; `drum turned the wrong way (drum_sign?)` (N20 wires swapped); `target code came far too early`; `drum overshot the target sector` (a second time in one move); `drum code changed with the drum still` (the worm cannot be back-driven: a contact is lying, or the drum was turned by hand while the base runs; the new code must hold 300 ms with the N20 off, so a short single-bit dropout passes; one `clear` is enough once the drum is still); `N20 latched out during a drum move`; `SW_ARM moved outside the wrap window (drum code contact?)` (marks the wraps doubtful; not within 4 drum deg of the window ends while the drum runs); `SW_ARM counted n of 7 cup turns` (checked only for a whole pass: entered at one end and left at the other in one `wrap` or `unwrap` move; arrivals up to 4 drum deg past the window ends count too, and the check waits until the drum is 4 deg past the edge or stops); `drum code disagrees with the saved drum angle` (at boot) |
+| `DRUM_SENSOR` | `drum code 000 (wire off or bump missing)` or `drum code jumped over a sector` for 150 ms; `drum turned the wrong way (drum_sign?)` (N20 wires swapped); `target code came far too early`; `drum overshot the target sector` (a second time in one move); `drum code changed with the drum still` (the worm cannot be back-driven: a contact is lying, or the drum was turned by hand while the base runs; the new code must hold 300 ms with the N20 off, so a short single-bit dropout passes; one `clear` is enough once the drum is still); `N20 latched out during a drum move`; `SW_ARM moved outside the wrap window (drum code contact?)` (marks the wraps doubtful; not within 4 drum deg of the window ends while the drum runs); `SW_ARM counted n of 7 cup turns` (checked only for a whole pass: entered at one end and left at the other in one `wrap` or `unwrap` move; arrivals up to 4 drum deg past the window ends count too, and the check waits until the drum is 4 deg past the edge or stops) |
 | `ANGLE_SENSOR` | `AS5600 lost while the wiper runs` (10 bad reads in a row = 50 ms, or no magnet); `AS5600 counts against the drive (enc_sign?)`; `AS5600 glitching (over 20 bad samples a second)`; `AS5600 angle jumped while turning (travel lost)` (a lasting jump taken without counting it, while the wiper turns or during aim, cock, fire or decock); in index mode `SW_INDEX bump overdue (index cam or contact)` |
-| `SWITCH_DISAGREE` | `SW_DOG_L and SW_DOG_R both closed` (200 ms, or at the end of a move); `collar contact disagrees with the drum code` (during a drum move or a drum jog); `drum code contact chattering` (during a drum move, only when the chatter lasts over 1 s); `collar still engaged at NEUTRAL` (also at the WRAPPED park); `SW_HOME opened at the wrong angle`; `SW_HOME still closed past the first tooth`; `SW_HOME chattering during decock` |
+| `SWITCH_DISAGREE` | `SW_DOG_L and SW_DOG_R both closed` (200 ms, or at the end of a move); `collar contact disagrees with the drum code` (during a drum move or a drum jog); `drum code contact chattering` (during a drum move, only when the chatter lasts more than about 2 s: the chatter flag itself needs 1 s of quiet to clear); `collar still engaged at NEUTRAL` (also at the WRAPPED park); `SW_HOME opened at the wrong angle`; `SW_HOME still closed past the first tooth`; `SW_HOME chattering during decock` |
 | `BROWNOUT` | `battery sagged under load`: the low-passed battery reading under `vbat_low` for 300 ms while a motor runs |
-| `BAD_STATE` | the mechanism did not do what the angle says: `collar left LAUNCH during a launch action` (also during a wiper jog that started in LAUNCH; at once when the drum code says L_TO_N or beyond or `SW_DOG_R` closes; a dropout or chatter of `SW_DOG_L` or a code contact stops the wiper at once and faults only if it lasts 100 ms), `drum code away from LAUNCH but the spring is drawn`, `LAUNCH collar not confirmed with the spring possibly drawn`, `SW_RAIL_LOW never closed in an aim cycle`, `aim ran too far`, `carriage not drawn (SW_HOME still closed): rack or dog not engaged` (SW_HOME still closed 15 deg past the first-tooth window), `carriage slipped home while cocking`, `SW_HOME closed at the end of cocking`, `SW_HOME never opened (stuck closed?)`, `release at the wrong angle` (after `FIRED`), `no release seen (SW_HOME did not close)` (20 deg past the release window), `SW_HOME opened while resetting` (ignored for 0.5 s after the release, D45: the carriage rebounds off the PLA stop; after that open for 80 ms), `reset ended with the carriage off its stop` (the reset waits up to 1.5 s after the release for `SW_HOME` to close), `reset ended with the big gear out of its gap`, `decock: SW_HOME never closed`, `SW_GAP did not close in the forward gap run`, `carriage left home while closing the gear gap`, `decock: SW_GAP never closed`, and the time limits (`cocking took too long`, `cock recovery took too long`, `fire cycle took too long`, `decock by travel took too long`) |
+| `BAD_STATE` | the mechanism did not do what the angle says: `collar left LAUNCH during a launch action` (also during a wiper jog that started in LAUNCH; at once when the drum code says L_TO_N or beyond or `SW_DOG_R` closes; a dropout or chatter of `SW_DOG_L` or a code contact pauses the wiper at once and keeps its request: aim homing, fire and decock resume when the contact is back within 100 ms, else this fault), `drum code away from LAUNCH but the spring is drawn`, `LAUNCH collar not confirmed with the spring possibly drawn`, `SW_RAIL_LOW never closed in an aim cycle`, `aim ran too far`, `aim homing took too long` (60 s), `aim took too long` (120 s), `carriage not drawn (SW_HOME still closed): rack or dog not engaged` (SW_HOME still closed 15 deg past the first-tooth window), `carriage slipped home while cocking`, `SW_HOME closed at the end of cocking`, `SW_HOME never opened (stuck closed?)`, `release at the wrong angle` (after `FIRED`), `no release seen (SW_HOME did not close)` (20 deg past the release window), `SW_HOME opened while resetting` (ignored for 0.5 s after the release, D45: the carriage rebounds off the PLA stop; after that open for 80 ms), `reset ended with the carriage off its stop` (the reset waits up to 1.5 s after the release for `SW_HOME` to close), `reset ended with the big gear out of its gap`, `decock: SW_HOME never closed`, `SW_GAP did not close in the forward gap run`, `carriage left home while closing the gear gap`, `decock: SW_GAP never closed`, and the time limits (`cocking took too long`, `cock recovery took too long`, `fire cycle took too long`, `decock by travel took too long`) |
 | `DART_STUCK` | `final approach: no SW_SEATED in N s` (N = the time limit in force, section 2 `reel`) |
 
 A fault during any launch-train motion makes the shot phase `UNKNOWN` (the last angle is kept as the phase hint,
@@ -459,7 +464,7 @@ false unless the saved angle was trusted); the operator decides (section 9).
 | `aim_home` | | declare the aim train at its home (where `SW_RAIL_LOW` closes on the backward run) | `BUSY` (moving) |
 | `aim_forget` | | forget the aim: the next `aim` re-homes | `BUSY` |
 | `cock_rest` | `force` (optional, true: `SW_HOME` known broken, checked by eye) | declare the launcher at rest (carriage forward). For a new build, or after checking by eye. `force:true` trusts the operator completely: a wrong force on a drawn spring can FIRE on the next forward jog or `cock` | `BUSY`, `SWITCH_DISAGREE` (`SW_HOME` open, or `SW_GAP` fitted and open, and no `force`; `force:true` overrides both) |
-| `decock` (also the command `decock`) | `force` (optional) | lets a drawn carriage down without firing: runs the wiper BACKWARD slowly (47 %, trip 3 A, D40) so the spring unwinds under the worm, until `SW_HOME` has stayed closed for 15 deg more and `SW_GAP` is closed too. If the big gear dragged back past its gap (`SW_GAP` still open 20 deg later), the gap run closes it going forward before `RESET`. Turns the aim train too: the aim becomes unknown. `RESET` event with `how:"decock"`. Carriage already home: phase `REST` gives an immediate `RESET`; phase `UNKNOWN` with no sign of a draw replies `ok` and moves nothing: with `SW_GAP` closed too the phase becomes `REST` and it sends `RESET` with `ok:true`, `how:"decock"`, `why:"SW_HOME and SW_GAP closed: at rest"`; with `SW_GAP` open it sends `RESET` with `ok:false`, `how:"decock"`, `why:"carriage home: nothing to decock, cock finds the angle"` (then use `cock` or `cal cock_rest`). `SW_HOME` closed while the last known angle says drawn: refused with `SWITCH_DISAGREE`, unless `force:true`: then it runs back by the travel that angle needs and calls it rest (`how:"decock by travel"`) | common (`ANGLE_SENSOR` included), `NOT_IN_LAUNCH` (drum code not LAUNCH), `NO_SENSOR` (no `SW_HOME`), `SWITCH_DISAGREE` |
+| `decock` (also the command `decock`) | `force` (optional) | lets a drawn carriage down without firing: runs the wiper BACKWARD slowly (47 %, trip 3 A, D40) so the spring unwinds under the worm, until `SW_HOME` has stayed closed for 15 deg more and `SW_GAP` is closed too. If the big gear dragged back past its gap (`SW_GAP` still open 20 deg later), the gap run closes it going forward before `RESET`. Turns the aim train too: the aim becomes unknown. `RESET` event with `how:"decock"`. Carriage already home: phase `REST` gives an immediate `RESET`; phase `UNKNOWN` with no sign of a draw replies `ok` and moves nothing: with `SW_GAP` closed too the phase becomes `REST` and it sends `RESET` with `ok:true`, `how:"decock"`, `why:"SW_HOME and SW_GAP closed: at rest"`; with `SW_GAP` open it runs nothing forward and sends `RESET` with `ok:false`, `how:"decock"`, `why:"SW_GAP open: check the carriage by eye, then cal cock_rest force"` (a lying `SW_HOME` could hide a drawn spring; check by eye, then `cal cock_rest` with `force:true`); without a `SW_GAP` contact the why is "carriage home: nothing to decock, cock finds the angle". `SW_HOME` closed while the last known angle says drawn: refused with `SWITCH_DISAGREE`, unless `force:true`: then it runs back by the travel that angle needs and calls it rest (`how:"decock by travel"`) | common (`ANGLE_SENSOR` included), `NOT_IN_LAUNCH` (drum code not LAUNCH), `NO_SENSOR` (no `SW_HOME`), `SWITCH_DISAGREE` |
 | `drum` | | the drum code is absolute: this only reports, with a `MODE` event | `POSITION_UNKNOWN` |
 
 `set` / `get` keys. Saved in flash once everything has stopped (only when a value really changed), kept over a power cycle and a new upload, except where
@@ -491,8 +496,8 @@ the table says otherwise:
 
 The take-up trip (2.5 A) and the jog trip (3 A) are fixed in `config.h`, not `set` keys.
 
-The bench settings record changed in base-1.2 (version 2). A record written by base-1.0 is ignored, so after flashing
-base-1.2 every bench value is back at its default: enter them again (CALIBRATION.md).
+The bench settings record changed in base-1.2 (version 2, still used by base-1.3.0). A record written by base-1.0 is
+ignored, so after flashing base-1.3.0 over base-1.0 every bench value is back at its default: enter them again (CALIBRATION.md).
 
 ## 8. Typical mission (D22, the params.TIMELINE scenario of the PC tests)
 
@@ -543,8 +548,10 @@ says what is known:
 - Drum: the sector always comes from the drum code (absolute). The angle inside it comes from the record if the drum
   was not moving and the record agrees with the sector, else the park (LAUNCH, NEUTRAL, REEL) or the sector middle
   (N_TO_R: 321, past the 318 collar point, so `tidy` is refused until a move). A record that was not moving but
-  disagrees with the code (drum turned by hand while off, or a bad contact) raises `DRUM_SENSOR` "drum code disagrees
-  with the saved drum angle" (`clear` it once checked). `wraps` follows from the sector; inside WRAP it is unknown
+  disagrees with the code (drum turned by hand with the cradle swung out while off, or a bad contact) no longer faults
+  (systest F26): `BOOT` says `"drum_moved":true`, the sector comes from the code, the angle is a guess (the next move
+  re-references, section 5), and if the saved or the current position is WRAP_PREP or beyond the wraps are doubtful
+  (only `unwrap` until NEUTRAL). `wraps` follows from the sector; inside WRAP it is unknown
   (`wraps_known` false, `wraps` null) unless the angle was trusted. After a bad drum code (000 or a jump) the next
   sector or edge does not count as a trusted angle either. An interrupted move is repeated with `mode`,
   `wrap` or `unwrap`; `unwrap` is safe at any wrap count.
@@ -605,7 +612,7 @@ about 0.7 deg there is flagged as uncounted travel. A lasting jump that had to b
 (travel lost)" while the wiper turns; when idle (for example a hand-turned shaft) the base forgets the aim and turns a
 `COCKED` or `COCKING` phase into `UNKNOWN` with the drawn hint.
 
-## 10. Changes for the Jetson in base-1.2
+## 10. Changes for the Jetson in base-1.3.0
 
 What the Jetson worker must change (against the base-1.0 version of this file):
 
@@ -643,7 +650,7 @@ What the Jetson worker must change (against the base-1.0 version of this file):
     with an untrusted drum angle is refused with `POSITION_UNKNOWN`.
 14. `tension_offset_n` and `tow_trip_a` are saved in flash (`host_timeout_s` is not: 0 at every start-up;
     `require_seated` is back on at every start-up). The bench settings record is new
-    (version 2): after flashing base-1.2 all bench values are back at their defaults until set again.
+    (version 2): after flashing over base-1.0 all bench values are back at their defaults until set again.
 15. `status` has a new field `ev_drops` (events dropped because the USB queue was full).
 16. `mode` replies ok at once only when the collar is confirmed (LAUNCH: `SW_DOG_L`, REEL: `SW_DOG_R`, NEUTRAL:
     neither); otherwise it runs the move. `mode`, `wrap` (from LAUNCH) and `unwrap` that need the centering jog or
@@ -676,9 +683,8 @@ What the Jetson worker must change (against the base-1.0 version of this file):
 31. New `ANGLE_SENSOR` why "AS5600 angle jumped while turning (travel lost)". Index mode (D12): every `aim` re-homes,
     `aim_tol` at least 2.0 deg, a missed bump faults within 1.5 bump periods.
 32. `decock` with the phase `UNKNOWN` and `SW_HOME` and `SW_GAP` both closed: phase `REST` and
-    `RESET` `{"ok":true,"how":"decock","why":"SW_HOME and SW_GAP closed: at rest"}`. With `SW_GAP` open it is still
-    `RESET` `ok:false` "carriage home: nothing to decock, cock finds the angle".
-33. `aim` targets at the very ends of `pitch_range` are moved a quarter of `aim_tol` inside (reachable now).
+    `RESET` `{"ok":true,"how":"decock","why":"SW_HOME and SW_GAP closed: at rest"}`. With `SW_GAP` open see item 66.
+33. `aim` targets at the very ends of `pitch_range` are moved a quarter of `aim_tol` inside (reachable now; see item 64).
 34. D39 (now D43, below): the tow limit has a cap: `set limit_n` above it is `OUT_OF_RANGE`, `reel` `max_n` above it is
     `BAD_ARG` (it used to be capped at 110). `retrieve` and `reel` until `seated` run only in the NEUTRAL sector;
     anywhere else, the WRAPPED park included, `WRAPS_ON`. From LAUNCH send `mode NEUTRAL` first.
@@ -712,13 +718,13 @@ What the Jetson worker must change (against the base-1.0 version of this file):
 52. Boot: an idle power cycle keeps `COCKED` and the aim; `line_m` is null after a cut while the wiper turned in
     NEUTRAL or beyond; `wrap` in N_TO_R with an untrusted angle runs to the park before `WRAPPED`.
 53. A drum move inside one sector with an untrusted angle re-references on a real code edge first (new `DRUM_TIMEOUT`
-    why "no code edge found while re-referencing the drum"). `mode NEUTRAL` "already there" needs a trusted angle.
+    why "no code edge found (re-reference)"). `mode NEUTRAL` "already there" needs a trusted angle.
     `tidy` and `reel` in N_TO_R with an untrusted angle reply `NOT_IN_NEUTRAL` / `NOT_WRAPPED` (`wrap` first).
 54. `line_m` is null after a cut mid-fire too. `vbat_wired` is back on at every start-up. The AS5600 counts as lost
     after 10 bad reads (was 4).
 55. Fewer nuisance faults: SW_ARM arrivals just past the window ends count; "collar left LAUNCH" waits 100 ms on a
     contact dropout (at once when the code or `SW_DOG_R` says it left); "drum code changed with the drum still" needs
-    the new code for 300 ms; "drum code contact chattering" needs over 1 s; wider "carriage not drawn" and "no release
+    the new code for 300 ms; "drum code contact chattering" needs about 2 s; wider "carriage not drawn" and "no release
     seen" margins; "SW_HOME opened while resetting" needs 80 ms; brownout uses a low-passed reading; leaving REEL with
     the line taut (over 5 N) skips the centering jog.
 56. Tow: starts at the minimum duty and speeds up (about 0.5 s) only while the estimate is under 25 % of `max_n`;
@@ -733,4 +739,19 @@ What the Jetson worker must change (against the base-1.0 version of this file):
 59. D45: `SW_HOME` is ignored for 0.5 s after the release; the reset waits up to 1.5 s for the carriage.
 60. `line_m` drops by 0.88 m after a `wrap` that started below the WRAP window (systest F23).
 61. A tow re-sent while holding at 95 % or more of `max_n` stays in HOLD even if the line went slack. To wind again,
-    send `stop`, then `reel` until `tension` (systest F22).
+    send `stop`, then `reel` until `tension` (systest F22), unless the line stayed at the limit for 3 pulls in a row
+    (then it stays held at the same or a lower `max_n`).
+62. Firmware string `base-1.3.0`.
+63. A drum turned by hand while the board was off no longer faults at boot: `BOOT` has `"drum_moved":true`, the angle
+    is a guess, and near the wrap window the wraps are doubtful (only `unwrap`). The `DRUM_SENSOR` why "drum code
+    disagrees with the saved drum angle" is gone.
+64. `aim` targets within `aim_tol` of the table ends are clamped inside instead of refused (`aim 6` works).
+65. A `stop`, `estop` or fault during a gap run leaves the phase `UNKNOWN` and drops a queued `fire` and the token:
+    `decock` (or `cal cock_rest` after checking by eye).
+66. `decock` with the phase `UNKNOWN`, the carriage home and `SW_GAP` open runs nothing and sends `RESET` `ok:false`
+    "SW_GAP open: check the carriage by eye, then cal cock_rest force". A forward wiper jog in LAUNCH with `SW_GAP`
+    open is `SWITCH_DISAGREE`.
+67. A `SW_DOG_L` dropout pauses aim homing, fire and decock and they resume within 100 ms; new `BAD_STATE` whys
+    "aim homing took too long" (60 s) and "aim took too long" (120 s).
+68. Tow: the held estimate survives a `stop` in REEL; after 3 pulls at the limit a new tow at the same or lower
+    `max_n` stays held. `DRUM_TIMEOUT` why now "no code edge found (re-reference)". Code chatter needs about 2 s.

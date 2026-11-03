@@ -43,10 +43,10 @@ the real sketch in a host simulator, the web page in headless Chromium, the Jets
     of a step (worm already at its stop).
 11. **Brownout or watchdog reset boots in `FAULT`** with motors off, until `/stop`, `/auto`, `/release` or `/arm`.
 12. **Kick travel bookkeeping**: the kick's travel is counted from power-on (power on with the legs stowed), scaled by
-    rail voltage. It turns "stall near stowed" into `KICK_JAM`, a stall with no contact at 95 % of the swing in air
+    rail voltage. It turns "stall near stowed" into `KICK_JAM`, a stall with no contact at 90 % of the swing in air
     (not planted since the last release) into `NO_GROUND` (rounds 10 and 11, also on retries), and a release that
-    stalls before 60 % of the way back into `KICK_JAM`. Assumes the housing lands on flat ground before 90 to 95 % of
-    the swing in air (BENCH_TEST step 5 checks it).
+    stalls before 60 % of the way back into `KICK_JAM`. Assumes the housing lands on flat ground before 80 % of the
+    swing in air (BENCH_TEST step 5 checks it; the firmware itself measures and logs the swing).
 13. **Hold contract with the Jetson** (agreed with jetson, in `API.md`): repeat `/key` every 150 ms with `ms=350`,
     `stalled` is the normal end, always finish with `/stop?disarm=0`. The stall lock is per direction.
 14. **`/arm` is refused while `ANCHORED`** (legs out: release first).
@@ -80,8 +80,26 @@ TEST_OUTPUT_PLACEHOLDER
     could be called `NO_GROUND` (travel now voltage-scaled, geometry assumption documented and bench-checked); a falling
     auger current could hide a worm stall (rise now against the last 4 readings); alternating keys drove a jammed stop
     without limit (hold cap per motor). The fuzz test got a no-ground case and invariant 11.
+12. Two fresh reviewers (logic; sketch, HTTP, page, docs): `NO_GROUND` hung on a stopwatch number with a 5 % margin
+    (now the firmware measures and logs the swing, line at 90 %, ground rule 80 %); page STOP could fail silently (now
+    retried, "STOP NOT CONFIRMED" shown); Cmd/Ctrl/Alt key handling; a swapped INA219 read negative and was trusted
+    (now a sensor fault); IMU silent not in `/status` event; failed OTA restart gap; bench steps reordered with
+    "battery unplugged" before every repositioning, bench leads removed before the cells go in.
 - Coordinator R1-B review, the C2 cross-check with the jetson client, the clean-clone check (all README steps pass
   from a fresh clone; doc gaps fixed), the coordinator's `test_06_hold_and_stop` failure (firmware stall lock, fixed).
+
+## Coordinator reviews: triage
+
+| Review item | Status |
+|---|---|
+| r2_B2 #1 timeout landing freezes the log too late | fixed earlier (R1-B freeze cap at tLaunch - 2 s + 12 s, on launch, landing and stop; test "timeout landing") |
+| r2_B2 #2, #3, #8 (dart.py flightlog 409, CLI release) | jetson's files; dart.py now retries `/flightlog` on 409 |
+| r2_B2 #4 API says SEQ_TIMEOUT on a failed read at a step end | fixed earlier (API.md fault table) |
+| r2_B2 #5 releasing a refused key aborts a running sequence | fixed: key-release stop only stops manual motors (`keyRelease`), tests in test_logic and test_page |
+| r2_B2 #6 reversing gets round the hold cap | fixed in b9cf242: hold cap per motor |
+| r2_B2 #7 fuzz checks only flight log syntax | fixed: invariant 8 also requires a frozen flight log to hold the launch |
+| r3_N #5 WIRING A2 wire [15] vs [16] | fixed; every wire number re-checked against both lists, missing v29 numbers added, A7 checks DRV#2 GND and VM |
+| docs worker learner round (7 items) | fixed: hull closed for assembled steps, struct and array order named, test-model warning, one capacitor location, B10 open circuit, full paths |
 
 ## Requests to other workers
 

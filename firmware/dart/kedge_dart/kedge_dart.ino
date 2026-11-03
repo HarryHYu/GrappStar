@@ -46,7 +46,7 @@ kedge::Kedge K;
 volatile float railCache = -1;
 volatile bool linkLostFlag = false;
 volatile uint32_t loopBeat = 0; volatile bool otaActive = false;   // web loop heartbeat (watched by the safety task)
-uint32_t i2cBad = 0, lastBusFix = 0;                                // consecutive failed INA219 reads, last bus recovery
+uint32_t i2cBad = 0, i2cBadSince = 0, lastBusFix = 0;               // consecutive failed INA219 reads, since when, last bus recovery
 const char* resetName = "";
 String reply;
 SemaphoreHandle_t mtx;                                 // guards K, I2C and the log ring
@@ -83,11 +83,13 @@ bool inaRead(uint8_t reg, uint16_t& v) {
 bool inaInit() { return inaWrite(0x00, INA_CONFIG) && inaWrite(0x05, INA_CAL); }
 float hwCurrent() {                                  // tick task, mtx held: NAN = read failed, 9999 = overflow (trips)
   uint16_t bus, r;
-  if (!inaRead(0x02, bus) || !inaRead(0x04, r)) { railCache = -1; i2cBad++; return NAN; }
+  if (!inaRead(0x02, bus) || !inaRead(0x04, r)) { railCache = -1; if (!i2cBad++) i2cBadSince = millis(); return NAN; }
   i2cBad = 0;
   railCache = (bus >> 3) * 0.004f;
   if (bus & 1) return 9999;                          // OVF: shunt over its 3.2 A range, the current register is meaningless
-  return (int16_t)r / 10.0f;
+  float ma = (int16_t)r / 10.0f;
+  if (ma < -50.f) return NAN;                          // well below zero: VIN+ and VIN- swapped (stall and trip would never fire)
+  return ma;
 }
 float hwRail() { return railCache; }
 void inaCheckCal() {                                 // 10 Hz: an INA219 that browned out comes back uncalibrated (reads 0 mA)
@@ -152,7 +154,7 @@ void readImu(uint32_t now) {                          // tick task, mtx held
   imuNow = now;
   for (int i = 0; i < 3; i++) sh2_service();          // calls imuEvent for every report waiting (one transfer per call)
   bool fresh = (int32_t)(now - lastImuMs) < 1000;
-  if (fresh != K.imuOk) { K.imuOk = fresh; hwLog(fresh ? "BNO085 data back" : "BNO085 silent for 1 s"); }
+  if (fresh != K.imuOk) { K.imuOk = fresh; K.ev(fresh ? "BNO085 data back" : "BNO085 silent for 1 s"); }   // in /status event too
   if (fresh) K.imuSample(now, quat, accV);
   else if (now - lastImuRetry > 2000) { lastImuRetry = now; enableImuReports(); }   // short I2C writes, never a re-begin here
 }
@@ -203,7 +205,7 @@ void tickTask(void*) {                                 // 5 ms: IMU, flight, cur
     if (now - lastV >= 100) { lastV = now; inaCheckCal(); }   // also sets up an INA219 that was missing at boot
     if (linkLostFlag) { linkLostFlag = false; K.linkLost(now); }
     K.tick(now);
-    if (i2cBad >= 200 && !K.imuOk && now - lastBusFix > 3000) { lastBusFix = now; busRecover(); hwLog("I2C bus stuck: recovered (9 clocks, Wire restart)"); if (bnoPresent) enableImuReports(); }
+    if (i2cBad >= 3 && (int32_t)(now - i2cBadSince) > 1000 && !K.imuOk && now - lastBusFix > 3000) { lastBusFix = now; busRecover(); hwLog("I2C bus stuck: recovered (9 clocks, Wire restart)"); if (bnoPresent) enableImuReports(); }   // by time: a stuck tick is slow
     // web loop hung for 30 s (and nothing moving, no OTA): restart; motors coast through the reset
     if (!otaActive && (int32_t)(now - loopBeat) > 30000 && !K.running() && !K.seqRunning() && !K.armed && !K.flight.flying()) { hwLog("web loop stuck 30 s: restarting"); Serial.flush(); esp_restart(); }
     xSemaphoreGive(mtx);
@@ -250,8 +252,11 @@ fetch('/key?c='+encodeURIComponent(c)+'&ms=350&n='+n+'&p='+P+(keep?'&keep=1':'')
 setInterval(()=>{for(const c of held.values())send(c)},150);   // several keys can be held at once (e.g. 2 and 4)
 function hold(id,c){if(held.has(id))return;held.set(id,c);send(c)}
 function release(id){if(!held.has(id))return;held.delete(id);if(!held.size)send(' ',1)}   // keep=1: stop the motors, stay armed
+function stop(){held.clear();let t=0;const go=()=>{const ac=new AbortController();const to=setTimeout(()=>ac.abort(),1500);   // STOP: retried until the dart answers
+fetch('/key?c=%20&ms=0&n='+(++N)+'&p='+P,{signal:ac.signal}).then(r=>{if(!r.ok)throw 0;return r.text()}).then(add).catch(()=>{if(++t<5){add('STOP not confirmed, sending again\n');setTimeout(go,150)}else add('STOP NOT CONFIRMED: pull the power loop plug\n')}).finally(()=>clearTimeout(to))};go()}
 const RUN='1!2@3#4$';
-addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter')e.preventDefault();const c=e.key===' '?' ':e.key;if(RUN.includes(c)){e.preventDefault();hold(e.code,c)}else if(e.key==='Shift'||e.key==='Enter'){}else if(!e.repeat&&c.length===1){if(c===' ')held.clear();send(c)}});
+addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey){if(held.size){held.clear();send(' ',1)}return}   // Cmd/Ctrl/Alt: no keyup may follow (macOS)
+if(e.key===' '||e.key==='Enter')e.preventDefault();const c=e.key===' '?' ':e.key;if(RUN.includes(c)){e.preventDefault();hold(e.code,c)}else if(e.key==='Shift'||e.key==='Enter'){}else if(!e.repeat&&c.length===1){if(c===' ')stop();else send(c)}});
 addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter')e.preventDefault();if(held.has(e.code))release(e.code)});   // keyed by physical key: Shift order does not matter
 function lost(){if(held.size){held.clear();fetch('/key?c=%20&keep=1&ms=0&n='+(++N)+'&p='+P,{keepalive:true}).catch(()=>{})}}   // keepalive: survives the page closing
 addEventListener('blur',lost);addEventListener('pagehide',lost);document.addEventListener('visibilitychange',()=>{if(document.hidden)lost()});
@@ -259,7 +264,7 @@ addEventListener('contextmenu',e=>e.preventDefault());
 const L=[['1','deploy down'],['!','deploy up'],['2','kick out'],['@','kick back'],['3','drills in'],['#','drills out'],['4','foot in'],['$','foot out']];
 const B=document.getElementById('b');for(const [c,n] of L){const x=document.createElement('button');x.textContent=n;
 x.tabIndex=-1;const id='btn'+c;x.onpointerdown=()=>hold(id,c);x.onpointerup=()=>release(id);x.onpointerleave=()=>release(id);x.onpointercancel=()=>release(id);B.appendChild(x)}
-for(const [c,n] of [[' ','STOP'],['a','AUTO anchor'],['r','RELEASE'],['A','arm / disarm'],['i','current'],['b','attitude']]){const x=document.createElement('button');x.textContent=n;x.tabIndex=-1;x.onclick=()=>{if(c===' ')held.clear();send(c);x.blur()};B.appendChild(x)}
+for(const [c,n] of [[' ','STOP'],['a','AUTO anchor'],['r','RELEASE'],['A','arm / disarm'],['i','current'],['b','attitude']]){const x=document.createElement('button');x.textContent=n;x.tabIndex=-1;x.onclick=()=>{if(c===' ')stop();else send(c);x.blur()};B.appendChild(x)}
 setInterval(()=>fetch('/status').then(r=>r.json()).then(j=>{S.textContent=`${j.phase}${j.fault?' '+j.fault:''}   ${j.seq}\nrail ${j.rail_V} V  ${j.current_mA} mA (peak ${j.peak_mA})  roll ${j.roll}  pitch ${j.pitch}  ${j.accel_g} g\nINA219 ${j.ina_ok?'ok':'MISSING'}  BNO085 ${j.imu_ok?'ok':'MISSING'}  ${j.armed?'ARMED':''}  last: ${j.event}`}).catch(()=>{}),400);
 </script></body></html>)HTML";
 
@@ -341,8 +346,8 @@ void setup() {
     if (ms < 50) ms = 50;
     if (ms > (long)K.tu.wifiMaxRunMs) ms = K.tu.wifiMaxRunMs;
     if (!c.length()) { web.send(400, "text/plain", "missing c\n"); return; }
-    if ((c == " " || c == "s") && web.arg("keep") == "1") {   // key release on the page: stop motors, keep the arm
-      uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); K.stop(t, false); xSemaphoreGive(mtx); drainLog(); sendResult(nullptr); return;
+    if ((c == " " || c == "s") && web.arg("keep") == "1") {   // key release on the page: stop manual motors only
+      uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); K.keyRelease(t); xSemaphoreGive(mtx); drainLog(); sendResult(nullptr); return;
     }
     sendResult(handleKey(c[0], (uint32_t)ms));
   });
@@ -364,7 +369,7 @@ void setup() {
   web.begin();
   ArduinoOTA.setHostname("kedge");
   ArduinoOTA.onStart([]() { otaActive = true; uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); K.stop(t); xSemaphoreGive(mtx); });   // abort any sequence and disarm
-  ArduinoOTA.onError([](ota_error_t) { otaActive = false; });
+  ArduinoOTA.onError([](ota_error_t) { loopBeat = millis(); otaActive = false; });   // no restart in the gap before loop() beats again
   ArduinoOTA.begin();
   setupWatchdog();
   loopBeat = millis();

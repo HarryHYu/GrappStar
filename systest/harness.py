@@ -69,6 +69,8 @@ class BaseProc:
         args = [SHIM, "--link", self.link, "--ctl", str(self.port), "--state", self.state, "--speed", str(self.speed), "--hello-delay", str(self.hello_delay)]
         if fresh:
             args.append("--fresh")
+        if getattr(self, "index_cam", False):
+            args.append("--index-cam")
         self.proc = subprocess.Popen(args, stdout=self.log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
         t0 = time.time()
         while True:
@@ -206,6 +208,27 @@ class DartVideo:
         return np.clip(img.astype(np.int16) + n, 0, 255).astype(np.uint8)
 
 
+def trace_from_flightlog(fl: dict, pre_ms: int = 600, post_ms: int = 1500) -> Optional[str]:
+    """The rendered flight's own 50 Hz IMU samples (specific force m/s^2, quaternion) as a dart sim /sim/trace
+    (dur:ax:ay:az:roll:pitch per step), so the dart firmware records a flight log consistent with the video."""
+    import math
+    try:
+        smp, tl, td = fl["samples"], fl["t_launch_ms"], fl.get("t_land_ms") or fl["t_launch_ms"] + 1000
+    except (KeyError, TypeError):
+        return None
+    sel = [r for r in smp if tl - pre_ms <= r[0] <= td + post_ms]
+    if len(sel) < 10:
+        return None
+    steps = []
+    for i, r in enumerate(sel):
+        dur = (sel[i + 1][0] - r[0]) if i + 1 < len(sel) else 20
+        w, x, y, z = r[1:5]
+        roll = math.degrees(math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y)))
+        pitch = math.degrees(math.asin(max(-1.0, min(1.0, 2 * (w * y - z * x)))))
+        steps.append(f"{max(1, int(dur))}:{r[5]:.2f}:{r[6]:.2f}:{r[7]:.2f}:{roll:.1f}:{pitch:.1f}")
+    return ",".join(steps)
+
+
 class LoopSource:
     def __init__(self, fn, fps: float):
         self.fn, self.period, self.idx, self.t_next = fn, 1.0 / fps, 0, time.time()
@@ -264,6 +287,7 @@ class Rig:
     def start(self) -> None:
         sc = self.sc
         self.base = BaseProc(self.dir, self.speed, sc.hello_delay)
+        self.base.index_cam = sc.index_cam
         self.base.start(fresh=True)
         t0 = time.time()                       # wait for BOOT (60 ms): earlier cal/set lines are lost (FINDINGS F1)
         while time.time() - t0 < 8:          # setup() about 2.1 s, then BOOT 60 ms after the first tick
@@ -290,11 +314,12 @@ class Rig:
         if sc.slip_n:
             self.base.set(slipN=sc.slip_n)
         ps = dict(sc.plant_setup)
-        if "drumDeg" in ps:          # the drum is turned by hand with the board off, then it boots there
+        pre = {k: ps.pop(k) for k in ("drumDeg", "encMissing") if k in ps}
+        if pre:                      # set with the board off (drum turned by hand, magnet missing), then it boots
             time.sleep(2.0)                    # the bench set-up is saved first (nobody pulls the plug within 20 ms)
             self.base.ctl("power off")
             self.base.boot_t = self.base.get().get("t", 0)
-            self.base.set(drumDeg=ps.pop("drumDeg"))
+            self.base.set(**pre)
             self.base.ctl("power on")
             t0 = time.time()
             while time.time() - t0 < 8:
@@ -344,8 +369,8 @@ class Rig:
 
     def _on_evt(self, e: dict) -> None:
         e2 = {k: v for k, v in e.items() if not k.startswith("_")}
-        if e2.get("evt") == "AIMED":
-            self.aimed_plant = self.base.get()       # the rail's real pitch when the firmware says it is aimed
+        if e2.get("evt") == "AIMED" and not self.fired_seen:
+            self.aimed_plant = self.base.get()       # the rail's real pitch when the firmware says it is aimed (the shot aim)
         e2["_step"] = self.step()
         self.events.append(dict(e2, _wall=time.time()))
         self.note("evt", e=json.dumps({k: v for k, v in e2.items() if k != "_step"}))
@@ -382,7 +407,14 @@ class Rig:
                     last_shots = p["shots"]
                     pt = p.get("pitchTrue")
                     if isinstance(pt, (int, float)) and pt == pt:   # the dart flies from the rail's REAL pitch
-                        rr = self.app.bal.at_pitch(float(pt), self.app.cfg.mission.drag_n).get("range_m")
+                        dn = self.app.cfg.mission.drag_n
+                        rr = self.app.bal.at_pitch(float(pt), dn).get("range_m")
+                        vt = (self.video.truth or {}).get("range_m")
+                        if rr and vt and self.video.pitch is not None:
+                            # the dart lands where the rendered flight shows it (the Jetson analyses that video),
+                            # shifted by the table's range change between the rendered and the real pitch
+                            r0 = self.app.bal.at_pitch(float(self.video.pitch), dn).get("range_m") or rr
+                            rr = float(vt) + (rr - r0)
                         if rr:
                             self.base.set(lineOut=round(rr * 1.05 + 0.3, 3))
                             p["lineOut"] = round(rr * 1.05 + 0.3, 3)
@@ -393,7 +425,12 @@ class Rig:
                     self.video.t_fire = time.time()
                     fms = int(self.video.flight_s() * 1000)
                     try:
-                        self.dart.get(f"/sim/launch?push_ms=40&flight_ms={fms}&impact=1")
+                        tr = trace_from_flightlog((self.video.truth or {}).get("flightlog"))
+                        if tr:
+                            self.dart.get("/sim/trace?s=" + tr)
+                            self.note("info", msg=f"dart sim: rendered flight IMU trace ({tr.count(',') + 1} steps)")
+                        else:
+                            self.dart.get(f"/sim/launch?push_ms=40&flight_ms={fms}&impact=1")
                     except Exception as e:
                         self.note("info", msg=f"dart launch trace failed: {e}")
                     self.note("info", msg=f"plant released the carriage (shot {last_shots}), line out {p.get('lineOut')}")
@@ -657,7 +694,8 @@ class RefMission:
             pass
 
     def s_line(self):
-        self.tx("set", key="line_m", val=round(self.rig.sc.target[0] * 1.05 + 0.3, 2))
+        lo = self.rig.base.get().get("lineOut")          # an ideal landing estimate: the plant's own line out
+        self.tx("set", key="line_m", val=round(float(lo), 2) if lo else round(self.rig.sc.target[0] * 1.05 + 0.3, 2))
 
     def s_lowaim(self):
         """D45 (10.1 step 7b): after the landing, above 15 deg, aim 6 before the wrap."""
@@ -715,6 +753,7 @@ class RefMission:
         self.tokens.append("dart release")
         if st.get("phase") != "RELEASING":
             self.d.release()
+        self.tokens.append("stop")
         self.b.cmd("stop", timeout=2.0)
         self.d.wait_phase(("IDLE",), 40, want_seq="released")
 
@@ -883,7 +922,8 @@ class Scenario:
         self.slip_n = kw.get("slip_n", 0.0)
         self.stiff = kw.get("stiff", False)
         self.path_gain = kw.get("path_gain", 1.15)
-        self.start_mode = kw.get("start_mode")         # bench: drive the drum here before the mission (C1 mode)     # D43: capstan-side tension = 1.15 x dart-side (pulleys)          # strict line: 1 mm Dyneema stiffness (else the sim.h 40 N/m spring)             # the anchor (or a dragging dart) slides above this tension
+        self.start_mode = kw.get("start_mode")
+        self.index_cam = kw.get("index_cam", False)    # no-magnet build with SW_INDEX switched on (D12)         # bench: drive the drum here before the mission (C1 mode)     # D43: capstan-side tension = 1.15 x dart-side (pulleys)          # strict line: 1 mm Dyneema stiffness (else the sim.h 40 N/m spring)             # the anchor (or a dragging dart) slides above this tension
         self.c1_from_last_aim = kw.get("c1_from_last_aim", False)
         self.expect_faults = kw.get("expect_faults", False)
         self.d22 = kw.get("d22", False)
@@ -952,9 +992,10 @@ def c_steps(*names):
 
 def c_aim(rig, res):
     """The rail's REAL pitch (plant aim phase through the factory table) when AIMED came, against the solution."""
-    ev = [e for e in rig.events if e.get("evt") == "AIMED"]
+    fired_t = min([e["_wall"] for e in rig.events if e.get("evt") == "FIRED"] or [1e18])
+    ev = [e for e in rig.events if e.get("evt") == "AIMED" and e["_wall"] < fired_t]
     if not ev:
-        return False, "no AIMED"
+        return False, "no AIMED before the shot"
     e = ev[-1]
     sol = (res.get("solution") or {}).get("pitch_deg")
     pt = (getattr(rig, "aimed_plant", None) or {}).get("pitchTrue")
@@ -1465,6 +1506,9 @@ sc(Scenario("nogo_reshoot", "first landing on water (NO GO): retrieve the free d
 
 sc(Scenario("land_short", "the dart lands with only 0.3 m of slack on its side (short of the turn length): the wrap must "
             "tug the free dart, never jam against an anchored one", landing_slack=0.3, d22=True))
+
+sc(Scenario("no_magnet_index", "no AS5600 magnet, SW_INDEX switched on in config.h (D12 degraded mode): the whole mission on the "
+            "6-bump index cam", plant_setup={"encMissing": 1}, index_cam=True))
 
 sc(Scenario("hand_lever", "the drum was turned to NEUTRAL by the manual lever with the board off (the spec's hand fallback): "
             "the base must boot with the drum from its absolute code (PROTOCOL 7) and the mission must run",

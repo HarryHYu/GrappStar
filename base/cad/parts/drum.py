@@ -1122,9 +1122,8 @@ def meshes(P):
     # the segment gear only has teeth over the WRAP zone (meshcheck reads Mesh.when when present)
     out[1].when = lambda S: c["seg_start"] - 2 <= drum_theta(S, c) <= c["seg_start"] + K.seg_span(c) + 2
     import os
-    # cross-owner meshes: tools.meshcheck fails on a part that is not loaded (an --only drum run), so they are
-    # declared only when DRUM_REEL_MESHES=1 (whole-base runs) until meshcheck skips missing parts
-    if os.environ.get("DRUM_REEL_MESHES") == "1":
+    # cross-owner meshes with cad-reel (tools.meshcheck skips a mesh whose other part is not loaded)
+    if os.environ.get("DRUM_REEL_MESHES", "1") == "1":
         out += [
             Mesh("drum_coupler", "reel_bus", g["bus_m"], g["bus_z"], 46, face_a=g["bus_s"][1] - g["bus_s"][0],
                  frame_a=T(0, 0, g["bus_s"][0]), why="bus gear 50T to cad-reel c1 46T"),
@@ -1183,6 +1182,8 @@ def kin(P, S):
         w = float(S["wiper_deg"])
     elif K.mode(th, c) == "LAUNCH":
         w = main_angle(P, S)      # no wiper_deg (cad-launch's own sweeps): the engaged shaft turns with the sleeve
+    elif K.mode(th, c) == "REEL" and S.get("reel_deg") is not None:
+        w = float(S["reel_deg"])  # engaged in REEL: the shaft turns with the REEL gear
     else:
         w = 0.0
     x = K.collar_x(th, c)

@@ -148,14 +148,14 @@ def test_mount_pilots_under_base_holes(parts):
             assert _ov(fat, bracket) > 1.0, (x, y)
 
 
-def test_rail_low_deck_screw_path_open(parts):
-    """The housing's 4th deck screw goes in from above: shank and head paths through the bracket must be open."""
+def test_rail_low_deck_screw_pilot(parts):
+    """The housing's 4th deck screw comes from below: the bracket foot has a d2.6 pilot on its axis, 5 deep."""
     br = prim.place(parts["sensors_sw_rail_low_bracket"].solid, parts["sensors_sw_rail_low_bracket"].place)
     x, y = SE.swl_deck_screw(P)
     import launch_aim as LA
     zf = LA.A(P)["deck_z"] + 8.0
-    assert _ov(prim.cyl(1.5, 6.0, x=x, y=y, z=zf), br) < TOL
-    assert _ov(prim.cyl(2.9, 60.0, x=x, y=y, z=zf + 6.0), br) < TOL
+    assert _ov(prim.cyl(1.25, 4.9, x=x, y=y, z=zf), br) < TOL
+    assert _ov(prim.cyl(2.5, 4.9, x=x, y=y, z=zf), br) > 10.0
 
 
 def test_as5600_strip_clamps(parts):

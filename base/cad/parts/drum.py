@@ -538,8 +538,10 @@ def idler(g, c):
                           tip_short=tip_short_for(c["seg_m"], c["pin_z"], c["pin_x"])).translate((0, 0, g["seg"][0]))
     cam = shp_extrude(lock_cam_poly(g, c), g["lock"][0] + 0.3, g["lock"][1])
     shaft = cyl(g["idl_j"] / 2, s0, s1)
-    mid = cyl(g["idl_mid"] / 2, g["brI2"][1] + 0.1, g["brI"][0] - 0.1)       # shoulders on both posts: axial location
-    disc = cyl(8.0, g["lock"][0] - 0.01, g["lock"][0] + 0.35)                 # under the lock cam (prints without a ledge gap)
+    # d12 shoulders next to both posts (axial location); d10 under the segment gear and lock ring
+    mid = prim.union([cyl(g["idl_mid"] / 2, g["brI2"][1] + 0.1, g["seg"][0] - 0.5),
+                      cyl(g["idl_mid"] / 2, g["lock"][1] - 0.01, g["brI"][0] - 0.1)])
+    disc = shp_extrude(lock_cam_poly(g, c), g["seg"][1], g["lock"][0] + 0.35)   # cam starts right above the teeth
     sh = prim.union([pin, cam, shaft, mid, disc])
     flat = prim.box(g["idl_mid"] / 2 - 1.0, 10, -10, 10, g["idl_gear"][0], g["brI"][0] + 1.0)
     return sh - flat
@@ -949,7 +951,7 @@ def parts(P):
         notes="End plate closing the N20 cradle, 2 x M3 x 8")
     add("drum_fork", fork(g, c), "PLA", "drum_fork", color="fork",
         notes="Compliant shift fork: thin yoke is the spring (about 1.5 N/mm), follower pin in groove 1, contact tab")
-    add("drum_dog_post", dog_post(g, c), "PLA", "drum_base", color="pla",
+    add("drum_dog_post", dog_post(g, c), "PLA", "drum_base", R=tf.Rx(180), color="pla",
         notes="Dog contact post on the shift rail: SW_DOG_R and SW_DOG_L screws (collar fully engaged)")
     add("drum_rail", rail(g), "PPA-CF", "drum_base", R=tf.Ry(90), color="ppa",
         notes="Shift rail d10, pressed into brackets A and B")

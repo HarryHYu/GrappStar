@@ -30,7 +30,14 @@ Confirmations: base goes live, aim, cock, fire (twice), landing verdict, tow ass
 
 ## Verified
 
-(test output pasted at the end of the day, below)
+Last default run (`python -m pytest tests/ -q -o addopts='-m "not slow"'`, commit ce29e1a, Python 3.10, numpy 1.26):
+
+```
+397 passed, 31 deselected in 538.57s (0:08:58)
+```
+
+The slow suite (`-m slow`, both real firmwares: basesim with the real base_logic.h and fw-dart's kedge_sim) last
+ran green before the afternoon changes (28 passed); it was not re-run after the weekly limit stopped the day.
 
 ## Review rounds (fresh agents, all findings fixed, regression tests kept)
 
@@ -64,6 +71,20 @@ Confirmations: base goes live, aim, cock, fire (twice), landing verdict, tow ass
   tries `tidy`/`retrieve` with fallbacks. Align when PROTOCOL.md is updated.
 - Ballistics range is from the pivot ground point; the muzzle offset is inside the physics table. Camera range offset
   uses `FRAMEWORK.camera` x (150 mm).
+
+- Not done when the day stopped (all from relays or review round 6; none blocks a bench test):
+  - fw-dart 41e0d19 items: hold() should treat a "stalled" on the very first press as a lock (retry once, then raise);
+    wait_phase should use a time limit (about 10 s) for WiFi gaps instead of 15 counted misses; preflight prompt
+    below 6.6 V dart rail; reuse DartPoller's status instead of polling on top; wait for log_frozen before reading
+    /flightlog; new PODS_JAM fault text.
+  - The firmware answers the 8 s manual hold cap with "stalled" too, so hold() cannot tell it from an end stop;
+    a distinct refusal was requested from fw-dart.
+  - Mock base: "wraps unknown" and hand-mode holds, `max_s` validation on `reel`, PARAMS_VERSION; the mock models
+    params 1.3.2 (cap 55, k 13.1) and the `tension_cal` flag ahead of the merged firmware.
+  - wait_launcher_rest counts cock null (phase unknown) as at rest when IDLE; the firmware still refuses an unsafe
+    shift (LOADED_UNKNOWN), but the mission should treat null as not at rest.
+  - jetson-vision: pass `dart_hfov_deg` (100) and `dart_lens` ("pinhole", "fisheye" on the real rover) settings into
+    run_post_flight from mission.py and app.act_analyse.
 
 ## What Harry must measure or set up
 

@@ -59,12 +59,12 @@ A state without wiper_deg has the main shaft at 0. Without sleeve_deg the dog ri
 | 0.5..62 | `drum_coupler` PPA-CF | OD 40 to s 27.5, 45 deg cone to the index cam (r 26), 45 deg cone to r 28.5, bus gear. Stays under r 28.5 for s < 40 (cad-reel's wall top edge is 29.6 under the axis). Prints hub end down; tree support under the bus gear ring (r 28.5..39) |
 | | (coupler) shear pin | `drum_shear_pin` d4, radial at s 9, single shear at r 13 (about 4.9 N m) |
 | | (coupler) socket | hex 22 AF from s 28; the shaft end is bored d9.6 for the wiper thread end |
-| | (coupler) shaft retention | M3 x 16 tapped radially at s 30.5 (spot face on the cone) into a dimple on a hex flat |
+| | (coupler) shaft retention | none: a radial screw would sit inside the frame cheek, out of reach. The shaft is captured by the magnet cap against the launch sleeve end (2 mm play) and its hex shoulder against the sleeve flange (5 mm); the hex stays at least 29 mm in the socket |
 | 33.5..38.5 | SW_INDEX cam on the coupler | 6 bumps, base r 26, nub lift 2.5 |
 | 40..48 | bus gear | 50T m1.5, face 8, tip r 39 |
 | 48..50.3 | thrust step r 20 | the REEL gear bears on it |
-| 50..62 | REEL journal OD 32 | |
-| 62.05..63.5 | `drum_reel_washer` | OD 34.8, hex bore on the shaft, 2 x M3 x 6 at r 13.8 on the flat lines into the journal end (heads clear the flats) |
+| 50..62 | REEL journal OD 33 | 1.45 mm wall outside the washer screw holes |
+| 62.05..63.5 | `drum_reel_washer` | OD 35.1, hex bore on the shaft, 2 x M3 x 6 at r 13.8 on the flat lines into the journal end (heads clear the flats) |
 | 50.5..69.5 | `drum_gear_reel` m2 50T face 12, dogs 64.5..69.5 | bore steps to r 17.7 past the journal |
 | 28..106 | `drum_shaft` hex 22 AF | |
 | 106..198.5 | d12 spigot | through the launch sleeve bore (12.35) and the aim housing bushing (D23); flat from s 194.5 |
@@ -131,7 +131,8 @@ Wrap idler:
 - Axis at world (16.24, z -104.88).
 
 N20 cradle (on the bracket A ear):
-- pivot M3 at world (109.9, z -87.5);
+- pivot M3 at world (111.9, z -89.5); swing screw at world (88.4, z -64.5), 55 mm from the drum axis (clear of the
+  drum gear); ear r 20 round the N20;
 - swing M3 in an arc slot, 0..+15 deg only (+ swings the pinion out; it cannot be pushed into the drum gear);
 - the N20 shaft end below the pinion runs in a matching arc slot in the ear;
 - SW_N20: nut in the cradle bottom face, screw tip tapped in the ear.

@@ -33,9 +33,9 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh, run kedge/.venv/b
 - Parts: rc2_switch_base, rc2_switch_lever
 - Bought: M3x10 SHCS ISO 4762 + M3 jam nut, M3 nut, 2x M3x10 self tapping (pan or SHCS) through the lever root into the pad, at most M3x11.7, 2 wires, multimeter
 - Do: Nut into the pillar trap (drop of glue), lever clamped with 2 M3 self tappers, contact screw head down through the lever, set the head 0.9 mm above the nut (0.5 mm per turn), lock the jam nut. Meter on beep between screw and nut. Press the lever tip 100 times.
-- Pass: Measure the tip travel with calipers (depth rod from the lever tip down to the base top, note the reading at rest, press until it beeps, read again): beep within 0.9 to 1.5 mm of tip travel (design 1.24), silent when let go, tip stops on the hard stop without cracking, lever back flat, same after 100 presses.
+- Pass: Measure the tip travel with calipers (depth rod from the lever tip down to the base top, note the reading at rest, press until it beeps, read again): beep within 0.8 to 1.4 mm of tip travel (design 1.14), silent when let go, tip stops on the hard stop without cracking, lever back flat, same after 100 presses.
 - If it fails, change: cad/lib/switch.py contact_switch args travel, overtravel, t, b; STRAIN_LIMIT, NUT_PRESS (loose nut), SCREW_LENGTHS.
-- Made from: cad.lib.switch.contact_switch(lever_len=30) with the library defaults (travel 0.8, overtravel 0.6, beam t 1.4): gap 0.93, pretravel at the tip 1.24, close force 1.10 N, strain 0.0078
+- Made from: cad.lib.switch.contact_switch(lever_len=36) with the library defaults (travel 0.8, overtravel 0.6, beam t 1.6): gap 0.91, pretravel at the tip 1.14, close force 0.83 N, strain 0.0061
 
 ### 3. Dog clutch and compliant fork
 
@@ -89,7 +89,7 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh, run kedge/.venv/b
 - Do: Each pair on its plate (label = module), flat faces down; turn or rock through every tooth.
 - Pass: Smooth, no tight spot, a little play when rocked; m2.5: the tall tooth and the cut-down last tooth pass without catching, then the mesh lets go at the gap.
 - If it fails, change: fits.py GEAR_BACKLASH, GEAR_CENTER_EXTRA (m1.25, m1.5, m2); launch_gears.py center_distance extra, spur backlash, sector_gear_2d tall_factor (m2.5); _drum_kin.py pin_x (m1.25 pinion).
-- Made from: m1.25: gears.spur_gear z60 sector / z10 shift 0.4 tip_short 0.02 (drum.tip_short_for), cd 44.33 (drum.a_seg); m1.5: gears.spur_gear z42 sector / z24, cd 49.60; m2: gears.spur_gear z50 sector (drum GEOM out_m, out_z) / z22 (reel Z_CAPG), cd 72.10; m2.5: launch_gears.sector_gear_2d z40 (n_present 27, last 6 + gap) / launch_gears.spur z26, cd 82.60 (launch L); coupon face 6, fits GEAR_BACKLASH 0.15, GEAR_CENTER_EXTRA 0.1
+- Made from: m1.25: gears.spur_gear z60 sector / z10 shift 0.4 tip_short 0.08 (drum.tip_short_for), cd 44.33 (drum.a_seg); m1.5: gears.spur_gear z42 sector / z24, cd 49.60; m2: gears.spur_gear z50 sector (drum GEOM out_m, out_z) / z22 (reel Z_CAPG), cd 72.10; m2.5: launch_gears.sector_gear_2d z40 (n_present 27, last 6 + gap) / launch_gears.spur z26, cd 82.60 (launch L); coupon face 6, fits GEAR_BACKLASH 0.15, GEAR_CENTER_EXTRA 0.1
 
 ### 9. Shear-pin torque limiter
 
@@ -98,7 +98,7 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh, run kedge/.venv/b
 - Do: Hub slice into the outer slice, pin through both holes (head outside). Clamp the hub lever, hang the luggage scale on the outer lever hole (r 60 mm) at right angles and pull slowly until the pin shears. Break all 3 pins. Torque = kg x 9.81 x 0.06 N m.
 - Pass: Each pin shears cleanly between 5.9 and 10.2 kg on the scale (3.5 to 6 N m, drum_NOTES; design 4.9 N m = 8.3 kg), the 3 pins within 20 percent of each other, both slices undamaged (holes still round); a fresh pin goes in by hand.
 - If it fails, change: drum.py GEOM shear_d (torque goes with d squared), hub_od (radius), shear_s; fits for the hole: drum.coupler shear hole (shear_d + 0.1) and shear_pin (shear_d - 0.04). Spec D8 / D26 limit 5 N m.
-- Made from: drum.coupler_hub and drum.coupler (sliced s 3.5..16.5), drum.shear_pin: d4 PLA in single shear at r 13 (shear_s 13); 4.9 N m at 30 MPa
+- Made from: drum.coupler_hub and drum.coupler (sliced s 4..20), drum.shear_pin: d4 PLA in single shear at r 13 (shear_s 9); 4.9 N m at 30 MPa
 
 ## Parts
 
@@ -112,14 +112,14 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh, run kedge/.venv/b
 | rc1_output | PPA-CF | 1 | 47.8 x 48.0 x 8.0 | Output m1.5 z30 (launch_gears.spur, face 8) on a d8 pin |
 | rc1_crank | PPA-CF | 1 | 48.2 x 30.3 x 20.0 | Hand crank, keyed on the sleeve rib like the sun |
 | rc1_stop | PLA | 1 | 47.1 x 10.0 x 6.4 | Stop finger: rounded end at the as-built stop post position |
-| rc2_switch_base | PLA | 1 | 48.0 x 35.0 x 11.5 | contact_switch base: pad, nut pillar, hard stop, wire channel |
-| rc2_switch_lever | PLA | 1 | 44.0 x 5.0 x 8.0 | contact_switch lever, printed on its side (Y up) |
-| rc3_base | PLA | 1 | 40.0 x 91.5 x 45.0 | Base: d30 journal (REEL sleeve) and hex 22 AF (main shaft), rail hole (press) |
+| rc2_switch_base | PLA | 1 | 54.0 x 35.0 x 11.5 | contact_switch base: pad, nut pillar, hard stop, wire channel |
+| rc2_switch_lever | PLA | 1 | 50.0 x 5.0 x 8.0 | contact_switch lever, printed on its side (Y up) |
+| rc3_base | PLA | 1 | 40.0 x 91.5 x 80.7 | Base: d30 journal (REEL sleeve) and hex 22 AF (main shaft), rail hole (press) |
 | rc3_reel_face | PPA-CF | 1 | 61.6 x 54.0 x 9.5 | REEL gear dog face (drum.dog_teeth, phase 45) with a handle |
 | rc3_collar | PPA-CF | 1 | 60.0 x 60.0 x 18.0 | Collar lower half: drum.dog_teeth facing down, fork groove, hex bore |
-| rc3_fork | PLA | 1 | 80.9 x 100.8 x 40.0 | drum.fork as built: compliant yoke, rail sleeve, follower pin, M3 nut in the tab |
-| rc3_dog_post | PLA | 1 | 75.5 x 20.0 x 37.6 | drum.dog_post as built: SW_DOG_L / SW_DOG_R screw bosses, clamps on the rail |
-| rc3_rail | PPA-CF | 1 | 77.3 x 10.0 x 9.0 | drum.rail profile d10 with the print flat, cut to 77 long |
+| rc3_fork | PLA | 1 | 80.9 x 100.8 x 66.0 | drum.fork as built: compliant yoke, rail sleeve, follower pin, M3 nut in the tab |
+| rc3_dog_post | PLA | 1 | 20.0 x 75.5 x 41.7 | drum.dog_post as built: SW_DOG_L / SW_DOG_R screw bosses, clamps on the rail |
+| rc3_rail | PPA-CF | 1 | 93.2 x 10.0 x 9.0 | drum.rail profile d10 with the print flat, cut to 93 long |
 | rc4_hub_plate | PLA | 1 | 54.0 x 54.0 x 6.0 | clutch.slip_clutch hub_plate (library defaults) |
 | rc4_friction_disc | PLA | 1 | 57.0 x 55.0 x 3.0 | clutch.slip_clutch friction_disc (library defaults) |
 | rc4_pressure_plate | PLA | 1 | 54.0 x 54.0 x 3.5 | clutch.slip_clutch pressure_plate (library defaults) |
@@ -134,7 +134,7 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh, run kedge/.venv/b
 | rc7_bushing | PPA-CF | 1 | 32.0 x 32.0 x 16.0 | launch.sleeve_solid slice 16 long: spigot bore d12.35 |
 | rc8_m125_plate | PPA-CF | 1 | 62.3 x 18.0 x 11.0 | Pins at 44.33 |
 | rc8_m125_seg | PLA | 1 | 38.1 x 46.7 x 6.0 | drum segment gear m1.25 z60 sector |
-| rc8_m125_pinion | PPA-CF | 1 | 16.0 x 15.3 x 6.0 | drum wrap pinion m1.25 z10 x0.4 tip_short 0.02 |
+| rc8_m125_pinion | PPA-CF | 1 | 15.8 x 15.2 x 6.0 | drum wrap pinion m1.25 z10 x0.4 tip_short 0.08 |
 | rc8_m15_plate | PPA-CF | 1 | 67.6 x 18.0 x 11.0 | Pins at 49.60 |
 | rc8_m15_z42 | PPA-CF | 1 | 41.0 x 29.6 x 6.0 | drum wrap idler output m1.5 z42 sector |
 | rc8_m15_z24 | PPA-CF | 1 | 38.9 x 38.9 x 6.0 | reel cup ring gear m1.5 z24 |
@@ -144,6 +144,6 @@ To change a number: on the Mac, after bash kedge/setup_mac.sh, run kedge/.venv/b
 | rc8_m25_plate | PPA-CF | 1 | 100.6 x 18.0 x 11.0 | Pins at 82.60 |
 | rc8_m25_big | PPA-CF | 1 | 61.5 x 49.0 x 6.0 | launch big gear m2.5 z40 sector: teeth 21..26 (tall, relieved) |
 | rc8_m25_drive | PPA-CF | 1 | 42.5 x 44.0 x 6.0 | launch drive gear m2.5 z26 sector |
-| rc9_hub_lever | PPA-CF | 1 | 79.0 x 26.0 x 13.0 | drum.coupler_hub slice (shear pin hole) with a lever, string hole at r 60 |
-| rc9_outer_lever | PPA-CF | 1 | 86.0 x 40.0 x 7.0 | drum.coupler slice (shear pin hole) with a lever, string hole at r 60 |
-| rc9_shear_pin | PLA | 3 | 4.6 x 6.0 x 12.1 | drum.shear_pin as built (d4 PLA) |
+| rc9_hub_lever | PPA-CF | 1 | 79.0 x 26.0 x 16.0 | drum.coupler_hub slice (shear pin hole) with a lever, string hole at r 60 |
+| rc9_outer_lever | PPA-CF | 1 | 86.6 x 45.0 x 10.0 | drum.coupler slice (shear pin hole) with a lever, string hole at r 60 |
+| rc9_shear_pin | PLA | 3 | 12.1 x 5.0 x 4.1 | drum.shear_pin as built (d4 PLA), lying on its flat as drum prints it |

@@ -35,8 +35,8 @@ N20 to DRV8833 #3 AOUT1 / AOUT2, loose on the bench. Battery in.
 1. `jog` wiper dir 1 for 300 ms, then dir -1. Mark with a pen arrow on the motor which way the shaft turns for
    dir 1. That is FORWARD (the cock direction); CALIBRATION.md says how to make it match the base.
 2. `jog` drum dir 1 for 500 ms, then dir -1. Mark the shaft direction.
-3. Do the current-sense calibration now (MEASURE_LIST G1, CALIBRATION.md), then watch `amps` during a 2 s wiper
-   jog.
+3. Do the current-sense calibration now (MEASURE_LIST G1, CALIBRATION.md), then watch `amps` during a 1.5 s wiper
+   jog (jogs are capped at 1.5 s; sending the same jog again extends it).
 
 Pass: each motor turns both ways, stops when the jog ends, wiper free current about 1 to 3 A (A6 in
 MEASURE_LIST.md), no fault.

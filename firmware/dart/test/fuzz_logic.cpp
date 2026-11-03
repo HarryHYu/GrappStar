@@ -330,7 +330,7 @@ static int apiPhase() {                                // API.md "Phases" table,
   if (K.flight.flying()) return P_FLIGHT;
   if (K.seq == DONE) return P_ANCHORED;
   bool motor = false; for (int m = 0; m < NMOT; m++) if (K.dir[m]) motor = true;
-  if (K.landed && (K.seq == IDLE || K.seq == ABORTED) && !motor) return P_LANDED;   // a manual motor after a landing shows IDLE
+  if (K.landed && K.landedFresh && (K.seq == IDLE || K.seq == ABORTED) && !motor) return P_LANDED;   // a manual motor after a landing shows IDLE
   if (K.armed) return P_ARMED;
   return P_IDLE;
 }
@@ -778,7 +778,8 @@ static void scriptStep() {
     case S_PRE: HOLDS.clear(); SS = S_QUIET; SS_T0 = ET; RAND_MODE = M_NONE; NEXT_RAND = UINT32_MAX; NEXT_SCRIPT = ET + 2000; break;
     case S_QUIET:
       if ((K.running() || K.flight.flying()) && ET - SS_T0 < 20000) { NEXT_SCRIPT = ET + 500; break; }
-      if (R.p(0.5)) {
+      // the legs moved by hand before the shot: the dart refuses to arm ("legs out: release first"), so take the /auto path
+      if (R.p(0.5) || (K.kickKnown && K.kickPos > 0.1f * K.tu.kickSwingMs) || (K.deployKnown && K.deployPos > 0.1f * K.tu.podsTravelMs)) {
         if (K.armed) cmdKey(' ', 0, "/stop (disarm before a manual /auto, as a client must)");
         const char* r = cmdKey('a', 0, "/auto");
         if (r) { violate(10, std::string("auto refused: ") + r, "nominal: /auto refused at the start: %s", r); toTail(); break; }

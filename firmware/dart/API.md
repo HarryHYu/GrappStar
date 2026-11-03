@@ -17,7 +17,7 @@ and never poll `/status` faster than 5 Hz (held-key repeats every 150 ms are the
 Refusal reasons: `in flight`, `busy` (a sequence owns the motors), `already anchored, release first`,
 `no current sensor` (INA219 missing or lost), `no IMU` (BNO085 missing or silent), `stalled: release the key first`, `hold limit: release the key first`,
 `fault latched: send stop first`, `both directions held`, `sent before a stop`,
-`battery low`, `anchored: release first`, `unknown key`, and for `/flightlog` `busy (motors running)`, `armed (disarm first)`, `in flight`.
+`battery low`, `anchored: release first`, `legs out: release first`, `unknown key`, and for `/flightlog` `busy (motors running)`, `armed (disarm first)`, `in flight`.
 
 **One request at a time.** If a client opens a connection and never sends a request (a browser tab closing mid
 request can do this), the ESP32 web server waits up to 5 s for it before serving anyone else. Motors are not affected
@@ -201,8 +201,10 @@ spinning, drills finishing, `anchored`.
 Starts the release sequence, the anchor sequence backwards:
 
 1. drills unscrew alone for 3 s (`release: drills out`)
-2. pods lift while the drills keep unscrewing, until the pods stall on their stowed stop (after 6 s it carries on, event
-   `release: pods time limit (stowed or stalled), foot out`)
+2. pods lift while the drills keep unscrewing for 0.6 s more, then the pods go on alone until they stall on their
+   stowed stop (after 6 s it carries on, event `release: pods time limit (stowed or stalled), foot out`). Alone, the
+   pods are read every 5 ms, so a stall before they came 60 % of their estimated way back is `PODS_JAM` (fault), not
+   the stowed stop. A jam in the last 40 % is not caught (it looks like the stowed stop).
 3. foot unscrews alone for 1.5 s (`release: foot out`)
 4. kick swings back while the foot keeps unscrewing for 3 s more, until the kick stalls on its stowed stop (15 s limit)
 5. `seq` = `released`, phase `IDLE`, all motors off.
@@ -221,7 +223,8 @@ of `/auto` (pods up before the kick comes back), because the kick goes down firs
   records the flight log. Re-arming resets the flight detector, `landed`, and unfreezes the log.
 - `on=0`: disarm. Always accepted, also in FLIGHT (then no auto on landing; the log still freezes after landing).
 - Arming clears a latched fault. Key `A` toggles: when disarmed it arms with `auto=1`.
-- Refused while `ANCHORED` (`anchored: release first`; the legs are out), without the BNO085 (`no IMU`), with `auto=1` and no INA219, while a sequence runs, in `FLIGHT`, and with
+- Refused while `ANCHORED` (`anchored: release first`), and whenever the kick or the pods are known to be more than
+  10 % out (`legs out: release first`, for example after an aborted anchor or a hand move), without the BNO085 (`no IMU`), with `auto=1` and no INA219, while a sequence runs, in `FLIGHT`, and with
   `auto=1` when the rail is under 6.6 V at rest, including 0 V with the plug out (`battery low`; a log-only arm is
   still allowed).
 - An arm expires after 15 min without a launch (event `arm expired`).
@@ -280,7 +283,7 @@ Worked out in this priority order (the first that applies):
 | `ANCHORING` | anchor sequence running |
 | `FLIGHT` | launch detected, landing not yet decided |
 | `ANCHORED` | anchor sequence finished (`seq` `anchored`) |
-| `LANDED` | landed and no motor running (log-only arm, fallback landing, auto refused, or auto stopped by hand); a manual motor running after a landing shows `IDLE` |
+| `LANDED` | landed and no motor running (log-only arm, fallback landing, auto refused, or auto stopped by hand), until a release completes or a key moves a leg; a manual motor running after a landing shows `IDLE` |
 | `ARMED` | landing detector armed, waiting for the launch |
 | `IDLE` | none of the above (also after `/stop` aborts a sequence before any landing: `seq` `aborted`, no fault; after a landing it shows `LANDED`) |
 
@@ -300,6 +303,7 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 | `CURRENT_SENSOR` | 3 failed INA219 reads in a row during a sequence | all off; manual keys still work on timers |
 | `LOW_RAIL` | rail under 5.6 V (including a dead 0 V rail) for 0.5 s while a motor runs | all off |
 | `KICK_JAM` | kick stalled near stowed at the start of `/auto`, or part way out with no contact (jam in air), or in `/release` before its travel back covered 60 % of its travel out | all off |
+| `PODS_JAM` | in `/release` the pods stalled before they came 60 % of their estimated way back (jammed part way up) | all off |
 | `NO_GROUND` | in `/auto` the kick swung (almost) its whole travel and stalled at its own end stop without touching ground (dart on its back or side) | all off; `/release` stows the kick |
 | `BROWNOUT` | the dart rebooted from a brownout | booted with motors off |
 | `WATCHDOG` | the dart rebooted from a crash or the 2 s safety-task watchdog | booted with motors off |

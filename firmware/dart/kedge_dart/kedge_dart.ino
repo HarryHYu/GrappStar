@@ -269,7 +269,7 @@ setInterval(()=>fetch('/status').then(r=>r.json()).then(j=>{S.textContent=`${j.p
 </script></body></html>)HTML";
 
 void sendResult(const char* why) {
-  if (why) web.send(409, "text/plain", String("refused: ") + why + "\n" + reply);
+  if (why) { String head = String("refused: ") + why + "\n"; web.send(409, "text/plain", reply.startsWith(head) ? reply : head + reply); }   // the refusal once
   else web.send(200, "text/plain", reply);
 }
 

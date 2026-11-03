@@ -22,6 +22,7 @@ struct Plant {
   float railV = 7.6f;
   float drillPaused = 380, footPaused = 130;
   int open = -1;                               // this motor's wire is open (draws nothing)
+  double deployJamBackAt = -1;                  // going up, the pods jam here (stall current)
   double kickJamBackAt = -1;                    // coming back, the kick jams here and draws stall current   // auger current while the worm of the pair is paused (coupling)
   float motorMa(int m) const {
     int d = mdir[m]; if (!d || m == open) return 0;
@@ -36,6 +37,7 @@ struct Plant {
         return 60;
       case DEPLOY:
         if (d > 0) return deploy < deployEnd ? 30 : 185;
+        if (deployJamBackAt >= 0 && deploy <= deployJamBackAt) return 185;
         return deploy > 0 ? 30 : 185;
       case DRILLS:
         // digging once the augers are in the soil; slightly less while the pods pause (the auger keeps cutting)
@@ -51,7 +53,7 @@ struct Plant {
     if (kick < 0) kick = 0;
     if (kickNoStow && mdir[KICK] < 0 && kick > 2000) kick -= dt;   // jams half way back
     if (mdir[DEPLOY] > 0 && deploy < deployEnd) deploy += dt;
-    if (mdir[DEPLOY] < 0 && deploy > 0) deploy -= dt;
+    if (mdir[DEPLOY] < 0 && deploy > 0 && !(deployJamBackAt >= 0 && deploy <= deployJamBackAt)) deploy -= dt;
     if (deploy < 0) deploy = 0;
   }
 };
@@ -282,8 +284,10 @@ int main() {
     CHECK(j.rfind("{\"hz\":50,", 0) == 0 && j.size() > 2 && j.substr(j.size() - 2) == "]}" && j.find("CHUNK_OVERFLOW") == std::string::npos, "flightlog JSON shape, no chunk overflow");
     CHECK(j.find("\"landing\":\"impact\"") != std::string::npos, "flightlog says how it landed");
     int before = K.log.head; run(2000); CHECK(K.log.head == before, "frozen log ignores new samples");
-    if (K.seq == DONE) { CHECK(K.arm(true, false, NOW) != nullptr, "arming while ANCHORED is refused (release first)"); K.key('!', 100, NOW); run(300); }
-    CHECK(K.arm(true, false, NOW) == nullptr, "re-arm after the legs moved");
+    if (K.seq == DONE) { CHECK(K.arm(true, false, NOW) != nullptr, "arming while ANCHORED is refused (release first)"); K.key('!', 100, NOW); run(300);
+      CHECK(K.arm(true, false, NOW) != nullptr, "...and still refused after a key tap with the legs out ('legs out: release first')");
+      K.startRelease(NOW); run(40000); }
+    CHECK(K.arm(true, false, NOW) == nullptr, "re-arm after the release");
     CHECK(!K.log.frozen, "re-arming unfreezes the log"); }
   { fresh(); ACC = [](uint32_t t) { return (t > 2000 && t < 2015) ? 4.5f : 1.0f; }; K.arm(true, true, NOW); run(4000);
     CHECK(ph() == "ARMED", "a 15 ms knock over 4 g is not a launch"); }
@@ -592,6 +596,28 @@ int main() {
   { fresh(); for (int i = 0; i < 25; i++) { K.key('@', 350, NOW); run(150); } run(700);   // '@' hold ends stalled, then '2' and '@' again within the cap
     const char* e = nullptr; for (int i = 0; i < 60 && !e; i++) { e = K.key(i < 30 ? '2' : '@', 350, NOW); run(150); }
     CHECK(e && std::string(e).rfind("hold limit", 0) == 0, "the 8 s hold cap refuses with 'hold limit', not 'stalled' (a client can tell it from an end stop)"); }
+
+  // review round 13 (whole logic)
+  for (double at : {1300.0, 1000.0, 700.0}) {   // pods jam on the way up before 60 % of the way (the last 40 % is a documented limit)
+    fresh(); K.startAuto(NOW); run(20000); P.deployJamBackAt = at; K.startRelease(NOW); run(30000);
+    char m[120]; snprintf(m, sizeof m, "pods jam at %.0f of 1400 on the way up: PODS_JAM, not 'legs stowed'", at);
+    CHECK(std::string(faultName(K.fault)) == "PODS_JAM" && K.seq != RELEASED && allOff(), m); }
+  { fresh(); K.startAuto(NOW); run(20000); K.startRelease(NOW); run(30000); CHECK(K.seq == RELEASED && K.fault == F_NONE, "a normal release still ends released (no false PODS_JAM)"); }
+  for (double at : {1600.0, 1700.0}) {   // kick jams coming back at 37 to 40 % of the real return
+    fresh(); K.startAuto(NOW); run(20000); P.kickJamBackAt = 4300 - at; K.startRelease(NOW); run(30000);
+    char m[120]; snprintf(m, sizeof m, "kick jams %.0f ms into its 4300 ms return: KICK_JAM (travel counted only up to a reading under the line)", at);
+    CHECK(std::string(faultName(K.fault)) == "KICK_JAM" && K.seq != RELEASED, m); }
+  { fresh(); K.startAuto(NOW); while (K.seq != D_DEPLOY) run(5); run(1500); K.stop(NOW); run(700);
+    CHECK(K.arm(true, true, NOW) != nullptr && !K.armed, "an anchor stopped with the pods down: arm refused ('legs out: release first')"); }
+  { fresh(); uint32_t t0 = 2000; ACC = [&](uint32_t t) { return flightTrace(t, t0); }; K.arm(true, false, NOW); run(8000); K.startAuto(NOW); run(20000);
+    K.startRelease(NOW); run(30000); ACC = [](uint32_t) { return 1.0f; }; K.key('1', 100, NOW); run(300);
+    CHECK(ph() == "IDLE", "after a release, a key tap does not bring back phase LANDED"); }
+  { fresh(); K.startAuto(NOW); for (int i = 0; i < 200 && K.seqRunning(); i++) { K.key('$', 350, NOW); run(150); }
+    run(20000); K.stop(NOW, false); const char* e = nullptr; for (int i = 0; i < 3; i++) { e = K.key('$', 350, NOW); run(150); }
+    CHECK(e == nullptr || std::string(e).rfind("hold limit", 0) != 0, "a key held through a sequence starts a fresh hold afterwards (no instant 'hold limit')"); }
+  { fresh(); K.key('@', 350, NOW); run(500); NOW += 25u * 24 * 3600 * 1000; run(100); K.stop(NOW); run(700); K.stop(NOW, false); P.kick = 2000;
+    run(10); const char* e = K.key('@', 350, NOW); run(150);
+    CHECK(e == nullptr, "a key pressed 25 days ago does not lock that key at the next stop (old presses expire)"); }
 
   // coordinator review r2_B2 #5
   { fresh(); K.startAuto(NOW); run(500); CHECK(K.key('3', 350, NOW) != nullptr, "a run key during ANCHORING is refused (busy)");

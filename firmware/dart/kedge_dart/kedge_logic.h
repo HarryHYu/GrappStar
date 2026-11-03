@@ -66,6 +66,8 @@ struct Tuning {
   float armMinV = 6.6f;                                 // refuse to arm a flat battery (3.3 V per cell at rest)
   uint32_t armMaxMs = 15UL * 60 * 1000;                 // an arm expires after 15 min without a launch
   uint32_t podLeadMs = 300;                             // pods steps start with the deploy worm alone (open wire, at the stop)
+  uint32_t podsWithDrillsMs = 600;                      // release: the drills turn with the lifting pods this long, then the pods go on alone
+  uint32_t podsTravelMs = 1400;                         // pods stowed to down stop at full duty and refV (BENCH_TEST step 3)
   float noGroundFrac = 0.90f;                           // NO_GROUND: kick at this share of kickSwingMs (its swing in air) with no contact
   uint32_t kickSwingMs = 4300;                          // full kick swing at full duty and refV (BENCH_TEST step 5): travel bookkeeping
   uint32_t manualMaxMs = 8000;                          // a manual motor (held key or repeats) never runs longer
@@ -74,10 +76,10 @@ struct Tuning {
 };
 
 enum Fault { F_NONE = 0, F_OVERCURRENT, F_KICK_TIMEOUT, F_SEQ_TIMEOUT, F_DRILL_JAM, F_FOOT_JAM, F_CURRENT_SENSOR, F_LOW_RAIL,
-             F_BROWNOUT, F_WATCHDOG, F_NO_CURRENT, F_KICK_JAM, F_NO_GROUND, F_NFAULT };
+             F_BROWNOUT, F_WATCHDOG, F_NO_CURRENT, F_KICK_JAM, F_NO_GROUND, F_PODS_JAM, F_NFAULT };
 static inline const char* faultName(int f) {
   static const char* n[] = {"", "OVERCURRENT", "KICK_TIMEOUT", "SEQ_TIMEOUT", "DRILL_JAM", "FOOT_JAM", "CURRENT_SENSOR",
-                            "LOW_RAIL", "BROWNOUT", "WATCHDOG", "NO_CURRENT", "KICK_JAM", "NO_GROUND"};
+                            "LOW_RAIL", "BROWNOUT", "WATCHDOG", "NO_CURRENT", "KICK_JAM", "NO_GROUND", "PODS_JAM"};
   return (f > 0 && f < F_NFAULT) ? n[f] : "";
 }
 
@@ -247,7 +249,7 @@ struct Kedge {
   int seq = IDLE; uint32_t seqT0 = 0, condT = 0, motT0[NMOT] = {0, 0, 0, 0}, seqStart = 0;
   float lastMa = 0, peakMa = 0, fMa = 0; char lastEvent[64] = "boot";   // fMa: filtered current for stall decisions
   int fault = F_NONE;
-  bool armed = false, autoOnLanding = true, landed = false; uint32_t armT = 0;
+  bool armed = false, autoOnLanding = true, landed = false, landedFresh = false; uint32_t armT = 0;
   bool podLead = false; float kickPos = 0; uint32_t lastTickT = 0; bool tickSeen = false;   // kickPos: kick travel estimate, ms at full duty from stowed
   float kickSwing0 = 0;                                 // kickPos when this K_SWING started
   float kickRaw = 0;                                    // kick travel like kickPos but not clamped to kickSwingMs
@@ -257,6 +259,10 @@ struct Kedge {
   bool kickPlanted = false;                             // an anchor got past the kick swing since the last release (kick is on the ground)
   bool kickKnown = true;                                // kickPos is trusted (power-on with the legs stowed, or after a release)
   bool kickOverPair = false;                            // last pair reading said the kick (as the paused worm) is at stall
+  bool deployOverPair = false;                          // same for the pods worm
+  float deployPos = 0, deployOutOk = 0; bool deployKnown = true;         // pods travel estimate, ms at full duty from stowed (like kickPos)
+  float deployBackStart = 0, deployBackDone = 0, deployBackOk = 0, kickBackOk = 0;   // release: travel back, last counted while not at stall
+  bool freshHold[NMOT] = {false, false, false, false};  // presses were refused (busy, flight, fault): the next accepted one starts a new hold
   float kickBackStart = 0, kickBackDone = 0;            // release: estimated travel out at the start, real travel counted back
   bool footStalled = false, drillsStalled = false;      // an auger stopped for a stall is not re-driven in the next step
   uint32_t warn = 0;                                    // warnings of the last sequence (bits, see warnNames)
@@ -283,13 +289,13 @@ struct Kedge {
     if (anchoring()) return P_ANCHORING;
     if (flight.flying()) return P_FLIGHT;
     if (seq == DONE) return P_ANCHORED;
-    if (landed && (seq == IDLE || seq == ABORTED) && !running()) return P_LANDED;
+    if (landed && landedFresh && (seq == IDLE || seq == ABORTED) && !running()) return P_LANDED;   // not after a release or a hand move
     if (armed) return P_ARMED;
     return P_IDLE;
   }
 
-  enum { W_FOOT_STALL = 1, W_DRILL_STALL = 2, W_PLANT_LIMIT = 4, W_PODS_LIMIT = 8, W_KICK_ALREADY = 16, W_PODS_ALREADY = 32 };
-  static const char* warnName(int b) { static const char* n[] = {"foot_stalled", "drills_stalled", "kick_plant_time_limit", "pods_time_limit", "kick_already_down", "pods_already_at_stop"}; return n[b]; }
+  enum { W_FOOT_STALL = 1, W_DRILL_STALL = 2, W_PLANT_LIMIT = 4, W_PODS_LIMIT = 8, W_KICK_ALREADY = 16 };
+  static const char* warnName(int b) { static const char* n[] = {"foot_stalled", "drills_stalled", "kick_plant_time_limit", "pods_time_limit", "kick_already_down"}; return n[b]; }
   int duty() const { return seqRunning() ? 255 : spd; }   // sequences always run at full duty (stall currents are for 255)
   static float fin(float v) { return v == v && v < 1e9f && v > -1e9f ? v : 0.f; }
   void ev(const char* s) { strncpy(lastEvent, s, sizeof(lastEvent) - 1); lastEvent[sizeof(lastEvent) - 1] = 0; if (io.log) io.log(s); }
@@ -339,6 +345,9 @@ struct Kedge {
         hitsRise = ((hitsRise << 1) | (hitR ? 1 : 0)) & 0xF;   // one noisy miss does not reset it
         if (__builtin_popcount(hitsRise) >= 3 || __builtin_popcount(hitsRise & 7) >= 2) hitsMain = 2;   // 3 of 4, or 2 of the last 3 (noisy stall just over the line)
         if (main == KICK) kickOverPair = bothMa - soloMa > mainLim;
+        if (main == DEPLOY) deployOverPair = bothMa - soloMa > mainLim;
+        if (main == KICK && !kickOverPair) kickBackOk = kickBackDone;       // release: travel counted up to a reading under the line
+        if (main == DEPLOY && !deployOverPair) { deployBackOk = deployBackDone; deployOutOk = deployPos; }
         // a worm already at its stop when the step starts never shows a rise: 3 of the first 4 readings of the step
         // over the line also count (one noisy reading does not spoil it). Only at the start: a stop reached later
         // shows a rise, and an auger whose current drops during the pause could otherwise fake a stall
@@ -360,7 +369,7 @@ struct Kedge {
     return r;
   }
   void endPause() { if (paused && pz >= 0 && dir[pz]) io.setMotor(pz, dir[pz], duty()); paused = false; pz = -1; bothMa = -1; }
-  void pairReset(uint32_t now) { endPause(); pulseT = now; readDone = false; hitsMain = hitsOther = hitsNoRise = hitsRise = nReads = underRun = 0; riseSeen = false; soloMa = -1; bothMin = -1; diffMin = -1; for (float& b : bothRing) b = -1; condT = 0; kickOverPair = false; }
+  void pairReset(uint32_t now) { endPause(); pulseT = now; readDone = false; hitsMain = hitsOther = hitsNoRise = hitsRise = nReads = underRun = 0; riseSeen = false; soloMa = -1; bothMin = -1; diffMin = -1; for (float& b : bothRing) b = -1; condT = 0; kickOverPair = false; deployOverPair = false; }
   // stall of main (and of other while it runs): pair check while both run, plain threshold once other has stopped
   int stallPair(int main, int other, uint32_t now) {
     if (dir[other] && dir[main]) { needRise = true; return pairCheck(main, other, stallLim(main), stallLim(other), now); }
@@ -383,7 +392,7 @@ struct Kedge {
   // kickStowed: true after a power-on (legs stowed, as README asks); false after a brownout, crash, OTA or software
   // reset, when the legs may be out (kick jam checks then wait for the next completed release)
   void boot(int resetFault, uint32_t now, bool kickStowed = true) {
-    stopAll(now); kickKnown = kickStowed; kickPos = 0; kickRaw = 0; kickPlanted = false; noGroundSeen = false;
+    stopAll(now); kickKnown = kickStowed; kickPos = 0; kickRaw = 0; kickPlanted = false; noGroundSeen = false; deployKnown = kickStowed; deployPos = 0;
     if (resetFault) { fault = resetFault; char b[64]; snprintf(b, sizeof b, "boot after %s reset, motors off", faultName(resetFault)); ev(b); }
     else ev("boot, motors off");
   }
@@ -405,7 +414,7 @@ struct Kedge {
     stopAll(now);
     if (wasSeq) seq = ABORTED;
     if (disarm) {
-      if (flight.flying()) { flight.land(now, "stop"); landed = true; uint32_t fr = now + 3000, cap = freezeCap(); log.scheduleFreeze((int32_t)(fr - cap) > 0 ? cap : fr); }
+      if (flight.flying()) { flight.land(now, "stop"); landed = true; landedFresh = true; uint32_t fr = now + 3000, cap = freezeCap(); log.scheduleFreeze((int32_t)(fr - cap) > 0 ? cap : fr); }
       armed = false;
     }
     fault = F_NONE;
@@ -437,11 +446,12 @@ struct Kedge {
     if (seqRunning()) return "busy";
     if (flight.flying()) return "in flight";
     if (!imuOk) return "no IMU";
-    if (seq == DONE) return "anchored: release first";   // legs out: arming would forget that
+    if (seq == DONE) return "anchored: release first";
+    if ((kickKnown && kickPos > 0.1f * tu.kickSwingMs) || (deployKnown && deployPos > 0.1f * tu.podsTravelMs)) return "legs out: release first";   // legs out: arming would forget that
     if (withAuto && !inaOk) return "no current sensor";
     if (withAuto && !running() && railV >= 0.f && railV < tu.armMinV) return "battery low";   // includes 0 V (plug out); log-only arm still allowed
     // the moment of arming counts as still, so a shot right after the arm is still seen
-    flight.reset(); flight.armedAt(now); armT = now; log.unfreeze(); landed = false; peakG = 0; armed = true; autoOnLanding = withAuto; fault = F_NONE;
+    flight.reset(); flight.armedAt(now); armT = now; log.unfreeze(); landed = false; landedFresh = false; peakG = 0; armed = true; autoOnLanding = withAuto; fault = F_NONE;
     if (seq == ABORTED || seq == RELEASED) seq = IDLE;   // a new shot
     ev(withAuto ? "armed: auto-anchor on landing" : "armed: log only");
     return nullptr;
@@ -465,7 +475,7 @@ struct Kedge {
     }
     uint32_t prevPressT = pressT[m][d > 0]; bool prevPressSeen = pressSeen[m][d > 0];   // for the per-direction lock
     pressT[m][d > 0] = now; pressSeen[m][d > 0] = true;
-    if (seqRunning() || flight.flying() || fault) lastCmd[m] = now;   // a refused press still counts as "held" for the locks
+    if (seqRunning() || flight.flying() || fault) { lastCmd[m] = now; freshHold[m] = true; }   // a refused press still counts as "held" for the locks
     if (seqRunning()) return "busy";                  // a sequence owns the motors; stop first
     if (flight.flying()) return "in flight";
     if (fault) return "fault latched: send stop first";
@@ -484,12 +494,13 @@ struct Kedge {
     if (bothLock[m]) { if (repeat) return "both directions held"; bothLock[m] = false; }
     bool otherRecent = pressSeen[m][d < 0] && (int32_t)(now - pressT[m][d < 0]) < (int32_t)win;
     if (repeat && dirRepeat && otherRecent && lastKeyDir[m] == -d && dir[m] == -d) { bothLock[m] = true; drive(m, 0, 0, now); ev("both directions held: motor stopped"); return "both directions held"; }
+    if (freshHold[m]) { repeat = false; freshHold[m] = false; }   // the first accepted press after refused ones starts the hold cap
     bool cont = repeat && lastKeyDir[m] == d; lastKeyDir[m] = d;
     if (!repeat) heldStart[m] = now;                  // per motor: switching direction does not restart the hold cap
     uint32_t cap = inaOk ? tu.manualMaxMs : tu.manualMaxNoInaMs, used = now - heldStart[m];
     if (used >= cap) { stallLock[m] = d; capHit[m] = true; return "hold limit: release the key first"; }
     if (runMs > cap - used) runMs = cap - used;       // the whole hold, not each repeat, is capped
-    if (seq == DONE || seq == RELEASED || seq == ABORTED) seq = IDLE;   // legs moved by hand: no longer a known state
+    if (seq == DONE || seq == RELEASED || seq == ABORTED) { seq = IDLE; landedFresh = false; }   // legs moved by hand: no longer a known state (not LANDED either)
     uint32_t keepT0 = motT0[m];
     drive(m, d, runMs, now);
     if (cont) motT0[m] = keepT0;
@@ -521,7 +532,7 @@ struct Kedge {
       if (running()) { stopAll(now); ev("launch: motors stopped"); }
       char b[64]; snprintf(b, sizeof b, "launch detected at %lu ms", (unsigned long)flight.tLaunch); ev(b);
     } else if (e == Flight::LAND) {
-      landed = true;
+      landed = true; landedFresh = true;
       uint32_t fr = flight.tLand + 3000, cap = freezeCap();
       if ((int32_t)(fr - cap) > 0) fr = cap;         // a long (timeout) flight: keep launch and impact rather than the end
       if (!log.frozen) log.scheduleFreeze((int32_t)(fr - now) > 0 ? fr : now);
@@ -571,12 +582,28 @@ struct Kedge {
         float step = (float)dt * duty() / 255.f * vScale();   // speed scales with the rail (kickSwingMs is at refV)
         kickPos += dir[KICK] * step;
         if (dir[KICK] < 0 && step > 0) kickPlanted = false;   // coming back: no longer on the ground
-        if (seq == R_KICK && dir[KICK] < 0) kickBackDone += step;
+        if (seq == R_KICK && dir[KICK] < 0) { kickBackDone += step; if (alone) kickBackOk = kickBackDone; }
         if (kickPos < 0) kickPos = 0;
         if (kickPos < 0.5f * tu.kickSwingMs) noGroundSeen = false;   // came well back from the end stop
         if (kickPos > tu.kickSwingMs) kickPos = tu.kickSwingMs;
         kickRaw += dir[KICK] * step; if (kickRaw < 0) kickRaw = 0;   // not clamped: the bench measurement of the swing
       }
+      // pods travel, counted the same way (the pods worm is always the checked one in a pair)
+      bool dAlone = dir[DEPLOY] && !dir[KICK] && !dir[DRILLS] && !dir[FOOT];
+      // release, while the drills still turn with the lifting pods (0.6 s): counted in full (no reading of the pods alone yet)
+      bool dStalled = dAlone ? fMa > stallLim(DEPLOY) : (seq == R_PODS ? false : deployOverPair);
+      int nOn = (dir[DEPLOY] != 0) + (dir[KICK] != 0) + (dir[DRILLS] != 0) + (dir[FOOT] != 0);
+      if (dir[DEPLOY] && nOn > 2 && !seqRunning() && deployKnown) { deployKnown = false; ev("pods travel unknown (driven with other motors) until the next release"); }
+      if (dir[DEPLOY] && !(paused && pz == DEPLOY) && !dStalled && !(seq == D_DEPLOY && podLead)) {
+        float step = (float)dt * duty() / 255.f * vScale();
+        deployPos += dir[DEPLOY] * step;
+        if (seq == R_PODS && dir[DEPLOY] < 0) { deployBackDone += step; deployBackOk = deployBackDone; }   // alone: per tick; with the drills: in full
+        if (dAlone) deployOutOk = deployPos;
+        if (deployPos < 0) deployPos = 0;
+        if (deployPos > tu.podsTravelMs) deployPos = tu.podsTravelMs;
+      }
+      // presses older than a minute are forgotten (signed time compares on them would turn after 24.8 days)
+      for (int m = 0; m < NMOT; m++) for (int k = 0; k < 2; k++) if (pressSeen[m][k] && now - pressT[m][k] > 60000u) pressSeen[m][k] = false;
     }
     if (armed && !flight.flying() && (int32_t)(now - armT) > (int32_t)tu.armMaxMs) { armed = false; ev("arm expired (15 min without a launch)"); }
 
@@ -684,7 +711,7 @@ struct Kedge {
       }
       case F_AFTER:
         if (soloStalled(FOOT, now)) { drive(FOOT, 0, 0, now); warn |= W_FOOT_STALL; ev("auto: foot stalled (full depth or stone)"); }
-        if (!dir[FOOT]) { drive(DEPLOY, +1, tu.deployMaxMs, now); podLead = true; seq = D_DEPLOY; seqT0 = now; pairReset(now); ev("auto: deploy with drills spinning"); }
+        if (!dir[FOOT]) { drive(DEPLOY, +1, tu.deployMaxMs, now); podLead = true; seq = D_DEPLOY; seqT0 = now; pairReset(now); deployOutOk = deployPos; ev("auto: deploy with drills spinning"); }
         break;
       case D_DEPLOY: {  // pods swing down while the augers cut
         if (podLead) {                                // first 300 ms: deploy worm alone (open wire? already down?)
@@ -716,14 +743,19 @@ struct Kedge {
       case R_DRILL:
         if (soloStalled(DRILLS, now)) { setFault(F_DRILL_JAM, "release: drills jammed", now); return; }
         // the augers may still be threaded in soil: the drills keep unscrewing while the pods lift (no deploy-alone lead)
-        if (!dir[DRILLS]) { drive(DRILLS, -1, tu.deployMaxMs, now); drive(DEPLOY, -1, tu.deployMaxMs, now); seq = R_PODS; seqT0 = now; pairReset(now); ev("release: pods up, drills still out"); }
+        if (!dir[DRILLS]) { drive(DRILLS, -1, tu.deployMaxMs, now); drive(DEPLOY, -1, tu.deployMaxMs, now); seq = R_PODS; seqT0 = now; pairReset(now); deployBackStart = deployPos; deployBackDone = deployBackOk = 0; ev("release: pods up, drills still out"); }
         break;
       case R_PODS: {
+        // the drills keep unscrewing for the first second, then stop: the pods finish alone, read every tick, so their
+        // travel and their stop are exact (a jam part way up is told from the stowed stop)
+        if (dir[DRILLS] && t >= tu.podsWithDrillsMs && hitsOther == 0) { drive(DRILLS, 0, 0, now); pairReset(now); }   // not while a drill jam reading is pending
         int r = stallPair(DEPLOY, DRILLS, now);
         if (t < tu.podsMinMs) r &= ~1;
         if (r & 2) { setFault(F_DRILL_JAM, "release: drills jammed", now); return; }
         if ((r & 1) || !dir[DEPLOY]) {
           bool st = r & 1; if (!st) warn |= W_PODS_LIMIT;
+          // a stall before the pods came most of the way back is a jam, not the stowed stop
+          if (st && deployKnown && deployBackOk < 0.6f * deployBackStart) { setFault(F_PODS_JAM, "release: pods stalled before they were up (jammed)", now); return; }
           drive(DEPLOY, 0, 0, now); drive(DRILLS, 0, 0, now); drive(FOOT, -1, tu.footLeadMs, now); seq = R_FOOT; seqT0 = now; pairReset(now);
           ev(st ? "release: pods up, foot out" : "release: pods time limit (stowed or stalled), foot out");
         }
@@ -732,7 +764,7 @@ struct Kedge {
       case R_FOOT:
         if (soloStalled(FOOT, now)) { setFault(F_FOOT_JAM, "release: foot jammed", now); return; }
         if (!dir[FOOT]) { drive(FOOT, -1, tu.footOutMs, now); drive(KICK, -1, tu.kickMaxMs, now); seq = R_KICK; seqT0 = now; pairReset(now);
-          kickBackStart = kickPos; kickBackDone = 0; ev("release: kick back, foot still out"); }
+          kickBackStart = kickPos; kickBackDone = kickBackOk = 0; ev("release: kick back, foot still out"); }
         break;
       case R_KICK: {
         int r = stallPair(KICK, FOOT, now);
@@ -740,8 +772,8 @@ struct Kedge {
         if (r & 2) { setFault(F_FOOT_JAM, "release: foot jammed", now); return; }
         if (r & 1) {
           // the real travel back must cover most of the travel out (the estimate out is short: planting is not counted)
-          if (kickKnown && kickBackDone < 0.6f * kickBackStart) { setFault(F_KICK_JAM, "release: kick stalled before it was back (jammed)", now); return; }
-          stopAll(now); seq = RELEASED; kickPos = 0; kickRaw = 0; kickKnown = true; kickPlanted = false; noGroundSeen = false; ev("release: done, legs stowed");
+          if (kickKnown && kickBackOk < 0.6f * kickBackStart) { setFault(F_KICK_JAM, "release: kick stalled before it was back (jammed)", now); return; }
+          stopAll(now); seq = RELEASED; kickPos = 0; kickRaw = 0; kickKnown = true; kickPlanted = false; noGroundSeen = false; deployPos = 0; deployKnown = true; landedFresh = false; ev("release: done, legs stowed");
         }
         break;
       }
@@ -754,7 +786,7 @@ struct Kedge {
     if (flight.launched) snprintf(tl, sizeof tl, "%lu", (unsigned long)flight.tLaunch);
     if (flight.st == Flight::LANDED) snprintf(td, sizeof td, "%lu", (unsigned long)flight.tLand);
     char wl[160] = ""; int k = 0;
-    for (int b = 0; b < 6; b++) if (warn & (1 << b)) k += snprintf(wl + k, sizeof wl - k, "%s\"%s\"", k ? "," : "", warnName(b));
+    for (int b = 0; b < 5; b++) if (warn & (1 << b)) k += snprintf(wl + k, sizeof wl - k, "%s\"%s\"", k ? "," : "", warnName(b));
     return snprintf(buf, n, "{\"fw\":\"%s\",\"t_ms\":%lu,\"phase\":\"%s\",\"fault\":%s%s%s,\"rail_V\":%.2f,\"current_mA\":%.0f,\"peak_mA\":%.0f,\"speed\":%d,"
                     "\"motors\":{\"deploy\":%d,\"kick\":%d,\"drills\":%d,\"foot\":%d},\"seq\":\"%s\",\"armed\":%s,\"auto_on_landing\":%s,\"landed\":%s,"
                     "\"roll\":%.1f,\"pitch\":%.1f,\"accel_g\":%.2f,\"peak_g\":%.2f,\"ina_ok\":%s,\"imu_ok\":%s,\"t_launch_ms\":%s,\"t_land_ms\":%s,\"log_frozen\":%s,"

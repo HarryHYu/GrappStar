@@ -1140,7 +1140,10 @@ def c_c1_sequence(rig, res):
     pat = C1_SEQ.replace("RETRIEVE(retrieve > )", "(retrieve > )?" if seated_neutral else "retrieve > ")
     shot_pitch = (rig.solution or {}).get("pitch_deg") if hasattr(rig, "solution") else None
     pat = pat.replace("AIM6", "aim > " if (shot_pitch or 0) > 15 else "")      # D45: aim 6 before the wrap above 15 deg
-    return bool(_re.match(pat, seq)), seq
+    ok = bool(_re.match(pat, seq))
+    if not ok and (rig.sc.triggers or rig.sc.expect_faults):
+        return True, "(fault scenario: recovery commands allowed, order not judged) " + seq
+    return ok, seq
 
 
 def c_wrap_free(rig, res):

@@ -60,10 +60,15 @@ FRAMEWORK_DEFAULT = dict(
     block_t=6.0,            # bearing block flange thickness (min)
     ties=None,              # list of (x, z) cheek tie centres; None = automatic (top corners)
     tie_d=16.0,
+    seat_d=20.0,            # v1.0: launch sleeve journal diameter in the far plate (cad-launch: d20 journal)
+    seat_lip=2.0,           # thrust lip at the outboard end of the seat (LAUNCH engage pushes the sleeve outboard)
+    spigot_clear_d=14.0,    # hole in the lip for the d12 spigot
     deck_z=-165.0,          # world z of the deck top (world z = 0 is the wiper axis; coordinator 11:00: axis 165 up)
     adapter_standoff=12.0,  # adapter hub height over the cheek (clears block flanges, M6 nuts reachable)
     cheek_y_in=None,        # (right, left) inner cheek face y; None = from the motor face (y = 0) and cheek_gap
     ebay=None,              # electronics bay placement override, see _frame_ebay.py
+    plate_back=75.0,        # v1.0 plates: start as a rectangle this far behind the main axis ...
+    plate_front=105.0,      # ... and this far in front, deck to above the axis, then carved round the others
     band=True,              # guard band round the cheek box
     band_cut=True,          # cut openings where the other subsystems pass (swept parts + 4 mm)
 )
@@ -96,11 +101,34 @@ def cfg(P):
     else:
         yi = -ms * (MOT.PLATE_T + fw["adapter_standoff"] + t)
         y_in = {ms: yi, -ms: yi - ms * g}
+    tt = {-1: t, 1: t}
+    v1 = isinstance(lay_src, dict) and "axes" in lay_src
+    c["v1"] = v1
+    if v1:                                  # BASE_SPEC v1.0: the frame carries the main shaft only
+        seat = next((e["y"] for e in lay_src.get("stack", []) if e.get("owner") == "cad-frame" and "outboard" in e.get("part", "")),
+                    (160.0, 172.0))
+        yi_m = -ms * (MOT.PLATE_T + fw["adapter_standoff"] + t)
+        if ms < 0:
+            y_in = {-1: yi_m, 1: float(seat[0])}
+            tt = {-1: t, 1: float(seat[1] - seat[0])}
+        else:
+            y_in = {1: yi_m, -1: float(seat[1])}
+            tt = {1: t, -1: float(seat[1] - seat[0])}
+    c["t"] = tt
     c["y_in"] = y_in
-    c["y_out"] = {s_: y_in[s_] + s_ * t for s_ in (-1, 1)}
+    c["y_out"] = {s_: y_in[s_] + s_ * tt[s_] for s_ in (-1, 1)}
     yc = (y_in[-1] + y_in[1]) / 2
     layout = {}
-    if lay_src:
+    if v1:
+        deck_z = float(lay_src.get("deck_top_z", fw["deck_z"]))
+        for n, a_ in lay_src["axes"].items():
+            ow = tuple(map(float, a_["origin"]))
+            e = dict(origin=(ow[0], ow[1], ow[2] - deck_z), origin_w=ow, axis=tuple(map(float, a_["axis"])),
+                     d=20.0, brg="seat", cheeks=(), frame=False, owner=a_.get("owner", ""))
+            if n == "main":
+                e.update(cheeks=(-ms,), frame=True, brg="seat", d=float(fw.get("seat_d", 20.0)))
+            layout[n] = e
+    elif lay_src:
         deck_z = float(fw["deck_z"])
         for n, s_ in lay_src.items():
             ow = tuple(map(float, s_["origin"]))
@@ -144,6 +172,9 @@ def is_y(axis):
 
 def block_geom(P, sh, fw):
     """Bearing block numbers for a shaft entry: seat od / w, spigot d, flange half size, screw radius."""
+    if sh["brg"] == "seat":                     # integral plate seat (no separate block)
+        return dict(od=sh["d"], w=0.0, spig=sh["d"], rs=0.0, half=sh["d"] / 2 + 12.0, tb=0.0, hole=sh["d"] + 0.3,
+                    cb=U.HEAD_H, seat=True)
     if sh["brg"] == "bush":
         od, w = sh["d"] + 2 * BUSH_WALL, fw["cheek_t"] + fw["block_t"]
     else:
@@ -182,6 +213,54 @@ def block_solid(P, sh, fw):
 
 def block_screws(b):
     return [(b["rs"] * math.cos(math.radians(45 + 90 * i)), b["rs"] * math.sin(math.radians(45 + 90 * i))) for i in range(4)]
+
+
+def contact_intervals(outline, min_len=12.0):
+    """x intervals where a plate outline stands on the deck (z = 0)."""
+    strip = outline.intersection(sbox(-1e4, -0.01, 1e4, 0.5))
+    geoms = getattr(strip, "geoms", [strip])
+    out = sorted((g.bounds[0], g.bounds[2]) for g in geoms if not g.is_empty and g.bounds[2] - g.bounds[0] >= min_len)
+    return out
+
+
+def carve_plate(poly, C, s, info, axis_xz, margin=3.0):
+    """Remove from a plate outline (x, z, deck frame) the XZ shadow of every other subsystem's swept hull that reaches
+    the plate's y slab, plus the bay. Hulls that contain the main axis (shafts and sleeves through the plate) are left
+    to the bores. Keeps the piece that holds the main axis."""
+    from shapely.geometry import MultiPoint
+    from . import _frame_guard as G
+    y0, y1 = sorted((C["y_in"][s], C["y_out"][s]))
+    y0 -= 2.0
+    y1 += 2.0
+    if s == C["fw"]["motor_side"]:
+        y0 -= C["fw"]["foot_w"] + 1.0          # the foot flange sits outboard of the motor plate
+    else:
+        y1 += C["fw"]["foot_w"] + 1.0
+    cut = []
+    ax = Point(*axis_xz)
+    for cl in G.LAST_CLOUDS:
+        if cl[:, 1].max() < y0 or cl[:, 1].min() > y1:
+            continue
+        h = MultiPoint(cl[:, [0, 2]]).convex_hull
+        if h.buffer(-1.0).contains(ax):
+            continue
+        cut.append(h.buffer(margin - 4.0 + 0.01) if margin < 4.0 else h)
+    eb = C["fw"].get("_raw", {}).get("ebay")
+    if isinstance(eb, dict) and "x" in eb:
+        if not (eb["y"][1] < y0 or eb["y"][0] > y1):
+            cut.append(sbox(eb["x"][0] - 3, -1, eb["x"][1] + 3, 75.0))
+    if cut:
+        poly = poly.difference(unary_union(cut))
+    geoms = getattr(poly, "geoms", [poly])
+    keep = [g for g in geoms if g.buffer(1.0).contains(ax) or g.distance(ax) < 1.0]
+    if not keep:
+        info["warnings"].append(f"plate {s:+d}: the carve removed the main axis region")
+        keep = [max(geoms, key=lambda g: g.area)]
+    out = keep[0].buffer(-1.5).buffer(1.5)
+    if out.geom_type != "Polygon":
+        out = max(out.geoms, key=lambda g: g.area)
+    info.setdefault("plate_carved", {})[s] = len(cut)
+    return out
 
 
 def split_cheek(sol, outline, sups, P, fw, info, limit=246.0, tol=0.15):
@@ -238,6 +317,16 @@ def build(P):
     tc, g = fw["cheek_t"], fw["cheek_gap"]
     ms = fw["motor_side"]
     parts, info = [], dict(cfg=C, supports=[], deck_holes=[], rover_holes=[], feet=[], warnings=[])
+    # ---- the other subsystems: swept volumes (band openings, bay keep-out), feet and screw holes on the deck
+    from . import _frame_guard as G
+    from . import _frame_others as OTH
+    info["swept"] = G.swept_cutters(P, C)
+    opolys, oholes, oown = OTH.deck_contacts(P, C["deck_z"])
+    info["others_foot"], info["others_holes"] = opolys, oholes
+    info["deck_holes"] += oholes
+    info["keepout"] = unary_union([g for g in opolys + [G.shadow(0.0, 80.0)] if g is not None]) \
+        if (opolys or not info["swept"].is_empty()) else None
+
 
     # ---- supports per cheek
     supports = {-1: [], 1: []}
@@ -267,7 +356,14 @@ def build(P):
         base = sbox(x0c, 0.0, x1c, 24.0)
         poly = unary_union(feats[s] + [base]).convex_hull
         poly = poly.intersection(sbox(-1e4, 0.0, 1e4, 1e4))
+        if C["v1"] and C["main"] in lay:      # a plate from the deck up past the main axis, carved round the others
+            mo = lay[C["main"]]["origin"]
+            top = mo[2] + (MOT.RING_R + 14.0 if s == ms else fw["seat_d"] / 2 + 22.0)
+            poly = unary_union([poly, sbox(mo[0] - fw["plate_back"], 0.0, mo[0] + fw["plate_front"], top)])
+            poly = carve_plate(poly, C, s, info, (mo[0], mo[2]))
         outlines[s] = poly
+    xs = [outlines[s].bounds[0] for s in (-1, 1)] + [outlines[s].bounds[2] for s in (-1, 1)]
+    x0c, x1c = min(xs), max(xs)
     info["cheek_x"] = (x0c, x1c)
 
     # ---- cheek solids
@@ -276,11 +372,15 @@ def build(P):
         cs = prim.shapely_cs(outlines[s])
         # extrude along local Z then Rx(90): local (X, Y, Z) -> world (X, -Z, Y); y from y_ref to y_ref - t
         y_ref = C["y_in"][s] if s < 0 else C["y_out"][s]
-        sol = prim.place(prim.extrude(cs, tc), tf.T(0, y_ref, 0) @ tf.Rx(90))
+        sol = prim.place(prim.extrude(cs, C["t"][s]), tf.T(0, y_ref, 0) @ tf.Rx(90))
         yo = C["y_out"][s]
-        # foot flange (outboard) along the bottom
-        fx0, fx1 = x0c + 2, x1c - 2
-        foot = prim.box(fx0, fx1, yo, yo + s * fw["foot_w"], 0.0, fw["foot_t"])
+        # foot flange (outboard) along every stretch of the bottom edge that stands on the deck
+        ivals = contact_intervals(outlines[s])
+        if not ivals:
+            info["warnings"].append(f"cheek {s:+d}: no edge reaches the deck (the carve cut it off)")
+            ivals = [(x0c + 2, x1c - 2)]
+        fx0, fx1 = ivals[0]
+        foot = prim.union([prim.box(a + 2, b - 2, yo, yo + s * fw["foot_w"], 0.0, fw["foot_t"]) for a, b in ivals])
         # gussets: evenly spread, skipping x ranges where a block, the motor adapter or the AS5600 bracket comes low
         blocked = []
         for n, sh in supports[s]:
@@ -296,9 +396,10 @@ def build(P):
             else:
                 blocked.append((mo_[0] - 20, mo_[0] + 20))
         gx = []
-        for xg in np.linspace(fx0 + 6, fx1 - 6, max(3, int((fx1 - fx0) / 30) + 1)):
-            if all(not (a <= xg <= b) for a, b in blocked) and all(abs(xg - q) > 40 for q in gx):
-                gx.append(float(xg))
+        for (ia, ib) in ivals:
+            for xg in np.linspace(ia + 8, ib - 8, max(2, int((ib - ia) / 30) + 1)):
+                if all(not (a <= xg <= b) for a, b in blocked) and all(abs(xg - q) > 40 for q in gx) and ib - ia > 30:
+                    gx.append(float(xg))
         gus = []
         for xg in gx:
             tri = prim.poly_cs([(0, 0), (fw["foot_w"] - 2, 0), (0, 30)])
@@ -307,10 +408,14 @@ def build(P):
         sol = prim.union([sol, foot] + gus)
         cuts = []
         # foot screws: M3 down into deck inserts
-        nf = max(2, int(math.ceil((fx1 - fx0 - 16) / fw["foot_pitch"])) + 1)
         feet = []
-        for i in range(nf):
-            xf = fx0 + 8 + i * (fx1 - fx0 - 16) / (nf - 1)
+        xfs = []
+        for (ia, ib) in ivals:
+            if ib - ia < 18:
+                continue
+            nf = max(1 if ib - ia < 40 else 2, int(math.ceil((ib - ia - 16) / fw["foot_pitch"])) + 1)
+            xfs += [(ia + ib) / 2] if nf == 1 else [ia + 8 + i * (ib - ia - 16) / (nf - 1) for i in range(nf)]
+        for xf in xfs:
             for _ in range(4):                                  # dodge the gussets (away from the nearest one)
                 if not gx:
                     break
@@ -333,11 +438,21 @@ def build(P):
                 cuts.append(prim.box(xm - 2.5, xm + 2.5, yc_ - 6.7, yc_ + 6.7, -1, 2.0))
                 ties_.append((xm, yc_))
         info.setdefault("cable_ties", {})[s] = ties_
-        info["feet"].append(dict(x0=fx0, x1=fx1, y0=min(yo, yo + s * fw["foot_w"]) - 0.5, y1=max(yo, yo + s * fw["foot_w"]) + 0.5))
+        info["feet"].append(dict(x0=min(a for a, b in ivals), x1=max(b for a, b in ivals), y0=min(yo, yo + s * fw["foot_w"]) - 0.5, y1=max(yo, yo + s * fw["foot_w"]) + 0.5))
         # shaft holes + block inserts
         for n, sh in supports[s]:
             b = block_geom(P, sh, fw)
             ox, _, oz = sh["origin"]
+            if b.get("seat"):
+                # journal bore through the plate up to the thrust lip at the outboard face, spigot hole in the lip
+                yi_, lip = C["y_in"][s], fw["seat_lip"]
+                ylip = yo - s * lip
+                cuts.append(prim.cylY(b["hole"] / 2, min(yi_, ylip) - 1, max(yi_, ylip), ox, oz))
+                cuts.append(prim.cylY(fw["spigot_clear_d"] / 2, min(yo, ylip) - 1, max(yo, ylip) + 1, ox, oz))
+                cuts.append(prim.cylY(b["hole"] / 2 + 0.6, min(yi_, yi_ + s * 0.6) - 0.01, max(yi_, yi_ + s * 0.6) + 0.01, ox, oz))
+                info["supports"].append(dict(shaft=n, side=s, origin=sh["origin"], brg="seat", block=b, part=None,
+                                             thrust_face_y=ylip))
+                continue
             cuts.append(prim.cylY(b["hole"] / 2, min(yo, C["y_in"][s]) - 1, max(yo, C["y_in"][s]) + 1, ox, oz))
             for (lx, ly) in block_screws(b):
                 cuts.append(yfeat(U.insert_hole(0, 0, 0.0), ox + lx, oz + ly, yo, -s))
@@ -357,6 +472,8 @@ def build(P):
 
     # ---- ties between the cheeks (auto: near the top of the overlap of both outlines, clear of every block)
     ties = fw["ties"]
+    if ties is None and C["v1"]:
+        ties = []                              # v1.0: the plates are tied by the deck (everything between them moves)
     if ties is None:
         both = outlines[-1].intersection(outlines[1]).buffer(-14.0)
         blocked = unary_union([Point(sh["origin"][0], sh["origin"][2]).buffer(block_geom(P, sh, fw)["half"] * 1.5 + 4)
@@ -396,18 +513,8 @@ def build(P):
         parts.append(Part(f"frame_tie_{i + 1}", tie, "PLA", print_tf=U.print_flat(tie), color="#9aa4ae",
                           notes="cheek tie: spacer between the cheeks, M3 x 12 through each cheek into an insert at each end"))
 
-    # ---- the other subsystems: swept volumes (band openings, bay keep-out), feet and screw holes on the deck
-    from . import _frame_guard as G
-    from . import _frame_others as OTH
-    info["swept"] = G.swept_cutters(P, C)
-    opolys, oholes, oown = OTH.deck_contacts(P, C["deck_z"])
-    info["others_foot"], info["others_holes"] = opolys, oholes
-    info["deck_holes"] += oholes
-    info["keepout"] = unary_union([g for g in opolys + [G.shadow(0.0, 80.0)] if g is not None]) \
-        if (opolys or not info["swept"].is_empty()) else None
-
     # ---- guard band round the cheek box (openings where other subsystems pass)
-    if fw["band"]:
+    if fw["band"] and not C["v1"]:
         from . import _frame_guard as G
         both = outlines[-1].intersection(outlines[1])
         cut = info["swept"] if fw["band_cut"] else None
@@ -436,6 +543,8 @@ def build(P):
 
     # ---- bearing blocks
     for sp in info["supports"]:
+        if sp["brg"] == "seat":
+            continue
         n, s = sp["shaft"], sp["side"]
         sh = lay[n]
         sol, b = block_solid(P, sh, fw)
@@ -666,6 +775,11 @@ def allowed(P):
     return a
 
 
+def grounded(P):
+    """The deck sits on the rover: everything in the base must connect to it through touching parts."""
+    return ["frame_deck*"]
+
+
 def clearances(P):
     return [Clearance("frame_wiper_shaft", "frame_motor_adapter", 0.5, "shaft turns free in the adapter"),
             Clearance("frame_wiper_shaft", "frame_cheek_*", 0.5, "shaft turns free in the cheek hole")]
@@ -728,7 +842,7 @@ def steps(P):
              text="Push each block's spigot into its cheek hole from outside (flange outside), 4 x M3 x 8 into the "
                   "cheek inserts. The blocks on this side go on now; the shaft bearings drop into their pockets from "
                   "inside when the shafts go in.",
-             parts=[sp["part"] for sp in info["supports"] if sp["side"] == info["cfg"]["fw"]["motor_side"]]),
+             parts=[sp["part"] for sp in info["supports"] if sp["side"] == info["cfg"]["fw"]["motor_side"] and sp.get("part")]),
     ]
     if "frame_motor_adapter" in names:
         st.append(dict(title="Wiper motor on its adapter (bench)",
@@ -748,14 +862,18 @@ def steps(P):
              text="Now the drum, launch and reel subsystems put their shaft assemblies in (bearings already pressed on "
                   "the shafts), each bearing into its block pocket on this cheek. Follow their steps, then come back.",
              parts=[]),
-        dict(title="Second cheek",
-             text="Lower the other cheek over the shaft ends (each bearing enters its hole), foot outboard, M3 x 10 "
-                  "into the deck. Then the cheek ties: M3 x 12 through each cheek into the tie inserts.",
+        dict(title="Outboard plate" if info["cfg"]["v1"] else "Second cheek",
+             text=("Slide the outboard plate onto the far end of the launch sleeve: the d20 journal goes into the plate "
+                   "bore until the sleeve shoulder meets the thrust lip, the d12 spigot pokes through the lip. Foot "
+                   "outboard, M3 x 10 into the deck inserts. Turn the main shaft by hand: free, no tight spot."
+                   if info["cfg"]["v1"] else
+                   "Lower the other cheek over the shaft ends (each bearing enters its hole), foot outboard, M3 x 10 "
+                   "into the deck. Then the cheek ties: M3 x 12 through each cheek into the tie inserts."),
              parts=[n for n in has("frame_cheek_l" if info["cfg"]["fw"]["motor_side"] < 0 else "frame_cheek_r")] + has("frame_tie")),
         dict(title="Second-side bearing blocks",
              text="Slide each block over its bearing from outside, 4 x M3 x 8. Turn every shaft by hand: it must spin "
                   "free with no tight spot. If one binds, loosen its two blocks, turn the shaft, retighten.",
-             parts=[sp["part"] for sp in info["supports"] if sp["side"] != info["cfg"]["fw"]["motor_side"]]),
+             parts=[sp["part"] for sp in info["supports"] if sp["side"] != info["cfg"]["fw"]["motor_side"] and sp.get("part")]),
     ]
     if has("frame_guard_band"):
         st.append(dict(title="Guard band",

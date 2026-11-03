@@ -272,6 +272,8 @@ def test_range_calibrated_to_table():
     assert b.range_scale == pytest.approx(0.8, abs=0.01)
     assert b.range_m == pytest.approx(0.8 * a.range_m, rel=0.03)
     assert b.trajectory[-1][1] == pytest.approx(b.range_m)
+    c = analyze_flight(frames, None, ballistics=short, aim_pitch_deg=20, calibrate_range=False)
+    assert c.range_scale == 1.0 and c.range_m == pytest.approx(a.range_m, rel=0.03)
 
 
 def test_fuse_speed_recovers_model_speed():

@@ -99,3 +99,10 @@ Still open (owner):
   fuse) and jetson (service holds the port).
 - params 1.2.1 folded in: D30 springs C-243 rated 38.4 N, full cock 265 mm; D31 SW_DOG_L/R; D32 17 N/A; range
   4.8 m at 36 deg, 8.5 m with four springs.
+- Round 8 (learner, printing and the day-one coupons): 12 findings. Fixed: one print settings table per plate,
+  PPA-CF handling (hardened nozzle, drying, ventilation, dust) before risk plate 2, coupon failure route (report to
+  a Claude session, reprint the single rcN piece), two plates named with paths, coupon bought extras (C21) in
+  FIRST_DAY and parts, contact gap 0.9 mm matched to the coupon, spring free length with a rule, git install prompt,
+  glossary (AF, SHCS, e-clip, jam nut, module, crush rib, backlash, self-tapper, hole compensation), Markdown image
+  paths relative to docs/build. Sent to cad-infra: luggage-scale-too-coarse test, shear pin pass range, unmeasurable
+  play tests, missing base fit coupon, settings in the sheet, Mac command.

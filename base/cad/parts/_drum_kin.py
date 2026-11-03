@@ -15,50 +15,53 @@ All values come from DEFAULTS, overridden key by key by params.DRUM (a dict) whe
 import math
 
 DEFAULTS = dict(
-    # ---------------------------------------------------------------- drum angles (deg)
-    stop_lo=-10.0,          # groove end (hard stop) below LAUNCH
+    # ---------------------------------------------------------------- drum angles (deg). Order (BASE_SPEC D16):
+    # LAUNCH, NEUTRAL, WRAP (collar stays in NEUTRAL), WRAPPED (still NEUTRAL, cup locked), then REEL.
+    stop_lo=-2.0,           # groove end (hard stop) below LAUNCH
     launch=0.0,
-    neutral=40.0,
-    reel=87.0,
-    wrapped=338.0,
-    stop_hi=346.0,          # groove end (hard stop) past WRAPPED. stop_hi - stop_lo < 360 so the code disc is unique
-    tr_ln=(6.0, 34.0),      # groove 1 transition LAUNCH -> NEUTRAL
-    tr_nr=(46.0, 74.0),     # groove 1 transition NEUTRAL -> REEL
+    neutral=41.0,
+    wrapped=316.0,
+    reel=348.5,
+    stop_hi=351.0,          # groove end past REEL. stop_hi - stop_lo < 360 - 6 so the code disc is unique
+    tr_ln=(8.0, 32.0),      # groove 1 transition LAUNCH -> NEUTRAL
+    tr_nr=(328.0, 346.0),   # groove 1 transition NEUTRAL -> REEL (after the last wrap and the re-lock)
     # ---------------------------------------------------------------- dog clutch
-    stroke=7.0,             # collar travel from NEUTRAL to either gear (mm) = neutral gap + engagement
+    stroke=7.0,             # collar travel from NEUTRAL to either side (mm) = neutral gap + engagement
     dog_h=5.0,              # dog height on each face (mm)
     dog_gap=2.5,            # tip to tip gap at NEUTRAL (mm)
     dog_n=4,                # dogs per face
-    dog_deg=30.0,           # angular width of a dog at its root (deg); gap = 360/n - dog_deg
-    dog_backcut=4.0,        # drive face back-cut (deg): torque pulls the dogs together
-    dog_roof=1.2,           # tip chamfer depth (mm) on each side of the crest: tip to tip contacts slide off
-    dog_r_in=18.0, dog_r_out=26.0,   # dog ring radii (mm)
-    fork_k=1.6,             # fork flexure rate (N/mm): compliant when the dogs land tip to tip
-    fork_free=6.0,          # flexure travel before its hard stop (mm), > dog_h so a blocked shift never stalls
+    dog_deg=36.0,           # angular width of a dog at its root (deg)
+    dog_backcut=4.0,        # flank back-cut (deg), both flanks: torque pulls the dogs together either way
+    dog_roof=1.2,           # tip chamfer (mm) on each side of the crest
+    dog_r_in=18.0, dog_r_out=26.0,
+    fork_k=1.6,             # fork yoke rate (N/mm): compliant when the dogs land tip to tip
+    fork_free=5.5,          # yoke travel to its hard stops (mm)
     # ---------------------------------------------------------------- track 2 (storage reel slip clutch preload)
-    brake_lift=4.0,         # full radial lift (mm) = FIRM
-    brake_mid=0.5,          # fraction of full lift held while wrapping (wrapping pulls line off the reel)
-    brake_ramps=((46.0, 98.0, 0.0, 0.5), (326.0, 337.0, 0.5, 1.0)),  # (theta0, theta1, frac0, frac1)
+    brake_lift=4.0,         # full radial lift (mm) = FIRM; 0 = LIGHT (cad-reel lever, 10 N design force)
+    brake_force=10.0,
+    # (theta0, theta1, frac0, frac1): LAUNCH light, NEUTRAL firm (tidy), WRAP light, WRAPPED and REEL firm
+    brake_ramps=((8.0, 32.0, 0.0, 1.0), (50.0, 62.0, 1.0, 0.0), (302.0, 310.0, 0.0, 1.0)),
     # ---------------------------------------------------------------- wrap drive (segment gear with locking arc)
-    seg_m=1.25, seg_z=64,   # drum segment gear: module, tooth count of the full circle it is cut from
-    seg_teeth=40,           # teeth actually present (the toothed arc)
-    seg_start=100.0,        # drum angle where the wrap pinion starts to turn
+    seg_m=1.25, seg_z=60,   # drum segment gear: module, tooth count of the full circle it is cut from
+    seg_teeth=40,           # window = 40 pitches = 240 deg = 4 pinion turns
+    seg_start=62.0,         # drum angle where the wrap pinion starts to turn
     pin_z=10, pin_x=0.4,    # wrap pinion (locked at home by the locking arc), profile shift
-    idl_m=1.5, idl_z=48,    # wrap idler output gear on the pinion shaft (meshes the cad-reel wrap ring gear)
-    ring_z=48,              # cad-reel wrap ring gear tooth count (wraps = turns of pinion * idl_z / ring_z)
+    idl_m=1.5, idl_z=42,    # wrap idler output gear on the pinion shaft (meshes the cad-reel cup ring gear)
+    ring_z=24,              # cad-reel cup ring gear: cup turns = 4 * 42 / 24 = 7 (BASE_SPEC: 7 cup turns)
+    cup_torque=0.06,        # N m at the cup while laying wraps with the brake LIGHT (cad-reel to confirm)
     # ---------------------------------------------------------------- N20 drive
-    n20_z=10, n20_x=0.3, drum_gear_z=90, drum_gear_m=1.0, drum_gear_x=-0.3,
+    n20_z=10, n20_x=0.3, drum_gear_z=120, drum_gear_m=0.8, drum_gear_x=-0.3,
     n20_rpm_12v=27.0, n20_v=9.0,        # DRV8833 fed by an MP1584 buck set to 9 V
     n20_stall_nm_9v=0.20,               # estimate, see stall_estimate()
     n20_work_frac=0.35,                 # keep the working load under this fraction of stall
     # ---------------------------------------------------------------- switch code (Gray code, bit = contact closed)
-    # bit arcs in drum angle; each bit is closed inside any of its arcs
     code_arcs={
-        "b0": ((-10.0, 36.0), (76.0, 327.0)),
-        "b1": ((4.0, 98.0),),
-        "b2": ((44.0, 347.0),),
+        "b0": ((-6.0, 34.0), (302.0, 346.0)),
+        "b1": ((6.0, 328.0),),
+        "b2": ((56.0, 355.0),),
     },
-    sw_tol=1.5,             # expected edge tolerance (deg) of a printed contact on a bump ramp
+    code_ramp=3.0,          # bump ramp half width (deg): nub centre lift 50 percent at the arc edge
+    sw_tol=1.5,             # expected edge tolerance (deg)
 )
 
 # code (b2 b1 b0 as an int) -> sector name. 0 = all open = wire off or no bump: never valid.
@@ -66,10 +69,10 @@ CODE_TABLE = {
     0b001: "LAUNCH",
     0b011: "LN",            # between LAUNCH and NEUTRAL
     0b010: "NEUTRAL",
-    0b110: "NR",            # between NEUTRAL and REEL
-    0b111: "REEL",
-    0b101: "WRAPPING",
-    0b100: "WRAPPED",
+    0b110: "WRAPPING",      # wrap window (collar in NEUTRAL, cup turning or about to)
+    0b111: "WRAPPED",       # wraps done, cup locked, collar still in NEUTRAL, brake going firm
+    0b101: "NR",            # collar moving NEUTRAL -> REEL
+    0b100: "REEL",
     0b000: "INVALID",
 }
 
@@ -91,7 +94,7 @@ def _harm(u):
 
 
 def collar_x(theta, c=None):
-    """Collar position (mm) commanded by groove 1 at drum angle theta."""
+    """Collar position (mm) commanded by groove 1 at drum angle theta (-stroke LAUNCH, 0 NEUTRAL, +stroke REEL)."""
     c = c or DEFAULTS
     s = c["stroke"]
     a0, a1 = c["tr_ln"]
@@ -191,15 +194,26 @@ def drum_pos(theta, c=None):
     return {"LAUNCH": "LAUNCH", "NEUTRAL": "NEUTRAL", "REEL": "REEL", "WRAPPED": "WRAPPED"}.get(s, "BETWEEN")
 
 
+def code_lift(theta, bit, c=None):
+    """Nub centre lift fraction 0..1 of code band `bit` at drum angle theta (ramps centred on the arc edges)."""
+    c = c or DEFAULTS
+    h = c["code_ramp"]
+    best = 0.0
+    for a0, a1 in c["code_arcs"]["b%d" % bit]:
+        d = min(theta - a0, a1 - theta)
+        best = max(best, min(1.0, max(0.0, 0.5 + d / (2 * h))))
+    return best
+
+
 def mode(theta, c=None):
-    """Mechanical mode: which gear the collar engages."""
+    """Mechanical mode: which gear the collar engages (LAUNCH, NEUTRAL, REEL)."""
     c = c or DEFAULTS
     x = collar_x(theta, c)
     e = c["dog_gap"]                      # dogs start to overlap once the collar has moved past the gap
     if x <= -e:
         return "LAUNCH"
     if x >= e:
-        return "WRAPPED" if wraps(theta, c) > 1e-6 else "REEL"
+        return "REEL"
     return "NEUTRAL"
 
 
@@ -244,14 +258,14 @@ def loads(c=None):
     f_dis = f_tan * (0.3 + math.tan(math.radians(c["dog_backcut"]))) + 3.0
     t_dis = f_dis * slope / 1000.0 / eta_groove
     # track 2: lever follower force (cad-reel to confirm), 25 N at full lift; cam slope peak
-    f_brk = 25.0
+    f_brk = c["brake_force"]
     bslope = max(abs((brake_lift(t + 0.01, c) - brake_lift(t - 0.01, c)) / math.radians(0.02))
                  for t in range(int(c["stop_lo"]), int(c["stop_hi"])))
     t_brk = f_brk * bslope / 1000.0 / eta_groove
     # wrap: ring torque = line tension from the reel brake at mid lift (1.0 N) at the wrap radius (36 mm) plus
     # 0.04 N m friction; geared up by the wrap train (ring speed / drum speed)
     up = (c["seg_z"] / c["pin_z"]) * (c["idl_z"] / c["ring_z"])
-    t_ring = 1.0 * 0.036 + 0.04
+    t_ring = c["cup_torque"]
     t_wrap = t_ring * up / (eta_gear ** 2)
     cap_stall = c["n20_stall_nm_9v"] * ratio(c) * eta_gear
     # combined load along the travel (the loads that act at the same drum angle add up)
@@ -281,9 +295,9 @@ def timing(c=None):
     return dict(
         dps=v,
         launch_to_neutral=(c["neutral"] - c["launch"]) / v,
-        neutral_to_reel=(c["reel"] - c["neutral"]) / v,
+        neutral_to_wrapped=(c["wrapped"] - c["neutral"]) / v,
+        wrapped_to_reel=(c["reel"] - c["wrapped"]) / v,
         launch_to_reel=(c["reel"] - c["launch"]) / v,
-        wrap=(c["wrapped"] - c["reel"]) / v,
         full_travel=(c["stop_hi"] - c["stop_lo"]) / v,
     )
 
@@ -293,7 +307,7 @@ def stop_plan(c=None):
     c = c or DEFAULTS
     es = edges(c)
     plans = []
-    for name in ("launch", "neutral", "reel", "wrapped"):
+    for name in ("launch", "neutral", "wrapped", "reel"):
         tgt = c[name]
         below = [e for e in es if e[0] < tgt]
         above = [e for e in es if e[0] > tgt]

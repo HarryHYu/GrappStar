@@ -3,30 +3,23 @@
 Status: updated through the day; the Current numbers block is the latest. Sections F1 onward are the history of
 the findings (their numbers come from earlier parameter sets). Every number is reproducible with the CLIs.
 
-## Current numbers (spec 1.2.7: D36 rear line guide, carriage 70 g; model with the review fixes)
+## Current numbers (spec 1.2.9: D36 rear guide, carriage 85.8 g as built; latest model)
 
-- Launch: 2 x Century C-243, 23.8 mm preload, 265 mm full (40.1 N each), 12.1 J, carriage 70 g: 6.95 m/s at 35 deg,
-  19 g, 56 % efficient. Line path taut (D36 guide at u -200, w 85: the path only lengthens), no snatch.
-- Range from the rail pivot's ground point (pivot 0.315 m up: deck 0.15 ASSUMED + 0.165), LIGHT 0.5 / 0.75 / 1.0 N:
-  4.29 / 3.86 / 3.48 m at 34 deg (best; the line now leaves from the D36 guide in flight too). Table 6 to 47 deg in base/out/ballistics.json (C3), content hash, impact
-  angles and wind sensitivity in the meta. Test shots then `calib.py range` refine it.
-- 4 springs: NOT SUPPORTED IN v1 (D38: cocking needs 5.8 N m, above the shear pin). For reference 7.6 / 6.8 / 6.1 m.
-- Stop: 2.5 J (carriage 1.7 + springs 0.8): the 19 mm flexure peaks at about 266 N if linear (D26 300 N: OK).
-- Storage reel 50 / 72 / 22: 46 g, 31.4 kg mm2 full; overrun after landing at LIGHT 0.5 N about 0.55 m.
-- Capstan 50:22, 7 wraps: tow 50 N = 2.83 N m, 4.62 A, 0.15 m/s. Shear pin slipping: about 92 N, 7 A.
-  TAKE-UP DRAG CORRECTED (review round 6): the bus turns the clutch disk at 2.5 x the WIPER (D25), so the FIRM drag is
-  0.43 N m at the wiper, not 0.82. Tow sensing: line = 17.0 x (I - I_free) - 3.0 N (was -10.4); tow trip at free
-  + 3.05 A. Tow hard trip 6.5 A (D33) = about 83 N. Highest tow limit before the trip / 0.8 x shear pin: 72 N (D39 cap
-  70 N: OK).
-- Cock 2.9 N m, 4.7 A, 2.7 s per shot. Aim 0.33 N m peak, 1.9 A, 6.6 s for 6 to 47 deg.
-- AIM GEAR (review R2-K, cad-launch as built): splitter sun m1.5 z30 face 8. At the aim peak sf 5.9 (PPA-CF). At a
-  5 A trip (3.2 N m) it fails Lewis (sf 0.62 PPA-CF, 0.30 PLA). Recommend the aim hard trip at 3 A (1.36 N m,
-  sf 1.44 in PPA-CF; print the splitter and bevels in PPA-CF, PLA fails even at 3 A).
-- Final approach on FIRM 5 N (reel full): 3.85 N at the dart vs 2.1 to 2.6 N needed: margin 1.5 to 1.9.
-- Wrap on LIGHT (DRUM.n20 12:1, 8.1 deg/s): N20 46 to 56 N mm (23 to 28 % of 0.20 N m); about 30 s.
-- Take-up in NEUTRAL: 0.06 / 0.12 / 0.26 to 0.33 m/s at duty 0.3 / 0.5 / 1.0 (retrieve.json "takeup").
+- Launch: 2 x Century C-243, 265 mm full cock (40.1 N each), 12.1 J, carriage 85.8 g: 6.80 m/s, line taut.
+- Range from the rail pivot's ground point, LIGHT 0.5 / 0.75 / 1.0 N: 4.13 / 3.72 / 3.35 m at 34 deg (best).
+  Table 6 to 47 deg in base/out/ballistics.json (C3), content-hash checked. 4 springs: not supported in v1 (D38).
+- Stop: 2.0 J carriage + about 0.9 J springs: 295 N on the 19 mm flexure (D26 300 N: just inside; lighter carriage helps).
+- Storage reel 50 / 72 / 22: overrun after landing at LIGHT 0.5 N about 0.6 m. No level wind (F13).
+- Tow, plain printed exit eye and cup groove (REEL.path_gain 1.5, default until the design adds pulleys):
+  50 N AT THE DART = 4.17 N m, 6.09 A, 0.13 m/s, above 0.8 x the 5 N m shear pin and near the 6.5 A trip; the most
+  the train can put on the dart is about 48 N. Sense law at the dart: line = 11.3 x (I - I_free) - 2.0 N
+  (= the spec D42 law 17.0 / -3.0 at the capstan divided by the path gain). With 693 pulleys (gain 1.15): 50 N =
+  3.2 N m, 5.1 A, max about 62 N, law 14.8 / -2.6.
+- Cock 2.9 N m, 4.7 A. Aim 0.33 N m, 1.9 A (D40 aim trip 3 A: splitter sf 1.44 in PPA-CF).
+- Final approach on FIRM 5 N with the real seating path (gain 1.75): margin about 1.0 to 1.3.
+- Wrap on LIGHT: N20 46 to 56 N mm (23 to 28 % of 0.20 N m), about 30 s.
+- Take-up in NEUTRAL: 0.06 / 0.12 / 0.26 to 0.33 m/s at duty 0.3 / 0.5 / 1.0.
 - Recoil rock (ASSUMED 4 kg rover): about 5 deg at 6 deg pitch braked, 0.5 deg at 36. No tip.
-- Mission: about 3.6 min, 0.75 Wh from the base pack (about 62 missions per pack).
 - SPRING CATALOGUE (web check): Bunnings 0487961 is Century C-243, 5/8 in OD x 6-1/2 in x 0.054 in wire (1.37 mm,
   not 1.4). Century lists max safe load 8.64 lb (38.4 N) and max deflection 11.9 in (302 mm), rated for about 100,000
   cycles. The earlier 280 mm full cock was 42 N with the 0.125 N/mm / 7 N estimate: inside the deflection limit but 9 %

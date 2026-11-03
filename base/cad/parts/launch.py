@@ -228,7 +228,7 @@ def rail_solid(P):
         q = tf.apply(f["M"], np.array([[hx, 0.0, 0.0]]))[0]
         solid = solid - cyl_w(1.3, q[2] - 10.0, q[2] + 1.0, q[0], q[1])
     # stop pad pockets
-    solid = solid - B(ust - 1.0, ust + 10.0, -(n["y_shoe0"] - 0.5), -n["stop_y0"], n["tab_w0"] - 8, n["tab_w0"] + 6.1)
+    solid = solid - B(ust - 1.0, ust + PAD_L, -(n["y_shoe0"] - 0.5), -n["stop_y0"], n["tab_w0"] - 8, n["tab_w0"] + 6.1)
     return solid
 
 
@@ -377,6 +377,7 @@ def anchor_pin_solid(P):
 
 
 N_SEG = 5
+PAD_L = 18.0          # carriage stop pad length (physics F3: 15 to 20 mm of TPU or foam)
 _DART = {}
 
 
@@ -439,7 +440,7 @@ def parts(P):
             out.append(Part(f"launch_spring_{side}_{i}", spring_segment_solid(P, seg_len), "bought",
                             joint=f"launch_spring_seg_{i}", place=tf.T(u_seg, y, n["w_spring"]), color="#c2c7cc",
                             notes="Spring coils (shown in segments that spread when stretched)"))
-    out.append(Part("launch_stop_pad_r", B(0, 10, -5.0, 0, 0, 14), "TPU", joint="launch_rail",
+    out.append(Part("launch_stop_pad_r", B(0, PAD_L, -5.0, 0, 0, 14), "TPU", joint="launch_rail",
                     place=tf.T(n["u_c_home"] + 8.0, -n["stop_y0"], n["tab_w0"] - 8),
                     print_tf=tf.T(0, 5, 0), color="#222222", notes="Carriage stop pad"))
     for nm, f in switch_frames(P).items():
@@ -495,34 +496,29 @@ def release_table(P):
     def ov(th, xu):
         return (gear.rotate(th) ^ rack.translate((u0 - xu, -n["w_rp"]))).area()
 
-    def follow(th, nom):
-        xs = np.arange(max(0.0, nom - 4.0), nom + 4.0, 0.05)
-        for x in xs:
+    def follow(th, prev):
+        x = max(0.0, prev - 1.0)
+        while x < prev + 4.0:
             if ov(th, x) < 1e-5:
                 return float(x)
-        return float(nom)
+            x += 0.03
+        return float(prev)
 
-    # mid-stroke offset (springs take up the backlash) measured once
-    d_mid = -math.radians(-150.0) * rb - follow(-150.0, -math.radians(-150.0) * rb)
     ths, trs = [0.0], [0.0]
     th_rel = None
     th = -1.0
-    th_start_fine = -math.degrees((n["n_present"] - 3) * p / rb)
+    th_fine = -math.degrees((n["n_present"] + n["n_lead"] - 3) * p / rb)
+    prev = 0.0
     while th > -359.0:
-        nom = -math.radians(th) * rb
-        if th > th_start_fine:
-            tr = max(0.0, nom - d_mid)
-            step = -2.0
-        else:
-            tr = follow(th, nom)
-            free = all(ov(th, x) < 1e-5 for x in np.arange(0.0, tr, 0.5))
-            if free:
-                th_rel = th
-                break
-            step = -0.25
+        tr = follow(th, prev)
+        if th <= th_fine and all(ov(th, x) < 1e-5 for x in np.arange(0.0, tr, 0.5)):
+            th_rel = th
+            break
         ths.append(th)
         trs.append(tr)
-        th += step
+        prev = tr
+        th += -1.0 if th > th_fine else -0.25
+    d_mid = float(np.median(-np.radians(np.array(ths[5:-20])) * rb - np.array(trs[5:-20])))
     out = dict(theta=np.array(ths), travel=np.array(trs), theta_release=th_rel,
                travel_release=float(trs[-1]), d_mid=d_mid)
     _REL_CACHE[key] = out

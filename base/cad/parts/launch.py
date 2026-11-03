@@ -408,16 +408,17 @@ def carriage_solid(P):
         s.append(B(uc, uc + 3.0, -yo, yo, n["w_deck0"], rib_top))
     # shoes (full length: the carriage is guided over its whole length) with windows through them (y, vertical as
     # printed): 1.6 mm chords bear on the shelf and under the lips, posts 2 mm, solid where a rib or web meets the shoe.
-    # Chord check: 40 N (the whole radial rack force on one side over one window) on a 4 x 1.6 chord, span 8,
-    # fixed-fixed: 40 * 8 / 8 / (4 * 1.6^2 / 6) = 23 MPa (along u, in the layers).
+    # Chord check: radial rack force 38 N split over both shoes plus about 5 N per side from the spring / rack couple,
+    # say 25 N on one 4 x 1.6 chord over one window (span 12, fixed-fixed): 25 * 12 / 8 / (4 * 1.6^2 / 6) = 22 MPa
+    # (along u, in the layers). The lip / shelf contact spreads it over several windows in practice.
     keep = sorted([(0.0, n["pusher_t"])] + [(uc, uc + RIB_T) for uc in RING_U] + [(uc, uc + 3.0) for uc in deck_u])
     shoe = Bs(0, Lc, yo, n["y_shoe1"], n["shoe_w0"], n["shoe_w1"])
     for (_, a), (b, _) in zip(keep[:-1], keep[1:]):
         a, b = a + 2.0, b - 2.0
-        nw = int(math.floor((b - a + 2.0) / 10.0))
-        if nw < 1:
+        nw = int(math.ceil((b - a + 2.0) / 14.0))
+        lw = (b - a - 2.0 * (nw - 1)) / max(nw, 1)
+        if nw < 1 or lw < 3.0:
             continue
-        lw = (b - a - 2.0 * (nw - 1)) / nw
         for k in range(nw):
             u0 = a + k * (lw + 2.0)
             shoe = shoe - Bs(u0, u0 + lw, yo - 1.0, n["y_shoe1"] + 1.0, n["shoe_w0"] + 1.6, n["shoe_w1"] - 1.6)
@@ -439,8 +440,8 @@ def carriage_solid(P):
         s.append(rib - cyl_u(rc_in, uc - 1, uc + 7, 0, n["w_dart"]))
     for sg in (1, -1):                                   # strip-to-shoe webs between the rings: Warren truss windows
         for uc, uc1 in zip(RING_U[:-1], RING_U[1:]):
-            web = B(uc + RIB_T - 0.01, uc1 + 0.01, *sorted((sg * 13.0, sg * 15.0)), n["w_deck0"], n["w_dart"] - 17.5)
-            web = web - _truss_windows(uc + RIB_T, uc1, n["w_deck0"] + 1.6, n["w_dart"] - 19.1, -16.0, 16.0, 1.6)
+            web = B(uc + RIB_T - 0.01, uc1 + 0.01, *sorted((sg * 13.0, sg * 15.0)), rib_top - 0.5, n["w_dart"] - 17.5)
+            web = web - _truss_windows(uc + RIB_T, uc1, rib_top + 1.1, n["w_dart"] - 19.1, -16.0, 16.0, 1.6)
             s.append(web - cyl_u(rc_in, uc, uc + 40, 0, n["w_dart"]))
     # cradle lead-in at the front (dart reeled in tail first): 2 mm chamfer
     s.append((cyl_u(rc_out, 148.0, 152.0, 0, n["w_dart"]) - prim.place(prim.cyl(rc_in, 4.0, r2=rc_in + 2.0),
@@ -510,6 +511,9 @@ def carriage_yoke_solid(P):
     y = y - cyl_u(2.7, -15.0, 0.0, st["y_push"], st["w_push"])                                # collar counterbore
     y = y - cyl_w(2.25, a0 - 2.0, st["w_push"] + 1.5, st["u_plunger_local"], STEM_Y)          # stem bore
     y = y - cyl_w(1.25, a0 - 2.0, st["w_push"] + 10.0, st["u_plunger_local"], PIN_Y)          # pin bore (through)
+    for sg in (1, -1):                       # spring pegs hollow (d3 blind from the flange end): lighter, and an optional
+        for yy in (n["y_spring"], Y_SPRING2):    # d3 steel pin pressed in carries the hook load across the layers
+            y = y - cyl_w(1.5, n["w_spring"] - 12.0, a0 + 4.0, up, sg * yy)
     y = y - B(FOOT_U0 - 0.5, FOOT_U1 + 1.1, 12.5, 28.5, a0 - 2.0, a0 + 1.4)                  # leaf travel recess
     for sg in (1, -1):
         y = y - cyl_w(1.7, ARM_LAP_W - 1.0, a1 + 1.0, ARM_BOLT_U, sg * ARM_BOLT_Y)

@@ -376,13 +376,16 @@ class App:
         return (w, h)
 
     def _set_target(self, u: float, v: float, size, source: str) -> dict:
-        from .vision.target import target_info
-        info = target_info(self.cam_model, u, v, image_size=size)
-        off = float(getattr(self.cam_model, "range_offset_m", 0.0) or 0.0)
-        if info.get("range_m") is not None and off:
-            # ballistics ranges are from the launcher pivot; the camera sits off it along the launch azimuth
-            info["range_cam_m"] = info["range_m"]
-            info["range_m"] = round(info["range_m"] + off, 2)
+        try:                                   # jetson-vision: range and bearing from the pivot ground point (D29)
+            from .campose import target_info_pivot
+            info = target_info_pivot(self.cam_model, u, v, image_size=size)
+        except ImportError:
+            from .vision.target import target_info
+            info = target_info(self.cam_model, u, v, image_size=size)
+            off = float(getattr(self.cam_model, "range_offset_m", 0.0) or 0.0)
+            if info.get("range_m") is not None and off:
+                info["range_cam_m"] = info["range_m"]
+                info["range_m"] = round(info["range_m"] + off, 2)
         info.update(u=u / size[0], v=v / size[1], cam="rover", source=source, t=time.time())
         self.target = info
         self._update_solution()

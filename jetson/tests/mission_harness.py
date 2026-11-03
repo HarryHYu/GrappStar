@@ -11,7 +11,7 @@ from grappstar.jlog import JLog
 from grappstar.mission import Mission, MissionConfig
 from grappstar.rover import RoverDrive
 
-SCALE = 8.0
+SCALE = 20.0
 
 
 class FakeCam:

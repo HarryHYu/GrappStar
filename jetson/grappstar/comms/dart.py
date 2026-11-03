@@ -253,8 +253,13 @@ class Dart:
         t_end = time.time() + seconds
         try:
             while time.time() < t_end and not (cancel and cancel.is_set()):
-                for k in keys:
-                    self.key(k, ms)
+                try:
+                    for k in keys:
+                        self.key(k, ms)
+                except DartRefused as e:
+                    if e.reason.startswith("stalled"):
+                        break           # the motor reached its end stop: the normal end of a hold
+                    raise
                 time.sleep(period)
         finally:
             # stop the motors but keep the landing detector armed (a full /stop disarms, v4)

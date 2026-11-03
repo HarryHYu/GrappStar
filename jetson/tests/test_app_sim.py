@@ -8,6 +8,8 @@ import pytest
 from grappstar.app import App, AppConfig
 from grappstar import cli
 
+pytestmark = pytest.mark.slow    # a whole simulated mission in real time
+
 
 @pytest.fixture(scope="module")
 def app(tmp_path_factory):

@@ -18,6 +18,11 @@ Refusal reasons: `in flight`, `busy` (a sequence owns the motors), `already anch
 `no current sensor` (INA219 missing or lost), `no IMU` (BNO085 missing or silent), `stalled: release the key first`,
 `unknown key`.
 
+**One request at a time.** If a client opens a connection and never sends a request (a browser tab closing mid
+request can do this), the ESP32 web server waits up to 5 s for it before serving anyone else. Motors are not affected
+(the deadman and all safety run in their own task), but a `/stop` sent in that window is answered late. Use short
+timeouts and retry `/stop`.
+
 **Clients must treat 409 as an answer, not as a broken link.** Do not retry on 409. With Python urllib, catch
 `urllib.error.HTTPError` with `e.code == 409` and read `e.read()`.
 

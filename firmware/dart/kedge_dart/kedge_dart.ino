@@ -300,10 +300,18 @@ void setup() {
   web.on("/key", []() {
     reply = "";
     String c = web.arg("c"); long ms = web.hasArg("ms") ? web.arg("ms").toInt() : K.tu.wifiDeadmanMs;
-    static long lastStopN = -1; static String lastPage; long n = web.hasArg("n") ? web.arg("n").toInt() : -1;   // the page numbers every request
-    String pg = web.arg("p"); if (pg != lastPage) { lastPage = pg; lastStopN = -1; }   // a reloaded page starts counting again
-    if (c == " " || c == "s") { if (n > lastStopN) lastStopN = n; }
-    else if (n >= 0 && n < lastStopN) { web.send(200, "text/plain", ""); return; }      // a run key that left before the stop: drop it
+    // each open page numbers its requests (n) and has its own id (p); a run key sent before that page's STOP is dropped.
+    // The last 4 page ids are remembered, so a phone and a laptop do not reset each other's counter.
+    static String pages[4]; static long stopN[4] = {-1, -1, -1, -1}; static int nextSlot = 0;
+    long n = web.hasArg("n") ? web.arg("n").toInt() : -1; String pg = web.arg("p"); int slot = -1;
+    if (pg.length()) {
+      for (int i = 0; i < 4; i++) if (pages[i] == pg) slot = i;
+      if (slot < 0) { slot = nextSlot; nextSlot = (nextSlot + 1) % 4; pages[slot] = pg; stopN[slot] = -1; }   // a new or reloaded page
+    }
+    if (slot >= 0 && n >= 0) {
+      if (c == " " || c == "s") { if (n > stopN[slot]) stopN[slot] = n; }
+      else if (n < stopN[slot]) { web.send(200, "text/plain", ""); return; }   // a run key that left before the stop: drop it
+    }
     if (ms < 50) ms = 50;
     if (ms > (long)K.tu.wifiMaxRunMs) ms = K.tu.wifiMaxRunMs;
     if (!c.length()) { web.send(400, "text/plain", "missing c\n"); return; }

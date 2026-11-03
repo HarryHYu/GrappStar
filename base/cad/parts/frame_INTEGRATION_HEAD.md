@@ -1,4 +1,4 @@
-## Frame-origin check (run before the audit, 12:25 Sydney, base-v1 6421270)
+## Frame-origin check (run before the audit, 12:15 Sydney, base-v1 6421270)
 
 **BLOCKER: three subsystems use a different world origin from BASE_SPEC section 2 / params v1.1.** The spec puts the
 origin ON the main axis (main axis z = 0, deck top z = LAYOUT.deck_top_z = -165). In the rest state:

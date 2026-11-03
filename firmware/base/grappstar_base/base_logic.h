@@ -440,7 +440,7 @@ struct Base {
     if (s == SEC_INVALID || (sec != SEC_INVALID && abs(s - sec) > 1 && booted)) { if (!secBad) { secBad = true; secBadT = now; } return; }
     secBad = false;
     if (s == sec) return;
-    int was = sec; prevSec = sec; sec = s;
+    int was = sec; prevSec = sec; sec = s; secChangeT = now;
     if (was == SEC_INVALID || !booted) { drumKnown = true; return; }
     int dir = s > was ? 1 : -1;
     float e = c.edgeDeg[s > was ? was : s];
@@ -525,8 +525,11 @@ struct Base {
     // the drum code says away from LAUNCH while the spring is known drawn: a code contact is lying
     if (loadedKnown() && sec != SEC_INVALID && sec > SEC_LN && booted) { raise(F_BAD_STATE, "drum code away from LAUNCH but the spring is drawn"); return; }
     if (idxOverdue) { idxOverdue = false; idxEdgeT = now; raise(F_ANGLE_SENSOR, "SW_INDEX bump overdue (index cam or contact)"); return; }
-    if ((sec == SEC_LOCK || sec == SEC_REEL) && fitted(SW_ARM) && (rose(SW_ARM) || fell(SW_ARM)) && !secBad && drumDeg > secLo(SEC_LOCK) + 8) {
-      raise(F_DRUM_SENSOR, "SW_ARM moved with the code at N_TO_R or REEL (drum code contact?)"); return;   // the cup is locked there
+    // the cup only turns inside the WRAP window: SW_ARM moving anywhere else (1.5 s after the last code edge) means a lying
+    // drum code contact, and the drum may be unwinding wraps without the take-up
+    if (sec != SEC_WRAP && sec != SEC_INVALID && !secBad && fitted(SW_ARM) && (rose(SW_ARM) || fell(SW_ARM)) && now - secChangeT > 1500) {
+      wrapsDoubt = true; wrapsKnown = false;
+      raise(F_DRUM_SENSOR, "SW_ARM moved outside the wrap window (drum code contact?)"); return;
     }
     if (armBad) { armBad = false; char b[48]; snprintf(b, sizeof b, "SW_ARM counted %d of %d cup turns", armPulses, c.wrapsFull); raise(F_DRUM_SENSOR, b); return; }
     if (bootDrumMismatch) { bootDrumMismatch = false; raise(F_DRUM_SENSOR, "drum code disagrees with the saved drum angle"); return; }
@@ -534,7 +537,7 @@ struct Base {
     if (c.hostTimeoutS > 0 && running && now - hostT > (uint32_t)(c.hostTimeoutS * 1000)) { cmdStop(false); evAborted("HOST", "host silent"); hostT = now; }
   }
   uint32_t hostT = 0;
-  int armPulses = 0, armFrom = SEC_INVALID; bool armBad = false, armCounting = false;
+  uint32_t secChangeT = 0; int armPulses = 0, armFrom = SEC_INVALID; bool armBad = false, armCounting = false;
   int quietSec = SEC_INVALID; uint32_t resyncRef = 0; uint32_t encWrongT = 0, glitchRef = 0, glitchWin = 0, glitchT = 0;
   uint32_t lastMultiOk = 0, dogBothT = 0; bool bootDrumMismatch = false; bool degTrusted = true;
   void onOvercurrent(const char* why) { raise(F_OVERCURRENT, why); }   // always a fault (also in a tow: the limit acts first)
@@ -775,6 +778,7 @@ struct Base {
     if (phase == PH_COCKED) { if (!closed(SW_HOME)) { evCocked(true); return nullptr; } return "SWITCH_DISAGREE"; }
     if (phase == PH_REST && !closed(SW_HOME)) return "SWITCH_DISAGREE";
     if (phase == PH_UNKNOWN && !closed(SW_HOME)) return "LOADED_UNKNOWN";   // carriage drawn, angle unknown: cal decock first
+    if (phase == PH_UNKNOWN && fitted(SW_GAP) && !closed(SW_GAP)) return "LOADED_UNKNOWN";   // the creep needs the gear in its gap too (a lying SW_HOME)
     if (c.requireSeated && !closed(SW_SEATED)) return fitted(SW_SEATED) ? "NOT_SEATED" : "NO_SENSOR";   // lens B I2
     // SW_HOME says home but the last known angle says drawn (before the release): the switch is lying, a creep could fire
     if (phase == PH_UNKNOWN && phaseHint > c.homeOpenDeg + c.homeWinDeg && phaseHint < c.releaseDeg + c.releaseWinDeg) return "LOADED_UNKNOWN";

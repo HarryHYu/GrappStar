@@ -1,0 +1,12 @@
+v29 #,action,detail,note
+13,REMOVE,DRV#2 VM -> DRV#3 VM,DRV#3 is no longer on the dart
+17,REMOVE,DRV#2 GND -> DRV#3 GND,DRV#3 is no longer on the dart
+27,REMOVE,DRV#2 SLP -> DRV#3 SLP,DRV#3 is no longer on the dart
+40,CHANGE (now #37),was XIAO D8 -> DRV#2 AIN1 + BIN1 (bridge the two pads) (45 mm); now XIAO D8 -> DRV#2 AIN1 (only AIN1: NO bridge to BIN1) (45 mm),drills
+41,CHANGE (now #38),was XIAO D9 -> DRV#2 AIN2 + BIN2 (bridge the two pads) (45 mm); now XIAO D9 -> DRV#2 AIN2 (only AIN2: NO bridge to BIN2) (45 mm),drills
+42,CHANGE (now #39),was XIAO D6 -> DRV#3 AIN1 (145 mm); now XIAO D6 -> DRV#2 BIN1 (45 mm),"foot (slow worm, harmless if it twitches at reset)"
+43,CHANGE (now #40),was XIAO D7 -> DRV#3 AIN2 (145 mm); now XIAO D7 -> DRV#2 BIN2 (45 mm),foot
+50,CHANGE (now #47),was DRV#2 BOUT1 -> Drill motor RIGHT - (black)  SWAPPED (170 mm); now DRV#2 AOUT1 (same pad as the LEFT red) -> Drill motor RIGHT - (black)  SWAPPED (170 mm),reversed on purpose: the pair counter-rotates
+51,CHANGE (now #48),was DRV#2 BOUT2 -> Drill motor RIGHT + (red)  SWAPPED (170 mm); now DRV#2 AOUT2 (same pad as the LEFT black) -> Drill motor RIGHT + (red)  SWAPPED (170 mm),
+52,CHANGE (now #49),was DRV#3 AOUT1 -> Foot N20 + (red) (255 mm); now DRV#2 BOUT1 -> Foot N20 + (red) (330 mm),"forward along the top through the disc notches, out the skin hole, 60 mm loop round the hub, through the pole channel"
+53,CHANGE (now #50),was DRV#3 AOUT2 -> Foot N20 - (black) (255 mm); now DRV#2 BOUT2 -> Foot N20 - (black) (330 mm),"silicone wire, it flexes every deploy"

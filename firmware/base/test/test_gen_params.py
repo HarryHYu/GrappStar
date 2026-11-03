@@ -50,5 +50,7 @@ real = os.path.join(HERE, "..", "..", "..", "base", "spec", "params.py")
 out = tempfile.mktemp(suffix=".h")
 wr, nr = gen_params.generate(real, out)
 check(nr > 10 and compiles(out), "real params.py generates a header that compiles")
+missing = [w for w in wr if w.startswith("firmware expects")]
+check(not missing, "the real params.py defines every name the firmware reads (%s)" % "; ".join(missing))
 print("\n%d checks, %d passed, %d failed: %s" % (passed + failed, passed, failed, "FAILURES" if failed else "ALL PASS"))
 sys.exit(1 if failed else 0)

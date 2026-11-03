@@ -17,7 +17,7 @@ flightlog alignment all use it, so they line up when replayed.
 | `grappstar/vision/flight.py`, `mosaic.py` | flight analysis, aerial map |
 | `grappstar/vision/terrain.py`, `target.py` | landing zone verdict, rover targeting |
 | `grappstar/ballistics.py`, `grappstar/data/ballistics_placeholder.json` | contract C3 |
-| `grappstar/mission.py`, `app.py`, `rover.py`, `jlog.py`, `config.py`, `cli.py`, `__main__.py` | mission and glue |
+| `grappstar/mission.py`, `app.py`, `rover.py`, `jlog.py`, `cli.py`, `__main__.py` | mission and glue (defaults in `mission.MissionConfig`, `app.AppConfig`, `cli.py`) |
 | `grappstar/ui/` | operator web page |
 | `setup/`, `README.md`, `requirements.txt` | install and bring-up |
 | `tests/test_<module>.py` | one test file (or more) per module |

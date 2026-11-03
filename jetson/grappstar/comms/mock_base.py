@@ -1,5 +1,5 @@
 """Simulated base station that speaks contract C1 like the real firmware (firmware/base/grappstar_base/base_logic.h,
-fw "base-1.3.0") and follows the one C1 sequence of base/spec/BASE_SPEC.md section 10.1 (D35).
+fw "base-1.3.1") and follows the one C1 sequence of base/spec/BASE_SPEC.md section 10.1 (D35).
 
 Run it in-process (connected to BaseClient through a pipe) or on a pseudo terminal so the real client (or a terminal
 program) can open it like the USB port:
@@ -10,15 +10,19 @@ Commands, refusals (codes and check order), events, telemetry keys, states and p
 may lag it). jetson/tools/basesim runs the real firmware logic for comparison (tests/test_comms_base.py does). The
 mechanics are simplified:
 
-- Selector drum (N20 worm, absolute 3-bit drum code, params.DRUM): zones LAUNCH -4..8, L_TO_N 8..32, NEUTRAL 32..50,
-  WRAP_PREP 50..62, WRAP 62..302 (the cup lays 7 wraps, collar NEUTRAL), N_TO_R 302..340, REEL 340..352; stop points
-  LAUNCH 0, NEUTRAL 41, WRAPPED park 314 (in N_TO_R: wraps on, collar still NEUTRAL below 318), REEL 347; 8.1 deg/s.
-  "wrap" (from LAUNCH or NEUTRAL) parks at WRAPPED and ends with WRAPPED only; "mode REEL" flies the collar in from
-  the park; "unwrap" goes back to NEUTRAL (take-up winding meanwhile): UNWRAPPED then MODE. A fault or estop in REEL
-  or N_TO_R parks the drum at WRAPPED, otherwise at NEUTRAL, unless the drum must hold (MODE ok false DRUM_HELD).
+- Selector drum (N20 worm, absolute 3-bit drum code, params.DRUM code_edges as built): zones LAUNCH -4..6, L_TO_N
+  6..34, NEUTRAL 34..50, WRAP_PREP 50..62, WRAP 62..302 (the cup lays 7 wraps, collar NEUTRAL), N_TO_R 302..342, REEL
+  342..352; stop points LAUNCH 0, NEUTRAL 41, WRAPPED park 314 (in N_TO_R: wraps on, collar still NEUTRAL below 318),
+  REEL 347; 8.1 deg/s. "wrap" (from LAUNCH or NEUTRAL) parks at WRAPPED and ends with WRAPPED only; "mode REEL" flies
+  the collar in from the park; "unwrap" goes back to NEUTRAL (take-up winding meanwhile): UNWRAPPED then MODE, also at
+  once when already at NEUTRAL. With the wraps on (WRAP, N_TO_R, REEL) a fault or estop holds the drum (MODE ok false
+  DRUM_HELD), otherwise it goes to NEUTRAL unless it must hold for another reason.
 - Wiper in LAUNCH: BACKWARD aims (the firmware's default aim table, pitch 6..47 deg over a 3600 deg aim cycle, homed on
-  SW_RAIL_LOW at 3365; a shift into LAUNCH forgets the aim), FORWARD cocks (415 deg), fires (release 432.7) and resets
-  (553.8 = one big gear turn). Fire from REST runs the whole cycle.
+  SW_RAIL_LOW, which closes within 97.6 deg of the LOW dead point as cad-sensors builds it: aim_home_deg 3502; a shift
+  into LAUNCH forgets the aim), FORWARD cocks (415 deg), fires (release 432.7) and resets (553.8 = one big gear turn).
+  Fire from REST runs the whole cycle. SW_GAP is closed within 22.9 deg of rest (cad-sensors); the reset re-zeroes on
+  it with gap_close_deg (531), so a value well below the CAD edge runs the train into the first tooth (BAD_STATE).
+  SW_SEATED reads the dart only with the carriage home; a dart seated when the cock started counts while COCKED.
 - Wiper in REEL (collar engaged, wraps on): winds the capstan (about 0.22 m/s at duty 1). In NEUTRAL or at the WRAPPED
   park only the take-up turns (forward, duty 0.27..0.4, about 0.3 m/s per unit duty, slips at about 5 N): "tidy" (by
   time, TIDIED), "retrieve" (until SW_SEATED, SEATED; FAULT DART_STUCK after max_s 5..600, default as approachLimit()), "reel"
@@ -26,11 +30,13 @@ mechanics are simplified:
   Telemetry tension_n is the load cell (null when load_cell is False).
 - Faults: inject_fault(code) or arm one with fail_next[cmd] = code (raised part way through that command's motion).
 
-Where BASE_SPEC 10.1 is stricter than base-1.2 the mock follows 10.1 (as the newer firmware base-1.2.1 does):
-"retrieve" and "reel until seated" are refused in REEL (WRAPS_ON, never seat on the capstan) and "retrieve" takes
-max_s; "cock" needs SW_SEATED (NOT_SEATED); "decock" with the carriage home and the phase UNKNOWN answers RESET ok
-false; status carries ev_drops; set accepts tow_trip_a. seat_ends_any_reel (default False = firmware) makes the seat
-contact end every reel with SEATED.
+Refusals follow base_logic.h: "retrieve" and "reel until seated" only in the NEUTRAL sector (WRAPS_ON elsewhere, the
+WRAPPED park included), "retrieve" takes max_s; "cock" needs SW_SEATED (NOT_SEATED); a drum jog is WRAPS_ON down from
+N_TO_R / REEL and inside WRAP, SHIFTING up from N_TO_R; a wiper jog backward is BACKSTOP outside LAUNCH; "decock" with
+the carriage home and the phase UNKNOWN answers RESET ok true (SW_GAP closed: at rest) or ok false (SW_GAP open);
+"aim" within aim_tol of the table ends is clamped a quarter of aim_tol inside; status carries ev_drops; set accepts
+tow_trip_a and gap_close_deg. seat_ends_any_reel (default False = firmware) makes the seat contact end every reel with
+SEATED.
 
 Times run on a scaled clock (time_scale) so tests can go faster than real life.
 """
@@ -46,13 +52,30 @@ from typing import Any, Callable, Dict, Optional
 
 from .base import MAX_LINE, PipeEnd, pipe_pair
 
-FW = "base-1.3.0"
-PARAMS_VERSION = "1.2.1"
+FW = "base-1.3.1"
+
+
+def _params_version() -> str:
+    """get params: P_VERSION of firmware/base/grappstar_base/params_gen.h (what the firmware reports), else 1.3.8."""
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "firmware", "base",
+                     "grappstar_base", "params_gen.h")
+    try:
+        with open(p, encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("#define P_VERSION "):
+                    return line.split('"')[1]
+    except (OSError, IndexError):
+        pass
+    return "1.3.8"
+
+
+PARAMS_VERSION = _params_version()
 
 # ---- drum (params.DRUM, base_logic.h Cfg): zones in travel order (name, lo, hi, closed code contacts)
-ZONES = (("LAUNCH", -4.0, 8.0, "a"), ("L_TO_N", 8.0, 32.0, "ab"), ("NEUTRAL", 32.0, 50.0, "b"),
-         ("WRAP_PREP", 50.0, 62.0, "bc"), ("WRAP", 62.0, 302.0, "c"), ("N_TO_R", 302.0, 340.0, "ac"),
-         ("REEL", 340.0, 352.0, "abc"))
+# code edges as built (params.DRUM code_edges 6, 34, 50, 62, 302, 342: the firmware edge table)
+ZONES = (("LAUNCH", -4.0, 6.0, "a"), ("L_TO_N", 6.0, 34.0, "ab"), ("NEUTRAL", 34.0, 50.0, "b"),
+         ("WRAP_PREP", 50.0, 62.0, "bc"), ("WRAP", 62.0, 302.0, "c"), ("N_TO_R", 302.0, 342.0, "ac"),
+         ("REEL", 342.0, 352.0, "abc"))
 ZONE_NAMES = tuple(z[0] for z in ZONES)
 ZI = {n: i for i, n in enumerate(ZONE_NAMES)}
 DRUM_DEG = {"LAUNCH": 0.0, "NEUTRAL": 41.0, "REEL": 347.0, "WRAPPED": 314.0}
@@ -77,18 +100,22 @@ AIM_TABLE = (6.01, 6.24, 6.93, 8.12, 9.83, 12.10, 14.93, 18.32, 22.22, 26.50, 30
 AIM_CYCLE_DEG = 3600.0
 PITCH_MIN, PITCH_MAX = 6.0, 47.0
 AIM_TOL_DEG = 0.75
-AIM_HOME_DEG = 3365.0
+AIM_HOME_DEG = 3502.0      # firmware default aim_home_deg: where SW_RAIL_LOW closes on the backward run
+LOW_WIN_DEG = 97.6         # cad-sensors: SW_RAIL_LOW closed within +-9.76 crank deg (97.6 aim deg) of the LOW dead point
 AIM_DPS, AIM_SLOW_DPS, AIM_SLOW_DEG = N0_DPS * 200 / 255, N0_DPS * 110 / 255, 60.0
 # ---- shot cycle (wiper deg forward from rest, one big gear turn per shot)
 CYCLE_DEG = 553.8
 HOME_OPEN_DEG, HOME_WIN_DEG = 4.0, 12.0
 COCK_END_DEG, COCK_SLOW_FROM = 415.0, 380.0
 RELEASE_DEG, RELEASE_WIN_DEG = 432.7, 15.0
-GAP_CLOSE_DEG = 520.0
+GAP_CLOSE_DEG = 531.0      # firmware default gap_close_deg: where SW_GAP closes on the reset run
+GAP_WIN_DEG = 14.9 * 40.0 / 26.0   # cad-sensors: SW_GAP closed within +-14.9 big-gear deg (22.9 wiper deg) of rest
 DECOCK_EXTRA_DEG = 15.0
 COCK_DPS, COCK_SLOW_DPS = N0_DPS, N0_DPS * 140 / 255
 FIRE_DPS, RESET_DPS = N0_DPS, N0_DPS * 200 / 255
 DECOCK_DPS, JOG_DPS = N0_DPS * 120 / 255, N0_DPS * 150 / 255
+FLY_DPS = N0_DPS * 64 / 255                            # fly-in creep / the REEL take-up of the centering jog
+CENTER_DEG, DOG_WINDOW_DEG = 6.0, 16.0                 # params DRUM unload_jog_deg; collar dog window
 TOKEN_S = 3.0
 JOG_MAX_MS = 1500
 # ---- reel (capstan 41 mm line centre x 50/22) and take-up
@@ -137,7 +164,15 @@ SET_KEYS = {"limit_n": (1, LIMIT_MAX_N), "k_n_per_a": (0.1, 200), "tension_offse
             "amps_per_volt": (1, 200), "offset_a": (0, 5), "hx_n_per_count": (1e-7, 1), "drum_dps": (5, 720),
             "aim_tol": (0.1, 5), "aim_offset": (-20, 20), "line_m": (0, 100), "trip_a": (3, 19),
             "cock_trip_a": (3, 19), "tow_trip_a": (3, 19), "vbat_low": (6, 12), "aim_home_deg": (-7200, 7200),
-            "host_timeout_s": (0, 600)}
+            "gap_close_deg": (480, 553), "host_timeout_s": (0, 600)}
+# keys refused (BUSY) while any motor moves or while holding (base_logic.h cmdSet "live")
+LIVE_KEYS = ("k_n_per_a", "tension_offset_n", "free_a", "amps_per_volt", "offset_a", "hx_n_per_count", "trip_a",
+             "cock_trip_a", "tow_trip_a", "gap_close_deg")
+# cal factory: the params defaults of the bench settings
+FACTORY = {"limit_n": LIMIT_N, "k_n_per_a": 13.1, "tension_offset_n": -2.3, "free_a": 1.5, "amps_per_volt": 12.5,
+           "offset_a": 0.0, "hx_n_per_count": 1 / 21000.0, "drum_dps": DRUM_DPS, "aim_tol": AIM_TOL_DEG,
+           "aim_offset": 0.0, "aim_home_deg": AIM_HOME_DEG, "gap_close_deg": GAP_CLOSE_DEG, "trip_a": TRIP_A,
+           "cock_trip_a": COCK_TRIP_A, "tow_trip_a": TOW_TRIP_A, "vbat_low": VBAT_LOW}
 BOOL_KEYS = ("require_seated", "vbat_wired")
 DRUM_FAULTS = ("DRUM_TIMEOUT", "DRUM_SENSOR")
 HOLD_LAUNCH = "launch train not at rest: the wiper worm holds the spring (a shift under load could dry fire)"
@@ -237,12 +272,9 @@ class MockBase:
         self.require_seated = True
         self.vbat_wired = True
         self.enc_sign = 1
-        self.settings: Dict[str, float] = {"limit_n": LIMIT_N, "k_n_per_a": 13.1, "tension_offset_n": -2.3,
-                                           "free_a": 1.5, "amps_per_volt": 12.5, "offset_a": 0.0,
-                                           "hx_n_per_count": 1 / 21000.0, "drum_dps": DRUM_DPS,
-                                           "aim_tol": AIM_TOL_DEG, "aim_offset": 0.0, "aim_home_deg": AIM_HOME_DEG,
-                                           "trip_a": TRIP_A, "cock_trip_a": COCK_TRIP_A, "tow_trip_a": TOW_TRIP_A,
-                                           "vbat_low": VBAT_LOW, "host_timeout_s": 0.0}
+        self.settings: Dict[str, float] = dict(FACTORY, host_timeout_s=0.0)
+        self.seated_at_cock = False         # seatedAtCock: SW_SEATED read as the cock started (counts while COCKED)
+        self.gap_open_deg: Optional[float] = None   # where SW_GAP opened during the last cock (COCKED gap_deg)
         self.code_bad = False               # test hook: drum code invalid (drum_pos UNKNOWN, POSITION_UNKNOWN)
         self.ev_drops = 0
         self.tension_cal = False             # base-1.3.0 (F28): true once k_n_per_a or tension_offset_n is set
@@ -250,7 +282,7 @@ class MockBase:
         self.commands = self._commands()
         self._defer: Optional[list] = None  # events raised while a command is handled, sent after its reply
         self.op: Dict[str, Any] = {}
-        self._seat_prev = self.seated()
+        self._seat_prev = self.seat_contact()
         # ---- test hooks
         self.fail_next: Dict[str, str] = {}   # command name -> fault code raised part way through its motion
         self.ignore: set = set()              # command names that get no reply (timeout tests)
@@ -349,15 +381,24 @@ class MockBase:
         return DRUM_POS_OF.get(z, "BETWEEN")
 
     def seated(self) -> bool:
+        """The dart in the cradle (truth)."""
         return self.world.dart == "seated" and self.line_m <= 0.01
+
+    def seat_contact(self) -> bool:
+        """SW_SEATED as built: the carriage plunger presses its lever only with the carriage on its front stop."""
+        return self.seated() and self.home_closed()
+
+    def seated_ok(self) -> bool:
+        """seatedOk(): the contact, or while COCKED the reading taken when the cock started."""
+        return self.seat_contact() or (self.phase == "COCKED" and self.seated_at_cock)
 
     def home_closed(self) -> bool:
         """SW_HOME: carriage fully forward (before the first tooth, or after the release until the cycle ends)."""
         return self.cock_deg < HOME_OPEN_DEG or self.cock_deg >= RELEASE_DEG
 
     def gap_closed(self) -> bool:
-        """SW_GAP: big gear in its toothless gap (rest, or the end of the reset)."""
-        return self.cock_deg < HOME_OPEN_DEG or self.cock_deg >= GAP_CLOSE_DEG
+        """SW_GAP as built: big gear within 22.9 wiper deg of rest (cad-sensors), so also early in the draw."""
+        return self.cock_deg < GAP_WIN_DEG or self.cock_deg >= CYCLE_DEG - GAP_WIN_DEG
 
     def takeup_zone(self) -> bool:
         """cmdReel 'neutral': collar NEUTRAL in the NEUTRAL sector or at the WRAPPED park (below 318)."""
@@ -394,14 +435,19 @@ class MockBase:
             out["H"] = 1
         if self.gap_closed():
             out["G"] = 1
-        if 0 <= (self.aim_phase - self.settings["aim_home_deg"]) % AIM_CYCLE_DEG < 8:
-            out["L"] = 1                     # rail at its low dead point (aim home)
-        if self.seated():
+        if self.rail_low():
+            out["L"] = 1                     # rail near its low dead point (aim home)
+        if self.seat_contact():
             out["S"] = 1
         wf = ((self.drum_deg - WRAP_FROM) / WRAP_DEG) % 1.0
         if z == "WRAP" and 0.014 <= wf <= 0.986:
             out["W"] = 1                     # cad-reel: SW_ARM closed while the cup is away, opens about +-5 deg at home
         return {k2: out[k2] for k2 in SW_KEYS if k2 in out}
+
+    def rail_low(self) -> bool:
+        """SW_RAIL_LOW as built: closed within 97.6 aim deg of the LOW dead point (aim phase 0)."""
+        a = self.aim_phase % AIM_CYCLE_DEG
+        return a < LOW_WIN_DEG or a >= AIM_CYCLE_DEG - LOW_WIN_DEG
 
     def moving(self) -> bool:
         return self.drum_running or self.state not in ("IDLE", "HOLD", "FAULT")
@@ -570,6 +616,7 @@ class MockBase:
         if self.state == "FAULT":
             return                           # the first fault wins
         self.fault, self.fault_why = code, why[:47]
+        self.seated_at_cock = False
         if self.phase in ("COCKING", "FIRING", "RESETTING") or self.state in ("COCK", "FIRE", "DECOCK"):
             self._phase_lost()               # a fault during launch-train motion: the phase is no longer trusted
         self.token = None
@@ -600,8 +647,10 @@ class MockBase:
         """startDrumMove(): centering jog when leaving an engaged collar (not when safing), then the run."""
         z = self.zone()
         jog = z in ("LAUNCH", "REEL") and z != TARGET_ZONE[target] and kind != "safing"
+        back_s = CENTER_DEG / JOG_DPS
+        fwd_s = DOG_WINDOW_DEG / FLY_DPS if z == "REEL" else 0.0
         self.op = {"kind": kind, "target": target, "to": DRUM_DEG[target], "from": self.drum_deg, "fail": fail,
-                   "jog_end": self.sim_t + (0.3 if jog else 0.0), "jog": z if jog else None,
+                   "jog_end": self.sim_t + (fwd_s + back_s if jog else 0.0), "jog_back_s": back_s, "jog": z if jog else None,
                    "takeup": DRUM_DEG[target] < self.drum_deg and self.zi() >= ZI["WRAP_PREP"]}
 
     def step(self, dt: float) -> None:
@@ -648,7 +697,7 @@ class MockBase:
             self.tension = 0.0 if self.line_m <= 0 or self.world.dart == "seated" else min(self.tension, 0.5)
         self.peak_a = max(self.peak_a, self.amps)
         self.vbat = self.vbat0 - 0.05 * self.amps
-        self._seat_prev = self.seated()
+        self._seat_prev = self.seat_contact()
 
     def _world_step(self, dt: float) -> None:
         w = self.world
@@ -671,9 +720,10 @@ class MockBase:
         if "target" not in op:
             self.state = "FAULT" if self.state == "SAFING" else "IDLE"
             return
-        if self.sim_t < op["jog_end"]:       # centering jog (LAUNCH: backward; REEL: forward, then back)
-            d = AIM_DIR if op["jog"] == "LAUNCH" else (REEL_DIR if self.sim_t < op["jog_end"] - 0.15 else -REEL_DIR)
-            self.wiper_deg += d * self._wiper(d, JOG_DPS, 1.5) * dt
+        if self.sim_t < op["jog_end"]:       # centering jog (LAUNCH: 6 deg backward; REEL: window forward, then 6 back)
+            fwd = op["jog"] == "REEL" and self.sim_t < op["jog_end"] - op.get("jog_back_s", 0.0)
+            d = AIM_DIR if op["jog"] == "LAUNCH" else (REEL_DIR if fwd else -REEL_DIR)
+            self.wiper_deg += d * self._wiper(d, FLY_DPS if fwd else JOG_DPS, 1.5) * dt
             return
         target = op["to"]
         d = target - self.drum_deg
@@ -751,12 +801,10 @@ class MockBase:
             return
         if op.get("homing"):
             trav = self._wiper(AIM_DIR, AIM_DPS, 2.0) * dt
-            home = self.settings["aim_home_deg"]
-            before = (self.aim_phase - home) % AIM_CYCLE_DEG
+            before = self.rail_low()
             self.aim_phase = (self.aim_phase + trav) % AIM_CYCLE_DEG
             self.wiper_deg += AIM_DIR * trav
-            after = (self.aim_phase - home) % AIM_CYCLE_DEG
-            if after < before:               # SW_RAIL_LOW rose
+            if self.rail_low() and not before:   # SW_RAIL_LOW rose (a homing that starts inside the window goes round)
                 self.aim_known = True
                 op["homing"] = False
                 op["left"] = op["total"] = self.aim_travel_to(self.aim_target)
@@ -795,8 +843,11 @@ class MockBase:
         load = 0.5 if self.cock_deg < HOME_OPEN_DEG else 2.0 + 3.0 * (self.cock_deg - HOME_OPEN_DEG) / (
             RELEASE_DEG - HOME_OPEN_DEG)
         trav = min(COCK_END_DEG - self.cock_deg, self._wiper(COCK_DIR, dps, load) * dt)
+        gap_before = self.gap_closed()
         self.cock_deg += trav
         self.wiper_deg += trav
+        if gap_before and not self.gap_closed() and self.gap_open_deg is None:
+            self.gap_open_deg = GAP_WIN_DEG      # where SW_GAP opened, from the first tooth like every shot angle
         if self.cock_deg >= 250.0:
             f = self.fail_next.pop("_cock_now", None)
             if f:
@@ -807,7 +858,13 @@ class MockBase:
             self.phase = "COCKED"
             self.phase_hint = -1.0
             self.state = "IDLE"
-            self.evt("COCKED", ok=True, cock_deg=_n(self.cock_deg, 1))
+            self._ev_cocked()
+
+    def _ev_cocked(self) -> None:
+        kw: Dict[str, Any] = {"ok": True, "cock_deg": _n(self.cock_deg, 1)}
+        if self.gap_open_deg is not None:
+            kw["gap_deg"] = _n(self.gap_open_deg, 1)
+        self.evt("COCKED", **kw)
 
     def _fire_step(self, dt: float) -> None:
         if self.phase == "FIRING":
@@ -835,7 +892,16 @@ class MockBase:
         trav = self._wiper(COCK_DIR, RESET_DPS, 1.5) * dt
         self.cock_deg += trav
         self.wiper_deg += trav
-        if self.cock_deg >= CYCLE_DEG - 1.0:
+        # the firmware re-zeroes on the SW_GAP edge (the CAD edge, read as gap_close_deg) and stops 1 deg short of rest
+        # by its own count: a gap_close_deg below the real edge runs the train into the first tooth
+        stop = CYCLE_DEG - 1.0 + (CYCLE_DEG - GAP_WIN_DEG) - self.settings["gap_close_deg"]
+        if self.cock_deg >= min(stop, CYCLE_DEG - 1.0):
+            if stop - CYCLE_DEG > HOME_OPEN_DEG + 0.7:   # SW_HOME opens about 1 mm into the draw
+                self.cock_deg = stop - CYCLE_DEG
+                self.raise_fault("BAD_STATE", why="reset ended with the carriage off its stop")
+                return
+            if self.cock_deg < stop:
+                return
             self.cock_deg = 0.0
             self.phase = "REST"
             self.state = "IDLE"
@@ -933,12 +999,12 @@ class MockBase:
             self.state = "IDLE"
             return
         u = op["until"]
-        seat_rose = self.seated() and not self._seat_prev
+        seat_rose = self.seat_contact() and not self._seat_prev
         if seat_rose and (u == "seated" or self.seat_ends_any_reel):
             self._seated_now()
             return
         run_s = self.sim_t - op["t0"]
-        seat0 = self.seated()
+        seat0 = self.seat_contact()
         if run_s > 0.3:
             f = self.fail_next.pop("_reel_now", None)
             if f:
@@ -982,7 +1048,7 @@ class MockBase:
             if self.amps > op["trip"]:
                 self.raise_fault("OVERCURRENT", why="wiper over %.1f A" % op["trip"])
                 return
-        if self.seated() and not seat0 and (u == "seated" or self.seat_ends_any_reel):
+        if self.seat_contact() and not seat0 and (u == "seated" or self.seat_ends_any_reel):
             self._seated_now()               # SW_SEATED rose during this step
             return
         if run_s > REEL_MAX_S:
@@ -1277,6 +1343,7 @@ class MockBase:
         e = self._idle_check()
         if e:
             return e
+        self.token, self.token_expired = None, False   # mode cancels the arm token, even when nothing moves
         if self.state == "HOLD":
             return "HOLDING"
         if self.code_bad:
@@ -1317,8 +1384,11 @@ class MockBase:
             return "NOT_AT_REST"
         lo = max(PITCH_MIN, min(AIM_TABLE) + self.aim_offset)
         hi = min(PITCH_MAX, max(AIM_TABLE) + self.aim_offset)
-        if not (lo - 1e-3 <= deg <= hi + 1e-3):
+        tol = self.settings["aim_tol"]
+        if not (lo - tol <= deg <= hi + tol):
             return "OUT_OF_RANGE"
+        q = tol * 0.25                       # the table ends are turning points: aim a quarter tolerance inside
+        deg = min(max(deg, lo + q), hi - q)
         self.aim_target = deg
         self.aimed = False
         self.token = None
@@ -1341,26 +1411,33 @@ class MockBase:
         e = self._idle_check(True)
         if e:
             return e
+        self.token, self.token_expired = None, False   # cock cancels the arm token, even when already cocked
         if self.state == "HOLD":
             return "HOLDING"
         if not self.launch_centred():
             return "NOT_IN_LAUNCH"
         if self.phase == "COCKED":
             if not self.home_closed():
-                self.evt("COCKED", ok=True, cock_deg=_n(self.cock_deg, 1))
+                self._ev_cocked()
                 return None
             return "SWITCH_DISAGREE"
         if self.phase == "REST" and not self.home_closed():
             return "SWITCH_DISAGREE"
         if self.phase == "UNKNOWN" and not self.home_closed():
             return "LOADED_UNKNOWN"          # carriage drawn, angle unknown: decock first
-        if self.require_seated and not self.seated():
-            return "NOT_SEATED"              # lens B I2 (base-1.2.1)
+        if self.phase == "UNKNOWN" and not self.gap_closed():
+            return "LOADED_UNKNOWN"          # the creep needs the gear in its gap too
+        if self.require_seated and not self.seat_contact():
+            return "NOT_SEATED"              # lens B I2, read with the carriage home
         if self.phase == "UNKNOWN" and HOME_OPEN_DEG + HOME_WIN_DEG < self.phase_hint < RELEASE_DEG + RELEASE_WIN_DEG:
             return "LOADED_UNKNOWN"
         self.token = None
         if self.phase != "UNKNOWN":
+            if self.phase == "REST" and not self.gap_closed():
+                return "SWITCH_DISAGREE"     # REST needs the gear in its gap
             self.phase = "COCKING"
+        self.seated_at_cock = self.seat_contact()   # the only place SW_SEATED can read the dart
+        self.gap_open_deg = None
         f = self.fail_next.pop("cock", None)
         if f:
             self.fail_next["_cock_now"] = f
@@ -1387,7 +1464,7 @@ class MockBase:
         if (not self.aim_known or not self.aimed or self.aim_target is None or p is None
                 or abs(p - self.aim_target) > self.settings["aim_tol"]):
             return "NOT_AIMED"
-        if self.require_seated and not self.seated():
+        if self.require_seated and not self.seated_ok():
             return "NOT_SEATED"
         return None
 
@@ -1406,6 +1483,7 @@ class MockBase:
         e = self._fire_check()
         if e:
             return e
+        self.seated_at_cock = False
         self.phase = "FIRING"
         f = self.fail_next.pop("fire", None)
         if f:
@@ -1447,7 +1525,8 @@ class MockBase:
             return "HOLDING"
         z = self.zone()
         if z == "NEUTRAL":
-            self.evt("UNWRAPPED", ok=True)
+            self.evt("UNWRAPPED", ok=True)   # always UNWRAPPED then MODE (BASE_SPEC 10.1 step 16)
+            self._ev_mode(True)
             return None
         if z is None:
             return "POSITION_UNKNOWN"
@@ -1479,8 +1558,8 @@ class MockBase:
             return "NOT_WRAPPED"             # no tension without the capstan
         if not neutral and u == "slip":
             return "BAD_ARG"
-        if not neutral and u == "seated":
-            return "WRAPS_ON"                # D35: never seat the dart on the capstan: unwrap first
+        if u == "seated" and self.zone() != "NEUTRAL":
+            return "WRAPS_ON"                # D35 / D39: seat only in the NEUTRAL sector, never at the park
         if max_n > LIMIT_MAX_N:
             return "BAD_ARG"                 # D39/D43: max_n above the cap is BAD_ARG (it used to be capped)
         duty = max(duty, REEL_MIN_DUTY)
@@ -1492,14 +1571,14 @@ class MockBase:
         s = self.settings
         if neutral:
             trip = TAKEUP_TRIP_A
-        elif u == "tension":                 # D34 tow trip: above what the limit needs, never below tow_trip_a
+        elif u == "tension":                 # D34 tow trip: above what the limit needs, never below trip_a
             need = (max_n - s["tension_offset_n"]) / s["k_n_per_a"] + s["free_a"] + 1.0
-            trip = min(HARD_TRIP_A, max(s["tow_trip_a"], need))
+            trip = min(HARD_TRIP_A, max(s["trip_a"], need))
         else:
             trip = s["trip_a"]
         self.op = {"until": u, "max_n": max_n, "duty": duty, "t0": self.sim_t, "takeup": neutral, "trip": trip,
                    "max_s": APPROACH_S if max_s is None else max_s}
-        if u == "seated" and self.seated():
+        if u == "seated" and self.seat_contact():
             self._seated_now()
             return None
         self.state = "REEL"
@@ -1534,10 +1613,14 @@ class MockBase:
                 return "LAUNCH_BUSY"
             if p == "LAUNCH" and dd == COCK_DIR and self.phase in ("COCKED", "UNKNOWN", "FIRING", "RESETTING"):
                 return "WOULD_FIRE"
+            if p == "LAUNCH" and dd == COCK_DIR and not self.gap_closed():
+                return "SWITCH_DISAGREE"     # gear out of its gap: decock first (gap run)
             if p == "LAUNCH" and dd == AIM_DIR and self.phase != "REST":
                 return "NOT_AT_REST"
             if (z == "REEL" or self.dog_r()) and dd != REEL_DIR:
                 return "BACKSTOP"
+            if p != "LAUNCH" and dd != REEL_DIR:
+                return "BACKSTOP"            # BASE_SPEC 10: backward only in LAUNCH (fights the bus one-way)
             takeup = ZI["NEUTRAL"] <= ZI[z] <= ZI["WRAP"] and dd == REEL_DIR
             if p == "LAUNCH" and dd == AIM_DIR:
                 self.aimed = False
@@ -1548,8 +1631,12 @@ class MockBase:
                 e = self.launch_exit_check()
                 if e:
                     return e
-            if z == "REEL" and dd < 0:
-                return "WRAPS_ON"            # leaving REEL needs the centering jog: use unwrap
+            if z in ("REEL", "N_TO_R") and dd < 0:
+                return "WRAPS_ON"            # down from N_TO_R / REEL only by unwrap (with the take-up)
+            if z == "N_TO_R" and dd > 0:
+                return "SHIFTING"            # into REEL only by mode REEL (the fly-in)
+            if z == "WRAP":
+                return "WRAPS_ON"            # inside the wrap window only wrap / unwrap move the drum
             self.aimed = False
         self.token = None
         self.op = {"motor": motor, "dir": dd, "t_end": self.sim_t + ms / 1000.0, "takeup": takeup}
@@ -1561,6 +1648,8 @@ class MockBase:
         e = self._idle_check(True)
         if e:
             return e
+        self.token = None                    # decock cancels the arm token and the seated latch
+        self.seated_at_cock = False
         if self.detent() != "LAUNCH":
             return "NOT_IN_LAUNCH"
         if self.home_closed():
@@ -1569,7 +1658,11 @@ class MockBase:
                 return None
             drawn = HOME_OPEN_DEG + HOME_WIN_DEG < self.phase_hint < RELEASE_DEG + RELEASE_WIN_DEG
             if self.phase == "UNKNOWN" and not drawn:
-                self.evt("RESET", ok=False, how="decock", why="carriage home: nothing to decock, cock finds the angle")
+                if self.gap_closed():        # carriage home and the big gear in its gap: the springs are relaxed
+                    self.phase, self.phase_hint = "REST", -1.0
+                    self.evt("RESET", ok=True, how="decock", why="SW_HOME and SW_GAP closed: at rest")
+                    return None
+                self.evt("RESET", ok=False, how="decock", why="SW_GAP open: check the carriage by eye, then cal cock_rest force")
                 return None
             if m.get("force") is not True:
                 return "SWITCH_DISAGREE"     # the spring should be drawn but SW_HOME says home: lying switch
@@ -1588,10 +1681,11 @@ class MockBase:
         return None
 
     def _cmd_cal(self, what: str, m: dict) -> Optional[str]:
-        if what == "factory":                 # bench settings back to the params defaults (base-1.3.0)
-            if self.moving():
+        if what == "factory":                 # bench settings back to the params defaults (base-1.3.1)
+            if self.moving() or self.state == "HOLD":
                 return "BUSY"
-            self.settings.update(k_n_per_a=13.1, tension_offset_n=-2.3)
+            self.settings.update(FACTORY)
+            self.aim_offset = 0.0
             self.tension_cal = False
             return None
         if what == "current":
@@ -1626,8 +1720,8 @@ class MockBase:
         if what == "cock_rest":
             if self.moving():
                 return "BUSY"
-            if not self.home_closed() and m.get("force") is not True:
-                return "SWITCH_DISAGREE"
+            if (not self.home_closed() or not self.gap_closed()) and m.get("force") is not True:
+                return "SWITCH_DISAGREE"     # SW_HOME open, or the big gear out of its gap
             self.phase, self.cock_deg, self.phase_hint = "REST", 0.0, -1.0
             return None
         if what == "decock":
@@ -1655,6 +1749,8 @@ class MockBase:
         lo, hi = SET_KEYS[k]
         if not (lo <= v <= hi):
             return "OUT_OF_RANGE"
+        if k in LIVE_KEYS and (self.moving() or self.state == "HOLD"):
+            return "BUSY"                    # current / tension constants, trips, gap_close_deg: never mid-motion
         if k == "line_m":
             self.line_est, self.line_known = v, True
         elif k == "aim_offset":

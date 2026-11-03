@@ -374,7 +374,7 @@ void powerCut() {
 }
 bool indexSeed = false;
 void freshRig() {
-  S = Sim(); S.encMissing = indexSeed; S.inertiaMs = seedNow % 3 == 1 ? 40 : seedNow % 3 == 2 ? 100 : 0; S.aimDragDeg = seedNow % 4 == 3 ? 127 : 0; /* wiper inertia and coast in 2 of 3 seeds */ tunHas = false; logRing.clear(); tags.clear(); outSeen = 0; haveToken = false; idCounter = 0; pendingAdvance = 0;
+  S = Sim(); S.encMissing = indexSeed; S.inertiaMs = seedNow % 3 == 1 ? 40 : seedNow % 3 == 2 ? 100 : 0; S.aimDragDeg = seedNow % 4 == 3 ? 195.4 : 0; /* wiper inertia and coast in 2 of 3 seeds */ tunHas = false; logRing.clear(); tags.clear(); outSeen = 0; haveToken = false; idCounter = 0; pendingAdvance = 0;
   buildBase();
   run(100);
   cmd("{\"id\":0,\"cmd\":\"cal\",\"what\":\"cock_rest\"}");   // a new build starts at rest

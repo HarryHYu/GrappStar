@@ -20,7 +20,7 @@
 
 namespace gb {
 
-#define GB_FW_VERSION "base-1.3.0"
+#define GB_FW_VERSION "base-1.3.1"
 
 enum Fault { F_NONE, F_STALL, F_OVERCURRENT, F_DRUM_TIMEOUT, F_DRUM_SENSOR, F_ANGLE_SENSOR, F_SWITCH_DISAGREE, F_BROWNOUT, F_BAD_STATE, F_DART_STUCK };
 static const char* const FAULT_NAME[] = {nullptr, "STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR", "ANGLE_SENSOR",
@@ -114,6 +114,7 @@ struct Base {
     t.hxOff = hxOff; t.limitN = c.limitN; t.drumDps = c.drumDps; t.aimOffset = aimOffset; t.aimTol = c.aimTolDeg; t.tripA = c.tripA;
     t.cockTripA = c.cockTripA; t.vbatLow = c.vbatLow; t.aimHomeDeg = c.aimHomeDeg;
     t.tensOffsetN = c.tensOffsetN; t.towTripA = c.towTripA; t.hostTimeoutS = 0;   // host_timeout_s is never saved (review r3_M: 0 at every boot)
+    t.gapCloseDeg = c.gapCloseDeg;
     sealTun(&t); return t;
   }
   // the sketch calls this before begin() with what saveTun() stored (or nullptr)
@@ -123,7 +124,7 @@ struct Base {
     enc.sign = c.wiperSign = t->encSign ? 1 : -1; c.requireSeated = true; c.vbatWired = true; tensionCal = (t->requireSeated & 4) != 0;   /* require_seated and vbat_wired are never kept off across a boot (review D2 #19) */ w.c.ampsPerVolt = t->ampsPerVolt; w.c.offsetA = t->offsetA;
     c.freeA = t->freeA; c.kNperA = t->kNperA; c.hxNPerCount = t->hxNPerCount; hxOff = t->hxOff; c.limitN = t->limitN; c.drumDps = t->drumDps;
     aimOffset = t->aimOffset; c.aimTolDeg = t->aimTol; c.tripA = t->tripA; c.cockTripA = t->cockTripA; c.vbatLow = t->vbatLow; c.aimHomeDeg = t->aimHomeDeg;
-    c.tensOffsetN = t->tensOffsetN; c.towTripA = t->towTripA;
+    c.tensOffsetN = t->tensOffsetN; c.towTripA = t->towTripA; c.gapCloseDeg = t->gapCloseDeg;
   }
   bool tensionCal = false;                          // systest F28: k_n_per_a / tension_offset_n set by the operator (saved)
   bool tunDirty = false; Tun lastTun;              // lastTun: what flash holds (restoreTun / last save)
@@ -222,7 +223,7 @@ struct Base {
     gapRun = false; gapThenArm = false; firePending = false;
   }
   void raise(int f, const char* why) {
-    w.halt(now, io.wiper); bool wasGap = gapRun; gapAbort();
+    w.halt(now, io.wiper); bool wasGap = gapRun; gapAbort(); seatedAtCock = false;
     if (state == S_SAFING) { d.halt(now, io.drum); state = S_FAULT; stT = now; evHeld(why); dirty = true; return; }   // a second fault stops the safing move
     if (state == S_FAULT) { return; }                 // the first fault wins
     fault = f; strncpy(faultWhy, why, sizeof faultWhy - 1); faultWhy[sizeof faultWhy - 1] = 0;
@@ -900,12 +901,19 @@ struct Base {
     else { if (phase == PH_REST && fitted(SW_GAP) && !closed(SW_GAP)) return "SWITCH_DISAGREE";
       if (cockPhase < c.gapCloseDeg - c.cycleDeg) cockPhase = c.gapCloseDeg - c.cycleDeg;   // gap closed: at least at the gap-close angle
       phase = PH_COCKING; }   // REST needs the gear in its gap
+    seatedAtCock = closed(SW_SEATED);                // read with the carriage home: the only place SW_SEATED is meaningful
+    gapOpenDeg = NAN;
     w.c.tripA = c.cockTripA;
     w.want(cockDir(), phase == PH_UNKNOWN ? c.cockSlowDuty : c.cockDuty);
     markMoving(MV_WIPER); state = S_COCK; stT = opT = now;
     return nullptr;
   }
-  void evCocked(bool ok) { JOut o(evBuf, sizeof evBuf); evBegin(o, "COCKED"); o.boolean("ok", ok); o.num("cock_deg", cockPhase, 1); evEnd(o); }
+  float gapOpenDeg = NAN;                            // shot angle where SW_GAP opened during the last cock (NAN: not seen)
+  void evCocked(bool ok) {
+    JOut o(evBuf, sizeof evBuf); evBegin(o, "COCKED"); o.boolean("ok", ok); o.num("cock_deg", cockPhase, 1);
+    if (!isnan(gapOpenDeg)) o.num("gap_deg", gapOpenDeg, 1);
+    evEnd(o);
+  }
   // everything "fire" needs, except the token
   const char* fireCheck() const {
     if (const char* e = idleCheck(true)) return e;
@@ -917,14 +925,19 @@ struct Base {
     bool gapOk = !fitted(SW_GAP) || (phase == PH_REST ? closed(SW_GAP) : !closed(SW_GAP));
     if (!((phase == PH_COCKED && !closed(SW_HOME)) || (phase == PH_REST && closed(SW_HOME))) || !gapOk) return "NOT_COCKED";
     if (!aimKnown || !aimed || isnan(aimTarget) || fabsf(pitch() - aimTarget) > c.aimTolDeg) return "NOT_AIMED";
-    if (c.requireSeated && !closed(SW_SEATED)) return fitted(SW_SEATED) ? "NOT_SEATED" : "NO_SENSOR";
+    if (c.requireSeated && !seatedOk()) return fitted(SW_SEATED) ? "NOT_SEATED" : "NO_SENSOR";
     return nullptr;
   }
+  // cad-launch seat_geom: the carriage plunger presses the SW_SEATED lever on the rail lip only with the carriage on its
+  // front stop, so the contact reads the dart only at HOME (open whenever the carriage is drawn). A dart seated when the
+  // cock started still counts while COCKED; the latch is cleared by a fire, a decock, any fault and a restart.
+  bool seatedAtCock = false;
+  bool seatedOk() const { return closed(SW_SEATED) || (phase == PH_COCKED && seatedAtCock); }
   const char* cmdArm(uint32_t* tok) {
     const char* e = fireCheck();
     bool gapFix = false;
     if (e && !strcmp(e, "NOT_COCKED") && gapFixable()) {   // a gap opened by the aim's sprag drag: fix it, then the token runs
-      bool ok = aimKnown && aimed && !isnan(aimTarget) && fabsf(pitch() - aimTarget) <= c.aimTolDeg && (!c.requireSeated || closed(SW_SEATED));
+      bool ok = aimKnown && aimed && !isnan(aimTarget) && fabsf(pitch() - aimTarget) <= c.aimTolDeg && (!c.requireSeated || seatedOk());
       if (ok) { gapFix = true; e = nullptr; }
     }
     if (e) return e;
@@ -946,6 +959,7 @@ struct Base {
     return nullptr;
   }
   void startFire() {
+    seatedAtCock = false;
     releaseSeen = false; relPeakA = 0; homeSeen = phase == PH_COCKED; phase = PH_FIRING; opFrom = cockPhase;
     w.c.tripA = c.cockTripA;                         // the spring load peaks at the release (D8: 6.5 A while cocking)
     w.want(cockDir(), c.fireDuty); markMoving(MV_WIPER); state = S_FIRE; stT = opT = now;
@@ -987,7 +1001,7 @@ struct Base {
     return nullptr;
   }
   // reel: in REEL the capstan winds (tow, retrieve). In NEUTRAL only the take-up turns (forward, at most 40 percent):
-  // the final approach until SW_SEATED (DART_STUCK after 20 s) or the tidy before wrapping (until "slip").
+  // the final approach until SW_SEATED (DART_STUCK after the approach limit) or the tidy before wrapping (until "slip").
   bool takeupOnly = false; uint32_t approachMs = 20000;
   // final approach time limit (DART_STUCK; a snag cannot be seen in the current, physics): "max_s" 5..600, default
   // 10 s + 1.5 x line_m / slowest take-up speed at the duty (physics), at least 20 s; 30 s with line_m unknown; at most 600 s
@@ -1115,7 +1129,7 @@ struct Base {
       if (moving() || state == S_HOLD) return "BUSY";
       Cfg d0; c.kNperA = d0.kNperA; c.tensOffsetN = d0.tensOffsetN; c.freeA = d0.freeA; c.limitN = d0.limitN; c.drumDps = d0.drumDps;
       c.aimTolDeg = d0.aimTolDeg; c.tripA = d0.tripA; c.cockTripA = d0.cockTripA; c.towTripA = d0.towTripA; c.vbatLow = d0.vbatLow;
-      c.aimHomeDeg = d0.aimHomeDeg; c.hxNPerCount = d0.hxNPerCount; aimOffset = 0; WiperCfg w0; w.c.ampsPerVolt = w0.ampsPerVolt; w.c.offsetA = w0.offsetA;
+      c.aimHomeDeg = d0.aimHomeDeg; c.gapCloseDeg = d0.gapCloseDeg; c.hxNPerCount = d0.hxNPerCount; aimOffset = 0; WiperCfg w0; w.c.ampsPerVolt = w0.ampsPerVolt; w.c.offsetA = w0.offsetA;
       tensionCal = false; return nullptr;
     }
     if (!strcmp(what, "aim_forget")) { if (moving()) return "BUSY"; aimKnown = false; aimed = false; dirty = true; return nullptr; }   // next aim re-homes
@@ -1129,6 +1143,7 @@ struct Base {
     if (!strcmp(what, "decock")) {                    // carriage drawn with the angle unknown (or a cocked shot called off):
       if (const char* e = idleCheck(true)) return e;  // run BACKWARD so the spring unwinds under the worm until SW_HOME closes.
       tokenLive = false; tokenExpired = false;        // decock cancels the arm token, even when nothing moves
+      seatedAtCock = false;                           // (and the seated latch: a new cock reads SW_SEATED at home again)
       if (detentClosed() != DP_LAUNCH) return "NOT_IN_LAUNCH";   // backward also turns the aim train: aim must be redone
       if (!fitted(SW_HOME)) return "NO_SENSOR";
       bool force = false; o.boolean("force", &force);
@@ -1183,6 +1198,7 @@ struct Base {
     out[n++] = {"tow_trip_a", &c.towTripA, 3, 19};
     out[n++] = {"vbat_low", &c.vbatLow, 6, 12};
     out[n++] = {"aim_home_deg", &c.aimHomeDeg, -7200, 7200};
+    out[n++] = {"gap_close_deg", &c.gapCloseDeg, 480, 553};
     out[n++] = {"host_timeout_s", &c.hostTimeoutS, 0, 600};
     return n;
   }
@@ -1195,7 +1211,7 @@ struct Base {
     for (int i = 0; i < n; i++) if (!strcmp(ks[i].k, k)) {
       if (!(v >= ks[i].lo - 1e-6 * fabs(ks[i].lo) && v <= ks[i].hi + 1e-6 * fabs(ks[i].hi))) return "OUT_OF_RANGE";
       // the current and tension constants and the trips never change under a running motor or a held tow
-      static const char* const live[] = {"k_n_per_a", "tension_offset_n", "free_a", "amps_per_volt", "offset_a", "hx_n_per_count", "trip_a", "cock_trip_a", "tow_trip_a"};
+      static const char* const live[] = {"k_n_per_a", "tension_offset_n", "free_a", "amps_per_volt", "offset_a", "hx_n_per_count", "trip_a", "cock_trip_a", "tow_trip_a", "gap_close_deg"};
       for (const char* l : live) if (!strcmp(k, l) && (moving() || state == S_HOLD)) return "BUSY";
       *ks[i].f = (float)v;
       if (!strcmp(k, "line_m")) { lineKnown = true; dirty = true; }
@@ -1447,7 +1463,7 @@ struct Base {
     }
   }
   // cad-launch review round 3: after a backward (aim / decock) run the big gear can follow the freewheeling sprag drag up
-  // to about 127 deg back and open SW_GAP (carriage still home, no tooth reached). A slow FORWARD run inside the
+  // to about 127 big-gear deg (195 wiper deg) back and open SW_GAP (carriage still home, no tooth reached). A slow FORWARD run inside the
   // toothless gap closes it again; then the gear sits at the gap-close angle (gapCloseDeg - cycleDeg before the first tooth)
   bool gapFixable() const { return fitted(SW_GAP) && !closed(SW_GAP) && fitted(SW_HOME) && closed(SW_HOME) && phase == PH_REST && launchCentred(); }
   bool wrapFromBelow = false; uint32_t releaseT = 0; bool gapRun = false; float gapFrom = 0; uint32_t gapT = 0; bool gapThenArm = false, firePending = false;
@@ -1520,6 +1536,9 @@ struct Base {
       if (fabsf(at - c.homeOpenDeg) > c.homeWinDeg) { raise(F_SWITCH_DISAGREE, "SW_HOME opened at the wrong angle"); return; }
       cockPhase = c.homeOpenDeg + sinceEdge(SW_HOME, cockDir()); win = c.dogWindowDeg;   /* the train moved: collar on the forward flank */ homeSeen = true;
     }
+    // CALIBRATION.md h: where SW_GAP opens on the draw, from the first tooth (the bump is symmetric about rest, so
+    // gap_close_deg = cycleDeg minus this); reported in COCKED as gap_deg
+    if (fell(SW_GAP) && isnan(gapOpenDeg)) gapOpenDeg = cockPhase - sinceEdge(SW_GAP, cockDir());
     if (!homeSeen && closed(SW_HOME) && cockPhase > c.homeOpenDeg + c.homeWinDeg + c.notDrawnExtraDeg) { raise(F_BAD_STATE, "carriage not drawn (SW_HOME still closed): rack or dog not engaged"); return; }
     if (homeSeen && closed(SW_HOME) && cockPhase < c.releaseDeg - c.releaseWinDeg) { raise(F_BAD_STATE, "carriage slipped home while cocking"); return; }
     if (cockPhase >= c.cockEndDeg - c.aimCoastDeg) {

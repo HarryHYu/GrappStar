@@ -1,4 +1,4 @@
-"""BaseClient against MockBase. The mock follows the real firmware (base_logic.h, fw base-1.2) and the one C1
+"""BaseClient against MockBase. The mock follows the real firmware (base_logic.h, fw base-1.3.1) and the one C1
 sequence of BASE_SPEC 10.1 (D35); notes in docs/C1_NOTES.md.
 
 The last test runs the same scripted 10.1 sequence against basesim (the real firmware logic, jetson/tools/basesim) and
@@ -76,10 +76,10 @@ def wrapped_park(c):
 def test_ping_status_and_telemetry(pair):
     mb, c = pair
     r = c.ping()
-    assert r["ok"] and r["fw"] == "base-1.3.0" and isinstance(r["t"], int)
+    assert r["ok"] and r["fw"] == "base-1.3.1" and isinstance(r["t"], int)
     assert any(e["evt"] == "HELLO" and e["fw"] == FW for e in c.events())
     boot = next(e for e in c.events() if e["evt"] == "BOOT")
-    assert boot["fw"] == "base-1.3.0" and boot["angle"] == "AS5600" and boot["phase"] == "REST"
+    assert boot["fw"] == "base-1.3.1" and boot["angle"] == "AS5600" and boot["phase"] == "REST"
     t = c.wait_tel(lambda t: True, 2)
     assert tuple(t) == TEL_KEYS
     assert t["mode"] == "NEUTRAL" and t["drum_pos"] == "NEUTRAL" and t["drum_deg"] == 41 and t["state"] == "IDLE"
@@ -92,7 +92,7 @@ def test_ping_status_and_telemetry(pair):
     s = c.status()
     assert list(s)[2:] == ["phase", "aimed", "aim_known", "drum_known", "wraps_known", "magnet", "glitches", "hx",
                            "peak_a", "fw", "ev_drops", "tension_cal"]
-    assert s["phase"] == "REST" and s["aimed"] is False and s["ev_drops"] == 0 and s["fw"] == "base-1.3.0"
+    assert s["phase"] == "REST" and s["aimed"] is False and s["ev_drops"] == 0 and s["fw"] == "base-1.3.1"
 
 
 def test_line_length_limit_ids_and_parse_errors(pair):
@@ -297,8 +297,8 @@ def test_refusals_at_neutral_and_launch(pair):
     assert err_of(c.fire, 123456) == "NOT_ARMED"
     assert err_of(c.mode, "REEL") == "NOT_WRAPPED"       # REEL only with the wraps on
     m = c.event_mark()
-    c.unwrap()                                           # at NEUTRAL: UNWRAPPED at once, no MODE
-    assert c.wait_event("UNWRAPPED", 1, since=m)["ok"]
+    c.unwrap()                                           # at NEUTRAL: UNWRAPPED then MODE at once (base_logic.h)
+    assert c.wait_event("UNWRAPPED", 1, since=m)["ok"] and c.wait_event("MODE", 1, since=m)["ok"]
     assert c.cmd("mode", to="SIDEWAYS", check=False)["err"] == "BAD_ARG"
     assert c.cmd("mode", check=False)["err"] == "BAD_ARG"
     m = c.event_mark()
@@ -406,13 +406,21 @@ def test_decock_variants(pair):
     to_mode(c, "LAUNCH")
     e = run(c, "decock", "RESET", 2)                     # at rest: nothing to unwind, RESET ok at once
     assert e["ok"] is True and e["how"] == "decock"
-    with mb.lock:                                        # phase UNKNOWN with the carriage home (a stop after the release)
+    with mb.lock:                                        # phase UNKNOWN with the carriage home and the gear in its gap
         mb.phase, mb.phase_hint = "UNKNOWN", 500.0
     m = c.event_mark()
     c.cmd("cal", what="decock")
+    e = c.wait_event("RESET", 1, since=m)
+    assert e["ok"] is True and e["how"] == "decock" and e["why"] == "SW_HOME and SW_GAP closed: at rest"
+    assert c.status()["phase"] == "REST"
+    with mb.lock:                                        # the same, stopped in the reset: SW_GAP open
+        mb.phase, mb.phase_hint, mb.cock_deg = "UNKNOWN", 480.0, 480.0
+    m = c.event_mark()
+    c.cmd("cal", what="decock")
     e = c.wait_event("RESET", 1, since=m, fail_on_not_ok=False)
-    assert e["ok"] is False and e["how"] == "decock" and "nothing to decock" in e["why"]
+    assert e["ok"] is False and e["how"] == "decock" and e["why"].startswith("SW_GAP open")
     with mb.lock:
+        mb.cock_deg = 0.0
         mb.phase_hint = 200.0                            # SW_HOME says home but the angle says drawn: lying switch
     assert err_of(c.decock) == "SWITCH_DISAGREE"
     e = run(c, "decock", "RESET", 2, force=True)
@@ -473,7 +481,7 @@ def test_reel_until_stop_limit_does_not_hold_and_hold_resumes_on_slack(pair):
     c.reel(1.0, max_n=30, until="tension")               # allowed from HOLD: winds again
     assert c.wait_event("LIMIT", W(20), since=m)["max_n"] == 30
     with mb.lock:
-        assert mb.op["trip"] == 6.5                      # D34 tow trip: never below tow_trip_a
+        assert mb.op["trip"] == 5.0                      # D34 tow trip: (30 + 2.3) / 13.1 + 1.5 + 1, never below trip_a
 
 
 def test_seat_ends_reel_only_until_seated_by_default(pair):
@@ -632,7 +640,7 @@ def test_jog_and_settings(pair):
     assert err_of(c.set, "limit_n", 900) == "OUT_OF_RANGE"
     assert err_of(c.set, "tension_offset_n", 60) == "OUT_OF_RANGE"
     assert err_of(c.set, "nope", 1) == "BAD_KEY"
-    assert c.get("fw")["val"] == "base-1.3.0"
+    assert c.get("fw")["val"] == "base-1.3.1"
     c.set("line_m", 7.5)
     assert c.get("line_m")["val"] == 7.5
     c.set("require_seated", False)

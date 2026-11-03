@@ -43,9 +43,17 @@ struct Sim {
   bool drumJam = false;            // drum N20 does not move
   double drumJamAbove = 1e9;       // drum cannot pass above this angle (jam)
   bool toothOnTooth = false; double toothNeedWiper = 10; double toothWiperAcc = 0;   // LAUNCH dog blocked until the wiper turns
-  double aimDragDeg = 0;           // backward aim drags the big gear back up to this far (cad-launch review: up to 127)
+  double aimDragDeg = 0;           // backward aim drags the big gear back up to this far, wiper deg (cad-launch review: up to
+                                   // 127 big-gear deg = 195.4 wiper deg)
   double extraLoadNm = 0;          // stall injection
   bool searBroken = false;         // the relieved tooth never lets go (no release)
+  // ---- contacts as cad-sensors and cad-launch build them, independent of the firmware's own constants (so a firmware
+  // default that does not match the CAD shows up here): SW_GAP is closed while the big gear is within +-14.9 big-gear
+  // deg of rest (+-22.9 wiper deg: mesh check of the bump against the contact pretravel, sensors_NOTES about +-15);
+  // SW_RAIL_LOW within +-9.76 crank deg of the LOW dead point, aim phase 0 (+-97.6 wiper deg, sensors_NOTES about +-9);
+  // SW_SEATED only with the carriage on its front stop (launch.py seat_geom: the plunger presses the rail-lip lever at
+  // HOME) and the dart seated
+  double gapWinDeg = 14.9 * 40.0 / 26.0, lowWinDeg = 97.6;
   // ---- log
   std::vector<std::string> out;
   gb::Saved nvs; bool nvsHas = false; int saves = 0; uint32_t saveSeq = 0, saveT = 0;
@@ -73,7 +81,8 @@ struct Sim {
     if (anchorTautAt < 0) return lineOut > seatAtLine + 0.02 ? 1.0 : 0;   // slack retrieve: light take-up
     double reeled = anchorTautAt - lineOut; return reeled > 0 ? reeled * anchorK : 0.5;
   }
-  bool seated() const { return anchorTautAt < 0 && lineOut <= seatAtLine + 0.01; }
+  bool seated() const { return anchorTautAt < 0 && lineOut <= seatAtLine + 0.01; }   // the dart itself (truth)
+  bool carriageHome() const { return fired || cockPh < c.homeOpenDeg; }
 
   uint16_t contactsRaw() {
     uint16_t b = 0;
@@ -86,11 +95,11 @@ struct Sim {
     { double m = fmod(wiperDeg, 60.0); if (m < 0) m += 60; setb(gb::SW_INDEX, m < 10); }   // 6-bump index cam
     setb(gb::SW_N20, !handLatched);
     double g = fmod(cockPh, c.cycleDeg); if (g < 0) g += c.cycleDeg;
-    setb(gb::SW_GAP, !fired ? (g >= c.gapCloseDeg || g < c.homeOpenDeg) : (cockPh >= c.gapCloseDeg));
-    setb(gb::SW_SEATED, seated());
-    setb(gb::SW_HOME, fired || cockPh < c.homeOpenDeg);
-    double am = fmod(aimPh - c.aimHomeDeg, c.aimCycleDeg); if (am < 0) am += c.aimCycleDeg;
-    setb(gb::SW_RAIL_LOW, am < 8);
+    setb(gb::SW_GAP, !fired ? (g >= c.cycleDeg - gapWinDeg || g < gapWinDeg) : (cockPh >= c.cycleDeg - gapWinDeg));
+    setb(gb::SW_SEATED, seated() && carriageHome());
+    setb(gb::SW_HOME, carriageHome());
+    double am = fmod(aimPh, c.aimCycleDeg); if (am < 0) am += c.aimCycleDeg;
+    setb(gb::SW_RAIL_LOW, am < lowWinDeg || am >= c.aimCycleDeg - lowWinDeg);
     b |= swStuckClosed; b &= ~swStuckOpen;
     if (swChatter) { chatterSeed = chatterSeed * 1103515245u + 12345u; if ((chatterSeed >> 16) & 1) b ^= swChatter; }
     return b;

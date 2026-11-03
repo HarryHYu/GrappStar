@@ -425,8 +425,9 @@ Run every command from this folder (`jetson/`). Files go into `calib/`. Every co
    It uses `calib/intrinsics.json` from the step above automatically (it prints "using intrinsics"). If it
    prints a WARNING about an uncalibrated camera instead, do the Intrinsics part first.
 4. It saves camera height, pitch and roll to `calib/rovercam.json`. Check the height against a tape measure.
-5. Check: put an orange object at a distance you measured with a tape (for example 5.0 m), click it on the page,
-   and compare the range the page shows. Within about 5 percent is good.
+5. Check: put an orange object at a distance you measured with a tape (for example 5.0 m) from the ground point
+   under the rail pivot (the launcher's main axis, D29), click it on the page, and compare the range the page shows
+   (it adds the camera offset to the pivot by itself). Within about 5 percent is good.
 
 ## 8. Operator page tour and a full dry mission in sim
 
@@ -453,9 +454,13 @@ What is on the page (layout may differ a little from this list):
 - **LAUNCHER LOADED** (red banner at the top): the spring is drawn. Hands off the rail. Press **Decock** in the
   banner to unwind it before you touch the launcher.
 - **Target**: range and bearing of the clicked or auto found target, and the ballistic solution (pitch, flight time).
+  A typed range is measured from the ground point under the rail pivot (D29), not from the camera or the rover nose;
+  tapped targets get the camera offset added automatically.
 - **Results**: after a flight, the landing zone verdict (GO, NO_GO or UNSURE with reasons), the landing image, the
   aerial map built from the dart video, and the flight analysis.
-- **Manual**: jog the wiper and drum motors, dart keys, record on or off.
+- **Manual**: jog the wiper and drum motors, dart keys, record on or off; **Unwrap** brings the drum back through the
+  wrap window to NEUTRAL with the take-up running (the way out when the drum stopped inside the window: there `mode`
+  and drum jogs are refused).
 - **STOP** (wiper off now) and **ESTOP** (wiper off and drum to neutral). Always visible at the top. Keyboard:
   **Esc** is STOP from anywhere on the page (Space too, when you are not typing). Holding STOP for 1 s is ESTOP.
   Know where they are before you press anything else.
@@ -592,7 +597,7 @@ jetson/
     app.py               owns the base, dart, cameras and mission; what the page talks to
     mission.py           the mission steps and operator prompts
     rover.py             rover side helpers
-    config.py            settings and defaults
+                         (defaults: mission.MissionConfig, app.AppConfig, cli.py)
     jlog.py              mission logs
     ballistics.py        aim solution from the ballistics table
     data/                placeholder ballistics table

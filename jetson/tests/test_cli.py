@@ -119,7 +119,7 @@ def test_base_console_one_connection_shows_tel_and_sends_commands():
         time.sleep(1.5)
         text = out.getvalue()
         assert "TEL state=" in text and "REPLY" in text and "ERROR" in text
-        assert '"val": "base-1.3.0"' in text
+        assert '"val": "base-1.3.1"' in text
         assert "EVENT" in text or '"ok": true' in text
         assert text.count("REPLY") == 3                # "stop" after quit is never sent
     finally:

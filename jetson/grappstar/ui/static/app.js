@@ -186,6 +186,10 @@ function renderConfig(cfg) {
     const v = cfg[inp.dataset.key];
     if (typeof v === "number" && !inp.dataset.dirty && document.activeElement !== inp) inp.value = String(v);
   }
+  if (Array.isArray(cfg.drag_range) && cfg.drag_range.length === 2) {   // the ballistics table's drag columns
+    $("in-drag").min = String(cfg.drag_range[0]);
+    $("in-drag").max = String(cfg.drag_range[1]);
+  }
   $("cfg-info").textContent = "Now: tow limit " + fmt(cfg.tow_limit_n) + " N, drag " + fmt(cfg.drag_n) +
     " N. Ballistics table " + fmt(cfg.ballistics) + ".";
   const warn = [];

@@ -18,7 +18,7 @@ from .ballistics import Ballistics
 from .comms.base import BaseClient, BaseDisconnected, BaseError, BaseTimeout
 from .comms.dart import Dart, DartError, DartPoller
 from .jlog import JLog
-from .mission import STEPS, Mission, MissionConfig
+from .mission import STEPS, Mission, MissionConfig, dart_seated
 from .rover import OperatorRover, RoverDrive
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -213,7 +213,7 @@ class App:
             "t": time.time(),
             "sim": bool(self.sim),
             "base": dict(tel, link=self.base.link(),
-                         seated=bool((tel.get("sw") or {}).get("S")) if tel else None,   # PROTOCOL: sw letter S
+                         seated=dart_seated(tel) if tel else None,   # sw S, read only with the carriage home (H)
                          phase=getattr(self, "base_status", {}).get("phase"),
                          launcher=self.launcher_state(tel, getattr(self, "base_status", {}).get("phase"))),
             "dart": dict(ds, link=self.dart.link()),
@@ -225,6 +225,7 @@ class App:
             "target": self.target,
             "log": log_tail,
             "config": {"drag_n": self.cfg.mission.drag_n, "tow_limit_n": self.cfg.mission.tow_limit_n,
+                       "drag_range": [self.bal.drag[0], self.bal.drag[-1]],
                        "ballistics": os.path.basename(self.bal.source), "placeholder": self.bal.placeholder,
                        "cam_uncalibrated": bool(getattr(self.cam_model, "uncalibrated", True))},
         }
@@ -357,6 +358,14 @@ class App:
             return {"ok": False, "msg": "mission running"}
         self.base.mode(to)
         return {"ok": True, "msg": f"drum to {to}"}
+
+    def act_unwrap(self) -> dict:
+        """Drum back through the wrap window to NEUTRAL with the take-up running (base unwrap). The way out of a drum
+        stopped inside the window (wraps unknown after a restart): mode and drum jogs are refused WRAPS_ON there."""
+        if self._busy():
+            return {"ok": False, "msg": "mission running"}
+        self.base.unwrap()
+        return {"ok": True, "msg": "unwrapping: drum back to NEUTRAL (about 40 s), the take-up winds the line"}
 
     def act_jog(self, motor: str, dir: int, ms: int = 300) -> dict:
         if self._busy():

@@ -323,10 +323,10 @@ class Rig:
                 self.base.cmd({"id": 0, "cmd": "set", "key": "tension_offset_n", "val": 0})
         for k, v in sc.base_setup.items():
             self.base.cmd({"id": 0, "cmd": "set", "key": k, "val": v})
-        d22 = sc.d22 or os.environ.get("SYSTEST_D22_ALL") == "1" or os.environ.get("SYSTEST_STRICT_ALL") == "1"
+        d22 = strict_d22(sc)
         self.base.set(wrapDraw=1 if d22 else 0)
-        if not d22:     # until F4 (D22 order) is fixed, fault scenarios use the lenient plant so they test their own fault
-            self.note("info", msg="lenient wrap plant (wrap does not draw dart-side line); SYSTEST_D22_ALL=1 for the strict one")
+        if not d22:     # opt-out only (F4 is fixed: every scenario runs on the strict D22 plant by default)
+            self.note("info", msg="lenient wrap plant (wrap does not draw dart-side line): SYSTEST_LENIENT=1")
             sc.checks = [c for c in sc.checks if c[1] not in (c_wrap_free, c_tug)]
         if sc.slip_n:
             self.base.set(slipN=sc.slip_n)
@@ -768,9 +768,15 @@ class RefMission:
         while rig.tow_rounds < rig.sc.tow_rounds:
             if (self.b.tel or {}).get("drum_pos") != "REEL":
                 self.s_flyin()                  # a fault in REEL parks the drum at WRAPPED (D35 recovery)
-            if (self.b.tel or {}).get("state") == "HOLD":
-                self.b.cmd("stop", timeout=2.0)   # F22 by design: without a load cell, stop then a new pull takes up slack
-                time.sleep(0.3)
+            if rig.tow_rounds > 0 or (self.b.tel or {}).get("state") == "HOLD":
+                # F22 by design: without a load cell, stop (wait ABORTED), then a new pull takes up the slack. Every
+                # round after the first: the telemetry right after a LIMIT can still say REEL (events come first)
+                m = self.b.event_mark()
+                self.b.cmd("stop", timeout=2.0)
+                try:
+                    self.b.wait_event("ABORTED", 2.0, since=m, fail_on_fault=False)
+                except Exception:
+                    pass                        # already idle: a stop sends no ABORTED
             e = self.act("reel", 60, ("LIMIT", "SEATED"), duty=rig.sc.tow_duty, max_n=lim, until="tension")
             if e.get("evt") != "LIMIT":
                 raise RuntimeError(f"tow: {e}")
@@ -781,14 +787,20 @@ class RefMission:
                 rig.anchor_at(float(p["anchorTautAt"]) - 0.6)
 
     def s_release(self):
+        """10.1 step 14: stop first (ABORTED: the worm holds the line), then the dart /release."""
         st = self.d.status()
         if st.get("phase") == "IDLE" and st.get("seq") == "released":
             return
+        self.tokens.append("stop")
+        m = self.b.event_mark()
+        self.b.cmd("stop", timeout=2.0)
+        try:
+            self.b.wait_event("ABORTED", 2.0, since=m, fail_on_fault=False)
+        except Exception:
+            pass                                # already idle: a stop sends no ABORTED
         self.tokens.append("dart release")
         if st.get("phase") != "RELEASING":
             self.d.release()
-        self.tokens.append("stop")
-        self.b.cmd("stop", timeout=2.0)
         self.d.wait_phase(("IDLE",), 40, want_seq="released")
 
     def s_retrieve(self):
@@ -1049,12 +1061,18 @@ def c_anchored(rig, res):
     return "ANCHORED" in res["dart_phases"], f"dart phases {res['dart_phases']}"
 
 
+def strict_d22(sc) -> bool:
+    """The strict D22 plant (every laid capstan turn draws dart-side line) is the default for every scenario since F4
+    was fixed; SYSTEST_LENIENT=1 switches the fault scenarios (not d22=True ones) back to the lenient plant."""
+    return sc.d22 or os.environ.get("SYSTEST_LENIENT") != "1"
+
+
 def c_tidy(rig, res):
     """TIDY ran and the take-up left the dart side taut (plant line out minus the taut length under 0.1 m)."""
     st = res["steps"]
     if "TIDY" not in st:
         return False, "TIDY step missing"
-    if not (rig.sc.d22 or os.environ.get("SYSTEST_D22_ALL") == "1" or os.environ.get("SYSTEST_STRICT_ALL") == "1"):
+    if not strict_d22(rig.sc):
         return True, "TIDY ran (slack not judged: lenient wrap plant leaves the landing slack the wrap would take)"
     nxt = st[st.index("TIDY") + 1] if st.index("TIDY") + 1 < len(st) else None
     p = rig.step_plant.get(nxt) or {}
@@ -1219,7 +1237,7 @@ def c_no_retry(rig, res):
 import re as _re
 
 C1_SEQ = (r"^(mode LAUNCH > )?aim > (cock > )?arm > fire > set line_m > AIM6(mode NEUTRAL > )?wrap > dart auto > tidy > "
-          r"mode REEL > (reel tension > )+((stop > dart release)|(dart release > stop)) > (stop > )?(reel stop > )?unwrap > RETRIEVE(retrieve > )mode LAUNCH$")
+          r"mode REEL > (reel tension > )+(stop > dart release) > (stop > )?(reel stop > )?unwrap > RETRIEVE(retrieve > )mode LAUNCH$")
 
 
 def c1_tokens(rig) -> List[str]:
@@ -1262,8 +1280,9 @@ def c1_tokens(rig) -> List[str]:
 
 
 def c_c1_sequence(rig, res):
-    """BASE_SPEC 10.1 (D35): the one C1 command sequence. `stop` counts only right after `dart release` (step 14:
-    release, then stop); `retrieve` may only be missing when the unwrap take-up already seated the dart in NEUTRAL."""
+    """BASE_SPEC 10.1 (D35): the one C1 command sequence. `stop` counts only right before or after `dart release`
+    (step 14: stop, then release); `retrieve` may only be missing when the unwrap take-up already seated the dart in
+    NEUTRAL."""
     ref = getattr(rig, "ref", None)
     toks = c1_tokens(rig) if ref is None else ["set line_m" if t.startswith("set") else t for t in ref.tokens
                                                if not t.startswith("set") or "line" in t or t == "set"]
@@ -1274,8 +1293,11 @@ def c_c1_sequence(rig, res):
             continue
         if not keep or keep[-1] != t:
             keep.append(t)
-    if rig.sc.c1_from_last_aim and "aim" in keep:
-        keep = keep[len(keep) - 1 - keep[::-1].index("aim"):]
+    if rig.sc.c1_from_last_aim and "fire" in keep:   # from the aim of the last shot (not the D45 low aim after it)
+        f = len(keep) - 1 - keep[::-1].index("fire")
+        a = max((i for i in range(f) if keep[i] == "aim"), default=None)
+        if a is not None:
+            keep = keep[a:]
     seq = " > ".join(keep)
     sr = getattr(rig, "seat_rec", None) or {}
     seated_neutral = bool(sr) and not sr.get("inReel") and sr.get("step") in ("UNWRAP",)   # the unwrap take-up seated it

@@ -27,15 +27,17 @@ REPO = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 DEF_IN = os.path.join(REPO, "base", "spec", "params.py")
 DEF_OUT = os.path.join(REPO, "firmware", "base", "grappstar_base", "params_gen.h")
 
-# names the firmware reads (config.h / base.h). Missing ones only warn: config.h has a default for each.
+# names the firmware reads (config.h / base_logic.h). Missing ones only warn: config.h has a default for each (the
+# test test_gen_params.py fails when the real params.py lacks one, so a rename in params cannot pass unnoticed).
 EXPECTED = [
     "P_WIPER_STALL_A", "P_WIPER_FREE_A", "P_WIPER_N0_RPM",
     "P_DRUM_TARGETS_LAUNCH", "P_DRUM_TARGETS_NEUTRAL", "P_DRUM_TARGETS_WRAPPED", "P_DRUM_TARGETS_REEL",
-    "P_DRUM_WRAP_TURNS", "P_REEL_CAPSTAN_RATIO", "P_REEL_CAPSTAN_D", "P_REEL_TOW_LIMIT_N",
+    "P_DRUM_WRAP_TURNS", "P_DRUM_CODE_EDGES", "P_DRUM_UNLOAD_JOG_DEG",
+    "P_REEL_CAPSTAN_RATIO", "P_REEL_CAPSTAN_D", "P_REEL_TOW_LIMIT_N", "P_REEL_TOW_LIMIT_MAX_N",
     "P_AIM_PITCH_MIN", "P_AIM_PITCH_MAX", "P_LAUNCH_WIPER_TURNS_PER_SHOT",
     "P_REEL_TOW_TENSION_MODEL_N_PER_A", "P_REEL_TOW_TENSION_MODEL_OFFSET_N",
-    "P_REEL_CURRENT_TRIPS_A_AIM", "P_REEL_CURRENT_TRIPS_A_COCK", "P_REEL_CURRENT_TRIPS_A_TOW",
-    "P_DRUM_N20_DRUM_DEG_PER_S",
+    "P_REEL_CURRENT_TRIPS_A_BACKWARD_LAUNCH", "P_REEL_CURRENT_TRIPS_A_REEL_IN", "P_REEL_CURRENT_TRIPS_A_COCK",
+    "P_REEL_CURRENT_TRIPS_A_TOW", "P_DRUM_N20_DRUM_DEG_PER_S",
 ]
 
 

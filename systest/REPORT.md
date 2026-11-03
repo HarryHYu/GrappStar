@@ -4,6 +4,11 @@ Status: FINAL, pushed 19:35 Sydney. The worker process was restarted by the plat
 only at 19:21, so the planned 18:20 final push and the last full batch did not happen; everything below is from the
 runs finished before 15:25 plus a short wrap-up at 19:21.
 
+Final cross-check update (3 Nov, base-1.3.1): every scenario was run again on this tree (results under "Final
+cross-check run" below): 47 of 55 pass, among them the nominal mission, the refusals and every power-loss phase that
+the drivers reach. The 8 failures are F21 (stiff 3 m tow, unchanged), the new F32 (index-mode tow), and harness
+scenarios that do not reach their own trigger or check (listed there).
+
 ## Summary (for Harry)
 
 - A whole GrappStar mission runs end to end with the real base firmware logic, the real dart firmware and the real
@@ -14,8 +19,9 @@ runs finished before 15:25 plus a short wrap-up at 19:21.
   anchored line in the old order (F4), the REEL fly-in tripping on a taut real line (F20, fixed as D41), the tow
   overshooting the limit on a stiff line (F21), settings lost at a power cycle (F16), power cuts leaving the
   launcher in a state nothing could clear (F15, F17), a calibration procedure that towed 10 N over the limit (F14).
-- Open at the time of writing: see the status table; the remaining ones are the Jetson's tow re-pull after rover
-  slack (F22 host side), the uncalibrated-tow guard (F28), and low-severity items.
+- Open now: F21 (the stiff 3 m tow overshoots the +15 % bound at duty 1), F32 (new: an index-mode build cannot tow)
+  and low-severity items. F22, F24, F25, F28 and F31 were fixed after the final batch and are green in the final
+  cross-check run.
 
 ## What it is
 
@@ -64,8 +70,9 @@ Two drivers: `mission` (the real `jetson/grappstar/mission.py` through the App, 
 `ref_*` scenarios test the firmware and dart against the binding sequence even while the mission lags behind it.
 
 Plant: sim.h plus the D22 additions in the shim: every laid turn draws a capstan circumference from the dart side
-(a free dart is tugged, an anchored one jams the cup), and tidy pulls an anchored line taut. Strict for `nominal`,
-`land_short` and all `ref_*`; lenient for the mission fault scenarios until F4/F12 land (`SYSTEST_D22_ALL=1` for strict).
+(a free dart is tugged, an anchored one jams the cup), and tidy pulls an anchored line taut. Strict for every
+scenario since the final cross-check (F4 and F12 fixed); `SYSTEST_LENIENT=1` switches the mission fault scenarios back
+to the lenient plant.
 
 Checks per scenario (plant truth where possible): mission DONE, aim reached, fired, landed, anchored, tidy ran,
 wrapped (plant wraps), REEL engaged and pulling, tow limit respected (peak plant tension per 5 ms tick, limit +15 %),
@@ -84,6 +91,44 @@ collar leaving LAUNCH with the spring drawn), wraps laid without jamming, free d
   camera optics. The plant is the firmware tests' sim.h plus the D22 line model added in the shim.
 
 ## Results
+
+### Final cross-check run (3 Nov, base-1.3.1, this tree)
+
+All 55 scenarios, `harness.py --scenario all --shard i/2` (the two halves of `systest/run_mission.sh all`, base at 2x),
+on firmware base-1.3.1 (the CAD contact windows in sim.h: SW_GAP closed within 22.9 wiper deg of rest, SW_RAIL_LOW
+within 97.6 aim deg of the low dead point, SW_SEATED only with the carriage home; `aim_home_deg` 3502, `gap_close_deg`
+531, the seated latch), the Jetson fixes of the cross-check, and every scenario on the strict D22 plant. The 24 `ref_*`
+scenarios and `nogo_reshoot` ran again after the harness fixes below (the mission scenarios did not change).
+
+```
+PASS nominal, nominal_uncal (F28: TOW refused without calibration), dog_tip, drum_timeout, stall_cock, hand_lever,
+     dart_never_anchors, dart_drags20 (designed abort), no_angle_sensor (designed refusal), dart_wifi_drop,
+     encoder_glitch, serial_garbage, land_short, brownout_tow, usb_unplug_tow, nogo_reshoot,
+     power_launch_mode, power_aim, power_cock, power_base_neutral, power_wrap, power_check, power_tow, power_unwrap,
+     power_unwrap_fasthello, power_launch_ready,
+     ref_nominal, ref_refusals, ref_tow_duty08, ref_drum_timeout, ref_dog_tip, ref_stall_cock, ref_usb_glitch_reel,
+     ref_serial_garbage, ref_land_short, ref_dart_wifi_drop, ref_brownout_tow, ref_encoder_glitch,
+     ref_power_launch_mode, ref_power_aim, ref_power_cock, ref_power_wrap, ref_power_tow, ref_power_retrieve,
+     ref_power_unwrap, ref_power_unwrap_fasthello, ref_power_launch_ready
+FAIL tow_stiff, ref_tow_stiff ... tow limit: 46.2 / 50.3 N dart-side on the 3 m stiff line vs the 46.0 bound (F21,
+                                   unchanged)
+FAIL no_magnet_index ........... F32 (new): index mode now leaves LAUNCH (F31 fixed), then the CHECK pull faults
+                                   ANGLE_SENSOR "SW_INDEX bump overdue"
+FAIL power_retrieve, snag_retrieve, usb_glitch_reel ... their RETRIEVE trigger never fires: the mission's line estimate
+                                   is short (F29) and the base's line_m is about 1.6 m after the first tow round, so
+                                   the capstan reel-in is skipped (mission DONE; the retrieve phase is covered by
+                                   ref_power_retrieve and ref_usb_glitch_reel, which pass)
+FAIL ref_snag_retrieve ......... the snag on the soft 40 N/m line never reaches the 30 N reel-in limit in RETRIEVE
+FAIL ref_usb_unplug_tow ........ "reeled in to the approach": after the power loss in the tow `line_m` is null (by
+                                   design, PROTOCOL 9), so the reference driver skips the capstan reel-in and the
+                                   take-up brings the dart in
+```
+
+Harness changes in this round: the C1 check requires step 14 as BASE_SPEC 10.1 has it (`stop > dart release`) and the
+reference driver stops first (F25); the reference driver sends `stop` and waits for `ABORTED` before every tow round
+after the first (it read the telemetry right after `LIMIT`, still REEL, and re-sent `reel` from HOLD: the F22 case);
+`nogo_reshoot` judges the C1 order from the aim of the last shot (the D45 low aim after it is an `aim` too); the strict
+D22 plant is the default; `c1_order.py` runs again (it passes the scenario and the run summary to the check).
 
 ### Last full batch (batch 5, real time, 3 parallel shards, 38 of 55 scenarios finished before the worker stopped)
 
@@ -148,7 +193,7 @@ See `systest/FINDINGS.md` (F1 onward), routed by the coordinator.
 | 6, 7 | Shim TX buffer 2048 bytes like `Serial.setTxBufferSize(2048)` (FIONREAD on the pty), replies wait up to 1 s, events 20 ms, telemetry dropped (`telDrops` in `get`); event ring 23 |
 | 8 | Accepted: in the D22 order `land_short` is a regression guard (tug metric now measures the dart's own movement, not the slack taken) |
 | 9 | Reference driver only ignores a timeout on RESET, not a FAULT |
-| 10 | C1 check requires `dart release > stop` (step 14) |
+| 10 | C1 check requires `dart release > stop` (step 14); since the final cross-check `stop > dart release`, as BASE_SPEC 10.1 step 14 now says |
 | 11 | `tidy ran` now needs the dart side within 0.1 m of taut after TIDY (plant) |
 | 12 | `dart_never_anchors`: TOW allowed only after the failed check's RELEASE |
 | 13 | `LIMIT seen in RETRIEVE` counts only LIMIT events raised during the RETRIEVE step |

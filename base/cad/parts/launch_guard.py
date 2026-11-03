@@ -3,7 +3,7 @@
 Each side: a 2 mm PLA side plate at |y| 66..68 (outside the main spring at |y| 38 and the D5 provision spring at
 |y| 56, d 16: outer face 64), in three printable segments:
   a (rear)  u -177.5 .. 72     w 37 .. 83   (behind the stop units; the carriage arms sweep inside, |y| <= 61)
-  b (mid)   u 72 .. 239.6      w 37 .. 83 to u 78, then w 37 .. 69 (the stop spring covers the springs from above
+  b (mid)   u 72.2 .. 239.6     w 37 .. 83 to u 78, then w 37 .. 69 (the stop spring covers the springs from above
                                there, w >= 69.5; the stop frame front legs at u 240.2..248.2 close the side)
   c (front) u 248.7 .. 271.5   w 37 .. 83   (hooks on the anchor pins)
 Inward top lips (|y| 62.5..66) stiffen the plates. Brackets under the springs (w < 48, clear of the arm peg keepers
@@ -39,7 +39,7 @@ W_TOP_STOP = 69.0                   # plate top under the stop spring (stack bot
 LIP_Y = 62.5                        # inward top lip inner edge (arms |y| <= 61)
 LIP_T = 2.0
 U_A = (-177.5, 72.0)
-U_B = (72.0, 239.6)
+U_B = (72.2, 239.6)
 U_B_TALL = 78.0                     # stop spring pad starts at u 78.6
 U_C = (248.7, 271.5)
 W_BOLT = 42.0                       # wall bolt height
@@ -143,7 +143,7 @@ def guard_parts(P=None, n=None, bed=None):
     for sg, side in ((1, "l"), (-1, "r")):
         for seg in ("a", "b", "c"):
             s = segment_solid(seg, sg)
-            R = tf.Rx(90) if sg > 0 else tf.Rx(-90)          # outer face (|y| 68) down on the bed
+            R = tf.Rx(-90) if sg > 0 else tf.Rx(90)          # outer face (|y| 68) down on the bed
             nb = len(WALL_BRACKETS.get(seg, {}).get(sg, ()))
             fix = {"a": f"{nb} brackets bolted to the rail wall (M3x12 self tap)",
                    "b": f"{nb} wall brackets (M3x12 self tap) and a foot on the front plate (M3x10 down)",

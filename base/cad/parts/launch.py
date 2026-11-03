@@ -1240,15 +1240,24 @@ def _rail_to_world(P, pitch):
     return tf.mul(tf.T(0.0, n["Y0"], n["axis_z"]), tf.R((0, -1, 0), pitch))
 
 
+def _tangent_angle(c, r, q, side):
+    """Angle (deg, in the (u, w) plane) of the tangent point on circle (c, r) for a line to point q; side +1 / -1."""
+    dx, dz = q[0] - c[0], q[1] - c[1]
+    d = math.hypot(dx, dz)
+    base = math.degrees(math.atan2(dz, dx))
+    return base + side * math.degrees(math.acos(min(1.0, r / d)))
+
+
 def line_entry(P, S=None):
-    """World point where the tether arrives at the rail: the far side of the pivot pulley (cad-reel's line ends here).
-    The pulley is 24 mm below the main axis, so this point moves only a little with pitch."""
+    """World point where the tether arrives at the rail: the BOTTOM of the pivot pulley (cad-reel's feed comes in
+    from the front at about the same height and the line wraps under the pulley and round its rear). The pulley is
+    53.5 below the main axis and turns with the rail, so the feed length changes by about 30 mm over the aim range
+    (slack on the way down is taken up by the take-up during cocking)."""
     S = S or {}
     n = L(P)
     pitch = kin(P, S)["launch_rail"]
-    g = LN.geom(n)
-    pv = g["piv"]
-    p = (pv[0] - LN.R_PATH, pv[1], pv[2])                      # rear side of the pivot pulley, rail frame
+    pv = LN.geom(n)["piv"]
+    p = (pv[0], pv[1], pv[2] - LN.R_PATH)
     return tf.apply(_rail_to_world(P, pitch), np.array([p]))[0]
 
 
@@ -1263,11 +1272,13 @@ def line_path(P, S=None):
     g = LN.geom(n)
     W = _rail_to_world(P, pitch)
     pv = g["piv"]
+    bt, tp = g["bot"], g["top"]
+    q = (bt[0], bt[2] - LN.R_PATH)                               # bottom pulley's lowest path point
+    a_t = _tangent_angle((pv[0], pv[2]), LN.R_PATH, q, 1.0) % 360.0     # leaves at the bottom-rear towards it
     arc = []
-    for a in np.linspace(180.0, 90.0, 7):                         # wrap over the pivot pulley (rear to top)
+    for a in np.linspace(270.0, min(a_t, 270.0), 5):                  # feed arrives at the bottom, wraps rearwards
         t = math.radians(a)
         arc.append((pv[0] + LN.R_PATH * math.cos(t), pv[1], pv[2] + LN.R_PATH * math.sin(t)))
-    bt, tp = g["bot"], g["top"]
     bot = [(bt[0] + LN.R_PATH * math.cos(math.radians(a)), 0.0, bt[2] + LN.R_PATH * math.sin(math.radians(a)))
            for a in np.linspace(270.0, 180.0, 5)]
     top = [(tp[0] + LN.R_PATH * math.cos(math.radians(a)), 0.0, tp[2] + LN.R_PATH * math.sin(math.radians(a)))
@@ -1276,7 +1287,7 @@ def line_path(P, S=None):
     tail_seat = np.array((n["u_tail_home"] - travel, 0.0, g["w_line"]))
     du, dw = v.get("launch_dart", 0.0), v.get("launch_dart_w", 0.0)
     tail = tail_seat + np.array((du, 0.0, dw))
-    rail_pts = np.array(arc + [g["p_bot_low"]] + bot + top + [pusher])
+    rail_pts = np.array(arc + bot + top + [pusher])
     spans = [(tf.apply(W, rail_pts), {"launch_pulley_piv", "launch_pulley_bot", "launch_pulley_top", "launch_rail_rear"}),
              (tf.apply(W, np.array([pusher, tail])), {"launch_carriage", "launch_dart", "launch_line_p"})]
     return spans

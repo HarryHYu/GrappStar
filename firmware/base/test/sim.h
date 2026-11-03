@@ -18,7 +18,7 @@ struct Sim {
   double aimPh = 0, cockPh = 0;    // train phases (deg of wiper travel)
   double drumDeg = 0;              // drum angle
   bool fired = false; int shots = 0;
-  double lineOut = 5.0;            // m out
+  double lineOut = 0.0;            // m out (0 = dart seated in the launcher)
   double anchorTautAt = -1;        // tow: line length at which the anchored line goes taut (-1 = slack retrieve)
   double anchorK = 40;             // N per m of capstan travel after taut
   double seatAtLine = 0.0;         // retrieve: dart seats when lineOut reaches this
@@ -31,7 +31,7 @@ struct Sim {
   double aimLoadNm = 0.5, cockMaxNm = 2.5, reelFreeNm = 0.4;
   double capstanR = 0.0205;        // m (capstan d 40 + line)
   // ---- sensors
-  int encSign = +1; bool encMissing = false; int encGlitchEvery = 0; uint32_t encReads = 0; bool magnetWeak = false;
+  int encSign = +1; bool encMissing = false; int encGlitchEvery = 0; int encDropEvery = 0, encDropBurst = 3; uint32_t encReads = 0; bool magnetWeak = false;
   double isAmpsPerVolt = 12.5;     // must match the firmware's WiperCfg
   bool hxFitted = false; double hxCountsPerN = 21000; double hxOffset = 1234;
   bool vbatWired = true; double vbatOverride = -1;
@@ -145,7 +145,7 @@ struct Sim {
     // ---- drum
     if (dDir != 0 && drumAwake && !drumJam) {
       double nd = drumDeg + dDir * c.drumSign * drumDpsTrue * (dDuty / 255.0) * s;
-      if (nd > drumJamAbove) nd = drumJamAbove;
+      if (nd > drumJamAbove && nd > drumDeg) nd = fmax(drumDeg, fmin(nd, drumJamAbove));   // a jam blocks forward motion only
       if (nd < c.secLoDeg) nd = c.secLoDeg; if (nd > c.secHiDeg) nd = c.secHiDeg;   // groove ends
       if (toothOnTooth && ((drumDeg > c.lnEngageDeg && nd <= c.lnEngageDeg) || (drumDeg < c.nrEngageDeg && nd >= c.nrEngageDeg))) { dogTip = true; toothWiperAcc = 0; }
       if (nd > c.lnEngageDeg && nd < c.nrEngageDeg) dogTip = false;
@@ -170,6 +170,7 @@ inline void simDrumSleep(bool a) { S.drumAwake = a; }
 inline int simAngle(uint8_t* st) {
   S.encReads++;
   if (S.encMissing) { *st = 0; return -1; }
+  if (S.encDropEvery && (S.encReads % S.encDropEvery) < (uint32_t)S.encDropBurst) return -1;   // I2C read failed (burst)
   if (S.encGlitchEvery && S.encReads % S.encGlitchEvery == 0) { *st = gb::AS_MD; return (int)((S.encReads * 977) % 4096); }
   double a = fmod(S.wiperDeg * S.encSign, 360.0); if (a < 0) a += 360;
   *st = gb::AS_MD | (S.magnetWeak ? gb::AS_ML : 0);

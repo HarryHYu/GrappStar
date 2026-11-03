@@ -29,34 +29,27 @@ Status: in progress. Final version at 18:30 Sydney.
 - Dart build: the v30 run sheet stays the step-by-step dart build (appended to the guide); the guide overrides only
   its wiring with `firmware/dart/WIRING.md` (DRV#3 removed) and its reel sketch with `firmware/base`.
 
-## Conflicts and requests
+## Conflicts and requests (status at 12:45)
 
-1. Worm N20 count: 4 needed now (dart kick, deploy, foot, base drum). kedge/CLAUDE.md says 2 in hand and "buy one
-   more"; the August order lists 8 worm N20s. In MEASURE_LIST C3. Coordinator: confirm the "only purchase" claim.
-2. pins.h needs resistors (3 x 10 k pull-downs, 1 k + 680 R IS divider, 100 k + 22 k battery divider). Not on any
-   parts list; in MEASURE_LIST C7. fw-base: state the fallback if Harry has none.
-3. params.py BOARDS.drv8833 says "Pololu 2130"; Harry's carriers have VIN/VCC pads (kedge/CLAUDE.md section 4),
-   so they are probably not Pololu. Harmless for geometry if the size is right; flagged.
-4. Physics (w/physics SUMMARY): range about 4 m at 35 degrees with the current springs. TEST_PLAN stage 8 uses a
-   short target accordingly.
-5. fw-base: SYSTEM_ELECTRICAL's first power-on sequence relies on the 10 k pull-downs on R_EN, L_EN and DRV8833 SLP
-   (pins.h comments). Please keep them in WIRING.md with a picture of where each resistor goes.
-6. fw-base: MEASURE_LIST A6/A7 use `amps` telemetry after the current-sense calibration (the meter's 10 A range cannot
-   take the wiper start or stall). CALIBRATION.md should calibrate IS at low duty with the meter in series.
+Resolved during the day (kept for the record):
+- DRV8833 #3 SLP: D9 unwired; fw-base WIRING now matches (GPIO21 is SW_HOME). Boards are Pololu 2130 (order).
+- Spring preload: D5 then D30 (C-243 rated 38.4 N, full cock 265 mm, fallback 250 mm). MEASURE_LIST B4 follows D30.
+- Tension model and defaults: D32/D33, firmware now ships k_n_per_a 17 with offset -10.4 and limit_n 50.
+- AS5600 magnet: firmware has the D12 SW_INDEX fallback; MEASURE_LIST C13 says magnet recommended, cam fallback.
+- Physics SUMMARY regenerated on params 1.0.1 and later.
+- Dart docs (fw-dart): antenna before power, bench supply section, no cloth near augers, safe-to-touch rule.
+- Jetson README: COCK confirmation, one stop rule, tow prerequisite and refusal while k_n_per_a is factory.
 
-7. Spring preload: launch_NOTES (11:30) says 5 mm preload and 250 mm full cock; the coordinator's message and
-   physics FINDINGS F10 say 35 mm and 280 mm. MEASURE_LIST B4 defers to the base assembly steps. cad-launch and the
-   coordinator: make them agree.
-8. DRV8833 #3 SLP: coordinator ruled unwired (11:15); firmware/base/WIRING.md at 11:33 still wires it to GPIO21. Sent
-   to fw-base. My docs follow the coordinator, with a "wire SLP to 3V3" fallback for non-Pololu boards.
-9. fw-base WIRING.md said both MP1584s are in the dart and to buy another; the dart uses one. Sent to fw-base.
-10. Spec v1.0 section 4 lists 11 contacts (SW_DRUM_A/B/C, SW_DOG_L/R, SW_N20, SW_INDEX, SW_HOME, SW_GAP, SW_RAIL_LOW,
-    SW_SEATED, SW_ARM); pins.h at 12:10 has 8 switch GPIOs and PROTOCOL.md still has the pre-v1.0 drum order
-    (wrap from REEL). fw-base to update; the guide includes their files live, and TEST_PLAN points at PROTOCOL.md for
-    the wrap/REEL command order.
-11. physics: base/physics/SUMMARY.md on base-v1 (12:10) is still the v0.1-stub run; asked physics to regenerate.
-12. fw-base: firmware defaults disagree with the decisions: `limit_n` 20 (D3: 50 N), `trip_a` 17 / `cock_trip_a` 15
-    (D8: 5 A and 6.5 A). MEASURE_LIST G10 tells Harry to set `limit_n` 50 until the defaults change.
+Still open (owner):
+1. Worm N20 count: 4 needed (dart kick, deploy, foot, base drum). In MEASURE_LIST C3 and D19 confirm list.
+2. Resistors (2 x 10 k, 1 k, 680 R, 100 k, 22 k): not on any parts list; MEASURE_LIST C7.
+3. fw-base: check PROTOCOL.md matches BASE_SPEC 10.1 (tidy, retrieve, wrap from LAUNCH/NEUTRAL, 7 wraps) and the
+   learner-round items sent at 12:25 (cock_rest before mode changes, two command hosts, free current after (c),
+   AS5600 fault test without hands near the shaft, magnet gap 1 to 2 mm, 2 A tap fuse, MP1584 "buy another").
+4. physics: base/physics/README.md should document `calib.py range` and `ballistics.py --v-scale` (TEST_PLAN
+   stage 6 step 5 points there).
+5. cad-infra: base print pack, coupon sheet (base/pack/coupons/COUPON_TEST.md) and assembly steps (base/guide) not
+   on base-v1 yet; the guide shows placeholders until they land and picks them up automatically.
 
 ## Review rounds
 
@@ -106,3 +99,10 @@ Status: in progress. Final version at 18:30 Sydney.
   fuse) and jetson (service holds the port).
 - params 1.2.1 folded in: D30 springs C-243 rated 38.4 N, full cock 265 mm; D31 SW_DOG_L/R; D32 17 N/A; range
   4.8 m at 36 deg, 8.5 m with four springs.
+- Round 8 (learner, printing and the day-one coupons): 12 findings. Fixed: one print settings table per plate,
+  PPA-CF handling (hardened nozzle, drying, ventilation, dust) before risk plate 2, coupon failure route (report to
+  a Claude session, reprint the single rcN piece), two plates named with paths, coupon bought extras (C21) in
+  FIRST_DAY and parts, contact gap 0.9 mm matched to the coupon, spring free length with a rule, git install prompt,
+  glossary (AF, SHCS, e-clip, jam nut, module, crush rib, backlash, self-tapper, hole compensation), Markdown image
+  paths relative to docs/build. Sent to cad-infra: luggage-scale-too-coarse test, shear pin pass range, unmeasurable
+  play tests, missing base fit coupon, settings in the sheet, Mac command.

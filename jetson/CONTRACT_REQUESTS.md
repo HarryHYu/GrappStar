@@ -21,12 +21,13 @@ refusals, `t_ms` for clock sync, `/release` ending in `seq: released`). Implemen
 4. **IMU chip axes.** The flight log is in BNO085 chip axes and the mapping is found on the bench (BENCH_TEST.md
    step 7). The Jetson takes it as a setting (`MissionConfig.imu_axes`, for example `"y,-x,z"`). Please make
    BENCH_TEST.md say which string to write down, in that form (body x = nose, y = left, z = up when level).
-5. **Accelerometer saturation** at about 78 m/s^2 is fine for the Jetson (it only needs over 4 g and over 6 g).
+5. **Accelerometer saturation** at about 78 m/s^2 is fine for the Jetson (it uses over 4 g for launch and 3.5 g for impact, as the firmware does since D28).
 
 ## C3 (ballistics), to physics
 
-6. The real table (v_muzzle about 7.1 m/s, reach 2.8 to 4.4 m) replaced the placeholder automatically. The Jetson
-   prefers the low branch (flatter, shorter flight) and offers the high branch as "lob". If the physics model knows
+6. The real table (spec v1.1: v_muzzle about 7.6 to 7.7 m/s, pitch 6 to 47 deg, best about 4.9 / 4.45 / 4.0 m near
+   36 to 38 deg for 0.5 / 0.75 / 1.0 N, minimum about 2.3 to 2.5 m) replaced the placeholder automatically. The Jetson
+   prefers the higher pitch when two solutions exist (D29) and adds the camera's 150 mm offset ahead of the pivot. If the physics model knows
    the line payout per shot, a `line_m` array per row would replace the Jetson's estimate (straight distance plus sag,
    times 1.1).
 

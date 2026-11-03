@@ -11,6 +11,7 @@ The section texts live in docs/build/src/NN_*.md. Lines in them that start with 
   @image <repo path> <caption>      insert a picture (PNG or JPG)
   @includeglob <glob> [first]       insert every file (or the first) matching the glob
   @imageglob <glob> <caption>       insert every picture matching the glob
+  @exists <repo path>               a 'present' note, or the placeholder
   @csv <repo path>                  insert a CSV file as a table
   @wiremap                          dart run sheet wire numbers -> new cut list numbers
   @printlist base | dart            print tables from base/pack and kedge/pack_v30
@@ -42,8 +43,11 @@ SOURCES = [
     ("base/spec/BASE_SPEC.md", "coordinator"),
     ("base/pack", "cad-infra (print pack)"),
     ("base/out", "cad-infra (assembly pipeline)"),
-    ("base/guide", "cad-infra (assembly steps)"),
-    ("base/**/coupon/COUPON.md", "cad-infra (risk coupons)"),
+    ("base/out/base/guide.pdf", "cad-infra (base assembly guide, final run about 18:00)"),
+    ("base/out/base/pack/PRINT_SHEET.md", "cad-infra (base print sheet, final run about 18:00)"),
+    ("base/out/base/BOM.md", "cad-infra (bill of materials)"),
+    ("base/pack/fit_coupon/COUPON.md", "cad-infra (base fit coupon)"),
+    ("base/pack/coupons/COUPON_TEST.md", "cad-infra (risk coupons)"),
     ("kedge/pack_v30/KEDGE_v30_run_sheet.pdf", "dart v30 pack (done)"),
     ("firmware/base/WIRING.md", "fw-base"),
     ("firmware/base/README.md", "fw-base"),
@@ -156,13 +160,15 @@ def printlist_dart():
 
 
 def printlist_base():
-    pack = next((os.path.join(ROOT, c) for c in ("base/pack", "base/out/base/pack") if os.path.isdir(os.path.join(ROOT, c))),
+    pack = next((os.path.join(ROOT, c) for c in ("base/out/base/pack", "base/pack")
+                 if os.path.isdir(os.path.join(ROOT, c)) and any(
+                     f for f in os.listdir(os.path.join(ROOT, c)) if f not in ("coupons", "fit_coupon"))),
                 os.path.join(ROOT, "base/pack"))
     if not os.path.isdir(pack):
         return placeholder("base/pack", "cad-infra (print pack)")
     s = ""
     # A print list table, whatever form the pack writes it in.
-    for name in ("print_list.md", "PRINT_LIST.md", "README.md"):
+    for name in ("PRINT_SHEET.md", "print_list.md", "PRINT_LIST.md", "README.md"):
         p = os.path.join(pack, name)
         if os.path.exists(p):
             s += demote(open(p, encoding="utf-8").read(), 3, pack) + "\n"
@@ -191,10 +197,12 @@ def printlist_base():
                                          v.get("orient", "")))
                     s += _table(rows, ["Base part", "Material", "Plate", "Print pose"]) + "\n"
                     break
-    plates = sorted(glob.glob(os.path.join(pack, "**/*.3mf"), recursive=True))
+    plates = [p for p in sorted(glob.glob(os.path.join(pack, "**/*.3mf"), recursive=True))
+              if os.sep + "coupons" + os.sep not in p]
     if plates:
         s += "\nBase plates:\n\n" + "".join(f"- `{rel(p)}`\n" for p in plates)
-    stls = sorted(glob.glob(os.path.join(pack, "**/*.stl"), recursive=True))
+    stls = [p for p in sorted(glob.glob(os.path.join(pack, "**/*.stl"), recursive=True))
+            if os.sep + "coupons" + os.sep not in p]
     if stls and not s.strip():
         s += "\nBase STL files:\n\n" + "".join(f"- `{rel(p)}`\n" for p in stls)
     return s or placeholder("base/pack (print list)", "cad-infra (print pack)")
@@ -215,6 +223,14 @@ def d_imageglob(args, level):
     hits = sorted(glob.glob(os.path.join(ROOT, args[0]), recursive=True))
     caption = " ".join(args[1:])
     return "".join(f"\n![{caption} ({os.path.basename(h)})]({rel(h)})\n" for h in hits)
+
+
+def d_exists(args, level):
+    """A note that a file is present (and where it is), or the placeholder when it is not."""
+    path = args[0]
+    if exists(path):
+        return f"\nPresent: `{path}`" + (" (attached at the end of this guide)." if path.endswith(".pdf") else ".") + "\n"
+    return placeholder(path, who_writes(path))
 
 
 def d_csv(args, level):
@@ -282,7 +298,7 @@ def d_date(args, level):
     return f"\nBuilt {now.strftime('%Y-%m-%d %H:%M')} Sydney time from commit `{commit}`.\n"
 
 
-DIRECTIVES = {"include": d_include, "includeglob": d_includeglob, "imageglob": d_imageglob, "csv": d_csv, "wiremap": d_wiremap, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
+DIRECTIVES = {"include": d_include, "exists": d_exists, "includeglob": d_includeglob, "imageglob": d_imageglob, "csv": d_csv, "wiremap": d_wiremap, "image": d_image, "printlist": d_printlist, "assumed": d_assumed,
               "status": d_status, "date": d_date}
 
 
@@ -566,6 +582,7 @@ def build_pdf(md, out=None, doc_title=TITLE):
 
 APPENDICES = [
     # (repo path or glob, bookmark title). Missing files are skipped.
+    ("base/out/base/guide.pdf", "Appendix: base assembly guide (base pipeline)"),
     ("base/guide/*.pdf", "Appendix: base assembly steps (base pipeline)"),
     ("kedge/pack_v30/KEDGE_v30_run_sheet.pdf", "Appendix: KEDGE v30 dart run sheet"),
 ]
@@ -684,7 +701,10 @@ line with, a towing line.
 | `{"cmd":"aim","deg":30}` | rail to 30 degrees (only with the carriage home) |
 | `{"cmd":"arm"}` then `{"cmd":"fire","token":123456}` | fire within 3 s of arm. Tether on, area clear |
 | `{"cmd":"cal","what":"decock"}` | unload a cocked carriage slowly |
-| `{"cmd":"wrap"}` / `{"cmd":"unwrap"}` | lay / remove the capstan wraps (order: PROTOCOL.md) |
+| `{"cmd":"wrap"}` | lay 7 wraps, right after landing (from LAUNCH or NEUTRAL; parks at WRAPPED) |
+| `{"cmd":"tidy"}` | take up the slack after the dart anchors |
+| `{"cmd":"unwrap"}` | remove the wraps (after reeling in to about 1.5 m) |
+| `{"cmd":"retrieve","duty":0.3}` | final approach on the take-up until the dart seats |
 | `{"cmd":"reel","duty":0.5,"until":"seated"}` | wind in until the dart seats (`until`: stop, seated, tension) |
 | `{"cmd":"jog","motor":"wiper","dir":1,"ms":300}` | short move; `motor` wiper or drum, `dir` 1 or -1, up to 1500 ms |
 | `{"cmd":"set","key":"limit_n","val":50}` | set a stored value (tow limit 50 N) |
@@ -747,7 +767,10 @@ def main():
     md = build_markdown()
     ok = lint(md)
     with open(OUT_MD, "w", encoding="utf-8") as f:
-        f.write(md.replace("@@toc\n", "").replace("@@pagebreak\n", ""))
+        # image paths in the Markdown file are relative to docs/build so they show on GitHub
+        md_out = re.sub(r"!\[([^\]]*)\]\((?!http)([^)]+)\)",
+                        lambda m: f"![{m.group(1)}]({os.path.relpath(os.path.join(ROOT, m.group(2)), HERE)})", md)
+        f.write(md_out.replace("@@toc\n", "").replace("@@pagebreak\n", ""))
     main_pdf = build_pdf(md)
     added = append_pdfs(main_pdf)
     for sh in build_cheatsheets():

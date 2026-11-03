@@ -207,3 +207,22 @@ def test_remap_flightlog_identity_and_rotation():
         assert np.allclose(r0[5:8], r1[5:8], atol=0.02)
     with pytest.raises(ValueError):
         remap_flightlog(chip, "y,x,z")    # mirrored: not a rotation
+
+
+def test_flightlog_retries_while_busy(md):
+    d = Dart(md.host)
+    d.arm(True, auto=True)
+    md.launch(); md.land()                 # auto-anchor starts at once: /flightlog answers 409 busy
+    with pytest.raises(DartRefused):
+        d.flightlog(busy_wait_s=0)
+    fl = d.flightlog(busy_wait_s=10)       # waits out the anchor sequence (3.4 s / scale 5)
+    assert fl["samples"]
+
+
+def test_cli_dart_release_after_stop_is_not_success(md, capsys):
+    from grappstar import cli
+    d = Dart(md.host)
+    d.auto(); d.wait_phase("ANCHORED", 5, poll=0.05)
+    threading.Timer(0.1, d.stop).start()
+    rc = cli.main(["dart", "release", "--host", md.host])
+    assert rc != 0 or "released" not in capsys.readouterr().out

@@ -12,11 +12,11 @@ const DART_MS = 350;
 const ESTOP_HOLD_MS = 1000;
 
 // Default mission steps (used when status.mission.steps is not provided by the App).
-const DEFAULT_STEPS = [
-  "PREFLIGHT", "LAUNCH_MODE", "AIM", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "ANCHOR",
-  "REEL_MODE", "WRAP", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "NEUTRAL", "DONE",
+const DEFAULT_STEPS = [   // used only until the first status arrives (status.mission.steps is the truth)
+  "PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "BASE_NEUTRAL", "WRAP",
+  "ANCHOR", "TIDY", "FLY_IN", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE",
 ];
-// [key, label]; "seated" is read from base.sw.seated
+// [key, label]; "seated" comes from the App (telemetry sw letter S)
 const BASE_FIELDS = [["state", "State"], ["mode", "Mode"], ["drum_pos", "Drum"], ["pitch_deg", "Pitch deg"],
   ["cock", "Cock"], ["wraps", "Wraps"], ["line_m", "Line out m"], ["tension_n", "Tension N"], ["amps", "Current A"],
   ["vbat", "Battery V"], ["seated", "Dart seated"], ["fault", "Fault"]];

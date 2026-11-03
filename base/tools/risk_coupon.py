@@ -5,8 +5,9 @@ python -m tools.risk_coupon [PACKDIR]          (default base/pack/coupons, run f
 
 Writes into PACKDIR
   rc<k>_<part>.stl        one per printed part, print orientation, min corner at (0, 0, 0)
-  risk_plate_<n>.3mf      the parts packed on the 256 x 256 bed, one plate per material (tools.pack helpers)
-  risk_plate_<n>.png      top-down preview of that plate
+  risk_plate_<n>_<material>.3mf  the parts packed on the 256 x 256 bed, one plate per material (tools.pack helpers)
+  risk_plate_<n>_<material>.png  top-down preview of that plate
+and the base fit coupon (tools.coupon.write) into base/pack/fit_coupon (--fit DIR, '' to skip).
   COUPON_TEST.md / .pdf   the one-page test sheet: what to do, what pass looks like, what to change if it fails
 
 Coupons (k):
@@ -75,8 +76,24 @@ def stl_clean(solid):
     return solid.warp_batch(lambda p: np.round(p, 4)).simplify(1e-6)
 
 
+def min_box_rz(solid, R=None):
+    """Rotation about z (deg, 0..85 in 5 deg steps) after R that gives the smallest bed footprint rectangle."""
+    v, _ = prim.mesh_of(prim.place(solid, R if R is not None else tf.I4))
+    xy = np.asarray(v)[:, :2]
+    best = (None, 0.0)
+    for a in np.arange(0.0, 90.0, 5.0):
+        t = math.radians(a)
+        p = xy @ np.array([[math.cos(t), math.sin(t)], [-math.sin(t), math.cos(t)]])
+        area = float(np.ptp(p[:, 0]) * np.ptp(p[:, 1]))
+        if best[0] is None or area < best[0] - 1e-6:
+            best = (area, a)
+    return best[1]
+
+
 def mk(name, solid, mat, notes, R=None, qty=1):
     solid = stl_clean(solid)
+    R0 = R if R is not None else tf.I4
+    R = tf.mul(tf.Rz(min_box_rz(solid, R0)), R0)          # smallest footprint for the packer
     return Part(name, solid, mat, qty=qty, print_tf=bed(solid, R), color=COL[mat], subsystem=SUB, notes=notes)
 
 
@@ -202,8 +219,10 @@ def coupon_2(P):
         do=(f"Nut into the pillar trap (drop of glue), lever clamped with 2 M3 self tappers, contact screw head down "
             f"through the lever, set the head {i['gap']:.1f} mm above the nut (0.5 mm per turn), lock the jam nut. "
             f"Meter on beep between screw and nut. Press the lever tip 100 times."),
-        ok=(f"Beeps after about {i['pretravel']:.1f} mm of tip travel, silent when let go, tip stops on the hard stop "
-            "without cracking, lever back flat, same after 100 presses."),
+        ok=(f"Measure the tip travel with calipers (depth rod from the lever tip down to the base top, note the reading "
+            f"at rest, press until it beeps, read again): beep within {i['pretravel'] - 0.35:.1f} to "
+            f"{i['pretravel'] + 0.25:.1f} mm of tip travel (design {i['pretravel']:.2f}), silent when let go, tip stops "
+            "on the hard stop without cracking, lever back flat, same after 100 presses."),
         fail=("cad/lib/switch.py contact_switch args travel, overtravel, t, b; STRAIN_LIMIT, NUT_PRESS (loose nut), "
               "SCREW_LENGTHS."),
     )
@@ -213,65 +232,89 @@ def coupon_2(P):
 def coupon_3(P):
     from cad.parts import drum
     g, c = drum.G(P), drum.C(P)
-    h = c["dog_h"]
-    S0, S1 = 45.0, 50.0                                   # base plate s range (L frame kept, s = z)
+    h, st = c["dog_h"], c["stroke"]
+    F = drum.fork_planes(g)
+    S1 = g["dog_face_reel"] - 4.5                         # base plate top (L frame kept, s = z): REEL face rests here
+    S0 = S1 - 5.0
     jr = g["rsl_journal"][2] / 2
     rx, ry = g["rail_xy"]
-    hex_top = 90.0
+    s0 = g["collar_s"][0]
+    b0, b1 = s0 + h, g["groove"][1] + 2.0                 # thin collar: dogs at b0, body to past the groove
+    hex_top = b1 + st + 3.0
+    rail_top = F["sb"] + 40.0 + st + 3.0                  # fork sleeve is 40 long
     base = prim.union([hull_plate([(0, 0, 20), (rx, ry, 9)], S0, S1),
                        drum.cyl(jr, S1 - 0.01, g["dog_face_reel"]),
                        drum.hexprism(g["hex_af"], g["dog_face_reel"] - 0.01, hex_top)])
     base = base - drum.cyl((g["rail_d"] + fits.HOLE_PRESS) / 2, S0 - 1, S1 + 1, rx, ry)
-    base = base + label("3", 35.9, 30.3, S1)            # outside the face handle sweep
+    rr = math.hypot(rx, ry)
+    lx, ly = rx / rr * 49.0, ry / rr * 49.0              # label outside the face handle sweep (r 38)
+    base = base + label("3", lx, ly, S1)
     # REEL face: the REEL gear's dog face (ring r dog_r_out + 1, bore journal + SHAFT_IN_BORE) with a turning handle
+    hand_top = min(S1 + 3.0, g["dogpost_s"][0] - 0.5)
     fb = prim.union([drum.ring(c["dog_r_out"] + 1.0, (2 * jr + fits.SHAFT_IN_BORE) / 2, S1, g["dog_face_reel"]),
-                     prim.box(-44, -20, -6, 6, S1, S1 + 3.0) - drum.cyl(jr + 1, S1 - 1, S1 + 4),
+                     prim.box(-38, -20, -6, 6, S1, hand_top) - drum.cyl(jr + 1, S1 - 1, S1 + 4),
                      drum.dog_teeth(c, g["dog_face_reel"], +1, 45.0)])
-    # thin collar: the collar's lower half (dogs facing the REEL face, fork groove, hex bore)
-    s0 = g["collar_s"][0]
-    b0, b1 = s0 + h, g["groove"][1] + 2.0
     co = drum.cyl(g["collar_od"] / 2, b0, b1)
     co = co - drum.ring(g["collar_od"] / 2 + 1, g["groove_r"], g["groove"][0], g["groove"][1])
     co = prim.union([co, drum.dog_teeth(c, b0, -1, 0.0)])
     co = co - drum.hexprism(g["hex_af"] + fits.SHAFT_IN_BORE, s0 - 1, b1 + 1)
-    fk, fs = drum.fork(g, c), drum.fork_stop(g, c)
-    rl = drum.rail(dict(g, rail_s=(S0, 102.0)))
+    fk, dp = drum.fork(g, c), drum.dog_post(g, c)
+    rl = drum.rail(dict(g, rail_s=(S0, rail_top)))
     parts = [
         mk("rc3_base", base, "PLA", "Base: d30 journal (REEL sleeve) and hex 22 AF (main shaft), rail hole (press)"),
         mk("rc3_reel_face", fb, "PPA-CF", "REEL gear dog face (drum.dog_teeth, phase 45) with a handle"),
         mk("rc3_collar", co, "PPA-CF", "Collar lower half: drum.dog_teeth facing down, fork groove, hex bore",
            R=tf.Rx(180)),
-        mk("rc3_fork", fk, "PLA", "drum.fork as built: compliant yoke, follower pin, M3 nut in the tab"),
-        mk("rc3_fork_stop", fs, "PLA", "drum.fork_stop as built", R=tf.Ry(90)),
-        mk("rc3_rail", rl, "PPA-CF", "drum.rail profile d10 with the print flat, cut to 57 long", R=tf.Ry(90)),
+        mk("rc3_fork", fk, "PLA", "drum.fork as built: compliant yoke, rail sleeve, follower pin, M3 nut in the tab"),
+        mk("rc3_dog_post", dp, "PLA", "drum.dog_post as built: SW_DOG_L / SW_DOG_R screw bosses, clamps on the rail"),
+        mk("rc3_rail", rl, "PPA-CF", f"drum.rail profile d10 with the print flat, cut to {rail_top - S0:.0f} long",
+           R=tf.Ry(90)),
     ]
-    st = c["stroke"]
 
     def state(e):
         d = tf.T(0, 0, -e)
-        return {"rc3_base": tf.I4, "rc3_reel_face": tf.I4, "rc3_collar": d, "rc3_fork": d, "rc3_fork_stop": d,
+        return {"rc3_base": tf.I4, "rc3_reel_face": tf.I4, "rc3_collar": d, "rc3_fork": d, "rc3_dog_post": tf.I4,
                 "rc3_rail": tf.I4}
     return dict(
         key="3", title="Dog clutch and compliant fork", parts=parts, asm=[state(0.0), state(st)], mesh=[],
-        allow=[("rc3_base", "rc3_rail")],
+        allow=[("rc3_base", "rc3_rail"), ("rc3_dog_post", "rc3_rail")],
         uses=(f"drum.dog_teeth (dog_n {c['dog_n']}, dog_h {h:g}, dog_deg {c['dog_deg']:g}, backcut "
               f"{c['dog_backcut']:g}, roof {c['dog_roof']:g}, r {c['dog_r_in']:g}..{c['dog_r_out']:g}), drum.fork, "
-              f"drum.fork_stop, drum.rail, drum.hexprism, GEOM journal d{2 * jr:g}, groove {g['groove']}, stroke {st:g}, "
-              f"neutral gap {c['dog_gap']:g}"),
-        bought="1 x M3x12 (fork stop), M3 nut (tab), 2 x M3 screws (SW_DOG prongs, optional)",
+              f"drum.dog_post (dog_touch {g['dog_touch']:g}), drum.rail, drum.hexprism, GEOM journal d{2 * jr:g}, "
+              f"groove {g['groove']}, stroke {st:g}, neutral gap {c['dog_gap']:g}"),
+        bought="M3 nut (yoke tab), 2 x M3x12 (SW_DOG screws in the post), 1 x M3 (post clamp), multimeter",
         do=("Press the rail into the base. REEL face on the journal (dogs up), collar on the hex (dogs down), fork pads "
-            "in the collar groove and its sleeve on the rail, fork stop on (M3). Push the fork 7 mm down with the dogs "
-            "tip to tip, then turn the REEL face until they drop in. Turn the face hard both ways, then pull the fork back."),
+            "in the collar groove and its sleeve on the rail, dog post clamped on the rail below the fork, SW_DOG screws "
+            f"in the post set {g['dog_touch']:g} mm short of the tab nut at full engagement. Push the fork {st:g} mm down "
+            "with the dogs tip to tip, then turn the REEL face until they drop in. Turn the face hard both ways, then "
+            "pull the fork back. Meter on beep between the lower screw and the tab nut."),
         ok=("Yoke flexes when tip to tip (no jam, roofs slide off), dogs drop in within a quarter turn, under hand torque "
-            "the dogs pull in, never walk out, a light pull on the fork releases them, the yoke springs back flat."),
+            "the dogs pull in, never walk out, a light pull on the fork releases them, the yoke springs back flat; the "
+            "meter beeps only with the dogs fully in, never tip to tip."),
         fail=("_drum_kin.py DEFAULTS dog_backcut, dog_roof, dog_deg, dog_gap, fork_k; drum.py GEOM fork_t, yoke_r, "
-              "groove; fits.py SHAFT_IN_BORE (collar on the hex, face on the journal), HOLE_SLIDE (fork on the rail)."),
+              "groove, dog_touch, dogpost_s; fits.py SHAFT_IN_BORE (collar on the hex, face on the journal), HOLE_SLIDE "
+              "(fork on the rail)."),
     )
 
 
 # ---------------------------------------------------------------------------------------------- 4 slip clutch
 def key_stub_len(sc):
     return float(math.ceil(sc["info"]["height"]) + 12.0)
+
+
+def slip_bands(info, r_lug, band=0.25):
+    """Hanging weight pass bands (grams at r_lug) per quarter turn of the nuts, from slip_clutch's torque table:
+    the design weight -band must hold, +band must slip."""
+    out = []
+    names = {0.125: "1/4 turn", 0.25: "1/2 turn", 0.375: "3/4 turn", 0.5: "1 turn"}
+    for d, F, T, s in info["table"]:
+        if d <= 0:
+            continue
+        grams = T / (r_lug / 1000.0) / 9.81 * 1000.0
+        lo, hi = 5 * math.floor(grams * (1 - band) / 5), 5 * math.ceil(grams * (1 + band) / 5)
+        nm = names.get(round(d, 3), f"{d:.2f} mm")
+        out.append(f"{nm}: {lo} g holds, {hi} g slips (design {grams:.0f} g, {T:.3f} N m)")
+    return out
 
 
 def coupon_4(P, sc=None):
@@ -282,9 +325,7 @@ def coupon_4(P, sc=None):
     asm = {f"rc4_{nm}": sc["place"][nm] for nm in names}
     asm["rc7_key_stub"] = tf.T(0, 0, -12.0)
     r_lug = info["r_out"] + 1.5
-    tab = []
-    for d, F, T, s in info["table"]:
-        tab.append(f"{d:.2f} mm: {T:.3f} N m, {T / (r_lug / 1000) / 9.81:.2f} kg")
+    tab = slip_bands(info, r_lug)
     return dict(
         key="4", title="Face slip clutch with the flexure spring", parts=parts, asm=[asm], mesh=[],
         uses=(f"cad.lib.clutch.slip_clutch() defaults (reel does not use it: its clutch is the spool face plus the "
@@ -292,14 +333,15 @@ def coupon_4(P, sc=None):
               f"{info['r_out']:g}, mu {info['mu']}, flexure t {info['flex_geom']['t']:g} gap "
               f"{info['flex_geom']['gap']:g}, {info['torque_per_mm']:.3f} N m per mm, travel {info['travel']:.2f}; on the "
               f"shared keyed stub of coupon 7"),
-        bought=f"3 x M3x{info['screw_len']} SHCS, 3 x M3 nut, string, luggage scale",
+        bought=f"3 x M3x{info['screw_len']} SHCS, 3 x M3 nut, string, coins in a small bag, kitchen scale",
         table=tab, r_lug=r_lug,
         do=("Stack on the key stub: hub plate (counterbores down), friction disc, pressure plate (pads up), flexure (beam "
             "down, tabs on the screws), adjuster plate (traps up); 3 screws from below, nuts on top. Run the nuts down "
-            "until the flexure just touches, then turn each nut 1/2 turn at a time (0.25 mm). Clamp the stub, tie a string "
-            f"to a disc lug (r {r_lug:.1f} mm), pull along the rim with the luggage scale while it slips steadily."),
-        ok=("Smooth steady slip, no judder; the reading repeats within 20 percent and rises with each half turn, close to "
-            "the table below (kg on the scale at the lug); the nuts never bottom the flexure before the last row."),
+            "until the flexure just touches (zero), then turn all 3 nuts the same, 1/4 turn (0.125 mm) at a time. Clamp the "
+            f"stub level in a vice, tie a string to a disc lug (r {r_lug:.1f} mm), lay it over the rim and hang a bag of "
+            "coins weighed on a kitchen scale. Add or take coins to find the hold and slip weights at each setting."),
+        ok=("At each setting the lower weight must not pull the disc round and the higher one must (smooth steady slip, "
+            "no judder); same result 3 times; the flexure never bottoms before 1 turn. Bands: " + "; ".join(tab) + "."),
         fail=("cad/lib/clutch.py: slip_clutch args flex_t, flex_gap, flex_ro, r_in, r_out, n_grooves; MU_PLA_PLA, E_PLA, "
               "SIGMA_FLEX_PLA_SUSTAINED (creep: if the torque falls overnight)."),
     )
@@ -328,7 +370,7 @@ def coupon_5(P):
         ok=("Firm press, seated flat on the lip, stays in when tapped upside down, spins as freely as before; the CSK20PP "
             "key slides in without force, it still freewheels one way and locks the other."),
         fail=("fits.py BRG_RIB_INTERF, BRG_RIB_BORE (all seats); bearings.py CSK20_KEY_RCLEAR, CSK20_OKEY_W (key), "
-              "KEY_CLEAR in fits.py. Print the fit coupon tile A if the 608 is off."),
+              "KEY_CLEAR in fits.py. If the 608 is off, print tile A of the fit coupon (base/pack/fit_coupon, COUPON.md)."),
     )
 
 
@@ -346,7 +388,7 @@ def coupon_6(P):
         do="Left to right: heat-set the insert (220 C), press the nut in, push a screw through, self-tap a screw in.",
         ok=("Insert flush and does not spin when the screw is tightened; nut presses in and holds; screw drops through "
             "the clearance hole; the tap hole cuts a thread and holds a hard pull without splitting."),
-        fail="fits.py M3_INSERT_D, M3_NUT_AF, M3_CLEAR_D, M3_TAP_D (the fit coupon tiles C, D, E bracket them).",
+        fail="fits.py M3_INSERT_D, M3_NUT_AF, M3_CLEAR_D, M3_TAP_D (tiles C, D, E of the fit coupon in base/pack/fit_coupon bracket them).",
     )
 
 
@@ -377,8 +419,9 @@ def coupon_7(P, sc=None):
         bought="CSK20PP from coupon 5 (inner keyway)",
         do=("Slide the key stub into the keyed tile and into the CSK20PP inner race (the real interface). Push the spigot "
             "into the sleeve slice and turn it."),
-        ok=("Stub slides in by hand, key in the keyway, no visible rock, under 1 deg of play when turned; the spigot "
-            "turns freely with no wobble."),
+        ok=("Stub slides in by hand, key in the keyway, no visible rock. Play: clamp the tile, tape a ruler to the stub "
+            "end, mark the ruler 60 mm from the axis, rock the stub both ways: the mark moves under 1 mm (about 1 deg). "
+            "The spigot turns freely; rocked at its free end it moves under 0.5 mm."),
         fail=(f"fits.py KEY_CLEAR, SHAFT_IN_BORE; shafts.py KEY20_H, SHAFT_PRINT_UNDERSIZE; launch.py SPIGOT_BORE "
               f"(now {LN.SPIGOT_BORE:g}); drum.py GEOM spig_d."),
     )
@@ -420,32 +463,37 @@ def coupon_8(P):
     m, zp, xp, zs = c["seg_m"], c["pin_z"], c["pin_x"], c["seg_z"]
     cd = gears.center_distance(m, zs, zp, 0.0, xp)
     seg = sector(gears.spur_gear(m, zs, F), m * zs / 2 + m, 0.0, 66.0, 8.0, b5, F, 0.0)
-    pin = gears.spur_gear(m, zp, F, shift=xp, bore=b4)
+    ts = drum.tip_short_for(m, zp, xp)
+    pin = gears.spur_gear(m, zp, F, shift=xp, bore=b4, tip_short=ts)
     y0 = 0.0
     add("rc8_m125_plate", gear_plate("1.25", cd, [(5.0, 0.0), (4.0, cd)], F), "PPA-CF", f"Pins at {cd:.2f}",
         tf.T(0, y0, 0))
     add("rc8_m125_seg", seg, "PLA", f"drum segment gear m{m:g} z{zs} sector", tf.T(0, y0, 1.0))
-    add("rc8_m125_pinion", pin, "PPA-CF", f"drum wrap pinion m{m:g} z{zp} x{xp:g}", tf.T(cd, y0, 1.0))
-    uses.append(f"m{m:g}: gears.spur_gear z{zs} sector / z{zp} shift {xp:g}, cd {cd:.2f} (drum.a_seg)")
+    add("rc8_m125_pinion", pin, "PPA-CF", f"drum wrap pinion m{m:g} z{zp} x{xp:g} tip_short {ts:g}", tf.T(cd, y0, 1.0))
+    uses.append(f"m{m:g}: gears.spur_gear z{zs} sector / z{zp} shift {xp:g} tip_short {ts:g} (drum.tip_short_for), cd {cd:.2f} (drum.a_seg)")
     # m1.5: drum idler output z42 (PPA-CF) on the reel cup ring gear z24 (PPA-CF)
     m, z1, z2 = c["idl_m"], c["idl_z"], RL.Z_CUPG
     cd = gears.center_distance(m, z1, z2)
     y0 = 120.0
     add("rc8_m15_plate", gear_plate("1.5", cd, [(5.0, 0.0), (5.0, cd)], F), "PPA-CF", f"Pins at {cd:.2f}", tf.T(0, y0, 0))
-    add("rc8_m15_z42", sector(gears.spur_gear(m, z1, F), m * z1 / 2 + m, 0.0, 70.0, 8.0, b5, F, 0.0), "PPA-CF",
+    add("rc8_m15_z42", sector(gears.spur_gear(m, z1, F), m * z1 / 2 + m, 0.0, 60.0, 8.0, b5, F, 0.0), "PPA-CF",
         f"drum wrap idler output m{m:g} z{z1} sector", tf.T(0, y0, 1.0))
     add("rc8_m15_z24", gears.spur_gear(m, z2, F, bore=b5), "PPA-CF", f"reel cup ring gear m{m:g} z{z2}",
         tf.T(cd, y0, 1.0))
     uses.append(f"m{m:g}: gears.spur_gear z{z1} sector / z{z2}, cd {cd:.2f}")
-    # m2: reel take-up idler z24 on the reel gear z16 (both PPA-CF)
-    m, z1, z2 = RL.M_TAKE, RL.Z_IDL, RL.Z_REELG
+    # m2: drum REEL output gear z50 (sector) on the reel capstan gear z22 (both PPA-CF)
+    g = drum.G(P)
+    m, z1, z2 = g["out_m"], g["out_z"], RL.Z_CAPG
+    if RL.M_CAP != m or RL.Z_MAIN != z1:
+        raise KeyError(f"drum REEL output m{m:g} z{z1} and reel M_CAP {RL.M_CAP:g} / Z_MAIN {RL.Z_MAIN} disagree")
     cd = gears.center_distance(m, z1, z2)
     y0 = 240.0
     add("rc8_m2_plate", gear_plate("2", cd, [(5.0, 0.0), (5.0, cd)], F), "PPA-CF", f"Pins at {cd:.2f}", tf.T(0, y0, 0))
-    add("rc8_m2_z24", gears.spur_gear(m, z1, F, bore=b5), "PPA-CF", f"reel take-up idler m{m:g} z{z1}",
-        tf.T(0, y0, 1.0))
-    add("rc8_m2_z16", gears.spur_gear(m, z2, F, bore=b5), "PPA-CF", f"reel gear m{m:g} z{z2}", tf.T(cd, y0, 1.0))
-    uses.append(f"m{m:g}: gears.spur_gear z{z1} / z{z2}, cd {cd:.2f} (reel take-up)")
+    add("rc8_m2_z50", sector(gears.spur_gear(m, z1, F), m * z1 / 2 + m, 0.0, 46.0, 9.0, b5, F, 0.0), "PPA-CF",
+        f"drum REEL output m{m:g} z{z1} sector", tf.T(0, y0, 1.0))
+    add("rc8_m2_z22", gears.spur_gear(m, z2, F, bore=b5), "PPA-CF", f"reel capstan gear m{m:g} z{z2}",
+        tf.T(cd, y0, 1.0))
+    uses.append(f"m{m:g}: gears.spur_gear z{z1} sector (drum GEOM out_m, out_z) / z{z2} (reel Z_CAPG), cd {cd:.2f}")
     # m2.5: launch big gear (sector_gear_2d: tall tooth, relieved last tooth) on the drive gear z26 (launch_gears)
     n = LN.L(P)
     m, zb, zd, cd = n["m"], n["z_big"], n["z_drive"], n["cd"]
@@ -454,7 +502,7 @@ def coupon_8(P):
     big = prim.extrude(LG.sector_gear_2d(m, zb, n["n_present"], first_tooth_angle=n["fta"]), F)
     big = sector(big, m * zb / 2 + 1.3 * m, n["fta"] + 0.5 * (k0 + k1) * pitch, (k1 - k0 + 1) * pitch + 4.0, 9.0,
                  b5, F, 0.0)
-    drv = sector(LG.spur(m, zd, F), m * zd / 2 + m, 180.0, 110.0, 9.0, b5, F, 180.0)
+    drv = sector(LG.spur(m, zd, F), m * zd / 2 + m, 180.0, 95.0, 9.0, b5, F, 180.0)
     y0 = 360.0
     add("rc8_m25_plate", gear_plate("2.5", cd, [(5.0, 0.0), (5.0, cd)], F), "PPA-CF", f"Pins at {cd:.2f}", tf.T(0, y0, 0))
     add("rc8_m25_big", big, "PPA-CF", f"launch big gear m{m:g} z{zb} sector: teeth {k0}..{k1 - 1} (tall, relieved)",
@@ -462,7 +510,7 @@ def coupon_8(P):
     add("rc8_m25_drive", drv, "PPA-CF", f"launch drive gear m{m:g} z{zd} sector", tf.T(cd, y0, 1.0))
     uses.append(f"m{m:g}: launch_gears.sector_gear_2d z{zb} (n_present {n['n_present']}, last 6 + gap) / "
                 f"launch_gears.spur z{zd}, cd {cd:.2f} (launch L)")
-    mesh = [("rc8_m125_seg", "rc8_m125_pinion"), ("rc8_m15_z42", "rc8_m15_z24"), ("rc8_m2_z24", "rc8_m2_z16"),
+    mesh = [("rc8_m125_seg", "rc8_m125_pinion"), ("rc8_m15_z42", "rc8_m15_z24"), ("rc8_m2_z50", "rc8_m2_z22"),
             ("rc8_m25_big", "rc8_m25_drive")]
     return dict(
         key="8", title="Gear meshes m1.25, m1.5, m2, m2.5", parts=parts, asm=[asm], mesh=mesh,
@@ -478,6 +526,8 @@ def coupon_8(P):
 
 
 # ---------------------------------------------------------------------------------------------- 9 shear pin
+SHEAR_RANGE_NM = (3.5, 6.0)   # drum_NOTES: 30 MPa assumed, so the limit could be 3.5 to 6 N m
+SPACING = 4.0              # mm between parts on a plate (pack default 5)
 LEVER_R = 60.0             # string hole radius on both levers
 
 
@@ -486,16 +536,17 @@ def coupon_9(P):
     g = drum.G(P)
     s_lo, s_mid, s_hi = 3.5, 9.5, 16.5
     hub = drum.coupler_hub(g, P) ^ drum.cyl(30.0, s_lo, s_hi)
-    lev = prim.box(11.0, LEVER_R + 6, -10, 10, s_lo, s_mid - 0.2) - drum.cyl(2.2, s_lo - 1, s_mid, LEVER_R, 0.0)
+    lev = prim.box(11.0, LEVER_R + 6, -8, 8, s_lo, s_mid - 0.2) - drum.cyl(2.2, s_lo - 1, s_mid, LEVER_R, 0.0)
     hub = hub + lev
     outer = drum.coupler(g, P) ^ drum.cyl(30.0, s_mid, s_hi)
-    lev2 = prim.box(-(LEVER_R + 6), -19.0, -10, 10, s_mid, s_hi) - drum.cyl(2.2, s_mid - 1, s_hi + 1, -LEVER_R, 0.0)
+    lev2 = prim.box(-(LEVER_R + 6), -19.0, -8, 8, s_mid, s_hi) - drum.cyl(2.2, s_mid - 1, s_hi + 1, -LEVER_R, 0.0)
     outer = outer + lev2
     pin = drum.shear_pin(g)
     r = g["hub_od"] / 2
     sig = 30.0
     t_est = sig * math.pi * (g["shear_d"] / 2) ** 2 * r / 1000.0
     kg = t_est / (LEVER_R / 1000.0) / 9.81
+    kg_range = tuple(t / (LEVER_R / 1000.0) / 9.81 for t in SHEAR_RANGE_NM)
     parts = [mk("rc9_hub_lever", hub, "PPA-CF", "drum.coupler_hub slice (shear pin hole) "
                 f"with a lever, string hole at r {LEVER_R:g}"),
              mk("rc9_outer_lever", outer, "PPA-CF", "drum.coupler slice (shear pin hole) "
@@ -508,23 +559,47 @@ def coupon_9(P):
         uses=(f"drum.coupler_hub and drum.coupler (sliced s {s_lo:g}..{s_hi:g}), drum.shear_pin: d{g['shear_d']:g} PLA "
               f"in single shear at r {r:g} (shear_s {g['shear_s']:g}); {t_est:.1f} N m at {sig:g} MPa"),
         bought="string or a strap, luggage scale",
-        t_est=t_est, kg=kg,
+        t_est=t_est, kg=kg, t_range=SHEAR_RANGE_NM, kg_range=kg_range,
         do=(f"Hub slice into the outer slice, pin through both holes (head outside). Clamp the hub lever, hang the "
             f"luggage scale on the outer lever hole (r {LEVER_R:g} mm) at right angles and pull slowly until the pin "
             f"shears. Break all 3 pins. Torque = kg x 9.81 x {LEVER_R / 1000:g} N m."),
-        ok=(f"Clean single shear at about {kg:.1f} kg ({t_est:.1f} N m), the 3 pins within 20 percent, both slices "
-            "undamaged (holes still round); a fresh pin goes in by hand."),
+        ok=(f"Each pin shears cleanly between {kg_range[0]:.1f} and {kg_range[1]:.1f} kg on the scale "
+            f"({SHEAR_RANGE_NM[0]:g} to {SHEAR_RANGE_NM[1]:g} N m, drum_NOTES; design {t_est:.1f} N m = {kg:.1f} kg), the "
+            "3 pins within 20 percent of each other, both slices undamaged (holes still round); a fresh pin goes in by "
+            "hand."),
         fail=("drum.py GEOM shear_d (torque goes with d squared), hub_od (radius), shear_s; fits for the hole: "
               "drum.coupler shear hole (shear_d + 0.1) and shear_pin (shear_d - 0.04). Spec D8 / D26 limit 5 N m."),
     )
 
 
 # ---------------------------------------------------------------------------------------------- all
-def coupons(P=None):
+TITLES = {"1": "Swing-arm direction splitter", "2": "Printed contact switch", "3": "Dog clutch and compliant fork",
+          "4": "Face slip clutch with the flexure spring", "5": "Bearing seats", "6": "M3 holes",
+          "7": "Key rib and spigot", "8": "Gear meshes m1.25, m1.5, m2, m2.5", "9": "Shear-pin torque limiter"}
+# a renamed or removed function, constant or module in a subsystem file skips only the coupon that uses it
+SOURCE_ERRORS = (AttributeError, ImportError, KeyError, NameError, TypeError)
+
+
+def coupons(P=None, skipped=None, log=print):
+    """Build every coupon. A coupon whose subsystem source (launch_aim, launch_gears, launch, drum, reel) no longer
+    has a function or number it needs is left out with a printed message and, when `skipped` (a list) is given,
+    a dict(key, title, reason) appended to it for the sheet."""
     P = P or P_default()
     sc = clutch.slip_clutch()
-    return [coupon_1(P), coupon_2(P), coupon_3(P), coupon_4(P, sc), coupon_5(P), coupon_6(P), coupon_7(P, sc),
-            coupon_8(P), coupon_9(P)]
+    fns = [("1", lambda: coupon_1(P)), ("2", lambda: coupon_2(P)), ("3", lambda: coupon_3(P)),
+           ("4", lambda: coupon_4(P, sc)), ("5", lambda: coupon_5(P)), ("6", lambda: coupon_6(P)),
+           ("7", lambda: coupon_7(P, sc)), ("8", lambda: coupon_8(P)), ("9", lambda: coupon_9(P))]
+    out = []
+    for key, fn in fns:
+        try:
+            out.append(fn())
+        except SOURCE_ERRORS as e:
+            reason = f"{type(e).__name__}: {e}"
+            log(f"risk coupon {key} ({TITLES[key]}) SKIPPED: its subsystem source changed ({reason}); update "
+                f"coupon_{key} in tools/risk_coupon.py")
+            if skipped is not None:
+                skipped.append(dict(key=key, title=TITLES[key], reason=reason))
+    return out
 
 
 def all_parts(cs):
@@ -536,6 +611,8 @@ def interferences(cs, tol=0.05):
     out = []
     for c in cs:
         by = {p.name: p for p in all_parts(cs)}
+        if any(nm not in by for st in c["asm"] for nm in st):
+            continue                                          # a part from a skipped coupon (4 uses 7's stub)
         skip = {frozenset(x) for x in c["mesh"] + c.get("allow", [])}
         for st in c["asm"]:
             names = sorted(st)
@@ -556,13 +633,40 @@ def _clean(s):
     return clean(s)
 
 
-def sheet_md(cs, plates) -> str:
+FIT_COUPON_DIR = os.path.join(BASE, "pack", "fit_coupon")
+
+
+def settings_text():
+    """Print settings, numbers from tools.pack.PROFILE (the one profile table behind PRINT_SHEET)."""
+    from tools.pack import PROFILE
+    a, b = PROFILE["PLA"], PROFILE["PPA-CF"]
+    return (f"PLA: 0.4 mm nozzle, 0.2 mm layers, {a['walls']} walls, {100 * a['infill']:.0f} % gyroid infill unless "
+            f"noted, {a['top']} top and {a['bottom']} bottom layers, hole and XY compensation 0, no supports. "
+            f"PPA-CF: hardened steel nozzle (never brass), filament dried (80 C, 8 h) and fed from a dry box, 0.2 mm "
+            f"layers, {b['walls']} walls, {100 * b['infill']:.0f} % gyroid infill, {b['top']} top and {b['bottom']} "
+            f"bottom layers, hole and XY compensation 0, no supports. The 3MF files carry geometry only: set the "
+            f"material and these settings in Bambu Studio.")
+
+
+RERUN = ("To change a number: on the Mac, after bash kedge/setup_mac.sh, run kedge/.venv/bin/python -m tools.risk_coupon "
+         "from base/ (it rewrites base/pack/coupons and base/pack/fit_coupon). Easier: give the failing result to a "
+         "Claude session and let it change the numbers. Change one number at a time and reprint only that coupon.")
+
+
+def skip_note(skipped):
+    return "" if not skipped else ("NOT IN THIS SET (a subsystem file changed; tools/risk_coupon.py needs an update): "
+                                   + "; ".join(f"{d['key']} {d['title']} ({d['reason']})" for d in skipped) + ".")
+
+
+def sheet_md(cs, plates, skipped=()) -> str:
     L = ["# Day-one risk coupons: test sheet", "",
          "Print these before the big parts. Each coupon is made from the same geometry functions and numbers as the "
-         "real part, so a pass here is a pass there. Print as exported, no supports, 0.4 nozzle, 0.2 layers, 4 walls; "
-         "PLA plate and PPA-CF plate as marked. Let parts cool 10 minutes before testing. Change one number at a time, "
-         "then rerun `python -m tools.risk_coupon` (from `base/`) and reprint only that coupon.", "",
+         "real part, so a pass here is a pass there. Let parts cool 10 minutes before testing. The fit coupon "
+         "(tolerance tiles A to H, base/pack/fit_coupon/COUPON.md) is printed alongside.", "",
+         "## Settings", "", settings_text(), "", "## If a coupon fails", "", RERUN, "",
          "## Plates", "", "| plate | material | objects |", "|---|---|---|"]
+    if skipped:
+        L[4:4] = ["## Missing coupons", "", skip_note(skipped), ""]
     for pl in plates:
         L.append(f"| {pl['file']} | {pl['material']} | {pl['objects']} |")
     L += ["", "## Tests", ""]
@@ -574,8 +678,6 @@ def sheet_md(cs, plates) -> str:
               f"- Pass: {c['ok']}",
               f"- If it fails, change: {c['fail']}",
               f"- Made from: {c['uses']}"]
-        if "table" in c:
-            L.append(f"- Expected slip (nut travel: torque, scale reading at r {c['r_lug']:.1f}): " + "; ".join(c["table"]))
         L.append("")
     L += ["## Parts", "", "| part | material | qty | print bbox mm | what |", "|---|---|---|---|---|"]
     for p in all_parts(cs):
@@ -586,20 +688,20 @@ def sheet_md(cs, plates) -> str:
     return _clean("\n".join(L))
 
 
-def sheet_pdf(fn, cs, plates, fs=6.6):
+def sheet_pdf(fn, cs, plates, fs=6.6, skipped=()):
     from reportlab.lib.units import mm
     from tools import pack
     st, Pp, tbl, note = pack.pdf_kit()
     S = [Pp("Day-one risk coupons: test sheet", "H2"),
-         Pp("Print before the big parts; every coupon uses the real part's geometry functions and numbers. As exported, "
-            "no supports, 0.4 nozzle, 0.2 layers, 4 walls. Plates: " + ", ".join(
-                f"{pl['file']} ({pl['material']}, {pl['objects']})" for pl in plates)
-            + ". Change one number at a time, rerun python -m tools.risk_coupon, reprint that coupon.", "SM")]
+         Pp("Print before the big parts; every coupon uses the real part's geometry functions and numbers. Plates: "
+            + ", ".join(f"{pl['file']} ({pl['objects']} objects)" for pl in plates)
+            + "; the fit coupon is in base/pack/fit_coupon. " + settings_text(), "SM"),
+         Pp(RERUN, "SM")]
+    if skipped:
+        S.append(Pp(skip_note(skipped), "SM"))
     rows = [["#", "do", "pass", "if it fails, change (file: name)"]]
     for c in cs:
         ok = c["ok"]
-        if "table" in c:
-            ok += " Expected: " + "; ".join(c["table"][1:]) + "."
         rows.append([f"{c['key']} {c['title']}. Bought: {c['bought']}", c["do"], ok, c["fail"]])
     S.append(tbl(rows, [30, 58, 48, 46], fs=fs))
     if note:
@@ -622,7 +724,8 @@ def write(out_dir: str = DEFAULT_OUT, P=None, log=print) -> dict:
     for pat in ("rc[0-9]_*.stl", "risk_plate_*", "COUPON_TEST.*"):
         for f in glob.glob(os.path.join(out_dir, pat)):
             os.remove(f)
-    cs = coupons(P)
+    skipped = []
+    cs = coupons(P, skipped, log)
     parts = all_parts(cs)
     meshes, items = {}, []
     for p in parts:
@@ -631,29 +734,29 @@ def write(out_dir: str = DEFAULT_OUT, P=None, log=print) -> dict:
         m.export(os.path.join(out_dir, f"{p.name}.stl"))
         meshes[p.name] = m
         items.append(dict(name=p.name, material=p.material, dims=[float(x) for x in m.extents], qty=p.qty))
-    rep = dict(parts=len(parts), plates=[], errors=[], warnings=[])
-    plates, errs = pack.pack_plates(items, pack.BED, 5.0, 5.0, rep["warnings"])
+    rep = dict(parts=len(parts), plates=[], errors=[], warnings=[], skipped=skipped)
+    plates, errs = pack.pack_plates(items, pack.BED, SPACING, 5.0, rep["warnings"])
     rep["errors"] += errs
     qty = {p.name: p.qty for p in parts}
     for i, pl in enumerate(plates, 1):
         names = pack.object_names(pl["items"], qty)
         objs = [(on, pack.place_on_plate(meshes[it["name"]], it)) for on, it in zip(names, pl["items"])]
-        fn = os.path.join(out_dir, f"risk_plate_{i}.3mf")
+        fn = os.path.join(out_dir, f"risk_plate_{i}_{pl['material']}.3mf")
         pack.write_3mf(fn, objs)
         nb = pack.count_3mf_items(fn)
         if nb != len(objs):
             rep["errors"].append(f"risk_plate_{i}.3mf reopens with {nb} build items, expected {len(objs)}")
-        pack.plate_png(os.path.join(out_dir, f"risk_plate_{i}.png"),
+        pack.plate_png(fn[:-4] + ".png",
                        f"risk coupon plate {i}, {pl['material']} ({len(objs)} objects)", objs, pack.BED)
         lo = np.min([m.bounds[0] for _, m in objs], axis=0)
         hi = np.max([m.bounds[1] for _, m in objs], axis=0)
         rep["plates"].append(dict(file=os.path.basename(fn), material=pl["material"], objects=len(objs),
                                   build_items=nb, lo=lo.tolist(), hi=hi.tolist()))
     with open(os.path.join(out_dir, "COUPON_TEST.md"), "w") as fh:
-        fh.write(sheet_md(cs, rep["plates"]))
+        fh.write(sheet_md(cs, rep["plates"], skipped))
     pdf = os.path.join(out_dir, "COUPON_TEST.pdf")
-    for fs in (6.6, 6.2, 5.8, 5.4):
-        sheet_pdf(pdf, cs, rep["plates"], fs)
+    for fs in (6.6, 6.2, 5.8, 5.4, 5.0):
+        sheet_pdf(pdf, cs, rep["plates"], fs, skipped)
         if pdf_pages(pdf) == 1:
             break
     rep["pdf_pages"] = pdf_pages(pdf)
@@ -667,12 +770,31 @@ def write(out_dir: str = DEFAULT_OUT, P=None, log=print) -> dict:
     return rep
 
 
+def write_fit_coupon(dest: str = FIT_COUPON_DIR, log=print) -> dict:
+    """The base fit coupon (tools.coupon, not edited here) into dest: coupon.write puts it in <dir>/coupon, so it is
+    written next to dest and moved."""
+    import shutil
+    from tools import coupon
+    tmp = dest.rstrip("/") + ".tmp"
+    shutil.rmtree(tmp, ignore_errors=True)
+    rep = coupon.write(tmp, log=log)
+    shutil.rmtree(dest, ignore_errors=True)
+    shutil.move(os.path.join(tmp, "coupon"), dest)
+    shutil.rmtree(tmp, ignore_errors=True)
+    return rep
+
+
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Write the day-one risk coupons (STL, 3MF, PNG, COUPON_TEST.md/.pdf)")
+    ap = argparse.ArgumentParser(description="Write the day-one risk coupons (STL, 3MF, PNG, COUPON_TEST.md/.pdf) and "
+                                             "the fit coupon (base/pack/fit_coupon)")
     ap.add_argument("out", nargs="?", default=DEFAULT_OUT)
+    ap.add_argument("--fit", default=FIT_COUPON_DIR, help="fit coupon directory ('' to skip)")
     a = ap.parse_args(argv)
     rep = write(a.out)
-    return 2 if rep["errors"] else 0
+    errs = list(rep["errors"])
+    if a.fit:
+        errs += write_fit_coupon(a.fit).get("errors", [])
+    return 2 if errs else 0
 
 
 if __name__ == "__main__":

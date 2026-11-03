@@ -120,7 +120,7 @@ struct Base {
   void restoreTun(const Tun* t) {
     if (!t || !validTun(t)) return;
     lastTun = *t;
-    enc.sign = c.wiperSign = t->encSign ? 1 : -1; c.requireSeated = true;   /* require_seated is never kept off across a boot (review D2) */ c.vbatWired = !(t->requireSeated & 2); w.c.ampsPerVolt = t->ampsPerVolt; w.c.offsetA = t->offsetA;
+    enc.sign = c.wiperSign = t->encSign ? 1 : -1; c.requireSeated = true; c.vbatWired = true;   /* require_seated and vbat_wired are never kept off across a boot (review D2 #19) */ w.c.ampsPerVolt = t->ampsPerVolt; w.c.offsetA = t->offsetA;
     c.freeA = t->freeA; c.kNperA = t->kNperA; c.hxNPerCount = t->hxNPerCount; hxOff = t->hxOff; c.limitN = t->limitN; c.drumDps = t->drumDps;
     aimOffset = t->aimOffset; c.aimTolDeg = t->aimTol; c.tripA = t->tripA; c.cockTripA = t->cockTripA; c.vbatLow = t->vbatLow; c.aimHomeDeg = t->aimHomeDeg;
     c.tensOffsetN = t->tensOffsetN; c.towTripA = t->towTripA;
@@ -161,7 +161,7 @@ struct Base {
   bool maybeReel() const { return sec == SEC_REEL || sec == SEC_LOCK || sec == SEC_INVALID || secBad || closed(SW_DOG_R); }
   const char* modeName() const {
     if (collarLaunch()) return "LAUNCH"; if (collarReel()) return "REEL";
-    if ((sec == SEC_NEUTRAL || sec == SEC_PREP || sec == SEC_WRAP || (sec == SEC_LOCK && drumDeg < c.collarNdeg)) && !closed(SW_DOG_L) && !closed(SW_DOG_R)) return "NEUTRAL";
+    if ((sec == SEC_NEUTRAL || sec == SEC_PREP || sec == SEC_WRAP || (sec == SEC_LOCK && degTrusted && drumDeg < c.collarNdeg)) && !closed(SW_DOG_L) && !closed(SW_DOG_R)) return "NEUTRAL";
     return "NONE";
   }
   int wrapsAt(int s, float deg) const {
@@ -331,7 +331,7 @@ struct Base {
     } else { drumKnown = false; wrapsKnown = false; wraps = 0; }
     if (s && s->lineM >= 0) { lineM = s->lineM; lineKnown = true; } else { lineKnown = false; }
     // the record is written as a motion starts: a cut while the wiper turned (reel, take-up) leaves line_m stale
-    if (s && (s->moving & MV_WIPER) && sec >= SEC_NEUTRAL) lineKnown = false;
+    if (s && (s->moving & MV_WIPER) && (sec >= SEC_NEUTRAL || sec == SEC_INVALID || s->phase == PH_FIRING)) lineKnown = false;   // also a cut mid-fire
     // wiper: the AS5600 knows the angle inside one turn; the record knows the turns, if nothing moved since
     bool wiperOk = false;
     if (enc.ok && wiperTrust && !indexMode) {
@@ -446,7 +446,15 @@ struct Base {
     bool afterBad = badSeen; badSeen = false;
     if (s == sec) { if (afterBad) degTrusted = false; return; }
     int was = sec; prevSec = sec; sec = s; secChangeT = now;
-    if (was == SEC_INVALID || !booted) { drumKnown = true; return; }
+    if (was == SEC_INVALID || !booted) {
+      drumKnown = true;
+      if (booted) {                                   // code back after 000 since boot: only the sector is known
+        int k = detentClosed();
+        drumDeg = k >= 0 ? c.targetDeg[k] : 0.5f * (fmaxf(secLo(s), c.targetDeg[0]) + fminf(secHi(s), c.targetDeg[2]));
+        degTrusted = false; wraps = wrapsAt(s, drumDeg); wrapsKnown = s != SEC_WRAP && !wrapsDoubt;
+      }
+      return;
+    }
     int dir = s > was ? 1 : -1;
     float e = c.edgeDeg[s > was ? was : s];
     uint32_t te = 0; for (int id = SW_DRUM_A; id <= SW_DRUM_C; id++) if (fitted(id)) { uint32_t x = sw.edgeTime(c.swBit[id]); if (te == 0 || (int32_t)(x - te) > 0) te = x; }
@@ -559,7 +567,7 @@ struct Base {
   // dog contacts must confirm the collar (LAUNCH: wiggle BACKWARD if needed, never forward: that would cock).
   int mvTarget = -1, mvDir = 0, mvStage = 0, mvSafing = 0; uint32_t mvT = 0, mvLegT = 0, mvSecT = 0, mvEnd = 0; float mvExpect = 0, mvFrom = 0;
   bool flyBit = false; uint32_t flyT = 0, flyPauseT = 0; float flyRef = 0, flyLegFrom = 0;
-  int mvLastSec = SEC_INVALID; bool mvTakeup = false; int mvWiper = 0; bool mvTrusted = false; float mvEdgeExpect = 0; bool mvRefind = false; float mvRefEdge = 0;
+  int mvLastSec = SEC_INVALID; bool mvTakeup = false; int mvWiper = 0; bool mvTrusted = false; float mvEdgeExpect = 0; bool mvRefind = false; float mvRefEdge = 0; bool mvReref = false;
   bool handMode() const { return fitted(SW_N20) && !closed(SW_N20); }   // N20 latched out: the drum is turned by hand
   bool startDrumMove(int target, bool safing) {
     if (sec == SEC_INVALID || secBad || handMode()) return false;
@@ -583,7 +591,14 @@ struct Base {
       else if (sec == SEC_REEL) { mvStage = 5; wiper(c.reelDir, c.flyDuty, c.jogTripA); return true; }
       else { mvStage = 3; wiper(c.aimDir < 0 ? -1 : 1, c.jogDuty, c.jogTripA); return true; }
     }
-    if (ts == sec) { mvStage = 1; mvEnd = now + (uint32_t)(fabsf(c.targetDeg[target] - drumDeg) / c.drumDps * 1000.f); }
+    mvReref = false;
+    if (ts == sec && !degTrusted && (sec == SEC_NEUTRAL || sec == SEC_LOCK)) {
+      // the angle is a guess (boot after a cut, code back after 000): never stop on it. Run out of the sector to a real
+      // code edge (NEUTRAL: up to WRAP_PREP; N_TO_R: down to the WRAP edge with the take-up), come back, run on from there
+      mvReref = true; mvDir = sec == SEC_NEUTRAL ? 1 : -1; mvTakeup = mvDir < 0;
+      mvStage = 1; mvEnd = now + (uint32_t)((secHi(sec) - secLo(sec) + 5) / c.drumDps * 1000.f * c.drumTimeFactor);
+    }
+    else if (ts == sec) { mvStage = 1; mvEnd = now + (uint32_t)(fabsf(c.targetDeg[target] - drumDeg) / c.drumDps * 1000.f); }
     else mvStage = 0;
     d.want(mvDir * c.drumSign);
     return true;
@@ -664,12 +679,13 @@ struct Base {
       if ((int32_t)(now - mvEnd) < 0) return 0;
       d.halt(now, io.drum);
       if (sec != ts) { failDrum(safing, F_DRUM_SENSOR, "drum overshot the target sector"); return -1; }
+      if (mvReref) { failDrum(safing, F_DRUM_TIMEOUT, "no code edge found while re-referencing the drum"); return -1; }
       drumDeg = c.targetDeg[mvTarget];
       mvStage = 4; mvLegT = now; mvFrom = enc.deg();
       return 0;
     }
     if (mvStage == 6) {                               // back to the edge just crossed
-      if (sec == ts) { drumDeg = mvRefEdge; mvEnd = now + (uint32_t)(fabsf(c.targetDeg[mvTarget] - mvRefEdge) / c.drumDps * 1000.f); mvStage = 1; return 0; }
+      if (sec == ts) { drumDeg = mvRefEdge; mvReref = false; degTrusted = true; mvEnd = now + (uint32_t)(fabsf(c.targetDeg[mvTarget] - mvRefEdge) / c.drumDps * 1000.f); mvStage = 1; return 0; }
       if (now - mvLegT > (uint32_t)(10.f / c.drumDps * 1000.f) + c.drumTimeMarginMs) { failDrum(safing, F_DRUM_TIMEOUT, "drum did not come back to the target sector"); return -1; }
       return 0;
     }
@@ -754,7 +770,7 @@ struct Base {
     }
     int k = detentClosed();
     bool collarOk = t == DP_LAUNCH ? collarLaunch() : t == DP_REEL ? collarReel() : (!closed(SW_DOG_L) && !closed(SW_DOG_R));
-    if (k == t && fabsf(drumDeg - c.targetDeg[t]) < 3 && collarOk) { evMode(true); return nullptr; }   // else run the move: it confirms the collar
+    if (k == t && (degTrusted || t == DP_LAUNCH || t == DP_REEL) && fabsf(drumDeg - c.targetDeg[t]) < 3 && collarOk) { evMode(true); return nullptr; }   // LAUNCH / REEL: the dogs confirm   // else run the move: it confirms the collar
     // the worm holds the spring: never shift while the launch train is not at rest, unless the drum is positively
     // away from LAUNCH (a failed code bit must not open the way)
     if ((sec <= SEC_LN || secBad || closed(SW_DOG_L) || loadedKnown()) && t != DP_LAUNCH) { if (const char* e = launchExitCheck()) return e; }
@@ -909,7 +925,7 @@ struct Base {
     if (un < 0) return "BAD_ARG";
     if (!(duty > 0 && duty <= 1)) return "BAD_ARG";
     if (!(mxn > 0)) return "BAD_ARG";
-    bool neutral = (sec == SEC_NEUTRAL || (sec == SEC_LOCK && drumDeg < c.collarNdeg)) && !closed(SW_DOG_L) && !closed(SW_DOG_R) && !secBad;
+    bool neutral = (sec == SEC_NEUTRAL || (sec == SEC_LOCK && degTrusted && drumDeg < c.collarNdeg)) && !closed(SW_DOG_L) && !closed(SW_DOG_R) && !secBad;
     if (!collarReel() && !neutral) return "NOT_WRAPPED";
     if (neutral && un == U_TENSION) return "NOT_WRAPPED";   // no tension without the capstan
     if (!neutral && un == U_SLIP) return "BAD_ARG";
@@ -1130,7 +1146,7 @@ struct Base {
     else if (!strcmp(cmd, "jog")) { if (!o.num("ms", &b)) b = 300; err = (o.str("motor", &s) && o.num("dir", &a)) ? cmdJog(s, a, b) : "BAD_ARG"; }
     else if (!strcmp(cmd, "tidy")) {               // D22: take-up only, forward by time (collar NEUTRAL)
       if (!o.num("ms", &b)) b = c.tidyMs; if (!o.num("duty", &a)) a = 0.3;
-      bool neutral = (sec == SEC_NEUTRAL || (sec == SEC_LOCK && drumDeg < c.collarNdeg)) && !closed(SW_DOG_L) && !closed(SW_DOG_R);
+      bool neutral = (sec == SEC_NEUTRAL || (sec == SEC_LOCK && degTrusted && drumDeg < c.collarNdeg)) && !closed(SW_DOG_L) && !closed(SW_DOG_R);
       if (!(b > 0 && b <= 60000)) err = "BAD_ARG";
       else if (sec == SEC_INVALID || secBad) err = "POSITION_UNKNOWN";
       else if (!neutral) err = "NOT_IN_NEUTRAL";

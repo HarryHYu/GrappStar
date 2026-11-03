@@ -213,7 +213,10 @@ is wired to it.
    telemetry `sw` (BENCH_TEST.md step 2). Unplug USB.
 10. Battery unplugged. DRV8833: AIN1 GPIO15, AIN2 GPIO16, GND to ESP32 GND. SLP and FLT stay unconnected.
     AOUT1 and AOUT2 to the drum N20.
-11. Battery unplugged. Buck output (already set to 9.0 V in Part A): OUT+ to DRV8833 VM, OUT- to DRV8833 GND.
+11. Battery unplugged. Check the buck on its own once more before it touches the DRV8833: connect only its input to
+    the fused XT60 lead as in Part A (nothing on the output, meter on OUT+ / OUT-), plug the battery in, read 9.0 V
+    with no load, unplug the battery and disconnect the input again. Only then, battery still unplugged: OUT+ to
+    DRV8833 VM, OUT- to DRV8833 GND.
 12. Battery unplugged. Buck input: the 2 A inline fuse goes right at the BTS7960 B+ screw, then the IN+ lead to the
     buck IN+ (no fuse: 18 AWG, kept under 10 cm). IN- to BTS7960 B-.
 13. Battery unplugged. Power: fused XT60 lead + to BTS7960 B+, - to B-. Use 14 AWG. The 20 A fuse in the + lead.

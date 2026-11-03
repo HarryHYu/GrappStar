@@ -180,7 +180,9 @@ Reverse pause:
 3. Plug the battery in. Declare the launcher at rest: `{"id":13,"cmd":"cal","what":"cock_rest"}` (it needs `H` and
    `G` closed).
 4. Type: `{"id":14,"cmd":"jog","motor":"wiper","dir":-1,"ms":500}`
-5. You should see: the shaft turns the other way (about 60 % power, trip 3 A). `wiper_deg` goes DOWN.
+5. You should see: the shaft turns the other way (about 60 % power). `wiper_deg` goes DOWN. Every backward run in
+   LAUNCH trips at 3 A (D40): a `FAULT` `OVERCURRENT` "wiper over 3.0 A" on the bare motor means write down `peak_a`,
+   `clear` and tell the firmware author.
    `NOT_IN_LAUNCH`: `l` is missing. `NOT_AT_REST`: send the `cock_rest` of step 3 again.
 6. Do not jog forward in this set-up: with `SW_HOME` jumpered closed a forward jog in LAUNCH faults ("SW_HOME still
    closed past the first tooth").

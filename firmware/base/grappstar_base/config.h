@@ -34,7 +34,7 @@ struct Cfg {
   // ---- tick
   uint32_t tickMs = 5;
 
-  // ---- switches: physical bit for each logical contact (-1 = not fitted): PIN_SW_A..J in SwId order (WIRING.md)
+  // ---- switches: physical bit for each logical contact (-1 = not fitted): PIN_SW_A..L in SwId order (WIRING.md)
   int8_t swBit[SW_COUNT] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, -1};   // SW_INDEX only without the AS5600 magnet
   uint32_t debounceMs = 20;
 
@@ -149,7 +149,7 @@ struct Cfg {
   int flyDuty = 51;                 // 20 percent
   float flyMaxDeg = 120;            // at most this much wiper travel for the dogs to drop in
   float flyLaunchMaxDeg = 40;
-  // take-up while unwrapping (lens B step 13): wiper forward at 30 percent while the drum is in the WRAP sector
+  // take-up while unwrapping (lens B step 13): wiper forward at 40 percent while the drum is in the WRAP sector
   int takeupDuty = 102; int takeupMaxDuty = 102;   // 40 percent (I4: forward in NEUTRAL or WRAP at most 40 percent)
   uint32_t approachMaxMs = 20000;   // final approach on the take-up until SW_SEATED, else DART_STUCK (lens B step 14)
   uint32_t tidySteadyMs = 2000; uint32_t tidyMaxMs = 15000;   // reel until slip: forward until the take-up slips steadily

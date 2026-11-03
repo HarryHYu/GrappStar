@@ -2,8 +2,9 @@
 // Plain C++ (no Arduino calls): the sketch supplies the hardware through Io, the PC tests supply a simulation.
 // Protocol: PROTOCOL.md (contract C1, JSON lines over USB CDC). Mechanism: base/spec/BASE_SPEC.md.
 //
-// Drum travel (one line): LAUNCH -- NEUTRAL -- REEL -- wrap zone (wrap arm orbits the capstan, one wrap per orbit).
-// The order is physical: the capstan cannot be wrapped in launch mode, the mode cannot change with wraps on.
+// Drum travel (one line, params.DRUM): LAUNCH -- L_TO_N -- NEUTRAL -- WRAP_PREP -- WRAP (the cup lays 7 turns) --
+// N_TO_R (WRAPPED park 314, collar still NEUTRAL) -- REEL. The order is physical: the capstan is wrapped with the collar
+// in NEUTRAL, REEL is only reached with the wraps on, and LAUNCH only with them off.
 // LAUNCH: wiper aimDir turns the aim train (pitch from the aim table), the other direction cocks, fires and resets.
 // REEL (and WRAPPED): wiper reelDir winds the capstan. NEUTRAL: the wiper turns nothing (the safe state).
 #pragma once
@@ -111,7 +112,8 @@ struct Base {
     Tun t; t.encSign = enc.sign > 0 ? 1 : 0; t.requireSeated = (c.requireSeated ? 1 : 0) | (c.vbatWired ? 0 : 2);
     t.ampsPerVolt = w.c.ampsPerVolt; t.offsetA = w.c.offsetA; t.freeA = c.freeA; t.kNperA = c.kNperA; t.hxNPerCount = c.hxNPerCount;
     t.hxOff = hxOff; t.limitN = c.limitN; t.drumDps = c.drumDps; t.aimOffset = aimOffset; t.aimTol = c.aimTolDeg; t.tripA = c.tripA;
-    t.cockTripA = c.cockTripA; t.vbatLow = c.vbatLow; t.aimHomeDeg = c.aimHomeDeg; sealTun(&t); return t;
+    t.cockTripA = c.cockTripA; t.vbatLow = c.vbatLow; t.aimHomeDeg = c.aimHomeDeg;
+    t.tensOffsetN = c.tensOffsetN; t.towTripA = c.towTripA; t.hostTimeoutS = c.hostTimeoutS; sealTun(&t); return t;
   }
   // the sketch calls this before begin() with what saveTun() stored (or nullptr)
   void restoreTun(const Tun* t) {
@@ -119,8 +121,10 @@ struct Base {
     enc.sign = c.wiperSign = t->encSign ? 1 : -1; c.requireSeated = t->requireSeated & 1; c.vbatWired = !(t->requireSeated & 2); w.c.ampsPerVolt = t->ampsPerVolt; w.c.offsetA = t->offsetA;
     c.freeA = t->freeA; c.kNperA = t->kNperA; c.hxNPerCount = t->hxNPerCount; hxOff = t->hxOff; c.limitN = t->limitN; c.drumDps = t->drumDps;
     aimOffset = t->aimOffset; c.aimTolDeg = t->aimTol; c.tripA = t->tripA; c.cockTripA = t->cockTripA; c.vbatLow = t->vbatLow; c.aimHomeDeg = t->aimHomeDeg;
+    c.tensOffsetN = t->tensOffsetN; c.towTripA = t->towTripA; c.hostTimeoutS = t->hostTimeoutS;
   }
   bool tunDirty = false;
+  uint32_t evDrops = 0;                              // set by the sketch: events dropped by the USB ring (status ev_drops)
   // the sketch calls this before the first tick with what save() stored (or nullptr)
   void restore(const Saved* s) { if (s && validSaved(s)) { boot = *s; bootValid = true; } else bootValid = false; }
 
@@ -442,7 +446,7 @@ struct Base {
 
   // ================================================================== watchdogs (every tick)
   void watch() {
-    if (state == S_FAULT) return;
+    if (state == S_FAULT) { if (sec != SEC_INVALID) quietSec = sec; return; }   // a hand-turned drum: one clear is enough
     if (w.overcurrent) { char b[48]; snprintf(b, sizeof b, "wiper over %.1f A", w.c.tripA); w.clearLatches(); onOvercurrent(b); return; }
     if (w.stalled) { w.clearLatches(); onStall(); return; }
     if (!enc.ok && (w.running() || state == S_AIM || state == S_COCK || state == S_FIRE || state == S_REEL)) { raise(F_ANGLE_SENSOR, "AS5600 lost while the wiper runs"); return; }
@@ -650,6 +654,8 @@ struct Base {
     if (state == S_HOLD) return "HOLDING";
     if (sec == SEC_INVALID || secBad) return "POSITION_UNKNOWN";
     if (handMode()) return "HAND_MODE";
+    // the centering jog and the fly-in need the wiper angle: without it the collar may leave a loaded flank or never seat
+    if (!enc.ok && (t == DP_REEL || ((sec == SEC_LAUNCH || sec == SEC_REEL) && detentClosed() != t))) return "ANGLE_SENSOR";
     if (t == DP_REEL) {                              // REEL engages only with the wraps on (D16): from LOCK, or use "wrap"
       if (sec == SEC_REEL && collarReel()) { evMode(true); return nullptr; }
       if (sec < SEC_LOCK) return "NOT_WRAPPED";
@@ -657,7 +663,8 @@ struct Base {
       if (sec >= SEC_WRAP) return "WRAPS_ON";        // unwrap first
     }
     int k = detentClosed();
-    if (k == t && fabsf(drumDeg - c.targetDeg[t]) < 3 && (t != DP_LAUNCH || collarLaunch())) { evMode(true); return nullptr; }
+    bool collarOk = t == DP_LAUNCH ? collarLaunch() : t == DP_REEL ? collarReel() : (!closed(SW_DOG_L) && !closed(SW_DOG_R));
+    if (k == t && fabsf(drumDeg - c.targetDeg[t]) < 3 && collarOk) { evMode(true); return nullptr; }   // else run the move: it confirms the collar
     // the worm holds the spring: never shift while the launch train is not at rest, unless the drum is positively
     // away from LAUNCH (a failed code bit must not open the way)
     if ((sec <= SEC_LN || secBad || closed(SW_DOG_L) || loadedKnown()) && t != DP_LAUNCH) { if (const char* e = launchExitCheck()) return e; }
@@ -704,6 +711,7 @@ struct Base {
     if (phase == PH_COCKED) { if (!closed(SW_HOME)) { evCocked(true); return nullptr; } return "SWITCH_DISAGREE"; }
     if (phase == PH_REST && !closed(SW_HOME)) return "SWITCH_DISAGREE";
     if (phase == PH_UNKNOWN && !closed(SW_HOME)) return "LOADED_UNKNOWN";   // carriage drawn, angle unknown: cal decock first
+    if (c.requireSeated && !closed(SW_SEATED)) return fitted(SW_SEATED) ? "NOT_SEATED" : "NO_SENSOR";   // lens B I2
     // SW_HOME says home but the last known angle says drawn (before the release): the switch is lying, a creep could fire
     if (phase == PH_UNKNOWN && phaseHint > c.homeOpenDeg + c.homeWinDeg && phaseHint < c.releaseDeg + c.releaseWinDeg) return "LOADED_UNKNOWN";
     homeSeen = false; tokenLive = false;
@@ -748,7 +756,8 @@ struct Base {
     w.want(cockDir(), c.fireDuty); markMoving(MV_WIPER); state = S_FIRE; stT = opT = now;
     return nullptr;
   }
-  // wrap: from NEUTRAL through the WRAP sector (the cup lays the wraps, collar in NEUTRAL) to REEL (fly-in). D16.
+  // wrap (D22): from LAUNCH or NEUTRAL through the WRAP sector (the cup lays the wraps, collar NEUTRAL) to the WRAPPED park
+  // (314, collar still NEUTRAL). "mode REEL" then flies the collar into REEL.
   const char* cmdWrap() {
     if (const char* e = idleCheck(false)) return e;
     if (state == S_HOLD) return "HOLDING";
@@ -758,6 +767,7 @@ struct Base {
     if (handMode()) return "HAND_MODE";
     if (loadedKnown()) return "LAUNCH_BUSY";
     if (w.running()) return "BUSY";
+    if (!enc.ok && sec == SEC_LAUNCH) return "ANGLE_SENSOR";   // the centering jog needs the wiper angle
     if (!startDrumMove(DP_WRAPPED, false)) return "POSITION_UNKNOWN";   // park at WRAPPED (314): collar NEUTRAL, cup locked
     aimed = false; tokenLive = false;
     state = S_WRAP; stT = now;
@@ -883,7 +893,10 @@ struct Base {
       decockByTravel = false;
       if (closed(SW_HOME)) {
         if (phase == PH_REST) { JOut e(evBuf, sizeof evBuf); evBegin(e, "RESET"); e.boolean("ok", true); e.str("how", "decock"); evEnd(e); return nullptr; }
-        if (phase == PH_UNKNOWN && !(phaseHint > c.homeOpenDeg + c.homeWinDeg && phaseHint < c.releaseDeg + c.releaseWinDeg)) return nullptr;   // carriage home: "cock" finds the angle
+        if (phase == PH_UNKNOWN && !(phaseHint > c.homeOpenDeg + c.homeWinDeg && phaseHint < c.releaseDeg + c.releaseWinDeg)) {
+          // carriage home, springs relaxed: nothing to unwind; the next cock finds the angle. Still answer with an event
+          JOut e(evBuf, sizeof evBuf); evBegin(e, "RESET"); e.boolean("ok", false); e.str("how", "decock"); e.str("why", "carriage home: nothing to decock, cock finds the angle"); evEnd(e); return nullptr;
+        }
         if (!force) return "SWITCH_DISAGREE";        // the spring should be drawn but SW_HOME says home: lying switch
         decockByTravel = true;                       // forced: run back by the travel the angle says, then call it rest
         decockTravel = (phaseHint > 0 ? phaseHint : c.cockEndDeg) - c.homeOpenDeg + c.dogWindowDeg + 30;   // window, then the train
@@ -914,6 +927,7 @@ struct Base {
     out[n++] = {"line_m", &lineM, 0, 100};
     out[n++] = {"trip_a", &c.tripA, 3, 19};
     out[n++] = {"cock_trip_a", &c.cockTripA, 3, 19};
+    out[n++] = {"tow_trip_a", &c.towTripA, 3, 19};
     out[n++] = {"vbat_low", &c.vbatLow, 6, 12};
     out[n++] = {"aim_home_deg", &c.aimHomeDeg, -7200, 7200};
     out[n++] = {"host_timeout_s", &c.hostTimeoutS, 0, 600};
@@ -929,7 +943,8 @@ struct Base {
       if (!(v >= ks[i].lo && v <= ks[i].hi)) return "OUT_OF_RANGE";
       *ks[i].f = (float)v;
       if (!strcmp(k, "line_m")) { lineKnown = true; dirty = true; }
-      if (!strcmp(k, "trip_a") && state != S_COCK && state != S_FIRE) w.c.tripA = c.tripA;
+      if (!strcmp(k, "trip_a") && (state == S_AIM || (state == S_REEL && until != U_TENSION && !takeupOnly))) w.c.tripA = c.tripA;
+      if (!strcmp(k, "tow_trip_a") && state == S_REEL && until == U_TENSION) w.c.tripA = c.towTripA;
       return nullptr;
     }
     return "BAD_KEY";
@@ -1033,7 +1048,7 @@ struct Base {
     r.boolean("drum_known", drumKnown); r.boolean("wraps_known", wrapsKnown);
     r.str("magnet", indexMode ? "INDEX" : !enc.ok ? "NONE" : enc.magnetWeak() ? "WEAK" : enc.magnetStrong() ? "STRONG" : "OK");
     r.integer("glitches", (long)(enc.glitches > 99999 ? 99999 : enc.glitches)); r.boolean("hx", hxLive()); r.num("peak_a", w.peakA, 1);
-    r.str("fw", GB_FW_VERSION);
+    r.str("fw", GB_FW_VERSION); r.integer("ev_drops", (long)(evDrops > 99999 ? 99999 : evDrops));   // events lost (host not reading)
     if (fault) { char wy[33]; strncpy(wy, faultWhy, 32); wy[32] = 0; r.str("why", wy); }
   }
   void cmdStop(bool estop) {
@@ -1328,13 +1343,13 @@ struct Base {
     // SW_HOME must stay closed over the whole run-on: a bounce is not "home"
     if (closed(SW_HOME)) { if (!homeSeen) { homeSeen = true; homeFrom = enc.deg(); } }
     else homeSeen = false;
-    if (homeSeen && (enc.deg() - homeFrom) * c.aimDir >= c.decockExtraDeg) {
+    if (homeSeen && (enc.deg() - homeFrom) * c.aimDir >= c.decockExtraDeg && (!fitted(SW_GAP) || closed(SW_GAP))) {   // BASE_SPEC 10: SW_HOME and SW_GAP
       // the carriage stopped at its front stop as SW_HOME closed; after that sprag #1 freewheels, so the big gear sits
       // just short of the first-tooth angle
       w.halt(now, io.wiper); phase = PH_REST; cockPhase = c.homeOpenDeg - 2; phaseHint = -1; state = S_IDLE; stT = now; dirty = true;
       JOut o(evBuf, sizeof evBuf); evBegin(o, "RESET"); o.boolean("ok", true); o.str("how", "decock"); evEnd(o); return;
     }
-    if (trav > c.cockEndDeg * 1.2f + c.dogWindowDeg + 90 || now - opT > c.cockMaxMs * 2) { raise(F_BAD_STATE, "decock: SW_HOME never closed"); return; }
+    if (trav > c.cockEndDeg * 1.2f + c.dogWindowDeg + 90 || now - opT > c.cockMaxMs * 2) { raise(F_BAD_STATE, homeSeen ? "decock: SW_GAP never closed" : "decock: SW_HOME never closed"); return; }
   }
   float homeFrom = 0;
 };

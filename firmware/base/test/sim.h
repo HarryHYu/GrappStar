@@ -18,7 +18,7 @@ struct Sim {
   double aimPh = 0, cockPh = 0;    // train phases (deg of wiper travel)
   double drumDeg = 0;              // drum angle
   bool fired = false; int shots = 0;
-  double lineOut = 5.0;            // m out
+  double lineOut = 0.0;            // m out (0 = dart seated in the launcher)
   double anchorTautAt = -1;        // tow: line length at which the anchored line goes taut (-1 = slack retrieve)
   double anchorK = 40;             // N per m of capstan travel after taut
   double seatAtLine = 0.0;         // retrieve: dart seats when lineOut reaches this

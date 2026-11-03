@@ -45,7 +45,7 @@ JSON, always 200. Example (from the host test, `test/out/status_anchoring.json`)
 | `fault` | string or null | fault code (below), null when none |
 | `rail_V` | number | motor rail volts from the INA219; `-1.00` when unknown |
 | `current_mA` | number | total motor current; 0 when the INA219 is lost (check `ina_ok`) |
-| `peak_mA` | number | highest current since the last `/auto` or `/release` |
+| `peak_mA` | number | highest current since the last `/auto`, `/release` or key `i` |
 | `speed` | int | PWM duty 50..255 (keys `+` / `-`) |
 | `motors` | object | `deploy`, `kick`, `drills`, `foot`: -1, 0 or +1 (+1 = out / in / down, -1 = back / up / unscrew) |
 | `seq` | string | sequence step (below) |
@@ -57,7 +57,7 @@ JSON, always 200. Example (from the host test, `test/out/status_anchoring.json`)
 | `ina_ok`, `imu_ok` | bool | INA219 reading, BNO085 sending data |
 | `t_launch_ms`, `t_land_ms` | int or null | detected launch and landing times, null when none |
 | `log_frozen` | bool | flight log holds a finished flight |
-| `reset` | string | why the dart last booted: `poweron`, `software`, `brownout`, `panic`, `task_wdt`, `int_wdt`, `wdt`, `reset_pin`, `other` (USB upload) |
+| `reset` | string | why the dart last booted: `poweron`, `software`, `brownout`, `panic`, `task_wdt`, `int_wdt`, `wdt`, `reset_pin`, `deepsleep`, `other` (USB upload) |
 | `event` | string | last event line |
 
 `seq` values: `idle`, `kick swing`, `kick + foot planting`, `foot finishing`, `deploy + drills`, `drills finishing`,
@@ -154,7 +154,7 @@ so it is refused (409 `busy (motors running)`) while any motor runs.
 - Acceleration: m/s², 2 decimals, gravity included, BNO085 chip axes. The BNO085 saturates near 8 g (78 m/s²), so the
   launch push and the impact read flat at about 78.
 - Chip axes: how the BNO085 axes sit in the hull is not fixed by the firmware. BENCH_TEST.md step 7 finds them by
-  standing the dart on its nose and on its side and writes them down. Clients must use that mapping, not assume one.
+  standing the dart on its tail (nose up) and on its side and writes them down. Clients must use that mapping, not assume one.
 - Window: when a flight was detected, the log runs from 2 s before launch until 3 s after landing, then freezes
   (`frozen: true`) and stays until the next arm. The ring holds 12 s (600 samples): in a flight longer than about
   7 s the earliest samples are gone and the first sample comes after `t_launch_ms - 2000`. Before any launch the reply

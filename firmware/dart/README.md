@@ -30,9 +30,7 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
 ## Board settings
 
 - Tools > Board > esp32 > **XIAO_ESP32S3**.
-- Tools > **USB CDC On Boot: Enabled**. On the XIAO_ESP32S3 board entry this is already the default; check it anyway.
-  If it is Disabled the sketch refuses to compile with a message saying so (with it disabled, Serial would use D6/D7,
-  the foot motor pins).
+- Tools > **USB CDC On Boot: Enabled** (the default for this board). If it is Disabled, the sketch will not compile.
 - Leave the rest at the defaults.
 
 ## Upload over USB
@@ -48,14 +46,14 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
 
 ## Upload over WiFi (after the first USB upload)
 
-Join WiFi `KEDGE` (password `grappstar`). Tools > Port > network port `kedge`. Upload. Motors stop and any sequence is
+USB unplugged, power loop plug in. Join WiFi `KEDGE` (password `grappstar`). Tools > Port > network port `kedge`. Upload. Motors stop and any sequence is
 aborted when the upload starts.
 
 ## Driving it
 
 - Web page: join `KEDGE`, open `http://192.168.4.1`. Hold a button or key to run, release to stop.
 - Serial Monitor: type a key and press Enter, each press runs 1.5 s.
-- Keys: `1`/`!` deploy down/up, `2`/`@` kick out/back, `3`/`#` drills in/out, `4`/`$` foot in/out, space STOP,
+- Keys: `1`/`!` deploy down/up, `2`/`@` kick out/back, `3`/`#` drills in/out, `4`/`$` foot in/out, space or `s` STOP,
   `a` auto-anchor, `r` release, `A` arm/disarm (auto-anchor on landing), `+`/`-` speed, `i` current, `b` attitude,
   `p` status, `f` flight log summary, `z` I2C scan, `h` help.
 - Jetson: see `API.md`.
@@ -76,7 +74,7 @@ aborted when the upload starts.
 ## Tuning
 
 The current thresholds in `kedge_logic.h` (`struct Tuning`) are from the v29 bench numbers at 8 V. Measure the real
-ones with BENCH_TEST.md step 9 and edit them there. Then run the PC tests.
+ones with BENCH_TEST.md steps 3 to 6 and write them in at step 9. Then run the PC tests.
 
 ## PC tests
 
@@ -84,12 +82,12 @@ ones with BENCH_TEST.md step 9 and edit them there. Then run the PC tests.
 cd firmware/dart/test && ./run_tests.sh
 ```
 
-Needs g++ and python3. Prints every check and `ALL PASS`, then checks the JSON files the tests wrote.
+Needs g++ and python3 (Mac: run `xcode-select --install` once for g++). Prints every check and `ALL PASS`, then checks the JSON files the tests wrote.
 
 ## Compile check without the IDE (optional)
 
 ```
-arduino-cli core install esp32:esp32
+arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
 arduino-cli lib install "Adafruit BNO08x"
 arduino-cli compile -b esp32:esp32:XIAO_ESP32S3 firmware/dart/kedge_dart
 ```

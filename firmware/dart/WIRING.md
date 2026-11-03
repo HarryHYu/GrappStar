@@ -10,7 +10,7 @@ What changed:
 - DRV#2 channel A now drives **both** drill motors (wired in parallel on AOUT1 / AOUT2). The pair stalls at about
   0.7 A, inside one channel's 1.2 A. The right drill's leads stay swapped so the augers counter-rotate.
 - DRV#2 channel B now drives the **foot** motor (it was on DRV#3).
-- The pin bridge on DRV#2 (AIN1 to BIN1, AIN2 to BIN2) is **gone**. A, B now have their own inputs.
+- The pin bridge on DRV#2 (AIN1 to BIN1, AIN2 to BIN2) is **gone**. Channels A and B now have their own inputs.
 
 Pin map (firmware v4):
 
@@ -41,11 +41,14 @@ Do these steps in order. Wire numbers in brackets are the v29 numbers, then the 
 - [13] DRV#2 VM to DRV#3 VM (red, 22 AWG)
 - [17] DRV#2 GND to DRV#3 GND (black, 22 AWG)
 - [27] DRV#2 SLP to DRV#3 SLP (red/white, 28 AWG)
-Also unsolder the foot motor wires [52] [53] and the XIAO D6 / D7 wires [42] [43] from DRV#3. Lift DRV#3 out of the
-sled and put it in a labelled bag for the base station. The pocket stays empty.
+Wires 13 and 17 share the DRV#2 VM and GND pads with wires 12 and 15: leave 12 and 15 in place and tug them after.
+Also unsolder the foot motor wires [52] [53] from DRV#3, and remove the XIAO D6 / D7 wires [42] [43] completely
+(desolder them at the XIAO end too and throw them away). Lift DRV#3 out of the sled and put it in a labelled bag for
+the base station. The pocket stays empty.
 
 **Step A3. Battery unplugged. Cut the bridge on DRV#2.** In v29 the D8 wire went to AIN1 *and* BIN1 (bridged), and the
-D9 wire to AIN2 *and* BIN2. Remove the bridge pieces so that:
+D9 wire to AIN2 *and* BIN2. Desolder the jumper wire or solder blob that joins AIN1 to BIN1 and AIN2 to BIN2
+(desoldering braid). The 45 mm D8 and D9 wires stay. After this:
 - D8 goes to **AIN1 only** (new wire 37)
 - D9 goes to **AIN2 only** (new wire 38)
 Check with the meter on beep: AIN1 to BIN1 must NOT beep. AIN2 to BIN2 must NOT beep.
@@ -54,8 +57,10 @@ Check with the meter on beep: AIN1 to BIN1 must NOT beep. AIN2 to BIN2 must NOT 
 solder them to the channel A pads, keeping the swap:
 - right drill **black** to **AOUT1** (the same pad as the left drill red) (new wire 47)
 - right drill **red** to **AOUT2** (the same pad as the left drill black) (new wire 48)
-Two wires in one pad hole: strip 4 mm of each, twist the two bare ends together, tin them, push them through the hole,
-solder. Tug both.
+Two wires in one pad hole, one pad at a time: desolder the left drill red from AOUT1 (braid or pump). Strip 3 mm of
+it and of the right drill black, twist the two bare ends together, tin them, push them through the hole, solder. Trim
+the ends flush on the far side. Check with a magnifier that no strand touches the next pad. Tug both. Then the same on
+AOUT2 with the left drill black and the right drill red.
 
 **Step A5. Battery unplugged. Foot inputs to DRV#2 B.** Cut two new 45 mm 28 AWG wires (purple and grey):
 - XIAO D6 to DRV#2 **BIN1** (purple, new wire 39)
@@ -67,15 +72,18 @@ along the top of the hull through the disc notches (with the camera wires), out 
 kick hub, then down the pole channel:
 - DRV#2 **BOUT1** to foot N20 **+ (red)** (new wire 49)
 - DRV#2 **BOUT2** to foot N20 **- (black)** (new wire 50)
-If the old 255 mm foot wires are already through the pole channel, you may splice on 80 mm instead: solder, heat
-shrink, and keep the joint inside the hull, not in the moving loop.
+If the old 255 mm foot wires are already through the pole channel, you may instead solder an 80 mm extension at the
+DRV#2 end: joint inside the hull, heat shrunk, never in the hub loop.
 
 **Step A7. Battery unplugged. Meter checks** (meter on beep, nothing powered):
 - DRV#2 AOUT1 beeps to the left drill red AND the right drill black.
 - DRV#2 AOUT2 beeps to the left drill black AND the right drill red.
 - DRV#2 BOUT1 beeps to the foot red, BOUT2 to the foot black.
-- No beep between AOUT1 and AOUT2, BOUT1 and BOUT2, VM and GND.
+- No beep between any AOUT pad and any BOUT pad.
 - No beep between XIAO D6, D7, D8, D9 (each pair).
+- Meter on ohms (not beep): AOUT1 to AOUT2 and BOUT1 to BOUT2 read a few ohms or more (that is the motor winding),
+  never 0.0.
+- VM to GND: a short chirp is a capacitor charging and is fine; a steady beep is a short: find it before power.
 Then go to "Power-on check" below.
 
 ## Path B: fresh build (the whole harness)
@@ -86,15 +94,15 @@ unsure; trim at the end. Work in this order. Every step starts with the battery 
 **Step B1. Battery unplugged. Cells and BMS** (wires 1 to 8). Solder the plate tabs before the plates go in their
 recesses. The series link (wire 2) carries the full current: 22 AWG. Charge socket pins: 1 = B-, 2 = BM, 3 = B+.
 
-**Step B2. Battery unplugged. Set the buck first.** Before the MP1584 is connected to anything else, feed it from the
-battery only (wires 8, 9, 10, 13 done, nothing on its output) and turn the screw until the output reads **5.04 V**.
-Pull the plug again. Fit the capacitor across OUT (long leg OUT+, striped leg OUT-).
+**Step B2. Battery unplugged. Set the buck first.** Solder wires 9, 10 and 13 only, so the MP1584 input is fed and
+nothing is on its output. Insert the power loop plug. Meter on DC volts across MP1584 OUT+ and OUT-. Turn the small
+screw until it reads **5.04 V**. Pull the plug. Then fit the capacitor across OUT (long leg OUT+, striped leg OUT-).
 
-**Step B3. Battery unplugged. Motor rail** (wires 9 to 15). Power loop socket pin 2 to INA219 VIN+, the buck taps the
-same VIN+ pad, INA219 VIN- to DRV#1 VM, then DRV#1 VM to DRV#2 VM. Grounds: BMS P- to buck IN-, buck IN- to DRV#1 GND,
+**Step B3. Battery unplugged. Motor rail** (wires 11, 12, 14, 15; 9, 10 and 13 were done in B2). INA219 VIN- to
+DRV#1 VM, then DRV#1 VM to DRV#2 VM. Grounds: BMS P- to buck IN-, buck IN- to DRV#1 GND,
 DRV#1 GND to DRV#2 GND. **The chain ends at DRV#2.** There is no DRV#3.
 
-**Step B4. Battery unplugged. 5 V** (wires 16 to 22). Buck OUT+ to XIAO 5V **through the Schottky diode, stripe
+**Step B4. Battery unplugged. 5 V** (wires 16 to 21). Buck OUT+ to XIAO 5V **through the Schottky diode, stripe
 towards the XIAO**. Buck OUT- to XIAO GND. Buck OUT to the VTX, VTX pads on to the camera.
 
 **Step B5. Battery unplugged. Camera video** (wire 22): camera yellow to VTX video in, twisted with the camera ground.
@@ -113,16 +121,15 @@ BIN1, BIN2 (kick). D8, D9 to DRV#2 AIN1, AIN2 (drills). D6, D7 to DRV#2 BIN1, BI
 - DRV#1 AOUT1 / AOUT2 to deploy red / black.
 - DRV#1 BOUT1 / BOUT2 to kick red / black.
 - DRV#2 AOUT1 to left drill red **and** right drill black; DRV#2 AOUT2 to left drill black **and** right drill red
-  (two wires per pad, twisted and tinned together, see step A4).
+  (two wires per pad, twisted and tinned together exactly as in step A4).
 - DRV#2 BOUT1 / BOUT2 to foot red / black (330 mm silicone).
 
-**Step B10. Battery unplugged. Meter checks:** the list in step A7, plus: VM to GND no beep, 5V to GND no beep,
-3V3 to GND no beep.
+**Step B10. Battery unplugged. Meter checks:** the list in step A7, plus 5V to GND and 3V3 to GND: no steady beep.
 
 ## Power-on check (both paths)
 
 1. **Battery unplugged.** Motors still outside the hull, legs free to turn, nothing touching the augers.
-2. USB only, no battery: flash the firmware (README.md). Serial Monitor at 115200. Type `z`: expect `0x40` and `0x4a`.
+2. USB only, power loop plug out: flash the firmware (README.md). Serial Monitor at 115200. Type `z`: expect `0x40` and `0x4a`.
 3. Unplug USB. Insert the power loop plug. Nothing should move, nothing should get warm. Join WiFi `KEDGE`.
 4. Open `http://192.168.4.1`. Status line must show `IDLE`, `INA219 ok`, `BNO085 ok`, rail about 7 to 8.4 V.
 5. Go through BENCH_TEST.md (every motor, both directions, before any wire is routed into the hull).
@@ -130,10 +137,10 @@ BIN1, BIN2 (kick). D8, D9 to DRV#2 AIN1, AIN2 (drills). D6, D7 to DRV#2 BIN1, BI
 **Drill direction check** (BENCH_TEST.md step 4): hold "drills in" (key `3`) and look down each auger from its motor
 end towards its tip. The left auger (right-hand thread) must turn **clockwise**, the right auger (left-hand thread)
 **anticlockwise**: then both screw into the ground.
-- Both turn the same way: the right drill leads are not swapped. Battery unplugged, swap the right drill's two wires
-  on AOUT1 / AOUT2.
-- Both turn the wrong way: battery unplugged, swap the two thin input wires at DRV#2 AIN1 and AIN2 (D8 and D9). This
-  is the easy way to reverse any motor: swap its two input wires at the driver.
+- Left auger wrong: battery unplugged, swap the two thin input wires at DRV#2 AIN1 and AIN2 (D8 and D9). This
+  reverses both drills. Check again.
+- Then if the right auger is wrong: battery unplugged, swap the right drill's own two wires on AOUT1 / AOUT2.
+- Swapping a motor's two input wires at its driver is the easy way to reverse any motor.
 
 ## Totals (cut from the reel)
 
@@ -142,6 +149,7 @@ end towards its tip. The left auger (right-hand thread) must turn **clockwise**,
 | 22 AWG red | 520 |
 | 22 AWG black | 360 |
 | 24 AWG orange / black | 160 / 160 |
-| 26 AWG red / black | 1090 / 1185 (foot pair silicone) |
+| 26 AWG silicone red / black (foot pair) | 330 / 330 |
+| 26 AWG red / black (other motors) | 760 / 855 |
 | 26 AWG white / orange | 180 / 95 |
 | 28 AWG red/white, black, blue, green, purple, grey, yellow, orange | 240, 225, 120, 120, 200, 200, 105, 105 |

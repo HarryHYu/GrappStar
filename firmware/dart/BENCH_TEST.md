@@ -22,7 +22,7 @@ If a motor turns the wrong way: **battery unplugged**, swap that motor's two thi
 
 1. **Battery unplugged.** Wiring done and meter-checked (WIRING.md step A7 or B10). Firmware flashed (README.md).
 2. Motors and legs outside the hull or with the hull open, legs free to swing, nothing near the augers. Fingers clear.
-3. Insert the power loop plug. Nothing moves, nothing gets warm in 30 s. If anything heats: pull the plug.
+3. Unplug USB. Then insert the power loop plug. Nothing moves, nothing gets warm in 30 s. If anything heats: pull the plug.
 4. Join `KEDGE`, open `http://192.168.4.1`. The status line must show `IDLE`, `INA219 ok`, `BNO085 ok`.
 
 ## Step 1. Power and current sensor
@@ -32,14 +32,17 @@ If a motor turns the wrong way: **battery unplugged**, swap that motor's two thi
 3. Press `i` on the page: it prints rail, current, and the peak since the last `i`.
 
 Pass: INA219 ok, rail agrees with the meter. If `INA219 MISSING`: battery unplugged, check D4/D5 and 3V3/GND to the
-INA219; Serial `z` must list 0x40.
+INA219. Then, with the power loop plug still out, plug in USB: Serial Monitor `z` must list 0x40.
 
 ## Step 2. BNO085 and attitude
 
 1. Press `b`: roll, pitch and |a| about 1.00 g with the dart still.
 2. Tilt the dart nose up: pitch changes by about 90. Roll it on its side: roll changes by about 90.
-3. If `BNO085 MISSING`: battery unplugged, check wires; Serial `z` must list 0x4a. (If Serial stays blank, check
-   USB CDC On Boot is Enabled.)
+3. If `BNO085 MISSING`: battery unplugged, check wires. Then, plug still out, plug in USB: Serial `z` must list 0x4a.
+   If the Serial Monitor stays blank: right port, 115200 baud, tap R on the XIAO.
+
+If a motor in steps 3 to 6 does not stop by itself at the end within 8 s (the hold cap), the default stall threshold
+is above its real stall current: release, press `i`, and write down the peak it prints. That is the stall current.
 
 ## Step 3. Deploy (DRV#1 A)
 
@@ -76,7 +79,7 @@ INA219; Serial `z` must list 0x40.
    The axis reading about +9.8 points **up**.
 2. Stand the dart on its tail, nose up: the axis reading about +9.8 points to the **nose**.
 3. Lay it on its right side (kick side up): the axis reading +9.8 points **left**.
-4. Write: **nose = ___ (e.g. +x), left = ___, up = ___**. Put this in `REPORT.md` / tell the Jetson worker.
+4. Write: **nose = ___ (e.g. +x), left = ___, up = ___**. The Jetson flight analysis needs this mapping.
 
 ## Step 8. Flight log (safe, log only)
 
@@ -85,7 +88,7 @@ INA219; Serial `z` must list 0x40.
 3. Status should go `FLIGHT` then `LANDED` (or stay `ARMED` if the jerk was under 4 g: jerk harder).
 4. Wait 4 s. Open `http://192.168.4.1/flightlog`: `frozen: true`, `t_launch_ms` and `t_land_ms` set, a few hundred
    samples. Save it. The towel drop usually reads `landing: "timeout"` or `"still"` (soft), which is correct.
-5. Send `/stop` to disarm.
+5. Open `http://192.168.4.1/stop` to disarm.
 
 ## Step 9. Write the real thresholds
 
@@ -107,15 +110,16 @@ Re-run `test/run_tests.sh`, upload, repeat steps 3, 5 and 6 once to see the stop
 
 1. Legs stowed. Lay the dart on the damp soil, belly down, nose clear of the tray wall.
 2. Page: press `AUTO anchor`. Watch the status: kick swing, foot touches, kick + foot planting, foot finishing,
-   deploy + drills, drills finishing, `ANCHORED`. Write the time of each event (Serial Monitor shows them with USB,
-   or watch the page). Note the working currents for `loadMa`.
+   deploy + drills, drills finishing, `ANCHORED`. Write the time of each event from the event lines on the web page
+   (not the Serial Monitor: no USB while the battery is in). Note the working currents for `loadMa`.
 3. Pull the tether gently by hand: the dart should hold.
 4. Press `RELEASE`: drills out, pods up, foot out, kick back, `released`. The legs end stowed.
 5. If it stops with `FAULT`: write down the fault and the last event, press STOP, and fix the threshold (step 9).
 
 ## Step 11. Jetson link
 
-From the Jetson on `KEDGE`: `python3 kedge_client.py status` (or the new jetson client). Phase `IDLE`, fields present.
+From the Jetson on `KEDGE`: `python3 kedge/fw/jetson/kedge_client.py status` (or the new client in `jetson/`).
+Phase `IDLE`, fields present. Or simply `curl http://192.168.4.1/status`.
 
 ## Step 12. Close the hull
 

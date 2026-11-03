@@ -2,7 +2,7 @@
 
 Units: mm, deg, N, N m, s, kg unless a name says otherwise.
 Owner: the coordinator. Workers read it and never edit it; request changes in your REPORT.md or NOTES.md.
-STATUS: v1.3.6 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed; 1.3.3 unload jog 6 deg; 1.3.4 ASSEMBLY_STAGES; 1.3.5 TIMELINE rail_low after the flight (D45), no lower at the end; 1.3.6 drum stage bands per cad-drum). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
+STATUS: v1.3.7 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed; 1.3.3 unload jog 6 deg; 1.3.4 ASSEMBLY_STAGES; 1.3.5 TIMELINE rail_low after the flight (D45), no lower at the end; 1.3.6 drum stage bands per cad-drum; 1.3.7 ASSEMBLY_STAGE_OVERRIDES for unstaged steps, launcher band 190-204). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
 The architecture blocks below hold the INTERFACE numbers (where two owners must agree) and the module placements.
 Each owner keeps its internal geometry in its own module and maps these numbers explicitly (read with defaults).
 Code against the names; never hard-code a shared number anywhere else.
@@ -10,7 +10,7 @@ Code against the names; never hard-code a shared number anywhere else.
 
 import math
 
-VERSION = "1.3.6"
+VERSION = "1.3.7"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
@@ -291,12 +291,35 @@ ASSEMBLY_STAGES = dict(
     drum_shift=(160, 169, "cad-drum", "fork and dog contacts, drum B (keyed), hand lever, bracket B, N20, code switches"),
     main_stack=(170, 179, "cad-drum", "LAUNCH dog ring, magnet cap, dog post (before the reel pulley 2)"),
     reel_storage=(180, 189, "cad-reel", "storage reel, reel shaft, brake crank, rocker and bar, pulley 1, pulley 2, shroud, exit post, line"),
-    launcher=(190, 199, "cad-launch", "rail bench sub-assembly (sleeve first), big gear (timed without springs), drive gear and sprag, carriage, stops, contacts, tether pulleys, lip roller"),
-    aim=(200, 209, "cad-launch", "aim housing, worm, wheel, crank, splitter, lug, conrod"),
+    launcher=(190, 204, "cad-launch", "rail bench sub-assembly (sleeve first), big gear (timed without springs), drive gear and sprag, carriage, stops, contacts, tether pulleys, lip roller"),
+    aim=(205, 209, "cad-launch", "aim housing, worm, wheel, crank, splitter, lug, conrod"),
     sensors=(210, 219, "cad-sensors", "SW_RAIL_LOW, SW_GAP, AS5600 board"),
     electronics=(220, 229, "cad-frame", "electronics bay, set the buck before wiring the DRV8833, wiring (battery unplugged), camera, receiver, cable anchors"),
     guards=(230, 239, "cad-frame / cad-launch", "gear guards; spring guards go on with the springs at test stage 5"),
     test_stage_only=(900, 999, "all", "steps done only at a test stage (springs: 999)"),
+)
+
+# Stage for authored steps whose owner had not set step["stage"] when the build day ended (the owners stopped at the
+# usage limit). tools.steps uses these when present, so the generated order follows ASSEMBLY_STAGES.
+ASSEMBLY_STAGE_OVERRIDES = dict(
+    frame={"Heat-set inserts": 100, "Drill the rover": 101, "Deck on the rover": 102, "Motor plate": 110,
+           "Wiper motor on the puck (bench)": 111, "Puck into the plate": 112, "Motor leg": 113, "Can stay": 114,
+           "Shafts and trains (other subsystems)": 119, "Electronics bay": 220,
+           "Set the buck BEFORE wiring the DRV8833": 221, "Camera, receiver and cable anchors": 222,
+           "Wiring and lid": 223, "Gear guards": 230},
+    launch={"Launcher 1: print the parts": 190, "Launcher 2: join the rail": 191,
+            "Launcher 2b: splice straps and aim lug": 192, "Launcher 3: big gear": 193,
+            "Launcher 4: drive gear, sprag #1 and the launch sleeve": 194, "Launcher 5: carriage": 195,
+            "Launcher 5b: lip roller": 196, "Launcher 6: carriage stop frames": 197, "Launcher 6b: spring guards": 198,
+            "Launcher 6c: stop springs": 199, "Launcher 7: contacts": 200,
+            "Launcher 8: time the big gear (fingers clear)": 201, "Launcher 9: tether pulleys": 202,
+            "Aim 1: aim housing, worm, wheel, crank": 205, "Aim 2: splitter": 206,
+            "Aim 3: lug, conrod, rail onto the base": 207, "Launcher 10: wiring (battery unplugged)": 208},
+    reel={"Screw the reel wall to the deck": 150, "Sprag hub and sprag (CSK20PP)": 151, "Capstan tube": 152,
+          "Bus gear, swing arm and swing idler": 153, "Capstan gear": 154, "Capstan drum": 155,
+          "Cup shaft and wrap cup": 156, "Cup gear": 157, "SW_ARM contact": 158, "Reel shaft into the wall": 180,
+          "Storage reel": 181, "Brake crank, rocker and bar": 182, "Pulley 1 post and line": 183,
+          "Pulley 2 swivel": 184, "Shroud": 185},
 )
 
 TIMELINE = [

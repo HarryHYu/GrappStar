@@ -38,6 +38,17 @@ def _rank(sub: str) -> int:
     return SUB_ORDER.index(sub) if sub in SUB_ORDER else len(SUB_ORDER)
 
 
+def _overrides(P=None) -> dict:
+    """params ASSEMBLY_STAGE_OVERRIDES: {subsystem: {step title: stage}} for steps whose owner set no stage."""
+    if P is None:
+        try:
+            P = load_params()
+        except Exception:                                   # noqa: BLE001
+            return {}
+    ov = getattr(P, "ASSEMBLY_STAGE_OVERRIDES", None)
+    return ov if isinstance(ov, dict) else {}
+
+
 def stage_bands(P=None) -> dict[str, tuple[int, int, set | None]]:
     """{band: (lo, hi, subsystems allowed or None = any)} from params ASSEMBLY_STAGES = {band: (lo, hi, owner, what)}.
     Owner "cad-frame / cad-launch" -> {"frame", "launch"}; "all" (or the test_stage_only band) -> any; no owner ->
@@ -168,6 +179,9 @@ def plan_steps(asm, contacts="auto", grounded=None, out: str | None = None, log=
         st = dict(title=raw.get("title") or "Step", text=raw.get("text", ""), raw=[], subsystem=raw.get("subsystem", ""),
                   auto=bool(raw.get("auto", False)), stage=None, idx=i, seq=raw.get("seq"), warnings=[])
         stage = raw.get("stage")
+        ov = (_overrides(getattr(asm, "P", None)).get(st["subsystem"]) or {}).get(st["title"])
+        if ov is not None:                                  # params ASSEMBLY_STAGE_OVERRIDES win (end-of-day fix-up)
+            stage = ov
         if stage is not None:
             try:
                 st["stage"] = int(stage)

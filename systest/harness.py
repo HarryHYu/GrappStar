@@ -208,6 +208,27 @@ class DartVideo:
         return np.clip(img.astype(np.int16) + n, 0, 255).astype(np.uint8)
 
 
+def trace_from_flightlog(fl: dict, pre_ms: int = 600, post_ms: int = 1500) -> Optional[str]:
+    """The rendered flight's own 50 Hz IMU samples (specific force m/s^2, quaternion) as a dart sim /sim/trace
+    (dur:ax:ay:az:roll:pitch per step), so the dart firmware records a flight log consistent with the video."""
+    import math
+    try:
+        smp, tl, td = fl["samples"], fl["t_launch_ms"], fl.get("t_land_ms") or fl["t_launch_ms"] + 1000
+    except (KeyError, TypeError):
+        return None
+    sel = [r for r in smp if tl - pre_ms <= r[0] <= td + post_ms]
+    if len(sel) < 10:
+        return None
+    steps = []
+    for i, r in enumerate(sel):
+        dur = (sel[i + 1][0] - r[0]) if i + 1 < len(sel) else 20
+        w, x, y, z = r[1:5]
+        roll = math.degrees(math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y)))
+        pitch = math.degrees(math.asin(max(-1.0, min(1.0, 2 * (w * y - z * x)))))
+        steps.append(f"{max(1, int(dur))}:{r[5]:.2f}:{r[6]:.2f}:{r[7]:.2f}:{roll:.1f}:{pitch:.1f}")
+    return ",".join(steps)
+
+
 class LoopSource:
     def __init__(self, fn, fps: float):
         self.fn, self.period, self.idx, self.t_next = fn, 1.0 / fps, 0, time.time()
@@ -404,7 +425,12 @@ class Rig:
                     self.video.t_fire = time.time()
                     fms = int(self.video.flight_s() * 1000)
                     try:
-                        self.dart.get(f"/sim/launch?push_ms=40&flight_ms={fms}&impact=1")
+                        tr = trace_from_flightlog((self.video.truth or {}).get("flightlog"))
+                        if tr:
+                            self.dart.get("/sim/trace?s=" + tr)
+                            self.note("info", msg=f"dart sim: rendered flight IMU trace ({tr.count(',') + 1} steps)")
+                        else:
+                            self.dart.get(f"/sim/launch?push_ms=40&flight_ms={fms}&impact=1")
                     except Exception as e:
                         self.note("info", msg=f"dart launch trace failed: {e}")
                     self.note("info", msg=f"plant released the carriage (shot {last_shots}), line out {p.get('lineOut')}")

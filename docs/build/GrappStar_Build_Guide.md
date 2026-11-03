@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 12:45 Sydney time from commit `514bd36`.
+Built 2026-11-03 12:46 Sydney time from commit `24a6cf6`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -280,10 +280,160 @@ One plate from the base print pack with small test pieces of the riskiest featur
 dog clutch, slip clutch, bearing seats, heat-set inserts and nut traps, key rib, gear meshes. Print it, then work
 through its test sheet. Do not print the big base parts until every coupon passes.
 
+Plates: `base/pack/coupons/risk_plate_1.3mf` (PLA) and `risk_plate_2.3mf` (PPA-CF). A printable copy of the test
+sheet is `base/pack/coupons/COUPON_TEST.pdf`.
+
+
+![Risk coupon plate (risk_plate_1.png)](base/pack/coupons/risk_plate_1.png)
+
+![Risk coupon plate (risk_plate_2.png)](base/pack/coupons/risk_plate_2.png)
 
 
 
-> NOT IN THE REPO YET: `base/**/coupon/COUPON.md` (written by cad-infra (risk coupons)). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
+*From `base/pack/coupons/COUPON_TEST.md`:*
+
+### Day-one risk coupons: test sheet
+
+Print these before the big parts. Each coupon is made from the same geometry functions and numbers as the real part, so a pass here is a pass there. Print as exported, no supports, 0.4 nozzle, 0.2 layers, 4 walls; PLA plate and PPA-CF plate as marked. Let parts cool 10 minutes before testing. Change one number at a time, then rerun `python -m tools.risk_coupon` (from `base/`) and reprint only that coupon.
+
+#### Plates
+
+| plate | material | objects |
+|---|---|---|
+| risk_plate_1.3mf | PLA | 19 |
+| risk_plate_2.3mf | PPA-CF | 26 |
+
+#### Tests
+
+##### 1. Swing-arm direction splitter
+
+- Parts: rc1_plate, rc1_sleeve, rc1_sun, rc1_arm, rc1_idler, rc1_output, rc1_crank, rc1_stop
+- Bought: O-ring 20 x 1.5 (arm hub groove), e-clip for the d8 arm pin, 2 x M3x16
+- Do: O-ring into the arm hub groove. On the plate: sleeve on the centre pin, sun on its rib, arm on the sleeve above the sun with its pin down through the idler, e-clip on the pin, output on its pin, crank on top, stop finger on the column (2 x M3x16). Turn the crank 10 turns each way.
+- Pass: Clockwise seen from above: the arm swings the idler into the output at once and the output turns, no skipped teeth. Anticlockwise: the arm swings out to the finger within about 20 deg of crank, the idler runs free and the output stays still. No jam at engagement.
+- If it fails, change: launch_aim.py: FIT (pin and bore play), arm_solid O-ring groove (drag), A() alpha_d = alpha_e + 20 (swing out), _stop_post_xy; launch_gears.py center_distance extra / spur backlash (mesh).
+- Made from: launch_aim.sun_solid, arm_solid, idler_solid (m1.5 z30/18/30, face 8, FIT 0.35), launch_gears.spur for the output, launch_aim.A: centre distances 36.10 / 36.10, output at (11.7, 68.4), engaged arm 96.2 deg, stop 116.2 deg (launch_aim._stop_post_xy), sleeve rib launch.RIB_W 6 / RIB_R 12.8
+
+##### 2. Printed contact switch
+
+- Parts: rc2_switch_base, rc2_switch_lever
+- Bought: M3x10 SHCS ISO 4762 + M3 jam nut, M3 nut, 2x M3x10 self tapping (pan or SHCS) through the lever root into the pad, at most M3x11.7, 2 wires, multimeter
+- Do: Nut into the pillar trap (drop of glue), lever clamped with 2 M3 self tappers, contact screw head down through the lever, set the head 0.9 mm above the nut (0.5 mm per turn), lock the jam nut. Meter on beep between screw and nut. Press the lever tip 100 times.
+- Pass: Beeps after about 1.2 mm of tip travel, silent when let go, tip stops on the hard stop without cracking, lever back flat, same after 100 presses.
+- If it fails, change: cad/lib/switch.py contact_switch args travel, overtravel, t, b; STRAIN_LIMIT, NUT_PRESS (loose nut), SCREW_LENGTHS.
+- Made from: cad.lib.switch.contact_switch(lever_len=30) with the library defaults (travel 0.8, overtravel 0.6, beam t 1.4): gap 0.93, pretravel at the tip 1.24, close force 1.10 N, strain 0.0078
+
+##### 3. Dog clutch and compliant fork
+
+- Parts: rc3_base, rc3_reel_face, rc3_collar, rc3_fork, rc3_fork_stop, rc3_rail
+- Bought: 1 x M3x12 (fork stop), M3 nut (tab), 2 x M3 screws (SW_DOG prongs, optional)
+- Do: Press the rail into the base. REEL face on the journal (dogs up), collar on the hex (dogs down), fork pads in the collar groove and its sleeve on the rail, fork stop on (M3). Push the fork 7 mm down with the dogs tip to tip, then turn the REEL face until they drop in. Turn the face hard both ways, then pull the fork back.
+- Pass: Yoke flexes when tip to tip (no jam, roofs slide off), dogs drop in within a quarter turn, under hand torque the dogs pull in, never walk out, a light pull on the fork releases them, the yoke springs back flat.
+- If it fails, change: _drum_kin.py DEFAULTS dog_backcut, dog_roof, dog_deg, dog_gap, fork_k; drum.py GEOM fork_t, yoke_r, groove; fits.py SHAFT_IN_BORE (collar on the hex, face on the journal), HOLE_SLIDE (fork on the rail).
+- Made from: drum.dog_teeth (dog_n 4, dog_h 5, dog_deg 36, backcut 4, roof 1.2, r 18..26), drum.fork, drum.fork_stop, drum.rail, drum.hexprism, GEOM journal d30, groove (72.0, 78.0), stroke 7, neutral gap 2.5
+
+##### 4. Face slip clutch with the flexure spring
+
+- Parts: rc4_hub_plate, rc4_friction_disc, rc4_pressure_plate, rc4_flexure, rc4_adjuster_plate
+- Bought: 3 x M3x20 SHCS, 3 x M3 nut, string, luggage scale
+- Do: Stack on the key stub: hub plate (counterbores down), friction disc, pressure plate (pads up), flexure (beam down, tabs on the screws), adjuster plate (traps up); 3 screws from below, nuts on top. Run the nuts down until the flexure just touches, then turn each nut 1/2 turn at a time (0.25 mm). Clamp the stub, tie a string to a disc lug (r 28.5 mm), pull along the rim with the luggage scale while it slips steadily.
+- Pass: Smooth steady slip, no judder; the reading repeats within 20 percent and rises with each half turn, close to the table below (kg on the scale at the lug); the nuts never bottom the flexure before the last row.
+- If it fails, change: cad/lib/clutch.py: slip_clutch args flex_t, flex_gap, flex_ro, r_in, r_out, n_grooves; MU_PLA_PLA, E_PLA, SIGMA_FLEX_PLA_SUSTAINED (creep: if the torque falls overnight).
+- Made from: cad.lib.clutch.slip_clutch() defaults (reel does not use it: its clutch is the spool face plus the PETG rocker): shaft d20 key 6, friction r 18.5..27, mu 0.3, flexure t 0.8 gap 0.5, 0.106 N m per mm, travel 0.50; on the shared keyed stub of coupon 7
+- Expected slip (nut travel: torque, scale reading at r 28.5): 0.00 mm: 0.000 N m, 0.00 kg; 0.12 mm: 0.013 N m, 0.05 kg; 0.25 mm: 0.027 N m, 0.10 kg; 0.38 mm: 0.040 N m, 0.14 kg; 0.50 mm: 0.053 N m, 0.19 kg
+
+##### 5. Bearing seats
+
+- Parts: rc5_seats_608_693, rc5_csk20_seat
+- Bought: 608ZZ, F693ZZ, 693ZZ, CSK20PP
+- Do: Press each bearing in square with a flat block or a vice (tile left to right: 608, F693ZZ, 693ZZ); CSK20PP into the round boss with its outer keyway on the printed key.
+- Pass: Firm press, seated flat on the lip, stays in when tapped upside down, spins as freely as before; the CSK20PP key slides in without force, it still freewheels one way and locks the other.
+- If it fails, change: fits.py BRG_RIB_INTERF, BRG_RIB_BORE (all seats); bearings.py CSK20_KEY_RCLEAR, CSK20_OKEY_W (key), KEY_CLEAR in fits.py. Print the fit coupon tile A if the 608 is off.
+- Made from: cad.lib.bearings.seat_608(bottom lip, lip_d 14) as reel, seat_f693(), seat_693(), seat_csk20(key_deg 90) as the reel capstan block (wall 4); fits BRG_RIB_INTERF 0.15, BRG_RIB_BORE 0.3, CSK20_KEY_RCLEAR 0.2
+
+##### 6. M3 holes
+
+- Parts: rc6_m3_tile
+- Bought: M3x4x5 heat-set insert, M3 nut, 2 x M3x10
+- Do: Left to right: heat-set the insert (220 C), press the nut in, push a screw through, self-tap a screw in.
+- Pass: Insert flush and does not spin when the screw is tightened; nut presses in and holds; screw drops through the clearance hole; the tap hole cuts a thread and holds a hard pull without splitting.
+- If it fails, change: fits.py M3_INSERT_D, M3_NUT_AF, M3_CLEAR_D, M3_TAP_D (the fit coupon tiles C, D, E bracket them).
+- Made from: cad.lib.fasteners.m3_insert (d 4.0), m3_nut_trap (AF 5.8), m3_clear (d 3.4), m3_tap (d 2.6)
+
+##### 7. Key rib and spigot
+
+- Parts: rc7_key_stub, rc7_key_bore, rc7_spigot, rc7_bushing
+- Bought: CSK20PP from coupon 5 (inner keyway)
+- Do: Slide the key stub into the keyed tile and into the CSK20PP inner race (the real interface). Push the spigot into the sleeve slice and turn it.
+- Pass: Stub slides in by hand, key in the keyway, no visible rock, under 1 deg of play when turned; the spigot turns freely with no wobble.
+- If it fails, change: fits.py KEY_CLEAR, SHAFT_IN_BORE; shafts.py KEY20_H, SHAFT_PRINT_UNDERSIZE; launch.py SPIGOT_BORE (now 12.35); drum.py GEOM spig_d.
+- Made from: cad.lib.shafts.keyed_shaft(d 20, key_w 6, key_h 2.6) and keyed_bore (clear 0.3); drum.main_shaft (spig_d 12); launch.sleeve_solid (SPIGOT_BORE 12.35)
+
+##### 8. Gear meshes m1.25, m1.5, m2, m2.5
+
+- Parts: rc8_m125_plate, rc8_m125_seg, rc8_m125_pinion, rc8_m15_plate, rc8_m15_z42, rc8_m15_z24, rc8_m2_plate, rc8_m2_z24, rc8_m2_z16, rc8_m25_plate, rc8_m25_big, rc8_m25_drive
+- Bought: none
+- Do: Each pair on its plate (label = module), flat faces down; turn or rock through every tooth.
+- Pass: Smooth, no tight spot, a little play when rocked; m2.5: the tall tooth and the cut-down last tooth pass without catching, then the mesh lets go at the gap.
+- If it fails, change: fits.py GEAR_BACKLASH, GEAR_CENTER_EXTRA (m1.25, m1.5, m2); launch_gears.py center_distance extra, spur backlash, sector_gear_2d tall_factor (m2.5); _drum_kin.py pin_x (m1.25 pinion).
+- Made from: m1.25: gears.spur_gear z60 sector / z10 shift 0.4, cd 44.33 (drum.a_seg); m1.5: gears.spur_gear z42 sector / z24, cd 49.60; m2: gears.spur_gear z24 / z16, cd 40.10 (reel take-up); m2.5: launch_gears.sector_gear_2d z40 (n_present 27, last 6 + gap) / launch_gears.spur z26, cd 82.60 (launch L); coupon face 6, fits GEAR_BACKLASH 0.15, GEAR_CENTER_EXTRA 0.1
+
+##### 9. Shear-pin torque limiter
+
+- Parts: rc9_hub_lever, rc9_outer_lever, rc9_shear_pin x3
+- Bought: string or a strap, luggage scale
+- Do: Hub slice into the outer slice, pin through both holes (head outside). Clamp the hub lever, hang the luggage scale on the outer lever hole (r 60 mm) at right angles and pull slowly until the pin shears. Break all 3 pins. Torque = kg x 9.81 x 0.06 N m.
+- Pass: Clean single shear at about 8.3 kg (4.9 N m), the 3 pins within 20 percent, both slices undamaged (holes still round); a fresh pin goes in by hand.
+- If it fails, change: drum.py GEOM shear_d (torque goes with d squared), hub_od (radius), shear_s; fits for the hole: drum.coupler shear hole (shear_d + 0.1) and shear_pin (shear_d - 0.04). Spec D8 / D26 limit 5 N m.
+- Made from: drum.coupler_hub and drum.coupler (sliced s 3.5..16.5), drum.shear_pin: d4 PLA in single shear at r 13 (shear_s 11.5); 4.9 N m at 30 MPa
+
+#### Parts
+
+| part | material | qty | print bbox mm | what |
+|---|---|---|---|---|
+| rc1_plate | PLA | 1 | 77.4 x 92.4 x 28.3 | Splitter base: centre pin d8, output pin d8, stop finger column (2 x M3 tap) |
+| rc1_sleeve | PPA-CF | 1 | 26.0 x 26.0 x 24.5 | Sleeve stub d20 with the integral key rib (launch.RIB_W, RIB_R) under the sun and the crank |
+| rc1_sun | PPA-CF | 1 | 48.0 x 47.8 x 8.0 | launch_aim.sun_solid: sun m1.5 z30 as built |
+| rc1_arm | PPA-CF | 1 | 59.1 x 32.0 x 14.0 | launch_aim.arm_solid: swing arm as built (O-ring groove, d8 pin, clip groove) |
+| rc1_idler | PPA-CF | 1 | 30.0 x 29.7 x 8.0 | launch_aim.idler_solid: idler m1.5 z18 as built |
+| rc1_output | PPA-CF | 1 | 48.0 x 47.8 x 8.0 | Output m1.5 z30 (launch_gears.spur, face 8) on a d8 pin |
+| rc1_crank | PPA-CF | 1 | 50.0 x 30.0 x 20.0 | Hand crank, keyed on the sleeve rib like the sun |
+| rc1_stop | PLA | 1 | 47.1 x 10.0 x 6.4 | Stop finger: rounded end at the as-built stop post position |
+| rc2_switch_base | PLA | 1 | 48.0 x 35.0 x 11.5 | contact_switch base: pad, nut pillar, hard stop, wire channel |
+| rc2_switch_lever | PLA | 1 | 44.0 x 5.0 x 8.0 | contact_switch lever, printed on its side (Y up) |
+| rc3_base | PLA | 1 | 74.0 x 67.0 x 45.0 | Base: d30 journal (REEL sleeve) and hex 22 AF (main shaft), rail hole (press) |
+| rc3_reel_face | PPA-CF | 1 | 71.0 x 54.0 x 9.5 | REEL gear dog face (drum.dog_teeth, phase 45) with a handle |
+| rc3_collar | PPA-CF | 1 | 60.0 x 60.0 x 18.0 | Collar lower half: drum.dog_teeth facing down, fork groove, hex bore |
+| rc3_fork | PLA | 1 | 91.0 x 51.0 x 20.0 | drum.fork as built: compliant yoke, follower pin, M3 nut in the tab |
+| rc3_fork_stop | PLA | 1 | 19.5 x 28.0 x 14.5 | drum.fork_stop as built |
+| rc3_rail | PPA-CF | 1 | 57.0 x 10.0 x 9.0 | drum.rail profile d10 with the print flat, cut to 57 long |
+| rc4_hub_plate | PLA | 1 | 54.0 x 54.0 x 6.0 | clutch.slip_clutch hub_plate (library defaults) |
+| rc4_friction_disc | PLA | 1 | 57.0 x 55.0 x 3.0 | clutch.slip_clutch friction_disc (library defaults) |
+| rc4_pressure_plate | PLA | 1 | 54.0 x 54.0 x 3.5 | clutch.slip_clutch pressure_plate (library defaults) |
+| rc4_flexure | PLA | 1 | 50.0 x 50.0 x 1.7 | clutch.slip_clutch flexure (library defaults) |
+| rc4_adjuster_plate | PLA | 1 | 54.0 x 54.0 x 4.0 | clutch.slip_clutch adjuster_plate (library defaults) |
+| rc5_seats_608_693 | PLA | 1 | 60.0 x 28.0 x 9.6 | 608 (reel spool seat), F693ZZ and 693ZZ crush-rib seats |
+| rc5_csk20_seat | PLA | 1 | 55.3 x 55.3 x 16.0 | CSK20PP seat with the printed key (reel capstan block, key_deg 90) |
+| rc6_m3_tile | PLA | 1 | 54.0 x 18.0 x 8.6 | M3 heat-set hole, nut trap, clearance and tap holes (fits.py values) |
+| rc7_key_stub | PPA-CF | 1 | 22.6 x 19.9 x 31.0 | shafts.keyed_shaft d20 key 6 (reel capstan tube numbers), 31 long, also the coupon 4 clutch shaft |
+| rc7_key_bore | PPA-CF | 1 | 36.0 x 36.0 x 8.6 | shafts.keyed_bore d20 key 6, 8 long (keyed hubs on the sleeve rib are PPA-CF) |
+| rc7_spigot | PPA-CF | 1 | 28.0 x 25.4 x 22.0 | drum.main_shaft slice: hex 8 long + d12 spigot 20 long, on a hex flat |
+| rc7_bushing | PPA-CF | 1 | 32.0 x 32.0 x 16.0 | launch.sleeve_solid slice 16 long: spigot bore d12.35 |
+| rc8_m125_plate | PPA-CF | 1 | 62.3 x 18.0 x 11.0 | Pins at 44.33 |
+| rc8_m125_seg | PLA | 1 | 46.8 x 39.5 x 6.0 | drum segment gear m1.25 z60 sector |
+| rc8_m125_pinion | PPA-CF | 1 | 16.0 x 15.3 x 6.0 | drum wrap pinion m1.25 z10 x0.4 |
+| rc8_m15_plate | PPA-CF | 1 | 67.6 x 18.0 x 11.0 | Pins at 49.60 |
+| rc8_m15_z42 | PPA-CF | 1 | 41.0 x 37.9 x 6.0 | drum wrap idler output m1.5 z42 sector |
+| rc8_m15_z24 | PPA-CF | 1 | 39.0 x 39.0 x 6.0 | reel cup ring gear m1.5 z24 |
+| rc8_m2_plate | PPA-CF | 1 | 58.1 x 18.0 x 11.0 | Pins at 40.10 |
+| rc8_m2_z24 | PPA-CF | 1 | 52.0 x 52.0 x 6.0 | reel take-up idler m2 z24 |
+| rc8_m2_z16 | PPA-CF | 1 | 36.0 x 36.0 x 6.0 | reel gear m2 z16 |
+| rc8_m25_plate | PPA-CF | 1 | 100.6 x 18.0 x 11.0 | Pins at 82.60 |
+| rc8_m25_big | PPA-CF | 1 | 61.7 x 53.1 x 6.0 | launch big gear m2.5 z40 sector: teeth 21..26 (tall, relieved) |
+| rc8_m25_drive | PPA-CF | 1 | 44.0 x 57.3 x 6.0 | launch drive gear m2.5 z26 sector |
+| rc9_hub_lever | PPA-CF | 1 | 79.0 x 26.0 x 13.0 | drum.coupler_hub slice (shear pin hole) with a lever, string hole at r 60 |
+| rc9_outer_lever | PPA-CF | 1 | 86.0 x 40.0 x 7.0 | drum.coupler slice (shear pin hole) with a lever, string hole at r 60 |
+| rc9_shear_pin | PLA | 3 | 6.0 x 6.0 x 12.1 | drum.shear_pin as built (d4 PLA) |
 
 
 ## Dart prints
@@ -319,10 +469,7 @@ The base print pack comes from the base pipeline (`base/pack`). It holds every p
 the plates as 3MF, and the material for each part.
 
 
-Base plates:
-
-- `base/pack/coupons/risk_plate_1.3mf`
-- `base/pack/coupons/risk_plate_2.3mf`
+> NOT IN THE REPO YET: `base/pack (print list)` (written by cad-infra (print pack)). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
 
 
 Before printing the base:
@@ -3044,6 +3191,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | C18 Carriage stop | Nothing to find: it is a printed PLA flexure with about 19 mm travel (decision D26). TPU pads are an optional upgrade if you get TPU | none | |
 | C19 PETG filament (brake rocker) | Look in the parts box. Needed for: reel | If not: PLA works for the first tests |  |
 | C20 How many 693ZZ / F693ZZ bearings are left after the dart (the dart uses 5 F693ZZ) | Look in the parts box. Needed for: line pulleys on the base | If not: Tell the coordinator the count |  |
+| C21 Risk coupon extras (base/pack/coupons/COUPON_TEST.md): an O-ring 20 x 1.5 (swing splitter arm hub), an e-clip for an 8 mm pin, M3 screws x 10, 12, 16, 20, a jam nut, string | Look in the parts box. Needed for: the day-one coupons and the same parts in the base | If not: tell the coordinator (the O-ring gives the splitter arm its drag; a rubber band wrap may stand in for the coupon test) | |
 
 ### D. Electrical labels to read
 
@@ -3148,7 +3296,7 @@ shows a placeholder; re-run the script after it lands.
 | `base/pack` | cad-infra (print pack) | yes |
 | `base/out` | cad-infra (assembly pipeline) | yes |
 | `base/guide` | cad-infra (assembly steps) | NOT YET |
-| `base/**/coupon/COUPON.md` | cad-infra (risk coupons) | NOT YET |
+| `base/pack/coupons/COUPON_TEST.md` | cad-infra (risk coupons) | yes |
 | `kedge/pack_v30/KEDGE_v30_run_sheet.pdf` | dart v30 pack (done) | yes |
 | `firmware/base/WIRING.md` | fw-base | yes |
 | `firmware/base/README.md` | fw-base | yes |

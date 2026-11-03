@@ -17,9 +17,12 @@ One plate from the base print pack with small test pieces of the riskiest featur
 dog clutch, slip clutch, bearing seats, heat-set inserts and nut traps, key rib, gear meshes. Print it, then work
 through its test sheet. Do not print the big base parts until every coupon passes.
 
-@imageglob base/**/coupon/coupon_plate_*.png Risk coupon plate
+Plates: `base/pack/coupons/risk_plate_1.3mf` (PLA) and `risk_plate_2.3mf` (PPA-CF). A printable copy of the test
+sheet is `base/pack/coupons/COUPON_TEST.pdf`.
 
-@includeglob base/**/coupon/COUPON.md first
+@imageglob base/pack/coupons/*.png Risk coupon plate
+
+@includeglob base/pack/coupons/COUPON_TEST.md first
 
 ## Dart prints
 

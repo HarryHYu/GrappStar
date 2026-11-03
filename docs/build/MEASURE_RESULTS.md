@@ -49,6 +49,7 @@ Write each number with its unit. Photo: the file name of the caliper photo in `o
 | C18 Carriage stop |  |  |
 | C19 PETG filament (brake rocker) |  |  |
 | C20 How many 693ZZ / F693ZZ bearings are left after the dart (the ... |  |  |
+| C21 Risk coupon extras (base/pack/coupons/COUPON_TEST.md): an ... |  |  |
 
 ## D. Electrical labels to read
 

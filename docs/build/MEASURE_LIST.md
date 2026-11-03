@@ -57,6 +57,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | C18 Carriage stop | Nothing to find: it is a printed PLA flexure with about 19 mm travel (decision D26). TPU pads are an optional upgrade if you get TPU | none | |
 | C19 PETG filament (brake rocker) | Look in the parts box. Needed for: reel | If not: PLA works for the first tests |  |
 | C20 How many 693ZZ / F693ZZ bearings are left after the dart (the dart uses 5 F693ZZ) | Look in the parts box. Needed for: line pulleys on the base | If not: Tell the coordinator the count |  |
+| C21 Risk coupon extras (base/pack/coupons/COUPON_TEST.md): an O-ring 20 x 1.5 (swing splitter arm hub), an e-clip for an 8 mm pin, M3 screws x 10, 12, 16, 20, a jam nut, string | Look in the parts box. Needed for: the day-one coupons and the same parts in the base | If not: tell the coordinator (the O-ring gives the splitter arm its drag; a rubber band wrap may stand in for the coupon test) | |
 
 ## D. Electrical labels to read
 

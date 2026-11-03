@@ -43,7 +43,7 @@ SOURCES = [
     ("base/pack", "cad-infra (print pack)"),
     ("base/out", "cad-infra (assembly pipeline)"),
     ("base/guide", "cad-infra (assembly steps)"),
-    ("base/**/coupon/COUPON.md", "cad-infra (risk coupons)"),
+    ("base/pack/coupons/COUPON_TEST.md", "cad-infra (risk coupons)"),
     ("kedge/pack_v30/KEDGE_v30_run_sheet.pdf", "dart v30 pack (done)"),
     ("firmware/base/WIRING.md", "fw-base"),
     ("firmware/base/README.md", "fw-base"),
@@ -191,10 +191,12 @@ def printlist_base():
                                          v.get("orient", "")))
                     s += _table(rows, ["Base part", "Material", "Plate", "Print pose"]) + "\n"
                     break
-    plates = sorted(glob.glob(os.path.join(pack, "**/*.3mf"), recursive=True))
+    plates = [p for p in sorted(glob.glob(os.path.join(pack, "**/*.3mf"), recursive=True))
+              if os.sep + "coupons" + os.sep not in p]
     if plates:
         s += "\nBase plates:\n\n" + "".join(f"- `{rel(p)}`\n" for p in plates)
-    stls = sorted(glob.glob(os.path.join(pack, "**/*.stl"), recursive=True))
+    stls = [p for p in sorted(glob.glob(os.path.join(pack, "**/*.stl"), recursive=True))
+            if os.sep + "coupons" + os.sep not in p]
     if stls and not s.strip():
         s += "\nBase STL files:\n\n" + "".join(f"- `{rel(p)}`\n" for p in stls)
     return s or placeholder("base/pack (print list)", "cad-infra (print pack)")

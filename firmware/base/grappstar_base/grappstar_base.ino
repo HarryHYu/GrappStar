@@ -25,7 +25,7 @@
 #error "Set Tools > USB CDC On Boot: Enabled (the Jetson talks to the native USB port)"
 #endif
 
-static const int SW_PINS[10] = {PIN_SW_A, PIN_SW_B, PIN_SW_C, PIN_SW_D, PIN_SW_E, PIN_SW_F, PIN_SW_G, PIN_SW_H, PIN_SW_I, PIN_SW_J};
+static const int SW_PINS[N_SW_PINS] = {PIN_SW_A, PIN_SW_B, PIN_SW_C, PIN_SW_D, PIN_SW_E, PIN_SW_F, PIN_SW_G, PIN_SW_H, PIN_SW_I, PIN_SW_J, PIN_SW_K, PIN_SW_L};
 
 gb::Base B;
 HX711 hx;
@@ -57,7 +57,6 @@ void hwDrum(int dir, int duty) {                       // DRV8833 slow decay: on
   else if (dir < 0) { pwmWrite(PIN_DRUM_IN1, 2, 255 - duty); pwmWrite(PIN_DRUM_IN2, 3, 255); }
   else { pwmWrite(PIN_DRUM_IN1, 2, 255); pwmWrite(PIN_DRUM_IN2, 3, 255); }
 }
-void hwDrumSleep(bool awake) { digitalWrite(PIN_DRUM_SLP, awake ? HIGH : LOW); }
 int as5600Read(uint8_t reg, int n) {                   // big-endian register read, -1 on any I2C error
   Wire.beginTransmission(AS5600_ADDR); Wire.write(reg);
   if (Wire.endTransmission(false) != 0) return -1;
@@ -85,7 +84,7 @@ float hwVbat() {
   uint32_t mv = analogReadMilliVolts(PIN_VBAT);
   return mv / 1000.0f * B.c.vbatScale;                 // 0 with the battery unplugged; the logic ignores it if vbat_wired is off
 }
-uint16_t hwSwitches() { uint16_t b = 0; for (int i = 0; i < 10; i++) if (digitalRead(SW_PINS[i]) == LOW) b |= (uint16_t)(1u << i); return b; }
+uint16_t hwSwitches() { uint16_t b = 0; for (int i = 0; i < N_SW_PINS; i++) if (digitalRead(SW_PINS[i]) == LOW) b |= (uint16_t)(1u << i); return b; }
 float hwHx() { return hxOk && hx.is_ready() ? (float)hx.read() : NAN; }
 void hwSave(const gb::Saved& s) { saveBuf = s; saveDue = true; }
 void hwSaveTun(const gb::Tun& t) { tunBuf = t; tunDue = true; }
@@ -126,13 +125,11 @@ const char* resetName() {
 
 bool pwmOk = true;
 void setup() {
-  // motors safe before anything else: PWM low, enables low (10 k pull-downs hold them low during reset), drum asleep
+  // motors safe before anything else: PWM low, enables low (10 k pull-downs hold them low during reset), drum braked
   pwmOk &= pwmAttach(PIN_RPWM, 0); pwmOk &= pwmAttach(PIN_LPWM, 1); hwWiper(0, 0);
   pinMode(PIN_REN, OUTPUT); pinMode(PIN_LEN, OUTPUT); digitalWrite(PIN_REN, LOW); digitalWrite(PIN_LEN, LOW);
-  pinMode(PIN_DRUM_SLP, OUTPUT); digitalWrite(PIN_DRUM_SLP, LOW);
   pwmOk &= pwmAttach(PIN_DRUM_IN1, 2); pwmOk &= pwmAttach(PIN_DRUM_IN2, 3); hwDrum(0, 0);
-  pinMode(PIN_DRUM_FLT, INPUT_PULLUP);
-  for (int i = 0; i < 10; i++) pinMode(SW_PINS[i], INPUT_PULLUP);
+  for (int i = 0; i < N_SW_PINS; i++) pinMode(SW_PINS[i], INPUT_PULLUP);
   analogSetPinAttenuation(PIN_WIPER_IS, ADC_11db);
   analogSetPinAttenuation(PIN_VBAT, ADC_11db);
 
@@ -152,7 +149,8 @@ void setup() {
 
   mtx = xSemaphoreCreateMutex();
   gb::Io io;
-  io.wiper = hwWiper; io.drum = hwDrum; io.drumSleep = hwDrumSleep; io.angle = hwAngle; io.wiperIsVolts = hwWiperIs;
+  io.wiper = hwWiper; io.drum = hwDrum;   // SLP not wired (D9): no sleep control
+  io.angle = hwAngle; io.wiperIsVolts = hwWiperIs;
   io.vbat = hwVbat; io.switches = hwSwitches; io.hxRaw = hwHx; io.save = hwSave; io.saveTun = hwSaveTun; io.out = hwOut;
   io.rand32 = hwRand;
   B.io = io;
@@ -238,11 +236,6 @@ void loop() {
     prefs.putBytes("rec", &s, sizeof s);
     B.saveDoneSeq = s.seq;                             // lets a waiting motor start
   }
-  static uint32_t fltT = 0;                            // DRV8833 nFAULT low for 50 ms: over-current / over-temperature
-  if (digitalRead(PIN_DRUM_FLT) == LOW) {              // (internal pull-up keeps it high when the pad is not wired)
-    if (!fltT) fltT = now ? now : 1;
-    if (now - fltT > 50) { xSemaphoreTake(mtx, portMAX_DELAY); B.extFault(gb::F_DRUM_SENSOR, "DRV8833 nFAULT"); xSemaphoreGive(mtx); fltT = 0; }
-  } else fltT = 0;
   if (tunDue) { gb::Tun t; xSemaphoreTake(mtx, portMAX_DELAY); t = tunBuf; tunDue = false; xSemaphoreGive(mtx); prefs.putBytes("tun", &t, sizeof t); }
   delay(1);
 }

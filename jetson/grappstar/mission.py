@@ -219,6 +219,15 @@ class Mission:
     def tel(self) -> dict:
         return self.base.tel or {}
 
+    def stop_settle(self) -> None:
+        """stop, then wait for the ABORTED event it causes (events follow the reply), so a later wait never sees it."""
+        m = self.base.event_mark()
+        self.base.stop()
+        try:
+            self.base.wait_event("ABORTED", 1.0, since=m, fail_on_fault=False)
+        except (BaseTimeout, BaseError):
+            pass
+
     def wait_evt(self, names, timeout: float, since: int, pred=None) -> dict:
         """Base event wait that STOP can interrupt."""
         t_end = time.monotonic() + timeout
@@ -248,6 +257,8 @@ class Mission:
         t = self.tel()
         if t.get("mode") == to and t.get("drum_pos") == to and t.get("state") in ("IDLE", "HOLD"):
             return
+        if t.get("state") == "HOLD":
+            self.stop_settle()            # HOLD refuses everything but reel: stop first
         # after a fault the drum may still be travelling to NEUTRAL: wait for it to settle first
         self.wait_tel(lambda t: t.get("state") in ("IDLE", "HOLD", "FAULT"), self.cfg.mode_timeout_s, "base idle",
                       fail_on_fault=False)
@@ -323,8 +334,15 @@ class Mission:
                     choices = list(extra) + ["Abort"]
                 if isinstance(e, BaseError) and e.err in ("STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR",
                                                            "ANGLE_SENSOR", "SWITCH_DISAGREE", "BROWNOUT", "BAD_STATE",
-                                                           "FAULT"):
-                    msg += ". The base is in FAULT and went to NEUTRAL. Check it, then Retry clears the fault."
+                                                           "FAULT", "FAULTED", "DART_STUCK"):
+                    held = [ev for ev in self.base.events(max(0, self.base.event_mark() - 10))
+                            if ev.get("evt") == "MODE" and ev.get("err") == "DRUM_HELD"]
+                    msg += (". The base is in FAULT. " + (f"The drum HELD where it is ({held[-1].get('why')}). "
+                            if held else "The drum went to NEUTRAL. ") + "Check it, then Retry clears the fault.")
+                if isinstance(e, BaseError) and e.err in ("LOADED_UNKNOWN", "PHASE_UNKNOWN", "NOT_AT_REST", "LAUNCH_BUSY"):
+                    msg += ". The launcher spring may be drawn: use Decock (Manual section), then Retry."
+                if isinstance(e, BaseError) and e.err == "BASE_RESET":
+                    msg += ". The base restarted (power or USB): check it before Retry."
                 c = self.ask(msg, choices, danger=True)
                 if c == "Skip":
                     self.log.warn(f"{name} skipped by the operator")
@@ -532,7 +550,12 @@ class Mission:
             t = self.tel()
         p = self.shot.get("pitch_deg")
         cur = t.get("pitch_deg")
-        if p is not None and (cur is None or abs(cur - p) > 1.0):
+        aimed = None
+        try:
+            aimed = self.base.status().get("aimed")
+        except (BaseError, BaseTimeout):
+            pass
+        if p is not None and (aimed is False or cur is None or abs(cur - p) > 1.0):
             self.log.info(f"re-aiming to {p} deg")
             m = self.base.event_mark()
             self.base.aim(p)
@@ -770,6 +793,8 @@ class Mission:
         self.wait_tel(self.is_wrapped, 5.0, "wraps on")
 
     def unwrap(self) -> None:
+        if self.tel().get("state") == "HOLD":
+            self.stop_settle()
         t = self.tel()
         if not self.is_wrapped(t) and (t.get("wraps") or 0) == 0:
             return
@@ -791,7 +816,8 @@ class Mission:
             self.base.safe_stop()
             raise StepFailed("check pull never reached the test tension: the dart may be dragging",
                              choices=["Retry", "Release and reshoot"])
-        if e.get("evt") == "SEATED":
+        if e.get("evt") == "SEATED" or sw_closed(self.tel(), "S"):
+            self.stop_settle()
             raise StepFailed("the dart came all the way home during the check (it did not hold)",
                              choices=["Release and reshoot"])
         # Reaching the check tension is itself the main evidence: a dart dragging over the ground pulls only a few N.
@@ -822,7 +848,8 @@ class Mission:
             m = self.base.event_mark()
             self.base.reel(self.cfg.reel_duty, max_n=self.cfg.tow_limit_n, until="tension")
             e = self.wait_evt(("LIMIT", "SEATED"), 60.0, m)
-            if e.get("evt") == "SEATED":
+            if e.get("evt") == "SEATED" or sw_closed(self.tel(), "S"):
+                self.stop_settle()
                 raise StepFailed("the dart came home during the tow: the anchor pulled out",
                                  choices=["Retry"])
             tn = e.get("tension_n", self.tel().get("tension_n"))
@@ -846,7 +873,8 @@ class Mission:
             raise StepFailed(f"dart unreachable for release: {e}")
         if s["phase"] in ("IDLE", "LANDED", "ARMED") and not self.dart_anchored:
             return
-        self.base.safe_stop()   # hold the line, never reel against a releasing dart
+        if self.tel().get("state") in ("HOLD", "REEL"):
+            self.stop_settle()   # the worm holds the line; never reel against a releasing dart
         try:
             self.dart.release()
         except DartRefused as e:
@@ -890,7 +918,7 @@ class Mission:
                     self.shot["seated_in_retrieve"] = True
                     return
                 if cur is not None and cur <= self.cfg.approach_m:
-                    self.base.stop()
+                    self.stop_settle()
                     self.log.info(f"capstan retrieve done: {cur:.2f} m left")
                     return
                 ev = [e for e in self.base.events(m) if e.get("evt") in ("LIMIT", "SEATED", "FAULT", "ABORTED")]

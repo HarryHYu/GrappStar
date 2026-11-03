@@ -65,6 +65,13 @@ def test_coupon_write(tmp_path):
     for p in PARTS:
         assert (d / f"{p.name}.stl").exists()
     assert rep["plates"] and all((d / pl["file"]).exists() for pl in rep["plates"])
+    # every copy is a build item of its own (counted in 3D/3dmodel.model), under a unique object name
+    from tools import pack
+    names = [n for pl in rep["plates"] for n in pl["names"]]
+    assert len(names) == len(set(names)) == sum(p.qty for p in PARTS)
+    assert "coupon_f_c_clip__c1" in names and "coupon_f_c_clip__c2" in names
+    for pl in rep["plates"]:
+        assert pack.count_3mf_items(str(d / pl["file"])) == pl["objects"] == pl["build_items"]
     md = (d / "COUPON.md").read_text()
     assert "BRG_RIB_INTERF" in md and "M3_NUT_AF" in md and "GEAR_BACKLASH" in md
     for f in [d / "COUPON.md", os.path.abspath(coupon.__file__)]:
@@ -102,3 +109,19 @@ def test_template_assembly_audits_clean():
     rep = audit.run(asm, states, jobs=1, log=lambda *a: None)
     assert rep["clean"], audit.summary(rep)
     assert rep["warns"] == [], rep["warns"]
+
+
+def test_coupon_object_names_do_not_collide(tmp_path):
+    """A part named like another part's copy (x qty 2 next to x_c1) keeps all its build items."""
+    import trimesh
+    from tools import pack
+    items = [dict(name="x", material="PLA", dims=[10.0, 10.0, 5.0], qty=2),
+             dict(name="x_c1", material="PLA", dims=[12.0, 12.0, 5.0], qty=1)]
+    plates, errs = pack.pack_plates(items, pack.BED, 5.0, 5.0)
+    assert errs == [] and len(plates) == 1
+    m = trimesh.creation.box([10, 10, 5])
+    m.apply_translation(-m.bounds[0])
+    names = pack.object_names(plates[0]["items"], {"x": 2, "x_c1": 1})
+    fn = str(tmp_path / "p.3mf")
+    pack.write_3mf(fn, [(n, pack.place_on_plate(m, it)) for n, it in zip(names, plates[0]["items"])])
+    assert pack.count_3mf_items(fn) == 3 and len(set(names)) == 3

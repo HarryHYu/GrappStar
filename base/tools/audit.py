@@ -123,95 +123,511 @@ def print_check(solid, M, bed) -> dict:
 
 
 # ---------------------------------------------------------------------------------------------- pair work
-def _aabb(solid, M):
-    lo, hi = prim.bbox(solid)
-    c = np.array([[x, y, z] for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])])
-    w = tf.apply(M, c)
-    return w.min(axis=0), w.max(axis=0)
+# Speed without weaker checks (the verdict and the numbers are those of whole-part booleans at every state):
+# - World transforms are kept per joint (states x joints x 4 x 4); part transforms are derived when needed.
+# - Broad phase: loose world AABBs of every part at every state (numpy), compared state-vectorised per pair.
+#   Candidate states of a pair are grouped by the rounded relative pose (as before): one exact check per group.
+# - Parts above SPLIT_MIN triangles are split once into closed chunks (split_by_plane). The chunks partition the
+#   solid, so vol(A ^ B) is the sum of vol(Ai ^ Bj) over chunk pairs and min_gap(A, B) the minimum over chunk pairs.
+#   A chunk pair whose boxes are apart in A's frame or in B's frame contributes nothing and is skipped: exact.
+# - Clearance minima: branch and bound on those box distances (a pose whose lower bound exceeds the best gap found
+#   so far cannot change the minimum, and the min_gap search length shrinks to the best gap).
+# - Floating: a pair touches when some chunk pair is within TOUCH_GAP; the search stops at the first such pair.
+# - One fork pool per run, each worker pinned to one core (manifold3d runs its own threads, which only contend when
+#   several workers run), small task batches streamed with imap_unordered, workers recycled (maxtasksperchild).
+CHUNK_TRI = 6000        # target triangles per chunk
+SPLIT_MIN = 12000       # parts with more triangles are chunked
+BOX_PAD = 1e-6          # mm: box tests are padded by this (float safety, boxes are already conservative)
+BATCH_COST = 400_000    # triangles per worker task (sum over its chunk pairs)
+PROGRESS_S = 20.0       # seconds between progress lines
+
+_CTX = {}               # worker context, filled before the pool forks: chunks and boxes per part index
 
 
-def _overlap(a, b, pad=0.0):
-    return bool(np.all(a[0] <= b[1] + pad) and np.all(b[0] <= a[1] + pad))
+def _bisect(s):
+    """Split a manifold in two along its longest extent at the median triangle centroid (None if not possible)."""
+    v, f = prim.mesh_of(s)
+    if len(f) == 0:
+        return None
+    c = v[f].mean(axis=1)
+    ext = c.max(axis=0) - c.min(axis=0)
+    for ax in np.argsort(-ext):
+        if ext[ax] <= 1e-6:
+            break
+        nrm = [0.0, 0.0, 0.0]
+        nrm[int(ax)] = 1.0
+        a, b = s.split_by_plane(nrm, float(np.median(c[:, ax])) + 1.2345e-4)
+        na, nb = a.num_tri(), b.num_tri()
+        if na and nb and na < len(f) and nb < len(f):
+            return [a, b]
+    return None
 
 
-def _rel_key(Ma, Mb):
-    return tuple(np.round(tf.inv(Ma) @ Mb, 4)[:3].reshape(-1))
+def _chunks(solid):
+    """Closed pieces that partition the solid (the solid itself when small)."""
+    if solid.is_empty() or solid.num_tri() <= SPLIT_MIN:
+        return [solid]
+    out, todo = [], [solid]
+    while todo:
+        s = todo.pop()
+        sub = _bisect(s) if s.num_tri() > CHUNK_TRI else None
+        if sub is None:
+            out.append(s)
+        else:
+            todo += sub
+    return out
 
 
-def _pair_volume(task):
-    a, b, Ma, Mb = task
-    P = _ASM.parts
-    sa = prim.place(P[a].solid, Ma)
-    sb = prim.place(P[b].solid, Mb)
-    return (sa ^ sb).volume()
+def _bounds(solid):
+    b = np.asarray(solid.bounding_box(), float).reshape(2, 3)
+    if not np.all(np.isfinite(b)) or np.any(b[1] < b[0]):          # empty solid: a box that meets nothing
+        b = np.array([[np.inf] * 3, [-np.inf] * 3])
+    return b
 
 
-def _pair_gap(task):
-    a, b, Ma, Mb, search = task
-    P = _ASM.parts
-    sa = prim.place(P[a].solid, Ma)
-    sb = prim.place(P[b].solid, Mb)
-    return sa.min_gap(sb, search)
+def _boxdist(lo1, hi1, lo2, hi2):
+    """Distance between axis-aligned boxes (0 when they overlap), broadcasting."""
+    d = np.maximum(np.maximum(lo1 - hi2, lo2 - hi1), 0.0)
+    return np.sqrt(np.einsum("...i,...i->...", d, d))
 
 
-def _map(fn, tasks, jobs):
-    if jobs <= 1 or len(tasks) < 8:
-        return [fn(t) for t in tasks]
-    ctx = mp.get_context("fork")
-    with ctx.Pool(jobs) as pool:
-        return pool.map(fn, tasks, chunksize=max(1, len(tasks) // (jobs * 8)))
+def _xbox(box, R, t):
+    """Boxes (C, 2, 3) under transforms R (K, 3, 3), t (K, 3) -> conservative AABBs lo, hi (K, C, 3)."""
+    c = (box[:, 0] + box[:, 1]) / 2
+    e = (box[:, 1] - box[:, 0]) / 2
+    cc = np.einsum("kij,cj->kci", R, c) + t[:, None, :]
+    ee = np.einsum("kij,cj->kci", np.abs(R), e)
+    return cc - ee, cc + ee
+
+
+def _rel(Wa, Wb):
+    """inv(Wa) @ Wb for stacks of rigid transforms (K, 4, 4)."""
+    Ra = np.transpose(Wa[:, :3, :3], (0, 2, 1))
+    out = np.zeros_like(Wb)
+    out[:, :3, :3] = Ra @ Wb[:, :3, :3]
+    out[:, :3, 3] = np.einsum("kij,kj->ki", Ra, Wb[:, :3, 3] - Wa[:, :3, 3])
+    out[:, 3, 3] = 1.0
+    return out
+
+
+def _cull(a, b, rels, pad):
+    """Chunk pairs of parts a, b that may be within pad of each other, for each relative pose rels (K, 4, 4) mapping
+    b's frame to a's. Returns arrays (k, i, j, lower bound of the chunk pair distance)."""
+    ca, cb = _CTX["cb"][a], _CTX["cb"][b]
+    ba, bb = _CTX["box"][a], _CTX["box"][b]
+    K = len(rels)
+    R, t = rels[:, :3, :3], rels[:, :3, 3]
+    Ri = np.transpose(R, (0, 2, 1))
+    ti = -np.einsum("kij,kj->ki", Ri, t)
+    out = []
+    step = max(1, int(2_000_000 // max(1, len(ca) * len(cb))))
+    for k0 in range(0, K, step):
+        sl = slice(k0, min(K, k0 + step))
+        blo, bhi = _xbox(cb, R[sl], t[sl])             # b chunks in a's frame
+        alo, ahi = _xbox(ca, Ri[sl], ti[sl])           # a chunks in b's frame
+        mb = _boxdist(blo, bhi, ba[0], ba[1]) <= pad
+        ma = _boxdist(alo, ahi, bb[0], bb[1]) <= pad
+        k, i, j = np.nonzero(ma[:, :, None] & mb[:, None, :])
+        if not len(k):
+            continue
+        lb = np.maximum(_boxdist(ca[i, 0], ca[i, 1], blo[k, j], bhi[k, j]),
+                        _boxdist(alo[k, i], ahi[k, i], cb[j, 0], cb[j, 1]))
+        keep = lb <= pad
+        out.append((k[keep] + k0, i[keep], j[keep], lb[keep]))
+    if not out:
+        e = np.zeros(0, int)
+        return e, e, e, np.zeros(0)
+    return tuple(np.concatenate(x) for x in zip(*out))
+
+
+def _w_init(counter, cpus):
+    if cpus:
+        with counter.get_lock():
+            k = counter.value
+            counter.value += 1
+        try:
+            os.sched_setaffinity(0, {cpus[k % len(cpus)]})
+        except (AttributeError, OSError):
+            pass
+
+
+def _w_static(batch):
+    return [(k, static_part(_ASM.parts[n], _CTX["bed"])) for k, n in batch]
+
+
+def _w_volume(batch):
+    """[(item, a, b, rel, pairs)] -> [(item, sum of chunk pair intersection volumes)]"""
+    out = []
+    ch = _CTX["ch"]
+    for iid, a, b, rel, pairs in batch:
+        A, B, posed, v = ch[a], ch[b], {}, 0.0
+        for i, j in pairs:
+            sb = posed.get(j)
+            if sb is None:
+                sb = posed[j] = prim.place(B[j], rel)
+            v += (A[i] ^ sb).volume()
+        out.append((iid, v))
+    return out
+
+
+def _w_gap(batch):
+    """[(item, a, b, rel, pairs sorted by lower bound, lower bounds, search, stop)] -> [(item, gap)]: min_gap over the
+    chunk pairs, capped at search; stops early once the gap is <= stop."""
+    out = []
+    ch = _CTX["ch"]
+    for iid, a, b, rel, pairs, lbs, search, stop in batch:
+        A, B, posed, g = ch[a], ch[b], {}, search
+        for (i, j), lb in zip(pairs, lbs):
+            if lb > g or g <= stop:
+                break
+            sb = posed.get(j)
+            if sb is None:
+                sb = posed[j] = prim.place(B[j], rel)
+            g = min(g, A[i].min_gap(sb, g))
+        out.append((iid, g))
+    return out
+
+
+class _Pool:
+    """Lazy fork pool over _CTX (serial when jobs <= 1)."""
+
+    def __init__(self, jobs):
+        self.jobs = max(1, int(jobs))
+        self.pool = None
+
+    def imap(self, fn, batches):
+        if self.jobs <= 1 or len(batches) < 2:
+            for b in batches:
+                yield fn(b)
+            return
+        if self.pool is None:
+            ctx = mp.get_context("fork")
+            try:
+                cpus = sorted(os.sched_getaffinity(0))
+            except AttributeError:
+                cpus = []
+            cpus = cpus[-self.jobs:] if len(cpus) > self.jobs else cpus
+            self.pool = ctx.Pool(self.jobs, initializer=_w_init, initargs=(ctx.Value("i", 0), cpus),
+                                 maxtasksperchild=400)
+        yield from self.pool.imap_unordered(fn, batches)
+
+    def close(self):
+        if self.pool is not None:
+            self.pool.terminate()
+            self.pool.join()
+            self.pool = None
+
+
+def _batches(items, cost):
+    """Group items into batches of about BATCH_COST triangles (cost(item)) and at most 256 items."""
+    out, cur, c = [], [], 0
+    for it in items:
+        cur.append(it)
+        c += cost(it)
+        if c >= BATCH_COST or len(cur) >= 256:
+            out.append(cur)
+            cur, c = [], 0
+    if cur:
+        out.append(cur)
+    return out
+
+
+class _Progress:
+    def __init__(self, log, what, total):
+        self.log, self.what, self.total, self.t0, self.last = log, what, total, time.time(), time.time()
+
+    def step(self, done):
+        if time.time() - self.last >= PROGRESS_S:
+            self.last = time.time()
+            self.log(f"audit: {self.what} {done}/{self.total} ({time.time() - self.t0:.0f} s)")
+
+
+def _matcher(rules, names):
+    """For Allow / Clearance rules: per rule the sets of names matching its a and b patterns (fnmatchcase)."""
+    return [({n for n in names if fnmatchcase(n, r.a)}, {n for n in names if fnmatchcase(n, r.b)}) for r in rules]
+
+
+ENV_SEG = 96            # sides of the prism that encloses a rotating part's swept cylinder
+ENV_PAD = 1e-3          # mm added to every motion envelope
+CROP_MIN_POSES = 8      # pairs with at least this many distinct poses are cropped to their envelopes
+
+
+def _verts(solid):
+    return prim.mesh_of(solid)[0] if not solid.is_empty() else np.zeros((0, 3))
+
+
+def _env_solid(kind, u, travel=(0.0, 0.0)):
+    """Solid in the motion frame (z = joint axis) enclosing every pose of points u (N, 3) of that frame:
+    rev: a prism around the whole swept cylinder; slide: the box swept along z by travel; 'zprism': a box in x, y
+    unbounded along z (invariant under the slide)."""
+    if not len(u):
+        return None
+    if kind == "rev":
+        r = float(np.sqrt((u[:, 0] ** 2 + u[:, 1] ** 2).max())) + ENV_PAD
+        z0, z1 = float(u[:, 2].min()) - ENV_PAD, float(u[:, 2].max()) + ENV_PAD
+        return prim.cyl(r / math.cos(math.pi / ENV_SEG), z1 - z0, z=z0, seg=ENV_SEG)
+    lo, hi = u.min(axis=0) - ENV_PAD, u.max(axis=0) + ENV_PAD
+    if kind == "slide":
+        return prim.box(lo[0], hi[0], lo[1], hi[1], lo[2] + travel[0], hi[2] + travel[1])
+    return prim.box(lo[0], hi[0], lo[1], hi[1], lo[2] - 1e5, hi[2] + 1e5)
 
 
 # ---------------------------------------------------------------------------------------------- main audit
 def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print) -> dict:
-    global _ASM
+    global _ASM, _CTX
     _ASM = asm
     t_start = time.time()
+    timing = {}
+    tick = [time.time()]
+
+    def lap(name):
+        now = time.time()
+        timing[name] = round(timing.get(name, 0.0) + now - tick[0], 2)
+        tick[0] = now
+
     bed = tuple(getattr(asm.P, "BED", (256.0, 256.0, 260.0)))
     rep = dict(n_parts=len(asm.parts), n_states=len(states), errors=list(asm.errors), static=[], limits=[],
                collisions=[], allowed_contacts=[], clearances=[], floating=[], checks=[], warns=[])
     names = list(asm.parts)
+    NP, NS = len(names), len(states)
+    pool = _Pool(jobs)
+    try:
+        _run(asm, states, rep, names, NP, NS, bed, pool, log, lap)
+    finally:
+        pool.close()
+        _CTX = {}
+    rep["timing"] = timing
+    # verdict
+    static_fails = [dict(part=r["name"], fails=r["fails"]) for r in rep["static"] if r["fails"]]
+    rep["static_fails"] = static_fails
+    bad = (rep["errors"] or static_fails or rep["limits"] or rep["collisions"] or rep["floating"] or rep["checks"]
+           or [c for c in rep["clearances"] if not c["ok"]])
+    rep["clean"] = not bad
+    rep["seconds"] = round(time.time() - t_start, 1)
+    return rep
 
-    # 1 static
-    for n in names:
-        rep["static"].append(static_part(asm.parts[n], bed))
-    # 2 world transforms per state, joint limits
-    Ws = []
+
+def _run(asm, states, rep, names, NP, NS, bed, pool, log, lap):
+    stats = rep["stats"] = {}
+    # 2 world transforms per state (per joint), joint limits
+    jnames = list(asm.joints)
+    jcol = {j: k + 1 for k, j in enumerate(jnames)}
+    JW = np.empty((NS, len(jnames) + 1, 4, 4))
+    JW[:, 0] = np.eye(4)
     for i, S in enumerate(states):
         vals = asm.values(S)
         for jn, j in asm.joints.items():
             if j.limits is not None and not (j.limits[0] - 1e-6 <= vals[jn] <= j.limits[1] + 1e-6):
                 rep["limits"].append(dict(joint=jn, value=vals[jn], limits=list(j.limits), state=i, phase=S.get("phase")))
-        JW = asm.joint_world(S, vals)
-        Ws.append({n: JW.get(p.joint, np.eye(4)) @ p.place for n, p in asm.parts.items()})
-    # 3 collisions with caching on the relative pose
+        jw = asm.joint_world(S, vals)
+        for jn, k in jcol.items():
+            JW[i, k] = jw[jn]
+    body = np.array([jcol.get(asm.parts[n].joint, 0) for n in names], int)
+    place = np.array([np.asarray(asm.parts[n].place, float) for n in names]).reshape(NP, 4, 4)
+
+    def W(p, sel=slice(None)):
+        return JW[sel, body[p]] @ place[p]
+
+    lap("world")
+    # chunks and boxes (local frames)
+    _CTX = {"bed": bed, "ch": [], "cb": [], "box": []}
+    globals()["_CTX"] = _CTX
+    for n in names:
+        s = asm.parts[n].solid
+        lst = _chunks(s) if s.status() == m3.Error.NoError else [s]
+        _CTX["ch"].append(lst)
+        _CTX["cb"].append(np.array([_bounds(x) for x in lst]).reshape(-1, 2, 3))
+        _CTX["box"].append(_bounds(s))
+    ntri = [np.array([x.num_tri() for x in lst]) for lst in _CTX["ch"]]
+    stats["chunked_parts"] = sum(1 for lst in _CTX["ch"] if len(lst) > 1)
+    stats["chunks"] = sum(len(lst) for lst in _CTX["ch"])
+    stats["triangles"] = int(sum(t.sum() for t in ntri))
+    lap("chunks")
+    # world AABBs of every part at every state (loose: local box under the world transform)
+    LO = np.empty((NP, NS, 3))
+    HI = np.empty((NP, NS, 3))
+    for p in range(NP):
+        Wp = W(p)
+        lo, hi = _xbox(_CTX["box"][p][None], Wp[:, :3, :3], Wp[:, :3, 3])
+        LO[p], HI[p] = lo[:, 0], hi[:, 0]
+    # 3 collisions: candidates by AABB, grouped by the rounded relative pose, chunk pairs culled by boxes
+    allow_sets = _matcher(asm.allowed, names)
     allow_of = {}
     for ia, a in enumerate(names):
         for b in names[ia + 1:]:
-            al = [x for x in asm.allowed if x.match(a, b)]
+            al = [x for x, (A, B) in zip(asm.allowed, allow_sets) if (a in A and b in B) or (b in A and a in B)]
             # the most restrictive matching Allow decides (None = unlimited), independent of module order
             allow_of[(a, b)] = min(al, key=lambda x: math.inf if x.max_vol is None else x.max_vol) if al else None
-    seen = {}
-    tasks, task_keys = [], []
+
+    def groups(a, b, mask_states):
+        """Distinct rounded relative poses of a, b over the given states: (rep states, rel matrices, state lists)."""
+        Wa, Wb = W(a, mask_states), W(b, mask_states)
+        rel = _rel(Wa, Wb)
+        key = np.round(rel[:, :3, :].reshape(len(rel), 12), 4) + 0.0
+        _, first, inv = np.unique(key, axis=0, return_index=True, return_inverse=True)
+        inv = inv.reshape(-1)
+        order = np.argsort(first)                  # groups in order of first occurrence
+        rank = np.empty_like(order)
+        rank[order] = np.arange(len(order))
+        g = rank[inv]
+        srt = np.argsort(g, kind="stable")
+        bounds = np.searchsorted(g[srt], np.arange(len(order) + 1))
+        lists = [mask_states[srt[bounds[k]:bounds[k + 1]]] for k in range(len(order))]
+        return mask_states[first[order]], rel[first[order]], lists
+
+    # motion envelopes: a part is static (same world pose at every state), or moves on a rev / slide joint whose
+    # frame before the joint motion is the same at every state (then its every pose lies in a known prism), or None
+    def const(M):
+        return bool(np.abs(M - M[:1]).max() <= 1e-9)
+
+    envc = {}
+
+    def envelope(p):
+        if p in envc:
+            return envc[p]
+        out = None
+        Wp = W(p)
+        if const(Wp):
+            out = ("static", Wp[0], None, None)
+        else:
+            j = asm.joints.get(asm.parts[names[p]].joint)
+            if j is not None and j.kind in ("rev", "slide"):
+                Fpre = JW[:, jcol.get(j.parent, 0)] @ j.local(0.0)
+                if const(Fpre):
+                    Q = tf.frame((0, 0, 0), j.axis)
+                    F = Fpre[0] @ Q
+                    G = tf.inv(Q) @ place[p]                  # part frame -> motion frame at joint value 0
+                    u = tf.apply(G, _verts(asm.parts[names[p]].solid))
+                    travel = (0.0, 0.0)
+                    if j.kind == "slide":
+                        d = np.einsum("i,ki->k", np.asarray(j.axis), (tf.inv(Fpre[0]) @ JW[:, body[p]])[:, :3, 3])
+                        travel = (float(d.min()), float(d.max()))
+                    E = _env_solid(j.kind, u, travel)
+                    if E is not None:
+                        out = (j.kind, F, G, E)
+        envc[p] = out
+        return out
+
+    def pieces(p, M, E):
+        """Chunks of part p cut by solid E given in p's frame through M (only chunks whose boxes meet E's)."""
+        Ep = prim.place(E, M)
+        eb = _bounds(Ep)
+        cb = _CTX["cb"][p]
+        sel = np.nonzero(np.all(cb[:, 0] <= eb[1] + BOX_PAD, axis=1) & np.all(eb[0] <= cb[:, 1] + BOX_PAD, axis=1))[0]
+        out = []
+        for i in sel:
+            x = _CTX["ch"][p][i] ^ Ep
+            if not x.is_empty() and x.num_tri():
+                out.append(x)
+        return out
+
+    def add_virtual(lst):
+        _CTX["ch"].append(lst)
+        _CTX["cb"].append(np.array([_bounds(x) for x in lst]).reshape(-1, 2, 3))
+        _CTX["box"].append(np.array([np.min(_CTX["cb"][-1][:, 0], axis=0), np.max(_CTX["cb"][-1][:, 1], axis=0)]))
+        return len(_CTX["ch"]) - 1
+
+    n_proved = n_crop = 0
+
+    def envelope_stage(a, b, n_poses):
+        """'clear' when the motion envelopes prove vol <= HIT_VOL at every state, else the (possibly cropped) part
+        indices to use for a and b."""
+        nonlocal n_proved, n_crop
+        ea, eb = envelope(a), envelope(b)
+        if ea is None or eb is None or (ea[0] == "static" and eb[0] == "static"):
+            return a, b
+        if ea[0] != "static" and eb[0] != "static":
+            Ea, Eb = prim.place(ea[3], ea[1]), prim.place(eb[3], eb[1])
+            if (Ea ^ Eb).volume() <= HIT_VOL:
+                n_proved += 1
+                return "clear"
+            return a, b
+        flip = ea[0] != "static"
+        s_, m_ = (b, a) if flip else (a, b)                 # static part, moving part
+        es, em = envelope(s_), envelope(m_)
+        Ms = tf.inv(es[1]) @ em[1]                          # motion frame -> static part frame
+        sp = pieces(s_, Ms, em[3])                          # static part cut to the moving part's envelope
+        if sum(x.volume() for x in sp) <= HIT_VOL:
+            n_proved += 1
+            return "clear"
+        if n_poses < CROP_MIN_POSES:
+            return a, b
+        # moving part cut to an envelope of the cut static part that its own motion leaves invariant
+        u = np.concatenate([tf.apply(tf.inv(Ms), _verts(x)) for x in sp])
+        C = _env_solid("rev" if em[0] == "rev" else "zprism", u)
+        mp = pieces(m_, tf.inv(em[2]), C)
+        n_crop += 1
+        vs, vm = add_virtual(sp), add_virtual(mp) if mp else None
+        if vm is None:
+            n_proved += 1
+            return "clear"
+        return (vm, vs) if flip else (vs, vm)
+
+    items = []                 # (a, b, rep state, rel, chunk pairs (m, 2), states)
+    n_cand = n_pose = 0
+    allst = np.arange(NS)
+    for a in range(NP - 1):
+        bs = np.arange(a + 1, NP)
+        m = np.all(LO[a][None] <= HI[bs], axis=2) & np.all(LO[bs] <= HI[a][None], axis=2)      # (len(bs), NS)
+        for b in bs[m.any(axis=1)]:
+            st = allst[m[b - a - 1]]
+            n_cand += len(st)
+            reps, rels, lists = groups(a, b, st)
+            n_pose += len(reps)
+            if len(reps) > 1:
+                use = envelope_stage(a, b, len(reps))
+                if use == "clear":
+                    continue
+            else:
+                use = (a, b)
+            k, i, j, _ = _cull(use[0], use[1], rels, BOX_PAD)
+            if not len(k):
+                continue
+            srt = np.argsort(k, kind="stable")
+            k, i, j = k[srt], i[srt], j[srt]
+            cuts = np.searchsorted(k, np.arange(len(reps) + 1))
+            for g in range(len(reps)):
+                if cuts[g + 1] > cuts[g]:
+                    pairs = np.stack([i[cuts[g]:cuts[g + 1]], j[cuts[g]:cuts[g + 1]]], axis=1)
+                    items.append((a, b, int(reps[g]), rels[g], pairs, lists[g], use))
+    stats.update(envelope_cleared_pairs=n_proved, cropped_pairs=n_crop)
+    stats.update(candidate_pair_states=int(n_cand), distinct_poses=int(n_pose), exact_items=len(items),
+                 exact_chunk_pairs=int(sum(len(it[4]) for it in items)))
+    per = {}
+    for it in items:
+        x = per.setdefault((names[it[0]], names[it[1]]), [0, 0])
+        x[0] += 1
+        x[1] += len(it[4])
+    stats["busiest_pairs"] = [dict(a=a, b=b, poses=x[0], chunk_pairs=x[1])
+                              for (a, b), x in sorted(per.items(), key=lambda kv: -kv[1][1])[:12]]
+    log(f"audit: {NP} parts, {NS} states, {n_pose} distinct pair poses, {len(items)} exact pair checks "
+        f"({stats['exact_chunk_pairs']} chunk booleans)")
+    lap("broad")
+    ntri += [np.array([x.num_tri() for x in lst]) for lst in _CTX["ch"][len(ntri):]]
+    # 1 static (in the pool; same order as names)
+    res = {}
+    for out in pool.imap(_w_static, _batches(list(enumerate(names)), lambda kn: max(2000, int(ntri[kn[0]].sum())))):
+        res.update(out)
+    rep["static"] = [res[k] for k in range(NP)]
+    lap("static")
+    vols = [0.0] * len(items)
+
+    def vcost(it):
+        a, b, pairs = it[1], it[2], it[4]
+        return int(ntri[a][pairs[:, 0]].sum() + ntri[b][pairs[:, 1]].sum()) + 500 * len(pairs)
+
+    work = [(n, u[0], u[1], rel, pairs) for n, (a, b, _, rel, pairs, _, u) in enumerate(items)]
+    prog, done = _Progress(log, "exact checks", len(work)), 0
+    for out in pool.imap(_w_volume, _batches(work, vcost)):
+        for iid, v in out:
+            vols[iid] = v
+        done += len(out)
+        prog.step(done)
     hits = {}           # (a, b) -> list of (state, vol)
-    for i, W in enumerate(Ws):
-        boxes = {n: _aabb(asm.parts[n].solid, W[n]) for n in names}
-        for ia, a in enumerate(names):
-            for b in names[ia + 1:]:
-                if not _overlap(boxes[a], boxes[b]):
-                    continue
-                k = (a, b, _rel_key(W[a], W[b]))
-                if k in seen:
-                    seen[k].append(i)
-                    continue
-                seen[k] = [i]
-                tasks.append((a, b, W[a], W[b])); task_keys.append(k)
-    log(f"audit: {len(names)} parts, {len(states)} states, {len(tasks)} exact pair checks")
-    vols = _map(_pair_volume, tasks, jobs)
-    for k, v in zip(task_keys, vols):
+    for (a, b, _, _, _, lst, _), v in zip(items, vols):
         if v > HIT_VOL:
-            for i in seen[k]:
-                hits.setdefault((k[0], k[1]), []).append((i, v))
+            hits.setdefault((names[a], names[b]), []).extend((int(i), v) for i in lst)
+    del work, items
     for (a, b), lst in sorted(hits.items()):
         vmax = max(v for _, v in lst)
         imax = max(lst, key=lambda x: x[1])[0]
@@ -229,46 +645,90 @@ def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print) -> dict:
     for al in asm.allowed:
         if id(al) not in used:
             rep["warns"].append(f"Allow({al.a!r}, {al.b!r}) never matched an overlap: remove it or narrow it")
-    # 4 clearances
-    for c in asm.clearances:
-        pairs = [(a, b) for ia, a in enumerate(names) for b in names[ia + 1:] if c.match(a, b)]
+    lap("exact")
+    # 4 clearances: exact minimum over all states by branch and bound
+    idx = {n: k for k, n in enumerate(names)}
+    n_gap = 0
+    for c, (CA, CB) in zip(asm.clearances, _matcher(asm.clearances, names)):
+        pairs = [(a, b) for ia, a in enumerate(names) for b in names[ia + 1:] if (a in CA and b in CB) or (b in CA and a in CB)]
         if not pairs:
             rep["clearances"].append(dict(a=c.a, b=c.b, min_mm=c.min_mm, gap=None, ok=False, why=c.why,
                                           note="no parts match this clearance"))
             continue
         search = max(5.0, 3 * c.min_mm)
-        ctasks, cmeta, cseen = [], [], set()
-        for a, b in pairs:
-            for i, W in enumerate(Ws):
-                key = (a, b, _rel_key(W[a], W[b]))
-                if key in cseen:
-                    continue
-                cseen.add(key)
-                ctasks.append((a, b, W[a], W[b], search)); cmeta.append((a, b, i))
-        gaps = _map(_pair_gap, ctasks, jobs)
-        g, (a, b, i) = min(zip(gaps, cmeta), key=lambda x: x[0])
+        cand = []          # (lower bound, order, a, b, rel, chunk pairs, lower bounds)
+        for pi, (an, bn) in enumerate(pairs):
+            a, b = idx[an], idx[bn]
+            near = _boxdist(LO[a], HI[a], LO[b], HI[b]) <= search
+            st = allst[near]
+            if not len(st):
+                continue           # farther than search at every state: min_gap would return search
+            reps, rels, _ = groups(a, b, st)
+            k, i, j, lb = _cull(a, b, rels, search)
+            srt = np.lexsort((lb, k))
+            k, i, j, lb = k[srt], i[srt], j[srt], lb[srt]
+            cuts = np.searchsorted(k, np.arange(len(reps) + 1))
+            for g in range(len(reps)):
+                s0, s1 = cuts[g], cuts[g + 1]
+                if s1 > s0:
+                    cand.append((float(lb[s0:s1].min()), (pi, int(reps[g])), a, b, rels[g],
+                                 np.stack([i[s0:s1], j[s0:s1]], axis=1), lb[s0:s1]))
+        # lower bound first (ties within 1e-6 by state order, so equal gaps report the earliest state)
+        cand.sort(key=lambda x: (round(x[0], 6), x[1]))
+        best_g, best_o = search, (0, 0)       # what min_gap returns for pairs farther than search
+        pos, step = 0, max(4, 4 * pool.jobs)
+        prog = _Progress(log, f"clearance {c.a} / {c.b}", len(cand))
+        while pos < len(cand) and round(cand[pos][0], 6) - 2e-6 < best_g:      # later bounds are all >= best_g
+            batch = []
+            while pos < len(cand) and round(cand[pos][0], 6) - 2e-6 < best_g and len(batch) < step:
+                lbm, o, a, b, rel, cp, lbs = cand[pos]
+                if lbm < best_g - 1e-9:            # otherwise its gap cannot be below the best one
+                    batch.append((pos, a, b, rel, cp, lbs, best_g + 1e-9, -1.0))
+                pos += 1
+            if not batch:
+                continue
+            n_gap += len(batch)
+            per = max(1, len(batch) // max(1, pool.jobs))
+            for out in pool.imap(_w_gap, [batch[x:x + per] for x in range(0, len(batch), per)]):
+                for q, g in out:
+                    o = cand[q][1]
+                    if g < best_g - 1e-12 or (g <= best_g + 1e-12 and o < best_o):
+                        best_g, best_o = g, o
+            prog.step(pos)
+        g, (pi, i) = best_g, best_o
+        a, b = pairs[pi]
         hit = [(x, y) for x, y in pairs if (x, y) in hits or (y, x) in hits]
         if hit:
             g, (a, b) = 0.0, hit[0]
         rep["clearances"].append(dict(a=a, b=b, rule=f"{c.a} / {c.b}", min_mm=c.min_mm, gap=round(g, 3),
                                       ok=(g >= c.min_mm and not hit), worst_state=i, phase=states[i].get("phase"),
                                       why=c.why, note="parts intersect" if hit else ""))
+    stats["clearance_evals"] = n_gap
+    lap("clearance")
     # 5 floating (rest state = first state)
-    W0 = Ws[0]
-    boxes = {n: _aabb(asm.parts[n].solid, W0[n]) for n in names}
     adj = {n: set() for n in names}
-    ftasks, fmeta = [], []
-    for ia, a in enumerate(names):
-        for b in names[ia + 1:]:
-            if not _overlap(boxes[a], boxes[b], TOUCH_GAP):
+    fwork, fmeta = [], []
+    W0 = [W(p, slice(0, 1)) for p in range(NP)]
+    for a in range(NP - 1):
+        for b in range(a + 1, NP):
+            if not (np.all(LO[a, 0] <= HI[b, 0] + TOUCH_GAP) and np.all(LO[b, 0] <= HI[a, 0] + TOUCH_GAP)):
                 continue
-            if any(i == 0 for i, _ in hits.get((a, b), [])):
-                adj[a].add(b); adj[b].add(a)
+            an, bn = names[a], names[b]
+            if any(i == 0 for i, _ in hits.get((an, bn), [])):
+                adj[an].add(bn); adj[bn].add(an)
                 continue
-            ftasks.append((a, b, W0[a], W0[b], 1.0)); fmeta.append((a, b))
-    for g, (a, b) in zip(_map(_pair_gap, ftasks, jobs), fmeta):
-        if g <= TOUCH_GAP:
-            adj[a].add(b); adj[b].add(a)
+            rel = _rel(W0[a], W0[b])
+            _, i, j, lb = _cull(a, b, rel, TOUCH_GAP)
+            if not len(i):
+                continue
+            srt = np.argsort(lb, kind="stable")
+            fwork.append((len(fmeta), a, b, rel[0], np.stack([i[srt], j[srt]], axis=1), lb[srt], 1.0, TOUCH_GAP))
+            fmeta.append((an, bn))
+    for out in pool.imap(_w_gap, _batches(fwork, lambda it: vcost((None, it[1], it[2], None, it[4][:4])))):
+        for q, g in out:
+            if g <= TOUCH_GAP:
+                an, bn = fmeta[q]
+                adj[an].add(bn); adj[bn].add(an)
     grounded, declared = set(), False
     for sub, mod in asm.modules.items():
         if hasattr(mod, "grounded"):
@@ -293,19 +753,13 @@ def run(asm: Assembly, states: list[dict], jobs: int = 4, log=print) -> dict:
             if n not in reach and adj[n]:          # parts touching nothing are already listed
                 rep["floating"].append(dict(part=n, why="not connected to a grounded part"))
     rep["contact_graph"] = {n: sorted(adj[n]) for n in names}
+    lap("floating")
     # 6 subsystem checks
     for sub, mod in asm.modules.items():
         if hasattr(mod, "checks"):
             for msg in mod.checks(asm.P, asm) or []:
                 rep["checks"].append(dict(subsystem=sub, fail=msg))
-    # verdict
-    static_fails = [dict(part=r["name"], fails=r["fails"]) for r in rep["static"] if r["fails"]]
-    rep["static_fails"] = static_fails
-    bad = (rep["errors"] or static_fails or rep["limits"] or rep["collisions"] or rep["floating"] or rep["checks"]
-           or [c for c in rep["clearances"] if not c["ok"]])
-    rep["clean"] = not bad
-    rep["seconds"] = round(time.time() - t_start, 1)
-    return rep
+    lap("checks")
 
 
 def refine(asm: Assembly, states: list[dict], max_deg=MAX_STEP_DEG, max_mm=MAX_STEP_MM, cap=720) -> list[dict]:

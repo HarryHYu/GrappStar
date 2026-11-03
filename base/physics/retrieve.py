@@ -83,7 +83,7 @@ def wrap_loads(p, w=WRAP, light_n=None):
 
 def approach(p, a=APPROACH):
     rp = reel_props(p)
-    torque = p.capstan["takeup_n"] * rp["r_core"]             # FIRM clutch set at the core (capstan.py convention)
+    torque = p.capstan["takeup_n"] * rp["r_full"]             # FIRM clutch: line tension with the reel full
     r_end = rp["r_full"]                                       # reel nearly full at the end of retrieve
     avail_reel = torque / r_end
     avail_dart = avail_reel / a["eye_gain"]
@@ -93,9 +93,9 @@ def approach(p, a=APPROACH):
             t = math.radians(th)
             need = p.dart.mass * G * (math.sin(t) + mu * math.cos(t)) + a["seat_force"]
             rows.append(dict(pitch_deg=th, mu=mu, need_n=need, avail_n=avail_dart, margin=avail_dart / need))
-    t_for_margin = max(r["need_n"] for r in rows) * 1.5 * a["eye_gain"] * r_end / rp["r_core"]
+    t_for_margin = max(r["need_n"] for r in rows) * 1.5 * a["eye_gain"]
     return dict(params=a, clutch_torque_nm=torque, avail_at_reel_n=avail_reel, avail_at_dart_n=avail_dart, rows=rows,
-                firm_setting_for_1p5_margin_n_at_core=t_for_margin)
+                firm_setting_for_1p5_margin_n_full_reel=t_for_margin)
 
 
 def main(argv=None):
@@ -113,10 +113,10 @@ def main(argv=None):
         print(f"   {r['line_on_reel_m']:4.1f} m on reel: ring pull {r['t_ring_n']:.2f} N, cup {r['t_cup_nm'] * 1000:.0f} N mm, "
               f"drum {r['t_drum_nm']:.3f} N m, N20 {r['t_n20_nm'] * 1000:.0f} N mm ({r['n20_frac'] * 100:.0f} % of {w['params']['n20_torque_nm']} N m)")
     a = out["approach"]
-    print(f"3. final approach on the FIRM clutch ({p.capstan['takeup_n']} N at the core): {a['avail_at_dart_n']:.2f} N at the dart")
+    print(f"3. final approach on the FIRM clutch ({p.capstan['takeup_n']} N with the reel full): {a['avail_at_dart_n']:.2f} N at the dart")
     for r in a["rows"]:
         print(f"   pitch {r['pitch_deg']:.0f}, mu {r['mu']}: need {r['need_n']:.2f} N, margin {r['margin']:.2f}")
-    print(f"   FIRM setting for a 1.5 margin: {a['firm_setting_for_1p5_margin_n_at_core']:.1f} N at the core")
+    print(f"   FIRM setting for a 1.5 margin: {a['firm_setting_for_1p5_margin_n_full_reel']:.1f} N with the reel full")
     os.makedirs(OUT_DIR, exist_ok=True)
     json.dump(out, open(os.path.join(OUT_DIR, "retrieve.json"), "w"), indent=1)
     return out

@@ -6,8 +6,8 @@ from grappstar import jlog
 from grappstar.mission import MissionConfig
 from mission_harness import Rig, FakeCam
 
-HAPPY = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "ANCHOR", "REEL_MODE", "WRAP",
-         "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "NEUTRAL", "DONE"]
+HAPPY = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LANDING_ZONE", "BASE_NEUTRAL", "ANCHOR",
+         "TIDY", "WRAP", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def test_happy_path(rig, tmp_path):
     assert m.state == "DONE", (m.error, rig.answers[-3:])
     assert rig.steps() == HAPPY
     t = rig.base.tel
-    assert t["mode"] == "NEUTRAL" and t["drum_pos"] == "NEUTRAL" and t["sw"]["seated"] and t["wraps"] == 0
+    assert t["mode"] == "LAUNCH" and t["drum_pos"] == "LAUNCH" and t["sw"].get("S") and t["wraps"] == 0
     assert rig.md.phase == "IDLE"
     assert m.shot["check"]["held"]
     # two FIRE confirmations, both danger
@@ -46,8 +46,8 @@ def test_no_go_reshoot_then_go(tmp_path):
         s = r.steps()
         assert s.count("FIRE") == 2 and s.count("RETRIEVE") == 2 and m.reshoots == 1
         i = s.index("LANDING_ZONE")
-        assert s[i + 1:i + 5] == ["REEL_MODE", "WRAP", "RETRIEVE", "UNWRAP"]
-        assert s[i + 5] == "LAUNCH_MODE"
+        assert s[i + 1:i + 6] == ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
+        assert "LAUNCH_MODE" in s[i + 6:]
     finally:
         r.close()
 
@@ -66,7 +66,9 @@ def test_abort_at_fire_confirmation(rig):
     rig.policy["Second confirmation"] = "Abort"
     m = rig.run()
     assert m.state == "ABORTED"
-    assert rig.base.tel["state"] != "COCK" and rig.mb.t_fire is None   # never fired
+    assert not m.shot.get("fire_sent")                                   # never fired
+    assert not any(e.get("evt") == "FIRED" for e in rig.base.events(0))
+    assert "COCKED" in m.error                                           # the operator is told to decock
 
 
 def test_stop_during_flight_wait(tmp_path):
@@ -136,12 +138,12 @@ def test_drum_fault_on_mode_retry_clears(tmp_path):
 
 def test_stall_while_cocking(tmp_path):
     r = Rig(tmp_path)
-    r.mb.fail_next["fire"] = "STALL"
+    r.mb.fail_next["cock"] = "STALL"
     try:
         m = r.run(90)
         assert m.state == "DONE", m.error
         assert any("STALL" in a[0] for a in r.answers)
-        assert r.steps().count("FIRE") == 2
+        assert r.steps().count("COCK") == 2 and r.steps().count("FIRE") == 1
     finally:
         r.close()
 
@@ -189,7 +191,7 @@ def test_anchor_slips_on_check(tmp_path):
         s = r.steps()
         assert "CHECK" in s and "TOW" not in s
         assert m.state == "DONE"
-        assert r.base.tel["sw"]["seated"]
+        assert r.base.tel["sw"].get("S")
     finally:
         r.close()
 

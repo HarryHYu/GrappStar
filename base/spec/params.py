@@ -2,7 +2,7 @@
 
 Units: mm, deg, N, N m, s, kg unless a name says otherwise.
 Owner: the coordinator. Workers read it and never edit it; request changes in your REPORT.md or NOTES.md.
-STATUS: v1.2 (3 Nov 2026, 12:30 Sydney). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
+STATUS: v1.2.4 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
 The architecture blocks below hold the INTERFACE numbers (where two owners must agree) and the module placements.
 Each owner keeps its internal geometry in its own module and maps these numbers explicitly (read with defaults).
 Code against the names; never hard-code a shared number anywhere else.
@@ -10,7 +10,7 @@ Code against the names; never hard-code a shared number anywhere else.
 
 import math
 
-VERSION = "1.2"
+VERSION = "1.2.4"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
@@ -130,15 +130,16 @@ DRUM = dict(
     # v1.0 zone table with cad-drum's forced deviations (drum_NOTES v4 section 0); drum deg, forward = toward REEL
     zones=[
         dict(name="LAUNCH", deg=(-4.0, 8.0), collar="LAUNCH", clutch="LIGHT", cup="locked home"),
-        dict(name="L_TO_N", deg=(8.0, 32.0), collar="ramp", clutch="LIGHT to FIRM", cup="locked"),
-        dict(name="NEUTRAL", deg=(32.0, 50.0), collar="NEUTRAL", clutch="FIRM", cup="locked"),
+        dict(name="L_TO_N", deg=(8.0, 32.0), collar="ramp", clutch="LIGHT (clutch ramps to FIRM over 30..40, after the collar shift)", cup="locked"),
+        dict(name="NEUTRAL", deg=(32.0, 50.0), collar="NEUTRAL", clutch="FIRM from 40", cup="locked"),
         dict(name="WRAP_PREP", deg=(50.0, 62.0), collar="NEUTRAL", clutch="FIRM to LIGHT", cup="lock releases at 60"),
         dict(name="WRAP", deg=(62.0, 302.0), collar="NEUTRAL", clutch="LIGHT", cup="7 turns (4 pinion turns x 42/24), ends at home"),
-        dict(name="N_TO_R", deg=(302.0, 340.0), collar="NEUTRAL until 318, then ramp to REEL", clutch="LIGHT to FIRM 302..316", cup="locked home"),
+        dict(name="N_TO_R", deg=(302.0, 340.0), collar="NEUTRAL until 318, then ramp to REEL", clutch="LIGHT to FIRM 302..312", cup="locked home"),
         dict(name="REEL", deg=(340.0, 352.0), collar="REEL", clutch="FIRM", cup="locked"),
     ],
-    targets=dict(LAUNCH=0.0, NEUTRAL=41.0, WRAP_PARK_START=56.0, WRAP_WINDOW=(62.0, 302.0), WRAPPED=309.0, REEL=347.0),
-    # park angles avoid code edges: 56 is mid WRAP_PREP, 309 is in N_TO_R with the cup locked and the collar still NEUTRAL
+    targets=dict(LAUNCH=0.0, NEUTRAL=41.0, WRAP_PARK_START=56.0, WRAP_WINDOW=(62.0, 302.0), WRAPPED=314.0, REEL=347.0),
+    # park angles avoid code edges: 56 is mid WRAP_PREP; 314 is in N_TO_R with the clutch FIRM, the cup locked and the
+    # collar still NEUTRAL (ramp starts 318): a 30 percent rate error lands 310.4..317.6
     end_stops=(-4.0, 352.0),   # 356 deg of travel; the 4 deg unreachable gap keeps the code ramps from aliasing
     code_contacts=("SW_DRUM_A", "SW_DRUM_B", "SW_DRUM_C"),
     codes=dict(LAUNCH="100", L_TO_N="110", NEUTRAL="010", WRAP_PREP="011", WRAP="001", N_TO_R="101", REEL="111"),
@@ -146,13 +147,13 @@ DRUM = dict(
     dog_contacts=("SW_DOG_L", "SW_DOG_R"),   # collar engaged LAUNCH / REEL; checked during every move: the wrap window is
                                             # never entered with either closed
     unload_jog_deg=8.0,        # before any shift out of LAUNCH or REEL
-    fault_rules=dict(from_REEL_or_N_TO_R="go to WRAPPED (309), never NEUTRAL (that would run back through the wrap window and unwrap under tow)",
+    fault_rules=dict(from_REEL_or_N_TO_R="go to WRAPPED (314), never NEUTRAL (that would run back through the wrap window and unwrap under tow)",
                      boot_in_WRAP="stop and report", REEL_jog="forward only (sprag #2)"),
     wrap_turns=7,
     wrap_train=dict(segment_pinion_turns=4, idler_out=dict(module=1.5, teeth=42, face=8.0), cup_gear=dict(module=1.5, teeth=24),
                     centre_idler_cup=49.6, plane_y=(68.5, 76.5), idler_axis_xz=(16.24, -104.88)),
     n20=dict(axis_xz=(99.9, -78.5), note="motor pointing up; cad-drum sizes the ratio with at least 2x margin (FIRM 5 N, D24)"),
-    magnet_face_y=201.5,        # D23: magnet cap on the spigot end outboard of the launch sleeve
+    magnet_face_y=201.5,        # D23: magnet cap y 195..201.5 on the spigot end (spigot to y 198.5)
     index_cam_bumps=6,          # D12
     sw_index_mount="2 x M3 in the wiper adapter plate front face at (x 43.1, z +6) and (x 43.1, z -36)",
     torque_limiter_nm=5.0,      # D8 / D26
@@ -163,6 +164,9 @@ DRUM = dict(
 
 LAUNCH = dict(
     owner="cad-launch",
+    axis_z=0.0,          # world z of the main axis = LAYOUT axes main origin z (the world origin is ON the main axis)
+    sleeve_y0=111.0,     # world y of the launch sleeve flange face (meets the dog ring 100.5..111, D23)
+    rail_y=140.0,        # world y of the rail / dart centre plane (= LAYOUT rail_plane_y)
     drive_gear=dict(module=2.5, teeth=26, face=16.0, y=(142.5, 158.5), note="on sprag #1 (inside), coaxial on the launch sleeve"),
     big_gear=dict(module=2.5, teeth=40, present=27, centre_from_pivot=82.6, layers=dict(sector=(134.0, 146.0), full=(146.0, 154.0)),
                   note="two layers: a sector layer meshes the rack (last tooth relieved, the one before 30 percent taller), a full "
@@ -173,12 +177,13 @@ LAUNCH = dict(
     spring_ext_full=265.0,
     spring_preload_fallback=8.8,   # anchor hole set for SPRING.max_ext_fallback 250
     second_pair_provision=True, # D5
+    spring_guard=True,          # D33: printed guard over both springs (hooks near their rating)
     stop=dict(travel_min=19.0, peak_force_max=300.0,
               note="D6/D26: about 2.8 to 3.3 J per shot; a linear printed PLA flexure needs about 19 mm; TPU pads only if Harry gets TPU"),
     carriage_mass_target_kg=0.060,
     sleeve=dict(od_at_sprag=20.0, key="integral rib 6 wide", wall_min=3.8, spigot_bore=12.35, y=(111.0, 193.0), note="D13, D23"),
     rail_walls_y=(112.0, 168.0), springs_y=(94.0, 186.0), cheeks_y=((123.0, 131.0), (159.5, 167.5)),
-    flight=dict(range_m=5.0, apex_m=1.1, pitch_deg=36.0, t_flight_s=1.1, note="for the sim; physics owns the real table"),
+    flight=dict(range_m=4.8, apex_m=1.1, pitch_deg=36.0, t_flight_s=1.1, note="for the sim; physics v1.2: 12.1 J, 7.41 m/s, 4.8 m at 0.5 N"),
     never_fire_without_tether=True,   # D11
 )
 
@@ -214,7 +219,9 @@ REEL = dict(
                  reel_gear=dict(module=1.5, teeth=20), disk_ratio=2.5, drag_brake=False,
                  note="D25: compound c1 free on the capstan tube meshes the bus 50T; the swing idler rides c1's hub, engages on forward turns"),
     tow_limit_n=50.0,                         # firmware default, adjustable 2..110
-    line_speed_mps=dict(free=0.21, at_50n=0.15),
+    tow_tension_model=dict(n_per_a=17.0, offset_n=-10.4, note="line N = 17.0 x (I - I_free) - 10.4 (physics v1.2, D32/D33)"),
+    current_trips_a=dict(aim=5.0, reel_in=5.0, cock=6.5, tow=6.5, blank_ms=50, hold_ms=30, note="D8/D33"),
+    line_speed_mps=dict(free=0.21, at_50n=0.14),
     pulleys="693ZZ printed pulleys where the line turns more than about 20 deg; one on the rail at the pivot (D14)",
     cup_gear=dict(module=1.5, teeth=24, note="driven by cad-drum's wrap idler output 42T m1.5 (4 pinion turns = 7 cup turns)"),
     line_path_hook="reel.line_path(P, S) starts the tether polyline at the storage reel; launch.line_path continues to the dart",
@@ -255,33 +262,36 @@ SWITCHES = dict(
 )
 
 # Mission timeline for the audit, the sim and the firmware tests: (name, seconds, text, targets eased to at the end).
-# S keys: wiper_deg (multi-turn, + = forward), drum_deg, aim_deg, cock (0..1), fired (0/1), wraps (0..7),
+# S keys: wiper_deg (multi-turn, + = forward: main shaft, coupler, bus gear and collar ALWAYS follow it),
+# sleeve_deg (launch sleeve + LAUNCH dog ring: changes only while the collar is in LAUNCH, frozen otherwise),
+# reel_deg (REEL output gear: changes only while the collar is in REEL; capstan = reel_deg x 50/22),
+# drum_deg, aim_deg, cock (0..1), fired (0/1), wraps (0..7),
 # line_out_m, dart_flight (0 on the sled .. 1 landed), dart_return (0 at the landing point .. 1 seated again).
 TIMELINE = [
     ("load", 2.0, "Dart seated on the sled, drum in LAUNCH, rail low, line taut.",
-     dict(wiper_deg=0.0, drum_deg=0.0, aim_deg=6.0, cock=0.0, fired=0, wraps=0, line_out_m=0.0, dart_flight=0.0, dart_return=0.0, anchored=0)),
+     dict(wiper_deg=0.0, sleeve_deg=0.0, reel_deg=0.0, drum_deg=0.0, aim_deg=6.0, cock=0.0, fired=0, wraps=0, line_out_m=0.0, dart_flight=0.0, dart_return=0.0, anchored=0)),
     ("aim", 4.0, "Wiper backward: the crank-rocker lifts the rail to 36 deg; the worm holds it.",
-     dict(wiper_deg=-1120.0, aim_deg=36.0)),
+     dict(wiper_deg=-1120.0, sleeve_deg=-1120.0, aim_deg=36.0)),
     ("cock", 3.0, "Wiper forward: the big gear draws the sled back 241 mm; the take-up winds the slack.",
-     dict(wiper_deg=-1120.0 + 470.0, cock=1.0)),
+     dict(wiper_deg=-1120.0 + 470.0, sleeve_deg=-1120.0 + 470.0, cock=1.0)),
     ("fire", 0.5, "The relieved tooth lets go: the sled throws the dart; the big gear resets into its gap.",
-     dict(wiper_deg=-1120.0 + 553.8, cock=0.0, fired=1, dart_flight=0.05)),
+     dict(wiper_deg=-1120.0 + 553.8, sleeve_deg=-1120.0 + 553.8, cock=0.0, fired=1, dart_flight=0.05)),
     ("flight", 1.5, "Dart in flight; the line pays off the storage reel against the 0.5 N clutch.",
      dict(dart_flight=1.0, line_out_m=5.2)),
     ("neutral", 4.0, "Unload jog, then the drum goes to NEUTRAL: wiper coupled to nothing.", dict(drum_deg=41.0)),
     ("wrap", 30.0, "Right after landing, while the line still lies slack: the drum turns the wrap cup 7 times round the capstan.",
      dict(drum_deg=302.0, wraps=7, line_out_m=4.3)),
-    ("wrapped", 2.0, "Drum to the WRAPPED park (309): cup locked, collar still NEUTRAL.", dict(drum_deg=309.0)),
+    ("wrapped", 2.0, "Drum to the WRAPPED park (314): cup locked, clutch FIRM, collar still NEUTRAL.", dict(drum_deg=314.0)),
     ("anchor", 4.0, "The dart plants its foot and screws its two drills into the ground.", dict(anchored=1)),
     ("tidy", 3.0, "Wiper forward: the take-up pulls the slack through the free capstan until the line is straight.",
      dict(wiper_deg=-566.2 + 400.0, line_out_m=4.1)),
     ("reel_engage", 2.0, "Drum into REEL while the wiper creeps forward: the collar drops into the REEL dogs.",
-     dict(drum_deg=347.0, wiper_deg=-166.2 + 60.0)),
+     dict(drum_deg=347.0, wiper_deg=-166.2 + 60.0, reel_deg=30.0)),
     ("tow", 5.0, "Capstan winches the rover toward the anchored dart; sprag #2 holds the load.",
-     dict(wiper_deg=-106.2 + 3600.0, line_out_m=1.6)),
+     dict(wiper_deg=-106.2 + 3600.0, reel_deg=30.0 + 3600.0, line_out_m=1.6)),
     ("release", 2.0, "The dart unscrews its drills and lets go.", dict(anchored=0)),
     ("reel_in", 3.0, "Capstan reels the dart in until about 1.5 m remain.",
-     dict(wiper_deg=3493.8 + 600.0, line_out_m=1.3, dart_return=0.3)),
+     dict(wiper_deg=3493.8 + 600.0, reel_deg=3630.0 + 600.0, line_out_m=1.3, dart_return=0.3)),
     ("unload", 1.0, "Wiper jogs 8 deg back inside the dog window; the collar is free.", dict(wiper_deg=4093.8 - 8.0)),
     ("unwrap", 30.0, "Drum back to WRAP_END and through the wrap sector, collar in NEUTRAL; the take-up winds the freed line.",
      dict(drum_deg=62.0, wraps=0, wiper_deg=4085.8 + 1800.0)),
@@ -290,5 +300,5 @@ TIMELINE = [
     ("to_launch", 4.0, "Drum to LAUNCH: clutch LIGHT, collar into the LAUNCH dogs.",
      dict(drum_deg=0.0, dart_flight=0.0, dart_return=0.0)),
     ("lower", 4.0, "Wiper backward through the rest of the aim cycle: the rail comes down to its low stop.",
-     dict(aim_deg=6.0, wiper_deg=7325.8 - 2480.0)),
+     dict(aim_deg=6.0, wiper_deg=7325.8 - 2480.0, sleeve_deg=-566.2 - 2480.0)),
 ]

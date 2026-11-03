@@ -26,6 +26,20 @@ Directions used below (firmware convention, +1 in `/status` `motors`):
 If a motor turns the wrong way: **battery unplugged**, swap that motor's two thin input wires at its driver
 (deploy: DRV#1 AIN1/AIN2, kick: DRV#1 BIN1/BIN2, drills: DRV#2 AIN1/AIN2, foot: DRV#2 BIN1/BIN2). Then check again.
 
+## Power: bench supply or battery
+
+The loose-motor steps (0 to 2, and the direction and free-current parts of 3 to 6) usually run before the cells and the
+power loop socket are fitted. Then power comes from the **bench supply**: the spare MP1584 (#2) set to **8.0 V**, fed
+by the 3S LiPo on XT60 lead #1 (10 A fuse), as in run sheet step 7.5.
+
+- Connect it with the LiPo unplugged: bench MP1584 OUT+ to the dart's **INA219 VIN+** pad, bench MP1584 OUT- to the
+  dart's **main ground** (the dart MP1584 IN- pad). Use small clip leads, or two temporary wires soldered to those pads.
+  Check the polarity twice: red to VIN+, black to ground.
+- "Insert the power loop plug" below then means: plug the LiPo into the bench MP1584. "Pull the plug" means: unplug
+  the LiPo. "The battery voltage" means: the bench supply voltage, metered at INA219 VIN+ to ground (about 8.0 V).
+- **USB out** while the bench supply is connected, exactly as with the battery.
+- The assembled steps (end-stop stalls in 3 to 6, then 7 to 10) use the real cells and the power loop plug.
+
 ## Step 0. Set up
 
 1. **Battery unplugged.** Wiring done and meter-checked (WIRING.md step A7 or B10). Firmware flashed (README.md).
@@ -36,12 +50,14 @@ If a motor turns the wrong way: **battery unplugged**, swap that motor's two thi
 
 ## Step 1. Power and current sensor
 
-1. Meter the battery at the power loop socket. Compare with `rail` on the page: within 0.15 V. Write both down.
+1. Meter the supply: the battery at the power loop socket, or the bench supply at INA219 VIN+ to ground. Compare with
+   `rail` on the page: within 0.15 V (the INA219 reads after its shunt, so `rail` can be a few tens of mV lower). Write
+   both down.
 2. With nothing running, `current` reads 0 to 5 mA (the INA219 sees the motor rail only).
 3. Press `i` on the page: it prints rail, current, and the peak since the last `i`.
 
 Pass: INA219 ok, rail agrees with the meter. If `INA219 MISSING`: battery unplugged, check D4/D5 and 3V3/GND to the
-INA219. Then, with the power loop plug still out, plug in USB: Serial Monitor `z` must list 0x40.
+INA219. Then, with the power off (plug out or LiPo unplugged), plug in USB: Serial Monitor `z` must list 0x40.
 
 ## Step 2. BNO085 and attitude
 
@@ -68,8 +84,10 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
 
 1. Pods down first (step 3). Hold `drills in` (`3`) for 2 s. Check the directions in the table (left clockwise,
    right anticlockwise, from motor end to tip). If both turn the same way: WIRING.md "Drill direction check".
-2. **Drill pair free = ____ mA** (expect 60 to 70). Grip one auger lightly with a cloth: current rises.
-   Do not stall both by hand for long. Stalling both reads **drill pair stall = ____ mA** (expect about 700 at 8 V).
+2. **Drill pair free = ____ mA** (expect 60 to 70). Press a printed stick or a
+   pencil end lightly against one auger flight (never a cloth or fingers: cloth winds in and pulls fingers with it):
+   current rises.
+   Do not stall both for long (two sticks, never hands). Stalling both reads **drill pair stall = ____ mA** (expect about 700 at 8 V).
 3. Hold `drills out` (`#`): they reverse.
 
 ## Step 5. Kick (DRV#1 B)
@@ -83,7 +101,9 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
 ## Step 6. Foot (DRV#2 B)
 
 1. Hold `foot in` (`4`): the foot auger turns the way that screws in. Wrong way: fix as above.
-2. **Foot free = ____ mA** (expect about 40). Brake it with a cloth: **foot stall = ____ mA** (expect 500 to 600).
+2. **Foot free = ____ mA** (expect about 40). Brake it by holding the coupler with
+   pliers, or press a printed stick against the auger (never a cloth or fingers): **foot stall = ____ mA** (expect
+   500 to 600).
 3. Hold `foot out` (`$`): it reverses.
 
 ## Step 7. BNO085 axes (for the Jetson flight analysis)
@@ -104,6 +124,10 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
    samples. Save it. The towel drop usually reads `landing: "timeout"` or `"still"` (soft), which is correct.
 5. Open `http://192.168.4.1/stop` to disarm.
 
+**Safe to touch, after any arm or auto test:** press STOP, check the status shows `IDLE` (not `ARMED`, `FLIGHT` or
+`ANCHORING`), pull the power loop plug (or unplug the bench LiPo), and only then pick the dart up or touch a leg. An
+armed dart can start the auto sequence by itself after a knock.
+
 ## Step 9. Anchor and release on soil (assembled, hull open)
 
 1. Legs stowed. Lay the dart on the damp soil, belly down, nose clear of the tray wall.
@@ -111,7 +135,8 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
    deploy + drills, drills finishing, `ANCHORED`. Write the time of each event from the event lines on the web page
    (not the Serial Monitor: no USB while the battery is in). Note the working currents for `loadMa`.
 3. Pull the tether gently by hand: the dart should hold.
-4. Press `RELEASE`: drills out, pods up, foot out, kick back, `released`. The legs end stowed.
+4. Press `RELEASE`: drills out, pods up, foot out, kick back, `released`. The legs end stowed. Before lifting the dart
+   out of the soil: STOP, status `IDLE`, plug out (the "safe to touch" rule in step 8).
 5. If it stops with `FAULT`: write down the fault and the last event, press STOP, and fix the threshold (step 10).
 
 ## Step 10. Write the real thresholds

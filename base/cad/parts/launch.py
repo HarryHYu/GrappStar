@@ -349,6 +349,34 @@ def rail_pieces(P):
     return dict(rear=rear, mid=mid, front=front)
 
 
+def _truss_windows(a, b, qa, qb, z0, z1, t, plane="uw"):
+    """Warren truss lightening windows (carriage / yoke): the band a..b (first plane axis) x qa..qb (second) minus
+    diagonals and end posts t wide, as a prism z0..z1 along the third axis. plane "uw": windows in the (u, w) plane
+    through y; "yu": in the (y, u) plane through w. Diagonals about 40 deg off the chords."""
+    from manifold3d import CrossSection
+    a, b = a + t, b - t
+    h = qb - qa
+    if b - a < 2.0 * t or h < 1.0:
+        from manifold3d import Manifold
+        return Manifold()
+    nd = max(1, int(round((b - a) / (1.2 * h))))
+    xs = np.linspace(a, b, nd + 1)
+    cs = CrossSection.square((b - a, h)).translate((a, qa))
+    for k in range(nd):
+        p0, p1 = xs[k], xs[k + 1]
+        q0, q1 = (qa, qb) if k % 2 == 0 else (qb, qa)
+        hh = 0.5 * t * math.hypot(p1 - p0, h) / h                          # horizontal half width of the diagonal
+        lo, hi = qa - 1.0, qb + 1.0
+        pl = p0 + (lo - q0) * (p1 - p0) / (q1 - q0)
+        ph = p0 + (hi - q0) * (p1 - p0) / (q1 - q0)
+        cs = cs - prim.poly_cs([(pl - hh, lo), (pl + hh, lo), (ph + hh, hi), (ph - hh, hi)])
+    sol = prim.extrude(cs, z1 - z0)
+    if plane == "uw":
+        return prim.place(sol, tf.mul(tf.T(0, z1, 0), tf.Rx(90)))          # x = u, y = w, z -> -y: spans z1 .. z0
+    M = np.array([[0.0, 1.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0], [0.0, 0.0, -1.0, z1], [0.0, 0.0, 0.0, 1.0]])
+    return prim.place(sol, M)                                              # x = y, y = u, z -> -w: spans z1 .. z0
+
+
 def carriage_solid(P):
     n = L(P)
     m = n["m"]
@@ -374,8 +402,8 @@ def carriage_solid(P):
     rib_top = n["w_rroot"] + DECK_T
     yo = n["y_lip0"] - 0.5
     s.append(B(0, u_first, -6, 6, n["w_deck0"], rib_top))                              # spine behind the rack teeth
-    # light deck: cross ribs (ring ribs, one between the rear rings' long span, every 30 mm in front of the cradle)
-    deck_u = [128.0] + [float(uc) for uc in np.arange(160.0, Lc - 3.0, 30.0)] + [Lc - 3.0]
+    # light deck: cross ribs (under the cradle between the ring ribs, every 30 mm in front of it): rack spans <= 29 mm
+    deck_u = [46.0, 103.0, 125.0] + [float(uc) for uc in np.arange(160.0, Lc - 3.0, 30.0)] + [Lc - 3.0]
     for uc in deck_u:
         s.append(B(uc, uc + 3.0, -yo, yo, n["w_deck0"], rib_top))
     # shoes (full length: the carriage is guided over its whole length) with windows through them (y, vertical as
@@ -421,6 +449,9 @@ def carriage_solid(P):
     pu = cyl_u(n["r_hull"] + 1.0, -n["pusher_t"], 0, 0, n["w_dart"]) ^ B(-20, 1, -11, 11, n["w_deck0"], 200)
     pu = pu + B(-n["pusher_t"], 0, -6, 6, n["w_deck0"], n["w_dart"] - 15.0)
     pu = pu - cyl_u(7.0, -20, 5, 0, n["w_dart"])
+    # hollow: a slot through y (vertical as printed) leaves a 3 mm front plate (dart tail, 45 N) and a 2.5 mm rear
+    # plate (yoke cross bar), tied by the top, the lower block and a tube round the tether hole
+    pu = pu - (B(-5.5, -3.0, -12, 12, n["w_dart"] - 12.0, n["w_dart"] + 18.0) - cyl_u(9.5, -9, 1, 0, n["w_dart"]))
     s.append(pu.translate((n["pusher_t"], 0, 0)))
     # arm stubs (lower half of a half-lap joint with the bolted SPRING ARMS, see carriage_arm_solid) and webs
     for sg in (1, -1):
@@ -450,9 +481,21 @@ def carriage_yoke_solid(P):
     a0, a1 = n["arm_w0"], n["arm_w1"]
     s = []
     for sg in (1, -1):
-        s.append(B(0, n["pusher_t"], *sorted((sg * Y_BODY, sg * (Y_SPRING2 + 5))), a0, a1))          # arm
-        s.append(B(-6.0, n["pusher_t"], *sorted((sg * 20.0, sg * (Y_SPRING2 + 5))), a1 - 0.01, 83.0))  # taller
-        s.append(B(-8.0, 0.01, *sorted((sg * Y_BODY, sg * 50.0)), a0, a1))                       # stiffener
+        # Arm: a planar Warren truss (windows through w, vertical as printed) between a 3 mm front chord (stop pad
+        # face, u 5..8) and a 2.5 mm rear chord (u -8..-5.5), solid root posts, a boss round the spring peg that also
+        # backs the pad (y 33..41). Root check (y 24, through the windows): stop 148 N at the pad centre y 37, lever
+        # 13 mm -> 1924 Nmm. Chords 3 x 9.8 at u 6.5 and 2.5 x 9.8 at u -6.75 (diagonals ignored): centroid u 0.5,
+        # I = 29.4 * 6.0^2 + 24.5 * 7.25^2 + 9.8 * (27 + 15.6) / 12 = 2380 mm4, c = 8.5 -> Z = 280 mm3 -> 6.9 MPa
+        # (cross bar side, y 21.5: 148 * 15.5 / 280 = 8.2 MPa) << 30 MPa, stress along y in the layers (prints w up).
+        # Pad face chord between truss nodes (span about 12, backed by the peg boss over y 32.5..43.5): 148 * 12 / 8
+        # / (9.8 * 3^2 / 6) = 15 MPa worst case.
+        arm = B(0, n["pusher_t"], *sorted((sg * Y_BODY, sg * (Y_SPRING2 + 5))), a0, a1)
+        arm = arm + B(-6.0, n["pusher_t"], *sorted((sg * 20.0, sg * (Y_SPRING2 + 5))), a1 - 0.01, 83.0)   # taller
+        arm = arm + B(-8.0, 0.01, *sorted((sg * Y_BODY, sg * 50.0)), a0, a1)                       # stiffener
+        arm = arm + B(-8.0, -5.9, *sorted((sg * Y_BODY, sg * 50.0)), a1 - 0.01, 83.0)              # rear chord top
+        win = _truss_windows(*sorted((sg * Y_BODY, sg * 50.0)), -5.5, 5.0, a0 - 1.0, 84.0, 2.5, plane="yu")
+        win = win - cyl_w(5.5, a0 - 2.0, 85.0, up, sg * n["y_spring"])
+        s.append(arm - win)
         s.append(B(0, n["pusher_t"], *sorted((sg * 13.0, sg * Y_BODY)), ARM_LAP_W, a1))           # tongue
         s.append(B(KEY_U[0] + 0.1, KEY_U[1] - 0.1, *sorted((sg * 13.1, sg * 17.4)), 62.0, ARM_LAP_W + 0.01))  # key
         for yy in (n["y_spring"], Y_SPRING2):
@@ -631,7 +674,8 @@ Y_SPRING2 = 56.0      # second spring pair provision (D5): pegs, anchor holes an
 LUG_BOLTS_U = (107.0, 123.0)   # launch_aim lug_solid bolt positions (w 41)
 RACK_BACK = 3.0       # rack body above the tooth roots (carriage mass: stress check in carriage_solid)
 DECK_T = 4.0          # deck rib tops above the tooth roots (= launch_muzzle.RACK_BACK_MZ: the fork and funnel sit on them)
-RING_U = (14.0, 46.0, 78.0, 110.0, 146.0)   # cradle ring positions (carriage local u)
+RING_U = (14.0, 78.0, 146.0)  # cradle rings (carriage local u): rear, middle, front; the V strips run between them
+RING_T, RIB_T = 4.0, 3.0      # cradle ring width and ring-to-shoe rib thickness along u (carriage mass)
 FLANGE_W = (36.0, 43.5)  # w of the M3 bolts through the rail split flanges
 PAD_L = 18.0          # carriage stop pad length (physics F3: 15 to 20 mm of TPU or foam)
 _DART = {}
@@ -1233,7 +1277,7 @@ def steps(P):
     """Assembly steps for the launcher and aim train (plain language, hardware per step)."""
     n = L(P)
     sw = [f"launch_spring_{sd}_{i}" for sd in "lr" for i in range(N_SEG)]
-    return [
+    out = [
         dict(title="Launcher 1: print the parts",
              text="All PLA unless named. PPA-CF: big gear, drive gear, launch sleeve, big gear pin, SW_SEATED plunger and "
                   "pushrod, and the aim gears (sun, idler, output, bevel, worm, crank). Use each part's print orientation "
@@ -1290,7 +1334,7 @@ def steps(P):
                   "front wall with the 2 x M3 x 20 draw screws, a turn each in turn, until it sits on the wall (4.4 mm of "
                   "preload). The rear bar must rest on both ledges.",
              parts=["launch_stop_spring_l", "launch_stop_spring_r", "launch_stop_frame_l", "launch_stop_frame_r"]),
-        dict(title="Launcher 8: contacts",
+        dict(title="Launcher 7: contacts",
              text="SW_HOME (right lip) and SW_SEATED (left lip): drop an M3 nut into the slot in the rail wall with a "
                   "stripped wire end under it. Screw an M3 x 6 up through the lever's leaf, head down, then screw the "
                   "lever root to the lip with one M3 x 10 (self tap). With the carriage on its stop, the right foot presses "
@@ -1300,14 +1344,14 @@ def steps(P):
                   "AS5600 carrier are fitted in the Sensors steps (cad-sensors).",
              parts=["launch_sw_home", "launch_sw_home_screw", "launch_sw_home_nut", "launch_sw_seated",
                     "launch_sw_seated_screw", "launch_sw_seated_nut"]),
-        dict(title="Launcher 9: time the big gear (fingers clear)",
+        dict(title="Launcher 8: time the big gear (fingers clear)",
              text="No springs fitted yet. Hold the carriage on its stop by hand and turn the drive gear FORWARD until the "
                   "first tooth after the toothless gap just touches the rearmost rack tooth: this is HOME and SW_GAP "
                   "closes. Turning on pulls the carriage back smoothly; at full cock the cut last tooth lets go (push "
                   "the carriage home by hand). Hold the drive gear from the side and "
                   "never put a hand in front of the carriage.",
              parts=[]),
-        dict(title="Launcher 10: tether pulleys",
+        dict(title="Launcher 9: tether pulleys",
              text="Press a 693ZZ into each printed pulley. Fit the top and bottom pulleys in the fork behind the rail "
                   "(M3 x 16 axle, nut) and the pivot pulley on the right cheek lug under the axis (M3 x 16 from inside). "
                   "Thread the line from the reel side under the pivot pulley, back under the rail to the bottom pulley, up "
@@ -1341,7 +1385,7 @@ def steps(P):
                   "screw the housing to the deck (4 x M3). Join the conrod to the crank pin and the lug pin and snap a printed C clip into each pin groove. Turn the wiper "
                   "backward slowly: the rail rises to 47 deg, then lowers to 6 deg.",
              parts=["launch_aim_lug", "launch_aim_conrod", "launch_aim_crankpin_clip", "launch_aim_lugpin_clip"]),
-        dict(title="Launcher 11: wiring (battery unplugged)",
+        dict(title="Launcher 10: wiring (battery unplugged)",
              text="Battery unplugged. Run the SW_HOME, SW_SEATED and SW_GAP wires along the rail to the pivot and leave a "
                   "150 mm loop at the main axis before they go to the frame. No wire goes onto the carriage. Each contact: "
                   "one wire to its ESP32 pin (SW_HOME 21, SW_GAP 39, SW_RAIL_LOW 40, SW_SEATED 41, as params.SWITCHES), "
@@ -1356,8 +1400,12 @@ def steps(P):
                   "spring needs less stretch. The outer holes are spare. The springs are slightly stretched and hold the "
                   "carriage against the stop. A drop of glue on the pin top stops it working up.",
              parts=["launch_anchor_pin_l", "launch_anchor_pin_r", "launch_spring_l_hook_a", "launch_spring_r_hook_a",
-                    "launch_spring_l_hook_c", "launch_spring_r_hook_c"] + sw, stage=99),
+                    "launch_spring_l_hook_c", "launch_spring_r_hook_c"] + sw, stage=999),
     ]
+    # hard order (cad-infra plan check): the rail bench sub-assembly keeps the authored order, springs last
+    for i, st in enumerate(out):
+        st.setdefault("stage", 10 + i)
+    return out
 
 
 def _rail_to_world(P, pitch):

@@ -42,6 +42,22 @@ DART_SIM = os.path.join(ROOT, "firmware", "dart", "sim", "kedge_sim")
 RUNS = os.environ.get("SYSTEST_RUNS") or os.path.join(HERE, "runs")
 
 
+def firmware_path_gain(default: float = 1.15) -> float:
+    """Capstan/dart path gain the firmware under test was built with (params_gen.h): PATH_GAIN if defined, else the
+    ratio of the capstan-side to the dart-side tension law (D43 / D46)."""
+    import re
+    try:
+        t = open(os.path.join(ROOT, "firmware", "base", "grappstar_base", "params_gen.h")).read()
+    except OSError:
+        return default
+    m = re.search(r"#define\s+P_\w*PATH_GAIN\w*\s+([0-9.]+)", t)
+    if m:
+        return float(m.group(1))
+    a = re.search(r"#define\s+P_REEL_TOW_TENSION_MODEL_CAPSTAN_N_PER_A\s+([0-9.]+)", t)
+    b = re.search(r"#define\s+P_REEL_TOW_TENSION_MODEL_N_PER_A\s+([0-9.]+)", t)
+    return float(a.group(1)) / float(b.group(1)) if a and b else default
+
+
 def free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
@@ -271,6 +287,7 @@ class Rig:
         self.done_triggers = set()
         self.base_seen_off = False
         self.probe_results: List[dict] = []
+        self.limit_samples: List[dict] = []
         self.dart_d: Optional[float] = None       # dart distance along the line from the base (m)
 
     # -------------------------------------------------------------- logging
@@ -369,6 +386,10 @@ class Rig:
 
     def _on_evt(self, e: dict) -> None:
         e2 = {k: v for k, v in e.items() if not k.startswith("_")}
+        if e2.get("evt") == "LIMIT" and e2.get("holding"):
+            g = self.base.get()                       # dart-side truth when the firmware says it holds at the limit
+            self.limit_samples.append({"fw": e2.get("tension_n"), "plant_dart": round(float(g.get("tension") or 0) / self.sc.path_gain, 1),
+                                       "max_n": e2.get("max_n"), "step": self.step()})
         if e2.get("evt") == "AIMED" and not self.fired_seen:
             self.aimed_plant = self.base.get()       # the rail's real pitch when the firmware says it is aimed (the shot aim)
         e2["_step"] = self.step()
@@ -1053,6 +1074,15 @@ def c_tow_limit(rig, res):
     return mx <= lim * 1.15, f"max dart-side tension {mx:.1f} N (capstan / {rig.sc.path_gain}, at {worst}), limit {lim} N (+15 %)"
 
 
+def c_limit_dart_side(rig, res):
+    """D43/D46: the firmware's LIMIT/HOLD tension is the DART-side tension (plant capstan tension / path gain)."""
+    smp = [x for x in rig.limit_samples if x.get("fw") is not None and x["plant_dart"] > 3]
+    if not smp:
+        return True, "no holding LIMIT to compare"
+    bad = [x for x in smp if abs(float(x["fw"]) - x["plant_dart"]) > max(3.0, 0.15 * x["plant_dart"])]
+    return not bad, f"firmware vs plant dart-side at LIMIT (gain {rig.sc.path_gain:.2f}): {[(x['fw'], x['plant_dart']) for x in smp][:6]}"
+
+
 def c_released(rig, res):
     return "RELEASING" in res["dart_phases"], f"dart phases {res['dart_phases']}"
 
@@ -1118,6 +1148,7 @@ def nominal_checks():
     return [("mission DONE", c_done), ("aim reached", c_aim), ("fired", c_fired), ("landed (dart)", c_landed),
             ("anchored (dart)", c_anchored), ("tidy ran", c_tidy), ("wrapped (4+ wraps on the capstan)", c_wrapped),
             ("REEL engaged, tow pulled", c_reel_engaged), ("tow limit respected", c_tow_limit),
+            ("LIMIT reports the dart-side tension (D43/D46)", c_limit_dart_side),
             ("dart released", c_released), ("reeled in to the approach", c_reeled), ("unwrapped", c_unwrapped),
             ("seated", c_seated), ("back to LAUNCH", c_launch), ("no dry fire", c_no_dry),
             ("wraps laid without jamming (D22 slack)", c_wrap_free), ("free dart tugged under 1 m by the wrap", c_tug),

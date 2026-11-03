@@ -27,7 +27,7 @@ Printed contacts (12 of them) tell the firmware where everything is.
 | Wiper direction | LAUNCH | NEUTRAL, WRAP and the WRAPPED park | REEL |
 |---|---|---|---|
 | FORWARD (`dir` 1, RPWM) | cocks, fires and resets the launcher | take-up only, at most 40 % power | winds the capstan |
-| BACKWARD (`dir` -1, LPWM) | aims (turns the rail pitch) | turns nothing | refused (`BACKSTOP`): sprag #2 holds the capstan |
+| BACKWARD (`dir` -1, LPWM) | aims (turns the rail pitch) | refused (`BACKSTOP`): it would fight the take-up bus one-way | refused (`BACKSTOP`): sprag #2 holds the capstan |
 
 The Jetson sends commands over USB as JSON lines. The base answers every command, sends telemetry 10 times a second
 (20 while something moves) and sends an event when an action ends. Full details: PROTOCOL.md.
@@ -93,7 +93,7 @@ firmware/base/grappstar_base` from the repository folder. It should report about
 
 1. Battery unplugged. USB only. If the contacts are not wired yet, put two jumper wires on the board first:
    GPIO11 to GND (makes the drum code read NEUTRAL) and GPIO47 to GND (says the drum N20 is in mesh). WIRING.md
-   section 5 explains why. Without the GPIO11 jumper you get a harmless `FAULT` `DRUM_SENSOR` "drum code 000" a moment
+   section 6 explains why. Without the GPIO11 jumper you get a harmless `FAULT` `DRUM_SENSOR` "drum code 000" a moment
    after start-up.
 2. Tools > Serial Monitor. At the bottom right set the line ending to **Newline**. The baud rate does not matter (USB).
 3. Tap RESET on the board. You should see a `HELLO` line, then a `BOOT` line, then telemetry lines:
@@ -176,7 +176,7 @@ a power cycle and over a new upload of the same firmware version.
     unwraps when it is safe (`unwrap`). This applies to `estop` too;
   - the launch spring may be drawn: there is no sear, only the wiper worm holds the spring, and a shift under that
     load could dry fire. Recover with `decock`;
-  - the drum itself faulted, its position or the wraps are unknown, or the N20 is latched out (hand mode). After a
+  - the drum itself faulted, its position or the wraps are unknown, or the N20 is swung out of mesh (hand mode). After a
     drum code that changed with the drum still near the wrap window, only `unwrap` is accepted until NEUTRAL.
 
   It then sends a `MODE` event with `"err":"DRUM_HELD"` and a `"why"` that says which (exactly at the WRAPPED park

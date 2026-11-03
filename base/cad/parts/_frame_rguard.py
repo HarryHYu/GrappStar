@@ -1,5 +1,6 @@
-"""Frame-owned guards that ride on other subsystems' moving parts (a separate subsystem module so a frame-only audit
-does not need cad-launch). API: base/cad/README.md.
+"""Frame-owned guards that ride on cad-launch's rail (helper of frame.py). The guards hang on the frame joint
+`frame_rail_guard`, a copy of cad-launch's `launch_rail` joint whose value comes from launch.kin, so a frame-only
+audit does not need the launch subsystem loaded.
 
 Spring guards: a C-channel over each launch spring (top plate above the carriage spring arms, outer wall beside the
 spring, bottom flange against the rail wall's outer face). The inner side stays open for the carriage arm; the dart
@@ -126,17 +127,28 @@ def parts(P):
                 comps = sorted(sol.decompose(), key=lambda m: -m.volume())
                 sol = comps[0]
             nm = f"frame_spring_guard_{side}_{k + 1}"
-            out.append(Part(nm, sol, "PLA", joint="launch_rail", print_tf=U.print_flat(sol, tf.Ry(-90)), color="#d0d6dc",
+            out.append(Part(nm, sol, "PLA", joint="frame_rail_guard", print_tf=U.print_flat(sol, tf.Ry(-90)), color="#d0d6dc",
                             notes="spring guard (C-channel over the launch spring), 2 x M3 x 10 into the rail wall"))
     return out
 
 
 def joints(P):
-    return []
+    from cad.lib import Joint
+    try:
+        from . import launch
+        j = next(j for j in launch.joints(P) if j.name == "launch_rail")
+    except Exception:
+        return []
+    return [Joint("frame_rail_guard", None, j.kind, origin=j.origin, axis=j.axis, base=j.base, limits=j.limits)]
 
 
 def kin(P, S):
-    return {}
+    try:
+        from . import launch
+        v = launch.kin(P, S).get("launch_rail")
+    except Exception:
+        v = None
+    return {} if v is None else {"frame_rail_guard": float(v)}
 
 
 def allowed(P):

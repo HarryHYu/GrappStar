@@ -1,5 +1,5 @@
 {
- "source": "base/spec/params.py v1.2.5",
+ "source": "base/spec/params.py v1.2.7",
  "sections": [
   [
    "Spring (each, A228, SF 1.2 on Shigley static limits)",
@@ -51,23 +51,23 @@
     ],
     [
      "Muzzle speed",
-     "7.04 m/s"
+     "6.95 m/s"
     ],
     [
      "Peak acceleration, stroke time",
-     "19 g, 57 ms"
+     "19 g, 58 ms"
     ],
     [
      "Efficiency (dart KE / stored)",
-     "57 %"
+     "56 %"
     ],
     [
      "Carriage KE at stop, pad peak",
-     "1.49 J, 245 N (19 mm pad)"
+     "1.69 J, 266 N (19 mm pad)"
     ],
     [
      "Spring KE at stop, coil clash",
-     "0.84 J, 8.7 m/s"
+     "0.84 J, 8.3 m/s"
     ]
    ]
   ],
@@ -76,27 +76,27 @@
    [
     [
      "Line path at the shot",
-     "slack 72 mm: snatch, flight starts at 6.50 m/s"
+     "taut (path only lengthens)"
     ],
     [
      "Range at 0.5 / 0.75 / 1.0 N brake",
-     "3.70 / 3.33 / 3.01 m (pitch 34)"
+     "4.19 / 3.75 / 3.36 m (pitch 36)"
     ],
     [
      "Same shot, no tether",
-     "5.92 m"
+     "5.22 m"
     ],
     [
      "Flight time, apex (0.75 N)",
-     "0.75 s, 1.00 m"
+     "0.82 s, 1.16 m"
     ],
     [
      "Impact speed, angle (0.75 N)",
-     "5.4 m/s, 55 deg down"
+     "5.7 m/s, 57 deg down"
     ],
     [
      "Ballistics table",
-     "6 to 47 deg, best 33.5 deg: 3.33 m"
+     "6 to 47 deg, best 36.0 deg: 3.75 m"
     ]
    ]
   ],
@@ -113,15 +113,15 @@
     ],
     [
      "Line pull in the stroke (spin-up)",
-     "4.61 N"
+     "5.17 N"
     ],
     [
      "Reel rpm max",
-     "2019 rpm"
+     "2158 rpm"
     ],
     [
      "Overrun after landing",
-     "0.53 m in 0.26 s"
+     "0.54 m in 0.26 s"
     ]
    ]
   ],
@@ -159,7 +159,7 @@
    [
     [
      "aim: peak torque, current, time",
-     "0.32 N m, 1.9 A, 7 s"
+     "0.33 N m, 1.9 A, 7 s"
     ],
     [
      "cock: peak torque, current, time",

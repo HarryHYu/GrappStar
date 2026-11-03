@@ -1,0 +1,134 @@
+diff --git a/base/cad/parts/launch.py b/base/cad/parts/launch.py
+index d060a33..621c2f2 100644
+--- a/base/cad/parts/launch.py
++++ b/base/cad/parts/launch.py
+@@ -148,8 +148,8 @@ def switch_frames(P):
+     w_base = w_t - zs
+     y_leaf = n["y_sec"][0] - BUMP_H - 4.8                     # tip (x -4.8) pressed at the bump top, y = -8
+     M = tf.mul(tf.T(u_t, y_leaf, w_base), tf.Rz(-90))
+-    out["gap"] = dict(M=M, joint="launch_rail", z_s=zs, screw=6.0, x0=-3.0, width=None, top=5.0,
+-                       where="right rail cheek, pressed by a cam bump on the big gear at its rest angle (gear in its gap)")
++    # SW_GAP moved to cad-sensors (sensors.py: cad.lib contact switch on its own bracket); geometry kept for reference
++    _ = dict(M=M, joint="launch_rail", z_s=zs, screw=6.0, x0=-3.0, width=None, top=5.0)
+     return out
+ 
+ 
+@@ -253,8 +253,7 @@ def rail_solid(P):
+     # SW_GAP ledge and web on the right cheek
+     u_t, w_t = home_bump_point(P)
+     yA0 = n["y_chA"][0]
+-    s.append(B(u_t - 13, u_t + 13, yA0, n["y_chA"][1], w_t - 13.0, -7.9))
+-    s.append(B(u_t - 6.5, u_t + 6.5, -40.0, n["y_chA"][1], w_t - 13.0, w_t - 7.0))
++    # (SW_GAP ledge removed: cad-sensors' bracket screws to the cheek outer face, pilots below)
+     # front anchor posts (raised to the hook, with a top strap: the pin is held in double shear) and the muzzle tie
+     ua = n["u_anchor"]
+     ys, wsp = n["y_spring"], n["w_spring"]
+@@ -292,12 +291,9 @@ def rail_solid(P):
+     solid = solid - ST.stop_rail_cut(n, P)
+     # clear the sleeve flange (r 32, world y 111..119) and the dog ring: nothing of the rail within r 33.5 there
+     solid = solid - cyl_y(33.5, -60.0, n["y_flange"] + 8.5 - n["Y0"], 0.0, 0.0)
+-    # SW_GAP pocket in the right cheek + mounting pilots
+-    f = switch_frames(P)["gap"]
+-    solid = solid - B(u_t - 6.0, u_t + 6.0, -30.0, n["y_chA"][1] + 0.01, w_t - 7.01, w_t + 6.0)
+-    for hx in SW.mount_holes(f["x0"], f["z_s"]):
+-        q = tf.apply(f["M"], np.array([[hx, 0.0, 0.0]]))[0]
+-        solid = solid - cyl_w(1.3, q[2] - 6.5, q[2] + 1.0, q[0], q[1])
++    # cad-sensors SW_GAP bracket: 2 x M3 self tap pilots d2.6, 7 deep, along +y into the right cheek outer face
++    for (uu, ww) in ((48.0, 2.0), (64.0, 2.0)):
++        solid = solid - cyl_y(1.3, n["y_chA"][0] - 1.0, n["y_chA"][0] + 7.0, uu, ww)
+     # SW_SEATED (left lip) and SW_HOME (right lip) lever seats: head pocket, nut pocket with an outboard slot, root pilot
+     for side in ("seated", "home"):
+         st = seat_geom(P, side)
+@@ -1063,11 +1059,9 @@ def allowed(P):
+         Allow("launch_spring_*_hook_c", "launch_carriage_yoke", "hook loop round the arm peg"),
+         Allow("launch_stop_spring_*", "launch_carriage_yoke", "arm on the stop pad (contact)"),
+         Allow("launch_spring_*", "launch_spring_*", "segmented spring model telescopes when the carriage overshoots"),
+-        Allow("launch_sw_gap_screw", "launch_sw_gap", "screw threaded into the leaf"),
+         Allow("launch_seat_clip", "launch_seat_plunger", "head cap pressed on the pin"),
+         Allow("launch_sw_home_screw", "launch_sw_home", "screw threaded into the lever"),
+         Allow("launch_sw_seated_screw", "launch_sw_seated", "screw threaded into the lever"),
+-        Allow("launch_sw_rail_low_screw", "launch_sw_rail_low", "screw threaded into the leaf"),
+     ] + LN.allowed_line() + ST.stop_allowed() + _aim("allowed_aim", P)
+ 
+ 
+@@ -1188,8 +1182,7 @@ def steps(P):
+                   "sled. SW_GAP: build the switch body with an M3 x 6 and a nut, screw it to the right cheek ledge "
+                   "(2 x M3 x 10); its tip must touch the cam bump on the big gear at rest.",
+              parts=["launch_sw_home", "launch_sw_home_screw", "launch_sw_home_nut", "launch_sw_seated",
+-                    "launch_sw_seated_screw", "launch_sw_seated_nut", "launch_sw_gap", "launch_sw_gap_screw",
+-                    "launch_sw_gap_nut"]),
++                    "launch_sw_seated_screw", "launch_sw_seated_nut"]),
+         dict(title="Launcher 9: time the big gear (fingers clear)",
+              text="With the carriage on its stop, turn the drive gear FORWARD by hand until the first tooth after the "
+                   "toothless gap just touches the rearmost rack tooth: this is HOME and SW_GAP closes. Turning on pulls the "
+@@ -1213,8 +1206,7 @@ def steps(P):
+                   "onto the M8 bolt through the housing outer wall; fit the nut. Lay the worm shaft with the small bevel in "
+                   "its saddles and screw the cap on. Fit the countershaft with the output gear and the big bevel.",
+              parts=["launch_aim_housing", "launch_aim_cap", "launch_aim_worm", "launch_aim_crank", "launch_aim_bolt",
+-                    "launch_aim_brg_1", "launch_aim_brg_2", "launch_aim_output", "launch_aim_bevel30",
+-                    "launch_sw_rail_low", "launch_sw_rail_low_screw", "launch_sw_rail_low_nut", "launch_aim_as5600"]),
++                    "launch_aim_brg_1", "launch_aim_brg_2", "launch_aim_output", "launch_aim_bevel30"]),
+         dict(title="Aim 2: splitter",
+              text="Slide the sun onto the sleeve's outer rib. Put the O-ring in the swing arm hub groove, slide the arm on "
+                   "next to the sun, fit the idler on the arm pin with its clip. Turn the sleeve backward by hand: the arm "
+diff --git a/base/cad/parts/launch_aim.py b/base/cad/parts/launch_aim.py
+index 81f9c96..c671ab7 100644
+--- a/base/cad/parts/launch_aim.py
++++ b/base/cad/parts/launch_aim.py
+@@ -334,13 +334,10 @@ def housing_solid(P):
+     sx0 = Ms[0, 3] - 3.0
+     sx1 = Ms[0, 3] + SW.mount_holes(-3.0, SWL_ZS)[0] + 3.5
+     ztop = Ms[2, 3] - 0.02
+-    s.append(prim.box(sx0, sx1, SWL_Y - 4.0, SWL_Y + 4.0, d0, ztop))
++    # (SW_RAIL_LOW pedestal tower removed: cad-sensors' bracket stands on the foot extension below)
+     s.append(prim.box(80, sx1, SWL_Y - 4.0, SWL_Y + 4.0, d0, d0 + 8))
+     s.append(prim.box(-30, -16, Y_W1[0], Y_W2[1], d0, d0 + 140))                # spine
+-    # AS5600 board bracket: two arms round the magnet cap (|x| >= 13.5) to a plate behind the board
+-    for sg in (1, -1):
+-        s.append(prim.box(sg * 13.5, sg * 17.5, Y_W1[0] + 1, AS_PLATE[1], az - 6.0, az + 6.0))
+-    s.append(prim.box(-17.5, 17.5, AS_PLATE[0], AS_PLATE[1], az - 11.0, az + 11.0))
++    # (AS5600 arms and plate removed: cad-sensors carrier screws to the spine +x face)
+     for x0, x1 in ((35.0, 41.5), (74.5, 80.5)):                                  # worm saddles (lower halves)
+         s.append(prim.box(x0, x1, yw - 7.2, Y_W2[1], d0 + 80.3, sz))
+         s.append(prim.box(x0, x1, Y_W2[0], Y_W2[1], d0 + 79.0, d0 + 81.0))       # join to the outer wall
+@@ -356,10 +353,10 @@ def housing_solid(P):
+     for x in (38.25, 77.5):
+         for yy in (yw - 5.0, yw + 5.0):
+             h = h - prim.cyl(1.25, 12, x=x, y=yy, z=sz - 11)                   # M3 self tap for the cap
+-    for hx in SW.mount_holes(-3.0, SWL_ZS):
+-        h = h - prim.cyl(1.3, 12, x=Ms[0, 3] + hx, y=SWL_Y, z=ztop - 11.99)
+-    for hx in AS_HOLES_X:
+-        h = h - prim.cylY(1.1, AS_PLATE[0] - 1, AS_PLATE[1] + 1, hx, az)        # M2.5 self tap for the board
++    for x, y in ((107.0, 197.8), (116.0, 197.8)):                                # cad-sensors SW_RAIL_LOW bracket
++        h = h - prim.cyl(1.3, 8.0, x=x, y=y, z=d0 + 1.0)                        # M3 self tap d2.6, 7 deep from the top
++    for zb in (-33.0, -44.0):                                                    # cad-sensors AS5600 carrier column
++        h = h - prim.cylX(1.3, -27.0, -15.0, y=209.1, z=zb)                     # M3 self tap d2.6, 11 deep along -x
+     for x, y in deck_holes(P):
+         h = h - prim.cyl(1.7, 10, x=x, y=y, z=d0 - 1)
+     return h
+@@ -485,16 +482,6 @@ def parts_aim(P):
+         Part("launch_aim_brg_1", brg, "bought", joint=None,
+              place=tf.mul(tf.T(n["crank_x"], 213.4, n["crank_z"]), tf.Rx(-90)), color="#b0b5bb",
+              bought_ref="608ZZ 8x22x7", notes="Worm wheel bearing (outboard)"),
+-        Part("launch_sw_rail_low", swl_body(P), "PLA", joint=None, place=swl_frame(P), print_tf=bed(swl_body(P)),
+-             color="#5fae5f", notes="SW_RAIL_LOW printed contact on the aim housing pedestal, closed by the crank cam "
+-                                    "within about +-6 deg of the LOW dead point (pitch 6.0)"),
+-        Part("launch_sw_rail_low_screw", SW.screw(SWL_SCREW, SWL_ZS), "bought", joint=None, place=swl_frame(P),
+-             color="#444444", bought_ref=f"M3x{SWL_SCREW:g} SHCS", notes="Contact screw, threaded through the leaf"),
+-        Part("launch_sw_rail_low_nut", SW.nut(SWL_ZS), "bought", joint=None, place=swl_frame(P),
+-             color="#444444", bought_ref="M3 nut", notes="Contact nut in its trap, wire under it"),
+-        Part("launch_aim_as5600", as5600_solid(P), "bought", joint=None, place=tf.I4, color="#1a5fb4",
+-             bought_ref="Adafruit AS5600 STEMMA QT (25.4 x 17.8 x 1.6), 2 x M2.5 x 6",
+-             notes="Main shaft angle sensor, chip on the axis 1.1 mm beyond the magnet face"),
+         Part("launch_aim_brg_2", brg, "bought", joint=None,
+              place=tf.mul(tf.T(n["crank_x"], 206.4, n["crank_z"]), tf.Rx(-90)), color="#b0b5bb",
+              bought_ref="608ZZ 8x22x7", notes="Worm wheel bearing (inboard)"),
+@@ -566,7 +553,7 @@ def kin_aim(P, S, pitch):
+ 
+ 
+ def allowed_aim(P):
+-    return [Allow("launch_sw_rail_low_screw", "launch_sw_rail_low", "screw threaded into the leaf")]
++    return []
+ 
+ 
+ def clearances_aim(P):

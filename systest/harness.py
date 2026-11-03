@@ -291,6 +291,7 @@ class Rig:
             self.base.set(slipN=sc.slip_n)
         ps = dict(sc.plant_setup)
         if "drumDeg" in ps:          # the drum is turned by hand with the board off, then it boots there
+            time.sleep(2.0)                    # the bench set-up is saved first (nobody pulls the plug within 20 ms)
             self.base.ctl("power off")
             self.base.boot_t = self.base.get().get("t", 0)
             self.base.set(drumDeg=ps.pop("drumDeg"))
@@ -585,6 +586,7 @@ class Rig:
 
 
 from grappstar.comms.base import BaseTimeout as BaseTimeoutErr  # noqa: E402
+from grappstar.comms.base import BaseError as BaseErrorErr  # noqa: E402
 
 
 class RefMission:
@@ -660,7 +662,14 @@ class RefMission:
     def s_lowaim(self):
         """D45 (10.1 step 7b): after the landing, above 15 deg, aim 6 before the wrap."""
         if (self.rig.solution or {}).get("pitch_deg", 0) > 15:
-            self.act("aim", 90, "AIMED", deg=6)
+            try:
+                self.act("aim", 90, "AIMED", deg=6)
+            except BaseErrorErr as e:
+                if e.err != "OUT_OF_RANGE":
+                    raise
+                lo = self.b.cmd("get", key="pitch_range", timeout=2.0).get("min")   # F27: 6.0 itself is refused
+                self.rig.note("info", msg=f"aim 6 refused OUT_OF_RANGE (F27): aiming at pitch_range min {lo}")
+                self.act("aim", 90, "AIMED", deg=round(float(lo) + 0.05, 2))
 
     def s_wrap(self):
         if (self.b.tel or {}).get("drum_pos") != "WRAPPED":
@@ -687,6 +696,9 @@ class RefMission:
         while rig.tow_rounds < rig.sc.tow_rounds:
             if (self.b.tel or {}).get("drum_pos") != "REEL":
                 self.s_flyin()                  # a fault in REEL parks the drum at WRAPPED (D35 recovery)
+            if (self.b.tel or {}).get("state") == "HOLD":
+                self.b.cmd("stop", timeout=2.0)   # F22 by design: without a load cell, stop then a new pull takes up slack
+                time.sleep(0.3)
             e = self.act("reel", 60, ("LIMIT", "SEATED"), duty=rig.sc.tow_duty, max_n=lim, until="tension")
             if e.get("evt") != "LIMIT":
                 raise RuntimeError(f"tow: {e}")

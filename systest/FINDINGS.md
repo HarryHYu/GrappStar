@@ -338,7 +338,7 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   only while the estimate stays under about 50 % of max_n; or predict from the tension rate (stop when
   `tension + rate x 60 ms >= max_n`). Acceptance: `ref_nominal` / `ref_tow_stiff` plant peak under max_n + 15 %.
 
-## F22 (fw-base) without a load cell, a held tow never pulls again: `reel` from HOLD answers "already at the limit" on a slack line
+## F22 (fw-base: BY DESIGN, host must `stop` then `reel`; jetson / PROTOCOL to align) without a load cell, a held tow never pulls again: `reel` from HOLD answers "already at the limit" on a slack line
 
 - Same run: after round 1 the rover drives 0.6 m toward the dart (plant line goes slack: 0.5 N). Round 2 and 3:
   `reel ... until tension` -> `LIMIT {"tension_n":48.9,"why":"already at the limit","holding":true}` within 5 ms,
@@ -348,7 +348,7 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   the estimate from the new current after the start blanking, not the held value; refuse only with a load cell that
   shows the line still at the limit.
 
-## F23 (fw-base or jetson) `line_m` ignores the 0.9 m the wrap draws from the dart side: the reel-in leaves 0.6 m, not 1.5 m
+## F23 (fw-base: FIXED on w/fw-base 783f3b2, line_m drops 0.88 m after the wrap) `line_m` ignores the 0.9 m the wrap draws from the dart side: the reel-in leaves 0.6 m, not 1.5 m
 
 - Same run: `set line_m 4.48` after the landing; the wrap (7 turns on d 40 + line) draws 0.9 m from the dart side
   (D22: the landing slack), plant line out 3.58 m after the wrap. The capstan reel-in stopped when telemetry
@@ -380,7 +380,18 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   (41 deg), board on. `BOOT {"record":true,"was_moving":false,"phase":"UNKNOWN"}` then
   `FAULT DRUM_SENSOR "drum code disagrees with the saved drum angle"`. The spec makes the drum lever the manual
   fallback (BASE_SPEC 1: "Manual lever on the drum shaft end as the hand fallback") and PROTOCOL.md section 7 says the
-  sector always comes from the absolute drum code at boot. A clear is needed before anything moves, and the phase is
-  UNKNOWN as well (the `cal cock_rest` 100 ms before the power cut was not in flash yet: the F1 family).
+  sector always comes from the absolute drum code at boot. A clear is needed before anything moves. (The phase UNKNOWN in the same log is
+  the harness cutting power 20 ms after `cal cock_rest`; fixed in the harness.) Re-confirmed on fw-base 6381edd.
 - Suggest: at boot, a valid code in another sector than the record = the drum was moved by hand: take the code's
   sector (angle mid-sector), no fault; keep DRUM_SENSOR for invalid codes. New scenario `hand_lever` checks it.
+
+## F27 (fw-base / spec, low) `aim 6` (the D45 rail-low step, as BASE_SPEC 10.1 writes it) is refused `OUT_OF_RANGE`
+
+- Preview fw-base 6381edd, scenario `ref_nominal` (10.1 with step 7b): after the landing, `{"cmd":"aim","deg":6}`
+  -> `{"ok":false,"err":"OUT_OF_RANGE"}` every time. `params_gen.h:280 P_AIM_PITCH_MIN 6.0f`, but `get pitch_range`
+  is `max(pitchMin, table min)`; the aim table starts at 6.01 deg (`params_gen.h:284`), so `cmdAim` (`base_logic.h:812-813`,
+  `deg >= lo - 1e-3`) refuses 6.00 by 0.009 deg. The tow then runs with the rail high (D45 says that loads the carriage stop against the spring).
+- Fix: accept a target within `aim_tol` of the range ends (clamp to the end), or make 10.1 / the Jetson aim at
+  `get pitch_range` min. The reference driver now falls back to `pitch_range` min and logs it.
+- The Jetson mission (w/jetson 0195c38) already sends `aim 6.06` (`power_aim` base.log), so only the spec text and
+  any other host that follows it literally are affected.

@@ -1,5 +1,5 @@
 {
- "source": "base/spec/params.py v1.2",
+ "source": "base/spec/params.py v1.2.7",
  "sections": [
   [
    "Spring (each, A228, SF 1.2 on Shigley static limits)",
@@ -51,23 +51,23 @@
     ],
     [
      "Muzzle speed",
-     "7.41 m/s"
+     "6.95 m/s"
     ],
     [
      "Peak acceleration, stroke time",
-     "21 g, 55 ms"
+     "19 g, 58 ms"
     ],
     [
      "Efficiency (dart KE / stored)",
-     "63 %"
+     "56 %"
     ],
     [
      "Carriage KE at stop, pad peak",
-     "1.65 J, 267 N (19 mm pad)"
+     "1.69 J, 266 N (19 mm pad)"
     ],
     [
      "Spring KE at stop, coil clash",
-     "0.89 J, 9.6 m/s"
+     "0.84 J, 8.3 m/s"
     ]
    ]
   ],
@@ -75,24 +75,28 @@
    "Flight (bead-chain tether + reel model, level ground)",
    [
     [
+     "Line path at the shot",
+     "taut (path only lengthens)"
+    ],
+    [
      "Range at 0.5 / 0.75 / 1.0 N brake",
-     "4.83 / 4.39 / 3.99 m (pitch 36)"
+     "4.19 / 3.75 / 3.36 m (pitch 36)"
     ],
     [
      "Same shot, no tether",
-     "5.86 m"
+     "5.22 m"
     ],
     [
      "Flight time, apex (0.75 N)",
-     "0.88 s, 1.28 m"
+     "0.82 s, 1.16 m"
     ],
     [
      "Impact speed, angle (0.75 N)",
-     "6.2 m/s, 54 deg down"
+     "5.7 m/s, 57 deg down"
     ],
     [
      "Ballistics table",
-     "6 to 47 deg, best 36.0 deg: 4.38 m"
+     "6 to 47 deg, best 36.0 deg: 3.75 m"
     ]
    ]
   ],
@@ -109,15 +113,15 @@
     ],
     [
      "Line pull in the stroke (spin-up)",
-     "4.94 N"
+     "5.17 N"
     ],
     [
      "Reel rpm max",
-     "2304 rpm"
+     "2158 rpm"
     ],
     [
      "Overrun after landing",
-     "0.65 m in 0.28 s"
+     "0.54 m in 0.26 s"
     ]
    ]
   ],
@@ -155,7 +159,7 @@
    [
     [
      "aim: peak torque, current, time",
-     "0.32 N m, 1.9 A, 7 s"
+     "0.33 N m, 1.9 A, 7 s"
     ],
     [
      "cock: peak torque, current, time",
@@ -184,7 +188,8 @@
   "Spring hang test: hang 1, 2, 3 kg from one spring, measure the length each time. Slope = rate, intercept = initial tension. Every range number scales with the stored energy.",
   "Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall current. Edit common.Wiper or spec WIPER.",
   "Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg).",
-  "Slip clutch: pull the line off the full reel with a luggage scale; set 0.4 to 0.5 N (FINDINGS F5).",
+  "Slip clutch: luggage scale on the line with the reel full: LIGHT 0.5 N, FIRM 5 N.",
+  "After the first shots: python calib.py range pitch:brake:range ... then python ballistics.py --v-scale <factor>.",
   "Rail friction: tilt the rail with the dart on it until it slides (mu = tan angle)."
  ]
 }

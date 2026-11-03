@@ -10,6 +10,7 @@ class TwoWire {
   bool begin(int sda = -1, int scl = -1, uint32_t frequency = 0) { (void)sda; (void)scl; (void)frequency; return true; }
   bool setClock(uint32_t hz) { (void)hz; return true; }
   void setTimeOut(uint16_t ms) { (void)ms; }
+  void end() {}
   void beginTransmission(uint16_t address);
   size_t write(uint8_t b);
   uint8_t endTransmission(bool sendStop = true);

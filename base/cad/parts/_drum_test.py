@@ -91,8 +91,8 @@ def test_code_lift_matches_code():
     th = C["stop_lo"]
     while th <= C["stop_hi"]:
         for b in range(3):
-            if K.code_lift(th, b) not in (0.5,):
-                assert (K.code_lift(th, b) > 0.5) == bool(K.code(th) >> b & 1), (th, b)
+            if abs(K.code_lift(th, b) - 0.8) > 1e-9:
+                assert (K.code_lift(th, b) > 0.8) == bool(K.code(th) >> b & 1), (th, b)
         th += 0.1
 
 

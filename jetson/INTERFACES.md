@@ -75,7 +75,10 @@ class FrameSource:           # duck-typed
 ## ballistics (C3)
 
 `Ballistics.load(path=None)` (default: `base/out/ballistics.json` if it exists, else the placeholder);
-`.solve(range_m, drag_n=0.75) -> Solution(reachable, pitch_deg, t_flight_s, line_out_m, apex_m, v_muzzle, note)`.
+`.solve(range_m, drag_n=0.75, lob=None) -> Solution(reachable, pitch_deg, t_flight_s, line_out_m, apex_m, v_muzzle,
+note)`. range_m is from the ground point under the rail pivot (D29); the App adds the camera's offset ahead of the
+pivot (params.FRAMEWORK.camera pos x, 150 mm) to the camera range before solving (grappstar/campose.py). lob=None
+prefers the higher pitch when two solutions exist (D29).
 
 ## app (what the UI talks to)
 

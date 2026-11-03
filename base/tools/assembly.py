@@ -179,7 +179,7 @@ class Assembly:
             parts.append(dict(name=n, subsystem=p.subsystem, material=p.material, qty=p.qty, joint=p.joint,
                               place=np.round(p.place, 6).tolist(),
                               print_tf=None if p.print_tf is None else np.round(p.print_tf, 6).tolist(),
-                              color=p.color, notes=p.notes, bought_ref=p.bought_ref, printed=p.printed,
+                              color=p.color, notes=p.notes, bought_ref=p.bought_ref, printed=p.printed, infill=p.infill,
                               volume_mm3=round(p.solid.volume(), 2), mass_g=None if p.mass_g() is None else round(p.mass_g(), 2),
                               bbox=[list(np.round(lo, 3)), list(np.round(hi, 3))], step=p.step))
         joints = [dict(name=j.name, parent=j.parent, kind=j.kind, origin=list(j.origin), axis=list(j.axis),

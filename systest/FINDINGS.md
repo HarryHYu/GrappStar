@@ -447,3 +447,7 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   The low-limit pull overshoots more in relative terms (fixed cut delay against a fast rise). Harmless for the check
   pull; noted so the D41/D43 tuning can take it into account. The harness compares LIMIT with the plant within
   max(5 N, 15 %).
+- F28 follow-up (jetson 7726169): the mission now also reads the base's `tension_cal`, but still refuses when k is
+  within 0.05 of a factory value: scenario `tow_stiff` set `k_n_per_a` 16.967 by calibration (base `tension_cal`
+  true) and got "TOW refused: ... still the factory 16.967" (17.0 is in `FACTORY_K_N_PER_A`). When the base reports
+  `tension_cal`, trust the flag and drop the value match.

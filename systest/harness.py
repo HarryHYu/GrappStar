@@ -955,7 +955,7 @@ class Scenario:
         self.line_ea_n = kw.get("line_ea_n", 20000.0)   # 1 mm Dyneema: about 3.5 % at 667 N
         self.slip_n = kw.get("slip_n", 0.0)
         self.stiff = kw.get("stiff", False)
-        self.path_gain = kw.get("path_gain", 1.15)
+        self.path_gain = kw.get("path_gain") or firmware_path_gain()   # D43/D46: capstan = gain x dart-side tension (from params_gen.h)
         self.start_mode = kw.get("start_mode")
         self.index_cam = kw.get("index_cam", False)    # no-magnet build with SW_INDEX switched on (D12)         # bench: drive the drum here before the mission (C1 mode)     # D43: capstan-side tension = 1.15 x dart-side (pulleys)          # strict line: 1 mm Dyneema stiffness (else the sim.h 40 N/m spring)             # the anchor (or a dragging dart) slides above this tension
         self.c1_from_last_aim = kw.get("c1_from_last_aim", False)

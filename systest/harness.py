@@ -568,72 +568,171 @@ class RefMission:
         self.tx(name, **args)
         return self.wait(wait_for, timeout, m, pred=pred)
 
-    def _run(self):
-        b, d, rig = self.b, self.d, self.rig
-        try:
-            sol = rig.solution
-            self._set("LAUNCH_MODE")
-            if (b.tel or {}).get("drum_pos") != "LAUNCH":
-                self.act("mode", 60, "MODE", to="LAUNCH")
-            self._set("AIM")
-            self.act("aim", 90, "AIMED", deg=sol["pitch_deg"])
-            self._set("COCK")
+    # ---------------------------------------------------------------- steps (BASE_SPEC 10.1)
+    def s_launch(self):
+        if (self.b.tel or {}).get("drum_pos") != "LAUNCH":
+            self.act("mode", 60, "MODE", to="LAUNCH")
+
+    def s_aim(self):
+        self.act("aim", 90, "AIMED", deg=self.rig.solution["pitch_deg"])
+
+    def s_cock(self):
+        if ((self.b.tel or {}).get("cock") or 0) < 0.999:
             self.act("cock", 40, "COCKED")
-            self._set("ARM")
+
+    def s_fire(self):
+        b, d = self.b, self.d
+        if self.rig.base.get().get("shots", 0) >= 1:
+            return                              # already out (the FIRED event may have been lost)
+        try:
             d.arm(True, auto=False)
-            tok = self.tx("arm").get("token")
-            self._set("FIRE")
-            m = b.event_mark()
-            self.tx("fire", token=tok)
-            self.wait("FIRED", 30, m)
-            self._set("FLIGHT")
-            d.wait_phase(("LANDED",), 20)
-            self.wait("RESET", 30, m)
-            self._set("LANDING_ZONE")
-            self.tx("set", key="line_m", val=round(rig.sc.target[0] * 1.05 + 0.3, 2))
-            self._set("WRAP")
+        except Exception as e:
+            self.rig.note("info", msg=f"dart arm failed: {e}")
+        tok = self.tx("arm").get("token")
+        m = b.event_mark()
+        self.tx("fire", token=tok)
+        self.wait("FIRED", 30, m)
+        self.fire_mark = m
+
+    def s_flight(self):
+        self.d.wait_phase(("LANDED", "ANCHORING", "ANCHORED"), 20)
+        try:
+            self.wait("RESET", 30, getattr(self, "fire_mark", 0))
+        except Exception:
+            pass
+
+    def s_line(self):
+        self.tx("set", key="line_m", val=round(self.rig.sc.target[0] * 1.05 + 0.3, 2))
+
+    def s_wrap(self):
+        if (self.b.tel or {}).get("drum_pos") != "WRAPPED":
             self.act("wrap", 60, "WRAPPED")
-            self._set("ANCHOR")
+
+    def s_anchor(self):
+        st = self.d.status()
+        if st.get("phase") != "ANCHORED":
             self.tokens.append("dart auto")
-            d.auto()
-            d.wait_phase(("ANCHORED",), 60)
-            self._set("TIDY")
-            self.act("tidy", 20, "TIDIED", ms=3000, duty=0.3)
-            self._set("REEL_FLYIN")
+            if st.get("phase") != "ANCHORING":
+                self.d.auto()
+            self.d.wait_phase(("ANCHORED",), 60)
+
+    def s_tidy(self):
+        self.act("tidy", 20, "TIDIED", ms=3000, duty=0.3)
+
+    def s_flyin(self):
+        if (self.b.tel or {}).get("drum_pos") != "REEL":
             self.act("mode", 60, "MODE", pred=lambda e: e.get("mode") == "REEL", to="REEL")
-            self._set("TOW")
-            lim = rig.app.cfg.mission.tow_limit_n
-            for rnd in range(rig.sc.tow_rounds):
-                e = self.act("reel", 60, ("LIMIT", "SEATED"), duty=rig.sc.tow_duty, max_n=lim, until="tension")
-                if e.get("evt") != "LIMIT":
-                    raise RuntimeError(f"tow: {e}")
-                rig.tow_rounds += 1
-                p = rig.base.get()
-                rig.note("info", msg=f"ref tow round {rnd + 1}: LIMIT {e.get('tension_n')} N, plant {p.get('tension')} N")
-                if rnd + 1 < rig.sc.tow_rounds and float(p.get("anchorTautAt", -1)) >= 0:
-                    rig.base.set(anchorTautAt=round(float(p["anchorTautAt"]) - 0.6, 3))
-            self._set("RELEASE")
-            self.tokens.append("dart release")
-            d.release()
-            self.b.cmd("stop", timeout=2.0)
-            d.wait_phase(("IDLE",), 40, want_seq="released")
-            self._set("RETRIEVE")
-            line = (b.tel or {}).get("line_m")
-            if line is not None and line > 1.8:
-                m = b.event_mark()
-                self.tx("reel", duty=0.6, max_n=30, until="stop")
-                t_end = time.time() + 120
-                while (b.tel or {}).get("line_m", 0) > 1.5 and time.time() < t_end:
-                    time.sleep(0.05)
-                self.b.cmd("stop", timeout=2.0)
-            self._set("UNWRAP")
+
+    def s_tow(self):
+        rig = self.rig
+        lim = rig.app.cfg.mission.tow_limit_n
+        while rig.tow_rounds < rig.sc.tow_rounds:
+            if (self.b.tel or {}).get("drum_pos") != "REEL":
+                self.s_flyin()                  # a fault in REEL parks the drum at WRAPPED (D35 recovery)
+            e = self.act("reel", 60, ("LIMIT", "SEATED"), duty=rig.sc.tow_duty, max_n=lim, until="tension")
+            if e.get("evt") != "LIMIT":
+                raise RuntimeError(f"tow: {e}")
+            rig.tow_rounds += 1
+            p = rig.base.get()
+            rig.note("info", msg=f"ref tow round {rig.tow_rounds}: LIMIT {e.get('tension_n')} N, plant {p.get('tension')} N")
+            if rig.tow_rounds < rig.sc.tow_rounds and float(p.get("anchorTautAt", -1)) >= 0:
+                rig.base.set(anchorTautAt=round(float(p["anchorTautAt"]) - 0.6, 3))
+
+    def s_release(self):
+        st = self.d.status()
+        if st.get("phase") == "IDLE" and st.get("seq") == "released":
+            return
+        self.tokens.append("dart release")
+        if st.get("phase") != "RELEASING":
+            self.d.release()
+        self.b.cmd("stop", timeout=2.0)
+        self.d.wait_phase(("IDLE",), 40, want_seq="released")
+
+    def s_retrieve(self):
+        b = self.b
+        line = (b.tel or {}).get("line_m")
+        if line is not None and line > 1.8:
+            if (b.tel or {}).get("drum_pos") != "REEL":
+                self.s_flyin()
             m = b.event_mark()
+            self.tx("reel", duty=0.6, max_n=30, until="stop")
+            t_end = time.time() + 120
+            while ((b.tel or {}).get("line_m") or 0) > 1.5 and time.time() < t_end:
+                ev = [e for e in b.events(m) if e.get("evt") in ("LIMIT", "FAULT", "ABORTED", "HELLO")]
+                if ev:
+                    raise RuntimeError(f"reel-in ended: {ev[0]}")
+                time.sleep(0.05)
+            b.cmd("stop", timeout=2.0)
+
+    def s_unwrap(self):
+        t = self.b.tel or {}
+        if t.get("drum_pos") in ("WRAPPED", "REEL", "BETWEEN") or (t.get("wraps") or 0) > 0:
+            m = self.b.event_mark()
             self.tx("unwrap")
             self.wait("UNWRAPPED", 60, m)
-            self._set("FINAL_APPROACH")
+
+    def s_final(self):
+        if not (self.b.tel or {}).get("sw", {}).get("S"):
             self.act("retrieve", 90, "SEATED", duty=0.3)
-            self._set("LAUNCH_READY")
-            self.act("mode", 60, "MODE", pred=lambda e: e.get("mode") == "LAUNCH", to="LAUNCH")
+
+    def s_end(self):
+        self.act("mode", 60, "MODE", pred=lambda e: e.get("mode") == "LAUNCH", to="LAUNCH")
+
+    STEPS = [("LAUNCH_MODE", "s_launch"), ("AIM", "s_aim"), ("COCK", "s_cock"), ("FIRE", "s_fire"), ("FLIGHT", "s_flight"),
+             ("LANDING_ZONE", "s_line"), ("WRAP", "s_wrap"), ("ANCHOR", "s_anchor"), ("TIDY", "s_tidy"),
+             ("REEL_FLYIN", "s_flyin"), ("TOW", "s_tow"), ("RELEASE", "s_release"), ("RETRIEVE", "s_retrieve"),
+             ("UNWRAP", "s_unwrap"), ("FINAL_APPROACH", "s_final"), ("LAUNCH_READY", "s_end")]
+
+    def recover(self, step, err):
+        """The operator: wait for the base, clear the fault, decock a carriage left drawn (then re-aim), retry."""
+        rig, b = self.rig, self.b
+        rig.note("info", msg=f"ref: {step} failed ({err}); recovering")
+        t0 = time.time()
+        while not b.link().get("connected") and time.time() - t0 < 15:
+            time.sleep(0.2)
+        time.sleep(0.5)
+        for _ in range(3):
+            try:
+                b.cmd("clear", timeout=2.0)
+                break
+            except Exception as e:
+                rig.note("info", msg=f"ref: clear: {e}")
+                time.sleep(1.0)
+        time.sleep(0.5)
+        try:
+            st = b.cmd("status", timeout=2.0)
+        except Exception:
+            st = {}
+        tel = b.tel or {}
+        if st.get("phase") in ("UNKNOWN", "COCKING") and not (tel.get("sw") or {}).get("H"):
+            rig.note("info", msg="ref: carriage drawn with the phase unknown: decock")
+            m = b.event_mark()
+            self.tx("decock")
+            self.wait("RESET", 90, m)
+            self.redo_aim = True
+
+    def _run(self):
+        rig = self.rig
+        i = 0
+        tries = 0
+        try:
+            while i < len(self.STEPS):
+                name, fn = self.STEPS[i]
+                if getattr(self, "redo_aim", False) and name in ("COCK", "FIRE"):
+                    self.redo_aim = False
+                    self._set("AIM")
+                    self.s_aim()
+                self._set(name)
+                try:
+                    getattr(self, fn)()
+                    i += 1
+                    tries = 0
+                except Exception as e:
+                    tries += 1
+                    rig.prompts.append({"step": name, "text": f"{name} failed: {type(e).__name__}: {e}", "choices": ["Retry"], "answer": "Retry"})
+                    if tries > rig.sc.retry_max:
+                        raise
+                    self.recover(name, f"{type(e).__name__}: {e}")
             self.state = "DONE"
             self._set("DONE")
         except Exception as e:
@@ -1171,6 +1270,36 @@ sc(Scenario("brownout_tow", "battery sags under 9.9 V while towing: BROWNOUT, th
 
 sc(Scenario("encoder_glitch", "AS5600 returns a garbage angle every 50 reads for the whole mission",
             plant_setup={"encGlitchEvery": 50}))
+
+
+# ---------------------------------------------------------------- the same faults along BASE_SPEC 10.1 (reference driver)
+import copy as _copy
+
+_REF_STEP = {"BASE_NEUTRAL": "WRAP", "CHECK": "TOW"}     # mission step names that the reference driver does not have
+for _n in [n for n in list(SCENARIOS) if n.startswith("power_") or n in (
+        "drum_timeout", "dog_tip", "stall_cock", "snag_retrieve", "usb_unplug_tow", "usb_glitch_reel", "serial_garbage",
+        "brownout_tow", "encoder_glitch", "land_short", "dart_wifi_drop")]:
+    _s = SCENARIOS[_n]
+    if _n in ("power_base_neutral", "power_check"):
+        continue
+    _r = _copy.copy(_s)
+    _r.name, _r.desc, _r.driver, _r.d22 = "ref_" + _n, _s.desc + " [BASE_SPEC 10.1 reference driver]", "ref", True
+    _r.after = None
+    _r.checks = [c for c in _s.checks if c[1] not in (c_tidy,)]
+    if not any(c[1] is c_done for c in _r.checks):
+        _r.checks = [("mission DONE", c_done)] + _r.checks
+    _r.checks = [c for c in _r.checks if c[0] not in ("first mission ended, operator recovered with Decock",
+                                                       "Jetson notices the reset within 10 s (no full 60 s wait)")]
+    if _n == "drum_timeout":     # 10.1 has no mode NEUTRAL: jam the drum on its way to the WRAPPED park instead
+        _r.triggers = [("jam drum", plant_state("WRAP", step="WRAP", delay=2.0), lambda r: r.base.set(drumJam=1)),
+                       ("operator frees the drum", on_evt("FAULT", after=1.0), lambda r: r.base.set(drumJam=0))]
+    if _n in ("snag_retrieve", "usb_glitch_reel", "power_retrieve"):
+        _r.tow_rounds = 1        # leave enough line out for a capstan reel-in
+    if _n == "snag_retrieve":
+        _r.triggers = [("snag", plant_state("REEL", step="RETRIEVE", delay=0.5),
+                        lambda r: (r.base.set(anchorTautAt=round(float(r.base.get()["lineOut"]) - 0.15, 3)),
+                                   later(8, lambda r2: r2.base.set(anchorTautAt=-1))(r)))]
+    SCENARIOS[_r.name] = _r
 
 
 # ====================================================================================================== main

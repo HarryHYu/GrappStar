@@ -110,7 +110,7 @@ def L(P):
     n["L_home"] = n["spring_free"] + n["preload"]              # hook pin distance at HOME
     n["u_anchor"] = n["u_c_home"] + n["u_peg_c"] + n["L_home"]
     n["u_rail1"] = n["u_anchor"] + 10.0                        # rail front end
-    n["split"] = (-30.0, 112.0)                                # rail piece splits (u)
+    n["split"] = (-30.0, 140.0)                                # rail piece splits (u)
     # stop
     n["stop_y0"], n["stop_y1"] = 9.5, 15.0
     n["tab_w0"] = n["w_floor0"] + 14.0
@@ -216,7 +216,14 @@ def rail_solid(P):
     s.append(B(n["cd"], 111.0, 9.0, 17.0, 18.0, n["w_floor0"] + 1.0))          # SW_HOME seat (left)
     # mid piece cross tie (behind the drive gear, under the carriage tab path)
     s.append(B(n["split"][0] + 1.0, n["split"][0] + 10.0, -n["y_wall1"], n["y_wall1"], n["w_floor0"] + 6, n["tab_w0"] - 0.5))
+    # split flanges: plates on the outer wall faces either side of each split, 2 x M3 x 16 along u (nut on the far side)
+    for us in n["split"]:
+        s.append(Bs(us - 7.0, us + 7.0, n["y_wall1"] - 0.01, n["y_wall1"] + 6.0, n["w_floor0"] + 2.0, n["w_floor0"] + 17.5))
     solid = prim.union(s)
+    for us in n["split"]:
+        for sg in (1, -1):
+            for wb in FLANGE_W:
+                solid = solid - cyl_u(1.7, us - 8.0, us + 8.0, sg * (n["y_wall1"] + 3.0), wb)
     # bores: sleeve journals (d20 + running clearance) and the big gear pin
     solid = solid - cyl_y(10.0 + 0.2, -30, 30, 0.0, 0.0) - cyl_y(5.0 + 0.2, -30, 30, n["cd"], 0.0)
     # slot in both cheek bores so the sleeve's key rib passes when the sleeve is pushed in (plain bearing otherwise)
@@ -393,6 +400,7 @@ def anchor_pin_solid(P):
 
 
 N_SEG = 5
+FLANGE_W = (36.0, 43.5)  # w of the M3 bolts through the rail split flanges
 PAD_L = 18.0          # carriage stop pad length (physics F3: 15 to 20 mm of TPU or foam)
 _DART = {}
 

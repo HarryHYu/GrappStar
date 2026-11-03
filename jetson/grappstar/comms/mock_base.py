@@ -1,5 +1,5 @@
 """Simulated base station that speaks contract C1 like the real firmware (firmware/base/grappstar_base/base_logic.h,
-fw "base-1.2") and follows the one C1 sequence of base/spec/BASE_SPEC.md section 10.1 (D35).
+fw "base-1.3.0") and follows the one C1 sequence of base/spec/BASE_SPEC.md section 10.1 (D35).
 
 Run it in-process (connected to BaseClient through a pipe) or on a pseudo terminal so the real client (or a terminal
 program) can open it like the USB port:
@@ -46,7 +46,7 @@ from typing import Any, Callable, Dict, Optional
 
 from .base import MAX_LINE, PipeEnd, pipe_pair
 
-FW = "base-1.2"
+FW = "base-1.3.0"
 PARAMS_VERSION = "1.2.1"
 
 # ---- drum (params.DRUM, base_logic.h Cfg): zones in travel order (name, lo, hi, closed code contacts)
@@ -97,7 +97,7 @@ REEL_MPS = N0_DPS * LINE_PER_WIPER_DEG                 # line speed at duty 1, l
 TAKEUP_MPS = 0.3          # take-up line speed per unit duty (0.09 m/s at duty 0.3)
 TAKEUP_SLIP_N = 5.0       # FIRM take-up clutch
 LINE_K = 400.0            # N per metre once the line is taut
-LIMIT_N, LIMIT_MAX_N = 50.0, 110.0
+LIMIT_N, LIMIT_MAX_N = 50.0, 60.0   # D43 cap at the dart (params 1.3.2 D46 lowers it to 55)
 RESUME_FRAC = 0.6
 TENSION_IGNORE_S = 0.35
 TAPER_FRAC = 0.30
@@ -237,7 +237,7 @@ class MockBase:
         self.require_seated = True
         self.vbat_wired = True
         self.enc_sign = 1
-        self.settings: Dict[str, float] = {"limit_n": LIMIT_N, "k_n_per_a": 17.0, "tension_offset_n": -10.4,
+        self.settings: Dict[str, float] = {"limit_n": LIMIT_N, "k_n_per_a": 14.8, "tension_offset_n": -2.6,
                                            "free_a": 1.5, "amps_per_volt": 12.5, "offset_a": 0.0,
                                            "hx_n_per_count": 1 / 21000.0, "drum_dps": DRUM_DPS,
                                            "aim_tol": AIM_TOL_DEG, "aim_offset": 0.0, "aim_home_deg": AIM_HOME_DEG,
@@ -1479,7 +1479,8 @@ class MockBase:
             return "BAD_ARG"
         if not neutral and u == "seated":
             return "WRAPS_ON"                # D35: never seat the dart on the capstan: unwrap first
-        max_n = min(max_n, LIMIT_MAX_N)
+        if max_n > LIMIT_MAX_N:
+            return "BAD_ARG"                 # D39/D43: max_n above the cap is BAD_ARG (it used to be capped)
         duty = max(duty, REEL_MIN_DUTY)
         if neutral:
             duty = min(duty, TAKEUP_MAX_DUTY)

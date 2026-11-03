@@ -85,7 +85,7 @@ def sw_closed(tel: dict, key: str) -> Optional[bool]:
     sw = tel.get("sw")
     if not isinstance(sw, dict):
         return None
-    # base-1.2 (D31): l, r = SW_DOG_L, SW_DOG_R; I = SW_INDEX; S seated; H carriage home; L rail low; W wrap home
+    # base-1.2 (D31): l, r = SW_DOG_L, SW_DOG_R; I = SW_INDEX; S seated; H carriage home; L rail low; W wrap cup away
     long = {"S": "seated", "H": "home", "L": "rail_low", "W": "cup_away", "l": "dog_l", "r": "dog_r", "I": "index"}
     if key in sw:
         return bool(sw[key])

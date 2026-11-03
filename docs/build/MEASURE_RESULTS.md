@@ -13,7 +13,7 @@ Write each number with its unit. Photo: the file name of the caliper photo in `o
 | A4 Mount hole pattern |  |  |
 | A5 Housing size |  |  |
 | A6 Free speed and free current |  |  |
-| A7 Stall current and stall torque |  |  |
+| A7 Stall torque (optional) |  |  |
 | A8 Mounting boss and hub details |  |  |
 
 ## B. Launch springs (params.py `SPRING`, set `measured=True` when done)
@@ -49,7 +49,7 @@ Write each number with its unit. Photo: the file name of the caliper photo in `o
 | C18 Carriage stop |  |  |
 | C19 PETG filament (brake rocker) |  |  |
 | C20 How many 693ZZ / F693ZZ bearings are left after the dart (the ... |  |  |
-| C21 Risk coupon extras listed in base/pack/coupons/COUPON_TEST.md: ... |  |  |
+| C21 Coupon extras, exactly as the coupon sheets list them ... |  |  |
 
 ## D. Electrical labels to read
 

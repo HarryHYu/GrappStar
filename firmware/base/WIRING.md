@@ -25,17 +25,17 @@ plug while the battery is in.**
 | 12 | `PIN_SW_C` | contact `SW_DRUM_C` | drum code bit C |
 | 13 | `PIN_SW_D` | contact `SW_DOG_L` | collar engaged in LAUNCH |
 | 14 | `PIN_SW_E` | contact `SW_DOG_R` | collar engaged in REEL |
-| 47 | `PIN_SW_F` | contact `SW_N20` | drum N20 in mesh (open = hand lever latched out) |
+| 47 | `PIN_SW_F` | contact `SW_N20` | drum N20 in mesh (open = N20 swung out of mesh for the hand lever) |
 | 21 | `PIN_SW_G` | contact `SW_HOME` | carriage on its front stop (uncocked) |
 | 39 | `PIN_SW_H` | contact `SW_GAP` | big gear in its toothless gap (rest) |
 | 40 | `PIN_SW_I` | contact `SW_RAIL_LOW` | rail at its lowest pitch (aim home) |
 | 41 | `PIN_SW_J` | contact `SW_SEATED` | dart tail on the pusher |
-| 42 | `PIN_SW_K` | contact `SW_ARM` | wrap cup ring at home (one pulse per cup turn) |
+| 42 | `PIN_SW_K` | contact `SW_ARM` | closed while the wrap cup is away, OPENS for about +-5 deg at home (one cup turn counted per opening) |
 | 35 | `PIN_SW_L` | contact `SW_INDEX` | only on a build without the AS5600 magnet (decision D12). Leave open otherwise |
 | 17 | `PIN_HX_DT` | HX711 DT (DOUT) | optional load cell |
 | 18 | `PIN_HX_SCK` | HX711 SCK | optional load cell |
 | 3V3 | | AS5600 VIN, BTS7960 VCC, HX711 VCC | logic supply |
-| GND | | common ground (see section 2) | |
+| GND | | common ground (see section 3) | |
 
 The DRV8833 SLP pin is **not wired** to any GPIO (decision D9: the Pololu board pulls it high by itself). Its FLT pin
 is not used either. GPIO21 is `SW_HOME`, not SLP.
@@ -161,7 +161,7 @@ The three drum code contacts read the drum position as a code (BENCH_TEST.md ste
 On the bench, before the drum is built, use two jumper wires:
 
 - GPIO11 to GND: code "b only" = NEUTRAL.
-- GPIO47 to GND: `SW_N20` closed. Without it the firmware thinks the hand lever is latched out and refuses every drum
+- GPIO47 to GND: `SW_N20` closed. Without it the firmware thinks the N20 is swung out of mesh (hand mode) and refuses every drum
   move (`HAND_MODE`).
 
 ## 7. AS5600 and HX711
@@ -214,8 +214,8 @@ is wired to it.
 10. Battery unplugged. DRV8833: AIN1 GPIO15, AIN2 GPIO16, GND to ESP32 GND. SLP and FLT stay unconnected.
     AOUT1 and AOUT2 to the drum N20.
 11. Battery unplugged. Buck output (already set to 9.0 V in Part A): OUT+ to DRV8833 VM, OUT- to DRV8833 GND.
-12. Battery unplugged. Buck input: IN+ through its 2 A fuse to the BTS7960 B+ screw (fuse right at the screw), IN- to
-    BTS7960 B-.
+12. Battery unplugged. Buck input: the 2 A inline fuse goes right at the BTS7960 B+ screw, then the IN+ lead to the
+    buck IN+ (no fuse: 18 AWG, kept under 10 cm). IN- to BTS7960 B-.
 13. Battery unplugged. Power: fused XT60 lead + to BTS7960 B+, - to B-. Use 14 AWG. The 20 A fuse in the + lead.
 14. Battery unplugged. Wiper motor to M+ and M- (red to M+, black to M-). On the bench the motor is clamped and has
     nothing attached (BENCH_TEST.md).

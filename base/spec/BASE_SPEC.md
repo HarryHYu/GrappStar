@@ -176,7 +176,7 @@ Jetson sends, what ends the wait. Everything else in C1 stays as PROTOCOL.md doc
 | 4 | `arm` | reply with `token` | valid 3 s |
 | 5 | `fire` token | `FIRED`, then `RESET` | |
 | 6 | dart LANDED: `set` line_m | reply | from the landing distance |
-| 7 | (Jetson landing-zone verdict) | | NO_GO: skip 9 to 13, go to 14 (reel in on the capstan if wrapped, else 16) |
+| 7 | (Jetson landing-zone verdict) | | NO_GO before the wrap: `mode` NEUTRAL (step 8), then straight to step 17 (take-up retrieve). NO_GO after a wrap: steps 12 and 15 to 17 (fly-in, capstan reel-in, unwrap, retrieve) |
 | 8 | `mode` NEUTRAL | `MODE` ok | may be skipped: `wrap` also starts from LAUNCH |
 | 9 | `wrap` | `WRAPPED` | the drum parks at WRAPPED 314: cup locked, collar NEUTRAL, clutch FIRM. No `MODE` REEL here. Allow 90 s (about 42 s from LAUNCH at 8.1 deg/s) |
 | 10 | dart `/auto` | dart phase ANCHORED | |
@@ -196,9 +196,13 @@ WRAP sector or the park) HOLDS the drum where it is (D27): the Jetson reads the 
 
 ## 11. Physics summary (owner: physics; base/physics/FINDINGS.md)
 
-About 13 J stored, about 7.5 m/s, about 4.5 m at 35 deg with the 0.5 N brake (4 to 5 m band); a second spring pair
-gives about 8 to 9 m. Cocking peak about 3 N m at the wiper. Tow 50 N at about 2.3 N m. The tether keeps the dart
-nose first. The ballistics table for the Jetson is base/out/ballistics.json (contract C3).
+Physics v1.2.8 (D36 rear line guide, 70 g carriage, two springs): 12.1 J stored, 6.95 m/s at the muzzle, range from
+the ground point under the rail pivot 4.19 / 3.75 / 3.36 m at 36 deg for a 0.5 / 0.75 / 1.0 N payout brake, about
+2.6 m at 6 deg. The carriage stop takes about 2.5 J, about 266 N peak on the 19 mm PLA flexure (D26). A 50 N tow is
+3.2 N m at the wiper, about 5.05 A; the 6.5 A tow trip is about 75 N (D39 caps the limit at 70 N). The aim train
+fails at the old 5 A trip, so every backward run in LAUNCH trips at 3 A (D40) and the aim gears print in PPA-CF.
+The second spring pair is not supported in v1 (D38). The ballistics table for the Jetson is base/out/ballistics.json
+(contract C3); the first test shots calibrate it (calib.py range, then ballistics.py --v-scale).
 
 ## 12. Changing this spec
 

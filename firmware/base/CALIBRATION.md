@@ -29,8 +29,8 @@ shot phase is `UNKNOWN`. Then `aim` is refused (`PHASE_UNKNOWN`) and leaving LAU
 because only the wiper worm holds the spring and the firmware will not shift while the spring might be drawn.
 
 Look at the launcher: carriage fully forward on its stop (`H` in telemetry `sw`) and the big gear in its gap (`G`).
-Then send `{"id":1,"cmd":"cal","what":"cock_rest"}`. `SWITCH_DISAGREE` means `SW_HOME` is open: the carriage is not
-home, or the contact is not touching.
+Then send `{"id":1,"cmd":"cal","what":"cock_rest"}`. `SWITCH_DISAGREE` means `SW_HOME` or `SW_GAP` is open: the carriage is not
+home or the big gear is not in its gap, or a contact is not touching.
 
 ## (a) AS5600 magnet and direction
 
@@ -43,19 +43,20 @@ home, or the contact is not touching.
    it is glued, hold it over the chip at 1 to 2 mm and turn it slowly (or turn the AS5600 board round the magnet).
    Watch `wiper_deg` in telemetry: it must change smoothly, about 360 per turn. Then fix the magnet in its cap.
 4. Direction (needs the battery; done once in BENCH_TEST.md step 4, check it again in the base). Battery unplugged:
-   check nobody's hands are near the shaft. Plug the battery in. Drum in NEUTRAL. Send:
+   check nobody's hands are near the shaft. Plug the battery in. Drum in NEUTRAL. Send a FORWARD jog (a backward jog is only allowed at
+   the LAUNCH park, `BACKSTOP` elsewhere):
 
    ```
-   {"id":2,"cmd":"jog","motor":"wiper","dir":-1,"ms":500}
+   {"id":2,"cmd":"jog","motor":"wiper","dir":1,"ms":500}
    ```
 
-   Dir -1 is BACKWARD. `wiper_deg` must go DOWN. If it goes UP, wait until it has stopped, then send:
+   Dir 1 is FORWARD. `wiper_deg` must go UP. If it goes DOWN, wait until it has stopped, then send:
 
    ```
    {"id":3,"cmd":"set","key":"enc_sign","val":-1}
    ```
 
-   Jog again: now it must go down. (`BUSY` means it was still moving: send again.) The firmware also catches a wrong
+   Jog again: now it must go up. (`BUSY` means it was still moving: send again.) The firmware also catches a wrong
    sign by itself while driving hard: `FAULT` `ANGLE_SENSOR` "AS5600 counts against the drive (enc_sign?)".
 5. In `status`, `glitches` counts rejected AS5600 readings. A few are fine. If it climbs fast while the motor runs,
    route the AS5600 cable away from the motor wires.
@@ -108,8 +109,9 @@ about 8 deg per second.
    `MODE` event with the `drum_pos` the code shows. `POSITION_UNKNOWN` means the code is invalid (000, or a jump):
    check the code contacts (BENCH_TEST.md step 2).
 4. Get the drum to NEUTRAL (`drum_pos` `NEUTRAL`, only `b` of the code closed) by hand, because the motor direction
-   is not checked yet. Battery still unplugged: flip the hand latch (`n` disappears from `sw`), turn the drum with the
-   manual lever until only `b` is closed, latch the N20 back in (`n` closed). Turning the drum while the board runs
+   is not checked yet. Battery still unplugged: loosen the cradle swing screw (M3, in the slot), swing the N20 out of mesh
+   until `n` disappears from `sw`, turn the hand lever until only `b` is closed, swing the N20 back and tighten the
+   screw (`n` closed). Turning the drum while the board runs
    gives `FAULT` `DRUM_SENSOR` "drum code changed with the drum still": expected, send `{"id":3,"cmd":"clear"}` once
    the drum is still (one `clear` is enough).
 5. Direction check. Plug the battery in. Drum at NEUTRAL. Send a drum jog toward REEL (the longest jog, 1.5 s, is
@@ -172,12 +174,13 @@ about 8 deg per second.
    never drop in: `FAULT` `DRUM_TIMEOUT` "dogs did not engage (collar contact open)". Check the `l` / `r` contact
    closes when the collar is engaged. `SWITCH_DISAGREE` "collar contact disagrees with the drum code" means `l` or
    `r` was closed where the collar cannot be engaged (both are checked during every drum move).
-10. If you get `SW_ARM counted n of 7 cup turns` (`DRUM_SENSOR`): the `SW_ARM` contact (`W`) must close once per cup
-    turn. Check it with the drum still by watching `W` while the cup is at home.
+10. If you get `SW_ARM counted n of 7 cup turns` (`DRUM_SENSOR`): the `SW_ARM` contact (`W`) is closed while the cup
+    is away from home and must OPEN for about +-5 deg at home (cad-reel); the firmware counts one cup turn per
+    opening. Check it with the drum still: `W` must disappear from `sw` while the cup is at home.
 11. The drum speed (`drum_dps`, default 8.1) is learned by itself between code edges. See it with
     `{"id":11,"cmd":"get","key":"drum_dps"}`. Nothing to do.
 12. If you get `DRUM_TIMEOUT` or `DRUM_SENSOR`: read the `why`. Battery unplugged, check the code contacts close and
-    open cleanly as the drum turns (turn it with the hand lever, `n` open), then `clear` and try again.
+    open cleanly as the drum turns (N20 swung out of mesh, `n` open, turn the hand lever), then `clear` and try again.
 
 ## (d) Free running current
 
@@ -237,43 +240,47 @@ the PC system test reached 61 N against a 40 N limit. The current trip (6.5 A) i
 ### `k_n_per_a` and `tension_offset_n` (used without a load cell)
 
 The estimate is: line N = `k_n_per_a` x (`amps` - `free_a`) + `tension_offset_n`. Defaults 17.0 and -10.4 (physics
-v1.2, clutch FIRM 5 N). Two pulls against a luggage scale give both numbers.
+v1.2, clutch FIRM 5 N). Pulls against a luggage scale at three loads give both numbers (this matches MEASURE_LIST G9).
+Do not use jogs for this: a jog trips at 3 A, about 15 N.
 
-You need a luggage scale and a solid anchor. Do (b) and (d) first and do not change `free_a` afterwards. If a load
-cell is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip this part.
+You need a luggage scale and a solid post. Do (b) and (d) first and do not change `free_a` afterwards. If a load cell
+is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip this part.
 
-1. Battery unplugged. Tie the line end to the luggage scale. Hook the scale to something solid. Line slack.
-2. Plug the battery in. Drum in REEL (`wrap`, wait for `WRAPPED`, `mode` `REEL`, wait for `MODE` REEL). The capstan
-   only pulls with the wraps on.
-3. Read the numbers in use: `{"id":1,"cmd":"get","key":"k_n_per_a"}` and
-   `{"id":2,"cmd":"get","key":"tension_offset_n"}`. Call them k and off.
-4. Stand to the side of the line, never in line with it. First pull, to an estimated 10 N:
+1. Battery unplugged. Tie the line end to the luggage scale. Hook the scale to the post. Line slack.
+2. Plug the battery in. Drum in REEL with the wraps on: `{"id":1,"cmd":"wrap"}`, wait for `WRAPPED` (the wrap only
+   parks at the WRAPPED park), then `{"id":2,"cmd":"mode","to":"REEL"}` and wait for `MODE` REEL. The capstan only
+   pulls in REEL.
+3. Stand to the side of the line, never in line with it. Wind in slowly:
 
    ```
-   {"id":3,"cmd":"reel","duty":0.3,"max_n":10,"until":"tension"}
+   {"id":3,"cmd":"reel","duty":0.3,"until":"stop"}
    ```
 
-   The capstan winds until the estimate reaches 10 N, then holds (`LIMIT` event with `"holding":true`; the worm and
-   sprag #2 hold the line). Write down `tension_n` from the `LIMIT` event (T1) and the scale reading (S1). Then
-   `{"id":4,"cmd":"stop"}`. To release: unhook the scale from its anchor by hand, slowly (10 N is safe to hold). The
+   (reel-in trip 5 A). Watch the scale. When it shows about 10 N, read `amps` in telemetry at that moment (the
+   monitor log shows the last lines), then send `{"id":4,"cmd":"stop"}`. The worm and sprag #2 hold the line. Write
+   down the scale reading N1 and the current I1.
+4. Send the same `reel` line again and stop at about 20 N (N2, I2), then again at about 30 N (N3, I3). Keep every load
+   under 40 N: the reel-in trips at 5 A (about 49 N with the default constants) and stops at `limit_n` anyway.
+5. Fit the numbers (use the lowest and the highest load):
+   - new `k_n_per_a` = (N3 - N1) / (I3 - I1)
+   - new `tension_offset_n` = N1 - new `k_n_per_a` x (I1 - `free_a`)
+
+   Check the middle load: N2 should be close to new `k_n_per_a` x (I2 - `free_a`) + new `tension_offset_n`. If it is
+   off by more than 3 N, repeat the pulls.
+
+   Example with `free_a` 1.5: N1 10 at I1 2.7, N3 30 at I3 3.9. k = 20 / 1.2 = 16.7. Offset = 10 - 16.7 x 1.2 = -10.0.
+6. Set them: `{"id":5,"cmd":"set","key":"k_n_per_a","val":16.7}` and
+   `{"id":6,"cmd":"set","key":"tension_offset_n","val":-10.0}` (your numbers; the offset range is -50 to 50). Both are
+   saved in flash.
+7. To release the line: unhook the scale from the post by hand, slowly (30 N is about 3 kg: hold it firmly). The
    capstan never turns back (sprag #2).
-5. Second pull, the same with `"max_n":30`: write down T2 and S2, `stop`, unhook slowly (30 N is about 3 kg: hold it
-   firmly). Do not go higher by hand.
-6. Work out d1 = (T1 - off) / k and d2 = (T2 - off) / k (the amps above `free_a` at each pull). Then:
-   - new `k_n_per_a` = (S2 - S1) / (d2 - d1)
-   - new `tension_offset_n` = S1 - new `k_n_per_a` x d1
+8. Optional check: `{"id":7,"cmd":"reel","duty":0.3,"max_n":20,"until":"tension"}` against the scale: it should hold
+   (`LIMIT` `"holding":true`) with the scale at about 20 N. `stop`, release as in step 7.
+9. `{"id":8,"cmd":"unwrap"}` when done.
 
-   Example with the defaults (k 17, off -10.4): T1 10.1, S1 12.0, T2 30.2, S2 33.0. d1 = 20.5 / 17 = 1.21,
-   d2 = 40.6 / 17 = 2.39. New k = 21.0 / 1.18 = 17.8. New offset = 12.0 - 17.8 x 1.21 = -9.5.
-7. Set them: `{"id":5,"cmd":"set","key":"k_n_per_a","val":17.8}` and
-   `{"id":6,"cmd":"set","key":"tension_offset_n","val":-9.5}` (your numbers; the offset range is -50 to 50).
-8. Check with a third pull at `"max_n":20`: the scale should read about 20 N when the `LIMIT` comes. If not, redo the
-   two pulls.
-9. `{"id":7,"cmd":"unwrap"}` when done.
-
-A `FAULT` `OVERCURRENT` "wiper over 6.5 A" during a pull means the line is jammed or the estimate is far off: `clear`
-and check `free_a`. The tow trip is the larger of `tow_trip_a` (default 6.5; leave it there) and the current the
-`max_n` needs plus 1 A (D34), so at 10 N and 30 N it is 6.5 A.
+A `FAULT` `OVERCURRENT` "wiper over 5.0 A" during a pull means the load went too high or the line jammed: `clear`
+and use lower loads. In the tow itself the trip is the larger of `tow_trip_a` (default 6.5; leave it there) and the
+current `max_n` needs plus 1 A (D34).
 
 ### HX711 load cell (only if fitted)
 

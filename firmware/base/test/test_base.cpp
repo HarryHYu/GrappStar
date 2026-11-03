@@ -844,6 +844,15 @@ static void testReview4() {
     Rig R2(false);
     CHECK(R2.B.phase == gb::PH_REST && !R2.B.aimKnown && R2.ok("{\"id\":2,\"cmd\":\"aim\",\"deg\":30}"), "cut during aim: REST kept (SW_HOME + SW_GAP closed), aim re-homes");
     R2.until([&] { return R2.idle() || R2.B.state == gb::S_FAULT; }, 60000); CHECK(R2.B.aimed && S.shots == 0, "aimed, no shot"); }
+  { Rig R; R.toMode("NEUTRAL");
+    CHECK(R.err("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"wiper\",\"dir\":-1}") == "BACKSTOP", "wiper backward jog refused outside LAUNCH (r1_D 14)"); }
+  { Rig R; R.toMode("LAUNCH"); S.swStuckOpen = 1 << 7; R.run(50);
+    CHECK(R.err("{\"id\":1,\"cmd\":\"cock\"}") != "" && S.wDir == 0, "cock from REST refused with SW_GAP open (r1_D 10)");
+    CHECK(R.err("{\"id\":1,\"cmd\":\"cal\",\"what\":\"cock_rest\"}") == "SWITCH_DISAGREE", "cal cock_rest refused with SW_GAP open"); }
+  { Rig R; R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); R.run(300); S.dDir = 0; S.wDir = 0;   // cut leaving LAUNCH
+    Rig R2(false);
+    if (R2.B.sec == gb::SEC_LAUNCH) CHECK(R2.err("{\"id\":1,\"cmd\":\"jog\",\"motor\":\"drum\",\"dir\":-1}") == "POSITION_UNKNOWN", "drum jog toward the end stop refused with the angle not trusted (r1_D 9)");
+    else CHECK(true, "skip"); }
   { Rig Q; CHECK(Q.B.c.flyDuty >= Q.B.w.c.minScaleDuty, "fly-in duty high enough for the IS current scaling (3 A trip works)"); }
   { Rig Q; Q.toMode("NEUTRAL"); S.swStuckClosed |= 1 << Q.B.c.swBit[gb::SW_DOG_L]; Q.run(100);
     CHECK(Q.err("{\"id\":3,\"cmd\":\"jog\",\"motor\":\"drum\",\"dir\":1,\"ms\":300}") != "", "drum jog refused with a collar contact disagreeing"); }

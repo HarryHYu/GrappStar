@@ -33,8 +33,8 @@ First move for any problem: send `estop` (or pull the battery plug), then read t
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Serial Monitor blank | USB CDC On Boot disabled | Tools > USB CDC On Boot: Enabled, re-upload |
+| Serial Monitor blank | Wrong port, monitor not at 115200, or the board needs a reset | Check Tools > Port, 115200 baud, press the XIAO reset button once (the sketch will not even compile with USB CDC On Boot disabled) |
 | No KEDGE WiFi | XIAO not powered or crashed | Loop plug in? 5 V at the XIAO? Press reset |
-| A motor turns the wrong way | Leads reversed | Loop plug out, swap that motor's pair (run sheet section 10) |
+| A motor turns the wrong way | Leads reversed | Loop plug out, swap that motor's two thin input wires at its driver (section 6, "Reverse a motor"); only if just one drill is wrong, swap that drill's motor leads |
 | Current trip during anchoring | Stall on a stone, or the trip set too low | Re-measure stall currents (section 14 F3) and update the tuning |
 | INA219 or BNO085 not found | I2C wiring | `z` key scans; SDA and SCL must not be swapped |

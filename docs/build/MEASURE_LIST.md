@@ -49,13 +49,14 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | C10 | Yellow RCA lead | RC832 AV out to the DIGITNOW | |
 | C11 | USB data cable for the DevKitC, STEMMA QT to Dupont cable | base ESP32, AS5600 | |
 | C12 | M3 screws (lengths from the base print list), M3 nuts, M3 heat-set inserts | printed contacts, frame joints | |
-| C13 | AS5600 magnet: 6 x 2.5 mm DIAMETRIC (magnetised across the diameter). The Adafruit board does not include one | main shaft angle | The one possible purchase besides the 608s: search "6x2.5mm diametric magnet AS5600" |
+| C13 | AS5600 magnet: any small neodymium disc (6 to 10 mm, 2 to 3 mm thick, mounted edge-on) or a 6 x 2.5 mm diametric disc. The Adafruit board does not include one | main shaft angle | Optional purchase. Without it the firmware runs on the SW_INDEX cam (degraded mode) |
 | C14 | Optional: a second pair of the launch springs (Bunnings I/N 0487961) | range: about 4 to 5 m with two springs, 8 to 9 m with four | Two springs work; the base has the provision built in |
 | C15 | 8 mm steel rod (or M8 bolts) for: reel shaft S, aim worm wheel axle, storage reel axle | reel and aim | Printed PPA-CF shafts (the reel worker's fallback); tell the coordinator |
 | C16 | Hardware the CAD assumes: M3 x 4 x 5 heat-set inserts; M3 screws x 6, 8, 10, 12 mm (frame) and M3 x 25 cap screws + nylocs (rover mount); M6 bolts and nuts for the wiper (head 10, nut 10 AF); one M8 nut (drum coupler); 6 mm steel key 14 mm long (launch sleeve); 6 mm pins (spring anchors); a C-clip (reel cup head); cable ties, a hose clamp, glue (magnet) | frame, drum, launch, reel | Exact counts in the base print pack / assembly steps |
 | C17 | JST SH 4-pin (STEMMA QT) cable 400 mm or longer for the AS5600 | the 200 mm one is too short | Extend with 4 soldered wires and heat shrink |
 | C18 | Carriage stop pads: 15 to 20 mm foam or TPU | absorbs the carriage at the end of the stroke | Print TPU pads if you have TPU; size for about 8.5 J if four springs are fitted |
 | C19 | PETG filament (brake rocker) | reel | PLA works for the first tests |
+| C20 | How many 693ZZ / F693ZZ bearings are left after the dart (the dart uses 5 F693ZZ) | line pulleys on the base | Tell the coordinator the count |
 
 ## D. Electrical labels to read
 
@@ -102,6 +103,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | G11 | Payout brake trim | If G4 is off: add or remove printed 0.4 mm shims under thrust ring T (reel assembly steps) | reel shims (print more) |
 | G12 | Contact gaps | Each printed contact: the M3 screw head sits about 1.1 mm from the nut and must close halfway up its 3 mm bump. Turn the screw to set it, watch `sw` in telemetry | nothing |
 | G13 | AS5600 air gap | Magnet face to chip: 1.0 mm design, 0.5 to 3 mm works. Feeler: a stack of paper | nothing |
+| G14 | Wiper coupler torque limiter | Battery unplugged. The wiper worm holds its own shaft, so: 300 mm bar on the coupler's output side, luggage scale at the end: it must slip at about 1.7 kg (5 N m). Adjust as the base assembly steps say | coupler preload |
 | G7 | Soil holding force | Dart anchored, luggage scale on the tether, pull slowly up to 50 N, note where it moves | reel tension limit |
 | G8 | Rail friction | Before the rail is mounted: lay the rail part on a flat board, dart in the cradle, lift one end of the board slowly until the dart slides; phone level app on the board. Friction = tan(angle) | physics (launch efficiency) |
 

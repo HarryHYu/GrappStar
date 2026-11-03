@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 11:37 Sydney time from commit `c3dee29`.
+Built 2026-11-03 11:53 Sydney time from commit `9a49710`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -24,13 +24,18 @@ Three parts:
   vision (rover camera Razer Kiyo X, and the dart's video through an RC832 receiver and a DIGITNOW USB capture).
 - **Base station** (on the rover). ONE 12 V wiper motor drives everything. A sliding dog collar on the main shaft
   couples the wiper to the LAUNCH train, to nothing (NEUTRAL), or to the REEL train. A small N20 motor turns a
-  selector drum (like a motorcycle gear drum) that moves the collar and also lays and removes the capstan wraps.
-  - LAUNCH, wiper forward: draws the spring carriage back, fires at the end of the stroke, resets.
-  - LAUNCH, wiper backward: tilts the rail up and down to aim. A self-locking worm holds the angle.
-  - REEL, wiper forward: the capstan winds in; the storage reel takes up the slack through a slip clutch.
+  selector drum (like a motorcycle gear drum) through four zones in a fixed order: LAUNCH, NEUTRAL, WRAP, REEL.
+  - LAUNCH, wiper forward: draws the spring carriage back (245 mm), fires at the end of the stroke, resets.
+  - LAUNCH, wiper backward: tilts the rail between 6 and 47 degrees to aim. A self-locking worm holds the angle.
+  - WRAP zone: the collar stays in NEUTRAL while the drum turns a wrap cup 7 times round the capstan.
+  - REEL, wiper forward: the capstan (2.27 times wiper speed) winds in and tows. A one-way bearing stops it ever
+    turning out. Tow limit 50 N by default.
+  - Take-up: every forward wiper turn also winds the storage reel through a slip clutch, so slack never builds up.
   - Payout at launch: the line skips the capstan and pulls off the free-spinning storage reel against a light
-    payout brake (set 0.5 N; over 1 N costs range).
-  - Any fault: wiper off, drum to NEUTRAL. There is a hand lever on the drum shaft end.
+    payout brake (0.5 N; over 1 N costs range).
+  - Range: about 4 to 5 m with the two springs, about 8 to 9 m with a second pair.
+  - Protection: current trips in the firmware and a printed torque limiter (about 5 N m) in the wiper coupler. Any
+    fault: wiper off, drum to NEUTRAL. A hand lever on the drum is the fallback.
   - Brain: an ESP32-S3 DevKitC on USB from the Jetson, with an AS5600 angle sensor on the main shaft and printed
     contact switches (an M3 screw head touching an M3 nut).
 - **Dart (KEDGE v30).** 42 mm x 152 mm, its own XIAO ESP32S3, 2S 18350 pack, WiFi access point. After landing a kick
@@ -42,7 +47,8 @@ over WiFi (HTTP at 192.168.4.1, `firmware/dart/API.md`). Video is analog 5.8 GHz
 
 A mission: pick a target on the rover camera view, the Jetson looks up the pitch in the ballistics table, the base
 aims, cocks and fires on your confirmation, the dart video is analysed for the landing zone, the dart anchors, the
-base wraps the capstan and tows, the dart releases, the base reels it home.
+base tidies the slack, wraps the capstan, engages REEL and tows, the dart releases, the base reels it home onto
+the cradle, unwraps and returns to LAUNCH.
 
 ## Order of work
 
@@ -105,9 +111,10 @@ looking in the box.
 
 ## Possible extra purchases
 
-- **AS5600 magnet**, only if it is not in the box: the Adafruit AS5600 board does not include one. It needs a
-  6 x 2.5 mm DIAMETRIC magnet (magnetised across the diameter, not through the thickness). Search "6x2.5mm diametric
-  magnet AS5600". A normal disc magnet does not work.
+- **AS5600 magnet** (optional): the Adafruit board does not include one. The magnet cap takes any small neodymium
+  disc (6 to 10 mm across, 2 to 3 mm thick) mounted edge-on, or a 6 x 2.5 mm diametric disc. Look in the box first
+  (old speakers, fridge magnets with a neodymium disc). With no magnet at all the base still works in a degraded
+  mode: a printed 6-bump index cam read by the contact SW_INDEX counts the shaft turns.
 - **Optional, for range:** a second pair of the same launch springs (Bunnings I/N 0487961). The two springs give
   about 4 to 5 m; four give about 8 to 9 m. The base has the mounting provision built in.
 
@@ -122,6 +129,7 @@ looking in the box.
 | DRV8833 carrier | 1 | DRV8833 #3, freed from the dart by the new dart pin map |
 | MP1584 buck | 1 | MP1584 #2 from the dart build, set to 9.0 V |
 | N20 right-angle worm motor | 1 | Selector drum (count your N20s: section 14 C3) |
+| 693ZZ / F693ZZ bearings | as many as are left after the dart | Line pulleys (the dart uses 5 F693ZZ; count what is left, section 14 C20) |
 | CSK20PP one-way bearings (20 x 47 x 14) | 2 | #1 spring cock and fire, #2 capstan backstop |
 | Century 16 x 165.1 x 1.4 mm extension springs | 2 | Launch springs (Bunnings 0487961). Measure them (section 14 B) |
 | 608 bearings | 8 to 10 | The purchase |
@@ -2307,12 +2315,15 @@ check the GND wire and that the screw head really touches the nut.
 
 Springs off, no tether, no dart. Run CALIBRATION.md first (zeros and drum positions).
 
-1. `mode` LAUNCH, NEUTRAL, REEL, NEUTRAL, LAUNCH: 20 full rounds. Each change ends with the right `drum_pos`.
+1. `mode` LAUNCH, NEUTRAL, LAUNCH: 20 rounds. Each change ends with the right `drum_pos`. (The drum order is
+   LAUNCH, NEUTRAL, WRAP, REEL: REEL is only reachable with the wraps on, step 4.)
 2. `aim` 15, 30, 45, then the minimum and maximum pitch: 5 rounds. Rail reaches each angle within 1 degree
    (`pitch_deg`) and holds with the motor off.
 3. Cock and fire with no springs: `arm`, then `fire` with the token. The carriage travels back, releases, and the
    big gear re-engages: 10 cycles.
-4. REEL mode: `wrap`, then `unwrap`: 10 cycles. Then `reel` at duty 0.3 for 3 s with no line.
+4. Wrap and unwrap, with a spare line through the capstan path and slack: from NEUTRAL, `wrap`, then into REEL, then
+   `unwrap` back to NEUTRAL, in the command order PROTOCOL.md gives: 10 cycles. Once wrapped and in REEL, `reel` at
+   duty 0.3 for 3 s.
 5. Send `estop` in the middle of each kind of move once. The wiper stops at once and the drum goes to NEUTRAL.
 6. Fault test: send `estop`, then unplug the AS5600 STEMMA cable (it is 3.3 V from USB; the motor branch is not
    touched). The base reports `ANGLE_SENSOR` and refuses to move. Plug it back in, `clear`.
@@ -2359,8 +2370,9 @@ Big range loss with clean payout: the line catches somewhere; watch the slow-mot
 
 ### Stage 6. Reel cycle with the dummy
 
-1. After a stage 5 shot: `mode` REEL, `wrap`, then `reel` until `SW_SEATED` or the dummy is back near the base.
-2. `unwrap`, `mode` LAUNCH. Check the line runs on the launch path again (not round the capstan).
+1. After a stage 5 shot: `mode` NEUTRAL, `wrap`, into REEL (order as in PROTOCOL.md), then `reel` with `until`
+   seated until `SW_SEATED` closes or the dummy is back near the base.
+2. `unwrap` back to NEUTRAL, `mode` LAUNCH. Check the line runs on the launch path again (not round the capstan).
 3. Fire again at 30 degrees.
 
 Pass: the wrap lays on the capstan, reel-in works, unwrap returns the line to the launch path, and the next shot
@@ -2506,7 +2518,7 @@ First move for any problem: send `estop` (or pull the battery plug), then read t
 | Fault ANGLE_SENSOR | AS5600 cable out, magnet too far | Re-seat the STEMMA cable; magnet 1 to 3 mm from the chip, centred |
 | `pitch_deg` wrong after a restart | Pitch reference lost | Run the pitch part of the calibration again (section 10) |
 | Drum stuck between positions with the power off | Expected: the worm holds it | Use the hand lever on the drum shaft end, battery unplugged |
-| Base cocked and you need to unload without firing | | Clear the area and fire it at the lowest pitch with no dart. If the base cannot fire, battery unplugged, and follow the unload step in the base assembly steps; never hand-release the carriage |
+| Base cocked and you need to unload without firing | | Send `{"cmd":"cal","what":"decock"}`: the wiper runs backward slowly and the springs unwind under the worm until `SW_HOME` closes. Never fire without the tether, and never hand-release the carriage |
 
 ## Rover and video
 
@@ -2583,13 +2595,14 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | C10 | Yellow RCA lead | RC832 AV out to the DIGITNOW | |
 | C11 | USB data cable for the DevKitC, STEMMA QT to Dupont cable | base ESP32, AS5600 | |
 | C12 | M3 screws (lengths from the base print list), M3 nuts, M3 heat-set inserts | printed contacts, frame joints | |
-| C13 | AS5600 magnet: 6 x 2.5 mm DIAMETRIC (magnetised across the diameter). The Adafruit board does not include one | main shaft angle | The one possible purchase besides the 608s: search "6x2.5mm diametric magnet AS5600" |
+| C13 | AS5600 magnet: any small neodymium disc (6 to 10 mm, 2 to 3 mm thick, mounted edge-on) or a 6 x 2.5 mm diametric disc. The Adafruit board does not include one | main shaft angle | Optional purchase. Without it the firmware runs on the SW_INDEX cam (degraded mode) |
 | C14 | Optional: a second pair of the launch springs (Bunnings I/N 0487961) | range: about 4 to 5 m with two springs, 8 to 9 m with four | Two springs work; the base has the provision built in |
 | C15 | 8 mm steel rod (or M8 bolts) for: reel shaft S, aim worm wheel axle, storage reel axle | reel and aim | Printed PPA-CF shafts (the reel worker's fallback); tell the coordinator |
 | C16 | Hardware the CAD assumes: M3 x 4 x 5 heat-set inserts; M3 screws x 6, 8, 10, 12 mm (frame) and M3 x 25 cap screws + nylocs (rover mount); M6 bolts and nuts for the wiper (head 10, nut 10 AF); one M8 nut (drum coupler); 6 mm steel key 14 mm long (launch sleeve); 6 mm pins (spring anchors); a C-clip (reel cup head); cable ties, a hose clamp, glue (magnet) | frame, drum, launch, reel | Exact counts in the base print pack / assembly steps |
 | C17 | JST SH 4-pin (STEMMA QT) cable 400 mm or longer for the AS5600 | the 200 mm one is too short | Extend with 4 soldered wires and heat shrink |
 | C18 | Carriage stop pads: 15 to 20 mm foam or TPU | absorbs the carriage at the end of the stroke | Print TPU pads if you have TPU; size for about 8.5 J if four springs are fitted |
 | C19 | PETG filament (brake rocker) | reel | PLA works for the first tests |
+| C20 | How many 693ZZ / F693ZZ bearings are left after the dart (the dart uses 5 F693ZZ) | line pulleys on the base | Tell the coordinator the count |
 
 ### D. Electrical labels to read
 
@@ -2636,6 +2649,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | G11 | Payout brake trim | If G4 is off: add or remove printed 0.4 mm shims under thrust ring T (reel assembly steps) | reel shims (print more) |
 | G12 | Contact gaps | Each printed contact: the M3 screw head sits about 1.1 mm from the nut and must close halfway up its 3 mm bump. Turn the screw to set it, watch `sw` in telemetry | nothing |
 | G13 | AS5600 air gap | Magnet face to chip: 1.0 mm design, 0.5 to 3 mm works. Feeler: a stack of paper | nothing |
+| G14 | Wiper coupler torque limiter | Battery unplugged. The wiper worm holds its own shaft, so: 300 mm bar on the coupler's output side, luggage scale at the end: it must slip at about 1.7 kg (5 N m). Adjust as the base assembly steps say | coupler preload |
 | G7 | Soil holding force | Dart anchored, luggage scale on the tether, pull slowly up to 50 N, note where it moves | reel tension limit |
 | G8 | Rail friction | Before the rail is mounted: lay the rail part on a flat board, dart in the cradle, lift one end of the board slowly until the dart slides; phone level app on the board. Friction = tan(angle) | physics (launch efficiency) |
 
@@ -2661,20 +2675,12 @@ one weight is not enough. Use three loads. Every range number scales with the en
 ## Numbers still assumed in params.py right now
 
 
-params.py version: `0.1-stub`.
+params.py version: `1.0`.
 
 | params.py name | State | Who fixes it |
 |---|---|---|
 | WIPER | assumed, not measured yet | MEASURE_LIST |
 | SPRING | assumed, not measured yet | MEASURE_LIST |
-| LAYOUT | not decided yet (None) | coordinator |
-| DRUM | not decided yet (None) | coordinator |
-| LAUNCH | not decided yet (None) | coordinator |
-| AIM | not decided yet (None) | coordinator |
-| REEL | not decided yet (None) | coordinator |
-| FRAMEWORK | not decided yet (None) | coordinator |
-| SWITCHES | not decided yet (None) | coordinator |
-| TIMELINE | not decided yet (None) | coordinator |
 
 
 # 15. Sources and appendices
@@ -2706,5 +2712,5 @@ Appendices attached after this page (when present): the base assembly steps PDF 
 v30 dart run sheet. In the run sheet, follow section 6 of this guide for the new dart pin map.
 
 Other documents in the repo: `kedge/pack_v30/KEDGE_v30_engineering_report.pdf` (dart physics and loads),
-`base/spec/BASE_SPEC.md` (base design), `firmware/base/PROTOCOL.md` (base serial protocol), `firmware/dart/API.md`
+`base/spec/BASE_SPEC.md` and `base/spec/DECISIONS.md` (base design and the decisions behind it), `firmware/base/PROTOCOL.md` (base serial protocol), `firmware/dart/API.md`
 (dart HTTP API), `jetson/INTERFACES.md` (Jetson software).

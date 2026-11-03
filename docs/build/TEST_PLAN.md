@@ -61,12 +61,15 @@ check the GND wire and that the screw head really touches the nut.
 
 Springs off, no tether, no dart. Run CALIBRATION.md first (zeros and drum positions).
 
-1. `mode` LAUNCH, NEUTRAL, REEL, NEUTRAL, LAUNCH: 20 full rounds. Each change ends with the right `drum_pos`.
+1. `mode` LAUNCH, NEUTRAL, LAUNCH: 20 rounds. Each change ends with the right `drum_pos`. (The drum order is
+   LAUNCH, NEUTRAL, WRAP, REEL: REEL is only reachable with the wraps on, step 4.)
 2. `aim` 15, 30, 45, then the minimum and maximum pitch: 5 rounds. Rail reaches each angle within 1 degree
    (`pitch_deg`) and holds with the motor off.
 3. Cock and fire with no springs: `arm`, then `fire` with the token. The carriage travels back, releases, and the
    big gear re-engages: 10 cycles.
-4. REEL mode: `wrap`, then `unwrap`: 10 cycles. Then `reel` at duty 0.3 for 3 s with no line.
+4. Wrap and unwrap, with a spare line through the capstan path and slack: from NEUTRAL, `wrap`, then into REEL, then
+   `unwrap` back to NEUTRAL, in the command order PROTOCOL.md gives: 10 cycles. Once wrapped and in REEL, `reel` at
+   duty 0.3 for 3 s.
 5. Send `estop` in the middle of each kind of move once. The wiper stops at once and the drum goes to NEUTRAL.
 6. Fault test: send `estop`, then unplug the AS5600 STEMMA cable (it is 3.3 V from USB; the motor branch is not
    touched). The base reports `ANGLE_SENSOR` and refuses to move. Plug it back in, `clear`.
@@ -113,8 +116,9 @@ Big range loss with clean payout: the line catches somewhere; watch the slow-mot
 
 ## Stage 6. Reel cycle with the dummy
 
-1. After a stage 5 shot: `mode` REEL, `wrap`, then `reel` until `SW_SEATED` or the dummy is back near the base.
-2. `unwrap`, `mode` LAUNCH. Check the line runs on the launch path again (not round the capstan).
+1. After a stage 5 shot: `mode` NEUTRAL, `wrap`, into REEL (order as in PROTOCOL.md), then `reel` with `until`
+   seated until `SW_SEATED` closes or the dummy is back near the base.
+2. `unwrap` back to NEUTRAL, `mode` LAUNCH. Check the line runs on the launch path again (not round the capstan).
 3. Fire again at 30 degrees.
 
 Pass: the wrap lays on the capstan, reel-in works, unwrap returns the line to the launch path, and the next shot

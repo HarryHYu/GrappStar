@@ -42,6 +42,10 @@ Status: in progress. Final version at 18:30 Sydney.
 8. DRV8833 #3 SLP: coordinator ruled unwired (11:15); firmware/base/WIRING.md at 11:33 still wires it to GPIO21. Sent
    to fw-base. My docs follow the coordinator, with a "wire SLP to 3V3" fallback for non-Pololu boards.
 9. fw-base WIRING.md said both MP1584s are in the dart and to buy another; the dart uses one. Sent to fw-base.
+10. Spec v1.0 section 4 lists 11 contacts (SW_DRUM_A/B/C, SW_DOG_L/R, SW_N20, SW_INDEX, SW_HOME, SW_GAP, SW_RAIL_LOW,
+    SW_SEATED, SW_ARM); pins.h at 12:10 has 8 switch GPIOs and PROTOCOL.md still has the pre-v1.0 drum order
+    (wrap from REEL). fw-base to update; the guide includes their files live, and TEST_PLAN points at PROTOCOL.md for
+    the wrap/REEL command order.
 
 ## Review rounds
 

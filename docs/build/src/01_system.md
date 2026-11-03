@@ -10,13 +10,18 @@ Three parts:
   vision (rover camera Razer Kiyo X, and the dart's video through an RC832 receiver and a DIGITNOW USB capture).
 - **Base station** (on the rover). ONE 12 V wiper motor drives everything. A sliding dog collar on the main shaft
   couples the wiper to the LAUNCH train, to nothing (NEUTRAL), or to the REEL train. A small N20 motor turns a
-  selector drum (like a motorcycle gear drum) that moves the collar and also lays and removes the capstan wraps.
-  - LAUNCH, wiper forward: draws the spring carriage back, fires at the end of the stroke, resets.
-  - LAUNCH, wiper backward: tilts the rail up and down to aim. A self-locking worm holds the angle.
-  - REEL, wiper forward: the capstan winds in; the storage reel takes up the slack through a slip clutch.
+  selector drum (like a motorcycle gear drum) through four zones in a fixed order: LAUNCH, NEUTRAL, WRAP, REEL.
+  - LAUNCH, wiper forward: draws the spring carriage back (245 mm), fires at the end of the stroke, resets.
+  - LAUNCH, wiper backward: tilts the rail between 6 and 47 degrees to aim. A self-locking worm holds the angle.
+  - WRAP zone: the collar stays in NEUTRAL while the drum turns a wrap cup 7 times round the capstan.
+  - REEL, wiper forward: the capstan (2.27 times wiper speed) winds in and tows. A one-way bearing stops it ever
+    turning out. Tow limit 50 N by default.
+  - Take-up: every forward wiper turn also winds the storage reel through a slip clutch, so slack never builds up.
   - Payout at launch: the line skips the capstan and pulls off the free-spinning storage reel against a light
-    payout brake (set 0.5 N; over 1 N costs range).
-  - Any fault: wiper off, drum to NEUTRAL. There is a hand lever on the drum shaft end.
+    payout brake (0.5 N; over 1 N costs range).
+  - Range: about 4 to 5 m with the two springs, about 8 to 9 m with a second pair.
+  - Protection: current trips in the firmware and a printed torque limiter (about 5 N m) in the wiper coupler. Any
+    fault: wiper off, drum to NEUTRAL. A hand lever on the drum is the fallback.
   - Brain: an ESP32-S3 DevKitC on USB from the Jetson, with an AS5600 angle sensor on the main shaft and printed
     contact switches (an M3 screw head touching an M3 nut).
 - **Dart (KEDGE v30).** 42 mm x 152 mm, its own XIAO ESP32S3, 2S 18350 pack, WiFi access point. After landing a kick
@@ -28,7 +33,8 @@ over WiFi (HTTP at 192.168.4.1, `firmware/dart/API.md`). Video is analog 5.8 GHz
 
 A mission: pick a target on the rover camera view, the Jetson looks up the pitch in the ballistics table, the base
 aims, cocks and fires on your confirmation, the dart video is analysed for the landing zone, the dart anchors, the
-base wraps the capstan and tows, the dart releases, the base reels it home.
+base tidies the slack, wraps the capstan, engages REEL and tows, the dart releases, the base reels it home onto
+the cradle, unwraps and returns to LAUNCH.
 
 ## Order of work
 

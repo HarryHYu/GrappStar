@@ -9,5 +9,5 @@ Appendices attached after this page (when present): the base assembly steps PDF 
 v30 dart run sheet. In the run sheet, follow section 6 of this guide for the new dart pin map.
 
 Other documents in the repo: `kedge/pack_v30/KEDGE_v30_engineering_report.pdf` (dart physics and loads),
-`base/spec/BASE_SPEC.md` (base design), `firmware/base/PROTOCOL.md` (base serial protocol), `firmware/dart/API.md`
+`base/spec/BASE_SPEC.md` and `base/spec/DECISIONS.md` (base design and the decisions behind it), `firmware/base/PROTOCOL.md` (base serial protocol), `firmware/dart/API.md`
 (dart HTTP API), `jetson/INTERFACES.md` (Jetson software).

@@ -35,8 +35,8 @@ Print them, then work through the test sheet. Do not print the big base parts un
 
 Plates: `base/pack/coupons/risk_plate_1_PLA.3mf` (PLA, 19 pieces) and `risk_plate_2_PPA-CF.3mf` (PPA-CF, 26 pieces). Each
 piece is also there on its own (`base/pack/coupons/rcN_*.stl`) for a reprint. A printable copy of the test sheet is
-`base/pack/coupons/COUPON_TEST.pdf`. The coupons need a few bought parts (MEASURE_LIST C21): O-ring 20 x 1.5,
-e-clip for an 8 mm pin, M3 screws and a jam nut, heat-set inserts, one each of 608ZZ, F693ZZ and 693ZZ, a CSK20PP.
+`base/pack/coupons/COUPON_TEST.pdf`. The coupons need a few bought parts (MEASURE_LIST C21): M3 screws and a jam
+nut, heat-set inserts, one each of 608ZZ, F693ZZ and 693ZZ, a CSK20PP.
 Take the CSK20PP and bearings back out of the coupons after testing: they go into the base.
 
 If a coupon fails: write down which test and what you saw, and do not change the CAD yourself. The sheet names the

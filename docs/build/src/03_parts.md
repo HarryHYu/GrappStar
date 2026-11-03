@@ -1,7 +1,6 @@
 # 3. Parts
 
-Everything below is already in hand except the 608 bearings (and possibly the AS5600 magnet, and the O-ring and
-e-clip the risk coupons list; section 14 C21). Section 14 group C lists the items to confirm by
+Everything below is already in hand except the 608 bearings (and possibly the AS5600 magnet). Section 14 group C lists the items to confirm by
 looking in the box.
 
 ## The only purchase: 608 bearings

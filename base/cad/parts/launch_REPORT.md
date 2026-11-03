@@ -23,7 +23,7 @@ audit_states, checks, grounded, steps, line_path, line_entry), `launch_kin.py` (
 - Carriage: body prints on its side (shoe faces), light V cradle (5 rings + 2 strips), pusher with tether hole,
   lip roller and retrieval funnel at the front; one bolted YOKE across the rear carries both spring arms (keys in the
   body webs, cross bar: each arm's stop moment balances across the carriage).
-- Carriage stop: printed PLA flexure units (D26, no TPU), preloaded, with a hard stop; overshoot checked by
+- Carriage stop: printed PLA flexure units (D26, no TPU), preloaded; the loop stack goes solid at full travel (23.8 mm); overshoot checked by
   `launch.checks` against the moving yoke and body.
 - Contacts (printed, M3 screw head on M3 nut): SW_HOME (right rail lip lever, rigid ramped foot under the yoke),
   SW_SEATED (left rail lip lever, captive plunger pushed down by a 45 deg wedge pushrod that the dart tail presses: no
@@ -55,8 +55,8 @@ audit_states, checks, grounded, steps, line_path, line_entry), `launch_kin.py` (
    changes by about 25 mm over the aim range (take-up handles it).
 7. Worm in the aim train although v10's notes say "no worm gear": the system plan and coordinator asked for a printed
    self-locking stage; it is pawl-free.
-8. Fallback spring hole set F 8.5 mm rearward, not the 15 mm params asks (256.5 mm at full cock instead of 250): the
-   stop frame front wall ends at u 248.15 and the anchor post starts at 255.5, so 8.5 is the room there is.
+8. Fallback spring hole set F 8.5 mm rearward, not the 15 mm params asked (256.5 mm at full cock instead of 250): the
+   stop frame front wall ends at u 248.15 and the anchor post starts at 255.5, so 8.5 is the room there is (accepted).
 9. Anchor pins are 8 mm steel rod (on Harry's list), not 6 mm dowels (not on it) or printed pins.
 10. The launch sleeve prints outboard end down with supports under the flange: the D37 lugs stand on the flange face,
     which used to be the bed face.
@@ -71,9 +71,9 @@ audit_states, checks, grounded, steps, line_path, line_entry), `launch_kin.py` (
 - Big gear backlash on aiming (review 3): the sprag drag can carry the big gear up to 127 deg backward on aim turns
   (no damage, SW_GAP opens). Firmware rule sent to the coordinator: after any aim move, run forward until SW_GAP closes,
   then fire. A printed detent would remove the rule; not done.
-- Aim bevel pair z15 is SF 0.70 at the 5 A trip (3.2 N m): face 8 is the cone/3 limit and the housing has no room for
-  a bigger module. Worm wheel SF 1.42 (face 16 is the limit for the pd 24 worm), splitter 1.57 to 1.83. Lower the trip
-  current in firmware for the aim direction, or accept that a jam strips the bevel first (printed, cheap to replace).
+- Aim bevel pair z15: SF 0.70 at 3.2 N m (5 A), about 1.65 at the D40 3 A trip for backward runs (1.36 N m). Worm
+  wheel face 16, splitter face 12 (SF 1.57 to 1.83 even at 5 A). Bevels, sun, idler, worm in PPA-CF (D40).
+- Fallback hole set F at 8.5 mm (256.5 at full cock): accepted by the coordinator (MEASURE_LIST B4).
 - PLA stop returns most of the energy: the carriage rebounds up to about 100 mm before friction and the springs settle
   it. The gear is in its gap then (audited); firmware should wait 0.5 s after the release before trusting SW_HOME.
 - In tow, the line over the lip roller pushes the carriage back by T (1 - cos a): lower the rail to minimum before

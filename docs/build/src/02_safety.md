@@ -44,7 +44,7 @@ Read this before any hands-on step.
   unhook ONE spring at a time from its anchor pin with a hook tool (a bent coat-hanger wire or a long screwdriver
   through the hook), never with fingers in the hook. Then the carriage is slack and safe. Afterwards, with the
   carriage home: `{"cmd":"cal","what":"cock_rest"}`, then `aim` again before any shot.
-- Never use the hand lever while the carriage is drawn (`cock` above 0 or `SW_HOME` open) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first.
+- Never use the hand lever while the carriage is drawn (unless `cock` is 0 AND `SW_HOME` is closed) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first.
 - The launch springs store energy. Cocked carriage = loaded. Never put a hand in front of the rail or the carriage.
   To unload a cocked base without firing, see troubleshooting. The spring hooks have little margin at full draw
   (about 40 N each at full cock against the 38.4 N rating of the Century C-243, decision D30, until the
@@ -62,8 +62,8 @@ Read this before any hands-on step.
   From the first spring test on: safety glasses on, nobody in front of the rail or within 2 m to either side, and
   the area in front clear for 30 m (four times the longest expected range, for a misfire at a wrong pitch).
 - Before every shot: look along the rail, call "firing" out loud, keep hands off the rail and carriage.
-- A cocked carriage stays loaded until it fires or is de-cocked (`cal decock`). Treat the base as loaded whenever
-  `cock` in telemetry is above 0.
+- A cocked carriage stays loaded until it fires or is de-cocked (`decock`). Treat the base as LOADED unless
+  telemetry shows `cock` 0 AND `H` (SW_HOME) closed in `sw`. Unknown (`cock` null) counts as loaded.
 - **Never fire a dart, dummy or real, without the tether tied on.** The tether keeps it nose first; without it the
   dart can tumble or come down tail first.
 - Augers and drills are sharp and turn with force. Hold the dart by the hull, never near a pod or the foot.

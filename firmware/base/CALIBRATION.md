@@ -1,6 +1,6 @@
 # Base station calibration
 
-Firmware `base-1.2.1`. Do BENCH_TEST.md first. Sections (a) and (b) can be done on the bench. The rest needs the base
+Firmware `base-1.3.0`. Do BENCH_TEST.md first. Sections (a) and (b) can be done on the bench. The rest needs the base
 assembled. Do them in order: (d) needs REEL from (c), and (f) needs (b) and (d).
 
 - Two ways to send the commands below:
@@ -167,13 +167,15 @@ about 8 deg per second.
 9. The wiper turns a little during these moves. Keep clear:
    - leaving LAUNCH it first turns 8 deg BACKWARD (the centering jog) so the dogs carry no load;
    - leaving REEL (start of `unwrap`) it first turns forward a little (up to 16 deg), then 8 deg back;
-   - entering REEL it creeps forward slowly from drum 318 deg until `r` closes (the fly-in);
+   - entering REEL it creeps forward slowly from drum 318 deg until the dogs bite (`r` closes, or the current rises
+     0.8 A); if `r` is still open at the park it winds in 5 deg at a time, stopping at an estimated 20 N (the fly-in);
    - entering LAUNCH, if `l` does not close, it turns BACKWARD slowly (up to 40 deg) until the dogs drop in;
    - during `unwrap` it turns forward at 40 % while the drum is in WRAP and WRAP_PREP (the take-up winds the freed
      line).
 
    These moves need the AS5600: without it `mode`, `wrap` and `unwrap` are refused with `ANGLE_SENSOR`. If the dogs
-   never drop in: `FAULT` `DRUM_TIMEOUT` "dogs did not engage (collar contact open)". Check the `l` / `r` contact
+   never drop in: `FAULT` `DRUM_TIMEOUT` "dogs did not engage (collar contact open)" (or "... line tension reached the
+   fly-in limit" when the line is taut). Check the `l` / `r` contact
    closes when the collar is engaged. `SWITCH_DISAGREE` "collar contact disagrees with the drum code" means `l` or
    `r` was closed where the collar cannot be engaged (both are checked during every drum move).
 10. If you get `SW_ARM counted n of 7 cup turns` (`DRUM_SENSOR`): the `SW_ARM` contact (`W`) is closed while the cup
@@ -208,6 +210,9 @@ the rail.
 5. Aim at a middle pitch: `{"id":4,"cmd":"aim","deg":30}`. After every shift into LAUNCH the aim is unknown, so it
    first turns backward until `SW_RAIL_LOW` closes (home), then goes to 30. That can take up to about half a minute:
    one aim cycle is 10 wiper turns. Wait for the `AIMED` event with `"ok":true`.
+   At the end the wiper may turn FORWARD slowly for a moment: the backward aim run can drag the big gear back out of
+   its gap (`G` opens), and the gap run closes it again before `AIMED`. `BAD_STATE` "SW_GAP did not close in the forward
+   gap run" means check the `SW_GAP` contact.
 6. Read the phone. Say it shows 33.4. Send `{"id":5,"cmd":"cal","what":"aim","deg":33.4}`. This sets `aim_offset` so
    the reported pitch matches the phone.
 7. Check at 3 pitches: aim at a low, middle and high pitch inside the range (for example 15, 30, 42). At each, compare
@@ -237,12 +242,13 @@ firmware assumes (`aim_home_deg`, the aim-train angle where `SW_RAIL_LOW` closes
 
 **Do not tow before `free_a` (section d), `k_n_per_a` and `tension_offset_n` are calibrated.** Without a load cell
 the firmware stops a tow on its tension ESTIMATE, not on a measured force. With the defaults on an uncalibrated base
-the PC system test reached 61 N against a 40 N limit. The current trip (6.5 A) is only a backstop.
+the PC system test reached 61 N against a 40 N limit. The current trip (5 to 6.7 A, set from `max_n`) is only a backstop.
 
 ### `k_n_per_a` and `tension_offset_n` (used without a load cell)
 
-The estimate is: line N = `k_n_per_a` x (`amps` - `free_a`) + `tension_offset_n`. Defaults 17.0 and -10.4 (physics
-v1.2, clutch FIRM 5 N). Pulls against a luggage scale at three loads give both numbers (this matches MEASURE_LIST G9).
+The estimate is: line N = `k_n_per_a` x (`amps` - `free_a`) + `tension_offset_n`. Defaults 14.8 and -2.6 (D43). Since D43 these constants give the DART-side line tension (the tow limit is
+the tension at the dart); the luggage scale at the line end measures exactly that side, so fit them straight from the
+scale. Pulls against a luggage scale at three loads give both numbers (this matches MEASURE_LIST G9).
 Do not use jogs for this: a jog trips at 3 A, about 15 N.
 
 You need a luggage scale and a solid post. Do (b) and (d) first and do not change `free_a` afterwards. If a load cell
@@ -270,9 +276,9 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
    Check the middle load: N2 should be close to new `k_n_per_a` x (I2 - `free_a`) + new `tension_offset_n`. If it is
    off by more than 3 N, repeat the pulls.
 
-   Example with `free_a` 1.5: N1 10 at I1 2.7, N3 30 at I3 3.9. k = 20 / 1.2 = 16.7. Offset = 10 - 16.7 x 1.2 = -10.0.
-6. Set them: `{"id":5,"cmd":"set","key":"k_n_per_a","val":16.7}` and
-   `{"id":6,"cmd":"set","key":"tension_offset_n","val":-10.0}` (your numbers; the offset range is -50 to 50). Both are
+   Example with `free_a` 1.5: N1 10 at I1 2.35, N3 30 at I3 3.7. k = 20 / 1.35 = 14.8. Offset = 10 - 14.8 x 0.85 = -2.6.
+6. Set them: `{"id":5,"cmd":"set","key":"k_n_per_a","val":14.8}` and
+   `{"id":6,"cmd":"set","key":"tension_offset_n","val":-2.6}` (your numbers; the offset range is -50 to 50). Both are
    saved in flash.
 7. To release the line: unhook the scale from the post by hand, slowly (30 N is about 3 kg: hold it firmly). The
    capstan never turns back (sprag #2).
@@ -283,8 +289,8 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
 A `FAULT` `OVERCURRENT` "wiper over 5.0 A" during a pull means the load went too high or the line jammed: `clear`
 and use lower loads. In the tow itself the trip is the current `max_n` needs plus 1 A, at least 5 A (D34; the
 old `tow_trip_a` setting is no longer used). These constants cannot be set while a motor runs or the reel holds
-(`BUSY`): `stop` first. On a very stiff, short line a full-speed tow can overshoot a low limit by about half; for
-low limits tow on a long line or at a lower duty.
+(`BUSY`): `stop` first. On a very stiff line the tow now starts slow; residual overshoot in the simulation was under
+10 percent of a 40 N limit at 3000 N/m.
 
 ### HX711 load cell (only if fitted)
 
@@ -305,7 +311,7 @@ carriage or the rail.
 2. Plug the battery in. `{"id":1,"cmd":"mode","to":"LAUNCH"}`. Check `H` and `G` are in telemetry `sw`.
 3. On a new build: `{"id":2,"cmd":"cal","what":"cock_rest"}`.
 4. `cock` needs the dart seated. For this check without a dart send
-   `{"id":3,"cmd":"set","key":"require_seated","val":false}`. **Set it back to true at the end** (it is saved in
+   `{"id":3,"cmd":"set","key":"require_seated","val":false}`. **Set it back to true at the end** (it also comes back on by itself at the next start-up; it is saved in
    flash).
 5. Aim first: `{"id":4,"cmd":"aim","deg":30}` and wait for `AIMED`. (After a shift into LAUNCH only an aim run tells
    the firmware where the dogs sit. Cocking straight after a shift can fault with `BAD_STATE` "carriage not drawn".)
@@ -315,13 +321,21 @@ carriage or the rail.
      (a) step 4 (`enc_sign`) and this step.
    - `H` must disappear almost at once: the first tooth takes the rack a few degrees after rest. If it opens too far
      from there you get `FAULT` `SWITCH_DISAGREE` "SW_HOME opened at the wrong angle": the contact sits in the wrong
-     place, or the number in `config.h` needs changing (tell the firmware author).
+     place, the dog window is much wider than 16 deg (measure it), or the number in `config.h` needs changing (tell
+     the firmware author).
    - `cock` rises to 1 and a `COCKED` event comes. `H` stays open.
 7. Look: the carriage is drawn back and the last tooth still holds it, with clear margin before the relieved tooth. If
    it stops too early or too late, write down how many degrees and tell the firmware author (`cockEndDeg` in
    `config.h`; it is not a `set` key).
 8. Let it down without firing: `{"id":6,"cmd":"decock"}` (the same as `cal decock`). The wiper runs BACKWARD slowly
    and the spring unwinds under the worm until `H` and `G` are both closed. A `RESET` event with `"how":"decock"`
-   comes. This also turns the aim train, so the aim is unknown afterwards (the next `aim` homes again). `FAULT`
-   `BAD_STATE` "decock: SW_GAP never closed" means `H` closed but `G` did not: check the `SW_GAP` contact.
+   comes. This also turns the aim train, so the aim is unknown afterwards (the next `aim` homes again). The decock trips at
+   3 A (D40). `FAULT` `BAD_STATE` "decock: SW_GAP never closed" means `H` closed but `G` did not: check the `SW_GAP`
+   contact.
+
+   If a decock fails: `clear`, `{"id":8,"cmd":"mode","to":"LAUNCH"}`, then `decock` again (backward at 3 A until `H`
+   and `G` close). `SWITCH_DISAGREE` while the carriage is visibly drawn: `{"id":9,"cmd":"decock","force":true}`
+   (decock by travel). If the decock faults again there is no powered way out (a backward jog is `NOT_AT_REST`, and
+   `fire` needs `COCKED`, the dart seated, an aim and a token): battery unplugged, unload the springs by hand as the
+   build guide says, then `{"id":10,"cmd":"cal","what":"cock_rest"}`, then `aim`.
 9. `{"id":7,"cmd":"set","key":"require_seated","val":true}`.

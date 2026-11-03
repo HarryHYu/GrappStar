@@ -384,7 +384,7 @@ class App:
     def act_set(self, key: str, val: Any) -> dict:
         """Mission settings from the page only (review r2_H #1): drag_n, tow_limit_n (max 70 N, D39), check_n,
         retrieve_limit_n. Base tuning and calibration stay on the CLI (python3 -m grappstar base cmd ...)."""
-        limits = {"tow_limit_n": (1, 70), "check_n": (1, 70), "retrieve_limit_n": (1, 70)}
+        limits = {"tow_limit_n": (1, 60), "check_n": (1, 60), "retrieve_limit_n": (1, 60)}   # dart-side cap (D43)
         if key not in ("drag_n",) + tuple(limits):
             return {"ok": False, "msg": f"unknown setting {key} (base settings: use the CLI)"}
         if self._busy() and key != "tow_limit_n":

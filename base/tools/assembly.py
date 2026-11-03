@@ -184,8 +184,7 @@ class Assembly:
             mod = self.modules[sub]
             fn = getattr(mod, "line_path", None)
             if fn is not None and list(inspect.signature(fn).parameters)[:2] == ["P", "S"]:
-                for p in fn(self.P, S) or []:
-                    p = [float(v) for v in p]
+                for p in _points(fn(self.P, S)):
                     if not pts or max(abs(a - b) for a, b in zip(p, pts[-1])) > 1e-6:
                         pts.append(p)
         return pts
@@ -234,6 +233,25 @@ class Assembly:
             out[n] = lst[:1] if all(m == lst[0] for m in lst) else lst
         return dict(t=[S.get("t", i) for i, S in enumerate(states)], phase=[S.get("phase", "") for S in states],
                     states=[{k: v for k, v in S.items() if _jsonable(v)} for S in states], parts=out)
+
+
+def _points(obj):
+    """Flatten a line_path result into [x, y, z] points: accepts a list of points, an (N, 3) array, or nested
+    lists / tuples of those (non-numeric members such as name sets are ignored)."""
+    if obj is None or isinstance(obj, (str, set, frozenset, dict)):
+        return []
+    a = None
+    try:
+        a = np.asarray(obj, dtype=float)
+    except (TypeError, ValueError):
+        pass
+    if a is not None and a.ndim >= 1 and a.shape[-1] == 3 and a.size:
+        return [list(map(float, r)) for r in a.reshape(-1, 3)]
+    out = []
+    if isinstance(obj, (list, tuple)):
+        for x in obj:
+            out += _points(x)
+    return out
 
 
 def _np_default(o):

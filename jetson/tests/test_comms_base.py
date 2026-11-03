@@ -836,7 +836,9 @@ def test_d35_sequence_mock_matches_basesim():
         def sim_real(what):
             real.transport.sim("anchor 7.5" if what == "anchor" else "free")
         ev_real, tel_real = _d35_script(real, CMP_SPEED, sim_real)
-        assert real.cmd("ping")["fw"] == FW
+        # compare major.minor only: the real firmware moves on in patch releases (base-1.2.1 ...)
+        mm = lambda v: ".".join(str(v).split(".")[:2])
+        assert mm(real.cmd("ping")["fw"]) == mm(FW)
     finally:
         real.close()
     mb, c = connected_pair(time_scale=CMP_SPEED, drum_at="LAUNCH")

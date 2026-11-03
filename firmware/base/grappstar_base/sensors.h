@@ -58,7 +58,7 @@ enum { AS_MH = 0x08, AS_ML = 0x10, AS_MD = 0x20 };
 struct AngleTracker {
   int sign = +1;                // +1 if the raw count rises while the wiper runs dir +1 (CALIBRATION.md step a)
   float maxStepDeg = 4;         // per tick (5 ms): 4 deg in 5 ms = 133 rpm, about 3 x the wiper free speed
-  int missLimit = 4;            // this many bad reads in a row = sensor lost
+  int missLimit = 10;           // this many bad reads in a row (50 ms) = sensor lost (the step allowance grows meanwhile)
   int32_t count = 0;            // multi-turn, 4096 per output turn, sign applied
   int lastRaw = 0; bool have = false, ok = false; int miss = 0, glitchRun = 0;
   uint32_t sinceMs = 0;          // time since the last counted sample (missed reads and rejected glitches add up)
@@ -79,7 +79,11 @@ struct AngleTracker {
     }
     miss = 0;
     if (!have) count = sign > 0 ? (raw & 4095) : (4096 - (raw & 4095)) % 4096;   // first reading: count lined up with the absolute angle
-    if (!have || !ok) {                                      // first reading or back after a loss: take it as is
+    if (!have || !ok) {                                      // first reading or back after a loss
+      if (have) {                                            // back after a loss: keep the count lined up with the raw angle,
+        int dj = (raw & 4095) - lastRaw; if (dj > 2047) dj -= 4096; if (dj < -2048) dj += 4096;   // flag the step as uncounted travel
+        count += dj * sign; if (dj > 8 || dj < -8) resyncs++;   // a few counts of noise are not travel
+      }
       lastRaw = raw & 4095; have = true; ok = true; glitchRun = 0; rateRef = count; rateAcc = 0; sinceMs = 0; return;
     }
     int d = (raw & 4095) - lastRaw;
@@ -91,7 +95,7 @@ struct AngleTracker {
     if (stepDeg > allow) {                                   // glitch: ignore, unless it persists (then resync, uncounted)
       glitches++;
       if (++glitchRun < 3) return;
-      lastRaw = raw & 4095; glitchRun = 0; sinceMs = 0; resyncs++; return;
+      count += d * sign; lastRaw = raw & 4095; glitchRun = 0; sinceMs = 0; resyncs++; return;   // keep the alignment, flag it
     }
     glitchRun = 0; sinceMs = 0;
     lastRaw = raw & 4095;

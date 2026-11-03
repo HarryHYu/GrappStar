@@ -7,18 +7,22 @@ agreed it is real but rated it lower.
 
 Confirmed: 8. Refuted and dropped: 0.
 
-| # | Sev | File:line | Owner | Finding |
-|---|---|---|---|---|
-| 1 | high | `jetson/grappstar/analysis.py:71` | jetson | Landing slope uses the dart's Euler roll (spin about its own nose), so the anchor GO/NO_GO verdict depends on an arbitrary angle, not on ground tilt |
-| 2 | medium | `jetson/grappstar/ballistics.py:130` | jetson | Solver uses the low arc by default, but D29 / params AIM.solver require the higher pitch when two solutions exist |
-| 3 | medium | `jetson/grappstar/mission.py:71` | jetson | Default payout drag 0.75 N reads the wrong C3 column: the real launch clutch is LIGHT 0.5 N, so shots land 0.2 to 0.4 m long |
-| 4 | medium | `jetson/grappstar/video/camera.py:229` | jetson | Dart video ring drops the launch and flight frames before the post-flight analysis reads them (400 MB cap holds about 13.5 s; landing wait can take longer) |
-| 5 | medium | `jetson/tests/test_campose.py:122` | jetson | Camera lateral offset is dropped and the test does not check it: params camera y=-50 mm vs rail y about 140 mm gives a constant 0.19 m side miss |
-| 6 | medium | `jetson/tests/test_flight.py:47` | jetson | Flight tests only cover a 9-11 m/s, 25-45 deg sim launcher with a 30% range tolerance. Video-only range at the real launcher's speed is 24-79% too long and nothing catches it |
-| 7 | low | `jetson/tests/test_ballistics.py:24` | jetson | Line payout check `line_out_m >= r` passes when sag and margin are removed |
-| 8 | low | `jetson/tests/test_ballistics.py:52` | jetson | Ballistics tests never use a C3 table whose rows extend past pitch_min/pitch_max, so the pitch-window clamp is untested and removing it still passes |
+Re-checked 14:10 Sydney against base-v1 863d58d, one checker subagent per finding: see the Now column.
+
+| # | Sev | File:line | Owner | Finding | Now (863d58d) |
+|---|---|---|---|---|---|
+| 1 | high | `jetson/grappstar/analysis.py:71` | jetson | Landing slope uses the dart's Euler roll (spin about its own nose), so the anchor GO/NO_GO verdict depends on an arbitrary angle, not on ground tilt | fixed |
+| 2 | medium | `jetson/grappstar/ballistics.py:130` | jetson | Solver uses the low arc by default, but D29 / params AIM.solver require the higher pitch when two solutions exist | fixed |
+| 3 | medium | `jetson/grappstar/mission.py:71` | jetson | Default payout drag 0.75 N reads the wrong C3 column: the real launch clutch is LIGHT 0.5 N, so shots land 0.2 to 0.4 m long | still open |
+| 4 | medium | `jetson/grappstar/video/camera.py:229` | jetson | Dart video ring drops the launch and flight frames before the post-flight analysis reads them (400 MB cap holds about 13.5 s; landing wait can take longer) | fixed |
+| 5 | medium | `jetson/tests/test_campose.py:122` | jetson | Camera lateral offset is dropped and the test does not check it: params camera y=-50 mm vs rail y about 140 mm gives a constant 0.19 m side miss | fixed |
+| 6 | medium | `jetson/tests/test_flight.py:47` | jetson | Flight tests only cover a 9-11 m/s, 25-45 deg sim launcher with a 30% range tolerance. Video-only range at the real launcher's speed is 24-79% too long and nothing catches it | partly fixed |
+| 7 | low | `jetson/tests/test_ballistics.py:24` | jetson | Line payout check `line_out_m >= r` passes when sag and margin are removed | fixed |
+| 8 | low | `jetson/tests/test_ballistics.py:52` | jetson | Ballistics tests never use a C3 table whose rows extend past pitch_min/pitch_max, so the pitch-window clamp is untested and removing it still passes | fixed |
 
 ## 1. Landing slope uses the dart's Euler roll (spin about its own nose), so the anchor GO/NO_GO verdict depends on an arbitrary angle, not on ground tilt
+
+- Now (863d58d): **fixed** at `jetson/grappstar/analysis.py:133-145 (rest_tilt defined at lines 22-62)`. analysis.py no longer passes the Euler roll. It now calls rest_tilt(), which takes the nose elevation from the resting gravity vector. That value does not depend on roll: it uses asin(f_b.x/|f_b|), or the quaternion R20 when no still accelerometer samples exist. It compares that elevation with the nearest expected flat-ground pose (0 or -60 deg) and passes the gap as imu_roll_deg, with imu_pitch_deg=0. Spin about the nose therefore no longer changes the slope or the GO/NO_GO verdict, and with no resting data the slope falls back to the texture estimate.
 
 - File: `jetson/grappstar/analysis.py:71`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -54,6 +58,8 @@ How the code runs:
 
 ## 2. Solver uses the low arc by default, but D29 / params AIM.solver require the higher pitch when two solutions exist
 
+- Now (863d58d): **fixed** at `jetson/grappstar/ballistics.py:146`. The solver now picks the higher pitch by default (PREFER_HIGH=True, `cands[0] if low else cands[-1]`, low defaults to False). The caller in mission.py:655 and both callers in app.py, which pass no flag, now get the high branch. I checked this on the current table at drag 0.5: solve(4.1, 0.5) returns 44.77 deg, and low=True returns 31.0 deg. The tests in tests/test_ballistics.py now expect the high branch by default, and they pass.
+
 - File: `jetson/grappstar/ballistics.py:130`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: jetson
@@ -74,6 +80,8 @@ Fix: Make the high branch the default: `p, t, apex, v = cands[0] if low else can
 >
 
 ## 3. Default payout drag 0.75 N reads the wrong C3 column: the real launch clutch is LIGHT 0.5 N, so shots land 0.2 to 0.4 m long
+
+- Now (863d58d): **still open** at `jetson/grappstar/cli.py:301 (with cli.py:46)`. The library defaults are now 0.5 N: MissionConfig.drag_n at mission.py:75, and LIGHT_DRAG_N = 0.5 at ballistics.py:31, which solve() and at_pitch() use. But the real run path doesn't use those defaults. `serve --drag` still defaults to 0.75 (cli.py:301) and cmd_serve always does `cfg.mission.drag_n = a.drag` (cli.py:46). On top of that, jetson/settings.example.json:11 ships "drag": 0.75 and `solve --drag` defaults to 0.75 (cli.py:354), so a normal shipped-defaults run still solves at 0.75 N and lands long.
 
 - File: `jetson/grappstar/mission.py:71`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
@@ -110,6 +118,8 @@ Fix: Set the default to 0.5 N (the LIGHT clutch, D24) in MissionConfig.drag_n (m
 
 ## 4. Dart video ring drops the launch and flight frames before the post-flight analysis reads them (400 MB cap holds about 13.5 s; landing wait can take longer)
 
+- Now (863d58d): **fixed** at `jetson/grappstar/video/camera.py:306-337 (hold pins frames, f.t >= t_fire - pre_s); mission.py:815-816 (c.hold at fire), mission.py:334-336 (release_hold)`. At fire time, Mission now calls cam.hold(time.time() - pre_s). From then on _trim_locked never drops held frames: when they pass the RAM cap it JPEG-packs them instead, and buffer() unpacks them, so landing_zone still gets the launch frames after the landing wait and an operator prompt with no timeout. The auto cap also follows buffer_s x fps (min 400 MB, max 1200 MB), and the hold tests pass. Frames can still be lost only after the 300 s hold timeout or once the packed frames pass 400 MB (about 3 min), so an operator who waits several minutes would still lose them.
+
 - File: `jetson/grappstar/video/camera.py:229`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: jetson
@@ -132,6 +142,8 @@ When the frames are read: landing_zone() (mission.py:65
 >
 
 ## 5. Camera lateral offset is dropped and the test does not check it: params camera y=-50 mm vs rail y about 140 mm gives a constant 0.19 m side miss
+
+- Now (863d58d): **fixed** at `jetson/grappstar/campose.py:143`. camera_model now sets lateral_offset_m = y_m - rail_y_m (-0.19 m for the v1 params, campose.py:136-146). app._set_target (app.py:390-393) uses target_info_pivot/pivot_target, which applies both the lateral and the forward offset to range and bearing, so the bearing is measured from the launch line. New tests in jetson/tests/test_campose.py:55-98 assert lateral_offset_m == -0.19 and a pivot bearing of about 2.6 deg right, so the y_m mutation would now fail; all 10 tests in test_campose.py pass.
 
 - File: `jetson/tests/test_campose.py:122`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -156,6 +168,8 @@ Fix: In campose.camera_model, store m.lateral_offset_m = pose['y_m'] - rail_y_m,
 >
 
 ## 6. Flight tests only cover a 9-11 m/s, 25-45 deg sim launcher with a 30% range tolerance. Video-only range at the real launcher's speed is 24-79% too long and nothing catches it
+
+- Now (863d58d): **partly fixed** at `jetson/tests/test_flight.py:285 (fuse_speed in jetson/grappstar/vision/flight.py:367); new real-speed tests at jetson/tests/test_flight.py:216-273`. Mostly fixed. analyze_flight now takes the C3 table as a speed prior and calibrates range against it, and run_post_flight loads the repo table automatically. New tests cover pitch 8/20/40 at 6 to 8 m/s with a 15% tolerance, plus the review's own pitch-10, 7.7 m/s case, and all 17 pass. What remains: fuse_speed with only a flight time (no table prior, no track) still inflates v0 when impact is seen late. test_fuse_speed_recovers_model_speed fails at line 285 (v2=8.12 against true 6.0 with impact +0.08 s late). Also, mission.py:945 still does not pass aim_pitch_deg, and tell_line_out (mission.py:968) still uses video-only range without checking the source.
 
 - File: `jetson/tests/test_flight.py:47`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -191,6 +205,8 @@ The video-only path really hap
 
 ## 7. Line payout check `line_out_m >= r` passes when sag and margin are removed
 
+- Now (863d58d): **fixed** at `jetson/tests/test_ballistics.py:25`. The test now computes the expected value, `line_out_m == approx((r + sag) * 1.10, abs=0.02)`, and adds a `line_margin=1.0` case that expects `r + sag`. So the mutation to `range_m + 0.01`, which drops the margin, fails at line 26.
+
 - File: `jetson/tests/test_ballistics.py:24`
 - Severity: low (claimed low); unverified (low)
 - Owner: jetson
@@ -203,6 +219,8 @@ Fix: Assert the value: `assert s.line_out_m == pytest.approx(round((r + 8*(s.ape
 
 
 ## 8. Ballistics tests never use a C3 table whose rows extend past pitch_min/pitch_max, so the pitch-window clamp is untested and removing it still passes
+
+- Now (863d58d): **fixed** at `jetson/tests/test_ballistics.py:71`. I did not run the mutation. I checked it by reading the code: the new test_pitch_window_clamp uses a table with rows at 10/20/35/45 and pitch_min=20, pitch_max=35. It asserts that solve(8.6) and solve(5.0) are unreachable with range_max_m=8.0 and range_min_m=6.0, so removing the ok_idx clamp would make it fail. test_real_table_whole_window_and_high_pitch (line 50) now also solves against the shipped REPO_TABLE, though it skips if that file is missing.
 
 - File: `jetson/tests/test_ballistics.py:52`
 - Severity: low (claimed medium); 1 of 2 skeptics confirmed

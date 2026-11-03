@@ -177,3 +177,11 @@ def test_gap_screw_end_below_gear_web(parts):
         p = parts[n]
         hi = prim.bbox(prim.place(p.solid, p.place))[1]
         assert hi[1] <= y_web - 0.4, n
+
+
+def test_gap_screw_and_jam_clear_of_gear_all_angles(asm):
+    for gd in np.arange(-360.0, 0.01, 10.0):
+        S = dict(aim_deg=6.0, cock=0.0, launch_gear_deg=float(gd))
+        g = _posed(asm, "launch_big_gear", S)
+        for n in ("sensors_sw_gap_screw", "sensors_sw_gap_jam", "sensors_sw_gap"):
+            assert _ov(_posed(asm, n, S), g) < TOL, (n, gd)

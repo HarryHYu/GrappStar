@@ -7,19 +7,23 @@ agreed it is real but rated it lower.
 
 Confirmed: 9. Refuted and dropped: 0.
 
-| # | Sev | File:line | Owner | Finding |
-|---|---|---|---|---|
-| 1 | high | `base/out/ballistics.json:1` | physics | Contract C3 ballistics.json is stale: built from params v0.1-stub (280 mm full cock, 245 mm stroke); ranges about 0.37 m too long at the best pitch |
-| 2 | high | `base/physics/spec_bridge.py:38` | physics | Capstan ratio inverted: spec capstan_ratio (capstan turns per wiper turn, 2.27) is loaded into a field the code uses as wiper turns per capstan turn; tow torque, tow current trip, reel speed, drum/key/gear checks off by 5.2x |
-| 3 | high | `base/physics/test_phys_capstan.py:69` | physics | Tow tests run only on Params() defaults, so they miss the inverted capstan ratio from the spec bridge: tow torque comes out 0.53 N m instead of about 2.3 N m |
-| 4 | medium | `base/physics/flight.py:43` | physics | range_m is measured from a fixed muzzle point 0.10 m ahead of the eye, not from the rail-pivot ground point that D29 requires; muzzle height ignores pitch |
-| 5 | medium | `base/physics/spec_bridge.py:19` | physics | Spring preload from spec v1.2 is never read: every launcher/cock model runs at 276.2 mm full cock instead of 265 mm (over the D30 cap) |
-| 6 | medium | `base/physics/spec_bridge.py:19` | physics | spec_bridge drops the v1.2 spring preload, carriage mass and the whole storage-reel geometry, so the C3 table is about 0.4 m (8 percent) too long |
-| 7 | medium | `base/physics/spec_bridge.py:19` | physics | No test loads the v1.2 spec, so the unmapped spring_preload key goes unnoticed: preload stays at 35 mm and the spring is drawn to 276 mm, past the 265 mm cap |
-| 8 | medium | `base/physics/test_phys_ballistics.py:5` | physics | Committed ballistics.json (contract C3) is stale, built from params v0.1-stub, and no test compares it with the current model |
-| 9 | low | `base/physics/test_phys_launch.py:45` | physics | No test pins the section 11 launch numbers (13 J, 7.5 m/s, 4.5 m at 35 deg): the launch tests only check the model against itself |
+Re-checked 14:10 Sydney against base-v1 863d58d, one checker subagent per finding: see the Now column.
+
+| # | Sev | File:line | Owner | Finding | Now (863d58d) |
+|---|---|---|---|---|---|
+| 1 | high | `base/out/ballistics.json:1` | physics | Contract C3 ballistics.json is stale: built from params v0.1-stub (280 mm full cock, 245 mm stroke); ranges about 0.37 m too long at the best pitch | fixed |
+| 2 | high | `base/physics/spec_bridge.py:38` | physics | Capstan ratio inverted: spec capstan_ratio (capstan turns per wiper turn, 2.27) is loaded into a field the code uses as wiper turns per capstan turn; tow torque, tow current trip, reel speed, drum/key/gear checks off by 5.2x | fixed |
+| 3 | high | `base/physics/test_phys_capstan.py:69` | physics | Tow tests run only on Params() defaults, so they miss the inverted capstan ratio from the spec bridge: tow torque comes out 0.53 N m instead of about 2.3 N m | fixed |
+| 4 | medium | `base/physics/flight.py:43` | physics | range_m is measured from a fixed muzzle point 0.10 m ahead of the eye, not from the rail-pivot ground point that D29 requires; muzzle height ignores pitch | fixed |
+| 5 | medium | `base/physics/spec_bridge.py:19` | physics | Spring preload from spec v1.2 is never read: every launcher/cock model runs at 276.2 mm full cock instead of 265 mm (over the D30 cap) | fixed |
+| 6 | medium | `base/physics/spec_bridge.py:19` | physics | spec_bridge drops the v1.2 spring preload, carriage mass and the whole storage-reel geometry, so the C3 table is about 0.4 m (8 percent) too long | fixed |
+| 7 | medium | `base/physics/spec_bridge.py:19` | physics | No test loads the v1.2 spec, so the unmapped spring_preload key goes unnoticed: preload stays at 35 mm and the spring is drawn to 276 mm, past the 265 mm cap | fixed |
+| 8 | medium | `base/physics/test_phys_ballistics.py:5` | physics | Committed ballistics.json (contract C3) is stale, built from params v0.1-stub, and no test compares it with the current model | fixed |
+| 9 | low | `base/physics/test_phys_launch.py:45` | physics | No test pins the section 11 launch numbers (13 J, 7.5 m/s, 4.5 m at 35 deg): the launch tests only check the model against itself | partly fixed |
 
 ## 1. Contract C3 ballistics.json is stale: built from params v0.1-stub (280 mm full cock, 245 mm stroke); ranges about 0.37 m too long at the best pitch
+
+- Now (863d58d): **fixed** at `base/out/ballistics_meta.json:2`. ballistics.json/meta were regenerated from params v1.2.7 (stroke_m 0.2412, preload 23.8; 36 deg now v 6.944 m/s, range 4.187 m), the meta params_hash matches the current params_hash(load_params()), and test_phys_spec.py:80 now fails if they go stale. The prose numbers were not updated: BASE_SPEC.md:199 still says about 13 J / 7.5 m/s / 4.5 m, and FINDINGS.md:147 still says 13.1 J / 7.6 m/s / 4.9 m. The Jetson does not read those files.
 
 - File: `base/out/ballistics.json:1`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -40,6 +44,8 @@ Fix: After fixing the spring_preload mapping in spec_bridge.py, regenerate with 
 >
 
 ## 2. Capstan ratio inverted: spec capstan_ratio (capstan turns per wiper turn, 2.27) is loaded into a field the code uses as wiper turns per capstan turn; tow torque, tow current trip, reel speed, drum/key/gear checks off by 5.2x
+
+- Now (863d58d): **fixed** at `base/physics/spec_bridge.py:131-133`. spec_bridge now sets p.capstan['ratio'] = 1/REEL.capstan_ratio (0.44), maps REEL.capstan.d, and capstan.CAP_GEAR has z_driver=50 (its comment at capstan.py:40 still mentions the old 40T/24T train). test_phys_spec.py:36 and :44 check free line speed of about 0.21 m/s and a 50 N tow needing 2.3 to 3.8 N m, and they pass.
 
 - File: `base/physics/spec_bridge.py:38`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -71,6 +77,8 @@ Fix: In spec_bridge.py map the inverse: handle capstan_ratio explicitly, e.g. `i
 
 ## 3. Tow tests run only on Params() defaults, so they miss the inverted capstan ratio from the spec bridge: tow torque comes out 0.53 N m instead of about 2.3 N m
 
+- Now (863d58d): **fixed** at `base/physics/spec_bridge.py:132 and base/physics/test_phys_spec.py:36-51`. spec_bridge now sets p.capstan['ratio'] = 1/REEL.capstan_ratio (0.44). New tests built on load_params() check the ratio direction and the absolute tow numbers: torque between 2.3 and 3.8 N m, v_line between 0.10 and 0.20 m/s. All 8 tests pass. The model now gives 3.23 N m and 0.143 m/s. One small leftover: BASE_SPEC.md:200 still says "about 2.3 N m", which is now stale.
+
 - File: `base/physics/test_phys_capstan.py:69`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: physics
@@ -98,6 +106,8 @@ I ran it from base/physics. Wi
 
 ## 4. range_m is measured from a fixed muzzle point 0.10 m ahead of the eye, not from the rail-pivot ground point that D29 requires; muzzle height ignores pitch
 
+- Now (863d58d): **fixed** at `base/physics/flight.py:44-50,197`. flight.simulate now uses pivot geometry from the spec. The eye is at the rail pivot (0, pivot_h=0.315), and the muzzle moves with pitch: (release_u*cos - dart_w*sin, pivot_h + release_u*sin + dart_w*cos). range_m is measured from the pivot (origin_x=0, range_origin "pivot"), the ballistics docstring and meta now cite the pivot ground point, and out/ballistics_meta.json has been regenerated. A scratch run at 6 deg shows peak dart line pull of 0.73 N, against 1.56 N in the finding.
+
 - File: `base/physics/flight.py:43`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
 - Owner: physics
@@ -121,6 +131,8 @@ Fix: Give flight.simulate pivot-based geometry. Take the pivot height and the pi
 >
 
 ## 5. Spring preload from spec v1.2 is never read: every launcher/cock model runs at 276.2 mm full cock instead of 265 mm (over the D30 cap)
+
+- Now (863d58d): **fixed** at `base/physics/spec_bridge.py:24`. LAUNCH_MAP now maps "spring_preload" to launch.preload_ext (×1e-3). With spec v1.2 loaded, load_params() followed by launcher.launch() gives ext_full_mm 265.0 and over_safe False. The fallback default in common.py:310 is still 0.035 with its old D5 comment, but the spec overrides it, so the failure no longer happens.
 
 - File: `base/physics/spec_bridge.py:19`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
@@ -149,6 +161,8 @@ Fix: Add to LAUNCH_MAP in spec_bridge.py: "spring_preload": ("launch", "preload_
 
 ## 6. spec_bridge drops the v1.2 spring preload, carriage mass and the whole storage-reel geometry, so the C3 table is about 0.4 m (8 percent) too long
 
+- Now (863d58d): **fixed** at `base/physics/spec_bridge.py:24`. The spec bridge now maps spring_preload, carriage_mass_target_kg/_g, REEL.storage core/flange/width and clutch.LIGHT_line_n. With those, load_params() gives preload 0.0238, reel 50/72/22 mm, ext 265.0 mm, over_safe False and energy 12.08 J at 36 deg. ballistics_meta.json was rebuilt from v1.2.7 (stroke 0.2412) and test_phys_spec passes, including the stale-hash check. One small gap is left: ballistics.build() at line 46 still does not reject an over_safe launch.
+
 - File: `base/physics/spec_bridge.py:19`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
 - Owner: physics
@@ -174,6 +188,8 @@ What I confirmed in the code:
 
 ## 7. No test loads the v1.2 spec, so the unmapped spring_preload key goes unnoticed: preload stays at 35 mm and the spring is drawn to 276 mm, past the 265 mm cap
 
+- Now (863d58d): **fixed** at `base/physics/spec_bridge.py:24`. LAUNCH_MAP now maps "spring_preload" to launch.preload_ext (1e-3 scale). The new test_phys_spec.py loads the spec through common.load_params() and checks that preload equals spec spring_preload, that preload plus stroke equals SPRING.max_ext (265, within 0.5), and that launch at 36 deg is not over_safe (lines 54-74). All 8 tests pass.
+
 - File: `base/physics/spec_bridge.py:19`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
 - Owner: physics
@@ -196,6 +212,8 @@ I ran the code: load_params().launch gives preload_ext 0.035 with stroke 0.2412 
 >
 
 ## 8. Committed ballistics.json (contract C3) is stale, built from params v0.1-stub, and no test compares it with the current model
+
+- Now (863d58d): **fixed** at `base/physics/test_phys_spec.py:77`. The table has been regenerated. The meta now reads params_source "base/spec/params.py v1.2.7" with a params_hash and stroke 0.2412. A new test, test_committed_ballistics_not_stale, opens the committed ballistics.json and meta. It asserts the hash matches the current params and checks the 36 deg row's v_muzzle (rel 0.005) and range_m (rel 0.01) against the model. It passes on HEAD. The test does not call validate(doc) on the committed file, but that is minor.
 
 - File: `base/physics/test_phys_ballistics.py:5`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
@@ -224,6 +242,8 @@ What I confirmed:
 >
 
 ## 9. No test pins the section 11 launch numbers (13 J, 7.5 m/s, 4.5 m at 35 deg): the launch tests only check the model against itself
+
+- Now (863d58d): **partly fixed** at `base/physics/test_phys_spec.py:71`. There is now a new spec-anchored test, test_headline_launch_band, which checks 6.5 < v_muzzle < 7.8 at 36 deg on load_params(). The reviewer's mutation (carriage_mass set to 0.2) gives 5.98 m/s, so this test now catches it. What remains: no test checks stored energy (about 13 J, currently 12.08), the 35 deg range against the 4 to 5 m band (currently 4.18 m; test_committed_ballistics_not_stale only compares the table with the model itself), or the cocking peak of about 3 N m (test_phys_drivetrain.py:34 still re-derives the model's own formula).
 
 - File: `base/physics/test_phys_launch.py:45`
 - Severity: low (claimed medium); 2 of 2 skeptics confirmed

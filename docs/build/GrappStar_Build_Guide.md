@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 13:48 Sydney time from commit `edba4a7`.
+Built 2026-11-03 13:48 Sydney time from commit `222d812`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -1384,7 +1384,8 @@ Jetson, battery out), and in step 8 expect only the RC832 and ESP32 LEDs. Multim
    / EEP pad is NOT wired: the board holds it high by itself. Check no wire is on SLP, VM or VCC going to the ESP32.
 4. Battery unplugged. Meter on DC volts on the LiPo balance lead: each cell 3.7 to 4.2 V. Then check the bare
    leads before anything is on them: unscrew lead #2 from the BTS7960 (or check before you first screw it on), plug
-   the battery into the Y harness with the fuses in only for this check, meter the free ends of lead #2 and lead #1:
+   the battery into the Y harness with the fuses in only for this check (free lead ends kept apart, bare ends
+   taped over, uncover just enough to touch the probes), meter the free ends of lead #2 and lead #1:
    red probe on red, battery voltage, POSITIVE. Negative or zero: unplug and fix the harness. Unplug the battery,
    pull the fuses again, and connect lead #2 to the BTS7960 (red to B+). Then add one load at a time as below.
 5. Battery unplugged. Fit the 20 A fuse and the 2 A inline fuse. Plug the battery in. Meter on DC volts:

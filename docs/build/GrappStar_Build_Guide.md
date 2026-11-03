@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 14:48 Sydney time from commit `279d4a4`.
+Built 2026-11-03 15:08 Sydney time from commit `e493579`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -897,7 +897,7 @@ Wire 8: BMS P+ to power loop socket pin 1 (red, 22 AWG).
 
 **Step B2. Battery unplugged. Set the buck before it is wired in** (as in the run sheet step 6.2). With the LiPo
 unplugged, clip or solder the MP1584 IN+ / IN- to the fused side of XT60 lead #1 (red to IN+, black to IN-), nothing on
-the output, free ends insulated. Then plug the LiPo in, put the meter on DC volts across OUT+ and OUT-, turn the small
+the output, free ends insulated. Meter on beep: IN+ to IN- must not beep steadily (a short). Then plug the LiPo in, put the meter on DC volts across OUT+ and OUT-, turn the small
 brass screw until it reads **5.04 V**, and unplug the LiPo. Then fit the capacitor across OUT (long leg OUT+, striped
 leg OUT-; rated 10 V or more).
 
@@ -1930,12 +1930,12 @@ a power cycle and over a new upload of the same firmware version.
   firing is treated as a drawn spring: `cock` is refused (`LOADED_UNKNOWN`) until a `decock` (PROTOCOL.md section 9).
 - `stop`: wiper off now, drum stops. `estop`: the same, then the drum goes to NEUTRAL when that is safe (never with
   the wraps on).
-- Before every shift out of LAUNCH or REEL the wiper makes a small centering jog (8 deg) so the collar is not loaded.
+- Before every shift out of LAUNCH or REEL the wiper makes a small centering jog (6 deg) so the collar is not loaded.
   The collar contacts `SW_DOG_L` and `SW_DOG_R` are checked during every drum move.
 - Soft start: the wiper ramps up over 300 ms (inrush once blew a 10 A fuse). It always stops for 200 ms before it
   changes direction.
 - Current trips per job (each for 30 ms, ignored for 50 ms after a start): every backward run in LAUNCH (aim, decock,
-  backward and centering jogs) 3 A, reel in 5 A, cock and fire 6.5 A, tow 5 to 6.7 A set from `max_n` (at most 60 N, D43) (the tension
+  backward and centering jogs) 3 A, reel in 5 A, cock and fire 6.5 A, tow 5 to 6.9 A set from `max_n` (at most 55 N, D46) (the tension
   estimate is the real tow limit), take-up 2.5 A, jogs and fly-in 3 A; 17 A at any
   time. Stall: the shaft slower than 12 deg/s for 200 ms while driving.
 - AS5600 lost while the wiper runs, or its angle jumps so travel is lost: fault `ANGLE_SENSOR`. If the AS5600 is not reading, wiper actions and the drum
@@ -2262,7 +2262,8 @@ python3 -m grappstar base ping --base /dev/pts/5    # terminal 2, using the path
 ### 4. Plug in the base
 
 **Battery unplugged.** For this step the base runs from USB only: the Jetson's USB powers the DevKitC. Do not connect
-the 3S LiPo, the BTS7960 or the motors yet. Any time you change wiring, unplug the battery first.
+the 3S LiPo, the BTS7960 or the motors yet (if you are following the build guide, they are already wired: battery
+unplugged, just check the USB port). Any time you change wiring, unplug the battery first.
 
 Why this step matters: the base (ESP32-S3 DevKitC) and the dart (XIAO ESP32S3) show up on USB with the same ID,
 303a:1001. To tell them apart, the Jetson remembers the base's own USB serial number (each board has a different
@@ -2634,7 +2635,10 @@ Before the first real launch:
 - [ ] Clear area: nobody in front of the launcher or anywhere along the flight path or the line. Check behind the
       target too. Everyone knows the shout for stop.
 - [ ] Line attached at both ends (dart and reel) and laid so it cannot snag on the rover, feet or wires.
-- [ ] Tension limit set to a low value for the first runs (the base `set` key, or the page) and you know what it is.
+- [ ] Tow limit set, and you know what it is. The rule: the dart's hand-pull holding force (TEST_PLAN stage 8 step 2)
+      minus 10 N, never above 50 N (the firmware caps it at 55 N at the dart, D46). Set it in two places: the base
+      (`python3 -m grappstar base cmd '{"cmd": "set", "key": "limit_n", "val": 40}'`) and the Jetson (`settings.json` key `tow_limit`,
+      or `serve --tow-limit <N>`, or the page's "Tow limit N at the dart" field). The default 40 N is only a start.
 - [ ] Know the stop rule (the same in every GrappStar document):
       1. ESTOP or the page's STOP button.
       2. Pull lead #2's XT60 (motors off, the Jetson stays up).
@@ -2646,13 +2650,14 @@ Before the first real launch:
 - [ ] Antennas on the VTX and RC832 before power. Dart view clean on the page.
 - [ ] Dart status OK (`python3 -m grappstar dart status`), base ping OK, preflight all green.
 - [ ] Recording on, so you can replay it.
-- [ ] HARD PREREQUISITE before any tow: `free_a` and `k_n_per_a` calibrated (firmware/base/CALIBRATION.md steps (b)
-      and (e)) and `limit_n` set. Reason: without a load cell the tension limit is estimated from the wiper current;
+- [ ] HARD PREREQUISITE before any tow: `free_a` and `k_n_per_a` calibrated (firmware/base/CALIBRATION.md steps (d)
+      free running current and (f) tension) and `limit_n` set. Reason: without a load cell the tension limit is estimated from the wiper current;
       with factory constants a simulated tow reached 61 N against a 40 N limit. The mission refuses the TOW step
-      while `k_n_per_a` is still a factory value (8 or 17) and there is no load cell.
+      while `k_n_per_a` is still a firmware default (8, 17, 14.8 or 13.1) and there is no load cell.
 - [ ] Start with a short shot at low pitch.
-- [ ] The real launcher reaches only about 3 to 4.4 m (base/out/ballistics.json). The page says "not reachable"
-      for anything outside that: move the rover instead.
+- [ ] Know the launcher's reachable range: it comes from `base/out/ballistics.json` (copied in at build time;
+      `python3 -m grappstar solve <range>` answers for one range). The page says "not reachable" for anything
+      outside it: move the rover instead.
 
 ### 10. Troubleshooting
 
@@ -2844,7 +2849,10 @@ about 8 deg per second.
    until `n` disappears from `sw`, turn the hand lever until only `b` is closed, swing the N20 back and tighten the
    screw (`n` closed). Turning the drum while the board runs
    gives `FAULT` `DRUM_SENSOR` "drum code changed with the drum still": expected, send `{"id":3,"cmd":"clear"}` once
-   the drum is still (one `clear` is enough).
+   the drum is still (one `clear` is enough). When the N20 swings back into mesh the firmware checks the code against
+   the other contacts (at NEUTRAL: both dog contacts open and the cup at home, `W` absent); a mismatch is
+   `SWITCH_DISAGREE` "NEUTRAL code with a dog contact closed" or "... with the wrap cup away from home". The drum
+   angle is then a guess, so the next drum move first runs to a code edge and back (re-reference).
 5. Direction check. Motors on. Drum at NEUTRAL. Send a drum jog toward REEL (the longest jog, 1.5 s, is
    about 12 deg):
 
@@ -2894,8 +2902,9 @@ about 8 deg per second.
    inside the wrap window (`WRAPS_ON`) and a running drum jog stops when it enters it: only `wrap` and `unwrap` cross
    it.
 9. The wiper turns a little during these moves. Keep clear:
-   - leaving LAUNCH it first turns 8 deg BACKWARD (the centering jog) so the dogs carry no load;
-   - leaving REEL (start of `unwrap`) it first turns forward a little (up to 16 deg), then 8 deg back;
+   - leaving LAUNCH it first turns 6 deg BACKWARD (the centering jog, stopped early if the current rises) so the dogs
+     carry no load;
+   - leaving REEL (start of `unwrap`) it first turns forward a little (up to 16 deg), then 6 deg back;
    - entering REEL it creeps forward slowly from drum 318 deg until the dogs bite (`r` closes, or the current rises
      0.8 A); if `r` is still open at the park it winds in 5 deg at a time, stopping at an estimated 20 N (the fly-in);
    - entering LAUNCH, if `l` does not close, it turns BACKWARD slowly (up to 40 deg) until the dogs drop in;
@@ -2971,11 +2980,11 @@ firmware assumes (`aim_home_deg`, the aim-train angle where `SW_RAIL_LOW` closes
 
 **Do not tow before `free_a` (section d), `k_n_per_a` and `tension_offset_n` are calibrated.** Without a load cell
 the firmware stops a tow on its tension ESTIMATE, not on a measured force. With the defaults on an uncalibrated base
-the PC system test reached 61 N against a 40 N limit. The current trip (5 to 6.7 A, set from `max_n`) is only a backstop.
+the PC system test reached 61 N against a 40 N limit. The current trip (5 to 6.9 A, set from `max_n`) is only a backstop.
 
 #### `k_n_per_a` and `tension_offset_n` (used without a load cell)
 
-The estimate is: line N = `k_n_per_a` x (`amps` - `free_a`) + `tension_offset_n`. Defaults 14.8 and -2.6 (D43). Since D43 these constants give the DART-side line tension (the tow limit is
+The estimate is: line N = `k_n_per_a` x (`amps` - `free_a`) + `tension_offset_n`. Defaults 13.1 and -2.3 (D46). Since D43 these constants give the DART-side line tension (the tow limit is
 the tension at the dart); the luggage scale at the line end measures exactly that side, so fit them straight from the
 scale. Pulls against a luggage scale at three loads give both numbers (this matches MEASURE_LIST G9).
 Do not use jogs for this: a jog trips at 3 A, about 15 N.
@@ -2997,7 +3006,7 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
    monitor log shows the last lines), then send `{"id":4,"cmd":"stop"}`. The worm and sprag #2 hold the line. Write
    down the scale reading N1 and the current I1.
 4. Send the same `reel` line again and stop at about 20 N (N2, I2), then again at about 30 N (N3, I3). Keep every load
-   under 40 N: the reel-in trips at 5 A (about 49 N with the default constants) and stops at `limit_n` anyway.
+   under 40 N: the reel-in trips at 5 A (about 44 N with the default constants) and stops at `limit_n` anyway.
 5. Fit the numbers (use the lowest and the highest load):
    - new `k_n_per_a` = (N3 - N1) / (I3 - I1)
    - new `tension_offset_n` = N1 - new `k_n_per_a` x (I1 - `free_a`)
@@ -3005,9 +3014,9 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
    Check the middle load: N2 should be close to new `k_n_per_a` x (I2 - `free_a`) + new `tension_offset_n`. If it is
    off by more than 3 N, repeat the pulls.
 
-   Example with `free_a` 1.5: N1 10 at I1 2.35, N3 30 at I3 3.7. k = 20 / 1.35 = 14.8. Offset = 10 - 14.8 x 0.85 = -2.6.
-6. Set them: `{"id":5,"cmd":"set","key":"k_n_per_a","val":14.8}` and
-   `{"id":6,"cmd":"set","key":"tension_offset_n","val":-2.6}` (your numbers; the offset range is -50 to 50). Both are
+   Example with `free_a` 1.5: N1 10 at I1 2.44, N3 30 at I3 3.97. k = 20 / 1.53 = 13.1. Offset = 10 - 13.1 x 0.94 = -2.3.
+6. Set them: `{"id":5,"cmd":"set","key":"k_n_per_a","val":13.1}` and
+   `{"id":6,"cmd":"set","key":"tension_offset_n","val":-2.3}` (your numbers; the offset range is -50 to 50). Both are
    saved in flash.
 7. To release the line: unhook the scale from the post by hand, slowly (30 N is about 3 kg: hold it firmly). The
    capstan never turns back (sprag #2).
@@ -3274,7 +3283,8 @@ Reverse pause:
    "drum code jumped over a sector"). Move the GPIO11 jumper to GPIO10 (code `a` = LAUNCH), and add jumpers from
    GPIO13 (`SW_DOG_L`, collar in LAUNCH), GPIO21 (`SW_HOME`) and GPIO39 (`SW_GAP`) to GND. Keep GPIO47.
 2. Battery unplugged. Plug USB in. The `BOOT` line says `"drum_moved":true` (the saved angle was NEUTRAL); that is
-   expected and not a fault. Telemetry: `"mode":"LAUNCH"`,
+   expected and not a fault (without the GPIO13 jumper the boot cross-check gives `SWITCH_DISAGREE` "LAUNCH code
+   without SW_DOG_L" instead). Telemetry: `"mode":"LAUNCH"`,
    `"drum_pos":"LAUNCH"`, `sw` with `a`, `l`, `n`, `H`, `G`.
 3. Plug the battery in. Declare the launcher at rest: `{"id":13,"cmd":"cal","what":"cock_rest"}` (it needs `H` and
    `G` closed).
@@ -3644,7 +3654,7 @@ and wiper numbers and re-run the physics, they update.
 
 ### Base station physics: summary
 
-Params: base/spec/params.py v1.3.1. Generated by base/physics/summary.py.
+Params: base/spec/params.py v1.3.2. Generated by base/physics/summary.py.
 
 #### Spring (each, A228, SF 1.2 on Shigley static limits)
 
@@ -3696,12 +3706,12 @@ Params: base/spec/params.py v1.3.1. Generated by base/physics/summary.py.
 
 | Item | Value |
 |---|---|
-| Wraps for tow limit at the capstan (57 N, mu 0.15) | 2.6 raw, 4 design |
-| Take-up needed for the tow at the actual wraps (7) | 0.08 N |
-| Tow at limit: torque, speed, current | 3.23 N m, 0.143 m/s, 5.06 A |
-| Wiper at limiter (5 N m), 12.6 V: torque, current, line pull | 5.0 N m, 7.0 A, 80 N (break 667 N) |
-| Wiper motor stall (no limiter), 12.6 V: torque, current, line pull | 14.1 N m, 17.0 A, 227 N |
-| Tow sensing at the dart: N per wiper amp above free | dart = 14.8 x (I - I_free) - 2.6 N (capstan side x1.15) |
+| Wraps for tow limit at the capstan (65 N, mu 0.15) | 2.7 raw, 5 design |
+| Take-up needed for the tow at the actual wraps (7) | 0.09 N |
+| Tow at limit: torque, speed, current | 3.64 N m, 0.137 m/s, 5.50 A |
+| Wiper at limiter (5 N m), 12.6 V: torque, current, line pull | 5.0 N m, 7.0 A, 71 N (break 667 N) |
+| Wiper motor stall (no limiter), 12.6 V: torque, current, line pull | 14.1 N m, 17.0 A, 201 N |
+| Tow sensing at the dart: N per wiper amp above free | dart = 13.1 x (I - I_free) - 2.3 N (capstan side x1.3) |
 
 #### Drivetrain (wiper at 11.1 V with sag)
 
@@ -3710,7 +3720,7 @@ Params: base/spec/params.py v1.3.1. Generated by base/physics/summary.py.
 | aim: peak torque, current, time | 0.33 N m, 1.9 A, 7 s |
 | cock: peak torque, current, time | 2.93 N m, 4.7 A, 3 s |
 | reel: peak torque, current, time | 0.43 N m, 2.0 A, 107 s |
-| tow: peak torque, current, time | 3.23 N m, 5.1 A, 35 s |
+| tow: peak torque, current, time | 3.64 N m, 5.5 A, 37 s |
 
 #### To measure (then edit base/spec/params.py and run ./run_all.sh)
 
@@ -3913,7 +3923,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 ## Numbers still assumed in params.py right now
 
 
-params.py version: `1.3.2`.
+params.py version: `1.3.4`.
 
 | params.py name | State | Who fixes it |
 |---|---|---|

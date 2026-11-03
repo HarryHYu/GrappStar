@@ -131,12 +131,16 @@ NEUTRAL; a boot inside WRAP stops and reports; REEL jogs forward only.
 
 ## 8. Launcher and aim (binding; params.LAUNCH, params.AIM)
 
-Coaxial launch sleeve with an integral key rib (D13). Drive gear 26T m2.5 on sprag #1, big gear 40T m2.5 (33 teeth,
-v10 relieved last tooth) on the rail at 82.6 from the pivot: 1.538 wiper turns per shot. Springs 1:1, preload 35,
-stroke 245, 280 at full cock, fallback hole set at preload 5, provision for a second pair (D5). Compliant stop at
-least 15 mm under 300 N (D6). Aim: swing-arm splitter on backward turns, self-locking worm, crank-rocker 6 to 47 deg
-(cad-launch may extend the minimum down to about -10 for retrieval), 10 wiper turns per crank cycle, aim only at
-HOME. Retrieval funnel and lip roller at the muzzle; never fire without the tether (D11).
+Coaxial launch sleeve with an integral key rib (D13), flange lugs and M3 screws to the dog ring (D37). Drive gear 26T
+m2.5 face 7 on sprag #1 (keyed to the outer race); big gear 40T m2.5 in two layers (a 27-tooth sector layer with the
+v10 relieved last tooth meshing the rack, a full 40T layer meshing the drive gear, D23) on the rail at 82.6 from the
+pivot: 553.8 wiper deg per shot (release at 432.7). Two Century C-243 springs 1:1 (D30, D38): stroke 240.9, preload
+23.8, 265 mm at full cock; fallback hole set F 8.5 mm rearward (256.5 mm). Carriage 85.8 g as built (target 70 g,
+D36); stop is a printed PLA flexure, about 19 mm travel, peak about 295 N (D26). Line guide behind the rail rear end on
+the dart axis (D36). Aim: swing-arm splitter on backward turns (printed drag pad and clips, PPA-CF gears, D40),
+self-locking worm, crank-rocker 6 to 47 deg, 10 wiper turns per crank cycle, aim only at HOME; every backward run in
+LAUNCH trips at 3 A. Rail down to 6 deg before the wrap (D45). Retrieval funnel and lip roller at the muzzle; never
+fire without the tether (D11).
 
 ## 9. Reel (binding; params.REEL)
 
@@ -159,7 +163,8 @@ the take-up (or after a wrap, on the capstan).
 De-cock: from a partial cock run backward until SW_HOME and SW_GAP close. Refusals: no fire unless LAUNCH, SW_HOME,
 SW_GAP, SW_SEATED and a valid token; aim only at HOME; no drum move unless the wiper is stopped; no leaving LAUNCH
 unless SW_HOME; wiper backward refused outside LAUNCH except the 8 deg unload jog (params DRUM). Current trips (D8): ignore 50 ms
-after a start; 5 A for 30 ms in aim, reel and tow; 6.5 A while cocking; tow at free current plus the 50 N equivalent
+after a start; 3 A for 30 ms on every backward run in LAUNCH (D40), 5 A in capstan reel-in, 6.5 A while cocking;
+tow limited by the dart-side tension estimate (D43, at most 60 N), with the hard trip above it at the 50 N equivalent
 averaged over 200 ms. Any fault: wiper off, drum to NEUTRAL, except when wraps are on, the spring is drawn, or the drum itself faulted:
 then the drum HOLDS (D27).
 

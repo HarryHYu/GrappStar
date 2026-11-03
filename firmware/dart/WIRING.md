@@ -94,9 +94,11 @@ unsure; trim at the end. Work in this order. Every step starts with the battery 
 **Step B1. Battery unplugged. Cells and BMS** (wires 1 to 8). Solder the plate tabs before the plates go in their
 recesses. The series link (wire 2) carries the full current: 22 AWG. Charge socket pins: 1 = B-, 2 = BM, 3 = B+.
 
-**Step B2. Set the buck before it is wired in** (as in the run sheet step 6.2). The MP1584 on its own: 3S LiPo on
-XT60 lead #1 to MP1584 IN+ / IN-, meter on DC volts across OUT+ and OUT-, turn the small brass screw until it reads
-**5.04 V**. Disconnect the LiPo. Then fit the capacitor across OUT (long leg OUT+, striped leg OUT-; rated 10 V or more).
+**Step B2. Battery unplugged. Set the buck before it is wired in** (as in the run sheet step 6.2). With the LiPo
+unplugged, clip or solder the MP1584 IN+ / IN- to the fused side of XT60 lead #1 (red to IN+, black to IN-), nothing on
+the output, free ends insulated. Then plug the LiPo in, put the meter on DC volts across OUT+ and OUT-, turn the small
+brass screw until it reads **5.04 V**, and unplug the LiPo. Then fit the capacitor across OUT (long leg OUT+, striped
+leg OUT-; rated 10 V or more).
 
 **Step B3. Battery unplugged. Motor rail** (wires 9 to 15). Power loop socket pin 2 to INA219 VIN+, the buck IN+ taps
 the same VIN+ pad, INA219 VIN- to DRV#1 VM, then DRV#1 VM to DRV#2 VM. Grounds: BMS P- to buck IN-, buck IN- to DRV#1 GND,

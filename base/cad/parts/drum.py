@@ -621,7 +621,10 @@ def fork(g, c):
     sleeve = cyl(g["rail_d"] / 2 + 4.0, sb + fs0, sb + fs1, rx, ry)
     if sb + fs0 < 57.0:        # necked to r 7.5 up to s 57 (cad-reel's bus gear c1 passes 0.2 from r 9), 45 deg step
         rn, rw = g["rail_d"] / 2 + 2.5, g["rail_d"] / 2 + 4.0
-        sleeve = prim.union([cyl(rn, sb + fs0, 57.0 + 0.01, rx, ry), prim.cyl(rn, rw - rn, rx, ry, 57.0, r2=rw),
+        # neck over s 33..57 only (c1 plane plus the stroke); full r 9 below it so the bed face is big enough
+        sleeve = prim.union([cyl(rw, sb + fs0, 33.0 - (rw - rn) + 0.01, rx, ry),
+                             prim.cyl(rw, rw - rn, rx, ry, 33.0 - (rw - rn), r2=rn),
+                             cyl(rn, 33.0 - 0.01, 57.0 + 0.01, rx, ry), prim.cyl(rn, rw - rn, rx, ry, 57.0, r2=rw),
                              cyl(rw, 57.0 + rw - rn - 0.01, sb + fs1, rx, ry)])
     dx, dy = drum_xy(g)
     ph = math.radians(g["phi_pin"])
@@ -1119,7 +1122,9 @@ def meshes(P):
     # the segment gear only has teeth over the WRAP zone (meshcheck reads Mesh.when when present)
     out[1].when = lambda S: c["seg_start"] - 2 <= drum_theta(S, c) <= c["seg_start"] + K.seg_span(c) + 2
     import os
-    if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "reel.py")):
+    # cross-owner meshes: tools.meshcheck fails on a part that is not loaded (an --only drum run), so they are
+    # declared only when DRUM_REEL_MESHES=1 (whole-base runs) until meshcheck skips missing parts
+    if os.environ.get("DRUM_REEL_MESHES") == "1":
         out += [
             Mesh("drum_coupler", "reel_bus", g["bus_m"], g["bus_z"], 46, face_a=g["bus_s"][1] - g["bus_s"][0],
                  frame_a=T(0, 0, g["bus_s"][0]), why="bus gear 50T to cad-reel c1 46T"),

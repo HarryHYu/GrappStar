@@ -18,7 +18,7 @@ const DEFAULT_STEPS = [   // used only until the first status arrives (status.mi
 ];
 // [key, label]; "seated" comes from the App (telemetry sw letter S)
 const BASE_FIELDS = [["state", "State"], ["mode", "Mode"], ["drum_pos", "Drum"], ["pitch_deg", "Pitch deg"],
-  ["cock", "Cock"], ["wraps", "Wraps"], ["line_m", "Line out m"], ["tension_n", "Tension N"], ["amps", "Current A"],
+  ["launcher", "Launcher"], ["phase", "Shot phase"], ["cock", "Cock"], ["wraps", "Wraps"], ["line_m", "Line out m"], ["tension_n", "Tension N"], ["amps", "Current A"],
   ["vbat", "Battery V"], ["seated", "Dart seated"], ["fault", "Fault"]];
 const DART_FIELDS = [["phase", "Phase"], ["seq", "Sequence"], ["rail_V", "Battery V"], ["current_mA", "Current mA"],
   ["armed", "Armed"], ["landed", "Landed"], ["event", "Last event"]];
@@ -633,6 +633,22 @@ function fitHeader() {
 addEventListener("resize", () => { fitHeader(); fitPrompt(); });
 fitHeader();
 
+// ---------------------------------------------------------------- launcher loaded banner (r3_M #1)
+function showLauncher(st) {
+  const L = (st && st.base && st.base.launcher) || "UNKNOWN";
+  const box = $("loaded");
+  if (!box) return;
+  if (L === "LOADED") {
+    $("loaded-text").textContent = "LAUNCHER LOADED: the spring is drawn. Hands off the rail. Decock before touching it.";
+    box.className = "banner danger";
+  } else if (L === "NOT_KNOWN_SAFE") {
+    $("loaded-text").textContent = "Launcher state NOT KNOWN SAFE (shot phase unknown). Treat it as loaded; Decock to make it safe.";
+    box.className = "banner warn";
+  } else {
+    box.className = "banner hidden";
+  }
+}
+
 // ---------------------------------------------------------------- polling with back-off
 let pollDelay = POLL_MS, wasLost = false;
 async function poll() {
@@ -642,7 +658,9 @@ async function poll() {
     const r = await fetch("/api/status", { signal: ac.signal, cache: "no-store" });
     if (r.status === 401) { location.reload(); return; }
     if (!r.ok) throw new Error("HTTP " + r.status);
-    render(await r.json());
+    const st = await r.json();
+    render(st);
+    showLauncher(st);
     pollDelay = POLL_MS;
     $("linklost").classList.add("hidden");
     if (wasLost) {

@@ -1,7 +1,7 @@
 import math
 
 from common import Params
-from retrieve import approach, snatch, wrap_loads
+from retrieve import APPROACH, approach, snatch, takeup_speed, wrap_loads
 
 
 def test_snatch_slower_than_taut():
@@ -23,3 +23,13 @@ def test_approach_need_hand():
     r = a["rows"][0]
     need = p.dart.mass * 9.81 * (math.sin(math.radians(5)) + 0.3 * math.cos(math.radians(5))) + 1.0
     assert math.isclose(r["need_n"], need, rel_tol=1e-9)
+
+
+def test_takeup_speed_uses_eye_gain():
+    p = Params()
+    t = takeup_speed(p)
+    g = APPROACH["eye_gain"]
+    assert t["eye_gain"] == g
+    for r in t["rows"]:
+        assert math.isclose(r["drag_at_reel_n"], r["drag_n"] * g, rel_tol=1e-12)
+        assert r["slips"] == (r["drag_n"] * g >= r["slip_tension_n"])

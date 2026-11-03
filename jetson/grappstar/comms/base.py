@@ -98,9 +98,10 @@ class SerialTransport:
         self._buf = b""
 
     def open(self) -> None:
-        """Open without resetting the board (review r2_J #11). pyserial asserts DTR and RTS when it opens a port, and
-        the ESP32-S3 USB-Serial-JTAG treats a DTR drop with RTS asserted as a reset request. So create the Serial
-        unopened, set both lines low first (RTS before DTR, so EN is never pulsed), then open."""
+        """Open without resetting the board (review r2_J #11, round 4 #6). Linux raises DTR and RTS when the port
+        opens, and pyserial then applies DTR before RTS. The ESP32-S3 USB-Serial-JTAG resets on DTR low with RTS
+        high, so drop only RTS and keep DTR high: the lines go (1,1) -> (1,0), never (0,1).
+        BENCH CHECK: no HELLO/BOOT event may appear when the Jetson connects (python3 -m grappstar base monitor)."""
         import serial  # pyserial, imported here so the rest works without it
         ser = serial.Serial()
         ser.port = self.port
@@ -108,8 +109,8 @@ class SerialTransport:
         ser.timeout = 0.05
         ser.write_timeout = 1.0
         try:
+            ser.dtr = True
             ser.rts = False
-            ser.dtr = False
         except Exception:
             pass
         ser.open()

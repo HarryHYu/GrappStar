@@ -8,7 +8,7 @@
 3. SW_GAP (GPIO 39): cad.lib.switch.contact_switch on a printed bracket screwed to the right rail cheek, closed by
    the cam bump on the big gear (launch.big_gear_solid) at its rest angle (gear in its toothless gap).
 
-The spring guard (D33) is cad-launch's launch_guard.py (left with them, see sensors_NOTES.md).
+The spring guard (D33) is cad-frame's (frame_guards.py), not part of this module.
 
 Board geometry is from Adafruit's EAGLE file (Adafruit-AS5600-Magnetic-Angle-Sensor-PCB): 25.4 x 17.78 x 1.6, four
 plated 2.5 mm holes at (2.54, 2.54), (22.86, 2.54), (2.54, 15.24), (22.86, 15.24), the AS5600 (SOIC-8) at the board
@@ -177,7 +177,7 @@ def spine_pilots(P):
 # ------------------------------------------------------------------------------------------------ switches
 SW_LEVER = 30.0                   # cad.lib.switch defaults = the coupon 2 geometry (gap 0.93, strain 0.78 percent)
 SW_PRESS = 0.3                    # actuator push past first contact (overtravel allowance 0.6)
-RISER = 4.5                       # SW_GAP: pad on the lever tip so the jam nut and screw end stay below the gear web
+RISER = 4.0                       # SW_GAP: pad on the lever tip so the jam nut and screw end stay below the gear web
 _SW = {}
 
 
@@ -303,24 +303,33 @@ def gap_geom(P):
 GAP_TAB_PILOTS = ((48.0, 2.0), (64.0, 2.0))   # (u, w) M3 self tap d2.6 into the right cheek outer face, 7 deep along +y
 
 
-def gap_bracket_solid(P):
-    """Printed bracket in the rail frame: backing plate under the switch base, a web up to a tab on the right cheek's
-    outer face (y_rel = cheek A outer face), 2 x M3 along +y into the cheek."""
+def gap_arm_rail(P):
+    """Arm of the SW_GAP base (rail frame): a web in the base plane from the base edge up to a tab on the right cheek's
+    outer face (y_rel = cheek A outer face), 2 x M3x12 along +y into the cheek, heads in counterbores. The arm is
+    printed in one piece with the switch base (no backing plate: cad-drum's dog post sits at world y < 111.5)."""
     g = gap_geom(P)
-    d = sw_build(RISER)
     M = g["M"]
     yo = g["y_chA"][0]                                    # cheek outer face (-17)
-    lo, hi = prim.bbox(d["base"])
-    plate = prim.place(prim.box(lo[0], hi[0], lo[1], hi[1], -5.0, 0.0), M)   # backing plate under the base
     yb = float(tf.apply(M, np.array([[0.0, 0.0, 0.0]]))[0, 1])                # base bottom (rail y)
+    t = sw_build(RISER)["info"]
+    base_t = 3.0
     u0, u1 = GAP_TAB_PILOTS[0][0] - 7.0, GAP_TAB_PILOTS[1][0] + 7.0
-    tab = prim.box(u0, u1, yb - 5.0, yo, -4.0, 8.0)
-    web = prim.box(u0, u1, yb - 5.0, yb, -20.0, 8.0)
-    s = prim.union([plate, tab, web])
+    tab = prim.box(u0, u1, yb, yo, -4.0, 8.0)
+    web = prim.box(u0, u1, yb, yb + base_t, -24.0, -3.99)
+    s = tab + web
     for u, w in GAP_TAB_PILOTS:
-        s = s - prim.cylY(fits.M3_CLEAR_D / 2, yb - 6.0, yo + 1.0, x=u, z=w)
-    s = s - _mount_pilots(M, d["info"])
+        s = s - prim.cylY(fits.M3_CLEAR_D / 2, yb - 1.0, yo + 1.0, x=u, z=w)
+        s = s - prim.cylY(3.25, yb - 1.0, yb + 3.2, x=u, z=w)                 # head counterbore
+    _ = t
     return s
+
+
+def gap_base_solid(P):
+    """SW_GAP printed base (switch local frame): cad.lib switch base + the arm to the cheek."""
+    g = gap_geom(P)
+    d = sw_build(RISER)
+    arm = prim.place(gap_arm_rail(P), tf.inv(g["M"]))
+    return d["base"] + arm
 
 
 def gap_cheek_pilots(P):
@@ -337,14 +346,15 @@ def _bed(solid, R=None):
     return LN.bed(solid, R)
 
 
-def _switch_parts(tag, M, joint, where, riser=0.0):
+def _switch_parts(tag, M, joint, where, riser=0.0, base=None, base_ref="4 x M3x8 self tap (base to bracket)"):
     d = sw_build(riser)
     i = d["info"]
     nm = f"{PREFIX}_sw_{tag}"
     up = f"SW_{tag.upper()}"
+    base = d["base"] if base is None else base
     return [
-        Part(nm, d["base"], "PLA", joint=joint, place=M, print_tf=_bed(d["base"], tf.I4), color="#5fae5f",
-             bought_ref="4 x M3x8 self tap (base to bracket)",
+        Part(nm, base, "PLA", joint=joint, place=M, print_tf=_bed(base, tf.I4), color="#5fae5f",
+             bought_ref=base_ref,
              notes=f"{up} printed contact base (cad.lib.switch, coupon 2 geometry): {where}"),
         Part(nm + "_lever", d["lever"], "PLA", joint=joint, place=M, print_tf=_bed(d["lever"], tf.Rx(90)),
              color="#7cc47c", bought_ref=f"2 x M3x{i['clamp_screw_len']} self tap (lever clamp)",
@@ -393,13 +403,10 @@ def parts(P):
                           "bites into its foot"))
     # SW_GAP
     gg = gap_geom(P)
-    gb = gap_bracket_solid(P)
     out += _switch_parts("gap", gg["M"], "launch_rail",
-                         "on its bracket below the right rail cheek, closed by the big gear cam bump (gear in its gap)",
-                         riser=RISER)
-    out.append(Part(f"{PREFIX}_sw_gap_bracket", gb, "PLA", joint="launch_rail", place=tf.I4, print_tf=_bed(gb),
-                    color="#9aa7b4", bought_ref="2 x M3x12 SHCS (tab into the right cheek)",
-                    notes="SW_GAP bracket: plate under the switch, tab screwed to the right rail cheek outer face"))
+                         "with its arm screwed to the right rail cheek outer face below the big gear, closed by the "
+                         "big gear cam bump (gear in its gap)", riser=RISER, base=gap_base_solid(P),
+                         base_ref="2 x M3x12 SHCS (arm into the right cheek)")
     return out
 
 
@@ -440,13 +447,12 @@ def clearances(P):
 
 
 def audit_states(P):
-    """The big gear through a whole turn at rail rest (SW_GAP lever vs the gear web and bump), and the crank cam
-    around LOW (SW_RAIL_LOW). launch adds its own aim sweeps."""
+    """SW_GAP: the big gear through the start of the cock (bump leaving the lever) and the whole cock; SW_RAIL_LOW is
+    covered by launch's aim_sw_low and aim sweeps."""
     S = []
-    for gd in np.arange(-360.0, 0.01, 15.0):
-        S.append(dict(aim_deg=6.0, cock=0.0, launch_gear_deg=float(gd), phase="sensors_gap_turn"))
-    for gd in np.arange(-20.0, 20.01, 2.5):
-        S.append(dict(aim_deg=6.0, cock=0.0, launch_gear_deg=float(-360.0 + gd), phase="sensors_gap_bump"))
+    for c in (0.0, 0.005, 0.01, 0.02, 0.03, 0.05, 0.08, 0.12, 0.2, 0.35, 0.5, 0.65, 0.8, 0.9, 1.0):
+        for a in (6.0, 47.0):
+            S.append(dict(aim_deg=a, cock=c, phase="sensors_gap_cock"))
     return S
 
 
@@ -485,11 +491,11 @@ def steps(P):
                   "tip and the meter must show the switch closed; 10 deg either side it must open.",
              parts=[f"{PREFIX}_sw_rail_low_bracket"]),
         dict(title="Sensors 3: SW_GAP on the right rail cheek",
-             text="Screw the switch base to its bracket (4 x M3x8 self tapping). Hold the bracket tab on the outer "
-                  "face of the right rail cheek, below the big gear, and screw it on with 2 x M3x12. With the big gear "
+             text="The SW_GAP base has its own arm. Hold the arm tab on the outer face of the right rail cheek, below "
+                  "the big gear, and screw it on with 2 x M3x12 (heads in the counterbores). With the big gear "
                   "at rest (toothless gap at the rack) the cam bump presses the lever: switch closed. Turn the gear "
                   "20 deg either way: switch open.",
-             parts=[f"{PREFIX}_sw_gap_bracket"]),
+             parts=[]),
         dict(title="Sensors 4: AS5600 board",
              text="Battery unplugged. Plug the STEMMA QT cable into the board's connector on the +x end (the end "
                   "away from the housing spine). Push the board onto the 4 pegs of the carrier, chip facing out. Drop "

@@ -201,7 +201,9 @@ struct Cfg {
   int reelDuty = 220; int reelMinDuty = 70; float taperFrac = 0.30f;
   float kNperA = P_REEL_TOW_TENSION_MODEL_N_PER_A;             // physics v1.2 (FIRM 5 N): line N = 17.0 x (I - I_free) - 10.4. Bench: CALIBRATION.md
   float tensOffsetN = P_REEL_TOW_TENSION_MODEL_OFFSET_N;
-  uint32_t rawHoldMs = 60;          // the unfiltered tension estimate at or over max_n this long holds the tow
+  float towSlackFrac = 0.25f;       // tow: above this fraction of max_n the duty stays at the minimum (taut line)
+  int towRampPerTick = 2;           // tow: duty ramp while the line is slack (min to full in about 0.5 s)
+  uint32_t rawHoldMs = 30;          // the unfiltered tension estimate at or over max_n this long holds the tow
   float tensionAvgMs = 200;         // D33: the tension estimate is averaged over this long
   float limitN =
 #ifdef P_REEL_TOW_LIMIT_N
@@ -215,7 +217,7 @@ struct Cfg {
   float limitMaxN = P_REEL_TOW_LIMIT_MAX_N;   // D39: above 70 N the 6.5 A trip and the shear pin are reached (BAD_ARG beyond)
   bool armHomeOpen = true;          // cad-reel: SW_ARM is closed while the cup is away and OPENS for about +-5 deg at home
   float resumeFrac = 0.6f;          // holding winds again below this fraction of the limit (load cell only)
-  uint32_t tensionIgnoreMs = 150;   // ramp inrush is not tension (the trips ignore 50 ms; a stiff line needs an early look)
+  uint32_t tensionIgnoreMs = 80;    // ramp inrush is not tension (the trips ignore 50 ms; a stiff line needs an early look)
   float seatSlowM = 1.0f; int seatSlowDuty = 110;
   float lineTotalM = 20.0f;
   uint32_t reelMaxMs = 240000;

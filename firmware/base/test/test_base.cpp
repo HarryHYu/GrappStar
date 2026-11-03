@@ -643,8 +643,9 @@ static void testReview1() {
   { Rig R; R.toMode("NEUTRAL"); R.wrapToReel();
     S.extraLoadNm = 14.5; S.hxFitted = true; R.run(50);
     R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":30,\"until\":\"tension\"}");
-    R.until([&] { return R.B.state == gb::S_FAULT; }, 20000);
-    CHECK(R.B.fault == gb::F_STALL || R.B.fault == gb::F_OVERCURRENT, "jammed reel in a tow: a fault, not a hold loop"); }
+    R.until([&] { return R.B.state == gb::S_FAULT || R.B.state == gb::S_HOLD; }, 20000);
+    bool restarted = false; R.until([&] { if (S.wDir != 0) restarted = true; return false; }, 5000);
+    CHECK((R.B.fault == gb::F_STALL || R.B.fault == gb::F_OVERCURRENT || R.B.state == gb::S_HOLD) && !restarted, "jammed reel in a tow: a fault or a hold, never a hold loop"); }
   { Rig R; R.ok("{\"id\":1,\"cmd\":\"mode\",\"to\":\"NEUTRAL\"}"); R.run(500);
     S.drumJam = true; R.B.raise(gb::F_BAD_STATE, "test"); R.run(200); S.vbatOverride = 8.0; R.B.c.vbatLow = 9.9f;
     R.B.raise(gb::F_BROWNOUT, "second"); R.run(50);

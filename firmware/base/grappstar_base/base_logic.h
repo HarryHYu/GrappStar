@@ -397,7 +397,7 @@ struct Base {
     tensionN = hxLive() ? fmaxf(hxN, tCur) : tCur;    // a frozen or unplugged load cell never hides the current estimate
   }
   bool hxLive() const { return hxSeen && now - hxT < 500; }
-  float tRaw = 0; bool windPrev = false; uint32_t rawOverT = 0;
+  bool holdByHx = false; float tRaw = 0; bool windPrev = false; uint32_t rawOverT = 0; int towDuty = 0;
 
   // wiper motion -> trains. Only while running or just stopped (coast). The collar dogs have a free window
   // (dogWindowDeg): after a reversal the wiper first crosses the window and drives nothing. win = 0 touching the
@@ -959,7 +959,7 @@ struct Base {
     until = un; maxN = (float)mxn; reelDutyCmd = (int)lround(duty * 255); if (reelDutyCmd < c.reelMinDuty) reelDutyCmd = c.reelMinDuty;
     if (takeupOnly && reelDutyCmd > c.takeupMaxDuty) reelDutyCmd = c.takeupMaxDuty;
     if (until == U_SEATED && closed(SW_SEATED)) { w.halt(now, io.wiper); state = S_IDLE; evSeated(); return nullptr; }
-    holdLimit = false; slipT = now;
+    holdLimit = false; slipT = now; towDuty = c.reelMinDuty;
     w.c.tripA = takeupOnly ? c.takeupTripA : until == U_TENSION ? towTrip() : c.tripA;   // D8 / D33 / D34
     w.want(c.reelDir, reelDutyCmd); markMoving(MV_WIPER); state = S_REEL; stT = opT = now;
     return nullptr;
@@ -968,6 +968,7 @@ struct Base {
   void evSeated() { lineM = 0; lineKnown = true; JOut o(evBuf, sizeof evBuf); evBegin(o, "SEATED"); evEnd(o); dirty = true; }
   void enterHold(const char* why) {
     if (tRaw > tCur) { tCur = tRaw; if (!hxLive()) tensionN = tCur; }   // hold the higher estimate (raw cut: the average lags)
+    holdByHx = hxLive() && hxN >= 0.95f * maxN;       // only a load-cell hold may resume when the load cell sees slack
     state = S_HOLD; stT = now; holdLimit = true;
     JOut o(evBuf, sizeof evBuf); evBegin(o, "LIMIT"); o.num("tension_n", tensionN, 1); o.num("max_n", maxN, 1); o.str("why", why);
     o.boolean("holding", until == U_TENSION); evEnd(o);
@@ -1487,6 +1488,12 @@ struct Base {
     bool over = tensionN >= maxN || now - rawOverT >= c.rawHoldMs;
     if (over && now - w.startT > c.tensionIgnoreMs && now - stT > c.tensionIgnoreMs) { w.halt(now, io.wiper); enterHold("tension limit"); return; }
     int duty = reelDutyCmd;
+    if (until == U_TENSION) {                         // tow: start slow and speed up only while the line is still slack (a
+      // tidied Dyneema line gains about 4.5 N per wiper degree once taut: the current must see it before the limit)
+      if (frac > c.towSlackFrac) towDuty = c.reelMinDuty;
+      else towDuty = towDuty + c.towRampPerTick > reelDutyCmd ? reelDutyCmd : towDuty + c.towRampPerTick;
+      if (duty > towDuty) duty = towDuty;
+    }
     if (frac > 1 - c.taperFrac) { int dd = (int)(reelDutyCmd * (1 - frac) / c.taperFrac); duty = dd < c.reelMinDuty ? c.reelMinDuty : dd; }
     if (until == U_SEATED && lineKnown && lineM < c.seatSlowM && duty > c.seatSlowDuty) duty = c.seatSlowDuty;
     w.want(c.reelDir, duty);
@@ -1494,7 +1501,7 @@ struct Base {
   }
   float tidyA = 0;
   void tickHold() {
-    if (until == U_TENSION && hxLive() && hxN < c.resumeFrac * maxN && now - stT > 1000) {   // load cell: line slackened, wind again
+    if (until == U_TENSION && holdByHx && hxLive() && hxN < c.resumeFrac * maxN && now - stT > 1000) {   // load cell: line slackened, wind again
       holdLimit = false; w.want(c.reelDir, reelDutyCmd); markMoving(MV_WIPER); state = S_REEL; stT = now;
     }
   }

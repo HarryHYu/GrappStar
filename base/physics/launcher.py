@@ -68,6 +68,16 @@ def launch(p: Params | None = None, pitch_deg: float | None = None, model: str =
                energy_stored_j=ns * (sp.energy(e_full) - sp.energy(e0)), model=model)
 
     # friction + gravity per unit mass sliding on the rail (dart and carriage both slide)
+    # carriage pitching moment: the springs pull at spring_w, the pusher pushes the dart at push_w above the shoes;
+    # the couple F x dw is taken by the two shoe ends (engaged length shrinking over the stroke): extra normal force
+    # 2 F dw / L_shoe, friction mu times that (review: about 0.6 J at full draw)
+    dw = abs(L.get("push_w", 0.085) - L.get("spring_w", 0.060))
+    sh0, sh1 = L.get("shoe_len_cocked", 0.263), L.get("shoe_len_home", 0.111)
+
+    def f_moment(F_drive, x):
+        Lsh = max(0.03, sh0 + (sh1 - sh0) * min(max(x / S, 0.0), 1.0))
+        return mu * 2.0 * F_drive * dw / Lsh
+
     def resist(m):
         return m * G * (sth + mu * cth)
 
@@ -79,7 +89,8 @@ def launch(p: Params | None = None, pitch_deg: float | None = None, model: str =
         a_pk = 0.0
         while x < S:
             e = e0 + (S - x) / r
-            F = ns * sp.force(e) * eta / r - resist(m_c + m_d) - f_line
+            Fd = ns * sp.force(e) * eta / r
+            F = Fd - resist(m_c + m_d) - f_line - f_moment(Fd, x)
             a = F / m_tot
             a_pk = max(a_pk, a)
             v += a * dt
@@ -158,7 +169,8 @@ def launch(p: Params | None = None, pitch_deg: float | None = None, model: str =
             # carriage (+ dart while pushing)
             if not stopped:
                 m = m_c + (m_d + m_line if md_attached else 0.0)
-                Fc = ns * cord_t * eta / r - resist(m_c) - (resist(m_d) + f_line if md_attached else 0.0)
+                Fdr = ns * cord_t * eta / r
+                Fc = Fdr - resist(m_c) - (resist(m_d) + f_line + f_moment(Fdr, xc) if md_attached else 0.0)
                 ac = Fc / m
                 if md_attached:
                     a_pk = max(a_pk, ac)
@@ -249,7 +261,9 @@ def main(argv=None):
     ap.add_argument("--json", default=os.path.join(OUT_DIR, "launch.json"))
     a = ap.parse_args(argv)
     _defaults = vars(ap.parse_args([]))
-    write_ok = a.json != _defaults["json"] or vars(a) == _defaults   # odd flags never overwrite the committed output
+    _cur = {k: v for k, v in vars(a).items() if k != "sweep"}
+    _defaults.pop("sweep", None)
+    write_ok = a.json != _defaults["json"] or _cur == _defaults   # odd flags never overwrite the committed output
     p = load_params()
     over = {}
     if a.stroke is not None:

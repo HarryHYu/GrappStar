@@ -171,3 +171,26 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
   after the exit eye and guides): NOT enough. Need 2.1 to 2.6 N at 5 to 10 deg pitch (gravity + mu 0.3 to 0.4 on the
   cradle + ~1 N to close SW_SEATED). Fix: FIRM about 7 N at the core (1.5 margin), or seat on the capstan (REEL with
   wraps) and use the FIRM clutch only for tidy, or lower the seat contact force to ~0.3 N.
+
+## F12. Adversarial review of the assumptions (ranked by effect on range; 3 Nov afternoon)
+
+1. Carriage mass: cad-launch's carriage_solid is 138.7 cm3 (172 g solid PLA, 100 to 130 g printed) vs the 60 g
+   target. At 100 g: about 0.4 m less range and a stop peak of about 350 N (over D26 300 N). Pocket it / slicer mass.
+2. Line slack at the shot: from the pivot pulley (D14) to the dart tail the path shortens by about 98 mm during the
+   stroke (183 -> 85 -> 116 mm), faster than the take-up bus can follow, so the line snatches after the muzzle:
+   about 7 % slower, about 0.5 m less range, plus a tail jerk. Fix: route the line from a pulley behind the rail end
+   on the dart axis so the path only lengthens. (Sent to the coordinator.)
+3. Line path friction: now modelled as eye gain 1.35 (eyes ~2 rad at mu 0.15, pulleys, the 47 deg pusher-hole bend)
+   instead of 1.15. Static vs kinetic clutch friction can move the brake about 30 %: calibrate with test shots.
+4. Spring initial tension 5 N instead of 7 N: about 0.35 m less (hang test).
+5. Carriage shoe friction from the pusher / spring-line couple: now modelled (about 1 J at full draw, upper bound).
+6. Rover rock during the stroke (pitching ~1.8 rad/s at release with a braked 4 kg rover): -0.1 to -0.3 m at 36 deg.
+   Measure with slow-motion video.
+7. Tow sensing depends on the assumed wiper constants and capstan efficiency: calibrate line pull vs current with a
+   luggage scale at three loads before trusting the 50 N trip.
+8. Terrain: the dart descends at about 54 deg, so ground 0.2 m higher lands about 0.15 m short. ballistics_meta now
+   lists the impact angle per pitch for the Jetson's height correction.
+Small (checked, under 0.1 m): rack release friction, tether drag, 1.5x dart drag, 3 m/s wind, 1 deg aim error above
+15 deg, battery sag while cocking, anchor creep.
+Combined realistic case with items 1, 2, 3 and 5 unfixed: about 3.0 to 3.4 m. Items 3 and 5 are now in the model;
+1 and 2 are design fixes; the test-shot calibration (calib.py range) absorbs the rest.

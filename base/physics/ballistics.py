@@ -41,9 +41,11 @@ def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = N
     if pitches[-1] < hi:
         pitches.append(hi)
     table = []
+    impact_angles = []
     for th in pitches:
         v = launch(p, th, **(launch_over or {}))["v_muzzle"] * v_scale
         rows = [simulate(p, v, th, brake_n=b, reel_model=True) for b in drag_n]
+        impact_angles.append(round(rows[1]["impact_angle_deg"], 1))
         if not all(r["landed"] for r in rows):
             raise RuntimeError(f"a shot at pitch {th} did not land within the time limit")
         table.append(dict(pitch_deg=th, v_muzzle=round(v, 3),
@@ -65,6 +67,8 @@ def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = N
                 range_origin="ground point under the rail pivot (main axis)" if p.launch.get("pivot_h") else "muzzle ground point",
                 stroke_m=launch_over.get("stroke", p.launch["stroke"]) if launch_over else p.launch["stroke"],
                 wind_sensitivity=wind, v_scale=v_scale,
+                impact=[dict(pitch_deg=r_["pitch_deg"], impact_angle_deg_mid_drag=a_, note="target dh higher -> about dh / tan(angle) shorter")
+                        for r_, a_ in zip(table, impact_angles)],
                 notes=__doc__.split("Meaning of the numbers")[1].split("python ballistics.py")[0].split(":", 1)[1].strip(),
                 launch_pitch_range_spec=(getattr(p, "aim_launch_range", None)))
     return doc, meta

@@ -121,7 +121,7 @@ def L(P):
     n["y_chA"] = (-17.0, -9.0)
     n["y_chB"] = (19.5, 27.5)
     # spring arms (they hit the stop pads) and pads
-    n["arm_w0"], n["arm_w1"] = 72.0, 80.0
+    n["arm_w0"], n["arm_w1"] = 73.2, 80.0             # arm bottom 73.2: the SW feet (1.6) stay above the stop ledges
     n["u_stop"] = n["u_c_home"] + n["pusher_t"]               # arm front faces at HOME
     n["pad_y"] = (33.0, 41.0)
     n["pad_w"] = (69.0, 77.5)
@@ -267,12 +267,8 @@ def rail_solid(P):
         for yc in (0.5 * (n["y_spring"] + Y_SPRING2), yout - 1.5):                 # strap side walls between hooks
             s.append(B(ua + 2, ua + 8, *sorted((sg * (yc - 1.5), sg * (yc + 1.5))), n["w_floor0"], wsp + 11.0))
     s.append(B(ua - 8, ua + 8, -yout, yout, n["w_floor0"] - 6, n["w_floor0"]))
-    # carriage stop: TPU pads on brackets over the springs, hit by both spring arms (no load on any switch)
-    us = n["u_stop"]
-    for sg in (1, -1):
-        y0, y1 = sorted((sg * 25.0, sg * n["pad_y"][1] + sg * 2.0))
-        s.append(B(us + PAD_L, us + PAD_L + 14.0, y0, y1, n["pad_w"][0] - 1.0, n["pad_w"][1] + 2.5))
-        s.append(B(us + PAD_L, us + PAD_L + 14.0, *sorted((sg * 25.0, sg * n["y_wall1"])), n["lip_w1"] - 0.01, n["pad_w"][1] + 2.5))
+    # carriage stop: printed PLA flexure units (launch_stop.py): rail ledges and hard stops
+    s.append(ST.stop_rail_add(n))
     # mid piece cross tie (behind the drive gear)
     s.append(B(n["split"][0] + 1.0, n["split"][0] + 10.0, -n["y_wall1"], n["y_wall1"], n["w_floor0"] + 6, 43.5))
     # split flanges: plates on the outer wall faces either side of each split, 2 x M3 x 16 along u (nut on the far side)
@@ -292,10 +288,7 @@ def rail_solid(P):
     for sg in (1, -1):
         for yy in (ys, Y_SPRING2):                                                 # second set: provision, not fitted
             solid = solid - cyl_w(3.1, n["w_floor0"] - 1, wsp + 12.0, ua, sg * yy)
-    # stop pad pockets in the brackets (4 deep)
-    for sg in (1, -1):
-        y0, y1 = sorted((sg * n["pad_y"][0], sg * n["pad_y"][1]))
-        solid = solid - B(us + PAD_L - 0.01, us + PAD_L + 4.0, y0, y1, n["pad_w"][0], n["pad_w"][1])
+    solid = solid - ST.stop_rail_cut(n, P)
     # clear the sleeve flange (r 32, world y 111..119) and the dog ring: nothing of the rail within r 33.5 there
     solid = solid - cyl_y(33.5, -60.0, n["y_flange"] + 8.5 - n["Y0"], 0.0, 0.0)
     # SW_GAP pocket in the right cheek + mounting pilots
@@ -415,6 +408,9 @@ def carriage_arm_solid(P, sg):
     up = n["u_peg_c"]
     s = [B(0, n["pusher_t"], *sorted((sg * Y_BODY, sg * (Y_SPRING2 + 5))), n["arm_w0"], n["arm_w1"]),
          B(0, n["pusher_t"], *sorted((sg * 13.0, sg * Y_BODY)), ARM_LAP_W, n["arm_w1"])]
+    # stop design (launch_stop.arm_change): taller to w 83 and a 6 mm rear stiffener, |y| from 20
+    s.append(B(-6.0, n["pusher_t"], *sorted((sg * 20.0, sg * (Y_SPRING2 + 5))), n["arm_w1"] - 0.01, 83.0))
+    s.append(B(-6.0, 0.0, *sorted((sg * 21.5, sg * 50.0)), n["arm_w0"], n["arm_w1"]))
     for yy in (n["y_spring"], Y_SPRING2):
         s.append(cyl_w(3.0, n["w_spring"] - 9, n["arm_w0"] + 1, up, sg * yy))
         s.append(cyl_w(4.5, n["w_spring"] - 11, n["w_spring"] - 9, up, sg * yy))         # keeper flange
@@ -710,11 +706,7 @@ def parts(P):
             out.append(Part(f"launch_spring_{side}_{i}", spring_segment_solid(P, seg_len), "bought",
                             joint=f"launch_spring_seg_{i}", place=tf.T(u_seg, y, n["w_spring"]), color="#c2c7cc",
                             notes="Spring coils (shown in segments that spread when stretched)"))
-        y0, y1 = sorted((sg * n["pad_y"][0], sg * n["pad_y"][1]))
-        pad = B(0, PAD_L + 4.0, y0, y1, n["pad_w"][0], n["pad_w"][1])
-        out.append(Part(f"launch_stop_pad_{side}", pad, "TPU", joint="launch_rail", place=tf.T(n["u_stop"], 0, 0),
-                        print_tf=bed(pad), color="#222222",
-                        notes="Carriage stop pad TPU 95A, 18 free + 4 in the pocket (or EVA foam block)"))
+    out += ST.stop_parts(P, n)
     # generic contact switch: SW_GAP
     for nm, f in switch_frames(P).items():
         bod = SW.body(f["z_s"], f["screw"], f["x0"], width=f["width"], top=f["top"])
@@ -767,7 +759,7 @@ def joints(P):
         Joint("launch_rail", None, "rev", (0.0, n["Y0"], n["axis_z"]), (0, -1, 0), limits=(5.5, 47.5)),
         Joint("launch_sleeve", None, "rev", (0.0, n["Y0"], n["axis_z"]), (0, 1, 0)),
         Joint("launch_drive", None, "rev", (0.0, n["Y0"], n["axis_z"]), (0, 1, 0)),
-        Joint("launch_carriage", "launch_rail", "slide", (0, 0, 0), (-1, 0, 0), limits=(0.0, n["stroke"] + 0.5)),
+        Joint("launch_carriage", "launch_rail", "slide", (0, 0, 0), (-1, 0, 0), limits=(-ST.TRAVEL - 0.5, n["stroke"] + 0.5)),
         Joint("launch_big_gear", "launch_rail", "rev", (n["cd"], 0, 0), (0, 1, 0)),
         Joint("launch_dart", "launch_carriage", "slide", (0, 0, 0), (1, 0, 0)),
         Joint("launch_dart_w", "launch_dart", "slide", (0, 0, 0), (0, 0, 1)),
@@ -982,12 +974,13 @@ def allowed(P):
         Allow("launch_spring_*_hook_a", "launch_anchor_pin_*", "hook loop round the anchor pin"),
         Allow("launch_anchor_pin_*", "launch_rail_front", "pin in its hole"),
         Allow("launch_spring_*_hook_c", "launch_carriage_arm_*", "hook loop round the arm peg"),
-        Allow("launch_stop_pad_*", "launch_rail_mid", "pad in its pocket"),
+        Allow("launch_stop_spring_*", "launch_carriage_arm_*", "arm on the stop pad (contact)"),
+        Allow("launch_spring_*", "launch_spring_*", "segmented spring model telescopes when the carriage overshoots"),
         Allow("launch_sw_gap_screw", "launch_sw_gap", "screw threaded into the leaf"),
         Allow("launch_sw_home_screw", "launch_sw_home", "screw threaded into the lever"),
         Allow("launch_sw_seated_screw", "launch_sw_seated", "screw threaded into the lever"),
         Allow("launch_sw_rail_low_screw", "launch_sw_rail_low", "screw threaded into the leaf"),
-    ] + LN.allowed_line() + _aim("allowed_aim", P)
+    ] + LN.allowed_line() + ST.stop_allowed() + _aim("allowed_aim", P)
 
 
 def clearances(P):
@@ -1014,8 +1007,30 @@ def audit_states(P):
     for p in (6.02, 47.0):
         for d in np.arange(0.0, 320.0, 20.0):
             S.append(dict(aim_deg=p, launch_travel=0.0, launch_dart_fly=float(d), phase="launch_flight"))
+    S += ST.stop_audit_states(P)
     S += _aim("audit_states_aim", P)
     return S
+
+
+def checks(P, asm):
+    """Carriage stop overshoot (the compressed flexure is not modelled as a moving part): at overshoot d the arms may
+    touch the stop's rear bar only (contact), never the swept stack / frame / ledges (keepout), and the hard stop only
+    at full travel."""
+    n = L(P)
+    fails = []
+    arms = [prim.place(carriage_arm_solid(P, sg), tf.T(n["u_c_home"], 0, 0)) for sg in (1, -1)]
+    body = prim.place(carriage_solid(P), tf.T(n["u_c_home"], 0, 0))
+    for d in np.linspace(0.0, ST.TRAVEL, 7):
+        mov = [a.translate((d, 0, 0)) for a in arms] + [body.translate((d, 0, 0))]
+        for name, sol, role in ST.stop_overshoot_solids(P, n, d):
+            v = sum((m ^ sol).volume() for m in mov)
+            if role == "keepout" and v > 1e-3:
+                fails.append(f"stop overshoot {d:.1f} mm: carriage enters {name} ({v:.2f} mm3)")
+            if role == "contact" and v > 1.0:
+                fails.append(f"stop overshoot {d:.1f} mm: carriage overlaps the stop bar {name} ({v:.2f} mm3)")
+            if role == "hardstop" and d < ST.TRAVEL - 1e-6 and v > 1e-3:
+                fails.append(f"stop overshoot {d:.1f} mm: hard stop touched early ({v:.2f} mm3)")
+    return fails
 
 
 def grounded(P):
@@ -1154,3 +1169,6 @@ def line_path(P, S=None):
     spans = [(tf.apply(W, rail_pts), {"launch_pulley_piv", "launch_pulley_bot", "launch_pulley_top", "launch_rail_rear"}),
              (tf.apply(W, np.array([pusher, tail])), {"launch_carriage", "launch_dart", "launch_line_p"})]
     return spans
+
+
+import launch_stop as ST                                        # noqa: E402  (imports launch: keep at the end)

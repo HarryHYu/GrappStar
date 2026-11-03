@@ -760,6 +760,7 @@ static void scriptStep() {
     case S_QUIET:
       if ((K.running() || K.flight.flying()) && ET - SS_T0 < 20000) { NEXT_SCRIPT = ET + 500; break; }
       if (R.p(0.5)) {
+        if (K.armed) cmdKey(' ', 0, "/stop (disarm before a manual /auto, as a client must)");
         const char* r = cmdKey('a', 0, "/auto");
         if (r) { violate(10, std::string("auto refused: ") + r, "nominal: /auto refused at the start: %s", r); toTail(); break; }
         SS = S_ANCH; SS_T0 = ET; RAND_MODE = M_BENIGN; NEXT_RAND = ET + R.i(200, 1500); NEXT_SCRIPT = ET + 100;

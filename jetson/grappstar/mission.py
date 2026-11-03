@@ -47,6 +47,7 @@ STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LA
          "ANCHOR", "TIDY", "FLY_IN", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
 RESHOOT_STEPS = ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
 SKIPPABLE = {"CHECK", "LANDING_ZONE", "TIDY", "COCK"}
+DEFAULT_DRAG_N = 0.5             # the LIGHT clutch: the one default for the CLI, settings and the App
 FACTORY_K_N_PER_A = (8.0, 17.0)   # firmware defaults (base-1.0, base-1.2 physics model): not bench calibrated
 BASE_FAULTS = ("STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR", "ANGLE_SENSOR", "SWITCH_DISAGREE", "BROWNOUT",
                "BAD_STATE", "FAULT", "FAULTED", "DART_STUCK")
@@ -73,7 +74,7 @@ class Aborted(Exception):
 
 @dataclass
 class MissionConfig:
-    drag_n: float = 0.5             # payout brake setting (C3 column): LIGHT 0.5 N (coordinator)
+    drag_n: float = DEFAULT_DRAG_N  # payout brake setting (C3 column): LIGHT 0.5 N (coordinator)
     tow_limit_n: float = 40.0       # at most 70 N (D39)       # line tension limit while towing (base firmware caps it too)
     check_n: float = 15.0           # anchored check pull
     check_hold_s: float = 2.0       # hold at the check tension this long

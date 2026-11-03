@@ -585,6 +585,7 @@ class Rig:
 
 
 from grappstar.comms.base import BaseTimeout as BaseTimeoutErr  # noqa: E402
+from grappstar.comms.base import BaseError as BaseErrorErr  # noqa: E402
 
 
 class RefMission:
@@ -660,7 +661,14 @@ class RefMission:
     def s_lowaim(self):
         """D45 (10.1 step 7b): after the landing, above 15 deg, aim 6 before the wrap."""
         if (self.rig.solution or {}).get("pitch_deg", 0) > 15:
-            self.act("aim", 90, "AIMED", deg=6)
+            try:
+                self.act("aim", 90, "AIMED", deg=6)
+            except BaseErrorErr as e:
+                if e.err != "OUT_OF_RANGE":
+                    raise
+                lo = self.b.cmd("get", key="pitch_range", timeout=2.0).get("min")   # F27: 6.0 itself is refused
+                self.rig.note("info", msg=f"aim 6 refused OUT_OF_RANGE (F27): aiming at pitch_range min {lo}")
+                self.act("aim", 90, "AIMED", deg=round(float(lo) + 0.05, 2))
 
     def s_wrap(self):
         if (self.b.tel or {}).get("drum_pos") != "WRAPPED":

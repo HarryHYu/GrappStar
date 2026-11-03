@@ -3,7 +3,7 @@ Harry's v7 wrap cup + the take-up bus (D15) with a forward-only swing idler. Mod
 
 Reel frame R (reel_NOTES.md section 2): origin on the capstan axis at the front face of the reel wall, +Z along the
 capstan axis toward the cup, +X forward (launch direction), +Y up. params.LAYOUT["reel_frame_R"] places it in the
-world (R +X = world +X, R +Y = world +Z, R +Z = world -Y). R = Harry's v7 world frame shifted by (0, -44, +40), so
+world (R +X = world +X, R +Y = world +Z, R +Z = world -Y). R is a pure translation of Harry's v7 world frame, so
 the v7 line rules (ring, groove, guide and exit eye positions) carry over unchanged.
 
 Senses about R +Z: capstan wind-in +, storage reel take-up +, bus gear under a FORWARD wiper +, cup WRAP -,
@@ -282,7 +282,7 @@ def _wall():
     # under its bottom end)
     yb = POST_Y0
     post = prim.union([prim.box(gx - 6, gx + 6, yb, gy - 8, gz - 6, gz + 6),
-                       prim.box(gx - 3, gx + 3, gy - 8.01, gy + 6, gz - 5, gz + 5),
+                       prim.box(gx - 3, gx + 3, gy - 8.01, gy + 6, gz - 7.5, gz + 7.5),   # eye flares stay inside
                        prim.box(gx - 2.5, gx + 2.5, yb, -2.0, -0.01, gz)])
     # rocker pivot ears (M3 pin along X) and the S bushing boss through the rocker's hole
     px, py, pz = ROCKER_PIVOT
@@ -651,7 +651,7 @@ def p1_centre():
 
 def exit_post_screws():
     ex, _, ez = EXIT
-    return [(ex + sx * 12.0, ez + sz * 9.0) for sx in (-1, 1) for sz in (-1, 1)]
+    return [(ex + sx * 17.0, ez + sz * 12.0) for sx in (-1, 1) for sz in (-1, 1)]   # clear of all four gussets
 
 
 def _exit_post():
@@ -674,7 +674,7 @@ def _exit_post():
     gap = P1_T / 2 + 0.4
     cheeks = [prim.box(ex + 2.0, px + 7.0, py + s_ * gap, py + s_ * (gap + 3.5), pz - 8.0, ez + 1.5) for s_ in (-1, 1)]
     web = prim.box(ex - 2.5, ex + 2.5, ey - 9.5, ey + gap + 3.5, ez - 5.5, ez + 1.5)
-    body = prim.union([foot, col, taper, web] + gus + cheeks)
+    body = prim.union([foot, col, taper, web] + gus + cheeks + _race_bosses(px, py, pz, gap))
     cut = [_eye_cut(EXIT, exit_axis(), 6.0), prim.cylY(fits.M3_CLEAR_D / 2, py - 10, py + 10, x=px, z=pz)]
     for (x, z) in exit_post_screws():
         cut.append(prim.cylY(fits.M3_CLEAR_D / 2, y0 - 1, y0 + FOOT_T + 1, x=x, z=z))
@@ -693,7 +693,7 @@ def _p2_post():
     web = prim.box(px - 8.0, xc, py + gap + 3.49, py + gap + 22.0, pz - 4, pz + 4)
     lower = prim.box(px - 8.0, xc, py - gap - 3.5, py - gap, pz - 6, pz + 6)
     gus = [_gusset(xc - 4, xc + 4, pz + s_ * 7.5, pz + s_ * 14.0, Y_DECK + FOOT_T - 1.0, 40.0) for s_ in (-1, 1)]
-    body = prim.union([foot, col, upper, web, lower] + gus)
+    body = prim.union([foot, col, upper, web, lower] + gus + _race_bosses(px, py, pz, gap))
     cut = [prim.cylY(fits.M3_CLEAR_D / 2, py - 15, py + 15, x=px, z=pz)]
     for sx in (-1, 1):
         for sz in (-1, 1):
@@ -701,13 +701,24 @@ def _p2_post():
     return body - prim.union(cut)
 
 
+RACE_BOSS_R = 2.2             # cheek bosses clamp the 693 inner race (OD about 4.6), not the pulley rim
+
+
+def _race_bosses(px, py, pz, gap):
+    """Two bosses, one on each cheek's inner face, reaching the 693 inner race faces (1 mm inside the pulley faces)."""
+    h = gap - 2.0 - 0.05                             # cheek face to the race face (693 half width 2), 0.05 shy
+    return [prim.cylY(RACE_BOSS_R, py + gap - h, py + gap + 0.01, x=px, z=pz),
+            prim.cylY(RACE_BOSS_R, py - gap - 0.01, py - gap + h, x=px, z=pz)]
+
+
 def _pulley():
     """Pulley 1 (PLA): rim d 2 x (P1_R + 1.5), U groove for the 1 mm line (root r P1_R - 0.5), crush-rib seat for
     a 693ZZ (3 x 8 x 4). Local frame: axis Z, z 0 .. P1_T."""
     ro = P1_R + 2.0
     rr = P1_R - 0.5
-    prof = [(2.0, 0), (ro, 0), (ro, 1.2), (rr + 0.6, P1_T / 2 - 0.7), (rr, P1_T / 2), (rr + 0.6, P1_T / 2 + 0.7),
-            (ro, P1_T - 1.2), (ro, P1_T), (2.0, P1_T)]
+    ri = RACE_BOSS_R + 0.4                            # face bore: the cheek bosses enter it freely
+    prof = [(ri, 0), (ro, 0), (ro, 1.2), (rr + 0.6, P1_T / 2 - 0.7), (rr, P1_T / 2), (rr + 0.6, P1_T / 2 + 0.7),
+            (ro, P1_T - 1.2), (ro, P1_T), (ri, P1_T)]
     body = prim.revolve_pts(prof, seg=96)
     seat = prim.place(bearings.seat_693(depth=4.0, bottom="through", below=3.0), tf.T(0, 0, P1_T / 2 + 2.0))
     return body - seat
@@ -730,15 +741,23 @@ def _sw():
     return switch.contact_switch(SW_LEVER)
 
 
+SW_TIP_X = -3.0              # lever tip off the vertical (R -X): its nut and jam nut clear cad-drum's wrap idler
+
+
+def sw_tip_deg():
+    """Angle (deg about the cup axis, R frame) of the SW_ARM lever tip = the home notch centre."""
+    return math.degrees(math.atan2(-math.sqrt(SW_BUMP_R ** 2 - SW_TIP_X ** 2), SW_TIP_X))
+
+
 def sw_frame():
     """Switch frame -> R: switch +X = R +Y (lever tip toward the axis), switch +Z = R +Z (toward the gear)."""
     i = _sw()["info"]
     z_top = 16.5 if "z_lever_top" not in i else i["z_lever_top"]
-    tip_y = -SW_BUMP_R
+    tip_y = -math.sqrt(SW_BUMP_R ** 2 - SW_TIP_X ** 2)
     z_rest = CUPGEAR_Z[0] - 0.4                                # free lever top 0.4 behind the gear face (in the notch)
     M = np.eye(4)
     M[:3, 0], M[:3, 1], M[:3, 2] = (0, 1, 0), (-1, 0, 0), (0, 0, 1)
-    M[:3, 3] = (0.0, tip_y - i["x_act"], z_rest - z_top)
+    M[:3, 3] = (SW_TIP_X, tip_y - i["x_act"], z_rest - z_top)
     return M
 
 
@@ -756,6 +775,7 @@ def _cup_gear_track():
     for t in ang:                                          # wedge-shaped notch cutter in the (angle, z) sense
         pts.append((20.0 * math.cos(t - math.pi / 2), 20.0 * math.sin(t - math.pi / 2)))
     notch = prim.extrude(prim.poly_cs(pts), SW_BUMP_H + 1.0, z=-SW_BUMP_H - 0.5)
+    notch = prim.place(notch, tf.Rz(sw_tip_deg() + 90.0))       # centred on the lever tip
     # 45 deg ramps: subtract a slightly smaller notch at full depth and a wider shallow one is approximated by
     # stepping the notch in three depths
     out = ring - notch
@@ -768,8 +788,8 @@ def _sw_bracket():
     M = sw_frame()
     (x0, y0, z0), (x1, y1, z1) = prim.bbox(prim.place(_sw()["base"], M))
     zb = z0
-    plate = prim.box(x0 - 3.0, x1 + 3.0, y0 - 9.0, y1, zb - 4.0, zb)
-    arm = prim.box(-10.0, 10.0, y0 - 9.0, y0 - 1.0, zb - 4.0, -WALL_T)       # below the switch base
+    plate = prim.box(x0 - 3.0, x1 + 1.5, y0 - 9.0, y1, zb - 4.0, zb)      # +X edge 2 mm off the wrap idler
+    arm = prim.box(-11.5, 8.5, y0 - 9.0, y0 - 1.0, zb - 4.0, -WALL_T)        # below the switch base, clear of the wrap idler
     flange = prim.box(-16.0, 16.0, y0 - 17.0, y0 - 1.0, -WALL_T - 4.0, -WALL_T)
     body = prim.union([plate, arm, flange])
     cut = [prim.cyl(fits.M3_CLEAR_D / 2, 10, x=sx, y=y0 - 13.0, z=-WALL_T - 6.0) for sx in (-12.0, 12.0)]
@@ -887,7 +907,9 @@ def parts(P):
                                        for z in ((BAR_Z[0] - GUIDE_CLEAR) / 2, GUIDE_SCREW_Z)]),
         "bought", joint="reel_base", color=COL["brg"], bought_ref="4 x M3x16 SHCS", step=10,
         notes="Guide cap screws (the front one crosses the slot mouth in front of the bar)")
-    add("reel_gr", _gear(M_BUS, Z_REELG, BUS_Z[1] - BUS_Z[0], S_D, 1.0, hub=(14.0, -WALL_T - BUS_Z[1] - 0.1)),
+    gr = _gear(M_BUS, Z_REELG, BUS_Z[1] - BUS_Z[0], S_D, 1.0, hub=(14.0, -WALL_T - BUS_Z[1] - 0.1))
+    gr = gr - prim.union([prim.cyl(2.0, 40, x=s_ * TRIM_R, z=-10) for s_ in (-1, 1)])   # hex key to the trim screws
+    add("reel_gr", gr,
         "PPA-CF", joint="reel_shaft", place=tf.T(0, 0, BUS_Z[0]), color=COL["gear"], step=11,
         notes=f"Reel gear m{M_BUS:g} z{Z_REELG}: turns the clutch disk {Z_BUSMAIN / Z_REELG:g} x wiper speed")
     add("reel_s_clip", clips.c_clip(S_D), "PLA", joint="reel_shaft", place=tf.T(0, 0, _clip_z(S_D, BUS_Z[0])),
@@ -921,12 +943,12 @@ def parts(P):
     add("reel_p2_brg", bearings.bearing_693(), "bought", joint="reel_base",
         place=tf.T(*p2) @ tf.Rx(-90) @ tf.T(0, 0, 2.0), color=COL["brg"], bought_ref="693ZZ 3x8x4", step=15,
         notes="Bearing in pulley 2")
-    add("reel_p2_axle", fasteners_m3(16.0), "bought", joint="reel_base",
+    add("reel_p2_axle", fasteners_m3(20.0), "bought", joint="reel_base",
         place=tf.T(p2[0], p2[1] + P1_T / 2 + 0.4 + 3.5 + 3.0, p2[2]) @ tf.Rx(90), color=COL["brg"],
-        bought_ref="M3x16 SHCS + nyloc nut", step=15, notes="Pulley 2 axle")
-    add("reel_p1_axle", fasteners_m3(16.0), "bought", joint="reel_base",
+        bought_ref="M3x20 SHCS + nyloc nut", step=15, notes="Pulley 2 axle")
+    add("reel_p1_axle", fasteners_m3(20.0), "bought", joint="reel_base",
         place=tf.T(pc[0], pc[1] + P1_T / 2 + 0.4 + 3.5 + 3.0, pc[2]) @ tf.Rx(90), color=COL["brg"],
-        bought_ref="M3x16 SHCS + nyloc nut", step=13, notes="Pulley 1 axle")
+        bought_ref="M3x20 SHCS + nyloc nut", step=13, notes="Pulley 1 axle")
     return out
 
 
@@ -1461,18 +1483,21 @@ def steps(P):
              text="Feed the reel shaft's thin end through the rocker's hole and the wall bushing from the front. "
                   "From behind, slide the 20-tooth reel gear onto the D-flat, hub toward the wall, and snap its "
                   "C-clip on. Swing the arm toward the reel gear (to its stop): the idler meshes it. Spin the reel "
-                  "by hand: it should turn with a light, even drag.",
+                  "by hand: it should turn with a light, even drag. Set LIGHT (after the line is wound on, drum at "
+                  "LAUNCH): turn the reel until the reel gear's two small holes line up with the wall holes, reach "
+                  "through with a 2.5 mm hex key and turn both trim screws the same amount until a 50 g weight hung "
+                  "on the line end just pulls line off slowly (0.5 N). 1/8 turn changes it by about 0.4 N of squeeze.",
              parts=["reel_gr", "reel_s_clip"]),
         dict(title="SW_ARM contact",
              text="Battery unplugged. Build the printed contact (see the contact switch page): nut pressed in the base "
                   "trap, lever screwed on, M3 x 10 contact screw with its jam nut in the lever. Screw the switch base to "
-                  "the bracket, and the bracket to the back of the wall below the gears with two M3 x 10. Turn the cup "
+                  "the bracket, and the bracket to the back of the wall below the gears with two M3 x 8. Turn the cup "
                   "to home (ring at the top): the bump on the cup gear presses the lever; set the contact screw so it "
                   "just closes there and opens 15 degrees either side. Lock the jam nut.",
              parts=["reel_sw_bracket", "reel_sw_base", "reel_sw_lever", "reel_sw_hw"]),
         dict(title="Pulley 2",
              text="Screw the pulley 2 post to the deck beside the drum with four M3 screws. Press a 693ZZ into "
-                  "pulley 2, set it between the post's cheeks and push the M3 x 16 axle down through (nyloc nut "
+                  "pulley 2, set it between the post's cheeks and push the M3 x 20 axle down through (nyloc nut "
                   "under). The line from pulley 1 runs along the base to it and leaves toward the rail pivot pulley.",
              parts=["reel_p2_post", "reel_pulley2", "reel_p2_brg", "reel_p2_axle"]),
         dict(title="Shroud",
@@ -1480,17 +1505,20 @@ def steps(P):
                   "with three M3 x 8 screws into the wall. The reel must not touch it anywhere.",
              parts=["reel_shroud"]),
         dict(title="Exit eye post and line",
-             text="Stand the exit eye post on the pad at the front of the wall foot and screw it down with two M3 "
+             text="Stand the exit eye post on the pad at the front of the wall foot and screw it down with four M3 "
                   "screws into the deck. Wind the line onto the reel (counter-clockwise seen from the front, line over "
                   "the top), thread it through the guide eye, over the top of the cup, through the cup ring from the "
                   "back, then through the exit eye. Press the 693ZZ into pulley 1, set the pulley between the fork "
-                  "cheeks with the line in its groove and push the M3 x 16 axle down through (nyloc nut under). Lead "
+                  "cheeks with the line in its groove and push the M3 x 20 axle down through (nyloc nut under). Lead "
                   "the line on toward the rail pivot pulley.",
              parts=["reel_exit_post", "reel_pulley1", "reel_p1_brg", "reel_p1_axle"]),
     ]
 
 
 # ------------------------------------------------------------------------------------------------ neighbours
+WRAP_IDLER_R = (34.9, -35.2)  # cad-drum's 42T wrap idler axis in R (tip r 33), meshing my cup gear
+
+
 def main_axis_keepouts(P):
     """Keep-out solids (world) of the main-axis stack and the drum, from params and the coordinator's list, with
     2 mm added. Each: (name, Manifold, reel parts that legitimately reach in (gear meshes))."""
@@ -1498,14 +1526,18 @@ def main_axis_keepouts(P):
     drum_ax = lay.get("axes", {}).get("drum", {}).get("origin", (60.0, 0.0, -112.0))
     def cyl_y(r, y0, y1, x=0.0, z=0.0):
         return prim.cylY(r, y0, y1, x=x, z=z)
+    sp = _spec(P)
+    wi = (sp["origin"][0] + WRAP_IDLER_R[0], sp["origin"][2] + WRAP_IDLER_R[1])
     return [
-        ("coupler", cyl_y(25.0 + 2, 0.5, 46.0), ()),
+        ("coupler", cyl_y(35.0 + 2, 0.5, 46.0), ("reel_bus",)),   # bus gear meshes cad-drum's (audit: 0 overlap)            # base-v1 1d668d6: r 35 in the wall plane
         ("bus_gear", cyl_y(39.0 + 2, 40.0, 48.0), ("reel_bus",)),
         ("reel_gear", cyl_y(52.0 + 2, 50.5, 62.5), ("reel_gc",)),
         ("collar", cyl_y(30.0 + 2, 65.0, 105.0), ()),
         ("dog_ring", cyl_y(31.0 + 2, 100.5, 111.0), ()),
         ("main_shaft", cyl_y(13.0 + 2, 0.5, 200.0), ()),
-        ("drum", cyl_y(42.0 + 2, 1.0, 142.0, x=drum_ax[0], z=drum_ax[2]), ("reel_gk", "reel_bar")),   # the bar nose rides the cam (audit vs drum_drum_a)
+        ("drum", cyl_y(42.0 + 2, 1.0, 142.0, x=drum_ax[0], z=drum_ax[2]), ("reel_gk", "reel_bar", "reel_p2_axle")),   # bar nose on the cam; axle tip > 10 from the real drum
+        ("drum_gear", cyl_y(48.6 + 2, 8.0, 16.0, x=drum_ax[0], z=drum_ax[2]), ("reel_bar",)),
+        ("wrap_idler", cyl_y(33.0 + 2, 68.5, 76.5, x=wi[0], z=wi[1]), ("reel_gk",)),   # cad-drum's 42T idler
     ]
 
 

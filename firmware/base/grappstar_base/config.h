@@ -203,7 +203,7 @@ struct Cfg {
       50.0f / 22.0f;
 #endif
   int reelDuty = 220; int reelMinDuty = 70; float taperFrac = 0.30f;
-  float kNperA = P_REEL_TOW_TENSION_MODEL_N_PER_A;             // physics v1.2 (FIRM 5 N): line N = 17.0 x (I - I_free) - 10.4. Bench: CALIBRATION.md
+  float kNperA = P_REEL_TOW_TENSION_MODEL_N_PER_A;             // physics v1.2 (FIRM 5 N): dart-side N = 13.1 x (I - I_free) - 2.3 (D46). Bench: CALIBRATION.md
   float tensOffsetN = P_REEL_TOW_TENSION_MODEL_OFFSET_N;
   float towSlackFrac = 0.25f;       // tow: above this fraction of max_n the duty stays at the minimum (taut line)
   int towRampPerTick = 2;           // tow: duty ramp while the line is slack (min to full in about 0.5 s)

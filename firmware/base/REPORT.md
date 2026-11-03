@@ -1,6 +1,6 @@
 # fw-base report (firmware/base)
 
-Worker `fw-base`, 3 Nov 2026, branch `w/fw-base`. Firmware string `base-1.3.0`, params `1.3.x` (params_gen.h regenerated from base-v1).
+Worker `fw-base`, 3 Nov 2026, branch `w/fw-base`. Firmware string `base-1.3.0`, params `1.3.4` (params_gen.h regenerated from base-v1 at d704362).
 Nothing here has run on hardware: every claim below is from the PC simulation and the arduino-cli compile.
 
 ## Done
@@ -51,7 +51,28 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
 
 ## Verified
 
-(final output pasted below at 18:20)
+(run at cd3ea88, 3 Nov 19:30 Sydney, from firmware/base/test: `./run_tests.sh`; summary lines)
+
+```
+== params generator
+18 checks, 18 passed, 0 failed: ALL PASS
+== firmware logic (simulation)
+444 checks, 444 passed, 0 failed: ALL PASS
+
+fuzz: 300 seeds (1..300), 300 steps each, 28.0 h simulated, 961 shots in 243 seeds
+fuzz: no invariant violated
+== fuzz with faults during motion, held jogs and the tow limit check
+
+fuzz: 200 seeds (5001..5200), 400 steps each, 19.8 h simulated, 235 shots in 113 seeds
+fuzz: no invariant violated
+```
+
+Compile (`arduino-cli`, esp32 core 3.3.12, fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc, HX711 by Rob Tillaart 0.6.6):
+
+```
+Sketch uses 407037 bytes (31%) of program storage space. Maximum is 1310720 bytes.
+Global variables use 35600 bytes (10%) of dynamic memory, leaving 292080 bytes for local variables. Maximum is 327680 bytes.
+```
 
 ## Open items
 
@@ -67,6 +88,10 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
   (review notes in this report's history); bench tests in BENCH_TEST.md cover them by hand.
 - Spec text that disagrees with params / decisions (reported to the coordinator): BASE_SPEC 30 deg unload jog
   (params 1.3.3 now 6, firmware uses it), take-up "about 30 percent" (firmware 40, I4 cap), D31 309 / D32 -6 (superseded by 314 / -10.4).
+- Pending at the final push: systest re-runs of ref_tow_stiff (F21, 46.2 N vs 46.0 bound before the taper fix) and
+  F30 (15 N check pull held at 20.5 N) on the taper fix 6dd2cf3. If either still overshoots, hold small limits earlier.
+- Review round 8 (drum moves and boot; protocol and sketch glue) was started but its agents stopped on an API limit
+  before reporting: those two areas were last reviewed in rounds 1 to 6 only.
 
 ## Review rounds (independent agents; every finding proved with a probe, fixed with a regression test)
 
@@ -156,8 +181,9 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
 1. Wiper direction: which way RPWM turns the shaft, and that FORWARD cocks (CALIBRATION g); AS5600 `enc_sign`.
 2. Wiper current: IS scale `amps_per_volt` at low duty with a meter in series, `offset_a` with the motor off, free current
    `free_a` while reeling slack (`cal free`).
-3. Tension: `k_n_per_a` and `tension_offset_n` with a luggage scale at the line end (dart side, D43) at 3 loads
-   (defaults 14.8 and -2.6 are physics estimates). Hard prerequisite of the first tow.
+3. Tension: `k_n_per_a` and `tension_offset_n` with a luggage scale at the line end (dart side, D43/D46) at 3 loads
+   (defaults 13.1 and -2.3 are physics estimates; tow cap 55 N). Hard prerequisite of the first tow. Then
+   `tension_cal` reads true.
 4. Drum speed (`drum_dps`, learned automatically between code edges; default 8.1 deg/s) and the end stops.
 5. Aim: `aim_home_deg` (SW_RAIL_LOW position) and `aim_offset` against a phone inclinometer on the rail.
 6. Launch train angles: SW_HOME opening (first tooth, about 4 deg), release (432.7), SW_GAP closing (about 520):
@@ -172,4 +198,4 @@ Nothing here has run on hardware: every claim below is from the PC simulation an
   no-go from LAUNCH straight to retrieve (needs `mode NEUTRAL` first); params SWITCHES.SW_ARM says "closed at home"
   but cad-reel says it opens at home (firmware follows cad-reel); physics suggested a 6 A reel-in trip (firmware
   keeps 5 A per D33).
-- Jetson: follow PROTOCOL.md section 10 (40 items); test against w/fw-base, not the older base-1.2 snapshot.
+- Jetson: follow PROTOCOL.md section 10 (76 items); test against w/fw-base, not the older base-1.2 snapshot.

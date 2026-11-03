@@ -240,7 +240,8 @@ def test_steps_page(out):
     names = [n for s in D["steps"] for n in s["parts"]]
     assert sorted(names) == sorted(p["name"] for p in D["parts"])      # every part exactly once
     assert D["steps"][0]["title"] == "Press in the bearings"
-    assert all(s["warnings"] == [] for s in D["steps"])
+    assert all(s["warnings"] == [] for s in D["steps"])          # demo owns no stage band: no stage needed
+    assert all(s["heading"] == f"Step {k}: {s['title']}" for k, s in enumerate(D["steps"], 1))
     # the plan is written back to asm.json (guide plans from it without geometry), the authored steps are kept
     man = json.load(open(os.path.join(out, "asm.json")))
     assert [s["title"] for s in man["steps"]] == [s["title"] for s in D["steps"]]

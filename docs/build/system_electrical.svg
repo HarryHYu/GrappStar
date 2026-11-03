@@ -231,7 +231,7 @@
 <title>esp&#45;&gt;drv</title>
 <path fill="none" stroke="black" stroke-dasharray="5,2" d="M646,-199.97C646,-187.41 646,-170.95 646,-157.32"/>
 <polygon fill="black" stroke="black" points="648.1,-157.28 646,-151.28 643.9,-157.28 648.1,-157.28"/>
-<text text-anchor="middle" x="688.5" y="-173.6" font-family="Liberation Sans" font-size="8.00">AIN1 17, AIN2 18, GND</text>
+<text text-anchor="middle" x="688.5" y="-173.6" font-family="Liberation Sans" font-size="8.00">AIN1 15, AIN2 16, GND</text>
 </g>
 <!-- as5600 -->
 <g id="node13" class="node">
@@ -267,7 +267,7 @@
 <title>hx&#45;&gt;esp</title>
 <path fill="none" stroke="black" stroke-dasharray="5,2" d="M646,-319.03C646,-299.93 646,-269.13 646,-247.26"/>
 <polygon fill="black" stroke="black" points="648.1,-247.06 646,-241.06 643.9,-247.06 648.1,-247.06"/>
-<text text-anchor="middle" x="673.5" y="-277.1" font-family="Liberation Sans" font-size="8.00">DT 16, SCK 15</text>
+<text text-anchor="middle" x="673.5" y="-277.1" font-family="Liberation Sans" font-size="8.00">DT 17, SCK 18</text>
 </g>
 <!-- sw -->
 <g id="node14" class="node">

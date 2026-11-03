@@ -20,7 +20,7 @@ Three parts:
   - Payout at launch: the line skips the capstan and pulls off the free-spinning storage reel against a light
     payout brake (0.5 N; over 1 N costs range).
   - Range: about 3 to 5 m with the two springs (6 to 47 degrees of pitch; minimum about 2.9 m, best about 5 m;
-    `base/out/ballistics.json` has the current table), about 8.5 m with a second pair.
+    `base/out/ballistics.json` has the current table). Two springs only in v1 (decision D38).
   - Protection: current trips in the firmware and a printed torque limiter (about 5 N m) in the wiper coupler. Any
     fault: wiper off, drum to NEUTRAL (except when the wraps are on, the spring is drawn or the
     drum itself faulted: then the drum holds, decision D27). A hand lever on the

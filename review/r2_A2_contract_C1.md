@@ -7,31 +7,33 @@ agreed it is real but rated it lower.
 
 Confirmed: 18. Refuted and dropped: 7.
 
-STATUS: base-v1 moved on while this ran. Each finding is being re-checked
-against base-v1 472bb65; the results will be added as a "Now" column.
+STATUS: base-v1 moved on while this ran. Each finding was re-checked against
+base-v1 472bb65 by one checker subagent each; see the Now column.
 
-| # | Sev | File:line | Owner | Finding |
-|---|---|---|---|---|
-| 1 | high | `firmware/base/PROTOCOL.md:82` | fw-base | PROTOCOL.md (C1) still describes the pre-D35 telemetry and events: wrap is followed by MODE REEL, WRAPPED is a transient ramp with mode NONE, and there is no tidy/retrieve/decock command and no TIDIED event (R1 #1/#2/#6 persist in new form) |
-| 2 | high | `firmware/base/grappstar_base/base_logic.h:986` | fw-base | Firmware `retrieve` ignores max_s and faults DART_STUCK after a fixed 20 s, so a normal final approach from 1.5 m or more trips DART_STUCK |
-| 3 | high | `jetson/grappstar/mission.py:388` | jetson | Mission tidies before wrapping (ANCHOR -> TIDY -> WRAP). With the firmware tidy now working, every GO run tightens the anchored line and only then lays the wraps (R1-A #9 persists and is worse) |
-| 4 | high | `jetson/grappstar/mission.py:566` | jetson | Mission never sends `mode REEL` after `wrap` (D35 step 12), so the CHECK pull is refused NOT_WRAPPED at the 314 park and every GO run stops at CHECK |
-| 5 | high | `jetson/grappstar/mission.py:566` | jetson | Mission reads the D35 WRAPPED park (drum_pos WRAPPED, mode NEUTRAL, wraps 7) as an engaged capstan, so it never sends `mode REEL` and every CHECK/TOW reel is refused (R1 #10 still open, new form) |
-| 6 | medium | `firmware/base/PROTOCOL.md:82` | fw-base | PROTOCOL.md was not updated for D35: no tidy/retrieve/decock commands, no TIDIED event, wrap still documented as ending in REEL with MODE, and the typical mission is the old order (R1-A #1/#2 persist) |
-| 7 | medium | `firmware/base/grappstar_base/base_logic.h:1269` | fw-base | `retrieve` ignores max_s and DART_STUCK fires after a fixed 20 s, not the D35 default of 20 + line_m/0.08 s |
-| 8 | medium | `jetson/grappstar/comms/mock_base.py:47` | jetson | mock_base.py still sends the old drum telemetry (WRAPPED 338 with mode REEL accepting reel tension, 4 wraps, no tidy/retrieve/TIDIED/DART_STUCK), so mock mission tests pass on output the firmware never produces (R1 #4/#6 still open) |
-| 9 | medium | `jetson/grappstar/comms/mock_base.py:1173` | jetson | mock_base.py still models the pre-D16 drum and has no tidy/retrieve/decock, so the mission tests never run the D35 sequence (R1-A #4 persists) |
-| 10 | medium | `jetson/grappstar/mission.py:566` | jetson | is_wrapped() counts 4 of 7 wraps as wrapped, so after a D27 hold mid-wrap the Retry skips the wrap and CHECK is refused forever; no unwrap option is offered (R1 #10 persists) |
-| 11 | medium | `jetson/grappstar/mission.py:938` | jetson | Mission still seats on the capstan and sends `retrieve` without duty/max_s (R1-A #5 partly persists) |
-| 12 | low | `base/spec/BASE_SPEC.md:195` | coordinator | BASE_SPEC 10.1 recovery says a fault in REEL/N_TO_R holds the drum with DRUM_HELD, but D31 and the firmware drive to the 314 park and send MODE ok |
-| 13 | low | `firmware/base/grappstar_base/base_logic.h:986` | fw-base | Firmware `retrieve` is accepted in REEL and seats the dart on the capstan, which 10.1 step 17 forbids ('NEUTRAL only. Never seat on the capstan') |
-| 14 | low | `jetson/grappstar/comms/base.py:54` | jetson | base.py and mock_base.py SW_KEYS still use D (SW_DOG) and W=SW_WRAP_HOME; the firmware sends l, r, n, G and I (R1 #13 still open on the Jetson side) |
-| 15 | low | `jetson/grappstar/comms/base.py:469` | jetson | BaseClient.reel() rejects until='slip', which 10.1 step 11 keeps as the tidy alternative |
-| 16 | low | `jetson/grappstar/comms/mock_base.py:507` | jetson | Mock answers NOT_ARMED for an expired token where the firmware answers TOKEN_EXPIRED (R1-A #14 persists) |
-| 17 | low | `jetson/grappstar/ui/static/app.js:22` | jetson | Operator page 'Dart seated' row always shows '-': it reads base.seated / base.sw.seated, but telemetry sends sw.S (R1 #15 still open) |
-| 18 | low | `systest/harness.py:626` | coordinator | systest c_tidy passes when TIDY runs before WRAP, so the system test cannot catch the D35 order violation |
+| # | Sev | File:line | Owner | Finding | Now (472bb65) |
+|---|---|---|---|---|---|
+| 1 | high | `firmware/base/PROTOCOL.md:82` | fw-base | PROTOCOL.md (C1) still describes the pre-D35 telemetry and events: wrap is followed by MODE REEL, WRAPPED is a transient ramp with mode NONE, and there is no tidy/retrieve/decock command and no TIDIED event (R1 #1/#2/#6 persist in new form) | fixed |
+| 2 | high | `firmware/base/grappstar_base/base_logic.h:986` | fw-base | Firmware `retrieve` ignores max_s and faults DART_STUCK after a fixed 20 s, so a normal final approach from 1.5 m or more trips DART_STUCK | fixed |
+| 3 | high | `jetson/grappstar/mission.py:388` | jetson | Mission tidies before wrapping (ANCHOR -> TIDY -> WRAP). With the firmware tidy now working, every GO run tightens the anchored line and only then lays the wraps (R1-A #9 persists and is worse) | fixed |
+| 4 | high | `jetson/grappstar/mission.py:566` | jetson | Mission never sends `mode REEL` after `wrap` (D35 step 12), so the CHECK pull is refused NOT_WRAPPED at the 314 park and every GO run stops at CHECK | fixed |
+| 5 | high | `jetson/grappstar/mission.py:566` | jetson | Mission reads the D35 WRAPPED park (drum_pos WRAPPED, mode NEUTRAL, wraps 7) as an engaged capstan, so it never sends `mode REEL` and every CHECK/TOW reel is refused (R1 #10 still open, new form) | partly fixed |
+| 6 | medium | `firmware/base/PROTOCOL.md:82` | fw-base | PROTOCOL.md was not updated for D35: no tidy/retrieve/decock commands, no TIDIED event, wrap still documented as ending in REEL with MODE, and the typical mission is the old order (R1-A #1/#2 persist) | fixed |
+| 7 | medium | `firmware/base/grappstar_base/base_logic.h:1269` | fw-base | `retrieve` ignores max_s and DART_STUCK fires after a fixed 20 s, not the D35 default of 20 + line_m/0.08 s | fixed |
+| 8 | medium | `jetson/grappstar/comms/mock_base.py:47` | jetson | mock_base.py still sends the old drum telemetry (WRAPPED 338 with mode REEL accepting reel tension, 4 wraps, no tidy/retrieve/TIDIED/DART_STUCK), so mock mission tests pass on output the firmware never produces (R1 #4/#6 still open) | fixed |
+| 9 | medium | `jetson/grappstar/comms/mock_base.py:1173` | jetson | mock_base.py still models the pre-D16 drum and has no tidy/retrieve/decock, so the mission tests never run the D35 sequence (R1-A #4 persists) | fixed |
+| 10 | medium | `jetson/grappstar/mission.py:566` | jetson | is_wrapped() counts 4 of 7 wraps as wrapped, so after a D27 hold mid-wrap the Retry skips the wrap and CHECK is refused forever; no unwrap option is offered (R1 #10 persists) | still open |
+| 11 | medium | `jetson/grappstar/mission.py:938` | jetson | Mission still seats on the capstan and sends `retrieve` without duty/max_s (R1-A #5 partly persists) | partly fixed |
+| 12 | low | `base/spec/BASE_SPEC.md:195` | coordinator | BASE_SPEC 10.1 recovery says a fault in REEL/N_TO_R holds the drum with DRUM_HELD, but D31 and the firmware drive to the 314 park and send MODE ok | fixed |
+| 13 | low | `firmware/base/grappstar_base/base_logic.h:986` | fw-base | Firmware `retrieve` is accepted in REEL and seats the dart on the capstan, which 10.1 step 17 forbids ('NEUTRAL only. Never seat on the capstan') | fixed |
+| 14 | low | `jetson/grappstar/comms/base.py:54` | jetson | base.py and mock_base.py SW_KEYS still use D (SW_DOG) and W=SW_WRAP_HOME; the firmware sends l, r, n, G and I (R1 #13 still open on the Jetson side) | partly fixed |
+| 15 | low | `jetson/grappstar/comms/base.py:469` | jetson | BaseClient.reel() rejects until='slip', which 10.1 step 11 keeps as the tidy alternative | partly fixed |
+| 16 | low | `jetson/grappstar/comms/mock_base.py:507` | jetson | Mock answers NOT_ARMED for an expired token where the firmware answers TOKEN_EXPIRED (R1-A #14 persists) | fixed |
+| 17 | low | `jetson/grappstar/ui/static/app.js:22` | jetson | Operator page 'Dart seated' row always shows '-': it reads base.seated / base.sw.seated, but telemetry sends sw.S (R1 #15 still open) | fixed |
+| 18 | low | `systest/harness.py:626` | coordinator | systest c_tidy passes when TIDY runs before WRAP, so the system test cannot catch the D35 order violation | partly fixed |
 
 ## 1. PROTOCOL.md (C1) still describes the pre-D35 telemetry and events: wrap is followed by MODE REEL, WRAPPED is a transient ramp with mode NONE, and there is no tidy/retrieve/decock command and no TIDIED event (R1 #1/#2/#6 persist in new form)
+
+- Now (472bb65): **fixed** at `firmware/base/PROTOCOL.md:88`. PROTOCOL.md now matches the firmware on all the points the finding raised. Line 88: `wrap` goes to the WRAPPED park 314 and sends `WRAPPED` with no `MODE`. Lines 187 and 189: mode is NEUTRAL below 318 and the park is in the WRAPPED sector. Lines 90-92: `tidy`, `retrieve` and `decock` are in the command list. Line 254 adds TIDIED, and lines 376-381 describe the fault response (the drum holds with the wraps on, which matches safeToNeutral in base_logic.h:255). The version line says base-1.2.1, and section 10 lists the base-1.2 changes.
 
 - File: `firmware/base/PROTOCOL.md:82`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -58,6 +60,8 @@ Fix: Rewrite the affected rows to BASE_SPEC 10.1 / D35. wrap: from NEUTRAL or LA
 
 ## 2. Firmware `retrieve` ignores max_s and faults DART_STUCK after a fixed 20 s, so a normal final approach from 1.5 m or more trips DART_STUCK
 
+- Now (472bb65): **fixed** at `firmware/base/grappstar_base/base_logic.h:1086`. `retrieve` now calls approachLimit() (lines 847-854). That function reads max_s (5 to 600 s), and when max_s is absent it sets a default from line_m and the take-up speed. The DART_STUCK check at line 1375 now compares against approachMs instead of a fixed 20000 ms. At duty 0.3 the default works out to about 49 s for 1.5 m and about 76 s for 2.5 m, both longer than the spec's 20 + line_m/0.08, so a normal approach no longer faults at 20 s.
+
 - File: `firmware/base/grappstar_base/base_logic.h:986`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
 - Owner: fw-base
@@ -81,6 +85,8 @@ What the spec says: BASE_SPEC.md 10.1 step 17 requires `retrieve {duty 0.3, max_
 >
 
 ## 3. Mission tidies before wrapping (ANCHOR -> TIDY -> WRAP). With the firmware tidy now working, every GO run tightens the anchored line and only then lays the wraps (R1-A #9 persists and is worse)
+
+- Now (472bb65): **fixed** at `jetson/grappstar/mission.py:471-480`. _sequence now runs BASE_NEUTRAL -> WRAP (to the park while the line is slack) -> ANCHOR -> TIDY -> FLY_IN (mode REEL) -> CHECK -> TOW, so the tidy no longer pulls the line taut before the wraps go on. tidy() (line 695) waits for TIDIED only when the firmware has the command and falls back to reel-until-slip/LIMIT only on UNKNOWN_CMD; it has no explicit drum-at-park guard, but every path that reaches it has already run the wrap.
 
 - File: `jetson/grappstar/mission.py:388`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -107,6 +113,8 @@ Fix: Reorder _sequence to BASE_NEUTRAL -> WRAP (to the park) -> ANCHOR -> TIDY -
 >
 
 ## 4. Mission never sends `mode REEL` after `wrap` (D35 step 12), so the CHECK pull is refused NOT_WRAPPED at the 314 park and every GO run stops at CHECK
+
+- Now (472bb65): **fixed** at `jetson/grappstar/mission.py:480`. The GO sequence now runs TIDY and then FLY_IN (fly_in, line 572, sends mode REEL from the WRAPPED park) before CHECK, so the CHECK pull no longer starts at the 314 park. Also, ensure_reel (lines 775-782) now calls fly_in whenever mode is not REEL, and anchored_check, the tow loop and retrieve all call it, so the reshoot path (wrap, then bring_home, then retrieve) also flies in before reel until stop.
 
 - File: `jetson/grappstar/mission.py:566`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -135,6 +143,8 @@ The firmware (firmware/base/grappstar_base/base_logic.h):
 >
 
 ## 5. Mission reads the D35 WRAPPED park (drum_pos WRAPPED, mode NEUTRAL, wraps 7) as an engaged capstan, so it never sends `mode REEL` and every CHECK/TOW reel is refused (R1 #10 still open, new form)
+
+- Now (472bb65): **partly fixed** at `jetson/grappstar/mission.py:768-782`. The main failure is fixed. ensure_reel() (line 775) now calls fly_in() (`mode REEL`) whenever mode != REEL, after checking is_wrapped, and it runs before CHECK (1062), on every TOW round (1110) and before the capstan RETRIEVE (1192), so the WRAPPED park after a fault gets flown in again. What remains: is_wrapped (line 773) still returns True for `wraps >= 3.5` although P_DRUM_WRAP_TURNS is 7. After a fault held partway through the wrap sectors (state no longer WRAP, wraps about 4 to 6), wrap() (line 1030) returns without sending wrap, and ensure_reel then sends `mode REEL` away from the park.
 
 - File: `jetson/grappstar/mission.py:566`
 - Severity: high (claimed high); 2 of 2 skeptics confirmed
@@ -166,6 +176,8 @@ Mission (jetson/grappstar/mission.py):
 
 ## 6. PROTOCOL.md was not updated for D35: no tidy/retrieve/decock commands, no TIDIED event, wrap still documented as ending in REEL with MODE, and the typical mission is the old order (R1-A #1/#2 persist)
 
+- Now (472bb65): **fixed** at `firmware/base/PROTOCOL.md:88`. PROTOCOL.md has been rewritten for base-1.2.1 / D35. It now has `tidy`, `retrieve` and `decock` (lines 90-92) and the TIDIED event (line 254). `wrap` is now allowed from LAUNCH, ends in WRAPPED with no MODE, and `mode REEL` does the fly-in. Section 8 (lines 455+) now runs wrap, tidy, mode REEL, ..., unwrap, retrieve. The version matches GB_FW_VERSION, and jetson/grappstar/comms/mock_base.py now handles TIDIED.
+
 - File: `firmware/base/PROTOCOL.md:82`
 - Severity: medium (claimed high); 1 of 2 skeptics confirmed
 - Owner: fw-base
@@ -184,6 +196,8 @@ Fix: Rewrite PROTOCOL.md to BASE_SPEC 10.1 and bump the version to base-1.2. wra
 >
 
 ## 7. `retrieve` ignores max_s and DART_STUCK fires after a fixed 20 s, not the D35 default of 20 + line_m/0.08 s
+
+- Now (472bb65): **fixed** at `firmware/base/grappstar_base/base_logic.h:847-855 (approachLimit), :1086 (retrieve), :1375 (DART_STUCK uses approachMs); jetson/grappstar/mission.py:1233-1236`. The retrieve handler now parses `max_s` (5 to 600 s, otherwise BAD_ARG) and stores it in `approachMs`, and tickReel's DART_STUCK check uses that value. With no `max_s`, the default is computed from the take-up speed model, max(20, 10 + 1.5*line_m/v), which gives about 49.5 s for 1.5 m at duty 0.3, longer than the spec's 38.75 s. With line_m unknown it is 30 s. The Jetson's final_approach also sends max_s = 20 + line_m/0.08 and waits max_s + 10 s.
 
 - File: `firmware/base/grappstar_base/base_logic.h:1269`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -206,6 +220,8 @@ What the code does:
 >
 
 ## 8. mock_base.py still sends the old drum telemetry (WRAPPED 338 with mode REEL accepting reel tension, 4 wraps, no tidy/retrieve/TIDIED/DART_STUCK), so mock mission tests pass on output the firmware never produces (R1 #4/#6 still open)
+
+- Now (472bb65): **fixed** at `jetson/grappstar/comms/mock_base.py:1272 (mode REEL only from N_TO_R), :1465-1467 (no tension refusal on take-up), :1114 (tidy/retrieve/decock commands), :938 (DART_STUCK)`. The mock now uses the params.DRUM zones (park at 314, REEL 347, 7 wraps, collar NEUTRAL below 318) and has tidy, retrieve, decock and the DART_STUCK fault. A scratch run (/tmp/claude-0/review-scratch-stale/m13.py) reached the park after wrap with drum 314, 7 wraps and mode NEUTRAL; `reel until tension` there was refused with NOT_WRAPPED and `tidy` was accepted.
 
 - File: `jetson/grappstar/comms/mock_base.py:47`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -235,6 +251,8 @@ The firmware behaves differently:
 
 ## 9. mock_base.py still models the pre-D16 drum and has no tidy/retrieve/decock, so the mission tests never run the D35 sequence (R1-A #4 persists)
 
+- Now (472bb65): **fixed** at `jetson/grappstar/comms/mock_base.py:1111-1115`. The mock now models the D35 drum: wrap parks at 314 (line 1423), mode REEL returns NOT_WRAPPED below N_TO_R (1277-1278), unwrap goes to NEUTRAL (1446), and take-up reel works at NEUTRAL or the park with tension refused (1463-1467). The dispatch at 1114-1115 now has tidy, retrieve and decock. Two stop points differ slightly from the suggested fix (LAUNCH 0 instead of 1.5, REEL 347 instead of 347.5), which doesn't matter here; I stopped the test_mission run before it finished.
+
 - File: `jetson/grappstar/comms/mock_base.py:1173`
 - Severity: medium (claimed high); 2 of 2 skeptics confirmed
 - Owner: jetson
@@ -251,6 +269,8 @@ Fix: Rebuild the mock's drum from config.h/base_logic.h: sectors LAUNCH/LN/NEUTR
 >
 
 ## 10. is_wrapped() counts 4 of 7 wraps as wrapped, so after a D27 hold mid-wrap the Retry skips the wrap and CHECK is refused forever; no unwrap option is offered (R1 #10 persists)
+
+- Now (472bb65): **still open** at `jetson/grappstar/mission.py:768-773`. is_wrapped() still returns True when wraps >= 3.5 (firmware full count is P_DRUM_WRAP_TURNS 7). The new guard on state WRAP/UNWRAP does not help, because after a drum fault the state is FAULT/HOLD. So a hold mid-wrap with drum_pos BETWEEN and wraps 4..6 still makes wrap() (line 1029) return at once, and the firmware's reel/mode REEL then refuses with NOT_WRAPPED (base_logic.h:708, 833). The fault prompt (lines 396-401) only changes the message on DRUM_HELD and still offers Retry/Abort, with no Unwrap choice.
 
 - File: `jetson/grappstar/mission.py:566`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
@@ -278,6 +298,8 @@ What the code does:
 
 ## 11. Mission still seats on the capstan and sends `retrieve` without duty/max_s (R1-A #5 partly persists)
 
+- Now (472bb65): **partly fixed** at `jetson/grappstar/mission.py:1201-1204 (with bring_home at 564-570)`. Fixed: retrieve() now skips the capstan when the line length is unknown or short, and otherwise reels with until="stop", so it never asks to seat on the capstan. final_approach() (1222-1236) unwraps first, sends retrieve with duty, max_n and max_s=20+line/0.08, waits max_s+10, and no longer has the UNKNOWN_CMD capstan fallback; mock_base now implements retrieve. Still open: if SW_SEATED closes during the capstan reel-in, retrieve() only stops, logs a warning and returns, and bring_home() then unwraps with the dart seated without asking the operator, which is not what the fix asked for.
+
 - File: `jetson/grappstar/mission.py:938`
 - Severity: medium (claimed medium); 2 of 2 skeptics confirmed
 - Owner: jetson
@@ -297,6 +319,8 @@ Fix: In retrieve(), never use until='seated'. With line unknown, use until='stop
 
 ## 12. BASE_SPEC 10.1 recovery says a fault in REEL/N_TO_R holds the drum with DRUM_HELD, but D31 and the firmware drive to the 314 park and send MODE ok
 
+- Now (472bb65): **fixed** at `base/spec/BASE_SPEC.md:193-195; firmware/base/grappstar_base/base_logic.h:255; firmware/base/test/test_base.cpp:465; jetson/grappstar/mission.py:396-401`. The decision went the other way from the suggested fix: D31 is now marked superseded ("faults with the wraps on HOLD the drum, params 1.2.5"), and the firmware was changed to match spec 10.1. On a fault in REEL it holds and sends MODE DRUM_HELD with why "wraps on: the drum holds" (test_base.cpp:465 checks that it stays in DP_REEL), and the mission no longer prints the fixed "went to NEUTRAL" text (it shows the held reason or the telemetry drum_pos). One thing left over: the Jetson mock (jetson/grappstar/comms/mock_base.py:18 and :533 _safe_target) still parks REEL/N_TO_R at WRAPPED, which no longer matches the firmware.
+
 - File: `base/spec/BASE_SPEC.md:195`
 - Severity: low (claimed low); unverified (low)
 - Owner: coordinator
@@ -309,6 +333,8 @@ Fix: Coordinator: make 10.1 match D31: 'from REEL or N_TO_R the drum safes to th
 
 
 ## 13. Firmware `retrieve` is accepted in REEL and seats the dart on the capstan, which 10.1 step 17 forbids ('NEUTRAL only. Never seat on the capstan')
+
+- Now (472bb65): **fixed** at `firmware/base/grappstar_base/base_logic.h:869`. cmdReel now refuses any until=seated request (which is what retrieve forwards at line 1086) with WRAPS_ON whenever sec != SEC_NEUTRAL. A retrieve in REEL is now rejected before the capstan starts. When sec is NEUTRAL but a dog switch is closed, collarReel() is false, so the request also fails, with NOT_WRAPPED. The error code differs from the suggested NOT_IN_NEUTRAL, but jetson/tests/test_comms_base.py:279 and mock_base.py document and check WRAPS_ON.
 
 - File: `firmware/base/grappstar_base/base_logic.h:986`
 - Severity: low (claimed medium); 2 of 2 skeptics confirmed
@@ -330,6 +356,8 @@ Why the severity should be low, not medium:
 
 ## 14. base.py and mock_base.py SW_KEYS still use D (SW_DOG) and W=SW_WRAP_HOME; the firmware sends l, r, n, G and I (R1 #13 still open on the Jetson side)
 
+- Now (472bb65): **partly fixed** at `jetson/grappstar/comms/base.py:54`. Fixed: mock_base.py:123 now has the full firmware key map (l, r, n, G, I, W=SW_ARM, no D), and the test imports that map. Still open: base.py:54-55 SW_KEYS still uses D=SW_DOG and W=SW_WRAP_HOME and has no l, r, n, G or I, so tel_contact('SW_DOG_L'/'SW_N20'/'SW_GAP'/'SW_INDEX') always returns False. The mission.py:55-61 sw_closed docstring still describes D and its long-name map has no n or G.
+
 - File: `jetson/grappstar/comms/base.py:54`
 - Severity: low (claimed low); unverified (low)
 - Owner: jetson
@@ -342,6 +370,8 @@ Fix: In base.py and mock_base.py set `SW_KEYS = {"a":"SW_DRUM_A","b":"SW_DRUM_B"
 
 
 ## 15. BaseClient.reel() rejects until='slip', which 10.1 step 11 keeps as the tidy alternative
+
+- Now (472bb65): **partly fixed** at `jetson/grappstar/comms/base.py:474-479`. The main failure is fixed. reel() now accepts until='slip' (line 478) and sends it to the firmware, so base.reel(0.3, until='slip') no longer raises ValueError. Still open: the docstring at lines 475-477 still says "needs drum_pos WRAPPED", "default limit_n 20" and "capped at 150", where PROTOCOL.md gives REEL or NEUTRAL/park take-up, limit_n 50 and a 70 cap (not the 110 the finding cites). There are still no tidy()/retrieve() helpers, and EVENTS/FAULTS (lines 43-46) still lack TIDIED and DART_STUCK.
 
 - File: `jetson/grappstar/comms/base.py:469`
 - Severity: low (claimed low); unverified (low)
@@ -356,6 +386,8 @@ Fix: Accept 'slip' (`if until not in ("seated", "tension", "stop", "slip")`). Fi
 
 ## 16. Mock answers NOT_ARMED for an expired token where the firmware answers TOKEN_EXPIRED (R1-A #14 persists)
 
+- Now (472bb65): **fixed** at `jetson/grappstar/comms/mock_base.py:1384`. The tick now sets token_expired=True when it drops the token (line 610), arm clears it (line 1147), and _cmd_fire returns TOKEN_EXPIRED when token is None and token_expired is set. This matches firmware base_logic.h:798 line for line. tests/test_comms_base.py:382-383 now expect TOKEN_EXPIRED on every fire after expiry until the next arm, which is also what the firmware does.
+
 - File: `jetson/grappstar/comms/mock_base.py:507`
 - Severity: low (claimed low); unverified (low)
 - Owner: jetson
@@ -369,6 +401,8 @@ Fix: Add self.token_expired: set it True in the tick when the token expires, and
 
 ## 17. Operator page 'Dart seated' row always shows '-': it reads base.seated / base.sw.seated, but telemetry sends sw.S (R1 #15 still open)
 
+- Now (472bb65): **fixed** at `jetson/grappstar/app.py:188-189`. The status builder now does `"base": dict(tel, link=..., seated=bool((tel.get("sw") or {}).get("S")) if tel else None)`. That gives app.js a top-level base.seated, so pick(base, "seated") at app.js:481 (called through fillTable("t-base", st.base, BASE_FIELDS) at app.js:616) shows true or false, not '-', whenever telemetry is present.
+
 - File: `jetson/grappstar/ui/static/app.js:22`
 - Severity: low (claimed low); unverified (low)
 - Owner: jetson
@@ -381,6 +415,8 @@ Fix: In app.py:188 use `"base": dict(tel, link=self.base.link(), seated=tel_seat
 
 
 ## 18. systest c_tidy passes when TIDY runs before WRAP, so the system test cannot catch the D35 order violation
+
+- Now (472bb65): **partly fixed** at `systest/harness.py:983 (C1_SEQ), systest/harness.py:1033 (c_c1_sequence), systest/harness.py:901 (c_tidy, unchanged), systest/harness.py:943 (c_seated)`. The order violation is now caught. nominal_checks() includes c_c1_sequence, whose regex requires `wrap > dart auto > tidy > mode REEL` (and c_d22_order is still there), so a mission that runs ANCHOR -> TIDY -> WRAP fails the systest. Two things remain. c_tidy still passes on "TIDY ran and was not skipped" and checks neither the order nor the TIDIED event. No retrieve check confirms that SEATED arrives in NEUTRAL with 0 wraps: c_seated only reads the plant's seated flag and switch S, and C1_SEQ makes `retrieve` optional, so seating on the capstan still passes.
 
 - File: `systest/harness.py:626`
 - Severity: low (claimed low); unverified (low)

@@ -45,10 +45,10 @@ def test_capstan_ratio_direction(p):
 def test_tow_50n_absolute(p):
     t = capstan.wiper_torque_for(50.0, p)
     # 50 N on a 20 mm drum through 0.44 / 0.85 is 2.6 N m, plus the FIRM take-up drag through the bus
-    assert 2.3 < t < 3.8
+    assert 2.3 < t < 4.6                  # 1.15 (pulleys) to 1.5 (plain eyes) path gain
     pt = capstan.tow_point(50.0, p, p.battery.v_nom)
     assert 0.10 < pt["v_line"] < 0.20
-    assert 3.5 < pt["current"] < 6.0
+    assert 3.5 < pt["current"] < 6.5
 
 
 def test_spring_geometry_from_spec(p):

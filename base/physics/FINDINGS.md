@@ -197,3 +197,22 @@ Small (checked, under 0.1 m): rack release friction, tether drag, 1.5x dart drag
 15 deg, battery sag while cocking, anchor creep.
 Combined realistic case with items 1, 2, 3 and 5 unfixed: about 3.0 to 3.4 m. Items 3 and 5 are now in the model;
 1 and 2 are design fixes; the test-shot calibration (calib.py range) absorbs the rest.
+
+## F13. Adversarial review of the retrieve side (3 Nov afternoon)
+
+1. Line path friction between the capstan and the dart (plain printed exit eye about 50 deg, cup groove 58 deg,
+   pulleys): capstan tension = dart pull x about 1.5. Now in the model (REEL.path_gain, default 1.5). 50 N at the
+   dart needs 4.2 N m / 6.1 A (above 0.8 x the shear pin, near the 6.5 A trip); the most the train can put on the
+   dart is about 48 N. With 693 pulleys at the exit eye and ring (gain 1.15): 50 N = 3.2 N m / 5.1 A, max about 62 N.
+   Sense law at the dart: about 11 N/A (plain) or 15 N/A (pulleys): calibrate with the load cell at the dart end.
+2. Exit eye heat: 42 to 68 N normal load and 1 to 2.4 W on PLA at 50 to 80 N tow: grooves or melts; Dyneema weakens
+   above about 70 C. A 693 pulley or a ceramic / steel eyelet there and in the cup ring.
+3. Final approach: the seating path gain is 1.5 to 2.0 (now 1.75 in retrieve.py), margin about 1.0 to 1.3 on FIRM 5 N.
+4. No level wind: the line mounds mid-reel; laid 10 to 12 mm wide, 20 m reaches r 35 to 36 mm at a 36 mm flange.
+   payout.py has a lay_width input; measure after a full take-up or add a lay guide.
+5. Shear pin: d4 PLA single shear at r 13 slips at 2.5 to 3.3 N m with a layer line on the shear plane, the same as
+   tow and cock torques. Specify the print direction and break 3 pins on a torque arm.
+6. The current-sense law rests on unmeasured kt, efficiency, BTS sense gain and temperature: 36 to 64 N spread for a
+   "50 N" trip. Calibrate hot and cold at two loads.
+7. Wraps walking along the drum and the 0.6 mm skirt gap trapping a flattened braid; overrun slack near the wrap
+   ring: bench tow test and a filmed shot + wrap.

@@ -154,7 +154,8 @@ class Mission:
         self._pcv = threading.Condition()
         self._pid = 0
         self.cancel = threading.Event()
-        self.fire_lock = threading.Lock()
+        self.fire_lock = threading.RLock()
+        self.go = _Motion(self)          # every motion command goes through self.go
         self.thread: Optional[threading.Thread] = None
         self.results: Dict[str, Any] = {}
         self.shot: Dict[str, Any] = {}
@@ -260,8 +261,11 @@ class Mission:
                 raise BaseTimeout(f"no {names} event from the base in {timeout:.0f} s")
             try:
                 if sess is None:
-                    return self.base.wait_event(names, min(0.25, left), since=since, pred=pred)
-                return self.base.wait_event(names, min(0.25, left), since=since, pred=pred, session=sess)
+                    e = self.base.wait_event(names, min(0.25, left), since=since, pred=pred)
+                else:
+                    e = self.base.wait_event(names, min(0.25, left), since=since, pred=pred, session=sess)
+                self.check_cancel()
+                return e
             except BaseTimeout:
                 continue
 
@@ -273,7 +277,9 @@ class Mission:
             if left <= 0:
                 raise BaseTimeout(f"base: timed out waiting for {what}")
             try:
-                return self.base.wait_tel(pred, min(0.25, left), what, fail_on_fault=fail_on_fault)
+                t = self.base.wait_tel(pred, min(0.25, left), what, fail_on_fault=fail_on_fault)
+                self.check_cancel()
+                return t
             except BaseTimeout:
                 continue
 
@@ -287,7 +293,7 @@ class Mission:
         self.wait_tel(lambda t: t.get("state") in ("IDLE", "HOLD", "FAULT"), self.cfg.mode_timeout_s, "base idle",
                       fail_on_fault=False)
         m = self.base.event_mark()
-        self.base.mode(to)
+        self.go.mode(to)
         self.wait_evt("MODE", self.cfg.mode_timeout_s, m, pred=lambda e: e.get("mode", to) == to)
         self.wait_tel(lambda t: t.get("drum_pos") == to, 3.0, f"drum at {to}")
 
@@ -416,7 +422,11 @@ class Mission:
                     continue
                 if c == "Decock and re-aim":
                     self._clear_fault()
-                    self.decock_and_reaim()
+                    try:
+                        self.decock_and_reaim()
+                    except (BaseError, BaseTimeout, BaseDisconnected, StepFailed, DartError) as de:
+                        self.error = f"decock and re-aim failed: {de}"
+                        self.log.error(self.error)
                     continue
                 return c   # a custom choice from StepFailed.choices
 
@@ -424,11 +434,11 @@ class Mission:
         """decock (wait RESET; ok false = nothing to undo), then aim again (the decock turns the aim train)."""
         m = self.base.event_mark()
         try:
-            self.base.cmd("decock")
+            self.go.cmd("decock")
         except BaseError as e:
             if e.err != "UNKNOWN_CMD":
                 raise
-            self.base.cmd("cal", what="decock")
+            self.go.cmd("cal", what="decock")
         try:
             self.wait_evt("RESET", 90.0, m)
         except BaseError as e:
@@ -441,7 +451,7 @@ class Mission:
             if self.tel().get("mode") != "LAUNCH":
                 self.base_mode("LAUNCH")
             m = self.base.event_mark()
-            self.base.aim(p)
+            self.go.aim(p)
             self.wait_evt("AIMED", self.cfg.aim_timeout_s, m)
         self.log.info("decocked and re-aimed")
 
@@ -509,6 +519,8 @@ class Mission:
             self.dart_anchored = True
             self._do("RELEASE", self.release_dart)
         t = self.tel()
+        if sw_closed(t, "S") and (self.is_wrapped(t) or (t.get("wraps") or 0) > 0):
+            self._do("UNWRAP", self.unwrap)          # seated on the capstan with the wraps on: unwrap first
         if not sw_closed(t, "S"):
             if t.get("mode") == "LAUNCH":
                 self._do("BASE_NEUTRAL", self.base_neutral)
@@ -545,8 +557,11 @@ class Mission:
         if ev is not None:
             ev.set()
         if getattr(self, "_ka_prev", None) is not None:
+            prev = self._ka_prev
+            if isinstance(prev, (int, float)) and abs(prev - self.cfg.host_timeout_s) < 1e-6:
+                prev = 0      # left on by a crashed mission (not saved in flash): idle means off
             try:
-                self.base.set("host_timeout_s", self._ka_prev)
+                self.base.set("host_timeout_s", prev)
             except Exception:
                 pass
 
@@ -667,7 +682,7 @@ class Mission:
         self.ask(f"{turn}Target {rng:.1f} m: pitch {sol.pitch_deg:.1f} deg, flight {sol.t_flight_s:.2f} s, "
                  f"line out about {sol.line_out_m:.1f} m. Aim now?", ["Aim", "Abort"])
         m = self.base.event_mark()
-        self.base.aim(sol.pitch_deg)
+        self.go.aim(sol.pitch_deg)
         e = self.wait_evt("AIMED", self.cfg.aim_timeout_s, m)
         self.shot["pitch_deg"] = sol.pitch_deg
         self.shot["pitch_actual"] = e.get("pitch_deg", e.get("deg", sol.pitch_deg))
@@ -679,7 +694,7 @@ class Mission:
         self.ask("Cock the launcher now? The spring is drawn and stays drawn until the shot or a Decock. "
                  "Keep hands and the line clear of the rail.", ["Cock", "Abort"], danger=True)
         m = self.base.event_mark()
-        self.base.cmd("cock")                 # already cocked: ok and an immediate COCKED event
+        self.go.cmd("cock")                 # already cocked: ok and an immediate COCKED event
         self.wait_evt("COCKED", self.cfg.cock_timeout_s, m)
         self.shot["cocked"] = True
         self.log.info("cocked")
@@ -701,7 +716,7 @@ class Mission:
         firmware without tidy."""
         m = self.base.event_mark()
         try:
-            self.base.cmd("tidy", ms=int(self.cfg.tidy_ms), duty=self.cfg.takeup_duty)
+            self.go.cmd("tidy", ms=int(self.cfg.tidy_ms), duty=self.cfg.takeup_duty)
             self.wait_evt(("TIDIED",), self.cfg.wrap_timeout_s, m)
             self.log.info("line tidied")
             return
@@ -709,7 +724,7 @@ class Mission:
             if e.err != "UNKNOWN_CMD":
                 raise
         m = self.base.event_mark()
-        self.base.reel(self.cfg.takeup_duty, max_n=self.cfg.check_n, until="slip")
+        self.go.reel(self.cfg.takeup_duty, max_n=self.cfg.check_n, until="slip")
         e = self.wait_evt(("LIMIT",), self.cfg.wrap_timeout_s, m)
         if self.tel().get("state") == "HOLD":
             self.stop_settle()
@@ -765,7 +780,7 @@ class Mission:
         if p is not None and (aimed is False or cur is None or abs(cur - p) > 1.0):
             self.log.info(f"re-aiming to {p} deg")
             m = self.base.event_mark()
-            self.base.aim(p)
+            self.go.aim(p)
             self.wait_evt("AIMED", self.cfg.aim_timeout_s, m)
 
     @staticmethod
@@ -1051,13 +1066,13 @@ class Mission:
             return
         m = self.base.event_mark()
         try:
-            self.base.wrap()
+            self.go.wrap()
         except BaseError as e:
             if e.err != "NOT_IN_REEL":
                 raise
             self.base_mode("REEL")           # firmware with REEL before the wrap sectors
             m = self.base.event_mark()
-            self.base.wrap()
+            self.go.wrap()
         self.wait_evt("WRAPPED", self.cfg.wrap_timeout_s, m)
         self.wait_tel(self.is_wrapped, 5.0, "wraps on")
 
@@ -1068,7 +1083,7 @@ class Mission:
         if not self.is_wrapped(t) and t.get("wraps") == 0:
             return                          # wraps None (unknown) still unwraps: the firmware knows the sector
         m = self.base.event_mark()
-        self.base.unwrap()
+        self.go.unwrap()
         self.wait_evt("UNWRAPPED", self.cfg.wrap_timeout_s, m)
         try:                                   # 10.1 step 16: UNWRAPPED, then MODE NEUTRAL
             self.wait_evt("MODE", 15.0, m, pred=lambda e: e.get("mode") == "NEUTRAL")
@@ -1082,7 +1097,7 @@ class Mission:
         self.ensure_reel()
         line0 = self.tel().get("line_m") or 0.0
         m = self.base.event_mark()
-        self.base.reel(self.cfg.reel_duty * 0.6, max_n=self.cfg.check_n, until="tension")
+        self.go.reel(self.cfg.reel_duty * 0.6, max_n=self.cfg.check_n, until="tension")
         try:
             e = self.wait_evt(("LIMIT", "SEATED"), 30.0, m)
         except BaseTimeout:
@@ -1145,7 +1160,7 @@ class Mission:
                 self.log.info("base is already winding (slack taken up by itself)")
             else:
                 try:
-                    self.base.reel(self.cfg.reel_duty, max_n=self.cfg.tow_limit_n, until="tension")
+                    self.go.reel(self.cfg.reel_duty, max_n=self.cfg.tow_limit_n, until="tension")
                 except BaseError as be:
                     if be.err != "BUSY":
                         raise
@@ -1213,7 +1228,7 @@ class Mission:
         self.ensure_reel()
         timeout = 30.0 + line / self.cfg.retrieve_speed_mps
         m = self.base.event_mark()
-        self.base.reel(self.cfg.retrieve_duty, max_n=self.cfg.retrieve_limit_n, until="stop")
+        self.go.reel(self.cfg.retrieve_duty, max_n=self.cfg.retrieve_limit_n, until="stop")
         t_end = time.monotonic() + timeout
         while True:
             self.check_cancel()
@@ -1253,7 +1268,7 @@ class Mission:
             line = self.shot.get("line_est_m") or self.cfg.approach_m
         max_s = min(600.0, max(5.0, round(20.0 + float(line) / 0.08, 1)))   # firmware range 5..600
         m = self.base.event_mark()
-        self.base.cmd("retrieve", duty=self.cfg.takeup_duty, max_n=self.cfg.retrieve_limit_n, max_s=max_s)
+        self.go.cmd("retrieve", duty=self.cfg.takeup_duty, max_n=self.cfg.retrieve_limit_n, max_s=max_s)
         self._wait_seated(m, max_s + 10.0)
 
     def _wait_seated(self, m: int, timeout: Optional[float] = None) -> None:
@@ -1285,6 +1300,23 @@ class Mission:
         self._set_step("AIM")
         self.ask("Dart is home. Check the dart and the line, set the new target if needed, then shoot again.",
                  ["Shoot again", "Abort"])
+
+
+class _Motion:
+    """base.<motion>(...) through the mission's lock: STOP (abort) takes the same lock, so no motion command can be
+    sent after STOP was pressed (review round 4 #2)."""
+
+    def __init__(self, mission):
+        self.m = mission
+
+    def __getattr__(self, name):
+        fn = getattr(self.m.base, name)
+
+        def call(*a, **k):
+            with self.m.fire_lock:
+                self.m.check_cancel()
+                return fn(*a, **k)
+        return call
 
 
 class StepFailed(Exception):

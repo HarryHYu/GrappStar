@@ -49,6 +49,8 @@ FRAMEWORK_DEFAULT = dict(
     deck_t=8.0,             # deck plate thickness (z from -deck_t to 0)
     deck_margin=6.0,        # deck edge beyond the outermost footprint
     deck_corner_r=8.0,
+    deck_pocket=36.0,       # top-side lightening pocket size (square, 6 mm ribs)
+    deck_pocket_depth=0.0,  # pocket depth (0 = solid deck: with 40 % infill pockets save almost nothing, they add walls)
     rover_bolt="M3",        # rover fixing: M3 x 25 SHCS + nyloc (Harry drills 3.4 mm through the rover plate)
     rover_hole_pitch=60.0,  # perimeter hole pitch (max), corners always get one
     motor_side=-1,          # cheek that carries the wiper motor (-1 = right, looking forward)
@@ -467,6 +469,18 @@ def build(P):
         if z0 < 25.0 or p.name == "frame_wiper_motor":
             foot_pts += [(x0, y0), (x1, y1)]
     fp = np.array([q for q in foot_pts if np.all(np.isfinite(q))])
+    foot_polys = []                     # exact contact footprints: slice every part 0.5 mm above the deck top
+    for p in parts:
+        if p.joint is not None:
+            continue
+        sp_ = prim.place(p.solid, p.place)
+        if prim.bbox(sp_)[0][2] > 1.0:
+            continue
+        for ring in sp_.slice(0.5).to_polygons():
+            if len(ring) > 2:
+                pg = Polygon(np.asarray(ring)).buffer(0)
+                if pg.area > 1.0:
+                    foot_polys.append(pg)
     m = fw["deck_margin"]
     dx0, dy0 = fp.min(0) - m
     dx1, dy1 = fp.max(0) + m
@@ -503,10 +517,26 @@ def build(P):
             if kk == k:
                 # M3 SHCS from the top, head counterbored flush
                 cuts.append(U.clear_hole(rx, ry, -t - 1, 1, head_top=0.01))
-        # lightening: shallow pockets on the underside would trap the drill template; keep it solid and flat
+        # lightening: pockets on the TOP (the underside stays flat on the rover), deck_pocket_depth deep, on a grid,
+        # never under a foot, an insert, a rover bolt, a seam or the edge
+        if fw["deck_pocket_depth"] > 0:
+            keep = [Point(hx, hy).buffer(7.0) for hx, hy in info["deck_holes"]]
+            keep += [Point(rx, ry).buffer(7.5) for rx, ry, _ in rover]
+            keep += [f.buffer(3.0) for f in foot_polys]
+            for sm in seams:
+                keep.append(sbox(sm["c"] - 14, -1e4, sm["c"] + 14, 1e4) if sm["axis"] == "x" else sbox(-1e4, sm["c"] - 14, 1e4, sm["c"] + 14))
+            free = pc.buffer(-10.0).difference(unary_union(keep))
+            cell, rib = fw["deck_pocket"], 6.0
+            bx0, by0, bx1, by1 = pc.bounds
+            for gx in np.arange(bx0 + 10, bx1 - 10, cell + rib):
+                for gy in np.arange(by0 + 10, by1 - 10, cell + rib):
+                    c_ = sbox(gx, gy, gx + cell, gy + cell)
+                    if free.contains(c_):
+                        cs_ = prim.rrect_cs(cell, cell, 4.0).translate((gx + cell / 2, gy + cell / 2))
+                        cuts.append(prim.extrude(cs_, fw["deck_pocket_depth"] + 1, z=-fw["deck_pocket_depth"]))
         sol = prim.diff(sol, cuts)
         nm = "frame_deck" if len(pieces) == 1 else f"frame_deck_{k + 1}"
-        parts.append(Part(nm, sol, "PLA", print_tf=U.print_flat(sol), color="#80888f",
+        parts.append(Part(nm, sol, "PLA", print_tf=U.print_flat(sol), color="#80888f", infill=0.2,
                           notes="deck: M3 inserts for every frame foot; %d x M3 rover holes (it is its own drill template)" % sum(1 for r in rover if r[2] == k)))
     info["deck_pieces"] = len(pieces)
 

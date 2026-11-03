@@ -49,7 +49,6 @@ DRUM_ORDER = ("LAUNCH", "NEUTRAL", "REEL", "WRAPPED")   # physical order along t
 DETENTS = ("LAUNCH", "NEUTRAL", "REEL")                 # the stop points "mode" goes to
 N_WRAPS = 4               # wraps laid between REEL and WRAPPED
 WRAP_DEG = (DRUM_DEG["WRAPPED"] - DRUM_DEG["REEL"]) / N_WRAPS   # drum travel per capstan wrap
-WRAP_START_DEG = DRUM_DEG["REEL"]
 MAX_WRAPS = N_WRAPS
 DRUM_DPS = 10.8           # drum speed, deg/s
 DRUM_WIN_DEG = 5.0        # half width of a stop point's code sector
@@ -175,8 +174,6 @@ class MockBase:
         self.fault_present = False          # test hook: clear answers STILL_PRESENT while True
         self.booted = False
         self.drum_deg = DRUM_DEG["NEUTRAL"]
-        self.drum_known = True
-        self.wraps_known = True
         self.aim_phase = 0.0                # truth: aim train phase (deg of wiper travel in the aim direction)
         self.aim_known = not fresh
         self.aim_offset = 0.0
@@ -238,7 +235,14 @@ class MockBase:
     def mode(self, to: str) -> None:       # tests that place the drum by hand
         if to in DRUM_DEG:
             self.drum_deg = DRUM_DEG[to]
-            self.drum_known = True
+
+    @property
+    def drum_known(self) -> bool:
+        return not self.code_bad             # the drum code is absolute
+
+    @property
+    def wraps_known(self) -> bool:
+        return not self.code_bad
 
     @property
     def pitch(self) -> Optional[float]:
@@ -916,8 +920,8 @@ class MockBase:
         return None
 
     def _c_status(self, m: dict, extra: dict) -> Optional[str]:
-        extra.update(phase=self.phase, aimed=self.aimed, aim_known=self.aim_known, drum_known=not self.code_bad,
-                     wraps_known=not self.code_bad, magnet="OK", glitches=0, hx=bool(self.load_cell),
+        extra.update(phase=self.phase, aimed=self.aimed, aim_known=self.aim_known, drum_known=self.drum_known,
+                     wraps_known=self.wraps_known, magnet="OK", glitches=0, hx=bool(self.load_cell),
                      peak_a=_n(self.peak_a, 1), fw=FW)
         if self.fault:
             extra["why"] = self.fault_why[:32]

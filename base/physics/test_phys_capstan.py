@@ -4,7 +4,7 @@ import pytest
 
 from common import Params
 import capstan
-import gears
+import printed_gears as gears
 import payout
 from common import PPA_CF
 

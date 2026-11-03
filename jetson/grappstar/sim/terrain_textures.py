@@ -17,6 +17,8 @@ the same grain size as one rendered at 480x480 (the classifier relies on that).
 
 Public API:
     texture(cls, h, w, seed, lighting=True, noise=0.0, analog=False) -> BGR uint8
+    texture_view(cls, h, w, seed, zoom=1.0, blur=0.0, gain=1.0, gamma=1.0, noise=0.0, analog=False)
+        -> BGR uint8: the same terrain seen closer or blurrier (classifier training and robustness tests)
     CLASSES: tuple of class names
     apply_lighting(img, rng), add_camera_noise(img, sigma, rng, analog=False)
 """
@@ -319,6 +321,33 @@ def texture(cls: str, h: int, w: int, seed: int = 0, lighting: bool = True, nois
     if lighting:
         img = apply_lighting(img, rng)
     if noise > 0 or analog:
+        img = add_camera_noise(img, float(noise), rng, analog=analog)
+    return np.clip(img, 0, 255).astype(np.uint8)
+
+
+def texture_view(cls: str, h: int, w: int, seed: int = 0, zoom: float = 1.0, blur: float = 0.0,
+                 gain: float = 1.0, gamma: float = 1.0, noise: float = 0.0, analog: bool = False) -> np.ndarray:
+    """A texture of class `cls` as a camera at another distance or with other optics would see it.
+
+    zoom: magnification against the native texture scale (2 = every grain twice as large, like the
+    dart nose camera looking from closer or at a higher capture resolution). The texture is rendered
+    at (h / zoom, w / zoom) and resized to (h, w), so zoom > 1 also loses fine detail like real
+    optics. blur: extra Gaussian blur sigma in output pixels (focus, motion). gain, gamma: exposure
+    change (auto exposure of an analog camera), applied as 255 * (gain * x / 255) ** gamma.
+    noise / analog: camera noise added at the output scale (see add_camera_noise).
+    Deterministic for the same arguments.
+    """
+    zoom = max(0.25, float(zoom))
+    th, tw = max(16, int(round(h / zoom))), max(16, int(round(w / zoom)))
+    img = texture(cls, th, tw, seed=seed).astype(np.float32)
+    if (th, tw) != (h, w):
+        interp = cv2.INTER_LINEAR if zoom > 1 else cv2.INTER_AREA
+        img = cv2.resize(img, (int(w), int(h)), interpolation=interp)
+    if blur > 0:
+        img = cv2.GaussianBlur(img, (0, 0), float(blur))
+    img = 255.0 * np.clip(img * float(gain) / 255.0, 0, 1) ** float(gamma)
+    if noise > 0 or analog:
+        rng = np.random.default_rng([int(seed) & 0xFFFFFFFF, CLASSES.index(cls), 991])
         img = add_camera_noise(img, float(noise), rng, analog=analog)
     return np.clip(img, 0, 255).astype(np.uint8)
 

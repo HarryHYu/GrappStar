@@ -5,9 +5,13 @@
 
 Timestamps, quality and bad flags come from the sidecar <path>.frames.jsonl.
 Without a sidecar (any random video file) t is synthesised from the fps,
-starting at t0 (default: the file's modification time, or 0 if unknown).
+starting at t0 (default: the file's modification time minus the duration, since
+the file is last written at the end of the recording; 0 if unknown). Frames past
+the end of a short sidecar (recording cut off) continue from its last record at
+1/fps. Unreadable images in a JPEG folder are skipped.
 realtime=True sleeps between frames to reproduce the original pace.
 """
+import bisect
 import glob
 import json
 import os
@@ -23,6 +27,7 @@ from .record import sidecar_path
 def load_sidecar(path: str) -> dict:
     """Read <path>.frames.jsonl into {i: record}. Missing file -> {}."""
     out = {}
+    path = path.rstrip("/" + os.sep) or path     # "flight.avi_jpg/" -> "flight.avi_jpg.frames.jsonl"
     for p in (sidecar_path(path), os.path.join(path, "frames.jsonl")):
         if os.path.isfile(p):
             with open(p) as fh:
@@ -46,6 +51,7 @@ class FileSource:
         self.name = name or os.path.basename(path.rstrip("/"))
         self.realtime = realtime
         self.side = load_sidecar(path)
+        self._side_keys = sorted(self.side)
         self._i = 0
         self._wall0 = None
         self._tfirst = None
@@ -68,7 +74,8 @@ class FileSource:
         self.fps = float(fps or file_fps or 30.0)
         if t0 == "mtime":
             try:
-                t0 = os.path.getmtime(path)
+                # the file was last written at the end of the recording: start one duration earlier
+                t0 = os.path.getmtime(path) - max(0, self.frame_count) / self.fps
             except OSError:
                 t0 = 0.0
         self.t0 = float(t0 or 0.0)
@@ -78,9 +85,17 @@ class FileSource:
 
     def _next_image(self):
         if self.files is not None:
-            if self._i >= len(self.files):
-                return None
-            return cv2.imread(self.files[self._i], cv2.IMREAD_COLOR)
+            # skip unreadable images (one corrupt JPEG must not end playback); the index keeps counting so the
+            # sidecar records stay matched to their files
+            while self._i < len(self.files):
+                try:
+                    img = cv2.imread(self.files[self._i], cv2.IMREAD_COLOR)
+                except Exception:
+                    img = None
+                if img is not None and img.size > 0:
+                    return img
+                self._i += 1
+            return None
         if self.cap is None:
             return None
         ok, img = self.cap.read()
@@ -98,7 +113,7 @@ class FileSource:
             q = rec.get("q")
             bad = bool(rec.get("bad", False))
         else:
-            t, q, bad = self.t0 + i / self.fps, None, False
+            t, q, bad = self._fallback_t(i), None, False
         if self.realtime:
             now = time.time()
             if self._wall0 is None:
@@ -108,6 +123,18 @@ class FileSource:
                 if wait > 0:
                     time.sleep(min(wait, 2.0))
         return Frame(img=ensure_bgr(img), t=t, idx=i, quality=q, bad=bad)
+
+    def _fallback_t(self, i: int) -> float:
+        """Time of frame i without a sidecar record: continue from the last record before it at 1/fps, else
+        from t0."""
+        k = bisect.bisect_left(self._side_keys, i) - 1
+        if k >= 0:
+            j = self._side_keys[k]
+            try:
+                return float(self.side[j]["t"]) + (i - j) / self.fps
+            except (KeyError, TypeError, ValueError):
+                pass
+        return self.t0 + i / self.fps
 
     def read_all(self) -> list:
         """Convenience: every remaining frame as a list."""

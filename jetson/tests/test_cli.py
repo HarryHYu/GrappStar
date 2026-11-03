@@ -39,3 +39,15 @@ def test_calibrate_default(tmp_path):
     out = tmp_path / "cam.json"
     assert cli.main(["calibrate", "default", "--height", "0.5", "--pitch", "12", "--out", str(out)]) == 0
     assert json.loads(out.read_text())["height_m"] == 0.5
+
+
+def test_settings_json_defaults(tmp_path, monkeypatch):
+    import json as _j
+    p = tmp_path / "settings.json"
+    p.write_text(_j.dumps({"imu_axes": "y,-x,z", "tow_limit": 25}))
+    monkeypatch.setattr(cli, "SETTINGS", str(p))
+    seen = {}
+    monkeypatch.setattr(cli, "cmd_serve", lambda a: seen.update(vars(a)) or 0)
+    assert cli.main(["serve", "--sim", "--tow-limit", "30"]) == 0
+    assert seen["imu_axes"] == "y,-x,z"      # from the file
+    assert seen["tow_limit"] == 30.0          # the command line wins

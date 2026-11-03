@@ -403,3 +403,16 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   `get pitch_range` min. The reference driver now falls back to `pitch_range` min and logs it.
 - The Jetson mission (w/jetson 0195c38) already sends `aim 6.06` (`power_aim` base.log), so only the spec text and
   any other host that follows it literally are affected.
+
+## F28 (jetson) the uncalibrated-tow refusal (F5 fix) no longer fires: it matches the factory `k_n_per_a` literally
+
+- Preview batch 3 (fw-base 4231f46, jetson 0195c38), scenario `nominal_uncal` (CALIBRATION.md not done): the
+  mission towed without the "TOW refused: ... factory" prompt it gave on the earlier preview.
+- Where: `jetson/grappstar/mission.py:52` `FACTORY_K_N_PER_A = (8.0, 17.0)` and the checks at `:660-662` and
+  `:1168-1174`. D43 changed the firmware default to the dart-side law (`P_REEL_TOW_TENSION_MODEL_N_PER_A`, 14.8), so
+  the literal match fails and the operator is never told the tension limit is uncalibrated.
+- In the sim the tow limit still held (the factory law matches the sim motor), so this is a guard that silently
+  went away, not an overshoot seen here.
+- Suggest: let the base say whether the tension constants were set on this unit (for example a `cal_done` flag in
+  `status`, set by `set k_n_per_a` / `tension_offset_n`, saved in Tun), and key the warning on that, not on a copy of
+  the default value.

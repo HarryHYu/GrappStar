@@ -283,7 +283,12 @@ void handleFlightlog() {                               // streamed from a snapsh
   web.setContentLength(CONTENT_LENGTH_UNKNOWN);
   web.send(200, "application/json", "");
   static char buf[1400]; int n;
-  while ((n = w.chunk(buf, sizeof buf)) > 0) web.sendContent(buf, n);
+  uint32_t t0 = millis();
+  while ((n = w.chunk(buf, sizeof buf)) > 0) {
+    web.sendContent(buf, n);
+    loopBeat = millis();                               // a slow client is not a hung loop
+    if (millis() - t0 > 8000) { web.client().stop(); break; }   // give up on a client that stopped reading
+  }
   web.sendContent("");
   free(snap);
 }

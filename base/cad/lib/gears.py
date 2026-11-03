@@ -41,8 +41,11 @@ def inv(a_rad):
 
 
 def inv_inverse(v):
-    """Inverse involute: a (radians) with inv(a) = v (Newton)."""
-    a = (3 * v) ** (1 / 3) if v > 0 else 0.0
+    """Inverse involute: a (radians) with inv(a) = v (Newton). Raises ValueError for v <= 0 (no real angle)."""
+    if v <= 0:
+        raise ValueError(f"no real working pressure angle (inv(aw) = {v:.3g} <= 0): profile shifts too negative for "
+                         f"this pair")
+    a = (3 * v) ** (1 / 3)
     for _ in range(50):
         f = inv(a) - v
         a -= f / (math.tan(a) ** 2)
@@ -97,21 +100,27 @@ def internal_working_pressure_angle(z_ring, z_pinion, x_ring=0.0, x_pinion=0.0, 
 
 def check_internal_pair(z_ring, z_pinion, x_ring=0.0, x_pinion=0.0, pa=20.0):
     """Raise ValueError when an internal pair has tip (trochoid) interference: with unshifted 20 deg teeth the
-    tooth tips of ring and pinion collide when z_ring - z_pinion < INTERNAL_MIN_DIFF (10). A positive
-    x_ring - x_pinion (larger working pressure angle) is required for smaller differences: the check then asks for
-    a working pressure angle of at least 20 + 2 deg per missing tooth (conservative, verify the mesh)."""
+    tooth tips of ring and pinion collide when z_ring - z_pinion < INTERNAL_MIN_DIFF (10). The working pressure angle
+    is checked for every pair: it must be at least pa + 2 deg per tooth missing below INTERNAL_MIN_DIFF (just pa for
+    a difference of 10 or more; conservative, verify the mesh). A pinion shifted more than the ring
+    (x_ring - x_pinion < 0) lowers aw below pa and is rejected whatever the tooth difference: shift the ring by the
+    same amount (x_ring >= x_pinion). Shifts with no real working pressure angle also raise ValueError."""
     diff = z_ring - z_pinion
     if diff <= 0:
         raise ValueError(f"internal pair needs z_ring > z_pinion (got {z_ring} and {z_pinion})")
-    if diff >= INTERNAL_MIN_DIFF:
-        return
-    aw = internal_working_pressure_angle(z_ring, z_pinion, x_ring, x_pinion, pa)
-    need = 20.0 + 2.0 * (INTERNAL_MIN_DIFF - diff)
-    if pa < 20.0 - 1e-9 or aw < need - 1e-9:
+    try:
+        aw = internal_working_pressure_angle(z_ring, z_pinion, x_ring, x_pinion, pa)
+    except ValueError as e:
+        raise ValueError(f"internal gear interference: {e} (x_ring {x_ring:g}, x_pinion {x_pinion:g}); shift the "
+                         f"ring outwards by at least the pinion shift (x_ring >= x_pinion)") from None
+    short = max(0, INTERNAL_MIN_DIFF - diff)
+    need = pa + 2.0 * short
+    if (short and pa < 20.0 - 1e-9) or aw < need - 1e-9:
         raise ValueError(
-            f"internal gear interference: z_ring - z_pinion = {diff} < {INTERNAL_MIN_DIFF} with working pressure "
-            f"angle {aw:.1f} deg (tooth tips of ring and pinion collide); use a tooth difference of at least "
-            f"{INTERNAL_MIN_DIFF}, or shift the ring outwards (x_ring - x_pinion > 0) to reach aw >= {need:.1f} deg")
+            f"internal gear interference: z_ring - z_pinion = {diff} with working pressure angle {aw:.1f} deg "
+            f"< {need:.1f} deg (tooth tips of ring and pinion collide); use a tooth difference of at least "
+            f"{INTERNAL_MIN_DIFF} with x_ring >= x_pinion, or shift the ring outwards (x_ring - x_pinion > 0) to "
+            f"reach aw >= {need:.1f} deg")
 
 
 def internal_center_distance(m, z_ring, z_pinion, pa=20.0, extra=fits.GEAR_CENTER_EXTRA, x_ring=0.0, x_pinion=0.0):

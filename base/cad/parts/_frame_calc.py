@@ -36,54 +36,42 @@ def loads(P, info):
     fw = C["fw"]
     lay = C["layout"]
     rows = []
-    phys_tow = 100.0
-    stall_pull = 597.0          # physics summary: line pull at wiper stall (12.6 V), break 667 N
-    pad_peak = 762.0            # physics summary: carriage stop pad peak force (4 mm pad)
-    stall_nm = float((getattr(P, "WIPER", {}) or {}).get("stall_nm", 15.0))
-
-    # capstan blocks: the line wraps the capstan, in and out roughly the same way: shaft load 2 T, two blocks
-    cap = next((sp for sp in info["supports"] if sp["shaft"] == "capstan"), None)
-    h_cap = lay["capstan"]["origin"][2] if "capstan" in lay else 100.0
-    for case, T in (("tow 100 N", phys_tow), ("FAULT stall pull 597 N", stall_pull)):
-        F = 2.0 * T
-        per_screw = F / 2 / 4
-        rows.append((case, "capstan block, shear per M3 insert", per_screw, INSERT_N, per_screw <= INSERT_N))
-        # cheek root bending, line pull sideways (worst, out of plane), one cheek takes half
-        L = info["cheek_x"][1] - info["cheek_x"][0]
-        t = fw["cheek_t"]
-        Z = L * t * t / 6.0
-        M = F / 2 * h_cap
-        sig = M / Z
-        rows.append((case, f"cheek root bending, sideways pull at z {h_cap:.0f} (in-layer)", sig, PLA_IN, sig <= PLA_IN))
-        # cheek feet: the moment above is taken by the foot screws on one side in tension, lever = foot_w + t
-        ft = info["feet"][0]
-        nfeet = max(1, len([1 for (x, y) in info["deck_holes"] if ft["x0"] <= x <= ft["x1"] and ft["y0"] <= y <= ft["y1"]]))
-        lever = fw["foot_w"] / 2 + t
-        Tn = M / lever / nfeet
-        rows.append((case, f"cheek foot screw pull ({nfeet} per cheek)", Tn, INSERT_N, Tn <= INSERT_N))
-        # deck to rover: tow forward at line height, overturning about the front edge, rear bolt row in tension
-        x0, x1, y0, y1 = info["deck_rect"]
-        lx = x1 - x0
-        nrear = max(2, len([1 for (x, y) in info["rover_holes"] if x < x0 + 20]))
-        Tr = T * h_cap / lx / nrear
-        rows.append((case, f"rover bolt pull, rear row ({nrear} bolts)", Tr, INSERT_N, Tr <= INSERT_N))
-
-    # carriage stop: if the whole pad peak reached the main shaft block (worst case, the rail is the main shaft)
-    main_sup = [sp for sp in info["supports"] if sp["shaft"] == C["main"]]
-    nblk = max(1, len(main_sup)) + 1                     # + the motor side (adapter ring, 6 screws)
-    per = pad_peak / nblk / 4
-    rows.append(("carriage stop 762 N (worst)", "main shaft supports, shear per M3", per, INSERT_N, per <= INSERT_N))
-
-    # motor reaction at stall through the adapter ring (6 x M3 at R ring) and the 3 M6 bosses
     from cad.parts import _frame_motor as MOT
-    ring = stall_nm * 1000.0 / (MOT.RING_N * MOT.RING_R)
-    rows.append((f"wiper stall {stall_nm:.0f} N m", "adapter ring, shear per M3 insert", ring, INSERT_N, ring <= INSERT_N))
     w = C["wiper"]
-    rm = min(math.hypot(x, y) for x, y, _ in w["mount_holes"])
-    boss = stall_nm * 1000.0 / (len(w["mount_holes"]) * rm)
-    # bearing stress of an M6 on the PPA-CF plate (10 thick, nut side): F / (d * t)
-    bs = boss / (w["bolt_d"] * MOT.PLATE_T)
-    rows.append((f"wiper stall {stall_nm:.0f} N m", "adapter boss bolt bearing stress (MPa)", bs, 20.0, bs <= 20.0))
+    stall_nm = float((getattr(P, "WIPER", {}) or {}).get("stall_nm", 15.0))
+    limiter_nm = float((getattr(P, "DRUM", {}) or {}).get("torque_limiter_nm", 5.0))   # D8 shear pin in the coupler
+    tow = float((getattr(P, "REEL", {}) or {}).get("tow_limit_n", 50.0))
+    h_line = 95.0                                              # capstan axis above the deck (BASE_SPEC 5)
+
+    # motor reaction: the frame sees the coupler torque (limiter) in service, the full stall torque only if the shear
+    # pin is replaced by something stronger
+    used = MOT.ring_used(w)
+    for case, Tq in ((f"limiter {limiter_nm:.0f} N m (D8)", limiter_nm), (f"FAULT stall {stall_nm:.0f} N m", stall_nm)):
+        ring = Tq * 1000.0 / (max(1, len(used)) * MOT.RING_R)
+        rows.append((case, f"adapter ring, shear per M3 insert ({len(used)} used)", ring, INSERT_N, ring <= INSERT_N))
+        rm = min(math.hypot(x, y) for x, y, _ in w["mount_holes"])
+        boss = Tq * 1000.0 / (len(w["mount_holes"]) * rm)
+        bs = boss / (w["bolt_d"] * MOT.PLATE_T)
+        rows.append((case, "adapter boss bolt bearing stress (MPa)", bs, 20.0, bs <= 20.0))
+        feet = info.get("motor_leg_feet") or []
+        if len(feet) >= 2:
+            span = max(abs(a[0] - b[0]) for a in feet for b in feet)
+            F = Tq * 1000.0 / max(span, 1.0)
+            rows.append((case, f"motor leg foot screw pull (span {span:.0f} mm)", F, INSERT_N, F <= INSERT_N))
+            sp = fw["motor_support"]
+            bx = sp["leg_x"][1] - sp["leg_x"][0]
+            by = sp["leg_y"][1] - sp["leg_y"][0]
+            sig = Tq * 1000.0 / (by * bx * bx / 6.0)
+            rows.append((case, "motor leg bending at the root (in-layer, MPa)", sig, PLA_IN, sig <= PLA_IN))
+
+    # tow: the line pull at the capstan goes into cad-reel's wall and its deck feet, then the deck and the rover bolts
+    x0, x1, y0, y1 = info["deck_rect"]
+    for case, T in ((f"tow {tow:.0f} N (firmware limit)", tow), ("FAULT line at wiper stall 373 N (D3)", 373.0)):
+        nrear = max(2, len([1 for (x, y) in info["rover_holes"] if x < x0 + 20]))
+        Tr = T * h_line / (x1 - x0) / nrear
+        rows.append((case, f"rover bolt pull, rear row ({nrear} bolts)", Tr, INSERT_N, Tr <= INSERT_N))
+        sh = T / max(1, len(info["rover_holes"]))
+        rows.append((case, f"rover bolt shear ({len(info['rover_holes'])} bolts)", sh, INSERT_N, sh <= INSERT_N))
     return rows
 
 

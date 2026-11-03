@@ -20,10 +20,13 @@ OUT_DIR = os.path.join(HERE, "..", "out", "physics")
 
 
 def line_radius(p: Params, line_left: float) -> float:
-    """Outer radius of the wound line with `line_left` metres on the reel (level wind, square packing at line_pitch)."""
+    """Outer radius of the wound line with `line_left` metres on the reel (square packing at line_pitch). Without a
+    level wind the line mounds in the middle: lay_width (m) is the width it really spreads over (None = the full
+    reel width; review: 10 to 12 mm likely, measure after a full take-up)."""
     R = p.reel
     rc = R["core_d"] / 2
-    return math.sqrt(rc ** 2 + max(line_left, 0.0) * R["line_pitch"] ** 2 / (math.pi * R["width"]))
+    w = R.get("lay_width") or R["width"]
+    return math.sqrt(rc ** 2 + max(line_left, 0.0) * R["line_pitch"] ** 2 / (math.pi * w))
 
 
 def reel_props(p: Params, line_left: float | None = None) -> dict:

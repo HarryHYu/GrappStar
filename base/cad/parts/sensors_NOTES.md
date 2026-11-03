@@ -1,0 +1,83 @@
+# sensors: design notes (worker cad-sensors, 3 Nov 2026)
+
+Module `sensors.py` owns the AS5600 mount, SW_RAIL_LOW and SW_GAP. It has no joints of its own: AS5600 and
+SW_RAIL_LOW parts are world fixed (the aim housing is world fixed), SW_GAP parts ride on cad-launch's `launch_rail`.
+
+## Why this module exists
+
+The builder dry run (review r2 J items 1, 5, 7) found no CAD for these. By base-v1 1d668d6 cad-launch had added
+them, but:
+
+- their leaf switch (`launch_switch.py`, leaf 1.2 thick, screw 5 mm above the root, travel 1.2) bends to about
+  3 t d / (2 L^2) = 8.6 percent strain, ten times the 0.8 percent PLA limit from coupon 2. It would crack or set.
+- the AS5600 board was held by 2 x M2.5 self tap screws (Harry has no M2.5) at two assumed mid holes; the real board
+  has 4 corner holes.
+
+So both switches are now `cad.lib.switch.contact_switch(30)` (the coupon 2 geometry: lever t 1.4, gap 0.93 mm,
+strain 0.78 percent) and the AS5600 has a printed carrier. `sensors_launch_patch.diff` is the exact change cad-launch
+applies to delete their old parts and cut the pilots below.
+
+## 1. AS5600 (Adafruit PID 6357)
+
+Board facts from Adafruit's EAGLE file (github adafruit/Adafruit-AS5600-Magnetic-Angle-Sensor-PCB): 25.4 x 17.78 x 1.6,
+plated 2.5 mm holes at (2.54, 2.54), (22.86, 2.54), (2.54, 15.24), (22.86, 15.24), chip (SOIC-8) at the board centre,
+JST SH 4 pin connectors at x 3.048 and 22.352 opening to the short edges, 6 pin header row (unpopulated) at y 2.54.
+
+Stack along world y (board long side along x, chip facing the magnet, chip centre on the axis):
+
+| y (mm) | what |
+|---|---|
+| 201.5 | magnet face (drum_magnet_cap end face, cap r 10) |
+| 202.05 | JST connector faces (2.95 tall): 0.55 clear of the turning cap |
+| 203.5 | chip face (SOIC 1.5 tall; 1.75 max) |
+| 203.6 .. 205.0 | clamp strips on the board edges |
+| 205.0 .. 206.6 | board |
+| 206.6 .. 211.6 | carrier plate with 4 pegs d2.3 through the corner holes |
+
+Chip to magnet: 2.0 mm nominal, 1.75 mm with the tallest SOIC. ASSUMPTION: the target was 1 to 2 mm, design 1.0. 1.0 is
+not possible with this board: the JST connectors sit at radius 7.5 to 11.8, inside the cap radius 10, and stand 2.95
+tall. To get 1.0, cad-drum would step the cap end face down to r 7 for the last 1.5 mm; then move `JST_CAP_CLR` and the
+board 1 mm in. The AS5600 datasheet allows 0.5 to 3 mm with a 6 x 2.5 diametric magnet, so 2.0 is fine.
+
+Fixing: no M2.5 and no heat staking needed. The 4 pegs locate the board (chip on the axis within the peg clearance,
+0.1 mm); two printed strips clamp the long edges (they cover only 3.2 mm in from each edge, clear of every
+component) and are pulled onto the plate by 2 x M3x10 from the carrier back into M3 nuts in hex pockets in the strips.
+The carrier column (x -16..-6, y 206.6..211.6) runs down beside the aim housing spine and is screwed to its +x face with
+2 x M3x16 (pilots d2.6 in the spine at y 209.1, z -33 and -44). Cable: the +x connector (the -x one is free too, the
+column stays behind the board plane). Print flat on the plate back (pegs up), strips on their front face.
+
+## 2. SW_RAIL_LOW (GPIO 40)
+
+Read by cad-launch's crank cam lobe (`launch_aim.swl_cam_joint`): dwell radius 41.5 at psi 0 (world +x from the
+crank centre, x 58.04, z -100.54), +-4 deg dwell, ramps to r 39.5, plane y 193.8..199.4. The lever runs along world -y
+(root outboard, tip in the cam plane), actuated towards +x. Its rest actuator face sits at r 41.5 - (pretravel + 0.3),
+so at the dwell the cam pushes 0.3 mm past first contact (overtravel to the hard stop is 0.6). The jam nut and screw end
+sit at y 200.7..207, outside the crank plane.
+
+Bracket (PLA): backing plate behind the switch base (world x 114.5..119.5), a column down to cad-launch's housing foot
+extension (x 80..130.9, y 193.8..201.8, top at deck + 8) and a foot on it: 2 x M3x10 down into pilots at (107, 197.8)
+and (116, 197.8); the housing's 4th deck screw (from below, 125.9, 197.8) bites into a d2.6 pilot in the foot. The
+switch base screws to the plate with 4 x M3x8 self tap.
+
+## 3. SW_GAP (GPIO 39)
+
+Read by the big gear cam bump (launch.big_gear_solid: r 29.7 at 225 deg in the rail frame when the gear rests in its
+toothless gap, 2 mm tall, +-5 deg flat top, 10 deg ramps) on the sector web's right face (rail y_rel -6). The lever
+runs from the bump outwards along the 225 deg ray from the gear pin, actuated towards -y. The jam nut would stand into
+the gear web, so the lever tip carries a 4.5 mm printed riser (part of the lever, beyond the jam nut, rigid): the
+actuator face is the riser top, at rest 0.46 mm off the web face, and the screw end stays 0.9 mm under it.
+
+Bracket (PLA): backing plate under the switch base, a web up to a tab on the right cheek's outer face (y_rel -17),
+2 x M3x12 along +y into cheek pilots d2.6 at (u 48, w 2) and (u 64, w 2). Everything hangs below the rail in the
+space under the right cheek, outside the sleeve flange clear zone (r 33.5).
+
+## 4. Spring guard
+
+Left with cad-launch: `launch_guard.py` exists (6 segments, side plates outside both springs, M3 brackets on the rail
+walls). At 1d668d6 it is not called from `launch.parts()`; cad-launch was asked to wire it (3 lines).
+
+## Assumptions (Harry: check)
+
+- The AS5600 board is used with the STEMMA QT cable only (no header pins soldered).
+- Air gap 2.0 mm (see 1).
+- Contact gap set by turning: 0.93 mm, 0.5 mm per turn (the step text says back off 1.9 turns from touching).

@@ -7,7 +7,8 @@ CADV.boot(function () {
   const isDark = () => { const a = document.documentElement.dataset.theme; return a ? a === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; };
   const V = CADV.build($('#view'), D, { hd: true, bg: css(), dark: isDark() });
   CADV.installAUD(V);
-  const STEPS = D.steps.map(s => Object.assign({}, s, { parts: s.parts.filter(n => V.parts[n]) })).filter(s => s.parts.length);
+  // text steps (no new parts) stay: they show the current state
+  const STEPS = D.steps.map(s => Object.assign({}, s, { parts: s.parts.filter(n => V.parts[n]) }));
   const NP = V.list.length;
   $('#ttl').textContent = D.title + ' assembly';
   $('#card').onclick = () => $('#card').classList.toggle('more');

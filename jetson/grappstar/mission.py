@@ -47,6 +47,8 @@ STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LA
          "ANCHOR", "TIDY", "FLY_IN", "CHECK", "TOW", "RELEASE", "RETRIEVE", "UNWRAP", "FINAL_APPROACH", "LAUNCH_READY", "DONE"]
 RESHOOT_STEPS = ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
 SKIPPABLE = {"CHECK", "LANDING_ZONE", "TIDY", "COCK"}
+DEFAULT_DRAG_N = 0.5             # the LIGHT clutch: the one default for the CLI, settings and the App
+FACTORY_K_N_PER_A = (8.0, 17.0)   # firmware defaults (base-1.0, base-1.2 physics model): not bench calibrated
 BASE_FAULTS = ("STALL", "OVERCURRENT", "DRUM_TIMEOUT", "DRUM_SENSOR", "ANGLE_SENSOR", "SWITCH_DISAGREE", "BROWNOUT",
                "BAD_STATE", "FAULT", "FAULTED", "DART_STUCK")
 
@@ -72,8 +74,8 @@ class Aborted(Exception):
 
 @dataclass
 class MissionConfig:
-    drag_n: float = 0.5             # payout brake setting (C3 column): LIGHT 0.5 N (coordinator)
-    tow_limit_n: float = 40.0       # line tension limit while towing (base firmware caps it too)
+    drag_n: float = DEFAULT_DRAG_N  # payout brake setting (C3 column): LIGHT 0.5 N (coordinator)
+    tow_limit_n: float = 40.0       # at most 70 N (D39)       # line tension limit while towing (base firmware caps it too)
     check_n: float = 15.0           # anchored check pull
     check_hold_s: float = 2.0       # hold at the check tension this long
     check_keep_frac: float = 0.7    # tension must stay above this fraction of the limit (load cell only)
@@ -104,6 +106,7 @@ class MissionConfig:
     require_dart_video: bool = False       # True: preflight refuses without a dart video signal
     max_reshoots: int = 3
     pre_s: float = 2.0              # dart video kept from before the shot
+    host_timeout_s: float = 1.5     # base host watchdog during the mission (keep-alive ping every 0.4 s)
     allow_uncalibrated_tow: bool = False   # True only for bench tests with no load on the line
     imu_axes: str = "x,y,z"         # BNO085 chip axes to dart body axes (BENCH_TEST.md step 7 finds this)
 
@@ -120,6 +123,10 @@ class Prompt:
 
     def to_dict(self) -> dict:
         return {"id": self.id, "text": self.text, "choices": self.choices, "danger": self.danger, "step": self.step}
+
+
+_PROMPT_SEQ = [0]                # prompt ids are unique across missions (a stale card can never match)
+_PROMPT_LOCK = threading.Lock()
 
 
 class Mission:
@@ -155,11 +162,13 @@ class Mission:
         self.dart_anchored = False
 
     # ------------------------------------------------ public
-    def start(self) -> None:
+    def start(self, recover: bool = False) -> None:
+        """recover=True: bring the dart home after an aborted mission instead of shooting."""
         if self.thread and self.thread.is_alive():
             raise RuntimeError("mission already running")
         self.cancel.clear()
         self.state = "RUNNING"
+        self.recover_only = recover
         self.thread = threading.Thread(target=self._run, name="mission", daemon=True)
         self.thread.start()
 
@@ -176,10 +185,13 @@ class Mission:
         with self._pcv:
             self._pcv.notify_all()
 
-    def answer(self, prompt_id: str, choice: str) -> bool:
+    def answer(self, prompt_id: str, choice: str, text: Optional[str] = None) -> bool:
+        """text (optional, sent by the page): the prompt text the operator saw; it must match (review r2_H #9)."""
         with self._pcv:
             p = self.prompt
             if p is None or p.id != prompt_id or choice not in p.choices:
+                return False
+            if text is not None and text != p.text:
                 return False
             p.answer = choice
             self._pcv.notify_all()
@@ -194,9 +206,11 @@ class Mission:
     # ------------------------------------------------ helpers used by steps and the rover hook
     def ask(self, text: str, choices: List[str], danger: bool = False, timeout: Optional[float] = None) -> str:
         """Show a prompt and block until the operator answers. STOP raises Aborted."""
+        with _PROMPT_LOCK:
+            _PROMPT_SEQ[0] += 1
+            pid = f"p{_PROMPT_SEQ[0]}-{int(time.time()) % 100000}"
         with self._pcv:
-            self._pid += 1
-            p = Prompt(f"p{self._pid}", text, list(choices), danger, self.step)
+            p = Prompt(pid, text, list(choices), danger, self.step)
             self.prompt = p
         self.log.write("prompt", id=p.id, text=text, choices=choices, danger=danger, step=self.step)
         t_end = None if timeout is None else time.time() + timeout
@@ -284,8 +298,12 @@ class Mission:
         self.log.write("step", name=name, msg=name)
 
     def _run(self) -> None:
+        self._keepalive_start()
         try:
-            self._sequence()
+            if getattr(self, "recover_only", False):
+                self._recover_sequence()
+            else:
+                self._sequence()
             self.state = "DONE"
             self._set_step("DONE")
         except Aborted as e:
@@ -299,6 +317,7 @@ class Mission:
             self.log.error(f"mission failed at {self.step}: {self.error}", trace=traceback.format_exc(limit=5))
             self._safe_stop()
         finally:
+            self._keepalive_stop()
             self.prompt = None
             phase = None
             if self.state in ("ABORTED", "FAILED"):
@@ -382,6 +401,8 @@ class Mission:
                     pos = self.tel().get("drum_pos")
                     msg += (". The base is in FAULT. " + (f"The drum HELD where it is ({held[-1].get('why')}). "
                             if held else f"Drum now at {pos}. ") + "Check it, then Retry clears the fault.")
+                if isinstance(e, BaseError) and e.err == "OVERCURRENT" and name == "AIM":
+                    msg += ". Aim jammed: check the rail and the aim train before Retry (D40: 3 A trip backward)."
                 if isinstance(e, BaseError) and e.err in ("LOADED_UNKNOWN", "PHASE_UNKNOWN", "NOT_AT_REST", "LAUNCH_BUSY"):
                     msg += ". The launcher spring may be drawn: use Decock (Manual section), then Retry."
                 if isinstance(e, BaseError) and e.err == "BASE_RESET":
@@ -474,6 +495,76 @@ class Mission:
         self.bring_home()                        # steps 15 to 17
         self._do("LAUNCH_READY", lambda: self.base_mode(self.cfg.end_mode))   # step 18
 
+    def _recover_sequence(self) -> None:
+        """After an abort with the dart out or anchored (review r2_H #4)."""
+        self._set_step("PREFLIGHT")
+        self.ask("Recover the dart: the base will release, reel in and retrieve it. Area clear and hands off the base?",
+                 ["Base may move", "Abort"], danger=True)
+        self._clear_fault()
+        try:
+            ph = self.dart.status()["phase"]
+        except DartError:
+            ph = None
+        if ph in ("ANCHORING", "ANCHORED", "FAULT", "RELEASING"):
+            self.dart_anchored = True
+            self._do("RELEASE", self.release_dart)
+        t = self.tel()
+        if not sw_closed(t, "S"):
+            if t.get("mode") == "LAUNCH":
+                self._do("BASE_NEUTRAL", self.base_neutral)
+            if (t.get("line_m") or self.shot.get("line_est_m") or 0) > self.cfg.approach_m + 0.5 \
+                    and not self.is_wrapped(t):
+                self._do("WRAP", self.wrap)
+            self.bring_home()
+        self._do("LAUNCH_READY", lambda: self.base_mode(self.cfg.end_mode))
+
+    # ---- host watchdog (review r2_H #7, coordinator 1): if the Jetson stalls, the base stops by itself
+    def _keepalive_start(self) -> None:
+        self._ka_stop = threading.Event()
+        self._ka_prev = None
+        if self.cfg.host_timeout_s <= 0:
+            return
+        try:
+            self._ka_prev = self.base.get("host_timeout_s").get("val")
+            self.base.set("host_timeout_s", self.cfg.host_timeout_s)
+        except Exception:
+            self._ka_prev = None
+            return
+
+        def run():
+            while not self._ka_stop.wait(0.4):
+                try:
+                    self.base.ping(timeout=0.5)
+                except Exception:
+                    pass
+        self._ka_thread = threading.Thread(target=run, name="base-keepalive", daemon=True)
+        self._ka_thread.start()
+
+    def _keepalive_stop(self) -> None:
+        ev = getattr(self, "_ka_stop", None)
+        if ev is not None:
+            ev.set()
+        if getattr(self, "_ka_prev", None) is not None:
+            try:
+                self.base.set("host_timeout_s", self._ka_prev)
+            except Exception:
+                pass
+
+    def tel_fresh(self, max_age: float = 0.5) -> dict:
+        """Telemetry no older than max_age, else StepFailed (stop first): never act on a stalled link."""
+        age = time.time() - getattr(self.base, "tel_t", time.time())
+        if age > max_age:
+            self.stop_settle()
+            raise StepFailed(f"base telemetry stalled ({age:.1f} s old): stopped. Check the USB link, then Retry.")
+        return self.tel()
+
+    def fresh_after(self, t0: float, timeout: float = 1.0) -> dict:
+        """Wait for a telemetry line sent after t0 (state right after an event is often stale)."""
+        try:
+            return self.wait_tel(lambda t: self.base.tel_t > t0, timeout, "fresh telemetry", fail_on_fault=False)
+        except BaseTimeout:
+            return self.tel()
+
     def bring_home(self) -> None:
         """Steps 15 to 17: capstan reel-in to about approach_m (only when wrapped), UNWRAP, then the take-up final
         approach (retrieve) in NEUTRAL. Never seat on the capstan."""
@@ -503,6 +594,11 @@ class Mission:
             raise StepFailed(f"base not answering: {e}")
         if t.get("fault"):
             raise StepFailed(f"base in FAULT {t['fault']}: clear it first")
+        if t.get("magnet") == "NONE":
+            problems.append("AS5600 sees no magnet (status magnet NONE): wiper actions will fail. Check the magnet "
+                            "and the sensor distance")
+        elif t.get("magnet") in ("WEAK", "STRONG"):
+            warnings.append(f"AS5600 magnet {t.get('magnet')}: angle readings may glitch")
         if t.get("phase") == "UNKNOWN":
             problems.append("launcher shot phase UNKNOWN (power lost mid-cycle): use Decock on the page")
         if t.get("drum_pos") in ("UNKNOWN", "BETWEEN"):
@@ -536,8 +632,8 @@ class Mission:
         if t.get("tension_n") is None:
             try:
                 k = self.base.get("k_n_per_a").get("val")
-                if k is not None and abs(float(k) - 8.0) < 1e-6:
-                    warnings.append("no load cell and the tension constant k_n_per_a is still the default 8: "
+                if k is not None and any(abs(float(k) - f) < 1e-4 for f in FACTORY_K_N_PER_A):
+                    warnings.append(f"no load cell and the tension constant k_n_per_a is still the factory {k}: "
                                     "the tow limit is a rough current estimate (calibrate, see firmware/base/"
                                     "CALIBRATION.md)")
             except (BaseError, BaseTimeout, BaseDisconnected, ValueError, TypeError):
@@ -742,7 +838,7 @@ class Mission:
         last_line, line_t = None, time.time()
         sources = set()
         # a dart still showing LANDED from an earlier shot only counts after it has been seen in FLIGHT again
-        stale = self.shot.get("dart_phase_at_arm") in ("LANDED",)
+        stale = self.shot.get("dart_phase_at_arm") != "ARMED"     # any arm not confirmed needs a seen FLIGHT
         seen_flight = False
         while time.time() < t_end:
             self.check_cancel()
@@ -806,7 +902,10 @@ class Mission:
         c = self.cams.get("dart")
         if c is not None:
             try:
-                frames = [f for f in c.buffer() if f.t >= t_fire - self.cfg.pre_s]
+                try:
+                    frames = c.buffer(since=t_fire - self.cfg.pre_s)   # filters before decoding held frames
+                except TypeError:          # cameras without since=
+                    frames = [f for f in c.buffer() if f.t >= t_fire - self.cfg.pre_s]
             except Exception as e:
                 self.log.warn(f"no dart frames: {e}")
         fl = None
@@ -823,8 +922,13 @@ class Mission:
                 self.log.warn("dart still ARMED (launch not seen): disarming to read the live log")
                 self.dart.arm(False)
             fl = self.dart.flightlog()
+            t_arm = self.shot.get("dart_t_ms_at_arm")
             if not fl.get("samples"):
                 self.log.warn("flight log is empty (dart was not armed or saw no launch)")
+                fl = None
+            elif self.shot.get("dart_phase_at_arm") != "ARMED" or fl.get("t_launch_ms") is None or (
+                    isinstance(t_arm, (int, float)) and fl["t_launch_ms"] < t_arm):
+                self.log.warn("flight log is not from this shot (arm not confirmed or launch before the arm): ignored")
                 fl = None
             else:
                 fl = remap_flightlog(fl, self.cfg.imu_axes)
@@ -845,7 +949,14 @@ class Mission:
                     pass
         self.log.info(f"analysing {len(frames)} dart frames")
         off = self.dart.clock_offset() if hasattr(self.dart, "clock_offset") else None
-        res = self.analyse(frames, fl, self.run_dir, t_fire=t_fire, log=self.log.warn, clock_offset_s=off)
+        kw = dict(t_fire=t_fire, log=self.log.warn, clock_offset_s=off)
+        try:      # jetson-vision: the commanded pitch and the clutch drag are strong priors for the range
+            res = self.analyse(frames, fl, self.run_dir, aim_pitch_deg=self.shot.get("pitch_actual") or
+                               self.shot.get("pitch_deg"), drag_n=self.cfg.drag_n, **kw)
+        except TypeError as e:
+            if "aim_pitch_deg" not in str(e) and "drag_n" not in str(e):
+                raise
+            res = self.analyse(frames, fl, self.run_dir, **kw)
         if c is not None and hasattr(c, "release_hold"):
             c.release_hold()
         self.results = res
@@ -870,17 +981,23 @@ class Mission:
 
     def tell_line_out(self, res: dict) -> None:
         """The base has no payout sensor (line_m is null after a shot): give it our estimate (PROTOCOL set line_m).
-        Best source: the flight analysis range; else the ballistic solution's line out."""
+        R2-C2: a video-only range can be far too long (9 m against 5 m), and a long estimate would let the capstan
+        reel-in seat the dart on the capstan. So the flight range is used only when the IMU flight log backs it, and
+        never beyond what the C3 table allows; otherwise the ballistic solution's line out."""
         fl = res.get("flight") or {}
         sol = (self.shot.get("solution") or {})
-        est = None
-        if isinstance(fl.get("range_m"), (int, float)) and 0.5 < fl["range_m"] < 30:
-            est = fl["range_m"] * 1.05 + 0.3          # straight distance plus a little sag and the rail
-            src = "flight analysis"
+        est, src = None, ""
+        rng = fl.get("range_m")
+        imu = "imu" in str(fl.get("source") or "").lower()
+        if imu and isinstance(rng, (int, float)) and 0.5 < rng < 30:
+            est, src = rng * 1.05 + 0.3, "IMU flight log"     # straight distance plus a little sag and the rail
         elif sol.get("line_out_m"):
             est, src = sol["line_out_m"], "ballistics"
         if est is None:
             return
+        rmax = sol.get("range_max_m")
+        if isinstance(rmax, (int, float)) and rmax > 0:
+            est = min(est, rmax * 1.1 + 0.5)
         est = round(min(est, 100.0), 2)
         self.shot["line_est_m"] = est
         try:
@@ -1001,18 +1118,20 @@ class Mission:
                 k = self.base.get("k_n_per_a").get("val")
             except (BaseError, BaseTimeout):
                 k = None
-            if k is not None and abs(float(k) - 8.0) < 1e-6 and not self.cfg.allow_uncalibrated_tow:
-                raise StepFailed("TOW refused: no load cell and k_n_per_a is still the factory 8, so the tension limit "
+            if k is not None and any(abs(float(k) - f) < 1e-4 for f in FACTORY_K_N_PER_A) \
+                    and not self.cfg.allow_uncalibrated_tow:
+                raise StepFailed(f"TOW refused: no load cell and k_n_per_a is still the factory {k}, so the tension limit "
                                  "cannot be trusted (a test reached 61 N against 40 N). Calibrate free_a and k_n_per_a "
                                  "(firmware/base/CALIBRATION.md b and e), then Retry; or release the dart.",
                                  choices=["Retry", "Release the dart"])
         rounds = 0
-        while rounds < self.cfg.tow_max_rounds:
+        while rounds < self.cfg.tow_max_rounds + getattr(self, "_extra_tow_rounds", 0):
             rounds += 1
             self.check_cancel()
             self.ensure_reel()
             m = self.base.event_mark()
-            tn_now = self.tel().get("tension_n")
+            fresh = self.fresh_after(getattr(self, "_last_limit_t", 0.0))   # F18: the state right after LIMIT is stale
+            tn_now = fresh.get("tension_n")
             if tn_now is not None and tn_now >= 0.95 * self.cfg.tow_limit_n:
                 self.log.info(f"line already at {tn_now} N: not pulling again")
                 r = self.rover.tow_assist(self, tn_now)
@@ -1021,7 +1140,7 @@ class Mission:
                 if r == "abort":
                     raise Aborted("operator chose Abort")
                 continue
-            if self.tel().get("state") == "REEL":
+            if fresh.get("state") == "REEL" and fresh.get("tension_n") is not None:
                 # load cell: the firmware already winds again by itself when the held line slackens; just wait
                 self.log.info("base is already winding (slack taken up by itself)")
             else:
@@ -1036,6 +1155,7 @@ class Mission:
                 self.stop_settle()
                 raise StepFailed("the dart came home during the tow: the anchor pulled out",
                                  choices=["Release and bring home"])
+            self._last_limit_t = time.time()
             tn = e.get("tension_n", self.tel().get("tension_n"))
             self.log.info(f"tow round {rounds}: holding at {tn} N, line {self.tel().get('line_m')} m")
             r = self.rover.tow_assist(self, tn)
@@ -1044,10 +1164,10 @@ class Mission:
                 return
             if r == "abort":
                 raise Aborted("operator chose Abort")
-        c = self.ask(f"Tow round limit ({self.cfg.tow_max_rounds}) reached. Release the dart now?",
+        c = self.ask(f"Tow round limit ({self.cfg.tow_max_rounds + getattr(self, '_extra_tow_rounds', 0)}) reached. Release the dart now?",
                      ["Release the dart", "Keep towing", "Abort"])
         if c == "Keep towing":
-            self.cfg.tow_max_rounds += 10
+            self._extra_tow_rounds = getattr(self, "_extra_tow_rounds", 0) + 10   # this mission only
             return self.tow()
 
     def release_dart(self) -> None:
@@ -1097,7 +1217,7 @@ class Mission:
         t_end = time.monotonic() + timeout
         while True:
             self.check_cancel()
-            tt = self.tel()
+            tt = self.tel_fresh(0.5)
             cur = tt.get("line_m")
             if sw_closed(tt, "S"):
                 self.stop_settle()
@@ -1131,7 +1251,7 @@ class Mission:
         line = self.tel().get("line_m")
         if line is None:
             line = self.shot.get("line_est_m") or self.cfg.approach_m
-        max_s = round(20.0 + float(line) / 0.08, 1)
+        max_s = min(600.0, max(5.0, round(20.0 + float(line) / 0.08, 1)))   # firmware range 5..600
         m = self.base.event_mark()
         self.base.cmd("retrieve", duty=self.cfg.takeup_duty, max_n=self.cfg.retrieve_limit_n, max_s=max_s)
         self._wait_seated(m, max_s + 10.0)

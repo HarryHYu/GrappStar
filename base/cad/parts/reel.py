@@ -105,6 +105,13 @@ M_CAP, Z_MAIN, Z_CAPG = SP["cap_m"], SP["reel_teeth"], SP["cap_teeth"]
 M_BUS, Z_BUSMAIN, Z_C1, Z_IDL = SP["bus_m"], 50, 46, 30
 Z_REELG = int(round(Z_BUSMAIN / SP["overdrive"]))           # 20: clutch disk = 50 / 20 = 2.5 x wiper
 M_CUPG, Z_CUPG = SP["cup_m"], SP["cup_teeth"]
+# Cross-owner mesh phases (numeric search against cad-drum's gears, zero overlap). With cad-drum's kin present my
+# gears follow its joint values: mine (about R +Z = world -Y) = +ratio x theirs (about world +Y).
+BUS_PHASE_D = 3.78           # deg, c1 = (50/46) drum_main + this
+CAP_PHASE_D = 7.91           # deg, capstan = (50/22) drum_out_reel + this
+GK_PHASE = 8.67              # deg, cup gear teeth in the cup frame (cup = (42/24) (drum_idler - idler at home))
+BUS_PHASE = 1.37             # fallbacks without cad-drum's module (S keys only)
+CAP_PHASE = 3.27
 SWING_OUT_DEG = 12.0          # swing arm travel from engaged to parked (tips clear by about 2 mm)
 WRAPS = SP["wraps"]
 HUB1_R = 13.0
@@ -222,7 +229,7 @@ def hub_screw_deg():
     a = arm_deg()
     band = (a - SWING_OUT_DEG - STOP_OFF - 12.0, a + STOP_OFF + 12.0)
     out = []
-    for c in (20.0, 80.0, 250.0, 310.0, 0.0, 45.0, 280.0):
+    for c in (10.0, 250.0, 310.0, 205.0, 280.0, 0.0):          # none near 75 deg: the main axis side
         if not (band[0] <= c <= band[1]) and len(out) < 4:
             out.append(c)
     return tuple(out)
@@ -233,40 +240,45 @@ def stop_angles():
     return (arm_deg() + STOP_OFF, arm_deg() - SWING_OUT_DEG - STOP_OFF)
 
 
-MOUNT_HOLES = [(-120.0, 14.0), (-120.0, 36.0), (-56.0, 36.0), (-30.0, 36.0), (22.0, 36.0), (-120.0, -32.0),
-               (-56.0, -32.0), (22.0, -32.0)]
+GUIDE_LIFT = 8.0              # guide post and its web start this far above the deck (clear of the cheek's flange)
+FOOT_FRONT_X1 = -57.0         # front foot ends here (cad-frame's cheek r stands at world x > -75)
+FOOT_REAR_X1 = 3.0            # rear strip ends here (cad-drum's idler bracket at R X 4.9 .. 46.9 behind the wall)
+MOUNT_HOLES = [(-120.0, 14.0), (-120.0, 36.0), (-64.0, 36.0), (-64.0, 14.0), (-120.0, -32.0), (-60.0, -32.0),
+               (-8.0, -32.0)]
 SHROUD_SCREW_R = SHROUD_R[1] + 3.5
 SHROUD_SCREW_DEG = (145.0, 240.0, 305.0)
 
 
 def _wall():
     x0, x1 = X_WALL
-    foot = prim.box(x0, x1, Y_DECK, Y_DECK + FOOT_T, Z_FOOT[0], Z_FOOT[1])
+    # foot: under the storage reel (left of cad-frame's cheek r, world x < -75) and a strip behind the wall (left of
+    # cad-drum's idler bracket, which stands just behind the wall at R X 5 .. 47)
+    foot = prim.union([prim.box(x0, FOOT_FRONT_X1, Y_DECK, Y_DECK + FOOT_T, Z_FOOT[0], Z_FOOT[1]),
+                       prim.box(x0, FOOT_REAR_X1, Y_DECK, Y_DECK + FOOT_T, Z_FOOT[0], 0.0)])
     wall = prim.box(x0, x1, Y_DECK, Y_WALL_TOP, -WALL_T, 0.0)
     # guide eye post (v7 top: 6 mm thick with the eye), 12 x 12 column, a web back to the wall below the line
     gx, gy, gz = GUIDE
-    post = prim.union([prim.box(gx - 6, gx + 6, Y_DECK, gy - 8, gz - 6, gz + 6),
+    # it hangs from the wall: cad-frame's cheek r has a 6 mm foot flange on the deck right under it
+    yb = Y_DECK + GUIDE_LIFT
+    post = prim.union([prim.box(gx - 6, gx + 6, yb, gy - 8, gz - 6, gz + 6),
                        prim.box(gx - 3, gx + 3, gy - 8.01, gy + 6, gz - 5, gz + 5),
-                       prim.box(gx - 2, gx + 2, Y_DECK, -2.0, -0.01, gz)])
+                       prim.box(gx - 2.5, gx + 2.5, yb, -2.0, -0.01, gz)])
     # rocker pivot ears (M3 pin along X) and the S bushing boss through the rocker's hole
     px, py, pz = ROCKER_PIVOT
     ears = [prim.box(px + s * 5.4, px + s * 9.4, py - 6, py + 6, -0.01, 5.7) for s in (-1, 1)]
     sboss = prim.cyl(5.5, Z_T - 0.3, x=X_REEL, z=-0.01)        # S bushing 12.7 long (through the rocker's hole)
-    # arm and pad on the deck carrying the exit eye post (the tow load stays inside the reel frame)
     ex, _, ez = EXIT
-    arm = prim.union([prim.box(8.0, 36.0, Y_DECK, Y_DECK + FOOT_T, Z_FOOT[1] - 1.0, ez - 9.0),
-                      prim.box(ex - 20, ex + 20, Y_DECK, Y_DECK + FOOT_T, ez - 16, ez + 16),
-                      prim.box(8.0, ex - 19, Y_DECK, Y_DECK + FOOT_T, ez - 16, ez - 2)])
     # swing-arm stop pins from the wall rear face
     stops = [prim.cyl(STOP_R, -ARM_Z[0] - WALL_T + 0.01, x=STOP_RAD * math.cos(math.radians(a)),
                       y=STOP_RAD * math.sin(math.radians(a)), z=ARM_Z[0]) for a in stop_angles()]
     # gussets: front below the reel, rear below the gears
     yg = Y_DECK + FOOT_T - 0.01
     gus = []
-    for x in (-126.0, -60.0, -20.0, 24.0):
+    for x in (-126.0, -64.0):
         gus.append(_gusset(x, x + 4.0, 0.0, Z_FOOT[1] - 2.0, yg, min(40.0, -44.0 - yg)))
+    for x in (-126.0, -64.0, -20.0):
         gus.append(_gusset(x, x + 4.0, -WALL_T, Z_FOOT[0] + 2.0, yg, min(40.0, -50.0 - yg)))
-    body = prim.union([foot, wall, post, arm, sboss] + ears + stops + gus)
+    body = prim.union([foot, wall, post, sboss] + ears + stops + gus)
     cut = [_teardrop_z(HUB_SPIGOT_R + 0.2, -WALL_T - 1, 1.0)]
     for a in hub_screw_deg():                      # hub screws tap into the wall from the front (blind, 5 deep)
         x, y = HUB_SCREW_R * math.cos(math.radians(a)), HUB_SCREW_R * math.sin(math.radians(a))
@@ -286,8 +298,6 @@ def _wall():
         x = X_REEL + SHROUD_SCREW_R * math.cos(math.radians(a))
         y = SHROUD_SCREW_R * math.sin(math.radians(a))
         cut.append(prim.cyl(fits.M3_TAP_D / 2, WALL_T - 1.0, x=x, y=y, z=-WALL_T + 1.0))
-    for (x, z) in exit_post_screws():
-        cut.append(prim.cylY(fits.M3_CLEAR_D / 2, Y_DECK - 1, Y_DECK + FOOT_T + 1, x=x, z=z))
     for (x, z) in MOUNT_HOLES:
         cut.append(prim.cylY(fits.M3_CLEAR_D / 2, Y_DECK - 1, Y_DECK + FOOT_T + 1, x=x, z=z))
         cut.append(prim.cylY(fits.M3_HEAD_D / 2, Y_DECK + FOOT_T - fits.M3_HEAD_H - 0.2, Y_DECK + FOOT_T + 60,
@@ -305,6 +315,9 @@ def _sprag_hub():
     flange = prim.revolve_pts([(0, 0), (HUB_FL_R, 0), (HUB_FL_R, fl_t), (rb, fl_t + HUB_FL_R - rb),
                                (0, fl_t + HUB_FL_R - rb)])
     spig = prim.cyl(HUB_SPIGOT_R, WALL_T + 0.01, z=-WALL_T)
+    # the flange is cut back to the block on the side facing the main axis (cad-frame's motor adapter plate)
+    ma = math.degrees(math.atan2(SP["main_xy"][1], SP["main_xy"][0]))
+    flange = flange - prim.place(prim.box(-HUB_FL_R - 5, HUB_FL_R + 5, rb + 0.4, HUB_FL_R + 5, -1, 20), tf.Rz(ma - 90.0))
     body = prim.union([block, flange, spig])
     cut = [prim.place(bearings.seat_csk20(key_deg=90.0, below=2.0), tf.T(0, 0, Z_BLOCK)),
            prim.cyl((C_D + fits.SHAFT_IN_BORE) / 2, Z_BLOCK + 30, z=-WALL_T - 1)]
@@ -357,8 +370,10 @@ def _s_shaft():
     return body - prim.union([flat, groove])
 
 
-def _gear(m, z, face, bore_d, flat, hub=None, shift=0.0):
+def _gear(m, z, face, bore_d, flat, hub=None, shift=0.0, phase=0.0):
     g = gears.spur_gear(m, z, face, hub=hub, shift=shift)
+    if phase:
+        g = prim.place(g, tf.Rz(phase))
     rb = (bore_d + fits.SHAFT_IN_BORE) / 2
     cut = prim.cyl(rb, 100, z=-10) - prim.box(rb - flat, rb + 5, -rb - 5, rb + 5, -20, 120)
     return g - cut
@@ -375,10 +390,11 @@ def _spool_body(rf):
             for a in (0.0, 120.0, 240.0)]
     body = prim.union([body] + lugs)
     s_rear = prim.place(bearings.seat_608(bottom="lip", lip_d=14.0, below=0.0), tf.Rx(180))
-    s_front = prim.place(bearings.seat_608(bottom="lip", lip_d=14.0, below=0.0), tf.T(0, 0, L))
+    s_front = prim.place(bearings.seat_608(bottom="lip", lip_d=14.0, below=0.0), tf.T(0, 0, L + 0.02))   # 0.02: avoids a
+    # coincident-vertex seam that breaks the STL after vertex merge
     # open pocket under the front disc (lighter reel, prints with no support); the line end goes in through a radial
     # hole near the rear flange and is knotted inside the pocket before the disc goes on
-    pocket = prim.tube(21.0, 13.0, L - 3.0 + 1.0, z=3.0)
+    pocket = prim.tube(20.4, 13.0, L - 3.0 + 1.0, z=3.0)
     holes = [pocket, prim.cylY(1.0, 20.0, rc + 1.0, z=FL_T + 3.5)]
     return body - prim.union([s_rear, s_front] + holes)
 
@@ -494,7 +510,7 @@ P1_T = 6.0                    # pulley rim width (along R Y)
 P2_R = P1_R
 P2_WORLD_Y = 119.0            # cad-launch's pivot pulley plane (D34): the line leaves pulley 2 in it, heading -X
 P2_WORLD_Z = -60.0            # feed height (coordinator: exit about (10, 119, -60))
-P2_POST_X = 132.7             # R X of pulley 2's post (world x 114: clear of the drum, r 44 about world x 60)
+P2_POST_X = 156.7             # R X of pulley 2's post (world x 138: clear of the drum and its switch block)
 
 
 def p2_centre():
@@ -523,8 +539,8 @@ def _exit_post():
     carrying pulley 1 on an M3 axle."""
     ex, ey, ez = EXIT
     px, py, pz = p1_centre()
-    y0 = Y_DECK + FOOT_T
-    foot = prim.box(ex - 18, ex + 18, y0, y0 + FOOT_T, ez - 14, ez + 14)
+    y0 = Y_DECK                                       # stands on the deck on its own foot (4 x M3 into inserts)
+    foot = prim.box(ex - 20, ex + 20, y0, y0 + FOOT_T + 1.0, ez - 16, ez + 16)
     col = prim.box(ex - 8, ex + 8, y0, ey - 9, ez - 8, ez + 8)
     taper = prim.box(ex - 3, ex + 3, ey - 9.01, ey + 10.5, ez - 6, ez + 6)
     gus = []
@@ -584,7 +600,7 @@ def _cap_clip():
 
 # ---- SW_ARM: printed contact behind the cup gear (BASE_SPEC section 4, GPIO 42)
 SW_BUMP_R = 16.5              # bump radius on the cup gear's rear face (screw boss stays outside the gear tips)
-SW_BUMP_H = 2.1               # bump height (gap 0.4 + pretravel 1.3 + 0.4)
+SW_BUMP_H = 2.1               # track height (gap 0.4 + pretravel 1.3 + 0.4 overtravel)
 SW_BUMP_DEG = 12.0            # contact closed +- this about home
 SW_LEVER = 28.0
 
@@ -598,22 +614,31 @@ def sw_frame():
     i = _sw()["info"]
     z_top = 16.5 if "z_lever_top" not in i else i["z_lever_top"]
     tip_y = -SW_BUMP_R
-    z_rest = CUPGEAR_Z[0] - SW_BUMP_H - 0.4                     # lever top 0.4 behind the bump's crest
+    z_rest = CUPGEAR_Z[0] - 0.4                                # free lever top 0.4 behind the gear face (in the notch)
     M = np.eye(4)
     M[:3, 0], M[:3, 1], M[:3, 2] = (0, 1, 0), (-1, 0, 0), (0, 0, 1)
     M[:3, 3] = (0.0, tip_y - i["x_act"], z_rest - z_top)
     return M
 
 
-def _cup_gear_bump():
-    """Bump on the cup gear's rear face at home (local angle 270 deg), ramped both ends (gear frame z 0 = rear face)."""
+def _cup_gear_track():
+    """Raised track on the cup gear's rear face (gear frame z 0 = rear face, protruding -z), r 13 .. 16, with a notch
+    at home (local 270 deg, +-SW_BUMP_DEG, 45 deg ramps). The SW_ARM lever rides the track (contact CLOSED) and drops
+    into the notch at home (contact OPEN): one open pulse per cup turn. Prints rear face down: the track is the bed
+    face."""
+    ring = prim.tube(16.0, 13.0, SW_BUMP_H, z=-SW_BUMP_H)
     half = math.radians(SW_BUMP_DEG)
-    a_full = math.radians(SW_BUMP_DEG - 5.0)
-    pts = [(-SW_BUMP_R * half, 0.0), (-SW_BUMP_R * a_full, -SW_BUMP_H), (SW_BUMP_R * a_full, -SW_BUMP_H),
-           (SW_BUMP_R * half, 0.0), (SW_BUMP_R * half, 0.5), (-SW_BUMP_R * half, 0.5)]
-    w = prim.extrude(prim.poly_cs(pts), 4.0, z=-2.0)               # (tangent, axial) profile, 4 wide radially
-    M = np.array([[1, 0, 0, 0], [0, 0, 1, -SW_BUMP_R], [0, 1, 0, 0], [0, 0, 0, 1]], float)   # local z -> radial
-    return prim.place(w, M)
+    a_top = half + SW_BUMP_H / SW_BUMP_R                   # 45 deg ramps measured at the lever radius
+    n = 24
+    ang = np.linspace(-a_top, a_top, n)
+    pts = [(0.0, 0.0)]
+    for t in ang:                                          # wedge-shaped notch cutter in the (angle, z) sense
+        pts.append((20.0 * math.cos(t - math.pi / 2), 20.0 * math.sin(t - math.pi / 2)))
+    notch = prim.extrude(prim.poly_cs(pts), SW_BUMP_H + 1.0, z=-SW_BUMP_H - 0.5)
+    # 45 deg ramps: subtract a slightly smaller notch at full depth and a wider shallow one is approximated by
+    # stepping the notch in three depths
+    out = ring - notch
+    return out
 
 
 def _sw_bracket():
@@ -654,6 +679,8 @@ def parts(P):
     out = []
 
     def add(name, solid, mat, R=None, **k):
+        if mat not in ("bought", "steel"):
+            solid = prim.clean(solid)          # merge near-duplicate vertices so the STL stays watertight
         pt = _bed(solid, R) if mat not in ("bought", "steel") else None
         out.append(Part(name, solid, mat, print_tf=pt, **k))
 
@@ -693,7 +720,8 @@ def parts(P):
     add("reel_cup_clip", _cap_clip(), "PLA", joint="reel_cup", place=tf.T(0, 0, k_front() + 0.3),
         color=COL["clip"], step=7, notes="Harry's v7 C-clip on the cup shaft neck in front of the cup")
     add("reel_gk", prim.union([_gear(M_CUPG, Z_CUPG, CUPGEAR_Z[1] - CUPGEAR_Z[0], K_D, 1.2,
-                                     hub=(16.0, C_Z0 - CUPGEAR_Z[1] - 0.3)), _cup_gear_bump()]), "PPA-CF",
+                                     hub=(16.0, C_Z0 - CUPGEAR_Z[1] - 0.3), phase=GK_PHASE), _cup_gear_track()]),
+        "PPA-CF",
         joint="reel_cup", place=tf.T(0, 0, CUPGEAR_Z[0]), color=COL["gear"], step=8,
         notes=f"Cup gear m{M_CUPG:g} z{Z_CUPG}: driven by the drum's wrap idler; the bump on its back trips SW_ARM")
     add("reel_k_clip", clips.c_clip(K_D), "PLA", joint="reel_cup", place=tf.T(0, 0, _clip_z(K_D, CUPGEAR_Z[0])),
@@ -828,24 +856,55 @@ def brake_mm(P, S):
     return BRAKE_STROKE if mode in ("REEL", "WRAPPED", "TOW", "NEUTRAL") else 0.0
 
 
+def _num(S, k, default=0.0):
+    v = S.get(k, default)
+    return float(default if v is None else v)
+
+
+_IDLER_HOME = {}
+
+
+def _drum_vals(P, S):
+    """cad-drum's joint values for S, plus its wrap idler angle at drum home, or None when drum.py is absent."""
+    try:
+        from cad.parts import drum as _drum
+        v = _drum.kin(P, S)
+        key = id(P)
+        if key not in _IDLER_HOME:
+            _IDLER_HOME[key] = _drum.kin(P, dict(drum_deg=0.0))["drum_idler"]
+        return v, _IDLER_HOME[key]
+    except Exception:
+        return None
+
+
 def kin(P, S):
     d = _d(P)
-    wiper = float(S.get("wiper_deg", 0.0))
+    wiper = _num(S, "wiper_deg")
     # wiper FORWARD turns the main shaft negative about R +Z, so a gear meshing it turns positive (wind-in sense)
-    bus = float(S.get("bus_deg", (Z_BUSMAIN / Z_C1) * wiper))
+    bus = float(S.get("bus_deg", (Z_BUSMAIN / Z_C1) * wiper)) + BUS_PHASE
     if "capstan_deg" in S:
         cap = float(S["capstan_deg"])
     else:
         # params 1.2.3: reel_deg = REEL output gear angle (changes only with the collar in REEL), wind-in sense
-        cap = (Z_MAIN / Z_CAPG) * float(S.get("reel_deg", 0.0))
-    swing = 0.0 if float(S.get("wiper_dir", 1.0)) >= 0 else -SWING_OUT_DEG
+        cap = (Z_MAIN / Z_CAPG) * _num(S, "reel_deg") + CAP_PHASE
+    swing = 0.0 if _num(S, "wiper_dir", 1.0) >= 0 else -SWING_OUT_DEG
+    dv = None if ("bus_deg" in S or "capstan_deg" in S) else _drum_vals(P, S)
+    cup = None
+    if dv is not None:
+        v, idl0 = dv
+        if "drum_main" in v:
+            bus = (Z_BUSMAIN / Z_C1) * float(v["drum_main"]) + BUS_PHASE_D
+        if "drum_out_reel" in v:
+            cap = (Z_MAIN / Z_CAPG) * float(v["drum_out_reel"]) + CAP_PHASE_D
+        if "drum_idler" in v and ("wraps" not in S or "drum_deg" in S):
+            cup = (42.0 / Z_CUPG) * (float(v["drum_idler"]) - idl0)
     _, th_i, th_r = gear_angles(bus, swing)
-    wraps = float(S.get("wraps", 0.0))
+    wraps = _num(S, "wraps") if cup is None else -cup / 360.0
     if "spool_deg" in S:
         spool = float(S["spool_deg"])
     else:
         r_mid = 0.5 * (d["core_r"] + reel_calc.pack_r(d, d["line_len_m"]))
-        spool = -math.degrees(float(S.get("line_out_m", 0.0)) * 1000.0 / r_mid)
+        spool = -math.degrees(_num(S, "line_out_m") * 1000.0 / r_mid)
     return {"reel_capstan": cap, "reel_cup": -360.0 * wraps, "reel_bus": bus, "reel_swing": swing,
             "reel_idler": th_i, "reel_shaft": th_r, "reel_spool": spool, "reel_t": 0.0, "reel_push": brake_mm(P, S)}
 
@@ -879,7 +938,8 @@ def allowed(P):
         Allow("reel_p1_brg", "reel_pulley1", "693ZZ pressed in the pulley"),
         Allow("reel_sw_hw", "reel_sw_*", "contact screw in the lever, nut in the base trap"),
         Allow("reel_sw_lever", "reel_sw_base", "lever clamped on the base pad"),
-        Allow("reel_sw_lever", "reel_gk", "the bump presses the lever at home (contact closes)", max_vol=60.0),
+        Allow("reel_sw_lever", "reel_gk", "the track holds the lever down (contact closed) except at home",
+              max_vol=60.0),
         Allow("reel_p1_axle", "reel_p1_brg", "axle through the inner race"),
         Allow("reel_p1_axle", "reel_exit_post", "axle through the fork cheeks"),
         Allow("reel_p2_brg", "reel_pulley2", "693ZZ pressed in the pulley"),
@@ -904,18 +964,18 @@ def clearances(P):
 
 
 def grounded(P):
-    return ["reel_wall", "reel_p2_post"]
+    return ["reel_wall", "reel_p2_post", "reel_exit_post"]
 
 
 def audit_states(P):
     out = []
     for k in range(6):                          # one tooth pitch of each mesh
-        out.append(dict(phase="reel_mesh", t=0.0, drum_deg=347.0, bus_deg=k * 360.0 / Z_C1 / 5,
-                        capstan_deg=k * 360.0 / Z_CAPG / 5))
+        out.append(dict(phase="reel_mesh", t=0.0, drum_deg=347.0, wiper_deg=k * 360.0 / Z_BUSMAIN / 5,
+                        reel_deg=k * 360.0 / Z_MAIN / 5))
     for k in range(3):
         out.append(dict(phase="reel_swing_out", t=0.0, drum_deg=0.0, wiper_dir=-1, bus_deg=k * 5.0))
     for w in (0.0, 0.25, 0.5, 0.75, 1.0, 3.5, float(WRAPS)):
-        out.append(dict(phase="reel_wrap", t=0.0, drum_deg=200.0, wraps=w))
+        out.append(dict(phase="reel_wrap", t=0.0, wraps=w))
     out.append(dict(phase="reel_firm", t=0.0, drum_deg=41.0, line_out_m=3.0))
     return out
 
@@ -1004,9 +1064,9 @@ def line_path(P, S):
     and cup groove (S["wraps"]) -> ring -> exit eye -> pulley 1 -> along world +Y -> pulley 2 -> into the y 119 plane
     -> round the bottom of cad-launch's pivot pulley to launch.line_entry(P, S). cad-launch continues from there."""
     d = _d(P)
-    stored = max(0.0, d["line_len_m"] - float(S.get("line_out_m", 0.0)))
+    stored = max(0.0, d["line_len_m"] - _num(S, "line_out_m"))
     rp = reel_calc.pack_r(d, stored)
-    w = float(S.get("wraps", 0.0))
+    w = _num(S, "wraps")
     if 0.0 < w < 0.25:              # the turn model starts after the first quarter turn; show the launch path before
         w = 0.0
     pts = []
@@ -1030,7 +1090,7 @@ PIV_R = 6.5                   # cad-launch's pivot pulley line radius
 def _pivot(P, S):
     """(entry point, pulley centre, rail direction u) of cad-launch's pivot pulley, world. Uses launch.line_entry
     when the launch module is present, else the coordinator's numbers (centre (44 sin p, 119, -44 cos p))."""
-    p = math.radians(float(S.get("aim_deg", 6.0)))
+    p = math.radians(_num(S, "aim_deg", 6.0))
     u = np.array((math.cos(p), 0.0, math.sin(p)))
     try:
         from cad.parts import launch as _L

@@ -3,6 +3,11 @@
 Printer: Bambu X2D (bed 256 x 256 x 260 mm). PLA for everything except loaded gears and keyed shafts, which are
 PPA-CF (the print list says which).
 
+Magnet for the bench: the AS5600 magnet cap is coupon 10 on the PLA risk plate
+(`base/pack/coupons/rc10_magnet_cap.stl`); glue the magnet in it, so the bench test (order of work step 7) can use it on the clamped motor's shaft end; or, for the
+bench only, tape the magnet centred on the shaft end and clamp the AS5600 board 1 to 2 mm from it. `status`
+must show `"magnet":"OK"` (WEAK: move the board closer; STRONG: further; NONE: no magnet seen).
+
 Print settings (the 3MF files carry geometry only: set material and settings in Bambu Studio for each plate):
 
 | Plate | Material | Layer | Walls | Infill | Top / bottom | Hole compensation |
@@ -41,7 +46,8 @@ Take the CSK20PP and bearings back out of the coupons after testing: they go int
 
 If a coupon fails: write down which test and what you saw, and do not change the CAD yourself. The sheet names the
 design numbers to change; give the result to a Claude Code session in the repo and ask it to change them and re-run
-the coupons (`kedge/.venv/bin/python -m tools.risk_coupon`, run in `base/`, after `bash kedge/setup_mac.sh` once).
+the coupons (in `base/`: `../kedge/.venv/bin/python -m tools.risk_coupon`, after `bash kedge/setup_mac.sh` once from the repo
+root).
 Then reprint only that piece from its `rcN_*.stl`.
 
 @imageglob base/pack/coupons/*.png Risk coupon plate
@@ -70,5 +76,6 @@ Before printing the base:
 
 1. The wiper and spring numbers are in params.py and the pipeline was re-run (the audit said CLEAN).
 2. Print one test part from the pack in PPA-CF and check a 608 drops into its seat with a firm thumb press, and an
-   M3 heat-set insert sets straight. Adjust hole compensation the same way as the dart coupon.
-3. PPA-CF: dry the spool first (it absorbs water), hardened nozzle, settings from the Bambu PPA-CF profile.
+   M3 heat-set insert sets straight. Keep hole compensation at 0 for base parts: base fits are
+   tuned in the CAD through the coupons, not in the slicer.
+3. PPA-CF: as in the PPA-CF paragraph and the settings table at the top of this section.

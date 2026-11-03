@@ -35,7 +35,7 @@ class FakeCam:
 
 class Rig:
     def __init__(self, tmp_path, verdict="GO", flight_s=1.1, cfg=None, rover=None, anchor_holds=True,
-                 cams=None, target=(7.5, 3.0)):
+                 cams=None, target=(3.6, 3.0)):
         self.world = World()
         a, b = pipe_pair()
         self.mb = MockBase(a, time_scale=SCALE, world=self.world).start()
@@ -53,6 +53,7 @@ class Rig:
         self.analyse_calls = 0
         c = cfg or MissionConfig()
         c.settle_s = 0.1
+        c.host_timeout_s = 0          # the mock runs 20x fast: a 1.5 s watchdog would be 75 ms of wall time
         c.still_s = 0.3
         c.mode_timeout_s = 5
         c.anchor_timeout_s = 10
@@ -61,7 +62,7 @@ class Rig:
         self.log = JLog(str(tmp_path / "mission.jsonl"))
         self.target = {"range_m": target[0], "bearing_deg": target[1]} if target else None
         self.m = Mission(self.base, self.dart, cams if cams is not None else {"dart": FakeCam(), "rover": FakeCam()},
-                         Ballistics(make_placeholder(path=None), "placeholder"), self.log, cfg=c,
+                         Ballistics.load(), self.log, cfg=c,
                          rover=rover or ScriptRover(self), get_target=lambda: self.target, run_dir=str(tmp_path),
                          analyse=self._analyse)
         self.answers = []
@@ -71,7 +72,7 @@ class Rig:
 
     def _fire(self):
         self.md.launch()
-        self.world.flight = lambda t: 7.0 * min(1.0, t / self.flight_s)
+        self.world.flight = lambda t: 3.8 * min(1.0, t / self.flight_s)
         threading.Timer(self.flight_s / SCALE, self._land).start()
 
     def _land(self):

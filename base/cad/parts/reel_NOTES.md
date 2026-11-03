@@ -1,13 +1,14 @@
 # Reel system: interfaces and numbers (worker cad-reel)
 
-Status: v4, 13:00 Sydney, follows params v1.2 and DECISIONS D14, D15, D20, D22, D24, D25. Numbers come from `reel.py`
+Status: v5, 13:15 Sydney, follows params v1.2 and DECISIONS D14, D15, D20, D22, D24, D25. Numbers come from `reel.py`
 (geometry) and `reel_calc.py` (physics; `python3 base/cad/parts/reel_calc.py` prints the table). Requests: write
 them in your REPORT.md or message the coordinator.
 
 ## 1. What it is (Harry's v7 reel, kept)
 
 - Line path (v7): storage reel -> guide eye -> over the capstan -> groove on the wrap cup -> ring on the cup -> exit eye
-  -> pulley 1 (693ZZ) -> along world +Y toward the rail pivot pulley (D14) -> dart. Capstan dia 40 x 40 with the v7
+  -> pulley 1 (693ZZ) -> along world +Y -> pulley 2 (693ZZ, own post) -> in the y 119 plane round the bottom of
+  cad-launch's rail pivot pulley (D14, D34) -> along the rail to the dart. Capstan dia 40 x 40 with the v7
   base flange; v7 cup (ring 0.5 in front of the face and 1 mm outside the wall, U groove 1.2 x 1.0, 30 deg helix,
   58 deg wrap, groove cut last); exit eye 31.5 past the ring; guide eye 1 mm behind the drum flange plane and 2 mm
   above the cup top. Eyes are plain d 4.4 holes coned to 6.4 (their axes are tilted to bisect the line's bend).
@@ -44,6 +45,8 @@ them in your REPORT.md or message the coordinator.
 | guide eye centre | -45 | +26 | 25 | 8.5 |
 | exit eye centre | +70 | +23.5 | 108 | -74.5 |
 | pulley 1 centre (axis R Y) | +84 | +23.5 | 101 | -67.5 |
+| pulley 2 centre (axis world Z), own post | +84 | +9.6 | -78.5 | 112 (world (65.3, 112, -60)) |
+| pulley 2 post | +140 .. +173 | -95.4 .. +34.6 | -93 .. -64 | 97 .. 126 |
 | gears behind the wall | -105 .. +36 | -36 .. +36 | -46.5 .. -6 | 40 .. 80 |
 
 - My checks() test every reel part against the main-axis stack (coupler r 27 y 0.5..46, bus r 41, REEL gear r 54,
@@ -73,7 +76,10 @@ M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post.
 | capstan gear | C (D flat) | 2 | 22 | 12 | -29 .. -17 (50.5..62.5) | cad-drum REEL output 50T (72.1) |
 | cup gear | K (D flat) | 1.5 | 24 | 8 | -43 .. -35 (68.5..76.5) | cad-drum wrap idler 42T |
 
-- Phase convention: tooth 0 on +X of each gear's own frame at joint angle 0.
+- Phase convention: tooth 0 on +X of each gear's own frame at joint angle 0. Cross-owner meshes: my kin reads
+  cad-drum's drum.kin and sets c1 = (50/46) drum_main + 3.78 deg, capstan = (50/22) drum_out_reel + 7.91 deg,
+  cup = (42/24) (drum_idler - its value at drum 0), cup gear teeth +8.67 deg in the cup frame (zero overlap by
+  numeric search). Without drum.py it falls back to S["wiper_deg"], S["reel_deg"], S["wraps"].
 - Stall: at the 15 N m wiper stall the line sees 274 N (eta 0.85), under the 667 N break; the D26 shear pin (5 N m)
   caps it at about 100 N.
 - Swing idler: forward turns drag the arm + into mesh against its stop (tooth forces are self-energising into the
@@ -141,18 +147,23 @@ M3x25 + nut rocker pivot, M3x16 + nyloc pulley axle, 4 x M3 exit post.
 
 ## 10. Contacts
 
-- SW_ARM (GPIO 42, mine): printed contact behind the cup gear, closed by a bump on the gear's rear face for +-12 deg
-  about home (one pulse per cup turn).
+- SW_ARM (GPIO 42, mine): printed contact (cad.lib.switch, strain 0.79 percent) on a bracket behind the wall. Its
+  lever rides a raised track on the cup gear's rear face: CLOSED (LOW) everywhere except home, where it drops into a
+  notch and OPENS for about +-5 deg. Firmware: home = SW_ARM high, one open pulse per cup turn (7 per wrap).
 
 ## 11. Frame mounting
 
-- Reel wall foot: 8 x M3 counterbored down into deck inserts at R (X, Z) (-120, 14), (-120, 36), (-56, 36), (-30, 36),
-  (22, 36), (-120, -32), (-56, -32), (22, -32); exit post: 4 x M3 through the post foot and the wall pad at (58, 99),
-  (58, 117), (82, 99), (82, 117). The tow load path: exit eye/pulley 1 -> post -> pad -> wall -> sprag hub.
+- Reel wall foot: under the storage reel (stops at world x -76, left of cad-frame's cheek r) plus a strip behind the
+  wall (stops at R X 3, left of cad-drum's idler bracket). 7 x M3 counterbored into deck inserts at R (X, Z)
+  (-120, 14), (-120, 36), (-64, 36), (-64, 14), (-120, -32), (-60, -32), (-8, -32). The guide post hangs from the
+  wall 8 mm above the deck (the cheek's foot flange is under it).
+- Exit post: own foot on the deck, 4 x M3 at R (58, 99), (58, 117), (82, 99), (82, 117).
+- Pulley 2 post: own foot on the deck at world x 138, y 112, 4 x M3 (+-11.5 in x, +-9.5 in y about the column).
+- cad-frame: the motor adapter plate must clear my sprag hub and drum: a notch r 36 about world (x -18.66, z -69.64).
 
 ## 12. Open items
 
-- cad-launch: rail pivot pulley centre, axis and boss (BASE_SPEC: my pulley, their boss). line_path ends at world y
-  118 on the +Y run until then; pulley 2 (turning the run toward the pivot pulley) follows.
+- cad-frame: notch the motor adapter plate round my capstan (section 11).
+- cad-drum: drum.kin's drum_main / drum_out_reel should follow S["wiper_deg"] / S["reel_deg"] (params 1.2.3).
 - coordinator: WRAP sector FIRM for the unwrap (section 9).
 - Harry measures: CSK20PP keyway depths (inner 2.8, outer 1.5 assumed), mu of Dyneema on the printed capstan.

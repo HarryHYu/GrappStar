@@ -234,21 +234,25 @@ def coupon_3(P):
     g, c = drum.G(P), drum.C(P)
     h, st = c["dog_h"], c["stroke"]
     F = drum.fork_planes(g)
-    S1 = g["dog_face_reel"] - 4.5                         # base plate top (L frame kept, s = z): REEL face rests here
-    S0 = S1 - 5.0
+    fk, dp = drum.fork(g, c), drum.dog_post(g, c)
+    flo, fhi = prim.bbox(fk)
+    S1 = g["dog_face_reel"] - 4.5                         # REEL face bottom (L frame kept, s = z)
+    SP = min(S1, flo[2] - st - 1.0)                       # plate top: below the fork's lowest point when engaged
+    S0 = SP - 5.0
     jr = g["rsl_journal"][2] / 2
     rx, ry = g["rail_xy"]
     s0 = g["collar_s"][0]
     b0, b1 = s0 + h, g["groove"][1] + 2.0                 # thin collar: dogs at b0, body to past the groove
     hex_top = b1 + st + 3.0
-    rail_top = F["sb"] + 40.0 + st + 3.0                  # fork sleeve is 40 long
-    base = prim.union([hull_plate([(0, 0, 20), (rx, ry, 9)], S0, S1),
+    rail_top = max(fhi[2] + st + 3.0, g["dogpost_s"][1] + 1.0)   # past the fork travel and the dog post clamp
+    base = prim.union([hull_plate([(0, 0, 20), (rx, ry, 9)], S0, SP),
+                       drum.cyl(jr + 3.0, SP - 0.01, S1),            # shoulder the REEL face rests on
                        drum.cyl(jr, S1 - 0.01, g["dog_face_reel"]),
                        drum.hexprism(g["hex_af"], g["dog_face_reel"] - 0.01, hex_top)])
-    base = base - drum.cyl((g["rail_d"] + fits.HOLE_PRESS) / 2, S0 - 1, S1 + 1, rx, ry)
+    base = base - drum.cyl((g["rail_d"] + fits.HOLE_PRESS) / 2, S0 - 1, SP + 1, rx, ry)
     rr = math.hypot(rx, ry)
     lx, ly = rx / rr * 49.0, ry / rr * 49.0              # label outside the face handle sweep (r 38)
-    base = base + label("3", lx, ly, S1)
+    base = base + label("3", lx, ly, SP)
     # REEL face: the REEL gear's dog face (ring r dog_r_out + 1, bore journal + SHAFT_IN_BORE) with a turning handle
     hand_top = min(S1 + 3.0, g["dogpost_s"][0] - 0.5)
     fb = prim.union([drum.ring(c["dog_r_out"] + 1.0, (2 * jr + fits.SHAFT_IN_BORE) / 2, S1, g["dog_face_reel"]),
@@ -258,7 +262,6 @@ def coupon_3(P):
     co = co - drum.ring(g["collar_od"] / 2 + 1, g["groove_r"], g["groove"][0], g["groove"][1])
     co = prim.union([co, drum.dog_teeth(c, b0, -1, 0.0)])
     co = co - drum.hexprism(g["hex_af"] + fits.SHAFT_IN_BORE, s0 - 1, b1 + 1)
-    fk, dp = drum.fork(g, c), drum.dog_post(g, c)
     rl = drum.rail(dict(g, rail_s=(S0, rail_top)))
     parts = [
         mk("rc3_base", base, "PLA", "Base: d30 journal (REEL sleeve) and hex 22 AF (main shaft), rail hole (press)"),
@@ -266,7 +269,8 @@ def coupon_3(P):
         mk("rc3_collar", co, "PPA-CF", "Collar lower half: drum.dog_teeth facing down, fork groove, hex bore",
            R=tf.Rx(180)),
         mk("rc3_fork", fk, "PLA", "drum.fork as built: compliant yoke, rail sleeve, follower pin, M3 nut in the tab"),
-        mk("rc3_dog_post", dp, "PLA", "drum.dog_post as built: SW_DOG_L / SW_DOG_R screw bosses, clamps on the rail"),
+        mk("rc3_dog_post", dp, "PLA", "drum.dog_post as built: SW_DOG_L / SW_DOG_R screw bosses, clamps on the rail",
+           R=tf.Rx(180)),
         mk("rc3_rail", rl, "PPA-CF", f"drum.rail profile d10 with the print flat, cut to {rail_top - S0:.0f} long",
            R=tf.Ry(90)),
     ]
@@ -527,19 +531,28 @@ def coupon_8(P):
 
 # ---------------------------------------------------------------------------------------------- 9 shear pin
 SHEAR_RANGE_NM = (3.5, 6.0)   # drum_NOTES: 30 MPa assumed, so the limit could be 3.5 to 6 N m
-SPACING = 4.0              # mm between parts on a plate (pack default 5)
+PACKINGS = ((5.0, 5.0), (4.0, 5.0), (3.0, 4.0), (3.0, 3.0))   # (spacing, bed margin) mm tried in turn
 LEVER_R = 60.0             # string hole radius on both levers
 
 
 def coupon_9(P):
     from cad.parts import drum
     g = drum.G(P)
-    s_lo, s_mid, s_hi = 3.5, 9.5, 16.5
-    hub = drum.coupler_hub(g, P) ^ drum.cyl(30.0, s_lo, s_hi)
-    lev = prim.box(11.0, LEVER_R + 6, -8, 8, s_lo, s_mid - 0.2) - drum.cyl(2.2, s_lo - 1, s_mid, LEVER_R, 0.0)
+    # slices around the pin plane, all from drum's current numbers: outer coupler slice s_lo..s_mid, the hub slice
+    # runs on above it and carries its lever there (s_mid + 0.2 .. s_top)
+    h0, h1 = g["hub_s"]
+    ss, sd = g["shear_s"], g["shear_d"]
+    s_lo = max(h0, ss - sd / 2 - 3.0)
+    s_mid = min(h1 - 4.0, ss + sd / 2 + 3.0)
+    s_top = min(h1, s_mid + 6.0)
+    s_hi = s_top
+    hub = drum.coupler_hub(g, P) ^ drum.cyl(30.0, s_lo, s_top)
+    lev = prim.box(g["hub_od"] / 2 - 2.0, LEVER_R + 6, -8, 8, s_mid + 0.2, s_top) - \
+        drum.cyl(2.2, s_mid, s_top + 1, LEVER_R, 0.0)
     hub = hub + lev
-    outer = drum.coupler(g, P) ^ drum.cyl(30.0, s_mid, s_hi)
-    lev2 = prim.box(-(LEVER_R + 6), -19.0, -8, 8, s_mid, s_hi) - drum.cyl(2.2, s_mid - 1, s_hi + 1, -LEVER_R, 0.0)
+    outer = drum.coupler(g, P) ^ drum.cyl(30.0, s_lo, s_mid)
+    lev2 = prim.box(-(LEVER_R + 6), -(g["cpl_od"] / 2 - 1.0), -8, 8, s_lo, s_mid) - \
+        drum.cyl(2.2, s_lo - 1, s_mid + 1, -LEVER_R, 0.0)
     outer = outer + lev2
     pin = drum.shear_pin(g)
     r = g["hub_od"] / 2
@@ -548,10 +561,11 @@ def coupon_9(P):
     kg = t_est / (LEVER_R / 1000.0) / 9.81
     kg_range = tuple(t / (LEVER_R / 1000.0) / 9.81 for t in SHEAR_RANGE_NM)
     parts = [mk("rc9_hub_lever", hub, "PPA-CF", "drum.coupler_hub slice (shear pin hole) "
-                f"with a lever, string hole at r {LEVER_R:g}"),
+                f"with a lever, string hole at r {LEVER_R:g}", R=tf.Rx(180)),
              mk("rc9_outer_lever", outer, "PPA-CF", "drum.coupler slice (shear pin hole) "
                 f"with a lever, string hole at r {LEVER_R:g}"),
-             mk("rc9_shear_pin", pin, "PLA", "drum.shear_pin as built (d4 PLA)", R=tf.Ry(90), qty=3)]
+             mk("rc9_shear_pin", pin, "PLA", "drum.shear_pin as built (d4 PLA), lying on its flat as drum prints it",
+                R=tf.Ry(180), qty=3)]
     return dict(
         key="9", title="Shear-pin torque limiter", parts=parts,
         asm=[{"rc9_hub_lever": tf.I4, "rc9_outer_lever": tf.I4, "rc9_shear_pin": tf.I4}], mesh=[],
@@ -572,10 +586,33 @@ def coupon_9(P):
     )
 
 
+# ---------------------------------------------------------------------------------------------- 10 magnet cap
+def coupon_10(P):
+    """Not a risk test: drum's real AS5600 magnet cap, printed early for the motor bench test."""
+    from cad.parts import drum
+    g = drum.G(P)
+    cap = drum.magnet_holder(g)
+    parts = [mk("rc10_magnet_cap", cap, "PLA", "drum.magnet_holder as built: AS5600 magnet cap on the d12 spigot end",
+                R=tf.Rx(180))]
+    return dict(
+        key="10", title=TITLES["10"], parts=parts, asm=[], mesh=[],
+        uses=(f"drum.magnet_holder (spig_d {g['spig_d']:g} with its flat, cap_s {g['cap_s']}, magnet pocket d6.2 x 2.6), "
+              f"printed as drum prints it"),
+        bought="6 x 2.5 mm diametric magnet (comes with the AS5600 board), M3x6, superglue",
+        do=("Glue the magnet into the end pocket (flush, any way round), push the cap on the shaft end (flat to the "
+            "flat), M3x6 onto the flat. For the bench: AS5600 chip on the shaft axis, 1 to 2 mm from the magnet face."),
+        ok=("Cap does not wobble or slip on the shaft; the AS5600 angle follows the shaft smoothly through full turns "
+            "(no jumps), magnet status OK (not too weak, not too strong) at 1 to 2 mm."),
+        fail=("drum.py GEOM cap_s, spig_d; magnet_holder pocket d6.2 x 2.6 (magnet loose or tight); fits.py HOLE_SLIDE "
+              "(cap on the spigot)."),
+    )
+
+
 # ---------------------------------------------------------------------------------------------- all
 TITLES = {"1": "Swing-arm direction splitter", "2": "Printed contact switch", "3": "Dog clutch and compliant fork",
           "4": "Face slip clutch with the flexure spring", "5": "Bearing seats", "6": "M3 holes",
-          "7": "Key rib and spigot", "8": "Gear meshes m1.25, m1.5, m2, m2.5", "9": "Shear-pin torque limiter"}
+          "7": "Key rib and spigot", "8": "Gear meshes m1.25, m1.5, m2, m2.5", "9": "Shear-pin torque limiter",
+          "10": "AS5600 magnet cap (bench test)"}
 # a renamed or removed function, constant or module in a subsystem file skips only the coupon that uses it
 SOURCE_ERRORS = (AttributeError, ImportError, KeyError, NameError, TypeError)
 
@@ -588,7 +625,8 @@ def coupons(P=None, skipped=None, log=print):
     sc = clutch.slip_clutch()
     fns = [("1", lambda: coupon_1(P)), ("2", lambda: coupon_2(P)), ("3", lambda: coupon_3(P)),
            ("4", lambda: coupon_4(P, sc)), ("5", lambda: coupon_5(P)), ("6", lambda: coupon_6(P)),
-           ("7", lambda: coupon_7(P, sc)), ("8", lambda: coupon_8(P)), ("9", lambda: coupon_9(P))]
+           ("7", lambda: coupon_7(P, sc)), ("8", lambda: coupon_8(P)), ("9", lambda: coupon_9(P)),
+           ("10", lambda: coupon_10(P))]
     out = []
     for key, fn in fns:
         try:
@@ -648,8 +686,8 @@ def settings_text():
             f"material and these settings in Bambu Studio.")
 
 
-RERUN = ("To change a number: on the Mac, after bash kedge/setup_mac.sh, run kedge/.venv/bin/python -m tools.risk_coupon "
-         "from base/ (it rewrites base/pack/coupons and base/pack/fit_coupon). Easier: give the failing result to a "
+RERUN = ("To change a number: on the Mac, after bash kedge/setup_mac.sh (from the repo root), cd base and run "
+         "../kedge/.venv/bin/python -m tools.risk_coupon (it rewrites base/pack/coupons and base/pack/fit_coupon). Easier: give the failing result to a "
          "Claude session and let it change the numbers. Change one number at a time and reprint only that coupon.")
 
 
@@ -721,7 +759,7 @@ def pdf_pages(fn) -> int:
 def write(out_dir: str = DEFAULT_OUT, P=None, log=print) -> dict:
     from tools import pack
     os.makedirs(out_dir, exist_ok=True)
-    for pat in ("rc[0-9]_*.stl", "risk_plate_*", "COUPON_TEST.*"):
+    for pat in ("rc[0-9]*_*.stl", "risk_plate_*", "COUPON_TEST.*"):
         for f in glob.glob(os.path.join(out_dir, pat)):
             os.remove(f)
     skipped = []
@@ -735,7 +773,15 @@ def write(out_dir: str = DEFAULT_OUT, P=None, log=print) -> dict:
         meshes[p.name] = m
         items.append(dict(name=p.name, material=p.material, dims=[float(x) for x in m.extents], qty=p.qty))
     rep = dict(parts=len(parts), plates=[], errors=[], warnings=[], skipped=skipped)
-    plates, errs = pack.pack_plates(items, pack.BED, SPACING, 5.0, rep["warnings"])
+    # one plate per material if the parts allow it: tighten the spacing step by step (subsystem moves change sizes)
+    n_mat = len({it["material"] for it in items})
+    for spacing, margin in PACKINGS:
+        warn = []
+        plates, errs = pack.pack_plates(items, pack.BED, spacing, margin, warn)
+        if len(plates) <= n_mat:
+            break
+    rep["warnings"] += warn
+    rep["spacing"], rep["margin"] = spacing, margin
     rep["errors"] += errs
     qty = {p.name: p.qty for p in parts}
     for i, pl in enumerate(plates, 1):

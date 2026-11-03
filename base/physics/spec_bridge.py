@@ -106,6 +106,12 @@ def apply(p, path=None):
             setattr(p.battery, pk, float(b[sk]))
     _overlay(p, getattr(mod, "LAUNCH", None), LAUNCH_MAP, used)
     lt = getattr(mod, "LAUNCH", None) or {}
+    if lt.get("carriage_mass_target_g") is not None:          # D36 (wins over the older _kg key)
+        p.launch["carriage_mass"] = float(lt["carriage_mass_target_g"]) * 1e-3
+        used.append("LAUNCH.carriage_mass_target_g")
+    if lt.get("carriage_mass_g") is not None:                 # as built / slicer mass: wins over the target
+        p.launch["carriage_mass"] = float(lt["carriage_mass_g"]) * 1e-3
+        used.append("LAUNCH.carriage_mass_g")
     if isinstance(lt.get("stop"), dict) and lt["stop"].get("travel_min") is not None:
         p.launch["stop_pad_travel"] = float(lt["stop"]["travel_min"]) * 1e-3
         used.append("LAUNCH.stop.travel_min")
@@ -137,6 +143,18 @@ def apply(p, path=None):
         if cl.get("FIRM_line_n") is not None:
             p.capstan["takeup_n"] = float(cl["FIRM_line_n"])
             used.append("REEL.clutch.FIRM_line_n")
+        if isinstance(rl.get("current_trips_a"), dict):
+            p.capstan["trips"] = {k: float(v) for k, v in rl["current_trips_a"].items() if isinstance(v, (int, float))}
+            used.append("REEL.current_trips_a")
+        if rl.get("path_gain") is not None:
+            p.capstan["path_gain"] = float(rl["path_gain"])
+            used.append("REEL.path_gain")
+        st_ = rl.get("storage") or {}
+        if st_.get("lay_width") is not None:
+            p.reel["lay_width"] = float(st_["lay_width"]) * 1e-3
+            used.append("REEL.storage.lay_width")
+        if rl.get("tow_limit_max_n") is not None:
+            p.capstan["tow_limit_max_n"] = float(rl["tow_limit_max_n"])
         if rl.get("tow_limit_n") is not None:
             p.capstan["tow_limit_n"] = float(rl["tow_limit_n"])
     dr = getattr(mod, "DRUM", None) or {}

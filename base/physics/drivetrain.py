@@ -55,7 +55,7 @@ AIM_DEFAULTS = dict(
     phi_n_deg=20.0,       # normal pressure angle
     bevel=2.0,            # worm turns per wiper turn
     eta_bevel=0.95,       # bevel + splitter idler
-    gear=dict(module=2.0, face=10.0, z_driver=30),   # splitter / bevel stage (m 2 needed: m 1.5 fails at the 5 A trip)
+    gear=dict(module=1.5, face=8.0, z_driver=30),    # cad-launch as built: splitter sun m1.5 z30 face 8 (launch_aim.py); fails Lewis at 5 A, passes at 3 A
 )
 COCK_DEFAULTS = dict(
     drum_r=0.050,         # m big gear pitch radius on the rack (cad-launch NOTES: m 2.5, 40 T, pitch d 100)
@@ -179,9 +179,9 @@ def evaluate(p: Params, name: str, fn: dict, v_oc: float) -> dict:
     mesh_st = gears.mesh(t_s_full, fn["gear_ratio"], g["module"], g["z_driver"], g["face"], PPA_CF, 0.0)
     shaft_pk = gears.shaft_torsion(fn["shaft_torque"], p.shaft)
     # shaft torque at wiper stall and at the hard trip, through the same train
-    shaft_st = fn["shaft_k"] * t_s_full
+    shaft_st = capstan.drum_shaft_torque(t_s_full, p) if name in ("reel", "tow") else fn["shaft_k"] * t_s_full
     st_chk = gears.shaft_torsion(shaft_st, p.shaft)
-    trip_a = {"cock": capstan.TRIP_COCK_A, "reel": capstan.TRIP_REEL_A, "tow": capstan.TRIP_REEL_A}.get(name, capstan.TRIP_HARD_A)
+    trip_a = capstan.trip_a(p, {"cock": "cock", "reel": "reel_in", "tow": "tow", "aim": "aim"}.get(name, "reel_in"))
     t_trip = p.wiper.kt * (trip_a - p.wiper.i_free)
     mesh_tr = gears.mesh(t_trip, fn["gear_ratio"], g["module"], g["z_driver"], g["face"], PPA_CF, 0.0)
     shaft_tr = fn["shaft_k"] * t_trip
@@ -216,7 +216,7 @@ def evaluate(p: Params, name: str, fn: dict, v_oc: float) -> dict:
     if not mesh_st["pass"]:
         stall_warn.append(f"gear fails (sf {mesh_st['sf']:.2f}); relies on the trip")
     # raw motor stall (no limiter): informational when the limiter caps the train
-    shaft_mst = fn["shaft_k"] * t_m_full
+    shaft_mst = capstan.drum_shaft_torque(t_m_full, p) if name in ("reel", "tow") else fn["shaft_k"] * t_m_full
     mesh_mst = gears.mesh(t_m_full, fn["gear_ratio"], g["module"], g["z_driver"], g["face"], PPA_CF, 0.0)
     if t_m_full > t_s_full:
         m_chk = gears.shaft_torsion(shaft_mst, p.shaft)

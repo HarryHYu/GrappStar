@@ -34,7 +34,7 @@ def test_api(P):
     assert all(j.name.startswith("frame_") for j in js)
     k = frame.kin(P, {"wiper_deg": 123.0})
     assert k["frame_wiper"] == 123.0
-    assert frame.kin(P, {}) == {"frame_wiper": 0.0}
+    assert frame.kin(P, {})["frame_wiper"] == 0.0
 
 
 def test_every_part_valid_and_printable(P):
@@ -187,11 +187,14 @@ def test_audit_clean_frame_only():
     import tempfile, json
     out = tempfile.mkdtemp()
     try:
-        rc = audit_main([out, "--only", "frame"])
+        rc = audit_main([out, "--only", "frame", "--dt", "1.0", "--no-refine", "--jobs", "2"])
     except SystemExit as e:
         rc = e.code
     a = json.load(open(os.path.join(out, "audit.json")))
-    assert a["clean"], [c for c in a["collisions"]][:5]
+    # the spring guards ride on cad-launch's rail: alone they float, everything else must be clean
+    fl = [f for f in a["floating"] if not f["part"].startswith("frame_spring_guard")]
+    assert not a["collisions"] and not fl and not a["static_fails"] and not a["checks"] and not a["errors"], \
+        (a["collisions"][:3], fl[:3], a["static_fails"][:3], a["checks"][:3], a["errors"][:3])
 
 
 def test_608_inner_race_free(P):

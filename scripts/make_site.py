@@ -100,8 +100,9 @@ def build(out, branch, checks_file):
     launch = getattr(P, "LAUNCH", None) or {}
     reel = getattr(P, "REEL", None) or {}
     aim = getattr(P, "AIM", None) or {}
-    v = get(phys_launch, "v_muzzle") or get(phys_launch, "baseline", "v_muzzle")
-    e = get(phys_launch, "energy_stored_j") or get(phys_launch, "baseline", "energy_stored_j")
+    v = get(phys_launch, "shot", "v_muzzle") or get(phys_launch, "v_muzzle") or get(phys_launch, "baseline", "v_muzzle")
+    e = (get(phys_launch, "shot", "energy_stored_j") or get(phys_launch, "energy_stored_j")
+         or get(phys_launch, "baseline", "energy_stored_j"))
     rng = None
     try:
         rows = ball.get("table", [])

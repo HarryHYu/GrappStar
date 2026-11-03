@@ -1,12 +1,13 @@
 # 5. Base assembly
 
 The assembly steps come from the base pipeline: every step is generated from the same model that passed the
-collision audit, with a picture per step. They are in `base/guide` (PDF, also attached as an appendix) and
-`base/out`.
+collision audit, with a picture per step. They are in `base/out/base/guide.pdf` (attached as an appendix at the end of this guide).
+
+@exists base/out/base/guide.pdf
 
 @include base/guide/ASSEMBLY.md optional
 @include base/out/assembly_steps.md optional
-@include base/guide/README.md
+@include base/guide/README.md optional
 
 General rules for the base:
 

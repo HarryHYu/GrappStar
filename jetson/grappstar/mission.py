@@ -313,6 +313,12 @@ class Mission:
                        "touching the launcher.")
                 self.error = (self.error + ". " if self.error else "") + msg
                 self.log.warn(msg)
+            dc = self.cams.get("dart")
+            if dc is not None and hasattr(dc, "release_hold"):
+                try:
+                    dc.release_hold()
+                except Exception:
+                    pass
             for c in self.cams.values():
                 try:
                     if c is not None and c.status().get("recording"):
@@ -713,6 +719,9 @@ class Mission:
             self.check_cancel()
             m = self.base.event_mark()
             self.shot["fire_mark"] = m
+            c = self.cams.get("dart")
+            if c is not None and hasattr(c, "hold"):
+                c.hold(time.time() - self.cfg.pre_s)     # keep the launch frames until the analysis has them
             self.base.fire(token)
             self.shot["fire_sent"] = time.time()
         try:
@@ -837,6 +846,8 @@ class Mission:
         self.log.info(f"analysing {len(frames)} dart frames")
         off = self.dart.clock_offset() if hasattr(self.dart, "clock_offset") else None
         res = self.analyse(frames, fl, self.run_dir, t_fire=t_fire, log=self.log.warn, clock_offset_s=off)
+        if c is not None and hasattr(c, "release_hold"):
+            c.release_hold()
         self.results = res
         self.on_results(res)
         self.tell_line_out(res)

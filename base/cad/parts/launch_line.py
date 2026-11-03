@@ -53,7 +53,7 @@ def rail_add(n):
     s.append(prim.box(u_t + R_PUL + 1.5, u0 + 0.01, -n["y_wall1"], n["y_wall1"], n["w_floor0"] - 6.0, n["w_floor0"] + 4.0))
     for sg in (1, -1):
         y0, y1 = (PUL_W / 2 + 1.0, PUL_W / 2 + 5.0) if sg > 0 else (-PUL_W / 2 - 5.0, -PUL_W / 2 - 1.0)
-        s.append(prim.box(u_t - 10.0, u0 + 0.01, y0, y1, g["bot"][2] - 10.0, g["top"][2] + 9.0))
+        s.append(prim.box(u_t - 10.0, u0 - 1.0, y0, y1, g["bot"][2] - 10.0, g["top"][2] + 9.0))
     # pivot pulley lug on the left cheek (y -17 .. -9), down to below the pulley centre
     pv = g["piv"]
     s.append(prim.box(-9.0, 9.0, -17.0, -9.0, pv[2] - 8.0, 0.0))

@@ -135,3 +135,11 @@ def test_cup_follows_drum_idler_seven_turns():
         pytest.skip("cad-drum module absent")
     assert reel.kin(P, dict(drum_deg=0.0))["reel_cup"] == pytest.approx(0.0, abs=1e-6)
     assert reel.kin(P, dict(drum_deg=302.0))["reel_cup"] == pytest.approx(-7 * 360.0, abs=1e-3)
+
+
+def test_printed_parts_watertight_after_vertex_merge(parts):
+    for n, p in parts.items():
+        if p.printed:
+            m = prim.to_trimesh(p.solid)
+            m.merge_vertices()
+            assert m.is_watertight, n

@@ -229,7 +229,7 @@ def hub_screw_deg():
     a = arm_deg()
     band = (a - SWING_OUT_DEG - STOP_OFF - 12.0, a + STOP_OFF + 12.0)
     out = []
-    for c in (20.0, 80.0, 250.0, 310.0, 0.0, 45.0, 280.0):
+    for c in (10.0, 250.0, 310.0, 205.0, 280.0, 0.0):          # none near 75 deg: the main axis side
         if not (band[0] <= c <= band[1]) and len(out) < 4:
             out.append(c)
     return tuple(out)
@@ -315,6 +315,9 @@ def _sprag_hub():
     flange = prim.revolve_pts([(0, 0), (HUB_FL_R, 0), (HUB_FL_R, fl_t), (rb, fl_t + HUB_FL_R - rb),
                                (0, fl_t + HUB_FL_R - rb)])
     spig = prim.cyl(HUB_SPIGOT_R, WALL_T + 0.01, z=-WALL_T)
+    # the flange is cut back to the block on the side facing the main axis (cad-frame's motor adapter plate)
+    ma = math.degrees(math.atan2(SP["main_xy"][1], SP["main_xy"][0]))
+    flange = flange - prim.place(prim.box(-HUB_FL_R - 5, HUB_FL_R + 5, rb + 0.4, HUB_FL_R + 5, -1, 20), tf.Rz(ma - 90.0))
     body = prim.union([block, flange, spig])
     cut = [prim.place(bearings.seat_csk20(key_deg=90.0, below=2.0), tf.T(0, 0, Z_BLOCK)),
            prim.cyl((C_D + fits.SHAFT_IN_BORE) / 2, Z_BLOCK + 30, z=-WALL_T - 1)]
@@ -387,10 +390,11 @@ def _spool_body(rf):
             for a in (0.0, 120.0, 240.0)]
     body = prim.union([body] + lugs)
     s_rear = prim.place(bearings.seat_608(bottom="lip", lip_d=14.0, below=0.0), tf.Rx(180))
-    s_front = prim.place(bearings.seat_608(bottom="lip", lip_d=14.0, below=0.0), tf.T(0, 0, L))
+    s_front = prim.place(bearings.seat_608(bottom="lip", lip_d=14.0, below=0.0), tf.T(0, 0, L + 0.02))   # 0.02: avoids a
+    # coincident-vertex seam that breaks the STL after vertex merge
     # open pocket under the front disc (lighter reel, prints with no support); the line end goes in through a radial
     # hole near the rear flange and is knotted inside the pocket before the disc goes on
-    pocket = prim.tube(21.0, 13.0, L - 3.0 + 1.0, z=3.0)
+    pocket = prim.tube(20.4, 13.0, L - 3.0 + 1.0, z=3.0)
     holes = [pocket, prim.cylY(1.0, 20.0, rc + 1.0, z=FL_T + 3.5)]
     return body - prim.union([s_rear, s_front] + holes)
 
@@ -675,6 +679,8 @@ def parts(P):
     out = []
 
     def add(name, solid, mat, R=None, **k):
+        if mat not in ("bought", "steel"):
+            solid = prim.clean(solid)          # merge near-duplicate vertices so the STL stays watertight
         pt = _bed(solid, R) if mat not in ("bought", "steel") else None
         out.append(Part(name, solid, mat, print_tf=pt, **k))
 

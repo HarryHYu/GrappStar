@@ -715,7 +715,57 @@ def nominal_checks():
             ("REEL engaged, tow pulled", c_reel_engaged), ("tow limit respected", c_tow_limit),
             ("dart released", c_released), ("reeled in to the approach", c_reeled), ("unwrapped", c_unwrapped),
             ("seated", c_seated), ("back to LAUNCH", c_launch), ("no dry fire", c_no_dry),
-            ("wraps laid without jamming (D22 slack)", c_wrap_free), ("free dart tugged under 1 m by the wrap", c_tug)]
+            ("wraps laid without jamming (D22 slack)", c_wrap_free), ("free dart tugged under 1 m by the wrap", c_tug),
+            ("C1 command order = BASE_SPEC 10.1 (D35)", c_c1_sequence)]
+
+
+import re as _re
+
+C1_SEQ = (r"^(mode LAUNCH > )?aim > (cock > )?arm > fire > set line_m > (mode NEUTRAL > )?wrap > dart auto > tidy > "
+          r"mode REEL > (reel tension > )+dart release > (reel stop > )?unwrap > retrieve > mode LAUNCH$")
+
+
+def c1_tokens(rig) -> List[str]:
+    """The commands the Jetson sent, in order, from its own mission log (base_tx and dart_tx lines)."""
+    d = rig.app.run_dir
+    out = []
+    if not d or not os.path.exists(os.path.join(d, "mission.jsonl")):
+        return out
+    for l in open(os.path.join(d, "mission.jsonl")):
+        try:
+            r = json.loads(l)
+        except ValueError:
+            continue
+        o = r.get("obj") or {}
+        if r.get("kind") == "base_tx":
+            c = o.get("cmd")
+            if c in ("ping", "status", "get", "clear", "stop", "estop", None):
+                continue
+            if c == "mode":
+                c = f"mode {o.get('to')}"
+            elif c == "reel":
+                c = f"reel {o.get('until', 'stop')}"
+            elif c == "set":
+                c = f"set {o.get('key')}"
+            elif c == "cal":
+                c = "decock" if o.get("what") == "decock" else f"cal {o.get('what')}"
+            out.append(c)
+        elif r.get("kind") == "dart_tx":
+            if o.get("auto") is True and "arm" not in o:
+                out.append("dart auto")
+            elif o.get("release"):
+                out.append("dart release")
+    coll = []
+    for t in out:                       # a retry repeats the same command: collapse runs
+        if not coll or coll[-1] != t:
+            coll.append(t)
+    return coll
+
+
+def c_c1_sequence(rig, res):
+    """BASE_SPEC 10.1 (D35): the one C1 command sequence."""
+    seq = " > ".join(c1_tokens(rig))
+    return bool(_re.match(C1_SEQ, seq)), seq
 
 
 def c_wrap_free(rig, res):
@@ -915,7 +965,7 @@ def c_d22_order(rig, res):
     return st.index("WRAP") < st.index("ANCHOR"), f"WRAP at {st.index('WRAP')}, ANCHOR at {st.index('ANCHOR')}"
 
 
-SCENARIOS["nominal"].checks.append(("D22 order: WRAP before ANCHOR", c_d22_order))
+SCENARIOS["nominal"].checks.append(("D22 order: WRAP step before ANCHOR step", c_d22_order))
 
 POWER_STATES = [("LAUNCH_MODE", "MODE"), ("AIM", "AIM"), ("COCK", "COCK"), ("BASE_NEUTRAL", "MODE"), ("WRAP", "WRAP"),
                 ("CHECK", "REEL"), ("TOW", "HOLD"), ("RETRIEVE", "REEL"), ("LAUNCH_READY", "MODE")]

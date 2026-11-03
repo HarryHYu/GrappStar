@@ -275,7 +275,8 @@ class Rig:
         self.base.cmd({"id": 0, "cmd": "cal", "what": "cock_rest"})
         if sc.calibrated:   # CALIBRATION.md done on the bench: k_n_per_a and free_a match the motor (here: the plant model)
             g = self.base.get()
-            self.base.cmd({"id": 0, "cmd": "set", "key": "k_n_per_a", "val": round(g["kNperA_cal"], 3)})
+            # the plant tension is capstan-side; the firmware's estimate is DART-side (D43): k / path gain
+            self.base.cmd({"id": 0, "cmd": "set", "key": "k_n_per_a", "val": round(g["kNperA_cal"] / sc.path_gain, 3)})
             self.base.cmd({"id": 0, "cmd": "set", "key": "free_a", "val": round(g["freeA_cal"], 3)})
             if not sc.doc_cal:      # a two-point calibration also zeroes the offset (FINDINGS F14)
                 self.base.cmd({"id": 0, "cmd": "set", "key": "tension_offset_n", "val": 0})
@@ -856,7 +857,8 @@ class Scenario:
         self.landing_slack = kw.get("landing_slack", 0.9)
         self.line_ea_n = kw.get("line_ea_n", 20000.0)   # 1 mm Dyneema: about 3.5 % at 667 N
         self.slip_n = kw.get("slip_n", 0.0)
-        self.stiff = kw.get("stiff", False)          # strict line: 1 mm Dyneema stiffness (else the sim.h 40 N/m spring)             # the anchor (or a dragging dart) slides above this tension
+        self.stiff = kw.get("stiff", False)
+        self.path_gain = kw.get("path_gain", 1.15)     # D43: capstan-side tension = 1.15 x dart-side (pulleys)          # strict line: 1 mm Dyneema stiffness (else the sim.h 40 N/m spring)             # the anchor (or a dragging dart) slides above this tension
         self.c1_from_last_aim = kw.get("c1_from_last_aim", False)
         self.expect_faults = kw.get("expect_faults", False)
         self.d22 = kw.get("d22", False)
@@ -980,9 +982,9 @@ def c_tow_limit(rig, res):
     lim = rig.app.cfg.mission.tow_limit_n
     keys = [k for k in rig.plant_max if k.endswith(":tension") and k.split(":")[0] in
             ("CHECK", "TOW", "FLY_IN", "REEL_FLYIN", "RELEASE", "TIDY", "ANCHOR")]
-    mx = max([rig.plant_max[k] for k in keys] or [0.0])
+    mx = max([rig.plant_max[k] for k in keys] or [0.0]) / rig.sc.path_gain       # dart-side (D43)
     worst = max(keys, key=lambda k: rig.plant_max[k]) if keys else "-"
-    return mx <= lim * 1.15, f"max plant tension {mx:.1f} N ({worst}), limit {lim} N (+15 %)"
+    return mx <= lim * 1.15, f"max dart-side tension {mx:.1f} N (capstan / {rig.sc.path_gain}, at {worst}), limit {lim} N (+15 %)"
 
 
 def c_released(rig, res):
@@ -1069,7 +1071,7 @@ def c_no_retry(rig, res):
 
 import re as _re
 
-C1_SEQ = (r"^(mode LAUNCH > )?aim > (cock > )?arm > fire > set line_m > (mode NEUTRAL > )?wrap > dart auto > tidy > "
+C1_SEQ = (r"^(mode LAUNCH > )?aim > (cock > )?arm > fire > set line_m > AIM6(mode NEUTRAL > )?wrap > dart auto > tidy > "
           r"mode REEL > (reel tension > )+dart release > stop > (reel stop > )?unwrap > RETRIEVE(retrieve > )mode LAUNCH$")
 
 
@@ -1130,6 +1132,8 @@ def c_c1_sequence(rig, res):
     sr = getattr(rig, "seat_rec", None) or {}
     seated_neutral = sr and not sr.get("inReel") and float(sr.get("wraps") or 0) < 0.05 and sr.get("step") in ("UNWRAP",)
     pat = C1_SEQ.replace("RETRIEVE(retrieve > )", "(retrieve > )?" if seated_neutral else "retrieve > ")
+    shot_pitch = (rig.solution or {}).get("pitch_deg") if hasattr(rig, "solution") else None
+    pat = pat.replace("AIM6", "aim > " if (shot_pitch or 0) > 15 else "")      # D45: aim 6 before the wrap above 15 deg
     return bool(_re.match(pat, seq)), seq
 
 

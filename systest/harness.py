@@ -828,6 +828,8 @@ class Scenario:
         self._retries = 0
 
     def answer(self, rig: Rig, step: str, text: str, choices: List[str]) -> str:
+        if "failed" in text.lower() or "FAULT" in text:
+            time.sleep(2.0)                   # the operator reads the fault and looks at the base first
         for sub, ans in self.policy.items():
             if sub in text:
                 if callable(ans):
@@ -1163,7 +1165,7 @@ sc(Scenario("dog_tip", "dog teeth land tip to tip on every engagement: the firmw
 sc(Scenario("stall_cock", "the wiper stalls while cocking (STALL), load removed, Retry: no dry fire, mission completes",
             triggers=[("stall load", plant_state("COCK", delay=0.6),
                        lambda r: r.base.set(extraLoadNm=20)),
-                      ("load removed", on_evt("FAULT", after=1.0), lambda r: r.base.set(extraLoadNm=0))],
+                      ("load removed", on_evt("FAULT", after=0.3), lambda r: r.base.set(extraLoadNm=0))],
             after=decock_and_restart, timeout_s=400,
             extra_checks=[("first mission ended, operator recovered with Decock", c_first_aborted_cleanly),
                           ("STALL or OVERCURRENT raised", lambda r, res: (any(e.get("code") in ("STALL", "OVERCURRENT") for e in r.events),

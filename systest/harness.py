@@ -696,6 +696,9 @@ class RefMission:
         while rig.tow_rounds < rig.sc.tow_rounds:
             if (self.b.tel or {}).get("drum_pos") != "REEL":
                 self.s_flyin()                  # a fault in REEL parks the drum at WRAPPED (D35 recovery)
+            if (self.b.tel or {}).get("state") == "HOLD":
+                self.b.cmd("stop", timeout=2.0)   # F22 by design: without a load cell, stop then a new pull takes up slack
+                time.sleep(0.3)
             e = self.act("reel", 60, ("LIMIT", "SEATED"), duty=rig.sc.tow_duty, max_n=lim, until="tension")
             if e.get("evt") != "LIMIT":
                 raise RuntimeError(f"tow: {e}")

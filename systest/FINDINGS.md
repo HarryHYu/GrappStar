@@ -338,7 +338,7 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   only while the estimate stays under about 50 % of max_n; or predict from the tension rate (stop when
   `tension + rate x 60 ms >= max_n`). Acceptance: `ref_nominal` / `ref_tow_stiff` plant peak under max_n + 15 %.
 
-## F22 (fw-base) without a load cell, a held tow never pulls again: `reel` from HOLD answers "already at the limit" on a slack line
+## F22 (fw-base: BY DESIGN, host must `stop` then `reel`; jetson / PROTOCOL to align) without a load cell, a held tow never pulls again: `reel` from HOLD answers "already at the limit" on a slack line
 
 - Same run: after round 1 the rover drives 0.6 m toward the dart (plant line goes slack: 0.5 N). Round 2 and 3:
   `reel ... until tension` -> `LIMIT {"tension_n":48.9,"why":"already at the limit","holding":true}` within 5 ms,
@@ -348,7 +348,7 @@ The check is in every scenario (`C1 command order = BASE_SPEC 10.1 (D35)`); it g
   the estimate from the new current after the start blanking, not the held value; refuse only with a load cell that
   shows the line still at the limit.
 
-## F23 (fw-base or jetson) `line_m` ignores the 0.9 m the wrap draws from the dart side: the reel-in leaves 0.6 m, not 1.5 m
+## F23 (fw-base: FIXED on w/fw-base 783f3b2, line_m drops 0.88 m after the wrap) `line_m` ignores the 0.9 m the wrap draws from the dart side: the reel-in leaves 0.6 m, not 1.5 m
 
 - Same run: `set line_m 4.48` after the landing; the wrap (7 turns on d 40 + line) draws 0.9 m from the dart side
   (D22: the landing slack), plant line out 3.58 m after the wrap. The capstan reel-in stopped when telemetry

@@ -27,7 +27,7 @@ struct Sim {
   // ---- motor model
   double n0rpm = 45, stallNm = 15, stallA = 18, freeA = 1.5, vbat0 = 12.4, rint = 0.05;
   double amps = 0, wRateDps = 0;
-  double drumDpsTrue = 22.0;       // a little slower than the firmware's 24 estimate
+  double drumDpsTrue = 7.5;        // a little slower than the firmware 8.1 estimate
   double aimLoadNm = 0.5, cockMaxNm = 2.5, reelFreeNm = 0.4;
   double capstanR = 0.0205;        // m (capstan d 40 + line)
   // ---- sensors
@@ -124,8 +124,8 @@ struct Sim {
       if (dogTip) { toothWiperAcc += ad; if (toothWiperAcc >= toothNeedWiper) { dogTip = false; toothWiperAcc = 0; } }
       else if (engaged) {
         double drive = 0;                                            // travel beyond the window
-        if (wDir > 0) { double room = c.dogWindowDeg - win; double u = fmin(room, ad); win += u; drive = ad - u; }
-        else { double room = win; double u = fmin(room, ad); win -= u; drive = ad - u; }
+        if (wDir > 0) { double room = fmax(0.0, c.dogWindowDeg - win); double u = fmin(room, ad); win += u; drive = ad - u; }
+        else { double room = fmax(0.0, win); double u = fmin(room, ad); win -= u; drive = ad - u; }
         if (drive > 0 && inLaunch()) {
           if (wDir == c.aimDir) {
             aimPh = fmod(aimPh + drive, c.aimCycleDeg);

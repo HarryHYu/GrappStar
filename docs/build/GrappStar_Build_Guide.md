@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 11:00 Sydney time from commit `97b54a8`.
+Built 2026-11-03 11:01 Sydney time from commit `869902f`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -234,13 +234,66 @@ polarity, the battery contacts, the assembly order and the function test.
 
 
 
-> NOT IN THE REPO YET: `firmware/dart/wiring/wiring.png` (written by another worker). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
+![Dart wiring v4 (numbers match the new cut list)](firmware/dart/wiring/wiring.png)
 
 
 ### New dart wire cut list (replaces run sheet section 9)
 
 
-> NOT IN THE REPO YET: `firmware/dart/wiring/wire_cut_list.csv` (written by another worker). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
+*From `firmware/dart/wiring/wire_cut_list.csv`:*
+
+| # | from | to | colour | gauge | cut length mm | note | v29 # |
+|---|---|---|---|---|---|---|---|
+| 1 | Rear plate, cell 1 (-) | BMS B- | black | 22 AWG | 45 | solder to the plate tab before it goes in its recess | 1 |
+| 2 | Front spring, cell 1 (+) | Front spring, cell 2 (-) | red | 22 AWG | 45 | the series link: carries the full battery current; glue both springs in the front recess | 2 |
+| 3 | Front spring pair (cell 1 + / cell 2 -) | BMS BM | white | 26 AWG | 55 | midpoint sense | 3 |
+| 4 | Rear plate, cell 2 (+) | BMS B+ | red | 22 AWG | 45 |  | 4 |
+| 5 | BMS B- | Charge socket pin 1 (tail window) | black | 26 AWG | 80 | JST-XH 3-pin, balance charge | 5 |
+| 6 | BMS BM | Charge socket pin 2 | white | 26 AWG | 125 |  | 6 |
+| 7 | BMS B+ | Charge socket pin 3 | red | 26 AWG | 80 |  | 7 |
+| 8 | BMS P+ | Power loop socket pin 1 (tail window) | red | 22 AWG | 80 | JST-XH 2-pin; the shorting plug is the ON switch | 8 |
+| 9 | Power loop socket pin 2 | INA219 VIN+ | red | 22 AWG | 95 | main + after the loop | 9 |
+| 10 | INA219 VIN+ (same pad) | MP1584 IN+ | red | 22 AWG | 140 | buck taps before the shunt, so INA219 reads motor current only | 10 |
+| 11 | INA219 VIN- | DRV#1 VM | red | 22 AWG | 50 | motor rail 6.0-8.4 V | 11 |
+| 12 | DRV#1 VM | DRV#2 VM | red | 22 AWG | 65 | daisy chain ends here (no DRV#3) | 12 |
+| 13 | BMS P- | MP1584 IN- | black | 22 AWG | 130 | main ground | 14 |
+| 14 | MP1584 IN- (same pad) | DRV#1 GND | black | 22 AWG | 120 |  | 15 |
+| 15 | DRV#1 GND | DRV#2 GND | black | 22 AWG | 65 |  | 16 |
+| 16 | MP1584 OUT+ (5.04 V) | XIAO 5V via a Schottky diode (stripe toward the XIAO) | orange | 24 AWG | 160 | set and check 5.04 V BEFORE connecting; 1N5817 or SS14 in heat shrink | 18 |
+| 17 | MP1584 OUT- | XIAO GND | black | 24 AWG | 160 |  | 19 |
+| 18 | MP1584 OUT+ | VTX 5V in | orange | 26 AWG | 95 |  | 20 |
+| 19 | MP1584 OUT- | VTX GND | black | 26 AWG | 95 |  | 21 |
+| 20 | VTX 5V in (same pad) | Camera + (red) | orange | 28 AWG | 105 | runs forward along the top through the disc notches | 22 |
+| 21 | VTX GND (same pad) | Camera - (black) | black | 28 AWG | 105 |  | 23 |
+| 22 | Camera video (yellow) | VTX video in | yellow | 28 AWG | 105 | twist with the camera ground | 24 |
+| 23 | XIAO 3V3 | DRV#1 SLP / nSLEEP / EEP pad (NOT VCC or VIN) | red/white | 28 AWG | 55 | wakes the driver; meter check first (WIRING.md step 6) | 25 |
+| 24 | DRV#1 SLP | DRV#2 SLP | red/white | 28 AWG | 65 |  | 26 |
+| 25 | XIAO 3V3 | INA219 VCC | red/white | 28 AWG | 60 |  | 28 |
+| 26 | INA219 VCC | BNO085 VIN | red/white | 28 AWG | 60 |  | 29 |
+| 27 | XIAO GND | INA219 GND | black | 28 AWG | 60 |  | 30 |
+| 28 | INA219 GND | BNO085 GND | black | 28 AWG | 60 |  | 31 |
+| 29 | XIAO D4 | INA219 SDA | blue | 28 AWG | 60 | I2C SDA | 32 |
+| 30 | INA219 SDA | BNO085 SDA | blue | 28 AWG | 60 |  | 33 |
+| 31 | XIAO D5 | INA219 SCL | green | 28 AWG | 60 | I2C SCL | 34 |
+| 32 | INA219 SCL | BNO085 SCL | green | 28 AWG | 60 |  | 35 |
+| 33 | XIAO D0 | DRV#1 AIN1 | purple | 28 AWG | 55 | deploy | 36 |
+| 34 | XIAO D1 | DRV#1 AIN2 | grey | 28 AWG | 55 | deploy | 37 |
+| 35 | XIAO D2 | DRV#1 BIN1 | purple | 28 AWG | 55 | kick | 38 |
+| 36 | XIAO D3 | DRV#1 BIN2 | grey | 28 AWG | 55 | kick | 39 |
+| 37 | XIAO D8 | DRV#2 AIN1 (only AIN1: NO bridge to BIN1) | purple | 28 AWG | 45 | drills | 40 |
+| 38 | XIAO D9 | DRV#2 AIN2 (only AIN2: NO bridge to BIN2) | grey | 28 AWG | 45 | drills | 41 |
+| 39 | XIAO D6 | DRV#2 BIN1 | purple | 28 AWG | 45 | foot (slow worm, harmless if it twitches at reset) | 42 |
+| 40 | XIAO D7 | DRV#2 BIN2 | grey | 28 AWG | 45 | foot | 43 |
+| 41 | DRV#1 AOUT1 | Deploy N20 + (red) | red | 26 AWG | 165 | motor sits in the sled cradle | 44 |
+| 42 | DRV#1 AOUT2 | Deploy N20 - (black) | black | 26 AWG | 165 |  | 45 |
+| 43 | DRV#1 BOUT1 | Kick N20 + (red) | red | 26 AWG | 150 | out through the hole in the saddle floor | 46 |
+| 44 | DRV#1 BOUT2 | Kick N20 - (black) | black | 26 AWG | 150 |  | 47 |
+| 45 | DRV#2 AOUT1 | Drill motor LEFT + (red) | red | 26 AWG | 195 | out the left flank hole, 30 mm loop for the pod swing | 48 |
+| 46 | DRV#2 AOUT2 | Drill motor LEFT - (black) | black | 26 AWG | 195 |  | 49 |
+| 47 | DRV#2 AOUT1 (same pad as the LEFT red) | Drill motor RIGHT - (black)  SWAPPED | black | 26 AWG | 170 | reversed on purpose: the pair counter-rotates | 50 |
+| 48 | DRV#2 AOUT2 (same pad as the LEFT black) | Drill motor RIGHT + (red)  SWAPPED | red | 26 AWG | 170 |  | 51 |
+| 49 | DRV#2 BOUT1 | Foot N20 + (red) | red | 26 AWG | 330 | forward along the top through the disc notches, out the skin hole, 60 mm loop round the hub, through the pole channel | 52 |
+| 50 | DRV#2 BOUT2 | Foot N20 - (black) | black | 26 AWG | 330 | silicone wire, it flexes every deploy | 53 |
 
 
 ## Dart bench tests
@@ -425,7 +478,476 @@ The Jetson already runs JetPack 6.2 (Ubuntu 22.04, Python 3.10) from the SD card
 below 2 and do not pip install opencv-python (both broke things in August).
 
 
-> NOT IN THE REPO YET: `jetson/README.md` (written by jetson). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
+*From `jetson/README.md`:*
+
+## GrappStar rover software (Jetson)
+
+This folder is the software that runs on the rover's Jetson Orin Nano. It talks to the base station (USB serial),
+the KEDGE dart (WiFi), and two cameras, and it serves the operator page in a web browser.
+
+Run everything from this folder (`jetson/`) with `python3 -m grappstar <command>`.
+Every command has `--help`, for example `python3 -m grappstar serve --help`. If this README and `--help`
+disagree, `--help` is right (and please fix this README).
+
+Marked **NOT VERIFIED** below: things nobody has checked on the real hardware yet.
+
+### Contents
+
+0. What you need
+1. Get the code
+2. Install
+3. Test with no hardware
+4. Plug in the base
+5. Cameras
+6. Dart WiFi (and how the operator connects)
+7. Calibrate the rover camera
+8. Operator page tour and a full dry mission in sim
+9. First real mission checklist
+10. Troubleshooting
+11. File map
+
+Command summary:
+
+| Command | What it does |
+|---|---|
+| `python3 -m grappstar serve` | operator page at `http://<jetson>:8080`. Options: `--sim`, `--port 8080`, `--base /dev/grappstar-base`, `--dart 192.168.4.1`, `--rover-cam /dev/grappstar-rovercam`, `--dart-cam /dev/grappstar-dartcam`, `--fourcc YUYV` or `MJPG` |
+| `python3 -m grappstar cameras` | list cameras and the formats they offer |
+| `python3 -m grappstar base status` / `ping` / `monitor` | talk to the base. `monitor` prints telemetry live (Ctrl+C stops) |
+| `python3 -m grappstar base cmd '<json>'` | send one raw command, e.g. `'{"cmd": "status"}'` |
+| `python3 -m grappstar dart status` | one dart status reading |
+| `python3 -m grappstar dart key <c> --hold <s>` | hold a dart motor key for s seconds |
+| `python3 -m grappstar dart auto` / `release` / `flightlog` | auto anchor, release sequence, download the flight log |
+| `python3 -m grappstar mockbase --pty` | fake base for testing; prints a pty path to use as `--base` |
+| `python3 -m grappstar calibrate intrinsics` / `mount` | rover camera calibration (step 7) |
+| `python3 -m grappstar replay <logdir>` | re-run the vision on a recorded mission |
+| `python3 -m grappstar selftest` | run checks that need no hardware |
+
+---
+
+### 0. What you need
+
+- Jetson Orin Nano Super with JetPack 6.2 on its SD card (already done in August: hostname `GrappStar`).
+- Internet for the Jetson during install (home WiFi or Ethernet).
+- A way to type on it: monitor and keyboard, or SSH from the Mac: `ssh <your user>@GrappStar.local`
+  (or the IP address, which was 192.168.0.249 on home WiFi in August).
+- For later steps: the base station (ESP32-S3 DevKitC-1) and a USB cable, the Razer Kiyo X, the RC832 receiver and
+  the DIGITNOW USB capture dongle, the KEDGE dart, a phone or laptop for the operator page.
+- A printed checkerboard for step 7.
+
+Two things learned in August that this kit works around:
+
+- snap is broken on JetPack 6.2. Use `apt` for everything, never `snap`.
+- numpy must stay below 2. pip once upgraded it to 2.x and broke system packages. The install keeps it at 1.x.
+
+### 1. Get the code
+
+On the Jetson:
+
+```bash
+cd ~
+GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/HarryHYu/GrappStar.git
+cd GrappStar
+git checkout main
+cd jetson
+```
+
+- `GIT_LFS_SKIP_SMUDGE=1` skips the big caliper photo PDF (145 MB). The Jetson does not need it.
+- If `main` has no `jetson/` folder yet (before the build day merge), use the integration branch instead:
+  `git checkout base-v1`.
+- To update later: `cd ~/GrappStar && git pull`.
+
+### 2. Install
+
+```bash
+cd ~/GrappStar/jetson
+bash setup/install.sh
+```
+
+It asks for your password (sudo). What it does, in order:
+
+1. apt installs `python3-numpy python3-serial python3-pytest python3-pip v4l-utils network-manager`.
+2. OpenCV: JetPack normally already has OpenCV for Python (NVIDIA's build, with GStreamer). If `import cv2` already
+   works the script leaves it alone. Only if it is missing does it run `apt install python3-opencv`.
+   Why not `pip install opencv-python`? The pip version has no GStreamer, carries its own JPEG and video libraries
+   (August's JPEG mismatch was exactly this kind of clash), and can drag numpy up to 2.x.
+3. `pip install --user -r requirements.txt` for anything apt did not provide. The file pins `numpy>=1.21,<2`.
+4. Adds you to the groups `dialout` (serial ports) and `video` (cameras).
+5. Installs `setup/99-grappstar.rules` so the devices get fixed names:
+   `/dev/grappstar-base`, `/dev/grappstar-base-uart`, `/dev/grappstar-rovercam`, `/dev/grappstar-dartcam`.
+6. Runs `setup/check_env.py` and prints a report.
+
+Then **log out and back in** (or `sudo reboot`) so the new groups work.
+
+Check any time with:
+
+```bash
+python3 setup/check_env.py
+```
+
+Look for: numpy 1.x, cv2 with `V4L2 YES` (and `GStreamer YES` on the Jetson), pyserial, groups dialout and video yes.
+
+Optional: start the operator page automatically at boot (do this after step 3 works):
+
+```bash
+bash setup/install.sh --service
+systemctl status grappstar          # should say "active (running)"
+journalctl -u grappstar -f          # live log, Ctrl+C to leave
+```
+
+The service runs `python3 -m grappstar serve --port 8080` as your user from this folder, and restarts it if it
+crashes. While the service runs, do not also start `serve` by hand (both want port 8080). Stop it with
+`sudo systemctl stop grappstar`, remove it from boot with `sudo systemctl disable --now grappstar`.
+
+Optional: onnxruntime-gpu for a GPU terrain model. Not needed to run anything. See the note at the bottom of
+`requirements.txt` (Jetson AI Lab wheel, NOT VERIFIED).
+
+Optional: maximum performance mode (already set in August): `sudo nvpmodel -q` shows the mode. `jtop` shows load.
+
+### 3. Test with no hardware
+
+Nothing needs to be plugged in for this step. It also works on a PC.
+
+```bash
+cd ~/GrappStar/jetson
+python3 -m pytest                  # all tests; ends with "N passed"
+python3 -m grappstar selftest      # quick checks, prints PASS or FAIL per check
+python3 -m grappstar serve --sim   # operator page with a simulated base, dart and cameras
+```
+
+With `serve --sim` running, open the page:
+
+- on the Jetson itself: `http://localhost:8080`
+- from the Mac or phone on the same network: `http://GrappStar.local:8080` or `http://<jetson IP>:8080`
+  (find the IP with `hostname -I`).
+
+You should see both camera views moving (simulated) and base and dart status updating. Ctrl+C in the terminal
+stops the server. Step 8 walks through a whole simulated mission.
+
+Test the real base client against a fake base (two terminals):
+
+```bash
+python3 -m grappstar mockbase --pty           # terminal 1: prints a path like /dev/pts/5
+python3 -m grappstar base ping --base /dev/pts/5    # terminal 2, using the path it printed
+```
+
+(The `--base` option on the `base` subcommand is assumed to match `serve`; check `python3 -m grappstar base --help`.)
+
+### 4. Plug in the base
+
+**Battery unplugged.** For this step the base runs from USB only: the Jetson's USB powers the DevKitC. Do not connect
+the 3S LiPo, the BTS7960 or the motors yet.
+
+1. Battery unplugged. Plug a USB cable from the Jetson into the DevKitC port marked **USB** (the ESP32-S3 native
+   port), not the one marked UART or COM.
+2. Check the name appeared:
+
+   ```bash
+   ls -l /dev/grappstar-base
+   lsusb                              # expect a line with 303a:1001 (Espressif)
+   ```
+
+   `/dev/grappstar-base -> ttyACM0` means it worked. If you used the UART port instead you get
+   `/dev/grappstar-base-uart`; move the cable to the USB port.
+3. Talk to it:
+
+   ```bash
+   python3 -m grappstar base ping      # expect a reply with "ok": true
+   python3 -m grappstar base status
+   python3 -m grappstar base monitor   # telemetry lines about 10 per second, Ctrl+C stops
+   ```
+
+4. Only after this works, and following the base build guide: battery unplugged, wire the power side, then
+   connect the battery last.
+
+The base firmware must use the native USB CDC (Arduino IDE: "USB CDC On Boot: Enabled", "USB Mode: Hardware CDC and
+JTAG"). The base talks JSON lines (contract C1, `firmware/base/PROTOCOL.md`).
+
+### 5. Cameras
+
+**Battery unplugged** before connecting the RC832 receiver's power. Always screw the antennas onto the RC832 and onto
+the dart's Caddx Ant VTX before powering them: a VTX powered without an antenna can burn out.
+
+1. Plug in the Kiyo X and the DIGITNOW capture dongle (USB). Connect the RC832 video out (yellow) to the dongle's
+   video in. Battery unplugged while you wire the RC832 power; power it as its label says (NOT VERIFIED which
+   supply on the rover).
+2. List the cameras:
+
+   ```bash
+   python3 -m grappstar cameras
+   ls -l /dev/grappstar-rovercam /dev/grappstar-dartcam
+   ```
+
+   If a name is missing, run `lsusb`, find the camera's `ID vvvv:pppp`, and fix the line in
+   `setup/99-grappstar.rules` (the Kiyo X ID 1532:0e4f and the dongle ID 534d:2109 are NOT VERIFIED). Then rerun
+   `bash setup/install.sh --no-apt` and replug.
+3. See exactly which formats each camera offers:
+
+   ```bash
+   v4l2-ctl -d /dev/grappstar-rovercam --list-formats-ext
+   v4l2-ctl -d /dev/grappstar-dartcam --list-formats-ext
+   ```
+
+   Look for `YUYV` and `MJPG` and the sizes listed under each.
+4. Pick the format. The software always asks for a format explicitly, because on JetPack the default path through
+   NVIDIA's JPEG library failed in August (Cheese crashed). Default is YUYV:
+
+   ```bash
+   python3 -m grappstar serve --fourcc YUYV     # safe, works at lower resolutions
+   python3 -m grappstar serve --fourcc MJPG     # needed for 1920x1080 on the Kiyo X
+   ```
+
+   If the picture is black or you see JPEG errors with one, try the other.
+5. Dart video: power the dart (its VTX transmits). On the RC832, press the button to step through channels until
+   the picture is clean. The RC832 must be on the same band and channel as the Caddx Ant VTX (the VTX shows its
+   channel with its LED or button; see its manual). Snow means wrong channel, no antenna, or too far.
+6. Start `serve` and check both views on the page. The dart view is analog: some snow and dropouts are normal,
+   and the software marks bad frames and skips them for vision.
+
+### 6. Dart WiFi (and how the operator connects)
+
+The dart is a WiFi access point: name **KEDGE**, password **grappstar**, address **192.168.4.1**. The Jetson must
+join it to control the dart. At the same time the operator's phone or laptop must reach the Jetson's page.
+
+#### The plan
+
+- The Jetson's built-in WiFi joins KEDGE. Always.
+- The operator connects in one of three ways. **Start with A** (nothing extra to buy). Move to B or C for real
+  missions if A is slow or drops.
+
+| Option | Operator connects to | Page address | Good | Bad |
+|---|---|---|---|---|
+| A | KEDGE too | `http://<Jetson KEDGE IP>:8080` | nothing extra, simplest | all video goes through the dart's small ESP32 radio, which also carries the dart's own commands. NOT VERIFIED how well it copes |
+| B | Jetson hotspot GRAPPSTAR-ROVER on a USB WiFi adapter | `http://10.42.0.1:8080` | separate radio for video | needs a USB WiFi adapter with Linux AP mode support |
+| C | travel router plugged into the Jetson's Ethernet | Jetson's address on the router | most reliable | one more box to power |
+
+The ESP32 access point allows only a few clients at once (4 by default), so with option A keep it to the Jetson and
+one operator device.
+
+#### Join KEDGE from the Jetson
+
+Do the install (step 2) first: once the built-in WiFi is on KEDGE, the Jetson has no internet through it.
+
+Power the dart, then on the Jetson:
+
+```bash
+nmcli device                                  # find the WiFi interface, usually wlP1p1s0
+nmcli device wifi list                        # KEDGE should be listed
+sudo nmcli device wifi connect KEDGE password grappstar ifname wlP1p1s0 name kedge
+# KEDGE has no internet: never use it as the default route
+# keep retrying when the dart is off, and prefer it over home WiFi
+sudo nmcli connection modify kedge ipv4.never-default yes ipv6.method ignore \
+    connection.autoconnect yes connection.autoconnect-priority 10 connection.autoconnect-retries 0
+ping -c 3 192.168.4.1
+python3 -m grappstar dart status
+```
+
+Replace `wlP1p1s0` if `nmcli device` shows a different name. Back to home WiFi for updates:
+`nmcli connection up <home wifi name>` (list names with `nmcli connection show`).
+Note: with priority 10, the Jetson picks KEDGE whenever the dart is on.
+
+Dart commands:
+
+```bash
+python3 -m grappstar dart status            # phase, battery, motors
+python3 -m grappstar dart key 2 --hold 1.0  # hold "kick out" for 1 s
+python3 -m grappstar dart auto              # auto anchor sequence
+python3 -m grappstar dart release           # release sequence
+python3 -m grappstar dart flightlog         # download the last flight log
+```
+
+Dart keys: `1` deploy down, `!` deploy up, `2` kick out, `@` kick back, `3` drills in, `#` drills out, `4` foot in,
+`$` foot out. Quote the symbols in the shell, e.g. `dart key '!' --hold 1.0`.
+
+#### Option A: the operator joins KEDGE too
+
+1. On the Jetson, find its KEDGE address:
+
+   ```bash
+   ip -4 addr show wlP1p1s0         # look for "inet 192.168.4.x"
+   ```
+
+2. Phone or laptop: join WiFi KEDGE (password grappstar). It will say "no internet": choose to stay connected
+   (Android asks; turn off "switch to mobile data" if it keeps leaving).
+3. Open `http://192.168.4.x:8080` (the x from step 1). `http://GrappStar.local:8080` may also work (mDNS works on
+   iPhone and Mac, not on every Android).
+
+#### Option B: hotspot on a USB WiFi adapter
+
+1. Plug in the USB WiFi adapter. `bash setup/hotspot.sh list` shows it (a name like `wlx...`).
+2. Start the hotspot (it also starts at every boot from now on):
+
+   ```bash
+   bash setup/hotspot.sh up                 # picks the free WiFi interface
+   bash setup/hotspot.sh up wlx00c0ca123456 # or name it
+   ```
+
+   This runs `nmcli device wifi hotspot ifname <adapter> con-name grappstar-hotspot ssid GRAPPSTAR-ROVER
+   password grappstar`.
+3. Operator: join **GRAPPSTAR-ROVER** (password grappstar), open `http://10.42.0.1:8080`.
+4. Stop it: `bash setup/hotspot.sh down`. Status: `bash setup/hotspot.sh status`.
+
+Do not run the hotspot on the built-in WiFi: that radio is on KEDGE.
+
+#### Option C: travel router on Ethernet
+
+1. Set up the travel router as a normal WiFi router (its own WiFi name and password, DHCP on). Plug a cable from
+   one of its LAN ports to the Jetson's Ethernet port.
+2. On the Jetson:
+
+   ```bash
+   nmcli device                                    # find the Ethernet name, usually eth0 or enP8p1s0
+   sudo nmcli connection add type ethernet ifname eth0 con-name rover-lan ipv4.method auto \
+       connection.autoconnect yes
+   ip -4 addr show eth0                            # the Jetson's address on the router
+   ```
+
+   Replace `eth0` with the name `nmcli device` showed.
+
+3. Operator: join the router's WiFi and open `http://<that address>:8080`. In the router's admin page you can
+   reserve that address so it never changes.
+
+### 7. Calibrate the rover camera
+
+The rover aims the base at things it sees, so it must know how its camera maps pixels to angles (intrinsics) and
+how the camera sits on the rover (mount: height and tilt).
+
+The exact options of the `calibrate` commands are set by the code: run `python3 -m grappstar calibrate intrinsics
+--help` and `python3 -m grappstar calibrate mount --help` first. The steps below are the method.
+
+#### Print the checkerboard
+
+- **9 by 6 inner corners** (that is 10 by 7 squares), **25 mm squares**. A generator such as calib.io
+  ("Checkerboard", 10 columns, 7 rows of squares, 25 mm) or OpenCV's `pattern.png` works.
+- Print at 100 percent ("actual size", no "fit to page"). Measure a square with calipers. If it is not 25.0 mm,
+  give the measured size to the command (see `--help`).
+- Tape it flat on something stiff (cardboard, a clipboard). A bent board gives bad results.
+
+#### Intrinsics
+
+1. Stop the operator page if it is running (it holds the camera).
+2. Run `python3 -m grappstar calibrate intrinsics` (with `--help` options for the camera and square size).
+3. Hold the board in front of the camera and move it: near and far, left, right, top, bottom corners, and tilted.
+   Aim for 20 or more good views. Keep it still for each capture and avoid glare.
+4. It prints the result (and an error number: under 0.5 pixels is good, over 1 means redo it) and where it saved
+   the file.
+
+#### Mount
+
+1. Fix the camera in its final position on the rover. If it moves later, redo this part.
+2. Rover on flat ground. Lay the board flat on the ground in front of it, in view.
+3. Run `python3 -m grappstar calibrate mount` and follow what it asks (measured distances, see `--help`).
+4. It saves camera height and pitch.
+5. Check: put an orange object at a distance you measured with a tape (for example 5.0 m), click it on the page,
+   and compare the range the page shows. Within about 5 percent is good.
+
+### 8. Operator page tour and a full dry mission in sim
+
+Start the simulator and open the page (step 3):
+
+```bash
+python3 -m grappstar serve --sim
+```
+
+What is on the page (layout may differ a little from this list):
+
+- **Camera views**: rover camera and dart camera, live. Click on the rover view to mark a target.
+- **Base panel**: link, state, mode, drum position, aim angle, current, battery, fault.
+- **Dart panel**: link, phase (IDLE, ARMED, FLIGHT, LANDED, ANCHORING, ANCHORED, RELEASING, FAULT), battery.
+- **Mission panel**: current step, history, and the **prompt** box. Before anything dangerous (firing, reeling)
+  the mission stops and asks you to confirm, e.g. "Fire" or "Cancel". Nothing dangerous happens without your click.
+- **Target**: range and bearing of the clicked or auto found target, and the ballistic solution (pitch, flight time).
+- **Results**: after a flight, the landing zone verdict (GO, NO_GO or UNSURE with reasons), the landing image, the
+  aerial map built from the dart video, and the flight analysis.
+- **Manual**: jog the wiper and drum motors, dart keys, record on or off.
+- **STOP** (wiper off now) and **E-STOP** (wiper off and drum to neutral). Always visible. Know where they are
+  before you press anything else.
+
+Dry mission in sim, step by step:
+
+1. Press **Preflight**. Everything should go green (base link, dart link, cameras).
+2. Click a target on the rover view (or press auto target). Check the range and solution.
+3. Press **Start**. Answer each prompt. At the fire prompt press **Fire**.
+4. Watch the dart view: the simulated flight, impact and landing.
+5. Read the landing verdict and look at the map.
+6. Follow the prompts through anchoring, tensioning, release and reeling in.
+7. Try **STOP** and **E-STOP** in the middle of a second run and check the mission stops and says why.
+8. Replay the recorded mission's vision:
+
+   ```bash
+   python3 -m grappstar replay <logdir>
+   ```
+
+   where `<logdir>` is the mission log folder (its path is printed in the terminal and shown on the page when
+   the mission ends).
+
+### 9. First real mission checklist
+
+Before the first real launch:
+
+- [ ] Steps 3 to 8 all worked. `python3 -m pytest` passes on the Jetson.
+- [ ] Clear area: nobody in front of the launcher or anywhere along the flight path or the line. Check behind the
+      target too. Everyone knows the shout for stop.
+- [ ] Line attached at both ends (dart and reel) and laid so it cannot snag on the rover, feet or wires.
+- [ ] Tension limit set to a low value for the first runs (the base `set` key, or the page) and you know what it is.
+- [ ] STOP button: you can see it on the page, and your hand is on it during every motion. Know that E-STOP sends the
+      drum to neutral. Know where the battery connector is so you can unplug it fast.
+- [ ] Battery charged (3S full is 12.6 V), 20 A fuse fitted. Battery unplugged while you check any wiring.
+- [ ] Antennas on the VTX and RC832 before power. Dart view clean on the page.
+- [ ] Dart status OK (`python3 -m grappstar dart status`), base ping OK, preflight all green.
+- [ ] Recording on, so you can replay it.
+- [ ] Start with a short shot at low pitch.
+
+### 10. Troubleshooting
+
+| Problem | Likely cause | Fix |
+|---|---|---|
+| No `/dev/grappstar-base` | rules not installed, cable in the UART port, charge-only cable, or a different USB ID | `ls /dev/ttyACM* /dev/ttyUSB*`, `lsusb` (expect 303a:1001). Use the DevKitC port marked USB and a data cable. Rerun `bash setup/install.sh --no-apt` and replug. If lsusb shows another ID, edit `setup/99-grappstar.rules` |
+| Only `/dev/grappstar-base-uart` | cable in the UART/COM port | move it to the port marked USB |
+| `/dev/ttyUSB0` appears then vanishes (CH340) | brltty grabs it | `bash setup/install.sh --remove-brltty` |
+| `Permission denied` on the serial port or camera | not in groups dialout or video yet | `groups` should list both. If not, `bash setup/install.sh --no-apt`, then log out and in (or reboot) |
+| Base ping times out | wrong firmware USB mode, or another program has the port | check the firmware is built with "USB CDC On Boot: Enabled". Stop the service (`sudo systemctl stop grappstar`) or other `serve` before using `base` commands |
+| Camera black, or JPEG errors like "Corrupt JPEG data" | format mismatch with NVIDIA's JPEG library (seen in August) | set the format explicitly: `--fourcc YUYV`, or `--fourcc MJPG` if YUYV does not offer the size. Check sizes with `v4l2-ctl --list-formats-ext` |
+| Camera "busy" or will not open | another program has it (Cheese, a second `serve`, the service, calibrate) | close it. `sudo fuser /dev/video*` shows who holds it |
+| Dart view is snow | RC832 channel does not match the VTX, antenna missing, dart off or too far | step the RC832 channel, check both antennas, move closer |
+| Dart view stuck or blue screen | RC832 has no signal, dongle not getting video | check the yellow video cable and RC832 power |
+| Dart unreachable (`dart status` fails, no ping to 192.168.4.1) | Jetson not on KEDGE, dart off, or out of range | `nmcli device` (is the WiFi on `kedge`?), `nmcli connection up kedge`, power the dart, move closer |
+| Page unreachable from the phone | phone on a different network, wrong address, or serve not running | phone must be on KEDGE (A), GRAPPSTAR-ROVER (B) or the router (C). Find the address with `hostname -I`. On the Jetson, `curl -I http://localhost:8080` checks serve is up. `systemctl status grappstar` if using the service |
+| Phone keeps leaving KEDGE | it wants internet | tell it to stay connected; turn off mobile data switching; or use option B |
+| `numpy.core.multiarray failed to import`, "compiled using NumPy 1.x cannot be run in NumPy 2" | numpy 2 got installed by pip | `python3 -m pip install --user 'numpy>=1.21,<2'`, then `python3 setup/check_env.py` |
+| Two OpenCVs (`cv2` version or GStreamer NO in check_env on the Jetson) | `pip install opencv-python` was run | `python3 -m pip uninstall opencv-python opencv-python-headless`, keep the apt one |
+| A program wants `snap install` | snap is broken on JetPack 6.2 | use apt (or the project's apt or pip instructions) instead |
+| Port 8080 already in use | the service is running, or an old `serve` | `sudo systemctl stop grappstar`, or close the other terminal. Or use `--port 8081` |
+
+### 11. File map
+
+```
+jetson/
+  README.md              this guide
+  INTERFACES.md          how the modules fit together (for programmers)
+  requirements.txt       Python packages (numpy below 2, pyserial, pytest; OpenCV from apt)
+  pytest.ini             test settings (tests/ folder)
+  setup/
+    install.sh           installs everything (step 2)
+    check_env.py         prints what is installed and plugged in
+    99-grappstar.rules   udev rules: /dev/grappstar-base, -base-uart, -rovercam, -dartcam
+    grappstar.service    systemd unit to start the page at boot
+    hotspot.sh           optional operator hotspot on a USB WiFi adapter (option B)
+  grappstar/
+    __main__.py, cli.py  the command line (python3 -m grappstar ...)
+    app.py               owns the base, dart, cameras and mission; what the page talks to
+    mission.py           the mission steps and operator prompts
+    rover.py             rover side helpers
+    config.py            settings and defaults
+    jlog.py              mission logs
+    ballistics.py        aim solution from the ballistics table
+    data/                placeholder ballistics table
+    comms/               base.py (serial), dart.py (HTTP), mock_base.py, mock_dart.py
+    video/               camera capture, discovery, frame quality, recording, replay
+    vision/              flight.py, mosaic.py (aerial map), terrain.py (landing verdict), target.py (aiming)
+    sim/                 simulated dart flight video and terrain textures
+    ui/                  operator web page
+  tests/                 one test file per module, run with python3 -m pytest
+```
 
 
 # 10. Calibration (base)
@@ -610,6 +1132,91 @@ If it fails: note the mission step and the fault code in the log (`mission.jsonl
 repeat the stage where that step was first tested.
 
 
+## Expected numbers (physics model)
+
+Compare your test results with these. They are recomputed from params.py, so after you enter the measured spring
+and wiper numbers and re-run the physics, they update.
+
+
+*From `base/physics/SUMMARY.md`:*
+
+### Base station physics: summary
+
+Params: base/spec/params.py v0.1-stub (still defaults for LAUNCH, AIM, REEL, LAYOUT). Generated by base/physics/summary.py.
+
+#### Spring (each, A228, SF 1.2 on Shigley static limits)
+
+| Item | Value |
+|---|---|
+| Rate used / by formula | 0.125 / 0.128 N/mm |
+| Initial tension used | 7.0 N |
+| Body coils, mass | 98, 55 g |
+| Safe force (governed by) | 43.6 N (hook torsion) |
+| Safe extension (wire) / spec cap | 293 / 250 mm |
+| Surge (fixed-fixed) | 24 Hz |
+
+#### Launch (chain spring model)
+
+| Item | Value |
+|---|---|
+| Stroke, ratio, pitch | 240 mm, 1.0:1, 35 deg |
+| Spring extension full / rest | 250 / 10 mm |
+| Stored energy (2 springs) | 11.2 J |
+| Carriage force at full draw | 76 N |
+| Muzzle speed | 7.13 m/s |
+| Peak acceleration, stroke time | 20 g, 56 ms |
+| Efficiency (dart KE / stored) | 63 % |
+| Carriage KE at stop, pad peak | 1.52 J, 762 N (4 mm pad) |
+| Spring KE at stop, coil clash | 0.99 J, 10.5 m/s |
+
+#### Flight (bead-chain tether, level ground)
+
+| Item | Value |
+|---|---|
+| Range at 0.5 / 0.75 / 1.0 N brake | 4.20 / 3.77 / 3.40 m (pitch 35) |
+| Same shot, no tether | 5.22 m |
+| Flight time, apex (0.75 N) | 0.81 s, 1.07 m |
+| Impact speed, angle (0.75 N) | 5.8 m/s, 54 deg down |
+| Ballistics table | 15 to 55 deg, best 35.0 deg: 3.96 m |
+
+#### Storage reel payout (0.75 N at full reel)
+
+| Item | Value |
+|---|---|
+| Reel empty mass, inertia full | 35 g, 19.4 kg mm2 |
+| Line radius full / core | 27.4 / 20.0 mm (brake +37 % at core) |
+| Line pull in the stroke (spin-up) | 4.00 N |
+| Reel rpm max | 2483 rpm |
+| Overrun after landing | 0.23 m in 0.12 s |
+
+#### Capstan and tow
+
+| Item | Value |
+|---|---|
+| Wraps for tow limit (mu 0.15) | 3.4 raw, 6 design |
+| Take-up needed (design wraps) | 0.45 N |
+| Tow at limit: torque, speed, current | 1.19 N m, 0.077 m/s, 2.80 A |
+| Line pull at wiper stall (12.6 V) | 597 N (break 667 N) |
+
+#### Drivetrain (wiper at 11.1 V with sag)
+
+| Item | Value |
+|---|---|
+| aim: peak torque, current, time | 0.19 N m, 1.7 A, 5 s |
+| cock: peak torque, current, time | 1.29 N m, 2.9 A, 4 s |
+| reel: peak torque, current, time | 0.08 N m, 1.6 A, 235 s |
+| tow: peak torque, current, time | 1.19 N m, 2.8 A, 65 s |
+| Wiper stall 12.6 V (with sag) | 14.1 N m, 17.0 A |
+
+#### Harry must measure
+
+- Spring hang test: hang 1, 2, 3 kg from one spring, measure the length each time. Slope = rate, intercept = initial tension. Every range number scales with the stored energy.
+- Wiper: free speed (turns in 30 s at 12.0 V), free current, stall torque (arm + luggage scale, 1 s) and stall current. Edit common.Wiper or spec WIPER.
+- Dart mass on a kitchen scale with ballast and tether knot (spec 0.279 kg).
+- Slip clutch: pull the line off the reel with a luggage scale; set 0.5 to 0.75 N.
+- Rail friction: tilt the rail with the dart on it until it slides (mu = tan angle).
+
+
 # 13. Troubleshooting
 
 First move for any problem: send `estop` (or pull the battery plug), then read the `fault` field in telemetry.
@@ -674,7 +1281,7 @@ photos in `originals/measure_2026-11/` so the numbers can be checked later.
 | A4 | Mount hole pattern | Lay the motor face down on paper, press so the holes mark it (or trace with a pencil). Then caliper each hole centre from the shaft centre along two square directions and each hole diameter. Photo of the paper with a ruler | `WIPER.mount_holes` as (x, y, dia) from the shaft axis | Motor adapter plate (frame parts) |
 | A5 | Housing size | Caliper the gearbox box (length, width, height) and the motor can (diameter, length), and how far the shaft sits from each edge | `WIPER.body_box` | Frame cheeks and guard if they clash (the audit says) |
 | A6 | Free speed and free current | After the first power-on and the current-sense calibration (G1, CALIBRATION.md). Motor clamped, nothing on the shaft. Send a 35 s `jog`. Tape flag on the shaft: count turns for 30 s, rpm = turns x 2. Read `amps` and `vbat` from telemetry. (Not with the meter in series: the start current can pass 10 A and blow the meter fuse) | `WIPER.n0_rpm`, `WIPER.free_a` | Nothing; re-run physics |
-| A7 | Stall current and stall torque | Do NOT use the meter: stall is about 18 A, over the meter's 10 A range. After base calibration (firmware/base/CALIBRATION.md), use the `amps` telemetry. Torque: clamp a 300 mm bar on the shaft, hook the luggage scale at the end, scale pulling at 90 degrees to the bar, scale anchored to the bench. Jog for at most 2 s at full duty and read the peak (the firmware stall trip may cut it early: note if it does). Torque N m = kg x 9.81 x 0.30 | `WIPER.stall_a`, `WIPER.stall_nm` | Nothing; re-run physics and the ballistics table |
+| A7 | Stall current and stall torque | Do NOT use the meter: stall is about 18 A, over the meter's 10 A range. After base calibration (firmware/base/CALIBRATION.md), use the `amps` telemetry. Torque: clamp a 300 mm bar on the shaft, hook the luggage scale at the end, scale pulling at 90 degrees to the bar, scale anchored to the bench. Jog for at most 2 s at full duty and read the peak (the firmware stall trip may cut it early: note if it does). Torque N m = kg x 9.81 x 0.30. `python3 base/physics/calib.py wiper --v <vbat> --rpm <A6> --i-free <A6> --stall-kg <kg> --arm-mm 300 --i-stall <amps>` prints the whole WIPER block | `WIPER.stall_a`, `WIPER.stall_nm` | Nothing; re-run physics and the ballistics table |
 
 ### B. Launch springs (params.py `SPRING`, set `measured=True` when done)
 
@@ -684,7 +1291,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 | # | What | How | Changes | Reprint after |
 |---|---|---|---|---|
 | B1 | Free length L0 | Caliper the spring hook to hook (inside of the hooks), no load | `SPRING.free_len` | Nothing |
-| B2 | Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load, but only if L3 - L0 is under 180 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
+| B2 | Rate k and initial tension F0 | Use water bottles in a shopping bag, weighed on the kitchen scale: about 1, 2 and 3 kg (W1, W2, W3 in kg). Hang each from ONE spring and measure hook to hook (L1, L2, L3). Plot or compute: k (N/mm) = (W3 - W1) x 9.81 / (L3 - L1). F0 (N) = W1 x 9.81 - k x (L1 - L0). The three points should lie on a line; if L1 equals L0 (the spring did not move), drop W1 and add a 4 kg load, but only if L3 - L0 is under 180 mm. Do both springs. Never stretch a spring longer than L0 + 250 mm. Or let the computer fit it: `python3 base/physics/calib.py spring L0 W1:L1 W2:L2 W3:L3` (kg:mm pairs) prints the rate and initial tension | `SPRING.k_n_per_mm`, `SPRING.F0_n` | Nothing unless the stroke changes (physics says); re-run physics and the ballistics table |
 | B3 | Wire and outside diameter | Caliper | `SPRING.wire`, `SPRING.od` | Spring anchors only if OD differs by more than 0.5 mm |
 
 ### C. Parts box: confirm you have these (no new purchases)
@@ -784,7 +1391,7 @@ shows a placeholder; re-run the script after it lands.
 |---|---|---|
 | `base/spec/BASE_SPEC.md` | coordinator | yes |
 | `base/pack` | cad-infra (print pack) | NOT YET |
-| `base/out` | cad-infra (assembly pipeline) | NOT YET |
+| `base/out` | cad-infra (assembly pipeline) | yes |
 | `base/guide` | cad-infra (assembly steps) | NOT YET |
 | `kedge/pack_v30/KEDGE_v30_run_sheet.pdf` | dart v30 pack (done) | yes |
 | `firmware/base/WIRING.md` | fw-base | NOT YET |
@@ -794,9 +1401,9 @@ shows a placeholder; re-run the script after it lands.
 | `firmware/base/PROTOCOL.md` | fw-base | NOT YET |
 | `firmware/dart/WIRING.md` | fw-dart | NOT YET |
 | `firmware/dart/README.md` | fw-dart | NOT YET |
-| `firmware/dart/API.md` | fw-dart | NOT YET |
+| `firmware/dart/API.md` | fw-dart | yes |
 | `firmware/dart/BENCH_TEST.md` | fw-dart | NOT YET |
-| `jetson/README.md` | jetson | NOT YET |
+| `jetson/README.md` | jetson | yes |
 
 
 Appendices attached after this page (when present): the base assembly steps PDF from `base/guide`, then the KEDGE

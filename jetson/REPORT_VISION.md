@@ -52,7 +52,22 @@ only in 0.6 to 1.4 x the table v_muzzle, the default speed comes from the table,
 placeholder table now uses the real 6..47 deg window (95b6dec). With the high branch, the mission tests' 60 deg
 placeholder asked the base for 59.6 deg, which the base refuses.
 
+Review round 2 (fresh subagent on mosaic, target, terrain, calibrate, video/*, analysis; 448571a):
+- HIGH, fixed: a void (14 black landed frames flagged bad by the link check) plus one lit rim frame reached terrain
+  as a single clean frame and got GO, because landing_frames() drops bad frames before terrain's own dark check.
+  run_post_flight now runs terrain's dark check on the whole landed window first. The regression test
+  (test_void_with_one_lit_frame_is_not_go) fails on the old code and passes now.
+- Fixed: grey or HxWx1 images crashed analyze_landing (now converted to BGR); the analysis-failed fallback said
+  score 0 with UNSURE (now 45, which is UNSURE); the mosaic degenerate test passed even with a crashing mosaic; the
+  capture test could not tell read-back from requested values (now a stubborn fake driver).
+- Also in this round: with no known pitch, the video-only path fits pitch and speed together to the horizon track,
+  and a rail view that is all sky bounds the pitch from below (half the vertical field of view).
+
 ## Open items
+
+- Without a commanded pitch, video-only shots above about 40 deg read 5 to 11 percent short in the sim (one case at
+  46 deg: 18 percent). The launch is hard to see against plain sky and the pitch fit lands low. With the commanded
+  pitch (now passed by the mission) they are within 0 to 6 percent.
 
 - mission.py now passes aim_pitch_deg, drag_n and buffer(since=), and calls hold / release_hold (jetson worker, on
   w/jetson with fallbacks). Check them after the coordinator merges both branches.

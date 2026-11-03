@@ -431,6 +431,25 @@ static void testTow() {
   CHECK(R.ok("{\"id\":1,\"cmd\":\"stop\"}") && R.idle(), "stop leaves hold");
 }
 
+static void testTowTaper() {
+  T("tow: the taper never lifts the duty above the tow cap on a slowly tightening line (review L1)");
+  Rig R; R.toMode("NEUTRAL"); R.wrapToReel();
+  S.lineOut = 8; S.anchorTautAt = 7.0; S.anchorK = 15;
+  R.B.c.kNperA = (float)(1.0 / (S.capstanR * S.c.capstanPerWiper) * S.stallNm / (S.stallA - S.freeA)); R.B.c.tensOffsetN = 0;
+  R.B.c.freeA = 1.5f + (float)((S.reelFreeNm + 0.3) / S.stallNm * (S.stallA - S.freeA));
+  CHECK(R.ok("{\"id\":1,\"cmd\":\"reel\",\"duty\":1,\"max_n\":40,\"until\":\"tension\"}"), "tow to 40 N");
+  int maxBad = 0;
+  for (int i = 0; i < 80000 && R.B.state == gb::S_REEL; i++) {
+    R.tick();
+    float frac = fmaxf(R.B.tensionN, R.B.tRaw) / R.B.maxN;
+    if (frac > R.B.c.towSlackFrac + 0.02f && R.B.w.wantDuty > maxBad) maxBad = R.B.w.wantDuty;
+  }
+  printf("    max duty above 27 %% of max_n: %d (min duty %d), true tension %.1f N\n", maxBad, R.B.c.reelMinDuty, S.tension());
+  CHECK(maxBad <= R.B.c.reelMinDuty, "minimum duty once the line carries tension");
+  CHECK(R.B.state == gb::S_HOLD, "holds at the limit");
+  CHECK(S.tension() < 50, "no overshoot");
+}
+
 static void testTowHx() {
   T("tow with the HX711: limit, resume when the line slackens");
   Rig R; S.hxFitted = true; R.run(100);
@@ -1115,11 +1134,11 @@ static void testFullMission() {
 
 int main(int argc, char** argv) {
   if (argc > 1) { std::string w = argv[1];
-    if (w == "cock") testCockFireReset(); else if (w == "aim") testAim(); else if (w == "wrap") testWrapReelUnwrap(); else if (w == "jog") testJog(); else if (w == "drum") testDrumFaults(); else if (w == "power") testPowerLoss(); else if (w == "stall") testStallOvercurrent(); else if (w == "enc") testAngleSensorFault(); else if (w == "tow") testTow(); else if (w == "rev1") testReview1(); else if (w == "rev2") testReview2(); else if (w == "v1") testSpecV1Contacts(); else if (w == "tl") testTimeline(); else if (w == "idx") testIndexMode(); else if (w == "mission") testFullMission(); else if (w == "stop") testStopEstop(); else if (w == "rev3") testReview3(); else if (w == "rev4") testReview4(); else if (w == "rev5") testReview5(); else if (w == "rev6") testReview6(); else if (w == "idxf") testIndexFailures(); else if (w == "modes") testModeChanges(); else if (w == "hx") testTowHx();
+    if (w == "cock") testCockFireReset(); else if (w == "aim") testAim(); else if (w == "wrap") testWrapReelUnwrap(); else if (w == "jog") testJog(); else if (w == "drum") testDrumFaults(); else if (w == "power") testPowerLoss(); else if (w == "stall") testStallOvercurrent(); else if (w == "enc") testAngleSensorFault(); else if (w == "tow") testTow(); else if (w == "rev1") testReview1(); else if (w == "rev2") testReview2(); else if (w == "v1") testSpecV1Contacts(); else if (w == "tl") testTimeline(); else if (w == "idx") testIndexMode(); else if (w == "mission") testFullMission(); else if (w == "stop") testStopEstop(); else if (w == "rev3") testReview3(); else if (w == "rev4") testReview4(); else if (w == "rev5") testReview5(); else if (w == "rev6") testReview6(); else if (w == "idxf") testIndexFailures(); else if (w == "modes") testModeChanges(); else if (w == "hx") testTowHx(); else if (w == "taper") testTowTaper();
     printf("%d passed, %d failed\n", pass, fail); return fail ? 1 : 0; }
   testJson(); testSwitches(); testAngle(); testWiperDrive(); testPersist();
   testProtocolBasics(); testTelemetryWorstCase(); testModeChanges(); testDrumFaults(); testAim(); testCockFireReset(); testFireRefusals();
-  testNoRelease(); testWrapReelUnwrap(); testTow(); testTowHx(); testStallOvercurrent(); testAngleSensorFault(); testBrownout();
+  testNoRelease(); testWrapReelUnwrap(); testTow(); testTowHx(); testTowTaper(); testStallOvercurrent(); testAngleSensorFault(); testBrownout();
   testStopEstop(); testJog(); testPowerLoss(); testSaveGate(); testPersistWear(); testTelemetryRate(); testHostTimeout(); testReview1(); testReview2(); testSpecV1Contacts(); testReview3(); testReview4(); testReview5(); testReview6(); testIndexMode(); testIndexFailures(); testTimeline(); testFullMission();
   curTest = "all"; CHECK(Rig::dryTotal == 0, "no test ever moved the collar out of LAUNCH with the spring drawn");
   printf("\n%d checks, %d passed, %d failed: %s\n", pass + fail, pass, fail, fail ? "FAILURES" : "ALL PASS");

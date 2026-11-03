@@ -46,6 +46,10 @@ def shots(out: str, times=None) -> list[str]:
         f = os.path.join(sd, f"sim_t{t:06.2f}.png")
         job.append(dict(file=f, ops=[["SIM_PAUSE"], ["SIM_SEEK", t]]))
         files.append(f)
+    # stable name for the site hero: the first shot (aim phase), whatever the phase durations
+    f = os.path.join(sd, "sim_hero.png")
+    job.append(dict(file=f, ops=[["SIM_PAUSE"], ["SIM_SEEK", times[0]]]))
+    files.append(f)
     f = os.path.join(sd, "sim_cut_y.png")
     job.append(dict(file=f, ops=[["SIM_PAUSE"], ["SIM_SEEK", times[0]], ["SIM_CUT", "y", 0.5, True]]))
     files.append(f)

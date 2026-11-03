@@ -269,7 +269,8 @@ def state_columns(states: list[dict]) -> dict:
 
 
 def ground_z(P):
-    """Ground (deck) height in world z when the params say so: P.GROUND_Z, or P.LAYOUT["ground_z"] / ["deck_z"].
+    """Ground (deck) height in world z when the params say so: P.GROUND_Z, or P.LAYOUT["deck_top_z"] (spec) /
+    ["ground_z"] / ["deck_z"]. build_data never puts it above the lowest point of the whole track.
     None means the viewer puts the ground at the assembly bbox min z (the world origin sits on the main shaft
     axis, so the deck is below z = 0)."""
     for v in (getattr(P, "GROUND_Z", None),):
@@ -277,10 +278,19 @@ def ground_z(P):
             return float(v)
     L = getattr(P, "LAYOUT", None)
     if isinstance(L, dict):
-        for k in ("ground_z", "deck_z"):
+        for k in ("deck_top_z", "ground_z", "deck_z"):
             if isinstance(L.get(k), (int, float)):
                 return float(L[k])
     return None
+
+
+def _ground_below(gz, box):
+    """The ground never cuts through the model: at most the lowest z of the whole track."""
+    try:
+        zmin = float(box[0][2]) if isinstance(box[0], (list, tuple)) else float(box["min"][2])
+    except Exception:
+        return gz
+    return zmin if gz is None else min(gz, zmin)
 
 
 def build_data(asm: Assembly, out: str, states: list[dict], title: str = "") -> dict:
@@ -293,9 +303,10 @@ def build_data(asm: Assembly, out: str, states: list[dict], title: str = "") -> 
                           bought_ref=p.bought_ref, printed=bool(p.printed), qty=p.qty,
                           mass_g=None if p.mass_g() is None else round(p.mass_g(), 1), step=p.step,
                           group=gi, place=np.round(np.asarray(place, np.float64), 9).reshape(-1).tolist()))
+    box = track_box(meshes, assign, worlds)
     return dict(title=title or "GrappStar " + " + ".join(asm.modules), subsystems=list(asm.modules), parts=parts,
                 meshes=meshes, tracks=tracks, phase=[S.get("phase", "") for S in states], states=state_columns(states),
-                ground_z=ground_z(asm.P), box_track=track_box(meshes, assign, worlds))
+                ground_z=_ground_below(ground_z(asm.P), box), box_track=box)
 
 
 def data_js(data: dict) -> str:

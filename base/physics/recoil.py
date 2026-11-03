@@ -83,17 +83,27 @@ def shot_loads(p, pitch: float, rover=ROVER):
     impulse = p.dart.mass * r["v_muzzle"]
     f_mean = 0.5 * (F + p.n_springs * p.spring.force(p.launch["preload_ext"]) / p.launch["pulley_ratio"])
     t_s = r["t_stroke_ms"] / 1000
-    back = tip_dynamic(rover, (m_rear * f_mean / F - resist_rear) * t_s, rover["rear"])
+    # the stop follows ~4 ms after the stroke on the same line and hands the carriage + spring momentum back:
+    # net the two pulses (review round 3). Braked wheels: the ground takes the horizontal force.
+    p_ret = 2 * ke / r["v_muzzle"]
+    h_stroke = (m_rear * f_mean / F - resist_rear) * t_s
+    h_stop = p_ret * m_rear / F
+    back = tip_dynamic(rover, h_stroke - h_stop, rover["rear"])
+    # free-rolling wheels: friction cannot hold 84 N, the base rolls back and the moment arm is about the CG height
+    arm_roll = max(0.0, z0 - rover["cg_h"])
+    h_roll = max(0.0, (F * arm_roll * math.cos(th) * f_mean / F) * t_s - p_ret * arm_roll * math.cos(th) - resist_rear * t_s)
+    back_rolling = tip_dynamic(rover, h_roll, rover["rear"])
     # stop: momentum of the carriage + spring surge stopped over 2 x travel / v; moment arm as the static case
     t_stop = 2 * travel / r["v_muzzle"]
-    front = tip_dynamic(rover, (m_front * 0.5 - resist_front) * t_stop, rover["front"])
+    front = tip_dynamic(rover, max(0.0, h_stop - h_stroke), rover["front"])   # only if the stop outweighs the stroke
     return dict(pitch_deg=pitch, v_muzzle=r["v_muzzle"], f_recoil_peak_n=F, f_recoil_x_n=-Fx, f_recoil_down_n=-Fz,
                 t_stroke_ms=r["t_stroke_ms"], impulse_dart_ns=impulse,
                 moment_back_tip_nm=m_rear, resist_back_tip_nm=resist_rear, back_tip_margin=resist_rear / m_rear if m_rear > 0 else math.inf,
                 stop_ke_j=ke, f_stop_linear_pad_n=f_stop_lin, f_stop_constant_force_n=f_stop_const,
                 travel_for_300n_linear_mm=2 * ke / 300 * 1000, moment_front_tip_nm=m_front, resist_front_tip_nm=resist_front,
                 front_tip_margin=resist_front / m_front if m_front > 0 else math.inf, rover=rover,
-                back_dynamic=back, front_dynamic=front)
+                back_dynamic=back, back_dynamic_rolling=back_rolling, front_dynamic=front,
+                angular_impulse_stroke=h_stroke, angular_impulse_stop=h_stop)
 
 
 def spring_count_case(p, n: int, pitch: float):
@@ -125,8 +135,8 @@ def main(argv=None):
               f"{s['front_tip_margin']:.2f}")
     for s in rows:
         b, f_ = s["back_dynamic"], s["front_dynamic"]
-        print(f"  pitch {s['pitch_deg']:.0f}: pulses (dynamic): back rock {b['lift_deg']:.1f} deg (tips {b['tips']}), "
-              f"front rock {f_['lift_deg']:.1f} deg (tips {f_['tips']})")
+        print(f"  pitch {s['pitch_deg']:.0f}: net pulse (stroke - stop): back rock {b['lift_deg']:.1f} deg braked, "
+              f"{s['back_dynamic_rolling']['lift_deg']:.1f} deg rolling free (tips {b['tips']}), front rock {f_['lift_deg']:.1f} deg")
     s = rows[2]
     print(f"stop travel for a 300 N peak with a linear pad: {s['travel_for_300n_linear_mm']:.0f} mm; dart impulse {s['impulse_dart_ns']:.2f} N s")
     out["springs"] = [spring_count_case(p, n, a.pitch) for n in (2, 4)]

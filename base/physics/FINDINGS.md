@@ -9,7 +9,7 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
 
 - 2 springs, 280 mm at full cock, 13.1 J: 7.6 m/s, range 4.9 / 4.5 / 4.0 m at 0.5 / 0.75 / 1.0 N, best pitch 36 deg.
   4 springs: 10.4 m/s, 8.7 / 7.9 / 7.2 m. Ballistics table 6 to 47 deg in base/out/ballistics.json (C3).
-- Cock 3.1 N m peak at the wiper, 4.9 A, 2.6 s per shot. Tow 50 N: 2.0 N m, 3.7 A, 0.12 m/s (ratio 0.6). Aim 0.33 N m,
+- Cock 3.1 N m peak at the wiper, 4.9 A, 2.7 s per shot. Tow 50 N: 2.0 N m, 3.7 A, 0.12 m/s (ratio 0.6). Aim 0.33 N m,
   6.6 s for 6 to 47 deg. Limiter (5 N m) slipping: 7 A, 127 N on the line.
 - Stop: 3.3 J (carriage 2.3 + springs 0.9): 15 mm linear pad 434 N, 22 mm for 300 N. Recoil 84 N for 55 ms.
 - Sections F1 to F9 below are the history of the findings (numbers in them are from earlier parameter sets).
@@ -124,12 +124,12 @@ coordinator please confirm which). Models: base/physics/*.py, every number repro
   a 300 N peak a linear pad needs 22 mm, or 15 mm of a near-constant-force element (~220 N, e.g. a crush or friction
   stop, or a pre-loaded spring).
 - Recoil at the shot: the frame feels 84 N peak backward along the rail at the spring line for ~55 ms (dart impulse
-  2.1 N s). With an ASSUMED rover (4 kg, pivot 0.30 m above ground, wheels 0.15 m behind and ahead of the pivot, CG
-  0.12 m high) the static moment is 3 to 5 x the rover's righting moment, but the pulse is short: the rover rocks back
-  ~17 deg at 6 deg pitch, ~10 deg at 20 deg, ~3 deg at 36 deg, under 1 deg at 47 deg, and ~3 deg forward at the stop.
-  None tip over. At low pitch the rock happens during the stroke, so it changes the actual launch angle: fire low
-  shots only with the rover braked, the base low on the deck, the rover heavy or long, or accept the low pitches as
-  less accurate. Rover mass, wheelbase and CG are needed: recoil.py ROVER block.
+  2.1 N s). The carriage stop ~4 ms later hands the carriage + spring momentum back on the same line, so the net
+  angular impulse is small. With an ASSUMED rover (4 kg, pivot 0.30 m above ground, wheels 0.15 m behind and ahead of
+  the pivot, CG 0.12 m high): wheels braked, the rover rocks back ~5 deg at 6 deg pitch, 2.5 deg at 20, 0.5 deg at 36,
+  0 at 47; wheels free to roll, under 1 deg (it rolls back a little instead). Nothing tips. Low shots are the least
+  accurate; rover mass, wheelbase and CG still needed (recoil.py ROVER block). (Corrected in review round 3: the first
+  estimate of 17 deg ignored the stop pulse.)
 - With the 5 N m limiter the stall cases in drivetrain/capstan are evaluated at the limiter torque (motor current
   ~7 A while it slips, caught by the 5 A trip).
 

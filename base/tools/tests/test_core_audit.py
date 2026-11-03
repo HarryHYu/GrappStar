@@ -295,3 +295,9 @@ def test_custom_timeline_counts_ease_flags_step():
     P = _t.SimpleNamespace(TIMELINE=[("a", 1.0, "", {"wraps": 0, "fired": 0}), ("b", 2.0, "", {"wraps": 7, "fired": 1})])
     w = state_at(P, 2.0)["wraps"]
     assert 0 < w < 7 and state_at(P, 1.5)["fired"] == 0 and state_at(P, 2.6)["fired"] == 1
+
+
+def test_line_path_accepts_nested_segments():
+    seg = [(np.array([[0.0, 0, 0], [1, 0, 0]]), {"a", "b"}), (np.array([[1.0, 0, 0], [2, 0, 0]]), {"c"})]
+    b = mod([], [], lambda P, S: {}, line_path=lambda P, S: seg)
+    assert Assembly(None, {"launch": b}).line({}) == [[0, 0, 0], [1, 0, 0], [2, 0, 0]]

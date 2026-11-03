@@ -113,10 +113,13 @@ optional render "$OUT" ${ONLY[@]+"${ONLY[@]}"}
 optional sim "$OUT" ${ONLY[@]+"${ONLY[@]}"}
 optional steps "$OUT" ${ONLY[@]+"${ONLY[@]}"} --shots
 step "pack" 0 "$PY" -m tools.pack "$OUT" "$PACK" ${ONLY[@]+"${ONLY[@]}"}
-step "step export" 0 "$PY" -m tools.step_export "$OUT" ${ONLY[@]+"${ONLY[@]}"} --jobs "$JOBS"
 step "bom" 0 "$PY" -m tools.bom "$OUT" ${ONLY[@]+"${ONLY[@]}"}
 if [ "${SERIAL:-0}" != 1 ]; then echo; echo "=== waiting for the audit"; audit_wait; fi
 step "guide" 0 "$PY" -m tools.guide "$OUT" ${ONLY[@]+"${ONLY[@]}"} --pack "$PACK"
+# STEP export last: the slowest optional output (faceted STEP, about 1 to 2 ms per face). STEP_ARGS adds options,
+# for example "--no-assembly" in a tight window.
+# shellcheck disable=SC2086
+step "step export" 0 "$PY" -m tools.step_export "$OUT" ${ONLY[@]+"${ONLY[@]}"} --jobs "$JOBS" ${STEP_ARGS:-}
 
 echo
 echo "=== done in $(( $(date +%s) - T0 )) s: $OUT"

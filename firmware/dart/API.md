@@ -16,7 +16,7 @@ and never poll `/status` faster than 5 Hz (held-key repeats every 150 ms are the
 
 Refusal reasons: `in flight`, `busy` (a sequence owns the motors), `already anchored, release first`,
 `no current sensor` (INA219 missing or lost), `no IMU` (BNO085 missing or silent), `stalled: release the key first`,
-`fault latched: send stop first`, `unknown key`, and for `/flightlog` `busy (motors running, armed or in flight)`.
+`fault latched: send stop first`, `both directions held`, `sent before a stop`, `unknown key`, and for `/flightlog` `busy (motors running, armed or in flight)`.
 
 **One request at a time.** If a client opens a connection and never sends a request (a browser tab closing mid
 request can do this), the ESP32 web server waits up to 5 s for it before serving anyone else. Motors are not affected
@@ -91,11 +91,17 @@ Manual key, same keys as the web page and Serial Monitor.
   protection keeps chopping) is stopped with the event `<motor> draws no current: wire open or shorted`.
 - One stalled drill while the other turns cannot be told from normal drilling (both share one channel and one current
   reading); only both stalled is detected.
-- Other keys: space or `s` stop (same as `/stop`), `a` auto (same as `/auto`), `r` release (same as `/release`),
+- Both directions of one motor held at once (`1` and `!`): the motor stops and both are refused (`both directions held`)
+  until neither has been pressed for a window. To reverse, release (the page then sends a stop) and press the other.
+- At low `speed` the stall line never drops below 1.5 x the motor's free current, so normal running is not taken for a
+  stall; below about speed 100 a stall may then only be stopped by the 8 s hold cap.
+- Other keys: space or `s` stop (same as `/stop`; with `keep=1` it stops the motors but keeps the arm, like
+  `/stop?disarm=0`: the web page sends this when the last held key is released or the page loses focus), `a` auto (same as `/auto`), `r` release (same as `/release`),
   `A` arm toggle (prefer `/arm`), `+` / `-` speed, `i` current, `b` attitude, `p` status line, `f` flight log summary,
   `z` I2C scan (does a full `/stop` first: motors off, disarm), `h` help. An OTA upload also does a full `/stop`.
 - Optional `n` and `p`: a request counter and a page id (the web page uses them so a run key sent before that page's
-  stop cannot arrive after it; `n` only counts together with `p`, and the last 4 page ids are remembered).
+  stop cannot arrive after it, answered 409 `sent before a stop`; `n` only counts together with `p`, and the last 4
+  page ids are remembered).
 - Refused (409) while a sequence runs (`busy`), during `FLIGHT`, while a fault is latched (`fault latched: send stop
   first`), and after a stall or the hold cap until the key has been released (`stalled: release the key first`).
   "Released" means no press for max(last `ms`, 350) + 250 ms. The opposite direction is never locked.
@@ -128,6 +134,12 @@ spinning, drills finishing, `anchored`.
   phase's lowest reading, so an auger whose current changes during the pause cannot fake one. A stalled auger is
   stopped (anchor) or faults (release). An end-stop stall is only believed after a minimum travel time (pods 0.7 s,
   kick back 1.5 s). If the kick's housing stall is never seen, planting carries on after 6 s (`kick plant time limit`).
+  A worm already at its end stop when such a step starts shows no rise; it is still stopped after 3 readings in a row
+  over the line (3 of the last 4 readings, about 1.6 to 2.2 s). An auger current change of up to about 100 mA during
+  the pause is tolerated. Known limit: if the pods jam in soil mid-travel and the drills' current rises during each
+  pause by more than the margin, the jam is only ended by the 6 s pods limit. A retried
+  `/auto` whose kick is already down skips the planting step (event `kick already down, foot planting`).
+- One failed current read at the moment a step ends does not fault: the step ends and the next good read moves on.
 
 ### GET /release
 
@@ -207,7 +219,7 @@ Worked out in this priority order (the first that applies):
 | `ANCHORING` | anchor sequence running |
 | `FLIGHT` | launch detected, landing not yet decided |
 | `ANCHORED` | anchor sequence finished (`seq` `anchored`) |
-| `LANDED` | landed and nothing running (log-only arm, fallback landing, auto refused, or auto stopped by hand) |
+| `LANDED` | landed and no motor running (log-only arm, fallback landing, auto refused, or auto stopped by hand); a manual motor running after a landing shows `IDLE` |
 | `ARMED` | landing detector armed, waiting for the launch |
 | `IDLE` | none of the above (also after `/stop` aborts a sequence before any landing: `seq` `aborted`, no fault; after a landing it shows `LANDED`) |
 
@@ -232,8 +244,9 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 ## Flight detection (decision record)
 
 - Launch: \|a\| over 4 g continuously for 20 ms, **only while armed**. Launch time = start of those 20 ms.
-  In practice the samples over 4 g must span at least 15 ms (one 5 ms sample period of slack): pushes of 22 ms or more
-  are always seen, knocks of 10 ms or less never, 15 to 20 ms sometimes. A launch alone never starts motors.
+  In practice the samples over 4 g must span at least 15 ms (one 5 ms sample period of slack): pushes of 24 ms or more
+  are always seen (18 ms with steady 5 ms ticks; measured by the fuzz test with 4 to 7 ms tick jitter), knocks of 10 ms
+  or less never, 15 to 23 ms sometimes. A launch alone never starts motors.
 - Landing: once the dart has been in free fall (\|a\| under 0.6 g for 60 ms in total, or, for a tumbling dart that
   never reads that low, 400 ms after launch with \|a\| back under 4 g),
   an impact over 3.5 g at least 400 ms after launch (real flights last 0.6 s or more; this stops a dropped dart's bounce

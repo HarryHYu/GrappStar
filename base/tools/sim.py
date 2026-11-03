@@ -49,6 +49,14 @@ def shots(out: str, times=None) -> list[str]:
     f = os.path.join(sd, "sim_cut_y.png")
     job.append(dict(file=f, ops=[["SIM_PAUSE"], ["SIM_SEEK", times[0]], ["SIM_CUT", "y", 0.5, True]]))
     files.append(f)
+    # the whole mission track (wide view) and, during the flight, the camera following the dart
+    fl = [p for p in TL.phases(P) if "flight" in p["name"]]
+    tf = round((fl[0]["t0"] + fl[0]["t1"]) / 2, 2) if fl else times[0]
+    for name, ops in (("sim_mission.png", [["SIM_FOLLOW", ""], ["SIM_VIEW", "mission"]]),
+                      ("sim_follow_dart.png", [["SIM_VIEW", "iso"], ["SIM_FOLLOW", "dart"]])):
+        f = os.path.join(sd, name)
+        job.append(dict(file=f, ops=[["SIM_PAUSE"], ["SIM_CUT", None], ["SIM_SEEK", tf]] + ops))
+        files.append(f)
     res = run_shots(dict(url=url, width=1500, height=900, ready="window.READY === true", shots=job))
     errs = list(res.get("errors", []))
     f = os.path.join(sd, "sim_dark_phone.png")

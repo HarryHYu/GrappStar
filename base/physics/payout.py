@@ -159,6 +159,8 @@ def main(argv=None):
     ap.add_argument("--shoes", action="store_true")
     ap.add_argument("--json", default=os.path.join(OUT_DIR, "payout.json"))
     a = ap.parse_args(argv)
+    _defaults = vars(ap.parse_args([]))
+    write_ok = a.json != _defaults["json"] or vars(a) == _defaults   # odd flags never overwrite the committed output
     p = load_params()
     rp = reel_props(p)
     print(f"params: {p.source}")
@@ -176,7 +178,10 @@ def main(argv=None):
     out = dict(params_source=p.source, reel=rp, runs=[{k: v for k, v in r.items() if k != "history"} for r in rows],
                history=rows[0]["history"])
     os.makedirs(os.path.dirname(a.json), exist_ok=True)
-    json.dump(out, open(a.json, "w"), indent=1, default=float)
+    if write_ok:
+        json.dump(out, open(a.json, "w"), indent=1, default=float)
+    else:
+        print("(non-default flags: output JSON left unchanged; pass --json PATH to save)")
     return out
 
 

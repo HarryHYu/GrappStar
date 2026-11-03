@@ -411,6 +411,7 @@ class Mission:
     # ------------------------------------------------ steps
     def preflight(self) -> None:
         problems, warnings = [], []
+        self.base_live_confirmed = False
         try:
             r = self.base.ping(timeout=1.5)
             self.log.info(f"base {r.get('fw', 'firmware ?')}")
@@ -456,6 +457,9 @@ class Mission:
             raise StepFailed("; ".join(problems))
         if warnings:
             self.ask("Preflight warnings: " + "; ".join(warnings) + ". Continue?", ["Continue", "Abort"])
+        self.ask("Preflight OK. From now on the base moves by itself between prompts (drum shifts, the wiper turns a "
+                 "few degrees during a mode change, aiming). Area clear and hands off the base?",
+                 ["Base may move", "Abort"], danger=True)
         self.log.info("preflight ok")
 
     def aim(self) -> None:
@@ -484,6 +488,8 @@ class Mission:
     def cock(self) -> None:
         """Cock the spring now, so the fire after the confirmations is instant. Aim must already be done (PROTOCOL:
         aim needs the carriage home)."""
+        self.ask("Cock the launcher now? The spring is drawn and stays drawn until the shot or a Decock. "
+                 "Keep hands and the line clear of the rail.", ["Cock", "Abort"], danger=True)
         m = self.base.event_mark()
         self.base.cmd("cock")                 # already cocked: ok and an immediate COCKED event
         self.wait_evt("COCKED", self.cfg.cock_timeout_s, m)

@@ -387,7 +387,9 @@ What is on the page (layout may differ a little from this list):
 - **Base panel**: link, state, mode, drum position, aim angle, current, battery, fault.
 - **Dart panel**: link, phase (IDLE, ARMED, FLIGHT, LANDED, ANCHORING, ANCHORED, RELEASING, FAULT), battery.
 - **Mission panel**: current step, history, and the **prompt** box. Before anything dangerous (firing, reeling)
-  the mission stops and asks you to confirm, e.g. "Fire" or "Cancel". Nothing dangerous happens without your click.
+  the mission stops and asks you to confirm, e.g. "Fire" or "Abort". After the first confirmation ("Base may move")
+  the base is LIVE: drum shifts, aiming and small wiper turns during a mode change happen between prompts. Cocking and
+  firing each have their own confirmation.
 - **Target**: range and bearing of the clicked or auto found target, and the ballistic solution (pitch, flight time).
 - **Results**: after a flight, the landing zone verdict (GO, NO_GO or UNSURE with reasons), the landing image, the
   aerial map built from the dart video, and the flight analysis.
@@ -449,8 +451,13 @@ Before the first real launch:
       target too. Everyone knows the shout for stop.
 - [ ] Line attached at both ends (dart and reel) and laid so it cannot snag on the rover, feet or wires.
 - [ ] Tension limit set to a low value for the first runs (the base `set` key, or the page) and you know what it is.
-- [ ] STOP button: you can see it on the page, and your hand is on it during every motion. Know that E-STOP sends the
-      drum to neutral. Know where the battery connector is so you can unplug it fast.
+- [ ] Know the stop rule (the same in every GrappStar document):
+      1. ESTOP or the page's STOP button.
+      2. Pull lead #2's XT60 (motors off, the Jetson stays up).
+      3. The main battery.
+      Cutting power FREEZES a drawn spring and a taut line (the worm drives hold them); it does not release them.
+      Treat a cocked launcher and a loaded line as live until Decock and unwrap.
+- [ ] The base is live from the "Base may move" confirmation until DONE.
 - [ ] Battery charged (3S full is 12.6 V), 20 A fuse fitted. Battery unplugged while you check any wiring.
 - [ ] Antennas on the VTX and RC832 before power. Dart view clean on the page.
 - [ ] Dart status OK (`python3 -m grappstar dart status`), base ping OK, preflight all green.

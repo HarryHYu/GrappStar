@@ -99,6 +99,14 @@ def cfg(P=None):
             for k in ("LAUNCH", "NEUTRAL", "WRAPPED", "REEL"):
                 if ang.get(k) is not None:
                     d[k.lower()] = float(ang[k])
+        n20 = over.get("n20")
+        if isinstance(n20, dict):              # params 1.2.5 interface numbers for the N20 train
+            pin, dg = n20.get("pinion") or {}, n20.get("drum_gear") or {}
+            d["n20_z"] = int(pin.get("teeth", d["n20_z"]))
+            d["drum_gear_m"] = float(dg.get("module", pin.get("module", d["drum_gear_m"])))
+            d["drum_gear_z"] = int(dg.get("teeth", d["drum_gear_z"]))
+            d["n20_stall_nm_9v"] = float(n20.get("stall_nm_design", d["n20_stall_nm_9v"]))
+            d["n20_v"] = float(n20.get("supply_v", d["n20_v"]))
         tg = over.get("targets")
         if isinstance(tg, dict):           # params v1.0 targets; the two on code edges are kept off the edges
             for k, kk in (("LAUNCH", "launch"), ("NEUTRAL", "neutral"), ("REEL", "reel")):

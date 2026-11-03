@@ -9,9 +9,9 @@ Print settings (the 3MF files carry geometry only: set material and settings in 
 |---|---|---|---|---|---|---|
 | Dart fit coupon, dart plates A and B | PLA | 0.16 mm | 4 | 40% gyroid | 5 / 5 | start at 0; adjust from the dart fit coupon (run sheet section 4) |
 | Base fit coupon, risk plate 1 | PLA | 0.2 mm | 4 | 40% gyroid | 5 / 5 | 0 ("print as exported") |
-| Risk plate 2 | PPA-CF | 0.2 mm | 6 | 60% gyroid | 5 / 5 | 0 |
+| Risk plate 2 | PPA-CF | 0.2 mm | 6 | 60% gyroid | 6 / 6 | 0 |
 | Base plates, PLA | PLA | 0.2 mm | 4 | 40% gyroid | 5 / 5 | 0, unless the coupons showed a fit off |
-| Base plates, PPA-CF | PPA-CF | 0.2 mm | 6 | 60% gyroid | 5 / 5 | 0, unless the coupons showed a fit off |
+| Base plates, PPA-CF | PPA-CF | 0.2 mm | 6 | 60% gyroid | 6 / 6 | 0, unless the coupons showed a fit off |
 
 No supports on any plate. The base print sheet (below) has the final word for each part.
 
@@ -23,8 +23,8 @@ Dry the spool first (about 80 C for 8 hours in a filament dryer, or the printer'
 absorbs water and prints weak and stringy otherwise). Use the Bambu PPA-CF profile for temperatures. Print with the
 room ventilated, and wear a dust mask when sanding or trimming CF parts.
 
-Order: dart fit coupon first (20 minutes, checks your printer's hole sizes), then the two base risk coupon plates
-(below, test stage 0), then the dart plates, then the base once the coupons pass and the wiper and spring numbers
+Order: dart fit coupon first (20 minutes, checks your printer's hole sizes), then the base fit coupon
+(`base/pack/fit_coupon/coupon_plate_1.3mf`, PLA) and the two base risk coupon plates (below, test stage 0), then the dart plates, then the base once the coupons pass and the wiper and spring numbers
 are in (section 1, order of work).
 
 ## Day-one risk coupons (print before any big part)
@@ -33,7 +33,7 @@ Two plates from the base print pack with small test pieces of the riskiest featu
 contact, dog clutch, slip clutch, bearing seats, heat-set inserts and nut traps, key rib, gear meshes, shear pin.
 Print them, then work through the test sheet. Do not print the big base parts until every coupon passes.
 
-Plates: `base/pack/coupons/risk_plate_1.3mf` (PLA, 19 pieces) and `risk_plate_2.3mf` (PPA-CF, 26 pieces). Each
+Plates: `base/pack/coupons/risk_plate_1_PLA.3mf` (PLA, 19 pieces) and `risk_plate_2_PPA-CF.3mf` (PPA-CF, 26 pieces). Each
 piece is also there on its own (`base/pack/coupons/rcN_*.stl`) for a reprint. A printable copy of the test sheet is
 `base/pack/coupons/COUPON_TEST.pdf`. The coupons need a few bought parts (MEASURE_LIST C21): O-ring 20 x 1.5,
 e-clip for an 8 mm pin, M3 screws and a jam nut, heat-set inserts, one each of 608ZZ, F693ZZ and 693ZZ, a CSK20PP.
@@ -49,6 +49,8 @@ Then reprint only that piece from its `rcN_*.stl`.
 @includeglob base/pack/coupons/COUPON_TEST.md first
 
 ### Base fit coupon
+
+@imageglob base/pack/fit_coupon/*.png Base fit coupon plate
 
 @include base/pack/fit_coupon/COUPON.md
 

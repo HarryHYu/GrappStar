@@ -19,7 +19,8 @@ Safety for every stage:
 
 ## Stage 0. Risk coupons (before any big print)
 
-Print the two day-one risk coupon plates first (`base/pack/coupons/risk_plate_1.3mf` PLA and `risk_plate_2.3mf`
+Print the base fit coupon (`base/pack/fit_coupon/coupon_plate_1.3mf`, PLA; its checks are in
+`base/pack/fit_coupon/COUPON.md`) and the two day-one risk coupon plates (`base/pack/coupons/risk_plate_1_PLA.3mf` PLA and `risk_plate_2_PPA-CF.3mf`
 PPA-CF; settings in section 4 of the build guide). They test, in a few hours of printing, the things most likely to
 go wrong: the swing splitter, a printed contact, the dog clutch, the slip clutch, the bearing seats, heat-set
 inserts and nut traps, the key rib, the gear meshes and the shear pin. Work through the test sheet

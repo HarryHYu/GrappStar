@@ -4,7 +4,7 @@ One guide from parts to first mission: print, wire, flash, calibrate, test. Ever
 wiring step starts with the battery unplugged.
 
 
-Built 2026-11-03 12:51 Sydney time from commit `95f1fff`.
+Built 2026-11-03 12:54 Sydney time from commit `4c0552c`.
 
 
 How to use it: read section 1 and 2 first, then work through the "Order of work" list in section 1. Where a section
@@ -55,7 +55,7 @@ Write each number into `docs/build/MEASURE_RESULTS.md` (a fill-in sheet; print i
 ### 4. Print first (test pieces only)
 
 1. The dart fit coupon (`kedge/pack_v30/fit_coupon.stl`, 20 minutes). Check it against run sheet section 4.
-2. The two base risk coupon plates (`base/pack/coupons/risk_plate_1.3mf` PLA, `risk_plate_2.3mf` PPA-CF: hardened
+2. The two base risk coupon plates (`base/pack/coupons/risk_plate_1_PLA.3mf` PLA, `risk_plate_2_PPA-CF.3mf` PPA-CF: hardened
    nozzle, dry spool) and the test sheet `COUPON_TEST.pdf` (test stage 0). Every check must pass before the big
    base parts. The coupons need a few bought parts (C21) and one each of 608, F693ZZ, 693ZZ and a CSK20PP.
 3. The dart plates A and B do not wait for the base coupon or the measurements: start them once the dart fit
@@ -284,9 +284,9 @@ Print settings (the 3MF files carry geometry only: set material and settings in 
 |---|---|---|---|---|---|---|
 | Dart fit coupon, dart plates A and B | PLA | 0.16 mm | 4 | 40% gyroid | 5 / 5 | start at 0; adjust from the dart fit coupon (run sheet section 4) |
 | Base fit coupon, risk plate 1 | PLA | 0.2 mm | 4 | 40% gyroid | 5 / 5 | 0 ("print as exported") |
-| Risk plate 2 | PPA-CF | 0.2 mm | 6 | 60% gyroid | 5 / 5 | 0 |
+| Risk plate 2 | PPA-CF | 0.2 mm | 6 | 60% gyroid | 6 / 6 | 0 |
 | Base plates, PLA | PLA | 0.2 mm | 4 | 40% gyroid | 5 / 5 | 0, unless the coupons showed a fit off |
-| Base plates, PPA-CF | PPA-CF | 0.2 mm | 6 | 60% gyroid | 5 / 5 | 0, unless the coupons showed a fit off |
+| Base plates, PPA-CF | PPA-CF | 0.2 mm | 6 | 60% gyroid | 6 / 6 | 0, unless the coupons showed a fit off |
 
 No supports on any plate. The base print sheet (below) has the final word for each part.
 
@@ -298,8 +298,8 @@ Dry the spool first (about 80 C for 8 hours in a filament dryer, or the printer'
 absorbs water and prints weak and stringy otherwise). Use the Bambu PPA-CF profile for temperatures. Print with the
 room ventilated, and wear a dust mask when sanding or trimming CF parts.
 
-Order: dart fit coupon first (20 minutes, checks your printer's hole sizes), then the two base risk coupon plates
-(below, test stage 0), then the dart plates, then the base once the coupons pass and the wiper and spring numbers
+Order: dart fit coupon first (20 minutes, checks your printer's hole sizes), then the base fit coupon
+(`base/pack/fit_coupon/coupon_plate_1.3mf`, PLA) and the two base risk coupon plates (below, test stage 0), then the dart plates, then the base once the coupons pass and the wiper and spring numbers
 are in (section 1, order of work).
 
 ## Day-one risk coupons (print before any big part)
@@ -308,7 +308,7 @@ Two plates from the base print pack with small test pieces of the riskiest featu
 contact, dog clutch, slip clutch, bearing seats, heat-set inserts and nut traps, key rib, gear meshes, shear pin.
 Print them, then work through the test sheet. Do not print the big base parts until every coupon passes.
 
-Plates: `base/pack/coupons/risk_plate_1.3mf` (PLA, 19 pieces) and `risk_plate_2.3mf` (PPA-CF, 26 pieces). Each
+Plates: `base/pack/coupons/risk_plate_1_PLA.3mf` (PLA, 19 pieces) and `risk_plate_2_PPA-CF.3mf` (PPA-CF, 26 pieces). Each
 piece is also there on its own (`base/pack/coupons/rcN_*.stl`) for a reprint. A printable copy of the test sheet is
 `base/pack/coupons/COUPON_TEST.pdf`. The coupons need a few bought parts (MEASURE_LIST C21): O-ring 20 x 1.5,
 e-clip for an 8 mm pin, M3 screws and a jam nut, heat-set inserts, one each of 608ZZ, F693ZZ and 693ZZ, a CSK20PP.
@@ -473,6 +473,8 @@ Print these before the big parts. Each coupon is made from the same geometry fun
 
 
 ### Base fit coupon
+
+
 
 
 > NOT IN THE REPO YET: `base/pack/fit_coupon/COUPON.md` (written by cad-infra (print pack)). Re-run `python3 docs/build/make_guide.py` after it lands and this section fills in.
@@ -2853,7 +2855,8 @@ Safety for every stage:
 
 ### Stage 0. Risk coupons (before any big print)
 
-Print the two day-one risk coupon plates first (`base/pack/coupons/risk_plate_1.3mf` PLA and `risk_plate_2.3mf`
+Print the base fit coupon (`base/pack/fit_coupon/coupon_plate_1.3mf`, PLA; its checks are in
+`base/pack/fit_coupon/COUPON.md`) and the two day-one risk coupon plates (`base/pack/coupons/risk_plate_1_PLA.3mf` PLA and `risk_plate_2_PPA-CF.3mf`
 PPA-CF; settings in section 4 of the build guide). They test, in a few hours of printing, the things most likely to
 go wrong: the swing splitter, a printed contact, the dog clutch, the slip clutch, the bearing seats, heat-set
 inserts and nut traps, the key rib, the gear meshes and the shear pin. Work through the test sheet
@@ -3323,7 +3326,7 @@ one weight is not enough. Use three loads. Every range number scales with the en
 ## Numbers still assumed in params.py right now
 
 
-params.py version: `1.2.4`.
+params.py version: `1.2.5`.
 
 | params.py name | State | Who fixes it |
 |---|---|---|

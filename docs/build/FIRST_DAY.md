@@ -38,7 +38,7 @@ Write each number into `docs/build/MEASURE_RESULTS.md` (a fill-in sheet; print i
 ## 4. Print first (test pieces only)
 
 1. The dart fit coupon (`kedge/pack_v30/fit_coupon.stl`, 20 minutes). Check it against run sheet section 4.
-2. The two base risk coupon plates (`base/pack/coupons/risk_plate_1.3mf` PLA, `risk_plate_2.3mf` PPA-CF: hardened
+2. The two base risk coupon plates (`base/pack/coupons/risk_plate_1_PLA.3mf` PLA, `risk_plate_2_PPA-CF.3mf` PPA-CF: hardened
    nozzle, dry spool) and the test sheet `COUPON_TEST.pdf` (test stage 0). Every check must pass before the big
    base parts. The coupons need a few bought parts (C21) and one each of 608, F693ZZ, 693ZZ and a CSK20PP.
 3. The dart plates A and B do not wait for the base coupon or the measurements: start them once the dart fit

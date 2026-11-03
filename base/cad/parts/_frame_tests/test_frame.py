@@ -279,3 +279,12 @@ def test_block_screws_m3x8_engage(P, B):
         thread = 8.0 - grip
         assert 3.5 <= thread <= U.INS_L - 0.2, (sp["shaft"], grip)
         assert b["cb"] >= U.HEAD_H - 1e-9
+
+
+def test_other_subsystem_foot_holes_detected():
+    from cad.parts import _frame_others as O
+    foot = prim.box(0, 60, 0, 20, 0, 6) - prim.cyl(1.7, 10, 10, 10, -1) - prim.cyl(1.7, 10, 50, 10, -1) \
+        - prim.cyl(4.0, 10, 30, 10, -1)                       # an 8 mm hole is not a screw hole
+    polys, holes = O.classify_slice(foot, 0.5)
+    assert sorted((round(x), round(y)) for x, y in holes) == [(10, 10), (50, 10)]
+    assert len(polys) == 2 and max(p.area for p in polys) > 1000      # outline + the 8 mm hole ring

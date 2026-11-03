@@ -289,6 +289,8 @@ def place_bay(C, parts, override=None, info=None):
     if override:
         return tf.T(override["x"], override["y"], 0) @ tf.Rz(override.get("yaw", 0.0))
     fp = _footprints(parts)
+    if info is not None and info.get("keepout") is not None:
+        fp = fp.union(info["keepout"])               # other subsystems' feet and everything that sweeps low
     fpb = fp.buffer(4.0)
     x0, y0, x1, y1 = fp.bounds
     mo = C["layout"][C["main"]]["origin"] if C["main"] in C["layout"] else (0, 0, 0)

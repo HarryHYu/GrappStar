@@ -28,18 +28,18 @@ from . import _frame_util as U
 from . import _frame_motor as MOT
 
 # ------------------------------------------------------------------------------------------------ defaults
-# Placeholder shaft layout until params.LAYOUT lands (world: x forward, y left, z up, origin on the deck top under
+# Placeholder shaft layout (deck coordinates, main axis 165 above the deck) until params.LAYOUT lands (world: x forward, y left, z up, origin on the deck top under
 # the wiper axis). Keys per shaft: origin, axis, d (shaft diameter), brg ('608', 'sprag', 'bush', dict(od, w)),
 # cheeks (which cheeks support it: (-1, 1), (1,), (-1,), ()).
 LAYOUT_DEFAULT = {
-    "main":    dict(origin=(0.0, 0.0, 60.0), axis=(0, 1, 0), d=20.0, brg="bush", cheeks=(1,)),
-    "drum":    dict(origin=(-58.0, 0.0, 30.0), axis=(0, 1, 0), d=8.0, brg="608", cheeks=(-1, 1)),
-    "launch":  dict(origin=(62.0, 0.0, 92.0), axis=(0, 1, 0), d=20.0, brg="bush", cheeks=(-1, 1)),
-    "aim":     dict(origin=(10.0, 0.0, 140.0), axis=(0, 1, 0), d=8.0, brg="608", cheeks=(-1, 1)),
-    "capstan": dict(origin=(-55.0, 0.0, 105.0), axis=(0, 1, 0), d=20.0, brg="bush", cheeks=(-1, 1)),
-    "reel":    dict(origin=(-100.0, 0.0, 55.0), axis=(0, 1, 0), d=8.0, brg="608", cheeks=(-1, 1)),
-    "aim_worm": dict(origin=(40.0, 135.0, 40.0), axis=(0, 0, 1), d=8.0, brg="608", supports=(-15.0, 25.0)),
-    "aim_wheel": dict(origin=(135.0, 0.0, 50.0), axis=(1, 0, 0), d=8.0, brg="608", span=40.0),
+    "main":    dict(origin=(0.0, 0.0, 165.0), axis=(0, 1, 0), d=20.0, brg="bush", cheeks=(1,)),
+    "drum":    dict(origin=(-58.0, 0.0, 135.0), axis=(0, 1, 0), d=8.0, brg="608", cheeks=(-1, 1)),
+    "launch":  dict(origin=(62.0, 0.0, 197.0), axis=(0, 1, 0), d=20.0, brg="bush", cheeks=(-1, 1)),
+    "aim":     dict(origin=(10.0, 0.0, 245.0), axis=(0, 1, 0), d=8.0, brg="608", cheeks=(-1, 1)),
+    "capstan": dict(origin=(-55.0, 0.0, 210.0), axis=(0, 1, 0), d=20.0, brg="bush", cheeks=(-1, 1)),
+    "reel":    dict(origin=(-100.0, 0.0, 160.0), axis=(0, 1, 0), d=8.0, brg="608", cheeks=(-1, 1)),
+    "aim_worm": dict(origin=(40.0, 135.0, 145.0), axis=(0, 0, 1), d=8.0, brg="608", supports=(-15.0, 25.0)),
+    "aim_wheel": dict(origin=(135.0, 0.0, 155.0), axis=(1, 0, 0), d=8.0, brg="608", span=40.0),
 }
 
 FRAMEWORK_DEFAULT = dict(
@@ -60,7 +60,7 @@ FRAMEWORK_DEFAULT = dict(
     block_t=6.0,            # bearing block flange thickness (min)
     ties=None,              # list of (x, z) cheek tie centres; None = automatic (top corners)
     tie_d=16.0,
-    deck_z=-60.0,           # world z of the deck top (world z = 0 is the wiper axis)
+    deck_z=-165.0,          # world z of the deck top (world z = 0 is the wiper axis; coordinator 11:00: axis 165 up)
     adapter_standoff=12.0,  # adapter hub height over the cheek (clears block flanges, M6 nuts reachable)
     cheek_y_in=None,        # (right, left) inner cheek face y; None = from the motor face (y = 0) and cheek_gap
     ebay=None,              # electronics bay placement override, see _frame_ebay.py
@@ -396,11 +396,21 @@ def build(P):
         parts.append(Part(f"frame_tie_{i + 1}", tie, "PLA", print_tf=U.print_flat(tie), color="#9aa4ae",
                           notes="cheek tie: spacer between the cheeks, M3 x 12 through each cheek into an insert at each end"))
 
+    # ---- the other subsystems: swept volumes (band openings, bay keep-out), feet and screw holes on the deck
+    from . import _frame_guard as G
+    from . import _frame_others as OTH
+    info["swept"] = G.swept_cutters(P, C)
+    opolys, oholes, oown = OTH.deck_contacts(P, C["deck_z"])
+    info["others_foot"], info["others_holes"] = opolys, oholes
+    info["deck_holes"] += oholes
+    info["keepout"] = unary_union([g for g in opolys + [OTH.shadow(info["swept"], 0.0, 80.0)] if g is not None]) \
+        if (opolys or not info["swept"].is_empty()) else None
+
     # ---- guard band round the cheek box (openings where other subsystems pass)
     if fw["band"]:
         from . import _frame_guard as G
         both = outlines[-1].intersection(outlines[1])
-        cut = G.swept_cutters(P, C) if fw["band_cut"] else None
+        cut = info["swept"] if fw["band_cut"] else None
         bands, bholes = G.band_parts(C, both, cut)
         info["band_holes"] = bholes
         for i, sol in enumerate(bands):
@@ -509,6 +519,9 @@ def build(P):
         (x0, y0, z0), (x1, y1, z1) = prim.bbox(prim.place(p.solid, W))
         if z0 < 25.0 or p.name == "frame_wiper_motor":
             foot_pts += [(x0, y0), (x1, y1)]
+    for pg in info["others_foot"]:
+        bx0, by0, bx1, by1 = pg.bounds
+        foot_pts += [(bx0, by0), (bx1, by1)]
     fp = np.array([q for q in foot_pts if np.all(np.isfinite(q))])
     foot_polys = []                     # exact contact footprints: slice every part 0.5 mm above the deck top
     for p in parts:

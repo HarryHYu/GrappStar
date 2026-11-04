@@ -82,7 +82,7 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
                     lens: str = "pinhole") -> Dict[str, Any]:
     """Returns {"flight": dict|None, "terrain": dict, "mosaic": dict|None, "files": {...}, "errors": [...]}.
 
-    aim_pitch_deg: the commanded rail pitch of this shot; drag_n: the launch clutch drag (default LIGHT 0.5 N);
+    aim_pitch_deg: the commanded rail pitch of this shot; drag_n: the launch clutch drag (default LIGHT 0.25 N, D49);
     ballistics: a Ballistics table, None for none, or "auto" (base/out/ballistics.json, else the placeholder;
     a placeholder table is not used as a prior). They make the video-only range usable (review R1-C #6).
     calibrate_range=False: no scaling of the range to the C3 table (simulator worlds with their own physics).

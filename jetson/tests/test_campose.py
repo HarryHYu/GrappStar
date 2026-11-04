@@ -106,7 +106,7 @@ def test_ballistics_with_pivot_range_prefers_high_pitch(tmp_path):
     m = campose.camera_model(None, params_path=str(p))
     rows = [{"pitch_deg": float(a), "v_muzzle": 7.4, "range_m": [r, r, r], "t_flight_s": [0.4 + a / 60] * 3,
              "apex_m": [a / 30] * 3} for a, r in ((6, 2.7), (20, 4.0), (38, 4.95), (47, 4.7))]
-    b = Ballistics({"version": 1, "pitch_min": 6, "pitch_max": 47, "drag_n": [0.5, 0.75, 1.0], "table": rows})
+    b = Ballistics({"version": 1, "pitch_min": 6, "pitch_max": 47, "drag_n": [0.25, 0.5, 0.75], "table": rows})
     t = campose.pivot_target(m, (-0.19, 4.65))          # on the line, 4.80 m from the pivot
     assert t["range_m"] == pytest.approx(4.80)
     s = b.solve(t["range_m"])

@@ -259,7 +259,7 @@ or in `status`). Setting `k_n_per_a` or `tension_offset_n` in this section sets 
 
 ### `k_n_per_a` and `tension_offset_n` (used without a load cell)
 
-The estimate is: line N = `k_n_per_a` x (`amps` - `free_a`) + `tension_offset_n`. Defaults 13.1 and -2.3 (D46). Since D43 these constants give the DART-side line tension (the tow limit is
+The estimate is: line N = `k_n_per_a` x (`amps` - `free_a`) + `tension_offset_n`. Defaults 14.1 and -2.5 (D49 rail reel: capstan 2.307, path gain 1.18). Since D43 these constants give the DART-side line tension (the tow limit is
 the tension at the dart); the luggage scale at the line end measures exactly that side, so fit them straight from the
 scale. Pulls against a luggage scale at three loads give both numbers (this matches MEASURE_LIST G9).
 Do not use jogs for this: a jog trips at 3 A, about 15 N.
@@ -289,7 +289,7 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
    Check the middle load: N2 should be close to new `k_n_per_a` x (I2 - `free_a`) + new `tension_offset_n`. If it is
    off by more than 3 N, repeat the pulls.
 
-   Example with `free_a` 1.5: N1 10 at I1 2.44, N3 30 at I3 3.97. k = 20 / 1.53 = 13.1. Offset = 10 - 13.1 x 0.94 = -2.3.
+   Example with `free_a` 1.5: N1 10 at I1 2.44, N3 30 at I3 3.97. k = 20 / 1.53 = 13.1. Offset = 10 - 13.1 x 0.94 = -2.3 (your own numbers replace the 14.1 / -2.5 defaults).
 6. Set them: `{"id":5,"cmd":"set","key":"k_n_per_a","val":13.1}` and
    `{"id":6,"cmd":"set","key":"tension_offset_n","val":-2.3}` (your numbers; the offset range is -50 to 50). Both are
    saved in flash.

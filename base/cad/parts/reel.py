@@ -937,7 +937,7 @@ def parts(P):
     add("reel_c1p", _gear(M_TAKE, Z_C1P, C1P_Y[1] - C1P_Y[0], 8.0, 0.0, hub=(14.0, 3.6), phase=C1P_PHASE,
                           z0=zY(C1P_Y[0])), "PPA-CF", joint="reel_c1p", color=COL["gear"],
         notes=f"c1' m1.5 {Z_C1P}T, free on its stub: driven by the bus gear 50T, drives the swing idler")
-    add("reel_stub", _stub(), "PPA-CF", tf.Rx(90), joint=J, place=F_Y(C1P_U, C1P_W), color=COL["ppa"],
+    add("reel_stub", _stub(), "PPA-CF", tf.Ry(90), joint=J, place=F_Y(C1P_U, C1P_W), color=COL["ppa"],
         notes="c1' stub axle (PPA-CF d8, pressed into the bridge)")
     add("reel_swing_arm", _swing_arm(), "PPA-CF", tf.Rx(180), joint="reel_swing", color=COL["ppa"],
         notes="Swing arm on c1's hub: carries the idler into mesh with T1 on forward wiper turns")

@@ -6,7 +6,7 @@ every event, and sends what you type: a JSON line, or a word with key=value pair
 `set key=limit_n val=40`, `mode to=REEL`), or a bare `stop` / `estop` / `status`; `quit` ends. Only one program may
 hold the serial port: stop the operator page and the grappstar service first (`sudo systemctl stop grappstar`).
 Never move the USB plug with the battery in. On the rover, where CALIBRATION.md says "battery unplugged" only so
-you can turn the hand lever or touch a contact while reading `sw`, use the motors-safe state: lead #2's XT60 out
+you can turn the drum by hand or touch a contact while reading `sw`, use the motors-safe state: lead #2's XT60 out
 (motors dead, ESP32 and Jetson still powered).
 
 Do it after the base is assembled and wired, springs off, before test stage 4. The bench test (section 11.1) comes

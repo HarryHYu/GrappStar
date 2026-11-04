@@ -574,7 +574,7 @@ def drum_b(g, c):
     locking arc, socket for drum A's spigot."""
     b0, b1 = g["drumB_s"]
     parts = [shp_extrude(polar_profile(lambda a: cam_radius(g, c, a)), g["cam"][0], g["cam"][1]),
-             cyl(g["band_r0"] - 1.0, g["cam"][0], g["seg"][0] + 0.01)]
+             cyl(g["band_r0"] - 1.1, g["cam"][0] + 0.3, g["seg"][0] + 0.01)]   # inside the cam start: no tangent rim edge
     for i, (s0, s1) in enumerate(g["bands"]):
         parts.append(shp_extrude(band_poly(g, c, i), s0 - 0.01, s1 + 0.01))
     sg = gears.spur_gear(c["seg_m"], c["seg_z"], g["seg"][1] - g["seg"][0], present=seg_present(g, c))

@@ -1,6 +1,6 @@
 # Rail reel layout study (RR1): storage spool, capstan and selector drum on the rail
 
-Status: layout numbers only, no CAD edited. Base: branch base-v1, params 1.3.8, assembled meshes base/out/base (3 Nov 20:48).
+Status: APPLIED in params 1.4.0 (D49); positions as built are in params RAIL_REEL. Original study status: layout numbers only. Base: branch base-v1, params 1.3.8, assembled meshes base/out/base (3 Nov 20:48).
 Scripts and raw output (all in this folder): `dump_states.py` (posed world transforms, 9 pitches x 3 cock states,
 `states.pkl`), `envelopes.py`, `profile.py` (rear profile of the carriage group at full cock), `layout_check.py`
 (every new element as a primitive, checked against the real meshes, result `layout_check.json`), `mass_aim.py`

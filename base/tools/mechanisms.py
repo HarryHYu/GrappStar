@@ -81,7 +81,7 @@ MECHS = [
          note="Because the capstan rides the rail, the line never changes length when the rail aims."),
     dict(key="storage", title="Spool, clutch and take-up", phase="flight",
          parts=["reel_c1p", "reel_stub", "reel_swing_arm", "reel_gi", "reel_cs_t", "reel_t1", "reel_b2g", "reel_b2p",
-                "reel_ut", "reel_b3a", "reel_b3b", "reel_s", "reel_spool", "reel_brg_*", "reel_t", "reel_lever",
+                "reel_ut", "reel_b3a", "reel_b3b", "reel_s", "reel_d", "reel_spool", "reel_brg_*", "reel_t", "reel_lever",
                 "reel_lever_pin", "reel_firm_screw", "reel_light_screw", "reel_shroud"],
          job="Holds the 20 m of Dyneema: pays it out in flight against a light drag, and winds the slack back in.",
          drive="Payout: the dart pulls it. Take-up: the wiper's forward turns through the bus gear. Drag level: the "

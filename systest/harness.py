@@ -58,9 +58,11 @@ def firmware_path_gain(default: float = 1.15) -> float:
     return float(a.group(1)) / float(b.group(1)) if a and b else default
 
 
-def two_point_offset(path_gain: float, drag_nm: float = 0.3) -> float:
+def two_point_offset(path_gain: float, drag_nm: float = 0.15) -> float:
     """Dart-side offset a two-point bench calibration (CALIBRATION.md) finds against the plant: base_shim's freeA_cal
-    includes drag_nm of take-up drag that the tow does not see (capstan ratio and line radius from params_gen.h)."""
+    includes 0.3 N m of take-up drag that the tow does not see, but the tow's 200 ms current average lags the rising
+    line by about the same amount, so a fit on rising pulls lands near half of it (D49 runs: the full 0.3 read 0 to
+    5.4 N high at LIMIT, none read 1.4 to 5.4 N low). Capstan ratio and line radius from params_gen.h."""
     import re
     try:
         t = open(os.path.join(ROOT, "firmware", "base", "grappstar_base", "params_gen.h")).read()
@@ -333,8 +335,8 @@ class Rig:
             self.base.cmd({"id": 0, "cmd": "set", "key": "k_n_per_a", "val": round(g["kNperA_cal"] / sc.path_gain, 3)})
             self.base.cmd({"id": 0, "cmd": "set", "key": "free_a", "val": round(g["freeA_cal"], 3)})
             if not sc.doc_cal:      # a two-point calibration also fits the offset (FINDINGS F14): the bench free
-                # current includes about 0.3 N m of take-up clutch drag that is not there under tow, so the fit's offset is
-                # + that drag in dart-side newtons (D49: about 5.4 N with the 2.307 capstan train)
+                # current includes about 0.3 N m of take-up clutch drag that is not there under tow; the fit's offset
+                # comes out near half of that drag in dart-side newtons (D49: about 2.7 N with the 2.307 capstan train)
                 self.base.cmd({"id": 0, "cmd": "set", "key": "tension_offset_n", "val": round(two_point_offset(sc.path_gain), 2)})
         for k, v in sc.base_setup.items():
             self.base.cmd({"id": 0, "cmd": "set", "key": k, "val": v})

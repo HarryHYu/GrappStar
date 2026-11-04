@@ -1,6 +1,6 @@
 {
- "n_parts": 235,
- "n_states": 44678,
+ "n_parts": 233,
+ "n_states": 46676,
  "errors": [],
  "static": [
   {
@@ -196,471 +196,6 @@
    "overhang_frac": 0.0161
   },
   {
-   "name": "drum_drum_a",
-   "subsystem": "drum",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [
-    "overhang 731.8 mm2 steeper than 45 deg: needs supports or a better print_tf"
-   ],
-   "status": "NoError",
-   "volume_mm3": 195596.81,
-   "area_mm2": 39578.92,
-   "mass_g": 144.13,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    97.12,
-    97.12,
-    75.0
-   ],
-   "bed_contact_mm2": 7006.2,
-   "overhang_mm2": 731.8,
-   "overhang_frac": 0.0185
-  },
-  {
-   "name": "drum_drum_b",
-   "subsystem": "drum",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [
-    "overhang 1817.6 mm2 steeper than 45 deg: needs supports or a better print_tf"
-   ],
-   "status": "NoError",
-   "volume_mm3": 109133.9,
-   "area_mm2": 19866.08,
-   "mass_g": 77.78,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    60.0,
-    60.0,
-    58.4
-   ],
-   "bed_contact_mm2": 2603.6,
-   "overhang_mm2": 1817.6,
-   "overhang_frac": 0.0915
-  },
-  {
-   "name": "drum_axle",
-   "subsystem": "drum",
-   "material": "PPA-CF",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 10476.27,
-   "area_mm2": 4514.0,
-   "mass_g": 10.65,
-   "shells": 1,
-   "genus": 0,
-   "stl_watertight": true,
-   "print_bbox": [
-    141.0,
-    10.0,
-    9.0
-   ],
-   "bed_contact_mm2": 842.3,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "drum_idler_gear",
-   "subsystem": "drum",
-   "material": "PPA-CF",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 21982.61,
-   "area_mm2": 9185.27,
-   "mass_g": 22.01,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    66.0,
-    65.89,
-    9.3
-   ],
-   "bed_contact_mm2": 2947.6,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "drum_idler",
-   "subsystem": "drum",
-   "material": "PPA-CF",
-   "printed": true,
-   "fails": [],
-   "warns": [
-    "overhang 331.1 mm2 steeper than 45 deg: needs supports or a better print_tf"
-   ],
-   "status": "NoError",
-   "volume_mm3": 6040.56,
-   "area_mm2": 2901.71,
-   "mass_g": 6.5,
-   "shells": 1,
-   "genus": 0,
-   "stl_watertight": true,
-   "print_bbox": [
-    22.0,
-    21.66,
-    46.0
-   ],
-   "bed_contact_mm2": 78.3,
-   "overhang_mm2": 331.1,
-   "overhang_frac": 0.1141
-  },
-  {
-   "name": "drum_n20_pinion",
-   "subsystem": "drum",
-   "material": "PPA-CF",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 364.77,
-   "area_mm2": 531.49,
-   "mass_g": 0.46,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    9.82,
-    9.46,
-    8.0
-   ],
-   "bed_contact_mm2": 42.1,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "drum_n20",
-   "subsystem": "drum",
-   "material": "bought",
-   "printed": false,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 3428.87,
-   "area_mm2": 1741.52,
-   "mass_g": null,
-   "shells": 1,
-   "genus": 0
-  },
-  {
-   "name": "drum_n20_cradle",
-   "subsystem": "drum",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [
-    "overhang 108.5 mm2 steeper than 45 deg: needs supports or a better print_tf"
-   ],
-   "status": "NoError",
-   "volume_mm3": 9607.84,
-   "area_mm2": 5888.02,
-   "mass_g": 11.77,
-   "shells": 1,
-   "genus": 2,
-   "stl_watertight": true,
-   "print_bbox": [
-    32.0,
-    53.5,
-    19.04
-   ],
-   "bed_contact_mm2": 822.1,
-   "overhang_mm2": 108.5,
-   "overhang_frac": 0.0184
-  },
-  {
-   "name": "drum_n20_strap",
-   "subsystem": "drum",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 2168.01,
-   "area_mm2": 1992.69,
-   "mass_g": 2.69,
-   "shells": 1,
-   "genus": 3,
-   "stl_watertight": true,
-   "print_bbox": [
-    17.93,
-    53.5,
-    3.0
-   ],
-   "bed_contact_mm2": 722.7,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "drum_fork",
-   "subsystem": "drum",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [
-    "overhang 1302.4 mm2 steeper than 45 deg: needs supports or a better print_tf"
-   ],
-   "status": "NoError",
-   "volume_mm3": 20972.42,
-   "area_mm2": 12360.32,
-   "mass_g": 25.12,
-   "shells": 1,
-   "genus": 2,
-   "stl_watertight": true,
-   "print_bbox": [
-    87.13,
-    94.06,
-    83.0
-   ],
-   "bed_contact_mm2": 171.9,
-   "overhang_mm2": 1302.4,
-   "overhang_frac": 0.1054
-  },
-  {
-   "name": "drum_dog_post",
-   "subsystem": "drum",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [
-    "overhang 475.5 mm2 steeper than 45 deg: needs supports or a better print_tf"
-   ],
-   "status": "NoError",
-   "volume_mm3": 4837.53,
-   "area_mm2": 3712.59,
-   "mass_g": 6.0,
-   "shells": 1,
-   "genus": 4,
-   "stl_watertight": true,
-   "print_bbox": [
-    36.75,
-    71.0,
-    41.7
-   ],
-   "bed_contact_mm2": 276.6,
-   "overhang_mm2": 475.5,
-   "overhang_frac": 0.1281
-  },
-  {
-   "name": "drum_rail",
-   "subsystem": "drum",
-   "material": "PPA-CF",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 10476.27,
-   "area_mm2": 4514.0,
-   "mass_g": 10.65,
-   "shells": 1,
-   "genus": 0,
-   "stl_watertight": true,
-   "print_bbox": [
-    141.0,
-    10.0,
-    9.0
-   ],
-   "bed_contact_mm2": 842.3,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "drum_bracket_a",
-   "subsystem": "drum",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 37461.79,
-   "area_mm2": 15334.07,
-   "mass_g": 36.83,
-   "shells": 1,
-   "genus": 7,
-   "stl_watertight": true,
-   "print_bbox": [
-    104.91,
-    117.0,
-    6.7
-   ],
-   "bed_contact_mm2": 5625.9,
-   "overhang_mm2": 32.0,
-   "overhang_frac": 0.0021
-  },
-  {
-   "name": "drum_bracket_b",
-   "subsystem": "drum",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 21970.74,
-   "area_mm2": 9992.43,
-   "mass_g": 22.79,
-   "shells": 1,
-   "genus": 4,
-   "stl_watertight": true,
-   "print_bbox": [
-    79.0,
-    117.0,
-    6.0
-   ],
-   "bed_contact_mm2": 3679.7,
-   "overhang_mm2": 32.0,
-   "overhang_frac": 0.0032
-  },
-  {
-   "name": "drum_bracket_idler",
-   "subsystem": "drum",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 11805.12,
-   "area_mm2": 5342.04,
-   "mass_g": 12.21,
-   "shells": 1,
-   "genus": 3,
-   "stl_watertight": true,
-   "print_bbox": [
-    52.0,
-    71.12,
-    7.0
-   ],
-   "bed_contact_mm2": 1701.8,
-   "overhang_mm2": 32.0,
-   "overhang_frac": 0.006
-  },
-  {
-   "name": "drum_bracket_idler2",
-   "subsystem": "drum",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 13916.45,
-   "area_mm2": 7438.17,
-   "mass_g": 15.76,
-   "shells": 1,
-   "genus": 5,
-   "stl_watertight": true,
-   "print_bbox": [
-    50.07,
-    141.0,
-    6.0
-   ],
-   "bed_contact_mm2": 2337.4,
-   "overhang_mm2": 32.0,
-   "overhang_frac": 0.0043
-  },
-  {
-   "name": "drum_switch_block",
-   "subsystem": "drum",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [
-    "overhang 215.8 mm2 steeper than 45 deg: needs supports or a better print_tf"
-   ],
-   "status": "NoError",
-   "volume_mm3": 18070.6,
-   "area_mm2": 6091.55,
-   "mass_g": 16.21,
-   "shells": 1,
-   "genus": 5,
-   "stl_watertight": true,
-   "print_bbox": [
-    26.0,
-    51.0,
-    24.0
-   ],
-   "bed_contact_mm2": 786.0,
-   "overhang_mm2": 215.8,
-   "overhang_frac": 0.0354
-  },
-  {
-   "name": "drum_sw_lever_0",
-   "subsystem": "drum",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 784.34,
-   "area_mm2": 1087.2,
-   "mass_g": 0.97,
-   "shells": 1,
-   "genus": 2,
-   "stl_watertight": true,
-   "print_bbox": [
-    13.67,
-    47.5,
-    6.0
-   ],
-   "bed_contact_mm2": 94.9,
-   "overhang_mm2": 96.8,
-   "overhang_frac": 0.089
-  },
-  {
-   "name": "drum_sw_lever_1",
-   "subsystem": "drum",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 784.34,
-   "area_mm2": 1087.2,
-   "mass_g": 0.97,
-   "shells": 1,
-   "genus": 2,
-   "stl_watertight": true,
-   "print_bbox": [
-    13.67,
-    47.5,
-    6.0
-   ],
-   "bed_contact_mm2": 94.9,
-   "overhang_mm2": 96.8,
-   "overhang_frac": 0.089
-  },
-  {
-   "name": "drum_sw_lever_2",
-   "subsystem": "drum",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 784.34,
-   "area_mm2": 1087.2,
-   "mass_g": 0.97,
-   "shells": 1,
-   "genus": 2,
-   "stl_watertight": true,
-   "print_bbox": [
-    13.67,
-    47.5,
-    6.0
-   ],
-   "bed_contact_mm2": 94.9,
-   "overhang_mm2": 96.8,
-   "overhang_frac": 0.089
-  },
-  {
    "name": "drum_index_block",
    "subsystem": "drum",
    "material": "PLA",
@@ -668,20 +203,20 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 7303.7,
-   "area_mm2": 3565.85,
-   "mass_g": 7.87,
+   "volume_mm3": 41025.68,
+   "area_mm2": 10302.49,
+   "mass_g": 32.61,
    "shells": 1,
    "genus": 3,
    "stl_watertight": true,
    "print_bbox": [
-    14.0,
+    25.0,
     68.0,
-    8.0
+    39.5
    ],
-   "bed_contact_mm2": 942.3,
+   "bed_contact_mm2": 1682.0,
    "overhang_mm2": 61.3,
-   "overhang_frac": 0.0172
+   "overhang_frac": 0.0059
   },
   {
    "name": "drum_index_lever",
@@ -730,25 +265,527 @@
    "overhang_frac": 0.0318
   },
   {
-   "name": "drum_hand_lever",
+   "name": "drum_drum_a",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 718.6 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 138574.02,
+   "area_mm2": 27599.83,
+   "mass_g": 101.59,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    97.12,
+    97.12,
+    42.99
+   ],
+   "bed_contact_mm2": 7006.2,
+   "overhang_mm2": 718.6,
+   "overhang_frac": 0.026
+  },
+  {
+   "name": "drum_drum_b",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 3126.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 105880.64,
+   "area_mm2": 23945.34,
+   "mass_g": 81.02,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    76.73,
+    76.73,
+    41.0
+   ],
+   "bed_contact_mm2": 3822.7,
+   "overhang_mm2": 3126.0,
+   "overhang_frac": 0.1305
+  },
+  {
+   "name": "drum_axle",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 7080.77,
+   "area_mm2": 3099.12,
+   "mass_g": 7.26,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    95.3,
+    10.0,
+    9.0
+   ],
+   "bed_contact_mm2": 569.3,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "drum_rod",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 7080.77,
+   "area_mm2": 3099.12,
+   "mass_g": 7.26,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    95.3,
+    10.0,
+    9.0
+   ],
+   "bed_contact_mm2": 569.3,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "drum_follower",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 259.8 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 5148.76,
+   "area_mm2": 2896.35,
+   "mass_g": 6.0,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    25.72,
+    38.57,
+    17.0
+   ],
+   "bed_contact_mm2": 171.9,
+   "overhang_mm2": 259.8,
+   "overhang_frac": 0.0897
+  },
+  {
+   "name": "drum_idler_gear",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 28655.02,
+   "area_mm2": 11555.47,
+   "mass_g": 28.19,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    76.45,
+    76.49,
+    7.0
+   ],
+   "bed_contact_mm2": 4064.2,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "drum_idler",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 331.1 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 6965.04,
+   "area_mm2": 3191.65,
+   "mass_g": 7.31,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    22.0,
+    18.58,
+    54.5
+   ],
+   "bed_contact_mm2": 78.3,
+   "overhang_mm2": 331.1,
+   "overhang_frac": 0.1037
+  },
+  {
+   "name": "drum_n20_pinion",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 364.77,
+   "area_mm2": 531.49,
+   "mass_g": 0.46,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    9.82,
+    9.46,
+    8.0
+   ],
+   "bed_contact_mm2": 42.1,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "drum_n20",
+   "subsystem": "drum",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 3428.87,
+   "area_mm2": 1741.52,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "drum_n20_cradle",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 113.6 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 9731.88,
+   "area_mm2": 5902.08,
+   "mass_g": 11.85,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    53.5,
+    32.0,
+    19.54
+   ],
+   "bed_contact_mm2": 801.0,
+   "overhang_mm2": 113.6,
+   "overhang_frac": 0.0192
+  },
+  {
+   "name": "drum_n20_strap",
    "subsystem": "drum",
    "material": "PLA",
    "printed": true,
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 3203.06,
-   "area_mm2": 2209.03,
-   "mass_g": 3.97,
+   "volume_mm3": 2168.01,
+   "area_mm2": 1992.69,
+   "mass_g": 2.69,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    53.5,
+    17.93,
+    3.0
+   ],
+   "bed_contact_mm2": 722.7,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "drum_bracket_b",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 24372.34,
+   "area_mm2": 10826.48,
+   "mass_g": 24.98,
+   "shells": 1,
+   "genus": 5,
+   "stl_watertight": true,
+   "print_bbox": [
+    76.06,
+    108.62,
+    6.0
+   ],
+   "bed_contact_mm2": 4071.8,
+   "overhang_mm2": 23.5,
+   "overhang_frac": 0.0022
+  },
+  {
+   "name": "drum_switch_block",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 215.8 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 20122.6,
+   "area_mm2": 6679.55,
+   "mass_g": 17.93,
+   "shells": 1,
+   "genus": 5,
+   "stl_watertight": true,
+   "print_bbox": [
+    26.0,
+    66.0,
+    21.0
+   ],
+   "bed_contact_mm2": 996.0,
+   "overhang_mm2": 215.8,
+   "overhang_frac": 0.0323
+  },
+  {
+   "name": "drum_sw_lever_0",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 718.98,
+   "area_mm2": 1015.1,
+   "mass_g": 0.89,
    "shells": 1,
    "genus": 2,
    "stl_watertight": true,
    "print_bbox": [
-    46.0,
-    23.99,
-    6.5
+    13.67,
+    47.5,
+    6.0
    ],
-   "bed_contact_mm2": 492.8,
+   "bed_contact_mm2": 94.9,
+   "overhang_mm2": 96.8,
+   "overhang_frac": 0.0954
+  },
+  {
+   "name": "drum_sw_lever_1",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 718.98,
+   "area_mm2": 1015.1,
+   "mass_g": 0.89,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    13.67,
+    47.5,
+    6.0
+   ],
+   "bed_contact_mm2": 94.9,
+   "overhang_mm2": 96.8,
+   "overhang_frac": 0.0954
+  },
+  {
+   "name": "drum_sw_lever_2",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 718.98,
+   "area_mm2": 1015.1,
+   "mass_g": 0.89,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    13.67,
+    47.5,
+    6.0
+   ],
+   "bed_contact_mm2": 94.9,
+   "overhang_mm2": 96.8,
+   "overhang_frac": 0.0954
+  },
+  {
+   "name": "drum_link",
+   "subsystem": "drum",
+   "material": "steel",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 11815.21,
+   "area_mm2": 6024.33,
+   "mass_g": 92.75,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "drum_link_eye_1",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2450.97,
+   "area_mm2": 1505.29,
+   "mass_g": 3.01,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    13.0,
+    13.0,
+    23.0
+   ],
+   "bed_contact_mm2": 103.9,
+   "overhang_mm2": 28.6,
+   "overhang_frac": 0.019
+  },
+  {
+   "name": "drum_link_eye_2",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2450.97,
+   "area_mm2": 1505.29,
+   "mass_g": 3.01,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    13.0,
+    13.0,
+    23.0
+   ],
+   "bed_contact_mm2": 103.9,
+   "overhang_mm2": 28.6,
+   "overhang_frac": 0.019
+  },
+  {
+   "name": "drum_shift_rail",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 6538.38,
+   "area_mm2": 2873.11,
+   "mass_g": 6.72,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    88.0,
+    10.0,
+    9.0
+   ],
+   "bed_contact_mm2": 525.7,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "drum_fork",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 1226.9 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 16574.49,
+   "area_mm2": 9338.09,
+   "mass_g": 19.34,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    86.0,
+    68.5,
+    51.0
+   ],
+   "bed_contact_mm2": 171.9,
+   "overhang_mm2": 1226.9,
+   "overhang_frac": 0.1314
+  },
+  {
+   "name": "drum_dog_post",
+   "subsystem": "drum",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 5731.18,
+   "area_mm2": 3895.67,
+   "mass_g": 7.11,
+   "shells": 1,
+   "genus": 4,
+   "stl_watertight": true,
+   "print_bbox": [
+    21.75,
+    65.0,
+    48.2
+   ],
+   "bed_contact_mm2": 582.4,
+   "overhang_mm2": 89.9,
+   "overhang_frac": 0.0231
+  },
+  {
+   "name": "drum_crank",
+   "subsystem": "drum",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 5527.14,
+   "area_mm2": 3267.59,
+   "mass_g": 6.68,
+   "shells": 1,
+   "genus": 2,
+   "stl_watertight": true,
+   "print_bbox": [
+    56.5,
+    57.5,
+    9.6
+   ],
+   "bed_contact_mm2": 917.0,
    "overhang_mm2": 0.0,
    "overhang_frac": 0.0
   },
@@ -784,23 +821,23 @@
    "printed": true,
    "fails": [],
    "warns": [
-    "overhang 5226.3 mm2 steeper than 45 deg: needs supports or a better print_tf"
+    "overhang 1084.5 mm2 steeper than 45 deg: needs supports or a better print_tf"
    ],
    "status": "NoError",
-   "volume_mm3": 213566.57,
-   "area_mm2": 61242.62,
-   "mass_g": 178.83,
+   "volume_mm3": 248217.79,
+   "area_mm2": 65680.22,
+   "mass_g": 201.3,
    "shells": 1,
-   "genus": 8,
+   "genus": 9,
    "stl_watertight": true,
    "print_bbox": [
     215.0,
     220.0,
     30.0
    ],
-   "bed_contact_mm2": 16029.4,
-   "overhang_mm2": 5226.3,
-   "overhang_frac": 0.0853
+   "bed_contact_mm2": 22092.5,
+   "overhang_mm2": 1084.5,
+   "overhang_frac": 0.0165
   },
   {
    "name": "frame_wiper_motor",
@@ -823,12 +860,12 @@
    "printed": true,
    "fails": [],
    "warns": [
-    "overhang 6734.4 mm2 steeper than 45 deg: needs supports or a better print_tf"
+    "overhang 5484.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
    ],
    "status": "NoError",
-   "volume_mm3": 252945.88,
-   "area_mm2": 68719.64,
-   "mass_g": 208.94,
+   "volume_mm3": 282193.7,
+   "area_mm2": 72352.42,
+   "mass_g": 227.92,
    "shells": 1,
    "genus": 4,
    "stl_watertight": true,
@@ -837,9 +874,9 @@
     194.0,
     16.0
    ],
-   "bed_contact_mm2": 18897.8,
-   "overhang_mm2": 6734.4,
-   "overhang_frac": 0.098
+   "bed_contact_mm2": 23065.8,
+   "overhang_mm2": 5484.0,
+   "overhang_frac": 0.0758
   },
   {
    "name": "frame_can_stay",
@@ -1043,20 +1080,20 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 21151.94,
-   "area_mm2": 17344.89,
-   "mass_g": 26.23,
+   "volume_mm3": 11376.2,
+   "area_mm2": 9203.6,
+   "mass_g": 14.11,
    "shells": 1,
    "genus": 3,
    "stl_watertight": true,
    "print_bbox": [
     122.0,
-    60.0,
+    56.07,
     14.4
    ],
-   "bed_contact_mm2": 7298.7,
+   "bed_contact_mm2": 3266.0,
    "overhang_mm2": 84.3,
-   "overhang_frac": 0.0049
+   "overhang_frac": 0.0092
   },
   {
    "name": "frame_guard_front",
@@ -1066,9 +1103,9 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 29893.12,
-   "area_mm2": 24628.09,
-   "mass_g": 37.07,
+   "volume_mm3": 45833.36,
+   "area_mm2": 36641.11,
+   "mass_g": 56.83,
    "shells": 1,
    "genus": 3,
    "stl_watertight": true,
@@ -1077,9 +1114,9 @@
     104.0,
     16.4
    ],
-   "bed_contact_mm2": 9927.8,
+   "bed_contact_mm2": 16120.0,
    "overhang_mm2": 39.9,
-   "overhang_frac": 0.0016
+   "overhang_frac": 0.0011
   },
   {
    "name": "frame_camera_mount",
@@ -1215,18 +1252,18 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 345471.75,
-   "area_mm2": 95922.82,
-   "mass_g": 237.93,
+   "volume_mm3": 276162.28,
+   "area_mm2": 77341.32,
+   "mass_g": 191.24,
    "shells": 1,
-   "genus": 9,
+   "genus": 10,
    "stl_watertight": true,
    "print_bbox": [
-    220.53,
-    211.27,
+    222.45,
+    168.77,
     8.0
    ],
-   "bed_contact_mm2": 43388.4,
+   "bed_contact_mm2": 34657.1,
    "overhang_mm2": 0.0,
    "overhang_frac": 0.0
   },
@@ -1238,18 +1275,18 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 285579.47,
-   "area_mm2": 80076.97,
-   "mass_g": 197.92,
+   "volume_mm3": 360375.97,
+   "area_mm2": 100455.91,
+   "mass_g": 248.82,
    "shells": 1,
-   "genus": 7,
+   "genus": 12,
    "stl_watertight": true,
    "print_bbox": [
-    220.53,
-    169.27,
+    222.45,
+    211.77,
     8.0
    ],
-   "bed_contact_mm2": 35895.4,
+   "bed_contact_mm2": 45284.9,
    "overhang_mm2": 0.0,
    "overhang_frac": 0.0
   },
@@ -1261,18 +1298,18 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 356647.68,
-   "area_mm2": 98532.26,
-   "mass_g": 244.84,
+   "volume_mm3": 274232.98,
+   "area_mm2": 76291.92,
+   "mass_g": 189.1,
    "shells": 1,
-   "genus": 6,
+   "genus": 9,
    "stl_watertight": true,
    "print_bbox": [
-    220.53,
-    211.27,
+    214.45,
+    168.77,
     8.0
    ],
-   "bed_contact_mm2": 44752.0,
+   "bed_contact_mm2": 34379.5,
    "overhang_mm2": 0.0,
    "overhang_frac": 0.0
   },
@@ -1284,18 +1321,18 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 294294.44,
-   "area_mm2": 82199.28,
-   "mass_g": 203.45,
+   "volume_mm3": 358947.58,
+   "area_mm2": 98816.87,
+   "mass_g": 245.86,
    "shells": 1,
-   "genus": 10,
+   "genus": 14,
    "stl_watertight": true,
    "print_bbox": [
-    220.53,
-    169.27,
+    214.45,
+    211.77,
     8.0
    ],
-   "bed_contact_mm2": 36933.0,
+   "bed_contact_mm2": 44980.4,
    "overhang_mm2": 0.0,
    "overhang_frac": 0.0
   },
@@ -1320,23 +1357,23 @@
    "printed": true,
    "fails": [],
    "warns": [
-    "overhang 1749.6 mm2 steeper than 45 deg: needs supports or a better print_tf"
+    "overhang 3676.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
    ],
    "status": "NoError",
-   "volume_mm3": 149960.36,
-   "area_mm2": 49080.67,
-   "mass_g": 132.81,
+   "volume_mm3": 132035.21,
+   "area_mm2": 40331.35,
+   "mass_g": 113.5,
    "shells": 1,
-   "genus": 10,
+   "genus": 6,
    "stl_watertight": true,
    "print_bbox": [
-    67.1,
+    151.2,
     68.0,
-    180.87
+    40.12
    ],
-   "bed_contact_mm2": 915.3,
-   "overhang_mm2": 1749.6,
-   "overhang_frac": 0.0356
+   "bed_contact_mm2": 2965.3,
+   "overhang_mm2": 3676.0,
+   "overhang_frac": 0.0911
   },
   {
    "name": "launch_rail_mid",
@@ -1345,23 +1382,23 @@
    "printed": true,
    "fails": [],
    "warns": [
-    "overhang 2613.4 mm2 steeper than 45 deg: needs supports or a better print_tf"
+    "overhang 2356.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
    ],
    "status": "NoError",
-   "volume_mm3": 205625.74,
-   "area_mm2": 64849.42,
-   "mass_g": 179.19,
+   "volume_mm3": 201018.07,
+   "area_mm2": 63231.4,
+   "mass_g": 174.98,
    "shells": 1,
-   "genus": 20,
+   "genus": 19,
    "stl_watertight": true,
    "print_bbox": [
-    123.5,
+    92.5,
     68.0,
     170.0
    ],
    "bed_contact_mm2": 915.3,
-   "overhang_mm2": 2613.4,
-   "overhang_frac": 0.0403
+   "overhang_mm2": 2356.0,
+   "overhang_frac": 0.0373
   },
   {
    "name": "launch_rail_front",
@@ -2492,251 +2529,6 @@
    "overhang_frac": 0.0
   },
   {
-   "name": "launch_pulley_top",
-   "subsystem": "launch",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 423.7,
-   "area_mm2": 594.48,
-   "mass_g": 0.53,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    13.99,
-    14.0,
-    5.0
-   ],
-   "bed_contact_mm2": 87.5,
-   "overhang_mm2": 64.0,
-   "overhang_frac": 0.1076
-  },
-  {
-   "name": "launch_pulley_top_brg",
-   "subsystem": "launch",
-   "material": "bought",
-   "printed": false,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 172.36,
-   "area_mm2": 224.21,
-   "mass_g": null,
-   "shells": 1,
-   "genus": 1
-  },
-  {
-   "name": "launch_pulley_top_axle",
-   "subsystem": "launch",
-   "material": "bought",
-   "printed": false,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 210.48,
-   "area_mm2": 286.84,
-   "mass_g": null,
-   "shells": 1,
-   "genus": 0
-  },
-  {
-   "name": "launch_pulley_top_washer_l",
-   "subsystem": "launch",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 56.9,
-   "area_mm2": 155.0,
-   "mass_g": 0.07,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    8.8,
-    8.78,
-    1.5
-   ],
-   "bed_contact_mm2": 52.2,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "launch_pulley_top_washer_r",
-   "subsystem": "launch",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 56.9,
-   "area_mm2": 155.0,
-   "mass_g": 0.07,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    8.8,
-    8.78,
-    1.5
-   ],
-   "bed_contact_mm2": 52.2,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "launch_pulley_bot",
-   "subsystem": "launch",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 423.7,
-   "area_mm2": 594.48,
-   "mass_g": 0.53,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    13.99,
-    14.0,
-    5.0
-   ],
-   "bed_contact_mm2": 87.5,
-   "overhang_mm2": 64.0,
-   "overhang_frac": 0.1076
-  },
-  {
-   "name": "launch_pulley_bot_brg",
-   "subsystem": "launch",
-   "material": "bought",
-   "printed": false,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 172.36,
-   "area_mm2": 224.21,
-   "mass_g": null,
-   "shells": 1,
-   "genus": 1
-  },
-  {
-   "name": "launch_pulley_bot_axle",
-   "subsystem": "launch",
-   "material": "bought",
-   "printed": false,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 210.48,
-   "area_mm2": 286.84,
-   "mass_g": null,
-   "shells": 1,
-   "genus": 0
-  },
-  {
-   "name": "launch_pulley_bot_washer_l",
-   "subsystem": "launch",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 56.9,
-   "area_mm2": 155.0,
-   "mass_g": 0.07,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    8.8,
-    8.78,
-    1.5
-   ],
-   "bed_contact_mm2": 52.2,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "launch_pulley_bot_washer_r",
-   "subsystem": "launch",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 56.9,
-   "area_mm2": 155.0,
-   "mass_g": 0.07,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    8.8,
-    8.78,
-    1.5
-   ],
-   "bed_contact_mm2": 52.2,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "launch_pulley_piv",
-   "subsystem": "launch",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 423.7,
-   "area_mm2": 594.48,
-   "mass_g": 0.53,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    13.99,
-    14.0,
-    5.0
-   ],
-   "bed_contact_mm2": 87.5,
-   "overhang_mm2": 64.0,
-   "overhang_frac": 0.1076
-  },
-  {
-   "name": "launch_pulley_piv_brg",
-   "subsystem": "launch",
-   "material": "bought",
-   "printed": false,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 172.36,
-   "area_mm2": 224.21,
-   "mass_g": null,
-   "shells": 1,
-   "genus": 1
-  },
-  {
-   "name": "launch_pulley_piv_axle",
-   "subsystem": "launch",
-   "material": "bought",
-   "printed": false,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 210.48,
-   "area_mm2": 286.84,
-   "mass_g": null,
-   "shells": 1,
-   "genus": 0
-  },
-  {
    "name": "launch_line_a0",
    "subsystem": "launch",
    "material": "bought",
@@ -2744,8 +2536,8 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 22.91,
-   "area_mm2": 96.38,
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
    "mass_g": null,
    "shells": 1,
    "genus": 0
@@ -2758,8 +2550,8 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 22.91,
-   "area_mm2": 96.38,
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
    "mass_g": null,
    "shells": 1,
    "genus": 0
@@ -2772,8 +2564,8 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 22.91,
-   "area_mm2": 96.38,
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
    "mass_g": null,
    "shells": 1,
    "genus": 0
@@ -2786,8 +2578,8 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 22.91,
-   "area_mm2": 96.38,
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
    "mass_g": null,
    "shells": 1,
    "genus": 0
@@ -2800,8 +2592,8 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 22.91,
-   "area_mm2": 96.38,
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
    "mass_g": null,
    "shells": 1,
    "genus": 0
@@ -2814,8 +2606,8 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 22.91,
-   "area_mm2": 96.38,
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
    "mass_g": null,
    "shells": 1,
    "genus": 0
@@ -2828,8 +2620,8 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 22.91,
-   "area_mm2": 96.38,
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
    "mass_g": null,
    "shells": 1,
    "genus": 0
@@ -2842,8 +2634,8 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 22.91,
-   "area_mm2": 96.38,
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
    "mass_g": null,
    "shells": 1,
    "genus": 0
@@ -2856,8 +2648,176 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 22.91,
-   "area_mm2": 96.38,
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a9",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a10",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a11",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a12",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a13",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a14",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a15",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a16",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a17",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a18",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a19",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
+   "mass_g": null,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "launch_line_a20",
+   "subsystem": "launch",
+   "material": "bought",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 9.51,
+   "area_mm2": 40.9,
    "mass_g": null,
    "shells": 1,
    "genus": 0
@@ -2872,34 +2832,6 @@
    "status": "NoError",
    "volume_mm3": 6.01,
    "area_mm2": 26.38,
-   "mass_g": null,
-   "shells": 1,
-   "genus": 0
-  },
-  {
-   "name": "launch_line_b",
-   "subsystem": "launch",
-   "material": "bought",
-   "printed": false,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 36.07,
-   "area_mm2": 150.89,
-   "mass_g": null,
-   "shells": 1,
-   "genus": 0
-  },
-  {
-   "name": "launch_line_c",
-   "subsystem": "launch",
-   "material": "bought",
-   "printed": false,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 159.63,
-   "area_mm2": 662.55,
    "mass_g": null,
    "shells": 1,
    "genus": 0
@@ -3355,84 +3287,144 @@
    "genus": 1
   },
   {
-   "name": "reel_wall",
+   "name": "reel_head_front",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 109284.41,
+   "area_mm2": 43382.85,
+   "mass_g": 105.85,
+   "shells": 1,
+   "genus": 12,
+   "stl_watertight": true,
+   "print_bbox": [
+    188.0,
+    186.0,
+    6.0
+   ],
+   "bed_contact_mm2": 18296.9,
+   "overhang_mm2": 50.2,
+   "overhang_frac": 0.0012
+  },
+  {
+   "name": "reel_head_spine",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 106858.76,
+   "area_mm2": 40968.96,
+   "mass_g": 101.77,
+   "shells": 1,
+   "genus": 11,
+   "stl_watertight": true,
+   "print_bbox": [
+    130.8,
+    188.0,
+    6.0
+   ],
+   "bed_contact_mm2": 17905.3,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_head_p1",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 55366.39,
+   "area_mm2": 22003.73,
+   "mass_g": 53.65,
+   "shells": 1,
+   "genus": 6,
+   "stl_watertight": true,
+   "print_bbox": [
+    100.0,
+    177.0,
+    37.0
+   ],
+   "bed_contact_mm2": 7060.4,
+   "overhang_mm2": 98.1,
+   "overhang_frac": 0.0045
+  },
+  {
+   "name": "reel_head_p1b",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 8957.94,
+   "area_mm2": 4988.1,
+   "mass_g": 10.38,
+   "shells": 1,
+   "genus": 3,
+   "stl_watertight": true,
+   "print_bbox": [
+    38.0,
+    44.5,
+    16.0
+   ],
+   "bed_contact_mm2": 1292.4,
+   "overhang_mm2": 40.9,
+   "overhang_frac": 0.0082
+  },
+  {
+   "name": "reel_head_p2",
+   "subsystem": "reel",
+   "material": "PLA",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 96041.52,
+   "area_mm2": 37194.53,
+   "mass_g": 91.91,
+   "shells": 1,
+   "genus": 4,
+   "stl_watertight": true,
+   "print_bbox": [
+    104.28,
+    182.0,
+    6.0
+   ],
+   "bed_contact_mm2": 16015.7,
+   "overhang_mm2": 20.4,
+   "overhang_frac": 0.0005
+  },
+  {
+   "name": "reel_head_mid",
    "subsystem": "reel",
    "material": "PLA",
    "printed": true,
    "fails": [],
    "warns": [
-    "overhang 886.4 mm2 steeper than 45 deg: needs supports or a better print_tf"
+    "overhang 143.2 mm2 steeper than 45 deg: needs supports or a better print_tf"
    ],
    "status": "NoError",
-   "volume_mm3": 205088.19,
-   "area_mm2": 82480.42,
-   "mass_g": 199.91,
+   "volume_mm3": 18070.58,
+   "area_mm2": 8242.96,
+   "mass_g": 18.78,
    "shells": 1,
-   "genus": 20,
+   "genus": 2,
    "stl_watertight": true,
    "print_bbox": [
-    169.5,
-    82.0,
-    138.36
+    53.78,
+    58.5,
+    6.0
    ],
-   "bed_contact_mm2": 9264.2,
-   "overhang_mm2": 886.4,
-   "overhang_frac": 0.0107
-  },
-  {
-   "name": "reel_sprag_hub",
-   "subsystem": "reel",
-   "material": "PPA-CF",
-   "printed": true,
-   "fails": [],
-   "warns": [
-    "overhang 1503.8 mm2 steeper than 45 deg: needs supports or a better print_tf"
-   ],
-   "status": "NoError",
-   "volume_mm3": 35768.01,
-   "area_mm2": 13970.44,
-   "mass_g": 34.65,
-   "shells": 1,
-   "genus": 5,
-   "stl_watertight": true,
-   "print_bbox": [
-    67.0,
-    62.1,
-    30.2
-   ],
-   "bed_contact_mm2": 520.1,
-   "overhang_mm2": 1503.8,
-   "overhang_frac": 0.1076
-  },
-  {
-   "name": "reel_hub_screws",
-   "subsystem": "reel",
-   "material": "bought",
-   "printed": false,
-   "fails": [],
-   "warns": [
-    "4 shells"
-   ],
-   "status": "NoError",
-   "volume_mm3": 506.49,
-   "area_mm2": 712.67,
-   "mass_g": null,
-   "shells": 4,
-   "genus": -3
-  },
-  {
-   "name": "reel_sprag",
-   "subsystem": "reel",
-   "material": "bought",
-   "printed": false,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 19305.36,
-   "area_mm2": 5968.28,
-   "mass_g": null,
-   "shells": 1,
-   "genus": 1
+   "bed_contact_mm2": 3092.2,
+   "overhang_mm2": 143.2,
+   "overhang_frac": 0.0174
   },
   {
    "name": "reel_c",
@@ -3442,135 +3434,20 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 21982.3,
-   "area_mm2": 9982.18,
-   "mass_g": 22.97,
+   "volume_mm3": 13914.01,
+   "area_mm2": 6284.6,
+   "mass_g": 14.5,
    "shells": 1,
    "genus": 1,
    "stl_watertight": true,
    "print_bbox": [
-    28.0,
-    28.0,
-    92.4
+    22.6,
+    20.0,
+    58.5
    ],
-   "bed_contact_mm2": 179.7,
-   "overhang_mm2": 74.1,
-   "overhang_frac": 0.0074
-  },
-  {
-   "name": "reel_bus",
-   "subsystem": "reel",
-   "material": "PPA-CF",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 21013.11,
-   "area_mm2": 10143.72,
-   "mass_g": 22.68,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    72.0,
-    71.9,
-    9.5
-   ],
-   "bed_contact_mm2": 3354.1,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "reel_swing_arm",
-   "subsystem": "reel",
-   "material": "PPA-CF",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 4409.88,
-   "area_mm2": 3948.37,
-   "mass_g": 5.51,
-   "shells": 1,
-   "genus": 0,
-   "stl_watertight": true,
-   "print_bbox": [
-    84.09,
-    38.0,
-    8.6
-   ],
-   "bed_contact_mm2": 1422.2,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "reel_gi",
-   "subsystem": "reel",
-   "material": "PPA-CF",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 9076.93,
-   "area_mm2": 4803.13,
-   "mass_g": 10.3,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    48.0,
-    47.83,
-    6.0
-   ],
-   "bed_contact_mm2": 1495.5,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "reel_gc",
-   "subsystem": "reel",
-   "material": "PPA-CF",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 14463.47,
-   "area_mm2": 6441.7,
-   "mass_g": 14.96,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    48.0,
-    47.68,
-    12.8
-   ],
-   "bed_contact_mm2": 1168.1,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "reel_c_clip",
-   "subsystem": "reel",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 809.95,
-   "area_mm2": 893.88,
-   "mass_g": 1.0,
-   "shells": 1,
-   "genus": 0,
-   "stl_watertight": true,
-   "print_bbox": [
-    26.91,
-    24.86,
-    3.1
-   ],
-   "bed_contact_mm2": 261.3,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
+   "bed_contact_mm2": 230.8,
+   "overhang_mm2": 32.8,
+   "overhang_frac": 0.0052
   },
   {
    "name": "reel_drum",
@@ -3582,9 +3459,9 @@
     "overhang 251.1 mm2 steeper than 45 deg: needs supports or a better print_tf"
    ],
    "status": "NoError",
-   "volume_mm3": 41008.18,
-   "area_mm2": 10879.96,
-   "mass_g": 33.56,
+   "volume_mm3": 41530.51,
+   "area_mm2": 10988.28,
+   "mass_g": 33.95,
    "shells": 1,
    "genus": 1,
    "stl_watertight": true,
@@ -3593,9 +3470,9 @@
     46.0,
     43.0
    ],
-   "bed_contact_mm2": 915.5,
+   "bed_contact_mm2": 1158.2,
    "overhang_mm2": 251.1,
-   "overhang_frac": 0.0231
+   "overhang_frac": 0.0229
   },
   {
    "name": "reel_k",
@@ -3605,20 +3482,20 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 9432.43,
-   "area_mm2": 4062.17,
-   "mass_g": 9.59,
+   "volume_mm3": 8131.76,
+   "area_mm2": 3505.87,
+   "mass_g": 8.27,
    "shells": 1,
    "genus": 0,
    "stl_watertight": true,
    "print_bbox": [
     10.0,
     10.0,
-    125.82
+    108.6
    ],
-   "bed_contact_mm2": 73.1,
-   "overhang_mm2": 31.6,
-   "overhang_frac": 0.0078
+   "bed_contact_mm2": 78.3,
+   "overhang_mm2": 14.0,
+   "overhang_frac": 0.004
   },
   {
    "name": "reel_cup",
@@ -3627,23 +3504,23 @@
    "printed": true,
    "fails": [],
    "warns": [
-    "overhang 1187.4 mm2 steeper than 45 deg: needs supports or a better print_tf"
+    "overhang 1209.6 mm2 steeper than 45 deg: needs supports or a better print_tf"
    ],
    "status": "NoError",
-   "volume_mm3": 10235.28,
-   "area_mm2": 8078.62,
-   "mass_g": 12.69,
+   "volume_mm3": 10227.57,
+   "area_mm2": 8134.87,
+   "mass_g": 12.68,
    "shells": 1,
-   "genus": 2,
+   "genus": 3,
    "stl_watertight": true,
    "print_bbox": [
     48.0,
-    51.9,
-    17.9
+    53.4,
+    18.0
    ],
    "bed_contact_mm2": 266.4,
-   "overhang_mm2": 1187.4,
-   "overhang_frac": 0.147
+   "overhang_mm2": 1209.6,
+   "overhang_frac": 0.1487
   },
   {
    "name": "reel_cup_clip",
@@ -3653,18 +3530,18 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 237.22,
-   "area_mm2": 359.13,
-   "mass_g": 0.29,
+   "volume_mm3": 123.88,
+   "area_mm2": 209.98,
+   "mass_g": 0.15,
    "shells": 1,
    "genus": 0,
    "stl_watertight": true,
    "print_bbox": [
-    13.99,
-    13.73,
-    2.0
+    10.0,
+    9.66,
+    2.4
    ],
-   "bed_contact_mm2": 118.6,
+   "bed_contact_mm2": 51.6,
    "overhang_mm2": 0.0,
    "overhang_frac": 0.0
   },
@@ -3675,69 +3552,152 @@
    "printed": true,
    "fails": [],
    "warns": [
-    "overhang 668.3 mm2 steeper than 45 deg: needs supports or a better print_tf"
+    "overhang 1030.7 mm2 steeper than 45 deg: needs supports or a better print_tf"
    ],
    "status": "NoError",
-   "volume_mm3": 7945.36,
-   "area_mm2": 4222.74,
-   "mass_g": 9.04,
+   "volume_mm3": 12004.28,
+   "area_mm2": 5411.09,
+   "mass_g": 12.5,
    "shells": 1,
    "genus": 1,
    "stl_watertight": true,
    "print_bbox": [
-    38.86,
-    38.86,
-    10.6
+    45.0,
+    45.0,
+    12.4
    ],
    "bed_contact_mm2": 241.4,
-   "overhang_mm2": 668.3,
-   "overhang_frac": 0.1583
+   "overhang_mm2": 1030.7,
+   "overhang_frac": 0.1905
   },
   {
-   "name": "reel_k_clip",
-   "subsystem": "reel",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 97.22,
-   "area_mm2": 220.81,
-   "mass_g": 0.12,
-   "shells": 1,
-   "genus": 0,
-   "stl_watertight": true,
-   "print_bbox": [
-    13.52,
-    12.51,
-    1.48
-   ],
-   "bed_contact_mm2": 65.9,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "reel_s",
+   "name": "reel_gc",
    "subsystem": "reel",
    "material": "PPA-CF",
    "printed": true,
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 11633.11,
-   "area_mm2": 7951.94,
-   "mass_g": 14.54,
+   "volume_mm3": 4263.27,
+   "area_mm2": 3110.23,
+   "mass_g": 5.33,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    37.39,
+    37.47,
+    7.0
+   ],
+   "bed_contact_mm2": 595.9,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_ga",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 7663.42,
+   "area_mm2": 4054.91,
+   "mass_g": 8.7,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    42.0,
+    41.8,
+    7.0
+   ],
+   "bed_contact_mm2": 1079.8,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_gb",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 12115.67,
+   "area_mm2": 5666.56,
+   "mass_g": 12.86,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    51.0,
+    51.0,
+    7.0
+   ],
+   "bed_contact_mm2": 1712.1,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_gb_axle",
+   "subsystem": "reel",
+   "material": "steel",
+   "printed": false,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 801.25,
+   "area_mm2": 501.91,
+   "mass_g": 6.29,
+   "shells": 1,
+   "genus": 0
+  },
+  {
+   "name": "reel_uc",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 18996.96,
+   "area_mm2": 7793.09,
+   "mass_g": 18.85,
    "shells": 1,
    "genus": 0,
    "stl_watertight": true,
    "print_bbox": [
-    62.0,
-    62.0,
-    55.5
+    10.0,
+    10.0,
+    243.5
    ],
-   "bed_contact_mm2": 3018.5,
-   "overhang_mm2": 11.2,
-   "overhang_frac": 0.0014
+   "bed_contact_mm2": 74.3,
+   "overhang_mm2": 4.0,
+   "overhang_frac": 0.0005
+  },
+  {
+   "name": "reel_ut",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 5161.52,
+   "area_mm2": 2714.29,
+   "mass_g": 5.84,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    8.0,
+    7.98,
+    104.5
+   ],
+   "bed_contact_mm2": 46.5,
+   "overhang_mm2": 3.6,
+   "overhang_frac": 0.0013
   },
   {
    "name": "reel_spool",
@@ -3746,46 +3706,23 @@
    "printed": true,
    "fails": [],
    "warns": [
-    "overhang 329.4 mm2 steeper than 45 deg: needs supports or a better print_tf"
+    "overhang 1791.1 mm2 steeper than 45 deg: needs supports or a better print_tf"
    ],
    "status": "NoError",
-   "volume_mm3": 27630.3,
-   "area_mm2": 18978.18,
-   "mass_g": 34.26,
-   "shells": 1,
-   "genus": 2,
-   "stl_watertight": true,
-   "print_bbox": [
-    80.0,
-    80.0,
-    24.1
-   ],
-   "bed_contact_mm2": 4442.3,
-   "overhang_mm2": 329.4,
-   "overhang_frac": 0.0174
-  },
-  {
-   "name": "reel_spool_flange",
-   "subsystem": "reel",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 7987.58,
-   "area_mm2": 10137.66,
-   "mass_g": 9.9,
+   "volume_mm3": 28442.75,
+   "area_mm2": 13343.41,
+   "mass_g": 28.67,
    "shells": 1,
    "genus": 1,
    "stl_watertight": true,
    "print_bbox": [
-    80.0,
-    80.0,
-    1.9
+    62.0,
+    62.0,
+    22.4
    ],
-   "bed_contact_mm2": 4671.0,
-   "overhang_mm2": 71.3,
-   "overhang_frac": 0.007
+   "bed_contact_mm2": 2470.7,
+   "overhang_mm2": 1791.1,
+   "overhang_frac": 0.1342
   },
   {
    "name": "reel_brg_1",
@@ -3816,137 +3753,132 @@
    "genus": 1
   },
   {
+   "name": "reel_s",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 4536.78,
+   "area_mm2": 2528.45,
+   "mass_g": 5.3,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    99.0,
+    7.98,
+    7.0
+   ],
+   "bed_contact_mm2": 521.9,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_d",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 1050.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 6046.93,
+   "area_mm2": 4921.01,
+   "mass_g": 7.56,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    53.0,
+    53.0,
+    3.0
+   ],
+   "bed_contact_mm2": 1105.7,
+   "overhang_mm2": 1050.0,
+   "overhang_frac": 0.2134
+  },
+  {
    "name": "reel_t",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 899.48,
+   "area_mm2": 833.49,
+   "mass_g": 1.12,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    18.0,
+    17.99,
+    5.6
+   ],
+   "bed_contact_mm2": 201.0,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_shroud",
    "subsystem": "reel",
    "material": "PLA",
    "printed": true,
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 1333.34,
-   "area_mm2": 1378.58,
-   "mass_g": 1.65,
+   "volume_mm3": 6119.3,
+   "area_mm2": 8704.07,
+   "mass_g": 7.59,
    "shells": 1,
-   "genus": 1,
+   "genus": 0,
    "stl_watertight": true,
    "print_bbox": [
-    26.0,
-    26.0,
-    4.95
+    69.98,
+    65.9,
+    29.5
    ],
-   "bed_contact_mm2": 476.2,
-   "overhang_mm2": 0.0,
+   "bed_contact_mm2": 225.8,
+   "overhang_mm2": 0.4,
    "overhang_frac": 0.0
   },
   {
-   "name": "reel_rocker",
+   "name": "reel_lever",
    "subsystem": "reel",
    "material": "PPA-CF",
    "printed": true,
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 4917.15,
-   "area_mm2": 4068.78,
-   "mass_g": 6.15,
+   "volume_mm3": 5501.88,
+   "area_mm2": 3574.43,
+   "mass_g": 6.88,
    "shells": 1,
-   "genus": 5,
+   "genus": 2,
    "stl_watertight": true,
    "print_bbox": [
-    29.0,
-    91.7,
-    6.0
+    67.0,
+    66.0,
+    8.0
    ],
-   "bed_contact_mm2": 1320.0,
-   "overhang_mm2": 26.6,
-   "overhang_frac": 0.0065
+   "bed_contact_mm2": 694.2,
+   "overhang_mm2": 20.2,
+   "overhang_frac": 0.0057
   },
   {
-   "name": "reel_rocker_pin",
+   "name": "reel_lever_pin",
    "subsystem": "reel",
    "material": "bought",
    "printed": false,
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 238.43,
-   "area_mm2": 324.43,
-   "mass_g": null,
-   "shells": 1,
-   "genus": 0
-  },
-  {
-   "name": "reel_trim_screws",
-   "subsystem": "reel",
-   "material": "bought",
-   "printed": false,
-   "fails": [],
-   "warns": [
-    "2 shells"
-   ],
-   "status": "NoError",
-   "volume_mm3": 253.25,
-   "area_mm2": 348.13,
-   "mass_g": null,
-   "shells": 2,
-   "genus": -1
-  },
-  {
-   "name": "reel_crank",
-   "subsystem": "reel",
-   "material": "PPA-CF",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 1656.8,
-   "area_mm2": 1700.32,
-   "mass_g": 2.07,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    21.1,
-    27.98,
-    12.4
-   ],
-   "bed_contact_mm2": 133.6,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "reel_crank_washer",
-   "subsystem": "reel",
-   "material": "PPA-CF",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 124.72,
-   "area_mm2": 265.87,
-   "mass_g": 0.16,
-   "shells": 1,
-   "genus": 1,
-   "stl_watertight": true,
-   "print_bbox": [
-    11.99,
-    12.0,
-    1.2
-   ],
-   "bed_contact_mm2": 103.9,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "reel_crank_screw",
-   "subsystem": "reel",
-   "material": "bought",
-   "printed": false,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 210.48,
-   "area_mm2": 286.84,
+   "volume_mm3": 182.53,
+   "area_mm2": 249.25,
    "mass_g": null,
    "shells": 1,
    "genus": 0
@@ -3959,167 +3891,25 @@
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 187.68,
-   "area_mm2": 255.62,
+   "volume_mm3": 140.6,
+   "area_mm2": 192.86,
    "mass_g": null,
    "shells": 1,
    "genus": 0
   },
   {
-   "name": "reel_bar",
-   "subsystem": "reel",
-   "material": "PPA-CF",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 6315.93,
-   "area_mm2": 4145.47,
-   "mass_g": 7.89,
-   "shells": 1,
-   "genus": 0,
-   "stl_watertight": true,
-   "print_bbox": [
-    153.51,
-    18.64,
-    15.8
-   ],
-   "bed_contact_mm2": 943.8,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "reel_bar_cap_1",
-   "subsystem": "reel",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 837.42,
-   "area_mm2": 738.09,
-   "mass_g": 1.04,
-   "shells": 1,
-   "genus": 2,
-   "stl_watertight": true,
-   "print_bbox": [
-    10.0,
-    20.0,
-    4.6
-   ],
-   "bed_contact_mm2": 182.0,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "reel_bar_cap_2",
-   "subsystem": "reel",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 837.42,
-   "area_mm2": 738.09,
-   "mass_g": 1.04,
-   "shells": 1,
-   "genus": 2,
-   "stl_watertight": true,
-   "print_bbox": [
-    10.0,
-    20.0,
-    4.6
-   ],
-   "bed_contact_mm2": 182.0,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "reel_bar_screws",
+   "name": "reel_light_screw",
    "subsystem": "reel",
    "material": "bought",
    "printed": false,
    "fails": [],
-   "warns": [
-    "4 shells"
-   ],
+   "warns": [],
    "status": "NoError",
-   "volume_mm3": 730.11,
-   "area_mm2": 996.99,
+   "volume_mm3": 182.53,
+   "area_mm2": 249.25,
    "mass_g": null,
-   "shells": 4,
-   "genus": -3
-  },
-  {
-   "name": "reel_gr",
-   "subsystem": "reel",
-   "material": "PPA-CF",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 3730.83,
-   "area_mm2": 2640.67,
-   "mass_g": 4.66,
    "shells": 1,
-   "genus": 3,
-   "stl_watertight": true,
-   "print_bbox": [
-    33.0,
-    33.0,
-    6.4
-   ],
-   "bed_contact_mm2": 603.7,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "reel_s_clip",
-   "subsystem": "reel",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 61.44,
-   "area_mm2": 154.97,
-   "mass_g": 0.08,
-   "shells": 1,
-   "genus": 0,
-   "stl_watertight": true,
-   "print_bbox": [
-    10.85,
-    10.03,
-    1.45
-   ],
-   "bed_contact_mm2": 42.4,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
-  },
-  {
-   "name": "reel_sw_bracket",
-   "subsystem": "reel",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [
-    "overhang 334.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
-   ],
-   "status": "NoError",
-   "volume_mm3": 18566.21,
-   "area_mm2": 9121.03,
-   "mass_g": 20.07,
-   "shells": 1,
-   "genus": 6,
-   "stl_watertight": true,
-   "print_bbox": [
-    39.5,
-    63.0,
-    57.9
-   ],
-   "bed_contact_mm2": 2151.5,
-   "overhang_mm2": 334.0,
-   "overhang_frac": 0.0366
+   "genus": 0
   },
   {
    "name": "reel_sw_base",
@@ -4184,231 +3974,396 @@
    "genus": 0
   },
   {
-   "name": "reel_shroud",
+   "name": "reel_bridge",
    "subsystem": "reel",
    "material": "PLA",
    "printed": true,
    "fails": [],
-   "warns": [],
+   "warns": [
+    "overhang 685.9 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
    "status": "NoError",
-   "volume_mm3": 11730.54,
-   "area_mm2": 12495.9,
-   "mass_g": 14.55,
+   "volume_mm3": 114089.69,
+   "area_mm2": 49503.14,
+   "mass_g": 115.52,
    "shells": 1,
-   "genus": 3,
+   "genus": 9,
    "stl_watertight": true,
    "print_bbox": [
-    81.08,
-    79.54,
-    41.08
+    220.0,
+    192.1,
+    88.0
    ],
-   "bed_contact_mm2": 488.9,
-   "overhang_mm2": 91.9,
-   "overhang_frac": 0.0074
+   "bed_contact_mm2": 13988.4,
+   "overhang_mm2": 685.9,
+   "overhang_frac": 0.0139
   },
   {
-   "name": "reel_exit_post",
+   "name": "reel_sprag_hub",
    "subsystem": "reel",
    "material": "PPA-CF",
    "printed": true,
    "fails": [],
-   "warns": [
-    "overhang 207.1 mm2 steeper than 45 deg: needs supports or a better print_tf"
-   ],
+   "warns": [],
    "status": "NoError",
-   "volume_mm3": 67837.6,
-   "area_mm2": 15631.51,
-   "mass_g": 52.68,
-   "shells": 1,
-   "genus": 5,
-   "stl_watertight": true,
-   "print_bbox": [
-    40.0,
-    44.0,
-    125.76
-   ],
-   "bed_contact_mm2": 1724.1,
-   "overhang_mm2": 207.1,
-   "overhang_frac": 0.0133
-  },
-  {
-   "name": "reel_pulley1",
-   "subsystem": "reel",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [
-    "overhang 111.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
-   ],
-   "status": "NoError",
-   "volume_mm3": 931.0,
-   "area_mm2": 997.93,
-   "mass_g": 1.15,
+   "volume_mm3": 9745.64,
+   "area_mm2": 6032.17,
+   "mass_g": 12.11,
    "shells": 1,
    "genus": 1,
    "stl_watertight": true,
    "print_bbox": [
-    18.0,
-    18.0,
-    6.0
+    56.0,
+    56.0,
+    14.0
    ],
-   "bed_contact_mm2": 201.3,
-   "overhang_mm2": 111.0,
-   "overhang_frac": 0.1112
+   "bed_contact_mm2": 573.2,
+   "overhang_mm2": 32.6,
+   "overhang_frac": 0.0054
   },
   {
-   "name": "reel_p1_brg",
+   "name": "reel_sprag",
    "subsystem": "reel",
    "material": "bought",
    "printed": false,
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 163.38,
-   "area_mm2": 241.75,
+   "volume_mm3": 19305.36,
+   "area_mm2": 5968.28,
    "mass_g": null,
    "shells": 1,
    "genus": 1
   },
   {
-   "name": "reel_p2_post",
+   "name": "reel_cs_c",
    "subsystem": "reel",
    "material": "PPA-CF",
    "printed": true,
    "fails": [],
    "warns": [
-    "overhang 1197.6 mm2 steeper than 45 deg: needs supports or a better print_tf"
+    "overhang 181.6 mm2 steeper than 45 deg: needs supports or a better print_tf"
    ],
    "status": "NoError",
-   "volume_mm3": 50459.05,
-   "area_mm2": 15507.38,
-   "mass_g": 43.84,
-   "shells": 1,
-   "genus": 5,
-   "stl_watertight": true,
-   "print_bbox": [
-    101.76,
-    29.0,
-    125.0
-   ],
-   "bed_contact_mm2": 892.1,
-   "overhang_mm2": 1197.6,
-   "overhang_frac": 0.0772
-  },
-  {
-   "name": "reel_p2_fork",
-   "subsystem": "reel",
-   "material": "PPA-CF",
-   "printed": true,
-   "fails": [],
-   "warns": [
-    "overhang 133.3 mm2 steeper than 45 deg: needs supports or a better print_tf"
-   ],
-   "status": "NoError",
-   "volume_mm3": 3186.38,
-   "area_mm2": 2644.42,
-   "mass_g": 3.98,
-   "shells": 1,
-   "genus": 3,
-   "stl_watertight": true,
-   "print_bbox": [
-    19.49,
-    13.8,
-    36.0
-   ],
-   "bed_contact_mm2": 49.8,
-   "overhang_mm2": 133.3,
-   "overhang_frac": 0.0504
-  },
-  {
-   "name": "reel_p2_clip",
-   "subsystem": "reel",
-   "material": "PLA",
-   "printed": true,
-   "fails": [],
-   "warns": [],
-   "status": "NoError",
-   "volume_mm3": 170.33,
-   "area_mm2": 319.25,
-   "mass_g": 0.21,
+   "volume_mm3": 10150.34,
+   "area_mm2": 2976.36,
+   "mass_g": 8.65,
    "shells": 1,
    "genus": 0,
    "stl_watertight": true,
    "print_bbox": [
-    16.2,
-    14.98,
-    1.8
+    22.6,
+    20.0,
+    40.5
    ],
-   "bed_contact_mm2": 94.6,
-   "overhang_mm2": 0.0,
-   "overhang_frac": 0.0
+   "bed_contact_mm2": 148.9,
+   "overhang_mm2": 181.6,
+   "overhang_frac": 0.061
   },
   {
-   "name": "reel_pulley2",
+   "name": "reel_c1",
    "subsystem": "reel",
-   "material": "PLA",
+   "material": "PPA-CF",
    "printed": true,
    "fails": [],
-   "warns": [
-    "overhang 111.0 mm2 steeper than 45 deg: needs supports or a better print_tf"
-   ],
+   "warns": [],
    "status": "NoError",
-   "volume_mm3": 931.0,
-   "area_mm2": 997.93,
-   "mass_g": 1.15,
+   "volume_mm3": 87415.2,
+   "area_mm2": 22319.6,
+   "mass_g": 70.49,
    "shells": 1,
    "genus": 1,
    "stl_watertight": true,
    "print_bbox": [
-    18.0,
-    18.0,
+    101.94,
+    101.98,
+    12.0
+   ],
+   "bed_contact_mm2": 7245.2,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_b1g",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 679.4 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 2087.14,
+   "area_mm2": 2401.76,
+   "mass_g": 2.61,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    39.0,
+    39.0,
+    6.18
+   ],
+   "bed_contact_mm2": 158.5,
+   "overhang_mm2": 679.4,
+   "overhang_frac": 0.2829
+  },
+  {
+   "name": "reel_b1p",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 969.39,
+   "area_mm2": 1342.13,
+   "mass_g": 1.21,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    21.0,
+    21.0,
+    11.37
+   ],
+   "bed_contact_mm2": 74.7,
+   "overhang_mm2": 87.0,
+   "overhang_frac": 0.0648
+  },
+  {
+   "name": "reel_c1p",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 22264.36,
+   "area_mm2": 10199.59,
+   "mass_g": 23.37,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    72.0,
+    71.9,
+    9.6
+   ],
+   "bed_contact_mm2": 3623.6,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_stub",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 907.94,
+   "area_mm2": 579.93,
+   "mass_g": 1.13,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    20.0,
+    7.98,
+    6.8
+   ],
+   "bed_contact_mm2": 113.7,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_swing_arm",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 2537.09,
+   "area_mm2": 2302.48,
+   "mass_g": 3.17,
+   "shells": 1,
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    72.58,
+    19.0,
+    9.6
+   ],
+   "bed_contact_mm2": 743.7,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_gi",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 9099.94,
+   "area_mm2": 4805.14,
+   "mass_g": 10.32,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    48.0,
+    47.83,
     6.0
    ],
-   "bed_contact_mm2": 201.3,
-   "overhang_mm2": 111.0,
-   "overhang_frac": 0.1112
+   "bed_contact_mm2": 1499.4,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
   },
   {
-   "name": "reel_p2_brg",
+   "name": "reel_cs_t",
    "subsystem": "reel",
-   "material": "bought",
-   "printed": false,
+   "material": "PPA-CF",
+   "printed": true,
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 163.38,
-   "area_mm2": 241.75,
-   "mass_g": null,
+   "volume_mm3": 2206.45,
+   "area_mm2": 1051.58,
+   "mass_g": 2.37,
    "shells": 1,
-   "genus": 1
+   "genus": 0,
+   "stl_watertight": true,
+   "print_bbox": [
+    11.99,
+    12.0,
+    24.5
+   ],
+   "bed_contact_mm2": 74.3,
+   "overhang_mm2": 38.6,
+   "overhang_frac": 0.0367
   },
   {
-   "name": "reel_p2_axle",
+   "name": "reel_t1",
    "subsystem": "reel",
-   "material": "bought",
-   "printed": false,
+   "material": "PPA-CF",
+   "printed": true,
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 210.48,
-   "area_mm2": 286.84,
-   "mass_g": null,
+   "volume_mm3": 3665.95,
+   "area_mm2": 2492.68,
+   "mass_g": 4.58,
    "shells": 1,
-   "genus": 0
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    33.0,
+    33.0,
+    6.0
+   ],
+   "bed_contact_mm2": 599.8,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
   },
   {
-   "name": "reel_p1_axle",
+   "name": "reel_b2g",
    "subsystem": "reel",
-   "material": "bought",
-   "printed": false,
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 148.9 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 712.12,
+   "area_mm2": 1031.24,
+   "mass_g": 0.89,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    22.0,
+    22.0,
+    6.83
+   ],
+   "bed_contact_mm2": 74.7,
+   "overhang_mm2": 148.9,
+   "overhang_frac": 0.1444
+  },
+  {
+   "name": "reel_b2p",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [
+    "overhang 148.9 mm2 steeper than 45 deg: needs supports or a better print_tf"
+   ],
+   "status": "NoError",
+   "volume_mm3": 1012.0,
+   "area_mm2": 1115.03,
+   "mass_g": 1.27,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    22.0,
+    22.0,
+    7.83
+   ],
+   "bed_contact_mm2": 103.5,
+   "overhang_mm2": 148.9,
+   "overhang_frac": 0.1335
+  },
+  {
+   "name": "reel_b3a",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
    "fails": [],
    "warns": [],
    "status": "NoError",
-   "volume_mm3": 210.48,
-   "area_mm2": 286.84,
-   "mass_g": null,
+   "volume_mm3": 1012.0,
+   "area_mm2": 1115.03,
+   "mass_g": 1.27,
    "shells": 1,
-   "genus": 0
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    22.0,
+    22.0,
+    7.83
+   ],
+   "bed_contact_mm2": 105.4,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
+  },
+  {
+   "name": "reel_b3b",
+   "subsystem": "reel",
+   "material": "PPA-CF",
+   "printed": true,
+   "fails": [],
+   "warns": [],
+   "status": "NoError",
+   "volume_mm3": 1115.49,
+   "area_mm2": 1184.57,
+   "mass_g": 1.39,
+   "shells": 1,
+   "genus": 1,
+   "stl_watertight": true,
+   "print_bbox": [
+    22.0,
+    22.0,
+    8.83
+   ],
+   "bed_contact_mm2": 105.4,
+   "overhang_mm2": 0.0,
+   "overhang_frac": 0.0
   },
   {
    "name": "sensors_as5600",
@@ -4772,16 +4727,16 @@
    "b": "drum_index_lever",
    "max_vol_mm3": 24.517,
    "n_states": 67,
-   "worst_state": 4169,
-   "phase": "fire",
-   "t": 9.254166666666668
+   "worst_state": 43310,
+   "phase": "approach",
+   "t": 153.47058823529412
   },
   {
    "a": "launch_aim_sun",
    "b": "launch_aim_idler",
    "max_vol_mm3": 55.565,
    "n_states": 12,
-   "worst_state": 44654,
+   "worst_state": 46652,
    "phase": "sensors_gap_cock",
    "t": null
   }
@@ -4789,59 +4744,89 @@
  "allowed_contacts": [
   {
    "a": "drum_axle",
-   "b": "drum_bracket_a",
-   "max_vol_mm3": 8.335,
-   "n_states": 2296,
+   "b": "drum_bracket_b",
+   "max_vol_mm3": 7.464,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
-   "why": "axle pressed into the brackets"
+   "why": "axle pressed into bracket B"
   },
   {
    "a": "drum_axle",
-   "b": "drum_bracket_b",
+   "b": "reel_head_front",
    "max_vol_mm3": 7.464,
-   "n_states": 2296,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
-   "why": "axle pressed into the brackets"
+   "why": "axle pressed into the front plate"
+  },
+  {
+   "a": "drum_follower",
+   "b": "drum_link_eye_1",
+   "max_vol_mm3": 354.785,
+   "n_states": 2307,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "eye screwed to the follower lug (M3)"
+  },
+  {
+   "a": "drum_link_eye_2",
+   "b": "drum_crank",
+   "max_vol_mm3": 516.359,
+   "n_states": 2307,
+   "worst_state": 17130,
+   "phase": "neutral",
+   "t": 19.900000000000002,
+   "why": "eye screwed to the crank input arm (M3)"
   },
   {
    "a": "drum_n20_pinion",
    "b": "drum_n20",
    "max_vol_mm3": 5.158,
-   "n_states": 3415,
-   "worst_state": 37625,
-   "phase": "unwrap",
-   "t": 137.70000000000002,
+   "n_states": 4516,
+   "worst_state": 20518,
+   "phase": "wrap",
+   "t": 60.95,
    "why": "pinion pressed on the N20 shaft"
   },
   {
-   "a": "drum_rail",
-   "b": "drum_bracket_a",
-   "max_vol_mm3": 8.335,
-   "n_states": 2296,
-   "worst_state": 0,
-   "phase": "load",
-   "t": 0.0,
-   "why": "rail pressed into the brackets"
-  },
-  {
-   "a": "drum_rail",
+   "a": "drum_rod",
    "b": "drum_bracket_b",
    "max_vol_mm3": 7.464,
-   "n_states": 2296,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
-   "why": "rail pressed into the brackets"
+   "why": "rod pressed into bracket B"
+  },
+  {
+   "a": "drum_rod",
+   "b": "reel_head_front",
+   "max_vol_mm3": 7.464,
+   "n_states": 2307,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "rod pressed into the front plate"
+  },
+  {
+   "a": "drum_shift_rail",
+   "b": "reel_bridge",
+   "max_vol_mm3": 12.44,
+   "n_states": 2307,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "rail pressed into the bridge boss"
   },
   {
    "a": "launch_aim_crank",
    "b": "sensors_sw_rail_low_lever",
    "max_vol_mm3": 50.388,
-   "n_states": 2094,
+   "n_states": 2097,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
@@ -4851,7 +4836,7 @@
    "a": "launch_aim_housing",
    "b": "sensors_as5600_col_screws",
    "max_vol_mm3": 20.448,
-   "n_states": 2296,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
@@ -4861,8 +4846,8 @@
    "a": "launch_big_gear",
    "b": "sensors_sw_gap_lever",
    "max_vol_mm3": 59.4,
-   "n_states": 2231,
-   "worst_state": 4934,
+   "n_states": 2242,
+   "worst_state": 4943,
    "phase": "flight",
    "t": 9.5,
    "why": "big gear cam bump presses the lever tip at rest (the lever bends; modelled rigid at rest)"
@@ -4872,7 +4857,7 @@
    "b": "launch_stop_spring_l",
    "max_vol_mm3": 2885.424,
    "n_states": 6,
-   "worst_state": 44578,
+   "worst_state": 46574,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "arm on the stop pad (contact)"
@@ -4882,7 +4867,7 @@
    "b": "launch_stop_spring_r",
    "max_vol_mm3": 2935.377,
    "n_states": 6,
-   "worst_state": 44578,
+   "worst_state": 46574,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "arm on the stop pad (contact)"
@@ -4890,9 +4875,109 @@
   {
    "a": "launch_line_a0",
    "b": "launch_line_a1",
-   "max_vol_mm3": 22.909,
-   "n_states": 2413,
-   "worst_state": 3922,
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a10",
+   "max_vol_mm3": 9.5,
+   "n_states": 71,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a11",
+   "max_vol_mm3": 9.499,
+   "n_states": 86,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a12",
+   "max_vol_mm3": 9.497,
+   "n_states": 85,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a13",
+   "max_vol_mm3": 9.496,
+   "n_states": 80,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a14",
+   "max_vol_mm3": 9.495,
+   "n_states": 80,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a15",
+   "max_vol_mm3": 9.493,
+   "n_states": 82,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.492,
+   "n_states": 78,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.491,
+   "n_states": 74,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.489,
+   "n_states": 71,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.488,
+   "n_states": 67,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
@@ -4900,9 +4985,19 @@
   {
    "a": "launch_line_a0",
    "b": "launch_line_a2",
-   "max_vol_mm3": 22.906,
-   "n_states": 185,
-   "worst_state": 3922,
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.487,
+   "n_states": 65,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
@@ -4910,9 +5005,9 @@
   {
    "a": "launch_line_a0",
    "b": "launch_line_a3",
-   "max_vol_mm3": 22.903,
-   "n_states": 178,
-   "worst_state": 3922,
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
@@ -4920,9 +5015,9 @@
   {
    "a": "launch_line_a0",
    "b": "launch_line_a4",
-   "max_vol_mm3": 22.899,
-   "n_states": 187,
-   "worst_state": 3922,
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
@@ -4930,9 +5025,9 @@
   {
    "a": "launch_line_a0",
    "b": "launch_line_a5",
-   "max_vol_mm3": 22.896,
-   "n_states": 191,
-   "worst_state": 3922,
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
@@ -4940,9 +5035,9 @@
   {
    "a": "launch_line_a0",
    "b": "launch_line_a6",
-   "max_vol_mm3": 22.893,
-   "n_states": 187,
-   "worst_state": 3922,
+   "max_vol_mm3": 9.505,
+   "n_states": 74,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
@@ -4950,9 +5045,9 @@
   {
    "a": "launch_line_a0",
    "b": "launch_line_a7",
-   "max_vol_mm3": 22.889,
-   "n_states": 162,
-   "worst_state": 3922,
+   "max_vol_mm3": 9.504,
+   "n_states": 83,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
@@ -4960,9 +5055,119 @@
   {
    "a": "launch_line_a0",
    "b": "launch_line_a8",
-   "max_vol_mm3": 22.886,
-   "n_states": 144,
-   "worst_state": 3922,
+   "max_vol_mm3": 9.503,
+   "n_states": 76,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a0",
+   "b": "launch_line_a9",
+   "max_vol_mm3": 9.501,
+   "n_states": 75,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a10",
+   "max_vol_mm3": 9.501,
+   "n_states": 75,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a11",
+   "max_vol_mm3": 9.5,
+   "n_states": 71,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a12",
+   "max_vol_mm3": 9.499,
+   "n_states": 86,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a13",
+   "max_vol_mm3": 9.497,
+   "n_states": 85,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a14",
+   "max_vol_mm3": 9.496,
+   "n_states": 80,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a15",
+   "max_vol_mm3": 9.495,
+   "n_states": 80,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.493,
+   "n_states": 82,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.492,
+   "n_states": 78,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.491,
+   "n_states": 74,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.489,
+   "n_states": 71,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
@@ -4970,9 +5175,19 @@
   {
    "a": "launch_line_a1",
    "b": "launch_line_a2",
-   "max_vol_mm3": 22.909,
-   "n_states": 2413,
-   "worst_state": 3922,
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a1",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.488,
+   "n_states": 67,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
@@ -4980,9 +5195,9 @@
   {
    "a": "launch_line_a1",
    "b": "launch_line_a3",
-   "max_vol_mm3": 22.906,
-   "n_states": 185,
-   "worst_state": 3922,
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
@@ -4990,9 +5205,9 @@
   {
    "a": "launch_line_a1",
    "b": "launch_line_a4",
-   "max_vol_mm3": 22.903,
-   "n_states": 178,
-   "worst_state": 3922,
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
@@ -5000,9 +5215,9 @@
   {
    "a": "launch_line_a1",
    "b": "launch_line_a5",
-   "max_vol_mm3": 22.899,
-   "n_states": 187,
-   "worst_state": 3922,
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
@@ -5010,9 +5225,9 @@
   {
    "a": "launch_line_a1",
    "b": "launch_line_a6",
-   "max_vol_mm3": 22.896,
-   "n_states": 191,
-   "worst_state": 3922,
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
@@ -5020,9 +5235,9 @@
   {
    "a": "launch_line_a1",
    "b": "launch_line_a7",
-   "max_vol_mm3": 22.893,
-   "n_states": 187,
-   "worst_state": 3922,
+   "max_vol_mm3": 9.505,
+   "n_states": 74,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
@@ -5030,301 +5245,1811 @@
   {
    "a": "launch_line_a1",
    "b": "launch_line_a8",
-   "max_vol_mm3": 22.889,
-   "n_states": 162,
-   "worst_state": 3922,
+   "max_vol_mm3": 9.504,
+   "n_states": 83,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a2",
-   "b": "launch_line_a3",
-   "max_vol_mm3": 22.909,
-   "n_states": 2413,
-   "worst_state": 3922,
+   "a": "launch_line_a1",
+   "b": "launch_line_a9",
+   "max_vol_mm3": 9.503,
+   "n_states": 76,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a2",
-   "b": "launch_line_a4",
-   "max_vol_mm3": 22.906,
-   "n_states": 185,
-   "worst_state": 3922,
+   "a": "launch_line_a10",
+   "b": "launch_line_a11",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a2",
-   "b": "launch_line_a5",
-   "max_vol_mm3": 22.903,
-   "n_states": 178,
-   "worst_state": 3922,
+   "a": "launch_line_a10",
+   "b": "launch_line_a12",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a2",
-   "b": "launch_line_a6",
-   "max_vol_mm3": 22.899,
-   "n_states": 187,
-   "worst_state": 3922,
+   "a": "launch_line_a10",
+   "b": "launch_line_a13",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a2",
-   "b": "launch_line_a7",
-   "max_vol_mm3": 22.896,
-   "n_states": 191,
-   "worst_state": 3922,
+   "a": "launch_line_a10",
+   "b": "launch_line_a14",
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a2",
-   "b": "launch_line_a8",
-   "max_vol_mm3": 22.893,
-   "n_states": 187,
-   "worst_state": 3922,
+   "a": "launch_line_a10",
+   "b": "launch_line_a15",
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a3",
-   "b": "launch_line_a4",
-   "max_vol_mm3": 22.909,
-   "n_states": 2413,
-   "worst_state": 3922,
+   "a": "launch_line_a10",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.505,
+   "n_states": 74,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a3",
-   "b": "launch_line_a5",
-   "max_vol_mm3": 22.906,
-   "n_states": 185,
-   "worst_state": 3922,
+   "a": "launch_line_a10",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.504,
+   "n_states": 83,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a3",
-   "b": "launch_line_a6",
-   "max_vol_mm3": 22.903,
-   "n_states": 178,
-   "worst_state": 3922,
+   "a": "launch_line_a10",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.503,
+   "n_states": 76,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a3",
-   "b": "launch_line_a7",
-   "max_vol_mm3": 22.899,
-   "n_states": 187,
-   "worst_state": 3922,
+   "a": "launch_line_a10",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.501,
+   "n_states": 75,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a3",
-   "b": "launch_line_a8",
-   "max_vol_mm3": 22.896,
-   "n_states": 191,
-   "worst_state": 3922,
+   "a": "launch_line_a10",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.5,
+   "n_states": 71,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a4",
-   "b": "launch_line_a5",
-   "max_vol_mm3": 22.909,
-   "n_states": 2413,
-   "worst_state": 3922,
+   "a": "launch_line_a11",
+   "b": "launch_line_a12",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a4",
-   "b": "launch_line_a6",
-   "max_vol_mm3": 22.906,
-   "n_states": 185,
-   "worst_state": 3922,
+   "a": "launch_line_a11",
+   "b": "launch_line_a13",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a4",
-   "b": "launch_line_a7",
-   "max_vol_mm3": 22.903,
-   "n_states": 178,
-   "worst_state": 3922,
+   "a": "launch_line_a11",
+   "b": "launch_line_a14",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a4",
-   "b": "launch_line_a8",
-   "max_vol_mm3": 22.899,
-   "n_states": 187,
-   "worst_state": 3922,
+   "a": "launch_line_a11",
+   "b": "launch_line_a15",
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a5",
-   "b": "launch_line_a6",
-   "max_vol_mm3": 22.909,
-   "n_states": 2413,
-   "worst_state": 3922,
+   "a": "launch_line_a11",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a5",
-   "b": "launch_line_a7",
-   "max_vol_mm3": 22.906,
-   "n_states": 185,
-   "worst_state": 3922,
+   "a": "launch_line_a11",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.505,
+   "n_states": 74,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a5",
-   "b": "launch_line_a8",
-   "max_vol_mm3": 22.903,
-   "n_states": 178,
-   "worst_state": 3922,
+   "a": "launch_line_a11",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.504,
+   "n_states": 83,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a6",
-   "b": "launch_line_a7",
-   "max_vol_mm3": 22.909,
-   "n_states": 2413,
-   "worst_state": 3922,
+   "a": "launch_line_a11",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.503,
+   "n_states": 76,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a6",
-   "b": "launch_line_a8",
-   "max_vol_mm3": 22.906,
-   "n_states": 185,
-   "worst_state": 3922,
+   "a": "launch_line_a11",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.501,
+   "n_states": 75,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a7",
-   "b": "launch_line_a8",
-   "max_vol_mm3": 22.909,
-   "n_states": 2413,
-   "worst_state": 3922,
+   "a": "launch_line_a12",
+   "b": "launch_line_a13",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "telescoped model of one straight line"
   },
   {
-   "a": "launch_line_a7",
+   "a": "launch_line_a12",
+   "b": "launch_line_a14",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a12",
+   "b": "launch_line_a15",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a12",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a12",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a12",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.505,
+   "n_states": 74,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a12",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.504,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a12",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.503,
+   "n_states": 76,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a13",
+   "b": "launch_line_a14",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a13",
+   "b": "launch_line_a15",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a13",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a13",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a13",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a13",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.505,
+   "n_states": 74,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a13",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.504,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a14",
+   "b": "launch_line_a15",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a14",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a14",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a14",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a14",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a14",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.505,
+   "n_states": 74,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a15",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a15",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a15",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a15",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a15",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a16",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a16",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a16",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a16",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a16",
    "b": "launch_line_p",
-   "max_vol_mm3": 0.004,
-   "n_states": 8,
-   "worst_state": 3922,
+   "max_vol_mm3": 0.002,
+   "n_states": 1,
+   "worst_state": 3844,
    "phase": "fire",
    "t": 9.0,
    "why": "same line"
   },
   {
-   "a": "launch_line_a8",
+   "a": "launch_line_a17",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a17",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a17",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a17",
+   "b": "launch_line_p",
+   "max_vol_mm3": 0.004,
+   "n_states": 8,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "same line"
+  },
+  {
+   "a": "launch_line_a18",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a18",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a18",
+   "b": "launch_line_p",
+   "max_vol_mm3": 0.005,
+   "n_states": 8,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "same line"
+  },
+  {
+   "a": "launch_line_a19",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a19",
+   "b": "launch_line_p",
+   "max_vol_mm3": 0.006,
+   "n_states": 8,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "same line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a10",
+   "max_vol_mm3": 9.503,
+   "n_states": 76,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a11",
+   "max_vol_mm3": 9.501,
+   "n_states": 75,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a12",
+   "max_vol_mm3": 9.5,
+   "n_states": 71,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a13",
+   "max_vol_mm3": 9.499,
+   "n_states": 86,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a14",
+   "max_vol_mm3": 9.497,
+   "n_states": 85,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a15",
+   "max_vol_mm3": 9.496,
+   "n_states": 80,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.495,
+   "n_states": 80,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.493,
+   "n_states": 82,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.492,
+   "n_states": 78,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.491,
+   "n_states": 74,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.489,
+   "n_states": 71,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a3",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a4",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a5",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a6",
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a7",
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a8",
+   "max_vol_mm3": 9.505,
+   "n_states": 74,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a2",
+   "b": "launch_line_a9",
+   "max_vol_mm3": 9.504,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a20",
    "b": "launch_line_p",
    "max_vol_mm3": 0.008,
-   "n_states": 2296,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
    "why": "same line"
   },
   {
+   "a": "launch_line_a3",
+   "b": "launch_line_a10",
+   "max_vol_mm3": 9.504,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a11",
+   "max_vol_mm3": 9.503,
+   "n_states": 76,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a12",
+   "max_vol_mm3": 9.501,
+   "n_states": 75,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a13",
+   "max_vol_mm3": 9.5,
+   "n_states": 71,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a14",
+   "max_vol_mm3": 9.499,
+   "n_states": 86,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a15",
+   "max_vol_mm3": 9.497,
+   "n_states": 85,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.496,
+   "n_states": 80,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.495,
+   "n_states": 80,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.493,
+   "n_states": 82,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.492,
+   "n_states": 78,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.491,
+   "n_states": 74,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a4",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a5",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a6",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a7",
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a8",
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a3",
+   "b": "launch_line_a9",
+   "max_vol_mm3": 9.505,
+   "n_states": 74,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a10",
+   "max_vol_mm3": 9.505,
+   "n_states": 74,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a11",
+   "max_vol_mm3": 9.504,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a12",
+   "max_vol_mm3": 9.503,
+   "n_states": 76,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a13",
+   "max_vol_mm3": 9.501,
+   "n_states": 75,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a14",
+   "max_vol_mm3": 9.5,
+   "n_states": 71,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a15",
+   "max_vol_mm3": 9.499,
+   "n_states": 86,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.497,
+   "n_states": 85,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.496,
+   "n_states": 80,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.495,
+   "n_states": 80,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.493,
+   "n_states": 82,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.492,
+   "n_states": 78,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a5",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a6",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a7",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a8",
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a4",
+   "b": "launch_line_a9",
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a10",
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a11",
+   "max_vol_mm3": 9.505,
+   "n_states": 74,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a12",
+   "max_vol_mm3": 9.504,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a13",
+   "max_vol_mm3": 9.503,
+   "n_states": 76,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a14",
+   "max_vol_mm3": 9.501,
+   "n_states": 75,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a15",
+   "max_vol_mm3": 9.5,
+   "n_states": 71,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.499,
+   "n_states": 86,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.497,
+   "n_states": 85,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.496,
+   "n_states": 80,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.495,
+   "n_states": 80,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.493,
+   "n_states": 82,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a6",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a7",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a8",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a5",
+   "b": "launch_line_a9",
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a10",
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a11",
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a12",
+   "max_vol_mm3": 9.505,
+   "n_states": 74,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a13",
+   "max_vol_mm3": 9.504,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a14",
+   "max_vol_mm3": 9.503,
+   "n_states": 76,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a15",
+   "max_vol_mm3": 9.501,
+   "n_states": 75,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.5,
+   "n_states": 71,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.499,
+   "n_states": 86,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.497,
+   "n_states": 85,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.496,
+   "n_states": 80,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.495,
+   "n_states": 80,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a7",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a8",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a6",
+   "b": "launch_line_a9",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a7",
+   "b": "launch_line_a10",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a7",
+   "b": "launch_line_a11",
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a7",
+   "b": "launch_line_a12",
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a7",
+   "b": "launch_line_a13",
+   "max_vol_mm3": 9.505,
+   "n_states": 74,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a7",
+   "b": "launch_line_a14",
+   "max_vol_mm3": 9.504,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a7",
+   "b": "launch_line_a15",
+   "max_vol_mm3": 9.503,
+   "n_states": 76,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a7",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.501,
+   "n_states": 75,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a7",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.5,
+   "n_states": 71,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a7",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.499,
+   "n_states": 86,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a7",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.497,
+   "n_states": 85,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a7",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.496,
+   "n_states": 80,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a7",
+   "b": "launch_line_a8",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a7",
+   "b": "launch_line_a9",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a8",
+   "b": "launch_line_a10",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a8",
+   "b": "launch_line_a11",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a8",
+   "b": "launch_line_a12",
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a8",
+   "b": "launch_line_a13",
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a8",
+   "b": "launch_line_a14",
+   "max_vol_mm3": 9.505,
+   "n_states": 74,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a8",
+   "b": "launch_line_a15",
+   "max_vol_mm3": 9.504,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a8",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.503,
+   "n_states": 76,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a8",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.501,
+   "n_states": 75,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a8",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.5,
+   "n_states": 71,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a8",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.499,
+   "n_states": 86,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a8",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.497,
+   "n_states": 85,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a8",
+   "b": "launch_line_a9",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a9",
+   "b": "launch_line_a10",
+   "max_vol_mm3": 9.512,
+   "n_states": 2348,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a9",
+   "b": "launch_line_a11",
+   "max_vol_mm3": 9.511,
+   "n_states": 100,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a9",
+   "b": "launch_line_a12",
+   "max_vol_mm3": 9.509,
+   "n_states": 88,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a9",
+   "b": "launch_line_a13",
+   "max_vol_mm3": 9.508,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a9",
+   "b": "launch_line_a14",
+   "max_vol_mm3": 9.507,
+   "n_states": 81,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a9",
+   "b": "launch_line_a15",
+   "max_vol_mm3": 9.505,
+   "n_states": 74,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a9",
+   "b": "launch_line_a16",
+   "max_vol_mm3": 9.504,
+   "n_states": 83,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a9",
+   "b": "launch_line_a17",
+   "max_vol_mm3": 9.503,
+   "n_states": 76,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a9",
+   "b": "launch_line_a18",
+   "max_vol_mm3": 9.501,
+   "n_states": 75,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a9",
+   "b": "launch_line_a19",
+   "max_vol_mm3": 9.5,
+   "n_states": 71,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
+   "a": "launch_line_a9",
+   "b": "launch_line_a20",
+   "max_vol_mm3": 9.499,
+   "n_states": 86,
+   "worst_state": 3844,
+   "phase": "fire",
+   "t": 9.0,
+   "why": "telescoped model of one straight line"
+  },
+  {
    "a": "launch_muzzle_roller",
    "b": "launch_muzzle_roller_brg",
    "max_vol_mm3": 4.762,
-   "n_states": 2296,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
    "why": "693ZZ pressed in the roller"
   },
   {
-   "a": "launch_pulley_bot",
-   "b": "launch_pulley_bot_brg",
-   "max_vol_mm3": 4.762,
-   "n_states": 2296,
-   "worst_state": 0,
-   "phase": "load",
-   "t": 0.0,
-   "why": "693ZZ pressed in the pulley"
-  },
-  {
-   "a": "launch_pulley_piv",
-   "b": "launch_pulley_piv_brg",
-   "max_vol_mm3": 4.762,
-   "n_states": 2296,
-   "worst_state": 0,
-   "phase": "load",
-   "t": 0.0,
-   "why": "693ZZ pressed in the pulley"
-  },
-  {
-   "a": "launch_pulley_top",
-   "b": "launch_pulley_top_brg",
-   "max_vol_mm3": 4.762,
-   "n_states": 2296,
-   "worst_state": 0,
-   "phase": "load",
-   "t": 0.0,
-   "why": "693ZZ pressed in the pulley"
-  },
-  {
    "a": "launch_sleeve",
    "b": "launch_aim_drag_pad",
    "max_vol_mm3": 1.616,
-   "n_states": 5610,
-   "worst_state": 11334,
-   "phase": "rail_low",
-   "t": 12.377884615384616,
+   "n_states": 5599,
+   "worst_state": 957,
+   "phase": "aim",
+   "t": 3.5520408163265307,
    "why": "flexure pad tip bump bears on the sleeve d20 (0.45 preload interference)"
   },
   {
    "a": "launch_sprag",
    "b": "launch_sleeve",
    "max_vol_mm3": 223.789,
-   "n_states": 6964,
-   "worst_state": 11474,
+   "n_states": 6824,
+   "worst_state": 12492,
    "phase": "rail_low",
-   "t": 12.443720930232558,
+   "t": 13.007565011820331,
    "why": "sprag inner race on the keyed sleeve"
   },
   {
@@ -5332,7 +7057,7 @@
    "b": "launch_spring_l_1",
    "max_vol_mm3": 299.74,
    "n_states": 6,
-   "worst_state": 44580,
+   "worst_state": 46576,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "segmented spring model telescopes when the carriage overshoots"
@@ -5342,7 +7067,7 @@
    "b": "launch_spring_l_2",
    "max_vol_mm3": 299.74,
    "n_states": 6,
-   "worst_state": 44580,
+   "worst_state": 46576,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "segmented spring model telescopes when the carriage overshoots"
@@ -5352,7 +7077,7 @@
    "b": "launch_spring_l_3",
    "max_vol_mm3": 299.74,
    "n_states": 6,
-   "worst_state": 44580,
+   "worst_state": 46576,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "segmented spring model telescopes when the carriage overshoots"
@@ -5362,7 +7087,7 @@
    "b": "launch_spring_l_4",
    "max_vol_mm3": 299.74,
    "n_states": 6,
-   "worst_state": 44580,
+   "worst_state": 46576,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "segmented spring model telescopes when the carriage overshoots"
@@ -5372,7 +7097,7 @@
    "b": "launch_spring_l_4",
    "max_vol_mm3": 125.941,
    "n_states": 6,
-   "worst_state": 44580,
+   "worst_state": 46576,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "segmented spring model telescopes when the carriage overshoots"
@@ -5382,7 +7107,7 @@
    "b": "launch_spring_l_0",
    "max_vol_mm3": 125.941,
    "n_states": 6,
-   "worst_state": 44580,
+   "worst_state": 46576,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "segmented spring model telescopes when the carriage overshoots"
@@ -5392,7 +7117,7 @@
    "b": "launch_spring_r_1",
    "max_vol_mm3": 299.74,
    "n_states": 6,
-   "worst_state": 44580,
+   "worst_state": 46576,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "segmented spring model telescopes when the carriage overshoots"
@@ -5402,7 +7127,7 @@
    "b": "launch_spring_r_2",
    "max_vol_mm3": 299.74,
    "n_states": 6,
-   "worst_state": 44580,
+   "worst_state": 46576,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "segmented spring model telescopes when the carriage overshoots"
@@ -5412,7 +7137,7 @@
    "b": "launch_spring_r_3",
    "max_vol_mm3": 299.74,
    "n_states": 6,
-   "worst_state": 44580,
+   "worst_state": 46576,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "segmented spring model telescopes when the carriage overshoots"
@@ -5422,7 +7147,7 @@
    "b": "launch_spring_r_4",
    "max_vol_mm3": 299.74,
    "n_states": 6,
-   "worst_state": 44580,
+   "worst_state": 46576,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "segmented spring model telescopes when the carriage overshoots"
@@ -5432,7 +7157,7 @@
    "b": "launch_spring_r_4",
    "max_vol_mm3": 125.941,
    "n_states": 6,
-   "worst_state": 44580,
+   "worst_state": 46576,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "segmented spring model telescopes when the carriage overshoots"
@@ -5442,7 +7167,7 @@
    "b": "launch_spring_r_0",
    "max_vol_mm3": 125.941,
    "n_states": 6,
-   "worst_state": 44580,
+   "worst_state": 46576,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "segmented spring model telescopes when the carriage overshoots"
@@ -5452,7 +7177,7 @@
    "b": "launch_seat_plunger",
    "max_vol_mm3": 53.843,
    "n_states": 4,
-   "worst_state": 44580,
+   "worst_state": 46576,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "overshoot states only: R moves with the arm, the plunger foot stays 9.3 mm behind it"
@@ -5461,7 +7186,7 @@
    "a": "launch_sw_home",
    "b": "launch_sw_home_screw",
    "max_vol_mm3": 8.696,
-   "n_states": 2296,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
@@ -5471,7 +7196,7 @@
    "a": "launch_sw_seated",
    "b": "launch_sw_seated_screw",
    "max_vol_mm3": 8.696,
-   "n_states": 2296,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
@@ -5482,7 +7207,7 @@
    "b": "launch_stop_spring_l",
    "max_vol_mm3": 288.041,
    "n_states": 6,
-   "worst_state": 44576,
+   "worst_state": 46572,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "overshoot states only: the stop spring is drawn static; its rear bar moves with the arm pad and the peg front (flush with the arm face) stays 0.8 behind it"
@@ -5492,236 +7217,236 @@
    "b": "launch_stop_spring_r",
    "max_vol_mm3": 288.041,
    "n_states": 6,
-   "worst_state": 44576,
+   "worst_state": 46572,
    "phase": "launch_stop_overshoot",
    "t": null,
    "why": "overshoot states only: the stop spring is drawn static; its rear bar moves with the arm pad and the peg front (flush with the arm face) stays 0.8 behind it"
   },
   {
-   "a": "reel_bus",
+   "a": "reel_b1g",
+   "b": "reel_b1p",
+   "max_vol_mm3": 17.523,
+   "n_states": 10399,
+   "worst_state": 25306,
+   "phase": "tow",
+   "t": 89.82698412698414,
+   "why": "bevel mesh (approximate printed bevel model)"
+  },
+  {
+   "a": "reel_b2g",
+   "b": "reel_b2p",
+   "max_vol_mm3": 6.474,
+   "n_states": 27888,
+   "worst_state": 33171,
+   "phase": "reel_in",
+   "t": 96.49743589743589,
+   "why": "bevel mesh (approximate printed bevel model)"
+  },
+  {
+   "a": "reel_b3a",
+   "b": "reel_b3b",
+   "max_vol_mm3": 6.474,
+   "n_states": 28394,
+   "worst_state": 33171,
+   "phase": "reel_in",
+   "t": 96.49743589743589,
+   "why": "bevel mesh (approximate printed bevel model)"
+  },
+  {
+   "a": "reel_brg_1",
+   "b": "reel_s",
+   "max_vol_mm3": 0.004,
+   "n_states": 19175,
+   "worst_state": 20008,
+   "phase": "wrap",
+   "t": 55.440000000000005,
+   "why": "journal in the inner race"
+  },
+  {
+   "a": "reel_brg_2",
+   "b": "reel_s",
+   "max_vol_mm3": 0.004,
+   "n_states": 19175,
+   "worst_state": 20008,
+   "phase": "wrap",
+   "t": 55.440000000000005,
+   "why": "journal in the inner race"
+  },
+  {
+   "a": "reel_bridge",
+   "b": "reel_stub",
+   "max_vol_mm3": 9.108,
+   "n_states": 2307,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "stub pressed into the plate"
+  },
+  {
+   "a": "reel_c1p",
    "b": "reel_swing_arm",
-   "max_vol_mm3": 23.248,
-   "n_states": 17196,
-   "worst_state": 2691,
-   "phase": "aim",
-   "t": 5.444,
-   "why": "split arm ring grips the bus gear hub (drag)"
-  },
-  {
-   "a": "reel_c",
-   "b": "reel_gc",
-   "max_vol_mm3": 2.786,
-   "n_states": 2296,
-   "worst_state": 0,
-   "phase": "load",
-   "t": 0.0,
-   "why": "D-flat fit"
-  },
-  {
-   "a": "reel_crank",
-   "b": "reel_firm_screw",
-   "max_vol_mm3": 12.774,
-   "n_states": 731,
-   "worst_state": 17196,
-   "phase": "neutral",
-   "t": 22.3,
-   "why": "arm B lifts the screw tip: the leg bends 2.1 mm at FIRM (static rocker in the model)"
-  },
-  {
-   "a": "reel_exit_post",
-   "b": "reel_p1_axle",
-   "max_vol_mm3": 16.853,
-   "n_states": 2296,
-   "worst_state": 0,
-   "phase": "load",
-   "t": 0.0,
-   "why": "axle through the fork cheeks"
+   "max_vol_mm3": 145.756,
+   "n_states": 17136,
+   "worst_state": 30826,
+   "phase": "tow",
+   "t": 92.10522875816994,
+   "why": "split ring grips c1's hub (drag)"
   },
   {
    "a": "reel_gk",
    "b": "reel_sw_lever",
    "max_vol_mm3": 11.558,
-   "n_states": 6939,
-   "worst_state": 18461,
+   "n_states": 9375,
+   "worst_state": 18804,
    "phase": "wrap",
-   "t": 43.400000000000006,
+   "t": 44.41818181818182,
    "why": "the track holds the lever down (contact closed) except at home"
   },
   {
-   "a": "reel_p1_brg",
-   "b": "reel_p1_axle",
-   "max_vol_mm3": 0.007,
-   "n_states": 2296,
+   "a": "reel_head_p1",
+   "b": "reel_gb_axle",
+   "max_vol_mm3": 8.772,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
-   "why": "axle through the inner race"
+   "why": "axle pressed into P1"
   },
   {
-   "a": "reel_p2_brg",
-   "b": "reel_p2_axle",
-   "max_vol_mm3": 0.007,
-   "n_states": 2296,
+   "a": "reel_head_p1",
+   "b": "reel_lever_pin",
+   "max_vol_mm3": 7.827,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
-   "why": "axle through the inner race"
+   "why": "pivot screw tapped into the post"
   },
   {
-   "a": "reel_pulley1",
-   "b": "reel_p1_brg",
-   "max_vol_mm3": 1.157,
-   "n_states": 2296,
+   "a": "reel_head_p1",
+   "b": "reel_light_screw",
+   "max_vol_mm3": 17.393,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
-   "why": "693ZZ pressed in the pulley"
+   "why": "screw tapped into P1"
   },
   {
-   "a": "reel_pulley2",
-   "b": "reel_p2_brg",
-   "max_vol_mm3": 1.157,
-   "n_states": 2296,
+   "a": "reel_k",
+   "b": "reel_cup_clip",
+   "max_vol_mm3": 0.577,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
-   "why": "693ZZ pressed in the pulley"
+   "why": "clip on the neck"
   },
   {
-   "a": "reel_rocker",
-   "b": "reel_crank",
-   "max_vol_mm3": 22.155,
-   "n_states": 713,
-   "worst_state": 17194,
-   "phase": "neutral",
-   "t": 22.200000000000003,
-   "why": "arm B rises under the static leg (the real leg moves 2.1 mm away first)"
-  },
-  {
-   "a": "reel_rocker",
+   "a": "reel_lever",
    "b": "reel_firm_screw",
-   "max_vol_mm3": 9.566,
-   "n_states": 2296,
+   "max_vol_mm3": 63.669,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
-   "why": "FIRM screw tapped through the leg, lock nut on its front"
-  },
-  {
-   "a": "reel_rocker",
-   "b": "reel_trim_screws",
-   "max_vol_mm3": 20.871,
-   "n_states": 2296,
-   "worst_state": 0,
-   "phase": "load",
-   "t": 0.0,
-   "why": "trim screws tapped into the rocker bosses"
-  },
-  {
-   "a": "reel_s",
-   "b": "reel_brg_1",
-   "max_vol_mm3": 0.005,
-   "n_states": 17939,
-   "worst_state": 27145,
-   "phase": "tow",
-   "t": 90.7134328358209,
-   "why": "journal in the inner race"
-  },
-  {
-   "a": "reel_s",
-   "b": "reel_brg_2",
-   "max_vol_mm3": 0.005,
-   "n_states": 17939,
-   "worst_state": 27145,
-   "phase": "tow",
-   "t": 90.7134328358209,
-   "why": "journal in the inner race"
+   "why": "FIRM screw tapped through the lever tip"
   },
   {
    "a": "reel_spool",
    "b": "reel_brg_1",
-   "max_vol_mm3": 3.709,
-   "n_states": 2296,
+   "max_vol_mm3": 5.876,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
-   "why": "608 pressed in the reel"
+   "why": "608 pressed in the spool"
   },
   {
    "a": "reel_spool",
    "b": "reel_brg_2",
-   "max_vol_mm3": 6.961,
-   "n_states": 2296,
+   "max_vol_mm3": 5.876,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
-   "why": "608 pressed in the reel"
+   "why": "608 pressed in the spool"
   },
   {
    "a": "reel_sprag",
-   "b": "reel_c",
-   "max_vol_mm3": 180.003,
-   "n_states": 7878,
-   "worst_state": 27127,
+   "b": "reel_cs_c",
+   "max_vol_mm3": 231.293,
+   "n_states": 6788,
+   "worst_state": 24186,
    "phase": "tow",
-   "t": 90.70671641791046,
-   "why": "C rib in the sprag inner keyway, inner race on C (model is one solid)"
+   "t": 89.34694835680752,
+   "why": "key rib in the sprag inner keyway (model is one solid)"
   },
   {
    "a": "reel_sprag_hub",
    "b": "reel_sprag",
    "max_vol_mm3": 9.898,
-   "n_states": 2296,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
    "why": "CSK20PP pressed in its crush-rib seat, outer key rib"
   },
   {
+   "a": "reel_stub",
+   "b": "reel_swing_arm",
+   "max_vol_mm3": 75.117,
+   "n_states": 2307,
+   "worst_state": 0,
+   "phase": "load",
+   "t": 0.0,
+   "why": "arm ring on the stub end"
+  },
+  {
    "a": "reel_sw_lever",
    "b": "reel_sw_hw",
    "max_vol_mm3": 8.696,
-   "n_states": 2296,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
    "why": "contact screw in the lever, nut in the base trap"
   },
   {
-   "a": "reel_wall",
-   "b": "reel_bar_screws",
-   "max_vol_mm3": 55.309,
-   "n_states": 2296,
-   "worst_state": 0,
-   "phase": "load",
-   "t": 0.0,
-   "why": "cap screws tapped into the guides"
+   "a": "reel_t",
+   "b": "reel_firm_screw",
+   "max_vol_mm3": 0.375,
+   "n_states": 127,
+   "worst_state": 20970,
+   "phase": "wrap",
+   "t": 68.60000000000001,
+   "why": "FIRM screw tip on the thrust ring: the leaf bends about 3 mm at FIRM (static lever leaf in the model)"
   },
   {
-   "a": "reel_wall",
-   "b": "reel_crank_screw",
-   "max_vol_mm3": 32.698,
-   "n_states": 2296,
-   "worst_state": 0,
-   "phase": "load",
-   "t": 0.0,
-   "why": "screw tapped into the crank boss"
+   "a": "reel_uc",
+   "b": "reel_bridge",
+   "max_vol_mm3": 1958.721,
+   "n_states": 12732,
+   "worst_state": 1204,
+   "phase": "aim",
+   "t": 3.7990099009900993,
+   "why": "journal in the bridge block"
   },
   {
-   "a": "reel_wall",
-   "b": "reel_hub_screws",
-   "max_vol_mm3": 32.509,
-   "n_states": 2296,
+   "a": "reel_ut",
+   "b": "reel_b2p",
+   "max_vol_mm3": 2.82,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
-   "why": "screws through the wall"
+   "why": "D-flat fit"
   },
   {
    "a": "sensors_as5600_nut_bot",
    "b": "sensors_as5600_screw_bot",
    "max_vol_mm3": 0.03,
-   "n_states": 2296,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
@@ -5731,7 +7456,7 @@
    "a": "sensors_as5600_nut_top",
    "b": "sensors_as5600_screw_top",
    "max_vol_mm3": 0.03,
-   "n_states": 2296,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
@@ -5741,7 +7466,7 @@
    "a": "sensors_sw_gap_lever",
    "b": "sensors_sw_gap_screw",
    "max_vol_mm3": 8.696,
-   "n_states": 2296,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
@@ -5751,7 +7476,7 @@
    "a": "sensors_sw_rail_low_lever",
    "b": "sensors_sw_rail_low_screw",
    "max_vol_mm3": 8.696,
-   "n_states": 2296,
+   "n_states": 2307,
    "worst_state": 0,
    "phase": "load",
    "t": 0.0,
@@ -5760,27 +7485,15 @@
  ],
  "clearances": [
   {
-   "a": "drum_drum_a",
+   "a": "drum_drum_b",
    "b": "drum_idler",
-   "rule": "drum_drum_a / drum_idler",
+   "rule": "drum_drum_b / drum_idler",
    "min_mm": 0.0,
    "gap": 0.01,
    "ok": true,
-   "worst_state": 17378,
+   "worst_state": 17465,
    "phase": "wrap",
    "why": "segment gear, locking arc and wrap pinion",
-   "note": ""
-  },
-  {
-   "a": "drum_drum_a",
-   "b": "drum_idler_gear",
-   "rule": "drum_drum_a / drum_idler_gear",
-   "min_mm": 0.8,
-   "gap": 1.331,
-   "ok": true,
-   "worst_state": 19661,
-   "phase": "wrap",
-   "why": "idler output gear over the drum neck",
    "note": ""
   },
   {
@@ -5790,19 +7503,19 @@
    "min_mm": 0.0,
    "gap": 0.105,
    "ok": true,
-   "worst_state": 36218,
-   "phase": "unwrap",
+   "worst_state": 18650,
+   "phase": "wrap",
    "why": "N20 mesh",
    "note": ""
   },
   {
-   "a": "drum_drum_b",
-   "b": "drum_fork",
-   "rule": "drum_drum_b / drum_fork",
+   "a": "drum_drum_a",
+   "b": "drum_follower",
+   "rule": "drum_drum_a / drum_follower",
    "min_mm": 0.05,
    "gap": 0.171,
    "ok": true,
-   "worst_state": 21842,
+   "worst_state": 22331,
    "phase": "reel_engage",
    "why": "follower pin in groove 1",
    "note": ""
@@ -5814,7 +7527,7 @@
    "min_mm": 0.0,
    "gap": 0.284,
    "ok": true,
-   "worst_state": 20507,
+   "worst_state": 20976,
    "phase": "wrap",
    "why": "code levers ride the bands",
    "note": ""
@@ -5826,7 +7539,7 @@
    "min_mm": 0.0,
    "gap": 0.49,
    "ok": true,
-   "worst_state": 21996,
+   "worst_state": 22504,
    "phase": "reel_engage",
    "why": "dogs",
    "note": ""
@@ -5886,7 +7599,7 @@
    "min_mm": 0.0,
    "gap": 0.0,
    "ok": true,
-   "worst_state": 3295,
+   "worst_state": 3217,
    "phase": "cock",
    "why": "carriage slides in the track",
    "note": ""
@@ -5898,7 +7611,7 @@
    "min_mm": 0.0,
    "gap": 0.105,
    "ok": true,
-   "worst_state": 3172,
+   "worst_state": 3094,
    "phase": "cock",
    "why": "mesh",
    "note": ""
@@ -5934,7 +7647,7 @@
    "min_mm": 1.0,
    "gap": 4.0,
    "ok": true,
-   "worst_state": 44578,
+   "worst_state": 46574,
    "phase": "launch_stop_overshoot",
    "why": "lug bracket under the springs",
    "note": ""
@@ -5952,75 +7665,63 @@
    "note": ""
   },
   {
-   "a": "reel_sprag_hub",
-   "b": "reel_drum",
-   "rule": "reel_drum / reel_sprag_hub",
-   "min_mm": 0.5,
-   "gap": 1.0,
+   "a": "reel_spool",
+   "b": "reel_shroud",
+   "rule": "reel_spool / reel_shroud",
+   "min_mm": 1.0,
+   "gap": 2.484,
    "ok": true,
-   "worst_state": 22072,
-   "phase": "tow",
-   "why": "drum flange in front of the hub",
+   "worst_state": 6676,
+   "phase": "flight",
+   "why": "spool turns inside the shroud",
    "note": ""
   },
   {
-   "a": "reel_bus",
-   "b": "reel_gi",
-   "rule": "reel_bus / reel_gi",
+   "a": "reel_ga",
+   "b": "reel_gb",
+   "rule": "reel_ga / reel_gb",
    "min_mm": 0.0,
    "gap": 0.105,
    "ok": true,
-   "worst_state": 35123,
-   "phase": "unwrap",
+   "worst_state": 30936,
+   "phase": "tow",
+   "why": "mesh",
+   "note": ""
+  },
+  {
+   "a": "reel_gc",
+   "b": "reel_gb",
+   "rule": "reel_gb / reel_gc",
+   "min_mm": 0.0,
+   "gap": 0.105,
+   "ok": true,
+   "worst_state": 25580,
+   "phase": "tow",
+   "why": "mesh",
+   "note": ""
+  },
+  {
+   "a": "reel_c1p",
+   "b": "reel_gi",
+   "rule": "reel_c1p / reel_gi",
+   "min_mm": 0.0,
+   "gap": 0.105,
+   "ok": true,
+   "worst_state": 23035,
+   "phase": "tow",
    "why": "mesh",
    "note": ""
   },
   {
    "a": "reel_gi",
-   "b": "reel_gr",
-   "rule": "reel_gi / reel_gr",
+   "b": "reel_t1",
+   "rule": "reel_gi / reel_t1",
    "min_mm": 0.0,
    "gap": 0.105,
    "ok": true,
-   "worst_state": 12458,
-   "phase": "rail_low",
+   "worst_state": 21230,
+   "phase": "tidy",
    "why": "mesh",
-   "note": ""
-  },
-  {
-   "a": "reel_wall",
-   "b": "reel_spool",
-   "rule": "reel_spool / reel_wall",
-   "min_mm": 0.3,
-   "gap": 5.0,
-   "ok": true,
-   "worst_state": 0,
-   "phase": "load",
-   "why": "reel spins in front of the wall",
-   "note": ""
-  },
-  {
-   "a": "reel_spool",
-   "b": "reel_shroud",
-   "rule": "reel_spool* / reel_shroud",
-   "min_mm": 1.0,
-   "gap": 3.476,
-   "ok": true,
-   "worst_state": 33065,
-   "phase": "reel_in",
-   "why": "reel spins inside the shroud",
-   "note": ""
-  },
-  {
-   "a": "reel_spool",
-   "b": "reel_rocker",
-   "rule": "reel_spool / reel_rocker",
-   "min_mm": 0.3,
-   "gap": 5.0,
-   "ok": true,
-   "worst_state": 0,
-   "phase": "load",
-   "why": "rocker behind the reel",
    "note": ""
   },
   {
@@ -6054,21 +7755,9 @@
    "min_mm": 0.4,
    "gap": 1.25,
    "ok": true,
-   "worst_state": 33605,
+   "worst_state": 34731,
    "phase": "unload",
    "why": "clamp screw tips vs the magnet cap",
-   "note": ""
-  },
-  {
-   "a": "reel_p2_post",
-   "b": "sensors_sw_gap",
-   "rule": "sensors_sw_gap / reel_p2_post",
-   "min_mm": 2.5,
-   "gap": 7.5,
-   "ok": true,
-   "worst_state": 0,
-   "phase": "load",
-   "why": "SW_GAP under the rail vs cad-reel's pulley 2 arm",
    "note": ""
   },
   {
@@ -6078,7 +7767,7 @@
    "min_mm": 1.5,
    "gap": 1.989,
    "ok": true,
-   "worst_state": 14146,
+   "worst_state": 13749,
    "phase": "rail_low",
    "why": "SW_GAP vs the launch sleeve flange",
    "note": ""
@@ -6088,7 +7777,7 @@
    "b": "sensors_sw_gap",
    "rule": "sensors_sw_gap / drum_dog_post",
    "min_mm": 1.0,
-   "gap": 1.503,
+   "gap": 5.0,
    "ok": true,
    "worst_state": 0,
    "phase": "load",
@@ -6100,13 +7789,23 @@
  "checks": [],
  "warns": [
   "Allow('drum_shaft', 'drum_coupler') never matched an overlap: remove it or narrow it",
-  "Allow('drum_rail', 'drum_dog_post') never matched an overlap: remove it or narrow it",
   "Allow('drum_n20', 'drum_n20_cradle') never matched an overlap: remove it or narrow it",
   "Allow('drum_n20', 'drum_n20_strap') never matched an overlap: remove it or narrow it",
-  "Allow('drum_n20', 'drum_bracket_a') never matched an overlap: remove it or narrow it",
+  "Allow('drum_n20', 'reel_head_front') never matched an overlap: remove it or narrow it",
+  "Allow('drum_n20_cradle', 'reel_head_front') never matched an overlap: remove it or narrow it",
   "Allow('drum_idler_gear', 'drum_idler') never matched an overlap: remove it or narrow it",
-  "Allow('drum_hand_lever', 'drum_drum_b') never matched an overlap: remove it or narrow it",
+  "Allow('drum_idler', 'drum_bracket_b') never matched an overlap: remove it or narrow it",
+  "Allow('drum_idler', 'reel_head_p2') never matched an overlap: remove it or narrow it",
+  "Allow('drum_rod', 'drum_follower') never matched an overlap: remove it or narrow it",
   "Allow('drum_drum_a', 'drum_drum_b') never matched an overlap: remove it or narrow it",
+  "Allow('drum_drum_*', 'drum_axle') never matched an overlap: remove it or narrow it",
+  "Allow('drum_follower', 'drum_drum_a') never matched an overlap: remove it or narrow it",
+  "Allow('drum_link', 'drum_link_eye_*') never matched an overlap: remove it or narrow it",
+  "Allow('drum_shift_rail', 'drum_fork') never matched an overlap: remove it or narrow it",
+  "Allow('drum_shift_rail', 'drum_dog_post') never matched an overlap: remove it or narrow it",
+  "Allow('drum_crank', 'drum_fork') never matched an overlap: remove it or narrow it",
+  "Allow('drum_bracket_b', 'reel_head_spine') never matched an overlap: remove it or narrow it",
+  "Allow('drum_switch_block', 'reel_head_spine') never matched an overlap: remove it or narrow it",
   "Allow('drum_shear_pin', 'drum_coupler*') never matched an overlap: remove it or narrow it",
   "Allow('drum_magnet_cap', 'drum_shaft') never matched an overlap: remove it or narrow it",
   "Allow('frame_wiper_shaft', 'frame_wiper_motor') never matched an overlap: remove it or narrow it",
@@ -6137,35 +7836,46 @@
   "Allow('launch_anchor_pin_*', 'launch_rail_front') never matched an overlap: remove it or narrow it",
   "Allow('launch_spring_*_hook_c', 'launch_yoke_peg_*') never matched an overlap: remove it or narrow it",
   "Allow('launch_seat_clip', 'launch_seat_plunger') never matched an overlap: remove it or narrow it",
-  "Allow('launch_pulley_*_axle', 'launch_pulley_*_brg') never matched an overlap: remove it or narrow it",
-  "Allow('launch_line_*', 'launch_pulley_*') never matched an overlap: remove it or narrow it",
   "Allow('launch_line_p', 'launch_carriage') never matched an overlap: remove it or narrow it",
   "Allow('launch_line_p', 'launch_dart') never matched an overlap: remove it or narrow it",
   "Allow('launch_muzzle_roller_axle', 'launch_muzzle_roller_brg') never matched an overlap: remove it or narrow it",
   "Allow('launch_muzzle_roller_axle', 'launch_muzzle_washer_*') never matched an overlap: remove it or narrow it",
   "Allow('launch_line_*', 'launch_muzzle_roller') never matched an overlap: remove it or narrow it",
-  "Allow('reel_hub_screws', 'reel_sprag_hub') never matched an overlap: remove it or narrow it",
-  "Allow('reel_sprag_hub', 'reel_c') never matched an overlap: remove it or narrow it",
-  "Allow('reel_sprag_hub', 'reel_wall') never matched an overlap: remove it or narrow it",
-  "Allow('reel_c', 'reel_c_clip') never matched an overlap: remove it or narrow it",
   "Allow('reel_c', 'reel_drum') never matched an overlap: remove it or narrow it",
-  "Allow('reel_c', 'reel_bus') never matched an overlap: remove it or narrow it",
+  "Allow('reel_c', 'reel_gc') never matched an overlap: remove it or narrow it",
+  "Allow('reel_c', 'reel_head_p1*') never matched an overlap: remove it or narrow it",
   "Allow('reel_k', 'reel_cup') never matched an overlap: remove it or narrow it",
-  "Allow('reel_k', 'reel_cup_clip') never matched an overlap: remove it or narrow it",
   "Allow('reel_k', 'reel_gk') never matched an overlap: remove it or narrow it",
-  "Allow('reel_k', 'reel_k_clip') never matched an overlap: remove it or narrow it",
-  "Allow('reel_swing_arm', 'reel_gi') never matched an overlap: remove it or narrow it",
-  "Allow('reel_s', 'reel_gr') never matched an overlap: remove it or narrow it",
-  "Allow('reel_s', 'reel_s_clip') never matched an overlap: remove it or narrow it",
-  "Allow('reel_spool', 'reel_spool_flange') never matched an overlap: remove it or narrow it",
-  "Allow('reel_rocker_pin', 'reel_wall') never matched an overlap: remove it or narrow it",
-  "Allow('reel_rocker_pin', 'reel_rocker') never matched an overlap: remove it or narrow it",
+  "Allow('reel_k', 'reel_c') never matched an overlap: remove it or narrow it",
+  "Allow('reel_k', 'reel_head_p2') never matched an overlap: remove it or narrow it",
+  "Allow('reel_uc', 'reel_ga') never matched an overlap: remove it or narrow it",
+  "Allow('reel_uc', 'reel_b1p') never matched an overlap: remove it or narrow it",
+  "Allow('reel_uc', 'reel_head_p1') never matched an overlap: remove it or narrow it",
+  "Allow('reel_gb_axle', 'reel_gb') never matched an overlap: remove it or narrow it",
+  "Allow('reel_ut', 'reel_b3a') never matched an overlap: remove it or narrow it",
+  "Allow('reel_ut', 'reel_head_front') never matched an overlap: remove it or narrow it",
+  "Allow('reel_ut', 'reel_bridge') never matched an overlap: remove it or narrow it",
+  "Allow('reel_s', 'reel_b3b') never matched an overlap: remove it or narrow it",
+  "Allow('reel_s', 'reel_head_mid') never matched an overlap: remove it or narrow it",
+  "Allow('reel_s', 'reel_head_p1') never matched an overlap: remove it or narrow it",
+  "Allow('reel_s', 'reel_t') never matched an overlap: remove it or narrow it",
+  "Allow('reel_t', 'reel_brg_1') never matched an overlap: remove it or narrow it",
+  "Allow('reel_d', 'reel_spool') never matched an overlap: remove it or narrow it",
+  "Allow('reel_s', 'reel_d') never matched an overlap: remove it or narrow it",
+  "Allow('reel_lever_pin', 'reel_lever') never matched an overlap: remove it or narrow it",
   "Allow('reel_sw_lever', 'reel_sw_base') never matched an overlap: remove it or narrow it",
-  "Allow('reel_p2_axle', 'reel_p2_fork') never matched an overlap: remove it or narrow it",
-  "Allow('reel_p2_clip', 'reel_p2_fork') never matched an overlap: remove it or narrow it",
-  "Allow('reel_trim_screws', 'reel_t') never matched an overlap: remove it or narrow it",
-  "Allow('reel_crank_washer', 'reel_crank_screw') never matched an overlap: remove it or narrow it",
-  "Allow('reel_bar_screws', 'reel_bar_cap_*') never matched an overlap: remove it or narrow it",
+  "Allow('reel_sw_base', 'reel_head_p2') never matched an overlap: remove it or narrow it",
+  "Allow('reel_cs_c', 'reel_c1') never matched an overlap: remove it or narrow it",
+  "Allow('reel_cs_c', 'reel_b1g') never matched an overlap: remove it or narrow it",
+  "Allow('reel_cs_c', 'reel_bridge') never matched an overlap: remove it or narrow it",
+  "Allow('reel_cs_c', 'reel_sprag_hub') never matched an overlap: remove it or narrow it",
+  "Allow('reel_stub', 'reel_c1p') never matched an overlap: remove it or narrow it",
+  "Allow('reel_swing_arm', 'reel_gi') never matched an overlap: remove it or narrow it",
+  "Allow('reel_cs_t', 'reel_t1') never matched an overlap: remove it or narrow it",
+  "Allow('reel_cs_t', 'reel_b2g') never matched an overlap: remove it or narrow it",
+  "Allow('reel_cs_t', 'reel_bridge') never matched an overlap: remove it or narrow it",
+  "Allow('reel_shroud', 'reel_head_p1') never matched an overlap: remove it or narrow it",
+  "Allow('launch_line_a*', 'reel_cup') never matched an overlap: remove it or narrow it",
   "Allow('sensors_sw_rail_low_jam', 'sensors_sw_rail_low_screw') never matched an overlap: remove it or narrow it",
   "Allow('sensors_sw_rail_low_nut', 'sensors_sw_rail_low') never matched an overlap: remove it or narrow it",
   "Allow('sensors_sw_gap_jam', 'sensors_sw_gap_screw') never matched an overlap: remove it or narrow it",
@@ -6176,103 +7886,115 @@
   "joint launch_spring_seg_3 is geared to launch_carriage (ratio 0.3) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
   "joint launch_spring_seg_4 is geared to launch_carriage (ratio 0.1) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
   "joint launch_line_a0 is geared to launch_carriage (ratio 0) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
-  "joint launch_line_a1 is geared to launch_carriage (ratio 0.125) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
-  "joint launch_line_a2 is geared to launch_carriage (ratio 0.25) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
-  "joint launch_line_a3 is geared to launch_carriage (ratio 0.375) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
-  "joint launch_line_a4 is geared to launch_carriage (ratio 0.5) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
-  "joint launch_line_a5 is geared to launch_carriage (ratio 0.625) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
-  "joint launch_line_a6 is geared to launch_carriage (ratio 0.75) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
-  "joint launch_line_a7 is geared to launch_carriage (ratio 0.875) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a1 is geared to launch_carriage (ratio 0.05) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a2 is geared to launch_carriage (ratio 0.1) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a3 is geared to launch_carriage (ratio 0.15) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a4 is geared to launch_carriage (ratio 0.2) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a5 is geared to launch_carriage (ratio 0.25) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a6 is geared to launch_carriage (ratio 0.3) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a7 is geared to launch_carriage (ratio 0.35) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a8 is geared to launch_carriage (ratio 0.4) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a9 is geared to launch_carriage (ratio 0.45) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a10 is geared to launch_carriage (ratio 0.5) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a11 is geared to launch_carriage (ratio 0.55) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a12 is geared to launch_carriage (ratio 0.6) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a13 is geared to launch_carriage (ratio 0.65) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a14 is geared to launch_carriage (ratio 0.7) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a15 is geared to launch_carriage (ratio 0.75) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a16 is geared to launch_carriage (ratio 0.8) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a17 is geared to launch_carriage (ratio 0.85) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a18 is geared to launch_carriage (ratio 0.9) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
+  "joint launch_line_a19 is geared to launch_carriage (ratio 0.95) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
   "joint launch_aim_cshaft is geared to launch_aim_crank (ratio -10) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked",
   "joint launch_aim_worm is geared to launch_aim_crank (ratio -20) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked"
  ],
  "stats": {
-  "chunked_parts": 17,
-  "chunks": 374,
-  "triangles": 970076,
-  "envelope_cleared_pairs": 343,
-  "cropped_pairs": 97,
-  "substates": 42052,
-  "candidate_pair_states": 3102625,
-  "distinct_poses": 1428634,
-  "exact_items": 1220910,
-  "exact_chunk_pairs": 3135690,
+  "chunked_parts": 18,
+  "chunks": 372,
+  "triangles": 1006068,
+  "envelope_cleared_pairs": 56,
+  "cropped_pairs": 41,
+  "substates": 44355,
+  "candidate_pair_states": 4585724,
+  "distinct_poses": 2845085,
+  "exact_items": 2026179,
+  "exact_chunk_pairs": 3889766,
   "busiest_pairs": [
    {
     "a": "launch_aim_worm",
     "b": "launch_aim_crank",
-    "poses": 8989,
-    "chunk_pairs": 394808
+    "poses": 8969,
+    "chunk_pairs": 394214
    },
    {
     "a": "launch_aim_worm",
     "b": "launch_aim_housing",
-    "poses": 8503,
-    "chunk_pairs": 288343
+    "poses": 8102,
+    "chunk_pairs": 274682
    },
    {
     "a": "launch_aim_worm",
     "b": "launch_aim_cap",
-    "poses": 8503,
-    "chunk_pairs": 258838
+    "poses": 8102,
+    "chunk_pairs": 246741
    },
    {
     "a": "drum_coupler",
-    "b": "drum_fork",
-    "poses": 15189,
-    "chunk_pairs": 121512
+    "b": "reel_bridge",
+    "poses": 13860,
+    "chunk_pairs": 110880
    },
    {
     "a": "launch_aim_output",
     "b": "launch_aim_worm",
-    "poses": 10304,
-    "chunk_pairs": 115104
+    "poses": 9437,
+    "chunk_pairs": 105403
    },
    {
     "a": "drum_coupler",
     "b": "drum_gear_reel",
-    "poses": 9591,
-    "chunk_pairs": 105606
+    "poses": 9435,
+    "chunk_pairs": 103908
    },
    {
     "a": "launch_aim_bevel30",
     "b": "launch_aim_worm",
-    "poses": 10304,
-    "chunk_pairs": 86310
-   },
-   {
-    "a": "reel_c",
-    "b": "reel_bus",
-    "poses": 18312,
-    "chunk_pairs": 73248
+    "poses": 9437,
+    "chunk_pairs": 79020
    },
    {
     "a": "drum_coupler",
-    "b": "reel_bus",
-    "poses": 15995,
-    "chunk_pairs": 69200
+    "b": "reel_c1p",
+    "poses": 15925,
+    "chunk_pairs": 67445
    },
    {
-    "a": "reel_bus",
-    "b": "reel_k",
-    "poses": 16290,
-    "chunk_pairs": 65160
+    "a": "drum_coupler",
+    "b": "drum_fork",
+    "poses": 15010,
+    "chunk_pairs": 60040
    },
    {
-    "a": "drum_fork",
-    "b": "reel_bus",
-    "poses": 15515,
-    "chunk_pairs": 62060
-   },
-   {
-    "a": "reel_bus",
+    "a": "reel_c1p",
     "b": "reel_swing_arm",
-    "poses": 14267,
-    "chunk_pairs": 57068
+    "poses": 14247,
+    "chunk_pairs": 56988
+   },
+   {
+    "a": "reel_bridge",
+    "b": "reel_c1p",
+    "poses": 14206,
+    "chunk_pairs": 56824
+   },
+   {
+    "a": "drum_shaft",
+    "b": "launch_drive_gear",
+    "poses": 13483,
+    "chunk_pairs": 53932
    }
   ],
-  "clearance_evals": 195158,
-  "given_states": 2296
+  "clearance_evals": 177756,
+  "given_states": 2307
  },
  "contact_graph": {
   "drum_coupler_hub": [
@@ -6286,7 +8008,7 @@
    "drum_reel_washer",
    "drum_shaft",
    "drum_shear_pin",
-   "reel_bus"
+   "reel_c1p"
   ],
   "drum_shear_pin": [
    "drum_coupler",
@@ -6307,7 +8029,7 @@
   "drum_gear_reel": [
    "drum_coupler",
    "drum_reel_washer",
-   "reel_gc"
+   "reel_c1"
   ],
   "drum_collar": [
    "drum_shaft"
@@ -6315,30 +8037,50 @@
   "drum_dogring_launch": [
    "launch_sleeve"
   ],
+  "drum_index_block": [
+   "drum_index_lever",
+   "frame_motor_adapter"
+  ],
+  "drum_index_lever": [
+   "drum_index_block"
+  ],
+  "drum_magnet_cap": [
+   "drum_shaft"
+  ],
   "drum_drum_a": [
    "drum_axle",
    "drum_drum_b",
+   "drum_follower",
    "drum_n20_pinion"
   ],
   "drum_drum_b": [
    "drum_axle",
-   "drum_drum_a",
-   "drum_hand_lever"
+   "drum_drum_a"
   ],
   "drum_axle": [
-   "drum_bracket_a",
    "drum_bracket_b",
    "drum_drum_a",
-   "drum_drum_b"
+   "drum_drum_b",
+   "reel_head_front"
+  ],
+  "drum_rod": [
+   "drum_bracket_b",
+   "drum_follower",
+   "reel_head_front"
+  ],
+  "drum_follower": [
+   "drum_drum_a",
+   "drum_link_eye_1",
+   "drum_rod"
   ],
   "drum_idler_gear": [
    "drum_idler",
    "reel_gk"
   ],
   "drum_idler": [
-   "drum_bracket_idler",
-   "drum_bracket_idler2",
-   "drum_idler_gear"
+   "drum_bracket_b",
+   "drum_idler_gear",
+   "reel_head_p2"
   ],
   "drum_n20_pinion": [
    "drum_drum_a",
@@ -6349,75 +8091,61 @@
    "drum_n20_pinion"
   ],
   "drum_n20_cradle": [
-   "drum_bracket_a",
    "drum_n20",
-   "drum_n20_strap"
+   "drum_n20_strap",
+   "reel_head_front"
   ],
   "drum_n20_strap": [
    "drum_n20_cradle"
   ],
-  "drum_fork": [
-   "drum_rail"
-  ],
-  "drum_dog_post": [
-   "drum_rail"
-  ],
-  "drum_rail": [
-   "drum_bracket_a",
-   "drum_bracket_b",
-   "drum_dog_post",
-   "drum_fork"
-  ],
-  "drum_bracket_a": [
-   "drum_axle",
-   "drum_n20_cradle",
-   "drum_rail",
-   "frame_deck_2",
-   "frame_deck_4"
-  ],
   "drum_bracket_b": [
    "drum_axle",
-   "drum_rail",
-   "frame_deck_1",
-   "frame_deck_3"
-  ],
-  "drum_bracket_idler": [
    "drum_idler",
-   "frame_deck_3"
-  ],
-  "drum_bracket_idler2": [
-   "drum_idler",
-   "drum_index_block",
-   "frame_deck_1",
-   "frame_deck_3"
+   "drum_rod",
+   "reel_head_spine"
   ],
   "drum_switch_block": [
-   "drum_sw_lever_0",
    "drum_sw_lever_1",
    "drum_sw_lever_2",
-   "frame_deck_3"
+   "reel_head_spine"
   ],
   "drum_sw_lever_0": [
-   "drum_switch_block"
+   "drum_sw_lever_1"
   ],
   "drum_sw_lever_1": [
+   "drum_sw_lever_0",
+   "drum_sw_lever_2",
    "drum_switch_block"
   ],
   "drum_sw_lever_2": [
+   "drum_sw_lever_1",
    "drum_switch_block"
   ],
-  "drum_index_block": [
-   "drum_bracket_idler2",
-   "drum_index_lever"
+  "drum_link": [
+   "drum_link_eye_1",
+   "drum_link_eye_2"
   ],
-  "drum_index_lever": [
-   "drum_index_block"
+  "drum_link_eye_1": [
+   "drum_follower",
+   "drum_link"
   ],
-  "drum_magnet_cap": [
-   "drum_shaft"
+  "drum_link_eye_2": [
+   "drum_crank",
+   "drum_link"
   ],
-  "drum_hand_lever": [
-   "drum_drum_b"
+  "drum_shift_rail": [
+   "drum_dog_post",
+   "drum_fork",
+   "reel_bridge"
+  ],
+  "drum_fork": [
+   "drum_shift_rail"
+  ],
+  "drum_dog_post": [
+   "drum_shift_rail"
+  ],
+  "drum_crank": [
+   "drum_link_eye_2"
   ],
   "frame_motor_leg": [
    "frame_cheek_r",
@@ -6433,6 +8161,7 @@
    "frame_wiper_shaft"
   ],
   "frame_motor_adapter": [
+   "drum_index_block",
    "frame_cheek_r",
    "frame_guard_hood",
    "frame_wiper_motor"
@@ -6442,7 +8171,6 @@
   ],
   "frame_ebay": [
    "frame_camera_mount",
-   "frame_deck_1",
    "frame_deck_2",
    "frame_ebay_esp_clamp",
    "frame_ebay_lid",
@@ -6512,40 +8240,26 @@
    "frame_deck_1"
   ],
   "frame_deck_1": [
-   "drum_bracket_b",
-   "drum_bracket_idler2",
    "frame_cable_anchor_2",
    "frame_deck_2",
-   "frame_ebay",
    "frame_guard_front",
    "frame_rc832_holder",
-   "launch_aim_housing",
-   "reel_p2_post"
+   "launch_aim_housing"
   ],
   "frame_deck_2": [
-   "drum_bracket_a",
    "frame_cable_anchor_1",
    "frame_camera_mount",
    "frame_deck_1",
    "frame_ebay",
    "frame_guard_front",
-   "frame_motor_leg",
-   "reel_exit_post"
+   "frame_motor_leg"
   ],
   "frame_deck_3": [
-   "drum_bracket_b",
-   "drum_bracket_idler",
-   "drum_bracket_idler2",
-   "drum_switch_block",
    "frame_deck_4",
-   "launch_aim_housing",
-   "reel_wall"
+   "launch_aim_housing"
   ],
   "frame_deck_4": [
-   "drum_bracket_a",
-   "frame_deck_3",
-   "reel_exit_post",
-   "reel_wall"
+   "frame_deck_3"
   ],
   "frame_wiper_shaft": [
    "drum_coupler_hub",
@@ -6554,13 +8268,8 @@
   "launch_rail_rear": [
    "launch_guard_l_a",
    "launch_guard_r_a",
-   "launch_pulley_bot_axle",
-   "launch_pulley_bot_washer_l",
-   "launch_pulley_bot_washer_r",
-   "launch_pulley_top_axle",
-   "launch_pulley_top_washer_l",
-   "launch_pulley_top_washer_r",
-   "launch_rail_mid"
+   "launch_rail_mid",
+   "reel_head_front"
   ],
   "launch_rail_mid": [
    "launch_aim_lug",
@@ -6575,8 +8284,6 @@
    "launch_guard_r_a",
    "launch_guard_r_b1",
    "launch_guard_r_b2",
-   "launch_pulley_piv_axle",
-   "launch_pulley_piv_brg",
    "launch_rail_front",
    "launch_rail_rear",
    "launch_rail_splice_l",
@@ -6588,6 +8295,7 @@
    "launch_stop_spring_r",
    "launch_sw_home_nut",
    "launch_sw_seated_nut",
+   "reel_bridge",
    "sensors_sw_gap"
   ],
   "launch_rail_front": [
@@ -6857,84 +8565,8 @@
    "launch_carriage_yoke",
    "launch_seat_plunger"
   ],
-  "launch_pulley_top": [
-   "launch_line_a0",
-   "launch_line_b",
-   "launch_pulley_top_brg",
-   "launch_pulley_top_washer_l",
-   "launch_pulley_top_washer_r"
-  ],
-  "launch_pulley_top_brg": [
-   "launch_pulley_top",
-   "launch_pulley_top_axle",
-   "launch_pulley_top_washer_l",
-   "launch_pulley_top_washer_r"
-  ],
-  "launch_pulley_top_axle": [
-   "launch_pulley_top_brg",
-   "launch_pulley_top_washer_l",
-   "launch_pulley_top_washer_r",
-   "launch_rail_rear"
-  ],
-  "launch_pulley_top_washer_l": [
-   "launch_pulley_top",
-   "launch_pulley_top_axle",
-   "launch_pulley_top_brg",
-   "launch_rail_rear"
-  ],
-  "launch_pulley_top_washer_r": [
-   "launch_pulley_top",
-   "launch_pulley_top_axle",
-   "launch_pulley_top_brg",
-   "launch_rail_rear"
-  ],
-  "launch_pulley_bot": [
-   "launch_line_b",
-   "launch_line_c",
-   "launch_pulley_bot_brg",
-   "launch_pulley_bot_washer_l",
-   "launch_pulley_bot_washer_r"
-  ],
-  "launch_pulley_bot_brg": [
-   "launch_pulley_bot",
-   "launch_pulley_bot_axle",
-   "launch_pulley_bot_washer_l",
-   "launch_pulley_bot_washer_r"
-  ],
-  "launch_pulley_bot_axle": [
-   "launch_pulley_bot_brg",
-   "launch_pulley_bot_washer_l",
-   "launch_pulley_bot_washer_r",
-   "launch_rail_rear"
-  ],
-  "launch_pulley_bot_washer_l": [
-   "launch_pulley_bot",
-   "launch_pulley_bot_axle",
-   "launch_pulley_bot_brg",
-   "launch_rail_rear"
-  ],
-  "launch_pulley_bot_washer_r": [
-   "launch_pulley_bot",
-   "launch_pulley_bot_axle",
-   "launch_pulley_bot_brg",
-   "launch_rail_rear"
-  ],
-  "launch_pulley_piv": [
-   "launch_line_c",
-   "launch_pulley_piv_brg"
-  ],
-  "launch_pulley_piv_brg": [
-   "launch_pulley_piv",
-   "launch_pulley_piv_axle",
-   "launch_rail_mid"
-  ],
-  "launch_pulley_piv_axle": [
-   "launch_pulley_piv_brg",
-   "launch_rail_mid"
-  ],
   "launch_line_a0": [
-   "launch_line_a1",
-   "launch_pulley_top"
+   "launch_line_a1"
   ],
   "launch_line_a1": [
    "launch_line_a0",
@@ -6966,19 +8598,59 @@
   ],
   "launch_line_a8": [
    "launch_line_a7",
+   "launch_line_a9"
+  ],
+  "launch_line_a9": [
+   "launch_line_a10",
+   "launch_line_a8"
+  ],
+  "launch_line_a10": [
+   "launch_line_a11",
+   "launch_line_a9"
+  ],
+  "launch_line_a11": [
+   "launch_line_a10",
+   "launch_line_a12"
+  ],
+  "launch_line_a12": [
+   "launch_line_a11",
+   "launch_line_a13"
+  ],
+  "launch_line_a13": [
+   "launch_line_a12",
+   "launch_line_a14"
+  ],
+  "launch_line_a14": [
+   "launch_line_a13",
+   "launch_line_a15"
+  ],
+  "launch_line_a15": [
+   "launch_line_a14",
+   "launch_line_a16"
+  ],
+  "launch_line_a16": [
+   "launch_line_a15",
+   "launch_line_a17"
+  ],
+  "launch_line_a17": [
+   "launch_line_a16",
+   "launch_line_a18"
+  ],
+  "launch_line_a18": [
+   "launch_line_a17",
+   "launch_line_a19"
+  ],
+  "launch_line_a19": [
+   "launch_line_a18",
+   "launch_line_a20"
+  ],
+  "launch_line_a20": [
+   "launch_line_a19",
    "launch_line_p"
   ],
   "launch_line_p": [
    "launch_dart",
-   "launch_line_a8"
-  ],
-  "launch_line_b": [
-   "launch_pulley_bot",
-   "launch_pulley_top"
-  ],
-  "launch_line_c": [
-   "launch_pulley_bot",
-   "launch_pulley_piv"
+   "launch_line_a20"
   ],
   "launch_dart": [
    "launch_carriage",
@@ -7093,69 +8765,53 @@
    "launch_aim_brg_1",
    "launch_aim_crank"
   ],
-  "reel_wall": [
-   "frame_deck_3",
-   "frame_deck_4",
-   "reel_bar_cap_1",
-   "reel_bar_cap_2",
-   "reel_bar_screws",
-   "reel_crank",
-   "reel_crank_screw",
-   "reel_crank_washer",
-   "reel_gr",
-   "reel_hub_screws",
-   "reel_rocker",
-   "reel_rocker_pin",
+  "reel_head_front": [
+   "drum_axle",
+   "drum_n20_cradle",
+   "drum_rod",
+   "launch_rail_rear",
+   "reel_head_mid",
+   "reel_head_spine",
+   "reel_ut"
+  ],
+  "reel_head_spine": [
+   "drum_bracket_b",
+   "drum_switch_block",
+   "reel_head_front",
+   "reel_head_p1",
+   "reel_head_p2"
+  ],
+  "reel_head_p1": [
+   "reel_c",
+   "reel_gb_axle",
+   "reel_head_mid",
+   "reel_head_p1b",
+   "reel_head_spine",
+   "reel_lever_pin",
+   "reel_light_screw",
+   "reel_s",
    "reel_shroud",
-   "reel_sprag_hub",
-   "reel_sw_bracket",
-   "reel_swing_arm"
+   "reel_uc"
   ],
-  "reel_sprag_hub": [
+  "reel_head_p1b": [
    "reel_c",
-   "reel_hub_screws",
-   "reel_sprag",
-   "reel_wall"
+   "reel_head_p1"
   ],
-  "reel_hub_screws": [
-   "reel_sprag_hub",
-   "reel_wall"
+  "reel_head_p2": [
+   "drum_idler",
+   "reel_head_spine"
   ],
-  "reel_sprag": [
-   "reel_c",
-   "reel_sprag_hub"
+  "reel_head_mid": [
+   "reel_head_front",
+   "reel_head_p1",
+   "reel_s"
   ],
   "reel_c": [
-   "reel_bus",
-   "reel_c_clip",
    "reel_drum",
    "reel_gc",
-   "reel_k",
-   "reel_sprag",
-   "reel_sprag_hub"
-  ],
-  "reel_bus": [
-   "drum_coupler",
-   "reel_c",
-   "reel_gi",
-   "reel_swing_arm"
-  ],
-  "reel_swing_arm": [
-   "reel_bus",
-   "reel_gi",
-   "reel_wall"
-  ],
-  "reel_gi": [
-   "reel_bus",
-   "reel_gr",
-   "reel_swing_arm"
-  ],
-  "reel_gc": [
-   "drum_gear_reel",
-   "reel_c"
-  ],
-  "reel_c_clip": [
-   "reel_c"
+   "reel_head_p1",
+   "reel_head_p1b",
+   "reel_k"
   ],
   "reel_drum": [
    "reel_c"
@@ -7164,8 +8820,7 @@
    "reel_c",
    "reel_cup",
    "reel_cup_clip",
-   "reel_gk",
-   "reel_k_clip"
+   "reel_gk"
   ],
   "reel_cup": [
    "reel_k"
@@ -7178,101 +8833,82 @@
    "reel_k",
    "reel_sw_lever"
   ],
-  "reel_k_clip": [
-   "reel_k"
+  "reel_gc": [
+   "reel_c",
+   "reel_gb"
   ],
-  "reel_s": [
-   "reel_brg_1",
-   "reel_brg_2",
-   "reel_gr",
-   "reel_s_clip",
-   "reel_spool_flange",
-   "reel_t"
+  "reel_ga": [
+   "reel_gb",
+   "reel_uc"
+  ],
+  "reel_gb": [
+   "reel_ga",
+   "reel_gb_axle",
+   "reel_gc"
+  ],
+  "reel_gb_axle": [
+   "reel_gb",
+   "reel_head_p1"
+  ],
+  "reel_uc": [
+   "reel_b1p",
+   "reel_bridge",
+   "reel_ga",
+   "reel_head_p1"
+  ],
+  "reel_ut": [
+   "reel_b2p",
+   "reel_b3a",
+   "reel_bridge",
+   "reel_head_front"
   ],
   "reel_spool": [
    "reel_brg_1",
-   "reel_brg_2",
-   "reel_spool_flange"
-  ],
-  "reel_spool_flange": [
-   "reel_brg_2",
-   "reel_s",
-   "reel_spool"
+   "reel_brg_2"
   ],
   "reel_brg_1": [
    "reel_s",
-   "reel_spool",
-   "reel_t"
+   "reel_spool"
   ],
   "reel_brg_2": [
    "reel_s",
-   "reel_spool",
-   "reel_spool_flange"
+   "reel_spool"
   ],
-  "reel_t": [
+  "reel_s": [
+   "reel_b3b",
    "reel_brg_1",
-   "reel_s",
-   "reel_trim_screws"
-  ],
-  "reel_rocker": [
-   "reel_firm_screw",
-   "reel_rocker_pin",
-   "reel_trim_screws",
-   "reel_wall"
-  ],
-  "reel_rocker_pin": [
-   "reel_rocker",
-   "reel_wall"
-  ],
-  "reel_trim_screws": [
-   "reel_rocker",
+   "reel_brg_2",
+   "reel_d",
+   "reel_head_mid",
+   "reel_head_p1",
    "reel_t"
   ],
-  "reel_crank": [
-   "reel_bar",
-   "reel_wall"
-  ],
-  "reel_crank_washer": [
-   "reel_crank_screw",
-   "reel_wall"
-  ],
-  "reel_crank_screw": [
-   "reel_crank_washer",
-   "reel_wall"
-  ],
-  "reel_firm_screw": [
-   "reel_rocker"
-  ],
-  "reel_bar": [
-   "reel_crank"
-  ],
-  "reel_bar_cap_1": [
-   "reel_bar_screws",
-   "reel_wall"
-  ],
-  "reel_bar_cap_2": [
-   "reel_bar_screws",
-   "reel_wall"
-  ],
-  "reel_bar_screws": [
-   "reel_bar_cap_1",
-   "reel_bar_cap_2",
-   "reel_wall"
-  ],
-  "reel_gr": [
-   "reel_gi",
-   "reel_s",
-   "reel_wall"
-  ],
-  "reel_s_clip": [
+  "reel_d": [
    "reel_s"
   ],
-  "reel_sw_bracket": [
-   "reel_sw_base",
-   "reel_wall"
+  "reel_t": [
+   "reel_firm_screw",
+   "reel_s"
+  ],
+  "reel_shroud": [
+   "reel_head_p1"
+  ],
+  "reel_lever": [
+   "reel_firm_screw",
+   "reel_lever_pin"
+  ],
+  "reel_lever_pin": [
+   "reel_head_p1",
+   "reel_lever"
+  ],
+  "reel_firm_screw": [
+   "reel_lever",
+   "reel_t"
+  ],
+  "reel_light_screw": [
+   "reel_head_p1"
   ],
   "reel_sw_base": [
-   "reel_sw_bracket",
    "reel_sw_hw",
    "reel_sw_lever"
   ],
@@ -7285,51 +8921,91 @@
    "reel_sw_base",
    "reel_sw_lever"
   ],
-  "reel_shroud": [
-   "reel_wall"
+  "reel_bridge": [
+   "drum_shift_rail",
+   "launch_rail_mid",
+   "reel_cs_c",
+   "reel_cs_t",
+   "reel_sprag",
+   "reel_sprag_hub",
+   "reel_stub",
+   "reel_uc",
+   "reel_ut"
   ],
-  "reel_exit_post": [
-   "frame_deck_2",
-   "frame_deck_4",
-   "reel_p1_axle",
-   "reel_p1_brg"
+  "reel_sprag_hub": [
+   "reel_bridge",
+   "reel_sprag"
   ],
-  "reel_pulley1": [
-   "reel_p1_brg"
+  "reel_sprag": [
+   "reel_bridge",
+   "reel_cs_c",
+   "reel_sprag_hub"
   ],
-  "reel_p1_brg": [
-   "reel_exit_post",
-   "reel_p1_axle",
-   "reel_pulley1"
+  "reel_cs_c": [
+   "reel_b1g",
+   "reel_bridge",
+   "reel_c1",
+   "reel_sprag"
   ],
-  "reel_p2_post": [
-   "frame_deck_1",
-   "reel_p2_fork"
+  "reel_c1": [
+   "drum_gear_reel",
+   "reel_cs_c"
   ],
-  "reel_p2_fork": [
-   "reel_p2_axle",
-   "reel_p2_brg",
-   "reel_p2_clip",
-   "reel_p2_post"
+  "reel_b1g": [
+   "reel_b1p",
+   "reel_cs_c"
   ],
-  "reel_p2_clip": [
-   "reel_p2_fork"
+  "reel_b1p": [
+   "reel_b1g",
+   "reel_uc"
   ],
-  "reel_pulley2": [
-   "reel_p2_brg"
+  "reel_c1p": [
+   "drum_coupler",
+   "reel_gi",
+   "reel_stub",
+   "reel_swing_arm"
   ],
-  "reel_p2_brg": [
-   "reel_p2_axle",
-   "reel_p2_fork",
-   "reel_pulley2"
+  "reel_stub": [
+   "reel_bridge",
+   "reel_c1p",
+   "reel_swing_arm"
   ],
-  "reel_p2_axle": [
-   "reel_p2_brg",
-   "reel_p2_fork"
+  "reel_swing_arm": [
+   "reel_c1p",
+   "reel_gi",
+   "reel_stub"
   ],
-  "reel_p1_axle": [
-   "reel_exit_post",
-   "reel_p1_brg"
+  "reel_gi": [
+   "reel_c1p",
+   "reel_swing_arm",
+   "reel_t1"
+  ],
+  "reel_cs_t": [
+   "reel_b2g",
+   "reel_bridge",
+   "reel_t1"
+  ],
+  "reel_t1": [
+   "reel_b2g",
+   "reel_cs_t",
+   "reel_gi"
+  ],
+  "reel_b2g": [
+   "reel_b2p",
+   "reel_cs_t",
+   "reel_t1"
+  ],
+  "reel_b2p": [
+   "reel_b2g",
+   "reel_ut"
+  ],
+  "reel_b3a": [
+   "reel_b3b",
+   "reel_ut"
+  ],
+  "reel_b3b": [
+   "reel_b3a",
+   "reel_s"
   ],
   "sensors_as5600": [
    "sensors_as5600_carrier",
@@ -7439,7 +9115,7 @@
    ],
    "kind": "spur",
    "expected": 52.1,
-   "states": 2296,
+   "states": 2307,
    "ok": true,
    "fails": []
   },
@@ -7459,7 +9135,7 @@
   },
   {
    "a": "drum_coupler",
-   "b": "reel_bus",
+   "b": "reel_c1p",
    "m": 1.5,
    "z": [
     50,
@@ -7467,21 +9143,21 @@
    ],
    "kind": "spur",
    "expected": 72.1,
-   "states": 2296,
+   "states": 2307,
    "ok": true,
    "fails": []
   },
   {
    "a": "drum_gear_reel",
-   "b": "reel_gc",
+   "b": "reel_c1",
    "m": 2.0,
    "z": [
     50,
-    22
+    49
    ],
    "kind": "spur",
-   "expected": 72.1,
-   "states": 2296,
+   "expected": 99.1,
+   "states": 2307,
    "ok": true,
    "fails": []
   },
@@ -7490,31 +9166,87 @@
    "b": "reel_gk",
    "m": 1.5,
    "z": [
-    42,
-    24
+    49,
+    28
    ],
    "kind": "spur",
-   "expected": 49.6,
-   "states": 2296,
+   "expected": 57.85,
+   "states": 2307,
+   "ok": true,
+   "fails": []
+  },
+  {
+   "a": "reel_ga",
+   "b": "reel_gb",
+   "m": 1.5,
+   "z": [
+    26,
+    32
+   ],
+   "kind": "spur",
+   "expected": 43.6,
+   "states": 2307,
+   "ok": true,
+   "fails": []
+  },
+  {
+   "a": "reel_gb",
+   "b": "reel_gc",
+   "m": 1.5,
+   "z": [
+    32,
+    23
+   ],
+   "kind": "spur",
+   "expected": 41.35,
+   "states": 2307,
+   "ok": true,
+   "fails": []
+  },
+  {
+   "a": "reel_c1p",
+   "b": "reel_gi",
+   "m": 1.5,
+   "z": [
+    46,
+    30
+   ],
+   "kind": "spur",
+   "expected": 57.1,
+   "states": 2307,
+   "ok": true,
+   "fails": []
+  },
+  {
+   "a": "reel_gi",
+   "b": "reel_t1",
+   "m": 1.5,
+   "z": [
+    30,
+    20
+   ],
+   "kind": "spur",
+   "expected": 37.6,
+   "states": 2304,
    "ok": true,
    "fails": []
   }
  ],
  "mesh_fails": [],
  "timing": {
-  "world": 7.75,
-  "chunks": 3.82,
-  "broad": 239.69,
-  "static": 1.11,
-  "exact": 1999.58,
-  "clearance": 478.95,
-  "floating": 2.38,
-  "checks": 25.67,
-  "meshes": 9.65
+  "world": 9.47,
+  "chunks": 3.58,
+  "broad": 271.25,
+  "static": 1.15,
+  "exact": 4114.4,
+  "clearance": 508.49,
+  "floating": 2.08,
+  "checks": 21.01,
+  "meshes": 10.18
  },
  "static_fails": [],
  "clean": false,
- "seconds": 2768.8,
+ "seconds": 4941.8,
  "settings": {
   "dt": 0.1,
   "max_mm": 0.5,

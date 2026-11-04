@@ -73,7 +73,7 @@ def test_telemetry_shape_and_rate(base):
     assert list(t.keys()) == TEL_KEYS
     assert t["state"] == "IDLE" and t["mode"] == "LAUNCH" and t["drum_pos"] == "LAUNCH" and t["fault"] is None
     assert t["cock"] == 0 and t["wraps"] == 0 and t["tension_n"] is not None and t["vbat"] > 12
-    assert {"a", "l", "n", "H", "G", "S", "W"} <= set(t["sw"])
+    assert {"a", "l", "n", "H", "G", "S"} <= set(t["sw"]) and "W" not in t["sw"]   # D40: SW_ARM is open at home
     n = [0]
     base.add_tel_callback(lambda _t: n.__setitem__(0, n[0] + 1))
     t0 = time.monotonic()
@@ -157,7 +157,9 @@ def test_tidy(base):
     e = run(base, "tidy", "TIDIED", 10, ms=3000, duty=0.3)
     assert e["ok"] is True
     t = idle(base)
-    assert t["drum_pos"] == "WRAPPED" and t["line_m"] == 8   # take-up only: the capstan count does not change
+    # take-up only: the capstan count does not change; the wrap before it drew 7 turns of the 41 mm line circle from
+    # the dart side (systest F23), so 8 m became about 7.1 m
+    assert t["drum_pos"] == "WRAPPED" and t["line_m"] == pytest.approx(8 - 7 * 3.14159 * 0.041, abs=0.06)
 
 
 def test_mode_reel_fly_in(base):

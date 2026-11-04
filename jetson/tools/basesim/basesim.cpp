@@ -223,6 +223,7 @@ int main(int argc, char** argv) {
   B.c.freeA = 1.5f + (float)((S.reelFreeNm + (kD16 ? 0.3 : 0.2)) / S.stallNm * (S.stallA - S.freeA));
   B.begin(S.t);
   B.restore(nullptr);
+  B.tensionCal = true;            // F28: the constants above are a done bench calibration (as "set k_n_per_a")
   {
     char hello[200];
     snprintf(hello, sizeof hello, "{\"evt\":\"HELLO\",\"fw\":\"%s\",\"reset\":\"POWERON\",\"hx711\":%s,\"as5600\":true,\"pwm\":true}",

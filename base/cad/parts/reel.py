@@ -632,14 +632,14 @@ def lever_ratio():
 def _lever():
     """Clutch lever (PPA-CF) in the rail frame at LIGHT: hub on the M3 pivot screw, upper arm under cad-drum's brake cam
     (rounded nose), lower arm down beside the capstan drum to the thrust ring with the FIRM screw boss. The lower arm
-    is the clutch spring (2.4 thick PPA-CF leaf): at FIRM it bends about 3 mm."""
+    is the clutch spring (4.6 thick PPA-CF leaf, reel_calc leaf_t): at FIRM it bends about 3 mm."""
     from shapely.geometry import LineString, Point
     from shapely.ops import unary_union
     py, pw = LEVER_PIVOT
     poly = unary_union([Point(Y(py), pw).buffer(6.0, 48),
                         LineString([(Y(py), pw - 5.0), (Y(LEVER_FOLLOW[0]) + 4.0, pw - 5.0)]).buffer(3.0, cap_style=2),
                         Point(Y(LEVER_FOLLOW[0]) + 3.0, LEVER_FOLLOW[1] - 3.0).buffer(3.0, 32),
-                        LineString([(Y(py), pw), (Y(LEVER_TIP[0]) - FIRM_BOSS_BACK, LEVER_TIP[1])]).buffer(2.2, cap_style=2),
+                        LineString([(Y(py), pw), (Y(LEVER_TIP[0]) - FIRM_BOSS_BACK, LEVER_TIP[1])]).buffer(2.3, cap_style=2),
                         Point(Y(LEVER_TIP[0]) - FIRM_BOSS_BACK, LEVER_TIP[1]).buffer(5.0, 32)])
     s = prim.extrude(prim.shapely_cs(poly), U_LEVER[1] - U_LEVER[0])           # x = yl, y = w, z = u
     M = np.eye(4)

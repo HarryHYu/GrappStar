@@ -10,7 +10,7 @@ The reel now rides cad-launch's rail (study base/spec/proposals/D49_rail_reel_la
   (y 140, w 110.6), the free spool (d40/d62 x 20, two 608s) below the line at (u -224, w 57.6);
 - the clutch: the spool's outboard face rubs the head disk of the spool shaft; the clutch lever (pivot parallel to the
   rail, upper arm under cad-drum's brake cam) presses a thrust ring on the inboard 608 through its FIRM screw; the lower
-  arm is a PPA-CF leaf (4.4 thick): LIGHT 0.25 N fixed (LIGHT stop screw), FIRM 5 N (reel_calc.lever_leaf);
+  arm is a PPA-CF leaf (4.6 thick): LIGHT 0.25 N fixed (LIGHT stop screw), FIRM 5 N (reel_calc.lever_leaf);
 - the BRIDGE inboard of the main-axis stack (plate y 30..35, box arm to rail cheek A): countershaft C (sprag #2, C1 49T,
   bevel B1 2:1), u-shaft C to G_a 26T / G_b 32T / G_c 23T (capstan 2.307 x wiper); c1' 46T, swing idler 30T, T1 20T,
   bevels B2/B3 and u-shaft T to the spool shaft (2.5 x wiper). The plate outline avoids the frame-fixed SW_INDEX block.

@@ -25,7 +25,7 @@ DEFAULTS = dict(
     face_r_out=26.0, brake_stroke=4.0,
     # clutch lever (pivot parallel to the rail): upper arm to the cam follower, lower arm = PPA-CF leaf to the FIRM
     # screw on the thrust ring; leaf section b x t (b = 8 along the rail)
-    lever_a=53.0, lever_l=56.0, leaf_b=8.0, leaf_t=4.4, leaf_e=5000.0, cam_gap=0.3,
+    lever_a=53.0, lever_l=56.0, leaf_b=8.0, leaf_t=4.6, leaf_e=5000.0, cam_gap=0.3,
     # gears (D49): REEL 50T m2 -> C1 49T -> B1 24:12 -> G_a 26T / G_b 32T / G_c 23T m1.5: capstan 2.307 x wiper;
     # take-up bus 50T -> c1' 46T -> swing idler 30T -> T1 20T (2.5 x wiper) -> B2, B3 1:1; cup gear 28T from W 49T
     m_cap=2.0, z_main=50, z_c1=49, b1_ratio=2.0, z_ga=26, z_gb=32, z_gc=23, m_take=1.5, z_bus=50, z_c1p=46,

@@ -1,5 +1,12 @@
 # Launcher + aim train: notes (worker cad-launch)
 
+## D49 rail reel (params 1.4.0)
+
+The rear tether pulleys, their fork and the pivot pulley are gone. The rail rear end has a flange (u -181.2, w 24..58,
+4 M3 heat-set inserts in the wall ends) for cad-reel's head; cheek A's web takes the bridge arm (2 pilots at u 68,
+w 21 / 26). The line runs straight from cad-reel's eyelet (line_entry = reel.line_exit) to the pusher on the dart axis.
+
+
 Current state for BASE_SPEC v1.2.7 (D23 sleeve y 111..193 in the aim housing bushing, D26 PLA flexure stop, D36 rear
 line guide, D37 flange lugs, D38 two springs). Every number below comes from the code: `launch_kin.py` (sizing), `launch.py` (geometry, kin, contacts),
 `launch_aim.py` (aim train), `launch_line.py` (tether on the rail). Run `python cad/parts/launch_kin.py` for the

@@ -99,6 +99,8 @@ def band_parts(C, outline, cutters=None):
         if cutters is not None and not cutters.is_empty():
             sol = sol - cutters
             parts_ = sorted(sol.decompose(), key=lambda m: -m.volume())
+            if not parts_:                          # the whole piece lies in a swept volume (D49 rail head): drop it
+                continue
             sol = parts_[0]
         out.append(sol)
     return out, holes
@@ -136,6 +138,8 @@ def swept_cutters(P, C, others=("launch", "reel", "drum"), margin=4.0, n_states=
     clouds = []
     chunk = 6                                       # one hull per part per 6 consecutive states (swept, conservative)
     for n in asm.parts:
+        if n in FRAME_MOUNTED:                      # screwed to the frame itself (D49 SW_INDEX block): never carve round
+            continue
         for k in range(0, len(Ws), chunk):
             pts = np.vstack([tf.apply(shift @ W[n], hv[n]) for W in Ws[k:k + chunk + 1]])
             # each hull grown a slightly different amount: hulls that share a boundary state never share faces
@@ -147,6 +151,7 @@ def swept_cutters(P, C, others=("launch", "reel", "drum"), margin=4.0, n_states=
     return prim.union(hulls)
 
 
+FRAME_MOUNTED = ("drum_index_block", "drum_index_lever")   # other subsystems' parts mounted on the frame
 LAST_CLOUDS = []          # point clouds of the last swept_cutters call (deck frame), for shadow()
 
 

@@ -1,5 +1,26 @@
 # Reel system: interfaces and numbers (worker cad-reel)
 
+## D49 rail reel (params 1.4.0): supersedes the frame-mounted reel below
+
+The reel now rides cad-launch's rail (study base/spec/proposals/D49_rail_reel_layout.md). reel.py builds:
+- the reel HEAD on the rail rear flange (u -181.2): front plate, inboard spine (y -22..-16), P1 (capstan tube, u-shaft C,
+  G_b axle, clutch lever post, spool shaft leg), P1b (tube rear bushing), P2 (cup shaft and W journals, SW_ARM), mid plate
+  (spool shaft inboard bushing), spool shroud;
+- Harry's v7 drum (unchanged) and cup (ring hole AXIAL at r 26, lug in front of the face) on the capstan axis
+  (y 140, w 110.6), the free spool (d40/d62 x 20, two 608s) below the line at (u -224, w 57.6);
+- the clutch: the spool's outboard face rubs the head disk of the spool shaft; the clutch lever (pivot parallel to the
+  rail, upper arm under cad-drum's brake cam) presses a thrust ring on the inboard 608 through its FIRM screw; the lower
+  arm is a PPA-CF leaf (4.4 thick): LIGHT 0.25 N fixed (LIGHT stop screw), FIRM 5 N (reel_calc.lever_leaf);
+- the BRIDGE inboard of the main-axis stack (plate y 30..35, box arm to rail cheek A): countershaft C (sprag #2, C1 49T,
+  bevel B1 2:1), u-shaft C to G_a 26T / G_b 32T / G_c 23T (capstan 2.307 x wiper); c1' 46T, swing idler 30T, T1 20T,
+  bevels B2/B3 and u-shaft T to the spool shaft (2.5 x wiper). The plate outline avoids the frame-fixed SW_INDEX block.
+Bevels are modelled as the large-end spur profile extruded to the cone (approximate; their mesh overlap is allowed).
+Line: spool pack top -> eyelet straight on the dart axis (line_path / line_spans / line_exit); cad-launch continues from
+line_exit. Checks: line_check, deck_check (47 deg deck plane), tether_check (whole assembly).
+Open: the cup holds the groove exit torque alone (about 1.4 N m at 50 N, reel_calc.cup_torque) through the drum lock arc;
+spool flange freeboard 2.75 mm at 20 m (bench-wind first); u-shaft C wind-up (steel rod fallback).
+
+
 Status: v5, 13:15 Sydney, follows params v1.2 and DECISIONS D14, D15, D20, D22, D24, D25. Numbers come from `reel.py`
 (geometry) and `reel_calc.py` (physics; `python3 base/cad/parts/reel_calc.py` prints the table). Requests: write
 them in your REPORT.md or message the coordinator.

@@ -131,6 +131,8 @@ def cfg(P):
     if v1:
         deck_z = float(lay_src.get("deck_top_z", fw["deck_z"]))
         for n, a_ in lay_src["axes"].items():
+            if "origin" not in a_:          # D49: the drum axis rides the rail (params RAIL_REEL), not the frame
+                continue
             ow = tuple(map(float, a_["origin"]))
             e = dict(origin=(ow[0], ow[1], ow[2] - deck_z), origin_w=ow, axis=tuple(map(float, a_["axis"])),
                      d=20.0, brg="seat", cheeks=(), frame=False, owner=a_.get("owner", ""))
@@ -957,7 +959,7 @@ def build(P):
         best, bestd = c0, -1.0
         for d in np.arange(-60, 60.1, 0.5):
             c = c0 + d
-            if c - lo > 248.0 or hi - c > 248.0 * (n - 1):
+            if c - lo > 240.0 or hi - c > 240.0 * (n - 1):     # tiles + 8 mm dovetail tails keep the D47 bed margin
                 continue
             dmin = min([abs((h[0] if k == "x" else h[1]) - c) for h in info["deck_holes"]] or [1e9])
             if dmin > bestd + 1e-9 or (abs(dmin - bestd) < 1e-9 and abs(d) < abs(best - c0)):
@@ -1216,9 +1218,10 @@ def steps_v1(P):
                             "round the motor can through the two cradle slots, firm but not crushing.",
                        parts=has("frame_can_stay")))
     st.append(dict(title="Shafts and trains (other subsystems)",
-                   text="Now cad-drum (coupler on the wiper shaft, SW_INDEX block on the strut of idler post 2: drum step "
-                        "\"Main shaft: index contact\"), cad-reel and cad-launch install their trains and aim housing. "
-                        "Follow their steps, then come back."
+                   text="Now cad-drum (coupler on the wiper shaft, SW_INDEX block on this plate's front face inserts: drum "
+                        "step \"Main shaft: index contact\"), cad-launch (rail and aim housing) and then the rail bridge and "
+                        "reel head (cad-reel, cad-drum: D49, they ride the rail) go in. Follow their steps, then come back. "
+                        "Leave a flex loop for the head's wires across the pivot (about 10 conductors, 41 deg of pitch)."
                         + (" The tether crosses the puck twice, in channels cut out to the puck's edge: from the guide eye "
                            "to the cup ring it runs in the channel that opens into the capstan opening (lay it in from "
                            "there); from pulley 1 forward to pulley 2 it runs in the notch near the rim, which the plate "

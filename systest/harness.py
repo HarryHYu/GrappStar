@@ -58,6 +58,19 @@ def firmware_path_gain(default: float = 1.15) -> float:
     return float(a.group(1)) / float(b.group(1)) if a and b else default
 
 
+def two_point_offset(path_gain: float, drag_nm: float = 0.3) -> float:
+    """Dart-side offset a two-point bench calibration (CALIBRATION.md) finds against the plant: base_shim's freeA_cal
+    includes drag_nm of take-up drag that the tow does not see (capstan ratio and line radius from params_gen.h)."""
+    import re
+    try:
+        t = open(os.path.join(ROOT, "firmware", "base", "grappstar_base", "params_gen.h")).read()
+        ratio = float(re.search(r"#define\s+P_REEL_CAPSTAN_RATIO\s+([0-9.]+)", t).group(1))
+        r = (float(re.search(r"#define\s+P_REEL_CAPSTAN_D\s+([0-9.]+)", t).group(1)) + 1.0) / 2000.0
+    except (OSError, AttributeError):
+        ratio, r = 2.307, 0.0205
+    return drag_nm / (r * ratio * path_gain)
+
+
 def free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
@@ -319,8 +332,10 @@ class Rig:
             # the plant tension is capstan-side; the firmware's estimate is DART-side (D43): k / path gain
             self.base.cmd({"id": 0, "cmd": "set", "key": "k_n_per_a", "val": round(g["kNperA_cal"] / sc.path_gain, 3)})
             self.base.cmd({"id": 0, "cmd": "set", "key": "free_a", "val": round(g["freeA_cal"], 3)})
-            if not sc.doc_cal:      # a two-point calibration also zeroes the offset (FINDINGS F14)
-                self.base.cmd({"id": 0, "cmd": "set", "key": "tension_offset_n", "val": 0})
+            if not sc.doc_cal:      # a two-point calibration also fits the offset (FINDINGS F14): the bench free
+                # current includes about 0.3 N m of take-up clutch drag that is not there under tow, so the fit's offset is
+                # + that drag in dart-side newtons (D49: about 5.4 N with the 2.307 capstan train)
+                self.base.cmd({"id": 0, "cmd": "set", "key": "tension_offset_n", "val": round(two_point_offset(sc.path_gain), 2)})
         for k, v in sc.base_setup.items():
             self.base.cmd({"id": 0, "cmd": "set", "key": k, "val": v})
         d22 = strict_d22(sc)

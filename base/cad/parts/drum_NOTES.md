@@ -1,5 +1,19 @@
 # Drum subsystem notes (worker cad-drum): main shaft, dog clutch, N20 selector drum
 
+## D49 rail reel (params 1.4.0): supersedes the frame-mounted drum below
+
+The main-axis stack (coupler, shear pin, REEL gear, collar, LAUNCH dog ring, magnet cap) is unchanged. SW_INDEX stays
+frame-fixed: its block is a column screwed to the motor plate front face (params DRUM sw_index_mount). Everything else
+moved to the rail:
+- frame Ld (joint drum_head): the old drum frame on the reel head, drum axis along the rail at (y 52, w 150); order gear
+  (front) / groove 1 barrel / brake cam (spool clutch lever) / code bands / segment / lock; drum A = gear + barrel, drum B =
+  cam + bands + segment + lock. Axle and follower guide rod in the reel front plate (bracket A) and bracket B (feet on the
+  spine). Wrap idler W 10T / 49T (cup gear 28T: still 7 cup turns); the drum still wraps on positive moves.
+- the follower slider in groove 1 (groove sign flipped so the fork moves the right way), an 8 mm steel link to a 1:1 bell
+  crank on the bridge shelf, the fork on a shift rail at (u -40, w -52) on the bridge (frame Lb), dog post with SW_DOG_L/R.
+- no hand lever (no hex boss on the rail drum): with the N20 swung out the drum turns by its gear rim.
+
+
 Status: v7, 3 Nov 2026 14:50 Sydney. Written against params.py v1.3.0. Deviations are in section 0.
 
 Every number lives in code:

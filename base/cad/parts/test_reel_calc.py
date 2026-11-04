@@ -145,56 +145,39 @@ def test_min_brake_no_overrun_below_launch_brake(d):
 # ------------------------------------------------------------------------------------------------ slip clutch
 def test_clutch_preloads_ordered(d):
     cl = rc.clutch(d)
-    assert 0 < cl["launch"]["preload_n"] < cl["mid"]["preload_n"] < cl["reel"]["preload_n"]
-    assert cl["launch"]["torque_nm"] < cl["mid"]["torque_nm"] < cl["reel"]["torque_nm"]
-
-
-def test_clutch_push_equals_preload_times_lever(d):
-    cl = rc.clutch(d)
-    lever = d["rocker_l"] / (d["rocker_l"] + d["rocker_a"])
-    assert cl["rocker_lever"] == pytest.approx(lever)
-    assert 0 < lever < 1
-    for k in ("launch", "mid", "reel"):
-        assert cl[k]["push_n"] == pytest.approx(cl[k]["preload_n"] * lever)
-        assert cl[k]["push_n"] < cl[k]["preload_n"]
+    assert 0 < cl["launch"]["preload_n"] <= cl["mid"]["preload_n"] < cl["reel"]["preload_n"]
+    assert cl["launch"]["torque_nm"] <= cl["mid"]["torque_nm"] < cl["reel"]["torque_nm"]
 
 
 def test_clutch_torque_and_line_tension_consistent(d):
+    """D49 convention: the targets hold at the design pack radius r 27 (0.25 N LIGHT, 5.0 N FIRM)."""
     cl = rc.clutch(d)
     r_eff = 0.5 * (d["face_r_in"] + d["face_r_out"]) / 1000
-    assert cl["r_mid_mm"] == pytest.approx(rc.pack_r(d, d["line_len_m"]))   # D24: targets with the reel FULL
+    assert cl["r_ref_mm"] == pytest.approx(27.0)
     for k in ("launch", "mid", "reel"):
         c = cl[k]
         assert c["torque_nm"] == pytest.approx(d["mu_face"] * c["preload_n"] * r_eff)
+        assert c["torque_nm"] == pytest.approx(d[f"brake_{k}_n"] * 0.027)
         assert c["line_n_empty"] > c["line_n_full"]
-        # D24: the brake target is met with the reel full; the core sees more
-        assert c["line_n_full"] == pytest.approx(d[f"brake_{k}_n"])
-    assert cl["spring_rate_n_mm"] > 0
-    assert cl["precompress_mm"] > 0
-    assert cl["launch"]["preload_n"] + cl["spring_rate_n_mm"] * d["brake_stroke"] == pytest.approx(
-        cl["reel"]["preload_n"])
+    assert cl["launch"]["torque_nm"] * 1000 == pytest.approx(6.75)
+    assert cl["reel"]["torque_nm"] * 1000 == pytest.approx(135.0)
 
 
-def test_rocker_stress_and_stiffness(d):
-    rk = rc.rocker(d)
-    assert 0 < rk["sigma_max"] < 30.0
-    assert rk["t"] > 0
-    assert rk["EI"] == pytest.approx(rk["E"] * rk["b"] * rk["t"] ** 3 / 12)
-    # the beam actually produces the preload change over the stroke
-    cl = rc.clutch(d)
-    L, a = d["rocker_l"], d["rocker_a"]
-    dP = (cl["reel"]["preload_n"] - cl["launch"]["preload_n"]) * L / (L + a)
-    delta = dP * a ** 2 * (L + a) / (3 * rk["EI"])
-    assert delta == pytest.approx(d["brake_stroke"])
-    assert rk["precompress_input"] > 0
+def test_lever_leaf_gives_firm(d):
+    """The leaf bends by the lever tip travel at FIRM and adds at least the FIRM - LIGHT preload, within PPA-CF."""
+    lv = rc.lever_leaf(d)
+    assert 3.0 < lv["travel"] < 5.0
+    assert lv["added_n"] >= lv["need_n"]
+    assert lv["added_n"] < 1.5 * lv["need_n"]
+    assert lv["sigma_max"] < 50.0
 
 
 # ------------------------------------------------------------------------------------------------ gear train
 def test_train_takeup_margin(d):
     tr = rc.train(d)
-    assert tr["takeup_margin"] > 1.2
-    assert tr["cap_per_main"] == pytest.approx(d["z_main"] / d["z_cap"])
-    assert tr["reel_per_cap"] == pytest.approx((d["z_bus"] / d["z_reel"]) / (d["z_main"] / d["z_cap"]))
+    assert tr["takeup_margin"] > 1.0                  # D49: at least 15 m stay on the spool in a tow (study 2.2)
+    assert tr["cap_per_main"] == pytest.approx(2.307, abs=1e-3)
+    assert tr["reel_per_cap"] == pytest.approx((d["z_bus"] / d["z_reel"]) / rc.cap_ratio(d))
     assert tr["reel_per_wiper"] == pytest.approx(2.5)
 
 
@@ -205,9 +188,10 @@ def test_train_stall_tension_below_break(d):
 
 def test_train_center_distances(d):
     tr = rc.train(d)
-    assert tr["c_main_cap"] == pytest.approx(0.5 * d["m_cap"] * (d["z_main"] + d["z_cap"]))
-    assert tr["c_take_idler"] == pytest.approx(0.5 * d["m_take"] * (d["z_take"] + d["z_idler"]))
-    assert tr["c_idler_reel"] == pytest.approx(0.5 * d["m_take"] * (d["z_idler"] + d["z_reel"]))
+    assert tr["c_main_c1"] == pytest.approx(99.0)
+    assert tr["c_ga_gb"] == pytest.approx(43.5) and tr["c_gb_gc"] == pytest.approx(41.25)
+    assert tr["c_c1p_idler"] == pytest.approx(57.0) and tr["c_idler_t1"] == pytest.approx(37.5)
+    assert tr["c_bus"] == pytest.approx(72.0)
 
 
 def test_train_wraps_from_drum_whole(d):
@@ -253,7 +237,7 @@ def test_amps_tension_inverse(d):
 def test_unwrap_schedule_totals(d):
     steps = rc.unwrap_schedule(d)
     assert sum(s[0] for s in steps) == pytest.approx(d["wraps"])
-    up = d["z_main"] / d["z_cap"]
+    up = rc.cap_ratio(d)
     r = rc.line_r_cap(d)
     for cup, cap_deg, main_deg in steps:
         slack = cup * 2 * math.pi * r
@@ -269,13 +253,13 @@ def test_unwrap_schedule_dividing_steps(d, step):
 
 
 def test_cup_torque_magnitude(d):
+    """D49 axial eyelet: the dart line has no tangential share at the ring, so the cup holds the groove exit torque
+    alone (about T x 20.5 mm x e^(mu x groove angle)); the drum's locking arc takes it."""
     for mu in (0.1, 0.2, 0.3):
-        assert abs(rc.cup_torque(d, 100.0, mu)) < 1.0
+        assert 0.0 < rc.cup_torque(d, 100.0, mu) < 3.0
     assert rc.cup_torque(d, 0.0) == pytest.approx(0.0)
-    # linear in tension
     assert rc.cup_torque(d, 100.0) == pytest.approx(2 * rc.cup_torque(d, 50.0))
-    # more groove friction leaves less tension on the out side, so holding torque grows in magnitude
-    assert abs(rc.cup_torque(d, 100.0, 0.3)) > abs(rc.cup_torque(d, 100.0, 0.1))
+    assert rc.cup_torque(d, 100.0, 0.3) > rc.cup_torque(d, 100.0, 0.1)
 
 
 # ------------------------------------------------------------------------------------------------ params overlay
@@ -324,12 +308,3 @@ def test_unwrap_schedule_partial_last_step():
         steps = rc.unwrap_schedule(d, st)
         assert abs(sum(s[0] for s in steps) - d["wraps"]) < 1e-9
         assert all(0 < s[0] <= st + 1e-12 for s in steps)
-
-
-def test_rocker_section_real_plate():
-    d = dict(rc.DEFAULTS)
-    a = rc.rocker_section(d)
-    assert 1.5 < a["stroke"] < 3.0
-    assert a["push_firm"] < 13.0                 # cad-drum designs track 2 for 15 N
-    assert a["sigma_max"] < 25.0                 # PETG, long FIRM holds
-    assert rc.rocker_section(d, t=2.5)["stroke"] > a["stroke"]

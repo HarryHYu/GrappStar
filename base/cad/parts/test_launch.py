@@ -81,7 +81,7 @@ def test_kin_values_rest_and_cocked():
 @pytest.mark.parametrize("name", ["launch_carriage", "launch_big_gear", "launch_drive_gear", "launch_sleeve",
                                   "launch_rail_rear", "launch_rail_mid", "launch_rail_front", "launch_sw_home",
                                   "launch_sw_seated", "launch_gear_pin", "launch_gear_clip",
-                                  "launch_seat_plunger", "launch_seat_pushrod", "launch_pulley_top"])
+                                  "launch_seat_plunger", "launch_seat_pushrod", "launch_line_p"])
 def test_parts_valid_single_body_and_fit_bed(name):
     parts = {p.name: p for p in L.parts(P)}
     p = parts[name]
@@ -177,3 +177,19 @@ def test_lip_levers_rest_gap_open_and_strain_ok():
         Mp = tf.mul(tf.T(pv), tf.R((0, 1, 0), v_home), tf.T(-pv[0], -pv[1], -pv[2]), st["M"])
         sp = prim.place(L.seat_screw_solid(P, side), Mp)
         assert (sp ^ nut).volume() < 1e-3 and sp.min_gap(nut, 5.0) < 0.01
+
+
+def test_d49_line_from_the_cup_eyelet_on_the_dart_axis():
+    """D49: no tether pulleys on the rail; the line comes straight from cad-reel's eyelet on the dart axis to the
+    pusher, and the rail rear end carries the reel head flange."""
+    names = {p.name for p in L.parts(P)}
+    assert not any("pulley" in n and "muzzle" not in n for n in names)
+    S = dict(aim_deg=20.0, cock=0.0)
+    spans = L.line_path(P, S)
+    e, pu = spans[0][0]
+    from cad.lib import tf
+    Minv = tf.inv(L._rail_to_world(P, L.kin(P, S)["launch_rail"]))
+    e_r, pu_r = tf.apply(Minv, np.array([e, pu]))
+    assert e_r[0] == pytest.approx(-183.0, abs=0.5) and abs(e_r[1]) < 0.01
+    assert e_r[2] == pytest.approx(pu_r[2], abs=0.01) == L.L(P)["w_dart"] - 0.4
+    assert "reel_cup" in spans[0][1]

@@ -7,8 +7,11 @@ drum train holds the cup during tow, reel_NOTES.md section 7).
 
 Frames (both: axis +Z):
   drum: base flange back face at z = 0, body to z = 3 + DL.
-  cup:  rim plane z = 0, face z = CUP_D, ring at the top (+Y), groove running +theta (CCW about +Z) from the ring
-        down to the rim (theta from +X toward +Y). In the reel frame R the cup frame is a pure translation.
+  cup:  rim plane z = 0, face z = CUP_D, eyelet ring at +Y, groove running +theta (CCW about +Z) from the ring
+        down to the rim (theta from +X toward +Y).
+D49 (the one change to Harry's cup): the ring hole is turned AXIAL, parallel to the cup axis at radius 26.0 (v7: tangential
+at 24.5), on a lug in front of the face (z CUP_D .. CUP_D + 4); the groove starts at the face edge under the ring's rear
+mouth. The line runs straight through the ring along the cup axis direction at radius 26, 2 mm outside the cup wall.
 """
 from __future__ import annotations
 
@@ -27,15 +30,16 @@ CUP_IN, CUP_OUT, CUP_D = 20.6, 24.0, 14.0
 CUP_FACE_T = 2.0                    # front wall
 ER = 23.5                           # line centre radius in the groove (groove floor 23.0)
 EZP = 14.5                          # ring axis height above the rim plane (0.5 in front of the face)
-RING_L, RING_R = 2.0, 3.4           # ring half length (tangential), outside radius
+RING_L, RING_R = 2.0, 3.4           # ring half length (now axial: lug z CUP_D .. CUP_D + 2 RING_L), outside radius
 RING_HOLE_R = 1.4                   # dia 2.8 line hole through the ring
-RING_AT = ER + 1.0                  # 24.5: ring axis radius, 1 mm outside the groove line
+RING_MOUTH_R = 2.0                  # dia 4.0 coned mouths
+RING_AT = 26.0                      # D49: ring hole axis radius (axial hole), 2.0 outside the cup wall (r 24)
 ALPHA = 30.0                        # groove helix angle from the rim plane
 GW = 1.2                            # groove width across the line
 G_FLOOR = 23.0                      # groove floor radius
 PITCH = 2 * math.pi * CUP_OUT * math.tan(math.radians(ALPHA))   # 87.1 mm per turn
 DPM = 360.0 / PITCH                                             # deg of wrap per mm of rise
-TH_TOP = 90 + math.degrees(RING_L / ER)                         # groove start under the ring's rear mouth
+TH_TOP = 90.0                                                   # D49: groove start under the axial ring's rear mouth
 TH_RIM = TH_TOP + DPM * CUP_D                                   # groove crosses the rim here
 # changes for the base
 HUB_R = 7.5                         # cup hub (v7 7.0): holds the 10 mm K bore
@@ -123,10 +127,10 @@ def cup(k_d=10.0, bore_clear=0.3, flat=1.2):
         prof.append((CUP_OUT - rf + rf * math.cos(a), CUP_D - rf + rf * math.sin(a)))
     prof.append((0, CUP_D))
     body = _revolve(prof)
-    # ring and its printable 45 deg block
-    ring = prim.cylX(RING_R, -RING_L, RING_L, y=RING_AT, z=EZP)
-    blk = prim.box(-RING_L, RING_L, 22.0, RING_AT + 2.0, 5.5, EZP) ^ prim.cyl(24.0, 16.0, z=5.5, r2=40.0)
-    body = prim.union([body, ring, blk])
+    # D49 axial eyelet lug in front of the face (prints on top of the face, open end down); its root reaches into the
+    # face to r 22.6 so it is one body with the cup
+    ring = prim.cyl(RING_R, 2 * RING_L + 1.0, y=RING_AT, z=CUP_D - 1.0)
+    body = prim.union([body, ring])
     # cavity over the drum (rim chamfer 1.0 on both edges) and the hub
     cav = prim.cyl(CUP_IN, CUP_D - CUP_FACE_T + 1, z=-1) - prim.cyl(HUB_R, CUP_D + 2, z=-1)
     cham_o = _revolve([(CUP_OUT - 1.0, -0.01), (CUP_OUT + 1, -0.01), (CUP_OUT + 1, 2.0)])
@@ -139,10 +143,12 @@ def cup(k_d=10.0, bore_clear=0.3, flat=1.2):
     m0 = prim.cyl(rb + 0.7, 0.71, z=-0.01, r2=rb)
     m1 = prim.cyl(rb, 0.71, z=CUP_D - 0.7, r2=rb + 0.7)
     body = body - prim.union([front, rear, m0, m1])
-    # line hole through the ring with coned mouths
-    hole = prim.cylX(RING_HOLE_R, -RING_L - 1, RING_L + 1, y=RING_AT, z=EZP)
-    c0 = _cone_along(2.0, RING_HOLE_R, (-RING_L - 0.01, RING_AT, EZP), (-RING_L + 0.6, RING_AT, EZP))
-    c1 = _cone_along(RING_HOLE_R, 2.0, (RING_L - 0.6, RING_AT, EZP), (RING_L + 0.01, RING_AT, EZP))
+    # axial line hole through the lug with coned mouths (d 4.0); the rear mouth opens below the face into the free
+    # space outside the cup wall, where the line comes from the spool
+    z0, z1 = CUP_D, CUP_D + 2 * RING_L
+    hole = prim.cyl(RING_HOLE_R, z1 - z0 + 8.0, y=RING_AT, z=z0 - 6.0)
+    c0 = prim.cyl(RING_MOUTH_R, 0.61, y=RING_AT, z=z0 - 0.01, r2=RING_HOLE_R)
+    c1 = prim.cyl(RING_HOLE_R, 0.61, y=RING_AT, z=z1 - 0.6, r2=RING_MOUTH_R)
     body = body - prim.union([hole, c0, c1])
     # funnels at both groove ends, then the groove LAST (Harry's rule)
     fun = []
@@ -158,5 +164,5 @@ def cup_line_points():
     """Line centre points on the cup (cup frame): ring rear mouth, groove top (face edge), groove at the rim."""
     p_top, _ = _helix_pt_dir(TH_TOP, CUP_D, ER)
     p_rim, _ = _helix_pt_dir(TH_RIM, 0.0, ER)
-    return dict(ring_front=np.array((RING_L, RING_AT, EZP)), ring_rear=np.array((-RING_L, RING_AT, EZP)),
+    return dict(ring_front=np.array((0.0, RING_AT, CUP_D + 2 * RING_L)), ring_rear=np.array((0.0, RING_AT, CUP_D)),
                 groove_top=p_top, groove_rim=p_rim)

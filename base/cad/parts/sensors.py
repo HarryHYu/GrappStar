@@ -481,7 +481,6 @@ def clearances(P):
         Clearance(f"{PREFIX}_as5600", "drum_magnet_cap", 0.4, "JST connectors and chip vs the turning magnet cap"),
         Clearance(f"{PREFIX}_as5600_strip_*", "drum_magnet_cap", 0.4, "clamp strips vs the turning magnet cap"),
         Clearance(f"{PREFIX}_as5600_screw_*", "drum_magnet_cap", 0.4, "clamp screw tips vs the magnet cap"),
-        Clearance(f"{PREFIX}_sw_gap", "reel_p2_post", 2.5, "SW_GAP under the rail vs cad-reel's pulley 2 arm"),
         Clearance(f"{PREFIX}_sw_gap", "launch_sleeve", 1.5, "SW_GAP vs the launch sleeve flange"),
         Clearance(f"{PREFIX}_sw_gap", "drum_dog_post", 1.0, "SW_GAP arm vs cad-drum's dog post"),
     ]

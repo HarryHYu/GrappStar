@@ -130,7 +130,7 @@ def test_sheet_numbers_are_measurable(built):
 def test_outputs(written, built):
     d, rep = written
     assert rep["errors"] == []
-    assert 1 <= len(rep["plates"]) <= 2
+    assert 1 <= len(rep["plates"]) <= 3            # D49: the m2 coupon pairs the REEL gear with the 49T C1
     assert {pl["material"] for pl in rep["plates"]} == {"PLA", "PPA-CF"}
     for pl in rep["plates"]:
         assert pl["material"] in pl["file"]

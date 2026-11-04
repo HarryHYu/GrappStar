@@ -154,6 +154,9 @@ def apply(p, path=None):
         if isinstance(rl.get("current_trips_a"), dict):
             p.capstan["trips"] = {k: float(v) for k, v in rl["current_trips_a"].items() if isinstance(v, (int, float))}
             used.append("REEL.current_trips_a")
+        if rl.get("payout_gain") is not None:                 # D49: spool -> dart in flight (eyelet fleet angle)
+            p.flight["eye_gain"] = float(rl["payout_gain"])
+            used.append("REEL.payout_gain")
         if rl.get("path_gain") is not None:
             p.capstan["path_gain"] = float(rl["path_gain"])
             used.append("REEL.path_gain")
@@ -165,6 +168,12 @@ def apply(p, path=None):
             p.capstan["tow_limit_max_n"] = float(rl["tow_limit_max_n"])
         if rl.get("tow_limit_n") is not None:
             p.capstan["tow_limit_n"] = float(rl["tow_limit_n"])
+    rr = getattr(mod, "RAIL_REEL", None) or {}
+    pm = rr.get("pitching") if isinstance(rr, dict) else None
+    if isinstance(pm, dict) and pm.get("mass_kg") is not None:   # D49: everything that pitches, incl. the reel head
+        cu, cw = pm.get("cg_uw", (0.0, 0.0))
+        p.launch["pitching"] = dict(mass_kg=float(pm["mass_kg"]), u_cg=float(cu) * 1e-3, w_cg=float(cw) * 1e-3)
+        used.append("RAIL_REEL.pitching")
     dr = getattr(mod, "DRUM", None) or {}
     if isinstance(dr, dict) and isinstance(dr.get("bus"), dict) and dr["bus"].get("overdrive_total") is not None:
         p.capstan["overspeed"] = float(dr["bus"]["overdrive_total"])

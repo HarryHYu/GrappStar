@@ -118,8 +118,10 @@ def seating_gain(p, a=APPROACH):
     pg = p.capstan.get("path_gain", 1.5)
     if pg >= 1.45:                                   # every eye plain (no pulleys)
         return a["eye_gain_plain"]
-    ring = 1.03 if pg <= 1.2 else math.exp(0.25 * math.radians(27.0))   # ring roller, or the plain cup ring (27 deg)
-    return 1.02 * 1.02 * ring                        # storage guide and exit eye pulleys
+    if pg <= 1.2:                                    # D49 rail reel: straight from the spool through the cup eyelet
+        return 1.05
+    ring = math.exp(0.25 * math.radians(27.0))       # the plain cup ring (27 deg)
+    return 1.02 * 1.02 * ring                        # storage guide and exit eye pulleys (before D49)
 
 
 def approach(p, a=APPROACH):

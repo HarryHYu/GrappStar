@@ -1,6 +1,6 @@
 """Write base/out/ballistics.json exactly per contract C3 (the Jetson solver interpolates it).
 
-{"version": 1, "pitch_min": ..., "pitch_max": ..., "drag_n": [0.5, 0.75, 1.0],
+{"version": 1, "pitch_min": ..., "pitch_max": ..., "drag_n": [0.25, 0.5, 0.75],
  "table": [{"pitch_deg": ..., "v_muzzle": ..., "range_m": [r05, r075, r10], "t_flight_s": [...], "apex_m": [...]}]}
 
 Meaning of the numbers (also written to base/out/ballistics_meta.json, which the Jetson may ignore):
@@ -25,7 +25,7 @@ from launcher import effective_muzzle, launch, line_slack
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "out", "ballistics.json")
-DRAG_N = [0.5, 0.75, 1.0]
+DRAG_N = [0.25, 0.5, 0.75]   # D49: LIGHT is a fixed 0.25 N
 
 
 def build(p=None, step: float = 2.5, drag_n=DRAG_N, launch_over: dict | None = None, with_wind: bool = True,
@@ -83,8 +83,8 @@ def validate(doc: dict) -> list:
     keys = {"version", "pitch_min", "pitch_max", "drag_n", "table"}
     if set(doc) != keys:
         errs.append(f"top-level keys {sorted(doc)} != {sorted(keys)}")
-    if list(doc.get("drag_n", [])) != [0.5, 0.75, 1.0]:
-        errs.append("drag_n must be [0.5, 0.75, 1.0] (contract C3)")
+    if list(doc.get("drag_n", [])) != [0.25, 0.5, 0.75]:
+        errs.append("drag_n must be [0.25, 0.5, 0.75] (contract C3, D49)")
     if doc.get("version") != 1:
         errs.append("version must be 1")
     n = len(doc.get("drag_n", []))
@@ -134,7 +134,7 @@ def main(argv=None):
     json.dump(doc, open(a.out, "w"), indent=1)
     json.dump(meta, open(os.path.join(os.path.dirname(os.path.abspath(a.out)), "ballistics_meta.json"), "w"), indent=1)
     print(f"params: {p.source}, v_scale {meta['v_scale']:.3f}")
-    print("pitch  v0     range 0.5/0.75/1.0 N     t_flight      apex")
+    print("pitch  v0     range 0.25/0.5/0.75 N     t_flight      apex")
     for r in doc["table"]:
         print(f"{r['pitch_deg']:5.1f} {r['v_muzzle']:5.2f}  " + " ".join(f"{x:5.2f}" for x in r["range_m"]) + "  " +
               " ".join(f"{x:4.2f}" for x in r["t_flight_s"]) + "  " + " ".join(f"{x:4.2f}" for x in r["apex_m"]))

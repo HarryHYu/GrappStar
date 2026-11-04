@@ -95,7 +95,15 @@ def aim(p: Params, **kw) -> dict:
     """Wiper torque over one crank turn. Raising: gravity moment through dtheta/dphi, worm efficiency. Lowering: the
     worm is self-locking, so the wiper must still drive it (screw lowering formula on the worm)."""
     a = dict(AIM_DEFAULTS, **kw)
-    m = a["rail_mass"] + p.dart.mass + p.launch["carriage_mass"]
+    pm = p.launch.get("pitching")
+    if pm and "rail_mass" not in kw and "cg_dist" not in kw:
+        # D49 rail reel: the whole pitching mass (rail, carriage, dart, reel head and bridge) with its real CG in the
+        # rail frame (u along the rail, w normal); the head balances the launcher, so the moment is nose UP
+        m = pm["mass_kg"]
+        u_cg, w_cg = pm["u_cg"], pm["w_cg"]
+    else:
+        m = a["rail_mass"] + p.dart.mass + p.launch["carriage_mass"]
+        u_cg, w_cg = a["cg_dist"], 0.0
     lam = math.radians(a["lead_deg"])
     mu_e = a["mu"] / math.cos(math.radians(a["phi_n_deg"]))
     tl = math.tan(lam)
@@ -106,7 +114,7 @@ def aim(p: Params, **kw) -> dict:
     for (p0, t0), (p1, t1) in zip(AIM_TABLE[:-1], AIM_TABLE[1:]):
         th = math.radians((t0 + t1) / 2)
         dth_dphi = (t1 - t0) / (p1 - p0)                     # rail deg per crank deg
-        t_crank = m * G * a["cg_dist"] * math.cos(th) * dth_dphi   # + needs drive (raising), - gravity assists
+        t_crank = m * G * (u_cg * math.cos(th) - w_cg * math.sin(th)) * dth_dphi   # + needs drive, - gravity assists
         F = abs(t_crank) / r_wh                              # worm axial force
         if t_crank >= 0:
             t_worm = F * r_w * (tl + mu_e) / (1 - mu_e * tl)
@@ -115,7 +123,7 @@ def aim(p: Params, **kw) -> dict:
         rows.append((p1, t_crank, t_worm * a["bevel"] / a["eta_bevel"]))   # worm turns bevel x faster than the wiper
     t_w = [r[2] for r in rows]
     wiper_deg_rise = 160 * k_turns                           # crank 0 -> 160 deg raises 6 -> 47
-    return dict(params=a, mass=m, screw_eff=eta_w, self_locking=tl * math.cos(math.radians(a["phi_n_deg"])) < a["mu"],
+    return dict(params=a, mass=m, cg=(u_cg, w_cg), screw_eff=eta_w, self_locking=tl * math.cos(math.radians(a["phi_n_deg"])) < a["mu"],
                 t_screw_peak=max(r[1] for r in rows), t_screw_lower_peak=-min(r[1] for r in rows),
                 t_peak=max(t_w), t_mean=sum(t_w) / len(t_w), wiper_turns=wiper_deg_rise / 360,
                 wiper_turns_full_cycle=k_turns, profile=rows,

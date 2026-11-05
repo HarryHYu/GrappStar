@@ -275,10 +275,10 @@ static const float P_LAUNCH_SPRINGS_Y[] = {94.0f, 186.0f};
 #define P_LAUNCH_SPRINGS_Y_N 2
 static const float P_LAUNCH_CHEEKS_Y[][2] = {{123.0f, 131.0f}, {159.5f, 167.5f}};
 #define P_LAUNCH_CHEEKS_Y_N 2
-#define P_LAUNCH_FLIGHT_RANGE_M 4.1f
-#define P_LAUNCH_FLIGHT_APEX_M 1.1f
+#define P_LAUNCH_FLIGHT_RANGE_M 4.7f
+#define P_LAUNCH_FLIGHT_APEX_M 1.2f
 #define P_LAUNCH_FLIGHT_PITCH_DEG 34.0f
-#define P_LAUNCH_FLIGHT_T_FLIGHT_S 0.8f
+#define P_LAUNCH_FLIGHT_T_FLIGHT_S 0.85f
 #define P_LAUNCH_NEVER_FIRE_WITHOUT_TETHER 1
 #define P_AIM_OWNER "cad-launch"
 #define P_AIM_PITCH_MIN 6.0f

@@ -199,7 +199,7 @@ LAUNCH = dict(
     carriage_mass_target_kg=0.060,
     sleeve=dict(od_at_sprag=20.0, key="integral rib 6 wide", wall_min=3.8, spigot_bore=12.35, y=(111.0, 193.0), note="D13, D23"),
     rail_walls_y=(112.0, 168.0), springs_y=(94.0, 186.0), cheeks_y=((123.0, 131.0), (159.5, 167.5)),
-    flight=dict(range_m=4.1, apex_m=1.1, pitch_deg=34.0, t_flight_s=0.8, note="for the sim; physics 1.2.9: 12.06 J, 6.80 m/s, 4.14 m at 34 deg with the 0.5 N brake (85.8 g carriage, D36 routing)"),
+    flight=dict(range_m=4.7, apex_m=1.2, pitch_deg=34.0, t_flight_s=0.85, note="for the sim; physics on params 1.5.0 (D50): 4.70 m at 34 deg with the fixed LIGHT 0.25 N brake and the D50 payout path (gain 1.32, take-up chain inertia)"),
     never_fire_without_tether=True,   # D11
 )
 
@@ -381,7 +381,7 @@ TIMELINE = [
      dict(wiper_deg=-1120.0 + 425.0, sleeve_deg=-1120.0 + 425.0, cock=1.0)),
     ("fire", 0.5, "The relieved tooth lets go: the sled throws the dart; the big gear resets into its gap.",
      dict(wiper_deg=-1120.0 + 553.8, sleeve_deg=-1120.0 + 553.8, cock=0.0, fired=1, dart_flight=0.05)),
-    ("flight", 1.5, "Dart in flight; the line pays off the storage reel against the 0.5 N clutch.",
+    ("flight", 1.5, "Dart in flight; the line pays off the storage spool against the fixed 0.25 N LIGHT clutch.",
      dict(dart_flight=1.0, line_out_m=5.2)),
     ("rail_low", 4.0, "D45: wiper backward through the rest of the aim cycle: the rail comes down to 6 deg before the wrap, so tow tension cannot push the carriage back.",
      dict(aim_deg=6.0, wiper_deg=-566.2 - 2480.0, sleeve_deg=-566.2 - 2480.0)),

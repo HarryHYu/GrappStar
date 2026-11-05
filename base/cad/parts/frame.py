@@ -932,6 +932,18 @@ def build(P):
         m_ = fw["deck_margin"]
         foot_pts += [(fpx[0] + m_, fpy[0] + m_), (fpx[1] - m_, fpy[1] - m_)]
     fp = np.array([q for q in foot_pts if np.all(np.isfinite(q))])
+    # D50: everything standing behind the main deck's rear edge (the reel unit) goes on a bolt-on extension tile
+    ru = getattr(P, "REEL_UNIT", None)
+    x_ext = None
+    if isinstance(ru, dict) and isinstance(ru.get("deck_extension"), dict):
+        x_ext = float(ru["deck_extension"]["x"][1])
+    ext_pts = np.zeros((0, 2))
+    if x_ext is not None:
+        for pg in info["others_foot"]:
+            bx0, by0, bx1, by1 = pg.bounds
+            if bx0 < x_ext:
+                ext_pts = np.vstack([ext_pts, [(bx0, by0), (min(bx1, x_ext), by1)]])
+        fp = np.vstack([fp[fp[:, 0] >= x_ext]] + [np.array([(x_ext + fw["deck_margin"], q[1]) for q in fp if q[0] < x_ext]).reshape(-1, 2)])
     foot_polys = []                     # exact contact footprints: slice every part 0.5 mm above the deck top
     for p in parts:
         if p.joint is not None:
@@ -948,7 +960,16 @@ def build(P):
     dx0, dy0 = fp.min(0) - m
     dx1, dy1 = fp.max(0) + m
     info["deck_rect"] = (dx0, dx1, dy0, dy1)
+    if x_ext is not None and len(ext_pts):
+        dx0 = max(dx0, x_ext)
     outline = Polygon([(dx0, dy0), (dx1, dy0), (dx1, dy1), (dx0, dy1)]).buffer(-fw["deck_corner_r"]).buffer(fw["deck_corner_r"], 16)
+    ext_outline = None
+    if x_ext is not None and len(ext_pts):
+        ex0, ey0 = ext_pts.min(0) - m
+        ey1 = ext_pts.max(0)[1] + m
+        ext_outline = Polygon([(ex0, ey0), (x_ext + 20.0, ey0), (x_ext + 20.0, ey1), (ex0, ey1)]).buffer(
+            -fw["deck_corner_r"]).buffer(fw["deck_corner_r"], 16)
+        info["deck_ext_rect"] = (ex0, x_ext, ey0, ey1)
     seams = []
     lx, ly = dx1 - dx0, dy1 - dy0
     nx, ny = int(math.ceil(lx / 248.0)), int(math.ceil(ly / 248.0))
@@ -970,6 +991,23 @@ def build(P):
     for i in range(1, ny):
         seams.append(dict(axis="y", c=seam_c(dy0 + i * ly / ny, "y", dy0, dy1, ny), n=3))
     pieces = U.split_plate(outline, fw["deck_t"], seams) if seams else [outline]
+    ext_k = None
+    if ext_outline is not None:
+        # D50 extension tile: dovetailed onto the main deck's rear edge (tails clear of the main y seams), its own tile
+        whole = unary_union([outline, ext_outline])
+        lo_, hi_ = ext_outline.bounds[1], ext_outline.bounds[3]
+        plus = U.dovetail_seam_cs("x", x_ext, lo_ + 15, hi_ - 15, 3, avoid=[sm["c"] for sm in seams if sm["axis"] == "y"])
+        rear = whole.difference(plus).buffer(-0.075, join_style=2)
+        rear = max(getattr(rear, "geoms", [rear]), key=lambda g: g.area if g.bounds[0] < x_ext else 0.0)
+        new = []
+        for pc in pieces:
+            q = pc.intersection(plus).buffer(-0.075, join_style=2)
+            for g in getattr(q, "geoms", [q]):
+                if not g.is_empty and g.area > 50.0:
+                    new.append(g)
+        pieces = new + [rear]
+        ext_k = len(pieces) - 1
+        seams = seams + [dict(axis="x", c=x_ext, n=3, extension=True)]
     info["deck_seams"] = seams
     # rover holes: perimeter of every piece, pitch <= rover_hole_pitch, 7 mm in from the edge, away from deck inserts
     t = fw["deck_t"]
@@ -1017,6 +1055,8 @@ def build(P):
                         cuts.append(prim.extrude(cs_, fw["deck_pocket_depth"] + 1, z=-fw["deck_pocket_depth"]))
         sol = prim.diff(sol, cuts)
         nm = "frame_deck" if len(pieces) == 1 else f"frame_deck_{k + 1}"
+        if ext_k is not None and k == ext_k:
+            nm = "frame_deck_ext"
         parts.append(Part(nm, sol, "PLA", print_tf=U.print_flat(sol), color="#80888f", infill=0.2,
                           notes="deck: M3 inserts for every frame foot; %d x M3 rover holes (it is its own drill template)" % sum(1 for r in rover if r[2] == k)))
     info["deck_pieces"] = len(pieces)

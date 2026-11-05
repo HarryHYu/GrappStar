@@ -1,7 +1,7 @@
 """Launch solver (contract C3): pick the rail pitch for a target range.
 
 Reads base/out/ballistics.json (written by the base physics model):
-  {"version": 1, "pitch_min": .., "pitch_max": .., "drag_n": [0.5, 0.75, 1.0],
+  {"version": 1, "pitch_min": .., "pitch_max": .., "drag_n": [0.25, 0.5, 0.75],
    "table": [{"pitch_deg": .., "v_muzzle": .., "range_m": [r05, r075, r10], "t_flight_s": [...], "apex_m": [...]}]}
 Until that file exists it uses grappstar/data/ballistics_placeholder.json (made by make_placeholder() below from a
 simple point-mass model: NOT the real launcher, marked "placeholder": true).
@@ -28,7 +28,7 @@ from typing import List, Optional
 PREFER_HIGH = True   # D29 (3 Nov): prefer the higher pitch when two solutions exist
 HERE = os.path.dirname(os.path.abspath(__file__))
 PLACEHOLDER = os.path.join(HERE, "data", "ballistics_placeholder.json")
-LIGHT_DRAG_N = 0.5   # launch clutch LIGHT (D24), the C3 column the real shots use
+LIGHT_DRAG_N = 0.25  # launch clutch LIGHT, fixed 0.25 N (D49, D50), the C3 column the real shots use
 REPO_TABLE = os.path.normpath(os.path.join(HERE, "..", "..", "base", "out", "ballistics.json"))
 
 
@@ -171,7 +171,7 @@ def make_placeholder(path: str = PLACEHOLDER, v0: float = 10.7, mass: float = 0.
                      h0: float = 0.25) -> dict:
     """Point-mass flight with a constant line drag force (N) along -velocity plus quadratic air drag."""
     g = 9.81
-    drags = [0.5, 0.75, 1.0]
+    drags = [0.25, 0.5, 0.75]
     table = []
     for pitch in [6] + list(range(10, 46, 5)) + [47]:      # the real rail window 6..47 (D29)
         rs, ts, aps = [], [], []

@@ -1,5 +1,5 @@
 {
- "params_source": "base/spec/params.py v1.3.2",
+ "params_source": "base/spec/params.py v1.5.0",
  "steps": [
   {
    "step": "aim (worst case full 6 to 47 deg)",
@@ -45,8 +45,8 @@
   },
   {
    "step": "tow the rover 3.0 m at 30.0 N",
-   "time_s": 18.898556729173148,
-   "wh": 0.22501354361395565,
+   "time_s": 18.457141537257684,
+   "wh": 0.2056034306699007,
    "note": ""
   },
   {
@@ -63,8 +63,8 @@
   },
   {
    "step": "reel the dart home 5 m",
-   "time_s": 26.643120666602297,
-   "wh": 0.15960485132409355,
+   "time_s": 26.539326804548036,
+   "wh": 0.15494067681967835,
    "note": ""
   },
   {
@@ -74,10 +74,10 @@
    "note": ""
   }
  ],
- "total_s": 213.0576754686376,
- "total_wh": 0.711525284793805,
- "idle_wh": 0.23673075052070844,
- "missions_per_pack": 64.89720180974523,
+ "total_s": 212.51246641466787,
+ "total_wh": 0.6868452095075905,
+ "idle_wh": 0.2361249626829643,
+ "missions_per_pack": 67.22912143931856,
  "assumed": {
   "drum_shift_s": 3.0,
   "drum_a": 0.15,

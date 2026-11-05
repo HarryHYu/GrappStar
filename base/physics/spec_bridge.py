@@ -154,6 +154,9 @@ def apply(p, path=None):
         if isinstance(rl.get("current_trips_a"), dict):
             p.capstan["trips"] = {k: float(v) for k, v in rl["current_trips_a"].items() if isinstance(v, (int, float))}
             used.append("REEL.current_trips_a")
+        if rl.get("payout_gain") is not None:                 # D49/D50: spool -> dart in flight
+            p.flight["eye_gain"] = float(rl["payout_gain"])
+            used.append("REEL.payout_gain")
         if rl.get("path_gain") is not None:
             p.capstan["path_gain"] = float(rl["path_gain"])
             used.append("REEL.path_gain")
@@ -165,6 +168,13 @@ def apply(p, path=None):
             p.capstan["tow_limit_max_n"] = float(rl["tow_limit_max_n"])
         if rl.get("tow_limit_n") is not None:
             p.capstan["tow_limit_n"] = float(rl["tow_limit_n"])
+    ru = getattr(mod, "REEL_UNIT", None) or {}
+    sp_ = ru.get("spool") if isinstance(ru, dict) else None
+    if isinstance(sp_, dict) and sp_.get("drive_inertia_gmm2") is not None:
+        # D50: the clutch hub and the take-up chain turn 1:1 with the spool in payout: their inertia as an equivalent
+        # hub mass at the 608 seat radius (payout.reel_props: I_hub = hub_mass x 0.011^2)
+        p.reel["hub_mass"] = float(sp_["drive_inertia_gmm2"]) * 1e-9 / 0.011 ** 2
+        used.append("REEL_UNIT.spool.drive_inertia_gmm2")
     dr = getattr(mod, "DRUM", None) or {}
     if isinstance(dr, dict) and isinstance(dr.get("bus"), dict) and dr["bus"].get("overdrive_total") is not None:
         p.capstan["overspeed"] = float(dr["bus"]["overdrive_total"])

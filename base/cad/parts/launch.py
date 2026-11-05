@@ -1655,17 +1655,14 @@ def steps(P):
                   "the carriage home by hand). Hold the drive gear from the side and "
                   "never put a hand in front of the carriage.",
              parts=[]),
-        dict(title="Launcher 9: tether pulleys",
-             text="Press a 693ZZ into each printed pulley. Fit the top and bottom pulleys in the fork behind the rail "
-                  "(M3 x 20 axle and nyloc nut, a printed top-hat washer each side between plate and bearing, hub towards "
-                  "the bearing) and the pivot pulley on the right cheek lug under the axis (M3 x 20 from outside, head on the bearing, nyloc on the cheek inner face). "
-                  "Thread the line from the reel side under the pivot pulley, back under the rail to the bottom pulley, up "
-                  "over the top pulley and forward through the pusher hole to the dart's tail cap. Never fire without the "
-                  "tether.",
-             parts=["launch_pulley_top", "launch_pulley_top_brg", "launch_pulley_top_axle", "launch_pulley_bot",
-                    "launch_pulley_bot_brg", "launch_pulley_bot_axle", "launch_pulley_piv", "launch_pulley_piv_brg",
-                    "launch_pulley_piv_axle", "launch_pulley_top_washer_l", "launch_pulley_top_washer_r",
-                    "launch_pulley_bot_washer_l", "launch_pulley_bot_washer_r", "launch_line_b", "launch_line_c", "launch_line_p"]
+        dict(title="Launcher 9: rail-rear pulley",
+             text="Press a 693ZZ into the printed pulley. Fit it in the fork at the rail's rear end with a printed top-hat "
+                  "washer on each side (hub toward the bearing) and push the M3 x 20 axle through (nyloc nut on the far "
+                  "side, snug: the pulley must spin). D50: this is the only pulley on the tether. The line comes from the "
+                  "capstan eyelet behind the launcher, runs UNDER this pulley and forward along the rail axis through the "
+                  "pusher hole to the dart's tail cap. Never fire without the tether attached (D11).",
+             parts=["launch_pulley_top", "launch_pulley_top_brg", "launch_pulley_top_axle", "launch_pulley_top_washer_l",
+                    "launch_pulley_top_washer_r", "launch_line_p"]
                    + [f"launch_line_a{k}" for k in range(LN.N_A)]),
         dict(title="Aim 1: aim housing, worm, wheel, crank",
              text="Build the aim housing on the bench (it goes onto the base later, after the rail). The AS5600 carrier "
@@ -1739,46 +1736,74 @@ def _tangent_angle(c, r, q, side):
     return base + side * math.degrees(math.acos(min(1.0, r / d)))
 
 
-def line_entry(P, S=None):
-    """World point where the tether arrives at the rail: the BOTTOM of the pivot pulley (cad-reel's feed comes in
-    from the front at about the same height and the line wraps under the pulley and round its rear). The pulley is
-    44 below the main axis and turns with the rail, so the feed length changes by about 25 mm over the aim range
-    (slack on the way down is taken up by the take-up during cocking)."""
-    S = S or {}
+def _eyelet_world(P):
+    ru = getattr(P, "REEL_UNIT", None) or {}
+    return np.asarray(ru.get("eyelet", (-240.6, 140.0, 59.7)), float)
+
+
+def _pulley_wrap(P, S):
+    """(pitch, pulley centre (u, w), tangent angle a_t (deg), eyelet (u, w)) of the D50 rail-rear pulley for state S.
+    The line runs under the pulley along the dart axis and wraps counter-clockwise (rail frame, u right, w up) round its
+    rear from a_t up to 270 deg (the bottom); a_t is the tangent point toward cad-reel's capstan eyelet."""
     n = L(P)
     pitch = kin(P, S)["launch_rail"]
-    pv = LN.geom(n)["piv"]
-    p = (pv[0], pv[1], pv[2] - LN.R_PATH)
+    tp = LN.geom(n)["top"]
+    c = (tp[0], tp[2])
+    W = _rail_to_world(P, pitch)
+    q = tf.apply(tf.inv(W), np.array([_eyelet_world(P)]))[0]
+    qu, qw = q[0], q[2]
+    dx, dz = qu - c[0], qw - c[1]
+    d = math.hypot(dx, dz)
+    base = math.degrees(math.atan2(dz, dx))
+    b = math.degrees(math.acos(min(1.0, LN.R_PATH / d)))
+    best = None
+    for a in (base + b, base - b):
+        t = math.radians(a)
+        tx, tz = c[0] + LN.R_PATH * math.cos(t), c[1] + LN.R_PATH * math.sin(t)
+        tr = math.atan2(tz - qw, tx - qu)                # travel direction eyelet -> tangent point
+        ccw = math.radians(a + 90.0)
+        err = abs(math.atan2(math.sin(tr - ccw), math.cos(tr - ccw)))
+        if best is None or err < best[0]:
+            best = (err, a % 360.0)
+    a_t = best[1]
+    if a_t < 90.0 or a_t > 270.0:                        # eyelet below the axis line (pitch under the tow pitch): no wrap
+        a_t = 270.0
+    return pitch, c, a_t, (qu, qw)
+
+
+def line_entry(P, S=None):
+    """World point where the tether from cad-reel's capstan eyelet meets the rail: the tangent point on the D50
+    rail-rear pulley (the line runs under the pulley; at the 6 deg tow pitch the tangent is at its bottom, straight)."""
+    S = S or {}
+    pitch, c, a_t, _ = _pulley_wrap(P, S)
+    t = math.radians(a_t)
+    p = (c[0] + LN.R_PATH * math.cos(t), 0.0, c[1] + LN.R_PATH * math.sin(t))
     return tf.apply(_rail_to_world(P, pitch), np.array([p]))[0]
+
+
+def pulley_bend_deg(P, S=None):
+    """Line bend at the D50 rail-rear pulley for state S (deg): 0 at the tow pitch."""
+    return 270.0 - _pulley_wrap(P, S or {})[2]
 
 
 def line_path(P, S=None):
     """Tether centre polyline on the launcher, WORLD frame, as [(points N x 3, allowed part names)] spans:
-    pivot pulley -> under the rail -> bottom and top pulleys behind the rail -> forward along the axis to the pusher
-    -> dart tail (on the sled, in flight or coming home). Continues cad-reel's path from line_entry(P, S)."""
+    round the rail-rear pulley from line_entry (D50: under it) -> forward along the axis to the pusher -> dart tail
+    (on the sled, in flight or coming home). Continues cad-reel's path from line_entry(P, S)."""
     S = S or {}
     n = L(P)
     v = kin(P, S)
     pitch, travel = v["launch_rail"], v["launch_carriage"]
     g = LN.geom(n)
     W = _rail_to_world(P, pitch)
-    pv = g["piv"]
-    bt, tp = g["bot"], g["top"]
-    q = (bt[0], bt[2] - LN.R_PATH)                               # bottom pulley's lowest path point
-    a_t = _tangent_angle((pv[0], pv[2]), LN.R_PATH, q, 1.0) % 360.0     # leaves at the bottom-rear towards it
-    arc = []
-    for a in np.linspace(270.0, min(a_t, 270.0), 5):                  # feed arrives at the bottom, wraps rearwards
-        t = math.radians(a)
-        arc.append((pv[0] + LN.R_PATH * math.cos(t), pv[1], pv[2] + LN.R_PATH * math.sin(t)))
-    bot = [(bt[0] + LN.R_PATH * math.cos(math.radians(a)), 0.0, bt[2] + LN.R_PATH * math.sin(math.radians(a)))
-           for a in np.linspace(270.0, 180.0, 5)]
-    top = [(tp[0] + LN.R_PATH * math.cos(math.radians(a)), 0.0, tp[2] + LN.R_PATH * math.sin(math.radians(a)))
-           for a in np.linspace(180.0, 90.0, 5)]
+    _, c, a_t, _ = _pulley_wrap(P, S)
+    arc = [(c[0] + LN.R_PATH * math.cos(math.radians(a)), 0.0, c[1] + LN.R_PATH * math.sin(math.radians(a)))
+           for a in np.linspace(a_t, 270.0, max(2, int((270.0 - a_t) / 10.0) + 2))]
     pusher = (n["u_c_home"] - travel, 0.0, g["w_line"])
     tail_seat = np.array((n["u_tail_home"] - travel, 0.0, g["w_line"]))
     du, dw = v.get("launch_dart", 0.0), v.get("launch_dart_w", 0.0)
     tail = tail_seat + np.array((du, 0.0, dw))
-    rail_pts = np.array(arc + bot + top + [pusher])
+    rail_pts = np.array(arc + [pusher])
     # pusher -> dart tail: when the tail is ahead of the lip roller and the straight line would pass under the roller
     # top (dart landed ahead and below, e.g. the rail is still up in rail_low), the line runs over the roller groove
     # and leaves it at the upper front tangent towards the tail (MZ.roller_top, carriage local, + u_c_home - travel)
@@ -1793,7 +1818,7 @@ def line_path(P, S=None):
                     for a in np.linspace(90.0, a_d, 4)]
             allowed_tip.add("launch_muzzle_roller")
     tip.append(tuple(tail))
-    spans = [(tf.apply(W, rail_pts), {"launch_pulley_piv", "launch_pulley_bot", "launch_pulley_top", "launch_rail_rear"}),
+    spans = [(tf.apply(W, rail_pts), {"launch_pulley_top", "launch_rail_rear"}),
              (tf.apply(W, np.array(tip)), allowed_tip)]
     return spans
 

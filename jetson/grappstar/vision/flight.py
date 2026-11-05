@@ -722,13 +722,13 @@ def _bgr_frame(f):
 def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_offset_s: Optional[float] = None,
                    hfov_deg: float = 100.0, v0_default: Optional[float] = None, h0: float = RAIL_H,
                    lens: str = "pinhole",
-                   ballistics=None, drag_n: float = 0.5, aim_pitch_deg: Optional[float] = None,
+                   ballistics=None, drag_n: float = 0.25, aim_pitch_deg: Optional[float] = None,
                    calibrate_range: bool = True) -> FlightResult:
     """Analyse a dart flight video (list of Frame) with an optional C2 flightlog. Never raises on bad input.
 
     ballistics: a grappstar.ballistics.Ballistics (C3 table) used as the prior for the muzzle speed and to
     calibrate the range (the table is the launcher model; the simple drag model here only interpolates around it).
-    drag_n: the clutch drag column (LIGHT 0.5 N at launch). aim_pitch_deg: the commanded rail pitch (a strong
+    drag_n: the clutch drag column (LIGHT 0.25 N at launch, D49, D50). aim_pitch_deg: the commanded rail pitch (a strong
     prior for the video-only path). calibrate_range=False keeps the simple drag model's range (no scaling to the
     table): for a simulator world that does not follow the table."""
     res = FlightResult()

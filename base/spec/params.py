@@ -2,7 +2,7 @@
 
 Units: mm, deg, N, N m, s, kg unless a name says otherwise.
 Owner: the coordinator. Workers read it and never edit it; request changes in your REPORT.md or NOTES.md.
-STATUS: v1.3.8 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed; 1.3.3 unload jog 6 deg; 1.3.4 ASSEMBLY_STAGES; 1.3.5 TIMELINE rail_low after the flight (D45), no lower at the end; 1.3.6 drum stage bands per cad-drum; 1.3.7 ASSEMBLY_STAGE_OVERRIDES for unstaged steps, launcher band 190-204; 1.3.8 final cross-check: WIPER boss_face_y -10 (D48), DRUM code_edges as built, big gear full layer plane face 11, splitter sun plane 170..182, spring fallback hole set F 256.5, SW_ARM window as built). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
+STATUS: v1.3.8 (3 Nov 2026, 13:00 Sydney; 1.2.4 adds LAUNCH axis_z 0, sleeve_y0 111, rail_y 140; 1.2.5 adds DRUM n20 train 12:1, 8.1 deg/s; 1.2.6 TIMELINE carries mode (collar) and drum_pos; 1.2.7 D36 line guide, D39 tow cap, TIMELINE dog phase; 1.2.8 D40 aim trip 3 A, SW_ARM open at home, launcher as built; 1.2.9 D41 fly-in, D42 tension offset -3.0, carriage 85.8 g as built; 1.3.0 D43 pulleys + dart-side tow law + cap 60 N, D44 shear pin print, cock 425; 1.3.1 drive gear face 11, carriage 80.5 g; 1.3.2 path gain 1.30, dart law 13.1/-2.3, cap 55 N, drum as built, TIMELINE at real drum speed; 1.3.3 unload jog 6 deg; 1.3.4 ASSEMBLY_STAGES; 1.3.5 TIMELINE rail_low after the flight (D45), no lower at the end; 1.3.6 drum stage bands per cad-drum; 1.3.7 ASSEMBLY_STAGE_OVERRIDES for unstaged steps, launcher band 190-204; 1.3.8 final cross-check: WIPER boss_face_y -10 (D48), DRUM code_edges as built, big gear full layer plane face 11, splitter sun plane 170..182, spring fallback hole set F 256.5, SW_ARM window as built; 1.5.0 D50 reel unit on a deck extension behind the launcher: capstan along X in the rail plane y 140, one 693ZZ pulley at the rail rear, free spool d40/d62 x 20 with LIGHT 0.25 N, REEL_UNIT block). Binding with base/spec/BASE_SPEC.md and base/spec/DECISIONS.md.
 The architecture blocks below hold the INTERFACE numbers (where two owners must agree) and the module placements.
 Each owner keeps its internal geometry in its own module and maps these numbers explicitly (read with defaults).
 Code against the names; never hard-code a shared number anywhere else.
@@ -10,7 +10,7 @@ Code against the names; never hard-code a shared number anywhere else.
 
 import math
 
-VERSION = "1.3.8"
+VERSION = "1.5.0"
 
 # ------------------------------------------------------------------------------------------------ frame
 # World frame: right-handed, Z up, +X = launch azimuth (forward), +Y = left looking forward. Origin on the main axis
@@ -87,15 +87,17 @@ _CAP_X, _CAP_Z = _polar(_CAP_R, _CAP_DEG)   # (-18.661, -69.643)
 
 LAYOUT = dict(
     deck_top_z=-165.0,                      # D2: main axis 165 above the deck top
-    footprint=dict(x=(-160.0, 255.0), y=(-95.0, 220.0), note="target; cad-frame reports the real one"),
+    footprint=dict(x=(-160.0, 255.0), y=(-95.0, 220.0), note="target for the main deck; cad-frame reports the real one. D50: a bolt-on extension tile carries the reel unit behind x -164 (REEL_UNIT deck_extension)"),
     # every rotating axis: owner, origin (world), axis direction, axial range (world y unless stated), notes
     axes=dict(
         main=dict(owner="cad-drum", origin=(0.0, 0.0, 0.0), axis=(0, 1, 0), y=(0.5, 201.5),
                   note="wiper output = main shaft = rail pivot; the launch sleeve (cad-launch) is coaxial on its d12 spigot"),
         drum=dict(owner="cad-drum", origin=(60.0, 0.0, -112.0), axis=(0, 1, 0), y=(1.0, 142.0),
                   note="front-below: clear of the big gear sweep (lowest z about -44) and of the reel gear zone (x <= 8)"),
-        capstan=dict(owner="cad-reel", origin=(_CAP_X, 0.0, _CAP_Z), axis=(0, 1, 0),
-                     note="72.1 from the main axis at 255 deg; capstan and cup extend toward -y (cad-reel frame R)"),
+        capstan=dict(owner="cad-reel", origin=(-294.6, 140.0, 85.7), axis=(1, 0, 0),
+                     note="D50: the capstan sits in the reel unit on the deck extension behind the launcher, axis along +X in the "
+                          "rail plane y 140, cup and axial eyelet in front (REEL_UNIT); the old axis 72.1 from the main axis "
+                          "at 255 deg now carries only the cup gear, the bus gear c1 and the cup shaft K (frame R)"),
         aim_crank=dict(owner="cad-launch", origin=(58.0, 195.0, -100.5), axis=(0, 1, 0),
                        note="worm wheel = crank in cad-launch's aim housing (planes about y 186..225), confirmed by cad-launch"),
     ),
@@ -122,7 +124,10 @@ LAYOUT = dict(
         rail_sweep="rail body and carriage between 6 (or the retrieve minimum) and 47 deg pitch, for y 95..185: "
                    "behind and below the axis down to z about -125 at x about -150..-210, and the big gear down to z -45 in front",
         wiper_body="gearbox and can above the axis (WIPER.orient_deg), y -56..0, plus the can along +z",
-        line="the line from the exit eye over the 693ZZ pulleys to the rail pivot pulley and along the rail (D14)",
+        line="D50: the line from the spool through the cup eyelet, straight to the one 693ZZ pulley at the rail rear end, then along "
+             "the rail to the dart tail, all in the rail plane y 140 (REEL_UNIT)",
+        reel_unit="D50: the reel unit sweep is fixed (nothing of it moves with the rail); the rail rear reaches world x -228 "
+                  "(pitch 22), the cup eyelet sits at x -240.6",
     ),
 )
 
@@ -218,27 +223,67 @@ AIM = dict(
 
 REEL = dict(
     owner="cad-reel",
-    capstan=dict(d=40.0, gear=dict(module=2.0, teeth=22, face=12.0), backstop="sprag #2 to the frame (wind-in only)"),
-    capstan_ratio=50.0 / 22.0,                # capstan turns per main shaft turn
+    capstan=dict(d=40.0, gear=dict(module=2.0, teeth=22, face=12.0),
+                 backstop="sprag #2 on the capstan tube in the reel unit (wind-in only, D50)",
+                 note="D50: the 22T m2 gear sits on countershaft C (frame R), driven by the REEL gear through the 41T idler; "
+                      "bevel 20:20 into lane C, rear train 20T / 58T idler / 20T onto the capstan tube: ratio still 50/22"),
+    capstan_ratio=50.0 / 22.0,                # capstan turns per main shaft turn (D50 train keeps it)
     wraps=7,
-    clutch=dict(LIGHT_line_n=0.5, FIRM_line_n=5.0, LIGHT_nmm=15.0, FIRM_nmm=153.0,
-                convention="line tension with the storage reel FULL (r 30.7 mm); about 23 percent higher at the core",
-                note="D7, D24; set by cad-drum's brake track through cad-reel's pushrod (fail-safe LIGHT)"),
-    storage=dict(core_d=50.0, flange_d=72.0, width=22.0, bearings="2 x 608", shroud=True, two_piece=True,
-                 axis_R=(-88.0, 0.0), note="D25: flange 72 for 20 m with 4.6 mm freeboard"),
+    clutch=dict(LIGHT_line_n=0.25, FIRM_line_n=5.0, LIGHT_nmm=6.75, FIRM_nmm=135.0,
+                convention="line tension at the design pack radius r 27.0 mm (about 2 m out) of the d40 / d62 spool; the clutch "
+                           "hub drives the spool 1:1 (hub 28T / T2 28T, two 1:1 bevels, 16T / 34T idler / 16T)",
+                note="D7, D24, D49, D50: LIGHT is a FIXED 0.25 N anti-overrun drag (payout, cock take-up), FIRM 5 N for tidy and the "
+                     "final approach; set by cad-drum's brake track through cad-reel's bar, crank and rocker at the clutch hub "
+                     "(front, frame R), fail-safe LIGHT"),
+    storage=dict(core_d=40.0, flange_d=62.0, width=20.0, bearings="2 x 608 (spool shaft in the reel unit cheeks)", shroud=False,
+                 two_piece=False,
+                 note="D50: free spool keyed on the spool shaft in the reel unit, axis along world Y, pack y 130..150 in the rail "
+                      "plane; the line leaves the pack top on the low-aim line through the cup eyelet"),
     take_up=dict(c1=dict(module=1.5, teeth=46, face=6.0), swing_idler=dict(module=1.5, teeth=30),
                  reel_gear=dict(module=1.5, teeth=20), disk_ratio=2.5, drag_brake=False,
-                 note="D25: compound c1 free on the capstan tube meshes the bus 50T; the swing idler rides c1's hub, engages on forward turns"),
+                 note="D25 / D50: compound c1 free on the stationary A0 sleeve meshes the bus 50T; the swing idler rides c1's hub "
+                      "and drives the reel gear 20T (clutch disk 2.5 x wiper) on forward turns; the clutch hub drives the spool "
+                      "1:1 through T2, lane T and T3 (REEL_UNIT rear_trains t)"),
     tow_limit_n=50.0,                         # firmware default
-    tow_limit_max_n=55.0,                     # D39/D43: tension AT THE DART; the train can pull about 55 N at the dart (path gain 1.30) before 0.8 x the shear pin
-    path_gain=1.30,                           # D43 as built: pulleys at the exit eye and storage guide, cup ring a plain eye (1.15 with a ring roller, about 1.22 with a steel pin in the ring)
-    tow_tension_model=dict(n_per_a=13.1, offset_n=-2.3, at="dart", capstan_n_per_a=17.0, capstan_offset_n=-3.0,
-                           note="D43: dart-side line N = 13.1 x (I - I_free) - 2.3 (capstan side 17.0 / -3.0, D42, divided by path_gain 1.30); tow_limit_n means the DART side; calibrate with the luggage scale at the line end"),
+    tow_limit_max_n=55.0,                     # D39/D46/D50: tension AT THE DART; path gain 1.18 keeps 0.8 x the pin above 60 N: cap stays 55
+    path_gain=1.18,                           # D50: capstan/dart at the 6 deg tow pitch: ring-to-groove bend (plain eye) and the lip roller; the rail-rear pulley is straight at 6 deg
+    payout_gain=1.32,                         # D50: spool/dart in flight at 20..47 deg: eyelet exit bend about 74 deg (plain mouth), rail-rear pulley (693ZZ); 1.06 at 6 deg
+    tow_tension_model=dict(n_per_a=14.4, offset_n=-2.5, at="dart", capstan_n_per_a=17.0, capstan_offset_n=-3.0,
+                           note="D50: dart-side line N = 14.4 x (I - I_free) - 2.5 (capstan side 17.0 / -3.0 through the unchanged 50/22 ratio, D42, divided by path_gain 1.18); tow_limit_n means the DART side; recalibrate with the luggage scale at the line end"),
     current_trips_a=dict(aim=3.0, backward_launch=3.0, reel_in=5.0, cock=6.5, tow=6.5, blank_ms=50, hold_ms=30, note="D8/D33/D40: every backward wiper run in LAUNCH (aim, decock, backward jog) drives the aim train: 3 A"),
     line_speed_mps=dict(free=0.21, at_50n=0.14),
-    pulleys="693ZZ printed pulleys where the line turns more than about 20 deg; one on the rail at the pivot (D14)",
-    cup_gear=dict(module=1.5, teeth=24, note="driven by cad-drum's wrap idler output 42T m1.5 (4 pinion turns = 7 cup turns)"),
-    line_path_hook="reel.line_path(P, S) starts the tether polyline at the storage reel; launch.line_path continues to the dart",
+    pulleys="D50: one 693ZZ printed pulley at the rail rear end (the old top pulley); no other pulley on the line",
+    cup_gear=dict(module=1.5, teeth=24, note="driven by cad-drum's wrap idler output 42T m1.5 (4 pinion turns = 7 cup turns); D50: the K riser, bevel and rear train are all 1:1"),
+    eyelet=dict(r=26.0, bore_d=2.8, mouth_d=4.0, note="D49/D50: the v7 ring hole turned axial at radius 26, lug in front of the cup face; ring at the cup BOTTOM at home"),
+    line_path_hook="reel.line_path(P, S): spool pack top -> cup eyelet -> floor segment to the rail-rear pulley; launch.line_path continues over the pulley to the dart",
+)
+
+# ------------------------------------------------------------------------------------------------ D50 reel unit
+# World frame. The low-aim line (rail at 6.01 deg, the crank LOW dead point) is the rail-frame line w 84.6 (dart axis,
+# top of the rail-rear pulley) extended behind the rail: the capstan exit (axial cup eyelet) sits ON it, so the floor
+# segment is straight at the tow pitch. Rail frame: x = u cos p - w sin p, z = u sin p + w cos p.
+REEL_UNIT = dict(
+    owner="cad-reel (reel unit, lanes, front gears), cad-frame (deck extension tile), cad-launch (rail-rear pulley)",
+    low_pitch=6.01, eyelet_u=-233.0, line_w=84.6, line_y=140.0,
+    eyelet=(-240.6, 140.0, 59.7),            # world, front mouth of the axial eyelet (cup ring at the bottom, cup home)
+    capstan_axis=(140.0, 85.7),              # world (y, z); axis +X; cup in front, drum, P1 with sprag #2, gear planes, P2
+    lanes=dict(c=(7.0, 7.0), k=(5.0, 36.0), t=(0.0, -55.24),
+               note="world (y, z) of the three shafts along X from the front gears to the reel unit: C (capstan, d12), K "
+                    "(cup, d8), T (take-up, d8)"),
+    front=dict(c_axis=(-150.0, 7.0), c_idler_teeth=41, k2_axis=(-100.0, 36.0), t2_deg=160.0, riser_plane_y=(23.5, 28.5),
+               riser=dict(module=1.5, teeth=(30, 34, 30, 30), note="K riser: cup shaft gear 30T, idlers 34T and 30T, K2 30T (1:1)"),
+               note="frame R gears in front of / behind the reel wall: C (22T m2 in the REEL plane, bevel m2 20:20 in front), "
+                    "K2 (riser gear and bevel m1.5 18:18), T2 (28T meshing the 28T clutch hub, bevel m1 20:20)"),
+    rear_trains=dict(c=dict(module=2.0, teeth=(20, 58, 20), face=8.0), k=dict(module=1.5, teeth=(20, 76, 20), face=5.0),
+                     t=dict(bevel=(1.0, 20, 20), spur=(1.5, 16, 34, 16), note="T3 16T, idler 34T, spool shaft 16T: light, the whole take-up chain turns with the spool in payout"),
+                     note="C plane in front of the K plane; the I_c axle sits in P1, the I_k axle in P2"),
+    spool=dict(axis_xz=(-369.5, 18.51), pack_y=(130.0, 150.0), drive_inertia_gmm2=9000.0,
+               note="clutch hub, friction disc, T2, bevels, lane T, T3 and the rear gears turn with the spool in payout (about 9000 g mm2 at spool speed, the spool itself about 19000 full)"),
+    deck_extension=dict(x=(-412.0, -164.0), note="bolt-on deck tile behind the existing deck (dovetails, heat-set inserts, M3 to "
+                                                 "the rover like the other tiles); the launcher stays where it is"),
+    bends=dict(pulley_deg=dict(p6=0.0, p20=83.0, p34=109.0, p47=121.0), eyelet_exit_deg=dict(p6=0.0, p20=63.0, p34=75.0, p47=74.0),
+               note="D50 as built: the reel unit is close behind the rail, so the rail-rear pulley moves 150 mm up and down "
+                    "with the aim and the floor segment steepens; at the 6 deg tow pitch everything is straight"),
 )
 
 FRAMEWORK = dict(
@@ -290,11 +335,11 @@ ASSEMBLY_STAGES = dict(
     drum_core=(130, 139, "cad-drum", "bracket A, axle, drum A"),
     drum_idler=(140, 144, "cad-drum", "wrap idler group (the idler posts drop in before the shift rail and the coupler bus gear block them)"),
     main_shaft=(145, 149, "cad-drum", "shift rail, coupler hub on the wiper shaft, shear pin, outer coupler with the REEL gear and washer, index contact (before the reel bus gear c1 and the dog post)"),
-    reel_capstan=(150, 159, "cad-reel", "reel wall, sprag hub and sprag, capstan tube, bus gear c1, swing idler, capstan gear, capstan drum, cup shaft, cup, cup gear, SW_ARM"),
+    reel_capstan=(150, 159, "cad-reel", "D50 front gears: reel wall, sleeve, bus gear c1, swing idler, cup shaft, cup gear, riser to K2, countershaft C and REEL idler, clutch hub, brake crank, rocker and bar, reel shaft, T2, SW_ARM"),
     drum_shift=(160, 169, "cad-drum", "fork and dog contacts, drum B (keyed), hand lever, bracket B, N20, code switches"),
-    main_stack=(170, 179, "cad-drum", "LAUNCH dog ring, magnet cap, dog post (before the reel pulley 2)"),
-    reel_storage=(180, 189, "cad-reel", "storage reel, reel shaft, brake crank, rocker and bar, pulley 1, pulley 2, shroud, exit post, line"),
-    launcher=(190, 204, "cad-launch", "rail bench sub-assembly (sleeve first), big gear (timed without springs), drive gear and sprag, carriage, stops, contacts, tether pulleys, lip roller"),
+    main_stack=(170, 179, "cad-drum", "LAUNCH dog ring, magnet cap, dog post"),
+    reel_storage=(180, 189, "cad-reel", "D50 reel unit on the deck extension: lane tabs and posts, P1 with sprag #2, capstan tube, lanes C, K, T, cheeks, T bracket, spool, drum, cup, rear trains, P2, line"),
+    launcher=(190, 204, "cad-launch", "rail bench sub-assembly (sleeve first), big gear (timed without springs), drive gear and sprag, carriage, stops, contacts, rail-rear pulley (D50), lip roller"),
     aim=(205, 209, "cad-launch", "aim housing, worm, wheel, crank, splitter, lug, conrod"),
     sensors=(210, 219, "cad-sensors", "SW_RAIL_LOW, SW_GAP, AS5600 board"),
     electronics=(220, 229, "cad-frame", "electronics bay, set the buck before wiring the DRV8833, wiring (battery unplugged), camera, receiver, cable anchors"),
@@ -315,14 +360,16 @@ ASSEMBLY_STAGE_OVERRIDES = dict(
             "Launcher 4: drive gear, sprag #1 and the launch sleeve": 194, "Launcher 5: carriage": 195,
             "Launcher 5b: lip roller": 196, "Launcher 6: carriage stop frames": 197, "Launcher 6b: spring guards": 198,
             "Launcher 6c: stop springs": 199, "Launcher 7: contacts": 200,
-            "Launcher 8: time the big gear (fingers clear)": 201, "Launcher 9: tether pulleys": 202,
+            "Launcher 8: time the big gear (fingers clear)": 201, "Launcher 9: rail-rear pulley": 202,
             "Aim 1: aim housing, worm, wheel, crank": 205, "Aim 2: splitter": 206,
             "Aim 3: lug, conrod, rail onto the base": 207, "Launcher 10: wiring (battery unplugged)": 208},
-    reel={"Screw the reel wall to the deck": 150, "Sprag hub and sprag (CSK20PP)": 151, "Capstan tube": 152,
-          "Bus gear, swing arm and swing idler": 153, "Capstan gear": 154, "Capstan drum": 155,
-          "Cup shaft and wrap cup": 156, "Cup gear": 157, "SW_ARM contact": 158, "Reel shaft into the wall": 180,
-          "Storage reel": 181, "Brake crank, rocker and bar": 182, "Pulley 1 post and line": 183,
-          "Pulley 2 swivel": 184, "Shroud": 185},
+    reel={"Screw the reel wall to the deck": 150, "Sleeve, bus gear, swing arm and swing idler": 151,
+          "Cup shaft, cup gear and riser gear": 152, "Riser idlers and K2": 153,
+          "Countershaft C and the REEL idler": 154, "Clutch hub": 155, "Brake crank, rocker and bar": 156,
+          "Reel shaft into the wall": 157, "T2 take-off": 158, "SW_ARM contact": 159,
+          "Lane tabs and the lane T front post": 180, "Reel unit: P1, sprag #2, capstan tube": 181,
+          "Lanes along the deck": 182, "Cheeks, T bracket, spool and spool shaft": 183,
+          "Drum, cup and the C plane": 184, "K plane, P2 and the line": 185},
 )
 
 TIMELINE = [

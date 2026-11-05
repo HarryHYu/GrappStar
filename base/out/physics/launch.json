@@ -1,5 +1,5 @@
 {
- "params_source": "base/spec/params.py v1.3.2",
+ "params_source": "base/spec/params.py v1.5.0",
  "spring": {
   "k_n_mm": 0.125,
   "rate_formula_n_mm": 0.11655763894105459,
@@ -43,21 +43,21 @@
   "f_carriage_full_n": 80.175,
   "energy_stored_j": 12.06005625,
   "model": "chain",
-  "v_muzzle": 6.845173899534205,
-  "t_stroke_ms": 58.710000000007305,
-  "a_peak_g": 18.15562093552323,
+  "v_muzzle": 6.865064564764941,
+  "t_stroke_ms": 58.610000000007275,
+  "a_peak_g": 18.194632858060487,
   "f_carriage_peak_n": 80.175,
-  "ke_dart_j": 6.536468597223573,
-  "ke_carriage_j": 1.8859703300232888,
-  "ke_spring_j": 0.8245361301637786,
-  "coil_clash_v": 7.973360024570394,
-  "f_stop_peak_n": 285.31646949337556,
-  "f_cord_peak_after_stop_n": 387.2162268298628,
-  "v_spring_end_max": 2.4411764596857415,
-  "efficiency": 0.541993209793161,
+  "ke_dart_j": 6.5745110512355796,
+  "ke_carriage_j": 1.8969467370052477,
+  "ke_spring_j": 0.8271988391932807,
+  "coil_clash_v": 8.33537306406998,
+  "f_stop_peak_n": 286.7521659156346,
+  "f_cord_peak_after_stop_n": 388.5461080663132,
+  "v_spring_end_max": 2.2298935661253934,
+  "efficiency": 0.5451476274196962,
   "line_load": {
-   "force_n": 0.675,
-   "mass_eff_kg": 0.044964324495882946
+   "force_n": 0.33,
+   "mass_eff_kg": 0.04602998297734817
   }
  },
  "ratio_sweep": [
@@ -65,54 +65,54 @@
    "ratio": 0.5,
    "stroke_used_m": 0.12060000000000001,
    "ext_full_mm": 265.0,
-   "v_muzzle": 5.940296269399501,
+   "v_muzzle": 5.9464781081121405,
    "energy_j": 12.08412,
-   "efficiency": 0.4073571933802137,
+   "efficiency": 0.40820547658338746,
    "f_carriage_full_n": 160.5
   },
   {
    "ratio": 0.75,
    "stroke_used_m": 0.1809,
    "ext_full_mm": 265.0,
-   "v_muzzle": 6.79766598429311,
+   "v_muzzle": 6.809551321437989,
    "energy_j": 12.08412,
-   "efficiency": 0.5334316992338026,
+   "efficiency": 0.5352986806901994,
    "f_carriage_full_n": 107.0
   },
   {
    "ratio": 1.0,
    "stroke_used_m": 0.2409,
    "ext_full_mm": 264.7,
-   "v_muzzle": 6.845173899534205,
+   "v_muzzle": 6.865064564764941,
    "energy_j": 12.06005625,
-   "efficiency": 0.541993209793161,
+   "efficiency": 0.5451476274196962,
    "f_carriage_full_n": 80.175
   },
   {
    "ratio": 1.5,
    "stroke_used_m": 0.2409,
    "ext_full_mm": 184.4,
-   "v_muzzle": 4.913619130319983,
+   "v_muzzle": 4.946877904833939,
    "energy_j": 6.428015,
-   "efficiency": 0.5239626210610254,
+   "efficiency": 0.5310797097150713,
    "f_carriage_full_n": 40.06666666666667
   },
   {
    "ratio": 2.0,
    "stroke_used_m": 0.2409,
    "ext_full_mm": 144.25,
-   "v_muzzle": 3.823168119975329,
+   "v_muzzle": 3.870797779409434,
    "energy_j": 4.2165028125,
-   "efficiency": 0.4835803057030688,
+   "efficiency": 0.4957044067302636,
    "f_carriage_full_n": 25.03125
   },
   {
    "ratio": 3.0,
    "stroke_used_m": 0.2409,
    "ext_full_mm": 104.1,
-   "v_muzzle": 2.5751412451797755,
+   "v_muzzle": 2.64947633629262,
    "energy_j": 2.4079962499999996,
-   "efficiency": 0.38416740239995534,
+   "efficiency": 0.406666587413561,
    "f_carriage_full_n": 13.341666666666667
   }
  ]

@@ -71,10 +71,10 @@ struct Cfg {
 #define P_REEL_CURRENT_TRIPS_A_TOW 6.5f
 #endif
 #ifndef P_REEL_TOW_TENSION_MODEL_N_PER_A
-#define P_REEL_TOW_TENSION_MODEL_N_PER_A 13.1f
+#define P_REEL_TOW_TENSION_MODEL_N_PER_A 14.4f
 #endif
 #ifndef P_REEL_TOW_TENSION_MODEL_OFFSET_N
-#define P_REEL_TOW_TENSION_MODEL_OFFSET_N -2.3f
+#define P_REEL_TOW_TENSION_MODEL_OFFSET_N -2.5f
 #endif
   float tripA = P_REEL_CURRENT_TRIPS_A_REEL_IN;  // reel-in and the reset run (params.REEL.current_trips_a, D8 / D33)
   float aimTripA = P_REEL_CURRENT_TRIPS_A_BACKWARD_LAUNCH;   // D40: every backward run in LAUNCH (aim, decock): the aim gears
@@ -220,7 +220,7 @@ struct Cfg {
       50.0f / 22.0f;
 #endif
   int reelDuty = 220; int reelMinDuty = 70; float taperFrac = 0.30f;
-  float kNperA = P_REEL_TOW_TENSION_MODEL_N_PER_A;             // physics v1.2 (FIRM 5 N): dart-side N = 13.1 x (I - I_free) - 2.3 (D46). Bench: CALIBRATION.md
+  float kNperA = P_REEL_TOW_TENSION_MODEL_N_PER_A;             // D50: dart-side N = 14.4 x (I - I_free) - 2.5 (capstan 50/22, path gain 1.18). Bench: CALIBRATION.md
   float tensOffsetN = P_REEL_TOW_TENSION_MODEL_OFFSET_N;
   float towSlackFrac = 0.25f;       // tow: above this fraction of max_n the duty stays at the minimum (taut line)
   int towRampPerTick = 2;           // tow: duty ramp while the line is slack (min to full in about 0.5 s)

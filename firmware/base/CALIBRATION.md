@@ -259,7 +259,7 @@ or in `status`). Setting `k_n_per_a` or `tension_offset_n` in this section sets 
 
 ### `k_n_per_a` and `tension_offset_n` (used without a load cell)
 
-The estimate is: line N = `k_n_per_a` x (`amps` - `free_a`) + `tension_offset_n`. Defaults 13.1 and -2.3 (D46). Since D43 these constants give the DART-side line tension (the tow limit is
+The estimate is: line N = `k_n_per_a` x (`amps` - `free_a`) + `tension_offset_n`. Defaults 14.4 and -2.5 (D50). Since D43 these constants give the DART-side line tension (the tow limit is
 the tension at the dart); the luggage scale at the line end measures exactly that side, so fit them straight from the
 scale. Pulls against a luggage scale at three loads give both numbers (this matches MEASURE_LIST G9).
 Do not use jogs for this: a jog trips at 3 A, about 15 N.

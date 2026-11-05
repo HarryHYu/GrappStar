@@ -1,6 +1,6 @@
 # GrappStar base station protocol (contract C1)
 
-Firmware `base-1.3.1` (`firmware/base/grappstar_base`), mechanism BASE_SPEC v1.2 (with the C1 sequence of section 10.1, D35) and `base/spec/params.py` 1.3.8 (as built into `params_gen.h`: drum, trips, tension model and the aim table) (drum
+Firmware `base-1.3.1` (`firmware/base/grappstar_base`), mechanism BASE_SPEC v1.2 (with the C1 sequence of section 10.1, D35) and `base/spec/params.py` 1.5.0 (as built into `params_gen.h`: drum, trips, tension model and the aim table) (drum
 order LAUNCH / NEUTRAL / WRAP / REEL with the WRAPPED park inside N_TO_R, decisions D16, D22 and D31; mission order
 D22). This file is the contract the Jetson implements against. Changes are additive where possible (new fields, new
 events, new error codes); section 10 lists everything the Jetson worker must change for base-1.3.1.
@@ -102,12 +102,12 @@ In REEL (capstan, wiper FORWARD):
 
 - Trip with `until:"tension"` (the tow, D34): the current the limit needs plus 1 A, that is
   `(max_n - tension_offset_n) / k_n_per_a + free_a + 1`, at least the 5 A reel trip (`trip_a`) and at most the hard
-  17 A. With the defaults (`free_a` 1.5, k 13.1, offset -2.3): `max_n` 50 gives (50 + 2.3) / 13.1 + 1.5 + 1 = 6.5 A
+  17 A. With the defaults (`free_a` 1.5, k 14.4, offset -2.5): `max_n` 50 gives (50 + 2.5) / 14.4 + 1.5 + 1 = 6.1 A
   (a 50 N tow draws about 5.5 A), `max_n` 55 (the maximum, D46) gives 6.9 A, `max_n` 20 gives 5 A (the floor). `tow_trip_a` is still a saved setting
   but no longer used in this formula. The constants cannot be changed during a tow (`set` replies `BUSY`). Any other
   `until`: `trip_a` (5 A).
-- Tension = the estimate `k_n_per_a x (amps - free_a) + tension_offset_n` (D43 / D46: the DART-side line tension; defaults 13.1 and -2.3, which is the capstan-side law 17.0 / -3.0
-  divided by the path gain 1.30 with the cup ring a plain eye; never below 0, averaged over about 200 ms, D33; the first 80 ms of a run are ignored). With
+- Tension = the estimate `k_n_per_a x (amps - free_a) + tension_offset_n` (D43 / D46 / D50: the DART-side line tension; defaults 14.4 and -2.5, which is the capstan-side law 17.0 / -3.0
+  divided by the path gain 1.18 of the D50 line (straight at the 6 deg tow pitch, cup ring a plain eye); never below 0, averaged over about 200 ms, D33; the first 80 ms of a run are ignored). With
   a live load cell the tension used is the larger of the load cell and the current estimate (a frozen load cell cannot
   hide the current). The speed tapers over the last 30 % of `max_n`, using the larger of the averaged and the
   unaveraged estimate.
@@ -489,8 +489,8 @@ the table says otherwise:
 | key | default | range | meaning |
 |---|---|---|---|
 | `limit_n` | 50 (params.REEL) | 1..55 (D46) | default `max_n` for `reel` and `retrieve` (the tow limit) |
-| `k_n_per_a` | 13.1 (D46) | 0.1..200 | dart-side line N per amp above `free_a` (tension estimate without a load cell) |
-| `tension_offset_n` | -2.3 (D46) | -50..50 | line N added to the estimate: `k_n_per_a x (amps - free_a) + tension_offset_n` |
+| `k_n_per_a` | 14.4 (D50) | 0.1..200 | dart-side line N per amp above `free_a` (tension estimate without a load cell) |
+| `tension_offset_n` | -2.5 (D50) | -50..50 | line N added to the estimate: `k_n_per_a x (amps - free_a) + tension_offset_n` |
 | `free_a` | 1.5 (params.WIPER) | 0..10 | wiper free-running current |
 | `amps_per_volt` | 12.5 | 1..200 | BTS7960 IS scale |
 | `offset_a` | 0 | 0..5 | current zero (set by `cal current`) |
@@ -510,7 +510,7 @@ the table says otherwise:
 | `enc_sign` | 1 | 1 / -1 | AS5600 count direction (set while stopped) |
 | `host_timeout_s` | 0 (off) | 0..600 | host watchdog: no line from the Jetson for this long while a motor runs = `stop` (two `ABORTED` events, the second `what:"HOST"`, `why:"host silent"`). Send `ping` to keep long runs alive (a `wrap` or `unwrap` takes about 40 s). NOT saved: 0 after every start-up |
 | `tension_cal` | false | get only | true once `k_n_per_a` or `tension_offset_n` was set by the operator; saved in flash with the bench settings (a bit in the same record, no format change); cleared by `cal factory` |
-| `fw`, `params`, `pitch_range` | | get only | firmware version (`base-1.3.1`), params.py version (`1.3.8`, the version `params_gen.h` was generated from), `min` / `max` pitch (6.01 / 47 with the built-in table) |
+| `fw`, `params`, `pitch_range` | | get only | firmware version (`base-1.3.1`), params.py version (`1.5.0`, the version `params_gen.h` was generated from), `min` / `max` pitch (6.01 / 47 with the built-in table) |
 
 The take-up trip (2.5 A) and the jog trip (3 A) are fixed in `config.h`, not `set` keys.
 
@@ -805,3 +805,6 @@ What the Jetson worker must change (against the base-1.0 version of this file):
 79. Drum code edges as built (params.DRUM `code_edges`): 6, 34, 50, 62, 302, 342 (were 8, 32, 50, 62, 302, 340).
     `drum_pos` `WRAPPED` covers 302 to 342.
 80. The bench settings record is version 3: after flashing base-1.3.1 every bench value is back at its default.
+
+
+D50 (params 1.5.0, reel unit on the deck extension): no protocol change. The mission order, the drum zones, codes and park angles stay; the drum still wraps on positive moves. Defaults that follow params: `k_n_per_a` 14.4, `tension_offset_n` -2.5, capstan still 50/22 x wiper; the launch payout brake is the fixed LIGHT 0.25 N.

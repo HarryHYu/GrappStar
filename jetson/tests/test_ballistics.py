@@ -17,7 +17,7 @@ def test_load_default():
 
 
 def test_solve_round_trip(b):
-    for drag in (0.5, 0.75, 1.0):
+    for drag in (0.25, 0.5, 0.75):
         for p in (17.0, 22.5, 30.0, 33.0):
             r = b.at_pitch(p, drag)["range_m"]
             s = b.solve(r, drag, low=True)          # these pitches are on the rising branch
@@ -43,9 +43,9 @@ def _wide_table():
         s2 = math.sin(math.radians(2 * pitch))
         sp = math.sin(math.radians(pitch))
         t.append({"pitch_deg": float(pitch), "v_muzzle": 10.7,
-                  "range_m": [10.7 ** 2 * s2 / 9.81 * (1 - 0.05 * dn) for dn in (0.5, 0.75, 1.0)],
+                  "range_m": [10.7 ** 2 * s2 / 9.81 * (1 - 0.05 * dn) for dn in (0.25, 0.5, 0.75)],
                   "t_flight_s": [2 * 10.7 * sp / 9.81] * 3, "apex_m": [(10.7 * sp) ** 2 / 19.62] * 3})
-    return Ballistics({"version": 1, "pitch_min": 15.0, "pitch_max": 60.0, "drag_n": [0.5, 0.75, 1.0], "table": t},
+    return Ballistics({"version": 1, "pitch_min": 15.0, "pitch_max": 60.0, "drag_n": [0.25, 0.5, 0.75], "table": t},
                       source="wide.json")
 
 
@@ -65,9 +65,9 @@ def test_high_branch_default_low_optional():
 
 def test_default_drag_is_light_clutch(b):
     from grappstar.ballistics import LIGHT_DRAG_N
-    assert LIGHT_DRAG_N == 0.5
-    assert b.solve(7.0).drag_n == 0.5
-    assert b.at_pitch(30)["range_m"] == pytest.approx(b.at_pitch(30, 0.5)["range_m"])
+    assert LIGHT_DRAG_N == 0.25
+    assert b.solve(7.0).drag_n == 0.25
+    assert b.at_pitch(30)["range_m"] == pytest.approx(b.at_pitch(30, 0.25)["range_m"])
 
 
 def test_real_table_whole_window_and_high_pitch():
@@ -78,7 +78,7 @@ def test_real_table_whole_window_and_high_pitch():
         pytest.skip("no base/out/ballistics.json")
     bl = Ballistics.load(REPO_TABLE)
     assert bl.pitch_min <= 6.0 + 1e-9 and bl.pitch_max >= 47.0 - 1e-9
-    col = bl._col("range_m", 0.5)
+    col = bl._col("range_m", 0.25)
     i_pk = max(range(len(col)), key=col.__getitem__)
     if bl.rows[i_pk]["pitch_deg"] >= bl.pitch_max:
         pytest.skip("table range does not peak inside the window")
@@ -86,7 +86,7 @@ def test_real_table_whole_window_and_high_pitch():
     r = min(col[i_pk] - 0.01, max(r, col[-1] + 0.01))
     s, lo = bl.solve(r), bl.solve(r, low=True)
     assert s.reachable and lo.reachable and s.pitch_deg > bl.rows[i_pk]["pitch_deg"] > lo.pitch_deg
-    assert bl.at_pitch(s.pitch_deg, 0.5)["range_m"] == pytest.approx(r, abs=0.02)
+    assert bl.at_pitch(s.pitch_deg, 0.25)["range_m"] == pytest.approx(r, abs=0.02)
     short = bl.solve(col[0] + 0.05)        # just past the 6 deg range: only the low end of the window reaches it
     assert short.reachable and short.pitch_deg < 10
 

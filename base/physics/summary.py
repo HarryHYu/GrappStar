@@ -64,14 +64,14 @@ def collect(p=None, fast=False):
     ls = line_slack(p)
     k_v = float(p.launch.get("v_scale", 1.0))     # test-shot factor (spec LAUNCH v_scale), as ballistics.py applies it
     v = em["v"] * k_v
-    fl = [simulate(p, v, pitch_best, brake_n=b, reel_model=True) for b in (0.5, 0.75, 1.0)]
+    fl = [simulate(p, v, pitch_best, brake_n=b, reel_model=True) for b in (0.25, 0.5, 0.75)]
     nt = simulate(p, em["v_muzzle"] * k_v, pitch_best, tether=False)   # no line at all: no load in the stroke, no snatch
     rows = [("Line path at the shot", (f"slack {ls['slack_at_release_m'] * 1000:.0f} mm: snatch, flight starts at {v:.2f} m/s"
                                        if em["snatch"] else "taut (path only lengthens)")),
-            ("Range at 0.5 / 0.75 / 1.0 N brake", " / ".join(f"{r['range_m']:.2f}" for r in fl) + f" m (pitch {pitch_best:.0f})"),
+            ("Range at 0.25 / 0.5 / 0.75 N brake", " / ".join(f"{r['range_m']:.2f}" for r in fl) + f" m (pitch {pitch_best:.0f})"),
             ("Same shot, no tether", f"{nt['range_m']:.2f} m"),
-            ("Flight time, apex (0.75 N)", f"{fl[1]['t_flight_s']:.2f} s, {fl[1]['apex_m']:.2f} m"),
-            ("Impact speed, angle (0.75 N)", f"{fl[1]['v_impact']:.1f} m/s, {fl[1]['impact_angle_deg']:.0f} deg down")]
+            ("Flight time, apex (0.5 N)", f"{fl[1]['t_flight_s']:.2f} s, {fl[1]['apex_m']:.2f} m"),
+            ("Impact speed, angle (0.5 N)", f"{fl[1]['v_impact']:.1f} m/s, {fl[1]['impact_angle_deg']:.0f} deg down")]
     if k_v != 1.0:
         rows.insert(0, ("Muzzle speed factor from test shots", f"x{k_v:.3f} (spec LAUNCH v_scale)"))
     if os.path.exists(BALL):
@@ -137,8 +137,8 @@ def collect(p=None, fast=False):
         "n0_rpm = jog rpm x 2.5 (never the raw jog rpm) and free_a = amps. The stall cannot be read (jogs trip at "
         "2.5 to 3 A, A7): keep stall_nm and stall_a.",
         f"Dart mass on a kitchen scale with ballast and tether knot (spec {p.dart.mass:.3f} kg), then DART mass_kg.",
-        f"Payout brake (MEASURE_LIST G4, hanging weights: a luggage scale cannot read this low): in LAUNCH 40 g on the "
-        f"line must not pull line off and 50 g must (LIGHT {p.flight['brake_n']:g} N); in NEUTRAL the FIRM clutch "
+        f"Payout brake (MEASURE_LIST G4, hanging weights: a luggage scale cannot read this low): in LAUNCH {max(5, int(p.flight['brake_n'] / 9.81 * 1000 / 5) * 5 - 5):d} g on the "
+        f"line must not pull line off and {int(p.flight['brake_n'] / 9.81 * 1000 / 5) * 5 + 5:d} g must (LIGHT {p.flight['brake_n']:g} N); in NEUTRAL the FIRM clutch "
         f"({p.capstan['takeup_n']:g} N) lets line off at about {p.capstan['takeup_n'] / 9.81:.1f} kg on the luggage scale.",
         "First shots on level ground: python calib.py range pitch:brake:range ..., then LAUNCH v_scale = FACTOR.",
     ]

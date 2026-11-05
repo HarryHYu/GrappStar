@@ -1,7 +1,7 @@
 # GrappStar base station firmware
 
 Firmware `base-1.3.1` for the ESP32-S3 DevKitC-1-N8 in the base station. It follows BASE_SPEC v1.2,
-`base/spec/params.py` 1.3.8 (generated into `params_gen.h`) and the C1 sequence of BASE_SPEC 10.1 (D22, D35, D45).
+`base/spec/params.py` 1.5.0 (generated into `params_gen.h`) and the C1 sequence of BASE_SPEC 10.1 (D22, D35, D45).
 
 Nothing in this folder has run on real hardware yet. The logic passes the PC tests (a simulation). Go slowly the first
 time and follow BENCH_TEST.md before the wiper motor goes into the base.

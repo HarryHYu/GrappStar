@@ -199,7 +199,7 @@ def _sim_table(v, p_lo=6, p_hi=47):
         r = float(xs[-1] + sl * math.cos(math.radians(p)))
         rows.append({"pitch_deg": float(p), "v_muzzle": v, "range_m": [r] * 3, "t_flight_s": [float(ts[-1])] * 3,
                      "apex_m": [float(zs.max())] * 3})
-    return Ballistics({"version": 1, "pitch_min": p_lo, "pitch_max": p_hi, "drag_n": [0.5, 0.75, 1.0],
+    return Ballistics({"version": 1, "pitch_min": p_lo, "pitch_max": p_hi, "drag_n": [0.25, 0.5, 0.75],
                        "table": rows}, source="sim_table")
 
 

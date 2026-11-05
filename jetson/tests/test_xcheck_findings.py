@@ -44,7 +44,7 @@ def pair():
 def test_mock_version_edges_and_switch_defaults(pair):
     mb, c = pair
     assert FW == "base-1.3.1" and c.get("fw")["val"] == FW
-    assert c.get("params")["val"] == PARAMS_VERSION and PARAMS_VERSION.startswith("1.3.")
+    assert c.get("params")["val"] == PARAMS_VERSION and PARAMS_VERSION.startswith("1.5.")
     assert [z[2] for z in ZONES[:-1]] == [6.0, 34.0, 50.0, 62.0, 302.0, 342.0]      # params DRUM code_edges
     assert c.get("aim_home_deg")["val"] == AIM_HOME_DEG == 3502.0
     assert c.get("gap_close_deg")["val"] == GAP_CLOSE_DEG == 531.0

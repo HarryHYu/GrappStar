@@ -108,14 +108,15 @@ The full list with suggested GPIOs is params.SWITCHES.
 | Interface | Driving side | Driven side | Numbers |
 |---|---|---|---|
 | LAUNCH dog ring to sleeve flange | cad-drum ring | cad-launch sleeve | flange face y 111, OD 64, 3 x M3 at r 28 + 3 lugs; the ring's joint follows the sleeve |
-| REEL output gear to capstan gear | cad-drum m2 50T | cad-reel m2 22T | centre distance 72.1, plane y 50.5..62.5 |
-| Take-up bus | cad-drum bus gear m1.5 50T on the outer coupler, plane y 40..48 | cad-reel c1 m1.5 46T on the capstan tube, swing idler 30T, reel gear 20T, clutch | centre 72.1, clutch disk 2.5 x wiper, no drag brake (D25) |
-| Wrap train | cad-drum segment gear, pinion (4 turns), idler output 42T m1.5 in plane y 68.5..76.5 | cad-reel cup gear 24T m1.5 | centre 49.6; 7 cup turns across drum 62..302, ring at home at both ends; locking arc holds the cup outside the sector |
-| Brake track to clutch pushrod | cad-drum track 2 | cad-reel pushrod (fail-safe LIGHT) | LIGHT 0.5 N / FIRM 5.0 N at the line, reel full, per drum zone (params.DRUM.zones) |
+| REEL output gear to the capstan drive | cad-drum m2 50T | cad-reel REEL idler m2 41T, then the C gear m2 22T on countershaft C (D50) | plane y 50.5..62.5; capstan still 50/22 x wiper through bevel 20:20, lane C and the rear train 20T / 58T / 20T |
+| Take-up bus | cad-drum bus gear m1.5 50T on the outer coupler, plane y 40..48 | cad-reel c1 m1.5 46T on the stationary A0 sleeve, swing idler 30T, reel gear 20T, clutch hub 28T, T2 28T, lane T, spool 1:1 (D50) | centre 72.1, clutch disk 2.5 x wiper, no drag brake (D25) |
+| Wrap train | cad-drum segment gear, pinion (4 turns), idler output 42T m1.5 in plane y 68.5..76.5 | cad-reel cup gear 24T m1.5, then the 1:1 riser to K2, bevel 18:18, lane K and the rear train 20T / 76T / 20T to the cup (D50) | centre 49.6; 7 cup turns across drum 62..302, ring at home (bottom) at both ends; locking arc holds the cup outside the sector |
+| Brake track to clutch | cad-drum track 2 | cad-reel bar, crank and rocker at the clutch hub (fail-safe LIGHT) | LIGHT 0.25 N (fixed anti-overrun drag) / FIRM 5.0 N at the line, design pack r 27, per drum zone (params.DRUM.zones) |
 | Fork to collar | cad-drum | cad-drum | groove y 82..88 at NEUTRAL |
 | Launch sleeve far end | cad-launch sleeve journal | cad-launch aim housing bushing (housing on the deck, frame drills 4 x M3) | y 187..193, thrust face (LAUNCH engage pushes outboard) (D23) |
-| Rail pivot pulley and line channel | cad-reel pulleys | cad-launch bosses | D14 |
+| Tether at the rail (D50) | cad-reel capstan eyelet on the low-aim line (params REEL_UNIT) | cad-launch's ONE 693ZZ pulley at the rail rear, the line runs under it | launch.line_entry: the tangent point; straight at the 6 deg tow pitch |
 | Every bearing seat | shaft owner states bearing and stack | cad-frame builds the seat | shared library seats |
+| Deck extension (D50) | cad-reel reel unit, lane posts, wall foot behind x -164 | cad-frame bolt-on extension tile (dovetails, inserts, M3 to the rover) | params REEL_UNIT deck_extension |
 
 ## 7. Drum zones (binding; params.DRUM = cad-drum drum_NOTES v4)
 
@@ -136,18 +137,30 @@ m2.5 face 11 on sprag #1 (keyed to the outer race); big gear 40T m2.5 in two lay
 v10 relieved last tooth meshing the rack, a full 40T layer meshing the drive gear, D23) on the rail at 82.6 from the
 pivot: 553.8 wiper deg per shot (release at 432.7). Two Century C-243 springs 1:1 (D30, D38): stroke 240.9, preload
 23.8, 265 mm at full cock; fallback hole set F 8.5 mm rearward (256.5 mm). Carriage 85.8 g as built (target 70 g,
-D36); stop is a printed PLA flexure, about 19 mm travel, peak about 295 N (D26). Line guide behind the rail rear end on
-the dart axis (D36). Aim: swing-arm splitter on backward turns (printed drag pad and clips, PPA-CF gears, D40),
+D36); stop is a printed PLA flexure, about 19 mm travel, peak about 295 N (D26). D50: one 693ZZ pulley on a fork at the
+rail rear end; the line runs under it along the dart axis (the D36 guide; the path still only lengthens in the stroke). Aim: swing-arm splitter on backward turns (printed drag pad and clips, PPA-CF gears, D40),
 self-locking worm, crank-rocker 6 to 47 deg, 10 wiper turns per crank cycle, aim only at HOME; every backward run in
 LAUNCH trips at 3 A. Rail down to 6 deg before the wrap (D45). Retrieval funnel and lip roller at the muzzle; never
 fire without the tether (D11).
 
-## 9. Reel (binding; params.REEL)
+## 9. Reel (binding; params.REEL, params.REEL_UNIT, D50)
 
-Capstan d 40 with sprag #2 as the backstop (wind-in only), capstan gear 22T (2.27 x wiper), 7 wraps laid by Harry's
-v7 wrap cup driven through a hollow capstan tube. Storage reel (d 50 core, d 72 flanges, two-piece) on 2 x 608 with a shroud,
-face slip clutch LIGHT 0.5 N / FIRM 5.0 N (line tension with the reel full, D24) set by the drum's brake track
-through a fail-safe pushrod, driven by the take-up bus on every forward wiper turn (D15, D25; no drag brake). Line over 693ZZ pulleys (D14). Tow limit default 50 N.
+Front gears on the reel wall under the main axis (frame R): the bus gear c1 with the forward-only swing idler drives the
+clutch hub through the switched face slip clutch (LIGHT 0.25 N fixed anti-overrun drag / FIRM 5.0 N, set by the drum's
+brake track through the bar, crank and rocker, fail-safe LIGHT; D15, D25, D49); the cup gear meshes the drum's wrap
+idler (SW_ARM on its track). Three take-offs turn the drives into shafts along world X on the deck (lanes C, K, T, each
+through one bevel pair 1:1): countershaft C (22T m2, from the REEL gear through a 41T idler), K2 (1:1 riser from the cup
+shaft) and T2 (28T on the 28T clutch hub).
+
+Reel unit on a bolt-on deck extension tile directly behind the launcher, in the rail plane y 140, no sideways turn of
+the line. From the back: the free storage spool (d 40 core, d 62 flanges, 20 wide, axis along world Y, keyed on its
+shaft in two 608s, driven 1:1 by lane T through a bevel and 16T / 34T idler / 16T), the capstan (axis along +X: P1 with
+sprag #2 as the backstop, wind-in only; Harry's v7 drum; the v7 wrap cup in front with its ring hole turned AXIAL at
+radius 26, ring at the bottom at home; capstan 50/22 x wiper through the rear train 20T / 58T / 20T; cup 7 turns through
+20T / 76T / 20T), and the line from the pack top straight through the eyelet. The eyelet sits on the low-aim line (the
+rail's dart axis at 6.01 deg extended back): the floor segment to the rail-rear pulley is straight at the tow pitch.
+Above it the pulley drops with the rail and the line wraps round it (about 92 deg at 20 deg, 114 at 34, 125 at 47) and
+leaves the eyelet mouth downward (params REEL_UNIT bends). Tow limit default 50 N (dart side, cap 55 N).
 
 ## 10. Firmware behaviour (binding; details in firmware/base/PROTOCOL.md)
 
@@ -206,8 +219,8 @@ Physics on params 1.3.x (D36 rear line guide, carriage 80.5 g as built, two spri
 muzzle, best range from the ground point under the rail pivot 4.19 / 3.76 / 3.39 m at 34 deg for a 0.5 / 0.75 / 1.0 N
 payout brake, about 2.7 m at 6 deg; flight about 0.8 s, apex about 1.1 m. The carriage stop takes about 2.7 J, about
 285 N peak on the 19 mm PLA flexure (D26 limit 300 N). The cock gears at face 11: safety factor 1.55 / 1.74 at the
-5 N m shear pin. Tow sensing (D42, D43, D46): line N = 17.0 x (I - I_free) - 3.0 at the capstan; with pulleys at the exit
-eye and the storage guide and the cup ring as a plain eye (path gain 1.30) the DART side is 13.1 x (I - I_free) - 2.3,
+5 N m shear pin. Tow sensing (D42, D43, D46, D50): line N = 17.0 x (I - I_free) - 3.0 at the capstan; with the D50
+line (straight at the 6 deg tow pitch, the cup ring a plain eye, path gain 1.18) the DART side is 14.4 x (I - I_free) - 2.5,
 and the tow limit means the dart side. A 50 N pull at the dart is about 5.5 A; the train can pull about 55 N at the
 dart before 0.8 x the shear pin, so the cap is 55 N. The take-up final approach (FIRM 5 N, seating path gain about 1.17) gives the dart about 4.3 N against 2.1 to 2.6 N needed: margin about 1.7 or more. Every backward run in LAUNCH trips at 3 A (D40) and the aim gears
 print in PPA-CF. The second spring pair is not supported in v1 (D38). The ballistics table for the Jetson is

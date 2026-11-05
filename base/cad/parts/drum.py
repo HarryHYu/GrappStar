@@ -1164,8 +1164,8 @@ def meshes(P):
         out += [
             Mesh("drum_coupler", "reel_bus", g["bus_m"], g["bus_z"], 46, face_a=g["bus_s"][1] - g["bus_s"][0],
                  frame_a=T(0, 0, g["bus_s"][0]), why="bus gear 50T to cad-reel c1 46T"),
-            Mesh("drum_gear_reel", "reel_gc", g["out_m"], g["out_z"], 22, face_a=g["out_face"],
-                 frame_a=T(0, 0, g["rgear_s"]), why="REEL gear 50T to cad-reel capstan gear 22T"),
+            Mesh("drum_gear_reel", "reel_ic", g["out_m"], g["out_z"], 41, face_a=g["out_face"],
+                 frame_a=T(0, 0, g["rgear_s"]), why="REEL gear 50T to cad-reel's REEL idler 41T (D50)"),
             Mesh("drum_idler_gear", "reel_gk", c["idl_m"], c["idl_z"], c["ring_z"],
                  face_a=g["idl_gear"][1] - g["idl_gear"][0], frame_a=T(0, 0, g["idl_gear"][0]),
                  why="wrap idler 42T to cad-reel cup gear 24T"),

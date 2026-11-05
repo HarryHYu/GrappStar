@@ -46,7 +46,7 @@ def rows(P):
         ("carriage rear face HOME / cocked (u)", f"{n['u_c_home']:.1f} / {n['u_c_home'] - s['stroke']:.1f}"),
         ("rail span (u) / splits", f"{n['u_track0']:.1f} .. {n['u_rail1']:.1f} / {n['split']}"),
         ("spring anchors (u, y, w)", f"{n['u_anchor']:.1f}, +-{n['y_spring']:.0f} (provision +-{L.Y_SPRING2:.0f}), {n['w_spring']:.0f}"),
-        ("tether pulleys (rail frame)", f"top {tuple(round(v, 1) for v in lg['top'])}, bottom {tuple(round(v, 1) for v in lg['bot'])}, pivot {lg['piv']}"),
+        ("tether pulley (rail frame, D50: line under it)", f"rail rear {tuple(round(v, 1) for v in lg['top'])}"),
         ("aim", f"pitch {s['aim']['pitch_min']:.2f} .. {s['aim']['pitch_max']:.2f} deg, {s['aim']['wiper_per_crank']:.0f} wiper deg per crank deg, worm lead {s['worm']['lead_angle_deg']:.2f} deg"),
     ]
 

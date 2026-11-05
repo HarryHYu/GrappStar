@@ -71,10 +71,10 @@ struct Cfg {
 #define P_REEL_CURRENT_TRIPS_A_TOW 6.5f
 #endif
 #ifndef P_REEL_TOW_TENSION_MODEL_N_PER_A
-#define P_REEL_TOW_TENSION_MODEL_N_PER_A 14.1f
+#define P_REEL_TOW_TENSION_MODEL_N_PER_A 13.1f
 #endif
 #ifndef P_REEL_TOW_TENSION_MODEL_OFFSET_N
-#define P_REEL_TOW_TENSION_MODEL_OFFSET_N -2.5f
+#define P_REEL_TOW_TENSION_MODEL_OFFSET_N -2.3f
 #endif
   float tripA = P_REEL_CURRENT_TRIPS_A_REEL_IN;  // reel-in and the reset run (params.REEL.current_trips_a, D8 / D33)
   float aimTripA = P_REEL_CURRENT_TRIPS_A_BACKWARD_LAUNCH;   // D40: every backward run in LAUNCH (aim, decock): the aim gears
@@ -158,9 +158,6 @@ struct Cfg {
 #endif                             // park points (params.DRUM.targets): LAUNCH, NEUTRAL, REEL, WRAPPED
   float collarNdeg = 318;                                             // in N_TO_R the collar stays NEUTRAL below this
   float wrapFromDeg = 62, wrapToDeg = 302;                            // the cup lays the wraps linearly here
-  int wrapDir = +1;                 // D49: positive drum (N20 forward, AIN1 high) still WRAPS: cad-drum's Ld frame and the
-                                    // v7 groove handedness were kept (cad-reel test_cup_follows_drum_idler_seven_turns);
-                                    // set -1 only if a bench build lays the wraps the wrong way
   int wrapsFull =
 #ifdef P_DRUM_WRAP_TURNS
       (int)P_DRUM_WRAP_TURNS;
@@ -209,7 +206,7 @@ struct Cfg {
   uint32_t tidySteadyMs = 2000; uint32_t tidyMaxMs = 15000;   // reel until slip: forward until the take-up slips steadily
   uint32_t tidyMs = 3000;           // "tidy" default run time (D22: tidy by time)
 
-  // ---- reel (D49: capstan 2.307 x wiper through the rail bridge, about 297 mm of line per wiper turn)
+  // ---- reel (decision D3: capstan 1.667 x wiper; lens B: 258 mm of line per wiper turn)
   float capstanDmm =
 #ifdef P_REEL_CAPSTAN_D
       P_REEL_CAPSTAN_D + 1.0f;      // capstan d 40 + line 1.0 = line-centre diameter
@@ -218,12 +215,12 @@ struct Cfg {
 #endif
   float capstanPerWiper =
 #ifdef P_REEL_CAPSTAN_RATIO
-      P_REEL_CAPSTAN_RATIO;         // D49: 50/49 x 2 x 26/23 = 2.307
+      P_REEL_CAPSTAN_RATIO;         // 50 / 22 = 2.27
 #else
-      2.307f;
+      50.0f / 22.0f;
 #endif
   int reelDuty = 220; int reelMinDuty = 70; float taperFrac = 0.30f;
-  float kNperA = P_REEL_TOW_TENSION_MODEL_N_PER_A;             // D49 rail reel: dart-side N = 14.1 x (I - I_free) - 2.5 (capstan 2.307, path gain 1.18). Bench: CALIBRATION.md
+  float kNperA = P_REEL_TOW_TENSION_MODEL_N_PER_A;             // physics v1.2 (FIRM 5 N): dart-side N = 13.1 x (I - I_free) - 2.3 (D46). Bench: CALIBRATION.md
   float tensOffsetN = P_REEL_TOW_TENSION_MODEL_OFFSET_N;
   float towSlackFrac = 0.25f;       // tow: above this fraction of max_n the duty stays at the minimum (taut line)
   int towRampPerTick = 2;           // tow: duty ramp while the line is slack (min to full in about 0.5 s)

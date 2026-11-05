@@ -317,10 +317,6 @@ def rail_solid(P):
     # cad-sensors SW_GAP bracket: 2 x M3 self tap pilots d2.6, 7 deep, along +y into the right cheek outer face
     for (uu, ww) in ((48.0, 2.0), (64.0, 2.0)):
         solid = solid - cyl_y(1.3, n["y_chA"][0] - 1.0, n["y_chA"][0] + 7.0, uu, ww)
-    # D49 rail bridge (cad-reel): its box arm bolts to cheek A's web inner face (y 118), 2 x M3 x 16 self tap, pilots
-    # d2.6 along +y, 10 deep
-    for ww in BRIDGE_PILOTS_W:
-        solid = solid - cyl_y(1.3, n["y_chA"][0] - 6.0, n["y_chA"][0] + 5.0, BRIDGE_PILOT_U, ww)
     # SW_SEATED (left lip) and SW_HOME (right lip) lever seats: head pocket, nut pocket with an outboard slot, root pilot
     for side in ("seated", "home"):
         st = seat_geom(P, side)
@@ -341,10 +337,6 @@ def rail_solid(P):
     solid = solid - LN.rail_cut(n)
     solid = solid - GD.guard_rail_cut(n)
     return solid
-
-
-BRIDGE_PILOT_U = 68.0
-BRIDGE_PILOTS_W = (21.0, 26.0)
 
 
 def splice_solid(P, sg):
@@ -940,7 +932,7 @@ def parts(P):
     out = []
     pcs = rail_pieces(P)
     cols = dict(rear="#9aa7b4", mid="#8796a5", front="#9aa7b4")
-    notes = dict(rear="shoe track, walls, flange at the rear end for the reel head (D49)",
+    notes = dict(rear="shoe track, walls, tether fork and two pulleys behind the rear end",
                  mid="shoe track, cheeks on the sleeve, big gear pin bosses, lever seats, SW_GAP bracket pilots",
                  front="shoe track end, spring anchor posts with straps, muzzle tie")
     for k, sol in pcs.items():
@@ -1575,9 +1567,9 @@ def steps(P):
                   "from the print sheet: the carriage body lies on its side across the bed diagonal; the stop springs "
                   "print upside down at 100 percent infill (all perimeters); rail pieces lie on their largest flat face. "
                   "0.2 mm layers, 4 walls on every loaded part. Hardware (launcher and aim train): M3 screws 2 x 6, "
-                  "3 x 8, 14 x 10, 23 x 12, 5 x 16, 12 x 20, 4 x 30, plus 4 x 10 for the aim housing to the deck (Aim "
-                  "3); 10 M3 nuts, 1 M3 nyloc; M8 x 25 bolt and M8 nut; 2 x 608; 1 x 693ZZ (lip "
-                  "roller); 4 M3 heat-set inserts (rail rear flange for the reel head, D49); 2 x 8 mm steel rod pins (cut to the length on the print sheet) for "
+                  "3 x 8, 14 x 10, 23 x 12, 5 x 16, 15 x 20, 4 x 30, plus 4 x 10 for the aim housing to the deck (Aim "
+                  "3); 10 M3 nuts, 4 M3 nylocs; M8 x 25 bolt and M8 nut; 2 x 608; 4 x 693ZZ (3 "
+                  "tether pulleys, 1 lip roller); 2 x 8 mm steel rod pins (cut to the length on the print sheet) for "
                   "the spring anchors; sprag #1 (CSK20PP); the two springs.",
              parts=[]),
         dict(title="Launcher 2: join the rail",
@@ -1610,7 +1602,7 @@ def steps(P):
              parts=["launch_drive_gear", "launch_sprag", "launch_sleeve", "launch_drive_washer"]),
         dict(title="Launcher 5: carriage",
              text="Turn the big gear so its toothless gap faces the rack. Slide the carriage BODY into the track from the "
-                  "FRONT end (the rear flange blocks the rear), rack teeth down, until its rear face reaches the stop "
+                  "FRONT end (the tether fork blocks the rear), rack teeth down, until its rear face reaches the stop "
                   "position. Yoke: push the SW_SEATED pushrod into the block bore from the rear, collar first, then push "
                   "the plunger's pin up through the block from below (pad under the left arm) and press the head cap on "
                   "the pin top. Lower the yoke onto the carriage rear so its key plates drop into the slots in the body "
@@ -1663,6 +1655,18 @@ def steps(P):
                   "the carriage home by hand). Hold the drive gear from the side and "
                   "never put a hand in front of the carriage.",
              parts=[]),
+        dict(title="Launcher 9: tether pulleys",
+             text="Press a 693ZZ into each printed pulley. Fit the top and bottom pulleys in the fork behind the rail "
+                  "(M3 x 20 axle and nyloc nut, a printed top-hat washer each side between plate and bearing, hub towards "
+                  "the bearing) and the pivot pulley on the right cheek lug under the axis (M3 x 20 from outside, head on the bearing, nyloc on the cheek inner face). "
+                  "Thread the line from the reel side under the pivot pulley, back under the rail to the bottom pulley, up "
+                  "over the top pulley and forward through the pusher hole to the dart's tail cap. Never fire without the "
+                  "tether.",
+             parts=["launch_pulley_top", "launch_pulley_top_brg", "launch_pulley_top_axle", "launch_pulley_bot",
+                    "launch_pulley_bot_brg", "launch_pulley_bot_axle", "launch_pulley_piv", "launch_pulley_piv_brg",
+                    "launch_pulley_piv_axle", "launch_pulley_top_washer_l", "launch_pulley_top_washer_r",
+                    "launch_pulley_bot_washer_l", "launch_pulley_bot_washer_r", "launch_line_b", "launch_line_c", "launch_line_p"]
+                   + [f"launch_line_a{k}" for k in range(LN.N_A)]),
         dict(title="Aim 1: aim housing, worm, wheel, crank",
              text="Build the aim housing on the bench (it goes onto the base later, after the rail). The AS5600 carrier "
                   "and SW_RAIL_LOW are cad-sensors parts (Sensors steps), screwed into the pilots on the housing. Push the "
@@ -1736,31 +1740,48 @@ def _tangent_angle(c, r, q, side):
 
 
 def line_entry(P, S=None):
-    """World point where the tether arrives on the launcher: cad-reel's cup eyelet front mouth as its line_exit poses it
-    (it moves with the cup during a wrap), else the eyelet at home on the dart axis (D49)."""
+    """World point where the tether arrives at the rail: the BOTTOM of the pivot pulley (cad-reel's feed comes in
+    from the front at about the same height and the line wraps under the pulley and round its rear). The pulley is
+    44 below the main axis and turns with the rail, so the feed length changes by about 25 mm over the aim range
+    (slack on the way down is taken up by the take-up during cocking)."""
     S = S or {}
-    try:
-        from cad.parts import reel as _R
-        return np.asarray(_R.line_exit(P, S), float)
-    except Exception:
-        n = L(P)
-        pitch = kin(P, S)["launch_rail"]
-        return tf.apply(_rail_to_world(P, pitch), np.array([LN.geom(n)["eye"]]))[0]
+    n = L(P)
+    pitch = kin(P, S)["launch_rail"]
+    pv = LN.geom(n)["piv"]
+    p = (pv[0], pv[1], pv[2] - LN.R_PATH)
+    return tf.apply(_rail_to_world(P, pitch), np.array([p]))[0]
 
 
 def line_path(P, S=None):
-    """Tether centre polyline on the launcher, WORLD frame, as [(points N x 3, allowed part names)] spans: from cad-reel's
-    eyelet (line_entry) forward on the dart axis to the pusher -> dart tail (on the sled, in flight or coming home)."""
+    """Tether centre polyline on the launcher, WORLD frame, as [(points N x 3, allowed part names)] spans:
+    pivot pulley -> under the rail -> bottom and top pulleys behind the rail -> forward along the axis to the pusher
+    -> dart tail (on the sled, in flight or coming home). Continues cad-reel's path from line_entry(P, S)."""
     S = S or {}
     n = L(P)
     v = kin(P, S)
     pitch, travel = v["launch_rail"], v["launch_carriage"]
     g = LN.geom(n)
     W = _rail_to_world(P, pitch)
+    pv = g["piv"]
+    bt, tp = g["bot"], g["top"]
+    q = (bt[0], bt[2] - LN.R_PATH)                               # bottom pulley's lowest path point
+    a_t = _tangent_angle((pv[0], pv[2]), LN.R_PATH, q, 1.0) % 360.0     # leaves at the bottom-rear towards it
+    arc = []
+    for a in np.linspace(270.0, min(a_t, 270.0), 5):                  # feed arrives at the bottom, wraps rearwards
+        t = math.radians(a)
+        arc.append((pv[0] + LN.R_PATH * math.cos(t), pv[1], pv[2] + LN.R_PATH * math.sin(t)))
+    bot = [(bt[0] + LN.R_PATH * math.cos(math.radians(a)), 0.0, bt[2] + LN.R_PATH * math.sin(math.radians(a)))
+           for a in np.linspace(270.0, 180.0, 5)]
+    top = [(tp[0] + LN.R_PATH * math.cos(math.radians(a)), 0.0, tp[2] + LN.R_PATH * math.sin(math.radians(a)))
+           for a in np.linspace(180.0, 90.0, 5)]
     pusher = (n["u_c_home"] - travel, 0.0, g["w_line"])
     tail_seat = np.array((n["u_tail_home"] - travel, 0.0, g["w_line"]))
     du, dw = v.get("launch_dart", 0.0), v.get("launch_dart_w", 0.0)
     tail = tail_seat + np.array((du, 0.0, dw))
+    rail_pts = np.array(arc + bot + top + [pusher])
+    # pusher -> dart tail: when the tail is ahead of the lip roller and the straight line would pass under the roller
+    # top (dart landed ahead and below, e.g. the rail is still up in rail_low), the line runs over the roller groove
+    # and leaves it at the upper front tangent towards the tail (MZ.roller_top, carriage local, + u_c_home - travel)
     tip = [pusher]
     allowed_tip = {"launch_carriage", "launch_dart", "launch_line_p"}
     ur, wr = MZ.U_R + n["u_c_home"] - travel, MZ.W_R
@@ -1772,8 +1793,7 @@ def line_path(P, S=None):
                     for a in np.linspace(90.0, a_d, 4)]
             allowed_tip.add("launch_muzzle_roller")
     tip.append(tuple(tail))
-    e = line_entry(P, S)
-    spans = [(np.array([e, tf.apply(W, np.array([pusher]))[0]]), {"reel_cup", "launch_carriage"}),
+    spans = [(tf.apply(W, rail_pts), {"launch_pulley_piv", "launch_pulley_bot", "launch_pulley_top", "launch_rail_rear"}),
              (tf.apply(W, np.array(tip)), allowed_tip)]
     return spans
 

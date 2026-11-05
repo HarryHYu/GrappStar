@@ -18,31 +18,23 @@ DEFAULTS = dict(
     # capstan (Harry v7: dia 40 x 40 body, base flange cone 23 -> 20 over 3)
     cap_r=20.0, cap_len=40.0, cap_flange_r=23.0, cap_flange_h=3.0,
     wraps=7, mu_min=0.10, mu_lo=0.15, mu_hi=0.25,
-    # D49 spool on the rail head: core d40, flange d62, pack 20 wide (params REEL.storage)
-    core_r=20.0, flange_r=31.0, width=20.0, flange_t=2.0, pack_fill=0.80,
-    # clutch line tensions at the design pack radius r 27 (D49): LIGHT 0.25 N fixed, FIRM 5.0 N
-    clutch_r=27.0, brake_launch_n=0.25, brake_mid_n=0.25, brake_reel_n=5.0, mu_face=0.30, face_r_in=18.0,
-    face_r_out=26.0, brake_stroke=4.0,
-    # clutch lever (pivot parallel to the rail): upper arm to the cam follower, lower arm = PPA-CF leaf to the FIRM
-    # screw on the thrust ring; leaf section b x t (b = 8 along the rail)
-    lever_a=53.0, lever_l=56.0, leaf_b=8.0, leaf_t=4.6, leaf_e=5000.0, cam_gap=0.3,
-    # gears (D49): REEL 50T m2 -> C1 49T -> B1 24:12 -> G_a 26T / G_b 32T / G_c 23T m1.5: capstan 2.307 x wiper;
-    # take-up bus 50T -> c1' 46T -> swing idler 30T -> T1 20T (2.5 x wiper) -> B2, B3 1:1; cup gear 28T from W 49T
-    m_cap=2.0, z_main=50, z_c1=49, b1_ratio=2.0, z_ga=26, z_gb=32, z_gc=23, m_take=1.5, z_bus=50, z_c1p=46,
-    z_idler=30, z_reel=20, m_cup=1.5, z_cup=28, z_wrap_idler=49, wrap_idler_turns=4.0,
+    # storage reel
+    core_r=25.0, flange_r=40.0, width=22.0, flange_t=2.0, pack_fill=0.80,          # params v1.2 REEL.storage
+    # slip clutch line tension targets with the reel FULL (D24): LIGHT 0.5 N, FIRM 5.0 N
+    brake_launch_n=0.5, brake_mid_n=1.75, brake_reel_n=5.0, mu_face=0.30, face_r_in=20.0, face_r_out=30.0,
+    brake_stroke=4.0, rocker_l=37.0, rocker_a=33.0, rocker_b=15.0,
+    # gears (module, teeth), params v1.2: REEL output 50T -> capstan gear 22T (m2, D20);
+    # take-up bus (D25): bus 50T m1.5 (cad-drum) -> c1 46T -> swing idler 30T -> reel gear 20T; cup ring m1.5 24T
+    m_cap=2.0, z_main=50, z_cap=22, x_cap=0.0, m_take=1.5, z_bus=50, z_c1=46, z_take=46, z_idler=30, z_reel=20,
+    m_cup=1.5, z_cup=24, z_wrap_idler=42, wrap_idler_turns=4.0,
     # wiper (linear model, physics worker block); firmware tow limit
-    wiper_n0_rpm=45.0, wiper_stall_nm=15.0, wiper_i_stall=18.0, wiper_i_free=1.5, eta_train=0.84,
+    wiper_n0_rpm=45.0, wiper_stall_nm=15.0, wiper_i_stall=18.0, wiper_i_free=1.5, eta_train=0.85,
     tow_limit_n=100.0,
     # launch (physics defaults until base/physics/FINDINGS.md): muzzle speed, stroke, flight decel
-    v_launch=7.1, stroke_m=0.241, flight_decel=5.0,
-    # v7 line geometry relative to the capstan: D49 axial eyelet at r 26 (the dart line enters along the cup axis)
-    ring_r=26.0, eye_dx=0.0, eye_dz=1.0, groove_wrap_deg=57.9, groove_r=23.5,
+    v_launch=8.6, stroke_m=0.30, flight_decel=5.0,
+    # v7 line geometry relative to the capstan (reel frame, see reel_NOTES.md)
+    ring_r=24.5, eye_dx=70.0, eye_dz=31.5, groove_wrap_deg=58.0, groove_r=23.5,
 )
-
-
-def cap_ratio(d):
-    """Capstan turns per main shaft turn (D49 train): 50/49 x 2 x 26/23 = 2.307."""
-    return d["z_main"] / d["z_c1"] * d["b1_ratio"] * d["z_ga"] / d["z_gc"]
 
 
 def get(P=None):
@@ -138,53 +130,101 @@ def min_brake_no_overrun(d, I=None):
 
 # ------------------------------------------------------------------------------------------------ slip clutch
 def clutch(d):
-    """Friction torque and axial preload for both settings (one annular face: the spool's outboard face on the clutch
-    disk of the shaft; uniform wear). Convention (D49): line tension at the design pack radius clutch_r (27)."""
-    r_ref = d["clutch_r"] / 1000
+    """Friction torque and axial preload for both settings (annular face, uniform wear)."""
+    r_mid = pack_r(d, d["line_len_m"]) / 1000           # D24 convention: line tension with the reel FULL
     r_eff = 0.5 * (d["face_r_in"] + d["face_r_out"]) / 1000
     out = {}
     for k in ("launch", "mid", "reel"):
-        t = d[f"brake_{k}_n"] * r_ref
+        t = d[f"brake_{k}_n"] * r_mid
         f = t / (d["mu_face"] * r_eff)
-        out[k] = dict(torque_nm=t, preload_n=f, push_n=f,
+        out[k] = dict(torque_nm=t, preload_n=f,
                       line_n_empty=t / (d["core_r"] / 1000), line_n_full=t / (pack_r(d, d["line_len_m"]) / 1000))
-    out["r_ref_mm"] = d["clutch_r"]
-    out["lever"] = d["lever_l"] / d["lever_a"]
+    k_spring = (out["reel"]["preload_n"] - out["launch"]["preload_n"]) / d["brake_stroke"]
+    out["spring_rate_n_mm"] = k_spring
+    out["precompress_mm"] = out["launch"]["preload_n"] / k_spring
+    out["r_mid_mm"] = r_mid * 1000
+    # the rocker is a lever (pivot top, clutch contact L below it, drum push a further below that): push force
+    lever = d["rocker_l"] / (d["rocker_l"] + d["rocker_a"])
+    for k in ("launch", "mid", "reel"):
+        out[k]["push_n"] = out[k]["preload_n"] * lever
+    out["rocker_lever"] = lever
     return out
 
 
-def lever_leaf(d):
-    """Clutch lever: the cam lift (brake_stroke less the gap) turns the lever; its lower arm (a PPA-CF leaf, overhung
-    beam of length lever_l) bends by the tip travel (the thrust ring barely moves). Returns the tip travel, the leaf
-    rate, the force added from LIGHT to FIRM, the force FIRM needs over LIGHT and the peak bending stress."""
+def rocker(d, E=2100.0, b=None):
+    """Flexible rocker as the clutch spring: pivot at the top, clutch stack (rigid) L below, drum push a further
+    below. The plate bends as an overhung beam: input deflection delta = P a^2 (L + a) / (3 E I). Returns the plate
+    thickness t that gives the REEL - LAUNCH preload change over the brake stroke, and the peak bending stress."""
+    b = d.get("rocker_b", 15.0) if b is None else b
     cl = clutch(d)
-    travel = (d["brake_stroke"] - d["cam_gap"]) * d["lever_l"] / d["lever_a"]
-    I = d["leaf_b"] * d["leaf_t"] ** 3 / 12
-    k = 3 * d["leaf_e"] * I / d["lever_l"] ** 3
-    df = k * travel
-    need = cl["reel"]["preload_n"] - cl["launch"]["preload_n"]
-    sigma = cl["reel"]["preload_n"] * d["lever_l"] * (d["leaf_t"] / 2) / I
-    return dict(travel=travel, rate=k, added_n=df, need_n=need, light_n=cl["launch"]["preload_n"],
-                firm_n=cl["launch"]["preload_n"] + df, sigma_max=sigma)
+    L, a = d["rocker_l"], d["rocker_a"]
+    dF = cl["reel"]["preload_n"] - cl["launch"]["preload_n"]
+    dP = dF * L / (L + a)
+    EI = dP * a ** 2 * (L + a) / (3 * d["brake_stroke"])
+    t = (12 * EI / (E * b)) ** (1 / 3)
+    P_max = cl["reel"]["preload_n"] * L / (L + a)
+    sigma = P_max * a * (t / 2) / (b * t ** 3 / 12)
+    delta0 = cl["launch"]["preload_n"] * L / (L + a) * a ** 2 * (L + a) / (3 * EI)
+    return dict(t=t, EI=EI, sigma_max=sigma, precompress_input=delta0, E=E, b=b)
+
+
+def rocker_section(d, y_load=-48.7, t=3.0, t_leg=5.5, y_leg=-30.0, E=5000.0, n=4000):
+    """Rocker spring with its real section (review 2), PPA-CF printed flat (E about 5 GPa: Harry has no PETG): pin at R Y 37, trim screws on the clutch stack at Y 0, load at
+    y_load on the stiff leg. Plate t (top 10 wide, ring r 14.5 with the S hole r 6, trim bosses r 4 x 6 thick at
+    Y 0, 15 wide below), leg 10 wide x t_leg below y_leg. Unit-load integration of M^2 / EI.
+    Returns the input stroke at y_load for the LAUNCH -> REEL preload change, the push forces and the peak stress."""
+    cl = clutch(d)
+    yp = 37.0
+    L, a = yp, -y_load
+
+    def width_inertia(y):
+        if y > 31.0:
+            return 10.0 * t ** 3 / 12, 10.0 * t ** 2 / 6
+        if y < y_leg:
+            return 10.0 * t_leg ** 3 / 12, 10.0 * t_leg ** 2 / 6
+        b = 15.0
+        if abs(y) < 14.5:
+            b = max(b, 2 * math.sqrt(14.5 ** 2 - y ** 2))
+        if abs(y) < 6.0:
+            b -= 2 * math.sqrt(36.0 - y ** 2)
+        i = b * t ** 3 / 12
+        if abs(y) < 4.0:
+            i += 2 * 2 * math.sqrt(16.0 - y ** 2) * (6.0 ** 3 - t ** 3) / 12
+        return i, b * t ** 2 / 6
+
+    comp, sig = 0.0, 0.0
+    P_firm = cl["reel"]["preload_n"] * L / (L + a)
+    h = (yp - y_load) / n
+    for k in range(n):
+        y = yp - (k + 0.5) * h
+        m = a * (yp - y) / L if y > 0 else a + y
+        i, zmod = width_inertia(y)
+        comp += m * m / (E * i) * h
+        sig = max(sig, P_firm * abs(m) / zmod)
+    dF = cl["reel"]["preload_n"] - cl["launch"]["preload_n"]
+    dP = dF * L / (L + a)
+    return dict(stroke=dP * comp, compliance=comp, push_firm=P_firm,
+                push_light=cl["launch"]["preload_n"] * L / (L + a), sigma_max=sig, t=t)
 
 
 # ------------------------------------------------------------------------------------------------ gear train
 def train(d):
-    """Speeds, torques and line speed for the D49 reel train. Main = the REEL output gear on the main shaft."""
-    up = cap_ratio(d)
-    take = (d["z_bus"] / d["z_reel"]) / up                 # clutch disk rpm / capstan rpm in REEL
+    """Speeds, torques and line speed for the reel train. Main = drum worker's reel output gear on the main shaft."""
+    up = d["z_main"] / d["z_cap"]                         # capstan rpm / main rpm
+    # take-up bus (D25): wiper -> bus 50 -> c1 46 (free on the capstan tube) -> swing idler -> reel 20: 2.5 x wiper
+    take = (d["z_bus"] / d["z_reel"]) / (d["z_main"] / d["z_cap"])   # reel gear rpm / capstan rpm in REEL
     rl = line_r_cap(d) / 1000
     out = dict(cap_per_main=up, reel_per_cap=take,
-               c_main_c1=0.5 * d["m_cap"] * (d["z_main"] + d["z_c1"]),
-               c_ga_gb=0.5 * d["m_take"] * (d["z_ga"] + d["z_gb"]), c_gb_gc=0.5 * d["m_take"] * (d["z_gb"] + d["z_gc"]),
-               c_bus=0.5 * d["m_take"] * (d["z_bus"] + d["z_c1p"]),
-               c_c1p_idler=0.5 * d["m_take"] * (d["z_c1p"] + d["z_idler"]),
-               c_idler_t1=0.5 * d["m_take"] * (d["z_idler"] + d["z_reel"]),
+               c_main_cap=0.5 * d["m_cap"] * (d["z_main"] + d["z_cap"]),
+               c_take_idler=0.5 * d["m_take"] * (d["z_take"] + d["z_idler"]),
+               c_bus=0.5 * d["m_take"] * (d["z_bus"] + d["z_c1"]),
+               c_idler_reel=0.5 * d["m_take"] * (d["z_idler"] + d["z_reel"]),
                wraps_from_drum=d["wrap_idler_turns"] * d["z_wrap_idler"] / d["z_cup"],
-               reel_per_wiper=d["z_bus"] / d["z_reel"])
+               reel_per_wiper=d["z_bus"] / d["z_c1"] * d["z_take"] / d["z_reel"])
+    # take-up must outrun the capstan at the smallest pack radius (most line out)
     out["takeup_margin"] = take * d["core_r"] / line_r_cap(d)
+    # tension from motor torque: T = tau_main * eta / up / r
     out["line_n_at_stall"] = d["wiper_stall_nm"] * d["eta_train"] / up / rl
-
     def at_tension(T):
         tau_c = T * rl
         tau_main = tau_c * up / d["eta_train"]
@@ -199,15 +239,15 @@ def train(d):
 
 
 def tension_from_amps(d, amps):
-    """Firmware estimate of the capstan-side line tension from wiper current (no load cell). Linear motor model;
+    """Firmware estimate of the dart-side line tension from wiper current (no load cell). Linear motor model;
     take-up drag and gear losses lumped in eta_train. Calibrate on the bench with a luggage scale."""
-    up = cap_ratio(d)
+    up = d["z_main"] / d["z_cap"]
     frac = max(0.0, (amps - d["wiper_i_free"]) / (d["wiper_i_stall"] - d["wiper_i_free"]))
     return frac * d["wiper_stall_nm"] * d["eta_train"] / up / (line_r_cap(d) / 1000)
 
 
 def amps_for_tension(d, T):
-    up = cap_ratio(d)
+    up = d["z_main"] / d["z_cap"]
     frac = T * (line_r_cap(d) / 1000) * up / d["eta_train"] / d["wiper_stall_nm"]
     return d["wiper_i_free"] + frac * (d["wiper_i_stall"] - d["wiper_i_free"])
 
@@ -215,8 +255,8 @@ def amps_for_tension(d, T):
 # ------------------------------------------------------------------------------------------------ cup (wrap arm)
 def cup_torque(d, T, mu=0.20, lever=None):
     """Holding torque on the wrap cup during tow (N m, + = wind-in sense = unwrap sense).
-    The dart line enters the ring (radius ring_r) with a tangential share eye_dx / hypot(eye_dx, eye_dz) of its pull
-    (D49: the axial eyelet takes the line along the cup axis, so no tangential share at home). The line runs groove_wrap_deg round the groove and leaves tangent to the capstan
+    The dart line enters the ring (top, radius ring_r) from the exit eye (eye_dx forward, eye_dz axial) and pulls the
+    ring along the -wind-in tangent. The line runs groove_wrap_deg round the groove and leaves tangent to the capstan
     line circle (lever 17.8 .. 20.5 mm with the segment's inclination) in the wind-in sense. In active tow the
     capstan is the pulling side, so the tension RISES through the groove: T exp(+mu wrap) (independent review)."""
     L = math.hypot(d["eye_dx"], d["eye_dz"])
@@ -236,7 +276,7 @@ def unwrap_schedule(d, step_turns=0.5, feed=0.8):
     """Interleaved unwrap after the dart is seated: each step the cup unwraps step_turns (releasing slack to the
     dart side), then the capstan winds `feed` of that slack so the line never goes tight on the seated dart and never
     lies loose by more than one step. Returns the list of (cup_turns_delta, capstan_deg_delta, main_deg_delta)."""
-    up = cap_ratio(d)
+    up = d["z_main"] / d["z_cap"]
     steps = []
     left = float(d["wraps"])
     while left > 1e-9:
@@ -271,28 +311,28 @@ def summary(P=None):
     add("spin energy", round(s["energy_j"], 2), "J")
     add("least brake against overrun in flight", round(min_brake_no_overrun(d), 3), "N")
     for b in (d["brake_launch_n"], 1.0):
-        o = overrun(d, b, 7.0)
-        add(f"overrun after a dead stop at 7 m/s, brake {b} N", round(o["slack_m"], 2), "m")
-    o = overrun(d, 6.0, 7.0)
+        o = overrun(d, b, 8.0)
+        add(f"overrun after a dead stop at 8 m/s, brake {b} N", round(o["slack_m"], 2), "m")
+    o = overrun(d, 6.0, 8.0)
     add("overrun with the slack-line shoe (6 N)", round(o["slack_m"], 3), "m")
     for k in ("launch", "reel"):
         add(f"clutch {k}: torque", round(cl[k]["torque_nm"], 4), "N m")
         add(f"clutch {k}: axial preload", round(cl[k]["preload_n"], 1), "N")
         add(f"clutch {k}: line N empty..full", f"{cl[k]['line_n_empty']:.2f}..{cl[k]['line_n_full']:.2f}", "N")
     add("clutch mid (wrapping): preload", round(cl["mid"]["preload_n"], 1), "N")
-    lv = lever_leaf(d)
-    add("clutch lever tip travel LIGHT -> FIRM", round(lv["travel"], 2), "mm")
-    add("leaf rate / force added at FIRM / needed", f"{lv['rate']:.2f} N/mm / {lv['added_n']:.1f} N / {lv['need_n']:.1f} N")
-    add("leaf peak bending stress at FIRM", round(lv["sigma_max"], 1), "MPa")
+    rs = rocker_section(d)
+    add("rocker (PPA-CF, real section, t 3.0): leg stroke LIGHT -> FIRM", round(rs["stroke"], 2), "mm")
+    add("rocker leg push at FIRM / LIGHT", f"{rs['push_firm']:.1f} / {rs['push_light']:.1f}", "N")
+    add("rocker peak bending stress at FIRM", round(rs["sigma_max"], 1), "MPa")
     tr = train(d)
     add("capstan rpm / main rpm", round(tr["cap_per_main"], 3))
     add("reel gear rpm / capstan rpm", round(tr["reel_per_cap"], 3))
     add("take-up margin at the empty core", round(tr["takeup_margin"], 3))
-    add("centre REEL gear - C1 (no shift)", tr["c_main_c1"], "mm")
-    add("centre c1' - swing idler", tr["c_c1p_idler"], "mm")
+    add("centre main-capstan (no shift)", tr["c_main_cap"], "mm")
+    add("centre take-up-idler", tr["c_take_idler"], "mm")
     add("wraps from the drum (idler turns x idler teeth / ring)", tr["wraps_from_drum"])
     add("clutch disk rpm / wiper rpm (bus)", tr["reel_per_wiper"])
-    add("centre swing idler - T1", tr["c_idler_t1"], "mm")
+    add("centre idler-reel", tr["c_idler_reel"], "mm")
     add("line tension at wiper stall", round(tr["line_n_at_stall"], 0), "N")
     for T, a in tr["at"].items():
         add(f"at {T:.0f} N: main torque / amps / line speed",

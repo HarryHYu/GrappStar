@@ -1,7 +1,5 @@
 # GrappStar base station spec
 
-> D49 (params 1.4.0): the reel, capstan, cup and selector drum ride the rail (RAIL_REEL in params.py, study base/spec/proposals/D49_rail_reel_layout.md). Where this file still describes a frame-mounted reel, pulleys D14/D34 or the 0.5 N LIGHT brake, D49 and params win.
-
 Status: v1.2 (3 Nov 2026, 12:30 Sydney; text synced to params 1.3.8 after the final cross-check). Everything here is binding, together with base/spec/DECISIONS.md (D1 onward)
 and base/spec/params.py (the numbers). `params.py` holds every shared number;
 this file explains them. Workers never edit either file: write change requests in your REPORT.md or NOTES.md.

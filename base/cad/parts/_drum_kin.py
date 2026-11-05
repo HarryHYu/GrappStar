@@ -51,8 +51,8 @@ DEFAULTS = dict(
     seg_teeth=40,           # window = 40 pitches = 240 deg = 4 pinion turns
     seg_start=62.0,         # drum angle where the wrap pinion starts to turn
     pin_z=10, pin_x=0.4,    # wrap pinion (locked at home by the locking arc), profile shift
-    idl_m=1.5, idl_z=49,    # wrap idler output gear on the pinion shaft (meshes the cad-reel cup gear), D49
-    ring_z=28,              # cad-reel cup gear: cup turns = 4 * 49 / 28 = 7 (BASE_SPEC: 7 cup turns)
+    idl_m=1.5, idl_z=42,    # wrap idler output gear on the pinion shaft (meshes the cad-reel cup ring gear)
+    ring_z=24,              # cad-reel cup ring gear: cup turns = 4 * 42 / 24 = 7 (BASE_SPEC: 7 cup turns)
     cup_torque=0.06,        # N m at the cup while laying wraps with the brake LIGHT (cad-reel to confirm)
     # ---------------------------------------------------------------- N20 drive
     n20_z=10, n20_x=0.3, drum_gear_z=120, drum_gear_m=0.8, drum_gear_x=-0.3,
@@ -106,11 +106,6 @@ def cfg(P=None):
             d["drum_gear_z"] = int(dg.get("teeth", d["drum_gear_z"]))
             d["n20_stall_nm_9v"] = float(n20.get("stall_nm_design", d["n20_stall_nm_9v"]))
             d["n20_v"] = float(n20.get("supply_v", d["n20_v"]))
-        wt = over.get("wrap_train")
-        if isinstance(wt, dict):               # D49: W output 49T, cup gear 28T (ratio 1.75 as 42/24 before)
-            d["idl_z"] = int((wt.get("idler_out") or {}).get("teeth", d["idl_z"]))
-            d["idl_m"] = float((wt.get("idler_out") or {}).get("module", d["idl_m"]))
-            d["ring_z"] = int((wt.get("cup_gear") or {}).get("teeth", d["ring_z"]))
         tg = over.get("targets")
         if isinstance(tg, dict):           # params v1.0 targets; the two on code edges are kept off the edges
             for k, kk in (("LAUNCH", "launch"), ("NEUTRAL", "neutral"), ("REEL", "reel")):

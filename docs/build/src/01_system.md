@@ -14,20 +14,16 @@ Three parts:
   - LAUNCH, wiper forward: draws the spring carriage back (241 mm), fires at the end of the stroke, resets.
   - LAUNCH, wiper backward: tilts the rail between 6 and 47 degrees to aim. A self-locking worm holds the angle.
   - WRAP zone: the collar stays in NEUTRAL while the drum turns a wrap cup 7 times round the capstan.
-  - REEL, wiper forward: the capstan (REEL gear 50T to C1 49T on the rail bridge, a 2:1 bevel, a shaft along the rail
-    and three gears at the reel head: 2.307 times wiper speed) winds in and tows. A one-way bearing stops it ever
+  - REEL, wiper forward: the capstan (REEL gear 50T to capstan gear 22T, 2.27 times wiper speed) winds in and tows. A one-way bearing stops it ever
     turning out. Tow limit 50 N by default.
-  - Rail reel (decision D49): the storage spool (below the line) and the capstan with its wrap cup (above it) ride the
-    rail behind the carriage and tilt with it, so the line runs straight from the spool through the cup eyelet to the
-    dart tail at every pitch, with no pulleys.
-  - Take-up: every forward wiper turn also winds the spool through a slip clutch, so slack never builds up.
-  - Payout at launch: the line skips the capstan and pulls off the free-spinning spool against a fixed light
-    payout brake (0.25 N; it also stops the spool overrunning after landing).
+  - Take-up: every forward wiper turn also winds the storage reel through a slip clutch, so slack never builds up.
+  - Payout at launch: the line skips the capstan and pulls off the free-spinning storage reel against a light
+    payout brake (0.5 N; over 1 N costs range).
   - Range: a few metres with the two springs (6 to 47 degrees of pitch). Two springs only in v1 (decision D38).
   - Protection: current trips in the firmware and a printed torque limiter (about 5 N m) in the wiper coupler. Any
     fault: wiper off, drum to NEUTRAL (except when the wraps are on, the spring is drawn or the
-    drum itself faulted: then the drum holds, decision D27). With the N20 swung out of
-    mesh the drum turns by hand by its gear rim.
+    drum itself faulted: then the drum holds, decision D27). A hand lever on the
+    drum is the fallback.
   - Brain: an ESP32-S3 DevKitC on USB from the Jetson, with an AS5600 angle sensor on the main shaft and printed
     contact switches (an M3 screw head touching an M3 nut).
 - **Dart (KEDGE v30).** 42 mm x 152 mm, its own XIAO ESP32S3, 2S 18350 pack, WiFi access point. After landing a kick

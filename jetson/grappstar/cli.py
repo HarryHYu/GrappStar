@@ -25,7 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 JETSON_DIR = os.path.dirname(HERE)
 DEFAULT_CALIB = os.path.join(JETSON_DIR, "calib", "rovercam.json")
 SETTINGS = os.path.join(JETSON_DIR, "settings.json")
-DEFAULT_DRAG_N = 0.25  # same value as grappstar.mission.DEFAULT_DRAG_N (kept here so --help needs no imports)
+DEFAULT_DRAG_N = 0.5   # same value as grappstar.mission.DEFAULT_DRAG_N (kept here so --help needs no imports)
 
 
 def _size(s: str):

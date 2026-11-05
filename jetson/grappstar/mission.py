@@ -50,7 +50,7 @@ STEPS = ["PREFLIGHT", "LAUNCH_MODE", "AIM", "COCK", "ARM", "FIRE", "FLIGHT", "LA
 RESHOOT_STEPS = ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
 SKIPPABLE = {"CHECK", "LANDING_ZONE", "TIDY", "COCK"}
 DECOCK_STEPS = ("COCK", "FIRE", "AIM", "LAUNCH_MODE", "RAIL_LOW", "BASE_NEUTRAL")
-DEFAULT_DRAG_N = 0.25            # the LIGHT clutch: the one default for the CLI, settings and the App
+DEFAULT_DRAG_N = 0.5             # the LIGHT clutch: the one default for the CLI, settings and the App
 def approach_max_s(line_m: Optional[float], duty: float) -> float:
     """Final approach time limit, BASE_SPEC 10.1 step 17 and the firmware's approachLimit() (base-1.3.1): the longer of
     20 s and 10 s + 1.5 x line_m / v, at most 600 s, where v is the slowest take-up speed at the duty from the physics
@@ -127,7 +127,7 @@ class Aborted(Exception):
 
 @dataclass
 class MissionConfig:
-    drag_n: float = DEFAULT_DRAG_N  # payout brake setting (C3 column): LIGHT 0.25 N (D49)
+    drag_n: float = DEFAULT_DRAG_N  # payout brake setting (C3 column): LIGHT 0.5 N (coordinator)
     tow_limit_n: float = 40.0       # tension at the dart, at most 55 N (D46, spec 1.3.2)       # line tension limit while towing (base firmware caps it too)
     check_n: float = 15.0           # anchored check pull
     check_hold_s: float = 2.0       # hold at the check tension this long

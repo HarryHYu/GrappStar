@@ -8,7 +8,7 @@
   "rover_size": "1280x720",
   "dart_size": "720x480",
   "tow_limit": 40.0,
-  "drag": 0.25,
+  "drag": 0.5,
   "imu_axes": "x,y,z",
   "deck_height": 0.15
 }

@@ -852,7 +852,7 @@ static void testReview3() {
   { Rig R; R.B.evDrops = 3; std::string r = R.cmd("{\"id\":1,\"cmd\":\"status\"}");
     CHECK(r.find("\"ev_drops\":3") != std::string::npos && r.size() <= 256, "status reports dropped events, within 256 bytes"); }
   { Rig R; R.B.c.freeA = 1.5f; R.B.w.amps = 5.0f;
-    CHECK(fabsf((R.B.w.amps - R.B.c.freeA) * R.B.c.kNperA + R.B.c.tensOffsetN - 46.85f) < 0.1f, "dart-side tension model 14.1 x (I - I_free) - 2.5 (D49): 5 A gives 46.9 N"); }
+    CHECK(fabsf((R.B.w.amps - R.B.c.freeA) * R.B.c.kNperA + R.B.c.tensOffsetN - 43.55f) < 0.1f, "dart-side tension model 13.1 x (I - I_free) - 2.3 (D46): 5 A gives 43.6 N"); }
 }
 
 static void testReview4() {
@@ -881,7 +881,7 @@ static void testReview4() {
     CHECK(R.err("{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":56}") == "OUT_OF_RANGE" && R.err("{\"id\":2,\"cmd\":\"reel\",\"max_n\":56,\"until\":\"tension\"}") == "BAD_ARG", "D39/D46: tow limit above 55 N refused");
     R.B.c.freeA = 3.0f; R.ok("{\"id\":1,\"cmd\":\"set\",\"key\":\"limit_n\",\"val\":55}");
     R.ok("{\"id\":2,\"cmd\":\"reel\",\"duty\":1,\"max_n\":55,\"until\":\"tension\"}");
-    CHECK(R.B.w.c.tripA > 8.0f && R.B.w.c.tripA <= R.B.c.hardTripA, "D34: tow trip follows the limit ((55 + 2.5) / 14.1 + I_free + 1 A)");
+    CHECK(R.B.w.c.tripA > 8.0f && R.B.w.c.tripA <= R.B.c.hardTripA, "D34: tow trip follows the limit ((55 + 2.3) / 13.1 + I_free + 1 A)");
     R.ok("{\"id\":3,\"cmd\":\"stop\"}"); }
   { Rig R; R.toMode("NEUTRAL"); R.wrapToReel(); R.ok("{\"id\":1,\"cmd\":\"unwrap\"}");
     R.until([&] { return S.drumDeg < 180; }, 120000); R.ok("{\"id\":2,\"cmd\":\"stop\"}"); R.run(500);

@@ -62,7 +62,7 @@ class FrameSource:           # duck-typed
 
 ## vision
 
-- `vision.flight.analyze_flight(frames, flightlog=None, clock_offset_s=None, ballistics=None, drag_n=0.25,
+- `vision.flight.analyze_flight(frames, flightlog=None, clock_offset_s=None, ballistics=None, drag_n=0.5,
   aim_pitch_deg=None, calibrate_range=True) -> FlightResult` (`.phases` list of `(name, t0, t1)` with names
   ON_RAIL, LAUNCH, FLIGHT, IMPACT, LANDED; `.t_launch`, `.t_impact`, `.t_landed`, `.attitude` list of
   `(t, roll, pitch, yaw)` deg, `.horizon` list of per-frame `(t, angle_deg, sky_ratio)`, `.trajectory` list of
@@ -87,7 +87,7 @@ class FrameSource:           # duck-typed
 ## ballistics (C3)
 
 `Ballistics.load(path=None)` (default: `base/out/ballistics.json` if it exists, else the placeholder);
-`.solve(range_m, drag_n=0.25, lob=None, line_margin=1.10, low=False) -> Solution(reachable, pitch_deg, t_flight_s,
+`.solve(range_m, drag_n=0.5, lob=None, line_margin=1.10, low=False) -> Solution(reachable, pitch_deg, t_flight_s,
 line_out_m, apex_m, v_muzzle, note)`. Default drag is the LIGHT clutch 0.5 N (D24); lob=None/True the high branch,
 lob=False or low=True the low branch; the placeholder uses the real window 6..47 deg. range_m is from the ground point under the rail pivot (D29); the App adds the camera's offset ahead of the
 pivot: the App converts camera targets to the pivot with campose.target_info_pivot (forward 0.15 m and sideways

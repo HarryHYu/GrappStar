@@ -72,7 +72,7 @@ def test_idler_locked_at_home(asm):
     """At LAUNCH the wrap pinion cannot turn more than 3 deg either way (locking arc)."""
     S = dict(drum_deg=0.0, wiper_deg=0.0)
     v = asm.values(S)
-    d = posed(asm, "drum_drum_b", S)              # D49: the locking arc is on drum B (rear end of the rail drum)
+    d = posed(asm, "drum_drum_a", S)
     for sgn in (1, -1):
         v2 = dict(v)
         v2["drum_idler"] += sgn * 3.0
@@ -92,8 +92,10 @@ def test_index_lever_follows_cam(asm):
 
 
 @pytest.mark.parametrize("th", [0, 41, 347])
-def test_index_block_clear(asm, th):
-    """D49: the SW_INDEX block stands on the motor plate (frame-fixed), clear of the coupler and its own lever."""
+def test_post2_strut_clear(asm, th):
+    """Idler post 2 and its SW_INDEX strut stay clear of the fork, rail, bus gear, drum A and the index lever."""
     S = dict(drum_deg=float(th), wiper_deg=0.0)
-    for b in ("drum_coupler", "drum_index_lever"):
+    for b in ("drum_fork", "drum_rail", "drum_coupler", "drum_drum_a", "drum_index_lever", "drum_idler_gear"):
+        assert overlap(asm, "drum_bracket_idler2", b, S) < 1e-3, (th, b)
+    for b in ("drum_fork", "drum_coupler", "drum_index_lever"):
         assert overlap(asm, "drum_index_block", b, S) < 1e-3, (th, b)

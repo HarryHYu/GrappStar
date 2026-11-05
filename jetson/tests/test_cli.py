@@ -81,11 +81,11 @@ def test_base_fire_one_connection(monkeypatch, capsys):
 
 
 def test_one_drag_default_everywhere():
-    """r2_C2 #1: the LIGHT 0.25 N clutch column (D49) is the default in the CLI, the mission and the settings example."""
+    """r2_C2 #1: the LIGHT 0.5 N clutch column is the default in the CLI, the mission and the settings example."""
     import os
     from grappstar import mission
     ex = json.load(open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "settings.example.json")))
-    assert cli.DEFAULT_DRAG_N == mission.DEFAULT_DRAG_N == mission.MissionConfig().drag_n == ex["drag"] == 0.25
+    assert cli.DEFAULT_DRAG_N == mission.DEFAULT_DRAG_N == mission.MissionConfig().drag_n == ex["drag"] == 0.5
 
 
 def test_console_line_parsing():

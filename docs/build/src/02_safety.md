@@ -44,7 +44,7 @@ Read this before any hands-on step.
   unhook ONE spring at a time from its anchor pin with a hook tool (a bent coat-hanger wire or a long screwdriver
   through the hook), never with fingers in the hook. Then the carriage is slack and safe. Afterwards, with the
   carriage home: `{"cmd":"cal","what":"cock_rest"}`, then `aim` again before any shot.
-- Never turn the drum by hand while the carriage is drawn (unless `cock` is 0 AND `SW_HOME` is closed) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first.
+- Never use the hand lever while the carriage is drawn (unless `cock` is 0 AND `SW_HOME` is closed) or while the line is under tension: shifting under load can dry fire the launcher or drop the line. De-cock and slacken the line first.
 - The launch springs store energy. Cocked carriage = loaded. Never put a hand in front of the rail or the carriage.
   To unload a cocked base without firing, see troubleshooting. The spring hooks have little margin at full draw
   (about 40 N each at full cock against the 38.4 N rating of the Century C-243, decision D30, until the

@@ -4,38 +4,39 @@
 
 | part | subsystem | material | qty | mass g each | mass g total | notes |
 |---|---|---|---|---|---|---|
-| drum_bracket_b | drum | PLA | 1 | 25.6 | 25.6 | Drum bracket B: axle, guide rod, wrap idler journal; foot screwed to the reel head spine |
-| drum_dog_post | drum | PLA | 1 | 7.1 | 7.1 | Dog contact post on the shift rail: SW_DOG_R and SW_DOG_L screws (collar fully engaged) |
-| drum_drum_a | drum | PLA | 1 | 103.2 | 103.2 | Drum A: N20 gear 120T m0.8, groove 1 barrel (follower), hex spigot |
-| drum_drum_b | drum | PLA | 1 | 82.4 | 82.4 | Drum B: brake cam (spool clutch lever), Gray code bands A B C, wrap segment gear + locking arc |
-| drum_follower | drum | PLA | 1 | 6.2 | 6.2 | Follower slider: pin in groove 1, slides along the guide rod; the link takes its motion to the bridge |
-| drum_fork | drum | PLA | 1 | 19.9 | 19.9 | Compliant shift fork: thin yoke is the spring (about 1.5 N/mm), lug for the bell crank pin, contact tab |
-| drum_index_block | drum | PLA | 1 | 33.2 | 33.2 | SW_INDEX block: column on the motor plate front face (2 x M3 x 10 into the frame inserts), M3 nut contact |
+| drum_bracket_a | drum | PLA | 1 | 37.7 | 37.7 | Drum bracket A: axle, shift rail, N20 ear, 2 x M3 to the deck |
+| drum_bracket_b | drum | PLA | 1 | 23.4 | 23.4 | Drum bracket B: axle, shift rail, 2 x M3 to the deck |
+| drum_bracket_idler | drum | PLA | 1 | 12.5 | 12.5 | Wrap idler journal post, 2 x M3 to the deck |
+| drum_bracket_idler2 | drum | PLA | 1 | 16.2 | 16.2 | Wrap idler second journal post (motor end), 2 x M3 to the deck |
+| drum_dog_post | drum | PLA | 1 | 6.0 | 6.0 | Dog contact post on the shift rail: SW_DOG_R and SW_DOG_L screws (collar fully engaged) |
+| drum_drum_a | drum | PLA | 1 | 146.5 | 146.5 | Drum A: N20 gear 120T m0.8, brake cam, wrap segment gear + locking arc, hex spigot |
+| drum_drum_b | drum | PLA | 1 | 79.0 | 79.0 | Drum B: shift groove barrel, Gray code bands A B C, hand lever hex boss |
+| drum_fork | drum | PLA | 1 | 25.9 | 25.9 | Compliant shift fork: thin yoke is the spring (about 1.5 N/mm), follower pin in groove 1, contact tab |
+| drum_hand_lever | drum | PLA | 1 | 4.0 | 4.0 | Hand lever on the drum hex boss (fallback: swing the N20 out first) |
+| drum_index_block | drum | PLA | 1 | 8.1 | 8.1 | SW_INDEX block: 2 x M3 x 12 through the idler post 2 strut, M3 nut contact |
 | drum_index_lever | drum | PLA | 1 | 0.9 | 0.9 | SW_INDEX lever on the 6-bump coupler cam (D12 fallback encoder) |
-| drum_link_eye_1 | drum | PLA | 1 | 3.0 | 3.0 | Link eye pressed on the rod end, M3 screw through the follower lug |
-| drum_link_eye_2 | drum | PLA | 1 | 3.0 | 3.0 | Link eye pressed on the rod end, M3 screw through the bell crank input arm |
 | drum_magnet_cap | drum | PLA | 1 | 1.9 | 1.9 | AS5600 magnet cap on the spigot end (6 x 2.5 diametric or edge-on disc), M3 x 6 onto the flat |
-| drum_n20_cradle | drum | PLA | 1 | 12.1 | 12.1 | N20 cradle on the reel head front plate: pivot + swing screw (hand fallback), SW_N20 contact |
+| drum_n20_cradle | drum | PLA | 1 | 11.9 | 11.9 | N20 cradle on the bracket A ear: pivot + swing screw (hand fallback), SW_N20 contact |
 | drum_n20_strap | drum | PLA | 1 | 2.7 | 2.7 | End plate closing the N20 cradle, 2 x M3 x 8 |
 | drum_shear_pin | drum | PLA | 6 | 0.2 | 1.1 | Torque limiter shear pin d4 (about 5 N m), prints lying; print 6, 5 are spares |
-| drum_sw_lever_0 | drum | PLA | 1 | 0.9 | 0.9 | Code switch lever A: flexure, round nub, M3 x 6 contact screw |
-| drum_sw_lever_1 | drum | PLA | 1 | 0.9 | 0.9 | Code switch lever B: flexure, round nub, M3 x 6 contact screw |
-| drum_sw_lever_2 | drum | PLA | 1 | 0.9 | 0.9 | Code switch lever C: flexure, round nub, M3 x 6 contact screw |
-| drum_switch_block | drum | PLA | 1 | 18.3 | 18.3 | Code switch block on top of the drum: 3 lever feet, 3 M3 nut contacts (SW_DRUM_A, B, C) |
+| drum_sw_lever_0 | drum | PLA | 1 | 1.0 | 1.0 | Code switch lever A: flexure, round nub, M3 x 6 contact screw |
+| drum_sw_lever_1 | drum | PLA | 1 | 1.0 | 1.0 | Code switch lever B: flexure, round nub, M3 x 6 contact screw |
+| drum_sw_lever_2 | drum | PLA | 1 | 1.0 | 1.0 | Code switch lever C: flexure, round nub, M3 x 6 contact screw |
+| drum_switch_block | drum | PLA | 1 | 16.6 | 16.6 | Code switch block: 3 lever feet, 3 M3 nut contacts (SW_DRUM_A, B, C) |
 | frame_cable_anchor_1 | frame | PLA | 1 | 4.0 | 4.0 | cable-tie anchor (strain relief), 1 x M3 x 12 into the deck |
 | frame_cable_anchor_2 | frame | PLA | 1 | 4.0 | 4.0 | cable-tie anchor (strain relief), 1 x M3 x 12 into the deck |
 | frame_camera_mount | frame | PLA | 1 | 166.5 | 166.5 | Kiyo X mount: its own clip grips the 16 mm edge plate (or a 1/4-20 screw), 4 x M3 x 10 into the deck |
 | frame_can_stay | frame | PLA | 1 | 28.4 | 28.4 | can stay: post on the motor plate (2 x M3 x 12 into plate inserts), cable tie or hose clamp round the can through the cradle slots; reprint with the adapter |
-| frame_cheek_r | frame | PLA | 1 | 205.2 | 205.2 | motor plate (y -10..0, front face = the spec's y 0): window for the puck adapter, 8 rim holes (M3 x 12 from the front into the puck lip), bridge to the motor leg (2 x M3 x 12), can stay and hood inserts; carved round the other subsystems |
-| frame_deck_1 | frame | PLA | 1 | 233.6 | 233.6 | deck: M3 inserts for every frame foot; 10 x M3 rover holes (it is its own drill template) |
-| frame_deck_2 | frame | PLA | 1 | 304.3 | 304.3 | deck: M3 inserts for every frame foot; 12 x M3 rover holes (it is its own drill template) |
-| frame_deck_3 | frame | PLA | 1 | 231.4 | 231.4 | deck: M3 inserts for every frame foot; 9 x M3 rover holes (it is its own drill template) |
-| frame_deck_4 | frame | PLA | 1 | 301.6 | 301.6 | deck: M3 inserts for every frame foot; 14 x M3 rover holes (it is its own drill template) |
+| frame_cheek_r | frame | PLA | 1 | 182.5 | 182.5 | motor plate (y -10..0, front face = the spec's y 0): window for the puck adapter, 8 rim holes (M3 x 12 from the front into the puck lip), bridge to the motor leg (2 x M3 x 12), can stay and hood inserts; carved round the other subsystems |
+| frame_deck_1 | frame | PLA | 1 | 291.2 | 291.2 | deck: M3 inserts for every frame foot; 9 x M3 rover holes (it is its own drill template) |
+| frame_deck_2 | frame | PLA | 1 | 241.7 | 241.7 | deck: M3 inserts for every frame foot; 7 x M3 rover holes (it is its own drill template) |
+| frame_deck_3 | frame | PLA | 1 | 300.1 | 300.1 | deck: M3 inserts for every frame foot; 6 x M3 rover holes (it is its own drill template) |
+| frame_deck_4 | frame | PLA | 1 | 248.7 | 248.7 | deck: M3 inserts for every frame foot; 10 x M3 rover holes (it is its own drill template) |
 | frame_ebay | frame | PLA | 1 | 175.3 | 175.3 | electronics bay: ESP32-S3 cradle (USB slot), BTS7960 on standoffs with vents, DRV8833, MP1584, HX711 pockets, fuse cradle, wire exits with tie anchors |
 | frame_ebay_esp_clamp | frame | PLA | 1 | 1.6 | 1.6 | ESP32 hold-down over the module end, 2 x M3 x 8 into the cradle posts |
 | frame_ebay_lid | frame | PLA | 1 | 71.4 | 71.4 | bay lid: grille over the BTS7960, 4 x M3 into the corner bosses |
-| frame_guard_front | frame | PLA | 1 | 56.8 | 56.8 | front gear guard between the drum gears and the bay, M3 x 10 into the deck |
-| frame_guard_hood | frame | PLA | 1 | 14.1 | 14.1 | gear hood over the reel and bus gears, M3 x 10 through its lugs into the motor plate |
+| frame_guard_front | frame | PLA | 1 | 37.1 | 37.1 | front gear guard between the drum gears and the bay, M3 x 10 into the deck |
+| frame_guard_hood | frame | PLA | 1 | 26.2 | 26.2 | gear hood over the reel and bus gears, M3 x 10 through its lugs into the motor plate |
 | frame_motor_leg | frame | PLA | 1 | 117.3 | 117.3 | motor support leg (prints upright): 4 x M3 x 10 into the deck, 2 x M3 x 12 along y into the bridge behind the motor plate |
 | frame_rc832_holder | frame | PLA | 1 | 22.8 | 22.8 | RC832 holder: receiver stands antenna-end up in the slot, leads out low, 2 x M3 x 10 |
 | launch_aim_cap | launch | PLA | 1 | 5.2 | 5.2 | Worm shaft saddle cap, 4 x M3x30 through the legs into 13 deep pilots in the saddles |
@@ -61,9 +62,16 @@
 | launch_muzzle_roller | launch | PLA | 1 | 0.5 | 0.5 | Lip roller at the carriage front: the tether bends down over it in tow and retrieval (groove r 6 for the 1 mm line), 693ZZ inside |
 | launch_muzzle_washer_l | launch | PLA | 1 | 0.0 | 0.0 | Lip roller thrust washer (0.9 thick, flange on the cheek side) between the bearing inner race and the cheek: put both in the roller bore, then drop roller and washers into the fork slot |
 | launch_muzzle_washer_r | launch | PLA | 1 | 0.0 | 0.0 | Lip roller thrust washer (0.9 thick, flange on the cheek side) between the bearing inner race and the cheek: put both in the roller bore, then drop roller and washers into the fork slot |
+| launch_pulley_bot | launch | PLA | 1 | 0.5 | 0.5 | Tether pulley (bot), groove r 6, 693ZZ inside |
+| launch_pulley_bot_washer_l | launch | PLA | 1 | 0.1 | 0.1 | Printed top-hat thrust washer between fork plate and 693ZZ inner race |
+| launch_pulley_bot_washer_r | launch | PLA | 1 | 0.1 | 0.1 | Printed top-hat thrust washer between fork plate and 693ZZ inner race |
+| launch_pulley_piv | launch | PLA | 1 | 0.5 | 0.5 | Tether pulley (piv), groove r 6, 693ZZ inside |
+| launch_pulley_top | launch | PLA | 1 | 0.5 | 0.5 | Tether pulley (top), groove r 6, 693ZZ inside |
+| launch_pulley_top_washer_l | launch | PLA | 1 | 0.1 | 0.1 | Printed top-hat thrust washer between fork plate and 693ZZ inner race |
+| launch_pulley_top_washer_r | launch | PLA | 1 | 0.1 | 0.1 | Printed top-hat thrust washer between fork plate and 693ZZ inner race |
 | launch_rail_front | launch | PLA | 1 | 137.7 | 137.7 | Rail front piece: shoe track end, spring anchor posts with straps, muzzle tie |
-| launch_rail_mid | launch | PLA | 1 | 178.7 | 178.7 | Rail mid piece: shoe track, cheeks on the sleeve, big gear pin bosses, lever seats, SW_GAP bracket pilots |
-| launch_rail_rear | launch | PLA | 1 | 115.9 | 115.9 | Rail rear piece: shoe track, walls, flange at the rear end for the reel head (D49) |
+| launch_rail_mid | launch | PLA | 1 | 183.0 | 183.0 | Rail mid piece: shoe track, cheeks on the sleeve, big gear pin bosses, lever seats, SW_GAP bracket pilots |
+| launch_rail_rear | launch | PLA | 1 | 135.7 | 135.7 | Rail rear piece: shoe track, walls, tether fork and two pulleys behind the rear end |
 | launch_rail_splice_l | launch | PLA | 1 | 0.3 | 0.3 | Top splice strap over the front rail joint (4 x M3 x 10 self tap) |
 | launch_rail_splice_r | launch | PLA | 1 | 0.3 | 0.3 | Top splice strap over the front rail joint (4 x M3 x 10 self tap) |
 | launch_seat_clip | launch | PLA | 1 | 0.1 | 0.1 | Head cap on the plunger pin (rests on the yoke block) |
@@ -73,19 +81,24 @@
 | launch_stop_spring_r | launch | PLA | 1 | 81.6 | 81.6 | Carriage stop flexure: 16 loops (31 tapered leaves t 3.15/1.0 x 14), print upside down on the flat w 83.5 face, 100% infill / all perimeters; preload 6.6 mm by 2 x M3x20 draw screws through the frame front wall |
 | launch_sw_home | launch | PLA | 1 | 0.8 | 0.8 | SW_HOME printed flex lever on the right rail lip, at rest (prints on its side): beam 0.8 thick, contact gap 0.50 (one screw turn), pad pretravel 0.70 + overtravel 0.25, peak strain 0.10 % (limit 0.8 %) |
 | launch_sw_seated | launch | PLA | 1 | 0.8 | 0.8 | SW_SEATED printed flex lever on the left rail lip, at rest (prints on its side): beam 0.8 thick, contact gap 0.50 (one screw turn), pad pretravel 0.70 + overtravel 0.25, peak strain 0.10 % (limit 0.8 %) |
-| reel_bridge | reel | PLA | 1 | 118.5 | 118.5 | Rail bridge: plate inboard of the main-axis stack with countershafts C and T, the c1' stub, pillars to the u-shaft bushings, cad-drum's shift rail; box arm bolted to rail cheek A. Print on its inboard face |
-| reel_cup | reel | PLA | 1 | 12.7 | 12.7 | Wrap cup (Harry v7, D49 axial eyelet at r 26): the line runs straight through the eyelet. Print open end down |
-| reel_cup_clip | reel | PLA | 1 | 0.2 | 0.2 | Harry's v7 C-clip on the cup shaft neck in front of the cup |
-| reel_head_front | reel | PLA | 1 | 108.4 | 108.4 | Head front plate: bolts the reel head to the rail rear flange, u-shaft T rear bushing, link window. Print flat |
-| reel_head_mid | reel | PLA | 1 | 19.3 | 19.3 | Head mid plate: spool shaft inboard bushing. Print flat |
-| reel_head_p1 | reel | PLA | 1 | 55.0 | 55.0 | Head plate P1: capstan tube, u-shaft C and G_b bushings, clutch lever post, spool shaft leg. Print flat |
-| reel_head_p1b | reel | PLA | 1 | 10.7 | 10.7 | Head plate P1b: capstan tube rear bushing, SW_ARM. Print flat |
-| reel_head_p2 | reel | PLA | 1 | 94.1 | 94.1 | Head plate P2: cup shaft and wrap idler rear journals. Print flat |
-| reel_head_spine | reel | PLA | 1 | 104.2 | 104.2 | Head spine: inboard wall from the front plate to P2; the drum brackets and plates screw to it. Print flat |
-| reel_shroud | reel | PLA | 1 | 7.6 | 7.6 | Spool shroud: keeps loose loops on the spool, open at the top front where the line leaves |
-| reel_spool | reel | PLA | 1 | 30.8 | 30.8 | Spool d40 core, d62 flanges, 20 wide: 20 m of 1 mm Dyneema, turns free on two 608s. Print flange down |
-| reel_sw_base | reel | PLA | 1 | 7.0 | 7.0 | SW_ARM contact base on P2's front face |
-| reel_sw_lever | reel | PLA | 1 | 1.3 | 1.3 | SW_ARM lever: rides the cup gear's raised track (contact closed), drops into its home notch (open) |
+| reel_bar_cap_1 | reel | PLA | 1 | 1.0 | 1.0 | Bar guide cap: closes the U guide over the bar. Print flat |
+| reel_bar_cap_2 | reel | PLA | 1 | 1.0 | 1.0 | Bar guide cap: closes the U guide over the bar. Print flat |
+| reel_c_clip | reel | PLA | 1 | 1.0 | 1.0 | C-clip holding the capstan gear on the tube |
+| reel_cup | reel | PLA | 1 | 12.7 | 12.7 | Wrap cup (Harry v7): ring and groove lay the wraps on the capstan. Print open end down |
+| reel_cup_clip | reel | PLA | 1 | 0.3 | 0.3 | Harry's v7 C-clip on the cup shaft neck in front of the cup |
+| reel_k_clip | reel | PLA | 1 | 0.1 | 0.1 | C-clip holding the cup gear on the cup shaft |
+| reel_p2_clip | reel | PLA | 1 | 0.2 | 0.2 | C-clip on the swivel tube above the post block |
+| reel_pulley1 | reel | PLA | 1 | 1.2 | 1.2 | Pulley 1: turns the line from the exit eye toward the rail (D14) |
+| reel_pulley2 | reel | PLA | 1 | 1.2 | 1.2 | Pulley 2: feeds the line to cad-launch's rail pivot pulley (D34) |
+| reel_s_clip | reel | PLA | 1 | 0.1 | 0.1 | C-clip holding the reel gear |
+| reel_shroud | reel | PLA | 1 | 14.5 | 14.5 | Shroud round the storage reel: keeps loose loops on it. Print standing on its flange |
+| reel_spool | reel | PLA | 1 | 34.3 | 34.3 | Storage reel body: 20 m of 1 mm Dyneema on a dia 50 core, two 608s. Print rear flange down |
+| reel_spool_flange | reel | PLA | 1 | 9.9 | 9.9 | Front flange disc: keeps the front 608 in, carries the clutch friction ring. Print flat |
+| reel_sw_base | reel | PLA | 1 | 7.0 | 7.0 | SW_ARM contact base (printed switch, M3 head on M3 nut) |
+| reel_sw_bracket | reel | PLA | 1 | 20.6 | 20.6 | SW_ARM bracket: screwed to the wall below the gears. Print flat |
+| reel_sw_lever | reel | PLA | 1 | 1.3 | 1.3 | SW_ARM lever: rides the cup gear's raised track (contact closed) and drops into its home notch (open). Print on its side |
+| reel_t | reel | PLA | 1 | 1.7 | 1.7 | Thrust ring: the rocker pushes it onto the rear 608 inner race |
+| reel_wall | reel | PLA | 1 | 204.8 | 204.8 | Reel wall: foot, guide eye post, rocker ears, stop pins, brake guides and crank boss. Print on its foot |
 | sensors_as5600_carrier | sensors | PLA | 1 | 12.7 | 12.7 | AS5600 carrier: plate with 4 pegs through the board holes, column screwed to the aim housing spine |
 | sensors_as5600_strip_bot | sensors | PLA | 1 | 1.0 | 1.0 | AS5600 clamp strip on the board edge over the pegs, M3 from the strip front into a nut in the carrier back |
 | sensors_as5600_strip_top | sensors | PLA | 1 | 1.0 | 1.0 | AS5600 clamp strip on the board edge over the pegs, M3 from the strip front into a nut in the carrier back |
@@ -94,21 +107,19 @@
 | sensors_sw_rail_low | sensors | PLA | 1 | 7.3 | 7.3 | SW_RAIL_LOW printed contact base (cad.lib.switch, coupon 2 geometry): on its bracket on the aim housing foot, closed by the crank cam at the LOW dead point |
 | sensors_sw_rail_low_bracket | sensors | PLA | 1 | 17.8 | 17.8 | SW_RAIL_LOW bracket on the aim housing foot extension: an M3x10 into the extension and its own deck screw, an M3x16 from the top through the counterbored foot and the extension into a deck insert |
 | sensors_sw_rail_low_lever | sensors | PLA | 1 | 1.3 | 1.3 | SW_RAIL_LOW lever, t 1.4 mm, print on its side so layers run along the beam |
-| drum_axle | drum | PPA-CF | 1 | 8.9 | 8.9 | Fixed drum axle d10, pressed into the reel head front plate and bracket B |
+| drum_axle | drum | PPA-CF | 1 | 13.1 | 13.1 | Fixed drum axle d10, pressed into brackets A and B |
 | drum_collar | drum | PPA-CF | 1 | 44.0 | 44.0 | Dog collar: hex bore, 4 back-cut roofed dogs each face, fork groove (bridges over the lower dogs) |
 | drum_coupler | drum | PPA-CF | 1 | 89.3 | 89.3 | Coupler: 5 N m shear pin limiter (D8), bus gear 50T m1.5 (D25), SW_INDEX cam, REEL journal, hex socket; prints hub end down, tree support under the bus gear ring |
 | drum_coupler_hub | drum | PPA-CF | 1 | 14.6 | 14.6 | Coupler hub on the wiper shaft (bore parametric: WIPER), M8 nut inside, shear pin hole |
-| drum_crank | drum | PPA-CF | 1 | 6.9 | 6.9 | Bell crank 1:1 on the bridge shelf: turns the link's motion along the rail into the fork's shift |
 | drum_dogring_launch | drum | PPA-CF | 1 | 19.0 | 19.0 | LAUNCH dog ring: 3 slots for the launch sleeve lugs, 3 x M3 from the sleeve side |
-| drum_gear_reel | drum | PPA-CF | 1 | 95.9 | 95.9 | REEL output gear m2 50T face 12 (D20), free on its sleeve, dog face toward the collar; meshes C1 on the rail bridge (D49) |
-| drum_idler | drum | PPA-CF | 1 | 8.7 | 8.7 | Wrap idler shaft: pinion 10T m1.25 (locked at home by the drum lock arc), lock cam, journals in bracket B and P2 |
-| drum_idler_gear | drum | PPA-CF | 1 | 35.8 | 35.8 | Wrap idler output gear 49T m1.5 (D bore) to the cad-reel cup gear 28T: 7 cup turns |
+| drum_gear_reel | drum | PPA-CF | 1 | 95.9 | 95.9 | REEL output gear m2 50T face 12 (D20), free on its sleeve, dog face toward the collar |
+| drum_idler | drum | PPA-CF | 1 | 7.6 | 7.6 | Wrap idler shaft: pinion 10T m1.25 (locked at home by the drum lock arc), lock cam, two journals |
+| drum_idler_gear | drum | PPA-CF | 1 | 27.5 | 27.5 | Wrap idler output gear 42T m1.5 (D bore) to the cad-reel cup ring 24T: 7 cup turns |
 | drum_n20_pinion | drum | PPA-CF | 1 | 0.5 | 0.5 | N20 pinion 10T m0.8, D bore pressed on the N20 shaft |
+| drum_rail | drum | PPA-CF | 1 | 13.1 | 13.1 | Shift rail d10, pressed into brackets A and B |
 | drum_reel_washer | drum | PPA-CF | 1 | 0.9 | 0.9 | REEL gear retaining washer on the coupler journal end, 2 x M3 x 6 |
-| drum_rod | drum | PPA-CF | 1 | 8.9 | 8.9 | Follower guide rod d10, pressed into the reel head front plate and bracket B |
 | drum_shaft | drum | PPA-CF | 1 | 45.2 | 45.2 | Main shaft: hex 22 AF, d12 spigot into the launch sleeve; prints on a hex flat (support under the spigot) |
-| drum_shift_rail | drum | PPA-CF | 1 | 8.2 | 8.2 | Shift rail d10 on the rail bridge (pressed into the bridge plate boss) |
-| frame_motor_adapter | frame | PPA-CF | 1 | 302.8 | 302.8 | puck adapter: slotted M6 holes (+-4 mm) for the motor bosses, rear lip with 8 M3 inserts for the rim screws, 2 inserts for cad-drum's SW_INDEX block; reprint when the motor is measured |
+| frame_motor_adapter | frame | PPA-CF | 1 | 276.3 | 276.3 | puck adapter: slotted M6 holes (+-4 mm) for the motor bosses, rear lip with 8 M3 inserts for the rim screws, tether channels open to the edge; reprint when the motor is measured |
 | launch_aim_arm | launch | PPA-CF | 1 | 6.6 | 6.6 | Swing arm on the sleeve, dragged by the printed PLA flexure pad in its hub; printed idler pin with a printed C clip groove |
 | launch_aim_bevel30 | launch | PPA-CF | 1 | 8.8 | 8.8 | Bevel m1.5 z30 on the countershaft D flat, drives the z15 2:1 |
 | launch_aim_conrod | launch | PPA-CF | 1 | 14.2 | 14.2 | Conrod 156 between pin centres (PPA-CF), printed C clips on both pins |
@@ -126,41 +137,31 @@
 | launch_sleeve | launch | PPA-CF | 1 | 49.3 | 49.3 | Launch sleeve d20: dog ring flange, integral key ribs (sprag #1, splitter sun), journals |
 | launch_yoke_peg_l | launch | PPA-CF | 1 | 1.2 | 1.2 | Spring peg on the yoke arm (printed PPA-CF lying down, or 8 mm steel rod 20 long): pressed into the blind d8.1 hole from below up to its end (a drop of CA if it is loose), the spring hook sits on the 6 mm below the boss (held at w 60 by the spring line); ends deburred |
 | launch_yoke_peg_r | launch | PPA-CF | 1 | 1.2 | 1.2 | Spring peg on the yoke arm (printed PPA-CF lying down, or 8 mm steel rod 20 long): pressed into the blind d8.1 hole from below up to its end (a drop of CA if it is loose), the spring hook sits on the 6 mm below the boss (held at w 60 by the spring line); ends deburred |
-| reel_b1g | reel | PPA-CF | 1 | 2.6 | 2.6 | Bevel B1 gear m1.5 24T (2:1 up to u-shaft C) |
-| reel_b1p | reel | PPA-CF | 1 | 1.2 | 1.2 | Bevel B1 pinion m1.5 12T on the front end of u-shaft C |
-| reel_b2g | reel | PPA-CF | 1 | 0.9 | 0.9 | Bevel B2 m1 20T on countershaft T |
-| reel_b2p | reel | PPA-CF | 1 | 1.3 | 1.3 | Bevel B2 m1 20T on the front end of u-shaft T |
-| reel_b3a | reel | PPA-CF | 1 | 1.3 | 1.3 | Bevel B3 m1 20T on the rear end of u-shaft T |
-| reel_b3b | reel | PPA-CF | 1 | 1.4 | 1.4 | Bevel B3 m1 20T on the spool shaft |
-| reel_c | reel | PPA-CF | 1 | 17.4 | 17.4 | Capstan tube C (PPA-CF d20): key rib in the drum, G_c on its flat, journals in P1 and P1b. Print standing on its rear end |
-| reel_c1 | reel | PPA-CF | 1 | 93.7 | 93.7 | C1 m2 49T: meshes the REEL output gear 50T across the pivot |
-| reel_c1p | reel | PPA-CF | 1 | 27.8 | 27.8 | c1' m1.5 46T, free on its stub: driven by the bus gear 50T, drives the swing idler |
-| reel_cs_c | reel | PPA-CF | 1 | 11.4 | 11.4 | Countershaft C (PPA-CF): sprag #2, C1 and the B1 bevel. Print standing |
-| reel_cs_t | reel | PPA-CF | 1 | 2.8 | 2.8 | Countershaft T (PPA-CF): T1 and the B2 bevel |
-| reel_d | reel | PPA-CF | 1 | 7.6 | 7.6 | Clutch disk D on the spool shaft flat: its friction ring presses the spool's outboard face. Print ring up |
-| reel_drum | reel | PPA-CF | 1 | 45.0 | 45.0 | Capstan drum dia 40 x 40 (Harry v7), keyed on the tube. Print flange down |
-| reel_ga | reel | PPA-CF | 1 | 9.6 | 9.6 | G_a m1.5 26T on the rear end of u-shaft C |
-| reel_gb | reel | PPA-CF | 1 | 15.1 | 15.1 | G_b m1.5 32T idler on its stub in P1 |
-| reel_gc | reel | PPA-CF | 1 | 5.3 | 5.3 | Capstan gear G_c m1.5 23T on the tube flat |
-| reel_gi | reel | PPA-CF | 1 | 11.4 | 11.4 | Swing idler m1.5 30T |
-| reel_gk | reel | PPA-CF | 1 | 15.0 | 15.0 | Cup gear G_k m1.5 28T: driven by the drum's wrap idler 49T (7 cup turns per wrap); the raised track on its rear face holds SW_ARM closed, the notch at home lets it open. Print track face down |
-| reel_k | reel | PPA-CF | 1 | 10.2 | 10.2 | Cup shaft K (PPA-CF d10): runs inside the tube, cup in front, G_k behind P1b, journal in P2. Print standing on its rear end |
-| reel_lever | reel | PPA-CF | 1 | 6.9 | 6.9 | Clutch lever (PPA-CF): the drum's brake cam presses its upper arm; the lower arm is the clutch spring leaf, its FIRM screw squeezes the spool. Print flat |
-| reel_s | reel | PPA-CF | 1 | 5.7 | 5.7 | Spool shaft S (PPA-CF d8): B3 bevel and the clutch disk on its flats, journals in the mid plate and the P1 leg. Print lying on its 1 mm flat |
-| reel_sprag_hub | reel | PPA-CF | 1 | 12.2 | 12.2 | Sprag #2 hub on the bridge: holds the CSK20PP capstan backstop |
-| reel_stub | reel | PPA-CF | 1 | 1.1 | 1.1 | c1' stub axle (PPA-CF d8, pressed into the bridge) |
-| reel_swing_arm | reel | PPA-CF | 1 | 3.2 | 3.2 | Swing arm on c1's hub: carries the idler into mesh with T1 on forward wiper turns |
-| reel_t | reel | PPA-CF | 1 | 1.1 | 1.1 | Thrust ring: the lever's FIRM screw pushes it onto the inboard 608 inner race (clutch squeeze) |
-| reel_t1 | reel | PPA-CF | 1 | 4.6 | 4.6 | T1 m1.5 20T: take-up at 2.5 x wiper |
-| reel_uc | reel | PPA-CF | 1 | 23.7 | 23.7 | u-shaft C (PPA-CF d10, 244 long): along the rail from the B1 bevel to G_a. Print standing (244 of the 260 mm height); an 8 mm steel rod with printed sleeves is the stiff fallback |
-| reel_ut | reel | PPA-CF | 1 | 6.5 | 6.5 | u-shaft T (PPA-CF d8): along the rail from the B2 bevel to the B3 bevel. Print standing |
+| reel_bar | reel | PPA-CF | 1 | 7.9 | 7.9 | Brake bar: cad-drum's track 2 cam pushes its nose, its left end turns the crank. Print flat |
+| reel_bus | reel | PPA-CF | 1 | 26.3 | 26.3 | Bus gear m1.5 z46 (free on the capstan tube): driven by the drum's bus gear, drives the swing idler. Print face down |
+| reel_c | reel | PPA-CF | 1 | 27.5 | 27.5 | Capstan tube: key rib in the sprag and drum, D flat for the capstan gear. Print standing, front end down |
+| reel_crank | reel | PPA-CF | 1 | 2.1 | 2.1 | Brake bell crank: the bar turns it, arm B pushes the rocker leg. Print on its flat side |
+| reel_crank_washer | reel | PPA-CF | 1 | 0.2 | 0.2 | Printed washer: keeps the crank on its boss |
+| reel_drum | reel | PPA-CF | 1 | 44.5 | 44.5 | Capstan drum dia 40 x 40 (Harry v7), keyed on the tube; PPA-CF: hoop stress 11.6 MPa if the shear pin slips. Print flange down |
+| reel_exit_post | reel | PPA-CF | 1 | 70.6 | 70.6 | Exit eye post with the pulley 1 fork: carries the full tow load, so PPA-CF. Print on its foot |
+| reel_gc | reel | PPA-CF | 1 | 18.1 | 18.1 | Capstan gear m2 z22: driven by the drum's REEL output gear (50T) |
+| reel_gi | reel | PPA-CF | 1 | 11.3 | 11.3 | Swing idler m1.5 z30: meshes the reel gear only on forward wiper turns |
+| reel_gk | reel | PPA-CF | 1 | 9.9 | 9.9 | Cup gear m1.5 z24: driven by the drum's wrap idler; the raised track on its back holds SW_ARM closed, the notch at home lets it open |
+| reel_gr | reel | PPA-CF | 1 | 4.7 | 4.7 | Reel gear m1.5 z20: turns the clutch disk 2.5 x wiper speed |
+| reel_k | reel | PPA-CF | 1 | 11.8 | 11.8 | Cup shaft: runs inside the capstan tube, cup in front, cup gear behind. Print standing |
+| reel_p2_fork | reel | PPA-CF | 1 | 4.0 | 4.0 | Pulley 2 swivel fork: turns about the incoming line so the groove follows the line to the rail |
+| reel_p2_post | reel | PPA-CF | 1 | 57.4 | 57.4 | Pulley 2 post: stands on the deck beside the drum, turns the line into the rail pivot pulley's plane |
+| reel_rocker | reel | PPA-CF | 1 | 6.1 | 6.1 | Brake rocker: flexible PPA-CF lever = clutch spring, pushed by the crank. Print flat |
+| reel_s | reel | PPA-CF | 1 | 14.5 | 14.5 | Reel shaft: 608 journals, head = clutch disk, D flat for the reel gear. Print head down |
+| reel_sprag_hub | reel | PPA-CF | 1 | 44.4 | 44.4 | Sprag hub: holds the CSK20PP backstop and bushes the capstan tube. Print front face down |
+| reel_swing_arm | reel | PPA-CF | 1 | 5.5 | 5.5 | Swing arm: rides on the bus gear hub, carries the idler into mesh on forward wiper turns. Print flat |
 
 ## Printed totals
 
 | material | parts | mass g | filament m (1.75 mm) |
 |---|---|---|---|
-| PLA | 95 | 4011 | 1344.9 |
-| PPA-CF | 60 | 1456 | 484.4 |
+| PLA | 108 | 3835 | 1285.8 |
+| PPA-CF | 48 | 1435 | 477.2 |
 
 ## Bought parts
 
@@ -169,7 +170,7 @@
 | item | count | used by |
 |---|---|---|
 | 608ZZ 8x22x7 | 4 | launch_aim_brg_1, launch_aim_brg_2, reel_brg_1, reel_brg_2 |
-| 693ZZ 3x8x4 | 1 | launch_muzzle_roller_brg |
+| 693ZZ 3x8x4 | 6 | launch_muzzle_roller_brg, launch_pulley_top_brg, launch_pulley_bot_brg, launch_pulley_piv_brg, reel_p1_brg, reel_p2_brg |
 | Adafruit AS5600 STEMMA QT PID 6357 | 1 | sensors_as5600 |
 | CSK20PP 20x47x14 sprag #1 | 1 | launch_sprag |
 | CSK20PP one-way bearing 20x47x14 | 1 | reel_sprag |
@@ -183,29 +184,22 @@
 | M3 nyloc nut | 1 | launch_muzzle_roller_axle |
 | M3x10 self tap | 2 | launch_guard_l_b2, launch_guard_r_b2 |
 | M3x10 self tap (lever clamp) | 6 | reel_sw_lever, sensors_sw_rail_low_lever, sensors_sw_gap_lever |
-| M3x10 SHCS | 4 | drum_index_block, sensors_sw_rail_low_screw, sensors_sw_gap_screw |
-| M3x10 SHCS (base to P2) | 4 | reel_sw_base |
+| M3x10 SHCS | 2 | sensors_sw_rail_low_screw, sensors_sw_gap_screw |
 | M3x10 SHCS (foot into the housing) | 1 | sensors_sw_rail_low_bracket |
 | M3x10 SHCS + 2 M3 nuts | 1 | reel_sw_hw |
 | M3x10 SHCS + M3 nut | 1 | reel_firm_screw |
 | M3x12 self tap | 17 | launch_guard_l_a, launch_guard_l_b1, launch_guard_l_b2, launch_guard_l_c, launch_guard_r_a, launch_guard_r_b1, launch_guard_r_b2, launch_guard_r_c |
-| M3x12 SHCS | 4 | reel_head_mid, sensors_as5600_strip_top, sensors_as5600_strip_bot |
+| M3x12 SHCS | 2 | sensors_as5600_strip_top, sensors_as5600_strip_bot |
 | M3x12 SHCS (arm into the right cheek) | 2 | sensors_sw_gap |
-| M3x12 SHCS (posts) | 2 | reel_head_p1b |
-| M3x12 SHCS (spine) | 7 | reel_head_front, reel_head_p1, reel_head_p2 |
-| M3x12 SHCS (through the spine) | 4 | drum_bracket_b, drum_switch_block |
-| M3x16 SHCS | 5 | launch_muzzle_roller_axle, reel_sprag_hub |
-| M3x16 SHCS (arm to cheek A) | 2 | reel_bridge |
+| M3x16 SHCS | 5 | launch_muzzle_roller_axle, reel_bar_screws |
 | M3x16 SHCS (deck screw) | 1 | sensors_sw_rail_low_bracket |
 | M3x16 SHCS (into the housing spine) | 2 | sensors_as5600_carrier |
-| M3x16 SHCS (into the rail flange inserts) | 4 | reel_head_front |
-| M3x16 SHCS (pivot, tapped into the shelf) | 1 | drum_crank |
-| M3x16 SHCS + M3 nut | 1 | reel_light_screw |
-| M3x16 SHCS + nyloc nut | 2 | drum_link_eye_1, drum_link_eye_2 |
-| M3x16 SHCS + washer | 1 | reel_lever_pin |
+| M3x20 SHCS | 2 | reel_crank_screw, reel_p1_axle |
+| M3x20 SHCS + nyloc nut | 4 | launch_pulley_top_axle, launch_pulley_bot_axle, launch_pulley_piv_axle, reel_p2_axle |
+| M3x25 SHCS + M3 nut | 1 | reel_rocker_pin |
 | M3x6 SHCS | 2 | launch_sw_seated_screw, launch_sw_home_screw |
-| M3x8 self tap (base to bracket) | 4 | sensors_sw_rail_low |
-| M3x8 SHCS (tab to the P1 leg) | 1 | reel_shroud |
+| M3x8 self tap (base to bracket) | 8 | reel_sw_base, sensors_sw_rail_low |
+| M3x8 SHCS | 8 | reel_hub_screws, reel_trim_screws, reel_sw_bracket |
 | M8 hex nut ISO 4032 | 1 | launch_aim_nut |
 | M8x25 hex bolt ISO 4017 | 1 | launch_aim_bolt |
 | STEMMA QT JST SH 4 pin cable | 1 | sensors_as5600 |
@@ -216,16 +210,16 @@
 |---|---|---|
 | (part of the wiper motor) | 1 | frame_wiper_shaft |
 | 12 V car wiper motor (self-locking worm), 2-wire rebuild | 1 | frame_wiper_motor |
-| 8 mm steel rod, 26 mm long | 1 | reel_gb_axle |
 | 8 mm steel rod, cut to length (see note), ends deburred | 2 | launch_anchor_pin_l, launch_anchor_pin_r |
-| 8 mm steel rod, cut to the length on the print sheet | 1 | drum_link |
 | BTS7960 43 A module (IBT-2) | 1 | frame_pcb_bts7960 |
 | Century C-243 (5/8 x 6-1/2 in x 0.054 in wire) extension spring | 2 | launch_spring_l_hook_a, launch_spring_r_hook_a |
-| Dyneema braid 1 mm (LINE) | 21 | launch_line_a0, launch_line_a1, launch_line_a2, launch_line_a3, launch_line_a4, launch_line_a5, launch_line_a6, launch_line_a7, launch_line_a8, launch_line_a9, launch_line_a10, launch_line_a11, launch_line_a12, launch_line_a13, launch_line_a14, launch_line_a15, launch_line_a16, launch_line_a17, launch_line_a18, launch_line_a19, launch_line_a20 |
+| Dyneema braid 1 mm (LINE) | 9 | launch_line_a0, launch_line_a1, launch_line_a2, launch_line_a3, launch_line_a4, launch_line_a5, launch_line_a6, launch_line_a7, launch_line_a8 |
 | Espressif ESP32-S3-DevKitC-1-N8 | 1 | frame_pcb_esp32 |
 | HX711 load cell amplifier (optional) | 1 | frame_pcb_hx711 |
 | inline ATO fuse holder + 20 A fuse | 1 | frame_fuse_20a |
 | KEDGE v30 dart (reference, built separately) | 1 | launch_dart |
+| launch_line_b (bought, no bought_ref) | 1 | launch_line_b |
+| launch_line_c (bought, no bought_ref) | 1 | launch_line_c |
 | launch_line_p (bought, no bought_ref) | 1 | launch_line_p |
 | launch_spring_l_0 (bought, no bought_ref) | 1 | launch_spring_l_0 |
 | launch_spring_l_1 (bought, no bought_ref) | 1 | launch_spring_l_1 |
@@ -253,5 +247,5 @@
 | sensors_sw_gap_jam (bought, no bought_ref) | 1 | sensors_sw_gap_jam |
 | sensors_sw_rail_low_jam (bought, no bought_ref) | 1 | sensors_sw_rail_low_jam |
 
-Parts that are not printed and have no bought_ref: launch_spring_l_hook_c, launch_spring_l_0, launch_spring_l_1, launch_spring_l_2, launch_spring_l_3, launch_spring_l_4, launch_spring_r_hook_c, launch_spring_r_0, launch_spring_r_1, launch_spring_r_2, launch_spring_r_3, launch_spring_r_4, launch_line_p, sensors_as5600_nut_top, sensors_as5600_screw_top, sensors_as5600_nut_bot, sensors_as5600_screw_bot, sensors_as5600_col_screws, sensors_sw_rail_low_jam, sensors_sw_gap_jam.
+Parts that are not printed and have no bought_ref: launch_spring_l_hook_c, launch_spring_l_0, launch_spring_l_1, launch_spring_l_2, launch_spring_l_3, launch_spring_l_4, launch_spring_r_hook_c, launch_spring_r_0, launch_spring_r_1, launch_spring_r_2, launch_spring_r_3, launch_spring_r_4, launch_line_p, launch_line_b, launch_line_c, sensors_as5600_nut_top, sensors_as5600_screw_top, sensors_as5600_nut_bot, sensors_as5600_screw_bot, sensors_as5600_col_screws, sensors_sw_rail_low_jam, sensors_sw_gap_jam.
 

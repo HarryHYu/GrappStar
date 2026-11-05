@@ -60,9 +60,9 @@ def test_settings_keys_match_status_config_and_set(tmp_path):
     assert keys == set(re.findall(r'data-key="([a-z_]+)"', HTML)) == {"tow_limit_n", "drag_n"}
     app = App(AppConfig(runs_dir=str(tmp_path)))
     for k in keys:
-        r = app.act_set(key=k, val=12.0 if k == "tow_limit_n" else 0.25)
+        r = app.act_set(key=k, val=12.0 if k == "tow_limit_n" else 0.5)
         assert r["ok"], r
-    assert app.cfg.mission.tow_limit_n == 12.0 and app.cfg.mission.drag_n == 0.25
+    assert app.cfg.mission.tow_limit_n == 12.0 and app.cfg.mission.drag_n == 0.5
     assert not app.act_set(key="tow_limit_n", val=500)["ok"]
     r = app.act_target_range(range_m=4.0, bearing_deg=-3)
     assert r["ok"] and r["target"]["source"] == "manual" and r["target"]["bearing_deg"] == -3.0

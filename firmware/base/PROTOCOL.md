@@ -102,12 +102,12 @@ In REEL (capstan, wiper FORWARD):
 
 - Trip with `until:"tension"` (the tow, D34): the current the limit needs plus 1 A, that is
   `(max_n - tension_offset_n) / k_n_per_a + free_a + 1`, at least the 5 A reel trip (`trip_a`) and at most the hard
-  17 A. With the defaults (`free_a` 1.5, k 14.1, offset -2.5): `max_n` 50 gives (50 + 2.5) / 14.1 + 1.5 + 1 = 6.2 A
+  17 A. With the defaults (`free_a` 1.5, k 13.1, offset -2.3): `max_n` 50 gives (50 + 2.3) / 13.1 + 1.5 + 1 = 6.5 A
   (a 50 N tow draws about 5.5 A), `max_n` 55 (the maximum, D46) gives 6.9 A, `max_n` 20 gives 5 A (the floor). `tow_trip_a` is still a saved setting
   but no longer used in this formula. The constants cannot be changed during a tow (`set` replies `BUSY`). Any other
   `until`: `trip_a` (5 A).
-- Tension = the estimate `k_n_per_a x (amps - free_a) + tension_offset_n` (D43 / D46: the DART-side line tension; defaults 14.1 and -2.5 since D49, which is the capstan-side law 16.6 / -3.0
-  divided by the path gain 1.18 of the straight rail-reel line (D49); never below 0, averaged over about 200 ms, D33; the first 80 ms of a run are ignored). With
+- Tension = the estimate `k_n_per_a x (amps - free_a) + tension_offset_n` (D43 / D46: the DART-side line tension; defaults 13.1 and -2.3, which is the capstan-side law 17.0 / -3.0
+  divided by the path gain 1.30 with the cup ring a plain eye; never below 0, averaged over about 200 ms, D33; the first 80 ms of a run are ignored). With
   a live load cell the tension used is the larger of the load cell and the current estimate (a frozen load cell cannot
   hide the current). The speed tapers over the last 30 % of `max_n`, using the larger of the averaged and the
   unaveraged estimate.
@@ -489,8 +489,8 @@ the table says otherwise:
 | key | default | range | meaning |
 |---|---|---|---|
 | `limit_n` | 50 (params.REEL) | 1..55 (D46) | default `max_n` for `reel` and `retrieve` (the tow limit) |
-| `k_n_per_a` | 14.1 (D49) | 0.1..200 | dart-side line N per amp above `free_a` (tension estimate without a load cell) |
-| `tension_offset_n` | -2.5 (D49) | -50..50 | line N added to the estimate: `k_n_per_a x (amps - free_a) + tension_offset_n` |
+| `k_n_per_a` | 13.1 (D46) | 0.1..200 | dart-side line N per amp above `free_a` (tension estimate without a load cell) |
+| `tension_offset_n` | -2.3 (D46) | -50..50 | line N added to the estimate: `k_n_per_a x (amps - free_a) + tension_offset_n` |
 | `free_a` | 1.5 (params.WIPER) | 0..10 | wiper free-running current |
 | `amps_per_volt` | 12.5 | 1..200 | BTS7960 IS scale |
 | `offset_a` | 0 | 0..5 | current zero (set by `cal current`) |
@@ -805,6 +805,3 @@ What the Jetson worker must change (against the base-1.0 version of this file):
 79. Drum code edges as built (params.DRUM `code_edges`): 6, 34, 50, 62, 302, 342 (were 8, 32, 50, 62, 302, 340).
     `drum_pos` `WRAPPED` covers 302 to 342.
 80. The bench settings record is version 3: after flashing base-1.3.1 every bench value is back at its default.
-
-
-D49 (params 1.4.0, rail reel): no protocol change. The mission order, the drum zones, codes and park angles stay; the drum still wraps on positive moves (config `wrapDir` +1). Defaults that follow params: `k_n_per_a` 14.1, `tension_offset_n` -2.5, capstan 2.307 x wiper; the launch payout brake is the fixed LIGHT 0.25 N (no drum step after FIRED).

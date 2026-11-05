@@ -319,7 +319,7 @@ def coupon_3(P):
     co = co - drum.ring(g["collar_od"] / 2 + 1, g["groove_r"], g["groove"][0], g["groove"][1])
     co = prim.union([co, drum.dog_teeth(c, b0, -1, 0.0)])
     co = co - drum.hexprism(g["hex_af"] + fits.SHAFT_IN_BORE, s0 - 1, b1 + 1)
-    rl = drum.shift_rail(dict(g, rail_s=(S0, rail_top)))
+    rl = drum.rail(dict(g, rail_s=(S0, rail_top)))
     parts = [
         mk("rc3_base", base, "PLA", "Base: d30 journal (REEL sleeve) and hex 22 AF (main shaft), rail hole (press)"),
         mk("rc3_reel_face", fb, "PPA-CF", "REEL gear dog face (drum.dog_teeth, phase 45) with a handle"),
@@ -533,26 +533,26 @@ def coupon_8(P):
     add("rc8_m125_pinion", pin, "PPA-CF", f"drum wrap pinion m{m:g} z{zp} x{xp:g} tip_short {ts:g}", tf.T(cd, y0, 1.0))
     uses.append(f"m{m:g}: gears.spur_gear z{zs} sector / z{zp} shift {xp:g} tip_short {ts:g} (drum.tip_short_for), cd {cd:.2f} (drum.a_seg)")
     # m1.5: drum idler output z42 (PPA-CF) on the reel cup ring gear z24 (PPA-CF)
-    m, z1, z2 = c["idl_m"], c["idl_z"], RL.Z_GK
+    m, z1, z2 = c["idl_m"], c["idl_z"], RL.Z_CUPG
     cd = gears.center_distance(m, z1, z2)
     y0 = 120.0
     add("rc8_m15_plate", gear_plate("1.5", cd, [(5.0, 0.0), (5.0, cd)], F), "PPA-CF", f"Pins at {cd:.2f}", tf.T(0, y0, 0))
     add("rc8_m15_z42", sector(gears.spur_gear(m, z1, F), m * z1 / 2 + m, 0.0, 60.0, 8.0, b5, F, 0.0), "PPA-CF",
         f"drum wrap idler output m{m:g} z{z1} sector", tf.T(0, y0, 1.0))
-    add("rc8_m15_z24", gears.spur_gear(m, z2, F, bore=b5), "PPA-CF", f"reel cup gear m{m:g} z{z2}",
+    add("rc8_m15_z24", gears.spur_gear(m, z2, F, bore=b5), "PPA-CF", f"reel cup ring gear m{m:g} z{z2}",
         tf.T(cd, y0, 1.0))
     uses.append(f"m{m:g}: gears.spur_gear z{z1} sector / z{z2}, cd {cd:.2f}")
     # m2: drum REEL output gear z50 (sector) on the reel capstan gear z22 (both PPA-CF)
     g = drum.G(P)
-    m, z1, z2 = g["out_m"], g["out_z"], RL.Z_C1          # D49: the REEL gear meshes C1 49T on the rail bridge
-    if RL.Z_MAIN != z1:
-        raise KeyError(f"drum REEL output z{z1} and reel Z_MAIN {RL.Z_MAIN} disagree")
+    m, z1, z2 = g["out_m"], g["out_z"], RL.Z_CAPG
+    if RL.M_CAP != m or RL.Z_MAIN != z1:
+        raise KeyError(f"drum REEL output m{m:g} z{z1} and reel M_CAP {RL.M_CAP:g} / Z_MAIN {RL.Z_MAIN} disagree")
     cd = gears.center_distance(m, z1, z2)
     y0 = 240.0
     add("rc8_m2_plate", gear_plate("2", cd, [(5.0, 0.0), (5.0, cd)], F), "PPA-CF", f"Pins at {cd:.2f}", tf.T(0, y0, 0))
     add("rc8_m2_z50", sector(gears.spur_gear(m, z1, F), m * z1 / 2 + m, 0.0, 46.0, 9.0, b5, F, 0.0), "PPA-CF",
         f"drum REEL output m{m:g} z{z1} sector", tf.T(0, y0, 1.0))
-    add("rc8_m2_z22", gears.spur_gear(m, z2, F, bore=b5), "PPA-CF", f"reel C1 (rail bridge) m{m:g} z{z2}",
+    add("rc8_m2_z22", gears.spur_gear(m, z2, F, bore=b5), "PPA-CF", f"reel capstan gear m{m:g} z{z2}",
         tf.T(cd, y0, 1.0))
     uses.append(f"m{m:g}: gears.spur_gear z{z1} sector (drum GEOM out_m, out_z) / z{z2} (reel Z_CAPG), cd {cd:.2f}")
     # m2.5: launch big gear (sector_gear_2d: tall tooth, relieved last tooth) on the drive gear z26 (launch_gears)

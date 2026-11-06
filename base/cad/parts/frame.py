@@ -1008,7 +1008,7 @@ def build(P):
         whole = unary_union([outline, ext_outline])
         lo_, hi_ = ext_outline.bounds[1], ext_outline.bounds[3]
         plus = U.dovetail_seam_cs("x", x_ext, lo_ + 15, hi_ - 15, 3, avoid=[sm["c"] for sm in seams if sm["axis"] == "y"])
-        rear = whole.difference(plus.buffer(0.075, join_style=2))
+        rear = whole.difference(plus)                # split_plate already gave the main tiles their 0.075 fit gap
         rear = max(getattr(rear, "geoms", [rear]), key=lambda g: g.area if g.bounds[0] < x_ext else 0.0)
         main = whole.intersection(plus)
         main = max(getattr(main, "geoms", [main]), key=lambda g: g.area)

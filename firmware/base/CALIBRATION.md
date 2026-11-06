@@ -289,7 +289,7 @@ is fitted and live (`status` `"hx":true`), the firmware uses it instead: skip th
    Check the middle load: N2 should be close to new `k_n_per_a` x (I2 - `free_a`) + new `tension_offset_n`. If it is
    off by more than 3 N, repeat the pulls.
 
-   Example with `free_a` 1.5: N1 10 at I1 2.44, N3 30 at I3 3.97. k = 20 / 1.53 = 13.1. Offset = 10 - 13.1 x 0.94 = -2.3.
+   Example with `free_a` 1.5: N1 10 at I1 2.44, N3 30 at I3 3.97. k = 20 / 1.53 = 13.1. Offset = 10 - 13.1 x 0.94 = -2.3 (your own numbers replace the 14.4 / -2.5 defaults).
 6. Set them: `{"id":5,"cmd":"set","key":"k_n_per_a","val":13.1}` and
    `{"id":6,"cmd":"set","key":"tension_offset_n","val":-2.3}` (your numbers; the offset range is -50 to 50). Both are
    saved in flash.

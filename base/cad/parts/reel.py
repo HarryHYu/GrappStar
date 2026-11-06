@@ -1643,7 +1643,8 @@ def allowed(P):
     out += [Allow("reel_trim_screws", "reel_t", "screw tips on the thrust ring (preload)", max_vol=0.5),
             Allow("reel_crank", "reel_rocker", "arm B rises under the static leg (the real leg moves 2.1 mm away first)", max_vol=40.0),
             Allow("reel_firm_screw", "reel_crank", "arm B lifts the screw tip: the leg bends 2.1 mm at FIRM (static rocker in the model)", max_vol=20.0),
-            Allow("reel_sw_lever", "reel_gk", "the track holds the lever down (contact closed) except at home", max_vol=60.0)]
+            Allow("reel_sw_lever", "reel_gk", "the track holds the lever down (contact closed) except at home", max_vol=60.0),
+            Allow("reel_bar", "drum_drum_a", "the bar nose rides cad-drum's brake cam (round nose on the sampled cam envelope)", max_vol=0.1)]
     for a, b in (("reel_tab_c", "reel_wall"), ("reel_tab_k", "reel_wall"), ("reel_p1", "reel_p1_leg"), ("reel_p2", "reel_p2_leg"),
                  ("reel_p2", "reel_cheek_i"), ("reel_p2", "reel_cheek_o"), ("reel_spacer_*", "reel_p1"), ("reel_spacer_*", "reel_p2"),
                  ("reel_sleeve", "reel_wall")):

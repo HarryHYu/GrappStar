@@ -23,6 +23,18 @@ list, datasheet). Dart viewer https://claude.ai/artifact/Sqt8tF67veTYfxQjUFTZ5f.
 5. **Try the whole mission on any PC first**: `cd jetson && python3 -m grappstar serve --sim`, then open
    http://localhost:8080: the operator page runs every step against the simulated base, dart and cameras.
 
+## D50 update (6 Nov 2026): reel unit on the deck behind the launcher
+
+| Area | State |
+|---|---|
+| Layout | D50 (supersedes D49): spool and capstan on a bolt-on deck extension tile (x -412..-164) directly behind the launcher, in the rail plane; the launcher did not move. Capstan axis along X, axial cup eyelet on the low-aim line, ONE 693ZZ pulley at the rail rear (the line runs under it): 0 deg at 6 deg, 92 at 20, 114 at 34, 125 at 47 |
+| Drives | all on the floor: REEL gear -> 41T idler -> C 22T -> bevel -> lane C -> 20T/58T/20T (capstan still 50/22, sprag #2 in the 58T idler); cup 1:1 riser -> bevel -> lane K -> 20T/76T/20T (7 wraps); take-up bus -> swing idler -> clutch hub 28T -> T2 -> lane T -> 16T/34T/16T to the free spool (LIGHT 0.25 N / FIRM 5 N). One wiper, one N20 |
+| Checks | full pipeline audit: only the 2 known tiny collisions (coupler/index lever, aim sun/idler), meshes and clearances pass, whole-assembly tether check clean; CAD module, tools, physics (83), firmware (470), Jetson, systest nominal / ref_nominal / ref_refusals / ref_power_* pass |
+| Physics | 4.79 / 4.25 / 3.77 m at 38 deg for 0.25 / 0.5 / 0.75 N (C3 table regenerated); dart-side tow law 14.4 x (I - I_free) - 2.5 |
+| Print pack | PLA 115 objects on 15 plates (about 4.6 kg, 124 h), PPA-CF 87 objects on 6 plates (about 1.9 kg, 89 h) |
+
+Open D50 items: the line leaves the cup eyelet mouth 72 to 80 deg downward above 20 deg (bench-check wear on high-pitch shots); the take-up chain (about 9000 g mm2) turns with the spool in payout; bench-check lane wind-up, the axial ring wrap laying and the slack line brushing the rail-rear fork mid-wrap. The section below is the 3 Nov baseline.
+
 ## Status (3 Nov 2026, end of the build day)
 
 | Area | State |

@@ -1290,16 +1290,16 @@ def parts(P):
         notes=f"Lane K bevel m{BEV_K[0]:g} z{BEV_K[1]} (meshes the K2 bevel)")
     add("reel_lane_k", _stub(LK_D, X_P2[0] - 2.6, xk + bk["h"] - 0.2, flats=((xk - 4.0, xk + bk["h"]), (X_KPL[0] - 0.5, X_KPL[1] + 0.5)),
                              grooves=(X_P2[0] - 0.3 - clips.groove_dims(LK_D)["width"],)),
-        "PPA-CF", tf.Ry(90), joint="reel_lk", color=COL["ppa"], step=16,
-        notes="Lane K (PPA-CF d8): the cup drive along the deck to the reel unit. Print lying on its flat (diagonal)")
+        "PPA-CF", None, joint="reel_lk", color=COL["ppa"], step=16,
+        notes="Lane K (PPA-CF d8): the cup drive along the deck to the reel unit. Print standing")
     bcx = _bev(BEV_C, LC_D, hub_h=3.5)
     xc = FL["c"][0] - bc["r0"]
     add("reel_bcx", bcx, "PPA-CF", joint="reel_lc", place=tf.T(0, 0, xc), color=COL["bevel"], step=16,
         notes=f"Lane C bevel m{BEV_C[0]:g} z{BEV_C[1]} (meshes the C bevel)")
     add("reel_lane_c", _stub(LC_D, X_CPL[0] - 2.6, xc + bc["h"] - 0.2, flats=((xc - 4.0, xc + bc["h"]), (X_CPL[0] - 0.5, X_CPL[1] + 0.5)),
                              grooves=(X_CPL[0] - 0.3 - clips.groove_dims(LC_D)["width"],)),
-        "PPA-CF", tf.Ry(90), joint="reel_lc", color=COL["ppa"], step=16,
-        notes="Lane C (PPA-CF d12): the capstan drive along the deck to the reel unit. Print lying on its flat")
+        "PPA-CF", None, joint="reel_lc", color=COL["ppa"], step=16,
+        notes="Lane C (PPA-CF d12): the capstan drive along the deck to the reel unit. Print standing")
     btx = _bev(BEV_T, LT_D, hub_h=3.5)
     xt = FL["t2"][0] - bt["r0"]
     xt3 = X_SS + bt["r0"]                       # in front of T3's axis, teeth toward -x
@@ -1308,8 +1308,8 @@ def parts(P):
     add("reel_bt3x", _bev(BEV_T, LT_D, hub_h=3.5), "PPA-CF", joint="reel_lt", place=tf.T(0, 0, xt3) @ tf.Rx(180),
         color=COL["bevel"], step=16, notes=f"Lane T rear bevel m{BEV_T[0]:g} z{BEV_T[1]} (meshes T3 in front of its axis)")
     add("reel_lane_t", _stub(LT_D, xt3 - bt["h"] + 0.2, xt + bt["h"] - 0.2, flats=((xt - 4.0, xt + bt["h"]), (xt3 - bt["h"], xt3 + 4.0))),
-        "PPA-CF", tf.Ry(90), joint="reel_lt", color=COL["ppa"], step=16,
-        notes="Lane T (PPA-CF d8): the take-up drive along the deck to the spool. Print lying (diagonal)")
+        "PPA-CF", None, joint="reel_lt", color=COL["ppa"], step=16,
+        notes="Lane T (PPA-CF d8): the take-up drive along the deck to the spool. Print standing")
     # ---- reel unit (world)
     add("reel_p1", _p1(), "PPA-CF", tf.Ry(90), color=COL["frame"], step=17,
         bought_ref="5 x M3x16 SHCS; 5 x M3 nut", notes="Reel unit front plate P1 with the sprag #2 seat and the capstan bushing. Print front face down")
@@ -1335,8 +1335,8 @@ def parts(P):
     add("reel_sprag", bearings.bearing_csk20(okey_deg=90.0, ikey_deg=0.0), "bought",
         place=FX @ tf.T(RL["pc"][0], RL["pc"][1], SPRAG_X[1]), color=COL["brg"], bought_ref="CSK20PP one-way bearing 20x47x14",
         step=19, notes="Sprag #2 inside the I_c idler: the capstan train turns only in the wind-in sense")
-    add("reel_c", _capstan_tube(), "PPA-CF", tf.Ry(90), joint="reel_capstan", color=COL["ppa"], step=17,
-        notes="Capstan tube C: key rib in the sprag and the drum, D flat for G_c. Print lying on the flat")
+    add("reel_c", _capstan_tube(), "PPA-CF", None, joint="reel_capstan", color=COL["ppa"], step=17,
+        notes="Capstan tube C: key rib in the sprag and the drum, D flat for G_c. Print standing")
     add("reel_drum", v7.drum(mouth=(14.2, COLLAR_CONE + 0.2)), "PPA-CF", joint="reel_capstan", place=tf.T(0, 0, X_D0),
         color=COL["drum"], step=19, notes="Capstan drum dia 40 x 40 (Harry v7), keyed on the tube. Print flange down")
     add("reel_gc2", _gear(M_RC, Z_RC[2], X_CPL[1] - X_CPL[0], 20.0, 2.0, phase=ph["gc2"]), "PPA-CF", joint="reel_capstan",
@@ -1345,8 +1345,8 @@ def parts(P):
         color=COL["clip"], step=19, notes="C-clip behind G_c")
     kc = _kc_shaft()
     kc = prim.place(kc, tf.Rz(180))                           # flats toward local -X (the cup is turned 180 deg)
-    add("reel_kc", kc, "PPA-CF", tf.Ry(90), joint="reel_cupr", color=COL["ppa"], step=19,
-        notes="Rear cup shaft K': cup in front, G_k behind, journal in P2. Print lying")
+    add("reel_kc", kc, "PPA-CF", None, joint="reel_cupr", color=COL["ppa"], step=19,
+        notes="Rear cup shaft K': cup in front, G_k behind, journal in P2. Print standing")
     add("reel_cup", v7.cup(), "PLA", joint="reel_cupr", place=tf.T(0, 0, X_RIM) @ tf.Rz(180), color=COL["cup"], step=19,
         notes="Wrap cup (Harry v7, ring hole turned axial): ring at the bottom at home, the line passes straight through it. Print open end down")
     add("reel_cup_clip", _cap_clip(), "PLA", joint="reel_cupr", place=tf.T(0, 0, X_RIM + v7.CUP_D + 0.3) @ tf.Rz(180),
@@ -1360,14 +1360,14 @@ def parts(P):
         place=tf.T(0, 0, X_CPL[0]), color=COL["gear"], step=19, notes=f"G_a m{M_RC:g} z{Z_RC[0]} on lane C")
     add("reel_icr", prim.place(_icr(), rz(ph["icr"])), "PPA-CF", tf.Rx(180), joint="reel_icr", color=COL["gear"], step=19,
         notes=f"I_c m{M_RC:g} z{Z_RC[1]}: idler from lane C to the capstan, sprag #2 pressed in its hub")
-    add("reel_icr_axle", _icr_axle(), "PPA-CF", tf.Ry(90), place=FX @ tf.T(RL["pc"][0], RL["pc"][1], 0.0),
+    add("reel_icr_axle", _icr_axle(), "PPA-CF", None, place=FX @ tf.T(RL["pc"][0], RL["pc"][1], 0.0),
         color=COL["ppa"], step=19, notes="I_c axle (PPA-CF d20, keyed): fixed in P1 (D flat), carries sprag #2's inner race")
     add("reel_ga2", _gear(M_RK, Z_RK[0], X_KPL[1] - X_KPL[0], LK_D, 1.0, phase=ph["ga2"]), "PPA-CF", joint="reel_lk",
         place=tf.T(0, 0, X_KPL[0]), color=COL["gear"], step=20, notes=f"G_a' m{M_RK:g} z{Z_RK[0]} on lane K")
     add("reel_ikr", gears.spur_gear(M_RK, Z_RK[1], X_KPL[1] - X_KPL[0], bore=AXLE_D + fits.HOLE_CLEAR), "PPA-CF",
         joint="reel_ikr", place=tf.T(0, 0, X_KPL[0]) @ rz(ph["ikr"]), color=COL["gear"], step=20,
         notes=f"I_k m{M_RK:g} z{Z_RK[1]}: idler from lane K to the cup shaft")
-    add("reel_ikr_axle", _axle(X_P2[1], X_KPL[1] + 0.3), "PPA-CF", tf.Ry(90),
+    add("reel_ikr_axle", _axle(X_P2[1], X_KPL[1] + 0.3), "PPA-CF", None,
         place=FX @ tf.T(RL["pk"][0], RL["pk"][1], 0.0), color=COL["ppa"], step=20,
         notes="I_k axle pin (PPA-CF d8): pressed into P2, head in front of the idler")
     # T3 and the spool (FYN joints: local z = -world y)
@@ -1380,11 +1380,11 @@ def parts(P):
         place=tf.T(0, 0, -TSP_Y[1]), color=COL["gear"], step=18, notes=f"T3 gear m{M_TS:g} z{Z_TS}")
     add("reel_ss", _stub(S_D, -CHEEK_O[1] - 2.6, -TSP_Y[0] + 0.5, flats=((-TSP_Y[1] - 0.5, -TSP_Y[0] + 1.0),
                                                                           (-CHEEK_O[0], -CHEEK_I[1]))),
-        "PPA-CF", tf.Ry(90), joint="reel_spool_r", color=COL["ppa"], step=18,
+        "PPA-CF", None, joint="reel_spool_r", color=COL["ppa"], step=18,
         notes="Spool shaft (PPA-CF d8): 45T gear, bushing in the T bracket, 608s in both cheeks, the spool on its flat")
     add("reel_ti", gears.spur_gear(M_TS, Z_TI, TSP_Y[1] - TSP_Y[0], bore=AXLE_D + fits.HOLE_CLEAR), "PPA-CF", joint="reel_ti",
         place=tf.T(0, 0, -TSP_Y[1]) @ rz(ph["ti"]), color=COL["gear"], step=18, notes=f"Take-up idler m{M_TS:g} z{Z_TI}")
-    add("reel_ti_axle", _axle(-T_BR_Y[1], -TSP_Y[0] + 0.3), "PPA-CF", tf.Ry(90),
+    add("reel_ti_axle", _axle(-T_BR_Y[1], -TSP_Y[0] + 0.3), "PPA-CF", None,
         place=tf.T(RL["ti"][0], 0.0, RL["ti"][1]) @ FYN, color=COL["ppa"], step=18,
         notes="Take-up idler axle pin (PPA-CF d8): pressed into the T bracket, head on the inboard side of the idler")
     add("reel_gs", _gear(M_TS, Z_TS, TSP_Y[1] - TSP_Y[0], S_D, 1.0, phase=ph["gs"]), "PPA-CF", joint="reel_spool_r",

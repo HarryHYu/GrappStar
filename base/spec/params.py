@@ -247,7 +247,7 @@ REEL = dict(
     tow_limit_n=50.0,                         # firmware default
     tow_limit_max_n=55.0,                     # D39/D46/D50: tension AT THE DART; path gain 1.18 keeps 0.8 x the pin above 60 N: cap stays 55
     path_gain=1.18,                           # D50: capstan/dart at the 6 deg tow pitch: ring-to-groove bend (plain eye) and the lip roller; the rail-rear pulley is straight at 6 deg
-    payout_gain=1.32,                         # D50: spool/dart in flight at 20..47 deg: eyelet exit bend about 74 deg (plain mouth), rail-rear pulley (693ZZ); 1.06 at 6 deg
+    payout_gain=1.32,                         # D50: spool/dart in flight at 20..47 deg: eyelet exit bend about 72 to 80 deg (plain mouth), rail-rear pulley (693ZZ); 1.06 at 6 deg
     tow_tension_model=dict(n_per_a=14.4, offset_n=-2.5, at="dart", capstan_n_per_a=17.0, capstan_offset_n=-3.0,
                            note="D50: dart-side line N = 14.4 x (I - I_free) - 2.5 (capstan side 17.0 / -3.0 through the unchanged 50/22 ratio, D42, divided by path_gain 1.18); tow_limit_n means the DART side; recalibrate with the luggage scale at the line end"),
     current_trips_a=dict(aim=3.0, backward_launch=3.0, reel_in=5.0, cock=6.5, tow=6.5, blank_ms=50, hold_ms=30, note="D8/D33/D40: every backward wiper run in LAUNCH (aim, decock, backward jog) drives the aim train: 3 A"),
@@ -281,7 +281,7 @@ REEL_UNIT = dict(
                note="clutch hub, friction disc, T2, bevels, lane T, T3 and the rear gears turn with the spool in payout (about 9000 g mm2 at spool speed, the spool itself about 19000 full)"),
     deck_extension=dict(x=(-412.0, -164.0), note="bolt-on deck tile behind the existing deck (dovetails, heat-set inserts, M3 to "
                                                  "the rover like the other tiles); the launcher stays where it is"),
-    bends=dict(pulley_deg=dict(p6=0.0, p20=83.0, p34=109.0, p47=121.0), eyelet_exit_deg=dict(p6=0.0, p20=63.0, p34=75.0, p47=74.0),
+    bends=dict(pulley_deg=dict(p6=0.0, p20=92.0, p34=114.0, p47=125.0), eyelet_exit_deg=dict(p6=0.0, p20=72.0, p34=80.0, p47=78.0),
                note="D50 as built: the reel unit is close behind the rail, so the rail-rear pulley moves 150 mm up and down "
                     "with the aim and the floor segment steepens; at the 6 deg tow pitch everything is straight"),
 )

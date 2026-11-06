@@ -53,40 +53,49 @@ MECHS = [
               "brake actuator, so its timing (dog windows, code edges, cam positions) has to be right."),
     dict(key="wrap", title="Wrap cup", phase="wrap",
          parts=["drum_idler", "drum_idler_gear", "drum_bracket_idler", "drum_bracket_idler2", "reel_k", "reel_cup",
-                "reel_cup_clip", "reel_gk", "reel_k_clip", "reel_sw_bracket", "reel_sw_base", "reel_sw_lever",
-                "reel_sw_hw"],
+                "reel_cup_clip", "reel_gk", "reel_k_clip", "reel_gk1", "reel_k_clip2", "reel_ik1*", "reel_ik2*", "reel_k2",
+                "reel_gk2", "reel_bk2", "reel_bkx", "reel_lane_k", "reel_tab_k", "reel_ga2", "reel_ikr*", "reel_gkc",
+                "reel_kc", "reel_kc_clip", "reel_sw_bracket", "reel_sw_base", "reel_sw_lever", "reel_sw_hw"],
          job="Lays 7 turns of the tether round the capstan right after landing, so the capstan can grip it for the tow.",
          drive="The selector drum's segment gear (N20 power), not the wiper.",
          when="WRAP (right after landing, line still slack) and UNWRAP (before the final approach).",
          how="While the drum turns through its WRAP sector, its segment gear spins the wrap idler (10T pinion, 42T "
-             "output). That drives the 24T cup gear on the cup shaft, which runs inside the capstan tube. The cup on the "
-             "front orbits the capstan 7 times, its ring laying the line on as wraps. A lock arc holds the idler still "
+             "output). That drives the 24T cup gear under the main axis; a 1:1 riser (30T, idlers 34T and 30T) lifts the "
+             "drive to K2, one bevel pair turns it into lane K along the deck, and the rear train (20T, 76T idler, 20T) "
+             "turns the cup shaft inside the capstan tube in the reel unit behind the launcher. The cup orbits the "
+             "capstan 7 times, its axial ring laying the line on as wraps. A lock arc holds the idler still "
              "outside the sector. SW_ARM rides a track on the cup gear and opens at the cup's home notch, so the "
              "firmware counts the turns.",
          note="This is the step that replaces a person wrapping the line by hand. Without it the capstan cannot pull."),
     dict(key="capstan", title="Capstan winch (tow and reel-in)", phase="tow",
-         parts=["reel_wall", "reel_sprag_hub", "reel_hub_screws", "reel_sprag", "reel_c", "reel_c_clip", "reel_gc",
-                "reel_drum"],
+         parts=["reel_wall", "reel_ic*", "reel_cs", "reel_gc", "reel_cs_clip", "reel_bc", "reel_bcx", "reel_lane_c",
+                "reel_tab_c", "reel_ga", "reel_icr*", "reel_gc2", "reel_c_clip", "reel_p1*", "reel_p2*", "reel_spacer_*",
+                "reel_sprag", "reel_c", "reel_drum"],
          job="Pulls the rover toward the anchored dart (the tow), then reels the released dart back in.",
          drive="The wiper, through the REEL dog of the selector (collar in REEL).",
          when="REEL: fly-in, check pull, tow, reel-in.",
-         how="The REEL gear (50T) on the main shaft drives the 22T capstan gear (2.27 x wiper speed), keyed on the "
-             "capstan tube, which carries the capstan drum (40 mm, Harry's v7). The line holds by friction from the 7 "
-             "wraps (capstan effect). Sprag #2 (CSK20PP) lets the capstan turn only in the wind-in sense, so the load "
-             "cannot pull line back out; the wiper's self-locking worm holds it too. Tension is measured from the motor "
-             "current (about 13 N per amp above free running), with a 55 N cap.",
-         note="Mechanically this is the simplest train: one gear pair and a one-way clutch."),
+         how="The REEL gear (50T) on the main shaft drives a 41T idler and the 22T C gear (2.27 x wiper speed). One "
+             "bevel pair turns the drive into lane C, a 12 mm shaft along the deck to the reel unit behind the launcher, "
+             "where 20T, a 58T idler and 20T turn the capstan tube with the capstan drum (40 mm, Harry's v7) 1:1. The "
+             "line holds by friction from the 7 wraps (capstan effect). Sprag #2 (CSK20PP) in P1 lets the capstan turn "
+             "only in the wind-in sense; the wiper's self-locking worm holds it too. Tension is measured from the motor "
+             "current (about 14 N per amp above free running at the dart), with a 55 N cap.",
+         note="D50: the capstan sits on the deck in the rail plane, so the unwrapped line runs straight to the rail."),
     dict(key="storage", title="Storage reel, clutch and take-up", phase="flight",
-         parts=["reel_bus", "reel_swing_arm", "reel_gi", "reel_gr", "reel_s", "reel_s_clip", "reel_spool",
-                "reel_spool_flange", "reel_brg_*", "reel_t", "reel_rocker", "reel_rocker_pin", "reel_trim_screws",
+         parts=["reel_sleeve*", "reel_bus", "reel_swing_arm", "reel_gi", "reel_gr", "reel_s", "reel_s_clip", "reel_hub*",
+                "reel_brg_*", "reel_t", "reel_rocker", "reel_rocker_pin", "reel_trim_screws",
                 "reel_crank", "reel_crank_washer", "reel_crank_screw", "reel_firm_screw", "reel_bar", "reel_bar_cap_*",
-                "reel_bar_screws"],
+                "reel_bar_screws", "reel_t2", "reel_gt2", "reel_bt2", "reel_btx", "reel_bt3x", "reel_lane_t", "reel_post_t",
+                "reel_t3", "reel_bt3", "reel_gt3", "reel_ti*", "reel_gs", "reel_ss", "reel_spool", "reel_cheek_*",
+                "reel_t_bracket"],
          job="Holds the 20 m of Dyneema: pays it out in flight against a light drag, and winds the slack back in.",
          drive="Payout: the dart pulls it. Take-up: the wiper's forward turns through the bus gear. Drag level: the "
                "selector drum's cam.",
          when="FLIGHT (payout, LIGHT drag), COCK and TIDY (take-up), final approach (FIRM take-up pulls the dart home).",
-         how="The storage reel turns on two 608s. Its rear face is a friction clutch: the rocker, a flexible PPA-CF "
-             "lever, presses a thrust ring on it. LIGHT is about 0.5 N at the line (low enough for flight); when the "
+         how="The free storage spool (d40 core, d62 flanges) turns on two 608s in the reel unit behind the launcher and "
+             "follows the clutch hub under the main axis 1:1 (28T, T2, lane T, bevels, 16T, 34T idler, 16T). The hub's "
+             "front face is a friction clutch: the rocker, a flexible PPA-CF lever, presses a thrust ring on it. LIGHT "
+             "is a fixed 0.25 N at the line (the anti-overrun drag in flight); when the "
              "drum cam pushes the brake bar, the bell crank presses the rocker harder for FIRM (about 5 N, enough to "
              "pull the dart home). The bus gear on the coupler always turns with the wiper. On forward turns only, the "
              "swing arm drags the swing idler into mesh with the reel gear, so the clutch disk winds the reel through "
@@ -129,15 +138,15 @@ MECHS = [
          note="This is how one motor direction aims and the other cocks: the sprag and the swing idler split the two "
               "directions."),
     dict(key="tether", title="Tether path", phase="tow",
-         parts=["reel_shroud", "reel_exit_post", "reel_pulley1", "reel_p1_*", "reel_p2_*", "reel_pulley2",
-                "launch_pulley_*", "launch_muzzle_*", "launch_line_*"],
+         parts=["reel_spool", "reel_cup", "reel_drum", "launch_pulley_*", "launch_muzzle_*", "launch_line_*"],
          job="Guides the line from the storage reel past the capstan, up the rail to the dart, without rubbing.",
          drive="Passive.",
          when="Always: payout, wrap, tow, reel-in.",
-         how="From the storage reel the line passes the shroud and exit post, round pulley 1 and the pulley 2 swivel "
-             "(which follows the rail angle), under the rail to the pivot pulley, round the bottom and top pulleys "
-             "behind the rail, forward along the rail to the pusher, and over the lip roller at the carriage front when "
-             "the dart is ahead and below. Every turn under tow load is a pulley on a 693ZZ bearing or an M3 axle.",
+         how="D50: all in the rail plane, no sideways turn. From the top of the spool pack the line runs under the "
+             "capstan, straight through the cup's axial eyelet and on to the one 693ZZ pulley at the rail's rear end "
+             "(the line runs under it), then forward along the rail to the pusher, and over the lip roller at the "
+             "carriage front when the dart is ahead and below. At the 6 deg tow pitch the whole run is straight; as the "
+             "rail aims up its rear end drops and the line wraps round that pulley (about 114 deg at 34 deg).",
          note="The whole-assembly tether check confirms the line clears every part in every phase."),
     dict(key="sensors", title="Switches and sensors", phase="cock",
          parts=["sensors_*", "launch_sw_*", "launch_seat_*", "drum_switch_block", "drum_sw_lever_*", "drum_dog_post",

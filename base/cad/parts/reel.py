@@ -239,9 +239,9 @@ X_RIM = EYE[0] - v7.CUP_D - 2 * v7.RING_L                  # cup rim plane (cup 
 X_D0 = X_RIM - (v7.FLANGE_H + v7.DL - 7.0)                 # drum flange back face
 COLLAR_CONE = 4.0
 X_P1 = (X_D0 - 1.0 - 6.0, X_D0 - 1.0)                      # P1 plate (front face = sprag seat mouth, 1 mm collar flat)
-SPRAG_X = (X_P1[1] - bearings.CSK20_W, X_P1[1])            # sprag #2 in P1's boss
-X_P1B = X_P1[1] - 21.0                                     # P1 boss rear face (seat 14 + bushing 7)
-X_CPL = (X_P1B - 1.0 - 8.0, X_P1B - 1.0)                   # C plane (m2, face 8)
+X_P1B = X_P1[1] - 14.0                                     # P1 bushing bosses' rear face
+X_CPL = (X_P1B - 15.0, X_P1B - 7.0)                        # C plane (m2, face 8); the I_c hub reaches 6 forward
+SPRAG_X = (X_CPL[0], X_CPL[0] + bearings.CSK20_W)          # sprag #2 inside the I_c idler (backstops the capstan train)
 X_KPL = (X_CPL[0] - 4.5 - 5.0, X_CPL[0] - 4.5)             # K plane (m1.5, face 5); 4.5 gap for the C-plane clips
 X_P2 = (X_KPL[0] - 1.0 - 6.0, X_KPL[0] - 1.0)              # P2 plate
 M_RC, Z_RC = 2.0, (20, 58, 20)                             # C plane: lane gear, idler, capstan gear
@@ -833,7 +833,7 @@ def _p1_outline():
         pts += list(_yz_disc(c, r).exterior.coords)
     pts += [(-14.0, -40.0), (22.0, -40.0)]
     h = MultiPoint(pts).convex_hull
-    h = h.difference(sbox(LINE_NOTCH[0], -100.0, LINE_NOTCH[1], CAP_YZ[1] - 24.0))
+    h = h.difference(sbox(LINE_NOTCH[0], -100.0, LINE_NOTCH[1], CAP_YZ[1] - 16.0))
     return h
 
 
@@ -862,18 +862,38 @@ def _p1():
     (press fit), screw holes for the spacers and the leg. Print front face down."""
     x0, x1 = X_P1
     body = _rear_plate(x0, x1, _p1_outline())
-    rb = bearings.CSK20_OD / 2 + bearings.BRG_RIB_BORE / 2 + 4.0
-    boss = prim.place(prim.cyl(rb, x0 - X_P1B + 0.01, x=CAP_YZ[0], y=CAP_YZ[1], z=X_P1B), FX)
-    body = prim.union([body, boss])
-    seat = prim.place(prim.place(bearings.seat_csk20(key_deg=90.0, below=2.0), tf.T(0, 0, 0)),
-                      FX @ tf.T(CAP_YZ[0], CAP_YZ[1], X_P1[1]))
-    cut = [seat, prim.place(prim.cyl((20.0 + fits.SHAFT_IN_BORE) / 2, 60, x=CAP_YZ[0], y=CAP_YZ[1], z=X_P1B - 1), FX)]
+    boss = [prim.place(prim.cyl(14.0, x0 - X_P1B + 0.01, x=c[0], y=c[1], z=X_P1B), FX) for c in (CAP_YZ, RL["pc"])]
+    body = prim.union([body] + boss)
+    cut = [prim.place(prim.cyl((20.0 + fits.SHAFT_IN_BORE) / 2, 60, x=CAP_YZ[0], y=CAP_YZ[1], z=X_P1B - 1), FX)]
+    cut.append(prim.place(prim.cyl(10.0 - 0.05, 60, x=RL["pc"][0], y=RL["pc"][1], z=X_P1B - 1)
+                          - prim.box(RL["pc"][0] + 8.5, RL["pc"][0] + 20, RL["pc"][1] - 20, RL["pc"][1] + 20, X_P1B - 2, x1 + 2), FX))
     for c, d in ((LANE_C, LC_D), (LANE_K, LK_D)):
         cut.append(prim.place(prim.cyl((d + fits.SHAFT_IN_BORE + fits.HOLE_HORIZ_EXTRA) / 2, 30, x=c[0], y=c[1], z=x0 - 1), FX))
-    cut.append(prim.place(prim.cyl(AXLE_D / 2 - 0.05, 30, x=RL["pc"][0], y=RL["pc"][1], z=x0 - 1), FX))
     for c in SPACERS + ((4.0, -36.0),):
         cut.append(prim.place(prim.cyl(fits.M3_CLEAR_D / 2, 30, x=c[0], y=c[1], z=x0 - 1), FX))
     return body - prim.union(cut)
+
+
+def _icr():
+    """I_c idler (PPA-CF) on its joint (local z = world x): 58T m2 in the C plane with a hub forward; sprag #2's
+    crush-rib seat through hub and gear (the outer race turns with the idler, the inner race sits on the fixed keyed
+    axle). Print gear face down."""
+    g = gears.spur_gear(M_RC, Z_RC[1], X_CPL[1] - X_CPL[0]).translate((0, 0, X_CPL[0]))
+    hub = prim.cyl(bearings.CSK20_OD / 2 + bearings.BRG_RIB_BORE / 2 + 4.0, SPRAG_X[1] - X_CPL[1] + 0.01, z=X_CPL[1] - 0.01)
+    body = prim.union([g, hub])
+    seat = prim.place(bearings.seat_csk20(key_deg=90.0, below=0.0), tf.T(0, 0, SPRAG_X[1] + 0.01))
+    return body - prim.union([seat, prim.cyl(bearings.CSK20_OD / 2 - 2.0, 80, z=X_CPL[0] - 20)])
+
+
+def _icr_axle():
+    """Fixed I_c axle (PPA-CF d20) on the I_c joint frame without its rotation: D flat pressed in P1's boss, key rib in
+    the sprag's inner keyway, head on P1's front face, clip groove behind the idler."""
+    z0, z1 = X_CPL[0] - 2.6, X_P1[1]
+    body = shafts.keyed_shaft(z1 - z0, d=20.0, key_w=shafts.KEY20_W, key_h=shafts.KEY20_H,
+                              key_z=(SPRAG_X[0] - z0, SPRAG_X[1] - z0), chamfer=0.8).translate((0, 0, z0))
+    body = prim.union([body, prim.cyl(13.0, 1.5, z=z1)])
+    flat = prim.box(8.5, 20.0, -20.0, 20.0, X_P1B - 1.0, z1 + 0.01)
+    return body - prim.union([flat, clips.clip_groove_cutter(20.0, z=X_CPL[0] - 0.3 - clips.groove_dims(20.0)["width"])])
 
 
 def _p2():
@@ -984,7 +1004,7 @@ def _capstan_tube():
     z1 = X_D0 + v7.drum_info()["z_web0"] - 0.3
     z0 = X_CPL[0] - 2.4
     body = shafts.keyed_shaft(z1 - z0, d=20.0, key_w=shafts.KEY20_W, key_h=shafts.KEY20_H,
-                              key_z=(SPRAG_X[0] - z0, z1 - z0 - 0.8), chamfer=0.8).translate((0, 0, z0))
+                              key_z=(X_D0 - z0, z1 - z0 - 0.8), chamfer=0.8).translate((0, 0, z0))
     collar = prim.union([prim.cyl(14.0, 1.0, z=X_P1[1]), prim.cyl(14.0, COLLAR_CONE, z=X_P1[1] + 0.99, r2=10.0)])
     body = prim.union([body, collar])
     g = clips.groove_dims(20.0)
@@ -1060,9 +1080,10 @@ def _phase(ga, gb, ratio_sign=-1.0):
 _PH = {}
 # as computed by phases(recompute=True) for params 1.5.0 (2D profile overlap search, middle of the zero window); the
 # search takes minutes, so the module uses these. Recompute after moving any D50 gear axis (D50_PHASES=1).
-PHASES_D50 = {'gk1': 0.0, 'ik1': 9.286764705882353, 'ik2': 10.875, 'gk2': 7.975, 'ic': 5.085365853658536,
-              'gc': 2.965909090909091, 'hub': 0.0, 'gt2': 0.50625, 'ga': 0.0, 'icr': 5.806034482758621, 'gc2': 7.2,
-              'ga2': 0.0, 'ikr': 4.381578947368421, 'gkc': 16.875, 'gt3': 0.0, 'gs': 4.0, 'ti': 0.0}
+PHASES_D50 = {'gk1': 0.0, 'ik1': 5.073529411764706, 'ik2': 7.9, 'gk2': 10.55, 'ic': 5.085365853658536,
+              'gc': 2.965909090909091, 'hub': 0.0, 'gt2': 5.008928571428571, 'ga': 0.0, 'icr': 5.806034482758621,
+              'gc2': 7.2, 'ga2': 0.0, 'ikr': 4.381578947368421, 'gkc': 16.875, 'gt3': 0.0, 'gs': 19.59375,
+              'ti': 5.977941176470589}
 
 
 def phases(recompute=None):
@@ -1137,7 +1158,7 @@ def parts(P):
     add("reel_k", _k_shaft(), "PPA-CF", tf.Rx(180), joint="reel_cup", color=COL["ppa"], step=5,
         notes="Cup shaft K: through the sleeve, cup gear behind the wall, riser gear in front. Print standing")
     add("reel_gk", prim.union([_gear(M_CUPG, Z_CUPG, CUPGEAR_Z[1] - CUPGEAR_Z[0], K_D, 1.2,
-                                     hub=(16.0, -20.0 - CUPGEAR_Z[1]), phase=GK_PHASE),
+                                     hub=(16.0, SLEEVE_Z[0] - 0.6 - CUPGEAR_Z[1]), phase=GK_PHASE),
                                _cup_gear_track()]),
         "PPA-CF", joint="reel_cup", place=tf.T(0, 0, CUPGEAR_Z[0]), color=COL["gear"], step=5,
         notes=f"Cup gear m{M_CUPG:g} z{Z_CUPG}: driven by the drum's wrap idler; the raised track on its back holds "
@@ -1311,9 +1332,9 @@ def parts(P):
         M = tf.T(X_SS, yb, Z_SS) @ (FYP if i == 3 else FYN)
         add(f"reel_brg_{i}", bearings.bearing_608(), "bought", place=M, color=COL["brg"], bought_ref="608ZZ 8x22x7",
             step=18, notes="608 bearing in a cheek (spool shaft)")
-    add("reel_sprag", bearings.bearing_csk20(okey_deg=90.0, ikey_deg=0.0), "bought", joint="reel_capstan",
-        place=tf.T(0, 0, X_P1[1]), color=COL["brg"], bought_ref="CSK20PP one-way bearing 20x47x14", step=17,
-        notes="Sprag #2: capstan backstop, lets the capstan turn only in the wind-in sense")
+    add("reel_sprag", bearings.bearing_csk20(okey_deg=90.0, ikey_deg=0.0), "bought",
+        place=FX @ tf.T(RL["pc"][0], RL["pc"][1], SPRAG_X[1]), color=COL["brg"], bought_ref="CSK20PP one-way bearing 20x47x14",
+        step=19, notes="Sprag #2 inside the I_c idler: the capstan train turns only in the wind-in sense")
     add("reel_c", _capstan_tube(), "PPA-CF", tf.Ry(90), joint="reel_capstan", color=COL["ppa"], step=17,
         notes="Capstan tube C: key rib in the sprag and the drum, D flat for G_c. Print lying on the flat")
     add("reel_drum", v7.drum(mouth=(14.2, COLLAR_CONE + 0.2)), "PPA-CF", joint="reel_capstan", place=tf.T(0, 0, X_D0),
@@ -1337,12 +1358,10 @@ def parts(P):
         color=COL["clip"], step=20, notes="C-clip behind P2")
     add("reel_ga", _gear(M_RC, Z_RC[0], X_CPL[1] - X_CPL[0], LC_D, 1.5, phase=ph["ga"]), "PPA-CF", joint="reel_lc",
         place=tf.T(0, 0, X_CPL[0]), color=COL["gear"], step=19, notes=f"G_a m{M_RC:g} z{Z_RC[0]} on lane C")
-    add("reel_icr", gears.spur_gear(M_RC, Z_RC[1], X_CPL[1] - X_CPL[0], bore=AXLE_D + fits.HOLE_CLEAR), "PPA-CF",
-        joint="reel_icr", place=tf.T(0, 0, X_CPL[0]) @ rz(ph["icr"]), color=COL["gear"], step=19,
-        notes=f"I_c m{M_RC:g} z{Z_RC[1]}: idler from lane C to the capstan")
-    add("reel_icr_axle", _axle(X_CPL[0] - 1.8, X_P1[1]), "PPA-CF", tf.Ry(90),
-        place=FX @ tf.T(RL["pc"][0], RL["pc"][1], 0.0), color=COL["ppa"], step=19,
-        notes="I_c axle pin (PPA-CF d8): from the front through P1 (press fit, head on P1's front face), small C-clip behind the idler")
+    add("reel_icr", prim.place(_icr(), rz(ph["icr"])), "PPA-CF", tf.Rx(180), joint="reel_icr", color=COL["gear"], step=19,
+        notes=f"I_c m{M_RC:g} z{Z_RC[1]}: idler from lane C to the capstan, sprag #2 pressed in its hub")
+    add("reel_icr_axle", _icr_axle(), "PPA-CF", tf.Ry(90), place=FX @ tf.T(RL["pc"][0], RL["pc"][1], 0.0),
+        color=COL["ppa"], step=19, notes="I_c axle (PPA-CF d20, keyed): fixed in P1 (D flat), carries sprag #2's inner race")
     add("reel_ga2", _gear(M_RK, Z_RK[0], X_KPL[1] - X_KPL[0], LK_D, 1.0, phase=ph["ga2"]), "PPA-CF", joint="reel_lk",
         place=tf.T(0, 0, X_KPL[0]), color=COL["gear"], step=20, notes=f"G_a' m{M_RK:g} z{Z_RK[0]} on lane K")
     add("reel_ikr", gears.spur_gear(M_RK, Z_RK[1], X_KPL[1] - X_KPL[0], bore=AXLE_D + fits.HOLE_CLEAR), "PPA-CF",
@@ -1609,14 +1628,14 @@ def allowed(P):
         ("reel_ss", "reel_brg_3", "journal in the inner race"), ("reel_ss", "reel_brg_4", "journal in the inner race"),
         ("reel_ss", "reel_spool", "spool keyed on the shaft flat"),
         ("reel_brg_3", "reel_cheek_i", "608 pressed in the cheek"), ("reel_brg_4", "reel_cheek_o", "608 pressed in the cheek"),
-        ("reel_sprag", "reel_p1", "CSK20PP pressed in its crush-rib seat, outer key rib"),
-        ("reel_sprag", "reel_c", "C rib in the sprag inner keyway, inner race on C (model is one solid)"),
+        ("reel_sprag", "reel_icr", "CSK20PP pressed in the idler's crush-rib seat, outer key rib"),
+        ("reel_sprag", "reel_icr_axle", "axle rib in the sprag inner keyway, inner race on the axle (model is one solid)"),
         ("reel_c", "reel_p1", "capstan tube in the P1 bushing"), ("reel_c", "reel_drum", "keyed fit"),
         ("reel_c", "reel_gc2", "D-flat fit"), ("reel_c", "reel_c_clip", "clip in the groove"),
         ("reel_kc", "reel_c", "cup shaft runs inside the tube"), ("reel_kc", "reel_cup", "D fit"),
         ("reel_kc", "reel_cup_clip", "clip on the neck"), ("reel_kc", "reel_gkc", "D fit"),
         ("reel_kc", "reel_kc_clip", "clip in the groove"), ("reel_kc", "reel_p2", "journal in P2"),
-        ("reel_icr", "reel_icr_axle", "idler turns on its axle"), ("reel_icr_axle", "reel_p1", "axle pressed in P1"),
+        ("reel_icr_axle", "reel_p1", "axle pressed in P1 (D flat)"), ("reel_icr", "reel_icr_axle", "idler on the sprag over the axle"),
         ("reel_ikr", "reel_ikr_axle", "idler turns on its axle"), ("reel_ikr_axle", "reel_p2", "axle pressed in P2"),
         ("launch_line_*", "reel_cup", "the line leaves the eyelet's front mouth"),
     ]
@@ -2064,12 +2083,9 @@ def steps(P):
                   "the wall). Screw the lane T front post to the deck extension with two M3 screws into the inserts.",
              parts=["reel_tab_c", "reel_tab_k", "reel_post_t"]),
         dict(title="Reel unit: P1, sprag #2, capstan tube",
-             text="Screw the P1 leg to the deck extension. Check the arrow on the CSK20PP: seen from the front (from the "
-                  "rail), the inner ring must turn freely counter-clockwise and lock clockwise. Press it into the seat "
-                  "in P1's front face, key slot on the printed rib. Bolt P1 onto its leg (one M3 x 16). Slide the "
-                  "capstan tube in from the FRONT, D-flat end first, key rib in the sprag's key slot, until its collar "
-                  "sits on the sprag.",
-             parts=["reel_p1", "reel_p1_leg", "reel_sprag", "reel_c"]),
+             text="Screw the P1 leg to the deck extension and bolt P1 onto it (one M3 x 16). Slide the capstan tube in "
+                  "from the FRONT, D-flat end first, until its collar sits on P1's bushing.",
+             parts=["reel_p1", "reel_p1_leg", "reel_c"]),
         dict(title="Lanes along the deck",
              text="Slide each bevel onto its lane's front end (teeth toward the front). Feed lane C (d12) from the "
                   "front through the lane C tab and P1, its bevel meshing the C bevel; lane K (d8) through the lane K "
@@ -2089,10 +2105,13 @@ def steps(P):
              text="Slide the green drum onto the front of the capstan tube, flange first, key slot on the rib. Push "
                   "the rear cup shaft through the tube from the FRONT, plain end first. Slide the wrap cup onto its "
                   "front end, flat on the flat, eyelet at the BOTTOM, and push Harry's small C-clip onto the neck. "
-                  "Behind P1: slide G_c (20 teeth, m2) onto the tube's flat and clip it; slide G_a onto lane C's flat; "
-                  "press the I_c axle through the 58-tooth idler into P1 so it meshes both.",
+                  "Behind P1: slide G_c (20 teeth, m2) onto the tube's flat and clip it; slide G_a onto lane C's flat. "
+                  "Press sprag #2 (CSK20PP) into the 58-tooth idler's hub, key slot on the printed rib. Check the arrow: "
+                  "the idler must turn freely the way it turns when the capstan winds in and lock the other way (turn "
+                  "the capstan by hand once assembled: wind-in free, payout locked). Push the keyed I_c axle from the "
+                  "front through P1 and the sprag (key in the keyway, flat in P1's flat) and clip it behind the idler.",
              parts=["reel_drum", "reel_kc", "reel_cup", "reel_cup_clip", "reel_gc2", "reel_c_clip", "reel_ga",
-                    "reel_icr", "reel_icr_axle"]),
+                    "reel_sprag", "reel_icr", "reel_icr_axle"]),
         dict(title="K plane, P2 and the line",
              text="Slide G_k (20 teeth) onto the rear cup shaft and G_a' onto lane K. Press the I_k axle through the "
                   "76-tooth idler into P2's front face. Put the three spacer tubes on P1's screws, offer P2 up so the "

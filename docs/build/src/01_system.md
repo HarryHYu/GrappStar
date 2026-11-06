@@ -14,11 +14,11 @@ Three parts:
   - LAUNCH, wiper forward: draws the spring carriage back (241 mm), fires at the end of the stroke, resets.
   - LAUNCH, wiper backward: tilts the rail between 6 and 47 degrees to aim. A self-locking worm holds the angle.
   - WRAP zone: the collar stays in NEUTRAL while the drum turns a wrap cup 7 times round the capstan.
-  - REEL, wiper forward: the capstan (REEL gear 50T to capstan gear 22T, 2.27 times wiper speed) winds in and tows. A one-way bearing stops it ever
+  - REEL, wiper forward: the capstan (REEL gear 50T, a 41T idler and the 22T C gear, 2.27 times wiper speed, then one bevel pair and a shaft along the deck to the reel unit behind the launcher) winds in and tows. A one-way bearing stops it ever
     turning out. Tow limit 50 N by default.
-  - Take-up: every forward wiper turn also winds the storage reel through a slip clutch, so slack never builds up.
-  - Payout at launch: the line skips the capstan and pulls off the free-spinning storage reel against a light
-    payout brake (0.5 N; over 1 N costs range).
+  - Take-up: every forward wiper turn also winds the storage spool through a slip clutch (the spool sits in the reel unit behind the launcher and follows the clutch 1:1 through a shaft along the deck), so slack never builds up.
+  - Payout at launch: the line skips the capstan and pulls off the free-spinning storage spool against a light
+    fixed anti-overrun drag (0.25 N, D49/D50), straight through the cup eyelet and over the one pulley at the rail's rear end.
   - Range: a few metres with the two springs (6 to 47 degrees of pitch). Two springs only in v1 (decision D38).
   - Protection: current trips in the firmware and a printed torque limiter (about 5 N m) in the wiper coupler. Any
     fault: wiper off, drum to NEUTRAL (except when the wraps are on, the spring is drawn or the

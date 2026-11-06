@@ -934,7 +934,7 @@ def build(P):
     fp = np.array([q for q in foot_pts if np.all(np.isfinite(q))])
     # D50: everything standing behind the main deck's rear edge (the reel unit) goes on a bolt-on extension tile
     ru = getattr(P, "REEL_UNIT", None)
-    x_ext = None
+    x_ext = -164.0                       # the main deck's rear edge as built before D50
     if isinstance(ru, dict) and isinstance(ru.get("deck_extension"), dict):
         x_ext = float(ru["deck_extension"]["x"][1])
     ext_pts = np.zeros((0, 2))
@@ -978,36 +978,46 @@ def build(P):
         best, bestd = c0, -1.0
         for d in np.arange(-60, 60.1, 0.5):
             c = c0 + d
-            if c - lo > 248.0 or hi - c > 248.0 * (n - 1):
+            if c - lo > 248.0 or hi - c > 240.0 * (n - 1):        # the + side tile carries the 8 mm dovetail tails
                 continue
-            dmin = min([abs((h[0] if k == "x" else h[1]) - c) for h in info["deck_holes"]] or [1e9])
+            dmin = min([abs((h[0] if k == "x" else h[1]) - c) for h in info["deck_holes"]
+                        if x_ext is None or h[0] >= x_ext] or [1e9])
             if dmin > bestd + 1e-9 or (abs(dmin - bestd) < 1e-9 and abs(d) < abs(best - c0)):
                 best, bestd = c, dmin
-        if bestd < 11.0:                       # dovetail tails 8 deep + 3 mm round the insert
+        if bestd < 0.0:                         # no position keeps the tail tile on the bed: the old 248 rule
+            for d in np.arange(-60, 60.1, 0.5):
+                c = c0 + d
+                if c - lo > 248.0 or hi - c > 248.0 * (n - 1):
+                    continue
+                dmin = min([abs((h[0] if k == "x" else h[1]) - c) for h in info["deck_holes"]] or [1e9])
+                if dmin > bestd + 1e-9:
+                    best, bestd = c, dmin
+        if bestd < 8.0:                        # D50: the tails avoid holes near the seam; 8 mm keeps the insert boss whole
             info["warnings"].append(f"deck seam {k} = {best:.1f} only {bestd:.1f} mm from a deck hole")
         return float(best)
     for i in range(1, nx):
-        seams.append(dict(axis="x", c=seam_c(dx0 + i * lx / nx, "x", dx0, dx1, nx), n=3))
+        c_ = seam_c(dx0 + i * lx / nx, "x", dx0, dx1, nx)
+        # D50: keep the dovetail tails off deck holes close to the seam (they would lose their insert)
+        near = [h[1] for h in info["deck_holes"] if abs(h[0] - c_) < 12.0 and (x_ext is None or h[0] >= x_ext)]
+        seams.append(dict(axis="x", c=c_, n=3, avoid=near))
     for i in range(1, ny):
         seams.append(dict(axis="y", c=seam_c(dy0 + i * ly / ny, "y", dy0, dy1, ny), n=3))
-    pieces = U.split_plate(outline, fw["deck_t"], seams) if seams else [outline]
     ext_k = None
     if ext_outline is not None:
         # D50 extension tile: dovetailed onto the main deck's rear edge (tails clear of the main y seams), its own tile
         whole = unary_union([outline, ext_outline])
         lo_, hi_ = ext_outline.bounds[1], ext_outline.bounds[3]
         plus = U.dovetail_seam_cs("x", x_ext, lo_ + 15, hi_ - 15, 3, avoid=[sm["c"] for sm in seams if sm["axis"] == "y"])
-        rear = whole.difference(plus).buffer(-0.075, join_style=2)
+        rear = whole.difference(plus.buffer(0.075, join_style=2))
         rear = max(getattr(rear, "geoms", [rear]), key=lambda g: g.area if g.bounds[0] < x_ext else 0.0)
-        new = []
-        for pc in pieces:
-            q = pc.intersection(plus).buffer(-0.075, join_style=2)
-            for g in getattr(q, "geoms", [q]):
-                if not g.is_empty and g.area > 50.0:
-                    new.append(g)
-        pieces = new + [rear]
+        main = whole.intersection(plus)
+        main = max(getattr(main, "geoms", [main]), key=lambda g: g.area)
+        pieces = U.split_plate(main, fw["deck_t"], seams) if seams else [main.buffer(-0.075, join_style=2)]
+        pieces = pieces + [rear]
         ext_k = len(pieces) - 1
         seams = seams + [dict(axis="x", c=x_ext, n=3, extension=True)]
+    else:
+        pieces = U.split_plate(outline, fw["deck_t"], seams) if seams else [outline]
     info["deck_seams"] = seams
     # rover holes: perimeter of every piece, pitch <= rover_hole_pitch, 7 mm in from the edge, away from deck inserts
     t = fw["deck_t"]

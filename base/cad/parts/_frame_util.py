@@ -124,7 +124,7 @@ def split_plate(outline, t, seams, tol=0.15):
     for sm in seams:
         minx, miny, maxx, maxy = outline.bounds
         lo, hi = (miny, maxy) if sm["axis"] == "x" else (minx, maxx)
-        avoid = [o["c"] for o in seams if o["axis"] != sm["axis"]]
+        avoid = [o["c"] for o in seams if o["axis"] != sm["axis"]] + list(sm.get("avoid", ()))
         plus = dovetail_seam_cs(sm["axis"], sm["c"], lo + 15, hi - 15, sm.get("n", 2), avoid=avoid)
         new = []
         for pc in pieces:

@@ -125,7 +125,7 @@ def build(out, branch, checks_file):
     except Exception:
         rng = None
     data = [
-        ("Range (2 springs, 0.5 N payout brake)", f"{rng:.1f} m" if rng else "4 to 5 m"),
+        ("Range (2 springs, 0.25 N payout brake)", f"{rng:.1f} m" if rng else "4 to 5 m"),
         ("Muzzle speed", f"{v:.1f} m/s" if v else "about 7 m/s"),
         ("Spring energy stored", f"{e:.1f} J" if e else "about 13 J"),
         ("Springs", f"{spring.get('qty', 2)} x {spring.get('name', 'Century 16 x 165.1 x 1.4')}"),
@@ -205,7 +205,7 @@ def build(out, branch, checks_file):
             continue
         mission.append(f"{names.get(key, key.replace('_', ' ').capitalize())}: {desc}")
     if not mission:
-        mission = ["Aim, cock and fire on the wiper; the line pays off against a 0.5 N slip clutch.",
+        mission = ["Aim, cock and fire on the wiper; the line pays straight off the spool behind the launcher against a 0.25 N slip clutch.",
                    "Right after landing the drum wraps the line 7 times round the capstan, then the dart anchors.",
                    "Tidy, engage REEL, tow, release, reel in, unwrap, final approach until the dart is seated."]
     links = [
@@ -406,12 +406,12 @@ def build_mechanisms(out, index_body, branch):
                     f'<th>Material</th><th>What it is</th></tr></thead><tbody>{plist}</tbody></table></div></details></div></div></section>')
     flow = [
         "The wiper motor turns the coupler (shear pin 5 N m) and the hex main shaft. The coupler's bus gear always turns with it.",
-        "Bus gear, forward turns only: the swing idler drops in and the storage reel winds through its clutch (take-up).",
+        "Bus gear, forward turns only: the swing idler drops in and the clutch hub winds the spool behind the launcher 1:1 through T2, a shaft along the deck and two bevels (take-up).",
         "Selector collar in LAUNCH: the main shaft turns the launch sleeve. Forward: sprag #1, drive gear, big gear, rack: cock, then fire. Backward: splitter idler, bevels, worm, crank-rocker: aim.",
         "Selector collar in NEUTRAL: the main shaft turns nothing but the take-up.",
         "Selector drum in its WRAP sector (N20 power, wiper off): segment gear, wrap idler, cup gear: 7 wraps round the capstan.",
-        "Selector collar in REEL: REEL gear, capstan gear: tow and reel-in; sprag #2 stops it running back.",
-        "Selector drum cam: pushes the brake bar, storage reel clutch LIGHT (flight) or FIRM (final approach).",
+        "Selector collar in REEL: REEL gear, 41T idler, C gear, one bevel, a shaft along the deck and 20T / 58T / 20T turn the capstan (50/22 x wiper): tow and reel-in; sprag #2 stops it running back.",
+        "Selector drum cam: pushes the brake bar, clutch LIGHT 0.25 N (flight) or FIRM 5 N (final approach).",
     ]
     page = f"""<title>GrappStar Mechanisms</title>
 <meta name="claude:viewport-fit-sides" content="cover">

@@ -94,10 +94,13 @@ LAYOUT = dict(
                   note="wiper output = main shaft = rail pivot; the launch sleeve (cad-launch) is coaxial on its d12 spigot"),
         drum=dict(owner="cad-drum", origin=(60.0, 0.0, -112.0), axis=(0, 1, 0), y=(1.0, 142.0),
                   note="front-below: clear of the big gear sweep (lowest z about -44) and of the reel gear zone (x <= 8)"),
-        capstan=dict(owner="cad-reel", origin=(-294.6, 140.0, 85.7), axis=(1, 0, 0),
-                     note="D50: the capstan sits in the reel unit on the deck extension behind the launcher, axis along +X in the "
-                          "rail plane y 140, cup and axial eyelet in front (REEL_UNIT); the old axis 72.1 from the main axis "
-                          "at 255 deg now carries only the cup gear, the bus gear c1 and the cup shaft K (frame R)"),
+        capstan=dict(owner="cad-reel", origin=(_CAP_X, 0.0, _CAP_Z), axis=(0, 1, 0),
+                     note="D50: the old capstan axis, 72.1 from the main axis at 255 deg, now carries the cup gear (meshing "
+                          "cad-drum's wrap idler), the bus gear c1 and the cup shaft K (cad-reel frame R); the capstan "
+                          "itself is in the reel unit (reel_unit_capstan)"),
+        reel_unit_capstan=dict(owner="cad-reel", origin=(-294.6, 140.0, 85.7), axis=(1, 0, 0),
+                               note="D50: capstan in the reel unit on the deck extension behind the launcher, axis along +X "
+                                    "in the rail plane y 140, cup and axial eyelet in front (REEL_UNIT)"),
         aim_crank=dict(owner="cad-launch", origin=(58.0, 195.0, -100.5), axis=(0, 1, 0),
                        note="worm wheel = crank in cad-launch's aim housing (planes about y 186..225), confirmed by cad-launch"),
     ),

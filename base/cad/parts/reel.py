@@ -1036,7 +1036,7 @@ def _spool():
             (FLANGE_R2, y0), (CORE_R2, y0), (CORE_R2, y1), (FLANGE_R2, y1), (FLANGE_R2, y1 + FL2_T), (8.0, y1 + FL2_T),
             (8.0, CHEEK_O[0] - 1.0), (S_D / 2 + 0.2, CHEEK_O[0] - 1.0)]
     body = prim.revolve_pts(prof, seg=160)
-    flat = prim.box(S_D / 2 - 1.0 + 0.1, 8.0, -8.0, 8.0, CHEEK_I[1], CHEEK_O[0])
+    flat = prim.box(S_D / 2 - 1.0 + 0.1, 8.0, -8.0, 8.0, CHEEK_I[1] + 1.0, CHEEK_O[0] - 1.0)
     hole = prim.cylX(1.0, 0.0, CORE_R2 + 1.0, y=0.0, z=y0 + 3.0)
     return prim.union([body, flat]) - hole
 
@@ -1670,8 +1670,10 @@ def meshes(P):
            Mesh("reel_ic", "reel_gc", M_CAP, Z_IC, Z_CAPG, face_a=f(GC_Z), face_b=f(GC_Z), why="REEL idler 41T to the C gear 22T"),
            Mesh("reel_hub", "reel_gt2", M_T, Z_HUBG, Z_HUBG, face_a=f(HUBG_Z), face_b=f(HUBG_Z),
                 frame_a=T(0, 0, HUBG_Z[0] - Z_SPOOL), why="clutch hub 40T to T2 40T"),
-           Mesh("reel_ga", "reel_icr", M_RC, Z_RC[0], Z_RC[1], face_a=f(X_CPL), face_b=f(X_CPL), why="lane C 20T to I_c 58T"),
-           Mesh("reel_icr", "reel_gc2", M_RC, Z_RC[1], Z_RC[2], face_a=f(X_CPL), face_b=f(X_CPL), why="I_c 58T to G_c 20T"),
+           Mesh("reel_ga", "reel_icr", M_RC, Z_RC[0], Z_RC[1], face_a=f(X_CPL), face_b=f(X_CPL),
+                frame_b=T(0, 0, X_CPL[0]), why="lane C 20T to I_c 58T"),
+           Mesh("reel_icr", "reel_gc2", M_RC, Z_RC[1], Z_RC[2], face_a=f(X_CPL), face_b=f(X_CPL),
+                frame_a=T(0, 0, X_CPL[0]), why="I_c 58T to G_c 20T"),
            Mesh("reel_ga2", "reel_ikr", M_RK, Z_RK[0], Z_RK[1], face_a=f(X_KPL), face_b=f(X_KPL), why="lane K 20T to I_k 76T"),
            Mesh("reel_ikr", "reel_gkc", M_RK, Z_RK[1], Z_RK[2], face_a=f(X_KPL), face_b=f(X_KPL), why="I_k 76T to G_k 20T"),
            Mesh("reel_gt3", "reel_ti", M_TS, Z_TS, Z_TI, face_a=f(TSP_Y), face_b=f(TSP_Y), why="T3 16T to the take-up idler 34T"),
@@ -1854,7 +1856,9 @@ def line_check(P, wraps_list=None):
 TETHER_DT = 1.0
 TETHER_HIT = 1e-3
 TETHER_ALWAYS = ("launch_line_*",)
-TETHER_EXTRA = {}
+TETHER_EXTRA = {"eyelet -> rail-rear pulley": ("launch_pulley_top_*", "launch_rail_rear")}
+# mid-wrap the ring orbits the capstan (r 26) and the slack dart-side line comes into the rail-rear pulley at a slant
+# (D22): it may brush the pulley's bearing and washers and the fork plates beside it
 
 
 def tether_states(P):

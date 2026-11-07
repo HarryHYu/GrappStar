@@ -450,6 +450,30 @@ class SimTest(unittest.TestCase):
             self.get("/stop")
             self.sim_set(kick_pos=0, deploy_pos=0)
 
+    def test_15_v42_drill_sign_and_deploy_guard(self):
+        # v32 tip planetary: key 3 (drills in) drives the motors backwards so the sleeves turn the "in" way
+        self.get("/stop"); time.sleep(0.3)
+        self.sim_set(kick_pos=0, deploy_pos=0)
+        self.get("/key?c=3&ms=400")
+        time.sleep(0.1)
+        d = self.sim_state()["motors"]["drills"]
+        self.assertEqual((d["dir"], d["motor_dir"]), (1, -1), d)
+        self.assertEqual(self.get_status()["motors"]["drills"], 1)
+        self.get("/stop"); time.sleep(0.3)
+        # deploy guard: drills jammed (700 mA, over 67 % of the 700 mA stall) while the pods go down: ANCHORED, depth_limited
+        self.sim_set(drill_jam=1)
+        try:
+            code, body = self.get("/auto?force=1")
+            self.assertEqual(code, 200, body)
+            s = self.wait_for(lambda s: s["phase"] in ("ANCHORED", "FAULT"), 30.0, "anchored", poll=0.3)
+            self.assertEqual(s["phase"], "ANCHORED", s)
+            self.assertIn("depth_limited", s["warnings"])
+            self.assertLess(self.sim_state()["deploy_pos"], 1400, "pods stopped part way")
+        finally:
+            self.sim_set(drill_jam=0)
+            self.get("/stop")
+            self.sim_set(kick_pos=0, deploy_pos=0)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

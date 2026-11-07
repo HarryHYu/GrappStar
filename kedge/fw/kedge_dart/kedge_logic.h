@@ -13,7 +13,7 @@
 
 namespace kedge {
 
-static const char* const FW_VERSION = "kedge-dart-v4.1";
+static const char* const FW_VERSION = "kedge-dart-v4.2";
 
 enum { DEPLOY = 0, KICK = 1, DRILLS = 2, FOOT = 3, NMOT = 4 };
 static inline const char* motorName(int m) {
@@ -24,12 +24,19 @@ static inline const char* motorName(int m) {
 // ---------------------------------------------------------------------------------------------------------------
 // Pin map. GPIO numbers of the Seeed XIAO ESP32S3 (Dn labels in the strings). The sketch checks these numbers against
 // the Arduino Dn macros at compile time, the PC test checks the layout.
-struct PinMap { int gpioA, gpioB; const char* labelA; const char* labelB; int drv; char ch; };
+// sign: +1 = the part turns the way the motor shaft turns; -1 = a gear stage reverses it, so the sketch drives the
+// channel the other way (dir +1 always means out / in / down for the PART, keys and sequences never change).
+// v32 (dart-cad, 7 Nov 2026): each drill sleeve is driven through a 2.33:1 planetary in its tip hub (star layout:
+// carrier held, sun on the motor shaft, ring in the sleeve), so the sleeve turns OPPOSITE to the motor: DRILLS sign -1.
+// Both drills have the stage, so the left / right counter-rotation (right drill leads swapped) is unchanged.
+// Building v31 (no planetary)? Set DRILL_SIGN to +1 (or swap D8 / D9 at DRV#2 AIN1 / AIN2); BENCH_TEST step 4 decides.
+static constexpr int DRILL_SIGN = -1;
+struct PinMap { int gpioA, gpioB; const char* labelA; const char* labelB; int drv; char ch; int sign; };
 static constexpr PinMap PINS[NMOT] = {
-  {1, 2, "D0", "D1", 1, 'A'},     // deploy N20: DRV#1 AIN1 / AIN2
-  {3, 4, "D2", "D3", 1, 'B'},     // kick N20:   DRV#1 BIN1 / BIN2
-  {7, 8, "D8", "D9", 2, 'A'},     // drills:     DRV#2 AIN1 / AIN2, BOTH drill motors in parallel on AOUT1 / AOUT2
-  {43, 44, "D6", "D7", 2, 'B'},   // foot N20:   DRV#2 BIN1 / BIN2 (GPIO43/44 twitch at reset: harmless on a slow worm)
+  {1, 2, "D0", "D1", 1, 'A', +1},          // deploy N20: DRV#1 AIN1 / AIN2
+  {3, 4, "D2", "D3", 1, 'B', +1},          // kick N20:   DRV#1 BIN1 / BIN2
+  {7, 8, "D8", "D9", 2, 'A', DRILL_SIGN},  // drills:     DRV#2 AIN1 / AIN2, BOTH drill motors in parallel on AOUT1 / AOUT2
+  {43, 44, "D6", "D7", 2, 'B', +1},        // foot N20:   DRV#2 BIN1 / BIN2 (GPIO43/44 twitch at reset: harmless on a slow worm)
 };
 static constexpr int PIN_SDA_GPIO = 5, PIN_SCL_GPIO = 6;   // D4 / D5: INA219 0x40 + BNO085 0x4A
 // D10 (GPIO9): optional video power switch (WIRING.md "Optional: video power switch"). HIGH = camera and VTX on. With
@@ -87,12 +94,12 @@ struct Tuning {
   int imuUpAxis = 3; float uprightMaxDeg = 70, invertedMinDeg = 120;
   // full orientation gate (dart-physics 7 Nov) once the chip axis pointing to the NOSE is known too (imuNoseAxis, same
   // coding; 0 = not known: the tilt-only rule above). |roll| under levelRollDeg: anchor as is; up to sideRollDeg: the
-  // pods first swing about 20 deg with the drills off (levelMs at full duty), which levels the hull on hard ground, then
+  // pods first swing about 16 deg with the drills off (levelMs at full duty), which levels the hull on hard ground, then
   // the anchor; beyond: on its side or upside down, not anchored. Nose pitch must be inside pitchMinDeg..pitchMaxDeg.
   // v31 CAD (dart-cad 7 Nov): the BNO085 lies flat in the sled turned 90 deg, board x across the dart, so the nose is chip
   // +y or -y: set imuNoseAxis = 2 or -2 from BENCH_TEST step 7 (left at 0 until then: tilt-only gate).
   int imuNoseAxis = 0; float levelRollDeg = 10, sideRollDeg = 60, pitchMinDeg = -25, pitchMaxDeg = 15;
-  uint32_t levelMs = 650, levelSettleMs = 600;   // 650 ms = about 20 deg of the 43 (dart-physics correction to (6))
+  uint32_t levelMs = 500, levelSettleMs = 600;   // v32: pods to about 16 deg of the 45 (dart-physics v32: levels by 14 deg)
   // anchoring in soil (dart-physics 7 Nov): the augers sweep sideways through soil, so the deploy worm stalls in soil
   // long before its end stop. A deploy stall before podsDownFrac of podsTravelMs is soil: the deploy pauses millOffMs while
   // the drills keep cutting, then pushes again (milling). Travel is counted at full speed (a load factor from the pair
@@ -100,7 +107,11 @@ struct Tuning {
   // when the estimate is past podsStuckDownFrac, else warning pods_time_limit (firm soil).
   float podsDownFrac = 0.85f, podsStuckDownFrac = 0.6f; uint32_t millOffMs = 200, millNoProgressMs = 5000;
   uint32_t podsPlainMaxMs = 6000;                       // pods step limit while no milling has started (the v4 limit); deployMaxMs once milling
-  float drillRelaxFrac = 0.85f; uint32_t drillRelaxMs = 500;   // drill pair near its stall: pause the deploy so the cut relaxes
+  // v4.2 deploy guard (dart-physics v32): end the milling deploy when the drill pair, read alone, is over drillGuardFrac
+  // of its real stall current (drillPairStallMa, BENCH_TEST step 4, at refV): the sleeves are then never driven deeper
+  // than the drills can back them out of after standing (release margin 1.15). Anchor ends ANCHORED, warning depth_limited.
+  // (Replaces the v4.1 85 % "drill relax" pause, which this lower line always reached first.)
+  float drillPairStallMa = 700, drillGuardFrac = 0.67f;
   // release: drills that stall unscrewing are rocked (in for rockInMs, then out again) up to rockMax times before
   // DRILL_JAM; pods that stall on the way up before 60 % back are milled the same way, PODS_JAM only after
   // millNoProgressMs without progress
@@ -123,7 +134,7 @@ enum Seq { IDLE, K_SWING, K_PLANT, F_AFTER, D_DEPLOY, D_AFTER, DONE, ABORTED, R_
 static inline const char* seqName(int s) {
   static const char* n[] = {"idle", "kick swing", "kick + foot planting", "foot finishing", "deploy + drills", "drills finishing",
                             "anchored", "aborted", "release: drills out", "release: drills out + pods up", "release: foot out",
-                            "release: kick back + foot out", "released", "levelling: pods to 20 deg, drills off"};
+                            "release: kick back + foot out", "released", "levelling: pods to 16 deg, drills off"};
   return (s >= 0 && s < NSEQ) ? n[s] : "?";
 }
 enum Phase { P_IDLE, P_ARMED, P_FLIGHT, P_LANDED, P_ANCHORING, P_ANCHORED, P_RELEASING, P_FAULT };
@@ -327,7 +338,7 @@ struct Kedge {
   float gF[3] = {0, 0, 1};                             // filtered gravity direction (unit vector, chip axes) while still
   // v4.1 anchoring and release state
   bool millPause = false, milled = false, rocking = false; uint32_t millUntil = 0, progT = 0, lastReadT = 0; float progPos = 0, deployEst = 0;
-  int rocks = 0; float soilMa = -1; bool kickPulse = false; uint32_t millEndT = 0, millDurMs = 0;
+  int rocks = 0; float soilMa = -1; bool kickPulse = false; int guardHits = 0; bool guardOn = false; uint32_t guardT = 0; uint32_t millEndT = 0, millDurMs = 0;
   bool levelSettle = false; uint32_t levelT = 0;
   float g0[3] = {0, 0, 0}; bool g0ok = false, moving = false, moveOn = false; uint32_t moveT = 0;   // anchor motion (ANCHORED)
 
@@ -421,8 +432,9 @@ struct Kedge {
     return P_IDLE;
   }
 
-  enum { W_FOOT_STALL = 1, W_DRILL_STALL = 2, W_PLANT_LIMIT = 4, W_PODS_LIMIT = 8, W_KICK_ALREADY = 16 };
-  static const char* warnName(int b) { static const char* n[] = {"foot_stalled", "drills_stalled", "kick_plant_time_limit", "pods_time_limit", "kick_already_down"}; return n[b]; }
+  enum { W_FOOT_STALL = 1, W_DRILL_STALL = 2, W_PLANT_LIMIT = 4, W_PODS_LIMIT = 8, W_KICK_ALREADY = 16, W_DEPTH_LIMIT = 32, W_NBITS = 6 };
+  static const char* warnName(int b) { static const char* n[] = {"foot_stalled", "drills_stalled", "kick_plant_time_limit", "pods_time_limit", "kick_already_down", "depth_limited"}; return n[b]; }
+  float guardMa() const { return tu.drillGuardFrac * tu.drillPairStallMa * vScale(); }   // sequences run at full duty
   int duty() const { return seqRunning() ? 255 : spd; }   // sequences always run at full duty (stall currents are for 255)
   static float fin(float v) { return v == v && v < 1e9f && v > -1e9f ? v : 0.f; }
   void ev(const char* s) { strncpy(lastEvent, s, sizeof(lastEvent) - 1); lastEvent[sizeof(lastEvent) - 1] = 0; if (io.log) io.log(s); }
@@ -575,14 +587,21 @@ struct Kedge {
     }
     if (armed) { armed = false; ev("auto: disarmed first (the launch was not seen)"); }
     stopAll(now); pairReset(now); fault = F_NONE; armed = false; warn = 0; footStalled = drillsStalled = false;
-    millPause = milled = rocking = false; rocks = 0; soilMa = -1; levelSettle = false;
+    millPause = milled = rocking = false; rocks = 0; soilMa = -1; levelSettle = false; guardHits = 0; guardOn = false;
     seqStart = now; peakMa = 0;
     if (o == O_LEANING && !force) {                   // leaning on a pod: the pods level the hull first (drills off)
-      seq = K_LEVEL; seqT0 = now; drive(DEPLOY, +1, tu.levelMs, now); ev("auto: leaning, pods to 20 deg first (drills off)");
+      seq = K_LEVEL; seqT0 = now; drive(DEPLOY, +1, tu.levelMs, now); ev("auto: leaning, pods to 16 deg first (drills off)");
       return nullptr;
     }
     startSwing(now);
     return nullptr;
+  }
+  // deploy guard hit: stop the pods where they are (and the drills), anchored with warning depth_limited
+  void depthLimit(uint32_t now) {
+    drive(DEPLOY, 0, 0, now); drive(DRILLS, 0, 0, now); millPause = false; warn |= W_DEPTH_LIMIT;
+    if (deployKnown && deployPos > deployOutOk) deployPos = deployOutOk;   // best estimate of where the pods stopped
+    millDurMs = now - seqT0; millEndT = now; seq = DONE; pairReset(now);
+    char b[64]; snprintf(b, sizeof b, "auto: drills at %.0f %% of stall: depth limited, anchored", 100.f * tu.drillGuardFrac); ev(b);
   }
   void startSwing(uint32_t now) { seq = K_SWING; seqT0 = now; condT = 0; pairReset(now); kickSwing0 = kickPos; drive(KICK, +1, tu.kickMaxMs + 500, now); ev("auto: kick swing"); }
   const char* startRelease(uint32_t now) {
@@ -905,7 +924,8 @@ struct Kedge {
         }
         if (deployPos - progPos >= 0.02f * tu.podsTravelMs) { progPos = deployPos; progT = now; }
         bool stuck = now - progT >= tu.millNoProgressMs;
-        if (millPause) {                              // deploy held off: milling (soil) or letting the cut relax
+        if (millPause) {                              // deploy held off (milling): the drills run alone, read every tick
+          if (dir[DRILLS] && heldT(fMa > guardMa(), guardOn, guardT, tu.stallHoldMs, now) && now - motT0[DRILLS] > tu.surgeIgnoreMs) { depthLimit(now); break; }
           if (dir[DRILLS] && soloStalled(DRILLS, now)) { drive(DRILLS, 0, 0, now); warn |= W_DRILL_STALL; drillsStalled = true; ev("auto: drills stalled (stone?), pods carry on"); }
           if ((int32_t)(now - millUntil) < 0) break;
           millPause = false; int32_t left = (int32_t)tu.deployMaxMs - (int32_t)t;
@@ -919,18 +939,16 @@ struct Kedge {
         }
         int r = stallPair(DEPLOY, DRILLS, now);
         if (t < tu.podsMinMs) r &= ~1;
+        // deploy guard: two readings of the drills alone in a row over drillGuardFrac of their stall (dart-physics v32)
+        if (dir[DRILLS] && lastReadT == now) guardHits = soloMa > guardMa() ? guardHits + 1 : 0;
+        if (guardHits >= 2) { depthLimit(now); break; }
         if (r & 2) { drive(DRILLS, 0, 0, now); warn |= W_DRILL_STALL; drillsStalled = true; ev("auto: drills stalled (stone?), pods carry on"); }
         bool st = r & 1;
         // a deploy stall before most of the travel is soil, not the end stop: mill (dart-physics 7 Nov). Travel unknown
         // (after a reset): the first stall is the stop, as before
-        // the drill pair near its stall (its last reading alone, during the worm's pause, over 85 % of its line): pause the
-        // deploy drillRelaxMs so the cut relaxes (dart-physics 7 Nov). The total current cannot tell this from the pods at
-        // their stop, so only the drills' own reading counts
-        bool heavy = dir[DRILLS] && dir[DEPLOY] && lastReadT == now && soloMa > tu.drillRelaxFrac * stallLim(DRILLS) && !(r & 2);
-        if ((st && deployKnown && deployEst < tu.podsDownFrac * tu.podsTravelMs && !stuck) || (heavy && !stuck)) {
-          drive(DEPLOY, 0, 0, now); millPause = true; millUntil = now + (heavy ? tu.drillRelaxMs : tu.millOffMs);
-          if (heavy && !st) ev("auto: drills near stall, deploy paused 0.5 s");
-          else if (!milled) { milled = true; ev(heavy ? "auto: pods in soil, milling; drills near stall, deploy paused 0.5 s" : "auto: pods in soil, milling (deploy pulses, drills cutting)"); }
+        if (st && deployKnown && deployEst < tu.podsDownFrac * tu.podsTravelMs && !stuck) {
+          drive(DEPLOY, 0, 0, now); millPause = true; millUntil = now + tu.millOffMs; guardOn = false;
+          if (!milled) { milled = true; ev("auto: pods in soil, milling (deploy pulses, drills cutting)"); }
           break;
         }
         if (!milled && t >= tu.podsPlainMaxMs) { drive(DEPLOY, 0, 0, now); st = false; }   // no soil seen: the old 6 s limit
@@ -1021,7 +1039,7 @@ struct Kedge {
     if (flight.launched) snprintf(tl, sizeof tl, "%lu", (unsigned long)flight.tLaunch);
     if (flight.st == Flight::LANDED) snprintf(td, sizeof td, "%lu", (unsigned long)flight.tLand);
     char wl[160] = ""; int k = 0;
-    for (int b = 0; b < 5; b++) if (warn & (1 << b)) k += snprintf(wl + k, sizeof wl - k, "%s\"%s\"", k ? "," : "", warnName(b));
+    for (int b = 0; b < W_NBITS; b++) if (warn & (1 << b)) k += snprintf(wl + k, sizeof wl - k, "%s\"%s\"", k ? "," : "", warnName(b));
     float rg = 0, pg = 0; if (noseKnown() && orient(now) != O_UNKNOWN) rollPitch(rg, pg);   // body roll / pitch from gravity
     return snprintf(buf, n, "{\"fw\":\"%s\",\"t_ms\":%lu,\"phase\":\"%s\",\"fault\":%s%s%s,\"rail_V\":%.2f,\"current_mA\":%.0f,\"peak_mA\":%.0f,\"speed\":%d,"
                     "\"motors\":{\"deploy\":%d,\"kick\":%d,\"drills\":%d,\"foot\":%d},\"seq\":\"%s\",\"armed\":%s,\"auto_on_landing\":%s,\"landed\":%s,"

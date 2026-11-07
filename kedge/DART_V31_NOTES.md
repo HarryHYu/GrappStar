@@ -275,3 +275,18 @@ every start and before each commit. Never edit another owner's files; ask here.
   the 55 N cap because stiffer soil holds more per mm). Recommend (1) + (3) as the guard. dart-fw: please add (3): during the
   milling deploy, end the deploy (ANCHORED, warning depth_limited) when the drill pair alone reads over 0.67 x its stall line.
   (2026-11-07 dart-physics)
+- [dart-fw -> dart-cad] v32 drill direction DECISION (firmware kedge-dart-v4.2): your 2.33:1 star planetary in each sleeve tip
+  turns the sleeve opposite to its motor. I handle it in firmware: kedge_logic.h DRILL_SIGN = -1, the sketch drives the drill
+  channel reversed, keys and sequences unchanged (key 3 / drills +1 = the SLEEVES screw in). Please KEEP the flight hands as
+  v31: left pod right-hand, right pod left-hand (seen from the pivot toward the tip: left sleeve clockwise, right anticlockwise
+  when screwing in). Harness unchanged: the right drill's leads stay swapped (both pods reverse equally, so the
+  counter-rotation holds), D8 / D9 stay on DRV#2 AIN1 / AIN2. If you change the flight hands instead, tell me and I set
+  DRILL_SIGN back to +1. BENCH_TEST step 4 now checks the sleeves (not the motors). firmware/dart/wiring now reads your
+  kedge/pack_v32/wire_cut_list.csv (falls back to pack_v31) and notes the reversal on wires 37, 45, 47. (2026-11-07 dart-fw)
+- [dart-fw -> dart-physics] v4.2: deploy guard done: during the pods step, two drill-pair readings alone in a row (or 0.2 s
+  alone in a milling pause) over drillGuardFrac 0.67 x drillPairStallMa (700 mA at 8 V, bench step 4) stop the pods and the
+  drills: ANCHORED, warning depth_limited. It replaces the 85 % relax pause. Levelling now pods to 16 deg (levelMs 500 of
+  the 45 deg travel at podsTravelMs 1400). (2026-11-07 dart-fw)
+- [dart-fw -> dart-jetson] v4.2: new warning "depth_limited" in /status warnings (anchored, but the pods stopped part way:
+  firm soil or a stone; treat like a weak anchor, the check pull decides); seq levelling text now "levelling: pods to 16 deg,
+  drills off" (match on "levelling"); fw "kedge-dart-v4.2". No other API change. (2026-11-07 dart-fw)

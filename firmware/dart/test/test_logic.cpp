@@ -369,7 +369,7 @@ int main() {
   { fresh(); P.kickLand = 1000000000; K.startAuto(NOW); run(3500); P.footStallFwd = true; uint32_t t1 = NOW; run(3000);
     CHECK(P.mdir[FOOT] == 0 && logged("foot stalled (stone?)"), "foot stalls while the kick plants: foot stopped");
     CHECK(when("foot stalled (stone?)") - t1 < 1500, "...within 1.5 s"); }
-  { fresh(); K.startAuto(NOW); while (K.seq != D_DEPLOY && NOW < 20000) run(5); run(300); P.drillStallFwd = true; run(1500);
+  { fresh(); K.tu.drillGuardFrac = 9; K.startAuto(NOW); while (K.seq != D_DEPLOY && NOW < 20000) run(5); run(300); P.drillStallFwd = true; run(1500);   // guard off: the fallback path
     CHECK(logged("drills stalled (stone?)"), "drills stall while the pods swing: drills stopped, pods carry on");
     P.drillStallFwd = false; run(15000); CHECK(K.seq == DONE, "...and the sequence still anchors"); }
   { fresh(); K.startAuto(NOW); run(20000); K.startRelease(NOW); run(3300); P.drillJam = true; run(1500);
@@ -516,8 +516,10 @@ int main() {
     CHECK(std::string(faultName(K.fault)) == "KICK_JAM" && allOff(), "kick stalled near stowed at the start of /auto: KICK_JAM, not 'kick already down'"); }
   { fresh(); P.footStallFwd = false; K.startAuto(NOW); run(25000); std::string st = statusJson();
     CHECK(st.find("\"warnings\":[]") != std::string::npos, "clean anchor: no warnings");
+    fresh(); K.tu.drillGuardFrac = 9; P.drillStallFwd = true; K.startAuto(NOW); run(25000); st = statusJson();
+    CHECK(st.find("drills_stalled") != std::string::npos, "drills stopped by a stone (guard off): status warnings list says so");
     fresh(); P.drillStallFwd = true; K.startAuto(NOW); run(25000); st = statusJson(); save("status_warnings.json", st);
-    CHECK(st.find("drills_stalled") != std::string::npos, "drills stopped by a stone: status warnings list says so"); }
+    CHECK(st.find("depth_limited") != std::string::npos && K.seq == DONE, "drills at a stone with the v4.2 guard: anchored, warnings say depth_limited"); }
 
   // ===================================================================================================== review round 8 regressions
   section("review round 8 regressions");
@@ -552,7 +554,7 @@ int main() {
   { fresh(); K.arm(true, true, NOW); K.key('3', 1500, NOW); run(100); P.shortCircuit = true; run(30); P.shortCircuit = false;
     CHECK(K.fault == F_OVERCURRENT && !K.armed, "a fault while armed disarms (landing cannot clear it and drive motors)");
     ACC = [](uint32_t t) { return flightTrace(t, NOW + 500 > t ? 0 : 0); }; run(100); CHECK(allOff(), "...motors stay off"); }
-  { fresh(); K.startAuto(NOW); while (K.seq != D_DEPLOY) run(5); run(400); P.drillStallFwd = true; run(2000);
+  { fresh(); K.tu.drillGuardFrac = 9; K.startAuto(NOW); while (K.seq != D_DEPLOY) run(5); run(400); P.drillStallFwd = true; run(2000);
     int restarts = 0; for (auto& l : LOG) if (l.find("drills stalled") != std::string::npos) restarts++;
     run(10000); restarts = 0; for (auto& l : LOG) if (l.find("drills stalled") != std::string::npos) restarts++;
     CHECK(restarts == 1 && K.seq == DONE, "drills stalled while the pods swing are not driven again in the finishing step"); P.drillStallFwd = false; }
@@ -713,8 +715,23 @@ int main() {
   { fresh(); K.startAuto(NOW); run(25000);
     CHECK(K.seq == DONE && !logged("milling"), "no soil resistance: no milling, anchors as before");
     std::string st = statusJson(); CHECK(K.soilMa > 300 && st.find("\"soil_mA\":") != std::string::npos, "soil_mA: the drills' current in soil is reported (about 380 mA here)"); }
-  { fresh(); P.drillHeavy = true; K.startAuto(NOW); run(40000);
-    CHECK(logged("drills near stall, deploy paused") && K.seq == DONE, "drill pair near its stall: the deploy pauses 0.5 s so the cut relaxes; the step still ends (time or progress limit)"); }
+  // v4.2 deploy guard (dart-physics v32): the drill pair alone over 67 % of its 700 mA stall (469 mA at 8 V) ends the deploy
+  { fresh(); P.drillHeavy = true; K.startAuto(NOW); run(40000);   // drills read 520 mA alone in soil (about 494 at 7.6 V)
+    float podsAt = P.deploy;
+    CHECK(K.seq == DONE && (K.warn & Kedge::W_DEPTH_LIMIT) && logged("depth limited") && allOff() && podsAt < P.deployEnd,
+          "drill pair over 67 % of its stall: deploy stopped where it was, drills off, ANCHORED with depth_limited");
+    CHECK(statusJson().find("depth_limited") != std::string::npos, "...and /status warnings say depth_limited"); }
+  { fresh(); K.startAuto(NOW); run(25000);   // normal digging (380 to 420 mA, under 446 at 7.6 V): no guard
+    CHECK(K.seq == DONE && !(K.warn & Kedge::W_DEPTH_LIMIT) && P.deploy >= P.deployEnd, "normal digging stays under the guard: pods fully down"); }
+  { fresh(); P.drillHeavy = true; P.soilAt = 600; K.startAuto(NOW); run(40000);
+    CHECK(K.seq == DONE && (K.warn & Kedge::W_DEPTH_LIMIT), "the guard also ends a milling deploy (drills read alone in the pauses)"); }
+  { fresh(); K.tu.drillPairStallMa = 900; P.drillHeavy = true; K.startAuto(NOW); run(40000);   // bench says 900: the line is 603
+    CHECK(!(K.warn & Kedge::W_DEPTH_LIMIT), "the guard follows the bench-measured drillPairStallMa (900 mA: 520 is under 67 %)"); }
+  { fresh(); K.startAuto(NOW); run(20000); P.drillHeavy = true; K.startRelease(NOW); run(30000);
+    CHECK(K.seq == RELEASED && K.fault == F_NONE, "the guard does not touch the release"); }
+  // v4.2 drill gear sign (v32 tip planetary reverses each sleeve)
+  CHECK(PINS[DRILLS].sign == -1 && PINS[DEPLOY].sign == 1 && PINS[KICK].sign == 1 && PINS[FOOT].sign == 1,
+        "v32: only the drill channel is driven reversed (tip planetary); keys and sequences keep +1 = sleeves screw in");
   { fresh(); K.startAuto(NOW); run(20000); P.deployJamBackAt = 700; K.startRelease(NOW); run(30000);
     CHECK(logged("milling up") && std::string(faultName(K.fault)) == "PODS_JAM", "release: pods held part way up are milled first, PODS_JAM after 8 s without progress"); }
   // orientation gate with the nose axis known (BENCH_TEST step 7)

@@ -367,7 +367,7 @@
    "purple",
    "28 AWG",
    50,
-   "drills",
+   "drills; v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)",
    40
   ],
   [
@@ -426,7 +426,7 @@
    "Kick N20 + (red)",
    "red",
    "26 AWG",
-   200,
+   215,
    "out through the hole in the saddle floor",
    46
   ],
@@ -436,7 +436,7 @@
    "Kick N20 - (black)",
    "black",
    "26 AWG",
-   200,
+   215,
    "",
    47
   ],
@@ -446,8 +446,8 @@
    "Drill motor LEFT + (red)",
    "red",
    "26 AWG",
-   175,
-   "out the left flank hole, 30 mm loop for the pod swing",
+   170,
+   "out the left flank hole, 30 mm loop for the pod swing; v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)",
    48
   ],
   [
@@ -456,7 +456,7 @@
    "Drill motor LEFT - (black)",
    "black",
    "26 AWG",
-   175,
+   170,
    "",
    49
   ],
@@ -466,8 +466,8 @@
    "Drill motor RIGHT - (black)  SWAPPED",
    "black",
    "26 AWG",
-   175,
-   "reversed on purpose: the pair counter-rotates",
+   170,
+   "reversed on purpose: the pair counter-rotates; v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)",
    50
   ],
   [
@@ -476,7 +476,7 @@
    "Drill motor RIGHT + (red)  SWAPPED",
    "red",
    "26 AWG",
-   175,
+   170,
    "",
    51
   ],
@@ -486,7 +486,7 @@
    "Foot N20 + (red)",
    "red",
    "26 AWG",
-   310,
+   300,
    "forward along the top through the disc notches, out the skin hole, 60 mm loop round the hub, through the pole channel",
    52
   ],
@@ -496,7 +496,7 @@
    "Foot N20 - (black)",
    "black",
    "26 AWG",
-   310,
+   300,
    "silicone wire, it flexes every deploy",
    53
   ],
@@ -517,8 +517,8 @@
   "24 AWG orange": 195,
   "24 AWG black": 195,
   "26 AWG white": 145,
-  "26 AWG black": 1265,
-  "26 AWG red": 1170,
+  "26 AWG black": 1260,
+  "26 AWG red": 1165,
   "26 AWG orange": 95,
   "28 AWG orange": 120,
   "28 AWG black": 360,
@@ -673,7 +673,7 @@
    40,
    "CHANGE (now #37)",
    "was XIAO D8 -> DRV#2 AIN1 + BIN1 (bridge the two pads) (45 mm); now XIAO D8 -> DRV#2 AIN1 (only AIN1: NO bridge to BIN1) (50 mm)",
-   "drills"
+   "drills; v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)"
   ],
   [
    41,
@@ -708,49 +708,49 @@
   [
    46,
    "CHANGE (now #43)",
-   "was DRV#1 BOUT1 -> Kick N20 + (red) (150 mm); now DRV#1 BOUT1 -> Kick N20 + (red) (200 mm)",
+   "was DRV#1 BOUT1 -> Kick N20 + (red) (150 mm); now DRV#1 BOUT1 -> Kick N20 + (red) (215 mm)",
    "out through the hole in the saddle floor"
   ],
   [
    47,
    "CHANGE (now #44)",
-   "was DRV#1 BOUT2 -> Kick N20 - (black) (150 mm); now DRV#1 BOUT2 -> Kick N20 - (black) (200 mm)",
+   "was DRV#1 BOUT2 -> Kick N20 - (black) (150 mm); now DRV#1 BOUT2 -> Kick N20 - (black) (215 mm)",
    ""
   ],
   [
    48,
    "CHANGE (now #45)",
-   "was DRV#2 AOUT1 -> Drill motor LEFT + (red) (195 mm); now DRV#2 AOUT1 -> Drill motor LEFT + (red) (175 mm)",
-   "out the left flank hole, 30 mm loop for the pod swing"
+   "was DRV#2 AOUT1 -> Drill motor LEFT + (red) (195 mm); now DRV#2 AOUT1 -> Drill motor LEFT + (red) (170 mm)",
+   "out the left flank hole, 30 mm loop for the pod swing; v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)"
   ],
   [
    49,
    "CHANGE (now #46)",
-   "was DRV#2 AOUT2 -> Drill motor LEFT - (black) (195 mm); now DRV#2 AOUT2 -> Drill motor LEFT - (black) (175 mm)",
+   "was DRV#2 AOUT2 -> Drill motor LEFT - (black) (195 mm); now DRV#2 AOUT2 -> Drill motor LEFT - (black) (170 mm)",
    ""
   ],
   [
    50,
    "CHANGE (now #47)",
-   "was DRV#2 BOUT1 -> Drill motor RIGHT - (black)  SWAPPED (170 mm); now DRV#2 AOUT1 (same pad as the LEFT red) -> Drill motor RIGHT - (black)  SWAPPED (175 mm)",
-   "reversed on purpose: the pair counter-rotates"
+   "was DRV#2 BOUT1 -> Drill motor RIGHT - (black)  SWAPPED (170 mm); now DRV#2 AOUT1 (same pad as the LEFT red) -> Drill motor RIGHT - (black)  SWAPPED (170 mm)",
+   "reversed on purpose: the pair counter-rotates; v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)"
   ],
   [
    51,
    "CHANGE (now #48)",
-   "was DRV#2 BOUT2 -> Drill motor RIGHT + (red)  SWAPPED (170 mm); now DRV#2 AOUT2 (same pad as the LEFT black) -> Drill motor RIGHT + (red)  SWAPPED (175 mm)",
+   "was DRV#2 BOUT2 -> Drill motor RIGHT + (red)  SWAPPED (170 mm); now DRV#2 AOUT2 (same pad as the LEFT black) -> Drill motor RIGHT + (red)  SWAPPED (170 mm)",
    ""
   ],
   [
    52,
    "CHANGE (now #49)",
-   "was DRV#3 AOUT1 -> Foot N20 + (red) (255 mm); now DRV#2 BOUT1 -> Foot N20 + (red) (310 mm)",
+   "was DRV#3 AOUT1 -> Foot N20 + (red) (255 mm); now DRV#2 BOUT1 -> Foot N20 + (red) (300 mm)",
    "forward along the top through the disc notches, out the skin hole, 60 mm loop round the hub, through the pole channel"
   ],
   [
    53,
    "CHANGE (now #50)",
-   "was DRV#3 AOUT2 -> Foot N20 - (black) (255 mm); now DRV#2 BOUT2 -> Foot N20 - (black) (310 mm)",
+   "was DRV#3 AOUT2 -> Foot N20 - (black) (255 mm); now DRV#2 BOUT2 -> Foot N20 - (black) (300 mm)",
    "silicone wire, it flexes every deploy"
   ]
  ]

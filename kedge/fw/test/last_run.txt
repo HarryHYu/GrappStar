@@ -250,7 +250,8 @@ ok:   deploy wire open: NO_CURRENT at the start of the pods step
 ok:   kick jams half way back: KICK_JAM (not 'released')
 ok:   kick stalled near stowed at the start of /auto: KICK_JAM, not 'kick already down'
 ok:   clean anchor: no warnings
-ok:   drills stopped by a stone: status warnings list says so
+ok:   drills stopped by a stone (guard off): status warnings list says so
+ok:   drills at a stone with the v4.2 guard: anchored, warnings say depth_limited
 
 == review round 8 regressions
 ok:   vibrating rail (0.18 g rms) and a 0 ms ramp into the push: launch seen, auto runs
@@ -343,7 +344,13 @@ ok:   rail 0 V (plug out, USB only): batt none
 ok:   pods stalled in soil at 600 of 1400: milled down to the stop (not taken as down)
 ok:   no soil resistance: no milling, anchors as before
 ok:   soil_mA: the drills' current in soil is reported (about 380 mA here)
-ok:   drill pair near its stall: the deploy pauses 0.5 s so the cut relaxes; the step still ends (time or progress limit)
+ok:   drill pair over 67 % of its stall: deploy stopped where it was, drills off, ANCHORED with depth_limited
+ok:   ...and /status warnings say depth_limited
+ok:   normal digging stays under the guard: pods fully down
+ok:   the guard also ends a milling deploy (drills read alone in the pauses)
+ok:   the guard follows the bench-measured drillPairStallMa (900 mA: 520 is under 67 %)
+ok:   the guard does not touch the release
+ok:   v32: only the drill channel is driven reversed (tip planetary); keys and sequences keep +1 = sleeves screw in
 ok:   release: pods held part way up are milled first, PODS_JAM after 8 s without progress
 ok:   roll 38 deg (leaning on a pod, the usual rest on hard ground): leaning
 ok:   leaning: /auto first swings the pods with the drills off
@@ -367,4 +374,4 @@ ok:   status JSON has video, batt, batt_V, orient, tilt_deg and stays under 1000
 == whole mission phases
 ok:   IDLE > ARMED > FLIGHT > ANCHORING > ANCHORED > RELEASING > IDLE
 
-306 checks, ALL PASS
+313 checks, ALL PASS

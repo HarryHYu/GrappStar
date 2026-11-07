@@ -1,4 +1,4 @@
-# KEDGE dart firmware v4.1
+# KEDGE dart firmware v4.2
 
 Firmware for the KEDGE dart: Seeed XIAO ESP32S3, two DRV8833 drivers (four motor channels), INA219 current sensor,
 BNO085 IMU. It anchors the dart after landing, releases it again, records the flight, and takes commands over WiFi.
@@ -59,7 +59,7 @@ Note for arduino-cli users: on this board the menu value for "USB CDC On Boot: E
 4. Click Upload (arrow). Wait for "Hard resetting via RTS pin" / "Done uploading".
    If the port does not appear or the upload fails: hold the XIAO's **B** (boot) button, tap **R** (reset), release
    B, then upload again. After such an upload, tap R once.
-5. Tools > Serial Monitor, 115200 baud, "No line ending". You should see `KEDGE v4.1 ready` and the key list.
+5. Tools > Serial Monitor, 115200 baud, "No line ending". You should see `KEDGE v4.2 ready` and the key list.
    Type `z` and press Enter: expect `I2C device at 0x40` (INA219) and `0x4a` (BNO085; some boards answer at `0x4b`, also fine).
 
 ## Upload over WiFi (after the first USB upload)
@@ -95,6 +95,8 @@ aborted and the dart disarms when the upload starts.
 - v4.1: `/auto` refuses a dart that is on its side, upside down or nose steep (`/auto?force=1` tries anyway), and
   refuses when the battery is critical (6.4 V at rest; `/release` always runs). In soil the pods are milled down in
   pulses (up to 150 s; loam about 90 s). Released drills that stick are rocked before `DRILL_JAM`.
+- v4.2: the deploy guard stops the pods when the drill pair reaches 67 % of its stall (`depth_limited`), and the drill
+  channel is driven reversed for the v32 tip planetary (`DRILL_SIGN` in `kedge_logic.h`; BENCH_TEST step 4 checks it).
 - **Power on with the legs stowed.** The firmware keeps track of the kick's travel from power-on to tell a jammed kick
   from one that is already down or stowed.
 

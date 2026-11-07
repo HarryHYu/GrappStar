@@ -20,7 +20,7 @@ Directions used below (firmware convention, +1 in `/status` `motors`):
 |---|---|---|
 | `1` | deploy | pods swing **down** |
 | `2` | kick | leg swings **out**, over the nose |
-| `3` | drills | augers turn to **screw in**: left clockwise, right anticlockwise, seen from the motor end, looking toward the tip |
+| `3` | drills | sleeve augers turn to **screw in**: left clockwise, right anticlockwise, seen from the pivot end, looking toward the tip (watch the sleeve, not the motor: v32 has a reversing planetary in each tip) |
 | `4` | foot | foot auger turns to **screw in**: clockwise seen from the motor end, looking toward the tip (right-hand foot auger) |
 
 If a motor turns the wrong way: **battery unplugged**, swap that motor's two thin input wires at its driver
@@ -99,12 +99,15 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
 
 ## Step 4. Drills (DRV#2 A, both motors)
 
-1. Pods down first (step 3). Hold `drills in` (`3`) for 2 s. Check the directions in the table (left clockwise,
-   right anticlockwise, from motor end to tip). If both turn the same way: WIRING.md "Drill direction check".
+1. Pods down first (step 3). Hold `drills in` (`3`) for 2 s. Check the SLEEVE directions in the table (left clockwise,
+   right anticlockwise, from the pivot end to the tip). Wrong: WIRING.md "Drill direction check". (Firmware v4.2 drives
+   the drill motors backwards on purpose: the v32 tip planetary reverses the sleeves.)
 2. **Drill pair free = ____ mA** (expect 60 to 70). Press a printed stick or a
    pencil end lightly against one auger flight (never a cloth or fingers: cloth winds in and pulls fingers with it):
    current rises.
    Do not stall both for long (two sticks, never hands). Stalling both reads **drill pair stall = ____ mA** (expect about 700 at 8 V).
+   Write it into BOTH `stallMa[DRILLS]` (85 % of it) and `drillPairStallMa` (the number itself) in step 10: the v4.2
+   deploy guard stops the pods when the drills read 67 % of it, so the augers never go deeper than they can be backed out.
 3. Hold `drills out` (`#`): they reverse.
 
 ## Step 5. Kick (DRV#1 B)
@@ -210,6 +213,7 @@ The four-motor arrays are in the order {deploy, kick, drills, foot}: `stallMa[0]
 | `kickSwingMs` | kick swing in air from step 5 (the firmware's own `kick travel` number), in ms | 4300 |
 | `impactG` | under the `peak_g` of a real landing (step 8 and the first shots), over 2 g | 3.5 |
 | `kickMaxMs` | 2 x kick swing time, at least 8000 | 15000 |
+| `drillPairStallMa` | the drill pair stall itself (step 4.2); the deploy guard is 67 % of it (`drillGuardFrac`) | 700 |
 | `imuUpAxis`, `imuNoseAxis` | from step 7 (1 = x, 2 = y, 3 = z, minus for a minus axis) | 3, 0 (0 = nose not known: tilt check only) |
 | `battLowV`, `battCritV` | leave unless the BMS cuts out earlier than 6.4 V at rest | 6.8, 6.4 |
 

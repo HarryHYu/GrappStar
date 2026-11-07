@@ -178,7 +178,7 @@ static long VIOL[12], VIOLN[12], CHECKS[12];   // VIOLN: violations inside nomin
 struct Stats { long launches = 0, impactLandings = 0, fallbackLandings = 0, autoByCmd = 0, autoByLanding = 0, anchored = 0, released = 0,
                nomAnch = 0, nomRel = 0, stallStops = 0, pairPauses = 0, holdsCapped = 0, faults[F_NFAULT] = {}, maxRun[4] = {};
                long pushArmed = 0, pushMissed = 0, jsonStatus = 0, jsonLog = 0; float pushLongestMissed = 0;
-               long manOutside = 0, manOutsideOver = 0; uint32_t manOutsideMax = 0; long knownPods = 0; uint32_t knownPodsMax = 0; long knownLow = 0; } ST;
+               long manOutside = 0, manOutsideOver = 0; uint32_t manOutsideMax = 0; long knownPods = 0; uint32_t knownPodsMax = 0; long knownLow = 0, depthLimited = 0; } ST;
 
 // event log (ring, repeats folded)
 struct Ev { uint32_t t0, t1; std::string s; int rep; };
@@ -839,7 +839,9 @@ static void scriptStep() {
       // soil episodes: the documented limit (API.md) is that a soil stall past about 85 % of the estimated travel (less up to
       // one 0.55 s cycle, so from about 50 %) is taken as the down stop, so there the pods must be at least 50 % out
       // (with the pods travel unknown, after hand moves, the first stall is the stop: any soil stall then ends the step)
-      { bool podsOut = P.deploy >= P.deployEnd || (P.soilAt >= 0 && (P.deploy >= 0.5 * P.deployEnd || !K.deployKnown));
+      // v4.2: the deploy guard (drill pair alone over 67 % of its stall) ends the pods where they are: depth_limited
+      { bool podsOut = P.deploy >= P.deployEnd || (P.soilAt >= 0 && (P.deploy >= 0.5 * P.deployEnd || !K.deployKnown)) || (K.warn & Kedge::W_DEPTH_LIMIT);
+        if (K.warn & Kedge::W_DEPTH_LIMIT) ST.depthLimited++;
       if (K.seq == DONE && !K.fault && P.kick >= P.kickLand && podsOut) {
         ST.nomAnch++; SS = S_GAP; RAND_MODE = M_GAP; NEXT_RAND = ET + R.i(100, 1000); NEXT_SCRIPT = ET + R.i(300, 3000);
       } else {
@@ -1003,7 +1005,7 @@ int main(int argc, char** argv) {
          (unsigned long)ST.maxRun[0], (unsigned long)ST.maxRun[1], (unsigned long)ST.maxRun[2], (unsigned long)ST.maxRun[3], ST.jsonStatus, ST.jsonLog);
   printf("faults latched:");
   for (int f = 1; f < F_NFAULT; f++) printf(" %s %ld", faultName(f), ST.faults[f]);
-  printf("\nnominal missions: %ld anchored fully, %ld released stowed\n", ST.nomAnch, ST.nomRel);
+  printf("\nnominal missions: %ld anchored fully, %ld released stowed (%ld of the anchors depth limited by the v4.2 guard)\n", ST.nomAnch, ST.nomRel, ST.depthLimited);
   printf("info (not an invariant): manual stalls outside the documented 2.5 s guarantee (3 or 4 motors, motors changing, speed <= 125 or changed): %ld,\n"
          "          %ld of them driven over 2.5 s, longest %lu ms (bounded by the 8 s hold cap, invariant 2)\n", ST.manOutside, ST.manOutsideOver, (unsigned long)ST.manOutsideMax);
   printf("info (not an invariant): known limit, pods (or the planting kick) stalled with the auger current rising in each pause: %ld driven over 3 s,\n"

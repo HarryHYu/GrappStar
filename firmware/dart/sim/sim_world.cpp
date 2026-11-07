@@ -43,19 +43,23 @@ uint64_t lastAdvanceUs = 0;
 struct Knobs {
   bool inaDead = false, noGround = false, drillJam = false, footJam = false, kickJam = false, deployJam = false, imuDead = false;
   double railV = 7.6, accelNoise = 0.02, soilAt = -1;   // soilAt: v4.1 soil, see soilStuck
+  bool drillGearReverse = true;                 // v32: the tip planetary turns each sleeve opposite to its motor
   uint32_t imuXferUs = 0;
 } K;
 int wdtTrips = 0;
 
 uint64_t deployOnUs = 0; int deployLastDir = 0;
 int& pin(int gpio) { static int junk; return gpio >= 0 && gpio < 64 ? duty[gpio] : (junk = 0); }
-// direction and duty of one DRV8833 channel: PWM on one input = run, both low = coast, both high = brake (stopped)
-void drive(int m, int& dir, int& d) {
+// direction and duty of one DRV8833 channel: PWM on one input = run, both low = coast, both high = brake (stopped).
+// The direction returned is the PART's (for the drills the sleeves': the v32 tip planetary reverses them, knob
+// drill_gear_reverse); the motor shaft's own direction is motorDir.
+void motorDir(int m, int& dir, int& d) {
   int a = pin(PIN_A[m]), b = pin(PIN_B[m]);
   // slow decay (firmware v4): one input high, the other PWM inverted; the old one-input PWM is still understood
   if (a == 255 && b < 255) { dir = +1; d = 255 - b; } else if (b == 255 && a < 255) { dir = -1; d = 255 - a; }
   else if (a && !b) { dir = +1; d = a; } else if (b && !a) { dir = -1; d = b; } else { dir = 0; d = 0; }
 }
+void drive(int m, int& dir, int& d) { motorDir(m, dir, d); if (m == DRILLS && K.drillGearReverse) dir = -dir; }
 // soil (soil_at knob): past soilAt the pods only move for 300 ms after each (re)start of the deploy, with the drills cutting
 bool soilStuck(uint64_t now) {
   int dd, d, dr, drd; drive(DEPLOY, dd, d); drive(DRILLS, dr, drd);
@@ -286,6 +290,7 @@ static bool parseBool(const std::string& v, bool& out) {
 //   bno_reset=1      BNO085 resets: all reports off until re-enabled, wasReset() true once
 //   imu_xfer_us=<us> simulated I2C time of each sh2_service() call that moves data (default 0)
 //   accel_noise=<m/s^2>  accelerometer noise amplitude (default 0.02)
+//   drill_gear_reverse=0|1  v32 tip planetary: the sleeves turn opposite to the drill motors (default 1)
 //   soil_at=<0..1400>  v4.1 soil: past it the pods move only 300 ms after each deploy (re)start, with the drills on (-1 = off)
 bool setKnob(const std::string& key, const std::string& v, std::string& err) {
   Lock l(mu);
@@ -310,6 +315,7 @@ bool setKnob(const std::string& key, const std::string& v, std::string& err) {
   if (key == "imu_xfer_us") { K.imuXferUs = (uint32_t)std::max(0.0, x); return true; }
   if (key == "accel_noise") { K.accelNoise = std::max(0.0, x); return true; }
   if (key == "soil_at") { K.soilAt = x; return true; }
+  if (key == "drill_gear_reverse") { K.drillGearReverse = x != 0; return true; }
   err = "unknown knob: " + key; return false;
 }
 
@@ -322,7 +328,8 @@ std::string stateJson() {
                   ",\"deploy_pos\":" + fmt("%.0f", deployPos) + ",\"motors\":{";
   for (int m = 0; m < NMOT; m++) {
     int dir, d; drive(m, dir, d);
-    j += std::string(m ? "," : "") + "\"" + MOTOR_NAME[m] + "\":{\"dir\":" + std::to_string(dir) + ",\"duty\":" +
+    int md, mdd; motorDir(m, md, mdd);
+    j += std::string(m ? "," : "") + "\"" + MOTOR_NAME[m] + "\":{\"dir\":" + std::to_string(dir) + ",\"motor_dir\":" + std::to_string(md) + ",\"duty\":" +
          std::to_string(d) + ",\"mA\":" + fmt("%.1f", motorMa(m)) + "}";
   }
   j += "},\"current_mA\":" + fmt("%.1f", total) + ",\"rail_v\":" + fmt("%.3f", K.railV);

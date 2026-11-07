@@ -1,4 +1,4 @@
-// KEDGE dart firmware v4.1  (Seeed XIAO ESP32S3)
+// KEDGE dart firmware v4.2  (Seeed XIAO ESP32S3)
 // Control logic lives in kedge_logic.h (unit-tested on a PC: ../test/test_logic.cpp). This file is the hardware glue.
 //
 // v4 (3 Nov 2026): DRV8833 #3 is no longer on the dart. DRV#1 A = deploy, DRV#1 B = kick, DRV#2 A = BOTH drill motors
@@ -6,6 +6,7 @@
 // "phase" + "fault" in /status. Full API: ../API.md. Wiring: ../WIRING.md.
 // v4.1 (7 Nov 2026): shorter flight windows for the real launcher, orientation ("orient", /auto refused on its side or
 // back unless force=1), battery state at rest ("batt"), optional video power switch on D10 (/video).
+// v4.2: deploy guard (depth_limited at 67 % of the drill pair stall), drill channel reversed for the v32 tip planetary.
 //
 // Keyboard control, two ways:
 //   1. USB:  Arduino Serial Monitor, 115200 baud, "No line ending". Type a key, press Enter (each press runs 1.5 s).
@@ -66,6 +67,7 @@ void pwmWrite(int pin, int ch, int duty) { (void)pin; ledcWrite(ch, duty); }
 // DRV8833 slow decay: one input high, the other PWM inverted, so the bridge alternates drive and brake. Supply current
 // then goes as duty squared at stall (the logic scales its thresholds that way). Duty 255 = plain DC. Both low = coast.
 void hwSetMotor(int m, int dir, int duty) {
+  dir *= PINS[m].sign;                                 // a gear stage that reverses the part (v32 drills: tip planetary)
   if (duty < 0) duty = 0;
   if (duty > 255) duty = 255;
   pwmWrite(PINS[m].gpioA, 2 * m, dir > 0 ? 255 : dir < 0 ? 255 - duty : 0);
@@ -172,7 +174,7 @@ void scanI2C() {
   say(String(n) + " device(s). Expect 0x40 (INA219) and 0x4a or 0x4b (BNO085).");
 }
 void help() {
-  say("KEDGE v4.1 ready. 1/! deploy down/up  2/@ kick out/back  3/# drills in/out  4/$ foot in/out");
+  say("KEDGE v4.2 ready. 1/! deploy down/up  2/@ kick out/back  3/# drills in/out  4/$ foot in/out");
   say("space/s STOP  +/- speed  i current  b attitude  z I2C scan  p status  f flight log  a auto-anchor  r release  A arm");
 }
 
@@ -245,7 +247,7 @@ int resetFault() {
 
 const char PAGE[] PROGMEM = R"HTML(<!doctype html><html><head><meta name=viewport content="width=device-width,initial-scale=1">
 <title>KEDGE</title><style>body{font:15px Arial;margin:16px;background:#111;color:#eee}button{font:15px Arial;padding:14px;margin:4px;min-width:120px;touch-action:none;user-select:none;-webkit-user-select:none}
-#s{font:13px monospace;white-space:pre-wrap;background:#222;padding:8px}pre{background:#222;padding:8px;height:30vh;overflow:auto}a{color:#8cf}</style></head><body><h3>KEDGE dart v4.1</h3>
+#s{font:13px monospace;white-space:pre-wrap;background:#222;padding:8px}pre{background:#222;padding:8px;height:30vh;overflow:auto}a{color:#8cf}</style></head><body><h3>KEDGE dart v4.2</h3>
 <p>Hold a key or button to run, release to stop. 1/! deploy  2/@ kick  3/# drills  4/$ foot  space STOP  a auto  r release  A arm. <a href=/flightlog download=flightlog.json>flight log</a></p>
 <div id=b></div><div id=s></div><pre id=o></pre><script>
 const o=document.getElementById('o'),S=document.getElementById('s');const held=new Map();

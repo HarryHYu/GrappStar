@@ -1,4 +1,4 @@
-# KEDGE dart HTTP API (contract C2, firmware kedge-dart-v4.1)
+# KEDGE dart HTTP API (contract C2, firmware kedge-dart-v4.2)
 
 The dart is a WiFi access point. Join SSID `KEDGE`, password `grappstar`. The dart is at `http://192.168.4.1` (port 80).
 Every call is a plain HTTP GET. The server handles one request at a time, so keep requests short, use a 1 s timeout,
@@ -68,11 +68,11 @@ JSON, always 200. Example (written by the host test to `test/out/status_anchorin
 | `t_launch_ms`, `t_land_ms` | int or null | detected launch and landing times, null when none |
 | `log_frozen` | bool | flight log holds a finished flight |
 | `reset` | string | why the dart last booted: `poweron`, `software`, `brownout`, `panic`, `task_wdt`, `int_wdt`, `wdt`, `reset_pin`, `deepsleep`, `other` (USB upload) |
-| `warnings` | array of strings | what went less than perfectly in the last `/auto` or `/release`, empty when clean: `foot_stalled`, `drills_stalled` (stone or full depth), `kick_plant_time_limit`, `pods_time_limit`, `kick_already_down`. `ANCHORED` with warnings may be a weak anchor |
+| `warnings` | array of strings | what went less than perfectly in the last `/auto` or `/release`, empty when clean: `foot_stalled`, `drills_stalled` (stone or full depth), `kick_plant_time_limit`, `pods_time_limit`, `kick_already_down`, `depth_limited` (v4.2: the deploy guard stopped the pods part way, firm soil or a stone). `ANCHORED` with warnings may be a weak anchor |
 | `video` | bool | v4.1: camera + VTX power wanted on (the optional switch on D10; without it the video is always on) |
 | `batt` | string | v4.1: battery at rest (no motor for 1 s): `ok`, `low` (under 6.8 V: about 10 % left), `critical` (under 6.4 V: `/auto` refused, video switched off, `/release` and keys still work), `none` (rail under 3 V: plug out), `unknown` (no reading yet). 0.1 V hysteresis |
 | `batt_V` | number | v4.1: the resting battery voltage behind `batt` (-1 before the first reading) |
-| `orient` | string | v4.1: from the BNO085 accelerometer while still: `upright`, `leaning` (roll 12 to 60 deg), `side`, `inverted`, `nose_down`, `nose_up`, `unknown` (IMU silent or moving). Until the nose axis is set (`imuNoseAxis`, BENCH_TEST step 7) only `upright` / `side` / `inverted` from the tilt (70 / 120 deg) |
+| `orient` | string | v4.1: from the BNO085 accelerometer while still: `upright`, `leaning` (roll 10 to 60 deg), `side`, `inverted`, `nose_down`, `nose_up`, `unknown` (IMU silent or moving). Until the nose axis is set (`imuNoseAxis`, BENCH_TEST step 7) only `upright` / `side` / `inverted` from the tilt (70 / 120 deg) |
 | `tilt_deg` | number | v4.1: angle between the dart's up axis and straight up (0 when `orient` is unknown) |
 | `roll_g`, `pitch_g` | number | v4.1: body roll and nose pitch from gravity (0 until the nose axis is set) |
 | `soil_mA` | number | v4.1: highest drill-pair current read alone while the augers were in soil in the last `/auto` (at 8.0 V; -1 = none). dart-physics: about 160 sand, 640 loam (7.4 V) |
@@ -81,7 +81,7 @@ JSON, always 200. Example (written by the host test to `test/out/status_anchorin
 
 `seq` values: `idle`, `kick swing`, `kick + foot planting`, `foot finishing`, `deploy + drills`, `drills finishing`,
 `anchored`, `aborted`, `release: drills out`, `release: drills out + pods up`, `release: foot out`,
-`release: kick back + foot out`, `released`, and v4.1 `levelling: pods to 20 deg, drills off`. The anchor names are the same as v3. **Prefer `phase` over `seq` text.**
+`release: kick back + foot out`, `released`, and v4.1 `levelling: pods to 16 deg, drills off` (match on `levelling`). The anchor names are the same as v3. **Prefer `phase` over `seq` text.**
 
 ### GET /key?c=&lt;key&gt;&ms=&lt;run ms&gt;
 
@@ -161,7 +161,7 @@ v4.1 (dart-physics findings, 7 Nov 2026):
 - **Orientation gate.** `orient` `side`, `inverted`, `nose_down` or `nose_up`: refused (`not upright: ...`), nothing moves.
   The rover should reel in and fire again. `/auto?force=1` skips this check (the IMU axes are wrong, or the video shows
   it upright). `leaning` (roll 10 to 60 deg, the usual rest on hard ground: the dart leans about 38 deg on a pod): the
-  pods first swing about 20 deg with the drills off (`seq` `levelling`, 0.65 s, then 0.6 s settle), which levels the
+  pods first swing about 16 deg with the drills off (`seq` `levelling`, 0.5 s, then 0.6 s settle; v32), which levels the
   hull; still not upright after that is fault `NOT_UPRIGHT`. Orientation unknown (IMU silent): no gate.
 - **Battery critical** (`batt` `critical`): refused (`battery low: ...`), so the dart never anchors without the charge to
   let go. `/release` always runs.
@@ -176,8 +176,12 @@ v4.1 (dart-physics findings, 7 Nov 2026):
 - **Kick pulsing.** When planting ends on a kick stall, the kick pushes again in pulses (0.4 s on, 0.2 s off) while the
   foot finishes (in loam the kick stalls a few degrees short of its rest; dart-physics). Event `kick down, foot
   finishing (kick pulsing)`.
-- **Drill relax.** When the drill pair, read alone in the worm's pause, is over 85 % of its stall line, the deploy pauses
-  0.5 s so the cut relaxes (event `drills near stall, deploy paused 0.5 s`).
+- **Deploy guard (v4.2, dart-physics v32).** When the drill pair, read alone (in the worm's pause, two readings in a row,
+  or for 0.2 s during a milling pause), is over 67 % of its real stall current (`drillPairStallMa`, 700 mA at 8.0 V,
+  measured in BENCH_TEST step 4), the pods stop where they are, the drills stop, and the anchor ends `ANCHORED` with
+  warning `depth_limited` (event `drills at 67 % of stall: depth limited, anchored`). The sleeves are then never deeper
+  than the drills can back out after standing (release margin about 1.15); physics: holding stays above the 55 N cap
+  (stiffer soil holds more per mm). This replaces the v4.1 85 % "drill relax" pause.
 - Known limit: a soil stall past about 85 % of the estimated travel (less up to one cycle, so possibly from about 50 %)
   is taken as the stop (weak anchor; a pods-down hall sensor would fix it, see the notes).
 - Known limit: pods already stuck in soil at the first readings of the step, with read noise near the margin, show no
@@ -351,7 +355,7 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 | `KICK_JAM` | kick stalled near stowed at the start of `/auto`, or part way out with no contact (jam in air), or in `/release` before its travel back covered 60 % of its travel out | all off |
 | `PODS_JAM` | in `/release` the pods stalled before they came 60 % of their estimated way back (jammed part way up) | all off |
 | `NO_GROUND` | in `/auto` the kick swung (almost) its whole travel and stalled at its own end stop without touching ground (dart on its back or side) | all off; `/release` stows the kick |
-| `NOT_UPRIGHT` | v4.1: still on its side, upside down or nose steep after the levelling step | all off; the pods are about 20 deg out: `/release` |
+| `NOT_UPRIGHT` | v4.1: still on its side, upside down or nose steep after the levelling step | all off; the pods are about 16 deg out: `/release` |
 | `BROWNOUT` | the dart rebooted from a brownout | booted with motors off |
 | `WATCHDOG` | the dart rebooted from a crash or the 2 s safety-task watchdog | booted with motors off |
 
@@ -388,10 +392,17 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
   ends FLIGHT, and `/stop` ends it at once.
 - Manual keys and `/release` are refused during FLIGHT for the same reason.
 
+## Changes from v4.1 to v4.2 (7 Nov 2026, for client authors)
+
+- New warning `depth_limited` (deploy guard, see `/auto`). `fw` is `kedge-dart-v4.2`.
+- `seq` levelling text now says 16 deg (v32): match on the word `levelling`.
+- The drill channel is driven reversed in hardware for the v32 tip planetary; the API is unchanged (`motors.drills`
+  +1 still means the sleeves screw in).
+
 ## Changes from v4 to v4.1 (7 Nov 2026, for client authors)
 
 - New status fields `video`, `batt`, `batt_V`, `orient`, `tilt_deg`, `roll_g`, `pitch_g`, `soil_mA`, `moving`; new
-  `seq` `levelling: pods to 20 deg, drills off`; new fault `NOT_UPRIGHT`; new endpoint `/video?on=`; `/auto?force=1`.
+  `seq` `levelling: pods to 16 deg, drills off`; new fault `NOT_UPRIGHT`; new endpoint `/video?on=`; `/auto?force=1`.
 - New `/auto` refusals `not upright: ...` and `battery low: ...` (409). Treat `not upright` like `NO_GROUND`: retrieve
   and fire again (or `force=1` if the video shows the dart upright).
 - Anchoring can take up to 180 s (milling deploy up to 150 s, loam about 90 s): wait 200 s for `ANCHORED`.

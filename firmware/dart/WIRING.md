@@ -4,8 +4,8 @@ This replaces Appendix A of `kedge/CLAUDE.md` (the v29 list of 53 wires) and the
 The new list has 50 wires, plus wire 51 for the optional video switch: `firmware/dart/wiring/wire_cut_list.csv`. Diagram: `firmware/dart/wiring/wiring.svg` /
 `wiring.png`. Changes only: `firmware/dart/wiring/changes_from_v29.csv`.
 Regenerate everything with `python3 firmware/dart/tools/wires_v4.py`. v4.1 (7 Nov 2026): the lengths and routes now come
-from dart-cad's v31 routed list (`kedge/pack_v31/wire_cut_list.csv`, along the v31 wire passages; the `route` column
-names them). What the v31 hull changes for the harness:
+from dart-cad's routed list (`kedge/pack_v32/wire_cut_list.csv` for the v32 build, else `pack_v31`; the `route` column
+names the wire passages). What the v31 / v32 hull changes for the harness:
 - The **BNO085 sits in the sled** (under the MP1584 shelf, turned 90 deg), so its four wires from the INA219 (26, 28, 30,
   32) are 180 mm and run through the keel channel under the cells. Twist SDA and SCL loosely with the GND wire.
 - The **power loop socket (ON plug) is on top of the tail cap**, the charge socket alone at the bottom.
@@ -103,7 +103,7 @@ AOUT2 with the left drill black and the right drill red.
 - XIAO D7 to DRV#2 **BIN2** (grey, new wire 40)
 
 **Step A6. Battery unplugged. Foot motor to DRV#2 B.** The foot wires are now longer, because DRV#2 sits in the board
-bay behind the cells, not in the sled. Cut two new 310 mm silicone 26 AWG wires (red and black). Run them forward
+bay behind the cells, not in the sled. Cut two new 300 mm silicone 26 AWG wires (red and black). Run them forward
 along the top of the hull through the disc notches (with the camera wires), out the skin hole, a 60 mm loop round the
 kick hub, then down the pole channel:
 - DRV#2 **BOUT1** to foot N20 **+ (red)** ([52], new wire 49)
@@ -216,23 +216,27 @@ them: find it, or the switch does nothing (no harm, just always on).
 5. Go through BENCH_TEST.md: steps 0 to 6 (directions, free currents) on the loose motors now, the rest after
    assembly (the table at the top of BENCH_TEST.md says which).
 
-**Drill direction check** (BENCH_TEST.md step 4): hold "drills in" (key `3`) and look at each auger from its motor
-end, looking toward the tip. The left auger (right-hand thread) must turn **clockwise**, the right auger (left-hand thread)
-**anticlockwise**: then both screw into the ground.
-- Left auger wrong: battery unplugged, swap the two thin input wires at DRV#2 AIN1 and AIN2 (D8 and D9). This
-  reverses both drills. Check again.
-- Then if the right auger is wrong: battery unplugged, swap the right drill's own two wires on AOUT1 / AOUT2.
+**Drill direction check** (BENCH_TEST.md step 4): hold "drills in" (key `3`) and look at each **sleeve auger** (the
+outside, not the motor) from its pivot end, looking toward the tip. The left sleeve (right-hand flights) must turn
+**clockwise**, the right sleeve (left-hand flights) **anticlockwise**: then both screw into the ground.
+v32 note: each sleeve is driven through a small planetary gear in its tip, which turns the sleeve the OPPOSITE way to
+its motor. The firmware (v4.2) already drives the drill channel backwards for that (`DRILL_SIGN = -1` in
+`kedge_logic.h`), so the wiring below does not change: the right drill's leads stay swapped, D8 / D9 stay on AIN1 /
+AIN2. Building the older v31 pods (no planetary)? Then both sleeves turn the wrong way: fix it as below.
+- Both wrong (or the left one wrong): battery unplugged, swap the two thin input wires at DRV#2 AIN1 and AIN2 (D8 and
+  D9). This reverses both drills. Check again. (Or set `DRILL_SIGN = +1` in `kedge_logic.h` and upload: same effect.)
+- Then if only the right sleeve is wrong: battery unplugged, swap the right drill's own two wires on AOUT1 / AOUT2.
 - Swapping a motor's two input wires at its driver is the easy way to reverse any motor.
 
-## Totals (cut from the reel, v31 routes)
+## Totals (cut from the reel, v32 routes)
 
 | Wire | mm |
 |---|---|
 | 22 AWG red | 595 |
 | 22 AWG black | 405 |
 | 24 AWG orange / black | 195 / 195 |
-| 26 AWG silicone red / black (foot pair) | 310 / 310 |
-| 26 AWG red / black (other motors) | 860 / 955 |
+| 26 AWG silicone red / black (foot pair) | 300 / 300 |
+| 26 AWG red / black (other motors) | 865 / 960 |
 | 26 AWG white / orange | 145 / 95 |
 | 28 AWG red/white, black, blue, green, purple, grey, yellow, orange | 365, 360, 240, 240, 210, 210, 120, 120 |
 | 28 AWG white (optional video switch, wire 51) | 115 |

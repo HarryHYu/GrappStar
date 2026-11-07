@@ -258,7 +258,7 @@ SAD_W = pk + 2 * 1.3                                        # 15.0
 SAD_H = pk + 2 * 1.3
 KICK_STUB = 9.94 / 2 + 1.0                                  # kick N20 -y stub trimmed to 1 mm past the worm box face (measured box width 9.94)
 SAD_RF, SAD_RR = 7.4, 6.5                                    # saddle side profile: arc round the worm box (on the pivot), arc round the motor tail
-KICK_Z = R + SAD_H / 2 - 1.0 + P["KICK_RAISE"]               # pivot raised so the centreline pole clears the nose shoulder at the plant
+KICK_Z = R + SAD_H / 2 - 1.0 + P["KICK_RAISE"]               # v32c: not raised (KICK_RAISE 0); the planted pole lies in a flute in the nose top
 KICK_X = SX0 + 1.3 + P["N20_BOX"] / 2 + 0.2                  # output shaft = centre of the worm box
 KMY = P["KICK_MY"]                                           # kick N20 beside the centreline (right side); its +y stub carries the hub
 HUB_Y0 = KMY + SAD_W / 2 + 0.4                               # hub inner face, 0.4 off the saddle wall
@@ -413,7 +413,7 @@ hull = build_hull()
 top = hull & bx(-10, L + 10, -60, 60, 0, 80)
 bot = hull & bx(-10, L + 10, -60, 60, -80, 0)
 add("hull_top", top, "hull", "#9aa5b1", orient="split face down (on the bed), saddle up",
-    note="Clamshell upper half: skin, kick saddle beside the centreline (worm N20 drops in, entry slots, strap slots), teardrop ear fin with an F693ZZ for the hub screw, two faired pivot blocks (coupler bores; their carved faces are the deploy and fold stops of the drill arms), wire holes. Radial M3 clearance at z=+3 into tray disc 1 and the tail spigot")
+    note="Clamshell upper half: skin; kick saddle beside the centreline (low fairing round the worm N20, which drops in with its stub down the inboard slot); teardrop ear fin with an F693ZZ for the hub screw; two faired pivot blocks (coupler bores; their carved faces are the deploy and fold stops of the drill arms); saddle, ear and blocks are tangent-arc outlines with r 1.2 edges and r 1.5 skirts into the skin; a slot over the nose spigot where the kick pole lands; wire holes. Radial M3 clearance at z=+3 into tray disc 1 and the tail spigot")
 add("hull_bottom", bot, "hull", "#7d8794", orient="split face down, belly up",
     note="Clamshell lower half: plain Ø42 cylinder (launcher cradle surface). Radial M3 clearance at z=-3 into tray disc 1 and the tail spigot")
 
@@ -448,7 +448,7 @@ def build_nose():
 print("nose ...")
 nose = build_nose()
 add("nose", nose, "hull", "#b8c0ca", orient="tip down on the bed (flat Ø22), spigot up",
-    note="Blunt hollow nose: Ø22 flat tip with the Ø9.8 lens hole, Caddx Ant pocket 14.4 x 15.0 (slides in from the back, 1.2 lip + lens recess hold it), 1.5 walls; spigot with a groove that the hull rib locks when the clamshell closes")
+    note="Blunt hollow nose: Ø22 flat tip with the Ø9.8 lens hole, Caddx Ant pocket 14.4 x 15.0 (slides in from the back, 1.2 lip + lens recess hold it), 1.5 walls; a round-cornered flute along the top (solid underneath) where the planted kick pole lies: its floor is the kick rest; spigot with a groove that the hull rib locks when the clamshell closes")
 
 # ================================================================== TAIL CAP (screwed, carries the tether)
 JST_TOP_X = (X_TAILSP[1] + 0.48, X_TAILSP[1] + 0.48 + 6.1)     # header slot along x (5.75 header + 0.35)
@@ -774,7 +774,7 @@ print("kick ...")
 kick, FX0, FBOX = build_kick()
 add("kick_leg", kick, "legs", "#e07b39", pos=(KICK_X, KICK_Y, KICK_Z), axis="y", deg=(0, P["KICK_DEG"]),
     orient="on its side (pole axis horizontal, hub face down)",
-    note="Kick leg on the dart centreline: Ø12 x 11.5 hub on the +y stub of the kick N20 (which sits beside it), M3 x 8 screw from outside through the ear F693ZZ into the hub end; Ø8 pole (flat-sided to the print datum) with a Ø4.6 wire channel, foot housing with the foot worm N20 in line, output shaft up when folded / down when deployed: the foot plants on the dart axis ahead of the nose")
+    note="Kick leg on the dart centreline: Ø12 x 11.5 hub on the +y stub of the kick N20 (which sits beside it), M3 x 8 screw from outside through the ear F693ZZ into the hub end; Ø8 pole (flat-sided to the print datum, those corners r 3.5 to fit the nose flute) with a Ø4.6 wire channel, a web up to the foot housing, which is tilted %.2f deg about the foot N20's output shaft so the foot auger plants vertical on the dart axis ahead of the nose (output up and leaning aft when folded)" % P["FOOT_TILT"])
 
 ztop_h = pk / 2 + 1.3
 fa = screw_auger(P["AUGER_D"], P["FOOT_AUGER_L"], P["AUGER_PITCH"], P["AUGER_CORE"], P["FOOT_TIP"], lefthand=False, dbore=P["SHAFT_D"] + 0.15)
@@ -798,12 +798,14 @@ def build_arm(side):
     side and mirrored for the right."""
     y0, y1 = HEAD_YL
     head = cyly(HH, y1 - y0, y0) + bx(-HH / 2, 0, y0, y1, -HH / 2, 0)
-    neck = bx(-1.0, ASH_X1, -BUSH_D / 2, y1, -HH / 2, HH / 2)
+    neck = bx(0.0, ASH_X1, -BUSH_D / 2, y1, -HH / 2, HH / 2)                       # starts where its top is tangent to the head (no ledge)
     shoulder = cylx(CORE_D, ASH_X1 - ASH_X0, ASH_X0)
     under = Solid.make_cone(BUSH_D / 2, CORE_D / 2, (CORE_D - BUSH_D) / 2, Plane.YZ.offset(ASH_X0 - (CORE_D - BUSH_D) / 2))   # 45 deg under the shoulder
     bush = cylx(BUSH_D, BUSH_X1 - ASH_X1 + 0.01, ASH_X1 - 0.01)
-    arm = head + neck + under + shoulder + bush
-    arm = safe_fillet(arm, arm.edges().filter_by(Axis.Y), 1.0, "arm y edges")
+    hn = head + neck                                                                # head and neck: stop corner r 0.5, face edges r 1.2 (as the pivot blocks)
+    hn = safe_fillet(hn, [e for e in hn.edges().filter_by(Axis.Y) if abs(e.center().X + HH / 2) < 1e-3 and abs(e.center().Z + HH / 2) < 1e-3], 0.5, "arm stop corner")
+    hn = yfillet(yfillet(hn, (y0,), 1.2, "arm inner face"), (y1,), 1.2, "arm outer face")
+    arm = hn + under + shoulder + bush
     can_hole = cylx(P["MOTOR_W"] + 2 * CLR, BUSH_X1 - BW1 + 1, BW1) & bx(BW1 - 1, BUSH_X1 + 2, -P["MOTOR_H"] / 2 - CLR, P["MOTOR_H"] / 2 + CLR, -10, 10)
     cuts = [D_bore_tear(P["CPL_D"] + 0.25, y0 - 1, y1 + 1),
             cyly(CB_D, CB_DEPTH + 1, y1 - CB_DEPTH),                                       # counterbore for the pod cap

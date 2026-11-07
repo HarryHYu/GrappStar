@@ -1,0 +1,1057 @@
+{
+ "note": "Wire room check: free cross-section inside the hull bay along x (bay circle minus every part, legs folded) in the two",
+ "worst_keel_fill": [
+  0.26,
+  130.0
+ ],
+ "worst_top_fill": [
+  0.26,
+  65.0
+ ],
+ "stations": [
+  {
+   "x": 21.0,
+   "keel_free": 67.9,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 135.6,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 22.0,
+   "keel_free": 67.9,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 135.6,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 23.0,
+   "keel_free": 67.9,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 135.7,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 24.0,
+   "keel_free": 67.9,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 135.7,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 25.0,
+   "keel_free": 67.9,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 135.6,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 26.0,
+   "keel_free": 67.9,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 135.6,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 27.0,
+   "keel_free": 77.3,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 206.8,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 28.0,
+   "keel_free": 0.0,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 161.9,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 29.0,
+   "keel_free": 0.0,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 73.9,
+   "top_bundle": 4.7,
+   "top_wires": 6
+  },
+  {
+   "x": 30.0,
+   "keel_free": 0.0,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 73.9,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 31.0,
+   "keel_free": 33.4,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 106.8,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 32.0,
+   "keel_free": 33.4,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 106.8,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 33.0,
+   "keel_free": 33.4,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 106.9,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 34.0,
+   "keel_free": 33.4,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 106.9,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 35.0,
+   "keel_free": 33.4,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 106.9,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 36.0,
+   "keel_free": 33.4,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 106.9,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 37.0,
+   "keel_free": 33.4,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 106.9,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 38.0,
+   "keel_free": 33.4,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 106.9,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 39.0,
+   "keel_free": 33.4,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 106.9,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 40.0,
+   "keel_free": 33.4,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 106.9,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 41.0,
+   "keel_free": 33.4,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 106.9,
+   "top_bundle": 2.4,
+   "top_wires": 3
+  },
+  {
+   "x": 42.0,
+   "keel_free": 33.4,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 106.9,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 43.0,
+   "keel_free": 33.4,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 106.9,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 44.0,
+   "keel_free": 33.4,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 106.9,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 45.0,
+   "keel_free": 33.4,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 106.9,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 46.0,
+   "keel_free": 33.4,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 106.9,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 47.0,
+   "keel_free": 33.4,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 106.9,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 48.0,
+   "keel_free": 33.4,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 106.9,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 49.0,
+   "keel_free": 33.4,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 106.9,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 50.0,
+   "keel_free": 33.4,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 86.9,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 51.0,
+   "keel_free": 33.4,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 86.9,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 52.0,
+   "keel_free": 33.4,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 98.9,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 53.0,
+   "keel_free": 33.4,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 65.4,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 54.0,
+   "keel_free": 77.3,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 45.1,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 55.0,
+   "keel_free": 77.3,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 44.6,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 56.0,
+   "keel_free": 77.3,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 44.0,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 57.0,
+   "keel_free": 77.3,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 44.6,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 58.0,
+   "keel_free": 77.3,
+   "keel_bundle": 5.4,
+   "keel_wires": 6,
+   "top_free": 45.1,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 59.0,
+   "keel_free": 77.3,
+   "keel_bundle": 16.8,
+   "keel_wires": 13,
+   "top_free": 65.4,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 60.0,
+   "keel_free": 77.3,
+   "keel_bundle": 16.8,
+   "keel_wires": 13,
+   "top_free": 98.9,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 61.0,
+   "keel_free": 77.3,
+   "keel_bundle": 16.8,
+   "keel_wires": 13,
+   "top_free": 98.9,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 62.0,
+   "keel_free": 77.3,
+   "keel_bundle": 16.8,
+   "keel_wires": 13,
+   "top_free": 206.9,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 63.0,
+   "keel_free": 77.3,
+   "keel_bundle": 16.8,
+   "keel_wires": 13,
+   "top_free": 182.2,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 64.0,
+   "keel_free": 77.3,
+   "keel_bundle": 16.8,
+   "keel_wires": 13,
+   "top_free": 182.2,
+   "top_bundle": 5.2,
+   "top_wires": 5
+  },
+  {
+   "x": 65.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 62.6,
+   "top_bundle": 16.5,
+   "top_wires": 15
+  },
+  {
+   "x": 66.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 70.0,
+   "top_bundle": 16.5,
+   "top_wires": 15
+  },
+  {
+   "x": 67.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 70.0,
+   "top_bundle": 12.0,
+   "top_wires": 11
+  },
+  {
+   "x": 68.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 70.0,
+   "top_bundle": 12.0,
+   "top_wires": 11
+  },
+  {
+   "x": 69.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 70.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 71.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 72.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 73.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 74.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 75.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 76.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 77.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 78.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 79.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 80.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 81.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 82.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 83.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 84.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 85.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 86.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 87.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 88.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 89.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 90.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 91.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 92.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 93.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 94.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 95.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 96.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 97.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 98.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 99.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 100.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 101.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 102.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 103.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 104.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 68.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 105.0,
+   "keel_free": 60.5,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 69.9,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 106.0,
+   "keel_free": 77.3,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 69.9,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 107.0,
+   "keel_free": 77.3,
+   "keel_bundle": 14.8,
+   "keel_wires": 12,
+   "top_free": 182.2,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 108.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 182.2,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 109.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 206.9,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 110.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 206.9,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 111.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 206.9,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 112.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 202.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 113.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 202.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 114.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 202.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 115.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 202.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 116.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 202.1,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 117.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 189.5,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 118.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 189.5,
+   "top_bundle": 7.4,
+   "top_wires": 6
+  },
+  {
+   "x": 119.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 189.5,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 120.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 189.5,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 121.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 189.5,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 122.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 189.5,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 123.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 189.5,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 124.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 189.5,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 125.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 189.5,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 126.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 189.5,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 127.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 189.5,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 128.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 189.5,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 129.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 189.5,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 130.0,
+   "keel_free": 77.3,
+   "keel_bundle": 20.2,
+   "keel_wires": 16,
+   "top_free": 189.5,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 131.0,
+   "keel_free": 77.3,
+   "keel_bundle": 5.4,
+   "keel_wires": 4,
+   "top_free": 189.5,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 132.0,
+   "keel_free": 77.3,
+   "keel_bundle": 5.4,
+   "keel_wires": 4,
+   "top_free": 194.3,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 133.0,
+   "keel_free": 77.3,
+   "keel_bundle": 5.4,
+   "keel_wires": 4,
+   "top_free": 194.3,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 134.0,
+   "keel_free": 77.3,
+   "keel_bundle": 5.4,
+   "keel_wires": 4,
+   "top_free": 194.3,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 135.0,
+   "keel_free": 77.3,
+   "keel_bundle": 5.4,
+   "keel_wires": 4,
+   "top_free": 88.1,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  },
+  {
+   "x": 136.0,
+   "keel_free": 77.3,
+   "keel_bundle": 0.0,
+   "keel_wires": 0,
+   "top_free": 88.1,
+   "top_bundle": 0.0,
+   "top_wires": 0
+  }
+ ]
+}

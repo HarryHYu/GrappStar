@@ -1,0 +1,60 @@
+{
+ "plate_A_hull": {
+  "parts": [
+   "hull_top",
+   "hull_bottom",
+   "nose",
+   "tail_cap",
+   "pod_cap_L",
+   "pod_cap_R"
+  ],
+  "extent_mm": [
+   230,
+   123.2
+  ]
+ },
+ "plate_C_couplers_PPA-CF": {
+  "parts": [
+   "boom_anchor",
+   "coupler_L",
+   "coupler_R",
+   "tail_boom"
+  ],
+  "extent_mm": [
+   230,
+   32.2
+  ]
+ },
+ "plate_B_legs_tray": {
+  "parts": [
+   "tray",
+   "drill_leg_L_auger",
+   "drill_leg_R_auger",
+   "drill_leg_L",
+   "drill_leg_R",
+   "kick_leg",
+   "foot_auger"
+  ],
+  "extent_mm": [
+   230,
+   61.6
+  ]
+ }
+}
+hull_top             bbox [121.0, 55.2, 39.6]  bed   398.7 mm2  overhang>45  3871.0 mm2
+hull_bottom          bbox [121.0, 42.0, 21.0]  bed   336.4 mm2  overhang>45  3644.6 mm2
+nose                 bbox [42.0, 42.0, 27.0]  bed   257.8 mm2  overhang>45   382.1 mm2
+tail_cap             bbox [42.0, 42.0, 15.4]  bed  1026.6 mm2  overhang>45   648.1 mm2
+tray                 bbox [109.1, 38.6, 36.5]  bed  1401.0 mm2  overhang>45  3920.0 mm2
+kick_leg             bbox [119.2, 15.0, 15.0]  bed   981.0 mm2  overhang>45   369.4 mm2
+drill_leg_L          bbox [18.7, 20.6, 32.6]  bed    97.7 mm2  overhang>45   220.0 mm2
+drill_leg_R          bbox [18.7, 20.6, 32.6]  bed    97.7 mm2  overhang>45   220.0 mm2
+drill_leg_L_auger    bbox [22.0, 22.0, 100.2]  bed    75.9 mm2  overhang>45    65.1 mm2
+drill_leg_R_auger    bbox [22.0, 22.0, 100.2]  bed    75.9 mm2  overhang>45    65.1 mm2
+foot_auger           bbox [13.0, 13.0, 68.0]  bed    66.4 mm2  overhang>45    13.6 mm2
+coupler_L            bbox [7.0, 29.3, 6.4]  bed   113.4 mm2  overhang>45    50.7 mm2
+coupler_R            bbox [7.0, 27.9, 6.4]  bed   108.1 mm2  overhang>45    50.0 mm2
+pod_cap_L            bbox [10.0, 10.0, 1.5]  bed    69.9 mm2  overhang>45     0.0 mm2
+pod_cap_R            bbox [10.0, 10.0, 1.5]  bed    69.9 mm2  overhang>45     0.0 mm2
+tail_boom            bbox [42.6, 12.0, 9.0]  bed   134.1 mm2  overhang>45   133.9 mm2
+boom_anchor          bbox [30.9, 32.2, 3.6]  bed   623.2 mm2  overhang>45    33.3 mm2

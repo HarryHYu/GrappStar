@@ -1,0 +1,66 @@
+{
+ "collisions": {},
+ "thread_engagement_mm3": {
+  "screws_radial | tail_cap": 11.4,
+  "boom_pin | tail_boom": 3.4,
+  "boom_anchor | screws_radial": 20.3,
+  "screws_radial | tray": 31.5,
+  "kick_hub_screw | kick_leg": 6.7,
+  "coupler_L | coupler_L_screw": 11.0,
+  "coupler_R | coupler_R_screw": 11.0
+ },
+ "ground_below": {},
+ "auger_depth_mm": {
+  "foot_auger": 59.3,
+  "foot_shaft": 4.6,
+  "drill_leg_L_auger": 49.1,
+  "drill_leg_L_shaft": 32.7,
+  "drill_leg_L_nut": 29.9,
+  "drill_leg_L_nyloc": 34.2,
+  "drill_leg_R_auger": 49.1,
+  "drill_leg_R_shaft": 32.7,
+  "drill_leg_R_nut": 29.9,
+  "drill_leg_R_nyloc": 34.2
+ },
+ "foot_housing_clear_mm": 0.2,
+ "pod_clear_mm": {
+  "drill_leg_L": 8.91,
+  "drill_leg_R": 8.91
+ },
+ "folded_bbox": [
+  -0.0,
+  -43.8,
+  -21.0,
+  179.5,
+  43.8,
+  108.3
+ ],
+ "belly_outside_r21": {},
+ "folded_min_z_below_ground": {},
+ "printed_cm3": 113.03,
+ "printed_g_solid_PLA": 140.2,
+ "watertight_fail": [],
+ "multi_body": [],
+ "kick_range": [
+  0,
+  204.5
+ ],
+ "deploy_range": [
+  0,
+  45.0
+ ],
+ "L": 151.97,
+ "sweep_s": 32.7,
+ "kick_steps": 206,
+ "deploy_steps": 46,
+ "hard_stops_mm3": {
+  "deploy_at_angle": 0.0,
+  "deploy_horn_+2.5deg": 2.24,
+  "fold_at_0": 0.0,
+  "fold_lug_-3deg": 3.97,
+  "kick_rest_-0.5deg": 0.0,
+  "kick_rest_+2deg": 11.4,
+  "ok": true
+ }
+}
+CLEAN

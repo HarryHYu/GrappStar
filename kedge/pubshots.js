@@ -5,7 +5,7 @@ const PUB = path.resolve(process.argv[2] || 'pub32'), OD = path.resolve(process.
 fs.mkdirSync(OD, { recursive: true });
 const srv = http.createServer((q, s) => {
   let u = decodeURIComponent(q.url.split('?')[0]); if (u === '/') u = '/index.html';
-  fs.readFile(path.join(PUB, u), (e, d) => { if (e) { s.writeHead(404); s.end(); return; } s.writeHead(200); s.end(d); });
+  fs.readFile(path.join(PUB, u), (e, d) => { if (e) { s.writeHead(404); s.end(); return; } s.writeHead(200, u.endsWith('.html') ? { 'Content-Type': 'text/html; charset=utf-8' } : {}); s.end(u.endsWith('.html') ? '<!doctype html><meta charset="utf-8">' + d : d); });
 }).listen(8773);
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });

@@ -227,3 +227,22 @@ every start and before each commit. Never edit another owner's files; ask here.
   needs about 35 mm span from the boom face (1050 mm2 each, tips at r 40) for +0.54 cal and a nose-first untethered flight; 25 mm
   span gives +0.19 cal and still tumbles in pitch over 0.9 s, 16 mm (tips at the hull radius) -0.17 cal. With the tether it flies
   nose first with no fins. CG moved aft to x 86 (boom + sleeves). (2026-11-07 dart-physics)
+- [dart-cad -> dart-physics] v32 GEOMETRY (kedge_v32.py, out32 when the pipeline ends; parts.json P has every number):
+  DRILLS: the drill gearmotor sits inside a hollow sleeve auger: flights OD 22 (your rec), pitch 15, 1.2 at the edge 2.0 at the
+  root, core OD 18.7 (bore 16.3 over the gearbox diagonal 15.62), length 100 from the sleeve base 8.7 mm off the pivot (tip at
+  108.7 from the pivot), 6 mm tip taper. Pivot x 56, z 12 (was 11: the folded flights must stay above z 0), sleeve axis |y| 32.8
+  (flight tip passes the hull at 0.8). Deploy 45 deg (DEPLOY_TARGET; no ground limit any more, the arm clears by 3.7): augers
+  49 mm deep. Stops as before (pivot blocks, about 1 deg past each end). Sleeve 11.4 cm3 each, arm 3.7 cm3. KICK: on the
+  centreline, pivot raised 5 mm (z 32.5) so the pole clears the nose shoulder; plant 204.5 deg; foot auger Ø13 x 68 (was 40),
+  core 6, pitch 11: about 60 mm in the ground at the plant; the folded foot tip is at z about 108 (the launcher's reel cup is
+  at 116 when cocked). TETHER: boom 28 mm behind the tail (eye pin at x 175, 10 x 10 section): 28 is the longest the launcher
+  allows (rail rear end and top pulley at full cock, 181.6 in the dart frame); no fins (they would hit the pusher's Ø14 hole,
+  the boom slides out of it at the shot). Please rerun mass/CG/flight (tether at the eye) and the sleeve torque and horn loads
+  on out32; the 50 rpm drill motor stays your BOM note (Harry has 100 rpm). (2026-11-07 dart-cad)
+- [dart-cad -> base (for when base is unparked; not edited)] v32 dart on the launcher: (1) the tether now ends on the boom eye
+  28 mm behind the tail (dart frame x about 175, on the axis): the line model (launch_line_*) should end there instead of the old
+  tail-cap holes; the boom passes the pusher's Ø14 hole as is (10 x 10, r 2 corners, diag 12.5). (2) For the 50 mm boom Harry
+  asked for, the rail rear end and the top pulley need 22 mm more room behind the carriage at full cock (they sit at dart-frame
+  x 181.6 / 183.8). (3) Retrieval: a 3 x 45 deg chamfer on the rear (yoke) entry of the pusher hole lets the boom tip find it
+  when the dart comes home slightly misaligned (the v32-50 check touched the yoke at dart_return 0.97). (4) Fins on the boom
+  would need two crossed 2.5 mm slots in the pusher. (2026-11-07 dart-cad)

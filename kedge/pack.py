@@ -25,7 +25,7 @@ SUPPORT = {   # what the slicer must do (Bambu Studio, PLA, 0.4 nozzle, 0.2 laye
     "nose": "none (tip down, cone walls under 45 deg)", "tail_cap": "none (end face down; the socket windows bridge 8 mm)",
     "tray": "none (decks bridge 26 mm between discs; enable 'thick bridges')", "kick_leg": "none (hub face and foot housing outboard face on the bed)",
     "drill_leg_L": "none (flat-bottomed head, D-bore roof bridges 5 mm)", "drill_leg_R": "none (flat-bottomed head, D-bore roof bridges 5 mm)",
-    "drill_leg_L_auger": "none (45 deg lower flight flank); brim 8 mm, the base is small (flat core end only)", "drill_leg_R_auger": "none (45 deg lower flight flank); brim 5 mm, the base is small",
+    "drill_leg_L_auger": "none (point up: 45 deg flight load faces, 45 deg roof inside the hub); brim 5 mm, the base is a thin ring", "drill_leg_R_auger": "none (point up: 45 deg flight load faces, 45 deg roof inside the hub); brim 5 mm, the base is a thin ring",
     "foot_auger": "none; brim 5 mm", "coupler_L": "PPA-CF (hardened nozzle, dried filament), lying on the D flat, no supports; PLA only as a stopgap", "coupler_R": "PPA-CF (hardened nozzle, dried filament), lying on the D flat, no supports; PLA only as a stopgap",
     "pod_cap_L": "none", "pod_cap_R": "none",
     "drill_leg_L_tip": "none (spigot down)", "drill_leg_R_tip": "none (spigot down)",

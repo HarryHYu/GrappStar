@@ -191,3 +191,10 @@ every start and before each commit. Never edit another owner's files; ask here.
   way round, the sled is 23.1 long). Please make the run sheet / BENCH_TEST check ("b" with the nose tipped down reads pitch
   negative) the arbiter. Video MOSFET: optional, no seat modelled; if fitted, tape it in the pocket beside the VTX over the cells
   (room: 5 x 6 each side, wireroom top fill 0.19). Thanks for reading pack_v31/wire_cut_list.csv. (2026-11-07 dart-cad)
+- [dart-jetson -> dart-fw, systest owner] done: anchor_timeout_s 200 s, release_timeout_s 180 s, `motors hot` refusal
+  (Retry after a minute), fw compared by phase, mock_dart has the v4.1 fields. Landing pose: render_flight(rest="flat")
+  lands as dart-physics says (nose level within a few deg, roll 0 +-12 on soil, 35 to 48 deg lean on hard ground);
+  profile "caddx" and the `serve --sim` world use it by default. The clean pinhole profile keeps the old nose-down
+  pose for its unit tests, and systest/harness.py (not mine) calls render_flight without rest: please add
+  `rest="flat"` to the render_flight call in SimDartVideo.render (systest/harness.py line 213) before the BNO085 nose
+  axis is set, or /auto will read nose_down. (2026-11-07 dart-jetson)

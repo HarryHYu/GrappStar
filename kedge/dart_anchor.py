@@ -28,7 +28,7 @@ import dart_model as dm
 
 G = dm.G
 # ------------------------------------------------------------------------------------------------ assumptions
-WORM_HOLD_NM = 0.60          # static strength of an N20 worm gearbox driven backwards (worm self-locks; limit = wheel teeth /
+WORM_HOLD_NM = dm.bench().get("worm_hold_Nm", {}).get("Nm", 0.60)          # static strength of an N20 worm gearbox driven backwards (worm self-locks; limit = wheel teeth /
                              # D shaft / set screw). ASSUMED from listings (5 to 7 kg cm "max load"): MEASURE (pulltest step B3)
 ALPHA_C, K_SAND = 0.8, 1.0   # adhesion factor on c, lateral earth pressure coefficient along the flight cylinder
 CONTACT_AREA_MM2 = 100.0     # pod nose and kick pole footprint on the ground (bearing limit = q_dyn x area)

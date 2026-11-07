@@ -1,0 +1,987 @@
+{
+ "source": "out30",
+ "mass_g": 282.3,
+ "cg_mm": [
+  78.7,
+  1.8,
+  6.2
+ ],
+ "rest_states_folded": [
+  {
+   "share_pct": 17.8,
+   "roll_deg": -34.3,
+   "pitch_deg": -0.2,
+   "cg_height_mm": 25.3
+  },
+  {
+   "share_pct": 14.4,
+   "roll_deg": 136.7,
+   "pitch_deg": -5.5,
+   "cg_height_mm": 36.8
+  },
+  {
+   "share_pct": 13.6,
+   "roll_deg": 37.8,
+   "pitch_deg": 0.6,
+   "cg_height_mm": 27.6
+  },
+  {
+   "share_pct": 11.0,
+   "roll_deg": -26.1,
+   "pitch_deg": 0.3,
+   "cg_height_mm": 26.1
+  },
+  {
+   "share_pct": 10.7,
+   "roll_deg": -110.5,
+   "pitch_deg": -1.1,
+   "cg_height_mm": 39.2
+  },
+  {
+   "share_pct": 8.6,
+   "roll_deg": 142.7,
+   "pitch_deg": -8.9,
+   "cg_height_mm": 37.0
+  },
+  {
+   "share_pct": 4.9,
+   "roll_deg": 179.9,
+   "pitch_deg": -19.7,
+   "cg_height_mm": 45.5
+  },
+  {
+   "share_pct": 3.9,
+   "roll_deg": 30.5,
+   "pitch_deg": -0.1,
+   "cg_height_mm": 27.3
+  },
+  {
+   "share_pct": 3.1,
+   "roll_deg": -101.9,
+   "pitch_deg": 1.1,
+   "cg_height_mm": 39.2
+  },
+  {
+   "share_pct": 2.5,
+   "roll_deg": 175.9,
+   "pitch_deg": 70.1,
+   "cg_height_mm": 83.7
+  },
+  {
+   "share_pct": 2.2,
+   "roll_deg": -84.3,
+   "pitch_deg": 0.8,
+   "cg_height_mm": 38.4
+  },
+  {
+   "share_pct": 1.8,
+   "roll_deg": 12.0,
+   "pitch_deg": 0.1,
+   "cg_height_mm": 27.5
+  },
+  {
+   "share_pct": 1.8,
+   "roll_deg": 21.0,
+   "pitch_deg": -0.5,
+   "cg_height_mm": 27.8
+  },
+  {
+   "share_pct": 1.1,
+   "roll_deg": 90.5,
+   "pitch_deg": 0.9,
+   "cg_height_mm": 42.4
+  },
+  {
+   "share_pct": 0.8,
+   "roll_deg": -159.1,
+   "pitch_deg": -16.5,
+   "cg_height_mm": 49.1
+  },
+  {
+   "share_pct": 0.8,
+   "roll_deg": -95.1,
+   "pitch_deg": 0.4,
+   "cg_height_mm": 39.2
+  },
+  {
+   "share_pct": 0.7,
+   "roll_deg": 101.4,
+   "pitch_deg": 1.3,
+   "cg_height_mm": 43.0
+  }
+ ],
+ "roll_slice": {
+  "minima_deg_h": [
+   [
+    -132.0,
+    36.7
+   ],
+   [
+    -38.0,
+    27.0
+   ],
+   [
+    39.0,
+    24.7
+   ],
+   [
+    109.0,
+    39.0
+   ]
+  ],
+  "maxima_deg_h": [
+   [
+    -99.0,
+    43.1
+   ],
+   [
+    -17.0,
+    27.4
+   ],
+   [
+    100.0,
+    39.5
+   ],
+   [
+    169.0,
+    69.6
+   ]
+  ],
+  "note": "lying along the axis: a landing roll between the two maxima either side of 0 settles belly down"
+ },
+ "recovery_quasistatic": [
+  {
+   "start_roll": -34.3,
+   "start_pitch": -0.2,
+   "share_pct": 17.8,
+   "end_roll": -26.1,
+   "end_pitch": 0.3,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 24,
+    "roll": -0.3
+   }
+  },
+  {
+   "start_roll": 136.7,
+   "start_pitch": -5.5,
+   "share_pct": 14.4,
+   "end_roll": 136.7,
+   "end_pitch": -5.5,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 60,
+    "roll": 108.3
+   }
+  },
+  {
+   "start_roll": 37.8,
+   "start_pitch": 0.6,
+   "share_pct": 13.6,
+   "end_roll": -26.1,
+   "end_pitch": 0.3,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 24,
+    "roll": -0.3
+   }
+  },
+  {
+   "start_roll": -26.1,
+   "start_pitch": 0.3,
+   "share_pct": 11.0,
+   "end_roll": -26.1,
+   "end_pitch": 0.3,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 24,
+    "roll": -0.3
+   }
+  },
+  {
+   "start_roll": -110.5,
+   "start_pitch": -1.1,
+   "share_pct": 10.7,
+   "end_roll": -101.9,
+   "end_pitch": 1.1,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 30,
+    "roll": -95.1
+   }
+  },
+  {
+   "start_roll": 142.7,
+   "start_pitch": -8.9,
+   "share_pct": 8.6,
+   "end_roll": 136.7,
+   "end_pitch": -5.5,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 60,
+    "roll": 108.3
+   }
+  },
+  {
+   "start_roll": 179.9,
+   "start_pitch": -19.7,
+   "share_pct": 4.9,
+   "end_roll": 136.7,
+   "end_pitch": -5.5,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 60,
+    "roll": 108.3
+   }
+  },
+  {
+   "start_roll": 30.5,
+   "start_pitch": -0.1,
+   "share_pct": 3.9,
+   "end_roll": -26.1,
+   "end_pitch": 0.3,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 24,
+    "roll": -0.3
+   }
+  },
+  {
+   "start_roll": -101.9,
+   "start_pitch": 1.1,
+   "share_pct": 3.1,
+   "end_roll": -101.9,
+   "end_pitch": 1.1,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 30,
+    "roll": -95.1
+   }
+  },
+  {
+   "start_roll": 175.9,
+   "start_pitch": 70.1,
+   "share_pct": 2.5,
+   "end_roll": 175.9,
+   "end_pitch": 70.1,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 30,
+    "roll": -47.5
+   }
+  },
+  {
+   "start_roll": -84.3,
+   "start_pitch": 0.8,
+   "share_pct": 2.2,
+   "end_roll": -26.1,
+   "end_pitch": 0.3,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 24,
+    "roll": -0.3
+   }
+  },
+  {
+   "start_roll": 90.5,
+   "start_pitch": 0.9,
+   "share_pct": 1.1,
+   "end_roll": -26.1,
+   "end_pitch": 0.3,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 24,
+    "roll": -0.3
+   }
+  },
+  {
+   "start_roll": -159.1,
+   "start_pitch": -16.5,
+   "share_pct": 0.8,
+   "end_roll": 136.7,
+   "end_pitch": -5.5,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 60,
+    "roll": 108.3
+   }
+  },
+  {
+   "start_roll": -95.1,
+   "start_pitch": 0.4,
+   "share_pct": 0.8,
+   "end_roll": -101.9,
+   "end_pitch": 1.1,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 0,
+    "roll": -95.1
+   }
+  },
+  {
+   "start_roll": 101.4,
+   "start_pitch": 1.3,
+   "share_pct": 0.7,
+   "end_roll": 136.7,
+   "end_pitch": -5.5,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 0,
+    "roll": 101.4
+   }
+  }
+ ],
+ "anchor_vs_roll": [
+  {
+   "roll_deg": 0,
+   "auger_tip_depths_mm": [
+    44.8,
+    44.8
+   ]
+  },
+  {
+   "roll_deg": 5,
+   "auger_tip_depths_mm": [
+    41.8,
+    47.2
+   ]
+  },
+  {
+   "roll_deg": 10,
+   "auger_tip_depths_mm": [
+    38.4,
+    49.1
+   ]
+  },
+  {
+   "roll_deg": 15,
+   "auger_tip_depths_mm": [
+    34.5,
+    50.5
+   ]
+  },
+  {
+   "roll_deg": 20,
+   "auger_tip_depths_mm": [
+    30.2,
+    51.4
+   ]
+  },
+  {
+   "roll_deg": 25,
+   "auger_tip_depths_mm": [
+    25.5,
+    51.7
+   ]
+  },
+  {
+   "roll_deg": 30,
+   "auger_tip_depths_mm": [
+    20.4,
+    51.4
+   ]
+  }
+ ],
+ "impact": [
+  {
+   "rail_pitch": 10,
+   "v": 6.89,
+   "path_deg": 25.5,
+   "m_eff_kg": 0.084,
+   "soft soil (loam, tilled)": {
+    "vn": 2.97,
+    "depth_mm": 1.6,
+    "F_peak_N": 262.5,
+    "g_peak": 95.0,
+    "duration_ms": 1.1,
+    "loads": {
+     "camera": {
+      "g": 322.0,
+      "N": 6.9
+     },
+     "cell_1": {
+      "g": 64.0,
+      "N": 13.9
+     },
+     "xiao": {
+      "g": 55.0,
+      "N": 1.6
+     },
+     "bno085": {
+      "g": 66.0,
+      "N": 1.7
+     },
+     "vtx": {
+      "g": 91.0,
+      "N": 3.2
+     },
+     "n20_kick": {
+      "g": 247.0,
+      "N": 25.4
+     },
+     "drill_leg_L_motor": {
+      "g": 304.0,
+      "N": 32.8
+     },
+     "kick_leg": {
+      "g": 129.0,
+      "N": 13.7
+     },
+     "drill_leg_L_auger": {
+      "g": 120.0,
+      "N": 8.0
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 66.0
+   },
+   "grass on loam": {
+    "vn": 2.97,
+    "depth_mm": 2.3,
+    "F_peak_N": 185.5,
+    "g_peak": 67.0,
+    "duration_ms": 1.6,
+    "loads": {
+     "camera": {
+      "g": 227.0,
+      "N": 4.9
+     },
+     "cell_1": {
+      "g": 46.0,
+      "N": 9.8
+     },
+     "xiao": {
+      "g": 39.0,
+      "N": 1.1
+     },
+     "bno085": {
+      "g": 47.0,
+      "N": 1.2
+     },
+     "vtx": {
+      "g": 64.0,
+      "N": 2.3
+     },
+     "n20_kick": {
+      "g": 174.0,
+      "N": 17.9
+     },
+     "drill_leg_L_motor": {
+      "g": 215.0,
+      "N": 23.2
+     },
+     "kick_leg": {
+      "g": 91.0,
+      "N": 9.7
+     },
+     "drill_leg_L_auger": {
+      "g": 85.0,
+      "N": 5.7
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 47.0
+   },
+   "gravel (10 to 20 mm)": {
+    "vn": 2.97,
+    "depth_mm": 0.4,
+    "F_peak_N": 1182.2,
+    "g_peak": 427.0,
+    "duration_ms": 0.3,
+    "loads": {
+     "camera": {
+      "g": 1449.0,
+      "N": 31.3
+     },
+     "cell_1": {
+      "g": 290.0,
+      "N": 62.6
+     },
+     "xiao": {
+      "g": 246.0,
+      "N": 7.2
+     },
+     "bno085": {
+      "g": 297.0,
+      "N": 7.6
+     },
+     "vtx": {
+      "g": 410.0,
+      "N": 14.5
+     },
+     "n20_kick": {
+      "g": 1110.0,
+      "N": 114.4
+     },
+     "drill_leg_L_motor": {
+      "g": 1367.0,
+      "N": 147.5
+     },
+     "kick_leg": {
+      "g": 582.0,
+      "N": 61.6
+     },
+     "drill_leg_L_auger": {
+      "g": 539.0,
+      "N": 36.1
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 297.0
+   },
+   "hard ground (dry compacted, concrete)": {
+    "vn": 2.97,
+    "crush_mm": 0.3,
+    "F_peak_N": 3561.0,
+    "g_peak": 1286.0,
+    "loads": {
+     "camera": {
+      "g": 4364.0,
+      "N": 94.2
+     },
+     "cell_1": {
+      "g": 874.0,
+      "N": 188.6
+     },
+     "xiao": {
+      "g": 741.0,
+      "N": 21.8
+     },
+     "bno085": {
+      "g": 894.0,
+      "N": 22.8
+     },
+     "vtx": {
+      "g": 1236.0,
+      "N": 43.6
+     },
+     "n20_kick": {
+      "g": 3344.0,
+      "N": 344.5
+     },
+     "drill_leg_L_motor": {
+      "g": 4119.0,
+      "N": 444.4
+     },
+     "kick_leg": {
+      "g": 1753.0,
+      "N": 185.5
+     },
+     "drill_leg_L_auger": {
+      "g": 1625.0,
+      "N": 108.7
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 894.0
+   }
+  },
+  {
+   "rail_pitch": 34,
+   "v": 6.48,
+   "path_deg": 45.5,
+   "m_eff_kg": 0.136,
+   "soft soil (loam, tilled)": {
+    "vn": 4.62,
+    "depth_mm": 5.2,
+    "F_peak_N": 348.6,
+    "g_peak": 126.0,
+    "duration_ms": 2.3,
+    "loads": {
+     "camera": {
+      "g": 308.0,
+      "N": 6.6
+     },
+     "cell_1": {
+      "g": 98.0,
+      "N": 21.2
+     },
+     "xiao": {
+      "g": 73.0,
+      "N": 2.1
+     },
+     "bno085": {
+      "g": 57.0,
+      "N": 1.4
+     },
+     "vtx": {
+      "g": 131.0,
+      "N": 4.6
+     },
+     "n20_kick": {
+      "g": 259.0,
+      "N": 26.7
+     },
+     "drill_leg_L_motor": {
+      "g": 292.0,
+      "N": 31.5
+     },
+     "kick_leg": {
+      "g": 168.0,
+      "N": 17.8
+     },
+     "drill_leg_L_auger": {
+      "g": 131.0,
+      "N": 8.7
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 57.0
+   },
+   "grass on loam": {
+    "vn": 4.62,
+    "depth_mm": 7.1,
+    "F_peak_N": 266.0,
+    "g_peak": 96.0,
+    "duration_ms": 3.1,
+    "loads": {
+     "camera": {
+      "g": 235.0,
+      "N": 5.1
+     },
+     "cell_1": {
+      "g": 75.0,
+      "N": 16.2
+     },
+     "xiao": {
+      "g": 56.0,
+      "N": 1.6
+     },
+     "bno085": {
+      "g": 43.0,
+      "N": 1.1
+     },
+     "vtx": {
+      "g": 100.0,
+      "N": 3.5
+     },
+     "n20_kick": {
+      "g": 198.0,
+      "N": 20.4
+     },
+     "drill_leg_L_motor": {
+      "g": 223.0,
+      "N": 24.0
+     },
+     "kick_leg": {
+      "g": 128.0,
+      "N": 13.6
+     },
+     "drill_leg_L_auger": {
+      "g": 100.0,
+      "N": 6.7
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 43.0
+   },
+   "gravel (10 to 20 mm)": {
+    "vn": 4.62,
+    "depth_mm": 1.3,
+    "F_peak_N": 1279.2,
+    "g_peak": 462.0,
+    "duration_ms": 0.6,
+    "loads": {
+     "camera": {
+      "g": 1129.0,
+      "N": 24.4
+     },
+     "cell_1": {
+      "g": 361.0,
+      "N": 77.9
+     },
+     "xiao": {
+      "g": 267.0,
+      "N": 7.9
+     },
+     "bno085": {
+      "g": 208.0,
+      "N": 5.3
+     },
+     "vtx": {
+      "g": 482.0,
+      "N": 17.0
+     },
+     "n20_kick": {
+      "g": 952.0,
+      "N": 98.1
+     },
+     "drill_leg_L_motor": {
+      "g": 1071.0,
+      "N": 115.6
+     },
+     "kick_leg": {
+      "g": 616.0,
+      "N": 65.2
+     },
+     "drill_leg_L_auger": {
+      "g": 479.0,
+      "N": 32.1
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 208.0
+   },
+   "hard ground (dry compacted, concrete)": {
+    "vn": 4.62,
+    "crush_mm": 1.25,
+    "F_peak_N": 2838.0,
+    "g_peak": 1025.0,
+    "loads": {
+     "camera": {
+      "g": 2504.0,
+      "N": 54.0
+     },
+     "cell_1": {
+      "g": 801.0,
+      "N": 172.8
+     },
+     "xiao": {
+      "g": 592.0,
+      "N": 17.4
+     },
+     "bno085": {
+      "g": 461.0,
+      "N": 11.8
+     },
+     "vtx": {
+      "g": 1069.0,
+      "N": 37.8
+     },
+     "n20_kick": {
+      "g": 2112.0,
+      "N": 217.6
+     },
+     "drill_leg_L_motor": {
+      "g": 2376.0,
+      "N": 256.4
+     },
+     "kick_leg": {
+      "g": 1368.0,
+      "N": 144.7
+     },
+     "drill_leg_L_auger": {
+      "g": 1063.0,
+      "N": 71.1
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 461.0
+   }
+  },
+  {
+   "rail_pitch": 45,
+   "v": 6.42,
+   "path_deg": 55.8,
+   "m_eff_kg": 0.185,
+   "soft soil (loam, tilled)": {
+    "vn": 5.31,
+    "depth_mm": 8.1,
+    "F_peak_N": 426.9,
+    "g_peak": 154.0,
+    "duration_ms": 3.1,
+    "loads": {
+     "camera": {
+      "g": 290.0,
+      "N": 6.3
+     },
+     "cell_1": {
+      "g": 132.0,
+      "N": 28.5
+     },
+     "xiao": {
+      "g": 107.0,
+      "N": 3.1
+     },
+     "bno085": {
+      "g": 85.0,
+      "N": 2.2
+     },
+     "vtx": {
+      "g": 162.0,
+      "N": 5.7
+     },
+     "n20_kick": {
+      "g": 264.0,
+      "N": 27.2
+     },
+     "drill_leg_L_motor": {
+      "g": 277.0,
+      "N": 29.9
+     },
+     "kick_leg": {
+      "g": 194.0,
+      "N": 20.6
+     },
+     "drill_leg_L_auger": {
+      "g": 148.0,
+      "N": 9.9
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 85.0
+   },
+   "grass on loam": {
+    "vn": 5.31,
+    "depth_mm": 10.9,
+    "F_peak_N": 340.0,
+    "g_peak": 123.0,
+    "duration_ms": 4.1,
+    "loads": {
+     "camera": {
+      "g": 231.0,
+      "N": 5.0
+     },
+     "cell_1": {
+      "g": 105.0,
+      "N": 22.7
+     },
+     "xiao": {
+      "g": 85.0,
+      "N": 2.5
+     },
+     "bno085": {
+      "g": 68.0,
+      "N": 1.7
+     },
+     "vtx": {
+      "g": 129.0,
+      "N": 4.6
+     },
+     "n20_kick": {
+      "g": 210.0,
+      "N": 21.7
+     },
+     "drill_leg_L_motor": {
+      "g": 221.0,
+      "N": 23.8
+     },
+     "kick_leg": {
+      "g": 155.0,
+      "N": 16.4
+     },
+     "drill_leg_L_auger": {
+      "g": 118.0,
+      "N": 7.9
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 68.0
+   },
+   "gravel (10 to 20 mm)": {
+    "vn": 5.31,
+    "depth_mm": 2.1,
+    "F_peak_N": 1368.5,
+    "g_peak": 494.0,
+    "duration_ms": 0.8,
+    "loads": {
+     "camera": {
+      "g": 930.0,
+      "N": 20.1
+     },
+     "cell_1": {
+      "g": 424.0,
+      "N": 91.5
+     },
+     "xiao": {
+      "g": 343.0,
+      "N": 10.1
+     },
+     "bno085": {
+      "g": 273.0,
+      "N": 7.0
+     },
+     "vtx": {
+      "g": 521.0,
+      "N": 18.4
+     },
+     "n20_kick": {
+      "g": 846.0,
+      "N": 87.2
+     },
+     "drill_leg_L_motor": {
+      "g": 889.0,
+      "N": 95.9
+     },
+     "kick_leg": {
+      "g": 623.0,
+      "N": 65.9
+     },
+     "drill_leg_L_auger": {
+      "g": 473.0,
+      "N": 31.7
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 273.0
+   },
+   "hard ground (dry compacted, concrete)": {
+    "vn": 5.31,
+    "crush_mm": 1.6,
+    "F_peak_N": 3684.0,
+    "g_peak": 1330.0,
+    "loads": {
+     "camera": {
+      "g": 2503.0,
+      "N": 54.0
+     },
+     "cell_1": {
+      "g": 1141.0,
+      "N": 246.3
+     },
+     "xiao": {
+      "g": 923.0,
+      "N": 27.2
+     },
+     "bno085": {
+      "g": 735.0,
+      "N": 18.7
+     },
+     "vtx": {
+      "g": 1402.0,
+      "N": 49.5
+     },
+     "n20_kick": {
+      "g": 2278.0,
+      "N": 234.6
+     },
+     "drill_leg_L_motor": {
+      "g": 2393.0,
+      "N": 258.2
+     },
+     "kick_leg": {
+      "g": 1677.0,
+      "N": 177.4
+     },
+     "drill_leg_L_auger": {
+      "g": 1275.0,
+      "N": 85.3
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 735.0
+   }
+  }
+ ],
+ "nose_bumper_5mm_hard_ground": {
+  "energy_J": 2.61,
+  "plateau_force_N": 522.0,
+  "g_cg": 188.0,
+  "plateau_stress_MPa_on_d22": 1.37
+ }
+}

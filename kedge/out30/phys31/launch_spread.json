@@ -1,0 +1,37 @@
+{
+ "v_base": 6.839,
+ "rows": [
+  [
+   "spring k -5 %",
+   NaN,
+   NaN
+  ],
+  [
+   "spring k +5 %",
+   NaN,
+   NaN
+  ],
+  [
+   "rail mu 0.2",
+   6.962,
+   1.8
+  ],
+  [
+   "rail mu 0.4",
+   6.714,
+   -1.83
+  ],
+  [
+   "dart -5 g",
+   6.884,
+   0.65
+  ],
+  [
+   "dart +5 g",
+   6.796,
+   -0.63
+  ]
+ ],
+ "sigma_percent": 0.96,
+ "note": "each listed range is taken as +-2 sigma, combined root-sum-square"
+}

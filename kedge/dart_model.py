@@ -239,8 +239,23 @@ MOTORS = {
 }
 
 
+BENCH_FILE = os.path.join(HERE, "bench31.json")   # written by dart_pulltest.py torque (measured values win)
+
+
+def bench():
+    try:
+        return json.load(open(BENCH_FILE))
+    except Exception:
+        return {}
+
+
 def motor(kind, V=7.4):
     m = MOTORS[kind]
+    key = {"worm": "worm_stall_Nm", "drill": "drill_stall_Nm", "foot": "foot_stall_Nm"}[kind]
+    B = bench().get(key)
+    if B:                                   # measured stall torque: back out the load efficiency at that voltage
+        R_ = 8.0 / m["i_stall"]; w8 = m["rpm12"] * 8.0 / 12.0 * 2 * math.pi / 60; Kt_ = (8.0 - m["i_free"] * R_) / w8
+        m = dict(m, eta=B["Nm"] / (Kt_ * (B["V"] / R_ - m["i_free"])), note=m["note"] + "; eta from the bench stall torque")
     R = 8.0 / m["i_stall"]
     w8 = m["rpm12"] * 8.0 / 12.0 * 2 * math.pi / 60
     Kt = (8.0 - m["i_free"] * R) / w8

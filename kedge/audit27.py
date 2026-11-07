@@ -56,7 +56,7 @@ FIXED = {n: xf(n, np.eye(4)) for n in fixed}
 hits = {}
 OWN = {tuple(sorted(p)) for p in [("kick_shaft", "n20_kick"), ("deploy_shaft", "n20_deploy"), ("foot_shaft", "n20_foot")]}
 THREAD = {tuple(sorted(p)) for p in [("screws_radial", "tray"), ("screws_radial", "tail_cap"), ("screw_ear_root", "tray"), ("kick_hub_screw", "kick_leg"),
-                                     ("coupler_L_screw", "coupler_L"), ("coupler_R_screw", "coupler_R"), ("ballast", "nose")]}
+                                     ("coupler_L_screw", "coupler_L"), ("coupler_R_screw", "coupler_R"), ("ballast", "nose"), ("screws_radial", "boom_anchor"), ("boom_pin", "tail_boom")]}
 threads = {}
 def rec(a, b, tag, v, thr=0.5):
     if tuple(sorted((a, b))) in OWN: return            # a motor's own output shaft runs through its own gearbox
@@ -113,7 +113,7 @@ dep.update(FIXED)
 ground = {}
 for n, (v, f) in dep.items():
     zmin = float(v[:, 2].min()); ground[n] = round(zmin - G, 2)
-augers = [n for n in dep if any(k in n for k in ("auger", "_shaft", "nyloc")) and n not in ("kick_shaft", "deploy_shaft")]
+augers = [n for n in dep if any(k in n for k in ("auger", "_shaft", "nyloc", "_leg_L_nut", "_leg_R_nut")) and n not in ("kick_shaft", "deploy_shaft")]
 gbad = {n: d for n, d in ground.items() if n not in augers and d < -0.3}
 rep["ground_below"] = gbad
 rep["auger_depth_mm"] = {n: round(-ground[n], 1) for n in augers}

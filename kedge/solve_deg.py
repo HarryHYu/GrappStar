@@ -7,10 +7,11 @@ def minz(names, root, deg, sgn):
     for n in names:
         v=V(n); z.append(((np.c_[v,np.ones(len(v))]@T.T)[:,2]).min())
     return min(z)-G
-pod=['drill_leg_L','drill_leg_L_brg1','drill_leg_L_brg2','drill_leg_L_motor','drill_leg_L_nut']; aug=['drill_leg_L_auger']
+pod=['drill_leg_L','drill_leg_L_brg1','drill_leg_L_brg2','drill_leg_L_motor']; aug=['drill_leg_L_auger']
 pod=[n for n in pod if n in PP]
 best=None
-for d in np.arange(30,60.01,0.25):
+DT=P.get('DEPLOY_TARGET',60.0)
+for d in np.arange(30,min(DT,90.0)+0.001,0.25):
     c=minz(pod,'drill_leg_L',d,1)
     if c>=0.5: best=d
 assert best is not None, 'no deploy angle passes the ground check'

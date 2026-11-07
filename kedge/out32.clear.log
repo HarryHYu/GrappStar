@@ -1,20 +1,18 @@
  0.00  kick_hub_screw -> brg_ear
- 0.00  deploy_shaft -> n20_deploy
- 0.00  kick_shaft -> n20_kick
- 0.08  kick_leg -> brg_ear
+ 0.01  deploy_shaft -> n20_deploy
+ 0.01  kick_shaft -> n20_kick
+ 0.09  kick_leg -> brg_ear
  0.14  drill_leg_L -> hull_top
  0.14  drill_leg_R -> hull_top
  0.20  coupler_L -> hull_top
  0.20  coupler_R -> hull_top
  0.30  coupler_L -> n20_deploy
  0.30  coupler_R -> n20_deploy
- 0.37  kick_leg -> hull_top
- 0.60  kick_shaft -> hull_top
+ 0.40  kick_leg -> hull_top
+ 0.43  kick_shaft -> hull_top
+ 0.57  kick_leg -> nose
  0.60  coupler_L -> tray
  0.60  coupler_R -> tray
- 0.83  drill_leg_R_auger -> hull_top
- 0.85  drill_leg_R_auger -> hull_bottom
- 0.86  drill_leg_L_auger -> tail_cap
- 0.95  drill_leg_L_auger -> hull_top
- 0.96  drill_leg_R_auger -> tail_cap
- 0.97  drill_leg_L_auger -> hull_bottom
+ 0.84  drill_leg_R_auger -> hull_top
+ 0.85  drill_leg_L_auger -> hull_top
+ 0.88  drill_leg_R_auger -> hull_bottom

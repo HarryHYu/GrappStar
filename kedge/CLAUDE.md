@@ -1,4 +1,4 @@
-# KEDGE DART: CLAUDE CODE HANDOVER (state at 2 Nov 2026 23:30 Sydney; geometry sections 5 and 7 updated 7 Nov 2026, current design = v32)
+# KEDGE DART: CLAUDE CODE HANDOVER (state at 2 Nov 2026 23:30 Sydney; geometry sections 5 and 7 updated 7 Nov 2026, current design = v32c)
 
 Read this whole file first. It is everything known about the project from the cloud session (1-2 Nov 2026).
 Older full handover (v26, bench history, v26 source) is in `HANDOVER_v26_original.md`. Original caliper PDF with
@@ -163,12 +163,22 @@ leads out of the neck top); the sleeve (drill_leg_L/R_auger) has bore 16.3 (gear
 pitch 15 (dart-physics), 1.2 to 2.0 thick, 45 deg lower flank, L/R opposite hands, 100 long from 8.7 mm off the pivot; it runs on
 the bushing and the shoulder (push goes into the arm) and the motor shaft drives its tip hub through a jammed pair (M3 nut in a
 side slot + nyloc tightened through the tip bore): keyed in both directions. Drills 49.1 mm deep.
-STOPS: one faired pivot block per flank (convex teardrop to the split plane) is the coupler boss and, carved by the swept arm
+STOPS: one faired pivot block per flank (tangent-arc teardrop to the split plane) is the coupler boss and, carved by the swept arm
 (+HORN_GAP 0.15), leaves the deploy stop in front of the head and the fold stop under it (both about 1 deg past the ends).
-KICK on the centreline: kick N20 beside it at y -11.9 in a capsule saddle, hub on its +y stub (y -4..7.5), pivot z 32.5 (raised
-5 so the centreline pole clears the nose shoulder), teardrop ear with the F693ZZ on the left, pole and foot housing at y 0,
-plant KICK_DEG 204.5, rest 1.5 deg past it. Foot auger Ø13 x 68 (core 6), 59.3 mm deep; the worm N20 cannot go inside a hollow
-foot auger (its output is at right angles to the motor). Folded foot tip at z 108.3 (launcher reel cup at 116 when cocked).
+SKIN FEATURES (v32c): saddle, ear and pivot blocks are tangent-arc outlines (arc_prism: the convex hull of circles as true arcs joined
+by outer tangents, no polygon facets), side edges r 1.2 (saddle outboard shoulder r 4.5), blended into the skin with an r 1.5 skirt
+(skirt(): local skin patch + fillet). Arm heads: face edges r 1.2, stop corner r 0.5.
+KICK on the centreline: kick N20 beside it at y -11.9 in a low saddle fairing (its unused -y stub cut to 1 mm past the worm box, so
+no outboard slot; no strap: the square worm box keys it in the square pocket, a drop of CA stops rattle), hub on its +y stub (y -4..7.5),
+pivot z 27.5 (KICK_RAISE 0), teardrop ear with the F693ZZ on the left, pole and foot housing at y 0, plant KICK_DEG 200.75.
+At the plant the pole lies in a round-cornered FLUTE in the nose top (the pole's underside at the rest angle grown 0.25, corner r 3.8;
+the pole's datum-side corners are 45 deg chamfers 3.5 to fit it; a solid strip under it keeps the nose closed, 1.6 over the camera tube);
+the hull wall is slotted over the nose spigot there. The flute floor is the KICK REST (1.5 deg past the plant; audit checks it
+against hull_top + nose). FOOT: the housing is tilted FOOT_TILT 20.75 deg (= KICK_DEG - 180) about the foot N20's output shaft and
+raised FOOT_RISE 3.4 (folds clear of the hull top), joined to the pole by a web: the foot auger plants VERTICAL with the housing flat
+on the ground, 67.9 mm in (was 59.3 at 24.5 deg); its tip meets the soil near 170 deg. Foot auger Ø13 x 68 (core 6); the worm
+N20 cannot go inside a hollow foot auger (its output is at right angles to the motor). Folded foot tip at z 101.8, x about 164 (leans
+aft over the tail): launcher room per 4 mm x band (probe of the real launcher states, |y| <= 8) leaves 8.7 mm at x 152-156, 13 to 18 elsewhere.
 TETHER: PPA-CF tail boom on the axis, 28 mm behind the tail (the longest the launcher allows: rail rear and top pulley at full cock),
 9 x 9 rounded, clevis eye with a steel M3 x 8 countersunk pin (flush); a 9 x 12 head sits in a PPA-CF anchor disc in the tail
 spigot and the four tail M3 screws run hull -> tail cap spigot -> anchor disc: the tow goes into the hull. Square shank keyed in
@@ -177,8 +187,9 @@ the tail cap end wall; the pusher face is still the flat end ring. No fins (they
 Printed parts (17 + fit coupon): hull_top, hull_bottom, nose, tail_cap, tray, kick_leg, foot_auger, drill_leg_L/R (arms),
 drill_leg_L/R_auger (sleeves), coupler_L/R, pod_cap_L/R (PLA) + coupler_L/R, tail_boom, boom_anchor (PPA-CF plate C).
 
-Results (out32): audit CLEAN at kick and drill 1 deg steps, cross sweep, ground, belly, hard stops, watertight, one body per printed
-part; all STEP valid. Folded bbox x 0-179.5, y ±43.8, z -21 to 108.3. Printed 113.0 cm3 (140 g at 4 walls / 40%); mass 288 g with catalogue bought masses (dart-physics reruns it), CG x 85.4, z +8.7.
+Results (out32, v32c): audit CLEAN at kick and drill 1 deg steps, cross sweep, ground, belly, hard stops, watertight, one body per
+printed part; all STEP valid; wire room OK. Folded bbox x 0-179.5, y ±43.8, z -21 to 101.8. Printed 112.07 cm3 (138.9 g at 4 walls / 40%);
+mass 286.8 g with catalogue bought masses, CG x 87, z +8.2 (out32/physics.json; per-part volume, centroid and inertia in out32/mass_props.json).
 launcher_fit FITS against base/cad/parts/launch.py over 1684 states; the only overlaps are base's tether model, which still ends at
 the old tail holes (base moves the line end to the boom eye: DART_V31_NOTES.md lists what base needs, incl. 22 mm for a 50 mm boom).
 Review renders: out32/review/ (close-ups, viewer page shots), out32/audit_sheet.png, out32/sections.png. Viewer data: pub32/.
@@ -202,6 +213,9 @@ Rules learned (do not regress):
 - Stop faces are carved, not placed: subtract the arm's 2D profile swept over the swing (+HORN_GAP) from a faired block (pivot_blocks).
 - Every rotating part checked against the launcher (launcher_fit.py) before packaging; probe the room first (boom length, foot height).
 - Name clash bit v32 once (SH_X1 in the tray vs the arm): prefix new layout constants.
+- OCC fillets: fillet a sub-solid before the boolean that makes awkward edges (arm head before the shoulder union); skirt features into
+  the skin through a local patch (skirt()); one skirt per feature group (saddle + ear together failed with the blocks); fillet only the long
+  lip edges of a groove; chamfer (not fillet) edges that sit on the print bed.
 
 ---------------------------------------------------------------------------------------------------
 

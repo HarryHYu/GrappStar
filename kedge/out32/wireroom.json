@@ -14,7 +14,7 @@
    "keel_free": 67.9,
    "keel_bundle": 0.0,
    "keel_wires": 0,
-   "top_free": 135.6,
+   "top_free": 138.7,
    "top_bundle": 2.4,
    "top_wires": 3
   },
@@ -23,7 +23,7 @@
    "keel_free": 67.9,
    "keel_bundle": 0.0,
    "keel_wires": 0,
-   "top_free": 135.6,
+   "top_free": 136.3,
    "top_bundle": 2.4,
    "top_wires": 3
   },
@@ -50,7 +50,7 @@
    "keel_free": 67.9,
    "keel_bundle": 0.0,
    "keel_wires": 0,
-   "top_free": 135.6,
+   "top_free": 135.8,
    "top_bundle": 2.4,
    "top_wires": 3
   },
@@ -59,7 +59,7 @@
    "keel_free": 67.9,
    "keel_bundle": 0.0,
    "keel_wires": 0,
-   "top_free": 135.6,
+   "top_free": 135.8,
    "top_bundle": 2.4,
    "top_wires": 3
   },
@@ -122,7 +122,7 @@
    "keel_free": 33.4,
    "keel_bundle": 0.0,
    "keel_wires": 0,
-   "top_free": 106.9,
+   "top_free": 106.8,
    "top_bundle": 2.4,
    "top_wires": 3
   },
@@ -302,7 +302,7 @@
    "keel_free": 33.4,
    "keel_bundle": 5.4,
    "keel_wires": 6,
-   "top_free": 65.4,
+   "top_free": 65.3,
    "top_bundle": 5.2,
    "top_wires": 5
   },
@@ -320,7 +320,7 @@
    "keel_free": 77.3,
    "keel_bundle": 5.4,
    "keel_wires": 6,
-   "top_free": 44.6,
+   "top_free": 44.5,
    "top_bundle": 5.2,
    "top_wires": 5
   },
@@ -338,7 +338,7 @@
    "keel_free": 77.3,
    "keel_bundle": 5.4,
    "keel_wires": 6,
-   "top_free": 44.6,
+   "top_free": 44.5,
    "top_bundle": 5.2,
    "top_wires": 5
   },
@@ -356,7 +356,7 @@
    "keel_free": 77.3,
    "keel_bundle": 16.8,
    "keel_wires": 13,
-   "top_free": 65.4,
+   "top_free": 65.3,
    "top_bundle": 5.2,
    "top_wires": 5
   },

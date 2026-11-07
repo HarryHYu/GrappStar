@@ -26,10 +26,14 @@
   "KICK_HUB_W": 11.5,
   "KICK_POLE_D": 8.0,
   "KICK_POLE_L": 72.0,
-  "KICK_DEG": 204.5,
+  "KICK_DEG": 200.75,
   "KICK_REST_DEG": 1.5,
   "KICK_MY": -11.9,
-  "KICK_RAISE": 5.0,
+  "KICK_RAISE": 0.0,
+  "KICK_CH_SWEEP": 25.0,
+  "KICK_CH_GROW": 0.25,
+  "FOOT_TILT": 20.75,
+  "FOOT_RISE": 3.4,
   "FOOT_AUGER_L": 68.0,
   "FOOT_TIP": 10.0,
   "DRILL_X": 56.0,
@@ -120,7 +124,7 @@
   "SHAFT_END": 91.5,
   "KICK_X": 31.3,
   "KICK_Y": 0.0,
-  "KICK_Z": 32.5,
+  "KICK_Z": 27.5,
   "EAR_Y0": 7.9,
   "EAR_Y1": 12.3,
   "WIRE_PTS": {
@@ -236,16 +240,16 @@
     0,
     0
    ],
-   "note": "Clamshell upper half: skin, kick saddle beside the centreline (worm N20 drops in, entry slots, strap slots), teardrop ear fin with an F693ZZ for the hub screw, two faired pivot blocks (coupler bores; their carved faces are the deploy and fold stops of the drill arms), wire holes. Radial M3 clearance at z=+3 into tray disc 1 and the tail spigot",
+   "note": "Clamshell upper half: skin; kick saddle beside the centreline (low fairing round the worm N20, which drops in with its stub down the inboard slot); teardrop ear fin with an F693ZZ for the hub screw; two faired pivot blocks (coupler bores; their carved faces are the deploy and fold stops of the drill arms); saddle, ear and blocks are tangent-arc outlines with r 1.2 edges and r 1.5 skirts into the skin; a slot over the nose spigot where the kick pole lands; wire holes. Radial M3 clearance at z=+3 into tray disc 1 and the tail spigot",
    "parent": null,
    "printable": true,
    "orient": "split face down (on the bed), saddle up",
    "dims": [
     121.0,
     55.2,
-    39.6
+    34.8
    ],
-   "volume_cm3": 21.65,
+   "volume_cm3": 18.77,
    "watertight": true,
    "nsolids": 1
   },
@@ -292,16 +296,16 @@
     0,
     0
    ],
-   "note": "Blunt hollow nose: \u00d822 flat tip with the \u00d89.8 lens hole, Caddx Ant pocket 14.4 x 15.0 (slides in from the back, 1.2 lip + lens recess hold it), 1.5 walls; spigot with a groove that the hull rib locks when the clamshell closes",
+   "note": "Blunt hollow nose: \u00d822 flat tip with the \u00d89.8 lens hole, Caddx Ant pocket 14.4 x 15.0 (slides in from the back, 1.2 lip + lens recess hold it), 1.5 walls; a round-cornered flute along the top (solid underneath) where the planted kick pole lies: its floor is the kick rest; spigot with a groove that the hull rib locks when the clamshell closes",
    "parent": null,
    "printable": true,
    "orient": "tip down on the bed (flat \u00d822), spigot up",
    "dims": [
     27.0,
     42.0,
-    42.0
+    41.5
    ],
-   "volume_cm3": 8.25,
+   "volume_cm3": 8.21,
    "watertight": true,
    "nsolids": 1
   },
@@ -425,23 +429,23 @@
    "pos": [
     31.3,
     0.0,
-    32.5
+    27.5
    ],
    "axis": "y",
    "deg": [
     0,
-    204.5
+    200.75
    ],
-   "note": "Kick leg on the dart centreline: \u00d812 x 11.5 hub on the +y stub of the kick N20 (which sits beside it), M3 x 8 screw from outside through the ear F693ZZ into the hub end; \u00d88 pole (flat-sided to the print datum) with a \u00d84.6 wire channel, foot housing with the foot worm N20 in line, output shaft up when folded / down when deployed: the foot plants on the dart axis ahead of the nose",
+   "note": "Kick leg on the dart centreline: \u00d812 x 11.5 hub on the +y stub of the kick N20 (which sits beside it), M3 x 8 screw from outside through the ear F693ZZ into the hub end; \u00d88 pole (flat-sided to the print datum, those corners r 3.5 to fit the nose flute) with a \u00d84.6 wire channel, a web up to the foot housing, which is tilted 20.75 deg about the foot N20's output shaft so the foot auger plants vertical on the dart axis ahead of the nose (output up and leaning aft when folded)",
    "parent": null,
    "printable": true,
    "orient": "on its side (pole axis horizontal, hub face down)",
    "dims": [
-    119.2,
+    121.0,
     15.0,
-    15.0
+    28.0
    ],
-   "volume_cm3": 8.37,
+   "volume_cm3": 8.5,
    "watertight": true,
    "nsolids": 1
   },
@@ -465,9 +469,9 @@
    "printable": true,
    "orient": "base down",
    "dims": [
+    31.3,
     13.0,
-    13.0,
-    68.0
+    65.2
    ],
    "volume_cm3": 3.52,
    "watertight": true,
@@ -497,7 +501,7 @@
     20.6,
     18.7
    ],
-   "volume_cm3": 3.68,
+   "volume_cm3": 3.66,
    "watertight": true,
    "nsolids": 1
   },
@@ -693,7 +697,7 @@
     20.6,
     18.7
    ],
-   "volume_cm3": 3.68,
+   "volume_cm3": 3.66,
    "watertight": true,
    "nsolids": 1
   },
@@ -1020,16 +1024,16 @@
     0,
     0
    ],
-   "note": "kick N20 output shaft (turns with the leg), 29.97 tip to tip",
+   "note": "kick N20 output shaft (turns with the leg): the +y stub carries the hub; the unused -y stub is cut to 1 mm past the worm box (it stays inside the saddle pocket)",
    "parent": "kick_leg",
    "printable": false,
    "orient": null,
    "dims": [
     3.0,
-    30.0,
+    21.0,
     2.5
    ],
-   "volume_cm3": 0.19,
+   "volume_cm3": 0.13,
    "watertight": true,
    "nsolids": 1
   },
@@ -1361,9 +1365,9 @@
    "printable": false,
    "orient": null,
    "dims": [
-    33.0,
+    34.8,
     12.0,
-    12.0
+    22.0
    ],
    "volume_cm3": 3.83,
    "watertight": true,
@@ -1389,9 +1393,9 @@
    "printable": false,
    "orient": null,
    "dims": [
-    2.5,
+    5.5,
     3.0,
-    9.0
+    9.3
    ],
    "volume_cm3": 0.06,
    "watertight": true,

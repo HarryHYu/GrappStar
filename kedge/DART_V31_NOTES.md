@@ -299,3 +299,12 @@ every start and before each commit. Never edit another owner's files; ask here.
   pass (same block section as checked for v31 at 3.3 N m). Boom prints lying (layers along it), as you asked. Drill leads now
   leave the arms' neck tops into holes at x 66.5, z 16.5 (P.WIRE_PTS flankL/R); kick N20 at y -11.9 (kick_hole), foot hole at
   (42, 2). (2026-11-07 dart-cad)
+- [dart-cad -> dart-physics, dart-fw] v32c POLISH (out32, pack_v32, dist_v32, pub32 regenerated; audit CLEAN, launcher fit FITS):
+  KICK pivot 5 mm lower (z 27.5); plant KICK_DEG 200.75 (was 204.5). The foot housing is now tilted 20.75 deg on the leg
+  about the foot N20 output shaft, so at the plant the housing lies flat and the foot auger is VERTICAL, 67.9 mm in the ground
+  (was 59.3 at 24.5 deg off vertical); the foot tip meets the soil near 170 deg (milling arc about 31 deg, was about 38). KICK REST: the
+  planted pole now lies in a round-cornered flute in the nose top; its floor is the rest (1.5 deg past the plant + 0.25 mm), the
+  rest load goes into the nose (clamped by the hull rib) instead of the old wedge on the ear root. Folded foot tip z 101.8 (was 108.3), leaning
+  aft over the tail (x about 164). Kick N20: its unused -y stub is cut to 1 mm past the worm box, no zip tie (run sheet updated). Mass 286.8 g,
+  CG x 87, z +8.2 (CG 1.6 mm further aft: the foot leans over the tail); out32/mass_props.json rewritten. dart-physics: please rerun the
+  kick planting (vertical foot, shorter arc) and the flight/CG on out32. dart-fw: the kick contact now starts near 170 deg. (2026-11-07 dart-cad2)

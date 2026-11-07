@@ -1,15 +1,15 @@
 /home/user/GrappStar/kedge/wireroom.py:33: DeprecationWarning: DEPRECATED: replace `path.to_planar`->`path.to_2D), removal 1/1/2026
   p2, _ = sec.to_planar(to_2D=T, check=False)
-{'x': 21.0, 'keel_free': 67.9, 'keel_bundle': 0.0, 'keel_wires': 0, 'top_free': 135.6, 'top_bundle': 2.4, 'top_wires': 3}
-{'x': 25.0, 'keel_free': 67.9, 'keel_bundle': 0.0, 'keel_wires': 0, 'top_free': 135.6, 'top_bundle': 2.4, 'top_wires': 3}
+{'x': 21.0, 'keel_free': 67.9, 'keel_bundle': 0.0, 'keel_wires': 0, 'top_free': 138.7, 'top_bundle': 2.4, 'top_wires': 3}
+{'x': 25.0, 'keel_free': 67.9, 'keel_bundle': 0.0, 'keel_wires': 0, 'top_free': 135.8, 'top_bundle': 2.4, 'top_wires': 3}
 {'x': 29.0, 'keel_free': 0.0, 'keel_bundle': 0.0, 'keel_wires': 0, 'top_free': 73.9, 'top_bundle': 4.7, 'top_wires': 6}
-{'x': 33.0, 'keel_free': 33.4, 'keel_bundle': 0.0, 'keel_wires': 0, 'top_free': 106.9, 'top_bundle': 2.4, 'top_wires': 3}
+{'x': 33.0, 'keel_free': 33.4, 'keel_bundle': 0.0, 'keel_wires': 0, 'top_free': 106.8, 'top_bundle': 2.4, 'top_wires': 3}
 {'x': 37.0, 'keel_free': 33.4, 'keel_bundle': 0.0, 'keel_wires': 0, 'top_free': 106.9, 'top_bundle': 2.4, 'top_wires': 3}
 {'x': 41.0, 'keel_free': 33.4, 'keel_bundle': 0.0, 'keel_wires': 0, 'top_free': 106.9, 'top_bundle': 2.4, 'top_wires': 3}
 {'x': 45.0, 'keel_free': 33.4, 'keel_bundle': 5.4, 'keel_wires': 6, 'top_free': 106.9, 'top_bundle': 5.2, 'top_wires': 5}
 {'x': 49.0, 'keel_free': 33.4, 'keel_bundle': 5.4, 'keel_wires': 6, 'top_free': 106.9, 'top_bundle': 5.2, 'top_wires': 5}
-{'x': 53.0, 'keel_free': 33.4, 'keel_bundle': 5.4, 'keel_wires': 6, 'top_free': 65.4, 'top_bundle': 5.2, 'top_wires': 5}
-{'x': 57.0, 'keel_free': 77.3, 'keel_bundle': 5.4, 'keel_wires': 6, 'top_free': 44.6, 'top_bundle': 5.2, 'top_wires': 5}
+{'x': 53.0, 'keel_free': 33.4, 'keel_bundle': 5.4, 'keel_wires': 6, 'top_free': 65.3, 'top_bundle': 5.2, 'top_wires': 5}
+{'x': 57.0, 'keel_free': 77.3, 'keel_bundle': 5.4, 'keel_wires': 6, 'top_free': 44.5, 'top_bundle': 5.2, 'top_wires': 5}
 {'x': 61.0, 'keel_free': 77.3, 'keel_bundle': 16.8, 'keel_wires': 13, 'top_free': 98.9, 'top_bundle': 5.2, 'top_wires': 5}
 {'x': 65.0, 'keel_free': 60.5, 'keel_bundle': 14.8, 'keel_wires': 12, 'top_free': 62.6, 'top_bundle': 16.5, 'top_wires': 15}
 {'x': 69.0, 'keel_free': 60.5, 'keel_bundle': 14.8, 'keel_wires': 12, 'top_free': 68.1, 'top_bundle': 7.4, 'top_wires': 6}

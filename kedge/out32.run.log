@@ -1,0 +1,56 @@
+deploy_deg 45.0 pod clear 3.68 auger depth 49.2
+kick_deg 200.75 housing clear 0.36 foot auger depth 67.9
+written
+ground_below {}
+auger_depth_mm {'foot_auger': 67.9, 'foot_shaft': 7.1, 'drill_leg_L_tip': 49.1, 'drill_leg_L_auger': 49.1, 'drill_leg_L_shaft': 32.7, 'drill_leg_L_nut': 29.9, 'drill_leg_L_nyloc': 34.2, 'drill_leg_R_tip': 49.1, 'drill_leg_R_auger': 49.1, 'drill_leg_R_shaft': 32.7, 'drill_leg_R_nut': 29.9, 'drill_leg_R_nyloc': 34.2}
+foot_housing_clear_mm 0.36
+pod_clear_mm {'drill_leg_L': 8.91, 'drill_leg_R': 8.91}
+belly_outside_r21 {}
+hard_stops_mm3 {'deploy_at_angle': 0.0, 'deploy_horn_+2.5deg': 1.55, 'fold_at_0': 0.0, 'fold_lug_-3deg': 3.02, 'kick_rest_-0.5deg': 0.0, 'kick_rest_+2deg': 90.56, 'ok': True}
+folded_bbox [-0.0, -43.8, -21.0, 179.5, 43.8, 101.8]
+printed_cm3 112.07
+L 151.97
+CLEAN
+FITS
+ 0.00  kick_hub_screw -> brg_ear
+ 0.01  deploy_shaft -> n20_deploy
+ 0.01  kick_shaft -> n20_kick
+ 0.09  kick_leg -> brg_ear
+ 0.14  drill_leg_L -> hull_top
+ 0.14  drill_leg_R -> hull_top
+ 0.20  coupler_L -> hull_top
+ 0.20  coupler_R -> hull_top
+ 0.30  coupler_L -> n20_deploy
+ 0.30  coupler_R -> n20_deploy
+ 0.40  kick_leg -> hull_top
+ 0.43  kick_shaft -> hull_top
+meshes.json 7.8 MB
+audit_sheet.png (3840, 1714)
+sections.png (2560, 1294)
+(2100, 2420)
+tail_cap             bbox [42.0, 42.0, 15.4]  bed  1026.6 mm2  overhang>45   648.1 mm2
+tray                 bbox [109.1, 38.6, 36.5]  bed  1401.0 mm2  overhang>45  3920.0 mm2
+kick_leg             bbox [121.0, 28.0, 15.0]  bed   574.0 mm2  overhang>45   393.5 mm2
+drill_leg_L          bbox [18.7, 20.6, 32.6]  bed    78.3 mm2  overhang>45   215.5 mm2
+drill_leg_R          bbox [18.7, 20.6, 32.6]  bed    78.3 mm2  overhang>45   215.5 mm2
+drill_leg_L_auger    bbox [22.0, 22.0, 100.2]  bed    75.9 mm2  overhang>45    65.1 mm2
+drill_leg_R_auger    bbox [22.0, 22.0, 100.2]  bed    75.9 mm2  overhang>45    65.1 mm2
+foot_auger           bbox [13.0, 13.0, 68.0]  bed    66.4 mm2  overhang>45    13.6 mm2
+coupler_L            bbox [7.0, 29.3, 6.4]  bed   113.4 mm2  overhang>45    50.7 mm2
+coupler_R            bbox [7.0, 27.9, 6.4]  bed   108.1 mm2  overhang>45    50.0 mm2
+pod_cap_L            bbox [10.0, 10.0, 1.5]  bed    69.9 mm2  overhang>45     0.0 mm2
+pod_cap_R            bbox [10.0, 10.0, 1.5]  bed    69.9 mm2  overhang>45     0.0 mm2
+tail_boom            bbox [42.6, 12.0, 10.0]  bed    31.4 mm2  overhang>45   271.9 mm2
+boom_anchor          bbox [30.9, 32.2, 3.6]  bed   623.2 mm2  overhang>45    33.3 mm2
+drill_leg_L_tip      bbox [15.0, 15.0, 9.5]  bed     8.1 mm2  overhang>45     0.0 mm2
+drill_leg_R_tip      bbox [15.0, 15.0, 9.5]  bed     8.1 mm2  overhang>45     0.0 mm2
+ALL STEP VALID
+coupon 10.938989345358225 cm3
+{'x': 133.0, 'keel_free': 77.3, 'keel_bundle': 5.4, 'keel_wires': 4, 'top_free': 194.3, 'top_bundle': 0.0, 'top_wires': 0}
+worst keel fill (0.26, 130.0)  worst top fill (0.26, 65.0)
+WIRE ROOM OK
+ok
+assembly parts: 57 141573 kB
+ok
+pdf ok
+report ok

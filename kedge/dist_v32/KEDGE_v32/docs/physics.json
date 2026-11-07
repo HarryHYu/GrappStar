@@ -1,40 +1,40 @@
 {
  "source": "out32",
  "version": "v31 physics (dart-physics, 7 Nov 2026)",
- "mass_g": 290.3,
+ "mass_g": 286.8,
  "cg_mm": [
-  86.0,
-  -0.5,
-  8.7
+  87.0,
+  -0.4,
+  8.2
  ],
- "printed_g": 142.4,
+ "printed_g": 138.9,
  "bought_g": 147.9,
  "ballast_g": 0.0,
  "inertia_kg_mm2": [
   [
-   163.67,
-   -6.65,
-   -7.18
+   157.62,
+   -5.67,
+   -19.03
   ],
   [
-   -6.65,
-   508.91,
-   3.56
+   -5.67,
+   501.2,
+   2.64
   ],
   [
-   -7.18,
-   3.56,
-   535.98
+   -19.03,
+   2.64,
+   533.42
   ]
  ],
  "heaviest": [
   [
    "hull_top",
-   26.8,
+   23.3,
    [
-    62.6,
-    -2.7,
-    16.8
+    66.4,
+    -1.8,
+    15.0
    ]
   ],
   [
@@ -103,41 +103,41 @@
  ],
  "flight": {
   "direction": "nose first (toward -x)",
-  "cg_x": 86.0,
-  "cp_side_x": 57.1,
-  "cp_top_x": 58.7,
-  "static_margin_calibers_side": -0.69,
-  "static_margin_calibers_top": -0.65,
+  "cg_x": 87.0,
+  "cp_side_x": 51.1,
+  "cp_top_x": 52.9,
+  "static_margin_calibers_side": -0.85,
+  "static_margin_calibers_top": -0.81,
   "note": "aerodynamic centre at 10 deg and 7 m/s from the strip model (cross-flow + slender-body nose term); top = pitch plane (top-view width), side = yaw. At 7 m/s the air moments are small: the tether (0.33 N at the tail) is what keeps it nose first (flight_sim.json)."
  },
  "launch": {
   "source": "base/physics/launcher.py chain model, params base/spec/params.py v1.5.0",
   "pitch_deg": 34.0,
-  "dart_mass_kg": 0.2903,
-  "v_muzzle": 6.77,
+  "dart_mass_kg": 0.2868,
+  "v_muzzle": 6.8,
   "stroke_m": 0.2409,
-  "t_stroke_ms": 59.4,
+  "t_stroke_ms": 59.1,
   "energy_J": 12.06,
-  "accel_peak_g": 17.5,
+  "accel_peak_g": 17.7,
   "accel_at_release_g": 4.2,
-  "tail_push_peak_N": 60.5,
-  "line_pull_in_stroke_N": 8.25,
-  "line_spin_up_estimate_N": 4.71,
+  "tail_push_peak_N": 60.4,
+  "line_pull_in_stroke_N": 8.32,
+  "line_spin_up_estimate_N": 4.75,
   "ms_above_4g": 56.0,
-  "cradle_normal_N": 2.36,
-  "pitch_couple_Nm": 0.437,
-  "note": "the push acts on the flat tail face (pusher face covers z +-21 within y +-11): it can move up to the CG height (z +8.7 mm), so the CG offset makes no nose lift in the cradle",
+  "cradle_normal_N": 2.33,
+  "pitch_couple_Nm": 0.411,
+  "note": "the push acts on the flat tail face (pusher face covers z +-21 within y +-11): it can move up to the CG height (z +8.2 mm), so the CG offset makes no nose lift in the cradle",
   "v_needed_m_s": [
-   6.77,
-   6.77
+   6.8,
+   6.8
   ],
   "accel_g": [
-   17.5,
-   17.5
+   17.7,
+   17.7
   ],
   "spring_energy_J": 12.06,
-  "impact_g": 121.0,
-  "impact_stop_m": 0.005
+  "impact_g": 120.0,
+  "impact_stop_m": 0.0048
  },
  "loads": [
   [
@@ -148,49 +148,49 @@
   ],
   [
    "tail cap push at launch (dart + line)",
-   60.5,
+   60.4,
    "N",
    "4 radial M3 into the spigot ring, hull wall in compression: fine"
   ],
   [
-   "cells forward at landing, soft soil (121 g at the CG, rigid-body upper bound)",
-   43.0,
+   "cells forward at landing, soft soil (120 g at the CG, rigid-body upper bound)",
+   44.0,
    "N",
    "onto the 3 mm front cell-bay disc and its springs"
   ],
   [
-   "cells forward at landing, gravel (445 g at the CG, rigid-body upper bound)",
-   159.0,
+   "cells forward at landing, gravel (451 g at the CG, rigid-body upper bound)",
+   166.0,
    "N",
    "onto the 3 mm front cell-bay disc and its springs"
   ],
   [
-   "cells forward at landing, hard ground (943 g at the CG, rigid-body upper bound)",
-   337.0,
+   "cells forward at landing, hard ground (960 g at the CG, rigid-body upper bound)",
+   354.0,
    "N",
    "onto the 3 mm front cell-bay disc and its springs"
   ],
   [
-   "coupler bending at landing, soft soil (pod 32 g at 288 g)",
-   24.1,
+   "coupler bending at landing, soft soil (pod 32 g at 298 g)",
+   24.9,
    "MPa",
-   "PPA-CF 80 MPa: margin 3.3"
+   "PPA-CF 80 MPa: margin 3.2"
   ],
   [
-   "coupler bending at landing, gravel (pod 32 g at 1064 g)",
-   88.9,
+   "coupler bending at landing, gravel (pod 32 g at 1116 g)",
+   93.1,
    "MPa",
    "PPA-CF 80 MPa: margin 0.9"
   ],
   [
-   "coupler bending at landing, hard ground (pod 32 g at 2254 g)",
-   188.3,
+   "coupler bending at landing, hard ground (pod 32 g at 2376 g)",
+   198.3,
    "MPa",
    "PPA-CF 80 MPa: margin 0.4"
   ],
   [
    "kick leg at landing, soft soil",
-   18.7,
+   20.3,
    "N",
    "d3 steel shaft shear + ear bearing"
   ]
@@ -198,211 +198,211 @@
  "landing": {
   "impact_34deg": {
    "soft": {
-    "vn": 4.62,
-    "depth_mm": 5.0,
-    "F_peak_N": 343.5,
-    "g_peak": 121.0,
-    "duration_ms": 2.2,
+    "vn": 4.6,
+    "depth_mm": 4.8,
+    "F_peak_N": 338.5,
+    "g_peak": 120.0,
+    "duration_ms": 2.1,
     "loads": {
      "camera": {
-      "g": 327.0,
-      "N": 7.1
+      "g": 338.0,
+      "N": 7.3
      },
      "cell_1": {
-      "g": 100.0,
-      "N": 21.5
+      "g": 103.0,
+      "N": 22.2
      },
      "xiao": {
       "g": 52.0,
       "N": 1.5
      },
      "bno085": {
-      "g": 225.0,
-      "N": 5.7
+      "g": 233.0,
+      "N": 5.9
      },
      "vtx": {
-      "g": 133.0,
-      "N": 4.7
+      "g": 136.0,
+      "N": 4.8
      },
      "n20_kick": {
       "g": 277.0,
       "N": 28.5
      },
      "drill_leg_L_motor": {
-      "g": 288.0,
-      "N": 31.1
+      "g": 298.0,
+      "N": 32.1
      },
      "kick_leg": {
-      "g": 184.0,
-      "N": 18.7
+      "g": 196.0,
+      "N": 20.3
      },
      "drill_leg_L_auger": {
-      "g": 98.0,
-      "N": 13.5
+      "g": 99.0,
+      "N": 13.7
      }
     },
     "bno085_reads_g": 8.0,
-    "bno085_raw_g": 225.0
+    "bno085_raw_g": 233.0
    },
    "gravel": {
-    "vn": 4.62,
+    "vn": 4.6,
     "depth_mm": 1.2,
     "F_peak_N": 1268.2,
-    "g_peak": 445.0,
+    "g_peak": 451.0,
     "duration_ms": 0.5,
     "loads": {
      "camera": {
-      "g": 1207.0,
-      "N": 26.0
+      "g": 1265.0,
+      "N": 27.3
      },
      "cell_1": {
-      "g": 368.0,
-      "N": 79.5
+      "g": 385.0,
+      "N": 83.1
      },
      "xiao": {
-      "g": 192.0,
+      "g": 194.0,
       "N": 5.7
      },
      "bno085": {
-      "g": 831.0,
-      "N": 21.2
+      "g": 872.0,
+      "N": 22.2
      },
      "vtx": {
-      "g": 491.0,
-      "N": 17.3
+      "g": 511.0,
+      "N": 18.0
      },
      "n20_kick": {
-      "g": 1023.0,
-      "N": 105.4
+      "g": 1037.0,
+      "N": 106.8
      },
      "drill_leg_L_motor": {
-      "g": 1064.0,
-      "N": 114.8
+      "g": 1116.0,
+      "N": 120.4
      },
      "kick_leg": {
-      "g": 680.0,
-      "N": 69.2
+      "g": 735.0,
+      "N": 76.0
      },
      "drill_leg_L_auger": {
-      "g": 361.0,
-      "N": 50.0
+      "g": 370.0,
+      "N": 51.2
      }
     },
     "bno085_reads_g": 8.0,
-    "bno085_raw_g": 831.0
+    "bno085_raw_g": 872.0
    },
    "hard": {
-    "vn": 4.62,
+    "vn": 4.6,
     "crush_mm": 1.2,
-    "F_peak_N": 2686.0,
-    "g_peak": 943.0,
+    "F_peak_N": 2701.0,
+    "g_peak": 960.0,
     "loads": {
      "camera": {
-      "g": 2556.0,
-      "N": 55.2
+      "g": 2694.0,
+      "N": 58.2
      },
      "cell_1": {
-      "g": 780.0,
-      "N": 168.3
+      "g": 820.0,
+      "N": 177.1
      },
      "xiao": {
-      "g": 407.0,
-      "N": 12.0
+      "g": 413.0,
+      "N": 12.2
      },
      "bno085": {
-      "g": 1759.0,
-      "N": 44.9
+      "g": 1857.0,
+      "N": 47.4
      },
      "vtx": {
-      "g": 1039.0,
-      "N": 36.7
+      "g": 1087.0,
+      "N": 38.4
      },
      "n20_kick": {
-      "g": 2166.0,
-      "N": 223.2
+      "g": 2208.0,
+      "N": 227.4
      },
      "drill_leg_L_motor": {
-      "g": 2254.0,
-      "N": 243.2
+      "g": 2376.0,
+      "N": 256.4
      },
      "kick_leg": {
-      "g": 1439.0,
-      "N": 146.6
+      "g": 1565.0,
+      "N": 161.8
      },
      "drill_leg_L_auger": {
-      "g": 765.0,
-      "N": 105.8
+      "g": 788.0,
+      "N": 109.0
      }
     },
     "bno085_reads_g": 8.0,
-    "bno085_raw_g": 1759.0
+    "bno085_raw_g": 1857.0
    }
   },
   "rest_states": [
    {
-    "share_pct": 17.8,
-    "roll_deg": 37.8,
-    "pitch_deg": 0.6,
-    "cg_height_mm": 28.8
-   },
-   {
-    "share_pct": 17.5,
-    "roll_deg": 113.8,
-    "pitch_deg": -2.8,
-    "cg_height_mm": 42.1
-   },
-   {
-    "share_pct": 16.4,
+    "share_pct": 16.8,
     "roll_deg": -34.3,
     "pitch_deg": -0.2,
-    "cg_height_mm": 28.8
+    "cg_height_mm": 28.2
    },
    {
-    "share_pct": 10.8,
-    "roll_deg": -115.0,
-    "pitch_deg": -2.1,
-    "cg_height_mm": 43.0
+    "share_pct": 14.3,
+    "roll_deg": 37.8,
+    "pitch_deg": 0.6,
+    "cg_height_mm": 28.5
    },
    {
-    "share_pct": 8.5,
-    "roll_deg": -127.6,
-    "pitch_deg": -15.9,
-    "cg_height_mm": 43.3
+    "share_pct": 11.1,
+    "roll_deg": -133.2,
+    "pitch_deg": -15.6,
+    "cg_height_mm": 41.4
+   },
+   {
+    "share_pct": 10.1,
+    "roll_deg": 115.5,
+    "pitch_deg": -0.1,
+    "cg_height_mm": 41.8
+   },
+   {
+    "share_pct": 7.0,
+    "roll_deg": 30.5,
+    "pitch_deg": -0.1,
+    "cg_height_mm": 28.0
    },
    {
     "share_pct": 6.2,
-    "roll_deg": 30.5,
-    "pitch_deg": -0.1,
-    "cg_height_mm": 28.3
+    "roll_deg": -26.1,
+    "pitch_deg": 0.3,
+    "cg_height_mm": 28.9
    }
   ],
   "roll_slice": {
    "minima_deg_h": [
     [
-     -114.0,
-     41.8
+     -115.0,
+     42.0
     ],
     [
      -36.0,
-     27.8
+     27.4
     ],
     [
      36.0,
-     28.4
+     27.9
     ],
     [
-     115.0,
-     42.5
+     117.0,
+     42.3
     ]
    ],
    "maxima_deg_h": [
     [
      -96.0,
-     43.5
+     43.6
     ],
     [
      3.0,
-     29.8
+     29.3
     ],
     [
      96.0,
@@ -410,22 +410,22 @@
     ],
     [
      179.0,
-     96.8
+     90.7
     ]
    ],
    "note": "lying along the axis (folded): minima = rest rolls, maxima = basin edges"
   },
   "nose_bumper": {
-   "energy_J": 2.5,
-   "plateau_force_N": 500.0,
-   "g_cg": 175.0,
-   "plateau_stress_MPa_on_d22": 1.31
+   "energy_J": 2.45,
+   "plateau_force_N": 491.0,
+   "g_cg": 174.0,
+   "plateau_stress_MPa_on_d22": 1.29
   }
  },
  "anchoring": {
   "depth_mm": {
    "drill": 44.0,
-   "foot": 59.3
+   "foot": 63.1
   },
   "embedded_length_mm": {
    "drill": 62.2,
@@ -434,10 +434,10 @@
   "by_soil": {
    "dry sand": {
     "drill_auger_each_N": 3.8,
-    "foot_auger_N": 3.3,
-    "friction_N": 1.6,
-    "total_N": 13.8,
-    "total_if_worms_never_slip_N": 13.8,
+    "foot_auger_N": 3.7,
+    "friction_N": 1.5,
+    "total_N": 13.6,
+    "total_if_worms_never_slip_N": 13.6,
     "governing": [
      "drill augers soil capacity",
      "foot auger soil capacity",
@@ -449,10 +449,10 @@
    },
    "moist loam": {
     "drill_auger_each_N": 25.0,
-    "foot_auger_N": 19.1,
-    "friction_N": 1.6,
-    "total_N": 73.6,
-    "total_if_worms_never_slip_N": 74.7,
+    "foot_auger_N": 19.8,
+    "friction_N": 1.5,
+    "total_N": 73.2,
+    "total_if_worms_never_slip_N": 73.7,
     "governing": [
      "drill augers soil capacity",
      "foot auger soil capacity",
@@ -465,10 +465,10 @@
    },
    "firm clay": {
     "drill_auger_each_N": 171.3,
-    "foot_auger_N": 127.3,
+    "foot_auger_N": 130.7,
     "friction_N": 1.3,
-    "total_N": 462.4,
-    "total_if_worms_never_slip_N": 477.0,
+    "total_N": 464.0,
+    "total_if_worms_never_slip_N": 468.6,
     "governing": [
      "drill augers soil capacity",
      "foot auger soil capacity",
@@ -485,104 +485,104 @@
  "tip_over_foot_uplift_capacity_loam_N": 10.5,
  "tip_over": {
   "tether_height_mm": 21,
-  "pull_N": 73.6,
-  "moment_Nm": 1.546,
-  "foot_lever_mm": 150,
-  "foot_hold_down_needed_N": 10.34,
-  "dart_weight_N": 2.85,
+  "pull_N": 73.2,
+  "moment_Nm": 1.537,
+  "foot_lever_mm": 166,
+  "foot_hold_down_needed_N": 9.28,
+  "dart_weight_N": 2.81,
   "line_angle_deg_rover_1_3_5m": [
    21.0,
    7.3,
    4.4
   ],
   "without_foot_N_loam_3m": 44.3,
-  "loam_rover_1m_N": 74.7,
+  "loam_rover_1m_N": 74.3,
   "note": "the planar limit analysis includes nose lift (hull belly contacts compression only) and the line angle"
  },
  "kick": {
-  "leg_mass_g": 41.4,
+  "leg_mass_g": 41.6,
   "cg_radius_mm": null,
-  "max_gravity_torque_kgcm": 0.334,
+  "max_gravity_torque_kgcm": 0.347,
   "stall_Nm": 0.207,
-  "margin_swing": 6.3,
-  "crowd_force_N": 1.96,
+  "margin_swing": 6.1,
+  "crowd_force_N": 1.74,
   "plant_passive_Nm": {
    "dry sand": [
     [
-     184.5,
-     0.041
+     180.75,
+     0.031
     ],
     [
-     188.5,
-     0.064
+     184.75,
+     0.056
     ],
     [
-     192.5,
-     0.089
+     188.75,
+     0.084
     ],
     [
-     196.5,
+     192.75,
      0.116
     ],
     [
-     200.5,
-     0.144
+     196.75,
+     0.148
     ],
     [
-     204.5,
-     0.171
+     200.75,
+     0.181
     ]
    ],
    "moist loam": [
     [
-     184.5,
-     0.38
+     180.75,
+     0.323
     ],
     [
-     188.5,
-     0.488
+     184.75,
+     0.445
     ],
     [
-     192.5,
-     0.591
+     188.75,
+     0.562
     ],
     [
-     196.5,
-     0.687
+     192.75,
+     0.672
     ],
     [
-     200.5,
-     0.776
+     196.75,
+     0.773
     ],
     [
-     204.5,
-     0.855
+     200.75,
+     0.858
     ]
    ],
    "firm clay": [
     [
-     184.5,
-     2.728
+     180.75,
+     2.349
     ],
     [
-     188.5,
-     3.418
+     184.75,
+     3.141
     ],
     [
-     192.5,
-     4.051
+     188.75,
+     3.862
     ],
     [
-     196.5,
-     4.62
+     192.75,
+     4.507
     ],
     [
-     200.5,
-     5.122
+     196.75,
+     5.066
     ],
     [
-     204.5,
-     5.547
+     200.75,
+     5.499
     ]
    ]
   },
@@ -590,7 +590,7 @@
   "note": "worm N20 stall torque from the bench currents (dart_model.motor): 0.21 N m at 7.4 V"
  },
  "deploy": {
-  "pod_mass_g": 31.9,
+  "pod_mass_g": 31.8,
   "gravity_torque_both_kgcm": null,
   "soil_moment_both_Nm": {
    "dry sand": 0.619,
@@ -613,9 +613,9 @@
   "release_mAh": 20.1
  },
  "strength": {
-  "kick_pole_section_mm3": 105.1,
-  "kick_pole_stress_MPa_at_20N_side_load": 13.7,
-  "kick_pole_side_load_limit_N": 32.8,
+  "kick_pole_section_mm3": 78.4,
+  "kick_pole_stress_MPa_at_20N_side_load": 18.4,
+  "kick_pole_side_load_limit_N": 24.5,
   "coupler_torque_capacity_Nm": 1.01,
   "deploy_worm_moment_at_holding_limit_Nm": 0.6,
   "note": "coupler capacity derated 0.6 for the D flat and layer lines; under tow the pods put up to the worm holding moment through the couplers"

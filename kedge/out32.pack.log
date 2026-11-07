@@ -3,8 +3,8 @@
   "parts": [
    "hull_top",
    "hull_bottom",
-   "nose",
    "tail_cap",
+   "nose",
    "drill_leg_L_tip",
    "drill_leg_R_tip",
    "pod_cap_L",
@@ -30,27 +30,27 @@
  "plate_B_legs_tray": {
   "parts": [
    "tray",
+   "kick_leg",
    "drill_leg_L_auger",
    "drill_leg_R_auger",
    "drill_leg_L",
    "drill_leg_R",
-   "kick_leg",
    "foot_auger"
   ],
   "extent_mm": [
    230,
-   61.6
+   103.2
   ]
  }
 }
-hull_top             bbox [121.0, 55.2, 39.6]  bed   398.7 mm2  overhang>45  3871.0 mm2
+hull_top             bbox [121.0, 55.2, 34.8]  bed   424.1 mm2  overhang>45  3805.8 mm2
 hull_bottom          bbox [121.0, 42.0, 21.0]  bed   336.4 mm2  overhang>45  3644.6 mm2
-nose                 bbox [42.0, 42.0, 27.0]  bed   257.8 mm2  overhang>45   382.1 mm2
+nose                 bbox [41.5, 42.0, 27.0]  bed   253.5 mm2  overhang>45   358.6 mm2
 tail_cap             bbox [42.0, 42.0, 15.4]  bed  1026.6 mm2  overhang>45   648.1 mm2
 tray                 bbox [109.1, 38.6, 36.5]  bed  1401.0 mm2  overhang>45  3920.0 mm2
-kick_leg             bbox [119.2, 15.0, 15.0]  bed   981.0 mm2  overhang>45   369.4 mm2
-drill_leg_L          bbox [18.7, 20.6, 32.6]  bed    97.7 mm2  overhang>45   220.0 mm2
-drill_leg_R          bbox [18.7, 20.6, 32.6]  bed    97.7 mm2  overhang>45   220.0 mm2
+kick_leg             bbox [121.0, 28.0, 15.0]  bed   574.0 mm2  overhang>45   393.5 mm2
+drill_leg_L          bbox [18.7, 20.6, 32.6]  bed    78.3 mm2  overhang>45   215.5 mm2
+drill_leg_R          bbox [18.7, 20.6, 32.6]  bed    78.3 mm2  overhang>45   215.5 mm2
 drill_leg_L_auger    bbox [22.0, 22.0, 100.2]  bed    75.9 mm2  overhang>45    65.1 mm2
 drill_leg_R_auger    bbox [22.0, 22.0, 100.2]  bed    75.9 mm2  overhang>45    65.1 mm2
 foot_auger           bbox [13.0, 13.0, 68.0]  bed    66.4 mm2  overhang>45    13.6 mm2

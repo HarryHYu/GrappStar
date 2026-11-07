@@ -1,52 +1,52 @@
 {
- "mass_g": 290.3,
+ "mass_g": 286.8,
  "cg_mm": [
-  86.0,
-  -0.5,
-  8.7
+  87.0,
+  -0.4,
+  8.2
  ],
  "flight": {
   "direction": "nose first (toward -x)",
-  "cg_x": 86.0,
-  "cp_side_x": 57.1,
-  "cp_top_x": 58.7,
-  "static_margin_calibers_side": -0.69,
-  "static_margin_calibers_top": -0.65,
+  "cg_x": 87.0,
+  "cp_side_x": 51.1,
+  "cp_top_x": 52.9,
+  "static_margin_calibers_side": -0.85,
+  "static_margin_calibers_top": -0.81,
   "note": "aerodynamic centre at 10 deg and 7 m/s from the strip model (cross-flow + slender-body nose term); top = pitch plane (top-view width), side = yaw. At 7 m/s the air moments are small: the tether (0.33 N at the tail) is what keeps it nose first (flight_sim.json)."
  },
  "launch": {
   "source": "base/physics/launcher.py chain model, params base/spec/params.py v1.5.0",
   "pitch_deg": 34.0,
-  "dart_mass_kg": 0.2903,
-  "v_muzzle": 6.77,
+  "dart_mass_kg": 0.2868,
+  "v_muzzle": 6.8,
   "stroke_m": 0.2409,
-  "t_stroke_ms": 59.4,
+  "t_stroke_ms": 59.1,
   "energy_J": 12.06,
-  "accel_peak_g": 17.5,
+  "accel_peak_g": 17.7,
   "accel_at_release_g": 4.2,
-  "tail_push_peak_N": 60.5,
-  "line_pull_in_stroke_N": 8.25,
-  "line_spin_up_estimate_N": 4.71,
+  "tail_push_peak_N": 60.4,
+  "line_pull_in_stroke_N": 8.32,
+  "line_spin_up_estimate_N": 4.75,
   "ms_above_4g": 56.0,
-  "cradle_normal_N": 2.36,
-  "pitch_couple_Nm": 0.437,
-  "note": "the push acts on the flat tail face (pusher face covers z +-21 within y +-11): it can move up to the CG height (z +8.7 mm), so the CG offset makes no nose lift in the cradle",
+  "cradle_normal_N": 2.33,
+  "pitch_couple_Nm": 0.411,
+  "note": "the push acts on the flat tail face (pusher face covers z +-21 within y +-11): it can move up to the CG height (z +8.2 mm), so the CG offset makes no nose lift in the cradle",
   "v_needed_m_s": [
-   6.77,
-   6.77
+   6.8,
+   6.8
   ],
   "accel_g": [
-   17.5,
-   17.5
+   17.7,
+   17.7
   ],
   "spring_energy_J": 12.06,
-  "impact_g": 121.0,
-  "impact_stop_m": 0.005
+  "impact_g": 120.0,
+  "impact_stop_m": 0.0048
  },
  "anchoring": {
   "depth_mm": {
    "drill": 44.0,
-   "foot": 59.3
+   "foot": 63.1
   },
   "embedded_length_mm": {
    "drill": 62.2,
@@ -55,10 +55,10 @@
   "by_soil": {
    "dry sand": {
     "drill_auger_each_N": 3.8,
-    "foot_auger_N": 3.3,
-    "friction_N": 1.6,
-    "total_N": 13.8,
-    "total_if_worms_never_slip_N": 13.8,
+    "foot_auger_N": 3.7,
+    "friction_N": 1.5,
+    "total_N": 13.6,
+    "total_if_worms_never_slip_N": 13.6,
     "governing": [
      "drill augers soil capacity",
      "foot auger soil capacity",
@@ -70,10 +70,10 @@
    },
    "moist loam": {
     "drill_auger_each_N": 25.0,
-    "foot_auger_N": 19.1,
-    "friction_N": 1.6,
-    "total_N": 73.6,
-    "total_if_worms_never_slip_N": 74.7,
+    "foot_auger_N": 19.8,
+    "friction_N": 1.5,
+    "total_N": 73.2,
+    "total_if_worms_never_slip_N": 73.7,
     "governing": [
      "drill augers soil capacity",
      "foot auger soil capacity",
@@ -86,10 +86,10 @@
    },
    "firm clay": {
     "drill_auger_each_N": 171.3,
-    "foot_auger_N": 127.3,
+    "foot_auger_N": 130.7,
     "friction_N": 1.3,
-    "total_N": 462.4,
-    "total_if_worms_never_slip_N": 477.0,
+    "total_N": 464.0,
+    "total_if_worms_never_slip_N": 468.6,
     "governing": [
      "drill augers soil capacity",
      "foot auger soil capacity",

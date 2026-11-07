@@ -202,8 +202,17 @@ class Anchor:
         for k, e in (("x", (1, 0)), ("z", (0, 1))):
             add("pod pivot R" + k, [("pods", pv, e), ("hull", pv, (-e[0], -e[1]))], None, None)
             add("kick pivot R" + k, [("kick", kp, e), ("hull", kp, (-e[0], -e[1]))], None, None)
-        add("deploy worm moment", [("pods", None, 1.0), ("hull", None, -1.0)], -worm_hold, worm_hold)
-        add("kick worm moment", [("kick", None, 1.0), ("hull", None, -1.0)], -worm_hold, worm_hold)
+        # v31 hard stops: the deploy horn takes the moment that turns the pods further down (negative moment from the hull
+        # on the pods, deploy is + about y); the kick rest takes the moment that turns the leg further in its kick direction
+        # (kick is - about y, so the rest gives a + moment). The worm only holds the other direction.
+        horn = self.horn if hasattr(self, "horn") else ("HORN_GAP" in self.d.P)
+        rest = self.rest if hasattr(self, "rest") else ("KICK_REST_DEG" in self.d.P)
+        add("deploy worm moment", [("pods", None, 1.0), ("hull", None, -1.0)], 0.0 if horn else -worm_hold, worm_hold)
+        add("kick worm moment", [("kick", None, 1.0), ("hull", None, -1.0)], -worm_hold, 0.0 if rest else worm_hold)
+        if horn:
+            add("deploy horn (hard stop)", [("pods", None, -1.0), ("hull", None, 1.0)], 0, None)
+        if rest:
+            add("kick rest (hard stop)", [("kick", None, 1.0), ("hull", None, -1.0)], 0, None)
         diam = []
         NSEG = 10
         for tag, body, emb, Dau, mult in (("drill augers", "pods", ed, self.D, 2 * drills), ("foot auger", "kick", ef, self.Df, 1 * foot)):
@@ -281,7 +290,10 @@ class Anchor:
                 act.append(names[j] + " at its limit")
         nose_N = x[names.index("hull belly front (x 20) normal")]
         vals = {nm: round(float(v), 2) for nm, v in zip(names, x) if abs(v) > 1e-6}
+        hm = x[names.index("deploy horn (hard stop)")] if "deploy horn (hard stop)" in names else 0.0
+        km_ = x[names.index("kick rest (hard stop)")] if "kick rest (hard stop)" in names else 0.0
         return dict(F=float(x[0]), beta_deg=round(math.degrees(beta), 1), governing=sorted(set(act)), nose_contact_N=round(float(nose_N), 2),
+                    horn_moment_Nm=round(float(hm), 3), kick_rest_moment_Nm=round(float(km_), 3),
                     deploy_worm_Nm=round(float(x[names.index("deploy worm moment")]), 3), kick_worm_Nm=round(float(x[names.index("kick worm moment")]), 3),
                     forces=vals if verbose else None)
 
@@ -366,6 +378,7 @@ def run(out=None):
             r_strong = A.limit(s, rov, worm_hold=10.0)
             rows.append(dict(rover_m=rov, beta_deg=r_free["beta_deg"], F_design_N=round(r_free["F"], 1), governing=r_free["governing"],
                              deploy_worm_Nm=r_free["deploy_worm_Nm"], kick_worm_Nm=r_free["kick_worm_Nm"],
+                             horn_moment_Nm=r_free["horn_moment_Nm"], kick_rest_moment_Nm=r_free["kick_rest_moment_Nm"],
                              F_upper_translation_N=round(r_tr["F"], 1), F_without_foot_N=round(r_nf["F"], 1),
                              F_if_worms_never_slip_N=round(r_strong["F"], 1)))
         lim[sn] = rows
@@ -384,13 +397,14 @@ def run(out=None):
     for sn, s in dm.SOIL.items():
         kp[sn] = [(k, round(A.kick_plant_moment(s, k), 3)) for k in np.arange(P["KICK_DEG"] - 20, P["KICK_DEG"] + 0.01, 4.0)]
     R["kick_plant_passive_moment_Nm"] = kp
-    # improvements: deploy reduction stage (worm sees 1/ratio of the pod moment), slower drill motor, auger diameter
+    # options: auger diameter, drill motor speed, deploy worm holding strength (B2 measures it), with this build's hard stops
     imp = []
-    for ratio in (1, 2, 3, 4):
-        for dmm in (17.0, 15.0, 13.0):
+    Dnow = float(P["AUGER_D"])
+    for wh in (0.3, 0.6, 1.2):
+        for dmm in sorted({Dnow, 11.0, 15.0, 17.0}):
             for drpm in (100.0, 50.0):
                 Ai = Anchor(d, auger_d_mm=dmm)
-                row = dict(deploy_stage_ratio=ratio, auger_d_mm=dmm, drill_rpm12=drpm)
+                row = dict(worm_hold_Nm=wh, auger_d_mm=dmm, drill_rpm12=drpm, current=bool(dmm == Dnow and drpm == 100.0 and wh == WORM_HOLD_NM))
                 dm.MOTORS["drill"]["rpm12"] = drpm
                 md = dm.motor("drill", V); mw = dm.motor("worm", V)
                 dm.MOTORS["drill"]["rpm12"] = 100.0
@@ -399,38 +413,36 @@ def run(out=None):
                     edi = Ai.embedded(*Ai.drill_axis()[:2], P["AUGER_TIP"])
                     cp = Ai.pile(edi, s, Ai.D)
                     Mmax = max(2 * Ai.deploy_moment(s, th) for th in np.arange(16, Ai.dep_deg + 0.01, 1.0))
-                    Tw = mw["stall_Nm"] * ratio
+                    Tw = mw["stall_Nm"]
                     fD = min(1.0, Tw / Mmax) if Mmax > 0 else 1.0
                     nrev = md["free_rad_s"] / (2 * math.pi) * 0.8
                     sweep = Ai.r1 / 1000 * math.radians(Ai.dep_deg - th_touch)
                     t_dep = sweep / (fD * Ai.D * nrev)
                     T_mill = float(np.trapezoid(soil_fns(s, Ai.D)[0](edi["z"]) * fD, edi["s"])) * Ai.D / 2
                     Treq = max(cp["T_install_Nm"] + T_mill, 1.3 * cp["T_install_Nm"])
-                    F = Ai.limit(s, 3.0, worm_hold=WORM_HOLD_NM * ratio)["F"]
-                    row[sn] = dict(F_hold_N=round(F, 1), deploy_s=round(t_dep, 0), drill_margin=round(md["stall_Nm"] / max(Treq, 1e-6), 2),
-                                   installs=bool(md["stall_Nm"] >= 1.25 * Treq))
+                    lr = Ai.limit(s, 3.0, worm_hold=wh)
+                    row[sn] = dict(F_hold_N=round(lr["F"], 1), horn_Nm=lr["horn_moment_Nm"], deploy_s=round(t_dep, 0),
+                                   drill_margin=round(md["stall_Nm"] / max(Treq, 1e-6), 2), installs=bool(md["stall_Nm"] >= 1.25 * Treq))
                 imp.append(row)
-    R["improvements"] = imp
-    # loam cohesion sensitivity (the pull test calibrates this): now, with the 3:1 stage + d13, soil only
-    A13 = Anchor(d, auger_d_mm=13.0)
+    R["options"] = imp
+    # loam cohesion sensitivity (the pull test calibrates this)
     sens = []
     for c in (2.0, 5.0, 10.0, 20.0):
         s = dict(dm.SOIL["moist loam"], c=c)
-        e13 = A13.embedded(*A13.drill_axis()[:2], P["AUGER_TIP"])
-        sens.append(dict(c_kPa=c, F_now_N=round(A.limit(s, 3.0)["F"], 1), F_3to1_d13_N=round(A13.limit(s, 3.0, worm_hold=3 * WORM_HOLD_NM)["F"], 1),
-                         F_soil_only_d13_N=round(A13.limit(s, 3.0, worm_hold=50.0)["F"], 1),
-                         drill_install_d13_Nm=round(A13.pile(e13, s, A13.D)["T_install_Nm"], 3), drill_install_d17_Nm=round(A.pile(ed, s, A.D)["T_install_Nm"], 3)))
+        lr = A.limit(s, 3.0)
+        sens.append(dict(c_kPa=c, F_N=round(lr["F"], 1), horn_Nm=lr["horn_moment_Nm"], F_soil_only_N=round(A.limit(s, 3.0, worm_hold=50.0)["F"], 1),
+                         drill_install_Nm=round(A.pile(ed, s, A.D)["T_install_Nm"], 3)))
     R["loam_cohesion_sensitivity_rover3m"] = sens
     # motor heating while milling in loam (N20 winding: R_th about 40 K/W, time constant about 90 s, ASSUMED typical)
     RTH, TAU = 40.0, 90.0
     th_ = {}
-    for tag, ratio, dmm in (("now", 1, 17.0), ("3:1 stage + d13", 3, 13.0)):
-        row = next(r for r in imp if r["deploy_stage_ratio"] == ratio and r["auger_d_mm"] == dmm and r["drill_rpm12"] == 100.0)
+    for tag, drpm in (("100 rpm drills", 100.0), ("50 rpm drills", 50.0)):
+        row = next(r for r in imp if r["worm_hold_Nm"] == 0.6 and r["auger_d_mm"] == Dnow and r["drill_rpm12"] == drpm)
         t = row["moist loam"]["deploy_s"]
-        Ai = Anchor(d, auger_d_mm=dmm); s = dm.SOIL["moist loam"]
-        ei = Ai.embedded(*Ai.drill_axis()[:2], P["AUGER_TIP"]); Ti = Ai.pile(ei, s, Ai.D)["T_install_Nm"]
-        Id = min(dm.motor_current_for("drill", Ti), mot["drill"]["stall_A"])
-        Pd = Id ** 2 * mot["drill"]["R_ohm"]; Pw = mot["worm"]["stall_A"] ** 2 * mot["worm"]["R_ohm"]
+        dm.MOTORS["drill"]["rpm12"] = drpm; mdr = dm.motor("drill", V)
+        Ti = A.pile(ed, dm.SOIL["moist loam"], A.D)["T_install_Nm"]
+        Id = min(dm.motor_current_for("drill", Ti), mdr["stall_A"]); dm.MOTORS["drill"]["rpm12"] = 100.0
+        Pd = Id ** 2 * mdr["R_ohm"]; Pw = mot["worm"]["stall_A"] ** 2 * mot["worm"]["R_ohm"]
         f = 1 - math.exp(-t / TAU)
         th_[tag] = dict(deploy_s=t, drill_A=round(Id, 3), drill_winding_W=round(Pd, 2), drill_rise_K=round(Pd * RTH * f, 0),
                         worm_winding_W=round(Pw, 2), worm_rise_K=round(Pw * RTH * f, 0))
@@ -479,9 +491,8 @@ def plots(A, R, outd):
         x = [r["rover_m"] for r in rows]
         ax[0].plot(x, [r["F_design_N"] for r in rows], "k-", marker="os^"[i], label=sn + " (design)")
         ax[0].plot(x, [r["F_upper_translation_N"] for r in rows], "k:", marker="os^"[i], mfc="none", label=sn + " (upper)")
-    A13 = Anchor(A.d, auger_d_mm=13.0)
     xr = [1.0, 2.0, 3.0, 4.0, 5.0]
-    ax[0].plot(xr, [A13.limit(dm.SOIL["moist loam"], r, worm_hold=3 * WORM_HOLD_NM)["F"] for r in xr], "k--", marker="s", mfc="w", label="moist loam, 3:1 deploy stage + d13")
+    ax[0].plot(xr, [A.limit(dm.SOIL["moist loam"], r, worm_hold=0.3)["F"] for r in xr], "k--", marker="s", mfc="w", label="moist loam, worm holds only 0.3 N m")
     ax[0].axhline(TOW_CAP_N, color="k", lw=0.6, ls="--"); ax[0].text(1.05, TOW_CAP_N + 1, "tow cap 55 N")
     ax[0].axhline(FIRST_TOW_N, color="k", lw=0.6, ls="-."); ax[0].text(1.05, FIRST_TOW_N + 1, "first tow 40 N")
     ax[0].set_xlabel("rover line exit behind the dart tail (m)"); ax[0].set_ylabel("max tether pull at the dart (N)"); ax[0].grid(lw=0.3)

@@ -82,11 +82,12 @@ def main(OUT, PK):
     L = p.launch
     R = {}
     figdat = {}
+    b0 = float(d.ballast_g)                     # the design's ballast (dart-cad P.BALLAST_G): full pitch table for it
     for plane in ("pitch", "yaw"):
-        for bal in (0.0, 8.0, 15.0):
+        for bal in sorted({0.0, 8.0, 15.0, b0}):
             b = Body(d, bal, plane)
             p.dart.mass = b.M
-            for pitch in ((10, 20, 34, 45) if plane == "pitch" and bal == 15.0 else (34,)):
+            for pitch in ((10, 20, 34, 45) if plane == "pitch" and bal == b0 else (34,)):
                 v0 = float(launch(p, pitch)["v_muzzle"])
                 th = math.radians(pitch)
                 mz = (L["release_u"] * math.cos(th) - L["dart_w"] * math.sin(th), L["pivot_h"] + L["release_u"] * math.sin(th) + L["dart_w"] * math.cos(th))
@@ -105,17 +106,18 @@ def main(OUT, PK):
                               tumbled=not sm["nose_first"], range_m=sm.get("range_m", round(fr["range_m"], 2)))   # report.py keys
                     R[key] = sm
                     figdat[key] = o
-    R["inputs"] = dict(source=d.out, model=" ".join(__doc__.split("\n")[3:9]), mass_kg=round(Body(d, 15.0).M, 4), cg_x_mm=round(Body(d, 15.0).cg[0] * 1000, 1), cross_flow_cd=CDC, eta=ETA, axial_cda=2.6e-3)
+    bd = Body(d, b0)
+    R["inputs"] = dict(source=d.out, design_ballast_g=b0, model=" ".join(__doc__.split("\n")[3:9]), mass_kg=round(bd.M, 4), cg_x_mm=round(bd.cg[0] * 1000, 1), cross_flow_cd=CDC, eta=ETA, axial_cda=2.6e-3)
     json.dump(R, open(os.path.join(OUT, "flight_sim.json"), "w"), indent=1)
     import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
     plt.rcParams.update({"font.family": "Liberation Sans", "font.size": 8})
     fig, ax = plt.subplots(1, 2, figsize=(10, 3.6))
-    ls = {0.0: ":", 8.0: "--", 15.0: "-"}
+    ls = {0.0: ":", 8.0: "--", 15.0: "-", b0: "-."} if b0 not in (0.0, 8.0, 15.0) else {0.0: ":", 8.0: "--", 15.0: "-"}
     for k, o in figdat.items():
         if k.startswith("pitch") and "rail 34" in k:
             bal = float(k.split(", ")[1].split(" ")[0])
             ax[0].plot(o[:, 0], o[:, 3], "k", ls=ls[bal], lw=1.4 if "tether 0.25" in k else 0.6, label=k.replace("pitch, ", ""))
-        if k.startswith("pitch") and "15 g" in k and "tether 0.25" in k:
+        if k.startswith("pitch") and f", {b0:g} g ballast" in k and "tether 0.25" in k:
             ax[1].plot(o[:, 1], o[:, 2], "k-", lw=0.8)
             ax[1].text(o[-1, 1], 0.03, k.split("rail ")[1].split(",")[0], fontsize=7, ha="center")
     ax[0].set_xlabel("time (s)"); ax[0].set_ylabel("angle of attack (deg)"); ax[0].grid(lw=0.3); ax[0].legend(fontsize=6)

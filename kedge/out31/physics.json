@@ -174,19 +174,19 @@
    "coupler bending at landing, soft soil (pod 22 g at 338 g)",
    19.4,
    "MPa",
-   "PLA 45 MPa: margin 2.3"
+   "PPA-CF 80 MPa: margin 4.1"
   ],
   [
    "coupler bending at landing, gravel (pod 22 g at 1285 g)",
    73.7,
    "MPa",
-   "PLA 45 MPa: margin 0.6"
+   "PPA-CF 80 MPa: margin 1.1"
   ],
   [
    "coupler bending at landing, hard ground (pod 22 g at 2607 g)",
    149.6,
    "MPa",
-   "PLA 45 MPa: margin 0.3"
+   "PPA-CF 80 MPa: margin 0.5"
   ],
   [
    "kick leg at landing, soft soil",
@@ -451,12 +451,10 @@
     "drill_auger_each_N": 21.4,
     "foot_auger_N": 7.9,
     "friction_N": 1.4,
-    "total_N": 25.7,
+    "total_N": 51.1,
     "total_if_worms_never_slip_N": 51.1,
     "governing": [
-     "deploy worm moment at its limit",
      "drill augers soil capacity",
-     "drill augers tip bearing at its limit",
      "foot auger soil capacity",
      "hull belly front (x 20) friction cone",
      "hull belly rear (x 141) friction cone",
@@ -468,16 +466,14 @@
     "drill_auger_each_N": 151.2,
     "foot_auger_N": 55.1,
     "friction_N": 1.1,
-    "total_N": 91.9,
-    "total_if_worms_never_slip_N": 235.7,
+    "total_N": 332.8,
+    "total_if_worms_never_slip_N": 332.8,
     "governing": [
-     "deploy worm moment at its limit",
      "drill augers soil capacity",
      "foot auger soil capacity",
      "hull belly front (x 20) friction cone",
      "hull belly rear (x 141) friction cone",
      "kick pole tip on ground friction cone",
-     "kick worm moment at its limit",
      "pod nose on ground friction cone"
     ]
    }
@@ -487,18 +483,18 @@
  "tip_over_foot_uplift_capacity_loam_N": 5.5,
  "tip_over": {
   "tether_height_mm": 21,
-  "pull_N": 25.7,
-  "moment_Nm": 0.54,
+  "pull_N": 51.1,
+  "moment_Nm": 1.073,
   "foot_lever_mm": 154,
-  "foot_hold_down_needed_N": 3.52,
+  "foot_hold_down_needed_N": 6.99,
   "dart_weight_N": 2.55,
   "line_angle_deg_rover_1_3_5m": [
    21.1,
    7.3,
    4.4
   ],
-  "without_foot_N_loam_3m": 12.9,
-  "loam_rover_1m_N": 21.0,
+  "without_foot_N_loam_3m": 26.4,
+  "loam_rover_1m_N": 50.0,
   "note": "the planar limit analysis includes nose lift (hull belly contacts compression only) and the line angle"
  },
  "kick": {
@@ -619,7 +615,7 @@
   "kick_pole_stress_MPa_at_20N_side_load": 14.4,
   "kick_pole_side_load_limit_N": 31.2,
   "coupler_torque_capacity_Nm": 1.01,
-  "deploy_worm_moment_at_holding_limit_Nm": -0.6,
+  "deploy_worm_moment_at_holding_limit_Nm": 0.6,
   "note": "coupler capacity derated 0.6 for the D flat and layer lines; under tow the pods put up to the worm holding moment through the couplers"
  }
 }

@@ -55,10 +55,7 @@ def write_md(out, R, A, L, F, S):
     l1 = {sn: next(r for r in rows if r["rover_m"] == 1.0) for sn, rows in lim.items()}
     imp = {r["rail_pitch"]: r for r in L["impact"]}
     i34 = imp.get(34, L["impact"][0])
-    fk = lambda p, t=True: F.get(f"pitch, 15 g ballast, rail {p} deg, {'tether 0.25 N' if t else 'no tether'}", {})
-    best = [r for r in A["improvements"] if r["deploy_stage_ratio"] == 3 and r["auger_d_mm"] == 13.0 and r["drill_rpm12"] == 50.0][0]
-    b100 = [r for r in A["improvements"] if r["deploy_stage_ratio"] == 3 and r["auger_d_mm"] == 13.0 and r["drill_rpm12"] == 100.0][0]
-    cur = [r for r in A["improvements"] if r["deploy_stage_ratio"] == 1 and r["auger_d_mm"] == 17.0 and r["drill_rpm12"] == 100.0][0]
+    fk = lambda p, t=True: F.get(f"pitch, {R['ballast_g']:g} g ballast, rail {p} deg, {'tether 0.25 N' if t else 'no tether'}", {})
     rs = L["rest_states_folded"]
     lean = sum(s["share_pct"] for s in rs if 15 <= abs(s["roll_deg"]) <= 45)
     inv = sum(s["share_pct"] for s in rs if abs(s["roll_deg"]) > 120)
@@ -80,7 +77,7 @@ def write_md(out, R, A, L, F, S):
     f34 = fk(34)
     w(f"- Flight (tether on, 0.25 N brake): nose first at every pitch; 34 deg: {f34.get('range_m')} m, {f34.get('t_flight_s')} s, impact {f34.get('v_impact')} m/s at "
       f"{f34.get('path_angle_deg')} deg down, angle of attack at impact {f34.get('alpha_impact_deg')} deg (5 deg + 1 rad/s disturbance). Without the tether it tumbles "
-      f"even with 15 g ballast: aerodynamic centre x {R['flight']['cp_top_x']} is ahead of the CG ({R['flight']['static_margin_calibers_top']} cal).")
+      f"with or without ballast: aerodynamic centre x {R['flight']['cp_top_x']} is ahead of the CG ({R['flight']['static_margin_calibers_top']} cal).")
     w(f"- Impact at 34 deg (nose, rigid-body upper bound at the CG): soft soil {i34['soft soil (loam, tilled)']['g_peak']:.0f} g ({i34['soft soil (loam, tilled)']['depth_mm']} mm nose dig), "
       f"grass {i34['grass on loam']['g_peak']:.0f} g, gravel {i34['gravel (10 to 20 mm)']['g_peak']:.0f} g, hard ground {i34['hard ground (dry compacted, concrete)']['g_peak']:.0f} g. "
       f"The BNO085 clips at 8 g in every case.")
@@ -88,7 +85,7 @@ def write_md(out, R, A, L, F, S):
       f"about {abs(L['roll_slice']['minima_deg_h'][1][0]):.0f} deg on a pod (random tumble: {lean:.0f} percent leaning, {side:.0f} percent on its side, {inv:.0f} percent upside down).")
     w(f"- Holding at the dart, rover 3 m (line {l3['moist loam']['beta_deg']} deg): dry sand {l3['dry sand']['F_design_N']} N, moist loam {l3['moist loam']['F_design_N']} N, "
       f"firm clay {l3['firm clay']['F_design_N']} N (if it could install). Rover 1 m: {l1['dry sand']['F_design_N']} / {l1['moist loam']['F_design_N']} / {l1['firm clay']['F_design_N']} N. "
-      f"Tow cap 55 N and the 40 N first-tow advice are above the loam and sand holding.")
+      f"Against the 55 N tow cap and the 40 N first tow: loam " + ("holds both" if l3['moist loam']['F_design_N'] >= 55 else ("holds the first tow, not the cap" if l3['moist loam']['F_design_N'] >= 40 else "holds neither")) + ", dry sand " + ("holds both" if l3['dry sand']['F_design_N'] >= 55 else ("holds the first tow, not the cap" if l3['dry sand']['F_design_N'] >= 40 else "holds neither")) + ".")
     E = A["energy"]
     w(f"- Energy: avionics {E['avionics_W']} W, video about {E['video_hours']} h on the 2S 18350 pack ({E['cap_usable_mAh']} mAh usable); anchor sequence about "
       f"{E['anchor_mAh']} mAh in loam, release about {E['release_mAh']} mAh ({E['anchor_plus_release_percent']} percent of the pack). Energy is not a limit.")
@@ -99,52 +96,56 @@ def write_md(out, R, A, L, F, S):
     dl = so["moist loam"]["deploy"]
     w(f"{n}. Drill deploy torque. The augers are radial on the pods, so they sweep sideways through the soil. Sweeping both without spinning needs "
       f"{so['dry sand']['deploy']['passive_moment_max_Nm']} N m in dry sand, {dl['passive_moment_max_Nm']} N m in loam, {so['firm clay']['deploy']['passive_moment_max_Nm']} N m in firm clay "
-      f"against the deploy worm's {mo['worm']['stall_Nm']} N m stall. They only go in as a mill (drills spinning, worm at stall): sand {so['dry sand']['deploy']['time_to_deploy_s']} s, loam "
-      f"{dl['time_to_deploy_s']} s, clay never. Fix: 3:1 spur stage on the deploy axle (dart-cad), milling deploy in firmware (dart-fw)."); n += 1
-    w(f"{n}. Holding is capped by the deploy worm. Under tow the pods turn back through the worm; with an assumed {A['assumptions']['worm_hold_Nm']} N m holding strength loam holds "
-      f"{l3['moist loam']['F_design_N']} N (rover 3 m) where the soil alone would give {l3['moist loam']['F_if_worms_never_slip_N']} N. Fix: the same 3:1 stage (worm sees a third), "
-      f"bench test B2 to measure the real strength."); n += 1
-    w(f"{n}. Drill torque. Install torque {so['moist loam']['drill_each']['install_torque_perko_Nm']} to {so['moist loam']['drill_each']['install_torque_Nm']} N m in loam, unscrew about "
-      f"{so['moist loam']['unscrew']['drill_unscrew_torque_Nm']} N m, against {mo['drill']['stall_Nm']} N m stall: release can fail in loam (margin {so['moist loam']['unscrew']['drill_margin']}). "
-      f"Firm clay needs {so['firm clay']['drill_each']['install_torque_perko_Nm']} to {so['firm clay']['drill_each']['install_torque_Nm']} N m: cannot install. Fix: auger d17 to d13..d15 "
-      f"(flights at least 3 mm deep over the new 7.5 core: d14 is the middle; install torque about half at d13; in loam the holding is the same because the cohesion term 9 c D only acts below 1.5 D, which a thinner auger reaches sooner) "
-      f"and 50 rpm drill motors (same body, twice the torque)."); n += 1
-    mh = A["motor_heating_loam"]["cases"]
-    w(f"{n}. Motor heating while milling loam (R_th 40 K/W assumed): drills {mh['now']['drill_A']} A each for {mh['now']['deploy_s']:.0f} s, about +{mh['now']['drill_rise_K']:.0f} K in the PLA pod "
-      f"(softens near 60 C); with the 3:1 stage and d13: {mh['3:1 stage + d13']['drill_A']} A, +{mh['3:1 stage + d13']['drill_rise_K']:.0f} K. Deploy worm +{mh['now']['worm_rise_K']:.0f} K now."); n += 1
-    w(f"{n}. With the 3:1 deploy stage and d13 augers alone: loam {b100['moist loam']['F_hold_N']} N, deploy {b100['moist loam']['deploy_s']:.0f} s, drill margin "
-      f"{b100['moist loam']['drill_margin']}. With 50 rpm drills as well: sand {best['dry sand']['F_hold_N']} N, loam {best['moist loam']['F_hold_N']} N, deploy "
-      f"{best['moist loam']['deploy_s']:.0f} s in loam, drill margin {best['moist loam']['drill_margin']} (now {cur['moist loam']['drill_margin']}). Firm clay stays out of reach "
-      f"(drill margin {best['firm clay']['drill_margin']}): state 'loam and softer' in the docs."); n += 1
+      f"against the deploy worm's {mo['worm']['stall_Nm']} N m stall. They only go in as a mill (drills spinning, worm at stall): sand {so['dry sand']['deploy']['time_to_deploy_s']:.0f} s, loam "
+      f"{dl['time_to_deploy_s']:.0f} s, clay never. Fix: milling deploy in firmware (dart-fw: worm pulsed at stall, drills full, deploy stall is not the end stop, time caps). "
+      f"A 3:1 stage would cut the loam time by 3 but does not fit under the bay roof (dart-cad)."); n += 1
+    hr = l3["moist loam"]["horn_moment_Nm"]
+    w(f"{n}. Holding with the v31 deploy horns and kick rest: the tow turns the pods further down, the horns take it, so the worm no longer caps the holding "
+      f"(same result for a worm holding 0.3, 0.6 or 1.2 N m). The horns must carry {hr} N m for both pods ({hr / 2:.1f} N m per pod) at the loam holding; "
+      f"dart-cad to check the horn and hull_top at that moment with a factor 1.5. Kick rest {l3['moist loam']['kick_rest_moment_Nm']} N m."); n += 1
     cs = A["loam_cohesion_sensitivity_rover3m"]
-    w(f"{n}. Loam holding depends mostly on its cohesion: c = " + ", ".join(f"{r['c_kPa']:.0f} kPa: {r['F_now_N']} N now, {r['F_3to1_d13_N']} N fixed" for r in cs)
+    cmax = None
+    for r0, r1 in zip(cs[:-1], cs[1:]):
+        lim_ = mo["drill"]["stall_Nm"] / 1.3
+        if r0["drill_install_Nm"] <= lim_ < r1["drill_install_Nm"]:
+            cmax = r0["c_kPa"] + (lim_ - r0["drill_install_Nm"]) / (r1["drill_install_Nm"] - r0["drill_install_Nm"]) * (r1["c_kPa"] - r0["c_kPa"])
+    w(f"{n}. Drill torque (d{g['drill']['D_mm']:.0f} augers): install {so['moist loam']['drill_each']['install_torque_perko_Nm']} to {so['moist loam']['drill_each']['install_torque_Nm']} N m in loam, "
+      f"unscrew about {so['moist loam']['unscrew']['drill_unscrew_torque_Nm']} N m against {mo['drill']['stall_Nm']} N m stall (margin {so['moist loam']['unscrew']['drill_margin']}). "
+      f"The drills can still unscrew in loam up to a cohesion of about {cmax:.0f} kPa; firm clay needs {so['firm clay']['drill_each']['install_torque_perko_Nm']} to "
+      f"{so['firm clay']['drill_each']['install_torque_Nm']} N m: it cannot install. State 'loam and softer' in the docs. If the pull test finds stiffer ground, 50 rpm drill motors "
+      f"(same body, twice the torque) are the next step."); n += 1
+    mh = A["motor_heating_loam"]["cases"]["100 rpm drills"]
+    w(f"{n}. Motor heating while milling loam (R_th 40 K/W assumed): drills {mh['drill_A']} A each for {mh['deploy_s']:.0f} s, +{mh['drill_rise_K']:.0f} K; deploy worm at stall "
+      f"+{mh['worm_rise_K']:.0f} K. Acceptable in the PLA pod (softens near 60 C) from a 25 C start; firmware: cap a milling deploy at 150 s, then rest 60 s."); n += 1
+    w(f"{n}. Loam holding depends mostly on its cohesion: c = " + ", ".join(f"{r['c_kPa']:.0f} kPa: {r['F_N']} N" for r in cs)
       + ". The pull test (DART_PULLTEST.md) sets this number; until then use the 5 kPa row."); n += 1
-    w(f"{n}. Tow limits. Loam holds {l3['moist loam']['F_design_N']} N now ({best['moist loam']['F_hold_N']} N with the fixes) and dry sand about {l3['dry sand']['F_design_N']} N: the 40 N "
-      f"first tow and the 55 N cap drag the dart in both. Fix (base/Jetson): first tow at 15 N, then 5 N steps with a 3 s hold, stop on a dart pitch change over 2 deg or IMU motion; "
+    w(f"{n}. Tow limits. Holding at 3 m: loam {l3['moist loam']['F_design_N']} N (above the 40 N first tow, just under the 55 N cap), dry sand {l3['dry sand']['F_design_N']} N "
+      f"(both tow values drag it). Fix (base/Jetson): first tow at 15 N, then 5 N steps with a 3 s hold, stop when the dart reports motion (pitch change over 2 deg); "
       f"never above the pull-test 5 mm force / 1.5."); n += 1
     w(f"{n}. Without the foot the loam holding drops from {l3['moist loam']['F_design_N']} to {l3['moist loam']['F_without_foot_N']} N (nose lift); a close rover (1 m, line "
-      f"{l1['moist loam']['beta_deg']} deg) gives {l1['moist loam']['F_design_N']} N. Keep the foot; prefer the rover 3 to 5 m away."); n += 1
+      f"{l1['moist loam']['beta_deg']} deg) gives {l1['moist loam']['F_design_N']} N. Keep the foot; the line angle matters little with the foot planted."); n += 1
     pf = L.get("pods_first_leveling", [])
     lev = max((next((a for a, r in q["roll_vs_pod_deg"] if abs(r) < 3), 99) for q in pf), default=24)
-    w(f"{n}. Landing roll. On hard ground the folded dart leans about {abs(L['roll_slice']['minima_deg_h'][1][0]):.0f} deg on a flank (no belly-down rest state). "
-      f"Swinging the pods down first (drills off) levels it from every leaning state by a pod angle of {lev} deg (quasi-static check; the auger tips touch the ground at 16 deg). "
-      f"Fix (fw): if |roll| is 10 to 60 deg, pods to {lev + 2} deg first, re-read roll, then kick and plant, then the full milling deploy. At 30 deg roll the "
-      f"shallow auger would reach only {L['anchor_vs_roll'][-1]['auger_tip_depths_mm'][0]} mm deep (of {L['anchor_vs_roll'][0]['auger_tip_depths_mm'][0]}). "
-      f"On its side or upside down nothing the legs do rights it: report it and reel in for another shot. Optional (dart-cad): a 16 mm wide flat on the belly bottom (1.6 mm deep) "
-      f"makes belly down stable for about 17 deg, if the cradle rings allow it."); n += 1
-    hard = i34["hard ground (dry compacted, concrete)"]; grav = i34["gravel (10 to 20 mm)"]
+    w(f"{n}. Landing roll. On hard ground the folded dart leans about {abs(L['roll_slice']['minima_deg_h'][1][0]):.0f} deg on a flank (no belly-down rest state: CG {R['cg_mm'][2]} mm "
+      f"above the axis). Swinging the pods down first (drills off) levels it from every leaning state by a pod angle of {lev} deg (quasi-static; the tips touch the ground at "
+      f"{g['drill']['tip_touches_ground_at_deg']} deg). Fix (fw): if |roll| is 10 to 60 deg, pods to {lev + 2} deg first, re-read roll, then kick and plant, then the milling deploy. "
+      f"At 30 deg roll the shallow auger would reach only {L['anchor_vs_roll'][-1]['auger_tip_depths_mm'][0]} mm deep (of {L['anchor_vs_roll'][0]['auger_tip_depths_mm'][0]}). "
+      f"On its side or upside down the legs cannot right it: report it, reel in, fire again."); n += 1
     co = [r for r in R["loads"] if r[0].startswith("coupler bending")]
-    w(f"{n}. Hard landings. Gravel: coupler bending {co[1][1]} MPa ({co[1][3]}); hard ground {co[2][1]} MPa ({co[2][3]}), cells {R['loads'][4][1]} N into the front disc. "
-      f"Fix: couplers d7 to d9 (PPA-CF if the 3:1 stage is fitted), and a 5 mm crushable nose face (TPU 85A lattice or EVA, plateau about "
-      f"{L['nose_bumper_5mm_hard_ground']['plateau_stress_MPa_on_d22']} MPa) that caps a hard-ground hit at about {L['nose_bumper_5mm_hard_ground']['g_cg']:.0f} g; do not fire at concrete or rock."); n += 1
-    w(f"{n}. Ballast. At 7 m/s it does almost nothing: the tether keeps the dart nose first with 0, 8 or 15 g, and without the tether it tumbles with any of them. Fix: drop it "
-      f"(saves 15 g, about +0.15 m/s muzzle and 5 percent lower landing loads) or keep at most 5 g as trim; the reel must never let the line go slack in flight."); n += 1
-    w(f"{n}. Landing detector. minFlightMs 400 is longer than the shortest flight (0.37 s at 6 deg): use 250 ms (dart-fw)."); n += 1
-    w(f"{n}. Kick and foot: fine. Swing {A['kick']['gravity_torque_max_Nm']} N m of {A['kick']['stall_Nm']} (margin {A['kick']['margin_swing']}); planting needs about "
-      f"{A['kick_plant_passive_moment_Nm']['moist loam'][-1][1]} N m in loam at the last degrees (foot spinning); foot install {so['moist loam']['foot']['install_torque_Nm']} N m in loam. "
+    w(f"{n}. Hard landings (rigid-body upper bound). Couplers (PPA-CF): soft soil {co[0][1]} MPa ({co[0][3]}), gravel {co[1][1]} MPa ({co[1][3]}), hard ground "
+      f"{co[2][1]} MPa ({co[2][3]}); cells {R['loads'][4][1]} N into the front disc on hard ground. Do not fire at concrete, rock or packed gravel. (A crushable nose face "
+      f"would cap a hard hit at about {L['nose_bumper_5mm_hard_ground']['g_cg']:.0f} g; not in Harry's parts.)"); n += 1
+    w(f"{n}. Flight at 7 m/s: nose first only because of the tether (0.25 N brake, about 0.37 N at the dart); with 0, 8 or 15 g ballast the result is the same, and without "
+      f"the tether it tumbles with any of them. v31 has no ballast (agreed). The reel must never let the line go slack in flight."); n += 1
+    w(f"{n}. Landing detector. minFlightMs 400 was longer than the shortest flight (0.37 s at 6 deg): 250 ms (dart-fw)."); n += 1
+    kp = A["kick_plant_passive_moment_Nm"]["moist loam"]
+    k_ok = next((k for k, m in reversed(kp) if m <= A["kick"]["stall_Nm"]), kp[0][0])
+    w(f"{n}. Kick and foot. Swing {A['kick']['gravity_torque_max_Nm']} N m of {A['kick']['stall_Nm']} (margin {A['kick']['margin_swing']}). Planting in loam: the foot moves on an arc, "
+      f"so its last degrees push it sideways: {kp[-1][1]} N m at {kp[-1][0]} deg against {A['kick']['stall_Nm']} N m (passive, foot not spinning); the worm gets to about {k_ok:.0f} deg "
+      f"on its own and the spinning foot (install {so['moist loam']['foot']['install_torque_Nm']} N m) mills the rest: pulse the kick at stall while the foot runs, like the deploy. "
       f"Bench-check the foot motor: its measured currents imply {mo['foot']['stall_Nm']} N m, 3.5 times the other worms."); n += 1
     w("")
-    w("## Answers for dart-jetson (7 m/s shots, 15 g ballast, tether 0.25 N)")
+    w(f"## Answers for dart-jetson (7 m/s shots, {R['ballast_g']:g} g ballast, tether 0.25 N)")
     w("")
     w("| rail deg | muzzle m/s | exit x, z from pivot m | range m | flight s | apex m | impact m/s | path deg | AoA impact deg | AoA peak deg |")
     w("|---|---|---|---|---|---|---|---|---|---|")
@@ -165,7 +166,7 @@ def write_md(out, R, A, L, F, S):
       "improvement sweep), `landing.json` (impact, rest states, recovery), `launch_spread.json`, plots `anchor.png`, `flight_sim.png`. Pull test: `kedge/dart_pulltest.py`, "
       "`kedge/DART_PULLTEST.md`.")
     txt = "\n".join(lines) + "\n"
-    assert "—" not in txt
+    assert chr(0x2014) not in txt
     open(os.path.join(HERE, "DART_PHYSICS31.md"), "w").write(txt)
 
 

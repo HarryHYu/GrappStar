@@ -12,6 +12,7 @@ import dart_model as dm
 
 G = dm.G
 PLA = dm.PLA
+COUPLER_SIGMA = 80e6     # dart-cad v31: couplers in PPA-CF printed lying on the D flat (XY tensile about 100 MPa; 80 used)
 
 
 def aero_centre(d, plane, alpha_deg=10.0, U=7.0):
@@ -72,7 +73,7 @@ def run(out):
     FS = flight_sim.main(d.out, os.path.join(d.out, "phys31"))
     cases = []
     for pitch in (10, 34, 45):
-        k = f"pitch, 15 g ballast, rail {pitch} deg, tether 0.25 N"
+        k = f"pitch, {d.ballast_g:g} g ballast, rail {pitch} deg, tether 0.25 N"
         if k in FS:
             cases.append(dict(pitch=pitch, v=FS[k]["v_impact"], path=FS[k]["path_angle_deg"]))
     LD = dart_landing.run(d.out, dict(impact_cases=cases))
@@ -92,7 +93,7 @@ def run(out):
     for sn, r_ in (("soft soil", soft), ("gravel", grav), ("hard ground", hard)):
         gp = r_["loads"]["drill_leg_L_motor"]["g"]
         sig = pod_m / 1000 * gp * G * 0.009 / Wc
-        loads.append([f"coupler bending at landing, {sn} (pod {pod_m:.0f} g at {gp:.0f} g)", round(sig / 1e6, 1), "MPa", "PLA 45 MPa: margin %.1f" % (PLA["sigma_t"] / sig)])
+        loads.append([f"coupler bending at landing, {sn} (pod {pod_m:.0f} g at {gp:.0f} g)", round(sig / 1e6, 1), "MPa", "PPA-CF 80 MPa: margin %.1f" % (COUPLER_SIGMA / sig)])
     kick_m = sum(d.part_mass(n, d.mesh(n)) for n in d.fam("kick_leg"))
     loads.append(["kick leg at landing, soft soil", soft["loads"]["kick_leg"]["N"], "N", "d3 steel shaft shear + ear bearing"])
     R["loads"] = loads

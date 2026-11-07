@@ -188,7 +188,8 @@ class Anchor:
         ed = self.embedded(Dr[0], Dr[1], self.d.P["AUGER_TIP"])
         ef = self.embedded(Ft[0], Ft[1], self.d.P["FOOT_TIP"])
         mu = soil["mu"]; qb = soil["q_dyn"] * 1e3 * CONTACT_AREA_MM2 * 1e-6
-        beta = math.atan2(TETHER_EXIT_H_M - (TAIL_PT[1] - self.zg) / 1000, rover_m)
+        tpz = getattr(self.d, "tether_pt", TAIL_PT)[1]
+        beta = math.atan2(TETHER_EXIT_H_M - (tpz - self.zg) / 1000, rover_m)
         ut = np.array([math.cos(beta), math.sin(beta)])
         X = lambda p: np.array([p[0], p[2]]) / 1000 if len(p) == 3 else np.array(p) / 1000
         cols, names, bounds = [], [], []
@@ -204,7 +205,7 @@ class Anchor:
                 else:
                     c[i] += f[0]; c[i + 1] += f[1]; c[i + 2] += pt[1] * f[0] - pt[0] * f[1]
             cols.append(c); names.append(name); bounds.append((lb, ub))
-        tail = X(TAIL_PT)
+        tail = X(getattr(self.d, "tether_pt", TAIL_PT))
         add("tether", [("hull", tail, ut)], 0, None)
         pv = X(self.piv); kp = X(self.kpiv)
         for k, e in (("x", (1, 0)), ("z", (0, 1))):

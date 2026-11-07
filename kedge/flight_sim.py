@@ -31,8 +31,15 @@ class Body:
         S = pr["S"] * 1e-6
         self.dS = np.gradient(S, self.xs)
         self.s = self.cg[0] - self.xs              # + toward the nose
-        self.s_tail = self.cg[0] - 0.152
+        self.s_tail = self.cg[0] - d.tether_pt[0] / 1000
         self.cda = 2.6e-3
+        # fins: linear normal-force slope spread over each fin's x range (per metre of station), this plane only
+        self.cfin = np.zeros_like(self.xs)
+        self.fins = [f for f in d.fins() if f["plane"] == plane]
+        for f in self.fins:
+            k = (self.xs >= f["x0"] / 1000) & (self.xs <= f["x1"] / 1000)
+            if k.any():
+                self.cfin[k] += f["C_m2"] / (k.sum() * 0.001)
 
 
 def run(b, v0, elev, T_of_t=None, dth=5.0, w0=1.0, tmax=3.0, dt=2e-4, h0=0.41):
@@ -48,7 +55,7 @@ def run(b, v0, elev, T_of_t=None, dth=5.0, w0=1.0, tmax=3.0, dt=2e-4, h0=0.41):
         vn = vn0 + w * b.s                                         # local normal velocity (+ along n)
         F_cf = -0.5 * RHO * CDC * ETA * b.w * np.abs(vn) * vn * ds
         dSp = np.maximum(b.dS, 0) if U >= 0 else np.maximum(-b.dS, 0)
-        F_pot = -RHO * abs(U) * dSp * vn * ds
+        F_pot = -RHO * abs(U) * dSp * vn * ds - 0.5 * RHO * abs(U) * b.cfin * vn * ds
         Fn = (F_cf + F_pot).sum(); Mn = ((F_cf + F_pot) * b.s).sum()
         Fa = -0.5 * RHO * b.cda * abs(U) * U
         F = Fa * e + Fn * n + np.array([0, -dm.G * b.M])
@@ -135,7 +142,7 @@ def run_yaw(b, v0, T_of_t, tf, dt=2e-4):
         U = v @ e; vn0 = v @ n; vn = vn0 + w * b.s
         F_cf = -0.5 * RHO * CDC * ETA * b.w * np.abs(vn) * vn * ds
         dSp = np.maximum(b.dS, 0) if U >= 0 else np.maximum(-b.dS, 0)
-        F_pot = -RHO * abs(U) * dSp * vn * ds
+        F_pot = -RHO * abs(U) * dSp * vn * ds - 0.5 * RHO * abs(U) * b.cfin * vn * ds
         Fn = (F_cf + F_pot).sum(); Mn = ((F_cf + F_pot) * b.s).sum()
         F = -0.5 * RHO * b.cda * abs(U) * U * e + Fn * n
         if T_of_t is not None:

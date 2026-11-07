@@ -64,6 +64,35 @@ class Dart:
         self.ballast_x = ballast_x            # None = ballast mesh centroid
         self.fold = self.assembly(0.0, 0.0)
         self.mp = self.mass_props(self.fold)
+        # tether attachment: the eye of a tail boom when the build has one (v32), else the tail cap knot on the axis
+        tp = [n for n in self.PP if any(k in n for k in ("eye", "boom")) and not self.PP[n].get("parent")]
+        if tp:
+            v = np.vstack([self.mesh(n).vertices for n in tp])
+            far = v[v[:, 0] > v[:, 0].max() - 3.0]
+            self.tether_pt = (float(v[:, 0].max()), float(far[:, 2].mean()))
+        else:
+            self.tether_pt = (float(self.P.get("L", 152.0)), 0.0)
+
+    def fins(self):
+        """Fins (parts named *fin*): x centre, area, span, plane ('pitch' = horizontal fin, 'yaw' = vertical) and the
+        normal-force slope C = CNa x area (m2) per fin from the panel-pair formula 2 pi AR / (2 + sqrt(4 + AR^2)),
+        AR = 2 s^2 / A, with the body interference 1 + r / (s + r)."""
+        out = []
+        R = self.P["R_OUT"]
+        for n, m in self.fold:
+            if "fin" not in n or n.endswith("_fine"):
+                continue
+            v = m.vertices
+            ey, ez = np.ptp(v[:, 1]), np.ptp(v[:, 2])
+            r = np.hypot(v[:, 1], v[:, 2])
+            s_ = max(r.max() - R, 1.0) / 1000
+            A = m.area / 2 * 1e-6
+            AR = 2 * s_ ** 2 / A
+            K = 1 + (R / 1000) / (s_ + R / 1000)
+            C = 2 * math.pi * AR / (2 + math.sqrt(4 + AR ** 2)) * A * K
+            out.append(dict(name=n, x_mm=float(m.center_mass[0] if m.is_watertight else m.bounds.mean(0)[0]), x0=float(v[:, 0].min()), x1=float(v[:, 0].max()),
+                            span_mm=s_ * 1000, area_mm2=A * 1e6, plane="pitch" if ey > ez else "yaw", C_m2=C))
+        return out
 
     # ---------------------------------------------------------------- geometry
     def mesh(self, n):

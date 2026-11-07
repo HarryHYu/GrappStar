@@ -21,7 +21,8 @@ def aero_centre(d, plane, alpha_deg=10.0, U=7.0):
     b = fs.Body(d, d.ballast_g, plane)
     a = math.radians(alpha_deg)
     vn = -U * math.sin(a) * np.ones_like(b.s)
-    F = -0.5 * dm.RHO_AIR * fs.CDC * fs.ETA * b.w * np.abs(vn) * vn * 0.001 - dm.RHO_AIR * U * np.maximum(b.dS, 0) * vn * 0.001
+    F = -0.5 * dm.RHO_AIR * fs.CDC * fs.ETA * b.w * np.abs(vn) * vn * 0.001 - dm.RHO_AIR * U * np.maximum(b.dS, 0) * vn * 0.001 \
+        - 0.5 * dm.RHO_AIR * U * b.cfin * vn * 0.001
     return float((F * b.xs).sum() / F.sum() * 1000)
 
 

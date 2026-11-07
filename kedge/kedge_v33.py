@@ -45,7 +45,7 @@ P = dict(
     D_CORE0=9.6, D_CORE1=6.0,                # core Ø just past the hub cone (holds the M3 nut with 1.2 walls) and at the end of the holding length
     D_TAPER=14.0, D_TAPER_F=22.0, D_TIP_R=0.3,   # core point length, crest taper length (both end at the point), point radius
     D_LOAD_DEG=45.0, D_LEAD_DEG=30.0, D_LAND=0.6,   # buttress flight: load face toward the motor 45 deg (prints tip up), leading face 30 deg, crest land
-    D_SPINE_BORE=2.6, D_SPINE_WALL=0.8,      # bore the M3 shaft self-taps into; PLA wall left round the shaft end
+    D_SPINE_BORE=2.6, D_SPINE_WALL=0.8, D_NECK=9.0,   # ...; D_NECK: length of the tangent S-curve neck from the hub to the core      # bore the M3 shaft self-taps into; PLA wall left round the shaft end
     FOOT_TAPER=20.0, FOOT_CORE1=4.0,         # foot gimlet: crest taper length, core Ø at the start of the point
     BOOM_L=28.0, BOOM_W=9.0,   # 28: the longest that clears the launcher rail rear and top pulley at full cock (50 needs 22 mm more there)
     # F693ZZ  M: 3 x 8 x 4, flange 9.5 x 0.6 (catalogue)
@@ -273,8 +273,8 @@ R_BORE = P["SLEEVE_BORE"] / 2
 X_ROOF0 = XS + 0.3                                         # hub bore ends 0.3 past the gearbox face in a 45 deg roof ...
 HEX_R = (P["NUT_AF"] + 0.35) / math.sqrt(3)
 X_NA = (X_ROOF0 + R_BORE - HEX_R, X_ROOF0 + R_BORE - HEX_R + P["NUT_T"] + 0.2)   # ... that closes on a hex pocket for M3 nut A (pressed in from the hub end)
-XE0 = XS + 1.0                                             # hub cylinder ends; 45 deg cone outside (1.2 wall over the roof)
-XR = XE0 + (HUB_D - P["D_CORE0"]) / 2                      # cone meets the core
+XE0 = XS + 1.0                                             # hub cylinder ends; a tangent S-curve neck (cosine) runs down to the core
+XR = XE0 + P["D_NECK"]                                     # neck meets the core
 SPINE_END = SHAFT_END + 0.5
 _rc1, _rt, _rs = P["D_CORE1"] / 2, P["D_TIP_R"], P["D_SPINE_BORE"] / 2 + P["D_SPINE_WALL"]
 XT0 = SPINE_END - (_rc1 - _rs) / (_rc1 - _rt) * P["D_TAPER"]   # point starts so the core still has D_SPINE_WALL round the shaft end
@@ -875,16 +875,17 @@ def foot_gimlet(dbore):
     output is a short D shaft)"""
     L_, hr, rc0, rc1 = P["FOOT_AUGER_L"], 4.5, (P["AUGER_CORE"] + 1.0) / 2, P["FOOT_CORE1"] / 2
     xt0, xc0 = L_ - P["FOOT_TIP"], L_ - P["FOOT_TAPER"]
-    prof = [(0.0, 0.0), (hr - 0.4, 0.0), (hr, 0.4), (hr, 9.0), (rc0, 10.0), (rc1, xt0), (P["D_TIP_R"], L_), (0.0, L_)]
-    body = revolve(round_poly(prof, {3: 1.0, 4: 2.0, 5: 20.0}))
+    neck = lambda z: rc0 + (hr - rc0) * (1 + math.cos(math.pi * (z - 9.0) / 3.0)) / 2
+    prof = [(0.0, 0.0), (hr - 0.4, 0.0), (hr, 0.4)] + [(neck(z_), z_) for z_ in np.linspace(9.0, 12.0, 13)] + [(rc1, xt0), (P["D_TIP_R"], L_), (0.0, L_)]
+    body = revolve(round_poly(prof, {len(prof) - 3: 20.0}))
     def r_body(z):
         if z <= 9.0: return hr
-        if z <= 10.0: return hr - (z - 9.0)
-        if z <= xt0: return rc0 + (rc1 - rc0) * (z - 10.0) / (xt0 - 10.0)
+        if z <= 12.0: return neck(z)
+        if z <= xt0: return rc0 + (rc1 - rc0) * (z - 12.0) / (xt0 - 12.0)
         return rc1 + (P["D_TIP_R"] - rc1) * min(1.0, (z - xt0) / P["FOOT_TIP"])
     rf = P["AUGER_D"] / 2
     r_out = lambda z: rf if z <= xc0 else rf + (P["D_TIP_R"] + 0.6 - rf) * min(1.0, (z - xc0) / P["FOOT_TAPER"])
-    fl = buttress_flight(10.6, L_ - 2.0, P["AUGER_PITCH"], r_body, r_out, P["D_LOAD_DEG"], P["D_LEAD_DEG"], P["D_LAND"])
+    fl = buttress_flight(10.2, L_ - 2.0, P["AUGER_PITCH"], r_body, r_out, P["D_LOAD_DEG"], P["D_LEAD_DEG"], P["D_LAND"])
     # D-bore on the N20 output (flat toward local +z of the x frame = -x here) and the M3 grub hole through the flat
     db = m3.Manifold.cylinder(10.0, dbore / 2, dbore / 2, 32).translate([0, 0, -1.0]) ^ m3.Manifold.cube([10, 10, 12]).translate([-(dbore / 2 - 0.5), -5, -1.5])
     g = m3.Manifold.cylinder(8.0, 1.25, 1.25, 24).rotate([0, 90, 0]).translate([-7.0, 0, 5.0])
@@ -939,16 +940,17 @@ def taper_auger(lefthand):
     tapering over D_TAPER_F to the point. Inside: the hub bore (16.3, over the gearbox diagonal 15.62) closes in a 45 deg roof on a hex
     pocket for M3 nut A, then the Ø2.6 bore the motor's M3 shaft self-taps into: the shaft is the spine to SPINE_END."""
     hr, rc0, rc1 = HUB_D / 2, P["D_CORE0"] / 2, P["D_CORE1"] / 2
-    prof = [(0.0, S0), (hr - 0.4, S0), (hr, S0 + 0.4), (hr, XE0), (rc0, XR), (rc1, XT0), (P["D_TIP_R"], TIP), (0.0, TIP)]
-    body = revolve(round_poly(prof, {3: 3.0, 4: 5.0, 5: 25.0}))
+    neck = lambda z: rc0 + (hr - rc0) * (1 + math.cos(math.pi * (z - XE0) / (XR - XE0))) / 2
+    prof = [(0.0, S0), (hr - 0.4, S0), (hr, S0 + 0.4)] + [(neck(z_), z_) for z_ in np.linspace(XE0, XR, 25)] + [(rc1, XT0), (P["D_TIP_R"], TIP), (0.0, TIP)]
+    body = revolve(round_poly(prof, {len(prof) - 3: 25.0}))
     def r_body(z):
         if z <= XE0: return hr
-        if z <= XR: return hr - (z - XE0)
+        if z <= XR: return neck(z)
         if z <= XT0: return rc0 + (rc1 - rc0) * (z - XR) / (XT0 - XR)
         return rc1 + (P["D_TIP_R"] - rc1) * min(1.0, (z - XT0) / P["D_TAPER"])
     rf = P["FLIGHT_D"] / 2
     r_out = lambda z: rf if z <= XC0 else rf + (P["D_TIP_R"] + 0.6 - rf) * min(1.0, (z - XC0) / P["D_TAPER_F"])
-    z0 = XE0 + (hr - (rf - 0.5)) + P["D_LAND"]                      # emerges from the hub cone where the cone is 0.5 under the crest
+    z0 = XE0 + (XR - XE0) * math.acos(2 * (rf - 0.5 - rc0) / (hr - rc0) - 1) / math.pi + P["D_LAND"]   # emerges from the neck where it is 0.5 under the crest
     fl = buttress_flight(z0, TIP - 2.0, P["D_PITCH"], r_body, r_out, P["D_LOAD_DEG"], P["D_LEAD_DEG"], P["D_LAND"], lefthand=lefthand)
     cav = revolve([(0.0, S0 - 1.0), (R_BORE, S0 - 1.0), (R_BORE, X_ROOF0), (P["D_SPINE_BORE"] / 2, X_ROOF0 + R_BORE - P["D_SPINE_BORE"] / 2),
                    (P["D_SPINE_BORE"] / 2, SPINE_END), (0.0, SPINE_END + P["D_SPINE_BORE"] / 2)], 72)

@@ -1,4 +1,4 @@
-# KEDGE DART: CLAUDE CODE HANDOVER (state at 2 Nov 2026 23:30 Sydney; geometry sections 5 and 7 updated 7 Nov 2026, current design = v32c)
+# KEDGE DART: CLAUDE CODE HANDOVER (state at 2 Nov 2026 23:30 Sydney; geometry sections 5 and 7 updated 7 Nov 2026, current design = v33)
 
 Read this whole file first. It is everything known about the project from the cloud session (1-2 Nov 2026).
 Older full handover (v26, bench history, v26 source) is in `HANDOVER_v26_original.md`. Original caliper PDF with
@@ -89,8 +89,8 @@ Measured currents at 8 V (bench, INA219)
 | XTAR MC2 charger | 1 | in hand |
 | N20 right-angle worm 12 V | 3 needed | 2 in hand, BUY ONE MORE (foot) |
 | Straight gearmotor M3x56 threaded shaft 100 rpm | 2 | 3 in hand |
-| F693ZZ | 5 | 2 per drill pod + 1 in the kick ear |
-| M3 nyloc | 2 | auger tips; M3 nut x2 (pod inner bearing) |
+| F693ZZ | 1 | in the kick ear (v32/v33 drills use none) |
+| M3 nut | 2 | v33: one per drill auger, pressed in the hex pocket at the end of the hub bore (no nylocs any more); threadlocker on the drill shafts |
 | M3 countersunk screws | radial hull screws (see run sheet for positions/lengths) | |
 | M3 screws + washers | kick hub screw, 2 coupler screws, ear root screw | |
 | Battery contacts | springs (front disc), rigid plates (rear disc) | |
@@ -148,7 +148,41 @@ Jetson /dev/video0. Control: 2.4 GHz WiFi, XIAO softAP.
 
 ---------------------------------------------------------------------------------------------------
 
-## 5. GEOMETRY v32 (generator `kedge_v32.py`, its defaults ARE v32; v31 = `kedge_v27.py`, history at the end of this section)
+## 5. GEOMETRY v33 (generator `kedge_v33.py`, its defaults ARE v33; v32c = `kedge_v32.py`, described after the v33 block; v31 = `kedge_v27.py`)
+
+v33 (7 Nov 2026, dart-cad3) = v32c with Harry's TAPERED DRILLS and a gimlet foot auger. Everything not listed here is v32c (below).
+DRILLS: each drill gearmotor still sits INSIDE its auger, but only in a short hub: Ø18.7 (bore 16.3 over the gearbox diagonal 15.62) from the
+arm shoulder (8.7 from the pivot) to 1 mm past the gearbox face (36.5). Decision (hub vs a stationary housing with the auger from the motor face):
+the 15.62 diagonal makes any wall round the motor about Ø18.7 whether it turns or not, so a stationary housing is no slimmer; in the hub the v32
+bearing path stays (hub on the arm's 17.7 mm bushing journal, drilling push on the arm shoulder, the shaft only drives), the motor goes in from
+the front with no cap, and there is one seam (at the head) instead of two. Past the hub: a 9 mm tangent S-curve neck (cosine, no step) to a
+GIMLET: core Ø9.6 (holds nut A with 1.2 walls) tapering to Ø6.0 at 87.3, then a point over 14 to 101.3; anchor (buttress) flight OD 16, pitch 12,
+full height from 45.5 to 79.3, crest tapering to the point over 22; load face toward the motor 45 deg (prints point up without supports), leading
+face 30 deg, crest land 0.6; L/R opposite hands (left pod right-hand). Provisional: FLIGHT_D, D_PITCH, D_CORE0/1, D_TAPER, D_TAPER_F, D_LOAD_DEG,
+D_LEAD_DEG, D_LAND are parameters for Harry's T12/T16/T20 bench results (KOV overrides). STEEL SPINE: the motor's M3 shaft (2.84 x 56) screws
+through M3 nut A pressed in a hex pocket at the apex of the hub bore's 45 deg roof (x 40.5) and self-taps a Ø2.6 bore to x 92.0, 10.2 mm from the
+point (0.8 PLA wall round its end); threadlocker on the shaft: nut + 49 mm of self-cut thread key the auger both ways. Drive is direct (the auger
+turns with its motor, DRILL_SIGN +1). Assembly: nut in, threadlocker, screw the auger on until the hub base touches the shoulder, back off half a
+turn. No tip cap, no nyloc any more. DEPLOY 50 deg (DEPLOY_TARGET 50, was 45): arm and motor 2.0 above the ground (pod head 7.9), hub rim about
+1 mm in the soil; drills 44.8 mm deep; pivot-block stops carved at 50. Drill axis |y| 31.15 (R + hub/2 + 0.8; was 32.8). Spin torque estimate
+(c D^2 L): about 0.35 of the v32 sleeve, release margin about 2.2 on the in-hand 100 rpm motor (v32 0.78): dart-physics to confirm.
+FOOT: same housing, tilt, plant (KICK_DEG 200.75, vertical, 67.9 mm in) and drive; the auger is a gimlet: OD 13, pitch 11, Ø9 x 9 hub with the
+D-bore and grub screw, S-curve neck to a core Ø7 -> Ø4, 12 mm point, crest taper 20, same buttress flight (no spine: the worm output is short).
+KICK: Harry asked for the foot IN LINE with a straight kick leg (folds flat on the hull top, swings about 250 deg, plants 60 to 75 deg ahead of the
+nose). NOT BUILT, because it cannot clear the body with the hinge on the hull top: any straight leg from the hinge (x 31.3, z 27.5) steeper than
+about 24 deg runs through the nose, hull or camera (overlap 1300 mm3 at 45 deg, 707 mm3 at 70 deg; side view out33/review/27_kick_inline_check.png),
+and at 24 deg an in-line foot needs a 190 mm leg to get 30 mm deep. With one y hinge, "folds flat" means "in line with the leg", so a steep foot
+that folds flat needs the hinge outside the body's silhouette. Options for Harry: (a) keep v32c's vertical foot (folded tip z 101.9, fits the
+launcher); (b) tilt the foot to plant 70 deg forward on the same leg (FOOT_TILT 40.75): tip only 13 mm lower (z 88.5) but at x 186, past the
+launcher rail end at full cock, and the foot only 44.6 mm in (not worth it); (c) straight leg + in-line foot with the hinge on a tower at the nose
+front (hinge about 15 mm above the nose skin at x 5 to 10, the kick N20 moved there, in the impact zone, in front of the camera at the plant);
+(d) a second (passive) joint at the foot (single hinges were the rule). v33 keeps (a).
+Results (out33): audit CLEAN at kick and drill 1 deg steps (202 / 51), cross sweep, ground, belly, hard stops (deploy +2.5 deg 1.69 mm3, fold -3 deg 3.34, kick rest +2 deg 90.56), watertight, one body per printed part; ALL STEP VALID; wire room OK;
+launcher_fit FITS over 1684 states (only base's tether model overlaps, as v32). Folded bbox x 0-179.5, y +-40.5 (was 43.8), z -21 to 101.9. Printed 99.69 cm3 (v32c 112.07); mass 270.3 g, CG x 83.3, z +7.9 (v32c 286.8 g, x 87, z +8.2); per-part volume, centroid, inertia in out33/mass_props.json.
+Review renders: out33/review/ (01-14 review.js, 15-26 review33.js close-ups, 27_kick_inline_check.png), out33/review/pub (viewer page),
+out33/audit_sheet.png, out33/sections.png. Viewer data: pub33/.
+
+v32c (generator `kedge_v32.py`, out32; the base of v33):
 
 Coordinates: x along hull, nose tip x=0, tail x≈152. y across (+y = LEFT), z up. Ground z = -21 lying flat.
 v32 = Harry's anchoring layout (7 Nov 2026): drill motors inside the augers, kick leg on the centreline, tether on a tail boom.
@@ -241,7 +275,7 @@ Compiles on ESP32 Arduino core 2.0.17 and 3.3.12.
 ## 7. FILES
 
 Pipeline (run from this folder; `.venv/bin/python` has build123d, trimesh, manifold3d; node + playwright for the shots):
-- `run_all.sh out32 v32 [stepK stepD]` (GEN=kedge_v32.py default; GEN=kedge_v27.py rebuilds v31) : the whole pipeline (generate, solve and regenerate at the solved angles, audit,
+- `GEN=kedge_v33.py run_all.sh out33 v33 [stepK stepD]` (GEN default is kedge_v32.py = v32c; GEN=kedge_v27.py rebuilds v31) : the whole pipeline (generate, solve and regenerate at the solved angles, audit,
   launcher fit, clearance, meshes, shots + sheet, pack, mass props, STEP check, physics, coupon, wires, wire room, wiring
   diagram, barrel, flight sim, assembly STEP, plate view, run sheet, engineering report), about 30 min. `make_dist.sh v31` : zips.
 - `kedge_v32.py OUTDIR` : v32 generator (`kedge_v27.py` = v31). `KOV='{"AUGER_D":17}'` env JSON overrides any P.
@@ -258,6 +292,7 @@ Pipeline (run from this folder; `.venv/bin/python` has build123d, trimesh, manif
 - `review.js OUT` + `montage.py` : close-up renders to OUT/review; `pubshots.js PUBDIR OUTDIR` : shots of the published viewer page.
 - `viewer.html` : three.js viewer (pose sliders, explode, section cut, audit panel, Play deployment animation).
 Outputs:
+- `out33/ pack_v33/ dist_v33/ pub33/` : v33 (`GEN=kedge_v33.py ./make_dist.sh v33`; close-ups `node review33.js out33`, kick check `kick_inline_check.py`).
 - `out32/ pack_v32/ dist_v32/ pub32/` : v32 (pub32 = index.html + parts/meshes/audit json for the viewer artifact; review
   renders in out32/review/).
 - `out31/` v31 data (STL/STEP/NPZ per part, parts.json, audit.json, launcher_fit.json, wireroom.json, mass_props.json,

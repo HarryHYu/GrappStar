@@ -1,0 +1,18 @@
+boom_anchor            {'valid': True, 'solids': 1, 'vol_step': 2034.9, 'vol_stl': np.float64(2033.1)}
+coupler_L              {'valid': True, 'solids': 1, 'vol_step': 917.3, 'vol_stl': np.float64(916.5)}
+coupler_R              {'valid': True, 'solids': 1, 'vol_step': 867.1, 'vol_stl': np.float64(866.4)}
+drill_leg_L            {'valid': True, 'solids': 1, 'vol_step': 3494.2, 'vol_stl': np.float64(3491.2)}
+drill_leg_L_auger      {'valid': True, 'solids': 1, 'vol_step': 6574.5, 'vol_stl': np.float64(6574.5)}
+drill_leg_R            {'valid': True, 'solids': 1, 'vol_step': 3494.2, 'vol_stl': np.float64(3491.2)}
+drill_leg_R_auger      {'valid': True, 'solids': 1, 'vol_step': 6574.5, 'vol_stl': np.float64(6574.5)}
+foot_auger             {'valid': True, 'solids': 1, 'vol_step': 3056.2, 'vol_stl': np.float64(3056.2)}
+hull_bottom            {'valid': True, 'solids': 1, 'vol_step': 11397.8, 'vol_stl': np.float64(11394.2)}
+hull_top               {'valid': True, 'solids': 1, 'vol_step': 18688.8, 'vol_stl': np.float64(18694.2)}
+kick_leg               {'valid': True, 'solids': 1, 'vol_step': 8501.8, 'vol_stl': np.float64(8500.4)}
+nose                   {'valid': True, 'solids': 1, 'vol_step': 8211.5, 'vol_stl': np.float64(8195.7)}
+pod_cap_L              {'valid': True, 'solids': 1, 'vol_step': 103.5, 'vol_stl': np.float64(103.4)}
+pod_cap_R              {'valid': True, 'solids': 1, 'vol_step': 103.5, 'vol_stl': np.float64(103.4)}
+tail_boom              {'valid': True, 'solids': 1, 'vol_step': 2747.0, 'vol_stl': np.float64(2746.7)}
+tail_cap               {'valid': True, 'solids': 1, 'vol_step': 8032.4, 'vol_stl': np.float64(8029.0)}
+tray                   {'valid': True, 'solids': 1, 'vol_step': 14906.3, 'vol_stl': np.float64(14899.1)}
+ALL STEP VALID

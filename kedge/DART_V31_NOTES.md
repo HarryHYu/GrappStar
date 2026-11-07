@@ -308,3 +308,27 @@ every start and before each commit. Never edit another owner's files; ask here.
   aft over the tail (x about 164). Kick N20: its unused -y stub is cut to 1 mm past the worm box, no zip tie (run sheet updated). Mass 286.8 g,
   CG x 87, z +8.2 (CG 1.6 mm further aft: the foot leans over the tail); out32/mass_props.json rewritten. dart-physics: please rerun the
   kick planting (vertical foot, shorter arc) and the flight/CG on out32. dart-fw: the kick contact now starts near 170 deg. (2026-11-07 dart-cad2)
+- [dart-cad3 -> dart-physics, dart-fw] v33 (kedge_v33.py; out33, pack_v33, dist_v33, pub33; audit CLEAN at 1 deg, launcher fit FITS, all STEP
+  valid): TAPERED DRILLS. The motor stays inside a short hub (Ø18.7, x 8.7 to 36.5 from the pivot: can and gearbox only), a 9 mm tangent neck,
+  then a gimlet: core Ø9.6 at x 45.5 tapering to Ø6.0 at x 87.3, point at x 101.3 (14 mm); anchor flight OD 16, pitch 12, full height x 45.5 to
+  79.3, crest tapering to the point over 22; load face toward the motor 45 deg, leading face 30 deg, crest land 0.6 (all parameters: FLIGHT_D,
+  D_PITCH, D_CORE0/1, D_TAPER, D_TAPER_F, D_LOAD_DEG, D_LEAD_DEG). The motor's M3 shaft is the spine: through M3 nut A pressed in a hex pocket at the
+  end of the hub bore (x 40.5) and self-tapped into a Ø2.6 bore to x 92.0, 10.2 mm from the point. Drive is DIRECT (auger turns with its motor):
+  DRILL_SIGN +1, harness unchanged, hands as v32 (left pod right-hand, right pod left-hand). Why the hub and not a stationary housing with the auger
+  from the motor face: the 15.62 gearbox diagonal makes any wall round the motor about Ø18.7 either way, so a stationary housing is no slimmer;
+  in the hub the v32 bearing path stays (hub on the arm's 17.7 mm bushing journal, drilling push on the arm shoulder, the shaft only drives), the
+  motor still goes in from the front with no cap, and there is one seam (at the head) instead of two. DEPLOY 45 -> 50 deg (DEPLOY_TARGET; arm
+  and motor 2.0 above the ground, the hub rim about 1 mm in the soil): drills 44.8 mm deep (v32c 49.1 with the blunt 100 mm sleeve); stops carved
+  at 50 (about 1 deg past). Drill axis |y| 31.15 (was 32.8: set by the hub now), folded width +-40.5 (was 43.8). Spin torque estimate (scales
+  c D^2 L): the embedded tapered flight is about 0.35 of the v32 sleeve, so loam spin about 0.06 N m, release about 0.08 N m: margin about 2.2 on
+  the in-hand 100 rpm motor (v32 0.78), so the 50 rpm motor and the tip planetary should not be needed (please confirm); the 67 % guard stays as the firm-soil
+  safety, no firmware change. dart-physics: please rerun holding / torque / mass on out33 (parts.json P has every number; P.CORE_D is now the
+  mean gimlet core 7.8, P.HUB_D the hub 18.7, P.D_HOLD the full-height flight span). FOOT: the foot auger is a tapered gimlet too (OD 13, pitch 11,
+  core Ø7 -> Ø4, 12 mm point, crest taper 20, same buttress flight), same housing, plant and drive. KICK NOT CHANGED: Harry's in-line foot on a
+  straight leg (plant 60 to 75 deg ahead of the nose, swing about 250) cannot be built with the hinge on the hull top: any straight leg from the
+  hinge (x 31.3, z 27.5) steeper than about 24 deg runs through the nose, hull or camera (1300 mm3 at 45, 707 mm3 at 70: out33/review/
+  27_kick_inline_check.png), and an in-line foot at 24 deg needs a 190 mm leg to get 30 mm deep. Tilting the foot to plant 70 deg forward on the
+  v32c leg only lowers the folded tip 13 mm (z 88.5) and moves it to x 186 (past the launcher rail end at full cock) with 45 mm depth instead of 68.
+  Harry's options are in CLAUDE.md section 5. dart-fw: kick plant (200.75 deg) and foot drive unchanged; the drill deploy end stop moves to 50 deg
+  (if podsTravelMs is a time for the full travel, scale it 45 -> 50: about 1560 ms at the same speed). Mass 270.3 g, CG x 83.3, z +7.9
+  (out33/physics.json, out33/mass_props.json). (2026-11-07 dart-cad3)

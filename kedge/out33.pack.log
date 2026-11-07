@@ -1,0 +1,60 @@
+{
+ "plate_A_hull": {
+  "parts": [
+   "hull_top",
+   "hull_bottom",
+   "tail_cap",
+   "nose",
+   "pod_cap_L",
+   "pod_cap_R"
+  ],
+  "extent_mm": [
+   230,
+   123.2
+  ]
+ },
+ "plate_C_couplers_PPA-CF": {
+  "parts": [
+   "boom_anchor",
+   "coupler_L",
+   "coupler_R",
+   "tail_boom"
+  ],
+  "extent_mm": [
+   230,
+   32.2
+  ]
+ },
+ "plate_B_legs_tray": {
+  "parts": [
+   "tray",
+   "kick_leg",
+   "drill_leg_L",
+   "drill_leg_R",
+   "drill_leg_L_auger",
+   "drill_leg_R_auger",
+   "foot_auger"
+  ],
+  "extent_mm": [
+   230,
+   95.6
+  ]
+ }
+}
+hull_top             bbox [121.0, 55.2, 34.8]  bed   412.6 mm2  overhang>45  3834.6 mm2
+hull_bottom          bbox [121.0, 42.0, 21.0]  bed   336.4 mm2  overhang>45  3644.6 mm2
+nose                 bbox [41.5, 42.0, 27.0]  bed   253.5 mm2  overhang>45   358.6 mm2
+tail_cap             bbox [42.0, 42.0, 15.4]  bed  1026.6 mm2  overhang>45   648.1 mm2
+tray                 bbox [109.1, 38.6, 36.5]  bed  1401.0 mm2  overhang>45  3920.0 mm2
+kick_leg             bbox [121.0, 28.0, 15.0]  bed   574.0 mm2  overhang>45   393.5 mm2
+drill_leg_L          bbox [18.7, 18.9, 32.6]  bed    67.6 mm2  overhang>45   204.3 mm2
+drill_leg_R          bbox [18.7, 18.9, 32.6]  bed    67.6 mm2  overhang>45   204.3 mm2
+drill_leg_L_auger    bbox [18.7, 18.7, 92.6]  bed    43.2 mm2  overhang>45    24.3 mm2
+drill_leg_R_auger    bbox [18.7, 18.7, 92.6]  bed    43.2 mm2  overhang>45    24.3 mm2
+foot_auger           bbox [13.0, 13.0, 68.0]  bed    45.8 mm2  overhang>45    13.6 mm2
+coupler_L            bbox [7.0, 27.6, 6.4]  bed   106.9 mm2  overhang>45    49.9 mm2
+coupler_R            bbox [7.0, 26.3, 6.4]  bed   101.6 mm2  overhang>45    49.1 mm2
+pod_cap_L            bbox [10.0, 10.0, 1.5]  bed    69.9 mm2  overhang>45     0.0 mm2
+pod_cap_R            bbox [10.0, 10.0, 1.5]  bed    69.9 mm2  overhang>45     0.0 mm2
+tail_boom            bbox [42.6, 12.0, 10.0]  bed    31.4 mm2  overhang>45   271.9 mm2
+boom_anchor          bbox [30.9, 32.2, 3.6]  bed   623.2 mm2  overhang>45    33.3 mm2

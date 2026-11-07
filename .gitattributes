@@ -4,3 +4,4 @@ kedge/pack_v29/KEDGE_v29_assembly_folded.step filter=lfs diff=lfs merge=lfs -tex
 kedge/pack_v30/KEDGE_v30_assembly_folded.step filter=lfs diff=lfs merge=lfs -text
 kedge/pack_v31/KEDGE_v31_assembly_folded.step filter=lfs diff=lfs merge=lfs -text
 kedge/pack_v32/KEDGE_v32_assembly_folded.step filter=lfs diff=lfs merge=lfs -text
+kedge/pack_v33/KEDGE_v33_assembly_folded.step filter=lfs diff=lfs merge=lfs -text

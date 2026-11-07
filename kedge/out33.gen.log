@@ -1,0 +1,67 @@
+hull ...
+hull_top             [121.   55.2  34.8] vol  18.69 cm3 wt=True solids=1 t=9s
+hull_bottom          [121.  42.  21.] vol  11.40 cm3 wt=True solids=1 t=9s
+nose ...
+nose                 [27.  42.  41.5] vol   8.21 cm3 wt=True solids=1 t=9s
+tail ...
+tail_cap             [15.4 42.  42. ] vol   8.03 cm3 wt=True solids=1 t=10s
+boom ...
+tail_boom            [42.6 10.  12. ] vol   2.75 cm3 wt=True solids=1 t=10s
+boom_anchor          [ 3.6 32.2 30.9] vol   2.03 cm3 wt=True solids=1 t=11s
+tray ...
+/home/user/GrappStar/kedge/.venv/lib/python3.13/site-packages/build123d/topology/shape_core.py:2891: UserWarning: Boolean operation unable to clean
+  result = self._bool_op(args, tools, operation)
+/home/user/GrappStar/kedge/.venv/lib/python3.13/site-packages/build123d/topology/shape_core.py:1149: UserWarning: Unable to clean <build123d.topology.three_d.Solid object at 0x7f4cf80af110>
+  new_shape = new_shape.clean()
+/home/user/GrappStar/kedge/.venv/lib/python3.13/site-packages/build123d/topology/shape_core.py:1430: UserWarning: Boolean operation unable to clean
+  return self._bool_op((self,), to_cut, cut_op)
+tray                 [109.1  38.6  36.5] vol  14.91 cm3 wt=True solids=1 t=13s
+kick ...
+kick_leg             [121.  15.  28.] vol   8.50 cm3 wt=True solids=1 t=13s
+foot_auger           [28.4 13.  65.1] vol   3.06 cm3 wt=True bodies=1 (mesh) t=28s
+drills ...
+drill_leg_L          [32.6 18.9 18.7] vol   3.49 cm3 wt=True solids=1 t=28s
+drill_leg_L_auger    [92.6 18.7 18.7] vol   6.57 cm3 wt=True bodies=1 (mesh) t=45s
+drill_leg_L_motor    [24.3 10.  12. ] vol   2.67 cm3 wt=True solids=1 t=45s
+drill_leg_L_shaft    [56.   2.8  2.8] vol   0.35 cm3 wt=True solids=1 t=45s
+drill_leg_L_nut      [2.4 5.5 6.4] vol   0.05 cm3 wt=True bodies=1 (mesh) t=45s
+drill_leg_R          [32.6 18.9 18.7] vol   3.49 cm3 wt=True solids=1 t=46s
+drill_leg_R_auger    [92.6 18.7 18.7] vol   6.57 cm3 wt=True bodies=1 (mesh) t=62s
+drill_leg_R_motor    [24.3 10.  12. ] vol   2.67 cm3 wt=True solids=1 t=62s
+drill_leg_R_shaft    [56.   2.8  2.8] vol   0.35 cm3 wt=True solids=1 t=62s
+drill_leg_R_nut      [2.4 5.5 6.4] vol   0.05 cm3 wt=True bodies=1 (mesh) t=62s
+coupler_L            [ 7.  27.6  6.4] vol   0.92 cm3 wt=True solids=1 t=63s
+coupler_R            [ 7.  26.3  6.4] vol   0.87 cm3 wt=True solids=1 t=63s
+cell_1               [36.9 18.7 18.7] vol   9.91 cm3 wt=True solids=1 t=63s
+cell_2               [36.9 18.7 18.7] vol   9.91 cm3 wt=True solids=1 t=63s
+n20_kick             [33. 12. 12.] vol   4.25 cm3 wt=True solids=1 t=63s
+kick_shaft           [ 3.  21.   2.5] vol   0.13 cm3 wt=True solids=1 t=63s
+n20_deploy           [33. 12. 12.] vol   4.04 cm3 wt=True solids=1 t=63s
+deploy_shaft         [ 3.  30.   2.5] vol   0.19 cm3 wt=True solids=1 t=63s
+xiao                 [17.7 22.7  4.5] vol   1.81 cm3 wt=True solids=1 t=63s
+drv8833_1            [20.3 12.7  3.5] vol   0.90 cm3 wt=True solids=1 t=63s
+drv8833_2            [20.3 12.7  3.5] vol   0.90 cm3 wt=True solids=1 t=63s
+ina219               [25.7 20.3  4.7] vol   2.45 cm3 wt=True solids=1 t=63s
+bno085               [22.8 25.7  4.8] vol   2.79 cm3 wt=True solids=1 t=63s
+mp1584               [22.3 17.   4. ] vol   1.50 cm3 wt=True solids=1 t=63s
+vtx                  [42.2 19.9  6. ] vol   5.06 cm3 wt=True solids=1 t=63s
+bms_2s               [40.8  8.   2.1] vol   0.69 cm3 wt=True solids=1 t=63s
+camera               [18.3 14.  14.6] vol   3.33 cm3 wt=True solids=1 t=63s
+n20_foot             [34.8 12.  22. ] vol   3.83 cm3 wt=True solids=1 t=63s
+foot_shaft           [5.5 3.  9.3] vol   0.06 cm3 wt=True solids=1 t=63s
+screws_radial        [115.8  40.   12. ] vol   0.50 cm3 wt=True solids=8 t=63s
+boom_pin             [6. 6. 8.] vol   0.07 cm3 wt=True solids=1 t=63s
+brg_ear              [9.5 4.  9.5] vol   0.19 cm3 wt=True solids=1 t=63s
+kick_hub_screw       [5.5 9.8 5.5] vol   0.10 cm3 wt=True solids=1 t=63s
+pod_cap_L            [10.   1.5 10. ] vol   0.10 cm3 wt=True solids=1 t=63s
+coupler_L_screw      [5.5 9.8 5.5] vol   0.10 cm3 wt=True solids=1 t=63s
+pod_cap_R            [10.   1.5 10. ] vol   0.10 cm3 wt=True solids=1 t=63s
+coupler_R_screw      [5.5 9.8 5.5] vol   0.10 cm3 wt=True solids=1 t=63s
+contacts_front_springs [ 3.  28.2  9. ] vol   0.39 cm3 wt=True solids=1 t=63s
+contacts_rear_plates [ 0.8 30.2 11. ] vol   0.19 cm3 wt=True solids=2 t=63s
+jst_charge           [5.8 9.9 9.4] vol   0.47 cm3 wt=True solids=1 t=63s
+jst_loop             [ 5.8  7.4 15.4] vol   0.60 cm3 wt=True solids=1 t=63s
+antenna              [22.  4.  4.] vol   0.28 cm3 wt=True solids=1 t=63s
+xiao_antenna         [20.  12.   0.4] vol   0.10 cm3 wt=True solids=1 t=63s
+capacitor            [11.   6.3  6.3] vol   0.34 cm3 wt=True solids=1 t=63s
+parts: 53 L = 151.97 t = 66 s

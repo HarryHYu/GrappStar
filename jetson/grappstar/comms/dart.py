@@ -210,9 +210,11 @@ class Dart:
                 self.key("A", 0)
         return self.status()
 
-    def auto(self) -> str:
-        self._log("dart_tx", {"auto": True})
-        return self._get("/auto", retries=0)      # never send twice blindly; v4 ignores a repeat anyway
+    def auto(self, force: bool = False) -> str:
+        """Start the anchor sequence. force=True (API v4.1 /auto?force=1) skips the dart's orientation gate, for
+        when the video shows it lying normally but its IMU says otherwise."""
+        self._log("dart_tx", {"auto": True, "force": force})
+        return self._get("/auto?force=1" if force else "/auto", retries=0)   # never send twice blindly
 
     def release(self) -> str:
         self._log("dart_tx", {"release": True})

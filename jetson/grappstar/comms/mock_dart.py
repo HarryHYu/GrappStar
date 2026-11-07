@@ -95,6 +95,9 @@ class MockDart:
         self.t_land_wall: Optional[float] = None
         self.rail_V = 7.62
         self.ina_ok = True
+        self.orient = "upright"      # API v4.1: upright, leaning, side, inverted, nose_down, nose_up, unknown
+        self.batt = "ok"             # API v4.1: ok, low, critical, none, unknown
+        self.moving = False          # API v4.1: the anchor moving under the tow (only while ANCHORED)
         self.flightlog_provider: Optional[Callable[[], dict]] = None
         self._flightlog: Optional[dict] = None
         mock = self
@@ -233,7 +236,9 @@ class MockDart:
                     "armed": self.armed, "auto_on_landing": self.auto_on_landing, "landed": self.landed,
                     "roll": self.roll, "pitch": self.pitch, "accel_g": 1.0, "peak_g": 8.0 if self.t_land_ms else 1.0, "ina_ok": self.ina_ok,
                     "imu_ok": not self.no_imu, "t_launch_ms": self.t_launch_ms, "t_land_ms": self.t_land_ms,
-                    "log_frozen": self.log_frozen(), "reset": "poweron", "event": self.event}
+                    "log_frozen": self.log_frozen(), "reset": "poweron", "event": self.event,
+                    "batt": self.batt, "batt_V": self.rail_V, "orient": self.orient,
+                    "moving": bool(self.moving and ph == "ANCHORED"), "video": True}
 
     def log_frozen(self) -> bool:
         if self._flightlog is None:
@@ -315,8 +320,17 @@ class MockDart:
                     self.event = f"armed (auto {'on' if auto else 'off'})" if on else "disarmed"
                     body = self.event
             elif u.path == "/auto":
+                force = q.get("force", ["0"])[0] == "1"
                 if ph == "FLIGHT":
                     code, body = refuse("in flight")
+                elif self.orient in ("side", "inverted", "nose_down", "nose_up") and not force \
+                        and not (self.seq_kind == "anchor" and busy):
+                    code, body = refuse({"side": "not upright: on its side (force=1 tries anyway)",
+                                         "inverted": "not upright: upside down (force=1 tries anyway)",
+                                         "nose_down": "not upright: nose down (force=1 tries anyway)",
+                                         "nose_up": "not upright: nose up (force=1 tries anyway)"}[self.orient])
+                elif self.batt == "critical":
+                    code, body = refuse("battery low: charge it (release still works)")
                 elif self.seq_kind == "release" and busy:
                     code, body = refuse("busy")
                 elif ph == "ANCHORED":

@@ -393,13 +393,22 @@ def _bisect(fn, lo, hi, target, n=40):
 # Video impact timing error model, from the flight simulator at the real launcher speeds (6..8 m/s, 6..47 deg):
 # the motion-energy impact is late by 0 to about 0.11 s (the crash and settle motion follows the impact), rarely
 # early by up to 0.03 s. Flight time residual r = T_model - T_video is therefore expected in [-0.11, +0.03].
-VID_T_LATE = 0.11
-VID_T_EARLY = 0.03
-VID_IMPACT_LATE_TYP = 0.035   # typical lateness of the video impact (for the clock offset without a video launch)
-TRACK_SIGMA_DEG = 3.0    # horizon pitch noise during flight (fin wobble 3 to 6 deg decaying, fisheye)
+# Video impact timing against the true impact, measured on the realistic simulator (tests/eval_realistic.py, 48
+# flights with dart-physics' skid of 0.1 to 1 m and lean on hard ground): 5th percentile -0.07 s, median +0.11 s,
+# 90th percentile +0.24 s (the crash, skid and settle keep the picture moving). Re-learn on real shots: learn flight.
+VID_T_LATE = 0.25
+VID_T_EARLY = 0.07
+VID_IMPACT_LATE_TYP = 0.11   # typical lateness of the video impact (also the clock offset without a video launch)
+# The nose pitch does not follow the flight path exactly: dart-physics gives an angle of attack of up to about
+# 21 deg after a launch disturbance, decaying slowly (simulated: 4 to 16 deg, 2 to 3.5 Hz). As a speed cue the
+# horizon or IMU pitch track is therefore worth little; 8 deg (about the rms of that swing) keeps it from
+# overruling the flight time and the table (eval_realistic: IMU range median error 1.4 -> see README section 13).
+TRACK_SIGMA_DEG = 8.0
 TRACK_CORR = 2.0         # consecutive horizon samples are correlated (wobble): count them as 1 in 2
 POST_IMPACT_RISE_DEG = 6.0   # nose pitch rise that means the dart has landed and is levelling out (see analyze_flight)
-PRIOR_SIGMA = 0.20       # table muzzle speed prior: 20 percent (spring, clutch and model spread, ASSUMPTION)
+# Table muzzle speed prior. dart-physics: shot to shot spread about 1 percent, 2 percent with cock position and line
+# drag scatter; the table itself (a model) may be off by more until Harry's tape shots set table_scale: 8 percent.
+PRIOR_SIGMA = 0.08
 TUNABLE = ("VID_T_LATE", "VID_T_EARLY", "VID_IMPACT_LATE_TYP", "TRACK_SIGMA_DEG", "POST_IMPACT_RISE_DEG",
            "PRIOR_SIGMA")
 
@@ -506,7 +515,8 @@ def fuse_speed(pitch: float, h0: float, T_obs: Optional[float] = None, T_sigma: 
                 elif r > VID_T_EARLY:
                     c += ((r - VID_T_EARLY) / 0.015) ** 2
                 else:
-                    c += 0.5 * ((r + 0.03) / 0.07) ** 2      # mild pull to the typical 30 ms lateness
+                    # mild pull to the typical lateness
+                    c += 0.5 * ((r + VID_IMPACT_LATE_TYP) / max(0.05, VID_T_LATE / 2.0)) ** 2
             if T_min is not None and T < T_min + d:
                 c += ((T_min + d - T) / 0.015) ** 2
             if v_min is not None and v < v_min:
@@ -780,7 +790,7 @@ def _video_phases(times: np.ndarray, energy: np.ndarray, fps: float) -> dict:
         e_end = energy[tail]
         med = float(np.median(e_end))
         emad = float(np.median(np.abs(e_end - med))) * 1.4826
-        end_thr = med + max(0.15 * med, 4.0 * emad, 0.05)
+        end_thr = max(med + max(0.15 * med, 4.0 * emad, 0.05), 2.0 * med)
         out["end_threshold"] = end_thr
         mv = np.nonzero(energy > max(end_thr, thr))[0]
         mv = mv[mv >= i0]
@@ -880,7 +890,7 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
         e1 = float(np.abs(smalls[k][1] - smalls[k - 1][1]).mean())
         e2 = float(np.abs(smalls[k + 1][1] - smalls[k][1]).mean())
         e_skip = float(np.abs(smalls[k + 1][1] - smalls[k - 1][1]).mean())
-        if min(e1, e2) > 2.5 * e_skip + 0.3 and smalls[k].__len__():
+        if min(e1, e2) > 1.4 * e_skip + 0.2:
             del smalls[k]
             continue
         k += 1
@@ -1109,7 +1119,7 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
         if pitch is None:
             # no pitch and no usable track: solve it from the flight time at the table speed (or the default
             # speed), allowing for the typical 30 ms late video impact
-            T_fit = T - (0.03 if video_T else 0.0)
+            T_fit = T - (VID_IMPACT_LATE_TYP if video_T else 0.0)
             pitch = _bisect(lambda p: tf(v_tab(p) or v0 or v0_default, p), 2.0, 80.0, T_fit)
             if pitch is None:
                 pitch = DEFAULT_PITCH

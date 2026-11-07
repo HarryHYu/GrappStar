@@ -219,3 +219,54 @@ def test_landing_zone_waits_out_a_wifi_gap_for_the_flight_log(tmp_path):
     finally:
         r.md.gap_until = 0
         r.close()
+
+
+def test_v41_not_upright_offers_force_and_battery_critical(tmp_path):
+    """API v4.1 orientation gate: the operator sees the video and may force the anchor; battery critical refuses."""
+    from grappstar.mission import StepFailed
+    from mission_harness import Rig
+    r = Rig(tmp_path)
+    try:
+        asked = []
+
+        def ask(text, choices, **kw):
+            asked.append((text, choices))
+            return "Force anchor"
+        r.m.ask = ask
+        r.md.orient = "side"
+        r.m.anchor()
+        assert "on its side" in asked[0][0] and "Force anchor" in asked[0][1]
+        assert any("force=1" in q for _, p_, q in r.md.requests if p_ == "/auto")
+        assert r.dart.status()["phase"] == "ANCHORED"
+        r.dart.release()
+        r.dart.wait_phase("IDLE", 10, want_seq="released")
+        r.m.ask = lambda text, choices, **kw: "Release and reshoot"
+        assert r.m.anchor() == "Release and reshoot"
+        r.md.orient = "upright"
+        r.md.batt = "critical"
+        r.m.dart_anchored = False
+        with pytest.raises(StepFailed, match="battery low"):
+            r.m.anchor()
+    finally:
+        r.close()
+
+
+def test_tow_stops_when_the_dart_says_its_anchor_moves(tmp_path):
+    from grappstar.mission import StepFailed
+    from mission_harness import Rig
+    r = Rig(tmp_path)
+    try:
+        r.dart.auto()
+        r.dart.wait_phase("ANCHORED", 10)
+        stops = []
+        r.m.stop_settle = lambda: stops.append(time.time())
+        r.md.moving = True
+        m = r.base.event_mark()
+        with pytest.raises(StepFailed, match="MOVING"):
+            r.m._wait_limit_watching_anchor(m, 5.0)
+        assert stops and r.m.shot.get("anchor_moved")
+        r.md.moving = False
+        time.sleep(0.5)                       # the poller's status is at most 0.3 s old
+        assert not r.m._anchor_moving()
+    finally:
+        r.close()

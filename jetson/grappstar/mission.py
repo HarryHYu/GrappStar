@@ -67,6 +67,7 @@ DART_FAULT_HELP = {
     "NO_GROUND": "the kick swung through air: the dart lies on its back or side",
     "BROWNOUT": "the dart rebooted from a power dip (loose battery plug?)",
     "WATCHDOG": "the dart rebooted from a crash",
+    "NOT_UPRIGHT": "still on its side, upside down or nose steep after levelling: release it (the pods are out)",
 }
 
 
@@ -769,7 +770,11 @@ class Mission:
             ds = self.dart.status()
             if ds["phase"] not in ("IDLE", "ARMED"):
                 problems.append(f"dart busy ({ds['phase']}: {ds.get('event')})")
-            rv = ds.get("rail_V")
+            rv = ds.get("batt_V") if isinstance(ds.get("batt_V"), (int, float)) and ds.get("batt_V") >= 0 else ds.get("rail_V")
+            if ds.get("batt") == "critical":
+                problems.append(f"dart battery critical ({rv} V): it refuses to anchor. Charge it")
+            elif ds.get("batt") == "low":
+                warnings.append(f"dart battery low ({rv} V, about 10 percent left): charge it soon")
             if ds.get("ina_ok") is False:
                 problems.append("dart current sensor (INA219) not reading: the dart refuses /auto and /release "
                                 "without it (check its wiring, BENCH_TEST.md)")
@@ -1306,7 +1311,19 @@ class Mission:
             try:
                 self.dart.auto()
             except DartRefused as e:
-                if "already anchored" not in e.reason:
+                if e.reason.startswith("not upright"):
+                    # API v4.1 orientation gate: on its side, upside down, nose down or up. The video may show
+                    # otherwise (IMU axes wrong): the operator can force it
+                    c = self.ask(f"The dart refuses to anchor: {e.reason}. Look at the dart camera. Reel it in and "
+                                 "shoot again, or force the anchor if the picture shows it lying normally?",
+                                 ["Release and reshoot", "Force anchor", "Abort"], danger=True)
+                    if c == "Release and reshoot":
+                        return c
+                    self.dart.auto(force=True)
+                elif e.reason.startswith("battery low"):
+                    raise StepFailed(f"dart refused auto: {e.reason} (it keeps enough charge to let go)",
+                                     choices=["Release and reshoot"])
+                elif "already anchored" not in e.reason:
                     raise StepFailed(f"dart refused auto: {e.reason}", choices=["Retry", "Release and reshoot"])
         try:
             s = self.dart.wait_phase("ANCHORED", self.cfg.anchor_timeout_s, cancel=self.cancel,
@@ -1464,7 +1481,7 @@ class Mission:
                     if be.err != "BUSY":
                         raise
                     self.log.info("base busy winding by itself: waiting for its LIMIT")
-            e = self.wait_evt(("LIMIT", "SEATED"), 60.0, m)
+            e = self._wait_limit_watching_anchor(m, 60.0)
             if e.get("evt") == "SEATED" or sw_closed(self.tel(), "S"):
                 self.stop_settle()
                 raise StepFailed("the dart came home during the tow: the anchor pulled out",
@@ -1483,6 +1500,34 @@ class Mission:
         if c == "Keep towing":
             self._extra_tow_rounds = getattr(self, "_extra_tow_rounds", 0) + 10   # this mission only
             return self.tow()
+
+    def _anchor_moving(self) -> bool:
+        """Dart API v4.1 `moving`: while ANCHORED the dart tilted over 2 deg from where it anchored, or felt more
+        than 0.15 g, for 200 ms: the anchor is moving under the tow. Read from the poller's status."""
+        try:
+            s = self.dart.status_cached(0.3) if hasattr(self.dart, "status_cached") else self.dart.status()
+        except DartError:
+            return False
+        return bool(s.get("moving")) and s.get("phase") == "ANCHORED"
+
+    def _wait_limit_watching_anchor(self, mark: int, timeout: float) -> dict:
+        """Wait for the tow's LIMIT (or SEATED) event, and stop the reel at once if the dart says its anchor is
+        moving (API v4.1): a dragging anchor ploughs out under more pull."""
+        t_end = time.monotonic() + timeout
+        while True:
+            left = t_end - time.monotonic()
+            if left <= 0:
+                raise BaseTimeout(f"no LIMIT or SEATED event from the base in {timeout:.0f} s")
+            try:
+                return self.wait_evt(("LIMIT", "SEATED"), min(0.5, left), mark)
+            except BaseTimeout:
+                pass
+            if self._anchor_moving():
+                self.stop_settle()
+                self.shot["anchor_moved"] = True
+                raise StepFailed("the dart says its anchor is MOVING under the tow (it tilted or slid): reel stopped. "
+                                 "Release it and reshoot, or Retry with a lower tow limit",
+                                 choices=["Release and reshoot", "Retry"])
 
     def release_dart(self) -> None:
         try:

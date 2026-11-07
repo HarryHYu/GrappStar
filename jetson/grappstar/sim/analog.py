@@ -204,6 +204,45 @@ class AnalogChain:
             out = cv2.remap(out, mapx, self._mapy, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
         return out
 
+    def clean(self, scene_lin: np.ndarray, ae: dict) -> np.ndarray:
+        """field() + composite() without any random part (for a still scene, reused frame after frame)."""
+        keep = (self.cfg, self.rng)
+        c = self.cfg
+        self.cfg = replace(c, shot_noise=0.0, read_noise=0.0, rf_noise=0.0, rf_noise_landed=0.0, sparkle_rate=0.0,
+                           line_jitter=0.0)
+        try:
+            return self.composite(self.field(scene_lin, ae, False), False)
+        finally:
+            self.cfg = keep[0]
+
+    def noisy(self, clean: np.ndarray, ae: dict, landed: bool) -> np.ndarray:
+        """The random part on top of a clean still field: sensor noise brought through the tone curve, link noise,
+        sparkles, line jitter. Cheaper than field() + composite() and close to them for a scene that does not move."""
+        c = self.cfg
+        rng = self.rng
+        y = clean
+        if c.shot_noise > 0 or c.read_noise > 0:
+            lum = np.clip(y.mean(axis=2), 0.02, 1.0)
+            x = lum ** 2.2
+            g = ae["gain"]
+            sd_lin = np.sqrt((c.shot_noise ** 2) * np.clip(x / g, 0, 1) * g * g + (c.read_noise * g) ** 2)
+            sd = sd_lin * (1 / 2.2) * lum ** (1 / 2.2 - 1) / 2.2 ** 0 * (1.0 + c.sharpen * 0.5)
+            y = y + (sd * _randn((self.h, self.w)))[..., None]
+        rf = c.rf_noise_landed if landed else c.rf_noise
+        if rf > 0:
+            n = cv2.GaussianBlur(_randn((self.h, self.w)), (0, 1), sigmaX=0.7, sigmaY=0.01) * 1.4
+            y = y + (rf * n)[..., None]
+        rate = c.sparkle_rate * (3.0 if landed else 1.0)
+        if rate > 0:
+            for _ in range(int(rng.poisson(rate * self.h * self.w))):
+                r0, x0 = int(rng.integers(0, self.h)), int(rng.integers(0, self.w))
+                y[r0, x0:x0 + int(rng.integers(3, 14))] = 1.0 if rng.random() < 0.6 else 0.0
+        if c.line_jitter > 0:
+            sh = rng.normal(0, c.line_jitter, self.h).astype(np.float32)
+            y = cv2.remap(y.astype(np.float32), self._xs + sh[:, None], self._mapy, cv2.INTER_LINEAR,
+                          borderMode=cv2.BORDER_REPLICATE)
+        return np.clip(y, 0, 1)
+
     def weave(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
         """Interlaced frame: even rows from field a (earlier), odd rows from field b (1/60 s later)."""
         if not self.cfg.interlace or b is None:

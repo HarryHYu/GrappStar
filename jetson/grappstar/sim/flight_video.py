@@ -416,7 +416,8 @@ def _simulate(rng, pitch, yaw, v0, roll0, t_launch, dt=0.001, drag_k=DRAG_K, dra
 class _Timeline:
     """Pose (x, y, z, roll, pitch, yaw) and specific force (world) at any wall time."""
 
-    def __init__(self, rng, pitch, yaw, v0, roll0, t_launch, drag_k=DRAG_K, drag_c=DRAG_C, rest="buried"):
+    def __init__(self, rng, pitch, yaw, v0, roll0, t_launch, drag_k=DRAG_K, drag_c=DRAG_C, rest="buried",
+                 real_attitude=False, landing_class="hard_ground"):
         self.pitch0, self.yaw0, self.roll0 = pitch, yaw, roll0
         self.t_launch = t_launch
         self.h_start = stroke_start_height(pitch)
@@ -429,17 +430,31 @@ class _Timeline:
         self.wob_ph = rng.uniform(0, 2 * math.pi)
         self.wob_tau = rng.uniform(0.35, 0.6)
         self.roll_rate = rng.uniform(-35, 35)
+        if real_attitude:
+            # dart-physics (kedge/DART_PHYSICS31.md, answers for dart-jetson): angle of attack about 21 deg peak for a
+            # 5 deg + 1 rad/s muzzle disturbance (tip-off is about 0.4 rad/s), decaying slowly; no roll source
+            self.wob_a = rng.uniform(4.0, 16.0)
+            self.wob_f = rng.uniform(2.0, 3.5)
+            self.wob_tau = rng.uniform(1.0, 2.5)
+            self.roll_rate = rng.uniform(-5, 5)
         imp = self._flight_pose(self.t_impact)
         self.p_land = self.sim["p_impact"]
         self.rest = rest
         if rest == "flat":
             # skids a little and lies on its belly (the anchor design case: the kick plants ahead of the nose):
             # camera on the hull axis, 21 mm above the ground (hull d 42), sunk 0..6 mm, nose level within a few deg
+            # dart-physics: the nose digs 2 to 12 mm, the body slaps down and skids about 0.2 m on soil, up to 1 m
+            # (with a bounce) on hard ground, still within about 1 s; on hard ground it ends leaning about 42 deg
+            # on a flank, in soft soil the roll stays near the landing roll
+            hard = landing_class in ("bedrock", "hard_ground")
             self.pitch_f = rng.uniform(-4, 3)
             self.h_f = 0.021 - rng.uniform(0.0, 0.006)
-            self.roll_f = imp[3] + rng.uniform(-30, 30)
+            lean = rng.uniform(35, 48) * (1 if rng.random() < 0.5 else -1) if hard else rng.uniform(-12, 12)
+            self.roll_f = imp[3] + lean
             self.yaw_f = imp[5] + rng.uniform(-20, 20)
-            skid = rng.uniform(0.05, 0.4)
+            skid = rng.uniform(0.4, 1.0) if hard else rng.uniform(0.1, 0.35)
+            self.skid_s = max(0.1, skid / 2.0)          # about 2 m/s average while skidding
+            self.t_landed = self.t_impact + self.skid_s + SETTLE_S
             self.pos_f = np.array([self.p_land[0] + skid * math.cos(math.radians(self.yaw_f)),
                                    self.p_land[1] + skid * math.sin(math.radians(self.yaw_f)), self.h_f])
         else:
@@ -491,7 +506,7 @@ class _Timeline:
             return self._flight_pose(t)
         imp = self._flight_pose(self.t_impact)
         s = t - self.t_impact
-        k = min(1.0, s / 0.1)
+        k = min(1.0, s / getattr(self, "skid_s", 0.1))
         k = k * k * (3 - 2 * k)
         pos = np.array(imp[:3]) * (1 - k) + self.pos_f * k
         att = np.array(imp[3:]) * (1 - k) + np.array([self.roll_f, self.pitch_f, self.yaw_f]) * k
@@ -725,7 +740,8 @@ def render_flight(seed: int = 0, fps: Optional[float] = None, landing_class: str
         rest = "flat" if caddx else "buried"
     if buried is None:
         buried = rest == "buried"
-    tl = _Timeline(rng, pitch, yaw, speed, roll0, t_launch, drag_k=drag_k, drag_c=drag_c, rest=rest)
+    tl = _Timeline(rng, pitch, yaw, speed, roll0, t_launch, drag_k=drag_k, drag_c=drag_c, rest=rest,
+                   real_attitude=caddx, landing_class=landing_class)
     land_xy = (float(tl.p_land[0]), float(tl.p_land[1]))
     if rest == "flat":
         # the camera looks ahead from where the dart came to rest: centre the close-up texture there
@@ -800,6 +816,7 @@ def render_flight(seed: int = 0, fps: Optional[float] = None, landing_class: str
     frames: List[Frame] = []
     poses: Dict[int, tuple] = {}
     cache: Dict[str, np.ndarray] = {}
+    clean_cache: Dict[tuple, np.ndarray] = {}
 
     def scene_key(t):
         if t <= t_launch:
@@ -835,7 +852,13 @@ def render_flight(seed: int = 0, fps: Optional[float] = None, landing_class: str
             else:
                 lin = to_linear(sc)
         else:
-            lin = to_linear(sc)
+            # a still scene (rail, or at rest after landing) with a settled exposure: the clean part is reused
+            # and only the random part is new (a few times faster, same look)
+            key = scene_key(tf)
+            ck = (key, round(math.log(ae["amp"]), 2))
+            if ck not in clean_cache:
+                clean_cache[ck] = chain.clean(to_linear(sc), ae)
+            return chain.noisy(clean_cache[ck].copy(), ae, tf >= tl.t_impact)
         landed = tf >= tl.t_impact
         return chain.composite(chain.field(lin, ae, landed), landed)
 

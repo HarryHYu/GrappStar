@@ -67,6 +67,8 @@ class MosaicResult:
             "landing_xy": None if self.landing_xy is None else [round(float(v), 1) for v in self.landing_xy],
             "ref_idx": None if self.ref_idx is None else int(self.ref_idx),
             "landing_source": self.landing_source,
+            "ref_to_canvas": None if self.ref_to_canvas is None else [[round(float(v), 6) for v in row]
+                                                                      for row in self.ref_to_canvas],
             "size": None if self.image is None else [int(self.image.shape[1]), int(self.image.shape[0])],
             "reasons": {str(k): v for k, v in self.reasons.items()},
             "notes": list(self.notes),

@@ -400,6 +400,39 @@ TRACK_SIGMA_DEG = 3.0    # horizon pitch noise during flight (fin wobble 3 to 6 
 TRACK_CORR = 2.0         # consecutive horizon samples are correlated (wobble): count them as 1 in 2
 POST_IMPACT_RISE_DEG = 6.0   # nose pitch rise that means the dart has landed and is levelling out (see analyze_flight)
 PRIOR_SIGMA = 0.20       # table muzzle speed prior: 20 percent (spring, clutch and model spread, ASSUMPTION)
+TUNABLE = ("VID_T_LATE", "VID_T_EARLY", "VID_IMPACT_LATE_TYP", "TRACK_SIGMA_DEG", "POST_IMPACT_RISE_DEG",
+           "PRIOR_SIGMA")
+
+
+def tuning_path() -> str:
+    """jetson/calib/flight_tuning.json: values re-learned on Harry's own shots (python3 -m grappstar learn flight)."""
+    import os
+    return os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "calib",
+                                         "flight_tuning.json"))
+
+
+def load_tuning(path: Optional[str] = None) -> dict:
+    """Apply the site tuning file (only the TUNABLE names, numbers only). Returns what was applied."""
+    import json as _json
+    import os
+    path = path or os.environ.get("GRAPPSTAR_FLIGHT_TUNING") or tuning_path()
+    done = {}
+    if not os.path.exists(path):
+        return done
+    try:
+        with open(path) as f:
+            d = _json.load(f)
+    except Exception:
+        return done
+    for k in TUNABLE:
+        v = d.get(k)
+        if isinstance(v, (int, float)) and math.isfinite(v) and v > 0:
+            globals()[k] = float(v)
+            done[k] = float(v)
+    return done
+
+
+SITE_TUNING = load_tuning()
 
 
 def _gamma_track(v0: float, pitch: float, h0: float):

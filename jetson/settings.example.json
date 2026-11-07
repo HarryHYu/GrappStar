@@ -10,5 +10,9 @@
   "tow_limit": 40.0,
   "drag": 0.25,
   "imu_axes": "x,y,z",
-  "deck_height": 0.15
+  "deck_height": 0.15,
+  "dart_cam_calib": "calib/dartcam.json",
+  "dart_hfov_deg": 135.0,
+  "dart_aspect": "4:3",
+  "dart_video_latency_s": 0.06
 }

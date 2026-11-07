@@ -27,6 +27,8 @@ from typing import Callable, Dict, List, Optional
 KEYS = {"1": "deploy down", "!": "deploy up", "2": "kick out", "@": "kick back", "3": "drills in",
         "#": "drills out", "4": "foot in", "$": "foot out"}
 PHASES = ("IDLE", "ARMED", "FLIGHT", "LANDED", "ANCHORING", "ANCHORED", "RELEASING", "FAULT")
+WIFI_GAP_S = 10.0       # a wait gives up after this long with no answer at all (the dart's own steps run on)
+STATUS_MIN_PERIOD_S = 0.2   # API.md: never poll /status faster than 5 Hz in total
 
 
 class DartError(Exception):
@@ -78,6 +80,8 @@ class Dart:
         self.fails = 0
         self.last_error = ""
         self._lock = threading.Lock()
+        self._rate_lock = threading.Lock()
+        self._status_sent = 0.0
         self._clock: list = []
         self._last_tms = None
 
@@ -123,6 +127,14 @@ class Dart:
 
     # ------------------------------------------------ API
     def status(self) -> dict:
+        """GET /status, always a fresh reply. Requests from every caller (the poller, the mission, the page) are
+        spaced at least STATUS_MIN_PERIOD_S apart (API.md: at most 5 Hz in total): a caller that comes too soon
+        waits the rest of the period."""
+        with self._rate_lock:
+            wait = self._status_sent + STATUS_MIN_PERIOD_S - time.time()
+            if wait > 0:
+                time.sleep(wait)
+            self._status_sent = time.time()
         t0 = time.time()
         body = self._get("/status")
         t1 = time.time()
@@ -265,6 +277,8 @@ class Dart:
             keys = [keys]
         t_end = time.time() + seconds
         moved = False
+        first = True
+        relocked = False
         try:
             while time.time() < t_end and not (cancel and cancel.is_set()):
                 try:
@@ -278,12 +292,23 @@ class Dart:
                             raise
                         moved = True
                 except DartRefused as e:
+                    if e.reason.startswith("stalled") and first and not relocked:
+                        # "stalled" on the very FIRST press is the lock of an earlier stall (that key was not
+                        # released long enough), not this hold reaching its end stop: let go for the release
+                        # window (API.md: max(ms, 350) + 250 ms) and press once more
+                        relocked = True
+                        time.sleep(max(ms, 350) / 1000.0 + 0.3)
+                        continue
+                    if e.reason.startswith("stalled") and first:
+                        raise DartRefused(e.path, "stalled on the first press twice: the key stays locked "
+                                                  "(another client holding it?)")
                     if e.reason.startswith("stalled"):
                         moved = True
                         break           # the motor reached its end stop: the normal end of a hold
                     if e.reason.startswith("hold limit"):
                         moved = True    # the 8 s manual cap ended the move UNFINISHED (fw-dart f5487cd): raise
                     raise
+                first = False
                 time.sleep(period)
         finally:
             if moved:
@@ -295,27 +320,27 @@ class Dart:
 
     def wait_phase(self, phases, timeout: float, poll: float = 0.2, fail: tuple = ("FAULT",),
                    cancel: Optional[threading.Event] = None, log: Optional[Callable[[str], None]] = None,
-                   want_seq: Optional[str] = None) -> dict:
+                   want_seq: Optional[str] = None, gap_s: float = WIFI_GAP_S) -> dict:
         """Poll /status until phase is in phases (and seq == want_seq if given). Raises DartError on a fail phase,
-        on seq "aborted" (a /stop ended the sequence), or on timeout. A few missed polls are tolerated (WiFi drops);
-        a long outage raises. v4 asks for at most 5 Hz polling in total: the status is read through status_cached(),
-        so with the App's DartPoller running no extra GETs are sent (fw-10)."""
+        on seq "aborted" (a /stop ended the sequence), or on timeout. WiFi gaps are ridden out: only no answer at
+        all for gap_s seconds raises (a time limit, not a count: one missed poll can take 2 s of timeouts).
+        v4 asks for at most 5 Hz polling in total: the status is read through status_cached(), so with the App's
+        DartPoller running no extra GETs are sent (fw-10)."""
         if isinstance(phases, str):
             phases = (phases,)
         t0 = time.time()
         t_end = t0 + timeout
         last_ev = None
-        misses = 0
+        last_ok = t0
         while time.time() < t_end:
             if cancel and cancel.is_set():
                 raise DartError("cancelled")
             try:
                 s = self.status_cached(max(0.3, poll), newer_than=t0)
-                misses = 0
+                last_ok = time.time()
             except DartError:
-                misses += 1
-                if misses > max(10, int(3.0 / poll)):
-                    raise
+                if time.time() - last_ok > gap_s:
+                    raise DartError(f"dart not answering for {gap_s:.0f} s (WiFi lost?): {self.last_error}")
                 time.sleep(poll)
                 continue
             if log and s.get("event") != last_ev:

@@ -49,6 +49,10 @@ class AppConfig:
     sim_time_scale: float = 1.0
     terrain_model: Optional[str] = None   # path to an ONNX classifier (optional)
     deck_height_m: float = 0.15           # base deck top above the ground on the rover (MEASURE)
+    dart_cam_calib: str = os.path.join(JETSON_DIR, "calib", "dartcam.json")   # from `calibrate dart` (MEASURE)
+    dart_hfov_deg: Optional[float] = None  # without a calibration: the Caddx Ant guess (vision.lens.DEFAULT_HFOV_DEG)
+    dart_aspect: str = "4:3"
+    dart_video_latency_s: float = 0.06    # capture delay of the dart video (MEASURE: learn latency)
     mission: MissionConfig = field(default_factory=MissionConfig)
 
 
@@ -98,6 +102,7 @@ class App:
         self.base.on_line = self._base_line
         self.base.start()
         self.dart_poller = DartPoller(self.dart).start()
+        self._load_dart_lens()
         self.base_status: dict = {}
         threading.Thread(target=self._poll_base_status, name="base-status", daemon=True).start()
         self._load_cam_model()
@@ -110,6 +115,28 @@ class App:
                 self.syslog.warn(f"terrain model not loaded: {e}")
         self.syslog.info(f"app started ({'SIMULATOR' if c.sim else 'hardware'}), ballistics {self.bal.source}")
         return self
+
+    def _load_dart_lens(self) -> None:
+        """The dart camera lens for the analysis: a calibration file, else the settings guess (vision/lens.py)."""
+        c = self.cfg
+        try:
+            from .vision.lens import DartLens
+            if self.sim:
+                lens = DartLens.pinhole(100.0, tuple(c.dart_size))    # the --sim world renders the pinhole profile
+            else:
+                path = c.dart_cam_calib
+                if path and not os.path.isabs(path):
+                    path = os.path.join(JETSON_DIR, path)
+                lens = DartLens.from_settings(path, c.dart_hfov_deg, None, c.dart_aspect,
+                                              tuple(c.dart_size)).scaled(tuple(c.dart_size))
+            c.mission.dart_lens = lens
+            c.mission.video_latency_s = 0.0 if self.sim else float(c.dart_video_latency_s)
+            self.syslog.info(f"dart lens: {lens.source}, horizontal FOV {lens.hfov_deg():.0f} deg")
+            if "not measured" in lens.source:
+                self.syslog.warn("dart camera lens not calibrated: python3 -m grappstar.vision.calibrate dart "
+                                 "(README section 7b)")
+        except Exception as e:
+            self.syslog.warn(f"dart lens model not loaded ({e}): the analysis uses the raw frames")
 
     def _load_cam_model(self) -> None:
         from .sim.world import default_rover_model
@@ -492,6 +519,11 @@ class App:
         self.base.aim(float(deg))
         return {"ok": True, "msg": f"aiming to {float(deg):.1f} deg"}
 
+    def _last_shot_pitch(self):
+        """The rail pitch of the last shot (the rail is lowered after it, so the live pitch is not the shot's)."""
+        shot = getattr(self.mission, "shot", None) or {}
+        return shot.get("pitch_actual") or shot.get("pitch_deg")
+
     def act_analyse(self) -> dict:
         """Re-run the landing analysis on the dart video buffer (manual use)."""
         from .analysis import run_post_flight
@@ -504,7 +536,10 @@ class App:
         except DartError:
             fl = None
         d = self.run_dir or self._new_run()
-        res = run_post_flight(frames, fl, d, terrain_model=self.terrain_model, clock_offset_s=self.dart.clock_offset())
+        m = self.cfg.mission
+        res = run_post_flight(frames, fl, d, terrain_model=self.terrain_model, clock_offset_s=self.dart.clock_offset(),
+                              dart_lens=m.dart_lens, video_latency_s=m.video_latency_s, drag_n=m.drag_n,
+                              aim_pitch_deg=self._last_shot_pitch())
         self._on_results(res)
         tr = res.get("terrain") or {}
         return {"ok": True, "msg": f"{tr.get('cls')} {tr.get('score')} {tr.get('verdict')}"}

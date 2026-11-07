@@ -90,6 +90,11 @@ class MockDart:
         self.no_imu = False
         self.down = False
         self.slow_s = 0.0
+        self.gap_until = 0.0         # WiFi gap: until this time.time() requests get no answer at all
+        self.freeze_s = 3.0          # API v4: the flight log freezes 3 s (dart time) after the landing
+        self.t_land_wall: Optional[float] = None
+        self.rail_V = 7.62
+        self.ina_ok = True
         self.flightlog_provider: Optional[Callable[[], dict]] = None
         self._flightlog: Optional[dict] = None
         mock = self
@@ -170,6 +175,7 @@ class MockDart:
             self.landed = True
             self.armed = False
             self.t_land_ms = self.millis()
+            self.t_land_wall = time.time()
             self.pitch = -40.0
             self.event = "landed (impact)"
             t_l = self.t_launch_ms or max(0, self.t_land_ms - 1100)
@@ -222,18 +228,30 @@ class MockDart:
         with self.lock:
             ph = self.phase
             return {"fw": "kedge-dart-v4-mock", "t_ms": self.millis(), "phase": ph, "fault": self.fault,
-                    "rail_V": 7.62, "current_mA": self.current_mA, "peak_mA": self.peak_mA, "speed": 255,
+                    "rail_V": self.rail_V, "current_mA": self.current_mA, "peak_mA": self.peak_mA, "speed": 255,
                     "motors": {"deploy": 0, "kick": 0, "drills": 0, "foot": 0}, "seq": self.seq,
                     "armed": self.armed, "auto_on_landing": self.auto_on_landing, "landed": self.landed,
-                    "roll": self.roll, "pitch": self.pitch, "accel_g": 1.0, "peak_g": 8.0 if self.t_land_ms else 1.0, "ina_ok": True,
+                    "roll": self.roll, "pitch": self.pitch, "accel_g": 1.0, "peak_g": 8.0 if self.t_land_ms else 1.0, "ina_ok": self.ina_ok,
                     "imu_ok": not self.no_imu, "t_launch_ms": self.t_launch_ms, "t_land_ms": self.t_land_ms,
-                    "log_frozen": self._flightlog is not None, "reset": "poweron", "event": self.event}
+                    "log_frozen": self.log_frozen(), "reset": "poweron", "event": self.event}
+
+    def log_frozen(self) -> bool:
+        if self._flightlog is None:
+            return False
+        if self.t_land_wall is None:
+            return True
+        return time.time() - self.t_land_wall >= self.freeze_s / self.scale
 
     # ------------------------------------------------ http
     def _handle(self, h: BaseHTTPRequestHandler) -> None:
         u = urlparse(h.path)
         q = parse_qs(u.query)
         self.requests.append((time.time(), u.path, u.query))
+        if time.time() < self.gap_until:
+            # WiFi gap: the request never gets an answer (the client times out), like a dropped link
+            time.sleep(min(1.5, max(0.0, self.gap_until - time.time())))
+            h.close_connection = True
+            return
         if self.slow_s:
             time.sleep(self.slow_s)
         if self.down:
@@ -326,6 +344,8 @@ class MockDart:
                 code, body = refuse("busy")
             elif u.path == "/flightlog":
                 fl = self._flightlog or (self.flightlog_provider() if self.flightlog_provider else None)
+                if fl is not None and self._flightlog is not None:
+                    fl = dict(fl, frozen=self.log_frozen())
                 if fl is None:
                     fl = {"hz": 50, "frozen": False, "phase": ph, "t_launch_ms": None, "t_land_ms": None,
                           "landing": None, "n": 0, "fields": ["t_ms", "qw", "qx", "qy", "qz", "ax", "ay", "az"],

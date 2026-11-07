@@ -9,6 +9,7 @@
   mockdart    run the simulated dart HTTP API
   calibrate   rover camera: intrinsics | ground | mount | marker | default (writes calib/rovercam.json)
   replay      re-run the flight and landing analysis on a recorded run folder
+  learn       re-learn the vision thresholds on your own footage: extract | latency | flight | terrain
   solve       ballistics: pitch for a range
   selftest    checks that need no hardware
 """
@@ -25,6 +26,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 JETSON_DIR = os.path.dirname(HERE)
 DEFAULT_CALIB = os.path.join(JETSON_DIR, "calib", "rovercam.json")
 SETTINGS = os.path.join(JETSON_DIR, "settings.json")
+DEFAULT_DART_CALIB = os.path.join(JETSON_DIR, "calib", "dartcam.json")
 DEFAULT_DRAG_N = 0.25  # same value as grappstar.mission.DEFAULT_DRAG_N (kept here so --help needs no imports)
 
 
@@ -41,7 +43,8 @@ def cmd_serve(a) -> int:
                     dart_size=_size(a.dart_size), gstreamer=a.gst, ui_token=a.token or "",
                     sim_landing=a.sim_landing, sim_seed=a.sim_seed, calib_path=a.calib,
                     dart_deinterlace=a.deinterlace, terrain_model=a.model, ballistics_path=a.ballistics,
-                    deck_height_m=a.deck_height)
+                    deck_height_m=a.deck_height, dart_cam_calib=a.dart_cam_calib, dart_hfov_deg=a.dart_hfov_deg,
+                    dart_aspect=a.dart_aspect, dart_video_latency_s=a.dart_video_latency_s)
     if a.runs:
         cfg.runs_dir = a.runs
     if not 1.0 <= a.tow_limit <= 55.0:
@@ -397,12 +400,19 @@ def main(argv=None) -> int:
     s.add_argument("--model", help="ONNX terrain classifier (optional)")
     s.add_argument("--ballistics", help="ballistics.json (default base/out/ballistics.json, else placeholder)")
     s.add_argument("--tow-limit", type=float, default=40.0, help="tow tension limit, N")
-    s.add_argument("--drag", type=float, default=DEFAULT_DRAG_N, help="payout brake setting, N (C3 column, LIGHT 0.5)")
+    s.add_argument("--drag", type=float, default=DEFAULT_DRAG_N, help="payout brake setting, N (C3 column, LIGHT 0.25)")
     s.add_argument("--runs", help="folder for run logs (default jetson/runs)")
     s.add_argument("--deck-height", type=float, default=0.15,
                    help="base deck top above the ground on the rover, m (measure it: sets the camera height)")
     s.add_argument("--imu-axes", default="x,y,z",
                    help="BNO085 chip axes as dart body axes, from the bench test, e.g. 'y,-x,z'")
+    s.add_argument("--dart-cam-calib", default=DEFAULT_DART_CALIB,
+                   help="dart camera lens calibration from 'calibrate dart' (used when the file exists)")
+    s.add_argument("--dart-hfov-deg", type=float, default=None,
+                   help="dart camera horizontal field of view when not calibrated (default 135, the Caddx Ant guess)")
+    s.add_argument("--dart-aspect", default="4:3", help="picture shape the dart camera sends (4:3 or 16:9)")
+    s.add_argument("--dart-video-latency-s", type=float, default=0.06,
+                   help="dart video capture delay, s (measure it: python3 -m grappstar learn latency)")
     s.add_argument("--sim-landing", default="hard_ground")
     s.add_argument("--sim-seed", type=int, default=0)
 
@@ -457,9 +467,15 @@ def main(argv=None) -> int:
 
     sub.add_parser("selftest", help="no-hardware checks")
 
+    sub.add_parser("learn", help="re-learn the vision thresholds on your own footage (learn --help)",
+                   add_help=False)
+
     argv = sys.argv[1:] if argv is None else list(argv)
     if argv and argv[0] == "calibrate":
         return cmd_calibrate(None, argv[1:])
+    if argv and argv[0] == "learn":
+        from .learn import main as learn_main
+        return learn_main(argv[1:])
     # site settings: jetson/settings.json holds defaults for serve (keys = option names with _ instead of -),
     # so the systemd service and the command line agree. Command line options still win.
     if argv and argv[0] == "serve" and os.path.exists(SETTINGS):

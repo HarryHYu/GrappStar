@@ -18,11 +18,13 @@ Marked **NOT VERIFIED** below: things nobody has checked on the real hardware ye
 4. Plug in the base
 5. Cameras
 6. Dart WiFi (and how the operator connects)
-7. Calibrate the rover camera
+7. Calibrate the rover camera (7b: the dart camera)
 8. Operator page tour and a full dry mission in sim
 9. First real mission checklist
 10. Troubleshooting
 11. File map
+12. Re-learn on your own footage
+13. How well the dart vision works (synthetic tests)
 
 Command summary:
 
@@ -38,7 +40,9 @@ Command summary:
 | `python3 -m grappstar dart auto` / `release` / `flightlog` | auto anchor, release sequence, download the flight log |
 | `python3 -m grappstar mockbase --pty` | fake base for testing; prints a pty path to use as `--base` |
 | `python3 -m grappstar calibrate intrinsics` / `mount` | rover camera calibration (step 7) |
+| `python3 -m grappstar.vision.calibrate dart --images ...` | dart camera (fisheye) calibration (step 7b) |
 | `python3 -m grappstar replay <logdir>` | re-run the vision on a recorded mission |
+| `python3 -m grappstar learn extract` / `latency` / `flight` / `terrain` | re-learn the vision numbers on your own footage (section 12) |
 | `python3 -m grappstar selftest` | run checks that need no hardware |
 
 ---
@@ -320,7 +324,9 @@ example `y,x,z`) is refused: one sign is wrong.
 
 Copy `settings.example.json` to `settings.json` in this folder and edit it once. `serve` (and the boot service)
 read it, so you do not have to type options. Options typed on the command line still win. Keys: `base`, `dart`,
-`rover_cam`, `dart_cam`, `fourcc`, `rover_fourcc`, `rover_size`, `dart_size`, `tow_limit`, `drag`, `imu_axes`.
+`rover_cam`, `dart_cam`, `fourcc`, `rover_fourcc`, `rover_size`, `dart_size`, `tow_limit`, `drag`, `imu_axes`,
+`deck_height`, `dart_cam_calib` (section 7b), `dart_hfov_deg` (lens guess without a calibration, default 135),
+`dart_aspect` (`4:3` or `16:9`), `dart_video_latency_s` (capture delay, section 12, default 0.06).
 
 ### Option A: the operator joins KEDGE too
 
@@ -428,6 +434,47 @@ Run every command from this folder (`jetson/`). Files go into `calib/`. Every co
 5. Check: put an orange object at a distance you measured with a tape (for example 5.0 m) from the ground point
    under the rail pivot (the launcher's main axis, D29), click it on the page, and compare the range the page shows
    (it adds the camera offset to the pivot by itself). Within about 5 percent is good.
+
+## 7b. Calibrate the dart camera (fisheye)
+
+The Caddx Ant in the dart nose is a fisheye: it bends straight lines, and the 720x480 capture squeezes a 4:3
+picture, so its pixels are not square. The software turns every dart frame into a plain 100 degree view before it
+looks for the horizon, the landing ground or the aerial map. For that it must know the lens. Until you calibrate it
+uses a guess (an even fisheye with a 135 degree horizontal view, from the "165 degree" on the box). The guess is
+fine for the landing verdict, but the aerial map and the horizon near the picture edges get better with a measured
+lens. It takes about 10 minutes and you do it once.
+
+You need: the same printed checkerboard as in section 7 (9 by 6 inner corners, 25 mm squares, taped flat on
+cardboard), the dart powered with its VTX on, the RC832 on the right channel, and the dart view working on the
+page (section 5). Good, even light (daylight indoors, no sun glare on the board).
+
+1. Stop the page if it runs: `sudo systemctl stop grappstar`.
+2. Take 60 pictures, one per second, while you move the board in front of the dart nose:
+
+   ```bash
+   python3 -m grappstar snap --dev /dev/grappstar-dartcam --fourcc YUYV --size 720x480 --fps 30 --n 60 --interval 1 --out calib/dartboard
+   ```
+
+   During that minute hold the board 15 to 40 cm from the nose and move it slowly through the whole picture:
+   centre, then each of the four corners and each edge (the corners matter most: that is where the fisheye bends),
+   near and far, and tilted up to about 45 degrees. Hold still for a moment at each place. Some pictures will have
+   snow; that is fine.
+3. Work out the lens:
+
+   ```bash
+   python3 -m grappstar.vision.calibrate dart --images calib/dartboard/*.png --square 0.025
+   ```
+
+   It prints the horizontal field of view and the error in pixels (`rms`). Under 1 px is good. If it says the
+   board reached less than 60 percent of the picture, record again and go further into the corners. It saves
+   `calib/dartcam.json`.
+4. Put it in `settings.json` (it is already the default path): `"dart_cam_calib": "calib/dartcam.json"`. The page
+   writes "dart lens: calibrated" in the system log at start (`runs/system.jsonl`).
+
+Tested on synthetic pictures (`tests/test_lens.py`): 24 noisy board pictures through a 145 degree fisheye give the
+field of view back within 0.1 degree and every pixel's direction within half a degree.
+
+If you change the camera's picture shape in its menu (4:3 or 16:9), calibrate again (or set `"dart_aspect"`).
 
 ## 8. Operator page tour and a full dry mission in sim
 
@@ -603,8 +650,86 @@ jetson/
     data/                placeholder ballistics table
     comms/               base.py (serial), dart.py (HTTP), mock_base.py, mock_dart.py
     video/               camera capture, discovery, frame quality, recording, replay
-    vision/              flight.py, mosaic.py (aerial map), terrain.py (landing verdict), target.py (aiming)
-    sim/                 simulated dart flight video and terrain textures
+    learn.py             re-learn the vision numbers on your own footage (section 12)
+    vision/              flight.py, mosaic.py (aerial map), terrain.py (landing verdict), target.py (aiming),
+                         lens.py (dart fisheye model), calibrate.py (rover and dart camera calibration)
+    sim/                 simulated dart flight video (flight_video.py; profile "caddx" = realistic fisheye and
+                         analog link from analog.py), terrain textures, checkerboard pictures
     ui/                  operator web page
-  tests/                 one test file per module, run with python3 -m pytest
+  calib/                 your measurements: rovercam.json, dartcam.json, flight_tuning.json, terrain_prototypes.json
+  tests/                 one test file per module, run with python3 -m pytest; eval_realistic.py measures the
+                         dart vision on realistic synthetic flights (section 13)
 ```
+
+## 12. Re-learn on your own footage
+
+Every number the dart vision uses was set on synthetic flights (section 13 says how realistic they are). Real
+footage will be different. After your first real shots, re-learn four things. Each command reads the run folders
+the missions wrote (`runs/<date-time>/`: `dart_shot0.avi`, its time stamps, `flightlog_shot0.json` and
+`mission.jsonl`) and writes a file the software reads at the next start. Run them on the Jetson or on a PC with a
+copy of `runs/`.
+
+1. **Capture delay** (the dart video arrives a little late; the flight log has to be lined up with it). Do 3 or
+   more shots with the rail low (about 10 degrees) so the dart camera sees ground on the rail, then:
+
+   ```bash
+   python3 -m grappstar learn latency runs/2026*
+   ```
+
+   It prints a line per shot and the median, for example `capture delay 72 ms ... Set "dart_video_latency_s":
+   0.072`. Put that in `settings.json`.
+
+2. **Range against the tape** (is the real launcher as strong as the physics table?). For each shot measure with a
+   tape from the ground under the launcher pivot (the main axis) to the mark where the dart first hit the ground.
+   Write one line per shot into a text file `shots.csv`:
+
+   ```
+   run_folder,shot,range_m
+   runs/20261115-101500,0,3.42
+   runs/20261115-103000,0,4.10
+   ```
+
+   Then:
+
+   ```bash
+   python3 -m grappstar learn flight shots.csv
+   ```
+
+   It compares the tape with the physics table at the pitch you fired at and with the analysis (with and without
+   the flight log), measures how late the video sees the impact, and writes `calib/flight_tuning.json`:
+   `table_scale` (real range / table range: the aim solver and the range estimate both use it, so a launcher that
+   shoots 8 percent short is aimed higher), `VID_T_LATE` and `VID_IMPACT_LATE_TYP` (video timing). Use 5 or more
+   shots at different pitches. If `table_scale` is far from 1 (more than 10 percent), also check the payout brake
+   and the springs, and tell whoever owns the physics model. `--dry` prints without writing.
+
+3. **Landing ground types** (the GO / NO GO classifier). First pull the landing pictures out of your runs:
+
+   ```bash
+   python3 -m grappstar learn extract runs/2026*
+   ```
+
+   This saves the sharpest pictures of each landing into `labelled/_unsorted/` and makes one folder per ground type
+   in `labelled/`: `bedrock`, `hard_ground`, `loose_soil`, `sand_dust`, `vegetation`, `water_void`. Look at each
+   picture (and at where the dart really landed) and move it into the right folder; delete unclear ones. You can
+   also add your own pictures of ground taken with the dart lying on it (png or jpg, or short avi clips). Aim for
+   10 or more per type you have. Then:
+
+   ```bash
+   python3 -m grappstar learn terrain labelled
+   ```
+
+   It learns again from the synthetic set plus your pictures (each counted 3 times), prints how many of your
+   pictures it gets right before and after, and writes `calib/terrain_prototypes.json` (about 15 minutes on 4
+   cores; `--quick` takes a minute but is less robust). Delete that file to go back to the built-in classifier.
+   Check it on a shot it has not seen: `python3 -m grappstar replay runs/<folder>` and look at `landing.png`.
+
+4. **Resting pose of the dart** (the landing tilt). The tilt penalty compares how the dart lies after landing with
+   the poses it takes on flat ground: lying on its belly (0 degrees nose up) or stuck nose down (-60 degrees).
+   Look at the `rest_tilt` line in `runs/<folder>/replay_shot0/flight.json` (or the mission log) for landings on
+   flat ground. If they are not near 0 or -60, edit `REST_POSES_DEG` at the top of `grappstar/analysis.py`.
+
+The dart lens (section 7b) and the IMU axes (section 6) are measured once on the bench.
+
+## 13. How well the dart vision works (synthetic tests)
+
+ACCURACY_PLACEHOLDER

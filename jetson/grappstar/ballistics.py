@@ -11,10 +11,13 @@ Rules:
 - range_m is measured from the ground point under the rail pivot (D29). Callers that measure the target from the
   rover camera add the camera-to-pivot offset first (campose.pivot_target).
 - The whole pitch window pitch_min..pitch_max is used (6..47 deg on the real launcher, D29).
-- Range rises with pitch up to a peak (about 38 deg) and then falls, so a long target can have two solutions.
+- Range rises with pitch up to a peak (about 41 deg on the D50 table) and then falls, so a long target can have two solutions.
   D29 and params AIM.solver: prefer the HIGHER pitch then (steeper arrival, the nose digs in). low=True picks the
   lower one (flatter, shorter flight) when the operator asks for it.
-- Default drag is the LIGHT launch clutch, 0.5 N at the line with the reel full (D16, D24, params REEL.clutch).
+- Default drag is the LIGHT payout brake, a fixed 0.25 N (D49, D50, params REEL.clutch LIGHT_line_n): the first
+  drag column of base/out/ballistics.json.
+- A measured range factor (jetson/calib/flight_tuning.json "table_scale", from tape-measured shots, learn flight)
+  scales every range when present.
 - Line payout = path length of the flight approximated by the straight distance plus sag, times a margin.
 """
 from __future__ import annotations
@@ -55,8 +58,27 @@ def _lerp(a: float, b: float, f: float) -> float:
     return a + (b - a) * f
 
 
+TUNING = os.path.normpath(os.path.join(HERE, "..", "calib", "flight_tuning.json"))
+
+
+def site_table_scale(path: Optional[str] = None) -> float:
+    """Measured range factor: real ranges / C3 table ranges from Harry's tape-measured shots (learn flight writes
+    "table_scale" into jetson/calib/flight_tuning.json). 1.0 without the file. Only 0.7..1.3 is accepted."""
+    p = path or os.environ.get("GRAPPSTAR_FLIGHT_TUNING") or TUNING
+    try:
+        with open(p) as f:
+            v = float(json.load(f).get("table_scale", 1.0))
+        return v if 0.7 <= v <= 1.3 else 1.0
+    except Exception:
+        return 1.0
+
+
 class Ballistics:
-    def __init__(self, data: dict, source: str = ""):
+    def __init__(self, data: dict, source: str = "", range_scale: float = 1.0):
+        self.range_scale = float(range_scale)
+        if self.range_scale != 1.0:
+            data = dict(data, table=[dict(r, range_m=[x * self.range_scale for x in r["range_m"]])
+                                     for r in data["table"]])
         self.data = data
         self.source = source
         self.placeholder = bool(data.get("placeholder"))
@@ -77,7 +99,7 @@ class Ballistics:
         for p in ([path] if path else [os.environ.get("GRAPPSTAR_BALLISTICS"), REPO_TABLE, PLACEHOLDER]):
             if p and os.path.exists(p):
                 with open(p) as f:
-                    return cls(json.load(f), source=p)
+                    return cls(json.load(f), source=p, range_scale=site_table_scale())
         raise FileNotFoundError("no ballistics table found")
 
     # column for one drag value (interpolated)
@@ -164,6 +186,8 @@ class Ballistics:
                     "high branch (D29); low branch would be %.1f deg") % other[0]
         if self.placeholder:
             note = (note + "; " if note else "") + "PLACEHOLDER table: not the real launcher"
+        if self.range_scale != 1.0:
+            note = (note + "; " if note else "") + "ranges x%.3f from measured shots" % self.range_scale
         return Solution(True, round(p, 2), round(t, 3), round(line, 2), round(apex, 2), round(v, 2), note=note, **base)
 
 

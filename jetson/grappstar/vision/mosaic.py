@@ -75,6 +75,13 @@ class MosaicResult:
 
 # ------------------------------------------------------------------ helpers
 
+def _small_img(img: np.ndarray, width: int = 160) -> np.ndarray:
+    h, w = img.shape[:2]
+    if w <= width:
+        return img
+    return cv2.resize(img, (width, max(1, int(round(h * width / w)))), interpolation=cv2.INTER_AREA)
+
+
 def _placeholder(text_lines: Sequence[str], size=(480, 320)) -> np.ndarray:
     img = np.full((size[1], size[0], 3), 40, np.uint8)
     for k, line in enumerate(text_lines):
@@ -471,6 +478,9 @@ def _build(frames, landing_t, flight, max_frames, work_w, max_canvas, min_inlier
     # --- landing point
     land = None
     lf = [f for f in frames if f.t >= t_landed + 0.1 and frame_ok(f)]
+    # a dart lying level (the usual rest on its belly) looks at the horizon: its image centre is not the landing
+    # spot, so only landed frames that look down at the ground (no sky in view) are used for the marker
+    lf = [f for f in lf if float((sky_mask(_small_img(f.img)) > 0).mean()) < 0.03]
     if lf:
         lf = sorted(lf, key=lambda f: sharpness(f.img), reverse=True)[:3]
         for f in lf:

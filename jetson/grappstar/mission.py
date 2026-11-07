@@ -51,6 +51,34 @@ RESHOOT_STEPS = ["BASE_NEUTRAL", "WRAP", "RETRIEVE", "UNWRAP", "FINAL_APPROACH"]
 SKIPPABLE = {"CHECK", "LANDING_ZONE", "TIDY", "COCK"}
 DECOCK_STEPS = ("COCK", "FIRE", "AIM", "LAUNCH_MODE", "RAIL_LOW", "BASE_NEUTRAL")
 DEFAULT_DRAG_N = 0.25            # the LIGHT clutch: the one default for the CLI, settings and the App
+LOG_FREEZE_WAIT_S = 6.0          # API v4: the flight log freezes 3 s after the landing; wait at most this long
+# dart fault codes (firmware/dart/API.md) in plain words for the operator
+DART_FAULT_HELP = {
+    "PODS_JAM": "the drill pods jammed part way up during the release: free them by hand or with the ! key",
+    "KICK_JAM": "the kick leg jammed (or a motor is wired backwards): check it, then the @ key to stow it",
+    "DRILL_JAM": "a drill stalled while unscrewing: it may be stuck on a stone, try the # key in short taps",
+    "FOOT_JAM": "the foot auger stalled while unscrewing: try the $ key in short taps",
+    "NO_CURRENT": "a motor drew no current: open wire or shorted output, check the motor plugs",
+    "KICK_TIMEOUT": "the kick found no ground (or no stowed stop) in time",
+    "SEQ_TIMEOUT": "the anchor or release sequence took over 35 s",
+    "OVERCURRENT": "a motor drew over 2 A: something is jammed",
+    "LOW_RAIL": "the dart battery sagged under 5.6 V: charge it",
+    "CURRENT_SENSOR": "the dart current sensor stopped answering: check the INA219 wiring",
+    "NO_GROUND": "the kick swung through air: the dart lies on its back or side",
+    "BROWNOUT": "the dart rebooted from a power dip (loose battery plug?)",
+    "WATCHDOG": "the dart rebooted from a crash",
+}
+
+
+def dart_fault_text(err) -> str:
+    """The error text with the plain explanation of any dart fault code in it."""
+    msg = str(err)
+    for code, help_ in DART_FAULT_HELP.items():
+        if code in msg:
+            return f"{msg} ({help_})"
+    return msg
+
+
 def approach_max_s(line_m: Optional[float], duty: float) -> float:
     """Final approach time limit, BASE_SPEC 10.1 step 17 and the firmware's approachLimit() (base-1.3.1): the longer of
     20 s and 10 s + 1.5 x line_m / v, at most 600 s, where v is the slowest take-up speed at the duty from the physics
@@ -164,6 +192,9 @@ class MissionConfig:
     host_timeout_s: float = 2.5     # base host watchdog during the mission (keep-alive ping every 0.4 s; F24)
     allow_uncalibrated_tow: bool = False   # True only for bench tests with no load on the line
     imu_axes: str = "x,y,z"         # BNO085 chip axes to dart body axes (BENCH_TEST.md step 7 finds this)
+    dart_lens: Any = None           # vision.lens.DartLens of the dart camera (settings: dart_cam_calib, dart_hfov_deg)
+    video_latency_s: float = 0.06   # dart video capture delay (settings dart_video_latency_s; learn latency measures it)
+    dart_rail_min_v: float = 6.6    # dart rail below this at rest: the dart refuses auto arming (API v4 battery low)
 
 
 @dataclass
@@ -739,8 +770,16 @@ class Mission:
             if ds["phase"] not in ("IDLE", "ARMED"):
                 problems.append(f"dart busy ({ds['phase']}: {ds.get('event')})")
             rv = ds.get("rail_V")
-            if isinstance(rv, (int, float)) and rv < 6.4:
-                warnings.append(f"dart battery low ({rv:.2f} V)")
+            if ds.get("ina_ok") is False:
+                problems.append("dart current sensor (INA219) not reading: the dart refuses /auto and /release "
+                                "without it (check its wiring, BENCH_TEST.md)")
+            elif isinstance(rv, (int, float)) and 0 <= rv < 6.0:
+                problems.append(f"dart battery flat ({rv:.2f} V): the anchor motors would stop on LOW_RAIL. Charge it")
+            elif isinstance(rv, (int, float)) and 0 <= rv < self.cfg.dart_rail_min_v:
+                warnings.append(f"dart battery low ({rv:.2f} V, under {self.cfg.dart_rail_min_v:.1f} V): it refuses "
+                                "to anchor by itself on landing and the anchor may be weak. Charge it soon")
+            if ds.get("imu_ok") is False:
+                warnings.append("dart IMU (BNO085) silent: no flight log, landing from the line and video only")
         except DartError as e:
             problems.append(f"dart unreachable: {e}")
         for name in ("dart", "rover"):
@@ -1035,10 +1074,8 @@ class Mission:
                 elif line > 1.0 and time.time() - line_t >= self.cfg.still_s:
                     sources.add("line")
             try:
-                if time.time() - getattr(self.dart, "last_t", 0) >= 0.25:   # C2: never poll faster than 5 Hz overall
-                    ds = self.dart.status()
-                else:
-                    ds = self.dart.last or self.dart.status()
+                # C2: never poll faster than 5 Hz overall: the App's DartPoller keeps a fresh status, read it
+                ds = self.dart.status_cached(0.3) if hasattr(self.dart, "status_cached") else self.dart.status()
                 if ds["phase"] == "FLIGHT":
                     seen_flight = True
                 t_arm = self.shot.get("dart_t_ms_at_arm")
@@ -1129,7 +1166,8 @@ class Mission:
             if ph == "ARMED":
                 self.log.warn("dart still ARMED (launch not seen): disarming to read the live log")
                 self.dart.arm(False)
-            fl = self.dart.flightlog()
+            self._wait_log_frozen()
+            fl = self._flightlog_through_gaps()
             t_arm = self.shot.get("dart_t_ms_at_arm")
             if not fl.get("samples"):
                 self.log.warn("flight log is empty (dart was not armed or saw no launch)")
@@ -1158,11 +1196,14 @@ class Mission:
         self.log.info(f"analysing {len(frames)} dart frames")
         off = self.dart.clock_offset() if hasattr(self.dart, "clock_offset") else None
         kw = dict(t_fire=t_fire, log=self.log.warn, clock_offset_s=off)
+        extra = dict(aim_pitch_deg=self.shot.get("pitch_actual") or self.shot.get("pitch_deg"), drag_n=self.cfg.drag_n,
+                     video_latency_s=self.cfg.video_latency_s)
+        if self.cfg.dart_lens is not None:
+            extra["dart_lens"] = self.cfg.dart_lens
         try:      # jetson-vision: the commanded pitch and the clutch drag are strong priors for the range
-            res = self.analyse(frames, fl, self.run_dir, aim_pitch_deg=self.shot.get("pitch_actual") or
-                               self.shot.get("pitch_deg"), drag_n=self.cfg.drag_n, **kw)
+            res = self.analyse(frames, fl, self.run_dir, **extra, **kw)
         except TypeError as e:
-            if "aim_pitch_deg" not in str(e) and "drag_n" not in str(e):
+            if not any(k in str(e) for k in extra):
                 raise
             res = self.analyse(frames, fl, self.run_dir, **kw)
         if c is not None and hasattr(c, "release_hold"):
@@ -1186,6 +1227,38 @@ class Mission:
         if c == "Retrieve and reshoot":
             return "reshoot"
         return "anchor"
+
+    def _flightlog_through_gaps(self, gap_s: float = 10.0) -> dict:
+        """GET /flightlog, riding out a WiFi gap of up to gap_s (the log stays on the dart until the next arm, so it
+        is worth waiting for: without it the range and the landing tilt are video only). Refusals (409) are answers
+        and are not retried here (the client already retries busy)."""
+        t_end = time.time() + gap_s
+        while True:
+            try:
+                return self.dart.flightlog()
+            except DartRefused:
+                raise
+            except DartError as e:
+                if time.time() >= t_end:
+                    raise
+                self.log.warn(f"flight log not reached ({e}): trying again")
+                self.sleep(1.0)
+
+    def _wait_log_frozen(self, timeout: float = LOG_FREEZE_WAIT_S) -> None:
+        """API v4: the flight log freezes 3 s after the landing (10 s after launch for a long flight) with the rest
+        samples the landing tilt needs. Wait for log_frozen (or a dart without the field, or the time limit: the
+        live ring still holds the flight then), reading the poller's status, never faster than 5 Hz."""
+        t_end = time.time() + timeout
+        while time.time() < t_end:
+            self.check_cancel()
+            try:
+                s = self.dart.status_cached(0.3) if hasattr(self.dart, "status_cached") else self.dart.status()
+            except DartError:
+                return
+            if "log_frozen" not in s or s.get("log_frozen") or s.get("phase") in ("IDLE", "ARMED"):
+                return
+            self.sleep(0.25)
+        self.log.warn("dart flight log not frozen yet: reading the live log")
 
     def tell_line_out(self, res: dict) -> None:
         """The base has no payout sensor (line_m is null after a shot): give it our estimate (PROTOCOL set line_m).
@@ -1246,7 +1319,7 @@ class Mission:
                 # stows the kick, then the dart comes home for a new shot.
                 raise StepFailed(f"dart on its back or side (NO_GROUND: {e}). Retrying the anchor faults again: "
                                  "release it and reshoot", choices=["Release and reshoot"])
-            raise StepFailed(f"dart did not anchor: {e}", choices=["Retry", "Release and reshoot"])
+            raise StepFailed(f"dart did not anchor: {dart_fault_text(e)}", choices=["Retry", "Release and reshoot"])
         self.dart_anchored = True
         warn = [w for w in (s.get("warnings") or []) if w]
         self.shot["anchor_warnings"] = warn
@@ -1436,7 +1509,7 @@ class Mission:
         except DartError as e:
             if "cancelled" in str(e):
                 raise Aborted("operator STOP")
-            raise StepFailed(f"dart release did not finish: {e}. Use the manual dart keys, then Retry.")
+            raise StepFailed(f"dart release did not finish: {dart_fault_text(e)}. Use the manual dart keys, then Retry.")
         self.dart_anchored = False
         self.log.info("dart released")
 

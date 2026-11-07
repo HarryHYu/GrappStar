@@ -63,15 +63,22 @@ class FrameSource:           # duck-typed
 ## vision
 
 - `vision.flight.analyze_flight(frames, flightlog=None, clock_offset_s=None, ballistics=None, drag_n=0.25,
-  aim_pitch_deg=None, calibrate_range=True) -> FlightResult` (`.phases` list of `(name, t0, t1)` with names
+  aim_pitch_deg=None, calibrate_range=True, video_latency_s=0.0) -> FlightResult` (`.phases` list of `(name, t0, t1)` with names
   ON_RAIL, LAUNCH, FLIGHT, IMPACT, LANDED; `.t_launch`, `.t_impact`, `.t_landed`, `.attitude` list of
   `(t, roll, pitch, yaw)` deg, `.horizon` list of per-frame `(t, angle_deg, sky_ratio)`, `.trajectory` list of
   `(t, x, y, z)` m, `.range_m`, `.v0`, `.launch_pitch_deg`, `.range_scale`, `.launch_fit_t`, `.notes`, `.to_dict()`),
   `landing_frames(frames, result, n=15) -> list[Frame]`.
 - `analysis.run_post_flight(frames, flightlog, outdir, t_fire=, terrain_model=, log=, clock_offset_s=,
-  aim_pitch_deg=None, drag_n=None, ballistics='auto', calibrate_range=True) -> dict(flight, terrain, mosaic, rest_tilt,
-  files, errors)`; the IMU tilt cue is the roll-invariant rest tilt (`analysis.rest_tilt`).
-- `vision.terrain.analyze_landing(frames, model=None) -> TerrainReport` (`.cls`, `.probs`, `.slope_deg`, `.score`
+  aim_pitch_deg=None, drag_n=None, ballistics='auto', calibrate_range=True, dart_lens=None, video_latency_s=0.0)
+  -> dict(flight, terrain, mosaic, rest_tilt, lens, files, errors)`; the IMU tilt cue is the roll-invariant rest tilt
+  (`analysis.rest_tilt`). With `dart_lens` every frame is first rectified to the canonical 100 deg pinhole view.
+- `vision.lens.DartLens` (`equidistant(hfov_deg, size, aspect)`, `pinhole(...)`, `load(path)`, `from_settings(calib,
+  hfov, lens, aspect, size)`, `.project(rays)`, `.unproject(uv)`, `.hfov_deg()`, `.rectify(img)`, `.scaled(size)`);
+  `vision.lens.rectify_frames(frames, lens)`; `vision.calibrate.calibrate_dart(images) -> (DartLens, info)`.
+- `sim.flight_video.render_flight(..., profile="caddx", lens_hfov_deg=, link=, rest=)`: realistic dart flights (see
+  its docstring and `sim/analog.py`); truth adds `range_pivot_m`, `video_latency_s`, `lens`, `rest`.
+- `vision.terrain.analyze_landing(frames, model=None) -> TerrainReport` (ground ROI below the horizon when the dart
+  lies level, `ground_roi(img)`; site constants from `calib/terrain_prototypes.json` when present) (`.cls`, `.probs`, `.slope_deg`, `.score`
   0..100, `.verdict` "GO"|"NO_GO"|"UNSURE", `.reasons` list[str], `.image` BGR report image, `.to_dict()`).
   Classes: `bedrock, hard_ground, loose_soil, sand_dust, vegetation, water_void, unknown`.
   `TerrainModel` interface: `predict(img) -> dict[cls, prob]`; `OnnxTerrainModel(path)`, `StubModel()`.

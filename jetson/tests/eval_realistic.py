@@ -98,9 +98,35 @@ def run_case(seed: int, size=(360, 240), lens: str = "default", mosaic: bool = F
             if mosaic:
                 row["mosaic_used"] = len(m.get("used") or [])
                 row["mosaic_source"] = m.get("landing_source")
+                row["mosaic_err_m"] = mosaic_error_m(m, truth, frames[0].img.shape[1])
         if verbose:
             print(seed, name, f.get("notes"), res.get("errors"))
     return row
+
+
+def mosaic_error_m(m: dict, truth: dict, width: int) -> Optional[float]:
+    """Distance on the ground (m) from the map's landing marker to the true impact point. The marker is taken back
+    to the reference frame (canonical 100 deg pinhole view, as the analysis saw it) and its ray put on the ground
+    with the true camera pose of that frame."""
+    from grappstar.sim.flight_video import R_BODY_CAM, rot_from_rpy
+    from grappstar.vision.lens import CANON_HFOV_DEG, CANON_SIZE
+    if not m or m.get("landing_xy") is None or m.get("ref_to_canvas") is None or m.get("ref_idx") is None:
+        return None
+    H = np.array(m["ref_to_canvas"], float)
+    p = np.linalg.solve(H, np.array([m["landing_xy"][0], m["landing_xy"][1], 1.0]))
+    u, v = p[0] / p[2], p[1] / p[2]
+    W = width
+    Hh = int(round(W * CANON_SIZE[1] / CANON_SIZE[0]))
+    f = (W / 2.0) / math.tan(math.radians(CANON_HFOV_DEG) / 2.0)
+    ray = np.array([(u - (W - 1) / 2.0) / f, (v - (Hh - 1) / 2.0) / f, 1.0])
+    pose = truth["poses"][int(m["ref_idx"])]
+    d = rot_from_rpy(*pose[4:7]) @ R_BODY_CAM @ ray
+    if d[2] >= -1e-6:
+        return float("inf")
+    s = pose[3] / -d[2]
+    X, Y = pose[1] + s * d[0], pose[2] + s * d[1]
+    lx, ly = truth["landing_xy_world"]
+    return float(math.hypot(X - lx, Y - ly))
 
 
 def _one(args):
@@ -137,6 +163,11 @@ def summarise(rows: List[dict]) -> dict:
     for k in ("vid_launch_err", "vid_impact_err", "imu_impact_err", "imu_latency"):
         e = [r[k] for r in ok if r.get(k) is not None]
         out[k] = {"p5": _pct(e, 5), "median": _pct(e, 50), "p95": _pct(e, 95), "n": len(e)}
+    me = [r["mosaic_err_m"] for r in ok if r.get("mosaic_err_m") is not None]
+    if me or any("mosaic_used" in r for r in ok):
+        out["mosaic"] = {"n": len(me), "missing": sum(1 for r in ok if "mosaic_used" in r and r.get("mosaic_err_m") is None),
+                         "median_m": _pct(me, 50), "p90_m": _pct(me, 90),
+                         "used_median": _pct([r.get("mosaic_used") for r in ok], 50)}
     for k in ("vid", "imu"):
         v = [(r["cls"], r.get(k + "_verdict")) for r in ok]
         out[k + "_terrain"] = {

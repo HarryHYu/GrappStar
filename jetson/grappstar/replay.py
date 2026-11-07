@@ -74,7 +74,11 @@ def replay_run(folder: str, out: Optional[str] = None, shot: Optional[int] = Non
         with open(flp) as f:
             fl = json.load(f)
     out = out or os.path.join(folder, f"replay_shot{n}")
-    res = run_post_flight(frames, fl, out)
+    from .learn import dart_lens_from_settings, latency_setting, shot_pitch
+    lens = dart_lens_from_settings((frames[0].img.shape[1], frames[0].img.shape[0])) if frames else None
+    res = run_post_flight(frames, fl, out, dart_lens=lens, video_latency_s=latency_setting(),
+                          aim_pitch_deg=shot_pitch(folder),
+                          clock_offset_s=(fl or {}).get("clock_offset_s") if fl else None)
     res["timeline"] = timeline(folder)
     for line in res["timeline"]:
         print(line)

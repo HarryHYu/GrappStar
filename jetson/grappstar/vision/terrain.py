@@ -771,10 +771,36 @@ def _ood_d2(z: np.ndarray, p: dict) -> float:
     return best
 
 
+def site_prototypes_path() -> str:
+    """jetson/calib/terrain_prototypes.json: constants re-learned on Harry's own footage (learn terrain)."""
+    import os
+    return os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "calib",
+                                         "terrain_prototypes.json"))
+
+
+def site_prototypes() -> Optional[dict]:
+    """The site file when it exists and matches this feature version, else None (the built-in constants)."""
+    import os
+    path = os.environ.get("GRAPPSTAR_TERRAIN_PROTOTYPES") or site_prototypes_path()
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path) as f:
+            p = json.load(f)
+        if p.get("version") == FEATURE_VERSION and p.get("features") == list(FEATURE_NAMES):
+            return p
+    except Exception:
+        pass
+    return None
+
+
 def _prototypes() -> dict:
     global _LEARNED
     if _LEARNED is None:
         p = _PROTOTYPES
+        site = site_prototypes()
+        if site is not None:
+            p = site
         if not p or p.get("version") != FEATURE_VERSION or p.get("features") != list(FEATURE_NAMES):
             p = learn_prototypes(flight_seeds=())   # fast fallback (textures only, a few seconds)
         means, stds, lmeans, lstds, lowner = [], [], [], [], []

@@ -42,11 +42,12 @@ double kickPos = 0, deployPos = 0;
 uint64_t lastAdvanceUs = 0;
 struct Knobs {
   bool inaDead = false, noGround = false, drillJam = false, footJam = false, kickJam = false, deployJam = false, imuDead = false;
-  double railV = 7.6, accelNoise = 0.02;
+  double railV = 7.6, accelNoise = 0.02, soilAt = -1;   // soilAt: v4.1 soil, see soilStuck
   uint32_t imuXferUs = 0;
 } K;
 int wdtTrips = 0;
 
+uint64_t deployOnUs = 0; int deployLastDir = 0;
 int& pin(int gpio) { static int junk; return gpio >= 0 && gpio < 64 ? duty[gpio] : (junk = 0); }
 // direction and duty of one DRV8833 channel: PWM on one input = run, both low = coast, both high = brake (stopped)
 void drive(int m, int& dir, int& d) {
@@ -54,6 +55,11 @@ void drive(int m, int& dir, int& d) {
   // slow decay (firmware v4): one input high, the other PWM inverted; the old one-input PWM is still understood
   if (a == 255 && b < 255) { dir = +1; d = 255 - b; } else if (b == 255 && a < 255) { dir = -1; d = 255 - a; }
   else if (a && !b) { dir = +1; d = a; } else if (b && !a) { dir = -1; d = b; } else { dir = 0; d = 0; }
+}
+// soil (soil_at knob): past soilAt the pods only move for 300 ms after each (re)start of the deploy, with the drills cutting
+bool soilStuck(uint64_t now) {
+  int dd, d, dr, drd; drive(DEPLOY, dd, d); drive(DRILLS, dr, drd);
+  return K.soilAt >= 0 && dd > 0 && deployPos >= K.soilAt && deployPos < DEPLOY_TRAVEL && (now - deployOnUs > 300000 || dr <= 0);
 }
 // move the legs for the time since the last call, with the drive that was in force during that time
 void advance() {
@@ -63,7 +69,8 @@ void advance() {
   drive(KICK, dir, d);
   if (!K.kickJam) kickPos = std::min(KICK_TRAVEL, std::max(0.0, kickPos + dir * d / 255.0 * dt));
   drive(DEPLOY, dir, d);
-  if (!K.deployJam) deployPos = std::min(DEPLOY_TRAVEL, std::max(0.0, deployPos + dir * d / 255.0 * dt));
+  if (dir != deployLastDir) { deployLastDir = dir; deployOnUs = now; }
+  if (!K.deployJam && !soilStuck(now)) deployPos = std::min(DEPLOY_TRAVEL, std::max(0.0, deployPos + dir * d / 255.0 * dt));
 }
 double motorMa(int m) {
   int dir, d; drive(m, dir, d);
@@ -76,7 +83,7 @@ double motorMa(int m) {
       break;
     }
     case DEPLOY: {
-      bool stalled = K.deployJam || (dir > 0 && deployPos >= DEPLOY_TRAVEL) || (dir < 0 && deployPos <= 0);
+      bool stalled = K.deployJam || soilStuck(nowUs()) || (dir > 0 && deployPos >= DEPLOY_TRAVEL) || (dir < 0 && deployPos <= 0);
       ma = stalled ? STALL : DEPLOY_FREE;
       break;
     }
@@ -279,6 +286,7 @@ static bool parseBool(const std::string& v, bool& out) {
 //   bno_reset=1      BNO085 resets: all reports off until re-enabled, wasReset() true once
 //   imu_xfer_us=<us> simulated I2C time of each sh2_service() call that moves data (default 0)
 //   accel_noise=<m/s^2>  accelerometer noise amplitude (default 0.02)
+//   soil_at=<0..1400>  v4.1 soil: past it the pods move only 300 ms after each deploy (re)start, with the drills on (-1 = off)
 bool setKnob(const std::string& key, const std::string& v, std::string& err) {
   Lock l(mu);
   advance();
@@ -301,6 +309,7 @@ bool setKnob(const std::string& key, const std::string& v, std::string& err) {
   if (key == "deploy_pos") { deployPos = std::max(0.0, std::min(DEPLOY_TRAVEL, x)); return true; }
   if (key == "imu_xfer_us") { K.imuXferUs = (uint32_t)std::max(0.0, x); return true; }
   if (key == "accel_noise") { K.accelNoise = std::max(0.0, x); return true; }
+  if (key == "soil_at") { K.soilAt = x; return true; }
   err = "unknown knob: " + key; return false;
 }
 

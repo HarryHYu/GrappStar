@@ -14,6 +14,7 @@ using namespace kedge;
 // ------------------------------------------------------------------------------------------------- plant model
 // Positions are "ms of travel". Kick 0 = stowed, contact at 3000, housing on the ground at 4300 (stall).
 // Deploy 0 = stowed, 1400 = pods fully down (stall at both ends). Currents in mA at 2S.
+static uint32_t nowRef = 0;                    // the test clock, for the plant
 struct Plant {
   int mdir[4] = {0, 0, 0, 0}, duty[4] = {0, 0, 0, 0};
   double kick = 0, deploy = 0;
@@ -23,6 +24,9 @@ struct Plant {
   float drillPaused = 380, footPaused = 130;
   int open = -1;                               // this motor's wire is open (draws nothing)
   double deployJamBackAt = -1;                  // going up, the pods jam here (stall current)
+  double soilAt = -1; uint32_t deployOnT = 0;  // v4.1 soil: past soilAt the pods move only for 300 ms after each (re)start, with the drills cutting
+  bool drillHeavy = false;                      // drills near their stall while the pods push in soil (560 mA)
+  bool soilStuck(uint32_t now) const { return soilAt >= 0 && deploy >= soilAt && deploy < deployEnd && (now - deployOnT > 300 || mdir[DRILLS] <= 0); }
   double kickJamBackAt = -1;                    // coming back, the kick jams here and draws stall current   // auger current while the worm of the pair is paused (coupling)
   float motorMa(int m) const {
     int d = mdir[m]; if (!d || m == open) return 0;
@@ -36,11 +40,13 @@ struct Plant {
         if (d > 0) return footStallFwd ? 550 : kick >= kickContact ? (mdir[KICK] > 0 || kick >= kickLand ? 130 : footPaused) : 40;
         return 60;
       case DEPLOY:
+        if (d > 0 && soilStuck(nowRef)) return 185;
         if (d > 0) return deploy < deployEnd ? 30 : 185;
         if (deployJamBackAt >= 0 && deploy <= deployJamBackAt) return 185;
         return deploy > 0 ? 30 : 185;
       case DRILLS:
         // digging once the augers are in the soil; slightly less while the pods pause (the auger keeps cutting)
+        if (d > 0 && drillHeavy && deploy > 200) return 520;
         if (d > 0) return drillStallFwd ? 700 : deploy > 200 ? ((mdir[DEPLOY] > 0 || deploy >= deployEnd) ? 420 : drillPaused) : (mdir[DEPLOY] > 0 ? 300 : 140);
         return drillJam ? 750 : 200;
     }
@@ -52,7 +58,7 @@ struct Plant {
     if (mdir[KICK] < 0 && kick > 0 && !kickNoStow && !(kickJamBackAt >= 0 && kick <= kickJamBackAt)) kick -= dt;
     if (kick < 0) kick = 0;
     if (kickNoStow && mdir[KICK] < 0 && kick > 2000) kick -= dt;   // jams half way back
-    if (mdir[DEPLOY] > 0 && deploy < deployEnd) deploy += dt;
+    if (mdir[DEPLOY] > 0 && deploy < deployEnd && !soilStuck(nowRef)) deploy += dt;
     if (mdir[DEPLOY] < 0 && deploy > 0 && !(deployJamBackAt >= 0 && deploy <= deployJamBackAt)) deploy -= dt;
     if (deploy < 0) deploy = 0;
   }
@@ -60,7 +66,7 @@ struct Plant {
 
 static Plant P; static uint32_t NOW; static std::vector<std::string> LOG;
 static std::vector<std::vector<int>> DUTY;   // not used beyond direction, kept for debugging
-static void setM(int m, int d, int duty) { P.mdir[m] = duty ? d : 0; P.duty[m] = duty; }
+static void setM(int m, int d, int duty) { if (m == DEPLOY && (duty ? d : 0) != P.mdir[DEPLOY]) P.deployOnT = NOW; P.mdir[m] = duty ? d : 0; P.duty[m] = duty; }
 static float cur() { return P.inaDead ? NAN : P.total(); }
 static float rail() { return P.railV; }
 static void lg(const char* s) { char b[160]; snprintf(b, sizeof b, "%6u ms  %s", NOW, s); LOG.push_back(b); }
@@ -76,7 +82,7 @@ static std::function<float(uint32_t)> ACC = [](uint32_t) { return 1.0f; };
 static bool IMU_ON = true;
 static void run(uint32_t ms) {
   for (uint32_t i = 0; i < ms; i += 5) {
-    NOW += 5; P.step(5);
+    NOW += 5; nowRef = NOW; P.step(5);
     if (IMU_ON) {
       float a = ACC(NOW); K.onAccel(a, NOW);
       float q[4] = {1, 0, 0, 0}, v[3] = {GRAV[0] / 9.81f * a * 9.81f, GRAV[1] / 9.81f * a * 9.81f, GRAV[2] / 9.81f * a * 9.81f};
@@ -200,8 +206,8 @@ int main() {
     CHECK(K.seq == RELEASED && allOff() && P.kick == 0 && P.deploy == 0, "released: legs stowed, all motors off");
     CHECK(phases() == "RELEASING>IDLE", "phases RELEASING > IDLE");
     std::string s = statusJson(); CHECK(s.find("\"seq\":\"released\"") != std::string::npos, "status seq 'released'"); }
-  { fresh(); K.startAuto(NOW); run(20000); P.drillJam = true; K.startRelease(NOW); run(1500);
-    CHECK(std::string(faultName(K.fault)) == "DRILL_JAM" && ph() == "FAULT" && allOff(), "drills jammed on the way out: DRILL_JAM, all off"); }
+  { fresh(); K.startAuto(NOW); run(20000); P.drillJam = true; K.startRelease(NOW); run(6000);   // v4.1: rocked 5 times first
+    CHECK(std::string(faultName(K.fault)) == "DRILL_JAM" && ph() == "FAULT" && allOff() && K.rocks == 5 && logged("rocking"), "drills jammed on the way out: rocked 5 times, then DRILL_JAM, all off"); }
   { fresh(); K.startAuto(NOW); run(20000); P.footJam = true; K.startRelease(NOW); run(8000);
     CHECK(std::string(faultName(K.fault)) == "FOOT_JAM" && allOff(), "foot jammed on the way out: FOOT_JAM, all off"); }
   { fresh(); K.startAuto(NOW); run(20000); P.kickNoStow = true; P.kick = 4300; K.startRelease(NOW); run(30000);
@@ -700,6 +706,37 @@ int main() {
   { fresh(); K.startAuto(NOW); P.railV = 6.0f; run(300);   // sag under load: not a resting reading
     CHECK(K.batt == B_OK || K.batt == B_UNKNOWN, "a sag while a motor runs is not counted as the resting battery"); }
   { fresh(); P.railV = 0.0f; run(200); CHECK(K.batt == B_NONE, "rail 0 V (plug out, USB only): batt none"); }
+  // anchoring in soil (dart-physics 7 Nov): milling deploy, drill relax, release rocking, soil reading
+  { fresh(); P.soilAt = 600; K.startAuto(NOW); run(40000);
+    printf("     soil from 600 of 1400: pods ended at %.0f, events: milling %d\n", P.deploy, (int)logged("milling"));
+    CHECK(K.seq == DONE && P.deploy >= P.deployEnd && logged("pods in soil, milling"), "pods stalled in soil at 600 of 1400: milled down to the stop (not taken as down)"); }
+  { fresh(); K.startAuto(NOW); run(25000);
+    CHECK(K.seq == DONE && !logged("milling"), "no soil resistance: no milling, anchors as before");
+    std::string st = statusJson(); CHECK(K.soilMa > 300 && st.find("\"soil_mA\":") != std::string::npos, "soil_mA: the drills' current in soil is reported (about 380 mA here)"); }
+  { fresh(); P.drillHeavy = true; K.startAuto(NOW); run(40000);
+    CHECK(logged("drills near stall, deploy paused") && K.seq == DONE, "drill pair near its stall: the deploy pauses 0.5 s so the cut relaxes; the step still ends (time or progress limit)"); }
+  { fresh(); K.startAuto(NOW); run(20000); P.deployJamBackAt = 700; K.startRelease(NOW); run(30000);
+    CHECK(logged("milling up") && std::string(faultName(K.fault)) == "PODS_JAM", "release: pods held part way up are milled first, PODS_JAM after 8 s without progress"); }
+  // orientation gate with the nose axis known (BENCH_TEST step 7)
+  { fresh(); K.tu.imuNoseAxis = 1; float r = 38 * 3.14159f / 180; GRAV[0] = 0; GRAV[1] = 9.81f * sinf(r); GRAV[2] = 9.81f * cosf(r); run(500);
+    CHECK(K.orient(NOW) == O_LEANING, "roll 38 deg (leaning on a pod, the usual rest on hard ground): leaning");
+    CHECK(!K.startAuto(NOW) && K.seq == K_LEVEL && P.mdir[DEPLOY] > 0 && !P.mdir[DRILLS], "leaning: /auto first swings the pods with the drills off");
+    run(2000); CHECK(logged("levelled") && (K.seq == K_SWING || K.seq == K_PLANT), "after levelling the kick swing starts");
+    run(25000); CHECK(K.seq == DONE, "...and the anchor completes"); }
+  { fresh(); K.tu.imuNoseAxis = 1; float r = 38 * 3.14159f / 180; GRAV[1] = 9.81f * sinf(r); GRAV[2] = 9.81f * cosf(r); run(500);
+    K.startAuto(NOW); run(300); GRAV[1] = 9.81f; GRAV[2] = 0; run(2000);   // rolled onto its side while levelling
+    CHECK(std::string(faultName(K.fault)) == "NOT_UPRIGHT" && allOff(), "still not upright after levelling: NOT_UPRIGHT fault, all off"); }
+  { fresh(); K.tu.imuNoseAxis = 1; float r = 75 * 3.14159f / 180; GRAV[1] = 9.81f * sinf(r); GRAV[2] = 9.81f * cosf(r); run(500);
+    const char* q = K.startAuto(NOW); CHECK(q && std::string(q).find("on its side") != std::string::npos, "roll 75 deg: on its side, refused"); }
+  { fresh(); K.tu.imuNoseAxis = 1; float p = -30 * 3.14159f / 180; GRAV[0] = 9.81f * sinf(p); GRAV[2] = 9.81f * cosf(p); run(500);
+    const char* q = K.startAuto(NOW); CHECK(K.orient(NOW) == O_NOSE_DOWN && q && std::string(q).find("nose down") != std::string::npos, "nose down 30 deg (window -25..+15): refused 'nose down'"); }
+  { fresh(); K.tu.imuNoseAxis = 1; float p = 20 * 3.14159f / 180; GRAV[0] = 9.81f * sinf(p); GRAV[2] = 9.81f * cosf(p); run(500);
+    CHECK(K.orient(NOW) == O_NOSE_UP && K.startAuto(NOW) != nullptr, "nose up 20 deg (in the launcher cradle, say): refused 'nose up'");
+    std::string st = statusJson(); CHECK(st.find("\"pitch_g\":20") != std::string::npos, "pitch_g in /status reads 20"); }
+  // anchor motion while ANCHORED
+  { fresh(); K.startAuto(NOW); run(25000); CHECK(K.seq == DONE && !K.moving, "anchored and still: moving false");
+    float r = 4 * 3.14159f / 180; GRAV[1] = 9.81f * sinf(r); GRAV[2] = 9.81f * cosf(r); run(800);
+    CHECK(K.moving && logged("anchor moving") && statusJson().find("\"moving\":true") != std::string::npos, "anchored, tilted 4 deg by the tow: moving true, event 'anchor moving'"); }
   // video
   { fresh(); K.setVideo(false, "test"); CHECK(!K.video && VIDEO_PIN == 0, "/video?on=0 switches it off");
     K.arm(true, false, NOW); CHECK(K.video && VIDEO_PIN == 1 && logged("video on (armed"), "arming switches the video back on (the flight is filmed)"); }

@@ -60,7 +60,7 @@ ok:   kick stops on the stowed stall (read with the foot paused)
 ok:   released: legs stowed, all motors off
 ok:   phases RELEASING > IDLE
 ok:   status seq 'released'
-ok:   drills jammed on the way out: DRILL_JAM, all off
+ok:   drills jammed on the way out: rocked 5 times, then DRILL_JAM, all off
 ok:   foot jammed on the way out: FOOT_JAM, all off
 ok:   kick never reaches the stow stop: KICK_TIMEOUT within 15 s
 ok:   whole-sequence time limit: SEQ_TIMEOUT, all off
@@ -339,6 +339,23 @@ ok:   6.6 V after critical: low
 ok:   7.4 V: ok again
 ok:   a sag while a motor runs is not counted as the resting battery
 ok:   rail 0 V (plug out, USB only): batt none
+     soil from 600 of 1400: pods ended at 1400, events: milling 1
+ok:   pods stalled in soil at 600 of 1400: milled down to the stop (not taken as down)
+ok:   no soil resistance: no milling, anchors as before
+ok:   soil_mA: the drills' current in soil is reported (about 380 mA here)
+ok:   drill pair near its stall: the deploy pauses 0.5 s so the cut relaxes; the step still ends (time or progress limit)
+ok:   release: pods held part way up are milled first, PODS_JAM after 8 s without progress
+ok:   roll 38 deg (leaning on a pod, the usual rest on hard ground): leaning
+ok:   leaning: /auto first swings the pods with the drills off
+ok:   after levelling the kick swing starts
+ok:   ...and the anchor completes
+ok:   still not upright after levelling: NOT_UPRIGHT fault, all off
+ok:   roll 75 deg: on its side, refused
+ok:   nose down 30 deg (window -25..+15): refused 'nose down'
+ok:   nose up 20 deg (in the launcher cradle, say): refused 'nose up'
+ok:   pitch_g in /status reads 20
+ok:   anchored and still: moving false
+ok:   anchored, tilted 4 deg by the tow: moving true, event 'anchor moving'
 ok:   /video?on=0 switches it off
 ok:   arming switches the video back on (the flight is filmed)
 ok:   status JSON has video, batt, batt_V, orient, tilt_deg and stays under 1000 bytes
@@ -346,4 +363,4 @@ ok:   status JSON has video, batt, batt_V, orient, tilt_deg and stays under 1000
 == whole mission phases
 ok:   IDLE > ARMED > FLIGHT > ANCHORING > ANCHORED > RELEASING > IDLE
 
-286 checks, ALL PASS
+302 checks, ALL PASS

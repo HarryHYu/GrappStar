@@ -66,6 +66,10 @@ struct Plant {
   double kickContact = 3000, kickLand = 4300, deployEnd = 1400, drillTouch = 900, drillFull = 3000, footFull = 3000;
   // injected faults
   int up = 0;                                          // 0 belly down, 1 on its side, 2 upside down (gravity seen by the BNO085)
+  // v4.1 soil (dart-physics 7 Nov): past soilAt the pods only move for soilBurst ms after each (re)start of the deploy
+  // motor and only with the drills cutting; otherwise they stall in the soil (the firmware must mill them down)
+  double soilAt = -1, soilBurst = 300, deployOnT = 0, tNow = 0;
+  bool soilStuck() const { return soilAt >= 0 && deploy >= soilAt && deploy < deployEnd && (tNow - deployOnT > soilBurst || !(hwDir[DRILLS] > 0 && hwDuty[DRILLS] > 0)); }
   int openWire = -1; bool noGround = false, drillJam = false, footJam = false, inaDead = false, shortOn = false, kickStrip = false;   // strip: gear slips
   double kickJamFwd = -1, kickJamBack = -1, deployJamFwd = -1; float sagV = 0; double burstFail = 0;
   // state
@@ -78,7 +82,7 @@ struct Plant {
     if (m == KICK && kickStrip) return false;          // a stripped gear spins free and never reaches a stop
     switch (m) {
       case KICK: return d > 0 ? (kick >= kickLand || (kickJamFwd >= 0 && kick >= kickJamFwd)) : d < 0 ? (kick <= 0 || (kickJamBack >= 0 && kick <= kickJamBack)) : false;
-      case DEPLOY: return d > 0 ? (deploy >= deployEnd || (deployJamFwd >= 0 && deploy >= deployJamFwd)) : d < 0 ? deploy <= 0 : false;
+      case DEPLOY: return d > 0 ? (deploy >= deployEnd || soilStuck() || (deployJamFwd >= 0 && deploy >= deployJamFwd)) : d < 0 ? deploy <= 0 : false;
       case DRILLS: return d > 0 ? (deploy >= drillTouch && drillDepth >= drillFull) : d < 0 ? drillJam : false;
       case FOOT: return d > 0 ? (kick >= kickContact && footDepth >= footFull) : d < 0 ? footJam : false;
     }
@@ -284,7 +288,7 @@ struct JsonV {
 static bool validJson(const char* s, size_t n) { JsonV j{s, s + n}; if (!j.val(0)) return false; j.ws(); return j.p == j.e; }
 
 // ------------------------------------------------------------------------------------------------------- io callbacks
-static void setM(int m, int d, int duty) { if (m >= 0 && m < NMOT) { P.hwDir[m] = d; P.hwDuty[m] = duty; } }
+static void setM(int m, int d, int duty) { if (m >= 0 && m < NMOT) { if (m == DEPLOY && (duty ? d : 0) != (P.hwDuty[m] ? P.hwDir[m] : 0)) P.deployOnT = P.tNow; P.hwDir[m] = d; P.hwDuty[m] = duty; } }
 static float readCurrent() {
   P.electrical();
   bool fail = R.p(P.readFail + P.burstFail) && P.failRun < P.maxFailRun;
@@ -403,7 +407,8 @@ static void checkAll(bool afterStop) {
     if (sq && (!T.seqWas || anch != T.seqAnch)) { T.seqT0 = ET; T.seqFlag = false; }
     T.seqWas = sq; T.seqAnch = anch;
     CHECKS[2]++;
-    if (sq && !T.seqFlag && ET - T.seqT0 > 35010) { T.seqFlag = true; violate(2, std::string("whole sequence ") + (anch ? "anchor" : "release"), "sequence running for %u ms (limit 35 s), seq '%s'", ET - T.seqT0, seqName(K.seq)); }
+    uint32_t seqLim = (anch ? K.tu.autoMaxMs : K.tu.releaseMaxMs) + 10;
+    if (sq && !T.seqFlag && ET - T.seqT0 > seqLim) { T.seqFlag = true; violate(2, std::string("whole sequence ") + (anch ? "anchor" : "release"), "sequence running for %u ms (limit %u ms), seq '%s'", ET - T.seqT0, seqLim, seqName(K.seq)); }
     for (int m = 0; m < NMOT; m++) {
       int d = K.dir[m];
       if (d) {
@@ -412,7 +417,7 @@ static void checkAll(bool afterStop) {
         else start = T.lastDir[m] != d || T.lastSeq[m] != sq;
         if (start) { T.segDir[m] = d; T.segSeq[m] = sq; T.segStart[m] = ET; T.segIna[m] = false; T.segFlag[m] = false; T.hadSeg[m] = true; }
         if (K.inaOk) T.segIna[m] = true;
-        uint32_t lim = sq ? (m == KICK ? 15500u : m == DEPLOY ? 6000u : 35000u) : (T.segIna[m] ? 8000u : 2000u);
+        uint32_t lim = sq ? (m == KICK ? K.tu.kickMaxMs + K.tu.kickPlantMaxMs + 1000 : m == DEPLOY ? (K.milled ? K.tu.deployMaxMs : K.tu.podsPlainMaxMs + 300) : K.tu.autoMaxMs) : (T.segIna[m] ? 8000u : 2000u);
         uint32_t run = ET - T.segStart[m];
         if (run > ST.maxRun[m]) ST.maxRun[m] = run;
         if (!T.segFlag[m] && run > lim + 15) {   // one jittered tick (up to 7 ms) plus the sample boundary
@@ -465,11 +470,21 @@ static void checkAll(bool afterStop) {
       // current rises during each kick pause. Bounded by kickPlantMaxMs + 0.5 s (found by seed 3, episode 740)
       if (m == KICK && K.seq == K_PLANT && d > 0 && overMargin(P.cFoot, P.fDig, P.kStall)) knownPods = true;
       if (knownPods) limit = (m == KICK ? K.tu.kickPlantMaxMs : K.tu.deployMaxMs) + 500;
+      // v4.1 milling (API.md): in the anchor's pods step a pods stall before half the estimated travel is taken as soil and
+      // pushed again in pulses; on the release way up the same before 60 % back. Bounded by millNoProgressMs + a cycle
+      bool milling = m == DEPLOY && (K.seq == D_DEPLOY || K.seq == R_PODS) && (K.milled || K.millPause);
+      if (milling && !knownPods) limit = K.tu.millNoProgressMs + 2000;
       // documented tuning rule (BENCH_TEST step 10): the stall line is 80 % of the measured stall. A plant whose stall is
       // within 10 % of the line is outside it: coupling and noise can hide the stall. Still bounded by the step limit
       float plantStall = m == KICK ? P.kStall : m == DEPLOY ? P.dStall : m == DRILLS ? P.drStall : P.fStall;
-      bool knownLow = sq && plantStall < 1.10f * K.tu.stallMa[m];
-      if (knownLow && !knownPods) limit = std::max(K.tu.kickPlantMaxMs, K.tu.deployMaxMs) + 500;
+      bool knownLow = plantStall < 1.10f * K.tu.stallMa[m];   // manual too (seed 2 ep 571: pods stall 161 vs line 150)
+      if (knownLow && !knownPods) limit = sq ? std::max(K.tu.kickPlantMaxMs, K.milled ? K.tu.deployMaxMs : K.tu.podsPlainMaxMs) + 500 : K.tu.manualMaxMs + 500;
+      // soil episodes with the pods travel unknown (no milling then): a pods stop reached between auger bursts is bounded by
+      // the plain 6 s pods limit (documented with the pair-check limits)
+      if (m == DEPLOY && K.seq == D_DEPLOY && P.soilAt >= 0 && !K.deployKnown) limit = K.tu.podsPlainMaxMs + 500;
+      // soil, travel known: pods stuck in soil from the first reading (no rise, noisy readings under the line) are ended by
+      // the 5 s no-progress rule (API.md known limit; seed 3 ep 5451)
+      else if (m == DEPLOY && K.seq == D_DEPLOY && P.soilAt >= 0 && limit < K.tu.millNoProgressMs + 1500) limit = K.tu.millNoProgressMs + 1500;
       if (knownLow && !knownPods && ET - T.stallT0[m] > 3000 && !T.knownFlag[m]) { T.knownFlag[m] = true; ST.knownLow++; }
       if (knownPods && ET - T.stallT0[m] > 3000 && !T.knownFlag[m]) { T.knownFlag[m] = true; ST.knownPods++; }
       if (knownPods && ET - T.stallT0[m] > ST.knownPodsMax) ST.knownPodsMax = ET - T.stallT0[m];
@@ -821,14 +836,18 @@ static void scriptStep() {
     case S_ANCH:
       if (K.anchoring() && ET - SS_T0 < 40000) { NEXT_SCRIPT = ET + 100; break; }
       CHECKS[10]++;
-      if (K.seq == DONE && !K.fault && P.kick >= P.kickLand && P.deploy >= P.deployEnd) {
+      // soil episodes: the documented limit (API.md) is that a soil stall past about 85 % of the estimated travel (less up to
+      // one 0.55 s cycle) is taken as the down stop, so there the pods must be at least 60 % out
+      // (with the pods travel unknown, after hand moves, the first stall is the stop: any soil stall then ends the step)
+      { bool podsOut = P.deploy >= P.deployEnd || (P.soilAt >= 0 && (P.deploy >= 0.6 * P.deployEnd || !K.deployKnown));
+      if (K.seq == DONE && !K.fault && P.kick >= P.kickLand && podsOut) {
         ST.nomAnch++; SS = S_GAP; RAND_MODE = M_GAP; NEXT_RAND = ET + R.i(100, 1000); NEXT_SCRIPT = ET + R.i(300, 3000);
       } else {
         violate(10, std::string("auto ended in '") + seqName(K.seq) + "' fault " + (K.fault ? faultName(K.fault) : "none") + (K.seq == DONE ? ", legs not fully out" : ""),
                 "nominal /auto ended with seq '%s' fault '%s': kick %.0f of %.0f, pods %.0f of %.0f, last event '%s'",
                 seqName(K.seq), faultName(K.fault), P.kick, P.kickLand, P.deploy, P.deployEnd, K.lastEvent);
         toTail();
-      }
+      } }
       break;
     case S_GAP: {
       const char* r = cmdKey('r', 0, "/release");
@@ -867,6 +886,7 @@ static void randomPlant(bool nominal) {
   }
   P.deployEnd = R.r(1100, 1700); P.drillTouch = P.deployEnd * R.r(0.4, 0.8);
   P.drillFull = R.r(1500, 6000); P.footFull = R.r(1200, 5000);
+  if (R.p(0.3)) { P.soilAt = P.deployEnd * R.r(0.3, 0.45); P.soilBurst = R.r(200, 400); if (P.drillTouch > P.soilAt) P.drillTouch = P.soilAt; P.drillFull = R.r(12000, 20000); }   // augers touch at 38 % (physics); they keep cutting while the pods mill
   if (!nominal && R.p(0.08)) {   // on its back or side: the kick never touches ground and stops at its own outer end stop,
     // placed where the firmware's travel count (rate and the 7.6 V plant reference) reads kickSwingMs, within 5 %
     P.noGround = true; P.kickContact = 1e9; P.kickLand = K.tu.kickSwingMs * R.r(0.95, 1.05) * P.rate[KICK] * 8.0 / 7.6;
@@ -910,7 +930,7 @@ static void runEpisode(uint64_t seed, int ep) {
     if (RAND_MODE != M_NONE && NEXT_RAND < tc) tc = NEXT_RAND;
     if (NOMINAL_EP && NEXT_SCRIPT < tc) tc = NEXT_SCRIPT;
     if (tc < nextTick) {
-      if (tc > ET) { P.step(tc - ET); ET = tc; }
+      if (tc > ET) { P.step(tc - ET); ET = tc; } P.tNow = ET;
       while (!ACTS.empty() && ACTS.top().t <= ET) { Act a = ACTS.top(); ACTS.pop(); applyAct(a); }
       for (size_t k = 0; k < HOLDS.size(); k++) {
         Hold& h = HOLDS[k];
@@ -929,7 +949,7 @@ static void runEpisode(uint64_t seed, int ep) {
       }
       if (NOMINAL_EP && NEXT_SCRIPT <= ET) scriptStep();
     } else {
-      P.step(nextTick - ET); ET = nextTick;
+      P.step(nextTick - ET); ET = nextTick; P.tNow = ET;
       doTick(nextTick - lastTick); lastTick = nextTick;
       for (auto& t : logAt) if (t && ET >= t) { t = 0; checkLogJson(); }
       nextTick += R.i(4, 7);

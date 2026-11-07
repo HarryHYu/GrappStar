@@ -1,4 +1,4 @@
-# KEDGE dart firmware v4
+# KEDGE dart firmware v4.1
 
 Firmware for the KEDGE dart: Seeed XIAO ESP32S3, two DRV8833 drivers (four motor channels), INA219 current sensor,
 BNO085 IMU. It anchors the dart after landing, releases it again, records the flight, and takes commands over WiFi.
@@ -11,6 +11,7 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
 | `API.md` | the HTTP API for the Jetson (contract C2) |
 | `WIRING.md`, `wiring/` | wire cut list, change list from v29, diagram |
 | `BENCH_TEST.md` | how to check every motor and sensor before closing the hull |
+| `tools/sync_kedge_fw.sh` | copies this firmware into `kedge/fw/` (that folder is a synced copy; run_tests.sh checks it) |
 | `tools/wires_v4.py` | regenerates `wiring/` (run from the repo root; needs python3 with numpy, graphviz `dot`, and `kedge/out30`. Another graphviz version gives harmless image differences) |
 | `sim/` | host simulator: the real sketch compiled on Linux with stub Arduino headers, serving the real HTTP API (`make && python3 test_sim.py`) |
 | `REPORT.md` | build-day report |
@@ -28,7 +29,10 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
 5. Open `firmware/dart/kedge_dart/kedge_dart.ino` (the folder name must stay `kedge_dart`; `kedge_logic.h` sits next to
    it and opens as a second tab).
 
-## Tested versions (3 Nov 2026, `arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32S3 --warnings all`)
+## Tested versions (`arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32S3 --warnings all`)
+
+v4.1, 7 Nov 2026: esp32 core 3.3.12 and 2.0.17 compile with no warnings from the sketch (Adafruit BNO08x 1.2.7,
+arduino-cli 1.5.2-rc.1). Sizes in the commit log of that day. The table below is v4 (3 Nov).
 
 | esp32 core | Result | Flash | RAM |
 |---|---|---|---|
@@ -55,7 +59,7 @@ Note for arduino-cli users: on this board the menu value for "USB CDC On Boot: E
 4. Click Upload (arrow). Wait for "Hard resetting via RTS pin" / "Done uploading".
    If the port does not appear or the upload fails: hold the XIAO's **B** (boot) button, tap **R** (reset), release
    B, then upload again. After such an upload, tap R once.
-5. Tools > Serial Monitor, 115200 baud, "No line ending". You should see `KEDGE v4 ready` and the key list.
+5. Tools > Serial Monitor, 115200 baud, "No line ending". You should see `KEDGE v4.1 ready` and the key list.
    Type `z` and press Enter: expect `I2C device at 0x40` (INA219) and `0x4a` (BNO085; some boards answer at `0x4b`, also fine).
 
 ## Upload over WiFi (after the first USB upload)
@@ -67,6 +71,8 @@ aborted and the dart disarms when the upload starts.
 
 - Web page: join `KEDGE`, open `http://192.168.4.1`. Hold a button or key to run, release to stop.
 - Serial Monitor: type a key and press Enter, each press runs 1.5 s.
+- v4.1 page buttons `video on` / `video off` (optional switch, WIRING.md); third status line: battery, orientation,
+  video.
 - Keys: `1`/`!` deploy down/up, `2`/`@` kick out/back, `3`/`#` drills in/out, `4`/`$` foot in/out, space or `s` STOP,
   `a` auto-anchor, `r` release, `A` arm/disarm (auto-anchor on landing), `+`/`-` speed, `i` current, `b` attitude,
   `p` status, `f` flight log summary, `z` I2C scan, `h` help.
@@ -86,6 +92,9 @@ aborted and the dart disarms when the upload starts.
 - INA219 missing: manual keys only (on timers), auto and release refused. BNO085 missing: no arming, no flight log.
 - A stuck I2C bus is recovered (9 clocks and a Wire restart). If the web loop hangs for 30 s while nothing moves, the
   dart is not armed or in flight, and no OTA upload runs, it restarts itself.
+- v4.1: `/auto` refuses a dart that is on its side, upside down or nose steep (`/auto?force=1` tries anyway), and
+  refuses when the battery is critical (6.4 V at rest; `/release` always runs). In soil the pods are milled down in
+  pulses (up to 30 s). Released drills that stick are rocked before `DRILL_JAM`.
 - **Power on with the legs stowed.** The firmware keeps track of the kick's travel from power-on to tell a jammed kick
   from one that is already down or stowed.
 
@@ -114,9 +123,9 @@ Needs Linux, g++, make, pthread, python3, and for the page check node 18+ with P
 (`npm i playwright && npx playwright install chromium`).
 
 ```
-cd firmware/dart/sim && make && python3 test_sim.py      # 12 HTTP tests against the real sketch
-python3 test_jetson_client.py                            # 9 tests: the Jetson's own dart client against the real sketch (C2)
-node test_page.js                                        # 11 checks of the web page in headless Chromium (one logged 409 is expected)
+cd firmware/dart/sim && make && python3 test_sim.py      # 14 HTTP tests against the real sketch
+python3 test_jetson_client.py                            # 10 tests: the Jetson's own dart client against the real sketch (C2)
+node test_page.js                                        # 12 checks of the web page in headless Chromium (one logged 409 is expected)
 ./kedge_sim --port 8790                                  # then open http://localhost:8790 (the real web page)
 ```
 

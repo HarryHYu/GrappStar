@@ -204,8 +204,9 @@ class SimTest(unittest.TestCase):
         try:
             code, body = self.get("/release")
             self.assertEqual(code, 200, body)
-            s = self.wait_for(lambda s: s["phase"] == "FAULT", 3.0, "DRILL_JAM fault")
+            s = self.wait_for(lambda s: s["phase"] == "FAULT", 8.0, "DRILL_JAM fault (after 5 rocks, v4.1)")
             self.assertEqual(s["fault"], "DRILL_JAM")
+            self.assertIn("rocked", s["event"])
             self.assertTrue(all(v == 0 for v in s["motors"].values()), s)
             self.assertTrue(all(m["dir"] == 0 for m in self.sim_state()["motors"].values()))
         finally:
@@ -431,6 +432,23 @@ class SimTest(unittest.TestCase):
         self.assertEqual(code, 200, body[:200])
         self.assertEqual(json.loads(body)["landing"], "impact")
         self.get("/stop")
+
+    def test_14_v41_milling_deploy_in_soil(self):
+        # the pods stall in soil from 500 of 1400: the anchor mills them down to the stop instead of stopping there
+        self.get("/stop"); time.sleep(0.3)
+        self.sim_set(kick_pos=0, deploy_pos=0, soil_at=500)
+        try:
+            code, body = self.get("/auto?force=1")
+            self.assertEqual(code, 200, body)
+            self.wait_for(lambda s: s["phase"] in ("ANCHORED", "FAULT"), 50.0, "anchored", poll=0.3)
+            s = self.get_status()
+            self.assertEqual(s["phase"], "ANCHORED", s)
+            self.assertGreaterEqual(self.sim_state()["deploy_pos"], 1390, "pods milled down to the stop")
+            self.assertIn("milling", open(LOG).read())
+        finally:
+            self.sim_set(soil_at=-1)
+            self.get("/stop")
+            self.sim_set(kick_pos=0, deploy_pos=0)
 
 
 if __name__ == "__main__":

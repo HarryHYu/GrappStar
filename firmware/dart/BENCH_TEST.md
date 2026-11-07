@@ -49,7 +49,8 @@ by the 3S LiPo on XT60 lead #1 (10 A fuse), as in run sheet step 7.5.
    swing. Nothing near the augers. Fingers clear.
 3. The u.FL antenna must be clicked onto the VTX before any power (a VTX without its antenna can burn out). Unplug USB.
    Then insert the power loop plug. Nothing moves, nothing gets warm in 30 s. If anything heats: pull the plug.
-4. Join `KEDGE`, open `http://192.168.4.1`. The status line must show `IDLE`, `INA219 ok`, `BNO085 ok`.
+4. Join `KEDGE`, open `http://192.168.4.1`. The status line must show `IDLE`, `INA219 ok`, `BNO085 ok`, and on the
+   third line `battery ok` (on the bench supply at 8.0 V too). `battery low` or `critical`: charge the cells first.
 
 ## Step 1. Power and current sensor
 
@@ -60,6 +61,8 @@ by the 3S LiPo on XT60 lead #1 (10 A fuse), as in run sheet step 7.5.
    When a motor runs (step 3) the current must read **positive**. A negative current means INA219 VIN+ and VIN- are
    swapped: the firmware then treats the sensor as failed (`INA219 MISSING`). Battery unplugged and swap them.
 3. Press `i` on the page: it prints rail, current, and the peak since the last `i`.
+4. Battery state (firmware v4.1): the third status line shows `battery ok 7.xx V`. That number is the resting voltage
+   with no motor running; it should match the meter within 0.15 V.
 
 Pass: INA219 ok, rail agrees with the meter. If `INA219 MISSING`: battery unplugged, check D4/D5 and 3V3/GND to the
 INA219. Then, with the power off (plug out or LiPo unplugged), plug in USB: Serial Monitor `z` must list 0x40.
@@ -69,7 +72,11 @@ INA219. Then, with the power off (plug out or LiPo unplugged), plug in USB: Seri
 1. Press `b`: roll, pitch and |a| about 1.00 g with the dart still.
 2. Status `IDLE`, no key pressed, hands off the legs. Tilt the dart nose up: roll or pitch changes by about 90 (which
    one depends on how the chip sits; step 7 maps the axes). Roll it on its side: the other one changes by about 90.
-3. If `BNO085 MISSING`: battery unplugged, check wires. Then, plug still out, plug in USB: Serial `z` must list 0x4a (or 0x4b).
+3. Orientation (firmware v4.1): dart flat on its belly, the third status line says `upright` and `tilt` under 15.
+   Lay it on its side: `side` (tilt about 90). On its back: `inverted`. If belly down reads `inverted`, the BNO085 board
+   sits upside down in the hull: set `imuUpAxis = -3` in step 10. If belly down reads `side`, the board stands on edge:
+   find the up axis in step 7 and set `imuUpAxis` to it. This matters: `/auto` refuses to run when the dart is not upright.
+4. If `BNO085 MISSING`: battery unplugged, check wires. Then, plug still out, plug in USB: Serial `z` must list 0x4a (or 0x4b).
    If the Serial Monitor stays blank: right port, 115200 baud, tap R on the XIAO.
 
 If a motor in steps 3 to 6 does not stop by itself at the end within 8 s (the hold cap), the default stall threshold
@@ -85,6 +92,10 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
 2. Hold it until the pods reach the end. They stop by themselves (event `stalled: deploy at ... mA, stopped`).
    Write down that mA: **deploy stall = ____ mA**. While moving freely, `current` reads **deploy free = ____ mA**.
 3. Hold `deploy up` (`!`) until they stow and stop by themselves.
+4. **Pods travel time.** Speed 255. Pods stowed. Hold `1` and time with the stopwatch from the start until the pods hit
+   the down stop: **pods travel = ____ ms** (default 1400). This goes into `podsTravelMs` (step 10). Firmware v4.1 uses
+   it to tell a stall in soil (keep milling) from the down stop, so measure it carefully: repeat three times, take the
+   middle value. Bring the pods back up with `!`.
 
 ## Step 4. Drills (DRV#2 A, both motors)
 
@@ -131,6 +142,11 @@ page or the Jetson, no key pressed, hands off the legs and augers.
 2. Stand the dart on its tail, nose up: the axis reading about +9.8 points to the **nose**.
 3. Lay it on its right side (kick side up): the axis reading +9.8 points **left**.
 4. Write: **nose = ___ (e.g. +x), left = ___, up = ___**. The Jetson flight analysis needs this mapping.
+5. The firmware needs two of them too (step 10): `imuUpAxis` = the up axis, `imuNoseAxis` = the nose axis, coded
+   1 = x, 2 = y, 3 = z, with a minus sign for a minus axis (up = -z means `imuUpAxis = -3`). With `imuNoseAxis` set the
+   firmware works out roll and pitch: after the upload, lay the dart flat: status `upright`, `roll_g` and `pitch_g` near
+   0. Tilt the nose up by about 20 deg (a book under the nose): `nose_up`, `pitch_g` about +20. If it reads -20 the nose
+   axis sign is wrong.
 
 ## Step 8. Flight log (safe, log only)
 
@@ -145,11 +161,17 @@ page or the Jetson, no key pressed, hands off the legs and augers.
 `RELEASING` (`IDLE`, `LANDED` or `ANCHORED` is fine), pull the power loop plug (or unplug the bench LiPo), and only then pick the dart up or touch a leg. An
 armed dart can start the auto sequence by itself after a knock.
 
+## Step 8b. Optional video switch (only if you fitted it, WIRING.md "Optional: video power switch")
+
+1. RC832 on, picture visible. Press `video off` on the page: the picture goes within 1 s. Press `video on`: it comes back.
+2. Press `arm / disarm` with the video off: arming switches it back on. Press it again to disarm.
+
 ## Step 9. Anchor and release on soil (assembled, hull closed)
 
 1. **Battery unplugged.** Legs stowed. Lay the dart on the damp soil, belly down, nose clear of the tray wall. Plug in.
 2. Page: press `AUTO anchor`. Watch the status: kick swing, foot touches, kick + foot planting, foot finishing,
-   deploy + drills, drills finishing, `ANCHORED`. Write the time of each event from the event lines on the web page
+   deploy + drills, drills finishing, `ANCHORED`. In firm soil you will see `pods in soil, milling` and the pods go down
+   in pulses (this can take up to 30 s); write down how long the pods step took and the `soil_mA` value from the status. Write the time of each event from the event lines on the web page
    (not the Serial Monitor: no USB while the battery is in). Note the working currents for `loadMa`.
 3. Pull the tether gently by hand: the dart should hold.
 4. Press `RELEASE`: drills out, pods up, foot out, kick back, `released`. The legs end stowed. Before lifting the dart
@@ -181,10 +203,12 @@ The four-motor arrays are in the order {deploy, kick, drills, foot}: `stallMa[0]
 | `kickContactMa` | about 2 x kick free, below kick stall / 2 | 60 |
 | `freeMa[...]` | measured free currents (steps 3 to 6) | 30, 30, 70, 45 |
 | `loadMa[...]` | typical working current in soil (step 9) | 40, 70, 420, 130 |
-| `podsTravelMs` | pods travel stowed to down at full speed (step 3: hold `1` from stowed until it stalls, time it, or use the default) | 1400 |
+| `podsTravelMs` | pods travel stowed to down at full speed (step 3.4, the middle of three timings; v4.1 milling depends on it) | 1400 |
 | `kickSwingMs` | kick swing in air from step 5 (the firmware's own `kick travel` number), in ms | 4300 |
 | `impactG` | under the `peak_g` of a real landing (step 8 and the first shots), over 2 g | 3.5 |
 | `kickMaxMs` | 2 x kick swing time, at least 8000 | 15000 |
+| `imuUpAxis`, `imuNoseAxis` | from step 7 (1 = x, 2 = y, 3 = z, minus for a minus axis) | 3, 0 (0 = nose not known: tilt check only) |
+| `battLowV`, `battCritV` | leave unless the BMS cuts out earlier than 6.4 V at rest | 6.8, 6.4 |
 
 The PC tests use a motor model with the v29 stall currents (deploy and kick 185 mA, drills 700, foot 550: `Plant` in
 `test/test_logic.cpp`, and the `kStall`, `dStall`, `drStall`, `fStall` ranges in `test/fuzz_logic.cpp`). If a stall you

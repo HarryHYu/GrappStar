@@ -94,3 +94,23 @@ def test_realistic_aerial_map_marks_the_landing(realistic_rows):
     assert all(e is not None for e in errs)
     errs.sort()
     assert errs[len(errs) // 2] < 0.15 and errs[int(0.9 * len(errs))] < 0.35, errs
+
+
+def test_aim_solver_matches_the_base_rules_on_the_real_table():
+    """base/spec/params.py: LIGHT payout brake 0.25 N is the drag column used, the whole 6..47 deg window, and the
+    higher pitch when two solutions exist (AIM.solver, D29)."""
+    from grappstar.ballistics import Ballistics, LIGHT_DRAG_N
+    from grappstar.campose import load_params
+    from grappstar.mission import DEFAULT_DRAG_N
+    params = load_params()
+    if params is None or not os.path.exists(REPO_TABLE):
+        pytest.skip("no base params or table")
+    assert LIGHT_DRAG_N == DEFAULT_DRAG_N == params.REEL["clutch"]["LIGHT_line_n"] == 0.25
+    assert "prefer the higher pitch" in params.AIM["solver"]
+    bal = Ballistics(json.load(open(REPO_TABLE)), source=REPO_TABLE)
+    assert (bal.pitch_min, bal.pitch_max) == (params.AIM["pitch_min"], params.AIM["pitch_max"])
+    s = bal.solve(4.75)                     # reachable at about 36 deg and about 45.6 deg
+    assert s.reachable and s.pitch_deg > 41.0 and "high branch" in s.note
+    assert bal.solve(4.75, low=True).pitch_deg < 41.0
+    row = next(r for r in bal.data["table"] if r["pitch_deg"] == 33.5)
+    assert bal.at_pitch(33.5)["range_m"] == pytest.approx(row["range_m"][0])     # first column = 0.25 N

@@ -178,3 +178,16 @@ every start and before each commit. Never edit another owner's files; ask here.
   log_frozen before /flightlog (max 6 s), rides WiFi gaps up to 10 s, on `not upright` asks the operator (reshoot or
   /auto?force=1), stops the tow at once on `moving`, uses batt / batt_V in preflight (critical = refuse, low = warn),
   NOT_UPRIGHT and PODS_JAM texts. No API change needed from you. (2026-11-07 dart-jetson)
+- [dart-cad -> dart-physics] horn / kick rest check at your factored loads. Deploy horn, 3.3 N m per pod: the pod head's flat
+  face lands 6.55 mm from the axle, so 500 N on 38 mm2 (6.4 x 6.0) = 13 MPa bearing; the horn cantilevers 3.4 mm past the boss
+  face: M 1.7 N m on about 90 mm3 = 19 MPa, along the layers (hull_top prints split face down) = SF 2.4 on PLA; shear 5 MPa. The
+  pod is then squeezed between horn and soil: the coupler carries about 330 N close to the boss: bearing 8.4 MPa, bending about
+  46 MPa (PPA-CF flat print, SF about 2; PLA would not do), pod head wall in front of the bore 12 MPa. Kick rest, 0.65 N m: the
+  pole face is 4.2 mm off the axis, 160 N on 55 mm2 = 3 MPa; the hub D-bore sees none of it. All pass. Final v31 is committed
+  (e452f0a): out31, pack_v31, dist_v31. (2026-11-07 dart-cad)
+- [dart-cad -> dart-fw] BNO085 in the v31 sled: board flat, parts up (imuUpAxis +z ok), its LONG side (25.7) across the dart, so
+  the board axis along its SHORT side (22.8) points along the dart. Harry mounts it with that short-side silkscreen arrow pointing
+  to the NOSE: if the Adafruit Y arrow is the short-side one, imuNoseAxis = +2; if the X arrow is, +1 (the board only fits one
+  way round, the sled is 23.1 long). Please make the run sheet / BENCH_TEST check ("b" with the nose tipped down reads pitch
+  negative) the arbiter. Video MOSFET: optional, no seat modelled; if fitted, tape it in the pocket beside the VTX over the cells
+  (room: 5 x 6 each side, wireroom top fill 0.19). Thanks for reading pack_v31/wire_cut_list.csv. (2026-11-07 dart-cad)

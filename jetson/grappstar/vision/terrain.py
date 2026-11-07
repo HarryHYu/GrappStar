@@ -265,6 +265,46 @@ def central_roi(img: np.ndarray, frac: float = ROI_FRAC, size: int = ROI_SIZE) -
     return cv2.resize(crop, (size, size), interpolation=interp)
 
 
+GROUND_MIN_FRAC = 0.2      # ground ROI smaller than this part of the short side: too little ground seen
+HAZE_MARGIN_FRAC = 0.08    # skip this much (of the image height) below the horizon: far, hazy, foreshortened
+
+
+def ground_roi(img: np.ndarray, frac: float = ROI_FRAC, size: int = ROI_SIZE):
+    """The ground patch to classify: (roi size x size, kind) with kind "central", "below_horizon" or "none".
+
+    The dart usually comes to rest lying on its belly, nose camera level about 2 cm above the ground: the
+    picture then shows the horizon and sky in its upper part (realistic simulator, rest "flat"). The ground right in
+    front of the nose is at the bottom of the picture, so the square ROI is put there, centred, below the lowest
+    sky pixel of the middle half plus a margin for the haze band. With no sky in view (nose down, close up) the
+    central square is used as before. kind "none" (roi None): less than GROUND_MIN_FRAC of ground."""
+    h, w = img.shape[:2]
+    try:
+        from .flight import _small, sky_mask
+        small = _small(img)
+        m = sky_mask(small)
+    except Exception:
+        return central_roi(img, frac, size), "central"
+    if float((m > 0).mean()) < 0.03:
+        return central_roi(img, frac, size), "central"
+    sh, sw = m.shape
+    cols = m[:, sw // 4: 3 * sw // 4] > 0
+    rows = np.nonzero(cols.any(axis=1))[0]
+    if len(rows) == 0:
+        return central_roi(img, frac, size), "central"
+    y_h = (rows.max() + 1) * h / float(sh)
+    top = y_h + HAZE_MARGIN_FRAC * h
+    bottom = 0.98 * h
+    short = min(h, w)
+    side = int(min(frac * short, bottom - top))
+    if side < GROUND_MIN_FRAC * short:
+        return None, "none"
+    y0 = int(bottom - side)
+    x0 = (w - side) // 2
+    crop = img[y0:y0 + side, x0:x0 + side]
+    interp = cv2.INTER_AREA if side > size else cv2.INTER_LINEAR
+    return cv2.resize(crop, (size, size), interpolation=interp), "below_horizon"
+
+
 def _lbp_hist(g: np.ndarray, tol: float = 3.0) -> np.ndarray:
     """Uniform LBP (8 neighbours, radius 1) histogram with 10 bins (0..8 ones, 9 = non-uniform)."""
     c = g[1:-1, 1:-1]
@@ -501,6 +541,9 @@ _LEARNED: Optional[dict] = None
 LEARN_TEXTURE_SEEDS = tuple(range(9000, 9100))
 LEARN_FLIGHT_SEEDS = tuple(range(10, 30))
 LEARN_SIZES = ((720, 480), (480, 320))
+# realistic flights (sim profile "caddx"): seeds 1000 and up (the evaluations use seeds below 1000)
+LEARN_CADDX_SEEDS = tuple(range(1000, 1024))
+LEARN_CADDX_SIZES = ((720, 480), (360, 240))
 LDA_REG = 0.1
 
 
@@ -529,25 +572,100 @@ def _texture_sample(args) -> tuple:
 
 
 def _flight_sample(args) -> tuple:
-    """Feature vectors of the frames analyze_landing would use in one simulated flight."""
+    """Feature vectors of the frames analyze_landing would use in one simulated flight.
+
+    args: (cls, seed, size, n) for the clean pinhole simulator, or (cls, seed, size, n, "caddx") for the realistic
+    one (fisheye, analog link, lying flat or nose down; rectified with the default lens like run_post_flight)."""
     from grappstar.sim.flight_video import render_flight
     from grappstar.vision import flight
-    cls, seed, size, n = args
-    frames, _truth = render_flight(seed=int(seed), landing_class=cls, size=tuple(size), dropouts=True)
+    cls, seed, size, n = args[:4]
+    profile = args[4] if len(args) > 4 else "pinhole"
+    if profile == "caddx":
+        from grappstar.vision.lens import DartLens, rectify_frames
+        links = ("daylight", "daylight", "overcast", "lowlight", "weak_link")
+        rng = np.random.default_rng([int(seed), 777])
+        frames, _truth = render_flight(seed=int(seed), landing_class=cls, size=tuple(size), dropouts=True,
+                                       profile="caddx", link=links[int(seed) % len(links)],
+                                       lens_hfov_deg=float(rng.uniform(125, 150)),
+                                       rest="flat" if rng.random() < 0.75 else "buried")
+        frames = rectify_frames(frames, DartLens.equidistant(size=tuple(size)))
+    else:
+        frames, _truth = render_flight(seed=int(seed), landing_class=cls, size=tuple(size), dropouts=True)
     res = flight.analyze_flight(frames, None)
     land = flight.landing_frames(frames, res, n=15)
     land.sort(key=lambda fr: _sharpness(fr.img), reverse=True)
-    return cls, [_vec(extract_features(central_roi(fr.img))) for fr in land[:n]]
+    out = []
+    for fr in land:
+        roi, _kind = ground_roi(fr.img)
+        if roi is not None:
+            out.append(_vec(extract_features(roi)))
+        if len(out) >= n:
+            break
+    return cls, out
+
+
+REAL_EXT_IMG = (".png", ".jpg", ".jpeg", ".bmp")
+REAL_EXT_VID = (".avi", ".mp4", ".mkv", ".mov")
+
+
+def real_samples(real_dir: str, lens=None, frames_per_video: int = 10) -> Dict[str, List[np.ndarray]]:
+    """Feature vectors from labelled real landing pictures.
+
+    Layout: real_dir/<class>/<files>, class one of CLASSES (bedrock, hard_ground, loose_soil, sand_dust, vegetation,
+    water_void). Files are still pictures (png, jpg) or short clips (avi, mp4) of the dart lying still after a
+    landing; a clip gives frames_per_video evenly spaced frames. Each picture is rectified with lens (when given)
+    and judged on the same ground ROI as analyze_landing. Pictures with no usable ground are skipped."""
+    import os
+    out: Dict[str, List[np.ndarray]] = {c: [] for c in CLASSES}
+    for c in CLASSES:
+        d = os.path.join(real_dir, c)
+        if not os.path.isdir(d):
+            continue
+        for name in sorted(os.listdir(d)):
+            path = os.path.join(d, name)
+            ext = os.path.splitext(name)[1].lower()
+            imgs = []
+            if ext in REAL_EXT_IMG:
+                im = cv2.imread(path)
+                if im is not None:
+                    imgs.append(im)
+            elif ext in REAL_EXT_VID:
+                cap = cv2.VideoCapture(path)
+                n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+                idx = set(np.linspace(0, max(0, n - 1), frames_per_video).astype(int).tolist()) if n else set()
+                k = 0
+                while True:
+                    ok, im = cap.read()
+                    if not ok:
+                        break
+                    if not idx or k in idx:
+                        imgs.append(im)
+                    k += 1
+                cap.release()
+            for im in imgs:
+                if lens is not None:
+                    im = lens.rectify(im)
+                roi, _kind = ground_roi(im)
+                if roi is not None:
+                    out[c].append(_vec(extract_features(roi)))
+    return out
 
 
 def learn_prototypes(texture_seeds: Sequence[int] = LEARN_TEXTURE_SEEDS,
                      flight_seeds: Sequence[int] = LEARN_FLIGHT_SEEDS,
                      sizes: Sequence[tuple] = LEARN_SIZES, frames_per_flight: int = 2,
-                     jobs: int = 1, verbose: bool = False) -> dict:
-    """Learn the classifier constants (see the comment above _PROTOTYPES_JSON). Deterministic."""
+                     jobs: int = 1, verbose: bool = False, caddx_seeds: Sequence[int] = LEARN_CADDX_SEEDS,
+                     caddx_sizes: Sequence[tuple] = LEARN_CADDX_SIZES, real_dir: Optional[str] = None,
+                     real_weight: int = 3, real_lens=None) -> dict:
+    """Learn the classifier constants (see the comment above _PROTOTYPES_JSON). Deterministic.
+
+    real_dir: Harry's labelled real landing pictures (see real_samples), added real_weight times each.
+    real_lens: the dart lens (vision.lens.DartLens) to rectify them with, like run_post_flight does."""
     tasks_t = [(c, int(s)) for c in CLASSES for s in texture_seeds]
     tasks_f = [(c, int(s), tuple(sz), int(frames_per_flight)) for c in CLASSES for s in flight_seeds
                for sz in sizes]
+    tasks_f += [(c, int(s), tuple(sz), 3, "caddx") for c in CLASSES for s in caddx_seeds
+                for sz in caddx_sizes]
     if jobs > 1:
         import multiprocessing as mp
         with mp.get_context("fork").Pool(jobs) as pool:
@@ -557,6 +675,12 @@ def learn_prototypes(texture_seeds: Sequence[int] = LEARN_TEXTURE_SEEDS,
     rows: Dict[str, List[np.ndarray]] = {c: [] for c in CLASSES}
     for c, vs in parts:
         rows[c].extend(vs)
+    if real_dir:
+        real = real_samples(real_dir, lens=real_lens)
+        for c, vs in real.items():
+            rows[c].extend(vs * max(1, int(real_weight)))     # real footage counts more than synthetic
+        if verbose:
+            print("real samples per class:", {c: len(v) for c, v in real.items()})
     if verbose:
         print("samples per class:", {c: len(v) for c, v in rows.items()})
     X = np.concatenate([np.stack(rows[c]) for c in CLASSES])
@@ -975,8 +1099,23 @@ def analyze_landing(frames, model: Optional[TerrainModel] = None, model_weight: 
         return rep
 
     good.sort(key=lambda it: _sharpness(it[0]), reverse=True)
-    sel = good[:max(1, n_best)]
-    rois = [central_roi(it[0]) for it in sel]
+    sel_all = good[:max(1, n_best)]
+    picked = [(it, ground_roi(it[0])) for it in sel_all]
+    sel = [it for it, (r, k) in picked if r is not None]
+    rois = [r for _, (r, k) in picked if r is not None]
+    roi_kinds = [k for _, (r, k) in picked if r is not None]
+    if not rois:
+        reasons.append("The dart camera sees almost no ground (sky or horizon fills the picture): the dart may lie "
+                       "on its side or back, or on a slope edge.")
+        reasons.append("Look at the dart camera yourself before winching.")
+        rep = TerrainReport("unknown", {c: 0.0 for c in CLASSES} | {"unknown": 1.0}, None,
+                            int(BASE_SCORE["unknown"]), "UNSURE", reasons, None, 0.0,
+                            used_frames=[it[1] for it in sel_all])
+        if make_image:
+            rep.image = render_report(rep, sel_all[0][0])
+        return rep
+    if "below_horizon" in roi_kinds:
+        reasons.append("Dart lies level: judged on the ground just ahead of the nose (below the horizon).")
     qs = [it[2] for it in sel if it[2] is not None]
     quality = float(np.mean(qs)) if qs else None
 
@@ -1253,10 +1392,21 @@ if __name__ == "__main__":
     ap.add_argument("--write", action="store_true", help="with --learn: store them in this source file")
     ap.add_argument("--jobs", type=int, default=4, help="with --learn: worker processes")
     ap.add_argument("--textures-only", action="store_true", help="with --learn: no simulated flights")
+    ap.add_argument("--real", help="with --learn: folder of labelled real landing pictures, one sub-folder per "
+                                   "class (bedrock, hard_ground, loose_soil, sand_dust, vegetation, water_void)")
+    ap.add_argument("--real-weight", type=int, default=3, help="with --real: each real picture counts this many times")
+    ap.add_argument("--lens", help="with --real: dart lens calibration JSON (calibrate dart); default: the "
+                                   "uncalibrated Caddx Ant model")
     a = ap.parse_args()
     if a.learn:
+        rl = None
+        if a.real:
+            from grappstar.vision.lens import DartLens
+            rl = DartLens.from_settings(a.lens)
         protos = learn_prototypes(flight_seeds=() if a.textures_only else LEARN_FLIGHT_SEEDS,
-                                  jobs=a.jobs, verbose=True)
+                                  caddx_seeds=() if a.textures_only else LEARN_CADDX_SEEDS,
+                                  jobs=a.jobs, verbose=True, real_dir=a.real, real_weight=a.real_weight,
+                                  real_lens=rl)
         if a.write:
             print("written to", write_prototypes(protos))
         else:

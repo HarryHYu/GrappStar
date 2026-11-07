@@ -30,10 +30,10 @@ How it works
    positive, which equals the camera roll for a pinhole camera); pitch = atan(d / f), d = signed distance of the
    image centre from the horizon (positive when the centre is in the sky). sky_ratio = sky fraction.
 6. Trajectory: launch pitch (IMU rail attitude, else horizon on the rail, else solved from the flight time),
-   muzzle speed (IMU launch impulse, else solved from pitch and flight time, else 10 m/s), integrated with a
-   ballistic model with simple drag. x downrange along the launch heading, y left, z up, origin on the ground
-   under the camera at the start of the spring stroke (camera height h0 = 0.5 m there), so range_m is the
-   horizontal distance from the dart's rest position on the rail to the landing point.
+   muzzle speed (IMU launch impulse, else fused from the flight time, the horizon track and the C3 table speed),
+   integrated with a ballistic model with simple drag fitted to the C3 table. x downrange along the launch
+   heading, y left, z up, origin on the ground under the rail pivot (the C3 range reference); the free flight
+   starts at the rail exit (H_EXIT 0.42 m up, X_EXIT 0.10 m ahead). range_m is from the pivot ground point.
 
 Conventions (shared with sim.flight_video): body x forward along the dart nose, y left, z up when the dart sits
 level. Quaternion = world from body. World: X downrange, Y left, Z up. yaw about Z (positive = nose left),
@@ -62,10 +62,17 @@ BAD_BELOW = 0.4
 SMALL_W = 160
 DEFAULT_V0 = 7.0         # m/s, fallback only (no C3 table): physics v1.2 muzzle speed is about 7.0 to 7.4
 DEFAULT_PITCH = 35.0
-RAIL_H = 0.5
-STROKE_S = 0.06
-DRAG_K = 0.01
-DRAG_C = 1.0
+# Launcher model (D50 real launcher). Fitted to base/out/ballistics.json, LIGHT 0.25 N column: free flight from the
+# rail exit H_EXIT above the ground, X_EXIT ahead of the ground point under the pivot (the C3 range reference), with
+# quadratic air drag DRAG_K v^2 plus a constant line drag DRAG_C. Range within 0.8 percent and flight time within
+# 1.3 percent of the table at 6..47 deg (tests/test_realistic_flight.py). sim.flight_video uses the same numbers.
+STROKE_M = 0.241         # spring stroke (params LAUNCH.stroke)
+H_EXIT = 0.42            # m, camera height at the rail exit
+X_EXIT = 0.10            # m, rail exit ahead of the pivot ground point
+RAIL_H = H_EXIT          # older name: the height the model flight starts from
+STROKE_S = 2 * STROKE_M / 6.9   # s, stroke time at the table speed (about 0.07 s)
+DRAG_K = 0.015
+DRAG_C = 0.4
 IMPACT_G = 3.5           # g: firmware landing impact threshold (was 6 g)
 SAT_NEAR = 75.0          # m/s^2: the BNO085 accelerometer saturates near 78 m/s^2 (firmware/dart/API.md)
 PHASES = ("ON_RAIL", "LAUNCH", "FLIGHT", "IMPACT", "LANDED")
@@ -110,6 +117,7 @@ class FlightResult:
     imu_times: Dict[str, Optional[float]] = field(default_factory=dict)
     range_scale: float = 1.0              # model-to-C3-table range calibration applied (1 = none)
     launch_fit_t: Optional[float] = None  # launch time the speed fit found (video launch seen late); phases keep t_launch
+    video_latency_s: Optional[float] = None   # capture delay used to line the flightlog up with the frames
 
     def phase_at(self, t: float) -> Optional[str]:
         for name, t0, t1 in self.phases:
@@ -132,6 +140,7 @@ class FlightResult:
             "n_good": len(self.good), "notes": list(self.notes),
             "video_times": dict(self.video_times), "imu_times": dict(self.imu_times),
             "range_scale": self.range_scale, "launch_fit_t": self.launch_fit_t,
+            "video_latency_s": self.video_latency_s,
         })
 
 
@@ -199,7 +208,15 @@ def quick_quality(img: np.ndarray) -> float:
     pix = np.abs(rows[1:] - rows[:-1]).mean(axis=1)
     mean_d = np.abs(rows[1:].mean(axis=1) - rows[:-1].mean(axis=1))
     tear = pix - mean_d
-    base = float(np.median(tear)) + 1.0
+    # a tear edge is ONE row that differs from its neighbours; textured ground under a smooth sky (analog
+    # sharpening makes it busy) is many busy rows in a row, so each row is judged against its own neighbourhood
+    n = len(tear)
+    k = 6
+    pad = np.pad(tear, k, mode="edge")
+    win = np.lib.stride_tricks.sliding_window_view(pad, 2 * k + 1)
+    near = np.concatenate([win[:, :k - 1], win[:, k + 2:]], axis=1)      # skip the row and its two neighbours
+    local = np.median(near, axis=1)[:n]
+    base = np.maximum(local, float(np.median(tear))) + 1.0
     tear_rows = int((tear > 2.5 * base + 8.0).sum())
     if tear_rows >= 2:
         score *= 0.2
@@ -232,7 +249,12 @@ def sky_mask(img: np.ndarray) -> np.ndarray:
     grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     tex = cv2.blur(np.abs(cv2.Laplacian(cv2.GaussianBlur(grey, (3, 3), 0), cv2.CV_16S)).astype(np.float32),
                    (5, 5))
-    m = (tex < 9.0) & (((v > 140) & (b >= r + 12)) | (v > 215))
+    # brightness relative to the frame: analog auto exposure, dusk and fisheye vignetting make the zenith much
+    # darker than a fixed 140 (realistic simulator: the upper sky at 90 to 130 under a 160 horizon band)
+    vb = v[b >= r + 12]
+    ref = float(np.percentile(vb, 95)) if vb.size > 0.01 * v.size else 255.0
+    v_lo = max(70.0, min(140.0, 0.6 * ref))
+    m = (tex < 9.0) & (((v > v_lo) & (b >= r + 12)) | (v > 215))
     m = m.astype(np.uint8) * 255
     k = np.ones((3, 3), np.uint8)
     m = cv2.morphologyEx(m, cv2.MORPH_OPEN, k)
@@ -278,6 +300,21 @@ def detect_horizon(img: np.ndarray, hfov_deg: float = 100.0, lens: str = "pinhol
     edge[-2:, :] = 0
     edge[:, :2] = 0
     edge[:, -2:] = 0
+    # keep only the sky-to-ground side of the sky boundary: the boundary of a sky band that does not reach the
+    # top (a dark zenith, a cloud) points the other way and would spoil the line
+    sy, sx = np.nonzero(m)
+    gy, gx = np.nonzero(m == 0)
+    if len(sy) and len(gy):
+        dvx, dvy = float(gx.mean() - sx.mean()), float(gy.mean() - sy.mean())     # sky -> ground direction
+        nrm = math.hypot(dvx, dvy)
+        if nrm > 1e-6:
+            mf = cv2.GaussianBlur(m.astype(np.float32) / 255.0, (5, 5), 1.0)
+            gxm = cv2.Sobel(mf, cv2.CV_32F, 1, 0, ksize=3)
+            gym = cv2.Sobel(mf, cv2.CV_32F, 0, 1, ksize=3)
+            # mask gradient points into the sky; on the horizon side it is opposite to sky -> ground
+            dot = -(gxm * dvx + gym * dvy) / nrm
+            mag = np.hypot(gxm, gym) + 1e-6
+            edge[(dot / mag) < 0.3] = 0
     ys, xs = np.nonzero(edge)
     if len(xs) < 12:
         return out
@@ -361,6 +398,7 @@ VID_T_EARLY = 0.03
 VID_IMPACT_LATE_TYP = 0.035   # typical lateness of the video impact (for the clock offset without a video launch)
 TRACK_SIGMA_DEG = 3.0    # horizon pitch noise during flight (fin wobble 3 to 6 deg decaying, fisheye)
 TRACK_CORR = 2.0         # consecutive horizon samples are correlated (wobble): count them as 1 in 2
+POST_IMPACT_RISE_DEG = 6.0   # nose pitch rise that means the dart has landed and is levelling out (see analyze_flight)
 PRIOR_SIGMA = 0.20       # table muzzle speed prior: 20 percent (spring, clutch and model spread, ASSUMPTION)
 
 
@@ -380,9 +418,9 @@ def _gamma_track_cached(v0: float, pitch: float, h0: float):
 def _gamma_track_raw(v0: float, pitch: float, h0: float):
     """(t, x, z, gamma_deg) of the model flight from the rail end (t = 0 at the end of the stroke).
 
-    h0 is the camera height at the stroke START; the free flight starts where the dart leaves the rail, half a
-    stroke further along the rail (the same start as analyze_flight's tf() and the range model)."""
-    ts, xs, zs = ballistic(v0, pitch, h0 + v0 * STROKE_S / 2.0 * math.sin(math.radians(pitch)), dt=0.005)
+    h0 is the camera height at the rail exit, where the free flight starts (the same start as analyze_flight's tf()
+    and the range model)."""
+    ts, xs, zs = ballistic(v0, pitch, h0, dt=0.005)
     if len(ts) < 3:
         return ts, xs, zs, np.full(len(ts), pitch)
     gam = np.degrees(np.arctan2(np.gradient(zs, ts), np.gradient(xs, ts)))
@@ -393,7 +431,8 @@ def fuse_speed(pitch: float, h0: float, T_obs: Optional[float] = None, T_sigma: 
                T_min: Optional[float] = None, track: Sequence[Tuple[float, float]] = (),
                v_prior: Optional[float] = None, prior_sigma: Optional[float] = None, v_min: Optional[float] = None,
                lo: float = 3.0, hi: float = 16.0, launch_free: bool = False,
-               launch_late_max: float = 0.10, launch_late_sigma: float = 0.06) -> Tuple[Optional[float], dict]:
+               launch_late_max: float = 0.10, launch_late_sigma: float = 0.06,
+               v_meas: Optional[Tuple[float, float]] = None) -> Tuple[Optional[float], dict]:
     """Muzzle speed that best explains every cue, by a search over v0. Returns (v0 or None, details).
 
     Cues (each optional), all times measured from the end of the stroke (where the model flight starts):
@@ -404,11 +443,12 @@ def fuse_speed(pitch: float, h0: float, T_obs: Optional[float] = None, T_sigma: 
       path angle gamma(t) of the model (plus wobble). The slope of tan(gamma) gives the horizontal speed.
     - v_prior: table muzzle speed (C3 v_muzzle) with prior_sigma relative spread.
     - v_min: lower bound (a saturated IMU push).
+    - v_meas: (speed, sd) measured another way (an unsaturated IMU push integral).
     launch_free: the launch time itself is uncertain (video: the first motion can be seen late when the camera
     looks at plain sky). A launch time shift d (true launch = observed - d, in [-0.04, launch_late_max] s) is
     searched too; it moves every time cue. details["launch_shift_s"] gives it."""
     cues = {"T_obs": T_obs, "T_min": T_min, "track_n": len(track), "v_prior": v_prior, "v_min": v_min}
-    if T_obs is None and not track and v_prior is None:
+    if T_obs is None and not track and v_prior is None and v_meas is None:
         return None, cues
     prior_sigma = PRIOR_SIGMA if prior_sigma is None else prior_sigma
     tr = np.array(track, float) if len(track) else np.zeros((0, 2))
@@ -438,6 +478,8 @@ def fuse_speed(pitch: float, h0: float, T_obs: Optional[float] = None, T_sigma: 
                 c += ((T_min + d - T) / 0.015) ** 2
             if v_min is not None and v < v_min:
                 c += ((v_min - v) / (0.03 * v_min)) ** 2
+            if v_meas is not None:
+                c += ((v - v_meas[0]) / max(0.05, v_meas[1])) ** 2
             if len(tr):
                 tt = tr[:, 0] + d
                 ok = (tt < T) & (tt > 0)
@@ -607,10 +649,14 @@ def imu_events(fl: dict) -> dict:
         steps = np.concatenate([steps, np.full(max(0, len(push) - len(steps)), dt)])[:len(push)]
         steps = np.clip(steps, 0.0, 3.0 * dt)
         v0 = float(np.sum((push[:, 0] - G * math.sin(math.radians(pitch))) * steps))
+        # At 50 Hz the 70 to 80 ms push is only 3 to 5 samples: the sum is off by up to one sample of the push
+        # (about 1.5 m/s on 7 m/s), either way. The lower bound and the measurement carry that error.
+        quant = float(np.abs(push[:, 0]).max()) * float(np.median(steps)) if push.size else 0.0
+        out["v0_sigma"] = max(0.1, quant / 2.0)
         if push.size and float(np.abs(push).max()) >= SAT_NEAR:
             out["saturated"] = True
-            if v0 > 0:
-                out["v0_min"] = v0
+            if v0 - quant > 0:
+                out["v0_min"] = v0 - quant
         elif 3.0 < v0 < 30.0:
             out["v0"] = v0
         out["rail_rpy"] = quat_to_rpy(*q)
@@ -681,9 +727,34 @@ def _video_phases(times: np.ndarray, energy: np.ndarray, fps: float) -> dict:
     if len(idx) == 0:
         return out
     i0 = int(idx[0])
+    # refine the start against the noise of the rail part only (analog noise on the rail is lower than after
+    # landing, where the weak link adds more, so the global threshold can miss the first slow frames of the stroke)
+    if i0 >= 6:
+        rail = energy[:i0 - 1]
+        med = float(np.median(rail))
+        rmad = float(np.median(np.abs(rail - med))) * 1.4826
+        loc = med + max(0.08 * med, 4.0 * rmad, 0.05)
+        out["rail_threshold"] = loc
+        while i0 > 1 and energy[i0 - 1] > loc and loc < thr:
+            i0 -= 1
     prev_t = times[i0 - 1] if i0 > 0 else times[i0] - 1.0 / fps
     out["launch"] = float(0.5 * (prev_t + times[i0]) - 0.25 / fps)
     i1 = int(idx[-1])
+    # the end of the video shows the dart at rest, often with MORE link noise than on the rail (antenna near the
+    # ground): judge "still moving" against the noise of the last second, not the global floor
+    tail = np.nonzero(times >= times[-1] - 1.0)[0]
+    if len(tail) >= 6:
+        e_end = energy[tail]
+        med = float(np.median(e_end))
+        emad = float(np.median(np.abs(e_end - med))) * 1.4826
+        end_thr = med + max(0.15 * med, 4.0 * emad, 0.05)
+        out["end_threshold"] = end_thr
+        mv = np.nonzero(energy > max(end_thr, thr))[0]
+        mv = mv[mv >= i0]
+        # keep sustained motion only (2 of 3), like the launch
+        mv = [k for k in mv if (energy[max(0, k - 1):k + 2] > max(end_thr, thr)).sum() >= 2]
+        if mv:
+            i1 = int(mv[-1])
     out["landed"] = float(times[i1])
     win = np.nonzero((times >= times[i1] - 1.0) & (times <= times[i1]) & (np.arange(len(times)) >= i0))[0]
     if len(win):
@@ -723,14 +794,17 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
                    hfov_deg: float = 100.0, v0_default: Optional[float] = None, h0: float = RAIL_H,
                    lens: str = "pinhole",
                    ballistics=None, drag_n: float = 0.25, aim_pitch_deg: Optional[float] = None,
-                   calibrate_range: bool = True) -> FlightResult:
+                   calibrate_range: bool = True, video_latency_s: float = 0.0) -> FlightResult:
     """Analyse a dart flight video (list of Frame) with an optional C2 flightlog. Never raises on bad input.
 
     ballistics: a grappstar.ballistics.Ballistics (C3 table) used as the prior for the muzzle speed and to
     calibrate the range (the table is the launcher model; the simple drag model here only interpolates around it).
     drag_n: the clutch drag column (LIGHT 0.25 N at launch, D49, D50). aim_pitch_deg: the commanded rail pitch (a strong
     prior for the video-only path). calibrate_range=False keeps the simple drag model's range (no scaling to the
-    table): for a simulator world that does not follow the table."""
+    table): for a simulator world that does not follow the table.
+    video_latency_s: how much later a frame's time stamp is than the moment it shows (capture chain delay). With a
+    given clock_offset_s (from the dart's /status clock) the video launch measures this delay directly, and that
+    measurement is used when it is plausible (-0.05 to 0.30 s); else video_latency_s is added to the offset."""
     res = FlightResult()
     frames = [_bgr_frame(f) for f in (frames or []) if f is not None and getattr(f, "img", None) is not None]
     frames = [f for f in frames if f is not None]
@@ -745,6 +819,7 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
     # --- per frame quality, horizon, motion energy
     prev_small, prev_i = None, None
     m_t, m_e = [], []
+    smalls = []                 # (t, blurred small grey) of the good, non repeated frames
     hor_by_idx = {}
     for i, f in enumerate(frames):
         ok = frame_ok(f)
@@ -755,13 +830,33 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
         hz = detect_horizon(f.img, hfov_deg, lens)
         hor_by_idx[i] = hz
         res.horizon.append((f.t, hz["angle_deg"], hz["sky_ratio"]))
-        g = cv2.cvtColor(_small(f.img), cv2.COLOR_BGR2GRAY)
-        g = cv2.GaussianBlur(g, (5, 5), 0).astype(np.int16)
+        g = cv2.cvtColor(_small(f.img), cv2.COLOR_BGR2GRAY).astype(np.float32)
+        # sigma 2 at 160 px: the flight motion moves the whole picture, analog noise is fine grained (measured on
+        # the realistic simulator: flight / landed-noise energy ratio 4.1 against 3.1 with the old 5x5 blur)
+        g = cv2.GaussianBlur(g, (0, 0), 2.0)
         if prev_small is not None and prev_small.shape == g.shape:
-            gap = max(1.0, (f.t - frames[prev_i].t) * fps)
-            m_t.append(f.t)
-            m_e.append(float(np.abs(g - prev_small).mean()) / gap)
+            e = float(np.abs(g - prev_small).mean())
+            if e < 0.02:
+                continue        # the capture dongle repeated the frame: not a stop of the motion
+        smalls.append((f.t, g))
         prev_small, prev_i = g, i
+    # A single odd frame (a torn or noisy frame the link check missed) makes TWO high pairs in a row, which looks
+    # like sustained motion. Real motion stays high when that frame is skipped; a glitch does not: drop it.
+    k = 1
+    while k + 1 < len(smalls):
+        e1 = float(np.abs(smalls[k][1] - smalls[k - 1][1]).mean())
+        e2 = float(np.abs(smalls[k + 1][1] - smalls[k][1]).mean())
+        e_skip = float(np.abs(smalls[k + 1][1] - smalls[k - 1][1]).mean())
+        if min(e1, e2) > 2.5 * e_skip + 0.3 and smalls[k].__len__():
+            del smalls[k]
+            continue
+        k += 1
+    for k in range(1, len(smalls)):
+        if smalls[k][1].shape != smalls[k - 1][1].shape:
+            continue
+        gap = max(1.0, (smalls[k][0] - smalls[k - 1][0]) * fps)
+        m_t.append(smalls[k][0])
+        m_e.append(float(np.abs(smalls[k][1] - smalls[k - 1][1]).mean()) / gap)
     res.motion = list(zip(m_t, m_e))
     if not frames:
         res.notes.append("no frames")
@@ -789,6 +884,17 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
         offset = None
     if imu is not None:
         res.imu_times = {k: imu.get(k) for k in ("launch", "launch_end", "impact", "landed")}
+        if offset is not None:
+            # the dart clock offset maps dart millis to the Jetson clock; frame stamps run late by the capture delay.
+            # The delay is a fixed property of the capture chain: the setting is used (measure it once with
+            # `python3 -m grappstar learn latency`). The video launch is often seen late (plain sky on the rail,
+            # a dropped frame), so its own reading is only reported.
+            if imu["launch"] is not None and vid.get("launch") is not None:
+                res.notes.append("video launch says capture delay %.0f ms (setting %.0f ms)"
+                                 % ((vid["launch"] - imu["launch"] - offset) * 1000, float(video_latency_s or 0) * 1000))
+            lat = float(video_latency_s or 0.0)
+            offset = offset + lat
+            res.video_latency_s = lat
         if offset is None:
             # the video launch is sharp (within about 0.04 s); the video impact runs late by 0 to 0.11 s (the crash
             # and settle motion), so it is used only without a video launch, corrected by its typical lateness
@@ -815,7 +921,8 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
         if t_landed is None:
             t_landed = vid.get("landed")
         if imu.get("v0"):
-            res.v0 = imu["v0"]
+            res.notes.append("IMU push integral %.2f m/s (+-%.1f at 50 Hz): used as one cue"
+                             % (imu["v0"], imu.get("v0_sigma") or 0.0))
         elif imu.get("saturated"):
             res.notes.append("IMU push saturated: v0 from the flight time")
         if imu.get("rail_rpy"):
@@ -886,8 +993,7 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
             return float(v) if v and v > 0 else None
 
         def tf(v, p):
-            sl_ = v * STROKE_S / 2.0
-            return float(ballistic(v, p, h0 + sl_ * math.sin(math.radians(p)))[0][-1])
+            return float(ballistic(v, p, h0)[0][-1])
         video_T = not use_imu
         # horizon track in flight and the last frame that still saw the sky (a lower bound on the flight time)
         track, t_sky = [], None
@@ -899,7 +1005,38 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
                     t_sky = ft if t_sky is None else max(t_sky, ft)
                 if hz["pitch_deg"] is not None:
                     track.append((ft - t_start, float(hz["pitch_deg"])))
+        if use_imu and samples is not None and offset is not None:
+            # with the flight log the dart's own pitch in flight is the track (it flies nose first, so its pitch
+            # follows the flight path angle): exact in time, no capture delay, no horizon needed
+            imu_track = []
+            for r in samples:
+                ft = float(r[0] / 1000.0 + offset)
+                if t_start + 0.03 < ft < t_impact - 0.02:
+                    imu_track.append((ft - t_start, float(quat_to_rpy(*r[1:5])[1])))
+            if len(imu_track) >= 4:
+                track = imu_track
+                res.notes.append("speed track from the IMU pitch in flight")
+        if video_T and len(track) >= 4:
+            # In ballistic flight the nose pitch only goes down. A dart that hits and skids comes to rest nearly
+            # level and sees the horizon again: those frames are not flight. The first clear rise after the
+            # steepest point (realistic simulator: 6 deg is above the wobble left at impact) ends the flight, so the
+            # impact lies before it (the motion based impact runs up to 0.25 s late on a skid).
+            track.sort()
+            pv = np.array([p_ for _, p_ in track])
+            for k in range(2, len(pv)):
+                kmin = int(np.argmin(pv[:k]))
+                if pv[kmin] < -3.0 and pv[k] > pv[kmin] + POST_IMPACT_RISE_DEG and k > kmin:
+                    t_rise = track[k][0]
+                    track = track[:kmin + 1]
+                    if t_sky is not None and t_sky - t_start >= t_rise - 1e-6:
+                        t_sky = t_start + track[-1][0]
+                    if T > t_rise:
+                        res.notes.append("the dart levelled out %.0f ms before the video impact: flight ends there"
+                                         % ((T - t_rise) * 1000))
+                        T = t_rise
+                    break
         v0_min = imu.get("v0_min") if imu else None
+        v_meas = (imu["v0"], imu.get("v0_sigma") or 0.75) if (use_imu and imu.get("v0")) else None
         # a rail view that is all sky hides the launch motion (no texture): the video launch can be late by more
         rail_sky = [hz["sky_ratio"] for i, hz in hor_by_idx.items()
                     if frames[i].t < t_launch - 0.05 and hz["sky_ratio"] is not None]
@@ -909,7 +1046,7 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
             vp_ = v_tab(p)
             return fuse_speed(p, h0, T_obs=T, T_sigma=None if video_T else 0.02,
                               T_min=None if t_sky is None else t_sky - t_start, track=track,
-                              v_prior=vp_, v_min=v0_min, launch_free=video_T,
+                              v_prior=vp_, v_min=v0_min, launch_free=video_T, v_meas=v_meas,
                               launch_late_max=0.18 if sky_rail else 0.10, launch_late_sigma=0.10 if sky_rail else 0.06,
                               # with a table the speed is searched only inside a band around it (a noisy
                               # flight time can never give a 2 or 30 m/s launcher)
@@ -966,15 +1103,11 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
                 v0 = v0_default
                 res.notes.append("speed default %.1f m/s" % v0)
         res.launch_pitch_deg, res.v0 = float(pitch), float(v0)
-        # the camera starts at h0 at the stroke start and leaves the rail after about v0 * STROKE_S / 2
+        # the free flight starts at the rail exit, h0 above the ground and X_EXIT ahead of the pivot ground point
         def model_range(v):
-            sl_ = v * STROKE_S / 2.0
-            xx = ballistic(v, pitch, h0 + sl_ * math.sin(math.radians(pitch)))[1]
-            return float(xx[-1] + sl_ * math.cos(math.radians(pitch)))
-        sl = v0 * STROKE_S / 2.0
-        x_off = sl * math.cos(math.radians(pitch))
-        ts, xs, zs = ballistic(v0, pitch, h0 + sl * math.sin(math.radians(pitch)))
-        xs = xs + x_off
+            return float(ballistic(v, pitch, h0)[1][-1] + X_EXIT)
+        ts, xs, zs = ballistic(v0, pitch, h0)
+        xs = xs + X_EXIT
         # calibrate the simple model to the C3 table at this pitch (the table is the launcher model)
         scale = 1.0
         vp = v_tab(pitch)

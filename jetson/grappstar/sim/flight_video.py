@@ -44,6 +44,7 @@ and render_view(pose, size) for a single clean view (tests).
 """
 from __future__ import annotations
 
+import dataclasses
 import math
 from typing import Dict, List, Optional, Tuple
 
@@ -64,10 +65,18 @@ except Exception:  # pragma: no cover - the video package always ships frame.py
         bad: bool = False
 
 G = 9.81
-STROKE_S = 0.06          # spring stroke duration
-RAIL_H = 0.5             # camera height at the start of the stroke (m)
-DRAG_K = 0.01            # quadratic air drag, a = DRAG_K * v^2 (1/m)
-DRAG_C = 1.0             # tether payout drag, constant deceleration (m/s^2)
+# Real launcher (D50, base/out/ballistics.json, LIGHT 0.25 N column). The flight model below (exit height,
+# exit point ahead of the pivot, quadratic air drag plus a constant line drag) was fitted to the base physics table:
+# range within 0.8 percent and flight time within 1.3 percent at every pitch 6..47 deg (tests/test_realistic_flight.py
+# checks it against the table). The same constants are the analysis model in vision/flight.py.
+STROKE_M = 0.241         # spring stroke (params LAUNCH.stroke 240.9 mm)
+H_EXIT = 0.42            # camera height where the dart leaves the rail (m)
+X_EXIT = 0.10            # rail exit ahead of the ground point under the pivot (m), the C3 range reference
+DRAG_K = 0.015           # quadratic air drag, a = DRAG_K * v^2 (1/m)
+DRAG_C = 0.4             # tether payout drag, constant deceleration (m/s^2): about 0.11 N on 0.279 kg after gain
+V_SPREAD = 0.03          # shot to shot muzzle speed spread (sd, fraction), an assumption until real shots are timed
+STROKE_S = 2 * STROKE_M / 6.9    # stroke duration at the table speed (about 0.07 s); per shot it is 2 * STROKE_M / v0
+RAIL_H = H_EXIT - STROKE_M * math.sin(math.radians(34.0))   # camera height at the stroke start at 34 deg (legacy name)
 IMPACT_PULSE_S = 0.05    # nose deceleration half sine
 SETTLE_S = 0.25          # impact to still
 ACC_SAT = 78.0           # m/s^2, accelerometer saturation per axis (firmware/dart/API.md)
@@ -150,6 +159,15 @@ def image_to_world(truth: dict, idx: int, u: float, v: float) -> Optional[Tuple[
     pose = truth["poses"].get(idx)
     if pose is None:
         return None
+    if truth.get("lens"):
+        from grappstar.vision.lens import DartLens
+        L = truth["lens"]
+        ray_c = DartLens(L["K"], L["D"], tuple(L["size"]), L["model"]).unproject(np.array([[u, v]]))[0]
+        d = rot_from_rpy(*pose[4:7]) @ R_BODY_CAM @ ray_c
+        if d[2] >= -1e-9:
+            return None
+        s_ = pose[3] / -d[2]
+        return (float(pose[1] + s_ * d[0]), float(pose[2] + s_ * d[1]))
     cam = truth["camera"]
     K = np.array([[cam["fx"], 0, cam["cx"]], [0, cam["fy"], cam["cy"]], [0, 0, 1.0]])
     H = ground_homography(pose[1:], K, np.eye(3))
@@ -345,23 +363,34 @@ def make_detail_patch(world: np.ndarray, center_px, res_world: float, cls: str, 
 
 # ------------------------------------------------------------------ trajectory
 
-def _simulate(rng, pitch, yaw, v0, roll0, t_launch, dt=0.001):
+def stroke_start_height(pitch: float) -> float:
+    """Camera height at the start of the spring stroke for this rail pitch (exit at H_EXIT)."""
+    return H_EXIT - STROKE_M * math.sin(math.radians(pitch))
+
+
+def pivot_x(pitch: float) -> float:
+    """World X of the ground point under the rail pivot (world origin = ground under the stroke start)."""
+    return STROKE_M * math.cos(math.radians(pitch)) - X_EXIT
+
+
+def _simulate(rng, pitch, yaw, v0, roll0, t_launch, dt=0.001, drag_k=DRAG_K, drag_c=DRAG_C):
     """Kinematics at 1 kHz from the stroke start to impact. Returns dict of arrays."""
     u = np.array([math.cos(math.radians(pitch)) * math.cos(math.radians(yaw)),
                   math.cos(math.radians(pitch)) * math.sin(math.radians(yaw)),
                   math.sin(math.radians(pitch))])
-    a_s = v0 / STROKE_S
-    p = np.array([0.0, 0.0, RAIL_H])
+    stroke_s = 2.0 * STROKE_M / v0
+    a_s = v0 / stroke_s
+    p = np.array([0.0, 0.0, stroke_start_height(pitch)])
     v = np.zeros(3)
     ts, ps, vs, fs = [], [], [], []
     t = 0.0
     while True:
-        if t < STROKE_S:
+        if t < stroke_s:
             a = a_s * u
             f = a + np.array([0, 0, G])           # rail carries gravity during the stroke
         else:
             sp = np.linalg.norm(v)
-            drag = -(DRAG_K * sp * sp + DRAG_C) * v / max(sp, 1e-6)
+            drag = -(drag_k * sp * sp + drag_c) * v / max(sp, 1e-6)
             a = np.array([0, 0, -G]) + drag
             f = drag
         ts.append(t)
@@ -370,7 +399,7 @@ def _simulate(rng, pitch, yaw, v0, roll0, t_launch, dt=0.001):
         fs.append(f)
         pn = p + v * dt + 0.5 * a * dt * dt
         v = v + a * dt
-        if t > STROKE_S and pn[2] <= 0:
+        if t > stroke_s and pn[2] <= 0:
             # interpolate to the ground crossing
             frac = p[2] / max(p[2] - pn[2], 1e-9)
             t_imp = t + frac * dt
@@ -381,17 +410,18 @@ def _simulate(rng, pitch, yaw, v0, roll0, t_launch, dt=0.001):
         if t > 5:
             raise RuntimeError("trajectory did not land")
     return {"t": np.array(ts) + t_launch, "p": np.array(ps), "v": np.array(vs), "f": np.array(fs),
-            "t_impact": t_imp + t_launch, "p_impact": p_imp, "v_impact": v.copy(), "u": u}
+            "t_impact": t_imp + t_launch, "p_impact": p_imp, "v_impact": v.copy(), "u": u, "stroke_s": stroke_s}
 
 
 class _Timeline:
     """Pose (x, y, z, roll, pitch, yaw) and specific force (world) at any wall time."""
 
-    def __init__(self, rng, pitch, yaw, v0, roll0, t_launch):
+    def __init__(self, rng, pitch, yaw, v0, roll0, t_launch, drag_k=DRAG_K, drag_c=DRAG_C, rest="buried"):
         self.pitch0, self.yaw0, self.roll0 = pitch, yaw, roll0
         self.t_launch = t_launch
-        self.sim = _simulate(rng, pitch, yaw, v0, roll0, t_launch)
-        self.t_stroke_end = t_launch + STROKE_S
+        self.h_start = stroke_start_height(pitch)
+        self.sim = _simulate(rng, pitch, yaw, v0, roll0, t_launch, drag_k=drag_k, drag_c=drag_c)
+        self.t_stroke_end = t_launch + self.sim["stroke_s"]
         self.t_impact = self.sim["t_impact"]
         self.t_landed = self.t_impact + SETTLE_S
         self.wob_a = rng.uniform(3.0, 6.0)
@@ -399,16 +429,28 @@ class _Timeline:
         self.wob_ph = rng.uniform(0, 2 * math.pi)
         self.wob_tau = rng.uniform(0.35, 0.6)
         self.roll_rate = rng.uniform(-35, 35)
-        # final resting pose: nose in the ground, camera looking at the landing patch
-        self.pitch_f = rng.uniform(-66, -54)
-        self.h_f = rng.uniform(0.12, 0.17)
         imp = self._flight_pose(self.t_impact)
-        self.roll_f = imp[3] + rng.uniform(-15, 15)
-        self.yaw_f = imp[5] + rng.uniform(-8, 8)
         self.p_land = self.sim["p_impact"]
-        back = self.h_f / math.tan(math.radians(-self.pitch_f))
-        self.pos_f = np.array([self.p_land[0] - back * math.cos(math.radians(self.yaw_f)),
-                               self.p_land[1] - back * math.sin(math.radians(self.yaw_f)), self.h_f])
+        self.rest = rest
+        if rest == "flat":
+            # skids a little and lies on its belly (the anchor design case: the kick plants ahead of the nose):
+            # camera on the hull axis, 21 mm above the ground (hull d 42), sunk 0..6 mm, nose level within a few deg
+            self.pitch_f = rng.uniform(-4, 3)
+            self.h_f = 0.021 - rng.uniform(0.0, 0.006)
+            self.roll_f = imp[3] + rng.uniform(-30, 30)
+            self.yaw_f = imp[5] + rng.uniform(-20, 20)
+            skid = rng.uniform(0.05, 0.4)
+            self.pos_f = np.array([self.p_land[0] + skid * math.cos(math.radians(self.yaw_f)),
+                                   self.p_land[1] + skid * math.sin(math.radians(self.yaw_f)), self.h_f])
+        else:
+            # legacy pose: nose down in the ground, camera looking at the landing patch from 12 to 17 cm
+            self.pitch_f = rng.uniform(-66, -54)
+            self.h_f = rng.uniform(0.12, 0.17)
+            self.roll_f = imp[3] + rng.uniform(-15, 15)
+            self.yaw_f = imp[5] + rng.uniform(-8, 8)
+            back = self.h_f / math.tan(math.radians(-self.pitch_f))
+            self.pos_f = np.array([self.p_land[0] - back * math.cos(math.radians(self.yaw_f)),
+                                   self.p_land[1] - back * math.sin(math.radians(self.yaw_f)), self.h_f])
         self.shake_dir = rng.normal(0, 1, 3)
         self.shake_dir /= np.linalg.norm(self.shake_dir)
 
@@ -440,11 +482,11 @@ class _Timeline:
             yaw = math.degrees(math.atan2(v[1], v[0]))
         dp, dy = self._wobble(t)
         roll = self.roll0 + self.roll_rate * max(0.0, t - self.t_stroke_end)
-        return (p[0], p[1], max(p[2], 0.02), roll, pitch + dp, yaw + dy)
+        return (p[0], p[1], max(p[2], 0.012), roll, pitch + dp, yaw + dy)
 
     def pose(self, t):
         if t <= self.t_launch:
-            return (0.0, 0.0, RAIL_H, self.roll0, self.pitch0, self.yaw0)
+            return (0.0, 0.0, self.h_start, self.roll0, self.pitch0, self.yaw0)
         if t < self.t_impact:
             return self._flight_pose(t)
         imp = self._flight_pose(self.t_impact)
@@ -457,7 +499,7 @@ class _Timeline:
         sh = env * math.sin(2 * math.pi * 12 * s)
         att = att + np.array([6.0, 5.0, 4.0]) * sh * self.shake_dir
         pos = pos + 0.01 * sh * self.shake_dir
-        pos[2] = max(pos[2], 0.03)
+        pos[2] = max(pos[2], 0.012 if self.rest == "flat" else 0.03)
         return (pos[0], pos[1], pos[2], att[0], att[1], att[2])
 
     def specific_force(self, t, R):
@@ -531,6 +573,55 @@ class _Renderer:
         return cv2.blendLinear(ground, sky, wg, 1.0 - wg)
 
 
+class _RayRenderer(_Renderer):
+    """Renders any lens (the fisheye Caddx Ant) by intersecting each pixel's ray with the ground plane.
+
+    lens: vision.lens.DartLens. Same world, sky and haze as _Renderer."""
+
+    def __init__(self, world, A_world, detail, A_detail, lens, rng):
+        super().__init__(world, A_world, detail, A_detail, lens.size, 100.0, rng)
+        self.lens = lens
+        w, h = lens.size
+        uu, vv = np.meshgrid(np.arange(w, dtype=np.float64), np.arange(h, dtype=np.float64))
+        rays = lens.unproject(np.column_stack([uu.ravel(), vv.ravel()]))
+        self.rays = rays.T.astype(np.float32)              # 3 x N, camera frame
+        self.A_world_inv = np.linalg.inv(A_world)
+        self.A_detail_inv = None if A_detail is None else np.linalg.inv(A_detail)
+
+    def _sample(self, img, Ainv, X, Y, border, border_value=None):
+        col = (Ainv[0, 0] * X + Ainv[0, 1] * Y + Ainv[0, 2]).astype(np.float32)
+        row = (Ainv[1, 0] * X + Ainv[1, 1] * Y + Ainv[1, 2]).astype(np.float32)
+        kw = {} if border_value is None else {"borderValue": border_value}
+        return cv2.remap(img, col.reshape(self.h, self.w), row.reshape(self.h, self.w), cv2.INTER_LINEAR,
+                         borderMode=border, **kw)
+
+    def render(self, pose):
+        x, y, z, roll, pitch, yaw = pose
+        Rwc = (_pose_R_cw(roll, pitch, yaw)).T.astype(np.float32)
+        d = Rwc @ self.rays                                   # world ray directions, 3 x N
+        dz = d[2]
+        sky = self.sky_lut[np.clip(dz * 255, 0, 255).astype(np.uint8)].reshape(self.h, self.w, 3)
+        ground_w = np.clip(-dz * 400 + 0.5, 0, 1).astype(np.float32).reshape(self.h, self.w)
+        if ground_w.max() <= 0:
+            return sky
+        tt = z / np.maximum(-dz, 1e-4)
+        X = x + tt * d[0]
+        Y = y + tt * d[1]
+        ground = self._sample(self.world, self.A_world_inv, X, Y, cv2.BORDER_REFLECT)
+        if self.detail is not None and z < 4.0:
+            dn = self.detail.shape[0]
+            cxy = self.A_detail @ np.array([dn / 2.0, dn / 2.0, 1.0])
+            if math.hypot(cxy[0] - x, cxy[1] - y) < 8.0:
+                dd = self._sample(self.detail, self.A_detail_inv, X, Y, cv2.BORDER_CONSTANT, (0, 0, 0, 0))
+                a = dd[..., 3].astype(np.float32) / 255.0
+                if a.max() > 0:
+                    ground = cv2.blendLinear(dd[..., :3], ground, a, 1.0 - a)
+        dist = tt.reshape(self.h, self.w)
+        haze = np.minimum(0.55, 1.0 - np.exp(-dist / self.haze_d)).astype(np.float32)
+        wg = ground_w * (1.0 - haze)
+        return cv2.blendLinear(ground, sky, wg, 1.0 - wg)
+
+
 # ------------------------------------------------------------------ link artefacts
 
 def _snow(img, rng, strength):
@@ -575,33 +666,98 @@ def _normalize_class(cls: str) -> str:
     return c
 
 
-def render_flight(seed: int = 0, fps: float = 30, landing_class: str = "bedrock", size=(720, 480),
+def table_speed(pitch: float) -> float:
+    """Muzzle speed of the real launcher at this pitch (base/out/ballistics.json), 6.9 m/s without a table."""
+    try:
+        from grappstar.ballistics import Ballistics
+        b = Ballistics.load()
+        if not b.placeholder:
+            return float(b.at_pitch(pitch).get("v_muzzle") or 6.9)
+    except Exception:
+        pass
+    return 6.9
+
+
+PROFILES = ("pinhole", "caddx")
+
+
+def render_flight(seed: int = 0, fps: Optional[float] = None, landing_class: str = "bedrock", size=(720, 480),
                   dropouts: bool = True, noise: float = 0.02, hfov_deg: float = 100.0,
                   pitch_deg: Optional[float] = None, v0: Optional[float] = None, rail_s: Optional[float] = None,
-                  landed_s: float = 2.5, mark_bad: bool = False, buried: bool = True, t0: Optional[float] = None,
-                  map_res: float = 0.02):
-    """Render a full synthetic dart flight. See the module docstring for conventions and truth keys."""
+                  landed_s: float = 2.5, mark_bad: bool = False, buried: Optional[bool] = None,
+                  t0: Optional[float] = None, map_res: float = 0.02, profile: str = "pinhole",
+                  lens_hfov_deg: Optional[float] = None, link=None, rest: Optional[str] = None,
+                  latency_s: Optional[float] = None, dup_rate: Optional[float] = None,
+                  drag_k: float = DRAG_K, drag_c: float = DRAG_C):
+    """Render a full synthetic dart flight. See the module docstring for conventions and truth keys.
+
+    Launch (both profiles): the real launcher by default: pitch 8..47 deg, muzzle speed from the C3 table at that
+    pitch with a 3 percent spread, exit 0.42 m above the ground, drag fitted to the table.
+
+    profile "pinhole": the older clean camera (pinhole hfov_deg, square pixels, Gaussian noise, no interlace).
+    profile "caddx": the real chain: equidistant fisheye of lens_hfov_deg (default vision.lens.DEFAULT_HFOV_DEG)
+    with a 4:3 picture in the capture size (pixels 0.89 as wide as tall), auto exposure with lag, motion blur from
+    the exposure time, sensor noise, sharpening halos, vignetting, composite colour smear, FM link noise (more after
+    landing), sparkles, line jitter, interlaced fields, YUYV capture, 0.06 s capture latency on the frame times,
+    1 percent repeated frames from the dongle, at 29.97 fps. link: a sim.analog.LinkConfig or a preset name
+    ("daylight", "overcast", "lowlight", "weak_link", "clean").
+    rest: "flat" (the dart skids and lies on its belly, caddx default) or "buried" (older: camera 12 to 17 cm over
+    the patch looking down at about -60 deg, pinhole default). latency_s: frame time minus scene time."""
+    if profile not in PROFILES:
+        raise ValueError(f"profile must be one of {PROFILES}")
+    caddx = profile == "caddx"
+    if fps is None:
+        fps = 29.97 if caddx else 30.0
     rng = np.random.default_rng([int(seed) & 0xFFFFFFFF, 7071])
     landing_class = _normalize_class(landing_class)
     w, h = int(size[0]), int(size[1])
     t0 = float(1_790_000_000.0 + 1000.0 * (int(seed) % 100000)) if t0 is None else float(t0)
-    pitch = float(rng.uniform(25, 45)) if pitch_deg is None else float(pitch_deg)
+    pitch = float(rng.uniform(8, 47)) if pitch_deg is None else float(pitch_deg)
     yaw = float(rng.uniform(-6, 6))
-    speed = float(rng.uniform(9.0, 11.0)) if v0 is None else float(v0)
+    if v0 is None:
+        speed = table_speed(pitch) * float(1.0 + np.clip(rng.normal(0, V_SPREAD), -2.5 * V_SPREAD, 2.5 * V_SPREAD))
+    else:
+        speed = float(v0)
     roll0 = float(rng.uniform(-4, 4))
     rail = float(rng.uniform(0.9, 1.2)) if rail_s is None else float(rail_s)
     t_launch = t0 + rail + rng.uniform(0, 1.0 / fps)
-    tl = _Timeline(rng, pitch, yaw, speed, roll0, t_launch)
+    if rest is None:
+        rest = "flat" if caddx else "buried"
+    if buried is None:
+        buried = rest == "buried"
+    tl = _Timeline(rng, pitch, yaw, speed, roll0, t_launch, drag_k=drag_k, drag_c=drag_c, rest=rest)
     land_xy = (float(tl.p_land[0]), float(tl.p_land[1]))
+    if rest == "flat":
+        # the camera looks ahead from where the dart came to rest: centre the close-up texture there
+        yf = math.radians(tl.yaw_f)
+        det_xy = (float(tl.pos_f[0] + 0.3 * math.cos(yf)), float(tl.pos_f[1] + 0.3 * math.sin(yf)))
+    else:
+        det_xy = land_xy
 
     origin = (-5.0, 6.0)
-    world, _lab = make_world(rng, res=map_res, origin=origin, landing_xy=land_xy, landing_class=landing_class)
+    world, _lab = make_world(rng, res=map_res, origin=origin, landing_xy=det_xy, landing_class=landing_class)
     A_world = map_affine(origin, map_res)
     land_px = ((land_xy[0] - origin[0]) / map_res, (origin[1] - land_xy[1]) / map_res)
-    detail, dn = make_detail_patch(world, land_px, map_res, landing_class, int(seed), rng)
+    det_px = ((det_xy[0] - origin[0]) / map_res, (origin[1] - det_xy[1]) / map_res)
+    detail, dn = make_detail_patch(world, det_px, map_res, landing_class, int(seed), rng)
     det_res = 1.2 / dn
-    A_detail = map_affine((land_xy[0] - 0.6, land_xy[1] + 0.6), det_res)
-    rend = _Renderer(world, A_world, detail, A_detail, (w, h), hfov_deg, rng)
+    A_detail = map_affine((det_xy[0] - 0.6, det_xy[1] + 0.6), det_res)
+    lens = None
+    chain = None
+    if caddx:
+        from grappstar.sim.analog import AnalogChain, LinkConfig
+        from grappstar.vision.lens import DEFAULT_HFOV_DEG, DartLens
+        lens = DartLens.equidistant(lens_hfov_deg or DEFAULT_HFOV_DEG, (w, h), "4:3",
+                                    source="simulator truth")
+        rend = _RayRenderer(world, A_world, detail, A_detail, lens, rng)
+        cfg = link if isinstance(link, LinkConfig) else LinkConfig.preset(link or "daylight")
+        chain = AnalogChain((w, h), cfg, rng)
+        latency = 0.06 if latency_s is None else float(latency_s)
+        dup_rate = 0.01 if dup_rate is None else float(dup_rate)
+    else:
+        rend = _Renderer(world, A_world, detail, A_detail, (w, h), hfov_deg, rng)
+        latency = 0.0 if latency_s is None else float(latency_s)
+        dup_rate = 0.0 if dup_rate is None else float(dup_rate)
 
     t_end = tl.t_landed + landed_s
     n_frames = int(math.floor((t_end - t0) * fps)) + 1
@@ -627,6 +783,9 @@ def render_flight(seed: int = 0, fps: float = 30, landing_class: str = "bedrock"
             bad[i] = "snow"
         for i in pick(3, tl.t_landed + 0.2, t_end):
             bad[int(i)] = ["blue_or_black", "torn", "snow"][int(rng.integers(0, 3))]
+    dups = set()
+    if dup_rate > 0:
+        dups = {i for i in range(1, n_frames) if rng.random() < dup_rate and i not in bad}
 
     soil = None
     if buried:  # a bit of dirt over the bottom edge once the nose is in the ground
@@ -635,40 +794,82 @@ def render_flight(seed: int = 0, fps: float = 30, landing_class: str = "bedrock"
         rows = np.arange(h, dtype=np.float32)[:, None]
         soil = np.clip((rows - edge[None, :]) / 3.0, 0, 1).astype(np.float32)
 
-    noise_bank = [rng.normal(0, 255 * noise, (h, w, 3)).astype(np.int16) for _ in range(6)] if noise > 0 else None
+    noise_bank = None
+    if not caddx and noise > 0:
+        noise_bank = [rng.normal(0, 255 * noise, (h, w, 3)).astype(np.int16) for _ in range(6)]
     frames: List[Frame] = []
     poses: Dict[int, tuple] = {}
     cache: Dict[str, np.ndarray] = {}
+
+    def scene_key(t):
+        if t <= t_launch:
+            return "rail"
+        if t >= tl.t_landed:
+            return "landed"
+        return None
+
+    def scene(t):
+        key = scene_key(t)
+        if key is not None and key in cache:
+            return cache[key]
+        img = rend.render(tl.pose(t))
+        if soil is not None and t >= tl.t_impact + 0.05:
+            dirt = np.full_like(img, (30, 45, 60))
+            img = cv2.blendLinear(dirt, img, soil, 1.0 - soil)
+        if key is not None:
+            cache[key] = img
+        return img
+
+    def caddx_field(tf):
+        from grappstar.sim.analog import to_linear
+        sc = scene(tf)
+        ae = chain.exposure_for(tf, sc)
+        if scene_key(tf) is None:
+            # motion blur: average sub-frames across the exposure (ends at the field time)
+            n_sub = int(min(5, max(1, round(ae["exposure_s"] / 0.003) + 1)))
+            if n_sub > 1:
+                acc = np.zeros((h, w, 3), np.float32)
+                for j in range(n_sub):
+                    acc += to_linear(scene(tf - ae["exposure_s"] * (j + 0.5) / n_sub))
+                lin = acc / n_sub
+            else:
+                lin = to_linear(sc)
+        else:
+            lin = to_linear(sc)
+        landed = tf >= tl.t_impact
+        return chain.composite(chain.field(lin, ae, landed), landed)
+
+    prev_img = None
     for i, t in enumerate(times):
         t = float(t)
         pose = tl.pose(t)
         poses[i] = (t,) + tuple(float(v) for v in pose)
-        if t <= t_launch:
-            key = "rail"
-        elif t >= tl.t_landed:
-            key = "landed"
+        if caddx:
+            fa = caddx_field(t)
+            fb = caddx_field(t + 0.5 / fps) if chain.cfg.interlace else None
+            img = chain.capture(chain.weave(fa, fb))
         else:
-            key = None
-        if key is not None and key in cache:
-            img = cache[key]
-        else:
-            img = rend.render(pose)
-            if t_launch < t < tl.t_launch + 0.2:   # launch motion blur along the image vertical
-                kb = max(3, int(h * 0.02) | 1)
-                img = cv2.blur(img, (1, kb))
-            img = cv2.GaussianBlur(img, (3, 3), 0.8)
-            if soil is not None and t >= tl.t_impact + 0.05:
-                dirt = np.full_like(img, (30, 45, 60))
-                img = cv2.blendLinear(dirt, img, soil, 1.0 - soil)
-            if key is not None:
-                cache[key] = img
-        if noise_bank is not None:
-            nb = noise_bank[int(rng.integers(0, len(noise_bank)))]
-            sy, sx = int(rng.integers(0, h)), int(rng.integers(0, w))
-            nb = np.roll(nb, (sy, sx), axis=(0, 1))
-            img = np.clip(img.astype(np.int16) + nb, 0, 255).astype(np.uint8)
-        else:
-            img = img.copy()
+            key = scene_key(t)
+            if key is not None and key in cache:
+                img = cache[key]
+            else:
+                img = rend.render(pose)
+                if t_launch < t < tl.t_launch + 0.2:   # launch motion blur along the image vertical
+                    kb = max(3, int(h * 0.02) | 1)
+                    img = cv2.blur(img, (1, kb))
+                img = cv2.GaussianBlur(img, (3, 3), 0.8)
+                if soil is not None and t >= tl.t_impact + 0.05:
+                    dirt = np.full_like(img, (30, 45, 60))
+                    img = cv2.blendLinear(dirt, img, soil, 1.0 - soil)
+                if key is not None:
+                    cache[key] = img
+            if noise_bank is not None:
+                nb = noise_bank[int(rng.integers(0, len(noise_bank)))]
+                sy, sx = int(rng.integers(0, h)), int(rng.integers(0, w))
+                nb = np.roll(nb, (sy, sx), axis=(0, 1))
+                img = np.clip(img.astype(np.int16) + nb, 0, 255).astype(np.uint8)
+            else:
+                img = img.copy()
         kind = bad.get(i)
         if kind == "snow":
             img = _snow(img, rng, rng.uniform(0.7, 1.0))
@@ -676,18 +877,32 @@ def render_flight(seed: int = 0, fps: float = 30, landing_class: str = "bedrock"
             img = _dropout(img, rng)
         elif kind == "torn":
             img = _tear(img, rng)
-        frames.append(Frame(img=img, t=t, idx=i, quality=None, bad=bool(mark_bad and kind is not None)))
+        if i in dups and prev_img is not None:
+            img = prev_img.copy()       # the capture dongle repeats the last frame (source sync hiccup)
+        prev_img = img
+        t_rx = t + latency + (float(rng.normal(0, 0.003)) if latency > 0 else 0.0)
+        frames.append(Frame(img=img, t=t_rx, idx=i, quality=None, bad=bool(mark_bad and kind is not None)))
 
     flightlog, offset = _make_flightlog(tl, rng, t0, t_end)
+    piv = pivot_x(pitch)
+    cam = {"fx": float(rend.K[0, 0]), "fy": float(rend.K[1, 1]), "cx": float(rend.K[0, 2]),
+           "cy": float(rend.K[1, 2]), "hfov_deg": hfov_deg, "w": w, "h": h}
+    if lens is not None:
+        cam = {"fx": float(lens.K[0, 0]), "fy": float(lens.K[1, 1]), "cx": float(lens.K[0, 2]),
+               "cy": float(lens.K[1, 2]), "hfov_deg": float(lens.hfov_deg()), "w": w, "h": h, "model": "fisheye"}
     truth = {
         "t_launch": t_launch, "t_stroke_end": tl.t_stroke_end, "t_impact": tl.t_impact, "t_landed": tl.t_landed,
         "landing_class": landing_class, "landing_xy_world": land_xy, "landing_px_map": land_px,
-        "range_m": float(math.hypot(land_xy[0], land_xy[1])), "launch_pitch_deg": pitch, "launch_yaw_deg": yaw,
-        "v0": speed, "launch_xyz": (0.0, 0.0, RAIL_H), "flightlog": flightlog, "clock_offset_s": offset,
+        "range_m": float(math.hypot(land_xy[0], land_xy[1])),
+        "range_pivot_m": float(math.hypot(land_xy[0] - piv, land_xy[1])), "pivot_x": piv,
+        "launch_pitch_deg": pitch, "launch_yaw_deg": yaw,
+        "v0": speed, "launch_xyz": (0.0, 0.0, tl.h_start), "flightlog": flightlog, "clock_offset_s": offset,
         "world_map": world, "map_res": map_res, "map_origin": origin,
-        "camera": {"fx": float(rend.K[0, 0]), "fy": float(rend.K[1, 1]), "cx": float(rend.K[0, 2]),
-                   "cy": float(rend.K[1, 2]), "hfov_deg": hfov_deg, "w": w, "h": h},
-        "poses": poses, "bad_idx": bad,
+        "camera": cam, "lens": lens.to_dict() if lens is not None else None, "profile": profile,
+        "rest": rest, "rest_xy_world": (float(tl.pos_f[0]), float(tl.pos_f[1])),
+        "rest_pitch_deg": float(tl.pitch_f), "video_latency_s": latency,
+        "link": dataclasses.asdict(chain.cfg) if chain is not None else None,
+        "poses": poses, "bad_idx": bad, "dup_idx": sorted(dups),
         "phases": [("ON_RAIL", t0, t_launch), ("LAUNCH", t_launch, tl.t_stroke_end),
                    ("FLIGHT", tl.t_stroke_end, tl.t_impact), ("IMPACT", tl.t_impact, tl.t_landed),
                    ("LANDED", tl.t_landed, t_end)],

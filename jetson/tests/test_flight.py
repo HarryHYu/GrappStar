@@ -45,14 +45,14 @@ def test_phases(seed, dropouts, use_log):
     assert r.phase_at(0.5 * (truth["t_launch"] + truth["t_impact"])) == "FLIGHT"
     # trajectory and range
     assert r.trajectory and r.range_m is not None
-    assert abs(r.range_m - truth["range_m"]) < RANGE_TOL * truth["range_m"]
+    assert abs(r.range_m - truth["range_pivot_m"]) < RANGE_TOL * truth["range_pivot_m"]
     assert r.trajectory[-1][3] == pytest.approx(0.0, abs=1e-6)
     json.dumps(r.to_dict())
     if use_log:
         assert abs(r.clock_offset_s - truth["clock_offset_s"]) < 0.05
         assert abs(r.launch_pitch_deg - truth["launch_pitch_deg"]) < 1.0
         assert abs(r.v0 - truth["v0"]) < 0.5
-        assert abs(r.range_m - truth["range_m"]) < 0.1 * truth["range_m"]
+        assert abs(r.range_m - truth["range_pivot_m"]) < 0.1 * truth["range_pivot_m"]
 
 
 def test_quality_flags_dropouts():
@@ -191,12 +191,11 @@ def _real_v_muzzle():
 
 
 def _sim_table(v, p_lo=6, p_hi=47):
-    from grappstar.sim.flight_video import STROKE_S, RAIL_H
+    """C3 style table from the launcher model (the simulator's physics: exit H_EXIT, X_EXIT ahead of the pivot)."""
     rows = []
     for p in range(int(p_lo), int(p_hi) + 1):
-        sl = v * STROKE_S / 2
-        ts, xs, zs = FL.ballistic(v, p, RAIL_H + sl * math.sin(math.radians(p)), dt=0.001)
-        r = float(xs[-1] + sl * math.cos(math.radians(p)))
+        ts, xs, zs = FL.ballistic(v, p, FL.H_EXIT, dt=0.001)
+        r = float(xs[-1] + FL.X_EXIT)
         rows.append({"pitch_deg": float(p), "v_muzzle": v, "range_m": [r] * 3, "t_flight_s": [float(ts[-1])] * 3,
                      "apex_m": [float(zs.max())] * 3})
     return Ballistics({"version": 1, "pitch_min": p_lo, "pitch_max": p_hi, "drag_n": [0.25, 0.5, 0.75],
@@ -224,8 +223,8 @@ def test_video_only_range_at_real_speed_with_aim(pitch, speed, seed):
     frames, truth = real_sim(seed, pitch, v)
     r = analyze_flight(frames, None, ballistics=_sim_table(v_nom), aim_pitch_deg=pitch)
     assert r.source == "video"
-    err = (r.range_m - truth["range_m"]) / truth["range_m"]
-    assert abs(err) < REAL_TOL, (r.range_m, truth["range_m"], r.v0, r.notes)
+    err = (r.range_m - truth["range_pivot_m"]) / truth["range_pivot_m"]
+    assert abs(err) < REAL_TOL, (r.range_m, truth["range_pivot_m"], r.v0, r.notes)
     assert r.launch_pitch_deg == pytest.approx(pitch)
     assert any("fused" in n for n in r.notes)
     assert 0.6 * v_nom - 1e-6 <= r.v0 <= 1.4 * v_nom + 1e-6          # searched only in the band around C3
@@ -237,8 +236,8 @@ def test_video_only_range_at_real_speed_without_aim(pitch, v, seed):
     v_nom, _, _ = _real_v_muzzle()
     frames, truth = real_sim(seed, pitch, v)
     r = analyze_flight(frames, None, ballistics=_sim_table(v_nom))
-    err = (r.range_m - truth["range_m"]) / truth["range_m"]
-    assert abs(err) < REAL_TOL, (r.range_m, truth["range_m"], r.v0, r.launch_pitch_deg, r.notes)
+    err = (r.range_m - truth["range_pivot_m"]) / truth["range_pivot_m"]
+    assert abs(err) < REAL_TOL, (r.range_m, truth["range_pivot_m"], r.v0, r.launch_pitch_deg, r.notes)
 
 
 @pytest.mark.parametrize("pitch,v,seed", [(8, 6.0, 0), (40, 8.0, 7)])
@@ -247,7 +246,7 @@ def test_imu_range_at_real_speed(pitch, v, seed):
     frames, truth = real_sim(seed, pitch, v)
     r = analyze_flight(frames, truth["flightlog"], ballistics=_sim_table(v_nom))
     assert r.source == "video+imu"
-    assert abs(r.range_m - truth["range_m"]) < 0.10 * truth["range_m"]
+    assert abs(r.range_m - truth["range_pivot_m"]) < 0.10 * truth["range_pivot_m"]
     assert abs(r.v0 - v) < 0.5
 
 
@@ -257,7 +256,7 @@ def test_old_estimator_failure_case_is_fixed():
     for seed in (0, 1):
         frames, truth = real_sim(seed, 10, 7.7)
         r = analyze_flight(frames, None, ballistics=_sim_table(v_nom), aim_pitch_deg=10)
-        assert abs(r.range_m - truth["range_m"]) < REAL_TOL * truth["range_m"], (seed, r.range_m, truth["range_m"])
+        assert abs(r.range_m - truth["range_pivot_m"]) < REAL_TOL * truth["range_pivot_m"], (seed, r.range_m, truth["range_pivot_m"])
 
 
 def test_range_calibrated_to_table():
@@ -278,10 +277,11 @@ def test_range_calibrated_to_table():
 
 
 def test_fuse_speed_recovers_model_speed():
-    from grappstar.sim.flight_video import RAIL_H
+    RAIL_H = FL.H_EXIT
     for v_true, p in ((6.0, 10.0), (7.4, 25.0), (8.0, 42.0)):
         ts, xs, zs, gam = FL._gamma_track(v_true, p, RAIL_H)
-        track = [(float(t), float(g)) for t, g in zip(ts[5::12], gam[5::12]) if t < ts[-1] - 0.05]
+        # one horizon sample per video frame (30 fps): the real flights last only 0.4 to 1.1 s
+        track = [(float(t), float(g)) for t, g in zip(ts[5::7], gam[5::7]) if t < ts[-1] - 0.05]
         v, d = FL.fuse_speed(p, RAIL_H, T_obs=float(ts[-1]) + 0.03, track=track, v_prior=7.4, launch_free=True)
         assert v == pytest.approx(v_true, abs=0.4), (v_true, p, v, d)     # the 7.4 prior pulls a little
         # time only (no track, no prior) at a steep pitch, where the flight time depends on the speed: a typical
@@ -302,7 +302,7 @@ def test_run_post_flight_passes_aim_and_table(tmp_path):
                                    ballistics=_sim_table(v_nom))
     fl = res["flight"]
     assert fl["launch_pitch_deg"] == pytest.approx(20.0)
-    assert abs(fl["range_m"] - truth["range_m"]) < REAL_TOL * truth["range_m"]
+    assert abs(fl["range_m"] - truth["range_pivot_m"]) < REAL_TOL * truth["range_pivot_m"]
     # auto: the repo table (real launcher) is loaded and used as the prior
     res = analysis.run_post_flight(frames, None, None, do_mosaic=False, aim_pitch_deg=20)
     assert any("table" in n for n in res["flight"]["notes"])
@@ -311,10 +311,9 @@ def test_run_post_flight_passes_aim_and_table(tmp_path):
 def test_fuse_speed_matches_analyze_flight_model():
     """The speed model starts the free flight where the dart leaves the rail, like tf() and the range model:
     flight times from that model give back the true speed (IMU-timed, the saturated-push path)."""
-    from grappstar.sim.flight_video import RAIL_H, STROKE_S
+    RAIL_H = FL.H_EXIT
     for v_true, p in ((7.0, 10.0), (7.0, 20.0), (8.0, 40.0)):
-        sl = v_true * STROKE_S / 2.0
-        T = float(FL.ballistic(v_true, p, RAIL_H + sl * math.sin(math.radians(p)))[0][-1])
+        T = float(FL.ballistic(v_true, p, RAIL_H)[0][-1])
         v, _ = FL.fuse_speed(p, RAIL_H, T_obs=T, T_sigma=0.02)
         assert v == pytest.approx(v_true, abs=0.08), (v_true, p, v)
 
@@ -323,7 +322,7 @@ def test_video_speed_stays_in_table_band_and_default_from_table():
     """A flight time that would need a 2 or 30 m/s launcher cannot give one when there is a C3 table."""
     v_nom, _, _ = _real_v_muzzle()
     tab = _sim_table(v_nom)
-    from grappstar.sim.flight_video import RAIL_H
+    RAIL_H = FL.H_EXIT
     for T in (0.05, 3.0):
         v, _ = FL.fuse_speed(20.0, RAIL_H, T_obs=T, v_prior=v_nom, lo=0.6 * v_nom, hi=1.4 * v_nom)
         assert 0.6 * v_nom - 1e-6 <= v <= 1.4 * v_nom + 1e-6
@@ -342,7 +341,7 @@ def test_imu_offset_from_launch_only_low_pitch(seed):
     frames, truth = real_sim(seed, 6, 6.0)
     r = analyze_flight(frames, truth["flightlog"], ballistics=_sim_table(v_nom))
     assert abs(r.clock_offset_s - truth["clock_offset_s"]) < 0.035
-    assert abs(r.range_m - truth["range_m"]) < 0.10 * truth["range_m"], (r.range_m, truth["range_m"], r.notes)
+    assert abs(r.range_m - truth["range_pivot_m"]) < 0.10 * truth["range_pivot_m"], (r.range_m, truth["range_pivot_m"], r.notes)
 
 
 def _garbage(fl, kind):
@@ -374,7 +373,7 @@ def test_garbage_flightlog_never_loses_the_result(kind):
     assert abs(r.t_launch - truth["t_launch"]) < PHASE_TOL
     if kind in ("dup", "unsorted", "short", "null", "string", "nan_t"):
         assert r.source == "video+imu"
-        assert abs(r.range_m - truth["range_m"]) < 0.10 * truth["range_m"]
+        assert abs(r.range_m - truth["range_pivot_m"]) < 0.10 * truth["range_pivot_m"]
     ev = imu_events(fl)
     if kind == "dup":
         assert ev["v0"] is not None or ev["v0_min"] is not None
@@ -390,7 +389,7 @@ def test_log_starting_after_launch_does_not_take_the_impact_for_the_launch():
     assert ev["rail_rpy"] is None and ev["v0"] is None and ev.get("no_push")
     assert ev["impact"] is not None and ev["impact"] > ev["launch"] + 0.3
     r = analyze_flight(frames, fl)
-    assert abs(r.range_m - truth["range_m"]) < 0.30 * truth["range_m"], (r.range_m, truth["range_m"], r.notes)
+    assert abs(r.range_m - truth["range_pivot_m"]) < 0.30 * truth["range_pivot_m"], (r.range_m, truth["range_pivot_m"], r.notes)
     assert any("no push" in n for n in r.notes)
 
 

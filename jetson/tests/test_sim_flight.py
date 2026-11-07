@@ -29,9 +29,9 @@ def test_frames_and_truth_keys(flight):
     assert np.all(np.diff(ts) > 0)
     assert frames[0].t < truth["t_launch"] < truth["t_impact"] < truth["t_landed"] < frames[-1].t
     assert 0.8 < truth["t_launch"] - frames[0].t < 1.4            # about 1 s on the rail
-    assert 0.9 < truth["t_impact"] - truth["t_launch"] < 1.8      # 1 to 1.5 s flight
+    assert 0.35 < truth["t_impact"] - truth["t_launch"] < 1.2     # real launcher: 0.37 to 1.08 s (C3 table)
     assert frames[-1].t - truth["t_landed"] >= 2.0                # still for 2 to 3 s
-    assert 5.0 < truth["range_m"] < 12.0
+    assert 2.4 < truth["range_pivot_m"] < 5.4                      # real launcher: 2.6 to 4.8 m (C3 table)
     assert all(f.quality is None and not f.bad for f in frames)   # raw capture by default
     assert len(truth["bad_idx"]) >= 4
     col, row = truth["landing_px_map"]
@@ -76,7 +76,7 @@ def test_flightlog_profile(flight):
     assert a[first + 1] > 4 * G
     assert abs(t[first] - truth["t_launch"]) < 0.03
     fl_mask = (t > truth["t_stroke_end"] + 0.03) & (t < truth["t_impact"] - 0.03)
-    assert fl_mask.sum() > 30 and a[fl_mask].max() < 0.4 * G      # near free fall, drag only
+    assert fl_mask.sum() > 10 and a[fl_mask].max() < 0.4 * G      # near free fall, drag only
     imp = (t >= truth["t_impact"]) & (t < truth["t_impact"] + 0.06)
     assert a[imp].max() > 6 * G
     late = t > truth["t_landed"] + 0.1

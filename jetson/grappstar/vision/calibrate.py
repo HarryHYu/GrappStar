@@ -156,6 +156,113 @@ def calibrate_intrinsics(images: Iterable[np.ndarray], pattern=DEFAULT_PATTERN,
             "uncalibrated": False}
 
 
+# ================================================================ dart camera (fisheye)
+
+def find_corners_any(img: np.ndarray, pattern=DEFAULT_PATTERN) -> Optional[np.ndarray]:
+    """Checkerboard corners, also on a fisheye or noisy analog picture: OpenCV's sector based detector first
+    (copes with strong bending near the edges), then the classic one."""
+    grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if img.ndim == 3 else img
+    try:
+        ok, corners = cv2.findChessboardCornersSB(grey, tuple(pattern),
+                                                  cv2.CALIB_CB_NORMALIZE_IMAGE | cv2.CALIB_CB_EXHAUSTIVE |
+                                                  cv2.CALIB_CB_ACCURACY)
+        if ok:
+            return corners.reshape(-1, 1, 2).astype(np.float32)
+    except Exception:
+        pass
+    return find_corners(img, pattern)
+
+
+def video_frames(path: str, every_s: float = 0.5, max_frames: int = 400) -> List[np.ndarray]:
+    """Frames of a recorded clip, one every every_s seconds (for `calibrate dart --video`)."""
+    cap = cv2.VideoCapture(path)
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    step = max(1, int(round(every_s * fps)))
+    out, k = [], 0
+    while len(out) < max_frames:
+        ok, img = cap.read()
+        if not ok:
+            break
+        if k % step == 0:
+            out.append(img)
+        k += 1
+    cap.release()
+    return out
+
+
+def _spread_ok(corners: Sequence[np.ndarray], size) -> float:
+    """Fraction of a 4x4 grid over the picture that the detected corners reach (coverage of the lens)."""
+    w, h = size
+    cells = set()
+    for c in corners:
+        for x, y in c.reshape(-1, 2):
+            cells.add((min(3, int(4 * x / w)), min(3, int(4 * y / h))))
+    return len(cells) / 16.0
+
+
+def calibrate_dart(images: Iterable[np.ndarray], pattern=DEFAULT_PATTERN, square_m: float = DEFAULT_SQUARE_M,
+                   max_views: int = 40):
+    """Fisheye intrinsics (OpenCV fisheye model: fx, fy, cx, cy, k1..k4) of the dart camera from checkerboard
+    pictures. Returns (vision.lens.DartLens, info dict with rms, views used, coverage). Raises ValueError with a
+    plain reason when the pictures are not good enough (fewer than 8 views, or the board never reached the edges).
+
+    The board must be seen at many places, especially near the corners of the picture where the fisheye bends
+    most, and at different tilts. README section 7b says how to record it."""
+    from .lens import DartLens
+    objp = board_points(pattern, square_m).reshape(-1, 1, 3).astype(np.float64)
+    obj, pts, size, n = [], [], None, 0
+    for img in images:
+        n += 1
+        if img is None:
+            continue
+        h, w = img.shape[:2]
+        if size is None:
+            size = (w, h)
+        elif size != (w, h):
+            raise ValueError("all calibration pictures must have the same size")
+        c = find_corners_any(img, pattern)
+        if c is not None:
+            obj.append(objp)
+            pts.append(c.astype(np.float64).reshape(-1, 1, 2))
+    if len(obj) < 8:
+        raise ValueError("checkerboard found in only %d of %d pictures: need 8 or more (move the board slowly, "
+                         "hold it flat, good light)" % (len(obj), n))
+    if len(obj) > max_views:            # keep views spread through the recording
+        keep = np.linspace(0, len(obj) - 1, max_views).astype(int)
+        obj = [obj[i] for i in keep]
+        pts = [pts[i] for i in keep]
+    cover = _spread_ok(pts, size)
+    w, h = size
+    f0 = (w / 2.0) / math.radians(67.5)
+    K = np.array([[f0, 0, (w - 1) / 2.0], [0, f0 * 0.9, (h - 1) / 2.0], [0, 0, 1]], np.float64)
+    D = np.zeros((4, 1))
+    flags = (cv2.fisheye.CALIB_RECOMPUTE_EXTRINSIC | cv2.fisheye.CALIB_FIX_SKEW |
+             cv2.fisheye.CALIB_USE_INTRINSIC_GUESS)
+    crit = (cv2.TERM_CRITERIA_COUNT + cv2.TERM_CRITERIA_EPS, 200, 1e-9)
+    used = list(range(len(obj)))
+    rms = None
+    for _ in range(6):                  # drop views OpenCV calls ill conditioned, then try again
+        try:
+            rms, K, D, _, _ = cv2.fisheye.calibrate([obj[i] for i in used], [pts[i] for i in used], size, K, D,
+                                                    flags=flags | cv2.fisheye.CALIB_CHECK_COND, criteria=crit)
+            break
+        except cv2.error as e:
+            import re
+            m = re.search(r"input array (\d+)", str(e))
+            if not m or len(used) <= 8:
+                rms, K, D, _, _ = cv2.fisheye.calibrate([obj[i] for i in used], [pts[i] for i in used], size, K,
+                                                        D, flags=flags, criteria=crit)
+                break
+            del used[int(m.group(1))]
+    lens = DartLens(K, D.ravel(), size, "fisheye", source="calibrated (checkerboard)", rms=float(rms))
+    info = {"rms": float(rms), "n_pictures": n, "n_found": len(obj), "n_used": len(used), "coverage": cover,
+            "hfov_deg": lens.hfov_deg(), "vfov_deg": lens.vfov_deg()}
+    if cover < 0.6:
+        info["warning"] = ("the board reached only %d percent of the picture: record again and move it into the "
+                           "corners, or the edges of the picture stay uncalibrated" % round(100 * cover))
+    return lens, info
+
+
 def save_json(d: dict, path: str) -> None:
     with open(path, "w") as f:
         json.dump(d, f, indent=1)
@@ -283,6 +390,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     m.add_argument("--height", type=float, required=True)
     m.add_argument("--intrinsics")
     m.add_argument("--out", default="rover_cam.json")
+    dc = sub.add_parser("dart", help="dart camera (Caddx Ant fisheye) from checkerboard pictures or a clip")
+    dc.add_argument("--images", nargs="*", default=[])
+    dc.add_argument("--video", help="recorded clip (one frame every 0.5 s is tried)")
+    dc.add_argument("--cols", type=int, default=DEFAULT_PATTERN[0])
+    dc.add_argument("--rows", type=int, default=DEFAULT_PATTERN[1])
+    dc.add_argument("--square", type=float, default=DEFAULT_SQUARE_M, help="square size in metres")
+    dc.add_argument("--out", default="calib/dartcam.json")
     d = sub.add_parser("default", help="write an uncalibrated Kiyo X model")
     d.add_argument("--height", type=float, default=0.4)
     d.add_argument("--pitch", type=float, default=10.0)
@@ -295,6 +409,26 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         res = calibrate_intrinsics(_read_images(args.images), (args.cols, args.rows), args.square)
         save_json(res, args.out)
         print(json.dumps(res, indent=1))
+        return 0
+    if args.cmd == "dart":
+        imgs = _read_images(args.images) if args.images else []
+        if args.video:
+            imgs += video_frames(args.video)
+        if not imgs:
+            print("give --images or --video", file=sys.stderr)
+            return 2
+        try:
+            lens, info = calibrate_dart(imgs, (args.cols, args.rows), args.square)
+        except ValueError as e:
+            print("calibration failed: %s" % e, file=sys.stderr)
+            return 1
+        lens.save(args.out)
+        print(json.dumps({"lens": lens.to_dict(), "info": info}, indent=1))
+        print("written %s: horizontal field of view %.1f deg, reprojection error %.2f px (under 1 px is good)"
+              % (args.out, info["hfov_deg"], info["rms"]))
+        if info.get("warning"):
+            print("WARNING: " + info["warning"])
+        print('Set "dart_cam_calib": "%s" in settings.json (serve reads it at start).' % args.out)
         return 0
     if args.cmd == "default":
         cam = default_camera(args.height, args.pitch, 0.0, args.width, args.img_height)

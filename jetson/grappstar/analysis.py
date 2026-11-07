@@ -79,7 +79,7 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
                     clock_offset_s: Optional[float] = None, aim_pitch_deg: Optional[float] = None,
                     drag_n: Optional[float] = None, ballistics: Any = "auto",
                     calibrate_range: bool = True, hfov_deg: float = 100.0,
-                    lens: str = "pinhole") -> Dict[str, Any]:
+                    lens: str = "pinhole", dart_lens=None, video_latency_s: float = 0.0) -> Dict[str, Any]:
     """Returns {"flight": dict|None, "terrain": dict, "mosaic": dict|None, "files": {...}, "errors": [...]}.
 
     aim_pitch_deg: the commanded rail pitch of this shot; drag_n: the launch clutch drag (default LIGHT 0.25 N, D49, D50);
@@ -87,7 +87,10 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
     a placeholder table is not used as a prior). They make the video-only range usable (review R1-C #6).
     calibrate_range=False: no scaling of the range to the C3 table (simulator worlds with their own physics).
     hfov_deg, lens: the dart camera's horizontal field of view and lens model ("pinhole" as in the simulator, or
-    "fisheye" for the Caddx Ant, about 150 deg diagonal: measure its horizontal FOV and set both)."""
+    "fisheye" for the Caddx Ant, about 150 deg diagonal: measure its horizontal FOV and set both).
+    dart_lens: a vision.lens.DartLens (the measured or default Caddx Ant model). When given, every frame is first
+    turned into the canonical 100 deg pinhole view the vision code was tuned on (hfov_deg and lens are then not
+    used). video_latency_s: capture delay of the frame time stamps (see vision.flight.analyze_flight)."""
     out: Dict[str, Any] = {"flight": None, "terrain": None, "mosaic": None, "files": {}, "errors": []}
     if outdir:
         os.makedirs(outdir, exist_ok=True)
@@ -97,8 +100,16 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
         if log:
             log(msg)
 
-    good = [f for f in frames if not getattr(f, "bad", False)]
     t0 = time.time()
+    if dart_lens is not None:
+        try:
+            from .vision.lens import CANON_HFOV_DEG, rectify_frames
+            frames = rectify_frames(frames, dart_lens)
+            hfov_deg, lens = CANON_HFOV_DEG, "pinhole"
+            out["lens"] = dart_lens.to_dict()
+        except Exception as e:
+            note(f"lens rectification failed ({type(e).__name__}: {e}): using the raw frames")
+    good = [f for f in frames if not getattr(f, "bad", False)]
     fres = None
     try:
         from .vision import flight
@@ -123,7 +134,7 @@ def run_post_flight(frames: List[Any], flightlog: Optional[dict], outdir: Option
         fres = flight.analyze_flight(frames, flightlog, clock_offset_s=clock_offset_s, ballistics=bal,
                                      drag_n=LIGHT_DRAG_N if drag_n is None else float(drag_n),
                                      aim_pitch_deg=aim_pitch_deg, calibrate_range=calibrate_range,
-                                     hfov_deg=hfov_deg, lens=lens)
+                                     hfov_deg=hfov_deg, lens=lens, video_latency_s=video_latency_s)
         out["flight"] = fres.to_dict()
     except Exception as e:
         note(f"flight analysis failed: {type(e).__name__}: {e}")

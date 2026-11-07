@@ -733,6 +733,13 @@ int main() {
   { fresh(); K.tu.imuNoseAxis = 1; float p = 20 * 3.14159f / 180; GRAV[0] = 9.81f * sinf(p); GRAV[2] = 9.81f * cosf(p); run(500);
     CHECK(K.orient(NOW) == O_NOSE_UP && K.startAuto(NOW) != nullptr, "nose up 20 deg (in the launcher cradle, say): refused 'nose up'");
     std::string st = statusJson(); CHECK(st.find("\"pitch_g\":20") != std::string::npos, "pitch_g in /status reads 20"); }
+  { fresh(); K.startAuto(NOW); bool pulsed = false, footOnly = true;   // dart-physics (8): kick pulses while the foot finishes
+    for (int i = 0; i < 4000 && K.seq != D_DEPLOY; i++) { run(5); if (K.seq == F_AFTER && P.mdir[KICK] > 0) pulsed = true; if (K.seq == F_AFTER && P.mdir[KICK] < 0) footOnly = false; }
+    CHECK(pulsed && footOnly && logged("kick pulsing") && P.mdir[KICK] == 0, "kick down: it pulses on (out only) while the foot finishes, off when the pods start");
+    run(25000); CHECK(K.seq == DONE, "...and the anchor completes"); }
+  { fresh(); P.soilAt = 600; K.millDurMs = 70000; K.millEndT = NOW; run(100);   // after a 70 s milling deploy the motors rest 60 s
+    const char* q = K.startAuto(NOW); CHECK(q && std::string(q).find("motors hot") == 0, "after a pods step over 60 s, /auto waits 60 s ('motors hot')");
+    run(60000); CHECK(!K.startAuto(NOW), "...and runs after the rest"); }
   // anchor motion while ANCHORED
   { fresh(); K.startAuto(NOW); run(25000); CHECK(K.seq == DONE && !K.moving, "anchored and still: moving false");
     float r = 4 * 3.14159f / 180; GRAV[1] = 9.81f * sinf(r); GRAV[2] = 9.81f * cosf(r); run(800);

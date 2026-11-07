@@ -23,7 +23,7 @@ ok:   auto accepted from IDLE
           0 ms  boot, motors off
           0 ms  auto: kick swing
        3170 ms  auto: foot touches, foot auger on
-       5330 ms  auto: kick down, foot finishing
+       5330 ms  auto: kick down, foot finishing (kick pulsing)
        6830 ms  auto: deploy with drills spinning
        9290 ms  auto: pods down, drills finishing
       12290 ms  auto: anchored, holding (worms self-lock)
@@ -354,6 +354,10 @@ ok:   roll 75 deg: on its side, refused
 ok:   nose down 30 deg (window -25..+15): refused 'nose down'
 ok:   nose up 20 deg (in the launcher cradle, say): refused 'nose up'
 ok:   pitch_g in /status reads 20
+ok:   kick down: it pulses on (out only) while the foot finishes, off when the pods start
+ok:   ...and the anchor completes
+ok:   after a pods step over 60 s, /auto waits 60 s ('motors hot')
+ok:   ...and runs after the rest
 ok:   anchored and still: moving false
 ok:   anchored, tilted 4 deg by the tow: moving true, event 'anchor moving'
 ok:   /video?on=0 switches it off
@@ -363,4 +367,4 @@ ok:   status JSON has video, batt, batt_V, orient, tilt_deg and stays under 1000
 == whole mission phases
 ok:   IDLE > ARMED > FLIGHT > ANCHORING > ANCHORED > RELEASING > IDLE
 
-302 checks, ALL PASS
+306 checks, ALL PASS

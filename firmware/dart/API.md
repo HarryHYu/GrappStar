@@ -18,7 +18,7 @@ Refusal reasons: `in flight`, `busy` (a sequence owns the motors), `already anch
 `no current sensor` (INA219 missing or lost), `no IMU` (BNO085 missing or silent), `stalled: release the key first`, `hold limit: release the key first`,
 `fault latched: send stop first`, `both directions held`, `sent before a stop`,
 `battery low`, `anchored: release first`, `legs out: release first`, `unknown key`, and for `/flightlog` `busy (motors running)`, `armed (disarm first)`, `in flight`.
-v4.1 adds, for `/auto`: `not upright: on its side (force=1 tries anyway)`, `not upright: upside down (...)`,
+v4.1 adds, for `/auto`: `motors hot after a long milling: wait 60 s`, `not upright: on its side (force=1 tries anyway)`, `not upright: upside down (...)`,
 `not upright: nose down (...)`, `not upright: nose up (...)`, and `battery low: charge it (release still works)`.
 
 **One request at a time.** If a client opens a connection and never sends a request (a browser tab closing mid
@@ -81,7 +81,7 @@ JSON, always 200. Example (written by the host test to `test/out/status_anchorin
 
 `seq` values: `idle`, `kick swing`, `kick + foot planting`, `foot finishing`, `deploy + drills`, `drills finishing`,
 `anchored`, `aborted`, `release: drills out`, `release: drills out + pods up`, `release: foot out`,
-`release: kick back + foot out`, `released`, and v4.1 `levelling: pods to 25 deg, drills off`. The anchor names are the same as v3. **Prefer `phase` over `seq` text.**
+`release: kick back + foot out`, `released`, and v4.1 `levelling: pods to 20 deg, drills off`. The anchor names are the same as v3. **Prefer `phase` over `seq` text.**
 
 ### GET /key?c=&lt;key&gt;&ms=&lt;run ms&gt;
 
@@ -160,8 +160,8 @@ spinning, drills finishing, `anchored`.
 v4.1 (dart-physics findings, 7 Nov 2026):
 - **Orientation gate.** `orient` `side`, `inverted`, `nose_down` or `nose_up`: refused (`not upright: ...`), nothing moves.
   The rover should reel in and fire again. `/auto?force=1` skips this check (the IMU axes are wrong, or the video shows
-  it upright). `leaning` (roll 12 to 60 deg, the usual rest on hard ground: the dart leans about 38 deg on a pod): the
-  pods first swing about 25 deg with the drills off (`seq` `levelling`, 0.83 s, then 0.6 s settle), which levels the
+  it upright). `leaning` (roll 10 to 60 deg, the usual rest on hard ground: the dart leans about 38 deg on a pod): the
+  pods first swing about 20 deg with the drills off (`seq` `levelling`, 0.65 s, then 0.6 s settle), which levels the
   hull; still not upright after that is fault `NOT_UPRIGHT`. Orientation unknown (IMU silent): no gate.
 - **Battery critical** (`batt` `critical`): refused (`battery low: ...`), so the dart never anchors without the charge to
   let go. `/release` always runs.
@@ -170,8 +170,12 @@ v4.1 (dart-physics findings, 7 Nov 2026):
   to the stall reading, at most one 0.55 s cycle long) is soil: the deploy pauses 0.2 s while the drills keep cutting,
   then pushes again (event `pods in soil, milling`). No estimated travel gained for 5 s ends the step: taken as the stop
   when past 60 % (`pods down (no progress, past 60 %: the stop)`), else warning `pods_time_limit` (firm soil). The
-  pods step is limited to 6 s until milling starts, 30 s with milling (whole sequence 55 s). With the travel unknown
+  pods step is limited to 6 s until milling starts, 150 s with milling (loam takes about 90 s; whole sequence 180 s).
+  After a pods step over 60 s the next `/auto` is refused for 60 s (`motors hot after a long milling: wait 60 s`). With the travel unknown
   (after a reset or hand moves with other motors) the first stall is the stop, as in v4.
+- **Kick pulsing.** When planting ends on a kick stall, the kick pushes again in pulses (0.4 s on, 0.2 s off) while the
+  foot finishes (in loam the kick stalls a few degrees short of its rest; dart-physics). Event `kick down, foot
+  finishing (kick pulsing)`.
 - **Drill relax.** When the drill pair, read alone in the worm's pause, is over 85 % of its stall line, the deploy pauses
   0.5 s so the cut relaxes (event `drills near stall, deploy paused 0.5 s`).
 - Known limit: a soil stall past about 85 % of the estimated travel (less up to one cycle, so possibly from about 50 %)
@@ -185,7 +189,7 @@ v4.1 (dart-physics findings, 7 Nov 2026):
 - Accepted from `IDLE`, `ARMED`, `LANDED` and `FAULT` (it clears the fault).
 - Timings: kick swing until contact (over 60 mA for 150 ms after 250 ms start-up; kick time limit 15.5 s, then
   `KICK_TIMEOUT`); kick + foot planting until the housing stalls (or 6 s); foot finishing 1.5 s; pods down until they
-  stall (time limit 6 s, 30 s once milling started, then it carries on, no fault); drills finishing 3 s. Whole sequence limit 55 s (v4.1).
+  stall (time limit 6 s, 150 s once milling started, then it carries on, no fault); drills finishing 3 s. Whole sequence limit 180 s (v4.1).
 - A single motor that draws no current faults the sequence (`NO_CURRENT`). The anchor's pods step starts with the
   deploy worm alone for 0.3 s to check it draws current (open wire: `NO_CURRENT`). In the release the drills keep
   unscrewing from the start of the pods lift (the augers may still be in soil).
@@ -251,7 +255,7 @@ of `/auto` (pods up before the kick comes back), because the kick goes down firs
 - Refused in `FLIGHT`, while anchoring (`busy`, send `/stop` first), and without the INA219.
 - A repeated `/release` while releasing is accepted and does not restart it.
 - Faults: `DRILL_JAM`, `FOOT_JAM`, `KICK_JAM` (kick stalled before 60 % of the way back), `NO_CURRENT`, `KICK_TIMEOUT`
-  (15 s), `SEQ_TIMEOUT` (55 s), plus `OVERCURRENT`, `LOW_RAIL`, `CURRENT_SENSOR`. All motors stop on any fault.
+  (15 s), `SEQ_TIMEOUT` (180 s), plus `OVERCURRENT`, `LOW_RAIL`, `CURRENT_SENSOR`. All motors stop on any fault.
 
 ### GET /arm?on=1&auto=1
 
@@ -339,7 +343,7 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 |---|---|---|
 | `OVERCURRENT` | motor current over 2000 mA for 10 ms while a motor runs (or the INA219 range overflowed) | all motors off |
 | `KICK_TIMEOUT` | kick found no ground in 15.5 s (anchor), or no stow stop in 15 s (release), or a kick timer ran out while current reads were failing | all off |
-| `SEQ_TIMEOUT` | anchor or release sequence over 55 s (v4.1; was 35 s) | all off |
+| `SEQ_TIMEOUT` | anchor or release sequence over 180 s (v4.1; was 35 s) | all off |
 | `NO_CURRENT` | a lone motor in a sequence drew under 40 % of its free current for 0.5 s: open wire or shorted output | all off |
 | `DRILL_JAM`, `FOOT_JAM` | stalled while unscrewing in release | all off |
 | `CURRENT_SENSOR` | 3 failed INA219 reads in a row during a sequence | all off; manual keys still work on timers |
@@ -347,7 +351,7 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 | `KICK_JAM` | kick stalled near stowed at the start of `/auto`, or part way out with no contact (jam in air), or in `/release` before its travel back covered 60 % of its travel out | all off |
 | `PODS_JAM` | in `/release` the pods stalled before they came 60 % of their estimated way back (jammed part way up) | all off |
 | `NO_GROUND` | in `/auto` the kick swung (almost) its whole travel and stalled at its own end stop without touching ground (dart on its back or side) | all off; `/release` stows the kick |
-| `NOT_UPRIGHT` | v4.1: still on its side, upside down or nose steep after the levelling step | all off; the pods are about 25 deg out: `/release` |
+| `NOT_UPRIGHT` | v4.1: still on its side, upside down or nose steep after the levelling step | all off; the pods are about 20 deg out: `/release` |
 | `BROWNOUT` | the dart rebooted from a brownout | booted with motors off |
 | `WATCHDOG` | the dart rebooted from a crash or the 2 s safety-task watchdog | booted with motors off |
 
@@ -387,11 +391,12 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 ## Changes from v4 to v4.1 (7 Nov 2026, for client authors)
 
 - New status fields `video`, `batt`, `batt_V`, `orient`, `tilt_deg`, `roll_g`, `pitch_g`, `soil_mA`, `moving`; new
-  `seq` `levelling: pods to 25 deg, drills off`; new fault `NOT_UPRIGHT`; new endpoint `/video?on=`; `/auto?force=1`.
+  `seq` `levelling: pods to 20 deg, drills off`; new fault `NOT_UPRIGHT`; new endpoint `/video?on=`; `/auto?force=1`.
 - New `/auto` refusals `not upright: ...` and `battery low: ...` (409). Treat `not upright` like `NO_GROUND`: retrieve
   and fire again (or `force=1` if the video shows the dart upright).
-- Anchoring can take up to 55 s (milling deploy, 30 s pods step): wait at least 60 s, better 90 s, for `ANCHORED`.
-- Release can rock the drills and mill the pods up (up to about 50 s).
+- Anchoring can take up to 180 s (milling deploy up to 150 s, loam about 90 s): wait 200 s for `ANCHORED`.
+- Release can rock the drills and mill the pods up (limit 180 s).
+- New refusal `motors hot after a long milling: wait 60 s` (after a pods step over 60 s).
 - Flight detection: push-over 200 ms, first impact 250 ms after launch (was 400 / 400).
 - `fw` is `kedge-dart-v4.1`: compare with `startswith("kedge-dart-v4")`.
 

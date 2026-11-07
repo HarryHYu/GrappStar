@@ -837,9 +837,9 @@ static void scriptStep() {
       if (K.anchoring() && ET - SS_T0 < 40000) { NEXT_SCRIPT = ET + 100; break; }
       CHECKS[10]++;
       // soil episodes: the documented limit (API.md) is that a soil stall past about 85 % of the estimated travel (less up to
-      // one 0.55 s cycle) is taken as the down stop, so there the pods must be at least 60 % out
+      // one 0.55 s cycle, so from about 50 %) is taken as the down stop, so there the pods must be at least 50 % out
       // (with the pods travel unknown, after hand moves, the first stall is the stop: any soil stall then ends the step)
-      { bool podsOut = P.deploy >= P.deployEnd || (P.soilAt >= 0 && (P.deploy >= 0.6 * P.deployEnd || !K.deployKnown));
+      { bool podsOut = P.deploy >= P.deployEnd || (P.soilAt >= 0 && (P.deploy >= 0.5 * P.deployEnd || !K.deployKnown));
       if (K.seq == DONE && !K.fault && P.kick >= P.kickLand && podsOut) {
         ST.nomAnch++; SS = S_GAP; RAND_MODE = M_GAP; NEXT_RAND = ET + R.i(100, 1000); NEXT_SCRIPT = ET + R.i(300, 3000);
       } else {

@@ -5,6 +5,22 @@ Checked against firmware `kedge-dart-v4` at commit 17beeb3 (3 Nov 2026). Rows M5
 J3, O4 and O6 were updated for the afternoon fixes (see the status table at the end). If `kedge_logic.h` changes,
 recheck the rows that name a threshold.
 
+## v4.1 additions (7 Nov 2026)
+
+| # | Event | Firmware detects | Firmware does | Jetson / Harry | Check |
+|---|---|---|---|---|---|
+| V1 | Dart lands on its side, upside down, nose steep | BNO085 gravity while still (`orient`) | auto on landing not started; `/auto` refused `not upright: ...` | retrieve and fire again, or `/auto?force=1` if the video shows it upright | test_logic, sim test 13, Jetson client test 9 |
+| V2 | Dart leans on a pod (roll 10 to 60 deg, needs `imuNoseAxis`) | `orient` `leaning` | pods 20 deg first with the drills off, re-read; still not upright: `NOT_UPRIGHT` | as V1 | test_logic |
+| V3 | Pods stall in soil before the stop | deploy stall before 85 % of the estimated travel | milling: deploy pauses 0.2 s, drills keep cutting, push again; 5 s without progress ends the step | `soil_mA`, `warnings` | test_logic, fuzz soil episodes, sim test 14 |
+| V4 | IMU axes set wrong | `orient` wrong | can refuse a good landing | BENCH_TEST steps 2 and 7; `force=1` | code |
+| V5 | Battery near empty at rest | INA219 bus voltage, no motor for 1 s: under 6.8 V `low`, 6.4 V `critical` | critical: `/auto` refused, video off; `/release` still runs | charge | test_logic, sim test 13 |
+| V6 | Drills stuck in soil on release | drill stall unscrewing | rock in 0.3 s and out, up to 5 times, then `DRILL_JAM` | as M16 | test_logic, sim test 5 |
+| V7 | Pods held in soil on release | stall before 60 % back | milled up; `PODS_JAM` after 5 s without progress | as M14 | test_logic |
+| V8 | Anchor drags under the tow | tilt over 2 deg or \|a\| off 1 g by 0.15 g for 200 ms while `ANCHORED` | `moving` true in `/status`, event `anchor moving` | stop the tow | test_logic |
+| V9 | Long milling heats the motors | pods step over 60 s | next `/auto` waits 60 s (`motors hot`) | wait | test_logic |
+| V10 | Short real flight (0.37 s at 6 deg) | impact from 250 ms after launch | landing by impact (v4 missed it: 400 ms) | none | test_logic, sim test 13, fuzz flights from 0.3 s |
+| V11 | Reset at boot (foot pins D6/D7 are UART0) | none | the foot may twitch for about 25 ms (boot text) | harmless | datasheet |
+
 ## How to read this
 
 - Every time and threshold comes from `kedge_dart/kedge_logic.h` (`struct Tuning`, `struct Flight`) or `kedge_dart.ino`.

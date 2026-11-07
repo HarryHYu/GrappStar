@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Dart wire cut list v4 (DRV8833 #3 removed) and wiring diagram.
 
-Same length rule as kedge/wires.py (Manhattan route x 1.15 + 30 mm, rounded up to 5 mm) on the v30 geometry
-(kedge/out30, the default build). Writes into firmware/dart/wiring/:
+Same length rule as kedge/wires.py (Manhattan route x 1.15 + 30 mm, rounded up to 5 mm). v4.1: when dart-cad's v31
+routed list exists (kedge/pack_v31/wire_cut_list.csv, made by kedge/wires.py along the v31 wire passages), wires 1 to
+50 take their names, lengths and routes from it; wire 51 (optional video switch) is estimated on kedge/out31.
+Writes into firmware/dart/wiring/:
   wire_cut_list.csv, wires.json, changes_from_v29.csv, wiring.dot, wiring.svg, wiring.png
 Usage: python3 firmware/dart/tools/wires_v4.py [path/to/kedge/out30] [outdir]
 """
@@ -11,7 +13,7 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
-OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "kedge", "out30")
+OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "kedge", "out31" if os.path.exists(os.path.join(ROOT, "kedge", "out31", "xiao.npz")) else "out30")
 PK = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, "..", "wiring")
 os.makedirs(PK, exist_ok=True)
 P = json.load(open(os.path.join(OUT, "parts.json")))["P"]
@@ -109,6 +111,19 @@ w("DRV#2 BOUT2", "Foot N20 - (black)", "black", "26 AWG", L(X["drv2"], X["foot_h
 w("XIAO D10", "Video MOSFET gate (AO3400A, through a 100 ohm resistor)", "white", "28 AWG", L(X["xiao_pins"], X["vtx"]),
   "OPTIONAL video switch (WIRING.md): the MOSFET sits in wire 19 near the VTX (source to the MP1584 OUT- side, drain to the VTX GND side), 100 k from gate to source", "")
 
+# v31 routed lengths from dart-cad (same 50 wires, same order; checked by colour and gauge)
+V31 = os.path.join(ROOT, "kedge", "pack_v31", "wire_cut_list.csv")
+ROUTE = {}
+if os.path.exists(V31):
+    rows = list(csv.reader(open(V31)))[1:]
+    for r in rows:
+        n = int(r[0])
+        if n <= 50 and W[n - 1][3] == r[3] and W[n - 1][4] == r[4]:
+            W[n - 1][1], W[n - 1][2], W[n - 1][5] = r[1], r[2], int(r[5])
+            ROUTE[n] = r[7] if len(r) > 7 else ""
+        elif n <= 50:
+            print("warning: v31 wire", n, "does not match (colour/gauge); kept the v4 row")
+
 # v29 list (kedge/CLAUDE.md Appendix A) for the change table
 V29 = {}
 try:
@@ -121,8 +136,8 @@ except Exception as e:  # noqa
 
 with open(os.path.join(PK, "wire_cut_list.csv"), "w", newline="") as f:
     cw = csv.writer(f)
-    cw.writerow(["#", "from", "to", "colour", "gauge", "cut length mm", "note", "v29 #"])
-    cw.writerows(W)
+    cw.writerow(["#", "from", "to", "colour", "gauge", "cut length mm", "note", "v29 #", "route (v31 passages)"])
+    cw.writerows([r + [ROUTE.get(r[0], "")] for r in W])
 
 changes = []
 used = {r[7] for r in W}

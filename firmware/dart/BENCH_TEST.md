@@ -171,7 +171,7 @@ armed dart can start the auto sequence by itself after a knock.
 1. **Battery unplugged.** Legs stowed. Lay the dart on the damp soil, belly down, nose clear of the tray wall. Plug in.
 2. Page: press `AUTO anchor`. Watch the status: kick swing, foot touches, kick + foot planting, foot finishing,
    deploy + drills, drills finishing, `ANCHORED`. In firm soil you will see `pods in soil, milling` and the pods go down
-   in pulses (this can take up to 30 s); write down how long the pods step took and the `soil_mA` value from the status. Write the time of each event from the event lines on the web page
+   in pulses (this can take up to 150 s, loam about 90 s); write down how long the pods step took and the `soil_mA` value from the status. Write the time of each event from the event lines on the web page
    (not the Serial Monitor: no USB while the battery is in). Note the working currents for `loadMa`.
 3. Pull the tether gently by hand: the dart should hold.
 4. Press `RELEASE`: drills out, pods up, foot out, kick back, `released`. The legs end stowed. Before lifting the dart

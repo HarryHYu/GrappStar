@@ -20,7 +20,7 @@ for seed in 20261103 1; do
 done
 # episodes that once failed in full runs, replayed alone (v4.1: seed 8 episode 4747, a refused press of the other
 # direction restarted the 2 s hold cap; seeds 3, 5 and 1: test-side classification of documented limits)
-for ep in "8 4748 4747" "3 741 740" "5 6168 6167" "1 1774 1773" "3 5452 5451" "8 2822 2821" "2 572 571"; do
+for ep in "8 4748 4747" "3 741 740" "5 6168 6167" "1 1774 1773" "3 5452 5451" "8 2822 2821" "2 572 571" "1 5683 5682" "1 3730 3729"; do
   if ! ./fuzz_logic $ep > out/fuzz_replay.log 2>&1; then tail -30 out/fuzz_replay.log; echo "FUZZ REPLAY FAILED ($ep)"; exit 1; fi
 done
 echo "fuzz replays of past failures: PASS"

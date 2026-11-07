@@ -94,7 +94,7 @@ aborted and the dart disarms when the upload starts.
   dart is not armed or in flight, and no OTA upload runs, it restarts itself.
 - v4.1: `/auto` refuses a dart that is on its side, upside down or nose steep (`/auto?force=1` tries anyway), and
   refuses when the battery is critical (6.4 V at rest; `/release` always runs). In soil the pods are milled down in
-  pulses (up to 30 s). Released drills that stick are rocked before `DRILL_JAM`.
+  pulses (up to 150 s; loam about 90 s). Released drills that stick are rocked before `DRILL_JAM`.
 - **Power on with the legs stowed.** The firmware keeps track of the kick's travel from power-on to tell a jammed kick
   from one that is already down or stowed.
 

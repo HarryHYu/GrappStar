@@ -4,6 +4,19 @@ Worker `fw-dart`: KEDGE dart firmware v4 and the dart electronics docs. Everythi
 Firmware `kedge-dart-v4`. Nothing has run on real hardware yet: all verification is on the PC (logic tests, fuzz test,
 the real sketch in a host simulator, the web page in headless Chromium, the Jetson's own client) plus compiles.
 
+## v4.1 (dart-fw, 7 Nov 2026)
+
+What changed and why, in short (details in API.md "Changes from v4 to v4.1" and the commit log):
+- Flight windows for the real launcher (0.37 s flights): push-over 200 ms, first impact 250 ms after launch.
+- Orientation gate from the BNO085 (side, upside down, nose steep refused; leaning levelled by the pods first), battery
+  state at rest (critical refuses `/auto`, release always runs), optional video power switch on D10 (`/video`).
+- dart-physics anchoring findings: milling deploy in soil (up to 150 s, heat rest 60 s), drill relax, kick pulsing while
+  the foot finishes, release rocking and milling, `soil_mA`, `moving` while anchored.
+- Fixed: a refused press of the other direction could restart a motor's hold cap (fuzz seed 8).
+- `kedge/fw` is now a synced copy of this folder (`tools/sync_kedge_fw.sh`, checked by `run_tests.sh`).
+- Wire cut list on the v31 routes from dart-cad, wire 51 optional.
+- Compiles on esp32 core 3.3.12 and 2.0.17 with no sketch warnings.
+
 ## Done
 
 | Task | Where |
@@ -54,7 +67,11 @@ the real sketch in a host simulator, the web page in headless Chromium, the Jets
 
 ## Verified
 
-TEST_OUTPUT_PLACEHOLDER
+v4.1 (7 Nov 2026): `test/run_tests.sh` passes: 306 logic checks, fuzz (2 seeds x 1000 episodes, plus replays of the
+nine episodes that once failed in full 8000-episode runs), 14 simulator HTTP tests, 10 Jetson-client tests, 12 web page
+checks in headless Chromium. Full fuzz runs on 8 seeds and the system test scenarios nominal, ref_nominal,
+dart_never_anchors, dart_drags20, dart_wifi_drop, ref_dart_wifi_drop are recorded in the commit log of that day.
+Compile: esp32 core 3.3.12 and 2.0.17, no warnings from the sketch.
 
 ## Review rounds and what they found (all confirmed findings fixed unless listed as open)
 

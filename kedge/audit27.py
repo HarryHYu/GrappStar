@@ -113,7 +113,7 @@ dep.update(FIXED)
 ground = {}
 for n, (v, f) in dep.items():
     zmin = float(v[:, 2].min()); ground[n] = round(zmin - G, 2)
-augers = [n for n in dep if any(k in n for k in ("auger", "_shaft", "nyloc", "_leg_L_nut", "_leg_R_nut")) and n not in ("kick_shaft", "deploy_shaft")]
+augers = [n for n in dep if any(k in n for k in ("auger", "_shaft", "nyloc", "_leg_L_nut", "_leg_R_nut", "_leg_L_tip", "_leg_R_tip")) and n not in ("kick_shaft", "deploy_shaft")]
 gbad = {n: d for n, d in ground.items() if n not in augers and d < -0.3}
 rep["ground_below"] = gbad
 rep["auger_depth_mm"] = {n: round(-ground[n], 1) for n in augers}

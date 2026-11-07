@@ -4,3 +4,6 @@ __pycache__/
 node_modules/
 kedge/work/meas/
 .claude/worktrees/
+kedge/work/*.log
+kedge/work/*.time
+kedge/work/[a-z]31/

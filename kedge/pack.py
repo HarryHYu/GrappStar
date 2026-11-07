@@ -11,6 +11,18 @@ ORIENT = {   # rotation that puts each part in its print pose (z up from the bed
     "tray": np.eye(4), "kick_leg": RM(-math.pi / 2, X), "drill_leg_L": np.eye(4), "drill_leg_R": np.eye(4),
     "drill_leg_L_auger": RM(-math.pi / 2, Y), "drill_leg_R_auger": RM(-math.pi / 2, Y), "foot_auger": np.eye(4),
     "coupler_L": RM(math.pi / 2, X), "coupler_R": RM(-math.pi / 2, X),
+    "pod_cap_L": RM(math.pi / 2, X), "pod_cap_R": RM(-math.pi / 2, X),
+}
+ORIENT = {k: v for k, v in ORIENT.items() if k in PP}          # older builds have no pod caps
+SUPPORT = {   # what the slicer must do (Bambu Studio, PLA, 0.4 nozzle, 0.2 layers)
+    "hull_top": "tree supports ON, build plate only: the inner roof of the half shell (about 28 mm wide strip); deploy horns and fold lugs print without (45 deg undersides)",
+    "hull_bottom": "tree supports ON, build plate only: the inner roof of the half shell",
+    "nose": "none (tip down, cone walls under 45 deg)", "tail_cap": "none (end face down; the socket windows bridge 8 mm)",
+    "tray": "none (decks bridge 26 mm between discs; enable 'thick bridges')", "kick_leg": "none (hub face and foot housing outboard face on the bed)",
+    "drill_leg_L": "none (flat-bottomed head, D-bore roof bridges 5 mm)", "drill_leg_R": "none (flat-bottomed head, D-bore roof bridges 5 mm)",
+    "drill_leg_L_auger": "none (45 deg lower flight flank); brim 5 mm, the base is small", "drill_leg_R_auger": "none (45 deg lower flight flank); brim 5 mm, the base is small",
+    "foot_auger": "none; brim 5 mm", "coupler_L": "none; brim 3 mm, print standing", "coupler_R": "none; brim 3 mm, print standing",
+    "pod_cap_L": "none", "pod_cap_R": "none",
 }
 QTY = {k: 1 for k in ORIENT}
 def load(n):
@@ -33,7 +45,7 @@ def overhang(m):
 for n, m in oriented.items():
     PP[n]["overhang_mm2_gt45"] = round(overhang(m), 1)
 # plates (X2D bed: use a 240 x 240 safe area)
-PLATES = {"plate_A_hull": ["hull_top", "hull_bottom", "nose", "tail_cap", "coupler_L", "coupler_R"],
+PLATES = {"plate_A_hull": [n for n in ["hull_top", "hull_bottom", "nose", "tail_cap", "coupler_L", "coupler_R", "pod_cap_L", "pod_cap_R"] if n in ORIENT],
           "plate_B_legs_tray": ["tray", "kick_leg", "drill_leg_L", "drill_leg_R", "drill_leg_L_auger", "drill_leg_R_auger", "foot_auger"]}
 plate_info = {}
 for pn, names in PLATES.items():
@@ -49,7 +61,8 @@ for pn, names in PLATES.items():
 # STEP set
 for n in ORIENT:
     if os.path.exists(f"{OUT}/{n}.step"): shutil.copy(f"{OUT}/{n}.step", f"{PK}/{n}.step")
-json.dump(dict(parts={n: {k: PP[n].get(k) for k in ("print_bbox", "bed_contact_mm2", "overhang_mm2_gt45", "orient", "volume_cm3")} for n in ORIENT},
+for n in ORIENT: PP[n]["supports"] = SUPPORT.get(n, "")
+json.dump(dict(parts={n: {k: PP[n].get(k) for k in ("print_bbox", "bed_contact_mm2", "overhang_mm2_gt45", "orient", "volume_cm3", "supports")} for n in ORIENT},
                plates=plate_info), open(f"{PK}/print_report.json", "w"), indent=1)
 print(json.dumps(plate_info, indent=1))
 for n in ORIENT: print(f"{n:20s} bbox {PP[n]['print_bbox']}  bed {PP[n]['bed_contact_mm2']:7.1f} mm2  overhang>45 {PP[n]['overhang_mm2_gt45']:7.1f} mm2")

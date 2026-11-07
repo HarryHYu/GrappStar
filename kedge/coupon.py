@@ -21,6 +21,15 @@ peg = Pos(30, 35, 0)*peg
 bore = Pos(70, 50, 0)*(Cylinder(21, 4, align=(Align.CENTER,Align.CENTER,Align.MIN)) - Cylinder(19.5, 7, align=(Align.CENTER,Align.CENTER,Align.MIN)).moved(Location((0,0,-1))))
 spig = Pos(70, 50, 0)*(Cylinder(19.3, 4, align=(Align.CENTER,Align.CENTER,Align.MIN)) - Cylinder(17.8, 7, align=(Align.CENTER,Align.CENTER,Align.MIN)).moved(Location((0,0,-1))))
 spig = spig.moved(Location((-48, 0, 0)))
-c = Compound(children=[plate, peg, bore, spig])
+# v31 row: JST-XH 2-pin and 3-pin header seats (the tail cap slots), USB-C plug window (hull flank), pod cap + counterbore
+row = bx(0, 98, 22, 34, 0, H)
+for cut in (bx(3, 3 + 6.1, 24, 24 + 7.7, -1, H + 1),            # JST-XH 2-pin header seat (power loop, tail top)
+            bx(14, 14 + 6.1, 23, 23 + 10.2, -1, H + 1),         # JST-XH 3-pin header seat (charge, tail bottom)
+            bx(26, 26 + 12.5, 24.5, 24.5 + 7.0, -1, H + 1),     # USB-C overmold window: your cable must plug through it
+            Pos(50, 28, H - 1.2) * Cylinder(10.4 / 2, 2.4, align=(Align.CENTER, Align.CENTER, Align.MIN)),   # pod head counterbore
+            Pos(50, 28, 0) * (Cylinder(7.25 / 2, 2 * H + 2) - bx(-4, 4, 7.25 / 2 - 0.6, 4, -H - 2, H + 2))):  # pod head D-bore
+    row = row - cut
+cap = Pos(70, 28, 0) * (Cylinder(5.0, 1.5, align=(Align.CENTER, Align.CENTER, Align.MIN)) - Cylinder(3.3 / 2, 4, align=(Align.CENTER, Align.CENTER, Align.MIN)).moved(Location((0, 0, -1))))
+c = Compound(children=[plate, peg, bore, spig, row, cap])
 export_stl(c, f"{PK}/fit_coupon.stl", tolerance=0.02, angular_tolerance=0.15); export_step(c, f"{PK}/fit_coupon.step")
 print("coupon", c.volume/1000, "cm3")

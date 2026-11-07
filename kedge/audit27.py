@@ -141,6 +141,25 @@ rep["watertight_fail"] = [p["name"] for p in J["parts"] if not p.get("watertight
 rep["multi_body"] = [p["name"] for p in J["parts"] if p["printable"] and p.get("nsolids", 1) > 1]   # bought-part groups (7 screws, 2 plates) are many bodies by design
 rep["kick_range"] = [0, KMAX]; rep["deploy_range"] = [0, DMAX]
 rep["L"] = P["L"]; rep["sweep_s"] = round(t_sweep, 1); rep["kick_steps"] = len(kdegs); rep["deploy_steps"] = len(ddegs)
+# 8 hard stops (v31): they must touch within a few degrees past the end of each swing, and never before
+stops = {}
+hull_top = FIXED.get("hull_top")
+def ov_with(fam, names):
+    return round(sum(max(vol_overlap(fam[n], hull_top), 0.0) for n in names if n in fam), 2)
+if hull_top is not None and "HORN_GAP" in P:
+    pods = [n for n in DEPLOY if n.startswith("drill_leg")]
+    for d, tag in ((P["DEPLOY_DEG"], "deploy_at_angle"), (P["DEPLOY_DEG"] + 2.5, "deploy_horn_+2.5deg"), (-0.0, "fold_at_0"), (-3.0, "fold_lug_-3deg")):
+        f = {}
+        for r in pods: f.update(pose_family(r, d))
+        stops[tag] = ov_with(f, pods)
+    kr = P["KICK_DEG"] + P.get("KICK_REST_DEG", 0)
+    for k, tag in ((kr - 0.5, "kick_rest_-0.5deg"), (kr + 2.0, "kick_rest_+2deg")):
+        stops[tag] = ov_with(pose_family(KICK, k), [KICK])
+    stop_ok = stops["deploy_at_angle"] == 0 and stops["fold_at_0"] == 0 and stops["kick_rest_-0.5deg"] == 0 and \
+        stops["deploy_horn_+2.5deg"] > 1 and stops["fold_lug_-3deg"] > 1 and stops["kick_rest_+2deg"] > 1
+    stops["ok"] = bool(stop_ok)
+rep["hard_stops_mm3"] = stops
 json.dump(rep, open(OUT + "/audit.json", "w"), indent=1)
 print(json.dumps(rep, indent=1))
-print("CLEAN" if not hits and not gbad and not belly and not rep["folded_min_z_below_ground"] and not rep["watertight_fail"] and not rep["multi_body"] else "NOT CLEAN")
+print("CLEAN" if not hits and not gbad and not belly and not rep["folded_min_z_below_ground"] and not rep["watertight_fail"] and not rep["multi_body"]
+      and stops.get("ok", True) else "NOT CLEAN")

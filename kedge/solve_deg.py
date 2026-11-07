@@ -22,9 +22,12 @@ for k in np.arange(190,230.01,0.25):
 assert kb is not None, 'no kick angle passes the ground check'
 print('kick_deg', kb, 'housing clear', round(minz(['kick_leg'],'kick_leg',kb,-1),2), 'foot auger depth', round(-minz(['foot_auger'],'kick_leg',kb,-1),1))
 
+gen=(P['DEPLOY_DEG'], P['KICK_DEG'])
 P['DEPLOY_DEG']=float(best); P['KICK_DEG']=float(kb)
 for p in J['parts']:
     if p['axis']:
         p['deg']=[0, float(kb) if p['name']=='kick_leg' else float(best)]
 json.dump(J, open(OUT+'/parts.json','w'), indent=1)
 print('written')
+if abs(gen[0]-best)>0.01 or abs(gen[1]-kb)>0.01:
+    print('REGEN: the deploy stop horn / kick rest were built at', gen, 'but the solved angles are', (best, kb)); sys.exit(3)

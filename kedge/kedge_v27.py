@@ -27,7 +27,7 @@ P = dict(
     SADDLE_X0=23.8, KICK_HUB_D=12.0, KICK_HUB_W=14.0, KICK_POLE_D=8.0, KICK_POLE_L=72.0, KICK_DEG=201.75, KICK_REST_DEG=1.5,
     FOOT_AUGER_L=40.0, FOOT_TIP=10.0,
     # drill pair
-    DRILL_X=56.0, DRILL_PIV_Z=10.0, DRILL_PIV_Y=31.0, DEPLOY_Y=None, DEPLOY_DEG=42.25, HORN_GAP=0.15,
+    DRILL_X=56.0, DRILL_PIV_Z=11.0, DRILL_PIV_Y=31.0, DEPLOY_Y=None, DEPLOY_DEG=43.0, HORN_GAP=0.15,
     CPL_D=7.0, BOSS_D=11.0,
     # drill motor  M: gearbox 11.95, 24.27 face to back, shaft 2.84 x 56.03
     MOTOR_W=12.0, MOTOR_H=10.0, MOTOR_L=24.27, DSHAFT_L=56.03, DSHAFT_D=2.84,
@@ -187,8 +187,9 @@ HUB_Y0 = SAD_W / 2 + 0.4                                     # hub inner face, 0
 KICK_Y = HUB_Y0 + P["KICK_HUB_W"] / 2                        # pole centreline
 HUB_Y1 = HUB_Y0 + P["KICK_HUB_W"]
 EAR_Y0 = HUB_Y1 + 0.4
-EAR_T = P["BRG_W"] - P["BRG_FL_T"] + 1.0                     # 4.4: bearing body + 1 lip... flange sits on the outer face
+EAR_T = P["BRG_W"] - P["BRG_FL_T"] + 1.0                     # 4.4 fin; the bearing stands 0.4 proud of its inner face onto the hub boss
 EAR_Y1 = EAR_Y0 + EAR_T
+BRG_EAR_Y = HUB_Y1                                          # ear F693ZZ inner face (touches the hub boss); flange in a counterbore
 P.update(KICK_X=KICK_X, KICK_Y=KICK_Y, KICK_Z=KICK_Z, EAR_Y0=EAR_Y0, EAR_Y1=EAR_Y1)
 
 CSINK_SUNK = 0.8                                            # head sunk so its edge is flush on the curved skin
@@ -207,8 +208,8 @@ NOSE_LOCK_X = P["NOSE_L"] + 2.7                             # rib x 22.7..24.7
 def prism_xz(pts, y0, y1):
     """polygon in the world x-z plane extruded along y from y0 to y1"""
     face = Plane.XZ * Polygon(*[(x, z) for x, z in pts], align=None)       # Plane.XZ: local (x, y) = world (x, z), normal -Y
-    sol = extrude(face, amount=y1 - y0)                                    # toward -Y from y = 0
-    return Pos(0, y1, 0) * sol
+    sol = extrude(face, amount=y1 - y0)                                    # direction follows the polygon winding:
+    return Pos(0, y0 - sol.bounding_box().min.Y, 0) * sol                  # place it on y0..y1 whichever way it went
 
 def horns_and_lugs():
     """DEPLOY STOP HORN in front of each pod head and FOLD LUG under it.
@@ -286,7 +287,7 @@ def build_hull():
     cuts.append(Pos(42, KICK_Y - 1, 0) * Rot(0, 0, 0) * cylz(4.0, 30, 8))
     # ear bearing: Ø8 bore through, flange recess on the outer face
     cuts.append(tear_y(P["BRG_OD"] + 0.15, EAR_T + 2, EAR_Y0 - 1, x=KICK_X, z=KICK_Z))
-    cuts.append(cyly(P["BRG_FL_D"] + 0.3, P["BRG_FL_T"] + 0.05, EAR_Y1 - P["BRG_FL_T"], x=KICK_X, z=KICK_Z))
+    cuts.append(cyly(P["BRG_FL_D"] + 0.3, EAR_Y1 + 1 - (BRG_EAR_Y + P["BRG_W"] - P["BRG_FL_T"] - 0.05), BRG_EAR_Y + P["BRG_W"] - P["BRG_FL_T"] - 0.05, x=KICK_X, z=KICK_Z))
     # bosses: coupler bores
     cuts.append(tear_y(P["CPL_D"] + 0.4, 2 * R + 20, -R - 10, x=P["DRILL_X"], z=zb))
     # drill-motor wire holes on both flanks just behind and above the bosses: the leads drop straight into the open top of the
@@ -495,6 +496,7 @@ def build_tray():
         t = t + p
     t = t & cylx(2 * RB - 2 * CLR, L, -1)
     t = t & bx(0, L, -30, 30, KZ - 1.2, 30)                  # flat bottom = the keel plane, prints keel down
+    t = t - bx(SH_X1 - 2.0, SH_X1 + 1.0, -4.6, 4.6, KZ, KZ + KEEL_CH)   # keel channel through the sled rear wall (deploy and BNO085 leads)
     # battery contacts. Launch (nose-first, ~80 g) throws the cells AFT, so the aft contacts are rigid plates and the
     # springs sit on the forward disc: launch presses the cells harder onto the plates and contact never opens.
     t = t - bx(X_CF[1] - 0.8, X_CF[1] + 0.01, -cy - 6, cy + 6, -6, 6)                # front: two springs joined (cell 1 + to cell 2 -)
@@ -562,9 +564,9 @@ def screw_auger(flight_d, length, pitch, core_d, tip_len, lefthand=False, bore=N
 
 FOOT_YC = P["KICK_HUB_W"] / 2 - (P["N20_POCK"] + 2.6) / 2           # foot housing / foot N20 centreline (local y); outboard faces flush = print datum
 def build_kick():
-    hub = cyly(P["KICK_HUB_D"], P["KICK_HUB_W"], -P["KICK_HUB_W"] / 2)
+    hub = cyly(P["KICK_HUB_D"], P["KICK_HUB_W"] - 0.4, -P["KICK_HUB_W"] / 2)          # outer face recessed 0.4 ...
     hub = safe_fillet(hub, hub.edges(), 0.8, "hub")
-    hub = hub + cyly(P["BOSS_FACE_D"] - 0.2, (EAR_Y1 - P["BRG_W"]) - HUB_Y1 + 0.3, P["KICK_HUB_W"] / 2 - 0.3)   # inner-race boss, 0.0 gap to the race
+    hub = hub + cyly(P["BOSS_FACE_D"] - 0.2, 0.42, P["KICK_HUB_W"] / 2 - 0.41)          # ... except a boss on the ear bearing's INNER race, flush with the print datum
     pole_x0 = P["KICK_HUB_D"] / 2 - 1.0
     hw2 = P["KICK_HUB_W"] / 2
     pole = cylx(P["KICK_POLE_D"], P["KICK_POLE_L"], pole_x0) + bx(pole_x0, pole_x0 + P["KICK_POLE_L"], 0, hw2, -P["KICK_POLE_D"] / 2, P["KICK_POLE_D"] / 2)
@@ -611,9 +613,9 @@ add("kick_leg", kick, "legs", "#e07b39", pos=(KICK_X, KICK_Y, KICK_Z), axis="y",
 ztop_h = pk / 2 + 1.3
 fa = screw_auger(P["AUGER_D"], P["FOOT_AUGER_L"], P["AUGER_PITCH"], P["AUGER_CORE"], P["FOOT_TIP"], lefthand=False, dbore=P["SHAFT_D"] + 0.15)
 fa.apply_transform(RM(-math.pi / 2, [0, 1, 0]))            # +X -> +Z
-fa.apply_transform(TM([FBOX, FOOT_YC, ztop_h + 0.8]))
+fa.apply_transform(TM([FBOX, FOOT_YC, ztop_h + 0.3]))           # 0.3 over the housing: drilling push bottoms the hub on the housing, not the worm gearbox
 add("foot_auger", fa, "legs", "#b23a48", parent="kick_leg", orient="base down",
-    note="Foot auger Ø14 x 40, right-hand flight, D-bore on the foot N20 output shaft, M3 grub screw in the hub")
+    note="Foot auger Ø%g x %g, core Ø%g, right-hand flight, D-bore on the foot N20 output shaft (7 mm engaged), M3 grub screw in the hub; its base runs 0.3 over the housing so drilling push goes into the housing, not the worm gearbox" % (P["AUGER_D"], P["FOOT_AUGER_L"], P["AUGER_CORE"]))
 
 # ================================================================== DRILL PODS (local: pivot at origin, axis Y; folded along +X)
 
@@ -651,13 +653,13 @@ def drill(prefix, side, color):
     pod = build_pod(side)
     pos = (P["DRILL_X"], side * P["DRILL_PIV_Y"], P["DRILL_PIV_Z"])
     add(prefix, pod, "legs", color, pos=pos, axis="y", deg=(0, P["DEPLOY_DEG"]), orient="upright, motor pocket open to the top (as installed folded)",
-        note="Drill pod: round clevis head on the Ø7 D coupler, 14.8 x 12.8 housing (motor drops in from the top, zip-tie groove), nut gap, inner F693ZZ (flange toward the motor), outer F693ZZ (flange on the nose face): the shaft nut against the inner race takes the auger's pull, the auger base against the outer race takes push. Gearbox carries torque only")
+        note="Drill pod: round clevis head on the Ø7 D coupler (counterbore for the pod cap outside, flat front face lands on the hull's deploy stop horn), 14.8 x 12.8 housing: %.1f mm terminal room (bend the motor tabs up), motor drops in from the top (zip-tie groove), %.1f mm gap to the M3 nut (gearbox bushing), inner F693ZZ (flange toward the motor), outer F693ZZ (flange on the nose face), back to back: the nut on the inner race takes the auger's pull, the auger base on the outer inner race takes push; the gearbox carries torque only. Bottom nose edge chamfered for ground clearance" % (P["DTERM"], P["BUSH_GAP"]))
     lh = side < 0
     au = screw_auger(P["AUGER_D"], P["AUGER_L"], P["AUGER_PITCH"], P["AUGER_CORE"], P["AUGER_TIP"], lefthand=lh,
                      bore=P["DSHAFT_D"] + 0.45, nut_x=NUT_X, base_boss=True)
     au.apply_transform(TM([AUG_X0 + 0.8, 0, 0]))
     add(prefix + "_auger", au, "legs", "#b23a48", parent=prefix, orient="base down, nut slot sideways",
-        note="Auger Ø14 x %g, %s-hand flight (the pair counter-rotates, so the two are mirror images and both screw IN), Ø5.5 core, captive M3 nyloc in a side slot near the point, base boss bears on the outer bearing's inner race" % (P["AUGER_L"], "left" if lh else "right"))
+        note="Auger Ø%g x %g, %s-hand flight (the pair counter-rotates, so the two are mirror images and both screw IN), Ø%g core (bending at the base under the 55 N tow), captive M3 nyloc in a side slot near the point, Ø%g base boss bears only on the outer bearing's inner race" % (P["AUGER_D"], P["AUGER_L"], "left" if lh else "right", P["AUGER_CORE"], P["BOSS_FACE_D"]))
     env = lambda s: s
     add(prefix + "_motor", bx(XS - P["MOTOR_L"], XS, -P["MOTOR_W"] / 2, P["MOTOR_W"] / 2, -P["MOTOR_H"] / 2, P["MOTOR_H"] / 2),
         "electronics", "#6c757d", parent=prefix, printable=False, note="Drill motor 12 x 10 x 24.27 (measured)")
@@ -755,10 +757,10 @@ s_all = scr[0]
 for q in scr[1:]: s_all = s_all + q
 hw("screws_radial", s_all, "#555555", "7 x M3 x 8 countersunk (flat-head) radial screws, flush with the skin: 3 into tray disc 1, 4 into the tail spigot")
 hw("screw_ear_root", screw_y(EAR_Y1, EAR_Y1 - 12, xs1, P["RAD_Z"]), "#555555", "M3 x 12 through the ear root into tray disc 1")
-eb = cyly(P["BRG_FL_D"], P["BRG_FL_T"], EAR_Y1 - P["BRG_FL_T"], x=KICK_X, z=KICK_Z) + cyly(P["BRG_OD"], P["BRG_W"] - P["BRG_FL_T"], EAR_Y1 - P["BRG_W"], x=KICK_X, z=KICK_Z) - cyly(3.0, 8, EAR_Y1 - 6, x=KICK_X, z=KICK_Z)
-hw("brg_ear", eb, "#9aa5b1", "F693ZZ in the ear, flange on the outer face")
+eb = cyly(P["BRG_FL_D"], P["BRG_FL_T"], BRG_EAR_Y + P["BRG_W"] - P["BRG_FL_T"], x=KICK_X, z=KICK_Z) + cyly(P["BRG_OD"], P["BRG_W"] - P["BRG_FL_T"], BRG_EAR_Y, x=KICK_X, z=KICK_Z) - cyly(3.0, 8, BRG_EAR_Y - 2, x=KICK_X, z=KICK_Z)
+hw("brg_ear", eb, "#9aa5b1", "F693ZZ in the ear, flange down in a counterbore on the outer face, inner face 0.4 proud of the fin onto the hub's inner-race boss")
 yl0 = P["KICK_HUB_W"] / 2
-hw("kick_hub_screw", screw_y(EAR_Y1 - KICK_Y, EAR_Y1 - KICK_Y - 10.0, 0, 0), "#555555", "M3 x 10 through the ear bearing into the hub end (turns with the leg); the head clamps the inner race onto the hub's printed boss", parent="kick_leg")
+hw("kick_hub_screw", screw_y(BRG_EAR_Y + P["BRG_W"] - KICK_Y, BRG_EAR_Y + P["BRG_W"] - KICK_Y - 10.0, 0, 0), "#555555", "M3 x 10 through the ear bearing into the hub end (turns with the leg); the head clamps the inner race onto the hub's printed boss", parent="kick_leg")
 CAP_T = 1.5
 for nm, sg in (("coupler_L", 1), ("coupler_R", -1)):
     yo2 = sg * yo                                            # coupler outer end face
@@ -801,5 +803,15 @@ ball = cav & bx(-1, hi, -30, 30, -30, 30)
 P["BALLAST_X_END"] = round(hi, 1)
 hw("ballast", ball, "#7a6a55", "15 g nose ballast: steel shot or M6 nuts in 5-minute epoxy, poured with the nose standing on its tip (fills to x %.1f)" % hi)
 
+mid = lambda xx: round((xx[0] + xx[1]) / 2, 2)
+P["WIRE_PTS"] = dict(           # harness way points (wires.py, wireroom.py; firmware/dart/tools/wires_v4.py may read them)
+    chase=[X_BOARD[1] - 4.3, 0, -8], keel_d2=[mid(X_D2), 0, -13], keel_d3=[mid(X_D3), 0, -13], keel_d4=[mid(X_D4), 0, -13],
+    sled=[58.5, 0, -10], win_d1=[mid(X_D1), P["DEPLOY_Y"], 0], win_d4=[mid(X_D4), 0, 0],
+    top_d1=[mid(X_D1), 4.0, 17], top_d2=[mid(X_D2), 0, 17], top_d3=[mid(X_D3), 0, 17],
+    tail_top=[mid(JST_TOP_X), 0, 4.0], tail_bot=[mid(JST_TOP_X), 0, -9.5],
+    flankL=[P["DRILL_X"] + 3.5, 11.5, 16.5], flankR=[P["DRILL_X"] + 3.5, -11.5, 16.5],
+    kick_hole=[SX0 + 1.3 + P["N20_L"] + 0.3, 0, 19.0], foot_hole=[42.0, P["KICK_Y"] - 1, 17.0],
+    deploy_tabs=[P["DRILL_X"] - 6 - (P["N20_L"] - 12) - 0.8, P["DEPLOY_Y"], P["DRILL_PIV_Z"]])
+P["X_BOARD_BAY"] = list(X_BOARD); P["JST_TOP_X"] = list(JST_TOP_X)
 json.dump(dict(version=os.environ.get("KV", "v27"), P=P, ground=GROUND, parts=parts), open(os.path.join(OUT, "parts.json"), "w"), indent=1)
 print("parts:", len(parts), "L =", L, "t =", round(time.time() - T0), "s")

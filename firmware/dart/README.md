@@ -125,7 +125,7 @@ Needs Linux, g++, make, pthread, python3, and for the page check node 18+ with P
 (`npm i playwright && npx playwright install chromium`).
 
 ```
-cd firmware/dart/sim && make && python3 test_sim.py      # 14 HTTP tests against the real sketch
+cd firmware/dart/sim && make && python3 test_sim.py      # 15 HTTP tests against the real sketch
 python3 test_jetson_client.py                            # 10 tests: the Jetson's own dart client against the real sketch (C2)
 node test_page.js                                        # 12 checks of the web page in headless Chromium (one logged 409 is expected)
 ./kedge_sim --port 8790                                  # then open http://localhost:8790 (the real web page)

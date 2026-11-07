@@ -4,6 +4,15 @@ Worker `fw-dart`: KEDGE dart firmware v4 and the dart electronics docs. Everythi
 Firmware `kedge-dart-v4`. Nothing has run on real hardware yet: all verification is on the PC (logic tests, fuzz test,
 the real sketch in a host simulator, the web page in headless Chromium, the Jetson's own client) plus compiles.
 
+## v4.2 (dart-fw, 7 Nov 2026, v32 follow-ups)
+
+- Deploy guard (dart-physics v32): the milling deploy ends when the drill pair alone reads over 67 % of its bench stall
+  (`drillPairStallMa` x `drillGuardFrac`): pods and drills stop, `ANCHORED` with warning `depth_limited`. Replaces the
+  85 % relax pause.
+- v32 tip planetary (2.33:1, star layout) reverses each sleeve: `DRILL_SIGN = -1` drives the drill channel reversed in
+  the sketch; wiring, keys and flight hands unchanged. Levelling pods to 16 deg (v32).
+- Wire list on dart-cad's v32 routes. Tests: 313 logic checks, 15 simulator tests, full fuzz 6 seeds x 8000 pass.
+
 ## v4.1 (dart-fw, 7 Nov 2026)
 
 What changed and why, in short (details in API.md "Changes from v4 to v4.1" and the commit log):

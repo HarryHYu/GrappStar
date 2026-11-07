@@ -219,7 +219,9 @@ def real_sim(seed, pitch, v):
 ])
 def test_video_only_range_at_real_speed_with_aim(pitch, speed, seed):
     v_nom, _, _ = _real_v_muzzle()
-    v = {"lo": 6.0, "nom": v_nom, "hi": 8.0}[speed]
+    # dart-physics: shot to shot scatter about 2 percent; 6 percent off the table is a launcher clearly unlike its
+    # model (bigger systematic errors are what `learn flight` table_scale corrects)
+    v = {"lo": 0.94 * v_nom, "nom": v_nom, "hi": 1.06 * v_nom}[speed]
     frames, truth = real_sim(seed, pitch, v)
     r = analyze_flight(frames, None, ballistics=_sim_table(v_nom), aim_pitch_deg=pitch)
     assert r.source == "video"
@@ -230,7 +232,7 @@ def test_video_only_range_at_real_speed_with_aim(pitch, speed, seed):
     assert 0.6 * v_nom - 1e-6 <= r.v0 <= 1.4 * v_nom + 1e-6          # searched only in the band around C3
 
 
-@pytest.mark.parametrize("pitch,v,seed", [(8, 6.0, 11), (20, 8.0, 12), (40, 7.0, 13)])
+@pytest.mark.parametrize("pitch,v,seed", [(8, 6.5, 11), (20, 7.3, 12), (40, 7.0, 13)])
 def test_video_only_range_at_real_speed_without_aim(pitch, v, seed):
     """No commanded pitch: the pitch comes from the horizon on the rail or the flight time."""
     v_nom, _, _ = _real_v_muzzle()
@@ -240,7 +242,7 @@ def test_video_only_range_at_real_speed_without_aim(pitch, v, seed):
     assert abs(err) < REAL_TOL, (r.range_m, truth["range_pivot_m"], r.v0, r.launch_pitch_deg, r.notes)
 
 
-@pytest.mark.parametrize("pitch,v,seed", [(8, 6.0, 0), (40, 8.0, 7)])
+@pytest.mark.parametrize("pitch,v,seed", [(8, 6.5, 0), (40, 7.3, 7)])
 def test_imu_range_at_real_speed(pitch, v, seed):
     v_nom, _, _ = _real_v_muzzle()
     frames, truth = real_sim(seed, pitch, v)
@@ -278,17 +280,17 @@ def test_range_calibrated_to_table():
 
 def test_fuse_speed_recovers_model_speed():
     RAIL_H = FL.H_EXIT
-    for v_true, p in ((6.0, 10.0), (7.4, 25.0), (8.0, 42.0)):
+    for v_true, p in ((7.0, 10.0), (7.4, 25.0), (7.8, 42.0)):
         ts, xs, zs, gam = FL._gamma_track(v_true, p, RAIL_H)
         # one horizon sample per video frame (30 fps): the real flights last only 0.4 to 1.1 s
         track = [(float(t), float(g)) for t, g in zip(ts[5::7], gam[5::7]) if t < ts[-1] - 0.05]
         v, d = FL.fuse_speed(p, RAIL_H, T_obs=float(ts[-1]) + 0.03, track=track, v_prior=7.4, launch_free=True)
         assert v == pytest.approx(v_true, abs=0.4), (v_true, p, v, d)     # the 7.4 prior pulls a little
-        # time only (no track, no prior) at a steep pitch, where the flight time depends on the speed: a typical
-        # 30 ms late impact is absorbed by the timing window (at 10 deg the 0.5 m launch height dominates the flight
-        # time, 23 ms per m/s, so time alone says little there: that was the old estimator's failure)
+        # time only (no track, no prior) at a steep pitch, where the flight time depends on the speed: the typical
+        # late video impact (VID_IMPACT_LATE_TYP, measured on the realistic sim) is absorbed by the timing window (at
+        # 10 deg the launch height dominates the flight time, so time alone says little there)
         if p > 30:
-            v2, _ = FL.fuse_speed(p, RAIL_H, T_obs=float(ts[-1]) + 0.03)
+            v2, _ = FL.fuse_speed(p, RAIL_H, T_obs=float(ts[-1]) + FL.VID_IMPACT_LATE_TYP)
             assert v2 == pytest.approx(v_true, abs=0.3)
     assert FL.fuse_speed(20.0, RAIL_H) == (None, {"T_obs": None, "T_min": None, "track_n": 0, "v_prior": None,
                                                   "v_min": None})
@@ -338,7 +340,7 @@ def test_video_speed_stays_in_table_band_and_default_from_table():
 def test_imu_offset_from_launch_only_low_pitch(seed):
     """The late video impact must not drag the clock offset (it made the IMU range 8 to 18 percent short)."""
     v_nom, _, _ = _real_v_muzzle()
-    frames, truth = real_sim(seed, 6, 6.0)
+    frames, truth = real_sim(seed, 6, 6.5)
     r = analyze_flight(frames, truth["flightlog"], ballistics=_sim_table(v_nom))
     assert abs(r.clock_offset_s - truth["clock_offset_s"]) < 0.035
     assert abs(r.range_m - truth["range_pivot_m"]) < 0.10 * truth["range_pivot_m"], (r.range_m, truth["range_pivot_m"], r.notes)

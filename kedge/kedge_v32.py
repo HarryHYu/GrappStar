@@ -25,7 +25,9 @@ P = dict(
     # worm N20  M: 12 x 10 body, 11.93 x 9.94 box, 33.04 long, shaft 29.97 tip to tip.  Pockets are square 12.4 so either face can be up.
     N20_L=33.04, N20_POCK=12.4, N20_BOX=12.0, N20_TIP=29.97 / 2, SHAFT_D=3.0,
     # kick
-    SADDLE_X0=23.8, KICK_HUB_D=12.0, KICK_HUB_W=11.5, KICK_POLE_D=8.0, KICK_POLE_L=72.0, KICK_DEG=204.5, KICK_REST_DEG=1.5, KICK_MY=-11.9, KICK_RAISE=5.0,
+    SADDLE_X0=23.8, KICK_HUB_D=12.0, KICK_HUB_W=11.5, KICK_POLE_D=8.0, KICK_POLE_L=72.0, KICK_DEG=200.75, KICK_REST_DEG=1.5, KICK_MY=-11.9, KICK_RAISE=0.0,
+    KICK_CH_SWEEP=25.0, KICK_CH_GROW=0.5,   # nose + hull-top channel for the pole: the pole box grown 0.5, swept over the last 25 deg before the plant (to the rest)
+    FOOT_TILT=20.75, FOOT_RISE=3.4,          # foot housing tilted about its output shaft so the foot plants vertical (= KICK_DEG - 180), raised so it folds clear of the hull
     FOOT_AUGER_L=68.0, FOOT_TIP=10.0,
     # drill pair
     DRILL_X=56.0, DRILL_PIV_Z=12.0, DRILL_PIV_Y=None, DEPLOY_Y=None, DEPLOY_DEG=45.0, DEPLOY_TARGET=45.0, HORN_GAP=0.15, HEAD_IN=21.6,
@@ -124,6 +126,63 @@ def safe_fillet(solid, edges, r, tag):
 def chord_half(z, rr=RB):
     return math.sqrt(max(rr * rr - z * z, 0.0))
 
+# ---- tangent-arc outlines: the convex hull of circles as true arcs joined by their outer tangent lines (no polygon facets)
+def arc_hull_segs(circles):
+    """circles [(x, z, r)] (r may be 0: a point) in the world x-z plane -> CCW list of ('arc', (x, z, r), a0, a1) / ('line', p, q)"""
+    from shapely.geometry import Point
+    from shapely.ops import unary_union
+    from shapely.geometry.polygon import orient
+    g = orient(unary_union([Point(x, z).buffer(max(r, 1e-3), 256) for x, z, r in circles]).convex_hull, 1.0)
+    seq = []                                                  # which circle each hull vertex lies on, in CCW order
+    for v in list(g.exterior.coords)[:-1]:
+        i = min(range(len(circles)), key=lambda k: abs(math.hypot(v[0] - circles[k][0], v[1] - circles[k][1]) - circles[k][2]))
+        if not seq or seq[-1] != i: seq.append(i)
+    while len(seq) > 1 and seq[0] == seq[-1]: seq.pop()
+    n = len(seq); tang = []
+    for k in range(n):                                        # outer tangent: same outward normal at both ends
+        (x1, z1, r1), (x2, z2, r2) = circles[seq[k]], circles[seq[(k + 1) % n]]
+        D = math.hypot(x2 - x1, z2 - z1); ph = math.atan2(z2 - z1, x2 - x1)
+        th = ph - math.acos(max(-1.0, min(1.0, (r1 - r2) / D)))
+        tang.append(((x1 + r1 * math.cos(th), z1 + r1 * math.sin(th)), (x2 + r2 * math.cos(th), z2 + r2 * math.sin(th)), th))
+    segs = []
+    for k in range(n):
+        c = circles[seq[k]]; a0 = tang[k - 1][2]; a1 = tang[k][2]
+        while a1 < a0: a1 += 2 * math.pi
+        if c[2] > 1e-6 and a1 - a0 > 1e-4: segs.append(("arc", c, a0, a1))
+        segs.append(("line", tang[k][0], tang[k][1]))
+    return segs
+
+def arc_prism(circles, y0, y1):
+    """tangent-arc outline in x-z extruded along y from y0 to y1"""
+    edges = []
+    for sg in arc_hull_segs(circles):
+        if sg[0] == "line":
+            p, q = sg[1], sg[2]
+            if math.hypot(q[0] - p[0], q[1] - p[1]) > 1e-4: edges.append(Edge.make_line((p[0], y0, p[1]), (q[0], y0, q[1])))
+        else:
+            (cx, cz, r), a0, a1 = sg[1], sg[2], sg[3]
+            pt = lambda a: (cx + r * math.cos(a), y0, cz + r * math.sin(a))
+            edges.append(Edge.make_three_point_arc(pt(a0), pt((a0 + a1) / 2), pt(a1)))
+    return extrude(Face(Wire(edges)), amount=y1 - y0, dir=(0, 1, 0))
+
+def yfillet(sol, ys, r, tag, zmin=-99.0):
+    """round the outline edges lying in the planes y = ys (the side faces of an arc_prism)"""
+    ed = [e for e in sol.edges() if any(abs(e.position_at(t).Y - yy) < 1e-3 for yy in ys for t in (0.0, 0.5, 1.0)) and
+          all(abs(e.position_at(t).Y - e.position_at(0.0).Y) < 1e-3 for t in (0.5, 1.0)) and e.center().Z > zmin]
+    return safe_fillet(sol, ed, r, tag)
+
+def skirt(feat, r=1.5, pad=4.0, z0=0.0, xlim=(-1e9, 1e9)):
+    """blend a feature standing on the Ø42 skin into it with an r fillet: union with a local skin patch, fillet the edges where
+    the feature meets the skin. Returns (patch + feature, the patch box) so the caller swaps the box out of the full shell."""
+    bb = feat.bounding_box()
+    xa, xb, ya, yb, za = max(bb.min.X - pad, xlim[0]), min(bb.max.X + pad, xlim[1]), bb.min.Y - pad, bb.max.Y + pad, max(bb.min.Z - pad, z0)
+    box = bx(xa, xb, ya, yb, za, bb.max.Z + pad)
+    patch = (cylx(2 * R, xb - xa + 2, xa - 1) - cylx(2 * RB, xb - xa + 4, xa - 2)) & box
+    u = patch + feat
+    ins = lambda q: xa + 0.3 < q.X < xb - 0.3 and ya + 0.3 < q.Y < yb - 0.3 and q.Z > za + 0.3
+    ed = [e for e in u.edges() if all(abs(math.hypot(q.Y, q.Z) - R) < 0.02 and ins(q) for q in [e.position_at(t) for t in (0.0, 0.25, 0.5, 0.75, 1.0)])]
+    return safe_fillet(u, ed, r, "skirt"), box
+
 parts = []
 FIX = {}            # name -> (solid) for later reference
 
@@ -197,6 +256,7 @@ pk = P["N20_POCK"]
 SX0 = P["SADDLE_X0"]
 SAD_W = pk + 2 * 1.3                                        # 15.0
 SAD_H = pk + 2 * 1.3
+SAD_RF, SAD_RR = 7.4, 6.5                                    # saddle side profile: arc round the worm box (on the pivot), arc round the motor tail
 KICK_Z = R + SAD_H / 2 - 1.0 + P["KICK_RAISE"]               # pivot raised so the centreline pole clears the nose shoulder at the plant
 KICK_X = SX0 + 1.3 + P["N20_BOX"] / 2 + 0.2                  # output shaft = centre of the worm box
 KMY = P["KICK_MY"]                                           # kick N20 beside the centreline (right side); its +y stub carries the hub
@@ -208,6 +268,7 @@ EAR_T = P["BRG_W"] - P["BRG_FL_T"] + 1.0                     # 4.4 fin; the bear
 EAR_Y1 = EAR_Y0 + EAR_T
 BRG_EAR_Y = HUB_Y1                                          # ear F693ZZ inner face (touches the hub boss); flange in a counterbore
 P.update(KICK_X=KICK_X, KICK_Y=KICK_Y, KICK_Z=KICK_Z, EAR_Y0=EAR_Y0, EAR_Y1=EAR_Y1)
+FL_Y0, FL_Y1, FL_R = -P["KICK_POLE_D"] / 2 - 0.3, HUB_Y1 + 0.3, 4.0   # pole flute across y, its floor corner radius (pole underside corners r 3.5)
 
 CSINK_SUNK = 0.8                                            # head sunk so its edge is flush on the curved skin
 def csink(xs, s, zz):
@@ -242,31 +303,31 @@ def poly_prism(g, y0, y1):
     return out
 
 def pivot_blocks():
-    """One faired block per flank round the drill pivot (replaces v31's boss, tombstone, horn and fold lug): a convex teardrop
-    in x-z down to the split plane. Inboard of the arm head it is the coupler boss; over the inner 6 mm of the head it is carved
-    by the swept arm (head, neck, shoulder, sleeve) from folded to DEPLOY_DEG, grown HORN_GAP: what is left in front of the
-    head is the DEPLOY STOP face, under it the FOLD STOP face (both about 1 deg past the ends of the swing). Tow turns the
-    pods further down: that moment goes into this block, not the deploy worm or the couplers."""
-    from shapely.geometry import Point, Polygon as SP, box as sbox
+    """One faired block per flank round the drill pivot (replaces v31's boss, tombstone, horn and fold lug): a teardrop in x-z
+    (tangent arcs and lines: front r 9.4, back r 8.4, flat on the split plane), its side edges rounded r 1.2 and skirted into the
+    skin r 1.5. Inboard of the arm head it is the coupler boss; over the inner 6 mm of the head it is carved by the swept arm (head,
+    neck, shoulder, sleeve) from folded to DEPLOY_DEG, grown HORN_GAP: what is left in front of the head is the DEPLOY STOP face,
+    under it the FOLD STOP face (both about 1 deg past the ends of the swing). Tow turns the pods further down: that moment goes
+    into this block, not the deploy worm or the couplers. Returns (blocks, carve): the carve is cut after the skirt."""
+    from shapely.geometry import Point, box as sbox
     from shapely.ops import unary_union
     from shapely import affinity
-    zp = P["DRILL_PIV_Z"]
-    O = unary_union([Point(0, 0).buffer(8.4, 96), Point(0, 0).buffer(11.0, 96).intersection(sbox(-20, -20, 2.0, 20)),
-                     SP([(-6.0, -zp), (6.0, -zp), (6.0, -zp + 0.5), (-6.0, -zp + 0.5)])]).convex_hull
+    zp, xp = P["DRILL_PIV_Z"], P["DRILL_X"]
+    circ = [(xp - 1.6, zp + 1.4, 9.4), (xp, zp, 8.4), (xp - 6.0, -1.0, 1.5), (xp + 6.0, -1.0, 1.5)]
     prof = unary_union([Point(0, 0).buffer(HH / 2, 96), sbox(-HH / 2, -HH / 2, 0, 0), sbox(-1.05, -HH / 2 - 0.05, ASH_X1, HH / 2 + 0.05),
                         sbox(ASH_X0 - (CORE_D - BUSH_D) / 2 - 0.05, -CORE_D / 2 - 0.05, ASH_X1, CORE_D / 2 + 0.05), sbox(S0, -P["FLIGHT_D"] / 2, S0 + 8.0, P["FLIGHT_D"] / 2)])
     sw = unary_union([affinity.rotate(prof, -a, origin=(0, 0)) for a in np.arange(0.0, P["DEPLOY_DEG"] + 0.01, 0.5)])
-    slab = O.difference(sw.buffer(P["HORN_GAP"], 32))
-    shift = lambda g: affinity.translate(g, P["DRILL_X"], zp)
-    O, slab = shift(O), shift(slab)
-    yi = chord_half(zp) - 0.5
-    out = None
+    sw = affinity.translate(sw.buffer(P["HORN_GAP"], 32), xp, zp)
+    yi, yo = chord_half(zp) - 0.5, POD_FACE + 6.0
+    blocks = carve = None
     for sg in (1, -1):
-        a_ = (yi, POD_FACE - 0.4); b_ = (POD_FACE - 0.4, POD_FACE + 6.0)
-        if sg < 0: a_ = (-a_[1], -a_[0]); b_ = (-b_[1], -b_[0])
-        blk = poly_prism(O, *a_) + poly_prism(slab, *b_)
-        out = blk if out is None else out + blk
-    return out
+        a_ = (yi, yo) if sg > 0 else (-yo, -yi)
+        blk = yfillet(arc_prism(circ, *a_), a_, 1.2, "pivot block") & bx(xp - 20, xp + 20, -40, 40, 0, 40)
+        c_ = (POD_FACE - 0.4, yo + 1.0) if sg > 0 else (-yo - 1.0, -POD_FACE + 0.4)
+        cv = poly_prism(sw, *c_)
+        blocks = blk if blocks is None else blocks + blk
+        carve = cv if carve is None else carve + cv
+    return blocks, carve
 
 def kick_rest():
     """KICK REST on the ear root under the pole, KICK_REST_DEG past the solved kick angle. Tow pull lifts the nose, the
@@ -278,26 +339,43 @@ def kick_rest():
     lz = P["KICK_POLE_D"] / 2 + 0.2
     p1 = kw(6.5, lz); p2 = kw(14.5, lz)
     pts = [p2, p1, (p1[0] + 0.5, 15.0), (21.0, 15.0)]
-    return prism_xz(pts, -P["KICK_POLE_D"] / 2 - 0.2, HUB_Y1) & bx(P["NOSE_L"] - 0.3, 200, -60, 60, 0, 80)
+    return prism_xz(pts, -P["KICK_POLE_D"] / 2 - 0.2, HUB_Y1) & bx(P["NOSE_L"] + 0.01, 200, -60, 60, 0, 80)
+def kick_channel(grow, y0, y1, r):
+    """flute for the kick pole in the nose and the hull top: the pole's underside at the rest angle (KICK_DEG + KICK_REST_DEG),
+    grown, as a bar with its floor corners rounded r (the pole's underside corners are rounded to fit); everything the pole
+    passes over the last KICK_CH_SWEEP deg before the plant lies above that floor"""
+    lx0, hz = P["KICK_HUB_D"] / 2 - 1.0, P["KICK_POLE_D"] / 2 + grow
+    bar = bx(lx0, lx0 + P["KICK_POLE_L"] + 10, y0, y1, -60, hz)
+    bar = safe_fillet(bar, [e for e in bar.edges().filter_by(Axis.X) if abs(e.center().Z - hz) < 1e-3], r, "flute")
+    return Pos(KICK_X, 0, KICK_Z) * (Rot(0, -(P["KICK_DEG"] + P["KICK_REST_DEG"]), 0) * bar)
+
+def lip_fillet(sol, on_skin, y0, y1, r, tag):
+    """round the lips where the flute meets an outer skin"""
+    ed = [e for e in sol.edges() if all(on_skin(q) and y0 - 0.05 < q.Y < y1 + 0.05 and q.Z > 5 for q in [e.position_at(t) for t in (0.0, 0.25, 0.5, 0.75, 1.0)])]
+    return safe_fillet(sol, ed, r, tag)
+
 # ================================================================== HULL
 def build_hull():
     hx0, hx1 = X_HULL
     shell = cylx(2 * R, hx1 - hx0, hx0) - cylx(2 * RB, hx1 - hx0 + 2, hx0 - 1)
     # kick saddle beside the centreline (y KICK_MY): square pocket for the worm N20 lying along X, worm box at the nose end, open
-    # at the top; one rounded profile from inside the skin up to the raised pivot (no block stuck under it)
+    # at the top. Low fairing: tangent arcs round the worm box and the motor's tail, a sloped front from the nose shoulder and a
+    # sloped tail, side edges rounded r 1.2, skirted into the skin r 1.5 (one family with the ear and the pivot blocks)
     sl = 1.3 + P["N20_L"] + P["TERM"] + 1.3
-    from shapely.geometry import Point as _Pt, MultiPoint as _MP
-    from shapely.ops import unary_union as _uu
     x_end = SX0 + sl
-    sad2d = _uu([_Pt(KICK_X, KICK_Z).buffer(7.2, 64), _Pt(x_end - 7.0, KICK_Z - 0.6).buffer(7.0, 64),
-                 _Pt(SX0 + 1.0, 13.0).buffer(1.0, 16), _Pt(x_end - 1.0, 13.0).buffer(1.0, 16)]).convex_hull   # capsule side profile, same language as the ear
-    saddle = poly_prism(sad2d, KMY - SAD_W / 2, KMY + SAD_W / 2)
-    saddle = safe_fillet(saddle, saddle.edges().filter_by(Axis.Y, reverse=True).filter_by(lambda e: abs(e.center().Y - KMY) > SAD_W / 2 - 0.1), 1.2, "saddle edges")
-    # ear: teardrop fin on the hub's outboard side carrying an F693ZZ for the hub screw
-    ear2d = _uu([_Pt(KICK_X, KICK_Z).buffer(P["BRG_FL_D"] / 2 + 2.2, 64), _Pt(KICK_X - 8.0, 14.0).buffer(1.0, 16), _Pt(KICK_X + 8.0, 14.0).buffer(1.0, 16)]).convex_hull
-    ear = poly_prism(ear2d, EAR_Y0, EAR_Y1)
-    ear = safe_fillet(ear, ear.edges().group_by(Axis.Y)[-1], 0.8, "ear")
-    body = shell + saddle + ear + pivot_blocks() + kick_rest()
+    sy = (KMY - SAD_W / 2, KMY + SAD_W / 2)
+    sad_c = [(KICK_X, KICK_Z, SAD_RF), (x_end - SAD_RR, KICK_Z + 5.5 - SAD_RR, SAD_RR), (X_NOSE + 1.6, 10.0, 1.0), (x_end + 3.0, 10.0, 1.0)]
+    saddle = yfillet(arc_prism(sad_c, *sy), sy, 1.2, "saddle") & bx(X_NOSE + 0.01, hx1, -60, 60, 0, 80)
+    # ear: teardrop fin on the hub's outboard side carrying an F693ZZ for the hub screw (same arcs, edges and skirt)
+    ear_c = [(KICK_X, KICK_Z, P["BRG_FL_D"] / 2 + 2.2), (KICK_X - 9.0, 12.0, 1.0), (KICK_X + 9.0, 12.0, 1.0)]
+    ear = yfillet(arc_prism(ear_c, EAR_Y0, EAR_Y1), (EAR_Y0, EAR_Y1), 1.2, "ear")
+    blocks, carve = pivot_blocks()
+    sk1, box1 = skirt(saddle + ear, xlim=X_HULL)
+    sk2, box2 = skirt(blocks, xlim=X_HULL)
+    body = (shell - box1 - box2) + sk1 + sk2
+    body = body - carve                                          # pivot-block stop faces
+    body = body - kick_channel(P["KICK_CH_GROW"], FL_Y0, FL_Y1, FL_R)   # the pole drops into the hull top at the plant
+    body = body + kick_rest()
     body = body - cylx(2 * RB, hx1 - hx0 + 2, hx0 - 1)          # nothing intrudes into the bay
     # internal rib that sits in the nose spigot groove: the closed clamshell locks the nose axially
     body = body + (cylx(2 * RB + 0.2, 2.0, NOSE_LOCK_X) - cylx(2 * (RB - 1.0), 4.0, NOSE_LOCK_X - 1))
@@ -351,6 +429,7 @@ def build_nose():
     spig = cylx(2 * RB - 2 * CLR, P["NOSE_SPIG"], nl - 0.01)
     body = outer + spig
     body = safe_fillet(body, body.edges().group_by(Axis.X)[0], 1.5, "nose tip")
+    env_ = body
     # hollow: inner cone offset by the wall, open at the back
     k = (R - r0) / nl
     xi0, xi1 = W * 1.6, nl - 1.5
@@ -361,10 +440,14 @@ def build_nose():
     cw, ch = P["CAM_W"] + 2 * CLR, P["CAM_H"] + 2 * CLR
     tube = rrect_x(cw + 2 * 1.2, ch + 2 * 1.2, nl + P["NOSE_SPIG"] - 1.0, 0.5, r=1.5)
     body = body + (tube & (outer + spig))
+    # pole channel: a solid strip under it first (the groove never opens into the cavity), then the groove itself
+    body = body + (kick_channel(P["KICK_CH_GROW"] + 1.6, FL_Y0 - 1.6, FL_Y1 + 1.6, FL_R + 1.6) & env_)
     body = body - bx(P["NOSE_LIP"] + P["CAM_LENS"], nl + P["NOSE_SPIG"] + 5, -cw / 2, cw / 2, -ch / 2, ch / 2)
     body = body - cylx(P["CAM_HOLE"], P["NOSE_LIP"] + P["CAM_LENS"] + 1, -1)
     body = body - (cylx(2 * R + 2, 2.4, NOSE_LOCK_X - 0.2) - cylx(2 * (RB - 1.0) - 0.4, 4, NOSE_LOCK_X - 1))   # lock groove for the hull rib
-    # cable slot at the back of the camera tube (connector exits the back)
+    body = body - kick_channel(P["KICK_CH_GROW"], FL_Y0, FL_Y1, FL_R)
+    kc = (R - r0) / nl
+    body = lip_fillet(body, lambda q: -0.05 < q.X < nl + 0.05 and abs(math.hypot(q.Y, q.Z) - (r0 + kc * q.X)) < 0.03, FL_Y0, FL_Y1, 1.2, "nose flute lips")
     return body
 
 print("nose ...")
@@ -628,39 +711,61 @@ def screw_auger(flight_d, length, pitch, core_d, tip_len, lefthand=False, bore=N
         g = tcyl(radius=1.25, height=8, sections=24); g.apply_transform(TM([5.0, 0, 3.0])); cuts.append(g)
     return tD(a, cuts) if cuts else a
 
+WEB_RUN = 24.0                                                       # the web runs this far along the tilted housing's floor
 FOOT_YC = HUB_Y1 - (P["N20_POCK"] + 2.6) / 2                         # foot housing / foot N20 centreline = 0: the foot plants on the dart axis; outboard faces flush = print datum
+def foot_pt(fbox, x, z):
+    """housing frame -> leg frame (x-z): the foot housing is tilted FOOT_TILT about its output shaft and raised FOOT_RISE"""
+    t = math.radians(P["FOOT_TILT"]); dx = x - fbox
+    return (fbox + dx * math.cos(t) + z * math.sin(t), P["FOOT_RISE"] - dx * math.sin(t) + z * math.cos(t))
+def foot_loc(fbox, s):
+    return Pos(fbox, 0, P["FOOT_RISE"]) * (Rot(0, P["FOOT_TILT"], 0) * (Pos(-fbox, 0, 0) * s))
+def foot_T(fbox):
+    return TM([fbox, 0, P["FOOT_RISE"]]) @ RM(math.radians(P["FOOT_TILT"]), [0, 1, 0]) @ TM([-fbox, 0, 0])
+
 def build_kick():
     hub = cyly(P["KICK_HUB_D"], P["KICK_HUB_W"] - 0.4, HUB_Y0)                        # outer face recessed 0.4 ...
     hub = safe_fillet(hub, hub.edges(), 0.8, "hub")
     hub = hub + cyly(P["BOSS_FACE_D"] - 0.2, 0.42, HUB_Y1 - 0.41)                     # ... except a boss on the ear bearing's INNER race, flush with the print datum
     pole_x0 = P["KICK_HUB_D"] / 2 - 1.0
     hw2 = HUB_Y1
-    pole = cylx(P["KICK_POLE_D"], P["KICK_POLE_L"], pole_x0) + bx(pole_x0, pole_x0 + P["KICK_POLE_L"], 0, hw2, -P["KICK_POLE_D"] / 2, P["KICK_POLE_D"] / 2)
     xe = pole_x0 + P["KICK_POLE_L"]
-    # foot housing: square pocket for the foot worm N20 lying in line with the pole, output shaft along local +Z
+    pe = xe - 14.0                                                                     # the pole runs into the web here
+    pole = bx(pole_x0, pe, 0, hw2, -P["KICK_POLE_D"] / 2, P["KICK_POLE_D"] / 2)
+    pole = safe_fillet(pole, [e for e in pole.edges().filter_by(Axis.X) if abs(e.center().Y - hw2) < 1e-3], FL_R - 0.5, "pole corners")   # fits the flute
+    pole = pole + cylx(P["KICK_POLE_D"], pe - pole_x0, pole_x0)
+    # foot housing (built in its own frame, then tilted about the output shaft so the foot plants vertical): square pocket for
+    # the foot worm N20 in line with the housing, output shaft along the housing's +Z
     fh = pk + 2.6
     fx0 = xe - 4
+    fbox = fx0 + 4 + 1.3 + P["N20_L"] + 0.6 - P["N20_BOX"] / 2 - 0.2      # foot output-shaft x (box at the far end)
     house = rrect_x(fh, fh, P["N20_L"] + 0.6 + 2.6 + 4, fx0, y=FOOT_YC, r=2.5)
     house = safe_fillet(house, house.edges().group_by(Axis.X)[-1], 1.5, "foot end")
-    elbow = bx(fx0 - 4, fx0 + 1, -P["KICK_POLE_D"] / 2 - 1, hw2, -P["KICK_POLE_D"] / 2 - 1, P["KICK_POLE_D"] / 2 + 1)
-    leg = hub + pole + house + elbow
-    leg = safe_fillet(leg, leg.edges().filter_by(lambda e: True).group_by(Axis.X)[0], 0.5, "x") if False else leg
-    fbox = fx0 + 4 + 1.3 + P["N20_L"] + 0.6 - P["N20_BOX"] / 2 - 0.2      # foot output-shaft x (box at the far end)
-    cuts = [
+    hcuts = [
         bx(fx0 + 4 + 1.3 - P["TERM"], fx0 + 4 + 1.3 + P["N20_L"] + 0.6, -20, FOOT_YC + pk / 2 + CLR, -pk / 2 - CLR, pk / 2 + CLR),   # pocket (+ terminal room), open on -y (inboard; up when printing)
         cylz(P["SHAFT_D"] + 1.0, 12, pk / 2 - 1, x=fbox, y=FOOT_YC),                                         # output shaft up through the top wall
         bx(fbox - (P["SHAFT_D"] + 0.6) / 2, fbox + (P["SHAFT_D"] + 0.6) / 2, -20, FOOT_YC, pk / 2 - 1, pk / 2 + 11),   # slot: shaft slides in from the open side
         cylz(P["SHAFT_D"] + 1.0, 4, -pk / 2 - 2.5, x=fbox, y=FOOT_YC),                                                  # trimmed lower stub clearance
         bx(fbox - (P["SHAFT_D"] + 1.0) / 2, fbox + (P["SHAFT_D"] + 1.0) / 2, -20, FOOT_YC, -pk / 2 - 2.5, -pk / 2 + 1.5),
         bx(fx0 + 15, fx0 + 18, -20, 20, -fh / 2 - 1, -fh / 2 + 0.8),                                         # strap groove
-        cylx(4.6, P["KICK_POLE_L"] + 6, pole_x0 + 3),                                                        # wire channel through the pole
+    ]
+    # web: tangent arcs from the pole end up to the raised housing rear and along its floor (carries the drilling push into the pole)
+    wc = [(pe, 0.0, P["KICK_POLE_D"] / 2)] + [foot_pt(fbox, x_, z_) + (2.5,) for x_, z_ in
+          ((fx0 + 2.5, fh / 2 - 2.5), (fx0 + 2.5, -fh / 2 + 2.5), (fx0 + WEB_RUN, -fh / 2 + 2.5))]
+    web = arc_prism(wc, -P["KICK_POLE_D"] / 2, hw2)
+    web = yfillet(web, (-P["KICK_POLE_D"] / 2,), P["KICK_POLE_D"] / 2 - 0.1, "web")          # its -y side rounds like the pole ...
+    web = yfillet(web, (hw2,), FL_R - 0.5, "web datum side")                                  # ... and its +y edges like the pole corners
+    leg = hub + pole + web + foot_loc(fbox, house)
+    for c in hcuts:
+        leg = leg - foot_loc(fbox, c)
+    pr = foot_pt(fbox, fx0 + 4 + 1.3 - P["TERM"] + 1.0, 0.0)                                         # pocket rear (motor end cap)
+    wa = (xe - 12.0, 0.0); wd = (pr[0] - wa[0], pr[1] - wa[1]); wl = math.hypot(*wd)
+    cuts = [
+        cylx(4.6, xe - 12.0 - pole_x0 - 3 + 2.3, pole_x0 + 3),                                              # wire channel through the pole ...
+        Solid.make_cylinder(2.3, wl + 1.0, Plane(origin=(wa[0], 0, wa[1]), z_dir=(wd[0] / wl, 0, wd[1] / wl))),   # ... up through the web into the pocket
         Pos(pole_x0 + 7.5, -3, 0) * Cylinder(1.9, 8, rotation=(90, 0, 0)),                                    # wire exit near the hub (toward the hull)
         Pos(0, 0, 0) * D_bore(P["SHAFT_D"] + 0.25, (KMY + P["N20_TIP"] + 0.5) - (HUB_Y0 - 0.5), HUB_Y0 - 0.5),   # D-bore on the kick N20's +y stub
         cyly(P["SCREW_PILOT"], 7.0, HUB_Y1 + 1.0 - 7.0 + 0.2),   # M3 pilot from the outer end through the inner-race boss
     ]
-    if P["LIGHT"]:                                 # pockets in the keel from the flat (bed) face, ribs every 13 mm
-        for xp in np.arange(pole_x0 + 8, xe - 14, 13.0):
-            cuts.append(bx(xp, xp + 10, P["KICK_POLE_D"] / 2 + 0.6, P["KICK_HUB_W"] / 2 + 1, -2.6, 2.6))
     for c in cuts:
         leg = leg - c
     return leg, fx0, fbox
@@ -680,6 +785,7 @@ ztop_h = pk / 2 + 1.3
 fa = screw_auger(P["AUGER_D"], P["FOOT_AUGER_L"], P["AUGER_PITCH"], P["AUGER_CORE"], P["FOOT_TIP"], lefthand=False, dbore=P["SHAFT_D"] + 0.15)
 fa.apply_transform(RM(-math.pi / 2, [0, 1, 0]))            # +X -> +Z
 fa.apply_transform(TM([FBOX, FOOT_YC, ztop_h + 0.3]))           # 0.3 over the housing: drilling push bottoms the hub on the housing, not the worm gearbox
+fa.apply_transform(foot_T(FBOX))                                # tilted with the housing: vertical at the plant
 add("foot_auger", fa, "legs", "#b23a48", parent="kick_leg", orient="base down",
     note="Foot auger Ø%g x %g, core Ø%g, right-hand flight, D-bore on the foot N20 output shaft (7 mm engaged), M3 grub screw in the hub; its base runs 0.3 over the housing so drilling push goes into the housing, not the worm gearbox" % (P["AUGER_D"], P["FOOT_AUGER_L"], P["AUGER_CORE"]))
 
@@ -818,9 +924,9 @@ cx0 = P["NOSE_LIP"] + P["CAM_LENS"]
 env("camera", bx(cx0, cx0 + P["CAM_D"] - P["CAM_LENS"], -P["CAM_W"] / 2, P["CAM_W"] / 2, -P["CAM_H"] / 2, P["CAM_H"] / 2) + cylx(P["CAM_LENS_D"], P["CAM_LENS"], cx0 - P["CAM_LENS"]),
     "#1d3557", "Caddx Ant 13.99 x 14.59, 18.34 front to back (measured)")
 fx_p = FX0 + 4 + 1.3
-env("n20_foot", bx(fx_p, fx_p + P["N20_L"] - P["N20_BOX"], FOOT_YC - 5, FOOT_YC + 5, -5, 5) + bx(fx_p + P["N20_L"] - P["N20_BOX"], fx_p + P["N20_L"], FOOT_YC - 6, FOOT_YC + 6, -6, 6),
+env("n20_foot", foot_loc(FBOX, bx(fx_p, fx_p + P["N20_L"] - P["N20_BOX"], FOOT_YC - 5, FOOT_YC + 5, -5, 5) + bx(fx_p + P["N20_L"] - P["N20_BOX"], fx_p + P["N20_L"], FOOT_YC - 6, FOOT_YC + 6, -6, 6)),
     "#8e9aaf", "FOOT worm N20 in the housing, output up when folded (lower stub trimmed to 2 mm or single-shaft version)", parent="kick_leg")
-add("foot_shaft", cylz(P["SHAFT_D"], 9.0, 6.0, x=FBOX, y=FOOT_YC) - bx(FBOX - 3, FBOX - P["SHAFT_D"] / 2 + 0.5, FOOT_YC - 3, FOOT_YC + 3, 0, 20), "electronics", "#d0d4d8", parent="kick_leg", printable=False, step=False, note="foot N20 output shaft, 9 proud, D flat facing the hull nose side")
+add("foot_shaft", foot_loc(FBOX, cylz(P["SHAFT_D"], 9.0, 6.0, x=FBOX, y=FOOT_YC) - bx(FBOX - 3, FBOX - P["SHAFT_D"] / 2 + 0.5, FOOT_YC - 3, FOOT_YC + 3, 0, 20)), "electronics", "#d0d4d8", parent="kick_leg", printable=False, step=False, note="foot N20 output shaft, 9 proud, D flat facing the hull nose side")
 
 
 # ================================================================== HARDWARE (every bought part, so the model has everything in it)

@@ -5,8 +5,8 @@ nose-lift / tip-over under the real tether angle (planar limit analysis, scipy l
   python dart_anchor.py [OUT]      -> OUT/phys31/anchor.json (+ plots), OUT defaults to out31 (else out30)
 
 Method notes (all assumptions are named in dart_model.py or below):
-- Augers are short rigid piles. Lateral soil resistance per unit length (Broms): sand 3 Kp gamma z D, clay 9 c D below
-  1.5 D (nothing above), c-phi loam the sum. Two lateral capacities are given: "free head" (pile rotates, load at the
+- Augers are short rigid piles. Lateral soil resistance per unit length: sand 3 Kp gamma z D (Broms), cohesion Matlock
+  (3 + gamma z / c + 0.5 z / D) c D capped at 9 c D, c-phi loam the sum (without the double-counted gamma z / c). Two lateral capacities are given: "free head" (pile rotates, load at the
   ground entry; Broms short pile, solved for any p(s)) = design value, and "translation" (whole length at the limit
   pressure) = upper bound. Inclined augers: depth z = s sin(theta) along the axis.
 - Axial: cylindrical shear through the flight tips, tau = alpha c + K sigma_v tan(phi) (alpha 0.8, K 1.0), plus tip
@@ -48,7 +48,15 @@ def soil_fns(s, D):
 
     def p_lat(z):            # N/m at depth z (m)
         z = np.maximum(z, 0.0)
-        return 3 * Kp * g * z * D * (s["phi"] > 0) + np.where(z > 1.5 * D, 9 * c * D, 0.0)
+        # cohesion: Matlock (1970) near-surface limit pressure (3 + gamma z / c + J z / D) c D, J 0.5, capped at 9 c D
+        # (continuous from 3 c D at the surface; Broms' "nothing above 1.5 D" made the capacity fall as D grew on these
+        # shallow augers). In a c-phi soil the overburden term is already in the 3 Kp gamma z D sand term.
+        if c > 0:
+            fc = 3 + 0.5 * z / D + (g * z / c if s["phi"] == 0 else 0.0)
+            pc = np.minimum(fc, 9.0) * c * D
+        else:
+            pc = 0.0 * z
+        return 3 * Kp * g * z * D * (s["phi"] > 0) + pc
 
     def tau(z):              # Pa on the flight-tip cylinder
         return ALPHA_C * c + K_SAND * g * np.maximum(z, 0) * math.tan(phi)

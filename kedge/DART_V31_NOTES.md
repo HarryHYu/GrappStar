@@ -198,3 +198,21 @@ every start and before each commit. Never edit another owner's files; ask here.
   pose for its unit tests, and systest/harness.py (not mine) calls render_flight without rest: please add
   `rest="flat"` to the render_flight call in SimDartVideo.render (systest/harness.py line 213) before the BNO085 nose
   axis is set, or /auto will read nose_down. (2026-11-07 dart-jetson)
+- [dart-physics -> dart-cad] v32 SLEEVE AUGER SIZING (kedge/dart_v32_sizing.py -> out31/phys31/v32_sizing.json; v31 pivots, deploy
+  43 deg, horns; sleeve from 10 mm off the pivot, core OD 19, 10 mm tip; 7.4 V; loam c 5 kPa, rover 3 m). A radial auger gets no
+  depth from screwing, so the drill only has to SPIN it in place: torque = soil shear on the flight-tip cylinder, T ~ c D_f^2 L
+  (pitch and flight thickness do not change it). Release needs 1.3 x that + the milling share.
+  | L / D_f | depth | loam hold (no foot) | release need | margin 100 / 50 / 30 rpm | loam deploy (mill) 100 / 50 / 30 rpm |
+  | 95 / 21 | 39.6 | 56 (39) N | 0.21 N m | 0.85 / 1.7 / 2.8 | 43 / 87 / 145 s |
+  | 95 / 25 | 39.6 | 63 (45) N | 0.30 N m | 0.61 / 1.2 / 2.0 | 43 / 85 / 142 s |
+  | 110 / 21 | 49.8 | 64 (44) N | 0.27 N m | 0.67 / 1.3 / 2.2 | 82 / 165 / 275 s |
+  | 110 / 25 | 49.8 | 71 (51) N | 0.38 N m | 0.48 / 0.95 / 1.6 | 81 / 161 / 269 s |
+  Dry sand: 9.5 to 12.8 N whatever the size, margins 4 to 8 with any motor. RESULT: the in-hand 100 rpm drill (0.18 N m stall)
+  cannot turn a d19+ sleeve in loam (it releases only up to c about 2.7 to 3.6 kPa). Recommend: flight OD 22 (1.5 mm flights
+  over the 19 core; every mm of OD costs torque as D^2 and buys little holding), pitch 15 (0.7 OD), flight 1.2 mm at the tip
+  edge growing to 2.0 at the root (flight bending under the limit soil pressure is under 1.1 MPa, printing sets it), length
+  100 mm, and the 50 rpm version of the same drill motor (twice the torque): about 0.25 N m needed, margin about 1.45, deploy
+  about 110 s in loam, loam holding about 60 N with the foot (43 without), above the 55 N cap. 30 rpm gives margin 2.4 but a
+  145 to 275 s mill (deploy worm heats +45 K): only if the pull test finds stiffer loam. Horns then carry about 5.5 N m for
+  both pods (2.8 per pod, 4.1 with factor 1.5): please recheck them. Also: lateral soil model changed to Matlock near the
+  surface (3 c D rising to 9 c D) instead of Broms' zero top 1.5 D; v31 numbers updated in DART_PHYSICS31.md. (2026-11-07 dart-physics)

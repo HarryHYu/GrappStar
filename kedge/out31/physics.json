@@ -448,11 +448,11 @@
     ]
    },
    "moist loam": {
-    "drill_auger_each_N": 21.4,
-    "foot_auger_N": 7.9,
+    "drill_auger_each_N": 17.5,
+    "foot_auger_N": 8.6,
     "friction_N": 1.4,
-    "total_N": 51.1,
-    "total_if_worms_never_slip_N": 51.1,
+    "total_N": 45.5,
+    "total_if_worms_never_slip_N": 45.5,
     "governing": [
      "drill augers soil capacity",
      "foot auger soil capacity",
@@ -463,17 +463,18 @@
     ]
    },
    "firm clay": {
-    "drill_auger_each_N": 151.2,
-    "foot_auger_N": 55.1,
+    "drill_auger_each_N": 120.7,
+    "foot_auger_N": 61.2,
     "friction_N": 1.1,
-    "total_N": 332.8,
-    "total_if_worms_never_slip_N": 332.8,
+    "total_N": 288.9,
+    "total_if_worms_never_slip_N": 289.1,
     "governing": [
      "drill augers soil capacity",
      "foot auger soil capacity",
      "hull belly front (x 20) friction cone",
      "hull belly rear (x 141) friction cone",
      "kick pole tip on ground friction cone",
+     "kick worm moment at its limit",
      "pod nose on ground friction cone"
     ]
    }
@@ -483,18 +484,18 @@
  "tip_over_foot_uplift_capacity_loam_N": 5.5,
  "tip_over": {
   "tether_height_mm": 21,
-  "pull_N": 51.1,
-  "moment_Nm": 1.073,
+  "pull_N": 45.5,
+  "moment_Nm": 0.956,
   "foot_lever_mm": 154,
-  "foot_hold_down_needed_N": 6.99,
+  "foot_hold_down_needed_N": 6.22,
   "dart_weight_N": 2.56,
   "line_angle_deg_rover_1_3_5m": [
    21.1,
    7.3,
    4.4
   ],
-  "without_foot_N_loam_3m": 26.4,
-  "loam_rover_1m_N": 50.0,
+  "without_foot_N_loam_3m": 29.0,
+  "loam_rover_1m_N": 44.5,
   "note": "the planar limit analysis includes nose lift (hull belly contacts compression only) and the line angle"
  },
  "kick": {
@@ -538,23 +539,23 @@
     ],
     [
      185.75,
-     0.001
+     0.039
     ],
     [
      189.75,
-     0.005
+     0.097
     ],
     [
      193.75,
-     0.012
+     0.151
     ],
     [
      197.75,
-     0.146
+     0.199
     ],
     [
      201.75,
-     0.287
+     0.241
     ]
    ],
    "firm clay": [
@@ -564,23 +565,23 @@
     ],
     [
      185.75,
-     0.0
+     0.307
     ],
     [
      189.75,
-     0.0
+     0.735
     ],
     [
      193.75,
-     0.0
+     1.109
     ],
     [
      197.75,
-     0.997
+     1.427
     ],
     [
      201.75,
-     2.05
+     1.681
     ]
    ]
   },
@@ -592,13 +593,13 @@
   "gravity_torque_both_kgcm": null,
   "soil_moment_both_Nm": {
    "dry sand": 0.43,
-   "moist loam": 3.757,
-   "firm clay": 26.761
+   "moist loam": 2.764,
+   "firm clay": 18.867
   },
   "time_to_deploy_s": {
    "dry sand": 10.4,
-   "moist loam": 90.8,
-   "firm clay": 646.7
+   "moist loam": 66.8,
+   "firm clay": 455.9
   },
   "soil_cut_note": "radial augers sweep sideways: they go in only as a mill with the drills spinning and the deploy worm at stall"
  },
@@ -606,9 +607,9 @@
   "capacity_Wh": 5.18,
   "idle_W_video_on": 2.52,
   "hours_video_on": 1.85,
-  "anchor_sequence_mAh": 16.0,
+  "anchor_sequence_mAh": 12.4,
   "worst_current_A": 1.2,
-  "release_mAh": 20.8
+  "release_mAh": 16.1
  },
  "strength": {
   "kick_pole_section_mm3": 99.8,

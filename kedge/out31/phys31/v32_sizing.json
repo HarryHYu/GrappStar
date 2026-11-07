@@ -1,0 +1,599 @@
+{
+ "source": "out31",
+ "assumptions": {
+  "core_od_mm": 19.0,
+  "sleeve_start_from_pivot_mm": 10.0,
+  "tip_mm": 10.0,
+  "deploy_deg": 43.0,
+  "pivot_z": 11.0,
+  "soils": {
+   "dry sand": {
+    "gamma": 16.0,
+    "phi": 32.0,
+    "c": 0.0,
+    "delta": 22.0,
+    "q_dyn": 250.0,
+    "mu": 0.55,
+    "k_s": 20.0,
+    "kind": "sand"
+   },
+   "moist loam": {
+    "gamma": 18.0,
+    "phi": 28.0,
+    "c": 5.0,
+    "delta": 20.0,
+    "q_dyn": 600.0,
+    "mu": 0.55,
+    "k_s": 40.0,
+    "kind": "c-phi"
+   },
+   "firm clay": {
+    "gamma": 19.0,
+    "phi": 0.0,
+    "c": 40.0,
+    "delta": 0.0,
+    "q_dyn": 1000.0,
+    "mu": 0.45,
+    "k_s": 60.0,
+    "kind": "clay"
+   }
+  },
+  "horns": "v31 deploy horns + kick rest"
+ },
+ "rows": [
+  {
+   "L_mm": 95.0,
+   "Df_mm": 21.0,
+   "depth_mm": 39.6,
+   "embedded_mm": 53.1,
+   "dry sand": {
+    "pitch 13": {
+     "T_spin_B_Nm": 0.007,
+     "T_spin_A_Nm": 0.004
+    },
+    "pitch 17": {
+     "T_spin_B_Nm": 0.007,
+     "T_spin_A_Nm": 0.004
+    },
+    "release_need_Nm": 0.022,
+    "margin": {
+     "100 rpm (in hand)": 8.1,
+     "50 rpm (same body)": 16.16,
+     "30 rpm (same body)": 26.97
+    },
+    "deploy_passive_both_Nm": 0.51,
+    "deploy_s": {
+     "100 rpm (in hand)": 7.0,
+     "50 rpm (same body)": 13.0,
+     "30 rpm (same body)": 22.0
+    },
+    "hold_3m_N": 9.5,
+    "hold_3m_no_foot_N": 8.2,
+    "horn_Nm": 1.133,
+    "flight_bending_MPa_t1p2": 0.01
+   },
+   "moist loam": {
+    "pitch 13": {
+     "T_spin_B_Nm": 0.153,
+     "T_spin_A_Nm": 0.092
+    },
+    "pitch 17": {
+     "T_spin_B_Nm": 0.153,
+     "T_spin_A_Nm": 0.089
+    },
+    "release_need_Nm": 0.213,
+    "margin": {
+     "100 rpm (in hand)": 0.85,
+     "50 rpm (same body)": 1.7,
+     "30 rpm (same body)": 2.84
+    },
+    "deploy_passive_both_Nm": 3.33,
+    "deploy_s": {
+     "100 rpm (in hand)": 43.0,
+     "50 rpm (same body)": 87.0,
+     "30 rpm (same body)": 145.0
+    },
+    "hold_3m_N": 55.6,
+    "hold_3m_no_foot_N": 39.4,
+    "horn_Nm": 3.962,
+    "flight_bending_MPa_t1p2": 0.05,
+    "loam_c_max_kPa_at_margin_1p25": {
+     "100 rpm (in hand)": 3.6,
+     "50 rpm (same body)": 7.4,
+     "30 rpm (same body)": 12.5
+    }
+   }
+  },
+  {
+   "L_mm": 95.0,
+   "Df_mm": 23.0,
+   "depth_mm": 39.6,
+   "embedded_mm": 53.1,
+   "dry sand": {
+    "pitch 14": {
+     "T_spin_B_Nm": 0.008,
+     "T_spin_A_Nm": 0.005
+    },
+    "pitch 18": {
+     "T_spin_B_Nm": 0.008,
+     "T_spin_A_Nm": 0.004
+    },
+    "release_need_Nm": 0.025,
+    "margin": {
+     "100 rpm (in hand)": 7.27,
+     "50 rpm (same body)": 14.5,
+     "30 rpm (same body)": 24.2
+    },
+    "deploy_passive_both_Nm": 0.56,
+    "deploy_s": {
+     "100 rpm (in hand)": 7.0,
+     "50 rpm (same body)": 13.0,
+     "30 rpm (same body)": 22.0
+    },
+    "hold_3m_N": 10.1,
+    "hold_3m_no_foot_N": 8.7,
+    "horn_Nm": 1.182,
+    "flight_bending_MPa_t1p2": 0.05
+   },
+   "moist loam": {
+    "pitch 14": {
+     "T_spin_B_Nm": 0.184,
+     "T_spin_A_Nm": 0.106
+    },
+    "pitch 18": {
+     "T_spin_B_Nm": 0.184,
+     "T_spin_A_Nm": 0.099
+    },
+    "release_need_Nm": 0.255,
+    "margin": {
+     "100 rpm (in hand)": 0.71,
+     "50 rpm (same body)": 1.42,
+     "30 rpm (same body)": 2.38
+    },
+    "deploy_passive_both_Nm": 3.61,
+    "deploy_s": {
+     "100 rpm (in hand)": 43.0,
+     "50 rpm (same body)": 86.0,
+     "30 rpm (same body)": 143.0
+    },
+    "hold_3m_N": 59.1,
+    "hold_3m_no_foot_N": 42.4,
+    "horn_Nm": 4.244,
+    "flight_bending_MPa_t1p2": 0.2,
+    "loam_c_max_kPa_at_margin_1p25": {
+     "100 rpm (in hand)": 3.0,
+     "50 rpm (same body)": 6.1,
+     "30 rpm (same body)": 10.4
+    }
+   }
+  },
+  {
+   "L_mm": 95.0,
+   "Df_mm": 25.0,
+   "depth_mm": 39.6,
+   "embedded_mm": 53.1,
+   "dry sand": {
+    "pitch 15": {
+     "T_spin_B_Nm": 0.009,
+     "T_spin_A_Nm": 0.005
+    },
+    "pitch 20": {
+     "T_spin_B_Nm": 0.009,
+     "T_spin_A_Nm": 0.005
+    },
+    "release_need_Nm": 0.028,
+    "margin": {
+     "100 rpm (in hand)": 6.59,
+     "50 rpm (same body)": 13.14,
+     "30 rpm (same body)": 21.94
+    },
+    "deploy_passive_both_Nm": 0.61,
+    "deploy_s": {
+     "100 rpm (in hand)": 7.0,
+     "50 rpm (same body)": 13.0,
+     "30 rpm (same body)": 22.0
+    },
+    "hold_3m_N": 10.6,
+    "hold_3m_no_foot_N": 9.2,
+    "horn_Nm": 1.232,
+    "flight_bending_MPa_t1p2": 0.11
+   },
+   "moist loam": {
+    "pitch 15": {
+     "T_spin_B_Nm": 0.217,
+     "T_spin_A_Nm": 0.121
+    },
+    "pitch 20": {
+     "T_spin_B_Nm": 0.217,
+     "T_spin_A_Nm": 0.11
+    },
+    "release_need_Nm": 0.299,
+    "margin": {
+     "100 rpm (in hand)": 0.61,
+     "50 rpm (same body)": 1.21,
+     "30 rpm (same body)": 2.02
+    },
+    "deploy_passive_both_Nm": 3.89,
+    "deploy_s": {
+     "100 rpm (in hand)": 43.0,
+     "50 rpm (same body)": 85.0,
+     "30 rpm (same body)": 142.0
+    },
+    "hold_3m_N": 62.6,
+    "hold_3m_no_foot_N": 45.4,
+    "horn_Nm": 4.525,
+    "flight_bending_MPa_t1p2": 0.45,
+    "loam_c_max_kPa_at_margin_1p25": {
+     "100 rpm (in hand)": 2.5,
+     "50 rpm (same body)": 5.1,
+     "30 rpm (same body)": 8.7
+    }
+   }
+  },
+  {
+   "L_mm": 95.0,
+   "Df_mm": 28.0,
+   "depth_mm": 39.6,
+   "embedded_mm": 53.1,
+   "dry sand": {
+    "pitch 17": {
+     "T_spin_B_Nm": 0.012,
+     "T_spin_A_Nm": 0.006
+    },
+    "pitch 22": {
+     "T_spin_B_Nm": 0.012,
+     "T_spin_A_Nm": 0.005
+    },
+    "release_need_Nm": 0.033,
+    "margin": {
+     "100 rpm (in hand)": 5.44,
+     "50 rpm (same body)": 10.86,
+     "30 rpm (same body)": 18.13
+    },
+    "deploy_passive_both_Nm": 0.68,
+    "deploy_s": {
+     "100 rpm (in hand)": 7.0,
+     "50 rpm (same body)": 13.0,
+     "30 rpm (same body)": 22.0
+    },
+    "hold_3m_N": 11.4,
+    "hold_3m_no_foot_N": 10.0,
+    "horn_Nm": 1.306,
+    "flight_bending_MPa_t1p2": 0.24
+   },
+   "moist loam": {
+    "pitch 17": {
+     "T_spin_B_Nm": 0.273,
+     "T_spin_A_Nm": 0.143
+    },
+    "pitch 22": {
+     "T_spin_B_Nm": 0.273,
+     "T_spin_A_Nm": 0.127
+    },
+    "release_need_Nm": 0.374,
+    "margin": {
+     "100 rpm (in hand)": 0.49,
+     "50 rpm (same body)": 0.97,
+     "30 rpm (same body)": 1.62
+    },
+    "deploy_passive_both_Nm": 4.31,
+    "deploy_s": {
+     "100 rpm (in hand)": 42.0,
+     "50 rpm (same body)": 84.0,
+     "30 rpm (same body)": 141.0
+    },
+    "hold_3m_N": 67.7,
+    "hold_3m_no_foot_N": 49.9,
+    "horn_Nm": 4.947,
+    "flight_bending_MPa_t1p2": 1.0,
+    "loam_c_max_kPa_at_margin_1p25": {
+     "100 rpm (in hand)": 1.9,
+     "50 rpm (same body)": 4.1,
+     "30 rpm (same body)": 6.9
+    }
+   }
+  },
+  {
+   "L_mm": 110.0,
+   "Df_mm": 21.0,
+   "depth_mm": 49.8,
+   "embedded_mm": 68.1,
+   "dry sand": {
+    "pitch 13": {
+     "T_spin_B_Nm": 0.011,
+     "T_spin_A_Nm": 0.007
+    },
+    "pitch 17": {
+     "T_spin_B_Nm": 0.011,
+     "T_spin_A_Nm": 0.006
+    },
+    "release_need_Nm": 0.026,
+    "margin": {
+     "100 rpm (in hand)": 6.91,
+     "50 rpm (same body)": 13.78,
+     "30 rpm (same body)": 23.01
+    },
+    "deploy_passive_both_Nm": 0.94,
+    "deploy_s": {
+     "100 rpm (in hand)": 15.0,
+     "50 rpm (same body)": 30.0,
+     "30 rpm (same body)": 51.0
+    },
+    "hold_3m_N": 11.3,
+    "hold_3m_no_foot_N": 9.5,
+    "horn_Nm": 1.393,
+    "flight_bending_MPa_t1p2": 0.02
+   },
+   "moist loam": {
+    "pitch 13": {
+     "T_spin_B_Nm": 0.199,
+     "T_spin_A_Nm": 0.12
+    },
+    "pitch 17": {
+     "T_spin_B_Nm": 0.199,
+     "T_spin_A_Nm": 0.115
+    },
+    "release_need_Nm": 0.272,
+    "margin": {
+     "100 rpm (in hand)": 0.67,
+     "50 rpm (same body)": 1.34,
+     "30 rpm (same body)": 2.23
+    },
+    "deploy_passive_both_Nm": 5.07,
+    "deploy_s": {
+     "100 rpm (in hand)": 82.0,
+     "50 rpm (same body)": 165.0,
+     "30 rpm (same body)": 275.0
+    },
+    "hold_3m_N": 64.1,
+    "hold_3m_no_foot_N": 44.2,
+    "horn_Nm": 5.731,
+    "flight_bending_MPa_t1p2": 0.06,
+    "loam_c_max_kPa_at_margin_1p25": {
+     "100 rpm (in hand)": 2.7,
+     "50 rpm (same body)": 5.6,
+     "30 rpm (same body)": 9.6
+    }
+   }
+  },
+  {
+   "L_mm": 110.0,
+   "Df_mm": 23.0,
+   "depth_mm": 49.8,
+   "embedded_mm": 68.1,
+   "dry sand": {
+    "pitch 14": {
+     "T_spin_B_Nm": 0.013,
+     "T_spin_A_Nm": 0.008
+    },
+    "pitch 18": {
+     "T_spin_B_Nm": 0.013,
+     "T_spin_A_Nm": 0.007
+    },
+    "release_need_Nm": 0.03,
+    "margin": {
+     "100 rpm (in hand)": 6.05,
+     "50 rpm (same body)": 12.07,
+     "30 rpm (same body)": 20.14
+    },
+    "deploy_passive_both_Nm": 1.03,
+    "deploy_s": {
+     "100 rpm (in hand)": 15.0,
+     "50 rpm (same body)": 30.0,
+     "30 rpm (same body)": 51.0
+    },
+    "hold_3m_N": 11.7,
+    "hold_3m_no_foot_N": 9.9,
+    "horn_Nm": 1.429,
+    "flight_bending_MPa_t1p2": 0.06
+   },
+   "moist loam": {
+    "pitch 14": {
+     "T_spin_B_Nm": 0.239,
+     "T_spin_A_Nm": 0.138
+    },
+    "pitch 18": {
+     "T_spin_B_Nm": 0.239,
+     "T_spin_A_Nm": 0.129
+    },
+    "release_need_Nm": 0.325,
+    "margin": {
+     "100 rpm (in hand)": 0.56,
+     "50 rpm (same body)": 1.12,
+     "30 rpm (same body)": 1.86
+    },
+    "deploy_passive_both_Nm": 5.48,
+    "deploy_s": {
+     "100 rpm (in hand)": 81.0,
+     "50 rpm (same body)": 163.0,
+     "30 rpm (same body)": 271.0
+    },
+    "hold_3m_N": 67.6,
+    "hold_3m_no_foot_N": 47.7,
+    "horn_Nm": 6.004,
+    "flight_bending_MPa_t1p2": 0.22,
+    "loam_c_max_kPa_at_margin_1p25": {
+     "100 rpm (in hand)": 2.2,
+     "50 rpm (same body)": 4.7,
+     "30 rpm (same body)": 8.0
+    }
+   }
+  },
+  {
+   "L_mm": 110.0,
+   "Df_mm": 25.0,
+   "depth_mm": 49.8,
+   "embedded_mm": 68.1,
+   "dry sand": {
+    "pitch 15": {
+     "T_spin_B_Nm": 0.016,
+     "T_spin_A_Nm": 0.009
+    },
+    "pitch 20": {
+     "T_spin_B_Nm": 0.016,
+     "T_spin_A_Nm": 0.008
+    },
+    "release_need_Nm": 0.035,
+    "margin": {
+     "100 rpm (in hand)": 5.18,
+     "50 rpm (same body)": 10.33,
+     "30 rpm (same body)": 17.25
+    },
+    "deploy_passive_both_Nm": 1.11,
+    "deploy_s": {
+     "100 rpm (in hand)": 15.0,
+     "50 rpm (same body)": 30.0,
+     "30 rpm (same body)": 51.0
+    },
+    "hold_3m_N": 12.2,
+    "hold_3m_no_foot_N": 10.3,
+    "horn_Nm": 1.464,
+    "flight_bending_MPa_t1p2": 0.14
+   },
+   "moist loam": {
+    "pitch 15": {
+     "T_spin_B_Nm": 0.282,
+     "T_spin_A_Nm": 0.157
+    },
+    "pitch 20": {
+     "T_spin_B_Nm": 0.282,
+     "T_spin_A_Nm": 0.143
+    },
+    "release_need_Nm": 0.382,
+    "margin": {
+     "100 rpm (in hand)": 0.48,
+     "50 rpm (same body)": 0.95,
+     "30 rpm (same body)": 1.59
+    },
+    "deploy_passive_both_Nm": 5.9,
+    "deploy_s": {
+     "100 rpm (in hand)": 81.0,
+     "50 rpm (same body)": 161.0,
+     "30 rpm (same body)": 269.0
+    },
+    "hold_3m_N": 71.1,
+    "hold_3m_no_foot_N": 51.2,
+    "horn_Nm": 6.272,
+    "flight_bending_MPa_t1p2": 0.5,
+    "loam_c_max_kPa_at_margin_1p25": {
+     "100 rpm (in hand)": 1.8,
+     "50 rpm (same body)": 3.9,
+     "30 rpm (same body)": 6.7
+    }
+   }
+  },
+  {
+   "L_mm": 110.0,
+   "Df_mm": 28.0,
+   "depth_mm": 49.8,
+   "embedded_mm": 68.1,
+   "dry sand": {
+    "pitch 17": {
+     "T_spin_B_Nm": 0.019,
+     "T_spin_A_Nm": 0.01
+    },
+    "pitch 22": {
+     "T_spin_B_Nm": 0.019,
+     "T_spin_A_Nm": 0.009
+    },
+    "release_need_Nm": 0.041,
+    "margin": {
+     "100 rpm (in hand)": 4.47,
+     "50 rpm (same body)": 8.91,
+     "30 rpm (same body)": 14.87
+    },
+    "deploy_passive_both_Nm": 1.25,
+    "deploy_s": {
+     "100 rpm (in hand)": 15.0,
+     "50 rpm (same body)": 30.0,
+     "30 rpm (same body)": 51.0
+    },
+    "hold_3m_N": 12.8,
+    "hold_3m_no_foot_N": 11.0,
+    "horn_Nm": 1.514,
+    "flight_bending_MPa_t1p2": 0.31
+   },
+   "moist loam": {
+    "pitch 17": {
+     "T_spin_B_Nm": 0.354,
+     "T_spin_A_Nm": 0.186
+    },
+    "pitch 22": {
+     "T_spin_B_Nm": 0.354,
+     "T_spin_A_Nm": 0.165
+    },
+    "release_need_Nm": 0.478,
+    "margin": {
+     "100 rpm (in hand)": 0.38,
+     "50 rpm (same body)": 0.76,
+     "30 rpm (same body)": 1.27
+    },
+    "deploy_passive_both_Nm": 6.52,
+    "deploy_s": {
+     "100 rpm (in hand)": 80.0,
+     "50 rpm (same body)": 159.0,
+     "30 rpm (same body)": 265.0
+    },
+    "hold_3m_N": 76.4,
+    "hold_3m_no_foot_N": 56.3,
+    "horn_Nm": 6.675,
+    "flight_bending_MPa_t1p2": 1.1,
+    "loam_c_max_kPa_at_margin_1p25": {
+     "100 rpm (in hand)": 1.4,
+     "50 rpm (same body)": 3.1,
+     "30 rpm (same body)": 5.3
+    }
+   }
+  }
+ ],
+ "motors": {
+  "100 rpm (in hand)": {
+   "kind": "drill",
+   "V": 7.4,
+   "R_ohm": 22.9,
+   "Kt_out_NmA": 1.04,
+   "stall_A": 0.324,
+   "stall_Nm": 0.182,
+   "stall_Nm_range": [
+    0.151,
+    0.212
+   ],
+   "free_rpm": 61.2,
+   "free_rad_s": 6.404,
+   "eta": 0.6,
+   "note": "5-stage spur N20 gearbox, about 0.9 per stage"
+  },
+  "50 rpm (same body)": {
+   "kind": "drill",
+   "V": 7.4,
+   "R_ohm": 22.9,
+   "Kt_out_NmA": 2.079,
+   "stall_A": 0.324,
+   "stall_Nm": 0.363,
+   "stall_Nm_range": [
+    0.303,
+    0.424
+   ],
+   "free_rpm": 30.6,
+   "free_rad_s": 3.202,
+   "eta": 0.6,
+   "note": "5-stage spur N20 gearbox, about 0.9 per stage"
+  },
+  "30 rpm (same body)": {
+   "kind": "drill",
+   "V": 7.4,
+   "R_ohm": 22.9,
+   "Kt_out_NmA": 3.465,
+   "stall_A": 0.324,
+   "stall_Nm": 0.606,
+   "stall_Nm_range": [
+    0.505,
+    0.706
+   ],
+   "free_rpm": 18.3,
+   "free_rad_s": 1.921,
+   "eta": 0.6,
+   "note": "5-stage spur N20 gearbox, about 0.9 per stage"
+  }
+ }
+}

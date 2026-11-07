@@ -21,6 +21,10 @@ Accuracy on realistic synthetic flights (README section 13): range with the flig
 4.2 to 5.5), video only median 4.4 percent; map marker median 0.07 m; landing verdict as expected 90 percent, no GO on
 sand, rock or water, GO on 22 of 24 good landings (2 UNSURE).
 
+Verified (7 Nov, Python 3.13, numpy 1.26): default suite `python -m pytest -n 4` 465 passed; slow real-firmware
+tests (tests/test_dart_realsim.py, test_mission_realsim.py with dart firmware v4.1 kedge_sim) 6 passed; systest
+nominal, dart_never_anchors, dart_drags20, nogo_reshoot, dart_wifi_drop, land_short all PASS; selftest ALL PASS.
+
 Still open: `REST_POSES_DEG` keeps -60 (old pose; dart-physics says the dart lies or leans, and the firmware refuses
 /auto nose down anyway); the video-only range has rare large misses when the landing is not seen (an IMU log
 normally exists); every number above is synthetic until Harry re-learns on real footage (README section 12).

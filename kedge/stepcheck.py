@@ -13,6 +13,6 @@ for f in sorted(glob.glob(f"{PK}/*.step")):
     except Exception as e:
         rep[n] = dict(valid=False, error=str(e)[:120])
 json.dump(rep, open(f"{PK}/step_check.json", "w"), indent=1)
-bad = [n for n, r in rep.items() if not r["valid"] or r.get("solids", 1) != 1]
+bad = [n for n, r in rep.items() if not r["valid"] or (r.get("solids", 1) != 1 and n != "fit_coupon")]   # the coupon is several loose test pieces
 for n, r in rep.items(): print(f"{n:22s} {r}")
 print("ALL STEP VALID" if not bad else "STEP PROBLEMS: " + ", ".join(bad))

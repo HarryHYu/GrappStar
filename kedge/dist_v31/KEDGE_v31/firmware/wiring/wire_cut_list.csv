@@ -1,0 +1,52 @@
+#,from,to,colour,gauge,cut length mm,note,v29 #,route (v31 passages)
+1,"Rear plate, cell 1 (-)",BMS B-,black,22 AWG,45,solder to the plate tab before it goes in its recess,1,d4 > bms_r
+2,"Front spring, cell 1 (+)","Front spring, cell 2 (-)",red,22 AWG,45,the series link: carries the full battery current; glue both springs in the front recess,2,
+3,Front spring pair (cell 1 + / cell 2 -),BMS BM,white,26 AWG,55,midpoint sense,3,d3 > keel_d2 > bms_f
+4,"Rear plate, cell 2 (+)",BMS B+,red,22 AWG,45,,4,d4 > bms_r
+5,BMS B-,"Charge socket pin 1 (tail cap, bottom seat)",black,26 AWG,90,"JST-XH 3-pin, balance charge",5,bms_r > keel_d3 > keel_d4 > tail_bot
+6,BMS BM,"Charge socket pin 2 (tail cap, bottom seat)",white,26 AWG,90,,6,bms_r > keel_d3 > keel_d4 > tail_bot
+7,BMS B+,"Charge socket pin 3 (tail cap, bottom seat)",red,26 AWG,90,,7,bms_r > keel_d3 > keel_d4 > tail_bot
+8,BMS P+,"Power loop socket pin 1 (tail cap, top seat)",red,22 AWG,105,JST-XH 2-pin; the shorting plug is the ON switch,8,bms_r > keel_d3 > keel_d4 > tail_top
+9,Power loop socket pin 2,INA219 VIN+,red,22 AWG,80,main + after the loop,9,tail_top > win_d4 > ina
+10,INA219 VIN+ (same pad),MP1584 IN+,red,22 AWG,200,"buck taps before the shunt, so INA219 reads motor current only",10,ina > chase > keel_d3 > keel_d2 > sled > mp
+11,INA219 VIN-,DRV#1 VM,red,22 AWG,50,motor rail 6.0-8.4 V,11,ina > drv1
+12,DRV#1 VM,DRV#2 VM,red,22 AWG,70,daisy chain ends here (no DRV#3),12,drv1 > drv2
+13,BMS P-,MP1584 IN-,black,22 AWG,90,main ground,14,bms_f > keel_d2 > sled > mp
+14,MP1584 IN- (same pad),DRV#1 GND,black,22 AWG,200,,15,mp > sled > keel_d2 > keel_d3 > chase > drv1
+15,DRV#1 GND,DRV#2 GND,black,22 AWG,70,,16,drv1 > drv2
+16,MP1584 OUT+ (5.04 V),XIAO 5V via a Schottky diode (stripe toward the XIAO),orange,24 AWG,195,set and check 5.04 V BEFORE connecting; 1N5817 or SS14 in heat shrink,18,mp > sled > keel_d2 > keel_d3 > chase > xiao_5v
+17,MP1584 OUT-,XIAO GND,black,24 AWG,195,,19,mp > sled > keel_d2 > keel_d3 > chase > xiao_5v
+18,MP1584 OUT+,VTX 5V in,orange,26 AWG,95,,20,mp > top_d2 > vtx
+19,MP1584 OUT-,VTX GND,black,26 AWG,95,,21,mp > top_d2 > vtx
+20,VTX 5V in (same pad),Camera + (red),orange,28 AWG,120,runs forward along the top through the disc notches,22,vtx > top_d2 > top_d1 > cam
+21,VTX GND (same pad),Camera - (black),black,28 AWG,120,,23,vtx > top_d2 > top_d1 > cam
+22,Camera video (yellow),VTX video in,yellow,28 AWG,120,twist with the camera ground,24,vtx > top_d2 > top_d1 > cam
+23,XIAO 3V3,DRV#1 SLP / nSLEEP / EEP pad (NOT VCC or VIN),red/white,28 AWG,55,wakes the driver; meter check first (WIRING.md step B6),25,xiao_pins > drv1
+24,DRV#1 SLP,DRV#2 SLP,red/white,28 AWG,70,,26,drv1 > drv2
+25,XIAO 3V3,INA219 VCC,red/white,28 AWG,60,,28,xiao_pins > ina
+26,INA219 VCC,BNO085 VIN,red/white,28 AWG,180,,29,ina > chase > keel_d3 > keel_d2 > sled > bno
+27,XIAO GND,INA219 GND,black,28 AWG,60,,30,xiao_pins > ina
+28,INA219 GND,BNO085 GND,black,28 AWG,180,,31,ina > chase > keel_d3 > keel_d2 > sled > bno
+29,XIAO D4,INA219 SDA,blue,28 AWG,60,I2C SDA,32,xiao_pins > ina
+30,INA219 SDA,BNO085 SDA,blue,28 AWG,180,,33,ina > chase > keel_d3 > keel_d2 > sled > bno
+31,XIAO D5,INA219 SCL,green,28 AWG,60,I2C SCL,34,xiao_pins > ina
+32,INA219 SCL,BNO085 SCL,green,28 AWG,180,,35,ina > chase > keel_d3 > keel_d2 > sled > bno
+33,XIAO D0,DRV#1 AIN1,purple,28 AWG,55,deploy,36,xiao_pins > drv1
+34,XIAO D1,DRV#1 AIN2,grey,28 AWG,55,deploy,37,xiao_pins > drv1
+35,XIAO D2,DRV#1 BIN1,purple,28 AWG,55,kick,38,xiao_pins > drv1
+36,XIAO D3,DRV#1 BIN2,grey,28 AWG,55,kick,39,xiao_pins > drv1
+37,XIAO D8,DRV#2 AIN1 (only AIN1: NO bridge to BIN1),purple,28 AWG,50,drills,40,xiao_pins > drv2
+38,XIAO D9,DRV#2 AIN2 (only AIN2: NO bridge to BIN2),grey,28 AWG,50,drills,41,xiao_pins > drv2
+39,XIAO D6,DRV#2 BIN1,purple,28 AWG,50,"foot (slow worm, harmless if it twitches at reset)",42,xiao_pins > drv2
+40,XIAO D7,DRV#2 BIN2,grey,28 AWG,50,foot,43,xiao_pins > drv2
+41,DRV#1 AOUT1,Deploy N20 + (red),red,26 AWG,220,motor sits in the sled cradle,44,drv1 > chase > keel_d3 > keel_d2 > sled > bno > win_d1 > dep
+42,DRV#1 AOUT2,Deploy N20 - (black),black,26 AWG,220,,45,drv1 > chase > keel_d3 > keel_d2 > sled > bno > win_d1 > dep
+43,DRV#1 BOUT1,Kick N20 + (red),red,26 AWG,200,out through the hole in the saddle floor,46,drv1 > chase > keel_d3 > keel_d2 > sled > kick_hole
+44,DRV#1 BOUT2,Kick N20 - (black),black,26 AWG,200,,47,drv1 > chase > keel_d3 > keel_d2 > sled > kick_hole
+45,DRV#2 AOUT1,Drill motor LEFT + (red),red,26 AWG,175,"out the left flank hole, 30 mm loop for the pod swing",48,drv2 > top_d3 > top_d2 > flankL
+46,DRV#2 AOUT2,Drill motor LEFT - (black),black,26 AWG,175,,49,drv2 > top_d3 > top_d2 > flankL
+47,DRV#2 AOUT1 (same pad as the LEFT red),Drill motor RIGHT - (black)  SWAPPED,black,26 AWG,175,reversed on purpose: the pair counter-rotates,50,drv2 > top_d3 > top_d2 > flankR
+48,DRV#2 AOUT2 (same pad as the LEFT black),Drill motor RIGHT + (red)  SWAPPED,red,26 AWG,175,,51,drv2 > top_d3 > top_d2 > flankR
+49,DRV#2 BOUT1,Foot N20 + (red),red,26 AWG,310,"forward along the top through the disc notches, out the skin hole, 60 mm loop round the hub, through the pole channel",52,drv2 > top_d3 > top_d2 > foot_hole
+50,DRV#2 BOUT2,Foot N20 - (black),black,26 AWG,310,"silicone wire, it flexes every deploy",53,drv2 > top_d3 > top_d2 > foot_hole
+51,XIAO D10,"Video MOSFET gate (AO3400A, through a 100 ohm resistor)",white,28 AWG,115,"OPTIONAL video switch (WIRING.md): the MOSFET sits in wire 19 near the VTX (source to the MP1584 OUT- side, drain to the VTX GND side), 100 k from gate to source",,

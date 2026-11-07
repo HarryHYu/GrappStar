@@ -1,0 +1,71 @@
+hull ...
+hull_top             [121.3  55.2  35. ] vol  19.05 cm3 wt=True solids=1 t=3s
+hull_bottom          [121.  42.  21.] vol  11.40 cm3 wt=True solids=1 t=3s
+nose ...
+nose                 [27. 42. 42.] vol   8.25 cm3 wt=True solids=1 t=4s
+tail ...
+tail_cap             [15.4 42.  42. ] vol   8.31 cm3 wt=True solids=1 t=4s
+tray ...
+/home/user/GrappStar/kedge/.venv/lib/python3.13/site-packages/build123d/topology/shape_core.py:2891: UserWarning: Boolean operation unable to clean
+  result = self._bool_op(args, tools, operation)
+/home/user/GrappStar/kedge/.venv/lib/python3.13/site-packages/build123d/topology/shape_core.py:1149: UserWarning: Unable to clean <build123d.topology.three_d.Solid object at 0x7fe5fa896990>
+  new_shape = new_shape.clean()
+/home/user/GrappStar/kedge/.venv/lib/python3.13/site-packages/build123d/topology/shape_core.py:1430: UserWarning: Boolean operation unable to clean
+  return self._bool_op((self,), to_cut, cut_op)
+tray                 [109.1  38.6  36.5] vol  14.84 cm3 wt=True solids=1 t=6s
+kick ...
+kick_leg             [119.2  15.   15. ] vol   8.36 cm3 wt=True solids=1 t=6s
+foot_auger           [13. 13. 40.] vol   1.95 cm3 wt=True bodies=1 (mesh) t=10s
+drills ...
+drill_leg_L          [46.9 14.8 12.8] vol   3.32 cm3 wt=True solids=1 t=10s
+drill_leg_L_auger    [72.8 13.  13. ] vol   3.32 cm3 wt=True bodies=1 (mesh) t=17s
+drill_leg_L_motor    [24.3 12.  10. ] vol   2.91 cm3 wt=True solids=1 t=17s
+drill_leg_L_shaft    [56.   2.8  2.8] vol   0.35 cm3 wt=True solids=1 t=17s
+drill_leg_L_brg1     [4.  9.5 9.5] vol   0.19 cm3 wt=True solids=1 t=17s
+drill_leg_L_brg2     [4.  9.5 9.5] vol   0.19 cm3 wt=True solids=1 t=17s
+drill_leg_L_nut      [2.4 6.4 5.5] vol   0.05 cm3 wt=True solids=1 t=17s
+drill_leg_L_nyloc    [4.  5.5 6.4] vol   0.08 cm3 wt=True bodies=1 (mesh) t=17s
+drill_leg_R          [46.9 14.8 12.8] vol   3.32 cm3 wt=True solids=1 t=17s
+drill_leg_R_auger    [72.8 13.  13. ] vol   3.32 cm3 wt=True bodies=1 (mesh) t=24s
+drill_leg_R_motor    [24.3 12.  10. ] vol   2.91 cm3 wt=True solids=1 t=24s
+drill_leg_R_shaft    [56.   2.8  2.8] vol   0.35 cm3 wt=True solids=1 t=24s
+drill_leg_R_brg1     [4.  9.5 9.5] vol   0.19 cm3 wt=True solids=1 t=24s
+drill_leg_R_brg2     [4.  9.5 9.5] vol   0.19 cm3 wt=True solids=1 t=24s
+drill_leg_R_nut      [2.4 6.4 5.5] vol   0.05 cm3 wt=True solids=1 t=24s
+drill_leg_R_nyloc    [4.  5.5 6.4] vol   0.08 cm3 wt=True bodies=1 (mesh) t=24s
+  fillet skipped: cpl Failed creating a fillet with radius of 0.4, try a smaller v
+coupler_L            [ 7.  32.1  6.4] vol   1.08 cm3 wt=True solids=1 t=24s
+coupler_R            [ 7.  26.3  6.4] vol   0.87 cm3 wt=True solids=1 t=24s
+cell_1               [36.9 18.7 18.7] vol   9.91 cm3 wt=True solids=1 t=24s
+cell_2               [36.9 18.7 18.7] vol   9.91 cm3 wt=True solids=1 t=24s
+n20_kick             [33. 12. 12.] vol   4.25 cm3 wt=True solids=1 t=24s
+kick_shaft           [ 3.  30.   2.5] vol   0.19 cm3 wt=True solids=1 t=24s
+n20_deploy           [33. 12. 12.] vol   4.04 cm3 wt=True solids=1 t=24s
+deploy_shaft         [ 3.  30.   2.5] vol   0.19 cm3 wt=True solids=1 t=24s
+xiao                 [17.7 22.7  4.5] vol   1.81 cm3 wt=True solids=1 t=24s
+drv8833_1            [20.3 12.7  3.5] vol   0.90 cm3 wt=True solids=1 t=24s
+drv8833_2            [20.3 12.7  3.5] vol   0.90 cm3 wt=True solids=1 t=24s
+ina219               [25.7 20.3  4.7] vol   2.45 cm3 wt=True solids=1 t=24s
+bno085               [22.8 25.7  4.8] vol   2.79 cm3 wt=True solids=1 t=24s
+mp1584               [22.3 17.   4. ] vol   1.50 cm3 wt=True solids=1 t=24s
+vtx                  [42.2 19.9  6. ] vol   5.06 cm3 wt=True solids=1 t=24s
+bms_2s               [40.8  8.   2.1] vol   0.69 cm3 wt=True solids=1 t=24s
+camera               [18.3 14.  14.6] vol   3.33 cm3 wt=True solids=1 t=24s
+n20_foot             [33. 12. 12.] vol   3.83 cm3 wt=True solids=1 t=24s
+foot_shaft           [2.5 3.  9. ] vol   0.06 cm3 wt=True solids=1 t=24s
+screws_radial        [115.8  40.   12. ] vol   0.44 cm3 wt=True solids=7 t=24s
+screw_ear_root       [ 5.5 13.8  5.5] vol   0.12 cm3 wt=True solids=1 t=25s
+brg_ear              [9.5 4.  9.5] vol   0.19 cm3 wt=True solids=1 t=25s
+kick_hub_screw       [ 5.5 11.8  5.5] vol   0.11 cm3 wt=True solids=1 t=25s
+pod_cap_L            [10.   1.5 10. ] vol   0.10 cm3 wt=True solids=1 t=25s
+coupler_L_screw      [5.5 9.8 5.5] vol   0.10 cm3 wt=True solids=1 t=25s
+pod_cap_R            [10.   1.5 10. ] vol   0.10 cm3 wt=True solids=1 t=25s
+coupler_R_screw      [5.5 9.8 5.5] vol   0.10 cm3 wt=True solids=1 t=25s
+contacts_front_springs [ 3.  28.2  9. ] vol   0.39 cm3 wt=True solids=1 t=25s
+contacts_rear_plates [ 0.8 30.2 11. ] vol   0.19 cm3 wt=True solids=2 t=25s
+jst_charge           [5.8 9.9 9.4] vol   0.47 cm3 wt=True solids=1 t=25s
+jst_loop             [ 5.8  7.4 16.5] vol   0.62 cm3 wt=True solids=1 t=25s
+antenna              [22.  4.  4.] vol   0.28 cm3 wt=True solids=1 t=25s
+xiao_antenna         [20.  12.   0.4] vol   0.10 cm3 wt=True solids=1 t=25s
+capacitor            [11.   6.3  6.3] vol   0.34 cm3 wt=True solids=1 t=25s
+parts: 57 L = 151.97 t = 25 s

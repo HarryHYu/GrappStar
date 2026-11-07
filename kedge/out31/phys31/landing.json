@@ -1,18 +1,12 @@
 {
  "source": "out31",
- "mass_g": 260.4,
+ "mass_g": 260.5,
  "cg_mm": [
   80.9,
-  2.0,
+  1.9,
   6.8
  ],
  "rest_states_folded": [
-  {
-   "share_pct": 14.2,
-   "roll_deg": -44.8,
-   "pitch_deg": 0.2,
-   "cg_height_mm": 25.5
-  },
   {
    "share_pct": 14.1,
    "roll_deg": 41.8,
@@ -20,46 +14,52 @@
    "cg_height_mm": 28.0
   },
   {
-   "share_pct": 13.2,
+   "share_pct": 14.0,
+   "roll_deg": -44.8,
+   "pitch_deg": 0.2,
+   "cg_height_mm": 25.5
+  },
+  {
+   "share_pct": 13.4,
    "roll_deg": -97.7,
    "pitch_deg": 2.2,
    "cg_height_mm": 36.5
   },
   {
-   "share_pct": 10.7,
-   "roll_deg": 131.6,
-   "pitch_deg": -1.1,
-   "cg_height_mm": 35.9
+   "share_pct": 12.8,
+   "roll_deg": 135.1,
+   "pitch_deg": -2.3,
+   "cg_height_mm": 35.4
   },
   {
-   "share_pct": 10.4,
+   "share_pct": 10.5,
    "roll_deg": -26.1,
    "pitch_deg": 0.3,
    "cg_height_mm": 26.6
   },
   {
-   "share_pct": 6.8,
-   "roll_deg": 168.8,
-   "pitch_deg": -16.8,
-   "cg_height_mm": 43.8
-  },
-  {
-   "share_pct": 6.2,
+   "share_pct": 7.6,
    "roll_deg": 142.7,
    "pitch_deg": -8.9,
-   "cg_height_mm": 36.1
+   "cg_height_mm": 35.5
+  },
+  {
+   "share_pct": 7.0,
+   "roll_deg": 168.8,
+   "pitch_deg": -16.8,
+   "cg_height_mm": 43.3
+  },
+  {
+   "share_pct": 3.9,
+   "roll_deg": -80.1,
+   "pitch_deg": 1.9,
+   "cg_height_mm": 35.2
   },
   {
    "share_pct": 3.8,
    "roll_deg": 30.5,
    "pitch_deg": -0.1,
    "cg_height_mm": 27.9
-  },
-  {
-   "share_pct": 3.5,
-   "roll_deg": 136.7,
-   "pitch_deg": -5.5,
-   "cg_height_mm": 35.9
   },
   {
    "share_pct": 3.1,
@@ -69,15 +69,9 @@
   },
   {
    "share_pct": 2.5,
-   "roll_deg": -80.1,
-   "pitch_deg": 1.9,
-   "cg_height_mm": 35.2
-  },
-  {
-   "share_pct": 2.4,
    "roll_deg": 179.2,
    "pitch_deg": 65.7,
-   "cg_height_mm": 81.3
+   "cg_height_mm": 81.0
   },
   {
    "share_pct": 1.9,
@@ -90,12 +84,6 @@
    "roll_deg": 21.0,
    "pitch_deg": -0.5,
    "cg_height_mm": 28.5
-  },
-  {
-   "share_pct": 1.3,
-   "roll_deg": -91.0,
-   "pitch_deg": 1.5,
-   "cg_height_mm": 36.3
   },
   {
    "share_pct": 1.1,
@@ -113,13 +101,7 @@
    "share_pct": 0.7,
    "roll_deg": 105.6,
    "pitch_deg": 2.3,
-   "cg_height_mm": 40.1
-  },
-  {
-   "share_pct": 0.7,
-   "roll_deg": -159.1,
-   "pitch_deg": -16.5,
-   "cg_height_mm": 48.8
+   "cg_height_mm": 40.2
   }
  ],
  "roll_slice": {
@@ -137,8 +119,8 @@
     24.8
    ],
    [
-    110.0,
-    37.0
+    109.0,
+    37.1
    ]
   ],
   "maxima_deg_h": [
@@ -155,26 +137,13 @@
     37.5
    ],
    [
-    170.0,
-    67.1
+    169.0,
+    66.6
    ]
   ],
   "note": "lying along the axis (folded): minima = rest rolls, maxima = basin edges"
  },
  "recovery_quasistatic": [
-  {
-   "start_roll": -44.8,
-   "start_pitch": 0.2,
-   "share_pct": 14.2,
-   "end_roll": -44.8,
-   "end_pitch": 0.2,
-   "belly_down_at_end": false,
-   "closest_to_belly": {
-    "step": "dep",
-    "angle": 24,
-    "roll": -37.5
-   }
-  },
   {
    "start_roll": 41.8,
    "start_pitch": -0.6,
@@ -189,68 +158,94 @@
    }
   },
   {
-   "start_roll": -97.7,
-   "start_pitch": 2.2,
-   "share_pct": 13.2,
-   "end_roll": -91.0,
-   "end_pitch": 1.5,
+   "start_roll": -44.8,
+   "start_pitch": 0.2,
+   "share_pct": 14.0,
+   "end_roll": -26.1,
+   "end_pitch": 0.3,
    "belly_down_at_end": false,
    "closest_to_belly": {
     "step": "dep",
-    "angle": 12,
-    "roll": -91.0
+    "angle": 36,
+    "roll": 0.2
    }
   },
   {
-   "start_roll": 131.6,
-   "start_pitch": -1.1,
-   "share_pct": 10.7,
-   "end_roll": 131.6,
-   "end_pitch": -1.1,
+   "start_roll": -97.7,
+   "start_pitch": 2.2,
+   "share_pct": 13.4,
+   "end_roll": -80.1,
+   "end_pitch": 1.9,
    "belly_down_at_end": false,
    "closest_to_belly": {
-    "step": "kick",
-    "angle": 50,
-    "roll": 105.6
+    "step": "dep",
+    "angle": 0,
+    "roll": -80.1
+   }
+  },
+  {
+   "start_roll": 135.1,
+   "start_pitch": -2.3,
+   "share_pct": 12.8,
+   "end_roll": 179.2,
+   "end_pitch": 65.7,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 36,
+    "roll": -47.5
    }
   },
   {
    "start_roll": -26.1,
    "start_pitch": 0.3,
-   "share_pct": 10.4,
-   "end_roll": -44.8,
-   "end_pitch": 0.2,
+   "share_pct": 10.5,
+   "end_roll": -26.1,
+   "end_pitch": 0.3,
    "belly_down_at_end": false,
    "closest_to_belly": {
-    "step": "kick",
-    "angle": 0,
-    "roll": -26.1
-   }
-  },
-  {
-   "start_roll": 168.8,
-   "start_pitch": -16.8,
-   "share_pct": 6.8,
-   "end_roll": 131.6,
-   "end_pitch": -1.1,
-   "belly_down_at_end": false,
-   "closest_to_belly": {
-    "step": "kick",
-    "angle": 50,
-    "roll": 105.6
+    "step": "dep",
+    "angle": 36,
+    "roll": 0.2
    }
   },
   {
    "start_roll": 142.7,
    "start_pitch": -8.9,
-   "share_pct": 6.2,
-   "end_roll": 131.6,
-   "end_pitch": -1.1,
+   "share_pct": 7.6,
+   "end_roll": 179.2,
+   "end_pitch": 65.7,
    "belly_down_at_end": false,
    "closest_to_belly": {
-    "step": "kick",
-    "angle": 50,
-    "roll": 105.6
+    "step": "dep",
+    "angle": 36,
+    "roll": -47.5
+   }
+  },
+  {
+   "start_roll": 168.8,
+   "start_pitch": -16.8,
+   "share_pct": 7.0,
+   "end_roll": 179.2,
+   "end_pitch": 65.7,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 36,
+    "roll": -47.5
+   }
+  },
+  {
+   "start_roll": -80.1,
+   "start_pitch": 1.9,
+   "share_pct": 3.9,
+   "end_roll": -26.1,
+   "end_pitch": 0.3,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 36,
+    "roll": 0.2
    }
   },
   {
@@ -267,48 +262,22 @@
    }
   },
   {
-   "start_roll": 136.7,
-   "start_pitch": -5.5,
-   "share_pct": 3.5,
-   "end_roll": 131.6,
-   "end_pitch": -1.1,
-   "belly_down_at_end": false,
-   "closest_to_belly": {
-    "step": "kick",
-    "angle": 50,
-    "roll": 105.6
-   }
-  },
-  {
    "start_roll": -34.3,
    "start_pitch": -0.2,
    "share_pct": 3.1,
-   "end_roll": -44.8,
-   "end_pitch": 0.2,
-   "belly_down_at_end": false,
-   "closest_to_belly": {
-    "step": "kick",
-    "angle": 0,
-    "roll": -34.3
-   }
-  },
-  {
-   "start_roll": -80.1,
-   "start_pitch": 1.9,
-   "share_pct": 2.5,
-   "end_roll": -44.8,
-   "end_pitch": 0.2,
+   "end_roll": -26.1,
+   "end_pitch": 0.3,
    "belly_down_at_end": false,
    "closest_to_belly": {
     "step": "dep",
-    "angle": 24,
-    "roll": -37.5
+    "angle": 36,
+    "roll": 0.2
    }
   },
   {
    "start_roll": 179.2,
    "start_pitch": 65.7,
-   "share_pct": 2.4,
+   "share_pct": 2.5,
    "end_roll": 179.2,
    "end_pitch": 65.7,
    "belly_down_at_end": false,
@@ -316,19 +285,6 @@
     "step": "dep",
     "angle": 36,
     "roll": -47.5
-   }
-  },
-  {
-   "start_roll": -91.0,
-   "start_pitch": 1.5,
-   "share_pct": 1.3,
-   "end_roll": -91.0,
-   "end_pitch": 1.5,
-   "belly_down_at_end": false,
-   "closest_to_belly": {
-    "step": "kick",
-    "angle": 0,
-    "roll": -91.0
    }
   },
   {
@@ -348,139 +304,43 @@
    "start_roll": -152.3,
    "start_pitch": -14.5,
    "share_pct": 1.0,
-   "end_roll": -91.0,
-   "end_pitch": 1.5,
+   "end_roll": -80.1,
+   "end_pitch": 1.9,
    "belly_down_at_end": false,
    "closest_to_belly": {
     "step": "dep",
-    "angle": 12,
-    "roll": -91.0
+    "angle": 0,
+    "roll": -80.1
    }
   },
   {
    "start_roll": 105.6,
    "start_pitch": 2.3,
    "share_pct": 0.7,
-   "end_roll": 131.6,
-   "end_pitch": -1.1,
+   "end_roll": 179.2,
+   "end_pitch": 65.7,
    "belly_down_at_end": false,
    "closest_to_belly": {
-    "step": "kick",
-    "angle": 0,
-    "roll": 105.6
+    "step": "dep",
+    "angle": 36,
+    "roll": -47.5
    }
   },
   {
    "start_roll": -159.1,
    "start_pitch": -16.5,
-   "share_pct": 0.7,
-   "end_roll": 131.6,
-   "end_pitch": -1.1,
+   "share_pct": 0.5,
+   "end_roll": 179.2,
+   "end_pitch": 65.7,
    "belly_down_at_end": false,
    "closest_to_belly": {
-    "step": "kick",
-    "angle": 50,
-    "roll": 105.6
+    "step": "dep",
+    "angle": 36,
+    "roll": -47.5
    }
   }
  ],
  "pods_first_leveling": [
-  {
-   "start_roll": -44.8,
-   "share_pct": 14.2,
-   "roll_vs_pod_deg": [
-    [
-     0,
-     -44.8
-    ],
-    [
-     2,
-     -41.1
-    ],
-    [
-     4,
-     -41.1
-    ],
-    [
-     6,
-     -41.1
-    ],
-    [
-     8,
-     -37.0
-    ],
-    [
-     10,
-     -32.5
-    ],
-    [
-     12,
-     -27.3
-    ],
-    [
-     14,
-     -21.1
-    ],
-    [
-     16,
-     -17.9
-    ],
-    [
-     18,
-     -0.6
-    ],
-    [
-     20,
-     -0.6
-    ],
-    [
-     22,
-     1.1
-    ],
-    [
-     24,
-     1.1
-    ],
-    [
-     26,
-     -0.3
-    ],
-    [
-     28,
-     -2.8
-    ],
-    [
-     30,
-     1.2
-    ],
-    [
-     32,
-     -1.7
-    ],
-    [
-     34,
-     6.2
-    ],
-    [
-     36,
-     0.2
-    ],
-    [
-     38,
-     2.8
-    ],
-    [
-     40,
-     -1.4
-    ],
-    [
-     42,
-     1.4
-    ]
-   ],
-   "best_pod_deg": 36,
-   "best_roll": 0.2
-  },
   {
    "start_roll": 41.8,
    "share_pct": 14.1,
@@ -511,7 +371,103 @@
     ],
     [
      12,
-     12.0
+     -9.3
+    ],
+    [
+     14,
+     -1.1
+    ],
+    [
+     16,
+     -1.1
+    ],
+    [
+     18,
+     -0.6
+    ],
+    [
+     20,
+     -0.6
+    ],
+    [
+     22,
+     1.1
+    ],
+    [
+     24,
+     1.1
+    ],
+    [
+     26,
+     -0.3
+    ],
+    [
+     28,
+     -2.8
+    ],
+    [
+     30,
+     1.2
+    ],
+    [
+     32,
+     -1.7
+    ],
+    [
+     34,
+     6.2
+    ],
+    [
+     36,
+     0.2
+    ],
+    [
+     38,
+     2.8
+    ],
+    [
+     40,
+     -1.4
+    ],
+    [
+     42,
+     1.4
+    ]
+   ],
+   "best_pod_deg": 36,
+   "best_roll": 0.2
+  },
+  {
+   "start_roll": -44.8,
+   "share_pct": 14.0,
+   "roll_vs_pod_deg": [
+    [
+     0,
+     -44.8
+    ],
+    [
+     2,
+     -41.1
+    ],
+    [
+     4,
+     -41.1
+    ],
+    [
+     6,
+     -34.3
+    ],
+    [
+     8,
+     -26.1
+    ],
+    [
+     10,
+     -19.6
+    ],
+    [
+     12,
+     -16.3
     ],
     [
      14,
@@ -579,7 +535,7 @@
   },
   {
    "start_roll": -26.1,
-   "share_pct": 10.4,
+   "share_pct": 10.5,
    "roll_vs_pod_deg": [
     [
      0,
@@ -703,7 +659,7 @@
     ],
     [
      12,
-     12.0
+     -9.3
     ],
     [
      14,
@@ -895,7 +851,7 @@
     ],
     [
      12,
-     12.0
+     -9.3
     ],
     [
      14,
@@ -991,7 +947,7 @@
     ],
     [
      12,
-     12.0
+     -9.3
     ],
     [
      14,
@@ -1112,7 +1068,7 @@
  "impact": [
   {
    "rail_pitch": 10,
-   "v": 7.0,
+   "v": 7.01,
    "path_deg": 25.2,
    "m_eff_kg": 0.067,
    "soft soil (loam, tilled)": {
@@ -1250,7 +1206,7 @@
      },
      "drill_leg_L_auger": {
       "g": 730.0,
-      "N": 29.1
+      "N": 29.4
      }
     },
     "bno085_reads_g": 8.0,
@@ -1260,10 +1216,10 @@
     "vn": 2.98,
     "crush_mm": 0.3,
     "F_peak_N": 2819.0,
-    "g_peak": 1104.0,
+    "g_peak": 1103.0,
     "loads": {
      "camera": {
-      "g": 4352.0,
+      "g": 4353.0,
       "N": 93.9
      },
      "cell_1": {
@@ -1271,7 +1227,7 @@
       "N": 171.8
      },
      "xiao": {
-      "g": 712.0,
+      "g": 713.0,
       "N": 21.0
      },
      "bno085": {
@@ -1283,7 +1239,7 @@
       "N": 39.4
      },
      "n20_kick": {
-      "g": 3274.0,
+      "g": 3275.0,
       "N": 337.3
      },
      "drill_leg_L_motor": {
@@ -1296,7 +1252,7 @@
      },
      "drill_leg_L_auger": {
       "g": 1756.0,
-      "N": 70.0
+      "N": 70.8
      }
     },
     "bno085_reads_g": 8.0,
@@ -1312,7 +1268,7 @@
     "vn": 4.66,
     "depth_mm": 4.5,
     "F_peak_N": 330.9,
-    "g_peak": 130.0,
+    "g_peak": 129.0,
     "duration_ms": 1.9,
     "loads": {
      "camera": {
@@ -1396,7 +1352,7 @@
      },
      "drill_leg_L_auger": {
       "g": 119.0,
-      "N": 4.7
+      "N": 4.8
      }
     },
     "bno085_reads_g": 8.0,
@@ -1426,7 +1382,7 @@
       "N": 23.3
      },
      "vtx": {
-      "g": 529.0,
+      "g": 528.0,
       "N": 18.7
      },
      "n20_kick": {
@@ -1443,7 +1399,7 @@
      },
      "drill_leg_L_auger": {
       "g": 598.0,
-      "N": 23.8
+      "N": 24.1
      }
     },
     "bno085_reads_g": 8.0,
@@ -1453,7 +1409,7 @@
     "vn": 4.66,
     "crush_mm": 1.15,
     "F_peak_N": 2551.0,
-    "g_peak": 999.0,
+    "g_peak": 998.0,
     "loads": {
      "camera": {
       "g": 2791.0,
@@ -1461,18 +1417,18 @@
      },
      "cell_1": {
       "g": 779.0,
-      "N": 168.2
+      "N": 168.1
      },
      "xiao": {
       "g": 557.0,
       "N": 16.4
      },
      "bno085": {
-      "g": 1852.0,
-      "N": 47.2
+      "g": 1853.0,
+      "N": 47.3
      },
      "vtx": {
-      "g": 1073.0,
+      "g": 1072.0,
       "N": 37.9
      },
      "n20_kick": {
@@ -1480,7 +1436,7 @@
       "N": 236.2
      },
      "drill_leg_L_motor": {
-      "g": 2607.0,
+      "g": 2608.0,
       "N": 281.4
      },
      "kick_leg": {
@@ -1489,11 +1445,11 @@
      },
      "drill_leg_L_auger": {
       "g": 1213.0,
-      "N": 48.4
+      "N": 48.9
      }
     },
     "bno085_reads_g": 8.0,
-    "bno085_raw_g": 1852.0
+    "bno085_raw_g": 1853.0
    }
   },
   {
@@ -1514,7 +1470,7 @@
      },
      "cell_1": {
       "g": 136.0,
-      "N": 29.3
+      "N": 29.2
      },
      "xiao": {
       "g": 106.0,
@@ -1608,7 +1564,7 @@
      },
      "cell_1": {
       "g": 448.0,
-      "N": 96.7
+      "N": 96.6
      },
      "xiao": {
       "g": 350.0,
@@ -1636,7 +1592,7 @@
      },
      "drill_leg_L_auger": {
       "g": 552.0,
-      "N": 22.0
+      "N": 22.3
      }
     },
     "bno085_reads_g": 8.0,
@@ -1654,22 +1610,22 @@
      },
      "cell_1": {
       "g": 1128.0,
-      "N": 243.5
+      "N": 243.4
      },
      "xiao": {
       "g": 881.0,
       "N": 25.9
      },
      "bno085": {
-      "g": 1905.0,
+      "g": 1904.0,
       "N": 48.6
      },
      "vtx": {
-      "g": 1425.0,
+      "g": 1424.0,
       "N": 50.3
      },
      "n20_kick": {
-      "g": 2475.0,
+      "g": 2474.0,
       "N": 254.9
      },
      "drill_leg_L_motor": {
@@ -1682,11 +1638,11 @@
      },
      "drill_leg_L_auger": {
       "g": 1391.0,
-      "N": 55.5
+      "N": 56.1
      }
     },
     "bno085_reads_g": 8.0,
-    "bno085_raw_g": 1905.0
+    "bno085_raw_g": 1904.0
    }
   }
  ],

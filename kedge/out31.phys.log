@@ -1,0 +1,112 @@
+{
+ "mass_g": 260.5,
+ "cg_mm": [
+  80.9,
+  1.9,
+  6.8
+ ],
+ "flight": {
+  "direction": "nose first (toward -x)",
+  "cg_x": 80.9,
+  "cp_side_x": 49.9,
+  "cp_top_x": 50.9,
+  "static_margin_calibers_side": -0.74,
+  "static_margin_calibers_top": -0.72,
+  "note": "aerodynamic centre at 10 deg and 7 m/s from the strip model (cross-flow + slender-body nose term); top = pitch plane (top-view width), side = yaw. At 7 m/s the air moments are small: the tether (0.33 N at the tail) is what keeps it nose first (flight_sim.json)."
+ },
+ "launch": {
+  "source": "base/physics/launcher.py chain model, params base/spec/params.py v1.5.0",
+  "pitch_deg": 34.0,
+  "dart_mass_kg": 0.2605,
+  "v_muzzle": 7.04,
+  "stroke_m": 0.2409,
+  "t_stroke_ms": 57.3,
+  "energy_J": 12.06,
+  "accel_peak_g": 18.9,
+  "accel_at_release_g": 4.7,
+  "tail_push_peak_N": 59.3,
+  "line_pull_in_stroke_N": 8.88,
+  "line_spin_up_estimate_N": 5.06,
+  "ms_above_4g": 55.0,
+  "cradle_normal_N": 2.12,
+  "pitch_couple_Nm": 0.331,
+  "note": "the push acts on the flat tail face (pusher face covers z +-21 within y +-11): it can move up to the CG height (z +6.8 mm), so the CG offset makes no nose lift in the cradle",
+  "v_needed_m_s": [
+   7.04,
+   7.04
+  ],
+  "accel_g": [
+   18.9,
+   18.9
+  ],
+  "spring_energy_J": 12.06,
+  "impact_g": 129.0,
+  "impact_stop_m": 0.0045
+ },
+ "anchoring": {
+  "depth_mm": {
+   "drill": 45.7,
+   "foot": 35.1
+  },
+  "embedded_length_mm": {
+   "drill": 66.9,
+   "foot": 37.8
+  },
+  "by_soil": {
+   "dry sand": {
+    "drill_auger_each_N": 2.6,
+    "foot_auger_N": 1.0,
+    "friction_N": 1.4,
+    "total_N": 8.3,
+    "total_if_worms_never_slip_N": 8.3,
+    "governing": [
+     "drill augers soil capacity",
+     "foot auger soil capacity",
+     "hull belly front (x 20) friction cone",
+     "hull belly rear (x 141) friction cone",
+     "kick pole tip on ground friction cone",
+     "pod nose on ground friction cone"
+    ]
+   },
+   "moist loam": {
+    "drill_auger_each_N": 21.4,
+    "foot_auger_N": 7.9,
+    "friction_N": 1.4,
+    "total_N": 51.1,
+    "total_if_worms_never_slip_N": 51.1,
+    "governing": [
+     "drill augers soil capacity",
+     "foot auger soil capacity",
+     "hull belly front (x 20) friction cone",
+     "hull belly rear (x 141) friction cone",
+     "kick pole tip on ground friction cone",
+     "pod nose on ground friction cone"
+    ]
+   },
+   "firm clay": {
+    "drill_auger_each_N": 151.2,
+    "foot_auger_N": 55.1,
+    "friction_N": 1.1,
+    "total_N": 332.8,
+    "total_if_worms_never_slip_N": 332.8,
+    "governing": [
+     "drill augers soil capacity",
+     "foot auger soil capacity",
+     "hull belly front (x 20) friction cone",
+     "hull belly rear (x 141) friction cone",
+     "kick pole tip on ground friction cone",
+     "pod nose on ground friction cone"
+    ]
+   }
+  },
+  "note": "total_N = max tether pull at the dart, rover 3 m, planar limit analysis (dart_anchor.py): soil on 10 segments per auger, worm holding 0.60 N m, ground contacts. Each-auger values = full lateral resistance."
+ },
+ "battery": {
+  "capacity_Wh": 5.18,
+  "idle_W_video_on": 2.52,
+  "hours_video_on": 1.85,
+  "anchor_sequence_mAh": 16.0,
+  "worst_current_A": 1.2,
+  "release_mAh": 20.8
+ }
+}

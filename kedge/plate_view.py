@@ -2,9 +2,11 @@ import trimesh, sys, numpy as np
 import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 PK = sys.argv[1]
-fig = plt.figure(figsize=(14, 6))
-for i, pl in enumerate(["plate_A_hull", "plate_B_legs_tray"]):
-    sc = trimesh.load(f"{PK}/{pl}.3mf"); ax = fig.add_subplot(1, 2, i + 1, projection="3d")
+import glob, os
+PL = sorted(os.path.basename(f)[:-4] for f in glob.glob(f"{PK}/plate_*.3mf"))
+fig = plt.figure(figsize=(7 * len(PL), 6))
+for i, pl in enumerate(PL):
+    sc = trimesh.load(f"{PK}/{pl}.3mf"); ax = fig.add_subplot(1, len(PL), i + 1, projection="3d")
     for name, g in sc.geometry.items():
         m = g.copy(); 
         try: m = m.simplify_quadric_decimation(face_count=4000)

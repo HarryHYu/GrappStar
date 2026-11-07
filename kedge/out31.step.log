@@ -1,0 +1,17 @@
+coupler_L              {'valid': True, 'solids': 1, 'vol_step': 1082.9, 'vol_stl': np.float64(1082.0)}
+coupler_R              {'valid': True, 'solids': 1, 'vol_step': 867.5, 'vol_stl': np.float64(866.8)}
+drill_leg_L            {'valid': True, 'solids': 1, 'vol_step': 3322.6, 'vol_stl': np.float64(3322.4)}
+drill_leg_L_auger      {'valid': True, 'solids': 1, 'vol_step': 3316.5, 'vol_stl': np.float64(3316.5)}
+drill_leg_R            {'valid': True, 'solids': 1, 'vol_step': 3322.6, 'vol_stl': np.float64(3322.4)}
+drill_leg_R_auger      {'valid': True, 'solids': 1, 'vol_step': 3316.5, 'vol_stl': np.float64(3316.5)}
+fit_coupon             {'valid': True, 'solids': 6, 'vol_step': 10939.0, 'vol_stl': np.float64(10938.0)}
+foot_auger             {'valid': False, 'solids': 1, 'vol_step': 1952.1, 'vol_stl': np.float64(1952.1)}
+hull_bottom            {'valid': True, 'solids': 1, 'vol_step': 11397.8, 'vol_stl': np.float64(11394.2)}
+hull_top               {'valid': True, 'solids': 1, 'vol_step': 19045.4, 'vol_stl': np.float64(19046.3)}
+kick_leg               {'valid': True, 'solids': 1, 'vol_step': 8364.6, 'vol_stl': np.float64(8362.9)}
+nose                   {'valid': True, 'solids': 1, 'vol_step': 8249.4, 'vol_stl': np.float64(8233.8)}
+pod_cap_L              {'valid': True, 'solids': 1, 'vol_step': 103.5, 'vol_stl': np.float64(103.4)}
+pod_cap_R              {'valid': True, 'solids': 1, 'vol_step': 103.5, 'vol_stl': np.float64(103.4)}
+tail_cap               {'valid': True, 'solids': 1, 'vol_step': 8306.1, 'vol_stl': np.float64(8302.5)}
+tray                   {'valid': True, 'solids': 1, 'vol_step': 14844.0, 'vol_stl': np.float64(14836.7)}
+STEP PROBLEMS: fit_coupon, foot_auger

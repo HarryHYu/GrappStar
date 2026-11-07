@@ -148,48 +148,64 @@ Jetson /dev/video0. Control: 2.4 GHz WiFi, XIAO softAP.
 
 ---------------------------------------------------------------------------------------------------
 
-## 5. GEOMETRY v29 (generator `kedge_v27.py`, its defaults ARE v29)
+## 5. GEOMETRY v31 (generator `kedge_v27.py`, its defaults ARE v31; v29/v30 history at the end of this section)
 
 Coordinates: x along hull, nose tip x=0, tail x≈152. y across (+y = LEFT = kick side), z up. Ground z = -21 lying flat.
 
-Key parameters (all in `out29/parts.json` "P"):
+Key parameters (all in `out31/parts.json` "P"; harness way points in P.WIRE_PTS):
 R_OUT 21 (Ø42), R_BAY 19.5, WALL 1.5, NOSE_L 20 (frustum from Ø22 tip), NOSE_SPIG 7, TAIL_L 11, TAIL_SPIG 4.4,
-L 151.97. N20_POCK 12.4 square (either motor orientation). SADDLE_X0 23.8.
-Kick: hub Ø12 x 14 at (31.3, 14.9, 27.5), pole Ø8 x 72, KICK_DEG 201.75 (solved), foot auger 40 long tip 10, ear y 22.3-26.7 with F693ZZ.
-Drills: axle x 56, pivot z 10, pods y ±30.5, DEPLOY_DEG 42.25 (solved), auger Ø16 x 70, core 5.5, pitch 11, tip 12,
-45° lower flank, couplers Ø7 on the deploy N20 D-shaft stubs, DEPLOY_Y -4.61 (computed).
-Layout "cells_fwd" along x: nose 0-20 (camera, ballast) | sled + disc1 27.5-30.5 (deploy N20 cradle, MP1584 shelf, DRV#3 on keel)
-| disc2 62.6-65.6 | cells 65.6-106.07 side by side y ±9.6 (VTX over, BMS under) | disc3 106.07-108.07 |
-boards 108.07-134.57 (BNO085; XIAO + DRV#1; DRV#2 + INA219) | disc4 134.57-136.57 | tail spigot 136.57-140.97 | tail cap.
+L 151.97. N20_POCK 12.4 square (either motor orientation), TERM 1.6 terminal room behind every worm N20. SADDLE_X0 23.8.
+Kick: hub Ø12 x 14 at (31.3, 14.9, 27.5), pole Ø8 x 72, KICK_DEG 201.75 (solved), KICK_REST 1.5° past it, foot auger
+Ø13 x 40 (core 6) 0.3 over its housing, ear y 22.3-26.7 with F693ZZ seated 0.4 proud onto a printed inner-race boss on the hub.
+Drills: axle x 56, pivot z 11 (was 10), pods y ±29 (was 31), DEPLOY_DEG 43.0 (solved), augers Ø13 x 72.8, core 6, pitch 11,
+tip 12, flat core end on the outer bearing's inner race. Pod stack from the pivot: pocket 4.4 (0.78 wall to the coupler bore),
+DTERM 1.2 terminal room (tabs bent up), motor face XS 29.87, BUSH_GAP 0.6 to the M3 nut, F693ZZ pair back to back, nose face
+XA 40.47, bottom nose edge chamfered 1.35. Couplers Ø7 D in PPA-CF (printed on the flat), printed pod caps Ø10 x 1.5 in a
+counterbore under the M3 x 8 (the pod floats 0.7, never clamped). DEPLOY_Y -2.92 (computed).
+Hard stops: DEPLOY HORNS on hull_top in front of each pod head (HORN_GAP 0.15, about 1° past DEPLOY_DEG), FOLD LUGS under
+the heads (about 2° past folded), KICK REST on the ear root. Tow turns the legs further OUT, so at full deploy the tow load
+goes into the hull, not into the worms, their D stubs or the couplers. The audit checks every stop touches and never early.
+Layout "cells_fwd" along x: nose 0-20 (camera; no ballast in v31) | sled + disc1 27.5-30.5 (deploy N20 cradle, MP1584 shelf,
+BNO085 on rails under it, turned across the dart) | disc2 62.6-65.6 | cells 65.6-106.07 side by side y ±9.6 (VTX over, BMS
+under in the keel channel) | disc3 106.07-108.07 | boards 108.07-134.57 (deck B: XIAO turned, USB-C to -y through a 12.5 x 7
+hull window, DRV#1; deck C: DRV#2 + INA219; no deck A) | disc4 134.57-136.57 | tail spigot | tail cap (power-loop socket in a
+recessed TOP seat = ON switch reachable on the launcher; charge socket in the bottom seat; tether holes chamfered 0.8).
+Harness: KEEL channel 9.2 x 8.4 under the cells (discs 2-4, saddles, sled rear wall) + TOP over the VTX; drill leads out at
+x 59.5 z 16.5 into the pod tops; worst fill 0.26 keel / 0.19 top (`wireroom.py`). DRV8833 #3 is off the dart (firmware v4).
 Hull split horizontally at z=0, belly is a plain cylinder (launcher cradle); legs stow on top and flanks.
 
-Printed parts (13 + fit coupon): hull_top, hull_bottom, nose, tail_cap, tray, kick_leg, foot_auger, drill_leg_L/R,
-drill_leg_L/R_auger, coupler_L/R. Bought-part envelopes and all hardware are modelled too (59 parts total).
+Printed parts (15 + fit coupon): hull_top, hull_bottom, nose, tail_cap, tray, kick_leg, foot_auger, drill_leg_L/R,
+drill_leg_L/R_auger, coupler_L/R (PPA-CF), pod_cap_L/R. Bought-part envelopes and all hardware are modelled too (57 parts).
 
-Results (out29, audit CLEAN at kick 1° steps (203) and drill 1° steps (44), cross sweep kick x drills, ground, belly,
-manifold status checked, all STEP files reimport valid):
-- Folded bbox x 0-166.7, y ±40.3, z -21 to 75.8. L 152.
-- Drills 43.4 mm deep (64.6 embedded), foot 35.5 mm. Pod ground clearance 0.52, foot housing 0.02.
-- Printed 89.7 cm3. Mass ~262 g (111 printed at 4 walls/40% infill + 150 bought, catalogue values), 277 g with ballast.
-- CG x 82.5. Static margin ≈ 0 (cardboard CP): needs ballast.
-- Holding (Broms short rigid pile, reviewed): dry sand 7 N, moist loam 45 N, firm clay 112 N. Reel MUST limit tension.
-- Flight sim (pitch plane): tumbles alone; 8-15 g nose ballast stabilises; tether brake 1 N fine, 3 N kills it (8 m, tumbles).
-  Recommended 15 g ballast + 1 N reel brake: ~18 m at ~18 m/s.
-- Launch 63-84 g over 0.2 m stroke (assumed), 217 N, ~43 J. Landing ~300 g in 3 cm soil: parts pass.
-- Kick gravity torque 0.19 kg.cm max (worm rated 1-4). Kick pole side load limit ~30 N.
-- Battery 5.18 Wh, ~2.3 h with video on, anchor sequence ~7 mAh.
+Results (out31, audit CLEAN at kick 1° steps and drill 1° steps, kick x drill cross sweep, ground, belly, hard stops,
+watertight, one body per printed part; all STEP files reimport valid; launcher_fit FITS: zero overlap with every part of
+base/cad/parts/launch.py over 1684 launcher and mission states, same as v30):
+- Folded bbox x 0-169.9, y ±38.8, z -21 to 75.3. Barrel channel (1 mm clear) y ±38, z -22 to 76.3.
+- Drills 45.7 mm deep (v30 44.8), foot 35.1. Pod ground clearance 0.52 (solver), foot housing 0.02.
+- Printed 87.6 cm3, 108.6 g at 4 walls / 40%. Mass 260.5 g with catalogue bought masses, no ballast. CG x 80.9, z +6.8.
+- Physics at the real 7 m/s launcher, holding, milling deploy, landing: kedge/DART_PHYSICS31.md (dart-physics).
+- Print: plate A (hull, nose, tail, pod caps, PLA, tree supports inside the hull halves only), plate B (tray, legs, augers,
+  PLA, no supports, brim 8 on the augers), plate C (couplers, PPA-CF). Run sheet and engineering report in pack_v31.
 
-Variants tried (24, `variants_final.json`): raising the drill pivot = deeper augers (pivot 14 doesn't fit, Ø18 augers
-collide). Ø17 x 72 with pods y 31 = +8% holding, CLEAN in `out30`, NOT packaged (best next option). Foot 30 mm = -10 mm
-silhouette, -2 N. Foot 50 = +3 N, +10 mm. "Light" variant saves <1 g. Pitch 9 no gain.
+v29 (Ø16 x 70, pods 30.5, pivot 10) and v30 (Ø17 x 72, pods 31) are in out29 / out30 and dist_v29 / dist_v30. v30 defects
+fixed in v31: the kick N20 could not go into the saddle (closed shaft holes both sides), the foot N20 likewise; the pods were not
+held on their couplers (M3 washer Ø7 smaller than the Ø7.25 pod bore); the power-loop plug in the bottom window would stick out
+of the belly onto the launcher's rear cradle ring; no room for the N20 end-cap tabs or the drill gearbox bushing; the auger base
+boss and the kick washer touched the bearing shields / outer rings.
 
 Rules learned (do not regress):
 - A drill pointing down deployed points up folded; single hinges only. Legs can't stow inside a cylinder: belly stays plain, barrel cut around top/flanks.
 - Exact-mesh collision sweep on saved vertices (npz), not STL round-trips. Check manifold status. Test every sub-part.
-- Augers in build123d: OCC helix sweep booleans fail, build them in trimesh and write faceted STEP (`meshstep.py`).
+- Augers in build123d: OCC helix sweep booleans fail, build them in trimesh and write faceted STEP (`meshstep.py`, which now merges
+  vertices at 1e-3 first: slivers made the v31 foot auger STEP invalid).
 - Disconnected bodies: keep annulus joints / rings so every printed part is one body.
 - Countersinks in the tray/tail broke STEP validity: use flat cylinder seat() pockets.
 - Augers L and R MUST be opposite hands (v26 had both the same: one would unscrew).
+- Every bought part must be insertable in the order of the run sheet: biaxial shafts need entry slots, washers must be bigger
+  than the bore they retain, bearing faces may only touch the inner race of a turning part.
+- Stops: legs that tow pushes outward get a hull stop at their deployed angle (horns, kick rest); `solve_deg.py` exits 3 and
+  `run_all.sh` regenerates when the solved angles differ from the ones the stops were built at.
+- prism_xz extrusion direction follows the polygon winding: place by bounding box (the first kick rest came out on the wrong side).
 
 ---------------------------------------------------------------------------------------------------
 
@@ -214,27 +230,32 @@ Compiles on ESP32 Arduino core 2.0.17 and 3.3.12.
 
 ## 7. FILES
 
-Pipeline (run from this folder):
-- `kedge_v27.py OUTDIR` : generator (build123d + trimesh + manifold3d). `KOV='{"AUGER_D":17}'` env JSON overrides any P.
-- `solve_deg.py OUT` : solves KICK_DEG / DEPLOY_DEG from ground clearance.
-- `audit27.py OUT stepK stepD` : collision sweep, ground, belly, mass, watertight, multi-body -> OUT/audit.json, prints CLEAN / NOT CLEAN.
-- `clearance.py`, `meshes.py` (meshes.json for the viewer), `shots.js` + `sheet.py` (24-angle sheet + 12 sections, Playwright),
-  `pack.py OUT PACK` (print orientations, 3MF plates, overhang report), `coupon.py` (fit coupon), `wires.py`, `wiring_dot.py`,
-  `barrel.py` (launcher barrel silhouette DXF/SVG/STL keep-out), `physics.py`, `flight_sim.py`, `report.py` (engineering PDF),
-  `runsheet.py` (build-day run sheet PDF), `variants.py` / `refresh_variants.py`, `assembly_step.py`, `plate_view.py`, `meshstep.py`.
-- `run_all.sh OUT V` : whole pipeline. `make_dist.sh v29` : builds dist_v29 zips.
+Pipeline (run from this folder; `.venv/bin/python` has build123d, trimesh, manifold3d; node + playwright for the shots):
+- `run_all.sh out31 v31 [stepK stepD]` : the whole pipeline (generate, solve and regenerate at the solved angles, audit,
+  launcher fit, clearance, meshes, shots + sheet, pack, mass props, STEP check, physics, coupon, wires, wire room, wiring
+  diagram, barrel, flight sim, assembly STEP, plate view, run sheet, engineering report), about 30 min. `make_dist.sh v31` : zips.
+- `kedge_v27.py OUTDIR` : generator. `KOV='{"AUGER_D":17}'` env JSON overrides any P.
+- `solve_deg.py OUT` : solves KICK_DEG / DEPLOY_DEG from ground clearance; exit 3 = regenerate (stops sit at the old angles).
+- `audit27.py OUT stepK stepD` : collision sweep, cross sweep, ground, belly, hard stops, watertight, multi-body -> CLEAN / NOT CLEAN.
+- `launcher_fit.py OUT [REF]` : the dart against the real launcher (base/cad/parts/launch.py, all base states), vs the v30 dart.
+- `wireroom.py OUT PACK` : free section of the keel and top passages along x against the cut-list bundle.
+- `massprops.py OUT` : out31/mass_props.json (volume, centroid, unit-density inertia per part, folded and deployed) for dart-physics.
+- `stepcheck.py PACK` : reimports every STEP. `wires.py OUT PACK` : the firmware v4 50-wire list on the v31 routes (route column).
+- `clearance.py`, `meshes.py`, `shots.js` + `sheet.py` (24-angle sheet + 12 sections), `pack.py` (print poses, supports, 3 plates),
+  `coupon.py` (fit coupon, v31 row: JST seats, USB-C window, pod cap), `wiring_dot.py`, `barrel.py`, `assembly_step.py`,
+  `plate_view.py`, `meshstep.py`, `runsheet.py`, `report.py` (PDFs, Arial on the Mac, Liberation Sans elsewhere).
+- Physics files (dart-physics): `physics.py`, `flight_sim.py`, `dart_*.py`, `DART_PHYSICS31.md`. Shared notes: `DART_V31_NOTES.md`.
 - `viewer.html` : three.js viewer (pose sliders, explode, section cut, audit panel, Play deployment animation).
 Outputs:
-- `out29/` final v29 data (STL/STEP/NPZ per part, parts.json, audit.json, physics.json, flight_sim.json, renders).
-- `out30/` Ø17 x 72 candidate (CLEAN, unpackaged).
-- `pack_v29/` print pack, PDFs, wire list, barrel. `dist_v29/` the delivered zips + `KEDGE_v29_model.html` (self-contained, all 59 parts).
-- `fw/` firmware. `pub/` files for the claude.ai viewer artifact (https://claude.ai/artifact/Sqt8tF67veTYfxQjUFTZ5f, Version 30).
-- `kedge_v26.py`, `out26/` : the old v26 for reference.
+- `out31/` v31 data (STL/STEP/NPZ per part, parts.json, audit.json, launcher_fit.json, wireroom.json, mass_props.json,
+  physics.json, renders, audit_sheet.png, sections.png). `pack_v31/` print pack (STL, 3MF plates A/B/C, STEP, print_report.json,
+  step_check.json, wire list, wiring.png, barrel files, run sheet and engineering report PDFs, assembly STEP). `dist_v31/` zips.
+- `out29/ out30/ pack_v29/ pack_v30/ dist_v29/ dist_v30/` : the previous versions.
+- Firmware lives in `../firmware/dart` (v4, WIRING.md, BENCH_TEST.md); `fw/` here is the old v3 copy.
+- `pub/` files for the claude.ai viewer artifact (https://claude.ai/artifact/Sqt8tF67veTYfxQjUFTZ5f, Version 30).
 
-Environment (Python 3.13 in the cloud): build123d 0.13.0, cadquery-ocp 8.0.1.1, trimesh 5.2.0, manifold3d 3.5.4, numpy,
-scipy, shapely 2.2, reportlab 5.0, ezdxf 1.4, lib3mf 2.5, networkx, rtree, playwright 1.63 (+ `playwright install chromium`),
-node 22 with playwright for shots.js, graphviz (`brew install graphviz`). See `requirements.txt` and `setup_mac.sh`.
-PDFs use Liberation Sans (Arial metric); on a Mac you can point reportlab at Arial.ttf.
+Environment: build123d 0.13.0, cadquery-ocp, trimesh 5.2.0, manifold3d 3.5.4, numpy, scipy, shapely 2.2, reportlab, ezdxf,
+lib3mf, matplotlib, playwright (+ chromium), node 22, graphviz. See `requirements.txt` and `setup_mac.sh`.
 Arduino: arduino-cli or IDE, esp32 core by Espressif, board XIAO_ESP32S3.
 
 ---------------------------------------------------------------------------------------------------

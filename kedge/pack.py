@@ -45,7 +45,8 @@ def overhang(m):
 for n, m in oriented.items():
     PP[n]["overhang_mm2_gt45"] = round(overhang(m), 1)
 # plates (X2D bed: use a 240 x 240 safe area)
-PLATES = {"plate_A_hull": [n for n in ["hull_top", "hull_bottom", "nose", "tail_cap", "coupler_L", "coupler_R", "pod_cap_L", "pod_cap_R"] if n in ORIENT],
+PLATES = {"plate_A_hull": [n for n in ["hull_top", "hull_bottom", "nose", "tail_cap", "pod_cap_L", "pod_cap_R"] + ([] if "pod_cap_L" in ORIENT else ["coupler_L", "coupler_R"]) if n in ORIENT],
+          **({"plate_C_couplers_PPA-CF": ["coupler_L", "coupler_R"]} if "pod_cap_L" in ORIENT else {}),
           "plate_B_legs_tray": ["tray", "kick_leg", "drill_leg_L", "drill_leg_R", "drill_leg_L_auger", "drill_leg_R_auger", "foot_auger"]}
 plate_info = {}
 for pn, names in PLATES.items():

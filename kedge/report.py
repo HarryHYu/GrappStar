@@ -71,12 +71,10 @@ FS = json.load(open(OUT + "/flight_sim.json")) if os.path.exists(OUT + "/flight_
 rows = [["Case", "Max angle of attack after 0.6 s", "Tumbled", "Range m"]] + [[k, v["max_alpha_after_0p6s_deg"], "YES" if v["tumbled"] else "no", v["range_m"]] for k, v in FS.items() if k != "inputs"]
 E += [p("3. Flight", H2),
       p(f"Centre of mass at x = {Ph['cg_mm'][0]} mm from the nose (of {P['L']:.0f}); the projected-area centre of pressure is at x = {fl['cp_side_x']} (side) / {fl['cp_top_x']} (top). On the body alone the dart is neutral, so it was simulated: "
-        "a pitch-plane rigid-body flight with the real mass, inertia and side profile (cross-flow drag along the body), axial drag, gravity and the tether tension at the tail, launched at 18 m/s and 45° with a 10° nose-up disturbance."),
+        "a pitch-plane rigid-body flight with the real mass, inertia and side profile; the cases and the 7 m/s launcher numbers are dart-physics' (kedge/flight_sim.py, DART_PHYSICS31.md)."),
       tbl(rows, [70, 45, 22, 25]) if FS else p("(flight_sim.py not run)"),
       img(PK + "/flight_sim.png", 170) if os.path.exists(PK + "/flight_sim.png") else Spacer(1, 1),
-      p("Result: on its own the dart tumbles. Either fix works on its own; together they are robust: 15 g of ballast in the nose cavity (steel shot or nuts set in epoxy around the camera tube) "
-        "and a reel that pays out with a light drag of about 1 N or less. A 3 N reel brake stalls the throw at 8 m and the dart flips at the end. So the reel must free-spool during launch with only a light brake; "
-        "that matches the plan of spinning the storage reel up for launch. With ballast and a 1 N brake the throw reaches about 18 m at 18 m/s. Ballast adds 15 g (dart ~277 g) and moves the CG to about x = 78.", S)]
+      p("Result (dart-physics, 7 m/s): with the tether on (0.25 N brake) the dart flies nose first at every rail pitch; without the tether it tumbles with or without ballast. v31 carries no nose ballast.", S)]
 # ---- launch + landing loads
 E += [p("4. Launch and landing loads", H2), tbl([["Load case", "Value", "Unit", "Check"]] + [[a, b, c, d] for a, b, c, d in Ph["loads"]], [55, 14, 16, 89], fs=7.5),
       p("Battery contacts follow from this: launch throws the cells aft, so the aft contacts are rigid plates and the springs sit on the forward disc. "

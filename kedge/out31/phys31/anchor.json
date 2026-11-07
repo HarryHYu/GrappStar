@@ -647,7 +647,7 @@
     "horn_moment_Nm": 1.065,
     "kick_rest_moment_Nm": 0.575,
     "F_upper_translation_N": 8.8,
-    "F_without_foot_N": 7.0,
+    "F_without_foot_N": 7.1,
     "F_if_worms_never_slip_N": 8.4
    }
   ],
@@ -768,7 +768,7 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 27.037,
+    "horn_moment_Nm": 27.038,
     "kick_rest_moment_Nm": 1.101,
     "F_upper_translation_N": 363.9,
     "F_without_foot_N": 163.8,
@@ -788,7 +788,7 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 27.037,
+    "horn_moment_Nm": 27.038,
     "kick_rest_moment_Nm": 1.101,
     "F_upper_translation_N": 362.1,
     "F_without_foot_N": 155.0,
@@ -808,7 +808,7 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 27.037,
+    "horn_moment_Nm": 27.038,
     "kick_rest_moment_Nm": 1.101,
     "F_upper_translation_N": 364.2,
     "F_without_foot_N": 153.2,
@@ -828,7 +828,7 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 27.037,
+    "horn_moment_Nm": 27.038,
     "kick_rest_moment_Nm": 1.101,
     "F_upper_translation_N": 365.8,
     "F_without_foot_N": 152.6,
@@ -848,7 +848,7 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 27.037,
+    "horn_moment_Nm": 27.038,
     "kick_rest_moment_Nm": 1.101,
     "F_upper_translation_N": 367.0,
     "F_without_foot_N": 152.3,
@@ -1024,7 +1024,7 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 7.7,
-    "horn_Nm": 0.695,
+    "horn_Nm": 0.696,
     "deploy_s": 11.0,
     "drill_margin": 14.07,
     "installs": true
@@ -1051,7 +1051,7 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 7.7,
-    "horn_Nm": 0.695,
+    "horn_Nm": 0.696,
     "deploy_s": 22.0,
     "drill_margin": 28.06,
     "installs": true
@@ -1092,7 +1092,7 @@
    },
    "firm clay": {
     "F_hold_N": 332.8,
-    "horn_Nm": 26.737,
+    "horn_Nm": 26.738,
     "deploy_s": 670.0,
     "drill_margin": 0.21,
     "installs": false
@@ -1119,7 +1119,7 @@
    },
    "firm clay": {
     "F_hold_N": 332.8,
-    "horn_Nm": 26.737,
+    "horn_Nm": 26.738,
     "deploy_s": 1340.0,
     "drill_margin": 0.41,
     "installs": false
@@ -1240,7 +1240,7 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 7.7,
-    "horn_Nm": 0.995,
+    "horn_Nm": 0.996,
     "deploy_s": 11.0,
     "drill_margin": 14.07,
     "installs": true
@@ -1267,7 +1267,7 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 7.7,
-    "horn_Nm": 0.995,
+    "horn_Nm": 0.996,
     "deploy_s": 22.0,
     "drill_margin": 28.06,
     "installs": true
@@ -1308,7 +1308,7 @@
    },
    "firm clay": {
     "F_hold_N": 332.8,
-    "horn_Nm": 27.037,
+    "horn_Nm": 27.038,
     "deploy_s": 670.0,
     "drill_margin": 0.21,
     "installs": false
@@ -1335,7 +1335,7 @@
    },
    "firm clay": {
     "F_hold_N": 332.8,
-    "horn_Nm": 27.037,
+    "horn_Nm": 27.038,
     "deploy_s": 1340.0,
     "drill_margin": 0.41,
     "installs": false
@@ -1456,7 +1456,7 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 7.7,
-    "horn_Nm": 1.595,
+    "horn_Nm": 1.596,
     "deploy_s": 11.0,
     "drill_margin": 14.07,
     "installs": true
@@ -1483,7 +1483,7 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 7.7,
-    "horn_Nm": 1.595,
+    "horn_Nm": 1.596,
     "deploy_s": 22.0,
     "drill_margin": 28.06,
     "installs": true
@@ -1524,7 +1524,7 @@
    },
    "firm clay": {
     "F_hold_N": 332.8,
-    "horn_Nm": 27.637,
+    "horn_Nm": 27.638,
     "deploy_s": 670.0,
     "drill_margin": 0.21,
     "installs": false
@@ -1551,7 +1551,7 @@
    },
    "firm clay": {
     "F_hold_N": 332.8,
-    "horn_Nm": 27.637,
+    "horn_Nm": 27.638,
     "deploy_s": 1340.0,
     "drill_margin": 0.41,
     "installs": false

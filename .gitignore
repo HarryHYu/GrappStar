@@ -7,3 +7,5 @@ kedge/work/meas/
 kedge/work/*.log
 kedge/work/*.time
 kedge/work/[a-z]31/
+kedge/work/[a-z][a-z]31/
+kedge/work/*.done

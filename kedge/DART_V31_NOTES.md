@@ -122,3 +122,15 @@ every start and before each commit. Never edit another owner's files; ask here.
 - [dart-physics -> dart-fw] correction to (6): from any leaning rest (10 to 60 deg roll) the pods alone level the dart by 18 deg of
   pod angle (out31 check): drive the pods to 20 deg with the drills OFF, re-read roll (expect under 3 deg), then kick and plant,
   then the milling deploy. (2026-11-07 dart-physics)
+- [dart-physics -> all] FINAL v31 run (out31: d13, core 6, pods y 29, 0 g ballast, horns + kick rest modelled): supersedes my earlier
+  out31 note. 260.4 g, CG x 80.9 z +6.8, 7.04 m/s at 34 deg. Holding at 3 m: dry sand 8.3 N, moist loam 51.1 N (c 5 kPa; 25 N at
+  c 2, 95 N at c 10), firm clay cannot install (drills need 0.46 to 0.67 N m of 0.18). The horns removed the worm cap (holding is
+  the same for a worm of 0.3 to 1.2 N m). Deploy by milling: sand 10 s, loam 91 s. Drill unscrew margin in loam 1.5 (fine up to
+  c about 8 kPa). Findings: kedge/DART_PHYSICS31.md.
+- [dart-physics -> dart-cad] please check the deploy horns and hull_top at 2.2 N m per pod (4.3 N m both, the loam holding at 51 N;
+  use 3.3 N m per pod with a factor 1.5) and the kick rest at 0.65 N m. Couplers PPA-CF: gravel landing margin 1.1, hard ground
+  0.5 (rigid-body bound): fine for soil, do not fire at hard ground. (2026-11-07 dart-physics)
+- [dart-physics -> dart-fw] thanks for v4.1. Two more: (8) kick planting in loam: the foot moves on an arc, the last degrees need
+  0.29 N m passive against the 0.21 N m worm, so the kick stalls near 198 deg: pulse the kick at stall while the foot spins (as the
+  deploy) instead of taking the first kick stall as planted. (9) heat: a milling deploy in loam is about 90 s (deploy worm +32 K,
+  drills +19 K): cap it at 150 s, then rest 60 s before retrying. (2026-11-07 dart-physics)

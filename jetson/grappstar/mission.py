@@ -182,8 +182,8 @@ class MissionConfig:
     land_timeout_s: float = 10.0
     still_s: float = 1.0            # line out unchanged this long = landed
     settle_s: float = 2.0           # wait after landing before analysing (dart video settles)
-    anchor_timeout_s: float = 60.0
-    release_timeout_s: float = 40.0
+    anchor_timeout_s: float = 200.0  # dart v4.1: milling deploy in loam about 90 s, whole anchor up to 180 s (dart-fw)
+    release_timeout_s: float = 180.0  # dart v4.1: rocking and milling the pods up, up to 180 s (dart-fw)
     retrieve_speed_mps: float = 0.2  # slowest expected line speed, sets the retrieve timeout
     tow_max_rounds: int = 30
     auto_anchor_on_landing: bool = False   # True: press A so the dart anchors by itself (skips the verdict)
@@ -1320,6 +1320,9 @@ class Mission:
                     if c == "Release and reshoot":
                         return c
                     self.dart.auto(force=True)
+                elif e.reason.startswith("motors hot"):
+                    raise StepFailed(f"dart refused auto: {e.reason} (after a long milling deploy). Wait a minute, "
+                                     "then Retry", choices=["Retry", "Release and reshoot"])
                 elif e.reason.startswith("battery low"):
                     raise StepFailed(f"dart refused auto: {e.reason} (it keeps enough charge to let go)",
                                      choices=["Release and reshoot"])

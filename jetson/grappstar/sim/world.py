@@ -139,7 +139,7 @@ class SimWorld:
         try:
             frames, truth = render_flight(seed=self.seed, fps=self.fps, landing_class=self.landing_class,
                                           size=self.dart_size, dropouts=True, landed_s=3.0,
-                                          pitch_deg=pitch, v0=self._v0_for(pitch))
+                                          pitch_deg=pitch, v0=self._v0_for(pitch), rest="flat")
         finally:
             self._rendering = False
         if self.t_fire is not None and self._ready.is_set():

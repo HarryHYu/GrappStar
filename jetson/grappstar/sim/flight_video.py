@@ -716,7 +716,7 @@ def render_flight(seed: int = 0, fps: Optional[float] = None, landing_class: str
     landing), sparkles, line jitter, interlaced fields, YUYV capture, 0.06 s capture latency on the frame times,
     1 percent repeated frames from the dongle, at 29.97 fps. link: a sim.analog.LinkConfig or a preset name
     ("daylight", "overcast", "lowlight", "weak_link", "clean").
-    rest: "flat" (the dart skids and lies on its belly, caddx default) or "buried" (older: camera 12 to 17 cm over
+    rest: "flat" (the dart skids and lies on its belly or leans on a flank, dart-physics; caddx default) or "buried" (older: camera 12 to 17 cm over
     the patch looking down at about -60 deg, pinhole default). latency_s: frame time minus scene time."""
     if profile not in PROFILES:
         raise ValueError(f"profile must be one of {PROFILES}")
@@ -737,6 +737,8 @@ def render_flight(seed: int = 0, fps: Optional[float] = None, landing_class: str
     rail = float(rng.uniform(0.9, 1.2)) if rail_s is None else float(rail_s)
     t_launch = t0 + rail + rng.uniform(0, 1.0 / fps)
     if rest is None:
+        # dart-physics: the nose slaps down and the dart lies or leans, never nose down. The clean pinhole profile
+        # keeps the older nose-down pose by default for its unit tests; pass rest="flat" for the real behaviour.
         rest = "flat" if caddx else "buried"
     if buried is None:
         buried = rest == "buried"

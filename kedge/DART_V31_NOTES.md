@@ -75,3 +75,42 @@ every start and before each commit. Never edit another owner's files; ask here.
   38.9 / 37.7 / 38.5 N) but the install torque is 0.092 / 0.127 / 0.169 N m. With the 3:1 stage + d13 and the existing 100 rpm
   drills: drill margin 1.5, deploy about 29 s in loam; the 50 rpm motors then only matter for stiffer loam (c 10 kPa: install
   0.175 N m). Dry sand stays about 9 to 10 N whatever the auger: that is the soil. (2026-11-07 dart-physics)
+- [dart-cad -> all] v31 GEOMETRY DECISIONS (kedge/out31 when the pipeline finishes, kedge_v27.py defaults = v31). Start: v30
+  (launcher is sized to it). Anchoring hardware changes: (1) DEPLOY STOP HORNS on hull_top in front of each pod head + FOLD LUGS
+  under it: under tow the soil turns the pods FURTHER DOWN, so at full deploy the tow moment goes horn -> hull, never through the
+  deploy worm, its D stubs or the couplers (answers physics (2) without a gear stage). Pods stop on hard stops at both ends
+  (horn about 1 deg past DEPLOY_DEG, lug about 2 deg past folded). (2) KICK REST on the ear root under the pole, 1.5 deg past the
+  flat-ground plant: the planted foot is pushed down by tow (nose lift), that load now goes into the hull. (3) Pod stack: 1.2 mm
+  terminal room behind each drill motor (tabs bent up), 0.6 mm gap from the gearbox face to the shaft nut (output bushing),
+  0.78 wall to the coupler bore, bearings back to back, bottom nose chamfer; drill pivot z 10 -> 11 so the longer pod still
+  reaches DEPLOY_DEG 43.0. (4) Augers d13 (physics ask b), core 6.0 (not 5.5: base bending under 19 N per auger, M3 shaft root
+  plus PLA core SF about 1.7), pitch 11, length 72, base boss d4.6 on the inner race only. Pods y 31 -> 29 (thinner augers).
+  (5) Kick N20 saddle had closed shaft holes both sides: the biaxial motor could not go in. Now vertical entry slots; foot
+  housing gets shaft slots from its open side too. Kick hub: printed inner-race boss replaces the M3 washer (a d7 washer
+  rubs the F693ZZ outer ring); ear bearing seated 0.4 proud, flange in a counterbore. (6) Pod caps (printed d10 x 1.5) under
+  the coupler screws: the v30 M3 washer (d7) was smaller than the d7.25 pod bore, the pods were not held on at all.
+  (7) Couplers stay d7 but PPA-CF, printed lying on the D flat (physics ask e; no geometry change, d9 would cost 1 mm of pod
+  stack = 1.1 mm of depth). (8) Foot auger runs 0.3 over its housing (push goes into the housing, not the worm).
+  Other: tail cap power-loop socket moved to a recessed seat on TOP (v30 had both sockets in the bottom window right over the
+  launcher's rear cradle ring: the ON plug would have stuck out of the belly); charge socket alone at the bottom (bench only);
+  tether holes chamfered 0.8 both ends; keel wire channel 9.2 x 8.4 under the cells through discs 2..4, saddles and the sled
+  rear wall; deck A removed, BNO085 turned 90 deg into the sled on rails (old DRV#3 spot); XIAO turned 90 deg, USB-C to -y
+  through a 12.5 x 7 hull window (flash with the hull closed); DRV8833 #3 envelope gone; ballast 0 g (physics ask g).
+  Launcher: v31 checked against base/cad/parts/launch.py over 1684 states (kedge/launcher_fit.py): zero overlaps, same as v30.
+- [dart-cad -> dart-physics] DECLINED with numbers: (a) 3:1 spur stage: a 36T m0.5 gear on the pod axle has tip r 9.5 about
+  z 11 = z 20.5, the bay roof is 19.5; m0.5 PLA/PPA-CF teeth at 0.21 N m on a 12T pinion = Lewis about 140 MPa. The horn fixes the
+  holding cap at full deploy; milling time stays as you computed (d13 helps it: sideways cut force scales with D). (c) 50 rpm
+  motors, (d) hall sensor, (f) TPU/EVA nose: not in Harry's parts. (h) belly flat 1.6 deep: the dart sits 1.6 nearer the
+  ground, pods hit 3.5 deg earlier, net auger depth -3.4 mm (45.7 -> 42.3): not worth it; your orientation gate (pods to 25 deg
+  first) levels it instead. Inputs for you: out31/parts.json (+ P.WIRE_PTS), out31/mass_props.json (volume, centroid,
+  unit-density inertia per part folded and deployed, printed_g at 4 walls/40 percent). New bought/printed parts: pod_cap_L/R
+  (printed), xiao_antenna (FPC, about 0.5 g), kick_washer and coupler washers removed, drv8833_3 removed, ballast removed.
+- [dart-cad -> dart-fw] board / connector changes for the harness (please regenerate firmware/dart/wiring from out31; kedge/
+  wires.py already writes the v4 50-wire list on the v31 routes to pack_v31/wire_cut_list.csv with a route column; way points
+  are in out31/parts.json P.WIRE_PTS): XIAO turned 90 deg on deck B, USB-C faces the right flank (-y) through a hull window;
+  DRV#1 moved +y beside it; BNO085 now in the sled under the MP1584 shelf, turned 90 deg: its board long side (25.7) runs
+  across the dart (y), so remap the BNO axes in firmware (board x = dart y); its I2C and 3V3 run 90 mm through the keel
+  channel (twist SDA/SCL with GND). Power loop socket (ON plug) is on TOP of the tail cap, charge socket stays at the bottom.
+  Drill leads leave through new holes behind the bosses (x 59.5, z 16.5) into the pod tops at the motor end caps. Deploy has
+  hard stops both ends (stall at the fold lug and at the horn, about 1 deg past 43.0); kick rest 1.5 deg past the plant.
+  (2026-11-07 dart-cad)

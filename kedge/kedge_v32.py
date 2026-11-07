@@ -123,6 +123,15 @@ def safe_fillet(solid, edges, r, tag):
         print("  fillet skipped:", tag, str(e)[:60])
     return solid
 
+def safe_chamfer(solid, edges, d, tag):
+    try:
+        out = chamfer(edges, d)
+        if out.is_valid:
+            return out
+    except Exception as e:
+        print("  chamfer skipped:", tag, str(e)[:60])
+    return solid
+
 def chord_half(z, rr=RB):
     return math.sqrt(max(rr * rr - z * z, 0.0))
 
@@ -726,7 +735,7 @@ def build_kick():
     xe = pole_x0 + P["KICK_POLE_L"]
     pe = xe - 14.0                                                                     # the pole runs into the web here
     pole = bx(pole_x0, pe, 0, hw2, -P["KICK_POLE_D"] / 2, P["KICK_POLE_D"] / 2)
-    pole = safe_fillet(pole, [e for e in pole.edges().filter_by(Axis.X) if abs(e.center().Y - hw2) < 1e-3], FL_R - 0.3, "pole corners")   # fits the flute
+    pole = safe_chamfer(pole, [e for e in pole.edges().filter_by(Axis.X) if abs(e.center().Y - hw2) < 1e-3], FL_R - 0.3, "pole corners")   # 45 deg: fits the flute, prints on the bed
     pole = pole + cylx(P["KICK_POLE_D"], pe - pole_x0, pole_x0)
     # foot housing (built in its own frame, then tilted about the output shaft so the foot plants vertical): square pocket for
     # the foot worm N20 in line with the housing, output shaft along the housing's +Z
@@ -744,11 +753,12 @@ def build_kick():
         bx(fx0 + 19, fx0 + 22, -20, 20, -fh / 2 - 1, -fh / 2 + 0.8),                                         # strap groove (on the can, clear of the web)
     ]
     # web: tangent arcs from the pole end up to the raised housing rear and along its floor (carries the drilling push into the pole)
-    wc = [(pe, 0.0, P["KICK_POLE_D"] / 2)] + [foot_pt(fbox, x_, z_) + (2.5,) for x_, z_ in
-          ((fx0 + 2.5, fh / 2 - 2.5), (fx0 + 2.5, -fh / 2 + 2.5), (fx0 + WEB_RUN, -fh / 2 + 2.5))]
+    wr = FL_R - 0.2                                                                   # web corner arcs (bigger than its 45 deg datum chamfer)
+    wc = [(pe, 0.0, P["KICK_POLE_D"] / 2)] + [foot_pt(fbox, x_, z_) + (wr,) for x_, z_ in
+          ((fx0 + wr, fh / 2 - wr), (fx0 + wr, -fh / 2 + wr), (fx0 + WEB_RUN, -fh / 2 + wr))]
     web = arc_prism(wc, -P["KICK_POLE_D"] / 2, hw2)
     web = yfillet(web, (-P["KICK_POLE_D"] / 2,), P["KICK_POLE_D"] / 2 - 0.1, "web")          # its -y side rounds like the pole ...
-    web = yfillet(web, (hw2,), FL_R - 0.3, "web datum side")                                  # ... and its +y edges like the pole corners
+    web = safe_chamfer(web, [e for e in web.edges() if all(abs(e.position_at(t).Y - hw2) < 1e-3 for t in (0.0, 0.5, 1.0))], FL_R - 0.3, "web datum side")   # ... its +y edges chamfered like the pole
     leg = hub + pole + web + foot_loc(fbox, house)
     for c in hcuts:
         leg = leg - foot_loc(fbox, c)

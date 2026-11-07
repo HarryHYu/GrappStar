@@ -16,6 +16,8 @@ ORIENT = {   # rotation that puts each part in its print pose (z up from the bed
 }
 if "tail_boom" in PP:                     # v32: arms stand on the head's flat front face, sleeves on their base
     ORIENT.update({"drill_leg_L": RM(-math.pi / 2, Y), "drill_leg_R": RM(-math.pi / 2, Y)})
+if J["P"].get("FOOT_TILT"):               # v32c: the foot auger is stored tilted with its housing; stand it back on its base
+    ORIENT["foot_auger"] = RM(-math.radians(J["P"]["FOOT_TILT"]), Y)
 ORIENT = {k: v for k, v in ORIENT.items() if k in PP}          # older builds have no pod caps
 SUPPORT = {   # what the slicer must do (Bambu Studio, PLA, 0.4 nozzle, 0.2 layers)
     "hull_top": "tree supports ON, build plate only: the inner roof of the half shell (about 28 mm wide strip); pivot blocks, saddle and ear print without (arc outlines, 45 deg undersides)",

@@ -405,7 +405,9 @@ VID_IMPACT_LATE_TYP = 0.11   # typical lateness of the video impact (also the cl
 # overruling the flight time and the table (eval_realistic: IMU range median error 1.4 -> see README section 13).
 TRACK_SIGMA_DEG = 8.0
 TRACK_CORR = 2.0         # consecutive horizon samples are correlated (wobble): count them as 1 in 2
-POST_IMPACT_RISE_DEG = 6.0   # nose pitch rise that means the dart has landed and is levelling out (see analyze_flight)
+# nose pitch rise that means the dart has landed and lies level (see analyze_flight); above the in-flight angle of
+# attack swing, together with the end-near-level and stay-up checks (eval_realistic: no false cut in 48 flights)
+POST_IMPACT_RISE_DEG = 15.0
 # Table muzzle speed prior. dart-physics: shot to shot spread about 1 percent, 2 percent with cock position and line
 # drag scatter; the table itself (a model) may be off by more until Harry's tape shots set table_scale: 8 percent.
 PRIOR_SIGMA = 0.08
@@ -1068,7 +1070,10 @@ def analyze_flight(frames: Sequence, flightlog: Optional[dict] = None, clock_off
             pv = np.array([p_ for _, p_ in track])
             for k in range(2, len(pv)):
                 kmin = int(np.argmin(pv[:k]))
-                if pv[kmin] < -3.0 and pv[k] > pv[kmin] + POST_IMPACT_RISE_DEG and k > kmin:
+                # the angle of attack swings the nose by up to about 16 deg in flight: the rise must be bigger than
+                # that, end near level (lying on the ground) and stay up for the rest of the track
+                if (pv[kmin] < -3.0 and k > kmin and pv[k] > pv[kmin] + POST_IMPACT_RISE_DEG and pv[k] > -12.0
+                        and np.all(pv[k:] > pv[kmin] + 0.75 * POST_IMPACT_RISE_DEG)):
                     t_rise = track[k][0]
                     track = track[:kmin + 1]
                     if t_sky is not None and t_sky - t_start >= t_rise - 1e-6:

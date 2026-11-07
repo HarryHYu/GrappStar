@@ -234,6 +234,43 @@ def _attitude_for(frame, flight: Optional[FlightResult], hfov_deg: float):
     return None
 
 
+def _impact_pixel(frame, flight: Optional[FlightResult], w: int, h: int, hfov_deg: float):
+    """Where the impact point is in this (reference, canonical pinhole) frame, from the flight result: the ray from
+    the dart's position on the model trajectory to the impact point, turned into the camera by the dart attitude
+    (roll, pitch, yaw) at that time. The nose does not point along the flight path (angle of attack up to about
+    20 deg, dart-physics), so the image centre alone misses by up to a metre. None without attitude or trajectory."""
+    if flight is None or not flight.trajectory or not flight.attitude:
+        return None
+    tr = np.array(flight.trajectory, float)          # (t, x, y, z)
+    t = frame.t
+    if not (tr[0, 0] <= t <= tr[-1, 0]):
+        return None
+    x = float(np.interp(t, tr[:, 0], tr[:, 1]))
+    z = float(np.interp(t, tr[:, 0], tr[:, 3]))
+    x_imp = float(tr[-1, 1])
+    if x_imp - x < 0.05 or z <= 0.0:
+        return None
+    ts = np.array([a[0] for a in flight.attitude])
+    k = int(np.argmin(np.abs(ts - t)))
+    a = flight.attitude[k]
+    if abs(ts[k] - t) > 0.06 or a[1] is None or a[2] is None:
+        return None
+    roll, pitch = float(a[1]), float(a[2])
+    beta = math.atan2(-z, x_imp - x)                  # below the horizontal, in the flight plane
+    # no sideslip: the flight plane is the dart's heading, so in a heading-aligned world the ray has yaw 0
+    d_w = np.array([math.cos(beta), 0.0, math.sin(beta)])
+    R_wc = _rot_from_rpy(roll, pitch) @ _R_BODY_CAM
+    d_c = R_wc.T @ d_w
+    if d_c[2] <= 1e-3:
+        return None
+    f = (w / 2.0) / math.tan(math.radians(hfov_deg) / 2.0)
+    u = (w - 1) / 2.0 + f * d_c[0] / d_c[2]
+    v = (h - 1) / 2.0 + f * d_c[1] / d_c[2]
+    if not (-0.5 * w < u < 1.5 * w and -0.5 * h < v < 1.5 * h):
+        return None
+    return np.array([u, v])
+
+
 # ------------------------------------------------------------------ main
 
 def build_mosaic(frames: Sequence, landing_t: Optional[float] = None, flight: Optional[FlightResult] = None,
@@ -498,6 +535,12 @@ def _build(frames, landing_t, flight, max_frames, work_w, max_canvas, min_inlier
                     land = p
                     res.landing_source = "landed_frame"
                     break
+    if land is None:
+        lp_traj = _impact_pixel(ref.frame, flight, rw, rh, hfov_deg)
+        if lp_traj is not None:
+            land = lp_traj
+            res.landing_source = "trajectory"
+            res.notes.append("landing point from the flight path and the dart attitude at the reference frame")
     if land is None:
         land = np.array([rw / 2.0, rh / 2.0])
         res.landing_source = "ref_centre"

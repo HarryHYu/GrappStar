@@ -51,3 +51,46 @@ def test_frame_quality_on_realistic_frames(seed, link):
     rect = rectify_frames(frames, DartLens.equidistant(size=(360, 240)))
     lost = [f.idx for f in rect if f.idx not in bad and not frame_ok(f)]
     assert len(lost) <= 1, lost
+
+
+@pytest.fixture(scope="module")
+def realistic_rows():
+    """A fixed reduced set of the eval_realistic cases (all six ground types, every link condition, both rest
+    poses), 360x240, the analysis exactly as the mission calls it with the uncalibrated default lens."""
+    import eval_realistic as E
+    jobs = min(4, os.cpu_count() or 1)
+    return E.evaluate(range(0, 12), (360, 240), "default", jobs=jobs, mosaic=True)
+
+
+def test_realistic_range_accuracy(realistic_rows):
+    """README section 13: with the IMU flight log the range is within a few percent; video only (commanded pitch
+    known) it is a rougher fallback. The full 48 flight run (eval_realistic --n 48) gave IMU median 1.2 percent,
+    90th percentile 3.2 percent, max 4.2; video only median 4.4 percent, 90th percentile 18."""
+    rows = [r for r in realistic_rows if "error" not in r]
+    assert len(rows) == len(realistic_rows), [r for r in realistic_rows if "error" in r]
+    imu = sorted(abs(r["imu_err"]) for r in rows)
+    vid = sorted(abs(r["vid_aim_err"]) for r in rows)
+    assert imu[len(imu) // 2] < 0.03 and imu[-1] < 0.07, imu
+    assert vid[len(vid) // 2] < 0.10, vid
+    # the capture delay is applied: the IMU impact lines up with the frames within a frame
+    assert all(abs(r["imu_impact_err"]) < 0.034 for r in rows), [r["imu_impact_err"] for r in rows]
+
+
+def test_realistic_landing_verdicts_are_safe(realistic_rows):
+    """Never GO on sand, bedrock or water; GO on hard ground and loose soil (the full run: 16 of 16, 0 unsafe)."""
+    for r in realistic_rows:
+        for k in ("imu", "vid"):
+            v = r[k + "_verdict"]
+            if r["cls"] in ("sand_dust", "bedrock", "water_void"):
+                assert v != "GO", (r["seed"], r["cls"], r[k + "_cls"], v)
+            if r["cls"] in ("hard_ground", "loose_soil"):
+                assert v == "GO", (r["seed"], r["cls"], r[k + "_cls"], v)
+
+
+def test_realistic_aerial_map_marks_the_landing(realistic_rows):
+    """The map's landing marker within 0.35 m of the true impact (full run: median 0.07 m, 90th percentile 0.15 m),
+    from the flight path and the dart attitude (the nose does not point along the path: angle of attack)."""
+    errs = [r["mosaic_err_m"] for r in realistic_rows]
+    assert all(e is not None for e in errs)
+    errs.sort()
+    assert errs[len(errs) // 2] < 0.15 and errs[int(0.9 * len(errs))] < 0.35, errs

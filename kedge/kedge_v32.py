@@ -415,8 +415,8 @@ add("tail_cap", tail, "hull", "#b8c0ca", orient="end face down, spigot up (no su
 
 # ================================================================== TAIL BOOM (tether stinger) + its anchor disc
 def build_boom():
-    """PPA-CF boom on the axis: a 10 x 12 head inside the anchor disc, an 8 x 8 shank through the tail cap end wall, a 10 x 10
-    rounded boom BOOM_L long behind the tail, and a clevis eye at the tip: the tether loop runs round a steel M3 x 10 countersunk
+    """PPA-CF boom on the axis: a 9 x 12 head inside the anchor disc, a 7.6 x 7.6 shank through the tail cap end wall, a 10 x 10
+    9 x 9 rounded boom BOOM_L long behind the tail, and a clevis eye at the tip: the tether loop runs round a steel M3 x 8 countersunk
     screw between two tines, open aft and to both sides (the line can swing 180 deg left-right, its exit edges rounded). Every
     section fits the launcher pusher's Ø14 hole, so the boom slides out of it at the shot."""
     bw, x1 = P["BOOM_W"], L + P["BOOM_L"]
@@ -427,9 +427,9 @@ def build_boom():
     tip = tip & bx(x1 - 5.0, x1 + 1, -bw / 2, bw / 2, -bw / 2, bw / 2)
     tip = tip + bx(x1 - 5.5, x1 - 5.0, -bw / 2, bw / 2, -bw / 2, bw / 2)
     b = head + shank + boom + tip
-    b = b - bx(x1 - 9.0, x1 + 1, -bw, bw, -2.0, 2.0)                       # clevis gap for the line loop
-    b = b - Pos(x1 - 9.0, 0, 0) * Cylinder(2.0, 20, rotation=(90, 0, 0))   # rounded gap root
-    b = b - cylz(P["SCREW_CLR"], 4.0, 1.9, x=x1 - 5.0)                     # pin: clearance in the top tine
+    b = b - bx(x1 - 9.0, x1 + 1, -bw, bw, -1.5, 2.5)                       # clevis gap for the line loop (top tine 2.0, bottom 3.0)
+    b = b - Pos(x1 - 9.0, 0, 0.5) * Cylinder(2.0, 20, rotation=(90, 0, 0)) # rounded gap root
+    b = b - cylz(P["SCREW_CLR"], 4.0, 2.4, x=x1 - 5.0)                     # pin: clearance in the top tine
     b = b - Solid.make_cone(1.65, 3.15, 1.6, Plane(origin=(x1 - 5.0, 0, bw / 2 - 1.6), z_dir=(0, 0, 1)))   # countersink, head flush
     b = b - cylz(P["SCREW_PILOT"], 4.0, -bw / 2 - 1, x=x1 - 5.0)           # pilot in the bottom tine (the screw threads in)
     for sz in (1, -1):                                                      # 45 deg lead on the tip: it enters the pusher hole on retrieval
@@ -450,7 +450,7 @@ def build_anchor():
 
 print("boom ...")
 add("tail_boom", build_boom(), "hull", "#2f3b45", orient="lying on its side (layers along the boom), PPA-CF",
-    note="Tail boom (tether stinger), PPA-CF: %g mm behind the tail, 10 x 10 rounded, clevis eye with a steel M3 x 10 countersunk screw as the line's wear pin (flush both sides). The tow load goes head -> anchor disc -> the 4 tail screws -> hull; the square shank is keyed in the tail cap" % P["BOOM_L"])
+    note="Tail boom (tether stinger), PPA-CF: %g mm behind the tail, 9 x 9 rounded, clevis eye with a steel M3 x 8 countersunk screw as the line's wear pin (flush both sides). The tow load goes head -> anchor disc -> the 4 tail screws -> hull; the square shank is keyed in the tail cap" % P["BOOM_L"])
 add("boom_anchor", build_anchor(), "hull", "#2f3b45", orient="flat on the bed, PPA-CF",
     note="Boom anchor disc Ø32.2 x 3.6 inside the tail spigot: holds the boom head in a recess; the four radial tail screws run through the hull and the tail cap spigot into it, so the tether pulls on the hull, not on the tail cap")
 
@@ -673,7 +673,7 @@ print("kick ...")
 kick, FX0, FBOX = build_kick()
 add("kick_leg", kick, "legs", "#e07b39", pos=(KICK_X, KICK_Y, KICK_Z), axis="y", deg=(0, P["KICK_DEG"]),
     orient="on its side (pole axis horizontal, hub face down)",
-    note="Kick leg on the dart centreline: Ø12 x 11.5 hub on the +y stub of the kick N20 (which sits beside it), M3 x 10 screw from outside through the ear F693ZZ into the hub end; Ø8 pole (flat-sided to the print datum) with a Ø4.6 wire channel, foot housing with the foot worm N20 in line, output shaft up when folded / down when deployed: the foot plants on the dart axis ahead of the nose")
+    note="Kick leg on the dart centreline: Ø12 x 11.5 hub on the +y stub of the kick N20 (which sits beside it), M3 x 8 screw from outside through the ear F693ZZ into the hub end; Ø8 pole (flat-sided to the print datum) with a Ø4.6 wire channel, foot housing with the foot worm N20 in line, output shaft up when folded / down when deployed: the foot plants on the dart axis ahead of the nose")
 
 ztop_h = pk / 2 + 1.3
 fa = screw_auger(P["AUGER_D"], P["FOOT_AUGER_L"], P["AUGER_PITCH"], P["AUGER_CORE"], P["FOOT_TIP"], lefthand=False, dbore=P["SHAFT_D"] + 0.15)
@@ -841,8 +841,8 @@ s_all = scr[0]
 for q in scr[1:]: s_all = s_all + q
 hw("screws_radial", s_all, "#555555", "8 x M3 x 8 countersunk (flat-head) radial screws, flush with the skin: 4 into tray disc 1, 4 through the tail cap spigot into the boom anchor disc (they carry the tow)")
 xpin = L + P["BOOM_L"] - 5.0
-hw("boom_pin", Solid.make_cone(1.45, 3.0, 1.6, Plane(origin=(xpin, 0, P["BOOM_W"] / 2 - 1.6), z_dir=(0, 0, 1))) + cylz(2.9, 10.0 - 1.6, P["BOOM_W"] / 2 - 10.0, x=xpin),
-   "#555555", "M3 x 10 countersunk screw: the tether's wear pin in the boom eye (head flush in the top tine, threads through the bottom tine, 1 mm proud under it; threadlocker)")
+hw("boom_pin", Solid.make_cone(1.45, 3.0, 1.6, Plane(origin=(xpin, 0, P["BOOM_W"] / 2 - 1.6), z_dir=(0, 0, 1))) + cylz(2.9, 8.0 - 1.6, P["BOOM_W"] / 2 - 8.0, x=xpin),
+   "#555555", "M3 x 8 countersunk screw: the tether's wear pin in the boom eye (head flush in the top tine, threads 2 mm into the bottom tine, nothing proud; threadlocker)")
 eb = cyly(P["BRG_FL_D"], P["BRG_FL_T"], BRG_EAR_Y + P["BRG_W"] - P["BRG_FL_T"], x=KICK_X, z=KICK_Z) + cyly(P["BRG_OD"], P["BRG_W"] - P["BRG_FL_T"], BRG_EAR_Y, x=KICK_X, z=KICK_Z) - cyly(3.0, 8, BRG_EAR_Y - 2, x=KICK_X, z=KICK_Z)
 hw("brg_ear", eb, "#9aa5b1", "F693ZZ in the ear, flange down in a counterbore on the outer face, inner face 0.4 proud of the fin onto the hub's inner-race boss")
 yl0 = P["KICK_HUB_W"] / 2

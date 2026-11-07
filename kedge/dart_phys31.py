@@ -41,8 +41,9 @@ def main(out=None):
     t0 = time.time()
     R = physics.run(out)
     if "tail_boom" in json.load(open(os.path.join(out, "parts.json")))["P"] or os.path.exists(os.path.join(out, "tail_boom.npz")):
-        import dart_v32
+        import dart_v32, dart_v32_release
         dart_v32.run(out)
+        dart_v32_release.run(out)
     ph = os.path.join(out, "phys31")
     A = json.load(open(os.path.join(ph, "anchor.json"))); L = json.load(open(os.path.join(ph, "landing.json")))
     F = json.load(open(os.path.join(out, "flight_sim.json")))
@@ -167,6 +168,19 @@ def write_md(out, R, A, L, F, S):
           f"pitch x {fl['cp_pitch_x']}, yaw x {fl['cp_yaw_x']} against the CG x {fl['cg_x']}: margin {sm['pitch']} / {sm['yaw']} cal. Without the tether at 34 deg, 5 deg + 1 rad/s: "
           f"pitch peak {fl['no_tether_pitch']['alpha_peak_deg']} deg ({'nose first' if fl['no_tether_pitch']['nose_first'] else 'tumbles'}), yaw peak "
           f"{fl['no_tether_yaw']['alpha_peak_deg']} deg ({'nose first' if fl['no_tether_yaw']['nose_first'] else 'tumbles'}).")
+        RL = os.path.join(out, "phys31", "v32_release.json")
+        if os.path.exists(RL):
+            rel = json.load(open(RL))
+            rows = [r for r in rel["cases"] if r["flight_od_mm"] == float(g["drill"]["D_mm"])]
+            def rr(r, k):
+                v = r["drives"][k]
+                return f"{v['breakaway_margin_after_standing']}" + ("" if v["installs"] else " (drill stalls before full depth)")
+            k2 = [k for k in rows[0]["drives"] if "planetary" in k][0]
+            w("- Release by milling out (rock, then mill the pods up with the drills turning): the drill must first break the standing sleeve "
+              "free (1.3 x spin torque). Breakaway margin after standing, loam c = " + ", ".join(f"{r['c_kPa']:g} kPa: {rr(r, '100 rpm direct')}" for r in rows)
+              + f" with the in-hand 100 rpm motor; with a {k2} in the tip hub: " + ", ".join(f"{r['c_kPa']:g}: {rr(r, k2)}" for r in rows)
+              + f" (mill-out " + ", ".join(f"{r['drives'][k2]['mill_out_s']:.0f}" for r in rows) + " s). Firmware guard: stop the deploy at 67 percent of the drill stall: "
+              + ", ".join(f"c {r['c_kPa']:g}: pods {r['depth_limited_100rpm']['pod_deg']} deg, {r['depth_limited_100rpm']['hold_N']} N" for r in rows) + " (100 rpm).")
         w("")
     w(f"## Answers for dart-jetson (7 m/s shots, {R['ballast_g']:g} g ballast, tether 0.25 N)")
     w("")

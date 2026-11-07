@@ -1,0 +1,532 @@
+{
+ "source": "out32",
+ "assumptions": {
+  "setup": [
+   1.0,
+   1.3
+  ],
+  "half_contact": 0.5,
+  "eta_planet": 0.85,
+  "depth_limit_frac": 0.67,
+  "drill_stall_Nm_7V4": 0.182,
+  "drill_free_rpm": 61.2
+ },
+ "cases": [
+  {
+   "c_kPa": 4.0,
+   "flight_od_mm": 22.0,
+   "spin_Nm": 0.145,
+   "hold_full_N": 62.1,
+   "drives": {
+    "100 rpm direct": {
+     "stall_Nm": 0.182,
+     "breakaway_margin_fresh": 1.26,
+     "breakaway_margin_after_standing": 0.97,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": false,
+     "running_margin": 2.09,
+     "mill_out_s": 45.0
+    },
+    "2.33:1 planetary 28/12/8": {
+     "stall_Nm": 0.361,
+     "breakaway_margin_fresh": 2.49,
+     "breakaway_margin_after_standing": 1.92,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 4.14,
+     "mill_out_s": 104.0
+    },
+    "3:1 planetary": {
+     "stall_Nm": 0.464,
+     "breakaway_margin_fresh": 3.2,
+     "breakaway_margin_after_standing": 2.46,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 5.32,
+     "mill_out_s": 134.0
+    }
+   },
+   "depth_limited_100rpm": {
+    "pod_deg": 36.6,
+    "depth_mm": 32.0,
+    "hold_N": 54.9
+   }
+  },
+  {
+   "c_kPa": 4.0,
+   "flight_od_mm": 20.0,
+   "spin_Nm": 0.12,
+   "hold_full_N": 58.9,
+   "drives": {
+    "100 rpm direct": {
+     "stall_Nm": 0.182,
+     "breakaway_margin_fresh": 1.52,
+     "breakaway_margin_after_standing": 1.17,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 2.48,
+     "mill_out_s": 45.0
+    },
+    "2.33:1 planetary 28/12/8": {
+     "stall_Nm": 0.361,
+     "breakaway_margin_fresh": 3.01,
+     "breakaway_margin_after_standing": 2.32,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 4.92,
+     "mill_out_s": 106.0
+    },
+    "3:1 planetary": {
+     "stall_Nm": 0.464,
+     "breakaway_margin_fresh": 3.87,
+     "breakaway_margin_after_standing": 2.98,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 6.33,
+     "mill_out_s": 136.0
+    }
+   },
+   "depth_limited_100rpm": {
+    "pod_deg": 44.6,
+    "depth_mm": 43.5,
+    "hold_N": 58.6
+   }
+  },
+  {
+   "c_kPa": 4.0,
+   "flight_od_mm": 19.0,
+   "spin_Nm": 0.108,
+   "hold_full_N": 57.3,
+   "drives": {
+    "100 rpm direct": {
+     "stall_Nm": 0.182,
+     "breakaway_margin_fresh": 1.68,
+     "breakaway_margin_after_standing": 1.3,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 2.72,
+     "mill_out_s": 46.0
+    },
+    "2.33:1 planetary 28/12/8": {
+     "stall_Nm": 0.361,
+     "breakaway_margin_fresh": 3.34,
+     "breakaway_margin_after_standing": 2.57,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 5.4,
+     "mill_out_s": 106.0
+    },
+    "3:1 planetary": {
+     "stall_Nm": 0.464,
+     "breakaway_margin_fresh": 4.29,
+     "breakaway_margin_after_standing": 3.3,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 6.95,
+     "mill_out_s": 137.0
+    }
+   },
+   "depth_limited_100rpm": {
+    "pod_deg": 44.6,
+    "depth_mm": 43.5,
+    "hold_N": 57.0
+   }
+  },
+  {
+   "c_kPa": 5.0,
+   "flight_od_mm": 22.0,
+   "spin_Nm": 0.179,
+   "hold_full_N": 73.8,
+   "drives": {
+    "100 rpm direct": {
+     "stall_Nm": 0.182,
+     "breakaway_margin_fresh": 1.02,
+     "breakaway_margin_after_standing": 0.78,
+     "installs": false,
+     "releases_fresh": true,
+     "releases_after_standing": false,
+     "running_margin": 1.74,
+     "mill_out_s": 54.0
+    },
+    "2.33:1 planetary 28/12/8": {
+     "stall_Nm": 0.361,
+     "breakaway_margin_fresh": 2.02,
+     "breakaway_margin_after_standing": 1.55,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 3.46,
+     "mill_out_s": 125.0
+    },
+    "3:1 planetary": {
+     "stall_Nm": 0.464,
+     "breakaway_margin_fresh": 2.59,
+     "breakaway_margin_after_standing": 1.99,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 4.44,
+     "mill_out_s": 161.0
+    }
+   },
+   "depth_limited_100rpm": {
+    "pod_deg": 31.1,
+    "depth_mm": 23.3,
+    "hold_N": 63.4
+   }
+  },
+  {
+   "c_kPa": 5.0,
+   "flight_od_mm": 20.0,
+   "spin_Nm": 0.148,
+   "hold_full_N": 69.9,
+   "drives": {
+    "100 rpm direct": {
+     "stall_Nm": 0.182,
+     "breakaway_margin_fresh": 1.23,
+     "breakaway_margin_after_standing": 0.95,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": false,
+     "running_margin": 2.08,
+     "mill_out_s": 54.0
+    },
+    "2.33:1 planetary 28/12/8": {
+     "stall_Nm": 0.361,
+     "breakaway_margin_fresh": 2.44,
+     "breakaway_margin_after_standing": 1.88,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 4.12,
+     "mill_out_s": 127.0
+    },
+    "3:1 planetary": {
+     "stall_Nm": 0.464,
+     "breakaway_margin_fresh": 3.13,
+     "breakaway_margin_after_standing": 2.41,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 5.3,
+     "mill_out_s": 163.0
+    }
+   },
+   "depth_limited_100rpm": {
+    "pod_deg": 36.1,
+    "depth_mm": 31.2,
+    "hold_N": 62.6
+   }
+  },
+  {
+   "c_kPa": 5.0,
+   "flight_od_mm": 19.0,
+   "spin_Nm": 0.134,
+   "hold_full_N": 68.0,
+   "drives": {
+    "100 rpm direct": {
+     "stall_Nm": 0.182,
+     "breakaway_margin_fresh": 1.36,
+     "breakaway_margin_after_standing": 1.05,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 2.29,
+     "mill_out_s": 55.0
+    },
+    "2.33:1 planetary 28/12/8": {
+     "stall_Nm": 0.361,
+     "breakaway_margin_fresh": 2.7,
+     "breakaway_margin_after_standing": 2.08,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 4.53,
+     "mill_out_s": 128.0
+    },
+    "3:1 planetary": {
+     "stall_Nm": 0.464,
+     "breakaway_margin_fresh": 3.47,
+     "breakaway_margin_after_standing": 2.67,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 5.83,
+     "mill_out_s": 164.0
+    }
+   },
+   "depth_limited_100rpm": {
+    "pod_deg": 39.6,
+    "depth_mm": 36.5,
+    "hold_N": 63.8
+   }
+  },
+  {
+   "c_kPa": 7.5,
+   "flight_od_mm": 22.0,
+   "spin_Nm": 0.265,
+   "hold_full_N": 103.1,
+   "drives": {
+    "100 rpm direct": {
+     "stall_Nm": 0.182,
+     "breakaway_margin_fresh": 0.69,
+     "breakaway_margin_after_standing": 0.53,
+     "installs": false,
+     "releases_fresh": false,
+     "releases_after_standing": false,
+     "running_margin": 1.24,
+     "mill_out_s": 76.0
+    },
+    "2.33:1 planetary 28/12/8": {
+     "stall_Nm": 0.361,
+     "breakaway_margin_fresh": 1.36,
+     "breakaway_margin_after_standing": 1.05,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 2.45,
+     "mill_out_s": 178.0
+    },
+    "3:1 planetary": {
+     "stall_Nm": 0.464,
+     "breakaway_margin_fresh": 1.75,
+     "breakaway_margin_after_standing": 1.35,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 3.15,
+     "mill_out_s": 229.0
+    }
+   },
+   "depth_limited_100rpm": {
+    "pod_deg": 25.1,
+    "depth_mm": 13.3,
+    "hold_N": 82.3
+   }
+  },
+  {
+   "c_kPa": 7.5,
+   "flight_od_mm": 20.0,
+   "spin_Nm": 0.219,
+   "hold_full_N": 97.6,
+   "drives": {
+    "100 rpm direct": {
+     "stall_Nm": 0.182,
+     "breakaway_margin_fresh": 0.83,
+     "breakaway_margin_after_standing": 0.64,
+     "installs": false,
+     "releases_fresh": false,
+     "releases_after_standing": false,
+     "running_margin": 1.48,
+     "mill_out_s": 77.0
+    },
+    "2.33:1 planetary 28/12/8": {
+     "stall_Nm": 0.361,
+     "breakaway_margin_fresh": 1.65,
+     "breakaway_margin_after_standing": 1.27,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 2.94,
+     "mill_out_s": 180.0
+    },
+    "3:1 planetary": {
+     "stall_Nm": 0.464,
+     "breakaway_margin_fresh": 2.12,
+     "breakaway_margin_after_standing": 1.63,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 3.78,
+     "mill_out_s": 232.0
+    }
+   },
+   "depth_limited_100rpm": {
+    "pod_deg": 27.6,
+    "depth_mm": 17.5,
+    "hold_N": 80.2
+   }
+  },
+  {
+   "c_kPa": 7.5,
+   "flight_od_mm": 19.0,
+   "spin_Nm": 0.197,
+   "hold_full_N": 94.9,
+   "drives": {
+    "100 rpm direct": {
+     "stall_Nm": 0.182,
+     "breakaway_margin_fresh": 0.92,
+     "breakaway_margin_after_standing": 0.71,
+     "installs": false,
+     "releases_fresh": false,
+     "releases_after_standing": false,
+     "running_margin": 1.63,
+     "mill_out_s": 78.0
+    },
+    "2.33:1 planetary 28/12/8": {
+     "stall_Nm": 0.361,
+     "breakaway_margin_fresh": 1.83,
+     "breakaway_margin_after_standing": 1.41,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 3.24,
+     "mill_out_s": 182.0
+    },
+    "3:1 planetary": {
+     "stall_Nm": 0.464,
+     "breakaway_margin_fresh": 2.35,
+     "breakaway_margin_after_standing": 1.81,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 4.16,
+     "mill_out_s": 234.0
+    }
+   },
+   "depth_limited_100rpm": {
+    "pod_deg": 29.1,
+    "depth_mm": 20.0,
+    "hold_N": 79.4
+   }
+  },
+  {
+   "c_kPa": 10.0,
+   "flight_od_mm": 22.0,
+   "spin_Nm": 0.35,
+   "hold_full_N": 132.5,
+   "drives": {
+    "100 rpm direct": {
+     "stall_Nm": 0.182,
+     "breakaway_margin_fresh": 0.52,
+     "breakaway_margin_after_standing": 0.4,
+     "installs": false,
+     "releases_fresh": false,
+     "releases_after_standing": false,
+     "running_margin": 0.96,
+     "mill_out_s": 99.0
+    },
+    "2.33:1 planetary 28/12/8": {
+     "stall_Nm": 0.361,
+     "breakaway_margin_fresh": 1.03,
+     "breakaway_margin_after_standing": 0.79,
+     "installs": false,
+     "releases_fresh": true,
+     "releases_after_standing": false,
+     "running_margin": 1.9,
+     "mill_out_s": 231.0
+    },
+    "3:1 planetary": {
+     "stall_Nm": 0.464,
+     "breakaway_margin_fresh": 1.33,
+     "breakaway_margin_after_standing": 1.02,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 2.44,
+     "mill_out_s": 297.0
+    }
+   },
+   "depth_limited_100rpm": {
+    "pod_deg": 23.1,
+    "depth_mm": 9.8,
+    "hold_N": 96.8
+   }
+  },
+  {
+   "c_kPa": 10.0,
+   "flight_od_mm": 20.0,
+   "spin_Nm": 0.289,
+   "hold_full_N": 125.3,
+   "drives": {
+    "100 rpm direct": {
+     "stall_Nm": 0.182,
+     "breakaway_margin_fresh": 0.63,
+     "breakaway_margin_after_standing": 0.48,
+     "installs": false,
+     "releases_fresh": false,
+     "releases_after_standing": false,
+     "running_margin": 1.15,
+     "mill_out_s": 100.0
+    },
+    "2.33:1 planetary 28/12/8": {
+     "stall_Nm": 0.361,
+     "breakaway_margin_fresh": 1.25,
+     "breakaway_margin_after_standing": 0.96,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": false,
+     "running_margin": 2.28,
+     "mill_out_s": 234.0
+    },
+    "3:1 planetary": {
+     "stall_Nm": 0.464,
+     "breakaway_margin_fresh": 1.6,
+     "breakaway_margin_after_standing": 1.23,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 2.93,
+     "mill_out_s": 301.0
+    }
+   },
+   "depth_limited_100rpm": {
+    "pod_deg": 24.6,
+    "depth_mm": 12.4,
+    "hold_N": 94.0
+   }
+  },
+  {
+   "c_kPa": 10.0,
+   "flight_od_mm": 19.0,
+   "spin_Nm": 0.261,
+   "hold_full_N": 121.8,
+   "drives": {
+    "100 rpm direct": {
+     "stall_Nm": 0.182,
+     "breakaway_margin_fresh": 0.7,
+     "breakaway_margin_after_standing": 0.54,
+     "installs": false,
+     "releases_fresh": false,
+     "releases_after_standing": false,
+     "running_margin": 1.27,
+     "mill_out_s": 101.0
+    },
+    "2.33:1 planetary 28/12/8": {
+     "stall_Nm": 0.361,
+     "breakaway_margin_fresh": 1.38,
+     "breakaway_margin_after_standing": 1.06,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 2.52,
+     "mill_out_s": 236.0
+    },
+    "3:1 planetary": {
+     "stall_Nm": 0.464,
+     "breakaway_margin_fresh": 1.78,
+     "breakaway_margin_after_standing": 1.37,
+     "installs": true,
+     "releases_fresh": true,
+     "releases_after_standing": true,
+     "running_margin": 3.23,
+     "mill_out_s": 303.0
+    }
+   },
+   "depth_limited_100rpm": {
+    "pod_deg": 25.6,
+    "depth_mm": 14.1,
+    "hold_N": 92.2
+   }
+  }
+ ]
+}

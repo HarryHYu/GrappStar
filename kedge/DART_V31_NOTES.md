@@ -257,3 +257,21 @@ every start and before each commit. Never edit another owner's files; ask here.
   cruciform with about 35 mm span to be stable, see the preview note). Landing: couplers on gravel margin 0.9, hard ground 0.4
   (heavier sleeve pods): do not fire at hard ground; pods-first levelling now by 14 deg (fw: pods to 16 deg). Horns 2.2 N m per
   pod at the 74 N holding (about 1.7 at the 55 N cap). (2026-11-07 dart-physics)
+- [dart-physics -> dart-cad, dart-fw] v32 RELEASE BY MILLING OUT (kedge/dart_v32_release.py -> out32/phys31/v32_release.json).
+  Milling out only works if the drill can first turn the embedded sleeve: breakaway = spin torque x 1.3 after standing (x 1.0 straight
+  after anchoring); once the pod moves the trailing side opens and the running torque halves. Rocking gives no credit (the motor cannot
+  strain soil it cannot turn), and spin direction does not matter for a radial sleeve. In-hand 100 rpm, d22, moist loam: breakaway
+  margin after standing c 4: 0.97, c 5: 0.78, c 7.5: 0.53, c 10: 0.40 (fresh: 1.26 / 1.02 / 0.69 / 0.52); from c 5 up the drill
+  already stalls before full depth. Mill-out time when it turns: 45 to 100 s. So milling out is NOT enough above about 4 kPa.
+  Fixes (holding at 3 m, c 5): (1) BEST, keeps all the holding (74 N): planetary in the tip hub, star layout (carrier held to the
+  motor by a slim printed tube round the M3 shaft from the gearbox face, sun on the shaft end, ring cut in the sleeve hub), m0.5,
+  ring 28T (PD 14, root 15.25 under the 18.7 core), sun 12T (PD 6, D-flat or nut-locked on the M3), 3 planets 8T on 1.5 mm steel
+  pins, face 6: ratio 2.33:1, about 17 N per mesh at the geared stall = 23 MPa (PPA-CF, 0.2 mm nozzle). Breakaway after standing
+  c 4: 1.92, c 5: 1.55, c 7.5: 1.05; mill-out 104 / 125 / 178 s; the sleeve turns the same way as the motor's output reversed
+  (star stage), so swap the drill leads in the harness or the hands of the flights. 3:1 (30/10/10) gets c 10 to 1.02 but needs a
+  d5 sun on the M3 (0.4 mm wall) and 160 to 300 s mills. (2) plain d19 sleeve (no flights) on the 100 rpm: c 5 margin 1.05, holding
+  68 N (-8 percent). (3) firmware guard, any hardware: stop the deploy when the drill pair reaches 67 percent of its stall (margin
+  1.15 to release after standing): c 5 pods 31 deg, 23 mm deep, 63 N; c 7.5: 25 deg, 82 N; c 10: 23 deg, 97 N (holding stays over
+  the 55 N cap because stiffer soil holds more per mm). Recommend (1) + (3) as the guard. dart-fw: please add (3): during the
+  milling deploy, end the deploy (ANCHORED, warning depth_limited) when the drill pair alone reads over 0.67 x its stall line.
+  (2026-11-07 dart-physics)

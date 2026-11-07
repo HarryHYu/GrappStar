@@ -255,6 +255,9 @@ the dart's Caddx Ant VTX before powering them: a VTX powered without an antenna 
    channel with its LED or button; see its manual). Snow means wrong channel, no antenna, or too far.
 6. Start `serve` and check both views on the page. The dart view is analog: some snow and dropouts are normal,
    and the software marks bad frames and skips them for vision.
+7. The dart camera is a fisheye: calibrate it once (section 7b). The analysis works on the interlaced frames as
+   they come (`--deinterlace none`, the default; it was tested that way). Its video reaches the Jetson a little late
+   (the capture delay, 0.06 s assumed): measure it after the first shots (section 12, step 1).
 
 ## 6. Dart WiFi (and how the operator connects)
 
@@ -732,4 +735,32 @@ The dart lens (section 7b) and the IMU axes (section 6) are measured once on the
 
 ## 13. How well the dart vision works (synthetic tests)
 
-ACCURACY_PLACEHOLDER
+The dart vision was tuned and checked on synthetic flights made to look like the real ones
+(`grappstar/sim/flight_video.py`, profile `caddx`): the real launcher (about 6.9 m/s from the base physics table,
+2.6 to 4.8 m, 2 to 3 percent speed scatter), dart-physics' flight and landing (the nose swings 4 to 16 degrees about
+the flight path, the dart skids 0.1 to 1 m and leans about 42 degrees on a flank on hard ground), the Caddx Ant
+fisheye with an unknown field of view (125 to 150 degrees, analysed with the uncalibrated 135 degree guess), a 4:3
+picture in 720x480, auto exposure lag, motion blur, sensor and radio noise, sparkles, interlacing, colour smear, the
+capture dongle, 60 ms capture delay, repeated, torn, snow and no-signal frames, in daylight, overcast, low light and
+with a weak link. `python3 tests/eval_realistic.py --n 48` runs the whole analysis on 48 such flights the way the
+mission calls it; `tests/test_realistic_flight.py` re-checks a smaller set every test run.
+
+| What | 48 flights at 360x240 (seeds 0-47) | 24 flights at 720x480 (seeds 100-123) |
+|---|---|---|
+| Range with the dart's flight log (normal case) | median 1.2 %, 90 % of shots within 3.2 %, worst 4.2 % | median 1.1 %, 90 % within 2.2 %, worst 5.5 % |
+| Range from the video only (log missing, commanded pitch known) | median 4.4 %, 90 % within 18 %, worst 71 % (a missed landing) | median 4.3 %, 90 % within 19 % |
+| Aerial map landing marker against the true impact point | median 0.07 m, 90 % within 0.15 m | median 0.04 m, 90 % within 0.14 m |
+| Landing verdict as expected (GO on hard ground and loose soil, NO GO on sand, rock, water, UNSURE on grass) | 90 % | 88 % |
+| GO given on sand, rock or water (unsafe) | 0 of 24 | 0 of 12 |
+| GO on hard ground and loose soil | 16 of 16 | 6 of 8 (2 UNSURE) |
+
+Other checks: the camera's link check on 4 realistic flights (daylight, overcast, low light, weak link) caught every
+snow, no-signal and torn frame and threw away no clean one (`tests/test_realistic_flight.py`); the dart lens calibration gets the field of view back within 0.1 degree from 24 noisy synthetic board
+pictures (`tests/test_lens.py`); rover camera targeting at 2.8 to 4.75 m is within 4 percent and 1 degree, and the
+aim from it lands within 5 percent by the table (`tests/test_targeting_realistic.py`); a 2 cm deck height error moves a
+4 m target under 6 percent.
+
+What this does NOT prove: the textures, the radio noise, the dart's real attitude in flight and the landing are
+models. Real footage will be worse in ways nobody has simulated. That is what section 12 is for: after the first
+real shots, re-learn the capture delay, the range factor and the ground types on your own footage. The software
+writes every number it decides from into `runs/<date-time>/` so `python3 -m grappstar replay` can check it again.

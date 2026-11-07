@@ -1,4 +1,31 @@
-# jetson worker report (3 Nov 2026)
+# jetson worker report
+
+## Dart v31 round (7 Nov 2026, dart-jetson)
+
+Goal: the dart side works first time with the real dart (real launcher about 7 m/s for 2.6 to 4.8 m, Caddx Ant
+fisheye over an analog link, firmware API v4.1).
+
+| Item | What changed | Where |
+|---|---|---|
+| Realistic synthetic flights | sim profile `caddx`: real launcher (C3 speed, 2 to 3 percent scatter, exit and drag fitted to base/out/ballistics.json within 0.8 percent), dart-physics' angle of attack, skid and lean, Caddx fisheye (4:3 in 720x480), auto exposure lag, motion blur, sensor and FM noise, sharpening, vignetting, chroma smear, sparkles, line jitter, interlacing, YUYV, 60 ms capture delay, repeated frames, daylight / overcast / low light / weak link | sim/flight_video.py, sim/analog.py |
+| Dart lens | measured (`calibrate dart`, fisheye checkerboard) or default 135 deg; every frame rectified to the 100 deg pinhole view the vision was tuned on | vision/lens.py, vision/calibrate.py, sim/checkerboard.py |
+| Flight analysis at the real speed | model from the pivot (exit 0.42 m, 0.10 m ahead), IMU pitch as the speed track, capture delay from settings, 50 Hz push integral as a lower bound only, rail and end noise floors, glitch and repeated frames, levelling-out ends the flight, relative sky brightness, horizon side filter, timing windows and priors from the realistic eval | vision/flight.py |
+| Link check | torn-row test against the row neighbourhood plus black side strips (it dropped half the realistic rail frames) | video/quality.py, vision/flight.py |
+| Landing verdict | ground ROI below a levelled horizon (dart lying or leaning 42 deg), classifier re-learned with 216 realistic flights | vision/terrain.py |
+| Aerial map | landing marker from the flight path and the dart attitude (angle of attack) | vision/mosaic.py |
+| Dart client and mission | /status spaced 0.2 s over every caller, WiFi gaps by time (10 s), first-press stall lock retried, log_frozen waited for, flight log fetched through a WiFi gap, v4.1: not upright (reshoot or force), battery low / critical, tow stopped on `moving`, fault codes in words, preflight INA219 and battery | comms/dart.py, mission.py, comms/mock_dart.py |
+| Re-learning on real footage | `learn extract / latency / flight / terrain`; site files calib/flight_tuning.json (table_scale, video timing) and calib/terrain_prototypes.json read at start | learn.py, ballistics.py |
+| Checked, already right | landing tilt is roll-invariant (rest_tilt); aim uses the 0.25 N column and the high branch over 6..47 deg; camera y offset (0.19 m right of the launch line) in campose; the ring buffer hold keeps the launch frames | tests/test_realistic_flight.py, test_campose.py, test_video_camera.py |
+
+Accuracy on realistic synthetic flights (README section 13): range with the flight log median 1.2 percent (worst
+4.2 to 5.5), video only median 4.4 percent; map marker median 0.07 m; landing verdict as expected 90 percent, no GO on
+sand, rock or water, GO on 22 of 24 good landings (2 UNSURE).
+
+Still open: `REST_POSES_DEG` keeps -60 (old pose; dart-physics says the dart lies or leans, and the firmware refuses
+/auto nose down anyway); the video-only range has rare large misses when the landing is not seen (an IMU log
+normally exists); every number above is synthetic until Harry re-learns on real footage (README section 12).
+
+## Earlier rounds (3 Nov 2026)
 
 Everything that runs on the rover's Jetson Orin Nano Super, in `jetson/` (Python package `grappstar`, about 17,000
 lines of Python with tests, plus the `basesim` C++ harness). Run as `python3 -m grappstar <command>`. Python 3.10,
@@ -88,6 +115,12 @@ limit stopped the day.
     run_post_flight from mission.py and app.act_analyse.
 
 ## What Harry must measure or set up
+
+(Dart v31 additions first.)
+0a. **Dart camera lens**: `calibrate dart` with the printed checkerboard (README 7b) -> calib/dartcam.json.
+0b. **Dart video capture delay**: 3 low shots, then `learn latency` (README 12) -> settings `dart_video_latency_s`.
+0c. **Range against the tape**: 5 or more tape-measured shots, then `learn flight shots.csv` -> table_scale.
+0d. **Landing ground pictures**: `learn extract`, sort by hand, `learn terrain labelled` (README 12).
 
 1. **Deck height above the ground** on the rover (sets the camera height): `settings.json` `"deck_height"`.
 2. **IMU axes** of the dart (BENCH_TEST.md step 7): `"imu_axes"`, for example `"y,-x,z"`.

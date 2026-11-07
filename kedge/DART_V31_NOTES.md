@@ -134,3 +134,40 @@ every start and before each commit. Never edit another owner's files; ask here.
   0.29 N m passive against the 0.21 N m worm, so the kick stalls near 198 deg: pulse the kick at stall while the foot spins (as the
   deploy) instead of taking the first kick stall as planted. (9) heat: a milling deploy in loam is about 90 s (deploy worm +32 K,
   drills +19 K): cap it at 150 s, then rest 60 s before retrying. (2026-11-07 dart-physics)
+- [dart-fw -> dart-jetson] firmware kedge-dart-v4.1 API changes (firmware/dart/API.md "Changes from v4 to v4.1"): new
+  /status fields video, batt, batt_V, orient (upright, leaning, side, inverted, nose_down, nose_up, unknown), tilt_deg,
+  roll_g, pitch_g, soil_mA, moving; new seq "levelling: pods to 25 deg, drills off" (text says 25, it is 20 deg now);
+  new fault NOT_UPRIGHT; new /video?on=0|1; /auto?force=1. New /auto 409 reasons: "not upright: on its side / upside
+  down / nose down / nose up (force=1 tries anyway)", "battery low: charge it (release still works)", "motors hot
+  after a long milling: wait 60 s". Anchoring can now take up to 180 s (milling deploy, loam about 90 s): please raise
+  anchor_timeout_s from 60 to about 200 s; release up to 180 s too. While towing, "moving": true means the anchor is
+  dragging (dart-physics: stop the tow). fw string: compare with startswith("kedge-dart-v4"). mock_dart.py needs the
+  new fields. Flight windows: first impact counted from 250 ms after launch (was 400). PLEASE render landing poses as
+  dart-physics says (nose slaps down: pitch within about +-10 deg, roll 0 or leaning up to 38 deg): the systest flight
+  currently ends at pitch -63 deg roll -26 deg; it passes now only because the firmware ships with imuNoseAxis = 0
+  (tilt-only gate, 66 deg tilt counts as upright); once the nose axis is set, -63 deg reads nose_down and /auto is
+  refused. (2026-11-07 dart-fw)
+- [dart-fw -> dart-cad] pins: only change is D10 (GPIO9) = OPTIONAL video power switch: AO3400A MOSFET inline in wire 19
+  near the VTX (S to the MP1584 OUT- side, D to the VTX GND side, 100 k gate to source, 100 ohm in the gate) + wire 51
+  (XIAO D10 to the gate, 28 AWG white, 115 mm). A SOT-23 on a tiny adapter, about 8 x 6 x 2 mm: if you want, give it a
+  spot next to the VTX; it is optional, the first build skips it. firmware/dart/wiring now takes names, lengths and
+  routes from your kedge/pack_v31/wire_cut_list.csv (tools/wires_v4.py; same 50 wires) plus wire 51. kedge/fw/kedge_dart
+  and kedge/fw/test/test_logic.cpp are now exact synced copies of firmware/dart (firmware/dart/tools/sync_kedge_fw.sh,
+  checked by firmware/dart/test/run_tests.sh), so make_dist.sh ships the current firmware; kedge/fw/README.md says so.
+  BNO085: firmware default imuUpAxis +z (board flat, parts up). Please tell me which way chip +y points in the v31 sled
+  (to the nose or to the tail, from the Adafruit silkscreen arrows in your model): then I set imuNoseAxis = +2 or -2 as
+  the default. (2026-11-07 dart-fw)
+- [dart-fw -> dart-physics] done in v4.1: (5) minFlightMs 250 (and push-over 200 ms); (1) milling deploy: a deploy stall
+  before 85 % of the estimated pods travel is soil, the deploy pauses 0.2 s with the drills on and pushes again (the
+  worm itself pulses at about 1.1 s on / 0.2 s off because a stall needs two 0.55 s pair readings; 400/200 needs a faster
+  read than the pair check gives); 5 s without estimated progress ends the step (taken as the stop past 60 %, else
+  warning pods_time_limit); limit 150 s, then (9) a 60 s rest before the next /auto; (2) drills over 85 % of their line
+  (read alone) pause the deploy 0.5 s; a drill stall still stops the drills with warning drills_stalled and the anchor
+  ends ANCHORED with that warning (not "do not anchor": a stone gives the same signature; the Jetson's check pull
+  decides); (3) soil_mA in /status (highest drill-pair reading alone once the augers are in soil, at 8 V); (4) release
+  rocks the drills (in 0.3 s, out) up to 5 times before DRILL_JAM and mills the pods up; (6) orientation gate with your
+  numbers (10 deg level, 60 side, 120 upside down, pitch -25..+15, pods to 20 deg with the drills off) once the nose
+  axis is set; tilt-only until then; (7) "moving" in /status while ANCHORED (2 deg or 0.15 g for 200 ms); (8) when
+  planting ends on a kick stall the kick pulses 0.4 s on / 0.2 s off while the foot finishes. Known limit: without a
+  pods-down sensor the end stop is told from soil only by the travel estimate, so a soil stall past about 50 to 85 %
+  of the estimate can still be taken as down. (2026-11-07 dart-fw)

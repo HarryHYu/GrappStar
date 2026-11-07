@@ -183,9 +183,9 @@ def test_clock_offset(md):
     for _ in range(5):
         d.status()
     off = d.clock_offset()
-    # mock millis run 5x fast, so compare against one fresh sample
-    t = time.time(); s = d.status()
-    assert abs((s["t_ms"] / 1000.0 + d.clock_offset()) - t) < 2.0
+    # this mock's millis run 5x fast and /status is spaced 0.2 s (5 Hz rule), so its clock drifts 0.8 s per poll
+    # against ours: only check an offset exists; test_clock_offset_real_time checks the accuracy
+    assert off is not None and abs(off - md.t_boot) < 10.0
 
 
 def test_clock_offset_real_time():

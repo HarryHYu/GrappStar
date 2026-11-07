@@ -99,6 +99,9 @@ def test_stop_during_anchor_is_aborted_not_fault(sim):
 
 def test_key_refused_in_flight(sim):
     d, port = sim
+    # the previous test stopped an anchor part way: the legs may be out and /arm refuses that (API v4): stow first
+    d.release()
+    d.wait_phase(("IDLE",), 45, poll=0.2, want_seq="released")
     d.arm(True, auto=False)
     _sim(port, "/sim/launch?push_ms=40&flight_ms=1500&impact=1")
     t0 = time.time()

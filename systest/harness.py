@@ -211,7 +211,8 @@ class DartVideo:
     def render(self, pitch: float, v0: float) -> None:
         from grappstar.sim.flight_video import render_flight
         frames, truth = render_flight(seed=self.seed, fps=self.fps, landing_class=self.landing_class, size=self.size,
-                                      dropouts=True, landed_s=3.0, pitch_deg=pitch, v0=v0)
+                                      dropouts=True, landed_s=3.0, pitch_deg=pitch, v0=v0,
+                                      rest="flat")   # the dart skids and rests on its belly or a flank, never nose down
         truth.pop("world_map", None)
         with self.lock:
             self.frames, self.truth, self.pitch = frames, truth, pitch

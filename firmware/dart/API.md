@@ -396,8 +396,8 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 
 - New warning `depth_limited` (deploy guard, see `/auto`). `fw` is `kedge-dart-v4.2`.
 - `seq` levelling text now says 16 deg (v32): match on the word `levelling`.
-- The drill channel is driven reversed in hardware for the v32 tip planetary; the API is unchanged (`motors.drills`
-  +1 still means the sleeves screw in).
+- v32 drives each drill sleeve directly from its motor (no gear stage), so the drill channel is driven as before
+  (`DRILL_SIGN` +1); `motors.drills` +1 means the sleeves screw in.
 
 ## Changes from v4 to v4.1 (7 Nov 2026, for client authors)
 

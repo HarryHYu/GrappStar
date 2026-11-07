@@ -350,7 +350,7 @@ ok:   normal digging stays under the guard: pods fully down
 ok:   the guard also ends a milling deploy (drills read alone in the pauses)
 ok:   the guard follows the bench-measured drillPairStallMa (900 mA: 520 is under 67 %)
 ok:   the guard does not touch the release
-ok:   v32: only the drill channel is driven reversed (tip planetary); keys and sequences keep +1 = sleeves screw in
+ok:   v32 as built (no tip gear stage): every channel drives +1, the drill sleeves turn with their motors
 ok:   release: pods held part way up are milled first, PODS_JAM after 8 s without progress
 ok:   roll 38 deg (leaning on a pod, the usual rest on hard ground): leaning
 ok:   leaning: /auto first swings the pods with the drills off

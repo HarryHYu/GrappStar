@@ -9,8 +9,9 @@ the real sketch in a host simulator, the web page in headless Chromium, the Jets
 - Deploy guard (dart-physics v32): the milling deploy ends when the drill pair alone reads over 67 % of its bench stall
   (`drillPairStallMa` x `drillGuardFrac`): pods and drills stop, `ANCHORED` with warning `depth_limited`. Replaces the
   85 % relax pause.
-- v32 tip planetary (2.33:1, star layout) reverses each sleeve: `DRILL_SIGN = -1` drives the drill channel reversed in
-  the sketch; wiring, keys and flight hands unchanged. Levelling pods to 16 deg (v32).
+- Per-motor gear sign in the pin map (`DRILL_SIGN`). v32 as built drives each sleeve directly (dart-cad did not build
+  the tip planetary: no 1.5 mm steel pins), so `DRILL_SIGN = +1`. The guard is now the main release safeguard in firmer
+  loam. Levelling pods to 16 deg (v32).
 - Wire list on dart-cad's v32 routes. Tests: 313 logic checks, 15 simulator tests, full fuzz 6 seeds x 8000 pass.
 
 ## v4.1 (dart-fw, 7 Nov 2026)

@@ -95,8 +95,8 @@ aborted and the dart disarms when the upload starts.
 - v4.1: `/auto` refuses a dart that is on its side, upside down or nose steep (`/auto?force=1` tries anyway), and
   refuses when the battery is critical (6.4 V at rest; `/release` always runs). In soil the pods are milled down in
   pulses (up to 150 s; loam about 90 s). Released drills that stick are rocked before `DRILL_JAM`.
-- v4.2: the deploy guard stops the pods when the drill pair reaches 67 % of its stall (`depth_limited`), and the drill
-  channel is driven reversed for the v32 tip planetary (`DRILL_SIGN` in `kedge_logic.h`; BENCH_TEST step 4 checks it).
+- v4.2: the deploy guard stops the pods when the drill pair reaches 67 % of its stall (`depth_limited`): the main
+  safeguard that the sleeves can still be backed out in firmer loam. v32 drives the sleeves directly (`DRILL_SIGN` +1).
 - **Power on with the legs stowed.** The firmware keeps track of the kick's travel from power-on to tell a jammed kick
   from one that is already down or stowed.
 

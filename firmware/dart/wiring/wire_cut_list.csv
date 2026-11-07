@@ -35,7 +35,7 @@
 34,XIAO D1,DRV#1 AIN2,grey,28 AWG,55,deploy,37,xiao_pins > drv1
 35,XIAO D2,DRV#1 BIN1,purple,28 AWG,55,kick,38,xiao_pins > drv1
 36,XIAO D3,DRV#1 BIN2,grey,28 AWG,55,kick,39,xiao_pins > drv1
-37,XIAO D8,DRV#2 AIN1 (only AIN1: NO bridge to BIN1),purple,28 AWG,50,"drills; v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)",40,xiao_pins > drv2
+37,XIAO D8,DRV#2 AIN1 (only AIN1: NO bridge to BIN1),purple,28 AWG,50,drills,40,xiao_pins > drv2
 38,XIAO D9,DRV#2 AIN2 (only AIN2: NO bridge to BIN2),grey,28 AWG,50,drills,41,xiao_pins > drv2
 39,XIAO D6,DRV#2 BIN1,purple,28 AWG,50,"foot (slow worm, harmless if it twitches at reset)",42,xiao_pins > drv2
 40,XIAO D7,DRV#2 BIN2,grey,28 AWG,50,foot,43,xiao_pins > drv2
@@ -43,9 +43,9 @@
 42,DRV#1 AOUT2,Deploy N20 - (black),black,26 AWG,220,,45,drv1 > chase > keel_d3 > keel_d2 > sled > bno > win_d1 > dep
 43,DRV#1 BOUT1,Kick N20 + (red),red,26 AWG,215,out through the hole in the saddle floor,46,drv1 > chase > keel_d3 > keel_d2 > sled > kick_hole
 44,DRV#1 BOUT2,Kick N20 - (black),black,26 AWG,215,,47,drv1 > chase > keel_d3 > keel_d2 > sled > kick_hole
-45,DRV#2 AOUT1,Drill motor LEFT + (red),red,26 AWG,170,"out the left flank hole, 30 mm loop for the pod swing; v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)",48,drv2 > top_d3 > top_d2 > flankL
+45,DRV#2 AOUT1,Drill motor LEFT + (red),red,26 AWG,170,"out the left flank hole, 30 mm loop for the pod swing; v32: the motor drives the sleeve directly, so the sleeve turns with the motor (BENCH_TEST step 4 checks the sleeves)",48,drv2 > top_d3 > top_d2 > flankL
 46,DRV#2 AOUT2,Drill motor LEFT - (black),black,26 AWG,170,,49,drv2 > top_d3 > top_d2 > flankL
-47,DRV#2 AOUT1 (same pad as the LEFT red),Drill motor RIGHT - (black)  SWAPPED,black,26 AWG,170,"reversed on purpose: the pair counter-rotates; v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)",50,drv2 > top_d3 > top_d2 > flankR
+47,DRV#2 AOUT1 (same pad as the LEFT red),Drill motor RIGHT - (black)  SWAPPED,black,26 AWG,170,"reversed on purpose: the pair counter-rotates; v32: the motor drives the sleeve directly, so the sleeve turns with the motor (BENCH_TEST step 4 checks the sleeves)",50,drv2 > top_d3 > top_d2 > flankR
 48,DRV#2 AOUT2 (same pad as the LEFT black),Drill motor RIGHT + (red)  SWAPPED,red,26 AWG,170,,51,drv2 > top_d3 > top_d2 > flankR
 49,DRV#2 BOUT1,Foot N20 + (red),red,26 AWG,300,"forward along the top through the disc notches, out the skin hole, 60 mm loop round the hub, through the pole channel",52,drv2 > top_d3 > top_d2 > foot_hole
 50,DRV#2 BOUT2,Foot N20 - (black),black,26 AWG,300,"silicone wire, it flexes every deploy",53,drv2 > top_d3 > top_d2 > foot_hole

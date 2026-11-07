@@ -451,13 +451,13 @@ class SimTest(unittest.TestCase):
             self.sim_set(kick_pos=0, deploy_pos=0)
 
     def test_15_v42_drill_sign_and_deploy_guard(self):
-        # v32 tip planetary: key 3 (drills in) drives the motors backwards so the sleeves turn the "in" way
+        # v32 as built: direct drive, key 3 (drills in) turns motors and sleeves the "in" way (DRILL_SIGN +1)
         self.get("/stop"); time.sleep(0.3)
         self.sim_set(kick_pos=0, deploy_pos=0)
         self.get("/key?c=3&ms=400")
         time.sleep(0.1)
         d = self.sim_state()["motors"]["drills"]
-        self.assertEqual((d["dir"], d["motor_dir"]), (1, -1), d)
+        self.assertEqual((d["dir"], d["motor_dir"]), (1, 1), d)
         self.assertEqual(self.get_status()["motors"]["drills"], 1)
         self.get("/stop"); time.sleep(0.3)
         # deploy guard: drills jammed (700 mA, over 67 % of the 700 mA stall) while the pods go down: ANCHORED, depth_limited

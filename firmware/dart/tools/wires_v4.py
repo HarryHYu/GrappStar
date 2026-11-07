@@ -111,13 +111,12 @@ w("DRV#2 BOUT2", "Foot N20 - (black)", "black", "26 AWG", L(X["drv2"], X["foot_h
 w("XIAO D10", "Video MOSFET gate (AO3400A, through a 100 ohm resistor)", "white", "28 AWG", L(X["xiao_pins"], X["vtx"]),
   "OPTIONAL video switch (WIRING.md): the MOSFET sits in wire 19 near the VTX (source to the MP1584 OUT- side, drain to the VTX GND side), 100 k from gate to source", "")
 
-# v32 tip planetary (dart-cad / dart-physics 7 Nov): each sleeve turns opposite to its motor. Both pods have it, so the
-# counter-rotation wiring stays; the firmware drives the drill channel reversed (kedge_logic.h DRILL_SIGN = -1)
-for n in (37, 45, 47):
-    W[n - 1][6] = (W[n - 1][6] + "; " if W[n - 1][6] else "") + "v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)"
+# v32 as built: each motor drives its sleeve directly through the tip hub (no planetary), DRILL_SIGN +1
+for n in (45, 47):
+    W[n - 1][6] = (W[n - 1][6] + "; " if W[n - 1][6] else "") + "v32: the motor drives the sleeve directly, so the sleeve turns with the motor (BENCH_TEST step 4 checks the sleeves)"
 
 # v31 routed lengths from dart-cad (same 50 wires, same order; checked by colour and gauge)
-V31 = os.path.join(ROOT, "kedge", "pack_v32", "wire_cut_list.csv")     # v32 (sleeve augers, tip planetary) when present
+V31 = os.path.join(ROOT, "kedge", "pack_v32", "wire_cut_list.csv")     # v32 (sleeve augers, direct drive) when present
 if not os.path.exists(V31):
     V31 = os.path.join(ROOT, "kedge", "pack_v31", "wire_cut_list.csv")
 ROUTE = {}

@@ -43,7 +43,7 @@ uint64_t lastAdvanceUs = 0;
 struct Knobs {
   bool inaDead = false, noGround = false, drillJam = false, footJam = false, kickJam = false, deployJam = false, imuDead = false;
   double railV = 7.6, accelNoise = 0.02, soilAt = -1;   // soilAt: v4.1 soil, see soilStuck
-  bool drillGearReverse = true;                 // v32: the tip planetary turns each sleeve opposite to its motor
+  bool drillGearReverse = false;                // v32 as built: direct drive (a tip planetary would reverse the sleeves)
   uint32_t imuXferUs = 0;
 } K;
 int wdtTrips = 0;
@@ -51,8 +51,8 @@ int wdtTrips = 0;
 uint64_t deployOnUs = 0; int deployLastDir = 0;
 int& pin(int gpio) { static int junk; return gpio >= 0 && gpio < 64 ? duty[gpio] : (junk = 0); }
 // direction and duty of one DRV8833 channel: PWM on one input = run, both low = coast, both high = brake (stopped).
-// The direction returned is the PART's (for the drills the sleeves': the v32 tip planetary reverses them, knob
-// drill_gear_reverse); the motor shaft's own direction is motorDir.
+// The direction returned is the PART's (for the drills the sleeves'; a reversing gear stage in the tip, which v32 does
+// not have, is the knob drill_gear_reverse); the motor shaft's own direction is motorDir.
 void motorDir(int m, int& dir, int& d) {
   int a = pin(PIN_A[m]), b = pin(PIN_B[m]);
   // slow decay (firmware v4): one input high, the other PWM inverted; the old one-input PWM is still understood
@@ -290,7 +290,7 @@ static bool parseBool(const std::string& v, bool& out) {
 //   bno_reset=1      BNO085 resets: all reports off until re-enabled, wasReset() true once
 //   imu_xfer_us=<us> simulated I2C time of each sh2_service() call that moves data (default 0)
 //   accel_noise=<m/s^2>  accelerometer noise amplitude (default 0.02)
-//   drill_gear_reverse=0|1  v32 tip planetary: the sleeves turn opposite to the drill motors (default 1)
+//   drill_gear_reverse=0|1  a reversing gear stage in the sleeve tips (v32 as built: none, default 0)
 //   soil_at=<0..1400>  v4.1 soil: past it the pods move only 300 ms after each deploy (re)start, with the drills on (-1 = off)
 bool setKnob(const std::string& key, const std::string& v, std::string& err) {
   Lock l(mu);

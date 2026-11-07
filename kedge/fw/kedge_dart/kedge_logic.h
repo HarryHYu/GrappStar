@@ -26,11 +26,10 @@ static inline const char* motorName(int m) {
 // the Arduino Dn macros at compile time, the PC test checks the layout.
 // sign: +1 = the part turns the way the motor shaft turns; -1 = a gear stage reverses it, so the sketch drives the
 // channel the other way (dir +1 always means out / in / down for the PART, keys and sequences never change).
-// v32 (dart-cad, 7 Nov 2026): each drill sleeve is driven through a 2.33:1 planetary in its tip hub (star layout:
-// carrier held, sun on the motor shaft, ring in the sleeve), so the sleeve turns OPPOSITE to the motor: DRILLS sign -1.
-// Both drills have the stage, so the left / right counter-rotation (right drill leads swapped) is unchanged.
-// Building v31 (no planetary)? Set DRILL_SIGN to +1 (or swap D8 / D9 at DRV#2 AIN1 / AIN2); BENCH_TEST step 4 decides.
-static constexpr int DRILL_SIGN = -1;
+// v32 as built (dart-cad): the motor shaft drives each drill sleeve DIRECTLY through its tip hub (no gear stage),
+// so the sleeve turns with the motor: DRILLS sign +1. If a tip planetary is ever added (it reverses the sleeve), set -1.
+// The left / right counter-rotation (right drill leads swapped) is unchanged; BENCH_TEST step 4 confirms.
+static constexpr int DRILL_SIGN = +1;
 struct PinMap { int gpioA, gpioB; const char* labelA; const char* labelB; int drv; char ch; int sign; };
 static constexpr PinMap PINS[NMOT] = {
   {1, 2, "D0", "D1", 1, 'A', +1},          // deploy N20: DRV#1 AIN1 / AIN2

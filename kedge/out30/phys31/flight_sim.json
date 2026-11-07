@@ -1,13 +1,4 @@
 {
- "source": "out30",
- "model": [
-  "  python flight_sim.py OUT PK    -> OUT/flight_sim.json, PK/flight_sim.png   (PK may equal OUT/phys31)",
-  "",
-  "Model: mass, CG and inertia from dart_model (all parts, own inertia included, ballast as set); muzzle speed from",
-  "base/physics/launcher.py at each rail pitch with this dart's mass; launch point and range origin as base flight.py",
-  "(rail pivot geometry). Aero per 1 mm station: viscous cross-flow (Cdc 1.2 x eta 0.65) on the TOP-view width for pitch",
-  "(SIDE-view height for yaw), the slender-body potential term rho U S'(x) w(x) where the section area grows (nose,"
- ],
  "pitch, 0 g ballast, rail 34 deg, tether 0.25 N": {
   "range_m": 4.6,
   "t_flight_s": 0.892,
@@ -25,7 +16,9 @@
   ],
   "base_range_m": 4.57,
   "base_t_flight_s": 0.86,
-  "max_line_pull_N": 0.37
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 23.1,
+  "tumbled": false
  },
  "pitch, 0 g ballast, rail 34 deg, no tether": {
   "range_m": 5.01,
@@ -44,7 +37,9 @@
   ],
   "base_range_m": 4.57,
   "base_t_flight_s": 0.86,
-  "max_line_pull_N": 0.37
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 152.0,
+  "tumbled": true
  },
  "pitch, 8 g ballast, rail 34 deg, tether 0.25 N": {
   "range_m": 4.52,
@@ -63,7 +58,9 @@
   ],
   "base_range_m": 4.5,
   "base_t_flight_s": 0.854,
-  "max_line_pull_N": 0.37
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 22.4,
+  "tumbled": false
  },
  "pitch, 8 g ballast, rail 34 deg, no tether": {
   "range_m": 4.93,
@@ -82,7 +79,9 @@
   ],
   "base_range_m": 4.5,
   "base_t_flight_s": 0.854,
-  "max_line_pull_N": 0.37
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 141.8,
+  "tumbled": true
  },
  "pitch, 15 g ballast, rail 10 deg, tether 0.25 N": {
   "range_m": 2.9,
@@ -101,7 +100,9 @@
   ],
   "base_range_m": 2.99,
   "base_t_flight_s": 0.439,
-  "max_line_pull_N": 0.38
+  "max_line_pull_N": 0.38,
+  "max_alpha_after_0p6s_deg": null,
+  "tumbled": false
  },
  "pitch, 15 g ballast, rail 10 deg, no tether": {
   "range_m": 3.03,
@@ -120,7 +121,9 @@
   ],
   "base_range_m": 2.99,
   "base_t_flight_s": 0.439,
-  "max_line_pull_N": 0.38
+  "max_line_pull_N": 0.38,
+  "max_alpha_after_0p6s_deg": null,
+  "tumbled": true
  },
  "pitch, 15 g ballast, rail 20 deg, tether 0.25 N": {
   "range_m": 3.78,
@@ -139,7 +142,9 @@
   ],
   "base_range_m": 3.82,
   "base_t_flight_s": 0.612,
-  "max_line_pull_N": 0.38
+  "max_line_pull_N": 0.38,
+  "max_alpha_after_0p6s_deg": 18.3,
+  "tumbled": false
  },
  "pitch, 15 g ballast, rail 20 deg, no tether": {
   "range_m": 4.03,
@@ -158,7 +163,9 @@
   ],
   "base_range_m": 3.82,
   "base_t_flight_s": 0.612,
-  "max_line_pull_N": 0.38
+  "max_line_pull_N": 0.38,
+  "max_alpha_after_0p6s_deg": 115.4,
+  "tumbled": true
  },
  "pitch, 15 g ballast, rail 34 deg, tether 0.25 N": {
   "range_m": 4.46,
@@ -177,7 +184,9 @@
   ],
   "base_range_m": 4.45,
   "base_t_flight_s": 0.849,
-  "max_line_pull_N": 0.37
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 23.2,
+  "tumbled": false
  },
  "pitch, 15 g ballast, rail 34 deg, no tether": {
   "range_m": 4.87,
@@ -196,7 +205,9 @@
   ],
   "base_range_m": 4.45,
   "base_t_flight_s": 0.849,
-  "max_line_pull_N": 0.37
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 135.0,
+  "tumbled": true
  },
  "pitch, 15 g ballast, rail 45 deg, tether 0.25 N": {
   "range_m": 4.38,
@@ -215,7 +226,9 @@
   ],
   "base_range_m": 4.35,
   "base_t_flight_s": 1.009,
-  "max_line_pull_N": 0.37
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 21.1,
+  "tumbled": false
  },
  "pitch, 15 g ballast, rail 45 deg, no tether": {
   "range_m": 4.93,
@@ -234,7 +247,9 @@
   ],
   "base_range_m": 4.35,
   "base_t_flight_s": 1.009,
-  "max_line_pull_N": 0.37
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 153.5,
+  "tumbled": true
  },
  "yaw, 0 g ballast, rail 34 deg, tether 0.25 N": {
   "sideslip_end_deg": 6.2,
@@ -247,7 +262,10 @@
   ],
   "base_range_m": 4.57,
   "base_t_flight_s": 0.86,
-  "max_line_pull_N": 0.37
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 10.0,
+  "tumbled": false,
+  "range_m": 4.57
  },
  "yaw, 0 g ballast, rail 34 deg, no tether": {
   "sideslip_end_deg": -131.4,
@@ -260,7 +278,10 @@
   ],
   "base_range_m": 4.57,
   "base_t_flight_s": 0.86,
-  "max_line_pull_N": 0.37
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 131.4,
+  "tumbled": true,
+  "range_m": 4.57
  },
  "yaw, 8 g ballast, rail 34 deg, tether 0.25 N": {
   "sideslip_end_deg": 6.0,
@@ -273,7 +294,10 @@
   ],
   "base_range_m": 4.5,
   "base_t_flight_s": 0.854,
-  "max_line_pull_N": 0.37
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 9.8,
+  "tumbled": false,
+  "range_m": 4.5
  },
  "yaw, 8 g ballast, rail 34 deg, no tether": {
   "sideslip_end_deg": -119.1,
@@ -286,7 +310,10 @@
   ],
   "base_range_m": 4.5,
   "base_t_flight_s": 0.854,
-  "max_line_pull_N": 0.37
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 119.1,
+  "tumbled": true,
+  "range_m": 4.5
  },
  "yaw, 15 g ballast, rail 34 deg, tether 0.25 N": {
   "sideslip_end_deg": 6.5,
@@ -299,7 +326,10 @@
   ],
   "base_range_m": 4.45,
   "base_t_flight_s": 0.849,
-  "max_line_pull_N": 0.37
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 9.8,
+  "tumbled": false,
+  "range_m": 4.45
  },
  "yaw, 15 g ballast, rail 34 deg, no tether": {
   "sideslip_end_deg": -109.4,
@@ -312,9 +342,14 @@
   ],
   "base_range_m": 4.45,
   "base_t_flight_s": 0.849,
-  "max_line_pull_N": 0.37
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 109.4,
+  "tumbled": true,
+  "range_m": 4.45
  },
  "inputs": {
+  "source": "out30",
+  "model": "  python flight_sim.py OUT PK    -> OUT/flight_sim.json, PK/flight_sim.png   (PK may equal OUT/phys31)  Model: mass, CG and inertia from dart_model (all parts, own inertia included, ballast as set); muzzle speed from base/physics/launcher.py at each rail pitch with this dart's mass; launch point and range origin as base flight.py (rail pivot geometry). Aero per 1 mm station: viscous cross-flow (Cdc 1.2 x eta 0.65) on the TOP-view width for pitch (SIDE-view height for yaw), the slender-body potential term rho U S'(x) w(x) where the section area grows (nose,",
   "mass_kg": 0.2823,
   "cg_x_mm": 78.7,
   "cross_flow_cd": 1.2,

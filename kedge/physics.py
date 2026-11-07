@@ -65,6 +65,7 @@ def run(out):
                             "at the tail) is what keeps it nose first (flight_sim.json).")
     R["launch"] = launch_loads(d)
     La = R["launch"]; gL = La["accel_peak_g"]
+    La.update(v_needed_m_s=[La["v_muzzle"], La["v_muzzle"]], accel_g=[gL, gL], spring_energy_J=La["energy_J"])   # report.py keys
     # landing and anchoring (detailed files in OUT/phys31)
     import dart_landing, dart_anchor, flight_sim
     os.makedirs(os.path.join(d.out, "phys31"), exist_ok=True)
@@ -79,6 +80,7 @@ def run(out):
     imp34 = next(r for r in LD["impact"] if r["rail_pitch"] == 34)
     soft = imp34["soft soil (loam, tilled)"]; grav = imp34["gravel (10 to 20 mm)"]; hard = imp34["hard ground (dry compacted, concrete)"]
     gI = soft["g_peak"]
+    La.update(impact_g=gI, impact_stop_m=round(soft["depth_mm"] / 1000, 4))
     loads = []
     loads.append(["cells pushed aft at launch (each)", round(22 / 1000 * gL * G, 1), "N", "onto the rigid plates on the rear cell-bay disc: contact never breaks"])
     loads.append(["tail cap push at launch (dart + line)", La["tail_push_peak_N"], "N", "4 radial M3 into the spigot ring, hull wall in compression: fine"])

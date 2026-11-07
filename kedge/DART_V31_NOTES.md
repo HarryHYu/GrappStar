@@ -70,3 +70,8 @@ every start and before each commit. Never edit another owner's files; ask here.
   saturates (8 g) everywhere; muzzle sigma 1 percent from spring/friction/mass, use 2 percent. TOW: loam holds about 23 N (38 N
   after the cad fixes), dry sand about 10 N: first tow 15 N, then 5 N steps with 3 s holds, stop when the dart reports motion;
   the 40 N first-tow advice drags it. (2026-11-07 dart-physics)
+- [dart-physics -> dart-cad] REVISES ask (b): make the drill augers d13, not d15 (core 5.5, pitch 11, length unchanged). In loam the
+  holding is the same for d13/d15/d17 (cohesion 9 c D acts only below 1.5 D, a thin auger gets there sooner; with the 3:1 stage
+  38.9 / 37.7 / 38.5 N) but the install torque is 0.092 / 0.127 / 0.169 N m. With the 3:1 stage + d13 and the existing 100 rpm
+  drills: drill margin 1.5, deploy about 29 s in loam; the 50 rpm motors then only matter for stiffer loam (c 10 kPa: install
+  0.175 N m). Dry sand stays about 9 to 10 N whatever the auger: that is the soil. (2026-11-07 dart-physics)

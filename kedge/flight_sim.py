@@ -80,7 +80,7 @@ def main(OUT, PK):
     from launcher import launch
     from flight import simulate
     L = p.launch
-    R = dict(source=d.out, model=__doc__.split("\n")[3:9])
+    R = {}
     figdat = {}
     for plane in ("pitch", "yaw"):
         for bal in (0.0, 8.0, 15.0):
@@ -100,9 +100,12 @@ def main(OUT, PK):
                     sm = summarize(o) if plane == "pitch" else yaw_summary(o)
                     sm.update(v_muzzle=round(v0, 2), muzzle_xz_m=[round(mz[0], 3), round(mz[1], 3)], base_range_m=round(fr["range_m"], 2),
                               base_t_flight_s=round(fr["t_flight_s"], 3), max_line_pull_N=round(fr["t_dart_max_n"], 2))
+                    late = o[o[:, 0] > 0.6]
+                    sm.update(max_alpha_after_0p6s_deg=round(float(np.abs(late[:, 3]).max()), 1) if len(late) else None,
+                              tumbled=not sm["nose_first"], range_m=sm.get("range_m", round(fr["range_m"], 2)))   # report.py keys
                     R[key] = sm
                     figdat[key] = o
-    R["inputs"] = dict(mass_kg=round(Body(d, 15.0).M, 4), cg_x_mm=round(Body(d, 15.0).cg[0] * 1000, 1), cross_flow_cd=CDC, eta=ETA, axial_cda=2.6e-3)
+    R["inputs"] = dict(source=d.out, model=" ".join(__doc__.split("\n")[3:9]), mass_kg=round(Body(d, 15.0).M, 4), cg_x_mm=round(Body(d, 15.0).cg[0] * 1000, 1), cross_flow_cd=CDC, eta=ETA, axial_cda=2.6e-3)
     json.dump(R, open(os.path.join(OUT, "flight_sim.json"), "w"), indent=1)
     import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
     plt.rcParams.update({"font.family": "Liberation Sans", "font.size": 8})

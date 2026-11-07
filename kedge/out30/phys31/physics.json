@@ -126,7 +126,18 @@
   "ms_above_4g": 56.0,
   "cradle_normal_N": 2.3,
   "pitch_couple_Nm": 0.306,
-  "note": "the push acts on the flat tail face (pusher face covers z +-21 within y +-11): it can move up to the CG height (z +6.2 mm), so the CG offset makes no nose lift in the cradle"
+  "note": "the push acts on the flat tail face (pusher face covers z +-21 within y +-11): it can move up to the CG height (z +6.2 mm), so the CG offset makes no nose lift in the cradle",
+  "v_needed_m_s": [
+   6.84,
+   6.84
+  ],
+  "accel_g": [
+   17.9,
+   17.9
+  ],
+  "spring_energy_J": 12.06,
+  "impact_g": 126.0,
+  "impact_stop_m": 0.0052
  },
  "loads": [
   [

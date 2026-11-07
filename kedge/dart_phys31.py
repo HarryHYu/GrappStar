@@ -56,7 +56,8 @@ def write_md(out, R, A, L, F, S):
     imp = {r["rail_pitch"]: r for r in L["impact"]}
     i34 = imp.get(34, L["impact"][0])
     fk = lambda p, t=True: F.get(f"pitch, 15 g ballast, rail {p} deg, {'tether 0.25 N' if t else 'no tether'}", {})
-    best = [r for r in A["improvements"] if r["deploy_stage_ratio"] == 3 and r["auger_d_mm"] == 15.0 and r["drill_rpm12"] == 50.0][0]
+    best = [r for r in A["improvements"] if r["deploy_stage_ratio"] == 3 and r["auger_d_mm"] == 13.0 and r["drill_rpm12"] == 50.0][0]
+    b100 = [r for r in A["improvements"] if r["deploy_stage_ratio"] == 3 and r["auger_d_mm"] == 13.0 and r["drill_rpm12"] == 100.0][0]
     cur = [r for r in A["improvements"] if r["deploy_stage_ratio"] == 1 and r["auger_d_mm"] == 17.0 and r["drill_rpm12"] == 100.0][0]
     rs = L["rest_states_folded"]
     lean = sum(s["share_pct"] for s in rs if 15 <= abs(s["roll_deg"]) <= 45)
@@ -105,11 +106,16 @@ def write_md(out, R, A, L, F, S):
       f"bench test B2 to measure the real strength."); n += 1
     w(f"{n}. Drill torque. Install torque {so['moist loam']['drill_each']['install_torque_perko_Nm']} to {so['moist loam']['drill_each']['install_torque_Nm']} N m in loam, unscrew about "
       f"{so['moist loam']['unscrew']['drill_unscrew_torque_Nm']} N m, against {mo['drill']['stall_Nm']} N m stall: release can fail in loam (margin {so['moist loam']['unscrew']['drill_margin']}). "
-      f"Firm clay needs {so['firm clay']['drill_each']['install_torque_perko_Nm']} to {so['firm clay']['drill_each']['install_torque_Nm']} N m: cannot install. Fix: 50 rpm drill motors "
-      f"(same body, twice the torque) and auger d17 to d15."); n += 1
-    w(f"{n}. With the three fixes (3:1 deploy stage, d15 augers, 50 rpm drills): sand {best['dry sand']['F_hold_N']} N, loam {best['moist loam']['F_hold_N']} N, deploy "
+      f"Firm clay needs {so['firm clay']['drill_each']['install_torque_perko_Nm']} to {so['firm clay']['drill_each']['install_torque_Nm']} N m: cannot install. Fix: auger d17 to d13 "
+      f"(install torque about half; in loam the holding is the same because the cohesion term 9 c D only acts below 1.5 D, which a thinner auger reaches sooner) "
+      f"and 50 rpm drill motors (same body, twice the torque)."); n += 1
+    w(f"{n}. With the 3:1 deploy stage and d13 augers alone: loam {b100['moist loam']['F_hold_N']} N, deploy {b100['moist loam']['deploy_s']:.0f} s, drill margin "
+      f"{b100['moist loam']['drill_margin']}. With 50 rpm drills as well: sand {best['dry sand']['F_hold_N']} N, loam {best['moist loam']['F_hold_N']} N, deploy "
       f"{best['moist loam']['deploy_s']:.0f} s in loam, drill margin {best['moist loam']['drill_margin']} (now {cur['moist loam']['drill_margin']}). Firm clay stays out of reach "
       f"(drill margin {best['firm clay']['drill_margin']}): state 'loam and softer' in the docs."); n += 1
+    cs = A["loam_cohesion_sensitivity_rover3m"]
+    w(f"{n}. Loam holding depends mostly on its cohesion: c = " + ", ".join(f"{r['c_kPa']:.0f} kPa: {r['F_now_N']} N now, {r['F_3to1_d13_N']} N fixed" for r in cs)
+      + ". The pull test (DART_PULLTEST.md) sets this number; until then use the 5 kPa row."); n += 1
     w(f"{n}. Tow limits. Loam holds {l3['moist loam']['F_design_N']} N now ({best['moist loam']['F_hold_N']} N with the fixes) and dry sand about {l3['dry sand']['F_design_N']} N: the 40 N "
       f"first tow and the 55 N cap drag the dart in both. Fix (base/Jetson): first tow at 15 N, then 5 N steps with a 3 s hold, stop on a dart pitch change over 2 deg or IMU motion; "
       f"never above the pull-test 5 mm force / 1.5."); n += 1

@@ -1555,6 +1555,40 @@
    }
   }
  ],
+ "loam_cohesion_sensitivity_rover3m": [
+  {
+   "c_kPa": 2.0,
+   "F_now_N": 17.3,
+   "F_3to1_d13_N": 25.5,
+   "F_soil_only_d13_N": 25.5,
+   "drill_install_d13_Nm": 0.041,
+   "drill_install_d17_Nm": 0.077
+  },
+  {
+   "c_kPa": 5.0,
+   "F_now_N": 23.1,
+   "F_3to1_d13_N": 38.9,
+   "F_soil_only_d13_N": 52.0,
+   "drill_install_d13_Nm": 0.092,
+   "drill_install_d17_Nm": 0.169
+  },
+  {
+   "c_kPa": 10.0,
+   "F_now_N": 32.3,
+   "F_3to1_d13_N": 52.7,
+   "F_soil_only_d13_N": 96.2,
+   "drill_install_d13_Nm": 0.175,
+   "drill_install_d17_Nm": 0.323
+  },
+  {
+   "c_kPa": 20.0,
+   "F_now_N": 48.5,
+   "F_3to1_d13_N": 73.6,
+   "F_soil_only_d13_N": 184.4,
+   "drill_install_d13_Nm": 0.343,
+   "drill_install_d17_Nm": 0.629
+  }
+ ],
  "energy": {
   "cap_usable_mAh": 630,
   "avionics_W": 2.52,

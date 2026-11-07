@@ -411,6 +411,16 @@ def run(out=None):
                                    installs=bool(md["stall_Nm"] >= 1.25 * Treq))
                 imp.append(row)
     R["improvements"] = imp
+    # loam cohesion sensitivity (the pull test calibrates this): now, with the 3:1 stage + d13, soil only
+    A13 = Anchor(d, auger_d_mm=13.0)
+    sens = []
+    for c in (2.0, 5.0, 10.0, 20.0):
+        s = dict(dm.SOIL["moist loam"], c=c)
+        e13 = A13.embedded(*A13.drill_axis()[:2], P["AUGER_TIP"])
+        sens.append(dict(c_kPa=c, F_now_N=round(A.limit(s, 3.0)["F"], 1), F_3to1_d13_N=round(A13.limit(s, 3.0, worm_hold=3 * WORM_HOLD_NM)["F"], 1),
+                         F_soil_only_d13_N=round(A13.limit(s, 3.0, worm_hold=50.0)["F"], 1),
+                         drill_install_d13_Nm=round(A13.pile(e13, s, A13.D)["T_install_Nm"], 3), drill_install_d17_Nm=round(A.pile(ed, s, A.D)["T_install_Nm"], 3)))
+    R["loam_cohesion_sensitivity_rover3m"] = sens
     # energy
     R["energy"] = energy(R, mot)
     os.makedirs(os.path.join(d.out, "phys31"), exist_ok=True)

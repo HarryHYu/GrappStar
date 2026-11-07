@@ -26,7 +26,7 @@ P = dict(
     N20_L=33.04, N20_POCK=12.4, N20_BOX=12.0, N20_TIP=29.97 / 2, SHAFT_D=3.0,
     # kick
     SADDLE_X0=23.8, KICK_HUB_D=12.0, KICK_HUB_W=11.5, KICK_POLE_D=8.0, KICK_POLE_L=72.0, KICK_DEG=200.75, KICK_REST_DEG=1.5, KICK_MY=-11.9, KICK_RAISE=0.0,
-    KICK_CH_SWEEP=25.0, KICK_CH_GROW=0.5,   # nose + hull-top channel for the pole: the pole box grown 0.5, swept over the last 25 deg before the plant (to the rest)
+    KICK_CH_SWEEP=25.0, KICK_CH_GROW=0.25,  # flute in the nose top for the pole: its underside at the rest angle grown 0.25 (everything it passes over the last 25 deg lies above); the flute floor is the kick rest
     FOOT_TILT=20.75, FOOT_RISE=3.4,          # foot housing tilted about its output shaft so the foot plants vertical (= KICK_DEG - 180), raised so it folds clear of the hull
     FOOT_AUGER_L=68.0, FOOT_TIP=10.0,
     # drill pair
@@ -268,7 +268,9 @@ EAR_T = P["BRG_W"] - P["BRG_FL_T"] + 1.0                     # 4.4 fin; the bear
 EAR_Y1 = EAR_Y0 + EAR_T
 BRG_EAR_Y = HUB_Y1                                          # ear F693ZZ inner face (touches the hub boss); flange in a counterbore
 P.update(KICK_X=KICK_X, KICK_Y=KICK_Y, KICK_Z=KICK_Z, EAR_Y0=EAR_Y0, EAR_Y1=EAR_Y1)
-FL_Y0, FL_Y1, FL_R = -P["KICK_POLE_D"] / 2 - 0.3, HUB_Y1 + 0.3, 4.0   # pole flute across y, its floor corner radius (pole underside corners r 3.5)
+FL_Y0, FL_Y1, FL_R = -P["KICK_POLE_D"] / 2 - 0.3, HUB_Y1 + 0.3, 3.8   # pole flute across y, its floor corner radius (pole underside corners r 3.5: 0.25 all round)
+_ta = math.radians(P["KICK_DEG"] + P["KICK_REST_DEG"] - 180.0)
+FL_X1 = min(KICK_X - (KICK_Z - (P["KICK_POLE_D"] / 2 + P["KICK_CH_GROW"]) / math.cos(_ta) - R) / math.tan(_ta), X_NOSE + P["NOSE_SPIG"] - 0.3)   # flute floor leaves the skin
 
 CSINK_SUNK = 0.8                                            # head sunk so its edge is flush on the curved skin
 def csink(xs, s, zz):
@@ -329,21 +331,12 @@ def pivot_blocks():
         carve = cv if carve is None else carve + cv
     return blocks, carve
 
-def kick_rest():
-    """KICK REST on the ear root under the pole, KICK_REST_DEG past the solved kick angle. Tow pull lifts the nose, the
-    soil pushes the planted foot DOWN and that turns the leg further out: the rest takes it into the hull instead of the
-    kick worm and the PLA D-bore on its shaft. On flat ground the foot housing reaches the soil first (KICK_DEG)."""
-    th = math.radians(P["KICK_DEG"] + P["KICK_REST_DEG"]); c, s_ = math.cos(th), math.sin(th)
-    def kw(lx, lz):                                          # kick local (x, z) -> world (x, z), leg turns by -deg about Y
-        return (KICK_X + lx * c - lz * s_, KICK_Z + lx * s_ + lz * c)
-    lz = P["KICK_POLE_D"] / 2 + 0.2
-    p1 = kw(6.5, lz); p2 = kw(14.5, lz)
-    pts = [p2, p1, (p1[0] + 0.5, 15.0), (21.0, 15.0)]
-    return prism_xz(pts, -P["KICK_POLE_D"] / 2 - 0.2, HUB_Y1) & bx(P["NOSE_L"] + 0.01, 200, -60, 60, 0, 80)
 def kick_channel(grow, y0, y1, r):
     """flute for the kick pole in the nose and the hull top: the pole's underside at the rest angle (KICK_DEG + KICK_REST_DEG),
     grown, as a bar with its floor corners rounded r (the pole's underside corners are rounded to fit); everything the pole
-    passes over the last KICK_CH_SWEEP deg before the plant lies above that floor"""
+    passes over the last KICK_CH_SWEEP deg before the plant lies above that floor. The floor is the KICK REST: tow lifts the
+    nose, the soil pushes the planted foot down and turns the leg on past the plant; the pole then lies in the flute and that
+    load goes into the nose (clamped by the hull rib) instead of the kick worm and the PLA D-bore on its shaft."""
     lx0, hz = P["KICK_HUB_D"] / 2 - 1.0, P["KICK_POLE_D"] / 2 + grow
     bar = bx(lx0, lx0 + P["KICK_POLE_L"] + 10, y0, y1, -60, hz)
     bar = safe_fillet(bar, [e for e in bar.edges().filter_by(Axis.X) if abs(e.center().Z - hz) < 1e-3], r, "flute")
@@ -351,7 +344,7 @@ def kick_channel(grow, y0, y1, r):
 
 def lip_fillet(sol, on_skin, y0, y1, r, tag):
     """round the lips where the flute meets an outer skin"""
-    ed = [e for e in sol.edges() if all(on_skin(q) and y0 - 0.05 < q.Y < y1 + 0.05 and q.Z > 5 for q in [e.position_at(t) for t in (0.0, 0.25, 0.5, 0.75, 1.0)])]
+    ed = [e for e in sol.edges() if e.length > 5 and all(on_skin(q) and y0 - 0.05 < q.Y < y1 + 0.05 and q.Z > 5 for q in [e.position_at(t) for t in (0.0, 0.25, 0.5, 0.75, 1.0)])]
     return safe_fillet(sol, ed, r, tag)
 
 # ================================================================== HULL
@@ -374,8 +367,8 @@ def build_hull():
     sk2, box2 = skirt(blocks, xlim=X_HULL)
     body = (shell - box1 - box2) + sk1 + sk2
     body = body - carve                                          # pivot-block stop faces
-    body = body - kick_channel(P["KICK_CH_GROW"], FL_Y0, FL_Y1, FL_R)   # the pole drops into the hull top at the plant
-    body = body + kick_rest()
+    body = body - kick_channel(P["KICK_CH_GROW"], FL_Y0, FL_Y1, FL_R)   # the pole drops into the hull top at the plant ...
+    body = body - bx(X_NOSE - 1, FL_X1, FL_Y0, FL_Y1, 12.0, 40)          # ... and over the nose spigot the wall is slotted clean (the spigot carries the flute floor)
     body = body - cylx(2 * RB, hx1 - hx0 + 2, hx0 - 1)          # nothing intrudes into the bay
     # internal rib that sits in the nose spigot groove: the closed clamshell locks the nose axially
     body = body + (cylx(2 * RB + 0.2, 2.0, NOSE_LOCK_X) - cylx(2 * (RB - 1.0), 4.0, NOSE_LOCK_X - 1))
@@ -731,7 +724,7 @@ def build_kick():
     xe = pole_x0 + P["KICK_POLE_L"]
     pe = xe - 14.0                                                                     # the pole runs into the web here
     pole = bx(pole_x0, pe, 0, hw2, -P["KICK_POLE_D"] / 2, P["KICK_POLE_D"] / 2)
-    pole = safe_fillet(pole, [e for e in pole.edges().filter_by(Axis.X) if abs(e.center().Y - hw2) < 1e-3], FL_R - 0.5, "pole corners")   # fits the flute
+    pole = safe_fillet(pole, [e for e in pole.edges().filter_by(Axis.X) if abs(e.center().Y - hw2) < 1e-3], FL_R - 0.3, "pole corners")   # fits the flute
     pole = pole + cylx(P["KICK_POLE_D"], pe - pole_x0, pole_x0)
     # foot housing (built in its own frame, then tilted about the output shaft so the foot plants vertical): square pocket for
     # the foot worm N20 in line with the housing, output shaft along the housing's +Z
@@ -753,7 +746,7 @@ def build_kick():
           ((fx0 + 2.5, fh / 2 - 2.5), (fx0 + 2.5, -fh / 2 + 2.5), (fx0 + WEB_RUN, -fh / 2 + 2.5))]
     web = arc_prism(wc, -P["KICK_POLE_D"] / 2, hw2)
     web = yfillet(web, (-P["KICK_POLE_D"] / 2,), P["KICK_POLE_D"] / 2 - 0.1, "web")          # its -y side rounds like the pole ...
-    web = yfillet(web, (hw2,), FL_R - 0.5, "web datum side")                                  # ... and its +y edges like the pole corners
+    web = yfillet(web, (hw2,), FL_R - 0.3, "web datum side")                                  # ... and its +y edges like the pole corners
     leg = hub + pole + web + foot_loc(fbox, house)
     for c in hcuts:
         leg = leg - foot_loc(fbox, c)

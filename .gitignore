@@ -15,3 +15,4 @@ kedge/work/*.png
 kedge/work/probe.*
 kedge/work/sec5_v32.md
 kedge/work/yoke.py
+kedge/work/*.stl

@@ -1,0 +1,104 @@
+{
+ "boom_anchor": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 2034.9,
+  "vol_stl": 2033.1
+ },
+ "coupler_L": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 917.3,
+  "vol_stl": 916.5
+ },
+ "coupler_R": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 867.1,
+  "vol_stl": 866.4
+ },
+ "drill_leg_L": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 3494.2,
+  "vol_stl": 3491.2
+ },
+ "drill_leg_L_auger": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 6574.5,
+  "vol_stl": 6574.5
+ },
+ "drill_leg_R": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 3494.2,
+  "vol_stl": 3491.2
+ },
+ "drill_leg_R_auger": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 6574.5,
+  "vol_stl": 6574.5
+ },
+ "foot_auger": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 3056.2,
+  "vol_stl": 3056.2
+ },
+ "hull_bottom": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 11397.8,
+  "vol_stl": 11394.2
+ },
+ "hull_top": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 18688.8,
+  "vol_stl": 18694.2
+ },
+ "kick_leg": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 8501.8,
+  "vol_stl": 8500.4
+ },
+ "nose": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 8211.5,
+  "vol_stl": 8195.7
+ },
+ "pod_cap_L": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 103.5,
+  "vol_stl": 103.4
+ },
+ "pod_cap_R": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 103.5,
+  "vol_stl": 103.4
+ },
+ "tail_boom": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 2747.0,
+  "vol_stl": 2746.7
+ },
+ "tail_cap": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 8032.4,
+  "vol_stl": 8029.0
+ },
+ "tray": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 14906.3,
+  "vol_stl": 14899.1
+ }
+}

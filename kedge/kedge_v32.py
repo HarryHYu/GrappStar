@@ -26,7 +26,7 @@ P = dict(
     N20_L=33.04, N20_POCK=12.4, N20_BOX=12.0, N20_TIP=29.97 / 2, SHAFT_D=3.0,
     # kick
     SADDLE_X0=23.8, KICK_HUB_D=12.0, KICK_HUB_W=14.0, KICK_POLE_D=8.0, KICK_POLE_L=72.0, KICK_DEG=201.75, KICK_REST_DEG=1.5, KICK_MY=-11.9, KICK_RAISE=5.0,
-    FOOT_AUGER_L=50.0, FOOT_TIP=10.0,
+    FOOT_AUGER_L=68.0, FOOT_TIP=10.0,
     # drill pair
     DRILL_X=56.0, DRILL_PIV_Z=12.0, DRILL_PIV_Y=None, DEPLOY_Y=None, DEPLOY_DEG=45.0, DEPLOY_TARGET=45.0, HORN_GAP=0.15, HEAD_IN=21.6,
     CPL_D=7.0, BOSS_D=11.0,
@@ -34,7 +34,7 @@ P = dict(
     MOTOR_W=12.0, MOTOR_H=10.0, MOTOR_L=24.27, DSHAFT_L=56.03, DSHAFT_D=2.84,
     AUGER_L=100.0, AUGER_D=13.0, AUGER_CORE=6.0, AUGER_PITCH=11.0, AUGER_TIP=12.0,
     FLIGHT_D=22.0, D_PITCH=15.0, SLEEVE_BORE=16.3, SLEEVE_WALL=1.2, MOTOR_GB_L=9.0,   # drill sleeve (dart-physics: OD 22, pitch 15)
-    BOOM_L=50.0, BOOM_W=10.0,
+    BOOM_L=28.0, BOOM_W=10.0,   # 28: the longest that clears the launcher rail rear and top pulley at full cock (50 needs 22 mm more there)
     # F693ZZ  M: 3 x 8 x 4, flange 9.5 x 0.6 (catalogue)
     BRG_OD=8.0, BRG_W=4.0, BRG_FL_D=9.5, BRG_FL_T=0.6,
     NUT_AF=5.5, NUT_T=2.4, NYLOC_T=4.0, BUSH_GAP=0.6, POD_PS=4.4, DTERM=1.2, BOSS_FACE_D=4.6,
@@ -286,12 +286,14 @@ def build_hull():
     # kick saddle beside the centreline (y KICK_MY): square pocket for the worm N20 lying along X, worm box at the nose end, open
     # at the top; one rounded profile from inside the skin up to the raised pivot (no block stuck under it)
     sl = 1.3 + P["N20_L"] + P["TERM"] + 1.3
-    z_top, z_bot = KICK_Z + SAD_H / 2, 13.0
-    saddle = rrect_x(SAD_W, z_top - z_bot, sl, SX0, y=KMY, z=(z_top + z_bot) / 2, r=3.0)
-    saddle = safe_fillet(saddle, saddle.edges().group_by(Axis.X)[-1], 2.0, "saddle end")
-    # ear: teardrop fin on the hub's outboard side carrying an F693ZZ for the hub screw
     from shapely.geometry import Point as _Pt, MultiPoint as _MP
     from shapely.ops import unary_union as _uu
+    x_end = SX0 + sl
+    sad2d = _uu([_Pt(KICK_X, KICK_Z).buffer(7.2, 64), _Pt(x_end - 7.0, KICK_Z - 0.6).buffer(7.0, 64),
+                 _Pt(SX0 + 1.0, 13.0).buffer(1.0, 16), _Pt(x_end - 1.0, 13.0).buffer(1.0, 16)]).convex_hull   # capsule side profile, same language as the ear
+    saddle = poly_prism(sad2d, KMY - SAD_W / 2, KMY + SAD_W / 2)
+    saddle = safe_fillet(saddle, saddle.edges().filter_by(Axis.Y, reverse=True).filter_by(lambda e: abs(e.center().Y - KMY) > SAD_W / 2 - 0.1), 1.2, "saddle edges")
+    # ear: teardrop fin on the hub's outboard side carrying an F693ZZ for the hub screw
     ear2d = _uu([_Pt(KICK_X, KICK_Z).buffer(P["BRG_FL_D"] / 2 + 2.2, 64), _Pt(KICK_X - 8.0, 14.0).buffer(1.0, 16), _Pt(KICK_X + 8.0, 14.0).buffer(1.0, 16)]).convex_hull
     ear = poly_prism(ear2d, EAR_Y0, EAR_Y1)
     ear = safe_fillet(ear, ear.edges().group_by(Axis.Y)[-1], 0.8, "ear")
@@ -430,6 +432,8 @@ def build_boom():
     b = b - cylz(P["SCREW_CLR"], 4.0, 1.9, x=x1 - 5.0)                     # pin: clearance in the top tine
     b = b - Solid.make_cone(1.65, 3.15, 1.6, Plane(origin=(x1 - 5.0, 0, bw / 2 - 1.6), z_dir=(0, 0, 1)))   # countersink, head flush
     b = b - cylz(P["SCREW_PILOT"], 4.0, -bw / 2 - 1, x=x1 - 5.0)           # pilot in the bottom tine (the screw threads in)
+    for sz in (1, -1):                                                      # 45 deg lead on the tip: it enters the pusher hole on retrieval
+        b = b - prism_xz([(x1 - 1.8, sz * bw / 2 + sz * 0.01), (x1 + 0.5, sz * bw / 2 + sz * 0.01), (x1 + 0.5, sz * (bw / 2 - 2.3))], -bw, bw)
     return b
 
 def build_anchor():

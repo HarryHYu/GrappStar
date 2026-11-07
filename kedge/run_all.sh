@@ -5,11 +5,12 @@ set -e
 OUT=${1:-out31}; V=${2:-v31}; SK=${3:-1}; SD=${4:-1}
 cd "$(dirname "$0")"
 PY=${PY:-$( [ -x .venv/bin/python ] && echo .venv/bin/python || echo python3 )}
-KV=$V timeout 1200 $PY kedge_v27.py $OUT > $OUT.gen.log 2>&1 || { tail -20 $OUT.gen.log; exit 1; }
+GEN=${GEN:-kedge_v32.py}
+KV=$V timeout 1200 $PY $GEN $OUT > $OUT.gen.log 2>&1 || { tail -20 $OUT.gen.log; exit 1; }
 grep -E "WARN|wt=False" $OUT.gen.log || true
 if ! $PY solve_deg.py $OUT; then
   D=$($PY -c "import json;P=json.load(open('$OUT/parts.json'))['P'];import os;k=json.loads(os.environ.get('KOV','{}'));k.update(DEPLOY_DEG=P['DEPLOY_DEG'],KICK_DEG=P['KICK_DEG']);print(json.dumps(k))")
-  echo "regenerating with $D"; KOV="$D" KV=$V timeout 1200 $PY kedge_v27.py $OUT > $OUT.gen.log 2>&1 || { tail -20 $OUT.gen.log; exit 1; }
+  echo "regenerating with $D"; KOV="$D" KV=$V timeout 1200 $PY $GEN $OUT > $OUT.gen.log 2>&1 || { tail -20 $OUT.gen.log; exit 1; }
   $PY solve_deg.py $OUT
 fi
 timeout 3600 $PY audit27.py $OUT $SK $SD > $OUT.audit.log 2>&1 || true
@@ -22,6 +23,7 @@ timeout 2400 $PY launcher_fit.py $OUT out30 > $OUT.fit.log 2>&1 || true; tail -1
 timeout 1200 $PY clearance.py $OUT > $OUT.clear.log 2>&1; head -12 $OUT.clear.log
 timeout 300 $PY meshes.py $OUT
 timeout 900 node shots.js $OUT && $PY sheet.py $OUT
+timeout 900 node review.js $OUT && $PY montage.py $OUT/review $OUT/review_montage.png || true
 timeout 900 $PY pack.py $OUT pack_$V > $OUT.pack.log 2>&1; tail -16 $OUT.pack.log
 $PY massprops.py $OUT > $OUT.mass.log 2>&1 || tail -5 $OUT.mass.log
 $PY stepcheck.py pack_$V > $OUT.step.log 2>&1; tail -1 $OUT.step.log

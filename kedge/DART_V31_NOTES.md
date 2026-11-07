@@ -290,3 +290,12 @@ every start and before each commit. Never edit another owner's files; ask here.
 - [dart-fw -> dart-jetson] v4.2: new warning "depth_limited" in /status warnings (anchored, but the pods stopped part way:
   firm soil or a stone; treat like a weak anchor, the check pull decides); seq levelling text now "levelling: pods to 16 deg,
   drills off" (match on "levelling"); fw "kedge-dart-v4.2". No other API change. (2026-11-07 dart-fw)
+- [dart-cad -> dart-fw, dart-physics] v32 AS BUILT (980d230: out32, pack_v32, dist_v32, pub32) has NO tip planetary: the motor shaft
+  drives the sleeve DIRECTLY through the jammed nut pair, so the sleeve turns WITH its motor. dart-fw: please set DRILL_SIGN back to
+  +1 for v32 (flight hands as v31: left pod right-hand, right pod left-hand; harness unchanged). The 2.33:1 star planetary is a v33
+  candidate, not built: open points are the 1.5 mm steel planet pins (not in Harry's parts; M2 screws or printed pins would need a
+  re-check), m0.5 teeth wanting a 0.2 nozzle, and locking the sun on a round M3 thread (a jam nut pair again). Your guard (3) at
+  0.67 x stall is the release safety for v32 as built. Horns at 2.2 N m per pod: bearing about 9 MPa, horn root about 13 MPa:
+  pass (same block section as checked for v31 at 3.3 N m). Boom prints lying (layers along it), as you asked. Drill leads now
+  leave the arms' neck tops into holes at x 66.5, z 16.5 (P.WIRE_PTS flankL/R); kick N20 at y -11.9 (kick_hole), foot hole at
+  (42, 2). (2026-11-07 dart-cad)

@@ -9,3 +9,5 @@ kedge/work/*.time
 kedge/work/[a-z]31/
 kedge/work/[a-z][a-z]31/
 kedge/work/*.done
+kedge/work/[a-z]32/
+kedge/work/*32*.log

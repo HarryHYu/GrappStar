@@ -219,12 +219,11 @@ them: find it, or the switch does nothing (no harm, just always on).
 **Drill direction check** (BENCH_TEST.md step 4): hold "drills in" (key `3`) and look at each **sleeve auger** (the
 outside, not the motor) from its pivot end, looking toward the tip. The left sleeve (right-hand flights) must turn
 **clockwise**, the right sleeve (left-hand flights) **anticlockwise**: then both screw into the ground.
-v32 note: each sleeve is driven through a small planetary gear in its tip, which turns the sleeve the OPPOSITE way to
-its motor. The firmware (v4.2) already drives the drill channel backwards for that (`DRILL_SIGN = -1` in
-`kedge_logic.h`), so the wiring below does not change: the right drill's leads stay swapped, D8 / D9 stay on AIN1 /
-AIN2. Building the older v31 pods (no planetary)? Then both sleeves turn the wrong way: fix it as below.
+v32 note: each drill motor drives its sleeve directly through the tip hub, so the sleeve turns the same way as its
+motor (`DRILL_SIGN = +1` in `kedge_logic.h`, the default). The wiring is as listed: the right drill's leads swapped,
+D8 / D9 on AIN1 / AIN2.
 - Both wrong (or the left one wrong): battery unplugged, swap the two thin input wires at DRV#2 AIN1 and AIN2 (D8 and
-  D9). This reverses both drills. Check again. (Or set `DRILL_SIGN = +1` in `kedge_logic.h` and upload: same effect.)
+  D9). This reverses both drills. Check again.
 - Then if only the right sleeve is wrong: battery unplugged, swap the right drill's own two wires on AOUT1 / AOUT2.
 - Swapping a motor's two input wires at its driver is the easy way to reverse any motor.
 

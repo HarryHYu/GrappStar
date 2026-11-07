@@ -354,10 +354,10 @@
    "orient": "lying on its side (layers along the boom), PPA-CF",
    "dims": [
     42.6,
-    9.0,
+    10.0,
     12.0
    ],
-   "volume_cm3": 2.66,
+   "volume_cm3": 2.75,
    "watertight": true,
    "nsolids": 1
   },
@@ -498,6 +498,34 @@
     18.7
    ],
    "volume_cm3": 3.68,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "drill_leg_L_tip",
+   "file": "drill_leg_L_tip.stl",
+   "group": "legs",
+   "color": "#b23a48",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "Press-in tip cap (PLA, a drop of CA): closes the nut-driver bore over the nyloc so the sleeve ends in a clean point; pull it with pliers to service the drill",
+   "parent": "drill_leg_L",
+   "printable": true,
+   "orient": "spigot up",
+   "dims": [
+    9.5,
+    15.0,
+    15.0
+   ],
+   "volume_cm3": 0.89,
    "watertight": true,
    "nsolids": 1
   },
@@ -666,6 +694,34 @@
     18.7
    ],
    "volume_cm3": 3.68,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "drill_leg_R_tip",
+   "file": "drill_leg_R_tip.stl",
+   "group": "legs",
+   "color": "#b23a48",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "Press-in tip cap (PLA, a drop of CA): closes the nut-driver bore over the nyloc so the sleeve ends in a clean point; pull it with pliers to service the drill",
+   "parent": "drill_leg_R",
+   "printable": true,
+   "orient": "spigot up",
+   "dims": [
+    9.5,
+    15.0,
+    15.0
+   ],
+   "volume_cm3": 0.89,
    "watertight": true,
    "nsolids": 1
   },
@@ -1345,7 +1401,7 @@
    "name": "screws_radial",
    "file": "screws_radial.stl",
    "group": "electronics",
-   "color": "#555555",
+   "color": "#aab3bd",
    "pos": [
     0.0,
     0.0,

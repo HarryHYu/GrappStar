@@ -13,10 +13,12 @@
  "auger_depth_mm": {
   "foot_auger": 59.3,
   "foot_shaft": 4.6,
+  "drill_leg_L_tip": 49.1,
   "drill_leg_L_auger": 49.1,
   "drill_leg_L_shaft": 32.7,
   "drill_leg_L_nut": 29.9,
   "drill_leg_L_nyloc": 34.2,
+  "drill_leg_R_tip": 49.1,
   "drill_leg_R_auger": 49.1,
   "drill_leg_R_shaft": 32.7,
   "drill_leg_R_nut": 29.9,
@@ -37,8 +39,8 @@
  ],
  "belly_outside_r21": {},
  "folded_min_z_below_ground": {},
- "printed_cm3": 113.03,
- "printed_g_solid_PLA": 140.2,
+ "printed_cm3": 114.9,
+ "printed_g_solid_PLA": 142.5,
  "watertight_fail": [],
  "multi_body": [],
  "kick_range": [
@@ -50,7 +52,7 @@
   45.0
  ],
  "L": 151.97,
- "sweep_s": 32.7,
+ "sweep_s": 34.1,
  "kick_steps": 206,
  "deploy_steps": 46,
  "hard_stops_mm3": {

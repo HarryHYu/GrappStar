@@ -422,7 +422,8 @@ def build_boom():
     bw, x1 = P["BOOM_W"], L + P["BOOM_L"]
     head = bx(X_ANC[0] + 0.15, X_ANC[0] + 2.35, -bw / 2, bw / 2, -6.0, 6.0)
     shank = bx(X_ANC[0] + 2.2, L + 1.0, -BOOM_SH / 2, BOOM_SH / 2, -BOOM_SH / 2, BOOM_SH / 2)
-    boom = rrect_x(bw, bw, x1 - L - 5.0 - 0.5, L + 0.5, r=2.0)   # 9 x 9, r 2: 1.5 clear all round in the pusher's Ø14 hole
+    boom = rrect_x(bw + 1.0, bw + 1.0, 6.0, L + 0.5, r=2.8)                         # 10 x 10 collar out of the tail cap (diag 12.4 < Ø14 pusher hole)
+    boom = boom + rrect_x(bw, bw, x1 - L - 5.0 - 6.0, L + 6.0, r=2.2)               # 9 x 9 stinger to the eye
     tip = Pos(x1 - 5.0, 0, 0) * Cylinder(bw / 2, bw)                      # round end in plan, axis z (the pin axis)
     tip = tip & bx(x1 - 5.0, x1 + 1, -bw / 2, bw / 2, -bw / 2, bw / 2)
     tip = tip + bx(x1 - 5.5, x1 - 5.0, -bw / 2, bw / 2, -bw / 2, bw / 2)
@@ -748,6 +749,10 @@ def drill(prefix, side, color):
     lh = side < 0
     au = sleeve_auger(lh)
     au.apply_transform(TM([S0, 0, 0]))
+    tipc = tcone(radius=CORE_D / 2 * 0.8, height=7.0, sections=96); tipc.apply_transform(RM(math.pi / 2, [0, 1, 0])); tipc.apply_transform(TM([TIP, 0, 0]))
+    tipc = tD(tU([tipc, tcylx(12.4, 4.0, TIP - 4.0, n=96)]), [tbox(TIP + 5.5, TIP + 9, -10, 10, -10, 10)])   # rounded-off cone + Ø12.4 press-in spigot
+    add(prefix + "_tip", tipc, "legs", "#b23a48", parent=prefix, orient="spigot up",
+        note="Press-in tip cap (PLA, a drop of CA): closes the nut-driver bore over the nyloc so the sleeve ends in a clean point; pull it with pliers to service the drill")
     add(prefix + "_auger", au, "legs", "#b23a48", parent=prefix, orient="standing on its base, brim 5 mm",
         note="Sleeve auger Ø%g flights (pitch %g, %s-hand: the pair counter-rotates and both screw in) on a Ø%.1f core, %g long from the arm shoulder; it turns round the stationary motor (bore %.1f over the 15.6 gearbox diagonal) and runs on the arm's bushing; the tip hub takes the motor shaft through a jammed M3 nut (side slot) + nyloc (through the tip bore): keyed in both drilling directions" % (P["FLIGHT_D"], P["D_PITCH"], "left" if lh else "right", CORE_D, P["AUGER_L"], P["SLEEVE_BORE"]))
     can = cylx(P["MOTOR_W"], GB0 - MB, MB) & bx(MB - 1, GB0 + 1, -P["MOTOR_H"] / 2, P["MOTOR_H"] / 2, -10, 10)
@@ -839,7 +844,7 @@ for sy in (-1, 1):
         yh = sy * chord_half(zz, R); scr.append(screw_y(yh, yh - sy * 8, xst, zz, flat=True))
 s_all = scr[0]
 for q in scr[1:]: s_all = s_all + q
-hw("screws_radial", s_all, "#555555", "8 x M3 x 8 countersunk (flat-head) radial screws, flush with the skin: 4 into tray disc 1, 4 through the tail cap spigot into the boom anchor disc (they carry the tow)")
+hw("screws_radial", s_all, "#aab3bd", "8 x M3 x 8 countersunk (flat-head) radial screws, flush with the skin: 4 into tray disc 1, 4 through the tail cap spigot into the boom anchor disc (they carry the tow)")
 xpin = L + P["BOOM_L"] - 5.0
 hw("boom_pin", Solid.make_cone(1.45, 3.0, 1.6, Plane(origin=(xpin, 0, P["BOOM_W"] / 2 - 1.6), z_dir=(0, 0, 1))) + cylz(2.9, 8.0 - 1.6, P["BOOM_W"] / 2 - 8.0, x=xpin),
    "#555555", "M3 x 8 countersunk screw: the tether's wear pin in the boom eye (head flush in the top tine, threads 2 mm into the bottom tine, nothing proud; threadlocker)")

@@ -5,12 +5,14 @@
    "hull_bottom",
    "nose",
    "tail_cap",
+   "drill_leg_L_tip",
+   "drill_leg_R_tip",
    "pod_cap_L",
    "pod_cap_R"
   ],
   "extent_mm": [
    230,
-   123.2
+   128.2
   ]
  },
  "plate_C_couplers_PPA-CF": {
@@ -56,5 +58,7 @@ coupler_L            bbox [7.0, 29.3, 6.4]  bed   113.4 mm2  overhang>45    50.7
 coupler_R            bbox [7.0, 27.9, 6.4]  bed   108.1 mm2  overhang>45    50.0 mm2
 pod_cap_L            bbox [10.0, 10.0, 1.5]  bed    69.9 mm2  overhang>45     0.0 mm2
 pod_cap_R            bbox [10.0, 10.0, 1.5]  bed    69.9 mm2  overhang>45     0.0 mm2
-tail_boom            bbox [42.6, 12.0, 9.0]  bed   134.1 mm2  overhang>45   133.9 mm2
+tail_boom            bbox [42.6, 12.0, 10.0]  bed    31.4 mm2  overhang>45   271.9 mm2
 boom_anchor          bbox [30.9, 32.2, 3.6]  bed   623.2 mm2  overhang>45    33.3 mm2
+drill_leg_L_tip      bbox [15.0, 15.0, 9.5]  bed     8.1 mm2  overhang>45     0.0 mm2
+drill_leg_R_tip      bbox [15.0, 15.0, 9.5]  bed     8.1 mm2  overhang>45     0.0 mm2

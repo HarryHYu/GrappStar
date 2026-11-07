@@ -254,55 +254,55 @@
    "group": "hull",
    "parent": null,
    "root": "tail_boom",
-   "volume_mm3": 2664.1,
-   "area_mm2": 1701.9,
+   "volume_mm3": 2746.7,
+   "area_mm2": 1744.9,
    "watertight": true,
-   "printed_g": 3.3,
+   "printed_g": 3.41,
    "folded": {
     "centroid_mm": [
-     156.12,
+     156.05,
      -0.0,
      -0.09
     ],
     "inertia_unit_density_mm5": [
      [
-      34085.1,
+      36298.6,
       0.0,
-      4438.8
+      4452.5
      ],
      [
       0.0,
-      363103.6,
+      363042.9,
       -0.0
      ],
      [
-      4438.8,
+      4452.5,
       -0.0,
-      360550.1
+      360488.5
      ]
     ]
    },
    "deployed": {
     "centroid_mm": [
-     156.12,
+     156.05,
      -0.0,
      -0.09
     ],
     "inertia_unit_density_mm5": [
      [
-      34085.1,
+      36298.6,
       0.0,
-      4438.8
+      4452.5
      ],
      [
       0.0,
-      363103.6,
+      363042.9,
       -0.0
      ],
      [
-      4438.8,
+      4452.5,
       -0.0,
-      360550.1
+      360488.5
      ]
     ]
    }
@@ -593,6 +593,64 @@
       105722.2,
       37529.6,
       280305.9
+     ]
+    ]
+   }
+  },
+  "drill_leg_L_tip": {
+   "printable": true,
+   "group": "legs",
+   "parent": "drill_leg_L",
+   "root": "drill_leg_L",
+   "volume_mm3": 888.5,
+   "area_mm2": 569.1,
+   "watertight": true,
+   "printed_g": 1.1,
+   "folded": {
+    "centroid_mm": [
+     164.39,
+     32.8,
+     12.0
+    ],
+    "inertia_unit_density_mm5": [
+     [
+      16142.3,
+      0.0,
+      -0.0
+     ],
+     [
+      0.0,
+      12431.1,
+      -0.0
+     ],
+     [
+      -0.0,
+      -0.0,
+      12431.1
+     ]
+    ]
+   },
+   "deployed": {
+    "centroid_mm": [
+     132.65,
+     32.8,
+     -64.65
+    ],
+    "inertia_unit_density_mm5": [
+     [
+      14286.7,
+      -0.0,
+      -1855.6
+     ],
+     [
+      -0.0,
+      12431.1,
+      0.0
+     ],
+     [
+      -1855.6,
+      0.0,
+      14286.7
      ]
     ]
    }
@@ -937,6 +995,64 @@
       105722.2,
       -37529.6,
       280305.9
+     ]
+    ]
+   }
+  },
+  "drill_leg_R_tip": {
+   "printable": true,
+   "group": "legs",
+   "parent": "drill_leg_R",
+   "root": "drill_leg_R",
+   "volume_mm3": 888.5,
+   "area_mm2": 569.1,
+   "watertight": true,
+   "printed_g": 1.1,
+   "folded": {
+    "centroid_mm": [
+     164.39,
+     -32.8,
+     12.0
+    ],
+    "inertia_unit_density_mm5": [
+     [
+      16142.3,
+      -0.0,
+      -0.0
+     ],
+     [
+      -0.0,
+      12431.1,
+      0.0
+     ],
+     [
+      -0.0,
+      0.0,
+      12431.1
+     ]
+    ]
+   },
+   "deployed": {
+    "centroid_mm": [
+     132.65,
+     -32.8,
+     -64.65
+    ],
+    "inertia_unit_density_mm5": [
+     [
+      14286.7,
+      -0.0,
+      -1855.6
+     ],
+     [
+      -0.0,
+      12431.1,
+      -0.0
+     ],
+     [
+      -1855.6,
+      -0.0,
+      14286.7
      ]
     ]
    }

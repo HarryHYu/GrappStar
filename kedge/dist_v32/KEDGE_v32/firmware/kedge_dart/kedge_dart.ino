@@ -6,7 +6,7 @@
 // "phase" + "fault" in /status. Full API: ../API.md. Wiring: ../WIRING.md.
 // v4.1 (7 Nov 2026): shorter flight windows for the real launcher, orientation ("orient", /auto refused on its side or
 // back unless force=1), battery state at rest ("batt"), optional video power switch on D10 (/video).
-// v4.2: deploy guard (depth_limited at 67 % of the drill pair stall), drill channel reversed for the v32 tip planetary.
+// v4.2: deploy guard (depth_limited at 67 % of the drill pair stall); per-motor gear sign (v32 drills: direct, +1).
 //
 // Keyboard control, two ways:
 //   1. USB:  Arduino Serial Monitor, 115200 baud, "No line ending". Type a key, press Enter (each press runs 1.5 s).
@@ -67,7 +67,7 @@ void pwmWrite(int pin, int ch, int duty) { (void)pin; ledcWrite(ch, duty); }
 // DRV8833 slow decay: one input high, the other PWM inverted, so the bridge alternates drive and brake. Supply current
 // then goes as duty squared at stall (the logic scales its thresholds that way). Duty 255 = plain DC. Both low = coast.
 void hwSetMotor(int m, int dir, int duty) {
-  dir *= PINS[m].sign;                                 // a gear stage that reverses the part (v32 drills: tip planetary)
+  dir *= PINS[m].sign;                                 // -1 only for a gear stage that reverses the part (none on v32)
   if (duty < 0) duty = 0;
   if (duty > 255) duty = 255;
   pwmWrite(PINS[m].gpioA, 2 * m, dir > 0 ? 255 : dir < 0 ? 255 - duty : 0);

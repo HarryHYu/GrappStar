@@ -1,30 +1,30 @@
 {
  "source": "out32",
  "version": "v31 physics (dart-physics, 7 Nov 2026)",
- "mass_g": 288.0,
+ "mass_g": 290.3,
  "cg_mm": [
-  85.4,
+  86.0,
   -0.5,
   8.7
  ],
- "printed_g": 140.1,
+ "printed_g": 142.4,
  "bought_g": 147.9,
  "ballast_g": 0.0,
  "inertia_kg_mm2": [
   [
-   161.23,
-   -6.57,
-   -6.67
+   163.67,
+   -6.65,
+   -7.18
   ],
   [
-   -6.57,
-   494.74,
-   3.57
+   -6.65,
+   508.91,
+   3.56
   ],
   [
-   -6.67,
-   3.57,
-   519.47
+   -7.18,
+   3.56,
+   535.98
   ]
  ],
  "heaviest": [
@@ -103,41 +103,41 @@
  ],
  "flight": {
   "direction": "nose first (toward -x)",
-  "cg_x": 85.4,
-  "cp_side_x": 56.0,
-  "cp_top_x": 57.6,
-  "static_margin_calibers_side": -0.7,
-  "static_margin_calibers_top": -0.66,
+  "cg_x": 86.0,
+  "cp_side_x": 57.1,
+  "cp_top_x": 58.7,
+  "static_margin_calibers_side": -0.69,
+  "static_margin_calibers_top": -0.65,
   "note": "aerodynamic centre at 10 deg and 7 m/s from the strip model (cross-flow + slender-body nose term); top = pitch plane (top-view width), side = yaw. At 7 m/s the air moments are small: the tether (0.33 N at the tail) is what keeps it nose first (flight_sim.json)."
  },
  "launch": {
   "source": "base/physics/launcher.py chain model, params base/spec/params.py v1.5.0",
   "pitch_deg": 34.0,
-  "dart_mass_kg": 0.288,
-  "v_muzzle": 6.79,
+  "dart_mass_kg": 0.2903,
+  "v_muzzle": 6.77,
   "stroke_m": 0.2409,
-  "t_stroke_ms": 59.2,
+  "t_stroke_ms": 59.4,
   "energy_J": 12.06,
-  "accel_peak_g": 17.6,
+  "accel_peak_g": 17.5,
   "accel_at_release_g": 4.2,
-  "tail_push_peak_N": 60.4,
-  "line_pull_in_stroke_N": 8.29,
-  "line_spin_up_estimate_N": 4.73,
+  "tail_push_peak_N": 60.5,
+  "line_pull_in_stroke_N": 8.25,
+  "line_spin_up_estimate_N": 4.71,
   "ms_above_4g": 56.0,
-  "cradle_normal_N": 2.34,
-  "pitch_couple_Nm": 0.435,
+  "cradle_normal_N": 2.36,
+  "pitch_couple_Nm": 0.437,
   "note": "the push acts on the flat tail face (pusher face covers z +-21 within y +-11): it can move up to the CG height (z +8.7 mm), so the CG offset makes no nose lift in the cradle",
   "v_needed_m_s": [
-   6.79,
-   6.79
+   6.77,
+   6.77
   ],
   "accel_g": [
-   17.6,
-   17.6
+   17.5,
+   17.5
   ],
   "spring_energy_J": 12.06,
   "impact_g": 121.0,
-  "impact_stop_m": 0.0049
+  "impact_stop_m": 0.005
  },
  "loads": [
   [
@@ -148,49 +148,49 @@
   ],
   [
    "tail cap push at launch (dart + line)",
-   60.4,
+   60.5,
    "N",
    "4 radial M3 into the spigot ring, hull wall in compression: fine"
   ],
   [
    "cells forward at landing, soft soil (121 g at the CG, rigid-body upper bound)",
-   42.0,
+   43.0,
    "N",
    "onto the 3 mm front cell-bay disc and its springs"
   ],
   [
-   "cells forward at landing, gravel (449 g at the CG, rigid-body upper bound)",
-   157.0,
+   "cells forward at landing, gravel (445 g at the CG, rigid-body upper bound)",
+   159.0,
    "N",
    "onto the 3 mm front cell-bay disc and its springs"
   ],
   [
-   "cells forward at landing, hard ground (954 g at the CG, rigid-body upper bound)",
-   334.0,
+   "cells forward at landing, hard ground (943 g at the CG, rigid-body upper bound)",
+   337.0,
    "N",
    "onto the 3 mm front cell-bay disc and its springs"
   ],
   [
-   "coupler bending at landing, soft soil (pod 31 g at 290 g)",
-   23.4,
+   "coupler bending at landing, soft soil (pod 32 g at 288 g)",
+   24.1,
    "MPa",
-   "PPA-CF 80 MPa: margin 3.4"
+   "PPA-CF 80 MPa: margin 3.3"
   ],
   [
-   "coupler bending at landing, gravel (pod 31 g at 1078 g)",
-   86.9,
+   "coupler bending at landing, gravel (pod 32 g at 1064 g)",
+   88.9,
    "MPa",
    "PPA-CF 80 MPa: margin 0.9"
   ],
   [
-   "coupler bending at landing, hard ground (pod 31 g at 2292 g)",
-   184.8,
+   "coupler bending at landing, hard ground (pod 32 g at 2254 g)",
+   188.3,
    "MPa",
    "PPA-CF 80 MPa: margin 0.4"
   ],
   [
    "kick leg at landing, soft soil",
-   18.8,
+   18.7,
    "N",
    "d3 steel shaft shear + ear bearing"
   ]
@@ -198,179 +198,179 @@
  "landing": {
   "impact_34deg": {
    "soft": {
-    "vn": 4.61,
-    "depth_mm": 4.9,
-    "F_peak_N": 341.0,
+    "vn": 4.62,
+    "depth_mm": 5.0,
+    "F_peak_N": 343.5,
     "g_peak": 121.0,
-    "duration_ms": 2.1,
+    "duration_ms": 2.2,
     "loads": {
      "camera": {
-      "g": 329.0,
+      "g": 327.0,
       "N": 7.1
      },
      "cell_1": {
-      "g": 98.0,
-      "N": 21.1
+      "g": 100.0,
+      "N": 21.5
      },
      "xiao": {
       "g": 52.0,
       "N": 1.5
      },
      "bno085": {
-      "g": 226.0,
-      "N": 5.8
+      "g": 225.0,
+      "N": 5.7
      },
      "vtx": {
-      "g": 132.0,
+      "g": 133.0,
       "N": 4.7
      },
      "n20_kick": {
-      "g": 278.0,
-      "N": 28.7
+      "g": 277.0,
+      "N": 28.5
      },
      "drill_leg_L_motor": {
-      "g": 290.0,
-      "N": 31.3
+      "g": 288.0,
+      "N": 31.1
      },
      "kick_leg": {
       "g": 184.0,
-      "N": 18.8
+      "N": 18.7
      },
      "drill_leg_L_auger": {
       "g": 98.0,
-      "N": 13.6
+      "N": 13.5
      }
     },
     "bno085_reads_g": 8.0,
-    "bno085_raw_g": 226.0
+    "bno085_raw_g": 225.0
    },
    "gravel": {
-    "vn": 4.61,
+    "vn": 4.62,
     "depth_mm": 1.2,
     "F_peak_N": 1268.2,
-    "g_peak": 449.0,
+    "g_peak": 445.0,
     "duration_ms": 0.5,
     "loads": {
      "camera": {
-      "g": 1225.0,
-      "N": 26.4
+      "g": 1207.0,
+      "N": 26.0
      },
      "cell_1": {
-      "g": 364.0,
-      "N": 78.6
+      "g": 368.0,
+      "N": 79.5
      },
      "xiao": {
-      "g": 195.0,
+      "g": 192.0,
       "N": 5.7
      },
      "bno085": {
-      "g": 839.0,
-      "N": 21.4
+      "g": 831.0,
+      "N": 21.2
      },
      "vtx": {
       "g": 491.0,
       "N": 17.3
      },
      "n20_kick": {
-      "g": 1035.0,
-      "N": 106.6
+      "g": 1023.0,
+      "N": 105.4
      },
      "drill_leg_L_motor": {
-      "g": 1078.0,
-      "N": 116.3
+      "g": 1064.0,
+      "N": 114.8
      },
      "kick_leg": {
-      "g": 686.0,
-      "N": 69.8
+      "g": 680.0,
+      "N": 69.2
      },
      "drill_leg_L_auger": {
-      "g": 365.0,
-      "N": 50.4
+      "g": 361.0,
+      "N": 50.0
      }
     },
     "bno085_reads_g": 8.0,
-    "bno085_raw_g": 839.0
+    "bno085_raw_g": 831.0
    },
    "hard": {
-    "vn": 4.61,
+    "vn": 4.62,
     "crush_mm": 1.2,
-    "F_peak_N": 2696.0,
-    "g_peak": 954.0,
+    "F_peak_N": 2686.0,
+    "g_peak": 943.0,
     "loads": {
      "camera": {
-      "g": 2603.0,
-      "N": 56.2
+      "g": 2556.0,
+      "N": 55.2
      },
      "cell_1": {
-      "g": 774.0,
-      "N": 167.1
+      "g": 780.0,
+      "N": 168.3
      },
      "xiao": {
-      "g": 415.0,
-      "N": 12.2
+      "g": 407.0,
+      "N": 12.0
      },
      "bno085": {
-      "g": 1784.0,
-      "N": 45.5
+      "g": 1759.0,
+      "N": 44.9
      },
      "vtx": {
-      "g": 1043.0,
-      "N": 36.8
+      "g": 1039.0,
+      "N": 36.7
      },
      "n20_kick": {
-      "g": 2201.0,
-      "N": 226.7
+      "g": 2166.0,
+      "N": 223.2
      },
      "drill_leg_L_motor": {
-      "g": 2292.0,
-      "N": 247.3
+      "g": 2254.0,
+      "N": 243.2
      },
      "kick_leg": {
-      "g": 1458.0,
-      "N": 148.4
+      "g": 1439.0,
+      "N": 146.6
      },
      "drill_leg_L_auger": {
-      "g": 775.0,
-      "N": 107.2
+      "g": 765.0,
+      "N": 105.8
      }
     },
     "bno085_reads_g": 8.0,
-    "bno085_raw_g": 1784.0
+    "bno085_raw_g": 1759.0
    }
   },
   "rest_states": [
    {
-    "share_pct": 16.6,
+    "share_pct": 17.8,
     "roll_deg": 37.8,
     "pitch_deg": 0.6,
     "cg_height_mm": 28.8
    },
    {
-    "share_pct": 16.2,
+    "share_pct": 17.5,
+    "roll_deg": 113.8,
+    "pitch_deg": -2.8,
+    "cg_height_mm": 42.1
+   },
+   {
+    "share_pct": 16.4,
     "roll_deg": -34.3,
     "pitch_deg": -0.2,
-    "cg_height_mm": 28.7
+    "cg_height_mm": 28.8
    },
    {
-    "share_pct": 16.2,
-    "roll_deg": 116.6,
-    "pitch_deg": -4.3,
-    "cg_height_mm": 42.4
-   },
-   {
-    "share_pct": 10.3,
+    "share_pct": 10.8,
     "roll_deg": -115.0,
     "pitch_deg": -2.1,
     "cg_height_mm": 43.0
    },
    {
-    "share_pct": 8.7,
+    "share_pct": 8.5,
     "roll_deg": -127.6,
     "pitch_deg": -15.9,
-    "cg_height_mm": 43.1
+    "cg_height_mm": 43.3
    },
    {
-    "share_pct": 7.1,
+    "share_pct": 6.2,
     "roll_deg": 30.5,
     "pitch_deg": -0.1,
     "cg_height_mm": 28.3
@@ -380,7 +380,7 @@
    "minima_deg_h": [
     [
      -114.0,
-     41.9
+     41.8
     ],
     [
      -36.0,
@@ -388,7 +388,7 @@
     ],
     [
      36.0,
-     28.3
+     28.4
     ],
     [
      115.0,
@@ -402,7 +402,7 @@
     ],
     [
      3.0,
-     29.7
+     29.8
     ],
     [
      96.0,
@@ -416,10 +416,10 @@
    "note": "lying along the axis (folded): minima = rest rolls, maxima = basin edges"
   },
   "nose_bumper": {
-   "energy_J": 2.52,
-   "plateau_force_N": 505.0,
-   "g_cg": 179.0,
-   "plateau_stress_MPa_on_d22": 1.33
+   "energy_J": 2.5,
+   "plateau_force_N": 500.0,
+   "g_cg": 175.0,
+   "plateau_stress_MPa_on_d22": 1.31
   }
  },
  "anchoring": {
@@ -489,7 +489,7 @@
   "moment_Nm": 1.546,
   "foot_lever_mm": 150,
   "foot_hold_down_needed_N": 10.34,
-  "dart_weight_N": 2.83,
+  "dart_weight_N": 2.85,
   "line_angle_deg_rover_1_3_5m": [
    21.0,
    7.3,
@@ -590,7 +590,7 @@
   "note": "worm N20 stall torque from the bench currents (dart_model.motor): 0.21 N m at 7.4 V"
  },
  "deploy": {
-  "pod_mass_g": 30.8,
+  "pod_mass_g": 31.9,
   "gravity_torque_both_kgcm": null,
   "soil_moment_both_Nm": {
    "dry sand": 0.619,

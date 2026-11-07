@@ -29,6 +29,12 @@
   "vol_step": 11367.7,
   "vol_stl": 11367.7
  },
+ "drill_leg_L_tip": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 888.5,
+  "vol_stl": 888.5
+ },
  "drill_leg_R": {
   "valid": true,
   "solids": 1,
@@ -40,6 +46,12 @@
   "solids": 1,
   "vol_step": 11367.7,
   "vol_stl": 11367.7
+ },
+ "drill_leg_R_tip": {
+  "valid": true,
+  "solids": 1,
+  "vol_step": 888.5,
+  "vol_stl": 888.5
  },
  "fit_coupon": {
   "valid": true,
@@ -92,8 +104,8 @@
  "tail_boom": {
   "valid": true,
   "solids": 1,
-  "vol_step": 2664.3,
-  "vol_stl": 2664.1
+  "vol_step": 2747.0,
+  "vol_stl": 2746.7
  },
  "tail_cap": {
   "valid": true,

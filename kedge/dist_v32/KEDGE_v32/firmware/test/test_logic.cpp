@@ -729,9 +729,9 @@ int main() {
     CHECK(!(K.warn & Kedge::W_DEPTH_LIMIT), "the guard follows the bench-measured drillPairStallMa (900 mA: 520 is under 67 %)"); }
   { fresh(); K.startAuto(NOW); run(20000); P.drillHeavy = true; K.startRelease(NOW); run(30000);
     CHECK(K.seq == RELEASED && K.fault == F_NONE, "the guard does not touch the release"); }
-  // v4.2 drill gear sign (v32 tip planetary reverses each sleeve)
-  CHECK(PINS[DRILLS].sign == -1 && PINS[DEPLOY].sign == 1 && PINS[KICK].sign == 1 && PINS[FOOT].sign == 1,
-        "v32: only the drill channel is driven reversed (tip planetary); keys and sequences keep +1 = sleeves screw in");
+  // v32 as built: direct drive through the tip hub, every channel +1 (keys and sequences: +1 = sleeves screw in)
+  CHECK(PINS[DRILLS].sign == 1 && PINS[DEPLOY].sign == 1 && PINS[KICK].sign == 1 && PINS[FOOT].sign == 1,
+        "v32 as built (no tip gear stage): every channel drives +1, the drill sleeves turn with their motors");
   { fresh(); K.startAuto(NOW); run(20000); P.deployJamBackAt = 700; K.startRelease(NOW); run(30000);
     CHECK(logged("milling up") && std::string(faultName(K.fault)) == "PODS_JAM", "release: pods held part way up are milled first, PODS_JAM after 8 s without progress"); }
   // orientation gate with the nose axis known (BENCH_TEST step 7)

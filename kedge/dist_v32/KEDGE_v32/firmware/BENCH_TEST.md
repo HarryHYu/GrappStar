@@ -20,7 +20,7 @@ Directions used below (firmware convention, +1 in `/status` `motors`):
 |---|---|---|
 | `1` | deploy | pods swing **down** |
 | `2` | kick | leg swings **out**, over the nose |
-| `3` | drills | sleeve augers turn to **screw in**: left clockwise, right anticlockwise, seen from the pivot end, looking toward the tip (watch the sleeve, not the motor: v32 has a reversing planetary in each tip) |
+| `3` | drills | sleeve augers turn to **screw in**: left clockwise, right anticlockwise, seen from the pivot end, looking toward the tip (watch the sleeve; on v32 the motor drives it directly, so both turn the same way) |
 | `4` | foot | foot auger turns to **screw in**: clockwise seen from the motor end, looking toward the tip (right-hand foot auger) |
 
 If a motor turns the wrong way: **battery unplugged**, swap that motor's two thin input wires at its driver
@@ -100,8 +100,7 @@ the motor supply on that board: do not connect 3V3 to it (WIRING step B6).
 ## Step 4. Drills (DRV#2 A, both motors)
 
 1. Pods down first (step 3). Hold `drills in` (`3`) for 2 s. Check the SLEEVE directions in the table (left clockwise,
-   right anticlockwise, from the pivot end to the tip). Wrong: WIRING.md "Drill direction check". (Firmware v4.2 drives
-   the drill motors backwards on purpose: the v32 tip planetary reverses the sleeves.)
+   right anticlockwise, from the pivot end to the tip). Wrong: WIRING.md "Drill direction check".
 2. **Drill pair free = ____ mA** (expect 60 to 70). Press a printed stick or a
    pencil end lightly against one auger flight (never a cloth or fingers: cloth winds in and pulls fingers with it):
    current rises.

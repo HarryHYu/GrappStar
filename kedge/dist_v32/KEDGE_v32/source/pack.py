@@ -12,7 +12,7 @@ ORIENT = {   # rotation that puts each part in its print pose (z up from the bed
     "drill_leg_L_auger": RM(-math.pi / 2, Y), "drill_leg_R_auger": RM(-math.pi / 2, Y), "foot_auger": np.eye(4),
     "coupler_L": RM(math.pi, Y), "coupler_R": RM(math.pi, Y),      # lying on the D flat: layers run along the axle (bending)
     "pod_cap_L": RM(math.pi / 2, X), "pod_cap_R": RM(-math.pi / 2, X),
-    "tail_boom": RM(math.pi / 2, X), "boom_anchor": RM(math.pi / 2, Y),
+    "tail_boom": RM(math.pi / 2, X), "boom_anchor": RM(math.pi / 2, Y), "drill_leg_L_tip": RM(math.pi / 2, Y), "drill_leg_R_tip": RM(math.pi / 2, Y),
 }
 if "tail_boom" in PP:                     # v32: arms stand on the head's flat front face, sleeves on their base
     ORIENT.update({"drill_leg_L": RM(-math.pi / 2, Y), "drill_leg_R": RM(-math.pi / 2, Y)})
@@ -26,6 +26,7 @@ SUPPORT = {   # what the slicer must do (Bambu Studio, PLA, 0.4 nozzle, 0.2 laye
     "drill_leg_L_auger": "none (45 deg lower flight flank); brim 8 mm, the base is small (flat core end only)", "drill_leg_R_auger": "none (45 deg lower flight flank); brim 5 mm, the base is small",
     "foot_auger": "none; brim 5 mm", "coupler_L": "PPA-CF (hardened nozzle, dried filament), lying on the D flat, no supports; PLA only as a stopgap", "coupler_R": "PPA-CF (hardened nozzle, dried filament), lying on the D flat, no supports; PLA only as a stopgap",
     "pod_cap_L": "none", "pod_cap_R": "none",
+    "drill_leg_L_tip": "none (spigot down)", "drill_leg_R_tip": "none (spigot down)",
     "tail_boom": "PPA-CF, lying on its side, no supports (the shank bridges 12 mm)", "boom_anchor": "PPA-CF, flat, no supports",
 }
 QTY = {k: 1 for k in ORIENT}
@@ -49,7 +50,7 @@ def overhang(m):
 for n, m in oriented.items():
     PP[n]["overhang_mm2_gt45"] = round(overhang(m), 1)
 # plates (X2D bed: use a 240 x 240 safe area)
-PLATES = {"plate_A_hull": [n for n in ["hull_top", "hull_bottom", "nose", "tail_cap", "pod_cap_L", "pod_cap_R"] + ([] if "pod_cap_L" in ORIENT else ["coupler_L", "coupler_R"]) if n in ORIENT],
+PLATES = {"plate_A_hull": [n for n in ["hull_top", "hull_bottom", "nose", "tail_cap", "pod_cap_L", "pod_cap_R", "drill_leg_L_tip", "drill_leg_R_tip"] + ([] if "pod_cap_L" in ORIENT else ["coupler_L", "coupler_R"]) if n in ORIENT],
           **({"plate_C_couplers_PPA-CF": [n for n in ["coupler_L", "coupler_R", "tail_boom", "boom_anchor"] if n in ORIENT]} if "pod_cap_L" in ORIENT else {}),
           "plate_B_legs_tray": ["tray", "kick_leg", "drill_leg_L", "drill_leg_R", "drill_leg_L_auger", "drill_leg_R_auger", "foot_auger"]}
 plate_info = {}

@@ -367,7 +367,7 @@
    "purple",
    "28 AWG",
    50,
-   "drills; v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)",
+   "drills",
    40
   ],
   [
@@ -447,7 +447,7 @@
    "red",
    "26 AWG",
    170,
-   "out the left flank hole, 30 mm loop for the pod swing; v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)",
+   "out the left flank hole, 30 mm loop for the pod swing; v32: the motor drives the sleeve directly, so the sleeve turns with the motor (BENCH_TEST step 4 checks the sleeves)",
    48
   ],
   [
@@ -467,7 +467,7 @@
    "black",
    "26 AWG",
    170,
-   "reversed on purpose: the pair counter-rotates; v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)",
+   "reversed on purpose: the pair counter-rotates; v32: the motor drives the sleeve directly, so the sleeve turns with the motor (BENCH_TEST step 4 checks the sleeves)",
    50
   ],
   [
@@ -673,7 +673,7 @@
    40,
    "CHANGE (now #37)",
    "was XIAO D8 -> DRV#2 AIN1 + BIN1 (bridge the two pads) (45 mm); now XIAO D8 -> DRV#2 AIN1 (only AIN1: NO bridge to BIN1) (50 mm)",
-   "drills; v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)"
+   "drills"
   ],
   [
    41,
@@ -721,7 +721,7 @@
    48,
    "CHANGE (now #45)",
    "was DRV#2 AOUT1 -> Drill motor LEFT + (red) (195 mm); now DRV#2 AOUT1 -> Drill motor LEFT + (red) (170 mm)",
-   "out the left flank hole, 30 mm loop for the pod swing; v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)"
+   "out the left flank hole, 30 mm loop for the pod swing; v32: the motor drives the sleeve directly, so the sleeve turns with the motor (BENCH_TEST step 4 checks the sleeves)"
   ],
   [
    49,
@@ -733,7 +733,7 @@
    50,
    "CHANGE (now #47)",
    "was DRV#2 BOUT1 -> Drill motor RIGHT - (black)  SWAPPED (170 mm); now DRV#2 AOUT1 (same pad as the LEFT red) -> Drill motor RIGHT - (black)  SWAPPED (170 mm)",
-   "reversed on purpose: the pair counter-rotates; v32: the tip planetary reverses the sleeve, firmware DRILL_SIGN -1 drives the motors backwards (wiring unchanged; BENCH_TEST step 4 checks the sleeves)"
+   "reversed on purpose: the pair counter-rotates; v32: the motor drives the sleeve directly, so the sleeve turns with the motor (BENCH_TEST step 4 checks the sleeves)"
   ],
   [
    51,

@@ -184,12 +184,12 @@
    "print_bbox": [
     42.6,
     12.0,
-    9.0
+    10.0
    ],
-   "bed_contact_mm2": 134.1,
-   "overhang_mm2_gt45": 133.9,
+   "bed_contact_mm2": 31.4,
+   "overhang_mm2_gt45": 271.9,
    "orient": "lying on its side (layers along the boom), PPA-CF",
-   "volume_cm3": 2.66,
+   "volume_cm3": 2.75,
    "supports": "PPA-CF, lying on its side, no supports (the shank bridges 12 mm)"
   },
   "boom_anchor": {
@@ -203,6 +203,30 @@
    "orient": "flat on the bed, PPA-CF",
    "volume_cm3": 2.03,
    "supports": "PPA-CF, flat, no supports"
+  },
+  "drill_leg_L_tip": {
+   "print_bbox": [
+    15.0,
+    15.0,
+    9.5
+   ],
+   "bed_contact_mm2": 8.1,
+   "overhang_mm2_gt45": 0.0,
+   "orient": "spigot up",
+   "volume_cm3": 0.89,
+   "supports": "none (spigot down)"
+  },
+  "drill_leg_R_tip": {
+   "print_bbox": [
+    15.0,
+    15.0,
+    9.5
+   ],
+   "bed_contact_mm2": 8.1,
+   "overhang_mm2_gt45": 0.0,
+   "orient": "spigot up",
+   "volume_cm3": 0.89,
+   "supports": "none (spigot down)"
   }
  },
  "plates": {
@@ -212,12 +236,14 @@
     "hull_bottom",
     "nose",
     "tail_cap",
+    "drill_leg_L_tip",
+    "drill_leg_R_tip",
     "pod_cap_L",
     "pod_cap_R"
    ],
    "extent_mm": [
     230,
-    123.2
+    128.2
    ]
   },
   "plate_C_couplers_PPA-CF": {

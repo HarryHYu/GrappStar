@@ -579,7 +579,7 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 1.269,
+    "horn_moment_Nm": 1.271,
     "kick_rest_moment_Nm": 0.439,
     "F_upper_translation_N": 14.1,
     "F_without_foot_N": 9.8,
@@ -599,7 +599,7 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 1.269,
+    "horn_moment_Nm": 1.271,
     "kick_rest_moment_Nm": 0.439,
     "F_upper_translation_N": 14.7,
     "F_without_foot_N": 9.6,
@@ -619,7 +619,7 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 1.269,
+    "horn_moment_Nm": 1.271,
     "kick_rest_moment_Nm": 0.439,
     "F_upper_translation_N": 14.7,
     "F_without_foot_N": 9.6,
@@ -639,16 +639,16 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 1.269,
+    "horn_moment_Nm": 1.271,
     "kick_rest_moment_Nm": 0.439,
-    "F_upper_translation_N": 14.7,
-    "F_without_foot_N": 9.6,
+    "F_upper_translation_N": 14.8,
+    "F_without_foot_N": 9.7,
     "F_if_worms_never_slip_N": 13.8
    },
    {
     "rover_m": 5.0,
     "beta_deg": 4.4,
-    "F_design_N": 13.8,
+    "F_design_N": 13.9,
     "governing": [
      "drill augers soil capacity",
      "foot auger soil capacity",
@@ -659,11 +659,11 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 1.269,
+    "horn_moment_Nm": 1.271,
     "kick_rest_moment_Nm": 0.439,
     "F_upper_translation_N": 14.8,
     "F_without_foot_N": 9.7,
-    "F_if_worms_never_slip_N": 13.8
+    "F_if_worms_never_slip_N": 13.9
    }
   ],
   "moist loam": [
@@ -682,9 +682,9 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 4.487,
+    "horn_moment_Nm": 4.489,
     "kick_rest_moment_Nm": 0.0,
-    "F_upper_translation_N": 76.8,
+    "F_upper_translation_N": 76.9,
     "F_without_foot_N": 50.9,
     "F_if_worms_never_slip_N": 75.8
    },
@@ -703,10 +703,10 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 4.487,
+    "horn_moment_Nm": 4.489,
     "kick_rest_moment_Nm": 0.0,
     "F_upper_translation_N": 88.9,
-    "F_without_foot_N": 46.2,
+    "F_without_foot_N": 46.3,
     "F_if_worms_never_slip_N": 74.6
    },
    {
@@ -724,7 +724,7 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 4.487,
+    "horn_moment_Nm": 4.489,
     "kick_rest_moment_Nm": 0.0,
     "F_upper_translation_N": 89.0,
     "F_without_foot_N": 44.3,
@@ -745,7 +745,7 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 4.487,
+    "horn_moment_Nm": 4.489,
     "kick_rest_moment_Nm": 0.0,
     "F_upper_translation_N": 89.2,
     "F_without_foot_N": 43.4,
@@ -754,7 +754,7 @@
    {
     "rover_m": 5.0,
     "beta_deg": 4.4,
-    "F_design_N": 73.9,
+    "F_design_N": 74.0,
     "governing": [
      "drill augers soil capacity",
      "foot auger soil capacity",
@@ -766,7 +766,7 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 4.487,
+    "horn_moment_Nm": 4.489,
     "kick_rest_moment_Nm": 0.0,
     "F_upper_translation_N": 89.4,
     "F_without_foot_N": 42.9,
@@ -789,9 +789,9 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 26.664,
+    "horn_moment_Nm": 26.666,
     "kick_rest_moment_Nm": 0.0,
-    "F_upper_translation_N": 492.2,
+    "F_upper_translation_N": 492.3,
     "F_without_foot_N": 325.0,
     "F_if_worms_never_slip_N": 501.4
    },
@@ -810,11 +810,11 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 26.664,
+    "horn_moment_Nm": 26.666,
     "kick_rest_moment_Nm": 0.0,
     "F_upper_translation_N": 590.1,
     "F_without_foot_N": 285.0,
-    "F_if_worms_never_slip_N": 480.4
+    "F_if_worms_never_slip_N": 480.5
    },
    {
     "rover_m": 3.0,
@@ -831,7 +831,7 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 26.664,
+    "horn_moment_Nm": 26.666,
     "kick_rest_moment_Nm": 0.0,
     "F_upper_translation_N": 599.1,
     "F_without_foot_N": 272.5,
@@ -852,9 +852,9 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 26.664,
+    "horn_moment_Nm": 26.666,
     "kick_rest_moment_Nm": 0.0,
-    "F_upper_translation_N": 597.7,
+    "F_upper_translation_N": 597.8,
     "F_without_foot_N": 266.9,
     "F_if_worms_never_slip_N": 475.9
    },
@@ -873,9 +873,9 @@
     ],
     "deploy_worm_Nm": 0.6,
     "kick_worm_Nm": -0.6,
-    "horn_moment_Nm": 26.664,
+    "horn_moment_Nm": 26.666,
     "kick_rest_moment_Nm": 0.0,
-    "F_upper_translation_N": 597.2,
+    "F_upper_translation_N": 597.3,
     "F_without_foot_N": 263.8,
     "F_if_worms_never_slip_N": 474.9
    }
@@ -911,7 +911,7 @@
   "moist loam": [
    [
     20.0,
-    34.3
+    34.4
    ],
    [
     25.0,
@@ -937,7 +937,7 @@
   "firm clay": [
    [
     20.0,
-    160.3
+    160.4
    ],
    [
     25.0,
@@ -949,7 +949,7 @@
    ],
    [
     35.0,
-    435.1
+    435.2
    ],
    [
     40.0,
@@ -1049,21 +1049,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 9.9,
-    "horn_Nm": 0.646,
+    "horn_Nm": 0.648,
     "deploy_s": 9.0,
     "drill_margin": 20.48,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 48.8,
-    "horn_Nm": 2.49,
+    "horn_Nm": 2.492,
     "deploy_s": 61.0,
     "drill_margin": 3.13,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 302.4,
-    "horn_Nm": 15.223,
+    "horn_Nm": 15.225,
     "deploy_s": 417.0,
     "drill_margin": 0.41,
     "installs": false
@@ -1076,21 +1076,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 9.9,
-    "horn_Nm": 0.646,
+    "horn_Nm": 0.648,
     "deploy_s": 18.0,
     "drill_margin": 40.84,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 48.8,
-    "horn_Nm": 2.49,
+    "horn_Nm": 2.492,
     "deploy_s": 121.0,
     "drill_margin": 6.24,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 302.4,
-    "horn_Nm": 15.223,
+    "horn_Nm": 15.225,
     "deploy_s": 835.0,
     "drill_margin": 0.82,
     "installs": false
@@ -1103,21 +1103,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 11.6,
-    "horn_Nm": 0.764,
+    "horn_Nm": 0.766,
     "deploy_s": 9.0,
     "drill_margin": 13.82,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 58.7,
-    "horn_Nm": 3.107,
+    "horn_Nm": 3.109,
     "deploy_s": 57.0,
     "drill_margin": 1.68,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 375.7,
-    "horn_Nm": 19.275,
+    "horn_Nm": 19.276,
     "deploy_s": 389.0,
     "drill_margin": 0.22,
     "installs": false
@@ -1130,21 +1130,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 11.6,
-    "horn_Nm": 0.764,
+    "horn_Nm": 0.766,
     "deploy_s": 18.0,
     "drill_margin": 27.55,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 58.7,
-    "horn_Nm": 3.107,
+    "horn_Nm": 3.109,
     "deploy_s": 114.0,
     "drill_margin": 3.35,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 375.7,
-    "horn_Nm": 19.275,
+    "horn_Nm": 19.276,
     "deploy_s": 779.0,
     "drill_margin": 0.44,
     "installs": false
@@ -1157,21 +1157,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 12.2,
-    "horn_Nm": 0.823,
+    "horn_Nm": 0.824,
     "deploy_s": 9.0,
     "drill_margin": 11.72,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 62.5,
-    "horn_Nm": 3.416,
+    "horn_Nm": 3.418,
     "deploy_s": 56.0,
     "drill_margin": 1.31,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 400.2,
-    "horn_Nm": 21.3,
+    "horn_Nm": 21.302,
     "deploy_s": 380.0,
     "drill_margin": 0.17,
     "installs": false
@@ -1184,21 +1184,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 12.2,
-    "horn_Nm": 0.823,
+    "horn_Nm": 0.824,
     "deploy_s": 18.0,
     "drill_margin": 23.38,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 62.5,
-    "horn_Nm": 3.416,
+    "horn_Nm": 3.418,
     "deploy_s": 112.0,
     "drill_margin": 2.61,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 400.2,
-    "horn_Nm": 21.3,
+    "horn_Nm": 21.302,
     "deploy_s": 761.0,
     "drill_margin": 0.34,
     "installs": false
@@ -1211,21 +1211,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 13.8,
-    "horn_Nm": 0.969,
+    "horn_Nm": 0.971,
     "deploy_s": 9.0,
     "drill_margin": 8.26,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 72.2,
-    "horn_Nm": 4.187,
+    "horn_Nm": 4.189,
     "deploy_s": 54.0,
     "drill_margin": 0.78,
     "installs": false
    },
    "firm clay": {
     "F_hold_N": 461.5,
-    "horn_Nm": 26.364,
+    "horn_Nm": 26.366,
     "deploy_s": 365.0,
     "drill_margin": 0.1,
     "installs": false
@@ -1238,21 +1238,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 13.8,
-    "horn_Nm": 0.969,
+    "horn_Nm": 0.971,
     "deploy_s": 18.0,
     "drill_margin": 16.48,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 72.2,
-    "horn_Nm": 4.187,
+    "horn_Nm": 4.189,
     "deploy_s": 108.0,
     "drill_margin": 1.56,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 461.5,
-    "horn_Nm": 26.364,
+    "horn_Nm": 26.366,
     "deploy_s": 730.0,
     "drill_margin": 0.2,
     "installs": false
@@ -1265,21 +1265,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 9.9,
-    "horn_Nm": 0.946,
+    "horn_Nm": 0.948,
     "deploy_s": 9.0,
     "drill_margin": 20.48,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 51.6,
-    "horn_Nm": 2.79,
+    "horn_Nm": 2.792,
     "deploy_s": 61.0,
     "drill_margin": 3.13,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 305.2,
-    "horn_Nm": 15.523,
+    "horn_Nm": 15.525,
     "deploy_s": 417.0,
     "drill_margin": 0.41,
     "installs": false
@@ -1292,21 +1292,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 9.9,
-    "horn_Nm": 0.946,
+    "horn_Nm": 0.948,
     "deploy_s": 18.0,
     "drill_margin": 40.84,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 51.6,
-    "horn_Nm": 2.79,
+    "horn_Nm": 2.792,
     "deploy_s": 121.0,
     "drill_margin": 6.24,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 305.2,
-    "horn_Nm": 15.523,
+    "horn_Nm": 15.525,
     "deploy_s": 835.0,
     "drill_margin": 0.82,
     "installs": false
@@ -1319,21 +1319,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 11.6,
-    "horn_Nm": 1.064,
+    "horn_Nm": 1.066,
     "deploy_s": 9.0,
     "drill_margin": 13.82,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 60.1,
-    "horn_Nm": 3.407,
+    "horn_Nm": 3.409,
     "deploy_s": 57.0,
     "drill_margin": 1.68,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 376.7,
-    "horn_Nm": 19.575,
+    "horn_Nm": 19.576,
     "deploy_s": 389.0,
     "drill_margin": 0.22,
     "installs": false
@@ -1346,21 +1346,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 11.6,
-    "horn_Nm": 1.064,
+    "horn_Nm": 1.066,
     "deploy_s": 18.0,
     "drill_margin": 27.55,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 60.1,
-    "horn_Nm": 3.407,
+    "horn_Nm": 3.409,
     "deploy_s": 114.0,
     "drill_margin": 3.35,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 376.7,
-    "horn_Nm": 19.575,
+    "horn_Nm": 19.576,
     "deploy_s": 779.0,
     "drill_margin": 0.44,
     "installs": false
@@ -1373,21 +1373,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 12.2,
-    "horn_Nm": 1.123,
+    "horn_Nm": 1.124,
     "deploy_s": 9.0,
     "drill_margin": 11.72,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 64.0,
-    "horn_Nm": 3.716,
+    "horn_Nm": 3.718,
     "deploy_s": 56.0,
     "drill_margin": 1.31,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 401.2,
-    "horn_Nm": 21.6,
+    "horn_Nm": 21.602,
     "deploy_s": 380.0,
     "drill_margin": 0.17,
     "installs": false
@@ -1400,21 +1400,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 12.2,
-    "horn_Nm": 1.123,
+    "horn_Nm": 1.124,
     "deploy_s": 18.0,
     "drill_margin": 23.38,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 64.0,
-    "horn_Nm": 3.716,
+    "horn_Nm": 3.718,
     "deploy_s": 112.0,
     "drill_margin": 2.61,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 401.2,
-    "horn_Nm": 21.6,
+    "horn_Nm": 21.602,
     "deploy_s": 761.0,
     "drill_margin": 0.34,
     "installs": false
@@ -1427,21 +1427,21 @@
    "current": true,
    "dry sand": {
     "F_hold_N": 13.8,
-    "horn_Nm": 1.269,
+    "horn_Nm": 1.271,
     "deploy_s": 9.0,
     "drill_margin": 8.26,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 73.6,
-    "horn_Nm": 4.487,
+    "horn_Nm": 4.489,
     "deploy_s": 54.0,
     "drill_margin": 0.78,
     "installs": false
    },
    "firm clay": {
     "F_hold_N": 462.4,
-    "horn_Nm": 26.664,
+    "horn_Nm": 26.666,
     "deploy_s": 365.0,
     "drill_margin": 0.1,
     "installs": false
@@ -1454,21 +1454,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 13.8,
-    "horn_Nm": 1.269,
+    "horn_Nm": 1.271,
     "deploy_s": 18.0,
     "drill_margin": 16.48,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 73.6,
-    "horn_Nm": 4.487,
+    "horn_Nm": 4.489,
     "deploy_s": 108.0,
     "drill_margin": 1.56,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 462.4,
-    "horn_Nm": 26.664,
+    "horn_Nm": 26.666,
     "deploy_s": 730.0,
     "drill_margin": 0.2,
     "installs": false
@@ -1481,21 +1481,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 9.9,
-    "horn_Nm": 1.546,
+    "horn_Nm": 1.548,
     "deploy_s": 9.0,
     "drill_margin": 20.48,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 53.5,
-    "horn_Nm": 3.39,
+    "horn_Nm": 3.392,
     "deploy_s": 61.0,
     "drill_margin": 3.13,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 310.7,
-    "horn_Nm": 16.123,
+    "horn_Nm": 16.125,
     "deploy_s": 417.0,
     "drill_margin": 0.41,
     "installs": false
@@ -1508,21 +1508,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 9.9,
-    "horn_Nm": 1.546,
+    "horn_Nm": 1.548,
     "deploy_s": 18.0,
     "drill_margin": 40.84,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 53.5,
-    "horn_Nm": 3.39,
+    "horn_Nm": 3.392,
     "deploy_s": 121.0,
     "drill_margin": 6.24,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 310.7,
-    "horn_Nm": 16.123,
+    "horn_Nm": 16.125,
     "deploy_s": 835.0,
     "drill_margin": 0.82,
     "installs": false
@@ -1535,21 +1535,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 11.6,
-    "horn_Nm": 1.664,
+    "horn_Nm": 1.666,
     "deploy_s": 9.0,
     "drill_margin": 13.82,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 61.2,
-    "horn_Nm": 4.007,
+    "horn_Nm": 4.009,
     "deploy_s": 57.0,
     "drill_margin": 1.68,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 378.6,
-    "horn_Nm": 20.175,
+    "horn_Nm": 20.176,
     "deploy_s": 389.0,
     "drill_margin": 0.22,
     "installs": false
@@ -1562,21 +1562,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 11.6,
-    "horn_Nm": 1.664,
+    "horn_Nm": 1.666,
     "deploy_s": 18.0,
     "drill_margin": 27.55,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 61.2,
-    "horn_Nm": 4.007,
+    "horn_Nm": 4.009,
     "deploy_s": 114.0,
     "drill_margin": 3.35,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 378.6,
-    "horn_Nm": 20.175,
+    "horn_Nm": 20.176,
     "deploy_s": 779.0,
     "drill_margin": 0.44,
     "installs": false
@@ -1589,21 +1589,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 12.2,
-    "horn_Nm": 1.723,
+    "horn_Nm": 1.724,
     "deploy_s": 9.0,
     "drill_margin": 11.72,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 65.1,
-    "horn_Nm": 4.316,
+    "horn_Nm": 4.318,
     "deploy_s": 56.0,
     "drill_margin": 1.31,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 403.1,
-    "horn_Nm": 22.2,
+    "horn_Nm": 22.202,
     "deploy_s": 380.0,
     "drill_margin": 0.17,
     "installs": false
@@ -1616,21 +1616,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 12.2,
-    "horn_Nm": 1.723,
+    "horn_Nm": 1.724,
     "deploy_s": 18.0,
     "drill_margin": 23.38,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 65.1,
-    "horn_Nm": 4.316,
+    "horn_Nm": 4.318,
     "deploy_s": 112.0,
     "drill_margin": 2.61,
     "installs": true
    },
    "firm clay": {
     "F_hold_N": 403.1,
-    "horn_Nm": 22.2,
+    "horn_Nm": 22.202,
     "deploy_s": 761.0,
     "drill_margin": 0.34,
     "installs": false
@@ -1643,21 +1643,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 13.8,
-    "horn_Nm": 1.869,
+    "horn_Nm": 1.871,
     "deploy_s": 9.0,
     "drill_margin": 8.26,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 74.7,
-    "horn_Nm": 5.087,
+    "horn_Nm": 5.089,
     "deploy_s": 54.0,
     "drill_margin": 0.78,
     "installs": false
    },
    "firm clay": {
-    "F_hold_N": 464.3,
-    "horn_Nm": 27.264,
+    "F_hold_N": 464.4,
+    "horn_Nm": 27.266,
     "deploy_s": 365.0,
     "drill_margin": 0.1,
     "installs": false
@@ -1670,21 +1670,21 @@
    "current": false,
    "dry sand": {
     "F_hold_N": 13.8,
-    "horn_Nm": 1.869,
+    "horn_Nm": 1.871,
     "deploy_s": 18.0,
     "drill_margin": 16.48,
     "installs": true
    },
    "moist loam": {
     "F_hold_N": 74.7,
-    "horn_Nm": 5.087,
+    "horn_Nm": 5.089,
     "deploy_s": 108.0,
     "drill_margin": 1.56,
     "installs": true
    },
    "firm clay": {
-    "F_hold_N": 464.3,
-    "horn_Nm": 27.264,
+    "F_hold_N": 464.4,
+    "horn_Nm": 27.266,
     "deploy_s": 730.0,
     "drill_margin": 0.2,
     "installs": false
@@ -1695,28 +1695,28 @@
   {
    "c_kPa": 2.0,
    "F_N": 37.9,
-   "horn_Nm": 2.54,
+   "horn_Nm": 2.542,
    "F_soil_only_N": 37.9,
    "drill_install_Nm": 0.077
   },
   {
    "c_kPa": 5.0,
    "F_N": 73.6,
-   "horn_Nm": 4.487,
+   "horn_Nm": 4.489,
    "F_soil_only_N": 74.7,
    "drill_install_Nm": 0.179
   },
   {
    "c_kPa": 10.0,
    "F_N": 132.2,
-   "horn_Nm": 7.733,
+   "horn_Nm": 7.734,
    "F_soil_only_N": 136.1,
    "drill_install_Nm": 0.35
   },
   {
    "c_kPa": 20.0,
    "F_N": 249.6,
-   "horn_Nm": 14.223,
+   "horn_Nm": 14.225,
    "F_soil_only_N": 258.9,
    "drill_install_Nm": 0.692
   }

@@ -171,3 +171,10 @@ every start and before each commit. Never edit another owner's files; ask here.
   planting ends on a kick stall the kick pulses 0.4 s on / 0.2 s off while the foot finishes. Known limit: without a
   pods-down sensor the end stop is told from soil only by the travel estimate, so a soil stall past about 50 to 85 %
   of the estimate can still be taken as down. (2026-11-07 dart-fw)
+- [dart-jetson -> dart-physics] thanks: your answers are in the Jetson's realistic flight sim (AoA 4 to 16 deg decaying,
+  no roll, skid 0.1 to 1 m, about 42 deg lean on hard ground, 2 percent speed scatter in the prior). I keep my launcher
+  fit to base/out/ballistics.json (exit 0.42 m, 0.10 m ahead of the pivot): within 0.8 percent of the table range.
+- [dart-jetson -> dart-fw] the Jetson now follows API v4.1: /status spaced 0.2 s over every caller, waits for
+  log_frozen before /flightlog (max 6 s), rides WiFi gaps up to 10 s, on `not upright` asks the operator (reshoot or
+  /auto?force=1), stops the tow at once on `moving`, uses batt / batt_V in preflight (critical = refuse, low = warn),
+  NOT_UPRIGHT and PODS_JAM texts. No API change needed from you. (2026-11-07 dart-jetson)

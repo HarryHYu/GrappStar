@@ -36,7 +36,7 @@ TETHER_EXIT_H_M = 0.407      # line leaves the rover at the carriage pusher at H
                              # pivot_h 0.315 (deck 0.15 ASSUMED + 0.165) + 0.0756 sin 6 + 0.085 cos 6 (base launch_NOTES)
 TETHER_EXIT_X_M = 0.066      # ahead of the rail pivot (rover distance is measured from this point)
 TOW_CAP_N = 55.0             # base/spec REEL tow_limit_max_n (at the dart)
-FIRST_TOW_N = 40.0           # first-tow advice
+FIRST_TOW_N = 15.0           # first tow (dart-physics advice adopted by the Jetson; was 40)
 TAIL_PT = (152.0, 0.0)       # tether knot / exit on the axis, (x, z) mm
 MILL_FEED_FRAC_MAX = 1.0     # f / D cannot exceed 1 (that is the passive, not spinning, case)
 
@@ -85,7 +85,7 @@ class Anchor:
         self.kick_deg = P["KICK_DEG"] if kick_deg is None else kick_deg
         self.dep_deg = P["DEPLOY_DEG"] if dep_deg is None else dep_deg
         self.zg = d.ground
-        self.D = (auger_d_mm or P["AUGER_D"]) / 1000; self.Dc = P["AUGER_CORE"] / 1000; self.pitch = P["AUGER_PITCH"] / 1000
+        self.D = (auger_d_mm or P.get("FLIGHT_D", P["AUGER_D"])) / 1000; self.Dc = P.get("CORE_D", P["AUGER_CORE"]) / 1000; self.pitch = P["AUGER_PITCH"] / 1000
         self.Df = None
         a = d.mesh("drill_leg_L_auger").bounds
         self.r0, self.r1 = float(a[0, 0]), float(a[1, 0])            # auger along the pod radius (mm)
@@ -125,7 +125,7 @@ class Anchor:
         p_lat, tau, q_tip, Kp, Nq = soil_fns(soil, D)
         s, z = emb["s"], emb["z"]
         if emb["L"] <= 1e-4:
-            return dict(H_free=0.0, H_trans=0.0, Q_pull=0.0, Q_push=0.0, T_install_Nm=0.0, T_perko_Nm=0.0, x_res=0.0)
+            return dict(H_free=0.0, H_trans=0.0, Q_pull=0.0, Q_push=0.0, T_install_Nm=0.0, T_perko_Nm=0.0, T_spin_Nm=0.0, x_res=0.0)
         p = p_lat(z)
         Hf, sr = broms_free(p, s)
         Ht = float(np.trapezoid(p, s))
@@ -134,7 +134,8 @@ class Anchor:
         Qtip = q_tip(float(z[-1])) * math.pi * D ** 2 / 4
         Kt_perko = 1433.0 / (self.Dc * 1000) ** 0.92
         return dict(H_free=Hf, H_trans=Ht, s_rot=sr, x_res=x_res, Q_pull=Qs, Q_push=Qs + Qtip,
-                    T_install_Nm=Qs * D / 2 + Qtip * D / 4, T_perko_Nm=(Qs + Qtip) / Kt_perko)
+                    T_install_Nm=Qs * D / 2 + Qtip * D / 4, T_perko_Nm=(Qs + Qtip) / Kt_perko,
+                    T_spin_Nm=Qs * D / 2)    # a radial drill auger only spins in place (no axial advance): flight-tip cylinder shear
 
     # ---------------------------------------------------------------- deploy (radial augers sweep sideways)
     def deploy_moment(self, soil, th_deg, side_both=True):
@@ -321,7 +322,7 @@ def run(out=None):
     Dr = A.drill_axis(); Ft = A.foot_axis()
     ed = A.embedded(Dr[0], Dr[1], P["AUGER_TIP"]); ef = A.embedded(Ft[0], Ft[1], P["FOOT_TIP"])
     th_touch = math.degrees(math.asin((A.piv[2] - A.zg) / A.r1))
-    R["geometry"] = dict(drill=dict(D_mm=P["AUGER_D"], core_mm=P["AUGER_CORE"], pitch_mm=P["AUGER_PITCH"], r_from_pivot_mm=[round(A.r0, 1), round(A.r1, 1)],
+    R["geometry"] = dict(drill=dict(D_mm=P.get("FLIGHT_D", P["AUGER_D"]), core_mm=P.get("CORE_D", P["AUGER_CORE"]), pitch_mm=P.get("D_PITCH", P["AUGER_PITCH"]), r_from_pivot_mm=[round(A.r0, 1), round(A.r1, 1)],
                                     angle_deg=round(ed["angle"], 1), depth_mm=round(ed["depth"] * 1000, 1), embedded_mm=round(ed["L_geom"] * 1000, 1),
                                     embedded_effective_mm=round(ed["L"] * 1000, 1), entry_xz_mm=[round(ed["entry"][0], 1), round(ed["entry"][2], 1)],
                                     tip_touches_ground_at_deg=round(th_touch, 1), swing_in_soil_deg=round(A.dep_deg - th_touch, 1)),
@@ -356,12 +357,13 @@ def run(out=None):
         # drill torque while milling at that feed (cutting force per length = p f/D, tangential ~ feed force) + install
         p_lat = soil_fns(s, A.D)[0]
         T_mill = float(np.trapezoid(p_lat(ed["z"]) * f_over_D, ed["s"])) * A.D / 2
-        T_drill = cd["T_install_Nm"] + T_mill
+        T_drill = cd["T_spin_Nm"] + T_mill
         # foot: crowd needed to start a screw ~ tip bearing on the cone tip area (D/3 dia) x 0.3; the screw then self-feeds
         crowd_need = soil_fns(s, A.Df)[2](0.005) * math.pi * (A.Df / 3) ** 2 / 4 * 0.3
         soils[sn] = dict(
             drill_each=dict(H_free_N=round(cd["H_free"], 1), H_translation_N=round(cd["H_trans"], 1), Q_pull_N=round(cd["Q_pull"], 1), Q_push_N=round(cd["Q_push"], 1),
-                            install_torque_Nm=round(cd["T_install_Nm"], 3), install_torque_perko_Nm=round(cd["T_perko_Nm"], 3)),
+                            install_torque_Nm=round(cd["T_spin_Nm"], 3), install_torque_perko_Nm=round(cd["T_perko_Nm"], 3),
+                            screw_in_torque_if_axial_Nm=round(cd["T_install_Nm"], 3)),
             foot=dict(H_free_N=round(cf["H_free"], 1), H_translation_N=round(cf["H_trans"], 1), Q_pull_N=round(cf["Q_pull"], 1), Q_push_N=round(cf["Q_push"], 1),
                       install_torque_Nm=round(cf["T_install_Nm"], 3), install_torque_perko_Nm=round(cf["T_perko_Nm"], 3),
                       foot_motor_stall_Nm=mot["foot"]["stall_Nm"], kick_worm_as_foot_motor_stall_Nm=mot["worm"]["stall_Nm"],
@@ -371,7 +373,7 @@ def run(out=None):
                         milling_feed_over_D=round(f_over_D, 4), time_to_deploy_s=round(t_mill, 1), tip_arc_in_soil_mm=round(sweep * 1000, 1),
                         drill_torque_while_milling_Nm=round(T_drill, 3), drill_stall_Nm=mot["drill"]["stall_Nm"],
                         drill_margin=round(mot["drill"]["stall_Nm"] / max(T_drill, 1e-6), 1)),
-            unscrew=dict(drill_unscrew_torque_Nm=round(1.3 * cd["T_install_Nm"], 3), drill_margin=round(mot["drill"]["stall_Nm"] / max(1.3 * cd["T_install_Nm"], 1e-6), 1),
+            unscrew=dict(drill_unscrew_torque_Nm=round(1.3 * cd["T_spin_Nm"], 3), drill_margin=round(mot["drill"]["stall_Nm"] / max(1.3 * cd["T_spin_Nm"], 1e-6), 2),
                          foot_unscrew_torque_Nm=round(1.3 * cf["T_install_Nm"], 3),
                          note="unscrew torque taken 1.3 x install (soil set-up, flights packed); the pods then mill back out the same way they went in"),
         )
@@ -408,7 +410,7 @@ def run(out=None):
     R["kick_plant_passive_moment_Nm"] = kp
     # options: auger diameter, drill motor speed, deploy worm holding strength (B2 measures it), with this build's hard stops
     imp = []
-    Dnow = float(P["AUGER_D"])
+    Dnow = float(P.get("FLIGHT_D", P["AUGER_D"]))
     for wh in (0.3, 0.6, 1.2):
         for dmm in sorted({Dnow, 11.0, 15.0, 17.0}):
             for drpm in (100.0, 50.0):
@@ -428,7 +430,7 @@ def run(out=None):
                     sweep = Ai.r1 / 1000 * math.radians(Ai.dep_deg - th_touch)
                     t_dep = sweep / (fD * Ai.D * nrev)
                     T_mill = float(np.trapezoid(soil_fns(s, Ai.D)[0](edi["z"]) * fD, edi["s"])) * Ai.D / 2
-                    Treq = max(cp["T_install_Nm"] + T_mill, 1.3 * cp["T_install_Nm"])
+                    Treq = max(cp["T_spin_Nm"] + T_mill, 1.3 * cp["T_spin_Nm"])
                     lr = Ai.limit(s, 3.0, worm_hold=wh)
                     row[sn] = dict(F_hold_N=round(lr["F"], 1), horn_Nm=lr["horn_moment_Nm"], deploy_s=round(t_dep, 0),
                                    drill_margin=round(md["stall_Nm"] / max(Treq, 1e-6), 2), installs=bool(md["stall_Nm"] >= 1.25 * Treq))
@@ -440,7 +442,7 @@ def run(out=None):
         s = dict(dm.SOIL["moist loam"], c=c)
         lr = A.limit(s, 3.0)
         sens.append(dict(c_kPa=c, F_N=round(lr["F"], 1), horn_Nm=lr["horn_moment_Nm"], F_soil_only_N=round(A.limit(s, 3.0, worm_hold=50.0)["F"], 1),
-                         drill_install_Nm=round(A.pile(ed, s, A.D)["T_install_Nm"], 3)))
+                         drill_install_Nm=round(A.pile(ed, s, A.D)["T_spin_Nm"], 3)))
     R["loam_cohesion_sensitivity_rover3m"] = sens
     # motor heating while milling in loam (N20 winding: R_th about 40 K/W, time constant about 90 s, ASSUMED typical)
     RTH, TAU = 40.0, 90.0
@@ -449,7 +451,7 @@ def run(out=None):
         row = next(r for r in imp if r["worm_hold_Nm"] == 0.6 and r["auger_d_mm"] == Dnow and r["drill_rpm12"] == drpm)
         t = row["moist loam"]["deploy_s"]
         dm.MOTORS["drill"]["rpm12"] = drpm; mdr = dm.motor("drill", V)
-        Ti = A.pile(ed, dm.SOIL["moist loam"], A.D)["T_install_Nm"]
+        Ti = A.pile(ed, dm.SOIL["moist loam"], A.D)["T_spin_Nm"]
         Id = min(dm.motor_current_for("drill", Ti), mdr["stall_A"]); dm.MOTORS["drill"]["rpm12"] = 100.0
         Pd = Id ** 2 * mdr["R_ohm"]; Pw = mot["worm"]["stall_A"] ** 2 * mot["worm"]["R_ohm"]
         f = 1 - math.exp(-t / TAU)
@@ -482,7 +484,7 @@ def energy(R, mot):
     seq.append(("kick swing", R["kick"]["swing_time_free_s"], 0.06))
     seq.append(("kick + foot planting (kick at stall, foot working)", 15.0, mot["worm"]["stall_A"] + dm.motor_current_for("foot", s["foot"]["install_torque_Nm"])))
     seq.append(("deploy worm at stall while both drills mill (loam)", t_dep, mot["worm"]["stall_A"] + 2 * dm.motor_current_for("drill", s["deploy"]["drill_torque_while_milling_Nm"])))
-    seq.append(("drills finishing", 10.0, 2 * dm.motor_current_for("drill", s["drill_each"]["install_torque_Nm"])))
+    seq.append(("drills finishing", 10.0, 2 * dm.motor_current_for("drill", min(s["drill_each"]["install_torque_Nm"], 0.18))))
     mAh = sum(t * i for _, t, i in seq) / 3.6
     rel = sum(t * i for _, t, i in seq) / 3.6 * 1.3
     return dict(cap_usable_mAh=round(cap_Ah * 1000), avionics_W=round(P5, 2), avionics_A_at_7V4=round(I5, 3),
@@ -503,7 +505,7 @@ def plots(A, R, outd):
     xr = [1.0, 2.0, 3.0, 4.0, 5.0]
     ax[0].plot(xr, [A.limit(dm.SOIL["moist loam"], r, worm_hold=0.3)["F"] for r in xr], "k--", marker="s", mfc="w", label="moist loam, worm holds only 0.3 N m")
     ax[0].axhline(TOW_CAP_N, color="k", lw=0.6, ls="--"); ax[0].text(1.05, TOW_CAP_N + 1, "tow cap 55 N")
-    ax[0].axhline(FIRST_TOW_N, color="k", lw=0.6, ls="-."); ax[0].text(1.05, FIRST_TOW_N + 1, "first tow 40 N")
+    ax[0].axhline(FIRST_TOW_N, color="k", lw=0.6, ls="-."); ax[0].text(1.05, FIRST_TOW_N + 1, "first tow 15 N")
     ax[0].set_xlabel("rover line exit behind the dart tail (m)"); ax[0].set_ylabel("max tether pull at the dart (N)"); ax[0].grid(lw=0.3)
     ax[0].legend(fontsize=6, loc="center right"); ax[0].set_title("Holding (planar limit analysis; clay only if the drills could install)")
     for i, sn in enumerate(R["soils"]):

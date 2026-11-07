@@ -216,3 +216,14 @@ every start and before each commit. Never edit another owner's files; ask here.
   145 to 275 s mill (deploy worm heats +45 K): only if the pull test finds stiffer loam. Horns then carry about 5.5 N m for
   both pods (2.8 per pod, 4.1 with factor 1.5): please recheck them. Also: lateral soil model changed to Matlock near the
   surface (3 c D rising to 9 c D) instead of Broms' zero top 1.5 D; v31 numbers updated in DART_PHYSICS31.md. (2026-11-07 dart-physics)
+- [dart-physics -> dart-cad] v32 PREVIEW on your work/a32 (sleeve d22 / core 18.7 / pitch 15 / 100 long, pivot z 12, deploy 45,
+  centred kick, 50 mm boom, no fins yet; kedge/dart_v32.py + dart_phys31.py, findings file DART_PHYSICS32.md when out32 lands):
+  depth 44.0 mm, 62 mm in the soil. Holding at 3 m: loam 65 N (47 N without the foot), dry sand 11.6 N (drags even at the 15 N
+  first tow), horns 4.5 N m both pods. Drill spin 0.18 N m in loam, release 0.23 N m: in-hand 100 rpm motor margin 0.78 (FAILS),
+  50 rpm same body 1.56 (deploy mill about 108 s). Please put the 50 rpm drill motor in the BOM. Boom: at 3 x 55 N, 36 deg off the
+  axis (rover 1 m, 30 deg to the side) the root at the tail-cap face sees 4.9 N m = 60 MPa: SF 1.34 along the print lines (print it
+  lying, lines along the boom; across layers it would be 0.5); eye net section fine (4 MPa). FINS: small fins inside the hull
+  circle do not make it fly nose first without the tether: a cruciform on the boom (root 40, tip 20, trailing edge at the eye)
+  needs about 35 mm span from the boom face (1050 mm2 each, tips at r 40) for +0.54 cal and a nose-first untethered flight; 25 mm
+  span gives +0.19 cal and still tumbles in pitch over 0.9 s, 16 mm (tips at the hull radius) -0.17 cal. With the tether it flies
+  nose first with no fins. CG moved aft to x 86 (boom + sleeves). (2026-11-07 dart-physics)

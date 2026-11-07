@@ -110,9 +110,31 @@ def fins_flight(d, out):
     return R
 
 
+def fin_sweep(d):
+    """Hypothetical cruciform on the boom (4 fins, root chord 40, tip chord 20, trailing edge at the eye): span from the
+    boom face needed for a positive margin and a nose-first flight without the tether."""
+    x1 = d.tether_pt[0] - 2.0; x0 = x1 - 40.0
+    rows = []
+    real = d.fins
+    for span in (0.0, 10.0, 16.0, 25.0, 35.0):
+        A = (40.0 + 20.0) / 2 * span * 1e-6
+        def fake(span=span, A=A):
+            if span <= 0:
+                return []
+            s_ = span / 1000; AR = 2 * s_ ** 2 / A; K = 1 + 0.005 / (s_ + 0.005)
+            C = 2 * math.pi * AR / (2 + math.sqrt(4 + AR ** 2)) * A * K
+            f = dict(x0=x0, x1=x1, x_mm=(x0 + x1) / 2, span_mm=span, area_mm2=A * 1e6, C_m2=C)
+            return [dict(f, name="fin_y+", plane="pitch"), dict(f, name="fin_y-", plane="pitch"), dict(f, name="fin_z+", plane="yaw"), dict(f, name="fin_z-", plane="yaw")]
+        d.fins = fake
+        fl = fins_flight(d, None)
+        rows.append(dict(span_from_boom_mm=span, fin_area_each_mm2=round(A * 1e6), margin_cal=fl["static_margin_cal"], no_tether_pitch=fl["no_tether_pitch"], no_tether_yaw=fl["no_tether_yaw"]))
+    d.fins = real
+    return rows
+
+
 def run(out):
     d = dm.Dart(out)
-    R = dict(source=d.out, tether_pt_mm=d.tether_pt, boom=boom_check(d), flight=fins_flight(d, out))
+    R = dict(source=d.out, tether_pt_mm=d.tether_pt, boom=boom_check(d), flight=fins_flight(d, out), fin_sweep=fin_sweep(d))
     os.makedirs(os.path.join(d.out, "phys31"), exist_ok=True)
     json.dump(R, open(os.path.join(d.out, "phys31", "v32_checks.json"), "w"), indent=1, default=float)
     return R

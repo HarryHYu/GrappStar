@@ -106,8 +106,8 @@ def write_md(out, R, A, L, F, S):
       f"bench test B2 to measure the real strength."); n += 1
     w(f"{n}. Drill torque. Install torque {so['moist loam']['drill_each']['install_torque_perko_Nm']} to {so['moist loam']['drill_each']['install_torque_Nm']} N m in loam, unscrew about "
       f"{so['moist loam']['unscrew']['drill_unscrew_torque_Nm']} N m, against {mo['drill']['stall_Nm']} N m stall: release can fail in loam (margin {so['moist loam']['unscrew']['drill_margin']}). "
-      f"Firm clay needs {so['firm clay']['drill_each']['install_torque_perko_Nm']} to {so['firm clay']['drill_each']['install_torque_Nm']} N m: cannot install. Fix: auger d17 to d13 "
-      f"(install torque about half; in loam the holding is the same because the cohesion term 9 c D only acts below 1.5 D, which a thinner auger reaches sooner) "
+      f"Firm clay needs {so['firm clay']['drill_each']['install_torque_perko_Nm']} to {so['firm clay']['drill_each']['install_torque_Nm']} N m: cannot install. Fix: auger d17 to d13..d15 "
+      f"(flights at least 3 mm deep over the new 7.5 core: d14 is the middle; install torque about half at d13; in loam the holding is the same because the cohesion term 9 c D only acts below 1.5 D, which a thinner auger reaches sooner) "
       f"and 50 rpm drill motors (same body, twice the torque)."); n += 1
     mh = A["motor_heating_loam"]["cases"]
     w(f"{n}. Motor heating while milling loam (R_th 40 K/W assumed): drills {mh['now']['drill_A']} A each for {mh['now']['deploy_s']:.0f} s, about +{mh['now']['drill_rise_K']:.0f} K in the PLA pod "
@@ -124,9 +124,12 @@ def write_md(out, R, A, L, F, S):
       f"never above the pull-test 5 mm force / 1.5."); n += 1
     w(f"{n}. Without the foot the loam holding drops from {l3['moist loam']['F_design_N']} to {l3['moist loam']['F_without_foot_N']} N (nose lift); a close rover (1 m, line "
       f"{l1['moist loam']['beta_deg']} deg) gives {l1['moist loam']['F_design_N']} N. Keep the foot; prefer the rover 3 to 5 m away."); n += 1
-    w(f"{n}. Landing roll. On hard ground the folded dart leans about 38 deg on a flank. Deploying the pods to about 24 deg levels it (quasi-static check), but the kick runs "
-      f"first today. Fix (fw): if |roll| is 12 to 60 deg, swing the pods to 25 deg first (drills off), then kick and plant, then the full milling deploy. At 30 deg roll the "
-      f"shallow auger reaches only {L['anchor_vs_roll'][-1]['auger_tip_depths_mm'][0]} mm deep (of {L['anchor_vs_roll'][0]['auger_tip_depths_mm'][0]}). "
+    pf = L.get("pods_first_leveling", [])
+    lev = max((next((a for a, r in q["roll_vs_pod_deg"] if abs(r) < 3), 99) for q in pf), default=24)
+    w(f"{n}. Landing roll. On hard ground the folded dart leans about {abs(L['roll_slice']['minima_deg_h'][1][0]):.0f} deg on a flank (no belly-down rest state). "
+      f"Swinging the pods down first (drills off) levels it from every leaning state by a pod angle of {lev} deg (quasi-static check; the auger tips touch the ground at 16 deg). "
+      f"Fix (fw): if |roll| is 10 to 60 deg, pods to {lev + 2} deg first, re-read roll, then kick and plant, then the full milling deploy. At 30 deg roll the "
+      f"shallow auger would reach only {L['anchor_vs_roll'][-1]['auger_tip_depths_mm'][0]} mm deep (of {L['anchor_vs_roll'][0]['auger_tip_depths_mm'][0]}). "
       f"On its side or upside down nothing the legs do rights it: report it and reel in for another shot. Optional (dart-cad): a 16 mm wide flat on the belly bottom (1.6 mm deep) "
       f"makes belly down stable for about 17 deg, if the cradle rings allow it."); n += 1
     hard = i34["hard ground (dry compacted, concrete)"]; grav = i34["gravel (10 to 20 mm)"]
@@ -152,7 +155,7 @@ def write_md(out, R, A, L, F, S):
     w("")
     w(f"Exit height uses the base deck 0.15 m (assumed). AoA is the response to a 5 deg + 1 rad/s muzzle disturbance (tip-off off the cradle is about 0.4 rad/s); it decays slowly. Roll rate: no source "
       f"(belly-down launch, no spin, tether on the axis): about 0. After impact: the nose digs 2 to 12 mm in soil (1 to 4 ms), the body slaps down and skids roughly 0.2 m "
-      f"(soil) to 1 m (hard, with a bounce), still within about 1 s (estimate from the impulse and friction, no contact simulation); on hard ground it ends leaning about 38 deg on a flank; in soft soil the belly beds in and the roll stays nearer the landing roll (estimate). BNO085 at impact: "
+      f"(soil) to 1 m (hard, with a bounce), still within about 1 s (estimate from the impulse and friction, no contact simulation); on hard ground it ends leaning about {abs(L['roll_slice']['minima_deg_h'][1][0]):.0f} deg on a flank; in soft soil the belly beds in and the roll stays nearer the landing roll (estimate). BNO085 at impact: "
       f"saturated (8 g) on every surface; raw peaks at the board {i34['soft soil (loam, tilled)']['bno085_raw_g']:.0f} g soil, {i34['gravel (10 to 20 mm)']['bno085_raw_g']:.0f} g gravel. "
       f"Muzzle speed sigma about {S['sigma_percent']} percent from spring rate, rail friction and dart mass alone; with cock-position and line-drag scatter 2 percent is a fair prior.")
     w("")

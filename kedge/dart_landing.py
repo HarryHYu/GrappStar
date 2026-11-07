@@ -126,7 +126,7 @@ def run(out=None, flight=None):
     rr, hh = roll_slice(pts, cg)
     mins = [(round(float(rr[i]), 0), round(float(hh[i]), 1)) for i in range(1, len(rr) - 1) if hh[i] <= hh[i - 1] and hh[i] < hh[i + 1]]
     maxs = [(round(float(rr[i]), 0), round(float(hh[i]), 1)) for i in range(1, len(rr) - 1) if hh[i] >= hh[i - 1] and hh[i] > hh[i + 1]]
-    R["roll_slice"] = dict(minima_deg_h=mins, maxima_deg_h=maxs, note="lying along the axis: a landing roll between the two maxima either side of 0 settles belly down")
+    R["roll_slice"] = dict(minima_deg_h=mins, maxima_deg_h=maxs, note="lying along the axis (folded): minima = rest rolls, maxima = basin edges")
     # recovery attempts from each non-belly rest state: kick swing out and back, pods down and up
     rec = []
     seq = [("kick", k) for k in range(0, 205, 10)] + [("kick", k) for k in range(200, -5, -10)] + \
@@ -151,6 +151,21 @@ def run(out=None, flight=None):
                         end_roll=fin["roll_deg"], end_pitch=fin["pitch_deg"], belly_down_at_end=abs(fin["roll_deg"]) < 25,
                         closest_to_belly=dict(step=best[0], angle=best[1], roll=best[2])))
     R["recovery_quasistatic"] = rec
+    # pods first (drills off) from each leaning rest state: roll vs pod angle
+    pf = []
+    for s in st:
+        if s["share"] < 0.005 or not (10 <= abs(s["roll_deg"]) <= 60):
+            continue
+        i = s["idx"]; tr = []
+        for a in range(0, 44, 2):
+            if (0, a) not in cache:
+                p2, _ = d.hull_points(0, a)
+                cache[(0, a)] = rs.h(p2, d.mass_props(d.assembly(0, a))["cg"])
+            i = rs.descend(cache[(0, a)], i)
+            tr.append((a, attitude(rs.S[i])["roll_deg"]))
+        best = min(tr, key=lambda q: abs(q[1]))
+        pf.append(dict(start_roll=s["roll_deg"], share_pct=round(s["share"] * 100, 1), roll_vs_pod_deg=tr, best_pod_deg=best[0], best_roll=best[1]))
+    R["pods_first_leveling"] = pf
     # anchor tolerance to roll: depth of each drill auger tip below ground when the deployed dart rests rolled by phi on its hull
     import dart_anchor as da
     A = da.Anchor(d)

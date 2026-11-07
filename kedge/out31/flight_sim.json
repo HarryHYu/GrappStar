@@ -1,0 +1,359 @@
+{
+ "pitch, 0 g ballast, rail 34 deg, tether 0.25 N": {
+  "range_m": 4.63,
+  "t_flight_s": 0.892,
+  "apex_m": 1.22,
+  "v_impact": 6.54,
+  "path_angle_deg": 45.4,
+  "alpha_impact_deg": 7.3,
+  "alpha_peak_after_0p15s_deg": 21.3,
+  "nose_first": true,
+  "nose_pitch_at_impact_deg": -52.8,
+  "v_muzzle": 7.04,
+  "muzzle_xz_m": [
+   0.076,
+   0.469
+  ],
+  "base_range_m": 4.62,
+  "base_t_flight_s": 0.865,
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 19.8,
+  "tumbled": false
+ },
+ "pitch, 0 g ballast, rail 34 deg, no tether": {
+  "range_m": 5.08,
+  "t_flight_s": 0.908,
+  "apex_m": 1.26,
+  "v_impact": 7.27,
+  "path_angle_deg": 42.7,
+  "alpha_impact_deg": -151.6,
+  "alpha_peak_after_0p15s_deg": 151.9,
+  "nose_first": false,
+  "nose_pitch_at_impact_deg": 108.7,
+  "v_muzzle": 7.04,
+  "muzzle_xz_m": [
+   0.076,
+   0.469
+  ],
+  "base_range_m": 4.62,
+  "base_t_flight_s": 0.865,
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 151.9,
+  "tumbled": true
+ },
+ "pitch, 8 g ballast, rail 34 deg, tether 0.25 N": {
+  "range_m": 4.63,
+  "t_flight_s": 0.892,
+  "apex_m": 1.22,
+  "v_impact": 6.54,
+  "path_angle_deg": 45.4,
+  "alpha_impact_deg": 7.3,
+  "alpha_peak_after_0p15s_deg": 21.3,
+  "nose_first": true,
+  "nose_pitch_at_impact_deg": -52.8,
+  "v_muzzle": 7.04,
+  "muzzle_xz_m": [
+   0.076,
+   0.469
+  ],
+  "base_range_m": 4.62,
+  "base_t_flight_s": 0.865,
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 19.8,
+  "tumbled": false
+ },
+ "pitch, 8 g ballast, rail 34 deg, no tether": {
+  "range_m": 5.08,
+  "t_flight_s": 0.908,
+  "apex_m": 1.26,
+  "v_impact": 7.27,
+  "path_angle_deg": 42.7,
+  "alpha_impact_deg": -151.6,
+  "alpha_peak_after_0p15s_deg": 151.9,
+  "nose_first": false,
+  "nose_pitch_at_impact_deg": 108.7,
+  "v_muzzle": 7.04,
+  "muzzle_xz_m": [
+   0.076,
+   0.469
+  ],
+  "base_range_m": 4.62,
+  "base_t_flight_s": 0.865,
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 151.9,
+  "tumbled": true
+ },
+ "pitch, 15 g ballast, rail 10 deg, tether 0.25 N": {
+  "range_m": 3.0,
+  "t_flight_s": 0.45,
+  "apex_m": 0.5,
+  "v_impact": 7.0,
+  "path_angle_deg": 25.2,
+  "alpha_impact_deg": -0.5,
+  "alpha_peak_after_0p15s_deg": 21.8,
+  "nose_first": true,
+  "nose_pitch_at_impact_deg": -24.8,
+  "v_muzzle": 7.13,
+  "muzzle_xz_m": [
+   0.132,
+   0.425
+  ],
+  "base_range_m": 3.09,
+  "base_t_flight_s": 0.443,
+  "max_line_pull_N": 0.38,
+  "max_alpha_after_0p6s_deg": null,
+  "tumbled": false
+ },
+ "pitch, 15 g ballast, rail 10 deg, no tether": {
+  "range_m": 3.15,
+  "t_flight_s": 0.455,
+  "apex_m": 0.5,
+  "v_impact": 7.4,
+  "path_angle_deg": 24.1,
+  "alpha_impact_deg": -95.8,
+  "alpha_peak_after_0p15s_deg": 95.8,
+  "nose_first": false,
+  "nose_pitch_at_impact_deg": 71.6,
+  "v_muzzle": 7.13,
+  "muzzle_xz_m": [
+   0.132,
+   0.425
+  ],
+  "base_range_m": 3.09,
+  "base_t_flight_s": 0.443,
+  "max_line_pull_N": 0.38,
+  "max_alpha_after_0p6s_deg": null,
+  "tumbled": true
+ },
+ "pitch, 15 g ballast, rail 20 deg, tether 0.25 N": {
+  "range_m": 3.94,
+  "t_flight_s": 0.637,
+  "apex_m": 0.74,
+  "v_impact": 6.78,
+  "path_angle_deg": 32.5,
+  "alpha_impact_deg": 19.5,
+  "alpha_peak_after_0p15s_deg": 21.9,
+  "nose_first": true,
+  "nose_pitch_at_impact_deg": -52.2,
+  "v_muzzle": 7.09,
+  "muzzle_xz_m": [
+   0.111,
+   0.446
+  ],
+  "base_range_m": 3.97,
+  "base_t_flight_s": 0.622,
+  "max_line_pull_N": 0.38,
+  "max_alpha_after_0p6s_deg": 19.5,
+  "tumbled": false
+ },
+ "pitch, 15 g ballast, rail 20 deg, no tether": {
+  "range_m": 4.2,
+  "t_flight_s": 0.648,
+  "apex_m": 0.75,
+  "v_impact": 7.28,
+  "path_angle_deg": 31.3,
+  "alpha_impact_deg": -130.7,
+  "alpha_peak_after_0p15s_deg": 130.7,
+  "nose_first": false,
+  "nose_pitch_at_impact_deg": 99.3,
+  "v_muzzle": 7.09,
+  "muzzle_xz_m": [
+   0.111,
+   0.446
+  ],
+  "base_range_m": 3.97,
+  "base_t_flight_s": 0.622,
+  "max_line_pull_N": 0.38,
+  "max_alpha_after_0p6s_deg": 130.7,
+  "tumbled": true
+ },
+ "pitch, 15 g ballast, rail 34 deg, tether 0.25 N": {
+  "range_m": 4.63,
+  "t_flight_s": 0.892,
+  "apex_m": 1.22,
+  "v_impact": 6.54,
+  "path_angle_deg": 45.4,
+  "alpha_impact_deg": 7.3,
+  "alpha_peak_after_0p15s_deg": 21.3,
+  "nose_first": true,
+  "nose_pitch_at_impact_deg": -52.8,
+  "v_muzzle": 7.04,
+  "muzzle_xz_m": [
+   0.076,
+   0.469
+  ],
+  "base_range_m": 4.62,
+  "base_t_flight_s": 0.865,
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 19.8,
+  "tumbled": false
+ },
+ "pitch, 15 g ballast, rail 34 deg, no tether": {
+  "range_m": 5.08,
+  "t_flight_s": 0.908,
+  "apex_m": 1.26,
+  "v_impact": 7.27,
+  "path_angle_deg": 42.7,
+  "alpha_impact_deg": -151.6,
+  "alpha_peak_after_0p15s_deg": 151.9,
+  "nose_first": false,
+  "nose_pitch_at_impact_deg": 108.7,
+  "v_muzzle": 7.04,
+  "muzzle_xz_m": [
+   0.076,
+   0.469
+  ],
+  "base_range_m": 4.62,
+  "base_t_flight_s": 0.865,
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 151.9,
+  "tumbled": true
+ },
+ "pitch, 15 g ballast, rail 45 deg, tether 0.25 N": {
+  "range_m": 4.55,
+  "t_flight_s": 1.069,
+  "apex_m": 1.65,
+  "v_impact": 6.47,
+  "path_angle_deg": 55.8,
+  "alpha_impact_deg": -7.0,
+  "alpha_peak_after_0p15s_deg": 20.2,
+  "nose_first": true,
+  "nose_pitch_at_impact_deg": -48.9,
+  "v_muzzle": 7.01,
+  "muzzle_xz_m": [
+   0.045,
+   0.48
+  ],
+  "base_range_m": 4.51,
+  "base_t_flight_s": 1.029,
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 16.4,
+  "tumbled": false
+ },
+ "pitch, 15 g ballast, rail 45 deg, no tether": {
+  "range_m": 5.19,
+  "t_flight_s": 1.095,
+  "apex_m": 1.73,
+  "v_impact": 7.37,
+  "path_angle_deg": 51.6,
+  "alpha_impact_deg": 178.2,
+  "alpha_peak_after_0p15s_deg": 179.9,
+  "nose_first": false,
+  "nose_pitch_at_impact_deg": 130.1,
+  "v_muzzle": 7.01,
+  "muzzle_xz_m": [
+   0.045,
+   0.48
+  ],
+  "base_range_m": 4.51,
+  "base_t_flight_s": 1.029,
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 179.9,
+  "tumbled": true
+ },
+ "yaw, 0 g ballast, rail 34 deg, tether 0.25 N": {
+  "sideslip_end_deg": 2.6,
+  "sideslip_peak_after_0p15s_deg": 10.3,
+  "nose_first": true,
+  "v_muzzle": 7.04,
+  "muzzle_xz_m": [
+   0.076,
+   0.469
+  ],
+  "base_range_m": 4.62,
+  "base_t_flight_s": 0.865,
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 9.3,
+  "tumbled": false,
+  "range_m": 4.62
+ },
+ "yaw, 0 g ballast, rail 34 deg, no tether": {
+  "sideslip_end_deg": -131.7,
+  "sideslip_peak_after_0p15s_deg": 131.7,
+  "nose_first": false,
+  "v_muzzle": 7.04,
+  "muzzle_xz_m": [
+   0.076,
+   0.469
+  ],
+  "base_range_m": 4.62,
+  "base_t_flight_s": 0.865,
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 131.7,
+  "tumbled": true,
+  "range_m": 4.62
+ },
+ "yaw, 8 g ballast, rail 34 deg, tether 0.25 N": {
+  "sideslip_end_deg": 2.6,
+  "sideslip_peak_after_0p15s_deg": 10.3,
+  "nose_first": true,
+  "v_muzzle": 7.04,
+  "muzzle_xz_m": [
+   0.076,
+   0.469
+  ],
+  "base_range_m": 4.62,
+  "base_t_flight_s": 0.865,
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 9.3,
+  "tumbled": false,
+  "range_m": 4.62
+ },
+ "yaw, 8 g ballast, rail 34 deg, no tether": {
+  "sideslip_end_deg": -131.7,
+  "sideslip_peak_after_0p15s_deg": 131.7,
+  "nose_first": false,
+  "v_muzzle": 7.04,
+  "muzzle_xz_m": [
+   0.076,
+   0.469
+  ],
+  "base_range_m": 4.62,
+  "base_t_flight_s": 0.865,
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 131.7,
+  "tumbled": true,
+  "range_m": 4.62
+ },
+ "yaw, 15 g ballast, rail 34 deg, tether 0.25 N": {
+  "sideslip_end_deg": 2.6,
+  "sideslip_peak_after_0p15s_deg": 10.3,
+  "nose_first": true,
+  "v_muzzle": 7.04,
+  "muzzle_xz_m": [
+   0.076,
+   0.469
+  ],
+  "base_range_m": 4.62,
+  "base_t_flight_s": 0.865,
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 9.3,
+  "tumbled": false,
+  "range_m": 4.62
+ },
+ "yaw, 15 g ballast, rail 34 deg, no tether": {
+  "sideslip_end_deg": -131.7,
+  "sideslip_peak_after_0p15s_deg": 131.7,
+  "nose_first": false,
+  "v_muzzle": 7.04,
+  "muzzle_xz_m": [
+   0.076,
+   0.469
+  ],
+  "base_range_m": 4.62,
+  "base_t_flight_s": 0.865,
+  "max_line_pull_N": 0.37,
+  "max_alpha_after_0p6s_deg": 131.7,
+  "tumbled": true,
+  "range_m": 4.62
+ },
+ "inputs": {
+  "source": "out31",
+  "model": "  python flight_sim.py OUT PK    -> OUT/flight_sim.json, PK/flight_sim.png   (PK may equal OUT/phys31)  Model: mass, CG and inertia from dart_model (all parts, own inertia included, ballast as set); muzzle speed from base/physics/launcher.py at each rail pitch with this dart's mass; launch point and range origin as base flight.py (rail pivot geometry). Aero per 1 mm station: viscous cross-flow (Cdc 1.2 x eta 0.65) on the TOP-view width for pitch (SIDE-view height for yaw), the slender-body potential term rho U S'(x) w(x) where the section area grows (nose,",
+  "mass_kg": 0.2604,
+  "cg_x_mm": 80.9,
+  "cross_flow_cd": 1.2,
+  "eta": 0.65,
+  "axial_cda": 0.0026
+ }
+}

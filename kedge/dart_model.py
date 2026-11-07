@@ -30,7 +30,7 @@ BOUGHT_G = {                 # grams, catalogue / bench values (WEIGH on the day
     "brg_ear": 0.8, "screws_radial": 3.5, "screw_ear_root": 0.8, "kick_hub_screw": 0.7, "kick_washer": 0.1,
     "coupler_L_screw": 0.6, "coupler_L_washer": 0.1, "coupler_R_screw": 0.6, "coupler_R_washer": 0.1,
     "contacts_front_springs": 1.0, "contacts_rear_plates": 0.6, "jst_charge": 0.8, "jst_loop": 1.2, "antenna": 0.6,
-    "capacitor": 1.0,
+    "capacitor": 1.0, "xiao_antenna": 0.6,
 }
 # shafts are inside the motor masses; the ballast is set by ballast_g (its mesh gives the position)
 ZERO_G = {"drill_leg_L_shaft", "drill_leg_R_shaft", "kick_shaft", "deploy_shaft", "foot_shaft", "ballast"}
@@ -60,7 +60,7 @@ class Dart:
             if p.get("parent"):
                 self.kids.setdefault(p["parent"], []).append(n)
         self._mesh = {}
-        self.ballast_g = ballast_g
+        self.ballast_g = self.P.get("BALLAST_G", ballast_g) if ballast_g == BALLAST_G_DEFAULT else ballast_g   # dart-cad's value wins unless set
         self.ballast_x = ballast_x            # None = ballast mesh centroid
         self.fold = self.assembly(0.0, 0.0)
         self.mp = self.mass_props(self.fold)

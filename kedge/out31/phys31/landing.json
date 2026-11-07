@@ -1,0 +1,1699 @@
+{
+ "source": "out31",
+ "mass_g": 260.4,
+ "cg_mm": [
+  80.9,
+  2.0,
+  6.8
+ ],
+ "rest_states_folded": [
+  {
+   "share_pct": 14.2,
+   "roll_deg": -44.8,
+   "pitch_deg": 0.2,
+   "cg_height_mm": 25.5
+  },
+  {
+   "share_pct": 14.1,
+   "roll_deg": 41.8,
+   "pitch_deg": -0.6,
+   "cg_height_mm": 28.0
+  },
+  {
+   "share_pct": 13.2,
+   "roll_deg": -97.7,
+   "pitch_deg": 2.2,
+   "cg_height_mm": 36.5
+  },
+  {
+   "share_pct": 10.7,
+   "roll_deg": 131.6,
+   "pitch_deg": -1.1,
+   "cg_height_mm": 35.9
+  },
+  {
+   "share_pct": 10.4,
+   "roll_deg": -26.1,
+   "pitch_deg": 0.3,
+   "cg_height_mm": 26.6
+  },
+  {
+   "share_pct": 6.8,
+   "roll_deg": 168.8,
+   "pitch_deg": -16.8,
+   "cg_height_mm": 43.8
+  },
+  {
+   "share_pct": 6.2,
+   "roll_deg": 142.7,
+   "pitch_deg": -8.9,
+   "cg_height_mm": 36.1
+  },
+  {
+   "share_pct": 3.8,
+   "roll_deg": 30.5,
+   "pitch_deg": -0.1,
+   "cg_height_mm": 27.9
+  },
+  {
+   "share_pct": 3.5,
+   "roll_deg": 136.7,
+   "pitch_deg": -5.5,
+   "cg_height_mm": 35.9
+  },
+  {
+   "share_pct": 3.1,
+   "roll_deg": -34.3,
+   "pitch_deg": -0.2,
+   "cg_height_mm": 25.8
+  },
+  {
+   "share_pct": 2.5,
+   "roll_deg": -80.1,
+   "pitch_deg": 1.9,
+   "cg_height_mm": 35.2
+  },
+  {
+   "share_pct": 2.4,
+   "roll_deg": 179.2,
+   "pitch_deg": 65.7,
+   "cg_height_mm": 81.3
+  },
+  {
+   "share_pct": 1.9,
+   "roll_deg": 12.0,
+   "pitch_deg": 0.1,
+   "cg_height_mm": 28.2
+  },
+  {
+   "share_pct": 1.9,
+   "roll_deg": 21.0,
+   "pitch_deg": -0.5,
+   "cg_height_mm": 28.5
+  },
+  {
+   "share_pct": 1.3,
+   "roll_deg": -91.0,
+   "pitch_deg": 1.5,
+   "cg_height_mm": 36.3
+  },
+  {
+   "share_pct": 1.1,
+   "roll_deg": 94.6,
+   "pitch_deg": 2.0,
+   "cg_height_mm": 40.3
+  },
+  {
+   "share_pct": 1.0,
+   "roll_deg": -152.3,
+   "pitch_deg": -14.5,
+   "cg_height_mm": 48.4
+  },
+  {
+   "share_pct": 0.7,
+   "roll_deg": 105.6,
+   "pitch_deg": 2.3,
+   "cg_height_mm": 40.1
+  },
+  {
+   "share_pct": 0.7,
+   "roll_deg": -159.1,
+   "pitch_deg": -16.5,
+   "cg_height_mm": 48.8
+  }
+ ],
+ "roll_slice": {
+  "minima_deg_h": [
+   [
+    -132.0,
+    35.3
+   ],
+   [
+    -42.0,
+    27.4
+   ],
+   [
+    42.0,
+    24.8
+   ],
+   [
+    110.0,
+    37.0
+   ]
+  ],
+  "maxima_deg_h": [
+   [
+    -100.0,
+    41.3
+   ],
+   [
+    -17.0,
+    28.1
+   ],
+   [
+    101.0,
+    37.5
+   ],
+   [
+    170.0,
+    67.1
+   ]
+  ],
+  "note": "lying along the axis (folded): minima = rest rolls, maxima = basin edges"
+ },
+ "recovery_quasistatic": [
+  {
+   "start_roll": -44.8,
+   "start_pitch": 0.2,
+   "share_pct": 14.2,
+   "end_roll": -44.8,
+   "end_pitch": 0.2,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 24,
+    "roll": -37.5
+   }
+  },
+  {
+   "start_roll": 41.8,
+   "start_pitch": -0.6,
+   "share_pct": 14.1,
+   "end_roll": -26.1,
+   "end_pitch": 0.3,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 36,
+    "roll": 0.2
+   }
+  },
+  {
+   "start_roll": -97.7,
+   "start_pitch": 2.2,
+   "share_pct": 13.2,
+   "end_roll": -91.0,
+   "end_pitch": 1.5,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 12,
+    "roll": -91.0
+   }
+  },
+  {
+   "start_roll": 131.6,
+   "start_pitch": -1.1,
+   "share_pct": 10.7,
+   "end_roll": 131.6,
+   "end_pitch": -1.1,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 50,
+    "roll": 105.6
+   }
+  },
+  {
+   "start_roll": -26.1,
+   "start_pitch": 0.3,
+   "share_pct": 10.4,
+   "end_roll": -44.8,
+   "end_pitch": 0.2,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 0,
+    "roll": -26.1
+   }
+  },
+  {
+   "start_roll": 168.8,
+   "start_pitch": -16.8,
+   "share_pct": 6.8,
+   "end_roll": 131.6,
+   "end_pitch": -1.1,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 50,
+    "roll": 105.6
+   }
+  },
+  {
+   "start_roll": 142.7,
+   "start_pitch": -8.9,
+   "share_pct": 6.2,
+   "end_roll": 131.6,
+   "end_pitch": -1.1,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 50,
+    "roll": 105.6
+   }
+  },
+  {
+   "start_roll": 30.5,
+   "start_pitch": -0.1,
+   "share_pct": 3.8,
+   "end_roll": -26.1,
+   "end_pitch": 0.3,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 36,
+    "roll": 0.2
+   }
+  },
+  {
+   "start_roll": 136.7,
+   "start_pitch": -5.5,
+   "share_pct": 3.5,
+   "end_roll": 131.6,
+   "end_pitch": -1.1,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 50,
+    "roll": 105.6
+   }
+  },
+  {
+   "start_roll": -34.3,
+   "start_pitch": -0.2,
+   "share_pct": 3.1,
+   "end_roll": -44.8,
+   "end_pitch": 0.2,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 0,
+    "roll": -34.3
+   }
+  },
+  {
+   "start_roll": -80.1,
+   "start_pitch": 1.9,
+   "share_pct": 2.5,
+   "end_roll": -44.8,
+   "end_pitch": 0.2,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 24,
+    "roll": -37.5
+   }
+  },
+  {
+   "start_roll": 179.2,
+   "start_pitch": 65.7,
+   "share_pct": 2.4,
+   "end_roll": 179.2,
+   "end_pitch": 65.7,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 36,
+    "roll": -47.5
+   }
+  },
+  {
+   "start_roll": -91.0,
+   "start_pitch": 1.5,
+   "share_pct": 1.3,
+   "end_roll": -91.0,
+   "end_pitch": 1.5,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 0,
+    "roll": -91.0
+   }
+  },
+  {
+   "start_roll": 94.6,
+   "start_pitch": 2.0,
+   "share_pct": 1.1,
+   "end_roll": -26.1,
+   "end_pitch": 0.3,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 36,
+    "roll": 0.2
+   }
+  },
+  {
+   "start_roll": -152.3,
+   "start_pitch": -14.5,
+   "share_pct": 1.0,
+   "end_roll": -91.0,
+   "end_pitch": 1.5,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "dep",
+    "angle": 12,
+    "roll": -91.0
+   }
+  },
+  {
+   "start_roll": 105.6,
+   "start_pitch": 2.3,
+   "share_pct": 0.7,
+   "end_roll": 131.6,
+   "end_pitch": -1.1,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 0,
+    "roll": 105.6
+   }
+  },
+  {
+   "start_roll": -159.1,
+   "start_pitch": -16.5,
+   "share_pct": 0.7,
+   "end_roll": 131.6,
+   "end_pitch": -1.1,
+   "belly_down_at_end": false,
+   "closest_to_belly": {
+    "step": "kick",
+    "angle": 50,
+    "roll": 105.6
+   }
+  }
+ ],
+ "pods_first_leveling": [
+  {
+   "start_roll": -44.8,
+   "share_pct": 14.2,
+   "roll_vs_pod_deg": [
+    [
+     0,
+     -44.8
+    ],
+    [
+     2,
+     -41.1
+    ],
+    [
+     4,
+     -41.1
+    ],
+    [
+     6,
+     -41.1
+    ],
+    [
+     8,
+     -37.0
+    ],
+    [
+     10,
+     -32.5
+    ],
+    [
+     12,
+     -27.3
+    ],
+    [
+     14,
+     -21.1
+    ],
+    [
+     16,
+     -17.9
+    ],
+    [
+     18,
+     -0.6
+    ],
+    [
+     20,
+     -0.6
+    ],
+    [
+     22,
+     1.1
+    ],
+    [
+     24,
+     1.1
+    ],
+    [
+     26,
+     -0.3
+    ],
+    [
+     28,
+     -2.8
+    ],
+    [
+     30,
+     1.2
+    ],
+    [
+     32,
+     -1.7
+    ],
+    [
+     34,
+     6.2
+    ],
+    [
+     36,
+     0.2
+    ],
+    [
+     38,
+     2.8
+    ],
+    [
+     40,
+     -1.4
+    ],
+    [
+     42,
+     1.4
+    ]
+   ],
+   "best_pod_deg": 36,
+   "best_roll": 0.2
+  },
+  {
+   "start_roll": 41.8,
+   "share_pct": 14.1,
+   "roll_vs_pod_deg": [
+    [
+     0,
+     41.8
+    ],
+    [
+     2,
+     41.8
+    ],
+    [
+     4,
+     41.8
+    ],
+    [
+     6,
+     30.5
+    ],
+    [
+     8,
+     21.0
+    ],
+    [
+     10,
+     21.0
+    ],
+    [
+     12,
+     12.0
+    ],
+    [
+     14,
+     -1.1
+    ],
+    [
+     16,
+     -1.1
+    ],
+    [
+     18,
+     -0.6
+    ],
+    [
+     20,
+     -0.6
+    ],
+    [
+     22,
+     1.1
+    ],
+    [
+     24,
+     1.1
+    ],
+    [
+     26,
+     -0.3
+    ],
+    [
+     28,
+     -2.8
+    ],
+    [
+     30,
+     1.2
+    ],
+    [
+     32,
+     -1.7
+    ],
+    [
+     34,
+     6.2
+    ],
+    [
+     36,
+     0.2
+    ],
+    [
+     38,
+     2.8
+    ],
+    [
+     40,
+     -1.4
+    ],
+    [
+     42,
+     1.4
+    ]
+   ],
+   "best_pod_deg": 36,
+   "best_roll": 0.2
+  },
+  {
+   "start_roll": -26.1,
+   "share_pct": 10.4,
+   "roll_vs_pod_deg": [
+    [
+     0,
+     -26.1
+    ],
+    [
+     2,
+     -26.1
+    ],
+    [
+     4,
+     -26.1
+    ],
+    [
+     6,
+     -26.1
+    ],
+    [
+     8,
+     -26.1
+    ],
+    [
+     10,
+     -19.6
+    ],
+    [
+     12,
+     -16.3
+    ],
+    [
+     14,
+     -1.1
+    ],
+    [
+     16,
+     -1.1
+    ],
+    [
+     18,
+     -0.6
+    ],
+    [
+     20,
+     -0.6
+    ],
+    [
+     22,
+     1.1
+    ],
+    [
+     24,
+     1.1
+    ],
+    [
+     26,
+     -0.3
+    ],
+    [
+     28,
+     -2.8
+    ],
+    [
+     30,
+     1.2
+    ],
+    [
+     32,
+     -1.7
+    ],
+    [
+     34,
+     6.2
+    ],
+    [
+     36,
+     0.2
+    ],
+    [
+     38,
+     2.8
+    ],
+    [
+     40,
+     -1.4
+    ],
+    [
+     42,
+     1.4
+    ]
+   ],
+   "best_pod_deg": 36,
+   "best_roll": 0.2
+  },
+  {
+   "start_roll": 30.5,
+   "share_pct": 3.8,
+   "roll_vs_pod_deg": [
+    [
+     0,
+     30.5
+    ],
+    [
+     2,
+     30.5
+    ],
+    [
+     4,
+     30.5
+    ],
+    [
+     6,
+     30.5
+    ],
+    [
+     8,
+     21.0
+    ],
+    [
+     10,
+     21.0
+    ],
+    [
+     12,
+     12.0
+    ],
+    [
+     14,
+     -1.1
+    ],
+    [
+     16,
+     -1.1
+    ],
+    [
+     18,
+     -0.6
+    ],
+    [
+     20,
+     -0.6
+    ],
+    [
+     22,
+     1.1
+    ],
+    [
+     24,
+     1.1
+    ],
+    [
+     26,
+     -0.3
+    ],
+    [
+     28,
+     -2.8
+    ],
+    [
+     30,
+     1.2
+    ],
+    [
+     32,
+     -1.7
+    ],
+    [
+     34,
+     6.2
+    ],
+    [
+     36,
+     0.2
+    ],
+    [
+     38,
+     2.8
+    ],
+    [
+     40,
+     -1.4
+    ],
+    [
+     42,
+     1.4
+    ]
+   ],
+   "best_pod_deg": 36,
+   "best_roll": 0.2
+  },
+  {
+   "start_roll": -34.3,
+   "share_pct": 3.1,
+   "roll_vs_pod_deg": [
+    [
+     0,
+     -34.3
+    ],
+    [
+     2,
+     -34.3
+    ],
+    [
+     4,
+     -34.3
+    ],
+    [
+     6,
+     -34.3
+    ],
+    [
+     8,
+     -26.1
+    ],
+    [
+     10,
+     -19.6
+    ],
+    [
+     12,
+     -16.3
+    ],
+    [
+     14,
+     -1.1
+    ],
+    [
+     16,
+     -1.1
+    ],
+    [
+     18,
+     -0.6
+    ],
+    [
+     20,
+     -0.6
+    ],
+    [
+     22,
+     1.1
+    ],
+    [
+     24,
+     1.1
+    ],
+    [
+     26,
+     -0.3
+    ],
+    [
+     28,
+     -2.8
+    ],
+    [
+     30,
+     1.2
+    ],
+    [
+     32,
+     -1.7
+    ],
+    [
+     34,
+     6.2
+    ],
+    [
+     36,
+     0.2
+    ],
+    [
+     38,
+     2.8
+    ],
+    [
+     40,
+     -1.4
+    ],
+    [
+     42,
+     1.4
+    ]
+   ],
+   "best_pod_deg": 36,
+   "best_roll": 0.2
+  },
+  {
+   "start_roll": 12.0,
+   "share_pct": 1.9,
+   "roll_vs_pod_deg": [
+    [
+     0,
+     12.0
+    ],
+    [
+     2,
+     12.0
+    ],
+    [
+     4,
+     12.0
+    ],
+    [
+     6,
+     12.0
+    ],
+    [
+     8,
+     12.0
+    ],
+    [
+     10,
+     12.0
+    ],
+    [
+     12,
+     12.0
+    ],
+    [
+     14,
+     -1.1
+    ],
+    [
+     16,
+     -1.1
+    ],
+    [
+     18,
+     -0.6
+    ],
+    [
+     20,
+     -0.6
+    ],
+    [
+     22,
+     1.1
+    ],
+    [
+     24,
+     1.1
+    ],
+    [
+     26,
+     -0.3
+    ],
+    [
+     28,
+     -2.8
+    ],
+    [
+     30,
+     1.2
+    ],
+    [
+     32,
+     -1.7
+    ],
+    [
+     34,
+     6.2
+    ],
+    [
+     36,
+     0.2
+    ],
+    [
+     38,
+     2.8
+    ],
+    [
+     40,
+     -1.4
+    ],
+    [
+     42,
+     1.4
+    ]
+   ],
+   "best_pod_deg": 36,
+   "best_roll": 0.2
+  },
+  {
+   "start_roll": 21.0,
+   "share_pct": 1.9,
+   "roll_vs_pod_deg": [
+    [
+     0,
+     21.0
+    ],
+    [
+     2,
+     21.0
+    ],
+    [
+     4,
+     21.0
+    ],
+    [
+     6,
+     21.0
+    ],
+    [
+     8,
+     21.0
+    ],
+    [
+     10,
+     21.0
+    ],
+    [
+     12,
+     12.0
+    ],
+    [
+     14,
+     -1.1
+    ],
+    [
+     16,
+     -1.1
+    ],
+    [
+     18,
+     -0.6
+    ],
+    [
+     20,
+     -0.6
+    ],
+    [
+     22,
+     1.1
+    ],
+    [
+     24,
+     1.1
+    ],
+    [
+     26,
+     -0.3
+    ],
+    [
+     28,
+     -2.8
+    ],
+    [
+     30,
+     1.2
+    ],
+    [
+     32,
+     -1.7
+    ],
+    [
+     34,
+     6.2
+    ],
+    [
+     36,
+     0.2
+    ],
+    [
+     38,
+     2.8
+    ],
+    [
+     40,
+     -1.4
+    ],
+    [
+     42,
+     1.4
+    ]
+   ],
+   "best_pod_deg": 36,
+   "best_roll": 0.2
+  }
+ ],
+ "anchor_vs_roll": [
+  {
+   "roll_deg": 0,
+   "auger_tip_depths_mm": [
+    45.7,
+    45.7
+   ]
+  },
+  {
+   "roll_deg": 5,
+   "auger_tip_depths_mm": [
+    42.9,
+    47.9
+   ]
+  },
+  {
+   "roll_deg": 10,
+   "auger_tip_depths_mm": [
+    39.6,
+    49.7
+   ]
+  },
+  {
+   "roll_deg": 15,
+   "auger_tip_depths_mm": [
+    35.9,
+    50.9
+   ]
+  },
+  {
+   "roll_deg": 20,
+   "auger_tip_depths_mm": [
+    31.7,
+    51.6
+   ]
+  },
+  {
+   "roll_deg": 25,
+   "auger_tip_depths_mm": [
+    27.2,
+    51.7
+   ]
+  },
+  {
+   "roll_deg": 30,
+   "auger_tip_depths_mm": [
+    22.2,
+    51.2
+   ]
+  }
+ ],
+ "impact": [
+  {
+   "rail_pitch": 10,
+   "v": 7.0,
+   "path_deg": 25.2,
+   "m_eff_kg": 0.067,
+   "soft soil (loam, tilled)": {
+    "vn": 2.98,
+    "depth_mm": 1.3,
+    "F_peak_N": 255.8,
+    "g_peak": 100.0,
+    "duration_ms": 0.9,
+    "loads": {
+     "camera": {
+      "g": 395.0,
+      "N": 8.5
+     },
+     "cell_1": {
+      "g": 72.0,
+      "N": 15.6
+     },
+     "xiao": {
+      "g": 65.0,
+      "N": 1.9
+     },
+     "bno085": {
+      "g": 263.0,
+      "N": 6.7
+     },
+     "vtx": {
+      "g": 101.0,
+      "N": 3.6
+     },
+     "n20_kick": {
+      "g": 297.0,
+      "N": 30.6
+     },
+     "drill_leg_L_motor": {
+      "g": 367.0,
+      "N": 39.6
+     },
+     "kick_leg": {
+      "g": 148.0,
+      "N": 15.0
+     },
+     "drill_leg_L_auger": {
+      "g": 159.0,
+      "N": 6.4
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 263.0
+   },
+   "grass on loam": {
+    "vn": 2.98,
+    "depth_mm": 1.9,
+    "F_peak_N": 179.5,
+    "g_peak": 70.0,
+    "duration_ms": 1.3,
+    "loads": {
+     "camera": {
+      "g": 277.0,
+      "N": 6.0
+     },
+     "cell_1": {
+      "g": 51.0,
+      "N": 10.9
+     },
+     "xiao": {
+      "g": 45.0,
+      "N": 1.3
+     },
+     "bno085": {
+      "g": 185.0,
+      "N": 4.7
+     },
+     "vtx": {
+      "g": 71.0,
+      "N": 2.5
+     },
+     "n20_kick": {
+      "g": 209.0,
+      "N": 21.5
+     },
+     "drill_leg_L_motor": {
+      "g": 258.0,
+      "N": 27.8
+     },
+     "kick_leg": {
+      "g": 104.0,
+      "N": 10.6
+     },
+     "drill_leg_L_auger": {
+      "g": 112.0,
+      "N": 4.5
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 185.0
+   },
+   "gravel (10 to 20 mm)": {
+    "vn": 2.98,
+    "depth_mm": 0.3,
+    "F_peak_N": 1171.7,
+    "g_peak": 459.0,
+    "duration_ms": 0.2,
+    "loads": {
+     "camera": {
+      "g": 1809.0,
+      "N": 39.0
+     },
+     "cell_1": {
+      "g": 331.0,
+      "N": 71.4
+     },
+     "xiao": {
+      "g": 296.0,
+      "N": 8.7
+     },
+     "bno085": {
+      "g": 1207.0,
+      "N": 30.8
+     },
+     "vtx": {
+      "g": 464.0,
+      "N": 16.4
+     },
+     "n20_kick": {
+      "g": 1361.0,
+      "N": 140.2
+     },
+     "drill_leg_L_motor": {
+      "g": 1682.0,
+      "N": 181.5
+     },
+     "kick_leg": {
+      "g": 677.0,
+      "N": 68.9
+     },
+     "drill_leg_L_auger": {
+      "g": 730.0,
+      "N": 29.1
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 1207.0
+   },
+   "hard ground (dry compacted, concrete)": {
+    "vn": 2.98,
+    "crush_mm": 0.3,
+    "F_peak_N": 2819.0,
+    "g_peak": 1104.0,
+    "loads": {
+     "camera": {
+      "g": 4352.0,
+      "N": 93.9
+     },
+     "cell_1": {
+      "g": 796.0,
+      "N": 171.8
+     },
+     "xiao": {
+      "g": 712.0,
+      "N": 21.0
+     },
+     "bno085": {
+      "g": 2903.0,
+      "N": 74.0
+     },
+     "vtx": {
+      "g": 1117.0,
+      "N": 39.4
+     },
+     "n20_kick": {
+      "g": 3274.0,
+      "N": 337.3
+     },
+     "drill_leg_L_motor": {
+      "g": 4046.0,
+      "N": 436.6
+     },
+     "kick_leg": {
+      "g": 1630.0,
+      "N": 165.8
+     },
+     "drill_leg_L_auger": {
+      "g": 1756.0,
+      "N": 70.0
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 2903.0
+   }
+  },
+  {
+   "rail_pitch": 34,
+   "v": 6.54,
+   "path_deg": 45.4,
+   "m_eff_kg": 0.113,
+   "soft soil (loam, tilled)": {
+    "vn": 4.66,
+    "depth_mm": 4.5,
+    "F_peak_N": 330.9,
+    "g_peak": 130.0,
+    "duration_ms": 1.9,
+    "loads": {
+     "camera": {
+      "g": 362.0,
+      "N": 7.8
+     },
+     "cell_1": {
+      "g": 101.0,
+      "N": 21.8
+     },
+     "xiao": {
+      "g": 72.0,
+      "N": 2.1
+     },
+     "bno085": {
+      "g": 240.0,
+      "N": 6.1
+     },
+     "vtx": {
+      "g": 139.0,
+      "N": 4.9
+     },
+     "n20_kick": {
+      "g": 297.0,
+      "N": 30.6
+     },
+     "drill_leg_L_motor": {
+      "g": 338.0,
+      "N": 36.5
+     },
+     "kick_leg": {
+      "g": 183.0,
+      "N": 18.6
+     },
+     "drill_leg_L_auger": {
+      "g": 157.0,
+      "N": 6.3
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 240.0
+   },
+   "grass on loam": {
+    "vn": 4.66,
+    "depth_mm": 6.2,
+    "F_peak_N": 249.8,
+    "g_peak": 98.0,
+    "duration_ms": 2.7,
+    "loads": {
+     "camera": {
+      "g": 273.0,
+      "N": 5.9
+     },
+     "cell_1": {
+      "g": 76.0,
+      "N": 16.5
+     },
+     "xiao": {
+      "g": 55.0,
+      "N": 1.6
+     },
+     "bno085": {
+      "g": 181.0,
+      "N": 4.6
+     },
+     "vtx": {
+      "g": 105.0,
+      "N": 3.7
+     },
+     "n20_kick": {
+      "g": 225.0,
+      "N": 23.1
+     },
+     "drill_leg_L_motor": {
+      "g": 255.0,
+      "N": 27.6
+     },
+     "kick_leg": {
+      "g": 138.0,
+      "N": 14.0
+     },
+     "drill_leg_L_auger": {
+      "g": 119.0,
+      "N": 4.7
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 181.0
+   },
+   "gravel (10 to 20 mm)": {
+    "vn": 4.66,
+    "depth_mm": 1.1,
+    "F_peak_N": 1257.3,
+    "g_peak": 492.0,
+    "duration_ms": 0.5,
+    "loads": {
+     "camera": {
+      "g": 1376.0,
+      "N": 29.7
+     },
+     "cell_1": {
+      "g": 384.0,
+      "N": 82.9
+     },
+     "xiao": {
+      "g": 275.0,
+      "N": 8.1
+     },
+     "bno085": {
+      "g": 913.0,
+      "N": 23.3
+     },
+     "vtx": {
+      "g": 529.0,
+      "N": 18.7
+     },
+     "n20_kick": {
+      "g": 1130.0,
+      "N": 116.4
+     },
+     "drill_leg_L_motor": {
+      "g": 1285.0,
+      "N": 138.7
+     },
+     "kick_leg": {
+      "g": 694.0,
+      "N": 70.6
+     },
+     "drill_leg_L_auger": {
+      "g": 598.0,
+      "N": 23.8
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 913.0
+   },
+   "hard ground (dry compacted, concrete)": {
+    "vn": 4.66,
+    "crush_mm": 1.15,
+    "F_peak_N": 2551.0,
+    "g_peak": 999.0,
+    "loads": {
+     "camera": {
+      "g": 2791.0,
+      "N": 60.2
+     },
+     "cell_1": {
+      "g": 779.0,
+      "N": 168.2
+     },
+     "xiao": {
+      "g": 557.0,
+      "N": 16.4
+     },
+     "bno085": {
+      "g": 1852.0,
+      "N": 47.2
+     },
+     "vtx": {
+      "g": 1073.0,
+      "N": 37.9
+     },
+     "n20_kick": {
+      "g": 2293.0,
+      "N": 236.2
+     },
+     "drill_leg_L_motor": {
+      "g": 2607.0,
+      "N": 281.4
+     },
+     "kick_leg": {
+      "g": 1408.0,
+      "N": 143.3
+     },
+     "drill_leg_L_auger": {
+      "g": 1213.0,
+      "N": 48.4
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 1852.0
+   }
+  },
+  {
+   "rail_pitch": 45,
+   "v": 6.47,
+   "path_deg": 55.8,
+   "m_eff_kg": 0.16,
+   "soft soil (loam, tilled)": {
+    "vn": 5.35,
+    "depth_mm": 7.4,
+    "F_peak_N": 407.3,
+    "g_peak": 159.0,
+    "duration_ms": 2.8,
+    "loads": {
+     "camera": {
+      "g": 336.0,
+      "N": 7.2
+     },
+     "cell_1": {
+      "g": 136.0,
+      "N": 29.3
+     },
+     "xiao": {
+      "g": 106.0,
+      "N": 3.1
+     },
+     "bno085": {
+      "g": 229.0,
+      "N": 5.8
+     },
+     "vtx": {
+      "g": 171.0,
+      "N": 6.0
+     },
+     "n20_kick": {
+      "g": 297.0,
+      "N": 30.6
+     },
+     "drill_leg_L_motor": {
+      "g": 316.0,
+      "N": 34.1
+     },
+     "kick_leg": {
+      "g": 209.0,
+      "N": 21.3
+     },
+     "drill_leg_L_auger": {
+      "g": 167.0,
+      "N": 6.7
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 229.0
+   },
+   "grass on loam": {
+    "vn": 5.35,
+    "depth_mm": 10.0,
+    "F_peak_N": 321.7,
+    "g_peak": 126.0,
+    "duration_ms": 3.7,
+    "loads": {
+     "camera": {
+      "g": 265.0,
+      "N": 5.7
+     },
+     "cell_1": {
+      "g": 107.0,
+      "N": 23.1
+     },
+     "xiao": {
+      "g": 84.0,
+      "N": 2.5
+     },
+     "bno085": {
+      "g": 181.0,
+      "N": 4.6
+     },
+     "vtx": {
+      "g": 135.0,
+      "N": 4.8
+     },
+     "n20_kick": {
+      "g": 235.0,
+      "N": 24.2
+     },
+     "drill_leg_L_motor": {
+      "g": 250.0,
+      "N": 26.9
+     },
+     "kick_leg": {
+      "g": 165.0,
+      "N": 16.8
+     },
+     "drill_leg_L_auger": {
+      "g": 132.0,
+      "N": 5.3
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 181.0
+   },
+   "gravel (10 to 20 mm)": {
+    "vn": 5.35,
+    "depth_mm": 1.9,
+    "F_peak_N": 1345.9,
+    "g_peak": 527.0,
+    "duration_ms": 0.7,
+    "loads": {
+     "camera": {
+      "g": 1109.0,
+      "N": 23.9
+     },
+     "cell_1": {
+      "g": 448.0,
+      "N": 96.7
+     },
+     "xiao": {
+      "g": 350.0,
+      "N": 10.3
+     },
+     "bno085": {
+      "g": 756.0,
+      "N": 19.3
+     },
+     "vtx": {
+      "g": 566.0,
+      "N": 20.0
+     },
+     "n20_kick": {
+      "g": 982.0,
+      "N": 101.2
+     },
+     "drill_leg_L_motor": {
+      "g": 1045.0,
+      "N": 112.7
+     },
+     "kick_leg": {
+      "g": 691.0,
+      "N": 70.3
+     },
+     "drill_leg_L_auger": {
+      "g": 552.0,
+      "N": 22.0
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 756.0
+   },
+   "hard ground (dry compacted, concrete)": {
+    "vn": 5.35,
+    "crush_mm": 1.5,
+    "F_peak_N": 3390.0,
+    "g_peak": 1327.0,
+    "loads": {
+     "camera": {
+      "g": 2794.0,
+      "N": 60.3
+     },
+     "cell_1": {
+      "g": 1128.0,
+      "N": 243.5
+     },
+     "xiao": {
+      "g": 881.0,
+      "N": 25.9
+     },
+     "bno085": {
+      "g": 1905.0,
+      "N": 48.6
+     },
+     "vtx": {
+      "g": 1425.0,
+      "N": 50.3
+     },
+     "n20_kick": {
+      "g": 2475.0,
+      "N": 254.9
+     },
+     "drill_leg_L_motor": {
+      "g": 2631.0,
+      "N": 283.9
+     },
+     "kick_leg": {
+      "g": 1740.0,
+      "N": 177.0
+     },
+     "drill_leg_L_auger": {
+      "g": 1391.0,
+      "N": 55.5
+     }
+    },
+    "bno085_reads_g": 8.0,
+    "bno085_raw_g": 1905.0
+   }
+  }
+ ],
+ "nose_bumper_5mm_hard_ground": {
+  "energy_J": 2.29,
+  "plateau_force_N": 457.0,
+  "g_cg": 179.0,
+  "plateau_stress_MPa_on_d22": 1.2
+ }
+}

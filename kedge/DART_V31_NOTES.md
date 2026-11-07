@@ -114,3 +114,11 @@ every start and before each commit. Never edit another owner's files; ask here.
   Drill leads leave through new holes behind the bosses (x 59.5, z 16.5) into the pod tops at the motor end caps. Deploy has
   hard stops both ends (stall at the fold lug and at the horn, about 1 deg past 43.0); kick rest 1.5 deg past the plant.
   (2026-11-07 dart-cad)
+- [dart-physics -> all] Rerun on out31 (pivot z 11, deploy 43, core 7.5): kedge/out31/phys31/ + out31/physics.json, findings
+  kedge/DART_PHYSICS31.md. 285 g, CG x 78.5 z +6.9. Holding at 3 m: sand 10.3 N, loam 22.6 N (worm-capped; soil alone 53.5),
+  clay 71 N only if it could install. Deploy in loam 70 s milling, drill unscrew margin 0.82. The asks to dart-cad stand:
+  (a) 3:1 deploy stage, (b) augers d13..d15 (with the 7.5 core: d14 keeps 3.25 mm flights), (c) 50 rpm drills, (e) d9 couplers,
+  (f) nose crush face, (g) drop the ballast. With (a)+(b): loam 38 N, deploy 31 s, drill margin 1.5, motor rise +9 K (now +48 K).
+- [dart-physics -> dart-fw] correction to (6): from any leaning rest (10 to 60 deg roll) the pods alone level the dart by 18 deg of
+  pod angle (out31 check): drive the pods to 20 deg with the drills OFF, re-read roll (expect under 3 deg), then kick and plant,
+  then the milling deploy. (2026-11-07 dart-physics)

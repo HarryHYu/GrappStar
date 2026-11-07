@@ -479,10 +479,13 @@ def plots(A, R, outd):
         x = [r["rover_m"] for r in rows]
         ax[0].plot(x, [r["F_design_N"] for r in rows], "k-", marker="os^"[i], label=sn + " (design)")
         ax[0].plot(x, [r["F_upper_translation_N"] for r in rows], "k:", marker="os^"[i], mfc="none", label=sn + " (upper)")
+    A13 = Anchor(A.d, auger_d_mm=13.0)
+    xr = [1.0, 2.0, 3.0, 4.0, 5.0]
+    ax[0].plot(xr, [A13.limit(dm.SOIL["moist loam"], r, worm_hold=3 * WORM_HOLD_NM)["F"] for r in xr], "k--", marker="s", mfc="w", label="moist loam, 3:1 deploy stage + d13")
     ax[0].axhline(TOW_CAP_N, color="k", lw=0.6, ls="--"); ax[0].text(1.05, TOW_CAP_N + 1, "tow cap 55 N")
     ax[0].axhline(FIRST_TOW_N, color="k", lw=0.6, ls="-."); ax[0].text(1.05, FIRST_TOW_N + 1, "first tow 40 N")
     ax[0].set_xlabel("rover line exit behind the dart tail (m)"); ax[0].set_ylabel("max tether pull at the dart (N)"); ax[0].grid(lw=0.3)
-    ax[0].legend(fontsize=6); ax[0].set_title("Holding (planar limit analysis)")
+    ax[0].legend(fontsize=6, loc="center right"); ax[0].set_title("Holding (planar limit analysis; clay only if the drills could install)")
     for i, sn in enumerate(R["soils"]):
         pr = R["soils"][sn]["deploy"]["profile_deg_Nm"]
         ax[1].semilogy([p[0] for p in pr], [max(p[1], 1e-3) for p in pr], "k-", marker="os^"[i], label=sn)

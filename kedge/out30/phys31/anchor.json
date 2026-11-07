@@ -1589,6 +1589,29 @@
    "drill_install_d17_Nm": 0.629
   }
  ],
+ "motor_heating_loam": {
+  "R_th_K_per_W": 40.0,
+  "tau_s": 90.0,
+  "cases": {
+   "now": {
+    "deploy_s": 68.0,
+    "drill_A": 0.304,
+    "drill_winding_W": 2.11,
+    "drill_rise_K": 45.0,
+    "worm_winding_W": 1.24,
+    "worm_rise_K": 26.0
+   },
+   "3:1 stage + d13": {
+    "deploy_s": 29.0,
+    "drill_A": 0.179,
+    "drill_winding_W": 0.74,
+    "drill_rise_K": 8.0,
+    "worm_winding_W": 1.24,
+    "worm_rise_K": 14.0
+   }
+  },
+  "note": "PLA softens near 60 C: keep the pod motors under about 30 K rise"
+ },
  "energy": {
   "cap_usable_mAh": 630,
   "avionics_W": 2.52,

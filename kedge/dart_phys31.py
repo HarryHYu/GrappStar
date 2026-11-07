@@ -109,6 +109,9 @@ def write_md(out, R, A, L, F, S):
       f"Firm clay needs {so['firm clay']['drill_each']['install_torque_perko_Nm']} to {so['firm clay']['drill_each']['install_torque_Nm']} N m: cannot install. Fix: auger d17 to d13 "
       f"(install torque about half; in loam the holding is the same because the cohesion term 9 c D only acts below 1.5 D, which a thinner auger reaches sooner) "
       f"and 50 rpm drill motors (same body, twice the torque)."); n += 1
+    mh = A["motor_heating_loam"]["cases"]
+    w(f"{n}. Motor heating while milling loam (R_th 40 K/W assumed): drills {mh['now']['drill_A']} A each for {mh['now']['deploy_s']:.0f} s, about +{mh['now']['drill_rise_K']:.0f} K in the PLA pod "
+      f"(softens near 60 C); with the 3:1 stage and d13: {mh['3:1 stage + d13']['drill_A']} A, +{mh['3:1 stage + d13']['drill_rise_K']:.0f} K. Deploy worm +{mh['now']['worm_rise_K']:.0f} K now."); n += 1
     w(f"{n}. With the 3:1 deploy stage and d13 augers alone: loam {b100['moist loam']['F_hold_N']} N, deploy {b100['moist loam']['deploy_s']:.0f} s, drill margin "
       f"{b100['moist loam']['drill_margin']}. With 50 rpm drills as well: sand {best['dry sand']['F_hold_N']} N, loam {best['moist loam']['F_hold_N']} N, deploy "
       f"{best['moist loam']['deploy_s']:.0f} s in loam, drill margin {best['moist loam']['drill_margin']} (now {cur['moist loam']['drill_margin']}). Firm clay stays out of reach "

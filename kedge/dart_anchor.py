@@ -421,6 +421,20 @@ def run(out=None):
                          F_soil_only_d13_N=round(A13.limit(s, 3.0, worm_hold=50.0)["F"], 1),
                          drill_install_d13_Nm=round(A13.pile(e13, s, A13.D)["T_install_Nm"], 3), drill_install_d17_Nm=round(A.pile(ed, s, A.D)["T_install_Nm"], 3)))
     R["loam_cohesion_sensitivity_rover3m"] = sens
+    # motor heating while milling in loam (N20 winding: R_th about 40 K/W, time constant about 90 s, ASSUMED typical)
+    RTH, TAU = 40.0, 90.0
+    th_ = {}
+    for tag, ratio, dmm in (("now", 1, 17.0), ("3:1 stage + d13", 3, 13.0)):
+        row = next(r for r in imp if r["deploy_stage_ratio"] == ratio and r["auger_d_mm"] == dmm and r["drill_rpm12"] == 100.0)
+        t = row["moist loam"]["deploy_s"]
+        Ai = Anchor(d, auger_d_mm=dmm); s = dm.SOIL["moist loam"]
+        ei = Ai.embedded(*Ai.drill_axis()[:2], P["AUGER_TIP"]); Ti = Ai.pile(ei, s, Ai.D)["T_install_Nm"]
+        Id = min(dm.motor_current_for("drill", Ti), mot["drill"]["stall_A"])
+        Pd = Id ** 2 * mot["drill"]["R_ohm"]; Pw = mot["worm"]["stall_A"] ** 2 * mot["worm"]["R_ohm"]
+        f = 1 - math.exp(-t / TAU)
+        th_[tag] = dict(deploy_s=t, drill_A=round(Id, 3), drill_winding_W=round(Pd, 2), drill_rise_K=round(Pd * RTH * f, 0),
+                        worm_winding_W=round(Pw, 2), worm_rise_K=round(Pw * RTH * f, 0))
+    R["motor_heating_loam"] = dict(R_th_K_per_W=RTH, tau_s=TAU, cases=th_, note="PLA softens near 60 C: keep the pod motors under about 30 K rise")
     # energy
     R["energy"] = energy(R, mot)
     os.makedirs(os.path.join(d.out, "phys31"), exist_ok=True)

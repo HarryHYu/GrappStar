@@ -256,6 +256,7 @@ pk = P["N20_POCK"]
 SX0 = P["SADDLE_X0"]
 SAD_W = pk + 2 * 1.3                                        # 15.0
 SAD_H = pk + 2 * 1.3
+KICK_STUB = 9.94 / 2 + 1.0                                  # kick N20 -y stub trimmed to 1 mm past the worm box face (measured box width 9.94)
 SAD_RF, SAD_RR = 7.4, 6.5                                    # saddle side profile: arc round the worm box (on the pivot), arc round the motor tail
 KICK_Z = R + SAD_H / 2 - 1.0 + P["KICK_RAISE"]               # pivot raised so the centreline pole clears the nose shoulder at the plant
 KICK_X = SX0 + 1.3 + P["N20_BOX"] / 2 + 0.2                  # output shaft = centre of the worm box
@@ -358,7 +359,7 @@ def build_hull():
     x_end = SX0 + sl
     sy = (KMY - SAD_W / 2, KMY + SAD_W / 2)
     sad_c = [(KICK_X, KICK_Z, SAD_RF), (x_end - SAD_RR, KICK_Z + 5.5 - SAD_RR, SAD_RR), (X_NOSE + 1.6, 10.0, 1.0), (x_end + 3.0, 10.0, 1.0)]
-    saddle = yfillet(arc_prism(sad_c, *sy), sy, 1.2, "saddle") & bx(X_NOSE + 0.01, hx1, -60, 60, 0, 80)
+    saddle = yfillet(yfillet(arc_prism(sad_c, *sy), (sy[0],), 4.5, "saddle outboard"), (sy[1],), 1.2, "saddle") & bx(X_NOSE + 0.01, hx1, -60, 60, 0, 80)   # round outboard shoulder
     # ear: teardrop fin on the hub's outboard side carrying an F693ZZ for the hub screw (same arcs, edges and skirt)
     ear_c = [(KICK_X, KICK_Z, P["BRG_FL_D"] / 2 + 2.2), (KICK_X - 9.0, 12.0, 1.0), (KICK_X + 9.0, 12.0, 1.0)]
     ear = yfillet(arc_prism(ear_c, EAR_Y0, EAR_Y1), (EAR_Y0, EAR_Y1), 1.2, "ear")
@@ -373,13 +374,14 @@ def build_hull():
     # internal rib that sits in the nose spigot groove: the closed clamshell locks the nose axially
     body = body + (cylx(2 * RB + 0.2, 2.0, NOSE_LOCK_X) - cylx(2 * (RB - 1.0), 4.0, NOSE_LOCK_X - 1))
     cuts = []
-    # N20 pocket (open top) + strap groove + shaft holes both sides (biax worm, 10 proud each way)
+    # N20 pocket (open top) + the output shaft's +y stub slot (its -y stub is trimmed inside the pocket: KICK_STUB). No strap: the
+    # square worm box keys the motor in the square pocket (it cannot roll more than about 3 deg before its corner meets the floor),
+    # the +y stub is held by the hub in the ear bearing; a drop of CA on the can stops it rattling (the folded pole leaves no room
+    # for a tie over the motor)
     px0 = SX0 + 1.3
     cuts.append(bx(px0, px0 + P["N20_L"] + P["TERM"], KMY - pk / 2 - CLR, KMY + pk / 2 + CLR, KICK_Z - pk / 2 - CLR, KICK_Z + 30))
-    cuts.append(bx(KICK_X - (P["SHAFT_D"] + 0.6) / 2, KICK_X + (P["SHAFT_D"] + 0.6) / 2, KMY - 9, KMY + 9, KICK_Z, KICK_Z + 30))   # entry slots: the biaxial shaft drops in from the top
-    for s_ in (-1, 1):                                       # zip-tie slots beside the saddle's tail end: tie runs over the motor and under the skin
-        cuts.append(bx(px0 + P["N20_L"] - 8, px0 + P["N20_L"] - 4, KMY + s_ * (SAD_W / 2 + 0.6) - 1.25, KMY + s_ * (SAD_W / 2 + 0.6) + 1.25, 10, 30))
-    cuts.append(tear_y(P["SHAFT_D"] + 1.2, 17, KMY - 8.1, x=KICK_X, z=KICK_Z))
+    cuts.append(bx(KICK_X - (P["SHAFT_D"] + 0.6) / 2, KICK_X + (P["SHAFT_D"] + 0.6) / 2, KMY, KMY + 9, KICK_Z, KICK_Z + 30))   # entry slot (inboard wall): the +y stub drops in from the top
+    cuts.append(tear_y(P["SHAFT_D"] + 1.2, 9, KMY, x=KICK_X, z=KICK_Z))
     # wire holes: kick N20 leads straight down from its end-cap tabs; foot leads up through the skin under the folded pole
     cuts.append(cylz(4.4, KICK_Z - 12.0, 12.0, x=px0 + P["N20_L"] + 0.3, y=KMY))
     cuts.append(cylz(4.0, 30, 8, x=42.0, y=2.0))
@@ -704,7 +706,7 @@ def screw_auger(flight_d, length, pitch, core_d, tip_len, lefthand=False, bore=N
         g = tcyl(radius=1.25, height=8, sections=24); g.apply_transform(TM([5.0, 0, 3.0])); cuts.append(g)
     return tD(a, cuts) if cuts else a
 
-WEB_RUN = 24.0                                                       # the web runs this far along the tilted housing's floor
+WEB_RUN = 13.0                                                       # the web runs this far along the tilted housing's floor
 FOOT_YC = HUB_Y1 - (P["N20_POCK"] + 2.6) / 2                         # foot housing / foot N20 centreline = 0: the foot plants on the dart axis; outboard faces flush = print datum
 def foot_pt(fbox, x, z):
     """housing frame -> leg frame (x-z): the foot housing is tilted FOOT_TILT about its output shaft and raised FOOT_RISE"""
@@ -739,7 +741,7 @@ def build_kick():
         bx(fbox - (P["SHAFT_D"] + 0.6) / 2, fbox + (P["SHAFT_D"] + 0.6) / 2, -20, FOOT_YC, pk / 2 - 1, pk / 2 + 11),   # slot: shaft slides in from the open side
         cylz(P["SHAFT_D"] + 1.0, 4, -pk / 2 - 2.5, x=fbox, y=FOOT_YC),                                                  # trimmed lower stub clearance
         bx(fbox - (P["SHAFT_D"] + 1.0) / 2, fbox + (P["SHAFT_D"] + 1.0) / 2, -20, FOOT_YC, -pk / 2 - 2.5, -pk / 2 + 1.5),
-        bx(fx0 + 15, fx0 + 18, -20, 20, -fh / 2 - 1, -fh / 2 + 0.8),                                         # strap groove
+        bx(fx0 + 19, fx0 + 22, -20, 20, -fh / 2 - 1, -fh / 2 + 0.8),                                         # strap groove (on the can, clear of the web)
     ]
     # web: tangent arcs from the pole end up to the raised housing rear and along its floor (carries the drilling push into the pole)
     wc = [(pe, 0.0, P["KICK_POLE_D"] / 2)] + [foot_pt(fbox, x_, z_) + (2.5,) for x_, z_ in
@@ -904,7 +906,7 @@ for i, s in enumerate((-1, 1)):
 px0 = SX0 + 1.3
 env("n20_kick", bx(px0, px0 + P["N20_BOX"], KMY - 6, KMY + 6, KICK_Z - 6, KICK_Z + 6) + bx(px0 + P["N20_BOX"], px0 + P["N20_L"], KMY - 6, KMY + 6, KICK_Z - 5, KICK_Z + 5),
     "#8e9aaf", "KICK worm N20 (33.04 long), worm box at the nose end, beside the centreline; output shaft across Y = the kick pivot, its +y stub carries the hub")
-add("kick_shaft", D_bore(P["SHAFT_D"], 2 * P["N20_TIP"], KMY - P["N20_TIP"]), "electronics", "#d0d4d8", parent="kick_leg", printable=False, step=False, note="kick N20 output shaft (turns with the leg), 29.97 tip to tip")
+add("kick_shaft", D_bore(P["SHAFT_D"], P["N20_TIP"] + KICK_STUB, KMY - KICK_STUB), "electronics", "#d0d4d8", parent="kick_leg", printable=False, step=False, note="kick N20 output shaft (turns with the leg): the +y stub carries the hub; the unused -y stub is cut to 1 mm past the worm box (it stays inside the saddle pocket)")
 dxx, dzz, dy = P["DRILL_X"], P["DRILL_PIV_Z"], P["DEPLOY_Y"]
 env("n20_deploy", bx(dxx - 6, dxx + 6, dy - 6, dy + 6, dzz - 6, dzz + 6) + bx(dxx - 6 - (P["N20_L"] - 12), dxx - 6, dy - 6, dy + 5, dzz - 5, dzz + 5),
     "#8e9aaf", "DEPLOY worm N20 on the axle line, body forward in the tray cradle")

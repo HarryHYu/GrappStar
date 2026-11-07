@@ -607,9 +607,9 @@
   "capacity_Wh": 5.18,
   "idle_W_video_on": 2.52,
   "hours_video_on": 1.85,
-  "anchor_sequence_mAh": 12.4,
+  "anchor_sequence_mAh": 10.7,
   "worst_current_A": 1.2,
-  "release_mAh": 16.1
+  "release_mAh": 13.9
  },
  "strength": {
   "kick_pole_section_mm3": 99.8,

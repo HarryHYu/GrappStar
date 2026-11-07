@@ -103,7 +103,7 @@ def write_md(out, R, A, L, F, S):
       f"{dl['time_to_deploy_s']:.0f} s, clay never. Fix: milling deploy in firmware (dart-fw: worm pulsed at stall, drills full, deploy stall is not the end stop, time caps). "
       f"A 3:1 stage would cut the loam time by 3 but does not fit under the bay roof (dart-cad)."); n += 1
     hr = l3["moist loam"]["horn_moment_Nm"]
-    w(f"{n}. Holding with the v31 deploy horns and kick rest: the tow turns the pods further down, the horns take it, so the worm no longer caps the holding "
+    w(f"{n}. Holding with the deploy horns and kick rest: the tow turns the pods further down, the horns take it, so the worm no longer caps the holding "
       f"(same result for a worm holding 0.3, 0.6 or 1.2 N m). The horns must carry {hr} N m for both pods ({hr / 2:.1f} N m per pod) at the loam holding; "
       f"dart-cad to check the horn and hull_top at that moment with a factor 1.5. Kick rest {l3['moist loam']['kick_rest_moment_Nm']} N m."); n += 1
     cs = A["loam_cohesion_sensitivity_rover3m"]
@@ -112,11 +112,12 @@ def write_md(out, R, A, L, F, S):
         lim_ = mo["drill"]["stall_Nm"] / 1.3
         if r0["drill_install_Nm"] <= lim_ < r1["drill_install_Nm"]:
             cmax = r0["c_kPa"] + (lim_ - r0["drill_install_Nm"]) / (r1["drill_install_Nm"] - r0["drill_install_Nm"]) * (r1["c_kPa"] - r0["c_kPa"])
-    w(f"{n}. Drill torque (d{g['drill']['D_mm']:.0f} augers): install {so['moist loam']['drill_each']['install_torque_perko_Nm']} to {so['moist loam']['drill_each']['install_torque_Nm']} N m in loam, "
-      f"unscrew about {so['moist loam']['unscrew']['drill_unscrew_torque_Nm']} N m against {mo['drill']['stall_Nm']} N m stall (margin {so['moist loam']['unscrew']['drill_margin']}). "
-      f"The drills can still unscrew in loam up to a cohesion of about {cmax:.0f} kPa; firm clay needs {so['firm clay']['drill_each']['install_torque_perko_Nm']} to "
-      f"{so['firm clay']['drill_each']['install_torque_Nm']} N m: it cannot install. State 'loam and softer' in the docs. If the pull test finds stiffer ground, 50 rpm drill motors "
-      f"(same body, twice the torque) are the next step."); n += 1
+    o50 = next((r for r in A.get("options", []) if r["worm_hold_Nm"] == 0.6 and r["auger_d_mm"] == float(g["drill"]["D_mm"]) and r["drill_rpm12"] == 50.0), None)
+    w(f"{n}. Drill torque (d{g['drill']['D_mm']:.0f} augers on a d{g['drill']['core_mm']} core): a radial auger only spins in place, {so['moist loam']['drill_each']['install_torque_Nm']} N m in loam; "
+      f"release needs about {so['moist loam']['unscrew']['drill_unscrew_torque_Nm']} N m against the in-hand 100 rpm motor's {mo['drill']['stall_Nm']} N m stall "
+      f"(margin {so['moist loam']['unscrew']['drill_margin']}); it still releases in loam up to a cohesion of about {cmax:.0f} kPa. "
+      + (f"The 50 rpm version of the same motor gives margin {o50['moist loam']['drill_margin']} (deploy mill {o50['moist loam']['deploy_s']:.0f} s in loam). " if o50 else "")
+      + f"Firm clay needs {so['firm clay']['drill_each']['install_torque_Nm']} N m: it cannot install; state 'loam and softer' in the docs."); n += 1
     mh = A["motor_heating_loam"]["cases"]["100 rpm drills"]
     w(f"{n}. Motor heating while milling loam (R_th 40 K/W assumed): drills {mh['drill_A']} A each for {mh['deploy_s']:.0f} s, +{mh['drill_rise_K']:.0f} K; deploy worm at stall "
       f"+{mh['worm_rise_K']:.0f} K. Acceptable in the PLA pod (softens near 60 C) from a 25 C start; firmware: cap a milling deploy at 150 s, then rest 60 s."); n += 1
@@ -139,7 +140,7 @@ def write_md(out, R, A, L, F, S):
       f"{co[2][1]} MPa ({co[2][3]}); cells {R['loads'][4][1]} N into the front disc on hard ground. Do not fire at concrete, rock or packed gravel. (A crushable nose face "
       f"would cap a hard hit at about {L['nose_bumper_5mm_hard_ground']['g_cg']:.0f} g; not in Harry's parts.)"); n += 1
     w(f"{n}. Flight at 7 m/s: nose first only because of the tether (0.25 N brake, about 0.37 N at the dart); with 0, 8 or 15 g ballast the result is the same, and without "
-      f"the tether it tumbles with any of them. v31 has no ballast (agreed). The reel must never let the line go slack in flight."); n += 1
+      f"the tether it tumbles with any of them. This build has {R['ballast_g']:g} g ballast. The reel must never let the line go slack in flight."); n += 1
     w(f"{n}. Landing detector. minFlightMs 400 was longer than the shortest flight (0.37 s at 6 deg): 250 ms (dart-fw)."); n += 1
     kp = A["kick_plant_passive_moment_Nm"]["moist loam"]
     k_ok = next((k for k, m in reversed(kp) if m <= A["kick"]["stall_Nm"]), kp[0][0])

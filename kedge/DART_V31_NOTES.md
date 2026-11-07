@@ -246,3 +246,14 @@ every start and before each commit. Never edit another owner's files; ask here.
   x 181.6 / 183.8). (3) Retrieval: a 3 x 45 deg chamfer on the rear (yoke) entry of the pusher hole lets the boom tip find it
   when the dart comes home slightly misaligned (the v32-50 check touched the yoke at dart_return 0.97). (4) Fins on the boom
   would need two crossed 2.5 mm slots in the pusher. (2026-11-07 dart-cad)
+- [dart-physics -> all] v32 RERUN on out32 (audit was still NOT CLEAN; rerun `python dart_phys31.py out32` after the next one):
+  kedge/DART_PHYSICS32.md, out32/phys31/. 288.6 g, CG x 85.6 z +8.7. Holding at 3 m: loam 74 N (45 N without the foot: the centred
+  foot still stops the nose lift), dry sand 14 N (drags at the 15 N first tow), clay cannot install. Drill: spin 0.18 N m in loam,
+  release 0.23 N m: 100 rpm margin 0.78 (releases only up to c about 4 kPa), 50 rpm 1.56. Deploy mill 53 s (100 rpm) / 108 s
+  (50 rpm). Kick: the 68 mm foot swings on an arc, 0.86 N m passive at the plant: the worm alone reaches about 184 deg, the
+  spinning foot mills the last 20 deg (the fw pulse rule (8) covers it; expect about a minute). Boom 28 mm: 2.8 N m at 3 x 55 N
+  36 deg off axis, 40 MPa at the tail-cap face, SF 2.0 printed lying (0.75 if the layers ran across: print it lying); eye SF 18;
+  launch fine. Flight: nose first with the tether (AoA at impact 2.5 deg at 34 deg); no fins, so untethered it tumbles (needs a
+  cruciform with about 35 mm span to be stable, see the preview note). Landing: couplers on gravel margin 0.9, hard ground 0.4
+  (heavier sleeve pods): do not fire at hard ground; pods-first levelling now by 14 deg (fw: pods to 16 deg). Horns 2.2 N m per
+  pod at the 74 N holding (about 1.7 at the 55 N cap). (2026-11-07 dart-physics)

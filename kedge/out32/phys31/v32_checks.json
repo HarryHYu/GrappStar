@@ -1,0 +1,158 @@
+{
+ "source": "out32",
+ "tether_pt_mm": [
+  179.97000122070312,
+  1.741125520689663
+ ],
+ "boom": {
+  "parts": [
+   "tail_boom",
+   "boom_anchor",
+   "boom_pin"
+  ],
+  "x_root_mm": 151.5,
+  "x_eye_mm": 180.0,
+  "free_length_mm": 28.5,
+  "mass_g": 3.9,
+  "tow_case": {
+   "F_N": 165.0,
+   "off_axis_deg": 36.1,
+   "lateral_N": 97.2,
+   "axial_N": 133.3
+  },
+  "worst_section": {
+   "x_mm": 151.5,
+   "stress_MPa": 40.2,
+   "area_mm2": 57.8,
+   "W_mm3": 73.2,
+   "moment_Nm": 2.77,
+   "SF_along_lines": 1.99,
+   "SF_across_layers": 0.75
+  },
+  "eye_net_section": {
+   "x_mm": 174.5,
+   "area_mm2": 37.8,
+   "tension_MPa_at_3x55N": 4.4,
+   "SF": 18.32
+  },
+  "launch": {
+   "inertia_N": 0.73,
+   "line_spin_up_pull_N": 8.9,
+   "buckling_if_pushed_N": 3986.0,
+   "note": "the launcher pushes the tail cap face; if the pusher bears on the eye instead, 60 N compression against the buckling load"
+  },
+  "landing_tip_load_capacity_N": 205.0
+ },
+ "flight": {
+  "fins": [],
+  "cp_pitch_x": 59.6,
+  "cp_yaw_x": 58.1,
+  "cg_x": 85.6,
+  "static_margin_cal": {
+   "pitch": -0.62,
+   "yaw": -0.65
+  },
+  "no_tether_pitch": {
+   "alpha_peak_deg": 134.3,
+   "alpha_end_deg": -133.2,
+   "nose_first": false
+  },
+  "no_tether_yaw": {
+   "alpha_peak_deg": 122.7,
+   "alpha_end_deg": -122.7,
+   "nose_first": false
+  }
+ },
+ "fin_sweep": [
+  {
+   "span_from_boom_mm": 0.0,
+   "fin_area_each_mm2": 0,
+   "margin_cal": {
+    "pitch": -0.62,
+    "yaw": -0.65
+   },
+   "no_tether_pitch": {
+    "alpha_peak_deg": 134.3,
+    "alpha_end_deg": -133.2,
+    "nose_first": false
+   },
+   "no_tether_yaw": {
+    "alpha_peak_deg": 122.7,
+    "alpha_end_deg": -122.7,
+    "nose_first": false
+   }
+  },
+  {
+   "span_from_boom_mm": 10.0,
+   "fin_area_each_mm2": 300,
+   "margin_cal": {
+    "pitch": -0.44,
+    "yaw": -0.47
+   },
+   "no_tether_pitch": {
+    "alpha_peak_deg": 125.6,
+    "alpha_end_deg": -123.5,
+    "nose_first": false
+   },
+   "no_tether_yaw": {
+    "alpha_peak_deg": 109.3,
+    "alpha_end_deg": -109.3,
+    "nose_first": false
+   }
+  },
+  {
+   "span_from_boom_mm": 16.0,
+   "fin_area_each_mm2": 480,
+   "margin_cal": {
+    "pitch": -0.25,
+    "yaw": -0.27
+   },
+   "no_tether_pitch": {
+    "alpha_peak_deg": 115.6,
+    "alpha_end_deg": -113.1,
+    "nose_first": false
+   },
+   "no_tether_yaw": {
+    "alpha_peak_deg": 86.8,
+    "alpha_end_deg": -86.8,
+    "nose_first": false
+   }
+  },
+  {
+   "span_from_boom_mm": 25.0,
+   "fin_area_each_mm2": 750,
+   "margin_cal": {
+    "pitch": 0.05,
+    "yaw": 0.04
+   },
+   "no_tether_pitch": {
+    "alpha_peak_deg": 94.2,
+    "alpha_end_deg": -94.2,
+    "nose_first": false
+   },
+   "no_tether_yaw": {
+    "alpha_peak_deg": 36.1,
+    "alpha_end_deg": -36.1,
+    "nose_first": true
+   }
+  },
+  {
+   "span_from_boom_mm": 35.0,
+   "fin_area_each_mm2": 1050,
+   "margin_cal": {
+    "pitch": 0.34,
+    "yaw": 0.33
+   },
+   "no_tether_pitch": {
+    "alpha_peak_deg": 51.3,
+    "alpha_end_deg": -32.0,
+    "nose_first": false
+   },
+   "no_tether_yaw": {
+    "alpha_peak_deg": 15.6,
+    "alpha_end_deg": 1.9,
+    "nose_first": true
+   }
+  }
+ ]
+}

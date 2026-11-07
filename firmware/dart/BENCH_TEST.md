@@ -142,7 +142,10 @@ page or the Jetson, no key pressed, hands off the legs and augers.
 2. Stand the dart on its tail, nose up: the axis reading about +9.8 points to the **nose**.
 3. Lay it on its right side (kick side up): the axis reading +9.8 points **left**.
 4. Write: **nose = ___ (e.g. +x), left = ___, up = ___**. The Jetson flight analysis needs this mapping.
-5. The firmware needs two of them too (step 10): `imuUpAxis` = the up axis, `imuNoseAxis` = the nose axis, coded
+5. In the v31 hull the BNO085 lies flat in the sled, parts up (up = +z), turned so that the silkscreen arrow along its
+   SHORT side points to the nose (dart-cad). If that short-side arrow is Y, the nose is +y (`imuNoseAxis = 2`); if it is
+   X, the nose is +x (`imuNoseAxis = 1`). The check in this step decides, not the arrow.
+6. The firmware needs two of them too (step 10): `imuUpAxis` = the up axis, `imuNoseAxis` = the nose axis, coded
    1 = x, 2 = y, 3 = z, with a minus sign for a minus axis (up = -z means `imuUpAxis = -3`). With `imuNoseAxis` set the
    firmware works out roll and pitch: after the upload, lay the dart flat: status `upright`, `roll_g` and `pitch_g` near
    0. Tilt the nose up by about 20 deg (a book under the nose): `nose_up`, `pitch_g` about +20. If it reads -20 the nose

@@ -197,6 +197,9 @@ and one 100 k resistor (1/8 W or 0603), heat shrink.
 **D** (drain) pin. Solder the 100 k resistor from **G** (gate) to **S**.
 **Step V3. Battery unplugged.** Cut wire 51 (white, 28 AWG, 120 mm). Solder the 100 ohm resistor to the gate, wire 51
 to the other end of that resistor, and wire 51's far end to **XIAO D10**. Heat shrink over everything, nothing bare.
+Where it goes (dart-cad): tape the heat-shrunk MOSFET in the pocket beside the VTX over the cells (about 5 x 6 mm of
+room each side). Nothing else is modelled for it.
+
 **Step V4. Battery unplugged. Meter on beep:** VTX GND must **not** beep to XIAO GND (the switch is the only path);
 MOSFET S must beep to XIAO GND. If VTX GND beeps to XIAO GND, something else (a screw, a shield, the camera ground) joins
 them: find it, or the switch does nothing (no harm, just always on).

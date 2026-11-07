@@ -11,3 +11,7 @@ kedge/work/[a-z][a-z]31/
 kedge/work/*.done
 kedge/work/[a-z]32/
 kedge/work/*32*.log
+kedge/work/*.png
+kedge/work/probe.*
+kedge/work/sec5_v32.md
+kedge/work/yoke.py

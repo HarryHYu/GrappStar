@@ -1,48 +1,58 @@
-// KEDGE dart firmware v3  (Seeed XIAO ESP32S3)
-// Control logic lives in kedge_logic.h (unit-tested on a PC: fw/test/test_logic.cpp). This file is the hardware glue.
+// KEDGE dart firmware v4.1  (Seeed XIAO ESP32S3)
+// Control logic lives in kedge_logic.h (unit-tested on a PC: ../test/test_logic.cpp). This file is the hardware glue.
+//
+// v4 (3 Nov 2026): DRV8833 #3 is no longer on the dart. DRV#1 A = deploy, DRV#1 B = kick, DRV#2 A = BOTH drill motors
+// (right drill leads swapped so the augers counter-rotate), DRV#2 B = foot. New API: /release, /flightlog, /arm, and
+// "phase" + "fault" in /status. Full API: ../API.md. Wiring: ../WIRING.md.
+// v4.1 (7 Nov 2026): shorter flight windows for the real launcher, orientation ("orient", /auto refused on its side or
+// back unless force=1), battery state at rest ("batt"), optional video power switch on D10 (/video).
 //
 // Keyboard control, two ways:
 //   1. USB:  Arduino Serial Monitor, 115200 baud, "No line ending". Type a key, press Enter (each press runs 1.5 s).
 //   2. WiFi: join "KEDGE" (password grappstar), open http://192.168.4.1 . Hold a key or button to run, release to stop.
 // Keys:  1 / !  deploy pods down / up          2 / @  kick leg out / back
 //        3 / #  drill augers in / out          4 / $  foot auger in / out
-//        space or s  STOP ALL   + / -  speed   i  current   b  attitude   z  I2C scan
-//        a  auto-anchor now     A  arm/disarm auto-anchor on landing     h  help
-// Rover / Jetson API (same WiFi):  GET /status (JSON)   GET /key?c=<key>&ms=<run ms>   GET /stop   GET /auto
+//        space or s  STOP ALL   + / -  speed   i  current   b  attitude   z  I2C scan   p  status   f  flight log
+//        a  auto-anchor now     r  release now     A  arm / disarm (auto-anchor on landing)     h  help
 // Board: "XIAO_ESP32S3", Tools > USB CDC On Boot: Enabled. Pull the power loop plug before plugging in USB.
-// Safety (trip, deadman timers, auto sequence) and all I2C run in their own FreeRTOS task every 5 ms, so a slow web
-// client or a stuck Serial port cannot stop the motors from being stopped.
+// Safety (trip, stall, deadman timers, sequences, flight detection) and all I2C (except the z scan) run in their own FreeRTOS task every
+// 5 ms under a task watchdog, so a slow web client or a stuck Serial port cannot stop the motors from being stopped.
 // Wireless upload: Arduino IDE > Port > network port "kedge" while joined to KEDGE.
 #include <Wire.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoOTA.h>
-#include <Adafruit_INA219.h>
 #include <Adafruit_BNO08x.h>
+#include <esp_task_wdt.h>
+#include <esp_system.h>
 #include "kedge_logic.h"
 #if !ARDUINO_USB_CDC_ON_BOOT
 #error "Set Tools > USB CDC On Boot: Enabled. With it disabled, Serial uses GPIO43/44 = D6/D7, the foot motor pins."
 #endif
 
-// D6/D7 are GPIO43/44 = UART0 TX/RX: the boot ROM toggles TX at every reset, before setup() runs. They drive the FOOT
-// (slow worm: a reset twitch is harmless); the fast drill pair is on D8/D9.
-const int PIN_A[4] = {D0, D2, D8, D6};   // deploy, kick, drills (DRV#2 A+B tied), foot
-const int PIN_B[4] = {D1, D3, D9, D7};
-const int PIN_SDA = D4, PIN_SCL = D5;
+using kedge::PINS;
+static_assert(PINS[kedge::DEPLOY].gpioA == D0 && PINS[kedge::DEPLOY].gpioB == D1, "deploy pins");
+static_assert(PINS[kedge::KICK].gpioA == D2 && PINS[kedge::KICK].gpioB == D3, "kick pins");
+static_assert(PINS[kedge::DRILLS].gpioA == D8 && PINS[kedge::DRILLS].gpioB == D9, "drill pins");
+static_assert(PINS[kedge::FOOT].gpioA == D6 && PINS[kedge::FOOT].gpioB == D7, "foot pins");
+static_assert(kedge::PIN_SDA_GPIO == D4 && kedge::PIN_SCL_GPIO == D5, "I2C pins");
+static_assert(kedge::PIN_VIDEO_GPIO == D10, "video switch pin");
 const int PWM_HZ = 20000, PWM_BITS = 8;
 
-Adafruit_INA219 ina;
 Adafruit_BNO08x bno(-1);
-sh2_SensorValue_t sv;
-bool inaOk = false, bnoOk = false;
-float roll = 0, pitch = 0, accG = 1.0;
+bool inaPresent = false, bnoPresent = false;
+float roll = 0, pitch = 0;
+float quat[4] = {1, 0, 0, 0}, accV[3] = {0, 0, 9.81f};
+uint32_t lastImuMs = 0, lastImuRetry = 0, imuNow = 0;   // imuNow: the tick's time, used for every IMU event
 WebServer web(80);
 kedge::Kedge K;
-kedge::Landing landing;
-bool landed = false;
-volatile float railCache = 0;
+volatile float railCache = -1;
+volatile bool linkLostFlag = false;
+volatile uint32_t loopBeat = 0; volatile bool otaActive = false;   // web loop heartbeat (watched by the safety task)
+uint32_t i2cBad = 0, i2cBadSince = 0, lastBusFix = 0;               // consecutive failed INA219 reads, since when, last bus recovery
+const char* resetName = "";
 String reply;
-SemaphoreHandle_t mtx;                                 // guards K and the log ring
+SemaphoreHandle_t mtx;                                 // guards K, I2C and the log ring
 char ring[8][64]; volatile int ringHead = 0, ringTail = 0;
 
 #if ESP_ARDUINO_VERSION_MAJOR >= 3
@@ -53,12 +63,55 @@ void pwmAttach(int pin, int ch) { ledcSetup(ch, PWM_HZ, PWM_BITS); ledcAttachPin
 void pwmWrite(int pin, int ch, int duty) { (void)pin; ledcWrite(ch, duty); }
 #endif
 
-void hwSetMotor(int m, int dir, int duty) {          // DRV8833: PWM one input, other low; both low = coast
-  pwmWrite(PIN_A[m], 2 * m, dir > 0 ? duty : 0);
-  pwmWrite(PIN_B[m], 2 * m + 1, dir < 0 ? duty : 0);
+// DRV8833 slow decay: one input high, the other PWM inverted, so the bridge alternates drive and brake. Supply current
+// then goes as duty squared at stall (the logic scales its thresholds that way). Duty 255 = plain DC. Both low = coast.
+void hwSetMotor(int m, int dir, int duty) {
+  if (duty < 0) duty = 0;
+  if (duty > 255) duty = 255;
+  pwmWrite(PINS[m].gpioA, 2 * m, dir > 0 ? 255 : dir < 0 ? 255 - duty : 0);
+  pwmWrite(PINS[m].gpioB, 2 * m + 1, dir < 0 ? 255 : dir > 0 ? 255 - duty : 0);
 }
-float hwCurrent() { return inaOk ? ina.getCurrent_mA() : 0; }
-float hwRail() { return inaOk ? ina.getBusVoltage_V() : 0; }
+
+// ---- INA219, read directly so a failed read is seen (the library returns stale numbers silently).
+// 0.1 ohm shunt, 32 V range, PGA /8 (320 mV = 3.2 A), current LSB 0.1 mA (calibration 4096), shunt ADC 4-sample average.
+const uint8_t INA_ADDR = 0x40; const uint16_t INA_CAL = 4096, INA_CONFIG = 0x39D7;
+bool inaWrite(uint8_t reg, uint16_t v) {
+  Wire.beginTransmission(INA_ADDR); Wire.write(reg); Wire.write(v >> 8); Wire.write(v & 0xFF); return Wire.endTransmission() == 0;
+}
+bool inaRead(uint8_t reg, uint16_t& v) {
+  Wire.beginTransmission(INA_ADDR); Wire.write(reg); if (Wire.endTransmission(false) != 0) return false;
+  if (Wire.requestFrom(INA_ADDR, (uint8_t)2) != 2) return false;
+  v = (uint16_t)(Wire.read() << 8); v |= (uint16_t)Wire.read(); return true;
+}
+bool inaInit() { return inaWrite(0x00, INA_CONFIG) && inaWrite(0x05, INA_CAL); }
+float hwCurrent() {                                  // tick task, mtx held: NAN = read failed, 9999 = overflow (trips)
+  uint16_t bus, r;
+  if (!inaRead(0x02, bus) || !inaRead(0x04, r)) { railCache = -1; if (!i2cBad++) i2cBadSince = millis(); return NAN; }
+  i2cBad = 0;
+  railCache = (bus >> 3) * 0.004f;
+  if (bus & 1) return 9999;                          // OVF: shunt over its 3.2 A range, the current register is meaningless
+  float ma = (int16_t)r / 10.0f;
+  if (ma < -50.f) return NAN;                          // well below zero: VIN+ and VIN- swapped (stall and trip would never fire)
+  return ma;
+}
+float hwRail() { return railCache; }
+void hwVideo(bool on) { digitalWrite(kedge::PIN_VIDEO_GPIO, on ? HIGH : LOW); }   // optional switch: HIGH = camera + VTX on
+void inaCheckCal() {                                 // 10 Hz: an INA219 that browned out comes back uncalibrated (reads 0 mA)
+  uint16_t cal;
+  if (inaRead(0x05, cal) && cal != INA_CAL) { inaInit(); hwLog("INA219 lost its setup: re-initialised"); }
+}
+
+// A device holding SDA low (reset mid transfer) blocks the bus until power is cycled: clock SCL 9 times and restart
+// Wire. Done when the INA219 has failed for 1 s and the BNO085 is silent too, at most every 3 s. About 1 ms.
+void busRecover() {
+  Wire.end();
+  pinMode(kedge::PIN_SDA_GPIO, INPUT_PULLUP);
+  pinMode(kedge::PIN_SCL_GPIO, OUTPUT_OPEN_DRAIN);
+  for (int i = 0; i < 9; i++) { digitalWrite(kedge::PIN_SCL_GPIO, LOW); delayMicroseconds(5); digitalWrite(kedge::PIN_SCL_GPIO, HIGH); delayMicroseconds(5); }
+  Wire.begin(kedge::PIN_SDA_GPIO, kedge::PIN_SCL_GPIO); Wire.setClock(400000); Wire.setTimeOut(20);
+  inaInit();
+}
+
 void hwLog(const char* s) {                          // called with mtx held; drained to Serial / web by loop()
   strncpy(ring[ringHead], s, 63); ring[ringHead][63] = 0; ringHead = (ringHead + 1) % 8; if (ringHead == ringTail) ringTail = (ringTail + 1) % 8;
 }
@@ -74,19 +127,40 @@ void drainLog() {
 }
 void say(const String& s) { Serial.println(s); reply += s; reply += "\n"; }
 
-void readImu() {
-  if (!bnoOk) return;
-  if (bno.wasReset()) { bno.enableReport(SH2_GAME_ROTATION_VECTOR, 20000); bno.enableReport(SH2_ACCELEROMETER, 2500); }
-  while (bno.getSensorEvent(&sv)) {
-    if (sv.sensorId == SH2_GAME_ROTATION_VECTOR) {
-      float r = sv.un.gameRotationVector.real, i = sv.un.gameRotationVector.i, j = sv.un.gameRotationVector.j, k = sv.un.gameRotationVector.k;
-      roll = atan2f(2 * (r * i + j * k), 1 - 2 * (i * i + j * j)) * 57.2958f;
-      pitch = asinf(constrain(2 * (r * j - k * i), -1.0f, 1.0f)) * 57.2958f;
-    } else if (sv.sensorId == SH2_ACCELEROMETER) {
-      float ax = sv.un.accelerometer.x, ay = sv.un.accelerometer.y, az = sv.un.accelerometer.z;
-      accG = sqrtf(ax * ax + ay * ay + az * az) / 9.81f;
-    }
+void enableImuReports() {
+  bno.enableReport(SH2_GAME_ROTATION_VECTOR, 20000);  // 50 Hz attitude for the flight log
+  bno.enableReport(SH2_ACCELEROMETER, 2500);          // 400 Hz so a short launch or impact spike is seen
+}
+// Every BNO085 report goes through this callback (the library's getSensorEvent keeps only the last report of each
+// packet, which can drop 400 Hz accelerometer samples). Runs inside sh2_service(): tick task, mtx held.
+void imuEvent(void*, sh2_SensorEvent_t* e) {
+  sh2_SensorValue_t v;
+  if (sh2_decodeSensorEvent(&v, e) != SH2_OK) return;
+  uint32_t now = imuNow;                              // never later than the tick's now (unsigned time maths must not wrap)
+  if (v.sensorId == SH2_GAME_ROTATION_VECTOR) {
+    float r = v.un.gameRotationVector.real, i = v.un.gameRotationVector.i, j = v.un.gameRotationVector.j, k = v.un.gameRotationVector.k;
+    if (!(r == r && i == i && j == j && k == k)) return;
+    lastImuMs = now;
+    quat[0] = r; quat[1] = i; quat[2] = j; quat[3] = k;
+    roll = atan2f(2 * (r * i + j * k), 1 - 2 * (i * i + j * j)) * 57.2958f;
+    pitch = asinf(constrain(2 * (r * j - k * i), -1.0f, 1.0f)) * 57.2958f;
+  } else if (v.sensorId == SH2_ACCELEROMETER) {
+    float x = v.un.accelerometer.x, y = v.un.accelerometer.y, z = v.un.accelerometer.z;
+    if (!(x == x && y == y && z == z)) return;
+    lastImuMs = now;
+    accV[0] = x; accV[1] = y; accV[2] = z;
+    K.onAccel(sqrtf(x * x + y * y + z * z) / 9.80665f, now);
   }
+}
+void readImu(uint32_t now) {                          // tick task, mtx held
+  if (!bnoPresent) return;
+  if (bno.wasReset()) enableImuReports();
+  imuNow = now;
+  for (int i = 0; i < 3; i++) sh2_service();          // calls imuEvent for every report waiting (one transfer per call)
+  bool fresh = (int32_t)(now - lastImuMs) < 1000;
+  if (fresh != K.imuOk) { K.imuOk = fresh; K.ev(fresh ? "BNO085 data back" : "BNO085 silent for 1 s"); }   // in /status event too
+  if (fresh) K.imuSample(now, quat, accV);
+  else if (now - lastImuRetry > 2000) { lastImuRetry = now; enableImuReports(); }   // short I2C writes, never a re-begin here
 }
 
 void scanI2C() {
@@ -95,110 +169,238 @@ void scanI2C() {
     xSemaphoreTake(mtx, portMAX_DELAY); Wire.beginTransmission(a); bool ok = Wire.endTransmission() == 0; xSemaphoreGive(mtx);
     if (ok) { say("I2C device at 0x" + String(a, HEX)); n++; }
   }
-  say(String(n) + " device(s). Expect 0x40 (INA219) and 0x4a (BNO085).");
+  say(String(n) + " device(s). Expect 0x40 (INA219) and 0x4a or 0x4b (BNO085).");
 }
 void help() {
-  say("KEDGE ready. 1/! deploy down/up  2/@ kick out/back  3/# drills in/out  4/$ foot in/out");
-  say("space/s STOP  +/- speed  i current  b attitude  z I2C scan  a auto-anchor  A arm auto on landing");
+  say("KEDGE v4.1 ready. 1/! deploy down/up  2/@ kick out/back  3/# drills in/out  4/$ foot in/out");
+  say("space/s STOP  +/- speed  i current  b attitude  z I2C scan  p status  f flight log  a auto-anchor  r release  A arm");
 }
 
-void handleKey(char c, uint32_t runMs) {
-  uint32_t now = millis();
-  if (c == 'A') { xSemaphoreTake(mtx, portMAX_DELAY); landing.reset(); landed = false; xSemaphoreGive(mtx); }   // re-arm the landing detector
+// runs a key under the lock; returns the refusal reason or nullptr
+const char* handleKey(char c, uint32_t runMs) {
+  uint32_t now = millis(); const char* why = nullptr;
   switch (c) {
-    case 'i': say("rail " + String(railCache, 2) + " V  " + String(K.lastMa, 0) + " mA"); return;
-    case 'b': say(bnoOk ? "roll " + String(roll, 1) + "  pitch " + String(pitch, 1) + "  |a| " + String(accG, 2) + " g" : String("BNO085 not found")); return;
-    case 'z': xSemaphoreTake(mtx, portMAX_DELAY); K.key(' ', 0, now); xSemaphoreGive(mtx); scanI2C(); return;   // motors stopped first; lock taken per address
-    case 'h': case '?': help(); return;
-    case '+': case '-': xSemaphoreTake(mtx, portMAX_DELAY); K.key(c, runMs, now); xSemaphoreGive(mtx); say("speed " + String(K.spd)); return;
-    default: xSemaphoreTake(mtx, portMAX_DELAY); K.key(c, runMs, now); xSemaphoreGive(mtx);
+    case 'i': say("rail " + String(railCache, 2) + " V  " + String(K.lastMa, 0) + " mA  peak " + String(K.peakMa, 0) + " mA since the last i");
+              xSemaphoreTake(mtx, portMAX_DELAY); K.peakMa = 0; xSemaphoreGive(mtx); return nullptr;
+    case 'b': say(K.imuOk ? "roll " + String(roll, 1) + "  pitch " + String(pitch, 1) + "  |a| " + String(K.accG, 2) + " g" : String("BNO085 not found or silent")); return nullptr;
+    case 'z': xSemaphoreTake(mtx, portMAX_DELAY); K.stop(now); xSemaphoreGive(mtx); scanI2C(); return nullptr;   // motors stopped first
+    case 'p': { char b[1400]; xSemaphoreTake(mtx, portMAX_DELAY); K.status(b, sizeof b, roll, pitch, now, railCache, resetName); xSemaphoreGive(mtx); say(b); return nullptr; }
+    case 'f': { xSemaphoreTake(mtx, portMAX_DELAY); int n = K.log.count; bool fr = K.log.frozen; uint32_t tl = K.flight.tLaunch, td = K.flight.tLand; bool la = K.flight.launched, ld = K.landed; xSemaphoreGive(mtx);
+                say("flight log: " + String(n) + " samples, " + (fr ? "frozen" : "live") + (la ? ", launch " + String(tl) + " ms" : String("")) + (ld ? ", landed " + String(td) + " ms" : String("")) + ". Full log: GET /flightlog");
+                return nullptr; }
+    case 'h': case '?': help(); return nullptr;
+    case '\n': case '\r': return nullptr;
+    default: xSemaphoreTake(mtx, portMAX_DELAY); why = K.key(c, runMs, now); xSemaphoreGive(mtx);
   }
+  if (c == '+' || c == '-') say("speed " + String(K.spd));
+  if (why) say(String("refused: ") + why);
   drainLog();
+  return why;
 }
 
-void tickTask(void*) {                                 // 5 ms: IMU, landing, current, trip, timers, auto sequence
+void tickTask(void*) {                                 // 5 ms: IMU, flight, current, trip, stall, timers, sequences
+  esp_task_wdt_add(nullptr);
   TickType_t last = xTaskGetTickCount();
+  uint32_t lastV = 0;
   for (;;) {
     uint32_t now = millis();
     xSemaphoreTake(mtx, portMAX_DELAY);                // all I2C traffic happens inside this lock
-    readImu();
-    static uint32_t lastV = 0; if (now - lastV > 100) { lastV = now; railCache = hwRail(); }
-    if (!landed && landing.update(accG, now)) { landed = true; hwLog("landed"); if (K.armedOnLanding) K.startAuto(now); }
+    readImu(now);
+    if (now - lastV >= 100) { lastV = now; inaCheckCal(); }   // also sets up an INA219 that was missing at boot
+    if (linkLostFlag) { linkLostFlag = false; K.linkLost(now); }
     K.tick(now);
+    if (i2cBad >= 3 && (int32_t)(now - i2cBadSince) > 1000 && !K.imuOk && now - lastBusFix > 3000) { lastBusFix = now; busRecover(); hwLog("I2C bus stuck: recovered (9 clocks, Wire restart)"); if (bnoPresent) enableImuReports(); }   // by time: a stuck tick is slow
+    // web loop hung for 30 s (and nothing moving, no OTA): restart; motors coast through the reset
+    if (!otaActive && (int32_t)(now - loopBeat) > 30000 && !K.running() && !K.seqRunning() && !K.armed && !K.flight.flying()) { hwLog("web loop stuck 30 s: restarting"); Serial.flush(); esp_restart(); }
     xSemaphoreGive(mtx);
+    esp_task_wdt_reset();
     vTaskDelayUntil(&last, pdMS_TO_TICKS(5));
+  }
+}
+
+void setupWatchdog() {                                 // 2 s without a tick = panic reset (motors coast: DRV8833 inputs pull down)
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
+  esp_task_wdt_config_t c = {};
+  c.timeout_ms = 2000; c.idle_core_mask = 0; c.trigger_panic = true;
+  if (esp_task_wdt_reconfigure(&c) != ESP_OK) esp_task_wdt_init(&c);
+#else
+  esp_task_wdt_init(2, true);
+#endif
+}
+
+int resetFault() {
+  switch (esp_reset_reason()) {
+    case ESP_RST_POWERON: resetName = "poweron"; return kedge::F_NONE;
+    case ESP_RST_SW: resetName = "software"; return kedge::F_NONE;   // OTA, ESP.restart()
+    case ESP_RST_BROWNOUT: resetName = "brownout"; return kedge::F_BROWNOUT;
+    case ESP_RST_PANIC: resetName = "panic"; return kedge::F_WATCHDOG;
+    case ESP_RST_INT_WDT: resetName = "int_wdt"; return kedge::F_WATCHDOG;
+    case ESP_RST_TASK_WDT: resetName = "task_wdt"; return kedge::F_WATCHDOG;
+    case ESP_RST_WDT: resetName = "wdt"; return kedge::F_WATCHDOG;
+    case ESP_RST_EXT: resetName = "reset_pin"; return kedge::F_NONE;
+    case ESP_RST_DEEPSLEEP: resetName = "deepsleep"; return kedge::F_NONE;
+    default: resetName = "other"; return kedge::F_NONE;   // USB upload resets land here
   }
 }
 
 const char PAGE[] PROGMEM = R"HTML(<!doctype html><html><head><meta name=viewport content="width=device-width,initial-scale=1">
 <title>KEDGE</title><style>body{font:15px Arial;margin:16px;background:#111;color:#eee}button{font:15px Arial;padding:14px;margin:4px;min-width:120px;touch-action:none;user-select:none;-webkit-user-select:none}
-#s{font:13px monospace;white-space:pre-wrap;background:#222;padding:8px}pre{background:#222;padding:8px;height:30vh;overflow:auto}</style></head><body><h3>KEDGE dart</h3>
-<p>Hold a key or button to run, release to stop. 1/! deploy  2/@ kick  3/# drills  4/$ foot  space STOP  a auto  A arm-on-landing</p>
+#s{font:13px monospace;white-space:pre-wrap;background:#222;padding:8px}pre{background:#222;padding:8px;height:30vh;overflow:auto}a{color:#8cf}</style></head><body><h3>KEDGE dart v4.1</h3>
+<p>Hold a key or button to run, release to stop. 1/! deploy  2/@ kick  3/# drills  4/$ foot  space STOP  a auto  r release  A arm. <a href=/flightlog download=flightlog.json>flight log</a></p>
 <div id=b></div><div id=s></div><pre id=o></pre><script>
 const o=document.getElementById('o'),S=document.getElementById('s');const held=new Map();
 function add(x){if(x){o.textContent+=x;o.scrollTop=1e9}}
-let N=0;const busy={};
-function send(c){const n=++N;if(c!==' '&&busy[c])return;busy[c]=1;const ac=new AbortController();const to=setTimeout(()=>ac.abort(),300);
-fetch('/key?c='+encodeURIComponent(c)+'&ms=350&n='+n,{signal:ac.signal}).then(r=>r.text()).then(add).catch(()=>{}).finally(()=>{clearTimeout(to);busy[c]=0})}
+let N=0;const busy={};const P=Math.random().toString(36).slice(2,8);
+function send(c,keep){const n=++N;if(c!==' '&&busy[c])return;busy[c]=1;const ac=new AbortController();const to=setTimeout(()=>ac.abort(),300);
+fetch('/key?c='+encodeURIComponent(c)+'&ms=350&n='+n+'&p='+P+(keep?'&keep=1':''),{signal:ac.signal}).then(r=>r.text()).then(add).catch(()=>{}).finally(()=>{clearTimeout(to);busy[c]=0})}
 setInterval(()=>{for(const c of held.values())send(c)},150);   // several keys can be held at once (e.g. 2 and 4)
 function hold(id,c){if(held.has(id))return;held.set(id,c);send(c)}
-function release(id){if(!held.has(id))return;held.delete(id);if(!held.size)send(' ')}
+function release(id){if(!held.has(id))return;held.delete(id);if(!held.size)send(' ',1)}   // keep=1: stop the motors, stay armed
+function stop(){held.clear();let t=0;const go=()=>{const ac=new AbortController();const to=setTimeout(()=>ac.abort(),1500);   // STOP: retried until the dart answers
+fetch('/key?c=%20&ms=0&n='+(++N)+'&p='+P,{signal:ac.signal}).then(r=>{if(!r.ok)throw 0;return r.text()}).then(add).catch(()=>{if(++t<5){add('STOP not confirmed, sending again\n');setTimeout(go,150)}else add('STOP NOT CONFIRMED: pull the power loop plug\n')}).finally(()=>clearTimeout(to))};go()}
 const RUN='1!2@3#4$';
-addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter')e.preventDefault();const c=e.key===' '?' ':e.key;if(RUN.includes(c)){e.preventDefault();hold(e.code,c)}else if(e.key==='Shift'||e.key==='Enter'){}else if(!e.repeat){if(c===' ')held.clear();send(c)}});
+addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey){if(held.size){held.clear();send(' ',1)}return}   // Cmd/Ctrl/Alt: no keyup may follow (macOS)
+if(e.key===' '||e.key==='Enter')e.preventDefault();const c=e.key===' '?' ':e.key;if(RUN.includes(c)){e.preventDefault();hold(e.code,c)}else if(e.key==='Shift'||e.key==='Enter'){}else if(!e.repeat&&c.length===1){if(c===' ')stop();else send(c)}});
 addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter')e.preventDefault();if(held.has(e.code))release(e.code)});   // keyed by physical key: Shift order does not matter
-function lost(){if(held.size){held.clear();send(' ')}}
+function lost(){if(held.size){held.clear();fetch('/key?c=%20&keep=1&ms=0&n='+(++N)+'&p='+P,{keepalive:true}).catch(()=>{})}}   // keepalive: survives the page closing
 addEventListener('blur',lost);addEventListener('pagehide',lost);document.addEventListener('visibilitychange',()=>{if(document.hidden)lost()});
 addEventListener('contextmenu',e=>e.preventDefault());
 const L=[['1','deploy down'],['!','deploy up'],['2','kick out'],['@','kick back'],['3','drills in'],['#','drills out'],['4','foot in'],['$','foot out']];
 const B=document.getElementById('b');for(const [c,n] of L){const x=document.createElement('button');x.textContent=n;
 x.tabIndex=-1;const id='btn'+c;x.onpointerdown=()=>hold(id,c);x.onpointerup=()=>release(id);x.onpointerleave=()=>release(id);x.onpointercancel=()=>release(id);B.appendChild(x)}
-for(const [c,n] of [[' ','STOP'],['a','AUTO'],['A','arm on landing'],['i','current'],['b','attitude']]){const x=document.createElement('button');x.textContent=n;x.tabIndex=-1;x.onclick=()=>{send(c);x.blur()};B.appendChild(x)}
-setInterval(()=>fetch('/status').then(r=>r.json()).then(j=>{S.textContent=`rail ${j.rail_V} V  ${j.current_mA} mA (peak ${j.peak_mA})  roll ${j.roll}  pitch ${j.pitch}\n${j.seq}  ${j.armed?'ARMED':''} ${j.landed?'LANDED':''}  last: ${j.event}`}).catch(()=>{}),400);
+for(const [c,n] of [[' ','STOP'],['a','AUTO anchor'],['r','RELEASE'],['A','arm / disarm'],['i','current'],['b','attitude']]){const x=document.createElement('button');x.textContent=n;x.tabIndex=-1;x.onclick=()=>{if(c===' ')stop();else send(c);x.blur()};B.appendChild(x)}
+for(const [v,n] of [['1','video on'],['0','video off']]){const x=document.createElement('button');x.textContent=n;x.tabIndex=-1;x.onclick=()=>{fetch('/video?on='+v).then(r=>r.text()).then(add).catch(()=>{});x.blur()};B.appendChild(x)}
+setInterval(()=>fetch('/status').then(r=>r.json()).then(j=>{S.textContent=`${j.phase}${j.fault?' '+j.fault:''}   ${j.seq}\nrail ${j.rail_V} V  ${j.current_mA} mA (peak ${j.peak_mA})  roll ${j.roll}  pitch ${j.pitch}  ${j.accel_g} g\nINA219 ${j.ina_ok?'ok':'MISSING'}  BNO085 ${j.imu_ok?'ok':'MISSING'}  ${j.armed?'ARMED':''}\nbattery ${j.batt} ${j.batt_V} V  ${j.orient} (tilt ${j.tilt_deg})  video ${j.video?'on':'off'}\nlast: ${j.event}`}).catch(()=>{}),400);
 </script></body></html>)HTML";
 
+void sendResult(const char* why) {
+  if (why) { String head = String("refused: ") + why + "\n"; web.send(409, "text/plain", reply.startsWith(head) ? reply : head + reply); }   // the refusal once
+  else web.send(200, "text/plain", reply);
+}
+
+void handleFlightlog() {                               // streamed from a snapshot so the tick task is held for microseconds only
+  // while sending (about 0.3 s, longer on a weak link) the server cannot take /stop, so refuse while anything moves
+  // also while armed or in flight: the landing detector could start the motors in the middle of the stream
+  xSemaphoreTake(mtx, portMAX_DELAY);
+  const char* why = K.flight.flying() ? "in flight" : (K.running() || K.seqRunning()) ? "busy (motors running)" : K.armed ? "armed (disarm first)" : nullptr;
+  xSemaphoreGive(mtx);
+  if (why) { web.send(409, "text/plain", String("refused: ") + why + "\n"); return; }   // distinct: a client retries only on busy
+  kedge::Log* snap = (kedge::Log*)malloc(sizeof(kedge::Log));
+  if (!snap) { web.send(503, "text/plain", "out of memory\n"); return; }
+  kedge::LogJson w;
+  xSemaphoreTake(mtx, portMAX_DELAY);
+  memcpy(snap, &K.log, sizeof(kedge::Log));
+  w.begin(snap, kedge::phaseName(K.phase()), K.flight.launched, K.flight.tLaunch, K.flight.st == kedge::Flight::LANDED, K.flight.tLand, K.flight.how);
+  xSemaphoreGive(mtx);
+  web.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  web.send(200, "application/json", "");
+  static char buf[1400]; int n;
+  uint32_t t0 = millis();
+  while ((n = w.chunk(buf, sizeof buf)) > 0) {
+    web.sendContent(buf, n);
+    loopBeat = millis();                               // a slow client is not a hung loop
+    if (millis() - t0 > 8000) { web.client().stop(); break; }   // give up on a client that stopped reading
+  }
+  web.sendContent("");
+  free(snap);
+}
+
 void setup() {
-  for (int m = 0; m < 4; m++) { pwmAttach(PIN_A[m], 2 * m); pwmAttach(PIN_B[m], 2 * m + 1); hwSetMotor(m, 0, 0); }   // motors safe before anything else
+  for (int m = 0; m < kedge::NMOT; m++) {             // motors safe before anything else
+    pinMode(PINS[m].gpioA, OUTPUT); digitalWrite(PINS[m].gpioA, LOW);
+    pinMode(PINS[m].gpioB, OUTPUT); digitalWrite(PINS[m].gpioB, LOW);
+  }
+  for (int m = 0; m < kedge::NMOT; m++) { pwmAttach(PINS[m].gpioA, 2 * m); pwmAttach(PINS[m].gpioB, 2 * m + 1); hwSetMotor(m, 0, 0); }
+  pinMode(kedge::PIN_VIDEO_GPIO, OUTPUT); hwVideo(true);   // video on (does nothing when the optional switch is not fitted)
   mtx = xSemaphoreCreateMutex();
-  K.io = {hwSetMotor, hwCurrent, hwRail, hwLog};
-  K.stopAll(millis());
+  K.io = {hwSetMotor, hwCurrent, hwRail, hwLog, hwVideo};
+  int rf = resetFault();
   Serial.begin(115200);
 #if ARDUINO_USB_CDC_ON_BOOT
   Serial.setTxTimeoutMs(0);                            // never block on a full USB buffer
 #endif
   uint32_t t0 = millis(); while (!Serial && millis() - t0 < 2500) delay(10);
-  Wire.begin(PIN_SDA, PIN_SCL);
+  Wire.begin(kedge::PIN_SDA_GPIO, kedge::PIN_SCL_GPIO);
   Wire.setClock(400000);
-  inaOk = ina.begin();
-  if (!inaOk) Serial.println("INA219 not found");
-  bnoOk = bno.begin_I2C(0x4A) || bno.begin_I2C(0x4B);
-  if (bnoOk) { bno.enableReport(SH2_GAME_ROTATION_VECTOR, 20000); bno.enableReport(SH2_ACCELEROMETER, 2500); }   // 400 Hz so a short impact spike is seen
-  else Serial.println("BNO085 not found");
+  Wire.setTimeOut(20);                                 // a stuck bus costs at most 20 ms per transfer
+  inaPresent = inaInit();
+  K.inaOk = inaPresent;
+  if (!inaPresent) Serial.println("INA219 not found: no current sensing, auto and release refused, manual keys still work");
+  bnoPresent = bno.begin_I2C(0x4A) || bno.begin_I2C(0x4B);
+  if (bnoPresent) { sh2_setSensorCallback(imuEvent, nullptr); enableImuReports(); }
+  else Serial.println("BNO085 not found: no attitude, no flight log, arming refused");
+  K.imuOk = bnoPresent; lastImuMs = millis();
+  K.boot(rf, millis(), esp_reset_reason() == ESP_RST_POWERON);   // only a power-on means "legs stowed"
+  Serial.printf("reset reason: %s\n", resetName);
   WiFi.mode(WIFI_AP);
   WiFi.softAP("KEDGE", "grappstar");
+  WiFi.onEvent([](WiFiEvent_t, WiFiEventInfo_t) { linkLostFlag = true; }, ARDUINO_EVENT_WIFI_AP_STADISCONNECTED);
   web.on("/", []() { web.send_P(200, "text/html", PAGE); });
   web.on("/key", []() {
     reply = "";
-    String c = web.arg("c"); uint32_t ms = web.hasArg("ms") ? web.arg("ms").toInt() : K.tu.wifiDeadmanMs;
-    static long lastStopN = -1; long n = web.hasArg("n") ? web.arg("n").toInt() : -1;   // page numbers every request
-    if (c == " " || c == "s") { if (n > lastStopN) lastStopN = n; }
-    else if (n >= 0 && n < lastStopN) { web.send(200, "text/plain", ""); return; }      // a run key that left before the stop: drop it
-    if (ms < 50) ms = 50; if (ms > 5000) ms = 5000;
-    if (c.length()) handleKey(c[0], ms);
-    web.send(200, "text/plain", reply);
+    String c = web.arg("c"); long ms = web.hasArg("ms") ? web.arg("ms").toInt() : K.tu.wifiDeadmanMs;
+    // each open page numbers its requests (n) and has its own id (p); a run key sent before that page's STOP is dropped.
+    // The last 4 page ids are remembered, so a phone and a laptop do not reset each other's counter.
+    static String pages[4]; static long stopN[4] = {-1, -1, -1, -1}; static int nextSlot = 0;
+    long n = web.hasArg("n") ? web.arg("n").toInt() : -1; String pg = web.arg("p"); int slot = -1;
+    if (pg.length()) {
+      for (int i = 0; i < 4; i++) if (pages[i] == pg) slot = i;
+      if (slot < 0) { slot = nextSlot; nextSlot = (nextSlot + 1) % 4; pages[slot] = pg; stopN[slot] = -1; }   // a new or reloaded page
+    }
+    if (slot >= 0 && n >= 0) {
+      if (c == " " || c == "s") { if (n > stopN[slot]) stopN[slot] = n; }
+      else if (n < stopN[slot]) { web.send(409, "text/plain", "refused: sent before a stop\n"); return; }   // a run key that left before the stop
+    }
+    if (ms < 50) ms = 50;
+    if (ms > (long)K.tu.wifiMaxRunMs) ms = K.tu.wifiMaxRunMs;
+    if (!c.length()) { web.send(400, "text/plain", "missing c\n"); return; }
+    if ((c == " " || c == "s") && web.arg("keep") == "1") {   // key release on the page: stop manual motors only
+      uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); K.keyRelease(t); xSemaphoreGive(mtx); drainLog(); sendResult(nullptr); return;
+    }
+    sendResult(handleKey(c[0], (uint32_t)ms));
   });
-  web.on("/stop", []() { reply = ""; handleKey(' ', 0); web.send(200, "text/plain", reply); });
-  web.on("/auto", []() { reply = ""; handleKey('a', 0); web.send(200, "text/plain", reply); });
-  web.on("/status", []() { char b[400]; xSemaphoreTake(mtx, portMAX_DELAY); K.status(b, sizeof b, roll, pitch, landed, millis(), railCache); xSemaphoreGive(mtx); web.send(200, "application/json", b); });
+  web.on("/stop", []() {
+    reply = "";
+    if (web.hasArg("disarm") && web.arg("disarm") == "0") { uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); K.stop(t, false); xSemaphoreGive(mtx); drainLog(); sendResult(nullptr); }
+    else sendResult(handleKey(' ', 0));
+  });
+  web.on("/auto", []() {
+    reply = "";
+    if (web.arg("force") == "1") {                     // try even when the IMU says the dart is not upright
+      uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); const char* why = K.startAuto(t, true); xSemaphoreGive(mtx);
+      drainLog(); sendResult(why); return;
+    }
+    sendResult(handleKey('a', 0));
+  });
+  web.on("/video", []() {                              // optional camera + VTX power switch on D10: on=1 / on=0
+    reply = ""; if (!web.hasArg("on")) { web.send(400, "text/plain", "missing on\n"); return; }
+    bool on = web.arg("on") != "0";
+    xSemaphoreTake(mtx, portMAX_DELAY); K.setVideo(on, "by request"); xSemaphoreGive(mtx);
+    drainLog(); sendResult(nullptr);
+  });
+  web.on("/release", []() { reply = ""; sendResult(handleKey('r', 0)); });
+  web.on("/arm", []() {
+    reply = ""; bool on = !web.hasArg("on") || web.arg("on") != "0"; bool withAuto = !web.hasArg("auto") || web.arg("auto") != "0";
+    uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); const char* why = K.arm(on, withAuto, t); xSemaphoreGive(mtx);
+    drainLog(); sendResult(why);
+  });
+  web.on("/status", []() { char b[1400]; xSemaphoreTake(mtx, portMAX_DELAY); K.status(b, sizeof b, roll, pitch, millis(), railCache, resetName); xSemaphoreGive(mtx); web.send(200, "application/json", b); });
+  web.on("/flightlog", handleFlightlog);
+  web.onNotFound([]() { web.send(404, "text/plain", "not found\n"); });
   web.begin();
   ArduinoOTA.setHostname("kedge");
-  ArduinoOTA.onStart([]() { xSemaphoreTake(mtx, portMAX_DELAY); K.key(' ', 0, millis()); K.armedOnLanding = false; xSemaphoreGive(mtx); });   // abort any sequence too
+  ArduinoOTA.onStart([]() { otaActive = true; uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); K.stop(t); xSemaphoreGive(mtx); });   // abort any sequence and disarm
+  ArduinoOTA.onError([](ota_error_t) { loopBeat = millis(); otaActive = false; });   // no restart in the gap before loop() beats again
   ArduinoOTA.begin();
+  setupWatchdog();
+  loopBeat = millis();
   xTaskCreatePinnedToCore(tickTask, "kedge_tick", 6144, nullptr, 3, nullptr, 1);
   help();
   Serial.print("WiFi: join KEDGE, open http://"); Serial.println(WiFi.softAPIP());
 }
 
 void loop() {
+  loopBeat = millis();
   if (Serial.available()) { char c = Serial.read(); if (c != '\n' && c != '\r') { reply = ""; handleKey(c, K.tu.serialRunMs); } }
   web.handleClient();
   ArduinoOTA.handle();

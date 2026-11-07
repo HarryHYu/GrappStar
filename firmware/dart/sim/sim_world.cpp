@@ -326,6 +326,7 @@ std::string stateJson() {
   j += ",\"knobs\":{\"drill_jam\":" + std::string(K.drillJam ? "true" : "false") + ",\"foot_jam\":" + (K.footJam ? "true" : "false") +
        ",\"kick_jam\":" + (K.kickJam ? "true" : "false") + ",\"deploy_jam\":" + (K.deployJam ? "true" : "false") +
        ",\"accel_noise\":" + fmt("%.3f", K.accelNoise) + "}";
+  j += ",\"video_pin\":" + std::to_string(duty[9] ? 1 : 0);   // D10 (GPIO9): the optional video power switch
   j += ",\"wdt_trips\":" + std::to_string(wdtTrips) + "}";
   return j;
 }

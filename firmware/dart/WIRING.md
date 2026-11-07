@@ -1,7 +1,7 @@
-# KEDGE dart wiring v4 (DRV8833 #3 removed)
+# KEDGE dart wiring v4.1 (DRV8833 #3 removed)
 
 This replaces Appendix A of `kedge/CLAUDE.md` (the v29 list of 53 wires) and the old 53-wire files in `kedge/pack_v30/`.
-The new list has 50 wires: `firmware/dart/wiring/wire_cut_list.csv`. Diagram: `firmware/dart/wiring/wiring.svg` /
+The new list has 50 wires, plus wire 51 for the optional video switch: `firmware/dart/wiring/wire_cut_list.csv`. Diagram: `firmware/dart/wiring/wiring.svg` /
 `wiring.png`. Changes only: `firmware/dart/wiring/changes_from_v29.csv`.
 Regenerate everything with `python3 firmware/dart/tools/wires_v4.py` (lengths from the v30 model, same rule as before).
 
@@ -23,6 +23,33 @@ Pin map (firmware v4):
 | D6 / D7 | DRV#2 BIN1 / BIN2 | foot N20 (these two pins twitch at reset: harmless on the slow worm) |
 | D4 / D5 | INA219 + BNO085 SDA / SCL | I2C |
 | 3V3 | DRV#1 SLP, DRV#2 SLP, INA219 VCC, BNO085 VIN | logic power |
+| D10 | optional video switch (MOSFET gate) | nothing else; leave it empty on the first build |
+
+Why these pins (checked against the XIAO ESP32S3 and ESP32-S3 datasheets, 7 Nov 2026):
+- D0 to D3, D8, D9 (GPIO1 to 4, 7, 8) float at reset and the DRV8833 inputs have their own pull-downs, so those motors
+  stay off while the XIAO boots or is being flashed. D2 is GPIO3, a strapping pin that only matters when a special
+  eFuse is burned (it is not on the XIAO); the driver's pull-down holds it low, which is harmless.
+- D6 / D7 are GPIO43 / 44, the chip's UART0. For about 25 ms after every reset the chip prints its boot text on D6, so
+  the foot can twitch a fraction of a turn. Harmless on the slow worm, and the foot is the only motor where it can
+  happen. That is also why the firmware refuses to compile with "USB CDC On Boot" disabled (Serial would then use D6/D7).
+- D4 / D5 are the XIAO's default I2C pins. Both boards have their own 10 k pull-ups to 3V3.
+- D10 (GPIO9) is not a strapping pin and is quiet at boot.
+
+## Pad names on the boards
+
+Different DRV8833 boards print different names for the same pad. Use this table when a step says VM, SLP or AIN1:
+
+| This sheet says | Pololu DRV8833 board | Purple generic DRV8833 board | What it is |
+|---|---|---|---|
+| VM | VIN | VCC (or VM) | motor supply from the battery (6.0 to 8.4 V) |
+| GND | GND | GND | ground |
+| SLP | SLP | EEP (or nSLEEP) | wake input: gets 3V3 from the XIAO (step B6 checks it first) |
+| AIN1 / AIN2 / BIN1 / BIN2 | AIN1 / AIN2 / BIN1 / BIN2 | IN1 / IN2 / IN3 / IN4 (or ANI1 / ANI2 / BNI1 / BNI2) | inputs from the XIAO |
+| AOUT1 / AOUT2 / BOUT1 / BOUT2 | AOUT1 / AOUT2 / BOUT1 / BOUT2 | OUT1 / OUT2 / OUT3 / OUT4 (or AO1 / AO2 / BO1 / BO2) | to the motors |
+| (not used) | FLT | ULT (or nFAULT) | fault output: leave it unconnected |
+
+INA219: VIN+ and VIN- are the two pads (or the screw terminal) for the current path; VCC, GND, SDA, SCL are the
+logic side. BNO085 (Adafruit): VIN, GND, SDA, SCL; leave every other pad (INT, RST, PS0, PS1, DI) unconnected.
 
 ## Rules for every step
 
@@ -142,12 +169,34 @@ The motors are not connected yet on this path, so AOUT1 to AOUT2 and BOUT1 to BO
   flight state survives. Glue or tape the power loop plug so it cannot shake loose.
 - 100 uF, 16 V, across DRV#1 VM and GND (long leg to VM): bulk capacitor for the motor rail (TI asks for 10 uF or more).
 
+## Optional: video power switch (firmware v4.1, skip it on the first build)
+
+Camera and VTX use about two thirds of the battery while the dart waits. With this switch the Jetson (or the web page
+buttons `video on` / `video off`) can turn them off between shots; the firmware also turns them off when the battery
+is critical and back on when the dart is armed. Without the switch nothing changes: the video is always on and the
+firmware's D10 output drives nothing.
+
+Parts: one AO3400A N-channel MOSFET (SOT-23; on a small SOT-23 adapter board it is much easier to solder), one 100 ohm
+and one 100 k resistor (1/8 W or 0603), heat shrink.
+
+**Step V1. Battery unplugged, USB unplugged.** Find wire 19 (MP1584 OUT- to VTX GND). Cut it about 30 mm from the VTX.
+**Step V2. Battery unplugged.** Solder the MP1584 end of wire 19 to the MOSFET **S** (source) pin, the VTX end to the
+**D** (drain) pin. Solder the 100 k resistor from **G** (gate) to **S**.
+**Step V3. Battery unplugged.** Cut wire 51 (white, 28 AWG, 120 mm). Solder the 100 ohm resistor to the gate, wire 51
+to the other end of that resistor, and wire 51's far end to **XIAO D10**. Heat shrink over everything, nothing bare.
+**Step V4. Battery unplugged. Meter on beep:** VTX GND must **not** beep to XIAO GND (the switch is the only path);
+MOSFET S must beep to XIAO GND. If VTX GND beeps to XIAO GND, something else (a screw, a shield, the camera ground) joins
+them: find it, or the switch does nothing (no harm, just always on).
+**Step V5.** Antenna on the VTX, then power on: the page shows `video on` and the RC832 shows a picture. Press
+`video off`: the picture goes. Press `video on`: it comes back within about 2 s.
+
 ## Power-on check (both paths)
 
 1. **Battery unplugged.** Motors still outside the hull, legs free to turn, nothing touching the augers.
 2. USB only, power loop plug out: flash the firmware (README.md). Serial Monitor at 115200. Type `z`: expect `0x40` and `0x4a` (or `0x4b`).
 3. Antenna on the VTX. Unplug USB. Insert the power loop plug. Nothing should move, nothing should get warm. Join WiFi `KEDGE`.
-4. Open `http://192.168.4.1`. Status line must show `IDLE`, `INA219 ok`, `BNO085 ok`, rail about 7 to 8.4 V.
+4. Open `http://192.168.4.1`. Status line must show `IDLE`, `INA219 ok`, `BNO085 ok`, rail about 7 to 8.4 V, and
+   `battery ok` (charge the cells if it says `low` or `critical`).
 5. Go through BENCH_TEST.md: steps 0 to 6 (directions, free currents) on the loose motors now, the rest after
    assembly (the table at the top of BENCH_TEST.md says which).
 
@@ -170,3 +219,4 @@ end, looking toward the tip. The left auger (right-hand thread) must turn **cloc
 | 26 AWG red / black (other motors) | 760 / 855 |
 | 26 AWG white / orange | 180 / 95 |
 | 28 AWG red/white, black, blue, green, purple, grey, yellow, orange | 240, 225, 120, 120, 200, 200, 105, 105 |
+| 28 AWG white (optional video switch, wire 51) | 120 |

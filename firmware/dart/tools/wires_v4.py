@@ -105,6 +105,9 @@ w("DRV#2 AOUT2 (same pad as the LEFT black)", "Drill motor RIGHT + (red)  SWAPPE
 leg = P["KICK_POLE_L"] + 40
 w("DRV#2 BOUT1", "Foot N20 + (red)", "red", "26 AWG", L(X["drv2"], X["foot_hole"], extra=leg + 60), "forward along the top through the disc notches, out the skin hole, 60 mm loop round the hub, through the pole channel", 52)
 w("DRV#2 BOUT2", "Foot N20 - (black)", "black", "26 AWG", L(X["drv2"], X["foot_hole"], extra=leg + 60), "silicone wire, it flexes every deploy", 53)
+# --- OPTIONAL (firmware v4.1): video power switch. Skip on the first build: without it the video is simply always on.
+w("XIAO D10", "Video MOSFET gate (AO3400A, through a 100 ohm resistor)", "white", "28 AWG", L(X["xiao_pins"], X["vtx"]),
+  "OPTIONAL video switch (WIRING.md): the MOSFET sits in wire 19 near the VTX (source to the MP1584 OUT- side, drain to the VTX GND side), 100 k from gate to source", "")
 
 # v29 list (kedge/CLAUDE.md Appendix A) for the change table
 V29 = {}
@@ -147,10 +150,11 @@ json.dump(dict(wires=W, totals={f"{k[1]} {k[0]}": v for k, v in sorted(tot.items
 COL = {"black": "#222222", "red": "#d0312d", "white": "#999999", "orange": "#e58a1f", "yellow": "#d4b106", "red/white": "#e07070",
        "blue": "#1f5fd0", "green": "#1e9e48", "purple": "#8a3fd1", "grey": "#777777"}
 NODES = ["XIAO", "DRV#1", "DRV#2", "INA219", "BNO085", "MP1584", "BMS", "VTX", "Camera", "Charge socket", "Power loop socket",
-         "Deploy N20", "Kick N20", "Foot N20", "Drill motor LEFT", "Drill motor RIGHT"]
+         "Deploy N20", "Kick N20", "Foot N20", "Drill motor LEFT", "Drill motor RIGHT", "Video MOSFET"]
 LABEL = {"Cell 1": "18350 cell 1", "Cell 2": "18350 cell 2", "Diode": "Schottky 1N5817 / SS14\nstripe toward the XIAO",
          "Cap": "capacitor on MP1584 OUT\nlong leg OUT+, striped leg OUT-", "XIAO": "XIAO ESP32S3", "DRV#1": "DRV8833 #1\nA = deploy, B = kick", "DRV#2": "DRV8833 #2\nA = both drills, B = foot",
-         "INA219": "INA219 (0x40)", "BNO085": "BNO085 (0x4A)", "MP1584": "MP1584 buck 5.04 V", "BMS": "2S BMS", "Cell": "2 x 18350 (2S)"}
+         "INA219": "INA219 (0x40)", "BNO085": "BNO085 (0x4A)", "MP1584": "MP1584 buck 5.04 V", "BMS": "2S BMS", "Cell": "2 x 18350 (2S)",
+         "Video MOSFET": "OPTIONAL video switch\nAO3400A in wire 19\n(S to MP1584 OUT-, D to VTX GND)"}
 
 
 def node(s):
@@ -171,7 +175,7 @@ def pad(s):
 
 
 lines = ['digraph G { rankdir=LR; splines=true; pad=0.4; nodesep=0.3; ranksep=1.2; bgcolor="white";',
-         'label="KEDGE dart wiring v4: DRV8833 #3 removed (its pocket stays empty). Every wire: battery unplugged."; labelloc=t; fontname="Arial"; fontsize=16;',
+         'label="KEDGE dart wiring v4.1: DRV8833 #3 removed (its pocket stays empty). Every wire: battery unplugged."; labelloc=t; fontname="Arial"; fontsize=16;',
          'node [shape=box, style="rounded,filled", fillcolor="#f2f2f2", fontname="Arial", fontsize=11, color="#555555"];',
          'edge [fontname="Arial", fontsize=8, penwidth=1.4, arrowhead=none];']
 for n in ["Cell 1", "Cell 2", "Diode", "Cap"] + NODES:

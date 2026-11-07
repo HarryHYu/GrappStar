@@ -499,6 +499,16 @@
    330,
    "silicone wire, it flexes every deploy",
    53
+  ],
+  [
+   51,
+   "XIAO D10",
+   "Video MOSFET gate (AO3400A, through a 100 ohm resistor)",
+   "white",
+   "28 AWG",
+   120,
+   "OPTIONAL video switch (WIRING.md): the MOSFET sits in wire 19 near the VTX (source to the MP1584 OUT- side, drain to the VTX GND side), 100 k from gate to source",
+   ""
   ]
  ],
  "totals": {
@@ -517,7 +527,8 @@
   "28 AWG blue": 120,
   "28 AWG green": 120,
   "28 AWG purple": 200,
-  "28 AWG grey": 200
+  "28 AWG grey": 200,
+  "28 AWG white": 120
  },
  "changes": [
   [

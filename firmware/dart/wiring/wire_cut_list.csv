@@ -49,3 +49,4 @@
 48,DRV#2 AOUT2 (same pad as the LEFT black),Drill motor RIGHT + (red)  SWAPPED,red,26 AWG,170,,51
 49,DRV#2 BOUT1,Foot N20 + (red),red,26 AWG,330,"forward along the top through the disc notches, out the skin hole, 60 mm loop round the hub, through the pole channel",52
 50,DRV#2 BOUT2,Foot N20 - (black),black,26 AWG,330,"silicone wire, it flexes every deploy",53
+51,XIAO D10,"Video MOSFET gate (AO3400A, through a 100 ohm resistor)",white,28 AWG,120,"OPTIONAL video switch (WIRING.md): the MOSFET sits in wire 19 near the VTX (source to the MP1584 OUT- side, drain to the VTX GND side), 100 k from gate to source",

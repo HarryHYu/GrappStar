@@ -64,9 +64,12 @@ static void setM(int m, int d, int duty) { P.mdir[m] = duty ? d : 0; P.duty[m] =
 static float cur() { return P.inaDead ? NAN : P.total(); }
 static float rail() { return P.railV; }
 static void lg(const char* s) { char b[160]; snprintf(b, sizeof b, "%6u ms  %s", NOW, s); LOG.push_back(b); }
+static int VIDEO_PIN = -1;                     // last level written to the video switch pin (-1 = never)
+static void vid(bool on) { VIDEO_PIN = on ? 1 : 0; }
+static float GRAV[3] = {0, 0, 9.81f};          // gravity reaction in chip axes while still (chip +z up = belly down)
 
 static Kedge K;
-static void fresh() { K = Kedge(); P = Plant(); NOW = 0; LOG.clear(); K.io = {setM, cur, rail, lg}; K.boot(F_NONE, NOW); }
+static void fresh() { K = Kedge(); P = Plant(); NOW = 0; LOG.clear(); VIDEO_PIN = -1; GRAV[0] = GRAV[1] = 0; GRAV[2] = 9.81f; K.io = {setM, cur, rail, lg, vid}; K.boot(F_NONE, NOW); }
 
 // IMU feed: |a| trace in g. imuOn=false = BNO085 silent.
 static std::function<float(uint32_t)> ACC = [](uint32_t) { return 1.0f; };
@@ -76,7 +79,7 @@ static void run(uint32_t ms) {
     NOW += 5; P.step(5);
     if (IMU_ON) {
       float a = ACC(NOW); K.onAccel(a, NOW);
-      float q[4] = {1, 0, 0, 0}, v[3] = {0, 0, a * 9.81f};
+      float q[4] = {1, 0, 0, 0}, v[3] = {GRAV[0] / 9.81f * a * 9.81f, GRAV[1] / 9.81f * a * 9.81f, GRAV[2] / 9.81f * a * 9.81f};
       K.imuSample(NOW, q, v);
     }
     K.tick(NOW);
@@ -102,7 +105,7 @@ static void runWatch(uint32_t ms) {
 }
 static std::string phases() { std::string s; for (auto& p : PHASES) { if (!s.empty()) s += ">"; s += p; } return s; }
 
-static std::string statusJson() { static char b[1024]; K.status(b, sizeof b, 1.5f, -3.2f, NOW, 7.6f, "poweron"); return b; }
+static std::string statusJson() { static char b[1400]; K.status(b, sizeof b, 1.5f, -3.2f, NOW, 7.6f, "poweron"); return b; }
 static std::string logJson(int cap = 512) {
   LogJson w; w.begin(&K.log, phaseName(K.phase()), K.flight.launched, K.flight.tLaunch, K.flight.st == Flight::LANDED, K.flight.tLand, K.flight.how);
   std::string out; std::vector<char> buf(cap); int n, maxN = 0;
@@ -639,6 +642,69 @@ int main() {
     printf("     alternating 1 / ! for 18 s: driven into the stop %u ms\n", drivenAtStop);
     CHECK(drivenAtStop <= 8500, "alternating 1 and ! every 300 ms: the hold cap counts per motor, so the stop is not driven without limit"); }
 
+
+  // ===================================================================================================== v4.1
+  section("v4.1: short flights (real launcher), orientation, battery at rest, video switch");
+  { fresh(); CHECK(VIDEO_PIN == 1 && K.video, "boot switches the video on (D10 high)"); }
+  // the real launcher: 0.37 s flight at the 6 deg low aim, about 0.42 s from the start of the push to the impact
+  for (uint32_t fl : {330u, 370u, 600u}) {
+    fresh(); uint32_t t0 = 2000;
+    ACC = [&](uint32_t t) { if (t < t0) return 1.0f; uint32_t d = t - t0; if (d < 50) return 8.0f; if (d < 50 + fl) return 0.3f; if (d < 60 + fl) return 7.0f; return 1.0f; };
+    K.arm(true, false, NOW); run(t0 + 50 + fl + 1500 - NOW);
+    char m[96]; snprintf(m, sizeof m, "%u ms flight after a 50 ms push: impact landing (not the 'still' fallback)", fl);
+    CHECK(K.landed && std::string(K.flight.how) == "impact" && K.flight.tLand >= t0 + 50 + fl - 5 && K.flight.tLand <= t0 + 60 + fl, m);
+  }
+  { fresh(); uint32_t t0 = 2000;   // tumbling (never under 0.6 g), 0.35 s flight: the push-over rule must make it quiet in time
+    ACC = [&](uint32_t t) { if (t < t0) return 1.0f; uint32_t d = t - t0; if (d < 45) return 8.0f; if (d < 395) return 1.4f; if (d < 405) return 7.0f; return 1.0f; };
+    K.arm(true, true, NOW); run(5000);
+    CHECK(std::string(K.flight.how) == "impact" && (K.anchoring() || K.seq == DONE), "tumbling 0.35 s flight: impact landing starts the auto anchor"); }
+  { fresh(); uint32_t t0 = 2000;   // a 20 ms knock while armed is a launch, but a 'bounce' 150 ms later is not an impact
+    ACC = [&](uint32_t t) { if (t < t0) return 1.0f; uint32_t d = t - t0; if (d < 25) return 8.0f; if (d < 150) return 0.3f; if (d < 160) return 7.0f; return 1.0f; };
+    K.arm(true, true, NOW); run(5000);
+    CHECK(std::string(K.flight.how) != "impact" && !K.anchoring() && K.seq == IDLE, "an 'impact' 150 ms after launch (under minFlightMs 250) is not a landing impact: no auto"); }
+  // orientation
+  { fresh(); ACC = [](uint32_t) { return 1.0f; }; run(500);
+    char b[1400]; K.status(b, sizeof b, 0, 0, NOW, 7.6f, "poweron"); std::string s = b;
+    CHECK(K.orient(NOW) == O_UPRIGHT && s.find("\"orient\":\"upright\"") != std::string::npos && s.find("\"tilt_deg\":0") != std::string::npos, "belly down: orient upright, tilt 0 in /status"); }
+  { fresh(); GRAV[0] = 9.81f; GRAV[2] = 0; run(500);   // on its side
+    const char* r = K.startAuto(NOW);
+    CHECK(K.orient(NOW) == O_SIDE && r && std::string(r).find("not upright: on its side") == 0 && K.seq == IDLE && allOff(), "on its side: /auto refused 'not upright: on its side', nothing moves");
+    r = K.startAuto(NOW, true);
+    CHECK(!r && K.seq == K_SWING, "on its side: /auto?force=1 starts anyway"); }
+  { fresh(); GRAV[2] = -9.81f; run(500);
+    const char* r = K.startAuto(NOW);
+    CHECK(K.orient(NOW) == O_INVERTED && r && std::string(r).find("not upright: upside down") == 0, "upside down: /auto refused 'not upright: upside down'"); }
+  { fresh(); GRAV[0] = -9.81f * 0.866f; GRAV[2] = 9.81f * 0.5f; run(500);   // nose buried at 60 deg: still counts as upright
+    CHECK(K.orient(NOW) == O_UPRIGHT && !K.startAuto(NOW), "nose down 60 deg (buried nose): upright, /auto runs"); }
+  { fresh(); K.imuOk = false; GRAV[2] = -9.81f; run(500);
+    CHECK(K.orient(NOW) == O_UNKNOWN && !K.startAuto(NOW), "BNO085 silent: orientation unknown, /auto is not blocked by it"); }
+  { fresh(); K.tu.imuUpAxis = -1; GRAV[0] = -9.81f; GRAV[2] = 0; run(500);   // a board mounted with chip -x up (BENCH_TEST step 7)
+    CHECK(K.orient(NOW) == O_UPRIGHT, "imuUpAxis -1: chip -x up reads upright"); }
+  { fresh(); uint32_t t0 = 2000;   // lands on its side after an impact: auto on landing does not start
+    ACC = [&](uint32_t t) { return flightTrace(t, t0); };
+    K.arm(true, true, NOW); run(1000 + t0 - NOW);
+    for (int i = 0; i < 1000 && !K.flight.flying(); i++) run(5);
+    GRAV[0] = 0; GRAV[1] = -9.81f; GRAV[2] = 0; run(4000);
+    CHECK(K.landed && std::string(K.flight.how) == "impact" && K.seq == IDLE && allOff() && ph() == "LANDED" && logged("landed on its side: auto not started"),
+          "impact landing on its side: auto not started, phase LANDED, event says why"); }
+  // battery at rest
+  { fresh(); P.railV = 6.7f; run(1500);
+    CHECK(K.batt == B_LOW && logged("battery low") && !K.startAuto(NOW), "6.7 V at rest: battery low warning, /auto still runs"); }
+  { fresh(); P.railV = 6.3f; run(1500); const char* r = K.startAuto(NOW);
+    CHECK(K.batt == B_CRIT && r && std::string(r).find("battery low") == 0 && K.seq == IDLE, "6.3 V at rest: battery critical, /auto refused 'battery low'");
+    CHECK(!K.video && VIDEO_PIN == 0 && logged("video off (battery critical)"), "battery critical switches the video off");
+    CHECK(!K.startRelease(NOW) && K.seq == R_DRILL, "battery critical: /release still runs"); }
+  { fresh(); P.railV = 6.3f; run(1500); P.railV = 6.45f; run(1500);
+    CHECK(K.batt == B_CRIT, "hysteresis: 6.45 V after critical stays critical (0.1 V)"); P.railV = 6.6f; run(1500);
+    CHECK(K.batt == B_LOW, "6.6 V after critical: low"); P.railV = 7.4f; run(1500); CHECK(K.batt == B_OK && logged("battery ok"), "7.4 V: ok again"); }
+  { fresh(); K.startAuto(NOW); P.railV = 6.0f; run(300);   // sag under load: not a resting reading
+    CHECK(K.batt == B_OK || K.batt == B_UNKNOWN, "a sag while a motor runs is not counted as the resting battery"); }
+  { fresh(); P.railV = 0.0f; run(200); CHECK(K.batt == B_NONE, "rail 0 V (plug out, USB only): batt none"); }
+  // video
+  { fresh(); K.setVideo(false, "test"); CHECK(!K.video && VIDEO_PIN == 0, "/video?on=0 switches it off");
+    K.arm(true, false, NOW); CHECK(K.video && VIDEO_PIN == 1 && logged("video on (armed"), "arming switches the video back on (the flight is filmed)"); }
+  { fresh(); std::string s = statusJson();
+    CHECK(s.size() < 1000 && s.find("\"video\":true") != std::string::npos && s.find("\"batt\":") != std::string::npos, "status JSON has video, batt, batt_V, orient, tilt_deg and stays under 1000 bytes"); }
 
   // ===================================================================================================== whole mission
   section("whole mission phases");

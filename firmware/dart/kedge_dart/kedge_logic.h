@@ -13,7 +13,7 @@
 
 namespace kedge {
 
-static const char* const FW_VERSION = "kedge-dart-v4";
+static const char* const FW_VERSION = "kedge-dart-v4.1";
 
 enum { DEPLOY = 0, KICK = 1, DRILLS = 2, FOOT = 3, NMOT = 4 };
 static inline const char* motorName(int m) {
@@ -32,6 +32,9 @@ static constexpr PinMap PINS[NMOT] = {
   {43, 44, "D6", "D7", 2, 'B'},   // foot N20:   DRV#2 BIN1 / BIN2 (GPIO43/44 twitch at reset: harmless on a slow worm)
 };
 static constexpr int PIN_SDA_GPIO = 5, PIN_SCL_GPIO = 6;   // D4 / D5: INA219 0x40 + BNO085 0x4A
+// D10 (GPIO9): optional video power switch (WIRING.md "Optional: video power switch"). HIGH = camera and VTX on. With
+// nothing fitted the pin drives nothing and the video simply stays on. GPIO9 is not a strapping pin and is quiet at boot.
+static constexpr int PIN_VIDEO_GPIO = 9;
 static const int N_DRIVERS = 2;                        // DRV#3 is no longer on the dart
 static const float DRV_CHANNEL_MAX_MA = 1200;          // DRV8833 continuous per channel (2 A peak, internal OCP)
 
@@ -41,6 +44,7 @@ struct Io {
   float (*current_mA)();                            // total motor-rail current (INA219); NAN when the read failed
   float (*rail_V)();                                // motor rail volts; <= 0 when unknown
   void (*log)(const char* line);
+  void (*setVideo)(bool on);                        // optional video power switch (may be nullptr)
 };
 
 // Replace the current numbers with bench values (BENCH_TEST.md steps 3 to 6, written in at step 10). Currents are the total read by
@@ -73,6 +77,14 @@ struct Tuning {
   uint32_t manualMaxMs = 8000;                          // a manual motor (held key or repeats) never runs longer
   uint32_t manualMaxNoInaMs = 2000;                     // ...and without current sensing (no stall detection)
   int inaFailLimit = 3;                                 // consecutive failed current reads = sensor lost
+  // battery (2S 18350) at rest: the INA219 bus voltage with no motor running for battRestMs. Low = 3.4 V per cell (about
+  // 10 % left: a warning), critical = 3.2 V per cell (a few percent: /auto refused so an anchor is never left without
+  // the charge to release it, and the video is switched off to stretch what is left; /release and keys still work)
+  float battLowV = 6.8f, battCritV = 6.4f, battHystV = 0.1f; uint32_t battRestMs = 1000;
+  // orientation while still, from the BNO085 accelerometer. imuUpAxis = the chip axis that points UP when the dart lies
+  // belly down: 1 = x, 2 = y, 3 = z, negative = the minus direction (BENCH_TEST step 7 checks it; default: the BNO085
+  // board lies flat on its deck, parts up, so chip +z is up). Tilt = angle between that axis and straight up.
+  int imuUpAxis = 3; float uprightMaxDeg = 70, invertedMinDeg = 120;
 };
 
 enum Fault { F_NONE = 0, F_OVERCURRENT, F_KICK_TIMEOUT, F_SEQ_TIMEOUT, F_DRILL_JAM, F_FOOT_JAM, F_CURRENT_SENSOR, F_LOW_RAIL,
@@ -91,6 +103,10 @@ static inline const char* seqName(int s) {
   return (s >= 0 && s < NSEQ) ? n[s] : "?";
 }
 enum Phase { P_IDLE, P_ARMED, P_FLIGHT, P_LANDED, P_ANCHORING, P_ANCHORED, P_RELEASING, P_FAULT };
+enum Batt { B_UNKNOWN, B_NONE, B_OK, B_LOW, B_CRIT };
+static inline const char* battName(int b) { static const char* n[] = {"unknown", "none", "ok", "low", "critical"}; return (b >= 0 && b <= B_CRIT) ? n[b] : "?"; }
+enum Orient { O_UNKNOWN, O_UPRIGHT, O_SIDE, O_INVERTED };
+static inline const char* orientName(int o) { static const char* n[] = {"unknown", "upright", "side", "inverted"}; return (o >= 0 && o <= O_INVERTED) ? n[o] : "?"; }
 static inline const char* phaseName(int p) {
   static const char* n[] = {"IDLE", "ARMED", "FLIGHT", "LANDED", "ANCHORING", "ANCHORED", "RELEASING", "FAULT"};
   return (p >= 0 && p <= P_FAULT) ? n[p] : "?";
@@ -102,13 +118,15 @@ static inline const char* phaseName(int p) {
 //   landing: after free fall (|a| < freeFallG for freeFallMs in total) or pushOverMs after launch with |a| < launchG,
 //            and minFlightMs, an impact over impactG, then still (|a| inside stillLo..stillHi) for stillMs. C2 said 6 g;
 //            3.5 g is used because the sensor clips and filters short impacts (API.md). Landing time = the LAST impact.
+//            v4.1: minFlightMs 400 -> 250 and pushOverMs 400 -> 200. The real launcher (base/out/ballistics.json) flies
+//            the dart for 0.37 s at the 6 deg low aim (about 0.42 s after the push starts): 400 ms missed that impact.
 //   fallbacks: no impact seen but still for softStillMs after the flight ("still"); nothing for flightTimeoutMs after
 //            launch ("timeout": also covers a silent IMU, checked from tick()).
 struct Flight {
   enum St { WAIT = 0, FLYING, IMPACTED, LANDED };
   enum Ev { NONE = 0, LAUNCH, LAND };
   float launchG = 4, impactG = 3.5f, freeFallG = 0.6f, stillLo = 0.85f, stillHi = 1.15f;
-  uint32_t launchHoldMs = 20, sampleSlackMs = 5, freeFallMs = 60, pushOverMs = 400, minFlightMs = 400, stillMs = 1000, softStillMs = 2000, flightTimeoutMs = 15000;
+  uint32_t launchHoldMs = 20, sampleSlackMs = 5, freeFallMs = 60, pushOverMs = 200, minFlightMs = 250, stillMs = 1000, softStillMs = 2000, flightTimeoutMs = 15000;
   int st = WAIT; bool above = false, quiet = false, stillOn = false, launched = false;
   uint32_t tAbove = 0, tLaunch = 0, tImpact = 0, tStill = 0, tLand = 0, ffMs = 0, tPrev = 0;
   // a dropped dart is in free fall before it hits: a push within dropWindowMs after free fall (|a| < dropG for at least
@@ -143,7 +161,7 @@ struct Flight {
       case FLYING:
         if ((int32_t)(now - tLaunch) >= (int32_t)flightTimeoutMs) return land(now, "timeout");
         // a real flight has free fall (|a| well under 1 g, drag and tether only); a bump on the bench does not
-        // a tumbling dart may never read under 0.6 g (spin), so 400 ms after launch with the push over also counts
+        // a tumbling dart may never read under 0.6 g (spin), so 200 ms after launch with the push over also counts
         if (!quiet) {
           uint32_t dt = now - tPrev; tPrev = now;
           if (a < freeFallG) { ffMs += dt > 20 ? 20 : dt; if (ffMs >= freeFallMs) quiet = true; }
@@ -279,6 +297,52 @@ struct Kedge {
   Flight flight; Log log;
   float accG = 1.0f, peakG = 0;                        // peakG: highest |a| since the last arm
   uint32_t lowT2 = 0; bool lowOn2 = false;
+  bool video = true;                                   // video power (camera + VTX), see PIN_VIDEO_GPIO
+  float battV = -1; int batt = B_UNKNOWN; uint32_t lastRunT = 0; bool runSeen = false;   // battery at rest
+  float upF = 1; int upN = 0; uint32_t upT = 0;        // orientation: filtered cosine of the tilt, still samples, last one
+
+  // ---- orientation (BNO085 accelerometer while still)
+  float tiltDeg() const { float c = upF > 1 ? 1 : upF < -1 ? -1 : upF; return acosf(c) * 57.29578f; }
+  int orient(uint32_t now) const {
+    if (!imuOk || upN < 20 || (int32_t)(now - upT) > 2000) return O_UNKNOWN;
+    float t = tiltDeg(); return t < tu.uprightMaxDeg ? O_UPRIGHT : t > tu.invertedMinDeg ? O_INVERTED : O_SIDE;
+  }
+  void orientSample(const float a[3], uint32_t now) {
+    float n = sqrtf(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]) / 9.80665f;
+    int ax = tu.imuUpAxis < 0 ? -tu.imuUpAxis : tu.imuUpAxis;
+    if (!(n > 0.85f && n < 1.15f) || ax < 1 || ax > 3) return;   // only while still (|a| near 1 g)
+    float c = a[ax - 1] / (n * 9.80665f) * (tu.imuUpAxis < 0 ? -1.f : 1.f);
+    if (upN == 0 || (int32_t)(now - upT) > 2000) { upF = c; upN = 0; } else upF += 0.05f * (c - upF);   // about 0.1 s at 200 Hz
+    if (upN < 1000) upN++;
+    upT = now;
+  }
+  // ---- video power
+  const char* setVideo(bool on, const char* why) {
+    if (on != video || !why) { video = on; if (io.setVideo) io.setVideo(on); }
+    if (why) { char b[64]; snprintf(b, sizeof b, "video %s (%s)", on ? "on" : "off", why); ev(b); }
+    return nullptr;
+  }
+  // ---- battery at rest (called every tick with the rail reading)
+  void battUpdate(float v, uint32_t now) {
+    if (running()) { lastRunT = now; runSeen = true; return; }
+    if (!(v == v) || v < 0.f) return;                  // no reading: keep the last state
+    int b = batt;
+    if (v < 3.f) { battV = v; b = B_NONE; }            // power loop plug out (USB only)
+    else {
+      if (runSeen && now - lastRunT < tu.battRestMs) return;   // the cells recover for a moment after a motor stops
+      battV = battV < 3.f ? v : battV + 0.02f * (v - battV);   // about 0.25 s at 200 Hz
+      bool wasCrit = batt == B_CRIT, wasLow = batt == B_LOW || wasCrit;
+      if (battV < tu.battCritV || (wasCrit && battV < tu.battCritV + tu.battHystV)) b = B_CRIT;
+      else if (battV < tu.battLowV || (wasLow && battV < tu.battLowV + tu.battHystV)) b = B_LOW;
+      else b = B_OK;
+    }
+    if (b == batt) return;
+    batt = b; char m[64];
+    if (b == B_CRIT) { snprintf(m, sizeof m, "battery critical (%.2f V at rest): charge it", battV); ev(m); if (video) setVideo(false, "battery critical"); }
+    else if (b == B_LOW) { snprintf(m, sizeof m, "battery low (%.2f V at rest)", battV); ev(m); }
+    else if (b == B_OK) { snprintf(m, sizeof m, "battery ok (%.2f V at rest)", battV); ev(m); }
+    else ev("no battery (rail under 3 V: power loop plug out?)");
+  }
 
   bool seqRunning() const { return (seq >= K_SWING && seq <= D_AFTER) || (seq >= R_DRILL && seq <= R_KICK); }
   bool anchoring() const { return seq >= K_SWING && seq <= D_AFTER; }
@@ -392,6 +456,7 @@ struct Kedge {
   // kickStowed: true after a power-on (legs stowed, as README asks); false after a brownout, crash, OTA or software
   // reset, when the legs may be out (kick jam checks then wait for the next completed release)
   void boot(int resetFault, uint32_t now, bool kickStowed = true) {
+    setVideo(true, nullptr);                          // camera and VTX on (if the switch is fitted)
     stopAll(now); kickKnown = kickStowed; kickPos = 0; kickRaw = 0; kickPlanted = false; noGroundSeen = false; deployKnown = kickStowed; deployPos = 0;
     if (resetFault) { fault = resetFault; char b[64]; snprintf(b, sizeof b, "boot after %s reset, motors off", faultName(resetFault)); ev(b); }
     else ev("boot, motors off");
@@ -421,12 +486,19 @@ struct Kedge {
     ev(wasSeq ? "stop: sequence aborted" : "stop");
     return nullptr;
   }
-  const char* startAuto(uint32_t now) {
+  // force: /auto?force=1 (try even when the IMU says the dart is not upright)
+  const char* startAuto(uint32_t now, bool force = false) {
     if (flight.flying()) return "in flight";
     if (anchoring()) return nullptr;                  // already running: a repeated request is not an error
     if (seqRunning()) return "busy";
     if (seq == DONE) return "already anchored, release first";
     if (!inaOk) return "no current sensor";          // refuse before changing anything
+    if (batt == B_CRIT) return "battery low: charge it (release still works)";   // never anchor without the charge to let go
+    if (!force) {                                     // on its side or back the kick swings through air: say so at once
+      int o = orient(now);
+      if (o == O_SIDE) return "not upright: on its side (force=1 tries anyway)";
+      if (o == O_INVERTED) return "not upright: upside down (force=1 tries anyway)";
+    }
     if (armed) { armed = false; ev("auto: disarmed first (the launch was not seen)"); }
     stopAll(now); pairReset(now); fault = F_NONE; armed = false; warn = 0; footStalled = drillsStalled = false;
     seq = K_SWING; seqT0 = seqStart = now; peakMa = 0; kickSwing0 = kickPos; drive(KICK, +1, tu.kickMaxMs + 500, now); ev("auto: kick swing");
@@ -454,6 +526,7 @@ struct Kedge {
     flight.reset(); flight.armedAt(now); armT = now; log.unfreeze(); landed = false; landedFresh = false; peakG = 0; armed = true; autoOnLanding = withAuto; fault = F_NONE;
     if (seq == ABORTED || seq == RELEASED) seq = IDLE;   // a new shot
     ev(withAuto ? "armed: auto-anchor on landing" : "armed: log only");
+    if (!video) setVideo(true, "armed: the flight is filmed");
     return nullptr;
   }
 
@@ -483,7 +556,10 @@ struct Kedge {
     // same hold if this press comes within max(last run time, WiFi deadman) + 250 ms (so at least 600 ms)
     uint32_t win = (lastRunMs[m] > tu.wifiDeadmanMs ? lastRunMs[m] : tu.wifiDeadmanMs) + 250;
     if (win < tu.wifiDeadmanMs + 150) win = tu.wifiDeadmanMs + 150;
-    bool repeat = now - lastCmd[m] < win; lastCmd[m] = now; lastRunMs[m] = runMs;
+    bool repeat = now - lastCmd[m] < win; lastCmd[m] = now;
+    // a press of the other direction (refused at its own hold limit, say) must not shrink the window with its shorter ms
+    // and so restart the hold cap of the direction still being driven (v4.1, fuzz seed 8); an accepted press sets it below
+    if (d == lastKeyDir[m] || !lastKeyDir[m]) lastRunMs[m] = runMs;
     // the lock holds while THIS direction's key keeps coming (presses of the other direction do not count)
     bool dirRepeat = prevPressSeen && (int32_t)(now - prevPressT) < (int32_t)win;
     if (stallLock[m] == d && dirRepeat) return capHit[m] ? "hold limit: release the key first" : "stalled: release the key first";
@@ -502,6 +578,7 @@ struct Kedge {
     if (runMs > cap - used) runMs = cap - used;       // the whole hold, not each repeat, is capped
     if (seq == DONE || seq == RELEASED || seq == ABORTED) { seq = IDLE; landedFresh = false; }   // legs moved by hand: no longer a known state (not LANDED either)
     uint32_t keepT0 = motT0[m];
+    lastRunMs[m] = runMs;
     drive(m, d, runMs, now);
     if (cont) motT0[m] = keepT0;
     return nullptr;
@@ -539,11 +616,12 @@ struct Kedge {
       char b[64]; snprintf(b, sizeof b, "landed (%s)", flight.how); ev(b);
       bool go = armed && autoOnLanding; armed = false;
       if (go && flight.fallback()) { go = false; ev("no impact seen: auto not started, send /auto"); }
+      if (go) { int o = orient(now); if (o == O_SIDE || o == O_INVERTED) { go = false; ev(o == O_SIDE ? "landed on its side: auto not started" : "landed upside down: auto not started"); } }
       if (go) { const char* r = startAuto(now); if (r) { char m[64]; snprintf(m, sizeof m, "auto on landing refused: %s", r); ev(m); } }
     }
   }
   // 50 Hz flight log feed (the sketch calls it with the newest quaternion and acceleration)
-  void imuSample(uint32_t now, const float q[4], const float a[3]) { log.offer(now, q, a); }
+  void imuSample(uint32_t now, const float q[4], const float a[3]) { orientSample(a, now); log.offer(now, q, a); }
 
   bool held(bool cond, uint32_t hold, uint32_t now) { if (!cond) { condT = 0; return false; } if (!condT) condT = now; return now - condT >= hold; }
   static bool heldT(bool cond, bool& on, uint32_t& t, uint32_t hold, uint32_t now) {
@@ -566,6 +644,7 @@ struct Kedge {
     if (curOk) { lastMa = ma; if (ma > peakMa) peakMa = ma; fMa += 0.3f * (ma - fMa); if (!running()) fMa = ma; }
     float v = io.rail_V ? io.rail_V() : -1;
     railV = v;
+    battUpdate(curOk ? v : NAN, now);
     {                                                 // kick travel bookkeeping (only while the kick is really driven)
       uint32_t dt = tickSeen ? now - lastTickT : 0; lastTickT = now; tickSeen = true; if (dt > 50) dt = 50;
       // counts only real travel: not while paused, not while planting (the kick is on the ground), and outward not
@@ -790,11 +869,12 @@ struct Kedge {
     return snprintf(buf, n, "{\"fw\":\"%s\",\"t_ms\":%lu,\"phase\":\"%s\",\"fault\":%s%s%s,\"rail_V\":%.2f,\"current_mA\":%.0f,\"peak_mA\":%.0f,\"speed\":%d,"
                     "\"motors\":{\"deploy\":%d,\"kick\":%d,\"drills\":%d,\"foot\":%d},\"seq\":\"%s\",\"armed\":%s,\"auto_on_landing\":%s,\"landed\":%s,"
                     "\"roll\":%.1f,\"pitch\":%.1f,\"accel_g\":%.2f,\"peak_g\":%.2f,\"ina_ok\":%s,\"imu_ok\":%s,\"t_launch_ms\":%s,\"t_land_ms\":%s,\"log_frozen\":%s,"
-                    "\"reset\":\"%s\",\"warnings\":[%s],\"event\":\"%s\"}",
+                    "\"reset\":\"%s\",\"warnings\":[%s],\"video\":%s,\"batt\":\"%s\",\"batt_V\":%.2f,\"orient\":\"%s\",\"tilt_deg\":%.0f,\"event\":\"%s\"}",
                     FW_VERSION, (unsigned long)now, phaseName(phase()), fault ? "\"" : "", fault ? faultName(fault) : "null", fault ? "\"" : "",
                     fin(railV >= 0 ? railV : (io.rail_V ? io.rail_V() : -1.f)), fin(lastMa), fin(peakMa), spd, dir[0], dir[1], dir[2], dir[3], seqName(seq),
                     armed ? "true" : "false", autoOnLanding ? "true" : "false", landed ? "true" : "false", fin(roll), fin(pitch), fin(accG), fin(peakG),
-                    inaOk ? "true" : "false", imuOk ? "true" : "false", tl, td, log.frozen ? "true" : "false", reset, wl, lastEvent);
+                    inaOk ? "true" : "false", imuOk ? "true" : "false", tl, td, log.frozen ? "true" : "false", reset, wl,
+                    video ? "true" : "false", battName(batt), fin(battV), orientName(orient(now)), orient(now) == O_UNKNOWN ? 0.f : fin(tiltDeg()), lastEvent);
   }
 };
 

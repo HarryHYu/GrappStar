@@ -1,5 +1,5 @@
 digraph G { rankdir=LR; splines=true; pad=0.4; nodesep=0.3; ranksep=1.2; bgcolor="white";
-label="KEDGE dart wiring v4: DRV8833 #3 removed (its pocket stays empty). Every wire: battery unplugged."; labelloc=t; fontname="Arial"; fontsize=16;
+label="KEDGE dart wiring v4.1: DRV8833 #3 removed (its pocket stays empty). Every wire: battery unplugged."; labelloc=t; fontname="Arial"; fontsize=16;
 node [shape=box, style="rounded,filled", fillcolor="#f2f2f2", fontname="Arial", fontsize=11, color="#555555"];
 edge [fontname="Arial", fontsize=8, penwidth=1.4, arrowhead=none];
 "Cell 1" [label="18350 cell 1", fillcolor="#f2f2f2"];
@@ -22,6 +22,7 @@ edge [fontname="Arial", fontsize=8, penwidth=1.4, arrowhead=none];
 "Foot N20" [label="Foot N20", fillcolor="#f2f2f2"];
 "Drill motor LEFT" [label="Drill motor LEFT", fillcolor="#f2f2f2"];
 "Drill motor RIGHT" [label="Drill motor RIGHT", fillcolor="#f2f2f2"];
+"Video MOSFET" [label="OPTIONAL video switch\nAO3400A in wire 19\n(S to MP1584 OUT-, D to VTX GND)", fillcolor="#f2f2f2"];
 {rank=same; "Cell 1"; "Cell 2"; "Charge socket"; "Power loop socket";} {rank=same; "Deploy N20"; "Kick N20"; "Drill motor LEFT"; "Drill motor RIGHT"; "Foot N20"; "Camera";}
 "MP1584" -> "Cap" [style=dashed, color="#555555", label="soldered across OUT+ / OUT-"];
 "Cell 1" -> "BMS" [minlen=1, color="#222222", label="1: Rear plate, cell 1 to B-"];
@@ -75,4 +76,5 @@ edge [fontname="Arial", fontsize=8, penwidth=1.4, arrowhead=none];
 "DRV#2" -> "Drill motor RIGHT" [minlen=1, color="#d0312d", label="48: AOUT2 to +"];
 "DRV#2" -> "Foot N20" [minlen=1, color="#d0312d", label="49: BOUT1 to +"];
 "DRV#2" -> "Foot N20" [minlen=1, color="#222222", label="50: BOUT2 to -"];
+"XIAO" -> "Video MOSFET" [minlen=1, color="#999999", label="51: D10 to gate"];
 }

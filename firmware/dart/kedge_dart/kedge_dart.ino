@@ -1,9 +1,11 @@
-// KEDGE dart firmware v4  (Seeed XIAO ESP32S3)
+// KEDGE dart firmware v4.1  (Seeed XIAO ESP32S3)
 // Control logic lives in kedge_logic.h (unit-tested on a PC: ../test/test_logic.cpp). This file is the hardware glue.
 //
 // v4 (3 Nov 2026): DRV8833 #3 is no longer on the dart. DRV#1 A = deploy, DRV#1 B = kick, DRV#2 A = BOTH drill motors
 // (right drill leads swapped so the augers counter-rotate), DRV#2 B = foot. New API: /release, /flightlog, /arm, and
 // "phase" + "fault" in /status. Full API: ../API.md. Wiring: ../WIRING.md.
+// v4.1 (7 Nov 2026): shorter flight windows for the real launcher, orientation ("orient", /auto refused on its side or
+// back unless force=1), battery state at rest ("batt"), optional video power switch on D10 (/video).
 //
 // Keyboard control, two ways:
 //   1. USB:  Arduino Serial Monitor, 115200 baud, "No line ending". Type a key, press Enter (each press runs 1.5 s).
@@ -34,6 +36,7 @@ static_assert(PINS[kedge::KICK].gpioA == D2 && PINS[kedge::KICK].gpioB == D3, "k
 static_assert(PINS[kedge::DRILLS].gpioA == D8 && PINS[kedge::DRILLS].gpioB == D9, "drill pins");
 static_assert(PINS[kedge::FOOT].gpioA == D6 && PINS[kedge::FOOT].gpioB == D7, "foot pins");
 static_assert(kedge::PIN_SDA_GPIO == D4 && kedge::PIN_SCL_GPIO == D5, "I2C pins");
+static_assert(kedge::PIN_VIDEO_GPIO == D10, "video switch pin");
 const int PWM_HZ = 20000, PWM_BITS = 8;
 
 Adafruit_BNO08x bno(-1);
@@ -92,6 +95,7 @@ float hwCurrent() {                                  // tick task, mtx held: NAN
   return ma;
 }
 float hwRail() { return railCache; }
+void hwVideo(bool on) { digitalWrite(kedge::PIN_VIDEO_GPIO, on ? HIGH : LOW); }   // optional switch: HIGH = camera + VTX on
 void inaCheckCal() {                                 // 10 Hz: an INA219 that browned out comes back uncalibrated (reads 0 mA)
   uint16_t cal;
   if (inaRead(0x05, cal) && cal != INA_CAL) { inaInit(); hwLog("INA219 lost its setup: re-initialised"); }
@@ -168,7 +172,7 @@ void scanI2C() {
   say(String(n) + " device(s). Expect 0x40 (INA219) and 0x4a or 0x4b (BNO085).");
 }
 void help() {
-  say("KEDGE v4 ready. 1/! deploy down/up  2/@ kick out/back  3/# drills in/out  4/$ foot in/out");
+  say("KEDGE v4.1 ready. 1/! deploy down/up  2/@ kick out/back  3/# drills in/out  4/$ foot in/out");
   say("space/s STOP  +/- speed  i current  b attitude  z I2C scan  p status  f flight log  a auto-anchor  r release  A arm");
 }
 
@@ -180,7 +184,7 @@ const char* handleKey(char c, uint32_t runMs) {
               xSemaphoreTake(mtx, portMAX_DELAY); K.peakMa = 0; xSemaphoreGive(mtx); return nullptr;
     case 'b': say(K.imuOk ? "roll " + String(roll, 1) + "  pitch " + String(pitch, 1) + "  |a| " + String(K.accG, 2) + " g" : String("BNO085 not found or silent")); return nullptr;
     case 'z': xSemaphoreTake(mtx, portMAX_DELAY); K.stop(now); xSemaphoreGive(mtx); scanI2C(); return nullptr;   // motors stopped first
-    case 'p': { char b[1024]; xSemaphoreTake(mtx, portMAX_DELAY); K.status(b, sizeof b, roll, pitch, now, railCache, resetName); xSemaphoreGive(mtx); say(b); return nullptr; }
+    case 'p': { char b[1400]; xSemaphoreTake(mtx, portMAX_DELAY); K.status(b, sizeof b, roll, pitch, now, railCache, resetName); xSemaphoreGive(mtx); say(b); return nullptr; }
     case 'f': { xSemaphoreTake(mtx, portMAX_DELAY); int n = K.log.count; bool fr = K.log.frozen; uint32_t tl = K.flight.tLaunch, td = K.flight.tLand; bool la = K.flight.launched, ld = K.landed; xSemaphoreGive(mtx);
                 say("flight log: " + String(n) + " samples, " + (fr ? "frozen" : "live") + (la ? ", launch " + String(tl) + " ms" : String("")) + (ld ? ", landed " + String(td) + " ms" : String("")) + ". Full log: GET /flightlog");
                 return nullptr; }
@@ -241,7 +245,7 @@ int resetFault() {
 
 const char PAGE[] PROGMEM = R"HTML(<!doctype html><html><head><meta name=viewport content="width=device-width,initial-scale=1">
 <title>KEDGE</title><style>body{font:15px Arial;margin:16px;background:#111;color:#eee}button{font:15px Arial;padding:14px;margin:4px;min-width:120px;touch-action:none;user-select:none;-webkit-user-select:none}
-#s{font:13px monospace;white-space:pre-wrap;background:#222;padding:8px}pre{background:#222;padding:8px;height:30vh;overflow:auto}a{color:#8cf}</style></head><body><h3>KEDGE dart v4</h3>
+#s{font:13px monospace;white-space:pre-wrap;background:#222;padding:8px}pre{background:#222;padding:8px;height:30vh;overflow:auto}a{color:#8cf}</style></head><body><h3>KEDGE dart v4.1</h3>
 <p>Hold a key or button to run, release to stop. 1/! deploy  2/@ kick  3/# drills  4/$ foot  space STOP  a auto  r release  A arm. <a href=/flightlog download=flightlog.json>flight log</a></p>
 <div id=b></div><div id=s></div><pre id=o></pre><script>
 const o=document.getElementById('o'),S=document.getElementById('s');const held=new Map();
@@ -265,7 +269,8 @@ const L=[['1','deploy down'],['!','deploy up'],['2','kick out'],['@','kick back'
 const B=document.getElementById('b');for(const [c,n] of L){const x=document.createElement('button');x.textContent=n;
 x.tabIndex=-1;const id='btn'+c;x.onpointerdown=()=>hold(id,c);x.onpointerup=()=>release(id);x.onpointerleave=()=>release(id);x.onpointercancel=()=>release(id);B.appendChild(x)}
 for(const [c,n] of [[' ','STOP'],['a','AUTO anchor'],['r','RELEASE'],['A','arm / disarm'],['i','current'],['b','attitude']]){const x=document.createElement('button');x.textContent=n;x.tabIndex=-1;x.onclick=()=>{if(c===' ')stop();else send(c);x.blur()};B.appendChild(x)}
-setInterval(()=>fetch('/status').then(r=>r.json()).then(j=>{S.textContent=`${j.phase}${j.fault?' '+j.fault:''}   ${j.seq}\nrail ${j.rail_V} V  ${j.current_mA} mA (peak ${j.peak_mA})  roll ${j.roll}  pitch ${j.pitch}  ${j.accel_g} g\nINA219 ${j.ina_ok?'ok':'MISSING'}  BNO085 ${j.imu_ok?'ok':'MISSING'}  ${j.armed?'ARMED':''}  last: ${j.event}`}).catch(()=>{}),400);
+for(const [v,n] of [['1','video on'],['0','video off']]){const x=document.createElement('button');x.textContent=n;x.tabIndex=-1;x.onclick=()=>{fetch('/video?on='+v).then(r=>r.text()).then(add).catch(()=>{});x.blur()};B.appendChild(x)}
+setInterval(()=>fetch('/status').then(r=>r.json()).then(j=>{S.textContent=`${j.phase}${j.fault?' '+j.fault:''}   ${j.seq}\nrail ${j.rail_V} V  ${j.current_mA} mA (peak ${j.peak_mA})  roll ${j.roll}  pitch ${j.pitch}  ${j.accel_g} g\nINA219 ${j.ina_ok?'ok':'MISSING'}  BNO085 ${j.imu_ok?'ok':'MISSING'}  ${j.armed?'ARMED':''}\nbattery ${j.batt} ${j.batt_V} V  ${j.orient} (tilt ${j.tilt_deg})  video ${j.video?'on':'off'}\nlast: ${j.event}`}).catch(()=>{}),400);
 </script></body></html>)HTML";
 
 void sendResult(const char* why) {
@@ -306,8 +311,9 @@ void setup() {
     pinMode(PINS[m].gpioB, OUTPUT); digitalWrite(PINS[m].gpioB, LOW);
   }
   for (int m = 0; m < kedge::NMOT; m++) { pwmAttach(PINS[m].gpioA, 2 * m); pwmAttach(PINS[m].gpioB, 2 * m + 1); hwSetMotor(m, 0, 0); }
+  pinMode(kedge::PIN_VIDEO_GPIO, OUTPUT); hwVideo(true);   // video on (does nothing when the optional switch is not fitted)
   mtx = xSemaphoreCreateMutex();
-  K.io = {hwSetMotor, hwCurrent, hwRail, hwLog};
+  K.io = {hwSetMotor, hwCurrent, hwRail, hwLog, hwVideo};
   int rf = resetFault();
   Serial.begin(115200);
 #if ARDUINO_USB_CDC_ON_BOOT
@@ -358,14 +364,27 @@ void setup() {
     if (web.hasArg("disarm") && web.arg("disarm") == "0") { uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); K.stop(t, false); xSemaphoreGive(mtx); drainLog(); sendResult(nullptr); }
     else sendResult(handleKey(' ', 0));
   });
-  web.on("/auto", []() { reply = ""; sendResult(handleKey('a', 0)); });
+  web.on("/auto", []() {
+    reply = "";
+    if (web.arg("force") == "1") {                     // try even when the IMU says the dart is not upright
+      uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); const char* why = K.startAuto(t, true); xSemaphoreGive(mtx);
+      drainLog(); sendResult(why); return;
+    }
+    sendResult(handleKey('a', 0));
+  });
+  web.on("/video", []() {                              // optional camera + VTX power switch on D10: on=1 / on=0
+    reply = ""; if (!web.hasArg("on")) { web.send(400, "text/plain", "missing on\n"); return; }
+    bool on = web.arg("on") != "0";
+    xSemaphoreTake(mtx, portMAX_DELAY); K.setVideo(on, "by request"); xSemaphoreGive(mtx);
+    drainLog(); sendResult(nullptr);
+  });
   web.on("/release", []() { reply = ""; sendResult(handleKey('r', 0)); });
   web.on("/arm", []() {
     reply = ""; bool on = !web.hasArg("on") || web.arg("on") != "0"; bool withAuto = !web.hasArg("auto") || web.arg("auto") != "0";
     uint32_t t = millis(); xSemaphoreTake(mtx, portMAX_DELAY); const char* why = K.arm(on, withAuto, t); xSemaphoreGive(mtx);
     drainLog(); sendResult(why);
   });
-  web.on("/status", []() { char b[1024]; xSemaphoreTake(mtx, portMAX_DELAY); K.status(b, sizeof b, roll, pitch, millis(), railCache, resetName); xSemaphoreGive(mtx); web.send(200, "application/json", b); });
+  web.on("/status", []() { char b[1400]; xSemaphoreTake(mtx, portMAX_DELAY); K.status(b, sizeof b, roll, pitch, millis(), railCache, resetName); xSemaphoreGive(mtx); web.send(200, "application/json", b); });
   web.on("/flightlog", handleFlightlog);
   web.onNotFound([]() { web.send(404, "text/plain", "not found\n"); });
   web.begin();

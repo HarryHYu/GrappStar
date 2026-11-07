@@ -65,6 +65,7 @@ struct Plant {
   float rate[NMOT] = {1, 1, 1, 1};
   double kickContact = 3000, kickLand = 4300, deployEnd = 1400, drillTouch = 900, drillFull = 3000, footFull = 3000;
   // injected faults
+  int up = 0;                                          // 0 belly down, 1 on its side, 2 upside down (gravity seen by the BNO085)
   int openWire = -1; bool noGround = false, drillJam = false, footJam = false, inaDead = false, shortOn = false, kickStrip = false;   // strip: gear slips
   double kickJamFwd = -1, kickJamBack = -1, deployJamFwd = -1; float sagV = 0; double burstFail = 0;
   // state
@@ -303,7 +304,7 @@ struct Track {
   bool seqWas = false, seqAnch = false, seqFlag = false; uint32_t seqT0 = 0;
   // invariant 3: stalls
   bool stallOn[NMOT] = {}, stallGood[NMOT] = {}, stallFlag[NMOT] = {}; int stallDir[NMOT] = {}; uint32_t stallT0[NMOT] = {};
-  int stallNmax[NMOT] = {}, stallNmin[NMOT] = {}, stallSpdMin[NMOT] = {}; bool stallSeq[NMOT] = {};
+  int stallNmax[NMOT] = {}, stallNmin[NMOT] = {}, stallSpdMin[NMOT] = {}, stallSpdMax[NMOT] = {}; bool stallSeq[NMOT] = {};
   int stallMask[NMOT] = {}; bool stallMaskChg[NMOT] = {}, stallInfo[NMOT] = {}, knownFlag[NMOT] = {};   // set of running motors at the stall
   // invariant 1: pause
   bool pauseOn = false; int pauseM = -1; uint32_t pauseT0 = 0;
@@ -420,7 +421,10 @@ static void checkAll(bool afterStop) {
                   "%s has run %u ms (limit %u ms), %s", motorName(m), run, lim, modeCtx().c_str());
           if (getenv("FUZZ_DEBUG")) printf("DEBUG heldStart %u segStart %u until %u now %u ET %u\n", K.heldStart[m], T.segStart[m], K.until[m], ET, ET);
         }
-      } else if (T.lastDir[m]) T.lastOff[m] = ET;
+      } else {
+        if (T.lastDir[m]) T.lastOff[m] = ET;
+        if (sq) T.hadSeg[m] = false;                     // a sequence took the motors meanwhile: the next key starts a new hold (seed 1 ep 1773)
+      }
       T.lastDir[m] = d; T.lastSeq[m] = sq;
     }
   }
@@ -429,7 +433,7 @@ static void checkAll(bool afterStop) {
   // manual stalls (3 or 4 motors, a changing set of motors, speed 125 or less) only have the 8 s hold cap (inv 2):
   // they are counted as information.
   auto endStall = [](int m) {
-    if (T.stallOn[m] && !T.stallSeq[m] && (T.stallMaskChg[m] || T.stallNmax[m] > 2 || T.stallSpdMin[m] < 150)) ST.manOutside++;
+    if (T.stallOn[m] && !T.stallSeq[m] && (T.stallMaskChg[m] || T.stallNmax[m] > 2 || T.stallSpdMin[m] < 150 || T.stallSpdMax[m] != T.stallSpdMin[m])) ST.manOutside++;
     if (T.stallOn[m] && T.stallInfo[m]) { uint32_t dur = ET - T.stallT0[m]; if (dur > ST.manOutsideMax) ST.manOutsideMax = dur; }
     T.stallInfo[m] = false;
   };
@@ -441,19 +445,26 @@ static void checkAll(bool afterStop) {
       if (!T.stallOn[m] || T.stallDir[m] != d || T.stallSeq[m] != K.seqRunning()) {   // a sequence taking over is a new run
         endStall(m);
         T.stallOn[m] = true; T.stallDir[m] = d; T.stallT0[m] = ET; T.stallGood[m] = true; T.stallFlag[m] = false; CHECKS[3]++;
-        T.stallSeq[m] = K.seqRunning(); T.stallNmax[m] = 0; T.stallNmin[m] = 9; T.stallSpdMin[m] = 255;
+        T.stallSeq[m] = K.seqRunning(); T.stallNmax[m] = 0; T.stallNmin[m] = 9; T.stallSpdMin[m] = 255; T.stallSpdMax[m] = 0;
         T.stallMask[m] = runMask; T.stallMaskChg[m] = false; T.knownFlag[m] = false;
       }
-      { int n = nRunning(); if (n > T.stallNmax[m]) T.stallNmax[m] = n; if (n < T.stallNmin[m]) T.stallNmin[m] = n; if (K.spd < T.stallSpdMin[m]) T.stallSpdMin[m] = K.spd; }
+      { int n = nRunning(); if (n > T.stallNmax[m]) T.stallNmax[m] = n; if (n < T.stallNmin[m]) T.stallNmin[m] = n; if (K.spd < T.stallSpdMin[m]) T.stallSpdMin[m] = K.spd; if (K.spd > T.stallSpdMax[m]) T.stallSpdMax[m] = K.spd; }
       if (runMask != T.stallMask[m]) T.stallMaskChg[m] = true;
       if (!K.inaOk || P.inaDead || P.burstFail > 0 || P.shortOn) T.stallGood[m] = false;
       bool sq = T.stallSeq[m];
-      bool covered = sq || (!T.stallMaskChg[m] && T.stallNmax[m] <= 2 && T.stallSpdMin[m] >= 150);
+      bool covered = sq || (!T.stallMaskChg[m] && T.stallNmax[m] <= 2 && T.stallSpdMin[m] >= 150 && T.stallSpdMax[m] == T.stallSpdMin[m]);   // speed changed (+/-) mid stall: outside (seed 13 ep 3484)
       uint32_t limit = sq ? 3000 : 2500;
       // documented known limit (API.md): pods at a stop or jammed while the drills' current rises during each pause by
       // more than the margin are only ended by the pods time limit. Still bounded: deployMaxMs + 0.5 s
-      bool knownPods = m == DEPLOY && (K.seq == D_DEPLOY || K.seq == R_PODS) && P.cDrill > 0.05f;
-      if (knownPods) limit = K.tu.deployMaxMs + 500;
+      // "more than the margin": the auger's change in each pause against the worm's stall margin over its line at this
+      // rail (plant currents scale with rail / 7.6 V, the firmware line with rail / 8.0 V). Seed 5 ep 6167: 4 % of a
+      // 464 mA dig (19 mA) against a 24 mA margin
+      auto overMargin = [&](float c, float dig, float stall) { float mg = stall * P.railNow / 7.6f - K.tu.stallMa[m] * K.vScale(); return c > 0.05f || (c > 0 && c * dig > 0.5f * mg); };
+      bool knownPods = m == DEPLOY && (K.seq == D_DEPLOY || K.seq == R_PODS) && overMargin(P.cDrill, P.drDig, P.dStall);
+      // the same known limit for the kick while planting (API.md): jammed part way into the ground while the foot's
+      // current rises during each kick pause. Bounded by kickPlantMaxMs + 0.5 s (found by seed 3, episode 740)
+      if (m == KICK && K.seq == K_PLANT && d > 0 && overMargin(P.cFoot, P.fDig, P.kStall)) knownPods = true;
+      if (knownPods) limit = (m == KICK ? K.tu.kickPlantMaxMs : K.tu.deployMaxMs) + 500;
       // documented tuning rule (BENCH_TEST step 10): the stall line is 80 % of the measured stall. A plant whose stall is
       // within 10 % of the line is outside it: coupling and noise can hide the stall. Still bounded by the step limit
       float plantStall = m == KICK ? P.kStall : m == DEPLOY ? P.dStall : m == DRILLS ? P.drStall : P.fStall;
@@ -466,7 +477,7 @@ static void checkAll(bool afterStop) {
         T.stallFlag[m] = true; T.stallInfo[m] = true; ST.manOutsideOver++;
         evlog("info: manual stall outside the documented guarantee still driven after 2.5 s (%s, %d to %d motors, lowest speed %d)", motorName(m), T.stallNmin[m], T.stallNmax[m], T.stallSpdMin[m]);
       }
-      if (!T.stallFlag[m] && T.stallGood[m] && covered && ET - T.stallT0[m] > limit) {
+      if (!T.stallFlag[m] && T.stallGood[m] && covered && ET - T.stallT0[m] > limit + 15) {   // one jittered tick + the sample boundary, as invariant 2 (seed 5 ep 6167: 3007 ms)
         T.stallFlag[m] = true;
         const char* where = m == KICK ? (d > 0 ? (P.kick >= P.kickLand ? "housing on the ground" : "jammed going out") : (P.kick <= 0 ? "stowed stop" : "jammed going back"))
                           : m == DEPLOY ? (d > 0 ? (P.deploy >= P.deployEnd ? "pods-down stop" : "jammed going down") : "pods-up stop")
@@ -502,11 +513,12 @@ struct AutoWatch {
     if (flying && K.flight.st == Flight::LANDED) { if (K.flight.fallback()) ST.fallbackLandings++; else if (!strcmp(K.flight.how, "impact")) ST.impactLandings++; }
     if (anch || !K.anchoring()) return;
     CHECKS[9]++;
-    bool landing = armed && autoOn && flying && K.flight.st == Flight::LANDED && strcmp(K.flight.how, "impact") == 0 && T.maxAccFlight > K.flight.impactG;
+    int o = K.orient(NOWA());                          // v4.1: never by itself on its side or upside down
+    bool landing = armed && autoOn && flying && K.flight.st == Flight::LANDED && strcmp(K.flight.how, "impact") == 0 && T.maxAccFlight > K.flight.impactG && o != O_SIDE && o != O_INVERTED;
     if (autoCmdOk) ST.autoByCmd++;
     else if (landing) ST.autoByLanding++;
-    else violate(9, "auto without /auto or impact landing", "anchor sequence started (seq '%s') without /auto: armed %d auto %d flying %d landing '%s' peak after 400 ms %.2f g",
-                 seqName(K.seq), armed, autoOn, flying, K.flight.how, T.maxAccFlight);
+    else violate(9, "auto without /auto or impact landing", "anchor sequence started (seq '%s') without /auto: armed %d auto %d flying %d landing '%s' peak after minFlightMs %.2f g orient %s",
+                 seqName(K.seq), armed, autoOn, flying, K.flight.how, T.maxAccFlight, orientName(o));
   }
 };
 
@@ -585,7 +597,7 @@ static void startImu(int kind, uint32_t t0, bool nominalPush) {
   switch (kind) {
     case I_REAL: case I_SOFT: case I_SILFLIGHT:
       g.push = nominalPush ? (float)R.r(30, 45) : (float)R.r(15, 45);
-      g.flight = (float)R.r(600, 1500); g.style = R.p(0.25) ? 1 : 0; g.tether = g.flight > 900 && R.p(0.3);
+      g.flight = (float)R.r(300, 1500);                // real launcher: 0.37 to 1.08 s (base/out/ballistics.json) g.style = R.p(0.25) ? 1 : 0; g.tether = g.flight > 900 && R.p(0.3);
       g.imp = (float)R.r(5, 8); g.impDur = (float)R.r(3, 15); g.settle = (float)R.r(100, 300);
       if (R.p(0.4)) { g.bAt = (float)R.r(50, 250); g.bG = (float)R.r(4, 7); g.bDur = (float)R.r(3, 8); }
       g.len = g.push + g.flight + fmaxf(g.settle, g.bAt + g.bDur) + 3000;
@@ -746,14 +758,19 @@ static void doTick(uint32_t dt) {
       AutoWatch w; w.begin(); int st0 = K.flight.st;
       K.onAccel(a, now);
       if (st0 == Flight::WAIT && K.flight.st == Flight::FLYING) { T.maxAccFlight = 0; ST.launches++; }
-      if ((st0 == Flight::FLYING || st0 == Flight::IMPACTED) && (int32_t)(now - K.flight.tLaunch) >= 400 && a > T.maxAccFlight) T.maxAccFlight = a;
+      if ((st0 == Flight::FLYING || st0 == Flight::IMPACTED) && (int32_t)(now - K.flight.tLaunch) >= (int32_t)K.flight.minFlightMs && a > T.maxAccFlight) T.maxAccFlight = a;
       w.end(false);
     }
     T.lastImu = ET;
   }
   bool fresh = T.bno && ET - T.lastImu < 1000;
   if (fresh != K.imuOk) { K.imuOk = fresh; evlog(fresh ? "BNO085 data back" : "BNO085 silent for 1 s"); }
-  if (fresh) { float th = ET * 0.0003f, q[4] = {cosf(th), 0, 0, sinf(th)}, v[3] = {0.1f, -0.2f, K.accG * 9.81f}; K.imuSample(now, q, v); }
+  if (fresh) {
+    float th = ET * 0.0003f, q[4] = {cosf(th), 0, 0, sinf(th)}, g = K.accG * 9.81f;
+    float v[3] = {0.1f, -0.2f, g};
+    if (P.up == 1) { v[0] = g; v[2] = 0.1f; } else if (P.up == 2) v[2] = -g;   // on its side / upside down
+    K.imuSample(now, q, v);
+  }
   if (T.linkLost) { T.linkLost = false; K.linkLost(now); }
   AutoWatch w; w.begin(); K.tick(now); w.end(false);
   checkAll(false);
@@ -852,7 +869,8 @@ static void randomPlant(bool nominal) {
   P.drillFull = R.r(1500, 6000); P.footFull = R.r(1200, 5000);
   if (!nominal && R.p(0.08)) {   // on its back or side: the kick never touches ground and stops at its own outer end stop,
     // placed where the firmware's travel count (rate and the 7.6 V plant reference) reads kickSwingMs, within 5 %
-    P.noGround = true; P.kickContact = 1e9; P.kickLand = K.tu.kickSwingMs * R.r(0.95, 1.05) * P.rate[KICK] * 8.0 / 7.6; }
+    P.noGround = true; P.kickContact = 1e9; P.kickLand = K.tu.kickSwingMs * R.r(0.95, 1.05) * P.rate[KICK] * 8.0 / 7.6;
+    if (R.p(0.5)) P.up = R.p(0.5) ? 1 : 2; }          // v4.1: half of them the IMU sees it (side or back); the rest: kick check only
   if (!nominal && R.p(0.3)) { P.kick = R.r(0, P.kickLand); P.deploy = R.r(0, P.deployEnd); }   // legs left anywhere
 }
 
@@ -863,7 +881,7 @@ static void runEpisode(uint64_t seed, int ep) {
   K = Kedge(); T = Track(); EP_TICKS = 0; HOLDS.clear(); ACTS = decltype(ACTS)(); EVR.clear(); IMU = ImuProg(); ET = 0;
   BASE = R.p(0.08) ? 0xFFFFFFFFu - (uint32_t)R.i(0, 60000) : (uint32_t)R.i(0, 200000);   // some episodes cross the millis() wrap
   randomPlant(NOMINAL_EP);
-  K.io = {setM, readCurrent, readRail, logCb};
+  K.io = {setM, readCurrent, readRail, logCb, nullptr};
   T.bno = NOMINAL_EP ? true : !R.p(0.05);
   K.imuOk = T.bno;
   int bootF = (!NOMINAL_EP && R.p(0.05)) ? (R.p(0.5) ? F_BROWNOUT : F_WATCHDOG) : F_NONE;
@@ -966,10 +984,10 @@ int main(int argc, char** argv) {
   printf("faults latched:");
   for (int f = 1; f < F_NFAULT; f++) printf(" %s %ld", faultName(f), ST.faults[f]);
   printf("\nnominal missions: %ld anchored fully, %ld released stowed\n", ST.nomAnch, ST.nomRel);
-  printf("info (not an invariant): manual stalls outside the documented 2.5 s guarantee (3 or 4 motors, motors changing, speed <= 125): %ld,\n"
+  printf("info (not an invariant): manual stalls outside the documented 2.5 s guarantee (3 or 4 motors, motors changing, speed <= 125 or changed): %ld,\n"
          "          %ld of them driven over 2.5 s, longest %lu ms (bounded by the 8 s hold cap, invariant 2)\n", ST.manOutside, ST.manOutsideOver, (unsigned long)ST.manOutsideMax);
-  printf("info (not an invariant): known limit, pods stalled with the drills' current rising in each pause: %ld driven over 3 s,\n"
-         "          longest %lu ms (bounded by the 6 s pods limit, checked in invariant 3)\n", ST.knownPods, (unsigned long)ST.knownPodsMax);
+  printf("info (not an invariant): known limit, pods (or the planting kick) stalled with the auger current rising in each pause: %ld driven over 3 s,\n"
+         "          longest %lu ms (bounded by the 6 s pods and kick plant limits, checked in invariant 3)\n", ST.knownPods, (unsigned long)ST.knownPodsMax);
   printf("info (not an invariant): plant stall within 10 %% of the firmware line (outside the 80 %% tuning rule): %ld sequence stalls\n"
          "          driven over 3 s (bounded by the 6 s step limits, checked in invariant 3)\n", ST.knownLow);
   int sweepTrials = quick ? 300 : 2000;

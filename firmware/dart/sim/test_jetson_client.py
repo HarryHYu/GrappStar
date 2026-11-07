@@ -76,7 +76,7 @@ class JetsonClientTest(unittest.TestCase):
     def test_01_status_phase_clock(self):
         s = self.d.status()
         self.assertEqual(s["phase"], "IDLE")
-        self.assertEqual(s["fw"], "kedge-dart-v4")
+        self.assertTrue(s["fw"].startswith("kedge-dart-v4"), s["fw"])
         self.assertEqual(s["warnings"], [])
         self.assertIsNotNone(self.d.clock_offset())
         self.assertTrue(self.d.link()["connected"])
@@ -173,6 +173,27 @@ class JetsonClientTest(unittest.TestCase):
         finally:
             self.sim("/sim/set?drill_jam=0")
             self.d.stop()
+
+    def test_09_v41_not_upright_and_battery_refusals(self):
+        # v4.1: the client sees the new refusals as DartRefused with the reason text, and the new status fields
+        self.d.stop()
+        self.sim("/sim/set?kick_pos=0&deploy_pos=0")
+        try:
+            self.sim("/sim/trace?s=600:9.81:0:0")      # on its side
+            t0 = time.time()
+            while self.d.status()["orient"] != "side" and time.time() - t0 < 3:
+                time.sleep(0.1)
+            with self.assertRaises(self.m.DartRefused) as cm:
+                self.d.auto()
+            self.assertTrue(cm.exception.reason.startswith("not upright: on its side"), cm.exception.reason)
+        finally:
+            self.sim("/sim/trace?s=600:0:0:9.81")
+            time.sleep(1.0)
+        s = self.d.status()
+        self.assertEqual(s["orient"], "upright")
+        self.assertEqual(s["batt"], "ok")
+        self.assertTrue(s["video"])
+        self.d.stop()
 
 
 if __name__ == "__main__":

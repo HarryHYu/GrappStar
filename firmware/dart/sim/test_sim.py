@@ -30,7 +30,7 @@ JETSON_CLIENT_DIR = os.path.normpath(os.path.join(HERE, "..", "..", "..", "kedge
 
 STATUS_FIELDS = ["fw", "t_ms", "phase", "fault", "rail_V", "current_mA", "peak_mA", "speed", "motors", "seq", "armed",
                  "auto_on_landing", "landed", "roll", "pitch", "accel_g", "ina_ok", "imu_ok", "t_launch_ms", "t_land_ms",
-                 "log_frozen", "reset", "event"]
+                 "log_frozen", "reset", "event", "video", "batt", "batt_V", "orient", "tilt_deg"]
 MOTORS = ["deploy", "kick", "drills", "foot"]
 
 
@@ -375,6 +375,62 @@ class SimTest(unittest.TestCase):
         finally:
             self.sim_set(no_ground=0)
             self.get("/stop")
+
+    def test_13_v41_video_orientation_battery_short_flight(self):
+        # v4.1: optional video switch on D10, /auto refused on its side unless force=1, battery critical at rest,
+        # a 0.33 s flight (the real launcher at its low aim) still lands by impact
+        self.get("/stop"); time.sleep(0.3)
+        self.sim_set(kick_pos=0, deploy_pos=0)
+        self.assertEqual(self.sim_state()["video_pin"], 1, "video on after boot")
+        code, _ = self.get("/video?on=0")
+        self.assertEqual(code, 200)
+        self.assertEqual(self.sim_state()["video_pin"], 0)
+        self.assertFalse(self.get_status()["video"])
+        code, _ = self.get("/video")
+        self.assertEqual(code, 400, "missing on")
+        self.get("/video?on=1")
+        self.assertEqual(self.sim_state()["video_pin"], 1)
+        try:
+            self.get("/sim/trace?s=600:9.81:0:0")      # on its side
+            self.wait_for(lambda s: s["orient"] == "side" and s["tilt_deg"] > 85, 3.0, "orient side, tilt about 90")
+            code, body = self.get("/auto")
+            self.assertEqual(code, 409, body)
+            self.assertIn("not upright: on its side", body)
+            self.assertNotEqual(self.get_status()["phase"], "ANCHORING", "a refused /auto moves nothing")
+            code, body = self.get("/auto?force=1")
+            self.assertEqual(code, 200, body)
+            self.wait_for(lambda s: s["phase"] == "ANCHORING", 2.0, "forced auto runs")
+            self.get("/stop"); time.sleep(0.3)
+            self.get("/sim/trace?s=600:0:0:-9.81")     # upside down
+            self.wait_for(lambda s: s["orient"] == "inverted", 3.0, "orient inverted")
+        finally:
+            self.get("/sim/trace?s=600:0:0:9.81")
+            self.wait_for(lambda s: s["orient"] == "upright", 3.0, "upright again")
+        # release what the forced auto moved (kick only), so later tests start stowed
+        self.sim_set(kick_pos=0, deploy_pos=0)
+        try:
+            self.sim_set(rail_v=6.3)
+            s = self.wait_for(lambda s: s["batt"] == "critical", 4.0, "battery critical at rest")
+            self.assertFalse(s["video"], "critical switches the video off")
+            self.assertEqual(self.sim_state()["video_pin"], 0)
+            code, body = self.get("/auto")
+            self.assertEqual(code, 409, body)
+            self.assertIn("battery low", body)
+        finally:
+            self.sim_set(rail_v=7.6)
+            self.wait_for(lambda s: s["batt"] == "ok", 4.0, "battery ok again")
+            self.get("/video?on=1")
+        # short flight, log only
+        code, body = self.get("/arm?on=1&auto=0")
+        self.assertEqual(code, 200, body)
+        self.get("/sim/launch?push_ms=45&flight_ms=330&impact=1")
+        s = self.wait_for(lambda s: s["phase"] == "LANDED", 6.0, "landed after a 0.33 s flight")
+        self.assertIsNotNone(s["t_land_ms"])
+        time.sleep(3.2)                                 # the log freezes 3 s after the landing
+        code, body = self.get("/flightlog", timeout=5)
+        self.assertEqual(code, 200, body[:200])
+        self.assertEqual(json.loads(body)["landing"], "impact")
+        self.get("/stop")
 
 
 if __name__ == "__main__":

@@ -1,39 +1,349 @@
-        0 ms  auto: kick swing
-     3150 ms  auto: foot touches, foot auger on
-     5310 ms  auto: kick down, foot finishing
-     6810 ms  auto: deploy with drills spinning
-     8970 ms  auto: pods down, drills finishing
-    11970 ms  auto: anchored, holding (worms self-lock)
-ok:   auto sequence reaches 'anchored'
+
+== pin map (DRV8833 #3 freed)
+ok:   8 motor pins + SDA/SCL are 10 different GPIOs
+ok:   only DRV#1 and DRV#2 are used: DRV#3 is off the dart
+ok:   DRV#1 A = deploy, B = kick (unchanged)
+ok:   DRV#2 channel A = both drill motors
+ok:   DRV#2 channel B = foot
+ok:   every motor has its own driver channel
+ok:   Dn labels match the XIAO ESP32S3 GPIO numbers (SDA D4, SCL D5)
+ok:   reset-twitch pins D6/D7 only on the slow foot worm, drills on D8/D9
+ok:   drill pair stall 700 mA fits one 1.2 A channel; drill stall threshold below it
+ok:   trip above all four stalled (1610 mA) and inside the INA219 3.2 A range
+ok:   flight log RAM: 600 x 20 B samples, under 12.3 kB
+
+== boot
+ok:   boot: all motors off, phase IDLE
+ok:   boot after brownout: motors off, phase FAULT (BROWNOUT)
+ok:   stop clears the boot fault
+ok:   boot after watchdog reset: phase FAULT (WATCHDOG)
+
+== auto anchor
+ok:   auto accepted from IDLE
+          0 ms  boot, motors off
+          0 ms  auto: kick swing
+       3170 ms  auto: foot touches, foot auger on
+       5330 ms  auto: kick down, foot finishing
+       6830 ms  auto: deploy with drills spinning
+       9290 ms  auto: pods down, drills finishing
+      12290 ms  auto: anchored, holding (worms self-lock)
+      13290 ms  battery ok (7.60 V at rest)
+ok:   auto sequence reaches anchored, phase ANCHORED
 ok:   foot auger starts when the foot meets the ground (kick current rise)
 ok:   kick stops after the housing lands (stall read with the foot paused)
 ok:   deploy starts only after the foot is planted
-ok:   deploy stops on its own stall even though the drills draw more current
-ok:   drills finish after the pods stop
+ok:   deploy stops on its own stall although the drills draw more
+ok:   drills finish 3 s after the pods stop
 ok:   everything off at the end
-ok:   manual keys are ignored while auto runs
-ok:   space aborts the auto sequence and stops everything
-ok:   over-current trip stops the motors
+ok:   phases IDLE > ANCHORING > ANCHORED
+ok:   auto refused when already anchored
+ok:   manual keys refused while auto runs
+ok:   release refused while auto runs (busy)
+ok:   repeated /auto while anchoring: accepted, not restarted
+ok:   space aborts the auto sequence, everything off
+ok:   drills stalling in the finishing phase stop early and count as anchored
+ok:   kick never meets the ground: KICK_TIMEOUT fault, all off
+
+== release
+ok:   release accepted from ANCHORED
+ok:   release step 1: drills unscrew alone
+ok:   repeated /release accepted without restart; /auto refused while releasing
+ok:   release step 2: pods lift while the drills keep unscrewing (no deploy-alone lead: augers may still be in soil)
+      20000 ms  release: drills out
+      23000 ms  release: pods up, drills still out
+      24770 ms  release: pods up, foot out
+      26270 ms  release: kick back, foot still out
+      31540 ms  release: done, legs stowed
+ok:   pods stop on the stowed-end stall
+ok:   foot unscrews alone 1.5 s, then the kick swings back
+ok:   kick stops on the stowed stall (read with the foot paused)
+ok:   released: legs stowed, all motors off
+ok:   phases RELEASING > IDLE
+ok:   status seq 'released'
+ok:   drills jammed on the way out: DRILL_JAM, all off
+ok:   foot jammed on the way out: FOOT_JAM, all off
+ok:   kick never reaches the stow stop: KICK_TIMEOUT within 15 s
+ok:   whole-sequence time limit: SEQ_TIMEOUT, all off
+ok:   release from IDLE with legs already stowed still ends (stall at once)
+
+== manual keys, deadman, stall
 ok:   WiFi hold: repeats keep the kick running
-ok:   WiFi hold: key released -> stops within the 350 ms deadman
+ok:   WiFi hold: key released, stops within the 350 ms deadman
 ok:   serial key runs 1.5 s
 ok:   serial key stops after 1.5 s
-ok:   kick never meets the ground -> aborts at the time limit, nothing left running
-ok:   landing detector: launch spike, flight, impact, stillness -> landed
-ok:   landing detector: bench handling alone never triggers
-ok:   landing detector: soft landing with the impact spike missed still triggers
-ok:   landing detector: reset re-arms it (A pressed again)
-   status: {"t_ms":1234,"rail_V":7.60,"current_mA":0,"peak_mA":0,"speed":255,"motors":{"deploy":0,"kick":0,"drills":0,"foot":0},"seq":"idle","armed":false,"landed":false,"roll":1.5,"pitch":-3.2,"event":"boot"}
-ok:   status JSON
+ok:   manual run capped...
+ok:   ...at 8 s whatever ms was asked
+ok:   held key (repeats every 150 ms) stops at the 8 s hold cap
+ok:   ...and stays off while the key is still held
+ok:   released and pressed again: runs
+ok:   no current sensor: a held key stops after 2 s
+ok:   stall threshold scales with speed (kick stall still caught at speed 155 in the plant)
+ok:   sequences always run at full duty
+ok:   two manual motors: one stalled (deploy in its end + drills working) is caught
+ok:   held key into an end stop: stall stops it although repeats keep coming
+ok:   after the key is released it may be tried again
+ok:   after a stop the other direction is never locked
+ok:   deploy driven into its end: stall stop
+ok:   WiFi client lost: manual motors stop at once
+ok:   WiFi lost during auto: the sequence carries on
+ok:   unknown key refused
 
-ALL PASS
-ok: status
-ok: hold sends 7 repeats, max gap 152 ms (< 350 ms deadman), then stop
-   0.0s  kick swing                120 mA  auto: kick swing
-   1.0s  kick + foot planting      120 mA  auto: kick + foot planting
-   1.6s  foot finishing            120 mA  auto: foot finishing
-   2.0s  deploy + drills           120 mA  auto: deploy + drills
-   2.9s  drills finishing          120 mA  auto: drills finishing
-   3.5s  anchored                  120 mA  auto: anchored
-ok: auto followed to anchored
-ALL PASS
+== faults
+ok:   over-current trip: all off, FAULT OVERCURRENT
+ok:   stop clears the fault
+ok:   one 5 ms current spike does not trip
+ok:   rail under 5.6 V for 0.5 s while driving: LOW_RAIL, all off
+ok:   low rail while idle is not a fault
+ok:   INA219 lost during auto: CURRENT_SENSOR fault, all off
+ok:   auto and release refused without the current sensor
+ok:   run keys refused while the fault is latched
+ok:   after stop (and the key released), manual keys work without the current sensor
+ok:   ...and still stop on the deadman
+ok:   INA219 readings back: sensor OK again
+ok:   one or two failed reads are tolerated
+
+== flight and landing detection (synthetic IMU traces)
+ok:   arm: phase ARMED
+ok:   4+ g for 10 ms: still ARMED
+ok:   launch: |a| over 4 g for 20 ms, launch time = start of the push
+ok:   auto refused during FLIGHT
+ok:   motor keys refused during FLIGHT
+ok:   release refused during FLIGHT
+ok:   still FLIGHT just after the impact
+ok:   landing: impact over 6 g then still 1 s; landing time = the impact
+ok:   armed with auto: anchoring starts by itself on landing
+ok:   status JSON has phase and t_launch_ms
+ok:   phases ARMED > FLIGHT > ANCHORING > ANCHORED
+ok:   flight log frozen
+     log window 1005..7005 ms, launch 3000, land 4010, 301 samples
+ok:   log starts 2 s before launch detection
+ok:   log ends 3 s after landing, then frozen
+ok:   about 50 Hz: (2 + 1 + 3) s window = about 300 samples
+ok:   flightlog JSON shape, no chunk overflow
+ok:   flightlog says how it landed
+ok:   frozen log ignores new samples
+ok:   arming while ANCHORED is refused (release first)
+ok:   ...and still refused after a key tap with the legs out ('legs out: release first')
+ok:   re-arm after the release
+ok:   re-arming unfreezes the log
+ok:   a 15 ms knock over 4 g is not a launch
+ok:   not armed: a launch trace is ignored
+ok:   soft landing without an impact spike: landed after 2 s still
+ok:   log-only arm: phases ARMED > FLIGHT > LANDED, no auto
+ok:   tether jerk and tumbling: landing time = the last impact before stillness
+ok:   IMU silent in flight: landing assumed after the 15 s flight timeout
+ok:   long saturated push (100 ms) is not taken as the impact
+ok:   stop with disarm=0 keeps flight tracking and the arm
+ok:   stop during FLIGHT ends flight tracking and disarms
+ok:   ...and the log freezes 3 s later
+ok:   manual keys work again after stop
+ok:   armed? no; bench handling never triggers
+ok:   armed: repeated 10 ms knocks to 4.5 g never trigger
+ok:   arm refused without the BNO085
+ok:   arm with auto refused without the INA219, log-only arm allowed
+ok:   key A arms
+ok:   key A again disarms
+
+== flight log ring buffer
+ok:   50 Hz grid from a 200 Hz feed
+ok:   ring holds 600 samples (12 s)
+ok:   ring spans 12 s, oldest dropped
+ok:   samples in time order across the wrap
+ok:   not frozen: whole live ring, t_launch_ms null
+ok:   quaternion stored to 1e-4
+ok:   acceleration stored to 0.01 m/s^2 (8 g = 78.5 fits)
+ok:   out-of-range values clamp, no wrap
+ok:   uneven 7 ms feed still logs 50 per second
+ok:   after a gap the grid restarts at once
+ok:   10 s flight: window longer than 12 s keeps 2 s before launch and the first 10 s (launch never lost)
+ok:   small 256 B chunks never overflow
+ok:   empty log is valid JSON with no samples
+
+== review round 1 regressions
+ok:   NaN / inf inputs never reach the status JSON
+ok:   arming while ANCHORED is refused (legs out, release first)
+ok:   after the release, arming starts a new shot (phase ARMED)
+ok:   ...and auto runs on the next landing
+     wrap: 301 samples
+ok:   launch just after the millis() wrap keeps the full 2 s before launch
+ok:   foot stalls while the kick plants: foot stopped
+ok:   ...within 1.5 s
+ok:   drills stall while the pods swing: drills stopped, pods carry on
+ok:   ...and the sequence still anchors
+ok:   drills jam while the pods lift: DRILL_JAM, all off
+ok:   foot jams while the kick swings back: FOOT_JAM, all off
+ok:   armed dart dropped on a cushion: not a launch at all (free fall before the hit), auto NOT started
+ok:   armed dart knocked hard on the bench: auto NOT started
+ok:   15 ms push over 4 g: no launch
+ok:   20 ms push over 4 g: launch
+ok:   40 ms push over 4 g: launch
+ok:   landed, auto stopped by hand: phase LANDED (not IDLE)
+ok:   base launcher shot (28 g, 39 ms push, 0.8 s flight): launch, landing, auto
+
+== review round 2 regressions
+ok:   key repeats every 400 ms (slower than the 350 ms deadman): stall still stops it
+ok:   key repeats every 400 ms: the 8 s hold cap still applies
+ok:   battery at 6.4 V: auto anchors (thresholds scale with rail voltage)
+ok:   battery at 6.4 V: release ends stowed
+ok:   battery at 7.4 V: auto anchors (thresholds scale with rail voltage)
+ok:   battery at 7.4 V: release ends stowed
+ok:   battery at 8.4 V: auto anchors (thresholds scale with rail voltage)
+ok:   battery at 8.4 V: release ends stowed
+ok:   1 failed current read in 3: a stalled kick still stops within 1.5 s
+ok:   manual kick + drills in air: the stalled kick is stopped, the drills keep running
+ok:   manual kick + foot: the stalled kick is stopped, the foot keeps running
+ok:   manual kick + foot both working (no stall): both keep running
+ok:   tumbling flight (1.1 to 1.7 g): impact landing, auto starts
+ok:   fault while a key is held: the held key does not restart the motor
+ok:   ...exactly one LOW_RAIL trip during the hold
+ok:   an IMU timestamp 1 ms ahead of the tick does not end the flight (no unsigned wrap)
+
+== review round 3 regressions
+ok:   drill current drops 20 % while the pods pause: pods still go fully down
+ok:   foot current drops 40 % while the kick pauses: kick still plants fully
+ok:   foot current rises while the kick pauses: plant time limit, still anchors, no fault
+ok:   ms=500 repeats every 560 ms into an end stop: stall stop holds (window = ms + 250)
+ok:   ...and the 8 s hold cap holds
+ok:   +/-15 mA read noise at speed 125: held kick into its stop still stalls out
+ok:   armed dart dropped 20 cm onto a desk with a bounce: auto NOT started
+ok:   boot fault latched: run keys refused until stop
+ok:   a manual motor running at launch is stopped
+
+== review round 4 (hardware) regressions
+ok:   kick wire open (or shorted, driver chopping): NO_CURRENT fault within 1 s, all off
+ok:   manual key on an open drill wire: stopped with a message, no fault latched
+ok:   free-running kick at speed 205 is not mistaken for an open wire
+ok:   impact read at only 5 g (sensor filter): still an impact landing, auto starts
+ok:   status peak_g holds the highest |a| since arming
+ok:   manual at speed 255 drives full duty (slow decay with a DC input)
+
+== review round 5 regressions
+ok:   one failed current read at a step end does not abort the release
+ok:   both directions of one motor held: stopped and kept off
+ok:   lowest speed: a free-running kick is not taken as stalled
+ok:   a key tapped in FLIGHT and its keyup stop (disarm=0) do not cancel auto on landing
+ok:   landed, then a manual motor runs: phase IDLE, not LANDED
+ok:   ...and LANDED again when it stops
+     stowed release: pods step 800 ms, kick step 1610 ms
+ok:   release with legs already stowed: each worm stops within 2.5 s
+     retry: kick off after 405 ms
+ok:   auto retried with the kick already planted: kick stopped within 1 s, foot planted alone, anchored
+
+== coordinator review R1-B regressions
+     timeout landing: tLaunch 5000 tLand 6550 how timeout, log 2985..14965
+ok:   timeout landing after an impact: the frozen log still holds 2 s before launch through the impact
+ok:   landing 7000 ms after launch: frozen log keeps 2 s before launch (first 2985, launch 5000) and the impact
+ok:   landing 8500 ms after launch: frozen log keeps 2 s before launch (first 2985, launch 5000) and the impact
+ok:   landing 10000 ms after launch: frozen log keeps 2 s before launch (first 2985, launch 5000)
+ok:   R1-B #1: '1' and '!' alternating every 75 ms: stopped, not driven for 20 s
+
+== failure-mode walk gap fixes
+ok:   a stop also locks a key another client keeps repeating
+ok:   ...until that key is released
+ok:   /auto while ARMED (launch never seen): disarms and starts
+ok:   arming with auto refused on a flat battery (6.3 V at rest)
+ok:   ...a log-only arm is still allowed (no motors)
+ok:   motor rail reading 0 V while driving: LOW_RAIL
+ok:   an arm expires after 15 min without a launch
+ok:   armed dart dropped 1.2 m with a bounce: not a launch
+ok:   deploy wire open: NO_CURRENT at the start of the pods step
+ok:   kick jams half way back: KICK_JAM (not 'released')
+ok:   kick stalled near stowed at the start of /auto: KICK_JAM, not 'kick already down'
+ok:   clean anchor: no warnings
+ok:   drills stopped by a stone: status warnings list says so
+
+== review round 8 regressions
+ok:   vibrating rail (0.18 g rms) and a 0 ms ramp into the push: launch seen, auto runs
+ok:   vibrating rail (0.18 g rms) and a 3 ms ramp into the push: launch seen, auto runs
+ok:   vibrating rail (0.18 g rms) and a 8 ms ramp into the push: launch seen, auto runs
+ok:   vibrating rail (0.18 g rms) and a 15 ms ramp into the push: launch seen, auto runs
+ok:   vibrating rail (0.18 g rms) and a 25 ms ramp into the push: launch seen, auto runs
+ok:   a single 2.5 g sample before the push does not block the launch
+ok:   anchored
+ok:   reboot with the kick planted, then /stop and /auto: no false KICK_JAM (position unknown after a non power-on reset)
+ok:   near ground and a hidden housing stall (plant time limit): release ends 'released', no false KICK_JAM
+ok:   page key release (keep=1) then the same key 300 ms later: runs (no lock)
+ok:   STOP during a deadman gap still locks the repeating key
+ok:   STOP of a sequence locks a key that was held (refused) during it
+ok:   retry after an abort with the pods half down: pods go fully down (no false 'already down')
+ok:   stop 6.5 s into a long flight: the frozen log still starts 2 s before launch
+
+== review round 9 regressions
+ok:   kick jams on the way back at 3800 of 4300 (stall current): KICK_JAM, not 'released'
+ok:   kick jams on the way back at 3400 of 4300 (stall current): KICK_JAM, not 'released'
+ok:   kick jams on the way back at 3000 of 4300 (stall current): KICK_JAM, not 'released'
+ok:   normal release after a normal anchor: no false KICK_JAM
+ok:   a fault while armed disarms (landing cannot clear it and drive motors)
+ok:   ...motors stay off
+ok:   drills stalled while the pods swing are not driven again in the finishing step
+ok:   a brief opposite-direction tap does not clear the stall lock of the held key
+ok:   STOP with both directions of a motor being pressed locks both
+ok:   an old '@' lock does not refuse a fresh '@' right after '2' presses (per-direction lock)
+ok:   a refused key does not change seq (still anchored)
+
+== review round 10 regressions
+ok:   kick swings its whole travel through air to its end stop: NO_GROUND, foot, pods and drills never driven
+ok:   ...and /release brings the kick back (released)
+     plant ended with the kick at 5800 of 5800
+ok:   a foot current drop of 55 mA in the kick's pause does not fake a kick stall (kick reaches the housing)
+ok:   ...and the anchor completes
+ok:   reversing a held key without a stop reverses the motor (no 'both directions held' latch)
+ok:   both kick keys repeated together still lock the motor
+ok:   arm (even log-only) is refused while ANCHORED
+       4520 ms  kick travel from stowed 4310 ms (at 8.0 V)
+ok:   a kick held out in air to its end stop reports its travel (within 5 % of the real 4300 ms)
+ok:   a kick jammed part way out in air: KICK_JAM, not 'already down' (augers never run)
+ok:   after NO_GROUND, a '2' tap at the end stop does not make the next /auto anchor in air
+ok:   travel unknown (after a reset): a retry after NO_GROUND is NO_GROUND again
+ok:   the 8 s hold cap refuses with 'hold limit', not 'stalled' (a client can tell it from an end stop)
+ok:   pods jam at 1300 of 1400 on the way up: PODS_JAM, not 'legs stowed'
+ok:   pods jam at 1000 of 1400 on the way up: PODS_JAM, not 'legs stowed'
+ok:   pods jam at 700 of 1400 on the way up: PODS_JAM, not 'legs stowed'
+ok:   a normal release still ends released (no false PODS_JAM)
+ok:   kick jams 1600 ms into its 4300 ms return: KICK_JAM (travel counted only up to a reading under the line)
+ok:   kick jams 1700 ms into its 4300 ms return: KICK_JAM (travel counted only up to a reading under the line)
+ok:   an anchor stopped with the pods down: arm refused ('legs out: release first')
+ok:   after a release, a key tap does not bring back phase LANDED
+ok:   a key held through a sequence starts a fresh hold afterwards (no instant 'hold limit')
+ok:   a key pressed 25 days ago does not lock that key at the next stop (old presses expire)
+ok:   a run key during ANCHORING is refused (busy)
+ok:   ...and the page's key-release stop does not abort the anchor
+ok:   the key-release stop stops a manual motor
+ok:   a retried /auto after NO_GROUND is NO_GROUND again (augers never run in air)
+ok:   an /auto stopped half way through the air and retried: NO_GROUND
+ok:   a retried /auto after a real plant still takes 'kick already down' (no false NO_GROUND)
+     alternating 1 / ! for 18 s: driven into the stop 4095 ms
+ok:   alternating 1 and ! every 300 ms: the hold cap counts per motor, so the stop is not driven without limit
+
+== v4.1: short flights (real launcher), orientation, battery at rest, video switch
+ok:   boot switches the video on (D10 high)
+ok:   330 ms flight after a 50 ms push: impact landing (not the 'still' fallback)
+ok:   370 ms flight after a 50 ms push: impact landing (not the 'still' fallback)
+ok:   600 ms flight after a 50 ms push: impact landing (not the 'still' fallback)
+ok:   tumbling 0.35 s flight: impact landing starts the auto anchor
+ok:   an 'impact' 150 ms after launch (under minFlightMs 250) is not a landing impact: no auto
+ok:   belly down: orient upright, tilt 0 in /status
+ok:   on its side: /auto refused 'not upright: on its side', nothing moves
+ok:   on its side: /auto?force=1 starts anyway
+ok:   upside down: /auto refused 'not upright: upside down'
+ok:   nose down 60 deg (buried nose): upright, /auto runs
+ok:   BNO085 silent: orientation unknown, /auto is not blocked by it
+ok:   imuUpAxis -1: chip -x up reads upright
+ok:   impact landing on its side: auto not started, phase LANDED, event says why
+ok:   6.7 V at rest: battery low warning, /auto still runs
+ok:   6.3 V at rest: battery critical, /auto refused 'battery low'
+ok:   battery critical switches the video off
+ok:   battery critical: /release still runs
+ok:   hysteresis: 6.45 V after critical stays critical (0.1 V)
+ok:   6.6 V after critical: low
+ok:   7.4 V: ok again
+ok:   a sag while a motor runs is not counted as the resting battery
+ok:   rail 0 V (plug out, USB only): batt none
+ok:   /video?on=0 switches it off
+ok:   arming switches the video back on (the flight is filmed)
+ok:   status JSON has video, batt, batt_V, orient, tilt_deg and stays under 1000 bytes
+
+== whole mission phases
+ok:   IDLE > ARMED > FLIGHT > ANCHORING > ANCHORED > RELEASING > IDLE
+
+286 checks, ALL PASS

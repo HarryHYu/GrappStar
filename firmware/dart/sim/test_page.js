@@ -392,6 +392,20 @@ async function check7(note) {
   assert(s.includes('BNO085 ok'), 'status line lacks "BNO085 ok"');
 }
 
+// v4.1: video buttons switch D10, the status line shows battery, orientation and video
+async function check8(note) {
+  await clickButton('video off');
+  await waitPage(async () => { const v = (await simState()).video_pin; return { ok: v === 0, last: v }; }, 2000, 'video pin low after "video off"');
+  await sleep(900);
+  let s = await statusLine();
+  note('status line: ' + JSON.stringify(s));
+  assert(/battery ok [0-9.]+ V/.test(s), 'status line lacks "battery ok <V>"');
+  assert(s.includes('upright'), 'status line lacks the orientation');
+  assert(s.includes('video off'), 'status line lacks "video off"');
+  await clickButton('video on');
+  await waitPage(async () => { const v = (await simState()).video_pin; return { ok: v === 1, last: v }; }, 2000, 'video pin high after "video on"');
+}
+
 // ---------------------------------------------------------------------------------------------------- main
 async function main() {
   if (!fs.existsSync(SIM)) execFileSync('make', ['-C', HERE], { stdio: 'inherit' });
@@ -427,6 +441,7 @@ async function main() {
   await check('5b STOP button while a run key is held keeps the motors stopped', check5b);  // regression: fixed 3 Nov (keepalive STOP on pagehide / STOP button clears held keys)
   await check('6 reload, then a held key works at once (page id resets the stop counter)', check6);
   await check('7 status line shows phase, INA219 ok, BNO085 ok', check7);
+  await check('8 video off / on buttons switch D10; status line shows battery, orientation, video', check8);
 
   const network = consoleMsgs.filter((m) => m.includes('Failed to load resource'));
   const other = consoleMsgs.filter((m) => !m.includes('Failed to load resource'));

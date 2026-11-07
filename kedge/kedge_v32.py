@@ -25,7 +25,7 @@ P = dict(
     # worm N20  M: 12 x 10 body, 11.93 x 9.94 box, 33.04 long, shaft 29.97 tip to tip.  Pockets are square 12.4 so either face can be up.
     N20_L=33.04, N20_POCK=12.4, N20_BOX=12.0, N20_TIP=29.97 / 2, SHAFT_D=3.0,
     # kick
-    SADDLE_X0=23.8, KICK_HUB_D=12.0, KICK_HUB_W=14.0, KICK_POLE_D=8.0, KICK_POLE_L=72.0, KICK_DEG=201.75, KICK_REST_DEG=1.5, KICK_MY=-11.9, KICK_RAISE=5.0,
+    SADDLE_X0=23.8, KICK_HUB_D=12.0, KICK_HUB_W=11.5, KICK_POLE_D=8.0, KICK_POLE_L=72.0, KICK_DEG=204.5, KICK_REST_DEG=1.5, KICK_MY=-11.9, KICK_RAISE=5.0,
     FOOT_AUGER_L=68.0, FOOT_TIP=10.0,
     # drill pair
     DRILL_X=56.0, DRILL_PIV_Z=12.0, DRILL_PIV_Y=None, DEPLOY_Y=None, DEPLOY_DEG=45.0, DEPLOY_TARGET=45.0, HORN_GAP=0.15, HEAD_IN=21.6,
@@ -34,7 +34,7 @@ P = dict(
     MOTOR_W=12.0, MOTOR_H=10.0, MOTOR_L=24.27, DSHAFT_L=56.03, DSHAFT_D=2.84,
     AUGER_L=100.0, AUGER_D=13.0, AUGER_CORE=6.0, AUGER_PITCH=11.0, AUGER_TIP=12.0,
     FLIGHT_D=22.0, D_PITCH=15.0, SLEEVE_BORE=16.3, SLEEVE_WALL=1.2, MOTOR_GB_L=9.0,   # drill sleeve (dart-physics: OD 22, pitch 15)
-    BOOM_L=28.0, BOOM_W=10.0,   # 28: the longest that clears the launcher rail rear and top pulley at full cock (50 needs 22 mm more there)
+    BOOM_L=28.0, BOOM_W=9.0,   # 28: the longest that clears the launcher rail rear and top pulley at full cock (50 needs 22 mm more there)
     # F693ZZ  M: 3 x 8 x 4, flange 9.5 x 0.6 (catalogue)
     BRG_OD=8.0, BRG_W=4.0, BRG_FL_D=9.5, BRG_FL_T=0.6,
     NUT_AF=5.5, NUT_T=2.4, NYLOC_T=4.0, BUSH_GAP=0.6, POD_PS=4.4, DTERM=1.2, BOSS_FACE_D=4.6,
@@ -422,7 +422,7 @@ def build_boom():
     bw, x1 = P["BOOM_W"], L + P["BOOM_L"]
     head = bx(X_ANC[0] + 0.15, X_ANC[0] + 2.35, -bw / 2, bw / 2, -6.0, 6.0)
     shank = bx(X_ANC[0] + 2.2, L + 1.0, -BOOM_SH / 2, BOOM_SH / 2, -BOOM_SH / 2, BOOM_SH / 2)
-    boom = rrect_x(bw, bw, x1 - L - 5.0 - 0.5, L + 0.5, r=2.0)
+    boom = rrect_x(bw, bw, x1 - L - 5.0 - 0.5, L + 0.5, r=2.0)   # 9 x 9, r 2: 1.5 clear all round in the pusher's Ø14 hole
     tip = Pos(x1 - 5.0, 0, 0) * Cylinder(bw / 2, bw)                      # round end in plan, axis z (the pin axis)
     tip = tip & bx(x1 - 5.0, x1 + 1, -bw / 2, bw / 2, -bw / 2, bw / 2)
     tip = tip + bx(x1 - 5.5, x1 - 5.0, -bw / 2, bw / 2, -bw / 2, bw / 2)
@@ -841,12 +841,12 @@ s_all = scr[0]
 for q in scr[1:]: s_all = s_all + q
 hw("screws_radial", s_all, "#555555", "8 x M3 x 8 countersunk (flat-head) radial screws, flush with the skin: 4 into tray disc 1, 4 through the tail cap spigot into the boom anchor disc (they carry the tow)")
 xpin = L + P["BOOM_L"] - 5.0
-hw("boom_pin", Solid.make_cone(1.45, 3.0, 1.6, Plane(origin=(xpin, 0, P["BOOM_W"] / 2 - 1.6), z_dir=(0, 0, 1))) + cylz(2.9, P["BOOM_W"] - 1.0, -P["BOOM_W"] / 2, x=xpin),
-   "#555555", "M3 x 10 countersunk screw: the tether's wear pin in the boom eye (head flush in the top tine, threads into the bottom tine; threadlocker)")
+hw("boom_pin", Solid.make_cone(1.45, 3.0, 1.6, Plane(origin=(xpin, 0, P["BOOM_W"] / 2 - 1.6), z_dir=(0, 0, 1))) + cylz(2.9, 10.0 - 1.6, P["BOOM_W"] / 2 - 10.0, x=xpin),
+   "#555555", "M3 x 10 countersunk screw: the tether's wear pin in the boom eye (head flush in the top tine, threads through the bottom tine, 1 mm proud under it; threadlocker)")
 eb = cyly(P["BRG_FL_D"], P["BRG_FL_T"], BRG_EAR_Y + P["BRG_W"] - P["BRG_FL_T"], x=KICK_X, z=KICK_Z) + cyly(P["BRG_OD"], P["BRG_W"] - P["BRG_FL_T"], BRG_EAR_Y, x=KICK_X, z=KICK_Z) - cyly(3.0, 8, BRG_EAR_Y - 2, x=KICK_X, z=KICK_Z)
 hw("brg_ear", eb, "#9aa5b1", "F693ZZ in the ear, flange down in a counterbore on the outer face, inner face 0.4 proud of the fin onto the hub's inner-race boss")
 yl0 = P["KICK_HUB_W"] / 2
-hw("kick_hub_screw", screw_y(BRG_EAR_Y + P["BRG_W"] - KICK_Y, BRG_EAR_Y + P["BRG_W"] - KICK_Y - 10.0, 0, 0), "#555555", "M3 x 10 through the ear bearing into the hub end (turns with the leg); the head clamps the inner race onto the hub's printed boss", parent="kick_leg")
+hw("kick_hub_screw", screw_y(BRG_EAR_Y + P["BRG_W"] - KICK_Y, BRG_EAR_Y + P["BRG_W"] - KICK_Y - 8.0, 0, 0), "#555555", "M3 x 8 through the ear bearing into the hub end (turns with the leg; its tip stops 0.4 short of the kick N20 shaft end); the head clamps the inner race onto the hub's printed boss", parent="kick_leg")
 CAP_T = 1.5
 for nm, sg in (("coupler_L", 1), ("coupler_R", -1)):
     yo2 = sg * yo                                            # coupler outer end face

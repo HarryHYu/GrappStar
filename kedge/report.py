@@ -9,8 +9,10 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 OUT, PK = sys.argv[1], sys.argv[2]; VARF = sys.argv[3:]
-pdfmetrics.registerFont(TTFont("Arial", "/System/Library/Fonts/Supplemental/Arial.ttf"))
-pdfmetrics.registerFont(TTFont("Arial-Bold", "/System/Library/Fonts/Supplemental/Arial Bold.ttf"))
+_F = [("/System/Library/Fonts/Supplemental/Arial.ttf", "/System/Library/Fonts/Supplemental/Arial Bold.ttf"),
+      ("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf")]
+_reg, _bold = next(f for f in _F if os.path.exists(f[0]))       # Arial on the Mac, Liberation Sans (Arial metrics) elsewhere
+pdfmetrics.registerFont(TTFont("Arial", _reg)); pdfmetrics.registerFont(TTFont("Arial-Bold", _bold))
 J = json.load(open(OUT + "/parts.json")); P = J["P"]; V = J.get("version", "")
 A = json.load(open(OUT + "/audit.json")); Ph = json.load(open(OUT + "/physics.json")); Bj = json.load(open(PK + "/barrel.json"))
 B = ParagraphStyle("b", fontName="Arial", fontSize=9.5, leading=12.5); S = ParagraphStyle("s", parent=B, fontSize=8, leading=10)
@@ -34,8 +36,10 @@ fl = Ph["flight"]; la = Ph["launch"]; an = Ph["anchoring"]
 E += [p("1. Summary", H2), tbl([
     ["Item", "Result", "What it means"],
     ["Length, mass", f"{P['L']:.0f} mm body ({A['folded_bbox'][3]-A['folded_bbox'][0]:.0f} folded incl. augers), {Ph['mass_g']:.0f} g ({Ph['printed_g']:.0f} printed + {Ph['bought_g']:.0f} bought)", "Matches the 245 g beer-bottle target"],
-    ["Collision sweep", "clean", f"kick 0 to {A['kick_range'][1]}° (5° steps), drills 0 to {A['deploy_range'][1]}° (1° steps), every sub-part, exact meshes"],
-    ["Flight stability", "tumbles alone; stable with 15 g nose ballast or a taut tether (simulated)", "Add 15 g in the nose; reel brake 1 N or less during launch (section 3)"],
+    ["Collision sweep", "clean", f"kick 0 to {A['kick_range'][1]}° ({A['kick_steps']} steps), drills 0 to {A['deploy_range'][1]}° ({A['deploy_steps']} steps), kick x drill cross sweep, every sub-part, exact meshes"],
+    ["Hard stops", "pods: horn about 1° past the deploy angle, fold lug about 2° past folded; kick: rest " + str(P.get('KICK_REST_DEG', 0)) + "° past the plant", "Tow load pushes the legs further out: it goes into the hull, not the worms or the couplers"],
+    ["Launcher fit", "checked against base/cad/parts/launch.py over every launcher and mission state (launcher_fit.json)", "Cradle, carriage, funnel, muzzle, pusher: no contact beyond the v30 dart"],
+    ["Flight, launch, landing, holding at 7 m/s", "kedge/DART_PHYSICS31.md (dart-physics, on this geometry)", "The physics rows below come from physics.py and are kept for reference"],
     ["Launch", f"{la['v_needed_m_s'][0]} to {la['v_needed_m_s'][1]} m/s for 15 to 20 m; {la['accel_g'][0]} to {la['accel_g'][1]} g over a {la['stroke_m']} m stroke; {la['spring_energy_J']} J", "Launcher spring sizing input"],
     ["Landing", f"{la['impact_g']} g if it stops in {la['impact_stop_m']*100:.0f} cm of soil", "All parts checked at this load (section 4)"],
     ["Holding force", f"dry sand {an['by_soil']['dry sand']['total_N']} N, moist loam {an['by_soil']['moist loam']['total_N']} N, firm clay {an['by_soil']['firm clay']['total_N']} N", "The reel must not pull harder than this: limit the wiper current"],
@@ -55,7 +59,9 @@ for r in allv:
 E += [p("2. Design versions tried", H2), p("Each version went through the full pipeline (generate, solve the leg angles from the ground, exact-mesh sweep, physics). Belly rule: nothing outside the Ø42 cylinder below the centreline."),
       tbl(rows, [26, 44, 22, 14, 13, 11, 13, 14, 14], fs=7),
       p("Holding columns use the final (corrected) soil model for every version; versions with pods at y 29 were swept before the 1.5 mm pod move, the final v29 sits at y 30.5.", S),
-      p(f"Chosen: {V} = cells in front of the boards, Ø16 x 70 augers, drill pivot raised to z 10, pods at y 30.5 (at y 29 the Ø16 augers passed within 0.1 mm of the hull while swinging; the clearance check caught it). "
+      p(f"{V} (this build): v30 (Ø17 x 72) taken as the start because the launcher is built around it, then the anchoring hardware reworked: deploy stop horns and fold lugs on the hull, a kick rest on the ear root, a longer pod stack (terminal room, bushing gap, bearings back to back), "
+        f"drill pivot z {P['DRILL_PIV_Z']} so the longer pods still reach {P['DEPLOY_DEG']}°, augers Ø{P['AUGER_D']:g} x {P['AUGER_L']:g} with a Ø{P['AUGER_CORE']:g} core (dart-physics: same loam holding as Ø17, about half the install torque and a narrower cut while milling), pods at y {P['DRILL_PIV_Y']:g}. History below. "
+        f"Before that: v29 = cells in front of the boards, Ø16 x 70 augers, drill pivot raised to z 10, pods at y 30.5. "
         f"Final: drills deploy to {P['DEPLOY_DEG']}° and reach {A['auger_depth_mm']['drill_leg_L_auger']} mm deep (v28: 29.5); holding in loam {an['by_soil']['moist loam']['total_N']} N against {BASE} N for the v28-style baseline. "
         "What the study showed: raising the drill pivot lets the pods swing further before their noses touch the ground, so the augers go deeper; lowering it does the opposite and breaks the belly rule. "
         "But depth alone is not holding: with the pull horizontal, a steeper auger takes more of it sideways. Embedded length matters most, so 70 mm augers at pivot 10 beat 66 mm at pivot 11 or 12. "
@@ -93,7 +99,8 @@ k = Ph["kick"]
 E += [p("6. Motors, battery, strength", H2),
       p(f"Kick: the leg family weighs {k['leg_mass_g']} g with its centre {k['cg_radius_mm']} mm from the pivot, so gravity asks at most {k['max_gravity_torque_kgcm']} kg·cm of the worm. Small worm N20s give 1 to 4 kg·cm: ample. "
         f"Deploy: both pods together need {Ph['deploy']['gravity_torque_both_kgcm']} kg·cm against gravity; the real load is soil, which is why the drills spin while the pods swing (firmware auto sequence)."),
-      p("Important geometry fact: the drill augers sit radially on the pods, so their depth comes only from the swing. They cut sideways through the soil as the pods rotate; spinning them while deploying is what lets the deploy worm push them in. "
+      p("Important geometry fact: the drill augers sit radially on the pods, so their depth comes only from the swing. They cut sideways through the soil as the pods rotate; spinning them while deploying is what lets the deploy worm push them in (a slow mill: dart-physics gives the times). "
+        "Under tow the soil turns the pods further down; once a pod is fully down its head sits on the hull horn, so that moment never reaches the deploy worm, its D stubs or the couplers. The same holds for the kick on its rest. Below full deploy the worm holds and the couplers are the weak link (they are cheap to reprint and protect the gearbox). "
         "The foot auger is different: near 180° its axis is almost vertical and the swing drives it along its own axis, so it really screws in."),
       p(f"Battery: {Ph['battery']['capacity_Wh']} Wh. WiFi + VTX + camera draw about {Ph['battery']['idle_W_video_on']} W: {Ph['battery']['hours_video_on']} h. Worst case all motors stalled is about 2 A (BMS 8 A, INA219 trip set at 2.5 A)."),
       p(f"Coupler torque capacity about {Ph['strength']['coupler_torque_capacity_Nm']} N·m (PLA, derated for the flat and layer lines): well above the deploy worm. "
@@ -101,11 +108,12 @@ E += [p("6. Motors, battery, strength", H2),
 # ---- launcher
 E += [PageBreak(), p("7. Launcher interface", H2),
       p(f"The barrel must clear this silhouette (folded dart seen along its axis). Channel with {Bj['clearance_mm']} mm clearance spans y {Bj['channel_bounds_yz'][0]} to {Bj['channel_bounds_yz'][2]}, z {Bj['channel_bounds_yz'][1]} to {Bj['channel_bounds_yz'][3]} mm. "
-        "Files: barrel_profile.dxf (sketch it in SolidWorks or Fusion and extrude), barrel_keepout.stl (subtract it from the barrel body), barrel_profile.svg, and KEDGE_v29_assembly_folded_STEP.zip (the whole folded dart as one STEP assembly to design the barrel around)."),
+        f"Files: barrel_profile.dxf (sketch it in SolidWorks or Fusion and extrude), barrel_keepout.stl (subtract it from the barrel body), barrel_profile.svg, and KEDGE_{V}_assembly_folded_STEP.zip (the whole folded dart as one STEP assembly). "
+        "The real launcher (base/cad/parts/launch.py) was checked directly with this dart: launcher_fit.py intersects the folded dart with every launcher part over the cock sweep, the shot, the reset, the dart leaving at 6 and 47° and every mission state with the dart on, off or coming back to the launcher."),
       img(PK + "/barrel_profile.png", 110),
       p(Bj["cradle"] + ". " + Bj["pusher"] + ".", S),
       p("The folded foot auger is the tallest thing on the dart (top of the silhouette). If the barrel slot for it is a problem, the options in order of cost are: a shorter foot auger (30 mm: about 10 mm less height, about 8 mm less depth), "
-        "or a foot auger tilted 45° toward the tail in the housing (folded it leans back over the hull; deployed it points down and forward, which resists the tether better). Neither is in v29; both are quick to generate on request.", S),
+        "or a foot auger tilted 45° toward the tail in the housing (folded it leans back over the hull; deployed it points down and forward, which resists the tether better). Neither is built; both are quick to generate on request.", S),
       p(f"Spring energy needed: about {la['spring_energy_J']} J delivered to the dart for 20 m, more with losses. A longer stroke lowers the peak load on the dart: 0.4 m halves the g.", S)]
 # ---- firmware + rover
 tlog = open("fw/test/last_run.txt").read() if os.path.exists("fw/test/last_run.txt") else ""
@@ -123,7 +131,8 @@ E += [p("Compiled for XIAO_ESP32S3 on ESP32 Arduino core 2.0.17 and 3.3.12 (USB 
         "They found, among others: 3V3 must go to the DRV8833 SLP pad, never VCC/VIN; D6/D7 toggle at reset (drills moved to D8/D9); safety logic must not wait on the web server (now its own 5 ms task); "
         "Shift-release and touch-scroll could leave a motor running on the web page; the clay holding and the pole strength formulas were wrong; the sweep step was too coarse for the leg tip. All were fixed and re-checked.", S)]
 E += [p("9. Open items to measure", H2)] + [p("• " + t, S) for t in [
-    "Weigh every bought part on the kitchen scale and update BOUGHT_G in physics.py (the mass and CG use catalogue values).",
+    "Weigh every bought part on the kitchen scale and update BOUGHT_G (dart-physics model; the mass and CG use catalogue values).",
+    "N20 end-cap tabs: the pods leave 1.2 mm (tabs bent up), the saddle and foot housing 1.6 mm: check on the first motor; the gearbox output bushing gets 0.6 mm before the shaft nut.",
     "Bench stall currents of each motor at 8 V: set kickContactMa / kickStallMa / deployStallMa in kedge_logic.h.",
     "Launcher stroke and spring: replace STROKE_M and re-run physics.py for the real g loads.",
     "A pull test in your soil: plant the dart, pull the tether with a luggage scale, compare with section 5.",

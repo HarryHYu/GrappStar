@@ -20,16 +20,20 @@ for k in ['ground_below','auger_depth_mm','foot_housing_clear_mm','pod_clear_mm'
 tail -1 $OUT.audit.log
 timeout 2400 $PY launcher_fit.py $OUT out30 > $OUT.fit.log 2>&1 || true; tail -1 $OUT.fit.log
 timeout 1200 $PY clearance.py $OUT > $OUT.clear.log 2>&1; head -12 $OUT.clear.log
-timeout 1200 $PY wireroom.py $OUT > $OUT.wireroom.log 2>&1 || true; tail -3 $OUT.wireroom.log
 timeout 300 $PY meshes.py $OUT
 timeout 900 node shots.js $OUT && $PY sheet.py $OUT
 timeout 900 $PY pack.py $OUT pack_$V > $OUT.pack.log 2>&1; tail -16 $OUT.pack.log
 $PY massprops.py $OUT > $OUT.mass.log 2>&1 || tail -5 $OUT.mass.log
+$PY stepcheck.py pack_$V > $OUT.step.log 2>&1; tail -1 $OUT.step.log
 # ---- reports and pack extras
 timeout 900 $PY physics.py $OUT > $OUT.phys.log 2>&1 || tail -5 $OUT.phys.log
 timeout 300 $PY coupon.py pack_$V
 timeout 120 $PY wires.py $OUT pack_$V > /dev/null
+timeout 1200 $PY wireroom.py $OUT pack_$V > $OUT.wireroom.log 2>&1 || true; tail -3 $OUT.wireroom.log
 $PY wiring_dot.py pack_$V || true
 timeout 600 $PY barrel.py $OUT pack_$V > /dev/null
 timeout 300 node extra_shots.js $OUT || true
 timeout 900 $PY flight_sim.py $OUT pack_$V > /dev/null 2>&1 || echo flight_sim failed
+timeout 1200 $PY assembly_step.py $OUT pack_$V || true
+$PY plate_view.py pack_$V || true
+$PY runsheet.py $OUT pack_$V && $PY report.py $OUT pack_$V variants_final.json || true

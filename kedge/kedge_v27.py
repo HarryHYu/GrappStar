@@ -27,11 +27,11 @@ P = dict(
     SADDLE_X0=23.8, KICK_HUB_D=12.0, KICK_HUB_W=14.0, KICK_POLE_D=8.0, KICK_POLE_L=72.0, KICK_DEG=201.75, KICK_REST_DEG=1.5,
     FOOT_AUGER_L=40.0, FOOT_TIP=10.0,
     # drill pair
-    DRILL_X=56.0, DRILL_PIV_Z=11.0, DRILL_PIV_Y=31.0, DEPLOY_Y=None, DEPLOY_DEG=43.0, HORN_GAP=0.15,
+    DRILL_X=56.0, DRILL_PIV_Z=11.0, DRILL_PIV_Y=29.0, DEPLOY_Y=None, DEPLOY_DEG=43.0, HORN_GAP=0.15,
     CPL_D=7.0, BOSS_D=11.0,
     # drill motor  M: gearbox 11.95, 24.27 face to back, shaft 2.84 x 56.03
     MOTOR_W=12.0, MOTOR_H=10.0, MOTOR_L=24.27, DSHAFT_L=56.03, DSHAFT_D=2.84,
-    AUGER_L=72.0, AUGER_D=17.0, AUGER_CORE=7.5, AUGER_PITCH=11.0, AUGER_TIP=12.0,
+    AUGER_L=72.8, AUGER_D=13.0, AUGER_CORE=6.0, AUGER_PITCH=11.0, AUGER_TIP=12.0,
     # F693ZZ  M: 3 x 8 x 4, flange 9.5 x 0.6 (catalogue)
     BRG_OD=8.0, BRG_W=4.0, BRG_FL_D=9.5, BRG_FL_T=0.6,
     NUT_AF=5.5, NUT_T=2.4, NYLOC_T=4.0, BUSH_GAP=0.6, POD_PS=4.4, DTERM=1.2, BOSS_FACE_D=4.6,
@@ -40,7 +40,7 @@ P = dict(
     SCREW_CLR=3.3, SCREW_PILOT=2.5, RAD_Z=3.0,
     KEEL_Z=-17.0,
     TERM=1.6,                 # N20 end-cap terminal tabs (bent) + solder: room behind every motor back end
-    BALLAST_G=15.0,           # nose ballast mass (dart-physics sets it)
+    BALLAST_G=0.0,            # nose ballast mass (dart-physics: at 7 m/s it adds nothing, the tether keeps it nose first)
 )
 P.update(LAYOUT="cells_fwd", DISC_T=2.0, DISC_CELL_T=3.0, LIGHT=0)
 P.update(json.loads(os.environ.get("KOV", "{}")))           # variant overrides, e.g. KOV='{"AUGER_L":66,"LAYOUT":"cells_fwd"}'
@@ -543,7 +543,7 @@ def screw_auger(flight_d, length, pitch, core_d, tip_len, lefthand=False, bore=N
     depth = lambda x: dep0 if x <= body_l else dep0 * (1 - 0.75 * (x - body_l) / tip_len)
     x_end = body_l + tip_len * (1 - 1.0 / rc0)
     fl = helical_flight(r_core, depth, pitch, x_end)
-    fl = trimesh.boolean.intersection([fl, tbox(0.0, length + 5, -20, 20, -20, 20)], engine="manifold")
+    fl = trimesh.boolean.intersection([fl, tbox(0.02, length + 5, -20, 20, -20, 20)], engine="manifold")   # 0.02 over the core end: no coplanar faces
     if lefthand:
         fl.apply_transform(reflection_matrix([0, 0, 0], [0, 1, 0])); fl.invert() if fl.volume < 0 else None; fl.fix_normals()
     ms = [core, tip, fl]
@@ -656,10 +656,10 @@ def drill(prefix, side, color):
         note="Drill pod: round clevis head on the Ø7 D coupler (counterbore for the pod cap outside, flat front face lands on the hull's deploy stop horn), 14.8 x 12.8 housing: %.1f mm terminal room (bend the motor tabs up), motor drops in from the top (zip-tie groove), %.1f mm gap to the M3 nut (gearbox bushing), inner F693ZZ (flange toward the motor), outer F693ZZ (flange on the nose face), back to back: the nut on the inner race takes the auger's pull, the auger base on the outer inner race takes push; the gearbox carries torque only. Bottom nose edge chamfered for ground clearance" % (P["DTERM"], P["BUSH_GAP"]))
     lh = side < 0
     au = screw_auger(P["AUGER_D"], P["AUGER_L"], P["AUGER_PITCH"], P["AUGER_CORE"], P["AUGER_TIP"], lefthand=lh,
-                     bore=P["DSHAFT_D"] + 0.45, nut_x=NUT_X, base_boss=True)
-    au.apply_transform(TM([AUG_X0 + 0.8, 0, 0]))
+                     bore=P["DSHAFT_D"] + 0.45, nut_x=NUT_X, base_boss=False)
+    au.apply_transform(TM([AUG_X0, 0, 0]))          # flat Ø core end bears on the outer bearing's inner race (core < outer ring bore, shields are recessed)
     add(prefix + "_auger", au, "legs", "#b23a48", parent=prefix, orient="base down, nut slot sideways",
-        note="Auger Ø%g x %g, %s-hand flight (the pair counter-rotates, so the two are mirror images and both screw IN), Ø%g core (bending at the base under the 55 N tow), captive M3 nyloc in a side slot near the point, Ø%g base boss bears only on the outer bearing's inner race" % (P["AUGER_D"], P["AUGER_L"], "left" if lh else "right", P["AUGER_CORE"], P["BOSS_FACE_D"]))
+        note="Auger Ø%g x %g, %s-hand flight (the pair counter-rotates, so the two are mirror images and both screw IN), Ø%g core (bending at the base under the 55 N tow), captive M3 nyloc in a side slot near the point, its flat Ø%g core end bears on the outer bearing's inner race and stands on the bed when printing (brim 8 mm)" % (P["AUGER_D"], P["AUGER_L"], "left" if lh else "right", P["AUGER_CORE"], P["AUGER_CORE"]))
     env = lambda s: s
     add(prefix + "_motor", bx(XS - P["MOTOR_L"], XS, -P["MOTOR_W"] / 2, P["MOTOR_W"] / 2, -P["MOTOR_H"] / 2, P["MOTOR_H"] / 2),
         "electronics", "#6c757d", parent=prefix, printable=False, note="Drill motor 12 x 10 x 24.27 (measured)")
@@ -672,7 +672,7 @@ def drill(prefix, side, color):
     add(prefix + "_brg2", b2, "electronics", "#9aa5b1", parent=prefix, printable=False, note="F693ZZ outer, flange on the nose face")
     nut = extrude(Plane.YZ.offset(X_NUT) * RegularPolygon(P["NUT_AF"] / 2, 6, major_radius=False), amount=P["NUT_T"]) - cylx(3, 4, XS - 1)
     add(prefix + "_nut", nut, "electronics", "#777", parent=prefix, printable=False, note="M3 nut on the shaft, tightened against the inner bearing's inner race (threadlocker)")
-    ny = trimesh.creation.cylinder(radius=P["NUT_AF"] / math.sqrt(3), height=P["NYLOC_T"], sections=6); ny.apply_transform(RM(math.pi / 2, [0, 1, 0])); ny.apply_transform(TM([AUG_X0 + 0.8 + NUT_X + 0.15 + P["NYLOC_T"] / 2, 0, 0])); ny = tD(ny, [tcylx(3.0, 8, AUG_X0 + NUT_X - 2)])
+    ny = trimesh.creation.cylinder(radius=P["NUT_AF"] / math.sqrt(3), height=P["NYLOC_T"], sections=6); ny.apply_transform(RM(math.pi / 2, [0, 1, 0])); ny.apply_transform(TM([AUG_X0 + NUT_X + 0.15 + P["NYLOC_T"] / 2, 0, 0])); ny = tD(ny, [tcylx(3.0, 8, AUG_X0 + NUT_X - 2)])
     add(prefix + "_nyloc", ny, "electronics", "#777", parent=prefix, printable=False, note="M3 nyloc captive in the auger, threadlocker on it")
 
 print("drills ...")
@@ -703,8 +703,8 @@ yRi = P["DEPLOY_Y"] - P["N20_BOX"] / 2 - 0.3
 cR = coupler(yRi, -yo, True, yRi - tipR + 0.5)
 for nm, c in (("coupler_L", cL), ("coupler_R", cR)):
     add(nm, c.moved(Location((0, 0, 0))), "legs", "#444", pos=(P["DRILL_X"], 0, P["DRILL_PIV_Z"]), axis="y", deg=(0, P["DEPLOY_DEG"]),
-        orient="standing on its socket end",
-        note="Ø7 D coupler: D-socket on the deploy N20 output stub, runs through the hull boss into the pod head; its outer end stands 0.3 proud in the pod counterbore, the printed pod cap and an M3 x 8 screw seat on it, so the pod is held on (0.7 mm float) but never clamped against the boss")
+        orient="lying on its D flat (layers along the axle), PPA-CF",
+        note="Ø7 D coupler: D-socket on the deploy N20 output stub, runs through the hull boss into the pod head; its outer end stands 0.3 proud in the pod counterbore, the printed pod cap and an M3 x 8 screw seat on it, so the pod is held on (0.7 mm float) but never clamped against the boss. Print in PPA-CF lying on the flat: a nose-first landing on gravel bends it about 69 MPa (dart-physics), over PLA's 45")
 
 # ================================================================== ENVELOPES (not printed)
 def env(name, solid, color, note, parent=None):
@@ -794,14 +794,15 @@ hw("capacitor", cylx(6.3, 11.0, cx_, y=9.4, z=2.6), "#334488", "470 to 1000 uF a
 nl_ = P["NOSE_L"]
 env_ = Solid.make_cone(P["NOSE_R0"], R, nl_, Plane.YZ) + cylx(2 * RB - 2 * CLR, P["NOSE_SPIG"], nl_ - 0.01)
 cav = env_ - FIX["nose"] - bx(P["NOSE_LIP"] + P["CAM_LENS"] - 0.2, nl_ + P["NOSE_SPIG"] + 5, -(P["CAM_W"] / 2 + 1.6), P["CAM_W"] / 2 + 1.6, -(P["CAM_H"] / 2 + 1.6), P["CAM_H"] / 2 + 1.6) - cylx(P["CAM_HOLE"] + 0.4, 6, -1)
-target = 15.0 / 5.0 * 1000          # 15 g at ~5 g/cm3 for shot in epoxy -> mm3
+target = max(P["BALLAST_G"], 0.0) / 5.0 * 1000          # g at ~5 g/cm3 for shot in epoxy -> mm3
 lo, hi = 2.0, nl_ + P["NOSE_SPIG"]
 for _ in range(18):
     mid = (lo + hi) / 2; v = (cav & bx(-1, mid, -30, 30, -30, 30)).volume
     lo, hi = (mid, hi) if v < target else (lo, mid)
-ball = cav & bx(-1, hi, -30, 30, -30, 30)
-P["BALLAST_X_END"] = round(hi, 1)
-hw("ballast", ball, "#7a6a55", "15 g nose ballast: steel shot or M6 nuts in 5-minute epoxy, poured with the nose standing on its tip (fills to x %.1f)" % hi)
+if P["BALLAST_G"] > 0:
+    ball = cav & bx(-1, hi, -30, 30, -30, 30)
+    P["BALLAST_X_END"] = round(hi, 1)
+    hw("ballast", ball, "#7a6a55", "%g g nose ballast: steel shot or M6 nuts in 5-minute epoxy, poured with the nose standing on its tip (fills to x %.1f)" % (P["BALLAST_G"], hi))
 
 mid = lambda xx: round((xx[0] + xx[1]) / 2, 2)
 P["WIRE_PTS"] = dict(           # harness way points (wires.py, wireroom.py; firmware/dart/tools/wires_v4.py may read them)

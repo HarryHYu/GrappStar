@@ -10,7 +10,7 @@ ORIENT = {   # rotation that puts each part in its print pose (z up from the bed
     "hull_top": np.eye(4), "hull_bottom": RM(math.pi, X), "nose": RM(-math.pi / 2, Y), "tail_cap": RM(math.pi / 2, Y),
     "tray": np.eye(4), "kick_leg": RM(-math.pi / 2, X), "drill_leg_L": np.eye(4), "drill_leg_R": np.eye(4),
     "drill_leg_L_auger": RM(-math.pi / 2, Y), "drill_leg_R_auger": RM(-math.pi / 2, Y), "foot_auger": np.eye(4),
-    "coupler_L": RM(math.pi / 2, X), "coupler_R": RM(-math.pi / 2, X),
+    "coupler_L": RM(math.pi, Y), "coupler_R": RM(math.pi, Y),      # lying on the D flat: layers run along the axle (bending)
     "pod_cap_L": RM(math.pi / 2, X), "pod_cap_R": RM(-math.pi / 2, X),
 }
 ORIENT = {k: v for k, v in ORIENT.items() if k in PP}          # older builds have no pod caps
@@ -20,8 +20,8 @@ SUPPORT = {   # what the slicer must do (Bambu Studio, PLA, 0.4 nozzle, 0.2 laye
     "nose": "none (tip down, cone walls under 45 deg)", "tail_cap": "none (end face down; the socket windows bridge 8 mm)",
     "tray": "none (decks bridge 26 mm between discs; enable 'thick bridges')", "kick_leg": "none (hub face and foot housing outboard face on the bed)",
     "drill_leg_L": "none (flat-bottomed head, D-bore roof bridges 5 mm)", "drill_leg_R": "none (flat-bottomed head, D-bore roof bridges 5 mm)",
-    "drill_leg_L_auger": "none (45 deg lower flight flank); brim 5 mm, the base is small", "drill_leg_R_auger": "none (45 deg lower flight flank); brim 5 mm, the base is small",
-    "foot_auger": "none; brim 5 mm", "coupler_L": "none; brim 3 mm, print standing", "coupler_R": "none; brim 3 mm, print standing",
+    "drill_leg_L_auger": "none (45 deg lower flight flank); brim 8 mm, the base is small (flat core end only)", "drill_leg_R_auger": "none (45 deg lower flight flank); brim 5 mm, the base is small",
+    "foot_auger": "none; brim 5 mm", "coupler_L": "PPA-CF (hardened nozzle, dried filament), lying on the D flat, no supports; PLA only as a stopgap", "coupler_R": "PPA-CF (hardened nozzle, dried filament), lying on the D flat, no supports; PLA only as a stopgap",
     "pod_cap_L": "none", "pod_cap_R": "none",
 }
 QTY = {k: 1 for k in ORIENT}

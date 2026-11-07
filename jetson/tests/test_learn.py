@@ -99,8 +99,10 @@ def test_learn_extract_and_terrain_from_labelled_pictures(runs, monkeypatch, tmp
     from grappstar.sim.terrain_textures import texture_view
     for i in range(4):
         cv2.imwrite(str(lab / "sand_dust" / f"s{i}.png"), texture_view("sand_dust", 480, 720, seed=500 + i))
-    real = terrain.real_samples(str(lab))
-    assert len(real["hard_ground"]) >= 6 and len(real["sand_dust"]) == 4
+    from grappstar.vision.lens import DartLens
+    real = terrain.real_samples(str(lab), lens=DartLens.from_settings())
+    # a dart leaning on a flank on hard ground (dart-physics) can show too little ground in some pictures: skipped
+    assert len(real["hard_ground"]) >= 3 and len(real["sand_dust"]) == 4
     monkeypatch.setattr(terrain, "site_prototypes_path", lambda: str(tmp_path / "calib" / "terrain_prototypes.json"))
     r = learn.terrain_learn(str(lab), write=True, jobs=1, quick=True)
     assert r["after"] is not None and r["after"] >= 0.8

@@ -39,6 +39,20 @@ def _ramp(x: float, lo: float, hi: float) -> float:
     return float(min(1.0, max(0.0, (x - lo) / (hi - lo))))
 
 
+def local_base(tear: np.ndarray, k: int = 6) -> np.ndarray:
+    """Per row: the row-to-row difference expected there, from its neighbours (skipping the row and its two next
+    rows), never below the frame median, plus 1. A tear edge is ONE row unlike its neighbours; textured ground
+    under a smooth sky (analog sharpening makes it busy: realistic simulator) is many busy rows in a row and must
+    not count as torn, which a single frame-wide median did."""
+    n = len(tear)
+    if n < 2 * k + 2:
+        return np.full(n, float(np.median(tear)) + 1.0)
+    pad = np.pad(tear, k, mode="edge")
+    win = np.lib.stride_tricks.sliding_window_view(pad, 2 * k + 1)
+    near = np.concatenate([win[:, :k - 1], win[:, k + 2:]], axis=1)
+    return np.maximum(np.median(near, axis=1)[:n], float(np.median(tear))) + 1.0
+
+
 def frame_quality(img: np.ndarray, prev: Optional[np.ndarray] = None) -> dict:
     img = ensure_bgr(img)
     if prev is not None:
@@ -67,9 +81,14 @@ def frame_quality(img: np.ndarray, prev: Optional[np.ndarray] = None) -> dict:
     pix = np.abs(rows[1:] - rows[:-1]).mean(axis=1)
     mean_d = np.abs(rows[1:].mean(axis=1) - rows[:-1].mean(axis=1))
     tear = pix - mean_d
-    base = float(np.median(tear)) + 1.0
-    tear_rows = int((tear > 2.0 * base + 6.0).sum())
+    tear_rows = int((tear > 2.0 * local_base(tear) + 6.0).sum())
     tear_score = _ramp(tear_rows, 1.5, 4.5)
+    # a band shifted sideways leaves a black strip at one side of its rows (the capture fills the gap)
+    sub = img[::max(1, img.shape[1] // TARGET_W), ::max(1, img.shape[1] // TARGET_W)]
+    side = np.minimum(sub[:, :3].reshape(sub.shape[0], -1).max(1), sub[:, -3:].reshape(sub.shape[0], -1).max(1))
+    side_frac = float((side < 16).mean())
+    if std > 8 and float(np.median(row_means := gi.mean(axis=1))) > 40 and side_frac > 0.08:
+        tear_score = max(tear_score, _ramp(side_frac, 0.08, 0.2))
 
     # --- vertical roll: a band of black, flat rows (the blanking interval) inside an
     # otherwise normal picture.
@@ -102,6 +121,7 @@ def frame_quality(img: np.ndarray, prev: Optional[np.ndarray] = None) -> dict:
         "noise_frac": round(noise_frac, 4),
         "std": round(std, 2),
         "tear_rows": tear_rows,
+        "side_frac": round(side_frac, 3),
         "roll_bar": bool(roll_bar),
     }
 

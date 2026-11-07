@@ -272,30 +272,51 @@ HAZE_MARGIN_FRAC = 0.08    # skip this much (of the image height) below the hori
 def ground_roi(img: np.ndarray, frac: float = ROI_FRAC, size: int = ROI_SIZE):
     """The ground patch to classify: (roi size x size, kind) with kind "central", "below_horizon" or "none".
 
-    The dart usually comes to rest lying on its belly, nose camera level about 2 cm above the ground: the
-    picture then shows the horizon and sky in its upper part (realistic simulator, rest "flat"). The ground right in
-    front of the nose is at the bottom of the picture, so the square ROI is put there, centred, below the lowest
-    sky pixel of the middle half plus a margin for the haze band. With no sky in view (nose down, close up) the
-    central square is used as before. kind "none" (roi None): less than GROUND_MIN_FRAC of ground."""
+    The dart usually comes to rest lying on its belly or leaning about 42 deg on a flank (dart-physics), nose camera
+    about 2 cm above the ground: the picture then shows the horizon and sky in its upper part, tilted by the lean.
+    The picture is first turned so the horizon is level (the lean is the camera's roll, which only rotates the
+    picture), then the square ROI is put at the bottom centre, below the lowest sky pixel of the middle half plus a
+    margin for the haze band, inside the turned picture. With no sky in view (nose down, close up) the central square
+    is used as before. kind "none" (roi None): less than GROUND_MIN_FRAC of ground."""
     h, w = img.shape[:2]
     try:
-        from .flight import _small, sky_mask
+        from .flight import _small, detect_horizon, sky_mask
         small = _small(img)
         m = sky_mask(small)
     except Exception:
         return central_roi(img, frac, size), "central"
     if float((m > 0).mean()) < 0.03:
         return central_roi(img, frac, size), "central"
+    valid = None
+    hz = detect_horizon(img)
+    ang = hz.get("angle_deg")
+    if ang is not None and abs(ang) > 4.0:
+        # level the horizon: rotate the picture back by the horizon angle
+        R = cv2.getRotationMatrix2D(((w - 1) / 2.0, (h - 1) / 2.0), -float(ang), 1.0)
+        img = cv2.warpAffine(img, R, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+        valid = cv2.warpAffine(np.full((h, w), 255, np.uint8), R, (w, h), flags=cv2.INTER_NEAREST,
+                               borderMode=cv2.BORDER_CONSTANT)
+        small = _small(img)
+        m = sky_mask(small)
+        vs = cv2.resize(valid, (small.shape[1], small.shape[0]), interpolation=cv2.INTER_NEAREST)
+        m[vs == 0] = 0
     sh, sw = m.shape
     cols = m[:, sw // 4: 3 * sw // 4] > 0
     rows = np.nonzero(cols.any(axis=1))[0]
-    if len(rows) == 0:
-        return central_roi(img, frac, size), "central"
-    y_h = (rows.max() + 1) * h / float(sh)
+    y_h = (rows.max() + 1) * h / float(sh) if len(rows) else 0.0
     top = y_h + HAZE_MARGIN_FRAC * h
     bottom = 0.98 * h
     short = min(h, w)
     side = int(min(frac * short, bottom - top))
+    if valid is not None:
+        # shrink the square until it lies inside the turned picture (no black corners)
+        while side >= GROUND_MIN_FRAC * short:
+            y0 = int(bottom - side)
+            x0 = (w - side) // 2
+            if valid[y0:y0 + side, x0:x0 + side].min() > 0:
+                break
+            bottom -= 0.02 * h
+            side = int(min(frac * short, bottom - top))
     if side < GROUND_MIN_FRAC * short:
         return None, "none"
     y0 = int(bottom - side)
@@ -542,7 +563,7 @@ LEARN_TEXTURE_SEEDS = tuple(range(9000, 9100))
 LEARN_FLIGHT_SEEDS = tuple(range(10, 30))
 LEARN_SIZES = ((720, 480), (480, 320))
 # realistic flights (sim profile "caddx"): seeds 1000 and up (the evaluations use seeds below 1000)
-LEARN_CADDX_SEEDS = tuple(range(1000, 1024))
+LEARN_CADDX_SEEDS = tuple(range(1000, 1018))
 LEARN_CADDX_SIZES = ((720, 480), (360, 240))
 LDA_REG = 0.1
 
@@ -576,10 +597,34 @@ def _flight_sample(args) -> tuple:
 
     args: (cls, seed, size, n) for the clean pinhole simulator, or (cls, seed, size, n, "caddx") for the realistic
     one (fisheye, analog link, lying flat or nose down; rectified with the default lens like run_post_flight)."""
-    from grappstar.sim.flight_video import render_flight
-    from grappstar.vision import flight
+    import os
     cls, seed, size, n = args[:4]
     profile = args[4] if len(args) > 4 else "pinhole"
+    # GRAPPSTAR_LEARN_CACHE: keep the rendered landing frames, so a change to the ROI or the features does not need
+    # every flight rendered again (the rendering is 95 percent of the learning time)
+    cdir = os.environ.get("GRAPPSTAR_LEARN_CACHE")
+    cpath = os.path.join(cdir, f"{profile}_{cls}_{seed}_{size[0]}x{size[1]}.npz") if cdir else None
+    if cpath and os.path.exists(cpath):
+        imgs = list(np.load(cpath)["imgs"])
+    else:
+        imgs = _flight_landing_imgs(cls, seed, size, profile)
+        if cpath:
+            os.makedirs(cdir, exist_ok=True)
+            np.savez_compressed(cpath, imgs=np.array(imgs) if imgs else np.zeros((0, 1, 1, 3), np.uint8))
+    out = []
+    for img in imgs:
+        roi, _kind = ground_roi(img)
+        if roi is not None:
+            out.append(_vec(extract_features(roi)))
+        if len(out) >= n:
+            break
+    return cls, out
+
+
+def _flight_landing_imgs(cls, seed, size, profile, keep: int = 8) -> list:
+    """The sharpest landing frames (rectified for caddx) of one simulated flight, as analyze_landing would see them."""
+    from grappstar.sim.flight_video import render_flight
+    from grappstar.vision import flight
     if profile == "caddx":
         from grappstar.vision.lens import DartLens, rectify_frames
         links = ("daylight", "daylight", "overcast", "lowlight", "weak_link")
@@ -594,14 +639,7 @@ def _flight_sample(args) -> tuple:
     res = flight.analyze_flight(frames, None)
     land = flight.landing_frames(frames, res, n=15)
     land.sort(key=lambda fr: _sharpness(fr.img), reverse=True)
-    out = []
-    for fr in land:
-        roi, _kind = ground_roi(fr.img)
-        if roi is not None:
-            out.append(_vec(extract_features(roi)))
-        if len(out) >= n:
-            break
-    return cls, out
+    return [fr.img for fr in land[:keep]]
 
 
 REAL_EXT_IMG = (".png", ".jpg", ".jpeg", ".bmp")

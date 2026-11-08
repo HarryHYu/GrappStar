@@ -1,0 +1,435 @@
+{
+ "what": "KEDGE righting sim (kedge/sim_righting/index.html): results of the headless runs, 8 Nov 2026. Rapier 3D 0.14.0, 1 ms steps. Key format: layout/mass/soil. Mass v33 = 270 g total, brief = 255 g body plus 100 g of legs (355 g). Centre of mass 8 mm above the axis. Rover reel 3 m behind, 0.25 m high.",
+ "design": {
+  "pods": "30 g, 100 mm, 16 mm thick, pivots 10 mm above the axis, 30 mm out from the axis, hard stop at 50 deg, own worm N20 each (0.21 N m stall, 50 deg in 8 s, 4 deg/s drilling)",
+  "tail_layout": "pivots 140 mm from the nose tip, pods fold forward, drills enter just in front of the pivots; tether bridle to an eye on each pod hub 15 mm from the pivot",
+  "front_layout": "pivots 52 mm from the nose tip, pods fold aft; tether eye on the hull at 150 mm, 14 mm below the axis",
+  "righting_leg": "40 g, 128 mm hinge to pad, hinge on the top centreline 36 mm from the nose tip and 16 mm above the axis (folded flush in a groove), rounded 56 mm cross-bar pad, swing 0 to 178 deg, 180 deg in 4 s, rests folded after anchoring",
+  "tail_boom": "left off"
+ },
+ "presets": {
+  "tail/v33/loam": {
+   "belly": {
+    "righted": true,
+    "rightT": 17,
+    "moves": 3,
+    "stuck": false,
+    "tailTurned": false,
+    "heldN": 55,
+    "movedAtN": null,
+    "wormPeakNm": 0.045,
+    "stopPeakNm": 0.16,
+    "pitchChangeDeg": 6
+   },
+   "lean": {
+    "righted": true,
+    "rightT": 21.2,
+    "moves": 2,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 55,
+    "movedAtN": null,
+    "wormPeakNm": 0.122,
+    "stopPeakNm": 0.3,
+    "pitchChangeDeg": 6.5
+   },
+   "left": {
+    "righted": true,
+    "rightT": 21.7,
+    "moves": 2,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 55,
+    "movedAtN": null,
+    "wormPeakNm": 0.046,
+    "stopPeakNm": 0.18,
+    "pitchChangeDeg": 6.2
+   },
+   "right": {
+    "righted": true,
+    "rightT": 15.6,
+    "moves": 2,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 55,
+    "movedAtN": null,
+    "wormPeakNm": 0.25,
+    "stopPeakNm": 0.43,
+    "pitchChangeDeg": 5.6
+   },
+   "upside": {
+    "righted": true,
+    "rightT": 15.6,
+    "moves": 2,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 55,
+    "movedAtN": null,
+    "wormPeakNm": 0.112,
+    "stopPeakNm": 0.27,
+    "pitchChangeDeg": 6.3
+   }
+  },
+  "tail/v33/sand": {
+   "belly": {
+    "righted": true,
+    "rightT": 17,
+    "moves": 3,
+    "stuck": false,
+    "tailTurned": false,
+    "heldN": 15,
+    "movedAtN": 18.5,
+    "wormPeakNm": 0.045,
+    "stopPeakNm": 0.07,
+    "pitchChangeDeg": 6.9
+   },
+   "lean": {
+    "righted": true,
+    "rightT": 21.2,
+    "moves": 2,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 15,
+    "movedAtN": 18.3,
+    "wormPeakNm": 0.083,
+    "stopPeakNm": 0.07,
+    "pitchChangeDeg": 7.5
+   },
+   "left": {
+    "righted": true,
+    "rightT": 21.7,
+    "moves": 2,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 15,
+    "movedAtN": 18.5,
+    "wormPeakNm": 0.054,
+    "stopPeakNm": 0.08,
+    "pitchChangeDeg": 6.7
+   },
+   "right": {
+    "righted": true,
+    "rightT": 15.6,
+    "moves": 2,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 15,
+    "movedAtN": 18,
+    "wormPeakNm": 0.171,
+    "stopPeakNm": 0.14,
+    "pitchChangeDeg": 6.3
+   },
+   "upside": {
+    "righted": true,
+    "rightT": 15.6,
+    "moves": 2,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 15,
+    "movedAtN": 18.4,
+    "wormPeakNm": 0.079,
+    "stopPeakNm": 0.07,
+    "pitchChangeDeg": 6.7
+   }
+  },
+  "tail/brief/loam": {
+   "belly": {
+    "righted": true,
+    "rightT": 4.2,
+    "moves": 1,
+    "stuck": false,
+    "tailTurned": false,
+    "heldN": 55,
+    "movedAtN": null,
+    "wormPeakNm": 0.066,
+    "stopPeakNm": 0.15,
+    "pitchChangeDeg": 4.3
+   },
+   "lean": {
+    "righted": false,
+    "rightT": null,
+    "moves": null,
+    "stuck": true,
+    "tailTurned": false,
+    "heldN": 0,
+    "movedAtN": null,
+    "wormPeakNm": 0,
+    "stopPeakNm": 0,
+    "pitchChangeDeg": 0
+   },
+   "left": {
+    "righted": false,
+    "rightT": null,
+    "moves": null,
+    "stuck": true,
+    "tailTurned": false,
+    "heldN": 0,
+    "movedAtN": null,
+    "wormPeakNm": 0,
+    "stopPeakNm": 0,
+    "pitchChangeDeg": 0
+   },
+   "right": {
+    "righted": false,
+    "rightT": null,
+    "moves": null,
+    "stuck": true,
+    "tailTurned": false,
+    "heldN": 0,
+    "movedAtN": null,
+    "wormPeakNm": 0,
+    "stopPeakNm": 0,
+    "pitchChangeDeg": 0
+   },
+   "upside": {
+    "righted": false,
+    "rightT": null,
+    "moves": null,
+    "stuck": true,
+    "tailTurned": false,
+    "heldN": 0,
+    "movedAtN": null,
+    "wormPeakNm": 0,
+    "stopPeakNm": 0,
+    "pitchChangeDeg": 0
+   }
+  },
+  "front/v33/loam": {
+   "belly": {
+    "righted": true,
+    "rightT": 17.2,
+    "moves": 3,
+    "stuck": false,
+    "tailTurned": false,
+    "heldN": 45,
+    "movedAtN": 50,
+    "wormPeakNm": 0,
+    "stopPeakNm": 2.38,
+    "pitchChangeDeg": 12
+   },
+   "lean": {
+    "righted": true,
+    "rightT": 27.9,
+    "moves": 3,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 50,
+    "movedAtN": 52.8,
+    "wormPeakNm": 0,
+    "stopPeakNm": 2.38,
+    "pitchChangeDeg": 12
+   },
+   "left": {
+    "righted": true,
+    "rightT": 21.3,
+    "moves": 2,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 50,
+    "movedAtN": 50.2,
+    "wormPeakNm": 0,
+    "stopPeakNm": 2.39,
+    "pitchChangeDeg": 11.9
+   },
+   "right": {
+    "righted": true,
+    "rightT": 16.6,
+    "moves": 2,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 45,
+    "movedAtN": 49.8,
+    "wormPeakNm": 0,
+    "stopPeakNm": 2.4,
+    "pitchChangeDeg": 11.4
+   },
+   "upside": {
+    "righted": true,
+    "rightT": 29.7,
+    "moves": 4,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 45,
+    "movedAtN": 50,
+    "wormPeakNm": 0,
+    "stopPeakNm": 2.39,
+    "pitchChangeDeg": 11.8
+   }
+  },
+  "front/v33/sand": {
+   "belly": {
+    "righted": true,
+    "rightT": 17.2,
+    "moves": 3,
+    "stuck": false,
+    "tailTurned": false,
+    "heldN": 15,
+    "movedAtN": 18.3,
+    "wormPeakNm": 0,
+    "stopPeakNm": 0.71,
+    "pitchChangeDeg": 12.4
+   },
+   "lean": {
+    "righted": true,
+    "rightT": 27.9,
+    "moves": 3,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 15,
+    "movedAtN": 18.2,
+    "wormPeakNm": 0,
+    "stopPeakNm": 0.71,
+    "pitchChangeDeg": 12
+   },
+   "left": {
+    "righted": true,
+    "rightT": 21.3,
+    "moves": 2,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 15,
+    "movedAtN": 18,
+    "wormPeakNm": 0,
+    "stopPeakNm": 0.71,
+    "pitchChangeDeg": 12.1
+   },
+   "right": {
+    "righted": true,
+    "rightT": 16.6,
+    "moves": 2,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 15,
+    "movedAtN": 17.9,
+    "wormPeakNm": 0,
+    "stopPeakNm": 0.7,
+    "pitchChangeDeg": 11.6
+   },
+   "upside": {
+    "righted": true,
+    "rightT": 29.7,
+    "moves": 4,
+    "stuck": false,
+    "tailTurned": true,
+    "heldN": 15,
+    "movedAtN": 18,
+    "wormPeakNm": 0,
+    "stopPeakNm": 0.71,
+    "pitchChangeDeg": 12.2
+   }
+  },
+  "front/brief/loam": {
+   "belly": {
+    "righted": true,
+    "rightT": 4.2,
+    "moves": 1,
+    "stuck": false,
+    "tailTurned": false,
+    "heldN": 50,
+    "movedAtN": 55,
+    "wormPeakNm": 0,
+    "stopPeakNm": 2.4,
+    "pitchChangeDeg": 11.9
+   },
+   "lean": {
+    "righted": false,
+    "rightT": null,
+    "moves": null,
+    "stuck": true,
+    "tailTurned": false,
+    "heldN": 0,
+    "movedAtN": null,
+    "wormPeakNm": 0,
+    "stopPeakNm": 0,
+    "pitchChangeDeg": 0
+   },
+   "left": {
+    "righted": false,
+    "rightT": null,
+    "moves": null,
+    "stuck": true,
+    "tailTurned": false,
+    "heldN": 0,
+    "movedAtN": null,
+    "wormPeakNm": 0,
+    "stopPeakNm": 0,
+    "pitchChangeDeg": 0
+   },
+   "right": {
+    "righted": false,
+    "rightT": null,
+    "moves": null,
+    "stuck": true,
+    "tailTurned": false,
+    "heldN": 0,
+    "movedAtN": null,
+    "wormPeakNm": 0,
+    "stopPeakNm": 0,
+    "pitchChangeDeg": 0
+   },
+   "upside": {
+    "righted": false,
+    "rightT": null,
+    "moves": null,
+    "stuck": true,
+    "tailTurned": false,
+    "heldN": 0,
+    "movedAtN": null,
+    "wormPeakNm": 0,
+    "stopPeakNm": 0,
+    "pitchChangeDeg": 0
+   }
+  }
+ },
+ "batch_50_random": {
+  "tail/v33/loam": {
+   "righted": 50,
+   "medianS": 17.0,
+   "slowestS": 34.5,
+   "tailTurnedByReel": 42,
+   "heldAtN": {
+    "15": 50,
+    "20": 50,
+    "25": 50,
+    "30": 50,
+    "35": 50,
+    "40": 50,
+    "45": 50,
+    "50": 50,
+    "55": 47
+   },
+   "runsWithWormLoad": 50,
+   "wormPeakNm": 0.238
+  },
+  "tail/v33/sand": {
+   "righted": 50,
+   "heldAtN": {
+    "15": 50,
+    "20": 0
+   },
+   "runsWithWormLoad": 50,
+   "wormPeakNm": 0.155
+  },
+  "front/v33/loam": {
+   "righted": 50,
+   "medianS": 21.3,
+   "slowestS": 34.0,
+   "heldAtN": {
+    "15": 50,
+    "20": 50,
+    "25": 50,
+    "30": 50,
+    "35": 50,
+    "40": 50,
+    "45": 49,
+    "50": 29,
+    "55": 0
+   },
+   "runsWithWormLoad": 0
+  },
+  "tail/brief/loam": {
+   "righted": 9,
+   "note": "every upside-down rest fails: the leg stalls at about 38 deg of pitch (needs about 0.23 N m)"
+  }
+ }
+}

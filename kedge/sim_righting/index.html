@@ -1,0 +1,1203 @@
+<title>KEDGE Righting Sim</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Rigid-body study of the KEDGE dart: landing, self-righting, drilling in and the reel tow, with a live check of which joint carries the load.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: an instrument bench. The 3D view fills the left, a narrow control and readout strip runs down the right;
+   on a phone the strip drops under the view. */
+:root {
+  --bg: #e6eae7;
+  --panel: #f5f7f5;
+  --sunk: #edf0ee;
+  --ink: #18201d;
+  --muted: #56635d;
+  --line: #c8d0cb;
+  --accent: #2a5db4;
+  --accent-ink: #ffffff;
+  --good: #1f7d55;
+  --bad: #bf3d26;
+  --warn: #a8701a;
+  --soil: #8a6a48;
+  --sky-top: #cfd9df;
+  --sky-low: #e9ece6;
+  --hull: #d7dcd8;
+  --pod: #3b6fc6;
+  --legc: #d08a1e;
+  --font-display: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121715; --panel: #1a201d; --sunk: #151a18; --ink: #e2e8e4; --muted: #94a39b; --line: #2e3833;
+    --accent: #6f9dff; --accent-ink: #0d1420; --good: #4cc38c; --bad: #ff7b5e; --warn: #e2a64a; --soil: #6e5640;
+    --sky-top: #1b2428; --sky-low: #262b27; --hull: #b9c0bb; --pod: #6f9dff; --legc: #e8a542;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121715; --panel: #1a201d; --sunk: #151a18; --ink: #e2e8e4; --muted: #94a39b; --line: #2e3833;
+  --accent: #6f9dff; --accent-ink: #0d1420; --good: #4cc38c; --bad: #ff7b5e; --warn: #e2a64a; --soil: #6e5640;
+  --sky-top: #1b2428; --sky-low: #262b27; --hull: #b9c0bb; --pod: #6f9dff; --legc: #e8a542;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.45; }
+* { box-sizing: border-box; }
+.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 380px; grid-template-rows: auto minmax(0, 1fr); }
+header { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--line); background: var(--panel); }
+header h1 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 19px; letter-spacing: 0.01em; text-wrap: balance; }
+header h1 span { font-weight: 500; color: var(--muted); }
+header p { margin: 0; color: var(--muted); font-size: 13px; }
+.view { position: relative; min-height: 0; min-width: 0; overflow: hidden; background: var(--sky-low); }
+.view canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.view canvas:active { cursor: grabbing; }
+.phase { position: absolute; left: calc(12px + env(safe-area-inset-left, 0px)); top: 12px; max-width: min(460px, calc(100% - 24px - env(safe-area-inset-left, 0px))); background: color-mix(in srgb, var(--panel) 92%, transparent);
+  border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; pointer-events: none; }
+.phase .tag { font-family: var(--font-data); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.phase h2 { margin: 2px 0 2px; font-family: var(--font-display); font-size: 17px; font-weight: 700; text-wrap: balance; }
+.phase p { margin: 0; color: var(--muted); font-size: 13px; }
+.hud { position: absolute; left: calc(12px + env(safe-area-inset-left, 0px)); bottom: 12px; display: flex; gap: 6px; flex-wrap: wrap; pointer-events: none; }
+.hud span { font-family: var(--font-data); font-size: 12px; background: color-mix(in srgb, var(--panel) 90%, transparent); border: 1px solid var(--line);
+  border-radius: 4px; padding: 3px 7px; font-variant-numeric: tabular-nums; }
+.hint { position: absolute; right: calc(12px + env(safe-area-inset-right, 0px)); bottom: 12px; font-size: 12px; color: var(--muted); pointer-events: none; }
+.loadmsg { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); }
+aside { min-height: 0; overflow-y: auto; background: var(--panel); border-left: 1px solid var(--line);
+  padding-block: 12px 28px; padding-left: 16px; padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 14px; }
+section h3 { margin: 0 0 6px; font-family: var(--font-data); font-weight: 500; font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+button, select { font: inherit; font-size: 13px; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 5px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--muted); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button.primary { background: var(--ink); color: var(--panel); border-color: var(--ink); font-weight: 600; }
+button:disabled { opacity: 0.5; cursor: default; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+label.sl { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; width: 100%; font-size: 13px; }
+label.sl input { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.kv { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; font-size: 13px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-family: var(--font-data); font-variant-numeric: tabular-nums; text-align: right; }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th { text-align: right; font-weight: 500; color: var(--muted); font-size: 11px; padding: 3px 4px; border-bottom: 1px solid var(--line); }
+th:first-child, td:first-child { text-align: left; }
+td { padding: 4px 4px; border-bottom: 1px solid var(--line); font-family: var(--font-data); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+td:first-child { font-family: var(--font-body); }
+.tw { overflow-x: auto; }
+.verdict { border: 1px solid var(--line); border-radius: var(--r); padding: 9px 11px; background: var(--sunk); font-size: 13px; }
+.verdict b { font-family: var(--font-display); }
+.verdict.ok { border-color: var(--good); }
+.verdict.ok b { color: var(--good); }
+.verdict.no { border-color: var(--bad); }
+.verdict.no b { color: var(--bad); }
+.pill { display: inline-block; font-family: var(--font-data); font-size: 11px; padding: 1px 6px; border-radius: 999px; border: 1px solid currentColor; }
+.pill.g { color: var(--good); } .pill.b { color: var(--bad); } .pill.w { color: var(--warn); } .pill.m { color: var(--muted); }
+.small { font-size: 12px; color: var(--muted); }
+.prog { height: 6px; background: var(--sunk); border-radius: 3px; overflow: hidden; }
+.prog i { display: block; height: 100%; width: 0; background: var(--accent); }
+.hist { display: grid; grid-template-columns: auto 1fr auto; gap: 3px 8px; align-items: center; font-size: 12px; }
+.hist .hb { height: 10px; background: var(--sunk); border-radius: 2px; overflow: hidden; }
+.hist .hb i { display: block; height: 100%; background: var(--good); }
+details summary { cursor: pointer; font-weight: 600; }
+details p, details li { font-size: 13px; color: var(--muted); }
+details ul { padding-left: 18px; margin: 6px 0; }
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 58vh auto; height: auto; min-height: 100%; }
+  aside { border-left: 0; border-top: 1px solid var(--line); overflow: visible; padding-left: max(16px, env(safe-area-inset-left, 0px)); }
+  .hint { display: none; }
+  html, body { height: auto; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<div class="app">
+  <header>
+    <h1>KEDGE righting sim <span>design study</span></h1>
+    <p>Real rigid-body physics (Rapier), simplified geometry. Land, right itself, drill in, then the reel pulls.</p>
+  </header>
+  <div class="view" id="view">
+    <canvas id="cv" aria-label="3D view of the dart"></canvas>
+    <div class="loadmsg" id="loadmsg">Loading the physics engine...</div>
+    <div class="phase" id="phaseBox">
+      <div class="tag" id="phaseTag">starting</div>
+      <h2 id="phaseName">Loading</h2>
+      <p id="phaseText">The physics engine is starting.</p>
+    </div>
+    <div class="hud"><span id="hudT">t 0.0 s</span><span id="hudSpeed">1x</span><span id="hudTen">rope 0.0 N</span></div>
+    <div class="hint">drag to orbit, wheel or pinch to zoom</div>
+  </div>
+  <aside>
+    <section>
+      <h3>Landing pose</h3>
+      <div class="row" id="poses">
+        <button id="p_belly" data-pose="belly">Belly down</button>
+        <button id="p_lean" data-pose="lean">Leaning 40&deg; on a pod</button>
+        <button id="p_left" data-pose="left">Left side</button>
+        <button id="p_right" data-pose="right">Right side</button>
+        <button id="p_up" data-pose="upside">Upside down</button>
+        <button id="p_rand" data-pose="random">Random</button>
+      </div>
+      <p class="small" id="poseInfo">Arrives at 6.8 m/s, nose first.</p>
+    </section>
+    <section>
+      <h3>Ground and rover</h3>
+      <div class="row">
+        <div class="seg" id="soilSeg">
+          <button id="s_sand" data-soil="sand">Dry sand, 7 N per drill</button>
+          <button id="s_loam" data-soil="loam">Moist loam, 25 N per drill</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label class="sl" for="dist">Rover reel behind the dart <span class="num" id="distV">3.0 m</span>
+          <input id="dist" type="range" min="1" max="5" step="0.5" value="3"></label>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <label for="cgSel" class="small">Centre of mass height</label>
+        <select id="cgSel">
+          <option value="8">8 mm above the axis (brief, v33)</option>
+          <option value="0">on the axis</option>
+          <option value="-8">8 mm below the axis</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <label for="massSel" class="small">Dart mass</label>
+        <select id="massSel">
+          <option value="v33">270 g: v33 weight</option>
+          <option value="brief">355 g: 255 g body plus 100 g of legs</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <label for="layoutSel" class="small">Pod layout</label>
+        <select id="layoutSel">
+          <option value="tail">Tail pivots, pods fold forward (drills under the tether)</option>
+          <option value="front">Front pivots, pods fold aft (tether low at the tail)</option>
+        </select>
+      </div>
+    </section>
+    <section>
+      <h3>Run</h3>
+      <div class="row">
+        <button id="playBtn" class="primary">Pause</button>
+        <button id="restartBtn">Restart</button>
+        <div class="seg" id="speedSeg">
+          <button id="sp025" data-sp="0.25">0.25x</button><button id="sp05" data-sp="0.5">0.5x</button><button id="sp1" data-sp="1">1x</button><button id="sp2" data-sp="2">2x</button><button id="sp4" data-sp="4">4x</button>
+        </div>
+      </div>
+    </section>
+    <section>
+      <h3>Live numbers</h3>
+      <dl class="kv">
+        <dt>Rope tension</dt><dd id="vTen">0.0 N</dd>
+        <dt>Body tilt from belly down</dt><dd id="vTilt">0&deg;</dd>
+        <dt>Body pitch (nose up +)</dt><dd id="vPitch">0.0&deg;</dd>
+        <dt>Tail lift (hull bottom, 140 mm)</dt><dd id="vLift">0.0 mm</dd>
+        <dt>Nose lift</dt><dd id="vNose">0.0 mm</dd>
+        <dt>Moved since tow start</dt><dd id="vMove">0.0 mm</dd>
+        <dt>Left anchor force</dt><dd id="vAL">-</dd>
+        <dt>Right anchor force</dt><dd id="vAR">-</dd>
+      </dl>
+    </section>
+    <section>
+      <h3>Joint loads: motor versus hard stop</h3>
+      <div class="tw"><table>
+        <thead><tr><th>Joint</th><th>angle</th><th>motor N&middot;m</th><th>stop N&middot;m</th><th>pin N</th></tr></thead>
+        <tbody>
+          <tr><td>Left pod</td><td id="jL_a">0</td><td id="jL_m">0</td><td id="jL_s">0</td><td id="jL_p">-</td></tr>
+          <tr><td>Right pod</td><td id="jR_a">0</td><td id="jR_m">0</td><td id="jR_s">0</td><td id="jR_p">-</td></tr>
+          <tr><td>Righting leg</td><td id="jK_a">0</td><td id="jK_m">0</td><td id="jK_s">0</td><td id="jK_p">-</td></tr>
+        </tbody>
+      </table></div>
+      <p class="small">Motor = torque through the worm gear (driving, or holding a load it cannot back-drive). Stall is 0.21 N&middot;m. Stop = torque on the printed hard stop. Pin = force on the pivot pin.</p>
+      <div class="verdict" id="verdict"><b>Tow check</b>: waits for the tow.</div>
+    </section>
+    <section>
+      <h3>Batch of random landings</h3>
+      <div class="row"><button id="batchBtn">Run 50 random landings</button><span class="small" id="batchStat"></span></div>
+      <div class="prog" style="margin-top:8px"><i id="batchProg"></i></div>
+      <div id="batchOut" class="small" style="margin-top:8px">Runs headless with the soil, distance and centre of mass chosen above.</div>
+    </section>
+    <section>
+      <details>
+        <summary>The design in this model</summary>
+        <ul id="designList"></ul>
+      </details>
+    </section>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script type="module">
+import RAPIER from 'https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.14.0/rapier.es.js';
+
+/* The physics core is one function so the same code can also run inside Web Workers for the batch. */
+function simCore(RAPIER) {
+'use strict';
+const fmt = (x, d = 1) => (x == null || !isFinite(x)) ? '-' : x.toFixed(d);
+/* ======================================================================
+   Units: SI. World axes: x forward (launch direction, away from the rover),
+   y up, z to the right. Body axes: x to the nose, y to the top, z to the right.
+   Body origin: on the hull axis at the centre-of-mass station (85 mm from the nose tip).
+   ====================================================================== */
+const DEG = Math.PI / 180, MM = 0.001, G = 9.81;
+const DT = 1 / 1000;               // physics step (explicit stop and worm springs need about 1 ms)
+const MU = 0.6;                    // soil friction
+const D = {
+  hull: { r: 21, len: 152, nose: 20, tipR: 7, cgX: 85, mass: 0.255 },
+  pod: { mass: 0.030, len: 100, r: 8, pivotX: 140, pivotY: 10, lat: 30, stopDeg: 50 },
+  leg: { mass: 0.040, len: 128, r: 5, pad: 7, padW: 56, hingeX: 36, hingeY: 16, stopDeg: 178 },
+  tether: { eye: 15, ring: 40 },   // bridle: an eye on each pod 15 mm out from its pivot; the legs meet in a ring
+  worm: { stall: 0.21, podDegS: 50 / 8, legDegS: 180 / 4, drillDegS: 4, backlashDeg: 3, kGear: 25 },
+  stopK: 60,
+  anchorK: 3000, anchorC: 1.5,
+  soils: { sand: { cap: 7, name: 'Dry sand' }, loam: { cap: 25, name: 'Moist loam' } },
+  reelY: 0.25,
+  drag: 0.25,
+};
+const lx = X => (D.hull.cgX - X) * MM;   // CAD station (mm from the nose tip) to body x (m)
+// two pod layouts. tail: Harry's principle (drills enter under the tether near the tail). front: pivots forward, pods fold aft.
+const LAYOUTS = {
+  tail: { pivotX: 140, fold: 1, tether: 'pods', label: 'Tail pivots, pods fold forward' },
+  front: { pivotX: 52, fold: -1, tether: 'hull', eyeX: 150, eyeY: -14, label: 'Front pivots, pods fold aft' },
+};
+
+/* ---------------- small vector and quaternion helpers ---------------- */
+const V = (x = 0, y = 0, z = 0) => ({ x, y, z });
+const add = (a, b) => V(a.x + b.x, a.y + b.y, a.z + b.z);
+const sub = (a, b) => V(a.x - b.x, a.y - b.y, a.z - b.z);
+const scl = (a, s) => V(a.x * s, a.y * s, a.z * s);
+const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
+const cross = (a, b) => V(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+const len = a => Math.hypot(a.x, a.y, a.z);
+const norm = a => { const l = len(a) || 1; return scl(a, 1 / l); };
+const qmul = (a, b) => ({
+  w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+  x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+  y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+  z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w });
+const qconj = q => ({ x: -q.x, y: -q.y, z: -q.z, w: q.w });
+const qrot = (q, v) => {
+  const tx = 2 * (q.y * v.z - q.z * v.y), ty = 2 * (q.z * v.x - q.x * v.z), tz = 2 * (q.x * v.y - q.y * v.x);
+  return V(v.x + q.w * tx + (q.y * tz - q.z * ty), v.y + q.w * ty + (q.z * tx - q.x * tz), v.z + q.w * tz + (q.x * ty - q.y * tx));
+};
+const qaxis = (ax, ang) => { const n = norm(ax), s = Math.sin(ang / 2); return { x: n.x * s, y: n.y * s, z: n.z * s, w: Math.cos(ang / 2) }; };
+const QI = { x: 0, y: 0, z: 0, w: 1 };
+const Q_Y2X = qaxis(V(0, 0, 1), -Math.PI / 2);   // turns a shape built along +y onto +x
+function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+/* collision groups: dart parts only touch the ground; joints and hard stops are modelled explicitly */
+const GR = (member, filter) => ((member & 0xffff) << 16) | (filter & 0xffff);
+const G_GROUND = 1, G_HULL = 2, G_POD = 4, G_LEG = 8;
+
+/* ---------------- a hinge with a self-locking worm drive and two hard stops ---------------- */
+class Hinge {
+  constructor(sim, name, body, pivotL, axisL, dirL, o) {
+    Object.assign(this, { sim, name, body, pivotL, axisL, dirL });
+    this.min = o.min; this.max = o.max; this.speed = o.speed; this.speedNow = o.speed;
+    this.th = 0; this.om = 0; this.phi = 0; this.phiDot = 0; this.cmd = 0; this.target = null;
+    this.kG = D.worm.kGear; this.bl = D.worm.backlashDeg * DEG / 2; this.stall = D.worm.stall;
+    this.kS = D.stopK; this.Ip = o.Ip;
+    // explicit springs: damping kept small so 4 - 2 c dt / I - k dt^2 / I stays well above zero
+    this.cG = 2 * 0.15 * Math.sqrt(this.kG * this.Ip); this.cS = 2 * 0.2 * Math.sqrt(this.kS * this.Ip);
+    this.tauG = 0; this.tauGf = 0; this.tauS = 0; this.stalled = false; this.stallTime = 0; this.drive = 0;
+    this.axisW = V();
+  }
+  setTarget(deg, degS) { this.target = deg * DEG; if (degS) this.speedNow = degS * DEG; else this.speedNow = this.speed; this.stallTime = 0; }
+  relax() { // take the stall preload off: the worm sits 0.3 deg clear of the flank that would stop the leg folding back
+    this.phi = Math.min(this.th, this.max) + this.bl - 0.3 * DEG; this.target = this.phi; this.cmd = 0; this.tauG = 0; this.tauGf = 0;
+  }
+  measure(qh, wh) {
+    const ql = this.body.rotation(), qr = qmul(qconj(qh), ql);
+    const s = qr.x * this.axisL.x + qr.y * this.axisL.y + qr.z * this.axisL.z;
+    const a = 2 * Math.atan2(s, qr.w);
+    let d = a - this.th; d = ((d + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+    this.th += d;
+    this.axisW = qrot(qh, this.axisL);
+    this.om = dot(sub(this.body.angvel(), wh), this.axisW);
+  }
+  update(dt, hull) {
+    this.phiDot = 0;
+    if (this.target !== null) { const e = this.target - this.phi; this.cmd = Math.abs(e) < 1e-5 ? 0 : Math.sign(e); }
+    if (this.cmd) {
+      const load = Math.max(0, this.cmd * this.tauGf);
+      this.drive = load;
+      if (load < this.stall) {
+        let st = this.cmd * this.speedNow * (1 - load / this.stall) * dt;
+        const e = this.target - this.phi;
+        if (Math.abs(st) > Math.abs(e)) st = e;
+        this.phi += st; this.phiDot = st / dt;
+      }
+      // the firmware sees stall as the current near its stall value
+      if (load > 0.9 * this.stall) { this.stalled = true; this.stallTime += dt; } else { this.stalled = false; this.stallTime = 0; }
+    } else { this.drive = 0; this.stalled = false; this.stallTime = 0; }
+    const d = this.phi - this.th, bl = this.bl;
+    const dz = d > bl ? d - bl : (d < -bl ? d + bl : 0);
+    let tg = 0;
+    if (dz !== 0) { tg = this.kG * dz + this.cG * (this.phiDot - this.om); if (tg * dz < 0) tg = 0; }
+    this.tauG = tg; this.tauGf += (tg - this.tauGf) * Math.min(1, dt / 0.02);   // current sense is filtered (about 20 ms)
+    let ts = 0;
+    if (this.th > this.max) { ts = -this.kS * (this.th - this.max) - this.cS * this.om; if (ts > 0) ts = 0; }
+    else if (this.th < this.min) { ts = this.kS * (this.min - this.th) - this.cS * this.om; if (ts < 0) ts = 0; }
+    this.tauS = ts;
+    const t = tg + ts;
+    this.body.addTorque(scl(this.axisW, t), true);
+    hull.addTorque(scl(this.axisW, -t), true);
+  }
+  get deg() { return this.th / DEG; }
+}
+
+/* ---------------- the simulation ---------------- */
+class Sim {
+  constructor(o) {
+    this.o = Object.assign({ pose: 'belly', rollDeg: 0, gammaDeg: 40, yawDeg: 0, soil: 'loam', dist: 3, cgUp: 8, mass: 'brief', layout: 'tail', seed: 1, spin: V() }, o);
+    const LY = this.LY = LAYOUTS[this.o.layout] || LAYOUTS.tail;
+    const R = RAPIER, w = this.w = new R.World(V(0, -G, 0));
+    w.timestep = DT;
+    try { // stiff soil contacts: the tow presses the tail down with about 60 N
+      const ip = w.integrationParameters; ip.numSolverIterations = 6; ip.contact_natural_frequency = 240; ip.normalizedAllowedLinearError = 0.0002;
+    } catch (e) { /* older API */ }
+    this.t = 0; this.steps = 0; this.log = []; this.events = [];
+    const ground = w.createRigidBody(R.RigidBodyDesc.fixed());
+    w.createCollider(R.ColliderDesc.cuboid(40, 0.5, 40).setTranslation(0, -0.5, 0).setFriction(MU).setRestitution(0.02)
+      .setRestitutionCombineRule(R.CoefficientCombineRule.Min).setCollisionGroups(GR(G_GROUND, 0xffff)), ground);
+
+    // ---- initial attitude: nose along the flight path, pitched down by gamma, rolled by the preset
+    const o2 = this.o, gam = o2.gammaDeg * DEG;
+    const qRoll = qaxis(V(1, 0, 0), o2.rollDeg * DEG);
+    const qPitch = qaxis(V(0, 0, 1), -gam);
+    const qYaw = qaxis(V(0, 1, 0), o2.yawDeg * DEG);
+    const q0 = qmul(qYaw, qmul(qPitch, qRoll));
+    const noseL = V(lx(0), 0, 0);
+    const noseTarget = V(-0.09 / Math.tan(gam), 0.09, 0);
+    const p0 = sub(noseTarget, qrot(q0, noseL));
+    const v0 = qrot(qYaw, V(6.8 * Math.cos(gam), -6.8 * Math.sin(gam), 0));
+    this.launchFwd = qrot(qYaw, V(1, 0, 0));
+
+    // ---- hull
+    const H = D.hull, cgUp = o2.cgUp * MM;
+    const mHull = o2.mass === 'v33' ? 0.170 : H.mass, iS = mHull / 0.255;   // v33 weighs 270 g in total
+    const hb = this.hull = w.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(p0.x, p0.y, p0.z).setRotation(q0)
+      .setLinvel(v0.x, v0.y, v0.z).setAngvel(o2.spin).setCcdEnabled(true).setCanSleep(false)
+      .setAdditionalMassProperties(mHull, V(0, cgUp, 0), V(4.5e-5 * iS, 5.0e-4 * iS, 5.0e-4 * iS), QI));
+    const mat = d => d.setDensity(0).setFriction(MU).setRestitution(0.02).setRestitutionCombineRule(R.CoefficientCombineRule.Min);
+    const cylHalf = (H.len - H.nose) / 2 * MM, cylMid = lx((H.len + H.nose) / 2);
+    w.createCollider(mat(R.ColliderDesc.roundCylinder(cylHalf - 0.002, H.r * MM - 0.002, 0.002)).setTranslation(cylMid, 0, 0)
+      .setRotation(Q_Y2X).setCollisionGroups(GR(G_HULL, G_GROUND)), hb);
+    const pts = [];
+    for (let i = 0; i < 18; i++) { const a = i / 18 * 2 * Math.PI;
+      pts.push(lx(0), H.tipR * MM * Math.cos(a), H.tipR * MM * Math.sin(a));
+      pts.push(lx(H.nose), H.r * MM * Math.cos(a), H.r * MM * Math.sin(a)); }
+    w.createCollider(mat(R.ColliderDesc.convexHull(new Float32Array(pts))).setCollisionGroups(GR(G_HULL, G_GROUND)), hb);
+
+    // ---- pods: pivots near the tail, low on the flanks; folded they point forward along the flank
+    const P = D.pod;
+    this.pods = {};
+    for (const side of ['L', 'R']) {
+      const z = (side === 'L' ? -1 : 1) * P.lat * MM;
+      const f = LY.fold, pivotL = V(lx(LY.pivotX), P.pivotY * MM, z);
+      const dirL = V(f, 0, 0), axisL = V(0, 0, -f);   // deploy swings the tip toward the belly
+      const pw = add(p0, qrot(q0, pivotL));
+      const L = P.len * MM, rr = P.r * MM;
+      const Ip = 1.0e-4;
+      const b = w.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(pw.x, pw.y, pw.z).setRotation(q0).setLinvel(v0.x, v0.y, v0.z)
+        .setCanSleep(false).setAdditionalMassProperties(P.mass, V(f * L / 2, 0, 0), V(1.5e-6, 2.6e-5, 2.6e-5), QI));
+      const col = w.createCollider(mat(R.ColliderDesc.capsule(L / 2 - rr, rr)).setTranslation(f * L / 2, 0, 0).setRotation(Q_Y2X)
+        .setCollisionGroups(GR(G_POD, G_GROUND)), b);
+      const jd = R.JointData.revolute(pivotL, V(0, 0, 0), axisL);
+      const j = w.createImpulseJoint(jd, hb, b, true); j.setContactsEnabled(false);
+      const h = new Hinge(this, side, b, pivotL, axisL, dirL, { min: 0, max: P.stopDeg * DEG, speed: D.worm.podDegS * DEG, Ip });
+      h.col = col; h.tipL = V(f * L, 0, 0); h.tipR = rr; h.drilling = false; h.anchor = null; h.soil = null;
+      this.pods[side] = h;
+    }
+    // ---- righting leg: hinge on the top centreline near the nose, folded it lies aft along the top
+    const K = D.leg;
+    {
+      const pivotL = V(lx(K.hingeX), K.hingeY * MM, 0);
+      const pw = add(p0, qrot(q0, pivotL));
+      const L = K.len * MM, rr = K.r * MM, pr = K.pad * MM;
+      const b = w.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(pw.x, pw.y, pw.z).setRotation(q0).setLinvel(v0.x, v0.y, v0.z)
+        .setCanSleep(false).setAdditionalMassProperties(K.mass, V(-0.075, 0, 0), V(2e-6, 7e-5, 7e-5), QI));
+      w.createCollider(mat(R.ColliderDesc.capsule((L - 0.008) / 2 - rr, rr)).setTranslation(-(L - 0.008) / 2, 0, 0).setRotation(Q_Y2X)
+        .setCollisionGroups(GR(G_LEG, G_GROUND)), b);
+      // rounded cross-bar pad: a capsule across the leg, so the planted leg resists rolling
+      w.createCollider(mat(R.ColliderDesc.capsule(K.padW / 2 * MM - pr, pr)).setTranslation(-L, 0, 0).setRotation(qaxis(V(1, 0, 0), Math.PI / 2)).setFriction(0.8).setCollisionGroups(GR(G_LEG, G_GROUND)), b);
+      const jd = R.JointData.revolute(pivotL, V(0, 0, 0), V(0, 0, -1));
+      const j = w.createImpulseJoint(jd, hb, b, true); j.setContactsEnabled(false);
+      this.leg = new Hinge(this, 'K', b, pivotL, V(0, 0, -1), V(-1, 0, 0), { min: 0, max: K.stopDeg * DEG, speed: D.worm.legDegS * DEG, Ip: 3.0e-4 });
+      this.leg.tipL = V(-L, 0, 0); this.leg.tipR = pr;
+    }
+    this.joints = [this.pods.L, this.pods.R, this.leg];
+    for (const j of this.joints) j.target = 0;
+
+    // ---- rope and reel
+    this.reel = V(-o2.dist, D.reelY, 0);
+    this.eyeL = V(LY.fold * D.tether.eye * MM, 0, 0);   // bridle eye in each pod's own frame, on the pod axis
+    this.tetherL = LY.tether === 'hull' ? V(lx(LY.eyeX), LY.eyeY * MM, 0) : null;   // or one eye low on the hull
+    this.T = D.drag; this.Tset = D.drag;
+    this.cap = D.soils[o2.soil].cap;
+
+    // ---- firmware state
+    this.phase = 'flight'; this.phaseT = 0; this.landed = false; this.landT = null;
+    this.ctl = { tries: 0, tried: {}, move: null, stage: 0, stageT: 0, stillT: 0, flips: 0, uprightT: null, result: null, notes: [] };
+    this.tow = null; this.peak = this.blankPeak(); this.soilFrame = null;
+    this.status = { text: '', name: '' };
+    this.result = { righted: false, rightT: null, moves: 0, aligned: false, anchored: 0, held: 0, movedAt: null, stuck: false, blowup: false,
+      motorPeak: 0, stopPeak: 0, moveMM: 0, pitchPeak: 0, liftPeak: 0, finalTilt: null };
+    this.setPhase('flight');
+  }
+  blankPeak() { return { L: { m: 0, s: 0, p: 0 }, R: { m: 0, s: 0, p: 0 }, K: { m: 0, s: 0, p: 0 }, aL: 0, aR: 0, pitch: 0, lift: 0 }; }
+  free() { try { this.w.free(); } catch (e) { } }
+
+  /* ---------- sensing helpers (what the firmware can know) ---------- */
+  upB() { return qrot(qconj(this.hull.rotation()), V(0, 1, 0)); }      // gravity "up" seen by the IMU
+  tiltDeg() { const u = this.upB(); return Math.acos(Math.max(-1, Math.min(1, u.y))) / DEG; }
+  still() { const w = this.hull.angvel(), v = this.hull.linvel(); return len(w) < 0.2 && len(v) < 0.03; }
+  headingErrDeg() { // from the gyro: how far the nose has turned from the launch direction
+    const f = qrot(this.hull.rotation(), V(1, 0, 0)); const h = V(f.x, 0, f.z);
+    if (len(h) < 0.2) return 0;
+    const c = dot(norm(h), this.launchFwd); return Math.acos(Math.max(-1, Math.min(1, c))) / DEG;
+  }
+  worldPt(body, pL) { return add(body.translation(), qrot(body.rotation(), pL)); }
+  eyeMid() { if (this.tetherL) return this.hullPt(this.tetherL); return scl(add(this.worldPt(this.pods.L.body, this.eyeL), this.worldPt(this.pods.R.body, this.eyeL)), 0.5); }
+  hullPt(pL) { return this.worldPt(this.hull, pL); }
+  ptVel(body, pW) { const c = body.worldCom(); return add(body.linvel(), cross(body.angvel(), sub(pW, c))); }
+  hullLowest() { // lowest point of the main cylinder
+    const q = this.hull.rotation(), u = qrot(q, V(1, 0, 0)), c = this.hullPt(V(lx((D.hull.len + D.hull.nose) / 2), 0, 0));
+    const hh = (D.hull.len - D.hull.nose) / 2 * MM, r = D.hull.r * MM;
+    return c.y - hh * Math.abs(u.y) - r * Math.sqrt(Math.max(0, 1 - u.y * u.y));
+  }
+
+  setPhase(p, extra) {
+    this.phase = p; this.phaseT = 0;
+    const T = {
+      flight: ['Arriving', 'The dart comes in at 6.8 m/s, nose first. Legs are folded and the worms hold them.'],
+      landing: ['Landing', 'It hits the soil, skids and tumbles. Nothing is driven; the worms hold the legs.'],
+      settle: ['Settling', 'The firmware waits until the IMU says the dart has stopped moving.'],
+      righting: ['Self-righting', 'Using only the IMU up vector, motor positions and stall, the firmware picks a move.'],
+      align: ['Turning tail to the rover', 'The tail is not facing the rover (for example after an end-over-end flip). The reel pulls gently, just past sliding, until the dart swings into line.'],
+      anchor: ['Drilling in', 'Both pods swing down while the drills run; the tips sink into the soil to the 50 deg stops. The righting leg stays folded on top.'],
+      tow: ['Tow test', 'The reel ramps the tension to 15 N, then steps of 5 N up to 55 N. It stops if the dart moves.'],
+      done: ['Finished', ''],
+      stuck: ['Stuck', 'The firmware ran out of moves without getting the belly down.'],
+    }[p];
+    this.status = { name: T[0], text: extra || T[1], tag: p };
+  }
+  note(s) { this.events.push({ t: this.t, s }); }
+
+  /* ---------- one physics step ---------- */
+  step() {
+    const hb = this.hull, dt = DT;
+    for (const b of [hb, this.pods.L.body, this.pods.R.body, this.leg.body]) { b.resetForces(true); b.resetTorques(true); }
+    const qh = hb.rotation(), wh = hb.angvel();
+    for (const j of this.joints) j.measure(qh, wh);
+    if (this.steps % 10 === 0) this.firmware(0.01);
+    for (const j of this.joints) j.update(dt, hb);
+    this.soilForces(dt);
+    this.ropeForce();
+    this.landingDrag();
+    this.w.step();
+    this.t += dt; this.phaseT += dt; this.steps++;
+    if (this.steps % 10 === 0) this.measure();
+  }
+
+  ropeForce() {
+    // reel tension control: follows the set point with a short lag
+    this.T += (this.Tset - this.T) * Math.min(1, DT / 0.08);
+    if (this.tetherL) { // one eye on the hull
+      const eye = this.hullPt(this.tetherL), d = sub(this.reel, eye), L = len(d);
+      const F = scl(d, this.T / L); this.ropeLen = L; this.ropeF = F;
+      this.hull.addForceAtPoint(F, eye, true); return;
+    }
+    const eL = this.worldPt(this.pods.L.body, this.eyeL), eR = this.worldPt(this.pods.R.body, this.eyeL);
+    const eye = scl(add(eL, eR), 0.5);
+    const d = sub(this.reel, eye), L = len(d);
+    this.ropeLen = L;
+    const F = scl(d, this.T / L);
+    this.ropeF = F;
+    // a free ring on the bridle shares the line pull equally between the two pod eyes
+    this.pods.L.body.addForceAtPoint(scl(F, 0.5), eL, true);
+    this.pods.R.body.addForceAtPoint(scl(F, 0.5), eR, true);
+  }
+
+  landingDrag() {
+    // soil ploughing on impact: quadratic drag while the hull is in the soil, matters only at high speed
+    if (this.phase !== 'landing' && this.phase !== 'flight') return;
+    if (this.hullLowest() > 0.004) return;
+    const v = this.hull.linvel(), s = len(v), w = this.hull.angvel(), sw = len(w);
+    if (s > 0.05) this.hull.addForce(scl(v, -0.35 * s), true);
+    if (sw > 0.5) this.hull.addTorque(scl(w, -6e-6 * sw), true);
+  }
+
+  soilForces(dt) {
+    for (const s of ['L', 'R']) {
+      const h = this.pods[s];
+      if (!h.soil) continue;
+      const tip = this.worldPt(h.body, h.tipL);
+      let A;
+      const sl = h.soil;
+      if (!sl.fixed) { // while drilling: the soil holds the tip on the arc it is cutting, in the soil frame frozen at first contact
+        const qa = qaxis(h.axisL, h.th);
+        const tipHullL = add(h.pivotL, qrot(qa, scl(h.dirL, D.pod.len * MM)));
+        A = add(add(sl.p0, qrot(sl.q0, tipHullL)), sl.off);
+      } else A = sl.A;
+      const vt = this.ptVel(h.body, tip);
+      const depth = Math.max(0, -tip.y);
+      const capNow = sl.fixed ? this.cap : Math.max(2.5, this.cap * Math.min(1, depth / 0.05));
+      if (sl.broken) { sl.F = V(); continue; }
+      let dvec = sub(tip, A);
+      if (!sl.fixed) { // while drilling the tip cuts freely along its arc: no soil force in that direction
+        const tdir = norm(cross(h.axisW, sub(tip, this.worldPt(h.body, V()))));
+        const along = dot(dvec, tdir);
+        sl.off = add(sl.off, scl(tdir, along)); A = add(A, scl(tdir, along)); dvec = sub(dvec, scl(tdir, along));
+      }
+      let dl = len(dvec);
+      const k = D.anchorK;
+      if (k * dl > capNow) { // the soil yields: the anchor point slides behind the tip
+        const keep = capNow / k, mv = dl - keep;
+        const shift = scl(dvec, mv / dl);
+        if (sl.fixed) sl.A = add(sl.A, shift); else sl.off = add(sl.off, shift);
+        if (sl.fixed) sl.slid += mv;
+        A = add(A, shift); dvec = sub(tip, A); dl = keep;
+        sl.sliding = true;
+      } else sl.sliding = false;
+      let F = add(scl(dvec, -k), scl(vt, -D.anchorC));
+      const fl = len(F); if (fl > capNow) F = scl(F, capNow / fl);
+      if (sl.fixed && sl.slid > 0.03) { sl.broken = true; F = V(); this.note(`${s} drill pulled out of the soil`); }
+      sl.F = F; sl.Anow = A;
+      h.body.addForceAtPoint(F, tip, true);
+    }
+  }
+
+  measure() {
+    const hb = this.hull, p = hb.translation(), v = hb.linvel();
+    if (!isFinite(p.x + p.y + p.z) || len(v) > 40 || Math.abs(p.x) > 30 || p.y < -0.3) { this.result.blowup = true; }
+    // pin force on each pod: m a = m g + F_pin + F_soil  (pods have no ground contact once drilling)
+    for (const s of ['L', 'R']) {
+      const h = this.pods[s], vv = h.body.linvel();
+      if (h.lastV) {
+        const a = scl(sub(vv, h.lastV), 1 / (10 * DT));
+        let Fp = sub(scl(a, D.pod.mass), V(0, -G * D.pod.mass, 0));
+        if (h.soil && h.soil.F) Fp = sub(Fp, h.soil.F);
+        if (this.ropeF && !this.tetherL) Fp = sub(Fp, scl(this.ropeF, 0.5));
+        const m = len(Fp); h.pin = h.pin == null ? m : h.pin + (m - h.pin) * 0.2;
+      }
+      h.lastV = V(vv.x, vv.y, vv.z);
+    }
+    const f = qrot(hb.rotation(), V(1, 0, 0));
+    this.pitchDeg = Math.asin(Math.max(-1, Math.min(1, f.y))) / DEG;
+    this.tilt = this.tiltDeg();
+    const tailBot = this.hullPt(V(lx(140), -D.hull.r * MM, 0));
+    const noseBot = this.hullPt(V(lx(D.hull.nose), -D.hull.r * MM, 0));
+    this.tailLift = tailBot.y; this.noseLift = noseBot.y;
+    if (this.tow && this.tow.start) this.moveMM = len(sub(this.eyeMid(), this.tow.start)) / MM;
+    if (this.phase === 'tow' && this.tow && this.tow.start) {
+      const pk = this.peak;
+      for (const j of this.joints) {
+        const e = pk[j.name];
+        e.m = Math.max(e.m, Math.abs(j.tauG)); e.s = Math.max(e.s, Math.abs(j.tauS));
+        if (j.name !== 'K' && j.pin != null) e.p = Math.max(e.p, j.pin);
+      }
+      if (this.pods.L.soil) pk.aL = Math.max(pk.aL, len(this.pods.L.soil.F || V()));
+      if (this.pods.R.soil) pk.aR = Math.max(pk.aR, len(this.pods.R.soil.F || V()));
+      if (this.T > 1) { pk.pitch = Math.max(pk.pitch, Math.abs(this.pitchDeg - this.tow.pitch0)); pk.lift = Math.max(pk.lift, (this.tailLift - this.tow.lift0) / MM); }
+    }
+  }
+
+  /* ---------- the firmware: phases and righting moves ---------- */
+  firmware(dt) {
+    const c = this.ctl;
+    switch (this.phase) {
+      case 'flight':
+        if (this.hullLowest() < 0.003 || this.phaseT > 1.5) { this.landed = true; this.landT = this.t; this.setPhase('landing'); }
+        break;
+      case 'landing':
+        if (this.phaseT > 0.6) this.setPhase('settle');
+        break;
+      case 'settle':
+        c.stillT = this.still() ? c.stillT + dt : 0;
+        if (c.stillT > 0.5 || this.phaseT > 6) { c.stillT = 0; this.setPhase('righting'); this.assess(); }
+        break;
+      case 'righting': this.runMove(dt); break;
+      case 'align': this.runAlign(dt); break;
+      case 'anchor': this.runAnchor(dt); break;
+      case 'tow': this.runTow(dt); break;
+    }
+  }
+
+  assess() {
+    const c = this.ctl, tilt = this.tiltDeg(), u = this.upB();
+    if (tilt < 15) {
+      if (!this.result.righted) { this.result.righted = true; this.result.rightT = this.t - this.landT; this.result.moves = c.tries; }
+      this.result.finalTilt = tilt;
+      if (this.headingErrDeg() > 15 && (this.result.alignTries || 0) < 2) { this.result.alignTries = (this.result.alignTries || 0) + 1; this.result.alignTried = true; this.setPhase('align'); this.alignStart(); return; }
+      this.setPhase('anchor'); this.anchorStart(); return;
+    }
+    if (c.tries >= 6) {
+      this.result.stuck = true;
+      const why = c.legStall ? ` The righting leg stalls at about ${c.legStall.toFixed(0)} deg of pitch: lifting this dart over its nose needs more than the 0.21 N m the worm gives.` : '';
+      this.setPhase('stuck', `Still ${tilt.toFixed(0)} deg off belly down after ${c.tries} moves.${why}`); return; }
+    // choose a move from what the IMU says
+    const lowSide = u.z > 0 ? 'L' : 'R';         // up vector leaning to the right means the left flank is down
+    let cat, list;
+    if (Math.abs(u.x) > 0.8) { cat = 'end'; list = ['legRock', 'podsBoth', 'legFlip']; }
+    else if (tilt > 110) { cat = 'inv'; list = ['legFlip', 'legFlip', 'podsThenFlip', 'legRock']; }
+    else { cat = 'side'; list = ['podRoll:' + lowSide, 'podRoll:' + lowSide, 'podsBoth', 'legFlip']; }
+    const n = c.tried[cat] || 0; c.tried[cat] = n + 1;
+    const name = list[n % list.length];
+    c.tries++;
+    c.move = this.makeMove(name); c.moveName = name; c.stage = -1; c.tilt0 = tilt;
+    const human = { legFlip: 'The righting leg swings out over the top and pushes the dart end over end.', podsThenFlip: 'Both pods swing out to shift the rest pose, then the leg flips it.',
+      legRock: 'The righting leg rocks the dart to free it.', podsBoth: 'Both pods swing down together to lever it over.' };
+    const txt = name.startsWith('podRoll') ? `The ${name.endsWith('L') ? 'left' : 'right'} pod is on the low side; it swings down and rolls the dart back onto its belly, then holds it there.` : human[name];
+    this.setPhase('righting', `Move ${c.tries}: ${txt} (tilt ${tilt.toFixed(0)} deg)`);
+    this.nextStage();
+  }
+  makeMove(name) {
+    const K = D.leg.stopDeg;
+    // every move starts from folded legs (a failed move leaves them anywhere) and a still dart
+    const pre = this.joints.some(j => Math.abs(j.phi) > 1.5 * DEG) ? [{ set: { L: 0, R: 0, K: 0 }, max: 10, until: s => s.allArrived() }, { still: true, max: 4 }] : [];
+    const settle = [{ still: true, max: 4 }];
+    const legStalled = s => { if (s.leg.stallTime > 1.5) { s.ctl.legStall = Math.abs(s.pitchDeg || 0); return true; } return false; };
+    if (name === 'legFlip') return [...pre, { set: { K: K }, max: 9, until: s => s.tiltDeg() < 60 || legStalled(s) }, { set: { K: K }, max: 0.6 },
+      { set: { K: 0 }, max: 6, until: s => s.allArrived() }, ...settle];
+    if (name === 'podsThenFlip') return [...pre, { set: { L: 50, R: 50 }, max: 9, until: s => s.allArrived() }, { set: { L: 0, R: 0 }, max: 9, until: s => s.allArrived() },
+      { set: { K: K }, max: 9, until: s => s.tiltDeg() < 60 || legStalled(s) }, { set: { K: 0 }, max: 6, until: s => s.allArrived() }, ...settle];
+    if (name === 'legRock') return [...pre, { set: { K: 100 }, max: 4, until: s => s.allArrived() }, { set: { K: 0 }, max: 4, until: s => s.allArrived() }, ...settle];
+    if (name === 'podsBoth') return [...pre, { set: { L: 50, R: 50 }, max: 10, until: s => s.allArrived() || s.tiltDeg() < 10 }, { hold: true }, ...settle];
+    if (name.startsWith('podRoll')) { const sd = name.slice(-1);
+      // the low pod pushes the flank up; it stops as soon as the belly is down and simply holds (self-locking worm)
+      return [...pre, { set: { [sd]: 50 }, max: 10, until: s => s.tiltDeg() < 10 || s.pods[sd].stallTime > 1.0 || s.pods[sd].cmd === 0 }, { hold: true }, ...settle]; }
+    return [...pre, ...settle];
+  }
+  allArrived() { return this.joints.every(j => j.cmd === 0 || j.stallTime > 1.2); }
+  nextStage() {
+    const c = this.ctl; c.stage++; c.stageT = 0; c.stillT = 0;
+    const st = c.move[c.stage];
+    if (!st) { this.assess(); return; }
+    if (st.hold) { for (const j of this.joints) j.setTarget(j.phi / DEG); this.nextStage(); return; }
+    if (st.set) for (const k in st.set) { const j = k === 'K' ? this.leg : this.pods[k]; j.setTarget(st.set[k]); }
+  }
+  runMove(dt) {
+    const c = this.ctl, st = c.move && c.move[c.stage];
+    if (!st) return;
+    c.stageT += dt;
+    if (st.still) { c.stillT = this.still() ? c.stillT + dt : 0; if (c.stillT > 0.5 || c.stageT > st.max) this.nextStage(); return; }
+    if (c.stageT > 0.15 && ((st.until && st.until(this)) || c.stageT > st.max)) this.nextStage();
+  }
+
+  alignStart() { this.Tset = D.drag; this.ctl.alignT = 0; this.ctl.alignStill = 0; this.note(`tail is ${this.headingErrDeg().toFixed(0)} deg off the rope line, reel tugs gently to swing it round`); }
+  runAlign(dt) {
+    // reel: ramp the pull slowly from the drag level, stop ramping once the dart moves, ease off if it moves fast
+    const c = this.ctl; c.alignT += dt;
+    const v = len(this.hull.linvel()), yawRate = Math.abs(this.hull.angvel().y);
+    if (v > 0.12) this.Tset = Math.max(D.drag, this.Tset - 2.0 * dt);
+    else if (v < 0.03 && yawRate < 0.2) this.Tset = Math.min(3.0, this.Tset + 0.8 * dt);
+    // done when the tail is within 10 deg of the rope, or when even the full tug no longer moves it
+    const ok = this.headingErrDeg() < 10 || this.Tset >= 2.99;
+    c.alignStill = (c.alignT > 1.0 && v < 0.03 && yawRate < 0.15 && ok) ? c.alignStill + dt : 0;
+    if (c.alignStill > 0.4 || c.alignT > 14) {
+      this.Tset = D.drag; this.result.aligned = this.headingErrDeg() < 15;
+      this.setPhase('settle', 'Tension back to the light drag; waiting for the dart to stop.'); this.ctl.stillT = 0;
+    }
+  }
+
+  anchorStart() {
+    for (const s of ['L', 'R']) { const h = this.pods[s]; h.setTarget(D.pod.stopDeg + 3); }
+    this.leg.setTarget(0);
+    this.ctl.anchorT = 0;
+  }
+  runAnchor(dt) {
+    const c = this.ctl; c.anchorT += dt;
+    // 1) plant: both pods come down with ground contact on; each stops when its tip touches, so the dart stands level on three points
+    if (!c.drillStart) {
+      let touching = 0;
+      for (const s of ['L', 'R']) {
+        const h = this.pods[s], tip = this.worldPt(h.body, h.tipL);
+        if (tip.y < h.tipR + 0.0015 || h.stallTime > 0.3) { if (!h.planted) { h.planted = true; h.setTarget(h.phi / DEG); } touching++; }
+      }
+      if (touching === 2 || c.anchorT > 12) {
+        // level: the low-side pod keeps pushing (the other holds) until the roll is under 2.5 deg
+        const u = this.upB(), roll = Math.asin(Math.max(-1, Math.min(1, u.z))) / DEG;
+        c.levelT = (c.levelT || 0) + dt;
+        if (Math.abs(roll) > 2.5 && c.levelT < 8) {
+          const low = this.pods[roll > 0 ? 'L' : 'R'], high = this.pods[roll > 0 ? 'R' : 'L'];
+          if (low.cmd === 0) low.setTarget(Math.min(D.pod.stopDeg, low.phi / DEG + 2));
+          high.setTarget(high.phi / DEG);
+          if (low.stallTime > 0.5) c.levelT = 99;
+          return;
+        }
+        c.drillStart = true; this.startDrilling();
+      }
+      return;
+    }
+    // 2) drill: both drills run and the pods swing on to their stops; at the stop the worm backs off and the soil grip is set
+    let done = 0;
+    for (const s of ['L', 'R']) {
+      const h = this.pods[s];
+      if (h.drilling && !h.anchor && h.th > (D.pod.stopDeg - 0.8) * DEG && h.stallTime > 0.2) {
+        h.relax();
+        const A = h.soil.Anow || this.worldPt(h.body, h.tipL);
+        h.soil.fixed = true; h.soil.A = V(A.x, A.y, A.z); h.anchor = true;
+        this.note(`${s} drill at its stop, worm backed off, anchor set ${(-this.worldPt(h.body, h.tipL).y / MM).toFixed(0)} mm deep`);
+      }
+      if (h.anchor) done++;
+    }
+    if (done === 2 || c.anchorT > 30) {
+      this.result.anchored = done;
+      this.setPhase('tow'); this.towStart();
+    }
+  }
+  startDrilling() {
+    // one soil frame for both drills, frozen now (the soil does not move with the dart)
+    const q = this.hull.rotation(), p = this.hull.translation();
+    const fr = this.soilFrame = { p0: V(p.x, p.y, p.z), q0: { x: q.x, y: q.y, z: q.z, w: q.w } };
+    for (const s of ['L', 'R']) {
+      const h = this.pods[s], tip = this.worldPt(h.body, h.tipL);
+      h.drilling = true; h.col.setCollisionGroups(GR(G_POD, 0));   // the tip now goes into the soil
+      h.setTarget(D.pod.stopDeg + 3, D.worm.drillDegS);
+      const ideal = add(fr.p0, qrot(fr.q0, add(h.pivotL, qrot(qaxis(h.axisL, h.th), scl(h.dirL, D.pod.len * MM)))));
+      h.soil = { p0: fr.p0, q0: fr.q0, off: sub(tip, ideal), fixed: false, slid: 0, F: V() };
+      this.note(`${s} drill starts at ${h.deg.toFixed(0)} deg, tip ${(tip.y / MM).toFixed(0)} mm from the surface`);
+    }
+  }
+
+  towStart() {
+    this.tow = { t: 0, start: null, levels: [], held: 0, moved: false, pitch0: this.pitchDeg || 0, lift0: this.tailLift || 0 };
+    this.peak = this.blankPeak();
+  }
+  runTow(dt) {
+    const tw = this.tow; tw.t += dt;
+    if (tw.t < 1.0) { this.Tset = D.drag; return; }              // settle on the light drag first
+    if (!tw.start) { const e = this.eyeMid(); tw.start = V(e.x, e.y, e.z); tw.t0 = tw.t; }
+    const tt = tw.t - tw.t0;
+    // schedule: 0 to 15 N in 3 s, hold 1.5 s, then +5 N over 0.5 s and hold 1.5 s, up to 55 N, hold 2 s
+    let Tset, level;
+    if (tt < 3) { Tset = 15 * tt / 3; level = 15; }
+    else if (tt < 4.5) { Tset = 15; level = 15; }
+    else { const k = Math.floor((tt - 4.5) / 2), r = (tt - 4.5) - 2 * k; level = Math.min(55, 20 + 5 * k);
+      const prev = level - 5; Tset = r < 0.5 && level <= 55 && k <= 7 ? prev + 5 * (r / 0.5) : level; }
+    const moved = (this.moveMM || 0) > 20;
+    if (moved && !tw.moved) {
+      tw.moved = true; this.result.movedAt = this.T; this.Tset = D.drag;
+      this.note(`dart moved ${this.moveMM.toFixed(0)} mm at ${this.T.toFixed(1)} N; reel stops`);
+      this.endTow(); return;
+    }
+    if (!tw.moved) {
+      this.Tset = Tset;
+      // a level counts as held once its hold time has passed without movement
+      if (tt >= 4.5 && tw.held < 15) tw.held = 15;
+      if (tt >= 4.5) { const k = Math.floor((tt - 4.5) / 2); const r = (tt - 4.5) - 2 * k; const lv = 15 + 5 * k; if (r >= 1.99 || k >= 1) tw.held = Math.max(tw.held, Math.min(55, lv)); }
+      if (tt > 4.5 + 2 * 8 + 1) { tw.held = 55; this.endTow(); }
+    }
+    this.result.held = tw.held;
+  }
+  endTow() {
+    const r = this.result, pk = this.peak;
+    r.held = this.tow.held; r.motorPeak = Math.max(pk.L.m, pk.R.m, pk.K.m); r.stopPeak = Math.max(pk.L.s, pk.R.s);
+    r.moveMM = this.moveMM || 0; r.pitchPeak = pk.pitch; r.liftPeak = pk.lift;
+    const heldTxt = r.movedAt != null ? `It held ${r.held} N and moved at ${r.movedAt.toFixed(1)} N.` : `It held the full 55 N.`;
+    this.setPhase('done', heldTxt + ` Peak worm load during the tow ${r.motorPeak.toFixed(3)} N m, peak stop load ${r.stopPeak.toFixed(2)} N m.`);
+    this.finished = true;
+  }
+}
+
+/* ---------------- landing presets ---------------- */
+const POSES = {
+  belly: { roll: 0, label: 'Belly down' }, lean: { roll: -40, label: 'Leaning 40 deg on the left pod' },
+  left: { roll: -90, label: 'On its left side' }, right: { roll: 90, label: 'On its right side' },
+  upside: { roll: 180, label: 'Upside down' }, random: { roll: null, label: 'Random' },
+};
+function landingFor(pose, seed) {
+  const r = rng(seed * 7919 + 13);
+  if (pose === 'random') return { rollDeg: r() * 360 - 180, gammaDeg: 25 + r() * 30, yawDeg: (r() - 0.5) * 10,
+    spin: V((r() - 0.5) * 4, (r() - 0.5) * 2, (r() - 0.5) * 4) };
+  return { rollDeg: POSES[pose].roll, gammaDeg: 40, yawDeg: 0, spin: V() };
+}
+
+/* headless run for tests and the batch */
+function runHeadless(opts, maxT = 90, onTick) {
+  const L = opts.landing || landingFor(opts.pose, opts.seed);
+  const s = new Sim({ ...opts, ...L });
+  const trace = [];
+  while (!s.finished && s.phase !== 'stuck' && s.t < maxT && !s.result.blowup) {
+    s.step(); if (onTick && s.steps % 5000 === 0) onTick(s);
+    if (opts.trace && s.steps % Math.round(opts.trace / DT) === 0) trace.push(`${s.t.toFixed(2)} ${s.phase} tilt ${fmt(s.tilt, 0)} pitch ${fmt(s.pitchDeg, 1)} T ${s.T.toFixed(1)} | ` +
+      s.joints.map(j => `${j.name} th ${j.deg.toFixed(1)} phi ${(j.phi / DEG).toFixed(1)} g ${j.tauG.toFixed(3)} s ${j.tauS.toFixed(2)}${j.stalled ? ' ST' : ''}${j.soil ? ' F ' + len(j.soil.F || V()).toFixed(1) : ''}`).join(' | '));
+  }
+  const r = { ...s.result, t: s.t, phase: s.phase, events: s.events.map(e => `${e.t.toFixed(2)} ${e.s}`), landing: L,
+    tilt: s.tiltDeg(), peak: JSON.parse(JSON.stringify(s.peak)), trace };
+  s.free();
+  return r;
+}
+
+return { DEG, MM, DT, D, LAYOUTS, lx, V, add, sub, scl, dot, cross, len, norm, qrot, qmul, qconj, qaxis, rng, Sim, POSES, landingFor, runHeadless };
+}
+const { DEG, MM, DT, D, LAYOUTS, lx, V, add, sub, scl, dot, cross, len, norm, qrot, rng, Sim, POSES, landingFor, runHeadless } = simCore(RAPIER);
+
+/* ---------------- app state ---------------- */
+const app = { pose: 'upside', soil: 'loam', dist: 3, cgUp: 8, mass: 'v33', layout: 'tail', speed: 1, playing: true, seed: 1, sim: null, batch: null };
+function newSim() {
+  if (app.sim) app.sim.free();
+  const L = landingFor(app.pose, app.seed);
+  app.sim = new Sim({ pose: app.pose, soil: app.soil, dist: app.dist, cgUp: app.cgUp, mass: app.mass, layout: app.layout, seed: app.seed, ...L });
+  app.acc = 0;
+  if (window.__r) window.__r.reset(app.sim);
+  updatePoseInfo(L);
+}
+/* ================= rendering (three.js r128) ================= */
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function makeRenderer() {
+  const cv = document.getElementById('cv');
+  const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.004, 80);
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x8a7a66, 0.75); scene.add(hemi);
+  const sun = new THREE.DirectionalLight(0xffffff, 0.85); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+  const sc = sun.shadow.camera; sc.left = -0.35; sc.right = 0.35; sc.top = 0.35; sc.bottom = -0.35; sc.near = 0.05; sc.far = 4; sun.shadow.bias = -0.0004;
+  scene.add(sun); scene.add(sun.target);
+
+  // ground with a soil texture and a 100 mm grid
+  const tc = document.createElement('canvas'); tc.width = tc.height = 512;
+  const gtex = new THREE.CanvasTexture(tc); gtex.wrapS = gtex.wrapT = THREE.RepeatWrapping; gtex.repeat.set(80, 80);
+  gtex.anisotropy = 8; gtex.repeat.set(160, 160);   // 0.25 m tiles
+  function paintGround(soil) {
+    const g = tc.getContext('2d'), dark = matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light' || document.documentElement.dataset.theme === 'dark';
+    const base = soil === 'sand' ? (dark ? [120, 104, 78] : [205, 186, 150]) : (dark ? [82, 66, 50] : [138, 110, 82]);
+    g.fillStyle = `rgb(${base})`; g.fillRect(0, 0, 512, 512);
+    const rr = rng(soil === 'sand' ? 3 : 5);
+    for (let i = 0; i < 9000; i++) { const s = (rr() - 0.5) * 34; g.fillStyle = `rgba(${base[0] + s},${base[1] + s},${base[2] + s},0.55)`; g.fillRect(rr() * 512, rr() * 512, 2 + rr() * 3, 2 + rr() * 3); }
+    g.strokeStyle = dark ? 'rgba(255,255,255,0.10)' : 'rgba(40,30,20,0.22)'; g.lineWidth = 2; g.strokeRect(1, 1, 510, 510);
+    gtex.needsUpdate = true;
+  }
+  // the soil is drawn slightly see-through so the buried drills and their grip forces stay visible
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ map: gtex, roughness: 1, transparent: true, opacity: 0.8, depthWrite: true }));
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+  const mHull = new THREE.MeshStandardMaterial({ color: 0xd8ddd9, roughness: 0.55, metalness: 0.05 });
+  const mPod = new THREE.MeshStandardMaterial({ color: 0x3b6fc6, roughness: 0.5 });
+  const mDrill = new THREE.MeshStandardMaterial({ color: 0x4a4f55, roughness: 0.45, metalness: 0.5 });
+  const mLeg = new THREE.MeshStandardMaterial({ color: 0xd08a1e, roughness: 0.5 });
+  const mPad = new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.9 });
+  const mDark = new THREE.MeshStandardMaterial({ color: 0x30363a, roughness: 0.6 });
+  const shadow = o => { o.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } }); return o; };
+  const H = D.hull;
+  // hull group in body axes
+  const hullG = new THREE.Group(), bossG = new THREE.Group();
+  const hullEye = new THREE.Mesh(new THREE.TorusGeometry(2.6 * MM, 0.9 * MM, 8, 16), mDark);
+  { const cyl = new THREE.Mesh(new THREE.CylinderGeometry(H.r * MM, H.r * MM, (H.len - H.nose) * MM, 40), mHull);
+    cyl.rotation.z = -Math.PI / 2; cyl.position.x = lx((H.len + H.nose) / 2); hullG.add(cyl);
+    const nose = new THREE.Mesh(new THREE.CylinderGeometry(H.tipR * MM, H.r * MM, H.nose * MM, 40), mHull);
+    nose.rotation.z = -Math.PI / 2; nose.position.x = lx(H.nose / 2); hullG.add(nose);
+    const lens = new THREE.Mesh(new THREE.CylinderGeometry(4 * MM, 4 * MM, 1.5 * MM, 20), mDark); lens.rotation.z = -Math.PI / 2; lens.position.x = lx(0) + 0.0007; hullG.add(lens);
+    const groove = new THREE.Mesh(new THREE.BoxGeometry((D.leg.hingeX + 116 - D.leg.hingeX) * MM, 1.0 * MM, 11 * MM), mDark); groove.position.set(lx(D.leg.hingeX + 58), D.hull.r * MM - 0.0003, 0); hullG.add(groove);
+    // belly stripe so belly down reads at a glance
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry((H.len - H.nose - 6) * MM, 1.2 * MM, 8 * MM), new THREE.MeshStandardMaterial({ color: 0xbf3d26, roughness: 0.6 }));
+    stripe.position.set(lx((H.len + H.nose) / 2), -H.r * MM + 0.0004, 0); hullG.add(stripe);
+    for (const sd of [-1, 1]) { // pivot bosses (moved to the layout's pivot station in reset())
+      const boss = new THREE.Mesh(new THREE.CylinderGeometry(6 * MM, 6 * MM, 10 * MM, 20), mHull);
+      boss.rotation.x = Math.PI / 2; boss.position.set(0, D.pod.pivotY * MM, sd * (H.r - 1) * MM); bossG.add(boss); }
+    const axle = new THREE.Mesh(new THREE.CylinderGeometry(1.5 * MM, 1.5 * MM, 2 * D.pod.lat * MM + 6 * MM, 12), mDark);
+    axle.rotation.x = Math.PI / 2; axle.position.set(0, D.pod.pivotY * MM, 0); bossG.add(axle); hullG.add(bossG);
+    hullEye.position.set(0, 0, 0); hullG.add(hullEye);
+  }
+  scene.add(shadow(hullG));
+  function podMesh() {
+    const outer = new THREE.Group(), g = new THREE.Group(), L = D.pod.len * MM, r = D.pod.r * MM; outer.add(g); outer.inner = g;
+    const hub = new THREE.Mesh(new THREE.SphereGeometry(r, 20, 12), mPod); g.add(hub);
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L * 0.42, 20), mPod); arm.rotation.z = -Math.PI / 2; arm.position.x = L * 0.21; g.add(arm);
+    const drill = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.62, r, L * 0.58 - r * 0.5, 20), mDrill); drill.rotation.z = Math.PI / 2; drill.position.x = L * 0.42 + (L * 0.58 - r * 0.5) / 2; g.add(drill);
+    for (let i = 0; i < 6; i++) { const f = new THREE.Mesh(new THREE.TorusGeometry(r * (0.95 - i * 0.06), 0.0011, 6, 20), mDrill); f.rotation.y = Math.PI / 2; f.position.x = L * 0.47 + i * 0.008; g.add(f); }
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(r * 0.62, r * 1.2, 16), mDrill); tip.rotation.z = -Math.PI / 2; tip.position.x = L - r * 0.6; g.add(tip);
+    const eye = new THREE.Mesh(new THREE.TorusGeometry(2.4 * MM, 0.8 * MM, 8, 16), mDark); eye.position.set(D.tether.eye * MM, 0, 0); eye.rotation.x = Math.PI / 2; g.add(eye); outer.eye = eye;
+    return shadow(outer);
+  }
+  const podG = { L: podMesh(), R: podMesh() }; scene.add(podG.L); scene.add(podG.R);
+  const legG = new THREE.Group();
+  { const L = D.leg.len * MM, r = D.leg.r * MM;
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 16), mLeg); rod.rotation.z = Math.PI / 2; rod.position.x = -L / 2; legG.add(rod);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.4, r * 1.4, 12 * MM, 16), mLeg); hub.rotation.x = Math.PI / 2; legG.add(hub);
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(D.leg.pad * MM, D.leg.pad * MM, (D.leg.padW - 2 * D.leg.pad) * MM, 20), mPad); pad.rotation.x = Math.PI / 2; pad.position.x = -L; legG.add(pad);
+    for (const sd of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(D.leg.pad * MM, 16, 12), mPad); e.position.set(-L, 0, sd * (D.leg.padW / 2 - D.leg.pad) * MM); legG.add(e); } }
+  scene.add(shadow(legG));
+
+  // rover and reel
+  const rover = new THREE.Group();
+  { const body = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.14, 0.26), new THREE.MeshStandardMaterial({ color: 0x5b6670, roughness: 0.7 })); body.position.set(-0.12, 0.13, 0); rover.add(body);
+    for (const [x, z] of [[-0.24, -0.15], [-0.24, 0.15], [0.0, -0.15], [0.0, 0.15]]) { const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 20), mDark); wh.rotation.x = Math.PI / 2; wh.position.set(x, 0.06, z); rover.add(wh); }
+    const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.05, 20), mLeg); drum.rotation.x = Math.PI / 2; drum.position.set(0, D.reelY, 0); rover.add(drum); }
+  scene.add(shadow(rover));
+  // rope, tension arrow, anchor arrows and holes
+  const ropeGeo = new THREE.BufferGeometry(); ropeGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(33 * 3), 3));
+  const ropeMat = new THREE.LineBasicMaterial({ color: 0x2a5db4 });
+  const rope = new THREE.Line(ropeGeo, ropeMat); rope.frustumCulled = false; scene.add(rope);
+  const brGeo = new THREE.BufferGeometry(); brGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(4 * 3), 3));
+  const bridle = new THREE.LineSegments(brGeo, ropeMat); bridle.frustumCulled = false; scene.add(bridle);
+  // tension vector: a solid arrow at the tether point, length 4 mm per newton
+  const tArrow = new THREE.Group(), mArrow = new THREE.MeshBasicMaterial({ color: 0x2a5db4, depthTest: false, transparent: true, opacity: 0.95 });
+  const tShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.0016, 0.0016, 1, 10), mArrow), tHead = new THREE.Mesh(new THREE.ConeGeometry(0.005, 0.014, 14), mArrow);
+  tArrow.add(tShaft); tArrow.add(tHead); tArrow.renderOrder = 10; tShaft.renderOrder = 10; tHead.renderOrder = 10; scene.add(tArrow);
+  const setArrow = (pos, dir, L) => { tArrow.position.set(pos.x, pos.y, pos.z); tArrow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    const sl = Math.max(0.001, L - 0.014); tShaft.scale.set(1, sl, 1); tShaft.position.y = sl / 2; tHead.position.y = sl + 0.007; };
+  const aArrow = { L: new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 0.05, 0x1f7d55, 0.01, 0.007),
+    R: new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 0.05, 0x1f7d55, 0.01, 0.007) };
+  for (const a of [aArrow.L, aArrow.R]) { a.traverse(m => { if (m.material) { m.material.depthTest = false; m.material.transparent = true; } m.renderOrder = 9; }); scene.add(a); }
+  const holeMat = new THREE.MeshBasicMaterial({ color: 0x2a2018, transparent: true, opacity: 0.6, depthWrite: false });
+  const holes = { L: new THREE.Mesh(new THREE.CircleGeometry(0.009, 20), holeMat), R: new THREE.Mesh(new THREE.CircleGeometry(0.009, 20), holeMat) };
+  for (const s of ['L', 'R']) { holes[s].rotation.x = -Math.PI / 2; holes[s].position.y = 0.0004; holes[s].visible = false; scene.add(holes[s]); }
+  // ghost of the buried drill below the soil (seen through the ground)
+  const ghostMat = new THREE.MeshBasicMaterial({ color: 0x1f7d55, transparent: true, opacity: 0.55, depthTest: false });
+  const ghost = { L: new THREE.Mesh(new THREE.SphereGeometry(0.004, 12, 8), ghostMat), R: new THREE.Mesh(new THREE.SphereGeometry(0.004, 12, 8), ghostMat) };
+  scene.add(ghost.L); scene.add(ghost.R);
+
+  // camera orbit
+  const orbit = { az: 0.95, el: 0.38, dist: 0.55, target: new THREE.Vector3(0, 0.03, 0) };
+  let drag = null; const pts = new Map();
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); drag = { x: e.clientX, y: e.clientY }; });
+  cv.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return;
+    const prev = pts.get(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; const dNow = Math.hypot(a.x - b.x, a.y - b.y);
+      if (orbit.pinch) orbit.dist = Math.min(6, Math.max(0.18, orbit.dist * orbit.pinch / dNow)); orbit.pinch = dNow; return; }
+    orbit.az -= (e.clientX - prev.x) * 0.008; orbit.el = Math.min(1.45, Math.max(0.03, orbit.el + (e.clientY - prev.y) * 0.006));
+  });
+  const up = e => { pts.delete(e.pointerId); orbit.pinch = null; };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', e => { e.preventDefault(); orbit.dist = Math.min(6, Math.max(0.18, orbit.dist * Math.exp(e.deltaY * 0.001))); }, { passive: false });
+
+  function resize() { const r = cv.parentElement.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix(); }
+  new ResizeObserver(resize).observe(cv.parentElement); resize();
+  function theme() {
+    scene.background = new THREE.Color(cssVar('--sky-low') || '#e9ece6');
+    scene.fog = new THREE.Fog(scene.background.getHex(), 3, 14);
+    mPod.color.set(cssVar('--pod') || '#3b6fc6'); mLeg.color.set(cssVar('--legc') || '#d08a1e'); ropeMat.color.set(cssVar('--accent') || '#2a5db4');
+    mArrow.color.set(cssVar('--accent') || '#2a5db4');
+    paintGround(app.soil);
+  }
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', theme);
+  new MutationObserver(theme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  theme();
+
+  const setT = (obj, b) => { const p = b.translation(), q = b.rotation(); obj.position.set(p.x, p.y, p.z); obj.quaternion.set(q.x, q.y, q.z, q.w); };
+  let followed = null;
+  return {
+    theme, paintGround,
+    reset(sim) {
+      rover.position.set(sim.reel.x, 0, 0); followed = null; holes.L.visible = holes.R.visible = false;
+      const LY = sim.LY; bossG.position.x = lx(LY.pivotX);
+      for (const s of ['L', 'R']) { podG[s].inner.rotation.y = LY.fold > 0 ? 0 : Math.PI; podG[s].eye.visible = LY.tether === 'pods'; }
+      hullEye.visible = !!sim.tetherL; if (sim.tetherL) hullEye.position.set(sim.tetherL.x, sim.tetherL.y - 0.002, 0);
+      bridle.visible = !sim.tetherL;
+    },
+    draw(sim) {
+      setT(hullG, sim.hull); setT(podG.L, sim.pods.L.body); setT(podG.R, sim.pods.R.body); setT(legG, sim.leg.body);
+      const c = sim.hull.worldCom();
+      const tgt = new THREE.Vector3(c.x, Math.max(0.02, c.y), c.z);
+      if (!followed || orbit.target.distanceTo(tgt) > 0.12) { orbit.target.copy(tgt); followed = true; } else orbit.target.lerp(tgt, 0.08);
+      const ce = Math.cos(orbit.el);
+      camera.position.set(orbit.target.x + orbit.dist * ce * Math.sin(orbit.az), orbit.target.y + orbit.dist * Math.sin(orbit.el), orbit.target.z + orbit.dist * ce * Math.cos(orbit.az));
+      camera.lookAt(orbit.target);
+      sun.position.set(orbit.target.x + 0.6, 1.4, orbit.target.z + 0.5); sun.target.position.copy(orbit.target);
+      // rope with a slight catenary sag for a 1 mm line (about 0.6 g/m)
+      let eye;
+      if (sim.tetherL) eye = sim.hullPt(sim.tetherL);
+      else { const eL = sim.worldPt(sim.pods.L.body, sim.eyeL), eR = sim.worldPt(sim.pods.R.body, sim.eyeL), mid = scl(add(eL, eR), 0.5);
+      const toward = norm(sub(sim.reel, mid)); eye = add(mid, scl(toward, D.tether.ring * MM));   // the bridle ring
+      const ba = brGeo.attributes.position.array; [eL, eye, eR, eye].forEach((q, i) => { ba[i * 3] = q.x; ba[i * 3 + 1] = q.y; ba[i * 3 + 2] = q.z; }); brGeo.attributes.position.needsUpdate = true; }
+      const r0 = sim.reel, arr = ropeGeo.attributes.position.array;
+      const span = len(sub(r0, eye)), sag = Math.min(0.25, 0.006 * span * span / (8 * Math.max(0.2, sim.T)));
+      for (let i = 0; i <= 32; i++) { const u = i / 32; arr[i * 3] = eye.x + (r0.x - eye.x) * u; arr[i * 3 + 1] = eye.y + (r0.y - eye.y) * u - 4 * sag * u * (1 - u); arr[i * 3 + 2] = eye.z + (r0.z - eye.z) * u; }
+      ropeGeo.attributes.position.needsUpdate = true;
+      const dir = new THREE.Vector3(r0.x - eye.x, r0.y - eye.y, r0.z - eye.z).normalize();
+      setArrow(eye, dir, 0.012 + 0.004 * sim.T);
+      for (const s of ['L', 'R']) {
+        const h = sim.pods[s], sl = h.soil;
+        if (sl && sl.F && len(sl.F) > 0.05) { const tip = sim.worldPt(h.body, h.tipL); const F = sl.F;
+          aArrow[s].visible = true; aArrow[s].position.set(tip.x, tip.y, tip.z); aArrow[s].setDirection(new THREE.Vector3(F.x, F.y, F.z).normalize()); aArrow[s].setLength(0.012 + 0.002 * len(F), 0.01, 0.007);
+          ghost[s].visible = true; ghost[s].position.set(tip.x, tip.y, tip.z);
+        } else { aArrow[s].visible = false; ghost[s].visible = !!sl; if (sl) { const tip = sim.worldPt(h.body, h.tipL); ghost[s].position.set(tip.x, tip.y, tip.z); } }
+        if (h.drilling && !holes[s].visible) { const tip = sim.worldPt(h.body, h.tipL); holes[s].position.set(tip.x, 0.0004, tip.z); holes[s].visible = true; }
+      }
+      renderer.render(scene, camera);
+    },
+  };
+}
+
+/* ================= UI ================= */
+const $ = id => document.getElementById(id);
+const fmt = (x, d = 1) => (x == null || !isFinite(x)) ? '-' : x.toFixed(d);
+function updatePoseInfo(L) {
+  $('poseInfo').textContent = `${POSES[app.pose].label}: arrives at 6.8 m/s, ${L.gammaDeg.toFixed(0)} deg down, roll ${L.rollDeg.toFixed(0)} deg${app.pose === 'random' ? `, seed ${app.seed}` : ''}.`;
+}
+function markButtons() {
+  for (const b of document.querySelectorAll('#poses button')) b.classList.toggle('on', b.dataset.pose === app.pose);
+  for (const b of document.querySelectorAll('#soilSeg button')) b.classList.toggle('on', b.dataset.soil === app.soil);
+  for (const b of document.querySelectorAll('#speedSeg button')) b.classList.toggle('on', +b.dataset.sp === app.speed);
+  $('playBtn').textContent = app.playing ? 'Pause' : 'Play';
+  $('hudSpeed').textContent = app.speed + 'x';
+}
+function updateReadouts(s) {
+  $('phaseTag').textContent = s.status.tag; $('phaseName').textContent = s.status.name; $('phaseText').textContent = s.status.text;
+  $('hudT').textContent = `t ${s.t.toFixed(1)} s`; $('hudTen').textContent = `rope ${s.T.toFixed(1)} N`;
+  $('vTen').textContent = `${s.T.toFixed(1)} N`;
+  $('vTilt').textContent = `${fmt(s.tilt, 0)}°`;
+  $('vPitch').textContent = `${fmt(s.pitchDeg, 1)}°`;
+  $('vLift').textContent = `${fmt(s.tailLift / MM, 1)} mm`;
+  $('vNose').textContent = `${fmt(s.noseLift / MM, 1)} mm`;
+  $('vMove').textContent = s.tow && s.tow.start ? `${fmt(s.moveMM, 1)} mm` : '-';
+  for (const sd of ['L', 'R']) {
+    const h = s.pods[sd], sl = h.soil;
+    $('vA' + sd).innerHTML = sl ? `${fmt(len(sl.F || V()), 1)} N ${sl.broken ? '<span class="pill b">pulled out</span>' : sl.sliding ? '<span class="pill w">sliding</span>' : sl.fixed ? '<span class="pill g">holding</span>' : '<span class="pill m">drilling</span>'}` : '-';
+  }
+  for (const j of s.joints) {
+    $('j' + j.name + '_a').textContent = `${Math.round(j.deg) || 0}°`;
+    const m = Math.abs(j.tauG), st = Math.abs(j.tauS);
+    const towing = s.phase === 'tow' && s.tow && s.tow.start;
+    $('j' + j.name + '_m').innerHTML = `<span style="color:${towing && m >= 0.01 ? 'var(--bad)' : 'inherit'}">${m.toFixed(3)}</span>${j.stalled ? ' <span class="pill w">stall</span>' : ''}`;
+    $('j' + j.name + '_s').textContent = st.toFixed(2);
+    $('j' + j.name + '_p').textContent = j.name === 'K' ? '-' : (j.soil && j.soil.fixed ? fmt(j.pin, 1) : '-');
+  }
+  const v = $('verdict');
+  if ((s.phase === 'tow' && s.tow && s.tow.start) || s.phase === 'done') {
+    const pk = s.peak, mp = Math.max(pk.L.m, pk.R.m, pk.K.m), sp = Math.max(pk.L.s, pk.R.s);
+    const ok = mp < 0.01;
+    v.className = 'verdict ' + (ok ? 'ok' : 'no');
+    v.innerHTML = (ok ? `<b>No load through the motors.</b> The pull goes into the drills, the pivot pins and the hard stops.`
+      : `<b>Load reaches a worm.</b> The tow pulls a pod back toward folded, and in this layout only the worm can stop that.`) +
+      ` Peak so far: worm ${mp.toFixed(3)} N&middot;m (left ${pk.L.m.toFixed(3)}, right ${pk.R.m.toFixed(3)}, leg ${pk.K.m.toFixed(3)}), hard stops ${sp.toFixed(2)} N&middot;m, pins ${Math.max(pk.L.p, pk.R.p).toFixed(0)} N, drills ${pk.aL.toFixed(1)} N and ${pk.aR.toFixed(1)} N, pitch change ${pk.pitch.toFixed(1)}&deg;.`;
+  } else { v.className = 'verdict'; v.innerHTML = '<b>Tow check</b>: starts when the reel pulls.'; }
+}
+
+function wireUI() {
+  for (const b of document.querySelectorAll('#poses button')) b.addEventListener('click', () => {
+    if (b.dataset.pose === 'random') app.seed = 1 + Math.floor(Math.random() * 100000);
+    app.pose = b.dataset.pose; markButtons(); newSim(); });
+  for (const b of document.querySelectorAll('#soilSeg button')) b.addEventListener('click', () => { app.soil = b.dataset.soil; markButtons(); window.__r && window.__r.paintGround(app.soil); newSim(); });
+  for (const b of document.querySelectorAll('#speedSeg button')) b.addEventListener('click', () => { app.speed = +b.dataset.sp; markButtons(); });
+  $('dist').addEventListener('input', e => { app.dist = +e.target.value; $('distV').textContent = app.dist.toFixed(1) + ' m'; });
+  $('dist').addEventListener('change', () => newSim());
+  $('cgSel').addEventListener('change', e => { app.cgUp = +e.target.value; newSim(); });
+  $('massSel').addEventListener('change', e => { app.mass = e.target.value; newSim(); });
+  $('layoutSel').addEventListener('change', e => { app.layout = e.target.value; newSim(); });
+  $('playBtn').addEventListener('click', () => { app.playing = !app.playing; markButtons(); });
+  $('restartBtn').addEventListener('click', () => newSim());
+  $('batchBtn').addEventListener('click', () => runBatch(50));
+  const dl = $('designList');
+  const items = [
+    'Body: cylinder 42 x 152 mm with a 20 mm nose cone. Centre of mass of the body 85 mm from the nose tip, height selectable (8 mm above the axis is the brief and v33). Mass: 270 g in total (v33) by default, or the brief taken literally (255 g body plus 100 g of legs). Inertia of a solid cylinder about the offset centre.',
+    'Side pods: 30 g, 100 mm long, 16 mm thick, pivots 10 mm above the axis on each flank (31 mm above the soil). Each swings 50 deg down to a printed hard stop, driven by its own worm N20. Tail layout (Harry\'s principle, default): pivots 140 mm from the nose tip, folded they point forward along the flanks, so the drills enter the soil just in front of the pivots, under the tether. Front layout: pivots 52 mm from the nose tip, folded they point aft.',
+    'Why the pivots sit above the axis: upside down, the folded pods are then on the low flanks and stop the dart rolling off sideways while the leg flips it. Belly down it leans about 43 deg on one pod, and that pod rolls it back.',
+    'Tether. Tail layout: a short bridle to an eye on each pod hub, 15 mm out from the pivot (about 20 mm above the soil when deployed); a free ring shares the pull. Front layout: one eye low on the tail, 7 mm above the belly line. The 28 mm tail boom is left off: no tether on it, and a dart standing on it cannot be flipped.',
+    'Righting leg: 40 g, 128 mm from hinge to pad, hinge on the top centreline 36 mm from the nose tip, folded flush in a groove along the top (the pad sits 12 mm past the tail). Pad: a rounded cross-bar 56 mm wide (no wider than the folded pods), which stops the dart rolling off the leg during the flip. Swing 0 to 178 deg, the nose top is its far stop. Upside down it lifts the tail and flips the dart end over end over its nose; the reel then swings the tail back to the rover. After anchoring it rests folded and carries nothing.',
+    'Worms: N20, stall 0.21 N m, self-locking (a load can never turn it backwards), 3 deg backlash. Pods 50 deg in 8 s, leg 180 deg in 4 s, 4 deg/s while drilling. At the stop the firmware backs the worm off its stall preload, so it carries nothing unless the pod is pulled back toward folded.',
+    'Firmware view only: the controller sees the IMU (gravity in the body, yaw rate), motor positions and stall. Moves: leg flip when upside down, low-side pod roll when leaning, retries with other moves, stuck after 6 tries. Before drilling both pods plant and level the dart; if the tail is more than 15 deg off the rope line the reel pulls gently until it swings round.',
+    'Soil: friction 0.6, restitution 0.02, extra ploughing drag only during the impact. Drills: once drilling starts the pod no longer touches the soil surface; a spring at each drill tip (3 kN/m) holds it, sliding when the force passes the soil limit (7 N sand, 25 N loam) and pulling out after 30 mm.',
+    'Physics: Rapier 3D rigid bodies, gravity 9.81, 1 ms steps. Pivot pins are Rapier hinge joints; hard stops and worm gears are stiff torque springs, so the page can show exactly how much each one carries.',
+  ];
+  dl.innerHTML = items.map(t => `<li>${t}</li>`).join('');
+}
+
+/* ---------------- batch ---------------- */
+// Runs the landings in parallel Web Workers built from a blob of the same physics core; falls back to this thread.
+function workerUrl() {
+  const src = `import RAPIER from 'https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.14.0/rapier.es.js';\n${simCore.toString()}\n` +
+    `let core = null;\nself.onmessage = async e => { try { if (!core) { await RAPIER.init(); core = simCore(RAPIER); }\n` +
+    `  const r = core.runHeadless(e.data.opts, e.data.maxT); self.postMessage({ id: e.data.id, r }); } catch (err) { self.postMessage({ id: e.data.id, err: String(err) }); } };`;
+  return URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+}
+function runJobsInWorkers(jobs, onDone) {
+  return new Promise(resolve => {
+    let url, workers = [];
+    const n = Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 2) - 1, jobs.length));
+    const results = new Array(jobs.length); let next = 0, done = 0, failed = false;
+    const finish = ok => { workers.forEach(w => w.terminate()); try { URL.revokeObjectURL(url); } catch (e) { } resolve(ok ? results : null); };
+    try { url = workerUrl(); } catch (e) { resolve(null); return; }
+    const watchdog = setTimeout(() => { if (done === 0) { failed = true; finish(false); } }, 25000);
+    for (let k = 0; k < n; k++) {
+      let w;
+      try { w = new Worker(url, { type: 'module' }); } catch (e) { failed = true; break; }
+      const feed = () => { if (next < jobs.length) { const id = next++; w.postMessage({ id, opts: jobs[id], maxT: 120 }); } };
+      w.onmessage = e => {
+        if (failed) return;
+        if (e.data.err) { failed = true; clearTimeout(watchdog); finish(false); return; }
+        results[e.data.id] = e.data.r; done++; onDone(done);
+        if (done === jobs.length) { clearTimeout(watchdog); finish(true); } else feed();
+      };
+      w.onerror = () => { if (!failed) { failed = true; clearTimeout(watchdog); finish(false); } };
+      workers.push(w); feed();
+    }
+    if (failed && done === 0) { clearTimeout(watchdog); finish(false); }
+  });
+}
+async function runBatch(n) {
+  if (app.batch) return;
+  const btn = $('batchBtn'); btn.disabled = true; app.batch = { res: [] };
+  const wasPlaying = app.playing; app.playing = false; markButtons();
+  const t0 = performance.now();
+  const jobs = [];
+  for (let i = 0; i < n; i++) jobs.push({ pose: 'random', seed: 1000 + i, soil: app.soil, dist: app.dist, cgUp: app.cgUp, mass: app.mass, layout: app.layout });
+  const prog = k => { $('batchProg').style.width = (100 * k / n) + '%'; $('batchStat').textContent = `${k} / ${n}`; };
+  $('batchStat').textContent = 'starting';
+  let res = await runJobsInWorkers(jobs, prog);
+  let how = 'parallel workers';
+  if (!res) { // no workers here: run on this thread, yielding between landings
+    how = 'one thread'; res = [];
+    for (let i = 0; i < n; i++) { res.push(runHeadless(jobs[i], 120)); prog(i + 1); await new Promise(r => setTimeout(r, 0)); }
+  }
+  app.batch.res = res;
+  const ok = res.filter(r => r.righted), times = ok.map(r => r.rightT).sort((a, b) => a - b);
+  const med = times.length ? times[Math.floor(times.length / 2)] : null;
+  const levels = [15, 20, 25, 30, 35, 40, 45, 50, 55];
+  const heldAt = levels.map(L => res.filter(r => r.anchored === 2 && r.held >= L).length);
+  const motor = res.filter(r => r.anchored === 2).map(r => r.motorPeak);
+  const motorRuns = motor.filter(m => m >= 0.01).length;
+  const blow = res.filter(r => r.blowup).length;
+  const firstTry = ok.filter(r => r.moves === 0).length;
+  const aligned = res.filter(r => r.alignTried).length;
+  const out = $('batchOut');
+  out.innerHTML = `<p><b>${ok.length} of ${n}</b> self-righted${firstTry ? ` (${firstTry} needed no move)` : ''}. Median time from landing to belly down ${fmt(med, 1)} s, slowest ${fmt(times[times.length - 1], 1)} s.
+    ${aligned} needed the reel to swing the tail round first. Stuck: ${res.filter(r => r.stuck).length}.${blow ? ` Physics faults: ${blow}.` : ''}</p>
+    <p>Held at each tension (${D.soils[app.soil].name}, rover ${app.dist} m):</p>
+    <div class="hist">${levels.map((L, i) => `<span class="num">${L} N</span><div class="hb"><i style="width:${100 * heldAt[i] / n}%"></i></div><span class="num">${heldAt[i]}</span>`).join('')}</div>
+    <p>Worm load in the tow: ${motorRuns ? `<span class="pill b">${motorRuns} of ${motor.length} runs</span> reached a worm, peak <span class="num">${fmt(Math.max(...motor), 3)} N&middot;m</span>` : `<span class="pill g">none</span> in ${motor.length} anchored runs`}. ${(performance.now() - t0) / 1000 < 1 ? '' : `Took ${((performance.now() - t0) / 1000).toFixed(0)} s on ${how}.`}</p>`;
+  window.__batch = res;
+  btn.disabled = false; app.batch = null; app.playing = wasPlaying; markButtons();
+}
+
+/* ---------------- main loop ---------------- */
+let last = performance.now();
+function frame(now) {
+  const dtReal = Math.min(0.1, (now - last) / 1000); last = now;
+  const s = app.sim;
+  if (s && app.playing && !app.batch && !s.finished && s.phase !== 'stuck' && !s.result.blowup) {
+    app.acc += dtReal * app.speed;
+    let n = Math.floor(app.acc / DT); app.acc -= n * DT; n = Math.min(n, 600);
+    for (let i = 0; i < n; i++) s.step();
+  }
+  if (s && window.__r) { window.__r.draw(s); updateReadouts(s); }
+  requestAnimationFrame(frame);
+}
+
+(async function boot() {
+  try {
+    await RAPIER.init();
+  } catch (e) {
+    $('loadmsg').textContent = 'The physics engine (WebAssembly) could not start in this browser: ' + e.message; return;
+  }
+  $('loadmsg').hidden = true;
+  wireUI();
+  try { window.__r = makeRenderer(); } catch (e) { $('loadmsg').hidden = false; $('loadmsg').textContent = 'WebGL is not available: ' + e.message; }
+  markButtons();
+  newSim();
+  window.kedge = { app, runHeadless, newSim, Sim, D, POSES, landingFor, runBatch, setSpeed: v => { app.speed = v; markButtons(); } };
+  requestAnimationFrame(frame);
+})();
+</script>

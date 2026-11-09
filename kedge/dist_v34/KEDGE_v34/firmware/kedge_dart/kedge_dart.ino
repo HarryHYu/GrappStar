@@ -1,4 +1,4 @@
-// KEDGE dart firmware v4.2  (Seeed XIAO ESP32S3)
+// KEDGE dart firmware v4.3 for the v34 dart  (Seeed XIAO ESP32S3)
 // Control logic lives in kedge_logic.h (unit-tested on a PC: ../test/test_logic.cpp). This file is the hardware glue.
 //
 // v4 (3 Nov 2026): DRV8833 #3 is no longer on the dart. DRV#1 A = deploy, DRV#1 B = kick, DRV#2 A = BOTH drill motors
@@ -7,12 +7,15 @@
 // v4.1 (7 Nov 2026): shorter flight windows for the real launcher, orientation ("orient", /auto refused on its side or
 // back unless force=1), battery state at rest ("batt"), optional video power switch on D10 (/video).
 // v4.2: deploy guard (depth_limited at 67 % of the drill pair stall); per-motor gear sign (v32 drills: direct, +1).
+// v4.3 (9 Nov 2026, dart v34): no foot, no kick. DRV#1 B (D2/D3) drives the RIGHTING LEG; DRV#2 B (D6/D7) is not wired.
+// /auto rights the dart first when it is not belly down (belly up: leg flip; on a flank: pods out, drills off), then the
+// pods go down with the drills spinning. Keys 4 / $ are refused ("no foot on v34").
 //
 // Keyboard control, two ways:
 //   1. USB:  Arduino Serial Monitor, 115200 baud, "No line ending". Type a key, press Enter (each press runs 1.5 s).
 //   2. WiFi: join "KEDGE" (password grappstar), open http://192.168.4.1 . Hold a key or button to run, release to stop.
-// Keys:  1 / !  deploy pods down / up          2 / @  kick leg out / back
-//        3 / #  drill augers in / out          4 / $  foot auger in / out
+// Keys:  1 / !  pods down / up (drills swing down)   2 / @  righting leg out (over the nose) / back (fold)
+//        3 / #  drill augers in / out          (4 / $ refused: no foot on v34)
 //        space or s  STOP ALL   + / -  speed   i  current   b  attitude   z  I2C scan   p  status   f  flight log
 //        a  auto-anchor now     r  release now     A  arm / disarm (auto-anchor on landing)     h  help
 // Board: "XIAO_ESP32S3", Tools > USB CDC On Boot: Enabled. Pull the power loop plug before plugging in USB.
@@ -28,14 +31,14 @@
 #include <esp_system.h>
 #include "kedge_logic.h"
 #if !ARDUINO_USB_CDC_ON_BOOT
-#error "Set Tools > USB CDC On Boot: Enabled. With it disabled, Serial uses GPIO43/44 = D6/D7, the foot motor pins."
+#error "Set Tools > USB CDC On Boot: Enabled. With it disabled, Serial uses GPIO43/44 = D6/D7 (held low, not wired on v34)."
 #endif
 
 using kedge::PINS;
 static_assert(PINS[kedge::DEPLOY].gpioA == D0 && PINS[kedge::DEPLOY].gpioB == D1, "deploy pins");
-static_assert(PINS[kedge::KICK].gpioA == D2 && PINS[kedge::KICK].gpioB == D3, "kick pins");
+static_assert(PINS[kedge::KICK].gpioA == D2 && PINS[kedge::KICK].gpioB == D3, "leg pins (the old kick channel)");
 static_assert(PINS[kedge::DRILLS].gpioA == D8 && PINS[kedge::DRILLS].gpioB == D9, "drill pins");
-static_assert(PINS[kedge::FOOT].gpioA == D6 && PINS[kedge::FOOT].gpioB == D7, "foot pins");
+static_assert(PINS[kedge::FOOT].gpioA == D6 && PINS[kedge::FOOT].gpioB == D7, "D6/D7: no foot on v34, held low");
 static_assert(kedge::PIN_SDA_GPIO == D4 && kedge::PIN_SCL_GPIO == D5, "I2C pins");
 static_assert(kedge::PIN_VIDEO_GPIO == D10, "video switch pin");
 const int PWM_HZ = 20000, PWM_BITS = 8;
@@ -174,7 +177,7 @@ void scanI2C() {
   say(String(n) + " device(s). Expect 0x40 (INA219) and 0x4a or 0x4b (BNO085).");
 }
 void help() {
-  say("KEDGE v4.2 ready. 1/! deploy down/up  2/@ kick out/back  3/# drills in/out  4/$ foot in/out");
+  say("KEDGE v4.3 (v34) ready. 1/! pods down/up  2/@ leg out/back  3/# drills in/out  (no foot on v34)");
   say("space/s STOP  +/- speed  i current  b attitude  z I2C scan  p status  f flight log  a auto-anchor  r release  A arm");
 }
 
@@ -247,27 +250,27 @@ int resetFault() {
 
 const char PAGE[] PROGMEM = R"HTML(<!doctype html><html><head><meta name=viewport content="width=device-width,initial-scale=1">
 <title>KEDGE</title><style>body{font:15px Arial;margin:16px;background:#111;color:#eee}button{font:15px Arial;padding:14px;margin:4px;min-width:120px;touch-action:none;user-select:none;-webkit-user-select:none}
-#s{font:13px monospace;white-space:pre-wrap;background:#222;padding:8px}pre{background:#222;padding:8px;height:30vh;overflow:auto}a{color:#8cf}</style></head><body><h3>KEDGE dart v4.2</h3>
-<p>Hold a key or button to run, release to stop. 1/! deploy  2/@ kick  3/# drills  4/$ foot  space STOP  a auto  r release  A arm. <a href=/flightlog download=flightlog.json>flight log</a></p>
+#s{font:13px monospace;white-space:pre-wrap;background:#222;padding:8px}pre{background:#222;padding:8px;height:30vh;overflow:auto}a{color:#8cf}</style></head><body><h3>KEDGE dart v4.3 (v34)</h3>
+<p>Hold a key or button to run, release to stop. 1/! pods  2/@ leg  3/# drills  space STOP  a auto  r release  A arm. <a href=/flightlog download=flightlog.json>flight log</a></p>
 <div id=b></div><div id=s></div><pre id=o></pre><script>
 const o=document.getElementById('o'),S=document.getElementById('s');const held=new Map();
 function add(x){if(x){o.textContent+=x;o.scrollTop=1e9}}
 let N=0;const busy={};const P=Math.random().toString(36).slice(2,8);
 function send(c,keep){const n=++N;if(c!==' '&&busy[c])return;busy[c]=1;const ac=new AbortController();const to=setTimeout(()=>ac.abort(),300);
 fetch('/key?c='+encodeURIComponent(c)+'&ms=350&n='+n+'&p='+P+(keep?'&keep=1':''),{signal:ac.signal}).then(r=>r.text()).then(add).catch(()=>{}).finally(()=>{clearTimeout(to);busy[c]=0})}
-setInterval(()=>{for(const c of held.values())send(c)},150);   // several keys can be held at once (e.g. 2 and 4)
+setInterval(()=>{for(const c of held.values())send(c)},150);   // several keys can be held at once (e.g. 2 and 3)
 function hold(id,c){if(held.has(id))return;held.set(id,c);send(c)}
 function release(id){if(!held.has(id))return;held.delete(id);if(!held.size)send(' ',1)}   // keep=1: stop the motors, stay armed
 function stop(){held.clear();let t=0;const go=()=>{const ac=new AbortController();const to=setTimeout(()=>ac.abort(),1500);   // STOP: retried until the dart answers
 fetch('/key?c=%20&ms=0&n='+(++N)+'&p='+P,{signal:ac.signal}).then(r=>{if(!r.ok)throw 0;return r.text()}).then(add).catch(()=>{if(++t<5){add('STOP not confirmed, sending again\n');setTimeout(go,150)}else add('STOP NOT CONFIRMED: pull the power loop plug\n')}).finally(()=>clearTimeout(to))};go()}
-const RUN='1!2@3#4$';
+const RUN='1!2@3#';
 addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey){if(held.size){held.clear();send(' ',1)}return}   // Cmd/Ctrl/Alt: no keyup may follow (macOS)
 if(e.key===' '||e.key==='Enter')e.preventDefault();const c=e.key===' '?' ':e.key;if(RUN.includes(c)){e.preventDefault();hold(e.code,c)}else if(e.key==='Shift'||e.key==='Enter'){}else if(!e.repeat&&c.length===1){if(c===' ')stop();else send(c)}});
 addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter')e.preventDefault();if(held.has(e.code))release(e.code)});   // keyed by physical key: Shift order does not matter
 function lost(){if(held.size){held.clear();fetch('/key?c=%20&keep=1&ms=0&n='+(++N)+'&p='+P,{keepalive:true}).catch(()=>{})}}   // keepalive: survives the page closing
 addEventListener('blur',lost);addEventListener('pagehide',lost);document.addEventListener('visibilitychange',()=>{if(document.hidden)lost()});
 addEventListener('contextmenu',e=>e.preventDefault());
-const L=[['1','deploy down'],['!','deploy up'],['2','kick out'],['@','kick back'],['3','drills in'],['#','drills out'],['4','foot in'],['$','foot out']];
+const L=[['1','pods down'],['!','pods up'],['2','leg out'],['@','leg back'],['3','drills in'],['#','drills out']];
 const B=document.getElementById('b');for(const [c,n] of L){const x=document.createElement('button');x.textContent=n;
 x.tabIndex=-1;const id='btn'+c;x.onpointerdown=()=>hold(id,c);x.onpointerup=()=>release(id);x.onpointerleave=()=>release(id);x.onpointercancel=()=>release(id);B.appendChild(x)}
 for(const [c,n] of [[' ','STOP'],['a','AUTO anchor'],['r','RELEASE'],['A','arm / disarm'],['i','current'],['b','attitude']]){const x=document.createElement('button');x.textContent=n;x.tabIndex=-1;x.onclick=()=>{if(c===' ')stop();else send(c);x.blur()};B.appendChild(x)}

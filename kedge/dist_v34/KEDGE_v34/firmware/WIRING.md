@@ -1,4 +1,45 @@
-# KEDGE dart wiring v4.1 (DRV8833 #3 removed)
+# KEDGE dart wiring (firmware v4.3, dart v34)
+
+## v34: read this first
+
+The v34 dart (self-righting layout) has **no foot and no kick leg**. Its harness is dart-cad4's routed list
+`kedge/pack_v34/wire_cut_list.csv` (45 wires, with the v34 run sheet `kedge/pack_v34/KEDGE_v34_run_sheet.pdf`). The
+files in `firmware/dart/wiring/` and the steps further down are the v31 / v32 harness (50 wires + 51), kept for those
+builds; where they talk about the foot or the kick, read the v34 notes here instead.
+
+What is different on v34:
+- **No foot pair.** Nothing on DRV#2 channel B (BIN1, BIN2, BOUT1, BOUT2 stay empty) and nothing on XIAO D6 / D7. The
+  v32 wires 39, 40 (D6 / D7 to DRV#2 BIN1 / BIN2) and 49, 50 (DRV#2 BOUT1 / BOUT2 to the foot) are not fitted. The foot
+  N20 is a spare. The firmware never drives D6 / D7 (it holds them low) and refuses keys `4` / `$` (`no foot on v34`).
+- **Righting leg on DRV#1 B**, the old kick channel, driven by the old kick N20 (motor pointing down, two couplers):
+  XIAO D2 / D3 to DRV#1 BIN1 / BIN2 (v34 wires 34, 35), DRV#1 BOUT1 / BOUT2 to the leg N20 + red / - black (wires 40,
+  41, 175 mm).
+- Deploy (pods) on DRV#1 A and both drills on DRV#2 A as before (wires 32, 33, 36 to 39, 42 to 45; the right drill's
+  leads swapped).
+- No series link wire: the cells sit in line and touch through the BM strip (wire 2 is the BM tab).
+
+Pin map (firmware v4.3, dart v34):
+
+| XIAO pin | Goes to | Motor |
+|---|---|---|
+| D0 / D1 | DRV#1 AIN1 / AIN2 | deploy N20 (pods) |
+| D2 / D3 | DRV#1 BIN1 / BIN2 | righting leg N20 (the old kick motor) |
+| D8 / D9 | DRV#2 AIN1 / AIN2 | both drill motors |
+| D6 / D7 | nothing | (no foot on v34; DRV#2 B empty) |
+| D4 / D5 | INA219 + BNO085 SDA / SCL | I2C |
+| 3V3 | DRV#1 SLP, DRV#2 SLP, INA219 VCC, BNO085 VIN | logic power |
+| D10 | optional video switch (MOSFET gate) | nothing else; leave it empty on the first build |
+
+v34 meter checks (battery unplugged, meter on beep), in addition to the general ones in step A7 / B10 below:
+- DRV#1 BOUT1 beeps to the leg N20 red, BOUT2 to its black. AOUT1 / AOUT2 to the deploy N20 red / black.
+- DRV#2 BOUT1 and BOUT2 beep to nothing (no foot). XIAO D6 and D7 beep to nothing.
+- Meter on ohms: DRV#1 BOUT1 to BOUT2 reads the leg winding (a few ohms or more), never 0.0.
+
+v34 directions (BENCH_TEST.md has the full table): key `1` swings the drills **down**; key `2` **lifts the leg off the
+tail and over the nose** (if it presses into the tail instead: battery unplugged, swap the leg motor's two leads at
+DRV#1 BOUT1 / BOUT2); key `3` screws the augers in (drill check at the end of this sheet).
+
+## v31 / v32 harness (history; v34 differs as listed above)
 
 This replaces Appendix A of `kedge/CLAUDE.md` (the v29 list of 53 wires) and the old 53-wire files in `kedge/pack_v30/`.
 The new list has 50 wires, plus wire 51 for the optional video switch: `firmware/dart/wiring/wire_cut_list.csv`. Diagram: `firmware/dart/wiring/wiring.svg` /
@@ -20,14 +61,14 @@ What changed:
 - DRV#2 channel B now drives the **foot** motor (it was on DRV#3).
 - The pin bridge on DRV#2 (AIN1 to BIN1, AIN2 to BIN2) is **gone**. Channels A and B now have their own inputs.
 
-Pin map (firmware v4):
+Pin map (firmware v4 to v4.2, v31 / v32 dart; v34: see the table at the top):
 
 | XIAO pin | Goes to | Motor |
 |---|---|---|
 | D0 / D1 | DRV#1 AIN1 / AIN2 | deploy N20 |
-| D2 / D3 | DRV#1 BIN1 / BIN2 | kick N20 |
+| D2 / D3 | DRV#1 BIN1 / BIN2 | kick N20 (v34: the righting leg) |
 | D8 / D9 | DRV#2 AIN1 / AIN2 | both drill motors |
-| D6 / D7 | DRV#2 BIN1 / BIN2 | foot N20 (these two pins twitch at reset: harmless on the slow worm) |
+| D6 / D7 | DRV#2 BIN1 / BIN2 | foot N20 (these two pins twitch at reset: harmless on the slow worm; v34: not wired) |
 | D4 / D5 | INA219 + BNO085 SDA / SCL | I2C |
 | 3V3 | DRV#1 SLP, DRV#2 SLP, INA219 VCC, BNO085 VIN | logic power |
 | D10 | optional video switch (MOSFET gate) | nothing else; leave it empty on the first build |
@@ -37,8 +78,8 @@ Why these pins (checked against the XIAO ESP32S3 and ESP32-S3 datasheets, 7 Nov 
   stay off while the XIAO boots or is being flashed. D2 is GPIO3, a strapping pin that only matters when a special
   eFuse is burned (it is not on the XIAO); the driver's pull-down holds it low, which is harmless.
 - D6 / D7 are GPIO43 / 44, the chip's UART0. For about 25 ms after every reset the chip prints its boot text on D6, so
-  the foot can twitch a fraction of a turn. Harmless on the slow worm, and the foot is the only motor where it can
-  happen. That is also why the firmware refuses to compile with "USB CDC On Boot" disabled (Serial would then use D6/D7).
+  the foot could twitch a fraction of a turn (v34: nothing is wired there, so nothing twitches). That is also why the
+  firmware refuses to compile with "USB CDC On Boot" disabled (Serial would then use D6/D7).
 - D4 / D5 are the XIAO's default I2C pins. Both boards have their own 10 k pull-ups to 3V3.
 - D10 (GPIO9) is not a strapping pin and is quiet at boot.
 
@@ -164,14 +205,15 @@ Then: XIAO 3V3 to DRV#1 SLP (wire 23), DRV#1 SLP to DRV#2 SLP (wire 24).
 BNO085. SDA (blue): D4 to INA219 SDA to BNO085 SDA. SCL (green): D5 to INA219 SCL to BNO085 SCL.
 
 **Step B8. Battery unplugged. Driver inputs** (wires 33 to 40): D0, D1 to DRV#1 AIN1, AIN2 (deploy). D2, D3 to DRV#1
-BIN1, BIN2 (kick). D8, D9 to DRV#2 AIN1, AIN2 (drills). D6, D7 to DRV#2 BIN1, BIN2 (foot). **No bridges between pads.**
+BIN1, BIN2 (kick; v34: the leg). D8, D9 to DRV#2 AIN1, AIN2 (drills). D6, D7 to DRV#2 BIN1, BIN2 (foot; **v34: leave
+out**). **No bridges between pads.**
 
 **Step B9. Battery unplugged. Motors, leave them hanging outside the hull for now** (wires 41 to 50):
 - DRV#1 AOUT1 / AOUT2 to deploy red / black.
-- DRV#1 BOUT1 / BOUT2 to kick red / black.
+- DRV#1 BOUT1 / BOUT2 to kick red / black (v34: the leg N20).
 - DRV#2 AOUT1 to left drill red **and** right drill black; DRV#2 AOUT2 to left drill black **and** right drill red
   (two wires per pad, twisted and tinned together exactly as in step A4).
-- DRV#2 BOUT1 / BOUT2 to foot red / black (330 mm silicone).
+- DRV#2 BOUT1 / BOUT2 to foot red / black (330 mm silicone). **v34: leave out (no foot).**
 
 **Step B10. Battery unplugged. Meter checks:** the list in step A7, plus 5V to GND and 3V3 to GND: no steady beep.
 The motors are not connected yet on this path, so AOUT1 to AOUT2 and BOUT1 to BOUT2 read open (`OL`): that is correct.
@@ -227,7 +269,7 @@ D8 / D9 on AIN1 / AIN2.
 - Then if only the right sleeve is wrong: battery unplugged, swap the right drill's own two wires on AOUT1 / AOUT2.
 - Swapping a motor's two input wires at its driver is the easy way to reverse any motor.
 
-## Totals (cut from the reel, v32 routes)
+## Totals (cut from the reel, v32 routes; v34: see kedge/pack_v34/wire_cut_list.csv)
 
 | Wire | mm |
 |---|---|

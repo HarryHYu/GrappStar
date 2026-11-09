@@ -2,20 +2,20 @@
  "coupler_L": {
   "valid": true,
   "solids": 1,
-  "vol_step": 912.4,
-  "vol_stl": 911.7
+  "vol_step": 929.9,
+  "vol_stl": 929.2
  },
  "coupler_R": {
   "valid": true,
   "solids": 1,
-  "vol_step": 912.4,
-  "vol_stl": 911.7
+  "vol_step": 929.9,
+  "vol_stl": 929.2
  },
  "drill_leg_L": {
   "valid": true,
   "solids": 1,
-  "vol_step": 3537.7,
-  "vol_stl": 3534.9
+  "vol_step": 3561.6,
+  "vol_stl": 3558.7
  },
  "drill_leg_L_auger": {
   "valid": true,
@@ -26,8 +26,8 @@
  "drill_leg_R": {
   "valid": true,
   "solids": 1,
-  "vol_step": 3537.7,
-  "vol_stl": 3534.9
+  "vol_step": 3561.6,
+  "vol_stl": 3558.7
  },
  "drill_leg_R_auger": {
   "valid": true,
@@ -44,26 +44,26 @@
  "hull_bottom": {
   "valid": true,
   "solids": 1,
-  "vol_step": 16966.7,
-  "vol_stl": 16952.3
+  "vol_step": 14156.8,
+  "vol_stl": 14143.4
  },
  "hull_top": {
   "valid": true,
   "solids": 1,
-  "vol_step": 15707.7,
-  "vol_stl": 15711.2
+  "vol_step": 15635.8,
+  "vol_stl": 15639.9
  },
  "leg_coupler_L": {
   "valid": true,
   "solids": 1,
-  "vol_step": 142.6,
-  "vol_stl": 142.4
+  "vol_step": 152.5,
+  "vol_stl": 152.3
  },
  "leg_coupler_R": {
   "valid": true,
   "solids": 1,
-  "vol_step": 142.6,
-  "vol_stl": 142.4
+  "vol_step": 152.5,
+  "vol_stl": 152.3
  },
  "leg_plug_L": {
   "valid": true,
@@ -80,8 +80,8 @@
  "nose": {
   "valid": true,
   "solids": 1,
-  "vol_step": 7953.1,
-  "vol_stl": 7937.3
+  "vol_step": 7981.8,
+  "vol_stl": 7962.4
  },
  "pod_cap_L": {
   "valid": true,
@@ -98,13 +98,13 @@
  "righting_leg": {
   "valid": true,
   "solids": 1,
-  "vol_step": 4364.7,
-  "vol_stl": 4364.2
+  "vol_step": 4374.4,
+  "vol_stl": 4373.9
  },
  "tray": {
   "valid": true,
   "solids": 1,
-  "vol_step": 13276.2,
-  "vol_stl": 13275.0
+  "vol_step": 14936.5,
+  "vol_stl": 14935.3
  }
 }

@@ -6,10 +6,10 @@
     55.2,
     21.3
    ],
-   "bed_contact_mm2": 474.4,
-   "overhang_mm2_gt45": 4130.9,
-   "orient": "split face down (on the bed), crown up; the seam lip hangs 1.5 below the split: print on a 1.5 mm raft-free sacrificial ring or flip crown down with tree supports in the groove only",
-   "volume_cm3": 15.71,
+   "bed_contact_mm2": 456.3,
+   "overhang_mm2_gt45": 4171.7,
+   "orient": "split face down (on the bed), crown up",
+   "volume_cm3": 15.64,
    "supports": "tree supports ON, build plate only: the inner roof of the half shell and under the knuckle and groove floors; the pivot blocks print without (arc outlines)"
   },
   "hull_bottom": {
@@ -18,10 +18,10 @@
     42.0,
     21.0
    ],
-   "bed_contact_mm2": 390.9,
-   "overhang_mm2_gt45": 4001.5,
+   "bed_contact_mm2": 382.6,
+   "overhang_mm2_gt45": 4171.7,
    "orient": "split face down, belly up",
-   "volume_cm3": 16.97,
+   "volume_cm3": 14.16,
    "supports": "tree supports ON, build plate only: the inner roof of the half shell"
   },
   "nose": {
@@ -31,22 +31,22 @@
     26.6
    ],
    "bed_contact_mm2": 242.8,
-   "overhang_mm2_gt45": 462.2,
+   "overhang_mm2_gt45": 463.4,
    "orient": "tip down on the bed (flat \u00d822), spigot up",
-   "volume_cm3": 7.95,
-   "supports": "none (tip down, cone walls under 45 deg)"
+   "volume_cm3": 7.98,
+   "supports": "none (tip down: cone walls under 45 deg, the putty collar has a 45 deg underside)"
   },
   "tray": {
    "print_bbox": [
-    115.1,
-    39.7,
+    123.6,
+    40.8,
     33.9
    ],
-   "bed_contact_mm2": 275.6,
-   "overhang_mm2_gt45": 5664.0,
+   "bed_contact_mm2": 283.4,
+   "overhang_mm2_gt45": 5799.4,
    "orient": "flat underside (z -16: saddle feet, disc bottoms, cradle tubes) on the bed; deck 1 bridges between the saddles and discs, deck 2 between its walls (enable thick bridges)",
-   "volume_cm3": 13.28,
-   "supports": "none (flat underside down: saddle feet, disc bottoms, cradle tubes); deck 1 and deck 2 bridge, enable 'thick bridges'"
+   "volume_cm3": 14.94,
+   "supports": "none (flat underside down: U saddle legs, disc bottoms, cradle tubes, the tail key's web); deck 1 and deck 2 bridge, enable 'thick bridges'"
   },
   "drill_leg_L": {
    "print_bbox": [
@@ -55,9 +55,9 @@
     32.6
    ],
    "bed_contact_mm2": 67.6,
-   "overhang_mm2_gt45": 203.7,
+   "overhang_mm2_gt45": 202.3,
    "orient": "standing on the head's flat rear face (stop face) down, no supports",
-   "volume_cm3": 3.54,
+   "volume_cm3": 3.56,
    "supports": "none (flat-bottomed head, D-bore roof bridges 5 mm)"
   },
   "drill_leg_R": {
@@ -67,9 +67,9 @@
     32.6
    ],
    "bed_contact_mm2": 67.6,
-   "overhang_mm2_gt45": 203.7,
+   "overhang_mm2_gt45": 202.3,
    "orient": "standing on the head's flat rear face (stop face) down, no supports",
-   "volume_cm3": 3.54,
+   "volume_cm3": 3.56,
    "supports": "none (flat-bottomed head, D-bore roof bridges 5 mm)"
   },
   "drill_leg_L_auger": {
@@ -103,9 +103,9 @@
     6.4
    ],
    "bed_contact_mm2": 108.3,
-   "overhang_mm2_gt45": 54.5,
+   "overhang_mm2_gt45": 52.7,
    "orient": "lying on its D flat (layers along the axle), PPA-CF",
-   "volume_cm3": 0.91,
+   "volume_cm3": 0.93,
    "supports": "PPA-CF (hardened nozzle, dried filament), lying on the D flat, no supports; PLA only as a stopgap"
   },
   "coupler_R": {
@@ -115,9 +115,9 @@
     6.4
    ],
    "bed_contact_mm2": 108.3,
-   "overhang_mm2_gt45": 54.5,
+   "overhang_mm2_gt45": 52.7,
    "orient": "lying on its D flat (layers along the axle), PPA-CF",
-   "volume_cm3": 0.91,
+   "volume_cm3": 0.93,
    "supports": "PPA-CF (hardened nozzle, dried filament), lying on the D flat, no supports; PLA only as a stopgap"
   },
   "pod_cap_L": {
@@ -151,10 +151,10 @@
     12.1
    ],
    "bed_contact_mm2": 251.0,
-   "overhang_mm2_gt45": 464.1,
-   "orient": "upside down (the blade crown on the bed, cheeks up), tree supports under the ends of the pad arch",
-   "volume_cm3": 4.36,
-   "supports": "upside down (the blade crown on the bed, cheeks up); tree supports under the two ends of the pad arch only; 4 walls"
+   "overhang_mm2_gt45": 463.2,
+   "orient": "upside down (the blade crown on the bed, cheeks up), brim 5 mm (the crown touches the bed along a 5 mm strip only), tree supports under the ends of the pad arch",
+   "volume_cm3": 4.37,
+   "supports": "upside down (the blade crown on the bed, cheeks up); BRIM 5 mm (the crown touches the bed along a 5 mm strip only); tree supports under the two ends of the pad arch only; 4 walls"
   },
   "leg_coupler_L": {
    "print_bbox": [
@@ -163,9 +163,9 @@
     5.5
    ],
    "bed_contact_mm2": 22.2,
-   "overhang_mm2_gt45": 15.4,
+   "overhang_mm2_gt45": 14.5,
    "orient": "lying on its D flat, PPA-CF",
-   "volume_cm3": 0.14,
+   "volume_cm3": 0.15,
    "supports": "PPA-CF, lying on the D flat, no supports"
   },
   "leg_coupler_R": {
@@ -175,9 +175,9 @@
     5.5
    ],
    "bed_contact_mm2": 22.2,
-   "overhang_mm2_gt45": 15.4,
+   "overhang_mm2_gt45": 14.5,
    "orient": "lying on its D flat, PPA-CF",
-   "volume_cm3": 0.14,
+   "volume_cm3": 0.15,
    "supports": "PPA-CF, lying on the D flat, no supports"
   },
   "leg_plug_L": {
@@ -244,7 +244,7 @@
    ],
    "extent_mm": [
     230,
-    98.9
+    100.0
    ]
   }
  }

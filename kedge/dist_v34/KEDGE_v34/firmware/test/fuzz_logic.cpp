@@ -1,4 +1,4 @@
-// Deterministic randomized property test (fuzz) of the KEDGE dart logic (kedge_logic.h v4).
+// Deterministic randomized property test (fuzz) of the KEDGE dart logic (kedge_logic.h v4.3, dart v34).
 //
 //   cd firmware/dart/test
 //   g++ -std=c++17 -O2 -Wall -Wextra -I../kedge_dart -o fuzz_logic fuzz_logic.cpp
@@ -9,14 +9,17 @@
 // episode can be replayed alone with full event output: ./fuzz_logic <seed> <episode+1> <episode>.
 //
 // Each episode builds a random plant (battery, read noise and failures, tick jitter, motor currents, auger coupling
-// when the worm of a pair pauses, soil end positions), a random command stream (held keys, stop, auto, release, arm,
-// speed, link loss, IMU traces with real flights, bench handling, drops and knocks) and, in chaos episodes, injected
-// faults (open wire, jams, rail sag, INA219 dead or failing, short circuit, IMU silent). About a third of the episodes
-// are nominal missions (no injected faults, nominal currents) that must anchor and release.
+// when the worm of a pair pauses, soil end positions, the rest pose: belly down, on a flank or belly up, and how the
+// righting leg and the pods move it), a random command stream (held keys, stop, auto, release, arm, speed, link loss,
+// IMU traces with real flights, bench handling, drops and knocks) and, in chaos episodes, injected faults (open wire,
+// jams, rail sag, INA219 dead or failing, short circuit, IMU silent, a leg that cannot lift the dart or meets nothing,
+// pods that cannot roll it). About a third of the episodes are nominal missions (no injected faults, nominal currents,
+// any rest pose) that must right themselves, anchor and release.
 //
 // Invariants checked on every tick and after every command:
 //   1 hardware off while dir is 0; hardware equals dir except during the worm's 150 ms pair-check pause
-//   2 run limits: manual hold 8 s (2 s without INA219), kick 15.5 s, pods 6 s, whole sequence 35 s
+//   2 run limits: manual hold 8 s (2 s without INA219), leg 15.5 s, pods 6 s (10.3 s in a righting roll, 150 s
+//     milling), whole sequence 240 s / 180 s
 //   3 a motor driven into a hard stop (stalled) is stopped while the INA219 works, as API.md guarantees: within 3.0 s in a
 //     sequence; within 2.5 s in manual when exactly one or two motors ran without change since the stall at speed 150+
 //     (other manual stalls only have the 8 s hold cap of invariant 2 and are reported as information)
@@ -26,7 +29,9 @@
 //   7 phase() is one of the 8 names and consistent with seq, armed, flight and fault (API.md table)
 //   8 every status() and LogJson output is valid JSON (own validator below)
 //   9 auto starts only after /auto or an impact landing while armed with auto
-//  10 nominal episodes: /auto ends anchored with the legs fully out, then /release ends released with legs stowed
+//  10 nominal episodes: /auto ends anchored (belly down, leg folded, pods out), then /release ends released, stowed
+//  11 v34: the pods-and-drills step never starts while the dart is not belly down (attitude known, not forced); the
+//     foot (not wired) is never driven
 #include "kedge_logic.h"
 #include <cstdio>
 #include <cstdlib>
@@ -52,50 +57,54 @@ struct Rng {
 };
 
 // ------------------------------------------------------------------------------------------------------- plant
-// Positions are ms of travel at 7.6 V and full duty. Kick: 0 stowed, ground contact at kickContact, housing on the
-// ground at kickLand (hard stop). Pods: 0 stowed, deployEnd down (hard stops at both ends). Drills reach the soil when
-// the pods pass drillTouch and stall at drillFull (full depth or stone). The foot digs once the kick touches the ground
-// and stalls at footFull. Currents are mA at 8 V and full duty. DRV8833 slow decay: a stalled motor's supply current
-// goes as duty^2, a turning motor's (free, pushing, digging: torque-limited) as duty; both scale with V/8.
+// Positions are ms of travel at 7.6 V and full duty. Leg (the KICK channel): 0 folded, legEnd its far stop (both hard
+// stops). Pods: 0 stowed, deployEnd down (hard stops at both ends). Drills reach the soil when the pods pass drillTouch
+// and stall at drillFull (full depth or stone). No foot (draws nothing). Rest pose up: 0 belly down, 1 on a flank
+// (flankTilt deg), 2 belly up. Belly up, the leg meets the ground at legLift and lifts the dart (kPush); at legOver it
+// goes over onto a flank (or its belly: flipTo). On a flank, the pods going down push (dPush) and roll it onto its belly
+// after rollSpan of travel. Injected: legCant (stalls lifting), legLift huge (meets nothing), rollStuck (pods stall).
+// Currents are mA at 8 V and full duty. DRV8833 slow decay: a stalled motor's supply current goes as duty^2, a turning
+// motor's (free, pushing, digging: torque-limited) as duty; both scale with V/8.
 struct Plant {
   float vbat = 7.6f, rint = 0.1f, noise = 0; double readFail = 0; int maxFailRun = 1000, failRun = 0;   // nominal: isolated failures only
-  float kFree = 30, kPush = 80, kStall = 180, dFree = 30, dStall = 180;
-  float drFree = 70, drDig = 400, drStall = 700, fFree = 40, fDig = 130, fStall = 550;
-  float cDrill = 0, cFoot = 0;                         // auger current change while the worm of its pair is off
+  float kFree = 30, kPush = 80, kStall = 180, dFree = 30, dPush = 70, dStall = 180;
+  float drFree = 70, drDig = 400, drStall = 700;
+  float cDrill = 0;                                    // auger current change while the worm of its pair is off
   float rate[NMOT] = {1, 1, 1, 1};
-  double kickContact = 3000, kickLand = 4300, deployEnd = 1400, drillTouch = 900, drillFull = 3000, footFull = 3000;
-  // injected faults
-  int up = 0;                                          // 0 belly down, 1 on its side, 2 upside down (gravity seen by the BNO085)
+  double legEnd = 3800, legLift = 400, legOver = 2400, deployEnd = 1400, drillTouch = 900, drillFull = 3000, rollSpan = 600, rollFrom = -1;
+  int up = 0, flipTo = 1; float flankTilt = 40; bool legCant = false, rollStuck = false;
   // v4.1 soil (dart-physics 7 Nov): past soilAt the pods only move for soilBurst ms after each (re)start of the deploy
   // motor and only with the drills cutting; otherwise they stall in the soil (the firmware must mill them down)
   double soilAt = -1, soilBurst = 300, deployOnT = 0, tNow = 0;
-  bool soilStuck() const { return soilAt >= 0 && deploy >= soilAt && deploy < deployEnd && (tNow - deployOnT > soilBurst || !(hwDir[DRILLS] > 0 && hwDuty[DRILLS] > 0)); }
-  int openWire = -1; bool noGround = false, drillJam = false, footJam = false, inaDead = false, shortOn = false, kickStrip = false;   // strip: gear slips
+  bool soilStuck() const { return up == 0 && soilAt >= 0 && deploy >= soilAt && deploy < deployEnd && (tNow - deployOnT > soilBurst || !(hwDir[DRILLS] > 0 && hwDuty[DRILLS] > 0)); }   // belly down only
+  int openWire = -1; bool drillJam = false, inaDead = false, shortOn = false, kickStrip = false;   // strip: gear slips
   double kickJamFwd = -1, kickJamBack = -1, deployJamFwd = -1; float sagV = 0; double burstFail = 0;
   // state
-  int hwDir[NMOT] = {0, 0, 0, 0}, hwDuty[NMOT] = {0, 0, 0, 0};
-  double kick = 0, deploy = 0, drillDepth = 0, footDepth = 0;
+  int hwDir[NMOT] = {0, 0, 0, 0}, hwDuty[NMOT] = {0, 0, 0, 0}; long footDriven = 0;
+  double kick = 0, deploy = 0, drillDepth = 0;
   float railNow = 7.6f, railCache = -1, total = 0;
 
   bool hwOn(int m) const { return hwDir[m] != 0 && hwDuty[m] > 0; }
+  bool lifting() const { return up == 2 && kick >= legLift; }
+  bool rolling() const { return up == 1 && rollFrom >= 0; }
   bool stalledDir(int m, int d) const {
     if (m == KICK && kickStrip) return false;          // a stripped gear spins free and never reaches a stop
     switch (m) {
-      case KICK: return d > 0 ? (kick >= kickLand || (kickJamFwd >= 0 && kick >= kickJamFwd)) : d < 0 ? (kick <= 0 || (kickJamBack >= 0 && kick <= kickJamBack)) : false;
-      case DEPLOY: return d > 0 ? (deploy >= deployEnd || soilStuck() || (deployJamFwd >= 0 && deploy >= deployJamFwd)) : d < 0 ? deploy <= 0 : false;
+      case KICK: return d > 0 ? (kick >= legEnd || (kickJamFwd >= 0 && kick >= kickJamFwd) || (legCant && lifting())) : d < 0 ? (kick <= 0 || (kickJamBack >= 0 && kick <= kickJamBack)) : false;
+      case DEPLOY: return d > 0 ? (deploy >= deployEnd || soilStuck() || (deployJamFwd >= 0 && deploy >= deployJamFwd) || (rollStuck && rolling() && deploy >= rollFrom + 80)) : d < 0 ? deploy <= 0 : false;
       case DRILLS: return d > 0 ? (deploy >= drillTouch && drillDepth >= drillFull) : d < 0 ? drillJam : false;
-      case FOOT: return d > 0 ? (kick >= kickContact && footDepth >= footFull) : d < 0 ? footJam : false;
+      case FOOT: return false;
     }
     return false;
   }
   float baseMa(int m) const {
-    if (!hwOn(m) || m == openWire) return 0;
+    if (!hwOn(m) || m == openWire || m == FOOT) return 0;
     int d = hwDir[m];
-    if (stalledDir(m, d)) return m == KICK ? kStall : m == DEPLOY ? dStall : m == DRILLS ? drStall : fStall;
+    if (stalledDir(m, d)) return m == KICK ? kStall : m == DEPLOY ? dStall : drStall;
     if (m == KICK && kickStrip) return kFree;
     switch (m) {
-      case KICK: return (d > 0 && kick >= kickContact) ? kPush : kFree;
-      case DEPLOY: return dFree;
+      case KICK: return (d > 0 && lifting()) ? kPush : kFree;
+      case DEPLOY: return (d > 0 && rolling()) ? dPush : dFree;
       case DRILLS: {
         bool soil = deploy >= drillTouch;
         if (d > 0 && soil) {
@@ -105,16 +114,6 @@ struct Plant {
         }
         if (d < 0 && soil && drillDepth > 0) return 0.6f * drDig;
         return drFree;
-      }
-      case FOOT: {
-        bool soil = kick >= kickContact;
-        if (d > 0 && soil) {
-          float c = fFree + (fDig - fFree) * (float)fmin(1.0, 0.35 + footDepth / 400.0);
-          if (!hwOn(KICK) && kick < kickLand) c *= 1 + cFoot;           // the kick stops pressing the foot down
-          return c;
-        }
-        if (d < 0 && soil && footDepth > 0) return 0.6f * fDig;
-        return fFree;
       }
     }
     return 0;
@@ -134,25 +133,25 @@ struct Plant {
     if (dt <= 0) return;
     electrical();
     for (int m = 0; m < NMOT; m++) {
-      if (!hwOn(m) || m == openWire) continue;
-      int d = hwDir[m]; if (stalledDir(m, d) || (m == KICK && kickStrip)) continue;
+      if (!hwOn(m) || m == openWire || m == FOOT) continue;
+      int d = hwDir[m];
+      if (m == DEPLOY && d > 0 && up == 1 && rollFrom < 0) rollFrom = deploy;   // the pods meet the ground and push
+      if (stalledDir(m, d) || (m == KICK && kickStrip)) continue;
       double v = rate[m] * (hwDuty[m] / 255.0) * (railNow / 7.6) * dt;
       switch (m) {
         case KICK:
-          if (d > 0) { double lim = kickLand; if (kickJamFwd >= 0 && kickJamFwd < lim) lim = kickJamFwd; if (kick < lim) kick = fmin(kick + v, lim); }
+          if (d > 0) { double lim = legEnd; if (kickJamFwd >= 0 && kickJamFwd < lim) lim = kickJamFwd; if (legCant && up == 2 && legLift < lim) lim = legLift; if (kick < lim) kick = fmin(kick + v, lim); }
           else { double lo = kickJamBack >= 0 ? kickJamBack : 0; if (kick > lo) kick = fmax(kick - v, lo); }
-          if (kick < kickContact) footDepth = 0;       // foot lifted off the ground
+          if (up == 2 && !legCant && kick >= legLift && kick >= legOver) { up = flipTo; rollFrom = -1; }   // over it goes
           break;
         case DEPLOY:
           if (d > 0) { double lim = deployEnd; if (deployJamFwd >= 0 && deployJamFwd < lim) lim = deployJamFwd; if (deploy < lim) deploy = fmin(deploy + v, lim); }
-          else if (deploy > 0) deploy = fmax(deploy - v, 0.0);
+          else { if (deploy > 0) deploy = fmax(deploy - v, 0.0); rollFrom = -1; }   // pods lifting: a roll part way falls back
           if (deploy < drillTouch) drillDepth = 0;     // augers lifted out of the soil
+          if (rolling() && !rollStuck && deploy - rollFrom >= rollSpan) { up = 0; rollFrom = -1; }   // rolled onto its belly
           break;
         case DRILLS:
           if (deploy >= drillTouch) drillDepth = d > 0 ? fmin(drillDepth + v, drillFull) : fmax(drillDepth - 1.2 * v, 0.0);
-          break;
-        case FOOT:
-          if (kick >= kickContact) footDepth = d > 0 ? fmin(footDepth + v, footFull) : fmax(footDepth - 1.2 * v, 0.0);
           break;
       }
     }
@@ -176,7 +175,7 @@ static uint64_t SEED = 0; static int EPI = 0; static bool VERBOSE = false, NOMIN
 static long TICKS = 0, EP_TICKS = 0, CMDS = 0, EPISODES = 0, NOMINAL = 0; static double SIM_MS = 0;
 static long VIOL[12], VIOLN[12], CHECKS[12];   // VIOLN: violations inside nominal missions
 struct Stats { long launches = 0, impactLandings = 0, fallbackLandings = 0, autoByCmd = 0, autoByLanding = 0, anchored = 0, released = 0,
-               nomAnch = 0, nomRel = 0, stallStops = 0, pairPauses = 0, holdsCapped = 0, faults[F_NFAULT] = {}, maxRun[4] = {};
+               nomAnch = 0, nomRighted = 0, nomRel = 0, stallStops = 0, pairPauses = 0, holdsCapped = 0, faults[F_NFAULT] = {}, maxRun[4] = {};
                long pushArmed = 0, pushMissed = 0, jsonStatus = 0, jsonLog = 0; float pushLongestMissed = 0;
                long manOutside = 0, manOutsideOver = 0; uint32_t manOutsideMax = 0; long knownPods = 0; uint32_t knownPodsMax = 0; long knownLow = 0, depthLimited = 0; } ST;
 
@@ -201,7 +200,7 @@ static void dumpEvents(int n) {
 static const char* INV_NAME[12] = {"", "hardware matches dir (pause only)", "run time limits", "stall stopped (seq 3.0 s, manual 2.5 s)",
   "stop() turns all off at once", "no motor while a fault is latched", "no motor in FLIGHT", "phase valid and consistent",
   "status / flightlog JSON valid", "auto only after /auto or impact landing", "nominal auto and release complete",
-  "no ANCHORED: no ground, kick swung from stowed"};
+  "v34: no deploy unless belly down, no foot"};
 struct SigInfo { long n, nNom; uint64_t seed; int ep; uint32_t t; std::string msg; };
 static std::map<std::string, SigInfo> SIGS; static bool DUMPED[12]; static int ONELINERS = 0;
 static void violate(int inv, const std::string& sig, const char* fmt, ...) {
@@ -288,7 +287,7 @@ struct JsonV {
 static bool validJson(const char* s, size_t n) { JsonV j{s, s + n}; if (!j.val(0)) return false; j.ws(); return j.p == j.e; }
 
 // ------------------------------------------------------------------------------------------------------- io callbacks
-static void setM(int m, int d, int duty) { if (m >= 0 && m < NMOT) { if (m == DEPLOY && (duty ? d : 0) != (P.hwDuty[m] ? P.hwDir[m] : 0)) P.deployOnT = P.tNow; P.hwDir[m] = d; P.hwDuty[m] = duty; } }
+static void setM(int m, int d, int duty) { if (m >= 0 && m < NMOT) { if (m == DEPLOY && (duty ? d : 0) != (P.hwDuty[m] ? P.hwDir[m] : 0)) P.deployOnT = P.tNow; if (m == FOOT && d && duty) P.footDriven++; P.hwDir[m] = d; P.hwDuty[m] = duty; } }
 static float readCurrent() {
   P.electrical();
   bool fail = R.p(P.readFail + P.burstFail) && P.failRun < P.maxFailRun;
@@ -313,7 +312,7 @@ struct Track {
   // invariant 1: pause
   bool pauseOn = false; int pauseM = -1; uint32_t pauseT0 = 0;
   bool act[11] = {};
-  int lastPhase = -1, lastFault = 0, lastSeqV = IDLE; uint32_t seqChangeT = 0; bool swingFromStow = false;
+  int lastPhase = -1, lastFault = 0, lastSeqV = IDLE; uint32_t seqChangeT = 0; long footSeen = 0; int startUp = 0;
   float maxAccFlight = 0;
   bool linkLost = false, bno = true; uint32_t lastImu = 0;
   int pendingPushCheck = 0; float pushCheckAt = 0, pushLen = 0, pushT0 = 0;   // launch detection info check
@@ -331,7 +330,7 @@ static std::priority_queue<Act, std::vector<Act>, ActCmp> ACTS; static long ACTS
 static int apiPhase() {                                // API.md "Phases" table, first match wins
   if (K.fault) return P_FAULT;
   if (K.seq >= R_DRILL && K.seq <= R_KICK) return P_RELEASING;
-  if (K.seq >= K_SWING && K.seq <= D_AFTER) return P_ANCHORING;
+  if (K.seq >= RT_LEG_OUT && K.seq <= D_AFTER) return P_ANCHORING;
   if (K.flight.flying()) return P_FLIGHT;
   if (K.seq == DONE) return P_ANCHORED;
   bool motor = false; for (int m = 0; m < NMOT; m++) if (K.dir[m]) motor = true;
@@ -398,8 +397,11 @@ static void checkAll(bool afterStop) {
     if (ph != T.lastPhase) { evlog("phase %s (seq '%s')", phaseName(ph), seqName(K.seq)); T.lastPhase = ph; }
   }
   if (K.armed != T.lastArmed) { T.lastArmed = K.armed; if (K.armed) T.armChangeT = ET; }
-  if (K.seq != T.lastSeqV && K.seq == K_SWING) T.swingFromStow = P.kick < 100;   // the firmware sees the whole swing
-  if (K.seq != T.lastSeqV && K.seq == DONE && T.swingFromStow) { CHECKS[11]++; if (P.noGround) violate(11, "anchored with no ground under the kick", "seq anchored with no ground (kick end stop at %.0f, kick at %.0f), last event '%s'", P.kickLand, P.kick, K.lastEvent); }
+  // 11: the pods-and-drills step starts only with the dart belly down (when the firmware can read its attitude and was
+  // not forced), and the foot (not wired on v34) is never driven
+  if (K.seq != T.lastSeqV && K.seq == D_DEPLOY) { CHECKS[11]++;
+    if (P.up != 0 && K.tiltKnown(NOWA()) && !K.forceAnchor) violate(11, "deploy started while not belly down", "pods + drills started with the dart %s (tilt read %.0f deg), last event '%s'", P.up == 1 ? "on a flank" : "belly up", K.tiltDeg(), K.lastEvent); }
+  if (P.footDriven != T.footSeen) { CHECKS[11]++; T.footSeen = P.footDriven; violate(11, "foot driven", "the foot channel (not wired on v34) was driven, %s", modeCtx().c_str()); }
   if (K.seq != T.lastSeqV) { if (K.seq == DONE) ST.anchored++; if (K.seq == RELEASED) ST.released++; T.lastSeqV = K.seq; T.seqChangeT = ET; }
   // 2: run limits
   {
@@ -417,7 +419,7 @@ static void checkAll(bool afterStop) {
         else start = T.lastDir[m] != d || T.lastSeq[m] != sq;
         if (start) { T.segDir[m] = d; T.segSeq[m] = sq; T.segStart[m] = ET; T.segIna[m] = false; T.segFlag[m] = false; T.hadSeg[m] = true; }
         if (K.inaOk) T.segIna[m] = true;
-        uint32_t lim = sq ? (m == KICK ? K.tu.kickMaxMs + K.tu.kickPlantMaxMs + 1000 : m == DEPLOY ? (K.milled ? K.tu.deployMaxMs : K.tu.podsPlainMaxMs + 300) : K.tu.autoMaxMs) : (T.segIna[m] ? 8000u : 2000u);
+        uint32_t lim = sq ? (m == KICK ? K.tu.kickMaxMs + 500 : m == DEPLOY ? (K.milled ? K.tu.deployMaxMs : K.seq == RT_PODS ? K.tu.rollMaxMs + 300 : K.tu.podsPlainMaxMs + 300) : K.tu.autoMaxMs) : (T.segIna[m] ? 8000u : 2000u);
         uint32_t run = ET - T.segStart[m];
         if (run > ST.maxRun[m]) ST.maxRun[m] = run;
         if (!T.segFlag[m] && run > lim + 15) {   // one jittered tick (up to 7 ms) plus the sample boundary
@@ -466,19 +468,16 @@ static void checkAll(bool afterStop) {
       // 464 mA dig (19 mA) against a 24 mA margin
       auto overMargin = [&](float c, float dig, float stall) { float mg = stall * P.railNow / 7.6f - K.tu.stallMa[m] * K.vScale(); return c > 0.05f || (c > 0 && c * dig > 0.5f * mg); };
       bool knownPods = m == DEPLOY && (K.seq == D_DEPLOY || K.seq == R_PODS) && overMargin(P.cDrill, P.drDig, P.dStall);
-      // the same known limit for the kick while planting (API.md): jammed part way into the ground while the foot's
-      // current rises during each kick pause. Bounded by kickPlantMaxMs + 0.5 s (found by seed 3, episode 740)
-      if (m == KICK && K.seq == K_PLANT && d > 0 && overMargin(P.cFoot, P.fDig, P.kStall)) knownPods = true;
-      if (knownPods) limit = (m == KICK ? K.tu.kickPlantMaxMs : K.tu.deployMaxMs) + 500;
+      if (knownPods) limit = K.tu.deployMaxMs + 500;
       // v4.1 milling (API.md): in the anchor's pods step a pods stall before half the estimated travel is taken as soil and
       // pushed again in pulses; on the release way up the same before 60 % back. Bounded by millNoProgressMs + a cycle
       bool milling = m == DEPLOY && (K.seq == D_DEPLOY || K.seq == R_PODS) && (K.milled || K.millPause);
       if (milling && !knownPods) limit = K.tu.millNoProgressMs + 2000;
       // documented tuning rule (BENCH_TEST step 10): the stall line is 80 % of the measured stall. A plant whose stall is
       // within 10 % of the line is outside it: coupling and noise can hide the stall. Still bounded by the step limit
-      float plantStall = m == KICK ? P.kStall : m == DEPLOY ? P.dStall : m == DRILLS ? P.drStall : P.fStall;
+      float plantStall = m == KICK ? P.kStall : m == DEPLOY ? P.dStall : P.drStall;
       bool knownLow = plantStall < 1.10f * K.tu.stallMa[m];   // manual too (seed 2 ep 571: pods stall 161 vs line 150)
-      if (knownLow && !knownPods) limit = sq ? std::max(K.tu.kickPlantMaxMs, K.milled ? K.tu.deployMaxMs : K.tu.podsPlainMaxMs) + 500 : K.tu.manualMaxMs + 500;
+      if (knownLow && !knownPods) limit = sq ? std::max(std::max(K.tu.kickMaxMs, K.tu.rollMaxMs), K.milled ? K.tu.deployMaxMs : K.tu.podsPlainMaxMs) + 500 : K.tu.manualMaxMs + 500;
       // soil episodes with the pods travel unknown (no milling then): a pods stop reached between auger bursts is bounded by
       // the plain 6 s pods limit (documented with the pair-check limits)
       if (m == DEPLOY && K.seq == D_DEPLOY && P.soilAt >= 0 && !K.deployKnown) limit = K.tu.podsPlainMaxMs + 500;
@@ -494,8 +493,8 @@ static void checkAll(bool afterStop) {
       }
       if (!T.stallFlag[m] && T.stallGood[m] && covered && ET - T.stallT0[m] > limit + 15) {   // one jittered tick + the sample boundary, as invariant 2 (seed 5 ep 6167: 3007 ms)
         T.stallFlag[m] = true;
-        const char* where = m == KICK ? (d > 0 ? (P.kick >= P.kickLand ? "housing on the ground" : "jammed going out") : (P.kick <= 0 ? "stowed stop" : "jammed going back"))
-                          : m == DEPLOY ? (d > 0 ? (P.deploy >= P.deployEnd ? "pods-down stop" : "jammed going down") : "pods-up stop")
+        const char* where = m == KICK ? (d > 0 ? (P.kick >= P.legEnd ? "leg far stop" : P.legCant && P.lifting() ? "leg cannot lift the dart" : "jammed going out") : (P.kick <= 0 ? "leg fold stop" : "jammed going back"))
+                          : m == DEPLOY ? (d > 0 ? (P.deploy >= P.deployEnd ? "pods-down stop" : P.rollStuck && P.rolling() ? "pods cannot roll the dart" : "jammed going down") : "pods-up stop")
                           : m == DRILLS ? (d > 0 ? "full depth / stone" : "jammed unscrewing") : (d > 0 ? "full depth / stone" : "jammed unscrewing");
         // relative to the step now running: was the worm already stalled when it began, or how soon after
         int32_t into = (int32_t)(T.stallT0[m] - T.seqChangeT);
@@ -508,8 +507,8 @@ static void checkAll(bool afterStop) {
                    sp == 255 ? "255" : sp >= 150 ? "150..230" : "50..125");
           ctx = b;
         }
-        violate(3, std::string(motorName(m)) + " at " + where + ", " + ctx, "%s (dir %d) at %s still driven %u ms after it stalled, %s%s, V %.2f, dir %d %d %d %d, coupling drills %+.0f%% foot %+.0f%%",
-                motorName(m), d, where, ET - T.stallT0[m], modeCtx().c_str(), when, P.railNow, K.dir[0], K.dir[1], K.dir[2], K.dir[3], P.cDrill * 100, P.cFoot * 100);
+        violate(3, std::string(motorName(m)) + " at " + where + ", " + ctx, "%s (dir %d) at %s still driven %u ms after it stalled, %s%s, V %.2f, dir %d %d %d %d, coupling drills %+.0f%%",
+                motorName(m), d, where, ET - T.stallT0[m], modeCtx().c_str(), when, P.railNow, K.dir[0], K.dir[1], K.dir[2], K.dir[3], P.cDrill * 100);
       }
     } else {
       if (T.stallOn[m] && !d) ST.stallStops++;
@@ -528,8 +527,8 @@ struct AutoWatch {
     if (flying && K.flight.st == Flight::LANDED) { if (K.flight.fallback()) ST.fallbackLandings++; else if (!strcmp(K.flight.how, "impact")) ST.impactLandings++; }
     if (anch || !K.anchoring()) return;
     CHECKS[9]++;
-    int o = K.orient(NOWA());                          // v4.1: never by itself on its side or upside down
-    bool landing = armed && autoOn && flying && K.flight.st == Flight::LANDED && strcmp(K.flight.how, "impact") == 0 && T.maxAccFlight > K.flight.impactG && o != O_SIDE && o != O_INVERTED;
+    int o = K.orient(NOWA());                          // v4.3: on its side or back too (the auto rights it first)
+    bool landing = armed && autoOn && flying && K.flight.st == Flight::LANDED && strcmp(K.flight.how, "impact") == 0 && T.maxAccFlight > K.flight.impactG;
     if (autoCmdOk) ST.autoByCmd++;
     else if (landing) ST.autoByLanding++;
     else violate(9, "auto without /auto or impact landing", "anchor sequence started (seq '%s') without /auto: armed %d auto %d flying %d landing '%s' peak after minFlightMs %.2f g orient %s",
@@ -725,16 +724,16 @@ static void doRandomCmd() {
 }
 
 // ------------------------------------------------------------------------------------------------------- faults
-enum { X_OPEN, X_KJAM, X_KJAMB, X_DJAM, X_DRJAM, X_FJAM, X_SAG, X_SAGMILD, X_INADEAD, X_BURST, X_SHORT, X_STONE, X_IMUDEAD, X_STRIP, X_N };
+enum { X_OPEN, X_KJAM, X_KJAMB, X_DJAM, X_DRJAM, X_LEGCANT, X_SAG, X_SAGMILD, X_INADEAD, X_BURST, X_SHORT, X_STONE, X_IMUDEAD, X_STRIP, X_N };
 static void applyAct(const Act& a) {
   char b[120] = "";
   switch (a.kind) {
     case X_OPEN: P.openWire = a.clear ? -1 : a.a; snprintf(b, sizeof b, "open wire on %s", motorName(a.a)); break;
-    case X_KJAM: P.kickJamFwd = a.clear ? -1 : R.r(300, P.kickLand - 50); snprintf(b, sizeof b, "kick jammed going out at %.0f", P.kickJamFwd); break;
-    case X_KJAMB: P.kickJamBack = a.clear ? -1 : R.r(100, P.kickLand - 200); snprintf(b, sizeof b, "kick jammed going back at %.0f", P.kickJamBack); break;
+    case X_KJAM: P.kickJamFwd = a.clear ? -1 : R.r(300, P.legEnd - 50); snprintf(b, sizeof b, "leg jammed going out at %.0f", P.kickJamFwd); break;
+    case X_KJAMB: P.kickJamBack = a.clear ? -1 : R.r(100, P.legEnd - 200); snprintf(b, sizeof b, "leg jammed going back at %.0f", P.kickJamBack); break;
     case X_DJAM: P.deployJamFwd = a.clear ? -1 : R.r(200, P.deployEnd - 50); snprintf(b, sizeof b, "pods jammed going down at %.0f", P.deployJamFwd); break;
     case X_DRJAM: P.drillJam = !a.clear; snprintf(b, sizeof b, "drills jam when unscrewing"); break;
-    case X_FJAM: P.footJam = !a.clear; snprintf(b, sizeof b, "foot jams when unscrewing"); break;
+    case X_LEGCANT: P.legCant = !a.clear; snprintf(b, sizeof b, "leg cannot lift the dart (stalls on the ground)"); break;
     case X_SAG: P.sagV = a.clear ? 0 : (float)R.r(4.5, 5.5); snprintf(b, sizeof b, "rail sag to %.2f V", P.sagV); break;
     case X_SAGMILD: P.sagV = a.clear ? 0 : (float)R.r(5.65, 6.0); snprintf(b, sizeof b, "mild rail sag to %.2f V", P.sagV); break;
     case X_INADEAD: P.inaDead = !a.clear; snprintf(b, sizeof b, "INA219 dead"); break;
@@ -742,7 +741,7 @@ static void applyAct(const Act& a) {
     case X_SHORT: P.shortOn = !a.clear; snprintf(b, sizeof b, "short circuit (3 A)"); break;
     case X_STONE: P.drillFull = R.r(100, 600); snprintf(b, sizeof b, "stone under the drills at depth %.0f", P.drillFull); break;
     case X_IMUDEAD: T.bno = a.clear; snprintf(b, sizeof b, "BNO085 silent"); break;
-    case X_STRIP: P.kickStrip = !a.clear; snprintf(b, sizeof b, "kick gear stripped (spins free, never moves)"); break;
+    case X_STRIP: P.kickStrip = !a.clear; snprintf(b, sizeof b, "leg gear stripped (spins free, never moves)"); break;
   }
   evlog("inject: %s%s", a.clear ? "cleared: " : "", b);
 }
@@ -783,7 +782,7 @@ static void doTick(uint32_t dt) {
   if (fresh) {
     float th = ET * 0.0003f, q[4] = {cosf(th), 0, 0, sinf(th)}, g = K.accG * 9.81f;
     float v[3] = {0.1f, -0.2f, g};
-    if (P.up == 1) { v[0] = g; v[2] = 0.1f; } else if (P.up == 2) v[2] = -g;   // on its side / upside down
+    if (P.up == 1) { float r = P.flankTilt * 0.0174533f; v[0] = 0.1f; v[1] = g * sinf(r); v[2] = g * cosf(r); } else if (P.up == 2) v[2] = -g;   // on a flank / belly up
     K.imuSample(now, q, v);
   }
   if (T.linkLost) { T.linkLost = false; K.linkLost(now); }
@@ -834,7 +833,7 @@ static void scriptStep() {
       }
       NEXT_SCRIPT = ET + 100; break;
     case S_ANCH:
-      if (K.anchoring() && ET - SS_T0 < 40000) { NEXT_SCRIPT = ET + 100; break; }
+      if (K.anchoring() && ET - SS_T0 < 120000) { NEXT_SCRIPT = ET + 100; break; }
       CHECKS[10]++;
       // soil episodes: the documented limit (API.md) is that a soil stall past about 85 % of the estimated travel (less up to
       // one 0.55 s cycle, so from about 50 %) is taken as the down stop, so there the pods must be at least 50 % out
@@ -842,12 +841,12 @@ static void scriptStep() {
       // v4.2: the deploy guard (drill pair alone over 67 % of its stall) ends the pods where they are: depth_limited
       { bool podsOut = P.deploy >= P.deployEnd || (P.soilAt >= 0 && (P.deploy >= 0.5 * P.deployEnd || !K.deployKnown)) || (K.warn & Kedge::W_DEPTH_LIMIT);
         if (K.warn & Kedge::W_DEPTH_LIMIT) ST.depthLimited++;
-      if (K.seq == DONE && !K.fault && P.kick >= P.kickLand && podsOut) {
-        ST.nomAnch++; SS = S_GAP; RAND_MODE = M_GAP; NEXT_RAND = ET + R.i(100, 1000); NEXT_SCRIPT = ET + R.i(300, 3000);
+      if (K.seq == DONE && !K.fault && P.up == 0 && P.kick <= 0.03 * P.legEnd && podsOut) {   // leg folded (the firmware's "folded" band is 2 % of its swing estimate)
+        ST.nomAnch++; if (T.startUp) ST.nomRighted++; SS = S_GAP; RAND_MODE = M_GAP; NEXT_RAND = ET + R.i(100, 1000); NEXT_SCRIPT = ET + R.i(300, 3000);
       } else {
-        violate(10, std::string("auto ended in '") + seqName(K.seq) + "' fault " + (K.fault ? faultName(K.fault) : "none") + (K.seq == DONE ? ", legs not fully out" : ""),
-                "nominal /auto ended with seq '%s' fault '%s': kick %.0f of %.0f, pods %.0f of %.0f, last event '%s'",
-                seqName(K.seq), faultName(K.fault), P.kick, P.kickLand, P.deploy, P.deployEnd, K.lastEvent);
+        violate(10, std::string("auto ended in '") + seqName(K.seq) + "' fault " + (K.fault ? faultName(K.fault) : "none") + (K.seq == DONE ? (P.up ? ", not belly down" : P.kick > 0.03 * P.legEnd ? ", leg not folded" : ", pods not out") : ""),
+                "nominal /auto ended with seq '%s' fault '%s': rest %d (started %d), leg %.0f of %.0f, pods %.0f of %.0f, last event '%s'",
+                seqName(K.seq), faultName(K.fault), P.up, T.startUp, P.kick, P.legEnd, P.deploy, P.deployEnd, K.lastEvent);
         toTail();
       } }
       break;
@@ -859,7 +858,7 @@ static void scriptStep() {
     case S_REL:
       if (K.releasing() && ET - SS_T0 < 40000) { NEXT_SCRIPT = ET + 100; break; }
       CHECKS[10]++;
-      if (K.seq == RELEASED && !K.fault && P.kick <= 0 && P.deploy <= 0) ST.nomRel++;
+      if (K.seq == RELEASED && !K.fault && P.kick <= 0.03 * P.legEnd && P.deploy <= 0) ST.nomRel++;   // leg: within the firmware's 2 % "folded" band
       else violate(10, std::string("release ended in '") + seqName(K.seq) + "' fault " + (K.fault ? faultName(K.fault) : "none") + (K.seq == RELEASED ? ", legs not stowed" : ""),
                    "nominal /release ended with seq '%s' fault '%s': kick %.0f, pods %.0f, last event '%s'", seqName(K.seq), faultName(K.fault), P.kick, P.deploy, K.lastEvent);
       toTail(); break;
@@ -878,22 +877,23 @@ static void randomPlant(bool nominal) {
   P.kFree = (float)R.r(20, 40); P.kStall = (float)R.r(160, 200); P.kPush = (float)R.r(70, 95);
   P.dFree = (float)R.r(20, 40); P.dStall = (float)R.r(160, 200);
   P.drFree = (float)R.r(60, 80); P.drStall = (float)R.r(650, 750); P.drDig = (float)R.r(150, 480);
-  P.fFree = (float)R.r(35, 50); P.fStall = (float)R.r(500, 600); P.fDig = (float)R.r(90, 160);
-  double c = nominal ? 0.10 : 0.15; P.cDrill = (float)R.r(-c, c); P.cFoot = (float)R.r(-c, c);
+  P.dPush = (float)R.r(50, 95);
+  double c = nominal ? 0.10 : 0.15; P.cDrill = (float)R.r(-c, c);
   for (int m = 0; m < NMOT; m++) P.rate[m] = (float)R.r(0.85, 1.15);
-  P.kickContact = R.r(2000, 3500); P.kickLand = P.kickContact + R.r(1000, 1600);
-  if (nominal) {   // documented geometry (API.md NO_GROUND, BENCH_TEST step 5): on flat ground the housing lands before 80 % of the swing in air
-    double air = K.tu.kickSwingMs * P.rate[KICK] * 8.0 / 7.6;   // the air swing in plant units
-    if (P.kickLand > 0.8 * air) { P.kickLand = 0.8 * air; if (P.kickContact > P.kickLand - 800) P.kickContact = P.kickLand - 800; }
-  }
   P.deployEnd = R.r(1100, 1700); P.drillTouch = P.deployEnd * R.r(0.4, 0.8);
-  P.drillFull = R.r(1500, 6000); P.footFull = R.r(1200, 5000);
+  P.drillFull = R.r(1500, 6000);
   if (R.p(0.3)) { P.soilAt = P.deployEnd * R.r(0.3, 0.45); P.soilBurst = R.r(200, 400); if (P.drillTouch > P.soilAt) P.drillTouch = P.soilAt; P.drillFull = R.r(12000, 20000); }   // augers touch at 38 % (physics); they keep cutting while the pods mill
-  if (!nominal && R.p(0.08)) {   // on its back or side: the kick never touches ground and stops at its own outer end stop,
-    // placed where the firmware's travel count (rate and the 7.6 V plant reference) reads kickSwingMs, within 5 %
-    P.noGround = true; P.kickContact = 1e9; P.kickLand = K.tu.kickSwingMs * R.r(0.95, 1.05) * P.rate[KICK] * 8.0 / 7.6;
-    if (R.p(0.5)) P.up = R.p(0.5) ? 1 : 2; }          // v4.1: half of them the IMU sees it (side or back); the rest: kick check only
-  if (!nominal && R.p(0.3)) { P.kick = R.r(0, P.kickLand); P.deploy = R.r(0, P.deployEnd); }   // legs left anywhere
+  // v34 righting: the rest pose and how the leg and the pods move the dart (the study sim: a leg flip from belly up ends
+  // on a flank about 40 deg off, the pods roll it from there)
+  P.legEnd = R.r(3400, 4200); P.legLift = R.r(200, 900); P.legOver = fmin(P.legLift + R.r(800, 2200), P.legEnd - 200);
+  P.flipTo = R.p(0.7) ? 1 : 0; P.flankTilt = (float)R.r(25, 90); P.rollSpan = R.r(150, 0.6 * P.deployEnd);
+  { double u = R.u(); P.up = u < (nominal ? 0.6 : 0.5) ? 0 : u < (nominal ? 0.8 : 0.75) ? 1 : 2; }
+  if (!nominal) {
+    if (R.p(0.1)) P.legLift = 1e9;                     // belly up in a hollow: the leg meets nothing, swings to its far stop
+    if (R.p(0.1)) P.legCant = true;                    // the leg cannot lift the dart
+    if (R.p(0.1)) P.rollStuck = true;                  // the pods cannot roll it (a stone, a furrow)
+  }
+  if (!nominal && R.p(0.3)) { P.kick = R.r(0, P.legEnd); P.deploy = R.r(0, P.deployEnd); }   // legs left anywhere
 }
 
 static void runEpisode(uint64_t seed, int ep) {
@@ -907,11 +907,13 @@ static void runEpisode(uint64_t seed, int ep) {
   T.bno = NOMINAL_EP ? true : !R.p(0.05);
   K.imuOk = T.bno;
   int bootF = (!NOMINAL_EP && R.p(0.05)) ? (R.p(0.5) ? F_BROWNOUT : F_WATCHDOG) : F_NONE;
-  evlog("episode %d %s: battery %.2f V, Rint %.2f, noise %.1f mA, read fail %.3f, coupling drills %+.0f%% foot %+.0f%%, kick free %.0f push %.0f stall %.0f, "
-        "pods free %.0f stall %.0f, drills free %.0f dig %.0f stall %.0f, foot free %.0f dig %.0f stall %.0f, dart clock %lu", ep, NOMINAL_EP ? "nominal" : "chaos",
-        P.vbat, P.rint, P.noise, P.readFail, P.cDrill * 100, P.cFoot * 100, P.kFree, P.kPush, P.kStall, P.dFree, P.dStall, P.drFree, P.drDig, P.drStall, P.fFree, P.fDig, P.fStall, (unsigned long)BASE);
-  evlog("soil: kick contact %.0f land %.0f, pods end %.0f, drills touch %.0f full %.0f, foot full %.0f, legs at kick %.0f pods %.0f%s%s",
-        P.kickContact, P.kickLand, P.deployEnd, P.drillTouch, P.drillFull, P.footFull, P.kick, P.deploy, T.bno ? "" : ", BNO085 missing", bootF ? ", boot after reset fault" : "");
+  T.startUp = P.up;
+  evlog("episode %d %s: battery %.2f V, Rint %.2f, noise %.1f mA, read fail %.3f, coupling drills %+.0f%%, leg free %.0f push %.0f stall %.0f, "
+        "pods free %.0f push %.0f stall %.0f, drills free %.0f dig %.0f stall %.0f, dart clock %lu", ep, NOMINAL_EP ? "nominal" : "chaos",
+        P.vbat, P.rint, P.noise, P.readFail, P.cDrill * 100, P.kFree, P.kPush, P.kStall, P.dFree, P.dPush, P.dStall, P.drFree, P.drDig, P.drStall, (unsigned long)BASE);
+  evlog("rest %s (flank tilt %.0f), leg lift %.0f over %.0f end %.0f%s%s, pods end %.0f roll %.0f%s, drills touch %.0f full %.0f, legs at leg %.0f pods %.0f%s%s",
+        P.up == 0 ? "belly down" : P.up == 1 ? "on a flank" : "belly up", P.flankTilt, P.legLift, P.legOver, P.legEnd, P.legCant ? " (cannot lift)" : "", P.flipTo ? "" : " (flips to belly)",
+        P.deployEnd, P.rollSpan, P.rollStuck ? " (stuck)" : "", P.drillTouch, P.drillFull, P.kick, P.deploy, T.bno ? "" : ", BNO085 missing", bootF ? ", boot after reset fault" : "");
   K.boot(bootF, NOWA());
   uint32_t dur = 0;
   if (NOMINAL_EP) {
@@ -1005,11 +1007,11 @@ int main(int argc, char** argv) {
          (unsigned long)ST.maxRun[0], (unsigned long)ST.maxRun[1], (unsigned long)ST.maxRun[2], (unsigned long)ST.maxRun[3], ST.jsonStatus, ST.jsonLog);
   printf("faults latched:");
   for (int f = 1; f < F_NFAULT; f++) printf(" %s %ld", faultName(f), ST.faults[f]);
-  printf("\nnominal missions: %ld anchored fully, %ld released stowed (%ld of the anchors depth limited by the v4.2 guard)\n", ST.nomAnch, ST.nomRel, ST.depthLimited);
+  printf("\nnominal missions: %ld anchored fully (%ld of them righted first), %ld released stowed (%ld of the anchors depth limited by the v4.2 guard)\n", ST.nomAnch, ST.nomRighted, ST.nomRel, ST.depthLimited);
   printf("info (not an invariant): manual stalls outside the documented 2.5 s guarantee (3 or 4 motors, motors changing, speed <= 125 or changed): %ld,\n"
          "          %ld of them driven over 2.5 s, longest %lu ms (bounded by the 8 s hold cap, invariant 2)\n", ST.manOutside, ST.manOutsideOver, (unsigned long)ST.manOutsideMax);
-  printf("info (not an invariant): known limit, pods (or the planting kick) stalled with the auger current rising in each pause: %ld driven over 3 s,\n"
-         "          longest %lu ms (bounded by the 6 s pods and kick plant limits, checked in invariant 3)\n", ST.knownPods, (unsigned long)ST.knownPodsMax);
+  printf("info (not an invariant): known limit, pods stalled with the auger current rising in each pause: %ld driven over 3 s,\n"
+         "          longest %lu ms (bounded by the pods step limits, checked in invariant 3)\n", ST.knownPods, (unsigned long)ST.knownPodsMax);
   printf("info (not an invariant): plant stall within 10 %% of the firmware line (outside the 80 %% tuning rule): %ld sequence stalls\n"
          "          driven over 3 s (bounded by the 6 s step limits, checked in invariant 3)\n", ST.knownLow);
   int sweepTrials = quick ? 300 : 2000;

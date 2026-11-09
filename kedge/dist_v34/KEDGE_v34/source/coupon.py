@@ -30,6 +30,23 @@ for cut in (bx(3, 3 + 6.1, 24, 24 + 7.7, -1, H + 1),            # JST-XH 2-pin h
             Pos(50, 28, 0) * (Cylinder(7.25 / 2, 2 * H + 2) - bx(-4, 4, 7.25 / 2 - 0.6, 4, -H - 2, H + 2))):  # pod head D-bore
     row = row - cut
 cap = Pos(70, 28, 0) * (Cylinder(5.0, 1.5, align=(Align.CENTER, Align.CENTER, Align.MIN)) - Cylinder(3.3 / 2, 4, align=(Align.CENTER, Align.CENTER, Align.MIN)).moved(Location((0, 0, -1))))
-c = Compound(children=[plate, peg, bore, spig, row, cap])
+# v34 row (PLA, print FIRST): the press fits. Arm-head D bore 7.05 (flat 2.925 from the axis) and cheek D bore 6.05 (flat 2.525) take the two
+# PPA-CF test pegs below; the 3-pin charge seat 6.05 x 10.2 and the 2-pin seat 6.05 x 7.9 take the JST headers.
+def dbore(d, flat, x, y):
+    return Pos(x, y, 0) * (Cylinder(d / 2, 2 * H + 2) - bx(-d, d, flat, d, -H - 2, H + 2))
+def rrect(w, h, x, y, r=0.4):
+    return Pos(x, y, 0) * extrude(RectangleRounded(w, h, r), amount=2 * H + 2).moved(Location((0, 0, -H - 1)))
+row34 = bx(0, 98, 38, 54, 0, H)
+for cut in (dbore(7.05, 3.525 - 0.6, 10, 46), dbore(6.05, 3.025 - 0.5, 24, 46), rrect(6.05, 10.2, 40, 46), rrect(6.05, 7.9, 52, 46)):
+    row34 = row34 - cut
+# PPA-CF test pegs (fit_coupon_pegs.stl, plate C): Ø7 D peg (flat 2.9, like the pod coupler) and Ø6 D peg (flat 2.5, like the leg coupler),
+# each 10 long with the press-fit stub socket Ø3.05, flat 1.03 from the axis, 6 deep: push the real N20 stub in
+def peg34(d, flat, x):
+    pg = Cylinder(d / 2, 10, align=(Align.CENTER, Align.CENTER, Align.MIN)) - bx(-d, d, flat, d, -1, 11)
+    so = Pos(0, 0, 10 - 6) * (Cylinder(3.05 / 2, 6.1, align=(Align.CENTER, Align.CENTER, Align.MIN)) - bx(-2, 2, 1.03, 2, -1, 8))
+    return Pos(x, 0, 0) * (pg - so)
+pegs = Compound(children=[peg34(7.0, 2.9, 0), peg34(6.0, 2.5, 12)])
+c = Compound(children=[plate, peg, bore, spig, row, cap, row34])
 export_stl(c, f"{PK}/fit_coupon.stl", tolerance=0.02, angular_tolerance=0.15); export_step(c, f"{PK}/fit_coupon.step")
-print("coupon", c.volume/1000, "cm3")
+export_stl(pegs, f"{PK}/fit_coupon_pegs.stl", tolerance=0.01, angular_tolerance=0.1); export_step(pegs, f"{PK}/fit_coupon_pegs.step")
+print("coupon", c.volume/1000, "cm3; pegs", pegs.volume / 1000, "cm3")

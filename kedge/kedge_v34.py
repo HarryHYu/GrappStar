@@ -842,7 +842,7 @@ add("tray", tray, "hull", "#c9b37e", orient="flat underside (z -16: saddle feet,
 
 # ================================================================== RIGHTING LEG part + its couplers
 add("righting_leg", LEG_BODY, "legs", "#e07b39", pos=(LX, 0, LZ), axis="y", deg=(0, P["LEG_DEG"]), sgn=-1, joint="leg",
-    orient="on its side (blade edge down, cheeks flat), tree supports under the pad arch only",
+    orient="upside down (the blade crown on the bed, cheeks up), tree supports under the ends of the pad arch",
     note="Righting leg (PLA): a slim blade %g wide whose top is the hull crown (flush in the dorsal groove), an arch pad that is a patch of the hull skin on the tail top (%.0f wide), and a fork root: two round cheeks on the two Ø6 couplers in the side pockets, tines curving aft into a bridge that swings over the knuckle. Swing 0 to %g deg over the nose (far rest %g); hinge %g from the nose tip, pad centre %.0f from the hinge. M3 grub screw in each cheek top locks its coupler" % (P["LEG_W"], 2 * R * math.sin(math.radians(P["PAD_DEG"])), P["LEG_DEG"], P["LEG_DEG"] + P["LEG_REST_DEG"], LX, (LEG_PX0 + LEG_PX1) / 2))
 for nm, s in (("leg_coupler_L", 1), ("leg_coupler_R", -1)):
     y0, y1 = sorted((s * (KN_Y + 0.15), s * (P["PK_Y1"] + 0.95)))

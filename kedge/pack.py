@@ -18,6 +18,12 @@ if "tail_boom" in PP:                     # v32: arms stand on the head's flat f
     ORIENT.update({"drill_leg_L": RM(-math.pi / 2, Y), "drill_leg_R": RM(-math.pi / 2, Y)})
 if J["P"].get("FOOT_TILT"):               # v32c: the foot auger is stored tilted with its housing; stand it back on its base
     ORIENT["foot_auger"] = RM(-math.radians(J["P"]["FOOT_TILT"]), Y)
+if "righting_leg" in PP:                  # v34: rear pods folded forward (mirrored arms and augers), righting leg, skin plugs
+    ORIENT.update({"drill_leg_L": RM(math.pi / 2, Y), "drill_leg_R": RM(math.pi / 2, Y),          # stand on the head's flat rear (stop) face
+                   "drill_leg_L_auger": RM(math.pi / 2, Y), "drill_leg_R_auger": RM(math.pi / 2, Y),  # point up
+                   "righting_leg": RM(math.pi, X),                                                  # upside down: the crown strip on the bed, cheeks up
+                   "leg_coupler_L": RM(math.pi, X), "leg_coupler_R": RM(math.pi, X),                 # lying on the D flat
+                   "leg_plug_L": RM(math.pi / 2, X), "leg_plug_R": RM(-math.pi / 2, X)})             # flat inner face down
 ORIENT = {k: v for k, v in ORIENT.items() if k in PP}          # older builds have no pod caps
 SUPPORT = {   # what the slicer must do (Bambu Studio, PLA, 0.4 nozzle, 0.2 layers)
     "hull_top": "tree supports ON, build plate only: the inner roof of the half shell (about 28 mm wide strip); pivot blocks, saddle and ear print without (arc outlines, 45 deg undersides)",
@@ -31,6 +37,12 @@ SUPPORT = {   # what the slicer must do (Bambu Studio, PLA, 0.4 nozzle, 0.2 laye
     "drill_leg_L_tip": "none (spigot down)", "drill_leg_R_tip": "none (spigot down)",
     "tail_boom": "PPA-CF, lying on its side, no supports (the shank bridges 12 mm)", "boom_anchor": "PPA-CF, flat, no supports",
 }
+SUPPORT.update({"righting_leg": "upside down (the blade crown on the bed, cheeks up); tree supports under the two ends of the pad arch only; 4 walls",
+                "leg_coupler_L": "PPA-CF, lying on the D flat, no supports", "leg_coupler_R": "PPA-CF, lying on the D flat, no supports",
+                "leg_plug_L": "none (flat inner face down)", "leg_plug_R": "none (flat inner face down)",
+                "tray": "none (flat underside down: saddle feet, disc bottoms, cradle tubes); deck 1 and deck 2 bridge, enable 'thick bridges'"})
+if "righting_leg" in PP:
+    SUPPORT["hull_top"] = "tree supports ON, build plate only: the inner roof of the half shell and under the knuckle and groove floors; the pivot blocks print without (arc outlines)"
 QTY = {k: 1 for k in ORIENT}
 def load(n):
     z = np.load(f"{OUT}/{n}.npz"); return trimesh.Trimesh(z["v"], z["f"], process=False)
@@ -54,7 +66,9 @@ for n, m in oriented.items():
 # plates (X2D bed: use a 240 x 240 safe area)
 PLATES = {"plate_A_hull": [n for n in ["hull_top", "hull_bottom", "nose", "tail_cap", "pod_cap_L", "pod_cap_R", "drill_leg_L_tip", "drill_leg_R_tip"] + ([] if "pod_cap_L" in ORIENT else ["coupler_L", "coupler_R"]) if n in ORIENT],
           **({"plate_C_couplers_PPA-CF": [n for n in ["coupler_L", "coupler_R", "tail_boom", "boom_anchor"] if n in ORIENT]} if "pod_cap_L" in ORIENT else {}),
-          "plate_B_legs_tray": ["tray", "kick_leg", "drill_leg_L", "drill_leg_R", "drill_leg_L_auger", "drill_leg_R_auger", "foot_auger"]}
+          "plate_B_legs_tray": [n for n in ["tray", "kick_leg", "righting_leg", "drill_leg_L", "drill_leg_R", "drill_leg_L_auger", "drill_leg_R_auger", "foot_auger", "leg_plug_L", "leg_plug_R"] if n in ORIENT]}
+if "righting_leg" in PP:
+    PLATES["plate_C_couplers_PPA-CF"] = [n for n in ["coupler_L", "coupler_R", "leg_coupler_L", "leg_coupler_R"] if n in ORIENT]
 plate_info = {}
 for pn, names in PLATES.items():
     sc = trimesh.Scene(); x = y = 0; rowh = 0; placed = []

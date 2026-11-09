@@ -23,7 +23,8 @@ timeout 2400 $PY launcher_fit.py $OUT out30 > $OUT.fit.log 2>&1 || true; tail -1
 timeout 1200 $PY clearance.py $OUT > $OUT.clear.log 2>&1; head -12 $OUT.clear.log
 timeout 300 $PY meshes.py $OUT
 timeout 900 node shots.js $OUT && $PY sheet.py $OUT
-timeout 900 node review.js $OUT && $PY montage.py $OUT/review $OUT/review_montage.png || true
+REV=review.js; [ "$GEN" = kedge_v34.py ] && REV=review34.js
+timeout 900 node $REV $OUT && $PY montage.py $OUT/review $OUT/review_montage.png || true
 timeout 900 $PY pack.py $OUT pack_$V > $OUT.pack.log 2>&1; tail -16 $OUT.pack.log
 $PY massprops.py $OUT > $OUT.mass.log 2>&1 || tail -5 $OUT.mass.log
 $PY stepcheck.py pack_$V > $OUT.step.log 2>&1; tail -1 $OUT.step.log

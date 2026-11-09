@@ -21,11 +21,11 @@ const srv = http.createServer((q, s) => {
   const az = [0, 45, 90, 135, 180, 225, 270, 315].map(a => a * Math.PI / 180);
   // 8 folded, low elevation; 8 deployed, mid elevation; 8 mid-motion / special
   for (const a of az) shots.push(['fold az' + Math.round(a * 180 / Math.PI), 0, 0, [75, 0, 5], 300, a, 0.2]);
-  for (const a of az) shots.push(['deployed az' + Math.round(a * 180 / Math.PI), P.KICK_DEG, P.DEPLOY_DEG, [45, 0, -5], 330, a, 0.3]);
-  const mid = [[45, 0], [90, 0], [135, 0], [180, 0], [P.KICK_DEG, 12], [P.KICK_DEG, 25]];
+  for (const a of az) shots.push(['deployed az' + Math.round(a * 180 / Math.PI), P.LEG_DEG !== undefined ? 0 : P.KICK_DEG, P.DEPLOY_DEG, [P.LEG_DEG !== undefined ? 95 : 45, 0, -5], 330, a, 0.3]);
+  const mid = P.LEG_DEG !== undefined ? [[45, 0], [90, 0], [135, 0], [P.LEG_DEG, 0], [0, 15], [0, 30]] : [[45, 0], [90, 0], [135, 0], [180, 0], [P.KICK_DEG, 12], [P.KICK_DEG, 25]];
   for (const [k, d] of mid) shots.push([`k${k} d${d}`, k, d, [45, 0, 5], 330, -1.57, 0.05]);
   shots.push(['top folded', 0, 0, [75, 0, 0], 300, -1.5707, 1.5]);
-  shots.push(['under deployed', P.KICK_DEG, P.DEPLOY_DEG, [45, 0, 0], 330, -1.5707, -1.45]);
+  shots.push(['under deployed', P.LEG_DEG !== undefined ? 0 : P.KICK_DEG, P.DEPLOY_DEG, [P.LEG_DEG !== undefined ? 95 : 45, 0, 0], 330, -1.5707, -1.45]);
   const files = [];
   for (let i = 0; i < shots.length; i++) {
     const [n, k, d, t, r, a, e] = shots[i];
@@ -34,7 +34,14 @@ const srv = http.createServer((q, s) => {
     const f = path.join(OUT, `_s${String(i).padStart(2, '0')}.png`); await p.screenshot({ path: f }); files.push([f, n]);
   }
   // sections
-  const secs = [['Y=0 folded', 'y', 0.01, 0, 0, [75, 0, 0], 260, 1.5707, 0.0], ['Y=-8 deploy box', 'y', P.DEPLOY_Y, 0, 0, [75, 0, 0], 260, 1.5707, 0.0],
+  const v34 = P.LEG_DEG !== undefined;
+  const secs = v34 ? [['Y=0 folded', 'y', 0.01, 0, 0, [75, 0, 0], 260, 1.5707, 0.0], ['Y=0 leg out', 'y', 0.01, P.LEG_DEG, 0, [40, 0, 10], 300, 1.5707, 0.0],
+    ['Y=9.5 leg cheek', 'y', 9.5, 0, 0, [40, 0, 10], 150, 1.5707, 0.0], ['Y=31 pod deployed', 'y', P.DRILL_PIV_Y, 0, P.DEPLOY_DEG, [110, 0, -5], 230, 1.5707, 0.0],
+    ['X axle', 'x', P.DRILL_X, 0, 0, [P.DRILL_X, 0, 5], 120, 0.0, 0.0], ['X leg hinge', 'x', P.LEG_X, 0, 0, [P.LEG_X, 0, 5], 120, 0.0, 0.0],
+    ['X deck 1 boards', 'x', 70.0, 0, 0, [70, 0, 0], 110, 0.0, 0.0], ['X cells', 'x', 100.0, 0, 0, [100, 0, 0], 110, 0.0, 0.0],
+    ['X=10 nose', 'x', 10.0, 0, 0, [10, 0, 0], 90, 0.0, 0.0], ['X tail sockets', 'x', (P.X_SOCK[0]+P.X_SOCK[1])/2, 0, 0, [P.L-5, 0, 0], 110, 0.0, 0.0],
+    ['Z=9.5 axle level', 'z', 9.5, 0, 0, [75, 0, 9.5], 280, -1.5707, 1.5], ['Z=-10 cells', 'z', -10.0, 0, 0, [75, 0, -10], 280, -1.5707, 1.5]] :
+    [['Y=0 folded', 'y', 0.01, 0, 0, [75, 0, 0], 260, 1.5707, 0.0], ['Y=-8 deploy box', 'y', P.DEPLOY_Y, 0, 0, [75, 0, 0], 260, 1.5707, 0.0],
     ['Y=+13 kick hub', 'y', P.KICK_Y, 0, 0, [60, 0, 10], 220, 1.5707, 0.0], ['Y=29 pod deployed', 'y', 29.0, P.KICK_DEG, P.DEPLOY_DEG, [60, 0, -5], 260, 1.5707, 0.0],
     ['X=56 axle', 'x', 56.0, 0, 0, [56, 0, 5], 120, 0.0, 0.0], ['X=31 kick pivot', 'x', P.KICK_X, 0, 0, [31, 0, 10], 120, 0.0, 0.0],
     ['X boards', 'x', (P.X_BOARD[0]+P.X_BOARD[1])/2, 0, 0, [(P.X_BOARD[0]+P.X_BOARD[1])/2, 0, 0], 100, 0.0, 0.0], ['X cells', 'x', (P.X_CELL[0]+P.X_CELL[1])/2, 0, 0, [(P.X_CELL[0]+P.X_CELL[1])/2, 0, 10], 120, 0.0, 0.0],

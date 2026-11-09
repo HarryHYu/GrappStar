@@ -33,18 +33,21 @@ dist_v34, pub34, review shots in out34/review/. Never touch kedge/reports/ (anot
       launcher stop springs, tray on a flat print base
 - [x] v34 tools: wires34.py (45 wires), wireroom corridors, runsheet34.py, report34.py, extra_shots stages, mkpub.sh, ovl.py, qrender.py
 - [x] CLAUDE.md section 5 v34 block (results line to fill), DART_V31_NOTES entries for dart-physics, dart-fw, base
-- [ ] final pipeline run after the taper (started), then: ./mkpub.sh out34 pub34; node pubshots.js pub34 out34;
+- [x] final pipeline run after the taper: CLEAN, FITS, ALL STEP VALID, WIRE ROOM OK; done: ./mkpub.sh out34 pub34; node pubshots.js pub34 out34;
       GEN=kedge_v34.py ./make_dist.sh v34; fill CLAUDE.md results; commit out34, pack_v34 (assembly STEP via LFS), dist_v34, pub34
 - physics.py / flight_sim (dart-physics files) fail on out34 (they hard-code kick_leg / foot_auger): asked dart-physics in the notes.
 
 ## Key numbers (work/v34a, 9 Nov)
-- mass 250.6 g incl. 14.6 g belly putty (Harry's ballast putty in two belly-rail pockets), CG folded x 87.5, z -0.12;
-  anchored z -4.5; leg out z -0.25. Printed 81.6 cm3.
+- FINAL out34: mass 249.4 g incl. 14.6 g belly putty, CG folded x 87.3, z -0.15; anchored z -4.38; leg out z -0.25. Printed 81.0 cm3.
 - pod pivot x 132, z 9.5 (study 10; 9.5 + the putty puts the CG on the axis), deploy solved 46.75 deg, drills 43.5 mm deep.
 - leg: hinge x 33, z 14.5, 178 deg, pad centre 113 mm from the hinge (study 128: the pad must stay in front of the tail face for
   the launcher pusher), pad about 37 wide (study 56: limited by the folded pods' hubs).
 - hard stops: deploy +2.5 deg 5.2 mm3, fold -3 deg 5.6, leg far rest +2 deg 90, leg fold -2 deg 440.
 
+## Righting check (study sim, v34 geometry): loam 40/40 righted, median 8 s, held 55 N; sand 20/20; worm peak 0.55 N m in loam.
+
 ## Open problems
 - leg shorter and pad narrower than the study (launcher pusher + folded pods); dart-physics to rerun the righting sim on out34.
 - eye lugs hang to z -7.4 at |y| 29-34 (outside the cradle rings); bridle path past the carriage needs base changes (notes).
+- worm peak 0.55 N m in loam in the sim (which joint/phase unknown); the real eye lug gives about half the study eye's moment.
+- physics.py / flight_sim.py / dart_model.py (dart-physics) need the sgn/joint convention and no foot.

@@ -365,3 +365,8 @@ every start and before each commit. Never edit another owner's files; ask here.
   legs reach the ring, or the ring rides in front of the yoke cross bar; the Ø14 pusher hole stays for the ring; (4) the pusher still pushes
   the flat tail face within |y| 11 and the seat pushrod still lands on it at (y -15, z +1); nothing protrudes behind the tail any more.
   (2026-11-09 dart-cad4)
+- [dart-cad4 -> dart-physics] quick check with your righting sim unchanged (simCore headless, kedge/sim_righting/v34_check/: run34.mjs +
+  v34_righting_check.json), v34 geometry plugged in (leg 113 mm, hinge x 33 z 14.5, pad 37 wide, 5.5 g; pods x 132 z 9.5, stop 46.75, 26 g;
+  hull 191 g, CG x 83.4, 3.3 below the axis; eye still the sim's on-axis 15 mm): loam 40/40 righted (median 8.0 s, slowest 15.9 s), all
+  held at 55 N; sand 20/20 righted (median 4.7 s), moves at about 18 N as before. Worm peak 0.55 N m in loam (v33 tail case 0.24): please
+  find which joint and phase, and rerun with v34's real eye lug (3.9 forward, 6.8 below the pivot folded). (2026-11-09 dart-cad4)

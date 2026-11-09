@@ -1,0 +1,64 @@
+{
+ "what": "Headless rerun of the righting sim (kedge/sim_righting/index.html simCore, unchanged) with the v34 geometry (dart-cad4, 9 Nov 2026): leg 113 mm hinge to pad, hinge x 33 z 14.5, pad 37 wide, leg 5.5 g; pods at x 132, z 9.5, stop 46.75 deg, 26 g each; hull 191 g with its CG at x 83.4, 3.3 mm below the axis (whole dart 249 g, CG z -0.15); random landing poses, rover 3 m. The sim's bridle eye stays on the pod axis 15 mm out (v34's eye is a lug below the pivot).",
+ "overrides": {
+  "D": {
+   "hull": {
+    "mass": 0.191,
+    "cgX": 83.4
+   },
+   "pod": {
+    "mass": 0.026,
+    "pivotX": 132,
+    "pivotY": 9.5,
+    "stopDeg": 46.75
+   },
+   "leg": {
+    "mass": 0.0055,
+    "len": 113,
+    "padW": 37,
+    "pad": 3.5,
+    "hingeX": 33,
+    "hingeY": 14.5,
+    "stopDeg": 178
+   }
+  },
+  "LAYOUTS": {
+   "tail": {
+    "pivotX": 132
+   }
+  }
+ },
+ "run": "cd a folder with @dimforge/rapier3d-compat@0.14.0 installed; node run34.mjs '{\"jobs\":[{\"layout\":\"tail\",\"mass\":\"brief\",\"soil\":\"loam\",\"cgUp\":-3.3,\"n\":40}],\"out\":\"o.json\"}' '<overrides json>'",
+ "summary": {
+  "loam": {
+   "runs": 40,
+   "righted": 40,
+   "stuck": 0,
+   "median_s": 8.0,
+   "slowest_s": 15.9,
+   "held_55N": 40,
+   "moved_at_N": [],
+   "worm_peak_Nm": 0.551,
+   "stop_peak_Nm": 0.473
+  },
+  "sand": {
+   "runs": 20,
+   "righted": 20,
+   "stuck": 0,
+   "median_s": 4.7,
+   "slowest_s": 14.3,
+   "held_55N": 0,
+   "moved_at_N": [
+    17.565711639192294,
+    17.862018503225247,
+    18.06022664973192,
+    18.159486242460854,
+    18.258833349903323,
+    18.35825762798872,
+    18.457749955295675
+   ],
+   "worm_peak_Nm": 0.238,
+   "stop_peak_Nm": 0.129
+  }
+ }
+}

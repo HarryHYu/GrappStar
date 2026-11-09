@@ -1,12 +1,17 @@
-"""Simulated KEDGE dart HTTP API, faithful to firmware kedge-dart-v4 (firmware/dart/API.md, contract C2 final).
+"""Simulated KEDGE dart HTTP API, faithful to firmware kedge-dart-v4.3 for the v34 dart (firmware/dart/API.md, contract C2).
 
   python3 -m grappstar mockdart --port 8780      # then: python3 -m grappstar dart --host 127.0.0.1:8780 status
 
 Phases (priority as in API.md): FAULT > RELEASING > ANCHORING > FLIGHT > ANCHORED > LANDED > ARMED > IDLE.
 World events from the simulator or tests: launch() (only counted while armed, like the real detector), land().
-Refusals are HTTP 409 with "refused: <reason>". Test hooks: fail_anchor, no_ground (/auto faults NO_GROUND: dart on its back or side, every retry too),
-fail_release, no_landing, no_imu, down
-(answer 503 to everything), slow_s (delay every reply), flightlog_provider.
+v4.3 (v34 dart): no foot, no kick. The kick channel drives the righting leg (motors.kick), motors.foot is always 0 and keys
+4 / $ are refused "no foot on v34". /auto rights the dart first when orient is not upright (belly up: leg flip; on a flank,
+leaning or nose steep: the pods roll it, drills off; seq "righting: ..."), then pods down with the drills, drills finishing,
+anchored. /auto?force=1 skips the righting. No "not upright" refusals.
+Refusals are HTTP 409 with "refused: <reason>". Test hooks: fail_anchor (NO_CURRENT in the pods step), cannot_right (the
+righting gives up: fault NOT_UPRIGHT after its 6 moves, every retry too unless forced), warn_pods_limit (anchored with warning
+pods_time_limit), fail_release, no_landing, no_imu, down (answer 503 to everything), slow_s (delay every reply),
+flightlog_provider.
 """
 from __future__ import annotations
 
@@ -18,11 +23,16 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Callable, Optional
 from urllib.parse import parse_qs, urlparse
 
-ANCHOR_SEQ = [(0.0, "kick swing"), (1.0, "kick + foot planting"), (1.6, "foot finishing"), (2.0, "deploy + drills"),
-              (2.8, "drills finishing"), (3.4, "anchored")]
-RELEASE_SEQ = [(0.0, "release: drills out"), (1.5, "release: drills out + pods up"), (2.5, "release: foot out"),
-               (3.0, "release: kick back + foot out"), (4.5, "released")]
-RUN_KEYS = set("1!2@3#4$")
+# firmware v4.3 seq names and motors per step (deploy, kick = the righting leg, drills; foot is always 0)
+ANCHOR_SEQ = [(0.0, "deploy + drills"), (2.0, "drills finishing"), (3.4, "anchored")]          # belly down: no righting
+RIGHT_LEG = [(0.0, "righting: leg out"), (1.0, "righting: leg folding"), (1.8, "righting: settling"),   # belly up: leg flip,
+             (2.0, "righting: pods out, drills off"), (2.6, "righting: settling")]                       # lands on a flank, pods roll
+RIGHT_PODS = [(0.0, "righting: pods out, drills off"), (0.6, "righting: settling")]           # on a flank / leaning: pods roll
+RELEASE_SEQ = [(0.0, "release: drills out"), (2.5, "release: drills out + pods up"), (4.5, "released")]
+SEQ_MOTORS = {"righting: leg out": (0, 1, 0), "righting: leg folding": (0, -1, 0), "righting: pods out, drills off": (1, 0, 0),
+              "deploy + drills": (1, 0, 1), "drills finishing": (0, 0, 1), "release: drills out": (0, 0, -1),
+              "release: drills out + pods up": (-1, 0, -1)}
+RUN_KEYS = set("1!2@3#")
 G = 9.81
 SAT = 78.0          # BNO085 saturates near 8 g
 
@@ -84,7 +94,12 @@ class MockDart:
         self.peak_mA = 0
         # hooks
         self.fail_anchor = False
-        self.no_ground = False
+        self.cannot_right = False
+        self.warn_pods_limit = False
+        self.warnings: list = []
+        self.anchor_plan: list = ANCHOR_SEQ
+        self.righting = False
+        self.seq_log: list = []      # every seq the mock went through (tests: the client polls too slowly to see them all)
         self.fail_release = False
         self.no_landing = False
         self.no_imu = False
@@ -95,7 +110,7 @@ class MockDart:
         self.t_land_wall: Optional[float] = None
         self.rail_V = 7.62
         self.ina_ok = True
-        self.orient = "upright"      # API v4.1: upright, leaning, side, inverted, nose_down, nose_up, unknown
+        self.orient = "upright"      # API v4.1: upright, leaning, side, inverted, nose_down, nose_up, unknown (v4.3: righted)
         self.batt = "ok"             # API v4.1: ok, low, critical, none, unknown
         self.moving = False          # API v4.1: the anchor moving under the tow (only while ANCHORED)
         self.flightlog_provider: Optional[Callable[[], dict]] = None
@@ -185,35 +200,54 @@ class MockDart:
             self._flightlog = (self.flightlog_provider() if self.flightlog_provider else
                                synth_flightlog(t_launch_ms=t_l, flight_s=max(0.3, (self.t_land_ms - t_l) / 1000.0)))
             if self.auto_on_landing:
-                self._start_seq("anchor")
+                self._start_seq("anchor")         # v4.3: on its side or back too (the auto rights it first)
 
-    def _start_seq(self, kind: str) -> None:
+    def _start_seq(self, kind: str, force: bool = False) -> None:
         self.seq_kind = kind
         self.seq_t0 = time.time()
         self.fault = None
         self.peak_mA = 0
+        if kind == "anchor":
+            self.warnings = []
+            # v4.3: tilt 15 deg or more is righted first (belly up: leg flip then pods; a flank: pods); force skips it
+            pre = [] if force or self.orient in ("upright", "unknown") else (RIGHT_LEG if self.orient == "inverted" else RIGHT_PODS)
+            off = (pre[-1][0] + 0.4) if pre else 0.0
+            self.anchor_plan = pre + [(t + off, n) for t, n in ANCHOR_SEQ]
+            self.righting = bool(pre)
+            if pre and self.cannot_right:
+                self.anchor_plan = pre                 # it never gets upright: NOT_UPRIGHT after the moves
 
     def _update(self) -> None:
         if self.seq_t0 is None:
             return
         el = (time.time() - self.seq_t0) * self.scale
         if self.seq_kind == "anchor":
-            if self.no_ground and el >= 1.0:
-                self.seq, self.event, self.fault = "aborted", "auto: kick hit its end stop in air", "NO_GROUND"
+            plan = self.anchor_plan
+            if self.cannot_right and self.righting and el >= plan[-1][0] + 0.6:
+                self.seq, self.fault = "aborted", "NOT_UPRIGHT"
+                self.event = "auto: not upright after 6 righting moves (tilt %d deg)" % (175 if self.orient == "inverted" else 40)
                 self.seq_t0, self.seq_kind, self.current_mA = None, None, 0
                 return
-            if self.fail_anchor and el >= 1.6:
-                self.seq, self.event, self.fault = "aborted", "auto: kick found no ground", "KICK_TIMEOUT"
+            deploy_t = next((t for t, n in plan if n == "deploy + drills"), None)
+            if self.fail_anchor and deploy_t is not None and el >= deploy_t + 0.4:
+                self.seq, self.event, self.fault = "aborted", "deploy draws no current: wire open or shorted", "NO_CURRENT"
                 self.seq_t0, self.seq_kind, self.current_mA = None, None, 0
                 return
-            for t, n in ANCHOR_SEQ:
+            for t, n in plan:
                 if el >= t:
-                    self.seq, self.event = n, "auto: " + n
-            self.current_mA = 420 if self.seq != "anchored" else 0
+                    if n != self.seq:
+                        self.event = ("auto: " + n) if not n.startswith("righting") else n
+                        self.seq_log.append(n)
+                    self.seq = n
+            if deploy_t is not None and el >= deploy_t and self.orient != "unknown":
+                self.orient = "upright"                # righted (or it was already)
+            self.current_mA = (420 if self.seq in ("deploy + drills", "drills finishing") else 60) if self.seq != "anchored" else 0
             self.peak_mA = max(self.peak_mA, self.current_mA)
             if self.seq == "anchored":
                 self.seq_t0, self.seq_kind = None, None
                 self.landed = False
+                if self.warn_pods_limit:
+                    self.warnings = ["pods_time_limit"]
         else:
             if self.fail_release and el >= 2.0:
                 self.seq, self.event, self.fault = "aborted", "release: drills jammed", "DRILL_JAM"
@@ -230,15 +264,17 @@ class MockDart:
     def status_dict(self) -> dict:
         with self.lock:
             ph = self.phase
-            return {"fw": "kedge-dart-v4-mock", "t_ms": self.millis(), "phase": ph, "fault": self.fault,
+            mot = SEQ_MOTORS.get(self.seq, (0, 0, 0)) if self.seq_t0 is not None else (0, 0, 0)
+            tilt = {"upright": 0, "leaning": 38, "side": 90, "inverted": 175, "nose_down": 30, "nose_up": 20}.get(self.orient, 0)
+            return {"fw": "kedge-dart-v4.3-mock", "t_ms": self.millis(), "phase": ph, "fault": self.fault,
                     "rail_V": self.rail_V, "current_mA": self.current_mA, "peak_mA": self.peak_mA, "speed": 255,
-                    "motors": {"deploy": 0, "kick": 0, "drills": 0, "foot": 0}, "seq": self.seq,
+                    "motors": {"deploy": mot[0], "kick": mot[1], "drills": mot[2], "foot": 0}, "seq": self.seq,
                     "armed": self.armed, "auto_on_landing": self.auto_on_landing, "landed": self.landed,
                     "roll": self.roll, "pitch": self.pitch, "accel_g": 1.0, "peak_g": 8.0 if self.t_land_ms else 1.0, "ina_ok": self.ina_ok,
                     "imu_ok": not self.no_imu, "t_launch_ms": self.t_launch_ms, "t_land_ms": self.t_land_ms,
                     "log_frozen": self.log_frozen(), "reset": "poweron", "event": self.event,
-                    "batt": self.batt, "batt_V": self.rail_V, "orient": self.orient,
-                    "moving": bool(self.moving and ph == "ANCHORED"), "video": True}
+                    "batt": self.batt, "batt_V": self.rail_V, "orient": self.orient, "tilt_deg": tilt,
+                    "warnings": list(self.warnings), "moving": bool(self.moving and ph == "ANCHORED"), "video": True}
 
     def log_frozen(self) -> bool:
         if self._flightlog is None:
@@ -276,7 +312,9 @@ class MockDart:
             elif u.path == "/key":
                 c = q.get("c", [""])[0]
                 ms = int(q.get("ms", ["350"])[0] or 0)
-                if c in RUN_KEYS:
+                if c in ("4", "$"):
+                    code, body = refuse("no foot on v34")
+                elif c in RUN_KEYS:
                     if ph == "FLIGHT":
                         code, body = refuse("in flight")
                     elif busy:
@@ -323,12 +361,6 @@ class MockDart:
                 force = q.get("force", ["0"])[0] == "1"
                 if ph == "FLIGHT":
                     code, body = refuse("in flight")
-                elif self.orient in ("side", "inverted", "nose_down", "nose_up") and not force \
-                        and not (self.seq_kind == "anchor" and busy):
-                    code, body = refuse({"side": "not upright: on its side (force=1 tries anyway)",
-                                         "inverted": "not upright: upside down (force=1 tries anyway)",
-                                         "nose_down": "not upright: nose down (force=1 tries anyway)",
-                                         "nose_up": "not upright: nose up (force=1 tries anyway)"}[self.orient])
                 elif self.batt == "critical":
                     code, body = refuse("battery low: charge it (release still works)")
                 elif self.seq_kind == "release" and busy:
@@ -339,7 +371,7 @@ class MockDart:
                     body = "anchoring"          # repeat is accepted and does not restart
                 else:
                     self.armed = False
-                    self._start_seq("anchor")
+                    self._start_seq("anchor", force=force)
                     body = "auto"
             elif u.path == "/release":
                 if ph == "FLIGHT":

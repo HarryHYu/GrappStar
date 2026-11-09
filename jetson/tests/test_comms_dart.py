@@ -107,7 +107,7 @@ def test_anchor_fault(md):
     d.auto()
     with pytest.raises(DartError) as ei:
         d.wait_phase("ANCHORED", 5, poll=0.05)
-    assert "KICK_TIMEOUT" in str(ei.value)
+    assert "NO_CURRENT" in str(ei.value)          # fw v4.3: the pods step's open-wire check (no kick on v34)
 
 
 def test_hold_deadman_repeats_and_stops(md):

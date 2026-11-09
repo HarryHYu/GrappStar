@@ -1,5 +1,14 @@
 # jetson worker report
 
+## Dart v34 / firmware v4.3 (9 Nov 2026, dart-fw)
+
+The v34 dart has no foot and no kick leg; firmware v4.3 rights the dart itself and then anchors. Jetson side updated to
+match: dart keys (`2` / `@` the righting leg, no `4` / `$`), the mock dart (righting steps `righting: ...` before the
+anchor, leg flip from its back and pods roll from a flank, fault `NOT_UPRIGHT` after its 6 moves, warning
+`pods_time_limit`, motors per step, no foot), the mission (no `not upright` refusal any more; `NOT_UPRIGHT` offers
+Release and reshoot or Force anchor from the camera; fault texts for the leg; anchor timeout 260 s for the dart's 240 s
+limit), the App's dart keys. Files: comms/dart.py, comms/mock_dart.py, mission.py, ui/static/app.js, tests.
+
 ## Dart v31 round (7 Nov 2026, dart-jetson)
 
 Goal: the dart side works first time with the real dart (real launcher about 7 m/s for 2.6 to 4.8 m, Caddx Ant

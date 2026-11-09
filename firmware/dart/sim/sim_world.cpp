@@ -7,7 +7,8 @@
 //   drills  140 spinning in air, 420 digging (forward while the pods are low enough to reach the soil), 200 reversing,
 //           700 when jammed (drill_jam).
 //   foot    not wired on v34 (DRV#2 B): draws nothing.
-// Attitude (knob pose=<tilt deg>[&side=-1|1]): the BNO085 reads gravity from it while no trace plays. Belly up (tilt 110
+// Attitude (knob pose=<tilt deg>[&side=-1|1]): the BNO085 reads gravity from it while no trace plays. When a trace
+// ends, the plant takes over from the trace's last (resting) gravity, so a righting move can act on that pose. Belly up (tilt 110
 // or more) the leg meets the ground at 400 and lifts the dart until 2400, where it goes over onto a flank at 40 deg
 // (side -1); on a flank (tilt 15 or more) the pods going down roll it onto its belly over 600 of travel. leg_air=1: the
 // leg meets nothing (swings in air to its far stop).
@@ -177,7 +178,13 @@ bool traceRunning(uint64_t t) {
   return !trace.empty() && (t - traceT0Us) / 1000.0 < total;
 }
 // at rest with the plant's attitude: gravity for tilt (roll about the nose axis, chip x), roll = side * tilt
-TraceStep attStep() { double r = side * tilt * M_PI / 180, g = 9.80665; return {0, 0, g * sin(r), g * cos(r), side * tilt, 0}; }
+// adopted: the plant took over a finished trace's last step; until the leg or the pods move the dart, the BNO085 reads
+// exactly that step (its roll and pitch too), as before the takeover
+TraceStep adoptStep = {0, 0, 0, 9.80665, 0, 0}; bool adopted = false; double adoptTilt = 0;
+TraceStep attStep() {
+  if (adopted && tilt == adoptTilt) return adoptStep;
+  double r = side * tilt * M_PI / 180, g = 9.80665; return {0, 0, g * sin(r), g * cos(r), side * tilt, 0};
+}
 ImuReport makeReport(uint8_t sensor, uint64_t t) {
   TraceStep s = attOn && !traceRunning(t) ? attStep() : traceAt(t);
   ImuReport r; r.tUs = t; r.sensor = sensor;
@@ -246,11 +253,24 @@ bool imuEnable(uint8_t sensor, uint32_t intervalUs) {
   return true;
 }
 bool imuTakeReset() { Lock l(mu); bool r = imuResetPending; imuResetPending = false; return r; }
+// a trace that has finished hands its last (resting) gravity to the plant attitude (tilt off belly down, side by the
+// sign of the chip y component), so the leg and the pods can move the dart from there
+void adoptTraceEnd(uint64_t now) {
+  if (attOn || trace.empty() || traceRunning(now)) return;
+  const TraceStep& e = trace.back();
+  double g = sqrt(e.ax * e.ax + e.ay * e.ay + e.az * e.az);
+  if (g < 1e-6) return;
+  double t = acos(std::max(-1.0, std::min(1.0, e.az / g))) * 180 / M_PI;
+  setPose(t, e.ay < 0 ? -1 : 1);
+  adoptStep = e; adoptStep.durMs = 0; adopted = true; adoptTilt = tilt;
+  trace.clear();
+}
 std::vector<ImuReport> imuNextTransfer() {
   Lock l(mu);
   std::vector<ImuReport> out;
   if (!bnoPresent) return out;
   uint64_t now = nowUs();
+  adoptTraceEnd(now);
   collect(accel, 0x01, now, fifo);
   collect(grv, 0x08, now, fifo);
   std::stable_sort(fifo.begin(), fifo.end(), [](const ImuReport& a, const ImuReport& b) { return a.tUs < b.tUs; });
@@ -333,8 +353,8 @@ bool setKnob(const std::string& key, const std::string& v, std::string& err) {
   if (key == "bno_reset") { accel = Sensor(); grv = Sensor(); fifo.clear(); imuResetPending = true; return true; }
   if (!num) { err = "unknown knob or not a number: " + key + "=" + v; return false; }
   if (key == "rail_v") { K.railV = x; return true; }
-  if (key == "pose") { setPose(std::max(0.0, std::min(180.0, x)), side); return true; }
-  if (key == "side") { side = x < 0 ? -1 : 1; attOn = true; return true; }
+  if (key == "pose") { setPose(std::max(0.0, std::min(180.0, x)), side); adopted = false; return true; }
+  if (key == "side") { side = x < 0 ? -1 : 1; attOn = true; adopted = false; return true; }
   if (key == "kick_pos") { kickPos = std::max(0.0, std::min(KICK_TRAVEL, x)); return true; }
   if (key == "deploy_pos") { deployPos = std::max(0.0, std::min(DEPLOY_TRAVEL, x)); return true; }
   if (key == "imu_xfer_us") { K.imuXferUs = (uint32_t)std::max(0.0, x); return true; }

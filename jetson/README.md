@@ -305,14 +305,15 @@ Dart commands:
 
 ```bash
 python3 -m grappstar dart status            # phase, battery, motors
-python3 -m grappstar dart key 2 --hold 1.0  # hold "kick out" for 1 s
-python3 -m grappstar dart auto              # auto anchor sequence
+python3 -m grappstar dart key 2 --hold 1.0  # hold "leg out" (the righting leg) for 1 s
+python3 -m grappstar dart auto              # auto anchor sequence (righting first if the dart is not belly down)
 python3 -m grappstar dart release           # release sequence
 python3 -m grappstar dart flightlog         # download the last flight log
 ```
 
-Dart keys: `1` deploy down, `!` deploy up, `2` kick out, `@` kick back, `3` drills in, `#` drills out, `4` foot in,
-`$` foot out. Quote the symbols in the shell, e.g. `dart key '!' --hold 1.0`.
+Dart keys (firmware v4.3, v34 dart): `1` pods down, `!` pods up, `2` righting leg out (over the nose), `@` leg back
+(fold), `3` drills in, `#` drills out. The v34 dart has no foot: `4` and `$` are refused (`no foot on v34`). Quote the
+symbols in the shell, e.g. `dart key '!' --hold 1.0`.
 
 ### Tell the Jetson how the IMU sits in the dart
 
@@ -537,7 +538,7 @@ The mission steps, in order (the page highlights the current one):
 | RAIL_LOW | if the rail is above 15 degrees, it is lowered to its minimum pitch before the tow (skipped on a reshoot) | |
 | BASE_NEUTRAL | launcher at rest, drum to NEUTRAL | |
 | WRAP | the capstan wraps go on while the line is still slack; the drum parks at WRAPPED (about 35 to 40 s, drum 8.1 deg/s) | |
-| ANCHOR | the dart digs in (kick, foot, drills) | if it reports warnings, choose Tow anyway or Release and reshoot |
+| ANCHOR | the dart rights itself if it is not belly down (righting leg from its back, pods from a flank), then the pods go down with the drills | if it reports warnings, choose Tow anyway or Release and reshoot; if it cannot right itself (NOT_UPRIGHT), Release and reshoot or Force anchor from the camera picture |
 | TIDY | slack wound onto the storage reel for a few seconds | |
 | FLY_IN | drum on to REEL: the capstan is now driven | |
 | CHECK | a gentle test pull must reach the check tension and hold it | |

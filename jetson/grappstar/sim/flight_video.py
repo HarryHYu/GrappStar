@@ -441,7 +441,7 @@ class _Timeline:
         self.p_land = self.sim["p_impact"]
         self.rest = rest
         if rest == "flat":
-            # skids a little and lies on its belly (the anchor design case: the kick plants ahead of the nose):
+            # skids a little and lies on its belly (the anchor design case: no righting, the pods go down at once):
             # camera on the hull axis, 21 mm above the ground (hull d 42), sunk 0..6 mm, nose level within a few deg
             # dart-physics: the nose digs 2 to 12 mm, the body slaps down and skids about 0.2 m on soil, up to 1 m
             # (with a bounce) on hard ground, still within about 1 s; on hard ground it ends leaning about 42 deg

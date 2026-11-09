@@ -1,4 +1,4 @@
-"""fw-dart review round 11: /arm refused while ANCHORED, and NO_GROUND (dart on its back or side) after /auto."""
+"""fw-dart review round 11: /arm refused while ANCHORED; v4.3: NOT_UPRIGHT (the dart could not right itself) after /auto."""
 import urllib.request
 
 from mission_harness import Rig
@@ -68,19 +68,21 @@ def test_arm_while_anchored_abort_never_fires(tmp_path):
         r.close()
 
 
-def test_no_ground_offers_release_and_reshoot_only(tmp_path):
+def test_not_upright_offers_release_reshoot_or_force(tmp_path):
+    """Dart v4.3: the righting gives up after 6 moves (fault NOT_UPRIGHT): the operator chooses from the camera picture
+    between Release and reshoot and Force anchor (no Retry: a new /auto would try the same moves again)."""
     r = Rig(tmp_path)
-    r.md.no_ground = True
+    r.md.orient, r.md.cannot_right = "inverted", True
     seen = []
     def release(p):
         seen.append(list(p.choices))
-        r.md.no_ground = False                # set right by the reshoot
+        r.md.orient, r.md.cannot_right = "upright", False   # set right by the reshoot
         return "Release and reshoot"
-    r.policy["NO_GROUND"] = release
+    r.policy["NOT_UPRIGHT"] = release
     try:
         m = r.run(120)
         assert m.state == "DONE", m.error
-        assert seen == [["Release and reshoot", "Abort"]]   # no Retry: a new /auto would fault again
+        assert seen == [["Release and reshoot", "Force anchor", "Abort"]]
         assert m.reshoots == 1 and r.steps().count("ANCHOR") == 2
         paths = [q[1] for q in r.md.requests]
         assert paths.count("/auto") == 2

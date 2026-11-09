@@ -4,12 +4,14 @@ The dart is a WiFi access point "KEDGE" at 192.168.4.1. Endpoints:
   GET /status                 JSON: rail_V, current_mA, roll, pitch, seq, armed, landed, event, phase (C2 adds phase)
   GET /key?c=<key>&ms=<run>   run a motor key for ms (hold-to-run: repeat every 150 ms, each repeat 350 ms)
   GET /stop                   all motors off
-  GET /auto                   auto-anchor sequence
-  GET /release                release sequence: drills out, pods up, foot out, kick back (reverse of /auto)
+  GET /auto                   auto-anchor sequence (fw v4.3, dart v34: righting first if it is not belly down, then the pods
+                              down with the drills; NOT_UPRIGHT fault when 6 righting moves do not right it)
+  GET /release                release sequence: drills out, pods up (and the righting leg to its fold stop if it was out)
   GET /arm?on=1&auto=0        arm the landing detector (auto=0: log only)
   GET /flightlog              {"hz", "t_launch_ms", "t_land_ms", "samples": [[t_ms, qw, qx, qy, qz, ax, ay, az], ...]}
 
-Keys: 1/! deploy down/up, 2/@ kick out/back, 3/# drills in/out, 4/$ foot in/out, A arm auto-anchor on landing.
+Keys (fw v4.3): 1/! pods down/up, 2/@ righting leg out/fold (the old kick channel), 3/# drills in/out, A arm auto-anchor on
+landing. v34 has no foot: 4/$ are refused "no foot on v34".
 
 Older firmware (no phase field) still works: phase is derived from seq, armed and landed.
 """
@@ -24,8 +26,7 @@ import urllib.parse
 import urllib.request
 from typing import Callable, Dict, List, Optional
 
-KEYS = {"1": "deploy down", "!": "deploy up", "2": "kick out", "@": "kick back", "3": "drills in",
-        "#": "drills out", "4": "foot in", "$": "foot out"}
+KEYS = {"1": "pods down", "!": "pods up", "2": "leg out", "@": "leg back", "3": "drills in", "#": "drills out"}
 PHASES = ("IDLE", "ARMED", "FLIGHT", "LANDED", "ANCHORING", "ANCHORED", "RELEASING", "FAULT")
 WIFI_GAP_S = 10.0       # a wait gives up after this long with no answer at all (the dart's own steps run on)
 STATUS_MIN_PERIOD_S = 0.2   # API.md: never poll /status faster than 5 Hz in total
@@ -211,8 +212,8 @@ class Dart:
         return self.status()
 
     def auto(self, force: bool = False) -> str:
-        """Start the anchor sequence. force=True (API v4.1 /auto?force=1) skips the dart's orientation gate, for
-        when the video shows it lying normally but its IMU says otherwise."""
+        """Start the anchor sequence. force=True (/auto?force=1; fw v4.3: no righting, anchor as it lies) is for when the
+        video shows it lying belly down but its IMU says otherwise (or after a NOT_UPRIGHT fault)."""
         self._log("dart_tx", {"auto": True, "force": force})
         return self._get("/auto?force=1" if force else "/auto", retries=0)   # never send twice blindly
 

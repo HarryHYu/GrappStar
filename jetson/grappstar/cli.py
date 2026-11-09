@@ -268,8 +268,8 @@ def cmd_dart(a) -> int:
         elif a.what == "stop":
             print(d.stop())
         elif a.what == "auto":
-            d.auto()
-            print(d.wait_phase(("ANCHORED",), 90, log=print)["phase"])
+            d.auto()                         # fw v4.3: righting first if needed, then the anchor (dart limit 240 s)
+            print(d.wait_phase(("ANCHORED",), 260, log=print)["phase"])
         elif a.what == "release":
             d.release()
             s = d.wait_phase(("IDLE",), 90, log=print, want_seq="released")   # a /stop gives IDLE + "aborted"

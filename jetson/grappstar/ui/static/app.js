@@ -22,8 +22,9 @@ const BASE_FIELDS = [["state", "State"], ["mode", "Mode"], ["drum_pos", "Drum"],
   ["vbat", "Battery V"], ["seated", "Dart seated"], ["fault", "Fault"]];
 const DART_FIELDS = [["phase", "Phase"], ["seq", "Sequence"], ["rail_V", "Battery V"], ["current_mA", "Current mA"],
   ["armed", "Armed"], ["landed", "Landed"], ["event", "Last event"]];
-const DART_KEYS = [["1", "deploy down"], ["!", "deploy up"], ["2", "kick out"], ["@", "kick back"],
-  ["3", "drills in"], ["#", "drills out"], ["4", "foot in"], ["$", "foot out"]];
+// dart firmware v4.3 (v34): 2/@ drive the righting leg (the old kick channel); no foot (4/$ are refused by the dart)
+const DART_KEYS = [["1", "pods down"], ["!", "pods up"], ["2", "leg out"], ["@", "leg back"],
+  ["3", "drills in"], ["#", "drills out"]];
 // Choices that never need the "Are you sure" dialog, even in a danger prompt.
 const SAFE_CHOICE = /^(cancel|abort|no|back|stop|wait|hold|safe|retrieve|release and reshoot)/i;
 // Which picture helps the operator decide each prompt: media shown inside the card, or a video scrolled into view.

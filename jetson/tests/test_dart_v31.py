@@ -179,6 +179,8 @@ def test_fault_codes_in_plain_words():
     from grappstar.mission import dart_fault_text
     assert "pods jammed" in dart_fault_text("dart FAULT PODS_JAM: release: pods stalled")
     assert "back or side" in dart_fault_text("dart FAULT NO_GROUND: ...")
+    assert "could not right itself" in dart_fault_text("dart FAULT NOT_UPRIGHT: auto: not upright after 6 righting moves")
+    assert "righting leg" in dart_fault_text("dart FAULT KICK_TIMEOUT: auto: leg did not reach its fold stop")
     assert dart_fault_text("dart did not reach ANCHORED in 60 s") == "dart did not reach ANCHORED in 60 s"
 
 
@@ -221,8 +223,9 @@ def test_landing_zone_waits_out_a_wifi_gap_for_the_flight_log(tmp_path):
         r.close()
 
 
-def test_v41_not_upright_offers_force_and_battery_critical(tmp_path):
-    """API v4.1 orientation gate: the operator sees the video and may force the anchor; battery critical refuses."""
+def test_v43_righting_then_not_upright_offers_force_and_battery_critical(tmp_path):
+    """Dart v4.3 (v34): on its side or back /auto rights it by itself (no refusal, no prompt); a dart it cannot right
+    ends in NOT_UPRIGHT, where the operator sees the video and may force the anchor; battery critical refuses."""
     from grappstar.mission import StepFailed
     from mission_harness import Rig
     r = Rig(tmp_path)
@@ -233,16 +236,28 @@ def test_v41_not_upright_offers_force_and_battery_critical(tmp_path):
             asked.append((text, choices))
             return "Force anchor"
         r.m.ask = ask
-        r.md.orient = "side"
+        for orient in ("side", "inverted"):
+            r.md.orient = orient
+            r.md.seq_log = []
+            r.dart.auto()
+            r.dart.wait_phase("ANCHORED", 10)
+            seqs = r.md.seq_log
+            assert r.md.orient == "upright" and not asked
+            assert any(q.startswith("righting") for q in seqs), seqs
+            assert ("righting: leg out" in seqs) == (orient == "inverted"), seqs
+            r.dart.release()
+            r.dart.wait_phase("IDLE", 10, want_seq="released")
+        r.md.orient, r.md.cannot_right = "side", True
         r.m.anchor()
-        assert "on its side" in asked[0][0] and "Force anchor" in asked[0][1]
+        assert "NOT_UPRIGHT" in asked[0][0] and "Force anchor" in asked[0][1]
         assert any("force=1" in q for _, p_, q in r.md.requests if p_ == "/auto")
         assert r.dart.status()["phase"] == "ANCHORED"
         r.dart.release()
         r.dart.wait_phase("IDLE", 10, want_seq="released")
+        r.md.orient = "side"
         r.m.ask = lambda text, choices, **kw: "Release and reshoot"
         assert r.m.anchor() == "Release and reshoot"
-        r.md.orient = "upright"
+        r.md.orient, r.md.cannot_right = "upright", False
         r.md.batt = "critical"
         r.m.dart_anchored = False
         with pytest.raises(StepFailed, match="battery low"):

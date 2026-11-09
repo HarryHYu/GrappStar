@@ -52,22 +52,26 @@ SKIPPABLE = {"CHECK", "LANDING_ZONE", "TIDY", "COCK"}
 DECOCK_STEPS = ("COCK", "FIRE", "AIM", "LAUNCH_MODE", "RAIL_LOW", "BASE_NEUTRAL")
 DEFAULT_DRAG_N = 0.25            # the LIGHT clutch: the one default for the CLI, settings and the App
 LOG_FREEZE_WAIT_S = 6.0          # API v4: the flight log freezes 3 s after the landing; wait at most this long
-# dart fault codes (firmware/dart/API.md) in plain words for the operator
+# dart fault codes (firmware/dart/API.md, firmware v4.3 for the v34 dart) in plain words for the operator. v34 has no foot
+# and no kick leg: the kick channel drives the righting leg, so KICK_* are about that leg; FOOT_JAM and NO_GROUND are
+# never raised by v4.3 (kept for older firmware).
 DART_FAULT_HELP = {
     "PODS_JAM": "the drill pods jammed part way up during the release: free them by hand or with the ! key",
-    "KICK_JAM": "the kick leg jammed (or a motor is wired backwards): check it, then the @ key to stow it",
+    "KICK_JAM": "the righting leg stalled before it was folded back (jammed, or its motor wired backwards): check it, "
+                "then the @ key to fold it",
     "DRILL_JAM": "a drill stalled while unscrewing: it may be stuck on a stone, try the # key in short taps",
-    "FOOT_JAM": "the foot auger stalled while unscrewing: try the $ key in short taps",
+    "FOOT_JAM": "the foot auger stalled while unscrewing (older dart firmware; v34 has no foot)",
     "NO_CURRENT": "a motor drew no current: open wire or shorted output, check the motor plugs",
-    "KICK_TIMEOUT": "the kick found no ground (or no stowed stop) in time",
-    "SEQ_TIMEOUT": "the anchor or release sequence took over 35 s",
+    "KICK_TIMEOUT": "the righting leg did not reach its fold stop in 15 s: check the leg and its wires, then the @ key",
+    "SEQ_TIMEOUT": "the anchor (240 s) or release (180 s) sequence took too long",
     "OVERCURRENT": "a motor drew over 2 A: something is jammed",
     "LOW_RAIL": "the dart battery sagged under 5.6 V: charge it",
     "CURRENT_SENSOR": "the dart current sensor stopped answering: check the INA219 wiring",
-    "NO_GROUND": "the kick swung through air: the dart lies on its back or side",
+    "NO_GROUND": "the kick swung through air (older dart firmware): the dart lies on its back or side",
     "BROWNOUT": "the dart rebooted from a power dip (loose battery plug?)",
     "WATCHDOG": "the dart rebooted from a crash",
-    "NOT_UPRIGHT": "still on its side, upside down or nose steep after levelling: release it (the pods are out)",
+    "NOT_UPRIGHT": "the dart could not right itself in 6 moves (still on its side or back): release it and reshoot, "
+                   "or force the anchor if the camera shows it belly down",
 }
 
 
@@ -182,7 +186,8 @@ class MissionConfig:
     land_timeout_s: float = 10.0
     still_s: float = 1.0            # line out unchanged this long = landed
     settle_s: float = 2.0           # wait after landing before analysing (dart video settles)
-    anchor_timeout_s: float = 200.0  # dart v4.1: milling deploy in loam about 90 s, whole anchor up to 180 s (dart-fw)
+    anchor_timeout_s: float = 260.0  # dart v4.3: righting (about 10 s a move, up to 6) then the milling deploy (loam
+                                     # about 90 s, up to 150 s): the dart's own anchor limit is 240 s (dart-fw)
     release_timeout_s: float = 180.0  # dart v4.1: rocking and milling the pods up, up to 180 s (dart-fw)
     retrieve_speed_mps: float = 0.2  # slowest expected line speed, sets the retrieve timeout
     tow_max_rounds: int = 30
@@ -932,7 +937,7 @@ class Mission:
                 if not (e.reason.startswith("anchored") or e.reason.startswith("legs out")):
                     raise
                 # API v4: /arm is refused while ANCHORED (legs out). Never fire a dart with its legs out:
-                # release it (legs and kick stowed), then arm again.
+                # release it (pods and leg folded), then arm again.
                 self.ask(f"The dart is ANCHORED ({e.reason}): its legs are out and it must not be fired like that. "
                          "Release it (stows the legs), then arm?", ["Release the dart", "Abort"], danger=True)
                 self.dart_anchored = True
@@ -1308,19 +1313,12 @@ class Mission:
             self.log.warn("dart still ARMED (launch not seen): disarming before /auto")
             self.dart.arm(False)
         if s["phase"] not in ("ANCHORING",):
+            # dart v4.3 (v34): /auto rights a dart on its side or back by itself (seq "righting: ...", phase ANCHORING);
+            # it no longer refuses "not upright". A dart it cannot right ends in fault NOT_UPRIGHT (below).
             try:
                 self.dart.auto()
             except DartRefused as e:
-                if e.reason.startswith("not upright"):
-                    # API v4.1 orientation gate: on its side, upside down, nose down or up. The video may show
-                    # otherwise (IMU axes wrong): the operator can force it
-                    c = self.ask(f"The dart refuses to anchor: {e.reason}. Look at the dart camera. Reel it in and "
-                                 "shoot again, or force the anchor if the picture shows it lying normally?",
-                                 ["Release and reshoot", "Force anchor", "Abort"], danger=True)
-                    if c == "Release and reshoot":
-                        return c
-                    self.dart.auto(force=True)
-                elif e.reason.startswith("motors hot"):
+                if e.reason.startswith("motors hot"):
                     raise StepFailed(f"dart refused auto: {e.reason} (after a long milling deploy). Wait a minute, "
                                      "then Retry", choices=["Retry", "Release and reshoot"])
                 elif e.reason.startswith("battery low"):
@@ -1334,12 +1332,30 @@ class Mission:
         except DartError as e:
             if "cancelled" in str(e):
                 raise Aborted("operator STOP")
-            if "NO_GROUND" in str(e):
-                # the kick swung through air: the dart lies on its back or side. A new /auto faults again; /release
-                # stows the kick, then the dart comes home for a new shot.
+            if "NOT_UPRIGHT" in str(e):
+                # dart v4.3: 6 righting moves (leg flip from its back, pods roll from a flank) did not get it belly
+                # down; leg and pods are folded. Another /auto would try the same moves again. The camera decides:
+                # reel it in and reshoot, or (IMU axes wrong, or it lies well enough) anchor it as it lies.
+                c = self.ask(f"The dart could not right itself (NOT_UPRIGHT: {e}). Look at the dart camera. Reel it in "
+                             "and shoot again, or force the anchor if the picture shows it lying belly down?",
+                             ["Release and reshoot", "Force anchor", "Abort"], danger=True)
+                if c == "Release and reshoot":
+                    return c
+                self.dart.auto(force=True)
+                try:
+                    s = self.dart.wait_phase("ANCHORED", self.cfg.anchor_timeout_s, cancel=self.cancel,
+                                             log=self.log.info)
+                except DartError as e2:
+                    if "cancelled" in str(e2):
+                        raise Aborted("operator STOP")
+                    raise StepFailed(f"dart did not anchor (forced): {dart_fault_text(e2)}",
+                                     choices=["Retry", "Release and reshoot"])
+            elif "NO_GROUND" in str(e):
+                # older dart firmware (v4.2 kick leg): the kick swung through air. A new /auto faults again
                 raise StepFailed(f"dart on its back or side (NO_GROUND: {e}). Retrying the anchor faults again: "
                                  "release it and reshoot", choices=["Release and reshoot"])
-            raise StepFailed(f"dart did not anchor: {dart_fault_text(e)}", choices=["Retry", "Release and reshoot"])
+            else:
+                raise StepFailed(f"dart did not anchor: {dart_fault_text(e)}", choices=["Retry", "Release and reshoot"])
         self.dart_anchored = True
         warn = [w for w in (s.get("warnings") or []) if w]
         self.shot["anchor_warnings"] = warn

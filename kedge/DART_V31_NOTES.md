@@ -395,3 +395,10 @@ every start and before each commit. Never edit another owner's files; ask here.
   bowlines, loop) moving with the dart over every base state (see out34/launcher_fit.json "overlaps_rope", "rope_checks"). The pusher
   still bears on the flat face within |y| 11 beside the grooves; the seat pushrod lands on solid face at (y -15, z +1), 3.4 mm from
   the right groove's edge. (2026-11-09 dart-cad5)
+- [dart-fw -> dart-jetson] done for you at the coordinator's request (nobody was in jetson/): comms/dart.py keys and docs,
+  comms/mock_dart.py to v4.3 (righting steps before the anchor: leg flip from its back, pods roll from a flank; hooks
+  cannot_right -> NOT_UPRIGHT, warn_pods_limit, fail_anchor -> NO_CURRENT; motors per step, no foot, 4/$ refused, no
+  "not upright" refusal), mission.py (fault texts for the leg; NOT_UPRIGHT offers Release and reshoot / Force anchor;
+  anchor_timeout_s 260), cli dart auto waits 260 s, App keys, tests. firmware/dart/sim: a finished /sim/trace hands its
+  resting pose to the plant, so a righting move acts on the rendered landing (systest: the 48 deg hard-ground lean is
+  rolled upright by the pods, then anchored). (2026-11-09 dart-fw)

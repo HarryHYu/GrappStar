@@ -1,4 +1,4 @@
-# KEDGE DART: CLAUDE CODE HANDOVER (state at 2 Nov 2026 23:30 Sydney; geometry sections 5 and 7 updated 7 Nov 2026, current design = v33)
+# KEDGE DART: CLAUDE CODE HANDOVER (state at 2 Nov 2026 23:30 Sydney; geometry sections 5 and 7 updated 9 Nov 2026, current design = v34)
 
 Read this whole file first. It is everything known about the project from the cloud session (1-2 Nov 2026).
 Older full handover (v26, bench history, v26 source) is in `HANDOVER_v26_original.md`. Original caliper PDF with
@@ -148,7 +148,48 @@ Jetson /dev/video0. Control: 2.4 GHz WiFi, XIAO softAP.
 
 ---------------------------------------------------------------------------------------------------
 
-## 5. GEOMETRY v33 (generator `kedge_v33.py`, its defaults ARE v33; v32c = `kedge_v32.py`, described after the v33 block; v31 = `kedge_v27.py`)
+## 5. GEOMETRY v34 (generator `kedge_v34.py`, its defaults ARE v34; v33 = `kedge_v33.py` and v32c = `kedge_v32.py` are described after the v34 block; v31 = `kedge_v27.py`)
+
+v34 (9 Nov 2026, dart-cad4) = the SELF-RIGHTING layout from the righting study (kedge/sim_righting, results.json, published artifact
+TGTtc2um8jqGDkG5ic6hQA). Running handover: kedge/V34_PROGRESS.md. Harry's rules for v34: simple and working (NO latch: plain hard stops,
+the self-locking worm may carry a little), own pivot pins in hull bushings where simple, sealed body, assembly that makes physical sense.
+CONVENTIONS (new): moving roots in parts.json carry "sgn" (rotation sign about +y; -1 for both groups here) and "joint" ("leg" or
+"deploy"); world = T(pos) * RotY(sgn * deg) * local. audit27, solve_deg, clearance, massprops, viewer.html read them. The leg part is
+"righting_leg"; P.KICK_DEG is kept as an alias of P.LEG_DEG for old tools. v34 audit belly rule: below z -5 (the launcher cradle ring
+tops) nothing between the hull and r 26.
+PODS AT THE TAIL: pivot x 132, z 9.5 (study x 140, z 10: x 132 leaves room for the leg pad in front of the flat tail face the pusher
+needs; z 9.5 with the putty puts the CG on the axis), drill axis |y| 31.15, folded FORWARD along the flanks, deploy solved 46.75 deg
+(the motor end inside the hub 0.5 above flat ground), drills 43.5 mm deep entering the soil about 106 from the nose tip. v33 arms and
+tapered gimlets, built pointing +x and mirrored (hands kept: left pod right-hand, DRILL_SIGN +1). One deploy N20 on the axle at
+(132, 0, 9.5), motor pointing DOWN in the tray's rear cradle (the worm box rests on the tube's front/back walls), v33 PPA-CF couplers
+(D socket with 0.2 radial play) running in the pivot-block bores, pod caps + M3 x 8. Pivot blocks: v33 method mirrored (deploy stop
+behind the head, fold stop under it), smaller circles, kept out of the bay. NO LATCH (Harry's update): instead the BRIDLE EYE is a lug on
+each arm head's outboard 5 mm, 3.9 forward and 6.8 below the pivot folded (behind and below it deployed, about 23 above the soil), so
+the tow pulls the pod onto its deploy stop (about half the study eye's moment: it cannot hang lower, the launcher's stop springs pass
+0.6 mm under it at the shot). Drill leads through tight Ø3 holes at x 121.5, z 16.5 (silicone).
+TETHER: bridle, two legs about 80 mm from the eye lugs (128, +-31.6, 2.7 folded) to a ring about 48 mm behind the tail; no tail boom,
+no tail cap, no boom anchor: the two hull halves have integral 2.5 tail end walls (flat pusher face, edge r 2.5).
+RIGHTING LEG (no foot, no foot motor; the foot N20 is a spare): hinge x 33, z 14.5 on the centreline, swing 0 to 178 deg, bed 1.5 deg
+further on. The leg N20 (old kick motor) sits on the tray, motor pointing down, worm box in the KNUCKLE under a 0.6 skin blister (box
+top 20.5); both stubs trimmed to |y| 10.8. Fork root: a round cheek each side of the knuckle in a side pocket (|y| 7.6..11.4), keyed on a
+Ø6 PPA-CF LEG COUPLER that runs in the knuckle-wall bore and in the blind bore of a flush SKIN PLUG (Ø7.5, pressed in a counterbore,
+CA); the stub drives it through a D socket with 0.2 play; plug + worm box hold it axially. The stub slots under the knuckle (the hull
+top is lowered over the tray-mounted motor) are closed by two TONGUES on the tray's leg cradle. Blade 8.5 wide, I-channel (1.3 skin, 1.5
+walls), its top IS the hull crown, flush in the dorsal groove (floor 0.15 under it = the fold stop); bridge behind the knuckle (r >= 10.2,
+swings over it). Pad = a 2 mm patch of the hull skin (+-62 deg, x 143.5..149.3) on the tail top, centre 113 from the hinge (study 128),
+about 37 wide (study 56): limited by the launcher pusher (tail face) and the folded pods' hubs. Forward of the hinge the groove becomes
+the bed the leg root lies in at the far rest (a swept saddle in the hull front and the nose top; camera lowered to z -2.4, 1.2 over it).
+LOW CG: cells IN LINE on the belly (z -10: front spring B-, 0.3 nickel BM strip between them, rear plate B+), deck 1 is the tray's
+backbone right over them, deck 2 for the VTX and MP1584, DRV#1/#2 standing beside the deploy motor, both worm motors pointing down,
+belly rails in the hull bottom with two putty pockets (BALLAST_BELLY_G, Harry's ballast putty) at x 62..116.
+SEALING / ASSEMBLY: deck 1's edges sit in a seam groove at the split (both halves clamp them, they back the seam); nose spigot + lock rib;
+the JST sockets in flank seats behind the pivot blocks (left 2-pin ON loop, right 3-pin charge), clamped by the halves; the USB-C window
+tight round the receptacle; tray prints on a flat underside (z -16). Assembly order and access: pack_v34/KEDGE_v34_run_sheet.pdf
+(tray populated in the open; tray into the bottom; drill leads in; hull top lowered over the stubs; 8 radial screws; pods; leg + plugs).
+Results (out34): RESULTS_PLACEHOLDER
+Review renders: out34/review/ (01-22 review34.js, h1-h3 hinge close-ups without the leg), out34/img_exploded.png and img_stage1..4
+(assembly stages), out34/audit_sheet.png, out34/sections.png. Viewer data: pub34/.
+
 
 v33 (7 Nov 2026, dart-cad3) = v32c with Harry's TAPERED DRILLS and a gimlet foot auger. Everything not listed here is v32c (below).
 DRILLS: each drill gearmotor still sits INSIDE its auger, but only in a short hub: Ø18.7 (bore 16.3 over the gearbox diagonal 15.62) from the
@@ -292,6 +333,7 @@ Pipeline (run from this folder; `.venv/bin/python` has build123d, trimesh, manif
 - `review.js OUT` + `montage.py` : close-up renders to OUT/review; `pubshots.js PUBDIR OUTDIR` : shots of the published viewer page.
 - `viewer.html` : three.js viewer (pose sliders, explode, section cut, audit panel, Play deployment animation).
 Outputs:
+- `out34/ pack_v34/ dist_v34/ pub34/` : v34 (`GEN=kedge_v34.py ./run_all.sh out34 v34 1 1`, `GEN=kedge_v34.py ./make_dist.sh v34`; close-ups `node review34.js out34 [views.json]`; v34 tools: wires34.py, runsheet34.py, report34.py, ovl.py (overlap locator), qrender.py).
 - `out33/ pack_v33/ dist_v33/ pub33/` : v33 (`GEN=kedge_v33.py ./make_dist.sh v33`; close-ups `node review33.js out33`, kick check `kick_inline_check.py`).
 - `out32/ pack_v32/ dist_v32/ pub32/` : v32 (pub32 = index.html + parts/meshes/audit json for the viewer artifact; review
   renders in out32/review/).

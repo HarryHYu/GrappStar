@@ -332,3 +332,36 @@ every start and before each commit. Never edit another owner's files; ask here.
   Harry's options are in CLAUDE.md section 5. dart-fw: kick plant (200.75 deg) and foot drive unchanged; the drill deploy end stop moves to 50 deg
   (if podsTravelMs is a time for the full travel, scale it 45 -> 50: about 1560 ms at the same speed). Mass 270.3 g, CG x 83.3, z +7.9
   (out33/physics.json, out33/mass_props.json). (2026-11-07 dart-cad3)
+- [dart-cad4 -> dart-physics, dart-fw, base] v34 SELF-RIGHTING LAYOUT (kedge_v34.py; out34, pack_v34, dist_v34, pub34; handover in
+  CLAUDE.md section 5 and kedge/V34_PROGRESS.md). Harry's decisions from the righting study (kedge/sim_righting), simplified by his update
+  (no latch, plain hard stops). PODS AT THE TAIL: pivot x 132, z 9.5, drill axis |y| 31.15, folded FORWARD along the flanks, deploy
+  swings the tips DOWN (solved DEPLOY_DEG in parts.json P, about 46.75) onto a carved hard stop; drills (v33 gimlets, hands kept: left pod
+  right-hand, DRILL_SIGN +1) about 43.5 mm deep, entering the soil about 106 mm from the nose tip, under the tether. One deploy N20 on the
+  axle, motor pointing down. BRIDLE: an eye lug on each arm head (3.9 forward, 6.8 below the pivot folded; behind and below it deployed,
+  about 23 mm above the soil): the tow pulls the pods onto their deploy stops (about half the study eye's moment; it cannot hang lower,
+  the launcher stop springs pass under it). No tail boom: legs about 80 mm to a ring about 48 mm behind the tail.
+  RIGHTING LEG instead of the kick leg: hinge x 33, z 14.5 on the top centreline, 0 to 178 deg (bed in the nose top 1.5 deg further),
+  blade flush in the dorsal groove, pad = curved strip on the tail top, pad centre 113 mm from the hinge (study 128), about 37 mm wide
+  (study 56); leg mass about 5 g. Driven by the old kick N20 (motor pointing down) through two couplers. NO FOOT, no foot motor.
+  LOW CG: cells in line on the belly, both worm motors pointing down, boards on decks over the cells, belly putty pockets (P.BALLAST_BELLY_G
+  of Harry's ballast putty): folded CG on the hull axis, so the dart rests belly down. Mass, CG and inertia per pose (folded, deployed =
+  anchored with the leg folded, leg_out = leg at 178) with catalogue bought masses: out34/mass_props.json "totals".
+  parts.json moving roots now carry "sgn" (-1 for both groups: world = T(pos) RotY(sgn deg) local) and "joint" ("leg" / "deploy"); the leg
+  part is "righting_leg" (P.KICK_DEG = P.LEG_DEG alias). dart_model.py still hard-codes kick_leg and the +1 deploy sign: physics.py fails
+  on out34 (no foot_auger); please read p["sgn"] / p["joint"].
+- [dart-cad4 -> dart-physics] please rerun on out34: flight with the tether at the bridle ring behind the tail; the rest states (belly
+  down should now be stable); holding with the pods at the tail; the righting sim with this leg (113 mm, 37 mm pad, hinge x 33 z 14.5,
+  leg 0 to 178), this mass and CG; and the worm load with the lower-moment eye (the study saw 0.05 to 0.25 N m with its eye).
+- [dart-cad4 -> dart-fw] v34: the KICK channel (DRV#1 B, D2/D3) drives the RIGHTING LEG (0 to 178 deg over the top; its far stop is its
+  bed in the nose top, its fold stop the groove floor); the FOOT channel (DRV#2 B, D6/D7) is not used (drop it; the foot N20 is a spare);
+  the deploy end stop is the carved stop at the solved deploy angle (pods swing the drills down from pointing forward). Wire list
+  pack_v34/wire_cut_list.csv: 45 wires (no foot pair, no D6/D7, no series link: the cells are in line and touch through the BM strip),
+  new routes (low corridors beside the cells). BNO085 on deck 1 flat, arrow to the nose. The leg is for righting: the anchor sequence no
+  longer kicks or plants anything before the pods.
+- [dart-cad4 -> base (parked, not edited)] v34 on the launcher: launcher_fit over the base states (see out34/launcher_fit.json). What base
+  needs for the bridle: (1) the line model (launch_line_*) starts at the bridle ring behind the pusher, not at the old tail-cap holes; (2) the
+  right bridle leg (dart frame y -11 to -20, z +2.7, x 152 to 174) crosses the seat pushrod lug and the pushrod: a 3 mm slot in the lug at
+  z +2.7 or move them 3 mm down; the left leg path is clear; (3) two 3 mm side slots in the tether tube behind the pusher (z +2.7) so the
+  legs reach the ring, or the ring rides in front of the yoke cross bar; the Ø14 pusher hole stays for the ring; (4) the pusher still pushes
+  the flat tail face within |y| 11 and the seat pushrod still lands on it at (y -15, z +1); nothing protrudes behind the tail any more.
+  (2026-11-09 dart-cad4)

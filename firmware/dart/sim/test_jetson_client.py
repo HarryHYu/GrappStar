@@ -97,10 +97,10 @@ class JetsonClientTest(unittest.TestCase):
         self.d.stop()
         time.sleep(0.3)
         try:
-            self.d.hold("@", 1.0)                # bring the kick back (ends with a "stalled" refusal at the stop)
+            self.d.hold("!", 1.0)                # bring the pods back up (ends with a "stalled" refusal at the stop)
         except self.m.DartRefused as e:
             self.assertTrue(e.reason.startswith("stalled"), e.reason)
-        self.assertEqual(self.sim("/sim/state")["kick_pos"], 0)
+        self.assertEqual(self.sim("/sim/state")["deploy_pos"], 0)
         s = self.d.arm(True, auto=False)
         self.assertTrue(s["armed"])
 
@@ -128,7 +128,7 @@ class JetsonClientTest(unittest.TestCase):
         s = self.d.wait_phase("ANCHORED", 45.0)
         self.assertEqual(s["seq"], "anchored"); self.assertEqual(s["warnings"], [])
         st = self.sim("/sim/state")
-        self.assertEqual(st["kick_pos"], 4300); self.assertEqual(st["deploy_pos"], 1400)
+        self.assertEqual(st["kick_pos"], 0); self.assertEqual(st["deploy_pos"], 1400)   # v34 belly down: no righting, leg folded
         with self.assertRaises(self.m.DartRefused) as cm:
             self.d.auto()
         self.assertIn("already anchored", cm.exception.reason)
@@ -174,8 +174,9 @@ class JetsonClientTest(unittest.TestCase):
             self.sim("/sim/set?drill_jam=0")
             self.d.stop()
 
-    def test_09_v41_not_upright_and_battery_refusals(self):
-        # v4.1: the client sees the new refusals as DartRefused with the reason text, and the new status fields
+    def test_09_v43_on_its_side_righting_and_status_fields(self):
+        # v4.3 (dart v34): on its side /auto is accepted and rights it first (seq "righting: ..."), no "not upright"
+        # refusal; the v4.1 status fields are still there
         self.d.stop()
         self.sim("/sim/set?kick_pos=0&deploy_pos=0")
         try:
@@ -183,9 +184,16 @@ class JetsonClientTest(unittest.TestCase):
             t0 = time.time()
             while self.d.status()["orient"] != "side" and time.time() - t0 < 3:
                 time.sleep(0.1)
-            with self.assertRaises(self.m.DartRefused) as cm:
-                self.d.auto()
-            self.assertTrue(cm.exception.reason.startswith("not upright: on its side"), cm.exception.reason)
+            self.d.auto()
+            s = self.d.status()
+            self.assertEqual(s["phase"], "ANCHORING")
+            self.assertTrue(s["seq"].startswith("righting"), s["seq"])
+            self.d.stop()
+            time.sleep(0.3)
+            try:
+                self.d.hold("!", 1.0)            # the pods moved a little: back up to their stop
+            except self.m.DartRefused as e:
+                self.assertTrue(e.reason.startswith("stalled"), e.reason)
         finally:
             self.sim("/sim/trace?s=600:0:0:9.81")
             time.sleep(1.0)

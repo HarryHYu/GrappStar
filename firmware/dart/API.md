@@ -1,4 +1,10 @@
-# KEDGE dart HTTP API (contract C2, firmware kedge-dart-v4.2)
+# KEDGE dart HTTP API (contract C2, firmware kedge-dart-v4.3, dart v34)
+
+v4.3 in one paragraph (details in "Changes from v4.2 to v4.3" at the end): the v34 dart has no foot and no kick leg.
+The kick channel drives the righting leg (`motors.kick`, keys `2` / `@`), `motors.foot` is always 0 and keys `4` / `$`
+are refused (`no foot on v34`). `/auto` rights the dart first when it is not belly down (`seq` `righting: ...`, still
+phase `ANCHORING`), then runs the pods down with the drills; it no longer refuses `not upright`. A dart it cannot right
+in 6 moves ends in fault `NOT_UPRIGHT`.
 
 The dart is a WiFi access point. Join SSID `KEDGE`, password `grappstar`. The dart is at `http://192.168.4.1` (port 80).
 Every call is a plain HTTP GET. The server handles one request at a time, so keep requests short, use a 1 s timeout,
@@ -18,8 +24,8 @@ Refusal reasons: `in flight`, `busy` (a sequence owns the motors), `already anch
 `no current sensor` (INA219 missing or lost), `no IMU` (BNO085 missing or silent), `stalled: release the key first`, `hold limit: release the key first`,
 `fault latched: send stop first`, `both directions held`, `sent before a stop`,
 `battery low`, `anchored: release first`, `legs out: release first`, `unknown key`, and for `/flightlog` `busy (motors running)`, `armed (disarm first)`, `in flight`.
-v4.1 adds, for `/auto`: `motors hot after a long milling: wait 60 s`, `not upright: on its side (force=1 tries anyway)`, `not upright: upside down (...)`,
-`not upright: nose down (...)`, `not upright: nose up (...)`, and `battery low: charge it (release still works)`.
+v4.1 adds, for `/auto`: `motors hot after a long milling: wait 60 s` and `battery low: charge it (release still works)`
+(the v4.1 / v4.2 `not upright: ...` refusals are gone in v4.3: the dart rights itself). v4.3 adds `no foot on v34` (keys `4` / `$`).
 
 **One request at a time.** If a client opens a connection and never sends a request (a browser tab closing mid
 request can do this), the ESP32 web server waits up to 5 s for it before serving anyone else. Motors are not affected
@@ -39,11 +45,11 @@ in `/status`). To line it up with the Jetson clock, read `t_ms` from `/status`.
 JSON, always 200. Example (written by the host test to `test/out/status_anchoring.json`):
 
 ```json
-{"fw":"kedge-dart-v4","t_ms":5535,"phase":"ANCHORING","fault":null,"rail_V":7.60,"current_mA":24,"peak_mA":24,
- "speed":255,"motors":{"deploy":0,"kick":1,"drills":0,"foot":0},"seq":"kick swing","armed":false,
+{"fw":"kedge-dart-v4.3","t_ms":5535,"phase":"ANCHORING","fault":null,"rail_V":7.60,"current_mA":24,"peak_mA":24,
+ "speed":255,"motors":{"deploy":1,"kick":0,"drills":0,"foot":0},"seq":"deploy + drills","armed":false,
  "auto_on_landing":true,"landed":true,"roll":1.5,"pitch":-3.2,"accel_g":1.01,"peak_g":8.00,"ina_ok":true,"imu_ok":true,
  "t_launch_ms":3000,"t_land_ms":4010,"log_frozen":false,"reset":"poweron","warnings":[],"video":true,"batt":"ok",
- "batt_V":7.60,"orient":"upright","tilt_deg":2,"roll_g":0,"pitch_g":0,"soil_mA":-1,"moving":false,"event":"auto: kick swing"}
+ "batt_V":7.60,"orient":"upright","tilt_deg":0,"roll_g":0,"pitch_g":0,"soil_mA":-1,"moving":false,"event":"auto: upright (tilt 0 deg), deploy with drills spinning"}
 ```
 
 | Field | Type | Meaning |
@@ -56,7 +62,7 @@ JSON, always 200. Example (written by the host test to `test/out/status_anchorin
 | `current_mA` | number | total motor current, last good reading (stale when `ina_ok` is false; 9999 = INA219 range overflow, which trips) |
 | `peak_mA` | number | highest current since the last `/auto`, `/release` or key `i` |
 | `speed` | int | PWM duty 50..255 (keys `+` / `-`) |
-| `motors` | object | `deploy`, `kick`, `drills`, `foot`: -1, 0 or +1 (+1 = out / in / down, -1 = back / up / unscrew) |
+| `motors` | object | `deploy`, `kick`, `drills`, `foot`: -1, 0 or +1 (+1 = out / in / down, -1 = back / up / unscrew). v4.3 (v34): `kick` is the righting leg (+1 = out over the nose, -1 = fold), `foot` is always 0 |
 | `seq` | string | sequence step (below) |
 | `armed` | bool | landing detector armed (cleared on landing, `/stop`, `/auto`, `/release`, `/arm?on=0`, or the 15 min arm expiry) |
 | `auto_on_landing` | bool | when armed: start `/auto` by itself on landing |
@@ -68,26 +74,29 @@ JSON, always 200. Example (written by the host test to `test/out/status_anchorin
 | `t_launch_ms`, `t_land_ms` | int or null | detected launch and landing times, null when none |
 | `log_frozen` | bool | flight log holds a finished flight |
 | `reset` | string | why the dart last booted: `poweron`, `software`, `brownout`, `panic`, `task_wdt`, `int_wdt`, `wdt`, `reset_pin`, `deepsleep`, `other` (USB upload) |
-| `warnings` | array of strings | what went less than perfectly in the last `/auto` or `/release`, empty when clean: `foot_stalled`, `drills_stalled` (stone or full depth), `kick_plant_time_limit`, `pods_time_limit`, `kick_already_down`, `depth_limited` (v4.2: the deploy guard stopped the pods part way, firm soil or a stone). `ANCHORED` with warnings may be a weak anchor |
+| `warnings` | array of strings | what went less than perfectly in the last `/auto` or `/release`, empty when clean: `drills_stalled` (stone or full depth), `pods_time_limit` (the pods step ended on a time limit: firm soil, or no stall seen at the stop), `depth_limited` (v4.2: the deploy guard stopped the pods part way, firm soil or a stone). `ANCHORED` with warnings may be a weak anchor. (`foot_stalled`, `kick_plant_time_limit`, `kick_already_down` belong to v4.2 and are never set on v34) |
 | `video` | bool | v4.1: camera + VTX power wanted on (the optional switch on D10; without it the video is always on) |
 | `batt` | string | v4.1: battery at rest (no motor for 1 s): `ok`, `low` (under 6.8 V: about 10 % left), `critical` (under 6.4 V: `/auto` refused, video switched off, `/release` and keys still work), `none` (rail under 3 V: plug out), `unknown` (no reading yet). 0.1 V hysteresis |
 | `batt_V` | number | v4.1: the resting battery voltage behind `batt` (-1 before the first reading) |
-| `orient` | string | v4.1: from the BNO085 accelerometer while still: `upright`, `leaning` (roll 10 to 60 deg), `side`, `inverted`, `nose_down`, `nose_up`, `unknown` (IMU silent or moving). Until the nose axis is set (`imuNoseAxis`, BENCH_TEST step 7) only `upright` / `side` / `inverted` from the tilt (70 / 120 deg) |
-| `tilt_deg` | number | v4.1: angle between the dart's up axis and straight up (0 when `orient` is unknown) |
+| `orient` | string | v4.1: from the BNO085 accelerometer while still: `upright`, `leaning` (roll 10 to 60 deg), `side`, `inverted`, `nose_down`, `nose_up`, `unknown` (IMU silent or moving). Until the nose axis is set (`imuNoseAxis`, BENCH_TEST step 7) only `upright` / `side` / `inverted` from the tilt (70 / 120 deg). Report only: the v4.3 righting decides on `tilt_deg` |
+| `tilt_deg` | number | v4.1: angle between the dart's up axis and straight up (0 when `orient` is unknown). v4.3: `/auto` rights the dart first when this is 15 or more |
 | `roll_g`, `pitch_g` | number | v4.1: body roll and nose pitch from gravity (0 until the nose axis is set) |
 | `soil_mA` | number | v4.1: highest drill-pair current read alone while the augers were in soil in the last `/auto` (at 8.0 V; -1 = none). dart-physics: about 160 sand, 640 loam (7.4 V) |
 | `moving` | bool | v4.1: while `ANCHORED`: the dart tilted over 2 deg from where it anchored, or \|a\| off 1 g by 0.15 g, for 200 ms (the anchor is moving under the tow: stop the tow). Event `anchor moving` on each start |
 | `event` | string | last event line |
 
-`seq` values: `idle`, `kick swing`, `kick + foot planting`, `foot finishing`, `deploy + drills`, `drills finishing`,
-`anchored`, `aborted`, `release: drills out`, `release: drills out + pods up`, `release: foot out`,
-`release: kick back + foot out`, `released`, and v4.1 `levelling: pods to 16 deg, drills off` (match on `levelling`). The anchor names are the same as v3. **Prefer `phase` over `seq` text.**
+`seq` values (v4.3): `idle`, `righting: leg out`, `righting: leg folding`, `righting: pods out, drills off`,
+`righting: pods back up`, `righting: settling` (match on `righting`), `deploy + drills`, `drills finishing`, `anchored`,
+`aborted`, `release: drills out`, `release: drills out + pods up`, `release: leg folding` (only when the leg was not
+known folded), `released`. The v4.2 names `kick swing`, `kick + foot planting`, `foot finishing`, `release: foot out`,
+`release: kick back + foot out` and `levelling: ...` are gone. **Prefer `phase` over `seq` text.**
 
 ### GET /key?c=&lt;key&gt;&ms=&lt;run ms&gt;
 
 Manual key, same keys as the web page and Serial Monitor.
 
-- Run keys: `1` / `!` deploy pods down / up, `2` / `@` kick out / back, `3` / `#` drills in / out, `4` / `$` foot in / out.
+- Run keys: `1` / `!` pods down / up (the drills swing down / back), `2` / `@` righting leg out over the nose / fold
+  (v4.3; the old kick channel), `3` / `#` drills in / out. `4` / `$` are refused `no foot on v34` (nothing changes).
   `ms` is how long the motor runs if no repeat arrives (deadman). Default 350, clamped to 50..500. To hold a key,
   repeat it every 150 ms with `ms=350`; when the repeats stop, the motor stops within 350 ms.
 - A hold (one key repeated without a gap) is capped at 8 s in total, 2 s when the INA219 is missing. After the cap
@@ -154,15 +163,34 @@ How a client holds a run key, for example to bring the kick back (`@`) or push i
 
 ### GET /auto (and /auto?force=1)
 
-Starts the anchor sequence: kick swing, kick + foot planting (stall on contact), foot finishing, pods down with drills
-spinning, drills finishing, `anchored`.
+v4.3 (dart v34): righting first when the dart is not belly down, then the anchor: pods down with the drills spinning,
+drills finishing, `anchored`. The righting is the policy of the study sim (kedge/sim_righting simCore; the v34 check
+righted loam 40/40, sand 20/20) on v34's hardware, where one deploy worm drives both pods:
 
-v4.1 (dart-physics findings, 7 Nov 2026):
-- **Orientation gate.** `orient` `side`, `inverted`, `nose_down` or `nose_up`: refused (`not upright: ...`), nothing moves.
-  The rover should reel in and fire again. `/auto?force=1` skips this check (the IMU axes are wrong, or the video shows
-  it upright). `leaning` (roll 10 to 60 deg, the usual rest on hard ground: the dart leans about 38 deg on a pod): the
-  pods first swing about 16 deg with the drills off (`seq` `levelling`, 0.5 s, then 0.6 s settle; v32), which levels the
-  hull; still not upright after that is fault `NOT_UPRIGHT`. Orientation unknown (IMU silent): no gate.
+1. If the leg is not known to be folded (moved by hand, or after a reset other than a power-on) it first goes back to
+   its fold stop (`auto: leg to its fold stop first`, `seq` `righting: leg folding`). The pods never deploy with the leg out.
+2. The tilt is read (BNO085 gravity while still; `tilt_deg`). Under 15 deg: belly down, no righting (`auto: upright
+   (tilt N deg), deploy with drills spinning`). No attitude (BNO085 silent) or `/auto?force=1`: no righting, anchored as
+   it lies (`auto: attitude unknown, ...`, `auto: forced, no righting`).
+3. Otherwise one righting move (event `righting N: ...`), then 0.6 s still (up to 4 s for a fresh reading) and step 2
+   again, where after a move a tilt under 20 deg counts as upright (the pods hold it; they level it further as they go
+   down with the drills):
+   - tilt over 110 deg (belly up): **leg flip**. The leg swings out over the nose and pushes the dart over end to end
+     until the tilt falls under 60 deg (`righting: going over`), then 0.6 s more; or until it stalls for 1.5 s (its far
+     stop, the bed in the nose top, reached in air once the dart is over: normal, not a fault; or a dart it cannot lift);
+     at most 9 s. Then the leg folds to its stop (`righting: leg folded`; KICK_JAM if it stalls before 60 % of the way
+     back, KICK_TIMEOUT after 15 s).
+   - otherwise (on a flank, leaning on a pod): **pods roll**. Both pods swing down with the drills OFF until the tilt is
+     under 10 deg (the low pod rolls it onto its belly) or they stall for 1 s, at most 10 s, and hold there. If that
+     righted it, the anchor goes on from where they are; if not, they fold back to their stop first (`righting: pods
+     back up first`). Every 4th flank move is a leg flip (the sim's list).
+   - after 6 moves still not upright: fault `NOT_UPRIGHT` (`auto: not upright after 6 righting moves (tilt N deg)`), all
+     motors off, leg and pods folded. The rover reels it in and fires again (or the operator forces it).
+   Righting runs one motor at a time; the drills never turn while righting. The whole anchor is limited to 240 s.
+4. The anchor itself is v4.2's: the pods go down with the drills spinning (milling in soil, deploy guard), drills
+   finishing 3 s, `anchored`. The leg stays folded.
+
+v4.1 and v4.2 notes that still hold for the anchor step:
 - **Battery critical** (`batt` `critical`): refused (`battery low: ...`), so the dart never anchors without the charge to
   let go. `/release` always runs.
 - **Milling deploy.** The augers sweep sideways through soil, so the deploy worm stalls in soil long before its stop. In
@@ -170,18 +198,14 @@ v4.1 (dart-physics findings, 7 Nov 2026):
   to the stall reading, at most one 0.55 s cycle long) is soil: the deploy pauses 0.2 s while the drills keep cutting,
   then pushes again (event `pods in soil, milling`). No estimated travel gained for 5 s ends the step: taken as the stop
   when past 60 % (`pods down (no progress, past 60 %: the stop)`), else warning `pods_time_limit` (firm soil). The
-  pods step is limited to 6 s until milling starts, 150 s with milling (loam takes about 90 s; whole sequence 180 s).
-  After a pods step over 60 s the next `/auto` is refused for 60 s (`motors hot after a long milling: wait 60 s`). With the travel unknown
-  (after a reset or hand moves with other motors) the first stall is the stop, as in v4.
-- **Kick pulsing.** When planting ends on a kick stall, the kick pushes again in pulses (0.4 s on, 0.2 s off) while the
-  foot finishes (in loam the kick stalls a few degrees short of its rest; dart-physics). Event `kick down, foot
-  finishing (kick pulsing)`.
+  pods step is limited to 6 s until milling starts, 150 s with milling (loam takes about 90 s). A pods step that never
+  sees a stall (play or compliance at the stop) ends on these limits: `ANCHORED` with warning `pods_time_limit`, never a
+  hang. After a pods step over 60 s the next `/auto` is refused for 60 s (`motors hot after a long milling: wait 60 s`).
+  With the travel unknown (after a reset or hand moves with other motors) the first stall is the stop, as in v4.
 - **Deploy guard (v4.2, dart-physics v32).** When the drill pair, read alone (in the worm's pause, two readings in a row,
   or for 0.2 s during a milling pause), is over 67 % of its real stall current (`drillPairStallMa`, 700 mA at 8.0 V,
   measured in BENCH_TEST step 4), the pods stop where they are, the drills stop, and the anchor ends `ANCHORED` with
-  warning `depth_limited` (event `drills at 67 % of stall: depth limited, anchored`). The sleeves are then never deeper
-  than the drills can back out after standing (release margin about 1.15); physics: holding stays above the 55 N cap
-  (stiffer soil holds more per mm). This replaces the v4.1 85 % "drill relax" pause.
+  warning `depth_limited` (event `drills at 67 % of stall: depth limited, anchored`).
 - Known limit: a soil stall past about 85 % of the estimated travel (less up to one cycle, so possibly from about 50 %)
   is taken as the stop (weak anchor; a pods-down hall sensor would fix it, see the notes).
 - Known limit: pods already stuck in soil at the first readings of the step, with read noise near the margin, show no
@@ -191,74 +215,49 @@ v4.1 (dart-physics findings, 7 Nov 2026):
 - While `ARMED` (the launch was never seen) it disarms first (event `auto: disarmed first`) and starts.
 - A repeated `/auto` while anchoring is accepted and does not restart it (safe to retry after a timeout).
 - Accepted from `IDLE`, `ARMED`, `LANDED` and `FAULT` (it clears the fault).
-- Timings: kick swing until contact (over 60 mA for 150 ms after 250 ms start-up; kick time limit 15.5 s, then
-  `KICK_TIMEOUT`); kick + foot planting until the housing stalls (or 6 s); foot finishing 1.5 s; pods down until they
-  stall (time limit 6 s, 150 s once milling started, then it carries on, no fault); drills finishing 3 s. Whole sequence limit 180 s (v4.1).
-- A single motor that draws no current faults the sequence (`NO_CURRENT`). The anchor's pods step starts with the
-  deploy worm alone for 0.3 s to check it draws current (open wire: `NO_CURRENT`). In the release the drills keep
-  unscrewing from the start of the pods lift (the augers may still be in soil).
-- Kick travel bookkeeping: the firmware adds up how long the kick has been driven out and back (at full duty, scaled
-  by rail voltage / 8.0 V) and
-  assumes it was **stowed at power-on**. A kick that stalls near stowed at the start of `/auto` is a jam or wired
-  backwards (`KICK_JAM`), not "already down"; in `/release` a kick that stalls before its real travel back covers
-  60 % of the estimated travel out is `KICK_JAM`, not "stowed" (a jam in the last part of the return looks like the
-  stowed stop). Travel is not counted while the kick is stalled (either way) or planting. After any reset other than a
-  power-on (brownout, crash, OTA) the position is unknown and these checks wait until the next completed release.
-  `kickSwingMs` (4.3 s) is the kick's swing in air at 8.0 V. The firmware measures it: a kick driven out by hand from
-  stowed until it stalls logs `kick travel from stowed NNNN ms (at 8.0 V)` (BENCH_TEST step 5).
-- Stall handling inside the sequence: while two motors run (kick + foot, pods + drills), the worm (kick or deploy)
-  pauses 150 ms every 550 ms. It self-locks and holds position while the auger keeps turning and is read alone; the
-  worm's current is (both) - (auger alone). A worm stall must also show as a rise of the total current over the
-  phase's lowest reading, so an auger whose current changes during the pause cannot fake one. A stalled auger is
-  stopped (anchor; it is not driven again in the next step) or faults (release). An end-stop stall is only believed after a minimum travel time (pods 0.7 s,
-  kick back 1.5 s). If the kick's housing stall is never seen, planting carries on after 6 s (`kick plant time limit`).
-  A worm already at its end stop when such a step starts shows no rise; it is still stopped
-  over the line in 3 of the first 4 readings of the step (about 1.6 to 2.2 s). The rise asked for is half the way from
-  the worm's own lowest reading in the step to its line (at least 25 mA); if the other motor draws nothing (open wire)
-  no rise is needed. Known limit: an auger whose current drops during every pause by more than the worm's margin
-  (about 80 mA for the kick while planting, about 100 mA for the pods) fakes an end stop from the start of the step;
-  the step then ends early with no warning (weak anchor). BENCH_TEST step 9.6 measures this drop. Known limit: if the pods jam in soil mid-travel and the drills' current rises during each
-  pause by more than the margin, the jam is only ended by the 6 s pods limit. A retried
-  `/auto` whose kick is already planted (an earlier anchor got past the swing, or the kick was driven out by hand
-  until it stalled) skips the planting step (event `kick already down, foot planting`).
-- `NO_GROUND`: the kick stalls in the swing step with no contact phase while it is at 90 % or more of `kickSwingMs`
-  (its swing in air) and has not been planted since the last release. That is its own end stop in air (dart on its
-  back or side): fault, foot, pods and drills are not driven. A retry, or a swing stopped part way and retried, gives
-  `NO_GROUND` again: send `/release`, set the dart right, then `/auto`. After a reset (travel unknown) only the travel
-  of this swing counts. Geometry assumption, checked in BENCH_TEST step 5: on flat ground the kick's housing lands
-  before 80 % of its swing in air (90 % is the line, 10 % margin for the travel estimate). Known limit: a kick driven out by hand in air until it stalls, then `/auto`, is
-  taken as planted.
-- Kick travel is also marked unknown (event `kick travel unknown`) when the kick is driven by hand together with any
-  other motor, until the next completed release.
-- In the swing step a stall with no contact phase is judged: planted since the last release: already down; at 90 % of
-  `kickSwingMs` or more: `NO_GROUND`; near stowed, or after moving over 10 % of the swing in this step: `KICK_JAM` (a
-  jam in air, or hard ground with no contact phase); otherwise already down. A "contact" at 90 % or more (a soft end
-  stop in air) is also `NO_GROUND`. After `NO_GROUND` the kick's position is its end stop and it does not count as
-  planted until it has come back under half way, so a retry or a `2` tap does not make the next `/auto` anchor in air.
+- Timings: righting moves as above (leg out at most 9 s, leg fold 15 s then `KICK_TIMEOUT`, pods roll at most 10 s,
+  pods back 6 s); pods down until they stall (6 s, 150 s once milling started, then it carries on, no fault); drills
+  finishing 3 s. Whole sequence limit 240 s (v4.3: room for 6 righting moves before the 150 s milling deploy).
+- A single motor that draws no current faults the sequence (`NO_CURRENT`): the leg in a flip, the pods in a roll, and
+  the deploy worm alone for 0.3 s at the start of the pods step. In the release the drills keep unscrewing from the
+  start of the pods lift (the augers may still be in soil).
+- Leg travel bookkeeping: the firmware adds up how long the leg has been driven out and back (at full duty, scaled by
+  rail voltage / 8.0 V) and assumes it was **folded at power-on**. `kickSwingMs` (3.8 s) is its swing 0 to 178 deg at
+  8.0 V; the firmware measures it: the leg driven out by hand from folded until it stalls logs `leg travel from folded
+  NNNN ms (at 8.0 V)` (BENCH_TEST step 5). Within 2 % of the swing of the fold stop counts as folded. After any reset
+  other than a power-on, or when the leg was driven by hand together with other motors, its position is unknown until
+  it next folds to its stop (the next `/auto` does that first).
+- Stall handling while two motors run (pods + drills): the deploy worm pauses 150 ms every 550 ms. It self-locks and
+  holds position while the drills keep turning and are read alone; the worm's current is (both) - (drills alone). A
+  worm stall must also show as a rise of the total current over the phase's lowest reading, so a drill current that
+  changes during the pause cannot fake one. A stalled drill pair is stopped (anchor; not driven again in the next step)
+  or faults (release). An end-stop stall is only believed after a minimum travel time (pods 0.7 s, leg fold in the
+  release 1.5 s). Known limit: if the pods jam in soil mid-travel and the drills' current rises during each pause by
+  more than the margin, the jam is only ended by the pods step limits.
+- A landing knock or current spike while no motor runs is no fault: current checks run only while a motor is driven,
+  and each start ignores 0.25 s of surge.
 - One failed current read at the moment a step ends does not fault: the step ends and the next good read moves on.
 
 ### GET /release
 
-Starts the release sequence, the anchor sequence backwards. v4.1: drills that stall while unscrewing are **rocked** (in
+Starts the release sequence: drills out, pods up, and (v4.3) the leg to its fold stop only if it is not known folded
+(the anchor leaves it folded). v4.1: drills that stall while unscrewing are **rocked** (in
 0.3 s, then out again, up to 5 times, event `drills stuck, rocking them`) before `DRILL_JAM`; pods that stall on the
 way up before 60 % of their way back are **milled** up (deploy paused 0.2 s while the drills unscrew, then up again,
 event `pods held in soil, milling up`) and only give `PODS_JAM` after 5 s without progress.
 
 1. drills unscrew alone for 3 s (`release: drills out`)
 2. pods lift while the drills keep unscrewing for 0.6 s more, then the pods go on alone until they stall on their
-   stowed stop (after 6 s it carries on, event `release: pods time limit (stowed or stalled), foot out`). Alone, the
-   pods are read every 5 ms, so a stall before they came 60 % of their estimated way back is `PODS_JAM` (fault), not
-   the stowed stop. A jam in the last 40 % is not caught (it looks like the stowed stop).
-3. foot unscrews alone for 1.5 s (`release: foot out`)
-4. kick swings back while the foot keeps unscrewing for 3 s more, until the kick stalls on its stowed stop (15 s limit)
-5. `seq` = `released`, phase `IDLE`, all motors off.
-
-C2 listed the parts as "drills out, foot out, kick back, deploy up". The firmware runs them in the exact reverse order
-of `/auto` (pods up before the kick comes back), because the kick goes down first and the pods last.
+   stowed stop (event `release: pods up`; on the time limit `release: pods time limit (stowed or stalled)`). Alone, the
+   pods are read every 5 ms, so a stall before they came 60 % of their estimated way back is milled up, then
+   `PODS_JAM` (fault), not the stowed stop. A jam in the last 40 % is not caught (it looks like the stowed stop).
+3. v4.3: only if the leg is not known folded: the leg folds until it stalls on its stop (`release: leg folding`, 15 s
+   limit; `KICK_JAM` if it stalls before 60 % of its estimated way back).
+4. `seq` = `released`, phase `IDLE`, all motors off.
 
 - Refused in `FLIGHT`, while anchoring (`busy`, send `/stop` first), and without the INA219.
 - A repeated `/release` while releasing is accepted and does not restart it.
-- Faults: `DRILL_JAM`, `FOOT_JAM`, `KICK_JAM` (kick stalled before 60 % of the way back), `NO_CURRENT`, `KICK_TIMEOUT`
+- Faults: `DRILL_JAM`, `PODS_JAM`, `KICK_JAM` (leg stalled before 60 % of the way back), `NO_CURRENT`, `KICK_TIMEOUT`
   (15 s), `SEQ_TIMEOUT` (180 s), plus `OVERCURRENT`, `LOW_RAIL`, `CURRENT_SENSOR`. All motors stop on any fault.
 
 ### GET /arm?on=1&auto=1
@@ -346,16 +345,16 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 | Code | Cause | What the dart did |
 |---|---|---|
 | `OVERCURRENT` | motor current over 2000 mA for 10 ms while a motor runs (or the INA219 range overflowed) | all motors off |
-| `KICK_TIMEOUT` | kick found no ground in 15.5 s (anchor), or no stow stop in 15 s (release), or a kick timer ran out while current reads were failing | all off |
-| `SEQ_TIMEOUT` | anchor or release sequence over 180 s (v4.1; was 35 s) | all off |
+| `KICK_TIMEOUT` | v4.3: the righting leg did not reach its fold stop in 15 s (anchor or release), or a leg timer ran out while current reads were failing | all off |
+| `SEQ_TIMEOUT` | anchor sequence over 240 s (v4.3), release over 180 s | all off |
 | `NO_CURRENT` | a lone motor in a sequence drew under 40 % of its free current for 0.5 s: open wire or shorted output | all off |
-| `DRILL_JAM`, `FOOT_JAM` | stalled while unscrewing in release | all off |
+| `DRILL_JAM` | stalled while unscrewing in release (`FOOT_JAM`: v4.2 only, never on v34) | all off |
 | `CURRENT_SENSOR` | 3 failed INA219 reads in a row during a sequence | all off; manual keys still work on timers |
 | `LOW_RAIL` | rail under 5.6 V (including a dead 0 V rail) for 0.5 s while a motor runs | all off |
-| `KICK_JAM` | kick stalled near stowed at the start of `/auto`, or part way out with no contact (jam in air), or in `/release` before its travel back covered 60 % of its travel out | all off |
+| `KICK_JAM` | v4.3: the righting leg, folding (after a flip, or in `/release`), stalled before its travel back covered 60 % of its travel out | all off |
 | `PODS_JAM` | in `/release` the pods stalled before they came 60 % of their estimated way back (jammed part way up) | all off |
-| `NO_GROUND` | in `/auto` the kick swung (almost) its whole travel and stalled at its own end stop without touching ground (dart on its back or side) | all off; `/release` stows the kick |
-| `NOT_UPRIGHT` | v4.1: still on its side, upside down or nose steep after the levelling step | all off; the pods are about 16 deg out: `/release` |
+| `NO_GROUND` | v4.2 only (the kick's end stop in air); never raised on v34, where the leg's far stop in air is normal | |
+| `NOT_UPRIGHT` | v4.3: still not upright (tilt 20 deg or more) after 6 righting moves | all off, leg and pods folded: reel in and fire again |
 | `BROWNOUT` | the dart rebooted from a brownout | booted with motors off |
 | `WATCHDOG` | the dart rebooted from a crash or the 2 s safety-task watchdog | booted with motors off |
 
@@ -378,8 +377,8 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
 - **Impact level 3.5 g, not the 6 g in C2.** The BNO085 clips at 8 g and low-pass filters its output, so a 2 ms
   impact can read only about 5.7 g; free flight reads under about 1.5 g even tumbling, so 3.5 g is a safe line.
   `peak_g` in `/status` shows what a real landing read; tune `impactG` from drop tests.
-- Landing on its side, upside down or nose steep (`orient`): auto on landing does not start (event `landed on its
-  side: auto not started`, and so on); the phase is `LANDED`.
+- v4.3: landing on its side or back starts auto on landing as usual; the auto rights the dart first. (v4.1 / v4.2 did
+  not start it.)
 - **A reboot during the flight** (a short power break at impact: the JST plug is the only power path) loses the
   armed state and the log. `/status` then shows a small `t_ms` and `reset` `brownout` or `poweron` with phase `FAULT`
   or `IDLE`. The Jetson should treat that after a shot as "landed": send `/stop`, then `/auto`.
@@ -391,6 +390,19 @@ dart goes from `FLIGHT` straight to `ANCHORING`. A client waiting for `ANCHORED`
   foul the tether, and the landing detector starts the sequence itself on landing. If detection fails, the 15 s timeout
   ends FLIGHT, and `/stop` ends it at once.
 - Manual keys and `/release` are refused during FLIGHT for the same reason.
+
+## Changes from v4.2 to v4.3 (9 Nov 2026, dart v34, for client authors)
+
+- `fw` is `kedge-dart-v4.3`. No foot, no kick leg: `motors.kick` is the righting leg, `motors.foot` is always 0, keys
+  `4` / `$` are refused `no foot on v34`.
+- `/auto` rights the dart first when `tilt_deg` is 15 or more (leg flip from its back, pods roll from a flank, up to 6
+  moves; `seq` starts with `righting`, phase `ANCHORING`), then pods + drills as before. No more `not upright`
+  refusals; auto on landing starts on its side or back too. `/auto?force=1` now means: no righting, anchor as it lies.
+- New end: fault `NOT_UPRIGHT` after 6 moves (treat it like the old `not upright` refusal or `NO_GROUND`: reel in and
+  fire again). `NO_GROUND`, `FOOT_JAM` and the warnings `foot_stalled`, `kick_plant_time_limit`, `kick_already_down`
+  are never raised.
+- Anchoring can take up to 240 s (righting, about 10 s a move, then the up to 150 s milling deploy): wait 260 s.
+- The release no longer has foot or kick steps (drills out, pods up; the leg folds only if it was not folded).
 
 ## Changes from v4.1 to v4.2 (7 Nov 2026, for client authors)
 

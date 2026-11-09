@@ -5,8 +5,8 @@ Uses only the Python standard library for control (urllib); OpenCV is optional, 
 
   python3 kedge_client.py status                 # one status line
   python3 kedge_client.py watch                  # status 5x per second, logs to kedge_log.csv
-  python3 kedge_client.py key 2 --hold 1.5       # hold "kick out" for 1.5 s (deadman repeats like the web page)
-  python3 kedge_client.py auto                   # run the auto-anchor sequence and follow it to the end
+  python3 kedge_client.py key 2 --hold 1.5       # hold "leg out" for 1.5 s (deadman repeats like the web page)
+  python3 kedge_client.py auto                   # run the auto-anchor sequence (righting first if needed) and follow it
   python3 kedge_client.py drive                  # keyboard driving in a terminal (hold keys; space = stop; q = quit)
   python3 kedge_client.py video --dev 0          # FPV from the RC832 + capture card with telemetry overlay (needs opencv)
 
@@ -16,7 +16,8 @@ In your own code:
 """
 import argparse, csv, json, sys, time, threading, urllib.request, urllib.parse
 
-KEYS = {"1": "deploy down", "!": "deploy up", "2": "kick out", "@": "kick back", "3": "drills in", "#": "drills out", "4": "foot in", "$": "foot out"}
+# firmware v4.3 (dart v34): 2/@ drive the righting leg (the old kick channel); there is no foot (4/$ are refused)
+KEYS = {"1": "pods down", "!": "pods up", "2": "leg out", "@": "leg back", "3": "drills in", "#": "drills out"}
 
 
 class Dart:
@@ -74,7 +75,7 @@ def cmd_drive(d, args):
     import curses
     def ui(scr):
         curses.cbreak(); scr.nodelay(True); scr.keypad(True)
-        scr.addstr(0, 0, "KEDGE drive: hold 1/! 2/@ 3/# 4/$   space stop   a auto   q quit")
+        scr.addstr(0, 0, "KEDGE drive: hold 1/! 2/@ 3/#   space stop   a auto   q quit")
         last_key, last_t = None, 0
         while True:
             ch = scr.getch(); now = time.time()

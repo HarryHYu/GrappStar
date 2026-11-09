@@ -1,7 +1,14 @@
-# KEDGE dart firmware v4.2
+# KEDGE dart firmware v4.3 (dart v34)
 
-Firmware for the KEDGE dart: Seeed XIAO ESP32S3, two DRV8833 drivers (four motor channels), INA219 current sensor,
-BNO085 IMU. It anchors the dart after landing, releases it again, records the flight, and takes commands over WiFi.
+Firmware for the KEDGE dart: Seeed XIAO ESP32S3, two DRV8833 drivers, INA219 current sensor, BNO085 IMU. After
+landing it rights the dart if it is not belly down, anchors it, releases it again, records the flight, and takes
+commands over WiFi.
+
+v4.3 (9 Nov 2026) is for the v34 dart: three motor channels. DRV#1 A = pods (deploy), DRV#1 B = the righting leg (the
+old kick channel and N20), DRV#2 A = both drills. No foot and no kick leg: DRV#2 B and D6 / D7 are not wired, keys
+`4` / `$` are refused. `/auto`: righting (belly up: the leg flips it end over end; on a flank: both pods roll it with
+the drills off; the policy of the study sim, kedge/sim_righting), then pods down with the drills spinning. Details:
+API.md "/auto" and "Changes from v4.2 to v4.3".
 
 | File | What |
 |---|---|
@@ -31,8 +38,9 @@ BNO085 IMU. It anchors the dart after landing, releases it again, records the fl
 
 ## Tested versions (`arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32S3 --warnings all`)
 
-v4.1, 7 Nov 2026: esp32 core 3.3.12 and 2.0.17 compile with no warnings from the sketch (Adafruit BNO08x 1.2.7,
-arduino-cli 1.5.2-rc.1). Sizes in the commit log of that day. The table below is v4 (3 Nov).
+v4.3, 9 Nov 2026: esp32 core 3.3.12 (XIAO_ESP32S3, USB CDC On Boot Enabled) compiles with no warnings from the sketch:
+1,025,367 B flash (30 %), 70,852 B RAM (21 %). v4.1, 7 Nov 2026: esp32 core 3.3.12 and 2.0.17 compile with no warnings
+from the sketch (Adafruit BNO08x 1.2.7, arduino-cli 1.5.2-rc.1). The table below is v4 (3 Nov).
 
 | esp32 core | Result | Flash | RAM |
 |---|---|---|---|
@@ -73,7 +81,8 @@ aborted and the dart disarms when the upload starts.
 - Serial Monitor: type a key and press Enter, each press runs 1.5 s.
 - v4.1 page buttons `video on` / `video off` (optional switch, WIRING.md); third status line: battery, orientation,
   video.
-- Keys: `1`/`!` deploy down/up, `2`/`@` kick out/back, `3`/`#` drills in/out, `4`/`$` foot in/out, space or `s` STOP,
+- Keys: `1`/`!` pods down/up, `2`/`@` righting leg out (over the nose)/back (fold), `3`/`#` drills in/out (`4`/`$`
+  refused: no foot on v34), space or `s` STOP,
   `a` auto-anchor, `r` release, `A` arm/disarm (auto-anchor on landing), `+`/`-` speed, `i` current, `b` attitude,
   `p` status, `f` flight log summary, `z` I2C scan, `h` help.
 - Jetson: see `API.md`.
@@ -92,18 +101,19 @@ aborted and the dart disarms when the upload starts.
 - INA219 missing: manual keys only (on timers), auto and release refused. BNO085 missing: no arming, no flight log.
 - A stuck I2C bus is recovered (9 clocks and a Wire restart). If the web loop hangs for 30 s while nothing moves, the
   dart is not armed or in flight, and no OTA upload runs, it restarts itself.
-- v4.1: `/auto` refuses a dart that is on its side, upside down or nose steep (`/auto?force=1` tries anyway), and
-  refuses when the battery is critical (6.4 V at rest; `/release` always runs). In soil the pods are milled down in
-  pulses (up to 150 s; loam about 90 s). Released drills that stick are rocked before `DRILL_JAM`.
+- v4.1: `/auto` refuses when the battery is critical (6.4 V at rest; `/release` always runs). In soil the pods are
+  milled down in pulses (up to 150 s; loam about 90 s). Released drills that stick are rocked before `DRILL_JAM`.
+- v4.3: a dart on its side or back is righted first (one motor at a time, drills off, 6 moves at most, then fault
+  `NOT_UPRIGHT`); the leg's far stop in air is normal; the pods never deploy with the leg out.
 - v4.2: the deploy guard stops the pods when the drill pair reaches 67 % of its stall (`depth_limited`): the main
   safeguard that the sleeves can still be backed out in firmer loam. v32 drives the sleeves directly (`DRILL_SIGN` +1).
-- **Power on with the legs stowed.** The firmware keeps track of the kick's travel from power-on to tell a jammed kick
-  from one that is already down or stowed.
+- **Power on with the leg and the pods folded** (drive them to stall toward fold with `@` and `!` before loading the
+  dart). The firmware counts their travel from power-on to tell a jam from the fold stop.
 
 ## Tuning
 
 The current thresholds in `kedge_logic.h` (`struct Tuning`) are from the v29 bench numbers at 8 V. Measure the real
-ones with BENCH_TEST.md steps 3 to 6 and write them in at step 10. Then run the PC tests.
+ones with BENCH_TEST.md steps 3 to 5 and write them in at step 10. Then run the PC tests.
 
 ## PC tests
 

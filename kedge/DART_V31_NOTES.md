@@ -370,3 +370,20 @@ every start and before each commit. Never edit another owner's files; ask here.
   hull 191 g, CG x 83.4, 3.3 below the axis; eye still the sim's on-axis 15 mm): loam 40/40 righted (median 8.0 s, slowest 15.9 s), all
   held at 55 N; sand 20/20 righted (median 4.7 s), moves at about 18 N as before. Worm peak 0.55 N m in loam (v33 tail case 0.24): please
   find which joint and phase, and rerun with v34's real eye lug (3.9 forward, 6.8 below the pivot folded). (2026-11-09 dart-cad4)
+- [dart-fw -> all] firmware kedge-dart-v4.3 for v34 (review B6 fixed; firmware/dart, kedge/fw synced). No foot, no kick: the kick
+  channel (DRV#1 B) drives the righting leg, DRV#2 B / D6 / D7 are never driven, keys 4 / $ refused "no foot on v34". /auto: leg
+  folded first if not known folded; tilt under 15 deg = belly down, no righting; else one move at a time (drills off): belly up
+  (over 110) = leg flip (out until the tilt falls under 60, then 0.6 s, or a 1.5 s stall: the far stop in air is normal, no
+  NO_GROUND), leg back to its fold stop; on a flank = both pods out until under 10 deg or a 1 s stall, held (folded back before
+  the next move if it did not right it); every 4th flank move a leg flip; after a move under 20 deg counts as upright (your
+  shared-worm 16 deg sag cases anchor, the pods level it further going down); 6 moves then fault NOT_UPRIGHT. Then the v4.2
+  anchor (milling, 67 % guard; a pods step that never sees its stop ends ANCHORED + pods_time_limit, never a hang). Why pods
+  for flanks: the sim's own controller rights v34 flanks with pod rolls; on v34 hardware (one deploy worm, both pods move)
+  that policy righted loam 40/40 and sand 20/20 headless, a leg-only policy 2/40. (2026-11-09 dart-fw)
+- [dart-fw -> dart-jetson] v4.3 API (firmware/dart/API.md "Changes from v4.2 to v4.3"): fw "kedge-dart-v4.3"; /auto no longer
+  refuses "not upright" (the dart rights itself; auto on landing starts on its side or back too); seq "righting: ..." (phase
+  ANCHORING); /auto?force=1 = no righting; new end fault NOT_UPRIGHT after 6 moves (treat like NO_GROUND: release, reshoot;
+  your DART_FAULT_HELP text "after levelling" is stale); NO_GROUND, FOOT_JAM, foot_stalled, kick_plant_time_limit,
+  kick_already_down never raised; motors.foot always 0, motors.kick = the leg; anchoring can take up to 240 s (wait 260 s);
+  release has no foot / kick steps. jetson/grappstar/comms/dart.py KEYS and mock_dart ANCHOR_SEQ still list the foot and the
+  kick phases (yours, not edited). (2026-11-09 dart-fw)

@@ -145,7 +145,7 @@ class SimTest(unittest.TestCase):
         self.assertAlmostEqual(s["accel_g"], 1.0, delta=0.05)
 
     def test_02_key_hold_runs_and_deadman_stops(self):
-        # hold "kick out": every status read during the hold shows the kick running
+        # hold "leg out" (v34: the righting leg on the old kick channel): every status read during the hold shows it running
         t_end, seen = time.time() + 1.2, []
         while time.time() < t_end:
             code, body = self.get("/key?c=2&ms=350")
@@ -162,13 +162,13 @@ class SimTest(unittest.TestCase):
         dt = time.time() - t_last
         self.assertTrue(0.25 <= dt <= 0.6, f"kick stopped {dt:.3f} s after the last key (deadman is 0.35 s)")
         self.assertEqual(self.sim_state()["motors"]["kick"]["dir"], 0)
-        # hold "kick back" into the stowed stop: the stall stop catches it, then the held key is refused
+        # hold "leg back" into the fold stop: the stall stop catches it, then the held key is refused
         replies, _ = self.hold("@", 5.0, stop_on_refusal=True)
         self.assertEqual(replies[-1][0], 409, replies[-3:])
         self.assertTrue(replies[-1][1].startswith("refused: stalled"), replies[-1])
         s = self.get_status()
         self.assertEqual(s["motors"]["kick"], 0)
-        self.assertIn("stalled: kick", s["event"])
+        self.assertIn("stalled: leg", s["event"])
         self.assertEqual(self.sim_state()["kick_pos"], 0)
         time.sleep(0.6)                                      # "release" the key
 
@@ -262,7 +262,7 @@ class SimTest(unittest.TestCase):
         self.assertIsInstance(s["t_launch_ms"], int); self.assertIsInstance(s["t_land_ms"], int)
         self.assertTrue(150 < s["t_land_ms"] - s["t_launch_ms"] < 2000, s)
         st = self.sim_state()
-        self.assertEqual(st["kick_pos"], 4300); self.assertEqual(st["deploy_pos"], 1400)
+        self.assertEqual(st["kick_pos"], 0); self.assertEqual(st["deploy_pos"], 1400)   # v34: belly down, no righting: the leg stays folded
         self.assertTrue(all(m["dir"] == 0 for m in st["motors"].values()))
 
     def test_08_flightlog_after_landing(self):
@@ -320,17 +320,19 @@ class SimTest(unittest.TestCase):
             self.assertIn(k, s)
         self.assertIn("rail", d.key("i"))
         seen = []
-        t = threading.Thread(target=d.hold, args=("4", 1.2))
+        t = threading.Thread(target=d.hold, args=("3", 1.2))   # drills in (in air): v34 has no foot for key 4
         t.start()
         while t.is_alive():
-            seen.append(self.get_status()["motors"]["foot"])
+            seen.append(self.get_status()["motors"]["drills"])
             time.sleep(0.1)
         t.join()
         self.assertIn(1, seen)
         self.assertGreaterEqual(seen.count(1), 6, seen)       # running for (nearly) the whole hold
         s = self.get_status()                                # hold() ends with /stop
-        self.assertEqual(s["motors"]["foot"], 0)
+        self.assertEqual(s["motors"]["drills"], 0)
         self.assertEqual(s["event"], "stop")
+        self.assertRefused("/key?c=4&ms=350", "no foot on v34")
+        self.assertEqual(self.get_status()["motors"]["foot"], 0)
 
     def test_11_imu_stays_fresh_with_realistic_i2c_time(self):
         """Regression (fixed 3 Nov): imu_ok must stay true while the BNO085 is sending data.
@@ -354,32 +356,41 @@ class SimTest(unittest.TestCase):
             self.get("/arm?on=0")
 
 
-    def test_12_no_ground_faults_and_release_stows(self):
-        # dart on its back: the kick swings through air to its end stop; NO_GROUND, augers never run; /release stows
+    def test_12_v43_righting_from_belly_up_then_anchor(self):
+        # v34: belly up, /auto flips it end over end with the leg (onto a flank), folds the leg, rolls it onto its belly
+        # with the pods (drills off), then the pods go down with the drills spinning; release stows everything
         self.get("/stop"); time.sleep(0.3)
-        self.sim_set(kick_pos=0, deploy_pos=0, no_ground=1)
+        self.sim_set(kick_pos=0, deploy_pos=0, pose=175)
         try:
+            self.wait_for(lambda s: s["orient"] == "inverted", 3.0, "orient inverted")
             code, body = self.get("/auto")
             self.assertEqual(code, 200, body)
-            s = self.wait_for(lambda s: s["phase"] == "FAULT", 15.0, "NO_GROUND fault")
-            self.assertEqual(s["fault"], "NO_GROUND")
-            self.assertTrue(all(v == 0 for v in s["motors"].values()), s)
-            self.assertEqual(self.sim_state()["deploy_pos"], 0, "pods never moved")
-            self.get("/auto")                        # a retry faults again (never anchors in air)
-            time.sleep(1.5)
-            self.assertEqual(self.get_status()["fault"], "NO_GROUND")
-            self.assertEqual(self.sim_state()["deploy_pos"], 0)
+            seqs = []
+            def note(s):
+                if not seqs or seqs[-1] != s["seq"]:
+                    seqs.append(s["seq"])
+                return s
+            s = self.wait_for(lambda s: note(s)["phase"] == "ANCHORED", 45.0, "righted and anchored", poll=0.1,
+                              fail=lambda s: s["phase"] == "FAULT" or s["seq"] == "aborted")
+            self.assertEqual(seqs[:4], ["righting: leg out", "righting: leg folding", "righting: settling", "righting: pods out, drills off"], seqs)
+            self.assertIn("deploy + drills", seqs)
+            self.assertEqual(s["fault"], None)
+            st = self.sim_state()
+            self.assertEqual(st["tilt"], 0); self.assertEqual(st["kick_pos"], 0); self.assertEqual(st["deploy_pos"], 1400)
+            self.assertEqual(s["orient"], "upright")
             code, body = self.get("/release")
             self.assertEqual(code, 200, body)
-            s = self.wait_for(lambda s: s["seq"] == "released", 40.0, "released", poll=0.3)
-            self.assertEqual(self.sim_state()["kick_pos"], 0)
+            self.wait_for(lambda s: s["seq"] == "released", 40.0, "released", poll=0.3)
+            st = self.sim_state()
+            self.assertEqual(st["kick_pos"], 0); self.assertEqual(st["deploy_pos"], 0)
+            self.assertEqual(st["motors"]["foot"]["dir"], 0)
         finally:
-            self.sim_set(no_ground=0)
             self.get("/stop")
+            self.sim_set(kick_pos=0, deploy_pos=0, pose=0)
 
     def test_13_v41_video_orientation_battery_short_flight(self):
-        # v4.1: optional video switch on D10, /auto refused on its side unless force=1, battery critical at rest,
-        # a 0.33 s flight (the real launcher at its low aim) still lands by impact
+        # v4.1: optional video switch on D10, battery critical at rest, a 0.33 s flight (the real launcher at its low
+        # aim) still lands by impact. v4.3: on its side /auto is accepted and rights it first (no refusal)
         self.get("/stop"); time.sleep(0.3)
         self.sim_set(kick_pos=0, deploy_pos=0)
         self.assertEqual(self.sim_state()["video_pin"], 1, "video on after boot")
@@ -395,19 +406,23 @@ class SimTest(unittest.TestCase):
             self.get("/sim/trace?s=600:9.81:0:0")      # on its side
             self.wait_for(lambda s: s["orient"] == "side" and s["tilt_deg"] > 85, 3.0, "orient side, tilt about 90")
             code, body = self.get("/auto")
-            self.assertEqual(code, 409, body)
-            self.assertIn("not upright: on its side", body)
-            self.assertNotEqual(self.get_status()["phase"], "ANCHORING", "a refused /auto moves nothing")
+            self.assertEqual(code, 200, body)
+            s = self.get_status()
+            self.assertEqual(s["phase"], "ANCHORING")
+            self.assertEqual(s["seq"], "righting: pods out, drills off")
+            self.get("/stop"); time.sleep(0.3)
             code, body = self.get("/auto?force=1")
             self.assertEqual(code, 200, body)
-            self.wait_for(lambda s: s["phase"] == "ANCHORING", 2.0, "forced auto runs")
+            self.assertEqual(self.get_status()["seq"], "deploy + drills", "force=1: no righting")
             self.get("/stop"); time.sleep(0.3)
             self.get("/sim/trace?s=600:0:0:-9.81")     # upside down
             self.wait_for(lambda s: s["orient"] == "inverted", 3.0, "orient inverted")
         finally:
             self.get("/sim/trace?s=600:0:0:9.81")
             self.wait_for(lambda s: s["orient"] == "upright", 3.0, "upright again")
-        # release what the forced auto moved (kick only), so later tests start stowed
+        # bring back what the two short autos moved (the pods), so later tests start stowed
+        self.hold("!", 1.0)
+        self.get("/stop"); time.sleep(0.6)
         self.sim_set(kick_pos=0, deploy_pos=0)
         try:
             self.sim_set(rail_v=6.3)

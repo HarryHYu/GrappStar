@@ -1,5 +1,10 @@
 # KEDGE dart: failure modes and effects (electronics + firmware v4)
 
+v4.3 note (9 Nov 2026, dart v34): this walk was done on v4 with a kick leg and a foot. On v34 there is no foot (rows
+about the foot and `FOOT_JAM` do not apply) and the kick channel drives the righting leg; `NO_GROUND` is gone (the
+leg's far stop in air is normal) and a dart that cannot be righted in 6 moves ends in `NOT_UPRIGHT`. See API.md
+"Changes from v4.2 to v4.3".
+
 What can break, what the firmware notices, what it does, and what the Jetson or Harry should do about it.
 Checked against firmware `kedge-dart-v4` at commit 17beeb3 (3 Nov 2026). Rows M5, M8, M10, M11, M20, I8, X1, P2, C4,
 J3, O4 and O6 were updated for the afternoon fixes (see the status table at the end). If `kedge_logic.h` changes,

@@ -47,7 +47,7 @@ t0 = time.time(); s = m.run(); dt = time.time() - t0
 assert m.steps == ["preflight", "fire", "wait landing", "anchor", "tow", "recover", "release dart", "cock", "retrieve", "done"], m.steps
 assert s["state"] == "ready" and s["switches"]["seated"] and mock_dart.S["seq"] == "anchored"
 dk = [k[1] for k in mock_dart.S["keys"]]
-assert "A" in dk and dk.index("#") < dk.index("$") and "!" in dk and "@" in dk and dk[-1] == " "
+assert "A" in dk and "#" in dk and "!" in dk and "$" not in dk and "4" not in dk and dk[-1] == " "   # v34: release = drills out + pods up, no foot
 cm = [c[1] for c in mock_gs.S["cmds"]]
 assert cm.index("fire") < cm.index("tow") < cm.index("cock") < cm.index("retrieve"), cm
 print(f"ok: mission (step by step): fire, land, anchor, tow to hold, release, cock, retrieve -> READY in {dt:.1f} s")

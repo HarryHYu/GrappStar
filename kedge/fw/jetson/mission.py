@@ -2,7 +2,7 @@
 """GrappStar mission: drives the KEDGE dart and the ground station together.
 
   fire -> dart lands (BNO085 landing flag) -> dart auto-anchors -> tow to the tension limit and hold -> [rover recovers]
-  -> dart releases (drills out + pods up, then foot out + kick back) -> cock -> retrieve -> READY
+  -> dart releases (drills out + pods up; v34: the leg stays folded, no foot) -> cock -> retrieve -> READY
 
   python3 mission.py --dry-run                   # against mock_dart + mock_gs on this machine
   python3 mission.py --dry-run --cycle           # same, but the ground station's own cycle helper sequences its side
@@ -69,7 +69,7 @@ class Mission:
     def release(self):
         self.step("release dart")
         hold_keys(self.d, ["#", "!"], self.release_s[0])   # drills unscrew while the pods lift
-        hold_keys(self.d, ["$", "@"], self.release_s[1])   # foot unscrews while the kick swings back
+        # v34 (firmware v4.3): no foot, and the righting leg is already folded after the anchor: nothing more to drive
 
     def run(self):
         """ground station driven step by step from here"""

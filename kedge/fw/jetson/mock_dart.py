@@ -4,7 +4,9 @@ import json, time, threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 S = dict(seq="idle", event="boot", keys=[], t0=None, armed=False, landed=False)
-SEQ = [(0, "kick swing"), (1.0, "kick + foot planting"), (1.6, "foot finishing"), (2.0, "deploy + drills"), (2.8, "drills finishing"), (3.4, "anchored")]
+# firmware v4.3 (dart v34), dart landed belly down: no righting, pods down with the drills, then anchored (a dart on its
+# back or side first shows "righting: ..." steps)
+SEQ = [(0, "deploy + drills"), (1.4, "drills finishing"), (3.4, "anchored")]
 def land():
     S["landed"] = True; S["event"] = "landed"
     if S["armed"] and S["t0"] is None: S["t0"] = time.time()

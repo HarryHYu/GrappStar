@@ -139,11 +139,11 @@ async function check(name, fn, xfail) {
 
 // ---------------------------------------------------------------------------------------------------- checks
 async function check1(note) {
-  await pressButton('kick out');
+  await pressButton('leg out');
   const tOn = await waitDirs((d) => d.kick === 1, 500, 'kick out to start');
   note(`kick started ${tOn} ms after pointerdown`);
   const pos0 = (await simState()).kick_pos;
-  const n = await holdsFor((d) => d.kick === 1 && d.deploy === 0 && d.drills === 0 && d.foot === 0, 2000, 'kick running while held');
+  const n = await holdsFor((d) => d.kick === 1 && d.deploy === 0 && d.drills === 0 && d.drills === 0, 2000, 'kick running while held');
   const pos1 = (await simState()).kick_pos;
   note(`kick ran on all ${n} samples during the 2 s hold, kick_pos ${pos0} -> ${pos1}`);
   assert(pos1 - pos0 > 1000, `kick hardly moved in 2 s (${pos0} -> ${pos1})`);
@@ -157,8 +157,8 @@ async function check1(note) {
   assert((await heldSize()) === 0, 'page still thinks something is held');
 }
 
-// both motors at once: the firmware's pair check (kedge_logic.h, pairCheck) stops the worm motor (here the kick) for
-// 150 ms every 550 ms to read the foot's current alone, so the kick's pins read "off" for those 150 ms while it is
+// both motors at once: the firmware's pair check (kedge_logic.h, pairCheck) stops the worm motor (here the leg, on the kick channel) for
+// 150 ms every 550 ms to read the drills' current alone, so the kick's pins (the leg) read "off" for those 150 ms while it is
 // still commanded on. A sample therefore counts as "kick running" when /status says kick=1 (commanded) and the pins
 // are either driving it or in such a short pause; "kick stopped" needs both the command and the pins off.
 async function both() {
@@ -169,40 +169,40 @@ async function both() {
 async function check2(note) {
   await simSet('kick_pos=0');
   await page.keyboard.down('Digit2');
-  await page.keyboard.down('Digit4');
-  const tOn = await waitDirs((d) => d.kick === 1 && d.foot === 1, 500, 'kick and foot to start');
-  note(`kick and foot both running ${tOn} ms after the keydowns`);
+  await page.keyboard.down('Digit3');
+  const tOn = await waitDirs((d) => d.kick === 1 && d.drills === 1, 500, 'leg and drills to start');
+  note(`leg and drills both running ${tOn} ms after the keydowns`);
   let t0 = now(), n = 0, pauseStart = null, maxPause = 0, pauses = 0;
   while (now() - t0 < 1500) {
     const { pin, cmd } = await both(); n++;
-    assert(cmd.kick === 1 && cmd.foot === 1, `kick or foot no longer commanded while both held: cmd ${JSON.stringify(cmd)}`);
-    assert(pin.foot === 1, `foot pins off while held: ${fmtDirs(pin)}`);
+    assert(cmd.kick === 1 && cmd.drills === 1, `kick or drills no longer commanded while both held: cmd ${JSON.stringify(cmd)}`);
+    assert(pin.drills === 1, `drills pins off while held: ${fmtDirs(pin)}`);
     assert(pin.kick === 1 || pin.kick === 0, `kick reversed: ${fmtDirs(pin)}`);
     if (pin.kick === 0) { if (pauseStart === null) { pauseStart = now(); pauses++; } maxPause = Math.max(maxPause, now() - pauseStart); }
     else pauseStart = null;
     assert(maxPause <= 250, `kick pins off for ${maxPause} ms while held (pair check pauses are 150 ms)`);
     await sleep(15);
   }
-  note(`over 1.5 s (${n} samples) both stayed commanded on; foot pins always on; kick pins paused ${pauses}x, longest ${maxPause} ms (the pair check)`);
+  note(`over 1.5 s (${n} samples) both stayed commanded on; drills pins always on; kick pins paused ${pauses}x, longest ${maxPause} ms (the pair check)`);
   await page.keyboard.up('Digit2');
   const tR = now();
   for (;;) {
     const { pin, cmd } = await both();
-    assert(cmd.foot === 1 && pin.foot === 1, `releasing 2 stopped the foot too: cmd ${JSON.stringify(cmd)} pins ${fmtDirs(pin)}`);
+    assert(cmd.drills === 1 && pin.drills === 1, `releasing 2 stopped the drills too: cmd ${JSON.stringify(cmd)} pins ${fmtDirs(pin)}`);
     if (cmd.kick === 0 && pin.kick === 0) break;
     assert(now() - tR < 500, `kick still commanded ${now() - tR} ms after releasing 2`);
     await sleep(15);
   }
-  note(`kick stopped ${now() - tR} ms after releasing 2 (no more repeats, so the 350 ms deadman ends it); foot still running`);
-  const n2 = await holdsFor((d) => d.kick === 0 && d.foot === 1, 700, 'foot alone running while 4 held');
-  note(`foot alone kept running on all ${n2} samples over 0.7 s`);
+  note(`kick stopped ${now() - tR} ms after releasing 2 (no more repeats, so the 350 ms deadman ends it); drills still running`);
+  const n2 = await holdsFor((d) => d.kick === 0 && d.drills === 1, 700, 'drills alone running while 3 held');
+  note(`drills alone kept running on all ${n2} samples over 0.7 s`);
   await get('/arm?on=0');                            // marks the event log: a "stop" event after this came from the page
-  await page.keyboard.up('Digit4');
-  const tAll = await waitDirs(allStopped, 500, 'all to stop after releasing 4');
+  await page.keyboard.up('Digit3');
+  const tAll = await waitDirs(allStopped, 500, 'all to stop after releasing 3');
   const ev = (await status()).event;
-  note(`all stopped ${tAll} ms after releasing 4; last event "${ev}"`);
+  note(`all stopped ${tAll} ms after releasing 3; last event "${ev}"`);
   assert(ev === KEY_STOP_EV, `releasing the last key did not send the key-release stop (event "${ev}")`);
-  await holdsFor(allStopped, 500, 'all stopped after releasing 4');
+  await holdsFor(allStopped, 500, 'all stopped after releasing 3');
 }
 
 async function check3(note) {
@@ -240,23 +240,23 @@ async function check4a(note) {
   let blurs = 0;
   await page.exposeFunction('__noteBlur', () => { blurs++; }).catch(() => {});
   await page.evaluate(() => addEventListener('blur', () => window.__noteBlur && window.__noteBlur()));
-  await pressButton('foot in');
-  await waitDirs((d) => d.foot === 1, 500, 'foot to start');
-  await holdsFor((d) => d.foot === 1, 400, 'foot running while held');
+  await pressButton('drills in');
+  await waitDirs((d) => d.drills === 1, 500, 'drills to start');
+  await holdsFor((d) => d.drills === 1, 400, 'drills running while held');
   await get('/arm?on=0');
   await realBlur();
-  const tOff = await waitDirs((d) => d.foot === 0, 500, 'foot to stop after blur');
+  const tOff = await waitDirs((d) => d.drills === 0, 500, 'drills to stop after blur');
   await sleep(50);
-  note(`window blur (focus moved into an iframe, browser-fired: ${blurs} blur event) stopped the foot after ${tOff} ms; last event "${(await status()).event}"`);
+  note(`window blur (focus moved into an iframe, browser-fired: ${blurs} blur event) stopped the drills after ${tOff} ms; last event "${(await status()).event}"`);
   await holdsFor(allStopped, 700, 'all stopped while the pointer is still down after blur');
   await releaseButton();
   await undoBlur();
 }
 
 async function check4b(note) {
-  await page.keyboard.down('Digit4');
-  await waitDirs((d) => d.foot === 1, 500, 'foot to start');
-  await holdsFor((d) => d.foot === 1, 400, 'foot running while held');
+  await page.keyboard.down('Digit3');
+  await waitDirs((d) => d.drills === 1, 500, 'drills to start');
+  await holdsFor((d) => d.drills === 1, 400, 'drills running while held');
   await get('/arm?on=0');
   // headless Chromium never hides a page, so visibility is simulated: document.hidden true + a visibilitychange event
   await page.evaluate(() => {
@@ -264,11 +264,11 @@ async function check4b(note) {
     Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
     document.dispatchEvent(new Event('visibilitychange'));
   });
-  const tOff = await waitDirs((d) => d.foot === 0, 500, 'foot to stop after visibilitychange');
-  note(`page hidden (simulated visibilitychange) stopped the foot after ${tOff} ms; last event "${(await status()).event}"`);
+  const tOff = await waitDirs((d) => d.drills === 0, 500, 'drills to stop after visibilitychange');
+  note(`page hidden (simulated visibilitychange) stopped the drills after ${tOff} ms; last event "${(await status()).event}"`);
   await holdsFor(allStopped, 700, 'all stopped while the key is still down after hide');
   await page.evaluate(() => { delete document.hidden; delete document.visibilityState; });
-  await page.keyboard.up('Digit4');
+  await page.keyboard.up('Digit3');
 }
 
 // a real pagehide: navigate away while key 1 (deploy down) is held. The firmware's deadman (350 ms) stops the motor
@@ -307,15 +307,15 @@ async function check4d(note) {
   const trials = [];
   if (pagehideSeen.ev !== undefined) trials.push({ ev: pagehideSeen.ev, http: pagehideSeen.http });
   while (trials.length < 6) {
-    await page.keyboard.down('Digit4');
-    await waitDirs((d) => d.foot === 1, 500, 'foot to start');
+    await page.keyboard.down('Digit3');
+    await waitDirs((d) => d.drills === 1, 500, 'drills to start');
     await sleep(200 + 40 * trials.length);
     await get('/arm?on=0');
     await page.goto('about:blank');
     const ta = now();
     const ev = (await status()).event;
     trials.push({ ev, http: now() - ta });
-    await page.keyboard.up('Digit4');
+    await page.keyboard.up('Digit3');
     await settle(null);
     await openPage();
   }
@@ -330,9 +330,12 @@ async function check4d(note) {
 async function check5(note) {
   await clickButton('AUTO anchor');
   const tA = await waitPage(async () => { const s = await statusLine(); return { ok: /^ANCHORING\b/.test(s), last: s }; }, 2000, 'status line ANCHORING');
-  const d = await dirs();
-  note(`status line shows ANCHORING after ${tA} ms; motors ${fmtDirs(d)}`);
-  assert(d.kick === 1, 'AUTO did not start the kick swing');
+  const d = await dirs(), st = await status(), cmd = st.motors;
+  note(`status line shows ANCHORING after ${tA} ms; motors ${fmtDirs(d)}; seq "${st.seq}"`);
+  // v34, belly down: no righting, the pods start; the leg moved by the checks above (the sim's kick_pos reset does not
+  // tell the firmware) is folded to its stop first
+  assert((cmd.deploy === 1 && cmd.kick === 0) || (cmd.kick === -1 && cmd.deploy === 0 && st.seq === 'righting: leg folding'),
+         'AUTO started neither the pods nor the leg fold (v34: belly down, no righting)');
   await clickButton('RELEASE');
   const tR = await waitPage(async () => { const s = await logText(); return { ok: s.includes('refused: busy'), last: s.slice(-200) }; }, 1500, 'refusal text in the log');
   note(`RELEASE while anchoring: "refused: busy" in the log after ${tR} ms`);
@@ -345,13 +348,13 @@ async function check5(note) {
 }
 
 async function check5b(note) {
-  // STOP while a run key is held: keyboard key 4 down, STOP clicked with the mouse (or a second finger on a phone)
-  await page.keyboard.down('Digit4');
-  await waitDirs((d) => d.foot === 1, 500, 'foot to start');
+  // STOP while a run key is held: keyboard key 3 down, STOP clicked with the mouse (or a second finger on a phone)
+  await page.keyboard.down('Digit3');
+  await waitDirs((d) => d.drills === 1, 500, 'drills to start');
   await clickButton('STOP');
-  const tS = await waitDirs((d) => d.foot === 0, 500, 'STOP to stop the foot');
-  note(`STOP stopped the foot after ${tS} ms`);
-  await holdsFor(allStopped, 1000, 'motors stay stopped after STOP while 4 is still physically held');
+  const tS = await waitDirs((d) => d.drills === 0, 500, 'STOP to stop the drills');
+  note(`STOP stopped the drills after ${tS} ms`);
+  await holdsFor(allStopped, 1000, 'motors stay stopped after STOP while 3 is still physically held');
 }
 
 async function check6(note) {
@@ -430,9 +433,9 @@ async function main() {
   await openPage();
   await settle();
 
-  await check('1 hold "kick out" button 2 s runs; release stops within 0.5 s', check1);
-  await check('2 keys 2 + 4 held together; release 2 stops kick only; release 4 stops all', check2);
-  await check('3 Shift+2 (@), Shift released first: kick stops on releasing 2', check3);
+  await check('1 hold "leg out" button 2 s runs; release stops within 0.5 s', check1);
+  await check('2 keys 2 + 3 held together; release 2 stops the leg only; release 3 stops all', check2);
+  await check('3 Shift+2 (@), Shift released first: the leg stops on releasing 2', check3);
   await check('4a holding a button, window blur stops the motors', check4a);
   await check('4b holding a key, page hidden (visibilitychange) stops the motors', check4b);
   await check('4c holding a key, navigating away (pagehide): the motor stops within 0.6 s', check4c);

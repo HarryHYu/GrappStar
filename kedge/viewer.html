@@ -33,7 +33,7 @@
   <h1 id="ttl">KEDGE dart</h1>
   <div class="d" id="sub"></div>
   <h2>Pose</h2>
-  <div class="row"><label>Kick leg <span class="v" id="kv">0°</span></label></div><input type="range" id="kick" min="0" max="200" value="0" step="0.25">
+  <div class="row"><label id="klab">Kick leg <span class="v" id="kv">0°</span></label></div><input type="range" id="kick" min="0" max="200" value="0" step="0.25">
   <div class="row"><label>Drill pair <span class="v" id="dv">0°</span></label></div><input type="range" id="dep" min="0" max="38" value="0" step="0.25">
   <div class="row"><label>Explode</label></div><input type="range" id="exp" min="0" max="100" value="0">
   <div class="row"><label>Section cut</label><select id="cax"><option value="y">across (Y)</option><option value="x">along (X)</option><option value="z">level (Z)</option></select></div>
@@ -73,11 +73,14 @@ const parts=[];let J,P,ground;
 const orb={t:new THREE.Vector3(75,0,0),r:330,az:-1.05,el:0.42};
 function place(){const c=Math.cos(orb.el);cam.position.set(orb.t.x+orb.r*c*Math.cos(orb.az),orb.t.y+orb.r*c*Math.sin(orb.az),orb.t.z+orb.r*Math.sin(orb.el));cam.lookAt(orb.t);}
 const SPIN={kick_leg:-1};
-const MOVE=n=>n==='kick_leg'?'k':(n.startsWith('drill_leg')||n.startsWith('coupler')||n==='deploy_shaft')?'d':null;
+const MOVE=(n,p)=>p&&p.joint?(p.joint==='leg'?'k':'d'):(n==='kick_leg'?'k':(n.startsWith('drill_leg')||n.startsWith('coupler')||n==='deploy_shaft')?'d':null);
+const SGN=(n,p)=>p&&p.sgn!=null?p.sgn:(n==='kick_leg'?-1:1);
+const LEGN=()=>J.parts.find(p=>p.joint==='leg'&&!p.parent)?.name||'kick_leg';
 Promise.all([fetch('parts.json').then(r=>r.json()),fetch('meshes.json').then(r=>r.json()),fetch('audit.json').then(r=>r.ok?r.json():null).catch(()=>null)]).then(([j,M,A])=>{
   J=j;P=J.P;
   $('#ttl').textContent='KEDGE dart '+(J.version||'');
-  $('#sub').textContent=`Ø${2*P.R_OUT} hull, 1.5 walls, ${P.L} long. Kick 0 to ${P.KICK_DEG}°, drills 0 to ${P.DEPLOY_DEG}°. Every mesh is the exact file that prints.`;
+  const isLeg=J.parts.some(p=>p.joint==='leg');if(isLeg){$('#klab').firstChild.textContent='Righting leg ';$('#phase').textContent='The righting leg swings out over the nose and back, then the pods swing down at the tail with the drills spinning.';}
+  $('#sub').textContent=`Ø${2*P.R_OUT} hull, 1.5 walls, ${P.L} long. ${isLeg?'Righting leg':'Kick'} 0 to ${P.KICK_DEG}°, drills 0 to ${P.DEPLOY_DEG}°. Every mesh is the exact file that prints.`;
   $('#kick').max=P.KICK_DEG;$('#dep').max=Math.max(38,P.DEPLOY_DEG);
   const gp=new THREE.GridHelper(700,35,dark?0x3a3f46:0xb9bec6,dark?0x2a2e34:0xd5d8de);gp.rotation.x=Math.PI/2;gp.position.set(P.L/2,0,J.ground);
   const gs=new THREE.Mesh(new THREE.PlaneGeometry(700,450),new THREE.MeshStandardMaterial({color:dark?0x1b1e22:0xe2e5ea,side:THREE.DoubleSide,transparent:true,opacity:0.92}));
@@ -100,8 +103,8 @@ Promise.all([fetch('parts.json').then(r=>r.json()),fetch('meshes.json').then(r=>
     e.onmouseenter=()=>{mat.emissive.set(0xffffff);mat.emissiveIntensity=0.45};e.onmouseleave=()=>{mat.emissiveIntensity=0};e.onclick=()=>{q.hidden=!q.hidden;pose()};
   });
   if(A){const ok=A.clean!==false&&Object.keys(A.collisions||{}).length===0;
-    $('#aud').innerHTML=`<span class="${ok?'ok':'bad'}">${ok?'Collision sweep clean':'Collisions found'}</span>: kick 0 to ${A.kick_range[1]}° in ${A.kick_steps} steps, drills 0 to ${A.deploy_range[1]}° in ${A.deploy_steps} steps, every sub-part on its own, exact meshes.<br>`+
-    `Ground: nothing but the augers goes below z = ${J.ground}. Foot housing clear ${A.foot_housing_clear_mm} mm, pods clear ${Object.values(A.pod_clear_mm)[0]} mm. Auger depth: foot ${A.auger_depth_mm.foot_auger} mm, drills ${A.auger_depth_mm.drill_leg_L_auger} mm.<br>`+
+    $('#aud').innerHTML=`<span class="${ok?'ok':'bad'}">${ok?'Collision sweep clean':'Collisions found'}</span>: ${J.parts.some(p=>p.joint==='leg')?'righting leg':'kick'} 0 to ${A.kick_range[1]}° in ${A.kick_steps} steps, drills 0 to ${A.deploy_range[1]}° in ${A.deploy_steps} steps, every sub-part on its own, exact meshes.<br>`+
+    `Ground: nothing but the augers goes below z = ${J.ground}. ${A.foot_housing_clear_mm!=null&&A.auger_depth_mm.foot_auger!=null?'Foot housing clear '+A.foot_housing_clear_mm+' mm, ':''}pods clear ${Object.values(A.pod_clear_mm)[0]} mm. Auger depth: ${A.auger_depth_mm.foot_auger!=null?'foot '+A.auger_depth_mm.foot_auger+' mm, ':''}drills ${A.auger_depth_mm.drill_leg_L_auger} mm.<br>`+
     `Belly below the centreline: plain Ø42 cylinder. Folded envelope ${(A.folded_bbox[3]-A.folded_bbox[0]).toFixed(0)} × ${(A.folded_bbox[4]-A.folded_bbox[1]).toFixed(0)} × ${(A.folded_bbox[5]-A.folded_bbox[2]).toFixed(0)} mm (incl. tether eye and folded legs).<br>Printed ${A.printed_cm3} cm³ ≈ ${A.printed_g_solid_PLA} g PLA if solid.`;}
   pose();view('all');
 });
@@ -117,9 +120,9 @@ function pose(){
     if(p.parent)continue;
     const off=new THREE.Vector3();
     if(n==='hull_top')off.set(0,0,55);else if(n==='hull_bottom')off.set(0,0,-55);else if(n==='nose')off.set(-45,0,0);else if(n==='tail_cap')off.set(45,0,0);
-    else if(n==='kick_leg')off.set(0,0,40);else if(n.startsWith('drill_leg'))off.set(0,Math.sign(p.pos[1])*40,0);else if(n==='coupler_L')off.set(0,25,0);else if(n==='coupler_R')off.set(0,-25,0);
+    else if(n==='kick_leg'||p.joint==='leg')off.set(0,0,40);else if(n.startsWith('drill_leg'))off.set(0,Math.sign(p.pos[1])*40,0);else if(n==='coupler_L')off.set(0,25,0);else if(n==='coupler_R')off.set(0,-25,0);
     piv.position.copy(q.base).addScaledVector(off,ex);
-    const mv=MOVE(n);if(mv==='k')piv.rotation.y=-THREE.MathUtils.degToRad(k);else if(mv==='d')piv.rotation.y=THREE.MathUtils.degToRad(d);
+    const mv=MOVE(n,p);if(mv==='k')piv.rotation.y=SGN(n,p)*THREE.MathUtils.degToRad(k);else if(mv==='d')piv.rotation.y=SGN(n,p)*THREE.MathUtils.degToRad(d);
   }
 }
 const VIEWS={all:[75,0,0,330,-1.05,0.42,0,0],dep:[40,0,-5,360,-0.75,0.25,1,1],kick:[30,10,25,120,-0.6,0.35,0,0],pod:[80,30,5,170,0.9,0.25,0,1],tray:[85,0,0,200,-1.2,0.5,0,0],tail:[150,0,0,140,-0.4,0.25,0,0]};
@@ -151,6 +154,8 @@ function loop(){resize();place();renderer.render(scene,cam);requestAnimationFram
 let anim=null;
 function spinAll(on,dt){for(const q of parts){if(!q.spin)continue;const isFoot=q.p.name==='foot_auger';const run=isFoot?on.foot:on.drill;if(run)q.spin.rotation[q.spinAxis]+=(q.p.name.includes('_R_')?-1:1)*dt*9;}}
 function frame(t0){const T=(performance.now()-t0)/1000;const K=P.KICK_DEG,D=P.DEPLOY_DEG;let k,d,on={foot:false,drill:false},ph;
+  if(J.parts.some(p=>p.joint==='leg')){if(T<4){k=K*(T/4);d=0;ph='righting leg swinging out over the nose (this is what flips it upright)';}else if(T<8){k=K*(1-(T-4)/4);d=0;ph='righting leg folding back flush into the groove';}else if(T<12){k=0;d=D*((T-8)/4);on.drill=true;ph='pods swinging down at the tail, drills spinning and cutting in';}else if(T<13.5){k=0;d=D;on.drill=true;ph='drills finishing, pods on their hard stops';}else{k=0;d=D;ph='anchored: the tow on the eye lugs holds the pods on their stops';}
+  $('#kick').value=k;$('#dep').value=d;pose();spinAll(on,1/60);$('#phase').textContent=ph;if(T<14)anim=requestAnimationFrame(()=>frame(t0));else anim=null;return;}
   if(T<6){k=K*Math.min(T/6,1)*Math.min(1,(T/6))**0+0;k=K*(T/6);on.foot=k>175;ph=k<175?'kick leg swinging out over the nose':'foot auger spinning in while the kick pushes it down';d=0;}
   else if(T<7.5){k=K;d=0;on.foot=T<7;ph='foot finishing';}
   else if(T<11.5){k=K;d=D*((T-7.5)/4);on.drill=true;ph='pods swinging down, drill augers spinning and cutting in';}

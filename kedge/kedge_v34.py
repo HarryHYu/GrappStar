@@ -33,7 +33,7 @@ P = dict(
     N20_L=33.04, N20_BOX=12.0, N20_BOXW=9.94, N20_BOXH=11.93, N20_CAN=(12.0, 10.0), N20_TIP=29.97 / 2, SHAFT_D=3.0,
     # righting leg
     LEG_X=33.0, LEG_Z=14.5, LEG_DEG=178.0, LEG_REST_DEG=1.5, LEG_STUB=10.8,    # hinge; swing; far rest 1.5 deg past; N20 stubs trimmed to |y| 10
-    LEG_W=8.5, LEG_U0=0.8, LEG_U1=3.4, LEG_UX=78.0,                            # blade width, underside (local z) at the root / the rear, and where it rises
+    LEG_W=8.5, LEG_W_TIP=6.6, LEG_FLARE=14.0, LEG_U0=0.8, LEG_U1=3.4, LEG_UX=78.0,                            # blade width, underside (local z) at the root / the rear, and where it rises
     LEG_RB=10.2, LEG_CHEEK_R=5.6, CH_Y0=7.8, CH_Y1=11.2, PK_Y0=7.6, PK_Y1=11.4,   # bridge inner radius, cheeks, knuckle walls, pockets
     LEG_CPL_D=6.0, LEG_PLUG_D=7.5, PAD_X0=143.5, PAD_X1=149.3, PAD_DEG=62.0, PAD_T=2.0,        # couplers; arch pad on the tail top
     # drill pair (rear)
@@ -419,19 +419,33 @@ def prism_x(pts_yz, x0, x1):
     bb = sol.bounding_box()
     return Pos(x0 - bb.min.X, 0, 0) * sol
 
+def blade_hw(x):
+    """blade half width along local x: full LEG_W at the root, tapering to LEG_W_TIP/2, then a tangent flare into the pad"""
+    h0, h1, hp = P["LEG_W"] / 2, P["LEG_W_TIP"] / 2, P["LEG_FLARE"] / 2
+    xa, xb, xc = 30.0, LEG_PX0 - 14.0, LEG_PX0 + 0.6
+    if x <= xa: return h0
+    if x <= xb: return h0 + (h1 - h0) * (1 - math.cos(math.pi * (x - xa) / (xb - xa))) / 2
+    return h1 + (hp - h1) * (1 - math.cos(math.pi * min(1.0, (x - xb) / (xc - xb)))) / 2
+
+def blade_plan(off, x0, x1, n=80):
+    """solid: the blade's plan outline offset by off, extruded through the leg's height (local frame)"""
+    xs = np.linspace(x0, x1, n)
+    pts = [(x, -(blade_hw(x) + off)) for x in xs] + [(x, blade_hw(x) + off) for x in xs[::-1]]
+    return extrude(Plane.XY.offset(-30) * Polygon(*pts, align=None), amount=60)
+
 def build_leg():
     """Righting leg, one printed part (PLA): two round cheeks (on the two couplers, in the side pockets), tines curving aft to a
     bridge behind the knuckle, a slim blade whose top IS the hull crown (flush in the top groove) and a thin arch pad that is a
     patch of the hull skin on the tail top. Everything in the knuckle zone (|y| < pocket) stays outside r LEG_RB of the hinge,
     so it swings over the knuckle."""
     hw = P["LEG_W"] / 2
-    blade = prism_x(section_yz(-hw, hw, U0), BR_X0, LEG_PX0 + 0.6)
+    blade = prism_x(section_yz(-P["LEG_FLARE"] / 2 - 0.5, P["LEG_FLARE"] / 2 + 0.5, U0), BR_X0, LEG_PX0 + 0.6) & blade_plan(0.0, BR_X0 - 1, LEG_PX0 + 0.6)
     pts = [(UX + 13.0 * k / 12, leg_under(UX + 13.0 * k / 12)) for k in range(13)]
-    rise = prism_xz([(UX - 0.01, U0 - 3)] + pts + [(LEG_PX0 + 2, U1), (LEG_PX0 + 2, U0 - 3)], -hw - 1, hw + 1)
+    rise = prism_xz([(UX - 0.01, U0 - 3)] + pts + [(LEG_PX0 + 2, U1), (LEG_PX0 + 2, U0 - 3)], -P["LEG_FLARE"] / 2 - 1, P["LEG_FLARE"] / 2 + 1)
     blade = blade - rise
     # I-section lightening: the blade is an inverted channel (1.3 skin on top, 1.5 side walls) where it is deep enough; open to the groove floor
     ch_pts = [(x_, leg_under(x_) - 1.0) for x_ in np.linspace(24.0, 104.0, 41)] + [(104.0, z_top(0) - 1.3), (24.0, z_top(0) - 1.3)]
-    chan = prism_xz(ch_pts, -hw + 1.5, hw - 1.5)
+    chan = prism_xz(ch_pts, -hw, hw) & blade_plan(-1.5, 20.0, 108.0)
     chan = safe_fillet(chan, [e for e in chan.edges().filter_by(Axis.Y)], 0.8, "channel ends")
     blade = blade - chan
     # bridge: full width at the tines, narrowing to the blade with tangent S-curves in plan (x-y)
@@ -623,7 +637,7 @@ def leg_cuts(grow):
     # folded blade groove: floor 0.15 under the blade, from the bridge to the pad (vertical walls, open to the sky)
     xs = np.linspace(LX + BR_X1, P["PAD_X0"] + 1.0, 60)
     g_pts = [(x, LZ + leg_under(x - LX) - 0.15 - grow) for x in xs] + [(xs[-1], 30), (xs[0], 30)]
-    out.append(prism_xz(g_pts, -P["LEG_W"] / 2 - 0.3 - grow, P["LEG_W"] / 2 + 0.3 + grow))
+    out.append(prism_xz(g_pts, -P["LEG_FLARE"] / 2 - 2 - grow, P["LEG_FLARE"] / 2 + 2 + grow) & (Pos(LX, 0, LZ) * blade_plan(0.3 + grow, BR_X1 - 2, LEG_PX0 + 1.5)))
     # blade at the far rest (forward of the hinge): the blade section grown, rotated to LEG_DEG + LEG_REST_DEG
     hw = P["LEG_W"] / 2
     fl = prism_x(section_yz(-hw, hw, U0, grow=0.25 + grow), BR_X1 + 7.0, 60.0)              # (the root is in the swept bed above)

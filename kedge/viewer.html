@@ -120,7 +120,7 @@ function pose(){
     if(p.parent)continue;
     const off=new THREE.Vector3();
     if(n==='hull_top')off.set(0,0,55);else if(n==='hull_bottom')off.set(0,0,-55);else if(n==='nose')off.set(-45,0,0);else if(n==='tail_cap')off.set(45,0,0);
-    else if(n==='kick_leg'||p.joint==='leg')off.set(0,0,40);else if(n.startsWith('drill_leg'))off.set(0,Math.sign(p.pos[1])*40,0);else if(n==='coupler_L')off.set(0,25,0);else if(n==='coupler_R')off.set(0,-25,0);
+    else if(n==='kick_leg'||p.joint==='leg')off.set(0,0,40);else if(n==='leg_plug_L')off.set(0,30,25);else if(n==='leg_plug_R')off.set(0,-30,25);else if(n.startsWith('drill_leg'))off.set(0,Math.sign(p.pos[1])*40,0);else if(n==='coupler_L')off.set(0,25,0);else if(n==='coupler_R')off.set(0,-25,0);
     piv.position.copy(q.base).addScaledVector(off,ex);
     const mv=MOVE(n,p);if(mv==='k')piv.rotation.y=SGN(n,p)*THREE.MathUtils.degToRad(k);else if(mv==='d')piv.rotation.y=SGN(n,p)*THREE.MathUtils.degToRad(d);
   }

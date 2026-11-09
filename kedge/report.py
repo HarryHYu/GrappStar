@@ -14,6 +14,8 @@ _F = [("/System/Library/Fonts/Supplemental/Arial.ttf", "/System/Library/Fonts/Su
 _reg, _bold = next(f for f in _F if os.path.exists(f[0]))       # Arial on the Mac, Liberation Sans (Arial metrics) elsewhere
 pdfmetrics.registerFont(TTFont("Arial", _reg)); pdfmetrics.registerFont(TTFont("Arial-Bold", _bold))
 J = json.load(open(OUT + "/parts.json")); P = J["P"]; V = J.get("version", "")
+if "LEG_DEG" in P:      # v34: its own report
+    exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "report34.py")).read()); sys.exit(0)
 A = json.load(open(OUT + "/audit.json")); Ph = json.load(open(OUT + "/physics.json")); Bj = json.load(open(PK + "/barrel.json"))
 B = ParagraphStyle("b", fontName="Arial", fontSize=9.5, leading=12.5); S = ParagraphStyle("s", parent=B, fontSize=8, leading=10)
 H1 = ParagraphStyle("h1", parent=B, fontName="Arial-Bold", fontSize=15, leading=19, spaceAfter=4)

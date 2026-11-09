@@ -20,10 +20,14 @@ for n, p in PP.items():
         if not q.get("parent"): break
         q = PP[q["parent"]]
     mesh[n] = trimesh.Trimesh(v, z["f"], process=False)
-RB = P["R_BAY"]; KZ = P["KEEL_Z"]
+RB = P["R_BAY"]; V34 = "LEG_DEG" in P
+KZ = P.get("KEEL_Z", -17.0)
 bay = Point(0, 0).buffer(RB, 128)
 KEEL = box(-4.6, KZ, 4.6, KZ + 8.4) & bay
 TOP = box(-11, 9.0, 11, RB) & bay
+if V34:      # v34 passages: the two low corridors beside the in-line cells (reported as keel = left, top = right)
+    KEEL = box(10.4, -15.0, 17.5, -3.0) & bay
+    TOP = box(-17.5, -15.0, -10.4, -3.0) & bay
 def section(m, x):
     if not (m.bounds[0][0] < x < m.bounds[1][0]): return None
     sec = m.section(plane_normal=[1, 0, 0], plane_origin=[x, 0, 0])
@@ -35,7 +39,7 @@ def section(m, x):
     except Exception:
         return None
     return unary_union(polys).buffer(0) if polys else None
-xs = np.arange(P["NOSE_L"] + 1, P["X_TAILSP"][0] - 0.5, 1.0)
+xs = np.arange(P["NOSE_L"] + 1, (P["X_SOCK"][0] if V34 else P["X_TAILSP"][0]) - 0.5, 1.0)
 free = {}
 for x in xs:
     occ = [s for n in mesh if (s := section(mesh[n], x)) is not None and not s.is_empty]
@@ -47,6 +51,9 @@ W = json.load(open(f"{PK}/wires.json"))
 pts = {k: np.array(v) for k, v in W["points"].items()}
 KEELN = {"keel_d2", "keel_d3", "keel_d4", "sled", "chase", "bno"}
 TOPN = {"top_d1", "top_d2", "top_d3", "vtx", "flankL", "flankR", "foot_hole", "cam", "drv2"}
+if V34:
+    KEELN = {"corr_L", "corr_L2", "win_d1_L", "win_d2_L"}
+    TOPN = {"corr_R", "corr_R2", "win_d1_R", "win_d2_R"}
 load = {float(x): [0.0, 0.0] for x in xs}; count = {float(x): [0, 0] for x in xs}
 for w in W["wires"]:
     r = [n for n in w["route"] if isinstance(n, str)]
@@ -64,7 +71,7 @@ for x in xs:
     rows.append(dict(x=x, keel_free=fk, keel_bundle=round(lk, 1), keel_wires=count[x][0], top_free=ft, top_bundle=round(lt, 1), top_wires=count[x][1]))
     if rk > worst[0][0]: worst[0] = (round(rk, 2), x)
     if rt > worst[1][0]: worst[1] = (round(rt, 2), x)
-rep = dict(note=__doc__.split("\n")[0], worst_keel_fill=worst[0], worst_top_fill=worst[1], stations=rows)
+rep = dict(note=__doc__.split("\n")[0] + (" (v34: keel = LEFT low corridor, top = RIGHT low corridor beside the cells)" if V34 else ""), worst_keel_fill=worst[0], worst_top_fill=worst[1], stations=rows)
 json.dump(rep, open(OUT + "/wireroom.json", "w"), indent=1)
 for r in rows[::4]: print(r)
 print("worst keel fill", worst[0], " worst top fill", worst[1])

@@ -667,7 +667,7 @@ def build_hull():
     blister = blister - cylx(2 * RB + 0.2, X_SPIG1 - hx0 + 1.25, hx0 - 1)                    # never into the nose spigot
     body = body + fill + blister
     for sg in (1, -1):                                                         # flank socket seats (JST-XH headers clamped across the split)
-        body = body + (bx(X_SOCK[0] - 1.2, X_SOCK[1] + 1.2, sg * 7.0, sg * 21.0, -5.1, 5.1) & cylx(2 * R - 0.02, 20, X_SOCK[0] - 5))
+        body = body + (bx(X_SOCK[0] - 1.2, X_SOCK[1] + 1.2, sg * 7.0, sg * 21.0, -5.1, 5.1) & cylx(2 * RB + 0.6, 20, X_SOCK[0] - 5))   # inside the wall only: the skin stays one surface
     body = body + (cylx(2 * RB + 0.2, 2.0, NOSE_LOCK_X) - cylx(2 * (RB - 1.0), 4.0, NOSE_LOCK_X - 1))   # nose lock rib (cut by the flute like the wall)
     body = body - carve
     for c in leg_cuts(0.0):
@@ -694,7 +694,7 @@ def build_hull():
     cuts.append(bx(XU - 4.65, XU + 4.65, -R - 2, -RB + 1.2, ZU - 1.8, ZU + 1.8))
     # flank socket seats: header pocket + plug opening to the skin
     for sg in (1, -1):
-        op = Pos((X_SOCK[0] + X_SOCK[1]) / 2, 0, 0) * extrude(Plane.XZ.offset(-sg * 8.0) * RectangleRounded(X_SOCK[1] - X_SOCK[0], 7.7, 1.2), amount=14.0 * 1, dir=(0, sg, 0))
+        op = Pos((X_SOCK[0] + X_SOCK[1]) / 2, 0, 0) * extrude(Plane.XZ.offset(-sg * 8.0) * RectangleRounded(X_SOCK[1] - X_SOCK[0], 7.9, 0.8), amount=14.0 * 1, dir=(0, sg, 0))
         cuts.append(op)
         cuts.append(bx(X_SOCK[0] + 0.9, X_SOCK[1] - 0.9, sg * 5.0, sg * 8.5, -2.6, 2.6))      # pins / solder tails
     # cell rails on the belly: two low rails beside the in-line cells (they guide the cells and keep the mass low)
@@ -785,6 +785,7 @@ def build_tray():
     d1 = cylx(2 * (RB + 0.35), x1 - x0, x0) & bx(x0, x1, -30, 30, DECK1 - 1.4, DECK1)
     d1 = d1 - bx(X_DCR[0] - 0.2, X_DCR[1] + 0.2, -11.4, 11.4, -5, 5)                        # deploy N20 and the standing DRVs pass through
     d1 = d1 - bx(LX - 5.2, LX + 5.2, -6.2, 6.2, -5, 5)                                       # leg N20 can
+    d1 = d1 - bx(X_MID[0] - 0.6, X_MID[1] + 0.6, -2.0, 2.0, -5, 5)                           # slot for the BM strip's tab at the cell joint
     for xw in (X_D1[1] + 2.0, X_D2[0] - 9.0):                                                # wire slots down to the corridors beside the cells
         for s in (1, -1):
             d1 = d1 - bx(xw, xw + 6.0, s * 11.0, s * 16.5, -5, 5)

@@ -12,6 +12,8 @@ python3 wires.py out31 pack_v31  -> wire_cut_list.csv, wires.json (+ route and z
 import json, numpy as np, math, csv, sys
 OUT = sys.argv[1]; PK = sys.argv[2]
 J = json.load(open(OUT + '/parts.json')); P = J['P']; PP = {p['name']: p for p in J['parts']}
+if 'LEG_DEG' in P:                     # v34 (rear pods, righting leg, in-line cells): its own routes, then stop
+    exec(open(__file__.replace('wires.py', 'wires34.py')).read()); sys.exit(0)
 WP = {k: np.array(v, float) for k, v in P['WIRE_PTS'].items()}
 def bb(n):
     v = np.load(f'{OUT}/{n}.npz')['v']; return v.min(0), v.max(0)

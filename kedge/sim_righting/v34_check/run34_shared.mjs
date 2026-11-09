@@ -26,7 +26,9 @@ const core = simCore(RAPIER);
 const { Sim, D, DEG, MM, DT, V, add, sub, scl, dot, len, norm, qrot, qaxis, lx } = core;
 
 const JOB = JSON.parse(process.argv[2]);
-const CFG = Object.assign({ axle: 'rigid', kC: 100, blA: 0, eyeX: 3.9, eyeY: -6.8, eyeLat: 31.65, legLen: 78, origRope: false }, JOB.cfg || {});
+const CFG = Object.assign({ axle: 'rigid', kC: 100, blA: 0, eyeX: 3.9, eyeY: -6.8, eyeLat: 31.65, legLen: 78, origRope: false, tie: false, tieX: 152.0, tieY: -2.7, tieLat: 2.2 }, JOB.cfg || {});
+//  tie             : (cfg.tie) the simple v34 tether: the line tied through two holes in the tail face (tieX, tieY, +-tieLat), on the HULL
+//                    (legLen 3: the two holes act as one point)
 for (const k of Object.keys(JOB.D || {})) Object.assign(core.D[k], JOB.D[k]);
 for (const k of Object.keys(JOB.LAYOUTS || {})) Object.assign(core.LAYOUTS[k], JOB.LAYOUTS[k]);
 const QI = { x: 0, y: 0, z: 0, w: 1 }, Q_Y2X = qaxis(V(0, 0, 1), -Math.PI / 2);
@@ -137,6 +139,7 @@ class SimV34 extends Sim {
     } else {
       this.eyeB = { L: { body: this.pods.L.body, p: eyeIn('L', zS('L') * lat) }, R: { body: this.pods.R.body, p: eyeIn('R', zS('R') * lat) } };
     }
+    if (CFG.tie) this.eyeB = { L: { body: this.hull, p: V(lx(CFG.tieX), CFG.tieY * MM, -CFG.tieLat * MM) }, R: { body: this.hull, p: V(lx(CFG.tieX), CFG.tieY * MM, CFG.tieLat * MM) } };
     this.recd = {};
   }
   blankPeak() { const p = super.blankPeak(); p.D = { m: 0, s: 0, p: 0 }; return p; }

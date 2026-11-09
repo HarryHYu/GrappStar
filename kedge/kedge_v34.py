@@ -58,6 +58,7 @@ P = dict(
     CPL_BORE=7.05, LEG_CPL_BORE=6.05,      # press-fit D bores: arm head on the Ø7 pod coupler, cheek on the Ø6 leg coupler
     SCR_X1=39.8, BOSS_T=6.0, SCREW_L=8.0,  # disc-1 screw station (clear of the XIAO), screw bosses 6 thick, M3 x 8 countersunk
     ROPE_TH=65.0, ROPE_END=(4.2, 3.2), ROPE_D=1.2, GROOVE_W=1.6, GROOVE_D=1.4, BRIDLE_L=78.0,   # bridle grooves in the tail
+    TETHER="tail", TIE_Y=(1.9, 6.3), TIE_Z=-2.7, TIE_D=2.2,   # simple tether (Harry): line in one tail hole, out the other, tied to itself; "bridle" = the grooved bridle
     LOOP_DZ=-1.2,                          # left (ON loop) socket seat lowered so the bridle leg passes 3 mm over the plug + wire loop
     CAP_D=8.0, CAP_L=12.0,                 # electrolytic can modelled at the worst likely size (470 to 1000 uF)
 )
@@ -776,7 +777,8 @@ def build_hull():
     for sg in (1, -1):                                                         # flank socket seats (JST-XH headers clamped across the split)
         z0_, z1_ = SEAT_Z[sg][0] - 1.2, SEAT_Z[sg][1] + 1.2
         body = body + (bx(X_SOCK[0] - 1.2, X_SOCK[1] + 1.2, sg * 7.0, sg * 21.0, z0_, z1_) & cylx(2 * RB + 0.6, 20, X_SOCK[0] - 5))   # inside the wall only: the skin stays one surface
-    body = body + GROOVE_RIB                                                   # behind the bridle lead-in and the tail-edge groove
+    if GROOVE_RIB is not None:
+        body = body + GROOVE_RIB                                               # behind the bridle lead-in and the tail-edge groove
     body = body + (cylx(2 * RB + 0.2, 2.0, NOSE_LOCK_X) - cylx(2 * (RB - 1.0), 4.0, NOSE_LOCK_X - 1))   # nose lock rib (cut by the flute like the wall)
     body = body - carve
     for c in leg_cuts(0.0):
@@ -810,7 +812,13 @@ def build_hull():
         ph = 2.6 if sg > 0 else 3.5
         cuts.append(bx(X_SOCK[0] + 0.9, X_SOCK[1] - 0.9, sg * 5.0, sg * 8.5, (za + zb) / 2 - ph, (za + zb) / 2 + ph))      # pins / solder tails
     # bridle grooves (tail edge and end wall) and the slots in both end walls that the tray's tail key sits in (aligns the unfastened tail)
-    cuts.append(GROOVES)
+    if GROOVES is not None:
+        cuts.append(GROOVES)
+    else:                                                                     # tether tie holes (rounded edges both faces so the line can't be cut)
+        for y_ in P["TIE_Y"]:
+            cuts.append(cylx(P["TIE_D"], P["END_T"] + 2.0, X_END - 1.0, y=y_, z=P["TIE_Z"]))
+            for x_, d_ in ((L + 0.01, -1), (X_END - 0.01, 1)):
+                cuts.append(Solid.make_cone(P["TIE_D"] / 2 + 0.5, P["TIE_D"] / 2, 0.5, Plane(origin=(x_, y_, P["TIE_Z"]), z_dir=(d_, 0, 0))))
     cuts.append(bx(X_END - 0.1, X_END + 1.0, -4.15, 4.15, DECK1 - 1.55, DECK1 + 0.15))
     # seam groove: the tray's deck 1 edges sit in it, clamped by the two halves, and back the split seam from inside
     sg_ = (cylx(2 * (RB + 0.45), X_SOCK[0] - 1.5 - X_LCR[0] + 0.1, X_LCR[0] - 0.1) - cylx(2 * RB - 0.2, X_SOCK[0] + 2 - X_LCR[0], X_LCR[0] - 1)) & bx(0, L, -60, 60, DECK1 - 1.4 - 0.1, DECK1 + 0.1)
@@ -827,14 +835,21 @@ def split_hull(hull):
 SCR_X = (P["SCR_X1"], (X_D2[0] + X_D2[1]) / 2)                     # radial screw stations (disc-1 station clear of the XIAO)
 SEAT_Z = {1: (P["LOOP_DZ"] - 3.95, P["LOOP_DZ"] + 3.95), -1: (-5.1, 5.1)}   # flank socket openings (z): left 2-pin 7.9 tall lowered, right 3-pin 10.2
 print("rails, putty, grooves ...")
-GROOVES, GROOVE_RIB = rope_grooves()
+if P["TETHER"] == "bridle":
+    GROOVES, GROOVE_RIB = rope_grooves()
+else:                                   # simple tail tie: two holes in the end wall inside the pusher's Ø14 hole, the line straight back
+    GROOVES = GROOVE_RIB = None
+    P.pop("ROPE", None)
+    _ty = sum(P["TIE_Y"]) / 2
+    P["TIE"] = dict(holes=[[L, y_, P["TIE_Z"]] for y_ in P["TIE_Y"]], knot=[round(L + 2.2, 2), _ty, P["TIE_Z"]], hole_d=P["TIE_D"],
+                    line_d=1.2, knot_r=2.0)
 print("hull ...")
 hull = build_hull()
 top, bot = split_hull(hull)
 add("hull_top", top, "hull", "#9aa5b1", orient="split face down (on the bed), crown up",
-    note="Clamshell upper half with the integral tail end wall: skin; the dorsal groove where the righting leg lies flush (its floor is the leg's fold stop), the knuckle (a 0.6 mm blister over the leg N20's worm box), two side pockets for the leg's cheeks, the couplers' bores through the knuckle walls and the outer walls, the flute forward of the hinge (far rest %g deg), the arch recess for the pad on the tail top; two faired pivot blocks (pod coupler bores; their carved faces are the deploy and fold stops); tight bores for the drill leads; the XIAO USB-C notch (open to the split, so the half drops straight on); upper halves of the two flank socket seats; the two bridle grooves (round the tail edge and across the end wall) with a rib inside behind each; the upper half of the tail key slot in the end wall. The seam is a butt joint: deck 1's edges in the seam groove, the nose spigot and the tray's tail key in the end-wall slot align the halves. Radial M3 clearance at z +3 into the bosses on disc 1 and the rear disc" % (P["LEG_DEG"] + P["LEG_REST_DEG"]))
+    note="Clamshell upper half with the integral tail end wall: skin; the dorsal groove where the righting leg lies flush (its floor is the leg's fold stop), the knuckle (a 0.6 mm blister over the leg N20's worm box), two side pockets for the leg's cheeks, the couplers' bores through the knuckle walls and the outer walls, the flute forward of the hinge (far rest %g deg), the arch recess for the pad on the tail top; two faired pivot blocks (pod coupler bores; their carved faces are the deploy and fold stops); tight bores for the drill leads; the XIAO USB-C notch (open to the split, so the half drops straight on); upper halves of the two flank socket seats; the upper half of the tail key slot in the end wall. The seam is a butt joint: deck 1's edges in the seam groove, the nose spigot and the tray's tail key in the end-wall slot align the halves. Radial M3 clearance at z +3 into the bosses on disc 1 and the rear disc" % (P["LEG_DEG"] + P["LEG_REST_DEG"]))
 add("hull_bottom", bot, "hull", "#7d8794", orient="split face down, belly up",
-    note="Clamshell lower half with the integral tail end wall: plain Ø42 belly (launcher cradle surface; the cells rest on it, located by the tray's U saddles), lower halves of the pivot blocks' skirts, of the two flank socket seats and of the tail key slot. Radial M3 clearance at z -3 into the bosses on disc 1 and the rear disc")
+    note="Clamshell lower half with the integral tail end wall: plain Ø42 belly (launcher cradle surface; the cells rest on it, located by the tray's U saddles), lower halves of the pivot blocks' skirts, of the two flank socket seats and of the tail key slot; the two Ø2.2 tether tie holes in the end wall (line in one, out the other, tied to itself; inside the launcher pusher's Ø14 hole). Radial M3 clearance at z -3 into the bosses on disc 1 and the rear disc")
 
 # ================================================================== NOSE (hollow, 1.5 walls, camera 2.2 below the axis under the leg's flute)
 NOSE_K = (R - P["NOSE_R0"]) / P["NOSE_L"]
@@ -1042,7 +1057,7 @@ def drill(prefix, side, color):
     pos = (DX, side * Y_C, P["DRILL_PIV_Z"])
     add(prefix, arm, "legs", color, pos=pos, axis="y", deg=(0, P["DEPLOY_DEG"]), sgn=-1, joint="deploy",
         orient="standing on the head's flat rear face (stop face) down, no supports",
-        note="Drill arm (rear pod, folds forward): round head pressed on the Ø7 D coupler (flat rear face = stop face on the hull's pivot block), bridle EYE lug on the head's outboard 5 mm (Ø%.1f, %g below the pivot: the tow pulls the pod into its deploy stop), short neck with the motor-lead channel, thrust shoulder for the auger hub, stationary bushing Ø%.1f that holds the drill gearmotor by its can" % (P["EYE_D"], P["EYE_DROP"], BUSH_D))
+        note="Drill arm (rear pod, folds forward): round head pressed on the Ø7 D coupler (flat rear face = stop face on the hull's pivot block), spare eye lug on the head's outboard 5 mm (Ø%.1f, %g below the pivot; not used: the tether ties to the tail), short neck with the motor-lead channel, thrust shoulder for the auger hub, stationary bushing Ø%.1f that holds the drill gearmotor by its can" % (P["EYE_D"], P["EYE_DROP"], BUSH_D))
     want_right = side > 0                                                    # left pod right-hand (firmware DRILL_SIGN +1, harness unchanged)
     au = mirror_x_tm(taper_auger(lefthand=want_right))                       # mirroring flips the hand: build the opposite one
     add(prefix + "_auger", au, "legs", "#b23a48", parent=prefix, orient="standing on its base (point up), brim 5 mm",

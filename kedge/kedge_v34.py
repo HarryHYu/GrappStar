@@ -58,7 +58,7 @@ P = dict(
     CPL_BORE=7.05, LEG_CPL_BORE=6.05,      # press-fit D bores: arm head on the Ø7 pod coupler, cheek on the Ø6 leg coupler
     SCR_X1=39.8, BOSS_T=6.0, SCREW_L=8.0,  # disc-1 screw station (clear of the XIAO), screw bosses 6 thick, M3 x 8 countersunk
     ROPE_TH=65.0, ROPE_END=(4.2, 3.2), ROPE_D=1.2, GROOVE_W=1.6, GROOVE_D=1.4, BRIDLE_L=78.0,   # bridle grooves in the tail
-    TETHER="tail", TIE_Y=(1.9, 6.3), TIE_Z=-2.7, TIE_D=2.2,   # simple tether (Harry): line in one tail hole, out the other, tied to itself; "bridle" = the grooved bridle
+    TETHER="tail", TIE_Y=(1.6, 5.4), TIE_Z=-2.4, TIE_D=2.0,   # simple tether (Harry): line in one tail hole, out the other, tied to itself; "bridle" = the grooved bridle
     LOOP_DZ=-1.2,                          # left (ON loop) socket seat lowered so the bridle leg passes 3 mm over the plug + wire loop
     CAP_D=8.0, CAP_L=12.0,                 # electrolytic can modelled at the worst likely size (470 to 1000 uF)
 )
@@ -849,7 +849,7 @@ top, bot = split_hull(hull)
 add("hull_top", top, "hull", "#9aa5b1", orient="split face down (on the bed), crown up",
     note="Clamshell upper half with the integral tail end wall: skin; the dorsal groove where the righting leg lies flush (its floor is the leg's fold stop), the knuckle (a 0.6 mm blister over the leg N20's worm box), two side pockets for the leg's cheeks, the couplers' bores through the knuckle walls and the outer walls, the flute forward of the hinge (far rest %g deg), the arch recess for the pad on the tail top; two faired pivot blocks (pod coupler bores; their carved faces are the deploy and fold stops); tight bores for the drill leads; the XIAO USB-C notch (open to the split, so the half drops straight on); upper halves of the two flank socket seats; the upper half of the tail key slot in the end wall. The seam is a butt joint: deck 1's edges in the seam groove, the nose spigot and the tray's tail key in the end-wall slot align the halves. Radial M3 clearance at z +3 into the bosses on disc 1 and the rear disc" % (P["LEG_DEG"] + P["LEG_REST_DEG"]))
 add("hull_bottom", bot, "hull", "#7d8794", orient="split face down, belly up",
-    note="Clamshell lower half with the integral tail end wall: plain Ø42 belly (launcher cradle surface; the cells rest on it, located by the tray's U saddles), lower halves of the pivot blocks' skirts, of the two flank socket seats and of the tail key slot; the two Ø2.2 tether tie holes in the end wall (line in one, out the other, tied to itself; inside the launcher pusher's Ø14 hole). Radial M3 clearance at z -3 into the bosses on disc 1 and the rear disc")
+    note="Clamshell lower half with the integral tail end wall: plain Ø42 belly (launcher cradle surface; the cells rest on it, located by the tray's U saddles), lower halves of the pivot blocks' skirts, of the two flank socket seats and of the tail key slot; the two Ø2.0 tether tie holes in the end wall (line in one, out the other, tied to itself; inside the launcher pusher's Ø14 hole). Radial M3 clearance at z -3 into the bosses on disc 1 and the rear disc")
 
 # ================================================================== NOSE (hollow, 1.5 walls, camera 2.2 below the axis under the leg's flute)
 NOSE_K = (R - P["NOSE_R0"]) / P["NOSE_L"]

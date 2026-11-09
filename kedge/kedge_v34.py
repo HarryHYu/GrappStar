@@ -33,11 +33,11 @@ P = dict(
     N20_L=33.04, N20_BOX=12.0, N20_BOXW=9.94, N20_BOXH=11.93, N20_CAN=(12.0, 10.0), N20_TIP=29.97 / 2, SHAFT_D=3.0,
     # righting leg
     LEG_X=33.0, LEG_Z=14.5, LEG_DEG=178.0, LEG_REST_DEG=1.5, LEG_STUB=10.8,    # hinge; swing; far rest 1.5 deg past; N20 stubs trimmed to |y| 10
-    LEG_W=10.0, LEG_U0=0.8, LEG_U1=2.9, LEG_UX=88.0,                            # blade width, underside (local z) at the root / the rear, and where it rises
+    LEG_W=8.5, LEG_U0=0.8, LEG_U1=3.4, LEG_UX=78.0,                            # blade width, underside (local z) at the root / the rear, and where it rises
     LEG_RB=10.2, LEG_CHEEK_R=5.6, CH_Y0=7.8, CH_Y1=11.2, PK_Y0=7.6, PK_Y1=11.4,   # bridge inner radius, cheeks, knuckle walls, pockets
-    LEG_CPL_D=6.0, PAD_X0=143.5, PAD_X1=149.3, PAD_DEG=62.0, PAD_T=2.4,        # couplers; arch pad on the tail top
+    LEG_CPL_D=6.0, PAD_X0=143.5, PAD_X1=149.3, PAD_DEG=62.0, PAD_T=2.0,        # couplers; arch pad on the tail top
     # drill pair (rear)
-    DRILL_X=132.0, DRILL_PIV_Z=10.0, DRILL_PIV_Y=None, DEPLOY_DEG=50.0, DEPLOY_TARGET=50.0, HORN_GAP=0.15, HEAD_IN=21.6,
+    DRILL_X=132.0, DRILL_PIV_Z=9.5, DRILL_PIV_Y=None, DEPLOY_DEG=50.0, DEPLOY_TARGET=50.0, HORN_GAP=0.1, HEAD_IN=21.6,
     CPL_D=7.0, BOSS_D=11.0, EYE_DROP=14.0, EYE_D=3.4,
     # drill motor  M: gearbox 11.95, 24.27 face to back, shaft 2.84 x 56.03
     MOTOR_W=12.0, MOTOR_H=10.0, MOTOR_L=24.27, DSHAFT_L=56.03, DSHAFT_D=2.84,
@@ -51,7 +51,7 @@ P = dict(
     # power and boards (M)
     CELL_D=18.66, CELL_L=36.87, CELL_Z=-10.0, CONTACT=3.6, MIDPLATE=0.3,
     SCREW_CLR=3.3, SCREW_PILOT=2.5, RAD_Z=3.0,
-    TERM=1.6, BALLAST_G=0.0,
+    TERM=1.6, BALLAST_G=0.0, BAL_X0=62.0, BAL_L=54.0, BAL_RHO=9.0,       # belly ballast pockets (putty density g/cm3, tungsten putty about 9 to 11, lead putty about 7)
 )
 P.update(LAYOUT="cells_inline", LIGHT=0)
 P.update(json.loads(os.environ.get("KOV", "{}")))
@@ -404,7 +404,7 @@ LEG_PX0, LEG_PX1 = P["PAD_X0"] - LX, P["PAD_X1"] - LX     # pad in local x
 def leg_under(x):                                         # blade underside (local z) along the blade
     return U0 if x <= UX else (U1 if x >= UX + 13.0 else U0 + (U1 - U0) * (1 - math.cos(math.pi * (x - UX) / 13.0)) / 2)
 BR_X0, BR_X1 = 8.0, 21.0                                  # bridge: full width between the tines, then narrowing to the blade
-TINE_C = (12.5, 3.3, 3.2)                                 # tine: tangent arcs from the cheek circle to this circle (local x, z, r)
+TINE_C = (11.0, 3.0, 3.0)                                 # tine: tangent arcs from the cheek circle to this circle (local x, z, r)
 
 def section_yz(y0, y1, zb, n=24, zt_off=0.0, grow=0.0):
     """leg cross-section in the y-z plane: flat bottom zb, top = the hull crown arc (+zt_off), |y| from y0 to y1"""
@@ -429,13 +429,18 @@ def build_leg():
     pts = [(UX + 13.0 * k / 12, leg_under(UX + 13.0 * k / 12)) for k in range(13)]
     rise = prism_xz([(UX - 0.01, U0 - 3)] + pts + [(LEG_PX0 + 2, U1), (LEG_PX0 + 2, U0 - 3)], -hw - 1, hw + 1)
     blade = blade - rise
+    # I-section lightening: the blade is an inverted channel (1.3 skin on top, 1.5 side walls) where it is deep enough; open to the groove floor
+    ch_pts = [(x_, leg_under(x_) - 1.0) for x_ in np.linspace(24.0, 104.0, 41)] + [(104.0, z_top(0) - 1.3), (24.0, z_top(0) - 1.3)]
+    chan = prism_xz(ch_pts, -hw + 1.5, hw - 1.5)
+    chan = safe_fillet(chan, [e for e in chan.edges().filter_by(Axis.Y)], 0.8, "channel ends")
+    blade = blade - chan
     # bridge: full width at the tines, narrowing to the blade with tangent S-curves in plan (x-y)
     bw = P["CH_Y1"]
     brs = prism_x(section_yz(-bw, bw, U0), BR_X0, BR_X1 + 7.0)
     plan_sol = extrude(Plane.XY.offset(-5) * Polygon(*plan_pts(bw, hw), align=None), amount=20)
     bridge = brs & plan_sol
     body = blade + bridge
-    body = body - cyly(2 * P["LEG_RB"], 2 * P["PK_Y0"] - 0.01, -P["PK_Y0"] + 0.005)            # clear of the knuckle (swings over it)
+    body = body - cyly(2 * P["LEG_RB"], 2 * P["PK_Y0"] + 0.2, -P["PK_Y0"] - 0.1)                # clear of the knuckle (swings over it)
     # cheeks + tines (both sides)
     for s in (1, -1):
         ya, yb = sorted((s * P["CH_Y0"], s * P["CH_Y1"]))
@@ -511,15 +516,15 @@ XB0 = X_D1[1] + 0.6
 Y_USB = 20.3                                   # XIAO USB-C receptacle face at y -20.3 (0.4 under the skin at its height)
 LAY["xiao"] = (XB0, -Y_USB + BOARD["xiao"][1] / 2, DECK1)
 LAY["ina219"] = (XB0 + 17.74 + 1.0, -17.6 + BOARD["ina219"][1] / 2, DECK1)
-LAY["bms_2s"] = (XB0 + 3.0, 4.6 + BOARD["bms_2s"][1] / 2, DECK1)
+LAY["bms_2s"] = (XB0 + 3.0, 3.2 + BOARD["bms_2s"][1] / 2, DECK1)
 LAY["bno085"] = (LAY["ina219"][0] + 25.69 + 2.4, 0.0, DECK1)
-LAY["vtx"] = (XB0 + 0.4, 0.0, DECK2)
-LAY["mp1584"] = (LAY["bno085"][0] + 0.4, 0.0, DECK2)
+LAY["vtx"] = (LX + 16.0, 0.0, DECK2)              # behind the leg pockets
+LAY["mp1584"] = (LAY["vtx"][0] + 42.25 + 1.0, 0.0, DECK2)
 for nm, sg in (("drv8833_1", 1), ("drv8833_2", -1)):
     LAY[nm] = (DX - 6.35, sg * (7.6 + 1.75), -14.6)
 XU = LAY["xiao"][0] + 17.74 / 2               # USB-C centre x
 ZU = DECK1 + 1.0 + 3.26 / 2                    # USB-C centre z (PCB 1.0 + receptacle 3.26)
-X_DECK2 = (X_D1[1] - 0.01, LAY["mp1584"][0] + 22.26 + 1.0)
+X_DECK2 = (X_D1[1] - 0.01, max(LAY["mp1584"][0] + 22.26, LAY["bno085"][0] + 22.77) + 1.6)
 P.update(DECK1=DECK1, DECK2=DECK2, LAY={k: [round(float(c), 2) for c in v] for k, v in LAY.items()})
 
 def pivot_blocks():
@@ -532,7 +537,7 @@ def pivot_blocks():
     from shapely.ops import unary_union
     from shapely import affinity
     zp, xp = P["DRILL_PIV_Z"], P["DRILL_X"]
-    circ = [(xp + 1.6, zp + 1.4, 9.4), (xp, zp, 8.4), (xp + 6.0, -1.0, 1.5), (xp - 6.0, -1.0, 1.5)]
+    circ = [(xp + 1.0, zp + 0.6, 8.6), (xp, zp, 7.8), (xp + 6.5, -1.0, 1.5), (xp - 5.0, -1.0, 1.5)]
     prof = unary_union([Point(0, 0).buffer(HH / 2, 96), sbox(-HH / 2, -HH / 2, 0, 0), sbox(-1.05, -HH / 2 - 0.05, ASH_X1, HH / 2 + 0.05),
                         sbox(ASH_X0 - (CORE_D - BUSH_D) / 2 - 0.05, -CORE_D / 2 - 0.05, ASH_X1, CORE_D / 2 + 0.05), sbox(S0, -HUB_D / 2, S0 + 8.0, HUB_D / 2)])
     prof = affinity.scale(prof, -1.0, 1.0, origin=(0, 0))                     # mirrored: the pod points -x
@@ -542,7 +547,7 @@ def pivot_blocks():
     blocks = carve = None
     for sg in (1, -1):
         a_ = (yi, yo) if sg > 0 else (-yo, -yi)
-        blk = yfillet(arc_prism(circ, *a_), a_, 1.2, "pivot block") & bx(xp - 20, xp + 20, -40, 40, 0, 40)
+        blk = (yfillet(arc_prism(circ, *a_), a_, 1.2, "pivot block") & bx(xp - 20, xp + 20, -40, 40, 0, 40)) - cylx(2 * RB, 60, xp - 30)   # never into the bay
         c_ = (POD_FACE - 0.4, yo + 1.0) if sg > 0 else (-yo - 1.0, -POD_FACE + 0.4)
         cv = poly_prism(sw, *c_)
         blocks = blk if blocks is None else blocks + blk
@@ -613,6 +618,17 @@ def leg_cuts(grow):
     out.append(arc & wedge)
     return out
 
+# ballast: Harry's lead/tungsten putty pressed into two pockets in the belly rails at the CG station (puts the CG on the axis)
+BAL_X = (P["BAL_X0"], P["BAL_X0"] + P["BAL_L"])
+def ballast_pockets(grow):
+    out = None
+    for sg in (1, -1):
+        ang0, ang1 = math.radians(37), math.radians(60)
+        wedge = prism_x([(0, 0), (sg * 30 * math.sin(ang0), -30 * math.cos(ang0)), (sg * 30 * math.sin(ang1), -30 * math.cos(ang1))], BAL_X[0] - grow, BAL_X[1] + grow)
+        pk = (cylx(2 * (RB - 0.25 + grow), 200, 0) - cylx(2 * (17.2 - grow), 202, -1)) & wedge
+        out = pk if out is None else out + pk
+    return out
+
 # ================================================================== HULL (clamshell, integral tail end wall)
 def build_hull():
     hx0 = X_NOSE
@@ -626,14 +642,15 @@ def build_hull():
     # material round the leg's cuts (groove floor and walls, pocket walls, knuckle roof), the knuckle blister, the pad band,
     # the socket seats; all kept inside the Ø42 envelope
     fill = None
-    for f in leg_cuts(1.25):
+    for f in leg_cuts(1.0):
         fill = f if fill is None else fill + f
-    fill = (fill & cylx(2 * R - 0.02, L - hx0 - 4, hx0 + 0.5)) - cylx(2 * RB + 0.2, X_SPIG1 - hx0 + 0.6, hx0 - 1)   # never into the nose spigot
+    fill = (fill & cylx(2 * R - 0.02, L - hx0 - 4, hx0 + 0.5)) - cylx(2 * RB + 0.2, X_SPIG1 - hx0 + 1.25, hx0 - 1)   # never into the nose spigot
     blister = bx(KN_X[0] - 0.6, KN_X[1] + 0.6, -KN_Y - 0.6, KN_Y + 0.6, LZ, KN_TOP + 0.6)
     blister = safe_fillet(blister, [e for e in blister.edges() if e.center().Z > KN_TOP], 1.6, "blister")
     body = body + fill + blister
     for sg in (1, -1):                                                         # flank socket seats (JST-XH headers clamped across the split)
         body = body + (bx(X_SOCK[0] - 1.2, X_SOCK[1] + 1.2, sg * 7.0, sg * 21.0, -5.1, 5.1) & cylx(2 * R - 0.02, 20, X_SOCK[0] - 5))
+    body = body + (cylx(2 * RB + 0.2, 2.0, NOSE_LOCK_X) - cylx(2 * (RB - 1.0), 4.0, NOSE_LOCK_X - 1))   # nose lock rib (cut by the flute like the wall)
     body = body - carve
     for c in leg_cuts(0.0):
         body = body - c
@@ -641,11 +658,9 @@ def build_hull():
     body = body - bx(LX - 5.2, LX + 5.2, -KN_YC, KN_YC, -14, LZ - 6.0 + 0.01)               # ... and the motor can under it
     # couplers: Ø6.3 bores from the knuckle wall out through the skin; stub slots from below (the tray tongues close them)
     for s in (1, -1):
-        y0 = s * (KN_YC - 0.05)
+        y0 = s * (KN_Y - 0.1)
         body = body - cyly(P["LEG_CPL_D"] + 0.3, R, min(y0, y0 + s * R), x=LX, z=LZ)
         body = body - bx(LX - 1.75, LX + 1.75, s * (KN_YC - 0.05), s * (P["LEG_STUB"] + 0.4), -5, LZ)
-    # nose lock rib (the closed clamshell locks the nose axially)
-    body = body + (cylx(2 * RB + 0.2, 2.0, NOSE_LOCK_X) - cylx(2 * (RB - 1.0), 4.0, NOSE_LOCK_X - 1))
     cuts = []
     cuts.append(tear_y(P["CPL_D"] + 0.4, 2 * R + 20, -R - 10, x=DX, z=P["DRILL_PIV_Z"]))          # pod coupler bores
     for s in (-1, 1):                                                                       # drill leads: tight bores (seal with silicone)
@@ -656,13 +671,20 @@ def build_hull():
                 cuts.append(cyly(P["SCREW_CLR"], 14, (RB - 2) if s > 0 else -(RB - 2) - 14, x=xs, z=zz))
                 cuts += csink(xs, s, zz)
     # XIAO USB-C: tight window round the receptacle (8.94 x 3.26), its face 0.4 under the skin
-    cuts.append(bx(XU - 4.65, XU + 4.65, -R - 2, -RB + 0.6, ZU - 1.8, ZU + 1.8))
+    cuts.append(bx(XU - 4.65, XU + 4.65, -R - 2, -RB + 1.2, ZU - 1.8, ZU + 1.8))
     # flank socket seats: header pocket + plug opening to the skin
     for sg in (1, -1):
         cuts.append(bx(X_SOCK[0], X_SOCK[1], sg * 8.0, sg * 22.0, -3.85, 3.85))
         cuts.append(bx(X_SOCK[0] + 0.9, X_SOCK[1] - 0.9, sg * 5.0, sg * 8.5, -2.6, 2.6))      # pins / solder tails
+    # cell rails on the belly: two low rails beside the in-line cells (they guide the cells and keep the mass low)
+    for sg in (1, -1):
+        rail = (cylx(2 * RB + 0.1, X_C2[1] + 1.0 - X_C1[0] + 2.0, X_C1[0] - 2.0) - cylx(2 * 16.4, 200, 0)) & \
+               prism_x([(sg * 9.9, -30), (sg * 30 * math.sin(math.radians(62)), -30 * math.cos(math.radians(62))), (0, 0)], 0, L)
+        rail = rail - cylx(2 * 11.0, 200, 0, z=P["CELL_Z"])
+        body = body + rail
+    body = body - ballast_pockets(0.0)
     # seam groove: the tray's deck 1 edges sit in it, clamped by the two halves, and back the split seam from inside
-    sg_ = (cylx(2 * (RB + 0.45), X_SOCK[0] - 1.5 - X_LCR[0], X_LCR[0]) - cylx(2 * RB - 0.2, X_SOCK[0] + 2 - X_LCR[0], X_LCR[0] - 1)) & bx(0, L, -60, 60, DECK1 - 1.4 - 0.1, DECK1 + 0.1)
+    sg_ = (cylx(2 * (RB + 0.45), X_SOCK[0] - 1.5 - X_SPIG1 - 0.3, X_SPIG1 + 0.3) - cylx(2 * RB - 0.2, X_SOCK[0] + 2 - X_LCR[0], X_LCR[0] - 1)) & bx(0, L, -60, 60, DECK1 - 1.4 - 0.1, DECK1 + 0.1)
     cuts.append(sg_)
     for c in cuts:
         body = body - c
@@ -749,8 +771,8 @@ def build_tray():
     # discs (wire windows in the corridors beside the cells and at the top)
     def wins(xa, xb):
         return [bx(xa - 1, xb + 1, s * 10.4, s * 25.0, -15.0, -3.0) for s in (1, -1)] + [bx(xa - 1, xb + 1, -6.0, 6.0, 9.0, 30)]
-    ps.append(disc(*X_D1, screws=True, windows=wins(*X_D1) + [bx(X_D1[0] - 1, X_D1[1] + 1, -6.2, 6.2, -14, 9)]))
-    ps.append(disc(*X_D2, screws=True, windows=wins(*X_D2) + [bx(X_D2[0] - 1, X_D2[1] + 1, -4.0, 4.0, 2.0, 30)]))
+    ps.append(disc(*X_D1, screws=True, windows=wins(*X_D1) + [bx(X_D1[0] - 1, X_D1[1] + 1, -6.2, 6.2, -13.4, 9), bx(X_D1[0] - 1, X_D1[1] + 1, -13.2, 13.2, 7.0, 30)]))
+    ps.append(disc(*X_D2, screws=True, windows=wins(*X_D2) + [bx(X_D2[0] - 1, X_D2[1] + 1, -7.2, 7.2, 2.0, 30)]))
     # cell saddles: open rings under deck 1
     for xs_ in (X_C1[0] + 7, X_C1[1] - 9, X_C2[0] + 9, X_C2[1] - 7):
         ring = cylx(2 * (cr + 1.2), 2.0, xs_, z=cz) - cylx(2 * cr, 4, xs_ - 1, z=cz)
@@ -758,6 +780,7 @@ def build_tray():
         ps.append(ring)
     # leg N20 cradle (tube round the can, floor under it) + the two tongues
     lc = bx(*X_LCR, -7.4, 7.4, -14.0, LZ - 6.0 - 1.3) - bx(LX - 5.2, LX + 5.2, -6.2, 6.2, -13.0, 20)
+    lc = lc + bx(*X_LCR, -6.2, 6.2, LZ - 6.0 - 1.4, LZ - 6.0 - 0.2) - bx(LX - 5.2, LX + 5.2, -6.2, 6.2, -13.0, 20)   # the worm box rests on the front and back walls
     lc = lc - bx(LX - 2.5, LX + 2.5, -9, 9, -16, -11.0)                                      # lead exit at the can's end cap
     ps.append(lc & cylx(2 * RB - 0.6, 40, X_LCR[0] - 1))
     for s in (1, -1):
@@ -769,14 +792,15 @@ def build_tray():
         ps.append(bx(LX - 1.6, LX + 1.6, ya, yb, LZ - 6.0 - 1.4, POCKET_FLOOR - 0.05))
     # deck 2 on three walls (front = disc 1, a mid wall between the INA219 and the BNO085, an end wall)
     xd0, xd1 = X_DECK2
-    ps.append(bx(xd0, xd1, -14.0, 14.0, DECK2 - FT, DECK2) & cylx(2 * RB - 1.2, 200, 0))
-    for xw in (LAY["bno085"][0] - 1.6, xd1 - 1.2):
+    ps.append(bx(xd0, xd1, -11.0, 11.0, DECK2 - FT, DECK2) & cylx(2 * RB - 1.2, 200, 0))
+    for xw in (LAY["bno085"][0] - 1.6, LAY["bno085"][0] + 22.77 + 0.4):
         ps.append(bx(xw, xw + 1.2, -3.5, 3.5, DECK1 - 0.01, DECK2 - FT + 0.01))
     # deploy N20 cradle (tube round the can, motor pointing down) + web to the rear disc
-    dcz = P["DRILL_PIV_Z"] - 6.0
-    dc = bx(*X_DCR, -7.4, 7.4, -17.2 - 1.0, dcz - 1.3) - bx(DX - 5.2, DX + 5.2, -6.2, 6.2, -17.2, 20)
-    dc = dc - bx(DX - 2.5, DX + 2.5, -9, 9, -20, -15.0)
-    ps.append(dc)
+    dcz = P["DRILL_PIV_Z"] - P["N20_BOX"] / 2                                               # worm box bottom: it rests on the tube's front and back walls
+    dc = bx(*X_DCR, -7.4, 7.4, -16.0, dcz - 0.2) - bx(DX - 5.2, DX + 5.2, -6.2, 6.2, -30, 20)   # tube round the can (the can hangs in it)
+    dc = dc - bx(X_DCR[0] - 1, X_DCR[1] + 1, -7.5, 7.5, dcz - 1.6, dcz)                      # the tube's side walls stop under the box sides
+    dc = dc + bx(*X_DCR, -6.2, 6.2, dcz - 1.6, dcz - 0.2) - bx(DX - 5.2, DX + 5.2, -6.2, 6.2, -30, 20)
+    ps.append(dc & cylx(2 * RB - 0.6, 40, X_DCR[0] - 1))
     ps.append(bx(X_D2[1] - 0.01, X_DCR[0] + 0.01, -7.4, 7.4, -15.0, DECK1))
     t = ps[0]
     for p in ps[1:]:
@@ -902,7 +926,10 @@ add("leg_shaft", D_bore_y(P["SHAFT_D"], -P["LEG_STUB"], P["LEG_STUB"]), "electro
 env("n20_deploy", n20_vertical(DX, P["DRILL_PIV_Z"]), "#8e9aaf", "DEPLOY worm N20 on the pod axle, motor pointing down in the tray's rear cradle (low CG)")
 add("deploy_shaft", D_bore_y(P["SHAFT_D"], -P["N20_TIP"], P["N20_TIP"]), "electronics", "#d0d4d8", pos=(DX, 0, P["DRILL_PIV_Z"]), axis="y", deg=(0, P["DEPLOY_DEG"]), sgn=-1, joint="deploy",
     printable=False, step=False, note="deploy N20 output shaft (turns with the couplers), both stubs in the couplers")
-for name in ("xiao", "drv8833_1", "drv8833_2", "ina219", "bno085", "mp1584", "vtx", "bms_2s"):
+xx0, xyc, xz0 = LAY["xiao"]; xy0 = -Y_USB + 1.3
+env("xiao", bx(xx0, xx0 + 17.74, xy0, xy0 + 21.45, xz0, xz0 + 1.0) + bx(XU - 4.47, XU + 4.47, -Y_USB, -Y_USB + 7.3, xz0 + 1.0, xz0 + 1.0 + 3.26)
+    + bx(xx0 + 1.0, xx0 + 16.74, xy0 + 7.5, xy0 + 20.5, xz0 + 1.0, xz0 + 4.49), "#2a9d8f", "xiao 17.74 x 21.45 board (+1.3 USB-C lip), 4.49 thick (measured); USB-C to the right flank window")
+for name in ("drv8833_1", "drv8833_2", "ina219", "bno085", "mp1584", "vtx", "bms_2s"):
     lx_, ly_, lz_ = BOARD[name]; x, y, z = LAY[name]
     env(name, bx(x, x + lx_, y - ly_ / 2, y + ly_ / 2, z, z + lz_), {"xiao": "#2a9d8f", "ina219": "#f3722c", "bno085": "#f8961e", "mp1584": "#577590", "vtx": "#9b5de5", "bms_2s": "#90be6d"}.get(name, "#43aa8b"),
         "%s %.2f x %.2f x %.2f (measured)" % (name, *BOARD[name]))
@@ -949,11 +976,15 @@ for nm, sg, wide, txt in (("jst_loop", 1, 7.4, "JST-XH 2-pin power loop socket (
     hz = wide / 2
     hdr = bx(X_SOCK[0] + 0.15, X_SOCK[1] - 0.15, sg * 8.3, sg * 15.3, -min(hz, 3.7), min(hz, 3.7))
     hw(nm, hdr, "#f5f5f5", txt)
-hw("antenna", cylx(4.0, 22, X_D2[0] - 26.0, y=11.0, z=9.0), "#222222", "VTX u.FL 5.8 GHz antenna on deck 1's left edge toward the tail (PLA is transparent to 5.8 GHz)")
-hw("xiao_antenna", bx(LAY["bno085"][0], LAY["bno085"][0] + 20.0, 16.6, 17.0, DECK1 + 0.5, DECK1 + 7.0), "#c8a000",
-   "XIAO 2.4 GHz FPC antenna (about 20 x 12, NOT measured, folded to 6.5): stuck to the inside of the left flank over the BNO085")
-hw("capacitor", cylx(6.3, 11.0, LAY["ina219"][0] + 1.0, y=14.9, z=DECK1 + 3.15), "#334488", "470 to 1000 uF across the MP1584 5 V output (long leg to OUT+)")
+hw("antenna", cylx(4.0, 22, LAY["bno085"][0], y=15.6, z=DECK1 + 2.1), "#222222", "VTX u.FL 5.8 GHz antenna on deck 1 beside the BNO085, along the left flank (PLA is transparent to 5.8 GHz)")
+hw("xiao_antenna", bx(LAY["bno085"][0], LAY["bno085"][0] + 20.0, -17.2, -16.8, DECK1 + 0.5, DECK1 + 7.0), "#c8a000",
+   "XIAO 2.4 GHz FPC antenna (about 20 x 12, NOT measured, folded to 6.5): stuck to the inside of the right flank beside the BNO085")
+hw("capacitor", cylx(6.3, 11.0, LAY["ina219"][0] + 1.0, y=15.3, z=DECK1 + 3.15), "#334488", "470 to 1000 uF across the MP1584 5 V output (long leg to OUT+)")
 
+bp = ballast_pockets(0.0)
+P["BALLAST_BELLY_G"] = round(bp.volume / 1000 * P["BAL_RHO"], 1)
+add("ballast_belly", bp, "electronics", "#7a6a55", printable=False, step=False, mass_g=P["BALLAST_BELLY_G"],
+    note="%.1f g of lead/tungsten putty (Harry's nose ballast putty, now in the belly): pressed into the two pockets in the belly rails at x %.0f to %.0f, flush; it puts the folded centre of mass on the hull axis so the dart rests belly down" % (P["BALLAST_BELLY_G"], BAL_X[0], BAL_X[1]))
 mid = lambda xx: round((xx[0] + xx[1]) / 2, 2)
 P["WIRE_PTS"] = dict(
     corr_L=[mid(X_C1), 13.0, -8.0], corr_R=[mid(X_C1), -13.0, -8.0], corr_L2=[mid(X_C2), 13.0, -8.0], corr_R2=[mid(X_C2), -13.0, -8.0],

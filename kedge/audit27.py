@@ -17,11 +17,11 @@ for n, p in PP.items():
     if p.get("parent"): kids.setdefault(p["parent"], []).append(n)
 roots_moving = [n for n, p in PP.items() if p["axis"] and not p.get("parent")]
 fixed = [n for n, p in PP.items() if not p["axis"] and not p.get("parent")]
-KICK = "kick_leg"
+KICK = next((n for n in roots_moving if PP[n].get("joint") == "leg"), "kick_leg")    # v34: the righting leg
 DEPLOY = [n for n in roots_moving if n != KICK]           # drill pods, couplers, deploy shaft
 
 def T_of(name, deg):
-    p = PP[name]; sgn = -1 if name == KICK else 1
+    p = PP[name]; sgn = p.get("sgn", -1 if name == KICK else 1)
     return TM(p["pos"]) @ RM(math.radians(sgn * deg), [0, 1, 0])
 
 def family(root):
@@ -54,10 +54,10 @@ def pose_family(root, deg):
 
 FIXED = {n: xf(n, np.eye(4)) for n in fixed}
 hits = {}
-OWN = {tuple(sorted(p)) for p in [("kick_shaft", "n20_kick"), ("deploy_shaft", "n20_deploy"), ("foot_shaft", "n20_foot")]}
+OWN = {tuple(sorted(p)) for p in [("kick_shaft", "n20_kick"), ("deploy_shaft", "n20_deploy"), ("foot_shaft", "n20_foot"), ("leg_shaft", "n20_leg")]}
 THREAD = {tuple(sorted(p)) for p in [("screws_radial", "tray"), ("screws_radial", "tail_cap"), ("screw_ear_root", "tray"), ("kick_hub_screw", "kick_leg"),
                                      ("coupler_L_screw", "coupler_L"), ("coupler_R_screw", "coupler_R"), ("ballast", "nose"), ("screws_radial", "boom_anchor"), ("boom_pin", "tail_boom"),
-                                     ("drill_leg_L_shaft", "drill_leg_L_auger"), ("drill_leg_R_shaft", "drill_leg_R_auger")]}   # v33: the M3 shaft self-taps the Ø2.6 spine bore
+                                     ("drill_leg_L_shaft", "drill_leg_L_auger"), ("drill_leg_R_shaft", "drill_leg_R_auger"), ("leg_grub_L", "righting_leg"), ("leg_grub_R", "righting_leg")]}   # v33: the M3 shaft self-taps the Ø2.6 spine bore
 threads = {}
 def rec(a, b, tag, v, thr=0.5):
     if tuple(sorted((a, b))) in OWN: return            # a motor's own output shaft runs through its own gearbox
@@ -75,8 +75,8 @@ for root in roots_moving:
     for a, b in itertools.combinations(fam, 2):
         rec(a, b, "family", vol_overlap(fam[a], fam[b]))
 # 3 kick sweep vs fixed and vs folded drill families
-KMAX = max(200.0, P["KICK_DEG"]); DMAX = max(38.0, P["DEPLOY_DEG"])
-kdegs = sorted(set(list(np.arange(0, KMAX + 0.01, STEP_K)) + [P["KICK_DEG"], 200.0]))
+KMAX = P["LEG_DEG"] if "LEG_DEG" in P else max(200.0, P["KICK_DEG"]); DMAX = max(38.0, P["DEPLOY_DEG"])
+kdegs = sorted(set(list(np.arange(0, KMAX + 0.01, STEP_K)) + [P["KICK_DEG"]] + ([] if "LEG_DEG" in P else [200.0])))
 folded_deploy = {}
 for r in DEPLOY: folded_deploy.update(pose_family(r, 0))
 for k in kdegs:
@@ -108,7 +108,7 @@ t_sweep = time.time() - t0
 # 5 ground: deployed pose
 rep = {"collisions": {f"{a} | {b}": v[:8] for (a, b), v in hits.items()}, "thread_engagement_mm3": threads}
 dep = {}
-dep.update(pose_family(KICK, P["KICK_DEG"]))
+dep.update(pose_family(KICK, 0.0 if "LEG_DEG" in P else P["KICK_DEG"]))      # v34 anchored: the righting leg rests folded
 for r in DEPLOY: dep.update(pose_family(r, P["DEPLOY_DEG"]))
 dep.update(FIXED)
 ground = {}
@@ -118,7 +118,7 @@ augers = [n for n in dep if any(k in n for k in ("auger", "_shaft", "nyloc", "_l
 gbad = {n: d for n, d in ground.items() if n not in augers and d < -0.3}
 rep["ground_below"] = gbad
 rep["auger_depth_mm"] = {n: round(-ground[n], 1) for n in augers}
-rep["foot_housing_clear_mm"] = ground[KICK]
+rep["foot_housing_clear_mm"] = ground[KICK]                     # v34: the folded righting leg (name kept for the viewer)
 rep["pod_clear_mm"] = {n: ground[n] for n in DEPLOY if n.startswith("drill_leg")}
 # 6 folded envelope + belly rule (below z=0 nothing outside r=21.05 except allowed)
 fold = {}
@@ -130,8 +130,13 @@ rep["folded_bbox"] = [round(float(x), 1) for x in allv.min(0)] + [round(float(x)
 belly = {}
 for n, (v, f) in fold.items():
     tm = trimesh.Trimesh(v, f, process=False); pts = np.vstack([v, tm.sample(20000)])
-    m = pts[:, 2] < -0.01; r = np.hypot(pts[m, 1], pts[m, 2]) if m.any() else np.array([0])
-    if r.max() > R_ if (R_ := P["R_OUT"] + 0.05) else False: belly[n] = round(float(r.max()), 2)
+    if "LEG_DEG" in P:      # v34 rule = the launcher cradle zone: below the ring tops (z -5) nothing between the hull and r 26 (rings r 21.4-23.4)
+        m = pts[:, 2] < -5.0; r = np.hypot(pts[m, 1], pts[m, 2]) if m.any() else np.array([0])
+        bad = (r > P["R_OUT"] + 0.05) & (r < 26.0)
+        if bad.any(): belly[n] = round(float(r[bad].max()), 2)
+    else:
+        m = pts[:, 2] < -0.01; r = np.hypot(pts[m, 1], pts[m, 2]) if m.any() else np.array([0])
+        if r.max() > R_ if (R_ := P["R_OUT"] + 0.05) else False: belly[n] = round(float(r.max()), 2)
 rep["belly_outside_r21"] = belly
 rep["folded_min_z_below_ground"] = {n: ground_ for n, (v, f) in fold.items() if (ground_ := round(float(v[:, 2].min()) - G, 2)) < -0.05}
 # 7 mass
@@ -153,11 +158,15 @@ if hull_top is not None and "HORN_GAP" in P:
         f = {}
         for r in pods: f.update(pose_family(r, d))
         stops[tag] = ov_with(f, pods)
-    kr = P["KICK_DEG"] + P.get("KICK_REST_DEG", 0)
+    kr = P["KICK_DEG"] + P.get("KICK_REST_DEG", P.get("LEG_REST_DEG", 0))
     for k, tag in ((kr - 0.5, "kick_rest_-0.5deg"), (kr + 2.0, "kick_rest_+2deg")):
-        stops[tag] = ov_with(pose_family(KICK, k), [KICK], ("hull_top", "nose"))   # v32c: the flute floor in the nose top is the kick rest
+        stops[tag] = ov_with(pose_family(KICK, k), [KICK], ("hull_top", "nose"))   # v32c: the flute floor in the nose top is the kick rest (v34: the leg's far rest)
     stop_ok = stops["deploy_at_angle"] == 0 and stops["fold_at_0"] == 0 and stops["kick_rest_-0.5deg"] == 0 and \
         stops["deploy_horn_+2.5deg"] > 1 and stops["fold_lug_-3deg"] > 1 and stops["kick_rest_+2deg"] > 1
+    if "LEG_DEG" in P:                                                    # v34: the leg also rests on the groove floor when folded
+        stops["leg_fold_at_0"] = ov_with(pose_family(KICK, 0.0), [KICK], ("hull_top", "nose"))
+        stops["leg_fold_-2deg"] = ov_with(pose_family(KICK, -2.0), [KICK], ("hull_top", "nose"))
+        stop_ok = stop_ok and stops["leg_fold_at_0"] == 0 and stops["leg_fold_-2deg"] > 1
     stops["ok"] = bool(stop_ok)
 rep["hard_stops_mm3"] = stops
 json.dump(rep, open(OUT + "/audit.json", "w"), indent=1)

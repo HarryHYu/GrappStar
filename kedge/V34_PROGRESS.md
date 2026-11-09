@@ -28,13 +28,23 @@ dist_v34, pub34, review shots in out34/review/. Never touch kedge/reports/ (anot
 - Low CG: 2 cells IN LINE on the keel (z -10), boards on decks over them, both N20 motors pointing down.
 
 ## Status
-- [ ] kedge_v34.py geometry
-- [ ] tools updated for signs (parts.json "sgn" per moving root; leg = "righting_leg")
-- [ ] audit CLEAN 1 deg, launcher fit, STEP, wire room, mass props
-- [ ] review shots, viewer pub34, pack, dist, docs
+- [x] kedge_v34.py geometry builds in about 60 s (work/v34a = scratch build; `KOV='{"DEPLOY_DEG":46.75}'` = solved angle)
+- [x] tools updated for signs: parts.json moving roots carry "sgn" (-1 for both groups) and "joint" ("leg" / "deploy");
+      audit27.py, solve_deg.py, clearance.py, massprops.py, viewer.html read them. Leg part = "righting_leg" (P.KICK_DEG = P.LEG_DEG alias).
+      audit belly rule (v34): below z -5 nothing between the hull and r 26 (the launcher cradle rings are r 21.4-23.4 up to z -5).
+- [x] coarse audit (10/5 deg) CLEAN apart from fixed items (rerun at 1 deg in the pipeline)
+- [ ] visual polish (forward trough at the hinge, flank socket openings, coupler ends, blade edges)
+- [ ] launcher fit (eye lugs, bridle path), pack.py / runsheet.py / report.py / wires.py / wireroom.py for the v34 parts
+- [ ] full pipeline `GEN=kedge_v34.py ./run_all.sh out34 v34 1 1`, pub34, make_dist v34, CLAUDE.md section 5, DART_V31_NOTES
 
-## Key numbers
-(fill in)
+## Key numbers (work/v34a, 9 Nov)
+- mass 250.6 g incl. 14.6 g belly putty (Harry's ballast putty in two belly-rail pockets), CG folded x 87.5, z -0.12;
+  anchored z -4.5; leg out z -0.25. Printed 81.6 cm3.
+- pod pivot x 132, z 9.5 (study 10; 9.5 + the putty puts the CG on the axis), deploy solved 46.75 deg, drills 43.5 mm deep.
+- leg: hinge x 33, z 14.5, 178 deg, pad centre 113 mm from the hinge (study 128: the pad must stay in front of the tail face for
+  the launcher pusher), pad about 37 wide (study 56: limited by the folded pods' hubs).
+- hard stops: deploy +2.5 deg 5.2 mm3, fold -3 deg 5.6, leg far rest +2 deg 90, leg fold -2 deg 440.
 
 ## Open problems
-(fill in)
+- leg shorter and pad narrower than the study (launcher pusher + folded pods); dart-physics to rerun the righting sim on out34.
+- eye lugs hang to z -7.4 at |y| 29-34 (outside the cradle rings); bridle path past the carriage needs base changes (notes).

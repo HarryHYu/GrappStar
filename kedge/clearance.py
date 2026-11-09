@@ -9,7 +9,8 @@ def fam(r):
     o=[r]; [o.extend(fam(k)) for k in kids.get(r,[])]; return o
 fixed=[n for n,p in PP.items() if not p['axis'] and not p.get('parent')]
 movers=[n for n,p in PP.items() if p['axis'] and not p.get('parent')]
-def T(n,d): return TM(PP[n]['pos'])@RM(math.radians((-1 if n=='kick_leg' else 1)*d),[0,1,0])
+def T(n,d): return TM(PP[n]['pos'])@RM(math.radians(PP[n].get('sgn',-1 if n=='kick_leg' else 1)*d),[0,1,0])
+ISLEG=lambda n: n=='kick_leg' or PP[n].get('joint')=='leg'
 PQ={n:trimesh.proximity.ProximityQuery(M[n]) for n in fixed}
 SAMP={n:M[n].sample(1500, return_index=False) for n in PP}
 res={}
@@ -19,7 +20,7 @@ def gap(pts, n):
     if not m.any(): return None
     _,d,_=PQ[n].on_surface(pts[m]); return float(d.min())
 for r in movers:
-    rng=np.linspace(0,P['KICK_DEG'],15) if r=='kick_leg' else np.linspace(0,P['DEPLOY_DEG'],8)
+    rng=np.linspace(0,P['KICK_DEG'],15) if ISLEG(r) else np.linspace(0,P['DEPLOY_DEG'],8)
     for d in rng:
         Tm=T(r,d)
         for c in fam(r):

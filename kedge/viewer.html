@@ -105,7 +105,8 @@ Promise.all([fetch('parts.json').then(r=>r.json()),fetch('meshes.json').then(r=>
   if(A){const ok=A.clean!==false&&Object.keys(A.collisions||{}).length===0;
     $('#aud').innerHTML=`<span class="${ok?'ok':'bad'}">${ok?'Collision sweep clean':'Collisions found'}</span>: ${J.parts.some(p=>p.joint==='leg')?'righting leg':'kick'} 0 to ${A.kick_range[1]}° in ${A.kick_steps} steps, drills 0 to ${A.deploy_range[1]}° in ${A.deploy_steps} steps, every sub-part on its own, exact meshes.<br>`+
     `Ground: nothing but the augers goes below z = ${J.ground}. ${A.foot_housing_clear_mm!=null&&A.auger_depth_mm.foot_auger!=null?'Foot housing clear '+A.foot_housing_clear_mm+' mm, ':''}pods clear ${Object.values(A.pod_clear_mm)[0]} mm. Auger depth: ${A.auger_depth_mm.foot_auger!=null?'foot '+A.auger_depth_mm.foot_auger+' mm, ':''}drills ${A.auger_depth_mm.drill_leg_L_auger} mm.<br>`+
-    `Belly below the centreline: plain Ø42 cylinder. Folded envelope ${(A.folded_bbox[3]-A.folded_bbox[0]).toFixed(0)} × ${(A.folded_bbox[4]-A.folded_bbox[1]).toFixed(0)} × ${(A.folded_bbox[5]-A.folded_bbox[2]).toFixed(0)} mm (incl. tether eye and folded legs).<br>Printed ${A.printed_cm3} cm³ ≈ ${A.printed_g_solid_PLA} g PLA if solid.`;}
+    `${J.parts.some(p=>p.joint==='leg')?'Belly: nothing in the launcher cradle zone (below z -5, out to r 26).':'Belly below the centreline: plain Ø42 cylinder.'} Folded envelope ${(A.folded_bbox[3]-A.folded_bbox[0]).toFixed(0)} × ${(A.folded_bbox[4]-A.folded_bbox[1]).toFixed(0)} × ${(A.folded_bbox[5]-A.folded_bbox[2]).toFixed(0)} mm (incl. tether eye and folded legs).<br>Printed ${A.printed_cm3} cm³ ≈ ${A.printed_g_solid_PLA} g PLA if solid.`;}
+  if(J.parts.some(p=>p.joint==='leg')){const kb=document.querySelector('[data-v=kick]');if(kb)kb.textContent='Leg hinge';}
   pose();view('all');
 });
 function pose(){
@@ -127,7 +128,9 @@ function pose(){
 }
 const VIEWS={all:[75,0,0,330,-1.05,0.42,0,0],dep:[40,0,-5,360,-0.75,0.25,1,1],kick:[30,10,25,120,-0.6,0.35,0,0],pod:[80,30,5,170,0.9,0.25,0,1],tray:[85,0,0,200,-1.2,0.5,0,0],tail:[150,0,0,140,-0.4,0.25,0,0]};
 function view(v){const a=VIEWS[v];orb.t.set(a[0],a[1],a[2]);orb.r=a[3];orb.az=a[4];orb.el=a[5];
-  if(v==='dep'){$('#kick').value=P.KICK_DEG;$('#dep').value=P.DEPLOY_DEG;}else if(v==='all'){$('#kick').value=0;$('#dep').value=0;}
+  const isLeg=J.parts.some(p=>p.joint==='leg');
+  if(isLeg&&v==='dep')orb.t.set(95,0,-5);if(isLeg&&v==='kick')orb.t.set(P.LEG_X,0,15);if(isLeg&&v==='pod')orb.t.set(P.DRILL_X-12,P.DRILL_PIV_Y,5);
+  if(v==='dep'){$('#kick').value=isLeg?0:P.KICK_DEG;$('#dep').value=P.DEPLOY_DEG;}else if(v==='all'){$('#kick').value=0;$('#dep').value=0;}
   if(v==='tray'){$('#hull').checked=false;}else $('#hull').checked=true;pose();}
 document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>view(b.dataset.v));
 ['kick','dep','exp','cut','ground','elec','hull','cax'].forEach(id=>$('#'+id).addEventListener('input',pose));

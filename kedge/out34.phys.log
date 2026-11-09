@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/home/user/GrappStar/kedge/physics.py", line 158, in <module>
+    R = run(sys.argv[1] if len(sys.argv) > 1 else None)
+  File "/home/user/GrappStar/kedge/physics.py", line 80, in run
+    LD = dart_landing.run(d.out, dict(impact_cases=cases))
+  File "/home/user/GrappStar/kedge/dart_landing.py", line 171, in run
+    A = da.Anchor(d)
+  File "/home/user/GrappStar/kedge/dart_anchor.py", line 93, in __init__
+    fb = d.mesh("foot_auger").bounds
+         ~~~~~~^^^^^^^^^^^^^^
+  File "/home/user/GrappStar/kedge/dart_model.py", line 100, in mesh
+    z = np.load(os.path.join(self.out, n + ".npz"))
+  File "/home/user/GrappStar/kedge/.venv/lib/python3.13/site-packages/numpy/lib/_npyio_impl.py", line 454, in load
+    fid = stack.enter_context(open(os.fspath(file), "rb"))
+                              ~~~~^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'out34/foot_auger.npz'

@@ -1,0 +1,15 @@
+{
+ "out": "out34",
+ "ref": "out30",
+ "states": 1684,
+ "overlaps_new": {},
+ "overlaps_ref": {},
+ "fails": {},
+ "line_model_overlaps": {},
+ "rest": {
+  "dart_vs_carriage_mm3": 0.0,
+  "dart_down_0p5_vs_carriage_mm3": 282.253
+ },
+ "seconds": 387
+}
+FITS

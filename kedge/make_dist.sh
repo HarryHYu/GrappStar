@@ -26,7 +26,8 @@ cp variants_final.json $D/docs/variants_all.json
 cp ${GEN:-kedge_v32.py} $D/source/kedge_${V}.py
 cp audit27.py solve_deg.py clearance.py meshstep.py meshes.py viewer.html shots.js extra_shots.js sheet.py pack.py coupon.py wires.py wiring_dot.py \
    barrel.py assembly_step.py physics.py flight_sim.py refresh_variants.py plate_view.py report.py runsheet.py variants.py run_all.sh make_dist.sh \
-   launcher_fit.py wireroom.py massprops.py stepcheck.py review.js review33.js montage.py pubshots.js requirements.txt $D/source/ 2>/dev/null || true
+   launcher_fit.py wireroom.py massprops.py stepcheck.py review.js review33.js review34.js montage.py pubshots.js requirements.txt \
+   wires34.py runsheet34.py report34.py mkpub.sh ovl.py qrender.py $D/source/ 2>/dev/null || true
 cp dart_*.py $D/source/ 2>/dev/null || true
 mkdir -p $D/source/vendor && cp vendor/three.min.js $D/source/vendor/ 2>/dev/null || true
 cd dist_$V && zip -qr KEDGE_${V}_build_pack.zip KEDGE_$V && (cd KEDGE_$V/print && zip -q ../../KEDGE_${V}_STL.zip *.stl *.3mf) && (cd KEDGE_$V/step && zip -q ../../KEDGE_${V}_STEP.zip *.step)

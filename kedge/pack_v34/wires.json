@@ -1,0 +1,837 @@
+{
+ "wires": [
+  {
+   "n": 1,
+   "fr": "Front spring (B-, cell 1 base)",
+   "to": "BMS B-",
+   "col": "black",
+   "g": "22 AWG",
+   "len": 80,
+   "note": "through the lead hole in disc 1, up beside the leg cradle, onto deck 1",
+   "route": [
+    "sprg",
+    "sprg_fr",
+    "side_f_L",
+    "bms_f"
+   ]
+  },
+  {
+   "n": 2,
+   "fr": "BM strip tab (between the cells)",
+   "to": "BMS BM",
+   "col": "white",
+   "g": "26 AWG",
+   "len": 85,
+   "note": "the strip tab comes up through the slot in deck 1 at the cell joint; solder it before the cells go in",
+   "route": [
+    "mid",
+    "bms_f"
+   ]
+  },
+  {
+   "n": 3,
+   "fr": "Rear plate (B+, cell 2 button)",
+   "to": "BMS B+",
+   "col": "red",
+   "g": "22 AWG",
+   "len": 120,
+   "note": "through the lead hole in the rear disc, up behind it, forward on deck 1",
+   "route": [
+    "plate",
+    "plate_bk",
+    "cross",
+    "bms_r"
+   ]
+  },
+  {
+   "n": 4,
+   "fr": "BMS B-",
+   "to": "Charge socket pin 1 (right flank seat)",
+   "col": "black",
+   "g": "26 AWG",
+   "len": 160,
+   "note": "JST-XH 3-pin, balance charge; right corridor, past DRV#2, into the seat",
+   "route": [
+    "bms_r",
+    "corr_R2",
+    "win_d2_R",
+    "sock_R"
+   ]
+  },
+  {
+   "n": 5,
+   "fr": "BMS BM",
+   "to": "Charge socket pin 2 (right flank seat)",
+   "col": "white",
+   "g": "26 AWG",
+   "len": 160,
+   "note": "",
+   "route": [
+    "bms_r",
+    "corr_R2",
+    "win_d2_R",
+    "sock_R"
+   ]
+  },
+  {
+   "n": 6,
+   "fr": "BMS B+",
+   "to": "Charge socket pin 3 (right flank seat)",
+   "col": "red",
+   "g": "26 AWG",
+   "len": 160,
+   "note": "",
+   "route": [
+    "bms_r",
+    "corr_R2",
+    "win_d2_R",
+    "sock_R"
+   ]
+  },
+  {
+   "n": 7,
+   "fr": "BMS P+",
+   "to": "Power loop socket pin 1 (left flank seat)",
+   "col": "red",
+   "g": "22 AWG",
+   "len": 140,
+   "note": "JST-XH 2-pin; the shorting plug is the ON switch",
+   "route": [
+    "bms_r",
+    "corr_L2",
+    "win_d2_L",
+    "sock_L"
+   ]
+  },
+  {
+   "n": 8,
+   "fr": "Power loop socket pin 2",
+   "to": "INA219 VIN+",
+   "col": "red",
+   "g": "22 AWG",
+   "len": 175,
+   "note": "main + after the loop",
+   "route": [
+    "sock_L",
+    "win_d2_L",
+    "corr_L2",
+    "ina"
+   ]
+  },
+  {
+   "n": 9,
+   "fr": "INA219 VIN+ (same pad)",
+   "to": "MP1584 IN+",
+   "col": "red",
+   "g": "22 AWG",
+   "len": 80,
+   "note": "buck taps before the shunt (up to deck 2)",
+   "route": [
+    "ina",
+    "mp"
+   ]
+  },
+  {
+   "n": 10,
+   "fr": "INA219 VIN-",
+   "to": "DRV#1 VM",
+   "col": "red",
+   "g": "22 AWG",
+   "len": 170,
+   "note": "motor rail 6.0-8.4 V, left corridor",
+   "route": [
+    "ina",
+    "corr_L",
+    "corr_L2",
+    "win_d2_L",
+    "drv1"
+   ]
+  },
+  {
+   "n": 11,
+   "fr": "DRV#1 VM",
+   "to": "DRV#2 VM",
+   "col": "red",
+   "g": "22 AWG",
+   "len": 70,
+   "note": "under the deploy cradle",
+   "route": [
+    "drv1",
+    "under",
+    "drv2"
+   ]
+  },
+  {
+   "n": 12,
+   "fr": "BMS P-",
+   "to": "MP1584 IN-",
+   "col": "black",
+   "g": "22 AWG",
+   "len": 70,
+   "note": "main ground",
+   "route": [
+    "bms_r",
+    "mp"
+   ]
+  },
+  {
+   "n": 13,
+   "fr": "MP1584 IN- (same pad)",
+   "to": "DRV#1 GND",
+   "col": "black",
+   "g": "22 AWG",
+   "len": 115,
+   "note": "",
+   "route": [
+    "mp",
+    "corr_L2",
+    "win_d2_L",
+    "drv1"
+   ]
+  },
+  {
+   "n": 14,
+   "fr": "DRV#1 GND",
+   "to": "DRV#2 GND",
+   "col": "black",
+   "g": "22 AWG",
+   "len": 70,
+   "note": "",
+   "route": [
+    "drv1",
+    "under",
+    "drv2"
+   ]
+  },
+  {
+   "n": 15,
+   "fr": "MP1584 OUT+ (5.04 V)",
+   "to": "XIAO 5V via a Schottky diode (stripe toward the XIAO)",
+   "col": "orange",
+   "g": "24 AWG",
+   "len": 110,
+   "note": "set and check 5.04 V BEFORE connecting; 1N5817 or SS14 in heat shrink",
+   "route": [
+    "mp",
+    "vtx_r",
+    "xiao_5v"
+   ]
+  },
+  {
+   "n": 16,
+   "fr": "MP1584 OUT-",
+   "to": "XIAO GND",
+   "col": "black",
+   "g": "24 AWG",
+   "len": 110,
+   "note": "",
+   "route": [
+    "mp",
+    "vtx_r",
+    "xiao_5v"
+   ]
+  },
+  {
+   "n": 17,
+   "fr": "MP1584 OUT+",
+   "to": "VTX 5V in",
+   "col": "orange",
+   "g": "26 AWG",
+   "len": 50,
+   "note": "both on deck 2",
+   "route": [
+    "mp",
+    "vtx_r"
+   ]
+  },
+  {
+   "n": 18,
+   "fr": "MP1584 OUT-",
+   "to": "VTX GND",
+   "col": "black",
+   "g": "26 AWG",
+   "len": 50,
+   "note": "",
+   "route": [
+    "mp",
+    "vtx_r"
+   ]
+  },
+  {
+   "n": 19,
+   "fr": "VTX 5V in (same pad)",
+   "to": "Camera + (red)",
+   "col": "orange",
+   "g": "28 AWG",
+   "len": 140,
+   "note": "forward through disc 1, beside the leg cradle into the nose",
+   "route": [
+    "vtx",
+    "win_d1_L",
+    "side_f_L",
+    "cam"
+   ]
+  },
+  {
+   "n": 20,
+   "fr": "VTX GND (same pad)",
+   "to": "Camera - (black)",
+   "col": "black",
+   "g": "28 AWG",
+   "len": 140,
+   "note": "",
+   "route": [
+    "vtx",
+    "win_d1_L",
+    "side_f_L",
+    "cam"
+   ]
+  },
+  {
+   "n": 21,
+   "fr": "Camera video (yellow)",
+   "to": "VTX video in",
+   "col": "yellow",
+   "g": "28 AWG",
+   "len": 140,
+   "note": "twist with the camera ground",
+   "route": [
+    "vtx",
+    "win_d1_L",
+    "side_f_L",
+    "cam"
+   ]
+  },
+  {
+   "n": 22,
+   "fr": "XIAO 3V3",
+   "to": "DRV#1 SLP / nSLEEP / EEP pad (NOT VCC or VIN)",
+   "col": "red/white",
+   "g": "28 AWG",
+   "len": 170,
+   "note": "wakes the driver; meter check first (WIRING.md step B6)",
+   "route": [
+    "xiao_pins",
+    "corr_L",
+    "corr_L2",
+    "win_d2_L",
+    "drv1"
+   ]
+  },
+  {
+   "n": 23,
+   "fr": "DRV#1 SLP",
+   "to": "DRV#2 SLP",
+   "col": "red/white",
+   "g": "28 AWG",
+   "len": 70,
+   "note": "",
+   "route": [
+    "drv1",
+    "under",
+    "drv2"
+   ]
+  },
+  {
+   "n": 24,
+   "fr": "XIAO 3V3",
+   "to": "INA219 VCC",
+   "col": "red/white",
+   "g": "28 AWG",
+   "len": 60,
+   "note": "",
+   "route": [
+    "xiao_pins",
+    "ina"
+   ]
+  },
+  {
+   "n": 25,
+   "fr": "INA219 VCC",
+   "to": "BNO085 VIN",
+   "col": "red/white",
+   "g": "28 AWG",
+   "len": 60,
+   "note": "deck 1 neighbours",
+   "route": [
+    "ina",
+    "bno"
+   ]
+  },
+  {
+   "n": 26,
+   "fr": "XIAO GND",
+   "to": "INA219 GND",
+   "col": "black",
+   "g": "28 AWG",
+   "len": 60,
+   "note": "",
+   "route": [
+    "xiao_pins",
+    "ina"
+   ]
+  },
+  {
+   "n": 27,
+   "fr": "INA219 GND",
+   "to": "BNO085 GND",
+   "col": "black",
+   "g": "28 AWG",
+   "len": 60,
+   "note": "",
+   "route": [
+    "ina",
+    "bno"
+   ]
+  },
+  {
+   "n": 28,
+   "fr": "XIAO D4",
+   "to": "INA219 SDA",
+   "col": "blue",
+   "g": "28 AWG",
+   "len": 60,
+   "note": "I2C SDA",
+   "route": [
+    "xiao_pins",
+    "ina"
+   ]
+  },
+  {
+   "n": 29,
+   "fr": "INA219 SDA",
+   "to": "BNO085 SDA",
+   "col": "blue",
+   "g": "28 AWG",
+   "len": 60,
+   "note": "",
+   "route": [
+    "ina",
+    "bno"
+   ]
+  },
+  {
+   "n": 30,
+   "fr": "XIAO D5",
+   "to": "INA219 SCL",
+   "col": "green",
+   "g": "28 AWG",
+   "len": 60,
+   "note": "I2C SCL",
+   "route": [
+    "xiao_pins",
+    "ina"
+   ]
+  },
+  {
+   "n": 31,
+   "fr": "INA219 SCL",
+   "to": "BNO085 SCL",
+   "col": "green",
+   "g": "28 AWG",
+   "len": 60,
+   "note": "",
+   "route": [
+    "ina",
+    "bno"
+   ]
+  },
+  {
+   "n": 32,
+   "fr": "XIAO D0",
+   "to": "DRV#1 AIN1",
+   "col": "purple",
+   "g": "28 AWG",
+   "len": 170,
+   "note": "deploy",
+   "route": [
+    "xiao_pins",
+    "corr_L",
+    "corr_L2",
+    "win_d2_L",
+    "drv1"
+   ]
+  },
+  {
+   "n": 33,
+   "fr": "XIAO D1",
+   "to": "DRV#1 AIN2",
+   "col": "grey",
+   "g": "28 AWG",
+   "len": 170,
+   "note": "deploy",
+   "route": [
+    "xiao_pins",
+    "corr_L",
+    "corr_L2",
+    "win_d2_L",
+    "drv1"
+   ]
+  },
+  {
+   "n": 34,
+   "fr": "XIAO D2",
+   "to": "DRV#1 BIN1",
+   "col": "purple",
+   "g": "28 AWG",
+   "len": 170,
+   "note": "righting leg (was kick)",
+   "route": [
+    "xiao_pins",
+    "corr_L",
+    "corr_L2",
+    "win_d2_L",
+    "drv1"
+   ]
+  },
+  {
+   "n": 35,
+   "fr": "XIAO D3",
+   "to": "DRV#1 BIN2",
+   "col": "grey",
+   "g": "28 AWG",
+   "len": 170,
+   "note": "righting leg (was kick)",
+   "route": [
+    "xiao_pins",
+    "corr_L",
+    "corr_L2",
+    "win_d2_L",
+    "drv1"
+   ]
+  },
+  {
+   "n": 36,
+   "fr": "XIAO D8",
+   "to": "DRV#2 AIN1 (only AIN1: NO bridge to BIN1)",
+   "col": "purple",
+   "g": "28 AWG",
+   "len": 155,
+   "note": "drills",
+   "route": [
+    "xiao_pins",
+    "corr_R",
+    "corr_R2",
+    "win_d2_R",
+    "drv2"
+   ]
+  },
+  {
+   "n": 37,
+   "fr": "XIAO D9",
+   "to": "DRV#2 AIN2 (only AIN2: NO bridge to BIN2)",
+   "col": "grey",
+   "g": "28 AWG",
+   "len": 155,
+   "note": "drills",
+   "route": [
+    "xiao_pins",
+    "corr_R",
+    "corr_R2",
+    "win_d2_R",
+    "drv2"
+   ]
+  },
+  {
+   "n": 38,
+   "fr": "DRV#1 AOUT1",
+   "to": "Deploy N20 + (red)",
+   "col": "red",
+   "g": "26 AWG",
+   "len": 50,
+   "note": "down to the end-cap tabs under the deploy cradle",
+   "route": [
+    "drv1",
+    "deploy_tabs"
+   ]
+  },
+  {
+   "n": 39,
+   "fr": "DRV#1 AOUT2",
+   "to": "Deploy N20 - (black)",
+   "col": "black",
+   "g": "26 AWG",
+   "len": 50,
+   "note": "",
+   "route": [
+    "drv1",
+    "deploy_tabs"
+   ]
+  },
+  {
+   "n": 40,
+   "fr": "DRV#1 BOUT1",
+   "to": "Leg N20 + (red)",
+   "col": "red",
+   "g": "26 AWG",
+   "len": 175,
+   "note": "left corridor forward, through disc 1, to the end-cap tabs under the leg cradle",
+   "route": [
+    "drv1",
+    "win_d2_L",
+    "corr_L2",
+    "corr_L",
+    "win_d1_L",
+    "leg_tabs"
+   ]
+  },
+  {
+   "n": 41,
+   "fr": "DRV#1 BOUT2",
+   "to": "Leg N20 - (black)",
+   "col": "black",
+   "g": "26 AWG",
+   "len": 175,
+   "note": "",
+   "route": [
+    "drv1",
+    "win_d2_L",
+    "corr_L2",
+    "corr_L",
+    "win_d1_L",
+    "leg_tabs"
+   ]
+  },
+  {
+   "n": 42,
+   "fr": "DRV#2 AOUT1",
+   "to": "Drill motor LEFT + (red)",
+   "col": "red",
+   "g": "26 AWG",
+   "len": 135,
+   "note": "up in front of the deploy motor, out the left tight hole, 25 mm loop into the pod neck at the end cap (silicone wire)",
+   "route": [
+    "drv2",
+    "cross",
+    "flankL"
+   ]
+  },
+  {
+   "n": 43,
+   "fr": "DRV#2 AOUT2",
+   "to": "Drill motor LEFT - (black)",
+   "col": "black",
+   "g": "26 AWG",
+   "len": 135,
+   "note": "",
+   "route": [
+    "drv2",
+    "cross",
+    "flankL"
+   ]
+  },
+  {
+   "n": 44,
+   "fr": "DRV#2 AOUT1 (same pad as the LEFT red)",
+   "to": "Drill motor RIGHT - (black)  SWAPPED",
+   "col": "black",
+   "g": "26 AWG",
+   "len": 115,
+   "note": "reversed on purpose: the pair counter-rotates",
+   "route": [
+    "drv2",
+    "flankR"
+   ]
+  },
+  {
+   "n": 45,
+   "fr": "DRV#2 AOUT2 (same pad as the LEFT black)",
+   "to": "Drill motor RIGHT + (red)  SWAPPED",
+   "col": "red",
+   "g": "26 AWG",
+   "len": 115,
+   "note": "",
+   "route": [
+    "drv2",
+    "flankR"
+   ]
+  }
+ ],
+ "points": {
+  "xiao_pins": [
+   51.87,
+   -6.65,
+   5.49
+  ],
+  "xiao_5v": [
+   46.55,
+   0.18,
+   5.49
+  ],
+  "drv1": [
+   132.0,
+   9.35,
+   -10.54
+  ],
+  "drv2": [
+   132.0,
+   -9.35,
+   -10.54
+  ],
+  "ina": [
+   74.59,
+   -7.44,
+   5.7
+  ],
+  "bno": [
+   92.11,
+   0.0,
+   5.77
+  ],
+  "mp": [
+   103.38,
+   0.0,
+   11.18
+  ],
+  "vtx": [
+   51.11,
+   0.0,
+   13.21
+  ],
+  "vtx_r": [
+   89.14,
+   0.0,
+   13.21
+  ],
+  "bms_f": [
+   48.04,
+   7.2,
+   3.1
+  ],
+  "bms_r": [
+   84.76,
+   7.2,
+   3.1
+  ],
+  "cam": [
+   19.54,
+   0.0,
+   -2.4
+  ],
+  "sprg": [
+   42.4,
+   4.0,
+   -10.0
+  ],
+  "sprg_fr": [
+   38.4,
+   11.0,
+   -10.0
+  ],
+  "mid": [
+   82.87,
+   0.0,
+   1.0
+  ],
+  "plate": [
+   120.54,
+   4.0,
+   -10.0
+  ],
+  "plate_bk": [
+   124.04,
+   4.0,
+   -10.0
+  ],
+  "side_f_L": [
+   37.4,
+   11.5,
+   0.0
+  ],
+  "side_f_R": [
+   37.4,
+   -11.5,
+   0.0
+  ],
+  "under": [
+   132.0,
+   0.0,
+   -17.6
+  ],
+  "cross": [
+   124.04,
+   0.0,
+   8.0
+  ],
+  "corr_L": [
+   64.44,
+   13.0,
+   -8.0
+  ],
+  "corr_R": [
+   64.44,
+   -13.0,
+   -8.0
+  ],
+  "corr_L2": [
+   101.6,
+   13.0,
+   -8.0
+  ],
+  "corr_R2": [
+   101.6,
+   -13.0,
+   -8.0
+  ],
+  "win_d1_L": [
+   40.9,
+   13.5,
+   -9.0
+  ],
+  "win_d1_R": [
+   40.9,
+   -13.5,
+   -9.0
+  ],
+  "win_d2_L": [
+   122.04,
+   13.5,
+   -9.0
+  ],
+  "win_d2_R": [
+   122.04,
+   -13.5,
+   -9.0
+  ],
+  "top_d1": [
+   40.9,
+   0.0,
+   12.0
+  ],
+  "top_d2": [
+   122.04,
+   0.0,
+   8.0
+  ],
+  "sock_L": [
+   146.68,
+   8.0,
+   0.0
+  ],
+  "sock_R": [
+   146.68,
+   -8.0,
+   0.0
+  ],
+  "flankL": [
+   121.5,
+   11.5,
+   16.5
+  ],
+  "flankR": [
+   121.5,
+   -11.5,
+   16.5
+  ],
+  "leg_tabs": [
+   33.0,
+   0.0,
+   -12.54
+  ],
+  "deploy_tabs": [
+   132.0,
+   0.0,
+   -17.54
+  ]
+ }
+}

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KEDGE Dart Viewer</title>
+<style>
+  :root{--bg:#f3f4f6;--panel:#ffffff;--ink:#15171a;--mute:#5b6470;--line:#d7dae0;--acc:#c8642a}
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15171a;--panel:#1e2126;--ink:#e8eaed;--mute:#9aa3ad;--line:#2c3036;--acc:#e07b39}}
+  :root[data-theme="dark"]{--bg:#15171a;--panel:#1e2126;--ink:#e8eaed;--mute:#9aa3ad;--line:#2c3036;--acc:#e07b39}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1.45 -apple-system,Segoe UI,Helvetica,Arial,sans-serif}
+  #c{position:fixed;inset:0;display:block;touch-action:none}
+  #ui{position:fixed;top:0;left:0;bottom:0;width:310px;background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:12px 14px;box-sizing:border-box}
+  h1{font-size:15px;margin:0 0 4px}h2{font-size:11px;margin:14px 0 6px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+  .row{display:flex;align-items:center;gap:8px;margin:3px 0}.row label{flex:1}
+  button{background:var(--line);color:var(--ink);border:0;padding:5px 8px;border-radius:4px;cursor:pointer;font-size:12px;margin:2px 2px 2px 0}
+  input[type=range]{width:100%}
+  .part{display:flex;gap:6px;align-items:flex-start;padding:3px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .part .sw{width:10px;height:10px;border-radius:2px;margin-top:4px;flex:none}.part .n{font-weight:600}.part .d{color:var(--mute);font-size:11px}.part.off{opacity:.45}
+  .d{color:var(--mute);font-size:12px}.v{font-variant-numeric:tabular-nums}
+  .ok{color:#2e9d5b;font-weight:600}.bad{color:#d0443a;font-weight:600}
+  #hint{position:fixed;right:12px;bottom:10px;color:var(--mute);font-size:11px;text-align:right;max-width:60vw}
+  #toggle{position:fixed;left:10px;top:10px;background:var(--panel);border:1px solid var(--line);color:var(--ink);padding:5px 9px;border-radius:4px;cursor:pointer;display:none;z-index:3}
+  #tip{position:fixed;pointer-events:none;background:var(--panel);border:1px solid var(--line);padding:6px 8px;border-radius:4px;max-width:270px;display:none;font-size:12px}
+  @media (max-width:760px){#ui{width:88vw;transform:translateX(-100%);transition:.2s;z-index:2;padding-top:44px}#ui.open{transform:none}#toggle{display:block}#hint{display:none}}
+  body.shot #ui,body.shot #hint,body.shot #toggle{display:none!important}
+</style>
+</head>
+<body>
+<canvas id="c" tabindex="0"></canvas>
+<button id="toggle">panel</button>
+<div id="ui">
+  <h1 id="ttl">KEDGE dart</h1>
+  <div class="d" id="sub"></div>
+  <h2>Pose</h2>
+  <div class="row"><label id="klab">Kick leg <span class="v" id="kv">0°</span></label></div><input type="range" id="kick" min="0" max="200" value="0" step="0.25">
+  <div class="row"><label>Drill pair <span class="v" id="dv">0°</span></label></div><input type="range" id="dep" min="0" max="38" value="0" step="0.25">
+  <div class="row"><label>Explode</label></div><input type="range" id="exp" min="0" max="100" value="0">
+  <div class="row"><label>Section cut</label><select id="cax"><option value="y">across (Y)</option><option value="x">along (X)</option><option value="z">level (Z)</option></select></div>
+  <input type="range" id="cut" min="-45" max="160" value="160">
+  <div class="row"><input type="checkbox" id="ground" checked><label for="ground">Ground plane (dart lying flat)</label></div>
+  <div class="row"><input type="checkbox" id="elec" checked><label for="elec">Bought parts (motors, boards, cells)</label></div>
+  <div class="row"><input type="checkbox" id="hull" checked><label for="hull">Hull and nose</label></div>
+  <h2>Simulation</h2>
+  <div><button id="play">Play deployment</button><button id="stopplay">Stop</button></div>
+  <div class="d" id="phase">Kick swings out, the foot auger spins in as it lands, then the pods swing down with the drills spinning.</div>
+  <h2>Views</h2>
+  <div><button data-v="all">Whole dart</button><button data-v="dep">Deployed</button><button data-v="kick">Kick drive</button><button data-v="pod">Drill pod</button><button data-v="tray">Tray</button><button data-v="tail">Tail</button></div>
+  <h2>Audit (this exact geometry)</h2>
+  <div id="aud" class="d"></div>
+  <h2>Parts</h2>
+  <div id="list"></div>
+</div>
+<div id="tip"></div>
+<div id="hint">drag = orbit · right-drag / two fingers = pan · wheel / pinch = zoom · hover a part = what it is · click a part = hide it</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const canvas=$('#c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.localClippingEnabled=true;
+const scene=new THREE.Scene();
+const css=getComputedStyle(document.documentElement);
+scene.background=new THREE.Color(css.getPropertyValue('--bg').trim()||'#f3f4f6');
+const dark=scene.background.getHSL({}).l<0.5;
+const cam=new THREE.PerspectiveCamera(35,1,1,6000);cam.up.set(0,0,1);
+scene.add(new THREE.HemisphereLight(0xffffff,0x555566,0.85));
+const dl=new THREE.DirectionalLight(0xffffff,0.75);dl.position.set(120,-220,320);scene.add(dl);
+const dl2=new THREE.DirectionalLight(0xffffff,0.35);dl2.position.set(-150,200,-80);scene.add(dl2);
+const clip=new THREE.Plane(new THREE.Vector3(0,-1,0),160);
+const parts=[];let J,P,ground;
+// orbit camera
+const orb={t:new THREE.Vector3(75,0,0),r:330,az:-1.05,el:0.42};
+function place(){const c=Math.cos(orb.el);cam.position.set(orb.t.x+orb.r*c*Math.cos(orb.az),orb.t.y+orb.r*c*Math.sin(orb.az),orb.t.z+orb.r*Math.sin(orb.el));cam.lookAt(orb.t);}
+const SPIN={kick_leg:-1};
+const MOVE=(n,p)=>p&&p.joint?(p.joint==='leg'?'k':'d'):(n==='kick_leg'?'k':(n.startsWith('drill_leg')||n.startsWith('coupler')||n==='deploy_shaft')?'d':null);
+const SGN=(n,p)=>p&&p.sgn!=null?p.sgn:(n==='kick_leg'?-1:1);
+const LEGN=()=>J.parts.find(p=>p.joint==='leg'&&!p.parent)?.name||'kick_leg';
+Promise.all([fetch('parts.json').then(r=>r.json()),fetch('meshes.json').then(r=>r.json()),fetch('audit.json').then(r=>r.ok?r.json():null).catch(()=>null)]).then(([j,M,A])=>{
+  J=j;P=J.P;
+  $('#ttl').textContent='KEDGE dart '+(J.version||'');
+  const isLeg=J.parts.some(p=>p.joint==='leg');if(isLeg){$('#klab').firstChild.textContent='Righting leg ';$('#phase').textContent='The righting leg swings out over the nose and back, then the pods swing down at the tail with the drills spinning.';}
+  $('#sub').textContent=`Ø${2*P.R_OUT} hull, 1.5 walls, ${P.L} long. ${isLeg?'Righting leg':'Kick'} 0 to ${P.KICK_DEG}°, drills 0 to ${P.DEPLOY_DEG}°. Every mesh is the exact file that prints.`;
+  $('#kick').max=P.KICK_DEG;$('#dep').max=Math.max(38,P.DEPLOY_DEG);
+  const gp=new THREE.GridHelper(700,35,dark?0x3a3f46:0xb9bec6,dark?0x2a2e34:0xd5d8de);gp.rotation.x=Math.PI/2;gp.position.set(P.L/2,0,J.ground);
+  const gs=new THREE.Mesh(new THREE.PlaneGeometry(700,450),new THREE.MeshStandardMaterial({color:dark?0x1b1e22:0xe2e5ea,side:THREE.DoubleSide,transparent:true,opacity:0.92}));
+  gs.position.set(P.L/2,0,J.ground-0.15);ground=new THREE.Group();ground.add(gp,gs);scene.add(ground);
+  J.parts.forEach(p=>{
+    const md=M[p.name];const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(md.v),3));g.setAttribute('normal',new THREE.BufferAttribute(new Float32Array(md.n),3));g.setIndex(md.f);
+    const mat=new THREE.MeshStandardMaterial({color:p.color,metalness:0.05,roughness:0.62,clippingPlanes:[clip],side:THREE.DoubleSide});
+    const m=new THREE.Mesh(g,mat);const piv=new THREE.Group();piv.position.set(...p.pos);piv.add(m);
+    if(p.parent){parts.find(x=>x.p.name===p.parent).piv.add(piv);}else scene.add(piv);
+    const e=document.createElement('div');e.className='part';
+    e.innerHTML=`<div class="sw" style="background:${p.color}"></div><div><div class="n">${p.name}${p.printable?'':' <span class="d">(bought part)</span>'}</div><div class="d">${p.dims.join(' × ')} mm${p.printable?' · '+p.volume_cm3+' cm³':''}${p.orient?'<br>print: '+p.orient:''}<br>${p.note}</div></div>`;
+    $('#list').appendChild(e);
+    const q={p,piv,m,ui:e,base:new THREE.Vector3(...p.pos),hidden:false};m.userData.q=q;parts.push(q);
+    if(p.name.endsWith('_auger')){                       // spin axis: drill augers along the pod x axis, foot auger vertical through its centre
+      g.computeBoundingBox();const c=new THREE.Vector3();g.boundingBox.getCenter(c);
+      const spin=new THREE.Group();piv.remove(m);piv.add(spin);
+      if(p.name==='foot_auger'){spin.position.set(c.x,c.y,0);m.position.set(-c.x,-c.y,0);q.spinAxis='z';}else{q.spinAxis='x';}
+      spin.add(m);q.spin=spin;}
+    e.onmouseenter=()=>{mat.emissive.set(0xffffff);mat.emissiveIntensity=0.45};e.onmouseleave=()=>{mat.emissiveIntensity=0};e.onclick=()=>{q.hidden=!q.hidden;pose()};
+  });
+  if(A){const ok=A.clean!==false&&Object.keys(A.collisions||{}).length===0;
+    $('#aud').innerHTML=`<span class="${ok?'ok':'bad'}">${ok?'Collision sweep clean':'Collisions found'}</span>: ${J.parts.some(p=>p.joint==='leg')?'righting leg':'kick'} 0 to ${A.kick_range[1]}° in ${A.kick_steps} steps, drills 0 to ${A.deploy_range[1]}° in ${A.deploy_steps} steps, every sub-part on its own, exact meshes.<br>`+
+    `Ground: nothing but the augers goes below z = ${J.ground}. ${A.foot_housing_clear_mm!=null&&A.auger_depth_mm.foot_auger!=null?'Foot housing clear '+A.foot_housing_clear_mm+' mm, ':''}pods clear ${Object.values(A.pod_clear_mm)[0]} mm. Auger depth: ${A.auger_depth_mm.foot_auger!=null?'foot '+A.auger_depth_mm.foot_auger+' mm, ':''}drills ${A.auger_depth_mm.drill_leg_L_auger} mm.<br>`+
+    `${J.parts.some(p=>p.joint==='leg')?'Belly: nothing in the launcher cradle zone (below z -5, out to r 26).':'Belly below the centreline: plain Ø42 cylinder.'} Folded envelope ${(A.folded_bbox[3]-A.folded_bbox[0]).toFixed(0)} × ${(A.folded_bbox[4]-A.folded_bbox[1]).toFixed(0)} × ${(A.folded_bbox[5]-A.folded_bbox[2]).toFixed(0)} mm (incl. tether eye and folded legs).<br>Printed ${A.printed_cm3} cm³ ≈ ${A.printed_g_solid_PLA} g PLA if solid.`;}
+  if(J.parts.some(p=>p.joint==='leg')){const kb=document.querySelector('[data-v=kick]');if(kb)kb.textContent='Leg hinge';}
+  pose();view('all');
+});
+function pose(){
+  const k=+$('#kick').value,d=+$('#dep').value,ex=+$('#exp').value/100;
+  $('#kv').textContent=k+'°';$('#dv').textContent=d+'°';
+  const ax=$('#cax').value,c=+$('#cut').value;
+  clip.normal.set(ax==='x'?-1:0,ax==='y'?-1:0,ax==='z'?-1:0);clip.constant=c;
+  if(ground)ground.visible=$('#ground').checked;
+  for(const q of parts){const {p,piv}=q,n=p.name;
+    const gok=!(p.group==='electronics'&&!$('#elec').checked)&&!(p.group==='hull'&&!$('#hull').checked);
+    piv.visible=gok&&!q.hidden;q.ui.classList.toggle('off',!piv.visible);
+    if(p.parent)continue;
+    const off=new THREE.Vector3();
+    if(n==='hull_top')off.set(0,0,55);else if(n==='hull_bottom')off.set(0,0,-55);else if(n==='nose')off.set(-45,0,0);else if(n==='tail_cap')off.set(45,0,0);
+    else if(n==='kick_leg'||p.joint==='leg')off.set(0,0,40);else if(n==='leg_plug_L')off.set(0,30,25);else if(n==='leg_plug_R')off.set(0,-30,25);else if(n.startsWith('drill_leg'))off.set(0,Math.sign(p.pos[1])*40,0);else if(n==='coupler_L')off.set(0,25,0);else if(n==='coupler_R')off.set(0,-25,0);
+    piv.position.copy(q.base).addScaledVector(off,ex);
+    const mv=MOVE(n,p);if(mv==='k')piv.rotation.y=SGN(n,p)*THREE.MathUtils.degToRad(k);else if(mv==='d')piv.rotation.y=SGN(n,p)*THREE.MathUtils.degToRad(d);
+  }
+}
+const VIEWS={all:[75,0,0,330,-1.05,0.42,0,0],dep:[40,0,-5,360,-0.75,0.25,1,1],kick:[30,10,25,120,-0.6,0.35,0,0],pod:[80,30,5,170,0.9,0.25,0,1],tray:[85,0,0,200,-1.2,0.5,0,0],tail:[150,0,0,140,-0.4,0.25,0,0]};
+function view(v){const a=VIEWS[v];orb.t.set(a[0],a[1],a[2]);orb.r=a[3];orb.az=a[4];orb.el=a[5];
+  const isLeg=J.parts.some(p=>p.joint==='leg');
+  if(isLeg&&v==='dep')orb.t.set(95,0,-5);if(isLeg&&v==='kick')orb.t.set(P.LEG_X,0,15);if(isLeg&&v==='pod')orb.t.set(P.DRILL_X-12,P.DRILL_PIV_Y,5);
+  if(v==='dep'){$('#kick').value=isLeg?0:P.KICK_DEG;$('#dep').value=P.DEPLOY_DEG;}else if(v==='all'){$('#kick').value=0;$('#dep').value=0;}
+  if(v==='tray'){$('#hull').checked=false;}else $('#hull').checked=true;pose();}
+document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>view(b.dataset.v));
+['kick','dep','exp','cut','ground','elec','hull','cax'].forEach(id=>$('#'+id).addEventListener('input',pose));
+$('#cax').addEventListener('change',()=>{const ax=$('#cax').value;const r=ax==='x'?[-5,160,160]:ax==='y'?[-45,45,45]:[-30,80,80];$('#cut').min=r[0];$('#cut').max=r[1];$('#cut').value=r[2];pose();});
+// controls: orbit, pan, zoom (mouse + touch)
+const ray=new THREE.Raycaster(),tip=$('#tip');let drag=null,pinch=null;
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,b:e.button,moved:0};canvas.setPointerCapture(e.pointerId)});
+canvas.addEventListener('pointerup',e=>{if(drag&&drag.moved<4&&e.button===0){const h=pick(e);if(h){h.object.userData.q.hidden=true;pose();}}drag=null});
+function pick(e){const r=canvas.getBoundingClientRect();ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-((e.clientY-r.top)/r.height*2-1)},cam);
+  return ray.intersectObjects(parts.filter(q=>q.piv.visible).map(q=>q.m),false).find(h=>{const p=h.point;const ax=$('#cax').value;const c=+$('#cut').value;return (ax==='x'?p.x:ax==='y'?p.y:p.z)<=c;});}
+canvas.addEventListener('pointermove',e=>{
+  if(!drag){const h=pick(e);if(h){const q=h.object.userData.q;tip.style.display='block';tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY+14)+'px';tip.innerHTML=`<b>${q.p.name}</b> · ${q.p.dims.join('×')} mm<br>${q.p.note}`;}else tip.style.display='none';return;}
+  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;drag.moved+=Math.abs(dx)+Math.abs(dy);
+  if(drag.b===2||e.shiftKey){const s=orb.r*0.0016;const rx=new THREE.Vector3(-Math.sin(orb.az),Math.cos(orb.az),0);const up=new THREE.Vector3(0,0,1);orb.t.addScaledVector(rx,-dx*s).addScaledVector(up,dy*s);}
+  else{orb.az-=dx*0.006;orb.el=Math.max(-1.5,Math.min(1.5,orb.el+dy*0.006));}});
+canvas.addEventListener('wheel',e=>{e.preventDefault();orb.r=Math.max(30,Math.min(1500,orb.r*Math.exp(e.deltaY*0.001)))},{passive:false});
+canvas.addEventListener('touchstart',e=>{if(e.touches.length===2){const [a,b]=e.touches;pinch={d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),r:orb.r};}},{passive:true});
+canvas.addEventListener('touchmove',e=>{if(e.touches.length===2&&pinch){const [a,b]=e.touches;const d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);orb.r=Math.max(30,pinch.r*pinch.d/d);}},{passive:true});
+$('#toggle').onclick=()=>$('#ui').classList.toggle('open');
+function resize(){const w=innerWidth,h=innerHeight;if(canvas.width!==Math.floor(w*renderer.getPixelRatio())||canvas.height!==Math.floor(h*renderer.getPixelRatio())){renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}}
+function loop(){resize();place();renderer.render(scene,cam);requestAnimationFrame(loop);}loop();
+// deployment animation
+let anim=null;
+function spinAll(on,dt){for(const q of parts){if(!q.spin)continue;const isFoot=q.p.name==='foot_auger';const run=isFoot?on.foot:on.drill;if(run)q.spin.rotation[q.spinAxis]+=(q.p.name.includes('_R_')?-1:1)*dt*9;}}
+function frame(t0){const T=(performance.now()-t0)/1000;const K=P.KICK_DEG,D=P.DEPLOY_DEG;let k,d,on={foot:false,drill:false},ph;
+  if(J.parts.some(p=>p.joint==='leg')){if(T<4){k=K*(T/4);d=0;ph='righting leg swinging out over the nose (this is what flips it upright)';}else if(T<8){k=K*(1-(T-4)/4);d=0;ph='righting leg folding back flush into the groove';}else if(T<12){k=0;d=D*((T-8)/4);on.drill=true;ph='pods swinging down at the tail, drills spinning and cutting in';}else if(T<13.5){k=0;d=D;on.drill=true;ph='drills finishing, pods on their hard stops';}else{k=0;d=D;ph='anchored: the tow on the eye lugs holds the pods on their stops';}
+  $('#kick').value=k;$('#dep').value=d;pose();spinAll(on,1/60);$('#phase').textContent=ph;if(T<14)anim=requestAnimationFrame(()=>frame(t0));else anim=null;return;}
+  if(T<6){k=K*Math.min(T/6,1)*Math.min(1,(T/6))**0+0;k=K*(T/6);on.foot=k>175;ph=k<175?'kick leg swinging out over the nose':'foot auger spinning in while the kick pushes it down';d=0;}
+  else if(T<7.5){k=K;d=0;on.foot=T<7;ph='foot finishing';}
+  else if(T<11.5){k=K;d=D*((T-7.5)/4);on.drill=true;ph='pods swinging down, drill augers spinning and cutting in';}
+  else if(T<13.5){k=K;d=D;on.drill=true;ph='drills finishing';}
+  else{k=K;d=D;ph='anchored: worms hold every position with the power off';}
+  $('#kick').value=k;$('#dep').value=d;pose();spinAll(on,1/60);$('#phase').textContent=ph;
+  if(T<14)anim=requestAnimationFrame(()=>frame(t0));else anim=null;}
+$('#play').onclick=()=>{if(anim)cancelAnimationFrame(anim);$('#ground').checked=true;orb.t.set(40,0,-5);orb.r=380;orb.az=-1.05;orb.el=0.3;const t0=performance.now();frame(t0);};
+$('#stopplay').onclick=()=>{if(anim)cancelAnimationFrame(anim);anim=null;};
+// automation hooks for the audit sheet
+window.AUD={pose:(k,d)=>{$('#kick').value=k;$('#dep').value=d;pose();},cam:(t,r,az,el)=>{orb.t.set(...t);orb.r=r;orb.az=az;orb.el=el;},
+  cut:(ax,c)=>{$('#cax').value=ax;$('#cut').min=-200;$('#cut').max=400;$('#cut').value=c;pose();},flags:(h,e,g)=>{$('#hull').checked=h;$('#elec').checked=e;$('#ground').checked=g;pose();},
+  hide:(names)=>{for(const q of parts)q.hidden=names.includes(q.p.name);pose();},
+  ready:()=>parts.length>0};
+</script>
+</body>
+</html>

@@ -186,7 +186,7 @@ SEALING / ASSEMBLY: deck 1's edges sit in a seam groove at the split (both halve
 the JST sockets in flank seats behind the pivot blocks (left 2-pin ON loop, right 3-pin charge), clamped by the halves; the USB-C window
 tight round the receptacle; tray prints on a flat underside (z -16). Assembly order and access: pack_v34/KEDGE_v34_run_sheet.pdf
 (tray populated in the open; tray into the bottom; drill leads in; hull top lowered over the stubs; 8 radial screws; pods; leg + plugs).
-Results (out34): RESULTS_PLACEHOLDER
+Results (out34): audit CLEAN at 1 deg (leg 179 steps to 178.0, pods 48 steps to 46.75), cross sweep, ground, cradle-zone belly rule, hard stops (deploy_at_angle 0.0, deploy_horn_+2.5deg 5.23, fold_at_0 0.0, fold_lug_-3deg 5.57, kick_rest_-0.5deg 0.0, kick_rest_+2deg 58.54, leg_fold_at_0 0.0, leg_fold_-2deg 424.78), watertight, one body per printed part; ALL STEP VALID; launcher_fit FITS over 1684 states (no overlaps, the eye lugs pass 0.6 above the stop springs); wire room OK (corridor fills 0.33 / 0.12); folded bbox x -0.0-152.0, y +-40.5, z -21.0 to 21.3; printed 81.03 cm3 (100.6 g); mass 249.4 g incl. 14.6 g putty, CG folded x 87.32, z -0.15; anchored z -4.38; leg out z -0.25 (out34/mass_props.json totals). physics.py / flight_sim (dart-physics) do not run on v34 yet (they hard-code kick_leg and the foot).
 Review renders: out34/review/ (01-22 review34.js, h1-h3 hinge close-ups without the leg), out34/img_exploded.png and img_stage1..4
 (assembly stages), out34/audit_sheet.png, out34/sections.png. Viewer data: pub34/.
 

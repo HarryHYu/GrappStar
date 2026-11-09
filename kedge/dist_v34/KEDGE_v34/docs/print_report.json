@@ -1,0 +1,251 @@
+{
+ "parts": {
+  "hull_top": {
+   "print_bbox": [
+    132.0,
+    55.2,
+    21.3
+   ],
+   "bed_contact_mm2": 474.4,
+   "overhang_mm2_gt45": 4130.9,
+   "orient": "split face down (on the bed), crown up; the seam lip hangs 1.5 below the split: print on a 1.5 mm raft-free sacrificial ring or flip crown down with tree supports in the groove only",
+   "volume_cm3": 15.71,
+   "supports": "tree supports ON, build plate only: the inner roof of the half shell and under the knuckle and groove floors; the pivot blocks print without (arc outlines)"
+  },
+  "hull_bottom": {
+   "print_bbox": [
+    132.0,
+    42.0,
+    21.0
+   ],
+   "bed_contact_mm2": 390.9,
+   "overhang_mm2_gt45": 4001.5,
+   "orient": "split face down, belly up",
+   "volume_cm3": 16.97,
+   "supports": "tree supports ON, build plate only: the inner roof of the half shell"
+  },
+  "nose": {
+   "print_bbox": [
+    40.3,
+    42.0,
+    26.6
+   ],
+   "bed_contact_mm2": 242.8,
+   "overhang_mm2_gt45": 462.2,
+   "orient": "tip down on the bed (flat \u00d822), spigot up",
+   "volume_cm3": 7.95,
+   "supports": "none (tip down, cone walls under 45 deg)"
+  },
+  "tray": {
+   "print_bbox": [
+    115.1,
+    39.7,
+    33.9
+   ],
+   "bed_contact_mm2": 275.6,
+   "overhang_mm2_gt45": 5664.0,
+   "orient": "flat underside (z -16: saddle feet, disc bottoms, cradle tubes) on the bed; deck 1 bridges between the saddles and discs, deck 2 between its walls (enable thick bridges)",
+   "volume_cm3": 13.28,
+   "supports": "none (flat underside down: saddle feet, disc bottoms, cradle tubes); deck 1 and deck 2 bridge, enable 'thick bridges'"
+  },
+  "drill_leg_L": {
+   "print_bbox": [
+    19.3,
+    18.9,
+    32.6
+   ],
+   "bed_contact_mm2": 67.6,
+   "overhang_mm2_gt45": 203.7,
+   "orient": "standing on the head's flat rear face (stop face) down, no supports",
+   "volume_cm3": 3.54,
+   "supports": "none (flat-bottomed head, D-bore roof bridges 5 mm)"
+  },
+  "drill_leg_R": {
+   "print_bbox": [
+    19.3,
+    18.9,
+    32.6
+   ],
+   "bed_contact_mm2": 67.6,
+   "overhang_mm2_gt45": 203.7,
+   "orient": "standing on the head's flat rear face (stop face) down, no supports",
+   "volume_cm3": 3.54,
+   "supports": "none (flat-bottomed head, D-bore roof bridges 5 mm)"
+  },
+  "drill_leg_L_auger": {
+   "print_bbox": [
+    18.7,
+    18.7,
+    92.6
+   ],
+   "bed_contact_mm2": 43.2,
+   "overhang_mm2_gt45": 24.3,
+   "orient": "standing on its base (point up), brim 5 mm",
+   "volume_cm3": 6.57,
+   "supports": "none (point up: 45 deg flight load faces, 45 deg roof inside the hub); brim 5 mm, the base is a thin ring"
+  },
+  "drill_leg_R_auger": {
+   "print_bbox": [
+    18.7,
+    18.7,
+    92.6
+   ],
+   "bed_contact_mm2": 43.2,
+   "overhang_mm2_gt45": 24.3,
+   "orient": "standing on its base (point up), brim 5 mm",
+   "volume_cm3": 6.57,
+   "supports": "none (point up: 45 deg flight load faces, 45 deg roof inside the hub); brim 5 mm, the base is a thin ring"
+  },
+  "coupler_L": {
+   "print_bbox": [
+    7.0,
+    28.0,
+    6.4
+   ],
+   "bed_contact_mm2": 108.3,
+   "overhang_mm2_gt45": 54.5,
+   "orient": "lying on its D flat (layers along the axle), PPA-CF",
+   "volume_cm3": 0.91,
+   "supports": "PPA-CF (hardened nozzle, dried filament), lying on the D flat, no supports; PLA only as a stopgap"
+  },
+  "coupler_R": {
+   "print_bbox": [
+    7.0,
+    28.0,
+    6.4
+   ],
+   "bed_contact_mm2": 108.3,
+   "overhang_mm2_gt45": 54.5,
+   "orient": "lying on its D flat (layers along the axle), PPA-CF",
+   "volume_cm3": 0.91,
+   "supports": "PPA-CF (hardened nozzle, dried filament), lying on the D flat, no supports; PLA only as a stopgap"
+  },
+  "pod_cap_L": {
+   "print_bbox": [
+    10.0,
+    10.0,
+    1.5
+   ],
+   "bed_contact_mm2": 69.9,
+   "overhang_mm2_gt45": 0.0,
+   "orient": "flat on the bed",
+   "volume_cm3": 0.1,
+   "supports": "none"
+  },
+  "pod_cap_R": {
+   "print_bbox": [
+    10.0,
+    10.0,
+    1.5
+   ],
+   "bed_contact_mm2": 69.9,
+   "overhang_mm2_gt45": 0.0,
+   "orient": "flat on the bed",
+   "volume_cm3": 0.1,
+   "supports": "none"
+  },
+  "righting_leg": {
+   "print_bbox": [
+    121.9,
+    36.4,
+    12.1
+   ],
+   "bed_contact_mm2": 251.0,
+   "overhang_mm2_gt45": 464.1,
+   "orient": "upside down (the blade crown on the bed, cheeks up), tree supports under the ends of the pad arch",
+   "volume_cm3": 4.36,
+   "supports": "upside down (the blade crown on the bed, cheeks up); tree supports under the two ends of the pad arch only; 4 walls"
+  },
+  "leg_coupler_L": {
+   "print_bbox": [
+    6.0,
+    7.0,
+    5.5
+   ],
+   "bed_contact_mm2": 22.2,
+   "overhang_mm2_gt45": 15.4,
+   "orient": "lying on its D flat, PPA-CF",
+   "volume_cm3": 0.14,
+   "supports": "PPA-CF, lying on the D flat, no supports"
+  },
+  "leg_coupler_R": {
+   "print_bbox": [
+    6.0,
+    7.0,
+    5.5
+   ],
+   "bed_contact_mm2": 22.2,
+   "overhang_mm2_gt45": 15.4,
+   "orient": "lying on its D flat, PPA-CF",
+   "volume_cm3": 0.14,
+   "supports": "PPA-CF, lying on the D flat, no supports"
+  },
+  "leg_plug_L": {
+   "print_bbox": [
+    7.5,
+    6.8,
+    6.6
+   ],
+   "bed_contact_mm2": 11.1,
+   "overhang_mm2_gt45": 28.5,
+   "orient": "outer face up (a domed button), no supports",
+   "volume_cm3": 0.12,
+   "supports": "none (flat inner face down)"
+  },
+  "leg_plug_R": {
+   "print_bbox": [
+    7.5,
+    6.8,
+    6.6
+   ],
+   "bed_contact_mm2": 11.1,
+   "overhang_mm2_gt45": 28.5,
+   "orient": "outer face up (a domed button), no supports",
+   "volume_cm3": 0.12,
+   "supports": "none (flat inner face down)"
+  }
+ },
+ "plates": {
+  "plate_A_hull": {
+   "parts": [
+    "hull_top",
+    "hull_bottom",
+    "nose",
+    "pod_cap_L",
+    "pod_cap_R"
+   ],
+   "extent_mm": [
+    230,
+    105.2
+   ]
+  },
+  "plate_C_couplers_PPA-CF": {
+   "parts": [
+    "coupler_L",
+    "coupler_R",
+    "leg_coupler_L",
+    "leg_coupler_R"
+   ],
+   "extent_mm": [
+    230,
+    28.0
+   ]
+  },
+  "plate_B_legs_tray": {
+   "parts": [
+    "tray",
+    "righting_leg",
+    "drill_leg_L",
+    "drill_leg_R",
+    "drill_leg_L_auger",
+    "drill_leg_R_auger",
+    "leg_plug_L",
+    "leg_plug_R"
+   ],
+   "extent_mm": [
+    230,
+    98.9
+   ]
+  }
+ }
+}

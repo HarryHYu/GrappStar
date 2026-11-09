@@ -168,6 +168,7 @@ $('#stopplay').onclick=()=>{if(anim)cancelAnimationFrame(anim);anim=null;};
 // automation hooks for the audit sheet
 window.AUD={pose:(k,d)=>{$('#kick').value=k;$('#dep').value=d;pose();},cam:(t,r,az,el)=>{orb.t.set(...t);orb.r=r;orb.az=az;orb.el=el;},
   cut:(ax,c)=>{$('#cax').value=ax;$('#cut').min=-200;$('#cut').max=400;$('#cut').value=c;pose();},flags:(h,e,g)=>{$('#hull').checked=h;$('#elec').checked=e;$('#ground').checked=g;pose();},
+  hide:(names)=>{for(const q of parts)q.hidden=names.includes(q.p.name);pose();},
   ready:()=>parts.length>0};
 </script>
 </body>

@@ -33,9 +33,9 @@ const srv = http.createServer((q, s) => {
     ['21_section_hinge', 0, 0, [lx, 0, 8], 90, 0.0, 0.0, 'x', lx], ['22_pods_deployed_rear_low', 0, D, [120, 0, -12], 200, -0.4, 0.05]];
   if (process.argv[3]) V = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
   for (const v of V) {
-    let [n, k, d, t, r, a, e, ca, cv] = v;
+    let [n, k, d, t, r, a, e, ca, cv, hide, flags] = v;
     k = k === 'K' ? K : k; d = d === 'D' ? D : d;
-    await p.evaluate(([k, d, t, r, a, e, ca, cv]) => { AUD.flags(true, true, true); AUD.cut(ca || 'y', ca ? cv : 999); AUD.pose(k, d); AUD.cam(t, r, a, e); }, [k, d, t, r, a, e, ca, cv]);
+    await p.evaluate(([k, d, t, r, a, e, ca, cv, hide, flags]) => { const f = flags || [true, true, true]; AUD.flags(f[0], f[1], f[2]); AUD.hide(hide || []); AUD.cut(ca || 'y', ca ? cv : 999); AUD.pose(k, d); AUD.cam(t, r, a, e); }, [k, d, t, r, a, e, ca, cv, hide, flags]);
     await p.waitForTimeout(500);
     await p.screenshot({ path: path.join(RD, n + '.png') });
   }

@@ -57,7 +57,7 @@ hits = {}
 OWN = {tuple(sorted(p)) for p in [("kick_shaft", "n20_kick"), ("deploy_shaft", "n20_deploy"), ("foot_shaft", "n20_foot"), ("leg_shaft", "n20_leg")]}
 THREAD = {tuple(sorted(p)) for p in [("screws_radial", "tray"), ("screws_radial", "tail_cap"), ("screw_ear_root", "tray"), ("kick_hub_screw", "kick_leg"),
                                      ("coupler_L_screw", "coupler_L"), ("coupler_R_screw", "coupler_R"), ("ballast", "nose"), ("screws_radial", "boom_anchor"), ("boom_pin", "tail_boom"),
-                                     ("drill_leg_L_shaft", "drill_leg_L_auger"), ("drill_leg_R_shaft", "drill_leg_R_auger"), ("leg_grub_L", "righting_leg"), ("leg_grub_R", "righting_leg")]}   # v33: the M3 shaft self-taps the Ø2.6 spine bore
+                                     ("drill_leg_L_shaft", "drill_leg_L_auger"), ("drill_leg_R_shaft", "drill_leg_R_auger"), ("leg_grub_L", "righting_leg")]}   # v33: the M3 shaft self-taps the Ø2.6 spine bore
 threads = {}
 def rec(a, b, tag, v, thr=0.5):
     if tuple(sorted((a, b))) in OWN: return            # a motor's own output shaft runs through its own gearbox

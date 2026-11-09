@@ -26,19 +26,19 @@ T0 = time.time()
 # ------------------------------------------------------------------ parameters (measured values marked M)
 P = dict(
     R_OUT=21.0, R_BAY=19.5, WALL=1.5, L_HULL=152.0, END_T=2.5,
-    NOSE_L=20.0, NOSE_R0=11.0, NOSE_SPIG=6.0,
+    NOSE_L=20.0, NOSE_R0=11.0, NOSE_SPIG=6.6,
     # camera  M: 13.99 w x 14.59 h, 18.34 lens front to connector back (CAM_Z: 2.2 below the axis, under the leg's nose flute)
-    CAM_W=13.99, CAM_H=14.59, CAM_D=18.34, CAM_LENS_D=8.0, CAM_LENS=2.7, CAM_HOLE=9.8, NOSE_LIP=1.2, CAM_Z=-2.2,
+    CAM_W=13.99, CAM_H=14.59, CAM_D=18.34, CAM_LENS_D=8.0, CAM_LENS=2.7, CAM_HOLE=9.8, NOSE_LIP=1.2, CAM_Z=-2.4,
     # worm N20  M: body 12 x 10, worm box 9.94 (along the output shaft) x 11.93, 33.04 long box+motor, shaft 29.97 tip to tip
     N20_L=33.04, N20_BOX=12.0, N20_BOXW=9.94, N20_BOXH=11.93, N20_CAN=(12.0, 10.0), N20_TIP=29.97 / 2, SHAFT_D=3.0,
     # righting leg
     LEG_X=33.0, LEG_Z=14.5, LEG_DEG=178.0, LEG_REST_DEG=1.5, LEG_STUB=10.8,    # hinge; swing; far rest 1.5 deg past; N20 stubs trimmed to |y| 10
     LEG_W=8.5, LEG_U0=0.8, LEG_U1=3.4, LEG_UX=78.0,                            # blade width, underside (local z) at the root / the rear, and where it rises
     LEG_RB=10.2, LEG_CHEEK_R=5.6, CH_Y0=7.8, CH_Y1=11.2, PK_Y0=7.6, PK_Y1=11.4,   # bridge inner radius, cheeks, knuckle walls, pockets
-    LEG_CPL_D=6.0, PAD_X0=143.5, PAD_X1=149.3, PAD_DEG=62.0, PAD_T=2.0,        # couplers; arch pad on the tail top
+    LEG_CPL_D=6.0, LEG_PLUG_D=7.5, PAD_X0=143.5, PAD_X1=149.3, PAD_DEG=62.0, PAD_T=2.0,        # couplers; arch pad on the tail top
     # drill pair (rear)
     DRILL_X=132.0, DRILL_PIV_Z=9.5, DRILL_PIV_Y=None, DEPLOY_DEG=50.0, DEPLOY_TARGET=50.0, HORN_GAP=0.1, HEAD_IN=21.6,
-    CPL_D=7.0, BOSS_D=11.0, EYE_DROP=14.0, EYE_D=3.4,
+    CPL_D=7.0, BOSS_D=11.0, EYE_FWD=3.9, EYE_DROP=6.8, EYE_D=3.2,     # bridle eye on the arm head: forward of and below the pivot when folded (stays above the launcher stop springs at z -1.1)
     # drill motor  M: gearbox 11.95, 24.27 face to back, shaft 2.84 x 56.03
     MOTOR_W=12.0, MOTOR_H=10.0, MOTOR_L=24.27, DSHAFT_L=56.03, DSHAFT_D=2.84,
     AUGER_L=100.0, AUGER_D=13.0, AUGER_CORE=6.0, AUGER_PITCH=11.0, AUGER_TIP=12.0,
@@ -68,7 +68,7 @@ L = P["L_HULL"]
 X_NOSE = P["NOSE_L"]
 X_SPIG1 = X_NOSE + P["NOSE_SPIG"]                        # nose spigot ends (26)
 LX, LZ = P["LEG_X"], P["LEG_Z"]
-X_LCR = (LX - 5.0 - 0.2 - 1.2, LX + 5.0 + 0.2 + 1.2)    # leg N20 cradle tube (motor can 10 along x)
+X_LCR = (LX - 5.0 - 0.2 - 1.0, LX + 5.0 + 0.2 + 1.2)    # leg N20 cradle tube (motor can 10 along x; front wall 1.0, just behind the nose spigot)
 X_D1 = (X_LCR[1], X_LCR[1] + 3.0)                        # disc 1 (4 radial screws), front contact springs on its rear face
 X_C1 = (X_D1[1] + P["CONTACT"], X_D1[1] + P["CONTACT"] + P["CELL_L"])
 X_MID = (X_C1[1], X_C1[1] + P["MIDPLATE"])               # BM plate web between the cells
@@ -459,7 +459,6 @@ def build_leg():
     for s in (1, -1):
         ya, yb = sorted((s * P["CH_Y0"], s * P["CH_Y1"]))
         body = body - D_bore_y(P["LEG_CPL_D"] + 0.2, ya - 1, yb + 1)
-        body = body - cylz(P["SCREW_PILOT"], 4.0, P["LEG_CPL_D"] / 2 - 1.0, x=0, y=s * (P["CH_Y0"] + P["CH_Y1"]) / 2)
     return body
 
 def plan_pts(bw, hw):
@@ -481,6 +480,12 @@ def D_bore_y(d, y0, y1):
     c = cyly(d, y1 - y0, y0)
     return c - bx(-d, d, y0 - 1, y1 + 1, d / 2 - 0.5, d)
 
+def leg_front_solid(g):
+    """the leg's blade root (local x < 36, |y| <= the blade half width), grown by g, for the forward bed"""
+    hw = P["LEG_W"] / 2
+    blade_f = prism_x(section_yz(-hw, hw, U0, grow=g), BR_X0 - g, 36.0)
+    return blade_f - cyly(2 * (P["LEG_RB"] - g), 2 * (P["PK_Y0"] - g) - 0.02, -(P["PK_Y0"] - g) + 0.01)
+
 def leg_profile_xz(kind, grow=0.0):
     """shapely x-z profiles of the leg (local frame) for the hull sweeps: 'tine' = cheek circle + tine; 'bridge' = the bridge
     (between local z U0 and the crown, from r LEG_RB out to BR_X1)"""
@@ -488,6 +493,10 @@ def leg_profile_xz(kind, grow=0.0):
     from shapely.ops import unary_union
     if kind == "tine":
         g = unary_union([Point(0, 0).buffer(P["LEG_CHEEK_R"], 128), Point(TINE_C[0], TINE_C[1]).buffer(TINE_C[2], 64)]).convex_hull
+    elif kind == "bridge_centre":
+        g = SP([(BR_X0 - 0.5, U0), (BR_X1 + 8.0, U0), (BR_X1 + 8.0, z_top(0) + 0.15), (BR_X0 - 0.5, z_top(0) + 0.15)]) - Point(0, 0).buffer(P["LEG_RB"], 256)
+    elif kind == "bridge_outer":
+        g = SP([(BR_X0 - 0.5, U0), (BR_X1 + 8.0, U0), (BR_X1 + 8.0, z_top(P["LEG_W"] / 2 - 0.2) + 0.05), (BR_X0 - 0.5, z_top(P["LEG_W"] / 2 - 0.2) + 0.05)]) - Point(0, 0).buffer(P["LEG_RB"], 256)
     else:
         g = SP([(BR_X0 - 0.5, U0), (BR_X1 + 8.0, U0), (BR_X1 + 8.0, z_top(0) + 0.05), (BR_X0 - 0.5, z_top(0) + 0.05)]) - Point(0, 0).buffer(P["LEG_RB"], 256)
     return g.buffer(grow, 32) if grow else g
@@ -496,7 +505,8 @@ def swept_xz(g, a0, a1, step=1.0):
     """union of g rotated CCW (x-z plane) from a0 to a1 deg about the local origin: the leg's world rotation RotY(-a) is CCW in x-z"""
     from shapely.ops import unary_union
     from shapely import affinity
-    return unary_union([affinity.rotate(g, a, origin=(0, 0)) for a in np.arange(a0, a1 + 1e-6, step)])
+    angs = list(np.arange(a0, a1 - 1e-6, step)) + [a1]
+    return unary_union([affinity.rotate(g, a, origin=(0, 0)) for a in angs])
 
 def place_leg(s, deg):
     """leg-local solid -> world at leg angle deg (sgn -1 about +y)"""
@@ -574,11 +584,11 @@ def build_arm(side):
     hn = safe_fillet(hn, [e for e in hn.edges().filter_by(Axis.Y) if abs(e.center().X + HH / 2) < 1e-3 and abs(e.center().Z + HH / 2) < 1e-3], 0.5, "arm stop corner")
     hn = yfillet(yfillet(hn, (y0,), 1.2, "arm inner face"), (y1,), 1.2, "arm outer face")
     ey0, ey1 = EYE_Y
-    lug = yfillet(arc_prism([(0.0, 0.0, HH / 2 - 0.2), (0.0, -P["EYE_DROP"], P["EYE_D"] / 2 + 2.0)], ey0, ey1), (ey0, ey1), 1.0, "eye lug")
+    lug = yfillet(arc_prism([(0.0, 0.0, HH / 2 - 0.2), (P["EYE_FWD"], -P["EYE_DROP"], P["EYE_D"] / 2 + 1.6)], ey0, ey1), (ey0, ey1), 1.0, "eye lug")
     arm = hn + lug + under + shoulder + bush
     can_hole = cylx(P["MOTOR_W"] + 2 * CLR, BUSH_X1 - BW1 + 1, BW1) & bx(BW1 - 1, BUSH_X1 + 2, -P["MOTOR_H"] / 2 - CLR, P["MOTOR_H"] / 2 + CLR, -10, 10)
-    eye = cyly(P["EYE_D"], ey1 - ey0 + 2, ey0 - 1, x=0, z=-P["EYE_DROP"])
-    eyec = [Solid.make_cone(P["EYE_D"] / 2 + 0.8, P["EYE_D"] / 2, 0.8, Plane(origin=(0, yy, -P["EYE_DROP"]), z_dir=(0, d, 0))) for yy, d in ((ey0 - 0.01, 1), (ey1 + 0.01, -1))]
+    eye = cyly(P["EYE_D"], ey1 - ey0 + 2, ey0 - 1, x=P["EYE_FWD"], z=-P["EYE_DROP"])
+    eyec = [Solid.make_cone(P["EYE_D"] / 2 + 0.7, P["EYE_D"] / 2, 0.7, Plane(origin=(P["EYE_FWD"], yy, -P["EYE_DROP"]), z_dir=(0, d, 0))) for yy, d in ((ey0 - 0.01, 1), (ey1 + 0.01, -1))]
     cuts = [D_bore_tear(P["CPL_D"] + 0.25, y0 - 1, y1 + 1), cyly(CB_D, CB_DEPTH + 1, y1 - CB_DEPTH), can_hole,
             cylx(4.5, BW1 - 2.0 + 0.5, 2.0, y=0, z=2.5), cylz(4.5, 10, 2.5, x=3.5, y=0), eye] + eyec
     for c in cuts:
@@ -601,15 +611,22 @@ def leg_cuts(grow):
     tine = affinity.translate(swept_xz(leg_profile_xz("tine"), a0, a1), LX, LZ).buffer(0.25 + grow, 32)
     for s in (1, -1):
         out.append(poly_prism(tine, *sorted((s * (P["PK_Y0"] - grow), s * (P["PK_Y1"] + grow)))))
-    brg = affinity.translate(swept_xz(leg_profile_xz("bridge"), 0.0, a1), LX, LZ).buffer(0.25 + grow, 32)
+    brg = affinity.translate(swept_xz(leg_profile_xz("bridge"), 0.0, 120.0), LX, LZ).buffer(0.25 + grow, 32)   # aft half: under the folded leg
     out.append(poly_prism(brg, -P["PK_Y1"] - grow, P["PK_Y1"] + grow))
+    # forward half: outside the blade a smooth sweep of the bridge (its top there is at most the crown height at the blade edge), and the
+    # blade root's true shape in the middle, so the bed the root rests in at the far rest is a concave saddle that mirrors its top
+    bro = affinity.translate(swept_xz(leg_profile_xz("bridge_outer"), 115.0, a1), LX, LZ).buffer(0.25 + grow, 32)
+    for s_ in (1, -1):
+        out.append(poly_prism(bro, *sorted((s_ * max(P["LEG_W"] / 2 - 0.37 - grow, 0.3), s_ * (P["PK_Y1"] + grow)))))
+    brc = affinity.translate(swept_xz(leg_profile_xz("bridge_centre"), 115.0, a1), LX, LZ).buffer(0.25 + grow, 32)
+    out.append(poly_prism(brc, -P["LEG_W"] / 2 - 0.15 - grow, P["LEG_W"] / 2 + 0.15 + grow))
     # folded blade groove: floor 0.15 under the blade, from the bridge to the pad (vertical walls, open to the sky)
     xs = np.linspace(LX + BR_X1, P["PAD_X0"] + 1.0, 60)
     g_pts = [(x, LZ + leg_under(x - LX) - 0.15 - grow) for x in xs] + [(xs[-1], 30), (xs[0], 30)]
     out.append(prism_xz(g_pts, -P["LEG_W"] / 2 - 0.3 - grow, P["LEG_W"] / 2 + 0.3 + grow))
     # blade at the far rest (forward of the hinge): the blade section grown, rotated to LEG_DEG + LEG_REST_DEG
     hw = P["LEG_W"] / 2
-    fl = prism_x(section_yz(-hw, hw, U0, grow=0.25 + grow), BR_X0, 60.0)
+    fl = prism_x(section_yz(-hw, hw, U0, grow=0.25 + grow), BR_X1 + 7.0, 60.0)              # (the root is in the swept bed above)
     out.append(place_leg(fl, a1))
     # pad recess (hull only, the nose never sees it): the pad grown
     pa = math.radians(P["PAD_DEG"] + 1.0) + grow / R
@@ -647,6 +664,7 @@ def build_hull():
     fill = (fill & cylx(2 * R - 0.02, L - hx0 - 4, hx0 + 0.5)) - cylx(2 * RB + 0.2, X_SPIG1 - hx0 + 1.25, hx0 - 1)   # never into the nose spigot
     blister = bx(KN_X[0] - 0.6, KN_X[1] + 0.6, -KN_Y - 0.6, KN_Y + 0.6, LZ, KN_TOP + 0.6)
     blister = safe_fillet(blister, [e for e in blister.edges() if e.center().Z > KN_TOP], 1.6, "blister")
+    blister = blister - cylx(2 * RB + 0.2, X_SPIG1 - hx0 + 1.25, hx0 - 1)                    # never into the nose spigot
     body = body + fill + blister
     for sg in (1, -1):                                                         # flank socket seats (JST-XH headers clamped across the split)
         body = body + (bx(X_SOCK[0] - 1.2, X_SOCK[1] + 1.2, sg * 7.0, sg * 21.0, -5.1, 5.1) & cylx(2 * R - 0.02, 20, X_SOCK[0] - 5))
@@ -658,8 +676,10 @@ def build_hull():
     body = body - bx(LX - 5.2, LX + 5.2, -KN_YC, KN_YC, -14, LZ - 6.0 + 0.01)               # ... and the motor can under it
     # couplers: Ø6.3 bores from the knuckle wall out through the skin; stub slots from below (the tray tongues close them)
     for s in (1, -1):
-        y0 = s * (KN_Y - 0.1)
-        body = body - cyly(P["LEG_CPL_D"] + 0.3, R, min(y0, y0 + s * R), x=LX, z=LZ)
+        ya, yb = sorted((s * (KN_Y - 0.1), s * (P["PK_Y1"] + 0.5)))
+        body = body - cyly(P["LEG_CPL_D"] + 0.3, yb - ya, ya, x=LX, z=LZ)                       # coupler bore: knuckle wall + pocket
+        ya, yb = sorted((s * P["PK_Y1"], s * (R + 2)))
+        body = body - cyly(P["LEG_PLUG_D"] + 0.1, yb - ya, ya, x=LX, z=LZ)                      # counterbore for the skin plug
         body = body - bx(LX - 1.75, LX + 1.75, s * (KN_YC - 0.05), s * (P["LEG_STUB"] + 0.4), -5, LZ)
     cuts = []
     cuts.append(tear_y(P["CPL_D"] + 0.4, 2 * R + 20, -R - 10, x=DX, z=P["DRILL_PIV_Z"]))          # pod coupler bores
@@ -674,7 +694,8 @@ def build_hull():
     cuts.append(bx(XU - 4.65, XU + 4.65, -R - 2, -RB + 1.2, ZU - 1.8, ZU + 1.8))
     # flank socket seats: header pocket + plug opening to the skin
     for sg in (1, -1):
-        cuts.append(bx(X_SOCK[0], X_SOCK[1], sg * 8.0, sg * 22.0, -3.85, 3.85))
+        op = Pos((X_SOCK[0] + X_SOCK[1]) / 2, 0, 0) * extrude(Plane.XZ.offset(-sg * 8.0) * RectangleRounded(X_SOCK[1] - X_SOCK[0], 7.7, 1.2), amount=14.0 * 1, dir=(0, sg, 0))
+        cuts.append(op)
         cuts.append(bx(X_SOCK[0] + 0.9, X_SOCK[1] - 0.9, sg * 5.0, sg * 8.5, -2.6, 2.6))      # pins / solder tails
     # cell rails on the belly: two low rails beside the in-line cells (they guide the cells and keep the mass low)
     for sg in (1, -1):
@@ -684,7 +705,7 @@ def build_hull():
         body = body + rail
     body = body - ballast_pockets(0.0)
     # seam groove: the tray's deck 1 edges sit in it, clamped by the two halves, and back the split seam from inside
-    sg_ = (cylx(2 * (RB + 0.45), X_SOCK[0] - 1.5 - X_SPIG1 - 0.3, X_SPIG1 + 0.3) - cylx(2 * RB - 0.2, X_SOCK[0] + 2 - X_LCR[0], X_LCR[0] - 1)) & bx(0, L, -60, 60, DECK1 - 1.4 - 0.1, DECK1 + 0.1)
+    sg_ = (cylx(2 * (RB + 0.45), X_SOCK[0] - 1.5 - X_LCR[0] + 0.1, X_LCR[0] - 0.1) - cylx(2 * RB - 0.2, X_SOCK[0] + 2 - X_LCR[0], X_LCR[0] - 1)) & bx(0, L, -60, 60, DECK1 - 1.4 - 0.1, DECK1 + 0.1)
     cuts.append(sg_)
     for c in cuts:
         body = body - c
@@ -776,10 +797,10 @@ def build_tray():
     # cell saddles: open rings under deck 1
     for xs_ in (X_C1[0] + 7, X_C1[1] - 9, X_C2[0] + 9, X_C2[1] - 7):
         ring = cylx(2 * (cr + 1.2), 2.0, xs_, z=cz) - cylx(2 * cr, 4, xs_ - 1, z=cz)
-        ring = (ring & bx(xs_ - 1, xs_ + 3, -30, 30, cz - 5.0, DECK1)) + bx(xs_, xs_ + 2.0, -3.0, 3.0, cz + cr - 0.05, DECK1 - 1.0)
+        ring = (ring & bx(xs_ - 1, xs_ + 3, -30, 30, TRAY_Z0, DECK1)) + bx(xs_, xs_ + 2.0, -3.0, 3.0, cz + cr - 0.05, DECK1 - 1.0)   # feet on the print plane
         ps.append(ring)
     # leg N20 cradle (tube round the can, floor under it) + the two tongues
-    lc = bx(*X_LCR, -7.4, 7.4, -14.0, LZ - 6.0 - 1.3) - bx(LX - 5.2, LX + 5.2, -6.2, 6.2, -13.0, 20)
+    lc = bx(*X_LCR, -7.4, 7.4, TRAY_Z0, LZ - 6.0 - 1.3) - bx(LX - 5.2, LX + 5.2, -6.2, 6.2, -13.0, 20) - bx(LX - 5.2, LX + 5.2, -6.2, 6.2, TRAY_Z0 - 1, -14.0)
     lc = lc + bx(*X_LCR, -6.2, 6.2, LZ - 6.0 - 1.4, LZ - 6.0 - 0.2) - bx(LX - 5.2, LX + 5.2, -6.2, 6.2, -13.0, 20)   # the worm box rests on the front and back walls
     lc = lc - bx(LX - 2.5, LX + 2.5, -9, 9, -16, -11.0)                                      # lead exit at the can's end cap
     ps.append(lc & cylx(2 * RB - 0.6, 40, X_LCR[0] - 1))
@@ -797,25 +818,26 @@ def build_tray():
         ps.append(bx(xw, xw + 1.2, -3.5, 3.5, DECK1 - 0.01, DECK2 - FT + 0.01))
     # deploy N20 cradle (tube round the can, motor pointing down) + web to the rear disc
     dcz = P["DRILL_PIV_Z"] - P["N20_BOX"] / 2                                               # worm box bottom: it rests on the tube's front and back walls
-    dc = bx(*X_DCR, -7.4, 7.4, -16.0, dcz - 0.2) - bx(DX - 5.2, DX + 5.2, -6.2, 6.2, -30, 20)   # tube round the can (the can hangs in it)
+    dc = bx(*X_DCR, -7.4, 7.4, TRAY_Z0, dcz - 0.2) - bx(DX - 5.2, DX + 5.2, -6.2, 6.2, -30, 20)   # tube round the can (the can hangs in it)
     dc = dc - bx(X_DCR[0] - 1, X_DCR[1] + 1, -7.5, 7.5, dcz - 1.6, dcz)                      # the tube's side walls stop under the box sides
     dc = dc + bx(*X_DCR, -6.2, 6.2, dcz - 1.6, dcz - 0.2) - bx(DX - 5.2, DX + 5.2, -6.2, 6.2, -30, 20)
     ps.append(dc & cylx(2 * RB - 0.6, 40, X_DCR[0] - 1))
-    ps.append(bx(X_D2[1] - 0.01, X_DCR[0] + 0.01, -7.4, 7.4, -15.0, DECK1))
+    ps.append(bx(X_D2[1] - 0.01, X_DCR[0] + 0.01, -7.4, 7.4, TRAY_Z0, DECK1))
     t = ps[0]
     for p in ps[1:]:
         t = t + p
-    t = t & cylx(2 * (RB + 0.35), L, -1)
+    t = t & cylx(2 * (RB + 0.35), L, -1) & bx(-10, L + 10, -40, 40, TRAY_Z0, 40)           # flat underside = the print plane
     # battery contacts: front springs on disc 1's rear face, the BM strip between the cells, rear plates on the rear disc
     t = t - cylx(10.0, 0.8, X_D1[1] - 0.8 + 0.01, z=cz)
     t = t - cylx(10.0, 0.8, X_D2[0] - 0.01, z=cz)
     t = t - cylx(2.5, 6, X_D1[0] - 1, y=4.0, z=cz) - cylx(2.5, 6, X_D2[0] - 2, y=4.0, z=cz)    # contact lead holes
     return t
 
+TRAY_Z0 = -16.0                                              # the tray's flat underside (prints on it)
 POCKET_FLOOR = LZ - P["LEG_CHEEK_R"] - 0.25                 # pocket floor top (the cheek's lowest point, grown)
 print("tray ...")
 tray = build_tray()
-add("tray", tray, "hull", "#c9b37e", orient="deck 1 down on the bed; saddles, discs and cradles stand up; deck 2 bridges between its walls (enable thick bridges)",
+add("tray", tray, "hull", "#c9b37e", orient="flat underside (z -16: saddle feet, disc bottoms, cradle tubes) on the bed; deck 1 bridges between the saddles and discs, deck 2 between its walls (enable thick bridges)",
     note="One-piece spine: deck 1 nose to tail right over the two cells (its edges sit in the hull's seam groove, backing the split seam), disc 1 and the rear disc (8 radial M3), the leg N20 cradle at the front (motor pointing down) with two tongues that close the stub slots, four open cell saddles, deck 2 for the VTX and the MP1584, the deploy N20 cradle at the rear (motor pointing down) with the two DRV8833 standing beside it; contact recesses (springs front, BM strip between the cells, plates rear)")
 
 # ================================================================== RIGHTING LEG part + its couplers
@@ -823,19 +845,22 @@ add("righting_leg", LEG_BODY, "legs", "#e07b39", pos=(LX, 0, LZ), axis="y", deg=
     orient="on its side (blade edge down, cheeks flat), tree supports under the pad arch only",
     note="Righting leg (PLA): a slim blade %g wide whose top is the hull crown (flush in the dorsal groove), an arch pad that is a patch of the hull skin on the tail top (%.0f wide), and a fork root: two round cheeks on the two Ø6 couplers in the side pockets, tines curving aft into a bridge that swings over the knuckle. Swing 0 to %g deg over the nose (far rest %g); hinge %g from the nose tip, pad centre %.0f from the hinge. M3 grub screw in each cheek top locks its coupler" % (P["LEG_W"], 2 * R * math.sin(math.radians(P["PAD_DEG"])), P["LEG_DEG"], P["LEG_DEG"] + P["LEG_REST_DEG"], LX, (LEG_PX0 + LEG_PX1) / 2))
 for nm, s in (("leg_coupler_L", 1), ("leg_coupler_R", -1)):
-    y0, y1 = sorted((s * (KN_YC + 0.1), s * (math.sqrt(R * R - LZ * LZ) - 0.35)))
+    y0, y1 = sorted((s * (KN_Y + 0.15), s * (P["PK_Y1"] + 0.95)))
     c = cyly(P["LEG_CPL_D"], y1 - y0, y0) - bx(-4, 4, y0 - 1, y1 + 1, P["LEG_CPL_D"] / 2 - 0.5, 4)        # D flat (the cheek's grub screw bears on it)
-    ys0 = s * (KN_YC + 0.1)
-    sock = D_bore_y(P["SHAFT_D"] + 0.4, *sorted((ys0, ys0 + s * (P["LEG_STUB"] + 0.3 - KN_YC - 0.1))))       # D socket on the trimmed N20 stub, 0.2 radial play
+    ys0 = s * (KN_Y + 0.1)
+    sock = D_bore_y(P["SHAFT_D"] + 0.4, *sorted((ys0, s * (P["LEG_STUB"] + 0.3))))                          # D socket on the trimmed N20 stub, 0.2 radial play
     c = c - sock
     c = safe_fillet(c, c.edges().group_by(Axis.Y)[-1 if s > 0 else 0], 0.4, "leg cpl")
     add(nm, c, "legs", "#444", parent="righting_leg",
         orient="lying on its D flat, PPA-CF",
-        note="Ø6 D coupler (PPA-CF): pushed in from outside through the skin bore, the cheek and the knuckle wall bore onto the leg N20's trimmed stub (D socket with 0.2 radial play: torque only, the hull bores carry the leg); the cheek's M3 grub screw locks it")
-for nm, s in (("leg_grub_L", 1), ("leg_grub_R", -1)):
-    add(nm, cylz(2.9, 3.0, P["LEG_CPL_D"] / 2 - 0.45, x=0, y=s * (P["CH_Y0"] + P["CH_Y1"]) / 2), "electronics", "#555", parent="righting_leg", printable=False, step=False,
-        note="M3 x 3 grub screw in the cheek top onto the coupler's flat (reach it through the pocket with the leg folded)")
-
+        note="Ø6 D coupler (PPA-CF): pushed in from outside through the plug counterbore, the cheek and the knuckle wall bore onto the leg N20's trimmed stub (D socket with 0.2 radial play: torque only); it runs in the knuckle wall bore and in the skin plug's blind bore, so the hull carries the leg; the plug and the worm box hold it axially")
+for nm, s in (("leg_plug_L", 1), ("leg_plug_R", -1)):
+    ya, yb = sorted((s * (P["PK_Y1"] + 0.02), s * (R + 1)))
+    pl = cyly(P["LEG_PLUG_D"], yb - ya, ya, x=LX, z=LZ) & cylx(2 * R - 0.1, 30, LX - 15)          # outer face = the skin
+    ya, yb = sorted((s * (P["PK_Y1"] - 0.1), s * (P["PK_Y1"] + 1.15)))
+    pl = pl - cyly(P["LEG_CPL_D"] + 0.3, yb - ya, ya, x=LX, z=LZ)                                 # blind bore: the coupler's outer bearing
+    add(nm, pl, "hull", "#9aa5b1", orient="outer face up (a domed button), no supports",
+        note="Skin plug Ø7.5 (PLA): pressed flush into the counterbore over the leg coupler (a drop of CA); its blind bore is the coupler's outer bearing and holds it in. Pry it out to pull the coupler for service")
 # ================================================================== DRILL ARMS + AUGERS (rear pods, folded forward)
 def taper_auger(lefthand):
     hr, rc0, rc1 = HUB_D / 2, P["D_CORE0"] / 2, P["D_CORE1"] / 2

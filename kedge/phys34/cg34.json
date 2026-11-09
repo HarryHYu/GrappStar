@@ -1,0 +1,601 @@
+{
+ "putty, bought x1.0": {
+  "mass_g": 249.4,
+  "cg_x": 87.31,
+  "cg_z": -0.15,
+  "Iyy_pitch_kgm2": 0.0003384,
+  "Izz_yaw_kgm2": 0.000379,
+  "Ixx_roll_kgm2": 9.424e-05,
+  "groups": {
+   "hull": {
+    "mass_g": 191.7,
+    "cg_mm": [
+     83.13,
+     -0.05,
+     -3.28
+    ]
+   },
+   "deploy": {
+    "mass_g": 51.9,
+    "cg_mm": [
+     104.07,
+     0.0,
+     9.44
+    ]
+   },
+   "leg": {
+    "mass_g": 5.79,
+    "cg_mm": [
+     75.67,
+     0.0,
+     17.49
+    ]
+   }
+  },
+  "sim": {
+   "hull_mass": 0.191,
+   "cgX": 83.4,
+   "cgUp": -3.3,
+   "pod_mass": 0.026,
+   "leg_mass": 0.0055
+  }
+ },
+ "putty, bought x1.1": {
+  "mass_g": 261.3,
+  "cg_x": 87.36,
+  "cg_z": -0.19,
+  "Iyy_pitch_kgm2": 0.0003524,
+  "Izz_yaw_kgm2": 0.0003947,
+  "Ixx_roll_kgm2": 9.814e-05,
+  "groups": {
+   "hull": {
+    "mass_g": 201.15,
+    "cg_mm": [
+     83.13,
+     -0.05,
+     -3.3
+    ]
+   },
+   "deploy": {
+    "mass_g": 54.32,
+    "cg_mm": [
+     104.28,
+     -0.0,
+     9.44
+    ]
+   },
+   "leg": {
+    "mass_g": 5.79,
+    "cg_mm": [
+     75.67,
+     0.0,
+     17.49
+    ]
+   }
+  },
+  "sim": {
+   "hull_mass": 0.20045,
+   "cgX": 83.4,
+   "cgUp": -3.32,
+   "pod_mass": 0.02721,
+   "leg_mass": 0.0055
+  }
+ },
+ "putty, bought x0.9": {
+  "mass_g": 237.5,
+  "cg_x": 87.26,
+  "cg_z": -0.11,
+  "Iyy_pitch_kgm2": 0.0003244,
+  "Izz_yaw_kgm2": 0.0003633,
+  "Ixx_roll_kgm2": 9.033e-05,
+  "groups": {
+   "hull": {
+    "mass_g": 182.25,
+    "cg_mm": [
+     83.13,
+     -0.04,
+     -3.26
+    ]
+   },
+   "deploy": {
+    "mass_g": 49.48,
+    "cg_mm": [
+     103.85,
+     0.0,
+     9.44
+    ]
+   },
+   "leg": {
+    "mass_g": 5.79,
+    "cg_mm": [
+     75.67,
+     0.0,
+     17.49
+    ]
+   }
+  },
+  "sim": {
+   "hull_mass": 0.18155,
+   "cgX": 83.4,
+   "cgUp": -3.28,
+   "pod_mass": 0.02479,
+   "leg_mass": 0.0055
+  }
+ },
+ "putty, bought z up": {
+  "mass_g": 249.0,
+  "cg_x": 87.17,
+  "cg_z": 0.19,
+  "Iyy_pitch_kgm2": 0.0003384,
+  "Izz_yaw_kgm2": 0.0003818,
+  "Ixx_roll_kgm2": 9.652e-05,
+  "groups": {
+   "hull": {
+    "mass_g": 188.87,
+    "cg_mm": [
+     82.6,
+     -0.05,
+     -3.0
+    ]
+   },
+   "deploy": {
+    "mass_g": 54.32,
+    "cg_mm": [
+     104.28,
+     -0.0,
+     9.44
+    ]
+   },
+   "leg": {
+    "mass_g": 5.79,
+    "cg_mm": [
+     75.67,
+     0.0,
+     17.49
+    ]
+   }
+  },
+  "sim": {
+   "hull_mass": 0.18817,
+   "cgX": 82.87,
+   "cgUp": -3.02,
+   "pod_mass": 0.02721,
+   "leg_mass": 0.0055
+  }
+ },
+ "putty, bought z down": {
+  "mass_g": 249.8,
+  "cg_x": 87.46,
+  "cg_z": -0.49,
+  "Iyy_pitch_kgm2": 0.0003383,
+  "Izz_yaw_kgm2": 0.0003762,
+  "Ixx_roll_kgm2": 9.19e-05,
+  "groups": {
+   "hull": {
+    "mass_g": 194.53,
+    "cg_mm": [
+     83.64,
+     -0.04,
+     -3.55
+    ]
+   },
+   "deploy": {
+    "mass_g": 49.48,
+    "cg_mm": [
+     103.85,
+     0.0,
+     9.44
+    ]
+   },
+   "leg": {
+    "mass_g": 5.79,
+    "cg_mm": [
+     75.67,
+     0.0,
+     17.49
+    ]
+   }
+  },
+  "sim": {
+   "hull_mass": 0.19383,
+   "cgX": 83.91,
+   "cgUp": -3.57,
+   "pod_mass": 0.02479,
+   "leg_mass": 0.0055
+  }
+ },
+ "putty, bought x aft": {
+  "mass_g": 251.2,
+  "cg_x": 88.59,
+  "cg_z": -0.09,
+  "Iyy_pitch_kgm2": 0.0003367,
+  "Izz_yaw_kgm2": 0.0003794,
+  "Ixx_roll_kgm2": 9.674e-05,
+  "groups": {
+   "hull": {
+    "mass_g": 191.09,
+    "cg_mm": [
+     84.52,
+     -0.04,
+     -3.33
+    ]
+   },
+   "deploy": {
+    "mass_g": 54.32,
+    "cg_mm": [
+     104.28,
+     -0.0,
+     9.44
+    ]
+   },
+   "leg": {
+    "mass_g": 5.79,
+    "cg_mm": [
+     75.67,
+     0.0,
+     17.49
+    ]
+   }
+  },
+  "sim": {
+   "hull_mass": 0.19039,
+   "cgX": 84.79,
+   "cgUp": -3.35,
+   "pod_mass": 0.02721,
+   "leg_mass": 0.0055
+  }
+ },
+ "putty, bought x fwd": {
+  "mass_g": 247.6,
+  "cg_x": 86.02,
+  "cg_z": -0.21,
+  "Iyy_pitch_kgm2": 0.0003393,
+  "Izz_yaw_kgm2": 0.0003778,
+  "Ixx_roll_kgm2": 9.173e-05,
+  "groups": {
+   "hull": {
+    "mass_g": 192.31,
+    "cg_mm": [
+     81.74,
+     -0.06,
+     -3.22
+    ]
+   },
+   "deploy": {
+    "mass_g": 49.48,
+    "cg_mm": [
+     103.85,
+     0.0,
+     9.44
+    ]
+   },
+   "leg": {
+    "mass_g": 5.79,
+    "cg_mm": [
+     75.67,
+     0.0,
+     17.49
+    ]
+   }
+  },
+  "sim": {
+   "hull_mass": 0.19161,
+   "cgX": 82.01,
+   "cgUp": -3.24,
+   "pod_mass": 0.02479,
+   "leg_mass": 0.0055
+  }
+ },
+ "no putty, bought x1.0": {
+  "mass_g": 234.8,
+  "cg_x": 87.21,
+  "cg_z": 0.59,
+  "Iyy_pitch_kgm2": 0.0003326,
+  "Izz_yaw_kgm2": 0.0003727,
+  "Ixx_roll_kgm2": 8.93e-05,
+  "groups": {
+   "hull": {
+    "mass_g": 177.1,
+    "cg_mm": [
+     82.65,
+     -0.05,
+     -2.56
+    ]
+   },
+   "deploy": {
+    "mass_g": 51.9,
+    "cg_mm": [
+     104.07,
+     0.0,
+     9.44
+    ]
+   },
+   "leg": {
+    "mass_g": 5.79,
+    "cg_mm": [
+     75.67,
+     0.0,
+     17.49
+    ]
+   }
+  },
+  "sim": {
+   "hull_mass": 0.1764,
+   "cgX": 82.92,
+   "cgUp": -2.58,
+   "pod_mass": 0.026,
+   "leg_mass": 0.0055
+  }
+ },
+ "no putty, bought x1.1": {
+  "mass_g": 246.7,
+  "cg_x": 87.27,
+  "cg_z": 0.51,
+  "Iyy_pitch_kgm2": 0.0003466,
+  "Izz_yaw_kgm2": 0.0003884,
+  "Ixx_roll_kgm2": 9.323e-05,
+  "groups": {
+   "hull": {
+    "mass_g": 186.55,
+    "cg_mm": [
+     82.67,
+     -0.05,
+     -2.62
+    ]
+   },
+   "deploy": {
+    "mass_g": 54.32,
+    "cg_mm": [
+     104.28,
+     -0.0,
+     9.44
+    ]
+   },
+   "leg": {
+    "mass_g": 5.79,
+    "cg_mm": [
+     75.67,
+     0.0,
+     17.49
+    ]
+   }
+  },
+  "sim": {
+   "hull_mass": 0.18585,
+   "cgX": 82.94,
+   "cgUp": -2.64,
+   "pod_mass": 0.02721,
+   "leg_mass": 0.0055
+  }
+ },
+ "no putty, bought x0.9": {
+  "mass_g": 222.9,
+  "cg_x": 87.15,
+  "cg_z": 0.67,
+  "Iyy_pitch_kgm2": 0.0003186,
+  "Izz_yaw_kgm2": 0.000357,
+  "Ixx_roll_kgm2": 8.538e-05,
+  "groups": {
+   "hull": {
+    "mass_g": 167.65,
+    "cg_mm": [
+     82.61,
+     -0.05,
+     -2.49
+    ]
+   },
+   "deploy": {
+    "mass_g": 49.48,
+    "cg_mm": [
+     103.85,
+     0.0,
+     9.44
+    ]
+   },
+   "leg": {
+    "mass_g": 5.79,
+    "cg_mm": [
+     75.67,
+     0.0,
+     17.49
+    ]
+   }
+  },
+  "sim": {
+   "hull_mass": 0.16695,
+   "cgX": 82.88,
+   "cgUp": -2.51,
+   "pod_mass": 0.02479,
+   "leg_mass": 0.0055
+  }
+ },
+ "no putty, bought z up": {
+  "mass_g": 234.4,
+  "cg_x": 87.05,
+  "cg_z": 0.95,
+  "Iyy_pitch_kgm2": 0.0003325,
+  "Izz_yaw_kgm2": 0.0003754,
+  "Ixx_roll_kgm2": 9.146e-05,
+  "groups": {
+   "hull": {
+    "mass_g": 174.27,
+    "cg_mm": [
+     82.06,
+     -0.06,
+     -2.25
+    ]
+   },
+   "deploy": {
+    "mass_g": 54.32,
+    "cg_mm": [
+     104.28,
+     -0.0,
+     9.44
+    ]
+   },
+   "leg": {
+    "mass_g": 5.79,
+    "cg_mm": [
+     75.67,
+     0.0,
+     17.49
+    ]
+   }
+  },
+  "sim": {
+   "hull_mass": 0.17357,
+   "cgX": 82.33,
+   "cgUp": -2.27,
+   "pod_mass": 0.02721,
+   "leg_mass": 0.0055
+  }
+ },
+ "no putty, bought z down": {
+  "mass_g": 235.2,
+  "cg_x": 87.37,
+  "cg_z": 0.23,
+  "Iyy_pitch_kgm2": 0.0003326,
+  "Izz_yaw_kgm2": 0.0003699,
+  "Ixx_roll_kgm2": 8.708e-05,
+  "groups": {
+   "hull": {
+    "mass_g": 179.93,
+    "cg_mm": [
+     83.21,
+     -0.04,
+     -2.86
+    ]
+   },
+   "deploy": {
+    "mass_g": 49.48,
+    "cg_mm": [
+     103.85,
+     0.0,
+     9.44
+    ]
+   },
+   "leg": {
+    "mass_g": 5.79,
+    "cg_mm": [
+     75.67,
+     0.0,
+     17.49
+    ]
+   }
+  },
+  "sim": {
+   "hull_mass": 0.17923,
+   "cgX": 83.48,
+   "cgUp": -2.88,
+   "pod_mass": 0.02479,
+   "leg_mass": 0.0055
+  }
+ },
+ "no putty, bought x aft": {
+  "mass_g": 236.6,
+  "cg_x": 88.57,
+  "cg_z": 0.64,
+  "Iyy_pitch_kgm2": 0.0003309,
+  "Izz_yaw_kgm2": 0.0003731,
+  "Ixx_roll_kgm2": 9.179e-05,
+  "groups": {
+   "hull": {
+    "mass_g": 176.49,
+    "cg_mm": [
+     84.15,
+     -0.04,
+     -2.62
+    ]
+   },
+   "deploy": {
+    "mass_g": 54.32,
+    "cg_mm": [
+     104.28,
+     -0.0,
+     9.44
+    ]
+   },
+   "leg": {
+    "mass_g": 5.79,
+    "cg_mm": [
+     75.67,
+     0.0,
+     17.49
+    ]
+   }
+  },
+  "sim": {
+   "hull_mass": 0.17579,
+   "cgX": 84.42,
+   "cgUp": -2.64,
+   "pod_mass": 0.02721,
+   "leg_mass": 0.0055
+  }
+ },
+ "no putty, bought x fwd": {
+  "mass_g": 233.0,
+  "cg_x": 85.83,
+  "cg_z": 0.53,
+  "Iyy_pitch_kgm2": 0.0003334,
+  "Izz_yaw_kgm2": 0.0003714,
+  "Ixx_roll_kgm2": 8.682e-05,
+  "groups": {
+   "hull": {
+    "mass_g": 177.71,
+    "cg_mm": [
+     81.15,
+     -0.06,
+     -2.5
+    ]
+   },
+   "deploy": {
+    "mass_g": 49.48,
+    "cg_mm": [
+     103.85,
+     0.0,
+     9.44
+    ]
+   },
+   "leg": {
+    "mass_g": 5.79,
+    "cg_mm": [
+     75.67,
+     0.0,
+     17.49
+    ]
+   }
+  },
+  "sim": {
+   "hull_mass": 0.17701,
+   "cgX": 81.42,
+   "cgUp": -2.52,
+   "pod_mass": 0.02479,
+   "leg_mass": 0.0055
+  }
+ },
+ "range": {
+  "cg_z_mm": [
+   -0.49,
+   0.95
+  ],
+  "cg_x_mm": [
+   85.83,
+   88.59
+  ],
+  "check": {
+   "mass_props_totals": {
+    "mass_g": 249.4,
+    "cg_mm": [
+     87.32,
+     -0.04,
+     -0.15
+    ]
+   },
+   "this_model_nominal": [
+    249.4,
+    87.31,
+    -0.15
+   ]
+  }
+ }
+}

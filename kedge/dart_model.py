@@ -107,8 +107,16 @@ class Dart:
             o.extend(self.fam(k))
         return o
 
+    def sgn(self, n):
+        """Rotation sign about +y of a moving root: parts.json "sgn" (v34 on), else the v31-v33 rule (kick -1, pods +1)."""
+        return self.PP[n].get("sgn", -1 if n == "kick_leg" else 1)
+
+    def is_leg(self, n):
+        """True for the kick / righting leg root (parts.json "joint" == "leg" from v34 on), False for the deploy group."""
+        return n == "kick_leg" or self.PP[n].get("joint") == "leg"
+
     def T(self, n, d):
-        return TM(self.PP[n]["pos"]) @ RM(math.radians((-1 if n == "kick_leg" else 1) * d), [0, 1, 0])
+        return TM(self.PP[n]["pos"]) @ RM(math.radians(self.sgn(n) * d), [0, 1, 0])
 
     def assembly(self, kick_deg, dep_deg):
         """[(name, mesh in the dart frame)] at a kick angle and a drill deploy angle (deg)."""
@@ -117,7 +125,7 @@ class Dart:
             if p.get("parent"):
                 continue
             if p["axis"]:
-                Tm = self.T(n, kick_deg if n == "kick_leg" else dep_deg)
+                Tm = self.T(n, kick_deg if self.is_leg(n) else dep_deg)
                 for c in self.fam(n):
                     items.append((c, self.mesh(c).copy().apply_transform(Tm)))
             else:

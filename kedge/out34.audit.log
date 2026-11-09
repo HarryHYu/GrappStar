@@ -1,7 +1,8 @@
 {
  "collisions": {},
  "thread_engagement_mm3": {
-  "screws_radial | tray": 40.1,
+  "ballast | nose": 3.2,
+  "screws_radial | tray": 84.6,
   "drill_leg_L_auger | drill_leg_L_shaft": 49.6,
   "drill_leg_R_auger | drill_leg_R_shaft": 49.6,
   "coupler_L | coupler_L_screw": 11.0,
@@ -32,8 +33,8 @@
  ],
  "belly_outside_r21": {},
  "folded_min_z_below_ground": {},
- "printed_cm3": 81.03,
- "printed_g_solid_PLA": 100.5,
+ "printed_cm3": 79.95,
+ "printed_g_solid_PLA": 99.1,
  "watertight_fail": [],
  "multi_body": [],
  "kick_range": [
@@ -45,7 +46,7 @@
   46.75
  ],
  "L": 152.0,
- "sweep_s": 83.0,
+ "sweep_s": 97.4,
  "kick_steps": 179,
  "deploy_steps": 48,
  "hard_stops_mm3": {
@@ -56,8 +57,70 @@
   "kick_rest_-0.5deg": 0.0,
   "kick_rest_+2deg": 58.54,
   "leg_fold_at_0": 0.0,
-  "leg_fold_-2deg": 424.78,
+  "leg_fold_-2deg": 449.61,
   "ok": true
- }
+ },
+ "shells": {
+  "hull_top": 1,
+  "hull_bottom": 1,
+  "nose": 1,
+  "tray": 1,
+  "righting_leg": 1,
+  "leg_coupler_L": 1,
+  "leg_coupler_R": 1,
+  "leg_plug_L": 1,
+  "leg_plug_R": 1,
+  "drill_leg_L": 1,
+  "drill_leg_L_auger": 1,
+  "drill_leg_R": 1,
+  "drill_leg_R_auger": 1,
+  "coupler_L": 1,
+  "coupler_R": 1,
+  "pod_cap_L": 1,
+  "pod_cap_R": 1
+ },
+ "multi_shell": [],
+ "insertion_mm3_at_dz": {
+  "tray_into_bottom": {
+   "nose | hull_bottom": [
+    0.0,
+    0.0
+   ]
+  },
+  "top_onto_tray": {
+   "hull_top | nose": [
+    0.0,
+    0.0
+   ],
+   "hull_top | hull_bottom": [
+    0.0,
+    0.0
+   ]
+  },
+  "eps_mm3": 0.05
+ },
+ "insertion_bad": {},
+ "screw_bite_mm3": {
+  "x 39.8 right z -3": 10.1,
+  "x 39.8 right z +3": 10.1,
+  "x 39.8 left z -3": 10.1,
+  "x 39.8 left z +3": 10.1,
+  "x 122.0 right z -3": 10.1,
+  "x 122.0 right z +3": 10.1,
+  "x 122.0 left z -3": 10.1,
+  "x 122.0 left z +3": 10.1
+ },
+ "screw_bite_full_7mm_mm3": 11.9
 }
+screw bite (mm3, Ø2.9 x 7 shank vs the tray; full 7 mm bite = 11.9):
+  x 39.8 right z -3       10.1
+  x 39.8 right z +3       10.1
+  x 39.8 left z -3        10.1
+  x 39.8 left z +3        10.1
+  x 122.0 right z -3      10.1
+  x 122.0 right z +3      10.1
+  x 122.0 left z -3       10.1
+  x 122.0 left z +3       10.1
+shells per printed part: all 1
+insertion sweeps: zero overlap
 CLEAN

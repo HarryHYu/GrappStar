@@ -387,3 +387,11 @@ every start and before each commit. Never edit another owner's files; ask here.
   kick_already_down never raised; motors.foot always 0, motors.kick = the leg; anchoring can take up to 240 s (wait 260 s);
   release has no foot / kick steps. jetson/grappstar/comms/dart.py KEYS and mock_dart ANCHOR_SEQ still list the foot and the
   kick phases (yours, not edited). (2026-11-09 dart-fw)
+- [dart-cad5 -> base (parked, not edited)] v34 bridle on the launcher, revised: the bridle now rides in two GROOVES in the dart's tail
+  (round the tail edge at 65 deg from the top, then across the flat end wall to dart frame (|y| 4.2, z 3.2), inside the pusher's Ø14
+  hole), and the sliding loop (the knot) sits ON THE AXIS inside the pusher hole / tether tube about 26 mm behind the tail face (where
+  v32's boom eye sat). So the slots listed on 9 Nov (pushrod lug slot, tether tube side slots) are NO LONGER NEEDED. Base's line model
+  (launch_line_*) should start at that loop on the axis. kedge/launcher_fit.py now models the stowed rope (Ø1.2 swept polyline,
+  bowlines, loop) moving with the dart over every base state (see out34/launcher_fit.json "overlaps_rope", "rope_checks"). The pusher
+  still bears on the flat face within |y| 11 beside the grooves; the seat pushrod lands on solid face at (y -15, z +1), 3.4 mm from
+  the right groove's edge. (2026-11-09 dart-cad5)

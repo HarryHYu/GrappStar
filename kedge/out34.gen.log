@@ -1,56 +1,59 @@
 leg ...
+rope: stowed eye->groove end 50.9 mm, knot 25.8 behind the tail face; anchored knot 51.5 behind
+rails, putty, grooves ...
 hull ...
-hull_top             [132.   55.2  21.3] vol  15.71 cm3 wt=True solids=1 t=25s
-hull_bottom          [132.  42.  21.] vol  16.97 cm3 wt=True solids=1 t=25s
+hull_top             [132.   55.2  21.3] vol  15.64 cm3 wt=True solids=1 t=28s
+hull_bottom          [132.  42.  21.] vol  14.16 cm3 wt=True solids=1 t=28s
+nose putty: collar at x 13.24
 nose ...
-nose                 [26.6 42.  40.3] vol   7.95 cm3 wt=True solids=1 t=31s
+nose                 [26.6 42.  40.3] vol   7.98 cm3 wt=True solids=1 t=36s
 tray ...
-tray                 [115.1  39.7  33.9] vol  13.28 cm3 wt=True solids=1 t=33s
-righting_leg         [121.9  36.4  12.1] vol   4.36 cm3 wt=True solids=1 t=33s
-leg_coupler_L        [6.  7.  5.5] vol   0.14 cm3 wt=True solids=1 t=33s
-leg_coupler_R        [6.  7.  5.5] vol   0.14 cm3 wt=True solids=1 t=34s
-leg_plug_L           [7.5 6.6 6.8] vol   0.12 cm3 wt=True solids=1 t=34s
-leg_plug_R           [7.5 6.6 6.8] vol   0.12 cm3 wt=True solids=1 t=34s
+tray                 [123.6  40.8  33.9] vol  14.94 cm3 wt=True solids=1 t=40s
+righting_leg         [121.9  36.4  12.1] vol   4.37 cm3 wt=True solids=1 t=41s
+leg_coupler_L        [6.  7.  5.5] vol   0.15 cm3 wt=True solids=1 t=41s
+leg_coupler_R        [6.  7.  5.5] vol   0.15 cm3 wt=True solids=1 t=41s
+leg_plug_L           [7.5 6.6 6.8] vol   0.12 cm3 wt=True solids=1 t=41s
+leg_plug_R           [7.5 6.6 6.8] vol   0.12 cm3 wt=True solids=1 t=41s
 drills ...
-drill_leg_L          [32.6 18.9 19.3] vol   3.54 cm3 wt=True solids=1 t=34s
-drill_leg_L_auger    [92.6 18.7 18.7] vol   6.57 cm3 wt=True bodies=1 (mesh) t=50s
-drill_leg_L_motor    [24.3 10.  12. ] vol   2.67 cm3 wt=True solids=1 t=50s
-drill_leg_L_shaft    [56.   2.8  2.8] vol   0.35 cm3 wt=True solids=1 t=50s
-drill_leg_L_nut      [2.4 5.5 6.4] vol   0.05 cm3 wt=True bodies=1 (mesh) t=50s
-drill_leg_R          [32.6 18.9 19.3] vol   3.54 cm3 wt=True solids=1 t=51s
-drill_leg_R_auger    [92.6 18.7 18.7] vol   6.57 cm3 wt=True bodies=1 (mesh) t=67s
-drill_leg_R_motor    [24.3 10.  12. ] vol   2.67 cm3 wt=True solids=1 t=67s
-drill_leg_R_shaft    [56.   2.8  2.8] vol   0.35 cm3 wt=True solids=1 t=67s
-drill_leg_R_nut      [2.4 5.5 6.4] vol   0.05 cm3 wt=True bodies=1 (mesh) t=67s
-coupler_L            [ 7.  28.   6.4] vol   0.91 cm3 wt=True solids=1 t=67s
-coupler_R            [ 7.  28.   6.4] vol   0.91 cm3 wt=True solids=1 t=67s
-cell_1               [36.9 18.7 18.7] vol   9.91 cm3 wt=True solids=1 t=67s
-cell_2               [36.9 18.7 18.7] vol   9.91 cm3 wt=True solids=1 t=67s
-n20_leg              [11.9 12.  33. ] vol   3.95 cm3 wt=True solids=1 t=67s
-leg_shaft            [ 3.  21.6  2.5] vol   0.14 cm3 wt=True solids=1 t=67s
-n20_deploy           [11.9 12.  33. ] vol   3.95 cm3 wt=True solids=1 t=67s
-deploy_shaft         [ 3.  30.   2.5] vol   0.19 cm3 wt=True solids=1 t=67s
-xiao                 [17.7 22.7  4.5] vol   1.31 cm3 wt=True solids=1 t=67s
-drv8833_1            [12.7  3.5 20.3] vol   0.90 cm3 wt=True solids=1 t=67s
-drv8833_2            [12.7  3.5 20.3] vol   0.90 cm3 wt=True solids=1 t=67s
-ina219               [25.7 20.3  4.7] vol   2.45 cm3 wt=True solids=1 t=67s
-bno085               [22.8 25.7  4.8] vol   2.79 cm3 wt=True solids=1 t=67s
-mp1584               [22.3 17.   4. ] vol   1.50 cm3 wt=True solids=1 t=67s
-vtx                  [42.2 19.9  6. ] vol   5.06 cm3 wt=True solids=1 t=67s
-bms_2s               [40.8  8.   2.1] vol   0.69 cm3 wt=True solids=1 t=67s
-camera               [18.3 14.  14.6] vol   3.33 cm3 wt=True solids=1 t=67s
-screws_radial        [87.1 40.  12. ] vol   0.50 cm3 wt=True solids=8 t=67s
-pod_cap_L            [10.   1.5 10. ] vol   0.10 cm3 wt=True solids=1 t=67s
-coupler_L_screw      [5.5 9.8 5.5] vol   0.10 cm3 wt=True solids=1 t=67s
-pod_cap_R            [10.   1.5 10. ] vol   0.10 cm3 wt=True solids=1 t=67s
-coupler_R_screw      [5.5 9.8 5.5] vol   0.10 cm3 wt=True solids=1 t=67s
-contacts_front_spring [3. 9. 9.] vol   0.19 cm3 wt=True solids=1 t=67s
-contacts_mid_strip   [ 0.3  9.  14.1] vol   0.02 cm3 wt=True solids=1 t=67s
-contacts_rear_plate  [0.8 9.  9. ] vol   0.05 cm3 wt=True solids=1 t=67s
-jst_loop             [5.8 7.  7.4] vol   0.30 cm3 wt=True solids=1 t=67s
-jst_charge           [5.8 7.  7.4] vol   0.30 cm3 wt=True solids=1 t=67s
-antenna              [22.  4.  4.] vol   0.28 cm3 wt=True solids=1 t=67s
-xiao_antenna         [20.   0.4  6.5] vol   0.05 cm3 wt=True solids=1 t=68s
-capacitor            [11.   6.3  6.3] vol   0.34 cm3 wt=True solids=1 t=68s
-ballast_belly        [54.  33.3  6.8] vol   1.62 cm3 wt=True solids=2 t=68s
-parts: 50 L = 152.0 t = 68 s
+drill_leg_L          [32.6 18.9 19.3] vol   3.56 cm3 wt=True solids=1 t=42s
+drill_leg_L_auger    [92.6 18.7 18.7] vol   6.57 cm3 wt=True bodies=1 (mesh) t=58s
+drill_leg_L_motor    [24.3 10.  12. ] vol   2.67 cm3 wt=True solids=1 t=59s
+drill_leg_L_shaft    [56.   2.8  2.8] vol   0.35 cm3 wt=True solids=1 t=59s
+drill_leg_L_nut      [2.4 5.5 6.4] vol   0.05 cm3 wt=True bodies=1 (mesh) t=59s
+drill_leg_R          [32.6 18.9 19.3] vol   3.56 cm3 wt=True solids=1 t=59s
+drill_leg_R_auger    [92.6 18.7 18.7] vol   6.57 cm3 wt=True bodies=1 (mesh) t=75s
+drill_leg_R_motor    [24.3 10.  12. ] vol   2.67 cm3 wt=True solids=1 t=75s
+drill_leg_R_shaft    [56.   2.8  2.8] vol   0.35 cm3 wt=True solids=1 t=75s
+drill_leg_R_nut      [2.4 5.5 6.4] vol   0.05 cm3 wt=True bodies=1 (mesh) t=75s
+coupler_L            [ 7.  28.   6.4] vol   0.93 cm3 wt=True solids=1 t=75s
+coupler_R            [ 7.  28.   6.4] vol   0.93 cm3 wt=True solids=1 t=75s
+cell_1               [36.9 18.7 18.7] vol   9.91 cm3 wt=True solids=1 t=75s
+cell_2               [36.9 18.7 18.7] vol   9.91 cm3 wt=True solids=1 t=75s
+n20_leg              [11.9 12.  33. ] vol   3.95 cm3 wt=True solids=1 t=75s
+leg_shaft            [ 3.  21.6  2.5] vol   0.14 cm3 wt=True solids=1 t=75s
+n20_deploy           [11.9 12.  33. ] vol   3.95 cm3 wt=True solids=1 t=75s
+deploy_shaft         [ 3.  30.   2.5] vol   0.19 cm3 wt=True solids=1 t=75s
+xiao                 [17.7 22.7  4.5] vol   1.31 cm3 wt=True solids=1 t=75s
+drv8833_1            [12.7  3.5 20.3] vol   0.90 cm3 wt=True solids=1 t=75s
+drv8833_2            [12.7  3.5 20.3] vol   0.90 cm3 wt=True solids=1 t=75s
+ina219               [25.7 20.3  4.7] vol   2.45 cm3 wt=True solids=1 t=75s
+bno085               [22.8 25.7  4.8] vol   2.79 cm3 wt=True solids=1 t=75s
+mp1584               [22.3 17.   4. ] vol   1.50 cm3 wt=True solids=1 t=75s
+vtx                  [42.2 19.9  6. ] vol   5.06 cm3 wt=True solids=1 t=75s
+bms_2s               [40.8  8.   2.1] vol   0.69 cm3 wt=True solids=1 t=75s
+camera               [18.3 14.  14.6] vol   3.33 cm3 wt=True solids=1 t=75s
+screws_radial        [88.2 40.  12. ] vol   0.54 cm3 wt=True solids=8 t=76s
+pod_cap_L            [10.   1.5 10. ] vol   0.10 cm3 wt=True solids=1 t=76s
+coupler_L_screw      [5.5 9.8 5.5] vol   0.10 cm3 wt=True solids=1 t=76s
+pod_cap_R            [10.   1.5 10. ] vol   0.10 cm3 wt=True solids=1 t=76s
+coupler_R_screw      [5.5 9.8 5.5] vol   0.10 cm3 wt=True solids=1 t=76s
+contacts_front_spring [3. 9. 9.] vol   0.19 cm3 wt=True solids=1 t=76s
+contacts_mid_strip   [ 0.3  9.  14.1] vol   0.02 cm3 wt=True solids=1 t=76s
+contacts_rear_plate  [0.8 9.  9. ] vol   0.05 cm3 wt=True solids=1 t=76s
+jst_loop             [5.8 7.  7.4] vol   0.30 cm3 wt=True solids=1 t=76s
+jst_charge           [5.8 7.  9.9] vol   0.40 cm3 wt=True solids=1 t=76s
+antenna              [22.  4.  4.] vol   0.28 cm3 wt=True solids=1 t=76s
+xiao_antenna         [20.   0.4  6.5] vol   0.05 cm3 wt=True solids=1 t=76s
+capacitor            [ 8.  8. 12.] vol   0.60 cm3 wt=True solids=1 t=76s
+ballast              [11.8 31.9 18.9] vol   1.62 cm3 wt=True solids=1 t=76s
+parts: 50 L = 152.0 t = 76 s

@@ -9,42 +9,42 @@ auger_depth_mm {'leg_shaft': -34.0, 'drill_leg_L_auger': 43.5, 'drill_leg_L_shaf
 foot_housing_clear_mm 29.9
 pod_clear_mm {'drill_leg_L': 6.03, 'drill_leg_R': 6.03}
 belly_outside_r21 {}
-hard_stops_mm3 {'deploy_at_angle': 0.0, 'deploy_horn_+2.5deg': 5.23, 'fold_at_0': 0.0, 'fold_lug_-3deg': 5.57, 'kick_rest_-0.5deg': 0.0, 'kick_rest_+2deg': 58.54, 'leg_fold_at_0': 0.0, 'leg_fold_-2deg': 424.78, 'ok': True}
+hard_stops_mm3 {'deploy_at_angle': 0.0, 'deploy_horn_+2.5deg': 5.23, 'fold_at_0': 0.0, 'fold_lug_-3deg': 5.57, 'kick_rest_-0.5deg': 0.0, 'kick_rest_+2deg': 58.54, 'leg_fold_at_0': 0.0, 'leg_fold_-2deg': 449.61, 'ok': True}
 folded_bbox [-0.0, -40.5, -21.0, 152.0, 40.5, 21.3]
-printed_cm3 81.03
+printed_cm3 79.95
 L 152.0
 CLEAN
 FITS
  0.00  deploy_shaft -> n20_deploy
  0.00  leg_shaft -> n20_leg
+ 0.07  drill_leg_L -> hull_top
  0.08  drill_leg_R -> hull_top
- 0.08  drill_leg_L -> hull_top
- 0.10  righting_leg -> nose
  0.10  righting_leg -> hull_top
- 0.15  leg_coupler_L -> hull_top
- 0.15  leg_coupler_L -> leg_plug_L
- 0.15  leg_coupler_R -> hull_top
+ 0.10  righting_leg -> nose
  0.15  leg_coupler_R -> leg_plug_R
- 0.15  leg_coupler_R -> tray
+ 0.15  leg_coupler_L -> leg_plug_L
+ 0.15  leg_coupler_L -> hull_top
+ 0.15  leg_coupler_R -> hull_top
  0.15  leg_coupler_L -> tray
-meshes.json 7.7 MB
+ 0.15  leg_coupler_R -> tray
+meshes.json 8.4 MB
 audit_sheet.png (3840, 1714)
 sections.png (2560, 1294)
-(2100, 3872)
-hull_bottom          bbox [132.0, 42.0, 21.0]  bed   390.9 mm2  overhang>45  4001.5 mm2
-nose                 bbox [40.3, 42.0, 26.6]  bed   242.8 mm2  overhang>45   462.2 mm2
-tray                 bbox [115.1, 39.7, 33.9]  bed   275.6 mm2  overhang>45  5664.0 mm2
-drill_leg_L          bbox [19.3, 18.9, 32.6]  bed    67.6 mm2  overhang>45   203.7 mm2
-drill_leg_R          bbox [19.3, 18.9, 32.6]  bed    67.6 mm2  overhang>45   203.7 mm2
+(2100, 6292)
+hull_bottom          bbox [132.0, 42.0, 21.0]  bed   382.6 mm2  overhang>45  4171.7 mm2
+nose                 bbox [40.3, 42.0, 26.6]  bed   242.8 mm2  overhang>45   463.4 mm2
+tray                 bbox [123.6, 40.8, 33.9]  bed   283.4 mm2  overhang>45  5799.4 mm2
+drill_leg_L          bbox [19.3, 18.9, 32.6]  bed    67.6 mm2  overhang>45   202.3 mm2
+drill_leg_R          bbox [19.3, 18.9, 32.6]  bed    67.6 mm2  overhang>45   202.3 mm2
 drill_leg_L_auger    bbox [18.7, 18.7, 92.6]  bed    43.2 mm2  overhang>45    24.3 mm2
 drill_leg_R_auger    bbox [18.7, 18.7, 92.6]  bed    43.2 mm2  overhang>45    24.3 mm2
-coupler_L            bbox [7.0, 28.0, 6.4]  bed   108.3 mm2  overhang>45    54.5 mm2
-coupler_R            bbox [7.0, 28.0, 6.4]  bed   108.3 mm2  overhang>45    54.5 mm2
+coupler_L            bbox [7.0, 28.0, 6.4]  bed   108.3 mm2  overhang>45    52.7 mm2
+coupler_R            bbox [7.0, 28.0, 6.4]  bed   108.3 mm2  overhang>45    52.7 mm2
 pod_cap_L            bbox [10.0, 10.0, 1.5]  bed    69.9 mm2  overhang>45     0.0 mm2
 pod_cap_R            bbox [10.0, 10.0, 1.5]  bed    69.9 mm2  overhang>45     0.0 mm2
-righting_leg         bbox [121.9, 36.4, 12.1]  bed   251.0 mm2  overhang>45   464.1 mm2
-leg_coupler_L        bbox [6.0, 7.0, 5.5]  bed    22.2 mm2  overhang>45    15.4 mm2
-leg_coupler_R        bbox [6.0, 7.0, 5.5]  bed    22.2 mm2  overhang>45    15.4 mm2
+righting_leg         bbox [121.9, 36.4, 12.1]  bed   251.0 mm2  overhang>45   463.2 mm2
+leg_coupler_L        bbox [6.0, 7.0, 5.5]  bed    22.2 mm2  overhang>45    14.5 mm2
+leg_coupler_R        bbox [6.0, 7.0, 5.5]  bed    22.2 mm2  overhang>45    14.5 mm2
 leg_plug_L           bbox [7.5, 6.8, 6.6]  bed    11.1 mm2  overhang>45    28.5 mm2
 leg_plug_R           bbox [7.5, 6.8, 6.6]  bed    11.1 mm2  overhang>45    28.5 mm2
 ALL STEP VALID
@@ -53,12 +53,13 @@ ALL STEP VALID
     fid = stack.enter_context(open(os.fspath(file), "rb"))
                               ~~~~^^^^^^^^^^^^^^^^^^^^^^^
 FileNotFoundError: [Errno 2] No such file or directory: 'out34/foot_auger.npz'
-coupon 10.938989345358225 cm3
+coupon 16.513864963904307 cm3; pegs 0.5619366636083845 cm3
 {'x': 141.0, 'keel_free': 71.4, 'keel_bundle': 0.0, 'keel_wires': 0, 'top_free': 71.4, 'top_bundle': 0.0, 'top_wires': 0}
-worst keel fill (0.33, 121.0)  worst top fill (0.12, 121.0)
+worst keel fill (0.27, 122.0)  worst top fill (0.1, 120.0)
 WIRE ROOM OK
 ok
-assembly parts: 50 132207 kB
+assembly parts: 50 134810 kB
 ok
 run sheet pack_v34/KEDGE_v34_run_sheet.pdf
 report pack_v34/KEDGE_v34_engineering_report.pdf
+PIPELINE EXIT 0

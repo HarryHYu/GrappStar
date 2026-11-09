@@ -100,7 +100,7 @@ Measured currents at 8 V (bench, INA219)
 | Caddx Ant nano camera | 1 | in hand |
 | HGLRC Zeus nano VTX (25 mW) | 1 | in hand |
 | BetaFPV u.FL 5.8 GHz antenna | 1 | in hand (antenna sits at z 12.8 in the tail) |
-| 15 g nose ballast (lead/tungsten putty in the nose cavity, fills from tip to x≈13.7) | 1 | needed for stable flight |
+| 14.6 g nose ballast (lead/tungsten putty, v34: in the nose round and under the camera tube up to the collar at x 13.2) | 1 | in hand (15 g); helps flight |
 | Rover side: Lockmaner RC832 receiver, DIGITNOW USB AV capture | 1 each | ordered |
 | Bench: Zeee 3S LiPo, iMax B6 clone, XT60 lead #1 10 A fuse, XT60 lead #2 20 A fuse (reel) | | built |
 
@@ -158,37 +158,54 @@ CONVENTIONS (new): moving roots in parts.json carry "sgn" (rotation sign about +
 "righting_leg"; P.KICK_DEG is kept as an alias of P.LEG_DEG for old tools. v34 audit belly rule: below z -5 (the launcher cradle ring
 tops) nothing between the hull and r 26.
 PODS AT THE TAIL: pivot x 132, z 9.5 (study x 140, z 10: x 132 leaves room for the leg pad in front of the flat tail face the pusher
-needs; z 9.5 with the putty puts the CG on the axis), drill axis |y| 31.15, folded FORWARD along the flanks, deploy solved 46.75 deg
+needs; z 9.5 keeps the CG near the axis), drill axis |y| 31.15, folded FORWARD along the flanks, deploy solved 46.75 deg
 (the motor end inside the hub 0.5 above flat ground), drills 43.5 mm deep entering the soil about 106 from the nose tip. v33 arms and
 tapered gimlets, built pointing +x and mirrored (hands kept: left pod right-hand, DRILL_SIGN +1). One deploy N20 on the axle at
-(132, 0, 9.5), motor pointing DOWN in the tray's rear cradle (the worm box rests on the tube's front/back walls), v33 PPA-CF couplers
-(D socket with 0.2 radial play) running in the pivot-block bores, pod caps + M3 x 8. Pivot blocks: v33 method mirrored (deploy stop
+(132, 0, 9.5), motor pointing DOWN in the tray's rear cradle (the worm box rests on the tube's front/back walls), PPA-CF couplers
+running in the pivot-block bores, pod caps + M3 x 8. dart-cad5: every coupler is a PRESS FIT with CA, no play (stub socket Ø3.05 with the
+flat 1.03 from the axis on the Ø3.0 N20 stub; arm-head D bore 7.05 on the Ø7 coupler; cheek D bore 6.05 on the Ø6 leg coupler; set with
+the pods / leg on their fold stops and the worm driven to stall toward fold): the axle is stiff, so both pods load the one worm together
+(review section 5: median 0.13 N m, under the 0.21 stall). Fits on the fit coupon v34 row + fit_coupon_pegs.stl (PPA-CF). Pivot blocks: v33 method mirrored (deploy stop
 behind the head, fold stop under it), smaller circles, kept out of the bay. NO LATCH (Harry's update): instead the BRIDLE EYE is a lug on
 each arm head's outboard 5 mm, 3.9 forward and 6.8 below the pivot folded (behind and below it deployed, about 23 above the soil), so
 the tow pulls the pod onto its deploy stop (about half the study eye's moment: it cannot hang lower, the launcher's stop springs pass
 0.6 mm under it at the shot). Drill leads through tight Ø3 holes at x 121.5, z 16.5 (silicone).
-TETHER: bridle, two legs about 80 mm from the eye lugs (128, +-31.6, 2.7 folded) to a ring about 48 mm behind the tail; no tail boom,
-no tail cap, no boom anchor: the two hull halves have integral 2.5 tail end walls (flat pusher face, edge r 2.5).
+TETHER (dart-cad5): one piece of 1 mm Dyneema, bowline + stopper through each eye lug (128.1, +-31.65, 2.7 folded), through a small
+figure-8 loop at the end of the rover line (sliding: both legs share the pull), legs 78 mm eye to loop. Stowed on the launcher each leg runs
+past the outside of the arm head, climbs to the tail edge at 65 deg from the top (|y| 19, z 8.5), rounds the edge in a groove (1.6 wide,
+1.4 deep, r 0.8 bottom; a lead-in on the flank along the leg's approach, a rib inside the wall) and crosses the end wall in a groove to
+(|y| 4.2, z 3.2), inside the pusher's Ø14 hole; the loop sits on the axis about 26 mm behind the tail face (P.ROPE has the path). Towed,
+the legs lift out and run straight to the loop about 51 mm behind the tail (1.07 mm clear of the dart, as before). The left (ON loop)
+seat is 1.2 lower so the stowed leg passes 3.3 mm over the plug + a 10 mm wire loop; towed the leg runs about 5 mm off the skin right
+over that socket, so the shorting loop must be short and folded flat (run sheet). No tail boom, no tail cap: the two hull halves have
+integral 2.5 tail end walls (flat pusher face, edge r 2.5).
 RIGHTING LEG (no foot, no foot motor; the foot N20 is a spare): hinge x 33, z 14.5 on the centreline, swing 0 to 178 deg, bed 1.5 deg
 further on. The leg N20 (old kick motor) sits on the tray, motor pointing down, worm box in the KNUCKLE under a 0.6 skin blister (box
 top 20.5); both stubs trimmed to |y| 10.8. Fork root: a round cheek each side of the knuckle in a side pocket (|y| 7.6..11.4), keyed on a
 Ø6 PPA-CF LEG COUPLER that runs in the knuckle-wall bore and in the blind bore of a flush SKIN PLUG (Ø7.5, pressed in a counterbore,
-CA); the stub drives it through a D socket with 0.2 play; plug + worm box hold it axially. The stub slots under the knuckle (the hull
+CA); press fits with CA on the stub and in the cheek (no grub screws); plug + worm box hold it axially. The stub slots under the knuckle (the hull
 top is lowered over the tray-mounted motor) are closed by two TONGUES on the tray's leg cradle. Blade 8.5 wide, I-channel (1.3 skin, 1.5
 walls), its top IS the hull crown, flush in the dorsal groove (floor 0.15 under it = the fold stop); bridge behind the knuckle (r >= 10.2,
 swings over it). Pad = a 2 mm patch of the hull skin (+-62 deg, x 143.5..149.3) on the tail top, centre 113 from the hinge (study 128),
 about 37 wide (study 56): limited by the launcher pusher (tail face) and the folded pods' hubs. Forward of the hinge the groove becomes
 the bed the leg root lies in at the far rest (a swept saddle in the hull front and the nose top; camera lowered to z -2.4, 1.2 over it).
-LOW CG: cells IN LINE on the belly (z -10: front spring B-, 0.3 nickel BM strip between them, rear plate B+), deck 1 is the tray's
-backbone right over them, deck 2 for the VTX and MP1584, DRV#1/#2 standing beside the deploy motor, both worm motors pointing down,
-belly rails in the hull bottom with two putty pockets (BALLAST_BELLY_G, Harry's ballast putty) at x 62..116.
-SEALING / ASSEMBLY: deck 1's edges sit in a seam groove at the split (both halves clamp them, they back the seam); nose spigot + lock rib;
-the JST sockets in flank seats behind the pivot blocks (left 2-pin ON loop, right 3-pin charge), clamped by the halves; the USB-C window
-tight round the receptacle; tray prints on a flat underside (z -16). Assembly order and access: pack_v34/KEDGE_v34_run_sheet.pdf
+LOW CG: cells IN LINE on the belly (z -10: front spring B-, an AA-holder flat plate as the BM tap between them, rear plate B+), located
+by four U saddles on the tray (open 19.2 at the bottom: they slide in, the belly carries them; no belly rails any more), deck 1 is the
+tray's backbone right over them, deck 2 for the VTX and MP1584, DRV#1/#2 standing beside the deploy motor, both worm motors pointing down.
+BALLAST (dart-cad5, from the v34 physics: righting works from any attitude, the putty helps flight): P.BALLAST_G 14.6 g of Harry's putty in
+the NOSE, the lower part of the hollow round the camera tube from the front back to a 45 deg retaining collar at x 13.2 (P.BAL_XE), pressed
+in from the back before the nose goes on; part "ballast" (mass_g).
+SEALING / ASSEMBLY: deck 1's edges sit in a seam groove at the split (both halves clamp them, they back the seam); nose spigot + lock rib
+(keys the front); a TAIL KEY: deck 1 continues as a tongue into slots in both end walls (keys the unfastened tail; a lip across the split
+cannot print with both halves split face down); the JST sockets in flank seats behind the pivot blocks (left 2-pin ON loop, right 3-pin
+charge B3B-XH-A: opening 10.2, pin pocket 7.0), clamped by the halves; the USB-C window open down to the split (a tray tab fills it under
+the receptacle) so the hull top drops straight on; 8 radial M3 x 8 into solid 6 mm bosses on disc 1 (x 39.8) and the rear disc (bite
+10.1 mm3 each of 11.9 for a full 7 mm: the countersunk head takes the rest); capacitor modelled Ø8 x 12, standing on the tail key;
+tray prints on a flat underside (z -16). Assembly order and access: pack_v34/KEDGE_v34_run_sheet.pdf
 (tray populated in the open; tray into the bottom; drill leads in; hull top lowered over the stubs; 8 radial screws; pods; leg + plugs).
-Results (out34): audit CLEAN at 1 deg (leg 179 steps to 178.0, pods 48 steps to 46.75), cross sweep, ground, cradle-zone belly rule, hard stops (deploy_at_angle 0.0, deploy_horn_+2.5deg 5.23, fold_at_0 0.0, fold_lug_-3deg 5.57, kick_rest_-0.5deg 0.0, kick_rest_+2deg 58.54, leg_fold_at_0 0.0, leg_fold_-2deg 424.78), watertight, one body per printed part; ALL STEP VALID; launcher_fit FITS over 1684 states (no overlaps, the eye lugs pass 0.6 above the stop springs); wire room OK (corridor fills 0.33 / 0.12); folded bbox x -0.0-152.0, y +-40.5, z -21.0 to 21.3; printed 81.03 cm3 (100.6 g); mass 249.4 g incl. 14.6 g putty, CG folded x 87.32, z -0.15; anchored z -4.38; leg out z -0.25 (out34/mass_props.json totals). physics.py / flight_sim (dart-physics) do not run on v34 yet (they hard-code kick_leg and the foot). Righting check with the study's sim and the v34 geometry (kedge/sim_righting/v34_check): loam 40/40 righted (median 8 s), held 55 N; sand 20/20; worm peak 0.55 N m in loam (to explain).
-Review renders: out34/review/ (01-22 review34.js, h1-h3 hinge close-ups without the leg), out34/img_exploded.png and img_stage1..4
-(assembly stages), out34/audit_sheet.png, out34/sections.png. Viewer data: pub34/.
+Results (out34, dart-cad5 9 Nov): audit CLEAN at 1 deg (leg 179 steps to 178.0, pods 48 steps to 46.75), cross sweep, ground, cradle-zone belly rule, hard stops (deploy_at_angle 0.0, deploy_horn_+2.5deg 5.23, fold_at_0 0.0, fold_lug_-3deg 5.57, kick_rest_-0.5deg 0.0, kick_rest_+2deg 58.54, leg_fold_at_0 0.0, leg_fold_-2deg 449.61), watertight, one body AND one mesh shell per printed part (new check), insertion sweeps zero overlap (new: tray into the bottom, hull top onto the tray, 0.25 mm steps), screw bite 10.1 mm3 at each of the 8 screws (new table); ALL STEP VALID; launcher_fit FITS over 1684 states with the stowed rope modelled (the rope only meets base's old line model); rope checks: stowed legs in the grooves, 3.26 mm over the ON plug + 10 mm loop, towed legs 0.9 mm clear of the dart (Ø1.2 model line, unchanged geometry); wire room OK (corridor fills 0.27 / 0.10); folded bbox x 0-152, y +-40.5, z -21.0 to 21.3; printed 79.95 cm3 (99.2 g); mass 248.0 g incl. 14.6 g nose putty, CG folded x 83.14, z +0.44; anchored z -3.81; leg out x 81.14, z +0.34 (out34/mass_props.json totals). physics.py / flight_sim (dart-physics) still fail on out34 (kick_leg / foot hard-coded); dart-physics' own v34 runs: kedge/DART_PHYSICS34.md.
+Review renders: out34/review/ (01-22 review34.js; c01-c24 = the dart-cad5 fixes, views_cad5.json; h1-h3, L1-L4, R1-R6, parts/ = views_misc.json), out34/img_exploded.png and img_stage1..4
+(assembly stages), out34/audit_sheet.png, out34/sections.png. Viewer data: pub34/ (the viewer draws the stowed rope in the grooves when the pods are folded).
 
 
 v33 (7 Nov 2026, dart-cad3) = v32c with Harry's TAPERED DRILLS and a gimlet foot auger. Everything not listed here is v32c (below).

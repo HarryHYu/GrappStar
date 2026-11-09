@@ -83,8 +83,12 @@ E += [p("Tools: soldering iron, flush cutters, small files, a hacksaw or a rotar
         "a vice or clamp, a pencil (to press the putty), a luggage scale (bridle test), a multimeter.", S)]
 E += [PageBreak(), p("3. Print", H2),
       p("Bambu Studio: PLA, 0.4 nozzle, 0.16 mm layers, 4 wall loops (the 1.5 mm walls come out solid), 40% gyroid infill, top/bottom 5 layers. "
-        "Plate C in PPA-CF (hardened nozzle, dried filament). Every STL is already in its print orientation. Print the fit coupon FIRST: the press fits on it must go together by hand "
-        "with a firm push and not turn at all (see the coupon notes).")]
+        "Plate C in PPA-CF (hardened nozzle, dried filament). Every STL is already in its print orientation. Print the fit coupon FIRST.")]
+E += [p("Fit coupon: fit_coupon.stl in PLA, fit_coupon_pegs.stl (two short D pegs) in PPA-CF. On the v34 row (the last row): the Ø7 peg goes into the "
+        "Ø7.05 D hole (pod coupler in the arm head), the Ø6 peg into the Ø6.05 D hole (leg coupler in the cheek), and each peg's small D socket goes "
+        "onto a real N20 stub (Ø3.05, flat at 1.03). Every one must press on by hand with a firm push, must not turn at all, and must not fall out. "
+        "Also try the JST headers in the two seats (3-pin 10.2 tall, 2-pin 7.9). If a fit is too tight to press or it turns, tell Claude which one before "
+        "printing the parts: that bore is changed and the parts reprinted.", S)]
 rows = [["Part", "Print as", "Supports", "Box mm", "cm3"]]
 for n, r in PR["parts"].items():
     rows.append([n, r.get("orient") or "", r.get("supports") or "", " x ".join(str(round(v)) for v in (r.get("print_bbox") or [])), r.get("volume_cm3")])
@@ -149,7 +153,8 @@ E += [p("6.6 Righting leg (press fits, CA)", H3)] + steps([
     "Press the two skin plugs in flush (a drop of CA). Their blind bores hold the couplers and carry the leg.",
     "Power the leg motor slowly: the leg swings over the top to its bed in the nose (about 178°) and back flush into the groove. Wiggle it: nothing may move."])
 E += [p("7. Function test", H2)] + steps([
-    "ON plug in (keep its wire loop short and flat against the flank: the left bridle leg passes over it): XIAO and video up, IMU reads level belly down.",
+    "ON plug: make its shorting loop from a short wire so it folds flat down against the flank, and tape it there (towed, the left bridle leg runs about "
+    "5 mm off the skin right over this socket; a loop sticking out could be pulled and switch the dart off). Plug in: XIAO and video up, IMU reads level.",
     "Key 1: the drills swing DOWN, key 2: the leg lifts off the tail and swings over the nose (else swap that motor's leads at DRV#1, 5.6). Pods down to the stops with the drills spinning (left and right counter-rotate), then up.",
     "Service: pry the two skin plugs, pull the leg couplers (CA: they may need a twist), remove the 8 radial screws and lift the hull top. Everything is reachable."])
 E += [p("8. Bridle", H2)] + steps([

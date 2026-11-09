@@ -46,7 +46,7 @@ E += [p("1. Summary", H2), tbl([
     ["Collision sweep", ("CLEAN" if clean else "NOT CLEAN") + f": righting leg 0 to {A['kick_range'][1]}° in {A['kick_steps']} steps, pods 0 to {A['deploy_range'][1]}° in {A['deploy_steps']} steps, leg x pod cross sweep, every sub-part, exact meshes"],
     ["Hard stops (mm³ of overlap just past each end)", ", ".join(f"{k} {v}" for k, v in A['hard_stops_mm3'].items())],
     ["Drills", f"deploy {P['DEPLOY_DEG']}° (solved: the motor end in the hub stays 0.5 above flat ground), {A['auger_depth_mm'].get('drill_leg_L_auger')} mm deep, entering the soil about {P['DRILL_X'] - 26:.0f} mm from the nose tip (near the tail)"],
-    ["Launcher fit", ("FITS" if LF and not fails else ("DOES NOT FIT: " + ", ".join(fails)) if LF else "not run") + f" over {LF.get('states', '?')} launcher states (base/cad/parts/launch.py, parked); the bridle needs base changes (section 5)"],
+    ["Launcher fit", ("FITS" if LF and not fails else ("DOES NOT FIT: " + ", ".join(fails)) if LF else "not run") + f" over {LF.get('states', '?')} launcher states (base/cad/parts/launch.py, parked), the stowed bridle included (section 5)"],
     ["Wire room", f"left corridor worst fill {WR.get('worst_keel_fill')}, right {WR.get('worst_top_fill')} (bundle area over free area; under 0.6 is fine)"],
     ["Printed parts", f"{A['printed_cm3']} cm³, every printed part watertight and one body"]], [45, 130])]
 E += [p("2. Layout and why", H2)] + [p("• " + t, S) for t in [

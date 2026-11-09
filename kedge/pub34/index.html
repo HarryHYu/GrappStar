@@ -32,6 +32,7 @@
   <div class="row"><label>Section cut</label><select id="cax"><option value="y">across (Y)</option><option value="x">along (X)</option><option value="z">level (Z)</option></select></div>
   <input type="range" id="cut" min="-45" max="160" value="160">
   <div class="row"><input type="checkbox" id="ground" checked><label for="ground">Ground plane (dart lying flat)</label></div>
+  <div class="row"><input type="checkbox" id="rope" checked><label for="rope">Tether: bridle legs, knot, line to the rover</label></div>
   <div class="row"><input type="checkbox" id="elec" checked><label for="elec">Bought parts (motors, boards, cells)</label></div>
   <div class="row"><input type="checkbox" id="hull" checked><label for="hull">Hull and nose</label></div>
   <h2>Simulation</h2>
@@ -61,7 +62,9 @@ scene.add(new THREE.HemisphereLight(0xffffff,0x555566,0.85));
 const dl=new THREE.DirectionalLight(0xffffff,0.75);dl.position.set(120,-220,320);scene.add(dl);
 const dl2=new THREE.DirectionalLight(0xffffff,0.35);dl2.position.set(-150,200,-80);scene.add(dl2);
 const clip=new THREE.Plane(new THREE.Vector3(0,-1,0),160);
-const parts=[];let J,P,ground;
+const parts=[];let J,P,ground,ROPE=null;
+let BRIDLE_L=80;   // each bridle leg, eye to knot (mm); v34 cad5: P.BRIDLE_L
+function seg(m,a,b){const d=b.clone().sub(a),L=d.length();m.scale.set(1,L,1);m.position.copy(a).addScaledVector(d,0.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());}
 // orbit camera
 const orb={t:new THREE.Vector3(75,0,0),r:330,az:-1.05,el:0.42};
 function place(){const c=Math.cos(orb.el);cam.position.set(orb.t.x+orb.r*c*Math.cos(orb.az),orb.t.y+orb.r*c*Math.sin(orb.az),orb.t.z+orb.r*Math.sin(orb.el));cam.lookAt(orb.t);}
@@ -100,6 +103,17 @@ Promise.all([fetch('parts.json').then(r=>r.json()),fetch('meshes.json').then(r=>
     `Ground: nothing but the augers goes below z = ${J.ground}. ${A.foot_housing_clear_mm!=null&&A.auger_depth_mm.foot_auger!=null?'Foot housing clear '+A.foot_housing_clear_mm+' mm, ':''}pods clear ${Object.values(A.pod_clear_mm)[0]} mm. Auger depth: ${A.auger_depth_mm.foot_auger!=null?'foot '+A.auger_depth_mm.foot_auger+' mm, ':''}drills ${A.auger_depth_mm.drill_leg_L_auger} mm.<br>`+
     `${J.parts.some(p=>p.joint==='leg')?'Belly: nothing in the launcher cradle zone (below z -5, out to r 26).':'Belly below the centreline: plain Ø42 cylinder.'} Folded envelope ${(A.folded_bbox[3]-A.folded_bbox[0]).toFixed(0)} × ${(A.folded_bbox[4]-A.folded_bbox[1]).toFixed(0)} × ${(A.folded_bbox[5]-A.folded_bbox[2]).toFixed(0)} mm (incl. tether eye and folded legs).<br>Printed ${A.printed_cm3} cm³ ≈ ${A.printed_g_solid_PLA} g PLA if solid.`;}
   if(J.parts.some(p=>p.joint==='leg')){const kb=document.querySelector('[data-v=kick]');if(kb)kb.textContent='Leg hinge';}
+  if(P.EYE_FWD!=null&&J.parts.some(p=>p.joint==='leg')){          // v34 tether: a 1 mm Dyneema bridle from the two arm-head eye lugs to a knot, then the line to the rover
+    const rm=new THREE.MeshStandardMaterial({color:0xf2b705,roughness:0.5,clippingPlanes:[clip]});
+    const cg=new THREE.CylinderGeometry(0.6,0.6,1,10);ROPE={g:new THREE.Group(),legs:[new THREE.Mesh(cg,rm),new THREE.Mesh(cg,rm)],line:new THREE.Mesh(cg,rm),knot:new THREE.Mesh(new THREE.SphereGeometry(1.8,16,12),rm),eyes:[]};
+    ROPE.g.add(...ROPE.legs,ROPE.line,ROPE.knot);scene.add(ROPE.g);if(P.BRIDLE_L)BRIDLE_L=P.BRIDLE_L;
+    if(P.ROPE&&P.ROPE.left){ROPE.stow=[];for(const sg of [1,-1]){const cp=new THREE.CurvePath();const pts=P.ROPE.left.concat([P.ROPE.knot_stowed]).map(q=>new THREE.Vector3(q[0],sg*q[1],q[2]));
+      for(let i=0;i<pts.length-1;i++)cp.add(new THREE.LineCurve3(pts[i],pts[i+1]));const tm=new THREE.Mesh(new THREE.TubeGeometry(cp,240,P.ROPE.rope_d/2,8,false),rm);
+      const ek=new THREE.Mesh(new THREE.SphereGeometry(P.ROPE.eye_knot_r,14,10),rm);ek.position.set(P.ROPE.eye_knot[0],sg*P.ROPE.eye_knot[1],P.ROPE.eye_knot[2]);
+      ROPE.g.add(tm,ek);ROPE.stow.push(tm,ek);}}   // stowed legs in the tail grooves (folded pods only)
+    for(const n of ['drill_leg_L','drill_leg_R']){const q=parts.find(x=>x.p.name===n);if(!q)continue;const e=new THREE.Object3D();
+      e.position.set(-P.EYE_FWD,Math.sign(q.p.pos[1])*0.5,-P.EYE_DROP);q.piv.add(e);ROPE.eyes.push(e);}
+  }
   pose();view('all');
 });
 function pose(){
@@ -118,6 +132,12 @@ function pose(){
     piv.position.copy(q.base).addScaledVector(off,ex);
     const mv=MOVE(n,p);if(mv==='k')piv.rotation.y=SGN(n,p)*THREE.MathUtils.degToRad(k);else if(mv==='d')piv.rotation.y=SGN(n,p)*THREE.MathUtils.degToRad(d);
   }
+  if(ROPE&&ROPE.eyes.length===2){ROPE.g.visible=$('#rope').checked&&ex===0;
+    if(ROPE.g.visible){scene.updateMatrixWorld(true);const E=ROPE.eyes.map(e=>e.getWorldPosition(new THREE.Vector3()));
+      const mid=E[0].clone().add(E[1]).multiplyScalar(0.5),h=E[0].distanceTo(E[1])/2,K=mid.clone();K.x+=Math.sqrt(Math.max(1,BRIDLE_L*BRIDLE_L-h*h));
+      const stow=ROPE.stow&&d<0.5;if(ROPE.stow)ROPE.stow.forEach(m=>m.visible=stow);ROPE.legs.forEach(m=>m.visible=!stow);
+      if(stow)K.set(...P.ROPE.knot_stowed);else{seg(ROPE.legs[0],E[0],K);seg(ROPE.legs[1],E[1],K);}ROPE.knot.position.copy(K);
+      const T=K.clone().add(new THREE.Vector3(Math.cos(0.05),0,Math.sin(0.05)).multiplyScalar(170));seg(ROPE.line,K,T);}}
 }
 const VIEWS={all:[75,0,0,330,-1.05,0.42,0,0],dep:[40,0,-5,360,-0.75,0.25,1,1],kick:[30,10,25,120,-0.6,0.35,0,0],pod:[80,30,5,170,0.9,0.25,0,1],tray:[85,0,0,200,-1.2,0.5,0,0],tail:[150,0,0,140,-0.4,0.25,0,0]};
 function view(v){const a=VIEWS[v];orb.t.set(a[0],a[1],a[2]);orb.r=a[3];orb.az=a[4];orb.el=a[5];
@@ -125,6 +145,7 @@ function view(v){const a=VIEWS[v];orb.t.set(a[0],a[1],a[2]);orb.r=a[3];orb.az=a[
   if(isLeg&&v==='dep')orb.t.set(95,0,-5);if(isLeg&&v==='kick')orb.t.set(P.LEG_X,0,15);if(isLeg&&v==='pod')orb.t.set(P.DRILL_X-12,P.DRILL_PIV_Y,5);
   if(v==='dep'){$('#kick').value=isLeg?0:P.KICK_DEG;$('#dep').value=P.DEPLOY_DEG;}else if(v==='all'){$('#kick').value=0;$('#dep').value=0;}
   if(v==='tray'){$('#hull').checked=false;}else $('#hull').checked=true;pose();}
+$('#rope').onchange=pose;
 document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>view(b.dataset.v));
 ['kick','dep','exp','cut','ground','elec','hull','cax'].forEach(id=>$('#'+id).addEventListener('input',pose));
 $('#cax').addEventListener('change',()=>{const ax=$('#cax').value;const r=ax==='x'?[-5,160,160]:ax==='y'?[-45,45,45]:[-30,80,80];$('#cut').min=r[0];$('#cut').max=r[1];$('#cut').value=r[2];pose();});

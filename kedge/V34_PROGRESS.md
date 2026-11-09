@@ -51,3 +51,28 @@ dist_v34, pub34, review shots in out34/review/. Never touch kedge/reports/ (anot
 - eye lugs hang to z -7.4 at |y| 29-34 (outside the cradle rings); bridle path past the carriage needs base changes (notes).
 - worm peak 0.55 N m in loam in the sim (which joint/phase unknown); the real eye lug gives about half the study eye's moment.
 - physics.py / flight_sim.py / dart_model.py (dart-physics) need the sgn/joint convention and no foot.
+
+## dart-cad5 (9 Nov, review fixes; kedge/out34/REVIEW_v34.md)
+- B1 putty: belly pockets and belly rails REMOVED; the putty is in the NOSE (physics: helps flight, righting works anyway): 14.6 g round and
+  under the camera tube up to a 45 deg collar at x 13.2, pressed in from the back before the nose goes on. Part "ballast" (mass_g).
+  New permanent audit check: every printed part's npz mesh is ONE shell (trimesh split == 1).
+- B2 right seat: 3-pin B3B-XH-A at true size (9.9), opening 10.2, pin pocket 7.0; opening corners r 0.4.
+- B3 screws: 6 mm bosses at all 8 stations (disc-1 station x 39.8 to clear the XIAO), pilot Ø2.5 1.5 deeper than the tip with 1.5+ walls;
+  corridor windows stop at z -6 under the lower bosses; seat pocket no longer 0.5 too deep; M3 x 8 modelled at its true 8 mm. Audit table
+  screw_bite_mm3: 10.1 each (full 7 mm bite 11.9; the countersunk head takes the rest).
+- Tail seam: a lip across the split cannot print (both halves print split face down), so deck 1 continues as a TAIL KEY into slots in
+  both end walls; the front is keyed by the nose spigot + lock rib. Stale "seam lip" print note removed.
+- B4 + worm load: press-fit couplers (stub socket 3.05 / flat 1.03, arm-head D bore 7.05, cheek D bore 6.05), CA, set on the fold stops
+  with the worm at stall toward fold. Coupon v34 row + fit_coupon_pegs.stl.
+- B5 bridle: tail grooves (65 deg rim, end wall to |y| 4.2 z 3.2), loop on the axis about 26 mm behind the tail face; left ON seat 1.2 lower
+  (stowed leg 3.3 mm over the plug + 10 mm loop). launcher_fit models the rope over every base state; rope_checks (stowed in grooves,
+  plug clearance, anchored legs 1.07 mm clear). Towed, the left leg runs 5 mm off the skin over the ON socket: short flat loop (run sheet).
+- Cells: U saddles open 19.2 at the bottom (legs to the print plane). USB-C: notch to the split + tray tab; audit insertion sweeps
+  (tray into bottom, top onto tray, 0.25 mm steps) report zero overlap. Capacitor Ø8 x 12 on the tail key. Grub-screw note gone;
+  righting leg brim 5 mm. Run sheet: putty, press fits, direction check, pods to stall before loading, hull top straight down, bridle.
+- FINAL out34 (dart-cad5): audit CLEAN at 1 deg (new checks: one shell per part, insertion sweeps zero, screw bite 10.1 each), launcher_fit
+  FITS with the rope (rope checks ok: plug 3.26 mm, towed 0.9 mm), ALL STEP VALID, wire room OK (0.27). Mass 248.0 g incl. 14.6 g nose putty,
+  CG folded x 83.14, z +0.44; anchored z -3.81; leg out z +0.34. Printed 79.95 cm3. Renders out34/review/c01-c24 (views_cad5.json).
+- Open: towed, the left leg runs about 5 mm off the skin over the ON socket (short flat shorting loop, taped: run sheet 7.1); bite 10.1 of
+  11.9 mm3 (M3 x 8 countersunk through the 1.5 wall: the head takes the rest; an M3 x 10 would give the full 7 mm).
+

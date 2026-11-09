@@ -20,22 +20,22 @@ dist_v34, pub34, review shots in out34/review/. Never touch kedge/reports/ (anot
 - Bridle eye: a lug on each arm head's outboard half hanging below the pivot (14 mm), so the tow pushes the pod into
   its deploy stop (moment about like the study's eye, worm unloaded).
 - Tail boom, tail cap, boom anchor, foot, foot N20 removed. Hull halves have integral tail end walls (flat pusher face);
-  the two JST sockets move to the tail end face lobes (|y| 11.5-17.3, outside the pusher's |y| < 11).
+  the two JST sockets move to recessed seats in the tail flanks under the pad (plug in sideways; the end face stays flat for the pusher and its seat pushrod).
 - Righting leg: hinge on the top centreline x 33, z 15; leg N20 box coaxial at y 0 in a knuckle just under the skin
   (motor pointing down), fork root (two cheeks in side pockets) on two couplers (Ø6 PPA-CF, D-socket on the stubs
   trimmed to 5 mm past the box), couplers run in hull bores; blade flush in a top groove; pad = flush arch strap on the
   tail top (x 143.5-149.3). Far stop 178 deg = the leg lying in the groove forward of the hinge (flute in the nose top).
 - Low CG: 2 cells IN LINE on the keel (z -10), boards on decks over them, both N20 motors pointing down.
 
-## Status
-- [x] kedge_v34.py geometry builds in about 60 s (work/v34a = scratch build; `KOV='{"DEPLOY_DEG":46.75}'` = solved angle)
-- [x] tools updated for signs: parts.json moving roots carry "sgn" (-1 for both groups) and "joint" ("leg" / "deploy");
-      audit27.py, solve_deg.py, clearance.py, massprops.py, viewer.html read them. Leg part = "righting_leg" (P.KICK_DEG = P.LEG_DEG alias).
-      audit belly rule (v34): below z -5 nothing between the hull and r 26 (the launcher cradle rings are r 21.4-23.4 up to z -5).
-- [x] coarse audit (10/5 deg) CLEAN apart from fixed items (rerun at 1 deg in the pipeline)
-- [ ] visual polish (forward trough at the hinge, flank socket openings, coupler ends, blade edges)
-- [ ] launcher fit (eye lugs, bridle path), pack.py / runsheet.py / report.py / wires.py / wireroom.py for the v34 parts
-- [ ] full pipeline `GEN=kedge_v34.py ./run_all.sh out34 v34 1 1`, pub34, make_dist v34, CLAUDE.md section 5, DART_V31_NOTES
+## Status (9 Nov, late)
+- [x] geometry, tools (sgn/joint), coarse + 1 deg audit CLEAN, launcher fit FITS (1684 states), ALL STEP VALID, wire room OK
+- [x] polish: flush skin plugs, swept forward bed, tapered blade flaring into the pad, rounded socket seats, eye lugs above the
+      launcher stop springs, tray on a flat print base
+- [x] v34 tools: wires34.py (45 wires), wireroom corridors, runsheet34.py, report34.py, extra_shots stages, mkpub.sh, ovl.py, qrender.py
+- [x] CLAUDE.md section 5 v34 block (results line to fill), DART_V31_NOTES entries for dart-physics, dart-fw, base
+- [ ] final pipeline run after the taper (started), then: ./mkpub.sh out34 pub34; node pubshots.js pub34 out34;
+      GEN=kedge_v34.py ./make_dist.sh v34; fill CLAUDE.md results; commit out34, pack_v34 (assembly STEP via LFS), dist_v34, pub34
+- physics.py / flight_sim (dart-physics files) fail on out34 (they hard-code kick_leg / foot_auger): asked dart-physics in the notes.
 
 ## Key numbers (work/v34a, 9 Nov)
 - mass 250.6 g incl. 14.6 g belly putty (Harry's ballast putty in two belly-rail pockets), CG folded x 87.5, z -0.12;

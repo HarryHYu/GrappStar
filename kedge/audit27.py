@@ -169,7 +169,70 @@ if hull_top is not None and "HORN_GAP" in P:
         stop_ok = stop_ok and stops["leg_fold_at_0"] == 0 and stops["leg_fold_-2deg"] > 1
     stops["ok"] = bool(stop_ok)
 rep["hard_stops_mm3"] = stops
+# 9 shells (dart-cad5): every printed part's saved mesh must be ONE shell, no inner voids (the B-rep solid count above missed sealed
+# pockets inside a part). trimesh split on the npz mesh as saved.
+shells = {}
+for p in J["parts"]:
+    if not p["printable"]: continue
+    v, f = RAW[p["name"]]
+    shells[p["name"]] = len(trimesh.Trimesh(v, f, process=False).split(only_watertight=False))
+rep["shells"] = shells
+rep["multi_shell"] = [n for n, k in shells.items() if k != 1]
+# 10 insertion sweeps (v34 assembly order): the populated tray (with the nose and camera on its wires) lowered into the hull bottom
+# (putty and the two JST headers already in it), then the hull top lowered straight down over everything, both from +30 mm in 0.25 mm steps
+INS = {}
+if "LEG_DEG" in P:
+    TRAYSET = [n for n in ("tray", "n20_leg", "leg_shaft", "n20_deploy", "deploy_shaft", "xiao", "drv8833_1", "drv8833_2", "ina219", "bno085",
+                           "mp1584", "vtx", "bms_2s", "cell_1", "cell_2", "contacts_front_spring", "contacts_mid_strip", "contacts_rear_plate",
+                           "antenna", "xiao_antenna", "capacitor", "nose", "camera", "ballast") if n in PP]
+    BOTSET = [n for n in ("hull_bottom", "jst_loop", "jst_charge") if n in PP]
+    def world0(n):                       # folded pose, legs at 0 (leg_shaft rides with the leg N20, deploy_shaft with the deploy N20)
+        T = np.eye(4); q = PP[n]
+        chain = []
+        while True:
+            chain.append(q)
+            if not q.get("parent"): break
+            q = PP[q["parent"]]
+        for q in chain[::-1]: T = T @ TM(q["pos"])
+        return xf(n, T)
+    MFW = {n: to_mf(*world0(n)) for n in TRAYSET + BOTSET + ["hull_top"]}
+    BB = {n: (np.array(MFW[n].bounding_box()[:3]), np.array(MFW[n].bounding_box()[3:])) for n in MFW}
+    steps = np.arange(30.0, -0.001, -0.25)
+    def sweep(moving, fixed):
+        worst = {}
+        for dz in steps:
+            for a in moving:
+                lo_a, hi_a = BB[a][0] + [0, 0, dz], BB[a][1] + [0, 0, dz]
+                ma = None
+                for b in fixed:
+                    lo_b, hi_b = BB[b]
+                    if (lo_a > hi_b).any() or (lo_b > hi_a).any(): continue
+                    if ma is None: ma = MFW[a].translate((0, 0, float(dz)))
+                    vv = float((ma ^ MFW[b]).volume())
+                    if vv > worst.get(f"{a} | {b}", (0.0,))[0]: worst[f"{a} | {b}"] = (round(vv, 3), round(float(dz), 2))
+        return worst
+    INS["tray_into_bottom"] = sweep(TRAYSET, BOTSET)
+    INS["top_onto_tray"] = sweep(["hull_top"], TRAYSET + BOTSET)
+    INS["eps_mm3"] = 0.05
+rep["insertion_mm3_at_dz"] = INS
+ins_bad = {k: {pp: v for pp, v in d.items() if v[0] > 0.05} for k, d in INS.items() if isinstance(d, dict)}
+ins_bad = {k: v for k, v in ins_bad.items() if v}
+rep["insertion_bad"] = ins_bad
+# 11 radial screw bite: overlap of a Ø2.9 x 7 shank (the 7 mm next to the tip) with the tray, per screw (a full 7 mm bite in solid = 11.8 mm3)
+bite = {}
+if "SCREWS" in P and "tray" in PP:
+    trm = to_mf(*FIXED["tray"])
+    for x_, sy, z_, yt in P["SCREWS"]:
+        c = trimesh.creation.cylinder(radius=1.45, height=7.0, sections=72)
+        c.apply_transform(RM(math.pi / 2, [1, 0, 0])); c.apply_transform(TM([x_, yt + sy * 3.5, z_]))
+        bite["x %.1f %s z %+.0f" % (x_, "left" if sy > 0 else "right", z_)] = round(float((to_mf(c.vertices, c.faces) ^ trm).volume()), 1)
+rep["screw_bite_mm3"] = bite
+rep["screw_bite_full_7mm_mm3"] = round(math.pi * (1.45 ** 2 - 1.25 ** 2) * 7.0, 1)
 json.dump(rep, open(OUT + "/audit.json", "w"), indent=1)
 print(json.dumps(rep, indent=1))
+print("screw bite (mm3, Ø2.9 x 7 shank vs the tray; full 7 mm bite = %.1f):" % rep["screw_bite_full_7mm_mm3"])
+for k, v in bite.items(): print("  %-22s %5.1f" % (k, v))
+print("shells per printed part:", "all 1" if not rep["multi_shell"] else rep["multi_shell"])
+print("insertion sweeps:", "zero overlap" if not ins_bad else ins_bad)
 print("CLEAN" if not hits and not gbad and not belly and not rep["folded_min_z_below_ground"] and not rep["watertight_fail"] and not rep["multi_body"]
-      and stops.get("ok", True) else "NOT CLEAN")
+      and not rep["multi_shell"] and not ins_bad and stops.get("ok", True) else "NOT CLEAN")

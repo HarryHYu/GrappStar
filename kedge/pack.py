@@ -37,11 +37,12 @@ SUPPORT = {   # what the slicer must do (Bambu Studio, PLA, 0.4 nozzle, 0.2 laye
     "drill_leg_L_tip": "none (spigot down)", "drill_leg_R_tip": "none (spigot down)",
     "tail_boom": "PPA-CF, lying on its side, no supports (the shank bridges 12 mm)", "boom_anchor": "PPA-CF, flat, no supports",
 }
-SUPPORT.update({"righting_leg": "upside down (the blade crown on the bed, cheeks up); tree supports under the two ends of the pad arch only; 4 walls",
+SUPPORT.update({"righting_leg": "upside down (the blade crown on the bed, cheeks up); BRIM 5 mm (the crown touches the bed along a 5 mm strip only); tree supports under the two ends of the pad arch only; 4 walls",
                 "leg_coupler_L": "PPA-CF, lying on the D flat, no supports", "leg_coupler_R": "PPA-CF, lying on the D flat, no supports",
                 "leg_plug_L": "none (flat inner face down)", "leg_plug_R": "none (flat inner face down)",
-                "tray": "none (flat underside down: saddle feet, disc bottoms, cradle tubes); deck 1 and deck 2 bridge, enable 'thick bridges'"})
+                "tray": "none (flat underside down: U saddle legs, disc bottoms, cradle tubes, the tail key's web); deck 1 and deck 2 bridge, enable 'thick bridges'"})
 if "righting_leg" in PP:
+    SUPPORT["nose"] = "none (tip down: cone walls under 45 deg, the putty collar has a 45 deg underside)"
     SUPPORT["hull_top"] = "tree supports ON, build plate only: the inner roof of the half shell and under the knuckle and groove floors; the pivot blocks print without (arc outlines)"
 QTY = {k: 1 for k in ORIENT}
 def load(n):

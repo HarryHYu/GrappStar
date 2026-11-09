@@ -127,6 +127,13 @@
   "GROOVE_W": 1.6,
   "GROOVE_D": 1.4,
   "BRIDLE_L": 78.0,
+  "TETHER": "tail",
+  "TIE_Y": [
+   1.6,
+   5.4
+  ],
+  "TIE_Z": -2.4,
+  "TIE_D": 2.0,
   "LOOP_DZ": -1.2,
   "CAP_D": 8.0,
   "CAP_L": 12.0,
@@ -222,124 +229,26 @@
     -14.6
    ]
   },
-  "ROPE": {
-   "left": [
+  "TIE": {
+   "holes": [
     [
-     128.1,
-     31.65,
-     2.7
+     152.0,
+     1.6,
+     -2.4
     ],
     [
-     128.1,
-     36.0,
-     2.7
-    ],
-    [
-     137.442,
-     34.734,
-     4.537
-    ],
-    [
-     137.686,
-     34.683,
-     4.585
-    ],
-    [
-     137.921,
-     34.599,
-     4.634
-    ],
-    [
-     138.142,
-     34.484,
-     4.682
-    ],
-    [
-     138.345,
-     34.339,
-     4.731
-    ],
-    [
-     138.526,
-     34.168,
-     4.779
-    ],
-    [
-     138.681,
-     33.973,
-     4.828
-    ],
-    [
-     149.5,
-     18.307,
-     8.537
-    ],
-    [
-     149.94,
-     18.255,
-     8.512
-    ],
-    [
-     150.35,
-     18.101,
-     8.441
-    ],
-    [
-     150.702,
-     17.856,
-     8.326
-    ],
-    [
-     150.972,
-     17.537,
-     8.178
-    ],
-    [
-     151.142,
-     17.165,
-     8.004
-    ],
-    [
-     151.2,
-     16.767,
-     7.818
-    ],
-    [
-     151.2,
-     4.2,
-     3.2
+     152.0,
+     5.4,
+     -2.4
     ]
    ],
-   "knot_stowed": [
-    177.75,
-    0.0,
-    0.0
+   "knot": [
+    154.2,
+    3.5,
+    -2.4
    ],
-   "knot_behind_tail_mm": 25.8,
-   "stowed_len_mm": 78.0,
-   "eye_deployed": [
-    134.28,
-    31.65,
-    2.0
-   ],
-   "leg_start_deployed": [
-    134.28,
-    36.0,
-    2.0
-   ],
-   "knot_deployed": [
-    203.48,
-    0.0,
-    2.0
-   ],
-   "knot_deployed_behind_tail_mm": 51.5,
-   "rope_d": 1.2,
-   "eye_knot": [
-    128.1,
-    36.45,
-    2.7
-   ],
-   "eye_knot_r": 2.2,
+   "hole_d": 2.0,
+   "line_d": 1.2,
    "knot_r": 2.0
   },
   "BAL_XE": 13.24,
@@ -509,7 +418,7 @@
     0,
     0
    ],
-   "note": "Clamshell upper half with the integral tail end wall: skin; the dorsal groove where the righting leg lies flush (its floor is the leg's fold stop), the knuckle (a 0.6 mm blister over the leg N20's worm box), two side pockets for the leg's cheeks, the couplers' bores through the knuckle walls and the outer walls, the flute forward of the hinge (far rest 179.5 deg), the arch recess for the pad on the tail top; two faired pivot blocks (pod coupler bores; their carved faces are the deploy and fold stops); tight bores for the drill leads; the XIAO USB-C notch (open to the split, so the half drops straight on); upper halves of the two flank socket seats; the two bridle grooves (round the tail edge and across the end wall) with a rib inside behind each; the upper half of the tail key slot in the end wall. The seam is a butt joint: deck 1's edges in the seam groove, the nose spigot and the tray's tail key in the end-wall slot align the halves. Radial M3 clearance at z +3 into the bosses on disc 1 and the rear disc",
+   "note": "Clamshell upper half with the integral tail end wall: skin; the dorsal groove where the righting leg lies flush (its floor is the leg's fold stop), the knuckle (a 0.6 mm blister over the leg N20's worm box), two side pockets for the leg's cheeks, the couplers' bores through the knuckle walls and the outer walls, the flute forward of the hinge (far rest 179.5 deg), the arch recess for the pad on the tail top; two faired pivot blocks (pod coupler bores; their carved faces are the deploy and fold stops); tight bores for the drill leads; the XIAO USB-C notch (open to the split, so the half drops straight on); upper halves of the two flank socket seats; the upper half of the tail key slot in the end wall. The seam is a butt joint: deck 1's edges in the seam groove, the nose spigot and the tray's tail key in the end-wall slot align the halves. Radial M3 clearance at z +3 into the bosses on disc 1 and the rear disc",
    "parent": null,
    "printable": true,
    "orient": "split face down (on the bed), crown up",
@@ -518,7 +427,7 @@
     55.2,
     21.3
    ],
-   "volume_cm3": 15.64,
+   "volume_cm3": 15.68,
    "watertight": true,
    "nsolids": 1
   },
@@ -537,7 +446,7 @@
     0,
     0
    ],
-   "note": "Clamshell lower half with the integral tail end wall: plain \u00d842 belly (launcher cradle surface; the cells rest on it, located by the tray's U saddles), lower halves of the pivot blocks' skirts, of the two flank socket seats and of the tail key slot. Radial M3 clearance at z -3 into the bosses on disc 1 and the rear disc",
+   "note": "Clamshell lower half with the integral tail end wall: plain \u00d842 belly (launcher cradle surface; the cells rest on it, located by the tray's U saddles), lower halves of the pivot blocks' skirts, of the two flank socket seats and of the tail key slot; the two \u00d82.0 tether tie holes in the end wall (line in one, out the other, tied to itself; inside the launcher pusher's \u00d814 hole). Radial M3 clearance at z -3 into the bosses on disc 1 and the rear disc",
    "parent": null,
    "printable": true,
    "orient": "split face down, belly up",
@@ -546,7 +455,7 @@
     42.0,
     21.0
    ],
-   "volume_cm3": 14.16,
+   "volume_cm3": 14.14,
    "watertight": true,
    "nsolids": 1
   },
@@ -763,7 +672,7 @@
     0,
     46.75
    ],
-   "note": "Drill arm (rear pod, folds forward): round head pressed on the \u00d87 D coupler (flat rear face = stop face on the hull's pivot block), bridle EYE lug on the head's outboard 5 mm (\u00d83.2, 6.8 below the pivot: the tow pulls the pod into its deploy stop), short neck with the motor-lead channel, thrust shoulder for the auger hub, stationary bushing \u00d815.8 that holds the drill gearmotor by its can",
+   "note": "Drill arm (rear pod, folds forward): round head pressed on the \u00d87 D coupler (flat rear face = stop face on the hull's pivot block), spare eye lug on the head's outboard 5 mm (\u00d83.2, 6.8 below the pivot; not used: the tether ties to the tail), short neck with the motor-lead channel, thrust shoulder for the auger hub, stationary bushing \u00d815.8 that holds the drill gearmotor by its can",
    "parent": null,
    "printable": true,
    "orient": "standing on the head's flat rear face (stop face) down, no supports",
@@ -905,7 +814,7 @@
     0,
     46.75
    ],
-   "note": "Drill arm (rear pod, folds forward): round head pressed on the \u00d87 D coupler (flat rear face = stop face on the hull's pivot block), bridle EYE lug on the head's outboard 5 mm (\u00d83.2, 6.8 below the pivot: the tow pulls the pod into its deploy stop), short neck with the motor-lead channel, thrust shoulder for the auger hub, stationary bushing \u00d815.8 that holds the drill gearmotor by its can",
+   "note": "Drill arm (rear pod, folds forward): round head pressed on the \u00d87 D coupler (flat rear face = stop face on the hull's pivot block), spare eye lug on the head's outboard 5 mm (\u00d83.2, 6.8 below the pivot; not used: the tether ties to the tail), short neck with the motor-lead channel, thrust shoulder for the auger hub, stationary bushing \u00d815.8 that holds the drill gearmotor by its can",
    "parent": null,
    "printable": true,
    "orient": "standing on the head's flat rear face (stop face) down, no supports",

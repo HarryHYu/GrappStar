@@ -37,21 +37,27 @@
  },
  "fit_coupon": {
   "valid": true,
-  "solids": 6,
-  "vol_step": 10939.0,
-  "vol_stl": 10938.0
+  "solids": 7,
+  "vol_step": 16513.9,
+  "vol_stl": 16513.1
+ },
+ "fit_coupon_pegs": {
+  "valid": true,
+  "solids": 2,
+  "vol_step": 561.9,
+  "vol_stl": 561.7
  },
  "hull_bottom": {
   "valid": true,
   "solids": 1,
-  "vol_step": 14156.8,
-  "vol_stl": 14143.4
+  "vol_step": 14137.6,
+  "vol_stl": 14124.2
  },
  "hull_top": {
   "valid": true,
   "solids": 1,
-  "vol_step": 15635.8,
-  "vol_stl": 15639.9
+  "vol_step": 15680.1,
+  "vol_stl": 15683.4
  },
  "leg_coupler_L": {
   "valid": true,

@@ -170,15 +170,7 @@ behind the head, fold stop under it), smaller circles, kept out of the bay. NO L
 each arm head's outboard 5 mm, 3.9 forward and 6.8 below the pivot folded (behind and below it deployed, about 23 above the soil), so
 the tow pulls the pod onto its deploy stop (about half the study eye's moment: it cannot hang lower, the launcher's stop springs pass
 0.6 mm under it at the shot). Drill leads through tight Ø3 holes at x 121.5, z 16.5 (silicone).
-TETHER (dart-cad5): one piece of 1 mm Dyneema, bowline + stopper through each eye lug (128.1, +-31.65, 2.7 folded), through a small
-figure-8 loop at the end of the rover line (sliding: both legs share the pull), legs 78 mm eye to loop. Stowed on the launcher each leg runs
-past the outside of the arm head, climbs to the tail edge at 65 deg from the top (|y| 19, z 8.5), rounds the edge in a groove (1.6 wide,
-1.4 deep, r 0.8 bottom; a lead-in on the flank along the leg's approach, a rib inside the wall) and crosses the end wall in a groove to
-(|y| 4.2, z 3.2), inside the pusher's Ø14 hole; the loop sits on the axis about 26 mm behind the tail face (P.ROPE has the path). Towed,
-the legs lift out and run straight to the loop about 51 mm behind the tail (1.07 mm clear of the dart, as before). The left (ON loop)
-seat is 1.2 lower so the stowed leg passes 3.3 mm over the plug + a 10 mm wire loop; towed the leg runs about 5 mm off the skin right
-over that socket, so the shorting loop must be short and folded flat (run sheet). No tail boom, no tail cap: the two hull halves have
-integral 2.5 tail end walls (flat pusher face, edge r 2.5).
+TETHER (9 Nov, Harry: "keep it simple"): the rover line goes in one of two Ø2.0 holes in the middle of the tail face (hull_bottom end wall, y 1.6 and 5.4, z -2.4, inside the launcher pusher's Ø14 hole), out the other, and is tied to itself (bowline + stopper) right behind the tail; it runs straight back. Thread it BEFORE the tray goes in. The bridle grooves are gone (P.TETHER="tail"; "bridle" rebuilds the grooved bridle). The arm-head eye lugs stay as spare tie points. Cost (sim_righting/v34_check/v34_tail_tie_worm.json): with the pull on the hull the deploy worm holds the pods against the soil moment, about 0.9 N m at 55 N in loam (0.36 in sand at the 18 N slide), against 0.13 with the eye bridle: start with the reel limit about 25 N and bench-check that the unpowered worm holds about 1.5 kg pulled back at a drill tip. No tail boom, no tail cap: the two hull halves have integral 2.5 tail end walls (flat pusher face, edge r 2.5).
 RIGHTING LEG (no foot, no foot motor; the foot N20 is a spare): hinge x 33, z 14.5 on the centreline, swing 0 to 178 deg, bed 1.5 deg
 further on. The leg N20 (old kick motor) sits on the tray, motor pointing down, worm box in the KNUCKLE under a 0.6 skin blister (box
 top 20.5); both stubs trimmed to |y| 10.8. Fork root: a round cheek each side of the knuckle in a side pocket (|y| 7.6..11.4), keyed on a

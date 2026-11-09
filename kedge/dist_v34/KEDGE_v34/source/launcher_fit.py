@@ -193,6 +193,12 @@ def main():
     if "ROPE" in DP:                                 # v34 bridle: checked on its own (no reference), moving with the dart
         rc = rope_checks(OUT); print("rope checks:", json.dumps(rc))
         rope = rope_manifold(DP); darts["rope"] = rope
+    elif "TIE" in DP:                                # simple tail tie: the knot and 25 mm of line straight back from the two tail holes
+        T_ = DP["TIE"]; k_ = np.array(T_["knot"], float); r_ = T_["line_d"] / 2
+        ms_ = [m3.Manifold.sphere(T_["knot_r"], 24).translate(tuple(float(c) for c in k_)), _seg_tube(k_, k_ + np.array([25.0, 0, 0]), r_)]
+        ms_ += [_seg_tube(np.array(h, float) - np.array([0.5, 0, 0]), k_, r_) for h in T_["holes"]]
+        rope = m3.Manifold.batch_boolean(ms_, m3.OpType.Add); darts["rope"] = rope
+        rc = dict(tie=T_, ok=True)
     states = [S for S in A.extra_states if str(S.get("phase", "")).startswith("launch")]
     try:
         for S in timeline(P):

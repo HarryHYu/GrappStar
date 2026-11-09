@@ -33,8 +33,8 @@
  ],
  "belly_outside_r21": {},
  "folded_min_z_below_ground": {},
- "printed_cm3": 79.95,
- "printed_g_solid_PLA": 99.1,
+ "printed_cm3": 79.97,
+ "printed_g_solid_PLA": 99.2,
  "watertight_fail": [],
  "multi_body": [],
  "kick_range": [
@@ -46,7 +46,7 @@
   46.75
  ],
  "L": 152.0,
- "sweep_s": 97.4,
+ "sweep_s": 96.2,
  "kick_steps": 179,
  "deploy_steps": 48,
  "hard_stops_mm3": {
@@ -57,7 +57,7 @@
   "kick_rest_-0.5deg": 0.0,
   "kick_rest_+2deg": 58.54,
   "leg_fold_at_0": 0.0,
-  "leg_fold_-2deg": 449.61,
+  "leg_fold_-2deg": 433.47,
   "ok": true
  },
  "shells": {

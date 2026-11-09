@@ -4,134 +4,37 @@
  "states": 1684,
  "overlaps_new": {},
  "overlaps_ref": {},
- "overlaps_rope": {
-  "launch_line_a8": [
-   4.173,
-   "launch_sweep",
-   {
-    "aim_deg": 6.02
-   }
-  ],
-  "launch_line_a7": [
-   4.173,
-   "launch_sweep",
-   {
-    "aim_deg": 6.02
-   }
-  ],
-  "launch_line_a0": [
-   4.173,
-   "launch_sweep",
-   {
-    "aim_deg": 6.02
-   }
-  ],
-  "launch_line_a1": [
-   4.173,
-   "launch_sweep",
-   {
-    "aim_deg": 6.02
-   }
-  ],
-  "launch_line_a2": [
-   4.173,
-   "launch_sweep",
-   {
-    "aim_deg": 6.02
-   }
-  ],
-  "launch_line_a3": [
-   4.173,
-   "launch_sweep",
-   {
-    "aim_deg": 6.02
-   }
-  ],
-  "launch_line_a4": [
-   4.173,
-   "launch_sweep",
-   {
-    "aim_deg": 6.02
-   }
-  ],
-  "launch_line_a5": [
-   4.173,
-   "launch_sweep",
-   {
-    "aim_deg": 6.02
-   }
-  ],
-  "launch_line_a6": [
-   4.173,
-   "launch_sweep",
-   {
-    "aim_deg": 6.02
-   }
-  ],
-  "launch_line_p": [
-   4.173,
-   "launch_flight",
-   {
-    "aim_deg": 6.02,
-    "launch_travel": 0.0,
-    "launch_dart_fly": 20.0
-   }
-  ]
- },
+ "overlaps_rope": {},
  "rope_checks": {
-  "stowed_len_mm": 78.0,
-  "knot_behind_tail_mm": 25.8,
-  "stowed_clear_mm": {
-   "hull_top": -0.0,
-   "drill_leg_L": -0.0,
-   "drill_leg_R": -0.0,
-   "pod_cap_L": 0.62,
-   "pod_cap_R": 0.62,
-   "righting_leg": 0.75,
-   "jst_charge": 1.05,
-   "tray": 1.77
-  },
-  "stowed_inside_parts": {},
-  "plug_loop_clear_mm": 3.26,
-  "plug_loop_closest_at": [
-   142.6,
-   28.3,
-   6.2
-  ],
-  "plug_loop_clear_towed_mm": -0.6,
-  "plug_flat_loop_clear_towed_mm": 1.37,
-  "anchored_clear_mm": {
-   "hull_top": 0.9,
-   "pod_cap_L": 2.66,
-   "pod_cap_R": 2.66,
-   "hull_bottom": 3.11,
-   "tray": 9.51
-  },
-  "anchored_min_mm": 0.9,
-  "anchored_own_arm_mm": {
-   "drill_leg_L": -0.09,
-   "drill_leg_L_auger": 4.2,
-   "drill_leg_R": -0.09,
-   "drill_leg_R_auger": 4.2
+  "tie": {
+   "holes": [
+    [
+     152.0,
+     1.6,
+     -2.4
+    ],
+    [
+     152.0,
+     5.4,
+     -2.4
+    ]
+   ],
+   "knot": [
+    154.2,
+    3.5,
+    -2.4
+   ],
+   "hole_d": 2.0,
+   "line_d": 1.2,
+   "knot_r": 2.0
   },
   "ok": true
  },
  "fails": {},
- "line_model_overlaps": {
-  "rope | launch_line_a8": 4.173,
-  "rope | launch_line_a7": 4.173,
-  "rope | launch_line_a0": 4.173,
-  "rope | launch_line_a1": 4.173,
-  "rope | launch_line_a2": 4.173,
-  "rope | launch_line_a3": 4.173,
-  "rope | launch_line_a4": 4.173,
-  "rope | launch_line_a5": 4.173,
-  "rope | launch_line_a6": 4.173,
-  "rope | launch_line_p": 4.173
- },
+ "line_model_overlaps": {},
  "rest": {
   "dart_vs_carriage_mm3": 0.0,
   "dart_down_0p5_vs_carriage_mm3": 282.253
  },
- "seconds": 564
+ "seconds": 552
 }

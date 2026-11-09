@@ -51,8 +51,8 @@ E += [p(f"KEDGE dart {V}: build day run sheet", H1),
 RP = P.get("ROPE", {}); BG = P.get("BALLAST_G", 0); LG = RP.get("knot_behind_tail_mm", 26)
 E += [p("1. What is new in v34 (read once)", H2)] + [p("• " + t, S) for t in [
     "The drill pods moved to the TAIL. Folded they point forward along the flanks; deployed they swing down to a printed hard stop, so the drills go into the soil near the tail, under the tether.",
-    "The tether is a short BRIDLE: one piece of the 1 mm Dyneema from the eye lug on one pod arm, through a small loop at the end of the rover line, to the eye lug on the other arm. "
-    "The loop slides, so both legs share the pull. On the launcher each leg lies in a groove round the tail edge and across the flat tail face, and the loop sits in the pusher's middle hole.",
+    "The tether ties straight to the TAIL: the rover line goes in one of the two small holes in the middle of the tail face, out the other, and is tied to itself. "
+    "It runs straight back through the launcher pusher's middle hole. (The small eye lugs on the pod arms are spare; leave them empty.)",
     "The kick leg and the foot auger are gone. A slim RIGHTING LEG lies flush in the groove along the top; its pad is the curved strip on the tail top. It swings over the nose to flip the dart upright. The foot N20 is a spare.",
     f"{BG} g of your ballast putty goes into the NOSE, round and under the camera tube (it helps the dart fly straight).",
     "Every coupler is a PRESS FIT with a drop of CA: no play between a motor and its pods or its leg. Even half a degree of play lets one pod load the worm alone.",
@@ -77,10 +77,10 @@ E += [p("2. Bought parts and consumables, in the order they go in", H2), tbl([
     ["JST-XH 2-pin socket + shorting plug; JST-XH 3-pin socket", "1 each", "left and right flank seats, clamped by the two hull halves (6.2)"],
     ["M3 x 8 countersunk screw", "8", "radial hull screws into the bosses on disc 1 and the rear disc (6.4)"],
     ["M3 x 8 screw", "2", "pod caps into the pod couplers (6.5)"],
-    ["1 mm Dyneema (from the 20 m reel)", "300 mm", "the bridle (8)"],
+    ["1 mm Dyneema (from the 20 m reel)", "the rover line", "the tether (8)"],
     ["CA glue, 5-minute epoxy, threadlocker, double-sided tape", "", "every coupler fit and the skin plugs (CA); drill-lead holes and the capacitor (epoxy); drill shafts (threadlocker); DRV boards (tape)"]], [70, 14, 92])]
 E += [p("Tools: soldering iron, flush cutters, small files, a hacksaw or a rotary tool with a cut-off disc for the leg N20 stubs (flush cutters will not cut the 3 mm steel shaft), "
-        "a vice or clamp, a pencil (to press the putty), a luggage scale (bridle test), a multimeter.", S)]
+        "a vice or clamp, a pencil (to press the putty), a luggage scale (tether test), a multimeter.", S)]
 E += [PageBreak(), p("3. Print", H2),
       p("Bambu Studio: PLA, 0.4 nozzle, 0.16 mm layers, 4 wall loops (the 1.5 mm walls come out solid), 40% gyroid infill, top/bottom 5 layers. "
         "Plate C in PPA-CF (hardened nozzle, dried filament). Every STL is already in its print orientation. Print the fit coupon FIRST.")]
@@ -132,6 +132,7 @@ E += [p("6.1 Drill pods (off the dart)", H3)] + steps([
     "Press an M3 nut into each auger's hex pocket. Threadlocker on the shaft, screw the auger on until the hub touches the arm shoulder, back off half a turn. Left pod = right-hand flight (brighter red arm)."])
 E += [p("6.2 Hull bottom", H3)] + steps([
     "Seat the two JST sockets in the lower halves of the flank seats (left = 2-pin ON loop, its seat sits a little low; right = 3-pin charge), pins inward.",
+    "Thread the tether through the two tail holes now (section 8, first step): once the tray is in you cannot reach the inside of the tail.",
     "Lower the populated tray, with the nose on its wires, straight down into the hull bottom: deck 1's edges drop into the seam groove, the tail key into the slot in the end wall, the nose spigot onto the lock rib, the cells onto the belly."])
 E += [p("6.3 Drill leads", H3)] + steps([
     "Pass each pod's two leads from outside in through the tight hole in the hull top just in front of its pivot block (before soldering), leave a 25 mm loop outside for the swing, then solder them to DRV#2 (right drill leads swapped). A dab of 5-minute epoxy seals each hole."])
@@ -153,19 +154,16 @@ E += [p("6.6 Righting leg (press fits, CA)", H3)] + steps([
     "Press the two skin plugs in flush (a drop of CA). Their blind bores hold the couplers and carry the leg.",
     "Power the leg motor slowly: the leg swings over the top to its bed in the nose (about 178°) and back flush into the groove. Wiggle it: nothing may move."])
 E += [p("7. Function test", H2)] + steps([
-    "ON plug: make its shorting loop from a short wire so it folds flat down against the flank, and tape it there (towed, the left bridle leg runs about "
-    "5 mm off the skin right over this socket; a loop sticking out could be pulled and switch the dart off). Plug in: XIAO and video up, IMU reads level.",
+    "ON plug: make its shorting loop from a short wire so it folds flat down against the flank, and tape it there (a loop sticking out can snag and switch the dart off). Plug in: XIAO and video up, IMU reads level.",
     "Key 1: the drills swing DOWN, key 2: the leg lifts off the tail and swings over the nose (else swap that motor's leads at DRV#1, 5.6). Pods down to the stops with the drills spinning (left and right counter-rotate), then up.",
     "Service: pry the two skin plugs, pull the leg couplers (CA: they may need a twist), remove the 8 radial screws and lift the hull top. Everything is reachable."])
-E += [p("8. Bridle", H2)] + steps([
-    "Cut 300 mm of the 1 mm Dyneema. Tie the rover line's end into a small figure-8 loop (a loop the bridle slides through, about 5 mm inside).",
-    "Thread one end of the bridle through the left eye lug (the Ø3.2 hole low on the left arm head) and tie a BOWLINE with the knot on the OUTSIDE face of the lug, then a double overhand stopper on the tail. "
-    "Trim the tail to 5 mm, a drop of CA on the knot. Keep the knot and tail clear of the auger hub just in front of the lug.",
-    "Pass the free end through the rover line's figure-8 loop, then through the right eye lug and tie it the same way, so that with the loop pulled to the middle each leg is 78 mm from its eye to the loop.",
-    "Test: hook a luggage scale into the figure-8 loop, hold the dart and pull 6 kg for a few seconds. Nothing may slip or stretch. Check the knots again.",
-    "Loading on the launcher: first press key ! (pods up) for 1 s so both pods sit hard on their fold stops. Put the dart on the cradle. Lay each leg from its eye aft past the OUTSIDE of the arm head, over the flank into the groove "
-    f"round the tail edge, and along the groove across the tail face to its end near the middle. Put the figure-8 loop into the pusher's middle hole (it sits about {LG:.0f} mm behind the tail face), legs still in their grooves. "
-    "Nothing may lie across the flat tail face outside the grooves: the pusher pushes there. The ON plug's loop stays flat under the left leg."])
+E += [p("8. Tether", H2)] + steps([
+    "BEFORE the tray goes into the hull bottom (section 5): push the end of the rover line in through one of the two small holes in the middle of the tail face (from outside), "
+    "then back out through the other hole, so the line makes a small loop round the plastic between the holes on the inside. Pull 20 cm through. "
+    "(Stiffen the line end with a drop of CA and let it dry first: it threads much more easily.)",
+    "Tie the end to the line itself right behind the tail with a BOWLINE, then a double overhand stopper on the tail end. Trim the tail to 5 mm.",
+    "Test: hook a luggage scale into the line, hold the dart and pull 6 kg for a few seconds. Nothing may slip.",
+    "Loading on the launcher: press key ! (pods up) for 1 s so both pods sit hard on their fold stops. Put the dart on the cradle; the knot goes into the pusher's middle hole and the line runs straight back."])
 E += [PageBreak(), p("9. Wire cut list (pad to pad)", H2)]
 rows = [["#", "From", "To", "Colour", "Gauge", "mm", "Note"]] + [[w["n"], w["fr"], w["to"], w["col"], w["g"], w["len"], w["note"]] for w in WJ["wires"]]
 E += [tbl(rows, [7, 44, 44, 13, 13, 11, 45], fs=7)]

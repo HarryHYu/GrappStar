@@ -7,9 +7,9 @@
     21.3
    ],
    "bed_contact_mm2": 456.3,
-   "overhang_mm2_gt45": 4171.7,
+   "overhang_mm2_gt45": 4139.4,
    "orient": "split face down (on the bed), crown up",
-   "volume_cm3": 15.64,
+   "volume_cm3": 15.68,
    "supports": "tree supports ON, build plate only: the inner roof of the half shell and under the knuckle and groove floors; the pivot blocks print without (arc outlines)"
   },
   "hull_bottom": {
@@ -19,9 +19,9 @@
     21.0
    ],
    "bed_contact_mm2": 382.6,
-   "overhang_mm2_gt45": 4171.7,
+   "overhang_mm2_gt45": 4176.4,
    "orient": "split face down, belly up",
-   "volume_cm3": 14.16,
+   "volume_cm3": 14.14,
    "supports": "tree supports ON, build plate only: the inner roof of the half shell"
   },
   "nose": {

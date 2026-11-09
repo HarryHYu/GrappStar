@@ -17,7 +17,7 @@ for n, p in PP.items():
     for c in names:
         z = np.load(f"{OUT}/{c}.npz"); v = z["v"].copy(); f = z["f"]
         if p["axis"]: v = v + np.array(p["pos"])
-        if PP[c]["group"] == "electronics" and c not in ("n20_kick", "n20_foot", "kick_shaft", "deploy_shaft", "foot_shaft"): continue
+        if PP[c]["group"] == "electronics" and c not in ("n20_kick", "n20_foot", "kick_shaft", "deploy_shaft", "foot_shaft", "n20_leg", "leg_shaft"): continue
         tri = v[f][:, :, 1:3]
         area = 0.5 * np.abs((tri[:, 1, 0] - tri[:, 0, 0]) * (tri[:, 2, 1] - tri[:, 0, 1]) - (tri[:, 2, 0] - tri[:, 0, 0]) * (tri[:, 1, 1] - tri[:, 0, 1]))
         tp = [Polygon(t) for t in tri[area > 1e-4]]
@@ -56,7 +56,7 @@ t = np.linspace(0, 2 * math.pi, 200); ax.plot(P["R_OUT"] * np.cos(t), P["R_OUT"]
 ax.axhline(0, color="k", lw=0.4); ax.axvline(0, color="k", lw=0.4)
 b = chan.bounds
 ax.set_title(f"KEDGE {J.get('version','')} folded, seen along the flight axis (from the nose)\nGrey = dart, black = barrel channel with {CLEAR} mm clearance, dashed = Ø{2*P['R_OUT']:.0f} hull", fontsize=9, fontname="DejaVu Sans")
-ax.set_aspect("equal"); ax.grid(True, lw=0.3); ax.set_xlabel("y (mm, + = left side, kick leg side)"); ax.set_ylabel("z (mm, up)")
+ax.set_aspect("equal"); ax.grid(True, lw=0.3); ax.set_xlabel("y (mm, + = left side)"); ax.set_ylabel("z (mm, up)")
 fig.savefig(f"{PK}/barrel_profile.png", dpi=160, bbox_inches="tight"); fig.savefig(f"{PK}/barrel_profile.svg", bbox_inches="tight")
 # DXF of the channel outline
 with open(f"{PK}/barrel_profile.dxf", "w") as f:
@@ -69,7 +69,7 @@ with open(f"{PK}/barrel_profile.dxf", "w") as f:
 below = sil.intersection(sbox(-60, -60, 60, 0))
 out = dict(channel_bounds_yz=[round(v, 1) for v in b], clearance_mm=CLEAR, silhouette_area_mm2=round(sil.area), hull_area_mm2=round(math.pi * P["R_OUT"] ** 2),
            below_centreline_outside_hull=round(below.difference(Polygon(np.c_[P["R_OUT"] * np.cos(t), P["R_OUT"] * np.sin(t)])).area, 1),
-           cradle="the belly (z < 0) is the plain Ø42 cylinder over x %.0f..%.0f: cradle it there; the barrel's lower half can be a plain Ø%.0f half-pipe" % (P["NOSE_L"], P["X_TAILSP"][1], 2 * P["R_OUT"] + 2 * CLEAR),
-           pusher="push on the tail cap end face (flat ring Ø42, tether holes in the middle): keep the pusher face a ring so the tether exits through its centre",
+           cradle="the belly (z < 0) is the plain Ø42 cylinder over x %.0f..%.0f: cradle it there; the barrel's lower half can be a plain Ø%.0f half-pipe" % (P["NOSE_L"], P.get("X_TAILSP", [0, P["L"]])[1], 2 * P["R_OUT"] + 2 * CLEAR),
+           pusher=("v34: push on the flat tail end face of the two hull halves (no tail cap, no boom); the tether is a bridle to the pod eye lugs, see the engineering report" if "LEG_DEG" in P else "push on the tail cap end face (flat ring Ø42, tether holes in the middle): keep the pusher face a ring so the tether exits through its centre"),
            length_folded=round(L - 5, 1))
 json.dump(out, open(f"{PK}/barrel.json", "w"), indent=1); print(json.dumps(out, indent=1))

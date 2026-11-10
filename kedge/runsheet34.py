@@ -158,7 +158,7 @@ E += [p("7. Function test", H2)] + steps([
     "Key 1: the drills swing DOWN, key 2: the leg lifts off the tail and swings over the nose (else swap that motor's leads at DRV#1, 5.6). Pods down to the stops with the drills spinning (left and right counter-rotate), then up.",
     "Service: pry the two skin plugs, pull the leg couplers (CA: they may need a twist), remove the 8 radial screws and lift the hull top. Everything is reachable."])
 E += [p("8. Tether", H2)] + steps([
-    "BEFORE the tray goes into the hull bottom (section 5): push the end of the rover line in through one of the two small holes in the middle of the tail face (from outside), "
+    "BEFORE the tray goes into the hull bottom (6.2): push the end of the rover line in through one of the two small holes in the middle of the tail face (from outside), "
     "then back out through the other hole, so the line makes a small loop round the plastic between the holes on the inside. Pull 20 cm through. "
     "(Stiffen the line end with a drop of CA and let it dry first: it threads much more easily.)",
     "Tie the end to the line itself right behind the tail with a BOWLINE, then a double overhand stopper on the tail end. Trim the tail to 5 mm.",

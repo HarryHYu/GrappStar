@@ -116,7 +116,7 @@ def main(argv=None):
     L.append("")
     L.append("BOUGHT (all from the base parts bought earlier, nothing new)")
     for it, c, why in BOUGHT:
-        L.append(f"  {c} x {it}: {why}")
+        L.append(f"  {c} x {it}: {why}" if c.isdigit() else f"  {it} ({c}): {why}")
     L.append("  Optional, not linked: " + "; ".join(f"{a} ({b})" for a, b in OPTIONAL))
     L.append("")
     L.append("OPERATE BY HAND")

@@ -1,0 +1,227 @@
+audit: 207 parts, 2271 states + 43848 pair sub-states, 821 pairs to check exactly
+audit: exact pairs 5/821 (234 s)
+audit: exact pairs 9/821 (344 s)
+audit: exact pairs 12/821 (404 s)
+audit: exact pairs 19/821 (448 s)
+audit: exact pairs 29/821 (487 s)
+audit: exact pairs 34/821 (513 s)
+audit: exact pairs 42/821 (543 s)
+audit: exact pairs 69/821 (593 s)
+audit: exact pairs 93/821 (615 s)
+audit: exact pairs 98/821 (643 s)
+audit: exact pairs 185/821 (668 s)
+audit: exact pairs 242/821 (688 s)
+audit: exact pairs 385/821 (724 s)
+audit: exact pairs 552/821 (744 s)
+audit: exact pairs 665/821 (780 s)
+audit: exact pairs 673/821 (862 s)
+audit: exact pairs 679/821 (1095 s)
+audit: exact pairs 722/821 (1145 s)
+audit: exact pairs 730/821 (1176 s)
+audit: exact pairs 738/821 (1308 s)
+audit: exact pairs 741/821 (1465 s)
+audit: exact pairs 744/821 (1504 s)
+audit: exact pairs 750/821 (1527 s)
+audit: exact pairs 764/821 (1554 s)
+audit: exact pairs 780/821 (2017 s)
+audit: exact pairs 800/821 (2045 s)
+audit: exact pairs 804/821 (2079 s)
+audit: exact pairs 812/821 (2105 s)
+audit: exact pairs 816/821 (2142 s)
+audit: exact pairs 821/821 (2165 s)
+audit: clearance drum_drum_a / drum_idler 2400/4842 (20 s)
+audit: clearance reel_cup / reel_drum 7908/15732 (20 s)
+audit: clearance reel_hub* / reel_wall 7080/30700 (20 s)
+audit: clearance reel_hub* / reel_wall 14496/30700 (40 s)
+parts 207, states 46300, 2610.5 s
+  CLEARANCE ok   drum_drum_a / drum_idler: min gap 0.01 mm (need 0.0) 
+  CLEARANCE ok   drum_drum_a / drum_idler_gear: min gap 1.331 mm (need 0.8) 
+  CLEARANCE ok   drum_drum_b / drum_fork: min gap 0.171 mm (need 0.05) 
+  CLEARANCE ok   drum_gear_reel / drum_collar: min gap 0.49 mm (need 0.0) 
+  CLEARANCE ok   drum_collar / drum_dogring_launch: min gap 0.5 mm (need 0.0) 
+  CLEARANCE ok   frame_motor_adapter / frame_wiper_shaft: min gap 5.0 mm (need 0.5) 
+  CLEARANCE ok   frame_cheek_r / frame_wiper_shaft: min gap 5.0 mm (need 0.5) 
+  CLEARANCE ok   launch_rail_rear / launch_carriage: min gap 0.0 mm (need 0.0) 
+  CLEARANCE ok   launch_big_gear / launch_drive_gear: min gap 0.105 mm (need 0.0) 
+  CLEARANCE ok   launch_aim_conrod / launch_aim_housing: min gap 5.0 mm (need 1.0) 
+  CLEARANCE ok   launch_aim_crank / launch_aim_housing: min gap 0.8 mm (need 0.5) 
+  CLEARANCE ok   launch_spring_l_hook_c / launch_aim_lug: min gap 4.0 mm (need 1.0) 
+  CLEARANCE ok   reel_drum / reel_cup: min gap 0.3 mm (need 0.25) 
+  CLEARANCE ok   reel_p1 / reel_drum: min gap 1.0 mm (need 0.3) 
+  CLEARANCE ok   reel_cheek_i / reel_spool: min gap 1.09 mm (need 0.5) 
+  CLEARANCE ok   reel_wall / reel_hub: min gap 5.0 mm (need 0.3) 
+  CLEARANCE ok   reel_hub / reel_rocker: min gap 5.0 mm (need 0.3) 
+  CLEARANCE ok   launch_aim_housing / show_hand_crank: min gap 0.5 mm (need 0.3) 
+  CLEARANCE ok   show_hand_crank / show_aim_knob: min gap 4.0 mm (need 1.0) 
+  CLEARANCE ok   show_crank_handle / show_aim_knob: min gap 4.861 mm (need 1.0) 
+  gear meshes checked: 15, failing: 0
+  warn Allow('drum_shaft', 'drum_coupler') never matched an overlap: remove it or narrow it
+  warn Allow('drum_n20', 'drum_n20_cradle') never matched an overlap: remove it or narrow it
+  warn Allow('drum_n20', 'drum_n20_strap') never matched an overlap: remove it or narrow it
+  warn Allow('drum_n20', 'drum_bracket_a') never matched an overlap: remove it or narrow it
+  warn Allow('drum_idler_gear', 'drum_idler') never matched an overlap: remove it or narrow it
+  warn Allow('drum_hand_lever', 'drum_drum_b') never matched an overlap: remove it or narrow it
+  warn Allow('drum_drum_a', 'drum_drum_b') never matched an overlap: remove it or narrow it
+  warn Allow('frame_wiper_shaft', 'frame_wiper_motor') never matched an overlap: remove it or narrow it
+  warn Allow('frame_cheek_*', 'frame_deck*') never matched an overlap: remove it or narrow it
+  warn Allow('frame_motor_adapter', 'frame_cheek_*') never matched an overlap: remove it or narrow it
+  warn Allow('frame_motor_adapter', 'frame_wiper_motor') never matched an overlap: remove it or narrow it
+  warn Allow('frame_deck*', 'frame_deck*') never matched an overlap: remove it or narrow it
+  warn Allow('frame_cheek_*', 'frame_cheek_*') never matched an overlap: remove it or narrow it
+  warn Allow('frame_motor_leg', 'frame_cheek_r') never matched an overlap: remove it or narrow it
+  warn Allow('frame_can_stay', 'frame_cheek_r') never matched an overlap: remove it or narrow it
+  warn Allow('frame_guard_hood', 'frame_cheek_r') never matched an overlap: remove it or narrow it
+  warn Allow('frame_can_stay', 'frame_wiper_motor') never matched an overlap: remove it or narrow it
+  warn Allow('launch_spring_*_hook_a', 'launch_anchor_pin_*') never matched an overlap: remove it or narrow it
+  warn Allow('launch_anchor_pin_*', 'launch_rail_front') never matched an overlap: remove it or narrow it
+  warn Allow('launch_spring_*_hook_c', 'launch_yoke_peg_*') never matched an overlap: remove it or narrow it
+  warn Allow('launch_pulley_*_axle', 'launch_pulley_*_brg') never matched an overlap: remove it or narrow it
+  warn Allow('launch_line_*', 'launch_pulley_*') never matched an overlap: remove it or narrow it
+  warn Allow('launch_line_p', 'launch_carriage') never matched an overlap: remove it or narrow it
+  warn Allow('launch_line_p', 'launch_dart') never matched an overlap: remove it or narrow it
+  warn Allow('launch_muzzle_roller_axle', 'launch_muzzle_roller_brg') never matched an overlap: remove it or narrow it
+  warn Allow('launch_muzzle_roller_axle', 'launch_muzzle_washer_*') never matched an overlap: remove it or narrow it
+  warn Allow('launch_line_*', 'launch_muzzle_roller') never matched an overlap: remove it or narrow it
+  warn Allow('reel_sleeve', 'reel_wall') never matched an overlap: remove it or narrow it
+  warn Allow('reel_sleeve', 'reel_bus') never matched an overlap: remove it or narrow it
+  warn Allow('reel_sleeve', 'reel_k') never matched an overlap: remove it or narrow it
+  warn Allow('reel_sleeve', 'reel_sleeve_clip') never matched an overlap: remove it or narrow it
+  warn Allow('reel_k', 'reel_k_clip') never matched an overlap: remove it or narrow it
+  warn Allow('reel_k', 'reel_gk1') never matched an overlap: remove it or narrow it
+  warn Allow('reel_k', 'reel_k_clip2') never matched an overlap: remove it or narrow it
+  warn Allow('reel_s', 'reel_gr') never matched an overlap: remove it or narrow it
+  warn Allow('reel_s', 'reel_s_clip') never matched an overlap: remove it or narrow it
+  warn Allow('reel_hub', 'reel_hub_flange') never matched an overlap: remove it or narrow it
+  warn Allow('reel_rocker_pin', 'reel_wall') never matched an overlap: remove it or narrow it
+  warn Allow('reel_rocker_pin', 'reel_rocker') never matched an overlap: remove it or narrow it
+  warn Allow('reel_crank_washer', 'reel_crank_screw') never matched an overlap: remove it or narrow it
+  warn Allow('reel_bar_screws', 'reel_bar_cap_*') never matched an overlap: remove it or narrow it
+  warn Allow('reel_ik1', 'reel_ik1_axle') never matched an overlap: remove it or narrow it
+  warn Allow('reel_ik2', 'reel_ik2_axle') never matched an overlap: remove it or narrow it
+  warn Allow('reel_k2', 'reel_wall') never matched an overlap: remove it or narrow it
+  warn Allow('reel_k2', 'reel_gk2') never matched an overlap: remove it or narrow it
+  warn Allow('reel_k2', 'reel_bk2') never matched an overlap: remove it or narrow it
+  warn Allow('reel_cs', 'reel_wall') never matched an overlap: remove it or narrow it
+  warn Allow('reel_cs', 'reel_gc') never matched an overlap: remove it or narrow it
+  warn Allow('reel_cs', 'reel_cs_clip') never matched an overlap: remove it or narrow it
+  warn Allow('reel_cs', 'reel_bc') never matched an overlap: remove it or narrow it
+  warn Allow('reel_ic', 'reel_ic_axle') never matched an overlap: remove it or narrow it
+  warn Allow('reel_t2', 'reel_wall') never matched an overlap: remove it or narrow it
+  warn Allow('reel_t2', 'reel_gt2') never matched an overlap: remove it or narrow it
+  warn Allow('reel_t2', 'reel_bt2') never matched an overlap: remove it or narrow it
+  warn Allow('reel_lane_k', 'reel_bkx') never matched an overlap: remove it or narrow it
+  warn Allow('reel_lane_k', 'reel_tab_k') never matched an overlap: remove it or narrow it
+  warn Allow('reel_lane_k', 'reel_p1') never matched an overlap: remove it or narrow it
+  warn Allow('reel_lane_k', 'reel_p2') never matched an overlap: remove it or narrow it
+  warn Allow('reel_lane_k', 'reel_ga2') never matched an overlap: remove it or narrow it
+  warn Allow('reel_lane_c', 'reel_bcx') never matched an overlap: remove it or narrow it
+  warn Allow('reel_lane_c', 'reel_tab_c') never matched an overlap: remove it or narrow it
+  warn Allow('reel_lane_c', 'reel_p1') never matched an overlap: remove it or narrow it
+  warn Allow('reel_lane_c', 'reel_ga') never matched an overlap: remove it or narrow it
+  warn Allow('reel_lane_t', 'reel_btx') never matched an overlap: remove it or narrow it
+  warn Allow('reel_lane_t', 'reel_bt3x') never matched an overlap: remove it or narrow it
+  warn Allow('reel_lane_t', 'reel_post_t') never matched an overlap: remove it or narrow it
+  warn Allow('reel_ti', 'reel_ti_axle') never matched an overlap: remove it or narrow it
+  warn Allow('reel_lane_t', 'reel_p1_leg') never matched an overlap: remove it or narrow it
+  warn Allow('reel_lane_t', 'reel_p2_leg') never matched an overlap: remove it or narrow it
+  warn Allow('reel_t3', 'reel_bt3') never matched an overlap: remove it or narrow it
+  warn Allow('reel_t3', 'reel_gt3') never matched an overlap: remove it or narrow it
+  warn Allow('reel_t3', 'reel_t_bracket') never matched an overlap: remove it or narrow it
+  warn Allow('reel_ss', 'reel_gs') never matched an overlap: remove it or narrow it
+  warn Allow('reel_ss', 'reel_t_bracket') never matched an overlap: remove it or narrow it
+  warn Allow('reel_ss', 'reel_spool') never matched an overlap: remove it or narrow it
+  warn Allow('reel_c', 'reel_p1') never matched an overlap: remove it or narrow it
+  warn Allow('reel_c', 'reel_drum') never matched an overlap: remove it or narrow it
+  warn Allow('reel_c', 'reel_gc2') never matched an overlap: remove it or narrow it
+  warn Allow('reel_c', 'reel_c_clip') never matched an overlap: remove it or narrow it
+  warn Allow('reel_kc', 'reel_c') never matched an overlap: remove it or narrow it
+  warn Allow('reel_kc', 'reel_cup') never matched an overlap: remove it or narrow it
+  warn Allow('reel_kc', 'reel_cup_clip') never matched an overlap: remove it or narrow it
+  warn Allow('reel_kc', 'reel_gkc') never matched an overlap: remove it or narrow it
+  warn Allow('reel_kc', 'reel_kc_clip') never matched an overlap: remove it or narrow it
+  warn Allow('reel_kc', 'reel_p2') never matched an overlap: remove it or narrow it
+  warn Allow('reel_icr', 'reel_icr_axle') never matched an overlap: remove it or narrow it
+  warn Allow('reel_ikr', 'reel_ikr_axle') never matched an overlap: remove it or narrow it
+  warn Allow('reel_ikr_axle', 'reel_p2') never matched an overlap: remove it or narrow it
+  warn Allow('launch_line_*', 'reel_cup') never matched an overlap: remove it or narrow it
+  warn Allow('reel_trim_screws', 'reel_t') never matched an overlap: remove it or narrow it
+  warn Allow('reel_bar', 'drum_drum_a') never matched an overlap: remove it or narrow it
+  warn Allow('reel_tab_c', 'reel_wall') never matched an overlap: remove it or narrow it
+  warn Allow('reel_tab_k', 'reel_wall') never matched an overlap: remove it or narrow it
+  warn Allow('reel_p1', 'reel_p1_leg') never matched an overlap: remove it or narrow it
+  warn Allow('reel_p2', 'reel_p2_leg') never matched an overlap: remove it or narrow it
+  warn Allow('reel_p2', 'reel_cheek_i') never matched an overlap: remove it or narrow it
+  warn Allow('reel_p2', 'reel_cheek_o') never matched an overlap: remove it or narrow it
+  warn Allow('reel_spacer_*', 'reel_p1') never matched an overlap: remove it or narrow it
+  warn Allow('reel_spacer_*', 'reel_p2') never matched an overlap: remove it or narrow it
+  warn Allow('reel_sleeve', 'reel_wall') never matched an overlap: remove it or narrow it
+  warn Allow('show_hand_crank', 'drum_shaft') never matched an overlap: remove it or narrow it
+  warn Allow('show_crank_handle', 'show_hand_crank') never matched an overlap: remove it or narrow it
+  warn Allow('show_aim_knob', 'launch_aim_output') never matched an overlap: remove it or narrow it
+  warn joint launch_spring_seg_0 is geared to launch_carriage (ratio 0.9) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked
+  warn joint launch_spring_seg_1 is geared to launch_carriage (ratio 0.7) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked
+  warn joint launch_spring_seg_2 is geared to launch_carriage (ratio 0.5) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked
+  warn joint launch_spring_seg_3 is geared to launch_carriage (ratio 0.3) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked
+  warn joint launch_spring_seg_4 is geared to launch_carriage (ratio 0.1) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked
+  warn joint launch_line_a0 is geared to launch_carriage (ratio 0) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked
+  warn joint launch_line_a1 is geared to launch_carriage (ratio 0.125) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked
+  warn joint launch_line_a2 is geared to launch_carriage (ratio 0.25) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked
+  warn joint launch_line_a3 is geared to launch_carriage (ratio 0.375) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked
+  warn joint launch_line_a4 is geared to launch_carriage (ratio 0.5) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked
+  warn joint launch_line_a5 is geared to launch_carriage (ratio 0.625) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked
+  warn joint launch_line_a6 is geared to launch_carriage (ratio 0.75) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked
+  warn joint launch_line_a7 is geared to launch_carriage (ratio 0.875) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked
+  warn joint launch_aim_cshaft is geared to launch_aim_crank (ratio -10) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked
+  warn joint launch_aim_worm is geared to launch_aim_crank (ratio -20) but no Mesh is declared between their parts: declare meshes(P) so the centre distance is checked
+  warn drum_coupler: overhang 1998.1 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn drum_shaft: overhang 1465.2 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn drum_collar: overhang 2693.7 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn drum_dogring_launch: overhang 122.9 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn drum_drum_a: overhang 731.8 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn drum_drum_b: overhang 1817.6 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn drum_idler: overhang 331.1 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn drum_n20_cradle: overhang 108.5 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn drum_fork: overhang 1302.4 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn frame_motor_leg: overhang 221.9 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn frame_cheek_r: overhang 5117.4 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn frame_motor_adapter: overhang 6734.8 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn frame_can_stay: overhang 906.5 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn launch_rail_rear: overhang 4407.1 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn launch_rail_mid: overhang 2315.3 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn launch_rail_front: overhang 7889.7 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn launch_carriage: overhang 6453.4 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn launch_carriage_yoke: overhang 1389.4 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn launch_big_gear: overhang 639.2 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn launch_drive_gear: overhang 2457.2 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn launch_sleeve: overhang 2907.4 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn launch_spring_l_hook_a: 2 shells
+  warn launch_spring_l_hook_c: 2 shells
+  warn launch_spring_r_hook_a: 2 shells
+  warn launch_spring_r_hook_c: 2 shells
+  warn launch_stop_frame_l: overhang 541.0 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn launch_stop_frame_r: overhang 541.0 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn launch_dart: 16 shells
+  warn launch_aim_bevel30: overhang 590.0 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn launch_aim_worm: overhang 2778.6 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn launch_aim_crank: overhang 984.6 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn launch_aim_lug: overhang 995.2 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn launch_aim_housing: overhang 761.3 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn reel_wall: overhang 2039.4 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn reel_gk: overhang 668.3 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn reel_bk2: overhang 166.5 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn reel_bc: overhang 337.4 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn reel_hub: overhang 778.0 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn reel_trim_screws: 2 shells
+  warn reel_bar_screws: 4 shells
+  warn reel_bkx: overhang 166.5 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn reel_bcx: overhang 337.4 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn reel_cheek_i: overhang 13980.5 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn reel_cheek_o: overhang 374.7 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn reel_c: overhang 390.7 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn reel_drum: overhang 251.1 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn reel_cup: overhang 1209.6 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn reel_icr: overhang 8053.9 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn reel_icr_axle: overhang 314.6 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn reel_spool: overhang 4579.5 mm2 steeper than 45 deg: needs supports or a better print_tf
+  allowed contacts: 92
+CLEAN

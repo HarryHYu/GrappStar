@@ -1,0 +1,31 @@
+GrappStar base station, SHOW build (hand operated), KEDGE v34 dart
+
+The D50 launcher and reel as before, sized to the v34 dart, with every axle hanging free: no one-way bearings, no motor links, no sensing, no electronics. Everything turns by hand.
+
+PRINT
+  PLA: 80 parts (80 prints), 4464 cm3 model volume, about 4.1 kg of filament, 14 plates, about 109 h. Folder PLA/ in grappstar_base_show_stl.zip.
+  PPA-CF: 80 parts (80 prints), 1690 cm3 model volume, about 1.9 kg of filament, 6 plates, about 90 h. Folder PPA-CF/ in grappstar_base_show_stl.zip.
+  Every STL is already in print orientation (flat face down). PPA-CF parts are the gears, shafts and hubs that carry the spring load; keep them PPA-CF. New show parts: hand crank, crank handle, aim knob (PLA), the hub in place of sprag #1 (PPA-CF).
+  Printed pins: the yoke spring pegs are printed already; for a show model the two spring anchor pins and the aim wheel axle can be printed PPA-CF d8 pins too.
+
+BOUGHT (all from the base parts bought earlier, nothing new)
+  6 x 608ZZ bearing 8x22x7: aim worm wheel (2), reel clutch hub (2), spool shaft (2)
+  2 x 693ZZ bearing 3x8x4: lip roller, rail-rear tether pulley
+  2 x Century C-243 extension spring: launcher springs
+  2 x 8 mm steel rod, 2 short pins: spring anchor pins (a printed PPA-CF d8 pin works for show)
+  1 x M8x25 hex bolt + M8 nut: aim worm wheel axle (a printed PPA-CF d8 pin works for show)
+  Dyneema braid 1 mm (about 2 m): tether: dart tail knot, pusher hole, rail pulley, reel (20 m for real use)
+  M3 screws, nuts, heat-set inserts (as base BOM): deck, cheeks, plates, guards; plus 1 x M3x6 for the crank
+  1 x 12 V wiper motor: bolted to its adapter plate, NOT wired: its shaft carries the coupler hub, the bearing of the main shaft's motor end (no shear pin, so the shaft turns free on it)
+  Optional, not linked: N20 worm gearmotor (sits in its cradle on the drum bracket, no pinion, NOT linked)
+
+OPERATE BY HAND
+  Modes (drum hand lever): Swing the lever on the drum shaft end: L = LAUNCH (crank drives the launcher), N = NEUTRAL (crank drives nothing), the wrap sector (the cup lays the wraps round the capstan), R = REEL (crank drives the capstan). The drum is free, so leave it where you put it.
+  Aim (knob): Turn the knob on the aim countershaft (outboard side of the aim housing): the bevels, the worm and the crank-rocker lift the rail from 6 to 47 deg and back, 10 knob turns per full cycle. The worm holds the angle.
+  Cock and fire (crank, drum in LAUNCH): Turn the hand crank FORWARD (anticlockwise seen from the crank end, clockwise seen from the motor): the big gear draws the carriage back 241 mm. About 1.2 crank turns in, the big gear's relieved last tooth lets the rack go and the springs fire the dart: that tooth is the sear and its trip, there is no separate trigger. Keep turning a little to bring the gear round to its gap (reset). The crank carries the full spring load (about 50 N at the handle near full cock) and nothing holds it: keep hold of it while cocked; turn it BACK to de-cock. Never fire without the tether tied; the flexure stops catch the carriage at the end of the stroke.
+  Load: Carriage at the front, big gear gap facing the rack: lay the folded v34 dart belly down on the cradle, tail on the pusher. Tie the line through the two tail holes, knot about 2 mm behind the tail face, then run it straight back through the pusher's 14 mm hole and under the rail-rear pulley to the reel.
+  Reel (crank, drum in REEL): Turning the crank forward winds the capstan; it turns either way (no backstop). The storage spool has no drive now (take-up idler gone): it turns free, wind or pay out its line by hand.
+
+Left out: both CSK20PP sprags (sprag #1 is now a printed hub, sprag #2 a plain bore), the aim swing-arm splitter (sun, arm, drag pad, shim, idler, clip), the take-up swing idler and its arm, the shear pin, the N20 pinion, the AS5600 and its bracket and magnet cap, every contact switch (drum code levers and block, index lever, dog post, SW_SEATED, SW_HOME, SW_GAP, SW_RAIL_LOW, SW_ARM), the electronics bay with its boards, the camera and receiver mounts and the cable anchors.
+
+Audit: CLEAN (parts 207, states 46300, 2610.5 s). Renders: renders/show_states.png. Design source: base/cad (dart-v1); the full motorised D50 design is tag base-parked-d50.

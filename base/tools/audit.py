@@ -990,6 +990,8 @@ def _run(asm, states, rep, names, NP, NB, bed, pool, log, lap, T, max_mm, cap):
             declared = True
             for pat in mod.grounded(asm.P):
                 m = {n for n in names if fnmatchcase(n, pat)}
+                if not m and any(fnmatchcase(d, pat) for d in getattr(asm, "dropped", ())):
+                    continue                        # show build: the grounded part was left out (drop hook)
                 if not m:
                     rep["errors"].append(f"{sub}.grounded pattern {pat!r} matches no part")
                 grounded |= m

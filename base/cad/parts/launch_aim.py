@@ -294,9 +294,12 @@ def idler_solid(P):
     return G.spur(M_S, Z_IDL, FACE_S) - prim.cyl(PIN_R + FIT / 2, FACE_S + 2, z=-1)
 
 
+SHOW_CS_END = 244.0      # show build: countershaft end (world y); the aim knob sits on y 234..242
+
+
 def output_solid(P):
     """Output gear z30 + collar + d8 countershaft (local z = world y - Y_SUN), D flat for the bevel."""
-    z_end = Y_W2[1] + 0.5 - Y_SUN
+    z_end = SHOW_CS_END - Y_SUN          # show build: runs on past the outer wall (229) for the hand aim knob
     s = G.spur(M_S, Z_OUT, FACE_S) + prim.cyl(8.0, Y_W1[0] - 0.1 - Y_SUN - FACE_S + 0.01, z=FACE_S - 0.01)
     s = s + prim.cyl(SHAFT_R, z_end - 1, z=1)
     s = s - prim.box(3.2, 5, -5, 5, 199.0 - Y_SUN, z_end + 1)                # D flat from the bevel to the end (bevel
@@ -628,7 +631,8 @@ def parts_aim(P):
              print_tf=bed(clip), color="#e0c050", notes="Printed C clip on the arm pin, holds the idler"),
         Part("launch_aim_output", out, "PPA-CF", joint="launch_aim_cshaft", place=_ygear(out, Y_SUN),
              print_tf=bed(out), color="#2f6db5",
-             notes=f"Splitter output m1.5 z30 {f} with its d8 countershaft (D flat)"),
+             notes=f"Splitter output m1.5 z30 {f} with its d8 countershaft (D flat); show build: no splitter, "
+                   "the countershaft runs on out of the housing to the hand aim knob"),
         Part("launch_aim_bevel30", b1, "PPA-CF", joint="launch_aim_cshaft", place=_ygear(b1, n["y_b"]),
              print_tf=bed(b1), color="#3d7cc9", notes="Bevel m1.5 z30 on the countershaft D flat, drives the z15 2:1"),
         Part("launch_aim_worm", wm, "PPA-CF", joint="launch_aim_worm", place=_worm_place(P),

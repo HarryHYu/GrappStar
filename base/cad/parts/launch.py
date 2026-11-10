@@ -637,6 +637,15 @@ def sprag_solid(P):
                         -sp["w"], sp["w"])
 
 
+def drive_hub_solid(P):
+    """Show build: printed hub in the sprag #1 envelope (20 x 47 x 14) with the outer keyway (drive gear rib) and an
+    inner keyway (sleeve rib) on local +x: drive gear and sleeve turn together (no one-way bearing)."""
+    from cad.lib import bearings as BR
+    sp = getattr(P, "SPRAG", None) or dict(od=47.0, bore=20.0, w=14.0)
+    s = sprag_solid(P)
+    return s - prim.box(0.0, sp["bore"] / 2 + BR.CSK20_IKEY_D, -BR.CSK20_IKEY_W / 2, BR.CSK20_IKEY_W / 2, -sp["w"], sp["w"])
+
+
 def gear_pin_solid(P):
     """Snap pin d10 for the big gear (axis +z = rail +y): head at the right cheek outer face, C clip groove beyond the
     left cheek with a 3 mm shoulder after the groove (review 1)."""
@@ -737,18 +746,34 @@ _DART = {}
 
 
 def dart_solid(P=None):
-    """KEDGE v30 folded, dart frame (nose x = 0, tail x = 151.97, belly z = -21): legs and bought parts from the
-    out30 meshes (launch_dart_v30_solid.npz, built by launch_dartmesh.py) plus the hull and nose as solids."""
+    """KEDGE v34 folded, dart frame (nose x = 0, tail face x = 152, belly z = -21; pods out to |y| 40.5, z up to 21.3):
+    every closed part mesh of kedge/out34 (launch_dart_v34_solid.npz, built by launch_dartmesh.py) plus the hull and
+    nose as solids (R_OUT, NOSE_L, L, NOSE_R0 from launch_dart_v34.json)."""
     if "s" in _DART:
         return _DART["s"]
+    import json
     from manifold3d import Manifold, Mesh
-    d = np.load(os.path.join(_HERE, "launch_dart_v30_solid.npz"))
+    d = np.load(os.path.join(_HERE, "launch_dart_v34_solid.npz"))
+    J = json.load(open(os.path.join(_HERE, "launch_dart_v34.json")))
     U = Manifold(Mesh(vert_properties=np.asarray(d["v"], np.float32), tri_verts=np.asarray(d["f"], np.uint32)))
-    U = U.simplify(0.2)                    # 113k -> about 20k triangles (audit speed), shape within 0.2 mm
-    hull = prim.cylX(21.0, 20.0, 151.97)
-    nose = prim.place(prim.cyl(11.0, 20.0, r2=21.0), tf.Ry(90))
+    U = U.simplify(0.2)                    # audit speed, shape within 0.2 mm
+    hull = prim.cylX(J["R_OUT"], J["NOSE_L"], J["L"])
+    nose = prim.place(prim.cyl(J["NOSE_R0"], J["NOSE_L"], r2=J["R_OUT"]), tf.Ry(90))
     _DART["s"] = U + hull + nose
     return _DART["s"]
+
+
+def dart_tie(P=None):
+    """v34 simple tail tie in the RAIL frame (u, y, w) at HOME: the two tail holes and the knot (about 2 mm behind the
+    tail face). Dart frame -> rail frame: u = u_tail_home + 152 - x, y = -y, w = w_dart - 0.4 + z (launch_dart place)."""
+    import json
+    n = L(P)
+    J = json.load(open(os.path.join(_HERE, "launch_dart_v34.json")))
+    T = J["TIE"]
+
+    def rail(p):
+        return (n["u_tail_home"] + J["L"] - p[0], -p[1], n["w_dart"] - 0.4 + p[2])
+    return dict(knot=rail(T["knot"]), holes=[rail(h) for h in T["holes"]], knot_r=T["knot_r"], line_d=T["line_d"])
 
 
 def seat_geom(P, side="seated"):
@@ -981,8 +1006,11 @@ def parts(P):
     dw = drive_washer_solid(P)
     out.append(Part("launch_drive_washer", dw, "PLA", joint="launch_drive", place=tf.Rx(-90), print_tf=bed(dw),
                     color="#5a5f65", notes="Spacer washer: drive gear hub to the left cheek"))
-    out.append(Part("launch_sprag", sprag_solid(P), "bought", joint="launch_drive", place=tf.mul(tf.T(0, ym, 0), tf.Rx(-90)),
-                    color="#777c84", bought_ref="CSK20PP 20x47x14 sprag #1", notes="Sprag #1: forward wiper cocks"))
+    hb = drive_hub_solid(P)
+    out.append(Part("launch_drive_hub", hb, "PPA-CF", joint="launch_drive", place=tf.mul(tf.T(0, ym, 0), tf.Rx(-90)),
+                    print_tf=bed(hb), color="#3a3f45",
+                    notes="Show build: printed fixed hub in place of sprag #1 (20 x 47 x 14), keyed to the sleeve rib "
+                          "and the drive gear rib, so the hand crank cocks in both senses"))
     sl = sleeve_solid(P)
     out.append(Part("launch_sleeve", sl, "PPA-CF", joint="launch_sleeve",
                     place=tf.mul(tf.T(0, n["y_flange"] - n["Y0"], 0), tf.Rx(-90)), print_tf=bed(sl, tf.Rx(180)), color="#3a3f45",
@@ -1055,8 +1083,8 @@ def parts(P):
     out.append(Part("launch_dart", dart_solid(P), "bought", joint="launch_dart_rot",
                     place=tf.mul(tf.T(-(n["u_tail_home"] + 76.0), 0, -n["w_dart"]),
                                  tf.T(n["u_tail_home"] + 152.0, 0, n["w_dart"] - 0.4), tf.Rz(180)),
-                    color="#e8e8e8", bought_ref="KEDGE v30 dart (reference, built separately)",
-                    notes="The dart, folded, belly on the cradle, tail on the pusher"))
+                    color="#e8e8e8", bought_ref="KEDGE v34 dart (reference, built separately)",
+                    notes="The KEDGE v34 dart, folded, belly on the cradle, tail on the pusher, tether tied through the two tail holes"))
     out += _aim("parts_aim", P)
     return out
 
@@ -1475,7 +1503,7 @@ def dart_offsets(P, S, pitch, travel):
 
 def allowed(P):
     return [
-        Allow("launch_sprag", "launch_sleeve", "sprag inner race on the keyed sleeve"),
+        Allow("launch_drive_hub", "launch_sleeve", "printed hub on the sleeve key rib (show build: no sprag)"),
         Allow("launch_spring_*_hook_a", "launch_anchor_pin_*", "hook loop round the anchor pin"),
         Allow("launch_anchor_pin_*", "launch_rail_front", "pin in its hole"),
         Allow("launch_spring_*_hook_c", "launch_yoke_peg_*", "hook loop round the arm peg"),
@@ -1587,19 +1615,16 @@ def steps(P):
                   "left cheek. Push the big gear pin through cheek, gear, washer, cheek from the right and snap the C clip "
                   "into its groove. The gear must spin freely with almost no end play.",
              parts=["launch_big_gear", "launch_gear_pin", "launch_gear_clip", "launch_gear_washer"]),
-        dict(title="Launcher 4: drive gear, sprag #1 and the launch sleeve",
+        dict(title="Launcher 4: drive gear, printed hub and the launch sleeve",
              text="First bolt cad-drum's LAUNCH dog ring to the sleeve flange: lugs in the ring slots, 3 x M3 x 8 from the "
                   "flange side into the tapped ring (the heads are out of reach once the sleeve is in the cheeks). "
-                  "Slide sprag #1 into the drive gear so its outer keyway takes the rib inside the gear. Check the "
-                  "direction: look at the gear from its collar side (the side that goes to the right, towards the "
-                  "motor), hold the gear and turn the inner race with a finger. It must turn freely counter-clockwise "
-                  "(BACKWARD) and lock clockwise (FORWARD: clockwise seen from the motor side is the cock direction). "
-                  "If it is the other way round, push the sprag out, turn it over and slide it in other face first. "
+                  "Show build: no sprag. Slide the printed hub into the drive gear so its outer keyway takes the rib "
+                  "inside the gear (either face first). "
                   "Hold the drive gear between the cheeks (collar side right, then the spacer washer on its left), meshing the big gear's "
                   "full ring of teeth. Turn the cheek bores so their slots "
                   "point down, then push the launch sleeve in from the motor side, outboard end first, ribs lined up with "
-                  "the slots and the sprag keyway, until the long (15 mm) rib sits inside the sprag.",
-             parts=["launch_drive_gear", "launch_sprag", "launch_sleeve", "launch_drive_washer"]),
+                  "the slots and the hub's inner keyway, until the long (15 mm) rib sits inside the hub.",
+             parts=["launch_drive_gear", "launch_drive_hub", "launch_sleeve", "launch_drive_washer"]),
         dict(title="Launcher 5: carriage",
              text="Turn the big gear so its toothless gap faces the rack. Slide the carriage BODY into the track from the "
                   "FRONT end (the tether fork blocks the rear), rack teeth down, until its rear face reaches the stop "
@@ -1800,7 +1825,7 @@ def line_path(P, S=None):
     arc = [(c[0] + LN.R_PATH * math.cos(math.radians(a)), 0.0, c[1] + LN.R_PATH * math.sin(math.radians(a)))
            for a in np.linspace(a_t, 270.0, max(2, int((270.0 - a_t) / 10.0) + 2))]
     pusher = (n["u_c_home"] - travel, 0.0, g["w_line"])
-    tail_seat = np.array((n["u_tail_home"] - travel, 0.0, g["w_line"]))
+    tail_seat = np.array(LN.tie(n)["knot"]) - np.array((travel, 0.0, 0.0))     # v34: the tail knot
     du, dw = v.get("launch_dart", 0.0), v.get("launch_dart_w", 0.0)
     tail = tail_seat + np.array((du, 0.0, dw))
     rail_pts = np.array(arc + [pusher])
@@ -1812,7 +1837,7 @@ def line_path(P, S=None):
     ur, wr = MZ.U_R + n["u_c_home"] - travel, MZ.W_R
     if tail[0] > ur + LN.R_PATH:
         f = (ur - pusher[0]) / (tail[0] - pusher[0])
-        if pusher[2] + f * (tail[2] - pusher[2]) < wr + LN.R_PATH:
+        if pusher[2] + f * (tail[2] - pusher[2]) < wr + LN.R_PATH + 1.5:     # 1.5: a grazing line rides the roller (the v34 knot sits off the axis)
             a_d = min(90.0, _tangent_angle((ur, wr), LN.R_PATH, (tail[0], tail[2]), 1.0))
             tip += [(ur + LN.R_PATH * math.cos(math.radians(a)), 0.0, wr + LN.R_PATH * math.sin(math.radians(a)))
                     for a in np.linspace(90.0, a_d, 4)]

@@ -39,6 +39,19 @@ def geom(n):
     return dict(w_line=w_line, top=top, p_top_front=(u_t, 0.0, w_line))
 
 
+def tie(n):
+    """v34 simple tail tie in the rail frame (u, y, w) at HOME, from launch_dart_v34.json: the knot sits about 2 mm
+    behind the tail face, off the axis (y -3.5, w -2.4 from the line axis), inside the pusher's d14 hole; the line runs
+    straight back from it through the hole. Dart frame -> rail: u = u_tail_home + L - x, y = -y, w = w_dart - 0.4 + z."""
+    import json
+    J = json.load(open(os.path.join(_HERE, "launch_dart_v34.json")))
+    T = J["TIE"]
+
+    def rail(p):
+        return (n["u_tail_home"] + J["L"] - p[0], -p[1], n["w_dart"] - 0.4 + p[2])
+    return dict(knot=rail(T["knot"]), holes=[rail(h) for h in T["holes"]], knot_r=T["knot_r"], line_d=T["line_d"])
+
+
 def rail_add(n):
     """Solids to union into the rail (fork behind the rear end, lug under the pivot on the right cheek, y -17..-9)."""
     g = geom(n)
@@ -140,8 +153,11 @@ def parts_line(n, bed):
         out.append(Part(f"launch_line_a{k}", seg((a0, 0.0, g["w_line"]), (a0 + ls, 0.0, g["w_line"])), "bought",
                         joint=f"launch_line_a{k}", color="#f0f0f0",
                         bought_ref="Dyneema braid 1 mm (LINE)", notes="Tether, pusher to top pulley (telescoped in the model)"))
-    out.append(Part("launch_line_p", seg((n["u_c_home"] - 0.01, 0.0, g["w_line"]), (n["u_tail_home"], 0.0, g["w_line"])),
-                    "bought", joint="launch_carriage", color="#f0f0f0", notes="Tether through the pusher hole to the tail"))
+    tk = tie(n)
+    k = tk["knot"]
+    lp = seg((n["u_c_home"] - 0.01, 0.0, g["w_line"]), k) + prim.place(prim.cyl(tk["knot_r"] - 0.3, 2 * (tk["knot_r"] - 0.3), z=-(tk["knot_r"] - 0.3), seg=16), tf.T(*k))
+    out.append(Part("launch_line_p", lp, "bought", joint="launch_carriage", color="#f0f0f0",
+                    notes="Tether from the v34 tail knot (tied through the two tail holes) straight back through the pusher hole"))
     return out
 
 

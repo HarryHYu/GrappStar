@@ -385,11 +385,14 @@ def shear_pin(g):
     return prim.place(p, tf.T(0, 0, g["shear_s"]) @ tf.Ry(90))
 
 
+SHOW_SPIG_END = 255.0     # show build: the d12 spigot runs on past the aim housing (ends y 233) for the hand crank
+
+
 def main_shaft(g):
     h0, h1 = g["hex_s"]
-    sh = prim.union([hexprism(g["hex_af"], h0, h1), cyl(g["spig_d"] / 2, h1 - 0.5, g["spig_end"])])
+    e = max(g["spig_end"], SHOW_SPIG_END)
+    sh = prim.union([hexprism(g["hex_af"], h0, h1), cyl(g["spig_d"] / 2, h1 - 0.5, e)])
     sh = sh - cyl(4.8, h0 - 1, h0 + 5.0)                                # room for the wiper shaft thread end (to s 32)
-    e = g["spig_end"]
     sh = sh - prim.box(g["spig_d"] / 2 - 1.0, 20, -20, 20, g["cap_s"][0] - 0.5, e + 1)      # flat for the cap screw
     return sh
 
@@ -1029,7 +1032,7 @@ def parts(P):
     add("drum_shear_pin", shear_pin(g), "PLA", "drum_main", R=tf.Ry(180), color="sw", qty=6,
         infill=1.0, notes="Torque limiter shear pin d4 (about 5 N m), prints lying; print 6, 5 are spares")
     add("drum_shaft", main_shaft(g), "PPA-CF", "drum_main", R=tf.Rx(90) @ tf.Ry(90), color="ppa",
-        infill=1.0, notes="Main shaft: hex 22 AF, d12 spigot into the launch sleeve; prints on a hex flat (support under the spigot)")
+        infill=1.0, notes="Main shaft: hex 22 AF, d12 spigot through the launch sleeve and on to the hand crank (show build); prints on a hex flat (support under the spigot)")
     add("drum_reel_washer", reel_washer(g), "PPA-CF", "drum_main", color="ppa",
         notes="REEL gear retaining washer on the coupler journal end, 2 x M3 x 6")
     add("drum_gear_reel", reel_gear(g, c), "PPA-CF", "drum_out_reel", color="gear",
@@ -1355,16 +1358,14 @@ def steps(P):
              text="Slide the shift rail in from the outboard end, over the idler posts, and press it into bracket A "
                   "(flat facing forward).",
              parts=["drum_rail"]),
-        dict(title="Main shaft: coupler and limiter", stage=146,
+        dict(title="Main shaft: coupler on its hub (show build: wiper not linked)", stage=146,
              text="Push the coupler hub onto the wiper output shaft (flats in line) until it stops on the end of the "
                   "flats; its lower end goes into the puck bore, just clear of the motor's output boss. Drop the M8 nut "
                   "into the hub pocket onto the thread (it sits about %.0f mm down the pocket) and tighten it with a 13 mm "
-                  "socket (1/4 inch drive). Slide the outer coupler over the hub, line up the "
-                  "holes, push a shear pin in (head outside, its flat facing the outboard end) and put a piece of tape "
-                  "round the coupler over the head. Print the pins lying on their flat (D44: shear across the layers). Keep the 5 spare pins with the base. A broken pin stub comes out with an "
-                  "M3 screw turned into it. Then slide the REEL gear onto the coupler journal (plain face first) and screw "
-                  "the retaining washer to the journal end (2 x M3 x 6): the gear must spin free (it cannot go on once "
-                  "the dog post is fitted)." % (g["hub_s"][1] - g["nut_s"] - NUT_M8_H),
+                  "socket (1/4 inch drive). Slide the outer coupler over the hub. Show build: NO shear pin, so the coupler "
+                  "(and the main shaft) turn free on the hub: the hub on the unwired motor shaft is only the bearing of "
+                  "the main shaft's motor end. Then slide the REEL gear onto the coupler journal (plain face first) and screw "
+                  "the retaining washer to the journal end (2 x M3 x 6): the gear must spin free." % (g["hub_s"][1] - g["nut_s"] - NUT_M8_H),
              parts=["drum_coupler_hub", "drum_coupler", "drum_shear_pin", "drum_gear_reel", "drum_reel_washer"]),
         dict(title="Main shaft: index contact", stage=147,
              text="Press an M3 nut into the index block pocket, screw the index lever foot to the block (M3 x 12), "
@@ -1390,8 +1391,7 @@ def steps(P):
                   "about 0.6 mm end play.",
              parts=["drum_drum_b", "drum_hand_lever", "drum_bracket_b"]),
         dict(title="Drum: N20", stage=162,
-             text="Press the pinion onto the N20 output shaft (flat to flat) leaving 1.5 mm of shaft below it (that end runs "
-                  "in the bracket A ear slot). Slide the N20 "
+             text="Show build: no pinion, the N20 is not linked (the drum turns by its hand lever). Slide the N20 "
                   "into the cradle from the open end, fit the end plate (2 x M3 x 8). Press an M3 nut into the pocket in "
                   "the bracket A ear front face, wire along its groove. Screw the cradle to the ear from the cradle side: "
                   "pivot screw M3 x 12 through the round hole, swing screw M3 x 12 through the arc slot at its full-mesh "
@@ -1409,13 +1409,11 @@ def steps(P):
         dict(title="Main shaft: stack", stage=170,
              text="Slide the collar onto the main shaft from the spigot end. Lower the shaft with its hex end outboard "
                   "of the REEL gear dogs (beyond s 70) so the collar groove drops between the fork pads, then push it "
-                  "about 42 mm into the coupler socket. The shaft is held endwise later by the launch sleeve and the magnet cap.",
+                  "about 42 mm into the coupler socket. The shaft is held endwise later by the launch sleeve and the hand crank hub.",
              parts=["drum_shaft", "drum_collar"]),
         dict(title="Main shaft: LAUNCH dog ring and magnet cap", stage=171,
              text="Fit the LAUNCH dog ring on the launch sleeve flange (sleeve lugs in the ring slots, 3 x M3 x 10 from "
-                  "the sleeve side into the ring) before the launch sleeve goes on the spigot (launcher steps). After "
-                  "the launcher: glue the AS5600 magnet into the cap, push the cap on the spigot end (flat to flat) and "
-                  "fit the M3 x 6 onto the flat. Hand use of the drum: battery unplugged, slacken the line, loosen the "
-                  "swing screw, swing the N20 out, turn the lever, swing back and tighten.",
+                  "the sleeve side into the ring) before the launch sleeve goes on the spigot (launcher steps). Show "
+                  "build: no magnet cap; the hand crank on the spigot end holds the shaft endwise (show steps).",
              parts=["drum_dogring_launch", "drum_magnet_cap"]),
     ]

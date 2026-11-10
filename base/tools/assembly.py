@@ -29,7 +29,7 @@ if BASE not in sys.path:
 from cad.lib import Part, Joint, Allow, Clearance, prim  # noqa: E402
 from tools.params import load_params  # noqa: E402
 
-SKIP_DEFAULT = {"demo"}
+SKIP_DEFAULT = {"demo", "sensors"}     # show build (dart-v1): the sensors subsystem (AS5600, SW_GAP, SW_RAIL_LOW) is out
 
 
 def subsystem_names():
@@ -73,6 +73,7 @@ class Assembly:
             if hasattr(mod, "steps"):
                 for st in mod.steps(P):
                     st = dict(st); st.setdefault("subsystem", sub); self.steps.append(st)
+        self._apply_drops()
         for j in self.joints.values():
             if j.parent is not None and j.parent not in self.joints:
                 self.errors.append(f"joint {j.name}: unknown parent {j.parent}")
@@ -96,6 +97,38 @@ class Assembly:
         for j in self.joints.values():
             if j.base is not None and not _rigid(j.base):
                 self.errors.append(f"joint {j.name}: base is not a rigid transform")
+
+    def _apply_drops(self):
+        """Optional module hook drop(P) -> fnmatch patterns of parts to leave out (show build). The parts go, and with
+        them every Allow / Clearance / Mesh that no longer names a loaded part and their names in the steps (a step
+        left with no parts goes). self.dropped lists them for the tools (audit: grounded patterns of dropped parts)."""
+        from fnmatch import fnmatchcase
+        pats = []
+        for mod in self.modules.values():
+            if hasattr(mod, "drop"):
+                pats += list(mod.drop(self.P))
+        self.dropped = sorted(n for n in self.parts if any(fnmatchcase(n, p) for p in pats))
+        if not self.dropped:
+            return
+        for n in self.dropped:
+            del self.parts[n]
+
+        def live(pat):
+            return any(fnmatchcase(n, pat) for n in self.parts)
+        self.allowed = [a for a in self.allowed if live(a.a) and live(a.b)]
+        self.clearances = [c for c in self.clearances if live(c.a) and live(c.b)]
+        self.meshes = [m for m in self.meshes if m.gear_a in self.parts and m.gear_b in self.parts]
+        gone = set(self.dropped)
+        steps = []
+        for st in self.steps:
+            ps = st.get("parts")
+            if ps:
+                ps = [p for p in ps if p not in gone]
+                if not ps:
+                    continue
+                st = dict(st, parts=ps)
+            steps.append(st)
+        self.steps = steps
 
     # ------------------------------------------------------------------ loading
     @classmethod

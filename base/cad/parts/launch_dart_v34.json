@@ -1,0 +1,93 @@
+{
+ "source": "kedge/out34 parts.json + per-part npz, folded (every joint 0 deg)",
+ "frame": "nose tip x=0, x to the tail, y left, z up, hull axis y=z=0, belly z=-21, tail face x=152",
+ "R_OUT": 21.0,
+ "NOSE_L": 20.0,
+ "L": 152.0,
+ "NOSE_R0": 11.0,
+ "TIE": {
+  "holes": [
+   [
+    152.0,
+    1.6,
+    -2.4
+   ],
+   [
+    152.0,
+    5.4,
+    -2.4
+   ]
+  ],
+  "knot": [
+   154.2,
+   3.5,
+   -2.4
+  ],
+  "hole_d": 2.0,
+  "line_d": 1.2,
+  "knot_r": 2.0
+ },
+ "bbox_min": [
+  -0.0,
+  -40.5,
+  -21.0
+ ],
+ "bbox_max": [
+  152.0,
+  40.5,
+  21.3
+ ],
+ "components": 57,
+ "parts": [
+  "hull_top",
+  "hull_bottom",
+  "nose",
+  "tray",
+  "righting_leg",
+  "leg_coupler_L",
+  "leg_coupler_R",
+  "leg_plug_L",
+  "leg_plug_R",
+  "drill_leg_L",
+  "drill_leg_L_auger",
+  "drill_leg_L_motor",
+  "drill_leg_L_shaft",
+  "drill_leg_L_nut",
+  "drill_leg_R",
+  "drill_leg_R_auger",
+  "drill_leg_R_motor",
+  "drill_leg_R_shaft",
+  "drill_leg_R_nut",
+  "coupler_L",
+  "coupler_R",
+  "cell_1",
+  "cell_2",
+  "n20_leg",
+  "leg_shaft",
+  "n20_deploy",
+  "deploy_shaft",
+  "xiao",
+  "drv8833_1",
+  "drv8833_2",
+  "ina219",
+  "bno085",
+  "mp1584",
+  "vtx",
+  "bms_2s",
+  "camera",
+  "screws_radial",
+  "pod_cap_L",
+  "coupler_L_screw",
+  "pod_cap_R",
+  "coupler_R_screw",
+  "contacts_front_spring",
+  "contacts_mid_strip",
+  "contacts_rear_plate",
+  "jst_loop",
+  "jst_charge",
+  "antenna",
+  "xiao_antenna",
+  "capacitor",
+  "ballast"
+ ]
+}

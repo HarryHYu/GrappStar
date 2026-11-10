@@ -881,16 +881,15 @@ def _icr():
     g = gears.spur_gear(M_RC, Z_RC[1], X_CPL[1] - X_CPL[0]).translate((0, 0, X_CPL[0]))
     hub = prim.cyl(bearings.CSK20_OD / 2 + bearings.BRG_RIB_BORE / 2 + 4.0, SPRAG_X[1] - X_CPL[1] + 0.01, z=X_CPL[1] - 0.01)
     body = prim.union([g, hub])
-    seat = prim.place(bearings.seat_csk20(key_deg=90.0, below=0.0), tf.T(0, 0, SPRAG_X[1] + 0.01))
-    return body - prim.union([seat, prim.cyl(bearings.CSK20_OD / 2 - 2.0, 80, z=X_CPL[0] - 20)])
+    # show build: no sprag #2: a plain bore, the idler turns free on the plain fixed axle (the hub fills the old seat)
+    return body - prim.cyl((20.0 + fits.SHAFT_IN_BORE) / 2, 80, z=X_CPL[0] - 20)
 
 
 def _icr_axle():
     """Fixed I_c axle (PPA-CF d20) on the I_c joint frame without its rotation: D flat pressed in P1's boss, key rib in
     the sprag's inner keyway, head on P1's front face, clip groove behind the idler."""
     z0, z1 = X_CPL[0] - 2.6, X_P1[1]
-    body = shafts.keyed_shaft(z1 - z0, d=20.0, key_w=shafts.KEY20_W, key_h=shafts.KEY20_H,
-                              key_z=(SPRAG_X[0] - z0, SPRAG_X[1] - z0), chamfer=0.8).translate((0, 0, z0))
+    body = prim.cyl(10.0, z1 - z0, z=z0)            # show build: plain d20 (no sprag key rib)
     body = prim.union([body, prim.cyl(13.0, 1.5, z=z1)])
     flat = prim.box(8.5, 20.0, -20.0, 20.0, X_P1B - 1.0, z1 + 0.01)
     return body - prim.union([flat, clips.clip_groove_cutter(20.0, z=X_CPL[0] - 0.3 - clips.groove_dims(20.0)["width"])])
@@ -1359,9 +1358,9 @@ def parts(P):
     add("reel_ga", _gear(M_RC, Z_RC[0], X_CPL[1] - X_CPL[0], LC_D, 1.5, phase=ph["ga"]), "PPA-CF", joint="reel_lc",
         place=tf.T(0, 0, X_CPL[0]), color=COL["gear"], step=19, notes=f"G_a m{M_RC:g} z{Z_RC[0]} on lane C")
     add("reel_icr", prim.place(_icr(), rz(ph["icr"])), "PPA-CF", tf.Rx(180), joint="reel_icr", color=COL["gear"], step=19,
-        notes=f"I_c m{M_RC:g} z{Z_RC[1]}: idler from lane C to the capstan, sprag #2 pressed in its hub")
+        notes=f"I_c m{M_RC:g} z{Z_RC[1]}: idler from lane C to the capstan; show build: plain bore, turns free on its axle (no sprag #2)")
     add("reel_icr_axle", _icr_axle(), "PPA-CF", None, place=FX @ tf.T(RL["pc"][0], RL["pc"][1], 0.0),
-        color=COL["ppa"], step=19, notes="I_c axle (PPA-CF d20, keyed): fixed in P1 (D flat), carries sprag #2's inner race")
+        color=COL["ppa"], step=19, notes="I_c axle (PPA-CF d20, plain in the show build): fixed in P1 (D flat), the I_c idler turns on it")
     add("reel_ga2", _gear(M_RK, Z_RK[0], X_KPL[1] - X_KPL[0], LK_D, 1.0, phase=ph["ga2"]), "PPA-CF", joint="reel_lk",
         place=tf.T(0, 0, X_KPL[0]), color=COL["gear"], step=20, notes=f"G_a' m{M_RK:g} z{Z_RK[0]} on lane K")
     add("reel_ikr", gears.spur_gear(M_RK, Z_RK[1], X_KPL[1] - X_KPL[0], bore=AXLE_D + fits.HOLE_CLEAR), "PPA-CF",
@@ -1635,7 +1634,7 @@ def allowed(P):
         ("reel_kc", "reel_c", "cup shaft runs inside the tube"), ("reel_kc", "reel_cup", "D fit"),
         ("reel_kc", "reel_cup_clip", "clip on the neck"), ("reel_kc", "reel_gkc", "D fit"),
         ("reel_kc", "reel_kc_clip", "clip in the groove"), ("reel_kc", "reel_p2", "journal in P2"),
-        ("reel_icr_axle", "reel_p1", "axle pressed in P1 (D flat)"), ("reel_icr", "reel_icr_axle", "idler on the sprag over the axle"),
+        ("reel_icr_axle", "reel_p1", "axle pressed in P1 (D flat)"), ("reel_icr", "reel_icr_axle", "idler turns on the plain axle (show build)"),
         ("reel_ikr", "reel_ikr_axle", "idler turns on its axle"), ("reel_ikr_axle", "reel_p2", "axle pressed in P2"),
         ("launch_line_*", "reel_cup", "the line leaves the eyelet's front mouth"),
     ]

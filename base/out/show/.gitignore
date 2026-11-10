@@ -1,0 +1,10 @@
+meshes/
+step/
+pack/stl/
+pack/plates/
+web/
+shots/
+views/
+sim*.html
+assembly*.html
+audit.json

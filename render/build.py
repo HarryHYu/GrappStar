@@ -1179,10 +1179,10 @@ def make_shots(mo, entry=None):
 
     def reel(f):
         v = ease(f, f_taut - 8, f_taut + 75)
-        pos = lerp((-0.52, 0.36, 0.44), (-0.95, 0.26, 0.52), v)
-        tgt = lerp((-0.20, 0.09, 0.24), (2.0, 0.07, 0.10), v)
-        return dict(pos=pos, target=tgt, lens=lerp(40.0, 32.0, v),
-                    focus=lerp((-0.20, 0.09, 0.24), (1.0, 0.08, 0.18), v))
+        far = 0.5 * (rest + np.array([0.4, 0.09, 0.27])) * np.array([1.0, 1.0, 0.0]) + np.array([0.0, 0.0, 0.06])
+        pos = lerp((-0.52, 0.36, 0.44), (-0.80, 0.30, 0.36), v)
+        tgt = lerp((-0.20, 0.09, 0.24), far, v)
+        return dict(pos=pos, target=tgt, lens=lerp(40.0, 50.0, v), focus=lerp((-0.20, 0.09, 0.24), far, v))
 
     def endwide(f):
         u = ease(f, b[10], b[11] + 20)

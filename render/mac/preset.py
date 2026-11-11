@@ -36,7 +36,7 @@ r.use_compositing = True                                      # the camera look
 if a.start is not None or a.end is not None:
     ranges = [(a.start if a.start is not None else sc.frame_start, a.end if a.end is not None else sc.frame_end)]
 else:
-    spec = "273-650,859-960"                                   # short cut (Harry, deadline): launch to drills, line taut
+    spec = "273-579,859-960"                                   # short cut (Harry, deadline): launch to drills, line taut
     ranges = [tuple(int(x) for x in rr.split("-")) for rr in spec.split(",")]
 
 if a.engine == "cycles":

@@ -507,6 +507,64 @@ def drape(P, ground, k_fixed):
     return Q
 
 
+def resample_by_length(Q, n):
+    L = np.r_[0.0, np.cumsum(np.linalg.norm(np.diff(Q, axis=0), axis=1))]
+    t = np.linspace(0.0, L[-1], n)
+    return np.stack([np.interp(t, L, Q[:, d]) for d in range(3)], 1)
+
+
+def reroute_lip(mo, P, fr, kf):
+    """motion.json lets the free rope fall straight from the rail exit (pusher hole) once the dart is out, i.e.
+    through the rail and the base. Real line runs along the rail and over the lip roller at the muzzle, then
+    hangs. For every key whose free rope dips below the exit -> roller-top line behind the roller, rebuild the
+    start of the free rope: exit -> along the rail -> over the roller top -> smooth hang into the rope's first
+    point in front of the roller; blended in with the dip depth so nothing pops. P (K, n, 3), kf = exit index."""
+    d = mo.M["objects"].get("base:launch_muzzle_roller")
+    ob = bpy.data.objects.get("base:launch_muzzle_roller")
+    if d is None or ob is None:
+        return P, 0
+    cl = np.mean([v[:] for v in ob.bound_box], axis=0)
+    rr = 0.5 * float(np.max(np.ptp(np.array([v[:] for v in ob.bound_box]), axis=0)))     # roller radius
+    C = sample(d["frames"], d["loc"], fr) + qrot(sample_quat(d["frames"], d["quat"], fr), cl)
+    out = P.copy()
+    fixed = 0
+    for i in range(len(fr)):
+        free = P[i, kf:]
+        M = len(free)
+        ex = free[0]
+        dv = C[i] - ex
+        if dv[0] <= 0.02:
+            continue
+        dv = dv / np.linalg.norm(dv)
+        nrm = np.array([0.0, 0.0, 1.0]) - dv * dv[2]
+        nrm = nrm / np.linalg.norm(nrm)
+        top = C[i] + nrm * (rr + ROPE_R)
+        dl = top - ex
+        beh = free[:, 0] < top[0]
+        zl = ex[2] + (free[:, 0] - ex[0]) * dl[2] / dl[0]
+        depth = float(np.max((zl - free[:, 2])[beh], initial=0.0))
+        w = float(smoother((depth - 0.004) / 0.016))
+        if w <= 0.0:
+            continue
+        ahead = np.where(free[:, 0] > top[0] + 0.02)[0]
+        if not len(ahead):
+            continue
+        j = int(ahead[0])
+        pj = free[j]
+        tj = free[min(j + 1, M - 1)] - pj
+        tj = tj / (np.linalg.norm(tj) + 1e-9)
+        dist = np.linalg.norm(pj - top)
+        c1 = top + dv * 0.3 * dist * np.array([1.0, 1.0, 0.0]) / max(np.linalg.norm(dv[:2]), 1e-6)
+        c2 = pj - tj * 0.3 * dist
+        u = np.linspace(0, 1, 14)[1:-1, None]
+        bez = (1 - u) ** 3 * top + 3 * (1 - u) ** 2 * u * c1 + 3 * (1 - u) * u ** 2 * c2 + u ** 3 * pj
+        tail = resample_by_length(np.vstack([top, bez, free[j:]]), M - 2)
+        new = np.vstack([ex, 0.5 * (ex + top), tail])
+        out[i, kf:] = free * (1 - w) + new * w
+        fixed += 1
+    return out, fixed
+
+
 def cache_curve_nodes(name, N, P, K, mat, res=6, prof=6, hide_before=False):
     """GN tree that turns a per-key point cache (N points per key, attribute kf = key frame) into the curve
     for the current (sub)frame, interpolating linearly between keys. The first P points (base path) are a
@@ -622,12 +680,13 @@ def build_line(scene, mo, models, env, report):
     ground = Ground(env)
     free = hermite_resample(P[:, kb - 1:], 3)              # exit point + free rope, 3x denser, same points
     PP = np.concatenate([P[:, :kb - 1], free], 1)
+    PP, nfix = reroute_lip(mo, PP, fr, kb - 1)
     PP = drape(PP, ground, kb)
     mat = rope_material(models)
     K, N, _ = PP.shape
     ng = cache_curve_nodes("GS_line_tether", N, kb, K, mat)
     ob = cache_object("line:tether", col, fr, PP, ng)
-    report["line"] = dict(keys=K, points=N, base_points=kb)
+    report["line"] = dict(keys=K, points=N, base_points=kb, keys_rerouted_over_lip=nfix)
     W = mo.M.get("line_wraps")
     if W and len(W.get("frames", [])) > 1:
         WP = np.asarray(W["points"], float)
@@ -1352,6 +1411,9 @@ def render_frames(scene, frames, samples=32, cam_spec="", size=(640, 360), tag="
         cam.rotation_euler = (tv - pv).to_track_quat("-Z", "Y").to_euler()
         cd.dof.use_dof = False
     shots = find_shots(scene)
+    if cam is not None:                                # markers bound to cameras would switch it back
+        for m in scene.timeline_markers:
+            m.camera = None
     out = []
     for f in frames:
         scene.frame_set(f)

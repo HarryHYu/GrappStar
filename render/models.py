@@ -20,13 +20,18 @@ What is built (all metres, Z up, world origin = centre of the plywood board top,
   (frame_pcb_esp32, _bts7960, _drv8833, _mp1584, _hx711, frame_perfboard, frame_fuse_20a), frame_rc832 (with its
   antenna and AV lead), frame_kiyo_x; the wiper motor and the N20s keep their CAD envelopes with split materials.
 - the plywood board `env:board` is built here too (birch ply, 1.0 x 0.8 x 0.018 m, top at z 0), with cable ties.
-- DART (collection DART): every kedge/out34 part as `dart:<part>` in the dart frame (nose tip origin, +x to the
+- DART (collection DART): every part of the dart CAD (DART_DIR = env KEDGE_OUT, else kedge/out35 when its READY
+  file exists, else kedge/out34) as `dart:<part>` in the dart frame (nose tip origin, +x to the
   tail, +z up) under the empty `dart:root`. The moving parts (righting leg, both drill pods, both augers) are
-  their own pivots: origin on the joint axis, everything riding on them parented below (DART_JOINTS, the same
-  names / parents / pivots / axes as motion.json "joints"); pose_dart() / apply_dart_joint() set them. At rest
+  their own pivots: origin on the joint axis, everything riding on them parented below (DART_JOINTS, derived from
+  parts.json: the same names / parents / pivots / axes as motion.json "joints"); pose_dart() / apply_dart_joint()
+  set them. At rest
   dart:root sits folded on the launcher cradle (asm launch_dart transform).
-- materials: PBR detail on everything (_detail: roughness variation, CC0 roughness / height maps box-projected,
-  fingerprints, cavity grime, worn edges, dust, micro bump); mat_rope(colour) for the Dyneema tether.
+- materials: printed parts as built (SPEC v2): PLA = Harry's royal blue satin PLA, PPA-CF = matte black carbon
+  nylon, with 0.2 mm layer lines, banding, z seam and top infill in each part's print orientation (asm.json
+  print_tf, kedge/pack.py ORIENT; set_print_frame / _print_texture); PBR detail on everything (_detail: roughness
+  variation, CC0 roughness / height maps box-projected, fingerprints, cavity grime, worn edges, dust, micro bump);
+  mat_rope(colour) for the Dyneema tether.
 - ELEC (collection ELEC): Harry's kit on the board beside the base: `elec:jetson` (Jetson Orin Nano developer kit with its
   heatsink and fan), `elec:digitnow` (USB capture dongle on a Jetson USB port), `elec:lipo_3s` (3S 2200 with XT60
   and balance lead), XT60 Y harness, and the cables (`elec:cable_*`) to the base's electronics bay, RC832, Kiyo X.

@@ -29,7 +29,8 @@ p, t, lens = spec.split(":")
 pos = Vector([float(v) for v in p.split(",")]); tgt = Vector([float(v) for v in t.split(",")])
 
 sc = bpy.context.scene
-sc.frame_set(a.frame)
+for m in list(sc.timeline_markers):                        # markers bind cameras (cam:A / cam:B) and would switch the
+    sc.timeline_markers.remove(m)                          # render camera back on every frame change: drop them first
 cd = bpy.data.cameras.new("cam:still"); cd.lens = float(lens); cd.sensor_width = 36
 cd.dof.use_dof = True; cd.dof.focus_distance = (tgt - pos).length; cd.dof.aperture_fstop = 8.0
 co = bpy.data.objects.new("cam:still", cd); sc.collection.objects.link(co)
@@ -38,8 +39,10 @@ co.rotation_euler = (tgt - pos).to_track_quat("-Z", "Y").to_euler()
 for fc in (co.animation_data.action.fcurves if co.animation_data and co.animation_data.action else []):
     pass
 sc.camera = co
-for m in list(sc.timeline_markers):                        # markers bind cameras: drop them for the still
-    sc.timeline_markers.remove(m)
+sc.frame_set(a.frame)                                      # after the markers are gone: nothing switches the camera
+sc.camera = co
+bpy.context.view_layer.update()
+assert sc.camera == co and not any(m.camera for m in sc.timeline_markers), "still camera not bound"
 
 r = sc.render
 r.engine = "CYCLES"
@@ -66,6 +69,6 @@ if hasattr(r.image_settings, "media_type"):
 r.image_settings.file_format = "PNG"
 out = a.out or os.path.join(os.path.dirname(bpy.data.filepath), "still_%s.png" % a.view)
 r.filepath = out
-print("GrappStar still:", a.view, spec, a.res, a.samples, "samples ->", out)
+print("GrappStar still:", a.view, spec, a.res, a.samples, "samples, camera", sc.camera.name, "->", out)
 bpy.ops.render.render(write_still=True)
 print("saved", out)

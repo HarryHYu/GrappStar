@@ -1255,12 +1255,12 @@ def build_cameras(scene, mo, report, shots):
 
 
 SUN = dict(az_offset_deg=12.0, el_min_deg=32.0, el_above_frame_deg=2.0)   # sun just above cam:A's frame, ahead
-LOOK = dict(exposure=0.85, white_balance_k=7000.0, look="AgX - Punchy",
-            glare_threshold=1.1, glare_strength=0.30, glare_size=0.75,
-            soft=0.0006, halo=0.0020, sharpen=0.55,                 # blur sizes relative to the image height
-            distortion=0.012, dispersion=0.006, vignette=0.22,
-            veil=0.07, veil_lift=0.012, ghosts=1.0,
-            luma_noise=0.010, luma_noise_bright=0.020, chroma_noise=0.010, yellow_sat=0.56)
+LOOK = dict(exposure=0.6, white_balance_k=5700.0, look="AgX - Medium High Contrast",   # neutral, natural contrast
+            glare_threshold=1.6, glare_strength=0.10, glare_size=0.7,                    # mild bloom
+            soft=0.0003, halo=0.0015, sharpen=0.25,                                       # barely-there softness
+            distortion=0.008, dispersion=0.002, vignette=0.10,                            # light vignette
+            veil=0.025, veil_lift=0.004, ghosts=0.35,                                     # a hint of sun veil
+            luma_noise=0.0025, luma_noise_bright=0.004, chroma_noise=0.002, yellow_sat=0.5)
 
 
 def place_sun(scene, shots, env, report):

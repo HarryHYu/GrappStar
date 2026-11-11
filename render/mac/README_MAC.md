@@ -13,6 +13,10 @@
    Stopped half way? Run it again: frames already done are skipped.
    Other options (Terminal, in that folder):
    - full HD: `bash render_mac.command final`; 4K: `bash render_mac.command uhd`
+   - Cycles on the GPU at 720p with the camera look (cleaner light, slower: about 6-10 s per frame on an M3):
+     `bash render_mac.command cy720` (frames in `frames_cy720/`)
+   - a photoreal 4K still from a custom camera: `/Applications/Blender.app/Contents/MacOS/Blender -b
+     grappstar_mission.blend -P still.py -- --view rear` (or `--view front`)
    - quick test: `bash render_mac.command preview eevee 500 560`
    - photoreal stills or a short clip with Cycles on the GPU: `bash render_mac.command hero cycles 520 520`
 5. Quality knobs: the presets in `preset.py` (resolution, samples). Grass density: select `env:grass`, Modifiers,

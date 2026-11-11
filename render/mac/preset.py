@@ -17,7 +17,7 @@ import bpy, sys, os, argparse
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 ap = argparse.ArgumentParser()
-ap.add_argument("--preset", default="hd720", choices=["preview", "hd720", "final", "uhd", "hero"])
+ap.add_argument("--preset", default="hd720", choices=["preview", "hd720", "cy720", "final", "uhd", "hero"])
 ap.add_argument("--engine", default="eevee", choices=["eevee", "cycles"])
 ap.add_argument("--start", type=int); ap.add_argument("--end", type=int)
 ap.add_argument("--out", default=os.path.expanduser("~/Desktop/grappstar_render/frames/"))
@@ -26,18 +26,22 @@ a = ap.parse_args(argv)
 
 sc = bpy.context.scene
 r = sc.render
-res = {"preview": (960, 540), "hd720": (1280, 720), "final": (1920, 1080), "uhd": (3840, 2160),
+res = {"preview": (960, 540), "hd720": (1280, 720), "cy720": (1280, 720), "final": (1920, 1080), "uhd": (3840, 2160),
        "hero": (1920, 1080)}[a.preset]
+CY = a.preset == "cy720"            # Cycles on the Apple GPU at 720p with the .blend's (toned-down) camera look
 r.resolution_x, r.resolution_y, r.resolution_percentage = res[0], res[1], 100
 r.use_motion_blur = True
 r.motion_blur_shutter = 0.5                                   # 180 deg shutter (opens at the frame: see the .blend)
-r.use_compositing = False                                     # clean image: no phone filter (Harry: too murky)
-_v = sc.view_settings
-try:
-    _v.use_white_balance = False                              # no yellow cast
-    _v.look = "None"
-except Exception:
-    pass
+if CY:
+    r.use_compositing = True                                  # the .blend's camera look (neutral grade, light glare)
+else:
+    r.use_compositing = False                                     # clean image: no phone filter (Harry: too murky)
+    _v = sc.view_settings
+    try:
+        _v.use_white_balance = False                              # no yellow cast
+        _v.look = "None"
+    except Exception:
+        pass
 
 # Harry: the grass must stay still. No drifting cloud shadows, no wind sway (grass and gum leaves).
 _cs = bpy.data.objects.get("env:cloud_shadows")
@@ -59,9 +63,11 @@ print("GrappStar: cloud shadows off:", bool(_cs), "| wind nodes zeroed:", _nw)
 if a.start is not None or a.end is not None:
     ranges = [(a.start if a.start is not None else sc.frame_start, a.end if a.end is not None else sc.frame_end)]
 else:
-    spec = "305-400,600-640,870-940"                                   # short cut (Harry, deadline): launch to drills, line taut
+    spec = "273-650,859-960" if CY else "305-400,600-640,870-940"     # short cut (Harry, deadline): launch to drills, line taut
     ranges = [tuple(int(x) for x in rr.split("-")) for rr in spec.split(",")]
 
+if CY:
+    a.engine = "cycles"
 if a.engine == "cycles":
     try:
         bpy.ops.preferences.addon_enable(module="cycles")
@@ -74,15 +80,30 @@ if a.engine == "cycles":
     for d in prefs.devices:
         d.use = True
     sc.cycles.device = "GPU"
-    sc.cycles.samples = {"preview": 24, "hd720": 48, "final": 96, "uhd": 128, "hero": 512}[a.preset]
+    sc.cycles.samples = {"preview": 24, "hd720": 48, "cy720": 16, "final": 96, "uhd": 128, "hero": 512}[a.preset]
     sc.cycles.use_adaptive_sampling = True
     sc.cycles.use_denoising = True
+    if CY:                          # M3 10-core GPU estimate: about 6-10 s a frame at 720p (16 samples + denoise);
+        c = sc.cycles               # 24 samples would be about 9-14 s
+        c.adaptive_threshold = 0.03
+        c.adaptive_min_samples = 0
+        try:
+            c.denoiser = "OPENIMAGEDENOISE"
+            c.denoising_input_passes = "RGB_ALBEDO_NORMAL"
+            c.denoising_use_gpu = True
+        except Exception:
+            pass
+        c.max_bounces, c.diffuse_bounces, c.glossy_bounces = 5, 3, 2
+        c.transmission_bounces, c.transparent_max_bounces, c.volume_bounces = 4, 8, 0
+        c.sample_clamp_indirect = 5.0
+        c.caustics_reflective = c.caustics_refractive = False
+        r.use_persistent_data = True
 else:
     r.engine = "BLENDER_EEVEE"
     ee = sc.eevee
     ee.taa_render_samples = {"preview": 12, "hd720": 10, "final": 32, "uhd": 48, "hero": 128}[a.preset]
 
-a.out = a.out.rstrip("/") + "_v3/"                             # v2: still grass, rendered fresh
+a.out = a.out.rstrip("/") + ("_cy720/" if CY else "_v3/")     # v2: still grass, rendered fresh
 os.makedirs(a.out, exist_ok=True)
 for _f in os.listdir(a.out):                                  # empty placeholders from a stopped run: render them again
     if _f.startswith("f_") and _f.endswith(".png") and os.path.getsize(os.path.join(a.out, _f)) == 0:

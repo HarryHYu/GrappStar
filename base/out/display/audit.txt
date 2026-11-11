@@ -1,0 +1,133 @@
+parts 48, states 1, 2.6 s
+  warn Allow('real_spring_l_hook_a', 'disp_anchor_pin_l') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_hook_a', 'disp_anchor_pin_r') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_hook_a', 'disp_anchor_pin_l') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_hook_a', 'disp_anchor_pin_r') never matched an overlap: remove it or narrow it
+  warn Allow('disp_anchor_pin_l', 'disp_rail_front') never matched an overlap: remove it or narrow it
+  warn Allow('disp_anchor_pin_r', 'disp_rail_front') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_3', 'real_spring_l_0') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_3', 'real_spring_r_2') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_3', 'real_spring_r_3') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_3', 'real_spring_l_hook_c') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_3', 'real_spring_l_2') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_3', 'real_spring_r_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_3', 'real_spring_r_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_3', 'real_spring_r_0') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_3', 'real_spring_l_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_3', 'real_spring_r_hook_c') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_3', 'real_spring_l_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_3', 'real_spring_l_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_3', 'real_spring_r_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_0', 'real_spring_r_2') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_0', 'real_spring_r_3') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_0', 'real_spring_l_hook_c') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_0', 'real_spring_l_2') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_0', 'real_spring_r_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_0', 'real_spring_r_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_0', 'real_spring_r_0') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_0', 'real_spring_l_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_0', 'real_spring_r_hook_c') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_0', 'real_spring_l_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_0', 'real_spring_l_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_0', 'real_spring_r_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_2', 'real_spring_r_3') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_2', 'real_spring_l_hook_c') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_2', 'real_spring_l_2') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_2', 'real_spring_r_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_2', 'real_spring_r_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_2', 'real_spring_r_0') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_2', 'real_spring_l_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_2', 'real_spring_r_hook_c') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_2', 'real_spring_l_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_2', 'real_spring_l_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_2', 'real_spring_r_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_3', 'real_spring_l_hook_c') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_3', 'real_spring_l_2') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_3', 'real_spring_r_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_3', 'real_spring_r_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_3', 'real_spring_r_0') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_3', 'real_spring_l_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_3', 'real_spring_r_hook_c') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_3', 'real_spring_l_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_3', 'real_spring_l_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_3', 'real_spring_r_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_hook_c', 'real_spring_l_2') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_hook_c', 'real_spring_r_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_hook_c', 'real_spring_r_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_hook_c', 'real_spring_r_0') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_hook_c', 'real_spring_l_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_hook_c', 'real_spring_r_hook_c') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_hook_c', 'real_spring_l_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_hook_c', 'real_spring_l_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_hook_c', 'real_spring_r_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_2', 'real_spring_r_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_2', 'real_spring_r_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_2', 'real_spring_r_0') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_2', 'real_spring_l_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_2', 'real_spring_r_hook_c') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_2', 'real_spring_l_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_2', 'real_spring_l_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_2', 'real_spring_r_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_hook_a', 'real_spring_r_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_hook_a', 'real_spring_r_0') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_hook_a', 'real_spring_l_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_hook_a', 'real_spring_r_hook_c') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_hook_a', 'real_spring_l_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_hook_a', 'real_spring_l_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_hook_a', 'real_spring_r_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_1', 'real_spring_r_0') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_1', 'real_spring_l_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_1', 'real_spring_r_hook_c') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_1', 'real_spring_l_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_1', 'real_spring_l_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_1', 'real_spring_r_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_0', 'real_spring_l_1') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_0', 'real_spring_r_hook_c') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_0', 'real_spring_l_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_0', 'real_spring_l_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_0', 'real_spring_r_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_1', 'real_spring_r_hook_c') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_1', 'real_spring_l_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_1', 'real_spring_l_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_1', 'real_spring_r_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_hook_c', 'real_spring_l_hook_a') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_hook_c', 'real_spring_l_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_r_hook_c', 'real_spring_r_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_hook_a', 'real_spring_l_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_hook_a', 'real_spring_r_4') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_l_4', 'real_spring_r_4') never matched an overlap: remove it or narrow it
+  warn Allow('disp_carriage_rear', 'disp_carriage_front') never matched an overlap: remove it or narrow it
+  warn Allow('real_wiper_shaft', 'real_wiper_motor') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_*', 'real_spring_*') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_*_hook_a', 'disp_anchor_pin_*') never matched an overlap: remove it or narrow it
+  warn Allow('real_spring_*_hook_c', 'disp_yoke') never matched an overlap: remove it or narrow it
+  warn Allow('real_wiper_shaft', 'disp_axle') never matched an overlap: remove it or narrow it
+  warn Allow('real_wiper_shaft', 'real_wiper_motor') never matched an overlap: remove it or narrow it
+  warn Allow('real_pcb_*', 'disp_ebox') never matched an overlap: remove it or narrow it
+  warn Allow('disp_aim_pin', 'disp_aim_housing') never matched an overlap: remove it or narrow it
+  warn Allow('disp_aim_pin', 'disp_aim_crank') never matched an overlap: remove it or narrow it
+  warn disp_rail_rear: overhang 4532.0 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_rail_mid: overhang 2332.8 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_rail_front: overhang 7889.7 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_yoke: overhang 1782.0 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_big_gear: overhang 644.5 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_drive_gear: overhang 3858.7 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_sleeve: overhang 2907.4 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_anchor_pin_l: overhang 107.6 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_anchor_pin_r: overhang 107.6 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_aim_housing: overhang 761.3 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_aim_worm: overhang 2778.6 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_aim_crank: overhang 1755.7 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_aim_lug: overhang 995.2 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_carriage_rear: overhang 4474.5 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_carriage_front: overhang 2197.0 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_axle: overhang 2321.0 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn disp_ebox: overhang 574.9 mm2 steeper than 45 deg: needs supports or a better print_tf
+  warn real_dart: 16 shells
+  warn real_spring_l_hook_a: 2 shells
+  warn real_spring_l_hook_c: 2 shells
+  warn real_spring_r_hook_a: 2 shells
+  warn real_spring_r_hook_c: 2 shells
+  warn opt_reel_spool: overhang 2814.4 mm2 steeper than 45 deg: needs supports or a better print_tf
+  allowed contacts: 3
+CLEAN

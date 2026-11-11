@@ -1,0 +1,163 @@
+{
+ "created": "2026-11-11 00:10",
+ "bed": [
+  256.0,
+  256.0,
+  260.0
+ ],
+ "spacing": 4.0,
+ "margin": 10.5,
+ "parts": [
+  {
+   "name": "opt_reel_bracket",
+   "subsystem": "optional",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    193.51,
+    39.95,
+    50.0
+   ],
+   "volume_cm3": 64.3,
+   "mass_g": 31.3,
+   "model_mass_g": 53.78,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.62,
+   "overhang_mm2": 21.3,
+   "supports": "no",
+   "orientation": "Rotated: the part's -x axis points up.",
+   "notes": "OPTIONAL reel bracket (glue the spool to its face)",
+   "watertight": true,
+   "stl": "stl/opt_reel_bracket.stl"
+  },
+  {
+   "name": "opt_drum_dummy",
+   "subsystem": "optional",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    96.0,
+    96.0,
+    128.0
+   ],
+   "volume_cm3": 44.73,
+   "mass_g": 55.5,
+   "model_mass_g": 55.46,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 1.21,
+   "overhang_mm2": 0.0,
+   "supports": "no",
+   "orientation": "As modelled, bottom face on the bed.",
+   "notes": "OPTIONAL selector drum look-alike (hollow), gear end down; sits on the drum saddle",
+   "watertight": true,
+   "stl": "stl/opt_drum_dummy.stl"
+  },
+  {
+   "name": "opt_drum_saddle",
+   "subsystem": "optional",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    44.0,
+    82.0,
+    32.43
+   ],
+   "volume_cm3": 37.49,
+   "mass_g": 16.7,
+   "model_mass_g": 28.47,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.35,
+   "overhang_mm2": 0.0,
+   "supports": "no",
+   "orientation": "As modelled, bottom face on the bed.",
+   "notes": "OPTIONAL saddle for the drum look-alike",
+   "watertight": true,
+   "stl": "stl/opt_drum_saddle.stl"
+  },
+  {
+   "name": "opt_reel_spool",
+   "subsystem": "optional",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    62.0,
+    62.0,
+    38.0
+   ],
+   "volume_cm3": 15.13,
+   "mass_g": 18.8,
+   "model_mass_g": 18.76,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.39,
+   "overhang_mm2": 2814.4,
+   "supports": "yes, tree supports from the plate (2814 mm2 over 45 deg)",
+   "orientation": "Rotated: the part's +y axis points up.",
+   "notes": "OPTIONAL storage reel look-alike (hollow spool)",
+   "watertight": true,
+   "stl": "stl/opt_reel_spool.stl"
+  }
+ ],
+ "plates": [
+  {
+   "file": "plate_1_PLA.3mf",
+   "png": "plate_1_PLA.png",
+   "material": "PLA",
+   "items": [
+    {
+     "name": "opt_drum_dummy",
+     "copy": 1,
+     "x": 31.245,
+     "y": 15.025,
+     "rot": false
+    },
+    {
+     "name": "opt_drum_saddle",
+     "copy": 1,
+     "x": 97.245,
+     "y": 158.975,
+     "rot": false
+    },
+    {
+     "name": "opt_reel_bracket",
+     "copy": 1,
+     "x": 31.245,
+     "y": 115.025,
+     "rot": false
+    },
+    {
+     "name": "opt_reel_spool",
+     "copy": 1,
+     "x": 31.245,
+     "y": 158.975,
+     "rot": false
+    }
+   ],
+   "objects": [
+    "opt_drum_dummy",
+    "opt_drum_saddle",
+    "opt_reel_bracket",
+    "opt_reel_spool"
+   ],
+   "build_items": 4,
+   "solo": false,
+   "mass_g": 122.3,
+   "time_h": 2.21
+  }
+ ],
+ "errors": [],
+ "warnings": [],
+ "totals": {
+  "PLA": {
+   "mass_g": 122.3,
+   "filament_m": 41.01,
+   "time_h": 2.21,
+   "count": 4,
+   "plates": 1
+  }
+ },
+ "unplaced_totals": {}
+}

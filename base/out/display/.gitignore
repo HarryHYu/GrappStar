@@ -1,0 +1,7 @@
+meshes/
+views/
+pack/stl/
+pack/plates/
+pack_optional/stl/
+pack_optional/plates/
+audit.json

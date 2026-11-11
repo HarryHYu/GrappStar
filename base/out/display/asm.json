@@ -1,0 +1,4840 @@
+{
+ "version": 1,
+ "created": "2026-11-11 00:10",
+ "subsystems": [
+  "display"
+ ],
+ "parts": [
+  {
+   "name": "disp_rail_rear",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     140.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     120.432734
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     -24.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#9aa7b4",
+   "notes": "Rail rear piece with the tether pulley, its bearing, washers and axle fused in",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 150954.95,
+   "mass_g": 106.37,
+   "bbox": [
+    [
+     -210.865,
+     -34.0,
+     24.0
+    ],
+    [
+     -30.0,
+     34.0,
+     100.1
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_rail_mid",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     140.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     0.0,
+     0.0,
+     1.0,
+     -25.25
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     -1.0,
+     0.0,
+     0.0,
+     140.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#8796a5",
+   "notes": "Rail mid piece (cheeks on the sleeve, big gear pin bosses); glue the front joint (no splice straps)",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 201067.39,
+   "mass_g": 135.16,
+   "bbox": [
+    [
+     -30.0,
+     -34.0,
+     -21.0
+    ],
+    [
+     140.0,
+     34.0,
+     71.5
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_rail_front",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     140.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     -205.75
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     -24.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#9aa7b4",
+   "notes": "Rail front piece (spring anchor posts, muzzle tie)",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 146470.42,
+   "mass_g": 109.45,
+   "bbox": [
+    [
+     140.0,
+     -64.0,
+     24.0
+    ],
+    [
+     271.5,
+     64.0,
+     72.5
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_yoke",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     61.129068
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     140.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     35.32134
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     10.35
+    ],
+    [
+     0.0,
+     -1.0,
+     -0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     -1.0,
+     90.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#c86f00",
+   "notes": "Carriage yoke with both spring pegs fused on (the real spring hooks slip onto the peg ends)",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 20989.83,
+   "mass_g": 26.03,
+   "bbox": [
+    [
+     -32.0,
+     -63.3,
+     56.0
+    ],
+    [
+     11.3,
+     63.3,
+     90.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_big_gear",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.847863,
+     0.530215,
+     -0.0,
+     71.519278
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     134.0
+    ],
+    [
+     0.530215,
+     -0.847863,
+     0.0,
+     41.324967
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     -0.0
+    ],
+    [
+     0.0,
+     -1.0,
+     -0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     -1.0,
+     24.5
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#3d7cc9",
+   "notes": "Big gear; one M3 screw through the cheek fixes it with its first tooth on the rack",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 184194.38,
+   "mass_g": 75.59,
+   "bbox": [
+    [
+     -52.492,
+     -52.492,
+     -2.8
+    ],
+    [
+     52.492,
+     52.492,
+     24.5
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_gear_pin",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.500302,
+     -0.0,
+     71.519278
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     140.0
+    ],
+    [
+     0.500302,
+     -0.865851,
+     0.0,
+     41.324967
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     0.0,
+     0.0,
+     1.0,
+     -6.5
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     -1.0,
+     0.0,
+     0.0,
+     4.5
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#3a3f45",
+   "notes": "Big gear pin (no clip: a drop of glue)",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 4307.71,
+   "mass_g": 4.24,
+   "bbox": [
+    [
+     -8.0,
+     -8.0,
+     -20.0
+    ],
+    [
+     4.5,
+     8.0,
+     33.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_drive_gear",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.939573,
+     0.342348,
+     -0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     152.0
+    ],
+    [
+     0.342348,
+     -0.939573,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     20.8
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#2f6db5",
+   "notes": "Drive gear 26T with the hub fused in (keyway onto the sleeve rib)",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 43538.39,
+   "mass_g": 36.12,
+   "bbox": [
+    [
+     -35.0,
+     -34.838,
+     -20.8
+    ],
+    [
+     35.0,
+     34.838,
+     8.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_sleeve",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.993249,
+     0.116003,
+     -0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     111.0
+    ],
+    [
+     0.116003,
+     -0.993249,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     -1.0,
+     -0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     -1.0,
+     82.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#3a3f45",
+   "notes": "Launch sleeve: the rail pivot on the main axle",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 39438.79,
+   "mass_g": 33.82,
+   "bbox": [
+    [
+     -32.0,
+     -32.0,
+     -3.0
+    ],
+    [
+     32.0,
+     32.0,
+     82.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_anchor_pin_l",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     213.642925
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     178.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     156.939322
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     -1.0,
+     22.5
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     3.988815
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#3a3f45",
+   "notes": "Spring anchor pin (printed; or 8 mm rod)",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 2253.52,
+   "mass_g": 2.47,
+   "bbox": [
+    [
+     -4.0,
+     -3.989,
+     0.0
+    ],
+    [
+     4.0,
+     3.989,
+     45.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_anchor_pin_r",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     213.642925
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     102.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     156.939322
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     -1.0,
+     22.5
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     3.988815
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#3a3f45",
+   "notes": "Spring anchor pin (printed; or 8 mm rod)",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 2253.52,
+   "mass_g": 2.47,
+   "bbox": [
+    [
+     -4.0,
+     -3.989,
+     0.0
+    ],
+    [
+     4.0,
+     3.989,
+     45.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_aim_housing",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     -46.25
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     -203.5
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     165.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#9aa7b4",
+   "notes": "Aim housing: stands on the board, carries the sleeve end",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 212770.26,
+   "mass_g": 137.8,
+   "bbox": [
+    [
+     -42.0,
+     174.0,
+     -165.0
+    ],
+    [
+     134.5,
+     233.0,
+     18.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_aim_cap",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     -57.75
+    ],
+    [
+     0.0,
+     -1.0,
+     -0.0,
+     214.0
+    ],
+    [
+     0.0,
+     0.0,
+     -1.0,
+     -48.94
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#8796a5",
+   "notes": "Worm saddle cap",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 4228.36,
+   "mass_g": 5.24,
+   "bbox": [
+    [
+     35.0,
+     207.0,
+     -68.39
+    ],
+    [
+     80.5,
+     221.0,
+     -48.94
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_aim_worm",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.0,
+     -0.0,
+     1.0,
+     58.04
+    ],
+    [
+     -0.209527,
+     -0.977803,
+     -0.0,
+     214.2
+    ],
+    [
+     0.977803,
+     -0.209527,
+     -0.0,
+     -68.44
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     -1e-06
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     1e-06
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     30.995418
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#2f6db5",
+   "notes": "Worm: self-locking, it holds the crank and so the rail angle",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 17078.51,
+   "mass_g": 16.11,
+   "bbox": [
+    [
+     -14.0,
+     -14.0,
+     -30.995
+    ],
+    [
+     14.0,
+     14.0,
+     23.46
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_aim_crank",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     -0.431435,
+     0.902144,
+     -0.0,
+     58.04
+    ],
+    [
+     0.0,
+     -0.0,
+     -1.0,
+     222.2
+    ],
+    [
+     -0.902144,
+     -0.431435,
+     -0.0,
+     -100.54
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     -9.159666
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     7.815235
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     0.87
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#3d7cc9",
+   "notes": "Worm wheel and crank with the two 608 bearings fused in (runs on the printed pin)",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 33559.24,
+   "mass_g": 24.69,
+   "bbox": [
+    [
+     -22.0,
+     -37.63,
+     -0.87
+    ],
+    [
+     40.319,
+     22.0,
+     38.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_aim_pin",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     58.04
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     208.0
+    ],
+    [
+     0.0,
+     -1.0,
+     0.0,
+     -100.54
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     -1.0,
+     -0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     -1.0,
+     30.32
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#d9dde3",
+   "notes": "Crank axle pin (printed in place of the M8 bolt)",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 1996.15,
+   "mass_g": 2.3,
+   "bbox": [
+    [
+     -7.5,
+     -6.495,
+     0.0
+    ],
+    [
+     7.5,
+     6.495,
+     30.32
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_aim_conrod",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.42572,
+     0.0,
+     -0.904855,
+     33.33362
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.904855,
+     0.0,
+     0.42572,
+     -83.522516
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     -78.002647
+    ],
+    [
+     0.0,
+     0.0,
+     -1.0,
+     -0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     -187.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#d97a00",
+   "notes": "Conrod",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 11325.26,
+   "mass_g": 12.63,
+   "bbox": [
+    [
+     -8.495,
+     187.0,
+     -8.499
+    ],
+    [
+     164.5,
+     193.0,
+     8.499
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_aim_lug",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     140.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     -115.0
+    ],
+    [
+     0.0,
+     0.0,
+     -1.0,
+     19.000559
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     -28.02
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#d97a00",
+   "notes": "Conrod lug on the left rail wall (2 x M3 or glue)",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 13546.5,
+   "mass_g": 12.11,
+   "bbox": [
+    [
+     100.0,
+     28.02,
+     -9.999
+    ],
+    [
+     130.0,
+     55.8,
+     48.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_carriage_rear",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     61.129068
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     140.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     35.32134
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     -72.0
+    ],
+    [
+     0.0,
+     0.0,
+     -1.0,
+     77.3
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     21.5
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#d97a00",
+   "notes": "Carriage (rack, cradle, pusher, lip roller fused) in two halves: glue at the cut face",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 29742.32,
+   "mass_g": 36.88,
+   "bbox": [
+    [
+     -0.0,
+     -21.5,
+     47.6
+    ],
+    [
+     144.0,
+     21.5,
+     107.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_carriage_front",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     61.129068
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     140.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     35.32134
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     -216.0
+    ],
+    [
+     0.0,
+     0.0,
+     -1.0,
+     63.8
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     21.5
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#d97a00",
+   "notes": "Carriage (rack, cradle, pusher, lip roller fused) in two halves: glue at the cut face",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 19157.0,
+   "mass_g": 23.75,
+   "bbox": [
+    [
+     144.0,
+     -21.5,
+     47.6
+    ],
+    [
+     288.0,
+     21.5,
+     80.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_axle",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     0.0,
+     -1.0,
+     0.0,
+     96.65
+    ],
+    [
+     1.0,
+     0.0,
+     0.0,
+     -0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     12.2
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#d9dde3",
+   "notes": "Main axle: D50 coupler hub (the real wiper shaft plugs in) + main shaft, round, d12 spigot into the sleeve. Prints lying on its flat, support under the spigot",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 63047.06,
+   "mass_g": 32.86,
+   "bbox": [
+    [
+     -12.997,
+     -5.0,
+     -12.2
+    ],
+    [
+     12.997,
+     198.3,
+     12.997
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_motor_plate",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     -1.0,
+     23.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     10.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#d9dde3",
+   "notes": "Motor adapter plate: the real wiper motor bolts on from behind with 3 x M6 (bosses on the rear face, slots +-4 mm: the D50 pattern is assumed, not measured); its shaft goes through the 30 mm hole into the axle hub",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 77201.21,
+   "mass_g": 54.15,
+   "bbox": [
+    [
+     -52.0,
+     -10.0,
+     -34.0
+    ],
+    [
+     52.0,
+     0.0,
+     80.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_motor_leg",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     34.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     165.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#d9dde3",
+   "notes": "Motor plate leg: the plate drops into its 10 mm slot (glue); 3 screws into the board",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 69867.31,
+   "mass_g": 47.74,
+   "bbox": [
+    [
+     -36.0,
+     -72.0,
+     -165.0
+    ],
+    [
+     36.0,
+     4.0,
+     -28.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "disp_ebox",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.0,
+     -1.0,
+     0.0,
+     237.0
+    ],
+    [
+     1.0,
+     0.0,
+     0.0,
+     -67.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     -165.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     -62.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     -62.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#d9dde3",
+   "notes": "Electronics box (D50 bay, thin walls, no lid): ESP32-S3 DevKitC-1 cradle with USB opening, BTS7960 on 4 standoffs (M3 inserts or self tap), DRV8833 and MP1584 pockets with cable-tie slots",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 90176.21,
+   "mass_g": 111.82,
+   "bbox": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     124.0,
+     124.0,
+     50.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_pcb_esp32",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.0,
+     -1.0,
+     0.0,
+     237.0
+    ],
+    [
+     1.0,
+     0.0,
+     0.0,
+     -67.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     -165.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#2e7d4f",
+   "notes": "ESP32-S3-DevKitC-1 (Harry's)",
+   "bought_ref": "ESP32-S3-DevKitC-1",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 7001.7,
+   "mass_g": null,
+   "bbox": [
+    [
+     13.0,
+     2.4,
+     21.5
+    ],
+    [
+     38.4,
+     72.2,
+     34.7
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_pcb_bts7960",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.0,
+     -1.0,
+     0.0,
+     237.0
+    ],
+    [
+     1.0,
+     0.0,
+     0.0,
+     -67.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     -165.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#2e7d4f",
+   "notes": "BTS7960 (IBT-2) (Harry's)",
+   "bought_ref": "BTS7960 (IBT-2)",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 31606.17,
+   "mass_g": null,
+   "bbox": [
+    [
+     60.0,
+     62.0,
+     5.0
+    ],
+    [
+     109.66,
+     111.4,
+     45.6
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_pcb_drv8833",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.0,
+     -1.0,
+     0.0,
+     237.0
+    ],
+    [
+     1.0,
+     0.0,
+     0.0,
+     -67.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     -165.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#2e7d4f",
+   "notes": "Pololu DRV8833 (Harry's)",
+   "bought_ref": "Pololu DRV8833",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 556.82,
+   "mass_g": null,
+   "bbox": [
+    [
+     74.0,
+     40.0,
+     2.0
+    ],
+    [
+     94.32,
+     52.7,
+     5.1
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_pcb_mp1584",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.0,
+     -1.0,
+     0.0,
+     237.0
+    ],
+    [
+     1.0,
+     0.0,
+     0.0,
+     -67.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     -165.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#2e7d4f",
+   "notes": "MP1584EN buck (Harry's)",
+   "bought_ref": "MP1584EN buck",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 952.02,
+   "mass_g": null,
+   "bbox": [
+    [
+     46.0,
+     40.0,
+     2.0
+    ],
+    [
+     68.26,
+     56.96,
+     6.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_dart",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     -0.865851,
+     -0.0,
+     -0.500302,
+     157.339627
+    ],
+    [
+     0.0,
+     -1.0,
+     0.0,
+     140.0
+    ],
+    [
+     -0.500302,
+     -0.0,
+     0.865851,
+     188.620683
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#e8e8e8",
+   "notes": "KEDGE v34 dart (built separately)",
+   "bought_ref": "KEDGE v34 dart (built separately)",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 228837.63,
+   "mass_g": null,
+   "bbox": [
+    [
+     -0.0,
+     -40.42,
+     -21.0
+    ],
+    [
+     152.0,
+     40.491,
+     21.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_wiper_motor",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     -0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     -10.0
+    ],
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#3c4248",
+   "notes": "12 V wiper motor (Harry's)",
+   "bought_ref": "12 V wiper motor (Harry's)",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 805872.78,
+   "mass_g": null,
+   "bbox": [
+    [
+     -38.0,
+     -46.0,
+     -65.0
+    ],
+    [
+     179.0,
+     46.0,
+     4.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_wiper_shaft",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     -0.116003,
+     0.993249,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     -10.0
+    ],
+    [
+     0.993249,
+     0.116003,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#8a9096",
+   "notes": "(part of the wiper motor)",
+   "bought_ref": "(part of the wiper motor)",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 2680.83,
+   "mass_g": null,
+   "bbox": [
+    [
+     -5.0,
+     -5.0,
+     -8.0
+    ],
+    [
+     5.0,
+     5.0,
+     31.99
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_spring_l_hook_a",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     198.133554
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     178.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     183.780697
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#b0b5bb",
+   "notes": "Century C-243 spring (Harry's)",
+   "bought_ref": "Century C-243",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 393.24,
+   "mass_g": null,
+   "bbox": [
+    [
+     -12.0,
+     -8.0,
+     -8.0
+    ],
+    [
+     6.733,
+     8.0,
+     8.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_spring_l_hook_c",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     34.574335
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     178.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     89.273598
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#b0b5bb",
+   "notes": "Century C-243 spring (Harry's)",
+   "bought_ref": "",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 393.24,
+   "mass_g": null,
+   "bbox": [
+    [
+     -6.733,
+     -8.0,
+     -8.0
+    ],
+    [
+     12.0,
+     8.0,
+     8.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_spring_l_0",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     44.964545
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     178.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     95.277226
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#c2c7cc",
+   "notes": "Century C-243 spring (Harry's)",
+   "bought_ref": "",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 2076.77,
+   "mass_g": null,
+   "bbox": [
+    [
+     0.0,
+     -8.0,
+     -8.0
+    ],
+    [
+     32.98,
+     8.0,
+     8.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_spring_l_1",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     73.520305
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     178.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     111.777194
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#c2c7cc",
+   "notes": "Century C-243 spring (Harry's)",
+   "bought_ref": "",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 2076.77,
+   "mass_g": null,
+   "bbox": [
+    [
+     0.0,
+     -8.0,
+     -8.0
+    ],
+    [
+     32.98,
+     8.0,
+     8.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_spring_l_2",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     102.076065
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     178.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     128.277163
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#c2c7cc",
+   "notes": "Century C-243 spring (Harry's)",
+   "bought_ref": "",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 2076.77,
+   "mass_g": null,
+   "bbox": [
+    [
+     0.0,
+     -8.0,
+     -8.0
+    ],
+    [
+     32.98,
+     8.0,
+     8.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_spring_l_3",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     130.631825
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     178.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     144.777132
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#c2c7cc",
+   "notes": "Century C-243 spring (Harry's)",
+   "bought_ref": "",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 2076.77,
+   "mass_g": null,
+   "bbox": [
+    [
+     0.0,
+     -8.0,
+     -8.0
+    ],
+    [
+     32.98,
+     8.0,
+     8.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_spring_l_4",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     159.187585
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     178.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     161.277101
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#c2c7cc",
+   "notes": "Century C-243 spring (Harry's)",
+   "bought_ref": "",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 2076.77,
+   "mass_g": null,
+   "bbox": [
+    [
+     0.0,
+     -8.0,
+     -8.0
+    ],
+    [
+     32.98,
+     8.0,
+     8.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_spring_r_hook_a",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     198.133554
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     102.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     183.780697
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#b0b5bb",
+   "notes": "Century C-243 spring (Harry's)",
+   "bought_ref": "Century C-243",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 393.24,
+   "mass_g": null,
+   "bbox": [
+    [
+     -12.0,
+     -8.0,
+     -8.0
+    ],
+    [
+     6.733,
+     8.0,
+     8.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_spring_r_hook_c",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     34.574335
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     102.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     89.273598
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#b0b5bb",
+   "notes": "Century C-243 spring (Harry's)",
+   "bought_ref": "",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 393.24,
+   "mass_g": null,
+   "bbox": [
+    [
+     -6.733,
+     -8.0,
+     -8.0
+    ],
+    [
+     12.0,
+     8.0,
+     8.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_spring_r_0",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     44.964545
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     102.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     95.277226
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#c2c7cc",
+   "notes": "Century C-243 spring (Harry's)",
+   "bought_ref": "",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 2076.77,
+   "mass_g": null,
+   "bbox": [
+    [
+     0.0,
+     -8.0,
+     -8.0
+    ],
+    [
+     32.98,
+     8.0,
+     8.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_spring_r_1",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     73.520305
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     102.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     111.777194
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#c2c7cc",
+   "notes": "Century C-243 spring (Harry's)",
+   "bought_ref": "",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 2076.77,
+   "mass_g": null,
+   "bbox": [
+    [
+     0.0,
+     -8.0,
+     -8.0
+    ],
+    [
+     32.98,
+     8.0,
+     8.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_spring_r_2",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     102.076065
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     102.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     128.277163
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#c2c7cc",
+   "notes": "Century C-243 spring (Harry's)",
+   "bought_ref": "",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 2076.77,
+   "mass_g": null,
+   "bbox": [
+    [
+     0.0,
+     -8.0,
+     -8.0
+    ],
+    [
+     32.98,
+     8.0,
+     8.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_spring_r_3",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     130.631825
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     102.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     144.777132
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#c2c7cc",
+   "notes": "Century C-243 spring (Harry's)",
+   "bought_ref": "",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 2076.77,
+   "mass_g": null,
+   "bbox": [
+    [
+     0.0,
+     -8.0,
+     -8.0
+    ],
+    [
+     32.98,
+     8.0,
+     8.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "real_spring_r_4",
+   "subsystem": "display",
+   "material": "bought",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     0.865851,
+     0.0,
+     -0.500302,
+     159.187585
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     102.0
+    ],
+    [
+     0.500302,
+     0.0,
+     0.865851,
+     161.277101
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": null,
+   "color": "#c2c7cc",
+   "notes": "Century C-243 spring (Harry's)",
+   "bought_ref": "",
+   "printed": false,
+   "infill": 0.08,
+   "volume_mm3": 2076.77,
+   "mass_g": null,
+   "bbox": [
+    [
+     0.0,
+     -8.0,
+     -8.0
+    ],
+    [
+     32.98,
+     8.0,
+     8.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "opt_drum_dummy",
+   "subsystem": "optional",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     60.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     0.0
+    ],
+    [
+     0.0,
+     -1.0,
+     0.0,
+     -112.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     -8.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#e8c27a",
+   "notes": "OPTIONAL selector drum look-alike (hollow), gear end down; sits on the drum saddle",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 44725.18,
+   "mass_g": 55.46,
+   "bbox": [
+    [
+     -48.0,
+     -48.0,
+     8.0
+    ],
+    [
+     48.0,
+     48.0,
+     136.0
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "opt_drum_saddle",
+   "subsystem": "optional",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     -60.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     -75.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     165.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#c8ccd2",
+   "notes": "OPTIONAL saddle for the drum look-alike",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 37486.51,
+   "mass_g": 28.47,
+   "bbox": [
+    [
+     38.0,
+     34.0,
+     -165.0
+    ],
+    [
+     82.0,
+     116.0,
+     -132.572
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "opt_reel_spool",
+   "subsystem": "optional",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     369.541398
+    ],
+    [
+     0.0,
+     0.0,
+     -1.0,
+     18.51
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     -121.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#8e7cc3",
+   "notes": "OPTIONAL storage reel look-alike (hollow spool)",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 15131.28,
+   "mass_g": 18.76,
+   "bbox": [
+    [
+     -400.541,
+     121.0,
+     -12.49
+    ],
+    [
+     -338.541,
+     159.0,
+     49.51
+    ]
+   ],
+   "step": null
+  },
+  {
+   "name": "opt_reel_bracket",
+   "subsystem": "optional",
+   "material": "PLA",
+   "qty": 1,
+   "joint": null,
+   "place": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_tf": [
+    [
+     0.0,
+     0.0,
+     1.0,
+     68.245
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     -100.975
+    ],
+    [
+     -1.0,
+     0.0,
+     0.0,
+     -344.541398
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "color": "#c8ccd2",
+   "notes": "OPTIONAL reel bracket (glue the spool to its face)",
+   "bought_ref": "",
+   "printed": true,
+   "infill": 0.08,
+   "volume_mm3": 64297.42,
+   "mass_g": 53.78,
+   "bbox": [
+    [
+     -394.541,
+     81.0,
+     -165.0
+    ],
+    [
+     -344.541,
+     120.95,
+     28.51
+    ]
+   ],
+   "step": null
+  }
+ ],
+ "joints": [],
+ "steps": [],
+ "params": {
+  "AIM": {
+   "owner": "cad-launch",
+   "pitch_min": 6.0,
+   "pitch_max": 47.0,
+   "wiper_deg_per_aim_cycle": 3600.0,
+   "rising_wiper_deg": 1600.0,
+   "table": [
+    [
+     0,
+     6.01
+    ],
+    [
+     100,
+     6.24
+    ],
+    [
+     200,
+     6.93
+    ],
+    [
+     300,
+     8.12
+    ],
+    [
+     400,
+     9.83
+    ],
+    [
+     500,
+     12.1
+    ],
+    [
+     600,
+     14.93
+    ],
+    [
+     700,
+     18.32
+    ],
+    [
+     800,
+     22.22
+    ],
+    [
+     900,
+     26.5
+    ],
+    [
+     1000,
+     30.98
+    ],
+    [
+     1100,
+     35.39
+    ],
+    [
+     1200,
+     39.42
+    ],
+    [
+     1300,
+     42.76
+    ],
+    [
+     1400,
+     45.19
+    ],
+    [
+     1500,
+     46.62
+    ],
+    [
+     1600,
+     47.06
+    ],
+    [
+     1700,
+     46.59
+    ],
+    [
+     1800,
+     45.37
+    ],
+    [
+     1900,
+     43.52
+    ],
+    [
+     2000,
+     41.2
+    ],
+    [
+     2100,
+     38.54
+    ],
+    [
+     2200,
+     35.64
+    ],
+    [
+     2300,
+     32.59
+    ],
+    [
+     2400,
+     29.49
+    ],
+    [
+     2500,
+     26.39
+    ],
+    [
+     2600,
+     23.36
+    ],
+    [
+     2700,
+     20.46
+    ],
+    [
+     2800,
+     17.72
+    ],
+    [
+     2900,
+     15.19
+    ],
+    [
+     3000,
+     12.91
+    ],
+    [
+     3100,
+     10.91
+    ],
+    [
+     3200,
+     9.21
+    ],
+    [
+     3300,
+     7.85
+    ],
+    [
+     3400,
+     6.85
+    ],
+    [
+     3500,
+     6.23
+    ],
+    [
+     3600,
+     6.01
+    ]
+   ],
+   "solver": "use the whole table range 6..47; min range about 2.9 m (at 6 deg); prefer the higher pitch when two solutions exist",
+   "holds_by": "printed self-locking worm (single start, lead about 5 deg)",
+   "one_way": "swing-arm splitter (pawl-free), engages on BACKWARD wiper turns",
+   "aim_only_at_home": true
+  },
+  "ASSEMBLY_STAGES": {
+   "deck": [
+    100,
+    109,
+    "cad-frame",
+    "drill the rover, deck tiles, rover mount, heat-set inserts"
+   ],
+   "motor": [
+    110,
+    119,
+    "cad-frame",
+    "wiper motor on its adapter (bench), motor-side cheek, motor onto the cheek"
+   ],
+   "drum_core": [
+    130,
+    139,
+    "cad-drum",
+    "bracket A, axle, drum A"
+   ],
+   "drum_idler": [
+    140,
+    144,
+    "cad-drum",
+    "wrap idler group (the idler posts drop in before the shift rail and the coupler bus gear block them)"
+   ],
+   "main_shaft": [
+    145,
+    149,
+    "cad-drum",
+    "shift rail, coupler hub on the wiper shaft, shear pin, outer coupler with the REEL gear and washer, index contact (before the reel bus gear c1 and the dog post)"
+   ],
+   "reel_capstan": [
+    150,
+    159,
+    "cad-reel",
+    "D50 front gears: reel wall, sleeve, bus gear c1, swing idler, cup shaft, cup gear, riser to K2, countershaft C and REEL idler, clutch hub, brake crank, rocker and bar, reel shaft, T2, SW_ARM"
+   ],
+   "drum_shift": [
+    160,
+    169,
+    "cad-drum",
+    "fork and dog contacts, drum B (keyed), hand lever, bracket B, N20, code switches"
+   ],
+   "main_stack": [
+    170,
+    179,
+    "cad-drum",
+    "LAUNCH dog ring, magnet cap, dog post"
+   ],
+   "reel_storage": [
+    180,
+    189,
+    "cad-reel",
+    "D50 reel unit on the deck extension: lane tabs and posts, P1 with sprag #2, capstan tube, lanes C, K, T, cheeks, T bracket, spool, drum, cup, rear trains, P2, line"
+   ],
+   "launcher": [
+    190,
+    204,
+    "cad-launch",
+    "rail bench sub-assembly (sleeve first), big gear (timed without springs), drive gear and sprag, carriage, stops, contacts, rail-rear pulley (D50), lip roller"
+   ],
+   "aim": [
+    205,
+    209,
+    "cad-launch",
+    "aim housing, worm, wheel, crank, splitter, lug, conrod"
+   ],
+   "sensors": [
+    210,
+    219,
+    "cad-sensors",
+    "SW_RAIL_LOW, SW_GAP, AS5600 board"
+   ],
+   "electronics": [
+    220,
+    229,
+    "cad-frame",
+    "electronics bay, set the buck before wiring the DRV8833, wiring (battery unplugged), camera, receiver, cable anchors"
+   ],
+   "guards": [
+    230,
+    239,
+    "cad-frame / cad-launch",
+    "gear guards; spring guards go on with the springs at test stage 5"
+   ],
+   "test_stage_only": [
+    900,
+    999,
+    "all",
+    "steps done only at a test stage (springs: 999)"
+   ]
+  },
+  "ASSEMBLY_STAGE_OVERRIDES": {
+   "frame": {
+    "Heat-set inserts": 100,
+    "Drill the rover": 101,
+    "Deck on the rover": 102,
+    "Motor plate": 110,
+    "Wiper motor on the puck (bench)": 111,
+    "Puck into the plate": 112,
+    "Motor leg": 113,
+    "Can stay": 114,
+    "Shafts and trains (other subsystems)": 119,
+    "Electronics bay": 220,
+    "Set the buck BEFORE wiring the DRV8833": 221,
+    "Camera, receiver and cable anchors": 222,
+    "Wiring and lid": 223,
+    "Gear guards": 230
+   },
+   "launch": {
+    "Launcher 1: print the parts": 190,
+    "Launcher 2: join the rail": 191,
+    "Launcher 2b: splice straps and aim lug": 192,
+    "Launcher 3: big gear": 193,
+    "Launcher 4: drive gear, sprag #1 and the launch sleeve": 194,
+    "Launcher 5: carriage": 195,
+    "Launcher 5b: lip roller": 196,
+    "Launcher 6: carriage stop frames": 197,
+    "Launcher 6b: spring guards": 198,
+    "Launcher 6c: stop springs": 199,
+    "Launcher 7: contacts": 200,
+    "Launcher 8: time the big gear (fingers clear)": 201,
+    "Launcher 9: rail-rear pulley": 202,
+    "Aim 1: aim housing, worm, wheel, crank": 205,
+    "Aim 2: splitter": 206,
+    "Aim 3: lug, conrod, rail onto the base": 207,
+    "Launcher 10: wiring (battery unplugged)": 208
+   },
+   "reel": {
+    "Screw the reel wall to the deck": 150,
+    "Sleeve, bus gear, swing arm and swing idler": 151,
+    "Cup shaft, cup gear and riser gear": 152,
+    "Riser idlers and K2": 153,
+    "Countershaft C and the REEL idler": 154,
+    "Clutch hub": 155,
+    "Brake crank, rocker and bar": 156,
+    "Reel shaft into the wall": 157,
+    "T2 take-off": 158,
+    "SW_ARM contact": 159,
+    "Lane tabs and the lane T front post": 180,
+    "Reel unit: P1, sprag #2, capstan tube": 181,
+    "Lanes along the deck": 182,
+    "Cheeks, T bracket, spool and spool shaft": 183,
+    "Drum, cup and the C plane": 184,
+    "K plane, P2 and the line": 185
+   }
+  },
+  "B608": {
+   "bore": 8.0,
+   "od": 22.0,
+   "w": 7.0,
+   "qty_buying": 10
+  },
+  "BATTERY": {
+   "cells": 3,
+   "v_full": 12.6,
+   "v_nom": 11.1,
+   "mah": 5200,
+   "fuse_a": 20
+  },
+  "BED": [
+   256.0,
+   256.0,
+   260.0
+  ],
+  "BOARDS": {
+   "esp32s3_devkitc1": {
+    "note": "ESP32-S3-DevKitC-1-N8"
+   },
+   "bts7960": {
+    "note": "BTS7960 dual half-bridge module"
+   },
+   "as5600": {
+    "note": "Adafruit AS5600 STEMMA QT (ADA6357)"
+   },
+   "drv8833": {
+    "size": [
+     20.31,
+     12.7,
+     7.19
+    ],
+    "note": "Pololu 2130, VM max 10.8 V"
+   },
+   "mp1584": {
+    "size": [
+     22.26,
+     16.96,
+     3.98
+    ],
+    "note": "buck, needed to feed the DRV8833 from the 3S"
+   }
+  },
+  "DART": {
+   "hull_d": 42.0,
+   "hull_len": 152.0,
+   "folded_bbox": {
+    "x": [
+     0.0,
+     166.7
+    ],
+    "y": [
+     -40.3,
+     40.3
+    ],
+    "z": [
+     -21.0,
+     75.8
+    ]
+   },
+   "belly": "plain cylinder d 42 along x: the launcher cradle surface; legs stow on top and flanks",
+   "mass_kg": 0.279,
+   "tether": "tail cap, two d 4.2 holes",
+   "flies": "nose first"
+  },
+  "DRUM": {
+   "owner": "cad-drum",
+   "order": "LAUNCH / NEUTRAL / WRAP / (park WRAPPED in N_TO_R) / REEL (D16, D22)",
+   "code_edges": [
+    6.0,
+    34.0,
+    50.0,
+    62.0,
+    302.0,
+    342.0
+   ],
+   "zones": [
+    {
+     "name": "LAUNCH",
+     "deg": [
+      -4.0,
+      8.0
+     ],
+     "collar": "LAUNCH",
+     "clutch": "LIGHT",
+     "cup": "locked home"
+    },
+    {
+     "name": "L_TO_N",
+     "deg": [
+      8.0,
+      32.0
+     ],
+     "collar": "ramp",
+     "clutch": "LIGHT (clutch ramps to FIRM over 30..40, after the collar shift)",
+     "cup": "locked"
+    },
+    {
+     "name": "NEUTRAL",
+     "deg": [
+      32.0,
+      50.0
+     ],
+     "collar": "NEUTRAL",
+     "clutch": "FIRM from 40",
+     "cup": "locked"
+    },
+    {
+     "name": "WRAP_PREP",
+     "deg": [
+      50.0,
+      62.0
+     ],
+     "collar": "NEUTRAL",
+     "clutch": "FIRM to LIGHT",
+     "cup": "lock releases at 62 (as built)"
+    },
+    {
+     "name": "WRAP",
+     "deg": [
+      62.0,
+      302.0
+     ],
+     "collar": "NEUTRAL",
+     "clutch": "LIGHT",
+     "cup": "7 turns (4 pinion turns x 42/24), ends at home"
+    },
+    {
+     "name": "N_TO_R",
+     "deg": [
+      302.0,
+      340.0
+     ],
+     "collar": "NEUTRAL until 318, then ramp to REEL",
+     "clutch": "LIGHT to FIRM 302..312",
+     "cup": "locked home"
+    },
+    {
+     "name": "REEL",
+     "deg": [
+      340.0,
+      352.0
+     ],
+     "collar": "REEL",
+     "clutch": "FIRM",
+     "cup": "locked"
+    }
+   ],
+   "targets": {
+    "LAUNCH": 0.0,
+    "NEUTRAL": 41.0,
+    "WRAP_PARK_START": 56.0,
+    "WRAP_WINDOW": [
+     62.0,
+     302.0
+    ],
+    "WRAPPED": 314.0,
+    "REEL": 347.0
+   },
+   "end_stops": [
+    -4.0,
+    352.0
+   ],
+   "code_contacts": [
+    "SW_DRUM_A",
+    "SW_DRUM_B",
+    "SW_DRUM_C"
+   ],
+   "codes": {
+    "LAUNCH": "100",
+    "L_TO_N": "110",
+    "NEUTRAL": "010",
+    "WRAP_PREP": "011",
+    "WRAP": "001",
+    "N_TO_R": "101",
+    "REEL": "111"
+   },
+   "dog_contacts": [
+    "SW_DOG_L",
+    "SW_DOG_R"
+   ],
+   "unload_jog_deg": 6.0,
+   "fault_rules": {
+    "from_REEL_or_N_TO_R": "the drum HOLDS where it is (D27, MODE err DRUM_HELD), never NEUTRAL (that would run back through the wrap window and unwrap under tow); the operator unwraps when safe",
+    "boot_in_WRAP": "stop and report",
+    "REEL_jog": "forward only (sprag #2)"
+   },
+   "wrap_turns": 7,
+   "wrap_train": {
+    "segment_pinion_turns": 4,
+    "idler_out": {
+     "module": 1.5,
+     "teeth": 42,
+     "face": 8.0
+    },
+    "cup_gear": {
+     "module": 1.5,
+     "teeth": 24
+    },
+    "centre_idler_cup": 49.6,
+    "plane_y": [
+     68.5,
+     75.8
+    ],
+    "idler_face_as_built": 7.3,
+    "idler_axis_xz": [
+     16.24,
+     -104.88
+    ]
+   },
+   "n20": {
+    "axis_xz": [
+     99.9,
+     -78.5
+    ],
+    "note": "motor pointing up; cad-drum sizes the ratio with at least 2x margin (FIRM 5 N, D24)",
+    "pinion": {
+     "module": 0.8,
+     "teeth": 10
+    },
+    "drum_gear": {
+     "module": 0.8,
+     "teeth": 120
+    },
+    "ratio": 12.0,
+    "stall_nm_est": 0.22,
+    "stall_nm_design": 0.2,
+    "drum_deg_per_s": 8.1,
+    "supply_v": 9.0,
+    "peak_drum_load_nm": 0.92,
+    "stall_nm_min_needed": 0.171,
+    "note_ratio": "cad-drum as built (drum_NOTES sections 3 and 9); physics and firmware read these"
+   },
+   "magnet_face_y": 201.5,
+   "index_cam_bumps": 6,
+   "sw_index_mount": "on drum idler post 2 (block on the +x side, screwed to a strut); index cam at s 33.5..38.5, base r 26 (cad-drum 13:45)",
+   "torque_limiter_nm": 5.0,
+   "shear_pin_print": "lying down (pin axis flat on the bed) so the shear plane cuts across layers; a layer line on the shear plane slips at 2.5 to 3.3 N m, the same as the cock and tow torques (D44)",
+   "bus": {
+    "module": 1.5,
+    "teeth": 50,
+    "face": 8.0,
+    "plane_y": [
+     40.0,
+     48.0
+    ],
+    "meshes": "cad-reel c1 46T m1.5 at 72.1",
+    "overdrive_total": 2.5,
+    "note": "D15/D25: no drag brake (the swing idler stays engaged under payout)"
+   },
+   "reel_output": {
+    "module": 2.0,
+    "teeth": 50,
+    "face": 12.0,
+    "plane_y": [
+     50.5,
+     62.5
+    ]
+   }
+  },
+  "DRUM_POS": {
+   "LAUNCH": 0.0,
+   "NEUTRAL": 60.0,
+   "REEL": 120.0,
+   "WRAPPED": 300.0
+  },
+  "F693ZZ": {
+   "bore": 3.0,
+   "od": 8.0,
+   "w": 4.0,
+   "flange_d": 9.5,
+   "flange_w": 0.6
+  },
+  "FRAME": {
+   "origin": "main axis at the wiper adapter plate face",
+   "x": "forward (launch azimuth)",
+   "y": "left",
+   "z": "up",
+   "main_axis": "world Y through the origin"
+  },
+  "FRAMEWORK": {
+   "owner": "cad-frame",
+   "deck_z": -165.0,
+   "motor_side": -1,
+   "ebay": {
+    "x": [
+     110.0,
+     240.0
+    ],
+    "y": [
+     -70.0,
+     60.0
+    ],
+    "note": "on the deck in front of the drum; USB to the Jetson reachable"
+   },
+   "camera": {
+    "model": "Razer Kiyo X",
+    "pos": [
+     150.0,
+     -50.0,
+     100.0
+    ],
+    "pitch_deg": -10.0,
+    "look": "+X",
+    "note": "D18: bore-sighted to the launch azimuth; cad-frame sets the final pose"
+   },
+   "rc832": {
+    "note": "holder with the antenna up and clear of metal (D18)"
+   },
+   "rover_mount": "flat deck with an M3 hole grid; the deck is its own drill template"
+  },
+  "LAUNCH": {
+   "owner": "cad-launch",
+   "axis_z": 0.0,
+   "sleeve_y0": 111.0,
+   "rail_y": 140.0,
+   "line_guide_u": -200.0,
+   "line_guide_w": 85.0,
+   "carriage_mass_target_g": 70.0,
+   "carriage_mass_g": 80.5,
+   "drive_gear": {
+    "module": 2.5,
+    "teeth": 26,
+    "face": 11.0,
+    "y": [
+     147.5,
+     158.5
+    ],
+    "sprag_centre_y": 152.0,
+    "note": "on sprag #1 (inside, keyed), coaxial on the launch sleeve; face 11 for SF 1.5 at the 5 N m shear pin (physics, cad-launch 14:28)"
+   },
+   "big_gear": {
+    "module": 2.5,
+    "teeth": 40,
+    "present": 27,
+    "centre_from_pivot": 82.6,
+    "as_built": "sector layer 27 teeth (rack) + full 40T layer face 11 (drive gear), cad-launch 14:28",
+    "layers": {
+     "sector": [
+      134.0,
+      146.0
+     ],
+     "full": [
+      147.5,
+      158.5
+     ]
+    },
+    "note": "two layers: a sector layer meshes the rack (last tooth relieved, the one before 30 percent taller), a full 40T layer meshes the drive gear so every cock can start (D23)"
+   },
+   "wiper_turns_per_shot": 1.5384615384615385,
+   "stroke": 240.9,
+   "spring_preload": 23.8,
+   "spring_ext_full": 265.0,
+   "spring_preload_fallback": 15.6,
+   "second_pair_provision": true,
+   "spring_guard": true,
+   "stop": {
+    "travel_min": 19.0,
+    "peak_force_max": 300.0,
+    "note": "D6/D26: about 2.8 to 3.3 J per shot; a linear printed PLA flexure needs about 19 mm; TPU pads only if Harry gets TPU"
+   },
+   "carriage_mass_target_kg": 0.06,
+   "sleeve": {
+    "od_at_sprag": 20.0,
+    "key": "integral rib 6 wide",
+    "wall_min": 3.8,
+    "spigot_bore": 12.35,
+    "y": [
+     111.0,
+     193.0
+    ],
+    "note": "D13, D23"
+   },
+   "rail_walls_y": [
+    112.0,
+    168.0
+   ],
+   "springs_y": [
+    94.0,
+    186.0
+   ],
+   "cheeks_y": [
+    [
+     123.0,
+     131.0
+    ],
+    [
+     159.5,
+     167.5
+    ]
+   ],
+   "flight": {
+    "range_m": 4.7,
+    "apex_m": 1.2,
+    "pitch_deg": 34.0,
+    "t_flight_s": 0.85,
+    "note": "for the sim; physics on params 1.5.0 (D50): 4.70 m at 34 deg with the fixed LIGHT 0.25 N brake and the D50 payout path (gain 1.32, take-up chain inertia)"
+   },
+   "never_fire_without_tether": true
+  },
+  "LAYOUT": {
+   "deck_top_z": -165.0,
+   "footprint": {
+    "x": [
+     -160.0,
+     255.0
+    ],
+    "y": [
+     -95.0,
+     220.0
+    ],
+    "note": "target for the main deck; cad-frame reports the real one. D50: a bolt-on extension tile carries the reel unit behind x -164 (REEL_UNIT deck_extension)"
+   },
+   "axes": {
+    "main": {
+     "owner": "cad-drum",
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "y": [
+      0.5,
+      201.5
+     ],
+     "note": "wiper output = main shaft = rail pivot; the launch sleeve (cad-launch) is coaxial on its d12 spigot"
+    },
+    "drum": {
+     "owner": "cad-drum",
+     "origin": [
+      60.0,
+      0.0,
+      -112.0
+     ],
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "y": [
+      1.0,
+      142.0
+     ],
+     "note": "front-below: clear of the big gear sweep (lowest z about -44) and of the reel gear zone (x <= 8)"
+    },
+    "capstan": {
+     "owner": "cad-reel",
+     "origin": [
+      -18.661,
+      0.0,
+      -69.643
+     ],
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "note": "D50: the old capstan axis, 72.1 from the main axis at 255 deg, now carries the cup gear (meshing cad-drum's wrap idler), the bus gear c1 and the cup shaft K (cad-reel frame R); the capstan itself is in the reel unit (reel_unit_capstan)"
+    },
+    "reel_unit_capstan": {
+     "owner": "cad-reel",
+     "origin": [
+      -294.6,
+      140.0,
+      85.7
+     ],
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "note": "D50: capstan in the reel unit on the deck extension behind the launcher, axis along +X in the rail plane y 140, cup and axial eyelet in front (REEL_UNIT)"
+    },
+    "aim_crank": {
+     "owner": "cad-launch",
+     "origin": [
+      58.0,
+      195.0,
+      -100.5
+     ],
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "note": "worm wheel = crank in cad-launch's aim housing (planes about y 186..225), confirmed by cad-launch"
+    }
+   },
+   "stack": [
+    {
+     "y": [
+      0.5,
+      46.0
+     ],
+     "part": "drum_coupler: coupler hub on the wiper shaft (the hub reaches back to y -5 inside the puck bore, D48), printed PLA shear pin d4 at r 13 (D8, about 5 N m, 6 spares), outer coupler",
+     "owner": "cad-drum"
+    },
+    {
+     "y": [
+      40.0,
+      48.0
+     ],
+     "part": "TAKE-UP BUS gear m1.5 50T face 8 on the outer coupler (D15), downstream of the shear pin, upstream of the dog",
+     "owner": "cad-drum"
+    },
+    {
+     "y": [
+      50.5,
+      62.5
+     ],
+     "part": "REEL output gear m2 50T face 12, on a journal on the outer coupler; dogs to y 69.5 (as built)",
+     "owner": "cad-drum"
+    },
+    {
+     "y": [
+      72.0,
+      98.0
+     ],
+     "part": "dog collar at NEUTRAL (stroke 7 each way); fork groove y 82..88",
+     "owner": "cad-drum"
+    },
+    {
+     "y": [
+      100.5,
+      111.0
+     ],
+     "part": "LAUNCH dog ring, bolted to the launch sleeve flange (face at y 111); its joint follows the sleeve",
+     "owner": "cad-drum"
+    },
+    {
+     "y": [
+      111.0,
+      193.0
+     ],
+     "part": "LAUNCH sleeve: flange, rail cheek journals, drive gear 26T m2.5 on sprag #1 (y 142.5..158.5), splitter sun (y 170..182)",
+     "owner": "cad-launch"
+    },
+    {
+     "y": [
+      187.0,
+      193.0
+     ],
+     "part": "sleeve outboard bushing with the thrust face, in cad-launch's AIM HOUSING (stands on the deck; no frame seat on the sleeve)",
+     "owner": "cad-launch"
+    },
+    {
+     "y": [
+      106.0,
+      198.5
+     ],
+     "part": "main shaft d12 spigot through the launch sleeve bore (12.35), as built",
+     "owner": "cad-drum"
+    },
+    {
+     "y": [
+      195.0,
+      203.0
+     ],
+     "part": "AS5600 magnet cap on the spigot end (edge-on disc or 6 x 2.5 diametric)",
+     "owner": "cad-drum"
+    },
+    {
+     "y": [
+      204.0,
+      210.0
+     ],
+     "part": "AS5600 board bracket on the aim housing outer side (chip 1 to 2 mm from the magnet)",
+     "owner": "cad-launch"
+    }
+   ],
+   "rail_plane_y": 140.0,
+   "reel_frame_R": {
+    "origin": [
+     -18.661,
+     33.5,
+     -69.643
+    ],
+    "x_axis": [
+     1,
+     0,
+     0
+    ],
+    "y_axis": [
+     0,
+     0,
+     1
+    ],
+    "z_axis": [
+     0,
+     -1,
+     0
+    ],
+    "note": "capstan gear plane R Z -29..-17 = world y 50.5..62.5 (meets the REEL gear); cup toward world -y"
+   },
+   "keep_out": {
+    "rail_sweep": "rail body and carriage between 6 (or the retrieve minimum) and 47 deg pitch, for y 95..185: behind and below the axis down to z about -125 at x about -150..-210, and the big gear down to z -45 in front",
+    "wiper_body": "gearbox and can above the axis (WIPER.orient_deg), y -56..0, plus the can along +z",
+    "line": "D50: the line from the spool through the cup eyelet, straight to the one 693ZZ pulley at the rail rear end, then along the rail to the dart tail, all in the rail plane y 140 (REEL_UNIT)",
+    "reel_unit": "D50: the reel unit sweep is fixed (nothing of it moves with the rail); the rail rear reaches world x -228 (pitch 22), the cup eyelet sits at x -240.6"
+   }
+  },
+  "LINE": {
+   "name": "Dyneema braid 150 lb",
+   "d": 1.0,
+   "length_m": 20.0,
+   "break_n": 667.0
+  },
+  "LINE_M": 20.0,
+  "MATERIALS": {
+   "PLA": {
+    "density": 1.24,
+    "note": "default"
+   },
+   "PPA_CF": {
+    "density": 1.25,
+    "note": "loaded gears, keyed shafts"
+   }
+  },
+  "N20_STRAIGHT": {
+   "body": [
+    12.0,
+    10.0
+   ],
+   "gearbox_h": 11.95,
+   "face_to_back": 24.27,
+   "shaft_d": 2.84,
+   "shaft_len": 56.03,
+   "rpm": 100.0
+  },
+  "N20_WORM": {
+   "body": [
+    12.0,
+    10.0
+   ],
+   "box_w": 9.94,
+   "box_h": 11.93,
+   "len_no_shaft": 33.04,
+   "shaft_tip_to_tip": 29.97,
+   "rpm": 27.0,
+   "stall_a_8v": 0.18,
+   "free_a_8v": 0.025
+  },
+  "REEL": {
+   "owner": "cad-reel",
+   "capstan": {
+    "d": 40.0,
+    "gear": {
+     "module": 2.0,
+     "teeth": 22,
+     "face": 12.0
+    },
+    "backstop": "sprag #2 on the capstan tube in the reel unit (wind-in only, D50)",
+    "note": "D50: the 22T m2 gear sits on countershaft C (frame R), driven by the REEL gear through the 41T idler; bevel 20:20 into lane C, rear train 20T / 58T idler / 20T onto the capstan tube: ratio still 50/22"
+   },
+   "capstan_ratio": 2.272727272727273,
+   "wraps": 7,
+   "clutch": {
+    "LIGHT_line_n": 0.25,
+    "FIRM_line_n": 5.0,
+    "LIGHT_nmm": 6.75,
+    "FIRM_nmm": 135.0,
+    "convention": "line tension at the design pack radius r 27.0 mm (about 2 m out) of the d40 / d62 spool; the clutch hub drives the spool 1:1 (hub 28T / T2 28T, two 1:1 bevels, 16T / 34T idler / 16T)",
+    "note": "D7, D24, D49, D50: LIGHT is a FIXED 0.25 N anti-overrun drag (payout, cock take-up), FIRM 5 N for tidy and the final approach; set by cad-drum's brake track through cad-reel's bar, crank and rocker at the clutch hub (front, frame R), fail-safe LIGHT"
+   },
+   "storage": {
+    "core_d": 40.0,
+    "flange_d": 62.0,
+    "width": 20.0,
+    "bearings": "2 x 608 (spool shaft in the reel unit cheeks)",
+    "shroud": false,
+    "two_piece": false,
+    "note": "D50: free spool keyed on the spool shaft in the reel unit, axis along world Y, pack y 130..150 in the rail plane; the line leaves the pack top on the low-aim line through the cup eyelet"
+   },
+   "take_up": {
+    "c1": {
+     "module": 1.5,
+     "teeth": 46,
+     "face": 6.0
+    },
+    "swing_idler": {
+     "module": 1.5,
+     "teeth": 30
+    },
+    "reel_gear": {
+     "module": 1.5,
+     "teeth": 20
+    },
+    "disk_ratio": 2.5,
+    "drag_brake": false,
+    "note": "D25 / D50: compound c1 free on the stationary A0 sleeve meshes the bus 50T; the swing idler rides c1's hub and drives the reel gear 20T (clutch disk 2.5 x wiper) on forward turns; the clutch hub drives the spool 1:1 through T2, lane T and T3 (REEL_UNIT rear_trains t)"
+   },
+   "tow_limit_n": 50.0,
+   "tow_limit_max_n": 55.0,
+   "path_gain": 1.18,
+   "payout_gain": 1.32,
+   "tow_tension_model": {
+    "n_per_a": 14.4,
+    "offset_n": -2.5,
+    "at": "dart",
+    "capstan_n_per_a": 17.0,
+    "capstan_offset_n": -3.0,
+    "note": "D50: dart-side line N = 14.4 x (I - I_free) - 2.5 (capstan side 17.0 / -3.0 through the unchanged 50/22 ratio, D42, divided by path_gain 1.18); tow_limit_n means the DART side; recalibrate with the luggage scale at the line end"
+   },
+   "current_trips_a": {
+    "aim": 3.0,
+    "backward_launch": 3.0,
+    "reel_in": 5.0,
+    "cock": 6.5,
+    "tow": 6.5,
+    "blank_ms": 50,
+    "hold_ms": 30,
+    "note": "D8/D33/D40: every backward wiper run in LAUNCH (aim, decock, backward jog) drives the aim train: 3 A"
+   },
+   "line_speed_mps": {
+    "free": 0.21,
+    "at_50n": 0.14
+   },
+   "pulleys": "D50: one 693ZZ printed pulley at the rail rear end (the old top pulley); no other pulley on the line",
+   "cup_gear": {
+    "module": 1.5,
+    "teeth": 24,
+    "note": "driven by cad-drum's wrap idler output 42T m1.5 (4 pinion turns = 7 cup turns); D50: the K riser, bevel and rear train are all 1:1"
+   },
+   "eyelet": {
+    "r": 26.0,
+    "bore_d": 2.8,
+    "mouth_d": 4.0,
+    "note": "D49/D50: the v7 ring hole turned axial at radius 26, lug in front of the cup face; ring at the cup BOTTOM at home"
+   },
+   "line_path_hook": "reel.line_path(P, S): spool pack top -> cup eyelet -> floor segment to the rail-rear pulley; launch.line_path continues over the pulley to the dart"
+  },
+  "REEL_UNIT": {
+   "owner": "cad-reel (reel unit, lanes, front gears), cad-frame (deck extension tile), cad-launch (rail-rear pulley)",
+   "low_pitch": 6.01,
+   "eyelet_u": -233.0,
+   "line_w": 84.6,
+   "line_y": 140.0,
+   "eyelet": [
+    -240.6,
+    140.0,
+    59.7
+   ],
+   "capstan_axis": [
+    140.0,
+    85.7
+   ],
+   "lanes": {
+    "c": [
+     7.0,
+     7.0
+    ],
+    "k": [
+     5.0,
+     36.0
+    ],
+    "t": [
+     0.0,
+     -55.24
+    ],
+    "note": "world (y, z) of the three shafts along X from the front gears to the reel unit: C (capstan, d12), K (cup, d8), T (take-up, d8)"
+   },
+   "front": {
+    "c_axis": [
+     -150.0,
+     7.0
+    ],
+    "c_idler_teeth": 41,
+    "k2_axis": [
+     -100.0,
+     36.0
+    ],
+    "t2_deg": 160.0,
+    "riser_plane_y": [
+     23.5,
+     28.5
+    ],
+    "riser": {
+     "module": 1.5,
+     "teeth": [
+      30,
+      34,
+      30,
+      30
+     ],
+     "note": "K riser: cup shaft gear 30T, idlers 34T and 30T, K2 30T (1:1)"
+    },
+    "note": "frame R gears in front of / behind the reel wall: C (22T m2 in the REEL plane, bevel m2 20:20 in front), K2 (riser gear and bevel m1.5 18:18), T2 (28T meshing the 28T clutch hub, bevel m1 20:20)"
+   },
+   "rear_trains": {
+    "c": {
+     "module": 2.0,
+     "teeth": [
+      20,
+      58,
+      20
+     ],
+     "face": 8.0
+    },
+    "k": {
+     "module": 1.5,
+     "teeth": [
+      20,
+      76,
+      20
+     ],
+     "face": 5.0
+    },
+    "t": {
+     "bevel": [
+      1.0,
+      20,
+      20
+     ],
+     "spur": [
+      1.5,
+      16,
+      34,
+      16
+     ],
+     "note": "T3 16T, idler 34T, spool shaft 16T: light, the whole take-up chain turns with the spool in payout"
+    },
+    "note": "C plane in front of the K plane; the I_c axle sits in P1, the I_k axle in P2"
+   },
+   "spool": {
+    "axis_xz": [
+     -369.5,
+     18.51
+    ],
+    "pack_y": [
+     130.0,
+     150.0
+    ],
+    "drive_inertia_gmm2": 9000.0,
+    "note": "clutch hub, friction disc, T2, bevels, lane T, T3 and the rear gears turn with the spool in payout (about 9000 g mm2 at spool speed, the spool itself about 19000 full)"
+   },
+   "deck_extension": {
+    "x": [
+     -412.0,
+     -164.0
+    ],
+    "note": "bolt-on deck tile behind the existing deck (dovetails, heat-set inserts, M3 to the rover like the other tiles); the launcher stays where it is"
+   },
+   "bends": {
+    "pulley_deg": {
+     "p6": 0.0,
+     "p20": 92.0,
+     "p34": 114.0,
+     "p47": 125.0
+    },
+    "eyelet_exit_deg": {
+     "p6": 0.0,
+     "p20": 72.0,
+     "p34": 80.0,
+     "p47": 78.0
+    },
+    "note": "D50 as built: the reel unit is close behind the rail, so the rail-rear pulley moves 150 mm up and down with the aim and the floor segment steepens; at the 6 deg tow pitch everything is straight"
+   }
+  },
+  "SPRAG": {
+   "name": "CSK20PP",
+   "bore": 20.0,
+   "od": 47.0,
+   "w": 14.0,
+   "key": 6.0,
+   "torque_nm": 50.0,
+   "rpm_max": 6000,
+   "qty": 2,
+   "roles": {
+    "1": "spring cock and fire",
+    "2": "capstan drive"
+   }
+  },
+  "SPRING": {
+   "name": "Century C-243 (5/8 x 6-1/2 in x 0.054 in wire)",
+   "qty": 2,
+   "od": 16.0,
+   "free_len": 165.1,
+   "wire": 1.37,
+   "k_n_per_mm": 0.125,
+   "F0_n": 7.0,
+   "measured": false,
+   "catalogue": {
+    "max_safe_load_n": 38.4,
+    "max_deflection_mm": 302.0,
+    "note": "Century rating, about 100k cycles"
+   },
+   "max_ext": 265.0,
+   "max_ext_fallback": 256.5
+  },
+  "SWITCHES": {
+   "SW_DRUM_A": {
+    "owner": "cad-drum",
+    "closes": "drum code bit A",
+    "gpio": 10
+   },
+   "SW_DRUM_B": {
+    "owner": "cad-drum",
+    "closes": "drum code bit B",
+    "gpio": 11
+   },
+   "SW_DRUM_C": {
+    "owner": "cad-drum",
+    "closes": "drum code bit C",
+    "gpio": 12
+   },
+   "SW_DOG_L": {
+    "owner": "cad-drum",
+    "closes": "collar engaged with the LAUNCH dog ring",
+    "gpio": 13
+   },
+   "SW_DOG_R": {
+    "owner": "cad-drum",
+    "closes": "collar engaged with the REEL gear",
+    "gpio": 14
+   },
+   "SW_INDEX": {
+    "owner": "cad-drum",
+    "closes": "6-bump index cam on the main shaft (no-magnet fallback, D12)",
+    "gpio": 35
+   },
+   "SW_N20": {
+    "owner": "cad-drum",
+    "closes": "N20 engaged (open = hand lever latched out)",
+    "gpio": 47
+   },
+   "SW_HOME": {
+    "owner": "cad-launch",
+    "closes": "carriage on its front stop (rail lever pressed by a foot under the spring arm)",
+    "gpio": 21
+   },
+   "SW_GAP": {
+    "owner": "cad-launch",
+    "closes": "big gear in its toothless gap (cam arc on the big gear, switch on the right cheek)",
+    "gpio": 39
+   },
+   "SW_RAIL_LOW": {
+    "owner": "cad-launch",
+    "closes": "rail at minimum pitch (cam on the aim crank)",
+    "gpio": 40
+   },
+   "SW_SEATED": {
+    "owner": "cad-launch",
+    "closes": "dart tail against the pusher (rail lever via a carriage plunger, no wires on the carriage)",
+    "gpio": 41
+   },
+   "SW_ARM": {
+    "owner": "cad-reel",
+    "closes": "CLOSED while the wrap cup is away from home; OPENS for about -6 to +8 deg at home (lever drops into a notch on the cup gear track); firmware home = open",
+    "gpio": 42
+   },
+   "AS5600": {
+    "owner": "cad-drum (magnet cap) + cad-launch (bracket)",
+    "i2c": {
+     "sda": 8,
+     "scl": 9
+    }
+   },
+   "BTS7960": {
+    "rpwm": 4,
+    "lpwm": 5,
+    "r_en": 6,
+    "l_en": 7,
+    "is_adc": 1,
+    "note": "10 k pull-downs on R_EN and L_EN"
+   },
+   "DRV8833": {
+    "ain1": 15,
+    "ain2": 16,
+    "slp": "NOT WIRED (D9)"
+   },
+   "HX711": {
+    "dt": 17,
+    "sck": 18,
+    "optional": true
+   },
+   "VBAT": {
+    "adc": 2,
+    "divider": "100 k / 22 k"
+   },
+   "free_gpio_note": "GPIO38 drives the RGB LED on DevKitC-1 v1.1: not used for contacts"
+  },
+  "TIMELINE": [
+   [
+    "load",
+    2.0,
+    "Dart seated on the sled, drum in LAUNCH, rail low, line taut.",
+    {
+     "wiper_deg": 0.0,
+     "sleeve_deg": 0.0,
+     "reel_deg": 0.0,
+     "drum_deg": 0.0,
+     "aim_deg": 6.0,
+     "cock": 0.0,
+     "fired": 0,
+     "wraps": 0,
+     "line_out_m": 0.0,
+     "dart_flight": 0.0,
+     "dart_return": 0.0,
+     "anchored": 0,
+     "mode": "LAUNCH",
+     "drum_pos": "LAUNCH"
+    }
+   ],
+   [
+    "aim",
+    4.0,
+    "Wiper backward: the crank-rocker lifts the rail to 36 deg; the worm holds it.",
+    {
+     "wiper_deg": -1120.0,
+     "sleeve_deg": -1120.0,
+     "aim_deg": 36.0
+    }
+   ],
+   [
+    "cock",
+    3.0,
+    "Wiper forward: the big gear draws the sled back 241 mm; the take-up winds the slack.",
+    {
+     "wiper_deg": -695.0,
+     "sleeve_deg": -695.0,
+     "cock": 1.0
+    }
+   ],
+   [
+    "fire",
+    0.5,
+    "The relieved tooth lets go: the sled throws the dart; the big gear resets into its gap.",
+    {
+     "wiper_deg": -566.2,
+     "sleeve_deg": -566.2,
+     "cock": 0.0,
+     "fired": 1,
+     "dart_flight": 0.05
+    }
+   ],
+   [
+    "flight",
+    1.5,
+    "Dart in flight; the line pays off the storage spool against the fixed 0.25 N LIGHT clutch.",
+    {
+     "dart_flight": 1.0,
+     "line_out_m": 5.2
+    }
+   ],
+   [
+    "rail_low",
+    4.0,
+    "D45: wiper backward through the rest of the aim cycle: the rail comes down to 6 deg before the wrap, so tow tension cannot push the carriage back.",
+    {
+     "aim_deg": 6.0,
+     "wiper_deg": -3046.2,
+     "sleeve_deg": -3046.2
+    }
+   ],
+   [
+    "neutral",
+    8.0,
+    "Unload jog, then the drum goes to NEUTRAL: wiper coupled to nothing.",
+    {
+     "drum_deg": 41.0,
+     "mode": "NEUTRAL",
+     "drum_pos": "NEUTRAL"
+    }
+   ],
+   [
+    "wrap",
+    49.0,
+    "Right after landing, while the line still lies slack: the drum turns the wrap cup 7 times round the capstan.",
+    {
+     "drum_deg": 302.0,
+     "wraps": 7,
+     "line_out_m": 4.3,
+     "drum_pos": "BETWEEN"
+    }
+   ],
+   [
+    "wrapped",
+    2.5,
+    "Drum to the WRAPPED park (314): cup locked, clutch FIRM, collar still NEUTRAL.",
+    {
+     "drum_deg": 314.0,
+     "drum_pos": "WRAPPED"
+    }
+   ],
+   [
+    "anchor",
+    4.0,
+    "The dart plants its foot and screws its two drills into the ground.",
+    {
+     "anchored": 1
+    }
+   ],
+   [
+    "tidy",
+    3.0,
+    "Wiper forward: the take-up pulls the slack through the free capstan until the line is straight.",
+    {
+     "wiper_deg": -2616.0,
+     "line_out_m": 4.1
+    }
+   ],
+   [
+    "reel_engage",
+    6.5,
+    "Drum into REEL while the wiper creeps forward: the collar drops into the REEL dogs.",
+    {
+     "drum_deg": 347.0,
+     "wiper_deg": -2610.0,
+     "reel_deg": 0.0,
+     "mode": "REEL",
+     "drum_pos": "REEL"
+    }
+   ],
+   [
+    "tow",
+    5.0,
+    "Capstan winches the rover toward the anchored dart; sprag #2 holds the load.",
+    {
+     "wiper_deg": 990.0,
+     "reel_deg": 3600.0,
+     "line_out_m": 1.6
+    }
+   ],
+   [
+    "release",
+    2.0,
+    "The base stops (the worm holds the line), then the dart unscrews its drills and lets go.",
+    {
+     "anchored": 0
+    }
+   ],
+   [
+    "reel_in",
+    3.0,
+    "Capstan reels the dart in until about 1.5 m remain.",
+    {
+     "wiper_deg": 1590.0,
+     "reel_deg": 4200.0,
+     "line_out_m": 1.3,
+     "dart_return": 0.3
+    }
+   ],
+   [
+    "unload",
+    6.5,
+    "Wiper jogs 6 deg back inside the dog window, then the drum goes back to the WRAPPED park (314): the collar leaves the REEL dogs.",
+    {
+     "wiper_deg": 1584.0,
+     "drum_deg": 314.0,
+     "mode": "NEUTRAL",
+     "drum_pos": "WRAPPED"
+    }
+   ],
+   [
+    "unwrap",
+    47.0,
+    "Drum from the park back through the wrap sector to 62, collar in NEUTRAL; the wiper turns forward slowly and the take-up winds the freed line.",
+    {
+     "drum_deg": 62.0,
+     "wraps": 0,
+     "wiper_deg": 3384.0,
+     "mode": "NEUTRAL",
+     "drum_pos": "BETWEEN"
+    }
+   ],
+   [
+    "approach",
+    4.0,
+    "Drum to NEUTRAL; the FIRM take-up pulls the dart tail first onto the sled until SW_SEATED.",
+    {
+     "drum_deg": 41.0,
+     "line_out_m": 0.0,
+     "dart_return": 1.0,
+     "wiper_deg": 4871.8,
+     "drum_pos": "NEUTRAL"
+    }
+   ],
+   [
+    "to_launch",
+    8.0,
+    "Drum to LAUNCH: clutch LIGHT, collar into the LAUNCH dogs (a 2 deg alignment creep). Rail already low: ready to aim again.",
+    {
+     "drum_deg": 0.0,
+     "dart_flight": 0.0,
+     "dart_return": 0.0,
+     "wiper_deg": 4873.8,
+     "mode": "LAUNCH",
+     "drum_pos": "LAUNCH"
+    }
+   ]
+  ],
+  "VERSION": "1.5.0",
+  "WIPER": {
+   "measured": false,
+   "n0_rpm": 45.0,
+   "stall_nm": 15.0,
+   "stall_a": 18.0,
+   "free_a": 1.5,
+   "shaft_d": 10.0,
+   "shaft_flat": 8.0,
+   "shaft_thread": "M8",
+   "shaft_len": 20.0,
+   "boss_face_y": -10.0,
+   "mount_holes": [
+    [
+     -24.0,
+     38.0,
+     6.5
+    ],
+    [
+     -24.0,
+     -38.0,
+     6.5
+    ],
+    [
+     72.0,
+     0.0,
+     6.5
+    ]
+   ],
+   "boss_d": 16.0,
+   "boss_h": 8.0,
+   "body_box": [
+    -38.0,
+    84.0,
+    -40.0,
+    40.0,
+    56.0
+   ],
+   "can_d": 58.0,
+   "can_len": 95.0,
+   "can_x0": 84.0,
+   "orient_deg": 90.0,
+   "wires": {
+    "red": "+",
+    "black": "-",
+    "green": "park switch (never wire it: it may switch +12 V)"
+   }
+  },
+  "WIPER_RPM": 45.0,
+  "_CAP_DEG": 255.0,
+  "_CAP_R": 72.1,
+  "_CAP_X": -18.661,
+  "_CAP_Z": -69.643
+ },
+ "errors": []
+}

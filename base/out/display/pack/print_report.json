@@ -1,0 +1,778 @@
+{
+ "created": "2026-11-11 00:10",
+ "bed": [
+  256.0,
+  256.0,
+  260.0
+ ],
+ "spacing": 4.0,
+ "margin": 10.5,
+ "parts": [
+  {
+   "name": "disp_aim_housing",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    176.5,
+    59.0,
+    183.0
+   ],
+   "volume_cm3": 212.77,
+   "mass_g": 82.4,
+   "model_mass_g": 137.8,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 1.77,
+   "overhang_mm2": 761.3,
+   "supports": "yes, tree supports from the plate (761 mm2 over 45 deg)",
+   "orientation": "As modelled, bottom face on the bed.",
+   "notes": "Aim housing: stands on the board, carries the sleeve end",
+   "watertight": true,
+   "stl": "stl/disp_aim_housing.stl"
+  },
+  {
+   "name": "disp_rail_mid",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    92.5,
+    68.0,
+    170.0
+   ],
+   "volume_cm3": 201.07,
+   "mass_g": 80.4,
+   "model_mass_g": 135.16,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 1.71,
+   "overhang_mm2": 2332.8,
+   "supports": "yes, tree supports from the plate (2333 mm2 over 45 deg)",
+   "orientation": "Rotated: the part's -x axis points up.",
+   "notes": "Rail mid piece (cheeks on the sleeve, big gear pin bosses); glue the front joint (no splice straps)",
+   "watertight": true,
+   "stl": "stl/disp_rail_mid.stl"
+  },
+  {
+   "name": "disp_big_gear",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    104.98,
+    104.98,
+    27.3
+   ],
+   "volume_cm3": 184.19,
+   "mass_g": 48.4,
+   "model_mass_g": 75.59,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.8,
+   "overhang_mm2": 644.5,
+   "supports": "yes, tree supports from the plate (644 mm2 over 45 deg)",
+   "orientation": "Rotated: the part's -z axis points up.",
+   "notes": "Big gear; one M3 screw through the cheek fixes it with its first tooth on the rack",
+   "watertight": true,
+   "stl": "stl/disp_big_gear.stl"
+  },
+  {
+   "name": "disp_rail_rear",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    180.87,
+    68.0,
+    76.1
+   ],
+   "volume_cm3": 150.95,
+   "mass_g": 63.0,
+   "model_mass_g": 106.37,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 1.17,
+   "overhang_mm2": 4532.0,
+   "supports": "yes, tree supports from the plate (4532 mm2 over 45 deg)",
+   "orientation": "As modelled, bottom face on the bed.",
+   "notes": "Rail rear piece with the tether pulley, its bearing, washers and axle fused in",
+   "watertight": true,
+   "stl": "stl/disp_rail_rear.stl"
+  },
+  {
+   "name": "disp_rail_front",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    131.5,
+    128.0,
+    48.5
+   ],
+   "volume_cm3": 146.47,
+   "mass_g": 64.4,
+   "model_mass_g": 109.45,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 1.11,
+   "overhang_mm2": 7889.7,
+   "supports": "yes, tree supports from the plate (7890 mm2 over 45 deg)",
+   "orientation": "As modelled, bottom face on the bed.",
+   "notes": "Rail front piece (spring anchor posts, muzzle tie)",
+   "watertight": true,
+   "stl": "stl/disp_rail_front.stl"
+  },
+  {
+   "name": "disp_ebox",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    124.0,
+    124.0,
+    50.0
+   ],
+   "volume_cm3": 90.18,
+   "mass_g": 95.1,
+   "model_mass_g": 111.82,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 1.57,
+   "overhang_mm2": 574.9,
+   "supports": "yes, tree supports from the plate (575 mm2 over 45 deg)",
+   "orientation": "As modelled, bottom face on the bed.",
+   "notes": "Electronics box (D50 bay, thin walls, no lid): ESP32-S3 DevKitC-1 cradle with USB opening, BTS7960 on 4 standoffs (M3 inserts or self tap), DRV8833 and MP1584 pockets with cable-tie slots",
+   "watertight": true,
+   "stl": "stl/disp_ebox.stl"
+  },
+  {
+   "name": "disp_motor_plate",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    104.0,
+    114.0,
+    10.0
+   ],
+   "volume_cm3": 77.2,
+   "mass_g": 32.1,
+   "model_mass_g": 54.15,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.51,
+   "overhang_mm2": 0.0,
+   "supports": "no",
+   "orientation": "Rotated: the part's +y axis points up.",
+   "notes": "Motor adapter plate: the real wiper motor bolts on from behind with 3 x M6 (bosses on the rear face, slots +-4 mm: the D50 pattern is assumed, not measured); its shaft goes through the 30 mm hole into the axle hub",
+   "watertight": true,
+   "stl": "stl/disp_motor_plate.stl"
+  },
+  {
+   "name": "disp_motor_leg",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    72.0,
+    76.0,
+    137.0
+   ],
+   "volume_cm3": 69.87,
+   "mass_g": 28.4,
+   "model_mass_g": 47.74,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.83,
+   "overhang_mm2": 9.0,
+   "supports": "no",
+   "orientation": "As modelled, bottom face on the bed.",
+   "notes": "Motor plate leg: the plate drops into its 10 mm slot (glue); 3 screws into the board",
+   "watertight": true,
+   "stl": "stl/disp_motor_leg.stl"
+  },
+  {
+   "name": "disp_axle",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    203.3,
+    25.99,
+    25.2
+   ],
+   "volume_cm3": 63.05,
+   "mass_g": 20.2,
+   "model_mass_g": 32.86,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.38,
+   "overhang_mm2": 2321.0,
+   "supports": "yes, tree supports from the plate (2321 mm2 over 45 deg)",
+   "orientation": "Rotated: the part's +z axis points up.",
+   "notes": "Main axle: D50 coupler hub (the real wiper shaft plugs in) + main shaft, round, d12 spigot into the sleeve. Prints lying on its flat, support under the spigot",
+   "watertight": true,
+   "stl": "stl/disp_axle.stl"
+  },
+  {
+   "name": "disp_drive_gear",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    70.0,
+    69.68,
+    28.8
+   ],
+   "volume_cm3": 43.54,
+   "mass_g": 21.0,
+   "model_mass_g": 36.12,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.4,
+   "overhang_mm2": 3858.7,
+   "supports": "yes, tree supports from the plate (3859 mm2 over 45 deg)",
+   "orientation": "As modelled, bottom face on the bed.",
+   "notes": "Drive gear 26T with the hub fused in (keyway onto the sleeve rib)",
+   "watertight": true,
+   "stl": "stl/disp_drive_gear.stl"
+  },
+  {
+   "name": "disp_sleeve",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    64.0,
+    64.0,
+    85.0
+   ],
+   "volume_cm3": 39.44,
+   "mass_g": 19.6,
+   "model_mass_g": 33.82,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.55,
+   "overhang_mm2": 2907.4,
+   "supports": "yes, tree supports from the plate (2907 mm2 over 45 deg)",
+   "orientation": "Rotated: the part's -z axis points up.",
+   "notes": "Launch sleeve: the rail pivot on the main axle",
+   "watertight": true,
+   "stl": "stl/disp_sleeve.stl"
+  },
+  {
+   "name": "disp_aim_crank",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    62.32,
+    59.63,
+    38.87
+   ],
+   "volume_cm3": 33.56,
+   "mass_g": 14.5,
+   "model_mass_g": 24.69,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.33,
+   "overhang_mm2": 1755.7,
+   "supports": "yes, tree supports from the plate (1756 mm2 over 45 deg)",
+   "orientation": "As modelled, bottom face on the bed.",
+   "notes": "Worm wheel and crank with the two 608 bearings fused in (runs on the printed pin)",
+   "watertight": true,
+   "stl": "stl/disp_aim_crank.stl"
+  },
+  {
+   "name": "disp_carriage_rear",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    144.0,
+    59.4,
+    43.0
+   ],
+   "volume_cm3": 29.74,
+   "mass_g": 31.8,
+   "model_mass_g": 36.88,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.6,
+   "overhang_mm2": 4474.5,
+   "supports": "yes, tree supports from the plate (4474 mm2 over 45 deg)",
+   "orientation": "Rotated: the part's +y axis points up.",
+   "notes": "Carriage (rack, cradle, pusher, lip roller fused) in two halves: glue at the cut face",
+   "watertight": true,
+   "stl": "stl/disp_carriage_rear.stl"
+  },
+  {
+   "name": "disp_yoke",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    43.3,
+    126.6,
+    34.0
+   ],
+   "volume_cm3": 20.99,
+   "mass_g": 15.2,
+   "model_mass_g": 26.03,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.33,
+   "overhang_mm2": 1782.0,
+   "supports": "yes, tree supports from the plate (1782 mm2 over 45 deg)",
+   "orientation": "Rotated: the part's -z axis points up.",
+   "notes": "Carriage yoke with both spring pegs fused on (the real spring hooks slip onto the peg ends)",
+   "watertight": true,
+   "stl": "stl/disp_yoke.stl"
+  },
+  {
+   "name": "disp_carriage_front",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    144.0,
+    32.4,
+    43.0
+   ],
+   "volume_cm3": 19.16,
+   "mass_g": 19.9,
+   "model_mass_g": 23.75,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.43,
+   "overhang_mm2": 2197.0,
+   "supports": "yes, tree supports from the plate (2197 mm2 over 45 deg)",
+   "orientation": "Rotated: the part's +y axis points up.",
+   "notes": "Carriage (rack, cradle, pusher, lip roller fused) in two halves: glue at the cut face",
+   "watertight": true,
+   "stl": "stl/disp_carriage_front.stl"
+  },
+  {
+   "name": "disp_aim_worm",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    28.0,
+    28.0,
+    54.46
+   ],
+   "volume_cm3": 17.08,
+   "mass_g": 9.3,
+   "model_mass_g": 16.11,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.3,
+   "overhang_mm2": 2778.6,
+   "supports": "yes, tree supports from the plate (2779 mm2 over 45 deg)",
+   "orientation": "As modelled, bottom face on the bed.",
+   "notes": "Worm: self-locking, it holds the crank and so the rail angle",
+   "watertight": true,
+   "stl": "stl/disp_aim_worm.stl"
+  },
+  {
+   "name": "disp_aim_lug",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    30.0,
+    58.0,
+    27.78
+   ],
+   "volume_cm3": 13.55,
+   "mass_g": 7.0,
+   "model_mass_g": 12.11,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.19,
+   "overhang_mm2": 995.2,
+   "supports": "yes, tree supports from the plate (995 mm2 over 45 deg)",
+   "orientation": "Rotated: the part's +y axis points up.",
+   "notes": "Conrod lug on the left rail wall (2 x M3 or glue)",
+   "watertight": true,
+   "stl": "stl/disp_aim_lug.stl"
+  },
+  {
+   "name": "disp_aim_conrod",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    172.99,
+    17.0,
+    6.0
+   ],
+   "volume_cm3": 11.33,
+   "mass_g": 7.2,
+   "model_mass_g": 12.63,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.12,
+   "overhang_mm2": 0.0,
+   "supports": "no",
+   "orientation": "Rotated: the part's +y axis points up.",
+   "notes": "Conrod",
+   "watertight": true,
+   "stl": "stl/disp_aim_conrod.stl"
+  },
+  {
+   "name": "disp_gear_pin",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    53.0,
+    16.0,
+    12.5
+   ],
+   "volume_cm3": 4.31,
+   "mass_g": 2.4,
+   "model_mass_g": 4.24,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.07,
+   "overhang_mm2": 68.0,
+   "supports": "no",
+   "orientation": "Rotated: the part's -x axis points up.",
+   "notes": "Big gear pin (no clip: a drop of glue)",
+   "watertight": true,
+   "stl": "stl/disp_gear_pin.stl"
+  },
+  {
+   "name": "disp_aim_cap",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    45.5,
+    14.0,
+    19.45
+   ],
+   "volume_cm3": 4.23,
+   "mass_g": 3.9,
+   "model_mass_g": 5.24,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.12,
+   "overhang_mm2": 0.0,
+   "supports": "no",
+   "orientation": "Rotated: the part's -z axis points up.",
+   "notes": "Worm saddle cap",
+   "watertight": true,
+   "stl": "stl/disp_aim_cap.stl"
+  },
+  {
+   "name": "disp_anchor_pin_l",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    8.0,
+    45.0,
+    7.98
+   ],
+   "volume_cm3": 2.25,
+   "mass_g": 1.4,
+   "model_mass_g": 2.47,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.04,
+   "overhang_mm2": 107.6,
+   "supports": "yes, tree supports from the plate (108 mm2 over 45 deg)",
+   "orientation": "Rotated: the part's +y axis points up.",
+   "notes": "Spring anchor pin (printed; or 8 mm rod)",
+   "watertight": true,
+   "stl": "stl/disp_anchor_pin_l.stl"
+  },
+  {
+   "name": "disp_anchor_pin_r",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    8.0,
+    45.0,
+    7.98
+   ],
+   "volume_cm3": 2.25,
+   "mass_g": 1.4,
+   "model_mass_g": 2.47,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.04,
+   "overhang_mm2": 107.6,
+   "supports": "yes, tree supports from the plate (108 mm2 over 45 deg)",
+   "orientation": "Rotated: the part's +y axis points up.",
+   "notes": "Spring anchor pin (printed; or 8 mm rod)",
+   "watertight": true,
+   "stl": "stl/disp_anchor_pin_r.stl"
+  },
+  {
+   "name": "disp_aim_pin",
+   "subsystem": "display",
+   "material": "PLA",
+   "qty": 1,
+   "dims": [
+    15.0,
+    12.99,
+    30.32
+   ],
+   "volume_cm3": 2.0,
+   "mass_g": 1.3,
+   "model_mass_g": 2.3,
+   "walls": 2,
+   "infill": 0.08,
+   "time_h": 0.11,
+   "overhang_mm2": 0.0,
+   "supports": "no",
+   "orientation": "Rotated: the part's -z axis points up.",
+   "notes": "Crank axle pin (printed in place of the M8 bolt)",
+   "watertight": true,
+   "stl": "stl/disp_aim_pin.stl"
+  }
+ ],
+ "plates": [
+  {
+   "file": "plate_1_PLA.3mf",
+   "png": "plate_1_PLA.png",
+   "material": "PLA",
+   "items": [
+    {
+     "name": "disp_aim_conrod",
+     "copy": 1,
+     "x": 11.255,
+     "y": 222.345,
+     "rot": false
+    },
+    {
+     "name": "disp_aim_pin",
+     "copy": 1,
+     "x": 188.245,
+     "y": 201.525,
+     "rot": false
+    },
+    {
+     "name": "disp_axle",
+     "copy": 1,
+     "x": 218.755,
+     "y": 16.655,
+     "rot": true
+    },
+    {
+     "name": "disp_drive_gear",
+     "copy": 1,
+     "x": 11.255,
+     "y": 148.655,
+     "rot": false
+    },
+    {
+     "name": "disp_rail_front",
+     "copy": 1,
+     "x": 11.255,
+     "y": 16.655,
+     "rot": false
+    },
+    {
+     "name": "disp_rail_rear",
+     "copy": 1,
+     "x": 146.755,
+     "y": 16.655,
+     "rot": true
+    }
+   ],
+   "objects": [
+    "disp_aim_conrod",
+    "disp_aim_pin",
+    "disp_axle",
+    "disp_drive_gear",
+    "disp_rail_front",
+    "disp_rail_rear"
+   ],
+   "build_items": 6,
+   "solo": false,
+   "mass_g": 177.1,
+   "time_h": 2.87
+  },
+  {
+   "file": "plate_2_PLA.3mf",
+   "png": "plate_2_PLA.png",
+   "material": "PLA",
+   "items": [
+    {
+     "name": "disp_aim_cap",
+     "copy": 1,
+     "x": 120.98,
+     "y": 139.51,
+     "rot": true
+    },
+    {
+     "name": "disp_aim_lug",
+     "copy": 1,
+     "x": 140.0,
+     "y": 201.51,
+     "rot": true
+    },
+    {
+     "name": "disp_aim_worm",
+     "copy": 1,
+     "x": 202.0,
+     "y": 201.51,
+     "rot": false
+    },
+    {
+     "name": "disp_anchor_pin_r",
+     "copy": 1,
+     "x": 120.98,
+     "y": 189.01,
+     "rot": false
+    },
+    {
+     "name": "disp_big_gear",
+     "copy": 1,
+     "x": 12.0,
+     "y": 139.51,
+     "rot": false
+    },
+    {
+     "name": "disp_ebox",
+     "copy": 1,
+     "x": 12.0,
+     "y": 11.51,
+     "rot": false
+    },
+    {
+     "name": "disp_motor_plate",
+     "copy": 1,
+     "x": 140.0,
+     "y": 11.51,
+     "rot": false
+    },
+    {
+     "name": "disp_rail_mid",
+     "copy": 1,
+     "x": 140.0,
+     "y": 129.51,
+     "rot": false
+    }
+   ],
+   "objects": [
+    "disp_aim_cap",
+    "disp_aim_lug",
+    "disp_aim_worm",
+    "disp_anchor_pin_r",
+    "disp_big_gear",
+    "disp_ebox",
+    "disp_motor_plate",
+    "disp_rail_mid"
+   ],
+   "build_items": 8,
+   "solo": false,
+   "mass_g": 277.6,
+   "time_h": 4.65
+  },
+  {
+   "file": "plate_3_PLA.3mf",
+   "png": "plate_3_PLA.png",
+   "material": "PLA",
+   "items": [
+    {
+     "name": "disp_aim_crank",
+     "copy": 1,
+     "x": 164.0,
+     "y": 179.5,
+     "rot": false
+    },
+    {
+     "name": "disp_aim_housing",
+     "copy": 1,
+     "x": 16.0,
+     "y": 12.5,
+     "rot": false
+    },
+    {
+     "name": "disp_anchor_pin_l",
+     "copy": 1,
+     "x": 230.32,
+     "y": 179.5,
+     "rot": false
+    },
+    {
+     "name": "disp_carriage_front",
+     "copy": 1,
+     "x": 96.0,
+     "y": 143.1,
+     "rot": false
+    },
+    {
+     "name": "disp_carriage_rear",
+     "copy": 1,
+     "x": 16.0,
+     "y": 75.5,
+     "rot": false
+    },
+    {
+     "name": "disp_gear_pin",
+     "copy": 1,
+     "x": 16.0,
+     "y": 214.9,
+     "rot": false
+    },
+    {
+     "name": "disp_motor_leg",
+     "copy": 1,
+     "x": 16.0,
+     "y": 138.9,
+     "rot": true
+    },
+    {
+     "name": "disp_sleeve",
+     "copy": 1,
+     "x": 96.0,
+     "y": 179.5,
+     "rot": false
+    },
+    {
+     "name": "disp_yoke",
+     "copy": 1,
+     "x": 196.5,
+     "y": 12.5,
+     "rot": false
+    }
+   ],
+   "objects": [
+    "disp_aim_crank",
+    "disp_aim_housing",
+    "disp_anchor_pin_l",
+    "disp_carriage_front",
+    "disp_carriage_rear",
+    "disp_gear_pin",
+    "disp_motor_leg",
+    "disp_sleeve",
+    "disp_yoke"
+   ],
+   "build_items": 9,
+   "solo": false,
+   "mass_g": 215.6,
+   "time_h": 3.76
+  }
+ ],
+ "errors": [],
+ "warnings": [],
+ "totals": {
+  "PLA": {
+   "mass_g": 670.3,
+   "filament_m": 224.74,
+   "time_h": 11.29,
+   "count": 23,
+   "plates": 3
+  }
+ },
+ "unplaced_totals": {}
+}

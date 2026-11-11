@@ -1,0 +1,36 @@
+GrappStar launcher, DISPLAY build (real size, launcher only), KEDGE v34 dart
+
+The D50 launcher as it looks, at real size, rail fixed at 30 deg, carriage at HOME, the v34 dart on the cradle. Nothing moves. Reel and drum are left out (optional hollow look-alikes on a 4th plate), no deck, no guards, no stops, no sensors. All PLA.
+
+PRINT (X2D, 235 x 235 safe area)
+  plate_1_PLA.3mf: 177 g, about 2.9 h: disp_aim_conrod, disp_aim_pin, disp_axle, disp_drive_gear, disp_rail_front, disp_rail_rear
+  plate_2_PLA.3mf: 278 g, about 4.7 h: disp_aim_cap, disp_aim_lug, disp_aim_worm, disp_anchor_pin_r, disp_big_gear, disp_ebox, disp_motor_plate, disp_rail_mid
+  plate_3_PLA.3mf: 216 g, about 3.8 h: disp_aim_crank, disp_aim_housing, disp_anchor_pin_l, disp_carriage_front, disp_carriage_rear, disp_gear_pin, disp_motor_leg, disp_sleeve, disp_yoke
+  Core total: 670 g, about 11.3 h on 3 plates.
+  Optional plate_4_optional_PLA.3mf: 122 g, about 2.2 h: opt_drum_dummy, opt_drum_saddle, opt_reel_bracket, opt_reel_spool
+  With the optional plate: 793 g, about 13.5 h.
+  Estimate: printed mass from each part's volume and surface (2 walls of 0.42 mm, 8 % infill core); time = plastic at 15 mm3/s plus 3 s per 0.28 mm layer per plate. Real times vary by about +-20 %. Next cuts if it runs long: print the ebox at 5 % infill without the lid bosses (about -15 g), skip the worm and cap (glue the crank instead, -13 g), leave out the drive gear (-21 g, hidden between the cheeks).
+
+SLICER
+  PLA, 0.4 mm nozzle, 0.28 mm layers (0.24 for the gears and the carriage if you want finer teeth)
+  2 walls, 4 top and 3 bottom layers, 8 % infill (gyroid or grid; 5 % is fine for the box, plate and leg)
+  supports: tree, build plate only, for the rail pieces, the carriage halves and the axle spigot; none for the rest
+  brim on the tall parts (aim housing, sleeve, worm)
+
+WHAT GOES WHERE
+  Aim housing: stands on the board (4 screws). The sleeve's outer journal sits in its bushing; the crank with its printed pin sits between the housing walls, the worm in its saddles under the cap (it holds the crank, so the rail angle); the conrod goes from the crank pin to the lug on the left rail wall.
+  Rail: rear, mid and front pieces glued at their joints; the mid piece's cheeks ride on the sleeve. Drive gear on the sleeve rib between the cheeks; big gear on its pin in the cheek bosses, fixed by one M3 x 15 self-tapping screw through the hole in the rail mid cheek into the big gear's pilot hole, with the carriage at HOME resting on the gear's first tooth.
+  Carriage: glue the two halves, slide it into the track from the front, yoke on its back (2 x M3 x 10). The springs pull it forward onto the big gear's first tooth: that is HOME.
+  Main axle: its hub end goes onto the real wiper motor shaft through the motor plate; the d12 spigot carries the sleeve. Motor plate: drops into the leg's slot (glue), leg screwed to the board.
+
+HARRY'S REAL PARTS (checked in the model: no clashes)
+  Springs: two Century C-243 hang from the printed anchor pins in the rail front posts (or 8 mm rod) to the pegs under the yoke arms, at their HOME length (slightly stretched, about 10 N each).
+  Wiper motor: bolts to the rear face of the motor plate with 3 x M6 through the slots (+-4 mm: the D50 pattern is assumed, not measured; measure yours and open the slots if needed). Its output boss sits in the 30 mm hole, its shaft in the axle hub. Not wired.
+  Boards in the electronics box (D50 bay, thinner walls, no lid): ESP32-S3 DevKitC-1 on its cradle with the USB port at the wall opening, BTS7960 on 4 standoffs (M3 self tap or inserts), DRV8833 and MP1584 in their pockets with cable ties. Box: 4 screws into the board through its floor pads.
+
+BOARD (any flat board, all coordinates in mm from the main axis point on the board, x forward, y left)
+  Needs about 516 x 313 mm (x -233 to 284, y -75 to 238); the launcher is 396 mm tall at 30 deg.
+  Aim housing 4 x M3 (or wood screws): [(-36, 193), (-36, 223), (92, 223), (40, 180)]. Motor leg 3 screws: [(-30, -18), (30, -18), (0, -66)]. Electronics box 4 screws: [(217, 43), (187, 43), (155, -59), (121, -27)].
+  Optional, 2 screws each (or glue): drum saddle at x 38..82, y 34..116; reel bracket at x -395..-345, y 81..121 (the reel sits behind the launcher, so the board then needs to reach back that far).
+
+Interference check at the display pose: CLEAN (parts 48, states 1, 2.6 s). Source: base/tools/display.py (dart-v1).

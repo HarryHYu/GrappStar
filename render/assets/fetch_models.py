@@ -104,13 +104,13 @@ def convert_step(step=STEP_PATH, out=NPZ_PATH):
         f = np.array(f, np.uint32)
         names.append(path[-1])
         paths.append(p)
+        fs.append(f + voff[-1])                      # global vertex indices
         vs.append(v)
-        fs.append(f)
         voff.append(voff[-1] + len(v))
         foff.append(foff[-1] + len(f))
     os.makedirs(os.path.dirname(out), exist_ok=True)
     np.savez_compressed(out, names=np.array(names), paths=np.array(paths), v=np.vstack(vs), f=np.vstack(fs),
-                        voff=np.array(voff, np.int64), foff=np.array(foff, np.int64))
+                        voff=np.array(voff, np.int64), foff=np.array(foff, np.int64), global_idx=np.array(1))
     print(f"{len(names)} leaves, {foff[-1]} triangles -> {out} ({os.path.getsize(out) / 1e6:.1f} MB) "
           f"in {time.time() - t0:.0f} s")
     return out

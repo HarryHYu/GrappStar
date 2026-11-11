@@ -21,8 +21,12 @@ What is built (all metres, Z up, world origin = centre of the plywood board top,
   antenna and AV lead), frame_kiyo_x; the wiper motor and the N20s keep their CAD envelopes with split materials.
 - the plywood board `env:board` is built here too (birch ply, 1.0 x 0.8 x 0.018 m, top at z 0), with cable ties.
 - DART (collection DART): every kedge/out34 part as `dart:<part>` in the dart frame (nose tip origin, +x to the
-  tail, +z up) under the empty `dart:root`. Moving parts hang under pivot empties (DART_JOINTS); pose_dart() sets
-  them. At rest dart:root sits folded on the launcher cradle (asm launch_dart transform).
+  tail, +z up) under the empty `dart:root`. The moving parts (righting leg, both drill pods, both augers) are
+  their own pivots: origin on the joint axis, everything riding on them parented below (DART_JOINTS, the same
+  names / parents / pivots / axes as motion.json "joints"); pose_dart() / apply_dart_joint() set them. At rest
+  dart:root sits folded on the launcher cradle (asm launch_dart transform).
+- materials: PBR detail on everything (_detail: roughness variation, CC0 roughness / height maps box-projected,
+  fingerprints, cavity grime, worn edges, dust, micro bump); mat_rope(colour) for the Dyneema tether.
 - ELEC (collection ELEC): Harry's kit on the board beside the base: `elec:jetson` (Jetson Orin Nano developer kit with its
   heatsink and fan), `elec:digitnow` (USB capture dongle on a Jetson USB port), `elec:lipo_3s` (3S 2200 with XT60
   and balance lead), XT60 Y harness, and the cables (`elec:cable_*`) to the base's electronics bay, RC832, Kiyo X.
@@ -89,36 +93,35 @@ BASE_REST_JOINTS = {
 }
 
 # ---------------------------------------------------------------------------------------------- dart joints
-# Pivot empties (children of dart:root unless noted). Each empty sits at its pivot with identity rest rotation; the
-# moving meshes under it keep the kedge/out34 vertices (relative to the joint origin). To pose: rotate the empty by
-# `deg` about `axis` (its local frame = the parent frame at rest): pose_dart() does it. Axes include parts.json
-# "sgn" (-1), so +deg is the physical direction: leg_deg 0 folded .. 178 righting, deploy 0 folded .. 46.75 deployed
-# (parts.json DEPLOY_DEG), auger spin +deg = right-hand about the auger axis toward the tip (L auger right-hand:
-# +deg drills in; R auger left-hand: -deg drills in, see drill_in_sign).
+# The moving parts are their own pivots: each moving object sits with its origin ON its joint axis (identity rest
+# rotation) under the parent named here, and everything that moves with it hangs below it. This is exactly the
+# form render/motion/motion.json "joints" uses (object name, parent, pivot in the parent frame, axis, deg): set the
+# object's location = pivot and rotate it by deg about axis (pose_dart() / apply_dart_joint() do that). Axes
+# include parts.json "sgn" (-1), so +deg is the physical direction: leg 0 folded .. 178 righting, pods 0 folded ..
+# 46.75 deployed (parts.json DEPLOY_DEG); augers: right-hand about the axis toward the tip (L auger right-hand, +deg
+# drills in; R auger left-hand, -deg drills in: drill_in_sign).
 DART_JOINTS = {
-    "dart:pivot_leg": dict(joint="leg", parent="dart:root", pivot=(0.033, 0.0, 0.0145), axis=(0.0, -1.0, 0.0),
-                           range_deg=(0.0, 178.0),
-                           children=["dart:righting_leg", "dart:leg_coupler_L", "dart:leg_coupler_R", "dart:leg_shaft"]),
-    "dart:pivot_drill_L": dict(joint="deploy", parent="dart:root", pivot=(0.132, 0.03115, 0.0095),
-                               axis=(0.0, -1.0, 0.0), range_deg=(0.0, 46.75),
-                               children=["dart:drill_leg_L", "dart:drill_leg_L_motor", "dart:coupler_L",
-                                         "dart:pod_cap_L", "dart:coupler_L_screw", "dart:deploy_shaft",
-                                         "dart:pivot_auger_L"]),
-    "dart:pivot_drill_R": dict(joint="deploy", parent="dart:root", pivot=(0.132, -0.03115, 0.0095),
-                               axis=(0.0, -1.0, 0.0), range_deg=(0.0, 46.75),
-                               children=["dart:drill_leg_R", "dart:drill_leg_R_motor", "dart:coupler_R",
-                                         "dart:pod_cap_R", "dart:coupler_R_screw", "dart:pivot_auger_R"]),
-    "dart:pivot_auger_L": dict(joint="auger_L", parent="dart:pivot_drill_L", pivot=(0.0, 0.0, 0.0),
-                               axis=(-1.0, 0.0, 0.0), drill_in_sign=1,
-                               children=["dart:drill_leg_L_auger", "dart:drill_leg_L_shaft", "dart:drill_leg_L_nut"]),
-    "dart:pivot_auger_R": dict(joint="auger_R", parent="dart:pivot_drill_R", pivot=(0.0, 0.0, 0.0),
-                               axis=(-1.0, 0.0, 0.0), drill_in_sign=-1,
-                               children=["dart:drill_leg_R_auger", "dart:drill_leg_R_shaft", "dart:drill_leg_R_nut"]),
+    "dart:righting_leg": dict(joint="leg", parent="dart:root", pivot=(0.033, 0.0, 0.0145), axis=(0.0, -1.0, 0.0),
+                              range_deg=(0.0, 178.0),
+                              carries=["dart:leg_coupler_L", "dart:leg_coupler_R", "dart:leg_shaft"]),
+    "dart:drill_leg_L": dict(joint="deploy", parent="dart:root", pivot=(0.132, 0.03115, 0.0095),
+                             axis=(0.0, -1.0, 0.0), range_deg=(0.0, 46.75),
+                             carries=["dart:drill_leg_L_motor", "dart:coupler_L", "dart:pod_cap_L",
+                                      "dart:coupler_L_screw", "dart:deploy_shaft", "dart:drill_leg_L_auger"]),
+    "dart:drill_leg_R": dict(joint="deploy", parent="dart:root", pivot=(0.132, -0.03115, 0.0095),
+                             axis=(0.0, -1.0, 0.0), range_deg=(0.0, 46.75),
+                             carries=["dart:drill_leg_R_motor", "dart:coupler_R", "dart:pod_cap_R",
+                                      "dart:coupler_R_screw", "dart:drill_leg_R_auger"]),
+    "dart:drill_leg_L_auger": dict(joint="auger_L", parent="dart:drill_leg_L", pivot=(0.0, 0.0, 0.0),
+                                   axis=(-1.0, 0.0, 0.0), drill_in_sign=1,
+                                   carries=["dart:drill_leg_L_shaft", "dart:drill_leg_L_nut"]),
+    "dart:drill_leg_R_auger": dict(joint="auger_R", parent="dart:drill_leg_R", pivot=(0.0, 0.0, 0.0),
+                                   axis=(-1.0, 0.0, 0.0), drill_in_sign=-1,
+                                   carries=["dart:drill_leg_R_shaft", "dart:drill_leg_R_nut"]),
 }
-# motion.json may name the moving part instead of its pivot: these map to the pivot empty
-DART_JOINT_ALIASES = {"dart:righting_leg": "dart:pivot_leg", "dart:drill_leg_L": "dart:pivot_drill_L",
-                      "dart:drill_leg_R": "dart:pivot_drill_R", "dart:drill_leg_L_auger": "dart:pivot_auger_L",
-                      "dart:drill_leg_R_auger": "dart:pivot_auger_R"}
+DART_JOINT_ALIASES = {"dart:pivot_leg": "dart:righting_leg", "dart:pivot_drill_L": "dart:drill_leg_L",
+                      "dart:pivot_drill_R": "dart:drill_leg_R", "dart:pivot_auger_L": "dart:drill_leg_L_auger",
+                      "dart:pivot_auger_R": "dart:drill_leg_R_auger"}
 
 # ---------------------------------------------------------------------------------------------- springs
 # Century C-243 (base/spec/params.py SPRING): OD 16.0, wire 1.37 (0.054 in), free length 165.1 over the loops,
@@ -479,8 +482,8 @@ def _detail(N, bsdf, col, rough, metal=0.0, var=0.05, rvar=0.12, grime=0.45, gri
     if prints and tex("prints") is not None:
         pv = N.sep(N.img(tex("prints"), 0.11).outputs["Color"])[0]
         pm = N.math("MULTIPLY", N.maprange(pv, 0.25, 0.8), prints)
-        r = N.math("ADD", r, N.math("MULTIPLY", pm, 0.3))
-        c = N.mix(N.math("MULTIPLY", pm, 0.25), c, (0.5, 0.5, 0.5, 1.0))
+        r = N.math("ADD", r, N.math("MULTIPLY", pm, 0.16))
+        c = N.mix(N.math("MULTIPLY", pm, 0.2), c, N.vscale(c, 1.8))
     if grime:
         ao = N.ao(grime_dist)
         gn = N.noise(140.0, 3.0, 0.6, obj).outputs["Fac"]
@@ -508,7 +511,7 @@ def _detail(N, bsdf, col, rough, metal=0.0, var=0.05, rvar=0.12, grime=0.45, gri
         nz = N.sep(geo.outputs["Normal"])[2]
         dn = N.noise(45.0, 4.0, 0.65, obj).outputs["Fac"]
         dm = N.math("MULTIPLY", N.math("MULTIPLY", N.maprange(nz, 0.5, 0.95), N.maprange(dn, 0.35, 0.75)), dust)
-        c = N.mix(N.math("MULTIPLY", dm, 0.45), c, (0.33, 0.30, 0.26, 1.0))
+        c = N.mix(N.math("MULTIPLY", dm, 0.3), c, (0.30, 0.27, 0.23, 1.0))
         r = N.math("ADD", r, N.math("MULTIPLY", dm, 0.35))
     if height is not None:
         h = N.math("ADD", h, height)
@@ -592,8 +595,8 @@ def M(name):
         return _MATS[name]
     t = {
         "steel": lambda: mat_pbr("steel", (0.60, 0.60, 0.62, 1), 0.28, 1.0, _STEEL_D, aniso=0.45),
-        "steel_bright": lambda: mat_pbr("steel_bright", (0.74, 0.74, 0.76, 1), 0.16, 1.0,
-                                        dict(_STEEL_D, scratch=0.22, prints=0.25)),
+        "steel_bright": lambda: mat_pbr("steel_bright", (0.74, 0.74, 0.76, 1), 0.18, 1.0,
+                                        dict(_STEEL_D, scratch=0.1, tex_tile=0.03, prints=0.15, dust=0.04)),
         "spring_steel": lambda: mat_pbr("spring_steel", (0.56, 0.57, 0.59, 1), 0.26, 1.0,
                                         dict(_STEEL_D, scratch=0.25, edge=0.0, prints=0.0, grime=0.5), aniso=0.3),
         "zinc": lambda: _mat_zinc(),
@@ -613,9 +616,9 @@ def M(name):
                                     dict(var=0.12, rvar=0.2, grime=0.7, grime_dist=0.008, edge=0.5,
                                          edge_col=(0.62, 0.63, 0.65, 1), edge_rough=0.3, dust=0.4, micro=0.6,
                                          micro_scale=700.0, bump_dist=0.0002, bevel=0.0008)),
-        "alu_black": lambda: mat_pbr("alu_black", (0.028, 0.028, 0.031, 1), 0.42, 0.6,
-                                     dict(var=0.08, rvar=0.12, grime=0.4, edge=0.5, edge_col=(0.62, 0.63, 0.65, 1),
-                                          edge_metal=True, edge_rough=0.25, dust=0.25, prints=0.35, micro=0.08,
+        "alu_black": lambda: mat_pbr("alu_black", (0.016, 0.016, 0.018, 1), 0.5, 0.5,
+                                     dict(var=0.06, rvar=0.1, grime=0.4, edge=0.35, edge_col=(0.55, 0.56, 0.58, 1),
+                                          edge_metal=True, edge_rough=0.25, dust=0.06, prints=0.2, micro=0.08,
                                           bevel=0.0003)),
         "paint_black": lambda: mat_pbr("paint_black", (0.018, 0.018, 0.02, 1), 0.34, 0.15,
                                        dict(var=0.06, rvar=0.12, grime=0.6, grime_dist=0.008, edge=0.6,
@@ -624,13 +627,15 @@ def M(name):
                                             bump_dist=0.0001, bevel=0.0008), coat=0.35, coat_rough=0.2),
         "rubber": lambda: mat_pbr("rubber", (0.024, 0.024, 0.026, 1), 0.82, 0.0,
                                   dict(texkey="rubber", scratch=0.3, tex_tile=0.04, grime=0.4, edge=0.0,
-                                       dust=0.5, micro=0.3, rvar=0.12), spec=0.3, sheen=0.2),
-        "plastic_black": lambda: mat_pbr("plastic_black", (0.02, 0.02, 0.022, 1), 0.42, 0.0,
-                                         dict(texkey="plastic", scratch=0.25, tex_tile=0.05, prints=0.2, grime=0.5,
-                                              edge=0.35, edge_rough=0.3, dust=0.3, micro=0.05, bevel=0.0003)),
+                                       dust=0.15, micro=0.3, rvar=0.12), spec=0.3, sheen=0.2),
+        "plastic_black": lambda: mat_pbr("plastic_black", (0.011, 0.011, 0.012, 1), 0.5, 0.0,
+                                         dict(texkey="plastic", scratch=0.2, tex_tile=0.05, prints=0.15, grime=0.5,
+                                              edge=0.3, edge_col=(0.07, 0.07, 0.075, 1), edge_rough=0.3, dust=0.06,
+                                              micro=0.05, bevel=0.0003)),
         "plastic_gloss_black": lambda: mat_pbr("plastic_gloss_black", (0.012, 0.012, 0.014, 1), 0.08, 0.0,
-                                               dict(rvar=0.05, prints=0.9, grime=0.4, edge=0.3, edge_rough=0.25,
-                                                    dust=0.25, micro=0.02, bevel=0.0005), coat=0.7, coat_rough=0.06),
+                                               dict(rvar=0.04, prints=0.45, grime=0.4, edge=0.25,
+                                                    edge_col=(0.06, 0.06, 0.065, 1), edge_rough=0.2, dust=0.05,
+                                                    micro=0.02, bevel=0.0005), coat=0.7, coat_rough=0.05),
         "plastic_white": lambda: mat_pbr("plastic_white", (0.78, 0.76, 0.70, 1), 0.48, 0.0,
                                          dict(texkey="plastic", scratch=0.2, prints=0.15, grime=0.6, edge=0.2,
                                               dust=0.25), sss=0.15, sss_radius=(0.002, 0.002, 0.002)),
@@ -725,7 +730,7 @@ def mat_pcb(color):
     key = "pcb_" + color
     m, nt, bsdf = _new_mat(key)
     N = _N(nt)
-    masks = {"green": "#1c5a2e", "black": "#0e1012", "blue": "#1d4f9e", "red": "#a01818", "darkgreen": "#163d26",
+    masks = {"green": "#1c5a2e", "black": "#08090a", "blue": "#1d4f9e", "red": "#a01818", "darkgreen": "#163d26",
              "purple": "#3a1f5c", "fr4": "#b89a5a"}
     base = srgb(masks.get(color, color))
     obj = N.coord("Object")
@@ -747,9 +752,9 @@ def mat_pcb(color):
                  N.math("GREATER_THAN", N.noise(70.0, 2, 0.5, obj).outputs["Fac"], 0.58))
     plane = N.math("GREATER_THAN", N.noise(25.0, 2, 0.5, obj).outputs["Fac"], 0.62)
     copper = N.math("MAXIMUM", N.math("MAXIMUM", tr1, tr2), N.math("MULTIPLY", plane, 0.6))
-    silk_o = N.math("MULTIPLY", bricks(110.0, 0.03), N.math("GREATER_THAN", N.noise(55.0, 2, 0.5, obj).outputs["Fac"], 0.6))
-    txt = N.math("MULTIPLY", N.math("LESS_THAN", bricks(1500.0, 0.45), 0.5),
-                 N.math("GREATER_THAN", N.noise(40.0, 2, 0.5, obj).outputs["Fac"], 0.7))
+    silk_o = N.math("MULTIPLY", bricks(420.0, 0.025), N.math("GREATER_THAN", N.noise(70.0, 2, 0.5, obj).outputs["Fac"], 0.72))
+    txt = N.math("MULTIPLY", N.math("LESS_THAN", bricks(2600.0, 0.45), 0.5),
+                 N.math("GREATER_THAN", N.noise(55.0, 2, 0.5, obj).outputs["Fac"], 0.78))
     silk = N.math("MAXIMUM", silk_o, txt)
     cu_col = tuple(min(1.0, c * 1.6 + 0.012) for c in base[:3]) + (1,)
     if color == "fr4":
@@ -757,7 +762,7 @@ def mat_pcb(color):
     col = N.mix(copper, base, cu_col)
     col = N.mix(silk, col, (0.86, 0.86, 0.83, 1))
     _detail(N, bsdf, col, 0.34, 0.0, var=0.04, rvar=0.08, grime=0.35, grime_dist=0.002, edge=0.3,
-            edge_col=srgb("#c9b88a"), edge_rough=0.6, dust=0.15, prints=0.15, micro=0.05,
+            edge_col=srgb("#c9b88a"), edge_rough=0.6, dust=0.04, prints=0.1, micro=0.05,
             height=N.math("ADD", N.math("MULTIPLY", copper, 0.6), N.math("MULTIPLY", silk, 0.3)),
             bump_dist=0.00002, bevel=0.00015)
     _set(bsdf, spec=0.6, coat=0.0 if color == "fr4" else 0.45, coat_rough=0.12)
@@ -790,6 +795,36 @@ def mat_dyneema():
     col = N.mix(N.math("MULTIPLY", N.noise(30.0, 3, 0.6, obj).outputs["Fac"], 0.25), col, srgb("#8a8270"))
     _set(bsdf, base=col, rough=0.62, sheen=0.5)
     N.link(N.bump(N.math("ABSOLUTE", N.math("MULTIPLY", a, b)), 0.5, 0.0001), bsdf.inputs["Normal"])
+    return m
+
+
+def mat_rope(color="#f0cf1e", name=None):
+    """1 mm 12-strand Dyneema braid for the tether (build.py's line:tether): 6 + 6 carriers crossing in a 2-over-2
+    diagonal weave (object-space helices, no UVs needed), each strand's fibre lay as fine streaks, slight fuzz
+    (sheen + fibre noise), soft satin highlight. color: '#rrggbb' (default the yellow braid)."""
+    key = name or "rope_" + color.lstrip("#")
+    if key in _MATS:
+        return _MATS[key]
+    m, nt, bsdf = _new_mat(key)
+    N = _N(nt)
+    obj = N.coord("Object")
+    x, y, zz = N.sep(obj)
+    k = 2 * math.pi / 0.0011                                   # one carrier pitch about 1.1 mm along the rope
+    s1 = N.math("ADD", N.math("ADD", x, y), zz)
+    s2 = N.math("SUBTRACT", N.math("ADD", x, y), zz)
+    a = N.math("SINE", N.math("MULTIPLY", s1, k))
+    b = N.math("SINE", N.math("MULTIPLY", s2, k))
+    over = N.math("GREATER_THAN", N.math("SINE", N.math("MULTIPLY", N.math("ADD", s1, s2), k * 0.5)), 0.0)
+    ridge = N.mix(over, N.math("ABSOLUTE", a), N.math("ABSOLUTE", b), kind="FLOAT")
+    fib = N.noise(14000.0, 2.0, 0.6, obj).outputs["Fac"]
+    base = srgb(color)
+    c = N.mix(over, N.vscale(N.rgb(base), 0.86), N.rgb(base))
+    c = N.mix(N.math("MULTIPLY", N.math("SUBTRACT", 1.0, ridge), 0.5), c, N.vscale(N.rgb(base), 0.55))
+    c = N.mix(N.math("MULTIPLY", fib, 0.25), c, (0.9, 0.88, 0.8, 1.0))
+    _set(bsdf, base=c, rough=N.math("ADD", N.math("MULTIPLY", fib, 0.15), 0.52), sheen=0.7, spec=0.4,
+         coat=0.0)
+    h = N.math("ADD", ridge, N.math("MULTIPLY", fib, 0.35))
+    N.link(N.bump(h, 0.8, 0.00012), bsdf.inputs["Normal"])
     return m
 
 
@@ -1383,6 +1418,27 @@ def key_springs(scene, frames):
         update_springs(frame=f)
 
 
+def key_springs_from_motion(motion=None, step=1):
+    """keyframe both coils from render/motion/motion.json "springs" (anchor_pin / carriage_pin world positions per
+    frame); up vector = the rail's +z (pins are vertical in the rail frame)"""
+    if motion is None:
+        with open(MOTION_JSON) as fh:
+            motion = json.load(fh)
+    for side in ("l", "r"):
+        sp = motion.get("springs", {}).get(f"launch_spring_{side}")
+        obn = f"base:launch_spring_{side}"
+        if not sp or obn not in bpy.data.objects:
+            continue
+        for i in range(0, len(sp["frames"]), step):
+            f = sp["frames"][i]
+            a, c = Vector(sp["anchor_pin"][i]), Vector(sp["carriage_pin"][i])
+            d = (a - c).normalized()
+            up = Vector((-d.z, 0.0, d.x)) if abs(d.y) < 0.9 else Vector((0, 0, 1))
+            if up.z < 0:
+                up = -up
+            set_spring_pins(obn, c, a, up, frame=f)
+
+
 def _build_springs(scene, col, root):
     ng = _spring_nodegroup()
     for nm in SPRINGS:
@@ -1418,12 +1474,11 @@ def _build_cable_ties(col, root, W):
 
 
 # ============================================================================================== dart
-DART_PIVOT_OF = {"righting_leg": "dart:pivot_leg", "drill_leg_L": "dart:pivot_drill_L",
-                 "coupler_L": "dart:pivot_drill_L", "deploy_shaft": "dart:pivot_drill_L",
-                 "drill_leg_R": "dart:pivot_drill_R", "coupler_R": "dart:pivot_drill_R"}
-DART_AUGER_OF = {"drill_leg_L_auger": "dart:pivot_auger_L", "drill_leg_L_shaft": "dart:pivot_auger_L",
-                 "drill_leg_L_nut": "dart:pivot_auger_L", "drill_leg_R_auger": "dart:pivot_auger_R",
-                 "drill_leg_R_shaft": "dart:pivot_auger_R", "drill_leg_R_nut": "dart:pivot_auger_R"}
+# parts.json root parts that ride on a moving part (same deploy axis) -> the moving object they hang under
+DART_RIDES_ON = {"coupler_L": "drill_leg_L", "deploy_shaft": "drill_leg_L", "coupler_R": "drill_leg_R"}
+# children re-parented to the spinning auger (parts.json hangs them on the arm; they turn with the auger)
+DART_ON_AUGER = {"drill_leg_L_shaft": "drill_leg_L_auger", "drill_leg_L_nut": "drill_leg_L_auger",
+                 "drill_leg_R_shaft": "drill_leg_R_auger", "drill_leg_R_nut": "drill_leg_R_auger"}
 
 
 def dart_rest_matrix():
@@ -1489,59 +1544,80 @@ def build_dart(scene, col=None, matrix=None):
     J = json.load(open(os.path.join(DART_DIR, "parts.json")))
     PP = {p["name"]: p for p in J["parts"]}
     root = empty("dart:root", col, matrix=dart_rest_matrix() if matrix is None else matrix, size=0.05)
-    piv = {"dart:root": root}
-    for nm, d in DART_JOINTS.items():                 # dict order: parents first
-        piv[nm] = empty(nm, col, piv[d["parent"]], T_(*d["pivot"]), size=0.015)
-        piv[nm]["axis"] = list(d["axis"])
-        piv[nm]["joint"] = d["joint"]
-
-    def ancestor(n):
-        while PP[n].get("parent"):
-            n = PP[n]["parent"]
-        return n
-
     detail = _procedural_dart_parts()
-    for n, p in PP.items():
-        name = "dart:" + n
-        anc = ancestor(n)
-        apos = np.asarray(PP[anc]["pos"], float) * MM
-        if n in DART_AUGER_OF:
-            parent = piv[DART_AUGER_OF[n]]
-            local = np.eye(4)
-        elif anc in DART_PIVOT_OF:
-            parent = piv[DART_PIVOT_OF[anc]]
-            local = T_(*(apos - np.asarray(DART_JOINTS[DART_PIVOT_OF[anc]]["pivot"])))
-        else:
-            parent = root
-            local = T_(*apos)
-        if n in detail:
-            ob = detail[n]().obj(name, col, parent, local)
-        else:
-            z = np.load(os.path.join(DART_DIR, n + ".npz"))
-            v = z["v"].astype(float)
-            f = z["f"].astype(np.int64)
-            mats, mi = _dart_material(p, v, f)
-            me = mesh_np(name, v * MM, f, mi)
-            if p.get("printable"):
-                set_attr(me, "layer", v[:, 2])
-            ob = mesh_object(name, me, col, parent, local, mats)
-        ob["kedge_part"] = n
+    made = {"dart:root": root}
+
+    def place(n):
+        """(parent object name, local matrix) for part n"""
+        p = PP[n]
+        on = "dart:" + n
+        if on in DART_JOINTS:
+            d = DART_JOINTS[on]
+            return d["parent"], T_(*d["pivot"])
+        if n in DART_ON_AUGER:
+            return "dart:" + DART_ON_AUGER[n], np.eye(4)
+        if p.get("parent"):
+            return "dart:" + p["parent"], T_(*(np.asarray(p["pos"], float) * MM))
+        pos = np.asarray(p["pos"], float) * MM
+        if n in DART_RIDES_ON:
+            host = "dart:" + DART_RIDES_ON[n]
+            return host, T_(*(pos - np.asarray(DART_JOINTS[host]["pivot"])))
+        return "dart:root", T_(*pos)
+
+    todo = list(PP)
+    while todo:
+        rest = []
+        for n in todo:
+            par, local = place(n)
+            if par not in made:
+                rest.append(n)
+                continue
+            name = "dart:" + n
+            p = PP[n]
+            if n in detail:
+                ob = detail[n]().obj(name, col, made[par], local)
+            else:
+                z = np.load(os.path.join(DART_DIR, n + ".npz"))
+                v = z["v"].astype(float)
+                f = z["f"].astype(np.int64)
+                mats, mi = _dart_material(p, v, f)
+                me = mesh_np(name, v * MM, f, mi)
+                if p.get("printable"):
+                    set_attr(me, "layer", v[:, 2])
+                ob = mesh_object(name, me, col, made[par], local, mats)
+            ob["kedge_part"] = n
+            if name in DART_JOINTS:
+                ob["joint_axis"] = list(DART_JOINTS[name]["axis"])
+                ob["joint"] = DART_JOINTS[name]["joint"]
+                ob.rotation_mode = "QUATERNION"
+            made[name] = ob
+        if len(rest) == len(todo):
+            raise RuntimeError(f"dart parts with unresolved parents: {rest}")
+        todo = rest
     return root
 
 
+def apply_dart_joint(name, deg, frame=None):
+    """rotate a moving dart object (DART_JOINTS name or alias) to deg about its axis; keyframe when frame given"""
+    name = DART_JOINT_ALIASES.get(name, name)
+    ob = bpy.data.objects.get(name)
+    if ob is None:
+        return None
+    d = DART_JOINTS[name]
+    ob.rotation_mode = "QUATERNION"
+    ob.location = d["pivot"]
+    ob.rotation_quaternion = Matrix.Rotation(math.radians(deg), 4, Vector(d["axis"])).to_quaternion()
+    if frame is not None:
+        ob.keyframe_insert("rotation_quaternion", frame=frame)
+    return ob
+
+
 def pose_dart(leg_deg=0.0, deploy_L=0.0, deploy_R=None, auger_L=0.0, auger_R=0.0, frame=None):
-    """set the pivot empties (degrees as DART_JOINTS); keyframes rotation when frame is given"""
+    """set all dart joints (degrees as DART_JOINTS); keyframes rotation when frame is given"""
     deploy_R = deploy_L if deploy_R is None else deploy_R
-    vals = {"dart:pivot_leg": leg_deg, "dart:pivot_drill_L": deploy_L, "dart:pivot_drill_R": deploy_R,
-            "dart:pivot_auger_L": auger_L, "dart:pivot_auger_R": auger_R}
-    for nm, deg in vals.items():
-        ob = bpy.data.objects.get(nm)
-        if ob is None:
-            continue
-        ob.rotation_mode = "QUATERNION"
-        ob.rotation_quaternion = Matrix.Rotation(math.radians(deg), 4, Vector(DART_JOINTS[nm]["axis"])).to_quaternion()
-        if frame is not None:
-            ob.keyframe_insert("rotation_quaternion", frame=frame)
+    for nm, deg in (("dart:righting_leg", leg_deg), ("dart:drill_leg_L", deploy_L), ("dart:drill_leg_R", deploy_R),
+                    ("dart:drill_leg_L_auger", auger_L), ("dart:drill_leg_R_auger", auger_R)):
+        apply_dart_joint(nm, deg, frame)
 
 
 # ============================================================================================== procedural parts
@@ -2105,6 +2181,8 @@ def _e_jetson_cad():
         return None
     z = np.load(JETSON_NPZ)
     names, v, f, vo, fo = z["names"], z["v"].astype(np.float64), z["f"].astype(np.int64), z["voff"], z["foff"]
+    if "global_idx" not in z.files:                          # per-leaf vertex indices -> global
+        f += np.repeat(vo[:-1], np.diff(fo))[:, None]
     keys, mi = [], np.zeros(len(f), np.int32)
 
     def slot(k):
@@ -2440,6 +2518,15 @@ def build_elec(scene, col=None):
              [0.44, -0.12, zr], [0.38, -0.30, zr], [0.20, -0.35, zr], [0.045, -0.24, zr], p_dc + [0, 0.015, 0],
              p_dc]
     _cable("elec:cable_jetson_dc", lead1, 0.0021, "wire_black", col)
+    # wiper motor: 2-pin connector boot on the can end cap, 14 AWG pair down to the bay's motor window
+    mb = MB()
+    mb.box((-6.0, -9.0, 0.0), (6.0, 9.0, 9.0), "plastic_black", bevel=1.5)
+    mb.box((-4.0, -7.0, 9.0), (4.0, 7.0, 15.0), "rubber", bevel=1.5)
+    _mm(mb).obj("elec:wiper_plug", col, root, np.asarray(BASE_TO_WORLD) @ T_(8.0 * MM, -46.0 * MM, 179.5 * MM))
+    wp = [_b2w((8.0, -46.0, 194.0)), _b2w((14.0, -50.0, 197.0)), _b2w((30.0, -78.0, 182.0)),
+          _b2w((70.0, -95.0, 60.0)), _b2w((95.0, -60.0, -120.0)), _b2w((105.0, -12.0, -152.0)),
+          _b2w((116.0, -11.0, -152.0))]
+    _pair("elec:cable_wiper", wp, 0.0016, ("red", "black"), col)
     return root
 
 
@@ -2459,15 +2546,15 @@ def studio(scene, floor_z=-BOARD_SIZE[2] - 0.0005):
     out = N.node("ShaderNodeOutputWorld")
     bg = N.node("ShaderNodeBackground")
     z = N.sep(N.coord("Generated"))[2]
-    col = N.ramp(N.math("ADD", N.math("MULTIPLY", z, 0.5), 0.5), [(0.35, (0.05, 0.05, 0.055, 1)), (0.55, (0.32, 0.33, 0.35, 1)),
-                                                        (1.0, (0.75, 0.78, 0.82, 1))])
+    col = N.ramp(N.math("ADD", N.math("MULTIPLY", z, 0.5), 0.5), [(0.35, (0.03, 0.03, 0.033, 1)), (0.55, (0.16, 0.165, 0.175, 1)),
+                                                        (1.0, (0.5, 0.52, 0.55, 1))])
     N.link(col, bg.inputs["Color"])
     bg.inputs["Strength"].default_value = 0.3
     N.link(bg.outputs["Background"], out.inputs["Surface"])
     col_l = get_collection("STUDIO", scene)
     if "studio:floor" not in bpy.data.objects:
         mb = MB()
-        mb.box((-12, -12, floor_z - 0.01), (12, 12, floor_z), mat_simple("studio_floor", (0.16, 0.16, 0.17, 1), plain=True,
+        mb.box((-12, -12, floor_z - 0.01), (12, 12, floor_z), mat_simple("studio_floor", (0.09, 0.09, 0.095, 1), plain=True,
                                                                          rough=0.55, spec=0.3))
         mb.obj("studio:floor", col_l, smooth=0)
     for nm, (loc, size, energy, colr) in {

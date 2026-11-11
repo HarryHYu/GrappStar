@@ -50,6 +50,7 @@ DART_CG_X = 0.0833                  # dart frame CG station (motion.json dart.cg
 G = 9.81
 
 INTERP = {"CONSTANT": 0, "LINEAR": 1, "BEZIER": 2}
+STILL_FRAMES = {}
 T0 = time.time()
 
 
@@ -1072,205 +1073,210 @@ def build_fx(scene, mo, models, env, report):
 
 # =============================================================================================================
 # cameras
+# two locked-off tripod cameras (SPEC v2): cam:A wide 3/4 side, cut at the motion.json "cut" event to cam:B
+# side-on to the line. No moves, no zoom; aim and focal length are FITTED to the action from motion.json, so a
+# different dart / landing spot / timing reframes itself on a rerun.
+CAM_A = dict(dist=9.5, height=1.5, side=0.92, back=-0.40, fill=0.80, fstop=5.6)    # back < 0: behind the base side
+CAM_B = dict(dist=2.7, height=1.2, along=1.0, fill=0.86, fstop=5.6)    # abreast of 1 m down the line from the base:
+                                    # side-on but a little oblique, so the 1 mm line is about 1 px wide at 4K near
+                                    # the base and still reads out to the dart
+TRIPOD_SHAKE = 0.00022              # rad, F-curve noise on the camera rotation (about 1 px at 4K): a tripod in a
+                                    # light breeze, not handheld; 0 disables
+LOOK = dict(distortion=0.012, dispersion=0.003, vignette=0.24, grain=0.045)     # compositor "real camera" look
+
+
 class Shot:
-    def __init__(self, n, name, f0, f1, fn, still, fstop=4.0, sensor=36.0):
-        self.n, self.name, self.f0, self.f1, self.fn, self.still, self.fstop = n, name, f0, f1, fn, still, fstop
-        self.sensor = sensor
+    def __init__(self, name, f0, f1, pos, target, lens, focus, fstop, stills):
+        self.name, self.f0, self.f1 = name, f0, f1
+        self.pos, self.target, self.lens, self.focus, self.fstop = pos, target, lens, focus, fstop
+        self.stills = stills
         self.cam = None
 
     @property
     def label(self):
-        return "%02d_%s" % (self.n, self.name)
+        return self.name
+
+
+def fit_camera(pos, pts, fill, aspect=16 / 9, sensor=36.0, lens_range=(14.0, 200.0)):
+    """aim (target point) and focal length for a camera at pos so that pts fill `fill` of the frame width or
+    height (whichever binds), centred"""
+    pos = np.asarray(pos, float)
+    d = np.asarray(pts, float) - pos
+    fwd = np.mean(d / np.linalg.norm(d, axis=1, keepdims=True), axis=0)
+    fwd /= np.linalg.norm(fwd)
+    for _ in range(6):
+        right = np.cross(fwd, (0.0, 0.0, 1.0))
+        right /= np.linalg.norm(right)
+        up = np.cross(right, fwd)
+        z = d @ fwd
+        x, y = (d @ right) / z, (d @ up) / z
+        cx, cy = 0.5 * (x.max() + x.min()), 0.5 * (y.max() + y.min())
+        fwd = fwd + right * cx + up * cy
+        fwd /= np.linalg.norm(fwd)
+    hw, hh = 0.5 * (x.max() - x.min()), 0.5 * (y.max() - y.min())
+    tan_half = max(hw, hh * aspect) / fill
+    lens = float(np.clip(0.5 * sensor / tan_half, *lens_range))
+    return pos + fwd * float(np.median(z)), lens
 
 
 def make_shots(mo, entry=None):
-    """the shot list. All action reads right to left (cameras on the +y side of the launch line, +X is screen
-    left): the +y side shows the aim crank-rocker and the cocking gears, and the sun (behind the launcher, a
-    little to +y) side-lights it. Every move eases in and out; cuts only at shot boundaries."""
     E = mo.e
+    nf = mo.nf
     f_aim, f_cock, f_fire = E("aim_start", 120), E("cock_start", 285), E("fire", 513)
-    f_cocked, f_exit, f_imp = E("cocked", 435), E("muzzle_exit", 566), E("impact", 717)
-    f_flip, f_right, f_drill = E("righting_legFlip", 866), E("righted", 1082), E("drills_start", 1102)
-    f_anch, f_taut, f_tow = E("anchored", 1393), E("reel_taut", 1458), E("tow_start", 1565)
-    f_hold, f_end = E("tension_hold", 1655), mo.nf - 1
-    cg, cgs = mo.dart_cg, mo.cg_s
-
-    def P(f):
-        return cg[int(np.clip(round(f), 0, mo.nf - 1))]
-
-    def PS(f):
-        return cgs[int(np.clip(round(f), 0, mo.nf - 1))]
-
-    def PS2(f):
-        return mo.cg_s2[int(np.clip(round(f), 0, mo.nf - 1))]
-
+    f_imp = E("impact", 717)
+    f_flip, f_right = E("righting_legFlip", f_imp + 150), E("righted", f_imp + 320)
+    f_drill, f_taut = E("drills_start", f_right + 50), E("reel_taut", nf - 290)
+    f_tow, f_end = E("tow_start", nf - 160), nf - 1
+    f_cut = E("cut", E("tidy_start", f_taut - 30))
+    f_cut = int(np.clip(f_cut, f_imp + 30, f_end - 30))
+    cg = mo.dart_cg
     rest = cg[f_end]
-    ends = sorted((np.asarray(v[-1], float) for v in (entry or {}).values()), key=lambda p: p[1])
-    eR = ends[-1] if ends else rest + np.array([0.0, 0.04, -0.02])        # the hole nearest the +y cameras
-    f_pods = E("pods_deploy_start", f_drill - 20)
-    b8 = max(f_right + 6, f_pods - 25)
-    b = [0, f_aim, f_cock, f_fire - 18, f_exit + 34, f_imp - 12, f_flip - 8, b8,
-         min(f_drill + 150, (f_drill + f_anch) // 2), f_anch + 10, f_hold - 5, f_end]
-
-    def wide(f):
-        u = ease(f, b[0], b[1] + 10)
-        return dict(pos=lerp((-1.30, 2.70, 0.80), (-1.02, 2.28, 0.66), u),
-                    target=lerp((1.45, -0.40, 0.08), (1.15, -0.28, 0.12), u), lens=24.0, focus=(0.0, 0.0, 0.15))
-
-    def aim(f):
-        u = ease(f, b[1], b[2])
-        return dict(pos=lerp((0.72, 0.82, 0.40), (0.60, 0.76, 0.47), u),
-                    target=lerp((0.12, 0.08, 0.23), (0.12, 0.08, 0.28), u), lens=45.0,
-                    focus=lerp((0.13, 0.11, 0.18), (0.12, 0.11, 0.22), u))
-
-    def cock(f):
-        u = ease(f, b[2] + 10, f_cocked + 30)
-        return dict(pos=lerp((0.40, 0.55, 0.34), (0.36, 0.66, 0.58), u),
-                    target=lerp((0.15, 0.10, 0.20), (0.07, 0.10, 0.23), u), lens=lerp(52.0, 42.0, u),
-                    focus=lerp((0.15, 0.10, 0.19), (0.07, 0.13, 0.24), u))
-
-    def fire(f):
-        u = ease(f, f_fire, b[4])
-        k = float(smoother((f - f_fire - 4) / 32.0))
-        tgt = lerp((0.06, 0.09, 0.25), PS(max(f, f_fire)), k)
-        return dict(pos=lerp((0.10, 1.05, 0.34), (0.42, 1.10, 0.52), u), target=tgt, lens=40.0,
-                    focus=lerp((0.06, 0.09, 0.25), P(max(f, f_fire)), k))
-
-    def flight(f):
-        u = ease(f, b[4], b[5])
-        off = lerp((-0.62, 0.95, 0.24), (-0.62, 0.78, 0.10), u)
-        return dict(pos=PS(f - 5) + off, target=PS(f + 3), lens=35.0, focus=P(f))
-
-    imp = mo.dart_point((0.0, 0.0, 0.0), f_imp)
-    land = 0.5 * (imp + rest)
-    land[2] = 0.02
-
-    def impact(f):
-        u = ease(f, b[5], b[6])
-        k = float(smoother((f - b[5]) / 18.0))
-        tgt = lerp(PS2(f) + np.array([0.0, 0.0, 0.015]), land + np.array([0.0, 0.0, 0.04]), 0.35 - 0.25 * k)
-        return dict(pos=lerp(land + np.array([0.02, 0.66, 0.20]), land + np.array([0.06, 0.60, 0.18]), u),
-                    target=tgt, lens=35.0, focus=P(f))
-
-    def righting(f):
-        u = ease(f, b[6], b[7])
-        return dict(pos=lerp(rest + np.array([0.08, 0.40, 0.34]), rest + np.array([0.0, 0.36, 0.30]), u),
-                    target=PS2(f) + np.array([0.0, 0.0, 0.01]), lens=50.0, focus=P(f))
-
-    def drilling(f):
-        u = ease(f, b[7], b[8])
-        tgt = lerp(eR * 0.6 + rest * 0.4 + np.array([0.0, 0.0, 0.012]), eR + np.array([0.0, 0.0, 0.01]), u)
-        return dict(pos=lerp(eR + np.array([0.14, 0.24, 0.20]), eR + np.array([0.06, 0.22, 0.16]), u),
-                    target=tgt, lens=45.0, focus=lerp(eR * 0.6 + rest * 0.4, eR, u))
-
-    head = mo.dart_point((0.0, 0.0, 0.0), f_end) - mo.dart_point((0.1, 0.0, 0.0), f_end)    # tail -> nose
-    head[2] = 0.0
-    head = head / (np.linalg.norm(head) + 1e-9)
-    side = np.array([-head[1], head[0], 0.0])
-    if side[1] < 0:
-        side = -side                                            # keep to the +y side
-
-    def anchoring(f):
-        u = ease(f, b[8], b[9])
-        tgt = rest + head * 0.035
-        p0 = rest + head * 0.30 + side * 0.13 + np.array([0.0, 0.0, 0.28])
-        p1 = rest + head * 0.25 + side * 0.09 + np.array([0.0, 0.0, 0.23])
-        return dict(pos=lerp(p0, p1, u), target=tgt, lens=50.0, focus=tgt)
-
-    def reel(f):
-        v = ease(f, f_taut - 8, f_taut + 75)
-        far = 0.5 * (rest + np.array([0.4, 0.09, 0.27])) * np.array([1.0, 1.0, 0.0]) + np.array([0.0, 0.0, 0.06])
-        pos = lerp((-0.52, 0.36, 0.44), (-0.80, 0.30, 0.36), v)
-        tgt = lerp((-0.20, 0.09, 0.24), far, v)
-        return dict(pos=pos, target=tgt, lens=lerp(40.0, 50.0, v), focus=lerp((-0.20, 0.09, 0.24), far, v))
-
-    def endwide(f):
-        u = ease(f, b[10], b[11] + 20)
-        return dict(pos=lerp((-0.90, 2.20, 0.62), (-1.70, 3.10, 1.35), u),
-                    target=lerp((2.2, -0.25, 0.05), (2.4, -0.20, 0.0), u), lens=24.0, focus=(1.6, 0.1, 0.1))
-
-    return [
-        Shot(1, "establishing", b[0], b[1] - 1, wide, 60, fstop=8.0),
-        Shot(2, "aim", b[1], b[2] - 1, aim, 230, fstop=4.0),
-        Shot(3, "cock", b[2], b[3] - 1, cock, 440, fstop=4.0),
-        Shot(4, "fire", b[3], b[4] - 1, fire, f_exit - 4, fstop=4.0),
-        Shot(5, "flight", b[4], b[5] - 1, flight, (b[4] + b[5]) // 2, fstop=5.6),
-        Shot(6, "impact", b[5], b[6] - 1, impact, f_imp + 4, fstop=2.8),
-        Shot(7, "righting", b[6], b[7] - 1, righting, (f_flip + f_right) // 2, fstop=4.0),
-        Shot(8, "drilling", b[7], b[8] - 1, drilling, b[8] - 20, fstop=5.6),
-        Shot(9, "anchoring", b[8], b[9] - 1, anchoring, f_anch - 10, fstop=5.6),
-        Shot(10, "reel_taut", b[9], b[10] - 1, reel, f_tow + 20, fstop=5.6),
-        Shot(11, "end_wide", b[10], b[11], endwide, f_end - 15, fstop=8.0),
-    ]
-
-
-def low_camera_zones(shots, zmax=0.14, r=0.14):
-    """grass clear discs round low camera positions, so blades never fill the lens"""
-    zones = []
-    for sh in shots:
-        for f in range(sh.f0, sh.f1 + 1, 6):
-            p = np.asarray(sh.fn(float(f))["pos"], float)
-            if p[2] < zmax and (not zones or min(math.hypot(p[0] - z[0], p[1] - z[1]) for z in zones) > r * 0.5):
-                zones.append((float(p[0]), float(p[1]), r))
-    return zones
+    base = np.array([0.0, 0.0, 0.0])
+    L = rest[:2] - base[:2]
+    L = np.r_[L / np.linalg.norm(L), 0.0]
+    n = np.array([-L[1], L[0], 0.0])
+    if n[1] < 0:
+        n = -n                                             # cameras on the +y side (sun side, aim crank side)
+    board = np.array([[sx * 0.5, sy * 0.4, 0.0] for sx in (-1, 1) for sy in (-1, 1)])
+    # cam:A: wide 3/4 side, sees aim .. drills start
+    mid = 0.5 * (base + rest)
+    mid[2] = 0.0
+    uA = n * CAM_A["side"] + L * CAM_A["back"]
+    uA /= np.linalg.norm(uA)
+    posA = mid + uA * CAM_A["dist"] + np.array([0.0, 0.0, CAM_A["height"]])
+    fl = cg[f_fire:f_imp + 1:3]
+    ptsA = np.vstack([board, [[0.0, 0.0, 0.40]], fl, rest + 0.35 * L, rest - 0.35 * L, rest + 0.3 * n,
+                      rest - 0.3 * n])
+    tgtA, lensA = fit_camera(posA, ptsA, CAM_A["fill"])
+    focA = mid + np.array([0.0, 0.0, 0.3])
+    # cam:B: roughly side-on to the line, base reel to the dart
+    Lk = mo.M["line"]
+    P_end = np.asarray(Lk["points"][-1], float)
+    reel = P_end[0]
+    knot = P_end[-1]
+    midB = 0.5 * (reel + knot)
+    midB[2] = 0.0
+    posB = base * np.array([1, 1, 0]) + L * CAM_B["along"] + n * CAM_B["dist"] + np.array([0.0, 0.0, CAM_B["height"]])
+    ptsB = np.vstack([board, [[0.0, 0.0, 0.40]], P_end, rest + 0.15 * L, rest - 0.15 * L,
+                      rest + np.array([0.0, 0.0, 0.08])])
+    tgtB, lensB = fit_camera(posB, ptsB, CAM_B["fill"])
+    focB = midB + np.array([0.0, 0.0, 0.15])
+    i_ap = f_fire + int(np.argmax(cg[f_fire:f_imp + 1, 2]))
+    stA = dict(aim=f_aim + (f_cock - f_aim) * 3 // 4, cock=(f_cock + f_fire) // 2, launch=f_fire + 1,
+               flight=i_ap, impact=f_imp + 4, righting=(f_flip + f_right) // 2, drills=min(f_drill + 60, f_cut - 2))
+    stB = dict(after_cut=f_cut + 5, taut=min(f_taut + 15, f_end), tow=min(f_tow + 40, f_end), end=f_end - 3)
+    stA = {k: int(np.clip(v, 0, f_cut - 1)) for k, v in stA.items()}
+    stB = {k: int(np.clip(v, f_cut, f_end)) for k, v in stB.items()}
+    return [Shot("A_wide", 0, f_cut - 1, posA, tgtA, lensA, focA, CAM_A["fstop"], stA),
+            Shot("B_line", f_cut, f_end, posB, tgtB, lensB, focB, CAM_B["fstop"], stB)]
 
 
 def build_cameras(scene, mo, report, shots):
     col = coll(scene, "CAMERAS")
     for m in list(scene.timeline_markers):
         scene.timeline_markers.remove(m)
+    rng = np.random.default_rng(77)
     info = []
     for sh in shots:
-        cd = bpy.data.cameras.new("cam:" + sh.label)
-        cd.sensor_width = sh.sensor
-        cd.clip_start = 0.005
-        cd.clip_end = 1500.0
+        nm = "cam:" + sh.name.split("_")[0]
+        cd = bpy.data.cameras.new(nm)
+        cd.sensor_width = 36.0
+        cd.sensor_fit = "HORIZONTAL"
+        cd.lens = sh.lens
+        cd.clip_start = 0.05
+        cd.clip_end = 2000.0
         cd.dof.use_dof = True
         cd.dof.aperture_fstop = sh.fstop
         cd.dof.aperture_blades = 7
-        ob = bpy.data.objects.new("cam:" + sh.label, cd)
+        ob = bpy.data.objects.new(nm, cd)
         col.objects.link(ob)
-        ob.rotation_mode = "QUATERNION"
-        fr = np.arange(sh.f0, sh.f1 + 1, dtype=float)
-        LOC, ROT, LENS, FOC = [], [], [], []
-        prev = None
-        for f in fr:
-            d = sh.fn(f)
-            pos = Vector(np.asarray(d["pos"], float))
-            tgt = Vector(np.asarray(d["target"], float))
-            q = (tgt - pos).to_track_quat("-Z", "Y")
-            q = np.array(q)
-            if prev is not None and np.dot(q, prev) < 0:
-                q = -q
-            prev = q
-            LOC.append(pos[:])
-            ROT.append(q)
-            LENS.append(float(d.get("lens", 35.0)))
-            fp = Vector(np.asarray(d.get("focus", d["target"]), float))
-            fwd = (tgt - pos).normalized()
-            FOC.append(max(0.02, (fp - pos).dot(fwd)))
-        LOC, ROT = np.array(LOC), np.array(ROT)
-        for i in range(3):
-            key_curve(ob, "location", i, fr, LOC[:, i])
-        for i in range(4):
-            key_curve(ob, "rotation_quaternion", i, fr, ROT[:, i])
-        key_curve(cd, "lens", 0, fr, LENS)
-        key_curve(cd, "dof.focus_distance", 0, fr, FOC)
-        mk = scene.timeline_markers.new(sh.label, frame=sh.f0)
+        pos, tgt = Vector(sh.pos), Vector(sh.target)
+        ob.location = pos
+        ob.rotation_mode = "XYZ"
+        ob.rotation_euler = (tgt - pos).to_track_quat("-Z", "Y").to_euler()
+        cd.dof.focus_distance = max(0.1, (Vector(sh.focus) - pos).dot((tgt - pos).normalized()))
+        if TRIPOD_SHAKE > 0:
+            for i in range(3):
+                fc = key_curve(ob, "rotation_euler", i, [0.0], [ob.rotation_euler[i]])
+                md = fc.modifiers.new("NOISE")
+                md.scale = float(rng.uniform(9.0, 16.0))
+                md.strength = TRIPOD_SHAKE * (0.35 if i == 1 else 1.0)       # little roll
+                md.phase = float(rng.uniform(0, 100))
+                md.depth = 1
+        ob["stills"] = json.dumps(sh.stills)
+        mk = scene.timeline_markers.new(sh.name, frame=sh.f0)
         mk.camera = ob
-        ob["still"] = sh.still
         sh.cam = ob
-        info.append(dict(shot=sh.label, frames=[sh.f0, sh.f1], still=sh.still))
+        info.append(dict(shot=sh.name, camera=nm, frames=[sh.f0, sh.f1], lens_mm=round(sh.lens, 1),
+                         pos=np.round(sh.pos, 2).tolist(), target=np.round(sh.target, 2).tolist(), stills=sh.stills))
     scene.camera = shots[0].cam
     report["shots"] = info
-    say("cameras:", [(i["shot"], i["frames"]) for i in info])
+    say("cameras:", [(i["camera"], i["frames"], i["lens_mm"], i["pos"]) for i in info])
     return shots
 
 
-# =============================================================================================================
+def camera_look(scene):
+    """compositor: mild barrel distortion with a touch of lateral CA, vignette, light per-frame film grain"""
+    if not hasattr(scene, "compositing_node_group"):
+        return
+    ng = bpy.data.node_groups.new("GS_camera_look", "CompositorNodeTree")
+    ng.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
+    N, Lk = ng.nodes, ng.links
+
+    def math(op, a, b=None):
+        m = N.new("ShaderNodeMath")
+        m.operation = op
+        for i, v in enumerate((a, b)):
+            if v is None:
+                continue
+            if isinstance(v, bpy.types.NodeSocket):
+                Lk.new(v, m.inputs[i])
+            else:
+                m.inputs[i].default_value = v
+        return m.outputs[0]
+
+    rl = N.new("CompositorNodeRLayers")
+    rl.scene = scene
+    ld = N.new("CompositorNodeLensdist")
+    Lk.new(rl.outputs["Image"], ld.inputs["Image"])
+    ld.inputs["Distortion"].default_value = LOOK["distortion"]
+    ld.inputs["Dispersion"].default_value = LOOK["dispersion"]
+    ld.inputs["Fit"].default_value = True
+    ic = N.new("CompositorNodeImageCoordinates")
+    Lk.new(ld.outputs["Image"], ic.inputs["Image"])
+    sp = N.new("ShaderNodeSeparateXYZ")
+    Lk.new(ic.outputs["Normalized"], sp.inputs[0])
+    dx = math("MULTIPLY", math("SUBTRACT", sp.outputs[0], 0.5), 16 / 9)
+    dy = math("SUBTRACT", sp.outputs[1], 0.5)
+    r2 = math("DIVIDE", math("ADD", math("MULTIPLY", dx, dx), math("MULTIPLY", dy, dy)), 1.04)
+    vig = math("SUBTRACT", 1.0, math("MULTIPLY", math("POWER", r2, 1.15), LOOK["vignette"]))
+    wn = N.new("ShaderNodeTexWhiteNoise")
+    wn.noise_dimensions = "4D"
+    Lk.new(ic.outputs["Pixel"], wn.inputs["Vector"])
+    st = N.new("CompositorNodeSceneTime")
+    Lk.new(st.outputs["Frame"], wn.inputs["W"])
+    gr = math("ADD", 1.0, math("MULTIPLY", math("SUBTRACT", wn.outputs["Value"], 0.5), LOOK["grain"]))
+    k = math("MULTIPLY", vig, gr)
+    mx = N.new("ShaderNodeMixRGB")
+    mx.blend_type = "MULTIPLY"
+    mx.inputs[0].default_value = 1.0
+    Lk.new(ld.outputs["Image"], mx.inputs[1])
+    cmb = N.new("ShaderNodeCombineXYZ")
+    for i in range(3):
+        Lk.new(k, cmb.inputs[i])
+    Lk.new(cmb.outputs[0], mx.inputs[2])
+    go = N.new("NodeGroupOutput")
+    Lk.new(mx.outputs[0], go.inputs[0])
+    scene.compositing_node_group = ng
+    scene.render.use_compositing = True
+    say("compositor: lens distortion %.3f, CA %.3f, vignette %.2f, grain %.3f" % (
+        LOOK["distortion"], LOOK["dispersion"], LOOK["vignette"], LOOK["grain"]))
+
+
 def build(args, report):
+    import importlib
     import env
-    import models
+    models = importlib.import_module(os.environ.get("GRAPPSTAR_MODELS", "models"))   # test hook
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     scene.name = "grappstar_mission"
@@ -1289,8 +1295,6 @@ def build(args, report):
         o, d = org[0], dirs[0]
         gz = float(env.terrain_height(o[0], o[1]))
         entry0[side] = [o + d * max((gz - o[2]) / d[2], 0.0) if d[2] < -1e-6 else o]
-    shots = make_shots(mo, entry0)
-    clear += low_camera_zones(shots)
     board_half = tuple(0.5 * s for s in getattr(models, "BOARD_SIZE", (1.0, 0.8))[:2])
     res = env.build_env(scene, args.quality, clear_zones=clear, board_clear=True, board_half=board_half)
     report["env"] = res["stats"]
@@ -1311,14 +1315,30 @@ def build(args, report):
     for side, ee in entry0.items():            # trampled round the drill holes (the drilling close-up)
         e = ee[0]
         mow.append((float(e[0]), float(e[1]), 0.05, 0.16, 0.18))
-    grass_mods(scene, mo, rest_press, mow)
+    try:
+        grass_mods(scene, mo, rest_press, mow)
+    except Exception as ex:                    # env.py grass tree changed shape: render without the extras
+        say("WARNING grass presses / mow not added:", repr(ex))
+        report["grass_mods_error"] = repr(ex)
     build_line(scene, mo, models, env, report)
     entry = build_fx(scene, mo, models, env, report)
     shots = build_cameras(scene, mo, report, make_shots(mo, entry))
     for e in mo.M.get("events", []):
         scene.timeline_markers.new("ev:" + e["name"], frame=int(e["frame"]))
+    birds = getattr(env, "add_cockatoos", None)
+    if callable(birds):
+        try:
+            birds(scene, mo.e("fire", 513))
+            report["cockatoos"] = True
+            say("cockatoos added (take off at the fire frame %d)" % mo.e("fire", 513))
+        except Exception as ex:
+            say("WARNING env.add_cockatoos failed:", repr(ex))
+            report["cockatoos"] = repr(ex)
     env.set_render(scene, "EEVEE", "final" if args.quality in ("final", "hero") else "preview", motion_blur=True)
-    scene.render.motion_blur_shutter = 0.5
+    scene.render.motion_blur_shutter = 0.5                 # 180 deg shutter
+    if args.quality in ("final", "hero"):
+        scene.render.resolution_x, scene.render.resolution_y = 3840, 2160      # uhd default (mac preset)
+    camera_look(scene)
     scene.frame_set(0)
     scene["grappstar_build"] = json.dumps(dict(quality=args.quality, motion_frames=mo.nf,
                                                built=time.strftime("%Y-%m-%d %H:%M")))
@@ -1361,31 +1381,35 @@ def find_shots(scene):
     return out
 
 
-def render_shots(scene, which, stills, samples=48):
+def render_stills(scene, which="all", samples=32, size=(960, 540)):
+    """Cycles CPU stills at the key moments of each camera (camera custom property "stills") ->
+    render/out/shot_<cam>_<moment>.png, then the contact sheet"""
     import env
-    shots = find_shots(scene)
-    keep = dict(engine=scene.render.engine, x=scene.render.resolution_x, y=scene.render.resolution_y,
-                fp=scene.render.filepath)
     env.set_render(scene, "CYCLES", "preview", motion_blur=True, samples=samples)
+    scene.render.motion_blur_shutter = 0.5
     scene.cycles.device = "CPU"
-    scene.render.resolution_x, scene.render.resolution_y = 640, 360
+    scene.render.resolution_x, scene.render.resolution_y = size
     scene.render.resolution_percentage = 100
     scene.render.use_stamp = False
     files = []
-    for i, (name, f0, f1, cam) in enumerate(shots):
-        if which != "all" and str(i + 1) not in which.split(","):
-            continue
-        f = int(stills.get(name, (f0 + f1) // 2))
-        scene.frame_set(f)
-        scene.camera = cam
-        path = os.path.join(OUT, "shot_%s.png" % name)
-        scene.render.filepath = path
-        t = time.time()
-        bpy.ops.render.render(write_still=True)
-        say("rendered %s frame %d in %.0fs" % (path, f, time.time() - t))
-        files.append((path, name, f))
+    for name, f0, f1, cam in find_shots(scene):
+        letter = name.split("_")[0]
+        st = json.loads(cam.get("stills", "{}")) or {"mid": (f0 + f1) // 2}
+        for idx, (lab, f) in enumerate(st.items()):
+            key = "%s%d_%s" % (letter, idx + 1, lab)
+            sel = which.split(",")
+            if which != "all" and letter not in sel and key not in sel and "%s_%s" % (letter, lab) not in sel:
+                continue
+            STILL_FRAMES[key] = "f%d" % int(f)
+            scene.frame_set(int(f))
+            scene.camera = cam
+            path = os.path.join(OUT, "shot_%s.png" % key)
+            scene.render.filepath = path
+            t = time.time()
+            bpy.ops.render.render(write_still=True)
+            say("rendered %s frame %d in %.0fs" % (path, f, time.time() - t))
+            files.append(path)
     contact_sheet()
-    scene.render.engine = keep["engine"]
     return files
 
 
@@ -1439,10 +1463,10 @@ def contact_sheet():
     inputs, filt = [], []
     for i, f in enumerate(files):
         inputs += ["-i", os.path.join(OUT, f)]
-        lab = f[5:-4].replace("_", " ")
+        lab = f[5:-4].replace("_", " ") + (" " + STILL_FRAMES.get(f[5:-4], "") if STILL_FRAMES else "")
         filt.append("[%d:v]scale=480:270,drawtext=text='%s':x=8:y=8:fontsize=18:fontcolor=white:box=1:"
                     "boxcolor=black@0.5[v%d]" % (i, lab, i))
-    cols = 3
+    cols = 4
     rows = (len(files) + cols - 1) // cols
     while len(files) < rows * cols:
         inputs += ["-f", "lavfi", "-i", "color=c=black:s=480x270"]
@@ -1516,8 +1540,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--quality", default="final", choices=["draft", "preview", "final", "hero"])
     ap.add_argument("--no-save", action="store_true")
-    ap.add_argument("--shots", default="", help="'all' or comma list of shot numbers: Cycles 640x360 stills")
-    ap.add_argument("--still", default="", help="override still frames, e.g. 4:540,6:725")
+    ap.add_argument("--shots", default="", help="'all', camera letters 'A,B' or stills 'A_launch,B_taut': Cycles "
+                                                "960x540 stills at the cameras' key moments")
     ap.add_argument("--samples", type=int, default=48)
     ap.add_argument("--motion-check", action="store_true")
     ap.add_argument("--mc-engine", default="CYCLES", choices=["EEVEE", "CYCLES"])
@@ -1538,19 +1562,8 @@ def main():
             save(scene, report)
         with open(os.path.join(OUT, "build_report.json"), "w") as fh:
             json.dump(report, fh, indent=1, default=str)
-    stills = {}
-    if shots:
-        stills = {sh.label: sh.still for sh in shots}
-    else:
-        for name, f0, f1, cam in find_shots(scene):
-            stills[name] = cam.get("still", (f0 + f1) // 2)
-    if a.still:
-        names = [s[0] for s in find_shots(scene)]
-        for kv in a.still.split(","):
-            k, v = kv.split(":")
-            stills[names[int(k) - 1]] = int(v)
     if a.shots:
-        render_shots(scene, a.shots, stills, a.samples)
+        render_stills(scene, a.shots, a.samples)
     if a.frames:
         render_frames(scene, [int(v) for v in a.frames.split(",")], a.samples, a.cam, tag=a.tag)
     if a.motion_check:

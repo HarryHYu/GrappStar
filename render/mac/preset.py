@@ -1,12 +1,20 @@
 """Run inside Blender on the Mac: sets the quality preset and renders the mission.
-   Blender -b grappstar_mission.blend -P preset.py -- --preset final --engine eevee [--start N --end M] --out /path/frames/
-Presets: preview (1280x720, fast), final (1920x1080), hero (1920x1080, Cycles quality for stills).
-Frames are PNG (resumable: frames already rendered are skipped). Then they are joined into an MP4 in the same folder."""
+   Blender -b grappstar_mission.blend -P preset.py -- --preset uhd --engine eevee [--start N --end M] --out /path/frames/
+Presets: uhd (3840x2160, the final, default), final (1920x1080, faster), preview (1280x720, quick look),
+hero (3840x2160 Cycles quality, for stills). The .blend carries the camera look (AgX, 180 deg shutter motion blur,
+lens distortion, vignette, film grain in the compositor) and the two locked-off cameras with their cut.
+Frames are PNG (resumable: frames already rendered are skipped). Then they are joined into an MP4 in the same folder.
+
+Rough time per frame on an M3 (10-core GPU, 16 GB), EEVEE, this scene (about 30 M instanced grass triangles,
+screen-space ray tracing, soft shadows, motion blur): preview 3-6 s, final 8-15 s, uhd 25-45 s (4x the pixels of
+final; the grass geometry cost stays the same). The first frame also compiles shaders (a few minutes). For the
+whole film multiply by the frame count in the timeline (frame_end + 1). If memory runs short at uhd, lower the grass
+Density (env:grass > Modifiers > scatter > Density, e.g. 0.7)."""
 import bpy, sys, os, argparse
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 ap = argparse.ArgumentParser()
-ap.add_argument("--preset", default="final", choices=["preview", "final", "hero"])
+ap.add_argument("--preset", default="uhd", choices=["preview", "final", "uhd", "hero"])
 ap.add_argument("--engine", default="eevee", choices=["eevee", "cycles"])
 ap.add_argument("--start", type=int); ap.add_argument("--end", type=int)
 ap.add_argument("--out", default=os.path.expanduser("~/Desktop/grappstar_render/frames/"))
@@ -15,10 +23,13 @@ a = ap.parse_args(argv)
 
 sc = bpy.context.scene
 r = sc.render
-res = {"preview": (1280, 720), "final": (1920, 1080), "hero": (1920, 1080)}[a.preset]
+res = {"preview": (1280, 720), "final": (1920, 1080), "uhd": (3840, 2160), "hero": (3840, 2160)}[a.preset]
 r.resolution_x, r.resolution_y, r.resolution_percentage = res[0], res[1], 100
 if a.start is not None: sc.frame_start = a.start
 if a.end is not None: sc.frame_end = a.end
+r.use_motion_blur = True
+r.motion_blur_shutter = 0.5                                   # 180 deg shutter
+r.use_compositing = True                                      # lens distortion, vignette, grain
 
 if a.engine == "cycles":
     try:
@@ -32,18 +43,20 @@ if a.engine == "cycles":
     for d in prefs.devices:
         d.use = True
     sc.cycles.device = "GPU"
-    sc.cycles.samples = {"preview": 24, "final": 96, "hero": 512}[a.preset]
+    sc.cycles.samples = {"preview": 24, "final": 96, "uhd": 128, "hero": 512}[a.preset]
     sc.cycles.use_adaptive_sampling = True
     sc.cycles.use_denoising = True
 else:
     r.engine = "BLENDER_EEVEE"
     ee = sc.eevee
-    ee.taa_render_samples = {"preview": 16, "final": 48, "hero": 128}[a.preset]
+    ee.taa_render_samples = {"preview": 16, "final": 48, "uhd": 48, "hero": 128}[a.preset]
     if hasattr(ee, "use_raytracing"):
         ee.use_raytracing = a.preset != "preview"
 
 os.makedirs(a.out, exist_ok=True)
 r.filepath = os.path.join(a.out, "f_")
+if hasattr(r.image_settings, "media_type"):
+    r.image_settings.media_type = "IMAGE"
 r.image_settings.file_format = "PNG"
 r.use_overwrite = False                                       # resume: skip frames already on disk
 r.use_placeholder = True
@@ -52,7 +65,6 @@ bpy.ops.render.render(animation=True)
 
 if not a.no_video:                                            # join the PNGs into an MP4 (H.264) next to them
     fps = sc.render.fps
-    s0, s1 = sc.frame_start, sc.frame_end
     vs = bpy.data.scenes.new("video")
     vs.render.resolution_x, vs.render.resolution_y, vs.render.resolution_percentage = res[0], res[1], 100
     vs.render.fps = fps

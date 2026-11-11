@@ -31,7 +31,13 @@ res = {"preview": (960, 540), "hd720": (1280, 720), "final": (1920, 1080), "uhd"
 r.resolution_x, r.resolution_y, r.resolution_percentage = res[0], res[1], 100
 r.use_motion_blur = True
 r.motion_blur_shutter = 0.5                                   # 180 deg shutter (opens at the frame: see the .blend)
-r.use_compositing = True                                      # the camera look
+r.use_compositing = False                                     # clean image: no phone filter (Harry: too murky)
+_v = sc.view_settings
+try:
+    _v.use_white_balance = False                              # no yellow cast
+    _v.look = "None"
+except Exception:
+    pass
 
 # Harry: the grass must stay still. No drifting cloud shadows, no wind sway (grass and gum leaves).
 _cs = bpy.data.objects.get("env:cloud_shadows")
@@ -53,7 +59,7 @@ print("GrappStar: cloud shadows off:", bool(_cs), "| wind nodes zeroed:", _nw)
 if a.start is not None or a.end is not None:
     ranges = [(a.start if a.start is not None else sc.frame_start, a.end if a.end is not None else sc.frame_end)]
 else:
-    spec = "273-579,859-960"                                   # short cut (Harry, deadline): launch to drills, line taut
+    spec = "305-400,600-640,870-940"                                   # short cut (Harry, deadline): launch to drills, line taut
     ranges = [tuple(int(x) for x in rr.split("-")) for rr in spec.split(",")]
 
 if a.engine == "cycles":
@@ -74,9 +80,9 @@ if a.engine == "cycles":
 else:
     r.engine = "BLENDER_EEVEE"
     ee = sc.eevee
-    ee.taa_render_samples = {"preview": 12, "hd720": 16, "final": 32, "uhd": 48, "hero": 128}[a.preset]
+    ee.taa_render_samples = {"preview": 12, "hd720": 10, "final": 32, "uhd": 48, "hero": 128}[a.preset]
 
-a.out = a.out.rstrip("/") + "_v2/"                             # v2: still grass, rendered fresh
+a.out = a.out.rstrip("/") + "_v3/"                             # v2: still grass, rendered fresh
 os.makedirs(a.out, exist_ok=True)
 for _f in os.listdir(a.out):                                  # empty placeholders from a stopped run: render them again
     if _f.startswith("f_") and _f.endswith(".png") and os.path.getsize(os.path.join(a.out, _f)) == 0:

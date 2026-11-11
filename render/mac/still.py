@@ -39,7 +39,7 @@ for fc in (co.animation_data.action.fcurves if co.animation_data and co.animatio
     pass
 sc.camera = co
 for m in list(sc.timeline_markers):                        # markers bind cameras: drop them for the still
-    m.camera = None
+    sc.timeline_markers.remove(m)
 
 r = sc.render
 r.engine = "CYCLES"

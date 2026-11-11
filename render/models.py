@@ -502,6 +502,8 @@ def _set(bsdf, **kw):
              "emit": "Emission Color", "emit_s": "Emission Strength", "sheen": "Sheen Weight",
              "coat_tint": "Coat Tint", "alpha": "Alpha"}
     for k, v in kw.items():
+        if k in ("sss", "sss_radius"):
+            continue              # random-walk SSS with sub-mm radii gave NaN pixels (magenta after denoising)
         sock = bsdf.inputs[names[k]]
         if isinstance(v, (int, float, tuple, list)):
             sock.default_value = v
@@ -608,7 +610,7 @@ def _detail(N, bsdf, col, rough, metal=0.0, var=0.05, rvar=0.12, grime=0.45, gri
     N.link(nrm, bsdf.inputs["Normal"])
 
 
-PLA_BLUE = "#1d2f63"          # Harry's dark blue PLA (every printed PLA part, SPEC v2)
+PLA_BLUE = "#1844d4"          # Harry's blue PLA (every printed PLA part): royal / cobalt, from his photo (images/7)
 PPA_CF = "#16171a"            # matte black carbon-fibre nylon
 
 
@@ -650,16 +652,17 @@ def _print_texture(N):
     dang = N.math("MINIMUM", d1, N.math("SUBTRACT", 2 * math.pi, d1))
     seam = N.math("MULTIPLY", N.maprange(N.math("MULTIPLY", dang, r), 0.0, 0.45, 1.0, 0.0), walls)
     blobs = N.math("MULTIPLY", seam, N.maprange(wob, 0.35, 0.75, 0.3, 1.0))
-    h = N.math("ADD", N.math("MULTIPLY", N.math("ADD", N.math("MULTIPLY", lines, -1.0),
-                                                  N.math("MULTIPLY", N.math("SUBTRACT", wob, 0.5), 0.35)), walls),
-               N.math("MULTIPLY", band, 0.9))
+    h = N.math("ADD", N.math("MULTIPLY", N.math("ADD", N.math("MULTIPLY", lines, -1.6),
+                                                  N.math("MULTIPLY", N.math("SUBTRACT", wob, 0.5), 0.25)), walls),
+               N.math("MULTIPLY", band, 1.4))
     h = N.math("ADD", h, N.math("MULTIPLY", N.math("MULTIPLY", infill, top), -0.7))
     h = N.math("ADD", h, N.math("MULTIPLY", blobs, 1.4))
     return h, top, seam, band
 
 
 def mat_printed(hexcol=None, kind="PLA"):
-    """FDM print as built (SPEC v2): kind PLA = dark blue satin PLA (PLA_BLUE, whatever the CAD colour), kind
+    """FDM print as built (SPEC v2): kind PLA = Harry's royal blue satin-gloss PLA (PLA_BLUE, roughness about 0.3,
+    whatever the CAD colour), kind
     PPA-CF = matte black carbon-fibre nylon with a faint fibre speckle, rougher. Print texture from _print_texture
     (layer lines in the print orientation, banding, z seam, top infill), slight per-part colour variation (spool to
     spool), worn edges, grime in the corners, a little dust."""
@@ -674,14 +677,14 @@ def mat_printed(hexcol=None, kind="PLA"):
     if kind == "PLA":
         col = srgb(PLA_BLUE)
         c = N.mix(rnd, N.vscale(N.rgb(col), 0.94), N.vscale(N.rgb(col), 1.06))
-        c = N.mix(N.math("MULTIPLY", band, 0.12), c, N.vscale(N.rgb(col), 1.25))          # banding shade
-        _detail(N, bsdf, c, 0.36, var=0.04, rvar=0.1, grime=0.45, edge=0.45, edge_col=srgb("#3a5194"),
-                edge_rough=0.3, dust=0.12, micro=0.04, height=N.math("MULTIPLY", h, 1.0), bump_dist=0.00009,
+        c = N.mix(N.math("MULTIPLY", band, 0.18), c, N.vscale(N.rgb(col), 1.25))          # banding shade
+        _detail(N, bsdf, c, 0.30, var=0.035, rvar=0.08, grime=0.35, edge=0.4, edge_col=srgb("#4f74ee"),
+                edge_rough=0.25, dust=0.1, micro=0.04, height=N.math("MULTIPLY", h, 1.0), bump_dist=0.00009,
                 bevel=0.0004)
         rr = bsdf.inputs["Roughness"].links[0].from_socket
-        N.link(N.math("ADD", rr, N.math("ADD", N.math("MULTIPLY", top, -0.08), N.math("MULTIPLY", seam, 0.15)),
+        N.link(N.math("ADD", rr, N.math("ADD", N.math("MULTIPLY", top, 0.12), N.math("MULTIPLY", seam, 0.15)),
                       clamp=True), bsdf.inputs["Roughness"])
-        _set(bsdf, spec=0.55, sheen=0.12)
+        _set(bsdf, spec=0.5, sheen=0.08)
     else:
         fib = N.noise(1600.0, 6.0, 0.8, obj).outputs["Fac"]
         spk = N.math("GREATER_THAN", N.noise(6000.0, 1.0, 0.5, obj).outputs["Fac"], 0.7)
@@ -2875,6 +2878,43 @@ def _look_at(ob, target):
     ob.rotation_euler = (Vector(target) - ob.location).to_track_quat("-Z", "Y").to_euler()
 
 
+def sunlit(scene, floor_z=-BOARD_SIZE[2] - 0.0005):
+    """preview lighting from render/env.py: the paddock HDRI world and its sun lamp, a plain dry-ground plane,
+    Cycles, AgX Medium High Contrast; falls back to studio() if env.py cannot be imported"""
+    try:
+        sys.path.insert(0, HERE)
+        import env as E
+    except Exception as e:                                # noqa: BLE001
+        print("env.py not importable, studio light (", e, ")")
+        return studio(scene, floor_z)
+    col_l = get_collection("STUDIO", scene)
+    E._build_world(scene)
+    if "env:sun" not in bpy.data.objects:
+        E._build_sun(col_l)
+    if "studio:ground" not in bpy.data.objects:
+        mb = MB()
+        mb.box((-15, -15, floor_z - 0.01), (15, 15, floor_z),
+               mat_pbr("studio_ground", (0.20, 0.16, 0.09, 1), 0.92, 0.0,
+                       dict(var=0.25, rvar=0.05, grime=0.0, edge=0.0, dust=0.0, micro=0.6, micro_scale=60.0,
+                            bump_dist=0.003, bevel=0.0)))
+        mb.obj("studio:ground", col_l, smooth=0)
+    cam = bpy.data.objects.get("studio:cam")
+    if cam is None:
+        cam = bpy.data.objects.new("studio:cam", bpy.data.cameras.new("studio:cam"))
+        col_l.objects.link(cam)
+    scene.camera = cam
+    scene.render.engine = "CYCLES"
+    scene.cycles.device = "CPU"
+    scene.cycles.use_denoising = True
+    scene.cycles.max_bounces = 6
+    scene.view_settings.view_transform = "AgX"
+    try:
+        scene.view_settings.look = "AgX - Medium High Contrast"
+    except Exception:
+        pass
+    return cam
+
+
 def studio(scene, floor_z=-BOARD_SIZE[2] - 0.0005):
     """simple studio: soft gradient world, grey floor, key / fill / rim area lights (preview only)"""
     w = bpy.data.worlds.get("studio") or bpy.data.worlds.new("studio")
@@ -3005,14 +3045,14 @@ def _dart_to_floor(floor_z):
 def previews(scene, only=("base", "elec", "dart")):
     os.makedirs(OUT_DIR, exist_ok=True)
     floor_z = -BOARD_SIZE[2] - 0.0005
-    studio(scene, floor_z)
+    sunlit(scene, floor_z)
     B = lambda p: Vector(_b2w(p))                                    # noqa: E731
     # --- base (with the board, the dart on the cradle and the kit)
     if "base" in only:
         render_grid(scene, [
+            dict(loc=(-1.05, 1.0, 0.68), target=(0.0, 0.0, 0.10), lens=38),
             dict(loc=(1.05, -0.95, 0.62), target=(0.0, 0.0, 0.10), lens=38),
-            dict(loc=(-1.0, 0.95, 0.70), target=(-0.05, 0.02, 0.10), lens=38),
-            dict(loc=B((470.0, 380.0, 300.0)), target=B((170.0, 130.0, 60.0)), lens=35),
+            dict(loc=B((300.0, 1100.0, 150.0)), target=B((190.0, 150.0, 60.0)), lens=85),
             dict(loc=B((470.0, -330.0, 90.0)), target=B((110.0, 10.0, -110.0)), lens=30),
         ], os.path.join(OUT_DIR, "preview_models_base.png"))
     # --- elec
@@ -3044,10 +3084,10 @@ def previews(scene, only=("base", "elec", "dart")):
         _dart_to_floor(floor_z)
     c = Vector((0.085, 0.0, floor_z + 0.03))
     render_grid(scene, [
-        dict(loc=c + Vector((-0.20, -0.24, 0.16)), target=c, lens=55),
+        dict(loc=c + Vector((-0.24, 0.20, 0.16)), target=c, lens=55),
         dict(loc=c + Vector((0.05, -0.14, 0.26)), target=c + Vector((0, 0, -0.005)), lens=55,
              before=lambda: _hide(shell), after=lambda: _hide(shell, False)),
-        dict(loc=c + Vector((0.34, -0.22, 0.14)), target=c + Vector((0.0, 0, 0.01)), lens=50, before=deployed),
+        dict(loc=c + Vector((-0.30, 0.26, 0.14)), target=c + Vector((0.0, 0, 0.01)), lens=50, before=deployed),
         dict(loc=c + Vector((-0.12, 0.30, 0.05)), target=c + Vector((0.02, 0.0, 0.0)), lens=50),
     ], os.path.join(OUT_DIR, "preview_models_dart.png"))
     pose_dart(0, 0, 0)

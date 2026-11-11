@@ -605,12 +605,24 @@ def _detail(N, bsdf, col, rough, metal=0.0, var=0.05, rvar=0.12, grime=0.45, gri
         nz = N.sep(geo.outputs["Normal"])[2]
         dn = N.noise(45.0, 4.0, 0.65, obj).outputs["Fac"]
         dm = N.math("MULTIPLY", N.math("MULTIPLY", N.maprange(nz, 0.5, 0.95), N.maprange(dn, 0.35, 0.75)), dust)
-        c = N.mix(N.math("MULTIPLY", dm, 0.3), c, (0.30, 0.27, 0.23, 1.0))
-        r = N.math("ADD", r, N.math("MULTIPLY", dm, 0.35))
+        c = N.mix(N.math("MULTIPLY", dm, 0.5), c, (0.34, 0.31, 0.26, 1.0))
+        r = N.math("ADD", r, N.math("MULTIPLY", dm, 0.45))
+    # dirt and grass stain: near the ground (world z < 4 cm) and on objects with a "dirt" property (the dart after
+    # landing: dart:* objects carry dirt, keyframe it up after the impact for more)
+    wz = N.sep(geo.outputs["Position"])[2]
+    dn2 = N.noise(28.0, 5.0, 0.7, obj).outputs["Fac"]
+    da = N.node("ShaderNodeAttribute", attribute_type="OBJECT", attribute_name="dirt").outputs["Fac"]
+    dmask = N.math("MULTIPLY", N.math("ADD", N.maprange(wz, 0.045, 0.0, 0.0, 0.8), da, clamp=True),
+                   N.maprange(dn2, 0.3, 0.7, 0.2, 1.0))
+    stain = N.mix(N.maprange(N.noise(9.0, 3.0, 0.6, obj).outputs["Fac"], 0.4, 0.6), (0.20, 0.16, 0.09, 1.0),
+                  (0.12, 0.15, 0.06, 1.0))
+    c = N.mix(N.math("MULTIPLY", dmask, 0.55), c, stain)
+    r = N.math("ADD", r, N.math("MULTIPLY", dmask, 0.35))
+    h = N.math("ADD", h, N.math("MULTIPLY", dmask, N.math("MULTIPLY", dn2, 0.6)))
     if height is not None:
         h = N.math("ADD", h, height)
     nrm = N.bump(h, 1.0, bump_dist, nb)
-    r = N.math("ADD", r, 0.0, clamp=True)
+    r = N.math("MINIMUM", N.math("MAXIMUM", r, 0.3), 1.0)                  # no mirror-like highlights
     _set(bsdf, base=c, rough=r, metal=met)
     N.link(nrm, bsdf.inputs["Normal"])
 
@@ -657,7 +669,7 @@ def _print_texture(N):
     dang = N.math("MINIMUM", d1, N.math("SUBTRACT", 2 * math.pi, d1))
     seam = N.math("MULTIPLY", N.maprange(N.math("MULTIPLY", dang, r), 0.0, 0.45, 1.0, 0.0), walls)
     blobs = N.math("MULTIPLY", seam, N.maprange(wob, 0.35, 0.75, 0.3, 1.0))
-    h = N.math("ADD", N.math("MULTIPLY", N.math("ADD", N.math("MULTIPLY", lines, -1.6),
+    h = N.math("ADD", N.math("MULTIPLY", N.math("ADD", N.math("MULTIPLY", lines, -2.6),
                                                   N.math("MULTIPLY", N.math("SUBTRACT", wob, 0.5), 0.25)), walls),
                N.math("MULTIPLY", band, 1.4))
     h = N.math("ADD", h, N.math("MULTIPLY", N.math("MULTIPLY", infill, top), -0.7))
@@ -683,23 +695,23 @@ def mat_printed(hexcol=None, kind="PLA"):
         col = srgb(PLA_BLUE)
         c = N.mix(rnd, N.vscale(N.rgb(col), 0.94), N.vscale(N.rgb(col), 1.06))
         c = N.mix(N.math("MULTIPLY", band, 0.18), c, N.vscale(N.rgb(col), 1.25))          # banding shade
-        _detail(N, bsdf, c, 0.30, var=0.035, rvar=0.08, grime=0.35, edge=0.4, edge_col=srgb("#4f74ee"),
-                edge_rough=0.25, dust=0.1, micro=0.04, height=N.math("MULTIPLY", h, 1.0), bump_dist=0.00009,
-                bevel=0.0004)
+        _detail(N, bsdf, c, 0.56, var=0.05, rvar=0.2, grime=0.5, edge=0.6, edge_col=srgb("#5a7ef0"),
+                edge_rough=0.7, dust=0.35, prints=0.3, micro=0.08, height=N.math("MULTIPLY", h, 1.0),
+                bump_dist=0.00016, bevel=0.0004)
         rr = bsdf.inputs["Roughness"].links[0].from_socket
         N.link(N.math("ADD", rr, N.math("ADD", N.math("MULTIPLY", top, 0.12), N.math("MULTIPLY", seam, 0.15)),
                       clamp=True), bsdf.inputs["Roughness"])
-        _set(bsdf, spec=0.5, sheen=0.08)
+        _set(bsdf, spec=0.38, sheen=0.05)
     else:
         fib = N.noise(1600.0, 6.0, 0.8, obj).outputs["Fac"]
         spk = N.math("GREATER_THAN", N.noise(6000.0, 1.0, 0.5, obj).outputs["Fac"], 0.7)
         base = N.mix(spk, N.ramp(fib, [(0.35, srgb("#121315")), (0.65, srgb("#1d1e21"))]), srgb("#33353a"))
         base = N.mix(rnd, N.vscale(base, 0.95), N.vscale(base, 1.05))
-        _detail(N, bsdf, base, 0.74, var=0.04, rvar=0.1, grime=0.35, edge=0.35, edge_col=srgb("#43464c"),
-                edge_rough=0.6, dust=0.1, micro=0.0, height=N.math("ADD", N.math("MULTIPLY", h, 0.8),
+        _detail(N, bsdf, base, 0.78, var=0.05, rvar=0.1, grime=0.45, edge=0.45, edge_col=srgb("#4a4d53"),
+                edge_rough=0.85, dust=0.35, prints=0.2, micro=0.0, height=N.math("ADD", N.math("MULTIPLY", h, 0.8),
                                                                   N.math("MULTIPLY", fib, 0.7)),
                 bump_dist=0.00009, bevel=0.0003)
-        _set(bsdf, spec=0.3)
+        _set(bsdf, spec=0.25)
     return m
 
 
@@ -743,23 +755,23 @@ def M(name):
     if name in _MATS:
         return _MATS[name]
     t = {
-        "steel": lambda: mat_pbr("steel", (0.60, 0.60, 0.62, 1), 0.28, 1.0, _STEEL_D, aniso=0.45),
-        "steel_bright": lambda: mat_pbr("steel_bright", (0.74, 0.74, 0.76, 1), 0.18, 1.0,
+        "steel": lambda: mat_pbr("steel", (0.58, 0.58, 0.60, 1), 0.44, 1.0, _STEEL_D, aniso=0.45),
+        "steel_bright": lambda: mat_pbr("steel_bright", (0.70, 0.70, 0.72, 1), 0.36, 1.0,
                                         dict(_STEEL_D, scratch=0.1, tex_tile=0.03, prints=0.15, dust=0.04)),
-        "spring_steel": lambda: mat_pbr("spring_steel", (0.56, 0.57, 0.59, 1), 0.26, 1.0,
+        "spring_steel": lambda: mat_pbr("spring_steel", (0.52, 0.53, 0.55, 1), 0.42, 1.0,
                                         dict(_STEEL_D, scratch=0.25, edge=0.0, prints=0.0, grime=0.5), aniso=0.3),
         "zinc": lambda: _mat_zinc(),
-        "black_oxide": lambda: mat_pbr("black_oxide", (0.045, 0.045, 0.05, 1), 0.42, 0.85,
+        "black_oxide": lambda: mat_pbr("black_oxide", (0.045, 0.045, 0.05, 1), 0.56, 0.8,
                                        dict(_STEEL_D, edge=0.6, edge_col=(0.45, 0.45, 0.47, 1), edge_metal=True,
                                             edge_rough=0.25)),
-        "brass": lambda: mat_pbr("brass", (0.80, 0.56, 0.26, 1), 0.28, 1.0,
+        "brass": lambda: mat_pbr("brass", (0.74, 0.53, 0.26, 1), 0.42, 1.0,
                                  dict(_STEEL_D, grime=0.6, edge_col=(0.95, 0.75, 0.42, 1))),
-        "copper": lambda: mat_pbr("copper", (0.93, 0.52, 0.36, 1), 0.3, 1.0, dict(_STEEL_D, grime=0.6)),
-        "gold": lambda: mat_pbr("gold", (1.0, 0.74, 0.32, 1), 0.22, 1.0,
+        "copper": lambda: mat_pbr("copper", (0.88, 0.50, 0.36, 1), 0.42, 1.0, dict(_STEEL_D, grime=0.6)),
+        "gold": lambda: mat_pbr("gold", (0.95, 0.72, 0.34, 1), 0.34, 1.0,
                                 dict(rvar=0.08, grime=0.3, edge=0.0, dust=0.05, micro=0.05, bevel=0.0001)),
-        "tin": lambda: mat_pbr("tin", (0.76, 0.76, 0.78, 1), 0.32, 1.0,
+        "tin": lambda: mat_pbr("tin", (0.72, 0.72, 0.74, 1), 0.46, 1.0,
                                dict(rvar=0.15, grime=0.3, edge=0.0, dust=0.05, micro=0.15, bevel=0.0001)),
-        "alu": lambda: mat_pbr("alu", (0.80, 0.81, 0.83, 1), 0.3, 1.0,
+        "alu": lambda: mat_pbr("alu", (0.76, 0.77, 0.79, 1), 0.44, 1.0,
                                dict(_STEEL_D, scratch=0.3, tex_tile=0.05), aniso=0.6),
         "alu_cast": lambda: mat_pbr("alu_cast", (0.34, 0.35, 0.36, 1), 0.5, 1.0,
                                     dict(var=0.12, rvar=0.2, grime=0.7, grime_dist=0.008, edge=0.5,
@@ -769,11 +781,11 @@ def M(name):
                                      dict(var=0.06, rvar=0.1, grime=0.4, edge=0.35, edge_col=(0.55, 0.56, 0.58, 1),
                                           edge_metal=True, edge_rough=0.25, dust=0.06, prints=0.2, micro=0.08,
                                           bevel=0.0003)),
-        "paint_black": lambda: mat_pbr("paint_black", (0.018, 0.018, 0.02, 1), 0.34, 0.15,
+        "paint_black": lambda: mat_pbr("paint_black", (0.02, 0.02, 0.022, 1), 0.52, 0.1,
                                        dict(var=0.06, rvar=0.12, grime=0.6, grime_dist=0.008, edge=0.6,
                                             edge_col=(0.42, 0.42, 0.44, 1), edge_metal=True, edge_rough=0.3,
                                             dust=0.45, prints=0.4, micro=0.25, micro_scale=500.0,
-                                            bump_dist=0.0001, bevel=0.0008), coat=0.35, coat_rough=0.2),
+                                            bump_dist=0.0001, bevel=0.0008), coat=0.08, coat_rough=0.4),
         "rubber": lambda: mat_pbr("rubber", (0.024, 0.024, 0.026, 1), 0.82, 0.0,
                                   dict(texkey="rubber", scratch=0.3, tex_tile=0.04, grime=0.4, edge=0.0,
                                        dust=0.15, micro=0.3, rvar=0.12), spec=0.3, sheen=0.2),
@@ -781,10 +793,10 @@ def M(name):
                                          dict(texkey="plastic", scratch=0.2, tex_tile=0.05, prints=0.15, grime=0.5,
                                               edge=0.3, edge_col=(0.07, 0.07, 0.075, 1), edge_rough=0.3, dust=0.06,
                                               micro=0.05, bevel=0.0003)),
-        "plastic_gloss_black": lambda: mat_pbr("plastic_gloss_black", (0.012, 0.012, 0.014, 1), 0.08, 0.0,
+        "plastic_gloss_black": lambda: mat_pbr("plastic_gloss_black", (0.014, 0.014, 0.016, 1), 0.32, 0.0,
                                                dict(rvar=0.04, prints=0.45, grime=0.4, edge=0.25,
                                                     edge_col=(0.06, 0.06, 0.065, 1), edge_rough=0.2, dust=0.05,
-                                                    micro=0.02, bevel=0.0005), coat=0.7, coat_rough=0.05),
+                                                    micro=0.02, bevel=0.0005), coat=0.25, coat_rough=0.2),
         "plastic_white": lambda: mat_pbr("plastic_white", (0.78, 0.76, 0.70, 1), 0.48, 0.0,
                                          dict(texkey="plastic", scratch=0.2, prints=0.15, grime=0.6, edge=0.2,
                                               dust=0.25), sss=0.15, sss_radius=(0.002, 0.002, 0.002)),
@@ -828,7 +840,7 @@ def _mat_zinc():
     nz = N.noise(160.0, 4.0, 0.6, N.coord("Object"))
     base = N.ramp(nz.outputs["Fac"], [(0.35, (0.64, 0.66, 0.71, 1)), (0.5, (0.73, 0.73, 0.73, 1)),
                                       (0.65, (0.72, 0.69, 0.62, 1))])
-    _detail(N, bsdf, base, 0.3, 1.0, **dict(_STEEL_D, scratch=0.25, grime=0.55))
+    _detail(N, bsdf, base, 0.46, 1.0, **dict(_STEEL_D, scratch=0.25, grime=0.55))
     return m
 
 
@@ -869,7 +881,7 @@ def _mat_cell():
     end = N.math("GREATER_THAN", N.math("ABSOLUTE", nx), 0.7)
     col = N.mix(end, srgb("#121314"), srgb("#e8774a"))
     _detail(N, bsdf, col, 0.25, 0.0, prints=0.6, grime=0.3, edge=0.3, dust=0.1)
-    _set(bsdf, coat=0.5, coat_rough=0.1)
+    _set(bsdf, coat=0.15, coat_rough=0.3)
     return m
 
 
@@ -910,11 +922,11 @@ def mat_pcb(color):
         cu_col = srgb("#c8823a")
     col = N.mix(copper, base, cu_col)
     col = N.mix(silk, col, (0.86, 0.86, 0.83, 1))
-    _detail(N, bsdf, col, 0.34, 0.0, var=0.04, rvar=0.08, grime=0.35, grime_dist=0.002, edge=0.3,
+    _detail(N, bsdf, col, 0.52, 0.0, var=0.04, rvar=0.1, grime=0.4, grime_dist=0.002, edge=0.3,
             edge_col=srgb("#c9b88a"), edge_rough=0.6, dust=0.04, prints=0.1, micro=0.05,
             height=N.math("ADD", N.math("MULTIPLY", copper, 0.6), N.math("MULTIPLY", silk, 0.3)),
             bump_dist=0.00002, bevel=0.00015)
-    _set(bsdf, spec=0.6, coat=0.0 if color == "fr4" else 0.45, coat_rough=0.12)
+    _set(bsdf, spec=0.45, coat=0.0 if color == "fr4" else 0.1, coat_rough=0.35)
     return m
 
 
@@ -924,9 +936,9 @@ def mat_wire(color):
     cols = {"red": "#c81414", "black": "#141414", "yellow": "#e0c010", "white": "#e6e6e0", "blue": "#1a4ad0",
             "green": "#1a9a3a", "orange": "#ff7a10", "brown": "#6a3a1a", "grey": "#8a8a8a", "purple": "#7a2ab0",
             "usb": "#1a1a1c"}
-    return mat_pbr(key, srgb(cols.get(color, color)), 0.38, 0.0,
-                   dict(rvar=0.12, grime=0.3, edge=0.0, dust=0.25, prints=0.15, micro=0.05, bevel=0.0),
-                   coat=0.2, coat_rough=0.25, sheen=0.25)
+    return mat_pbr(key, srgb(cols.get(color, color)), 0.62, 0.0,
+                   dict(rvar=0.12, grime=0.4, edge=0.0, dust=0.35, prints=0.15, micro=0.1, bevel=0.0),
+                   spec=0.35, sheen=0.2)
 
 
 def mat_dyneema():
@@ -1004,7 +1016,7 @@ def mat_ply():
         g = N.maprange(bw.outputs[0], 0.05, 0.35)
         face_col = N.ramp(g, [(0.0, srgb("#b99467")), (0.45, srgb("#d6b98c")), (1.0, srgb("#ead6b0"))])
         fr = N.sep(N.img(tex("ply_rough"), 0.55, blend=0.05).outputs["Color"])[0]
-        face_rough = N.math("ADD", N.math("MULTIPLY", fr, 0.35), 0.42)
+        face_rough = N.math("ADD", N.math("MULTIPLY", fr, 0.25), 0.62)
         fh = N.math("MULTIPLY", N.math("SUBTRACT", 1.0, g), 0.6)
     else:
         wv = N.node("ShaderNodeTexWave", wave_type="BANDS", bands_direction="Y")
@@ -1057,7 +1069,7 @@ def mat_lipo_wrap():
     col = N.mix(band, srgb("#0d0e10"), label)
     stripe = N.math("LESS_THAN", N.math("ABSOLUTE", N.math("SUBTRACT", xyz[0], -0.03)), 0.004)
     col = N.mix(stripe, col, srgb("#d8d8d8"))
-    _detail(N, bsdf, col, 0.2, 0.0, var=0.03, rvar=0.08, prints=0.5, grime=0.3, edge=0.25, edge_rough=0.3,
+    _detail(N, bsdf, col, 0.38, 0.0, var=0.03, rvar=0.1, prints=0.5, grime=0.35, edge=0.3, edge_rough=0.5,
             dust=0.04, micro=0.15, micro_scale=600.0, bump_dist=0.00008, bevel=0.002)
     _set(bsdf, coat=0.5, coat_rough=0.15)
     return m
@@ -1778,6 +1790,7 @@ def build_dart(scene, col=None, matrix=None):
                 R = orient.get(n, np.eye(4))
                 set_print_frame(ob, R, (v.min(0) + v.max(0)) / 2 * MM)
             ob["kedge_part"] = n
+            ob["dirt"] = 0.25                                    # field grime; build.py may key it up after landing
             if name in DART_JOINTS:
                 ob["joint_axis"] = list(DART_JOINTS[name]["axis"])
                 ob["joint"] = DART_JOINTS[name]["joint"]
@@ -2752,8 +2765,8 @@ def _e_lipo():
 
 def mat_wire_si(color):
     """soft silicone wire insulation (LiPo leads)"""
-    return mat_simple("si_" + color, srgb({"red": "#c01010", "black": "#121212"}.get(color, color)), rough=0.62,
-                      spec=0.4, sheen=0.3)
+    return mat_simple("si_" + color, srgb({"red": "#c01010", "black": "#121212"}.get(color, color)), rough=0.72,
+                      spec=0.35, sheen=0.25)
 
 
 def _cable(name, pts, r, mat, col, res=10):

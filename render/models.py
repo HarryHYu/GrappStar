@@ -583,8 +583,9 @@ def _detail(N, bsdf, col, rough, metal=0.0, var=0.05, rvar=0.12, grime=0.45, gri
         gn = N.noise(140.0, 3.0, 0.6, obj).outputs["Fac"]
         gm = N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", 1.0, ao), grime),
                     N.maprange(gn, 0.3, 0.7, 0.55, 1.0))
-        c = N.mix(gm, c, N.mix(0.5, N.vscale(c, 0.3), (0.035, 0.03, 0.024, 1.0)))
-        r = N.math("ADD", r, N.math("MULTIPLY", gm, 0.25))
+        c = N.mix(N.math("MINIMUM", N.math("MULTIPLY", gm, 1.4), 1.0), c,
+                  N.mix(0.5, N.vscale(c, 0.25), (0.03, 0.026, 0.02, 1.0)))
+        r = N.math("ADD", r, N.math("MULTIPLY", gm, 0.4))
     nb = N.bevel(bevel) if bevel else None
     met = metal
     if edge and nb is not None:
@@ -607,6 +608,32 @@ def _detail(N, bsdf, col, rough, metal=0.0, var=0.05, rvar=0.12, grime=0.45, gri
         dm = N.math("MULTIPLY", N.math("MULTIPLY", N.maprange(nz, 0.5, 0.95), N.maprange(dn, 0.35, 0.75)), dust)
         c = N.mix(N.math("MULTIPLY", dm, 0.5), c, (0.34, 0.31, 0.26, 1.0))
         r = N.math("ADD", r, N.math("MULTIPLY", dm, 0.45))
+    # high-contrast roughness breakup (no surface reflects evenly): blotchy smudges glossier than the base,
+    # fine directional scratches in two directions, micro speckle, per-object hue / value shift
+    smn = N.noise(14.0, 4.0, 0.7, obj).outputs["Fac"]
+    smudge = N.math("MULTIPLY", N.maprange(smn, 0.52, 0.64), 0.75)
+    r = N.mix(smudge, r, N.math("MAXIMUM", N.math("SUBTRACT", r, 0.35), 0.22), kind="FLOAT")
+    if tex("prints") is not None:
+        pv2 = N.sep(N.img(tex("prints"), 0.07).outputs["Color"])[0]
+        r = N.mix(N.math("MULTIPLY", N.maprange(pv2, 0.35, 0.8), 0.5), r,
+                  N.math("MAXIMUM", N.math("SUBTRACT", r, 0.25), 0.22), kind="FLOAT")
+    for sv in ((1.0, 70.0, 70.0), (70.0, 1.0, 70.0)):
+        st = N.node("ShaderNodeVectorMath", operation="MULTIPLY")
+        N.link(obj, st.inputs[0])
+        st.inputs[1].default_value = sv
+        sc_ = N.noise(900.0, 2.0, 0.6, st.outputs[0]).outputs["Fac"]
+        scr = N.math("MULTIPLY", N.maprange(sc_, 0.66, 0.74), N.maprange(N.noise(30.0, 2.0, 0.5, obj).outputs["Fac"],
+                                                                          0.45, 0.6))
+        r = N.math("ADD", r, N.math("MULTIPLY", scr, 0.22))
+        h = N.math("ADD", h, N.math("MULTIPLY", scr, -0.25))
+    spk = N.noise(9000.0, 1.0, 0.5, obj).outputs["Fac"]
+    r = N.math("ADD", r, N.math("MULTIPLY", N.math("SUBTRACT", spk, 0.5), 0.16))
+    rnd = N.node("ShaderNodeObjectInfo").outputs["Random"]
+    hsv = N.node("ShaderNodeHueSaturation")
+    N.link(c, hsv.inputs["Color"])
+    N.link(N.maprange(rnd, 0.0, 1.0, 0.485, 0.515), hsv.inputs["Hue"])
+    N.link(N.maprange(rnd, 0.0, 1.0, 0.94, 1.06), hsv.inputs["Value"])
+    c = hsv.outputs["Color"]
     # dirt and grass stain: near the ground (world z < 4 cm) and on objects with a "dirt" property (the dart after
     # landing: dart:* objects carry dirt, keyframe it up after the impact for more)
     wz = N.sep(geo.outputs["Position"])[2]
@@ -622,7 +649,7 @@ def _detail(N, bsdf, col, rough, metal=0.0, var=0.05, rvar=0.12, grime=0.45, gri
     if height is not None:
         h = N.math("ADD", h, height)
     nrm = N.bump(h, 1.0, bump_dist, nb)
-    r = N.math("MINIMUM", N.math("MAXIMUM", r, 0.3), 1.0)                  # no mirror-like highlights
+    r = N.math("MINIMUM", N.math("MAXIMUM", r, 0.2), 1.0)                  # no mirror-like highlights
     _set(bsdf, base=c, rough=r, metal=met)
     N.link(nrm, bsdf.inputs["Normal"])
 
@@ -669,12 +696,12 @@ def _print_texture(N):
     dang = N.math("MINIMUM", d1, N.math("SUBTRACT", 2 * math.pi, d1))
     seam = N.math("MULTIPLY", N.maprange(N.math("MULTIPLY", dang, r), 0.0, 0.45, 1.0, 0.0), walls)
     blobs = N.math("MULTIPLY", seam, N.maprange(wob, 0.35, 0.75, 0.3, 1.0))
-    h = N.math("ADD", N.math("MULTIPLY", N.math("ADD", N.math("MULTIPLY", lines, -2.6),
+    h = N.math("ADD", N.math("MULTIPLY", N.math("ADD", N.math("MULTIPLY", lines, -4.0),
                                                   N.math("MULTIPLY", N.math("SUBTRACT", wob, 0.5), 0.25)), walls),
                N.math("MULTIPLY", band, 1.4))
     h = N.math("ADD", h, N.math("MULTIPLY", N.math("MULTIPLY", infill, top), -0.7))
     h = N.math("ADD", h, N.math("MULTIPLY", blobs, 1.4))
-    return h, top, seam, band
+    return h, top, seam, band, N.math("MULTIPLY", N.math("MULTIPLY", prof, 2.83), walls)
 
 
 def mat_printed(hexcol=None, kind="PLA"):
@@ -689,7 +716,7 @@ def mat_printed(hexcol=None, kind="PLA"):
     m, nt, bsdf = _new_mat(key)
     N = _N(nt)
     obj = N.coord("Object")
-    h, top, seam, band = _print_texture(N)
+    h, top, seam, band, valley = _print_texture(N)
     rnd = N.node("ShaderNodeObjectInfo").outputs["Random"]
     if kind == "PLA":
         col = srgb(PLA_BLUE)
@@ -699,8 +726,9 @@ def mat_printed(hexcol=None, kind="PLA"):
                 edge_rough=0.7, dust=0.35, prints=0.3, micro=0.08, height=N.math("MULTIPLY", h, 1.0),
                 bump_dist=0.00016, bevel=0.0004)
         rr = bsdf.inputs["Roughness"].links[0].from_socket
-        N.link(N.math("ADD", rr, N.math("ADD", N.math("MULTIPLY", top, 0.12), N.math("MULTIPLY", seam, 0.15)),
-                      clamp=True), bsdf.inputs["Roughness"])
+        rr = N.math("ADD", rr, N.math("ADD", N.math("MULTIPLY", top, 0.12), N.math("MULTIPLY", seam, 0.15)))
+        lay_r = N.math("ADD", N.math("MULTIPLY", valley, 0.40), 0.35)          # ridge tops 0.35 .. valleys 0.75
+        N.link(N.math("MINIMUM", N.mix(0.55, rr, lay_r, kind="FLOAT"), 1.0), bsdf.inputs["Roughness"])
         _set(bsdf, spec=0.38, sheen=0.05)
     else:
         fib = N.noise(1600.0, 6.0, 0.8, obj).outputs["Fac"]
@@ -711,6 +739,9 @@ def mat_printed(hexcol=None, kind="PLA"):
                 edge_rough=0.85, dust=0.35, prints=0.2, micro=0.0, height=N.math("ADD", N.math("MULTIPLY", h, 0.8),
                                                                   N.math("MULTIPLY", fib, 0.7)),
                 bump_dist=0.00009, bevel=0.0003)
+        rr = bsdf.inputs["Roughness"].links[0].from_socket
+        N.link(N.math("MINIMUM", N.mix(0.35, rr, N.math("ADD", N.math("MULTIPLY", valley, 0.25), 0.62),
+                                       kind="FLOAT"), 1.0), bsdf.inputs["Roughness"])
         _set(bsdf, spec=0.25)
     return m
 

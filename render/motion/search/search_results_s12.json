@@ -1,0 +1,7130 @@
+{
+ "what": "Search physically plausible launch inputs for a landing whose own bounce / tumble leaves the dart inverted or on a\nflank, so the v34 firmware rights it with the righting leg, plants both drills and holds (loam, v34 tail tie).",
+ "seed": 12,
+ "n": 160,
+ "reel_world": [
+  0.4137,
+  0.0915,
+  0.2714
+ ],
+ "runs": [
+  {
+   "id": 0,
+   "inputs": {
+    "rail_deg": 33.501337,
+    "v0": 6.889,
+    "q0": -0.621,
+    "dth": -3.21,
+    "r0": -0.3,
+    "dpsi": -2.69,
+    "wind_y": 0.511,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.502
+   },
+   "flight": {
+    "t_flight": 0.845,
+    "cg": [
+     4.7638,
+     0.1038,
+     0.089
+    ],
+    "speed": 6.511,
+    "path_deg": -42.51,
+    "body_pitch_deg": -57.53,
+    "heading_deg": 3.3,
+    "pitch_rate": -1.619,
+    "yaw_rate": -0.292
+   },
+   "righted": true,
+   "rightT": 2.0199999999998552,
+   "moves": [],
+   "first_tilt": null,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.216135,
+    0.03678,
+    -0.019552
+   ],
+   "t": 31.851,
+   "qualifies": false
+  },
+  {
+   "id": 1,
+   "inputs": {
+    "rail_deg": 33.229335,
+    "v0": 6.879,
+    "q0": 0.716,
+    "dth": -4.97,
+    "r0": 0.083,
+    "dpsi": -3.93,
+    "wind_y": -0.726,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.23
+   },
+   "flight": {
+    "t_flight": 0.8402,
+    "cg": [
+     4.7423,
+     0.0702,
+     0.0934
+    ],
+    "speed": 6.487,
+    "path_deg": -42.42,
+    "body_pitch_deg": -67.62,
+    "heading_deg": -4.76,
+    "pitch_rate": -1.138,
+    "yaw_rate": -0.145
+   },
+   "righted": true,
+   "rightT": 8.200000000000701,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.785854,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.266363,
+    0.036827,
+    -0.10062
+   ],
+   "t": 41.961,
+   "qualifies": false
+  },
+  {
+   "id": 2,
+   "inputs": {
+    "rail_deg": 33.83334,
+    "v0": 6.791,
+    "q0": -0.064,
+    "dth": 4.28,
+    "r0": -0.482,
+    "dpsi": -3.12,
+    "wind_y": 0.512,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.834
+   },
+   "flight": {
+    "t_flight": 0.8424,
+    "cg": [
+     4.6593,
+     0.1028,
+     0.0905
+    ],
+    "speed": 6.428,
+    "path_deg": -43.12,
+    "body_pitch_deg": -59.55,
+    "heading_deg": 4.48,
+    "pitch_rate": -0.732,
+    "yaw_rate": -0.385
+   },
+   "righted": true,
+   "rightT": 2.269999999999818,
+   "moves": [],
+   "first_tilt": null,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.067806,
+    0.036722,
+    0.000123
+   ],
+   "t": 32.191,
+   "qualifies": false
+  },
+  {
+   "id": 3,
+   "inputs": {
+    "rail_deg": 34.892351,
+    "v0": 6.885,
+    "q0": 0.76,
+    "dth": -4.36,
+    "r0": 0.873,
+    "dpsi": 1.49,
+    "wind_y": 1.115,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.893
+   },
+   "flight": {
+    "t_flight": 0.8708,
+    "cg": [
+     4.7898,
+     0.1359,
+     0.0945
+    ],
+    "speed": 6.481,
+    "path_deg": -44.14,
+    "body_pitch_deg": -69.65,
+    "heading_deg": -4.56,
+    "pitch_rate": -0.728,
+    "yaw_rate": 0.532
+   },
+   "righted": true,
+   "rightT": 7.890000000000872,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.646534,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.326039,
+    0.036727,
+    -0.031967
+   ],
+   "t": 40.581,
+   "qualifies": false
+  },
+  {
+   "id": 4,
+   "inputs": {
+    "rail_deg": 33.81534,
+    "v0": 6.744,
+    "q0": 0.586,
+    "dth": 1.62,
+    "r0": 0.558,
+    "dpsi": -2.99,
+    "wind_y": -1.097,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.816
+   },
+   "flight": {
+    "t_flight": 0.8378,
+    "cg": [
+     4.6041,
+     0.0621,
+     0.093
+    ],
+    "speed": 6.382,
+    "path_deg": -43.21,
+    "body_pitch_deg": -65.26,
+    "heading_deg": -9.43,
+    "pitch_rate": -0.65,
+    "yaw_rate": 0.121
+   },
+   "righted": true,
+   "rightT": 10.759999999999264,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.846811,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.93932,
+    0.036734,
+    -0.154017
+   ],
+   "t": 43.301,
+   "qualifies": false
+  },
+  {
+   "id": 5,
+   "inputs": {
+    "rail_deg": 34.526347,
+    "v0": 6.704,
+    "q0": 0.891,
+    "dth": -3.65,
+    "r0": 0.2,
+    "dpsi": -0.81,
+    "wind_y": -0.528,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.527
+   },
+   "flight": {
+    "t_flight": 0.8464,
+    "cg": [
+     4.5758,
+     0.0785,
+     0.0946
+    ],
+    "speed": 6.342,
+    "path_deg": -43.99,
+    "body_pitch_deg": -70.42,
+    "heading_deg": -3.11,
+    "pitch_rate": -0.785,
+    "yaw_rate": 0.055
+   },
+   "righted": true,
+   "rightT": 8.0400000000008,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.757841,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.101196,
+    0.036652,
+    -0.089168
+   ],
+   "t": 40.901,
+   "qualifies": false
+  },
+  {
+   "id": 6,
+   "inputs": {
+    "rail_deg": 33.339336,
+    "v0": 6.856,
+    "q0": 0.829,
+    "dth": 2.29,
+    "r0": 0.201,
+    "dpsi": 2.11,
+    "wind_y": 0.108,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.34
+   },
+   "flight": {
+    "t_flight": 0.8406,
+    "cg": [
+     4.7175,
+     0.0955,
+     0.0932
+    ],
+    "speed": 6.467,
+    "path_deg": -42.67,
+    "body_pitch_deg": -65.81,
+    "heading_deg": -0.49,
+    "pitch_rate": -0.476,
+    "yaw_rate": 0.183
+   },
+   "righted": true,
+   "rightT": 7.140000000000839,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.684394,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.190364,
+    0.036603,
+    -0.084889
+   ],
+   "t": 39.891,
+   "qualifies": false
+  },
+  {
+   "id": 7,
+   "inputs": {
+    "rail_deg": 34.116342,
+    "v0": 6.881,
+    "q0": -0.435,
+    "dth": -2.78,
+    "r0": 0.894,
+    "dpsi": 4.43,
+    "wind_y": -0.072,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.117
+   },
+   "flight": {
+    "t_flight": 0.8556,
+    "cg": [
+     4.771,
+     0.0961,
+     0.0905
+    ],
+    "speed": 6.499,
+    "path_deg": -43.17,
+    "body_pitch_deg": -60.42,
+    "heading_deg": -7.71,
+    "pitch_rate": -1.485,
+    "yaw_rate": 0.548
+   },
+   "righted": true,
+   "rightT": 8.020000000000751,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.757598,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.125525,
+    0.036613,
+    -0.259114
+   ],
+   "t": 41.691,
+   "qualifies": false
+  },
+  {
+   "id": 8,
+   "inputs": {
+    "rail_deg": 34.601348,
+    "v0": 6.849,
+    "q0": 0.899,
+    "dth": -4.18,
+    "r0": 0.796,
+    "dpsi": 0.0,
+    "wind_y": -0.153,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.602
+   },
+   "flight": {
+    "t_flight": 0.8628,
+    "cg": [
+     4.7454,
+     0.0906,
+     0.094
+    ],
+    "speed": 6.454,
+    "path_deg": -43.91,
+    "body_pitch_deg": -70.51,
+    "heading_deg": -7.51,
+    "pitch_rate": -0.72,
+    "yaw_rate": 0.377
+   },
+   "righted": true,
+   "rightT": 12.159999999998512,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.807947,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.497637,
+    0.036714,
+    -0.105451
+   ],
+   "t": 44.451,
+   "qualifies": false
+  },
+  {
+   "id": 9,
+   "inputs": {
+    "rail_deg": 34.373345,
+    "v0": 6.823,
+    "q0": -0.127,
+    "dth": -2.09,
+    "r0": 0.837,
+    "dpsi": 3.19,
+    "wind_y": -1.193,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.374
+   },
+   "flight": {
+    "t_flight": 0.8548,
+    "cg": [
+     4.71,
+     0.06,
+     0.092
+    ],
+    "speed": 6.447,
+    "path_deg": -43.54,
+    "body_pitch_deg": -62.78,
+    "heading_deg": -7.76,
+    "pitch_rate": -1.189,
+    "yaw_rate": 0.546
+   },
+   "righted": true,
+   "rightT": 7.890000000000822,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.754259,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.111974,
+    0.036743,
+    -0.116303
+   ],
+   "t": 41.201,
+   "qualifies": false
+  },
+  {
+   "id": 10,
+   "inputs": {
+    "rail_deg": 33.80834,
+    "v0": 6.853,
+    "q0": 0.758,
+    "dth": 4.62,
+    "r0": -0.519,
+    "dpsi": 3.92,
+    "wind_y": 0.585,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.809
+   },
+   "flight": {
+    "t_flight": 0.8492,
+    "cg": [
+     4.728,
+     0.106,
+     0.0926
+    ],
+    "speed": 6.464,
+    "path_deg": -43.16,
+    "body_pitch_deg": -64.34,
+    "heading_deg": 9.13,
+    "pitch_rate": -0.241,
+    "yaw_rate": -0.099
+   },
+   "righted": true,
+   "rightT": 3.8999999999997637,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.504457,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.068402,
+    0.036745,
+    -0.096716
+   ],
+   "t": 38.261,
+   "qualifies": false
+  },
+  {
+   "id": 11,
+   "inputs": {
+    "rail_deg": 33.135334,
+    "v0": 6.742,
+    "q0": -0.623,
+    "dth": -4.23,
+    "r0": 0.375,
+    "dpsi": -1.9,
+    "wind_y": 0.575,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.136
+   },
+   "flight": {
+    "t_flight": 0.8236,
+    "cg": [
+     4.5835,
+     0.1093,
+     0.0895
+    ],
+    "speed": 6.397,
+    "path_deg": -42.32,
+    "body_pitch_deg": -57.57,
+    "heading_deg": -3.74,
+    "pitch_rate": -1.843,
+    "yaw_rate": -0.134
+   },
+   "righted": true,
+   "rightT": 3.779999999999697,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.363234,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.041909,
+    0.036652,
+    -0.197653
+   ],
+   "t": 32.431,
+   "qualifies": false
+  },
+  {
+   "id": 12,
+   "inputs": {
+    "rail_deg": 33.162334,
+    "v0": 6.874,
+    "q0": 0.391,
+    "dth": 2.82,
+    "r0": 0.213,
+    "dpsi": -0.42,
+    "wind_y": -0.921,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.163
+   },
+   "flight": {
+    "t_flight": 0.8386,
+    "cg": [
+     4.7339,
+     0.0655,
+     0.0918
+    ],
+    "speed": 6.489,
+    "path_deg": -42.39,
+    "body_pitch_deg": -62.1,
+    "heading_deg": -3.93,
+    "pitch_rate": -0.651,
+    "yaw_rate": 0.101
+   },
+   "righted": true,
+   "rightT": 7.190000000000876,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.655123,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.089528,
+    0.036664,
+    -0.061817
+   ],
+   "t": 39.481,
+   "qualifies": false
+  },
+  {
+   "id": 13,
+   "inputs": {
+    "rail_deg": 34.884351,
+    "v0": 6.729,
+    "q0": 0.043,
+    "dth": -3.79,
+    "r0": -0.783,
+    "dpsi": 1.97,
+    "wind_y": 1.166,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.885
+   },
+   "flight": {
+    "t_flight": 0.8544,
+    "cg": [
+     4.6142,
+     0.1231,
+     0.0929
+    ],
+    "speed": 6.372,
+    "path_deg": -44.16,
+    "body_pitch_deg": -65.19,
+    "heading_deg": 10.56,
+    "pitch_rate": -1.208,
+    "yaw_rate": -0.242
+   },
+   "righted": true,
+   "rightT": 7.600000000000988,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.710595,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.157179,
+    0.036654,
+    -0.0057
+   ],
+   "t": 41.461,
+   "qualifies": false
+  },
+  {
+   "id": 14,
+   "inputs": {
+    "rail_deg": 33.921341,
+    "v0": 6.859,
+    "q0": 0.719,
+    "dth": 0.35,
+    "r0": 0.551,
+    "dpsi": -2.07,
+    "wind_y": -1.05,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.922
+   },
+   "flight": {
+    "t_flight": 0.8514,
+    "cg": [
+     4.7389,
+     0.0624,
+     0.0934
+    ],
+    "speed": 6.469,
+    "path_deg": -43.19,
+    "body_pitch_deg": -66.04,
+    "heading_deg": -8.12,
+    "pitch_rate": -0.554,
+    "yaw_rate": 0.176
+   },
+   "righted": true,
+   "rightT": 11.02999999999912,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.815012,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.094448,
+    0.036727,
+    -0.133558
+   ],
+   "t": 44.551,
+   "qualifies": false
+  },
+  {
+   "id": 15,
+   "inputs": {
+    "rail_deg": 33.377336,
+    "v0": 6.701,
+    "q0": -0.858,
+    "dth": 2.51,
+    "r0": 0.807,
+    "dpsi": -4.43,
+    "wind_y": 0.663,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.378
+   },
+   "flight": {
+    "t_flight": 0.8244,
+    "cg": [
+     4.5443,
+     0.1149,
+     0.0873
+    ],
+    "speed": 6.367,
+    "path_deg": -42.68,
+    "body_pitch_deg": -54.19,
+    "heading_deg": -9.34,
+    "pitch_rate": -1.369,
+    "yaw_rate": -0.182
+   },
+   "righted": true,
+   "rightT": 8.600000000000568,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.706196,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    4.871429,
+    0.036705,
+    -0.131209
+   ],
+   "t": 37.251,
+   "qualifies": true
+  },
+  {
+   "id": 16,
+   "inputs": {
+    "rail_deg": 34.554347,
+    "v0": 6.836,
+    "q0": -0.002,
+    "dth": -0.14,
+    "r0": 0.389,
+    "dpsi": -2.55,
+    "wind_y": 0.758,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.555
+   },
+   "flight": {
+    "t_flight": 0.8596,
+    "cg": [
+     4.7297,
+     0.1169,
+     0.0911
+    ],
+    "speed": 6.459,
+    "path_deg": -43.75,
+    "body_pitch_deg": -61.91,
+    "heading_deg": -4.85,
+    "pitch_rate": -0.92,
+    "yaw_rate": 0.013
+   },
+   "righted": true,
+   "rightT": 5.690000000000372,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.124533,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.241102,
+    0.036614,
+    -0.126194
+   ],
+   "t": 34.391,
+   "qualifies": false
+  },
+  {
+   "id": 17,
+   "inputs": {
+    "rail_deg": 33.384336,
+    "v0": 6.707,
+    "q0": 0.867,
+    "dth": -4.09,
+    "r0": -0.607,
+    "dpsi": -4.44,
+    "wind_y": -1.469,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.385
+   },
+   "flight": {
+    "t_flight": 0.8256,
+    "cg": [
+     4.5461,
+     0.0404,
+     0.094
+    ],
+    "speed": 6.348,
+    "path_deg": -42.83,
+    "body_pitch_deg": -69.66,
+    "heading_deg": 0.73,
+    "pitch_rate": -1.159,
+    "yaw_rate": -0.404
+   },
+   "righted": true,
+   "rightT": 7.250000000000866,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.665079,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.014938,
+    0.036666,
+    0.003661
+   ],
+   "t": 42.121,
+   "qualifies": false
+  },
+  {
+   "id": 18,
+   "inputs": {
+    "rail_deg": 33.247335,
+    "v0": 6.884,
+    "q0": 0.391,
+    "dth": -0.95,
+    "r0": -0.987,
+    "dpsi": 3.28,
+    "wind_y": -0.045,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.248
+   },
+   "flight": {
+    "t_flight": 0.8408,
+    "cg": [
+     4.7481,
+     0.0857,
+     0.0924
+    ],
+    "speed": 6.496,
+    "path_deg": -42.42,
+    "body_pitch_deg": -64.34,
+    "heading_deg": 13.61,
+    "pitch_rate": -1.092,
+    "yaw_rate": -0.135
+   },
+   "righted": true,
+   "rightT": 3.459999999999689,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 33.931474,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.435991,
+    0.036734,
+    0.101955
+   ],
+   "t": 34.451,
+   "qualifies": false
+  },
+  {
+   "id": 19,
+   "inputs": {
+    "rail_deg": 34.707349,
+    "v0": 6.801,
+    "q0": -0.843,
+    "dth": -4.26,
+    "r0": 0.58,
+    "dpsi": -2.78,
+    "wind_y": -1.049,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.708
+   },
+   "flight": {
+    "t_flight": 0.8578,
+    "cg": [
+     4.694,
+     0.0617,
+     0.0899
+    ],
+    "speed": 6.438,
+    "path_deg": -43.78,
+    "body_pitch_deg": -58.48,
+    "heading_deg": -9.31,
+    "pitch_rate": -1.723,
+    "yaw_rate": 0.076
+   },
+   "righted": true,
+   "rightT": 4.2399999999998705,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 35.397222,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.054219,
+    0.036666,
+    -0.18617
+   ],
+   "t": 32.891,
+   "qualifies": false
+  },
+  {
+   "id": 20,
+   "inputs": {
+    "rail_deg": 33.81734,
+    "v0": 6.752,
+    "q0": -0.447,
+    "dth": 2.93,
+    "r0": -0.061,
+    "dpsi": 4.96,
+    "wind_y": -1.205,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.818
+   },
+   "flight": {
+    "t_flight": 0.8378,
+    "cg": [
+     4.6145,
+     0.0548,
+     0.0886
+    ],
+    "speed": 6.401,
+    "path_deg": -43.1,
+    "body_pitch_deg": -57.3,
+    "heading_deg": 1.06,
+    "pitch_rate": -1.013,
+    "yaw_rate": 0.334
+   },
+   "righted": true,
+   "rightT": 4.039999999999787,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.363116,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.978664,
+    0.03672,
+    0.003423
+   ],
+   "t": 35.361,
+   "qualifies": false
+  },
+  {
+   "id": 21,
+   "inputs": {
+    "rail_deg": 33.588338,
+    "v0": 6.876,
+    "q0": -0.129,
+    "dth": 2.7,
+    "r0": -0.134,
+    "dpsi": -0.94,
+    "wind_y": 1.158,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.589
+   },
+   "flight": {
+    "t_flight": 0.8462,
+    "cg": [
+     4.7504,
+     0.1274,
+     0.0897
+    ],
+    "speed": 6.497,
+    "path_deg": -42.74,
+    "body_pitch_deg": -58.58,
+    "heading_deg": 2.75,
+    "pitch_rate": -0.836,
+    "yaw_rate": -0.157
+   },
+   "righted": true,
+   "rightT": 1.5999999999998924,
+   "moves": [],
+   "first_tilt": null,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.150743,
+    0.036705,
+    -0.065083
+   ],
+   "t": 31.541,
+   "qualifies": false
+  },
+  {
+   "id": 22,
+   "inputs": {
+    "rail_deg": 33.626338,
+    "v0": 6.809,
+    "q0": 0.129,
+    "dth": -4.57,
+    "r0": -0.802,
+    "dpsi": -2.64,
+    "wind_y": -1.492,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.627
+   },
+   "flight": {
+    "t_flight": 0.8392,
+    "cg": [
+     4.6686,
+     0.0344,
+     0.0927
+    ],
+    "speed": 6.436,
+    "path_deg": -42.83,
+    "body_pitch_deg": -64.25,
+    "heading_deg": 4.17,
+    "pitch_rate": -1.432,
+    "yaw_rate": -0.363
+   },
+   "righted": true,
+   "rightT": 10.579999999999359,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.833907,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.993073,
+    0.036751,
+    0.142188
+   ],
+   "t": 43.851,
+   "qualifies": false
+  },
+  {
+   "id": 23,
+   "inputs": {
+    "rail_deg": 34.366345,
+    "v0": 6.816,
+    "q0": -0.316,
+    "dth": -0.81,
+    "r0": -0.918,
+    "dpsi": -0.99,
+    "wind_y": 1.024,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.367
+   },
+   "flight": {
+    "t_flight": 0.854,
+    "cg": [
+     4.7029,
+     0.1172,
+     0.0905
+    ],
+    "speed": 6.446,
+    "path_deg": -43.53,
+    "body_pitch_deg": -60.74,
+    "heading_deg": 10.5,
+    "pitch_rate": -1.226,
+    "yaw_rate": -0.448
+   },
+   "righted": true,
+   "rightT": 3.1899999999996953,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.632702,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.257125,
+    0.036663,
+    0.01686
+   ],
+   "t": 36.751,
+   "qualifies": false
+  },
+  {
+   "id": 24,
+   "inputs": {
+    "rail_deg": 33.075334,
+    "v0": 6.831,
+    "q0": 0.383,
+    "dth": -2.81,
+    "r0": -0.409,
+    "dpsi": -3.2,
+    "wind_y": 0.198,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.076
+   },
+   "flight": {
+    "t_flight": 0.8324,
+    "cg": [
+     4.6828,
+     0.0942,
+     0.0923
+    ],
+    "speed": 6.456,
+    "path_deg": -42.29,
+    "body_pitch_deg": -64.77,
+    "heading_deg": 3.23,
+    "pitch_rate": -1.233,
+    "yaw_rate": -0.313
+   },
+   "righted": true,
+   "rightT": 8.470000000000523,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.780442,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.058968,
+    0.036816,
+    0.052051
+   ],
+   "t": 42.181,
+   "qualifies": false
+  },
+  {
+   "id": 25,
+   "inputs": {
+    "rail_deg": 33.738339,
+    "v0": 6.726,
+    "q0": -0.422,
+    "dth": -2.56,
+    "r0": 0.974,
+    "dpsi": 1.1,
+    "wind_y": -0.064,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.739
+   },
+   "flight": {
+    "t_flight": 0.8332,
+    "cg": [
+     4.5826,
+     0.0955,
+     0.0905
+    ],
+    "speed": 6.379,
+    "path_deg": -42.98,
+    "body_pitch_deg": -60.23,
+    "heading_deg": -11.21,
+    "pitch_rate": -1.628,
+    "yaw_rate": 0.288
+   },
+   "righted": true,
+   "rightT": 7.390000000000986,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.705957,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.971057,
+    0.03661,
+    -0.335214
+   ],
+   "t": 40.851,
+   "qualifies": false
+  },
+  {
+   "id": 26,
+   "inputs": {
+    "rail_deg": 33.977341,
+    "v0": 6.815,
+    "q0": 0.962,
+    "dth": -1.15,
+    "r0": -0.886,
+    "dpsi": -3.15,
+    "wind_y": -1.478,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.978
+   },
+   "flight": {
+    "t_flight": 0.8472,
+    "cg": [
+     4.683,
+     0.0351,
+     0.0941
+    ],
+    "speed": 6.427,
+    "path_deg": -43.37,
+    "body_pitch_deg": -69.32,
+    "heading_deg": 3.2,
+    "pitch_rate": -0.649,
+    "yaw_rate": -0.578
+   },
+   "righted": true,
+   "rightT": 7.850000000000889,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.375388,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.605532,
+    0.036577,
+    0.055252
+   ],
+   "t": 39.241,
+   "qualifies": false
+  },
+  {
+   "id": 27,
+   "inputs": {
+    "rail_deg": 33.402336,
+    "v0": 6.821,
+    "q0": -0.485,
+    "dth": 3.36,
+    "r0": 0.903,
+    "dpsi": -3.78,
+    "wind_y": 0.918,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.403
+   },
+   "flight": {
+    "t_flight": 0.8368,
+    "cg": [
+     4.6794,
+     0.1261,
+     0.0888
+    ],
+    "speed": 6.456,
+    "path_deg": -42.6,
+    "body_pitch_deg": -56.28,
+    "heading_deg": -10.1,
+    "pitch_rate": -1.107,
+    "yaw_rate": -0.012
+   },
+   "righted": true,
+   "rightT": 3.869999999999717,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.627591,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.020981,
+    0.036637,
+    -0.176329
+   ],
+   "t": 36.811,
+   "qualifies": false
+  },
+  {
+   "id": 28,
+   "inputs": {
+    "rail_deg": 34.322345,
+    "v0": 6.899,
+    "q0": -0.622,
+    "dth": 2.65,
+    "r0": -0.336,
+    "dpsi": -3.01,
+    "wind_y": -0.721,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.323
+   },
+   "flight": {
+    "t_flight": 0.8616,
+    "cg": [
+     4.7987,
+     0.0654,
+     0.0879
+    ],
+    "speed": 6.518,
+    "path_deg": -43.39,
+    "body_pitch_deg": -55.68,
+    "heading_deg": 0.68,
+    "pitch_rate": -1.051,
+    "yaw_rate": -0.275
+   },
+   "righted": true,
+   "rightT": 7.370000000000879,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.715679,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.875173,
+    0.036706,
+    0.001498
+   ],
+   "t": 40.911,
+   "qualifies": false
+  },
+  {
+   "id": 29,
+   "inputs": {
+    "rail_deg": 34.875351,
+    "v0": 6.796,
+    "q0": -0.13,
+    "dth": 3.72,
+    "r0": 0.715,
+    "dpsi": 3.97,
+    "wind_y": -1.432,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.876
+   },
+   "flight": {
+    "t_flight": 0.8618,
+    "cg": [
+     4.6908,
+     0.05,
+     0.0907
+    ],
+    "speed": 6.426,
+    "path_deg": -44.15,
+    "body_pitch_deg": -60.3,
+    "heading_deg": -5.33,
+    "pitch_rate": -0.634,
+    "yaw_rate": 0.555
+   },
+   "righted": true,
+   "rightT": 6.650000000000712,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 35.486896,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.040328,
+    0.036669,
+    -0.099517
+   ],
+   "t": 35.481,
+   "qualifies": false
+  },
+  {
+   "id": 30,
+   "inputs": {
+    "rail_deg": 34.990353,
+    "v0": 6.837,
+    "q0": 0.806,
+    "dth": 3.03,
+    "r0": 0.796,
+    "dpsi": 3.86,
+    "wind_y": 0.441,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.991
+   },
+   "flight": {
+    "t_flight": 0.8686,
+    "cg": [
+     4.7371,
+     0.1101,
+     0.0935
+    ],
+    "speed": 6.445,
+    "path_deg": -44.38,
+    "body_pitch_deg": -66.43,
+    "heading_deg": -2.64,
+    "pitch_rate": -0.154,
+    "yaw_rate": 0.609
+   },
+   "righted": true,
+   "rightT": 3.109999999999713,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.618926,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.142874,
+    0.036707,
+    0.043297
+   ],
+   "t": 37.841,
+   "qualifies": false
+  },
+  {
+   "id": 31,
+   "inputs": {
+    "rail_deg": 33.254335,
+    "v0": 6.836,
+    "q0": -0.928,
+    "dth": -1.5,
+    "r0": -0.433,
+    "dpsi": -2.05,
+    "wind_y": 0.918,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.255
+   },
+   "flight": {
+    "t_flight": 0.8352,
+    "cg": [
+     4.6953,
+     0.1156,
+     0.0873
+    ],
+    "speed": 6.474,
+    "path_deg": -42.33,
+    "body_pitch_deg": -54.33,
+    "heading_deg": 6.3,
+    "pitch_rate": -1.663,
+    "yaw_rate": -0.317
+   },
+   "righted": true,
+   "rightT": 5.380000000000192,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.388777,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.095222,
+    0.036265,
+    -0.099262
+   ],
+   "t": 33.471,
+   "qualifies": false
+  },
+  {
+   "id": 32,
+   "inputs": {
+    "rail_deg": 34.76335,
+    "v0": 6.88,
+    "q0": 0.239,
+    "dth": 2.72,
+    "r0": -0.748,
+    "dpsi": -1.53,
+    "wind_y": 0.861,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.764
+   },
+   "flight": {
+    "t_flight": 0.8688,
+    "cg": [
+     4.7866,
+     0.1137,
+     0.0912
+    ],
+    "speed": 6.489,
+    "path_deg": -43.98,
+    "body_pitch_deg": -62.42,
+    "heading_deg": 6.64,
+    "pitch_rate": -0.496,
+    "yaw_rate": -0.455
+   },
+   "righted": true,
+   "rightT": 3.439999999999687,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.628951,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.272411,
+    0.036756,
+    -0.064239
+   ],
+   "t": 37.491,
+   "qualifies": false
+  },
+  {
+   "id": 33,
+   "inputs": {
+    "rail_deg": 33.90934,
+    "v0": 6.799,
+    "q0": 0.57,
+    "dth": -2.76,
+    "r0": 0.733,
+    "dpsi": 2.4,
+    "wind_y": -1.269,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.91
+   },
+   "flight": {
+    "t_flight": 0.8448,
+    "cg": [
+     4.6698,
+     0.0576,
+     0.0935
+    ],
+    "speed": 6.422,
+    "path_deg": -43.2,
+    "body_pitch_deg": -67.45,
+    "heading_deg": -6.42,
+    "pitch_rate": -0.95,
+    "yaw_rate": 0.443
+   },
+   "righted": true,
+   "rightT": 8.910000000000258,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.807025,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.295531,
+    0.036678,
+    -0.060616
+   ],
+   "t": 42.141,
+   "qualifies": false
+  },
+  {
+   "id": 34,
+   "inputs": {
+    "rail_deg": 33.84834,
+    "v0": 6.883,
+    "q0": -0.459,
+    "dth": -4.87,
+    "r0": -0.658,
+    "dpsi": 0.43,
+    "wind_y": -1.194,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.849
+   },
+   "flight": {
+    "t_flight": 0.8504,
+    "cg": [
+     4.7633,
+     0.0464,
+     0.0908
+    ],
+    "speed": 6.5,
+    "path_deg": -42.88,
+    "body_pitch_deg": -59.95,
+    "heading_deg": 5.09,
+    "pitch_rate": -1.652,
+    "yaw_rate": -0.106
+   },
+   "righted": true,
+   "rightT": 3.7899999999997536,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.645723,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.20753,
+    0.036726,
+    0.049962
+   ],
+   "t": 38.701,
+   "qualifies": false
+  },
+  {
+   "id": 35,
+   "inputs": {
+    "rail_deg": 33.107334,
+    "v0": 6.727,
+    "q0": 0.65,
+    "dth": 4.68,
+    "r0": -0.73,
+    "dpsi": 0.58,
+    "wind_y": 0.542,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.108
+   },
+   "flight": {
+    "t_flight": 0.8238,
+    "cg": [
+     4.5644,
+     0.1026,
+     0.0922
+    ],
+    "speed": 6.37,
+    "path_deg": -42.59,
+    "body_pitch_deg": -64.89,
+    "heading_deg": 9.75,
+    "pitch_rate": -0.578,
+    "yaw_rate": -0.275
+   },
+   "righted": true,
+   "rightT": 5.640000000000342,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 34.455748,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.900877,
+    0.036787,
+    -0.052546
+   ],
+   "t": 40.141,
+   "qualifies": false
+  },
+  {
+   "id": 36,
+   "inputs": {
+    "rail_deg": 33.140334,
+    "v0": 6.876,
+    "q0": 0.495,
+    "dth": 1.81,
+    "r0": -0.039,
+    "dpsi": 2.9,
+    "wind_y": 0.975,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.141
+   },
+   "flight": {
+    "t_flight": 0.8384,
+    "cg": [
+     4.7354,
+     0.1215,
+     0.0919
+    ],
+    "speed": 6.49,
+    "path_deg": -42.37,
+    "body_pitch_deg": -63.12,
+    "heading_deg": 3.75,
+    "pitch_rate": -0.684,
+    "yaw_rate": 0.096
+   },
+   "righted": true,
+   "rightT": 8.630000000000406,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.804118,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.187877,
+    0.036803,
+    -0.098389
+   ],
+   "t": 42.551,
+   "qualifies": false
+  },
+  {
+   "id": 37,
+   "inputs": {
+    "rail_deg": 33.570338,
+    "v0": 6.747,
+    "q0": 0.967,
+    "dth": -0.15,
+    "r0": -0.175,
+    "dpsi": 4.35,
+    "wind_y": 0.664,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.571
+   },
+   "flight": {
+    "t_flight": 0.834,
+    "cg": [
+     4.6001,
+     0.1094,
+     0.0937
+    ],
+    "speed": 6.379,
+    "path_deg": -43.03,
+    "body_pitch_deg": -68.52,
+    "heading_deg": 6.29,
+    "pitch_rate": -0.655,
+    "yaw_rate": 0.111
+   },
+   "righted": true,
+   "rightT": 4.009999999999814,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.460041,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.516535,
+    0.036597,
+    0.031283
+   ],
+   "t": 35.241,
+   "qualifies": false
+  },
+  {
+   "id": 38,
+   "inputs": {
+    "rail_deg": 34.492347,
+    "v0": 6.861,
+    "q0": 0.669,
+    "dth": 1.83,
+    "r0": 0.99,
+    "dpsi": 2.91,
+    "wind_y": 0.983,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.493
+   },
+   "flight": {
+    "t_flight": 0.8614,
+    "cg": [
+     4.7516,
+     0.1315,
+     0.0932
+    ],
+    "speed": 6.467,
+    "path_deg": -43.81,
+    "body_pitch_deg": -66.14,
+    "heading_deg": -5.21,
+    "pitch_rate": -0.463,
+    "yaw_rate": 0.652
+   },
+   "righted": true,
+   "rightT": 11.279999999998921,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 175.045685,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.306355,
+    0.036663,
+    -0.020621
+   ],
+   "t": 42.861,
+   "qualifies": false
+  },
+  {
+   "id": 39,
+   "inputs": {
+    "rail_deg": 34.661348,
+    "v0": 6.709,
+    "q0": 0.98,
+    "dth": 2.64,
+    "r0": -0.831,
+    "dpsi": 2.21,
+    "wind_y": 0.626,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.662
+   },
+   "flight": {
+    "t_flight": 0.8502,
+    "cg": [
+     4.584,
+     0.1056,
+     0.0934
+    ],
+    "speed": 6.345,
+    "path_deg": -44.21,
+    "body_pitch_deg": -68.63,
+    "heading_deg": 10.28,
+    "pitch_rate": -0.27,
+    "yaw_rate": -0.354
+   },
+   "righted": true,
+   "rightT": 7.190000000000859,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.414652,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.200805,
+    0.036674,
+    -0.000135
+   ],
+   "t": 41.661,
+   "qualifies": false
+  },
+  {
+   "id": 40,
+   "inputs": {
+    "rail_deg": 33.996341,
+    "v0": 6.761,
+    "q0": 0.078,
+    "dth": -3.37,
+    "r0": -0.212,
+    "dpsi": 1.23,
+    "wind_y": 0.646,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.997
+   },
+   "flight": {
+    "t_flight": 0.8418,
+    "cg": [
+     4.6298,
+     0.1087,
+     0.092
+    ],
+    "speed": 6.401,
+    "path_deg": -43.25,
+    "body_pitch_deg": -63.74,
+    "heading_deg": 4.06,
+    "pitch_rate": -1.274,
+    "yaw_rate": -0.032
+   },
+   "righted": true,
+   "rightT": 7.240000000000916,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.68748,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.144566,
+    0.036597,
+    0.02836
+   ],
+   "t": 39.581,
+   "qualifies": false
+  },
+  {
+   "id": 41,
+   "inputs": {
+    "rail_deg": 34.086342,
+    "v0": 6.878,
+    "q0": 0.786,
+    "dth": 4.1,
+    "r0": 0.185,
+    "dpsi": -2.51,
+    "wind_y": -1.362,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.087
+   },
+   "flight": {
+    "t_flight": 0.8568,
+    "cg": [
+     4.7646,
+     0.0478,
+     0.0918
+    ],
+    "speed": 6.484,
+    "path_deg": -43.42,
+    "body_pitch_deg": -64.04,
+    "heading_deg": -5.17,
+    "pitch_rate": -0.117,
+    "yaw_rate": -0.023
+   },
+   "righted": true,
+   "rightT": 3.5199999999996767,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.465731,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.177427,
+    0.036767,
+    0.031951
+   ],
+   "t": 36.561,
+   "qualifies": false
+  },
+  {
+   "id": 42,
+   "inputs": {
+    "rail_deg": 34.159343,
+    "v0": 6.803,
+    "q0": -0.997,
+    "dth": -3.58,
+    "r0": 0.935,
+    "dpsi": 2.51,
+    "wind_y": 1.214,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.16
+   },
+   "flight": {
+    "t_flight": 0.848,
+    "cg": [
+     4.6794,
+     0.1406,
+     0.0886
+    ],
+    "speed": 6.441,
+    "path_deg": -43.26,
+    "body_pitch_deg": -56.5,
+    "heading_deg": -6.16,
+    "pitch_rate": -1.876,
+    "yaw_rate": 0.35
+   },
+   "righted": true,
+   "rightT": 6.960000000000752,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.36175,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.015018,
+    0.036673,
+    -0.273902
+   ],
+   "t": 38.461,
+   "qualifies": false
+  },
+  {
+   "id": 43,
+   "inputs": {
+    "rail_deg": 33.647338,
+    "v0": 6.786,
+    "q0": 0.168,
+    "dth": -0.98,
+    "r0": -0.937,
+    "dpsi": -0.3,
+    "wind_y": 0.499,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.648
+   },
+   "flight": {
+    "t_flight": 0.8382,
+    "cg": [
+     4.648,
+     0.1007,
+     0.0925
+    ],
+    "speed": 6.42,
+    "path_deg": -42.89,
+    "body_pitch_deg": -63.71,
+    "heading_deg": 11.37,
+    "pitch_rate": -1.172,
+    "yaw_rate": -0.345
+   },
+   "righted": true,
+   "rightT": 4.269999999999884,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.38809,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.119568,
+    0.036754,
+    -0.086153
+   ],
+   "t": 36.281,
+   "qualifies": false
+  },
+  {
+   "id": 44,
+   "inputs": {
+    "rail_deg": 33.714339,
+    "v0": 6.885,
+    "q0": 0.865,
+    "dth": -4.71,
+    "r0": -0.168,
+    "dpsi": 1.04,
+    "wind_y": -0.276,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.715
+   },
+   "flight": {
+    "t_flight": 0.85,
+    "cg": [
+     4.7635,
+     0.0838,
+     0.094
+    ],
+    "speed": 6.486,
+    "path_deg": -42.95,
+    "body_pitch_deg": -69.07,
+    "heading_deg": 2.56,
+    "pitch_rate": -0.913,
+    "yaw_rate": -0.01
+   },
+   "righted": true,
+   "rightT": 8.690000000000424,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.794824,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.538684,
+    0.036608,
+    -0.066973
+   ],
+   "t": 40.981,
+   "qualifies": false
+  },
+  {
+   "id": 45,
+   "inputs": {
+    "rail_deg": 34.956352,
+    "v0": 6.76,
+    "q0": 0.796,
+    "dth": -1.55,
+    "r0": 0.773,
+    "dpsi": -3.99,
+    "wind_y": 1.055,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.957
+   },
+   "flight": {
+    "t_flight": 0.8594,
+    "cg": [
+     4.6465,
+     0.1289,
+     0.094
+    ],
+    "speed": 6.384,
+    "path_deg": -44.39,
+    "body_pitch_deg": -69.17,
+    "heading_deg": -9.91,
+    "pitch_rate": -0.62,
+    "yaw_rate": 0.275
+   },
+   "righted": true,
+   "rightT": 10.739999999999288,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.664586,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.193375,
+    0.036622,
+    -0.032864
+   ],
+   "t": 42.111,
+   "qualifies": false
+  },
+  {
+   "id": 46,
+   "inputs": {
+    "rail_deg": 34.683349,
+    "v0": 6.813,
+    "q0": -0.391,
+    "dth": -1.1,
+    "r0": -0.745,
+    "dpsi": -2.21,
+    "wind_y": 0.048,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.684
+   },
+   "flight": {
+    "t_flight": 0.8592,
+    "cg": [
+     4.7071,
+     0.0883,
+     0.0905
+    ],
+    "speed": 6.444,
+    "path_deg": -43.84,
+    "body_pitch_deg": -60.55,
+    "heading_deg": 6.9,
+    "pitch_rate": -1.262,
+    "yaw_rate": -0.4
+   },
+   "righted": true,
+   "rightT": 7.8600000000008166,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.621333,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.077353,
+    0.036705,
+    0.046985
+   ],
+   "t": 39.861,
+   "qualifies": false
+  },
+  {
+   "id": 47,
+   "inputs": {
+    "rail_deg": 34.043342,
+    "v0": 6.794,
+    "q0": 0.745,
+    "dth": -2.86,
+    "r0": 0.567,
+    "dpsi": 3.62,
+    "wind_y": -0.435,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.044
+   },
+   "flight": {
+    "t_flight": 0.8468,
+    "cg": [
+     4.6671,
+     0.0829,
+     0.0942
+    ],
+    "speed": 6.415,
+    "path_deg": -43.38,
+    "body_pitch_deg": -68.74,
+    "heading_deg": -3.11,
+    "pitch_rate": -0.86,
+    "yaw_rate": 0.413
+   },
+   "righted": true,
+   "rightT": 4.139999999999864,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.293583,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.658423,
+    0.036755,
+    0.024895
+   ],
+   "t": 33.091,
+   "qualifies": false
+  },
+  {
+   "id": 48,
+   "inputs": {
+    "rail_deg": 33.113334,
+    "v0": 6.864,
+    "q0": 0.459,
+    "dth": -0.15,
+    "r0": 0.852,
+    "dpsi": -2.4,
+    "wind_y": 0.68,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.114
+   },
+   "flight": {
+    "t_flight": 0.8362,
+    "cg": [
+     4.7189,
+     0.1169,
+     0.0927
+    ],
+    "speed": 6.479,
+    "path_deg": -42.33,
+    "body_pitch_deg": -64.36,
+    "heading_deg": -10.41,
+    "pitch_rate": -1.004,
+    "yaw_rate": 0.122
+   },
+   "righted": true,
+   "rightT": 7.310000000000903,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.675287,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.117332,
+    0.036779,
+    -0.074502
+   ],
+   "t": 39.991,
+   "qualifies": false
+  },
+  {
+   "id": 49,
+   "inputs": {
+    "rail_deg": 34.295344,
+    "v0": 6.777,
+    "q0": 0.558,
+    "dth": -3.93,
+    "r0": -0.383,
+    "dpsi": -0.06,
+    "wind_y": 1.394,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.296
+   },
+   "flight": {
+    "t_flight": 0.8492,
+    "cg": [
+     4.654,
+     0.1334,
+     0.0939
+    ],
+    "speed": 6.404,
+    "path_deg": -43.6,
+    "body_pitch_deg": -67.63,
+    "heading_deg": 4.78,
+    "pitch_rate": -0.942,
+    "yaw_rate": -0.179
+   },
+   "righted": true,
+   "rightT": 7.760000000000861,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.436669,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.161927,
+    0.036684,
+    -0.109312
+   ],
+   "t": 42.501,
+   "qualifies": false
+  },
+  {
+   "id": 50,
+   "inputs": {
+    "rail_deg": 34.524347,
+    "v0": 6.711,
+    "q0": 0.252,
+    "dth": -3.62,
+    "r0": -0.219,
+    "dpsi": 4.64,
+    "wind_y": -0.678,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.525
+   },
+   "flight": {
+    "t_flight": 0.8462,
+    "cg": [
+     4.5843,
+     0.0722,
+     0.0932
+    ],
+    "speed": 6.357,
+    "path_deg": -43.87,
+    "body_pitch_deg": -66.08,
+    "heading_deg": 5.17,
+    "pitch_rate": -1.146,
+    "yaw_rate": 0.186
+   },
+   "righted": true,
+   "rightT": 7.950000000000739,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.751661,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.084085,
+    0.03671,
+    0.151723
+   ],
+   "t": 41.641,
+   "qualifies": false
+  },
+  {
+   "id": 51,
+   "inputs": {
+    "rail_deg": 33.206334,
+    "v0": 6.885,
+    "q0": -0.573,
+    "dth": 0.89,
+    "r0": -0.477,
+    "dpsi": 4.45,
+    "wind_y": 0.755,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.207
+   },
+   "flight": {
+    "t_flight": 0.8396,
+    "cg": [
+     4.7507,
+     0.1121,
+     0.0877
+    ],
+    "speed": 6.511,
+    "path_deg": -42.27,
+    "body_pitch_deg": -55.66,
+    "heading_deg": 8.85,
+    "pitch_rate": -1.284,
+    "yaw_rate": 0.096
+   },
+   "righted": true,
+   "rightT": 7.300000000000876,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.600578,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.928867,
+    0.036647,
+    -0.064521
+   ],
+   "t": 39.641,
+   "qualifies": false
+  },
+  {
+   "id": 52,
+   "inputs": {
+    "rail_deg": 34.598348,
+    "v0": 6.72,
+    "q0": -0.277,
+    "dth": 3.56,
+    "r0": -0.412,
+    "dpsi": -3.92,
+    "wind_y": 1.067,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.599
+   },
+   "flight": {
+    "t_flight": 0.8488,
+    "cg": [
+     4.5977,
+     0.1206,
+     0.09
+    ],
+    "speed": 6.371,
+    "path_deg": -43.94,
+    "body_pitch_deg": -59.29,
+    "heading_deg": 3.4,
+    "pitch_rate": -0.812,
+    "yaw_rate": -0.419
+   },
+   "righted": true,
+   "rightT": 5.140000000000175,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.23777,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    4.972477,
+    0.036672,
+    -0.051398
+   ],
+   "t": 33.921,
+   "qualifies": false
+  },
+  {
+   "id": 53,
+   "inputs": {
+    "rail_deg": 33.538337,
+    "v0": 6.818,
+    "q0": -0.619,
+    "dth": -3.79,
+    "r0": -0.015,
+    "dpsi": 1.39,
+    "wind_y": 0.808,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.539
+   },
+   "flight": {
+    "t_flight": 0.8386,
+    "cg": [
+     4.683,
+     0.1159,
+     0.089
+    ],
+    "speed": 6.456,
+    "path_deg": -42.63,
+    "body_pitch_deg": -57.8,
+    "heading_deg": 2.4,
+    "pitch_rate": -1.687,
+    "yaw_rate": 0.018
+   },
+   "righted": true,
+   "rightT": 1.0999999999999541,
+   "moves": [],
+   "first_tilt": null,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.12405,
+    0.036729,
+    -0.10131
+   ],
+   "t": 30.961,
+   "qualifies": false
+  },
+  {
+   "id": 54,
+   "inputs": {
+    "rail_deg": 34.863351,
+    "v0": 6.804,
+    "q0": 0.374,
+    "dth": -1.88,
+    "r0": 0.785,
+    "dpsi": -1.56,
+    "wind_y": -1.388,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.864
+   },
+   "flight": {
+    "t_flight": 0.8624,
+    "cg": [
+     4.7,
+     0.051,
+     0.093
+    ],
+    "speed": 6.427,
+    "path_deg": -44.13,
+    "body_pitch_deg": -65.96,
+    "heading_deg": -9.5,
+    "pitch_rate": -0.776,
+    "yaw_rate": 0.307
+   },
+   "righted": true,
+   "rightT": 10.809999999999176,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.840708,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.233361,
+    0.036462,
+    0.075583
+   ],
+   "t": 42.011,
+   "qualifies": false
+  },
+  {
+   "id": 55,
+   "inputs": {
+    "rail_deg": 33.420336,
+    "v0": 6.729,
+    "q0": 0.279,
+    "dth": -3.41,
+    "r0": -0.089,
+    "dpsi": -1.71,
+    "wind_y": 0.885,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.421
+   },
+   "flight": {
+    "t_flight": 0.8284,
+    "cg": [
+     4.5769,
+     0.1156,
+     0.0922
+    ],
+    "speed": 6.376,
+    "path_deg": -42.74,
+    "body_pitch_deg": -64.8,
+    "heading_deg": 1.23,
+    "pitch_rate": -1.313,
+    "yaw_rate": -0.178
+   },
+   "righted": true,
+   "rightT": 7.710000000000944,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.757538,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.961596,
+    0.036791,
+    -0.114864
+   ],
+   "t": 41.121,
+   "qualifies": false
+  },
+  {
+   "id": 56,
+   "inputs": {
+    "rail_deg": 33.580338,
+    "v0": 6.747,
+    "q0": -0.424,
+    "dth": -3.1,
+    "r0": 0.312,
+    "dpsi": 0.23,
+    "wind_y": 0.586,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.581
+   },
+   "flight": {
+    "t_flight": 0.8324,
+    "cg": [
+     4.6024,
+     0.11,
+     0.0901
+    ],
+    "speed": 6.398,
+    "path_deg": -42.79,
+    "body_pitch_deg": -59.42,
+    "heading_deg": -2.39,
+    "pitch_rate": -1.592,
+    "yaw_rate": 0.034
+   },
+   "righted": true,
+   "rightT": 5.600000000000345,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 26.892956,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    4.986435,
+    0.036769,
+    -0.170454
+   ],
+   "t": 34.541,
+   "qualifies": false
+  },
+  {
+   "id": 57,
+   "inputs": {
+    "rail_deg": 33.232335,
+    "v0": 6.86,
+    "q0": 0.086,
+    "dth": 4.74,
+    "r0": 0.977,
+    "dpsi": -4.85,
+    "wind_y": 0.305,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.233
+   },
+   "flight": {
+    "t_flight": 0.8384,
+    "cg": [
+     4.72,
+     0.1054,
+     0.09
+    ],
+    "speed": 6.482,
+    "path_deg": -42.47,
+    "body_pitch_deg": -59.9,
+    "heading_deg": -13.65,
+    "pitch_rate": -0.765,
+    "yaw_rate": 0.059
+   },
+   "righted": true,
+   "rightT": 7.3300000000009655,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.596442,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.383872,
+    0.036545,
+    -0.176258
+   ],
+   "t": 38.701,
+   "qualifies": false
+  },
+  {
+   "id": 58,
+   "inputs": {
+    "rail_deg": 33.507337,
+    "v0": 6.839,
+    "q0": -0.726,
+    "dth": 0.67,
+    "r0": 0.523,
+    "dpsi": 0.7,
+    "wind_y": -0.594,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.508
+   },
+   "flight": {
+    "t_flight": 0.8404,
+    "cg": [
+     4.7066,
+     0.078,
+     0.088
+    ],
+    "speed": 6.474,
+    "path_deg": -42.61,
+    "body_pitch_deg": -55.41,
+    "heading_deg": -7.0,
+    "pitch_rate": -1.377,
+    "yaw_rate": 0.229
+   },
+   "righted": true,
+   "rightT": 13.17999999999798,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 176.132423,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.111477,
+    0.036669,
+    -0.18466
+   ],
+   "t": 46.171,
+   "qualifies": false
+  },
+  {
+   "id": 59,
+   "inputs": {
+    "rail_deg": 34.489347,
+    "v0": 6.887,
+    "q0": -0.448,
+    "dth": -3.9,
+    "r0": -0.211,
+    "dpsi": -0.91,
+    "wind_y": -0.322,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.49
+   },
+   "flight": {
+    "t_flight": 0.863,
+    "cg": [
+     4.7889,
+     0.0808,
+     0.0904
+    ],
+    "speed": 6.504,
+    "path_deg": -43.52,
+    "body_pitch_deg": -60.41,
+    "heading_deg": 1.28,
+    "pitch_rate": -1.448,
+    "yaw_rate": -0.107
+   },
+   "righted": true,
+   "rightT": 7.390000000000966,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.676439,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.076484,
+    0.036698,
+    0.048019
+   ],
+   "t": 41.351,
+   "qualifies": false
+  },
+  {
+   "id": 60,
+   "inputs": {
+    "rail_deg": 34.896351,
+    "v0": 6.748,
+    "q0": -0.887,
+    "dth": -4.85,
+    "r0": -0.035,
+    "dpsi": -2.31,
+    "wind_y": -0.034,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.897
+   },
+   "flight": {
+    "t_flight": 0.8558,
+    "cg": [
+     4.6378,
+     0.0899,
+     0.0895
+    ],
+    "speed": 6.397,
+    "path_deg": -44.04,
+    "body_pitch_deg": -58.95,
+    "heading_deg": -0.84,
+    "pitch_rate": -1.802,
+    "yaw_rate": -0.158
+   },
+   "righted": true,
+   "rightT": 1.7799999999998684,
+   "moves": [],
+   "first_tilt": null,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.003621,
+    0.036645,
+    -0.058751
+   ],
+   "t": 31.721,
+   "qualifies": false
+  },
+  {
+   "id": 61,
+   "inputs": {
+    "rail_deg": 34.384345,
+    "v0": 6.764,
+    "q0": -0.742,
+    "dth": 4.12,
+    "r0": -0.63,
+    "dpsi": -1.89,
+    "wind_y": -1.433,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.385
+   },
+   "flight": {
+    "t_flight": 0.849,
+    "cg": [
+     4.6415,
+     0.0375,
+     0.0873
+    ],
+    "speed": 6.412,
+    "path_deg": -43.64,
+    "body_pitch_deg": -54.85,
+    "heading_deg": 2.65,
+    "pitch_rate": -1.057,
+    "yaw_rate": -0.324
+   },
+   "righted": true,
+   "rightT": 7.780000000001003,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.678934,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    4.92819,
+    0.036505,
+    0.0012
+   ],
+   "t": 36.131,
+   "qualifies": true
+  },
+  {
+   "id": 62,
+   "inputs": {
+    "rail_deg": 34.222343,
+    "v0": 6.748,
+    "q0": 0.495,
+    "dth": -0.71,
+    "r0": 0.654,
+    "dpsi": -1.65,
+    "wind_y": 0.842,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.223
+   },
+   "flight": {
+    "t_flight": 0.8448,
+    "cg": [
+     4.6173,
+     0.1204,
+     0.0934
+    ],
+    "speed": 6.383,
+    "path_deg": -43.59,
+    "body_pitch_deg": -66.12,
+    "heading_deg": -7.24,
+    "pitch_rate": -0.858,
+    "yaw_rate": 0.177
+   },
+   "righted": true,
+   "rightT": 7.980000000000828,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.769176,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.019737,
+    0.036647,
+    -0.205118
+   ],
+   "t": 40.971,
+   "qualifies": false
+  },
+  {
+   "id": 63,
+   "inputs": {
+    "rail_deg": 33.141334,
+    "v0": 6.771,
+    "q0": -0.356,
+    "dth": -0.92,
+    "r0": -0.566,
+    "dpsi": -2.07,
+    "wind_y": 1.418,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.142
+   },
+   "flight": {
+    "t_flight": 0.827,
+    "cg": [
+     4.6159,
+     0.1312,
+     0.0902
+    ],
+    "speed": 6.416,
+    "path_deg": -42.35,
+    "body_pitch_deg": -58.82,
+    "heading_deg": 7.98,
+    "pitch_rate": -1.396,
+    "yaw_rate": -0.389
+   },
+   "righted": true,
+   "rightT": 4.720000000000027,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.235037,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.000515,
+    0.036629,
+    -0.008427
+   ],
+   "t": 33.531,
+   "qualifies": false
+  },
+  {
+   "id": 64,
+   "inputs": {
+    "rail_deg": 33.162334,
+    "v0": 6.799,
+    "q0": 0.81,
+    "dth": -0.37,
+    "r0": -0.109,
+    "dpsi": 0.22,
+    "wind_y": -1.098,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.163
+   },
+   "flight": {
+    "t_flight": 0.8314,
+    "cg": [
+     4.6471,
+     0.0584,
+     0.0929
+    ],
+    "speed": 6.424,
+    "path_deg": -42.53,
+    "body_pitch_deg": -66.89,
+    "heading_deg": 0.14,
+    "pitch_rate": -0.782,
+    "yaw_rate": 0.0
+   },
+   "righted": true,
+   "rightT": 10.719999999999265,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.842619,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.269766,
+    0.03673,
+    -0.043285
+   ],
+   "t": 43.841,
+   "qualifies": false
+  },
+  {
+   "id": 65,
+   "inputs": {
+    "rail_deg": 33.399336,
+    "v0": 6.84,
+    "q0": 0.197,
+    "dth": -2.71,
+    "r0": -0.038,
+    "dpsi": 4.86,
+    "wind_y": -0.887,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.4
+   },
+   "flight": {
+    "t_flight": 0.839,
+    "cg": [
+     4.7028,
+     0.0661,
+     0.0916
+    ],
+    "speed": 6.464,
+    "path_deg": -42.59,
+    "body_pitch_deg": -63.54,
+    "heading_deg": 2.26,
+    "pitch_rate": -1.2,
+    "yaw_rate": 0.315
+   },
+   "righted": true,
+   "rightT": 10.979999999999093,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.849457,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.230433,
+    0.036771,
+    0.158666
+   ],
+   "t": 43.831,
+   "qualifies": false
+  },
+  {
+   "id": 66,
+   "inputs": {
+    "rail_deg": 34.599348,
+    "v0": 6.888,
+    "q0": 0.082,
+    "dth": -3.39,
+    "r0": -0.055,
+    "dpsi": 2.84,
+    "wind_y": 0.48,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.6
+   },
+   "flight": {
+    "t_flight": 0.8656,
+    "cg": [
+     4.792,
+     0.1061,
+     0.0923
+    ],
+    "speed": 6.498,
+    "path_deg": -43.7,
+    "body_pitch_deg": -63.77,
+    "heading_deg": 3.23,
+    "pitch_rate": -1.057,
+    "yaw_rate": 0.113
+   },
+   "righted": true,
+   "rightT": 8.180000000000673,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.768606,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.185648,
+    0.036652,
+    0.049738
+   ],
+   "t": 40.581,
+   "qualifies": false
+  },
+  {
+   "id": 67,
+   "inputs": {
+    "rail_deg": 34.684349,
+    "v0": 6.801,
+    "q0": -0.987,
+    "dth": -4.68,
+    "r0": 0.596,
+    "dpsi": 0.37,
+    "wind_y": 1.229,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.685
+   },
+   "flight": {
+    "t_flight": 0.8572,
+    "cg": [
+     4.6914,
+     0.1377,
+     0.0892
+    ],
+    "speed": 6.438,
+    "path_deg": -43.77,
+    "body_pitch_deg": -57.71,
+    "heading_deg": -3.61,
+    "pitch_rate": -1.859,
+    "yaw_rate": 0.152
+   },
+   "righted": true,
+   "rightT": 3.4299999999996933,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.124359,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.052759,
+    0.036562,
+    -0.245384
+   ],
+   "t": 32.091,
+   "qualifies": false
+  },
+  {
+   "id": 68,
+   "inputs": {
+    "rail_deg": 34.691348,
+    "v0": 6.828,
+    "q0": 0.187,
+    "dth": 2.75,
+    "r0": -0.658,
+    "dpsi": -1.31,
+    "wind_y": 0.425,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.692
+   },
+   "flight": {
+    "t_flight": 0.8618,
+    "cg": [
+     4.7235,
+     0.1003,
+     0.0919
+    ],
+    "speed": 6.45,
+    "path_deg": -43.95,
+    "body_pitch_deg": -62.26,
+    "heading_deg": 6.21,
+    "pitch_rate": -0.587,
+    "yaw_rate": -0.385
+   },
+   "righted": true,
+   "rightT": 7.970000000000745,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.711416,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.087695,
+    0.036703,
+    0.104684
+   ],
+   "t": 42.071,
+   "qualifies": false
+  },
+  {
+   "id": 69,
+   "inputs": {
+    "rail_deg": 34.044342,
+    "v0": 6.733,
+    "q0": -0.351,
+    "dth": -3.64,
+    "r0": 0.671,
+    "dpsi": -3.18,
+    "wind_y": 0.444,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.045
+   },
+   "flight": {
+    "t_flight": 0.8394,
+    "cg": [
+     4.5989,
+     0.1073,
+     0.0906
+    ],
+    "speed": 6.384,
+    "path_deg": -43.28,
+    "body_pitch_deg": -61.13,
+    "heading_deg": -8.6,
+    "pitch_rate": -1.583,
+    "yaw_rate": -0.059
+   },
+   "righted": true,
+   "rightT": 7.550000000000994,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.710969,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.940967,
+    0.036648,
+    -0.260925
+   ],
+   "t": 41.231,
+   "qualifies": false
+  },
+  {
+   "id": 70,
+   "inputs": {
+    "rail_deg": 33.337336,
+    "v0": 6.725,
+    "q0": -0.917,
+    "dth": -1.4,
+    "r0": 0.673,
+    "dpsi": 4.09,
+    "wind_y": 0.113,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.338
+   },
+   "flight": {
+    "t_flight": 0.8258,
+    "cg": [
+     4.5712,
+     0.0998,
+     0.0876
+    ],
+    "speed": 6.387,
+    "path_deg": -42.56,
+    "body_pitch_deg": -55.12,
+    "heading_deg": -6.62,
+    "pitch_rate": -1.741,
+    "yaw_rate": 0.367
+   },
+   "righted": true,
+   "rightT": 5.190000000000188,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 33.952598,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.009497,
+    0.036703,
+    -0.186463
+   ],
+   "t": 34.041,
+   "qualifies": false
+  },
+  {
+   "id": 71,
+   "inputs": {
+    "rail_deg": 34.727349,
+    "v0": 6.831,
+    "q0": 0.916,
+    "dth": -2.91,
+    "r0": -0.489,
+    "dpsi": -2.3,
+    "wind_y": 0.958,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.728
+   },
+   "flight": {
+    "t_flight": 0.8634,
+    "cg": [
+     4.727,
+     0.1174,
+     0.0939
+    ],
+    "speed": 6.439,
+    "path_deg": -44.08,
+    "body_pitch_deg": -69.77,
+    "heading_deg": 2.13,
+    "pitch_rate": -0.505,
+    "yaw_rate": -0.307
+   },
+   "righted": true,
+   "rightT": 7.530000000000963,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.693074,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.19179,
+    0.036724,
+    -0.082149
+   ],
+   "t": 41.051,
+   "qualifies": false
+  },
+  {
+   "id": 72,
+   "inputs": {
+    "rail_deg": 34.871351,
+    "v0": 6.855,
+    "q0": 0.922,
+    "dth": -4.93,
+    "r0": -0.677,
+    "dpsi": -3.48,
+    "wind_y": -0.51,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.872
+   },
+   "flight": {
+    "t_flight": 0.868,
+    "cg": [
+     4.7571,
+     0.0716,
+     0.0944
+    ],
+    "speed": 6.456,
+    "path_deg": -44.18,
+    "body_pitch_deg": -71.05,
+    "heading_deg": 1.68,
+    "pitch_rate": -0.655,
+    "yaw_rate": -0.475
+   },
+   "righted": true,
+   "rightT": 7.5300000000009595,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.701579,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.271617,
+    0.036779,
+    -0.030189
+   ],
+   "t": 40.671,
+   "qualifies": false
+  },
+  {
+   "id": 73,
+   "inputs": {
+    "rail_deg": 33.735339,
+    "v0": 6.78,
+    "q0": -0.685,
+    "dth": 0.25,
+    "r0": 0.315,
+    "dpsi": 3.14,
+    "wind_y": -1.046,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.736
+   },
+   "flight": {
+    "t_flight": 0.8386,
+    "cg": [
+     4.6446,
+     0.0627,
+     0.0888
+    ],
+    "speed": 6.425,
+    "path_deg": -42.91,
+    "body_pitch_deg": -56.45,
+    "heading_deg": -4.15,
+    "pitch_rate": -1.367,
+    "yaw_rate": 0.366
+   },
+   "righted": true,
+   "rightT": 7.340000000000879,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.583554,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.72094,
+    0.036639,
+    -0.02784
+   ],
+   "t": 40.401,
+   "qualifies": false
+  },
+  {
+   "id": 74,
+   "inputs": {
+    "rail_deg": 34.969352,
+    "v0": 6.752,
+    "q0": -0.165,
+    "dth": 4.01,
+    "r0": -0.701,
+    "dpsi": -0.77,
+    "wind_y": -0.444,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.97
+   },
+   "flight": {
+    "t_flight": 0.8586,
+    "cg": [
+     4.6418,
+     0.0741,
+     0.0904
+    ],
+    "speed": 6.395,
+    "path_deg": -44.29,
+    "body_pitch_deg": -59.87,
+    "heading_deg": 6.2,
+    "pitch_rate": -0.728,
+    "yaw_rate": -0.353
+   },
+   "righted": true,
+   "rightT": 2.089999999999832,
+   "moves": [],
+   "first_tilt": null,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    4.973647,
+    0.036628,
+    0.074998
+   ],
+   "t": 32.011,
+   "qualifies": false
+  },
+  {
+   "id": 75,
+   "inputs": {
+    "rail_deg": 33.176334,
+    "v0": 6.709,
+    "q0": -0.585,
+    "dth": 0.14,
+    "r0": -0.907,
+    "dpsi": -3.0,
+    "wind_y": 1.33,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.177
+   },
+   "flight": {
+    "t_flight": 0.8216,
+    "cg": [
+     4.5473,
+     0.1244,
+     0.0892
+    ],
+    "speed": 6.368,
+    "path_deg": -42.47,
+    "body_pitch_deg": -57.53,
+    "heading_deg": 11.84,
+    "pitch_rate": -1.486,
+    "yaw_rate": -0.518
+   },
+   "righted": true,
+   "rightT": 7.690000000000994,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.387955,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.692333,
+    0.036768,
+    0.009028
+   ],
+   "t": 41.581,
+   "qualifies": false
+  },
+  {
+   "id": 76,
+   "inputs": {
+    "rail_deg": 33.969341,
+    "v0": 6.755,
+    "q0": 0.96,
+    "dth": 2.15,
+    "r0": -0.309,
+    "dpsi": 3.45,
+    "wind_y": -1.387,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.97
+   },
+   "flight": {
+    "t_flight": 0.8418,
+    "cg": [
+     4.6166,
+     0.047,
+     0.0936
+    ],
+    "speed": 6.382,
+    "path_deg": -43.47,
+    "body_pitch_deg": -67.66,
+    "heading_deg": 4.89,
+    "pitch_rate": -0.357,
+    "yaw_rate": -0.056
+   },
+   "righted": true,
+   "rightT": 3.5399999999996714,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.642726,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.383395,
+    0.036568,
+    0.062509
+   ],
+   "t": 35.801,
+   "qualifies": false
+  },
+  {
+   "id": 77,
+   "inputs": {
+    "rail_deg": 33.634338,
+    "v0": 6.89,
+    "q0": 0.054,
+    "dth": -4.04,
+    "r0": -0.825,
+    "dpsi": 4.41,
+    "wind_y": -0.358,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.635
+   },
+   "flight": {
+    "t_flight": 0.8478,
+    "cg": [
+     4.7666,
+     0.077,
+     0.0923
+    ],
+    "speed": 6.502,
+    "path_deg": -42.71,
+    "body_pitch_deg": -63.25,
+    "heading_deg": 11.59,
+    "pitch_rate": -1.4,
+    "yaw_rate": 0.037
+   },
+   "righted": true,
+   "rightT": 3.4099999999996933,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.560941,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.248383,
+    0.03667,
+    0.01894
+   ],
+   "t": 35.621,
+   "qualifies": false
+  },
+  {
+   "id": 78,
+   "inputs": {
+    "rail_deg": 34.77535,
+    "v0": 6.751,
+    "q0": 0.17,
+    "dth": -2.63,
+    "r0": 0.697,
+    "dpsi": 2.94,
+    "wind_y": 1.419,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.776
+   },
+   "flight": {
+    "t_flight": 0.8544,
+    "cg": [
+     4.6327,
+     0.1454,
+     0.0926
+    ],
+    "speed": 6.387,
+    "path_deg": -44.08,
+    "body_pitch_deg": -65.15,
+    "heading_deg": -2.3,
+    "pitch_rate": -1.057,
+    "yaw_rate": 0.447
+   },
+   "righted": true,
+   "rightT": 3.0799999999997176,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.65428,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.07608,
+    0.036678,
+    -0.06662
+   ],
+   "t": 36.321,
+   "qualifies": false
+  },
+  {
+   "id": 79,
+   "inputs": {
+    "rail_deg": 33.982341,
+    "v0": 6.853,
+    "q0": -0.815,
+    "dth": 1.13,
+    "r0": 0.486,
+    "dpsi": 2.46,
+    "wind_y": -0.667,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.983
+   },
+   "flight": {
+    "t_flight": 0.8504,
+    "cg": [
+     4.7359,
+     0.0754,
+     0.0882
+    ],
+    "speed": 6.483,
+    "path_deg": -43.06,
+    "body_pitch_deg": -55.19,
+    "heading_deg": -5.62,
+    "pitch_rate": -1.329,
+    "yaw_rate": 0.354
+   },
+   "righted": true,
+   "rightT": 7.120000000000809,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.626107,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.805084,
+    0.036654,
+    -0.099189
+   ],
+   "t": 40.001,
+   "qualifies": false
+  },
+  {
+   "id": 80,
+   "inputs": {
+    "rail_deg": 33.033333,
+    "v0": 6.823,
+    "q0": 0.517,
+    "dth": 0.37,
+    "r0": -0.642,
+    "dpsi": -0.95,
+    "wind_y": -0.824,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.034
+   },
+   "flight": {
+    "t_flight": 0.8308,
+    "cg": [
+     4.6695,
+     0.0628,
+     0.0927
+    ],
+    "speed": 6.447,
+    "path_deg": -42.32,
+    "body_pitch_deg": -64.56,
+    "heading_deg": 5.54,
+    "pitch_rate": -0.936,
+    "yaw_rate": -0.228
+   },
+   "righted": true,
+   "rightT": 8.100000000000744,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.753949,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.076519,
+    0.036751,
+    -0.0301
+   ],
+   "t": 41.581,
+   "qualifies": false
+  },
+  {
+   "id": 81,
+   "inputs": {
+    "rail_deg": 34.75535,
+    "v0": 6.836,
+    "q0": 0.222,
+    "dth": 2.21,
+    "r0": 0.967,
+    "dpsi": 4.62,
+    "wind_y": -1.46,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.756
+   },
+   "flight": {
+    "t_flight": 0.8642,
+    "cg": [
+     4.7341,
+     0.0504,
+     0.0917
+    ],
+    "speed": 6.451,
+    "path_deg": -44.04,
+    "body_pitch_deg": -63.76,
+    "heading_deg": -5.84,
+    "pitch_rate": -0.551,
+    "yaw_rate": 0.689
+   },
+   "righted": true,
+   "rightT": 3.6699999999996904,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.407676,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.226687,
+    0.03649,
+    0.014752
+   ],
+   "t": 35.371,
+   "qualifies": false
+  },
+  {
+   "id": 82,
+   "inputs": {
+    "rail_deg": 33.091334,
+    "v0": 6.899,
+    "q0": -0.256,
+    "dth": 2.35,
+    "r0": -0.242,
+    "dpsi": 2.96,
+    "wind_y": 0.751,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.092
+   },
+   "flight": {
+    "t_flight": 0.8392,
+    "cg": [
+     4.7627,
+     0.113,
+     0.0887
+    ],
+    "speed": 6.52,
+    "path_deg": -42.19,
+    "body_pitch_deg": -57.26,
+    "heading_deg": 5.61,
+    "pitch_rate": -1.005,
+    "yaw_rate": 0.05
+   },
+   "righted": true,
+   "rightT": 2.07999999999985,
+   "moves": [],
+   "first_tilt": null,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.216896,
+    0.036631,
+    0.010344
+   ],
+   "t": 31.951,
+   "qualifies": false
+  },
+  {
+   "id": 83,
+   "inputs": {
+    "rail_deg": 33.591337,
+    "v0": 6.845,
+    "q0": -0.952,
+    "dth": -4.54,
+    "r0": 0.025,
+    "dpsi": 4.18,
+    "wind_y": 1.486,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.592
+   },
+   "flight": {
+    "t_flight": 0.842,
+    "cg": [
+     4.7147,
+     0.1438,
+     0.0876
+    ],
+    "speed": 6.479,
+    "path_deg": -42.62,
+    "body_pitch_deg": -55.42,
+    "heading_deg": 4.72,
+    "pitch_rate": -1.864,
+    "yaw_rate": 0.171
+   },
+   "righted": true,
+   "rightT": 7.110000000000802,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.626365,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.811624,
+    0.036712,
+    -0.095711
+   ],
+   "t": 40.651,
+   "qualifies": false
+  },
+  {
+   "id": 84,
+   "inputs": {
+    "rail_deg": 33.095334,
+    "v0": 6.766,
+    "q0": -0.735,
+    "dth": 3.86,
+    "r0": -0.206,
+    "dpsi": -1.83,
+    "wind_y": -0.19,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.096
+   },
+   "flight": {
+    "t_flight": 0.826,
+    "cg": [
+     4.611,
+     0.0851,
+     0.087
+    ],
+    "speed": 6.42,
+    "path_deg": -42.34,
+    "body_pitch_deg": -53.86,
+    "heading_deg": 1.51,
+    "pitch_rate": -1.155,
+    "yaw_rate": -0.146
+   },
+   "righted": true,
+   "rightT": 3.6099999999996926,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.419224,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.844904,
+    0.036687,
+    -0.040079
+   ],
+   "t": 36.401,
+   "qualifies": false
+  },
+  {
+   "id": 85,
+   "inputs": {
+    "rail_deg": 33.769339,
+    "v0": 6.805,
+    "q0": -0.837,
+    "dth": -4.05,
+    "r0": -0.466,
+    "dpsi": -3.78,
+    "wind_y": 1.402,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.77
+   },
+   "flight": {
+    "t_flight": 0.8412,
+    "cg": [
+     4.673,
+     0.1324,
+     0.0893
+    ],
+    "speed": 6.443,
+    "path_deg": -42.86,
+    "body_pitch_deg": -57.19,
+    "heading_deg": 5.84,
+    "pitch_rate": -1.781,
+    "yaw_rate": -0.479
+   },
+   "righted": true,
+   "rightT": 4.289999999999868,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.423338,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.114221,
+    0.036293,
+    -0.009735
+   ],
+   "t": 32.571,
+   "qualifies": false
+  },
+  {
+   "id": 86,
+   "inputs": {
+    "rail_deg": 33.307335,
+    "v0": 6.878,
+    "q0": -0.397,
+    "dth": 4.93,
+    "r0": -0.704,
+    "dpsi": 0.76,
+    "wind_y": 0.611,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.308
+   },
+   "flight": {
+    "t_flight": 0.8414,
+    "cg": [
+     4.7457,
+     0.1052,
+     0.0879
+    ],
+    "speed": 6.503,
+    "path_deg": -42.45,
+    "body_pitch_deg": -55.91,
+    "heading_deg": 9.66,
+    "pitch_rate": -0.88,
+    "yaw_rate": -0.231
+   },
+   "righted": true,
+   "rightT": 3.6499999999997,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.630668,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.115765,
+    0.036743,
+    -0.051556
+   ],
+   "t": 36.711,
+   "qualifies": false
+  },
+  {
+   "id": 87,
+   "inputs": {
+    "rail_deg": 33.052333,
+    "v0": 6.81,
+    "q0": -0.004,
+    "dth": 3.04,
+    "r0": -0.265,
+    "dpsi": -0.07,
+    "wind_y": -1.423,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.053
+   },
+   "flight": {
+    "t_flight": 0.8296,
+    "cg": [
+     4.6556,
+     0.0437,
+     0.0905
+    ],
+    "speed": 6.445,
+    "path_deg": -42.3,
+    "body_pitch_deg": -59.25,
+    "heading_deg": 0.34,
+    "pitch_rate": -0.867,
+    "yaw_rate": -0.028
+   },
+   "righted": true,
+   "rightT": 2.0499999999998475,
+   "moves": [],
+   "first_tilt": null,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.089271,
+    0.036689,
+    0.025635
+   ],
+   "t": 31.921,
+   "qualifies": false
+  },
+  {
+   "id": 88,
+   "inputs": {
+    "rail_deg": 34.384345,
+    "v0": 6.893,
+    "q0": 0.561,
+    "dth": 2.98,
+    "r0": 0.509,
+    "dpsi": -2.69,
+    "wind_y": 1.322,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.385
+   },
+   "flight": {
+    "t_flight": 0.863,
+    "cg": [
+     4.7879,
+     0.1395,
+     0.0919
+    ],
+    "speed": 6.496,
+    "path_deg": -43.66,
+    "body_pitch_deg": -63.54,
+    "heading_deg": -5.41,
+    "pitch_rate": -0.341,
+    "yaw_rate": 0.208
+   },
+   "righted": true,
+   "rightT": 3.2899999999996967,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.46307,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.171469,
+    0.036743,
+    -0.114216
+   ],
+   "t": 36.251,
+   "qualifies": false
+  },
+  {
+   "id": 89,
+   "inputs": {
+    "rail_deg": 33.164334,
+    "v0": 6.795,
+    "q0": 0.642,
+    "dth": 2.31,
+    "r0": -0.513,
+    "dpsi": -2.06,
+    "wind_y": 0.122,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.165
+   },
+   "flight": {
+    "t_flight": 0.8312,
+    "cg": [
+     4.6433,
+     0.0923,
+     0.0925
+    ],
+    "speed": 6.423,
+    "path_deg": -42.54,
+    "body_pitch_deg": -65.13,
+    "heading_deg": 4.79,
+    "pitch_rate": -0.69,
+    "yaw_rate": -0.302
+   },
+   "righted": true,
+   "rightT": 11.449999999998882,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 174.82516,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.103481,
+    0.03663,
+    0.033544
+   ],
+   "t": 40.131,
+   "qualifies": true
+  },
+  {
+   "id": 90,
+   "inputs": {
+    "rail_deg": 33.761339,
+    "v0": 6.729,
+    "q0": -0.449,
+    "dth": 2.42,
+    "r0": -0.086,
+    "dpsi": 0.1,
+    "wind_y": -1.142,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.762
+   },
+   "flight": {
+    "t_flight": 0.8344,
+    "cg": [
+     4.5872,
+     0.056,
+     0.0886
+    ],
+    "speed": 6.385,
+    "path_deg": -43.06,
+    "body_pitch_deg": -57.24,
+    "heading_deg": -1.17,
+    "pitch_rate": -1.081,
+    "yaw_rate": 0.044
+   },
+   "righted": true,
+   "rightT": 4.179999999999831,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 35.596984,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.014908,
+    0.03642,
+    -0.055392
+   ],
+   "t": 32.581,
+   "qualifies": false
+  },
+  {
+   "id": 91,
+   "inputs": {
+    "rail_deg": 33.048333,
+    "v0": 6.882,
+    "q0": 0.69,
+    "dth": -0.08,
+    "r0": 0.306,
+    "dpsi": 1.72,
+    "wind_y": -0.155,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.049
+   },
+   "flight": {
+    "t_flight": 0.8374,
+    "cg": [
+     4.7392,
+     0.0892,
+     0.0932
+    ],
+    "speed": 6.49,
+    "path_deg": -42.29,
+    "body_pitch_deg": -65.57,
+    "heading_deg": -2.52,
+    "pitch_rate": -0.8,
+    "yaw_rate": 0.208
+   },
+   "righted": true,
+   "rightT": 7.140000000000846,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.62292,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.184336,
+    0.036669,
+    -0.044144
+   ],
+   "t": 40.371,
+   "qualifies": false
+  },
+  {
+   "id": 92,
+   "inputs": {
+    "rail_deg": 33.200334,
+    "v0": 6.705,
+    "q0": 0.49,
+    "dth": 3.2,
+    "r0": -0.869,
+    "dpsi": 3.12,
+    "wind_y": -1.443,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.201
+   },
+   "flight": {
+    "t_flight": 0.8222,
+    "cg": [
+     4.5374,
+     0.0414,
+     0.0921
+    ],
+    "speed": 6.352,
+    "path_deg": -42.7,
+    "body_pitch_deg": -64.32,
+    "heading_deg": 9.57,
+    "pitch_rate": -0.8,
+    "yaw_rate": -0.139
+   },
+   "righted": true,
+   "rightT": 7.840000000000805,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.581992,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.951103,
+    0.036765,
+    0.099688
+   ],
+   "t": 40.401,
+   "qualifies": false
+  },
+  {
+   "id": 93,
+   "inputs": {
+    "rail_deg": 34.759349,
+    "v0": 6.801,
+    "q0": -0.008,
+    "dth": 4.96,
+    "r0": 0.48,
+    "dpsi": 0.3,
+    "wind_y": 1.047,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.76
+   },
+   "flight": {
+    "t_flight": 0.86,
+    "cg": [
+     4.6923,
+     0.1288,
+     0.0906
+    ],
+    "speed": 6.432,
+    "path_deg": -44.05,
+    "body_pitch_deg": -59.5,
+    "heading_deg": -2.99,
+    "pitch_rate": -0.523,
+    "yaw_rate": 0.259
+   },
+   "righted": true,
+   "rightT": 1.5799999999998913,
+   "moves": [],
+   "first_tilt": null,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.05169,
+    0.036649,
+    -0.2154
+   ],
+   "t": 31.531,
+   "qualifies": false
+  },
+  {
+   "id": 94,
+   "inputs": {
+    "rail_deg": 33.89634,
+    "v0": 6.757,
+    "q0": 0.607,
+    "dth": 3.2,
+    "r0": 0.229,
+    "dpsi": -2.26,
+    "wind_y": 1.452,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.897
+   },
+   "flight": {
+    "t_flight": 0.8404,
+    "cg": [
+     4.6182,
+     0.1389,
+     0.0926
+    ],
+    "speed": 6.39,
+    "path_deg": -43.33,
+    "body_pitch_deg": -64.52,
+    "heading_deg": -2.43,
+    "pitch_rate": -0.448,
+    "yaw_rate": 0.017
+   },
+   "righted": true,
+   "rightT": 8.100000000000744,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.778351,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.989507,
+    0.036724,
+    -0.192919
+   ],
+   "t": 41.321,
+   "qualifies": false
+  },
+  {
+   "id": 95,
+   "inputs": {
+    "rail_deg": 34.621348,
+    "v0": 6.734,
+    "q0": 0.304,
+    "dth": 0.81,
+    "r0": -0.912,
+    "dpsi": 1.79,
+    "wind_y": -1.248,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.622
+   },
+   "flight": {
+    "t_flight": 0.8502,
+    "cg": [
+     4.6086,
+     0.0451,
+     0.0927
+    ],
+    "speed": 6.372,
+    "path_deg": -44.01,
+    "body_pitch_deg": -64.71,
+    "heading_deg": 8.77,
+    "pitch_rate": -0.822,
+    "yaw_rate": -0.336
+   },
+   "righted": true,
+   "rightT": 7.580000000000986,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.641753,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.114434,
+    0.03672,
+    -0.008136
+   ],
+   "t": 40.551,
+   "qualifies": false
+  },
+  {
+   "id": 96,
+   "inputs": {
+    "rail_deg": 34.351345,
+    "v0": 6.828,
+    "q0": 0.767,
+    "dth": -2.1,
+    "r0": 0.153,
+    "dpsi": 2.3,
+    "wind_y": -1.359,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.352
+   },
+   "flight": {
+    "t_flight": 0.8558,
+    "cg": [
+     4.7132,
+     0.0492,
+     0.0938
+    ],
+    "speed": 6.441,
+    "path_deg": -43.67,
+    "body_pitch_deg": -67.88,
+    "heading_deg": -0.13,
+    "pitch_rate": -0.604,
+    "yaw_rate": 0.145
+   },
+   "righted": true,
+   "rightT": 7.190000000000886,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.660587,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.31447,
+    0.036612,
+    0.058784
+   ],
+   "t": 40.161,
+   "qualifies": false
+  },
+  {
+   "id": 97,
+   "inputs": {
+    "rail_deg": 33.392336,
+    "v0": 6.82,
+    "q0": 0.719,
+    "dth": -0.74,
+    "r0": 0.912,
+    "dpsi": 4.95,
+    "wind_y": -0.318,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.393
+   },
+   "flight": {
+    "t_flight": 0.8378,
+    "cg": [
+     4.6789,
+     0.0879,
+     0.0932
+    ],
+    "speed": 6.439,
+    "path_deg": -42.72,
+    "body_pitch_deg": -67.81,
+    "heading_deg": -6.72,
+    "pitch_rate": -0.901,
+    "yaw_rate": 0.6
+   },
+   "righted": true,
+   "rightT": 8.31000000000064,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.745284,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.177933,
+    0.036769,
+    -0.129088
+   ],
+   "t": 41.521,
+   "qualifies": false
+  },
+  {
+   "id": 98,
+   "inputs": {
+    "rail_deg": 33.730339,
+    "v0": 6.831,
+    "q0": 0.301,
+    "dth": 4.13,
+    "r0": -0.6,
+    "dpsi": 4.22,
+    "wind_y": -0.079,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.731
+   },
+   "flight": {
+    "t_flight": 0.8448,
+    "cg": [
+     4.7013,
+     0.0872,
+     0.0916
+    ],
+    "speed": 6.454,
+    "path_deg": -43.02,
+    "body_pitch_deg": -61.71,
+    "heading_deg": 9.52,
+    "pitch_rate": -0.582,
+    "yaw_rate": -0.027
+   },
+   "righted": true,
+   "rightT": 8.97000000000023,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.761655,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.462937,
+    0.036508,
+    -0.084022
+   ],
+   "t": 37.591,
+   "qualifies": true
+  },
+  {
+   "id": 99,
+   "inputs": {
+    "rail_deg": 33.596338,
+    "v0": 6.778,
+    "q0": -0.571,
+    "dth": -2.07,
+    "r0": 0.532,
+    "dpsi": -1.4,
+    "wind_y": 1.167,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.597
+   },
+   "flight": {
+    "t_flight": 0.8356,
+    "cg": [
+     4.6365,
+     0.1322,
+     0.0894
+    ],
+    "speed": 6.422,
+    "path_deg": -42.77,
+    "body_pitch_deg": -57.83,
+    "heading_deg": -4.19,
+    "pitch_rate": -1.551,
+    "yaw_rate": -0.03
+   },
+   "righted": true,
+   "rightT": 3.2699999999997176,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.621994,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.93055,
+    0.036719,
+    -0.240302
+   ],
+   "t": 36.151,
+   "qualifies": false
+  },
+  {
+   "id": 100,
+   "inputs": {
+    "rail_deg": 34.333345,
+    "v0": 6.781,
+    "q0": -0.199,
+    "dth": 0.83,
+    "r0": 0.208,
+    "dpsi": -1.93,
+    "wind_y": -1.435,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.334
+   },
+   "flight": {
+    "t_flight": 0.85,
+    "cg": [
+     4.6614,
+     0.0452,
+     0.0899
+    ],
+    "speed": 6.421,
+    "path_deg": -43.57,
+    "body_pitch_deg": -59.84,
+    "heading_deg": -5.49,
+    "pitch_rate": -0.966,
+    "yaw_rate": 0.022
+   },
+   "righted": true,
+   "rightT": 4.179999999999904,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.365282,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.013433,
+    0.036616,
+    -0.12487
+   ],
+   "t": 32.991,
+   "qualifies": false
+  },
+  {
+   "id": 101,
+   "inputs": {
+    "rail_deg": 34.134343,
+    "v0": 6.765,
+    "q0": 0.552,
+    "dth": 3.87,
+    "r0": -0.31,
+    "dpsi": -1.41,
+    "wind_y": 1.46,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.135
+   },
+   "flight": {
+    "t_flight": 0.8458,
+    "cg": [
+     4.6352,
+     0.1357,
+     0.0925
+    ],
+    "speed": 6.397,
+    "path_deg": -43.55,
+    "body_pitch_deg": -63.89,
+    "heading_deg": 3.29,
+    "pitch_rate": -0.345,
+    "yaw_rate": -0.207
+   },
+   "righted": true,
+   "rightT": 8.310000000000601,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.758333,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.146798,
+    0.036678,
+    -0.12372
+   ],
+   "t": 40.621,
+   "qualifies": false
+  },
+  {
+   "id": 102,
+   "inputs": {
+    "rail_deg": 34.578348,
+    "v0": 6.857,
+    "q0": -0.516,
+    "dth": 4.24,
+    "r0": 0.183,
+    "dpsi": -0.3,
+    "wind_y": -0.771,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.579
+   },
+   "flight": {
+    "t_flight": 0.8624,
+    "cg": [
+     4.7571,
+     0.069,
+     0.0879
+    ],
+    "speed": 6.484,
+    "path_deg": -43.72,
+    "body_pitch_deg": -55.95,
+    "heading_deg": -3.31,
+    "pitch_rate": -0.839,
+    "yaw_rate": 0.09
+   },
+   "righted": true,
+   "rightT": 7.370000000000893,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.670051,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.848461,
+    0.036751,
+    -0.130306
+   ],
+   "t": 40.361,
+   "qualifies": false
+  },
+  {
+   "id": 103,
+   "inputs": {
+    "rail_deg": 34.395345,
+    "v0": 6.858,
+    "q0": -0.173,
+    "dth": 2.63,
+    "r0": 0.388,
+    "dpsi": -2.22,
+    "wind_y": 0.55,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.396
+   },
+   "flight": {
+    "t_flight": 0.859,
+    "cg": [
+     4.7515,
+     0.11,
+     0.0903
+    ],
+    "speed": 6.48,
+    "path_deg": -43.56,
+    "body_pitch_deg": -59.1,
+    "heading_deg": -4.75,
+    "pitch_rate": -0.815,
+    "yaw_rate": 0.025
+   },
+   "righted": true,
+   "rightT": 4.690000000000034,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.332428,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.11972,
+    0.036368,
+    -0.206605
+   ],
+   "t": 33.181,
+   "qualifies": false
+  },
+  {
+   "id": 104,
+   "inputs": {
+    "rail_deg": 33.227335,
+    "v0": 6.8,
+    "q0": 0.024,
+    "dth": 2.45,
+    "r0": 0.518,
+    "dpsi": 0.77,
+    "wind_y": -1.449,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.228
+   },
+   "flight": {
+    "t_flight": 0.8322,
+    "cg": [
+     4.6519,
+     0.0496,
+     0.0906
+    ],
+    "speed": 6.435,
+    "path_deg": -42.49,
+    "body_pitch_deg": -60.25,
+    "heading_deg": -7.46,
+    "pitch_rate": -0.887,
+    "yaw_rate": 0.306
+   },
+   "righted": true,
+   "rightT": 10.549999999999315,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.833251,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.016135,
+    0.036717,
+    -0.228156
+   ],
+   "t": 43.061,
+   "qualifies": false
+  },
+  {
+   "id": 105,
+   "inputs": {
+    "rail_deg": 33.258335,
+    "v0": 6.824,
+    "q0": 0.739,
+    "dth": -4.38,
+    "r0": 0.597,
+    "dpsi": 0.03,
+    "wind_y": 0.525,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.259
+   },
+   "flight": {
+    "t_flight": 0.8352,
+    "cg": [
+     4.679,
+     0.1096,
+     0.0936
+    ],
+    "speed": 6.443,
+    "path_deg": -42.53,
+    "body_pitch_deg": -68.21,
+    "heading_deg": -6.23,
+    "pitch_rate": -1.186,
+    "yaw_rate": 0.17
+   },
+   "righted": true,
+   "rightT": 6.030000000000465,
+   "moves": [
+    "legFlip"
+   ],
+   "first_tilt": 173.698518,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.442523,
+    0.036676,
+    -0.135698
+   ],
+   "t": 35.891,
+   "qualifies": true
+  },
+  {
+   "id": 106,
+   "inputs": {
+    "rail_deg": 33.050333,
+    "v0": 6.781,
+    "q0": 0.862,
+    "dth": -3.57,
+    "r0": -0.583,
+    "dpsi": -1.07,
+    "wind_y": -0.055,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.051
+   },
+   "flight": {
+    "t_flight": 0.8274,
+    "cg": [
+     4.6235,
+     0.0875,
+     0.0943
+    ],
+    "speed": 6.408,
+    "path_deg": -42.39,
+    "body_pitch_deg": -68.92,
+    "heading_deg": 6.09,
+    "pitch_rate": -1.161,
+    "yaw_rate": -0.232
+   },
+   "righted": true,
+   "rightT": 10.589999999999398,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.83508,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.158533,
+    0.036709,
+    -0.10802
+   ],
+   "t": 42.901,
+   "qualifies": false
+  },
+  {
+   "id": 107,
+   "inputs": {
+    "rail_deg": 33.088334,
+    "v0": 6.715,
+    "q0": 0.192,
+    "dth": -4.96,
+    "r0": -0.519,
+    "dpsi": -2.33,
+    "wind_y": -0.764,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.089
+   },
+   "flight": {
+    "t_flight": 0.8206,
+    "cg": [
+     4.5502,
+     0.0662,
+     0.0924
+    ],
+    "speed": 6.366,
+    "path_deg": -42.39,
+    "body_pitch_deg": -64.38,
+    "heading_deg": 3.57,
+    "pitch_rate": -1.616,
+    "yaw_rate": -0.195
+   },
+   "righted": true,
+   "rightT": 10.919999999999176,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.841668,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.899147,
+    0.036675,
+    0.096321
+   ],
+   "t": 42.951,
+   "qualifies": false
+  },
+  {
+   "id": 108,
+   "inputs": {
+    "rail_deg": 34.84735,
+    "v0": 6.742,
+    "q0": 0.301,
+    "dth": -3.1,
+    "r0": 0.847,
+    "dpsi": 2.41,
+    "wind_y": -0.877,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.848
+   },
+   "flight": {
+    "t_flight": 0.8556,
+    "cg": [
+     4.6283,
+     0.0709,
+     0.0929
+    ],
+    "speed": 6.378,
+    "path_deg": -44.18,
+    "body_pitch_deg": -67.09,
+    "heading_deg": -7.11,
+    "pitch_rate": -1.013,
+    "yaw_rate": 0.491
+   },
+   "righted": true,
+   "rightT": 7.080000000000836,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.626313,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.145486,
+    0.03669,
+    -0.047506
+   ],
+   "t": 42.111,
+   "qualifies": false
+  },
+  {
+   "id": 109,
+   "inputs": {
+    "rail_deg": 34.144343,
+    "v0": 6.811,
+    "q0": -0.987,
+    "dth": 3.66,
+    "r0": -0.492,
+    "dpsi": 1.99,
+    "wind_y": -1.222,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.145
+   },
+   "flight": {
+    "t_flight": 0.8494,
+    "cg": [
+     4.6914,
+     0.0478,
+     0.0861
+    ],
+    "speed": 6.452,
+    "path_deg": -43.31,
+    "body_pitch_deg": -52.81,
+    "heading_deg": 3.62,
+    "pitch_rate": -1.206,
+    "yaw_rate": 0.008
+   },
+   "righted": true,
+   "rightT": 3.9299999999997137,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.399222,
+   "anchored": 2,
+   "held": 40,
+   "aligned": false,
+   "final_p": [
+    5.012794,
+    0.036131,
+    -0.014556
+   ],
+   "t": 31.821,
+   "qualifies": false
+  },
+  {
+   "id": 110,
+   "inputs": {
+    "rail_deg": 33.929341,
+    "v0": 6.775,
+    "q0": 0.429,
+    "dth": -2.24,
+    "r0": -0.789,
+    "dpsi": -2.37,
+    "wind_y": -1.334,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.93
+   },
+   "flight": {
+    "t_flight": 0.8418,
+    "cg": [
+     4.6385,
+     0.0417,
+     0.0932
+    ],
+    "speed": 6.405,
+    "path_deg": -43.25,
+    "body_pitch_deg": -66.03,
+    "heading_deg": 4.39,
+    "pitch_rate": -1.059,
+    "yaw_rate": -0.407
+   },
+   "righted": true,
+   "rightT": 1.9599999999998552,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.33412,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.110697,
+    0.036796,
+    -0.028705
+   ],
+   "t": 37.641,
+   "qualifies": false
+  },
+  {
+   "id": 111,
+   "inputs": {
+    "rail_deg": 34.978352,
+    "v0": 6.769,
+    "q0": 0.781,
+    "dth": 0.05,
+    "r0": 0.866,
+    "dpsi": -0.14,
+    "wind_y": -0.961,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.979
+   },
+   "flight": {
+    "t_flight": 0.8616,
+    "cg": [
+     4.6609,
+     0.0674,
+     0.0937
+    ],
+    "speed": 6.393,
+    "path_deg": -44.39,
+    "body_pitch_deg": -68.32,
+    "heading_deg": -8.14,
+    "pitch_rate": -0.426,
+    "yaw_rate": 0.431
+   },
+   "righted": true,
+   "rightT": 7.160000000000853,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.643871,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.201091,
+    0.036718,
+    -0.055313
+   ],
+   "t": 40.041,
+   "qualifies": false
+  },
+  {
+   "id": 112,
+   "inputs": {
+    "rail_deg": 33.481337,
+    "v0": 6.783,
+    "q0": -0.768,
+    "dth": 1.52,
+    "r0": -0.871,
+    "dpsi": -0.27,
+    "wind_y": 0.133,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.482
+   },
+   "flight": {
+    "t_flight": 0.8344,
+    "cg": [
+     4.6413,
+     0.0903,
+     0.0878
+    ],
+    "speed": 6.43,
+    "path_deg": -42.66,
+    "body_pitch_deg": -55.26,
+    "heading_deg": 10.56,
+    "pitch_rate": -1.403,
+    "yaw_rate": -0.223
+   },
+   "righted": true,
+   "rightT": 3.5699999999996748,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.608331,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.973252,
+    0.036567,
+    -0.02825
+   ],
+   "t": 36.631,
+   "qualifies": false
+  },
+  {
+   "id": 113,
+   "inputs": {
+    "rail_deg": 34.919351,
+    "v0": 6.784,
+    "q0": 0.77,
+    "dth": 0.0,
+    "r0": 0.236,
+    "dpsi": 3.41,
+    "wind_y": 0.122,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.92
+   },
+   "flight": {
+    "t_flight": 0.8618,
+    "cg": [
+     4.6764,
+     0.0965,
+     0.0936
+    ],
+    "speed": 6.406,
+    "path_deg": -44.32,
+    "body_pitch_deg": -67.48,
+    "heading_deg": 1.16,
+    "pitch_rate": -0.395,
+    "yaw_rate": 0.259
+   },
+   "righted": true,
+   "rightT": 7.300000000000932,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.583402,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.228871,
+    0.036739,
+    0.047185
+   ],
+   "t": 39.371,
+   "qualifies": false
+  },
+  {
+   "id": 114,
+   "inputs": {
+    "rail_deg": 34.921352,
+    "v0": 6.877,
+    "q0": -0.218,
+    "dth": 2.37,
+    "r0": -0.678,
+    "dpsi": -2.63,
+    "wind_y": 1.129,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.922
+   },
+   "flight": {
+    "t_flight": 0.8708,
+    "cg": [
+     4.7874,
+     0.1235,
+     0.09
+    ],
+    "speed": 6.492,
+    "path_deg": -44.07,
+    "body_pitch_deg": -59.74,
+    "heading_deg": 5.83,
+    "pitch_rate": -0.76,
+    "yaw_rate": -0.476
+   },
+   "righted": true,
+   "rightT": 2.3899999999997967,
+   "moves": [],
+   "first_tilt": null,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.122603,
+    0.036682,
+    -0.009618
+   ],
+   "t": 32.351,
+   "qualifies": false
+  },
+  {
+   "id": 115,
+   "inputs": {
+    "rail_deg": 33.575337,
+    "v0": 6.886,
+    "q0": -0.666,
+    "dth": -0.19,
+    "r0": -0.628,
+    "dpsi": 2.28,
+    "wind_y": 0.516,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.576
+   },
+   "flight": {
+    "t_flight": 0.8462,
+    "cg": [
+     4.7625,
+     0.1033,
+     0.0887
+    ],
+    "speed": 6.51,
+    "path_deg": -42.61,
+    "body_pitch_deg": -56.02,
+    "heading_deg": 9.19,
+    "pitch_rate": -1.405,
+    "yaw_rate": -0.063
+   },
+   "righted": true,
+   "rightT": 4.049999999999777,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.401841,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.132747,
+    0.036748,
+    0.070957
+   ],
+   "t": 35.341,
+   "qualifies": false
+  },
+  {
+   "id": 116,
+   "inputs": {
+    "rail_deg": 33.616338,
+    "v0": 6.733,
+    "q0": 0.884,
+    "dth": 1.71,
+    "r0": 0.206,
+    "dpsi": 2.08,
+    "wind_y": -1.474,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.617
+   },
+   "flight": {
+    "t_flight": 0.8334,
+    "cg": [
+     4.5842,
+     0.0481,
+     0.0934
+    ],
+    "speed": 6.368,
+    "path_deg": -43.1,
+    "body_pitch_deg": -67.37,
+    "heading_deg": -1.55,
+    "pitch_rate": -0.493,
+    "yaw_rate": 0.184
+   },
+   "righted": true,
+   "rightT": 11.26999999999891,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 174.877212,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.178536,
+    0.036683,
+    0.1154
+   ],
+   "t": 40.211,
+   "qualifies": true
+  },
+  {
+   "id": 117,
+   "inputs": {
+    "rail_deg": 33.205334,
+    "v0": 6.87,
+    "q0": -0.307,
+    "dth": 2.48,
+    "r0": 0.789,
+    "dpsi": 4.45,
+    "wind_y": 1.464,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.206
+   },
+   "flight": {
+    "t_flight": 0.8378,
+    "cg": [
+     4.7267,
+     0.1496,
+     0.0895
+    ],
+    "speed": 6.493,
+    "path_deg": -42.35,
+    "body_pitch_deg": -57.37,
+    "heading_deg": -3.17,
+    "pitch_rate": -1.068,
+    "yaw_rate": 0.467
+   },
+   "righted": true,
+   "rightT": 4.049999999999797,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 35.70468,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.15249,
+    0.036647,
+    -0.246459
+   ],
+   "t": 32.791,
+   "qualifies": false
+  },
+  {
+   "id": 118,
+   "inputs": {
+    "rail_deg": 34.76935,
+    "v0": 6.758,
+    "q0": 0.56,
+    "dth": 2.26,
+    "r0": -0.177,
+    "dpsi": 3.29,
+    "wind_y": -0.207,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.77
+   },
+   "flight": {
+    "t_flight": 0.8564,
+    "cg": [
+     4.6436,
+     0.0859,
+     0.0925
+    ],
+    "speed": 6.39,
+    "path_deg": -44.19,
+    "body_pitch_deg": -65.01,
+    "heading_deg": 4.45,
+    "pitch_rate": -0.407,
+    "yaw_rate": 0.054
+   },
+   "righted": true,
+   "rightT": 7.120000000000869,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.679831,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.057327,
+    0.036759,
+    0.079919
+   ],
+   "t": 40.211,
+   "qualifies": false
+  },
+  {
+   "id": 119,
+   "inputs": {
+    "rail_deg": 33.334335,
+    "v0": 6.817,
+    "q0": -0.742,
+    "dth": 4.44,
+    "r0": -0.809,
+    "dpsi": -1.99,
+    "wind_y": -0.364,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.335
+   },
+   "flight": {
+    "t_flight": 0.8354,
+    "cg": [
+     4.6756,
+     0.0751,
+     0.0868
+    ],
+    "speed": 6.458,
+    "path_deg": -42.52,
+    "body_pitch_deg": -54.02,
+    "heading_deg": 8.01,
+    "pitch_rate": -1.132,
+    "yaw_rate": -0.31
+   },
+   "righted": true,
+   "rightT": 13.299999999997919,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.837244,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.976371,
+    0.036678,
+    -0.095591
+   ],
+   "t": 47.661,
+   "qualifies": false
+  },
+  {
+   "id": 120,
+   "inputs": {
+    "rail_deg": 33.228335,
+    "v0": 6.781,
+    "q0": -0.09,
+    "dth": -4.78,
+    "r0": -0.843,
+    "dpsi": 0.01,
+    "wind_y": -0.601,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.229
+   },
+   "flight": {
+    "t_flight": 0.8294,
+    "cg": [
+     4.6292,
+     0.0686,
+     0.0914
+    ],
+    "speed": 6.421,
+    "path_deg": -42.42,
+    "body_pitch_deg": -62.33,
+    "heading_deg": 8.81,
+    "pitch_rate": -1.688,
+    "yaw_rate": -0.126
+   },
+   "righted": true,
+   "rightT": 12.74999999999814,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.84436,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.985736,
+    0.036701,
+    -0.014769
+   ],
+   "t": 44.741,
+   "qualifies": false
+  },
+  {
+   "id": 121,
+   "inputs": {
+    "rail_deg": 34.689349,
+    "v0": 6.708,
+    "q0": 0.852,
+    "dth": -3.83,
+    "r0": -0.903,
+    "dpsi": 0.1,
+    "wind_y": 1.248,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.69
+   },
+   "flight": {
+    "t_flight": 0.85,
+    "cg": [
+     4.5849,
+     0.1241,
+     0.0943
+    ],
+    "speed": 6.344,
+    "path_deg": -44.14,
+    "body_pitch_deg": -71.09,
+    "heading_deg": 8.79,
+    "pitch_rate": -0.809,
+    "yaw_rate": -0.404
+   },
+   "righted": true,
+   "rightT": 7.770000000000922,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.78329,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.082303,
+    0.036805,
+    -0.106511
+   ],
+   "t": 40.961,
+   "qualifies": false
+  },
+  {
+   "id": 122,
+   "inputs": {
+    "rail_deg": 34.215344,
+    "v0": 6.738,
+    "q0": 0.173,
+    "dth": 0.09,
+    "r0": -0.899,
+    "dpsi": 0.48,
+    "wind_y": 0.908,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.216
+   },
+   "flight": {
+    "t_flight": 0.8438,
+    "cg": [
+     4.6083,
+     0.113,
+     0.0926
+    ],
+    "speed": 6.38,
+    "path_deg": -43.54,
+    "body_pitch_deg": -63.94,
+    "heading_deg": 11.14,
+    "pitch_rate": -0.979,
+    "yaw_rate": -0.357
+   },
+   "righted": true,
+   "rightT": 8.430000000000568,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.67747,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.231076,
+    0.036732,
+    -0.139144
+   ],
+   "t": 41.231,
+   "qualifies": false
+  },
+  {
+   "id": 123,
+   "inputs": {
+    "rail_deg": 34.553347,
+    "v0": 6.766,
+    "q0": -0.416,
+    "dth": -0.86,
+    "r0": 0.106,
+    "dpsi": -4.23,
+    "wind_y": -1.02,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.554
+   },
+   "flight": {
+    "t_flight": 0.852,
+    "cg": [
+     4.6496,
+     0.0593,
+     0.0902
+    ],
+    "speed": 6.41,
+    "path_deg": -43.75,
+    "body_pitch_deg": -59.51,
+    "heading_deg": -5.3,
+    "pitch_rate": -1.228,
+    "yaw_rate": -0.164
+   },
+   "righted": true,
+   "rightT": 4.750000000000058,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.387706,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.961885,
+    0.036667,
+    -0.068087
+   ],
+   "t": 36.171,
+   "qualifies": false
+  },
+  {
+   "id": 124,
+   "inputs": {
+    "rail_deg": 33.252335,
+    "v0": 6.828,
+    "q0": 0.212,
+    "dth": 3.92,
+    "r0": -0.473,
+    "dpsi": -1.39,
+    "wind_y": 1.478,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.253
+   },
+   "flight": {
+    "t_flight": 0.8358,
+    "cg": [
+     4.6841,
+     0.1352,
+     0.0909
+    ],
+    "speed": 6.454,
+    "path_deg": -42.53,
+    "body_pitch_deg": -60.91,
+    "heading_deg": 6.19,
+    "pitch_rate": -0.64,
+    "yaw_rate": -0.322
+   },
+   "righted": true,
+   "rightT": 10.579999999999314,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.81827,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.096572,
+    0.036587,
+    -0.102533
+   ],
+   "t": 43.691,
+   "qualifies": false
+  },
+  {
+   "id": 125,
+   "inputs": {
+    "rail_deg": 33.639338,
+    "v0": 6.827,
+    "q0": -0.631,
+    "dth": 2.78,
+    "r0": -0.756,
+    "dpsi": 3.22,
+    "wind_y": -0.489,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.64
+   },
+   "flight": {
+    "t_flight": 0.8418,
+    "cg": [
+     4.6957,
+     0.0729,
+     0.0879
+    ],
+    "speed": 6.463,
+    "path_deg": -42.8,
+    "body_pitch_deg": -55.52,
+    "heading_deg": 9.09,
+    "pitch_rate": -1.179,
+    "yaw_rate": 0.019
+   },
+   "righted": true,
+   "rightT": 3.129999999999721,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.652091,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.036175,
+    0.036684,
+    0.006323
+   ],
+   "t": 36.391,
+   "qualifies": false
+  },
+  {
+   "id": 126,
+   "inputs": {
+    "rail_deg": 34.347345,
+    "v0": 6.846,
+    "q0": -0.541,
+    "dth": -2.27,
+    "r0": -0.93,
+    "dpsi": -0.76,
+    "wind_y": -0.259,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.348
+   },
+   "flight": {
+    "t_flight": 0.8562,
+    "cg": [
+     4.7365,
+     0.0776,
+     0.09
+    ],
+    "speed": 6.472,
+    "path_deg": -43.43,
+    "body_pitch_deg": -59.56,
+    "heading_deg": 9.49,
+    "pitch_rate": -1.501,
+    "yaw_rate": -0.319
+   },
+   "righted": true,
+   "rightT": 8.4500000000005,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.581654,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.081233,
+    0.036695,
+    0.083454
+   ],
+   "t": 40.941,
+   "qualifies": false
+  },
+  {
+   "id": 127,
+   "inputs": {
+    "rail_deg": 34.144343,
+    "v0": 6.726,
+    "q0": -0.477,
+    "dth": -1.65,
+    "r0": 0.303,
+    "dpsi": -2.04,
+    "wind_y": 0.712,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.145
+   },
+   "flight": {
+    "t_flight": 0.8404,
+    "cg": [
+     4.5931,
+     0.1136,
+     0.0905
+    ],
+    "speed": 6.379,
+    "path_deg": -43.38,
+    "body_pitch_deg": -59.32,
+    "heading_deg": -3.17,
+    "pitch_rate": -1.426,
+    "yaw_rate": -0.087
+   },
+   "righted": true,
+   "rightT": 3.939999999999777,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.363557,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    4.996543,
+    0.036453,
+    -0.127563
+   ],
+   "t": 32.491,
+   "qualifies": false
+  },
+  {
+   "id": 128,
+   "inputs": {
+    "rail_deg": 34.039342,
+    "v0": 6.85,
+    "q0": 0.506,
+    "dth": -2.55,
+    "r0": 0.572,
+    "dpsi": -0.98,
+    "wind_y": 0.959,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.04
+   },
+   "flight": {
+    "t_flight": 0.8518,
+    "cg": [
+     4.7306,
+     0.1253,
+     0.0929
+    ],
+    "speed": 6.464,
+    "path_deg": -43.28,
+    "body_pitch_deg": -66.19,
+    "heading_deg": -5.59,
+    "pitch_rate": -0.928,
+    "yaw_rate": 0.174
+   },
+   "righted": true,
+   "rightT": 7.210000000000889,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.63567,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.363901,
+    0.036571,
+    -0.127623
+   ],
+   "t": 39.621,
+   "qualifies": false
+  },
+  {
+   "id": 129,
+   "inputs": {
+    "rail_deg": 34.056342,
+    "v0": 6.861,
+    "q0": 0.071,
+    "dth": -4.06,
+    "r0": -0.035,
+    "dpsi": -4.37,
+    "wind_y": 0.839,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.057
+   },
+   "flight": {
+    "t_flight": 0.8528,
+    "cg": [
+     4.7456,
+     0.1158,
+     0.0923
+    ],
+    "speed": 6.478,
+    "path_deg": -43.18,
+    "body_pitch_deg": -63.81,
+    "heading_deg": -1.64,
+    "pitch_rate": -1.232,
+    "yaw_rate": -0.291
+   },
+   "righted": true,
+   "rightT": 7.470000000000988,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.687565,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.226763,
+    0.036685,
+    0.00377
+   ],
+   "t": 41.341,
+   "qualifies": false
+  },
+  {
+   "id": 130,
+   "inputs": {
+    "rail_deg": 34.680349,
+    "v0": 6.716,
+    "q0": 0.527,
+    "dth": -0.42,
+    "r0": 0.312,
+    "dpsi": 1.51,
+    "wind_y": -0.65,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.681
+   },
+   "flight": {
+    "t_flight": 0.8502,
+    "cg": [
+     4.5937,
+     0.0755,
+     0.0933
+    ],
+    "speed": 6.357,
+    "path_deg": -44.1,
+    "body_pitch_deg": -66.53,
+    "heading_deg": -2.44,
+    "pitch_rate": -0.682,
+    "yaw_rate": 0.216
+   },
+   "righted": true,
+   "rightT": 7.820000000000895,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.746152,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.9282,
+    0.036655,
+    -0.114217
+   ],
+   "t": 42.721,
+   "qualifies": false
+  },
+  {
+   "id": 131,
+   "inputs": {
+    "rail_deg": 34.648349,
+    "v0": 6.703,
+    "q0": 0.982,
+    "dth": -0.69,
+    "r0": 0.88,
+    "dpsi": -3.01,
+    "wind_y": 1.103,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.649
+   },
+   "flight": {
+    "t_flight": 0.8482,
+    "cg": [
+     4.5731,
+     0.1302,
+     0.0944
+    ],
+    "speed": 6.338,
+    "path_deg": -44.19,
+    "body_pitch_deg": -70.47,
+    "heading_deg": -10.09,
+    "pitch_rate": -0.605,
+    "yaw_rate": 0.355
+   },
+   "righted": true,
+   "rightT": 7.720000000000978,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.694839,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.04846,
+    0.036775,
+    -0.128865
+   ],
+   "t": 41.021,
+   "qualifies": false
+  },
+  {
+   "id": 132,
+   "inputs": {
+    "rail_deg": 33.507337,
+    "v0": 6.873,
+    "q0": 0.49,
+    "dth": 3.99,
+    "r0": 0.359,
+    "dpsi": -3.91,
+    "wind_y": -1.251,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.508
+   },
+   "flight": {
+    "t_flight": 0.8452,
+    "cg": [
+     4.7433,
+     0.0535,
+     0.0916
+    ],
+    "speed": 6.486,
+    "path_deg": -42.76,
+    "body_pitch_deg": -62.2,
+    "heading_deg": -8.12,
+    "pitch_rate": -0.426,
+    "yaw_rate": 0.007
+   },
+   "righted": true,
+   "rightT": 10.479999999999409,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.83321,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.057208,
+    0.03667,
+    -0.145266
+   ],
+   "t": 42.821,
+   "qualifies": false
+  },
+  {
+   "id": 133,
+   "inputs": {
+    "rail_deg": 34.349345,
+    "v0": 6.854,
+    "q0": 0.711,
+    "dth": 1.89,
+    "r0": 0.945,
+    "dpsi": -2.03,
+    "wind_y": -0.477,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.35
+   },
+   "flight": {
+    "t_flight": 0.859,
+    "cg": [
+     4.7448,
+     0.0817,
+     0.0928
+    ],
+    "speed": 6.463,
+    "path_deg": -43.66,
+    "body_pitch_deg": -66.19,
+    "heading_deg": -11.45,
+    "pitch_rate": -0.451,
+    "yaw_rate": 0.393
+   },
+   "righted": true,
+   "rightT": 7.2400000000008955,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.611399,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.344776,
+    0.036769,
+    -0.091136
+   ],
+   "t": 39.601,
+   "qualifies": false
+  },
+  {
+   "id": 134,
+   "inputs": {
+    "rail_deg": 33.113334,
+    "v0": 6.87,
+    "q0": -0.52,
+    "dth": 2.19,
+    "r0": 0.31,
+    "dpsi": 2.4,
+    "wind_y": 0.039,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.114
+   },
+   "flight": {
+    "t_flight": 0.8364,
+    "cg": [
+     4.7296,
+     0.0949,
+     0.0884
+    ],
+    "speed": 6.499,
+    "path_deg": -42.21,
+    "body_pitch_deg": -55.72,
+    "heading_deg": -2.74,
+    "pitch_rate": -1.173,
+    "yaw_rate": 0.226
+   },
+   "righted": true,
+   "rightT": 7.280000000000853,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.672984,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.839455,
+    0.036718,
+    -0.14451
+   ],
+   "t": 40.821,
+   "qualifies": false
+  },
+  {
+   "id": 135,
+   "inputs": {
+    "rail_deg": 33.177334,
+    "v0": 6.873,
+    "q0": 0.923,
+    "dth": -3.95,
+    "r0": 0.97,
+    "dpsi": 1.27,
+    "wind_y": 0.955,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.178
+   },
+   "flight": {
+    "t_flight": 0.8384,
+    "cg": [
+     4.7294,
+     0.1282,
+     0.0941
+    ],
+    "speed": 6.477,
+    "path_deg": -42.44,
+    "body_pitch_deg": -69.58,
+    "heading_deg": -8.23,
+    "pitch_rate": -1.102,
+    "yaw_rate": 0.395
+   },
+   "righted": true,
+   "rightT": 7.350000000000903,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.668058,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.324277,
+    0.036688,
+    -0.077304
+   ],
+   "t": 39.131,
+   "qualifies": false
+  },
+  {
+   "id": 136,
+   "inputs": {
+    "rail_deg": 34.78835,
+    "v0": 6.862,
+    "q0": -0.101,
+    "dth": 1.82,
+    "r0": -0.89,
+    "dpsi": -1.16,
+    "wind_y": -0.174,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.789
+   },
+   "flight": {
+    "t_flight": 0.8666,
+    "cg": [
+     4.7657,
+     0.0807,
+     0.0907
+    ],
+    "speed": 6.48,
+    "path_deg": -43.96,
+    "body_pitch_deg": -61.01,
+    "heading_deg": 8.22,
+    "pitch_rate": -0.852,
+    "yaw_rate": -0.455
+   },
+   "righted": true,
+   "rightT": 3.1599999999996875,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.555212,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.282923,
+    0.036597,
+    0.035454
+   ],
+   "t": 36.691,
+   "qualifies": false
+  },
+  {
+   "id": 137,
+   "inputs": {
+    "rail_deg": 33.017333,
+    "v0": 6.862,
+    "q0": 0.575,
+    "dth": -0.5,
+    "r0": -0.444,
+    "dpsi": -4.13,
+    "wind_y": 1.416,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.018
+   },
+   "flight": {
+    "t_flight": 0.8348,
+    "cg": [
+     4.7148,
+     0.1323,
+     0.0927
+    ],
+    "speed": 6.475,
+    "path_deg": -42.26,
+    "body_pitch_deg": -65.33,
+    "heading_deg": 3.2,
+    "pitch_rate": -0.868,
+    "yaw_rate": -0.43
+   },
+   "righted": true,
+   "rightT": 7.890000000000856,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.732364,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.165775,
+    0.036656,
+    -0.133958
+   ],
+   "t": 40.831,
+   "qualifies": false
+  },
+  {
+   "id": 138,
+   "inputs": {
+    "rail_deg": 33.219335,
+    "v0": 6.71,
+    "q0": -0.305,
+    "dth": 4.54,
+    "r0": -0.915,
+    "dpsi": -4.32,
+    "wind_y": -0.626,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.22
+   },
+   "flight": {
+    "t_flight": 0.8228,
+    "cg": [
+     4.5481,
+     0.0663,
+     0.0892
+    ],
+    "speed": 6.369,
+    "path_deg": -42.59,
+    "body_pitch_deg": -58.16,
+    "heading_deg": 7.78,
+    "pitch_rate": -1.027,
+    "yaw_rate": -0.469
+   },
+   "righted": true,
+   "rightT": 3.5199999999996847,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 35.943246,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    4.936802,
+    0.036613,
+    0.088724
+   ],
+   "t": 32.191,
+   "qualifies": false
+  },
+  {
+   "id": 139,
+   "inputs": {
+    "rail_deg": 33.87434,
+    "v0": 6.85,
+    "q0": -0.491,
+    "dth": -1.01,
+    "r0": 0.64,
+    "dpsi": -2.72,
+    "wind_y": -0.804,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.875
+   },
+   "flight": {
+    "t_flight": 0.8482,
+    "cg": [
+     4.7295,
+     0.0709,
+     0.0896
+    ],
+    "speed": 6.478,
+    "path_deg": -42.96,
+    "body_pitch_deg": -58.16,
+    "heading_deg": -9.89,
+    "pitch_rate": -1.36,
+    "yaw_rate": 0.084
+   },
+   "righted": true,
+   "rightT": 4.299999999999884,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 35.48392,
+   "anchored": 2,
+   "held": 45,
+   "aligned": false,
+   "final_p": [
+    5.110725,
+    0.036633,
+    -0.20216
+   ],
+   "t": 32.931,
+   "qualifies": false
+  },
+  {
+   "id": 140,
+   "inputs": {
+    "rail_deg": 34.666349,
+    "v0": 6.846,
+    "q0": 0.917,
+    "dth": 3.29,
+    "r0": 0.357,
+    "dpsi": -4.28,
+    "wind_y": -1.197,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.667
+   },
+   "flight": {
+    "t_flight": 0.8642,
+    "cg": [
+     4.7418,
+     0.0549,
+     0.0929
+    ],
+    "speed": 6.454,
+    "path_deg": -44.04,
+    "body_pitch_deg": -65.62,
+    "heading_deg": -7.97,
+    "pitch_rate": -0.028,
+    "yaw_rate": 0.023
+   },
+   "righted": true,
+   "rightT": 7.790000000000867,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.744757,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.198647,
+    0.036732,
+    0.042488
+   ],
+   "t": 42.061,
+   "qualifies": false
+  },
+  {
+   "id": 141,
+   "inputs": {
+    "rail_deg": 33.488336,
+    "v0": 6.856,
+    "q0": -0.322,
+    "dth": -4.47,
+    "r0": 0.967,
+    "dpsi": -1.22,
+    "wind_y": -1.361,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.489
+   },
+   "flight": {
+    "t_flight": 0.8416,
+    "cg": [
+     4.7243,
+     0.0545,
+     0.091
+    ],
+    "speed": 6.479,
+    "path_deg": -42.55,
+    "body_pitch_deg": -60.69,
+    "heading_deg": -13.27,
+    "pitch_rate": -1.631,
+    "yaw_rate": 0.302
+   },
+   "righted": true,
+   "rightT": 3.6299999999996837,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.645691,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.247708,
+    0.036703,
+    -0.061961
+   ],
+   "t": 36.791,
+   "qualifies": false
+  },
+  {
+   "id": 142,
+   "inputs": {
+    "rail_deg": 34.542347,
+    "v0": 6.844,
+    "q0": -0.386,
+    "dth": -3.85,
+    "r0": 0.499,
+    "dpsi": -4.39,
+    "wind_y": 0.718,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.543
+   },
+   "flight": {
+    "t_flight": 0.8594,
+    "cg": [
+     4.7383,
+     0.1161,
+     0.0913
+    ],
+    "speed": 6.467,
+    "path_deg": -43.63,
+    "body_pitch_deg": -61.19,
+    "heading_deg": -6.99,
+    "pitch_rate": -1.447,
+    "yaw_rate": -0.12
+   },
+   "righted": true,
+   "rightT": 10.339999999999458,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.796743,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.053,
+    0.036716,
+    -0.248372
+   ],
+   "t": 42.951,
+   "qualifies": false
+  },
+  {
+   "id": 143,
+   "inputs": {
+    "rail_deg": 34.029342,
+    "v0": 6.884,
+    "q0": -0.305,
+    "dth": 3.81,
+    "r0": 0.214,
+    "dpsi": -1.78,
+    "wind_y": 0.527,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.03
+   },
+   "flight": {
+    "t_flight": 0.855,
+    "cg": [
+     4.7726,
+     0.1081,
+     0.0893
+    ],
+    "speed": 6.503,
+    "path_deg": -43.16,
+    "body_pitch_deg": -57.14,
+    "heading_deg": -2.5,
+    "pitch_rate": -0.811,
+    "yaw_rate": -0.041
+   },
+   "righted": true,
+   "rightT": 4.219999999999844,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.412058,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.092142,
+    0.036657,
+    -0.194531
+   ],
+   "t": 36.741,
+   "qualifies": false
+  },
+  {
+   "id": 144,
+   "inputs": {
+    "rail_deg": 33.771339,
+    "v0": 6.775,
+    "q0": -0.554,
+    "dth": 0.66,
+    "r0": -0.148,
+    "dpsi": -1.26,
+    "wind_y": -1.397,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.772
+   },
+   "flight": {
+    "t_flight": 0.8388,
+    "cg": [
+     4.6389,
+     0.0444,
+     0.0888
+    ],
+    "speed": 6.421,
+    "path_deg": -42.97,
+    "body_pitch_deg": -56.84,
+    "heading_deg": -1.73,
+    "pitch_rate": -1.251,
+    "yaw_rate": -0.048
+   },
+   "righted": true,
+   "rightT": 8.00000000000085,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.77092,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.703679,
+    0.036794,
+    -0.045445
+   ],
+   "t": 41.281,
+   "qualifies": false
+  },
+  {
+   "id": 145,
+   "inputs": {
+    "rail_deg": 34.819351,
+    "v0": 6.754,
+    "q0": 0.961,
+    "dth": -2.89,
+    "r0": -0.985,
+    "dpsi": 4.77,
+    "wind_y": 0.505,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.82
+   },
+   "flight": {
+    "t_flight": 0.8572,
+    "cg": [
+     4.6404,
+     0.1027,
+     0.0941
+    ],
+    "speed": 6.379,
+    "path_deg": -44.25,
+    "body_pitch_deg": -71.15,
+    "heading_deg": 14.32,
+    "pitch_rate": -0.691,
+    "yaw_rate": -0.292
+   },
+   "righted": true,
+   "rightT": 3.0999999999997363,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.578453,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.255149,
+    0.036681,
+    -0.038326
+   ],
+   "t": 36.471,
+   "qualifies": false
+  },
+  {
+   "id": 146,
+   "inputs": {
+    "rail_deg": 34.551347,
+    "v0": 6.782,
+    "q0": -0.999,
+    "dth": 2.87,
+    "r0": 0.849,
+    "dpsi": -0.6,
+    "wind_y": -1.235,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.552
+   },
+   "flight": {
+    "t_flight": 0.8538,
+    "cg": [
+     4.6695,
+     0.0579,
+     0.087
+    ],
+    "speed": 6.427,
+    "path_deg": -43.73,
+    "body_pitch_deg": -54.18,
+    "heading_deg": -11.32,
+    "pitch_rate": -1.278,
+    "yaw_rate": 0.351
+   },
+   "righted": true,
+   "rightT": 4.399999999999901,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.418479,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.017438,
+    0.036658,
+    -0.2225
+   ],
+   "t": 35.701,
+   "qualifies": false
+  },
+  {
+   "id": 147,
+   "inputs": {
+    "rail_deg": 33.638338,
+    "v0": 6.889,
+    "q0": -0.978,
+    "dth": -1.22,
+    "r0": -0.679,
+    "dpsi": 2.56,
+    "wind_y": 0.922,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.639
+   },
+   "flight": {
+    "t_flight": 0.8476,
+    "cg": [
+     4.7689,
+     0.1162,
+     0.0868
+    ],
+    "speed": 6.515,
+    "path_deg": -42.64,
+    "body_pitch_deg": -54.14,
+    "heading_deg": 10.44,
+    "pitch_rate": -1.625,
+    "yaw_rate": -0.087
+   },
+   "righted": true,
+   "rightT": 3.729999999999687,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.414273,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.178736,
+    0.036602,
+    0.041455
+   ],
+   "t": 34.821,
+   "qualifies": false
+  },
+  {
+   "id": 148,
+   "inputs": {
+    "rail_deg": 34.006342,
+    "v0": 6.845,
+    "q0": 0.959,
+    "dth": -2.06,
+    "r0": 0.07,
+    "dpsi": 3.57,
+    "wind_y": -1.232,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.007
+   },
+   "flight": {
+    "t_flight": 0.8516,
+    "cg": [
+     4.7238,
+     0.0542,
+     0.0937
+    ],
+    "speed": 6.452,
+    "path_deg": -43.35,
+    "body_pitch_deg": -69.0,
+    "heading_deg": 2.1,
+    "pitch_rate": -0.568,
+    "yaw_rate": 0.156
+   },
+   "righted": true,
+   "rightT": 12.649999999998235,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.788495,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.530962,
+    0.03673,
+    -0.03662
+   ],
+   "t": 44.761,
+   "qualifies": false
+  },
+  {
+   "id": 149,
+   "inputs": {
+    "rail_deg": 34.553347,
+    "v0": 6.758,
+    "q0": -0.523,
+    "dth": -3.54,
+    "r0": -0.058,
+    "dpsi": 1.16,
+    "wind_y": -0.615,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.554
+   },
+   "flight": {
+    "t_flight": 0.851,
+    "cg": [
+     4.641,
+     0.0738,
+     0.0902
+    ],
+    "speed": 6.404,
+    "path_deg": -43.74,
+    "body_pitch_deg": -60.26,
+    "heading_deg": 0.29,
+    "pitch_rate": -1.522,
+    "yaw_rate": 0.09
+   },
+   "righted": true,
+   "rightT": 4.0899999999999075,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.368818,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.949852,
+    0.036663,
+    -0.094871
+   ],
+   "t": 35.681,
+   "qualifies": false
+  },
+  {
+   "id": 150,
+   "inputs": {
+    "rail_deg": 34.058342,
+    "v0": 6.726,
+    "q0": 0.246,
+    "dth": -0.38,
+    "r0": -0.854,
+    "dpsi": 0.35,
+    "wind_y": 0.353,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.059
+   },
+   "flight": {
+    "t_flight": 0.8398,
+    "cg": [
+     4.5908,
+     0.0972,
+     0.0924
+    ],
+    "speed": 6.371,
+    "path_deg": -43.41,
+    "body_pitch_deg": -64.58,
+    "heading_deg": 10.44,
+    "pitch_rate": -1.04,
+    "yaw_rate": -0.299
+   },
+   "righted": true,
+   "rightT": 1.7099999999998805,
+   "moves": [
+    "podRoll:R"
+   ],
+   "first_tilt": 36.673994,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.908599,
+    0.036675,
+    -0.01754
+   ],
+   "t": 39.551,
+   "qualifies": false
+  },
+  {
+   "id": 151,
+   "inputs": {
+    "rail_deg": 33.723339,
+    "v0": 6.803,
+    "q0": 0.108,
+    "dth": -0.29,
+    "r0": -0.798,
+    "dpsi": -4.68,
+    "wind_y": -0.401,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.724
+   },
+   "flight": {
+    "t_flight": 0.8412,
+    "cg": [
+     4.669,
+     0.0736,
+     0.0914
+    ],
+    "speed": 6.434,
+    "path_deg": -42.97,
+    "body_pitch_deg": -62.98,
+    "heading_deg": 5.61,
+    "pitch_rate": -1.101,
+    "yaw_rate": -0.507
+   },
+   "righted": true,
+   "rightT": 10.65999999999927,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.83745,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.156216,
+    0.036776,
+    0.157888
+   ],
+   "t": 43.051,
+   "qualifies": false
+  },
+  {
+   "id": 152,
+   "inputs": {
+    "rail_deg": 34.342345,
+    "v0": 6.865,
+    "q0": 0.035,
+    "dth": -0.0,
+    "r0": 0.382,
+    "dpsi": -1.82,
+    "wind_y": 1.277,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.343
+   },
+   "flight": {
+    "t_flight": 0.8586,
+    "cg": [
+     4.7566,
+     0.137,
+     0.0911
+    ],
+    "speed": 6.482,
+    "path_deg": -43.52,
+    "body_pitch_deg": -61.64,
+    "heading_deg": -3.38,
+    "pitch_rate": -0.885,
+    "yaw_rate": 0.062
+   },
+   "righted": true,
+   "rightT": 8.690000000000367,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.815973,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.117415,
+    0.0367,
+    -0.306086
+   ],
+   "t": 42.001,
+   "qualifies": false
+  },
+  {
+   "id": 153,
+   "inputs": {
+    "rail_deg": 33.973341,
+    "v0": 6.766,
+    "q0": 0.833,
+    "dth": -2.19,
+    "r0": 0.207,
+    "dpsi": -1.58,
+    "wind_y": 1.332,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.974
+   },
+   "flight": {
+    "t_flight": 0.8426,
+    "cg": [
+     4.6315,
+     0.1343,
+     0.0935
+    ],
+    "speed": 6.394,
+    "path_deg": -43.38,
+    "body_pitch_deg": -68.54,
+    "heading_deg": -2.3,
+    "pitch_rate": -0.754,
+    "yaw_rate": 0.025
+   },
+   "righted": true,
+   "rightT": 13.619999999997674,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 173.854361,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.503832,
+    0.036646,
+    0.068351
+   ],
+   "t": 46.951,
+   "qualifies": false
+  },
+  {
+   "id": 154,
+   "inputs": {
+    "rail_deg": 34.326345,
+    "v0": 6.709,
+    "q0": 0.457,
+    "dth": -3.0,
+    "r0": 0.118,
+    "dpsi": 1.6,
+    "wind_y": 0.603,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.327
+   },
+   "flight": {
+    "t_flight": 0.8428,
+    "cg": [
+     4.5776,
+     0.1091,
+     0.0933
+    ],
+    "speed": 6.354,
+    "path_deg": -43.71,
+    "body_pitch_deg": -66.88,
+    "heading_deg": 0.62,
+    "pitch_rate": -1.018,
+    "yaw_rate": 0.109
+   },
+   "righted": true,
+   "rightT": 3.0699999999997165,
+   "moves": [
+    "podRoll:L"
+   ],
+   "first_tilt": 36.713819,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.129059,
+    0.03656,
+    0.032271
+   ],
+   "t": 35.271,
+   "qualifies": false
+  },
+  {
+   "id": 155,
+   "inputs": {
+    "rail_deg": 34.572347,
+    "v0": 6.809,
+    "q0": 0.41,
+    "dth": -4.8,
+    "r0": 0.15,
+    "dpsi": 1.28,
+    "wind_y": 1.22,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.573
+   },
+   "flight": {
+    "t_flight": 0.8572,
+    "cg": [
+     4.698,
+     0.1325,
+     0.0929
+    ],
+    "speed": 6.432,
+    "path_deg": -43.82,
+    "body_pitch_deg": -66.96,
+    "heading_deg": 0.9,
+    "pitch_rate": -1.016,
+    "yaw_rate": 0.118
+   },
+   "righted": true,
+   "rightT": 7.810000000000883,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.733553,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.271446,
+    0.036691,
+    -0.115303
+   ],
+   "t": 42.591,
+   "qualifies": false
+  },
+  {
+   "id": 156,
+   "inputs": {
+    "rail_deg": 33.81234,
+    "v0": 6.717,
+    "q0": 0.134,
+    "dth": -0.87,
+    "r0": 0.132,
+    "dpsi": -4.45,
+    "wind_y": -1.252,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.813
+   },
+   "flight": {
+    "t_flight": 0.8342,
+    "cg": [
+     4.5738,
+     0.0529,
+     0.0917
+    ],
+    "speed": 6.368,
+    "path_deg": -43.15,
+    "body_pitch_deg": -62.88,
+    "heading_deg": -6.22,
+    "pitch_rate": -1.077,
+    "yaw_rate": -0.148
+   },
+   "righted": true,
+   "rightT": 7.940000000000794,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.779065,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    4.969541,
+    0.036684,
+    -0.104915
+   ],
+   "t": 42.361,
+   "qualifies": false
+  },
+  {
+   "id": 157,
+   "inputs": {
+    "rail_deg": 34.146343,
+    "v0": 6.848,
+    "q0": 0.232,
+    "dth": -1.85,
+    "r0": 0.258,
+    "dpsi": 3.7,
+    "wind_y": 1.028,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.147
+   },
+   "flight": {
+    "t_flight": 0.8534,
+    "cg": [
+     4.7324,
+     0.1272,
+     0.092
+    ],
+    "speed": 6.467,
+    "path_deg": -43.34,
+    "body_pitch_deg": -63.78,
+    "heading_deg": 1.45,
+    "pitch_rate": -0.96,
+    "yaw_rate": 0.27
+   },
+   "righted": true,
+   "rightT": 10.829999999999204,
+   "moves": [
+    "legFlip",
+    "podRoll:L"
+   ],
+   "first_tilt": 175.240141,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.100164,
+    0.036508,
+    0.018308
+   ],
+   "t": 42.031,
+   "qualifies": false
+  },
+  {
+   "id": 158,
+   "inputs": {
+    "rail_deg": 34.688349,
+    "v0": 6.799,
+    "q0": 0.905,
+    "dth": -1.45,
+    "r0": 0.983,
+    "dpsi": -3.67,
+    "wind_y": -1.335,
+    "slope_deg": 0.0,
+    "rail_cmd": 34.689
+   },
+   "flight": {
+    "t_flight": 0.8596,
+    "cg": [
+     4.6893,
+     0.0542,
+     0.0941
+    ],
+    "speed": 6.415,
+    "path_deg": -44.05,
+    "body_pitch_deg": -69.4,
+    "heading_deg": -12.59,
+    "pitch_rate": -0.516,
+    "yaw_rate": 0.351
+   },
+   "righted": true,
+   "rightT": 8.040000000000795,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.750282,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.184813,
+    0.036782,
+    -0.082076
+   ],
+   "t": 41.091,
+   "qualifies": false
+  },
+  {
+   "id": 159,
+   "inputs": {
+    "rail_deg": 33.351336,
+    "v0": 6.822,
+    "q0": 0.75,
+    "dth": -3.45,
+    "r0": 0.075,
+    "dpsi": -4.7,
+    "wind_y": -0.308,
+    "slope_deg": 0.0,
+    "rail_cmd": 33.352
+   },
+   "flight": {
+    "t_flight": 0.837,
+    "cg": [
+     4.6805,
+     0.0828,
+     0.0933
+    ],
+    "speed": 6.442,
+    "path_deg": -42.64,
+    "body_pitch_deg": -67.78,
+    "heading_deg": -4.85,
+    "pitch_rate": -1.031,
+    "yaw_rate": -0.206
+   },
+   "righted": true,
+   "rightT": 14.48999999999721,
+   "moves": [
+    "legFlip",
+    "podRoll:R"
+   ],
+   "first_tilt": 173.866973,
+   "anchored": 2,
+   "held": 45,
+   "aligned": true,
+   "final_p": [
+    5.374384,
+    0.036639,
+    -0.134063
+   ],
+   "t": 49.141,
+   "qualifies": false
+  }
+ ],
+ "qualifying": [
+  15,
+  61,
+  89,
+  98,
+  105,
+  116
+ ]
+}

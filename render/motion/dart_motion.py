@@ -336,8 +336,14 @@ def sim_job(out=None):
     its parts.json (pod pivot, flank offset, fold direction, deploy stop, length; leg hinge and swing; tail tie) and
     its mass34 masses (hull = total less pods and leg)"""
     out = out or OUT
-    if os.path.basename(os.path.normpath(out)) == "out34":
+    name = os.path.basename(os.path.normpath(out))
+    if name == "out34":
         return json.loads(json.dumps(V34_JOB))
+    vj = os.path.join(KEDGE, "sim_righting", "v35_check", "F_rigid_tie.job")
+    if name == "out35" and os.path.exists(vj):                      # the dart team's validated v35 righting / tow job
+        J = json.load(open(vj))
+        return {"cfg": J["cfg"], "D": J["D"], "LAYOUTS": J["LAYOUTS"], "cgUp": J["cgUp"], "soil": "loam",
+                "layout": J.get("layout", "front"), "source": "kedge/sim_righting/v35_check/F_rigid_tie.job"}
     import mass34
     J = json.load(open(os.path.join(out, "parts.json")))
     P, PP = J["P"], {p["name"]: p for p in J["parts"]}

@@ -1,6 +1,6 @@
 # render/motion: motion data for the GrappStar animation (v2: real time)
 
-`motion.json` (about 5 MB, 1447 frames at 30 fps, 48.2 s, dart KEDGE v35) is written by
+`motion.json` (about 5 MB, 1413 frames at 30 fps, 47.1 s, dart KEDGE v35) is written by
 
     cd render/motion
     ../../kedge/.venv/bin/python make_motion.py [--rerun-sim] --node-path <dir with @dimforge/rapier3d-compat 0.14.0>
@@ -13,9 +13,9 @@ holds the pick per build.
 
 ## Film clock: real time 1:1, one cut
 
-Frame f shows real time f / 30 s up to the `cut` event (frame 747, 24.9 s: cam:A, static wide), then real time
-58.0 + (f - 747) / 30 s (cam:B, static, side-on to the line). The cut skips 33.1 s: the drilling to the anchors
-(anchored at 30.7 s real) and most of the base's 32 s wrap. `cut`, `real_time_of_frame`, `events[].real_time` and
+Frame f shows real time f / 30 s up to the `cut` event (frame 713, 23.8 s: cam:A, static wide), then real time
+58.0 + (f - 713) / 30 s (cam:B, static, side-on to the line). The cut skips 34.2 s: the drilling to the anchors
+(anchored at 29.5 s real) and most of the base's 32 s wrap. `cut`, `real_time_of_frame`, `events[].real_time` and
 `events_hidden_by_cut` are in motion.json. Around the shot and the impact some keys sit on quarter frames (320.25 ...)
 for motion blur; key them at those fractional frames. Keys are sparse: interpolate LINEAR, never across the cut.
 
@@ -25,20 +25,19 @@ for motion blur; key them at those fractional frames. Keys are sparse: interpola
 | 3.0-7.4 | aim: wiper 1067.5 deg backward, rail 6 -> 33.99 deg | wiper as a DC motor: 45 rpm no load, 15 N m stall, 1.2 N m aim train load, 60 ms spin-up, braked stop |
 | 7.9-9.8 | cock: wiper +425 deg against the springs, carriage back 241 mm | same motor against the spring torque through the big gear |
 | 10.6-10.7 | the shot: release 60 ms after the wiper restarts, 58.6 ms stroke, carriage 18.9 mm into the stop flexure, 9.2 mm rebound, settled 53 ms; springs follow | release table, base/physics launcher.py trace, carriage_stop_model |
-| 10.7-11.6 | flight 0.85 s, impact nose X 4.84 | Flight3D: kedge/flight34.py strip aero in both planes (v35 mass and planform), tail tie drag, cross-wind |
-| 11.6- | bounce, inverted, leg flip (13.1), pod roll (18.1), righted 20.2, pods deploy, drills from 20.9 | righting sim (kedge/sim_righting SimV34, front pods folding aft, tail tie, loam) started FROM the flight's end state, no blend |
+| 10.7-11.5 | flight 0.84 s, impact nose X 4.72 | Flight3D: kedge/flight34.py strip aero in both planes (v35 mass and planform), tail tie drag, cross-wind |
+| 11.5- | bounce, lands inverted, the leg alone flips it (13.2), righted 17.9, pods deploy, drills from 19.7 | righting sim (kedge/sim_righting SimV34 with the dart team's v35_check F_rigid_tie job: front pods folding aft, tail tie, loam) started FROM the flight's end state, no blend |
 | 12.4-22.8 | base: rail low over the top of the aim cycle (34 -> 47 -> 6 deg, D45) | wiper backward at the aim load |
 | 23.4- | unload jog, drum to NEUTRAL (5 s), then the wrap 41 -> 302 deg (32 s, cup 7 turns) | drum N20 8.1 deg/s |
 | cut | | |
 | 58.0-62.8 | last wrap turns, park at 314 | |
 | 63.3 | tidy (take-up, wiper duty 0.6 against the FIRM clutch) until tight; line rises off the grass | the wrap took the slack, the line is already near tight at the LIGHT 0.25 N |
 | 65.3 | REEL fly-in (drum 314 -> 347, 4.1 s, wiper creep) | |
-| 69.8-76.3 | tow: capstan takes in 12.5 mm while the tension ramps to 20 N (sim tow); the dart pitches 6 deg nose up and the tow presses both pods onto their stops (46.8 -> 47.6 deg against the 46.75 stop) | line stretch EA 30 kN + the dart's give in the soil |
+| 69.8-76.3 | tow: capstan takes in 12.3 mm while the tension ramps to 20 N (sim tow); the dart pitches nose up and the tow presses both pods onto their stops (46.8 -> 47.6 deg against the 46.75 stop) | line stretch EA 30 kN + the dart's give in the soil |
 | 76.3-81.3 | tension holds (worm), end | |
 
-Events (frame): aim 90, cock 236, fire 319, muzzle exit 322, impact 348, rail low 372, leg flip 392, pod roll 542,
-righted 606, drills 627, cut 747, wrap done 837, park 890, tidy 905, reel taut 907, REEL 964, tow 1101, tension hold
-1296, end 1446.
+Events (frame): aim 90, cock 235, fire 318, muzzle exit 321, impact 346, rail low 370, leg flip 395, righted 537,
+drills 592, cut 713, wrap done 803, park 856, tidy 871, reel taut 873, REEL 930, tow 1067, tension hold 1262, end 1412.
 
 ## Tether
 
@@ -54,9 +53,9 @@ the slack from the dart side. Checked: no free rope point inside any base part, 
 Rail 33..35 deg (reachable pitches), muzzle 6.7..6.9 m/s, tip-off pitch rate -1..1 rad/s and offset -5..5 deg, yaw
 rate -1..1 rad/s and offset -5..5 deg, cross-wind -1.5..1.5 m/s, flat loam; qualifying = inverted or on a flank after
 its own tumble, the leg used, righted, both drills in, at least 40 N held (v34 held 55, v35 40-45 N in loam: twice the
-film's 20 N tow), no reel tug. v35 pick (seed 11, run 118 of 160): rail 33.712 commanded (33.7113 reached), muzzle
-6.888 m/s, tip-off -0.818 rad/s nose down and +1.79 deg, yaw rate -0.127 rad/s and +1.14 deg, cross-wind 0.319 m/s
-toward -Y, slope 0; held 45 N. The out34 pick (seed 8, run 28) stays in `PICKS` for `KEDGE_OUT=kedge/out34`.
+film's 20 N tow), no reel tug. v35 pick (seed 12, run 105 of 160, the dart team's v35 sim job): rail 33.259 commanded
+(33.2583 reached), muzzle 6.824 m/s, tip-off +0.739 rad/s nose up and -4.38 deg, yaw rate +0.597 rad/s and +0.03 deg,
+cross-wind 0.525 m/s toward +Y, slope 0; the leg alone rights it (6.0 s), held 45 N. The out34 pick (seed 8, run 28) stays in `PICKS` for `KEDGE_OUT=kedge/out34`.
 
 ## motion.json beyond SPEC
 

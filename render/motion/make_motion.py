@@ -38,10 +38,10 @@ FPS = 30
 # it (no reel tug), both drills go in and it holds 55 N. Rerun the search for a new dart build (search_landing.py).
 PICKS = {"out34": dict(rail_deg=33.987, v0=6.783, q0=-0.908, dth=0.16, r0=0.368, dpsi=3.18, wind_y=0.645, slope_deg=0.0,
                        source="search_landing.py seed 8 run 28 (search/search_results_recheck_search_results_s8.json)"),
-         # v35 (pods hinged at x 50, folding aft, drills raked back): its own bounce ends inverted, the leg flips it, one pod
-         # roll finishes it (no reel tug), both drills in, held 45 N in the sim
-         "out35": dict(rail_deg=33.712, v0=6.888, q0=-0.818, dth=1.79, r0=-0.127, dpsi=1.14, wind_y=-0.319, slope_deg=0.0,
-                       source="search_landing.py seed 11 run 118 (search/search_results_s11.json)")}
+         # v35 (pods hinged at x 50, folding aft, drills raked back; the dart team's v35_check F_rigid_tie sim job): its own
+         # bounce ends inverted and the leg alone flips it back (no pod roll, no reel tug), both drills in, held 45 N in the sim
+         "out35": dict(rail_deg=33.259, v0=6.824, q0=0.739, dth=-4.38, r0=0.597, dpsi=0.03, wind_y=0.525, slope_deg=0.0,
+                       source="search_landing.py seed 12 run 105 (search/search_results_s12.json)")}
 DRILL_RPM = 45.0                  # drill motor under load on 2S (100 rpm 12 V listing)
 EA_LINE = 30000.0                 # N, 1 mm Dyneema braid (stretch under the tow)
 T_FLIGHT, T_TIDY, T_TOW_MIN = 0.3, 5.0, 5.0     # N: line tension in flight (base physics 0.25 N drag, 0.37 N peak), FIRM take-up, tow floor

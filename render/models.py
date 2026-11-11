@@ -50,7 +50,19 @@ from mathutils import Matrix, Vector, Euler
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 BASE_DIR = os.path.join(REPO, "base", "out", "base")
-DART_DIR = os.path.join(REPO, "kedge", "out34")
+def _kedge_out():
+    """dart CAD dir: env KEDGE_OUT (a path, or a name under kedge/), else kedge/out35 when kedge/out35/READY exists,
+    else kedge/out34 (SPEC v2 direction)"""
+    e = os.environ.get("KEDGE_OUT")
+    if e:
+        return e if os.path.isabs(e) else os.path.join(REPO, "kedge", os.path.basename(e.rstrip("/")))
+    if os.path.exists(os.path.join(REPO, "kedge", "out35", "READY")):
+        return os.path.join(REPO, "kedge", "out35")
+    return os.path.join(REPO, "kedge", "out34")
+
+
+DART_DIR = _kedge_out()
+KEDGE_OUT = DART_DIR
 MOTION_JSON = os.path.join(HERE, "motion", "motion.json")
 OUT_DIR = os.path.join(HERE, "out")
 MM = 0.001
@@ -100,25 +112,100 @@ BASE_REST_JOINTS = {
 # include parts.json "sgn" (-1), so +deg is the physical direction: leg 0 folded .. 178 righting, pods 0 folded ..
 # 46.75 deployed (parts.json DEPLOY_DEG); augers: right-hand about the axis toward the tip (L auger right-hand, +deg
 # drills in; R auger left-hand, -deg drills in: drill_in_sign).
-DART_JOINTS = {
-    "dart:righting_leg": dict(joint="leg", parent="dart:root", pivot=(0.033, 0.0, 0.0145), axis=(0.0, -1.0, 0.0),
-                              range_deg=(0.0, 178.0),
-                              carries=["dart:leg_coupler_L", "dart:leg_coupler_R", "dart:leg_shaft"]),
-    "dart:drill_leg_L": dict(joint="deploy", parent="dart:root", pivot=(0.132, 0.03115, 0.0095),
-                             axis=(0.0, -1.0, 0.0), range_deg=(0.0, 46.75),
-                             carries=["dart:drill_leg_L_motor", "dart:coupler_L", "dart:pod_cap_L",
-                                      "dart:coupler_L_screw", "dart:deploy_shaft", "dart:drill_leg_L_auger"]),
-    "dart:drill_leg_R": dict(joint="deploy", parent="dart:root", pivot=(0.132, -0.03115, 0.0095),
-                             axis=(0.0, -1.0, 0.0), range_deg=(0.0, 46.75),
-                             carries=["dart:drill_leg_R_motor", "dart:coupler_R", "dart:pod_cap_R",
-                                      "dart:coupler_R_screw", "dart:drill_leg_R_auger"]),
-    "dart:drill_leg_L_auger": dict(joint="auger_L", parent="dart:drill_leg_L", pivot=(0.0, 0.0, 0.0),
-                                   axis=(-1.0, 0.0, 0.0), drill_in_sign=1,
-                                   carries=["dart:drill_leg_L_shaft", "dart:drill_leg_L_nut"]),
-    "dart:drill_leg_R_auger": dict(joint="auger_R", parent="dart:drill_leg_R", pivot=(0.0, 0.0, 0.0),
-                                   axis=(-1.0, 0.0, 0.0), drill_in_sign=-1,
-                                   carries=["dart:drill_leg_R_shaft", "dart:drill_leg_R_nut"]),
-}
+def _dart_parts_json():
+    with open(os.path.join(DART_DIR, "parts.json")) as fh:
+        return json.load(fh)
+
+
+def _auger_axis(pod, auger, dart_dir=None):
+    """spin axis of an auger in its pod's frame (auger vertices are pod-relative): principal axis of the auger mesh,
+    pointing hub -> tip, snapped to a frame axis when within 0.5 deg; pivot = the axis point closest to the pod
+    origin (both in m)"""
+    dd = dart_dir or DART_DIR
+    shaft = os.path.join(dd, pod + "_shaft.npz")              # the steel spine is a clean cylinder: use it if present
+    va = np.load(os.path.join(dd, auger + ".npz"))["v"].astype(float)
+    v = np.load(shaft)["v"].astype(float) if os.path.exists(shaft) else va
+    c = v.mean(0)
+    _, _, vt = np.linalg.svd(v - c, full_matrices=False)
+    a = vt[0] / np.linalg.norm(vt[0])
+    t = (va - c) @ a                                           # tip = the auger end farther from the pod pivot
+    tip = va[np.argmax(t)] if np.linalg.norm(va[np.argmax(t)]) > np.linalg.norm(va[np.argmin(t)]) else va[np.argmin(t)]
+    if np.dot(tip - c, a) < 0:
+        a = -a
+    for k in range(3):
+        if np.degrees(np.arccos(min(1.0, abs(a[k])))) < 1.0:
+            a = np.eye(3)[k] * np.sign(a[k])
+    piv = c - np.dot(c, a) * a                       # closest point of the axis line to the pod origin
+    piv[np.abs(piv) < 0.05] = 0.0
+    return tuple(float(x) + 0.0 for x in a), tuple(float(x) * MM + 0.0 for x in piv)
+
+
+def dart_joints(J=None, dart_dir=None):
+    """Data-driven joints from parts.json: every root part with "joint" + "axis" turns about the frame axis named
+    there (times "sgn") through its "pos"; parts sharing a joint and its axis line ride on the primary part of that
+    joint (the one with children, e.g. the pod arm; same y side); children named *_auger spin about their mesh's
+    principal axis (_auger_axis). Returns {object name: dict(joint, parent, pivot m, axis, range_deg, carries)}."""
+    J = J or _dart_parts_json()
+    PP = {p["name"]: p for p in J["parts"]}
+    kids = {}
+    for p in J["parts"]:
+        if p.get("parent"):
+            kids.setdefault(p["parent"], []).append(p["name"])
+    movers = [p for p in J["parts"] if not p.get("parent") and p.get("joint") and p.get("axis")]
+    prim = [p for p in movers if p["name"] in kids and any("screw" not in k and "cap" not in k for k in kids[p["name"]])]
+    out, ride = {}, {}
+    for p in prim:
+        ax = np.zeros(3)
+        ax["xyz".index(p["axis"])] = float(p.get("sgn", 1))
+        lo, hi = (p.get("deg") or [0, 0])[:2]
+        out["dart:" + p["name"]] = dict(joint=p["joint"], parent="dart:root",
+                                        pivot=tuple(float(x) * MM for x in p["pos"]),
+                                        axis=tuple(float(x) + 0.0 for x in ax),
+                                        range_deg=(float(lo), float(hi)), carries=[])
+    for p in movers:
+        if any(p is q for q in prim):
+            continue
+        same = [q for q in prim if q["joint"] == p["joint"]]
+        if not same:
+            continue
+        my = float(np.load(os.path.join(dart_dir or DART_DIR, p["name"] + ".npz"))["v"][:, 1].mean())
+        side = 1 if p["pos"][1] + my >= 0 else -1
+        host = min(same, key=lambda q: (np.sign(q["pos"][1]) != side, abs(q["pos"][1] - p["pos"][1])))
+        ride[p["name"]] = host["name"]
+    for host, ks in kids.items():
+        for k in ks:
+            if k.endswith("_auger") and "dart:" + host in out:
+                ax, piv = _auger_axis(host, k, dart_dir)
+                out["dart:" + k] = dict(joint="auger_" + k.split("_")[-2] if k.count("_") >= 2 else "auger",
+                                        parent="dart:" + host, pivot=piv, axis=ax,
+                                        drill_in_sign=1 if "right-hand" in PP[k].get("note", "") else -1,
+                                        carries=[])
+    on_auger = {}
+    for name, d in out.items():
+        if name.endswith("_auger"):
+            pod = d["parent"][5:]
+            for k in kids.get(pod, []):
+                if k.startswith(pod) and k.endswith(("_shaft", "_nut")):
+                    on_auger[k] = name[5:]
+    for n, p in PP.items():
+        hn = None
+        if n in on_auger:
+            hn = on_auger[n]
+        elif n in ride:
+            hn = ride[n]
+        elif p.get("parent") and "dart:" + p["parent"] in out and "dart:" + n not in out:
+            hn = p["parent"]
+        elif p.get("parent") and p["parent"] in ride:
+            continue
+        if hn:
+            out["dart:" + hn]["carries"].append("dart:" + n)
+    for n, h in ride.items():                         # children of riders (pod caps, screws) ride along too
+        for k in kids.get(n, []):
+            out["dart:" + h]["carries"].append("dart:" + k)
+    return out, ride, on_auger
+
+
+DART_JOINTS, DART_RIDES_ON, DART_ON_AUGER = dart_joints()
 DART_JOINT_ALIASES = {"dart:pivot_leg": "dart:righting_leg", "dart:pivot_drill_L": "dart:drill_leg_L",
                       "dart:pivot_drill_R": "dart:drill_leg_R", "dart:pivot_auger_L": "dart:drill_leg_L_auger",
                       "dart:pivot_auger_R": "dart:drill_leg_R_auger"}
@@ -325,7 +412,7 @@ class _N:
         n.inputs["Detail"].default_value = detail
         n.inputs["Roughness"].default_value = rough
         if vec is not None:
-            self.link(vec, n.inputs["Vector"])
+            self.link(vec, n.inputs["W" if dim == "1D" else "Vector"])
         return n
 
     def coord(self, which="Object"):
@@ -521,36 +608,90 @@ def _detail(N, bsdf, col, rough, metal=0.0, var=0.05, rvar=0.12, grime=0.45, gri
     N.link(nrm, bsdf.inputs["Normal"])
 
 
-def mat_printed(hexcol, kind="PLA"):
-    """FDM print: CAD colour, layer lines from the per-vertex attribute 'layer' (print-bed z in mm, 0.2 mm layers;
-    faded with distance), satin PLA with a little subsurface softness, worn lighter edges, grime in the corners,
-    dust on top faces. kind PPA-CF: matte dark carbon-filled nylon with a fine fibrous speckle (CAD colours of
-    PPA-CF parts are ignored)."""
-    key = f"{kind}_{hexcol.lstrip('#')}" if kind == "PLA" else "PPA-CF"
+PLA_BLUE = "#1d2f63"          # Harry's dark blue PLA (every printed PLA part, SPEC v2)
+PPA_CF = "#16171a"            # matte black carbon-fibre nylon
+
+
+def _print_texture(N):
+    """FDM surface relief in the part's PRINT frame (object properties print_x / print_y / print_up / print_c, see
+    set_print_frame; local z if absent). Returns (height, top mask, seam mask, band value):
+    - 0.2 mm layer lines on the walls (kept at about 40 % at a distance so they still catch grazing light), plus
+      slow extrusion banding every 1 to 3 mm that reads at a metre and more;
+    - the z seam: a vertical line of small blobs at a fixed angle round the part;
+    - top surfaces (facing up on the bed): the last infill layer's 45 deg lines, 0.42 mm apart."""
+    obj = N.coord("Object")
+    pmm = N.vscale(obj, 1000.0)
+
+    def oattr(name):
+        n = N.node("ShaderNodeAttribute", attribute_type="OBJECT", attribute_name=name)
+        return n.outputs["Vector"]
+    up, ex, ey, c = oattr("print_up"), oattr("print_x"), oattr("print_y"), oattr("print_c")
+    has = N.math("GREATER_THAN", N.vmath("LENGTH", up, up), 0.5)              # 1 when the part has a print frame
+    upz = N.mix(has, (0.0, 0.0, 1.0, 1.0), up)
+    lz = N.vmath("DOT_PRODUCT", pmm, upz)
+    rel = N.vmath("SUBTRACT", pmm, N.vscale(c, 1000.0))
+    lx = N.vmath("DOT_PRODUCT", rel, N.mix(has, (1.0, 0.0, 0.0, 1.0), ex))
+    ly = N.vmath("DOT_PRODUCT", rel, N.mix(has, (0.0, 1.0, 0.0, 1.0), ey))
+    f = N.math("FRACT", N.math("DIVIDE", lz, 0.2))
+    prof = N.math("POWER", N.math("ABSOLUTE", N.math("SUBTRACT", f, 0.5)), 1.5)        # 0 mid layer, peak at seams
+    lines = N.math("MULTIPLY", prof, N.maprange(N.fade(0.3, 3.0), 0.0, 1.0, 0.4, 1.0))
+    band = N.noise(1.0, 2.0, 0.5, N.math("MULTIPLY", lz, 0.45), dim="1D").outputs["Fac"]   # extrusion banding
+    wob = N.noise(1.0, 1.0, 0.5, N.math("MULTIPLY", lz, 5.0), dim="1D").outputs["Fac"]     # layer to layer
+    nobj = N.node("ShaderNodeVectorTransform", vector_type="NORMAL", convert_from="WORLD", convert_to="OBJECT")
+    N.link(N.geo().outputs["Normal"], nobj.inputs["Vector"])
+    facing = N.vmath("DOT_PRODUCT", nobj.outputs["Vector"], upz)
+    top = N.maprange(facing, 0.93, 0.99)
+    walls = N.math("SUBTRACT", 1.0, N.maprange(N.math("ABSOLUTE", facing), 0.93, 0.99))
+    infill = N.math("ABSOLUTE", N.math("SUBTRACT", N.math("FRACT", N.math("DIVIDE", N.math(
+        "ADD", lx, ly), 0.42 * 1.41421)), 0.5))
+    ang = N.math("ARCTAN2", ly, lx)
+    r = N.math("SQRT", N.math("ADD", N.math("MULTIPLY", lx, lx), N.math("MULTIPLY", ly, ly)))
+    d1 = N.math("ABSOLUTE", N.math("SUBTRACT", ang, 2.2))
+    dang = N.math("MINIMUM", d1, N.math("SUBTRACT", 2 * math.pi, d1))
+    seam = N.math("MULTIPLY", N.maprange(N.math("MULTIPLY", dang, r), 0.0, 0.45, 1.0, 0.0), walls)
+    blobs = N.math("MULTIPLY", seam, N.maprange(wob, 0.35, 0.75, 0.3, 1.0))
+    h = N.math("ADD", N.math("MULTIPLY", N.math("ADD", N.math("MULTIPLY", lines, -1.0),
+                                                  N.math("MULTIPLY", N.math("SUBTRACT", wob, 0.5), 0.35)), walls),
+               N.math("MULTIPLY", band, 0.9))
+    h = N.math("ADD", h, N.math("MULTIPLY", N.math("MULTIPLY", infill, top), -0.7))
+    h = N.math("ADD", h, N.math("MULTIPLY", blobs, 1.4))
+    return h, top, seam, band
+
+
+def mat_printed(hexcol=None, kind="PLA"):
+    """FDM print as built (SPEC v2): kind PLA = dark blue satin PLA (PLA_BLUE, whatever the CAD colour), kind
+    PPA-CF = matte black carbon-fibre nylon with a faint fibre speckle, rougher. Print texture from _print_texture
+    (layer lines in the print orientation, banding, z seam, top infill), slight per-part colour variation (spool to
+    spool), worn edges, grime in the corners, a little dust."""
+    key = "PLA_blue" if kind == "PLA" else "PPA-CF"
     if key in _MATS:
         return _MATS[key]
     m, nt, bsdf = _new_mat(key)
     N = _N(nt)
     obj = N.coord("Object")
-    lay = N.attr("layer")
-    f = N.math("FRACT", N.math("DIVIDE", lay, 0.2))
-    prof = N.math("POWER", N.math("ABSOLUTE", N.math("SUBTRACT", f, 0.5)), 1.6)
-    wob = N.noise(700.0, 2.0, 0.5, obj).outputs["Fac"]                               # layer-to-layer wobble
-    lines = N.math("MULTIPLY", N.math("ADD", prof, N.math("MULTIPLY", wob, 0.08)), N.fade(0.15, 1.2))
+    h, top, seam, band = _print_texture(N)
+    rnd = N.node("ShaderNodeObjectInfo").outputs["Random"]
     if kind == "PLA":
-        col = srgb(hexcol)
-        _detail(N, bsdf, col, 0.42, var=0.05, rvar=0.14, grime=0.5, edge=0.55, edge_rough=0.3, dust=0.25,
-                micro=0.08, height=N.math("MULTIPLY", lines, -2.2), bump_dist=0.00012, bevel=0.0004)
-        _set(bsdf, spec=0.5, sss=0.06, sss_radius=(0.0015, 0.0015, 0.0015), sheen=0.08)
+        col = srgb(PLA_BLUE)
+        c = N.mix(rnd, N.vscale(N.rgb(col), 0.94), N.vscale(N.rgb(col), 1.06))
+        c = N.mix(N.math("MULTIPLY", band, 0.12), c, N.vscale(N.rgb(col), 1.25))          # banding shade
+        _detail(N, bsdf, c, 0.36, var=0.04, rvar=0.1, grime=0.45, edge=0.45, edge_col=srgb("#3a5194"),
+                edge_rough=0.3, dust=0.12, micro=0.04, height=N.math("MULTIPLY", h, 1.0), bump_dist=0.00009,
+                bevel=0.0004)
+        rr = bsdf.inputs["Roughness"].links[0].from_socket
+        N.link(N.math("ADD", rr, N.math("ADD", N.math("MULTIPLY", top, -0.08), N.math("MULTIPLY", seam, 0.15)),
+                      clamp=True), bsdf.inputs["Roughness"])
+        _set(bsdf, spec=0.55, sheen=0.12)
     else:
         fib = N.noise(1600.0, 6.0, 0.8, obj).outputs["Fac"]
-        spk = N.math("GREATER_THAN", N.noise(5200.0, 1.0, 0.5, obj).outputs["Fac"], 0.68)
-        base = N.mix(spk, N.ramp(fib, [(0.35, srgb("#1a1b1d")), (0.65, srgb("#2a2b2e"))]), srgb("#3c3e42"))
-        _detail(N, bsdf, base, 0.72, var=0.04, rvar=0.1, grime=0.4, edge=0.45, edge_col=srgb("#55585d"),
-                edge_rough=0.55, dust=0.3, micro=0.0, height=N.math("ADD", N.math("MULTIPLY", lines, -1.4),
-                                                                   N.math("MULTIPLY", fib, 0.8)),
-                bump_dist=0.0001, bevel=0.0003)
-        _set(bsdf, spec=0.35)
+        spk = N.math("GREATER_THAN", N.noise(6000.0, 1.0, 0.5, obj).outputs["Fac"], 0.7)
+        base = N.mix(spk, N.ramp(fib, [(0.35, srgb("#121315")), (0.65, srgb("#1d1e21"))]), srgb("#33353a"))
+        base = N.mix(rnd, N.vscale(base, 0.95), N.vscale(base, 1.05))
+        _detail(N, bsdf, base, 0.74, var=0.04, rvar=0.1, grime=0.35, edge=0.35, edge_col=srgb("#43464c"),
+                edge_rough=0.6, dust=0.1, micro=0.0, height=N.math("ADD", N.math("MULTIPLY", h, 0.8),
+                                                                  N.math("MULTIPLY", fib, 0.7)),
+                bump_dist=0.00009, bevel=0.0003)
+        _set(bsdf, spec=0.3)
     return m
 
 
@@ -1219,10 +1360,10 @@ def build_base(scene, col=None):
             elif n == "drum_n20":                      # N20: brass gearbox at the pinion end, nickel can
                 mats, mi = _split_by(v, f, 2, 16.0, M("brass"), M("steel_bright"))
             me = mesh_np(name, v * MM, f, mi)
+            ob = mesh_object(name, me, col, root, Mw, mats)
             if p["material"] in ("PLA", "PPA-CF"):
                 pt = np.asarray(p["print_tf"] if p.get("print_tf") else np.eye(4), float)
-                set_attr(me, "layer", v @ pt[2, :3] + pt[2, 3])
-            ob = mesh_object(name, me, col, root, Mw, mats)
+                set_print_frame(ob, pt, (v.min(0) + v.max(0)) / 2 * MM)
             if len(f) > 60000:
                 _decimate(ob, 45000)
         ob["asm_part"] = n
@@ -1481,13 +1622,6 @@ def _build_cable_ties(col, root, W):
 
 
 # ============================================================================================== dart
-# parts.json root parts that ride on a moving part (same deploy axis) -> the moving object they hang under
-DART_RIDES_ON = {"coupler_L": "drill_leg_L", "deploy_shaft": "drill_leg_L", "coupler_R": "drill_leg_R"}
-# children re-parented to the spinning auger (parts.json hangs them on the arm; they turn with the auger)
-DART_ON_AUGER = {"drill_leg_L_shaft": "drill_leg_L_auger", "drill_leg_L_nut": "drill_leg_L_auger",
-                 "drill_leg_R_shaft": "drill_leg_R_auger", "drill_leg_R_nut": "drill_leg_R_auger"}
-
-
 def dart_rest_matrix():
     """world matrix of dart:root at rest: folded on the launcher cradle (asm launch_dart transform)"""
     asm = json.load(open(os.path.join(BASE_DIR, "asm.json")))
@@ -1545,13 +1679,44 @@ def mat_thread():
     return m
 
 
+def set_print_frame(ob, R, centre_m):
+    """store a printed part's print orientation as object properties read by mat_printed(): print_x / print_y /
+    print_up = the bed axes in the part's local frame (rows of the part->bed rotation), print_c = part centre (m)"""
+    R = np.asarray(R, float)
+    for k, i in (("print_x", 0), ("print_y", 1), ("print_up", 2)):
+        ob[k] = [float(x) + 0.0 for x in R[i, :3]]
+    ob["print_c"] = [float(x) for x in centre_m]
+
+
+def dart_print_orient(J):
+    """print rotations of the dart parts, read from kedge/pack.py's ORIENT block (the oriented STL export), so the
+    layer lines follow each part's real print pose; {} (local z) if that block cannot be read"""
+    try:
+        txt = open(os.path.join(REPO, "kedge", "pack.py")).read()
+        a = txt.index("ORIENT = {")
+        b = txt.index("ORIENT = {k: v for k, v in ORIENT.items() if k in PP}")
+
+        def RM(angle, axis):
+            return _rot_deg(axis, math.degrees(angle))
+        env = dict(np=np, math=math, RM=RM, TM=lambda t: T_(*t), X=[1, 0, 0], Y=[0, 1, 0], J=J,
+                   PP={p["name"]: p for p in J["parts"]})
+        exec(txt[a:b], env)                               # project code (kedge/pack.py), data only
+        return {k: np.asarray(v, float) for k, v in env["ORIENT"].items()}
+    except Exception as e:                                # noqa: BLE001
+        print("dart print orientation: using local z (", e, ")")
+        return {}
+
+
 def build_dart(scene, col=None, matrix=None):
-    """all kedge/out34 parts under dart:root (rest: folded on the cradle); returns dart:root"""
+    """all parts of the dart CAD (DART_DIR: kedge/out35 when READY, else out34; env KEDGE_OUT) under dart:root
+    (rest: folded on the cradle); returns dart:root"""
     col = col or get_collection("DART", scene)
     J = json.load(open(os.path.join(DART_DIR, "parts.json")))
     PP = {p["name"]: p for p in J["parts"]}
     root = empty("dart:root", col, matrix=dart_rest_matrix() if matrix is None else matrix, size=0.05)
+    root["kedge_out"] = os.path.relpath(DART_DIR, REPO)
     detail = _procedural_dart_parts()
+    orient = dart_print_orient(J)
     made = {"dart:root": root}
 
     def place(n):
@@ -1581,17 +1746,29 @@ def build_dart(scene, col=None, matrix=None):
                 continue
             name = "dart:" + n
             p = PP[n]
-            if n in detail:
-                ob = detail[n]().obj(name, col, made[par], local)
+            z = np.load(os.path.join(DART_DIR, n + ".npz"))
+            v = z["v"].astype(float)
+            f = z["f"].astype(np.int64)
+            off = np.zeros(3)                                    # mesh shift when an auger axis misses the pod origin
+            if name in DART_JOINTS and DART_JOINTS[name]["parent"] != "dart:root":
+                off = -np.asarray(DART_JOINTS[name]["pivot"]) / MM
+            elif n in DART_ON_AUGER:
+                off = -np.asarray(DART_JOINTS["dart:" + DART_ON_AUGER[n]]["pivot"]) / MM
+            v = v + off
+            mb = detail[n]() if n in detail else None
+            if mb is not None:                                   # procedural stand-in only where it fits the CAD
+                pv = np.vstack(mb.v) / MM if mb.v else np.zeros((1, 3))
+                if np.abs(pv.min(0) - v.min(0)).max() > 1.5 or np.abs(pv.max(0) - v.max(0)).max() > 1.5:
+                    mb = None
+            if mb is not None:
+                ob = mb.obj(name, col, made[par], local)
             else:
-                z = np.load(os.path.join(DART_DIR, n + ".npz"))
-                v = z["v"].astype(float)
-                f = z["f"].astype(np.int64)
                 mats, mi = _dart_material(p, v, f)
                 me = mesh_np(name, v * MM, f, mi)
-                if p.get("printable"):
-                    set_attr(me, "layer", v[:, 2])
                 ob = mesh_object(name, me, col, made[par], local, mats)
+            if p.get("printable"):
+                R = orient.get(n, np.eye(4))
+                set_print_frame(ob, R, (v.min(0) + v.max(0)) / 2 * MM)
             ob["kedge_part"] = n
             if name in DART_JOINTS:
                 ob["joint_axis"] = list(DART_JOINTS[name]["axis"])

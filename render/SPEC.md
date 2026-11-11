@@ -50,3 +50,25 @@ the grass.  7. Righting with the leg if it lands off its belly (use a sim seed t
   (kedge/flight34.py), landing/righting/anchoring (kedge/sim_righting: index.html simCore, v34_check/run34_shared.mjs,
   node + @dimforge/rapier3d-compat in the scratchpad dphys/node_modules).
 - No em dashes in any text. Commit to dart-v1 with the session trailer; never commit caches or frames.
+
+## v2 direction (Harry, 11 Nov): supersedes the sequence and look above where they conflict
+- Dart becomes KEDGE v35 (drill tips rake BACK toward the line, tent-peg style; pods hinge near x 50 and fold
+  backward along the flanks). CAD lands in kedge/out35 (same parts.json + npz layout; kedge/out35/READY appears when
+  final). Until then keep using out34 as a stand-in; every module takes the dart dir from one constant/env var
+  (KEDGE_OUT, default kedge/out35 if READY exists else kedge/out34).
+- Film = locked-off tripod cameras at a distance, no close-ups, no camera moves, no zooms. Goal: footage you cannot
+  tell is rendered. Real time 1:1 everywhere (no slow-mo). Two static cameras only:
+  cam:A wide (sees aim, cock, fire, flight, landing, righting, pods/drills start), then ONE hard cut to
+  cam:B (static, roughly side-on to the line, a few metres off it) for the reel winding and the line going taut and
+  holding. Time between the two may be compressed at that cut only (hides the long drilling).
+- Setting: rural AUSTRALIAN equestrian paddock in summer: mostly dry straw-coloured grass with some green at the base,
+  tussocks, bare and hoof-trodden dirt patches, scattered gum leaves, bark strips, twigs, sticks, small rocks, the odd
+  dried horse manure pile; gum trees (eucalyptus) and timber post + wire fencing behind; harsh clear sun, hazy
+  distance. Sulphur-crested cockatoos in the background (some on the ground far off that take off at the fire event,
+  maybe a pair flying across). Subtle wind sway in grass and leaves.
+- Materials: printed parts follow the build: PLA = dark blue (default for every printed part), PPA-CF = matte black
+  carbon-fibre nylon (parts marked PPA-CF: base/out/base/asm.json "material", dart couplers per kedge pack). Visible
+  FDM layer lines (0.2 mm, in each part's print orientation where known) and slight print imperfections. Bought parts
+  real (steel, PCBs, Jetson Orin Nano dev kit, wiper motor). Dyneema line yellow.
+- Output: "super HD": final 3840x2160 EEVEE on Harry's Mac (preset uhd), 1920x1080 preset final for speed. Real
+  camera look: AgX, 180 deg shutter motion blur, light film grain, mild lens distortion/vignetting, sensible DOF.

@@ -897,12 +897,12 @@ def mat_lipo_wrap():
     txt.inputs["Color2"].default_value = (0.6, 0.6, 0.6, 1)
     txt.inputs["Mortar"].default_value = (0, 0, 0, 1)
     printed = N.math("LESS_THAN", txt.outputs["Fac"], 0.5)
-    label = N.mix(printed, srgb("#f2c21a"), srgb("#101010"))
+    label = N.mix(printed, srgb("#ffbf00"), srgb("#101010"))
     col = N.mix(band, srgb("#0d0e10"), label)
     stripe = N.math("LESS_THAN", N.math("ABSOLUTE", N.math("SUBTRACT", xyz[0], -0.03)), 0.004)
     col = N.mix(stripe, col, srgb("#d8d8d8"))
-    _detail(N, bsdf, col, 0.2, 0.0, rvar=0.08, prints=0.8, grime=0.35, edge=0.3, edge_rough=0.3, dust=0.25,
-            micro=0.15, micro_scale=600.0, bump_dist=0.00008, bevel=0.002)
+    _detail(N, bsdf, col, 0.2, 0.0, var=0.03, rvar=0.08, prints=0.5, grime=0.3, edge=0.25, edge_rough=0.3,
+            dust=0.04, micro=0.15, micro_scale=600.0, bump_dist=0.00008, bevel=0.002)
     _set(bsdf, coat=0.5, coat_rough=0.15)
     return m
 

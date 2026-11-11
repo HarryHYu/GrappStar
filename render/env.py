@@ -912,7 +912,7 @@ def _mat_ground(hdri_img):
     g_c, g_r, g_n, _ = _pbr(nt, "dry_ground_rocks", _uvvec(nt, uv, TEX_SIZE["dry_ground_rocks"], 0.3),
                            ((0.20, 0.15, 0.10), 0.9))
     sw = nt.mix(nt.ss(brk, 0.35, 0.65), sw_c, sw2_c)
-    sw = nt.hsv(sw, nt.mixf(macro, 0.485, 0.505), 0.9, nt.mixf(macro, 0.42, 0.52))     # shaded sward tone
+    sw = nt.hsv(sw, nt.mixf(macro, 0.485, 0.505), 0.95, nt.mixf(macro, 0.8, 1.0))      # mottled lawn tone
     dryc = nt.mix(nt.ss(brk2, 0.3, 0.8), (0.20, 0.17, 0.08), (0.15, 0.11, 0.06))
     drym = nt.ss(nt.math("ADD", dry_a, nt.math("MULTIPLY", nt.math("SUBTRACT", brk2, 0.5), 0.5)), 0.3, 0.7)
     col = nt.mix(nt.math("MULTIPLY", drym, 0.85), sw, nt.mix(0.6, sw, dryc))
@@ -1329,7 +1329,7 @@ def _ball(mb, center, r, brnd, mat, zscale=1.0):
 
 # kind -> blade spec for the mown lawn. Blades are cut (blunt tips), stiff and short.
 GRASS_SPEC = {
-    "lawn": dict(n=64, L=(0.022, 0.055), W=(0.003, 0.0052), R=0.06, segs=3, lean=(0.05, 0.65), bend=(0.0, 0.5),
+    "lawn": dict(n=64, L=(0.03, 0.065), W=(0.0045, 0.0075), R=0.06, segs=3, lean=(0.05, 0.65), bend=(0.0, 0.5),
                  pdry=0.06),
     "lawn_long": dict(n=48, L=(0.05, 0.15), W=(0.003, 0.0055), R=0.065, segs=4, lean=(0.1, 0.9), bend=(0.2, 1.2),
                       pdry=0.12),
@@ -1363,7 +1363,7 @@ def _make_clump(kind, rng, mult=1.0, lod=0):
     s = GRASS_SPEC[kind]
     n = max(5, int(round(s["n"] * mult * (1.0, 0.6, 0.33)[lod])))
     segs = min(s["segs"], (9, 3, 2)[lod])
-    wmul = (1.0, 1.65, 2.9)[lod]                        # keep the coverage of LOD0
+    wmul = (1.0, 1.35, 2.2)[lod]                        # close to the coverage of LOD0, not tuftier
     for i in range(n):
         r = s["R"] * math.sqrt(rng.random())
         a = rng.random() * 2 * math.pi

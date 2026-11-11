@@ -1069,7 +1069,7 @@ def make_shots(mo, entry=None):
     def anchoring(f):
         u = ease(f, b[8], b[9])
         tgt = rest + np.array([0.0, 0.0, 0.005])
-        return dict(pos=lerp(rest + np.array([0.36, 0.30, 0.20]), rest + np.array([0.30, 0.24, 0.15]), u),
+        return dict(pos=lerp(rest + np.array([0.34, 0.30, 0.27]), rest + np.array([0.29, 0.25, 0.23]), u),
                     target=tgt, lens=50.0, focus=tgt)
 
     def reel(f):
@@ -1223,6 +1223,10 @@ def build(args, report):
 def save(scene, report):
     os.makedirs(OUT, exist_ok=True)
     try:
+        bpy.context.preferences.filepaths.save_version = 0      # no .blend1 backups (disk is tight)
+    except Exception:
+        pass
+    try:
         bpy.ops.file.pack_all()
     except Exception as ex:
         say("pack_all failed:", ex)
@@ -1233,6 +1237,9 @@ def save(scene, report):
     except Exception as ex:
         say("make_paths_relative:", ex)
     bpy.ops.wm.save_as_mainfile(filepath=BLEND, compress=True, relative_remap=True)
+    for bak in (BLEND + "1", BLEND + "2"):
+        if os.path.exists(bak):
+            os.remove(bak)
     mb = os.path.getsize(BLEND) / 1e6
     report["blend"] = dict(path=BLEND, mb=round(mb, 1), unpacked_images=unpacked)
     say("saved %s (%.1f MB), unpacked images: %s" % (BLEND, mb, unpacked))

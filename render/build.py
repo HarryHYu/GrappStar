@@ -285,11 +285,14 @@ class Motion:
         self.ev = {}
         for e in M.get("events", []):
             self.ev.setdefault(e["name"], int(e["frame"]))
+        global DART_CG_X
+        DART_CG_X = float(M.get("dart", {}).get("cg_station_m", DART_CG_X))
         d = M["objects"]["dart:root"]
         self.dart_loc = sample(d["frames"], d["loc"], self.F)
         self.dart_q = sample_quat(d["frames"], d["quat"], self.F)
         self.dart_cg = self.dart_loc + qrot(self.dart_q, np.array([DART_CG_X, 0.0, 0.0]))
         self.cg_s = gauss_smooth(self.dart_cg, 4.0)
+        self.cg_s2 = gauss_smooth(self.dart_cg, 10.0)          # calmer target for the ground shots
 
     def e(self, name, default):
         return self.ev.get(name, default)
@@ -637,6 +640,26 @@ def build_line(scene, mo, models, env, report):
 
 # =============================================================================================================
 # grass: density control and the dart pressing / parting the grass
+def dart_length(root):
+    """x extent (dart frame) of the dart's meshes as built (folded)"""
+    Ri = root.matrix_world.inverted()
+    xs = []
+    for ob in bpy.data.objects:
+        o, inside = ob, False
+        while o is not None:
+            if o == root:
+                inside = True
+                break
+            o = o.parent
+        if not inside or ob.type != "MESH":
+            continue
+        M = Ri @ ob.matrix_world
+        xs += [(M @ Vector(c)).x for c in ob.bound_box]
+    if not xs:
+        return 0.0, 0.16
+    return float(np.percentile(xs, 2)), float(np.percentile(xs, 98))
+
+
 MOW = 0.42                          # grass height factor in the mown patches (env:grass modifier input "Mow")
 
 
@@ -677,8 +700,9 @@ def grass_mods(scene, mo, rest_press, mow_zones):
         presses.append((e, live))
         return e
 
-    for i, x in enumerate((0.005, 0.045, 0.085, 0.125, 0.16)):          # along the body, nose to tail
-        press("fx:press_%d" % i, root, (x, 0.0, 0.0), 0.10)
+    x0, x1 = dart_length(root)
+    for i, x in enumerate(np.linspace(x0 + 0.005, x1 - 0.005, 5)):        # along the body, nose to tail
+        press("fx:press_%d" % i, root, (float(x), 0.0, 0.0), 0.10)
     for (name, xy, r, f_on, w) in rest_press:
         e = press(name, None, (xy[0], xy[1], 0.0), r, live=False)
         e.scale = (r, r, 0.0)
@@ -753,8 +777,8 @@ def mat_soil():
     noise.inputs["Scale"].default_value = 900.0
     noise.inputs["Detail"].default_value = 4.0
     ramp = nt.nodes.new("ShaderNodeValToRGB")
-    ramp.color_ramp.elements[0].color = (0.055, 0.036, 0.022, 1)
-    ramp.color_ramp.elements[1].color = (0.16, 0.11, 0.07, 1)
+    ramp.color_ramp.elements[0].color = (0.085, 0.058, 0.036, 1)
+    ramp.color_ramp.elements[1].color = (0.23, 0.16, 0.10, 1)
     nt.links.new(noise.outputs["Fac"], ramp.inputs["Fac"])
     nt.links.new(ramp.outputs["Color"], b.inputs["Base Color"])
     b.inputs["Roughness"].default_value = 0.85
@@ -820,43 +844,54 @@ def crumb_nodes(src):
     return g.ng
 
 
-def drill_axes(mo, models, fq):
-    """world origin and direction (toward the tip) of both auger axes for frames fq"""
-    DJ = getattr(models, "DART_JOINTS", {})
+def auger_joints(mo):
+    """motion.json joints that spin an auger -> {side: (joint name, joint dict)}; side = the L/R token in the
+    name (else an index), so a dart with other pod names or hinge positions drops in"""
     out = {}
-    fi = np.clip(np.round(fq).astype(int), 0, mo.nf - 1)
-    for side in ("L", "R"):
-        jn = "dart:drill_leg_" + side
-        J = mo.M["joints"].get(jn)
-        piv = np.asarray(J["pivot"] if J else DJ["dart:pivot_drill_" + side]["pivot"], float)
-        ax = np.asarray(J["axis"] if J else (0, -1, 0), float)
-        deg = mo.joint_deg(jn, fq)
-        dirs = []
-        for d in np.radians(deg):
-            R = Matrix.Rotation(float(d), 3, Vector(ax))
-            dirs.append(R @ Vector((-1.0, 0.0, 0.0)))
-        dirs = np.array(dirs)
-        q = mo.dart_q[fi]
-        org = mo.dart_loc[fi] + qrot(q, piv)
-        out[side] = (org, qrot(q, dirs))
+    for jn, J in mo.M.get("joints", {}).items():
+        if "auger" in jn.lower() or "drill" in jn.lower() and "spin" in jn.lower():
+            m = re.search(r"_([LR])(?:_|$)", jn)
+            out[m.group(1) if m else str(len(out))] = (jn, J)
     return out
 
 
-def auger_radius():
-    ob = bpy.data.objects.get("dart:drill_leg_L_auger")
-    if ob is None or ob.type != "MESH":
-        return 0.0055
-    v = np.array([vv.co[:] for vv in ob.data.vertices])
-    return float(np.percentile(np.hypot(v[:, 1], v[:, 2]), 98))
+def drill_axes(mo, models, fq):
+    """world origin (on the auger axis, at its joint origin) and direction toward the tip of every auger
+    for frames fq, through its chain of parent joints (pod hinge) from motion.json"""
+    out = {}
+    fq = np.atleast_1d(np.asarray(fq, float))
+    fi = np.clip(np.round(fq).astype(int), 0, mo.nf - 1)
+    JS = mo.M.get("joints", {})
+    for side, (jn, J) in auger_joints(mo).items():
+        ax = np.asarray(J["axis"], float)
+        ax = ax / np.linalg.norm(ax)
+        org = np.tile(np.asarray(J.get("pivot", (0.0, 0.0, 0.0)), float), (len(fq), 1))
+        dirs = np.tile(ax, (len(fq), 1))
+        par = J.get("parent")
+        while par in JS:                                   # innermost parent joint first
+            P = JS[par]
+            R = [Matrix.Rotation(float(d), 3, Vector(P["axis"])) for d in np.radians(mo.joint_deg(par, fq))]
+            org = np.array([R[i] @ Vector(org[i]) for i in range(len(fq))]) + np.asarray(P["pivot"], float)
+            dirs = np.array([R[i] @ Vector(dirs[i]) for i in range(len(fq))])
+            par = P.get("parent")
+        q = mo.dart_q[fi]
+        out[side] = (mo.dart_loc[fi] + qrot(q, org), qrot(q, dirs))
+    return out
 
 
-def auger_tip():
-    """distance from the pod pivot to the auger tip along the auger axis (local -x)"""
-    ob = bpy.data.objects.get("dart:drill_leg_L_auger")
-    if ob is None or ob.type != "MESH":
-        return 0.1
-    v = np.array([vv.co[:] for vv in ob.data.vertices])
-    return float(-v[:, 0].min())
+def auger_dims(mo):
+    """(radius, tip distance along the axis) of the auger meshes, from the first auger joint's object"""
+    for side, (jn, J) in auger_joints(mo).items():
+        ob = bpy.data.objects.get(jn)
+        if ob is None or ob.type != "MESH" or not len(ob.data.vertices):
+            continue
+        v = np.array([vv.co[:] for vv in ob.data.vertices])
+        ax = np.asarray(J["axis"], float)
+        ax = ax / np.linalg.norm(ax)
+        along = v @ ax
+        radial = np.linalg.norm(v - along[:, None] * ax, axis=1)
+        return float(np.percentile(radial, 98)), float(along.max())
+    return 0.0093, 0.10
 
 
 def build_fx(scene, mo, models, env, report):
@@ -897,7 +932,7 @@ def build_fx(scene, mo, models, env, report):
     fq = np.arange(f_p0, f_d1 + 1, dtype=float)
     axes = drill_axes(mo, models, fq)
     gfr = G / mo.fps ** 2
-    rad, tip = auger_radius(), auger_tip()
+    rad, tip = auger_dims(mo)
     entry, contact = {}, {}
     for side, (org, dirs) in axes.items():
         E, S = [], []
@@ -1007,9 +1042,12 @@ def make_shots(mo, entry=None):
     def PS(f):
         return cgs[int(np.clip(round(f), 0, mo.nf - 1))]
 
+    def PS2(f):
+        return mo.cg_s2[int(np.clip(round(f), 0, mo.nf - 1))]
+
     rest = cg[f_end]
-    eR = np.asarray(entry["R"][-1], float) if entry and "R" in entry else rest + np.array([0.0, 0.04, -0.02])
-    eL = np.asarray(entry["L"][-1], float) if entry and "L" in entry else rest - np.array([0.0, 0.04, 0.02])
+    ends = sorted((np.asarray(v[-1], float) for v in (entry or {}).values()), key=lambda p: p[1])
+    eR = ends[-1] if ends else rest + np.array([0.0, 0.04, -0.02])        # the hole nearest the +y cameras
     f_pods = E("pods_deploy_start", f_drill - 20)
     b8 = max(f_right + 6, f_pods - 25)
     b = [0, f_aim, f_cock, f_fire - 18, f_exit + 34, f_imp - 12, f_flip - 8, b8,
@@ -1051,14 +1089,14 @@ def make_shots(mo, entry=None):
     def impact(f):
         u = ease(f, b[5], b[6])
         k = float(smoother((f - b[5]) / 18.0))
-        tgt = lerp(PS(f), land + np.array([0.0, 0.0, 0.05]), 0.3 + 0.35 * k)
+        tgt = lerp(PS2(f) + np.array([0.0, 0.0, 0.015]), land + np.array([0.0, 0.0, 0.04]), 0.35 - 0.25 * k)
         return dict(pos=lerp(land + np.array([0.02, 0.66, 0.20]), land + np.array([0.06, 0.60, 0.18]), u),
                     target=tgt, lens=35.0, focus=P(f))
 
     def righting(f):
         u = ease(f, b[6], b[7])
         return dict(pos=lerp(rest + np.array([0.08, 0.40, 0.34]), rest + np.array([0.0, 0.36, 0.30]), u),
-                    target=PS(f) + np.array([0.0, 0.0, 0.01]), lens=50.0, focus=P(f))
+                    target=PS2(f) + np.array([0.0, 0.0, 0.01]), lens=50.0, focus=P(f))
 
     def drilling(f):
         u = ease(f, b[7], b[8])
@@ -1066,11 +1104,19 @@ def make_shots(mo, entry=None):
         return dict(pos=lerp(eR + np.array([0.14, 0.24, 0.20]), eR + np.array([0.06, 0.22, 0.16]), u),
                     target=tgt, lens=45.0, focus=lerp(eR * 0.6 + rest * 0.4, eR, u))
 
+    head = mo.dart_point((0.0, 0.0, 0.0), f_end) - mo.dart_point((0.1, 0.0, 0.0), f_end)    # tail -> nose
+    head[2] = 0.0
+    head = head / (np.linalg.norm(head) + 1e-9)
+    side = np.array([-head[1], head[0], 0.0])
+    if side[1] < 0:
+        side = -side                                            # keep to the +y side
+
     def anchoring(f):
         u = ease(f, b[8], b[9])
-        tgt = rest + np.array([0.0, 0.0, 0.005])
-        return dict(pos=lerp(rest + np.array([0.34, 0.30, 0.27]), rest + np.array([0.29, 0.25, 0.23]), u),
-                    target=tgt, lens=50.0, focus=tgt)
+        tgt = rest + head * 0.035
+        p0 = rest + head * 0.30 + side * 0.13 + np.array([0.0, 0.0, 0.28])
+        p1 = rest + head * 0.25 + side * 0.09 + np.array([0.0, 0.0, 0.23])
+        return dict(pos=lerp(p0, p1, u), target=tgt, lens=50.0, focus=tgt)
 
     def reel(f):
         v = ease(f, f_taut - 8, f_taut + 75)
@@ -1203,8 +1249,8 @@ def build(args, report):
                   ("fx:press_lie", lie[:2], 0.075, f_imp + 25, 0.7)]
     mow = [(float(rest[0]), float(rest[1]), 0.45, 1.1, 0.22), (float(rest[0]), float(rest[1]), 1.1, 2.6, None),
            (0.0, 0.0, 0.75, 1.6, None)]
-    for side in ("L", "R"):                    # trampled round the drill holes (the drilling close-up)
-        e = entry0[side][0]
+    for side, ee in entry0.items():            # trampled round the drill holes (the drilling close-up)
+        e = ee[0]
         mow.append((float(e[0]), float(e[1]), 0.05, 0.16, 0.18))
     grass_mods(scene, mo, rest_press, mow)
     build_line(scene, mo, models, env, report)

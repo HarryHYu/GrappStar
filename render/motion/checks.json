@@ -1,0 +1,101 @@
+{
+ "gears": {
+  "rack_rolls_on_big_gear": -1.0,
+  "expect_rack": -1.0,
+  "drive_per_big_gear": -1.5385,
+  "expect_drive": -1.5385,
+  "wiper_forward_while_cocking": true,
+  "carriage_back_while_cocking": true,
+  "ok": true
+ },
+ "flight": {
+  "aoa_max_deg": 16.5,
+  "aoa_at_handover_deg": -16.5,
+  "nose_first": true,
+  "time_s": 0.833
+ },
+ "impact_nose_xyz": [
+  4.766,
+  0.091,
+  0.005
+ ],
+ "rest_nose_xyz": [
+  4.971,
+  0.031,
+  0.02
+ ],
+ "drills": {
+  "drill_leg_L": {
+   "tip_z_mm_deploy_start_anchored_end": [
+    7.1,
+    -45.6,
+    -44.6
+   ],
+   "into_ground": true
+  },
+  "drill_leg_R": {
+   "tip_z_mm_deploy_start_anchored_end": [
+    21.1,
+    -42.4,
+    -40.5
+   ],
+   "into_ground": true
+  }
+ },
+ "dart_vs_ground": {
+  "min_z_mm": -2.94,
+  "part": "righting_leg",
+  "frame": 902,
+  "rest_min_z_mm": -0.81,
+  "note": "sim contact is soft and its colliders are a capsule hull, cone nose and capsule pods/leg: a few mm of sink into the soil is expected; drills / motors / augers excluded once the pods are past 12 deg"
+ },
+ "base_moving_parts_min_z_mm": {
+  "z": 12.44,
+  "part": "drum_drum_a",
+  "frame": 0
+ },
+ "line_min_z_mm": 2.1,
+ "handover_mismatch": {
+  "sim_gamma_deg": 44.02,
+  "sim_body_pitch_deg": -44.02,
+  "flight_body_pitch_deg": -58.83,
+  "flight_path_deg": -42.33,
+  "sim_roll_deg": 154.1,
+  "flight_roll_deg": 0.0,
+  "sim_yaw_deg": -0.9,
+  "speed_flight": 6.363,
+  "speed_sim": 6.8,
+  "dv": 0.479,
+  "sim_spin_rad_s": {
+   "x": -0.5759308831766248,
+   "y": -0.030576148070394993,
+   "z": 1.8309424044564366
+  },
+  "pitch_blend_deg": 14.81
+ },
+ "log": [
+  "sim seed 1021 righted True rightT 8.28 anchored 2 held 55 moves ['legFlip', 'podRoll:R']",
+  "loading base kinematics ...",
+  "aim: wiper 1067.78 deg backward from LOW -> pitch 33.997",
+  "shot: release 20.5 ms after full cock; stroke 59.0 ms (launcher.py, v 6.87 m/s)",
+  "separation: slide 204.3 mm on the cradle, CG at [0.3138 0.0915 0.4406] tau 109.6 ms",
+  "flight 0.833 s, handover CG x 4.613 z 0.1474 body pitch -58.8 path -42.3 v 6.36",
+  "handover mismatch: {'sim_gamma_deg': 44.02, 'sim_body_pitch_deg': -44.02, 'flight_body_pitch_deg': -58.83, 'flight_path_deg': -42.33, 'sim_roll_deg': 154.1, 'flight_roll_deg': 0.0, 'sim_yaw_deg': -0.9, 'speed_flight': 6.363, 'speed_sim': 6.8, 'dv': 0.479, 'sim_spin_rad_s': {'x': -0.5759308831766248, 'y': -0.030576148070394993, 'z': 1.8309424044564366}, 'pitch_blend_deg': 14.81}",
+  "film: launch at 16.69 s, handover 23.79 s, anchored+settle 47.42 s, total 57.67 s, 1731 frames",
+  "base drum sequence after landing, x faster than the dart: {'rail_low': np.float64(1.33), 'neutral': np.float64(2.67), 'wrap': np.float64(4.46), 'wrapped': np.float64(2.94)}",
+  "frames evaluated 26.7 s",
+  "auger spin: drilling 8.95 to 18.64 sim s, 7.3 turns at 45.0 rpm",
+  "rope done 49.4 s; max free length 5.172 m; max nodes 104",
+  "tow: tension 20.0 N at the end; capstan take-in 7.3 mm",
+  "posing base parts ...",
+  "posed 59.5 s",
+  "wrote /home/user/GrappStar/render/motion/motion.json 5.08 MB; 204 objects ( 33 static off rest )",
+  "check gears: {'rack_rolls_on_big_gear': -1.0, 'expect_rack': -1.0, 'drive_per_big_gear': -1.5385, 'expect_drive': -1.5385, 'wiper_forward_while_cocking': True, 'carriage_back_while_cocking': True, 'ok': True}",
+  "check flight: {'aoa_max_deg': 16.5, 'aoa_at_handover_deg': -16.5, 'nose_first': True, 'time_s': 0.833}",
+  "check impact nose at [4.766, 0.091, 0.005] rest [4.971, 0.031, 0.02]",
+  "check drills: {'drill_leg_L': {'tip_z_mm_deploy_start_anchored_end': [7.1, -45.6, -44.6], 'into_ground': True}, 'drill_leg_R': {'tip_z_mm_deploy_start_anchored_end': [21.1, -42.4, -40.5], 'into_ground': True}}",
+  "check dart vs ground: {'min_z_mm': -2.94, 'part': 'righting_leg', 'frame': 902, 'rest_min_z_mm': -0.81, 'note': 'sim contact is soft and its colliders are a capsule hull, cone nose and capsule pods/leg: a few mm of sink into the soil is expected; drills / motors / augers excluded once the pods are past 12 deg'}",
+  "check base moving parts min z: {'z': 12.44, 'part': 'drum_drum_a', 'frame': 0}",
+  "check line min z mm: 2.1"
+ ]
+}

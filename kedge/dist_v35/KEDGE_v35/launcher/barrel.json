@@ -1,0 +1,15 @@
+{
+ "channel_bounds_yz": [
+  -41.5,
+  -22.0,
+  41.5,
+  22.3
+ ],
+ "clearance_mm": 1.0,
+ "silhouette_area_mm2": 2154,
+ "hull_area_mm2": 1385,
+ "below_centreline_outside_hull": 5.0,
+ "cradle": "the belly (z < 0) is the plain \u00d842 cylinder over x 20..152: cradle it there; the barrel's lower half can be a plain \u00d844 half-pipe",
+ "pusher": "v34: push on the flat tail end face of the two hull halves (no tail cap, no boom); the tether is a bridle to the pod eye lugs, see the engineering report",
+ "length_folded": 152.0
+}

@@ -1,0 +1,1830 @@
+{
+ "version": "v35",
+ "P": {
+  "R_OUT": 21.0,
+  "R_BAY": 19.5,
+  "WALL": 1.5,
+  "L_HULL": 152.0,
+  "END_T": 2.5,
+  "NOSE_L": 20.0,
+  "NOSE_R0": 11.0,
+  "NOSE_SPIG": 6.6,
+  "CAM_W": 13.99,
+  "CAM_H": 14.59,
+  "CAM_D": 18.34,
+  "CAM_LENS_D": 8.0,
+  "CAM_LENS": 2.7,
+  "CAM_HOLE": 9.8,
+  "NOSE_LIP": 1.2,
+  "CAM_Z": -2.4,
+  "N20_L": 33.04,
+  "N20_BOX": 12.0,
+  "N20_BOXW": 9.94,
+  "N20_BOXH": 11.93,
+  "N20_CAN": [
+   12.0,
+   10.0
+  ],
+  "N20_TIP": 14.985,
+  "SHAFT_D": 3.0,
+  "LEG_X": 33.0,
+  "LEG_Z": 14.5,
+  "LEG_DEG": 178.0,
+  "LEG_REST_DEG": 1.5,
+  "LEG_STUB": 10.8,
+  "LEG_CH": [
+   9.0,
+   24.5,
+   2.4,
+   7.0
+  ],
+  "LEG_W": 8.5,
+  "LEG_W_TIP": 6.6,
+  "LEG_FLARE": 14.0,
+  "LEG_U0": 0.8,
+  "LEG_U1": 3.4,
+  "LEG_UX": 78.0,
+  "LEG_RB": 10.2,
+  "LEG_CHEEK_R": 5.6,
+  "CH_Y0": 7.8,
+  "CH_Y1": 11.2,
+  "PK_Y0": 7.6,
+  "PK_Y1": 11.4,
+  "LEG_CPL_D": 6.0,
+  "LEG_PLUG_D": 7.5,
+  "PAD_X0": 143.5,
+  "PAD_X1": 149.3,
+  "PAD_DEG": 62.0,
+  "PAD_T": 2.0,
+  "DRILL_X": 50.0,
+  "DRILL_PIV_Z": 9.5,
+  "DRILL_PIV_Y": 31.15,
+  "DEPLOY_DEG": 46.75,
+  "DEPLOY_TARGET": 50.0,
+  "HORN_GAP": 0.1,
+  "HEAD_IN": 21.6,
+  "CPL_D": 7.0,
+  "BOSS_D": 11.0,
+  "EYE_FWD": 3.9,
+  "EYE_DROP": 6.8,
+  "EYE_D": 3.2,
+  "MOTOR_W": 12.0,
+  "MOTOR_H": 10.0,
+  "MOTOR_L": 24.27,
+  "DSHAFT_L": 56.03,
+  "DSHAFT_D": 2.84,
+  "AUGER_L": 92.63,
+  "AUGER_D": 13.0,
+  "AUGER_CORE": 6.0,
+  "AUGER_PITCH": 11.0,
+  "AUGER_TIP": 14.0,
+  "SLEEVE_BORE": 16.3,
+  "SLEEVE_WALL": 1.2,
+  "MOTOR_GB_L": 9.0,
+  "FLIGHT_D": 16.0,
+  "D_PITCH": 12.0,
+  "D_CORE0": 9.6,
+  "D_CORE1": 6.0,
+  "D_TAPER": 14.0,
+  "D_TAPER_F": 22.0,
+  "D_TIP_R": 0.3,
+  "D_LOAD_DEG": 45.0,
+  "D_LEAD_DEG": 30.0,
+  "D_LAND": 0.6,
+  "D_SPINE_BORE": 2.6,
+  "D_SPINE_WALL": 0.8,
+  "D_NECK": 9.0,
+  "NUT_AF": 5.5,
+  "NUT_T": 2.4,
+  "NYLOC_T": 4.0,
+  "BUSH_GAP": 0.6,
+  "POD_PS": 4.4,
+  "DTERM": 1.2,
+  "BOSS_FACE_D": 4.6,
+  "BRG_OD": 8.0,
+  "BRG_W": 4.0,
+  "BRG_FL_D": 9.5,
+  "BRG_FL_T": 0.6,
+  "CELL_D": 18.66,
+  "CELL_L": 36.87,
+  "CELL_Z": -10.0,
+  "CONTACT": 3.6,
+  "MIDPLATE": 0.3,
+  "SCREW_CLR": 3.3,
+  "SCREW_PILOT": 2.5,
+  "RAD_Z": 3.0,
+  "TERM": 1.6,
+  "BALLAST_G": 14.6,
+  "BAL_RHO": 9.0,
+  "BAL_ZTOP": 3.0,
+  "SOCK_D": 3.05,
+  "SOCK_FLAT": 1.03,
+  "CPL_BORE": 7.05,
+  "LEG_CPL_BORE": 6.05,
+  "SCR_X1": 39.8,
+  "BOSS_T": 6.0,
+  "SCREW_L": 8.0,
+  "ROPE_TH": 65.0,
+  "ROPE_END": [
+   4.2,
+   3.2
+  ],
+  "ROPE_D": 1.2,
+  "GROOVE_W": 1.6,
+  "GROOVE_D": 1.4,
+  "BRIDLE_L": 78.0,
+  "TETHER": "tail",
+  "TIE_Y": [
+   1.6,
+   5.4
+  ],
+  "TIE_Z": -2.4,
+  "TIE_D": 2.0,
+  "LOOP_DZ": -1.2,
+  "CAP_D": 8.0,
+  "CAP_L": 12.0,
+  "LAYOUT": "cells_inline",
+  "LIGHT": 0,
+  "KICK_DEG": 178.0,
+  "L": 152.0,
+  "X_D1": [
+   39.400000000000006,
+   42.400000000000006
+  ],
+  "X_D1B": [
+   56.60000000000001,
+   58.60000000000001
+  ],
+  "X_C1": [
+   62.20000000000001,
+   99.07000000000001
+  ],
+  "X_MID": [
+   99.07000000000001,
+   99.37
+  ],
+  "X_C2": [
+   99.37,
+   136.24
+  ],
+  "X_D2": [
+   137.24,
+   139.24
+  ],
+  "X_LCR": [
+   26.8,
+   39.400000000000006
+  ],
+  "X_DCR": [
+   43.599999999999994,
+   56.400000000000006
+  ],
+  "X_SOCK": [
+   143.65,
+   149.70000000000002
+  ],
+  "POD_XS": 35.47,
+  "POD_S0": 8.7,
+  "POD_TIP": 101.33,
+  "CORE_D": 7.8,
+  "HUB_D": 18.7,
+  "SHAFT_END": 91.5,
+  "D_HOLD": [
+   45.47,
+   79.33
+  ],
+  "D_POINT_PAST_SPINE": 9.83,
+  "POD_DIR": 1,
+  "DECK1": 1.0,
+  "DECK2": 7.2,
+  "LAY": {
+   "xiao": [
+    59.2,
+    -8.93,
+    1.0
+   ],
+   "ina219": [
+    77.94,
+    -7.44,
+    1.0
+   ],
+   "bms_2s": [
+    62.2,
+    7.2,
+    1.0
+   ],
+   "bno085": [
+    106.03,
+    0.0,
+    1.0
+   ],
+   "vtx": [
+    59.6,
+    0.0,
+    7.2
+   ],
+   "mp1584": [
+    102.85,
+    0.0,
+    7.2
+   ],
+   "drv8833_1": [
+    43.65,
+    9.35,
+    -14.6
+   ],
+   "drv8833_2": [
+    43.65,
+    -9.35,
+    -14.6
+   ]
+  },
+  "TIE": {
+   "holes": [
+    [
+     152.0,
+     1.6,
+     -2.4
+    ],
+    [
+     152.0,
+     5.4,
+     -2.4
+    ]
+   ],
+   "knot": [
+    154.2,
+    3.5,
+    -2.4
+   ],
+   "hole_d": 2.0,
+   "line_d": 1.2,
+   "knot_r": 2.0
+  },
+  "BAL_XE": 13.24,
+  "SCREWS": [
+   [
+    39.8,
+    -1,
+    -3.0,
+    -11.985
+   ],
+   [
+    39.8,
+    -1,
+    3.0,
+    -11.985
+   ],
+   [
+    39.8,
+    1,
+    -3.0,
+    11.985
+   ],
+   [
+    39.8,
+    1,
+    3.0,
+    11.985
+   ],
+   [
+    138.24,
+    -1,
+    -3.0,
+    -11.985
+   ],
+   [
+    138.24,
+    -1,
+    3.0,
+    -11.985
+   ],
+   [
+    138.24,
+    1,
+    -3.0,
+    11.985
+   ],
+   [
+    138.24,
+    1,
+    3.0,
+    11.985
+   ]
+  ],
+  "PLUG_ENV": [
+   [
+    143.8,
+    15.3,
+    -4.9
+   ],
+   [
+    149.55,
+    31.0,
+    2.5
+   ]
+  ],
+  "WIRE_PTS": {
+   "corr_L": [
+    80.64,
+    13.0,
+    -8.0
+   ],
+   "corr_R": [
+    80.64,
+    -13.0,
+    -8.0
+   ],
+   "corr_L2": [
+    117.81,
+    13.0,
+    -8.0
+   ],
+   "corr_R2": [
+    117.81,
+    -13.0,
+    -8.0
+   ],
+   "win_d1_L": [
+    40.9,
+    13.5,
+    -9.0
+   ],
+   "win_d1_R": [
+    40.9,
+    -13.5,
+    -9.0
+   ],
+   "win_d2_L": [
+    138.24,
+    13.5,
+    -9.0
+   ],
+   "win_d2_R": [
+    138.24,
+    -13.5,
+    -9.0
+   ],
+   "top_d1": [
+    40.9,
+    0,
+    12.0
+   ],
+   "top_d2": [
+    138.24,
+    0,
+    8.0
+   ],
+   "sock_L": [
+    146.68,
+    8.0,
+    0.0
+   ],
+   "sock_R": [
+    146.68,
+    -8.0,
+    0.0
+   ],
+   "flankL": [
+    60.5,
+    11.5,
+    16.5
+   ],
+   "flankR": [
+    60.5,
+    -11.5,
+    16.5
+   ],
+   "leg_tabs": [
+    33.0,
+    0.0,
+    -12.54
+   ],
+   "deploy_tabs": [
+    50.0,
+    0.0,
+    -17.54
+   ]
+  },
+  "X_BOARD_BAY": [
+   42.400000000000006,
+   137.24
+  ]
+ },
+ "ground": -21.0,
+ "parts": [
+  {
+   "name": "hull_top",
+   "file": "hull_top.stl",
+   "group": "hull",
+   "color": "#9aa5b1",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "Clamshell upper half with the integral tail end wall: skin; the dorsal groove where the righting leg lies flush (its floor is the leg's fold stop), the knuckle (a 0.6 mm blister over the leg N20's worm box), two side pockets for the leg's cheeks, the couplers' bores through the knuckle walls and the outer walls, the flute forward of the hinge (far rest 179.5 deg), the arch recess for the pad on the tail top; two faired pivot blocks (pod coupler bores; their carved faces are the deploy and fold stops); tight bores for the drill leads; the XIAO USB-C notch (open to the split, so the half drops straight on); upper halves of the two flank socket seats; the upper half of the tail key slot in the end wall. The seam is a butt joint: deck 1's edges in the seam groove, the nose spigot and the tray's tail key in the end-wall slot align the halves. Radial M3 clearance at z +3 into the bosses on disc 1 and the rear disc",
+   "parent": null,
+   "printable": true,
+   "orient": "split face down (on the bed), crown up",
+   "dims": [
+    132.0,
+    55.2,
+    21.3
+   ],
+   "volume_cm3": 15.64,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "hull_bottom",
+   "file": "hull_bottom.stl",
+   "group": "hull",
+   "color": "#7d8794",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "Clamshell lower half with the integral tail end wall: plain \u00d842 belly (launcher cradle surface; the cells rest on it, located by the tray's U saddles), lower halves of the pivot blocks' skirts, of the two flank socket seats and of the tail key slot; the two \u00d82.0 tether tie holes in the end wall (line in one, out the other, tied to itself; inside the launcher pusher's \u00d814 hole). Radial M3 clearance at z -3 into the bosses on disc 1 and the rear disc",
+   "parent": null,
+   "printable": true,
+   "orient": "split face down, belly up",
+   "dims": [
+    132.0,
+    42.0,
+    21.0
+   ],
+   "volume_cm3": 14.14,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "nose",
+   "file": "nose.stl",
+   "group": "hull",
+   "color": "#b8c0ca",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "Blunt hollow nose: \u00d822 flat tip with the \u00d89.8 lens hole, Caddx Ant pocket 14.4 x 15.0 (slides in from the back, 1.2 lip + lens recess hold it; 2.2 below the axis), 1.5 walls; the BALLAST POCKET: the lower part of the hollow round the camera tube from the front of the hollow back to a retaining collar at x 13.2, filled with 14.6 g of putty from the back (through the spigot) before the nose goes on; the forward end of the dorsal flute where the righting leg lies at its far rest (solid under it, 1.2 over the camera tube); spigot with a groove that the hull rib locks when the clamshell closes",
+   "parent": null,
+   "printable": true,
+   "orient": "tip down on the bed (flat \u00d822), spigot up",
+   "dims": [
+    26.6,
+    42.0,
+    40.3
+   ],
+   "volume_cm3": 7.98,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "tray",
+   "file": "tray.stl",
+   "group": "hull",
+   "color": "#c9b37e",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "One-piece spine: deck 1 nose to tail right over the two cells (its edges sit in the hull's seam groove, backing the split seam; at the tail it continues as a key into the slots in both end walls), disc 1 and the rear disc with a solid 6 mm boss at each of the 8 radial M3 screws, the leg N20 cradle at the front (motor pointing down) with two tongues that close the stub slots, four U cell saddles (open 19.2 at the bottom, the cells slide in), deck 2 for the VTX and the MP1584, the deploy N20 cradle at the rear (motor pointing down) with the two DRV8833 standing beside it, a tab under the XIAO USB-C that fills the hull top's notch; contact recesses (springs front, BM strip between the cells, plates rear)",
+   "parent": null,
+   "printable": true,
+   "orient": "flat underside (z -16: saddle feet, disc bottoms, cradle tubes) on the bed; deck 1 bridges between the saddles and discs, deck 2 between its walls (enable thick bridges)",
+   "dims": [
+    123.6,
+    40.8,
+    32.8
+   ],
+   "volume_cm3": 16.51,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "righting_leg",
+   "file": "righting_leg.stl",
+   "group": "legs",
+   "color": "#e07b39",
+   "pos": [
+    33.0,
+    0.0,
+    14.5
+   ],
+   "axis": "y",
+   "deg": [
+    0,
+    178.0
+   ],
+   "note": "Righting leg (PLA): a slim blade 8.5 wide whose top is the hull crown (flush in the dorsal groove), an arch pad that is a patch of the hull skin on the tail top (37 wide), and a fork root: two round cheeks on the two \u00d86 couplers in the side pockets, tines curving aft into a bridge that swings over the knuckle. Swing 0 to 178 deg over the nose (far rest 179.5); hinge 33 from the nose tip, pad centre 113 from the hinge. Each cheek is a press fit (D bore 6.05) on its coupler, a drop of CA",
+   "parent": null,
+   "printable": true,
+   "orient": "upside down (the blade crown on the bed, cheeks up), brim 5 mm (the crown touches the bed along a 5 mm strip only), tree supports under the ends of the pad arch",
+   "dims": [
+    121.9,
+    36.4,
+    12.1
+   ],
+   "volume_cm3": 4.09,
+   "watertight": true,
+   "nsolids": 1,
+   "sgn": -1,
+   "joint": "leg"
+  },
+  {
+   "name": "leg_coupler_L",
+   "file": "leg_coupler_L.stl",
+   "group": "legs",
+   "color": "#444",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "\u00d86 D coupler (PPA-CF): pressed in from outside through the plug counterbore, the cheek (press fit, CA) and the knuckle wall bore onto the leg N20's trimmed stub (press-fit D socket \u00d83.05, flat at 1.03, CA): no play between the motor and the leg; it runs in the knuckle wall bore and in the skin plug's blind bore, so the hull carries the leg; the plug and the worm box hold it axially",
+   "parent": "righting_leg",
+   "printable": true,
+   "orient": "lying on its D flat, PPA-CF",
+   "dims": [
+    6.0,
+    7.0,
+    5.5
+   ],
+   "volume_cm3": 0.15,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "leg_coupler_R",
+   "file": "leg_coupler_R.stl",
+   "group": "legs",
+   "color": "#444",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "\u00d86 D coupler (PPA-CF): pressed in from outside through the plug counterbore, the cheek (press fit, CA) and the knuckle wall bore onto the leg N20's trimmed stub (press-fit D socket \u00d83.05, flat at 1.03, CA): no play between the motor and the leg; it runs in the knuckle wall bore and in the skin plug's blind bore, so the hull carries the leg; the plug and the worm box hold it axially",
+   "parent": "righting_leg",
+   "printable": true,
+   "orient": "lying on its D flat, PPA-CF",
+   "dims": [
+    6.0,
+    7.0,
+    5.5
+   ],
+   "volume_cm3": 0.15,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "leg_plug_L",
+   "file": "leg_plug_L.stl",
+   "group": "hull",
+   "color": "#9aa5b1",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "Skin plug \u00d87.5 (PLA): pressed flush into the counterbore over the leg coupler (a drop of CA); its blind bore is the coupler's outer bearing and holds it in. Pry it out to pull the coupler for service",
+   "parent": null,
+   "printable": true,
+   "orient": "outer face up (a domed button), no supports",
+   "dims": [
+    7.5,
+    6.6,
+    6.8
+   ],
+   "volume_cm3": 0.12,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "leg_plug_R",
+   "file": "leg_plug_R.stl",
+   "group": "hull",
+   "color": "#9aa5b1",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "Skin plug \u00d87.5 (PLA): pressed flush into the counterbore over the leg coupler (a drop of CA); its blind bore is the coupler's outer bearing and holds it in. Pry it out to pull the coupler for service",
+   "parent": null,
+   "printable": true,
+   "orient": "outer face up (a domed button), no supports",
+   "dims": [
+    7.5,
+    6.6,
+    6.8
+   ],
+   "volume_cm3": 0.12,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "drill_leg_L",
+   "file": "drill_leg_L.stl",
+   "group": "legs",
+   "color": "#d9534f",
+   "pos": [
+    50.0,
+    31.15,
+    9.5
+   ],
+   "axis": "y",
+   "deg": [
+    0,
+    46.75
+   ],
+   "note": "Drill arm (rear pod, folds forward): round head pressed on the \u00d87 D coupler (flat rear face = stop face on the hull's pivot block), spare eye lug on the head's outboard 5 mm (\u00d83.2, 6.8 below the pivot; not used: the tether ties to the tail), short neck with the motor-lead channel, thrust shoulder for the auger hub, stationary bushing \u00d815.8 that holds the drill gearmotor by its can",
+   "parent": null,
+   "printable": true,
+   "orient": "standing on the head's flat rear face (stop face) down, no supports",
+   "dims": [
+    32.6,
+    18.9,
+    19.3
+   ],
+   "volume_cm3": 3.56,
+   "watertight": true,
+   "nsolids": 1,
+   "sgn": 1,
+   "joint": "deploy"
+  },
+  {
+   "name": "drill_leg_L_auger",
+   "file": "drill_leg_L_auger.stl",
+   "group": "legs",
+   "color": "#b23a48",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "Tapered drill auger, left-hand: \u00d818.7 hub round the stationary motor (runs on the arm's bushing, base face on the arm shoulder), gimlet core \u00d89.6 -> \u00d86, anchor flight \u00d816 pitch 12 (load face toward the motor 45 deg), point 14; the motor's M3 shaft is its spine (nut A pressed in the hub, self-tapped bore)",
+   "parent": "drill_leg_L",
+   "printable": true,
+   "orient": "standing on its base (point up), brim 5 mm",
+   "dims": [
+    92.6,
+    18.7,
+    18.7
+   ],
+   "volume_cm3": 6.57,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "drill_leg_L_motor",
+   "file": "drill_leg_L_motor.stl",
+   "group": "electronics",
+   "color": "#6c757d",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "Drill gearmotor 12 x 10, gearbox 11.95, 24.27 face to back (measured): fixed in the arm, inside the auger hub",
+   "parent": "drill_leg_L",
+   "printable": false,
+   "orient": null,
+   "dims": [
+    24.3,
+    10.0,
+    12.0
+   ],
+   "volume_cm3": 2.67,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "drill_leg_L_shaft",
+   "file": "drill_leg_L_shaft.stl",
+   "group": "electronics",
+   "color": "#d0d4d8",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "M3 threaded motor shaft \u00d82.84 x 56.03 (measured): the auger's steel spine",
+   "parent": "drill_leg_L",
+   "printable": false,
+   "orient": null,
+   "dims": [
+    56.0,
+    2.8,
+    2.8
+   ],
+   "volume_cm3": 0.35,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "drill_leg_L_nut",
+   "file": "drill_leg_L_nut.stl",
+   "group": "electronics",
+   "color": "#777",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "M3 nut A pressed into the hex pocket at the end of the hub bore",
+   "parent": "drill_leg_L",
+   "printable": false,
+   "orient": null,
+   "dims": [
+    2.4,
+    5.5,
+    6.4
+   ],
+   "volume_cm3": 0.05,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "drill_leg_R",
+   "file": "drill_leg_R.stl",
+   "group": "legs",
+   "color": "#c0392b",
+   "pos": [
+    50.0,
+    -31.15,
+    9.5
+   ],
+   "axis": "y",
+   "deg": [
+    0,
+    46.75
+   ],
+   "note": "Drill arm (rear pod, folds forward): round head pressed on the \u00d87 D coupler (flat rear face = stop face on the hull's pivot block), spare eye lug on the head's outboard 5 mm (\u00d83.2, 6.8 below the pivot; not used: the tether ties to the tail), short neck with the motor-lead channel, thrust shoulder for the auger hub, stationary bushing \u00d815.8 that holds the drill gearmotor by its can",
+   "parent": null,
+   "printable": true,
+   "orient": "standing on the head's flat rear face (stop face) down, no supports",
+   "dims": [
+    32.6,
+    18.9,
+    19.3
+   ],
+   "volume_cm3": 3.56,
+   "watertight": true,
+   "nsolids": 1,
+   "sgn": 1,
+   "joint": "deploy"
+  },
+  {
+   "name": "drill_leg_R_auger",
+   "file": "drill_leg_R_auger.stl",
+   "group": "legs",
+   "color": "#b23a48",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "Tapered drill auger, right-hand: \u00d818.7 hub round the stationary motor (runs on the arm's bushing, base face on the arm shoulder), gimlet core \u00d89.6 -> \u00d86, anchor flight \u00d816 pitch 12 (load face toward the motor 45 deg), point 14; the motor's M3 shaft is its spine (nut A pressed in the hub, self-tapped bore)",
+   "parent": "drill_leg_R",
+   "printable": true,
+   "orient": "standing on its base (point up), brim 5 mm",
+   "dims": [
+    92.6,
+    18.7,
+    18.7
+   ],
+   "volume_cm3": 6.57,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "drill_leg_R_motor",
+   "file": "drill_leg_R_motor.stl",
+   "group": "electronics",
+   "color": "#6c757d",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "Drill gearmotor 12 x 10, gearbox 11.95, 24.27 face to back (measured): fixed in the arm, inside the auger hub",
+   "parent": "drill_leg_R",
+   "printable": false,
+   "orient": null,
+   "dims": [
+    24.3,
+    10.0,
+    12.0
+   ],
+   "volume_cm3": 2.67,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "drill_leg_R_shaft",
+   "file": "drill_leg_R_shaft.stl",
+   "group": "electronics",
+   "color": "#d0d4d8",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "M3 threaded motor shaft \u00d82.84 x 56.03 (measured): the auger's steel spine",
+   "parent": "drill_leg_R",
+   "printable": false,
+   "orient": null,
+   "dims": [
+    56.0,
+    2.8,
+    2.8
+   ],
+   "volume_cm3": 0.35,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "drill_leg_R_nut",
+   "file": "drill_leg_R_nut.stl",
+   "group": "electronics",
+   "color": "#777",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "M3 nut A pressed into the hex pocket at the end of the hub bore",
+   "parent": "drill_leg_R",
+   "printable": false,
+   "orient": null,
+   "dims": [
+    2.4,
+    5.5,
+    6.4
+   ],
+   "volume_cm3": 0.05,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "coupler_L",
+   "file": "coupler_L.stl",
+   "group": "legs",
+   "color": "#444",
+   "pos": [
+    50.0,
+    0.0,
+    9.5
+   ],
+   "axis": "y",
+   "deg": [
+    0,
+    46.75
+   ],
+   "note": "\u00d87 D coupler (PPA-CF): press-fit D socket (\u00d83.05, flat at 1.03, CA) on the deploy N20 stub, runs in the pivot block bore (the hull carries the pod), press fit into the arm head's D bore (7.05, CA): the axle is stiff, so both pods load the one worm together; the printed pod cap and an M3 x 8 screw seat on its outer end",
+   "parent": null,
+   "printable": true,
+   "orient": "lying on its D flat (layers along the axle), PPA-CF",
+   "dims": [
+    7.0,
+    28.0,
+    6.4
+   ],
+   "volume_cm3": 0.93,
+   "watertight": true,
+   "nsolids": 1,
+   "sgn": 1,
+   "joint": "deploy"
+  },
+  {
+   "name": "coupler_R",
+   "file": "coupler_R.stl",
+   "group": "legs",
+   "color": "#444",
+   "pos": [
+    50.0,
+    0.0,
+    9.5
+   ],
+   "axis": "y",
+   "deg": [
+    0,
+    46.75
+   ],
+   "note": "\u00d87 D coupler (PPA-CF): press-fit D socket (\u00d83.05, flat at 1.03, CA) on the deploy N20 stub, runs in the pivot block bore (the hull carries the pod), press fit into the arm head's D bore (7.05, CA): the axle is stiff, so both pods load the one worm together; the printed pod cap and an M3 x 8 screw seat on its outer end",
+   "parent": null,
+   "printable": true,
+   "orient": "lying on its D flat (layers along the axle), PPA-CF",
+   "dims": [
+    7.0,
+    28.0,
+    6.4
+   ],
+   "volume_cm3": 0.93,
+   "watertight": true,
+   "nsolids": 1,
+   "sgn": 1,
+   "joint": "deploy"
+  },
+  {
+   "name": "cell_1",
+   "file": "cell_1.stl",
+   "group": "electronics",
+   "color": "#f4d35e",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "18350 \u00d818.66 x 36.87 incl. button (measured); the two in line on the keel, button aft (front spring B-, BM strip between, rear plate B+)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    36.9,
+    18.7,
+    18.7
+   ],
+   "volume_cm3": 9.91,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "cell_2",
+   "file": "cell_2.stl",
+   "group": "electronics",
+   "color": "#f4d35e",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "18350 \u00d818.66 x 36.87 incl. button (measured); the two in line on the keel, button aft (front spring B-, BM strip between, rear plate B+)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    36.9,
+    18.7,
+    18.7
+   ],
+   "volume_cm3": 9.91,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "n20_leg",
+   "file": "n20_leg.stl",
+   "group": "electronics",
+   "color": "#8e9aaf",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "LEG worm N20 (the old kick motor), motor pointing down in the tray cradle, worm box in the knuckle under the 0.6 mm blister; output shaft = the leg hinge, both stubs trimmed to 5.8 mm past the box (|y| 10.8), driving the two couplers",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    11.9,
+    12.0,
+    33.0
+   ],
+   "volume_cm3": 3.95,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "leg_shaft",
+   "file": "leg_shaft.stl",
+   "group": "electronics",
+   "color": "#d0d4d8",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "leg N20 output shaft (turns with the leg), stubs trimmed to |y| 10.8",
+   "parent": "righting_leg",
+   "printable": false,
+   "orient": null,
+   "dims": [
+    3.0,
+    21.6,
+    2.5
+   ],
+   "volume_cm3": 0.14,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "n20_deploy",
+   "file": "n20_deploy.stl",
+   "group": "electronics",
+   "color": "#8e9aaf",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "DEPLOY worm N20 on the pod axle, motor pointing down in the tray's rear cradle (low CG)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    11.9,
+    12.0,
+    33.0
+   ],
+   "volume_cm3": 3.95,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "deploy_shaft",
+   "file": "deploy_shaft.stl",
+   "group": "electronics",
+   "color": "#d0d4d8",
+   "pos": [
+    50.0,
+    0.0,
+    9.5
+   ],
+   "axis": "y",
+   "deg": [
+    0,
+    46.75
+   ],
+   "note": "deploy N20 output shaft (turns with the couplers), both stubs in the couplers",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    3.0,
+    30.0,
+    2.5
+   ],
+   "volume_cm3": 0.19,
+   "watertight": true,
+   "nsolids": 1,
+   "sgn": 1,
+   "joint": "deploy"
+  },
+  {
+   "name": "xiao",
+   "file": "xiao.stl",
+   "group": "electronics",
+   "color": "#2a9d8f",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "xiao 17.74 x 21.45 board (+1.3 USB-C lip), 4.49 thick (measured); USB-C to the right flank window",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    17.7,
+    22.7,
+    4.5
+   ],
+   "volume_cm3": 1.31,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "drv8833_1",
+   "file": "drv8833_1.stl",
+   "group": "electronics",
+   "color": "#43aa8b",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "drv8833_1 12.70 x 3.50 x 20.31 (measured)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    12.7,
+    3.5,
+    20.3
+   ],
+   "volume_cm3": 0.9,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "drv8833_2",
+   "file": "drv8833_2.stl",
+   "group": "electronics",
+   "color": "#43aa8b",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "drv8833_2 12.70 x 3.50 x 20.31 (measured)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    12.7,
+    3.5,
+    20.3
+   ],
+   "volume_cm3": 0.9,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "ina219",
+   "file": "ina219.stl",
+   "group": "electronics",
+   "color": "#f3722c",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "ina219 25.69 x 20.32 x 4.70 (measured)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    25.7,
+    20.3,
+    4.7
+   ],
+   "volume_cm3": 2.45,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "bno085",
+   "file": "bno085.stl",
+   "group": "electronics",
+   "color": "#f8961e",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "bno085 22.77 x 25.72 x 4.77 (measured)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    22.8,
+    25.7,
+    4.8
+   ],
+   "volume_cm3": 2.79,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "mp1584",
+   "file": "mp1584.stl",
+   "group": "electronics",
+   "color": "#577590",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "mp1584 22.26 x 16.96 x 3.98 (measured)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    22.3,
+    17.0,
+    4.0
+   ],
+   "volume_cm3": 1.5,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "vtx",
+   "file": "vtx.stl",
+   "group": "electronics",
+   "color": "#9b5de5",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "vtx 42.25 x 19.91 x 6.01 (measured)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    42.2,
+    19.9,
+    6.0
+   ],
+   "volume_cm3": 5.06,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "bms_2s",
+   "file": "bms_2s.stl",
+   "group": "electronics",
+   "color": "#90be6d",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "bms_2s 40.80 x 8.00 x 2.10 (measured)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    40.8,
+    8.0,
+    2.1
+   ],
+   "volume_cm3": 0.69,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "camera",
+   "file": "camera.stl",
+   "group": "electronics",
+   "color": "#1d3557",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "Caddx Ant 13.99 x 14.59, 18.34 front to back (measured), 2.2 below the axis",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    18.3,
+    14.0,
+    14.6
+   ],
+   "volume_cm3": 3.33,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "screws_radial",
+   "file": "screws_radial.stl",
+   "group": "electronics",
+   "color": "#aab3bd",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "8 x M3 x 8 countersunk radial screws, flush with the skin: 4 into the bosses on tray disc 1 (x 39.8), 4 into the bosses on the rear disc (x 138.2) (z +-3, through each half)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    104.4,
+    40.0,
+    12.0
+   ],
+   "volume_cm3": 0.54,
+   "watertight": true,
+   "nsolids": 8
+  },
+  {
+   "name": "pod_cap_L",
+   "file": "pod_cap_L.stl",
+   "group": "legs",
+   "color": "#444",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "Printed pod cap \u00d810 x 1.5 on the coupler end inside the arm head counterbore; the M3 x 8 screw goes through it into the coupler; it overlaps the head so the pod cannot walk off",
+   "parent": "coupler_L",
+   "printable": true,
+   "orient": "flat on the bed",
+   "dims": [
+    10.0,
+    1.5,
+    10.0
+   ],
+   "volume_cm3": 0.1,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "coupler_L_screw",
+   "file": "coupler_L_screw.stl",
+   "group": "electronics",
+   "color": "#555555",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "M3 x 8 through the pod cap into the coupler end (turns with it)",
+   "parent": "coupler_L",
+   "printable": false,
+   "orient": null,
+   "dims": [
+    5.5,
+    9.8,
+    5.5
+   ],
+   "volume_cm3": 0.1,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "pod_cap_R",
+   "file": "pod_cap_R.stl",
+   "group": "legs",
+   "color": "#444",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "Printed pod cap \u00d810 x 1.5 on the coupler end inside the arm head counterbore; the M3 x 8 screw goes through it into the coupler; it overlaps the head so the pod cannot walk off",
+   "parent": "coupler_R",
+   "printable": true,
+   "orient": "flat on the bed",
+   "dims": [
+    10.0,
+    1.5,
+    10.0
+   ],
+   "volume_cm3": 0.1,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "coupler_R_screw",
+   "file": "coupler_R_screw.stl",
+   "group": "electronics",
+   "color": "#555555",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "M3 x 8 through the pod cap into the coupler end (turns with it)",
+   "parent": "coupler_R",
+   "printable": false,
+   "orient": null,
+   "dims": [
+    5.5,
+    9.8,
+    5.5
+   ],
+   "volume_cm3": 0.1,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "contacts_front_spring",
+   "file": "contacts_front_spring.stl",
+   "group": "electronics",
+   "color": "#c0c0c0",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "battery spring (B-) on disc 1's rear face, against cell 1's base",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    3.0,
+    9.0,
+    9.0
+   ],
+   "volume_cm3": 0.19,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "contacts_mid_strip",
+   "file": "contacts_mid_strip.stl",
+   "group": "electronics",
+   "color": "#c0c0c0",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "BM tap: a 0.3 nickel strip disc between cell 1's button and cell 2's base, its tab up to the BMS BM wire (solder it to the tab before the cells go in)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    0.3,
+    9.0,
+    14.1
+   ],
+   "volume_cm3": 0.02,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "contacts_rear_plate",
+   "file": "contacts_rear_plate.stl",
+   "group": "electronics",
+   "color": "#c0c0c0",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "rigid contact plate (B+) on the rear disc's front face (launch pushes the cells onto it)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    0.8,
+    9.0,
+    9.0
+   ],
+   "volume_cm3": 0.05,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "jst_loop",
+   "file": "jst_loop.stl",
+   "group": "electronics",
+   "color": "#f5f5f5",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "JST-XH 2-pin power loop socket B2B-XH-A (the shorting plug is the ON switch): header recessed in the left flank seat behind the pivot block (1.2 below the split's centre so the bridle leg passes over the plug's wire loop)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    5.8,
+    7.0,
+    7.4
+   ],
+   "volume_cm3": 0.3,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "jst_charge",
+   "file": "jst_charge.stl",
+   "group": "electronics",
+   "color": "#f5f5f5",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "JST-XH 3-pin charge socket B3B-XH-A, 9.9 wide (B-, BM, B+): header recessed in the right flank seat (opening 10.2, pin pocket 7.0); plug in on the bench only",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    5.8,
+    7.0,
+    9.9
+   ],
+   "volume_cm3": 0.4,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "antenna",
+   "file": "antenna.stl",
+   "group": "electronics",
+   "color": "#222222",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "VTX u.FL 5.8 GHz antenna on deck 1 beside the BNO085, along the left flank (PLA is transparent to 5.8 GHz)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    22.0,
+    4.0,
+    4.0
+   ],
+   "volume_cm3": 0.28,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "xiao_antenna",
+   "file": "xiao_antenna.stl",
+   "group": "electronics",
+   "color": "#c8a000",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "XIAO 2.4 GHz FPC antenna (about 20 x 12, NOT measured, folded to 6.5): stuck to the inside of the right flank beside the BNO085",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    20.0,
+    0.4,
+    6.5
+   ],
+   "volume_cm3": 0.05,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "capacitor",
+   "file": "capacitor.stl",
+   "group": "electronics",
+   "color": "#334488",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "470 to 1000 uF electrolytic (modelled \u00d88 x 12, the worst likely can) standing on the tray's tail key behind the deploy motor, a dab of glue; leads to the MP1584 5 V output (long leg to OUT+)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    8.0,
+    8.0,
+    12.0
+   ],
+   "volume_cm3": 0.6,
+   "watertight": true,
+   "nsolids": 1
+  },
+  {
+   "name": "ballast",
+   "file": "ballast.stl",
+   "group": "electronics",
+   "color": "#7a6a55",
+   "pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": null,
+   "deg": [
+    0,
+    0
+   ],
+   "note": "14.6 g of lead/tungsten putty (Harry's ballast putty, 1.6 cm3 at 9 g/cm3) in the nose: pressed in from the back through the spigot, front first, round and under the camera tube up to the retaining collar at x 13.2, before the nose goes on. It moves the centre of mass forward for flight (pitch and yaw)",
+   "parent": null,
+   "printable": false,
+   "orient": null,
+   "dims": [
+    11.8,
+    31.9,
+    18.9
+   ],
+   "volume_cm3": 1.62,
+   "watertight": true,
+   "nsolids": 1,
+   "mass_g": 14.6
+  }
+ ]
+}

@@ -1,0 +1,51 @@
+{
+ "out": "out35",
+ "ref": "out30",
+ "states": 1684,
+ "overlaps_new": {},
+ "overlaps_ref": {},
+ "overlaps_rope": {
+  "launch_line_p": [
+   26.74,
+   "launch_sweep",
+   {
+    "aim_deg": 6.02
+   }
+  ]
+ },
+ "rope_checks": {
+  "tie": {
+   "holes": [
+    [
+     152.0,
+     1.6,
+     -2.4
+    ],
+    [
+     152.0,
+     5.4,
+     -2.4
+    ]
+   ],
+   "knot": [
+    154.2,
+    3.5,
+    -2.4
+   ],
+   "hole_d": 2.0,
+   "line_d": 1.2,
+   "knot_r": 2.0
+  },
+  "ok": true
+ },
+ "fails": {},
+ "line_model_overlaps": {
+  "rope | launch_line_p": 26.74
+ },
+ "rest": {
+  "dart_vs_carriage_mm3": 0.0,
+  "dart_down_0p5_vs_carriage_mm3": 282.253
+ },
+ "seconds": 847
+}
+FITS

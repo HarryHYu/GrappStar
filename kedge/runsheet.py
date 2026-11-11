@@ -14,6 +14,8 @@ _F = [("/System/Library/Fonts/Supplemental/Arial.ttf", "/System/Library/Fonts/Su
 _reg, _bold = next(f for f in _F if os.path.exists(f[0]))       # Arial on the Mac, Liberation Sans (Arial metrics) elsewhere
 pdfmetrics.registerFont(TTFont("Arial", _reg)); pdfmetrics.registerFont(TTFont("Arial-Bold", _bold))
 J = json.load(open(OUT + "/parts.json")); P = J["P"]; A = json.load(open(OUT + "/audit.json"))
+if P.get("POD_DIR") == 1:      # v35: pods hinged at the front
+    exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "runsheet35.py")).read()); sys.exit(0)
 if "LEG_DEG" in P:      # v34: its own sheet
     exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "runsheet34.py")).read()); sys.exit(0)
 PR = json.load(open(PK + "/print_report.json")); WJ = json.load(open(PK + "/wires.json"))

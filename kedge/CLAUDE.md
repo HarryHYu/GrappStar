@@ -1,4 +1,4 @@
-# KEDGE DART: CLAUDE CODE HANDOVER (state at 2 Nov 2026 23:30 Sydney; geometry sections 5 and 7 updated 9 Nov 2026, current design = v34)
+# KEDGE DART: CLAUDE CODE HANDOVER (state at 2 Nov 2026 23:30 Sydney; geometry sections 5 and 7 updated 11 Nov 2026, current design = v35)
 
 Read this whole file first. It is everything known about the project from the cloud session (1-2 Nov 2026).
 Older full handover (v26, bench history, v26 source) is in `HANDOVER_v26_original.md`. Original caliper PDF with
@@ -148,7 +148,40 @@ Jetson /dev/video0. Control: 2.4 GHz WiFi, XIAO softAP.
 
 ---------------------------------------------------------------------------------------------------
 
-## 5. GEOMETRY v34 (generator `kedge_v34.py`, its defaults ARE v34; v33 = `kedge_v33.py` and v32c = `kedge_v32.py` are described after the v34 block; v31 = `kedge_v27.py`)
+## 5. GEOMETRY v35 (generator `kedge_v35.py`, its defaults ARE v35; v34 = `kedge_v34.py` right after the v35 block; v33 = `kedge_v33.py` and v32c = `kedge_v32.py` after that; v31 = `kedge_v27.py`)
+
+v35 (11 Nov 2026) = v34 with the drill pods turned round (coordinator: "the drill tips must rake BACK toward the tether, like a tent peg";
+"the tow must close the pod onto that stop, never open it"). Running handover: kedge/V35_PROGRESS.md. Everything not listed here is v34.
+PODS AT THE FRONT: pivot x 50 (P.DRILL_X), z 9.5 (kept: the launcher's stop springs pass the dart at z -1.1 for |y| > 25, so the hubs and
+the arm-head lugs must stay above), drill axis |y| 31.15, folded BACKWARD along the flanks (auger tips x 151.3), parts.json "sgn" +1 for the
+pods (the leg stays -1). Deploy solved 46.75 deg (same as v34): the tips go down and aft (x about 119, 43.5 deep), under the line. Pivot blocks:
+the v33 method unmirrored (deploy stop now forward of and below the head, fold stop under it). The tow pushes each pod onto its deploy stop.
+REUSED PARTS: the v34 arms, augers, couplers, pod caps (and motors, nuts) are the same STLs, turned round and swapped over: v35 drill_leg_L =
+v34 drill_leg_R (checked: identical by rotation, so hands kept per part). So the LEFT pod now has the LEFT-hand auger and the swapped drill
+pair (wires 44, 45). mirror_x() is a no-op in v35 (P.POD_DIR 1); pack.py prints arms and augers with RM(-pi/2, Y).
+INTERIOR: leg cradle | disc 1 (x 39.4) | deploy cradle x 43.6..56.4 (worm box under the leg's bridge) with DRV#1 / DRV#2 standing beside it |
+disc 1b x 56.6..58.6 (B- spring on its rear face, top window |y| 13.2 above z 7 for the board wires) | cells x 62..136 | rear disc 137.2 |
+sockets, capacitor on the tail key. Deck 1 / deck 2 boards start behind disc 1b (XIAO x 59). The deploy worm box sits under the righting
+leg's bridge: P.LEG_CH (a channel x 9..24.5 in the leg-frame, 2.4 under, ±7 wide, in the bridge underside) + a hump in the hull top. Drill
+leads through the tight holes at x DRILL_X + 10.5 (60.5), z 16.5. USB-C: the right pod covers the window folded AND deployed (plug box
+checked at 0 to 46.75 deg): flash over USB before the pods are fitted, OTA after (run sheet).
+REPRINT vs v34: hull_top, hull_bottom, tray, righting_leg (bridge channel). Same: nose (0.03 mm mesh noise), arms, augers, couplers, pod caps,
+leg couplers, skin plugs, fit coupon + pegs. FIRMWARE: pin map unchanged; the deploy turns the other way (swap the deploy N20 leads at DRV#1
+AOUT1 / AOUT2, or PINS[DEPLOY].sign -1); deploy 46.75 deg and its stops as v34; DRILL_SIGN +1; the swapped drill pair is now the LEFT one.
+Results (out35): audit CLEAN at 1 deg (leg 179 steps, pods 48 steps), hard stops (deploy +2.5 deg 5.24 mm3, fold -3 deg 5.57, leg rest +2 deg
+58.54, leg fold -2 deg 429.87), one shell per printed part, insertion sweeps zero, screw bite 10.1; ALL STEP VALID; launcher_fit FITS over
+1684 states (rope tie ok; only base's old line model meets the rope, as v34); wire room OK; folded bbox x 0-152, y ±40.5, z -21 to 21.3;
+printed 81.22 cm3; mass 249.6 g, CG folded x 75.57, z +0.39 (v34 83.1, +0.44); anchored z -3.83; leg out x 73.64, z +0.29.
+Righting / tow (sim_righting/v35_check: run35_shared.mjs = run34_shared.mjs with the job's layout, here "front" pivotX 50; hull 192.1 g CG x 74.9
+z -2.55, rigid axle, line tied in the tail face; summarize35.py -> v35_righting_tow.json): righted loam 80/80, sand 20/20, the 5 named poses
+30/30, fixed arrival paths 25/35/45/57 deg 40/40 (median 7 s, slowest 17 s). Tow: deploy worm 0.00 N m (v34 tail tie 0.94), deploy stops
+4.24 N m for both pods (about 2.4 a pod at 55 N, about 280 N on each stop face 8.5 mm from the pivot). Holding in the sim: loam moved at 45 to
+49.5 N (median 49.0; v34 79 of 80 held 55), sand 17.2 (v34 18.3): the anchors are near the tail, so the pull pitches the nose up about the tail
+edge (12 deg at 45 N), weight comes off the hull and the drills reach the sim's 25 N isotropic soil cap; each drill is loaded about 95 %
+sideways (only about 4 N outward along its axis), which that soil model does not credit: a pull test decides. Flight (flight35.py ->
+phys35/flight35.json, flight34's model, tail tie): nose first at every rail 6 to 47 deg, tow arm 76.4 mm (v34 68.9), neutral speed 11.7 m/s,
+tip-off AoA max 23 deg (v34 28), sideslip 4.
+Review renders: out35/review/ (review34.js), out35/audit_sheet.png, out35/sections.png, out35/img_exploded.png + img_stage1..4. Viewer: pub35.
 
 v34 (9 Nov 2026, dart-cad4) = the SELF-RIGHTING layout from the righting study (kedge/sim_righting, results.json, published artifact
 TGTtc2um8jqGDkG5ic6hQA). Running handover: kedge/V34_PROGRESS.md. Harry's rules for v34: simple and working (NO latch: plain hard stops,
@@ -342,6 +375,7 @@ Pipeline (run from this folder; `.venv/bin/python` has build123d, trimesh, manif
 - `review.js OUT` + `montage.py` : close-up renders to OUT/review; `pubshots.js PUBDIR OUTDIR` : shots of the published viewer page.
 - `viewer.html` : three.js viewer (pose sliders, explode, section cut, audit panel, Play deployment animation).
 Outputs:
+- `out35/ pack_v35/ dist_v35/ pub35/` : v35 (`GEN=kedge_v35.py ./run_all.sh out35 v35 1 1`, `GEN=kedge_v35.py ./make_dist.sh v35`; close-ups `node review34.js out35`; v35 tools: runsheet35.py, report35.py (runsheet.py / report.py dispatch on P.POD_DIR 1), wires34.py (v35 routes when P.POD_DIR 1), flight35.py (-> phys35/flight35.json), sim_righting/v35_check/ (run35_shared.mjs, summarize35.py, v35_righting_tow.json). out35/READY = the CAD is final (the Blender pipeline waits on it).
 - `out34/ pack_v34/ dist_v34/ pub34/` : v34 (`GEN=kedge_v34.py ./run_all.sh out34 v34 1 1`, `GEN=kedge_v34.py ./make_dist.sh v34`; close-ups `node review34.js out34 [views.json]`; v34 tools: wires34.py, runsheet34.py, report34.py, ovl.py (overlap locator), qrender.py).
 - `out33/ pack_v33/ dist_v33/ pub33/` : v33 (`GEN=kedge_v33.py ./make_dist.sh v33`; close-ups `node review33.js out33`, kick check `kick_inline_check.py`).
 - `out32/ pack_v32/ dist_v32/ pub32/` : v32 (pub32 = index.html + parts/meshes/audit json for the viewer artifact; review
@@ -351,7 +385,7 @@ Outputs:
   step_check.json, wire list, wiring.png, barrel files, run sheet and engineering report PDFs, assembly STEP). `dist_v31/` zips.
 - `out29/ out30/ pack_v29/ pack_v30/ dist_v29/ dist_v30/` : the previous versions.
 - Firmware lives in `../firmware/dart` (v4, WIRING.md, BENCH_TEST.md); `fw/` here is the old v3 copy.
-- `pub/` files for the claude.ai viewer artifact (https://claude.ai/artifact/Sqt8tF67veTYfxQjUFTZ5f, Version 30).
+- `pub/` files for the claude.ai viewer artifact (https://claude.ai/artifact/Sqt8tF67veTYfxQjUFTZ5f, now showing v35 from pub35).
 
 Environment: build123d 0.13.0, cadquery-ocp, trimesh 5.2.0, manifold3d 3.5.4, numpy, scipy, shapely 2.2, reportlab, ezdxf,
 lib3mf, matplotlib, playwright (+ chromium), node 22, graphviz. See `requirements.txt` and `setup_mac.sh`.

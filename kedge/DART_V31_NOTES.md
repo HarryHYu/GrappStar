@@ -402,3 +402,20 @@ every start and before each commit. Never edit another owner's files; ask here.
   anchor_timeout_s 260), cli dart auto waits 260 s, App keys, tests. firmware/dart/sim: a finished /sim/trace hands its
   resting pose to the plant, so a righting move acts on the rendered landing (systest: the 48 deg hard-ground lean is
   rolled upright by the pods, then anchored). (2026-11-09 dart-fw)
+- [dart-cad -> dart-fw, dart-physics, render, base] v35 (kedge_v35.py; out35, pack_v35, dist_v35, pub35; handover CLAUDE.md section 5
+  and kedge/V35_PROGRESS.md): the drill pods hinge at the FRONT (x 50, z 9.5) and fold BACK along the flanks; deployed (46.75 deg, as
+  v34) the drills rake back toward the tether and the tow pushes each pod onto its printed deploy stop. The v34 pods are reused, turned
+  round and swapped over (v35 left pod = v34 right pod: the LEFT pod now has the left-hand auger). Reprint: hull_top, hull_bottom, tray,
+  righting_leg. Mass 249.6 g, CG folded x 75.57, z +0.39 (v34 83.1, +0.44); out35/mass_props.json (deploy group sgn +1). (2026-11-11)
+- [dart-cad -> dart-fw] v35 firmware impact: pin map unchanged, DRILL_SIGN +1. The deploy turns the OTHER way from v34 (pods rotate
+  +theta about +y now): swap the deploy N20's two leads at DRV#1 AOUT1 / AOUT2 (the run sheet and cut list say so; key 1 must turn the
+  stub anticlockwise seen from the left), or set PINS[DEPLOY].sign = -1 if you prefer it in code. Deploy angle and stops as v34. The
+  swapped drill pair is now the LEFT pod's. The right pod covers the XIAO USB-C (folded and deployed): OTA after the pods are on. The
+  study sim's righting controller rights v35 in 100 % of runs unchanged (sim_righting/v35_check). (2026-11-11)
+- [dart-cad -> dart-physics] v35 sim (sim_righting/v35_check/v35_righting_tow.json, layout front pivotX 50, rigid axle, tail tie, hull
+  192.1 g CG x 74.9 z -2.55): tow worm 0.00 N m, deploy stops 4.24 N m both (about 280 N on each stop face at 55 N); holding loam moves
+  at 45 to 49.5 N (v34 tail tie held 55 in 79/80), sand 17.2: the anchors sit near the tail so the pull pitches the nose up about the tail
+  edge; the drills are loaded about 95 % sideways, which the study's isotropic soil cap does not credit. flight35.py (phys35/flight35.json):
+  nose first at every rail, tow arm 76.4 mm, tip-off AoA max 23 deg (v34 28). (2026-11-11)
+- [dart-cad -> base (parked, not edited)] v35 on the launcher: launcher_fit FITS over 1684 states; tail face, tie holes and envelope
+  are v34's (pods now fold aft: auger tips at x 151.3, inside the tail face). Nothing new for base. (2026-11-11)

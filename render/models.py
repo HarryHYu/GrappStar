@@ -798,10 +798,11 @@ def mat_dyneema():
     return m
 
 
-def mat_rope(color="#f0cf1e", name=None):
+def mat_rope(color="#f2b800", name=None):
     """1 mm 12-strand Dyneema braid for the tether (build.py's line:tether): 6 + 6 carriers crossing in a 2-over-2
-    diagonal weave (object-space helices, no UVs needed), each strand's fibre lay as fine streaks, slight fuzz
-    (sheen + fibre noise), soft satin highlight. color: '#rrggbb' (default the yellow braid)."""
+    diagonal weave (object-space helices, no UVs needed), fibre streaks, slight fuzz (sheen tinted with the rope
+    colour, fibre noise), satin highlight. color: '#rrggbb' (default: the yellow braid, chosen so it still reads
+    yellow under AgX Medium High Contrast in the paddock light)."""
     key = name or "rope_" + color.lstrip("#")
     if key in _MATS:
         return _MATS[key]
@@ -818,11 +819,17 @@ def mat_rope(color="#f0cf1e", name=None):
     ridge = N.mix(over, N.math("ABSOLUTE", a), N.math("ABSOLUTE", b), kind="FLOAT")
     fib = N.noise(14000.0, 2.0, 0.6, obj).outputs["Fac"]
     base = srgb(color)
-    c = N.mix(over, N.vscale(N.rgb(base), 0.86), N.rgb(base))
-    c = N.mix(N.math("MULTIPLY", N.math("SUBTRACT", 1.0, ridge), 0.5), c, N.vscale(N.rgb(base), 0.55))
-    c = N.mix(N.math("MULTIPLY", fib, 0.25), c, (0.9, 0.88, 0.8, 1.0))
-    _set(bsdf, base=c, rough=N.math("ADD", N.math("MULTIPLY", fib, 0.15), 0.52), sheen=0.7, spec=0.4,
-         coat=0.0)
+    mx = max(base[:3]) or 1.0
+    sat = tuple(min(1.0, (c / mx) ** 1.35 * mx) for c in base[:3]) + (1.0,)      # push saturation (AgX desaturates)
+    rb = N.rgb(sat)
+    c = N.mix(over, N.vscale(rb, 0.88), rb)
+    c = N.mix(N.math("MULTIPLY", N.math("SUBTRACT", 1.0, ridge), 0.45), c, N.vscale(rb, 0.5))
+    c = N.mix(N.math("MULTIPLY", fib, 0.3), c, N.vscale(rb, 1.12))
+    _set(bsdf, base=c, rough=N.math("ADD", N.math("MULTIPLY", fib, 0.15), 0.55), sheen=0.3, spec=0.35)
+    try:
+        bsdf.inputs["Sheen Tint"].default_value = sat
+    except Exception:
+        pass
     h = N.math("ADD", ridge, N.math("MULTIPLY", fib, 0.35))
     N.link(N.bump(h, 0.8, 0.00012), bsdf.inputs["Normal"])
     return m
@@ -1718,6 +1725,42 @@ def _p_esp32():
     mb.box((ex + 3.0, ey + 13.0, zt), (ex + 4.6, ey + 13.8, zt + 0.5), "led_red")
     _smd_scatter(mb, ex + 3, ex + bw - 4, ey + 12, my0 - 2, zt, 22, 3,
                  avoid=[(ex + 8, ey + 15, ex + 15, ey + 21), (ex + 4, ey + 25, ex + 10, ey + 32)])
+    # silkscreen: pin labels (J1 left, J3 right, as printed on the DevKitC-1), board name, button / port labels
+    j1 = ["3V3", "3V3", "RST", "4", "5", "6", "7", "15", "16", "17", "18", "8", "3", "46", "9", "10", "11", "12",
+          "13", "14", "5V", "G"]
+    j3 = ["G", "TX", "RX", "1", "2", "42", "41", "40", "39", "38", "37", "36", "35", "0", "45", "48", "47", "21",
+          "20", "19", "G", "G"]
+    for k in range(22):
+        y = ey + 7.96 + k * 2.54
+        silk(mb, j1[k], ex + 2.9, y - 0.35, zt, 0.8)
+        silk(mb, j3[k], ex + bw - 2.9, y - 0.35, zt, 0.8, align="RIGHT")
+        mb.cyl((ex + 1.27, y, zt), (ex + 1.27, y, zt + 0.03), 0.95, "gold", 12)
+        mb.cyl((ex + bw - 1.27, y, zt), (ex + bw - 1.27, y, zt + 0.03), 0.95, "gold", 12)
+    silk(mb, "ESP32-S3-DevKitC-1", ex + 11.6, ey + 20.0, zt, 1.25, rot=90.0)
+    silk(mb, "v1.1", ex + 13.4, ey + 33.0, zt, 0.9, rot=90.0)
+    silk(mb, "BOOT", ex + 1.2, ey + 12.2, zt, 0.75)
+    silk(mb, "RST", ex + 20.8, ey + 12.2, zt, 0.75)
+    silk(mb, "UART", ex + 6.0, ey + 7.4, zt, 0.75, align="CENTER")
+    silk(mb, "USB", ex + 19.4, ey + 7.4, zt, 0.75, align="CENTER")
+    silk(mb, "ESPRESSIF", ex + 12.7, my0 + 6.0, zt + 3.1, 1.4, rot=90.0, mat=mat_simple(
+        "shield_ink", (0.04, 0.04, 0.045, 1), rough=0.5, plain=True))
+    silk(mb, "ESP32-S3-WROOM-1", ex + 15.2, my0 + 3.0, zt + 3.1, 0.9, rot=90.0, mat=mat_simple(
+        "shield_ink", (0.04, 0.04, 0.045, 1), rough=0.5, plain=True))
+    for (x0, y0, x1, y1) in ((ex + 7.6, ey + 15.1, ex + 14.9, ey + 21.0), (ex + 4.1, ey + 25.6, ex + 9.9, ey + 31.4)):
+        for (a0, a1) in (((x0, y0), (x1, y0 + 0.15)), ((x0, y1 - 0.15), (x1, y1)), ((x0, y0), (x0 + 0.15, y1)),
+                         ((x1 - 0.15, y0), (x1, y1))):
+            mb.box((a0[0], a0[1], zt), (a1[0], a1[1], zt + 0.03), mat_silk())
+    mb.box((ex + 15.0, ey + 30.0, zt), (ex + 18.2, ey + 32.5, zt + 0.8), "tin", bevel=0.2)       # 40 MHz crystal
+    for (dx, dy) in ((3.0, 22.0), (20.0, 22.0)):                                               # SOD-123 diodes
+        mb.box((ex + dx, ey + dy, zt), (ex + dx + 2.7, ey + dy + 1.6, zt + 1.0), "ic", bevel=0.2)
+        mb.box((ex + dx + 0.3, ey + dy, zt + 0.98), (ex + dx + 0.6, ey + dy + 1.6, zt + 1.02), mat_silk())
+    rng0 = np.random.default_rng(5)
+    for _ in range(30):                                                                        # 0402 passives
+        x, y = rng0.uniform(ex + 3.5, ex + bw - 4.5), rng0.uniform(ey + 12.5, my0 - 1.5)
+        if (ex + 7.5 < x < ex + 15.5 and ey + 14.5 < y < ey + 21.5) or (ex + 4 < x < ex + 10.5 and ey + 25 < y < ey + 32):
+            continue
+        w, h = (1.0, 0.5) if rng0.random() < 0.5 else (0.5, 1.0)
+        mb.box((x, y, zt), (x + w, y + h, zt + 0.35), "ceramic" if rng0.random() < 0.6 else "ic")
     pins_y = [ey + 7.96 + k * 2.54 for k in range(22)]
     rng = np.random.default_rng(11)
     cols = ["red", "black", "yellow", "green", "blue", "orange", "white", "purple", "brown", "grey"]
@@ -1781,6 +1824,28 @@ def _p_bts7960():
     _smd_scatter(mb, bx + 6, bx + sx - 14, by + 3, by + sy - 3, zt, 18, 7,
                  avoid=[(bx + 14, by + 9, bx + 31, by + 36), (bx + 5, by + 36, bx + 19, by + 45),
                         (bx + 1, by + 13, bx + 4, by + 36)])
+    mark = mat_simple("ic_mark", (0.30, 0.30, 0.31, 1), rough=0.55, plain=True)
+    for yy in (by + 10.0, by + 25.0):
+        silk(mb, "BTS7960B", bx + 23.1, yy + 5.0, zt + 4.4, 1.0, rot=90.0, align="CENTER", mat=mark)
+        silk(mb, "IN 1748", bx + 21.6, yy + 4.6, zt + 4.4, 0.8, rot=90.0, align="CENTER", mat=mark)
+    silk(mb, "74HC244", bx + 11.9, by + 40.2, zt + 2.4, 1.0, align="CENTER", mat=mark)
+    silk(mb, "IBT-2", bx + 33.0, by + 41.0, zt, 2.6, align="CENTER")
+    silk(mb, "BTS7960 43A", bx + 33.0, by + 37.8, zt, 1.2, align="CENTER")
+    for k, t in enumerate(("B+", "B-", "M+", "M-")):
+        silk(mb, t, tx0 - 1.0, by + 14.3 + k * 5.5, zt, 1.1, align="RIGHT")
+    for k, t in enumerate(("VCC", "GND", "R_IS", "L_IS", "R_EN", "L_EN", "RPWM", "LPWM")):
+        silk(mb, t, bx + 4.6, by + 14.6 + k * 2.54, zt, 0.75)
+    for (x0, y0, x1, y1) in ((bx + 13.8, by + 9.0, bx + 31.0, by + 20.2), (bx + 13.8, by + 24.0, bx + 31.0, by + 35.2),
+                             (bx + 4.6, by + 35.8, bx + 19.2, by + 45.7), (tx0 - 0.6, by + 11.4, bx + sx - 0.3, by + 34.6)):
+        for (a0, a1) in (((x0, y0), (x1, y0 + 0.18)), ((x0, y1 - 0.18), (x1, y1)), ((x0, y0), (x0 + 0.18, y1)),
+                         ((x1 - 0.18, y0), (x1, y1))):
+            mb.box((a0[0], a0[1], zt), (a1[0], a1[1], zt + 0.03), mat_silk())
+    for (rx, ry) in ((6.0, 9.0), (6.0, 11.5), (33.0, 4.0), (36.0, 4.0), (39.0, 4.0), (33.0, 46.0), (36.0, 46.0)):
+        mb.box((bx + rx, by + ry, zt), (bx + rx + 2.0, by + ry + 1.25, zt + 0.5), "ic")             # 0805 resistors
+        for ex_ in (0.0, 1.6):
+            mb.box((bx + rx + ex_, by + ry, zt), (bx + rx + ex_ + 0.4, by + ry + 1.25, zt + 0.52), "tin")
+    for (cx_, cy_) in ((22.0, 4.0), (26.0, 4.0), (22.0, 46.5)):
+        mb.box((bx + cx_, by + cy_, zt), (bx + cx_ + 3.2, by + cy_ + 1.6, zt + 1.1), "ceramic")
     for k, c in enumerate(("red", "black", "red", "black")):                                   # 14 AWG motor / supply
         yy = by + 14.75 + k * 5.5
         p0 = np.array([bx + sx - 1.0, yy, zt + 3.8])
@@ -1946,6 +2011,106 @@ def _p_kiyo():
     return _mm(mb)
 
 
+def text_mesh(text, size, align="LEFT", extrude=0.02):
+    """flat text geometry (mm, in the xy plane at z 0..2*extrude) from Blender's built-in font: (verts, faces)"""
+    cu = bpy.data.curves.new("_tmp_text", "FONT")
+    cu.body = text
+    cu.size = size
+    cu.extrude = extrude
+    cu.align_x = align
+    cu.resolution_u = 3
+    ob = bpy.data.objects.new("_tmp_text", cu)
+    bpy.context.scene.collection.objects.link(ob)
+    dg = bpy.context.evaluated_depsgraph_get()
+    me = bpy.data.meshes.new_from_object(ob.evaluated_get(dg))
+    v = np.array([q.co[:] for q in me.vertices], float).reshape(-1, 3)
+    f = [list(pp.vertices) for pp in me.polygons]
+    bpy.data.objects.remove(ob, do_unlink=True)
+    bpy.data.curves.remove(cu)
+    bpy.data.meshes.remove(me)
+    v[:, 2] += extrude
+    return v, f
+
+
+def silk(mb, text, x, y, z, size, rot=0.0, align="LEFT", mat=None):
+    """silkscreen text lying on a board top at (x, y, z) mm, rotated rot deg about z"""
+    v, f = text_mesh(text, size, align)
+    if not len(v):
+        return mb
+    return mb.add(v, f, mat or mat_silk(), T=T_(x, y, z) @ R_("Z", rot))
+
+
+def mat_silk():
+    return mat_pbr("silk", (0.86, 0.86, 0.82, 1), 0.62, 0.0,
+                   dict(var=0.03, rvar=0.06, grime=0.2, edge=0.0, dust=0.0, micro=0.0, bevel=0.0))
+
+
+def _p_wiper():
+    """12 V car wiper motor at the CAD envelope (motor frame of base/spec/params.py WIPER: origin on the output
+    shaft axis in the boss face plane, +z along the shaft into the base, +x along the gearbox to the can): die-cast
+    gearbox (worm-wheel housing, worm neck, ribs, parting line, back cover with screws), machined boss with its
+    bushing, three mounting ears with rubber grommets and steel sleeves, black steel can with crimped flange and
+    end cap, moulded brush-holder connector with the red / black / green leads. The output shaft is its own part
+    (base:frame_wiper_shaft)."""
+    mb = MB()
+    cast, mach = "alu_cast", "alu"
+    mb.cyl((0, 0, -42.0), (0, 0, -5.0), 39.5, cast, 64)                                     # worm-wheel housing
+    mb.cyl((0, 0, -5.0), (0, 0, -0.6), 33.0, cast, 64, r2=31.0)
+    mb.cyl((0, 0, -0.6), (0, 0, 0.0), 31.0, mach, 64)                                       # machined boss face
+    mb.cyl((0, 0, 0.0), (0, 0, 4.0), 8.0, mach, 32)                                         # boss
+    mb.cyl((0, 0, 3.9), (0, 0, 4.05), 5.6, "brass", 24)                                     # bronze bushing
+    mb.cyl((0, 0, -23.35), (0, 0, -22.65), 40.1, cast, 64)                                  # casting parting line
+    mb.cyl((0, 0, -46.0), (0, 0, -42.0), 37.0, cast, 64, r2=35.5)                            # back cover
+    for k in range(6):
+        a = 2 * math.pi * (k + 0.5) / 6
+        cx, cy = 33.0 * math.cos(a), 33.0 * math.sin(a)
+        mb.cyl((cx, cy, -47.6), (cx, cy, -45.9), 3.0, "zinc", 6)
+        mb.cyl((cx, cy, -42.2), (cx, cy, -41.9), 4.2, cast, 16)
+    mb.box((6.0, -21.0, -57.0), (86.0, 21.0, -15.0), cast, bevel=9.0, seg=4)                # worm neck
+    mb.box((40.0, -1.2, -15.5), (80.0, 1.2, -11.0), cast, bevel=0.8)                       # ribs
+    for yy in (-14.0, 14.0):
+        mb.box((14.0, yy - 1.0, -58.5), (70.0, yy + 1.0, -54.0), cast, bevel=0.6)
+    mb.box((5.0, -21.3, -36.4), (86.0, 21.3, -35.6), cast)                                 # parting line on the neck
+    for (hx, hy) in ((-24.0, 38.0), (-24.0, -38.0), (72.0, 0.0)):                           # ears + grommets
+        if hx > 0:
+            mb.box((hx - 9.0, -9.0, -8.0), (hx + 2.0, 9.0, -1.0), cast, bevel=2.0)
+            mb.box((hx - 9.0, -6.0, -16.0), (hx - 2.0, 6.0, -7.0), cast, bevel=1.5)
+        else:
+            d = np.array([hx, hy]) / math.hypot(hx, hy)
+            c0 = d * 30.0
+            mb.box((min(c0[0], hx) - 6.0, min(c0[1], hy) - 6.0, -8.0),
+                   (max(c0[0], hx) + 6.0, max(c0[1], hy) + 6.0, -1.0), cast, bevel=2.5)
+        mb.cyl((hx, hy, -9.5), (hx, hy, 1.0), 7.5, "rubber", 28)
+        mb.cyl((hx, hy, 1.0), (hx, hy, 1.6), 6.2, "rubber", 28, r2=5.2)
+        mb.cyl((hx, hy, -10.0), (hx, hy, 1.9), 3.6, "steel", 20)
+        mb.cyl((hx, hy, 1.85), (hx, hy, 1.95), 2.6, mat_simple("hole", (0.003,) * 3 + (1,), rough=0.9, plain=True), 16)
+    zc = -36.0                                                                              # can axis
+    mb.cyl((84.0, 0, zc), (89.0, 0, zc), 31.0, "zinc", 48)                                  # crimped flange
+    for k in range(4):
+        a = 2 * math.pi * k / 4 + 0.4
+        mb.box((86.0, 30.0 * math.cos(a) - 2.0, zc + 30.0 * math.sin(a) - 2.0),
+               (91.0, 30.0 * math.cos(a) + 2.0, zc + 30.0 * math.sin(a) + 2.0), "zinc", bevel=0.5)
+    mb.cyl((89.0, 0, zc), (175.0, 0, zc), 29.0, "paint_black", 64)                          # can
+    mb.cyl((120.0, 0, zc), (121.2, 0, zc), 29.15, "paint_black", 64)                        # rolled bead
+    mb.cyl((175.0, 0, zc), (178.0, 0, zc), 29.0, "paint_black", 64, r2=26.0)                # end cap
+    mb.cyl((178.0, 0, zc), (179.0, 0, zc), 9.0, "paint_black", 32, r2=7.5)                  # bearing boss
+    for a in (0.8, 0.8 + math.pi):
+        mb.cyl((176.6, 20.0 * math.cos(a), zc + 20.0 * math.sin(a)),
+               (178.1, 20.0 * math.cos(a), zc + 20.0 * math.sin(a)), 1.8, "zinc", 12)
+    mb.box((62.0, 21.0, -50.0), (82.0, 33.0, -24.0), "plastic_black", bevel=2.0)              # brush-holder plug
+    mb.box((64.0, 32.5, -47.0), (80.0, 36.0, -27.0), "plastic_black", bevel=1.2)
+    for k, c in enumerate(("red", "black", "green")):
+        y0 = 36.0
+        x = 68.0 + k * 4.0
+        if c == "green":
+            pts = bezier((x, y0, -37.0), (0, 8, 0), (x + 10.0, y0 + 4.0, -52.0), (2, 0, -6), 12)
+            mb.tube(pts, 0.9, "wire_green", 6)
+            mb.cyl(pts[-1], pts[-1] + (0, 0, -6.0), 1.8, "rubber", 10)                         # taped end
+        else:
+            mb.tube([(x, y0, -37.0), (x, y0 + 3.0, -37.0)], 1.5, "wire_" + c, 8)
+    return _mm(mb)
+
+
 def _procedural_base_parts():
     return {
         "frame_pcb_esp32": _p_esp32,
@@ -1957,6 +2122,7 @@ def _procedural_base_parts():
         "frame_fuse_20a": _p_fuse,
         "frame_rc832": _p_rc832,
         "frame_kiyo_x": _p_kiyo,
+        "frame_wiper_motor": _p_wiper,
         "launch_spring_l_hook_c": lambda: _hook_mesh(1),
         "launch_spring_r_hook_c": lambda: _hook_mesh(1),
         "launch_spring_l_hook_a": lambda: _hook_mesh(-1),
@@ -2518,14 +2684,11 @@ def build_elec(scene, col=None):
              [0.44, -0.12, zr], [0.38, -0.30, zr], [0.20, -0.35, zr], [0.045, -0.24, zr], p_dc + [0, 0.015, 0],
              p_dc]
     _cable("elec:cable_jetson_dc", lead1, 0.0021, "wire_black", col)
-    # wiper motor: 2-pin connector boot on the can end cap, 14 AWG pair down to the bay's motor window
-    mb = MB()
-    mb.box((-6.0, -9.0, 0.0), (6.0, 9.0, 9.0), "plastic_black", bevel=1.5)
-    mb.box((-4.0, -7.0, 9.0), (4.0, 7.0, 15.0), "rubber", bevel=1.5)
-    _mm(mb).obj("elec:wiper_plug", col, root, np.asarray(BASE_TO_WORLD) @ T_(8.0 * MM, -46.0 * MM, 179.5 * MM))
-    wp = [_b2w((8.0, -46.0, 194.0)), _b2w((14.0, -50.0, 197.0)), _b2w((30.0, -78.0, 182.0)),
-          _b2w((70.0, -95.0, 60.0)), _b2w((95.0, -60.0, -120.0)), _b2w((105.0, -12.0, -152.0)),
-          _b2w((116.0, -11.0, -152.0))]
+    # wiper motor: red / black leads from the brush-holder plug (motor frame (68..72, 39, -37)) to the bay window
+    MW = np.asarray(BASE_TO_WORLD) @ mm_matrix(base_rest_world()["frame_wiper_motor"])
+    w0 = (MW @ np.r_[0.070, 0.039, -0.037, 1.0])[:3]
+    wp = [w0, w0 + np.array([0.012, 0.0, -0.002]), _b2w((70.0, -52.0, 40.0)), _b2w((92.0, -62.0, -70.0)),
+          _b2w((100.0, -35.0, -140.0)), _b2w((106.0, -12.0, -152.0)), _b2w((116.0, -11.0, -152.0))]
     _pair("elec:cable_wiper", wp, 0.0016, ("red", "black"), col)
     return root
 

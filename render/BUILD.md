@@ -90,9 +90,18 @@ data: A about 50 mm, B about 30 mm). DOF is real (f/5.6, focus on the action's m
 sharp at these distances). TRIPOD_SHAKE adds a sub-pixel F-curve noise to the camera rotation (a tripod in a
 breeze; set 0 to remove).
 
-**Camera look.** AgX (env.set_render), 180 deg shutter motion blur (shutter 0.5 frame), and the compositor node
-group `GS_camera_look`: mild barrel distortion with a touch of lateral chromatic aberration, a soft vignette and a
-light per-frame film grain (LOOK at the top of the camera section). The .blend is set to 3840x2160 EEVEE.
+**Sun.** After the cameras are fitted, build.py puts the sun nearly along cam:A's view (7 deg to the side) and just
+above the top edge of its frame (at least 20 deg up) with env.set_sun(scene, az, el), which also turns the HDRI:
+backlight, glowing grass edges, long shadows toward the camera, the base partly silhouetted with rim light; cam:B,
+side-on, is backlit too (SUN at the top of the camera section).
+
+**Camera look ("real phone footage").** View: AgX Punchy, warm white balance (7000 K), exposure +0.25 over the env
+(exposed for the sunlit grass, highlights bloom). Compositor node group `GS_camera_look`: a warm veil and four faint
+lens ghosts placed from the sun's position relative to each camera (switched at the cut), fog-glow bloom on the
+highlights, mild barrel distortion with chromatic aberration, lens softness then a phone-style sharpening halo,
+a soft vignette, a touch more saturation in the yellows, and per-frame sensor noise (luma, plus blotchy
+half-resolution chroma). 180 deg shutter motion blur. The .blend renders 1920x1080 EEVEE by default (it reads most
+like real footage); the Mac preset uhd gives 3840x2160. The motion check MP4 is H.264 CRF 23. All knobs are in LOOK.
 
 **Key-moment stills** (`--shots`): cam:A aim, cock, launch, flight apex, impact, righting, drills; cam:B after the
 cut, taut, tow, end; frames are stored on the cameras (custom property `stills`) and printed on the contact sheet.
@@ -104,8 +113,8 @@ cut, taut, tow, end; frames are stored on the cameras (custom property `stills`)
 
 Copy `render/out/grappstar_mission.blend` and `render/mac/` (`render_mac.command`, `preset.py`) into
 `~/Desktop/grappstar_render/` and double-click `render_mac.command` (details in render/mac/README_MAC.md): EEVEE
-3840x2160 PNG frames (preset uhd, the default), resumable, then an MP4. `bash render_mac.command final` renders
-1920x1080. Quick test: `bash render_mac.command preview eevee 500 560`. Cycles hero stills:
+1920x1080 PNG frames (preset final, the default), resumable, then an H.264 MP4 at CRF 23.
+`bash render_mac.command uhd` renders 3840x2160. Quick test: `bash render_mac.command preview eevee 500 560`. Cycles hero stills:
 `bash render_mac.command hero cycles 520 520`. Rough time per frame on an M3 16 GB: preview 3-6 s, final 8-15 s,
 uhd 25-45 s, plus a few minutes of shader compiling on the first frame. Speed knobs in the .blend: `env:grass` > Modifiers >
 scatter > Density (1.0 full, 0.5 half the clumps), Mow; render samples in preset.py.

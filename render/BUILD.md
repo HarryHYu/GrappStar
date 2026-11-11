@@ -113,8 +113,11 @@ cut, taut, tow, end; frames are stored on the cameras (custom property `stills`)
 
 Copy `render/out/grappstar_mission.blend` and `render/mac/` (`render_mac.command`, `preset.py`) into
 `~/Desktop/grappstar_render/` and double-click `render_mac.command` (details in render/mac/README_MAC.md): EEVEE
-1920x1080 PNG frames (preset final, the default), resumable, then an H.264 MP4 at CRF 23.
-`bash render_mac.command uhd` renders 3840x2160. Quick test: `bash render_mac.command preview eevee 500 560`. Cycles hero stills:
+1280x720 PNG frames (preset hd720, the default; EEVEE tuned for speed: 20 samples, half-resolution screen tracing,
+1 motion blur step, grass Density 0.8), resumable, then one H.264 MP4 at CRF 23. The film is about 25 s: the two
+frame ranges in the .blend (scene property grappstar_ranges, now 273-712 and 859-1157: launch, flight, landing,
+righting and drills on cam:A, then the line going taut and the tow on cam:B), rendered back to back.
+`bash render_mac.command final` renders 1920x1080, `uhd` 3840x2160. Quick test: `bash render_mac.command preview eevee 500 560`. Cycles hero stills:
 `bash render_mac.command hero cycles 520 520`. Rough time per frame on an M3 16 GB: preview 3-6 s, final 8-15 s,
 uhd 25-45 s, plus a few minutes of shader compiling on the first frame. Speed knobs in the .blend: `env:grass` > Modifiers >
 scatter > Density (1.0 full, 0.5 half the clumps), Mow; render samples in preset.py.

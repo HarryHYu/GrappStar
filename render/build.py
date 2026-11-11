@@ -669,6 +669,63 @@ def build_line(scene, mo, models, env, report):
 
 # =============================================================================================================
 # grass: density control and the dart pressing / parting the grass
+LAWN_GROUND_FALLBACK = False        # mottle the ground under the grass near the cameras (env lawn fallback)
+
+
+def lawn_ground_fallback():
+    """near the cameras, blend the env ground's base colour toward a mottled lawn green-yellow with fine noise and
+    bump, so gaps between grass clumps read as grass, not dark soil (no extra geometry or memory)"""
+    m = bpy.data.materials.get("env:ground")
+    if m is None or m.node_tree is None:
+        return False
+    nt = m.node_tree
+    bs = [n for n in nt.nodes if n.bl_idname == "ShaderNodeBsdfPrincipled"]
+    if not bs:
+        return False
+    b = bs[0]
+    src = b.inputs["Base Color"].links[0].from_socket if b.inputs["Base Color"].links else None
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    n1 = nt.nodes.new("ShaderNodeTexNoise")
+    n1.inputs["Scale"].default_value = 260.0
+    n1.inputs["Detail"].default_value = 3.0
+    n2 = nt.nodes.new("ShaderNodeTexNoise")
+    n2.inputs["Scale"].default_value = 9.0
+    n2.inputs["Detail"].default_value = 4.0
+    for n in (n1, n2):
+        nt.links.new(tc.outputs["Object"], n.inputs["Vector"])
+    mx = nt.nodes.new("ShaderNodeMath")
+    mx.operation = "MULTIPLY_ADD"
+    nt.links.new(n1.outputs["Fac"], mx.inputs[0])
+    mx.inputs[1].default_value = 0.65
+    nt.links.new(n2.outputs["Fac"], mx.inputs[2])
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].position, ramp.color_ramp.elements[0].color = 0.55, (0.055, 0.095, 0.022, 1)
+    ramp.color_ramp.elements[1].position, ramp.color_ramp.elements[1].color = 0.95, (0.17, 0.19, 0.06, 1)
+    e = ramp.color_ramp.elements.new(0.78)
+    e.color = (0.10, 0.15, 0.035, 1)
+    nt.links.new(mx.outputs[0], ramp.inputs["Fac"])
+    cam = nt.nodes.new("ShaderNodeCameraData")
+    near = nt.nodes.new("ShaderNodeMapRange")
+    near.interpolation_type = "SMOOTHSTEP"
+    nt.links.new(cam.outputs["View Distance"], near.inputs[0])
+    near.inputs[1].default_value, near.inputs[2].default_value = 4.0, 14.0
+    near.inputs[3].default_value, near.inputs[4].default_value = 0.85, 0.0
+    mix = nt.nodes.new("ShaderNodeMixRGB")
+    nt.links.new(near.outputs[0], mix.inputs[0])
+    if src is not None:
+        nt.links.new(src, mix.inputs[1])
+    nt.links.new(ramp.outputs["Color"], mix.inputs[2])
+    nt.links.new(mix.outputs[0], b.inputs["Base Color"])
+    bump = nt.nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.35
+    bump.inputs["Distance"].default_value = 0.002
+    nt.links.new(n1.outputs["Fac"], bump.inputs["Height"])
+    if b.inputs["Normal"].links:
+        nt.links.new(b.inputs["Normal"].links[0].from_socket, bump.inputs["Normal"])
+    nt.links.new(bump.outputs["Normal"], b.inputs["Normal"])
+    return True
+
+
 def dart_length(root):
     """x extent (dart frame) of the dart's meshes as built (folded)"""
     Ri = root.matrix_world.inverted()
@@ -1488,6 +1545,9 @@ def build(args, report):
         except Exception as ex:
             say("WARNING env.add_cockatoos failed:", repr(ex))
             report["cockatoos"] = repr(ex)
+    if LAWN_GROUND_FALLBACK or os.environ.get("GRAPPSTAR_LAWN_FIX"):
+        report["lawn_ground_fallback"] = lawn_ground_fallback()
+        say("lawn ground fallback:", report["lawn_ground_fallback"])
     place_sun(scene, shots, env, report)
     env.set_render(scene, "EEVEE", "final" if args.quality in ("final", "hero") else "preview", motion_blur=True)
     scene.render.motion_blur_shutter = 0.5                 # 180 deg shutter ...
@@ -1789,14 +1849,23 @@ def motion_check(scene, step=1, density=0.5, samples=6, engine="CYCLES", size=(4
     encode_motion_check(d, step)
 
 
-def solid_check(scene, size=(480, 270)):
+def solid_check(scene, size=(384, 216), frames=None):
     """fast Workbench pass over the film ranges (every frame) -> render/out/motion_check.mp4, frame numbers and
     camera markers stamped: motion, cut and line glitches"""
     d = os.path.join(FRAMES_DIR, "solid")
     os.makedirs(d, exist_ok=True)
-    for ob in scene.objects:                   # the instanced grass / litter are not what this pass checks
-        if ob.name.startswith("env:") and any(m.type == "NODES" for m in ob.modifiers):
-            ob.hide_render = True
+    def walk(lc):                              # the paddock is not what this pass checks: leave it out entirely
+        for sub in lc.children:
+            if sub.collection.name.startswith("ENV"):
+                sub.exclude = True
+            walk(sub)
+    walk(scene.view_layers[0].layer_collection)
+    grd = bpy.data.objects.get("env:terrain")
+    if grd is not None:
+        try:
+            scene.collection.objects.link(grd)         # keep the ground for contact
+        except RuntimeError:
+            pass
     r = scene.render
     r.engine = "BLENDER_WORKBENCH"
     sh = scene.display.shading
@@ -1805,7 +1874,7 @@ def solid_check(scene, size=(480, 270)):
             setattr(sh, k, v)
         except Exception:
             pass
-    scene.display.render_aa = "8"
+    scene.display.render_aa = "OFF"
     r.use_compositing = False
     r.resolution_x, r.resolution_y, r.resolution_percentage = size[0], size[1], 100
     r.use_motion_blur = False
@@ -1824,6 +1893,8 @@ def solid_check(scene, size=(480, 270)):
     ranges = [tuple(int(x) for x in rr.split("-")) for rr in scene.get("grappstar_ranges", "%d-%d" % (
         scene.frame_start, scene.frame_end)).split(",")]
     t = time.time()
+    if frames:
+        ranges = [(f, f) for f in frames]
     for a, b in ranges:
         scene.frame_start, scene.frame_end = a, b
         bpy.ops.render.render(animation=True)
@@ -1881,7 +1952,8 @@ def main():
     if a.frames:
         render_frames(scene, [int(v) for v in a.frames.split(",")], a.samples, a.cam, tag=a.tag)
     if a.solid_check:
-        solid_check(scene)
+        solid_check(scene, frames=[int(v) for v in a.frames.split(",")] if a.frames else None)
+        a.frames = ""
     if a.motion_check:
         motion_check(scene, step=a.mc_step, engine=a.mc_engine)
     say("done")

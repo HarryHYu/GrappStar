@@ -1,8 +1,10 @@
 """Run inside Blender on the Mac: sets the quality preset and renders the mission.
    Blender -b grappstar_mission.blend -P preset.py -- --preset uhd --engine eevee [--start N --end M] --out /path/frames/
-Presets: uhd (3840x2160, the final, default), final (1920x1080, faster), preview (1280x720, quick look),
-hero (3840x2160 Cycles quality, for stills). The .blend carries the camera look (AgX, 180 deg shutter motion blur,
-lens distortion, vignette, film grain in the compositor) and the two locked-off cameras with their cut.
+Presets: final (1920x1080, the default: reads most like real footage), uhd (3840x2160), preview (1280x720,
+quick look), hero (3840x2160 Cycles quality, for stills). The .blend carries the camera look (AgX, 180 deg shutter motion blur,
+sun veil and lens ghosts, bloom, lens distortion and chromatic aberration, softness with a phone-style sharpening
+halo, vignette, sensor noise in the compositor) and the two locked-off cameras with their cut. The MP4 is H.264 at
+CRF 23 (a modest bitrate, like a phone).
 Frames are PNG (resumable: frames already rendered are skipped). Then they are joined into an MP4 in the same folder.
 
 Rough time per frame on an M3 (10-core GPU, 16 GB), EEVEE, this scene (about 30 M instanced grass triangles,
@@ -14,7 +16,7 @@ import bpy, sys, os, argparse
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 ap = argparse.ArgumentParser()
-ap.add_argument("--preset", default="uhd", choices=["preview", "final", "uhd", "hero"])
+ap.add_argument("--preset", default="final", choices=["preview", "final", "uhd", "hero"])
 ap.add_argument("--engine", default="eevee", choices=["eevee", "cycles"])
 ap.add_argument("--start", type=int); ap.add_argument("--end", type=int)
 ap.add_argument("--out", default=os.path.expanduser("~/Desktop/grappstar_render/frames/"))
@@ -81,7 +83,7 @@ if not a.no_video:                                            # join the PNGs in
         vs.render.image_settings.file_format = "FFMPEG"
         vs.render.ffmpeg.format = "MPEG4"
         vs.render.ffmpeg.codec = "H264"
-        vs.render.ffmpeg.constant_rate_factor = "HIGH"
+        vs.render.ffmpeg.constant_rate_factor = "MEDIUM"                 # CRF 23: modest bitrate, real compression texture
         vs.render.filepath = os.path.join(a.out, "grappstar_mission.mp4")
         bpy.ops.render.render(animation=True, scene=vs.name)
         print("video:", vs.render.filepath)

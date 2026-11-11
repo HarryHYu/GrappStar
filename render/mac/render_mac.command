@@ -1,13 +1,13 @@
 #!/bin/bash
 # GrappStar mission render on a Mac (Apple Silicon, Blender 5.3).
 # Double-click in Finder (first time: right-click > Open), or in Terminal:
-#   bash render_mac.command [uhd|final|preview|hero] [eevee|cycles] [start end]   (default uhd eevee)
+#   bash render_mac.command [uhd|final|preview|hero] [eevee|cycles] [start end]   (default final eevee)
 cd "$(dirname "$0")"
 B="/Applications/Blender.app/Contents/MacOS/Blender"
 if [ ! -x "$B" ]; then echo "Blender is not in Applications. Install Blender 5.3 (Apple Silicon) from blender.org first."; read -p "Press Enter to close"; exit 1; fi
 F="grappstar_mission.blend"
 if [ ! -f "$F" ]; then echo "Put grappstar_mission.blend in this folder first: $(pwd)"; read -p "Press Enter to close"; exit 1; fi
-PRESET="${1:-uhd}"; ENGINE="${2:-eevee}"
+PRESET="${1:-final}"; ENGINE="${2:-eevee}"
 EXTRA=""; [ -n "$3" ] && EXTRA="--start $3"; [ -n "$4" ] && EXTRA="$EXTRA --end $4"
 mkdir -p frames
 caffeinate -i "$B" -b "$F" -P preset.py -- --preset "$PRESET" --engine "$ENGINE" $EXTRA --out "$(pwd)/frames/"

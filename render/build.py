@@ -1064,7 +1064,6 @@ CAM_B = dict(dist=5.2, height=1.7, along=1.9, fill=0.84, fstop=5.6, lens=(24.0, 
                                     # landing patch) rather than against far straw grass; lens kept 24..35 mm
 TRIPOD_SHAKE = 0.00022              # rad, F-curve noise on the camera rotation (about 1 px at 4K): a tripod in a
                                     # light breeze, not handheld; 0 disables
-LOOK = dict(distortion=0.012, dispersion=0.003, vignette=0.24, grain=0.045)     # compositor "real camera" look
 
 
 class Shot:
@@ -1198,62 +1197,234 @@ def build_cameras(scene, mo, report, shots):
     return shots
 
 
-def camera_look(scene):
-    """compositor: mild barrel distortion with a touch of lateral CA, vignette, light per-frame film grain"""
+SUN = dict(az_offset_deg=7.0, el_min_deg=20.0, el_above_frame_deg=2.0)   # sun just above cam:A's frame, ahead
+LOOK = dict(exposure=0.25, white_balance_k=7000.0, look="AgX - Punchy",
+            glare_threshold=1.1, glare_strength=0.30, glare_size=0.75,
+            soft=0.0006, halo=0.0020, sharpen=0.55,                 # blur sizes relative to the image height
+            distortion=0.012, dispersion=0.006, vignette=0.22,
+            veil=0.07, veil_lift=0.012, ghosts=1.0,
+            luma_noise=0.010, luma_noise_bright=0.020, chroma_noise=0.010, yellow_sat=0.56)
+
+
+def place_sun(scene, shots, env, report):
+    """put the sun nearly along cam:A's view, just above the top edge of its frame (backlit, veiling glare, long
+    shadows toward the camera); env.set_sun moves the lamp and turns the HDRI to match"""
+    A = shots[0]
+    v = np.asarray(A.target, float) - np.asarray(A.pos, float)
+    v /= np.linalg.norm(v)
+    pitch = math.degrees(math.asin(v[2]))
+    hfov = 2 * math.atan(18.0 / A.lens)
+    vhalf = math.degrees(math.atan(math.tan(hfov / 2) * 9 / 16))
+    el = max(SUN["el_min_deg"], pitch + vhalf + SUN["el_above_frame_deg"])
+    az = math.degrees(math.atan2(v[1], v[0])) + SUN["az_offset_deg"]
+    fn = getattr(env, "set_sun", None)
+    if callable(fn):
+        fn(scene, az, el)
+        report["sun"] = dict(az_deg=round(az, 1), el_deg=round(el, 1), via="env.set_sun")
+    else:
+        sun = bpy.data.objects.get("env:sun")
+        d = Vector((math.cos(math.radians(el)) * math.cos(math.radians(az)),
+                    math.cos(math.radians(el)) * math.sin(math.radians(az)), math.sin(math.radians(el))))
+        if sun is not None:
+            sun.rotation_euler = d.to_track_quat("Z", "Y").to_euler()
+            sun.location = d * 30.0
+        report["sun"] = dict(az_deg=round(az, 1), el_deg=round(el, 1), via="lamp only (no env.set_sun): HDRI not turned")
+    say("sun:", report["sun"])
+
+
+def sun_on_screen(scene, cam_ob, sun_dir):
+    """normalized screen position of the sun for a camera (can lie outside 0..1) and cos(angle to the view axis)"""
+    from bpy_extras.object_utils import world_to_camera_view
+    p = cam_ob.matrix_world.translation + Vector(sun_dir) * 1000.0
+    uv = world_to_camera_view(scene, cam_ob, p)
+    fwd = -(cam_ob.matrix_world.to_3x3() @ Vector((0.0, 0.0, 1.0)))
+    return (float(uv.x), float(uv.y)), float(fwd.normalized().dot(Vector(sun_dir).normalized()))
+
+
+def camera_look(scene, shots=None):
+    """compositor "real footage" look (GS_camera_look): sun veil and faint lens ghosts placed from the sun's screen
+    position per camera, fog-glow bloom on the highlights, mild barrel distortion with chromatic aberration, lens
+    softness with a phone-style sharpening halo, vignette, a touch more saturation in the yellows, luma + blotchy
+    chroma sensor noise (per frame); view: AgX Punchy, warm white balance, exposed for the sunlit grass"""
+    vs = scene.view_settings
+    try:
+        vs.look = LOOK["look"]
+    except Exception:
+        pass
+    vs.exposure = vs.exposure + LOOK["exposure"]
+    if hasattr(vs, "use_white_balance"):
+        vs.use_white_balance = True
+        vs.white_balance_temperature = LOOK["white_balance_k"]
+        vs.white_balance_tint = 0.0
     if not hasattr(scene, "compositing_node_group"):
         return
     ng = bpy.data.node_groups.new("GS_camera_look", "CompositorNodeTree")
     ng.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
     N, Lk = ng.nodes, ng.links
 
-    def math(op, a, b=None):
+    def put(sock, v):
+        if isinstance(v, bpy.types.NodeSocket):
+            Lk.new(v, sock)
+        elif v is not None:
+            sock.default_value = v
+
+    def math_(op, a, b=None, c=None):
         m = N.new("ShaderNodeMath")
         m.operation = op
-        for i, v in enumerate((a, b)):
-            if v is None:
-                continue
-            if isinstance(v, bpy.types.NodeSocket):
-                Lk.new(v, m.inputs[i])
-            else:
-                m.inputs[i].default_value = v
+        for i, v in enumerate((a, b, c)):
+            put(m.inputs[i], v)
         return m.outputs[0]
+
+    def mix(mode, a, b, fac=1.0):
+        m = N.new("ShaderNodeMixRGB")
+        m.blend_type = mode
+        put(m.inputs[0], fac)
+        put(m.inputs[1], a)
+        put(m.inputs[2], b)
+        return m.outputs[0]
+
+    def rgb(r, g, b):
+        c = N.new("CompositorNodeCombineColor")
+        for i, v in enumerate((r, g, b)):
+            put(c.inputs[i], v)
+        return c.outputs[0]
+
+    def blur(img, rel):
+        rp = N.new("CompositorNodeRelativeToPixel")
+        try:
+            rp.data_type = "VECTOR"
+            rp.reference_dimension = "Y"
+        except Exception:
+            pass
+        put(rp.inputs[0], (rel, rel))
+        put(rp.inputs["Image"], img)
+        b = N.new("CompositorNodeBlur")
+        put(b.inputs["Image"], img)
+        Lk.new([o for o in rp.outputs if o.type == "VECTOR"][0], b.inputs["Size"])
+        b.inputs["Type"].default_value = "Gaussian"
+        return b.outputs[0]
 
     rl = N.new("CompositorNodeRLayers")
     rl.scene = scene
+    img = rl.outputs["Image"]
+    ic = N.new("CompositorNodeImageCoordinates")
+    put(ic.inputs["Image"], img)
+    sp = N.new("ShaderNodeSeparateXYZ")
+    put(sp.inputs[0], ic.outputs["Normalized"])
+    u, v = sp.outputs[0], sp.outputs[1]
+    st = N.new("CompositorNodeSceneTime")
+    frame = st.outputs["Frame"]
+    isB = math_("GREATER_THAN", frame, (CUT - 0.5) if CUT is not None else 1e9)
+    # --- sun veil + ghosts, per camera (switched at the cut)
+    sun = bpy.data.objects.get("env:sun")
+    cams = [sh.cam for sh in (shots or []) if sh.cam is not None]
+    if sun is not None and len(cams) >= 1:
+        sdir = sun.matrix_world.to_3x3() @ Vector((0.0, 0.0, 1.0))
+        par = []
+        for c in (cams + cams)[:2]:
+            (sx, sy), cosang = sun_on_screen(scene, c, sdir)
+            k = max(0.0, cosang) ** 4
+            par.append((sx, sy, k))
+        (ax, ay, ak), (bx, by, bk) = par
+
+        def per_cam(a_val, b_val):
+            return math_("ADD", a_val, math_("MULTIPLY", isB, b_val - a_val))
+
+        sx, sy, sk = per_cam(ax, bx), per_cam(ay, by), per_cam(ak, bk)
+        aspect = 16.0 / 9.0
+
+        def dist_to(px, py):
+            dx = math_("MULTIPLY", math_("SUBTRACT", u, px), aspect)
+            dy = math_("SUBTRACT", v, py)
+            return math_("SQRT", math_("ADD", math_("MULTIPLY", dx, dx), math_("MULTIPLY", dy, dy)))
+
+        d = dist_to(sx, sy)
+        glow = math_("DIVIDE", 1.0, math_("ADD", 1.0, math_("POWER", math_("DIVIDE", d, 0.42), 2.0)))
+        veil = math_("MULTIPLY", sk, math_("ADD", math_("MULTIPLY", glow, LOOK["veil"]), LOOK["veil_lift"]))
+        vcol = rgb(math_("MULTIPLY", veil, 1.0), math_("MULTIPLY", veil, 0.86), math_("MULTIPLY", veil, 0.66))
+        img = mix("ADD", img, vcol)
+        # faint ghosts along the line from the sun through the frame centre
+        for t, r, col, a in ((0.55, 0.035, (0.55, 0.8, 0.5), 0.010), (0.9, 0.06, (0.9, 0.6, 0.35), 0.007),
+                             (1.3, 0.025, (0.6, 0.5, 0.9), 0.012), (1.65, 0.09, (0.7, 0.75, 0.6), 0.004)):
+            gx = math_("ADD", sx, math_("MULTIPLY", math_("SUBTRACT", 0.5, sx), t))
+            gy = math_("ADD", sy, math_("MULTIPLY", math_("SUBTRACT", 0.5, sy), t))
+            m = N.new("ShaderNodeMapRange")
+            m.interpolation_type = "SMOOTHSTEP"
+            put(m.inputs[0], dist_to(gx, gy))
+            m.inputs[1].default_value = r
+            m.inputs[2].default_value = r * 0.55
+            g = math_("MULTIPLY", math_("MULTIPLY", m.outputs[0], sk), a * LOOK["ghosts"])
+            img = mix("ADD", img, rgb(math_("MULTIPLY", g, col[0]), math_("MULTIPLY", g, col[1]),
+                                      math_("MULTIPLY", g, col[2])))
+    # --- bloom on the highlights (sun glints, backlit grass edges, PLA specular)
+    gl = N.new("CompositorNodeGlare")
+    put(gl.inputs["Image"], img)
+    gl.inputs["Type"].default_value = "Fog Glow"
+    gl.inputs["Quality"].default_value = "High"
+    gl.inputs["Threshold"].default_value = LOOK["glare_threshold"]
+    gl.inputs["Strength"].default_value = LOOK["glare_strength"]
+    gl.inputs["Size"].default_value = LOOK["glare_size"]
+    img = gl.outputs["Image"]
+    # --- lens: distortion + CA, softness, then phone sharpening (halo)
     ld = N.new("CompositorNodeLensdist")
-    Lk.new(rl.outputs["Image"], ld.inputs["Image"])
+    put(ld.inputs["Image"], img)
     ld.inputs["Distortion"].default_value = LOOK["distortion"]
     ld.inputs["Dispersion"].default_value = LOOK["dispersion"]
     ld.inputs["Fit"].default_value = True
-    ic = N.new("CompositorNodeImageCoordinates")
-    Lk.new(ld.outputs["Image"], ic.inputs["Image"])
-    sp = N.new("ShaderNodeSeparateXYZ")
-    Lk.new(ic.outputs["Normalized"], sp.inputs[0])
-    dx = math("MULTIPLY", math("SUBTRACT", sp.outputs[0], 0.5), 16 / 9)
-    dy = math("SUBTRACT", sp.outputs[1], 0.5)
-    r2 = math("DIVIDE", math("ADD", math("MULTIPLY", dx, dx), math("MULTIPLY", dy, dy)), 1.04)
-    vig = math("SUBTRACT", 1.0, math("MULTIPLY", math("POWER", r2, 1.15), LOOK["vignette"]))
+    soft = blur(ld.outputs["Image"], LOOK["soft"])
+    wide = blur(soft, LOOK["halo"])
+    img = mix("ADD", soft, mix("SUBTRACT", soft, wide), LOOK["sharpen"])
+    # --- vignette
+    dx = math_("MULTIPLY", math_("SUBTRACT", u, 0.5), 16 / 9)
+    dy = math_("SUBTRACT", v, 0.5)
+    r2 = math_("DIVIDE", math_("ADD", math_("MULTIPLY", dx, dx), math_("MULTIPLY", dy, dy)), 1.04)
+    vig = math_("SUBTRACT", 1.0, math_("MULTIPLY", math_("POWER", r2, 1.15), LOOK["vignette"]))
+    img = mix("MULTIPLY", img, rgb(vig, vig, vig))
+    # --- a touch more saturation in the yellows
+    hc = N.new("CompositorNodeHueCorrect")
+    put(hc.inputs["Image"], img)
+    sat = hc.mapping.curves[1]
+    for p in sat.points:
+        if abs(p.location[0] - 0.125) < 1e-3:
+            p.location = (0.125, LOOK["yellow_sat"])
+    sat.points.new(0.16, LOOK["yellow_sat"] - 0.01)
+    hc.mapping.update()
+    img = hc.outputs["Image"]
+    # --- sensor noise: luma (stronger in brighter areas in linear, so it reads in the shadows after the view
+    #     transform as well) and blotchy chroma at half resolution, new every frame
+    scol = N.new("CompositorNodeSeparateColor")
+    put(scol.inputs[0], img)
+    lum = math_("ADD", math_("ADD", math_("MULTIPLY", scol.outputs[0], 0.2126), math_("MULTIPLY", scol.outputs[1], 0.7152)),
+                math_("MULTIPLY", scol.outputs[2], 0.0722))
     wn = N.new("ShaderNodeTexWhiteNoise")
     wn.noise_dimensions = "4D"
-    Lk.new(ic.outputs["Pixel"], wn.inputs["Vector"])
-    st = N.new("CompositorNodeSceneTime")
-    Lk.new(st.outputs["Frame"], wn.inputs["W"])
-    gr = math("ADD", 1.0, math("MULTIPLY", math("SUBTRACT", wn.outputs["Value"], 0.5), LOOK["grain"]))
-    k = math("MULTIPLY", vig, gr)
-    mx = N.new("ShaderNodeMixRGB")
-    mx.blend_type = "MULTIPLY"
-    mx.inputs[0].default_value = 1.0
-    Lk.new(ld.outputs["Image"], mx.inputs[1])
-    cmb = N.new("ShaderNodeCombineXYZ")
-    for i in range(3):
-        Lk.new(k, cmb.inputs[i])
-    Lk.new(cmb.outputs[0], mx.inputs[2])
+    put(wn.inputs["Vector"], ic.outputs["Pixel"])
+    put(wn.inputs["W"], frame)
+    amp = math_("ADD", LOOK["luma_noise"], math_("MULTIPLY", math_("SQRT", math_("MINIMUM", lum, 1.0)),
+                                                     LOOK["luma_noise_bright"]))
+    nl = math_("MULTIPLY", math_("SUBTRACT", wn.outputs["Value"], 0.5), math_("MULTIPLY", amp, 2.0))
+    half = N.new("ShaderNodeVectorMath")
+    half.operation = "FLOOR"
+    vs_ = N.new("ShaderNodeVectorMath")
+    vs_.operation = "SCALE"
+    put(vs_.inputs[0], ic.outputs["Pixel"])
+    vs_.inputs[3].default_value = 0.5
+    put(half.inputs[0], vs_.outputs[0])
+    wc = N.new("ShaderNodeTexWhiteNoise")
+    wc.noise_dimensions = "4D"
+    put(wc.inputs["Vector"], half.outputs[0])
+    put(wc.inputs["W"], math_("ADD", frame, 0.37))
+    cs = N.new("CompositorNodeSeparateColor")
+    put(cs.inputs[0], wc.outputs["Color"])
+    ch = [math_("MULTIPLY", math_("SUBTRACT", cs.outputs[i], 0.5), 2 * LOOK["chroma_noise"]) for i in range(3)]
+    noise = rgb(math_("ADD", nl, ch[0]), math_("ADD", nl, ch[1]), math_("ADD", nl, ch[2]))
+    img = mix("ADD", img, noise)
     go = N.new("NodeGroupOutput")
-    Lk.new(mx.outputs[0], go.inputs[0])
+    put(go.inputs[0], img)
     scene.compositing_node_group = ng
     scene.render.use_compositing = True
-    say("compositor: lens distortion %.3f, CA %.3f, vignette %.2f, grain %.3f" % (
-        LOOK["distortion"], LOOK["dispersion"], LOOK["vignette"], LOOK["grain"]))
+    say("camera look: AgX Punchy, WB %.0f K, exposure %+.2f, fog glow, sun veil + ghosts, distortion, CA, "
+        "softness + sharpening halo, vignette, sensor noise" % (LOOK["white_balance_k"], LOOK["exposure"]))
 
 
 def build(args, report):
@@ -1317,12 +1488,12 @@ def build(args, report):
         except Exception as ex:
             say("WARNING env.add_cockatoos failed:", repr(ex))
             report["cockatoos"] = repr(ex)
+    place_sun(scene, shots, env, report)
     env.set_render(scene, "EEVEE", "final" if args.quality in ("final", "hero") else "preview", motion_blur=True)
     scene.render.motion_blur_shutter = 0.5                 # 180 deg shutter ...
     scene.render.motion_blur_position = "START"            # ... opening at the frame: nothing blurs across the cut
-    if args.quality in ("final", "hero"):
-        scene.render.resolution_x, scene.render.resolution_y = 3840, 2160      # uhd default (mac preset)
-    camera_look(scene)
+    scene.render.resolution_x, scene.render.resolution_y = 1920, 1080     # final default (mac preset uhd: 4K)
+    camera_look(scene, shots)
     scene.frame_set(0)
     scene["grappstar_build"] = json.dumps(dict(quality=args.quality, motion_frames=mo.nf,
                                                built=time.strftime("%Y-%m-%d %H:%M")))
@@ -1365,13 +1536,28 @@ def find_shots(scene):
     return out
 
 
+def set_engine(scene, engine, samples):
+    """env.set_render for the check renders, keeping the .blend's camera look (view transform, look, exposure,
+    white balance, motion blur position)"""
+    import env
+    vs = scene.view_settings
+    keep = dict(look=vs.look, exposure=vs.exposure, wb=getattr(vs, "use_white_balance", False),
+                wbt=getattr(vs, "white_balance_temperature", 6500.0), pos=scene.render.motion_blur_position)
+    env.set_render(scene, engine, "preview", motion_blur=True, samples=samples)
+    vs.look, vs.exposure = keep["look"], keep["exposure"]
+    if hasattr(vs, "use_white_balance"):
+        vs.use_white_balance, vs.white_balance_temperature = keep["wb"], keep["wbt"]
+    scene.render.motion_blur_shutter = 0.5
+    scene.render.motion_blur_position = keep["pos"]
+    if engine == "CYCLES":
+        scene.cycles.device = "CPU"
+        scene.cycles.samples = samples
+
+
 def render_stills(scene, which="all", samples=32, size=(960, 540)):
     """Cycles CPU stills at the key moments of each camera (camera custom property "stills") ->
     render/out/shot_<cam>_<moment>.png, then the contact sheet"""
-    import env
-    env.set_render(scene, "CYCLES", "preview", motion_blur=True, samples=samples)
-    scene.render.motion_blur_shutter = 0.5
-    scene.cycles.device = "CPU"
+    set_engine(scene, "CYCLES", samples)
     scene.render.resolution_x, scene.render.resolution_y = size
     scene.render.resolution_percentage = 100
     scene.render.use_stamp = False
@@ -1400,9 +1586,7 @@ def render_stills(scene, which="all", samples=32, size=(960, 540)):
 def render_frames(scene, frames, samples=32, cam_spec="", size=(640, 360), tag="check"):
     """debug stills: frames with their marker camera (or a custom camera 'x,y,z:tx,ty,tz:lens') ->
     render/out/frames/<tag>_FFFF.png"""
-    import env
-    env.set_render(scene, "CYCLES", "preview", motion_blur=True, samples=samples)
-    scene.cycles.device = "CPU"
+    set_engine(scene, "CYCLES", samples)
     scene.render.resolution_x, scene.render.resolution_y = size
     scene.render.resolution_percentage = 100
     os.makedirs(FRAMES_DIR, exist_ok=True)
@@ -1448,9 +1632,7 @@ def crop_test(scene, cam_letter="B", moment="taut", fracs=(0.15, 0.5, 0.85), siz
     shot = [s for s in find_shots(scene) if s[0].startswith(cam_letter)][0]
     cam = shot[3]
     f = int(json.loads(cam.get("stills", "{}")).get(moment, (shot[1] + shot[2]) // 2))
-    env.set_render(scene, "CYCLES", "preview", motion_blur=True, samples=samples)
-    scene.render.motion_blur_shutter = 0.5
-    scene.cycles.device = "CPU"
+    set_engine(scene, "CYCLES", samples)
     r = scene.render
     r.resolution_x, r.resolution_y, r.resolution_percentage = 3840, 2160, 100
     r.use_border, r.use_crop_to_border = True, True
@@ -1523,13 +1705,9 @@ def motion_check(scene, step=1, density=0.5, samples=6, engine="CYCLES", size=(4
             gn_input([m for m in g.modifiers if m.type == "NODES"][0], "Density", density)
         except IndexError:
             pass
-    env.set_render(scene, engine, "preview", motion_blur=True, samples=samples)
+    set_engine(scene, engine, samples)
     r = scene.render
     r.resolution_x, r.resolution_y, r.resolution_percentage = size[0], size[1], 100
-    r.motion_blur_shutter = 0.5
-    if engine == "CYCLES":
-        scene.cycles.device = "CPU"
-        scene.cycles.samples = samples
     r.use_stamp = True
     for k in ("use_stamp_date", "use_stamp_time", "use_stamp_render_time", "use_stamp_memory", "use_stamp_hostname",
               "use_stamp_lens", "use_stamp_scene", "use_stamp_filename", "use_stamp_frame_range",
@@ -1559,7 +1737,7 @@ def encode_motion_check(d, step=2):
         for f in files:
             fh.write("file '%s'\nduration %.6f\n" % (os.path.join(d, f), step / 30.0))
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst, "-vf",
-           "fps=30,format=yuv420p", "-c:v", "libx264", "-crf", "26", "-preset", "slow", out]
+           "fps=30,format=yuv420p", "-c:v", "libx264", "-crf", "23", "-preset", "medium", out]
     subprocess.run(cmd, check=True)
     say("motion check video %s (%.1f MB, %d frames)" % (out, os.path.getsize(out) / 1e6, len(files)))
 

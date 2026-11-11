@@ -45,8 +45,7 @@ The base's own tether stand-ins `base:launch_line_*` are hidden. Keys are linear
 gives them, so the 180 deg motion blur samples sub-frames correctly (in real time the 59 ms shot spans 2 frames).
 
 **Tether.** motion.json "line" (48 points per key: 12 on the base path, 36 free) is resampled (the free part 3x,
-through the same points), led over the muzzle lip roller where motion.json lets the slack line fall straight from
-the rail exit through the rail (see open points), draped onto the real ground (terrain, board and deck tops found by ray casts, rope
+through the same points), draped onto the real ground (terrain, board and deck tops found by ray casts, rope
 centre 1 mm above) and stored, all keys, as vertices of the `line:tether` mesh with a per-vertex key-frame
 attribute. Its geometry-nodes modifier picks the two keys around the current (sub)frame, interpolates, and builds
 the curve (base path poly, free rope Catmull-Rom) with a 1 mm round profile and the rope material. `line:wraps`
@@ -66,17 +65,24 @@ warning (build_report.json "grass_mods_error") instead of failing.
 **Soil.** `fx:soil_crumbs` is a point cloud whose geometry nodes compute each crumb's ballistic path from its
 start time, velocity and gravity (in film frames, so the impact burst plays at the 6x slow motion) and instance
 small crumb meshes (FX_SRC): a burst at the impact, crumbs thrown out of both drill holes while the augers screw
-in, and soil heaped along each drill's cut (the auger crosses the surface along a short track while its pod swings
+in (until the cut), and soil heaped along each drill's cut (the auger crosses the surface along a short track while its pod swings
 down) that grows in as the cut passes. No popping: every crumb scales in over a few frames.
 
 ## Cameras (SPEC v2: locked-off tripods, real time, one cut)
 
 | Camera | Frames | Placement | Shows |
 |---|---|---|---|
-| cam:A | 0 .. cut - 1 | wide 3/4 side from the +y side, behind the base's side, 9.5 m from the base-landing midpoint, 1.5 m high | aim, cock, fire, flight, landing, righting, pods and drills starting |
-| cam:B | cut .. end | side-on to the line, a little toward the base: abreast of 1.9 m down the line, 5.2 m off it, 1.7 m high (tall tripod: the line is seen against the ground just beyond it), lens fitted within 24-35 mm | reel winding, the line lifting taut and holding |
+| cam:A | 0 .. cut - 1 | wide, a slight front 3/4 from the -y side, 9.5 m from the base-landing midpoint, 1.5 m high | aim, cock, fire, flight, landing, righting, pods and drills starting |
+| cam:B | cut .. end | side-on to the line from the -y side, a little toward the base: abreast of 1.9 m down the line, 5.2 m off it, 1.7 m high (tall tripod: the line is seen against the ground just beyond it), lens fitted within 24-35 mm | reel winding, the line lifting taut and holding |
 
-The cut is motion.json's `cut` event (fallback: `tidy_start`). Neither camera moves or zooms: build.py places
+Both cameras sit on the -y side (CAM_SIDE): the env's trees, fence and cockatoos are behind the action and its sun
+is to the cameras' right, so the base's faces toward the camera are sunlit; the launch reads left to right.
+
+The cut is motion.json's `cut` (frame 713 now; fallback `tidy_start`). Nothing is interpolated across it: the last
+key before the cut is CONSTANT on every F-curve (objects, joints, springs, presses), the line cache holds its
+pre-cut key up to the cut, crumbs and soil heaps are settled and complete after it, and the shutter opens at the
+frame (motion_blur_position START, 180 deg), so frame 712 never sees post-cut poses and 713 never sees pre-cut
+ones. Quarter-frame keys from motion.json are keyed at their fractional frames. Neither camera moves or zooms: build.py places
 each one by these few parameters (CAM_A, CAM_B at the top of the camera section) and FITS its aim and focal length
 to the action from motion.json (base board, the dart's flight arc and rest spot for A; the base, the line at its
 last key and the dart for B), so a new dart, landing spot or timing reframes itself on a rerun (with the current
@@ -91,7 +97,8 @@ light per-frame film grain (LOOK at the top of the camera section). The .blend i
 **Key-moment stills** (`--shots`): cam:A aim, cock, launch, flight apex, impact, righting, drills; cam:B after the
 cut, taut, tow, end; frames are stored on the cameras (custom property `stills`) and printed on the contact sheet.
 
-**Cockatoos.** If env.py has `add_cockatoos(scene, fire_frame)`, build.py calls it with the motion.json fire frame.
+**Cockatoos.** If env.py has `add_cockatoos(scene, fire_frame)`, build.py calls it with the motion.json fire frame
+(318 now): the ground birds behind the action take off 0.2 to 0.8 s after it.
 
 ## Render on the Mac
 
@@ -105,10 +112,6 @@ scatter > Density (1.0 full, 0.5 half the clumps), Mow; render samples in preset
 
 ## Open points
 
-- motion.json's free line starts at the rail exit (pusher hole) and, once the dart is out, falls straight down
-  through the rail and the base (up to 33 cm below the rail line; 2 cm during the tow). build.py leads it along the
-  rail and over the lip roller instead (`reroute_lip`, blended by dip depth, no pops; rope length is not
-  conserved). Better: render-motion adds the lip roller to the rope's base path.
 - The dart's tumble in the sim sinks it up to 1.7 mm into the terrain (hidden by the grass); at rest 0.1 mm.
 - Grass has no collision: pressed clumps under the dart are flattened, but a blade from an unpressed clump can
   still cross the dart's edge in a close-up.

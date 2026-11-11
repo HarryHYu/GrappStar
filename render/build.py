@@ -257,6 +257,21 @@ class NG:
         return m.outputs["Result"]
 
 
+def gn_input(md, name, value=None):
+    """get / set a geometry-nodes modifier input by socket name (Blender 5.x API with 4.x fallback)"""
+    sid = [it.identifier for it in md.node_group.interface.items_tree
+           if getattr(it, "name", "") == name and getattr(it, "in_out", "") == "INPUT"][0]
+    try:
+        holder = getattr(md.properties.inputs, sid)
+        if value is not None:
+            holder.value = value
+        return holder.value
+    except AttributeError:
+        if value is not None:
+            md[sid] = value
+        return md[sid]
+
+
 # =============================================================================================================
 # motion
 class Motion:
@@ -622,7 +637,10 @@ def build_line(scene, mo, models, env, report):
 
 # =============================================================================================================
 # grass: density control and the dart pressing / parting the grass
-def grass_mods(scene, mo, rest_press):
+MOW = 0.35                          # grass height factor in the mown patches (env:grass modifier input "Mow")
+
+
+def grass_mods(scene, mo, rest_press, mow_zones):
     grass = bpy.data.objects.get("env:grass")
     if grass is None:
         return
@@ -641,6 +659,7 @@ def grass_mods(scene, mo, rest_press):
     gt = g.math("GREATER_THAN", rnd.outputs["Value"], g.gi.outputs["Density"])
     g.put(dele.inputs["Selection"], gt)
     ng.links.new(dele.outputs[0], iop.inputs["Points"])
+    gn_input(md, "Density", 1.0)
     # presses: empties (FX) whose xy position flattens and splays the clumps round them
     fx = coll(scene, "FX")
     root = bpy.data.objects["dart:root"]
@@ -658,8 +677,8 @@ def grass_mods(scene, mo, rest_press):
         presses.append((e, live))
         return e
 
-    press("fx:press_nose", root, (0.035, 0.0, 0.0), 0.075)
-    press("fx:press_tail", root, (0.125, 0.0, 0.0), 0.08)
+    for i, x in enumerate((0.005, 0.045, 0.085, 0.125, 0.16)):          # along the body, nose to tail
+        press("fx:press_%d" % i, root, (x, 0.0, 0.0), 0.10)
     for (name, xy, r, f_on, w) in rest_press:
         e = press(name, None, (xy[0], xy[1], 0.0), r, live=False)
         e.scale = (r, r, 0.0)
@@ -684,6 +703,24 @@ def grass_mods(scene, mo, rest_press):
         dvec = g.vmath("SCALE", g.vmath("NORMALIZE", d2), scale=f)
         fsum = f if fsum is None else g.math("MAXIMUM", fsum, f)
         dsum = dvec if dsum is None else g.vmath("ADD", dsum, dvec)
+    # mown / grazed-short patches round the landing spot and the base (soft, noisy edge): "Mow" scales blade
+    # height there so the 16 cm dart and the board read in the grass
+    s2 = ng.interface.new_socket("Mow", in_out="INPUT", socket_type="NodeSocketFloat")
+    s2.default_value, s2.min_value, s2.max_value = MOW, 0.1, 1.0
+    gn_input(md, "Mow", MOW)
+    nz = g.n("ShaderNodeTexNoise")
+    nz.inputs["Scale"].default_value = 0.9
+    g.put(nz.inputs["Vector"], pos)
+    wmax = None
+    mowf = None
+    for (cx, cy, r1, r2, strength) in mow_zones:
+        px, py, _ = g.sep(pos)
+        dd = g.vmath("LENGTH", g.xyz(g.math("SUBTRACT", px, cx), g.math("SUBTRACT", py, cy), 0.0))
+        dd = g.math("ADD", dd, g.math("MULTIPLY", g.math("SUBTRACT", nz.outputs["Fac"], 0.5), min(0.9, r2 * 0.5)))
+        w = g.maprange(dd, r2, r1)
+        lvl = g.gi.outputs["Mow"] if strength is None else strength
+        fz = g.math("ADD", 1.0, g.math("MULTIPLY", w, g.math("SUBTRACT", lvl, 1.0)))
+        mowf = fz if mowf is None else g.math("MINIMUM", mowf, fz)
     dx, dy, _ = g.sep(dsum)
     axis = g.vmath("NORMALIZE", g.xyz(g.math("MULTIPLY", dy, -1.0), dx, 0.0))
     out_link = iop.outputs["Instances"].links[0]
@@ -692,7 +729,7 @@ def grass_mods(scene, mo, rest_press):
     g.put(sci.inputs["Instances"], iop.outputs["Instances"])
     g.put(sci.inputs["Scale"], g.xyz(g.math("ADD", 1.0, g.math("MULTIPLY", fsum, 0.35)),
                                      g.math("ADD", 1.0, g.math("MULTIPLY", fsum, 0.35)),
-                                     g.math("SUBTRACT", 1.0, g.math("MULTIPLY", fsum, 0.8))))
+                                     g.math("MULTIPLY", mowf, g.math("SUBTRACT", 1.0, g.math("MULTIPLY", fsum, 0.8)))))
     sci.inputs["Local Space"].default_value = True
     aa = g.n("FunctionNodeAxisAngleToRotation")
     g.put(aa.inputs["Axis"], axis)
@@ -705,7 +742,6 @@ def grass_mods(scene, mo, rest_press):
     sel = g.n("FunctionNodeCompare", data_type="FLOAT", operation="GREATER_THAN")
     g.put(sel.inputs["A"], fsum)
     sel.inputs["B"].default_value = 1e-4
-    g.put(sci.inputs["Selection"], sel.outputs[0])
     g.put(roi.inputs["Selection"], sel.outputs[0])
     ng.links.new(roi.outputs[0], dst)
     say("grass: Density input + %d presses" % len(presses))
@@ -721,8 +757,8 @@ def mat_soil():
     noise.inputs["Scale"].default_value = 900.0
     noise.inputs["Detail"].default_value = 4.0
     ramp = nt.nodes.new("ShaderNodeValToRGB")
-    ramp.color_ramp.elements[0].color = (0.035, 0.022, 0.013, 1)
-    ramp.color_ramp.elements[1].color = (0.11, 0.075, 0.045, 1)
+    ramp.color_ramp.elements[0].color = (0.055, 0.036, 0.022, 1)
+    ramp.color_ramp.elements[1].color = (0.16, 0.11, 0.07, 1)
     nt.links.new(noise.outputs["Fac"], ramp.inputs["Fac"])
     nt.links.new(ramp.outputs["Color"], b.inputs["Base Color"])
     b.inputs["Roughness"].default_value = 0.85
@@ -951,7 +987,10 @@ class Shot:
         return "%02d_%s" % (self.n, self.name)
 
 
-def make_shots(mo):
+def make_shots(mo, entry=None):
+    """the shot list. All action reads right to left (cameras on the +y side of the launch line, +X is screen
+    left): the +y side shows the aim crank-rocker and the cocking gears, and the sun (behind the launcher, a
+    little to +y) side-lights it. Every move eases in and out; cuts only at shot boundaries."""
     E = mo.e
     f_aim, f_cock, f_fire = E("aim_start", 120), E("cock_start", 285), E("fire", 513)
     f_cocked, f_exit, f_imp = E("cocked", 435), E("muzzle_exit", 566), E("impact", 717)
@@ -967,86 +1006,110 @@ def make_shots(mo):
         return cgs[int(np.clip(round(f), 0, mo.nf - 1))]
 
     rest = cg[f_end]
-    # shot boundaries
-    b = [0, f_aim, f_cock, f_fire - 18, f_exit + 34, f_imp - 6, f_flip - 8, f_right + 6, f_anch + 10,
-         f_hold - 5, f_end]
+    eR = np.asarray(entry["R"][-1], float) if entry and "R" in entry else rest + np.array([0.0, 0.04, -0.02])
+    eL = np.asarray(entry["L"][-1], float) if entry and "L" in entry else rest - np.array([0.0, 0.04, 0.02])
+    f_pods = E("pods_deploy_start", f_drill - 20)
+    b8 = max(f_right + 6, f_pods - 25)
+    b = [0, f_aim, f_cock, f_fire - 18, f_exit + 34, f_imp - 12, f_flip - 8, b8,
+         min(f_drill + 150, (f_drill + f_anch) // 2), f_anch + 10, f_hold - 5, f_end]
 
     def wide(f):
         u = ease(f, b[0], b[1] + 10)
-        return dict(pos=lerp((-2.45, -2.75, 1.05), (-2.05, -2.30, 0.92), u),
-                    target=lerp((1.6, 0.55, 0.05), (1.3, 0.45, 0.1), u), lens=24.0, focus=(0.0, 0.0, 0.2))
+        return dict(pos=lerp((-1.30, 2.70, 0.80), (-1.02, 2.28, 0.66), u),
+                    target=lerp((1.45, -0.40, 0.08), (1.15, -0.28, 0.12), u), lens=24.0, focus=(0.0, 0.0, 0.15))
 
     def aim(f):
         u = ease(f, b[1], b[2])
-        return dict(pos=lerp((0.78, 0.86, 0.36), (0.62, 0.78, 0.44), u),
-                    target=lerp((0.10, 0.08, 0.20), (0.08, 0.08, 0.25), u), lens=50.0, focus=(0.08, 0.10, 0.22))
+        return dict(pos=lerp((0.72, 0.82, 0.40), (0.60, 0.76, 0.47), u),
+                    target=lerp((0.12, 0.08, 0.23), (0.12, 0.08, 0.28), u), lens=45.0,
+                    focus=lerp((0.13, 0.11, 0.18), (0.12, 0.11, 0.22), u))
 
     def cock(f):
-        u = ease(f, b[2], f_cocked + 20)
-        tgt = lerp((0.16, 0.10, 0.22), (0.08, 0.10, 0.20), u)
-        return dict(pos=lerp((0.42, 0.55, 0.40), (0.34, 0.52, 0.38), u), target=tgt, lens=55.0,
-                    focus=lerp((0.16, 0.10, 0.20), (0.10, 0.11, 0.19), u))
+        u = ease(f, b[2] + 10, f_cocked + 30)
+        return dict(pos=lerp((0.40, 0.55, 0.34), (0.36, 0.66, 0.58), u),
+                    target=lerp((0.15, 0.10, 0.20), (0.07, 0.10, 0.23), u), lens=lerp(52.0, 42.0, u),
+                    focus=lerp((0.15, 0.10, 0.19), (0.07, 0.13, 0.24), u))
 
     def fire(f):
         u = ease(f, f_fire, b[4])
-        tx = PS(max(f, f_fire))
-        tgt = lerp((0.10, 0.09, 0.26), tx, smoother((f - f_fire) / 30.0))
-        pos = lerp((0.18, 1.10, 0.36), (0.55, 1.12, 0.55), u)
-        return dict(pos=pos, target=tgt, lens=40.0, focus=P(max(f, f_fire - 1)))
+        k = float(smoother((f - f_fire - 4) / 32.0))
+        tgt = lerp((0.06, 0.09, 0.25), PS(max(f, f_fire)), k)
+        return dict(pos=lerp((0.10, 1.05, 0.34), (0.42, 1.10, 0.52), u), target=tgt, lens=40.0,
+                    focus=lerp((0.06, 0.09, 0.25), P(max(f, f_fire)), k))
 
     def flight(f):
         u = ease(f, b[4], b[5])
-        off = lerp((-0.75, -1.25, 0.30), (-0.70, -0.85, 0.12), u)
-        tgt = PS(f + 2)
-        return dict(pos=PS(f - 6) + off, target=tgt, lens=35.0, focus=P(f))
+        off = lerp((-0.62, 0.95, 0.24), (-0.62, 0.78, 0.10), u)
+        return dict(pos=PS(f - 5) + off, target=PS(f + 3), lens=35.0, focus=P(f))
+
+    imp = mo.dart_point((0.0, 0.0, 0.0), f_imp)
+    land = 0.5 * (imp + rest)
+    land[2] = 0.02
 
     def impact(f):
         u = ease(f, b[5], b[6])
-        return dict(pos=lerp((4.80, -0.62, 0.075), (4.84, -0.58, 0.08), u),
-                    target=lerp(PS(f), (4.90, 0.12, 0.03), 0.65 if f < f_imp else 0.75), lens=40.0, focus=P(f))
+        k = float(smoother((f - b[5]) / 18.0))
+        tgt = lerp(PS(f), land + np.array([0.0, 0.0, 0.05]), 0.3 + 0.35 * k)
+        return dict(pos=lerp(land + np.array([0.02, 0.66, 0.20]), land + np.array([0.06, 0.60, 0.18]), u),
+                    target=tgt, lens=35.0, focus=P(f))
 
     def righting(f):
         u = ease(f, b[6], b[7])
-        c = PS(f)
-        return dict(pos=lerp((5.30, -0.36, 0.17), (5.24, -0.44, 0.15), u),
-                    target=c + np.array([0.0, 0.0, 0.01]), lens=55.0, focus=P(f))
+        return dict(pos=lerp(rest + np.array([0.08, 0.40, 0.34]), rest + np.array([0.0, 0.36, 0.30]), u),
+                    target=PS(f) + np.array([0.0, 0.0, 0.01]), lens=50.0, focus=P(f))
 
     def drilling(f):
         u = ease(f, b[7], b[8])
-        tgt = lerp(rest + np.array([0.0, 0.0, -0.01]), rest + np.array([0.0, 0.0, -0.015]), u)
-        return dict(pos=lerp(rest + np.array([0.30, -0.22, 0.09]), rest + np.array([0.20, -0.26, 0.06]), u),
-                    target=tgt, lens=60.0, focus=tgt)
+        tgt = lerp(eR * 0.6 + rest * 0.4 + np.array([0.0, 0.0, 0.012]), eR + np.array([0.0, 0.0, 0.01]), u)
+        return dict(pos=lerp(eR + np.array([0.14, 0.24, 0.20]), eR + np.array([0.06, 0.22, 0.16]), u),
+                    target=tgt, lens=45.0, focus=lerp(eR * 0.6 + rest * 0.4, eR, u))
+
+    def anchoring(f):
+        u = ease(f, b[8], b[9])
+        tgt = rest + np.array([0.0, 0.0, 0.005])
+        return dict(pos=lerp(rest + np.array([0.36, 0.30, 0.20]), rest + np.array([0.30, 0.24, 0.15]), u),
+                    target=tgt, lens=50.0, focus=tgt)
 
     def reel(f):
-        u = ease(f, b[8], f_taut + 40)
-        v = ease(f, f_taut, b[9])
-        pos = lerp((-0.55, 0.42, 0.46), (-0.95, 0.20, 0.42), v)
-        tgt = lerp((-0.18, 0.09, 0.24), (1.6, 0.07, 0.12), v)
-        return dict(pos=pos + np.array([0.04, 0.0, 0.0]) * (1 - u), target=tgt, lens=lerp(40.0, 35.0, v),
-                    focus=lerp((-0.18, 0.09, 0.24), (0.9, 0.08, 0.2), v))
+        v = ease(f, f_taut - 8, f_taut + 75)
+        pos = lerp((-0.52, 0.36, 0.44), (-0.95, 0.26, 0.52), v)
+        tgt = lerp((-0.20, 0.09, 0.24), (2.0, 0.07, 0.10), v)
+        return dict(pos=pos, target=tgt, lens=lerp(40.0, 32.0, v),
+                    focus=lerp((-0.20, 0.09, 0.24), (1.0, 0.08, 0.18), v))
 
     def endwide(f):
-        u = ease(f, b[9], b[10] + 20)
-        return dict(pos=lerp((-1.6, -2.4, 0.75), (-2.4, -3.3, 1.55), u),
-                    target=lerp((2.0, 0.2, 0.05), (2.3, 0.3, 0.0), u), lens=24.0, focus=(1.5, 0.1, 0.1))
+        u = ease(f, b[10], b[11] + 20)
+        return dict(pos=lerp((-0.90, 2.20, 0.62), (-1.70, 3.10, 1.35), u),
+                    target=lerp((2.2, -0.25, 0.05), (2.4, -0.20, 0.0), u), lens=24.0, focus=(1.6, 0.1, 0.1))
 
     return [
         Shot(1, "establishing", b[0], b[1] - 1, wide, 60, fstop=8.0),
-        Shot(2, "aim", b[1], b[2] - 1, aim, 220, fstop=4.0),
-        Shot(3, "cock", b[2], b[3] - 1, cock, 400, fstop=4.0),
-        Shot(4, "fire", b[3], b[4] - 1, fire, 545, fstop=4.0),
-        Shot(5, "flight", b[4], b[5] - 1, flight, 660, fstop=5.6),
-        Shot(6, "impact", b[5], b[6] - 1, impact, f_imp + 6, fstop=2.8),
-        Shot(7, "righting", b[6], b[7] - 1, righting, 1003, fstop=4.0),
-        Shot(8, "drilling", b[7], b[8] - 1, drilling, 1300, fstop=5.6),
-        Shot(9, "reel_taut", b[8], b[9] - 1, reel, 1520, fstop=5.6),
-        Shot(10, "end_wide", b[9], b[10], endwide, 1715, fstop=8.0),
+        Shot(2, "aim", b[1], b[2] - 1, aim, 230, fstop=4.0),
+        Shot(3, "cock", b[2], b[3] - 1, cock, 440, fstop=4.0),
+        Shot(4, "fire", b[3], b[4] - 1, fire, f_exit - 4, fstop=4.0),
+        Shot(5, "flight", b[4], b[5] - 1, flight, (b[4] + b[5]) // 2, fstop=5.6),
+        Shot(6, "impact", b[5], b[6] - 1, impact, f_imp + 4, fstop=2.8),
+        Shot(7, "righting", b[6], b[7] - 1, righting, (f_flip + f_right) // 2, fstop=4.0),
+        Shot(8, "drilling", b[7], b[8] - 1, drilling, b[8] - 20, fstop=5.6),
+        Shot(9, "anchoring", b[8], b[9] - 1, anchoring, f_anch - 10, fstop=5.6),
+        Shot(10, "reel_taut", b[9], b[10] - 1, reel, f_tow + 20, fstop=5.6),
+        Shot(11, "end_wide", b[10], b[11], endwide, f_end - 15, fstop=8.0),
     ]
 
 
-def build_cameras(scene, mo, report):
+def low_camera_zones(shots, zmax=0.14, r=0.14):
+    """grass clear discs round low camera positions, so blades never fill the lens"""
+    zones = []
+    for sh in shots:
+        for f in range(sh.f0, sh.f1 + 1, 6):
+            p = np.asarray(sh.fn(float(f))["pos"], float)
+            if p[2] < zmax and (not zones or min(math.hypot(p[0] - z[0], p[1] - z[1]) for z in zones) > r * 0.5):
+                zones.append((float(p[0]), float(p[1]), r))
+    return zones
+
+
+def build_cameras(scene, mo, report, shots):
     col = coll(scene, "CAMERAS")
-    shots = make_shots(mo)
     for m in list(scene.timeline_markers):
         scene.timeline_markers.remove(m)
     info = []
@@ -1111,7 +1174,16 @@ def build(args, report):
     rest = mo.dart_cg[-1]
     f_imp = mo.e("impact", 717)
     lie = mo.dart_cg[max(mo.e("righting_legFlip", 866) - 5, f_imp + 1)]       # where it lies before righting
-    clear = [(float(rest[0]), float(rest[1]), 0.10)]
+    clear = [(float(rest[0]), float(rest[1]), 0.05)]
+    f_d1 = mo.e("anchored", 1393)
+    axes = drill_axes(mo, models, np.array([float(f_d1)]))
+    entry0 = {}
+    for side, (org, dirs) in axes.items():
+        o, d = org[0], dirs[0]
+        gz = float(env.terrain_height(o[0], o[1]))
+        entry0[side] = [o + d * max((gz - o[2]) / d[2], 0.0) if d[2] < -1e-6 else o]
+    shots = make_shots(mo, entry0)
+    clear += low_camera_zones(shots)
     board_half = tuple(0.5 * s for s in getattr(models, "BOARD_SIZE", (1.0, 0.8))[:2])
     res = env.build_env(scene, args.quality, clear_zones=clear, board_clear=True, board_half=board_half)
     report["env"] = res["stats"]
@@ -1125,12 +1197,16 @@ def build(args, report):
     apply_springs(mo, models, report)
     hide_standins(report)
     nose_imp = mo.dart_point((0.0, 0.0, 0.0), f_imp)
-    rest_press = [("fx:press_impact", nose_imp[:2], 0.07, f_imp, 0.75),
-                  ("fx:press_lie", lie[:2], 0.10, f_imp + 25, 0.8)]
-    grass_mods(scene, mo, rest_press)
+    rest_press = [("fx:press_impact", nose_imp[:2], 0.045, f_imp, 0.6),
+                  ("fx:press_lie", lie[:2], 0.075, f_imp + 25, 0.7)]
+    mow = [(float(rest[0]), float(rest[1]), 0.9, 2.0, None), (0.0, 0.0, 0.75, 1.6, None)]
+    for side in ("L", "R"):                    # trampled round the drill holes (the drilling close-up)
+        e = entry0[side][0]
+        mow.append((float(e[0]), float(e[1]), 0.05, 0.16, 0.18))
+    grass_mods(scene, mo, rest_press, mow)
     build_line(scene, mo, models, env, report)
-    build_fx(scene, mo, models, env, report)
-    shots = build_cameras(scene, mo, report)
+    entry = build_fx(scene, mo, models, env, report)
+    shots = build_cameras(scene, mo, report, make_shots(mo, entry))
     for e in mo.M.get("events", []):
         scene.timeline_markers.new("ev:" + e["name"], frame=int(e["frame"]))
     env.set_render(scene, "EEVEE", "final" if args.quality in ("final", "hero") else "preview", motion_blur=True)
@@ -1198,6 +1274,46 @@ def render_shots(scene, which, stills, samples=48):
     return files
 
 
+def render_frames(scene, frames, samples=32, cam_spec="", size=(640, 360), tag="check"):
+    """debug stills: frames with their marker camera (or a custom camera 'x,y,z:tx,ty,tz:lens') ->
+    render/out/frames/<tag>_FFFF.png"""
+    import env
+    env.set_render(scene, "CYCLES", "preview", motion_blur=True, samples=samples)
+    scene.cycles.device = "CPU"
+    scene.render.resolution_x, scene.render.resolution_y = size
+    scene.render.resolution_percentage = 100
+    os.makedirs(FRAMES_DIR, exist_ok=True)
+    cam = None
+    if cam_spec:
+        p, t, lens = cam_spec.split(":")
+        cd = bpy.data.cameras.new("cam:debug")
+        cd.lens = float(lens)
+        cd.clip_start = 0.003
+        cam = bpy.data.objects.new("cam:debug", cd)
+        scene.collection.objects.link(cam)
+        pv, tv = Vector([float(v) for v in p.split(",")]), Vector([float(v) for v in t.split(",")])
+        cam.location = pv
+        cam.rotation_euler = (tv - pv).to_track_quat("-Z", "Y").to_euler()
+        cd.dof.use_dof = False
+    shots = find_shots(scene)
+    out = []
+    for f in frames:
+        scene.frame_set(f)
+        if cam is not None:
+            scene.camera = cam
+        else:
+            for name, f0, f1, c in shots:
+                if f0 <= f <= f1:
+                    scene.camera = c
+        path = os.path.join(FRAMES_DIR, "%s_%04d.png" % (tag, f))
+        scene.render.filepath = path
+        t0 = time.time()
+        bpy.ops.render.render(write_still=True)
+        say("rendered %s in %.0fs" % (path, time.time() - t0))
+        out.append(path)
+    return out
+
+
 def contact_sheet():
     files = sorted(f for f in os.listdir(OUT) if f.startswith("shot_") and f.endswith(".png"))
     if not files:
@@ -1227,20 +1343,14 @@ def contact_sheet():
     say("contact sheet", os.path.join(OUT, "shots_sheet.png"), "ok" if r.returncode == 0 else r.stderr[-300:])
 
 
-def motion_check(scene, step=2, density=0.5, samples=8, engine="EEVEE"):
+def motion_check(scene, step=2, density=0.5, samples=8, engine="CYCLES"):
     import env
     d = os.path.join(FRAMES_DIR, "mc")
     os.makedirs(d, exist_ok=True)
     g = bpy.data.objects.get("env:grass")
     if g is not None:
-        md = [m for m in g.modifiers if m.type == "NODES"][0]
         try:
-            sid = [it.identifier for it in md.node_group.interface.items_tree
-                   if getattr(it, "name", "") == "Density"][0]
-            try:
-                getattr(md.properties.inputs, sid).value = density
-            except AttributeError:
-                md[sid] = density
+            gn_input([m for m in g.modifiers if m.type == "NODES"][0], "Density", density)
         except IndexError:
             pass
     env.set_render(scene, engine, "preview", motion_blur=True, samples=samples)
@@ -1292,9 +1402,12 @@ def main():
     ap.add_argument("--still", default="", help="override still frames, e.g. 4:540,6:725")
     ap.add_argument("--samples", type=int, default=48)
     ap.add_argument("--motion-check", action="store_true")
-    ap.add_argument("--mc-engine", default="EEVEE", choices=["EEVEE", "CYCLES"])
+    ap.add_argument("--mc-engine", default="CYCLES", choices=["EEVEE", "CYCLES"])
     ap.add_argument("--mc-step", type=int, default=2)
     ap.add_argument("--check-only", action="store_true", help="load the saved .blend instead of building")
+    ap.add_argument("--frames", default="", help="debug stills of these frames (comma list) -> out/frames/")
+    ap.add_argument("--cam", default="", help="custom debug camera 'x,y,z:tx,ty,tz:lens' for --frames")
+    ap.add_argument("--tag", default="check")
     a = ap.parse_args(argv)
     report = {}
     if a.check_only:
@@ -1320,6 +1433,8 @@ def main():
             stills[names[int(k) - 1]] = int(v)
     if a.shots:
         render_shots(scene, a.shots, stills, a.samples)
+    if a.frames:
+        render_frames(scene, [int(v) for v in a.frames.split(",")], a.samples, a.cam, tag=a.tag)
     if a.motion_check:
         motion_check(scene, step=a.mc_step, engine=a.mc_engine)
     say("done")

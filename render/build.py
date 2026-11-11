@@ -1197,8 +1197,8 @@ def build_cameras(scene, mo, report, shots):
     return shots
 
 
-SUN = dict(az_offset_deg=7.0, el_min_deg=20.0, el_above_frame_deg=2.0)   # sun just above cam:A's frame, ahead
-LOOK = dict(exposure=0.25, white_balance_k=7000.0, look="AgX - Punchy",
+SUN = dict(az_offset_deg=12.0, el_min_deg=32.0, el_above_frame_deg=2.0)   # sun just above cam:A's frame, ahead
+LOOK = dict(exposure=0.85, white_balance_k=7000.0, look="AgX - Punchy",
             glare_threshold=1.1, glare_strength=0.30, glare_size=0.75,
             soft=0.0006, halo=0.0020, sharpen=0.55,                 # blur sizes relative to the image height
             distortion=0.012, dispersion=0.006, vignette=0.22,

@@ -69,8 +69,10 @@ def _hero_sdf(x, y):
 
 
 # Wind (radians of instance tilt, noise scale 1/m, drift m/s). Animated through the scene time.
-WIND = dict(grass_amp=0.025, grass_scale=0.22, leaf_amp=0.035, leaf_scale=0.08, speed=1.6, gust_scale=0.03)
-MOW_STRIPE = dict(width=0.95, angle_deg=12.0, lean=0.35)   # mower stripes: band width (m), direction, blade lean
+WIND = dict(grass_amp=0.0, grass_scale=0.22, leaf_amp=0.0, leaf_scale=0.08, speed=1.6, gust_scale=0.03)  # still
+MOW_STRIPE = dict(width=0.95, angle_deg=12.0, lean=0.0)    # no visible mower pattern
+SCAN_GRASS = os.path.join(CACHE, "models", "grass_bermuda_01", "grass_bermuda_01_1k.blend")   # Poly Haven scan
+SCAN_DENSITY = dict(near=420.0, r_near=11.0, mid=140.0, r_full=20.0, r_max=30.0)   # scanned clumps per m2   # mower stripes: band width (m), direction, blade lean
 
 # ---------------------------------------------------------------------------------------------------------------
 # Layout (world metres), after Harry's yard photos: a mown lawn rising gently to a hump and a fence line on the
@@ -912,11 +914,11 @@ def _mat_ground(hdri_img):
     g_c, g_r, g_n, _ = _pbr(nt, "dry_ground_rocks", _uvvec(nt, uv, TEX_SIZE["dry_ground_rocks"], 0.3),
                            ((0.20, 0.15, 0.10), 0.9))
     sw = nt.mix(nt.ss(brk, 0.35, 0.65), sw_c, sw2_c)
-    sw = nt.hsv(sw, nt.mixf(macro, 0.485, 0.505), 0.95, nt.mixf(macro, 0.8, 1.0))      # mottled lawn tone
+    sw = nt.hsv(sw, nt.mixf(macro, 0.495, 0.505), 0.95, nt.mixf(macro, 0.84, 0.94))    # even lawn tone
     dryc = nt.mix(nt.ss(brk2, 0.3, 0.8), (0.20, 0.17, 0.08), (0.15, 0.11, 0.06))
     drym = nt.ss(nt.math("ADD", dry_a, nt.math("MULTIPLY", nt.math("SUBTRACT", brk2, 0.5), 0.5)), 0.3, 0.7)
-    col = nt.mix(nt.math("MULTIPLY", drym, 0.85), sw, nt.mix(0.6, sw, dryc))
-    col = nt.mix(stripe_a, col, nt.mix(1.0, col, (1.14, 1.12, 1.06), "MULTIPLY"))
+    col = nt.mix(nt.math("MULTIPLY", drym, 0.0), sw, nt.mix(0.6, sw, dryc))           # even lawn: no dry blobs
+    col = nt.mix(nt.math("MULTIPLY", stripe_a, 0.0), col, col)
     edge = nt.math("MULTIPLY", nt.math("SUBTRACT", brk, 0.5), 0.6)
     soil_m = nt.ss(nt.math("ADD", soil_a, edge), 0.4, 0.65)
     col = nt.mix(soil_m, col, nt.hsv(g_c, 0.5, 0.8, 0.8))
@@ -1417,7 +1419,106 @@ def _choose_instances(X, Y, d, F, rng, index, preset):
     return inst
 
 
+def _mat_scan_grass():
+    """Poly Haven grass_bermuda_01 scan: photo colour, alpha cut-out, normal and roughness maps; matte, a little
+    translucent; colour evened out to a natural lawn green."""
+    m, nt = _new_mat("env:scan_grass")
+    d = os.path.dirname(SCAN_GRASS)
+    tx = nt.node("ShaderNodeTexCoord").outputs["UV"]
+
+    def img(name, cs):
+        pth = os.path.join(d, "textures", name)
+        if not os.path.exists(pth):
+            return None
+        im = bpy.data.images.load(pth, check_existing=True)
+        im.colorspace_settings.name = cs
+        t = nt.node("ShaderNodeTexImage", image=im, interpolation="Linear")
+        nt.set(t.inputs["Vector"], tx)
+        return t
+    dif = img("grass_bermuda_01_diff_1k.jpg", "sRGB")
+    alp = img("grass_bermuda_01_alpha_1k.png", "Non-Color")
+    nor = img("grass_bermuda_01_nor_gl_1k.exr", "Non-Color")
+    rou = img("grass_bermuda_01_rough_1k.exr", "Non-Color")
+    oi = nt.node("ShaderNodeObjectInfo")
+    col = dif.outputs["Color"] if dif else (0.08, 0.15, 0.04)
+    col = nt.hsv(col, nt.mixf(oi.outputs["Random"], 0.497, 0.505), 1.0, nt.mixf(oi.outputs["Random"], 0.9, 1.06))
+    rough = nt.math("MAXIMUM", rou.outputs["Color"], 0.6) if rou else 0.65
+    bsdf = nt.principled(col, rough, _nmap(nt, nor.outputs["Color"] if nor else None, 1.0), spec=0.25)
+    tr = nt.node("ShaderNodeBsdfTranslucent")
+    nt.set(tr.inputs["Color"], col)
+    sh = nt.mixsh(0.25, bsdf, tr.outputs[0])
+    if alp is not None:
+        tp = nt.node("ShaderNodeBsdfTransparent")
+        a = nt.ss(alp.outputs["Color"], 0.45, 0.55)
+        sh = nt.mixsh(a, tp.outputs[0], sh)
+    nt.output(_hazed(nt, sh))
+    for k, v in (("surface_render_method", "DITHERED"), ("use_backface_culling", False),
+                 ("use_transparent_shadow", True)):
+        try:
+            setattr(m, k, v)
+        except Exception:
+            pass
+    return m
+
+
+def _load_scan_grass(src_coll):
+    """Link the scanned lawn clumps (small / medium / seedling cards) into src_coll as instance sources."""
+    if not os.path.exists(SCAN_GRASS):
+        return []
+    with bpy.data.libraries.load(SCAN_GRASS) as (src, dst):
+        dst.objects = [n for n in src.objects if n.startswith("grass_bermuda_01_") and "geometry" not in n
+                       and "single" not in n]
+    mat = _mat_scan_grass()
+    objs = []
+    for i, o in enumerate(sorted([o for o in dst.objects if o and o.type == "MESH"], key=lambda o: o.name)):
+        o.name = "env:gsrc_%02d_scan_%s" % (i, o.name.replace("grass_bermuda_01_", ""))
+        o.location = (0, 0, 0)
+        o.data.materials.clear()
+        o.data.materials.append(mat)
+        src_coll.objects.link(o)
+        objs.append(o)
+    return objs
+
+
+def _build_scan_grass(coll, src_coll, axes, Zgrid, objs, clear_zones=()):
+    """Dense, even lawn of scanned clumps: jittered grid, density easing off with distance from the action and
+    the cameras' foreground, random rotation / scale, no wind."""
+    rng = np.random.default_rng(SEED + 17)
+    sd = SCAN_DENSITY
+    cx, cy = GRASS_CENTER[0], GRASS_CENTER[1] - 3.0
+    Ps = []
+    for r0, r1, dens in ((0.0, sd["r_near"], sd["near"]), (sd["r_near"], sd["r_full"], sd["mid"]),
+                         (sd["r_full"], sd["r_max"], sd["mid"] * 0.45)):
+        cell = 1.0 / math.sqrt(dens)
+        g = np.arange(-r1, r1, cell)
+        X, Y = np.meshgrid(g + cx, g + cy, indexing="ij")
+        X = X.ravel() + rng.random(X.size) * cell
+        Y = Y.ravel() + rng.random(Y.size) * cell
+        d = np.hypot(X - cx, Y - cy)
+        k = (d >= r0) & (d < r1)
+        Ps.append(np.stack([X[k], Y[k]], 1))
+    P = np.concatenate(Ps)
+    F = _fields(P[:, 0], P[:, 1])
+    keep = rng.random(len(P)) < F["dens"]
+    for (zx, zy, zr) in clear_zones:
+        keep &= np.hypot(P[:, 0] - zx, P[:, 1] - zy) > zr
+    P = P[keep]
+    N = len(P)
+    Z = _interp_grid(axes, Zgrid, P[:, 0], P[:, 1]) - 0.004
+    inst = rng.integers(0, len(objs), N).astype(np.int32)
+    s = rng.uniform(0.75, 1.1, N)
+    sz = s * rng.uniform(0.62, 0.8, N)                 # mown: clumps kept 5 to 8 cm tall
+    rot = np.stack([rng.normal(0, 0.06, N), rng.normal(0, 0.06, N), rng.random(N) * 2 * math.pi], 1)
+    ob = _points_object("env:grass", coll, np.column_stack([P, Z]), inst, rot, np.stack([s, s, sz], 1), {})
+    ob.modifiers.new("scatter", "NODES").node_group = _instance_nodes("env:grass_scatter", src_coll)
+    tris = np.array([sum(len(pp.vertices) - 2 for pp in o.data.polygons) for o in objs])
+    return ob, dict(instances=int(N), triangles=int(tris[inst].sum()), sources=len(objs), scanned=True)
+
+
 def _build_grass(coll, src_coll, terrain_axes, Zgrid, preset, mats, clear_zones=()):
+    scan = _load_scan_grass(src_coll)
+    if scan:
+        return _build_scan_grass(coll, src_coll, terrain_axes, Zgrid, scan, clear_zones)
     objs, index, tris = _build_sources(src_coll, "gsrc", _VARIANTS, _make_clump, mats, preset["blade_mult"])
     X, Y, d, F, rng = _scatter_points(preset, clear_zones)
     inst = _choose_instances(X, Y, d, F, rng, index, preset)
@@ -2637,7 +2738,6 @@ def build_env(scene, quality=None, clear_zones=(), board_clear=True, board_half=
     _exclude(scene, src)
     world, hdri_img = _build_world(scene)
     sun = _build_sun(env)
-    _build_cloud_shadows(env, scene)
     mats = dict(ground=_mat_ground(hdri_img), grass=_mat_grass(), gum_bark=_mat_gum_bark(),
                 gum_leaf=_mat_gum_canopy(), leaf_litter=_mat_leaf_litter(), bark_strip=_mat_bark_strip(),
                 deadwood=_mat_deadwood(), rock=_mat_rock(), manure=_mat_manure(), timber=_mat_timber(),

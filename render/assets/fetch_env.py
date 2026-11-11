@@ -103,6 +103,25 @@ def _fetch_ambientcg(asset, res, members, force):
         return False
 
 
+MODELS = ["grass_bermuda_01"]   # Poly Haven scanned lawn grass clumps (1K blend + its textures)
+
+
+def _fetch_model(mid, force):
+    d = os.path.join(CACHE, "models", mid)
+    os.makedirs(os.path.join(d, "textures"), exist_ok=True)
+    ok = True
+    try:
+        with _get("https://api.polyhaven.com/files/%s" % mid, 30) as r:
+            b = json.load(r)["blend"]["1k"]["blend"]
+        ok &= _download(b["url"], os.path.join(d, "%s_1k.blend" % mid), force)
+        for rel, v in b.get("include", {}).items():
+            ok &= _download(v["url"], os.path.join(d, rel), force)
+    except Exception as e:
+        print("  FAIL  model %s: %s" % (mid, e))
+        ok = False
+    return ok
+
+
 def fetch(hdri_res="4k", tex_res="2k", force=False):
     ok = True
     os.makedirs(os.path.join(CACHE, "hdri"), exist_ok=True)
@@ -126,6 +145,9 @@ def fetch(hdri_res="4k", tex_res="2k", force=False):
                        % (tex_res, tex, tex, suffix, tex_res))
             ok &= _download(url, texture_path(tex, suffix, tex_res), force)
 
+    for mid in MODELS:
+        print("model %s (Poly Haven, 1k blend)" % mid)
+        ok &= _fetch_model(mid, force)
     for asset, (_size, members) in AMBIENTCG.items():
         print("texture %s (ambientCG, %s jpg)" % (asset, tex_res))
         os.makedirs(os.path.join(CACHE, "tex", asset), exist_ok=True)

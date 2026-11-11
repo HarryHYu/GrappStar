@@ -8,7 +8,8 @@ a physical sky instead of the HDRI.
 | Use in the scene | Asset | Source / URL | Author | Licence |
 |---|---|---|---|---|
 | Sky, ambient light, distant trees (4K .hdr; sun lamp matched to its sun: elevation 52 deg, 5.1 W/m2 measured) | Pretoria Gardens | https://polyhaven.com/a/pretoria_gardens (file: https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/4k/pretoria_gardens_4k.hdr) | Dimitrios Savva (photography), Jarod Guest (processing) | CC0 |
-| Mown lawn sward under the 3D grass blades | Grass 004 (2K JPG: Color, NormalGL, Roughness) | https://ambientcg.com/view?id=Grass004 (file: https://ambientcg.com/get?file=Grass004_2K-JPG.zip) | ambientCG (Lennart Demes) | CC0 |
+| Lawn grass: photoscanned clumps scattered as the mown lawn | Grass Bermuda 01 (1K blend: alpha cards, diff, alpha, nor_gl, rough) | https://polyhaven.com/a/grass_bermuda_01 | Rico Cilliers | CC0 |
+| Mown lawn sward under the grass clumps | Grass 004 (2K JPG: Color, NormalGL, Roughness) | https://ambientcg.com/view?id=Grass004 (file: https://ambientcg.com/get?file=Grass004_2K-JPG.zip) | ambientCG (Lennart Demes) | CC0 |
 | Small bare soil spots in the lawn | Dry Ground Rocks (2K JPG: diff, nor_gl, arm) | https://polyhaven.com/a/dry_ground_rocks | Rob Tuytel | CC0 |
 | Tree trunks and branches (relief, re-toned), dead trees, stump, sticks | Bark Bluegum (2K JPG) | https://polyhaven.com/a/bark_bluegum | Dimitrios Savva | CC0 |
 | Weathered post-and-rail fence, gate posts, shelter posts | Rough Wood (2K JPG) | https://polyhaven.com/a/rough_wood | Rob Tuytel | CC0 |

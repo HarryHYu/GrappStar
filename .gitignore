@@ -19,3 +19,6 @@ kedge/work/*.stl
 kedge/work/v34*/
 kedge/work/pack_test/
 kedge/work/views_*.json
+render/.venv/
+render/assets/cache/
+render/out/frames/

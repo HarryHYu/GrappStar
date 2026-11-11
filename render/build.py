@@ -51,6 +51,7 @@ G = 9.81
 
 INTERP = {"CONSTANT": 0, "LINEAR": 1, "BEZIER": 2}
 STILL_FRAMES = {}
+CUT = None                          # motion.json cut frame: keys are never interpolated across it
 T0 = time.time()
 
 
@@ -95,7 +96,11 @@ def key_curve(idb, path, index, frames, values, interp="LINEAR"):
     co[0::2] = np.asarray(frames, np.float32)
     co[1::2] = np.asarray(values, np.float32)
     kp.foreach_set("co", co)
-    kp.foreach_set("interpolation", np.full(n, INTERP[interp], np.int32))
+    ip = np.full(n, INTERP[interp], np.int32)
+    if CUT is not None and n > 1:                  # hold the last key before the cut: no blend across it
+        f = np.asarray(frames, float)
+        ip[:-1][(f[:-1] < CUT) & (f[1:] >= CUT)] = INTERP["CONSTANT"]
+    kp.foreach_set("interpolation", ip)
     fc.update()
     return fc
 
@@ -114,8 +119,11 @@ def all_fcurves(idb):
 
 def set_linear(idb):
     for fc in all_fcurves(idb):
-        for k in fc.keyframe_points:
-            k.interpolation = "LINEAR"
+        kps = list(fc.keyframe_points)
+        for i, k in enumerate(kps):
+            nxt = kps[i + 1].co[0] if i + 1 < len(kps) else None
+            k.interpolation = "CONSTANT" if (CUT is not None and nxt is not None and k.co[0] < CUT <= nxt) \
+                else "LINEAR"
 
 
 def quat_fix(Q):
@@ -144,9 +152,15 @@ def qrot(q, v):
 
 
 def sample(frames, vals, fq):
-    """linear interpolation of a key track (motion.json keys are sparse, LINEAR)"""
+    """linear interpolation of a key track (motion.json keys are sparse, LINEAR; held, not blended, up to CUT)"""
     fr = np.asarray(frames, float)
     V = np.asarray(vals, float)
+    fq = np.asarray(fq, float)
+    if CUT is not None:
+        i = np.searchsorted(fr, CUT)
+        if 0 < i < len(fr) and fr[i - 1] < CUT:          # insert a hold key just before the cut
+            fr = np.insert(fr, i, CUT - 1e-6)
+            V = np.insert(V, i, V[i - 1], axis=0)
     if V.ndim == 1:
         return np.interp(fq, fr, V)
     return np.stack([np.interp(fq, fr, V[:, d]) for d in range(V.shape[1])], -1)
@@ -286,6 +300,10 @@ class Motion:
         self.ev = {}
         for e in M.get("events", []):
             self.ev.setdefault(e["name"], int(e["frame"]))
+        c = M.get("cut")
+        self.cut = int(c["frame"]) if isinstance(c, dict) and "frame" in c else self.ev.get("cut")
+        global CUT
+        CUT = self.cut
         global DART_CG_X
         DART_CG_X = float(M.get("dart", {}).get("cg_station_m", DART_CG_X))
         d = M["objects"]["dart:root"]
@@ -514,58 +532,6 @@ def resample_by_length(Q, n):
     return np.stack([np.interp(t, L, Q[:, d]) for d in range(3)], 1)
 
 
-def reroute_lip(mo, P, fr, kf):
-    """motion.json lets the free rope fall straight from the rail exit (pusher hole) once the dart is out, i.e.
-    through the rail and the base. Real line runs along the rail and over the lip roller at the muzzle, then
-    hangs. For every key whose free rope dips below the exit -> roller-top line behind the roller, rebuild the
-    start of the free rope: exit -> along the rail -> over the roller top -> smooth hang into the rope's first
-    point in front of the roller; blended in with the dip depth so nothing pops. P (K, n, 3), kf = exit index."""
-    d = mo.M["objects"].get("base:launch_muzzle_roller")
-    ob = bpy.data.objects.get("base:launch_muzzle_roller")
-    if d is None or ob is None:
-        return P, 0
-    cl = np.mean([v[:] for v in ob.bound_box], axis=0)
-    rr = 0.5 * float(np.max(np.ptp(np.array([v[:] for v in ob.bound_box]), axis=0)))     # roller radius
-    C = sample(d["frames"], d["loc"], fr) + qrot(sample_quat(d["frames"], d["quat"], fr), cl)
-    out = P.copy()
-    fixed = 0
-    for i in range(len(fr)):
-        free = P[i, kf:]
-        M = len(free)
-        ex = free[0]
-        dv = C[i] - ex
-        if dv[0] <= 0.02:
-            continue
-        dv = dv / np.linalg.norm(dv)
-        nrm = np.array([0.0, 0.0, 1.0]) - dv * dv[2]
-        nrm = nrm / np.linalg.norm(nrm)
-        top = C[i] + nrm * (rr + ROPE_R)
-        dl = top - ex
-        beh = free[:, 0] < top[0]
-        zl = ex[2] + (free[:, 0] - ex[0]) * dl[2] / dl[0]
-        depth = float(np.max((zl - free[:, 2])[beh], initial=0.0))
-        w = float(smoother((depth - 0.004) / 0.016))
-        if w <= 0.0:
-            continue
-        ahead = np.where(free[:, 0] > top[0] + 0.02)[0]
-        if not len(ahead):
-            continue
-        j = int(ahead[0])
-        pj = free[j]
-        tj = free[min(j + 1, M - 1)] - pj
-        tj = tj / (np.linalg.norm(tj) + 1e-9)
-        dist = np.linalg.norm(pj - top)
-        c1 = top + dv * 0.3 * dist * np.array([1.0, 1.0, 0.0]) / max(np.linalg.norm(dv[:2]), 1e-6)
-        c2 = pj - tj * 0.3 * dist
-        u = np.linspace(0, 1, 14)[1:-1, None]
-        bez = (1 - u) ** 3 * top + 3 * (1 - u) ** 2 * u * c1 + 3 * (1 - u) * u ** 2 * c2 + u ** 3 * pj
-        tail = resample_by_length(np.vstack([top, bez, free[j:]]), M - 2)
-        new = np.vstack([ex, 0.5 * (ex + top), tail])
-        out[i, kf:] = free * (1 - w) + new * w
-        fixed += 1
-    return out, fixed
-
-
 def cache_curve_nodes(name, N, P, K, mat, res=6, prof=6, hide_before=False):
     """GN tree that turns a per-key point cache (N points per key, attribute kf = key frame) into the curve
     for the current (sub)frame, interpolating linearly between keys. The first P points (base path) are a
@@ -586,6 +552,9 @@ def cache_curve_nodes(name, N, P, K, mat, res=6, prof=6, hide_before=False):
     f1 = g.sample(geo, kf, i1)
     w = g.math("DIVIDE", g.math("SUBTRACT", t, f0), g.math("MAXIMUM", g.math("SUBTRACT", f1, f0), 1e-6))
     w = g.math("MINIMUM", g.math("MAXIMUM", w, 0.0), 1.0)
+    if CUT is not None:                            # keys either side of the cut: hold the earlier one
+        across = g.math("MULTIPLY", g.math("LESS_THAN", f0, CUT - 1e-3), g.math("GREATER_THAN", f1, CUT - 1e-3))
+        w = g.math("MULTIPLY", w, g.math("SUBTRACT", 1.0, across))
     idx = g.n("GeometryNodeInputIndex").outputs[0]
     if P > 0:
         after = g.math("GREATER_THAN", idx, P - 0.5)
@@ -681,13 +650,13 @@ def build_line(scene, mo, models, env, report):
     ground = Ground(env)
     free = hermite_resample(P[:, kb - 1:], 3)              # exit point + free rope, 3x denser, same points
     PP = np.concatenate([P[:, :kb - 1], free], 1)
-    PP, nfix = reroute_lip(mo, PP, fr, kb - 1)
+    nfix = 0                                   # motion.json v2 leads the line over the lip roller itself
     PP = drape(PP, ground, kb)
     mat = rope_material(models)
     K, N, _ = PP.shape
     ng = cache_curve_nodes("GS_line_tether", N, kb, K, mat)
     ob = cache_object("line:tether", col, fr, PP, ng)
-    report["line"] = dict(keys=K, points=N, base_points=kb, keys_rerouted_over_lip=nfix)
+    report["line"] = dict(keys=K, points=N, base_points=kb)
     W = mo.M.get("line_wraps")
     if W and len(W.get("frames", [])) > 1:
         WP = np.asarray(W["points"], float)
@@ -874,6 +843,8 @@ def crumb_nodes(src):
     t = g.n("GeometryNodeInputSceneTime").outputs["Frame"]
     t0, tl, gg = g.attr("t0"), g.attr("tl"), g.attr("g")
     dt = g.math("MINIMUM", g.math("MAXIMUM", g.math("SUBTRACT", t, t0), 0.0), tl)
+    post = g.math("GREATER_THAN", t, CUT - 1e-3) if CUT is not None else 0.0      # after the cut: all settled
+    dt = g.math("ADD", dt, g.math("MULTIPLY", post, g.math("SUBTRACT", tl, dt)))
     v0 = g.attr("v0", "FLOAT_VECTOR")
     drop = g.math("MULTIPLY", g.math("MULTIPLY", g.math("MULTIPLY", dt, dt), gg), -0.5)
     off = g.vmath("ADD", g.vmath("SCALE", v0, scale=dt), g.xyz(0.0, 0.0, drop))
@@ -898,6 +869,7 @@ def crumb_nodes(src):
     g.put(iop.inputs["Rotation"], e2r.outputs[0])
     grow = g.math("MINIMUM", g.math("MAXIMUM", g.math("DIVIDE", g.math("SUBTRACT", t, t0),
                                                     g.math("MAXIMUM", g.attr("grow"), 0.01)), 0.0), 1.0)
+    grow = g.math("MAXIMUM", grow, g.math("MULTIPLY", post, g.math("GREATER_THAN", t, g.math("SUBTRACT", t0, 1.5))))
     size = g.math("MULTIPLY", g.attr("size"), grow)
     g.put(iop.inputs["Scale"], g.xyz(size, size, g.math("MULTIPLY", size, g.attr("flat"))))
     g.ng.links.new(iop.outputs[0], g.go.inputs[0])
@@ -988,8 +960,10 @@ def build_fx(scene, mo, models, env, report):
         add(p0, v, f_imp + rng.uniform(0, 3), gfr, rng.uniform(0.0015, 0.004), gz)
     # drills (real time)
     f_p0 = mo.e("pods_deploy_start", mo.e("drills_start", 1102) - 20)
-    f_d1 = mo.e("anchored", 1393)
-    fq = np.arange(f_p0, f_d1 + 1, dtype=float)
+    cut = mo.cut
+    f_end = mo.nf - 1
+    f_d1 = min(mo.e("anchored", f_end), cut - 1) if cut else mo.e("anchored", f_end)    # drilling seen until here
+    fq = np.arange(f_p0, f_end + 1, dtype=float)
     axes = drill_axes(mo, models, fq)
     gfr = G / mo.fps ** 2
     rad, tip = auger_dims(mo)
@@ -1008,11 +982,11 @@ def build_fx(scene, mo, models, env, report):
         i0 = int(inside[0])
         f_c = float(fq[i0])
         entry[side], contact[side] = E, f_c
-        cg = mo.dart_cg[int(f_d1)]
+        cg = mo.dart_cg[f_end]
         away = math.atan2(E[-1][1] - cg[1], E[-1][0] - cg[0])
-        # crumbs thrown out by the auger flights at the current surface crossing
-        n = 260
-        tt = np.sort(f_c + (f_d1 - 25 - f_c) * rng.random(n) ** 1.3)
+        # crumbs thrown out by the auger flights at the current surface crossing (only while it is seen)
+        n = 260 if f_d1 - 10 > f_c else 0
+        tt = np.sort(f_c + (f_d1 - 10 - f_c) * rng.random(n) ** 1.3)
         for t0 in tt:
             i = int(np.clip(t0 - f_p0, 0, len(E) - 1))
             a = away + rng.uniform(-2.0, 2.0)
@@ -1037,15 +1011,19 @@ def build_fx(scene, mo, models, env, report):
                 q = c[:2] + perp * sgn * off + rng.normal(0, 0.0015, 2)
                 gz = env.terrain_height(q[0], q[1])
                 sz = rng.uniform(0.0035, 0.0075)
-                add(np.array([q[0], q[1], gz - sz * 0.12]), np.zeros(3), float(fq[i0 + j]) + 2, 0.0, sz, gz,
+                t_on = float(fq[i0 + j]) + 2
+                if cut and t_on >= cut - 1:
+                    t_on = cut - 1.0                   # cut past while hidden: complete after the cut
+                add(np.array([q[0], q[1], gz - sz * 0.12]), np.zeros(3), t_on, 0.0, sz, gz,
                     grow=30.0, flat=rng.uniform(0.35, 0.6))
         for k in range(26):
             a = rng.uniform(0, 2 * math.pi)
             q = E[-1][:2] + (rad + rng.uniform(0.002, 0.012)) * np.array([math.cos(a), math.sin(a)])
             gz = env.terrain_height(q[0], q[1])
             sz = rng.uniform(0.003, 0.007)
-            add(np.array([q[0], q[1], gz - sz * 0.12]), np.zeros(3), float(f_d1) - rng.uniform(20, 120), 0.0, sz,
-                gz, grow=40.0, flat=rng.uniform(0.35, 0.6))
+            t_on = (cut - 1.0) if cut else float(f_d1) - rng.uniform(20, 120)
+            add(np.array([q[0], q[1], gz - sz * 0.12]), np.zeros(3), t_on, 0.0, sz, gz, grow=40.0,
+                flat=rng.uniform(0.35, 0.6))
     me = bpy.data.meshes.new("fx:soil_crumbs")
     me.vertices.add(len(rows))
     me.vertices.foreach_set("co", np.array([r[0] for r in rows], np.float32).ravel())
@@ -1076,7 +1054,10 @@ def build_fx(scene, mo, models, env, report):
 # two locked-off tripod cameras (SPEC v2): cam:A wide 3/4 side, cut at the motion.json "cut" event to cam:B
 # side-on to the line. No moves, no zoom; aim and focal length are FITTED to the action from motion.json, so a
 # different dart / landing spot / timing reframes itself on a rerun.
-CAM_A = dict(dist=9.5, height=1.5, side=0.92, back=-0.40, fill=0.80, fstop=5.6)    # back < 0: behind the base side
+CAM_SIDE = -1                       # cameras on the -y side: env v2's gums, fence and cockatoos are behind the action
+                                    # (+y) and its sun is to the cameras' right; the launch reads left to right
+CAM_A = dict(dist=9.5, height=1.5, side=0.95, back=0.30, fill=0.80, fstop=5.6)     # back > 0: a little in front of
+                                    # the base, so its sunlit front face is toward the camera
 CAM_B = dict(dist=5.2, height=1.7, along=1.9, fill=0.84, fstop=5.6, lens=(24.0, 35.0))
                                     # side-on to the line, a little toward the base, a tall tripod so the line is
                                     # seen against the ground just beyond it (shorter, darker near the base and the
@@ -1136,8 +1117,8 @@ def make_shots(mo, entry=None):
     L = rest[:2] - base[:2]
     L = np.r_[L / np.linalg.norm(L), 0.0]
     n = np.array([-L[1], L[0], 0.0])
-    if n[1] < 0:
-        n = -n                                             # cameras on the +y side (sun side, aim crank side)
+    if n[1] * CAM_SIDE < 0:
+        n = -n
     board = np.array([[sx * 0.5, sy * 0.4, 0.0] for sx in (-1, 1) for sy in (-1, 1)])
     # cam:A: wide 3/4 side, sees aim .. drills start
     mid = 0.5 * (base + rest)
@@ -1163,7 +1144,8 @@ def make_shots(mo, entry=None):
     tgtB, lensB = fit_camera(posB, ptsB, CAM_B["fill"], lens_range=CAM_B.get("lens", (14.0, 200.0)))
     focB = midB + np.array([0.0, 0.0, 0.15])
     i_ap = f_fire + int(np.argmax(cg[f_fire:f_imp + 1, 2]))
-    stA = dict(aim=f_aim + (f_cock - f_aim) * 3 // 4, cock=(f_cock + f_fire) // 2, launch=f_fire + 1,
+    f_exit = E("muzzle_exit", f_fire + 3)
+    stA = dict(aim=f_aim + (f_cock - f_aim) * 3 // 4, cock=(f_cock + f_fire) // 2, launch=f_exit + 1,
                flight=i_ap, impact=f_imp + 4, righting=(f_flip + f_right) // 2, drills=min(f_drill + 60, f_cut - 2))
     stB = dict(after_cut=f_cut + 5, taut=min(f_taut + 15, f_end), tow=min(f_tow + 40, f_end), end=f_end - 3)
     stA = {k: int(np.clip(v, 0, f_cut - 1)) for k, v in stA.items()}
@@ -1289,7 +1271,7 @@ def build(args, report):
     f_imp = mo.e("impact", 717)
     lie = mo.dart_cg[max(mo.e("righting_legFlip", 866) - 5, f_imp + 1)]       # where it lies before righting
     clear = [(float(rest[0]), float(rest[1]), 0.05)]
-    f_d1 = mo.e("anchored", 1393)
+    f_d1 = mo.nf - 1                           # drills fully in (after the cut the anchoring is done)
     axes = drill_axes(mo, models, np.array([float(f_d1)]))
     entry0 = {}
     for side, (org, dirs) in axes.items():
@@ -1336,7 +1318,8 @@ def build(args, report):
             say("WARNING env.add_cockatoos failed:", repr(ex))
             report["cockatoos"] = repr(ex)
     env.set_render(scene, "EEVEE", "final" if args.quality in ("final", "hero") else "preview", motion_blur=True)
-    scene.render.motion_blur_shutter = 0.5                 # 180 deg shutter
+    scene.render.motion_blur_shutter = 0.5                 # 180 deg shutter ...
+    scene.render.motion_blur_position = "START"            # ... opening at the frame: nothing blurs across the cut
     if args.quality in ("final", "hero"):
         scene.render.resolution_x, scene.render.resolution_y = 3840, 2160      # uhd default (mac preset)
     camera_look(scene)

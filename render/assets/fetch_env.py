@@ -2,14 +2,14 @@
 """Download the CC0 environment assets used by render/env.py into render/assets/cache.
 
 Plain stdlib Python (3.8+), so it runs with the system python or Blender's python:
-    python3 render/assets/fetch_env.py              # 4K HDRI + 2K textures (about 55 MB on disk)
-    python3 render/assets/fetch_env.py --hdri 8k    # sharper horizon for 4K output (96 MB instead of 24 MB)
+    python3 render/assets/fetch_env.py              # 4K HDRI + 2K textures (about 70 MB on disk)
+    python3 render/assets/fetch_env.py --hdri 8k    # sharper horizon for 4K output (about 100 MB, not 27 MB)
     python3 render/assets/fetch_env.py --hdri 2k    # smaller HDRI (about 7 MB)
     python3 render/assets/fetch_env.py --force      # re-download everything
 
-All assets are CC0 from Poly Haven (see render/assets/CREDITS.md). URLs are resolved through
-api.polyhaven.com/files/<id> with a fallback to the stable dl.polyhaven.org pattern. (AMBIENTCG below is kept for
-ambientCG zips but currently empty.) env.py builds without any of these files (procedural
+All assets are CC0 from Poly Haven and ambientCG (see render/assets/CREDITS.md). Poly Haven URLs are resolved
+through api.polyhaven.com/files/<id> with a fallback to the stable dl.polyhaven.org pattern; the ambientCG lawn
+comes as a zip of which only the needed maps are kept. env.py builds without any of these files (procedural
 fallbacks), they only make it look better.
 """
 import argparse
@@ -24,19 +24,19 @@ import zipfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(HERE, "cache")
 
-HDRI = "qwantani_noon"      # clear deep-blue sky, high harsh sun (50 deg), dry hazy horizon
+HDRI = "pretoria_gardens"   # sunny with cumulus (sun 52 deg), green trees and lawn all round
 # Poly Haven texture id -> real-world size in metres ("dimensions"), used by env.py for scale
 TEXTURES = {
-    "dry_ground_rocks": 4.0,    # dry soil with pebbles: ground under the grass
-    "baseball_playground": 3.0, # trampled dusty dirt with prints: hoof-trodden bare patches, tracks
-    "park_dirt": 3.0,           # dusty soil with fine organic debris: mixed in for variety
-    "bark_bluegum": 1.82,       # blue gum bark (re-toned pale in env.py): gum trunks, fallen gum logs
-    "rough_wood": 0.5,          # weathered grey timber: fence posts, strainers
+    "dry_ground_rocks": 4.0,    # soil with pebbles: small bare spots in the lawn
+    "bark_bluegum": 1.82,       # blue gum bark (re-toned in env.py): tree trunks, dead trees, stump, sticks
+    "rough_wood": 0.5,          # weathered grey timber: post-and-rail fence, gate and shelter posts
 }
 # Poly Haven map key -> local file suffix
 MAPS = {"Diffuse": "diff", "nor_gl": "nor_gl", "arm": "arm"}
 # ambientCG material id -> (size m, {zip member suffix: local suffix})
-AMBIENTCG = {}
+AMBIENTCG = {
+    "Grass004": (1.4, {"Color": "diff", "NormalGL": "nor_gl", "Roughness": "rough"}),   # mown lawn sward
+}
 UA = {"User-Agent": "grappstar-render-fetch/1.0"}
 
 

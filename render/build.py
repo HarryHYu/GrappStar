@@ -637,7 +637,7 @@ def build_line(scene, mo, models, env, report):
 
 # =============================================================================================================
 # grass: density control and the dart pressing / parting the grass
-MOW = 0.35                          # grass height factor in the mown patches (env:grass modifier input "Mow")
+MOW = 0.42                          # grass height factor in the mown patches (env:grass modifier input "Mow")
 
 
 def grass_mods(scene, mo, rest_press, mow_zones):
@@ -721,29 +721,25 @@ def grass_mods(scene, mo, rest_press, mow_zones):
         lvl = g.gi.outputs["Mow"] if strength is None else strength
         fz = g.math("ADD", 1.0, g.math("MULTIPLY", w, g.math("SUBTRACT", lvl, 1.0)))
         mowf = fz if mowf is None else g.math("MINIMUM", mowf, fz)
-    dx, dy, _ = g.sep(dsum)
-    axis = g.vmath("NORMALIZE", g.xyz(g.math("MULTIPLY", dy, -1.0), dx, 0.0))
-    out_link = iop.outputs["Instances"].links[0]
-    dst = out_link.to_socket
+    dirv = g.vmath("NORMALIZE", dsum)
+    dst = iop.outputs["Instances"].links[0].to_socket
     sci = g.n("GeometryNodeScaleInstances")
     g.put(sci.inputs["Instances"], iop.outputs["Instances"])
-    g.put(sci.inputs["Scale"], g.xyz(g.math("ADD", 1.0, g.math("MULTIPLY", fsum, 0.35)),
-                                     g.math("ADD", 1.0, g.math("MULTIPLY", fsum, 0.35)),
-                                     g.math("MULTIPLY", mowf, g.math("SUBTRACT", 1.0, g.math("MULTIPLY", fsum, 0.8)))))
+    g.put(sci.inputs["Scale"], g.xyz(g.math("ADD", 1.0, g.math("MULTIPLY", fsum, 0.2)),
+                                     g.math("ADD", 1.0, g.math("MULTIPLY", fsum, 0.2)),
+                                     g.math("MULTIPLY", mowf, g.math("SUBTRACT", 1.0, g.math("MULTIPLY", fsum, 0.85)))))
     sci.inputs["Local Space"].default_value = True
-    aa = g.n("FunctionNodeAxisAngleToRotation")
-    g.put(aa.inputs["Axis"], axis)
-    g.put(aa.inputs["Angle"], g.math("MULTIPLY", fsum, 1.15))
-    roi = g.n("GeometryNodeRotateInstances")
-    g.put(roi.inputs["Instances"], sci.outputs[0])
-    g.put(roi.inputs["Rotation"], aa.outputs[0])
-    g.put(roi.inputs["Pivot Point"], pos)
-    roi.inputs["Local Space"].default_value = False
+    # pressed clumps become flat mats pushed a little out from under the dart (no tilt: a tilted mat would lift
+    # its inner blades into the body)
+    tri = g.n("GeometryNodeTranslateInstances")
+    g.put(tri.inputs["Instances"], sci.outputs[0])
+    g.put(tri.inputs["Translation"], g.vmath("SCALE", dirv, scale=g.math("MULTIPLY", fsum, 0.015)))
+    tri.inputs["Local Space"].default_value = False
     sel = g.n("FunctionNodeCompare", data_type="FLOAT", operation="GREATER_THAN")
     g.put(sel.inputs["A"], fsum)
     sel.inputs["B"].default_value = 1e-4
-    g.put(roi.inputs["Selection"], sel.outputs[0])
-    ng.links.new(roi.outputs[0], dst)
+    g.put(tri.inputs["Selection"], sel.outputs[0])
+    ng.links.new(tri.outputs[0], dst)
     say("grass: Density input + %d presses" % len(presses))
 
 
@@ -816,8 +812,10 @@ def crumb_nodes(src):
     e2r = g.n("FunctionNodeEulerToRotation")
     g.put(e2r.inputs[0], rot)
     g.put(iop.inputs["Rotation"], e2r.outputs[0])
-    size = g.attr("size")
-    g.put(iop.inputs["Scale"], g.xyz(size, size, size))
+    grow = g.math("MINIMUM", g.math("MAXIMUM", g.math("DIVIDE", g.math("SUBTRACT", t, t0),
+                                                    g.math("MAXIMUM", g.attr("grow"), 0.01)), 0.0), 1.0)
+    size = g.math("MULTIPLY", g.attr("size"), grow)
+    g.put(iop.inputs["Scale"], g.xyz(size, size, g.math("MULTIPLY", size, g.attr("flat"))))
     g.ng.links.new(iop.outputs[0], g.go.inputs[0])
     return g.ng
 
@@ -852,19 +850,31 @@ def auger_radius():
     return float(np.percentile(np.hypot(v[:, 1], v[:, 2]), 98))
 
 
+def auger_tip():
+    """distance from the pod pivot to the auger tip along the auger axis (local -x)"""
+    ob = bpy.data.objects.get("dart:drill_leg_L_auger")
+    if ob is None or ob.type != "MESH":
+        return 0.1
+    v = np.array([vv.co[:] for vv in ob.data.vertices])
+    return float(-v[:, 0].min())
+
+
 def build_fx(scene, mo, models, env, report):
+    """soil: a crumb burst at the impact, crumbs spilling from both drills while they screw in, and the
+    disturbed soil heaped along each drill's cut (the auger crosses the surface along a short track while its
+    pod swings down): all one geometry-nodes point cloud (fx:soil_crumbs)"""
     fx = coll(scene, "FX")
     mat = mat_soil()
     src = crumb_sources(scene, mat)
     rng = np.random.default_rng(1021)
-    rows = []                                          # p0, v0, t0, tl, g, size, rot0, spin, pick
+    rows = []                                          # p0, v0, t0, tl, g, size, rot0, spin, pick, grow, flat
 
-    def add(p0, v0, t0, gfr, size, ground_z):
+    def add(p0, v0, t0, gfr, size, ground_z, grow=2.0, flat=1.0):
         vz = v0[2]
         z0 = p0[2] - ground_z - size * 0.35
-        tl = (vz + math.sqrt(max(vz * vz + 2 * gfr * max(z0, 0.0), 0.0))) / gfr
-        rows.append((p0, v0, t0, tl, gfr, size, rng.uniform(0, 6.3, 3), rng.normal(0, 0.35, 3),
-                     int(rng.integers(0, 6))))
+        tl = (vz + math.sqrt(max(vz * vz + 2 * gfr * max(z0, 0.0), 0.0))) / gfr if gfr > 0 else 0.0
+        rows.append((p0, v0, t0, tl, gfr, size, rng.uniform(0, 6.3, 3), rng.normal(0, 0.35, 3) * (gfr > 0),
+                     int(rng.integers(0, 6)), grow, flat))
 
     # impact (slow motion about 6x at the impact): film frame units
     f_imp = mo.e("impact", 717)
@@ -881,40 +891,72 @@ def build_fx(scene, mo, models, env, report):
         gz = env.terrain_height(nose[0], nose[1])
         p0 = np.array([nose[0], nose[1], gz]) + np.r_[rng.normal(0, 0.008, 2), 0.004]
         add(p0, v, f_imp + rng.uniform(0, 3), gfr, rng.uniform(0.0015, 0.004), gz)
-    # drills: crumbs spill out of both holes while the augers screw in (real time)
-    f_d0, f_d1 = mo.e("drills_start", 1102), mo.e("anchored", 1393)
-    fq = np.arange(f_d0, f_d1 + 1, dtype=float)
+    # drills (real time)
+    f_p0 = mo.e("pods_deploy_start", mo.e("drills_start", 1102) - 20)
+    f_d1 = mo.e("anchored", 1393)
+    fq = np.arange(f_p0, f_d1 + 1, dtype=float)
     axes = drill_axes(mo, models, fq)
     gfr = G / mo.fps ** 2
-    entry = {}
-    rad = auger_radius()
+    rad, tip = auger_radius(), auger_tip()
+    entry, contact = {}, {}
     for side, (org, dirs) in axes.items():
-        E = []
+        E, S = [], []
         for o, d in zip(org, dirs):
             gz = env.terrain_height(o[0], o[1])
-            sdist = (gz - o[2]) / d[2] if d[2] < -1e-6 else 0.0
-            E.append(o + d * max(sdist, 0.0))
-        E = np.array(E)
-        entry[side] = E
-        cg = mo.dart_cg[f_d1]
+            sd = (gz - o[2]) / d[2] if d[2] < -1e-6 else 1e3
+            E.append(o + d * min(max(sd, 0.0), tip))
+            S.append(sd)
+        E, S = np.array(E), np.array(S)
+        inside = np.where(S < tip - 0.002)[0]
+        if not len(inside):
+            continue
+        i0 = int(inside[0])
+        f_c = float(fq[i0])
+        entry[side], contact[side] = E, f_c
+        cg = mo.dart_cg[int(f_d1)]
         away = math.atan2(E[-1][1] - cg[1], E[-1][0] - cg[0])
-        n = 150
-        tt = np.sort(f_d0 + (f_d1 - 40 - f_d0) * rng.random(n) ** 1.4)
+        # crumbs thrown out by the auger flights at the current surface crossing
+        n = 260
+        tt = np.sort(f_c + (f_d1 - 25 - f_c) * rng.random(n) ** 1.3)
         for t0 in tt:
-            i = int(np.clip(t0 - f_d0, 0, len(E) - 1))
-            a = away + rng.uniform(-1.9, 1.9)
-            r0 = rad * rng.uniform(0.9, 1.4)
+            i = int(np.clip(t0 - f_p0, 0, len(E) - 1))
+            a = away + rng.uniform(-2.0, 2.0)
+            r0 = rad * rng.uniform(0.9, 1.3)
             gz = env.terrain_height(E[i][0], E[i][1])
-            p0 = np.array([E[i][0] + r0 * math.cos(a), E[i][1] + r0 * math.sin(a), gz + 0.004])
-            sp = rng.uniform(0.03, 0.28)
-            v = np.array([math.cos(a) * sp, math.sin(a) * sp, rng.uniform(0.05, 0.32)]) / mo.fps
-            add(p0, v, float(t0), gfr, rng.uniform(0.0012, 0.0035), gz)
+            p0 = np.array([E[i][0] + r0 * math.cos(a), E[i][1] + r0 * math.sin(a), gz + 0.003])
+            sp = rng.uniform(0.03, 0.25)
+            v = np.array([math.cos(a) * sp, math.sin(a) * sp, rng.uniform(0.05, 0.30)]) / mo.fps
+            add(p0, v, float(t0), gfr, rng.uniform(0.0012, 0.0032), gz, grow=2.0)
+        # heaped soil along both sides of the cut and round the final hole, growing as the cut passes
+        trk = E[i0:]
+        tdir = trk[-1][:2] - trk[0][:2]
+        tdir = tdir / (np.linalg.norm(tdir) + 1e-9)
+        perp = np.array([-tdir[1], tdir[0]])
+        L = np.r_[0.0, np.cumsum(np.linalg.norm(np.diff(trk[:, :2], axis=0), axis=1))]
+        for l in np.arange(0.0, L[-1] + 1e-6, 0.0035):
+            j = int(np.searchsorted(L, l))
+            j = min(j, len(trk) - 1)
+            c = trk[j]
+            for sgn in (-1, 1):
+                off = rad + rng.uniform(0.002, 0.007)
+                q = c[:2] + perp * sgn * off + rng.normal(0, 0.0015, 2)
+                gz = env.terrain_height(q[0], q[1])
+                sz = rng.uniform(0.0035, 0.0075)
+                add(np.array([q[0], q[1], gz - sz * 0.12]), np.zeros(3), float(fq[i0 + j]) + 2, 0.0, sz, gz,
+                    grow=30.0, flat=rng.uniform(0.35, 0.6))
+        for k in range(26):
+            a = rng.uniform(0, 2 * math.pi)
+            q = E[-1][:2] + (rad + rng.uniform(0.002, 0.012)) * np.array([math.cos(a), math.sin(a)])
+            gz = env.terrain_height(q[0], q[1])
+            sz = rng.uniform(0.003, 0.007)
+            add(np.array([q[0], q[1], gz - sz * 0.12]), np.zeros(3), float(f_d1) - rng.uniform(20, 120), 0.0, sz,
+                gz, grow=40.0, flat=rng.uniform(0.35, 0.6))
     me = bpy.data.meshes.new("fx:soil_crumbs")
     me.vertices.add(len(rows))
     me.vertices.foreach_set("co", np.array([r[0] for r in rows], np.float32).ravel())
     for nm, col_i, dt in (("v0", 1, "FLOAT_VECTOR"), ("t0", 2, "FLOAT"), ("tl", 3, "FLOAT"), ("g", 4, "FLOAT"),
                           ("size", 5, "FLOAT"), ("rot0", 6, "FLOAT_VECTOR"), ("spin", 7, "FLOAT_VECTOR"),
-                          ("pick", 8, "INT")):
+                          ("pick", 8, "INT"), ("grow", 9, "FLOAT"), ("flat", 10, "FLOAT")):
         a = me.attributes.new(nm, dt, "POINT")
         vals = np.array([r[col_i] for r in rows])
         if dt == "FLOAT_VECTOR":
@@ -928,48 +970,8 @@ def build_fx(scene, mo, models, env, report):
     fx.objects.link(ob)
     md = ob.modifiers.new("crumbs", "NODES")
     md.node_group = crumb_nodes(src)
-    # mound rings round each hole, growing while the auger screws in
-    import bmesh
-    for side, E in entry.items():
-        bm = bmesh.new()
-        nseg, nring = 36, 6
-        r_in, r_out, h = rad + 0.0012, rad + 0.016, 0.0055
-        rows_v = []
-        for j in range(nring + 1):
-            u = j / nring
-            rr = r_in + (r_out - r_in) * u
-            zz = h * math.sin(math.pi * min(1.0, 0.15 + 0.85 * u)) * (1 - u) ** 0.3 + (-0.0025 if j == nring else 0)
-            ring = []
-            for i in range(nseg):
-                a = 2 * math.pi * i / nseg
-                jit = 1 + 0.18 * math.sin(3 * a + 1.3 * j) * rng.uniform(0.6, 1.0)
-                ring.append(bm.verts.new((rr * jit * math.cos(a), rr * jit * math.sin(a),
-                                          zz * rng.uniform(0.75, 1.15))))
-            rows_v.append(ring)
-        for j in range(nring):
-            for i in range(nseg):
-                i2 = (i + 1) % nseg
-                bm.faces.new((rows_v[j][i], rows_v[j][i2], rows_v[j + 1][i2], rows_v[j + 1][i]))
-        me = bpy.data.meshes.new("fx:mound_" + side)
-        bm.to_mesh(me)
-        bm.free()
-        me.materials.append(mat)
-        for p in me.polygons:
-            p.use_smooth = True
-        mo_ob = bpy.data.objects.new("fx:mound_" + side, me)
-        fx.objects.link(mo_ob)
-        e = E[-1]
-        mo_ob.location = (e[0], e[1], env.terrain_height(e[0], e[1]) - 0.0008)
-        fk = [f_d0 - 1, f_d0 + 25, f_d0 + 110, f_d1]
-        sc = [(0.25, 0.25, 0.0), (0.5, 0.5, 0.35), (0.85, 0.85, 0.8), (1.0, 1.0, 1.0)]
-        for i in range(3):
-            key_curve(mo_ob, "scale", i, fk, [v[i] for v in sc])
-        for fc in all_fcurves(mo_ob):
-            for k in fc.keyframe_points:
-                k.interpolation = "BEZIER"
-            fc.update()
     report["fx"] = dict(crumbs=len(rows), drill_entry={k: np.round(v[-1], 4).tolist() for k, v in entry.items()},
-                        auger_radius=round(rad, 4))
+                        drill_contact_frame=contact, auger_radius=round(rad, 4), auger_tip=round(tip, 4))
     say("fx:", report["fx"])
     return entry
 
@@ -1199,7 +1201,8 @@ def build(args, report):
     nose_imp = mo.dart_point((0.0, 0.0, 0.0), f_imp)
     rest_press = [("fx:press_impact", nose_imp[:2], 0.045, f_imp, 0.6),
                   ("fx:press_lie", lie[:2], 0.075, f_imp + 25, 0.7)]
-    mow = [(float(rest[0]), float(rest[1]), 0.9, 2.0, None), (0.0, 0.0, 0.75, 1.6, None)]
+    mow = [(float(rest[0]), float(rest[1]), 0.45, 1.1, 0.22), (float(rest[0]), float(rest[1]), 1.1, 2.6, None),
+           (0.0, 0.0, 0.75, 1.6, None)]
     for side in ("L", "R"):                    # trampled round the drill holes (the drilling close-up)
         e = entry0[side][0]
         mow.append((float(e[0]), float(e[1]), 0.05, 0.16, 0.18))
